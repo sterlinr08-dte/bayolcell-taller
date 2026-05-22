@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Barcode+39&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
 <style>
 :root {
@@ -45,7 +45,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--blue-btn); box-s
 .btn-light:hover { background: #f8fafc; }
 .err { display: none; background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; padding: 10px; border-radius: 8px; font-size: 13px; margin-bottom: 15px; text-align: left; }
 
-/* ESTRUCTURA GENERAL INTERFAZ APRECIADA EN IMAGEN 8 */
+/* ESTRUCTURA GENERAL INTERFAZ */
 .app { display: none; height: 100vh; }
 .sidebar { width: 260px; background: var(--sidebar-bg); color: #fff; display: flex; flex-direction: column; flex-shrink: 0; box-shadow: 4px 0 15px rgba(0,0,0,0.15); z-index: 10; }
 .side-profile { padding: 22px 20px; display: flex; align-items: center; gap: 12px; background: rgba(0,0,0,0.15); border-bottom: 1px solid rgba(255,255,255,0.05); }
@@ -72,24 +72,25 @@ input:focus, select:focus, textarea:focus { border-color: var(--blue-btn); box-s
 .view { display: none; }
 .view.active { display: block; }
 
-/* CARDS Y SOLAPAS ESTILO SÓLIDO */
+/* CARDS */
 .card { background: var(--card-bg); border-radius: 12px; border: 1px solid #cbd5e1; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); margin-bottom: 20px; }
 .kpi-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 20px; }
-.kpi-box { background: #fff; border-radius: 8px; padding: 14px; border-top: 4px solid var(--blue-btn); box-shadow: 0 2px 4px rgba(0,0,0,0.02); position: relative; border: 1px solid #cbd5e1; border-top: 4px solid var(--blue-btn); }
+.kpi-box { background: #fff; border-radius: 8px; padding: 14px; border-top: 4px solid var(--blue-btn); box-shadow: 0 2px 4px rgba(0,0,0,0.02); position: relative; border: 1px solid #cbd5e1; }
 .kpi-box small { font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; display: block; }
 .kpi-box strong { font-size: 26px; font-weight: 800; display: block; margin-top: 4px; color: var(--text-dark); }
 .kpi-box i { position: absolute; right: 12px; bottom: 12px; font-size: 22px; color: var(--text-muted); opacity: 0.2; }
 
 .layout-dashboard { display: grid; grid-template-columns: 1.3fr 0.7fr; gap: 20px; }
+.layout-inventario { display: flex; flex-direction: column; gap: 20px; }
 
-/* BLOQUES DE RECEPCIÓN FIDELIZADOS */
+/* RECONSTRUCCIÓN RECEPCIÓN */
 .block-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; align-items: start; }
 .block-card { background: #fff; border-radius: 8px; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); overflow: hidden; }
 .block-header { padding: 11px 14px; font-size: 12px; font-weight: 800; color: #fff; text-transform: uppercase; letter-spacing: 0.5px; text-shadow: 0 1px 1px rgba(0,0,0,0.1); }
 .header-blue-dark { background: #0033aa; }
 .header-blue-light { background: #0056b3; }
 .header-blue-sec { background: #0044cc; }
-.block-body { padding: 14px; }
+.block-body { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
 
 .checks-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .checks-layout label { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; text-transform: none; color: var(--text-dark); background: #f8fafc; padding: 6px; border: 1px solid #cbd5e1; border-radius: 6px; margin: 0; cursor: pointer; }
@@ -103,12 +104,15 @@ td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: var(--text-dar
 tr:hover td { background: #f8fafc; }
 .badge { padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
 
-/* SECCIÓN DEL GENERADOR DE ETICUETAS / CODES */
+/* SECCIÓN CODES */
 .label-preview-card { background: #fff; border: 2px dashed #94a3b8; border-radius: 8px; padding: 20px; width: 72mm; margin: 0 auto; font-family: 'Courier New', Courier, monospace; color: #000; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-.barcode-visual { font-family: 'Libre Barcode 39', Arial, sans-serif; font-size: 38px; letter-spacing: 2px; margin: 10px 0; display: block; }
+.barcode-visual { font-family: 'Libre Barcode 39', Arial, sans-serif; font-size: 42px; display: block; margin: 5px 0; }
 
 .toast { position: fixed; right: 20px; bottom: 20px; background: #0f172a; color: #fff; border-radius: 8px; padding: 12px 18px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); display: none; z-index: 99; font-size: 13px; font-weight: 600; }
 .print-area { display: none; }
+
+/* NUEVO ACCESORIO FORMULARIO ACTIVO */
+.form-inline-asset { display: grid; grid-template-columns: repeat(5, 1fr) auto; gap: 10px; align-items: end; background: #f8fafc; border: 1px dashed var(--border-color); padding: 15px; border-radius: 8px; margin-bottom: 15px; }
 
 @media print {
     body * { visibility: hidden; }
@@ -174,7 +178,7 @@ tr:hover td { background: #f8fafc; }
                 <div class="kpi-row">
                     <div class="kpi-box" style="border-top-color:#3b82f6;"><small>Recibidos Hoy</small><strong id="kHoy">0</strong><i class="ti ti-download"></i></div>
                     <div class="kpi-box" style="border-top-color:#f59e0b;"><small>En Diagnóstico</small><strong id="kDiag">0</strong><i class="ti ti-search"></i></div>
-                    <div class="kpi-box" style="border-top-color:#10b981;"><small>En Reparación</small><strong id="kRep">0</strong><i class="ti ti-settings"></i></div>
+                    <div class="kpi-box" style="border-top-color:#10b981;"><small>En Reparación</strong ><strong id="kRep">0</strong><i class="ti ti-settings"></i></div>
                     <div class="kpi-box" style="border-top-color:#ef4444;"><small>Espera Pieza</small><strong id="kPiezas">0</strong><i class="ti ti-hourglass"></i></div>
                     <div class="kpi-box" style="border-top-color:#8b5cf6;"><small>Listos Entrega</small><strong id="kListos">0</strong><i class="ti ti-circle-check"></i></div>
                     <div class="kpi-box" style="border-top-color:#06b6d4;"><small>Reacondicionados</small><strong id="kRefurb">0</strong><i class="ti ti-refresh"></i></div>
@@ -205,14 +209,14 @@ tr:hover td { background: #f8fafc; }
                     <div class="block-card">
                         <div class="block-header header-blue-dark">Datos del Cliente y Equipo</div>
                         <div class="block-body">
-                            <div class="input-group"><label>Nombre Cliente *</label><input id="c_nombre" placeholder="Ej. Juan Pérez"></div>
-                            <div class="input-group"><label>WhatsApp *</label><input id="c_whatsapp" placeholder="809-123-4567"></div>
-                            <div class="input-group"><label>Cédula</label><input id="c_cedula" placeholder="001-0000000-0"></div>
-                            <div class="input-group"><label>Marca *</label><input id="e_marca" placeholder="Apple, Samsung, etc."></div>
-                            <div class="input-group"><label>Modelo Exacto *</label><input id="e_modelo" placeholder="iPhone 13 Pro Max"></div>
-                            <div class="input-group"><label>Capacidad (GB) *</label><input id="e_capacidad" placeholder="128GB"></div>
-                            <div class="input-group"><label>IMEI / Serial *</label><input id="e_imei" placeholder="356789..."></div>
-                            <div class="input-group"><label>Falla del Equipo *</label><textarea id="o_falla" rows="2" placeholder="No enciende / Pantalla rota"></textarea></div>
+                            <div><label>Nombre Cliente *</label><input id="c_nombre" placeholder="Ej. Juan Pérez"></div>
+                            <div><label>WhatsApp *</label><input id="c_whatsapp" placeholder="809-123-4567"></div>
+                            <div><label>Cédula</label><input id="c_cedula" placeholder="001-0000000-0"></div>
+                            <div><label>Marca *</label><input id="e_marca" placeholder="Apple, Samsung, etc."></div>
+                            <div><label>Modelo Exacto *</label><input id="e_modelo" placeholder="iPhone 13 Pro Max"></div>
+                            <div><label>Capacidad (GB) *</label><input id="e_capacidad" placeholder="128GB"></div>
+                            <div><label>IMEI / Serial *</label><input id="e_imei" placeholder="356789..."></div>
+                            <div><label>Falla del Equipo *</label><textarea id="o_falla" rows="2" placeholder="No enciende / Pantalla rota"></textarea></div>
                         </div>
                     </div>
 
@@ -229,17 +233,17 @@ tr:hover td { background: #f8fafc; }
                                 <label><input type="checkbox" value="Cámara rota"> Cámara rota</label>
                                 <label><input type="checkbox" value="Puerto malo"> Puerto malo</label>
                             </div>
-                            <div class="input-group" style="margin-top:15px;"><label>Accesorios que deja</label><input id="o_accesorios" placeholder="Cover, Cable, Nada"></div>
+                            <div style="margin-top:5px;"><label>Accesorios que deja</label><input id="o_accesorios" placeholder="Cover, Cable, Nada"></div>
                         </div>
                     </div>
 
                     <div class="block-card">
                         <div class="block-header header-blue-sec">Seguridad del Dispositivo</div>
                         <div class="block-body">
-                            <div class="input-group"><label>Tipo de Bloqueo</label><select id="o_acceso"><option>PIN</option><option>Patrón</option><option>Password</option><option>Sin Clave</option></select></div>
-                            <div class="input-group"><label>Clave de Pantalla</label><input id="o_clave" placeholder="1234 o Patrón descripto"></div>
-                            <div class="input-group"><label>Cuenta iCloud / Google Correo</label><input id="o_cuenta" placeholder="usuario@icloud.com"></div>
-                            <div style="margin-top:30px;">
+                            <div><label>Tipo de Bloqueo</label><select id="o_acceso"><option>PIN</option><option>Patrón</option><option>Password</option><option>Sin Clave</option></select></div>
+                            <div><label>Clave de Pantalla</label><input id="o_clave" placeholder="1234 o Patrón descripto"></div>
+                            <div><label>Cuenta iCloud / Google Correo</label><input id="o_cuenta" placeholder="usuario@icloud.com"></div>
+                            <div style="margin-top:15px;">
                                 <button class="btn btn-dark" style="width:100%; margin-bottom:10px;" onclick="guardarRecepcion(false)"><i class="ti ti-device-floppy"></i> Guardar Base Datos</button>
                                 <button class="btn btn-blue" style="width:100%" onclick="guardarRecepcion(true)"><i class="ti ti-printer"></i> Registrar + Ticket</button>
                             </div>
@@ -263,32 +267,46 @@ tr:hover td { background: #f8fafc; }
             </div>
 
             <div id="v-inventario" class="view">
-                <div class="card">
-                    <h3 style="margin:0 0 15px 0;"><i class="ti ti-box-seam" style="color:var(--blue-btn);"></i> 1. Refacciones y Componentes (Inventario Normal)</h3>
-                    <div class="table-wrap">
-                        <table>
-                            <thead>
-                                <tr><th>Código SKU</th><th>Pieza / Componente</th><th>Stock</th><th>Costo Unidad</th></tr>
-                            </thead>
-                            <tbody id="partsTable"></tbody>
-                        </table>
+                <div class="layout-inventario">
+                    <div class="card">
+                        <h3 style="margin:0 0 15px 0;"><i class="ti ti-box-seam" style="color:var(--blue-btn);"></i> 1. Refacciones y Componentes (Inventario Normal)</h3>
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr><th>Código SKU</th><th>Pieza / Componente</th><th>Stock</th><th>Costo Unidad</th></tr>
+                                </thead>
+                                <tbody id="partsTable"></tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
 
-                <div class="card" style="border-top: 4px solid #f59e0b;">
-                    <h3 style="margin:0 0 15px 0;"><i class="ti ti-tools" style="color:#f59e0b;"></i> 2. Control de Activos Fijos y Herramientas del Taller</h3>
-                    <div class="table-wrap">
-                        <table>
-                            <thead>
-                                <tr><th>Código Activo</th><th>Herramienta / Equipo Laboratorio</th><th>Cantidad</th><th>Estado Técnico</th><th>Ubicación / Asignado</th></tr>
-                            </thead>
-                            <tbody id="assetsTable">
-                                <tr><td><code>HERR-001</code></td><td><b>Estación de Soldadura JBC CD-2BFE</b></td><td>2 Uds</td><td><span class="badge" style="background:#d1fae5; color:#065f46;">Excelente</span></td><td>Mesa Central (Luis)</td></tr>
-                                <tr><td><code>HERR-002</code></td><td><b>Microscopio Trinocular Trinocular Kaisi 7050</b></td><td>3 Uds</td><td><span class="badge" style="background:#d1fae5; color:#065f46;">Excelente</span></td><td>Laboratorio Micro</td></tr>
-                                <tr><td><code>HERR-003</code></td><td><b>Fuente de Poder Regulable Sugon 3005D</b></td><td>2 Uds</td><td><span class="badge" style="background:#fee2e2; color:#991b1b;">Mantenimiento</span></td><td>Mesa 2 (Carlos)</td></tr>
-                                <tr><td><code>HERR-004</code></td><td><b>Manta Térmica CPB Separadora de Pantallas</b></td><td>1 Ud</td><td><span class="badge" style="background:#fef3c7; color:#92400e;">Desgaste Medio</span></td><td>Área de Apertura</td></tr>
-                            </tbody>
-                        </table>
+                    <div class="card" style="border-top: 4px solid #f59e0b;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h3 style="margin:0;"><i class="ti ti-tools" style="color:#f59e0b;"></i> 2. Control de Activos Fijos y Herramientas del Taller</h3>
+                            <button class="btn btn-light" style="padding: 6px 12px; font-size: 12px;" onclick="toggleFormActivo()"><i class="ti ti-plus"></i> Registrar Nueva Herramienta</button>
+                        </div>
+
+                        <div id="formAssetContainer" style="display: none;">
+                            <div class="form-inline-asset">
+                                <div><label>Código Activo</label><input id="ast_codigo" placeholder="HERR-005"></div>
+                                <div><label>Herramienta / Equipo</label><input id="ast_nombre" placeholder="Ej. Cautín Sugon"></div>
+                                <div><label>Cantidad</label><input id="ast_cantidad" type="number" value="1"></div>
+                                <div><label>Estado Técnico</label><select id="ast_estado"><option>Excelente</option><option>Desgaste Medio</option><option>Mantenimiento</option></select></div>
+                                <div><label>Asignación / Destino</label><input id="ast_asignado" placeholder="Mesa 3 (Juan)"></div>
+                                <button class="btn btn-blue" onclick="guardarActivoTaller()"><i class="ti ti-device-floppy"></i> Guardar</button>
+                            </div>
+                        </div>
+
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr><th>Código Activo</th><th>Herramienta / Equipo Laboratorio</th><th>Cantidad</th><th>Estado Técnico</th><th>Ubicación / Asignado</th></tr>
+                                </thead>
+                                <tbody id="assetsTable">
+                                    <tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Cargando herramientas del laboratorio...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -306,7 +324,7 @@ tr:hover td { background: #f8fafc; }
                     </div>
 
                     <div class="card" style="background:#f8fafc; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-                        <h4 style="margin-top:0;">Vista Previa del Label Adhesivo</h4>
+                        <h4>Vista Previa del Label Adhesivo</h4>
                         
                         <div class="label-preview-card" id="labelCard">
                             <div id="lblLiveLogo" style="font-size:24px; margin-bottom:5px;"><i class="ti ti-brand-apple"></i></div>
@@ -315,7 +333,7 @@ tr:hover td { background: #f8fafc; }
                             <div style="font-size:11px; text-align:left; margin-bottom:4px;"><b>EQUIPO:</b> <span id="lblLiveMod">iPhone 11 Pro 64GB Silver</span></div>
                             <div style="font-size:11px; text-align:left; margin-bottom:4px;"><b>GB:</b> <span id="lblLiveGb">64 GB</span></div>
                             <div style="font-size:11px; text-align:left; margin-bottom:8px;"><b>IMEI:</b> <span id="lblLiveImei">356789123456789</span></div>
-                            <div class="barcode-visual" id="lblLiveBarcode">|||||||||||||||||||||||||||</div>
+                            <div class="barcode-visual" id="lblLiveBarcode">*356789123456789*</div>
                             <div style="font-size:9px; font-weight:bold; margin-top:4px;">ESTADO: Reacondicionado</div>
                         </div>
                     </div>
@@ -336,7 +354,7 @@ const CONFIG_KEY = "sb_publishable_PynS5ZjKoQ36HCpguVzxaw_KZOlagtz";
 const supabaseClient = supabase.createClient(CONFIG_URL, CONFIG_KEY);
 
 let sessionUser = null;
-let cache = { ordenes: [], clientes: [], equipos: [], piezas: [] };
+let cache = { ordenes: [], clientes: [], equipos: [], piezas: [], activos: [] }; // Agregado activos al caché global
 
 function toast(msg) {
     const t = document.getElementById("toast");
@@ -357,7 +375,7 @@ async function doLogin() {
         sessionUser = data[0];
         localStorage.setItem("bayol_session", JSON.stringify(sessionUser));
         startApp();
-    } catch(e) { alert("Error."); }
+    } catch(e) { alert("Error de autenticación."); }
 }
 
 function logout() { localStorage.removeItem("bayol_session"); location.reload(); }
@@ -379,13 +397,22 @@ function nav(v, btn) {
     document.getElementById("pageTitle").textContent = btn ? btn.textContent.trim() : v;
 }
 
+// CARGA FASE 2: Conexión con la nueva tabla de base de datos
 async function loadAll() {
     try {
         const rOrd = await supabaseClient.from('ordenes_reparacion').select('*').order('creado_en', { ascending: false });
         const rCli = await supabaseClient.from('clientes').select('*');
         const rEq = await supabaseClient.from('equipos').select('*');
         const rPz = await supabaseClient.from('piezas_inventario').select('*');
-        cache = { ordenes: rOrd.data || [], clientes: rCli.data || [], equipos: rEq.data || [], piezas: rPz.data || [] };
+        const rAct = await supabaseClient.from('activos_taller').select('*').order('codigo', { ascending: true }); // Query Fase 2
+        
+        cache = { 
+            ordenes: rOrd.data || [], 
+            clientes: rCli.data || [], 
+            equipos: rEq.data || [], 
+            piezas: rPz.data || [],
+            activos: rAct.data || [] 
+        };
         renderAll();
     } catch(e) { toast("Error cargando base de datos."); }
 }
@@ -400,6 +427,7 @@ function renderAll() {
     document.getElementById("kRep").textContent = cache.ordenes.filter(o => o.estado === "en_reparacion").length;
     document.getElementById("kPiezas").textContent = cache.ordenes.filter(o => o.estado === "espera_pieza").length;
     document.getElementById("kListos").textContent = cache.ordenes.filter(o => ["listo", "listo_entrega"].includes(o.estado)).length;
+    document.getElementById("kRefurb").textContent = cache.ordenes.filter(o => o.estado === "refurbish" || o.estado === "reacondicionado").length;
     
     document.getElementById("recentOrders").innerHTML = cache.ordenes.slice(0, 5).map(o => {
         const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
@@ -408,13 +436,16 @@ function renderAll() {
     
     renderOrders();
     document.getElementById("partsTable").innerHTML = cache.piezas.map(p => `<tr><td><code>${p.codigo}</code></td><td><b>${escapeHtml(p.nombre)}</b></td><td>${p.cantidad} uds</td><td>${money(p.costo)}</td></tr>`).join("");
+
+    // INTERFAZ DINÁMICA FASE 2: Renderizar las herramientas reales de la base de datos
+    renderActivosTaller();
 }
 
 function renderOrders() {
     document.getElementById("ordersTable").innerHTML = cache.ordenes.map(o => {
         const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
         return `<tr>
-            <td><b>#${String(o.numero_orden).padStart(6, "0")}</b></td>
+            <td><b>#${String(o.numero_orden ?? '').padStart(6, "0")}</b></td>
             <td>${escapeHtml(c.nombre)}</td>
             <td>${escapeHtml(e.modelo)}</td>
             <td>${escapeHtml(o.falla_reportada)}</td>
@@ -423,6 +454,55 @@ function renderOrders() {
             <td><button class="btn btn-light" style="padding:4px 8px;" onclick="cargarEnLabel('${o.id}')"><i class="ti ti-barcode"></i> Crear Label</button></td>
         </tr>`;
     }).join("");
+}
+
+// RENDER CONTROL DE ACTIVOS FASE 2
+function renderActivosTaller() {
+    if(!cache.activos.length) {
+        document.getElementById("assetsTable").innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No hay herramientas registradas.</td></tr>`;
+        return;
+    }
+    
+    document.getElementById("assetsTable").innerHTML = cache.activos.map(a => {
+        let colorBadge = "background:#d1fae5; color:#065f46;"; // Excelente
+        if(a.estado_tecnico === "Desgaste Medio") colorBadge = "background:#fef3c7; color:#92400e;";
+        if(a.estado_tecnico === "Mantenimiento") colorBadge = "background:#fee2e2; color:#991b1b;";
+        
+        return `<tr>
+            <td><code>${escapeHtml(a.codigo)}</code></td>
+            <td><b>${escapeHtml(a.nombre)}</b></td>
+            <td>${a.cantidad} Uds</td>
+            <td><span class="badge" style="${colorBadge}">${escapeHtml(a.estado_tecnico)}</span></td>
+            <td>${escapeHtml(a.asignado_a || 'Sin asignar')}</td>
+        </tr>`;
+    }).join("");
+}
+
+function toggleFormActivo() {
+    const el = document.getElementById("formAssetContainer");
+    el.style.display = el.style.display === "none" ? "block" : "none";
+}
+
+// INSERCIÓN DE DATOS FASE 2
+async function guardarActivoTaller() {
+    try {
+        const cod = val("ast_codigo"), nom = val("ast_nombre"), cant = parseInt(val("ast_cantidad")), est = document.getElementById("ast_estado").value, asig = val("ast_asignado");
+        if(!cod || !nom) return alert("Código y Nombre de la herramienta son mandatorios.");
+
+        const { data, error } = await supabaseClient.from('activos_taller').insert([{
+            codigo: cod, nombre: nom, cantidad: cant || 1, estado_tecnico: est, asignado_a: asig || null
+        }]);
+
+        if(error) throw error;
+        
+        toast("Herramienta agregada al inventario.");
+        document.getElementById("ast_codigo").value = "";
+        document.getElementById("ast_nombre").value = "";
+        document.getElementById("ast_cantidad").value = "1";
+        document.getElementById("ast_asignado").value = "";
+        toggleFormActivo();
+        await loadAll();
+    } catch(e) { alert("Error al registrar activo: Puede que el código SKU ya exista."); }
 }
 
 function cargarEnLabel(id) {
@@ -446,6 +526,7 @@ function actualizarLabelLive() {
     document.getElementById("lblLiveMod").textContent = mod;
     document.getElementById("lblLiveGb").textContent = gb;
     document.getElementById("lblLiveImei").textContent = imei;
+    document.getElementById("lblLiveBarcode").textContent = `*${imei || '000000000'}*`;
     document.getElementById("lblLiveLogo").innerHTML = (marca.includes("apple") || marca.includes("iphone")) ? `<i class="ti ti-brand-apple"></i>` : `<i class="ti ti-device-mobile"></i>`;
 }
 
@@ -465,7 +546,7 @@ function imprimirLabelAdhesivo() {
                 <b>GB:</b> ${gb}<br>
                 <b>IMEI:</b> ${imei}<br>
             </div>
-            <div style="font-size:24px; margin:5px 0;">||||||||||||||||||||||||</div>
+            <div style="font-family:'Libre Barcode 39'; font-size:48px; margin:5px 0;">*${imei}*</div>
             <b style="font-size:10px;">ESTADO: Reacondicionado</b>
         </div>
     `;
@@ -481,18 +562,19 @@ async function revelarClave(ordenId, boton) {
 async function guardarRecepcion(imprimir) {
     try {
         if(!val("c_nombre") || !val("e_modelo") || !val("e_imei")) return alert("Faltan campos mandatorios.");
-        const insC = await supabaseClient.from('clientes').insert([{ nombre: val("c_nombre"), whatsapp: val("c_whatsapp"), cedula: val("c_cedula") }]).select();
-        const insE = await supabaseClient.from('equipos').insert([{ cliente_id: insC.data[0].id, marca: val("e_marca"), modelo: val("e_modelo"), imei: val("e_imei"), capacidad: val("e_capacidad") }]).select();
+        
+        const insC = await supabaseClient.from('clientes').insert([{ nombre: val("c_nombre"), whatsapp: val("c_whatsapp") || null, cedula: val("c_cedula") || null }]).select();
+        const insE = await supabaseClient.from('equipos').insert([{ cliente_id: insC.data[0].id, marca: val("e_marca") || 'Generic', modelo: val("e_modelo"), imei: val("e_imei"), capacidad: val("e_capacidad") || null }]).select();
         const insO = await supabaseClient.from('ordenes_reparacion').insert([{
-            cliente_id: insC.data[0].id, equipo_id: insE.data[0].id, falla_reportada: val("o_falla"), condicion_fisica: getChecked("checksFisico"), accesorios_recibidos: val("o_accesorios"),
-            tipo_acceso: val("o_acceso"), clave_equipo: val("o_clave"), cuenta_icloud_google: val("o_cuenta"), creado_by: sessionUser.id
+            cliente_id: insC.data[0].id, equipo_id: insE.data[0].id, falla_reportada: val("o_falla"), condicion_fisica: getChecked("checksFisico") || 'Ninguna', accesorios_recibidos: val("o_accesorios") || 'Ninguno',
+            tipo_acceso: val("o_acceso"), clave_equipo: val("o_clave") || 'Sin clave', cuenta_icloud_google: val("o_cuenta") || null, creado_by: sessionUser.id
         }]).select();
         
-        toast("Equipo registrado.");
+        toast("Equipo registrado con éxito.");
         limpiarRecepcion();
         await loadAll();
         nav("ordenes");
-    } catch(e) { alert("Error al registrar."); }
+    } catch(e) { alert("Error al guardar los datos en Supabase."); }
 }
 
 function val(id) { return document.getElementById(id)?.value?.trim() || ""; }
