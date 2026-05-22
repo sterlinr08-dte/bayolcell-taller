@@ -117,7 +117,7 @@ tr:hover td { background: #f8fafc; }
 .select-table-state { font-size: 12px; padding: 4px 8px; border-radius: 6px; font-weight: 700; border: 1px solid var(--border-color); cursor: pointer; outline: none; width: auto; display: inline-block; }
 .audit-text { font-size: 10px; color: var(--text-muted); display: block; margin-top: 2px; font-family: monospace; }
 .grid-refurb { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-.refurb-item-card { border: 1px solid #cbd5e1; border-radius: 8px; padding: 15px; background: #f8fafc; margin-bottom: 12px; }
+.refurb-item-card { border: 1px solid #cbd5e1; border-radius: 8px; padding: 15px; background: #fff; margin-bottom: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border-left: 4px solid var(--blue-btn); }
 
 @media print {
     body * { visibility: hidden; }
@@ -367,16 +367,17 @@ tr:hover td { background: #f8fafc; }
                 <div class="grid-refurb">
                     <div class="card">
                         <h3 style="margin-top:0;"><i class="ti ti-circle-plus" style="color:var(--blue-btn);"></i> Ingresar Equipo a Refurbish</h3>
-                        <div class="form-row"><label>Modelo del Dispositivo *</label><input id="ref_modelo" placeholder="Ej. iPhone 12 Pro Max"></div>
-                        <div class="form-row"><label>Número de IMEI / Serial *</label><input id="ref_imei" placeholder="358921..."></div>
+                        <div class="form-row"><label>Modelo del Dispositivo *</label><input id="ref_modelo" placeholder="Ej. iPhone 12 Pro Max Black"></div>
+                        <div class="form-row"><label>Número de IMEI / Serial *</label><input id="ref_imei" placeholder="3589210000..."></div>
+                        <div class="form-row"><label>Proveedor / Origen del Dispositivo *</label><input id="ref_proveedor" placeholder="Ej: Lote Subasta Miami / eBay / Importador Express"></div>
                         <div class="form-row"><label>Costo de Compra (RD$) *</label><input id="ref_costo_compra" type="number" placeholder="12000"></div>
                         <div class="form-row"><label>Precio de Venta Estimado (RD$)</label><input id="ref_precio_venta" type="number" placeholder="22000"></div>
-                        <button class="btn btn-blue" style="width:100%; margin-top:10px;" onclick="registrarEquipoRefurb()"><i class="ti ti-plus"></i> Registrar en Lote</button>
+                        <button class="btn btn-blue" style="width:100%; margin-top:10px;" onclick="registrarEquipoRefurb()"><i class="ti ti-plus"></i> Registrar en Lote Comercial</button>
                     </div>
 
                     <div class="card">
                         <h3 style="margin-top:0;"><i class="ti ti-report-analytics" style="color:#10b981;"></i> Lotes Bajo Proceso de Reacondicionamiento</h3>
-                        <div id="refurbListContainer" style="max-height:460px; overflow-y:auto; padding-right:5px;">
+                        <div id="refurbListContainer" style="max-height:490px; overflow-y:auto; padding-right:5px;">
                             <p style="color:var(--text-muted); text-align:center;">Cargando lote gerencial...</p>
                         </div>
                     </div>
@@ -582,20 +583,21 @@ async function guardarActivoTaller() {
     } catch(e) { alert("Error al registrar activo."); }
 }
 
-/* MÓDULO REFURBISH */
+/* MÓDULO REFURBISH CON REGISTRO DE PROVEEDOR EN LA CONSULTA */
 async function registrarEquipoRefurb() {
     try {
-        const mod = val("ref_modelo"), imei = val("ref_imei"), cost = parseFloat(val("ref_costo_compra")) || 0, vent = parseFloat(val("ref_precio_venta")) || 0;
-        if(!mod || !imei) return alert("Modelo e IMEI son mandatorios.");
+        const mod = val("ref_modelo"), imei = val("ref_imei"), prov = val("ref_proveedor"), cost = parseFloat(val("ref_costo_compra")) || 0, vent = parseFloat(val("ref_precio_venta")) || 0;
+        if(!mod || !imei || !prov) return alert("Modelo, IMEI y Proveedor son campos mandatorios.");
 
         const { error } = await supabaseClient.from('equipos_refurbish').insert([{
-            modelo: mod, imei: imei, costo_compra: cost, precio_venta_estimado: vent, costo_repuestos: 0, estado: 'En Proceso'
+            modelo: mod, imei: imei, proveedor: prov, costo_compra: cost, precio_venta_estimado: vent, costo_repuestos: 0, estado: 'En Proceso'
         }]);
         if(error) throw error;
 
         toast("Equipo inyectado al lote de Refurbish.");
         document.getElementById("ref_modelo").value = "";
         document.getElementById("ref_imei").value = "";
+        document.getElementById("ref_proveedor").value = "";
         document.getElementById("ref_costo_compra").value = "";
         document.getElementById("ref_precio_venta").value = "";
         await loadAll();
@@ -612,6 +614,7 @@ function renderRefurbishItems() {
     cont.innerHTML = cache.refurb.map(item => {
         const costoTotal = (item.costo_compra || 0) + (item.costo_repuestos || 0);
         const margen = (item.precio_venta_estimado || 0) - costoTotal;
+        const proveedorTxt = item.proveedor || "Origen no especificado";
         
         const piezasOpciones = cache.piezas.map(p => `<option value="${p.id}[SPLIT]${p.costo}">${p.nombre} (Stock: ${p.cantidad})</option>`).join("");
 
@@ -621,9 +624,12 @@ function renderRefurbishItems() {
                     <b style="font-size:14px; color:var(--blue-btn);">${escapeHtml(item.modelo)}</b>
                     <span class="badge" style="background:#fef3c7; color:#d97706;">${item.estado}</span>
                 </div>
-                <small style="color:var(--text-muted); display:block; margin:2px 0 8px 0;">IMEI: ${escapeHtml(item.imei)}</small>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+                    <small style="color:var(--text-muted); font-weight:600;">IMEI: ${escapeHtml(item.imei)}</small>
+                    <span style="font-size:11px; background:#e2e8f0; color:#334155; padding:2px 8px; border-radius:4px; font-weight:700;"><i class="ti ti-truck-delivery"></i> Prov: ${escapeHtml(proveedorTxt)}</span>
+                </div>
                 
-                <table style="width:100%; font-size:11px; margin-bottom:10px; border:1px solid #cbd5e1;">
+                <table style="width:100%; font-size:11px; margin-top:10px; margin-bottom:10px; border:1px solid #cbd5e1;">
                     <tr><td>Costo Compra:</td><td><b>${money(item.costo_compra)}</b></td></tr>
                     <tr><td>Inversión Piezas:</td><td style="color:#ef4444;"><b>+ ${money(item.costo_repuestos)}</b></td></tr>
                     <tr style="background:#f1f5f9;"><td>Costo Total:</td><td><b>${money(costoTotal)}</b></td></tr>
@@ -665,137 +671,4 @@ async function inyectarRepuestoARefurb(itemId) {
         const piezaOriginal = cache.piezas.find(x => x.id === piezaId);
         if(piezaOriginal) {
             const nuevoStock = Math.max(0, (piezaOriginal.cantidad || 1) - 1);
-            await supabaseClient.from('piezas_inventario').update({ cantidad: nuevoStock }).eq('id', piezaId);
-        }
-
-        toast("Margen recalculado y stock descontado.");
-        await loadAll();
-    } catch(e) { alert("Error al procesar costos del repuesto."); }
-}
-
-function enviarRefurbALabel(id) {
-    const item = cache.refurb.find(x => x.id === id);
-    if(!item) return;
-    document.getElementById("lbl_marca").value = "Generic";
-    document.getElementById("lbl_modelo").value = item.modelo;
-    document.getElementById("lbl_gb").value = "---";
-    document.getElementById("lbl_imei").value = item.imei;
-    document.getElementById("lbl_estado_texto").value = "Reacondicionado";
-    actualizarLabelLive();
-    nav("etiquetas");
-}
-
-function cargarEnLabel(id) {
-    const o = cache.ordenes.find(x => x.id === id);
-    if(!o) return;
-    const eq = findEquipo(o.equipo_id);
-    document.getElementById("lbl_marca").value = eq.marca || "Apple";
-    document.getElementById("lbl_modelo").value = eq.modelo || "";
-    document.getElementById("lbl_gb").value = eq.capacidad || "128 GB";
-    document.getElementById("lbl_imei").value = eq.imei || "";
-    document.getElementById("lbl_estado_texto").value = "Reparado Ok";
-    actualizarLabelLive();
-    nav("etiquetas");
-}
-
-/* LÓGICA DE ACTUALIZACIÓN Y DIMENSIONAMIENTO MANUAL DE ETIQUETAS */
-function cambiarDimensionesManual() {
-    const w = document.getElementById("cfg_width").value;
-    const f = document.getElementById("cfg_font").value;
-    const bh = document.getElementById("cfg_barcode_h").value;
-
-    document.getElementById("val_w").textContent = w + "mm";
-    document.getElementById("val_font").textContent = f + "px";
-    document.getElementById("val_bar").textContent = bh + "px";
-
-    const card = document.getElementById("labelCard");
-    if(card) {
-        card.style.width = w + "mm";
-        card.style.fontSize = f + "px";
-    }
-    const bar = document.getElementById("lblLiveBarcode");
-    if(bar) {
-        bar.style.fontSize = bh + "px";
-    }
-}
-
-function actualizarLabelLive() {
-    const marca = document.getElementById("lbl_marca").value.toLowerCase();
-    const mod = document.getElementById("lbl_modelo").value;
-    const gb = document.getElementById("lbl_gb").value;
-    const imei = document.getElementById("lbl_imei").value;
-    const estado = document.getElementById("lbl_estado_texto").value;
-    
-    document.getElementById("lblLiveMod").textContent = mod;
-    document.getElementById("lblLiveGb").textContent = gb;
-    document.getElementById("lblLiveImei").textContent = imei;
-    document.getElementById("lblLiveBarcode").textContent = `*${imei || '000000000'}*`;
-    document.getElementById("lblLiveEstadoContainer").textContent = estado;
-    
-    document.getElementById("lblLiveLogo").innerHTML = (marca.includes("apple") || marca.includes("iphone")) ? `<i class="ti ti-brand-apple"></i>` : `<i class="ti ti-device-mobile"></i>`;
-    cambiarDimensionesManual();
-}
-
-function imprimirLabelAdhesivo() {
-    const mod = document.getElementById("lbl_modelo").value;
-    const gb = document.getElementById("lbl_gb").value;
-    const imei = document.getElementById("lbl_imei").value;
-    const estadoText = document.getElementById("lbl_estado_texto").value;
-    const logoHtml = document.getElementById("lblLiveLogo").innerHTML;
-
-    // Tomar medidas dinámicas de los sliders
-    const configW = document.getElementById("cfg_width").value;
-    const configF = document.getElementById("cfg_font").value;
-    const configBH = document.getElementById("cfg_barcode_h").value;
-
-    document.getElementById("printArea").innerHTML = `
-        <div style="width:${configW}mm; padding:8px; font-family:monospace; text-align:center; color:#000; font-size:${configF}px;">
-            <div style="font-size:${parseInt(configF) + 10}px; margin-bottom: 2px;">${logoHtml}</div>
-            ------------------------------------<br>
-            <div style="text-align:left; line-height: 1.3;">
-                <b>EQUIPO:</b> ${escapeHtml(mod)}<br>
-                <b>GB:</b> ${escapeHtml(gb)}<br>
-                <b>IMEI:</b> ${escapeHtml(imei)}<br>
-            </div>
-            <div style="font-family:'Libre Barcode 39'; font-size:${configBH}px; margin:4px 0; display:block; line-height:1;">*${imei}*</div>
-            <b style="text-transform:uppercase;">${escapeHtml(estadoText)}</b>
-        </div>
-    `;
-    window.print();
-}
-
-async function revelarClave(ordenId, boton) {
-    const o = cache.ordenes.find(x => x.id === ordenId);
-    if(!o) return;
-    boton.parentElement.innerHTML = `<small style="color:#ef4444;">${escapeHtml(o.clave_equipo || 'Sin PIN')}</small>`;
-}
-
-async function guardarRecepcion(imprimir) {
-    try {
-        if(!val("c_nombre") || !val("e_modelo") || !val("e_imei")) return alert("Faltan campos mandatorios.");
-        const insC = await supabaseClient.from('clientes').insert([{ nombre: val("c_nombre"), whatsapp: val("c_whatsapp") || null, cedula: val("c_cedula") || null }]).select();
-        const insE = await supabaseClient.from('equipos').insert([{ cliente_id: insC.data[0].id, marca: val("e_marca") || 'Generic', modelo: val("e_modelo"), imei: val("e_imei"), capacidad: val("e_capacidad") || null }]).select();
-        await supabaseClient.from('ordenes_reparacion').insert([{
-            cliente_id: insC.data[0].id, equipo_id: insE.data[0].id, falla_reportada: val("o_falla"), condicion_fisica: getChecked("checksFisico") || 'Ninguna', accesorios_recibidos: val("o_accesorios") || 'Ninguno',
-            tipo_acceso: val("o_acceso"), clave_equipo: val("o_clave") || 'Sin clave', cuenta_icloud_google: val("o_cuenta") || null, creado_by: sessionUser.id
-        }]).select();
-        
-        toast("Equipo registrado con éxito.");
-        limpiarRecepcion();
-        await loadAll();
-        nav("ordenes");
-    } catch(e) { alert("Error al guardar los datos."); }
-}
-
-function val(id) { return document.getElementById(id)?.value?.trim() || ""; }
-function limpiarRecepcion() { document.querySelectorAll("#v-recepcion input, #v-recepcion textarea").forEach(x => x.value = ""); }
-
-function startAppRefurbPoller() {
-    setInterval(() => { if(sessionUser) loadAll(); }, 25000);
-}
-
-const saved = localStorage.getItem("bayol_session");
-if(saved) { try { sessionUser = JSON.parse(saved); startApp(); } catch(e){} }
-</script>
-</body>
-</html>
+            await supabaseClient.from('piezas_inventario').update({ cantidad:
