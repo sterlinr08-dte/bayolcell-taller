@@ -111,7 +111,7 @@ tr:hover td { background: #f8fafc; }
 .print-area { display: none; }
 
 /* FORMULARIO EN LÍNEA ACTIVOS */
-.form-inline-asset { display: grid; grid-template-columns: 0.8fr 1.5fr 0.6fr 1fr 1.1fr auto; gap: 10px; align-items: end; background: #f8fafc; border: 1px dashed var(--border-color); padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+.form-inline-asset { display: grid; grid-template-columns: 0.8fr 1.5fr 0.6fr 1fr 1.3fr auto; gap: 10px; align-items: end; background: #f8fafc; border: 1px dashed var(--border-color); padding: 15px; border-radius: 8px; margin-bottom: 15px; }
 
 @media print {
     body * { visibility: hidden; }
@@ -288,10 +288,10 @@ tr:hover td { background: #f8fafc; }
                         <div id="formAssetContainer" style="display: none;">
                             <div class="form-inline-asset">
                                 <div><label>Código Activo</label><input id="ast_codigo" value="AUTOMÁTICO" disabled></div>
-                                <div><label>Herramienta / Equipo</label><input id="ast_nombre" placeholder="Ej. Cautín Sugon 3005D"></div>
+                                <div><label>Herramienta / Equipo</label><input id="ast_nombre" placeholder="Ej. Estación JBC"></div>
                                 <div><label>Cantidad</label><input id="ast_cantidad" type="number" value="1"></div>
                                 <div><label>Estado Técnico</label><select id="ast_estado"><option>Excelente</option><option>Desgaste Medio</option><option>Mantenimiento</option></select></div>
-                                <div><label>Asignación / Destino</label><input id="ast_asignado" placeholder="Mesa 3 (Juan)"></div>
+                                <div><label>Técnicos / Destinos (Separar por coma)</label><input id="ast_asignado" placeholder="Ej. Carlos, Luis, Mesa 3"></div>
                                 <button class="btn btn-blue" onclick="guardarActivoTaller()"><i class="ti ti-device-floppy"></i> Guardar</button>
                             </div>
                         </div>
@@ -299,7 +299,7 @@ tr:hover td { background: #f8fafc; }
                         <div class="table-wrap">
                             <table>
                                 <thead>
-                                    <tr><th>Código Activo</th><th>Herramienta / Equipo Laboratorio</th><th>Cantidad</th><th>Estado Técnico</th><th>Ubicación / Asignado</th></tr>
+                                    <tr><th>Código Activo</th><th>Herramienta / Equipo Laboratorio</th><th>Cantidad</th><th>Estado Técnico</th><th>Ubicación / Asignado Múltiple</th></tr>
                                 </thead>
                                 <tbody id="assetsTable">
                                     <tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Cargando herramientas del laboratorio...</td></tr>
@@ -463,12 +463,18 @@ function renderActivosTaller() {
         if(a.estado_tecnico === "Desgaste Medio") colorBadge = "background:#fef3c7; color:#92400e;";
         if(a.estado_tecnico === "Mantenimiento") colorBadge = "background:#fee2e2; color:#991b1b;";
         
+        // Formateo visual nítido si hay comas en los nombres de asignación
+        let asignadosFormateado = escapeHtml(a.asignado_a || 'Sin asignar');
+        if(a.asignado_a && a.asignado_a.includes(',')) {
+            asignadosFormateado = a.asignado_a.split(',').map(t => `<span style="background:#f1f5f9; border:1px solid #cbd5e1; padding:2px 6px; border-radius:4px; font-size:11px; margin-right:4px; font-weight:600;">${escapeHtml(t.trim())}</span>`).join('');
+        }
+        
         return `<tr>
             <td><code>${escapeHtml(a.codigo)}</code></td>
             <td><b>${escapeHtml(a.nombre)}</b></td>
             <td>${a.cantidad} Uds</td>
             <td><span class="badge" style="${colorBadge}">${escapeHtml(a.estado_tecnico)}</span></td>
-            <td>${escapeHtml(a.asignado_a || 'Sin asignar')}</td>
+            <td><div style="display:flex; flex-wrap:wrap; gap:4px;">${asignadosFormateado}</div></td>
         </tr>`;
     }).join("");
 }
@@ -478,7 +484,6 @@ function toggleFormActivo() {
     el.style.display = el.style.display === "none" ? "block" : "none";
 }
 
-// NUEVA LÓGICA AUTOMÁTICA INTELIGENTE DE CÓDIGOS DE INVENTARIO
 function calcularSiguienteCodigoActivo() {
     if (!cache.activos || cache.activos.length === 0) {
         return 'HERR-001';
@@ -494,25 +499,31 @@ function calcularSiguienteCodigoActivo() {
 
 async function guardarActivoTaller() {
     try {
-        const nom = val("ast_nombre"), cant = parseInt(val("ast_cantidad")), est = document.getElementById("ast_estado").value, asig = val("ast_asignado");
+        const nom = val("ast_nombre"), cant = parseInt(val("ast_cantidad")) || 1, est = document.getElementById("ast_estado").value, asig = val("ast_asignado");
         if(!nom) return alert("El nombre de la herramienta es requerido.");
 
-        // Generamos el código sobre la marcha de manera automática
+        // LÓGICA INTELIGENTE DE ASIGNACIÓN MÚLTIPLE: 
+        // Si el usuario escribe técnicos separados por comas, los limpia y los guarda ordenados
+        let asignacionFinal = asig || null;
+        if(asig && asig.includes(',')) {
+            asignacionFinal = asig.split(',').map(t => t.trim()).filter(t => t.length > 0).join(', ');
+        }
+
         const codigoAuto = calcularSiguienteCodigoActivo();
 
         const { data, error } = await supabaseClient.from('activos_taller').insert([{
-            codigo: codigoAuto, nombre: nom, cantidad: cant || 1, estado_tecnico: est, asignado_a: asig || null
+            codigo: codigoAuto, nombre: nom, cantidad: cant, estado_tecnico: est, asignado_a: asignacionFinal
         }]);
 
         if(error) throw error;
         
-        toast(`Herramienta registrada automáticamente con código: ${codigoAuto}`);
+        toast(`Herramienta registrada y asignada correctamente.`);
         document.getElementById("ast_nombre").value = "";
         document.getElementById("ast_cantidad").value = "1";
         document.getElementById("ast_asignado").value = "";
         toggleFormActivo();
         await loadAll();
-    } catch(e) { alert("Error al registrar activo de forma automática."); }
+    } catch(e) { alert("Error al registrar el activo."); }
 }
 
 function cargarEnLabel(id) {
