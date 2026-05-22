@@ -21,39 +21,205 @@ input,select,textarea{width:100%;border:1.5px solid var(--line);background:#fff;
 @media print{body *{visibility:hidden}.print-area,.print-area *{visibility:visible}.print-area{display:block;position:absolute;left:0;top:0;width:80mm;padding:8px;background:#fff;color:#000;font-family:Arial}.ticket{font-size:12px}.ticket h2{text-align:center;margin:0 0 4px;font-size:20px}.ticket .line{border-top:1px dashed #000;margin:8px 0}}
 </style>
 
-<!-- LIBRERÍA DE SUPABASE CDN -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-<div id="login" class="login"><div class="login-card"><div class="logo"><div class="logo-mark"><i class="ti ti-device-mobile-cog"></i></div><div><h1>BAYOL <span>CELL</span></h1><small>SISTEMA TALLER · REPARACIÓN · REFURB</small></div></div><div id="loginErr" class="err"></div><div class="form-row"><label>Usuario</label><input id="loginUser" placeholder="admin"></div><div class="form-row"><label>Clave</label><input id="loginPass" type="password" placeholder="1234" onkeydown="if(event.key==='Enter')doLogin()"></div><button class="btn btn-red" style="width:100%" onclick="doLogin()"><i class="ti ti-login"></i> Entrar al sistema</button><p style="color:#667085;font-size:12px;text-align:center;margin-top:14px">Usuario inicial: <b>admin</b> · Clave: <b>1234</b></p></div></div>
-<div id="app" class="app"><aside id="sidebar" class="sidebar"><div class="side-head"><div class="side-logo"><div class="logo-mark"><i class="ti ti-device-mobile-cog"></i></div><div><h2>BAYOL <span>CELL</span></h2><small>ERP TALLER V1</small></div></div></div><div class="nav"><button class="active" onclick="nav('dashboard',this)"><i class="ti ti-layout-dashboard"></i> Dashboard</button><button onclick="nav('recepcion',this)"><i class="ti ti-clipboard-plus"></i> Recepción de equipos</button><button onclick="nav('ordenes',this)"><i class="ti ti-tool"></i> Órdenes de trabajo</button><button onclick="nav('inventario',this)"><i class="ti ti-package"></i> Inventario piezas</button><button onclick="nav('refurb',this)"><i class="ti ti-refresh"></i> Reacondicionamiento</button><button onclick="nav('activos',this)"><i class="ti ti-briefcase"></i> Activos taller</button><button onclick="nav('qc',this)"><i class="ti ti-shield-check"></i> Control calidad</button></div><div class="side-foot"><div><b id="userName">Administrador</b></div><div id="userRole">usuario</div><button class="btn btn-light" style="width:100%;margin-top:12px" onclick="logout()"><i class="ti ti-logout"></i> Salir</button></div></aside>
-<main class="main"><header class="top"><button class="btn btn-light menu-mobile" onclick="toggleSide()"><i class="ti ti-menu-2"></i></button><div id="pageTitle" class="page-title">Dashboard</div><div class="top-right"><i class="ti ti-database-check"></i> Supabase conectado</div></header><section class="content">
-<div id="v-dashboard" class="view active"><div class="kpis"><div class="card kpi"><i class="ti ti-clipboard-plus"></i><small>Órdenes hoy</small><strong id="kHoy">0</strong></div><div class="card kpi"><i class="ti ti-tool"></i><small>En reparación</small><strong id="kRep">0</strong></div><div class="card kpi"><i class="ti ti-package"></i><small>Esperando piezas</small><strong id="kPiezas">0</strong></div><div class="card kpi"><i class="ti ti-circle-check"></i><small>Listos</small><strong id="kListos">0</strong></div><div class="card kpi"><i class="ti ti-refresh"></i><small>Refurb activos</small><strong id="kRefurb">0</strong></div></div><div class="grid-2"><div class="card"><h3 class="section-title">Órdenes recientes</h3><div class="table-wrap"><table><thead><tr><th>Orden</th><th>Cliente</th><th>Equipo</th><th>IMEI</th><th>Estado</th></tr></thead><tbody id="recentOrders"></tbody></table></div></div><div class="card"><h3 class="section-title">Acciones rápidas</h3><button class="btn btn-red" style="width:100%;margin-bottom:10px" onclick="nav('recepcion')"><i class="ti ti-clipboard-plus"></i> Nueva recepción</button><button class="btn btn-dark" style="width:100%;margin-bottom:10px" onclick="loadAll()"><i class="ti ti-refresh"></i> Refrescar datos</button><p style="color:var(--muted);line-height:1.5">Versión corregida con Project URL real de Supabase.</p></div></div></div>
-<div id="v-recepcion" class="view"><div class="card"><h3 class="section-title">Nueva recepción de equipo</h3><div class="form-grid"><div><label>Nombre cliente *</label><input id="c_nombre" placeholder="Juan"></div><div><label>Apellido</label><input id="c_apellido" placeholder="Pérez"></div><div><label>WhatsApp *</label><input id="c_whatsapp" placeholder="8090000000"></div><div><label>Cédula</label><input id="c_cedula"></div><div><label>Teléfono alterno</label><input id="c_tel"></div><div><label>Dirección</label><input id="c_dir"></div><div><label>Marca</label><input id="e_marca" placeholder="Apple"></div><div><label>Modelo *</label><input id="e_modelo" placeholder="iPhone 11"></div><div><label>Color</label><input id="e_color" placeholder="Negro"></div><div><label>Capacidad</label><input id="e_capacidad" placeholder="64GB"></div><div><label>IMEI / Serial *</label><input id="e_imei" placeholder="356789..."></div><div><label>Operadora</label><input id="e_operadora" placeholder="Claro"></div><div class="full"><label>Falla reportada por el cliente *</label><textarea id="o_falla" rows="3" placeholder="Ej: no carga, pantalla rota..."></textarea></div><div class="full"><label>Estado físico</label><div class="checks" id="checksFisico"><label><input type="checkbox" value="Pantalla rota"> Pantalla rota</label><label><input type="checkbox" value="Sin imagen"> Sin imagen</label><label><input type="checkbox" value="Sin táctil"> Sin táctil</label><label><input type="checkbox" value="Tapa rota"> Tapa rota</label><label><input type="checkbox" value="No carga"> No carga</label><label><input type="checkbox" value="Batería mala"> Batería mala</label><label><input type="checkbox" value="Mojado"> Mojado</label><label><input type="checkbox" value="Sin señal"> Sin señal</label><label><input type="checkbox" value="No enciende"> No enciende</label></div></div><div><label>Accesorios recibidos</label><input id="o_accesorios" placeholder="SIM, cover, cargador..."></div><div><label>Prioridad</label><select id="o_prioridad"><option value="normal">Normal</option><option value="alta">Alta</option><option value="urgente">Urgente</option></select></div><div><label>Técnico principal</label><select id="o_tecnico"></select></div><div><label>Tipo acceso</label><select id="o_acceso"><option>Sin clave</option><option>PIN</option><option>Patrón</option><option>Password</option><option>Face ID / Touch ID</option></select></div><div><label>Clave equipo</label><input id="o_clave" placeholder="Opcional"></div><div><label>Cuenta iCloud / Google</label><input id="o_cuenta" placeholder="Opcional"></div><div><label>Clave cuenta</label><input id="o_clave_cuenta" placeholder="Opcional"></div><div class="full"><label>Observaciones internas</label><textarea id="o_obs" rows="2"></textarea></div></div><div class="actions"><button class="btn btn-light" onclick="limpiarRecepcion()">Limpiar</button><button class="btn btn-dark" onclick="guardarRecepcion(false)"><i class="ti ti-device-floppy"></i> Guardar</button><button class="btn btn-red" onclick="guardarRecepcion(true)"><i class="ti ti-printer"></i> Guardar + imprimir POS80</button></div></div></div>
-<div id="v-ordenes" class="view"><div class="card"><h3 class="section-title">Órdenes de trabajo</h3><div class="table-wrap"><table><thead><tr><th>Orden</th><th>Cliente</th><th>Equipo</th><th>IMEI</th><th>Falla</th><th>Estado</th><th>Acción</th></tr></thead><tbody id="ordersTable"></tbody></table></div></div></div>
-<div id="v-inventario" class="view"><div class="card"><h3 class="section-title">Inventario simple de piezas</h3><div class="table-wrap"><table><thead><tr><th>Pieza</th><th>Código</th><th>Cantidad</th><th>Costo</th><th>Stock mínimo</th></tr></thead><tbody id="partsTable"></tbody></table></div></div></div><div id="v-refurb" class="view"><div class="card"><h3 class="section-title">Reacondicionamiento</h3><p>Fase siguiente: lotes, equipos refurb, costos y multi-técnicos.</p></div></div><div id="v-activos" class="view"><div class="card"><h3 class="section-title">Activos del taller</h3><p>Fase siguiente: herramientas, responsables y mantenimiento.</p></div></div><div id="v-qc" class="view"><div class="card"><h3 class="section-title">Control de calidad</h3><p>Fase siguiente: checklist obligatorio antes de entregar.</p></div></div></section></main></div>
-<div id="toast" class="toast"></div><div id="printArea" class="print-area"></div>
+
+<div id="login" class="login">
+    <div class="login-card">
+        <div class="logo">
+            <div class="logo-mark"><i class="ti ti-device-mobile-cog"></i></div>
+            <div><h1>BAYOL <span>CELL</span></h1><small>SISTEMA TALLER · REPARACIÓN · REFURB</small></div>
+        </div>
+        <div id="loginErr" class="err"></div>
+        <div class="form-row">
+            <label>Usuario</label>
+            <input id="loginUser" placeholder="admin">
+        </div>
+        <div class="form-row">
+            <label>Clave</label>
+            <input id="loginPass" type="password" placeholder="1234" onkeydown="if(event.key==='Enter')doLogin()">
+        </div>
+        <button class="btn btn-red" style="width:100%" onclick="doLogin()"><i class="ti ti-login"></i> Entrar al sistema</button>
+        <p style="color:#667085;font-size:12px;text-align:center;margin-top:14px">Usuario inicial: <b>admin</b> · Clave: <b>1234</b></p>
+    </div>
+</div>
+
+<div id="app" class="app">
+    <aside id="sidebar" class="sidebar">
+        <div class="side-head">
+            <div class="side-logo">
+                <div class="logo-mark"><i class="ti ti-device-mobile-cog"></i></div>
+                <div><h2>BAYOL <span>CELL</span></h2><small>ERP TALLER V1</small></div>
+            </div>
+        </div>
+        <div class="nav">
+            <button class="active" onclick="nav('dashboard',this)"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
+            <button onclick="nav('recepcion',this)"><i class="ti ti-clipboard-plus"></i> Recepción de equipos</button>
+            <button onclick="nav('ordenes',this)"><i class="ti ti-tool"></i> Órdenes de trabajo</button>
+            <button onclick="nav('inventario',this)"><i class="ti ti-package"></i> Inventario piezas</button>
+            <button onclick="nav('refurb',this)"><i class="ti ti-refresh"></i> Reacondicionamiento</button>
+            <button onclick="nav('activos',this)"><i class="ti ti-briefcase"></i> Activos taller</button>
+            <button onclick="nav('qc',this)"><i class="ti ti-shield-check"></i> Control calidad</button>
+        </div>
+        <div class="side-foot">
+            <div><b id="userName">Administrador</b></div>
+            <div id="userRole">usuario</div>
+            <button class="btn btn-light" style="width:100%;margin-top:12px" onclick="logout()"><i class="ti ti-logout"></i> Salir</button>
+        </div>
+    </aside>
+
+    <main class="main">
+        <header class="top">
+            <button class="btn btn-light menu-mobile" onclick="toggleSide()"><i class="ti ti-menu-2"></i></button>
+            <div id="pageTitle" class="page-title">Dashboard</div>
+            <div class="top-right"><i class="ti ti-database-check"></i> Supabase conectado</div>
+        </header>
+        
+        <section class="content">
+            <div id="v-dashboard" class="view active">
+                <div class="kpis">
+                    <div class="card kpi"><i class="ti ti-clipboard-plus"></i><small>Órdenes hoy</small><strong id="kHoy">0</strong></div>
+                    <div class="card kpi"><i class="ti ti-tool"></i><small>En reparación</small><strong id="kRep">0</strong></div>
+                    <div class="card kpi"><i class="ti ti-package"></i><small>Esperando piezas</small><strong id="kPiezas">0</strong></div>
+                    <div class="card kpi"><i class="ti ti-circle-check"></i><small>Listos</small><strong id="kListos">0</strong></div>
+                    <div class="card kpi"><i class="ti ti-refresh"></i><small>Refurb activos</small><strong id="kRefurb">0</strong></div>
+                </div>
+                <div class="grid-2">
+                    <div class="card">
+                        <h3 class="section-title">Órdenes recientes</h3>
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr><th>Orden</th><th>Cliente</th><th>Equipo</th><th>IMEI</th><th>Estado</th></tr>
+                                </thead>
+                                <tbody id="recentOrders"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3 class="section-title">Acciones rápidas</h3>
+                        <button class="btn btn-red" style="width:100%;margin-bottom:10px" onclick="nav('recepcion')"><i class="ti ti-clipboard-plus"></i> Nueva recepción</button>
+                        <button class="btn btn-dark" style="width:100%;margin-bottom:10px" onclick="loadAll()"><i class="ti ti-refresh"></i> Refrescar datos</button>
+                        <p style="color:var(--muted);line-height:1.5">Versión corregida con CDN nativo y cliente seguro de Supabase.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="v-recepcion" class="view">
+                <div class="card">
+                    <h3 class="section-title">Nueva recepción de equipo</h3>
+                    <div class="form-grid">
+                        <div><label>Nombre cliente *</label><input id="c_nombre" placeholder="Juan"></div>
+                        <div><label>Apellido</label><input id="c_apellido" placeholder="Pérez"></div>
+                        <div><label>WhatsApp *</label><input id="c_whatsapp" placeholder="8090000000"></div>
+                        <div><label>Cédula</label><input id="c_cedula"></div>
+                        <div><label>Teléfono alterno</label><input id="c_tel"></div>
+                        <div><label>Dirección</label><input id="c_dir"></div>
+                        <div><label>Marca</label><input id="e_marca" placeholder="Apple"></div>
+                        <div><label>Modelo *</label><input id="e_modelo" placeholder="iPhone 11"></div>
+                        <div><label>Color</label><input id="e_color" placeholder="Negro"></div>
+                        <div><label>Capacidad</label><input id="e_capacidad" placeholder="64GB"></div>
+                        <div><label>IMEI / Serial *</label><input id="e_imei" placeholder="356789..."></div>
+                        <div><label>Operadora</label><input id="e_operadora" placeholder="Claro"></div>
+                        <div class="full"><label>Falla reportada por el cliente *</label><textarea id="o_falla" rows="3" placeholder="Ej: no carga, pantalla rota..."></textarea></div>
+                        <div class="full">
+                            <label>Estado físico</label>
+                            <div class="checks" id="checksFisico">
+                                <label><input type="checkbox" value="Pantalla rota"> Pantalla rota</label>
+                                <label><input type="checkbox" value="Sin imagen"> Sin imagen</label>
+                                <label><input type="checkbox" value="Sin táctil"> Sin táctil</label>
+                                <label><input type="checkbox" value="Tapa rota"> Tapa rota</label>
+                                <label><input type="checkbox" value="No carga"> No carga</label>
+                                <label><input type="checkbox" value="Batería mala"> Batería mala</label>
+                                <label><input type="checkbox" value="Mojado"> Mojado</label>
+                                <label><input type="checkbox" value="Sin señal"> Sin señal</label>
+                                <label><input type="checkbox" value="No enciende"> No enciende</label>
+                            </div>
+                        </div>
+                        <div><label>Accesorios recibidos</label><input id="o_accesorios" placeholder="SIM, cover, cargador..."></div>
+                        <div>
+                            <label>Prioridad</label>
+                            <select id="o_prioridad"><option value="normal">Normal</option><option value="alta">Alta</option><option value="urgente">Urgente</option></select>
+                        </div>
+                        <div><label>Técnico principal</label><select id="o_tecnico"></select></div>
+                        <div>
+                            <label>Tipo acceso</label>
+                            <select id="o_acceso"><option>Sin clave</option><option>PIN</option><option>Patrón</option><option>Password</option><option>Face ID / Touch ID</option></select>
+                        </div>
+                        <div><label>Clave equipo</label><input id="o_clave" placeholder="Opcional"></div>
+                        <div><label>Cuenta iCloud / Google</label><input id="o_cuenta" placeholder="Opcional"></div>
+                        <div><label>Clave cuenta</label><input id="o_clave_cuenta" placeholder="Opcional"></div>
+                        <div class="full"><label>Observaciones internas</label><textarea id="o_obs" rows="2"></textarea></div>
+                    </div>
+                    <div class="actions">
+                        <button class="btn btn-light" onclick="limpiarRecepcion()">Limpiar</button>
+                        <button class="btn btn-dark" onclick="guardarRecepcion(false)"><i class="ti ti-device-floppy"></i> Guardar</button>
+                        <button class="btn btn-red" onclick="guardarRecepcion(true)"><i class="ti ti-printer"></i> Guardar + imprimir POS80</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="v-ordenes" class="view">
+                <div class="card">
+                    <h3 class="section-title">Órdenes de trabajo</h3>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr><th>Orden</th><th>Cliente</th><th>Equipo</th><th>IMEI</th><th>Falla</th><th>Estado</th><th>Acción</th></tr>
+                            </thead>
+                            <tbody id="ordersTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="v-inventario" class="view">
+                <div class="card">
+                    <h3 class="section-title">Inventario simple de piezas</h3>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr><th>Pieza</th><th>Código</th><th>Cantidad</th><th>Costo</th><th>Stock mínimo</th></tr>
+                            </thead>
+                            <tbody id="partsTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="v-refurb" class="view"><div class="card"><h3 class="section-title">Reacondicionamiento</h3><p>Fase siguiente: lotes, equipos refurb, costos y multi-técnicos.</p></div></div>
+            <div id="v-activos" class="view"><div class="card"><h3 class="section-title">Activos del taller</h3><p>Fase siguiente: herramientas, responsables y mantenimiento.</p></div></div>
+            <div id="v-qc" class="view"><div class="card"><h3 class="section-title">Control de calidad</h3><p>Fase siguiente: checklist obligatorio antes de entregar.</p></div></div>
+        </section>
+    </main>
+</div>
+
+<div id="toast" class="toast"></div>
+<div id="printArea" class="print-area"></div>
 
 <script>
-// 1. INICIALIZACIÓN OFICIAL DE SUPABASE (Corregido y Conectado)
-const SUPABASE_URL = "https://vkhwdvjtowrhkhqavnvk.supabase.co";
-const SUPABASE_KEY = "sb_publishable_PynS5ZjKoQ36HCpguVzxaw_KZOlagtz"; // Asegúrate de que esta key no tenga restricciones RLS bloqueantes
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// Inicialización del cliente Supabase resolviendo la colisión de variables
+const CONFIG_URL = "https://vkhwdvjtowrhkhqavnvk.supabase.co";
+const CONFIG_KEY = "sb_publishable_PynS5ZjKoQ36HCpguVzxaw_KZOlagtz"; 
+
+// Se asigna un identificador único que no choque con la librería del CDN externo
+const supabaseClient = supabase.createClient(CONFIG_URL, CONFIG_KEY);
 
 let sessionUser = null;
 let cache = { ordenes: [], clientes: [], equipos: [], usuarios: [], piezas: [], refurb: [] };
 
 function showErr(msg) {
     const e = document.getElementById("loginErr");
-    e.textContent = msg;
-    e.style.display = "block";
+    if(e) { e.textContent = msg; e.style.display = "block"; }
 }
 
 function toast(msg) {
     const t = document.getElementById("toast");
-    t.textContent = msg;
-    t.style.display = "block";
-    setTimeout(() => t.style.display = "none", 3500);
+    if(t) {
+        t.textContent = msg; t.style.display = "block";
+        setTimeout(() => t.style.display = "none", 3500);
+    }
 }
 
 function escapeHtml(s) {
@@ -68,15 +234,14 @@ function getChecked(id) {
     return [...document.querySelectorAll("#" + id + " input:checked")].map(x => x.value).join(", ");
 }
 
-// 2. SISTEMA DE LOGIN OFICIAL CON SUPABASE
+// Autenticación controlada
 async function doLogin() {
     try {
         const u = document.getElementById("loginUser").value.trim();
         const p = document.getElementById("loginPass").value.trim();
         if (!u || !p) return showErr("Escribe usuario y clave.");
 
-        // Consulta limpia usando el cliente oficial
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('usuarios')
             .select('*')
             .eq('usuario', u)
@@ -133,18 +298,16 @@ function toggleSide(force) {
     else s.classList.toggle("open");
 }
 
-// 3. CARGA DE DATOS SIN LA FUNCIÓN COMPLICADA API()
+// Carga asíncrona mediante SDK Oficial
 async function loadAll() {
     try {
-        // Ejecutamos consultas paralelas nativas
-        const resOrdenes = await supabase.from('ordenes_reparacion').select('*').order('creado_en', { ascending: false }).limit(50);
-        const resClientes = await supabase.from('clientes').select('*').order('creado_en', { ascending: false }).limit(100);
-        const resEquipos = await supabase.from('equipos').select('*').order('creado_en', { ascending: false }).limit(100);
-        const resUsuarios = await supabase.from('usuarios').select('*').eq('activo', true).order('nombre', { ascending: true });
-        const resPiezas = await supabase.from('piezas_inventario').select('*').eq('activo', true).order('nombre', { ascending: true });
-        const resRefurb = await supabase.from('equipos_refurb').select('*').order('creado_en', { ascending: false }).limit(100);
+        const resOrdenes = await supabaseClient.from('ordenes_reparacion').select('*').order('creado_en', { ascending: false }).limit(50);
+        const resClientes = await supabaseClient.from('clientes').select('*').order('creado_en', { ascending: false }).limit(100);
+        const resEquipos = await supabaseClient.from('equipos').select('*').order('creado_en', { ascending: false }).limit(100);
+        const resUsuarios = await supabaseClient.from('usuarios').select('*').eq('activo', true).order('nombre', { ascending: true });
+        const resPiezas = await supabaseClient.from('piezas_inventario').select('*').eq('activo', true).order('nombre', { ascending: true });
+        const resRefurb = await supabaseClient.from('equipos_refurb').select('*').order('creado_en', { ascending: false }).limit(100);
 
-        // Verificamos si hubo algún error en las consultas de Supabase
         if (resOrdenes.error) throw resOrdenes.error;
 
         cache = {
@@ -159,7 +322,7 @@ async function loadAll() {
         renderAll();
         toast("Datos del Taller sincronizados.");
     } catch (e) {
-        toast("Error cargando datos: " + e.message);
+        toast("Error de red con Supabase: " + e.message);
     }
 }
 
@@ -211,28 +374,25 @@ function renderParts() {
     document.getElementById("partsTable").innerHTML = cache.piezas.map(p => `<tr><td>${escapeHtml(p.nombre)}</td><td>${escapeHtml(p.codigo || "—")}</td><td>${p.cantidad || 0}</td><td>${money(p.costo)}</td><td>${p.stock_minimo || 0}</td></tr>`).join("") || `<tr><td colspan="5">Inventario vacío por ahora.</td></tr>`;
 }
 
-// 4. ENVÍO DE DATOS SEGURO EN FORMATO RELACIONAL
+// Inserciones en formato relacional para evitar fallos de llaves foráneas
 async function guardarRecepcion(imprimir) {
     try {
         const nombre = val("c_nombre"), whatsapp = val("c_whatsapp"), modelo = val("e_modelo"), imei = val("e_imei"), falla = val("o_falla");
         if (!nombre || !whatsapp || !modelo || !imei || !falla) return toast("Faltan campos obligatorios.");
 
-        // Inserción de Cliente usando .insert().select() oficial
-        const insCliente = await supabase.from('clientes').insert([{
+        const insCliente = await supabaseClient.from('clientes').insert([{
             nombre, apellido: val("c_apellido"), whatsapp, telefono_alterno: val("c_tel"), cedula: val("c_cedula"), direccion: val("c_dir")
         }]).select();
         if (insCliente.error) throw insCliente.error;
         let cliente = insCliente.data[0];
 
-        // Inserción de Equipo enlazado al cliente
-        const insEquipo = await supabase.from('equipos').insert([{
+        const insEquipo = await supabaseClient.from('equipos').insert([{
             cliente_id: cliente.id, marca: val("e_marca"), modelo, color: val("e_color"), capacidad: val("e_capacidad"), imei, operadora: val("e_operadora")
         }]).select();
         if (insEquipo.error) throw insEquipo.error;
         let equipo = insEquipo.data[0];
 
-        // Inserción de la Orden de Reparación
-        const insOrden = await supabase.from('ordenes_reparacion').insert([{
+        const insOrden = await supabaseClient.from('ordenes_reparacion').insert([{
             cliente_id: cliente.id,
             equipo_id: equipo.id,
             tecnico_principal_id: val("o_tecnico") || null,
@@ -251,8 +411,7 @@ async function guardarRecepcion(imprimir) {
         if (insOrden.error) throw insOrden.error;
         let orden = insOrden.data[0];
 
-        // Registro en el Historial de la Orden
-        await supabase.from('historial_estados').insert([{
+        await supabaseClient.from('historial_estados').insert([{
             orden_id: orden.id, estado_anterior: null, estado_nuevo: "recibido", nota: "Orden creada desde recepción", cambiado_por: sessionUser.id
         }]);
 
@@ -263,7 +422,7 @@ async function guardarRecepcion(imprimir) {
         if (imprimir) imprimirTicket({ ...orden, clientes: cliente, equipos: equipo });
         nav("ordenes");
     } catch (e) {
-        toast("Error guardando en base de datos: " + e.message);
+        toast("Error de transacción: " + e.message);
     }
 }
 
@@ -287,7 +446,7 @@ function imprimirTicket(o) {
     window.print();
 }
 
-// Persistencia automática de sesión
+// Persistencia automática
 const saved = localStorage.getItem("bayol_session");
 if (saved) {
     try {
