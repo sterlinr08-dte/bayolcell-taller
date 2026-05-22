@@ -3,25 +3,132 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BAYOL CELL — Sistema Taller</title>
+<title>SISTEMA TALLER BAYOL CELL</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
 <style>
-:root{--red:#e50914;--red2:#b70710;--bg:#f4f6f8;--card:#fff;--text:#101828;--muted:#667085;--line:#e5e7eb;--shadow:0 10px 30px rgba(16,24,40,.08)}
-*{box-sizing:border-box}body{margin:0;font-family:Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text)}button,input,select,textarea{font-family:inherit}
-.login{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#05070a,#111827 55%,#320006);padding:18px}.login-card{width:100%;max-width:420px;background:#fff;border-radius:24px;padding:28px;box-shadow:0 25px 80px rgba(0,0,0,.35)}
-.logo{display:flex;align-items:center;gap:12px;margin-bottom:22px}.logo-mark{width:54px;height:54px;border-radius:15px;background:linear-gradient(135deg,var(--red),#111);color:white;display:flex;align-items:center;justify-content:center;font-size:28px}.logo h1{margin:0;font-size:27px}.logo span{color:var(--red)}.logo small{display:block;color:var(--muted);font-size:11px;font-weight:700}
-label{font-size:11px;font-weight:800;color:#344054;text-transform:uppercase;display:block;margin-bottom:5px}.form-row{margin-bottom:13px}
-input,select,textarea{width:100%;border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:11px 12px;font-size:14px;outline:none}.btn{border:0;border-radius:12px;padding:11px 14px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px}.btn-red{background:linear-gradient(135deg,var(--red),var(--red2));color:#fff}.btn-dark{background:#111827;color:#fff}.btn-light{background:#fff;border:1.5px solid var(--line);color:#344054}
-.err{display:none;background:#fff1f3;color:#b42318;border:1px solid #fecdd3;padding:10px;border-radius:12px;font-size:13px;margin-bottom:12px}.app{display:none;height:100vh;overflow:hidden}
-.sidebar{width:260px;background:linear-gradient(180deg,#05070a,#111827);color:#fff;display:flex;flex-direction:column;flex-shrink:0}.side-head{padding:20px;border-bottom:1px solid rgba(255,255,255,.08)}.side-logo{display:flex;align-items:center;gap:10px}.side-logo .logo-mark{width:42px;height:42px;font-size:22px}.side-logo h2{margin:0;font-size:24px}.side-logo span{color:var(--red)}.side-logo small{display:block;color:rgba(255,255,255,.55);font-size:10px;font-weight:800}
-.nav{padding:12px;overflow:auto}.nav button{width:100%;background:transparent;color:rgba(255,255,255,.78);border:0;border-radius:13px;padding:12px 13px;margin-bottom:5px;text-align:left;font-weight:750;cursor:pointer;display:flex;align-items:center;gap:10px}.nav button:hover,.nav button.active{background:var(--red);color:#fff}.side-foot{margin-top:auto;padding:14px;border-top:1px solid rgba(255,255,255,.08);font-size:12px;color:rgba(255,255,255,.65)}
-.main{flex:1;display:flex;flex-direction:column;min-width:0}.top{height:64px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:0 20px}.menu-mobile{display:none}.page-title{font-size:18px;font-weight:900}.top-right{margin-left:auto;color:var(--muted);font-weight:700}.content{flex:1;overflow:auto;padding:20px}
-.view{display:none}.view.active{display:block}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:16px}.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:16px}.kpi small{color:var(--muted);font-weight:800;text-transform:uppercase}.kpi strong{display:block;font-size:30px;margin-top:8px}.kpi i{float:right;font-size:32px;opacity:.18}.grid-2{display:grid;grid-template-columns:1.2fr .8fr;gap:16px}.section-title{margin:0 0 14px;font-size:17px;font-weight:900}
-.table-wrap{overflow:auto;border-radius:14px;border:1px solid var(--line)}table{width:100%;border-collapse:collapse;background:#fff;font-size:13px}th{background:#f8fafc;color:#475467;text-align:left;font-size:11px;text-transform:uppercase;padding:11px;border-bottom:1px solid var(--line)}td{padding:11px;border-bottom:1px solid #f1f5f9;vertical-align:top}.badge{padding:4px 9px;border-radius:999px;font-size:11px;font-weight:900;display:inline-flex;background:#dbeafe;color:#1d4ed8}
-.form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.form-grid .full{grid-column:1/-1}.checks{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.checks label{display:flex;align-items:center;gap:7px;text-transform:none;font-size:13px;font-weight:650;color:#344054;background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:8px}.checks input{width:auto}.actions{display:flex;justify-content:flex-end;gap:10px;margin-top:14px;flex-wrap:wrap}.toast{position:fixed;right:18px;bottom:18px;background:#111827;color:#fff;border-radius:14px;padding:13px 15px;box-shadow:0 18px 50px rgba(0,0,0,.25);display:none;z-index:99;max-width:360px}.print-area{display:none}
-.secure-box{background:#f8fafc;padding:6px 10px;border-radius:8px;border:1px dashed #d0d5dd;display:inline-flex;align-items:center;gap:8px;font-family:monospace}
-@media(max-width:900px){.sidebar{position:fixed;left:-270px;top:0;bottom:0;z-index:20;transition:.25s}.sidebar.open{left:0}.menu-mobile{display:inline-flex}.kpis{grid-template-columns:repeat(2,1fr)}.grid-2,.form-grid{grid-template-columns:1fr}.checks{grid-template-columns:1fr}.content{padding:12px}.top{padding:0 12px}}
-@media print{body *{visibility:hidden}.print-area,.print-area *{visibility:visible}.print-area{display:block;position:absolute;left:0;top:0;width:80mm;padding:8px;background:#fff;color:#000;font-family:Arial}.ticket{font-size:12px}.ticket h2{text-align:center;margin:0 0 4px;font-size:20px}.ticket .line{border-top:1px dashed #000;margin:8px 0}}
+:root {
+    --bg-main: #f0f4f8;
+    --sidebar-bg: #002244;
+    --sidebar-active: #0056b3;
+    --blue-btn: #0066cc;
+    --text-dark: #1e293b;
+    --text-muted: #64748b;
+    --border-color: #cbd5e1;
+    --card-bg: #ffffff;
+}
+
+* { box-sizing: border-box; font-family: 'Public Sans', sans-serif; transition: background 0.2s, color 0.2s; }
+body { margin: 0; background-color: var(--bg-main); color: var(--text-dark); overflow: hidden; height: 100vh; }
+
+/* LOGIN */
+.login { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #001529, #002244); padding: 20px; }
+.login-card { width: 100%; max-width: 420px; background: #fff; border-radius: 20px; padding: 35px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); text-align: center; }
+.logo-login { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 25px; }
+.logo-icon { width: 48px; height: 48px; background: #002244; color: #fff; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 26px; }
+.logo-login h1 { margin: 0; font-size: 24px; font-weight: 800; color: #002244; }
+.logo-login span { color: #0066cc; }
+
+label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 5px; text-align: left; }
+.form-row { margin-bottom: 15px; }
+input, select, textarea { width: 100%; border: 1px solid var(--border-color); background: #fff; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: var(--text-dark); outline: none; }
+input:focus, select:focus, textarea:focus { border-color: var(--blue-btn); box-shadow: 0 0 0 3px rgba(0,102,204,0.15); }
+
+/* BOTONES */
+.btn { border: 0; border-radius: 8px; padding: 10px 16px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; }
+.btn-blue { background: var(--blue-btn); color: #fff; }
+.btn-blue:hover { background: #0056b3; }
+.btn-dark { background: #0f172a; color: #fff; }
+.btn-light { background: #fff; border: 1px solid var(--border-color); color: var(--text-dark); }
+.btn-light:hover { background: #f1f5f9; }
+.err { display: none; background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; padding: 10px; border-radius: 8px; font-size: 13px; margin-bottom: 15px; text-align: left; }
+
+/* ESTRUCTURA PRINCIPAL ERP */
+.app { display: none; height: 100vh; }
+.sidebar { width: 260px; background: var(--sidebar-bg); color: #fff; display: flex; flex-direction: column; flex-shrink: 0; }
+.side-profile { padding: 20px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.avatar { width: 44px; height: 44px; border-radius: 50%; background: #0056b3; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; border: 2px solid #fff; }
+.profile-info h4 { margin: 0; font-size: 14px; font-weight: 700; }
+.profile-info small { color: #38bdf8; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+
+.nav { padding: 15px 10px; overflow-y: auto; flex: 1; }
+.nav button { width: 100%; background: transparent; color: rgba(255,255,255,0.7); border: 0; border-radius: 8px; padding: 11px 12px; margin-bottom: 4px; text-align: left; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.nav button:hover { background: rgba(255,255,255,0.05); color: #fff; }
+.nav button.active { background: var(--sidebar-active); color: #fff; font-weight: 700; }
+
+.side-bottom-logo { padding: 20px; text-align: center; border-top: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.15); }
+.side-bottom-logo h3 { margin: 0; font-size: 16px; font-weight: 800; letter-spacing: 0.5px; }
+.side-bottom-logo h3 span { color: #38bdf8; }
+.side-bottom-logo small { display: block; font-size: 9px; color: rgba(255,255,255,0.4); margin-top: 2px; font-weight: 700; }
+
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.top-bar { height: 56px; background: #0056b3; color: #fff; display: flex; align-items: center; padding: 0 24px; gap: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+.top-title { font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+.top-right-info { margin-left: auto; font-size: 12px; font-weight: 600; background: rgba(255,255,255,0.15); padding: 5px 12px; border-radius: 6px; }
+
+.content { flex: 1; overflow-auto; padding: 20px; }
+.view { display: none; }
+.view.active { display: block; }
+
+/* CARDS Y CONTENEDORES ASOCIADOS AL DISEÑO BLUE */
+.card { background: var(--card-bg); border-radius: 12px; border: 1px solid #e2e8f0; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 20px; }
+
+/* KPIS ESTILO IMAGEN CARLOS ADMIN */
+.kpi-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 20px; }
+.kpi-box { background: #fff; border-radius: 8px; padding: 14px; border-top: 4px solid var(--blue-btn); box-shadow: 0 2px 4px rgba(0,0,0,0.02); position: relative; }
+.kpi-box small { font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; display: block; }
+.kpi-box strong { font-size: 26px; font-weight: 800; display: block; margin-top: 6px; color: var(--text-dark); }
+.kpi-box i { position: absolute; right: 12px; bottom: 12px; font-size: 24px; color: var(--text-muted); opacity: 0.25; }
+
+/* COLORES ESPECÍFICOS DE BORDES DE TRABAJO EN KPIS */
+.kpi-recibidos { border-top-color: #3b82f6; }
+.kpi-diagnostico { border-top-color: #f59e0b; }
+.kpi-reparacion { border-top-color: #10b981; }
+.kpi-espera { border-top-color: #ef4444; }
+.kpi-listos { border-top-color: #8b5cf6; }
+.kpi-refurb { border-top-color: #06b6d4; }
+
+.layout-dashboard { display: grid; grid-template-columns: 1.4fr 0.6fr; gap: 20px; }
+
+/* TABLAS COMPACTAS ERP */
+.table-wrap { overflow: auto; border-radius: 8px; border: 1px solid #e2e8f0; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; background: #fff; }
+th { background: #f8fafc; color: var(--text-muted); font-weight: 700; font-size: 11px; text-transform: uppercase; padding: 10px 12px; border-bottom: 1px solid #e2e8f0; }
+td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; color: var(--text-dark); }
+tr:hover td { background: #f8fafc; }
+
+/* BLOQUES DE RECEPCIÓN TOTALMENTE ESTILIZADOS COMO LA IMAGEN */
+.block-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; align-items: start; }
+.block-card { background: #fff; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); overflow: hidden; }
+.block-header { padding: 10px 14px; font-size: 12px; font-weight: 800; color: #fff; text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* COLORES DE CABECERA DE BLOQUES IDÉNTICOS A LA IMAGEN RECOLECTADA */
+.header-blue-dark { background: #0044cc; }
+.header-blue-light { background: #0066ff; }
+.header-blue-sec { background: #0055dd; }
+
+.block-body { padding: 14px; }
+.input-group { margin-bottom: 10px; }
+.input-group label { font-size: 11px; font-weight: 700; margin-bottom: 4px; color: var(--text-dark); text-transform: none; }
+
+.checks-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.checks-layout label { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; text-transform: none; color: var(--text-dark); background: #f8fafc; padding: 6px; border: 1px solid #e2e8f0; border-radius: 6px; margin: 0; cursor: pointer; }
+.checks-layout input { width: auto; cursor: pointer; accent-color: var(--blue-btn); }
+
+.secure-container { background: #fff5f5; border: 1px dashed #feb2b2; padding: 10px; border-radius: 6px; margin-top: 10px; }
+.badge { padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+
+/* ELEMENTOS DE IMPRESION */
+.toast { position: fixed; right: 20px; bottom: 20px; background: #0f172a; color: #fff; border-radius: 8px; padding: 12px 18px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); display: none; z-index: 99; font-size: 13px; font-weight: 600; }
+.print-area { display: none; }
+@media print {
+    body * { visibility: hidden; }
+    .print-area, .print-area * { visibility: visible; }
+    .print-area { display: block; position: absolute; left: 0; top: 0; width: 80mm; background: #fff; color: #000; font-family: Arial; }
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -29,66 +136,67 @@ input,select,textarea{width:100%;border:1.5px solid var(--line);background:#fff;
 
 <div id="login" class="login">
     <div class="login-card">
-        <div class="logo">
-            <div class="logo-mark"><i class="ti ti-device-mobile-cog"></i></div>
-            <div><h1>BAYOL <span>CELL</span></h1><small>SISTEMA TALLER · REPARACIÓN · REFURB</small></div>
+        <div class="logo-login">
+            <div class="logo-icon"><i class="ti ti-device-mobile-cog"></i></div>
+            <div><h1>BAYOL <span>CELL</span></h1><small style="color:var(--text-muted); font-weight:700; font-size:10px;">SISTEMA MAESTRO ERP</small></div>
         </div>
         <div id="loginErr" class="err"></div>
         <div class="form-row">
-            <label>Usuario</label>
+            <label>Usuario Operador</label>
             <input id="loginUser" placeholder="admin">
         </div>
         <div class="form-row">
-            <label>Clave</label>
-            <input id="loginPass" type="password" placeholder="1234" onkeydown="if(event.key==='Enter')doLogin()">
+            <label>Contraseña Corporativa</label>
+            <input id="loginPass" type="password" placeholder="••••" onkeydown="if(event.key==='Enter')doLogin()">
         </div>
-        <button class="btn btn-red" style="width:100%" onclick="doLogin()"><i class="ti ti-login"></i> Entrar al sistema</button>
+        <button class="btn btn-blue" style="width:100%" onclick="doLogin()"><i class="ti ti-login"></i> Autenticar Operador</button>
     </div>
 </div>
 
-<div id="app" class="app">
-    <aside id="sidebar" class="sidebar">
-        <div class="side-head">
-            <div class="side-logo">
-                <div class="logo-mark"><i class="ti ti-device-mobile-cog"></i></div>
-                <div><h2>BAYOL <span>CELL</span></h2><small>ERP TALLER V1</small></div>
+<div id="app" class="app" style="display:flex;">
+    <aside class="sidebar">
+        <div class="side-profile">
+            <div class="avatar" id="userAvatar">U</div>
+            <div class="profile-info">
+                <h4 id="userName">Cargando...</h4>
+                <small><i class="ti ti-circle-filled" style="font-size:8px; color:#22c55e;"></i> En Línea</small>
             </div>
         </div>
         <div class="nav">
             <button class="active" onclick="nav('dashboard',this)"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
-            <button onclick="nav('recepcion',this)"><i class="ti ti-clipboard-plus"></i> Recepción de equipos</button>
-            <button onclick="nav('ordenes',this)"><i class="ti ti-tool"></i> Órdenes de trabajo</button>
-            <button onclick="nav('inventario',this)"><i class="ti ti-package"></i> Inventario piezas</button>
-            <button id="menu-refurb" onclick="nav('refurb',this)"><i class="ti ti-refresh"></i> Reacondicionamiento</button>
-            <button id="menu-activos" onclick="nav('activos',this)"><i class="ti ti-briefcase"></i> Activos taller</button>
-            <button onclick="nav('qc',this)"><i class="ti ti-shield-check"></i> Control calidad</button>
+            <button onclick="nav('recepcion',this)"><i class="ti ti-clipboard-plus"></i> Recepción de Equipos</button>
+            <button onclick="nav('ordenes',this)"><i class="ti ti-tool"></i> Órdenes de Trabajo</button>
+            <button onclick="nav('inventario',this)"><i class="ti ti-package"></i> Inventario de Piezas</button>
+            <button id="menu-refurb" onclick="nav('refurb',this)"><i class="ti ti-refresh"></i> Refurbish (Reacond.)</button>
+            <button onclick="nav('qc',this)"><i class="ti ti-shield-check"></i> Control de Calidad</button>
         </div>
-        <div class="side-foot">
-            <div><b id="userName">Cargando...</b></div>
-            <div id="userRole" style="text-transform: uppercase; color: var(--red); font-size: 11px; font-weight: bold;">Rango</div>
-            <button class="btn btn-light" style="width:100%;margin-top:12px; padding:6px" onclick="logout()"><i class="ti ti-logout"></i> Salir</button>
+        <div class="side-bottom-logo">
+            <h3>BAYOL <span>CELL</span></h3>
+            <small>SISTEMA TALLER · CONTROL TOTAL</small>
         </div>
     </aside>
 
     <main class="main">
-        <header class="top">
-            <button class="btn btn-light menu-mobile" onclick="toggleSide()"><i class="ti ti-menu-2"></i></button>
-            <div id="pageTitle" class="page-title">Dashboard</div>
-            <div class="top-right"><i class="ti ti-shield-lock"></i> <span id="topRole">Rol</span> Segura</div>
+        <header class="top-bar">
+            <div class="top-title" id="pageTitle">Dashboard</div>
+            <div class="top-right-info"><i class="ti ti-user-shield"></i> Rol: <span id="userRole" style="text-transform:uppercase;">Técnico</span></div>
+            <button class="btn btn-light" style="padding:4px 10px; font-size:11px; background:rgba(255,255,255,0.1); border:0; color:#fff;" onclick="logout()">Cerrar</button>
         </header>
         
         <section class="content">
             <div id="v-dashboard" class="view active">
-                <div class="kpis">
-                    <div class="card kpi"><i class="ti ti-clipboard-plus"></i><small>Órdenes hoy</small><strong id="kHoy">0</strong></div>
-                    <div class="card kpi"><i class="ti ti-tool"></i><small>En reparación</small><strong id="kRep">0</strong></div>
-                    <div class="card kpi"><i class="ti ti-package"></i><small>Esperando piezas</small><strong id="kPiezas">0</strong></div>
-                    <div class="card kpi"><i class="ti ti-circle-check"></i><small>Listos</small><strong id="kListos">0</strong></div>
-                    <div class="card kpi"><i class="ti ti-refresh"></i><small>Refurb activos</small><strong id="kRefurb">0</strong></div>
+                <div class="kpi-row">
+                    <div class="kpi-box kpi-recibidos"><small>Recibidos Hoy</small><strong id="kHoy">0</strong><i class="ti ti-download"></i></div>
+                    <div class="kpi-box kpi-diagnostico"><small>En Diagnóstico</small><strong id="kDiag">0</strong><i class="ti ti-search"></i></div>
+                    <div class="kpi-box kpi-reparacion"><small>En Reparación</small><strong id="kRep">0</strong><i class="ti ti-settings"></i></div>
+                    <div class="kpi-box kpi-espera"><small>Espera Pieza</small><strong id="kPiezas">0</strong><i class="ti ti-hourglass"></i></div>
+                    <div class="kpi-box kpi-listos"><small>Listos Entrega</small><strong id="kListos">0</strong><i class="ti ti-circle-check"></i></div>
+                    <div class="kpi-box kpi-refurb"><small>Reacondicionado</small><strong id="kRefurb">0</strong><i class="ti ti-refresh"></i></div>
                 </div>
-                <div class="grid-2">
+                
+                <div class="layout-dashboard">
                     <div class="card">
-                        <h3 class="section-title">Órdenes recientes</h3>
+                        <h3 style="margin:0 0 15px 0; font-size:15px; font-weight:700;">Órdenes de Trabajo (Recientes)</h3>
                         <div class="table-wrap">
                             <table>
                                 <thead>
@@ -99,81 +207,86 @@ input,select,textarea{width:100%;border:1.5px solid var(--line);background:#fff;
                         </div>
                     </div>
                     <div class="card">
-                        <h3 class="section-title">Acciones rápidas</h3>
-                        <button class="btn btn-red" style="width:100%;margin-bottom:10px" onclick="nav('recepcion')"><i class="ti ti-clipboard-plus"></i> Nueva recepción</button>
-                        <button class="btn btn-dark" style="width:100%;margin-bottom:10px" onclick="loadAll()"><i class="ti ti-refresh"></i> Refrescar datos</button>
+                        <h3 style="margin:0 0 15px 0; font-size:15px; font-weight:700;">Sincronización</h3>
+                        <button class="btn btn-blue" style="width:100%; margin-bottom:10px;" onclick="nav('recepcion')"><i class="ti ti-plus"></i> Nueva Recepción</button>
+                        <button class="btn btn-light" style="width:100%;" onclick="loadAll()"><i class="ti ti-refresh"></i> Refrescar Nube</button>
                     </div>
                 </div>
             </div>
 
             <div id="v-recepcion" class="view">
-                <div class="card">
-                    <h3 class="section-title">Nueva recepción de equipo</h3>
-                    <div class="form-grid">
-                        <div><label>Nombre cliente *</label><input id="c_nombre" placeholder="Juan"></div>
-                        <div><label>Apellido</label><input id="c_apellido" placeholder="Pérez"></div>
-                        <div><label>WhatsApp *</label><input id="c_whatsapp" placeholder="8090000000"></div>
-                        <div><label>Cédula</label><input id="c_cedula"></div>
-                        <div><label>Teléfono alterno</label><input id="c_tel"></div>
-                        <div><label>Dirección</label><input id="c_dir"></div>
-                        <div><label>Marca</label><input id="e_marca" placeholder="Apple"></div>
-                        <div><label>Modelo *</label><input id="e_modelo" placeholder="iPhone 11"></div>
-                        <div><label>Color</label><input id="e_color" placeholder="Negro"></div>
-                        <div><label>Capacidad</label><input id="e_capacidad" placeholder="64GB"></div>
-                        <div><label>IMEI / Serial *</label><input id="e_imei" placeholder="356789..."></div>
-                        <div><label>Operadora</label><input id="e_operadora" placeholder="Claro"></div>
-                        <div class="full"><label>Falla reportada por el cliente *</label><textarea id="o_falla" rows="3" placeholder="Ej: no carga, pantalla rota..."></textarea></div>
-                        <div class="full">
-                            <label>Estado físico</label>
-                            <div class="checks" id="checksFisico">
-                                <label><input type="checkbox" value="Pantalla rota"> Pantalla rota</label>
-                                <label><input type="checkbox" value="Sin imagen"> Sin imagen</label>
-                                <label><input type="checkbox" value="Sin táctil"> Sin táctil</label>
-                                <label><input type="checkbox" value="Tapa rota"> Tapa rota</label>
-                                <label><input type="checkbox" value="No carga"> No carga</label>
-                                <label><input type="checkbox" value="Batería mala"> Batería mala</label>
-                                <label><input type="checkbox" value="Mojado"> Mojado</label>
-                                <label><input type="checkbox" value="Sin señal"> Sin señal</label>
-                                <label><input type="checkbox" value="No enciende"> No enciende</label>
-                            </div>
+                <div class="block-grid">
+                    <div class="block-card">
+                        <div class="block-header header-blue-dark">Recepción de Equipos</div>
+                        <div class="block-body">
+                            <b style="font-size:11px; color:var(--blue-btn); display:block; margin-bottom:8px; text-transform:uppercase;">Datos del Cliente</b>
+                            <div class="input-group"><label>Nombre</label><input id="c_nombre" placeholder="Juan Pérez"></div>
+                            <div class="input-group"><label>WhatsApp</label><input id="c_whatsapp" placeholder="809-123-4567"></div>
+                            <div class="input-group"><label>Cédula</label><input id="c_cedula" placeholder="001-1234567-8"></div>
+                            
+                            <b style="font-size:11px; color:var(--blue-btn); display:block; margin:14px 0 8px 0; text-transform:uppercase;">Datos del Equipo</b>
+                            <div class="input-group"><label>Marca</label><input id="e_marca" placeholder="Apple"></div>
+                            <div class="input-group"><label>Modelo</label><input id="e_modelo" placeholder="iPhone 11"></div>
+                            <div class="input-group"><label>Capacidad</label><input id="e_capacidad" placeholder="64GB"></div>
+                            <div class="input-group"><label>IMEI / Serial</label><input id="e_imei" placeholder="356789123..."></div>
+                            <div class="input-group"><label>Falla Reportada por Cliente</label><textarea id="o_falla" rows="2" placeholder="No carga..."></textarea></div>
                         </div>
-                        <div><label>Accesorios recibidos</label><input id="o_accesorios" placeholder="SIM, cover, cargador..."></div>
-                        <div>
-                            <label>Prioridad</label>
-                            <select id="o_prioridad"><option value="normal">Normal</option><option value="alta">Alta</option><option value="urgente">Urgente</option></select>
-                        </div>
-                        <div><label>Técnico principal</label><select id="o_tecnico"></select></div>
-                        
-                        <div class="full" style="background:#fef3f2; padding:14px; border-radius:14px; border:1px solid #fee4e2; margin:10px 0;">
-                            <h4 style="margin:0 0 10px 0; color:#b42318; font-size:14px;"><i class="ti ti-shield-lock"></i> Credenciales de Seguridad (Módulo Privado)</h4>
-                            <div class="form-grid">
-                                <div>
-                                    <label>Tipo acceso</label>
-                                    <select id="o_acceso"><option>Sin clave</option><option>PIN</option><option>Patrón</option><option>Password</option></select>
-                                </div>
-                                <div><label>Clave dispositivo</label><input id="o_clave" type="text" placeholder="PIN o Patrón del terminal"></div>
-                                <div><label>Cuenta (iCloud/Google)</label><input id="o_cuenta" placeholder="correo@ejemplo.com"></div>
-                                <div><label>Clave de la cuenta</label><input id="o_clave_cuenta" type="text" placeholder="Password de la cuenta"></div>
-                            </div>
-                        </div>
-                        
-                        <div class="full"><label>Observaciones internas</label><textarea id="o_obs" rows="2"></textarea></div>
                     </div>
-                    <div class="actions">
-                        <button class="btn btn-light" onclick="limpiarRecepcion()">Limpiar</button>
-                        <button class="btn btn-dark" onclick="guardarRecepcion(false)"><i class="ti ti-device-floppy"></i> Guardar</button>
-                        <button class="btn btn-red" onclick="guardarRecepcion(true)"><i class="ti ti-printer"></i> Guardar + ticket POS80</button>
+
+                    <div class="block-card">
+                        <div class="block-header header-blue-light">Estado Físico</div>
+                        <div class="block-body">
+                            <div class="checks-layout" id="checksFisico">
+                                <label><input type="checkbox" value="Pantalla rota"> Pantalla rota</label>
+                                <label><input type="checkbox" value="Mojado"> Mojado</label>
+                                <label><input type="checkbox" value="Sin imagen"> Sin imagen</label>
+                                <label><input type="checkbox" value="Sin señal"> Sin señal</label>
+                                <label><input type="checkbox" value="Sin táctil"> Sin táctil</label>
+                                <label><input type="checkbox" value="Sin WiFi"> Sin WiFi</label>
+                                <label><input type="checkbox" value="Tapa rota"> Tapa rota</label>
+                                <label><input type="checkbox" value="Sin Bluetooth"> Sin Bluetooth</label>
+                                <label><input type="checkbox" value="Cámara dañada"> Cámara dañada</label>
+                                <label><input type="checkbox" value="Reiniciando"> Reiniciando</label>
+                                <label><input type="checkbox" value="Bocina dañada"> Bocina dañada</label>
+                                <label><input type="checkbox" value="No enciende"> No enciende</label>
+                                <label><input type="checkbox" value="Micrófono"> Micrófono</label>
+                                <label><input type="checkbox" value="Batería mala"> Batería mala</label>
+                                <label><input type="checkbox" value="Puerto de carga"> Puerto carga</label>
+                                <label><input type="checkbox" value="Otro"> Otro</label>
+                            </div>
+                            <div class="input-group" style="margin-top:12px;"><label>Accesorios Recibidos</label><input id="o_accesorios" placeholder="SIM, Cover, Cargador"></div>
+                        </div>
+                    </div>
+
+                    <div class="block-card">
+                        <div class="block-header header-blue-sec">Control de Seguridad / Acceso</div>
+                        <div class="block-body">
+                            <div class="input-group">
+                                <label>Tipo de Acceso</label>
+                                <select id="o_acceso"><option>PIN</option><option>Patrón</option><option>Password</option><option>Sin clave</option></select>
+                            </div>
+                            <b style="font-size:11px; color:var(--text-muted); display:block; margin:10px 0 6px 0; text-transform:uppercase;">Cuentas</b>
+                            <div class="input-group"><label>Apple ID / iCloud</label><input id="o_cuenta" placeholder="juanperez@icloud.com"></div>
+                            <div class="input-group"><label>Password iCloud</label><input id="o_clave" placeholder="••••••••••••"></div>
+                            <div class="input-group"><label>Gmail</label><input id="o_cuenta_gmail" placeholder="juanperez@gmail.com"></div>
+                            <div class="input-group"><label>Password Gmail</label><input id="o_clave_cuenta" placeholder="••••••••••••"></div>
+                            
+                            <div class="actions" style="margin-top:20px;">
+                                <button class="btn btn-dark" style="width:100%" onclick="guardarRecepcion(false)"><i class="ti ti-device-floppy"></i> Guardar Solo Base Datos</button>
+                                <button class="btn btn-blue" style="width:100%" onclick="guardarRecepcion(true)"><i class="ti ti-printer"></i> Guardar + Ticket POS80</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div id="v-ordenes" class="view">
                 <div class="card">
-                    <h3 class="section-title">Órdenes de trabajo activas</h3>
+                    <h3 style="margin:0 0 15px 0; font-size:16px; font-weight:700;">Órdenes de Trabajo Registradas</h3>
                     <div class="table-wrap">
                         <table>
                             <thead>
-                                <tr><th>Orden</th><th>Cliente</th><th>Equipo</th><th>Falla</th><th>Seguridad Dispositivo</th><th>Estado</th><th>Acciones</th></tr>
+                                <tr><th>Orden</th><th>Cliente</th><th>Equipo</th><th>Falla</th><th>Seguridad Oculta</th><th>Estado</th><th>Acciones</th></tr>
                             </thead>
                             <tbody id="ordersTable"></tbody>
                         </table>
@@ -183,11 +296,11 @@ input,select,textarea{width:100%;border:1.5px solid var(--line);background:#fff;
 
             <div id="v-inventario" class="view">
                 <div class="card">
-                    <h3 class="section-title">Inventario simple de piezas</h3>
+                    <h3 style="margin:0 0 15px 0; font-size:16px; font-weight:700;">Inventario de Componentes</h3>
                     <div class="table-wrap">
                         <table>
                             <thead>
-                                <tr><th>Pieza</th><th>Código</th><th>Cantidad</th><th>Costo</th><th>Stock mínimo</th></tr>
+                                <tr><th>Código SKU</th><th>Pieza</th><th>Stock Disponible</th><th>Costo</th></tr>
                             </thead>
                             <tbody id="partsTable"></tbody>
                         </table>
@@ -195,9 +308,8 @@ input,select,textarea{width:100%;border:1.5px solid var(--line);background:#fff;
                 </div>
             </div>
 
-            <div id="v-refurb" class="view"><div class="card"><h3 class="section-title">Reacondicionamiento</h3><p>Módulo exclusivo para Administradores y Gerencia.</p></div></div>
-            <div id="v-activos" class="view"><div class="card"><h3 class="section-title">Activos del taller</h3><p>Fase de control de herramientas operativas.</p></div></div>
-            <div id="v-qc" class="view"><div class="card"><h3 class="section-title">Control de calidad (QC)</h3><p>Checklist de salida del terminal.</p></div></div>
+            <div id="v-refurb" class="view"><div class="card"><h3>Reacondicionamiento (Refurbish)</h3><p style="color:var(--text-muted);">Módulo gerencial de equipos propios.</p></div></div>
+            <div id="v-qc" class="view"><div class="card"><h3>Control de Calidad (QC)</h3><p style="color:var(--text-muted);">Checklist técnico de salida.</p></div></div>
         </section>
     </main>
 </div>
@@ -210,82 +322,42 @@ const CONFIG_URL = "https://vkhwdvjtowrhkhqavnvk.supabase.co";
 const CONFIG_KEY = "sb_publishable_PynS5ZjKoQ36HCpguVzxaw_KZOlagtz"; 
 
 const supabaseClient = supabase.createClient(CONFIG_URL, CONFIG_KEY);
-
 let sessionUser = null;
-let cache = { ordenes: [], clientes: [], equipos: [], usuarios: [], piezas: [], refurb: [] };
-
-function showErr(msg) {
-    const e = document.getElementById("loginErr");
-    if(e) { e.textContent = msg; e.style.display = "block"; }
-}
+let cache = { ordenes: [], clientes: [], equipos: [], usuarios: [], piezas: [] };
 
 function toast(msg) {
     const t = document.getElementById("toast");
-    if(t) {
-        t.textContent = msg; t.style.display = "block";
-        setTimeout(() => t.style.display = "none", 3500);
-    }
+    if(t) { t.textContent = msg; t.style.display = "block"; setTimeout(() => t.style.display = "none", 3000); }
 }
-
-function escapeHtml(s) {
-    return (s ?? "").toString().replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[m]));
-}
-
-function money(n) {
-    return "RD$ " + Number(n || 0).toLocaleString("es-DO", { minimumFractionDigits: 2 });
-}
-
-function getChecked(id) {
-    return [...document.querySelectorAll("#" + id + " input:checked")].map(x => x.value).join(", ");
-}
+function escapeHtml(s) { return (s ?? "").toString().replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[m])); }
+function money(n) { return "RD$ " + Number(n || 0).toLocaleString("es-DO", { minimumFractionDigits: 2 }); }
+function getChecked(id) { return [...document.querySelectorAll("#" + id + " input:checked")].map(x => x.value).join(", "); }
 
 async function doLogin() {
     try {
         const u = document.getElementById("loginUser").value.trim();
         const p = document.getElementById("loginPass").value.trim();
-        if (!u || !p) return showErr("Escribe usuario y clave.");
-
-        const { data, error } = await supabaseClient
-            .from('usuarios')
-            .select('*')
-            .eq('usuario', u)
-            .eq('clave', p)
-            .eq('activo', true);
-
-        if (error) throw error;
-
-        if (!data || !data.length) {
-            return showErr("Usuario o clave incorrectos.");
-        }
-
+        if(!u || !p) return alert("Ingrese credenciales.");
+        const { data, error } = await supabaseClient.from('usuarios').select('*').eq('usuario', u).eq('clave', p).eq('activo', true);
+        if(error) throw error;
+        if(!data.length) return alert("Credenciales incorrectas.");
         sessionUser = data[0];
         localStorage.setItem("bayol_session", JSON.stringify(sessionUser));
         startApp();
-    } catch (e) {
-        showErr("Error de login: " + e.message);
-    }
+    } catch(e) { alert("Error: " + e.message); }
 }
 
-function logout() {
-    localStorage.removeItem("bayol_session");
-    location.reload();
-}
+function logout() { localStorage.removeItem("bayol_session"); location.reload(); }
 
 function startApp() {
     document.getElementById("login").style.display = "none";
     document.getElementById("app").style.display = "flex";
     document.getElementById("userName").textContent = sessionUser.nombre || "Usuario";
-    
-    const rolActual = sessionUser.rol || "Tecnico";
-    document.getElementById("userRole").textContent = rolActual;
-    document.getElementById("topRole").textContent = rolActual;
-    
-    // CONTROL DE ROLES EN INTERFAZ: Si es técnico o recepción, ocultar menús administrativos
-    if(rolActual === "Tecnico" || rolActual === "Servicio Cliente") {
+    document.getElementById("userAvatar").textContent = (sessionUser.nombre || "U").charAt(0).toUpperCase();
+    document.getElementById("userRole").textContent = sessionUser.rol || "Tecnico";
+    if(sessionUser.rol === "Tecnico" || sessionUser.rol === "Servicio Cliente") {
         document.getElementById("menu-refurb").style.display = "none";
-        document.getElementById("menu-activos").style.display = "none";
     }
-    
     loadAll();
 }
 
@@ -293,38 +365,19 @@ async function nav(v, btn) {
     document.querySelectorAll(".view").forEach(x => x.classList.remove("active"));
     document.getElementById("v-" + v)?.classList.add("active");
     document.querySelectorAll(".nav button").forEach(x => x.classList.remove("active"));
-    if (btn) btn.classList.add("active");
-    document.getElementById("pageTitle").textContent = document.getElementById(btn?.id || "")?.textContent || v;
-    if (innerWidth < 900) toggleSide(false);
-}
-
-function toggleSide(force) {
-    const s = document.getElementById("sidebar");
-    if (force === false) s.classList.remove("open");
-    else s.classList.toggle("open");
+    if(btn) btn.classList.add("active");
+    document.getElementById("pageTitle").textContent = btn ? btn.textContent.trim() : v;
 }
 
 async function loadAll() {
     try {
-        const resOrdenes = await supabaseClient.from('ordenes_reparacion').select('*').order('creado_en', { ascending: false }).limit(50);
-        const resClientes = await supabaseClient.from('clientes').select('*').order('creado_en', { ascending: false }).limit(100);
-        const resEquipos = await supabaseClient.from('equipos').select('*').order('creado_en', { ascending: false }).limit(100);
-        const resUsuarios = await supabaseClient.from('usuarios').select('*').eq('activo', true);
-        const resPiezas = await supabaseClient.from('piezas_inventario').select('*').eq('activo', true);
-
-        cache = {
-            ordenes: resOrdenes.data || [],
-            clientes: resClientes.data || [],
-            equipos: resEquipos.data || [],
-            usuarios: resUsuarios.data || [],
-            piezas: resPiezas.data || [],
-            refurb: []
-        };
-
+        const rOrd = await supabaseClient.from('ordenes_reparacion').select('*').order('creado_en', { ascending: false });
+        const rCli = await supabaseClient.from('clientes').select('*');
+        const rEq = await supabaseClient.from('equipos').select('*');
+        const rPz = await supabaseClient.from('piezas_inventario').select('*');
+        cache = { ordenes: rOrd.data || [], clientes: rCli.data || [], equipos: rEq.data || [], piezas: rPz.data || [] };
         renderAll();
-    } catch (e) {
-        toast("Error cargando tablas: " + e.message);
-    }
+    } catch(e) { toast("Error de sincronización."); }
 }
 
 function findCliente(id) { return cache.clientes.find(x => x.id === id) || {}; }
@@ -333,174 +386,73 @@ function findEquipo(id) { return cache.equipos.find(x => x.id === id) || {}; }
 function renderAll() {
     const today = new Date().toISOString().slice(0, 10);
     document.getElementById("kHoy").textContent = cache.ordenes.filter(o => (o.creado_en || "").slice(0, 10) === today).length;
+    document.getElementById("kDiag").textContent = cache.ordenes.filter(o => o.estado === "diagnostico").length;
     document.getElementById("kRep").textContent = cache.ordenes.filter(o => o.estado === "en_reparacion").length;
     document.getElementById("kPiezas").textContent = cache.ordenes.filter(o => o.estado === "espera_pieza").length;
     document.getElementById("kListos").textContent = cache.ordenes.filter(o => ["listo", "listo_entrega"].includes(o.estado)).length;
+    
     renderOrders();
-    renderTechnicians();
+    renderParts();
 }
 
-function badge(estado) {
-    return `<span class="badge">${escapeHtml((estado || "recibido").replaceAll("_", " "))}</span>`;
-}
-
-// REVELACIÓN CONTROLADA DE CONTRASENAS (Módulo 3)
 async function revelarClave(ordenId, boton) {
-    const rol = sessionUser.rol;
-    if(rol !== 'Administrador' && rol !== 'Tecnico') {
-        alert("Acceso Denegado: Su rango de usuario no le permite visualizar las contraseñas de los terminales.");
-        return;
-    }
-    
-    const orden = cache.ordenes.find(x => x.id === ordenId);
-    if(!orden) return;
-    
-    // Inyectar visualmente los datos privados en la celda
-    const infoHtml = `
-        <div style="font-size:11px; text-align:left; color:#b42318">
-            <b>Clave:</b> ${escapeHtml(orden.clave_equipo || 'Ninguna')}<br>
-            <b>Cuenta:</b> ${escapeHtml(orden.cuenta_icloud_google || 'Ninguna')}<br>
-            <b>Pass Cta:</b> ${escapeHtml(orden.clave_cuenta || 'Ninguna')}
-        </div>`;
-    
-    boton.parentElement.innerHTML = infoHtml;
-    
-    // REGISTRO DE AUDITORÍA EN SUPABASE (Log imborrable)
-    await supabaseClient.from('logs_seguridad').insert([{
-        usuario_id: sessionUser.id,
-        usuario_nombre: sessionUser.nombre,
-        orden_numero: orden.numero_orden,
-        accion: "Visualizó credenciales de seguridad del equipo"
-    }]);
-    toast("Visualización registrada en los logs de auditoría.");
+    if(sessionUser.rol !== 'Administrador' && sessionUser.rol !== 'Tecnico') return alert("Acceso Restringido.");
+    const o = cache.ordenes.find(x => x.id === ordenId);
+    if(!o) return;
+    boton.parentElement.innerHTML = `<div style="font-size:11px; color:#ef4444;">P: ${escapeHtml(o.clave_equipo || 'N/A')}<br>C: ${escapeHtml(o.cuenta_icloud_google || 'N/A')}</div>`;
+    await supabaseClient.from('logs_seguridad').insert([{ usuario_id: sessionUser.id, usuario_nombre: sessionUser.nombre, orden_numero: o.numero_orden, accion: "Reveló clave privada" }]);
 }
 
 function renderOrders() {
-    const rows = cache.ordenes.map(o => {
+    const html = cache.ordenes.map(o => {
         const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
-        const cli = [c.nombre, c.apellido].filter(Boolean).join(" ") || "—";
-        const eq = [e.marca, e.modelo].filter(Boolean).join(" ") || "—";
-        
         return `<tr>
-            <td>#${String(o.numero_orden || "").padStart(6, "0")}</td>
-            <td>${escapeHtml(cli)}</td>
-            <td>${escapeHtml(eq)}</td>
+            <td><b>#${String(o.numero_orden || "").padStart(6, "0")}</b></td>
+            <td>${escapeHtml(c.nombre || "—")}</td>
+            <td>${escapeHtml(e.modelo || "—")}</td>
             <td>${escapeHtml(o.falla_reportada || "—")}</td>
-            <td>
-                <div class="secure-box">
-                    <i class="ti ti-lock"></i> <span>********</span>
-                    <button class="btn btn-light" style="padding:2px 6px; font-size:11px" onclick="revelarClave('${o.id}', this)">👁️ Ver</button>
-                </div>
-            </td>
-            <td>${badge(o.estado)}</td>
-            <td><button class="btn btn-light" onclick="imprimirOrden('${o.id}')"><i class="ti ti-printer"></i></button></td>
-        </tr>`
-    }).join("") || `<tr><td colspan="7">No hay órdenes todavía.</td></tr>`;
-    
-    document.getElementById("ordersTable").innerHTML = rows;
+            <td><div>•••• <button class="btn btn-light" style="padding:1px 4px; font-size:10px" onclick="revelarClave('${o.id}', this)">Ver</button></div></td>
+            <td><span class="badge" style="background:#e0f2fe; color:#0369a1;">${escapeHtml(o.estado || "recibido")}</span></td>
+            <td><button class="btn btn-light" style="padding:4px 8px;" onclick="imprimirOrden('${o.id}')"><i class="ti ti-printer"></i></button></td>
+        </tr>`;
+    }).join("");
+    document.getElementById("ordersTable").innerHTML = html || '<tr><td colspan="7">No hay registros.</td></tr>';
+    document.getElementById("recentOrders").innerHTML = html;
 }
 
-function renderTechnicians() {
-    const sel = document.getElementById("o_tecnico");
-    if(sel) {
-        sel.innerHTML = `<option value="">Sin asignar</option>` + cache.usuarios.filter(x => x.rol === 'Tecnico' || x.rol === 'Administrador').map(u => `<option value="${u.id}">${escapeHtml(u.nombre)}</option>`).join("");
-    }
+function renderParts() {
+    document.getElementById("partsTable").innerHTML = cache.piezas.map(p => `<tr><td>${escapeHtml(p.codigo)}</td><td><b>${escapeHtml(p.nombre)}</b></td><td>${p.cantidad} uds</td><td>${money(p.costo)}</td></tr>`).join("");
 }
 
 async function guardarRecepcion(imprimir) {
     try {
-        const nombre = val("c_nombre"), whatsapp = val("c_whatsapp"), modelo = val("e_modelo"), imei = val("e_imei"), falla = val("o_falla");
-        if (!nombre || !whatsapp || !modelo || !imei || !falla) return alert("Faltan campos obligatorios para la recepción.");
-
-        const insCliente = await supabaseClient.from('clientes').insert([{
-            nombre, apellido: val("c_apellido"), whatsapp, telefono_alterno: val("c_tel"), cedula: val("c_cedula"), direccion: val("c_dir")
+        if(!val("c_nombre") || !val("c_whatsapp") || !val("e_modelo") || !val("e_imei")) return alert("Faltan campos.");
+        const insC = await supabaseClient.from('clientes').insert([{ nombre: val("c_nombre"), whatsapp: val("c_whatsapp"), cedula: val("c_cedula") }]).select();
+        const insE = await supabaseClient.from('equipos').insert([{ cliente_id: insC.data[0].id, marca: val("e_marca"), modelo: val("e_modelo"), imei: val("e_imei"), capacidad: val("e_capacidad") }]).select();
+        const insO = await supabaseClient.from('ordenes_reparacion').insert([{
+            cliente_id: insC.data[0].id, equipo_id: insE.data[0].id, falla_reportada: val("o_falla"), condicion_fisica: getChecked("checksFisico"), accesorios_recibidos: val("o_accesorios"),
+            tipo_acceso: val("o_acceso"), clave_equipo: val("o_clave"), cuenta_icloud_google: val("o_cuenta"), creado_por: sessionUser.id
         }]).select();
-        if (insCliente.error) throw insCliente.error;
-        let cliente = insCliente.data[0];
-
-        const insEquipo = await supabaseClient.from('equipos').insert([{
-            cliente_id: cliente.id, marca: val("e_marca"), modelo, color: val("e_color"), capacidad: val("e_capacidad"), imei, operadora: val("e_operadora")
-        }]).select();
-        if (insEquipo.error) throw insEquipo.error;
-        let equipo = insEquipo.data[0];
-
-        const insOrden = await supabaseClient.from('ordenes_reparacion').insert([{
-            cliente_id: cliente.id,
-            equipo_id: equipo.id,
-            tecnico_principal_id: val("o_tecnico") || null,
-            falla_reportada: falla,
-            condicion_fisica: getChecked("checksFisico"),
-            accesorios_recibidos: val("o_accesorios"),
-            observaciones_cliente: val("o_obs"),
-            tipo_acceso: val("o_acceso"),
-            clave_equipo: val("o_clave"),
-            cuenta_icloud_google: val("o_cuenta"),
-            clave_cuenta: val("o_clave_cuenta"),
-            prioridad: val("o_prioridad"),
-            creado_por: sessionUser.id
-        }]).select();
-        if (insOrden.error) throw insOrden.error;
-        let orden = insOrden.data[0];
-
-        toast("¡Orden de taller guardada perfectamente!");
+        toast("¡Orden aperturada!");
         limpiarRecepcion();
         await loadAll();
-
-        if (imprimir) imprimirTicket({ ...orden, clientes: cliente, equipos: equipo });
+        if(imprimir) imprimirTicket({ ...insO.data[0], clientes: insC.data[0], equipos: insE.data[0] });
         nav("ordenes");
-    } catch (e) {
-        alert("Error de transacción: " + e.message);
-    }
+    } catch(e) { alert("Error."); }
 }
 
 function val(id) { return document.getElementById(id)?.value?.trim() || ""; }
+function limpiarRecepcion() { document.querySelectorAll("#v-recepcion input, #v-recepcion textarea").forEach(x => x.value = ""); }
+function imprimirOrden(id) { const o = cache.ordenes.find(x => x.id === id); if(o) imprimirTicket({ ...o, clientes: findCliente(o.cliente_id), equipos: findEquipo(o.equipo_id) }); }
 
-function limpiarRecepcion() {
-    document.querySelectorAll("#v-recepcion input,#v-recepcion textarea").forEach(x => { if (x.type !== "checkbox") x.value = ""; else x.checked = false; });
-}
-
-function imprimirOrden(id) {
-    const o = cache.ordenes.find(x => x.id === id);
-    if (!o) return;
-    imprimirTicket({ ...o, clientes: findCliente(o.cliente_id), equipos: findEquipo(o.equipo_id) })
-}
-
-// CUMPLE LA REGLA: PRIVACIDAD DE LAS CLAVES EXCLUIDA POR COMPLETO DEL TICKET DE IMPRESIÓN POS80
 function imprimirTicket(o) {
-    const cli = o.clientes || {}, eq = o.equipos || {}, numero = String(o.numero_orden || "").padStart(6, "0");
-    document.getElementById("printArea").innerHTML = `
-        <div class="ticket">
-            <h2>BAYOL CELL</h2>
-            <div style="text-align:center;font-size:10px">REPARACIÓN · ACCESORIOS · REFURB</div>
-            <div class="line"></div>
-            <b>COMPROBANTE DE RECEPCIÓN</b><br>
-            <b>ORDEN:</b> #${numero}<br>
-            <b>FECHA:</b> ${new Date(o.creado_en || Date.now()).toLocaleString("es-DO")}<br>
-            <div class="line"></div>
-            <b>CLIENTE:</b> ${escapeHtml([cli.nombre, cli.apellido].filter(Boolean).join(" "))}<br>
-            <b>WHATSAPP:</b> ${escapeHtml(cli.whatsapp || "")}<br>
-            <div class="line"></div>
-            <b>EQUIPO:</b> ${escapeHtml([eq.marca, eq.modelo, eq.capacidad, eq.color].filter(Boolean).join(" "))}<br>
-            <b>IMEI/SERIAL:</b> ${escapeHtml(eq.imei || "")}<br>
-            <b>FALLA:</b> ${escapeHtml(o.falla_reportada || "")}<br>
-            <b>CONDICIÓN:</b> ${escapeHtml(o.condicion_fisica || "Normal")}<br>
-            <b>ACCESORIOS:</b> ${escapeHtml(o.accesorios_recibidos || "Ninguno")}<br>
-            <div class="line"></div>
-            <div style="font-size:10px; font-weight:bold; text-align:center">REQUERIMIENTO DE ACCESO: AUTORIZADO POR CLIENTE (CONFIDENCIAL)</div>
-            <div class="line"></div>
-            <br><br>Recibido por: __________________<br><br>Firma cliente: __________________<br><div class="line"></div>
-            <div style="text-align:center">¡Gracias por confiar en BAYOL CELL!</div>
-        </div>`;
+    const cli = o.clientes || {}, eq = o.equipos || {};
+    document.getElementById("printArea").innerHTML = `<div style="padding:10px; font-family:Arial; font-size:12px;"><h2>BAYOL CELL</h2>Orden: #${o.numero_orden}<br>Cliente: ${cli.nombre}<br>Equipo: ${eq.modelo}<br>Falla: ${o.falla_reportada}<br><br>Firma: _________________</div>`;
     window.print();
 }
 
 const saved = localStorage.getItem("bayol_session");
-if (saved) {
-    try {
-        sessionUser = JSON.parse(saved);
-        startApp();
-    } catch { }
-}
+if(saved) { try { sessionUser = JSON.parse(saved); startApp(); } catch(e){} }
 </script>
 </body>
 </html>
