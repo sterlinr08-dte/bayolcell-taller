@@ -35,8 +35,9 @@ label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transf
 .form-row { margin-bottom: 16px; }
 input, select, textarea { width: 100%; border: 1px solid var(--border-color); background: #fff; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: var(--text-dark); outline: none; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); }
 input:focus, select:focus, textarea:focus { border-color: var(--blue-btn); box-shadow: 0 0 0 3px rgba(0,86,179,0.15); }
+input[disabled] { background-color: #f1f5f9; color: #94a3b8; cursor: not-allowed; }
 
-/* BOTONES ESTILO PREMIUM */
+/* BOTONES */
 .btn { border: 0; border-radius: 8px; padding: 11px 16px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; text-shadow: 0 1px 1px rgba(0,0,0,0.1); }
 .btn-blue { background: linear-gradient(180deg, #0066cc 0%, #0044aa 100%); color: #fff; box-shadow: 0 2px 4px rgba(0,68,170,0.3); }
 .btn-blue:hover { background: linear-gradient(180deg, #0077ee 0%, #0055cc 100%); }
@@ -45,7 +46,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--blue-btn); box-s
 .btn-light:hover { background: #f8fafc; }
 .err { display: none; background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; padding: 10px; border-radius: 8px; font-size: 13px; margin-bottom: 15px; text-align: left; }
 
-/* ESTRUCTURA GENERAL INTERFAZ */
+/* INTERFAZ GENERAL */
 .app { display: none; height: 100vh; }
 .sidebar { width: 260px; background: var(--sidebar-bg); color: #fff; display: flex; flex-direction: column; flex-shrink: 0; box-shadow: 4px 0 15px rgba(0,0,0,0.15); z-index: 10; }
 .side-profile { padding: 22px 20px; display: flex; align-items: center; gap: 12px; background: rgba(0,0,0,0.15); border-bottom: 1px solid rgba(255,255,255,0.05); }
@@ -72,7 +73,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--blue-btn); box-s
 .view { display: none; }
 .view.active { display: block; }
 
-/* CARDS */
+/* CARDS Y TABLAS */
 .card { background: var(--card-bg); border-radius: 12px; border: 1px solid #cbd5e1; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); margin-bottom: 20px; }
 .kpi-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 20px; }
 .kpi-box { background: #fff; border-radius: 8px; padding: 14px; border-top: 4px solid var(--blue-btn); box-shadow: 0 2px 4px rgba(0,0,0,0.02); position: relative; border: 1px solid #cbd5e1; }
@@ -83,7 +84,6 @@ input:focus, select:focus, textarea:focus { border-color: var(--blue-btn); box-s
 .layout-dashboard { display: grid; grid-template-columns: 1.3fr 0.7fr; gap: 20px; }
 .layout-inventario { display: flex; flex-direction: column; gap: 20px; }
 
-/* RECONSTRUCCIÓN RECEPCIÓN */
 .block-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; align-items: start; }
 .block-card { background: #fff; border-radius: 8px; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); overflow: hidden; }
 .block-header { padding: 11px 14px; font-size: 12px; font-weight: 800; color: #fff; text-transform: uppercase; letter-spacing: 0.5px; text-shadow: 0 1px 1px rgba(0,0,0,0.1); }
@@ -96,7 +96,6 @@ input:focus, select:focus, textarea:focus { border-color: var(--blue-btn); box-s
 .checks-layout label { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; text-transform: none; color: var(--text-dark); background: #f8fafc; padding: 6px; border: 1px solid #cbd5e1; border-radius: 6px; margin: 0; cursor: pointer; }
 .checks-layout input { width: auto; cursor: pointer; accent-color: var(--blue-btn); }
 
-/* TABLAS */
 .table-wrap { overflow: auto; border-radius: 8px; border: 1px solid #cbd5e1; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; background: #fff; }
 th { background: #f1f5f9; color: #475569; font-weight: 700; font-size: 11px; text-transform: uppercase; padding: 10px 12px; border-bottom: 1px solid #cbd5e1; }
@@ -111,8 +110,8 @@ tr:hover td { background: #f8fafc; }
 .toast { position: fixed; right: 20px; bottom: 20px; background: #0f172a; color: #fff; border-radius: 8px; padding: 12px 18px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); display: none; z-index: 99; font-size: 13px; font-weight: 600; }
 .print-area { display: none; }
 
-/* NUEVO ACCESORIO FORMULARIO ACTIVO */
-.form-inline-asset { display: grid; grid-template-columns: repeat(5, 1fr) auto; gap: 10px; align-items: end; background: #f8fafc; border: 1px dashed var(--border-color); padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+/* FORMULARIO EN LÍNEA ACTIVOS */
+.form-inline-asset { display: grid; grid-template-columns: 0.8fr 1.5fr 0.6fr 1fr 1.1fr auto; gap: 10px; align-items: end; background: #f8fafc; border: 1px dashed var(--border-color); padding: 15px; border-radius: 8px; margin-bottom: 15px; }
 
 @media print {
     body * { visibility: hidden; }
@@ -288,8 +287,8 @@ tr:hover td { background: #f8fafc; }
 
                         <div id="formAssetContainer" style="display: none;">
                             <div class="form-inline-asset">
-                                <div><label>Código Activo</label><input id="ast_codigo" placeholder="HERR-005"></div>
-                                <div><label>Herramienta / Equipo</label><input id="ast_nombre" placeholder="Ej. Cautín Sugon"></div>
+                                <div><label>Código Activo</label><input id="ast_codigo" value="AUTOMÁTICO" disabled></div>
+                                <div><label>Herramienta / Equipo</label><input id="ast_nombre" placeholder="Ej. Cautín Sugon 3005D"></div>
                                 <div><label>Cantidad</label><input id="ast_cantidad" type="number" value="1"></div>
                                 <div><label>Estado Técnico</label><select id="ast_estado"><option>Excelente</option><option>Desgaste Medio</option><option>Mantenimiento</option></select></div>
                                 <div><label>Asignación / Destino</label><input id="ast_asignado" placeholder="Mesa 3 (Juan)"></div>
@@ -354,7 +353,7 @@ const CONFIG_KEY = "sb_publishable_PynS5ZjKoQ36HCpguVzxaw_KZOlagtz";
 const supabaseClient = supabase.createClient(CONFIG_URL, CONFIG_KEY);
 
 let sessionUser = null;
-let cache = { ordenes: [], clientes: [], equipos: [], piezas: [], activos: [] }; // Agregado activos al caché global
+let cache = { ordenes: [], clientes: [], equipos: [], piezas: [], activos: [] };
 
 function toast(msg) {
     const t = document.getElementById("toast");
@@ -397,14 +396,13 @@ function nav(v, btn) {
     document.getElementById("pageTitle").textContent = btn ? btn.textContent.trim() : v;
 }
 
-// CARGA FASE 2: Conexión con la nueva tabla de base de datos
 async function loadAll() {
     try {
         const rOrd = await supabaseClient.from('ordenes_reparacion').select('*').order('creado_en', { ascending: false });
         const rCli = await supabaseClient.from('clientes').select('*');
         const rEq = await supabaseClient.from('equipos').select('*');
         const rPz = await supabaseClient.from('piezas_inventario').select('*');
-        const rAct = await supabaseClient.from('activos_taller').select('*').order('codigo', { ascending: true }); // Query Fase 2
+        const rAct = await supabaseClient.from('activos_taller').select('*').order('codigo', { ascending: true });
         
         cache = { 
             ordenes: rOrd.data || [], 
@@ -436,8 +434,6 @@ function renderAll() {
     
     renderOrders();
     document.getElementById("partsTable").innerHTML = cache.piezas.map(p => `<tr><td><code>${p.codigo}</code></td><td><b>${escapeHtml(p.nombre)}</b></td><td>${p.cantidad} uds</td><td>${money(p.costo)}</td></tr>`).join("");
-
-    // INTERFAZ DINÁMICA FASE 2: Renderizar las herramientas reales de la base de datos
     renderActivosTaller();
 }
 
@@ -456,7 +452,6 @@ function renderOrders() {
     }).join("");
 }
 
-// RENDER CONTROL DE ACTIVOS FASE 2
 function renderActivosTaller() {
     if(!cache.activos.length) {
         document.getElementById("assetsTable").innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No hay herramientas registradas.</td></tr>`;
@@ -464,7 +459,7 @@ function renderActivosTaller() {
     }
     
     document.getElementById("assetsTable").innerHTML = cache.activos.map(a => {
-        let colorBadge = "background:#d1fae5; color:#065f46;"; // Excelente
+        let colorBadge = "background:#d1fae5; color:#065f46;";
         if(a.estado_tecnico === "Desgaste Medio") colorBadge = "background:#fef3c7; color:#92400e;";
         if(a.estado_tecnico === "Mantenimiento") colorBadge = "background:#fee2e2; color:#991b1b;";
         
@@ -483,26 +478,41 @@ function toggleFormActivo() {
     el.style.display = el.style.display === "none" ? "block" : "none";
 }
 
-// INSERCIÓN DE DATOS FASE 2
+// NUEVA LÓGICA AUTOMÁTICA INTELIGENTE DE CÓDIGOS DE INVENTARIO
+function calcularSiguienteCodigoActivo() {
+    if (!cache.activos || cache.activos.length === 0) {
+        return 'HERR-001';
+    }
+    const numeros = cache.activos.map(act => {
+        if (!act.codigo) return 0;
+        const match = act.codigo.match(/\d+/);
+        return match ? parseInt(match[0], 10) : 0;
+    });
+    const maxNum = Math.max(...numeros, 0);
+    return `HERR-${String(maxNum + 1).padStart(3, '0')}`;
+}
+
 async function guardarActivoTaller() {
     try {
-        const cod = val("ast_codigo"), nom = val("ast_nombre"), cant = parseInt(val("ast_cantidad")), est = document.getElementById("ast_estado").value, asig = val("ast_asignado");
-        if(!cod || !nom) return alert("Código y Nombre de la herramienta son mandatorios.");
+        const nom = val("ast_nombre"), cant = parseInt(val("ast_cantidad")), est = document.getElementById("ast_estado").value, asig = val("ast_asignado");
+        if(!nom) return alert("El nombre de la herramienta es requerido.");
+
+        // Generamos el código sobre la marcha de manera automática
+        const codigoAuto = calcularSiguienteCodigoActivo();
 
         const { data, error } = await supabaseClient.from('activos_taller').insert([{
-            codigo: cod, nombre: nom, cantidad: cant || 1, estado_tecnico: est, asignado_a: asig || null
+            codigo: codigoAuto, nombre: nom, cantidad: cant || 1, estado_tecnico: est, asignado_a: asig || null
         }]);
 
         if(error) throw error;
         
-        toast("Herramienta agregada al inventario.");
-        document.getElementById("ast_codigo").value = "";
+        toast(`Herramienta registrada automáticamente con código: ${codigoAuto}`);
         document.getElementById("ast_nombre").value = "";
         document.getElementById("ast_cantidad").value = "1";
         document.getElementById("ast_asignado").value = "";
         toggleFormActivo();
         await loadAll();
-    } catch(e) { alert("Error al registrar activo: Puede que el código SKU ya exista."); }
+    } catch(e) { alert("Error al registrar activo de forma automática."); }
 }
 
 function cargarEnLabel(id) {
