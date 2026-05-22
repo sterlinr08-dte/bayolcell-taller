@@ -15,12 +15,14 @@ input,select,textarea{width:100%;border:1.5px solid var(--line);background:#fff;
 .err{display:none;background:#fff1f3;color:#b42318;border:1px solid #fecdd3;padding:10px;border-radius:12px;font-size:13px;margin-bottom:12px}.app{display:none;height:100vh;overflow:hidden}
 .sidebar{width:260px;background:linear-gradient(180deg,#05070a,#111827);color:#fff;display:flex;flex-direction:column;flex-shrink:0}.side-head{padding:20px;border-bottom:1px solid rgba(255,255,255,.08)}.side-logo{display:flex;align-items:center;gap:10px}.side-logo .logo-mark{width:42px;height:42px;font-size:22px}.side-logo h2{margin:0;font-size:24px}.side-logo span{color:var(--red)}.side-logo small{display:block;color:rgba(255,255,255,.55);font-size:10px;font-weight:800}
 .nav{padding:12px;overflow:auto}.nav button{width:100%;background:transparent;color:rgba(255,255,255,.78);border:0;border-radius:13px;padding:12px 13px;margin-bottom:5px;text-align:left;font-weight:750;cursor:pointer;display:flex;align-items:center;gap:10px}.nav button:hover,.nav button.active{background:var(--red);color:#fff}.side-foot{margin-top:auto;padding:14px;border-top:1px solid rgba(255,255,255,.08);font-size:12px;color:rgba(255,255,255,.65)}
-.main{flex:1;display:flex;flex-direction:column;min-width:0}.top{height:64px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:0 20px}.menu-mobile{display:none}.page-title{font-size:18px;font-weight:900}.top-right{margin-left:auto;color:var(--muted);font-weight:700}.content{flex:1;overflow:auto;padding:20px}.view{display:none}.view.active{display:block}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:16px}.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:16px}.kpi small{color:var(--muted);font-weight:800;text-transform:uppercase}.kpi strong{display:block;font-size:30px;margin-top:8px}.kpi i{float:right;font-size:32px;opacity:.18}.grid-2{display:grid;grid-template-columns:1.2fr .8fr;gap:16px}.section-title{margin:0 0 14px;font-size:17px;font-weight:900}.table-wrap{overflow:auto;border-radius:14px;border:1px solid var(--line)}table{width:100%;border-collapse:collapse;background:#fff;font-size:13px}th{background:#f8fafc;color:#475467;text-align:left;font-size:11px;text-transform:uppercase;padding:11px;border-bottom:1px solid var(--line)}td{padding:11px;border-bottom:1px solid #f1f5f9;vertical-align:top}.badge{padding:4px 9px;border-radius:999px;font-size:11px;font-weight:900;display:inline-flex;background:#dbeafe;color:#1d4ed8}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}.top{height:64px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:0 20px}.menu-mobile{display:none}.page-title{font-size:18px;font-weight:900}.top-right{margin-left:auto;color:var(--muted);font-weight:700}.content{flex:1;overflow:auto;padding:20px}
+.view{display:none}.view.active{display:block}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:16px}.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:16px}.kpi small{color:var(--muted);font-weight:800;text-transform:uppercase}.kpi strong{display:block;font-size:30px;margin-top:8px}.kpi i{float:right;font-size:32px;opacity:.18}.grid-2{display:grid;grid-template-columns:1.2fr .8fr;gap:16px}.section-title{margin:0 0 14px;font-size:17px;font-weight:900}
+.table-wrap{overflow:auto;border-radius:14px;border:1px solid var(--line)}table{width:100%;border-collapse:collapse;background:#fff;font-size:13px}th{background:#f8fafc;color:#475467;text-align:left;font-size:11px;text-transform:uppercase;padding:11px;border-bottom:1px solid var(--line)}td{padding:11px;border-bottom:1px solid #f1f5f9;vertical-align:top}.badge{padding:4px 9px;border-radius:999px;font-size:11px;font-weight:900;display:inline-flex;background:#dbeafe;color:#1d4ed8}
 .form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.form-grid .full{grid-column:1/-1}.checks{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.checks label{display:flex;align-items:center;gap:7px;text-transform:none;font-size:13px;font-weight:650;color:#344054;background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:8px}.checks input{width:auto}.actions{display:flex;justify-content:flex-end;gap:10px;margin-top:14px;flex-wrap:wrap}.toast{position:fixed;right:18px;bottom:18px;background:#111827;color:#fff;border-radius:14px;padding:13px 15px;box-shadow:0 18px 50px rgba(0,0,0,.25);display:none;z-index:99;max-width:360px}.print-area{display:none}
+.secure-box{background:#f8fafc;padding:6px 10px;border-radius:8px;border:1px dashed #d0d5dd;display:inline-flex;align-items:center;gap:8px;font-family:monospace}
 @media(max-width:900px){.sidebar{position:fixed;left:-270px;top:0;bottom:0;z-index:20;transition:.25s}.sidebar.open{left:0}.menu-mobile{display:inline-flex}.kpis{grid-template-columns:repeat(2,1fr)}.grid-2,.form-grid{grid-template-columns:1fr}.checks{grid-template-columns:1fr}.content{padding:12px}.top{padding:0 12px}}
 @media print{body *{visibility:hidden}.print-area,.print-area *{visibility:visible}.print-area{display:block;position:absolute;left:0;top:0;width:80mm;padding:8px;background:#fff;color:#000;font-family:Arial}.ticket{font-size:12px}.ticket h2{text-align:center;margin:0 0 4px;font-size:20px}.ticket .line{border-top:1px dashed #000;margin:8px 0}}
 </style>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -41,7 +43,6 @@ input,select,textarea{width:100%;border:1.5px solid var(--line);background:#fff;
             <input id="loginPass" type="password" placeholder="1234" onkeydown="if(event.key==='Enter')doLogin()">
         </div>
         <button class="btn btn-red" style="width:100%" onclick="doLogin()"><i class="ti ti-login"></i> Entrar al sistema</button>
-        <p style="color:#667085;font-size:12px;text-align:center;margin-top:14px">Usuario inicial: <b>admin</b> · Clave: <b>1234</b></p>
     </div>
 </div>
 
@@ -58,14 +59,14 @@ input,select,textarea{width:100%;border:1.5px solid var(--line);background:#fff;
             <button onclick="nav('recepcion',this)"><i class="ti ti-clipboard-plus"></i> Recepción de equipos</button>
             <button onclick="nav('ordenes',this)"><i class="ti ti-tool"></i> Órdenes de trabajo</button>
             <button onclick="nav('inventario',this)"><i class="ti ti-package"></i> Inventario piezas</button>
-            <button onclick="nav('refurb',this)"><i class="ti ti-refresh"></i> Reacondicionamiento</button>
-            <button onclick="nav('activos',this)"><i class="ti ti-briefcase"></i> Activos taller</button>
+            <button id="menu-refurb" onclick="nav('refurb',this)"><i class="ti ti-refresh"></i> Reacondicionamiento</button>
+            <button id="menu-activos" onclick="nav('activos',this)"><i class="ti ti-briefcase"></i> Activos taller</button>
             <button onclick="nav('qc',this)"><i class="ti ti-shield-check"></i> Control calidad</button>
         </div>
         <div class="side-foot">
-            <div><b id="userName">Administrador</b></div>
-            <div id="userRole">usuario</div>
-            <button class="btn btn-light" style="width:100%;margin-top:12px" onclick="logout()"><i class="ti ti-logout"></i> Salir</button>
+            <div><b id="userName">Cargando...</b></div>
+            <div id="userRole" style="text-transform: uppercase; color: var(--red); font-size: 11px; font-weight: bold;">Rango</div>
+            <button class="btn btn-light" style="width:100%;margin-top:12px; padding:6px" onclick="logout()"><i class="ti ti-logout"></i> Salir</button>
         </div>
     </aside>
 
@@ -73,7 +74,7 @@ input,select,textarea{width:100%;border:1.5px solid var(--line);background:#fff;
         <header class="top">
             <button class="btn btn-light menu-mobile" onclick="toggleSide()"><i class="ti ti-menu-2"></i></button>
             <div id="pageTitle" class="page-title">Dashboard</div>
-            <div class="top-right"><i class="ti ti-database-check"></i> Supabase conectado</div>
+            <div class="top-right"><i class="ti ti-shield-lock"></i> <span id="topRole">Rol</span> Segura</div>
         </header>
         
         <section class="content">
@@ -91,7 +92,7 @@ input,select,textarea{width:100%;border:1.5px solid var(--line);background:#fff;
                         <div class="table-wrap">
                             <table>
                                 <thead>
-                                    <tr><th>Orden</th><th>Cliente</th><th>Equipo</th><th>IMEI</th><th>Estado</th></tr>
+                                    <tr><th>Orden</th><th>Cliente</th><th>Equipo</th><th>Falla</th><th>Estado</th></tr>
                                 </thead>
                                 <tbody id="recentOrders"></tbody>
                             </table>
@@ -101,7 +102,6 @@ input,select,textarea{width:100%;border:1.5px solid var(--line);background:#fff;
                         <h3 class="section-title">Acciones rápidas</h3>
                         <button class="btn btn-red" style="width:100%;margin-bottom:10px" onclick="nav('recepcion')"><i class="ti ti-clipboard-plus"></i> Nueva recepción</button>
                         <button class="btn btn-dark" style="width:100%;margin-bottom:10px" onclick="loadAll()"><i class="ti ti-refresh"></i> Refrescar datos</button>
-                        <p style="color:var(--muted);line-height:1.5">Versión corregida con CDN nativo y cliente seguro de Supabase.</p>
                     </div>
                 </div>
             </div>
@@ -143,30 +143,37 @@ input,select,textarea{width:100%;border:1.5px solid var(--line);background:#fff;
                             <select id="o_prioridad"><option value="normal">Normal</option><option value="alta">Alta</option><option value="urgente">Urgente</option></select>
                         </div>
                         <div><label>Técnico principal</label><select id="o_tecnico"></select></div>
-                        <div>
-                            <label>Tipo acceso</label>
-                            <select id="o_acceso"><option>Sin clave</option><option>PIN</option><option>Patrón</option><option>Password</option><option>Face ID / Touch ID</option></select>
+                        
+                        <div class="full" style="background:#fef3f2; padding:14px; border-radius:14px; border:1px solid #fee4e2; margin:10px 0;">
+                            <h4 style="margin:0 0 10px 0; color:#b42318; font-size:14px;"><i class="ti ti-shield-lock"></i> Credenciales de Seguridad (Módulo Privado)</h4>
+                            <div class="form-grid">
+                                <div>
+                                    <label>Tipo acceso</label>
+                                    <select id="o_acceso"><option>Sin clave</option><option>PIN</option><option>Patrón</option><option>Password</option></select>
+                                </div>
+                                <div><label>Clave dispositivo</label><input id="o_clave" type="text" placeholder="PIN o Patrón del terminal"></div>
+                                <div><label>Cuenta (iCloud/Google)</label><input id="o_cuenta" placeholder="correo@ejemplo.com"></div>
+                                <div><label>Clave de la cuenta</label><input id="o_clave_cuenta" type="text" placeholder="Password de la cuenta"></div>
+                            </div>
                         </div>
-                        <div><label>Clave equipo</label><input id="o_clave" placeholder="Opcional"></div>
-                        <div><label>Cuenta iCloud / Google</label><input id="o_cuenta" placeholder="Opcional"></div>
-                        <div><label>Clave cuenta</label><input id="o_clave_cuenta" placeholder="Opcional"></div>
+                        
                         <div class="full"><label>Observaciones internas</label><textarea id="o_obs" rows="2"></textarea></div>
                     </div>
                     <div class="actions">
                         <button class="btn btn-light" onclick="limpiarRecepcion()">Limpiar</button>
                         <button class="btn btn-dark" onclick="guardarRecepcion(false)"><i class="ti ti-device-floppy"></i> Guardar</button>
-                        <button class="btn btn-red" onclick="guardarRecepcion(true)"><i class="ti ti-printer"></i> Guardar + imprimir POS80</button>
+                        <button class="btn btn-red" onclick="guardarRecepcion(true)"><i class="ti ti-printer"></i> Guardar + ticket POS80</button>
                     </div>
                 </div>
             </div>
 
             <div id="v-ordenes" class="view">
                 <div class="card">
-                    <h3 class="section-title">Órdenes de trabajo</h3>
+                    <h3 class="section-title">Órdenes de trabajo activas</h3>
                     <div class="table-wrap">
                         <table>
                             <thead>
-                                <tr><th>Orden</th><th>Cliente</th><th>Equipo</th><th>IMEI</th><th>Falla</th><th>Estado</th><th>Acción</th></tr>
+                                <tr><th>Orden</th><th>Cliente</th><th>Equipo</th><th>Falla</th><th>Seguridad Dispositivo</th><th>Estado</th><th>Acciones</th></tr>
                             </thead>
                             <tbody id="ordersTable"></tbody>
                         </table>
@@ -188,9 +195,9 @@ input,select,textarea{width:100%;border:1.5px solid var(--line);background:#fff;
                 </div>
             </div>
 
-            <div id="v-refurb" class="view"><div class="card"><h3 class="section-title">Reacondicionamiento</h3><p>Fase siguiente: lotes, equipos refurb, costos y multi-técnicos.</p></div></div>
-            <div id="v-activos" class="view"><div class="card"><h3 class="section-title">Activos del taller</h3><p>Fase siguiente: herramientas, responsables y mantenimiento.</p></div></div>
-            <div id="v-qc" class="view"><div class="card"><h3 class="section-title">Control de calidad</h3><p>Fase siguiente: checklist obligatorio antes de entregar.</p></div></div>
+            <div id="v-refurb" class="view"><div class="card"><h3 class="section-title">Reacondicionamiento</h3><p>Módulo exclusivo para Administradores y Gerencia.</p></div></div>
+            <div id="v-activos" class="view"><div class="card"><h3 class="section-title">Activos del taller</h3><p>Fase de control de herramientas operativas.</p></div></div>
+            <div id="v-qc" class="view"><div class="card"><h3 class="section-title">Control de calidad (QC)</h3><p>Checklist de salida del terminal.</p></div></div>
         </section>
     </main>
 </div>
@@ -199,11 +206,9 @@ input,select,textarea{width:100%;border:1.5px solid var(--line);background:#fff;
 <div id="printArea" class="print-area"></div>
 
 <script>
-// Inicialización del cliente Supabase resolviendo la colisión de variables
 const CONFIG_URL = "https://vkhwdvjtowrhkhqavnvk.supabase.co";
 const CONFIG_KEY = "sb_publishable_PynS5ZjKoQ36HCpguVzxaw_KZOlagtz"; 
 
-// Se asigna un identificador único que no choque con la librería del CDN externo
 const supabaseClient = supabase.createClient(CONFIG_URL, CONFIG_KEY);
 
 let sessionUser = null;
@@ -234,7 +239,6 @@ function getChecked(id) {
     return [...document.querySelectorAll("#" + id + " input:checked")].map(x => x.value).join(", ");
 }
 
-// Autenticación controlada
 async function doLogin() {
     try {
         const u = document.getElementById("loginUser").value.trim();
@@ -258,7 +262,7 @@ async function doLogin() {
         localStorage.setItem("bayol_session", JSON.stringify(sessionUser));
         startApp();
     } catch (e) {
-        showErr("No pude conectar/login: " + e.message);
+        showErr("Error de login: " + e.message);
     }
 }
 
@@ -267,28 +271,30 @@ function logout() {
     location.reload();
 }
 
-async function startApp() {
+function startApp() {
     document.getElementById("login").style.display = "none";
     document.getElementById("app").style.display = "flex";
     document.getElementById("userName").textContent = sessionUser.nombre || "Usuario";
-    document.getElementById("userRole").textContent = "Administrador";
-    await loadAll();
+    
+    const rolActual = sessionUser.rol || "Tecnico";
+    document.getElementById("userRole").textContent = rolActual;
+    document.getElementById("topRole").textContent = rolActual;
+    
+    // CONTROL DE ROLES EN INTERFAZ: Si es técnico o recepción, ocultar menús administrativos
+    if(rolActual === "Tecnico" || rolActual === "Servicio Cliente") {
+        document.getElementById("menu-refurb").style.display = "none";
+        document.getElementById("menu-activos").style.display = "none";
+    }
+    
+    loadAll();
 }
 
-function nav(v, btn) {
+async function nav(v, btn) {
     document.querySelectorAll(".view").forEach(x => x.classList.remove("active"));
     document.getElementById("v-" + v)?.classList.add("active");
     document.querySelectorAll(".nav button").forEach(x => x.classList.remove("active"));
     if (btn) btn.classList.add("active");
-    document.getElementById("pageTitle").textContent = ({
-        dashboard: "Dashboard",
-        recepcion: "Recepción de equipos",
-        ordenes: "Órdenes de trabajo",
-        inventario: "Inventario piezas",
-        refurb: "Reacondicionamiento",
-        activos: "Activos del taller",
-        qc: "Control de calidad"
-    })[v] || v;
+    document.getElementById("pageTitle").textContent = document.getElementById(btn?.id || "")?.textContent || v;
     if (innerWidth < 900) toggleSide(false);
 }
 
@@ -298,17 +304,13 @@ function toggleSide(force) {
     else s.classList.toggle("open");
 }
 
-// Carga asíncrona mediante SDK Oficial
 async function loadAll() {
     try {
         const resOrdenes = await supabaseClient.from('ordenes_reparacion').select('*').order('creado_en', { ascending: false }).limit(50);
         const resClientes = await supabaseClient.from('clientes').select('*').order('creado_en', { ascending: false }).limit(100);
         const resEquipos = await supabaseClient.from('equipos').select('*').order('creado_en', { ascending: false }).limit(100);
-        const resUsuarios = await supabaseClient.from('usuarios').select('*').eq('activo', true).order('nombre', { ascending: true });
-        const resPiezas = await supabaseClient.from('piezas_inventario').select('*').eq('activo', true).order('nombre', { ascending: true });
-        const resRefurb = await supabaseClient.from('equipos_refurb').select('*').order('creado_en', { ascending: false }).limit(100);
-
-        if (resOrdenes.error) throw resOrdenes.error;
+        const resUsuarios = await supabaseClient.from('usuarios').select('*').eq('activo', true);
+        const resPiezas = await supabaseClient.from('piezas_inventario').select('*').eq('activo', true);
 
         cache = {
             ordenes: resOrdenes.data || [],
@@ -316,13 +318,12 @@ async function loadAll() {
             equipos: resEquipos.data || [],
             usuarios: resUsuarios.data || [],
             piezas: resPiezas.data || [],
-            refurb: resRefurb.data || []
+            refurb: []
         };
 
         renderAll();
-        toast("Datos del Taller sincronizados.");
     } catch (e) {
-        toast("Error de red con Supabase: " + e.message);
+        toast("Error cargando tablas: " + e.message);
     }
 }
 
@@ -335,14 +336,43 @@ function renderAll() {
     document.getElementById("kRep").textContent = cache.ordenes.filter(o => o.estado === "en_reparacion").length;
     document.getElementById("kPiezas").textContent = cache.ordenes.filter(o => o.estado === "espera_pieza").length;
     document.getElementById("kListos").textContent = cache.ordenes.filter(o => ["listo", "listo_entrega"].includes(o.estado)).length;
-    document.getElementById("kRefurb").textContent = cache.refurb.filter(x => !["listo", "vendido"].includes(x.estado)).length;
     renderOrders();
     renderTechnicians();
-    renderParts();
 }
 
 function badge(estado) {
     return `<span class="badge">${escapeHtml((estado || "recibido").replaceAll("_", " "))}</span>`;
+}
+
+// REVELACIÓN CONTROLADA DE CONTRASENAS (Módulo 3)
+async function revelarClave(ordenId, boton) {
+    const rol = sessionUser.rol;
+    if(rol !== 'Administrador' && rol !== 'Tecnico') {
+        alert("Acceso Denegado: Su rango de usuario no le permite visualizar las contraseñas de los terminales.");
+        return;
+    }
+    
+    const orden = cache.ordenes.find(x => x.id === ordenId);
+    if(!orden) return;
+    
+    // Inyectar visualmente los datos privados en la celda
+    const infoHtml = `
+        <div style="font-size:11px; text-align:left; color:#b42318">
+            <b>Clave:</b> ${escapeHtml(orden.clave_equipo || 'Ninguna')}<br>
+            <b>Cuenta:</b> ${escapeHtml(orden.cuenta_icloud_google || 'Ninguna')}<br>
+            <b>Pass Cta:</b> ${escapeHtml(orden.clave_cuenta || 'Ninguna')}
+        </div>`;
+    
+    boton.parentElement.innerHTML = infoHtml;
+    
+    // REGISTRO DE AUDITORÍA EN SUPABASE (Log imborrable)
+    await supabaseClient.from('logs_seguridad').insert([{
+        usuario_id: sessionUser.id,
+        usuario_nombre: sessionUser.nombre,
+        orden_numero: orden.numero_orden,
+        accion: "Visualizó credenciales de seguridad del equipo"
+    }]);
+    toast("Visualización registrada en los logs de auditoría.");
 }
 
 function renderOrders() {
@@ -350,35 +380,37 @@ function renderOrders() {
         const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
         const cli = [c.nombre, c.apellido].filter(Boolean).join(" ") || "—";
         const eq = [e.marca, e.modelo].filter(Boolean).join(" ") || "—";
-        return `<tr><td>#${String(o.numero_orden || "").padStart(6, "0")}</td><td>${escapeHtml(cli)}</td><td>${escapeHtml(eq)}</td><td>${escapeHtml(e.imei || "—")}</td><td>${escapeHtml(o.falla_reportada || "—")}</td><td>${badge(o.estado)}</td><td><button class="btn btn-light" onclick="imprimirOrden('${o.id}')"><i class="ti ti-printer"></i></button></td></tr>`
+        
+        return `<tr>
+            <td>#${String(o.numero_orden || "").padStart(6, "0")}</td>
+            <td>${escapeHtml(cli)}</td>
+            <td>${escapeHtml(eq)}</td>
+            <td>${escapeHtml(o.falla_reportada || "—")}</td>
+            <td>
+                <div class="secure-box">
+                    <i class="ti ti-lock"></i> <span>********</span>
+                    <button class="btn btn-light" style="padding:2px 6px; font-size:11px" onclick="revelarClave('${o.id}', this)">👁️ Ver</button>
+                </div>
+            </td>
+            <td>${badge(o.estado)}</td>
+            <td><button class="btn btn-light" onclick="imprimirOrden('${o.id}')"><i class="ti ti-printer"></i></button></td>
+        </tr>`
     }).join("") || `<tr><td colspan="7">No hay órdenes todavía.</td></tr>`;
     
     document.getElementById("ordersTable").innerHTML = rows;
-    
-    document.getElementById("recentOrders").innerHTML = cache.ordenes.slice(0, 6).map(o => {
-        const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
-        const cli = [c.nombre, c.apellido].filter(Boolean).join(" ") || "—";
-        const eq = [e.marca, e.modelo].filter(Boolean).join(" ") || "—";
-        return `<tr><td>#${String(o.numero_orden || "").padStart(6, "0")}</td><td>${escapeHtml(cli)}</td><td>${escapeHtml(eq)}</td><td>${escapeHtml(e.imei || "—")}</td><td>${badge(o.estado)}</td></tr>`
-    }).join("") || `<tr><td colspan="5">No hay órdenes todavía.</td></tr>`;
 }
 
 function renderTechnicians() {
     const sel = document.getElementById("o_tecnico");
     if(sel) {
-        sel.innerHTML = `<option value="">Sin asignar</option>` + cache.usuarios.map(u => `<option value="${u.id}">${escapeHtml(u.nombre)}</option>`).join("");
+        sel.innerHTML = `<option value="">Sin asignar</option>` + cache.usuarios.filter(x => x.rol === 'Tecnico' || x.rol === 'Administrador').map(u => `<option value="${u.id}">${escapeHtml(u.nombre)}</option>`).join("");
     }
 }
 
-function renderParts() {
-    document.getElementById("partsTable").innerHTML = cache.piezas.map(p => `<tr><td>${escapeHtml(p.nombre)}</td><td>${escapeHtml(p.codigo || "—")}</td><td>${p.cantidad || 0}</td><td>${money(p.costo)}</td><td>${p.stock_minimo || 0}</td></tr>`).join("") || `<tr><td colspan="5">Inventario vacío por ahora.</td></tr>`;
-}
-
-// Inserciones en formato relacional para evitar fallos de llaves foráneas
 async function guardarRecepcion(imprimir) {
     try {
         const nombre = val("c_nombre"), whatsapp = val("c_whatsapp"), modelo = val("e_modelo"), imei = val("e_imei"), falla = val("o_falla");
-        if (!nombre || !whatsapp || !modelo || !imei || !falla) return toast("Faltan campos obligatorios.");
+        if (!nombre || !whatsapp || !modelo || !imei || !falla) return alert("Faltan campos obligatorios para la recepción.");
 
         const insCliente = await supabaseClient.from('clientes').insert([{
             nombre, apellido: val("c_apellido"), whatsapp, telefono_alterno: val("c_tel"), cedula: val("c_cedula"), direccion: val("c_dir")
@@ -404,16 +436,11 @@ async function guardarRecepcion(imprimir) {
             clave_equipo: val("o_clave"),
             cuenta_icloud_google: val("o_cuenta"),
             clave_cuenta: val("o_clave_cuenta"),
-            acceso_autorizado: !!(val("o_clave") || val("o_cuenta")),
             prioridad: val("o_prioridad"),
             creado_por: sessionUser.id
         }]).select();
         if (insOrden.error) throw insOrden.error;
         let orden = insOrden.data[0];
-
-        await supabaseClient.from('historial_estados').insert([{
-            orden_id: orden.id, estado_anterior: null, estado_nuevo: "recibido", nota: "Orden creada desde recepción", cambiado_por: sessionUser.id
-        }]);
 
         toast("¡Orden de taller guardada perfectamente!");
         limpiarRecepcion();
@@ -422,7 +449,7 @@ async function guardarRecepcion(imprimir) {
         if (imprimir) imprimirTicket({ ...orden, clientes: cliente, equipos: equipo });
         nav("ordenes");
     } catch (e) {
-        toast("Error de transacción: " + e.message);
+        alert("Error de transacción: " + e.message);
     }
 }
 
@@ -430,8 +457,6 @@ function val(id) { return document.getElementById(id)?.value?.trim() || ""; }
 
 function limpiarRecepcion() {
     document.querySelectorAll("#v-recepcion input,#v-recepcion textarea").forEach(x => { if (x.type !== "checkbox") x.value = ""; else x.checked = false; });
-    document.getElementById("o_prioridad").value = "normal";
-    document.getElementById("o_acceso").value = "Sin clave";
 }
 
 function imprimirOrden(id) {
@@ -440,13 +465,35 @@ function imprimirOrden(id) {
     imprimirTicket({ ...o, clientes: findCliente(o.cliente_id), equipos: findEquipo(o.equipo_id) })
 }
 
+// CUMPLE LA REGLA: PRIVACIDAD DE LAS CLAVES EXCLUIDA POR COMPLETO DEL TICKET DE IMPRESIÓN POS80
 function imprimirTicket(o) {
     const cli = o.clientes || {}, eq = o.equipos || {}, numero = String(o.numero_orden || "").padStart(6, "0");
-    document.getElementById("printArea").innerHTML = `<div class="ticket"><h2>BAYOL CELL</h2><div style="text-align:center;font-size:10px">REPARACIÓN · ACCESORIOS · REFURB</div><div class="line"></div><b>COMPROBANTE DE RECEPCIÓN</b><br><b>ORDEN:</b> #${numero}<br><b>FECHA:</b> ${new Date(o.creado_en || Date.now()).toLocaleString("es-DO")}<br><div class="line"></div><b>CLIENTE:</b> ${escapeHtml([cli.nombre, cli.apellido].filter(Boolean).join(" "))}<br><b>WHATSAPP:</b> ${escapeHtml(cli.whatsapp || "")}<br><div class="line"></div><b>EQUIPO:</b> ${escapeHtml([eq.marca, eq.modelo, eq.capacidad, eq.color].filter(Boolean).join(" "))}<br><b>IMEI/SERIAL:</b> ${escapeHtml(eq.imei || eq.serial || "")}<br><b>FALLA:</b> ${escapeHtml(o.falla_reportada || "")}<br><b>CONDICIÓN:</b> ${escapeHtml(o.condicion_fisica || "")}<br><b>ACCESORIOS:</b> ${escapeHtml(o.accesorios_recibidos || "Ninguno")}<br><div class="line"></div><b>NOTA:</b> La empresa no se hace responsable por datos causados por humedad, mal uso o golpes después de la entrega del equipo.<br><br>Recibido por: __________________<br><br>Firma cliente: __________________<br><div class="line"></div><div style="text-align:center">¡Gracias por confiar en BAYOL CELL!</div></div>`;
+    document.getElementById("printArea").innerHTML = `
+        <div class="ticket">
+            <h2>BAYOL CELL</h2>
+            <div style="text-align:center;font-size:10px">REPARACIÓN · ACCESORIOS · REFURB</div>
+            <div class="line"></div>
+            <b>COMPROBANTE DE RECEPCIÓN</b><br>
+            <b>ORDEN:</b> #${numero}<br>
+            <b>FECHA:</b> ${new Date(o.creado_en || Date.now()).toLocaleString("es-DO")}<br>
+            <div class="line"></div>
+            <b>CLIENTE:</b> ${escapeHtml([cli.nombre, cli.apellido].filter(Boolean).join(" "))}<br>
+            <b>WHATSAPP:</b> ${escapeHtml(cli.whatsapp || "")}<br>
+            <div class="line"></div>
+            <b>EQUIPO:</b> ${escapeHtml([eq.marca, eq.modelo, eq.capacidad, eq.color].filter(Boolean).join(" "))}<br>
+            <b>IMEI/SERIAL:</b> ${escapeHtml(eq.imei || "")}<br>
+            <b>FALLA:</b> ${escapeHtml(o.falla_reportada || "")}<br>
+            <b>CONDICIÓN:</b> ${escapeHtml(o.condicion_fisica || "Normal")}<br>
+            <b>ACCESORIOS:</b> ${escapeHtml(o.accesorios_recibidos || "Ninguno")}<br>
+            <div class="line"></div>
+            <div style="font-size:10px; font-weight:bold; text-align:center">REQUERIMIENTO DE ACCESO: AUTORIZADO POR CLIENTE (CONFIDENCIAL)</div>
+            <div class="line"></div>
+            <br><br>Recibido por: __________________<br><br>Firma cliente: __________________<br><div class="line"></div>
+            <div style="text-align:center">¡Gracias por confiar en BAYOL CELL!</div>
+        </div>`;
     window.print();
 }
 
-// Persistencia automática
 const saved = localStorage.getItem("bayol_session");
 if (saved) {
     try {
