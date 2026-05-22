@@ -7,128 +7,139 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
 <style>
 :root {
-    --bg-main: #f0f4f8;
-    --sidebar-bg: #002244;
-    --sidebar-active: #0056b3;
+    --bg-main: #f4f6f9;
+    --sidebar-bg: #0f172a; /* Slate oscuro plano ultra moderno */
+    --sidebar-text: #94a3b8;
+    --sidebar-hover-bg: rgba(255, 255, 255, 0.04);
+    --sidebar-active-bg: rgba(255, 255, 255, 0.08);
     --blue-btn: #0066cc;
     --text-dark: #1e293b;
     --text-muted: #64748b;
-    --border-color: #cbd5e1;
+    --border-color: #e2e8f0;
     --card-bg: #ffffff;
 }
 
-* { box-sizing: border-box; font-family: 'Public Sans', sans-serif; transition: background 0.2s, color 0.2s; }
+* { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; transition: all 0.2s ease; }
 body { margin: 0; background-color: var(--bg-main); color: var(--text-dark); overflow: hidden; height: 100vh; }
 
-/* LOGIN */
-.login { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #001529, #002244); padding: 20px; }
-.login-card { width: 100%; max-width: 420px; background: #fff; border-radius: 20px; padding: 35px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); text-align: center; }
-.logo-login { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 25px; }
-.logo-icon { width: 48px; height: 48px; background: #002244; color: #fff; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 26px; }
-.logo-login h1 { margin: 0; font-size: 24px; font-weight: 800; color: #002244; }
-.logo-login span { color: #0066cc; }
+/* PANTALLA LOGIN */
+.login { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #0f172a, #1e293b); padding: 20px; }
+.login-card { width: 100%; max-width: 400px; background: #fff; border-radius: 24px; padding: 40px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); text-align: center; }
+.logo-login { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 30px; }
+.logo-login h1 { margin: 0; font-size: 26px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px; }
+.logo-login span { color: var(--blue-btn); }
 
-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 5px; text-align: left; }
-.form-row { margin-bottom: 15px; }
-input, select, textarea { width: 100%; border: 1px solid var(--border-color); background: #fff; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: var(--text-dark); outline: none; }
-input:focus, select:focus, textarea:focus { border-color: var(--blue-btn); box-shadow: 0 0 0 3px rgba(0,102,204,0.15); }
+label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 6px; text-align: left; letter-spacing: 0.5px; }
+.form-row { margin-bottom: 18px; }
+input, select, textarea { width: 100%; border: 1px solid var(--border-color); background: #fff; border-radius: 10px; padding: 11px 14px; font-size: 14px; color: var(--text-dark); outline: none; }
+input:focus, select:focus, textarea:focus { border-color: var(--blue-btn); box-shadow: 0 0 0 3px rgba(0,102,204,0.12); }
 
 /* BOTONES */
-.btn { border: 0; border-radius: 8px; padding: 10px 16px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; }
-.btn-blue { background: var(--blue-btn); color: #fff; }
-.btn-blue:hover { background: #0056b3; }
+.btn { border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; }
+.btn-blue { background: var(--blue-btn); color: #fff; box-shadow: 0 4px 12px rgba(0,102,204,0.2); }
+.btn-blue:hover { background: #0056b3; transform: translateY(-1px); }
 .btn-dark { background: #0f172a; color: #fff; }
 .btn-light { background: #fff; border: 1px solid var(--border-color); color: var(--text-dark); }
-.btn-light:hover { background: #f1f5f9; }
-.err { display: none; background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; padding: 10px; border-radius: 8px; font-size: 13px; margin-bottom: 15px; text-align: left; }
+.btn-light:hover { background: #f8fafc; }
+.err { display: none; background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; padding: 12px; border-radius: 10px; font-size: 13px; margin-bottom: 15px; text-align: left; }
 
-/* ESTRUCTURA PRINCIPAL ERP */
+/* BARRA LATERAL EXECUTIVA / MINIMALISTA (REDISEÑADA) */
 .app { display: none; height: 100vh; }
 .sidebar { width: 260px; background: var(--sidebar-bg); color: #fff; display: flex; flex-direction: column; flex-shrink: 0; }
-.side-profile { padding: 20px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255,255,255,0.08); }
-.avatar { width: 44px; height: 44px; border-radius: 50%; background: #0056b3; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; border: 2px solid #fff; }
-.profile-info h4 { margin: 0; font-size: 14px; font-weight: 700; }
-.profile-info small { color: #38bdf8; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
 
-.nav { padding: 15px 10px; overflow-y: auto; flex: 1; }
-.nav button { width: 100%; background: transparent; color: rgba(255,255,255,0.7); border: 0; border-radius: 8px; padding: 11px 12px; margin-bottom: 4px; text-align: left; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 13px; }
-.nav button:hover { background: rgba(255,255,255,0.05); color: #fff; }
-.nav button.active { background: var(--sidebar-active); color: #fff; font-weight: 700; }
+.side-header { padding: 24px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+.side-logo { font-size: 19px; font-weight: 800; letter-spacing: -0.5px; margin: 0; color: #fff; display: flex; align-items: center; gap: 8px; }
+.side-logo span { color: #38bdf8; }
 
-.side-bottom-logo { padding: 20px; text-align: center; border-top: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.15); }
-.side-bottom-logo h3 { margin: 0; font-size: 16px; font-weight: 800; letter-spacing: 0.5px; }
-.side-bottom-logo h3 span { color: #38bdf8; }
-.side-bottom-logo small { display: block; font-size: 9px; color: rgba(255,255,255,0.4); margin-top: 2px; font-weight: 700; }
+.side-profile { padding: 16px 20px; display: flex; align-items: center; gap: 12px; background: rgba(0,0,0,0.15); border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+.avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--blue-btn); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; color: #fff; }
+.profile-info h4 { margin: 0; font-size: 13px; font-weight: 600; color: #f8fafc; }
+.profile-info small { color: #34d399; font-size: 11px; display: flex; align-items: center; gap: 4px; font-weight: 500; }
 
+.nav { padding: 20px 12px; overflow-y: auto; flex: 1; }
+.nav button { 
+    width: 100%; 
+    background: transparent; 
+    color: var(--sidebar-text); 
+    border: 0; 
+    border-radius: 8px; 
+    padding: 11px 14px; 
+    margin-bottom: 5px; 
+    text-align: left; 
+    font-weight: 500; 
+    cursor: pointer; 
+    display: flex; 
+    align-items: center; 
+    gap: 12px; 
+    font-size: 13.5px; 
+}
+.nav button:hover { background: var(--sidebar-hover-bg); color: #f8fafc; }
+.nav button.active { 
+    background: var(--sidebar-active-bg); 
+    color: #fff; 
+    font-weight: 600; 
+    box-shadow: inset 3px 0 0 0 #38bdf8; /* Línea indicadora minimalista vertical */
+    border-radius: 6px;
+}
+
+.side-footer { padding: 16px; border-top: 1px solid rgba(255,255,255,0.05); text-align: center; }
+
+/* CONTENIDO PRINCIPAL */
 .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-.top-bar { height: 56px; background: #0056b3; color: #fff; display: flex; align-items: center; padding: 0 24px; gap: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-.top-title { font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-.top-right-info { margin-left: auto; font-size: 12px; font-weight: 600; background: rgba(255,255,255,0.15); padding: 5px 12px; border-radius: 6px; }
+.top-bar { height: 60px; background: #ffffff; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; padding: 0 24px; gap: 15px; }
+.top-title { font-size: 16px; font-weight: 700; color: var(--text-dark); }
+.top-right-info { margin-left: auto; font-size: 12px; font-weight: 600; background: #f1f5f9; color: var(--text-muted); padding: 6px 12px; border-radius: 8px; }
 
-.content { flex: 1; overflow-auto; padding: 20px; }
+.content { flex: 1; overflow-y: auto; padding: 24px; }
 .view { display: none; }
 .view.active { display: block; }
 
-/* CARDS Y CONTENEDORES ASOCIADOS AL DISEÑO BLUE */
-.card { background: var(--card-bg); border-radius: 12px; border: 1px solid #e2e8f0; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 20px; }
+/* KPIS DEL DASHBOARD */
+.kpi-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; margin-bottom: 24px; }
+.kpi-box { background: #fff; border-radius: 12px; padding: 16px; border: 1px solid var(--border-color); box-shadow: 0 1px 3px rgba(0,0,0,0.02); position: relative; border-top: 4px solid var(--blue-btn); }
+.kpi-box small { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; display: block; letter-spacing: 0.5px; }
+.kpi-box strong { font-size: 28px; font-weight: 800; display: block; margin-top: 4px; color: var(--text-dark); }
+.kpi-box i { position: absolute; right: 14px; bottom: 14px; font-size: 22px; color: var(--text-muted); opacity: 0.2; }
 
-/* KPIS ESTILO IMAGEN CARLOS ADMIN */
-.kpi-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 20px; }
-.kpi-box { background: #fff; border-radius: 8px; padding: 14px; border-top: 4px solid var(--blue-btn); box-shadow: 0 2px 4px rgba(0,0,0,0.02); position: relative; }
-.kpi-box small { font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; display: block; }
-.kpi-box strong { font-size: 26px; font-weight: 800; display: block; margin-top: 6px; color: var(--text-dark); }
-.kpi-box i { position: absolute; right: 12px; bottom: 12px; font-size: 24px; color: var(--text-muted); opacity: 0.25; }
+.kpi-recibidos { border-top-color: #2563eb; }
+.kpi-diagnostico { border-top-color: #d97706; }
+.kpi-reparacion { border-top-color: #059669; }
+.kpi-espera { border-top-color: #dc2626; }
+.kpi-listos { border-top-color: #7c3aed; }
+.kpi-refurb { border-top-color: #0891b2; }
 
-/* COLORES ESPECÍFICOS DE BORDES DE TRABAJO EN KPIS */
-.kpi-recibidos { border-top-color: #3b82f6; }
-.kpi-diagnostico { border-top-color: #f59e0b; }
-.kpi-reparacion { border-top-color: #10b981; }
-.kpi-espera { border-top-color: #ef4444; }
-.kpi-listos { border-top-color: #8b5cf6; }
-.kpi-refurb { border-top-color: #06b6d4; }
+.layout-dashboard { display: grid; grid-template-columns: 1.4fr 0.6fr; gap: 24px; }
+.card { background: var(--card-bg); border-radius: 16px; border: 1px solid var(--border-color); padding: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); margin-bottom: 24px; }
 
-.layout-dashboard { display: grid; grid-template-columns: 1.4fr 0.6fr; gap: 20px; }
+/* FORMULARIO POR BLOQUES MODERNOS */
+.block-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; align-items: start; }
+.block-card { background: #fff; border-radius: 14px; border: 1px solid var(--border-color); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); overflow: hidden; }
+.block-header { padding: 12px 16px; font-size: 13px; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 0.5px; }
+.header-blue-dark { background: #1e3a8a; }
+.header-blue-light { background: #2563eb; }
+.header-blue-sec { background: #1d4ed8; }
+.block-body { padding: 18px; }
+.input-group { margin-bottom: 12px; }
+.input-group label { font-size: 12px; font-weight: 600; margin-bottom: 5px; color: var(--text-dark); text-transform: none; }
 
-/* TABLAS COMPACTAS ERP */
-.table-wrap { overflow: auto; border-radius: 8px; border: 1px solid #e2e8f0; }
-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; background: #fff; }
-th { background: #f8fafc; color: var(--text-muted); font-weight: 700; font-size: 11px; text-transform: uppercase; padding: 10px 12px; border-bottom: 1px solid #e2e8f0; }
-td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; color: var(--text-dark); }
-tr:hover td { background: #f8fafc; }
-
-/* BLOQUES DE RECEPCIÓN TOTALMENTE ESTILIZADOS COMO LA IMAGEN */
-.block-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; align-items: start; }
-.block-card { background: #fff; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); overflow: hidden; }
-.block-header { padding: 10px 14px; font-size: 12px; font-weight: 800; color: #fff; text-transform: uppercase; letter-spacing: 0.5px; }
-
-/* COLORES DE CABECERA DE BLOQUES IDÉNTICOS A LA IMAGEN RECOLECTADA */
-.header-blue-dark { background: #0044cc; }
-.header-blue-light { background: #0066ff; }
-.header-blue-sec { background: #0055dd; }
-
-.block-body { padding: 14px; }
-.input-group { margin-bottom: 10px; }
-.input-group label { font-size: 11px; font-weight: 700; margin-bottom: 4px; color: var(--text-dark); text-transform: none; }
-
-.checks-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.checks-layout label { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; text-transform: none; color: var(--text-dark); background: #f8fafc; padding: 6px; border: 1px solid #e2e8f0; border-radius: 6px; margin: 0; cursor: pointer; }
+.checks-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.checks-layout label { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 500; text-transform: none; color: var(--text-dark); background: #f8fafc; padding: 8px; border: 1px solid var(--border-color); border-radius: 8px; margin: 0; cursor: pointer; }
 .checks-layout input { width: auto; cursor: pointer; accent-color: var(--blue-btn); }
 
-.secure-container { background: #fff5f5; border: 1px dashed #feb2b2; padding: 10px; border-radius: 6px; margin-top: 10px; }
-.badge { padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+/* TABLAS COMPACTAS */
+.table-wrap { overflow: auto; border-radius: 10px; border: 1px solid var(--border-color); }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; text-align: left; background: #fff; }
+th { background: #f8fafc; color: var(--text-muted); font-weight: 700; font-size: 11px; text-transform: uppercase; padding: 12px 16px; border-bottom: 1px solid var(--border-color); }
+td { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; color: var(--text-dark); }
+tr:hover td { background: #f8fafc; }
+.badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
 
-/* ELEMENTOS DE IMPRESION */
-.toast { position: fixed; right: 20px; bottom: 20px; background: #0f172a; color: #fff; border-radius: 8px; padding: 12px 18px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); display: none; z-index: 99; font-size: 13px; font-weight: 600; }
+.toast { position: fixed; right: 24px; bottom: 24px; background: #0f172a; color: #fff; border-radius: 12px; padding: 14px 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); display: none; z-index: 99; font-size: 13.5px; font-weight: 600; }
 .print-area { display: none; }
-@media print {
-    body * { visibility: hidden; }
-    .print-area, .print-area * { visibility: visible; }
-    .print-area { display: block; position: absolute; left: 0; top: 0; width: 80mm; background: #fff; color: #000; font-family: Arial; }
-}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -137,8 +148,8 @@ tr:hover td { background: #f8fafc; }
 <div id="login" class="login">
     <div class="login-card">
         <div class="logo-login">
-            <div class="logo-icon"><i class="ti ti-device-mobile-cog"></i></div>
-            <div><h1>BAYOL <span>CELL</span></h1><small style="color:var(--text-muted); font-weight:700; font-size:10px;">SISTEMA MAESTRO ERP</small></div>
+            <div style="font-size: 28px; color: var(--blue-btn);"><i class="ti ti-device-mobile-cog"></i></div>
+            <div><h1>BAYOL <span>CELL</span></h1><small style="color:var(--text-muted); font-weight:700; font-size:10px; display:block; text-align:left;">SISTEMA MAESTRO ERP</small></div>
         </div>
         <div id="loginErr" class="err"></div>
         <div class="form-row">
@@ -153,13 +164,16 @@ tr:hover td { background: #f8fafc; }
     </div>
 </div>
 
-<div id="app" class="app" style="display:flex;">
+<div id="app" class="app">
     <aside class="sidebar">
+        <div class="side-header">
+            <h3 class="side-logo"><i class="ti ti-device-mobile"></i> BAYOL <span>CELL</span></h3>
+        </div>
         <div class="side-profile">
-            <div class="avatar" id="userAvatar">U</div>
+            <div class="avatar" id="userAvatar">B</div>
             <div class="profile-info">
                 <h4 id="userName">Cargando...</h4>
-                <small><i class="ti ti-circle-filled" style="font-size:8px; color:#22c55e;"></i> En Línea</small>
+                <small><i class="ti ti-circle-filled" style="font-size:8px;"></i> En Línea</small>
             </div>
         </div>
         <div class="nav">
@@ -170,17 +184,15 @@ tr:hover td { background: #f8fafc; }
             <button id="menu-refurb" onclick="nav('refurb',this)"><i class="ti ti-refresh"></i> Refurbish (Reacond.)</button>
             <button onclick="nav('qc',this)"><i class="ti ti-shield-check"></i> Control de Calidad</button>
         </div>
-        <div class="side-bottom-logo">
-            <h3>BAYOL <span>CELL</span></h3>
-            <small>SISTEMA TALLER · CONTROL TOTAL</small>
+        <div class="side-footer">
+            <button class="btn btn-light" style="width:100%; padding:6px; font-size:11px; background:rgba(255,255,255,0.05); color:#cbd5e1; border:0;" onclick="logout()"><i class="ti ti-logout"></i> Salir del ERP</button>
         </div>
     </aside>
 
     <main class="main">
         <header class="top-bar">
             <div class="top-title" id="pageTitle">Dashboard</div>
-            <div class="top-right-info"><i class="ti ti-user-shield"></i> Rol: <span id="userRole" style="text-transform:uppercase;">Técnico</span></div>
-            <button class="btn btn-light" style="padding:4px 10px; font-size:11px; background:rgba(255,255,255,0.1); border:0; color:#fff;" onclick="logout()">Cerrar</button>
+            <div class="top-right-info"><i class="ti ti-user-shield"></i> Rango: <span id="userRole" style="text-transform:uppercase;">...</span></div>
         </header>
         
         <section class="content">
@@ -196,7 +208,7 @@ tr:hover td { background: #f8fafc; }
                 
                 <div class="layout-dashboard">
                     <div class="card">
-                        <h3 style="margin:0 0 15px 0; font-size:15px; font-weight:700;">Órdenes de Trabajo (Recientes)</h3>
+                        <h3 style="margin:0 0 15px 0; font-size:15px; font-weight:700;">Órdenes de Trabajo Recientes</h3>
                         <div class="table-wrap">
                             <table>
                                 <thead>
@@ -207,9 +219,9 @@ tr:hover td { background: #f8fafc; }
                         </div>
                     </div>
                     <div class="card">
-                        <h3 style="margin:0 0 15px 0; font-size:15px; font-weight:700;">Sincronización</h3>
-                        <button class="btn btn-blue" style="width:100%; margin-bottom:10px;" onclick="nav('recepcion')"><i class="ti ti-plus"></i> Nueva Recepción</button>
-                        <button class="btn btn-light" style="width:100%;" onclick="loadAll()"><i class="ti ti-refresh"></i> Refrescar Nube</button>
+                        <h3 style="margin:0 0 15px 0; font-size:15px; font-weight:700;">Consola de Mando</h3>
+                        <button class="btn btn-blue" style="width:100%; margin-bottom:10px;" onclick="nav('recepcion')"><i class="ti ti-plus"></i> Nueva Recepción de Equipo</button>
+                        <button class="btn btn-light" style="width:100%;" onclick="loadAll()"><i class="ti ti-refresh"></i> Sincronizar con la Nube</button>
                     </div>
                 </div>
             </div>
@@ -217,24 +229,24 @@ tr:hover td { background: #f8fafc; }
             <div id="v-recepcion" class="view">
                 <div class="block-grid">
                     <div class="block-card">
-                        <div class="block-header header-blue-dark">Recepción de Equipos</div>
+                        <div class="block-header header-blue-dark">Datos de Registro</div>
                         <div class="block-body">
-                            <b style="font-size:11px; color:var(--blue-btn); display:block; margin-bottom:8px; text-transform:uppercase;">Datos del Cliente</b>
-                            <div class="input-group"><label>Nombre</label><input id="c_nombre" placeholder="Juan Pérez"></div>
-                            <div class="input-group"><label>WhatsApp</label><input id="c_whatsapp" placeholder="809-123-4567"></div>
+                            <b style="font-size:11px; color:var(--blue-btn); display:block; margin-bottom:8px; text-transform:uppercase;">Información del Cliente</b>
+                            <div class="input-group"><label>Nombre del Cliente *</label><input id="c_nombre" placeholder="Juan Pérez"></div>
+                            <div class="input-group"><label>WhatsApp / Celular *</label><input id="c_whatsapp" placeholder="809-123-4567"></div>
                             <div class="input-group"><label>Cédula</label><input id="c_cedula" placeholder="001-1234567-8"></div>
                             
-                            <b style="font-size:11px; color:var(--blue-btn); display:block; margin:14px 0 8px 0; text-transform:uppercase;">Datos del Equipo</b>
+                            <b style="font-size:11px; color:var(--blue-btn); display:block; margin:15px 0 8px 0; text-transform:uppercase;">Detalles del Dispositivo</b>
                             <div class="input-group"><label>Marca</label><input id="e_marca" placeholder="Apple"></div>
-                            <div class="input-group"><label>Modelo</label><input id="e_modelo" placeholder="iPhone 11"></div>
+                            <div class="input-group"><label>Modelo Exacto *</label><input id="e_modelo" placeholder="iPhone 11"></div>
                             <div class="input-group"><label>Capacidad</label><input id="e_capacidad" placeholder="64GB"></div>
-                            <div class="input-group"><label>IMEI / Serial</label><input id="e_imei" placeholder="356789123..."></div>
-                            <div class="input-group"><label>Falla Reportada por Cliente</label><textarea id="o_falla" rows="2" placeholder="No carga..."></textarea></div>
+                            <div class="input-group"><label>IMEI / Número de Serial *</label><input id="e_imei" placeholder="356789... "></div>
+                            <div class="input-group"><label>Falla Reportada *</label><textarea id="o_falla" rows="2" placeholder="Describa el problema..."></textarea></div>
                         </div>
                     </div>
 
                     <div class="block-card">
-                        <div class="block-header header-blue-light">Estado Físico</div>
+                        <div class="block-header header-blue-light">Evaluación de Estado Físico</div>
                         <div class="block-body">
                             <div class="checks-layout" id="checksFisico">
                                 <label><input type="checkbox" value="Pantalla rota"> Pantalla rota</label>
@@ -244,36 +256,30 @@ tr:hover td { background: #f8fafc; }
                                 <label><input type="checkbox" value="Sin táctil"> Sin táctil</label>
                                 <label><input type="checkbox" value="Sin WiFi"> Sin WiFi</label>
                                 <label><input type="checkbox" value="Tapa rota"> Tapa rota</label>
-                                <label><input type="checkbox" value="Sin Bluetooth"> Sin Bluetooth</label>
-                                <label><input type="checkbox" value="Cámara dañada"> Cámara dañada</label>
+                                <label><input type="checkbox" value="Sin Bluetooth"> Sin BT</label>
+                                <label><input type="checkbox" value="Cámara dañada"> Cámara OK</label>
                                 <label><input type="checkbox" value="Reiniciando"> Reiniciando</label>
-                                <label><input type="checkbox" value="Bocina dañada"> Bocina dañada</label>
                                 <label><input type="checkbox" value="No enciende"> No enciende</label>
-                                <label><input type="checkbox" value="Micrófono"> Micrófono</label>
                                 <label><input type="checkbox" value="Batería mala"> Batería mala</label>
-                                <label><input type="checkbox" value="Puerto de carga"> Puerto carga</label>
-                                <label><input type="checkbox" value="Otro"> Otro</label>
                             </div>
-                            <div class="input-group" style="margin-top:12px;"><label>Accesorios Recibidos</label><input id="o_accesorios" placeholder="SIM, Cover, Cargador"></div>
+                            <div class="input-group" style="margin-top:15px;"><label>Accesorios Recibidos</label><input id="o_accesorios" placeholder="SIM, Cover, Caja"></div>
                         </div>
                     </div>
 
                     <div class="block-card">
-                        <div class="block-header header-blue-sec">Control de Seguridad / Acceso</div>
+                        <div class="block-header header-blue-sec">Seguridad y Resguardo</div>
                         <div class="block-body">
                             <div class="input-group">
-                                <label>Tipo de Acceso</label>
+                                <label>Tipo de Bloqueo</label>
                                 <select id="o_acceso"><option>PIN</option><option>Patrón</option><option>Password</option><option>Sin clave</option></select>
                             </div>
-                            <b style="font-size:11px; color:var(--text-muted); display:block; margin:10px 0 6px 0; text-transform:uppercase;">Cuentas</b>
-                            <div class="input-group"><label>Apple ID / iCloud</label><input id="o_cuenta" placeholder="juanperez@icloud.com"></div>
-                            <div class="input-group"><label>Password iCloud</label><input id="o_clave" placeholder="••••••••••••"></div>
-                            <div class="input-group"><label>Gmail</label><input id="o_cuenta_gmail" placeholder="juanperez@gmail.com"></div>
-                            <div class="input-group"><label>Password Gmail</label><input id="o_clave_cuenta" placeholder="••••••••••••"></div>
+                            <b style="font-size:11px; color:var(--text-muted); display:block; margin:12px 0 6px 0; text-transform:uppercase;">Cuentas Vinculadas</b>
+                            <div class="input-group"><label>Apple ID / Cuenta</label><input id="o_cuenta" placeholder="correo@ejemplo.com"></div>
+                            <div class="input-group"><label>Contraseña Acceso</label><input id="o_clave" type="text" placeholder="Clave del dispositivo"></div>
                             
-                            <div class="actions" style="margin-top:20px;">
-                                <button class="btn btn-dark" style="width:100%" onclick="guardarRecepcion(false)"><i class="ti ti-device-floppy"></i> Guardar Solo Base Datos</button>
-                                <button class="btn btn-blue" style="width:100%" onclick="guardarRecepcion(true)"><i class="ti ti-printer"></i> Guardar + Ticket POS80</button>
+                            <div style="margin-top:25px;">
+                                <button class="btn btn-dark" style="width:100%; margin-bottom:10px;" onclick="guardarRecepcion(false)"><i class="ti ti-device-floppy"></i> Solo Guardar</button>
+                                <button class="btn btn-blue" style="width:100%" onclick="guardarRecepcion(true)"><i class="ti ti-printer"></i> Registrar + Imprimir</button>
                             </div>
                         </div>
                     </div>
@@ -282,11 +288,11 @@ tr:hover td { background: #f8fafc; }
 
             <div id="v-ordenes" class="view">
                 <div class="card">
-                    <h3 style="margin:0 0 15px 0; font-size:16px; font-weight:700;">Órdenes de Trabajo Registradas</h3>
+                    <h3 style="margin:0 0 15px 0; font-size:16px; font-weight:700;">Historial de Reparaciones</h3>
                     <div class="table-wrap">
                         <table>
                             <thead>
-                                <tr><th>Orden</th><th>Cliente</th><th>Equipo</th><th>Falla</th><th>Seguridad Oculta</th><th>Estado</th><th>Acciones</th></tr>
+                                <tr><th>Orden</th><th>Cliente</th><th>Equipo</th><th>Falla Principal</th><th>Acceso de Seguridad</th><th>Estado</th><th>Acciones</th></tr>
                             </thead>
                             <tbody id="ordersTable"></tbody>
                         </table>
@@ -296,11 +302,11 @@ tr:hover td { background: #f8fafc; }
 
             <div id="v-inventario" class="view">
                 <div class="card">
-                    <h3 style="margin:0 0 15px 0; font-size:16px; font-weight:700;">Inventario de Componentes</h3>
+                    <h3 style="margin:0 0 15px 0; font-size:16px; font-weight:700;">Inventario Central de Refacciones</h3>
                     <div class="table-wrap">
                         <table>
                             <thead>
-                                <tr><th>Código SKU</th><th>Pieza</th><th>Stock Disponible</th><th>Costo</th></tr>
+                                <tr><th>Código SKU</th><th>Pieza / Componente</th><th>Existencia</th><th>Costo Unidad</th></tr>
                             </thead>
                             <tbody id="partsTable"></tbody>
                         </table>
@@ -308,8 +314,8 @@ tr:hover td { background: #f8fafc; }
                 </div>
             </div>
 
-            <div id="v-refurb" class="view"><div class="card"><h3>Reacondicionamiento (Refurbish)</h3><p style="color:var(--text-muted);">Módulo gerencial de equipos propios.</p></div></div>
-            <div id="v-qc" class="view"><div class="card"><h3>Control de Calidad (QC)</h3><p style="color:var(--text-muted);">Checklist técnico de salida.</p></div></div>
+            <div id="v-refurb" class="view"><div class="card"><h3>Módulo Reacondicionamiento</h3><p style="color:var(--text-muted);">Uso exclusivo de administración.</p></div></div>
+            <div id="v-qc" class="view"><div class="card"><h3>Control de Calidad (QC)</h3><p style="color:var(--text-muted);">Validación e inspección técnica final.</p></div></div>
         </section>
     </main>
 </div>
@@ -318,12 +324,14 @@ tr:hover td { background: #f8fafc; }
 <div id="printArea" class="print-area"></div>
 
 <script>
+// Inicialización única y segura de Supabase para evitar el error "Identifier already declared"
 const CONFIG_URL = "https://vkhwdvjtowrhkhqavnvk.supabase.co";
 const CONFIG_KEY = "sb_publishable_PynS5ZjKoQ36HCpguVzxaw_KZOlagtz"; 
 
 const supabaseClient = supabase.createClient(CONFIG_URL, CONFIG_KEY);
+
 let sessionUser = null;
-let cache = { ordenes: [], clientes: [], equipos: [], usuarios: [], piezas: [] };
+let cache = { ordenes: [], clientes: [], equipos: [], piezas: [] };
 
 function toast(msg) {
     const t = document.getElementById("toast");
@@ -337,14 +345,16 @@ async function doLogin() {
     try {
         const u = document.getElementById("loginUser").value.trim();
         const p = document.getElementById("loginPass").value.trim();
-        if(!u || !p) return alert("Ingrese credenciales.");
+        if(!u || !p) return alert("Por favor, ingrese usuario y clave.");
+        
         const { data, error } = await supabaseClient.from('usuarios').select('*').eq('usuario', u).eq('clave', p).eq('activo', true);
         if(error) throw error;
-        if(!data.length) return alert("Credenciales incorrectas.");
+        if(!data || !data.length) return alert("Credenciales operativas incorrectas.");
+        
         sessionUser = data[0];
         localStorage.setItem("bayol_session", JSON.stringify(sessionUser));
         startApp();
-    } catch(e) { alert("Error: " + e.message); }
+    } catch(e) { alert("Error de acceso: " + e.message); }
 }
 
 function logout() { localStorage.removeItem("bayol_session"); location.reload(); }
@@ -352,9 +362,10 @@ function logout() { localStorage.removeItem("bayol_session"); location.reload();
 function startApp() {
     document.getElementById("login").style.display = "none";
     document.getElementById("app").style.display = "flex";
-    document.getElementById("userName").textContent = sessionUser.nombre || "Usuario";
-    document.getElementById("userAvatar").textContent = (sessionUser.nombre || "U").charAt(0).toUpperCase();
-    document.getElementById("userRole").textContent = sessionUser.rol || "Tecnico";
+    document.getElementById("userName").textContent = sessionUser.nombre || "Operador";
+    document.getElementById("userAvatar").textContent = (sessionUser.nombre || "B").charAt(0).toUpperCase();
+    document.getElementById("userRole").textContent = sessionUser.rol || "Técnico";
+    
     if(sessionUser.rol === "Tecnico" || sessionUser.rol === "Servicio Cliente") {
         document.getElementById("menu-refurb").style.display = "none";
     }
@@ -377,7 +388,7 @@ async function loadAll() {
         const rPz = await supabaseClient.from('piezas_inventario').select('*');
         cache = { ordenes: rOrd.data || [], clientes: rCli.data || [], equipos: rEq.data || [], piezas: rPz.data || [] };
         renderAll();
-    } catch(e) { toast("Error de sincronización."); }
+    } catch(e) { toast("Error sincronizando tablas remota."); }
 }
 
 function findCliente(id) { return cache.clientes.find(x => x.id === id) || {}; }
@@ -396,11 +407,11 @@ function renderAll() {
 }
 
 async function revelarClave(ordenId, boton) {
-    if(sessionUser.rol !== 'Administrador' && sessionUser.rol !== 'Tecnico') return alert("Acceso Restringido.");
+    if(sessionUser.rol !== 'Administrador' && sessionUser.rol !== 'Tecnico') return alert("Acceso Denegado. Rol no autorizado.");
     const o = cache.ordenes.find(x => x.id === ordenId);
     if(!o) return;
-    boton.parentElement.innerHTML = `<div style="font-size:11px; color:#ef4444;">P: ${escapeHtml(o.clave_equipo || 'N/A')}<br>C: ${escapeHtml(o.cuenta_icloud_google || 'N/A')}</div>`;
-    await supabaseClient.from('logs_seguridad').insert([{ usuario_id: sessionUser.id, usuario_nombre: sessionUser.nombre, orden_numero: o.numero_orden, accion: "Reveló clave privada" }]);
+    boton.parentElement.innerHTML = `<div style="font-size:11px; color:#ef4444; font-family:monospace;">Clave: ${escapeHtml(o.clave_equipo || 'N/A')}<br>Cuenta: ${escapeHtml(o.cuenta_icloud_google || 'N/A')}</div>`;
+    await supabaseClient.from('logs_seguridad').insert([{ usuario_id: sessionUser.id, usuario_nombre: sessionUser.nombre, orden_numero: o.numero_orden, accion: "Desencriptó y visualizó credenciales privadas en tabla" }]);
 }
 
 function renderOrders() {
@@ -411,46 +422,48 @@ function renderOrders() {
             <td>${escapeHtml(c.nombre || "—")}</td>
             <td>${escapeHtml(e.modelo || "—")}</td>
             <td>${escapeHtml(o.falla_reportada || "—")}</td>
-            <td><div>•••• <button class="btn btn-light" style="padding:1px 4px; font-size:10px" onclick="revelarClave('${o.id}', this)">Ver</button></div></td>
+            <td><div style="display:flex; align-items:center; gap:6px;">•••• •••• <button class="btn btn-light" style="padding:2px 6px; font-size:10px;" onclick="revelarClave('${o.id}', this)">Ver</button></div></td>
             <td><span class="badge" style="background:#e0f2fe; color:#0369a1;">${escapeHtml(o.estado || "recibido")}</span></td>
             <td><button class="btn btn-light" style="padding:4px 8px;" onclick="imprimirOrden('${o.id}')"><i class="ti ti-printer"></i></button></td>
         </tr>`;
     }).join("");
-    document.getElementById("ordersTable").innerHTML = html || '<tr><td colspan="7">No hay registros.</td></tr>';
+    document.getElementById("ordersTable").innerHTML = html || '<tr><td colspan="7">No existen órdenes registradas.</td></tr>';
     document.getElementById("recentOrders").innerHTML = html;
 }
 
 function renderParts() {
-    document.getElementById("partsTable").innerHTML = cache.piezas.map(p => `<tr><td>${escapeHtml(p.codigo)}</td><td><b>${escapeHtml(p.nombre)}</b></td><td>${p.cantidad} uds</td><td>${money(p.costo)}</td></tr>`).join("");
+    document.getElementById("partsTable").innerHTML = cache.piezas.map(p => `<tr><td><code>${escapeHtml(p.codigo)}</code></td><td><b>${escapeHtml(p.nombre)}</b></td><td>${p.cantidad} unidades</td><td>${money(p.costo)}</td></tr>`).join("");
 }
 
 async function guardarRecepcion(imprimir) {
     try {
-        if(!val("c_nombre") || !val("c_whatsapp") || !val("e_modelo") || !val("e_imei")) return alert("Faltan campos.");
+        if(!val("c_nombre") || !val("c_whatsapp") || !val("e_modelo") || !val("e_imei") || !val("o_falla")) return alert("Por favor complete todos los campos obligatorios.");
         const insC = await supabaseClient.from('clientes').insert([{ nombre: val("c_nombre"), whatsapp: val("c_whatsapp"), cedula: val("c_cedula") }]).select();
         const insE = await supabaseClient.from('equipos').insert([{ cliente_id: insC.data[0].id, marca: val("e_marca"), modelo: val("e_modelo"), imei: val("e_imei"), capacidad: val("e_capacidad") }]).select();
         const insO = await supabaseClient.from('ordenes_reparacion').insert([{
             cliente_id: insC.data[0].id, equipo_id: insE.data[0].id, falla_reportada: val("o_falla"), condicion_fisica: getChecked("checksFisico"), accesorios_recibidos: val("o_accesorios"),
             tipo_acceso: val("o_acceso"), clave_equipo: val("o_clave"), cuenta_icloud_google: val("o_cuenta"), creado_por: sessionUser.id
         }]).select();
-        toast("¡Orden aperturada!");
+        
+        toast("¡Orden guardada con éxito!");
         limpiarRecepcion();
         await loadAll();
         if(imprimir) imprimirTicket({ ...insO.data[0], clientes: insC.data[0], equipos: insE.data[0] });
         nav("ordenes");
-    } catch(e) { alert("Error."); }
+    } catch(e) { alert("Error guardando orden en base de datos."); }
 }
 
 function val(id) { return document.getElementById(id)?.value?.trim() || ""; }
-function limpiarRecepcion() { document.querySelectorAll("#v-recepcion input, #v-recepcion textarea").forEach(x => x.value = ""); }
+function limpiarRecepcion() { document.querySelectorAll("#v-recepcion input, #v-recepcion textarea").forEach(x => { if(x.type!=='checkbox') x.value = ""; else x.checked = false; }); }
 function imprimirOrden(id) { const o = cache.ordenes.find(x => x.id === id); if(o) imprimirTicket({ ...o, clientes: findCliente(o.cliente_id), equipos: findEquipo(o.equipo_id) }); }
 
 function imprimirTicket(o) {
     const cli = o.clientes || {}, eq = o.equipos || {};
-    document.getElementById("printArea").innerHTML = `<div style="padding:10px; font-family:Arial; font-size:12px;"><h2>BAYOL CELL</h2>Orden: #${o.numero_orden}<br>Cliente: ${cli.nombre}<br>Equipo: ${eq.modelo}<br>Falla: ${o.falla_reportada}<br><br>Firma: _________________</div>`;
+    document.getElementById("printArea").innerHTML = `<div style="padding:15px; font-family:Arial; font-size:13px; max-width:80mm;"><h3>BAYOL CELL</h3>Orden de Servicio: #${o.numero_orden}<br>Cliente: ${cli.nombre}<br>Equipo: ${eq.modelo}<br>Falla: ${o.falla_reportada}<br><br>Firma Técnico: _________________</div>`;
     window.print();
 }
 
+// Persistencia de Sesión
 const saved = localStorage.getItem("bayol_session");
 if(saved) { try { sessionUser = JSON.parse(saved); startApp(); } catch(e){} }
 </script>
