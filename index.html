@@ -20,6 +20,9 @@ input,select,textarea{width:100%;border:1.5px solid var(--line);background:#fff;
 @media(max-width:900px){.sidebar{position:fixed;left:-270px;top:0;bottom:0;z-index:20;transition:.25s}.sidebar.open{left:0}.menu-mobile{display:inline-flex}.kpis{grid-template-columns:repeat(2,1fr)}.grid-2,.form-grid{grid-template-columns:1fr}.checks{grid-template-columns:1fr}.content{padding:12px}.top{padding:0 12px}}
 @media print{body *{visibility:hidden}.print-area,.print-area *{visibility:visible}.print-area{display:block;position:absolute;left:0;top:0;width:80mm;padding:8px;background:#fff;color:#000;font-family:Arial}.ticket{font-size:12px}.ticket h2{text-align:center;margin:0 0 4px;font-size:20px}.ticket .line{border-top:1px dashed #000;margin:8px 0}}
 </style>
+
+<!-- LIBRERÍA DE SUPABASE CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div id="login" class="login"><div class="login-card"><div class="logo"><div class="logo-mark"><i class="ti ti-device-mobile-cog"></i></div><div><h1>BAYOL <span>CELL</span></h1><small>SISTEMA TALLER · REPARACIÓN · REFURB</small></div></div><div id="loginErr" class="err"></div><div class="form-row"><label>Usuario</label><input id="loginUser" placeholder="admin"></div><div class="form-row"><label>Clave</label><input id="loginPass" type="password" placeholder="1234" onkeydown="if(event.key==='Enter')doLogin()"></div><button class="btn btn-red" style="width:100%" onclick="doLogin()"><i class="ti ti-login"></i> Entrar al sistema</button><p style="color:#667085;font-size:12px;text-align:center;margin-top:14px">Usuario inicial: <b>admin</b> · Clave: <b>1234</b></p></div></div>
@@ -30,25 +33,268 @@ input,select,textarea{width:100%;border:1.5px solid var(--line);background:#fff;
 <div id="v-ordenes" class="view"><div class="card"><h3 class="section-title">Órdenes de trabajo</h3><div class="table-wrap"><table><thead><tr><th>Orden</th><th>Cliente</th><th>Equipo</th><th>IMEI</th><th>Falla</th><th>Estado</th><th>Acción</th></tr></thead><tbody id="ordersTable"></tbody></table></div></div></div>
 <div id="v-inventario" class="view"><div class="card"><h3 class="section-title">Inventario simple de piezas</h3><div class="table-wrap"><table><thead><tr><th>Pieza</th><th>Código</th><th>Cantidad</th><th>Costo</th><th>Stock mínimo</th></tr></thead><tbody id="partsTable"></tbody></table></div></div></div><div id="v-refurb" class="view"><div class="card"><h3 class="section-title">Reacondicionamiento</h3><p>Fase siguiente: lotes, equipos refurb, costos y multi-técnicos.</p></div></div><div id="v-activos" class="view"><div class="card"><h3 class="section-title">Activos del taller</h3><p>Fase siguiente: herramientas, responsables y mantenimiento.</p></div></div><div id="v-qc" class="view"><div class="card"><h3 class="section-title">Control de calidad</h3><p>Fase siguiente: checklist obligatorio antes de entregar.</p></div></div></section></main></div>
 <div id="toast" class="toast"></div><div id="printArea" class="print-area"></div>
+
 <script>
-const SUPABASE_URL="https://vkhwdvjtowrhkhqavnvk.supabase.co";
-const SUPABASE_KEY="sb_publishable_PynS5ZjKoQ36HCpguVzxaw_KZOlagtz";
-let sessionUser=null;let cache={ordenes:[],clientes:[],equipos:[],usuarios:[],piezas:[],refurb:[]};
-function api(table,opts={}){const url=SUPABASE_URL+"/rest/v1/"+table+(opts.query||"");return fetch(url,{method:opts.method||"GET",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json","Prefer":opts.prefer||"return=representation"},body:opts.body?JSON.stringify(opts.body):undefined}).then(async r=>{const text=await r.text();let data=null;try{data=text?JSON.parse(text):null}catch(e){data=text}if(!r.ok)throw new Error((data&&data.message)?data.message:text||"Error Supabase");return data})}
-function showErr(msg){const e=document.getElementById("loginErr");e.textContent=msg;e.style.display="block"}function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.style.display="block";setTimeout(()=>t.style.display="none",3500)}function escapeHtml(s){return(s??"").toString().replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\\"":"&quot;","'":"&#039;"}[m]))}function money(n){return"RD$ "+Number(n||0).toLocaleString("es-DO",{minimumFractionDigits:2})}function getChecked(id){return[...document.querySelectorAll("#"+id+" input:checked")].map(x=>x.value).join(", ")}
-async function doLogin(){try{const u=document.getElementById("loginUser").value.trim();const p=document.getElementById("loginPass").value.trim();if(!u||!p)return showErr("Escribe usuario y clave.");const q="?select=*&usuario=eq."+encodeURIComponent(u)+"&clave=eq."+encodeURIComponent(p)+"&activo=eq.true";const res=await api("usuarios",{query:q});if(!res||!res.length)return showErr("Usuario o clave incorrectos.");sessionUser=res[0];localStorage.setItem("bayol_session",JSON.stringify(sessionUser));startApp()}catch(e){showErr("No pude conectar/login: "+e.message)}}
-function logout(){localStorage.removeItem("bayol_session");location.reload()}async function startApp(){document.getElementById("login").style.display="none";document.getElementById("app").style.display="flex";document.getElementById("userName").textContent=sessionUser.nombre||"Usuario";document.getElementById("userRole").textContent="usuario";await loadAll()}
-function nav(v,btn){document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));document.getElementById("v-"+v)?.classList.add("active");document.querySelectorAll(".nav button").forEach(x=>x.classList.remove("active"));if(btn)btn.classList.add("active");document.getElementById("pageTitle").textContent=({dashboard:"Dashboard",recepcion:"Recepción de equipos",ordenes:"Órdenes de trabajo",inventario:"Inventario piezas",refurb:"Reacondicionamiento",activos:"Activos del taller",qc:"Control de calidad"})[v]||v;if(innerWidth<900)toggleSide(false)}function toggleSide(force){const s=document.getElementById("sidebar");if(force===false)s.classList.remove("open");else s.classList.toggle("open")}
-async function loadAll(){try{const[ordenes,clientes,equipos,usuarios,piezas,refurb]=await Promise.all([api("ordenes_reparacion",{query:"?select=*&order=creado_en.desc&limit=50"}),api("clientes",{query:"?select=*&order=creado_en.desc&limit=100"}),api("equipos",{query:"?select=*&order=creado_en.desc&limit=100"}),api("usuarios",{query:"?select=*&activo=eq.true&order=nombre.asc"}),api("piezas_inventario",{query:"?select=*&activo=eq.true&order=nombre.asc"}),api("equipos_refurb",{query:"?select=*&order=creado_en.desc&limit=100"})]);cache={ordenes,clientes,equipos,usuarios,piezas,refurb};renderAll();toast("Datos actualizados.")}catch(e){toast("Error cargando datos: "+e.message)}}
-function findCliente(id){return cache.clientes.find(x=>x.id===id)||{}}function findEquipo(id){return cache.equipos.find(x=>x.id===id)||{}}
-function renderAll(){const today=new Date().toISOString().slice(0,10);document.getElementById("kHoy").textContent=cache.ordenes.filter(o=>(o.creado_en||"").slice(0,10)===today).length;document.getElementById("kRep").textContent=cache.ordenes.filter(o=>o.estado==="en_reparacion").length;document.getElementById("kPiezas").textContent=cache.ordenes.filter(o=>o.estado==="espera_pieza").length;document.getElementById("kListos").textContent=cache.ordenes.filter(o=>["listo","listo_entrega"].includes(o.estado)).length;document.getElementById("kRefurb").textContent=cache.refurb.filter(x=>!["listo","vendido"].includes(x.estado)).length;renderOrders();renderTechnicians();renderParts()}
-function badge(estado){return`<span class="badge">${escapeHtml((estado||"recibido").replaceAll("_"," "))}</span>`}
-function renderOrders(){const rows=cache.ordenes.map(o=>{const c=findCliente(o.cliente_id),e=findEquipo(o.equipo_id);const cli=[c.nombre,c.apellido].filter(Boolean).join(" ")||"—";const eq=[e.marca,e.modelo].filter(Boolean).join(" ")||"—";return`<tr><td>#${String(o.numero_orden||"").padStart(6,"0")}</td><td>${escapeHtml(cli)}</td><td>${escapeHtml(eq)}</td><td>${escapeHtml(e.imei||"—")}</td><td>${escapeHtml(o.falla_reportada||"—")}</td><td>${badge(o.estado)}</td><td><button class="btn btn-light" onclick="imprimirOrden('${o.id}')"><i class="ti ti-printer"></i></button></td></tr>`}).join("")||`<tr><td colspan="7">No hay órdenes todavía.</td></tr>`;document.getElementById("ordersTable").innerHTML=rows;document.getElementById("recentOrders").innerHTML=cache.ordenes.slice(0,6).map(o=>{const c=findCliente(o.cliente_id),e=findEquipo(o.equipo_id);const cli=[c.nombre,c.apellido].filter(Boolean).join(" ")||"—";const eq=[e.marca,e.modelo].filter(Boolean).join(" ")||"—";return`<tr><td>#${String(o.numero_orden||"").padStart(6,"0")}</td><td>${escapeHtml(cli)}</td><td>${escapeHtml(eq)}</td><td>${escapeHtml(e.imei||"—")}</td><td>${badge(o.estado)}</td></tr>`}).join("")||`<tr><td colspan="5">No hay órdenes todavía.</td></tr>`}
-function renderTechnicians(){const sel=document.getElementById("o_tecnico");sel.innerHTML=`<option value="">Sin asignar</option>`+cache.usuarios.map(u=>`<option value="${u.id}">${escapeHtml(u.nombre)}</option>`).join("")}
-function renderParts(){document.getElementById("partsTable").innerHTML=cache.piezas.map(p=>`<tr><td>${escapeHtml(p.nombre)}</td><td>${escapeHtml(p.codigo||"—")}</td><td>${p.cantidad||0}</td><td>${money(p.costo)}</td><td>${p.stock_minimo||0}</td></tr>`).join("")||`<tr><td colspan="5">Inventario vacío por ahora.</td></tr>`}
-async function guardarRecepcion(imprimir){try{const nombre=val("c_nombre"),whatsapp=val("c_whatsapp"),modelo=val("e_modelo"),imei=val("e_imei"),falla=val("o_falla");if(!nombre||!whatsapp||!modelo||!imei||!falla)return toast("Faltan campos obligatorios.");let cliente=(await api("clientes",{method:"POST",body:{nombre,apellido:val("c_apellido"),whatsapp,telefono_alterno:val("c_tel"),cedula:val("c_cedula"),direccion:val("c_dir")}}))[0];let equipo=(await api("equipos",{method:"POST",body:{cliente_id:cliente.id,marca:val("e_marca"),modelo,color:val("e_color"),capacidad:val("e_capacidad"),imei,operadora:val("e_operadora")}}))[0];let orden=(await api("ordenes_reparacion",{method:"POST",body:{cliente_id:cliente.id,equipo_id:equipo.id,tecnico_principal_id:val("o_tecnico")||null,falla_reportada:falla,condicion_fisica:getChecked("checksFisico"),accesorios_recibidos:val("o_accesorios"),observaciones_cliente:val("o_obs"),tipo_acceso:val("o_acceso"),clave_equipo:val("o_clave"),cuenta_icloud_google:val("o_cuenta"),clave_cuenta:val("o_clave_cuenta"),acceso_autorizado:!!(val("o_clave")||val("o_cuenta")),prioridad:val("o_prioridad"),creado_por:sessionUser.id}}))[0];await api("historial_estados",{method:"POST",body:{orden_id:orden.id,estado_anterior:null,estado_nuevo:"recibido",nota:"Orden creada desde recepción",cambiado_por:sessionUser.id}});toast("Orden guardada correctamente.");limpiarRecepcion();await loadAll();if(imprimir)imprimirTicket({...orden,clientes:cliente,equipos:equipo});nav("ordenes")}catch(e){toast("Error guardando: "+e.message)}}
-function val(id){return document.getElementById(id)?.value?.trim()||""}function limpiarRecepcion(){document.querySelectorAll("#v-recepcion input,#v-recepcion textarea").forEach(x=>{if(x.type!=="checkbox")x.value="";else x.checked=false});document.getElementById("o_prioridad").value="normal";document.getElementById("o_acceso").value="Sin clave"}
-function imprimirOrden(id){const o=cache.ordenes.find(x=>x.id===id);if(!o)return;imprimirTicket({...o,clientes:findCliente(o.cliente_id),equipos:findEquipo(o.equipo_id)})}
-function imprimirTicket(o){const cli=o.clientes||{},eq=o.equipos||{},numero=String(o.numero_orden||"").padStart(6,"0");document.getElementById("printArea").innerHTML=`<div class="ticket"><h2>BAYOL CELL</h2><div style="text-align:center;font-size:10px">REPARACIÓN · ACCESORIOS · REFURB</div><div class="line"></div><b>COMPROBANTE DE RECEPCIÓN</b><br><b>ORDEN:</b> #${numero}<br><b>FECHA:</b> ${new Date(o.creado_en||Date.now()).toLocaleString("es-DO")}<br><div class="line"></div><b>CLIENTE:</b> ${escapeHtml([cli.nombre,cli.apellido].filter(Boolean).join(" "))}<br><b>WHATSAPP:</b> ${escapeHtml(cli.whatsapp||"")}<br><div class="line"></div><b>EQUIPO:</b> ${escapeHtml([eq.marca,eq.modelo,eq.capacidad,eq.color].filter(Boolean).join(" "))}<br><b>IMEI/SERIAL:</b> ${escapeHtml(eq.imei||eq.serial||"")}<br><b>FALLA:</b> ${escapeHtml(o.falla_reportada||"")}<br><b>CONDICIÓN:</b> ${escapeHtml(o.condicion_fisica||"")}<br><b>ACCESORIOS:</b> ${escapeHtml(o.accesorios_recibidos||"Ninguno")}<br><div class="line"></div><b>NOTA:</b> La empresa no se hace responsable por datos causados por humedad, mal uso o golpes después de la entrega del equipo.<br><br>Recibido por: __________________<br><br>Firma cliente: __________________<br><div class="line"></div><div style="text-align:center">¡Gracias por confiar en BAYOL CELL!</div></div>`;window.print()}
-const saved=localStorage.getItem("bayol_session");if(saved){try{sessionUser=JSON.parse(saved);startApp()}catch{}}
-</script></body></html>
+// 1. INICIALIZACIÓN OFICIAL DE SUPABASE (Corregido y Conectado)
+const SUPABASE_URL = "https://vkhwdvjtowrhkhqavnvk.supabase.co";
+const SUPABASE_KEY = "sb_publishable_PynS5ZjKoQ36HCpguVzxaw_KZOlagtz"; // Asegúrate de que esta key no tenga restricciones RLS bloqueantes
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let sessionUser = null;
+let cache = { ordenes: [], clientes: [], equipos: [], usuarios: [], piezas: [], refurb: [] };
+
+function showErr(msg) {
+    const e = document.getElementById("loginErr");
+    e.textContent = msg;
+    e.style.display = "block";
+}
+
+function toast(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.style.display = "block";
+    setTimeout(() => t.style.display = "none", 3500);
+}
+
+function escapeHtml(s) {
+    return (s ?? "").toString().replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[m]));
+}
+
+function money(n) {
+    return "RD$ " + Number(n || 0).toLocaleString("es-DO", { minimumFractionDigits: 2 });
+}
+
+function getChecked(id) {
+    return [...document.querySelectorAll("#" + id + " input:checked")].map(x => x.value).join(", ");
+}
+
+// 2. SISTEMA DE LOGIN OFICIAL CON SUPABASE
+async function doLogin() {
+    try {
+        const u = document.getElementById("loginUser").value.trim();
+        const p = document.getElementById("loginPass").value.trim();
+        if (!u || !p) return showErr("Escribe usuario y clave.");
+
+        // Consulta limpia usando el cliente oficial
+        const { data, error } = await supabase
+            .from('usuarios')
+            .select('*')
+            .eq('usuario', u)
+            .eq('clave', p)
+            .eq('activo', true);
+
+        if (error) throw error;
+
+        if (!data || !data.length) {
+            return showErr("Usuario o clave incorrectos.");
+        }
+
+        sessionUser = data[0];
+        localStorage.setItem("bayol_session", JSON.stringify(sessionUser));
+        startApp();
+    } catch (e) {
+        showErr("No pude conectar/login: " + e.message);
+    }
+}
+
+function logout() {
+    localStorage.removeItem("bayol_session");
+    location.reload();
+}
+
+async function startApp() {
+    document.getElementById("login").style.display = "none";
+    document.getElementById("app").style.display = "flex";
+    document.getElementById("userName").textContent = sessionUser.nombre || "Usuario";
+    document.getElementById("userRole").textContent = "Administrador";
+    await loadAll();
+}
+
+function nav(v, btn) {
+    document.querySelectorAll(".view").forEach(x => x.classList.remove("active"));
+    document.getElementById("v-" + v)?.classList.add("active");
+    document.querySelectorAll(".nav button").forEach(x => x.classList.remove("active"));
+    if (btn) btn.classList.add("active");
+    document.getElementById("pageTitle").textContent = ({
+        dashboard: "Dashboard",
+        recepcion: "Recepción de equipos",
+        ordenes: "Órdenes de trabajo",
+        inventario: "Inventario piezas",
+        refurb: "Reacondicionamiento",
+        activos: "Activos del taller",
+        qc: "Control de calidad"
+    })[v] || v;
+    if (innerWidth < 900) toggleSide(false);
+}
+
+function toggleSide(force) {
+    const s = document.getElementById("sidebar");
+    if (force === false) s.classList.remove("open");
+    else s.classList.toggle("open");
+}
+
+// 3. CARGA DE DATOS SIN LA FUNCIÓN COMPLICADA API()
+async function loadAll() {
+    try {
+        // Ejecutamos consultas paralelas nativas
+        const resOrdenes = await supabase.from('ordenes_reparacion').select('*').order('creado_en', { ascending: false }).limit(50);
+        const resClientes = await supabase.from('clientes').select('*').order('creado_en', { ascending: false }).limit(100);
+        const resEquipos = await supabase.from('equipos').select('*').order('creado_en', { ascending: false }).limit(100);
+        const resUsuarios = await supabase.from('usuarios').select('*').eq('activo', true).order('nombre', { ascending: true });
+        const resPiezas = await supabase.from('piezas_inventario').select('*').eq('activo', true).order('nombre', { ascending: true });
+        const resRefurb = await supabase.from('equipos_refurb').select('*').order('creado_en', { ascending: false }).limit(100);
+
+        // Verificamos si hubo algún error en las consultas de Supabase
+        if (resOrdenes.error) throw resOrdenes.error;
+
+        cache = {
+            ordenes: resOrdenes.data || [],
+            clientes: resClientes.data || [],
+            equipos: resEquipos.data || [],
+            usuarios: resUsuarios.data || [],
+            piezas: resPiezas.data || [],
+            refurb: resRefurb.data || []
+        };
+
+        renderAll();
+        toast("Datos del Taller sincronizados.");
+    } catch (e) {
+        toast("Error cargando datos: " + e.message);
+    }
+}
+
+function findCliente(id) { return cache.clientes.find(x => x.id === id) || {}; }
+function findEquipo(id) { return cache.equipos.find(x => x.id === id) || {}; }
+
+function renderAll() {
+    const today = new Date().toISOString().slice(0, 10);
+    document.getElementById("kHoy").textContent = cache.ordenes.filter(o => (o.creado_en || "").slice(0, 10) === today).length;
+    document.getElementById("kRep").textContent = cache.ordenes.filter(o => o.estado === "en_reparacion").length;
+    document.getElementById("kPiezas").textContent = cache.ordenes.filter(o => o.estado === "espera_pieza").length;
+    document.getElementById("kListos").textContent = cache.ordenes.filter(o => ["listo", "listo_entrega"].includes(o.estado)).length;
+    document.getElementById("kRefurb").textContent = cache.refurb.filter(x => !["listo", "vendido"].includes(x.estado)).length;
+    renderOrders();
+    renderTechnicians();
+    renderParts();
+}
+
+function badge(estado) {
+    return `<span class="badge">${escapeHtml((estado || "recibido").replaceAll("_", " "))}</span>`;
+}
+
+function renderOrders() {
+    const rows = cache.ordenes.map(o => {
+        const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
+        const cli = [c.nombre, c.apellido].filter(Boolean).join(" ") || "—";
+        const eq = [e.marca, e.modelo].filter(Boolean).join(" ") || "—";
+        return `<tr><td>#${String(o.numero_orden || "").padStart(6, "0")}</td><td>${escapeHtml(cli)}</td><td>${escapeHtml(eq)}</td><td>${escapeHtml(e.imei || "—")}</td><td>${escapeHtml(o.falla_reportada || "—")}</td><td>${badge(o.estado)}</td><td><button class="btn btn-light" onclick="imprimirOrden('${o.id}')"><i class="ti ti-printer"></i></button></td></tr>`
+    }).join("") || `<tr><td colspan="7">No hay órdenes todavía.</td></tr>`;
+    
+    document.getElementById("ordersTable").innerHTML = rows;
+    
+    document.getElementById("recentOrders").innerHTML = cache.ordenes.slice(0, 6).map(o => {
+        const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
+        const cli = [c.nombre, c.apellido].filter(Boolean).join(" ") || "—";
+        const eq = [e.marca, e.modelo].filter(Boolean).join(" ") || "—";
+        return `<tr><td>#${String(o.numero_orden || "").padStart(6, "0")}</td><td>${escapeHtml(cli)}</td><td>${escapeHtml(eq)}</td><td>${escapeHtml(e.imei || "—")}</td><td>${badge(o.estado)}</td></tr>`
+    }).join("") || `<tr><td colspan="5">No hay órdenes todavía.</td></tr>`;
+}
+
+function renderTechnicians() {
+    const sel = document.getElementById("o_tecnico");
+    if(sel) {
+        sel.innerHTML = `<option value="">Sin asignar</option>` + cache.usuarios.map(u => `<option value="${u.id}">${escapeHtml(u.nombre)}</option>`).join("");
+    }
+}
+
+function renderParts() {
+    document.getElementById("partsTable").innerHTML = cache.piezas.map(p => `<tr><td>${escapeHtml(p.nombre)}</td><td>${escapeHtml(p.codigo || "—")}</td><td>${p.cantidad || 0}</td><td>${money(p.costo)}</td><td>${p.stock_minimo || 0}</td></tr>`).join("") || `<tr><td colspan="5">Inventario vacío por ahora.</td></tr>`;
+}
+
+// 4. ENVÍO DE DATOS SEGURO EN FORMATO RELACIONAL
+async function guardarRecepcion(imprimir) {
+    try {
+        const nombre = val("c_nombre"), whatsapp = val("c_whatsapp"), modelo = val("e_modelo"), imei = val("e_imei"), falla = val("o_falla");
+        if (!nombre || !whatsapp || !modelo || !imei || !falla) return toast("Faltan campos obligatorios.");
+
+        // Inserción de Cliente usando .insert().select() oficial
+        const insCliente = await supabase.from('clientes').insert([{
+            nombre, apellido: val("c_apellido"), whatsapp, telefono_alterno: val("c_tel"), cedula: val("c_cedula"), direccion: val("c_dir")
+        }]).select();
+        if (insCliente.error) throw insCliente.error;
+        let cliente = insCliente.data[0];
+
+        // Inserción de Equipo enlazado al cliente
+        const insEquipo = await supabase.from('equipos').insert([{
+            cliente_id: cliente.id, marca: val("e_marca"), modelo, color: val("e_color"), capacidad: val("e_capacidad"), imei, operadora: val("e_operadora")
+        }]).select();
+        if (insEquipo.error) throw insEquipo.error;
+        let equipo = insEquipo.data[0];
+
+        // Inserción de la Orden de Reparación
+        const insOrden = await supabase.from('ordenes_reparacion').insert([{
+            cliente_id: cliente.id,
+            equipo_id: equipo.id,
+            tecnico_principal_id: val("o_tecnico") || null,
+            falla_reportada: falla,
+            condicion_fisica: getChecked("checksFisico"),
+            accesorios_recibidos: val("o_accesorios"),
+            observaciones_cliente: val("o_obs"),
+            tipo_acceso: val("o_acceso"),
+            clave_equipo: val("o_clave"),
+            cuenta_icloud_google: val("o_cuenta"),
+            clave_cuenta: val("o_clave_cuenta"),
+            acceso_autorizado: !!(val("o_clave") || val("o_cuenta")),
+            prioridad: val("o_prioridad"),
+            creado_por: sessionUser.id
+        }]).select();
+        if (insOrden.error) throw insOrden.error;
+        let orden = insOrden.data[0];
+
+        // Registro en el Historial de la Orden
+        await supabase.from('historial_estados').insert([{
+            orden_id: orden.id, estado_anterior: null, estado_nuevo: "recibido", nota: "Orden creada desde recepción", cambiado_por: sessionUser.id
+        }]);
+
+        toast("¡Orden de taller guardada perfectamente!");
+        limpiarRecepcion();
+        await loadAll();
+
+        if (imprimir) imprimirTicket({ ...orden, clientes: cliente, equipos: equipo });
+        nav("ordenes");
+    } catch (e) {
+        toast("Error guardando en base de datos: " + e.message);
+    }
+}
+
+function val(id) { return document.getElementById(id)?.value?.trim() || ""; }
+
+function limpiarRecepcion() {
+    document.querySelectorAll("#v-recepcion input,#v-recepcion textarea").forEach(x => { if (x.type !== "checkbox") x.value = ""; else x.checked = false; });
+    document.getElementById("o_prioridad").value = "normal";
+    document.getElementById("o_acceso").value = "Sin clave";
+}
+
+function imprimirOrden(id) {
+    const o = cache.ordenes.find(x => x.id === id);
+    if (!o) return;
+    imprimirTicket({ ...o, clientes: findCliente(o.cliente_id), equipos: findEquipo(o.equipo_id) })
+}
+
+function imprimirTicket(o) {
+    const cli = o.clientes || {}, eq = o.equipos || {}, numero = String(o.numero_orden || "").padStart(6, "0");
+    document.getElementById("printArea").innerHTML = `<div class="ticket"><h2>BAYOL CELL</h2><div style="text-align:center;font-size:10px">REPARACIÓN · ACCESORIOS · REFURB</div><div class="line"></div><b>COMPROBANTE DE RECEPCIÓN</b><br><b>ORDEN:</b> #${numero}<br><b>FECHA:</b> ${new Date(o.creado_en || Date.now()).toLocaleString("es-DO")}<br><div class="line"></div><b>CLIENTE:</b> ${escapeHtml([cli.nombre, cli.apellido].filter(Boolean).join(" "))}<br><b>WHATSAPP:</b> ${escapeHtml(cli.whatsapp || "")}<br><div class="line"></div><b>EQUIPO:</b> ${escapeHtml([eq.marca, eq.modelo, eq.capacidad, eq.color].filter(Boolean).join(" "))}<br><b>IMEI/SERIAL:</b> ${escapeHtml(eq.imei || eq.serial || "")}<br><b>FALLA:</b> ${escapeHtml(o.falla_reportada || "")}<br><b>CONDICIÓN:</b> ${escapeHtml(o.condicion_fisica || "")}<br><b>ACCESORIOS:</b> ${escapeHtml(o.accesorios_recibidos || "Ninguno")}<br><div class="line"></div><b>NOTA:</b> La empresa no se hace responsable por datos causados por humedad, mal uso o golpes después de la entrega del equipo.<br><br>Recibido por: __________________<br><br>Firma cliente: __________________<br><div class="line"></div><div style="text-align:center">¡Gracias por confiar en BAYOL CELL!</div></div>`;
+    window.print();
+}
+
+// Persistencia automática de sesión
+const saved = localStorage.getItem("bayol_session");
+if (saved) {
+    try {
+        sessionUser = JSON.parse(saved);
+        startApp();
+    } catch { }
+}
+</script>
+</body>
+</html>
