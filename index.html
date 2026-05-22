@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SISTEMA TALLER - BAYOL CELL</title>
+<title>SISTEMA TALLER BAYOL CELL</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,11 +11,10 @@
 
 <style>
 :root {
-    --bg-main: #f1f5f9;
-    --sidebar-bg: linear-gradient(180deg, #111827 0%, #030712 100%);
-    --sidebar-btn-bg: linear-gradient(180deg, #dc2626 0%, #991b1b 100%);
-    --brand-red: #ef4444;
-    --brand-dark: #0f172a;
+    --bg-main: #eef2f7;
+    --sidebar-bg: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+    --sidebar-btn-bg: linear-gradient(180deg, #334155 0%, #1e293b 100%);
+    --blue-btn: #0056b3;
     --text-dark: #0f172a;
     --text-muted: #64748b;
     --border-color: #cbd5e1;
@@ -26,21 +25,22 @@
 body { margin: 0; background-color: var(--bg-main); color: var(--text-dark); overflow: hidden; height: 100vh; }
 
 /* LOGIN */
-.login { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #1e1b4b, #090514); padding: 20px; }
-.login-card { width: 100%; max-width: 420px; background: #fff; border-radius: 20px; padding: 40px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); text-align: center; border: 1px solid rgba(255,255,255,0.1); }
+.login { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #0f172a, #020617); padding: 20px; }
+.login-card { width: 100%; max-width: 420px; background: #fff; border-radius: 20px; padding: 40px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.4); text-align: center; border: 1px solid rgba(255,255,255,0.1); }
 .logo-login { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 25px; }
 .logo-login h1 { margin: 0; font-size: 26px; font-weight: 800; color: #0f172a; letter-spacing: -1px; }
-.logo-login span { color: var(--brand-red); }
+.logo-login span { color: #ef4444; }
 
 label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 5px; text-align: left; }
 .form-row { margin-bottom: 16px; }
 input, select, textarea { width: 100%; border: 1px solid var(--border-color); background: #fff; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: var(--text-dark); outline: none; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); }
-input:focus, select:focus, textarea:focus { border-color: var(--brand-red); box-shadow: 0 0 0 3px rgba(239,68,68,0.15); }
+input:focus, select:focus, textarea:focus { border-color: var(--blue-btn); box-shadow: 0 0 0 3px rgba(0,86,179,0.15); }
+input[disabled] { background-color: #f1f5f9; color: #94a3b8; cursor: not-allowed; }
 
-/* BOTONES PREMIUM */
-.btn { border: 0; border-radius: 8px; padding: 11px 16px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; text-shadow: 0 1px 1px rgba(0,0,0,0.2); }
-.btn-red { background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%); color: #fff; box-shadow: 0 2px 4px rgba(185,28,28,0.3); border: 1px solid #991b1b; }
-.btn-red:hover { background: linear-gradient(180deg, #f87171 0%, #dc2626 100%); }
+/* BOTONES */
+.btn { border: 0; border-radius: 8px; padding: 11px 16px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; text-shadow: 0 1px 1px rgba(0,0,0,0.1); }
+.btn-blue { background: linear-gradient(180deg, #0066cc 0%, #0044aa 100%); color: #fff; box-shadow: 0 2px 4px rgba(0,68,170,0.3); }
+.btn-blue:hover { background: linear-gradient(180deg, #0077ee 0%, #0055cc 100%); }
 .btn-dark { background: #1e293b; color: #fff; border: 1px solid #334155; }
 .btn-light { background: #fff; border: 1px solid var(--border-color); color: var(--text-dark); text-shadow: none; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
 .btn-light:hover { background: #f8fafc; }
@@ -48,72 +48,82 @@ input:focus, select:focus, textarea:focus { border-color: var(--brand-red); box-
 
 /* INTERFAZ GENERAL */
 .app { display: none; height: 100vh; }
-.sidebar { width: 260px; background: var(--sidebar-bg); color: #fff; display: flex; flex-direction: column; flex-shrink: 0; box-shadow: 4px 0 15px rgba(0,0,0,0.25); z-index: 10; }
-.side-profile { padding: 22px 20px; display: flex; align-items: center; gap: 12px; background: rgba(0,0,0,0.3); border-bottom: 1px solid rgba(255,255,255,0.05); }
-.avatar { width: 42px; height: 42px; border-radius: 50%; background: #b91c1c; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+.sidebar { width: 260px; background: var(--sidebar-bg); color: #fff; display: flex; flex-direction: column; flex-shrink: 0; box-shadow: 4px 0 15px rgba(0,0,0,0.15); z-index: 10; }
+.side-profile { padding: 22px 20px; display: flex; align-items: center; gap: 12px; background: rgba(0,0,0,0.15); border-bottom: 1px solid rgba(255,255,255,0.05); }
+.avatar { width: 42px; height: 42px; border-radius: 50%; background: #475569; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; border: 2px solid #cbd5e1; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
 .profile-info h4 { margin: 0; font-size: 14px; font-weight: 700; color: #f8fafc; }
 .profile-info small { color: #22c55e; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
 
 .nav { padding: 15px 10px; overflow-y: auto; flex: 1; }
 .nav button { width: 100%; background: transparent; color: #94a3b8; border: 0; border-radius: 8px; padding: 11px 12px; margin-bottom: 6px; text-align: left; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 13px; border: 1px solid transparent; }
 .nav button:hover { background: rgba(255,255,255,0.05); color: #fff; }
-.nav button.active { background: var(--sidebar-btn-bg); color: #fff; font-weight: 700; border: 1px solid #b91c1c; box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 2px 4px rgba(0,0,0,0.3); }
+.nav button.active { background: var(--sidebar-btn-bg); color: #fff; font-weight: 700; border: 1px solid #475569; box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 2px 4px rgba(0,0,0,0.2); }
 
-.side-bottom-logo { padding: 20px; text-align: center; border-top: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.4); }
+.side-bottom-logo { padding: 20px; text-align: center; border-top: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.2); }
 .side-bottom-logo h3 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: 0.5px; color: #fff; }
-.side-bottom-logo h3 span { color: var(--brand-red); }
-.side-bottom-logo small { display: block; font-size: 9px; color: #64748b; margin-top: 2px; font-weight: 700; text-transform: uppercase; }
+.side-bottom-logo h3 span { color: #ef4444; }
+.side-bottom-logo small { display: block; font-size: 9px; color: #64748b; margin-top: 2px; font-weight: 700; }
 
 .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-.top-bar { height: 56px; background: #0f172a; color: #fff; display: flex; align-items: center; padding: 0 24px; gap: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); border-bottom: 2px solid var(--brand-red); }
+.top-bar { height: 56px; background: #0056b3; color: #fff; display: flex; align-items: center; padding: 0 24px; gap: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
 .top-title { font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-.top-right-info { margin-left: auto; font-size: 12px; font-weight: 600; background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); }
+.top-right-info { margin-left: auto; font-size: 12px; font-weight: 600; background: rgba(255,255,255,0.15); padding: 5px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); }
 
 .content { flex: 1; overflow-y: auto; padding: 20px; }
 .view { display: none; }
 .view.active { display: block; }
 
-/* CARDS Y CONTENEDORES INTERNOS */
+/* CARDS Y TABLAS */
 .card { background: var(--card-bg); border-radius: 12px; border: 1px solid #cbd5e1; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); margin-bottom: 20px; }
 .kpi-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 20px; }
-.kpi-box { background: #fff; border-radius: 8px; padding: 14px; border-top: 4px solid var(--brand-red); box-shadow: 0 2px 4px rgba(0,0,0,0.02); position: relative; border: 1px solid #cbd5e1; }
+.kpi-box { background: #fff; border-radius: 8px; padding: 14px; border-top: 4px solid var(--blue-btn); box-shadow: 0 2px 4px rgba(0,0,0,0.02); position: relative; border: 1px solid #cbd5e1; }
 .kpi-box small { font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; display: block; }
 .kpi-box strong { font-size: 26px; font-weight: 800; display: block; margin-top: 4px; color: var(--text-dark); }
-.kpi-box i { position: absolute; right: 12px; bottom: 12px; font-size: 22px; color: var(--brand-red); opacity: 0.15; }
+.kpi-box i { position: absolute; right: 12px; bottom: 12px; font-size: 22px; color: var(--text-muted); opacity: 0.2; }
 
 .layout-dashboard { display: grid; grid-template-columns: 1.3fr 0.7fr; gap: 20px; }
+.layout-inventario { display: flex; flex-direction: column; gap: 20px; }
+
 .block-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; align-items: start; }
 .block-card { background: #fff; border-radius: 8px; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); overflow: hidden; }
-.block-header { padding: 11px 14px; font-size: 12px; font-weight: 800; color: #fff; text-transform: uppercase; letter-spacing: 0.5px; text-shadow: 0 1px 1px rgba(0,0,0,0.2); }
-.header-dark-premium { background: linear-gradient(90deg, #1e293b 0%, #0f172a 100%); border-bottom: 2px solid var(--brand-red); }
+.block-header { padding: 11px 14px; font-size: 12px; font-weight: 800; color: #fff; text-transform: uppercase; letter-spacing: 0.5px; text-shadow: 0 1px 1px rgba(0,0,0,0.1); }
+.header-blue-dark { background: #0033aa; }
+.header-blue-light { background: #0056b3; }
+.header-blue-sec { background: #0044cc; }
 .block-body { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
 
-/* TABS DE INVENTARIO */
-.tab-container { display: flex; gap: 6px; margin-bottom: 15px; background: #e2e8f0; padding: 4px; border-radius: 8px; width: fit-content; }
-.tab-btn { background: transparent; border: 0; padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 6px; cursor: pointer; color: #475569; }
-.tab-btn.active { background: #fff; color: var(--text-dark); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-.tab-content { display: none; }
-.tab-content.active { display: block; }
+.checks-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.checks-layout label { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; text-transform: none; color: var(--text-dark); background: #f8fafc; padding: 6px; border: 1px solid #cbd5e1; border-radius: 6px; margin: 0; cursor: pointer; }
+.checks-layout input { width: auto; cursor: pointer; accent-color: var(--blue-btn); }
 
 .table-wrap { overflow: auto; border-radius: 8px; border: 1px solid #cbd5e1; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; background: #fff; }
-th { background: #f8fafc; color: #475569; font-weight: 700; font-size: 11px; text-transform: uppercase; padding: 10px 12px; border-bottom: 1px solid #cbd5e1; }
+th { background: #f1f5f9; color: #475569; font-weight: 700; font-size: 11px; text-transform: uppercase; padding: 10px 12px; border-bottom: 1px solid #cbd5e1; }
 td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: var(--text-dark); }
-tr:hover td { background: #f1f5f9; }
+tr:hover td { background: #f8fafc; }
 .badge { padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
 
-/* CONTROLES DE LA ETIQUETADORA REAL */
-.slider-group { background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px; }
-.slider-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.slider-row input[type="range"] { flex: 1; width: auto; height: 6px; background: #cbd5e1; border-radius: 3px; outline: none; padding: 0; }
-
-.label-preview-card { background: #fff; border: 2px dashed #000; border-radius: 4px; padding: 12px; color: #000; text-align: center; margin: 0 auto; transition: none; }
+/* SECCIÓN CODES FLEXIBLE */
+.label-preview-card { background: #fff; border: 2px dashed #94a3b8; border-radius: 4px; padding: 12px; color: #000; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin: 0 auto; transition: none; }
 .barcode-visual { font-family: 'Libre Barcode 39', Arial, sans-serif; display: block; margin: 4px 0; line-height: 1; }
 
-.toast { position: fixed; right: 20px; bottom: 20px; background: #0f172a; color: #fff; border-radius: 8px; padding: 12px 18px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); display: none; z-index: 99; font-size: 13px; font-weight: 600; border-left: 4px solid var(--brand-red); }
-.refurb-item-card { border: 1px solid #cbd5e1; border-radius: 8px; padding: 15px; background: #fff; margin-bottom: 15px; border-left: 4px solid var(--brand-red); }
-.step-box { background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 12px; }
-.step-number { background: #0f172a; color: #fff; width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; margin-right: 6px; }
+.toast { position: fixed; right: 20px; bottom: 20px; background: #0f172a; color: #fff; border-radius: 8px; padding: 12px 18px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); display: none; z-index: 99; font-size: 13px; font-weight: 600; }
+.print-area { display: none; }
+
+/* FORMULARIO EN LÍNEA ACTIVOS */
+.form-inline-asset { display: grid; grid-template-columns: 0.8fr 1.5fr 0.6fr 1fr 1.3fr auto; gap: 10px; align-items: end; background: #f8fafc; border: 1px dashed var(--border-color); padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+
+/* ESTILOS EXTRAS AUDITORÍA Y REFURB */
+.select-table-state { font-size: 12px; padding: 4px 8px; border-radius: 6px; font-weight: 700; border: 1px solid var(--border-color); cursor: pointer; outline: none; width: auto; display: inline-block; }
+.audit-text { font-size: 10px; color: var(--text-muted); display: block; margin-top: 2px; font-family: monospace; }
+.grid-refurb { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.refurb-item-card { border: 1px solid #cbd5e1; border-radius: 8px; padding: 15px; background: #f8fafc; margin-bottom: 12px; }
+
+@media print {
+    body * { visibility: hidden; }
+    .print-area, .print-area * { visibility: visible; }
+    .print-area { display: block; position: absolute; left: 0; top: 0; background: #fff; color: #000; margin: 0; padding: 0; }
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -122,80 +132,79 @@ tr:hover td { background: #f1f5f9; }
 <div id="login" class="login">
     <div class="login-card">
         <div class="logo-login">
-            <div style="font-size:32px; color:var(--brand-red);"><i class="ti ti-device-mobile-cog"></i></div>
-            <div><h1>BAYOL <span>CELL</span></h1><small style="color:var(--text-muted); font-weight:700; font-size:10px; display:block; text-align:left; letter-spacing:1px;">INGENIERÍA Y SERVICIO</small></div>
+            <div style="font-size:32px; color:#0056b3;"><i class="ti ti-device-mobile-cog"></i></div>
+            <div><h1>BAYOL <span>CELL</span></h1><small style="color:var(--text-muted); font-weight:700; font-size:10px; display:block; text-align:left;">SISTEMA MAESTRO ERP</small></div>
         </div>
+        <div id="loginErr" class="err"></div>
         <div class="form-row">
             <label>Usuario Operador</label>
-            <input id="loginUser" value="admin">
+            <input id="loginUser" placeholder="admin">
         </div>
         <div class="form-row">
             <label>Contraseña Corporativa</label>
-            <input id="loginPass" type="password" value="1234" onkeydown="if(event.key==='Enter')doLogin()">
+            <input id="loginPass" type="password" placeholder="••••" onkeydown="if(event.key==='Enter')doLogin()">
         </div>
-        <button class="btn btn-red" style="width:100%" onclick="doLogin()"><i class="ti ti-lock-open"></i> Autenticar Sistema</button>
+        <button class="btn btn-blue" style="width:100%" onclick="doLogin()"><i class="ti ti-login"></i> Autenticar Operador</button>
     </div>
 </div>
 
 <div id="app" class="app">
     <aside class="sidebar">
         <div class="side-profile">
-            <div class="avatar">S</div>
+            <div class="avatar" id="userAvatar">B</div>
             <div class="profile-info">
-                <h4>Sterling Espinal</h4>
-                <small><i class="ti ti-circle-filled" style="font-size:8px;"></i> Panel Conectado</small>
+                <h4 id="userName">Cargando...</h4>
+                <small><i class="ti ti-circle-filled" style="font-size:8px;"></i> En Línea</small>
             </div>
         </div>
         <div class="nav">
             <button class="active" onclick="nav('dashboard',this)"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
             <button onclick="nav('recepcion',this)"><i class="ti ti-clipboard-plus"></i> Recepción de Equipos</button>
-            <button onclick="nav('ordenes',this)"><i class="ti ti-tool"></i> Órdenes Activas</button>
+            <button onclick="nav('ordenes',this)"><i class="ti ti-tool"></i> Órdenes de Trabajo</button>
             <button onclick="nav('inventario',this)"><i class="ti ti-package"></i> Inventario Taller</button>
             <button onclick="nav('etiquetas',this)"><i class="ti ti-barcode"></i> Impresión de Labels</button>
-            <button id="menu-refurb" onclick="nav('refurb',this)"><i class="ti ti-refresh"></i> Refurbish / Compra</button>
+            <button id="menu-refurb" onclick="nav('refurb',this)"><i class="ti ti-refresh"></i> Refurbish (Reacond.)</button>
         </div>
         <div class="side-bottom-logo">
             <h3>BAYOL <span>CELL</span></h3>
-            <small>Ingeniería y Servicio</small>
+            <small>REP. & ACCESORIOS · PREMIUM</small>
         </div>
     </aside>
 
     <main class="main">
         <header class="top-bar">
             <div class="top-title" id="pageTitle">Dashboard</div>
-            <div class="top-right-info"><i class="ti ti-user-shield"></i> Administrador Principal</div>
+            <div class="top-right-info"><i class="ti ti-user-shield"></i> Rol: <span id="userRole" style="text-transform:uppercase;">Técnico</span></div>
             <button class="btn btn-light" style="padding:4px 10px; font-size:11px; background:rgba(255,255,255,0.1); border:0; color:#fff;" onclick="logout()">Salir</button>
         </header>
         
         <section class="content">
             <div id="v-dashboard" class="view active">
                 <div class="kpi-row">
-                    <div class="kpi-box"><small>Recibidos Hoy</small><strong>2</strong><i class="ti ti-download"></i></div>
-                    <div class="kpi-box"><small>En Diagnóstico</small><strong>1</strong><i class="ti ti-search"></i></div>
-                    <div class="kpi-box"><small>En Reparación</strong ><strong>3</strong><i class="ti ti-settings"></i></div>
-                    <div class="kpi-box"><small>Espera Pieza</small><strong>0</strong><i class="ti ti-hourglass"></i></div>
-                    <div class="kpi-box"><small>Listos Entrega</small><strong>4</strong><i class="ti ti-circle-check"></i></div>
-                    <div class="kpi-box"><small>Reacondicionados</small><strong id="kRefurb">1</strong><i class="ti ti-refresh"></i></div>
+                    <div class="kpi-box" style="border-top-color:#3b82f6;"><small>Recibidos Hoy</small><strong id="kHoy">0</strong><i class="ti ti-download"></i></div>
+                    <div class="kpi-box" style="border-top-color:#f59e0b;"><small>En Diagnóstico</small><strong id="kDiag">0</strong><i class="ti ti-search"></i></div>
+                    <div class="kpi-box" style="border-top-color:#10b981;"><small>En Reparación</small><strong id="kRep">0</strong><i class="ti ti-settings"></i></div>
+                    <div class="kpi-box" style="border-top-color:#ef4444;"><small>Espera Pieza</small><strong id="kPiezas">0</strong><i class="ti ti-hourglass"></i></div>
+                    <div class="kpi-box" style="border-top-color:#8b5cf6;"><small>Listos Entrega</small><strong id="kListos">0</strong><i class="ti ti-circle-check"></i></div>
+                    <div class="kpi-box" style="border-top-color:#06b6d4;"><small>Reacondicionados</small><strong id="kRefurb">0</strong><i class="ti ti-refresh"></i></div>
                 </div>
                 
                 <div class="layout-dashboard">
                     <div class="card">
-                        <h3 style="margin:0 0 15px 0; font-size:15px;">Órdenes Recientes en Laboratorio</h3>
+                        <h3 style="margin:0 0 15px 0; font-size:15px; font-weight:700;">Monitoreo de Órdenes Recientes</h3>
                         <div class="table-wrap">
                             <table>
                                 <thead>
-                                    <tr><th>Orden</th><th>Cliente</th><th>Equipo</th><th>Falla Técnica</th><th>Estado</th></tr>
+                                    <tr><th>Orden</th><th>Cliente</th><th>Equipo</th><th>Falla</th><th>Estado</th></tr>
                                 </thead>
-                                <tbody>
-                                    <tr><td><b>#000124</b></td><td>Carlos Mendoza</td><td>iPhone 14 Pro Max</td><td>Glass Trasero Laser</td><td><span class="badge" style="background:#fef3c7; color:#d97706;">En Proceso</span></td></tr>
-                                    <tr><td><b>#000125</b></td><td>María Rodríguez</td><td>iPhone 13 Pro</td><td>Transplante Flex Batería</td><td><span class="badge" style="background:#d1fae5; color:#065f46;">Listo</span></td></tr>
-                                </tbody>
+                                <tbody id="recentOrders"></tbody>
                             </table>
                         </div>
                     </div>
                     <div class="card">
-                        <h3>Acciones Rápidas</h3>
-                        <button class="btn btn-red" style="width:100%; margin-bottom:10px;" onclick="nav('recepcion')"><i class="ti ti-plus"></i> Nueva Recepción</button>
+                        <h3 style="margin:0 0 15px 0; font-size:15px; font-weight:700;">Acciones del Sistema</h3>
+                        <button class="btn btn-blue" style="width:100%; margin-bottom:10px;" onclick="nav('recepcion')"><i class="ti ti-plus"></i> Nueva Recepción</button>
+                        <button class="btn btn-light" style="width:100%;" onclick="loadAll()"><i class="ti ti-refresh"></i> Actualizar Servidor</button>
                     </div>
                 </div>
             </div>
@@ -203,45 +212,103 @@ tr:hover td { background: #f1f5f9; }
             <div id="v-recepcion" class="view">
                 <div class="block-grid">
                     <div class="block-card">
-                        <div class="block-header header-dark-premium">Datos del Cliente</div>
+                        <div class="block-header header-blue-dark">Datos del Cliente y Equipo</div>
                         <div class="block-body">
-                            <div><label>Nombre Cliente *</label><input placeholder="Ej. Juan Pérez"></div>
-                            <div><label>WhatsApp *</label><input placeholder="809-123-4567"></div>
-                            <div><label>Falla del Equipo *</label><textarea rows="3" placeholder="Detalle técnico de la falla..."></textarea></div>
+                            <div><label>Nombre Cliente *</label><input id="c_nombre" placeholder="Ej. Juan Pérez"></div>
+                            <div><label>WhatsApp *</label><input id="c_whatsapp" placeholder="809-123-4567"></div>
+                            <div><label>Cédula</label><input id="c_cedula" placeholder="001-0000000-0"></div>
+                            <div><label>Marca *</label><input id="e_marca" placeholder="Apple, Samsung, etc."></div>
+                            <div><label>Modelo Exacto *</label><input id="e_modelo" placeholder="iPhone 13 Pro Max"></div>
+                            <div><label>Capacidad (GB) *</label><input id="e_capacidad" placeholder="128GB"></div>
+                            <div><label>IMEI / Serial *</label><input id="e_imei" placeholder="356789..."></div>
+                            <div><label>Falla del Equipo *</label><textarea id="o_falla" rows="2" placeholder="No enciende / Pantalla rota"></textarea></div>
+                        </div>
+                    </div>
+
+                    <div class="block-card">
+                        <div class="block-header header-blue-light">Estado Físico de Recepción</div>
+                        <div class="block-body">
+                            <div class="checks-layout" id="checksFisico">
+                                <label><input type="checkbox" value="Pantalla rota"> Pantalla rota</label>
+                                <label><input type="checkbox" value="Mojado"> Mojado</label>
+                                <label><input type="checkbox" value="Tapa rota"> Tapa rota</label>
+                                <label><input type="checkbox" value="No enciende"> No enciende</label>
+                                <label><input type="checkbox" value="Sin señal"> Sin señal</label>
+                                <label><input type="checkbox" value="Batería inflada"> Batería mala</label>
+                                <label><input type="checkbox" value="Cámara rota"> Cámara rota</label>
+                                <label><input type="checkbox" value="Puerto malo"> Puerto malo</label>
+                            </div>
+                            <div style="margin-top:5px;"><label>Accesorios que deja</label><input id="o_accesorios" placeholder="Cover, Cable, Nada"></div>
+                        </div>
+                    </div>
+
+                    <div class="block-card">
+                        <div class="block-header header-blue-sec">Seguridad del Dispositivo</div>
+                        <div class="block-body">
+                            <div><label>Tipo de Bloqueo</label><select id="o_acceso"><option>PIN</option><option>Patrón</option><option>Password</option><option>Sin Clave</option></select></div>
+                            <div><label>Clave de Pantalla</label><input id="o_clave" placeholder="1234 o Patrón descripto"></div>
+                            <div><label>Cuenta iCloud / Google Correo</label><input id="o_cuenta" placeholder="usuario@icloud.com"></div>
+                            <div style="margin-top:15px;">
+                                <button class="btn btn-dark" style="width:100%; margin-bottom:10px;" onclick="guardarRecepcion(false)"><i class="ti ti-device-floppy"></i> Guardar Base Datos</button>
+                                <button class="btn btn-blue" style="width:100%" onclick="guardarRecepcion(true)"><i class="ti ti-printer"></i> Registrar + Ticket</button>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div id="v-inventario" class="view">
+            <div id="v-ordenes" class="view">
                 <div class="card">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                        <h3 style="margin:0;">Control Técnico de Almacén</h3>
-                        <div class="tab-container">
-                            <button class="tab-btn active" onclick="switchTab('repuestos', this)">Componentes y Repuestos</button>
-                            <button class="tab-btn" onclick="switchTab('herramientas', this)">Activos y Herramientas del Taller</button>
-                        </div>
+                    <h3>Órdenes de Trabajo Activas</h3>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr><th>Orden</th><th>Cliente</th><th>Equipo</th><th>Falla</th><th>Acceso Privado</th><th>Estado</th><th>Acciones</th></tr>
+                            </thead>
+                            <tbody id="ordersTable"></tbody>
+                        </table>
                     </div>
+                </div>
+            </div>
 
-                    <div id="tab-repuestos" class="tab-content active">
+            <div id="v-inventario" class="view">
+                <div class="layout-inventario">
+                    <div class="card">
+                        <h3 style="margin:0 0 15px 0;"><i class="ti ti-box-seam" style="color:var(--blue-btn);"></i> 1. Refacciones y Componentes (Inventario Normal)</h3>
                         <div class="table-wrap">
                             <table>
-                                <thead><tr><th>SKU</th><th>Pieza / Componente</th><th>Ubicación</th><th>Stock</th></tr></thead>
-                                <tbody>
-                                    <tr><td><code>PZ-0412</code></td><td>Pantalla iPhone 13 Pro Original</td><td>Gaveta A-3</td><td><b style="color:var(--brand-red);">3 uds</b></td></tr>
-                                    <tr><td><code>PZ-0588</code></td><td>Glass Trasero iPhone 14 Pro Max</td><td>Estante B</td><td><b>12 uds</b></td></tr>
-                                </tbody>
+                                <thead>
+                                    <tr><th>Código SKU</th><th>Pieza / Componente</th><th>Stock</th><th>Costo Unidad</th></tr>
+                                </thead>
+                                <tbody id="partsTable"></tbody>
                             </table>
                         </div>
                     </div>
 
-                    <div id="tab-herramientas" class="tab-content">
+                    <div class="card" style="border-top: 4px solid #f59e0b;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h3 style="margin:0;"><i class="ti ti-tools" style="color:#f59e0b;"></i> 2. Control de Activos Fijos y Herramientas del Taller</h3>
+                            <button class="btn btn-light" style="padding: 6px 12px; font-size: 12px;" onclick="toggleFormActivo()"><i class="ti ti-plus"></i> Registrar Nueva Herramienta</button>
+                        </div>
+
+                        <div id="formAssetContainer" style="display: none;">
+                            <div class="form-inline-asset">
+                                <div><label>Código Activo</label><input id="ast_codigo" value="AUTOMÁTICO" disabled></div>
+                                <div><label>Herramienta / Equipo</label><input id="ast_nombre" placeholder="Ej. Estación JBC"></div>
+                                <div><label>Cantidad</label><input id="ast_cantidad" type="number" value="1"></div>
+                                <div><label>Estado Técnico</label><select id="ast_estado"><option>Excelente</option><option>Desgaste Medio</option><option>Mantenimiento</option></select></div>
+                                <div><label>Técnicos / Destinos (Separar por coma)</label><input id="ast_asignado" placeholder="Ej. Carlos, Luis, Mesa 3"></div>
+                                <button class="btn btn-blue" onclick="guardarActivoTaller()"><i class="ti ti-device-floppy"></i> Guardar</button>
+                            </div>
+                        </div>
+
                         <div class="table-wrap">
                             <table>
-                                <thead><tr><th>Código Activo</th><th>Herramienta / Estación de Trabajo</th><th>Responsable Técnico</th><th>Estado</th></tr></thead>
-                                <tbody>
-                                    <tr><td><code>ACT-MIL18</code></td><td>Pistola de Calor Milwaukee M18</td><td>Laboratorio 1</td><td><span class="badge" style="background:#d1fae5; color:#065f46;">Operativo</span></td></tr>
-                                    <tr><td><code>ACT-LAS01</code></td><td>Máquina Separadora Láser de Back Glass</td><td>Estación Central</td><td><span class="badge" style="background:#d1fae5; color:#065f46;">Operativo</span></td></tr>
+                                <thead>
+                                    <tr><th>Código Activo</th><th>Herramienta / Equipo Laboratorio</th><th>Cantidad</th><th>Estado Técnico (Auditable)</th><th>Ubicación / Asignado Múltiple</th></tr>
+                                </thead>
+                                <tbody id="assetsTable">
+                                    <tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Cargando herramientas del laboratorio...</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -252,85 +319,66 @@ tr:hover td { background: #f1f5f9; }
             <div id="v-etiquetas" class="view">
                 <div class="layout-dashboard">
                     <div class="card">
-                        <h3>Generador y Calibrador de Labels Térmicos</h3>
-                        <div class="form-row"><label>Modelo y Color</label><input id="lbl_modelo" value="iPhone 13 Pro Max Gold" oninput="actualizarLabelLive()"></div>
-                        <div class="form-row"><label>Capacidad (GB)</label><input id="lbl_gb" value="256 GB" oninput="actualizarLabelLive()"></div>
-                        <div class="form-row"><label>Número IMEI / Serial</label><input id="lbl_imei" value="356789123456789" oninput="actualizarLabelLive()"></div>
-                        <div class="form-row"><label>Texto de Estado / Pie de Impresión</label><input id="lbl_estado_texto" value="Premium Grade" oninput="actualizarLabelLive()"></div>
+                        <h3>Generador de Etiquetas Adhesivas Regulable</h3>
+                        <p style="color:var(--text-muted); font-size:13px;">Modifica los campos del dispositivo y ajusta las dimensiones milimétricas para calibrar tu impresora térmica.</p>
                         
-                        <div class="slider-group">
-                            <div class="slider-row">
-                                <label style="margin:0;">Ancho Físico Papel (mm):</label>
-                                <input id="cal_width" type="range" min="50" max="100" value="72" oninput="calibrarLabel()">
-                                <span id="val_width" style="font-size:12px; font-weight:700;">72mm</span>
-                            </div>
-                            <div class="slider-row">
-                                <label style="margin:0;">Tamaño de Fuente (px):</label>
-                                <input id="cal_font" type="range" min="9" max="18" value="12" oninput="calibrarLabel()">
-                                <span id="val_font" style="font-size:12px; font-weight:700;">12px</span>
-                            </div>
+                        <div class="form-row"><label>Marca del Dispositivo</label><input id="lbl_marca" value="Apple" oninput="actualizarLabelLive()"></div>
+                        <div class="form-row"><label>Modelo y Color</label><input id="lbl_modelo" value="iPhone 11 Pro 64GB Silver" oninput="actualizarLabelLive()"></div>
+                        <div class="form-row"><label>Capacidad (GB)</label><input id="lbl_gb" value="64 GB" oninput="actualizarLabelLive()"></div>
+                        <div class="form-row"><label>Número IMEI / Serial</label><input id="lbl_imei" value="356789123456789" oninput="actualizarLabelLive()"></div>
+                        <div class="form-row"><label>Texto de Estado / Pie de Impresión</label><input id="lbl_estado_texto" value="Reacondicionado" placeholder="Ej: Usado Premium / Garantía 30 días" oninput="actualizarLabelLive()"></div>
+                        
+                        <hr style="border:0; border-top:1px solid var(--border-color); margin:20px 0;">
+                        <h4 style="margin:0 0 10px 0; font-size:12px; color:var(--blue-btn); text-transform:uppercase;">Calibración de Dimensiones Manual</h4>
+                        
+                        <div class="form-row">
+                            <div style="display:flex; justify-content:space-between;"><label>Ancho del Papel (mm)</label><span id="val_w" style="font-size:12px; font-weight:bold;">72mm</span></div>
+                            <input type="range" id="cfg_width" min="40" max="100" value="72" oninput="cambiarDimensionesManual()">
+                        </div>
+                        <div class="form-row">
+                            <div style="display:flex; justify-content:space-between;"><label>Tamaño Letra Base (px)</label><span id="val_font" style="font-size:12px; font-weight:bold;">12px</span></div>
+                            <input type="range" id="cfg_font" min="8" max="22" value="12" oninput="cambiarDimensionesManual()">
+                        </div>
+                        <div class="form-row">
+                            <div style="display:flex; justify-content:space-between;"><label>Altura del Código de Barras (px)</label><span id="val_bar" style="font-size:12px; font-weight:bold;">42px</span></div>
+                            <input type="range" id="cfg_barcode_h" min="25" max="70" value="42" oninput="cambiarDimensionesManual()">
                         </div>
 
-                        <button class="btn btn-red" style="width:100%" onclick="window.print()"><i class="ti ti-printer"></i> Imprimir Label Técnico</button>
+                        <button class="btn btn-blue" style="width:100%; margin-top:15px;" onclick="imprimirLabelAdhesivo()"><i class="ti ti-printer"></i> Imprimir en Label Printer</button>
                     </div>
+
                     <div class="card" style="background:#f8fafc; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-                        <label style="margin-bottom:10px;">Vista Previa de Impresión Térmica:</label>
+                        <h4>Vista Previa (Ajuste Manual)</h4>
+                        
                         <div class="label-preview-card" id="labelCard" style="width: 72mm; font-size: 12px;">
-                            <div style="font-size:20px; font-weight:800; margin-bottom:5px;">BAYOL CELL</div>
-                            <div style="text-align:left;"><b>EQ:</b> <span id="lblLiveMod">iPhone 13 Pro Max Gold</span></div>
-                            <div style="text-align:left;"><b>GB:</b> <span id="lblLiveGb">256 GB</span></div>
-                            <div style="text-align:left;"><b>IMEI:</b> <span id="lblLiveImei">356789123456789</span></div>
+                            <div id="lblLiveLogo" style="font-size:24px; margin-bottom:5px;"><i class="ti ti-brand-apple"></i></div>
+                            <div style="border-bottom:1px solid #000; margin-bottom:8px;"></div>
+                            <div style="text-align:left; margin-bottom:4px;"><b>EQUIPO:</b> <span id="lblLiveMod">iPhone 11 Pro 64GB Silver</span></div>
+                            <div style="text-align:left; margin-bottom:4px;"><b>GB:</b> <span id="lblLiveGb">64 GB</span></div>
+                            <div style="text-align:left; margin-bottom:8px;"><b>IMEI:</b> <span id="lblLiveImei">356789123456789</span></div>
                             <div class="barcode-visual" id="lblLiveBarcode" style="font-size:42px;">*356789123456789*</div>
-                            <div style="font-weight:bold;" id="lblLiveEstadoContainer">PREMIUM GRADE</div>
+                            <div style="font-weight:bold; margin-top:6px; text-transform:uppercase;" id="lblLiveEstadoContainer">REACONDICIONADO</div>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div id="v-refurb" class="view">
-                <div class="layout-dashboard" style="grid-template-columns: 1fr 1fr;">
-                    <div class="card" style="border-top: 4px solid var(--brand-dark);">
-                        <h3 style="margin-top:0;"><i class="ti ti-building-store" style="color:var(--brand-red);"></i> Flujo de Registro Comercial (Lotes)</h3>
-                        
-                        <div class="step-box">
-                            <label><span class="step-number">1</span>Nombre del Proveedor / Origen de Compra</label>
-                            <input id="ref_proveedor" placeholder="Ej: Subasta Miami Lote #4 / eBay US" style="border-left: 3px solid var(--brand-red); font-weight: 600;">
-                        </div>
-
-                        <div class="step-box">
-                            <label><span class="step-number">2</span>Elegir Equipo y Almacenamiento</label>
-                            <div class="form-row" style="margin-bottom:8px;">
-                                <input id="ref_modelo" placeholder="Modelo (Ej: iPhone 14 Pro Max)">
-                            </div>
-                            <div>
-                                <select id="ref_gb">
-                                    <option value="128 GB">128 GB</option>
-                                    <option value="256 GB">256 GB</option>
-                                    <option value="512 GB">512 GB</option>
-                                    <option value="1 TB">1 TB</option>
-                                    <option value="64 GB">64 GB</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="step-box">
-                            <label><span class="step-number">3</span>Inyectar IMEI y Valores Financieros (RD$)</label>
-                            <div class="form-row" style="margin-bottom:8px;">
-                                <input id="ref_imei" placeholder="Número IMEI o Serial">
-                            </div>
-                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                                <input id="ref_costo_compra" type="number" placeholder="Costo Compra RD$">
-                                <input id="ref_precio_venta" type="number" placeholder="Venta Estimada RD$">
-                            </div>
-                        </div>
-
-                        <button class="btn btn-red" style="width:100%; margin-top:5px;" onclick="registrarFlujoRefurb()"><i class="ti ti-device-floppy"></i> Procesar e Inyectar al Inventario</button>
+                <div class="grid-refurb">
+                    <div class="card">
+                        <h3 style="margin-top:0;"><i class="ti ti-circle-plus" style="color:var(--blue-btn);"></i> Ingresar Equipo a Refurbish</h3>
+                        <div class="form-row"><label>Modelo del Dispositivo *</label><input id="ref_modelo" placeholder="Ej. iPhone 12 Pro Max"></div>
+                        <div class="form-row"><label>Número de IMEI / Serial *</label><input id="ref_imei" placeholder="358921..."></div>
+                        <div class="form-row"><label>Costo de Compra (RD$) *</label><input id="ref_costo_compra" type="number" placeholder="12000"></div>
+                        <div class="form-row"><label>Precio de Venta Estimado (RD$)</label><input id="ref_precio_venta" type="number" placeholder="22000"></div>
+                        <button class="btn btn-blue" style="width:100%; margin-top:10px;" onclick="registrarEquipoRefurb()"><i class="ti ti-plus"></i> Registrar en Lote</button>
                     </div>
 
                     <div class="card">
-                        <h3 style="margin-top:0;"><i class="ti ti-list-check" style="color:var(--brand-red);"></i> Equipos en Proceso de Reacondicionamiento</h3>
-                        <div id="refurbListContainer" style="max-height:510px; overflow-y:auto;">
-                            </div>
+                        <h3 style="margin-top:0;"><i class="ti ti-report-analytics" style="color:#10b981;"></i> Lotes Bajo Proceso de Reacondicionamiento</h3>
+                        <div id="refurbListContainer" style="max-height:460px; overflow-y:auto; padding-right:5px;">
+                            <p style="color:var(--text-muted); text-align:center;">Cargando lote gerencial...</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -339,27 +387,49 @@ tr:hover td { background: #f1f5f9; }
 </div>
 
 <div id="toast" class="toast"></div>
+<div id="printArea" class="print-area"></div>
 
 <script>
-let localRefurbLote = [
-    { id: 1, modelo: "iPhone 13 Pro Max", gb: "256 GB", imei: "359812004812354", proveedor: "Subasta Miami", costo_compra: 24000, precio_venta_estimado: 36000, estado: "En Taller" }
-];
+const CONFIG_URL = "https://vkhwdvjtowrhkhqavnvk.supabase.co";
+const CONFIG_KEY = "sb_publishable_PynS5ZjKoQ36HCpguVzxaw_KZOlagtz"; 
+const supabaseClient = supabase.createClient(CONFIG_URL, CONFIG_KEY);
+
+let sessionUser = null;
+let cache = { ordenes: [], clientes: [], equipos: [], piezas: [], activos: [], refurb: [] };
 
 function toast(msg) {
     const t = document.getElementById("toast");
     if(t) { t.textContent = msg; t.style.display = "block"; setTimeout(() => t.style.display = "none", 3000); }
 }
+function escapeHtml(s) { return (s ?? "").toString().replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[m])); }
+function money(n) { return "RD$ " + Number(n || 0).toLocaleString("es-DO", { minimumFractionDigits: 2 }); }
+function getChecked(id) { return [...document.querySelectorAll("#" + id + " input:checked")].map(x => x.value).join(", "); }
 
-function doLogin() {
-    toast("Acceso Autorizado.");
-    setTimeout(() => {
-        document.getElementById("login").style.display = "none";
-        document.getElementById("app").style.display = "flex";
-        renderLocalRefurb();
-    }, 300);
+async function doLogin() {
+    try {
+        const u = document.getElementById("loginUser").value.trim();
+        const p = document.getElementById("loginPass").value.trim();
+        if(!u || !p) return alert("Ingrese datos.");
+        const { data, error } = await supabaseClient.from('usuarios').select('*').eq('usuario', u).eq('clave', p).eq('activo', true);
+        if(error) throw error;
+        if(!data.length) return alert("Operador no registrado.");
+        sessionUser = data[0];
+        localStorage.setItem("bayol_session", JSON.stringify(sessionUser));
+        startApp();
+    } catch(e) { alert("Error de autenticación."); }
 }
 
-function logout() { location.reload(); }
+function logout() { localStorage.removeItem("bayol_session"); location.reload(); }
+
+function startApp() {
+    document.getElementById("login").style.display = "none";
+    document.getElementById("app").style.display = "flex";
+    document.getElementById("userName").textContent = sessionUser.nombre || "Operador";
+    document.getElementById("userAvatar").textContent = (sessionUser.nombre || "B").charAt(0).toUpperCase();
+    document.getElementById("userRole").textContent = sessionUser.rol || "Técnico";
+    startAppRefurbPoller();
+    loadAll();
+}
 
 function nav(v, btn) {
     document.querySelectorAll(".view").forEach(x => x.classList.remove("active"));
@@ -367,94 +437,365 @@ function nav(v, btn) {
     document.querySelectorAll(".nav button").forEach(x => x.classList.remove("active"));
     if(btn) btn.classList.add("active");
     document.getElementById("pageTitle").textContent = btn ? btn.textContent.trim() : v;
+    if(v === 'etiquetas') { setTimeout(cambiarDimensionesManual, 50); }
 }
 
-/* NAVEGACIÓN EN PESTAÑAS DE INVENTARIO */
-function switchTab(tabId, btn) {
-    document.querySelectorAll("#v-inventario .tab-content").forEach(x => x.classList.remove("active"));
-    document.querySelectorAll("#v-inventario .tab-btn").forEach(x => x.classList.remove("active"));
-    document.getElementById("tab-" + tabId).classList.add("active");
-    btn.classList.add("active");
+async function loadAll() {
+    try {
+        const rOrd = await supabaseClient.from('ordenes_reparacion').select('*').order('creado_en', { ascending: false });
+        const rCli = await supabaseClient.from('clientes').select('*');
+        const rEq = await supabaseClient.from('equipos').select('*');
+        const rPz = await supabaseClient.from('piezas_inventario').select('*');
+        const rAct = await supabaseClient.from('activos_taller').select('*').order('codigo', { ascending: true });
+        const rRef = await supabaseClient.from('equipos_refurbish').select('*').order('creado_en', { ascending: false });
+        
+        cache = { 
+            ordenes: rOrd.data || [], 
+            clientes: rCli.data || [], 
+            equipos: rEq.data || [], 
+            piezas: rPz.data || [],
+            activos: rAct.data || [],
+            refurb: rRef.data || []
+        };
+        renderAll();
+    } catch(e) { toast("Error cargando base de datos."); }
 }
 
-/* CALIBRADORES DE ANCHO Y FUENTE LIVE */
-function calibrarLabel() {
-    const w = document.getElementById("cal_width").value;
-    const f = document.getElementById("cal_font").value;
+function findCliente(id) { return cache.clientes.find(x => x.id === id) || {}; }
+function findEquipo(id) { return cache.equipos.find(x => x.id === id) || {}; }
+
+function renderAll() {
+    const today = new Date().toISOString().slice(0, 10);
+    document.getElementById("kHoy").textContent = cache.ordenes.filter(o => (o.creado_en || "").slice(0, 10) === today).length;
+    document.getElementById("kDiag").textContent = cache.ordenes.filter(o => o.estado === "diagnostico").length;
+    document.getElementById("kRep").textContent = cache.ordenes.filter(o => o.estado === "en_reparacion").length;
+    document.getElementById("kPiezas").textContent = cache.ordenes.filter(o => o.estado === "espera_pieza").length;
+    document.getElementById("kListos").textContent = cache.ordenes.filter(o => ["listo", "listo_entrega"].includes(o.estado)).length;
+    document.getElementById("kRefurb").textContent = cache.refurb.length;
     
-    document.getElementById("val_width").textContent = w + "mm";
-    document.getElementById("val_font").textContent = f + "px";
+    document.getElementById("recentOrders").innerHTML = cache.ordenes.slice(0, 5).map(o => {
+        const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
+        return `<tr><td><b>#${o.numero_orden}</b></td><td>${escapeHtml(c.nombre)}</td><td>${escapeHtml(e.modelo)}</td><td>${escapeHtml(o.falla_reportada)}</td><td><span class="badge" style="background:#d1fae5;">${o.estado}</span></td></tr>`;
+    }).join("");
     
-    const card = document.getElementById("labelCard");
-    card.style.width = w + "mm";
-    card.style.fontSize = f + "px";
+    renderOrders();
+    document.getElementById("partsTable").innerHTML = cache.piezas.map(p => `<tr><td><code>${p.codigo}</code></td><td><b>${escapeHtml(p.nombre)}</b></td><td>${p.cantidad} uds</td><td>${money(p.costo)}</td></tr>`).join("");
+    renderActivosTaller();
+    renderRefurbishItems();
 }
 
-function actualizarLabelLive() {
-    document.getElementById("lblLiveMod").textContent = document.getElementById("lbl_modelo").value;
-    document.getElementById("lblLiveGb").textContent = document.getElementById("lbl_gb").value;
-    document.getElementById("lblLiveImei").textContent = document.getElementById("lbl_imei").value;
-    document.getElementById("lblLiveBarcode").textContent = "*" + document.getElementById("lbl_imei").value + "*";
-    document.getElementById("lblLiveEstadoContainer").textContent = document.getElementById("lbl_estado_texto").value.toUpperCase();
+function renderOrders() {
+    document.getElementById("ordersTable").innerHTML = cache.ordenes.map(o => {
+        const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
+        return `<tr>
+            <td><b>#${String(o.numero_orden ?? '').padStart(6, "0")}</b></td>
+            <td>${escapeHtml(c.nombre)}</td>
+            <td>${escapeHtml(e.modelo)}</td>
+            <td>${escapeHtml(o.falla_reportada)}</td>
+            <td><div>•••• <button class="btn btn-light" style="padding:1px 4px; font-size:10px" onclick="revelarClave('${o.id}', this)">Ver</button></div></td>
+            <td><span class="badge" style="background:#e0f2fe; color:#0369a1;">${o.estado}</span></td>
+            <td><button class="btn btn-light" style="padding:4px 8px;" onclick="cargarEnLabel('${o.id}')"><i class="ti ti-barcode"></i> Crear Label</button></td>
+        </tr>`;
+    }).join("");
 }
 
-function registrarFlujoRefurb() {
-    const prov = document.getElementById("ref_proveedor").value;
-    const mod = document.getElementById("ref_modelo").value;
-    const gb = document.getElementById("ref_gb").value;
-    const imei = document.getElementById("ref_imei").value;
-    const cost = parseFloat(document.getElementById("ref_costo_compra").value) || 0;
-    const vent = parseFloat(document.getElementById("ref_precio_venta").value) || 0;
-
-    if(!prov || !mod || !imei) {
-        alert("Flujo incompleto: Registra Proveedor, luego Modelo/GB y por último el IMEI.");
+function renderActivosTaller() {
+    if(!cache.activos.length) {
+        document.getElementById("assetsTable").innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No hay herramientas registradas.</td></tr>`;
         return;
     }
+    document.getElementById("assetsTable").innerHTML = cache.activos.map(a => {
+        let styleBadge = "background:#d1fae5; color:#065f46;";
+        if(a.estado_tecnico === "Desgaste Medio") styleBadge = "background:#fef3c7; color:#92400e;";
+        if(a.estado_tecnico === "Mantenimiento") styleBadge = "background:#fee2e2; color:#991b1b;";
+        
+        let asignadosFormateado = escapeHtml(a.asignado_a || 'Sin asignar');
+        if(a.asignado_a && a.asignado_a.includes(',')) {
+            asignadosFormateado = a.asignado_a.split(',').map(t => `<span style="background:#f1f5f9; border:1px solid #cbd5e1; padding:2px 6px; border-radius:4px; font-size:11px; margin-right:4px; font-weight:600;">${escapeHtml(t.trim())}</span>`).join('');
+        }
+        let trackingAuditoria = "";
+        if (a.actualizado_por || a.creado_en) {
+            const userTracking = a.actualizado_por || "Sistema";
+            const fechaFormateada = new Date(a.actualizado_en || a.creado_en).toLocaleDateString("es-DO", {hour: '2-digit', minute:'2-digit'});
+            trackingAuditoria = `<span class="audit-text"><i class="ti ti-user-edit"></i> Modificado por: ${escapeHtml(userTracking)} (${fechaFormateada})</span>`;
+        }
+        return `<tr>
+            <td><code>${escapeHtml(a.codigo)}</code></td>
+            <td><b>${escapeHtml(a.nombre)}</b></td>
+            <td>${a.cantidad} Uds</td>
+            <td>
+                <select class="select-table-state" style="${styleBadge}" onchange="cambiarEstadoActivo('${a.id}', this.value)">
+                    <option value="Excelente" ${a.estado_tecnico === 'Excelente' ? 'selected' : ''}>Excelente</option>
+                    <option value="Desgaste Medio" ${a.estado_tecnico === 'Desgaste Medio' ? 'selected' : ''}>Desgaste Medio</option>
+                    <option value="Mantenimiento" ${a.estado_tecnico === 'Mantenimiento' ? 'selected' : ''}>Mantenimiento</option>
+                </select>
+                ${trackingAuditoria}
+            </td>
+            <td><div style="display:flex; flex-wrap:wrap; gap:4px;">${asignadosFormateado}</div></td>
+        </tr>`;
+    }).join("");
+}
 
-    localRefurbLote.unshift({
-        id: Date.now(), modelo: mod, gb: gb, imei: imei, proveedor: prov, costo_compra: cost, precio_venta_estimado: vent, estado: "En Taller"
+async function cambiarEstadoActivo(activoId, nuevoEstado) {
+    try {
+        toast("Guardando estado en auditoría...");
+        const { error } = await supabaseClient.from('activos_taller').update({
+            estado_tecnico: nuevoEstado,
+            actualizado_por: sessionUser.nombre || sessionUser.usuario,
+            actualizado_en: new Date().toISOString()
+        }).eq('id', activoId);
+        if(error) throw error;
+        toast("Estado y auditoría actualizados correctamente.");
+        await loadAll();
+    } catch(e) { alert("Error al actualizar el estado."); await loadAll(); }
+}
+
+function toggleFormActivo() {
+    const el = document.getElementById("formAssetContainer");
+    el.style.display = el.style.display === "none" ? "block" : "none";
+}
+
+function calcularSiguienteCodigoActivo() {
+    if (!cache.activos || cache.activos.length === 0) return 'HERR-001';
+    const numeros = cache.activos.map(act => {
+        if (!act.codigo) return 0;
+        const match = act.codigo.match(/\d+/);
+        return match ? parseInt(match[0], 10) : 0;
     });
-
-    toast("Equipo registrado bajo el proveedor con éxito.");
-    
-    // Dejamos el proveedor intacto para continuar agregando más equipos del mismo lote rápido
-    document.getElementById("ref_modelo").value = "";
-    document.getElementById("ref_imei").value = "";
-    document.getElementById("ref_costo_compra").value = "";
-    document.getElementById("ref_precio_venta").value = "";
-    
-    renderLocalRefurb();
+    return `HERR-${String(Math.max(...numeros, 0) + 1).padStart(3, '0')}`;
 }
 
-function mandarAEtiquetadora(modelo, gb, imei) {
-    document.getElementById("lbl_modelo").value = modelo;
-    document.getElementById("lbl_gb").value = gb;
-    document.getElementById("lbl_imei").value = imei;
-    actualizarLabelLive();
-    nav('etiquetas', document.querySelector("button[onclick*='etiquetas']"));
+async function guardarActivoTaller() {
+    try {
+        const nom = val("ast_nombre"), cant = parseInt(val("ast_cantidad")) || 1, est = document.getElementById("ast_estado").value, asig = val("ast_asignado");
+        if(!nom) return alert("Nombre requerido.");
+        const codigoAuto = calcularSiguienteCodigoActivo();
+        const { error } = await supabaseClient.from('activos_taller').insert([{
+            codigo: codigoAuto, nombre: nom, cantidad: cant, estado_tecnico: est, asignado_a: asig,
+            actualizado_por: sessionUser.nombre || sessionUser.usuario, actualizado_en: new Date().toISOString()
+        }]);
+        if(error) throw error;
+        toast(`Herramienta registrada.`);
+        document.getElementById("ast_nombre").value = "";
+        toggleFormActivo();
+        await loadAll();
+    } catch(e) { alert("Error al registrar activo."); }
 }
 
-function renderLocalRefurb() {
+/* MÓDULO REFURBISH */
+async function registrarEquipoRefurb() {
+    try {
+        const mod = val("ref_modelo"), imei = val("ref_imei"), cost = parseFloat(val("ref_costo_compra")) || 0, vent = parseFloat(val("ref_precio_venta")) || 0;
+        if(!mod || !imei) return alert("Modelo e IMEI son mandatorios.");
+
+        const { error } = await supabaseClient.from('equipos_refurbish').insert([{
+            modelo: mod, imei: imei, costo_compra: cost, precio_venta_estimado: vent, costo_repuestos: 0, estado: 'En Proceso'
+        }]);
+        if(error) throw error;
+
+        toast("Equipo inyectado al lote de Refurbish.");
+        document.getElementById("ref_modelo").value = "";
+        document.getElementById("ref_imei").value = "";
+        document.getElementById("ref_costo_compra").value = "";
+        document.getElementById("ref_precio_venta").value = "";
+        await loadAll();
+    } catch(e) { alert("Error inyectando al módulo Refurbish."); }
+}
+
+function renderRefurbishItems() {
     const cont = document.getElementById("refurbListContainer");
-    if(!cont) return;
-    
-    document.getElementById("kRefurb").textContent = localRefurbLote.length;
-
-    if(!localRefurbLote.length) {
-        cont.innerHTML = "<p style='text-align:center; color:var(--text-muted); font-size:13px;'>No hay equipos en lote.</p>";
+    if(!cache.refurb.length) {
+        cont.innerHTML = `<p style="color:var(--text-muted); text-align:center; font-size:13px; margin-top:20px;">No hay equipos en reacondicionamiento comercial.</p>`;
         return;
     }
 
-    cont.innerHTML = localRefurbLote.map(item => {
-        const util = item.precio_venta_estimado - item.costo_compra;
+    cont.innerHTML = cache.refurb.map(item => {
+        const costoTotal = (item.costo_compra || 0) + (item.costo_repuestos || 0);
+        const margen = (item.precio_venta_estimado || 0) - costoTotal;
+        
+        const piezasOpciones = cache.piezas.map(p => `<option value="${p.id}[SPLIT]${p.costo}">${p.nombre} (Stock: ${p.cantidad})</option>`).join("");
+
         return `
             <div class="refurb-item-card">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <b style="color:var(--brand-dark); font-size:14px;">${item.modelo} (${item.gb})</b>
-                    <span class="badge" style="background:#ef4444; color:#fff;">${item.estado}</span>
+                    <b style="font-size:14px; color:var(--blue-btn);">${escapeHtml(item.modelo)}</b>
+                    <span class="badge" style="background:#fef3c7; color:#d97706;">${item.estado}</span>
                 </div>
-                <div style="margin-top:6px; font-size:12px; color:var(--text-muted);">
-                    <div><i class="ti ti-truck-delivery"></i> <b>Proveedor:</b> ${item.proveedor}</div>
-                    <div><i class="ti ti-barcode"></i> <b>IMEI:</b> ${item.imei}</div>
+                <small style="color:var(--text-muted); display:block; margin:2px 0 8px 0;">IMEI: ${escapeHtml(item.imei)}</small>
+                
+                <table style="width:100%; font-size:11px; margin-bottom:10px; border:1px solid #cbd5e1;">
+                    <tr><td>Costo Compra:</td><td><b>${money(item.costo_compra)}</b></td></tr>
+                    <tr><td>Inversión Piezas:</td><td style="color:#ef4444;"><b>+ ${money(item.costo_repuestos)}</b></td></tr>
+                    <tr style="background:#f1f5f9;"><td>Costo Total:</td><td><b>${money(costoTotal)}</b></td></tr>
+                    <tr><td>P. Venta Público:</td><td style="color:#0044aa;"><b>${money(item.precio_venta_estimado)}</b></td></tr>
+                    <tr style="background:#d1fae5;"><td>Margen Ganancia:</td><td style="color:#065f46;"><b>${money(margen)}</b></td></tr>
+                </table>
+
+                <div style="display:flex; gap:6px; align-items:center; background:#fff; padding:6px; border:1px solid #cbd5e1; border-radius:6px;">
+                    <select id="sel_pz_${item.id}" style="font-size:11px; padding:4px;">
+                        <option value="">-- Cargar Repuesto Usado --</option>
+                        ${piezasOpciones}
+                    </select>
+                    <button class="btn btn-dark" style="padding:4px 8px; font-size:11px;" onclick="inyectarRepuestoARefurb('${item.id}')">Aplicar</button>
                 </div>
-                <div style="margin-top:8px
+
+                <div style="margin-top:8px; display:flex; gap:6px;">
+                    <button class="btn btn-blue" style="flex:1; padding:5px; font-size:11px;" onclick="enviarRefurbALabel('${item.id}')"><i class="ti ti-barcode"></i> Enviar a Etiquetadora</button>
+                </div>
+            </div>
+        `;
+    }).join("");
+}
+
+async function inyectarRepuestoARefurb(itemId) {
+    const selectVal = document.getElementById("sel_pz_" + itemId).value;
+    if(!selectVal) return alert("Selecciona una refacción válida.");
+
+    const parts = selectVal.split("[SPLIT]");
+    const piezaId = parts[0];
+    const costoPieza = parseFloat(parts[1]) || 0;
+
+    try {
+        toast("Descontando pieza y calculando márgenes...");
+        const equipo = cache.refurb.find(x => x.id === itemId);
+        const nuevoCostoRepuestos = (equipo.costo_repuestos || 0) + costoPieza;
+
+        await supabaseClient.from('equipos_refurbish').update({ costo_repuestos: nuevoCostoRepuestos }).eq('id', itemId);
+        
+        const piezaOriginal = cache.piezas.find(x => x.id === piezaId);
+        if(piezaOriginal) {
+            const nuevoStock = Math.max(0, (piezaOriginal.cantidad || 1) - 1);
+            await supabaseClient.from('piezas_inventario').update({ cantidad: nuevoStock }).eq('id', piezaId);
+        }
+
+        toast("Margen recalculado y stock descontado.");
+        await loadAll();
+    } catch(e) { alert("Error al procesar costos del repuesto."); }
+}
+
+function enviarRefurbALabel(id) {
+    const item = cache.refurb.find(x => x.id === id);
+    if(!item) return;
+    document.getElementById("lbl_marca").value = "Generic";
+    document.getElementById("lbl_modelo").value = item.modelo;
+    document.getElementById("lbl_gb").value = "---";
+    document.getElementById("lbl_imei").value = item.imei;
+    document.getElementById("lbl_estado_texto").value = "Reacondicionado";
+    actualizarLabelLive();
+    nav("etiquetas");
+}
+
+function cargarEnLabel(id) {
+    const o = cache.ordenes.find(x => x.id === id);
+    if(!o) return;
+    const eq = findEquipo(o.equipo_id);
+    document.getElementById("lbl_marca").value = eq.marca || "Apple";
+    document.getElementById("lbl_modelo").value = eq.modelo || "";
+    document.getElementById("lbl_gb").value = eq.capacidad || "128 GB";
+    document.getElementById("lbl_imei").value = eq.imei || "";
+    document.getElementById("lbl_estado_texto").value = "Reparado Ok";
+    actualizarLabelLive();
+    nav("etiquetas");
+}
+
+/* LÓGICA DE ACTUALIZACIÓN Y DIMENSIONAMIENTO MANUAL DE ETIQUETAS */
+function cambiarDimensionesManual() {
+    const w = document.getElementById("cfg_width").value;
+    const f = document.getElementById("cfg_font").value;
+    const bh = document.getElementById("cfg_barcode_h").value;
+
+    document.getElementById("val_w").textContent = w + "mm";
+    document.getElementById("val_font").textContent = f + "px";
+    document.getElementById("val_bar").textContent = bh + "px";
+
+    const card = document.getElementById("labelCard");
+    if(card) {
+        card.style.width = w + "mm";
+        card.style.fontSize = f + "px";
+    }
+    const bar = document.getElementById("lblLiveBarcode");
+    if(bar) {
+        bar.style.fontSize = bh + "px";
+    }
+}
+
+function actualizarLabelLive() {
+    const marca = document.getElementById("lbl_marca").value.toLowerCase();
+    const mod = document.getElementById("lbl_modelo").value;
+    const gb = document.getElementById("lbl_gb").value;
+    const imei = document.getElementById("lbl_imei").value;
+    const estado = document.getElementById("lbl_estado_texto").value;
+    
+    document.getElementById("lblLiveMod").textContent = mod;
+    document.getElementById("lblLiveGb").textContent = gb;
+    document.getElementById("lblLiveImei").textContent = imei;
+    document.getElementById("lblLiveBarcode").textContent = `*${imei || '000000000'}*`;
+    document.getElementById("lblLiveEstadoContainer").textContent = estado;
+    
+    document.getElementById("lblLiveLogo").innerHTML = (marca.includes("apple") || marca.includes("iphone")) ? `<i class="ti ti-brand-apple"></i>` : `<i class="ti ti-device-mobile"></i>`;
+    cambiarDimensionesManual();
+}
+
+function imprimirLabelAdhesivo() {
+    const mod = document.getElementById("lbl_modelo").value;
+    const gb = document.getElementById("lbl_gb").value;
+    const imei = document.getElementById("lbl_imei").value;
+    const estadoText = document.getElementById("lbl_estado_texto").value;
+    const logoHtml = document.getElementById("lblLiveLogo").innerHTML;
+
+    // Tomar medidas dinámicas de los sliders
+    const configW = document.getElementById("cfg_width").value;
+    const configF = document.getElementById("cfg_font").value;
+    const configBH = document.getElementById("cfg_barcode_h").value;
+
+    document.getElementById("printArea").innerHTML = `
+        <div style="width:${configW}mm; padding:8px; font-family:monospace; text-align:center; color:#000; font-size:${configF}px;">
+            <div style="font-size:${parseInt(configF) + 10}px; margin-bottom: 2px;">${logoHtml}</div>
+            ------------------------------------<br>
+            <div style="text-align:left; line-height: 1.3;">
+                <b>EQUIPO:</b> ${escapeHtml(mod)}<br>
+                <b>GB:</b> ${escapeHtml(gb)}<br>
+                <b>IMEI:</b> ${escapeHtml(imei)}<br>
+            </div>
+            <div style="font-family:'Libre Barcode 39'; font-size:${configBH}px; margin:4px 0; display:block; line-height:1;">*${imei}*</div>
+            <b style="text-transform:uppercase;">${escapeHtml(estadoText)}</b>
+        </div>
+    `;
+    window.print();
+}
+
+async function revelarClave(ordenId, boton) {
+    const o = cache.ordenes.find(x => x.id === ordenId);
+    if(!o) return;
+    boton.parentElement.innerHTML = `<small style="color:#ef4444;">${escapeHtml(o.clave_equipo || 'Sin PIN')}</small>`;
+}
+
+async function guardarRecepcion(imprimir) {
+    try {
+        if(!val("c_nombre") || !val("e_modelo") || !val("e_imei")) return alert("Faltan campos mandatorios.");
+        const insC = await supabaseClient.from('clientes').insert([{ nombre: val("c_nombre"), whatsapp: val("c_whatsapp") || null, cedula: val("c_cedula") || null }]).select();
+        const insE = await supabaseClient.from('equipos').insert([{ cliente_id: insC.data[0].id, marca: val("e_marca") || 'Generic', modelo: val("e_modelo"), imei: val("e_imei"), capacidad: val("e_capacidad") || null }]).select();
+        await supabaseClient.from('ordenes_reparacion').insert([{
+            cliente_id: insC.data[0].id, equipo_id: insE.data[0].id, falla_reportada: val("o_falla"), condicion_fisica: getChecked("checksFisico") || 'Ninguna', accesorios_recibidos: val("o_accesorios") || 'Ninguno',
+            tipo_acceso: val("o_acceso"), clave_equipo: val("o_clave") || 'Sin clave', cuenta_icloud_google: val("o_cuenta") || null, creado_by: sessionUser.id
+        }]).select();
+        
+        toast("Equipo registrado con éxito.");
+        limpiarRecepcion();
+        await loadAll();
+        nav("ordenes");
+    } catch(e) { alert("Error al guardar los datos."); }
+}
+
+function val(id) { return document.getElementById(id)?.value?.trim() || ""; }
+function limpiarRecepcion() { document.querySelectorAll("#v-recepcion input, #v-recepcion textarea").forEach(x => x.value = ""); }
+
+function startAppRefurbPoller() {
+    setInterval(() => { if(sessionUser) loadAll(); }, 25000);
+}
+
+const saved = localStorage.getItem("bayol_session");
+if(saved) { try { sessionUser = JSON.parse(saved); startApp(); } catch(e){} }
+</script>
+</body>
+</html>
