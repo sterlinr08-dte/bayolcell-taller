@@ -103,9 +103,9 @@ td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: var(--text-dar
 tr:hover td { background: #f8fafc; }
 .badge { padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
 
-/* SECCIÓN CODES */
-.label-preview-card { background: #fff; border: 2px dashed #94a3b8; border-radius: 8px; padding: 20px; width: 72mm; margin: 0 auto; font-family: 'Courier New', Courier, monospace; color: #000; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-.barcode-visual { font-family: 'Libre Barcode 39', Arial, sans-serif; font-size: 42px; display: block; margin: 5px 0; }
+/* SECCIÓN CODES FLEXIBLE */
+.label-preview-card { background: #fff; border: 2px dashed #94a3b8; border-radius: 4px; padding: 12px; color: #000; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin: 0 auto; transition: none; }
+.barcode-visual { font-family: 'Libre Barcode 39', Arial, sans-serif; display: block; margin: 4px 0; line-height: 1; }
 
 .toast { position: fixed; right: 20px; bottom: 20px; background: #0f172a; color: #fff; border-radius: 8px; padding: 12px 18px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); display: none; z-index: 99; font-size: 13px; font-weight: 600; }
 .print-area { display: none; }
@@ -122,7 +122,7 @@ tr:hover td { background: #f8fafc; }
 @media print {
     body * { visibility: hidden; }
     .print-area, .print-area * { visibility: visible; }
-    .print-area { display: block; position: absolute; left: 0; top: 0; width: 72mm; background: #fff; color: #000; }
+    .print-area { display: block; position: absolute; left: 0; top: 0; background: #fff; color: #000; margin: 0; padding: 0; }
 }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -319,27 +319,45 @@ tr:hover td { background: #f8fafc; }
             <div id="v-etiquetas" class="view">
                 <div class="layout-dashboard">
                     <div class="card">
-                        <h3>Generador de Etiquetas Adhesivas (Reacondicionados)</h3>
-                        <p style="color:var(--text-muted); font-size:13px;">Selecciona o ingresa los datos del equipo listo para la venta propia para emitir el label adhesivo con código de barra.</p>
+                        <h3>Generador de Etiquetas Adhesivas Regulable</h3>
+                        <p style="color:var(--text-muted); font-size:13px;">Modifica los campos del dispositivo y ajusta las dimensiones milimétricas para calibrar tu impresora térmica.</p>
+                        
                         <div class="form-row"><label>Marca del Dispositivo</label><input id="lbl_marca" value="Apple" oninput="actualizarLabelLive()"></div>
                         <div class="form-row"><label>Modelo y Color</label><input id="lbl_modelo" value="iPhone 11 Pro 64GB Silver" oninput="actualizarLabelLive()"></div>
                         <div class="form-row"><label>Capacidad (GB)</label><input id="lbl_gb" value="64 GB" oninput="actualizarLabelLive()"></div>
-                        <div class="form-row"><label>Número IMEI</label><input id="lbl_imei" value="356789123456789" oninput="actualizarLabelLive()"></div>
+                        <div class="form-row"><label>Número IMEI / Serial</label><input id="lbl_imei" value="356789123456789" oninput="actualizarLabelLive()"></div>
+                        <div class="form-row"><label>Texto de Estado / Pie de Impresión</label><input id="lbl_estado_texto" value="Reacondicionado" placeholder="Ej: Usado Premium / Garantía 30 días" oninput="actualizarLabelLive()"></div>
+                        
+                        <hr style="border:0; border-top:1px solid var(--border-color); margin:20px 0;">
+                        <h4 style="margin:0 0 10px 0; font-size:12px; color:var(--blue-btn); text-transform:uppercase;">Calibración de Dimensiones Manual</h4>
+                        
+                        <div class="form-row">
+                            <div style="display:flex; justify-content:space-between;"><label>Ancho del Papel (mm)</label><span id="val_w" style="font-size:12px; font-weight:bold;">72mm</span></div>
+                            <input type="range" id="cfg_width" min="40" max="100" value="72" oninput="cambiarDimensionesManual()">
+                        </div>
+                        <div class="form-row">
+                            <div style="display:flex; justify-content:space-between;"><label>Tamaño Letra Base (px)</label><span id="val_font" style="font-size:12px; font-weight:bold;">12px</span></div>
+                            <input type="range" id="cfg_font" min="8" max="22" value="12" oninput="cambiarDimensionesManual()">
+                        </div>
+                        <div class="form-row">
+                            <div style="display:flex; justify-content:space-between;"><label>Altura del Código de Barras (px)</label><span id="val_bar" style="font-size:12px; font-weight:bold;">42px</span></div>
+                            <input type="range" id="cfg_barcode_h" min="25" max="70" value="42" oninput="cambiarDimensionesManual()">
+                        </div>
+
                         <button class="btn btn-blue" style="width:100%; margin-top:15px;" onclick="imprimirLabelAdhesivo()"><i class="ti ti-printer"></i> Imprimir en Label Printer</button>
                     </div>
 
                     <div class="card" style="background:#f8fafc; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-                        <h4>Vista Previa del Label Adhesivo</h4>
+                        <h4>Vista Previa (Ajuste Manual)</h4>
                         
-                        <div class="label-preview-card" id="labelCard">
+                        <div class="label-preview-card" id="labelCard" style="width: 72mm; font-size: 12px;">
                             <div id="lblLiveLogo" style="font-size:24px; margin-bottom:5px;"><i class="ti ti-brand-apple"></i></div>
-                            <div style="font-size:14px; font-weight:800; letter-spacing:1px; margin-bottom:5px;">BAYOL CELL</div>
                             <div style="border-bottom:1px solid #000; margin-bottom:8px;"></div>
-                            <div style="font-size:11px; text-align:left; margin-bottom:4px;"><b>EQUIPO:</b> <span id="lblLiveMod">iPhone 11 Pro 64GB Silver</span></div>
-                            <div style="font-size:11px; text-align:left; margin-bottom:4px;"><b>GB:</b> <span id="lblLiveGb">64 GB</span></div>
-                            <div style="font-size:11px; text-align:left; margin-bottom:8px;"><b>IMEI:</b> <span id="lblLiveImei">356789123456789</span></div>
-                            <div class="barcode-visual" id="lblLiveBarcode">*356789123456789*</div>
-                            <div style="font-size:9px; font-weight:bold; margin-top:4px;">ESTADO: Reacondicionado</div>
+                            <div style="text-align:left; margin-bottom:4px;"><b>EQUIPO:</b> <span id="lblLiveMod">iPhone 11 Pro 64GB Silver</span></div>
+                            <div style="text-align:left; margin-bottom:4px;"><b>GB:</b> <span id="lblLiveGb">64 GB</span></div>
+                            <div style="text-align:left; margin-bottom:8px;"><b>IMEI:</b> <span id="lblLiveImei">356789123456789</span></div>
+                            <div class="barcode-visual" id="lblLiveBarcode" style="font-size:42px;">*356789123456789*</div>
+                            <div style="font-weight:bold; margin-top:6px; text-transform:uppercase;" id="lblLiveEstadoContainer">REACONDICIONADO</div>
                         </div>
                     </div>
                 </div>
@@ -419,6 +437,7 @@ function nav(v, btn) {
     document.querySelectorAll(".nav button").forEach(x => x.classList.remove("active"));
     if(btn) btn.classList.add("active");
     document.getElementById("pageTitle").textContent = btn ? btn.textContent.trim() : v;
+    if(v === 'etiquetas') { setTimeout(cambiarDimensionesManual, 50); }
 }
 
 async function loadAll() {
@@ -428,8 +447,6 @@ async function loadAll() {
         const rEq = await supabaseClient.from('equipos').select('*');
         const rPz = await supabaseClient.from('piezas_inventario').select('*');
         const rAct = await supabaseClient.from('activos_taller').select('*').order('codigo', { ascending: true });
-        
-        // Simulación controlada o lectura de tabla en Supabase para Refurbish de manera limpia
         const rRef = await supabaseClient.from('equipos_refurbish').select('*').order('creado_en', { ascending: false });
         
         cache = { 
@@ -565,7 +582,7 @@ async function guardarActivoTaller() {
     } catch(e) { alert("Error al registrar activo."); }
 }
 
-/* LÓGICA E INYECTORES DE LA FASE 4: REFURBISH */
+/* MÓDULO REFURBISH */
 async function registrarEquipoRefurb() {
     try {
         const mod = val("ref_modelo"), imei = val("ref_imei"), cost = parseFloat(val("ref_costo_compra")) || 0, vent = parseFloat(val("ref_precio_venta")) || 0;
@@ -656,18 +673,18 @@ async function inyectarRepuestoARefurb(itemId) {
     } catch(e) { alert("Error al procesar costos del repuesto."); }
 }
 
-function enviarRefurbRefToLabel(id) {
+function enviarRefurbALabel(id) {
     const item = cache.refurb.find(x => x.id === id);
     if(!item) return;
-    document.getElementById("lbl_marca").value = "Generic / Apple";
+    document.getElementById("lbl_marca").value = "Generic";
     document.getElementById("lbl_modelo").value = item.modelo;
-    document.getElementById("lbl_gb").value = "Reacondicionado";
+    document.getElementById("lbl_gb").value = "---";
     document.getElementById("lbl_imei").value = item.imei;
+    document.getElementById("lbl_estado_texto").value = "Reacondicionado";
     actualizarLabelLive();
     nav("etiquetas");
 }
 
-function enviarRefurbALabel(id) { enviarRefurbRefToLabel(id); }
 function cargarEnLabel(id) {
     const o = cache.ordenes.find(x => x.id === id);
     if(!o) return;
@@ -676,8 +693,30 @@ function cargarEnLabel(id) {
     document.getElementById("lbl_modelo").value = eq.modelo || "";
     document.getElementById("lbl_gb").value = eq.capacidad || "128 GB";
     document.getElementById("lbl_imei").value = eq.imei || "";
+    document.getElementById("lbl_estado_texto").value = "Reparado Ok";
     actualizarLabelLive();
     nav("etiquetas");
+}
+
+/* LÓGICA DE ACTUALIZACIÓN Y DIMENSIONAMIENTO MANUAL DE ETIQUETAS */
+function cambiarDimensionesManual() {
+    const w = document.getElementById("cfg_width").value;
+    const f = document.getElementById("cfg_font").value;
+    const bh = document.getElementById("cfg_barcode_h").value;
+
+    document.getElementById("val_w").textContent = w + "mm";
+    document.getElementById("val_font").textContent = f + "px";
+    document.getElementById("val_bar").textContent = bh + "px";
+
+    const card = document.getElementById("labelCard");
+    if(card) {
+        card.style.width = w + "mm";
+        card.style.fontSize = f + "px";
+    }
+    const bar = document.getElementById("lblLiveBarcode");
+    if(bar) {
+        bar.style.fontSize = bh + "px";
+    }
 }
 
 function actualizarLabelLive() {
@@ -685,32 +724,41 @@ function actualizarLabelLive() {
     const mod = document.getElementById("lbl_modelo").value;
     const gb = document.getElementById("lbl_gb").value;
     const imei = document.getElementById("lbl_imei").value;
+    const estado = document.getElementById("lbl_estado_texto").value;
     
     document.getElementById("lblLiveMod").textContent = mod;
     document.getElementById("lblLiveGb").textContent = gb;
     document.getElementById("lblLiveImei").textContent = imei;
     document.getElementById("lblLiveBarcode").textContent = `*${imei || '000000000'}*`;
+    document.getElementById("lblLiveEstadoContainer").textContent = estado;
+    
     document.getElementById("lblLiveLogo").innerHTML = (marca.includes("apple") || marca.includes("iphone")) ? `<i class="ti ti-brand-apple"></i>` : `<i class="ti ti-device-mobile"></i>`;
+    cambiarDimensionesManual();
 }
 
 function imprimirLabelAdhesivo() {
     const mod = document.getElementById("lbl_modelo").value;
     const gb = document.getElementById("lbl_gb").value;
     const imei = document.getElementById("lbl_imei").value;
+    const estadoText = document.getElementById("lbl_estado_texto").value;
     const logoHtml = document.getElementById("lblLiveLogo").innerHTML;
 
+    // Tomar medidas dinámicas de los sliders
+    const configW = document.getElementById("cfg_width").value;
+    const configF = document.getElementById("cfg_font").value;
+    const configBH = document.getElementById("cfg_barcode_h").value;
+
     document.getElementById("printArea").innerHTML = `
-        <div style="width:72mm; padding:10px; font-family:monospace; text-align:center; color:#000;">
-            <div style="font-size:20px;">${logoHtml}</div>
-            <b style="font-size:14px;">BAYOL CELL</b><br>
-            --------------------------<br>
-            <div style="text-align:left; font-size:11px;">
-                <b>EQUIPO:</b> ${mod}<br>
-                <b>GB:</b> ${gb}<br>
-                <b>IMEI:</b> ${imei}<br>
+        <div style="width:${configW}mm; padding:8px; font-family:monospace; text-align:center; color:#000; font-size:${configF}px;">
+            <div style="font-size:${parseInt(configF) + 10}px; margin-bottom: 2px;">${logoHtml}</div>
+            ------------------------------------<br>
+            <div style="text-align:left; line-height: 1.3;">
+                <b>EQUIPO:</b> ${escapeHtml(mod)}<br>
+                <b>GB:</b> ${escapeHtml(gb)}<br>
+                <b>IMEI:</b> ${escapeHtml(imei)}<br>
             </div>
-            <div style="font-family:'Libre Barcode 39'; font-size:48px; margin:5px 0;">*${imei}*</div>
-            <b style="font-size:10px;">ESTADO: Reacondicionado</b>
+            <div style="font-family:'Libre Barcode 39'; font-size:${configBH}px; margin:4px 0; display:block; line-height:1;">*${imei}*</div>
+            <b style="text-transform:uppercase;">${escapeHtml(estadoText)}</b>
         </div>
     `;
     window.print();
@@ -743,7 +791,6 @@ function val(id) { return document.getElementById(id)?.value?.trim() || ""; }
 function limpiarRecepcion() { document.querySelectorAll("#v-recepcion input, #v-recepcion textarea").forEach(x => x.value = ""); }
 
 function startAppRefurbPoller() {
-    // Poller inteligente de sincronización para mantener la consistencia
     setInterval(() => { if(sessionUser) loadAll(); }, 25000);
 }
 
