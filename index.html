@@ -88,6 +88,13 @@ input:focus, select:focus, textarea:focus { border-color: var(--brand-red); box-
 .header-dark-premium { background: linear-gradient(90deg, #1e293b 0%, #0f172a 100%); border-bottom: 2px solid var(--brand-red); }
 .block-body { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
 
+/* TABS DE INVENTARIO */
+.tab-container { display: flex; gap: 6px; margin-bottom: 15px; background: #e2e8f0; padding: 4px; border-radius: 8px; width: fit-content; }
+.tab-btn { background: transparent; border: 0; padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 6px; cursor: pointer; color: #475569; }
+.tab-btn.active { background: #fff; color: var(--text-dark); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
 .table-wrap { overflow: auto; border-radius: 8px; border: 1px solid #cbd5e1; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; background: #fff; }
 th { background: #f8fafc; color: #475569; font-weight: 700; font-size: 11px; text-transform: uppercase; padding: 10px 12px; border-bottom: 1px solid #cbd5e1; }
@@ -95,8 +102,12 @@ td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: var(--text-dar
 tr:hover td { background: #f1f5f9; }
 .badge { padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
 
-/* ETIQUETAS */
-.label-preview-card { background: #fff; border: 2px dashed #000; border-radius: 4px; padding: 12px; color: #000; text-align: center; margin: 0 auto; }
+/* CONTROLES DE LA ETIQUETADORA REAL */
+.slider-group { background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px; }
+.slider-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.slider-row input[type="range"] { flex: 1; width: auto; height: 6px; background: #cbd5e1; border-radius: 3px; outline: none; padding: 0; }
+
+.label-preview-card { background: #fff; border: 2px dashed #000; border-radius: 4px; padding: 12px; color: #000; text-align: center; margin: 0 auto; transition: none; }
 .barcode-visual { font-family: 'Libre Barcode 39', Arial, sans-serif; display: block; margin: 4px 0; line-height: 1; }
 
 .toast { position: fixed; right: 20px; bottom: 20px; background: #0f172a; color: #fff; border-radius: 8px; padding: 12px 18px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); display: none; z-index: 99; font-size: 13px; font-weight: 600; border-left: 4px solid var(--brand-red); }
@@ -204,12 +215,36 @@ tr:hover td { background: #f1f5f9; }
 
             <div id="v-inventario" class="view">
                 <div class="card">
-                    <h3>Inventario de Componentes y Repuestos</h3>
-                    <div class="table-wrap">
-                        <table>
-                            <thead><tr><th>SKU</th><th>Pieza</th><th>Stock</th></tr></thead>
-                            <tbody><tr><td><code>PZ-0412</code></td><td>Pantalla iPhone 13 Pro Original</td><td>3 uds</td></tr></tbody>
-                        </table>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 style="margin:0;">Control Técnico de Almacén</h3>
+                        <div class="tab-container">
+                            <button class="tab-btn active" onclick="switchTab('repuestos', this)">Componentes y Repuestos</button>
+                            <button class="tab-btn" onclick="switchTab('herramientas', this)">Activos y Herramientas del Taller</button>
+                        </div>
+                    </div>
+
+                    <div id="tab-repuestos" class="tab-content active">
+                        <div class="table-wrap">
+                            <table>
+                                <thead><tr><th>SKU</th><th>Pieza / Componente</th><th>Ubicación</th><th>Stock</th></tr></thead>
+                                <tbody>
+                                    <tr><td><code>PZ-0412</code></td><td>Pantalla iPhone 13 Pro Original</td><td>Gaveta A-3</td><td><b style="color:var(--brand-red);">3 uds</b></td></tr>
+                                    <tr><td><code>PZ-0588</code></td><td>Glass Trasero iPhone 14 Pro Max</td><td>Estante B</td><td><b>12 uds</b></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div id="tab-herramientas" class="tab-content">
+                        <div class="table-wrap">
+                            <table>
+                                <thead><tr><th>Código Activo</th><th>Herramienta / Estación de Trabajo</th><th>Responsable Técnico</th><th>Estado</th></tr></thead>
+                                <tbody>
+                                    <tr><td><code>ACT-MIL18</code></td><td>Pistola de Calor Milwaukee M18</td><td>Laboratorio 1</td><td><span class="badge" style="background:#d1fae5; color:#065f46;">Operativo</span></td></tr>
+                                    <tr><td><code>ACT-LAS01</code></td><td>Máquina Separadora Láser de Back Glass</td><td>Estación Central</td><td><span class="badge" style="background:#d1fae5; color:#065f46;">Operativo</span></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -217,14 +252,29 @@ tr:hover td { background: #f1f5f9; }
             <div id="v-etiquetas" class="view">
                 <div class="layout-dashboard">
                     <div class="card">
-                        <h3>Generador de Etiquetas Adhesivas</h3>
+                        <h3>Generador y Calibrador de Labels Térmicos</h3>
                         <div class="form-row"><label>Modelo y Color</label><input id="lbl_modelo" value="iPhone 13 Pro Max Gold" oninput="actualizarLabelLive()"></div>
                         <div class="form-row"><label>Capacidad (GB)</label><input id="lbl_gb" value="256 GB" oninput="actualizarLabelLive()"></div>
                         <div class="form-row"><label>Número IMEI / Serial</label><input id="lbl_imei" value="356789123456789" oninput="actualizarLabelLive()"></div>
-                        <div class="form-row"><label>Pie de Impresión</label><input id="lbl_estado_texto" value="Premium Grade" oninput="actualizarLabelLive()"></div>
+                        <div class="form-row"><label>Texto de Estado / Pie de Impresión</label><input id="lbl_estado_texto" value="Premium Grade" oninput="actualizarLabelLive()"></div>
+                        
+                        <div class="slider-group">
+                            <div class="slider-row">
+                                <label style="margin:0;">Ancho Físico Papel (mm):</label>
+                                <input id="cal_width" type="range" min="50" max="100" value="72" oninput="calibrarLabel()">
+                                <span id="val_width" style="font-size:12px; font-weight:700;">72mm</span>
+                            </div>
+                            <div class="slider-row">
+                                <label style="margin:0;">Tamaño de Fuente (px):</label>
+                                <input id="cal_font" type="range" min="9" max="18" value="12" oninput="calibrarLabel()">
+                                <span id="val_font" style="font-size:12px; font-weight:700;">12px</span>
+                            </div>
+                        </div>
+
                         <button class="btn btn-red" style="width:100%" onclick="window.print()"><i class="ti ti-printer"></i> Imprimir Label Técnico</button>
                     </div>
-                    <div class="card" style="background:#f8fafc; display:flex; align-items:center; justify-content:center;">
+                    <div class="card" style="background:#f8fafc; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                        <label style="margin-bottom:10px;">Vista Previa de Impresión Térmica:</label>
                         <div class="label-preview-card" id="labelCard" style="width: 72mm; font-size: 12px;">
                             <div style="font-size:20px; font-weight:800; margin-bottom:5px;">BAYOL CELL</div>
                             <div style="text-align:left;"><b>EQ:</b> <span id="lblLiveMod">iPhone 13 Pro Max Gold</span></div>
@@ -243,12 +293,12 @@ tr:hover td { background: #f1f5f9; }
                         <h3 style="margin-top:0;"><i class="ti ti-building-store" style="color:var(--brand-red);"></i> Flujo de Registro Comercial (Lotes)</h3>
                         
                         <div class="step-box">
-                            <label><span class="step-number">1</span>Nombre del Proveedor / Origen</label>
-                            <input id="ref_proveedor" placeholder="Ej: Subasta Miami Lote #4 / eBay US" style="border-left: 3px solid var(--brand-red);">
+                            <label><span class="step-number">1</span>Nombre del Proveedor / Origen de Compra</label>
+                            <input id="ref_proveedor" placeholder="Ej: Subasta Miami Lote #4 / eBay US" style="border-left: 3px solid var(--brand-red); font-weight: 600;">
                         </div>
 
                         <div class="step-box">
-                            <label><span class="step-number">2</span>Detalles del Dispositivo</label>
+                            <label><span class="step-number">2</span>Elegir Equipo y Almacenamiento</label>
                             <div class="form-row" style="margin-bottom:8px;">
                                 <input id="ref_modelo" placeholder="Modelo (Ej: iPhone 14 Pro Max)">
                             </div>
@@ -264,7 +314,7 @@ tr:hover td { background: #f1f5f9; }
                         </div>
 
                         <div class="step-box">
-                            <label><span class="step-number">3</span>Identificación y Valores (RD$)</label>
+                            <label><span class="step-number">3</span>Inyectar IMEI y Valores Financieros (RD$)</label>
                             <div class="form-row" style="margin-bottom:8px;">
                                 <input id="ref_imei" placeholder="Número IMEI o Serial">
                             </div>
@@ -319,6 +369,27 @@ function nav(v, btn) {
     document.getElementById("pageTitle").textContent = btn ? btn.textContent.trim() : v;
 }
 
+/* NAVEGACIÓN EN PESTAÑAS DE INVENTARIO */
+function switchTab(tabId, btn) {
+    document.querySelectorAll("#v-inventario .tab-content").forEach(x => x.classList.remove("active"));
+    document.querySelectorAll("#v-inventario .tab-btn").forEach(x => x.classList.remove("active"));
+    document.getElementById("tab-" + tabId).classList.add("active");
+    btn.classList.add("active");
+}
+
+/* CALIBRADORES DE ANCHO Y FUENTE LIVE */
+function calibrarLabel() {
+    const w = document.getElementById("cal_width").value;
+    const f = document.getElementById("cal_font").value;
+    
+    document.getElementById("val_width").textContent = w + "mm";
+    document.getElementById("val_font").textContent = f + "px";
+    
+    const card = document.getElementById("labelCard");
+    card.style.width = w + "mm";
+    card.style.fontSize = f + "px";
+}
+
 function actualizarLabelLive() {
     document.getElementById("lblLiveMod").textContent = document.getElementById("lbl_modelo").value;
     document.getElementById("lblLiveGb").textContent = document.getElementById("lbl_gb").value;
@@ -336,7 +407,7 @@ function registrarFlujoRefurb() {
     const vent = parseFloat(document.getElementById("ref_precio_venta").value) || 0;
 
     if(!prov || !mod || !imei) {
-        alert("Flujo incompleto: Primero registra Proveedor, luego el Modelo/GB y el IMEI.");
+        alert("Flujo incompleto: Registra Proveedor, luego Modelo/GB y por último el IMEI.");
         return;
     }
 
@@ -346,7 +417,7 @@ function registrarFlujoRefurb() {
 
     toast("Equipo registrado bajo el proveedor con éxito.");
     
-    // Limpiamos los campos del equipo, pero dejamos el proveedor por si vas a registrar más de esa misma compra
+    // Dejamos el proveedor intacto para continuar agregando más equipos del mismo lote rápido
     document.getElementById("ref_modelo").value = "";
     document.getElementById("ref_imei").value = "";
     document.getElementById("ref_costo_compra").value = "";
@@ -386,17 +457,4 @@ function renderLocalRefurb() {
                     <div><i class="ti ti-truck-delivery"></i> <b>Proveedor:</b> ${item.proveedor}</div>
                     <div><i class="ti ti-barcode"></i> <b>IMEI:</b> ${item.imei}</div>
                 </div>
-                <div style="margin-top:8px; display:flex; justify-content:space-between; font-size:11px; background:#f8fafc; padding:6px; border-radius:6px; border:1px solid #e2e8f0;">
-                    <span><b>Costo:</b> RD$ ${item.costo_compra.toLocaleString()}</span>
-                    <span><b>Margen Vol:</b> RD$ ${util.toLocaleString()}</span>
-                </div>
-                <button class="btn btn-light" style="width:100%; padding:5px; font-size:11px; margin-top:8px; border-color:var(--brand-red); color:var(--brand-red);" onclick="mandarAEtiquetadora('${item.modelo}', '${item.gb}', '${item.imei}')">
-                    <i class="ti ti-printer"></i> Mandar a Impresión
-                </button>
-            </div>
-        `;
-    }).join("");
-}
-</script>
-</body>
-</html>
+                <div style="margin-top:8px
