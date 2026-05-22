@@ -396,6 +396,23 @@ const supabaseClient = supabase.createClient(CONFIG_URL, CONFIG_KEY);
 
 let sessionUser = null;
 let cache = { ordenes: [], clientes: [], equipos: [], piezas: [], activos: [], refurb: [] };
+let refreshTimer = null;
+
+function logError(context, error) {
+    console.error(`[BAYOL CELL TALLER] ${context}:`, error);
+}
+
+function getFriendlyError(error, fallback) {
+    return error?.message || fallback || "Ocurrió un error inesperado.";
+}
+
+function requireSupabaseOk(response, context) {
+    if(response?.error) {
+        logError(context, response.error);
+        throw response.error;
+    }
+    return response;
+}
 
 function toast(msg) {
     const t = document.getElementById("toast");
@@ -410,13 +427,13 @@ async function doLogin() {
         const u = document.getElementById("loginUser").value.trim();
         const p = document.getElementById("loginPass").value.trim();
         if(!u || !p) return alert("Ingrese datos.");
-        const { data, error } = await supabaseClient.from('usuarios').select('*').eq('usuario', u).eq('clave', p).eq('activo', true);
+        const { data, error } = await supabaseClient.from('usuarios').select('*').eq('usuario', u).eq('clave', p).eq('activo', true).limit(1);
         if(error) throw error;
-        if(!data.length) return alert("Operador no registrado.");
+        if(!data || !data.length) return alert("Operador no registrado.");
         sessionUser = data[0];
         localStorage.setItem("bayol_session", JSON.stringify(sessionUser));
         startApp();
-    } catch(e) { alert("Error de autenticación."); }
+    } catch(e) { logError("Login", e); alert("Error de autenticación. Revise la conexión o permisos de Supabase."); }
 }
 
 function logout() { localStorage.removeItem("bayol_session"); location.reload(); }
@@ -442,12 +459,21 @@ function nav(v, btn) {
 
 async function loadAll() {
     try {
-        const rOrd = await supabaseClient.from('ordenes_reparacion').select('*').order('creado_en', { ascending: false });
-        const rCli = await supabaseClient.from('clientes').select('*');
-        const rEq = await supabaseClient.from('equipos').select('*');
-        const rPz = await supabaseClient.from('piezas_inventario').select('*');
-        const rAct = await supabaseClient.from('activos_taller').select('*').order('codigo', { ascending: true });
-        const rRef = await supabaseClient.from('equipos_refurbish').select('*').order('creado_en', { ascending: false });
+        const [rOrd, rCli, rEq, rPz, rAct, rRef] = await Promise.all([
+            supabaseClient.from('ordenes_reparacion').select('*').order('creado_en', { ascending: false }),
+            supabaseClient.from('clientes').select('*'),
+            supabaseClient.from('equipos').select('*'),
+            supabaseClient.from('piezas_inventario').select('*'),
+            supabaseClient.from('activos_taller').select('*').order('codigo', { ascending: true }),
+            supabaseClient.from('equipos_refurbish').select('*').order('creado_en', { ascending: false })
+        ]);
+
+        requireSupabaseOk(rOrd, 'Cargar órdenes');
+        requireSupabaseOk(rCli, 'Cargar clientes');
+        requireSupabaseOk(rEq, 'Cargar equipos');
+        requireSupabaseOk(rPz, 'Cargar piezas');
+        requireSupabaseOk(rAct, 'Cargar activos');
+        requireSupabaseOk(rRef, 'Cargar refurbish');
         
         cache = { 
             ordenes: rOrd.data || [], 
@@ -458,7 +484,7 @@ async function loadAll() {
             refurb: rRef.data || []
         };
         renderAll();
-    } catch(e) { toast("Error cargando base de datos."); }
+    } catch(e) { logError('loadAll', e); toast(getFriendlyError(e, "Error cargando base de datos.")); }
 }
 
 function findCliente(id) { return cache.clientes.find(x => x.id === id) || {}; }
@@ -547,7 +573,7 @@ async function cambiarEstadoActivo(activoId, nuevoEstado) {
         if(error) throw error;
         toast("Estado y auditoría actualizados correctamente.");
         await loadAll();
-    } catch(e) { alert("Error al actualizar el estado."); await loadAll(); }
+    } catch(e) { logError("Actualizar estado activo", e); alert(getFriendlyError(e, "Error al actualizar el estado.")); await loadAll(); }
 }
 
 function toggleFormActivo() {
@@ -579,7 +605,7 @@ async function guardarActivoTaller() {
         document.getElementById("ast_nombre").value = "";
         toggleFormActivo();
         await loadAll();
-    } catch(e) { alert("Error al registrar activo."); }
+    } catch(e) { logError("Registrar activo", e); alert(getFriendlyError(e, "Error al registrar activo.")); }
 }
 
 /* MÓDULO REFURBISH */
@@ -599,7 +625,7 @@ async function registrarEquipoRefurb() {
         document.getElementById("ref_costo_compra").value = "";
         document.getElementById("ref_precio_venta").value = "";
         await loadAll();
-    } catch(e) { alert("Error inyectando al módulo Refurbish."); }
+    } catch(e) { logError("Registrar refurbish", e); alert(getFriendlyError(e, "Error inyectando al módulo Refurbish.")); }
 }
 
 function renderRefurbishItems() {
@@ -613,7 +639,7 @@ function renderRefurbishItems() {
         const costoTotal = (item.costo_compra || 0) + (item.costo_repuestos || 0);
         const margen = (item.precio_venta_estimado || 0) - costoTotal;
         
-        const piezasOpciones = cache.piezas.map(p => `<option value="${p.id}[SPLIT]${p.costo}">${p.nombre} (Stock: ${p.cantidad})</option>`).join("");
+        const piezasOpciones = cache.piezas.map(p => `<option value="${escapeHtml(p.id)}[SPLIT]${escapeHtml(p.costo)}">${escapeHtml(p.nombre)} (Stock: ${escapeHtml(p.cantidad)})</option>`).join("");
 
         return `
             <div class="refurb-item-card">
@@ -660,17 +686,19 @@ async function inyectarRepuestoARefurb(itemId) {
         const equipo = cache.refurb.find(x => x.id === itemId);
         const nuevoCostoRepuestos = (equipo.costo_repuestos || 0) + costoPieza;
 
-        await supabaseClient.from('equipos_refurbish').update({ costo_repuestos: nuevoCostoRepuestos }).eq('id', itemId);
+        const updRef = await supabaseClient.from('equipos_refurbish').update({ costo_repuestos: nuevoCostoRepuestos }).eq('id', itemId);
+        requireSupabaseOk(updRef, 'Actualizar costo refurbish');
         
         const piezaOriginal = cache.piezas.find(x => x.id === piezaId);
         if(piezaOriginal) {
             const nuevoStock = Math.max(0, (piezaOriginal.cantidad || 1) - 1);
-            await supabaseClient.from('piezas_inventario').update({ cantidad: nuevoStock }).eq('id', piezaId);
+            const updPieza = await supabaseClient.from('piezas_inventario').update({ cantidad: nuevoStock }).eq('id', piezaId);
+            requireSupabaseOk(updPieza, 'Actualizar stock pieza');
         }
 
         toast("Margen recalculado y stock descontado.");
         await loadAll();
-    } catch(e) { alert("Error al procesar costos del repuesto."); }
+    } catch(e) { logError("Procesar repuesto refurbish", e); alert(getFriendlyError(e, "Error al procesar costos del repuesto.")); }
 }
 
 function enviarRefurbALabel(id) {
@@ -772,30 +800,36 @@ async function revelarClave(ordenId, boton) {
 
 async function guardarRecepcion(imprimir) {
     try {
-        if(!val("c_nombre") || !val("e_modelo") || !val("e_imei")) return alert("Faltan campos mandatorios.");
-        const insC = await supabaseClient.from('clientes').insert([{ nombre: val("c_nombre"), whatsapp: val("c_whatsapp") || null, cedula: val("c_cedula") || null }]).select();
-        const insE = await supabaseClient.from('equipos').insert([{ cliente_id: insC.data[0].id, marca: val("e_marca") || 'Generic', modelo: val("e_modelo"), imei: val("e_imei"), capacidad: val("e_capacidad") || null }]).select();
-        await supabaseClient.from('ordenes_reparacion').insert([{
-            cliente_id: insC.data[0].id, equipo_id: insE.data[0].id, falla_reportada: val("o_falla"), condicion_fisica: getChecked("checksFisico") || 'Ninguna', accesorios_recibidos: val("o_accesorios") || 'Ninguno',
+        if(!val("c_nombre") || !val("c_whatsapp") || !val("e_marca") || !val("e_modelo") || !val("e_imei")) return alert("Faltan campos mandatorios.");
+        const insC = await supabaseClient.from('clientes').insert([{ nombre: val("c_nombre"), whatsapp: val("c_whatsapp") || null, cedula: val("c_cedula") || null }]).select().single();
+        requireSupabaseOk(insC, 'Crear cliente');
+
+        const insE = await supabaseClient.from('equipos').insert([{ cliente_id: insC.data.id, marca: val("e_marca") || 'Generic', modelo: val("e_modelo"), imei: val("e_imei"), capacidad: val("e_capacidad") || null }]).select().single();
+        requireSupabaseOk(insE, 'Crear equipo');
+
+        const insO = await supabaseClient.from('ordenes_reparacion').insert([{
+            cliente_id: insC.data.id, equipo_id: insE.data.id, falla_reportada: val("o_falla"), condicion_fisica: getChecked("checksFisico") || 'Ninguna', accesorios_recibidos: val("o_accesorios") || 'Ninguno',
             tipo_acceso: val("o_acceso"), clave_equipo: val("o_clave") || 'Sin clave', cuenta_icloud_google: val("o_cuenta") || null, creado_by: sessionUser.id
-        }]).select();
+        }]).select().single();
+        requireSupabaseOk(insO, 'Crear orden de reparación');
         
         toast("Equipo registrado con éxito.");
         limpiarRecepcion();
         await loadAll();
         nav("ordenes");
-    } catch(e) { alert("Error al guardar los datos."); }
+    } catch(e) { logError("Guardar recepción", e); alert(getFriendlyError(e, "Error al guardar los datos.")); }
 }
 
 function val(id) { return document.getElementById(id)?.value?.trim() || ""; }
 function limpiarRecepcion() { document.querySelectorAll("#v-recepcion input, #v-recepcion textarea").forEach(x => x.value = ""); }
 
 function startAppRefurbPoller() {
-    setInterval(() => { if(sessionUser) loadAll(); }, 25000);
+    if(refreshTimer) clearInterval(refreshTimer);
+    refreshTimer = setInterval(() => { if(sessionUser) loadAll(); }, 25000);
 }
 
 const saved = localStorage.getItem("bayol_session");
-if(saved) { try { sessionUser = JSON.parse(saved); startApp(); } catch(e){} }
+if(saved) { try { sessionUser = JSON.parse(saved); startApp(); } catch(e){ logError("Restaurar sesión local", e); localStorage.removeItem("bayol_session"); } }
 </script>
 </body>
 </html>
