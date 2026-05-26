@@ -597,7 +597,7 @@ async function loadAll() {
             supabaseClient.from('ordenes_reparacion').select('*').order('creado_en', { ascending: false }),
             supabaseClient.from('clientes').select('*'),
             supabaseClient.from('equipos').select('*'),
-            supabaseClient.from('piezas_inventario').select('*').order('sku', { ascending: true }),
+           supabaseClient.from('piezas_inventario').select('*').order('codigo', { ascending: true }),
             isAdminUser() ? supabaseClient.from('activos_taller').select('*').order('codigo', { ascending: true }) : Promise.resolve({ data: [], error: null }),
             supabaseClient.from('equipos_refurbish').select('*').order('creado_en', { ascending: false }),
             supabaseClient.from('proveedores').select('*').eq('activo', true).order('nombre', { ascending: true })
