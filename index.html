@@ -189,7 +189,9 @@ tr:hover td { background: #f8fafc; }
             <button onclick="nav('inventario',this)"><i class="ti ti-package"></i> Inventario Taller</button>
             <button onclick="nav('etiquetas',this)"><i class="ti ti-barcode"></i> Impresión de Labels</button>
             <button onclick="nav('proveedores',this)"><i class="ti ti-truck"></i> Proveedores</button>
+            <button onclick="nav('lotes',this)"><i class="ti ti-packages"></i> Lotes de Compra</button>
             <button id="menu-refurb" onclick="nav('refurb',this)"><i class="ti ti-refresh"></i> Refurbish (Reacond.)</button>
+            <button onclick="nav('lotes',this)"><i class="ti ti-packages"></i> Lotes de Compra</button>
         </div>
         <div class="side-bottom-logo">
             <h3>BAYOL <span>CELL</span></h3>
@@ -472,6 +474,99 @@ tr:hover td { background: #f8fafc; }
         </div>
     </div>
 </div>
+            <div id="v-lotes" class="view">
+    <div id="lotes-lista">
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h3 style="margin:0;"><i class="ti ti-packages" style="color:var(--blue-btn);"></i> Lotes de Compra Registrados</h3>
+                <button class="btn btn-blue" onclick="abrirNuevoLote()"><i class="ti ti-plus"></i> Nuevo Lote</button>
+            </div>
+            <div class="form-row"><input id="lotes_buscar" placeholder="🔍 Buscar por código o proveedor..." oninput="renderLotes()"></div>
+            <div class="table-wrap" style="max-height:560px; overflow-y:auto;">
+                <table>
+                    <thead>
+                        <tr><th>Código</th><th>Proveedor</th><th>Fecha</th><th>Equipos</th><th>Total</th><th>Estado</th><th>Acciones</th></tr>
+                    </thead>
+                    <tbody id="lotesTable">
+                        <tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Cargando lotes...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="lotes-detalle" style="display:none;">
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <button class="btn btn-light" onclick="volverListaLotes()"><i class="ti ti-arrow-left"></i> Volver a Lotes</button>
+                <h3 style="margin:0;" id="loteDetalleTitulo">Lote</h3>
+                <span></span>
+            </div>
+
+            <div class="block-grid">
+                <div class="block-card">
+                    <div class="block-header header-blue-dark">Datos del Lote</div>
+                    <div class="block-body">
+                        <div><label>Código Lote</label><input id="lt_codigo" disabled></div>
+                        <div><label>Proveedor *</label><select id="lt_proveedor"></select></div>
+                        <div><label>Fecha de Compra *</label><input id="lt_fecha" type="date"></div>
+                        <div><label>Costo Total del Lote (RD$)</label><input id="lt_costo_total" type="number" step="0.01" placeholder="714803.26"></div>
+                        <div><label>Cantidad de Equipos Declarada</label><input id="lt_cantidad" type="number" placeholder="53"></div>
+                        <div><label>Notas / Comentario</label><textarea id="lt_notas" rows="2" placeholder="Ej: 53 dispositivos incluyendo apple watch"></textarea></div>
+                        <div><label>Estado</label><select id="lt_estado">
+                            <option value="Abierto">Abierto</option>
+                            <option value="En Proceso">En Proceso</option>
+                            <option value="Cerrado">Cerrado</option>
+                        </select></div>
+                        <button class="btn btn-blue" style="width:100%; margin-top:10px;" onclick="guardarDatosLote()"><i class="ti ti-device-floppy"></i> Guardar Datos del Lote</button>
+                    </div>
+                </div>
+
+                <div class="block-card" style="grid-column: span 2;">
+                    <div class="block-header header-blue-light">Agregar Artículos al Lote (por grupo de modelo)</div>
+                    <div class="block-body">
+                        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr 0.6fr 1fr; gap:10px;">
+                            <div><label>Marca</label><input id="gr_marca" placeholder="Apple"></div>
+                            <div><label>Modelo *</label><input id="gr_modelo" placeholder="iPhone 12 Pro Max"></div>
+                            <div><label>Color / Capacidad</label><input id="gr_capacidad" placeholder="256GB Azul"></div>
+                            <div><label>Cantidad *</label><input id="gr_cantidad" type="number" min="1" value="1" oninput="calcularUnitario()"></div>
+                            <div><label>Costo Grupo (RD$) *</label><input id="gr_costo_grupo" type="number" step="0.01" placeholder="40000" oninput="calcularUnitario()"></div>
+                        </div>
+                        <div style="background:#f1f5f9; border:1px solid var(--border-color); padding:8px; border-radius:6px; margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-size:13px; color:var(--text-muted);">Costo unitario calculado:</span>
+                            <strong id="gr_unitario_preview" style="font-size:18px; color:var(--blue-btn);">RD$ 0.00</strong>
+                        </div>
+                        <button class="btn btn-blue" style="width:100%; margin-top:10px;" onclick="agregarGrupoLote()"><i class="ti ti-plus"></i> Agregar Grupo al Lote</button>
+
+                        <h4 style="margin:20px 0 10px 0; font-size:13px;">Artículos del Lote</h4>
+                        <div class="table-wrap" style="max-height:280px; overflow-y:auto;">
+                            <table>
+                                <thead>
+                                    <tr><th>Modelo</th><th>Cant</th><th>Costo Grupo</th><th>Unitario</th><th>Acciones</th></tr>
+                                </thead>
+                                <tbody id="gruposTable"></tbody>
+                            </table>
+                        </div>
+                        <div style="background:#f8fafc; padding:10px; border-radius:6px; margin-top:10px; border:1px dashed var(--border-color);">
+                            <div style="display:flex; justify-content:space-between; font-size:13px;">
+                                <span>Suma artículos cargados:</span>
+                                <strong id="suma_articulos">RD$ 0.00</strong>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; font-size:13px; margin-top:4px;">
+                                <span>Total declarado del lote:</span>
+                                <strong id="total_declarado">RD$ 0.00</strong>
+                            </div>
+                            <div id="diferencia_lote" style="display:flex; justify-content:space-between; font-size:13px; margin-top:4px; font-weight:bold;">
+                                <span>Diferencia:</span>
+                                <strong>RD$ 0.00</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
             <div id="v-refurb" class="view">
                 <div class="grid-refurb">
                     <div class="card">
@@ -617,18 +712,18 @@ async function loadAll() {
         requireSupabaseOk(rProv, 'Cargar proveedores');
         requireSupabaseOk(rLot, 'Cargar lotes');
         requireSupabaseOk(rGrp, 'Cargar grupos');
-        cache = { 
-    ordenes: rOrd.data || [], 
-    clientes: rCli.data || [], 
-    equipos: rEq.data || [], 
-    piezas: rPz.data || [],
-    activos: rAct.data || [],
-    refurb: rRef.data || [],
-    proveedores: rProv.data || [],
-    lotes: rLot.data || [],
-    grupos: rGrp.data || []
-};
-        renderAll();
+        cache = {
+            ordenes: rOrd.data || [],
+            clientes: rCli.data || [],
+            equipos: rEq.data || [],
+            piezas: rPz.data || [],
+            activos: rAct.data || [],
+            refurb: rRef.data || [],
+            proveedores: rProv.data || [],
+            lotes: rLot.data || [],
+            grupos: rGrp.data || []
+        };
+           renderAll();
     } catch(e) { logError('loadAll', e); toast(getFriendlyError(e, "Error cargando base de datos.")); }
 }
 
@@ -1504,6 +1599,226 @@ async function eliminarLote(loteId) {
         logError('Eliminar lote', e); 
         alert(getFriendlyError(e, 'Error al eliminar el lote.')); 
     }
+}
+    /* ============================================================
+   MÓDULO LOTES DE COMPRA
+   ============================================================ */
+
+function renderLotes() {
+    const tbody = document.getElementById('lotesTable');
+    if(!tbody) return;
+    
+    const filtro = (document.getElementById('lotes_buscar')?.value || '').toLowerCase().trim();
+    let lista = cache.lotes || [];
+    
+    if(filtro) {
+        lista = lista.filter(l => {
+            const prov = cache.proveedores.find(p => p.id === l.proveedor_id);
+            return (l.codigo_lote || '').toLowerCase().includes(filtro) ||
+                   (prov?.nombre || '').toLowerCase().includes(filtro) ||
+                   (l.notas || '').toLowerCase().includes(filtro);
+        });
+    }
+    
+    if(!lista.length) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">${filtro ? 'Sin resultados' : 'No hay lotes. Crea uno con + Nuevo Lote.'}</td></tr>`;
+        return;
+    }
+    
+    tbody.innerHTML = lista.map(l => {
+        const prov = cache.proveedores.find(p => p.id === l.proveedor_id);
+        const equiposEnLote = cache.refurb.filter(r => r.lote_id === l.id).length;
+        let estadoStyle = 'background:#e0f2fe; color:#0369a1;';
+        if(l.estado === 'En Proceso') estadoStyle = 'background:#fef3c7; color:#92400e;';
+        if(l.estado === 'Cerrado') estadoStyle = 'background:#d1fae5; color:#065f46;';
+        
+        return `<tr>
+            <td><b>${escapeHtml(l.codigo_lote || 'Sin código')}</b></td>
+            <td>${escapeHtml(prov?.nombre || 'Sin proveedor')}</td>
+            <td>${l.fecha_compra ? new Date(l.fecha_compra).toLocaleDateString('es-DO') : '-'}</td>
+            <td>${equiposEnLote} / ${l.cantidad_equipos || 0}</td>
+            <td><b>${money(l.costo_total_lote)}</b></td>
+            <td><span class="badge" style="${estadoStyle}">${escapeHtml(l.estado || 'Abierto')}</span></td>
+            <td>
+                <button class="btn btn-light" style="padding:4px 8px; font-size:11px;" onclick="abrirLote('${l.id}')"><i class="ti ti-eye"></i> Abrir</button>
+                <button class="btn btn-light" style="padding:4px 8px; font-size:11px;" onclick="eliminarLote('${l.id}')"><i class="ti ti-trash"></i></button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function calcularSiguienteCodigoLote() {
+    if(!cache.lotes || !cache.lotes.length) return 'LT-00001';
+    const numeros = cache.lotes.map(l => {
+        const m = (l.codigo_lote || '').match(/\d+/);
+        return m ? parseInt(m[0], 10) : 0;
+    });
+    return `LT-${String(Math.max(...numeros, 0) + 1).padStart(5, '0')}`;
+}
+
+async function abrirNuevoLote() {
+    try {
+        const codigo = calcularSiguienteCodigoLote();
+        const { data, error } = await supabaseClient.from('refurb_lotes').insert([{
+            codigo_lote: codigo,
+            fecha_compra: new Date().toISOString().slice(0, 10),
+            estado: 'Abierto',
+            creado_por: sessionUser?.id || null
+        }]).select().single();
+        if(error) throw error;
+        toast(`Lote ${codigo} creado.`);
+        await loadAll();
+        abrirLote(data.id);
+    } catch(e) { logError('Crear lote', e); alert(getFriendlyError(e, 'Error al crear el lote.')); }
+}
+
+function abrirLote(loteId) {
+    loteActualId = loteId;
+    const lote = cache.lotes.find(l => l.id === loteId);
+    if(!lote) return alert('Lote no encontrado.');
+    
+    document.getElementById('lotes-lista').style.display = 'none';
+    document.getElementById('lotes-detalle').style.display = 'block';
+    document.getElementById('loteDetalleTitulo').textContent = `Lote ${lote.codigo_lote}`;
+    
+    document.getElementById('lt_codigo').value = lote.codigo_lote || '';
+    document.getElementById('lt_fecha').value = lote.fecha_compra || '';
+    document.getElementById('lt_costo_total').value = lote.costo_total_lote || '';
+    document.getElementById('lt_cantidad').value = lote.cantidad_equipos || '';
+    document.getElementById('lt_notas').value = lote.notas || '';
+    document.getElementById('lt_estado').value = lote.estado || 'Abierto';
+    
+    const selProv = document.getElementById('lt_proveedor');
+    selProv.innerHTML = '<option value="">-- Sin asignar --</option>' + 
+        cache.proveedores.map(p => `<option value="${p.id}" ${p.id === lote.proveedor_id ? 'selected' : ''}>${escapeHtml(p.nombre)}</option>`).join('');
+    
+    ['gr_marca','gr_modelo','gr_capacidad','gr_costo_grupo'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('gr_cantidad').value = 1;
+    calcularUnitario();
+    renderGruposLote();
+}
+
+function volverListaLotes() {
+    loteActualId = null;
+    document.getElementById('lotes-lista').style.display = 'block';
+    document.getElementById('lotes-detalle').style.display = 'none';
+    renderLotes();
+}
+
+async function guardarDatosLote() {
+    if(!loteActualId) return;
+    try {
+        const proveedor_id = document.getElementById('lt_proveedor').value || null;
+        const { error } = await supabaseClient.from('refurb_lotes').update({
+            proveedor_id: proveedor_id,
+            fecha_compra: document.getElementById('lt_fecha').value || null,
+            costo_total_lote: parseFloat(document.getElementById('lt_costo_total').value) || 0,
+            cantidad_equipos: parseInt(document.getElementById('lt_cantidad').value) || 0,
+            notas: val('lt_notas') || null,
+            estado: document.getElementById('lt_estado').value
+        }).eq('id', loteActualId);
+        if(error) throw error;
+        toast('Datos del lote guardados.');
+        await loadAll();
+        renderGruposLote();
+    } catch(e) { logError('Guardar lote', e); alert(getFriendlyError(e, 'Error al guardar.')); }
+}
+
+function calcularUnitario() {
+    const cant = parseInt(document.getElementById('gr_cantidad').value) || 1;
+    const costo = parseFloat(document.getElementById('gr_costo_grupo').value) || 0;
+    const unit = cant > 0 ? costo / cant : 0;
+    document.getElementById('gr_unitario_preview').textContent = money(unit);
+}
+
+async function agregarGrupoLote() {
+    if(!loteActualId) return alert('Primero abre o crea un lote.');
+    const modelo = val('gr_modelo');
+    if(!modelo) return alert('El modelo es obligatorio.');
+    const cantidad = parseInt(val('gr_cantidad')) || 1;
+    const costoGrupo = parseFloat(val('gr_costo_grupo')) || 0;
+    const unitario = cantidad > 0 ? costoGrupo / cantidad : 0;
+    
+    try {
+        const { error } = await supabaseClient.from('refurb_lote_grupos').insert([{
+            lote_id: loteActualId,
+            marca: val('gr_marca') || null,
+            modelo: modelo,
+            capacidad: val('gr_capacidad') || null,
+            cantidad: cantidad,
+            costo_grupo: costoGrupo,
+            costo_unitario: unitario,
+            modo_costeo: 'promedio_grupo'
+        }]);
+        if(error) throw error;
+        toast(`Grupo agregado: ${modelo}.`);
+        ['gr_marca','gr_modelo','gr_capacidad','gr_costo_grupo'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('gr_cantidad').value = 1;
+        calcularUnitario();
+        await loadAll();
+        renderGruposLote();
+    } catch(e) { logError('Agregar grupo', e); alert(getFriendlyError(e, 'Error al agregar grupo.')); }
+}
+
+function renderGruposLote() {
+    if(!loteActualId) return;
+    const tbody = document.getElementById('gruposTable');
+    if(!tbody) return;
+    
+    const grupos = (cache.grupos || []).filter(g => g.lote_id === loteActualId);
+    
+    if(!grupos.length) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:15px;">Sin artículos cargados aún.</td></tr>`;
+    } else {
+        tbody.innerHTML = grupos.map(g => `<tr>
+            <td><b>${escapeHtml(g.marca || '')} ${escapeHtml(g.modelo)}</b><br><small style="color:var(--text-muted);">${escapeHtml(g.capacidad || '')}</small></td>
+            <td>${g.cantidad}</td>
+            <td><b>${money(g.costo_grupo)}</b></td>
+            <td>${money(g.costo_unitario)}</td>
+            <td><button class="btn btn-light" style="padding:3px 6px; font-size:10px;" onclick="eliminarGrupo('${g.id}')"><i class="ti ti-trash"></i></button></td>
+        </tr>`).join('');
+    }
+    
+    const sumaArticulos = grupos.reduce((s, g) => s + (parseFloat(g.costo_grupo) || 0), 0);
+    const lote = cache.lotes.find(l => l.id === loteActualId);
+    const totalDeclarado = parseFloat(lote?.costo_total_lote) || 0;
+    const diferencia = sumaArticulos - totalDeclarado;
+    
+    document.getElementById('suma_articulos').textContent = money(sumaArticulos);
+    document.getElementById('total_declarado').textContent = money(totalDeclarado);
+    
+    const difEl = document.getElementById('diferencia_lote');
+    difEl.querySelector('strong').textContent = money(diferencia);
+    if(Math.abs(diferencia) < 0.01 || totalDeclarado === 0) {
+        difEl.style.color = '#065f46';
+        difEl.querySelector('strong').textContent = totalDeclarado === 0 ? 'Sin total' : '✅ Cuadra';
+    } else {
+        difEl.style.color = '#dc2626';
+    }
+}
+
+async function eliminarGrupo(grupoId) {
+    if(!confirm('¿Quitar este grupo del lote?')) return;
+    try {
+        const { error } = await supabaseClient.from('refurb_lote_grupos').delete().eq('id', grupoId);
+        if(error) throw error;
+        toast('Grupo eliminado.');
+        await loadAll();
+        renderGruposLote();
+    } catch(e) { logError('Eliminar grupo', e); alert(getFriendlyError(e, 'Error al eliminar.')); }
+}
+
+async function eliminarLote(loteId) {
+    const lote = cache.lotes.find(l => l.id === loteId);
+    if(!lote) return;
+    if(!confirm(`¿Eliminar el lote ${lote.codigo_lote}? Esto también elimina sus grupos.`)) return;
+    try {
+        await supabaseClient.from('refurb_lote_grupos').delete().eq('lote_id', loteId);
+        const { error } = await supabaseClient.from('refurb_lotes').delete().eq('id', loteId);
+        if(error) throw error;
+        toast('Lote eliminado.');
+        await loadAll();
+    } catch(e) { logError('Eliminar lote', e); alert(getFriendlyError(e, 'Error al eliminar el lote.')); }
 }
 function startAppRefurbPoller() {
     if(refreshTimer) clearInterval(refreshTimer);
