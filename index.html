@@ -504,7 +504,8 @@ const CONFIG_KEY = "sb_publishable_PynS5ZjKoQ36HCpguVzxaw_KZOlagtz";
 const supabaseClient = supabase.createClient(CONFIG_URL, CONFIG_KEY);
 
 let sessionUser = null;
-let cache = { ordenes: [], clientes: [], equipos: [], piezas: [], activos: [], refurb: [], proveedores: [] };
+let cache = { ordenes: [], clientes: [], equipos: [], piezas: [], activos: [], refurb: [], proveedores: [], lotes: [], grupos: [] };
+let loteActualId = null;
 let refreshTimer = null;
 
 function logError(context, error) {
@@ -600,7 +601,11 @@ async function loadAll() {
            supabaseClient.from('piezas_inventario').select('*').order('codigo', { ascending: true }),
             isAdminUser() ? supabaseClient.from('activos_taller').select('*').order('codigo', { ascending: true }) : Promise.resolve({ data: [], error: null }),
             supabaseClient.from('equipos_refurbish').select('*').order('creado_en', { ascending: false }),
-            supabaseClient.from('proveedores').select('*').eq('activo', true).order('nombre', { ascending: true })
+            supabaseClient.from('proveedores').select('*').eq('activo', true).order('nombre', { ascending: true }),
+            supabaseClient.from('refurb_lotes').select('*').order('creado_en', { ascending: false }),
+            supabaseClient.from('refurb_lote_grupos').select('*').order('creado_en', { ascending: true })
+
+            
         ]);
 
         requireSupabaseOk(rOrd, 'Cargar órdenes');
@@ -610,6 +615,8 @@ async function loadAll() {
         if(isAdminUser()) requireSupabaseOk(rAct, 'Cargar activos');
         requireSupabaseOk(rRef, 'Cargar refurbish');
         requireSupabaseOk(rProv, 'Cargar proveedores');
+        requireSupabaseOk(rLot, 'Cargar lotes');
+        requireSupabaseOk(rGrp, 'Cargar grupos');
         cache = { 
     ordenes: rOrd.data || [], 
     clientes: rCli.data || [], 
@@ -617,7 +624,9 @@ async function loadAll() {
     piezas: rPz.data || [],
     activos: rAct.data || [],
     refurb: rRef.data || [],
-    proveedores: rProv.data || []
+    proveedores: rProv.data || [],
+    lotes: rLot.data || [],
+    grupos: rGrp.data || []
 };
         renderAll();
     } catch(e) { logError('loadAll', e); toast(getFriendlyError(e, "Error cargando base de datos.")); }
@@ -646,6 +655,7 @@ function renderAll() {
     if(isAdminUser()) renderActivosTaller();
     renderRefurbishItems();
     renderProveedores();
+    renderLotes();
 }
 
 function renderOrders() {
@@ -1256,6 +1266,243 @@ async function eliminarProveedor(id) {
     } catch(e) { 
         logError('Desactivar proveedor', e); 
         alert(getFriendlyError(e, 'Error al desactivar el proveedor.')); 
+    }
+}
+    /* ============================================================
+   MÓDULO LOTES DE COMPRA
+   ============================================================ */
+
+function renderLotes() {
+    const tbody = document.getElementById('lotesTable');
+    if(!tbody) return;
+    
+    const filtro = (document.getElementById('lotes_buscar')?.value || '').toLowerCase().trim();
+    let lista = cache.lotes;
+    
+    if(filtro) {
+        lista = lista.filter(l => {
+            const prov = cache.proveedores.find(p => p.id === l.proveedor_id);
+            return (l.codigo_lote || '').toLowerCase().includes(filtro) ||
+                   (prov?.nombre || '').toLowerCase().includes(filtro) ||
+                   (l.notas || '').toLowerCase().includes(filtro);
+        });
+    }
+    
+    if(!lista.length) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">${filtro ? 'Sin resultados' : 'No hay lotes registrados. Crea uno con + Nuevo Lote.'}</td></tr>`;
+        return;
+    }
+    
+    tbody.innerHTML = lista.map(l => {
+        const prov = cache.proveedores.find(p => p.id === l.proveedor_id);
+        const equiposEnLote = cache.refurb.filter(r => r.lote_id === l.id).length;
+        let estadoStyle = 'background:#e0f2fe; color:#0369a1;';
+        if(l.estado === 'En Proceso') estadoStyle = 'background:#fef3c7; color:#92400e;';
+        if(l.estado === 'Cerrado') estadoStyle = 'background:#d1fae5; color:#065f46;';
+        
+        return `<tr>
+            <td><b>${escapeHtml(l.codigo_lote || 'Sin código')}</b></td>
+            <td>${escapeHtml(prov?.nombre || 'Sin proveedor')}</td>
+            <td>${l.fecha_compra ? new Date(l.fecha_compra).toLocaleDateString('es-DO') : '-'}</td>
+            <td>${equiposEnLote} / ${l.cantidad_equipos || 0}</td>
+            <td><b>${money(l.costo_total_lote)}</b></td>
+            <td><span class="badge" style="${estadoStyle}">${escapeHtml(l.estado || 'Abierto')}</span></td>
+            <td>
+                <button class="btn btn-light" style="padding:4px 8px; font-size:11px;" onclick="abrirLote('${l.id}')"><i class="ti ti-eye"></i> Abrir</button>
+                <button class="btn btn-light" style="padding:4px 8px; font-size:11px;" onclick="eliminarLote('${l.id}')"><i class="ti ti-trash"></i></button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function calcularSiguienteCodigoLote() {
+    if(!cache.lotes.length) return 'LT-00001';
+    const numeros = cache.lotes.map(l => {
+        const m = (l.codigo_lote || '').match(/\d+/);
+        return m ? parseInt(m[0], 10) : 0;
+    });
+    return `LT-${String(Math.max(...numeros, 0) + 1).padStart(5, '0')}`;
+}
+
+async function abrirNuevoLote() {
+    try {
+        const codigo = calcularSiguienteCodigoLote();
+        const { data, error } = await supabaseClient.from('refurb_lotes').insert([{
+            codigo_lote: codigo,
+            fecha_compra: new Date().toISOString().slice(0, 10),
+            estado: 'Abierto',
+            creado_por: sessionUser?.id || null
+        }]).select().single();
+        if(error) throw error;
+        toast(`Lote ${codigo} creado. Completa los datos.`);
+        await loadAll();
+        abrirLote(data.id);
+    } catch(e) { 
+        logError('Crear lote', e); 
+        alert(getFriendlyError(e, 'Error al crear el lote.')); 
+    }
+}
+
+function abrirLote(loteId) {
+    loteActualId = loteId;
+    const lote = cache.lotes.find(l => l.id === loteId);
+    if(!lote) return alert('Lote no encontrado.');
+    
+    document.getElementById('lotes-lista').style.display = 'none';
+    document.getElementById('lotes-detalle').style.display = 'block';
+    document.getElementById('loteDetalleTitulo').textContent = `Lote ${lote.codigo_lote}`;
+    
+    document.getElementById('lt_codigo').value = lote.codigo_lote || '';
+    document.getElementById('lt_fecha').value = lote.fecha_compra || '';
+    document.getElementById('lt_costo_total').value = lote.costo_total_lote || '';
+    document.getElementById('lt_cantidad').value = lote.cantidad_equipos || '';
+    document.getElementById('lt_notas').value = lote.notas || '';
+    document.getElementById('lt_estado').value = lote.estado || 'Abierto';
+    
+    const selProv = document.getElementById('lt_proveedor');
+    selProv.innerHTML = '<option value="">-- Sin asignar --</option>' + 
+        cache.proveedores.map(p => `<option value="${p.id}" ${p.id === lote.proveedor_id ? 'selected' : ''}>${escapeHtml(p.nombre)}</option>`).join('');
+    
+    ['gr_marca','gr_modelo','gr_capacidad','gr_costo_grupo'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('gr_cantidad').value = 1;
+    calcularUnitario();
+    renderGruposLote();
+}
+
+function volverListaLotes() {
+    loteActualId = null;
+    document.getElementById('lotes-lista').style.display = 'block';
+    document.getElementById('lotes-detalle').style.display = 'none';
+    renderLotes();
+}
+
+async function guardarDatosLote() {
+    if(!loteActualId) return;
+    try {
+        const proveedor_id = document.getElementById('lt_proveedor').value || null;
+        const { error } = await supabaseClient.from('refurb_lotes').update({
+            proveedor_id: proveedor_id,
+            fecha_compra: document.getElementById('lt_fecha').value || null,
+            costo_total_lote: parseFloat(document.getElementById('lt_costo_total').value) || 0,
+            cantidad_equipos: parseInt(document.getElementById('lt_cantidad').value) || 0,
+            notas: val('lt_notas') || null,
+            estado: document.getElementById('lt_estado').value
+        }).eq('id', loteActualId);
+        if(error) throw error;
+        toast('Datos del lote guardados.');
+        await loadAll();
+        renderGruposLote();
+    } catch(e) { 
+        logError('Guardar datos lote', e); 
+        alert(getFriendlyError(e, 'Error al guardar.')); 
+    }
+}
+
+function calcularUnitario() {
+    const cant = parseInt(document.getElementById('gr_cantidad').value) || 1;
+    const costo = parseFloat(document.getElementById('gr_costo_grupo').value) || 0;
+    const unit = cant > 0 ? costo / cant : 0;
+    document.getElementById('gr_unitario_preview').textContent = money(unit);
+}
+
+async function agregarGrupoLote() {
+    if(!loteActualId) return alert('Primero abre o crea un lote.');
+    const modelo = val('gr_modelo');
+    if(!modelo) return alert('El modelo es obligatorio.');
+    const cantidad = parseInt(val('gr_cantidad')) || 1;
+    const costoGrupo = parseFloat(val('gr_costo_grupo')) || 0;
+    const unitario = cantidad > 0 ? costoGrupo / cantidad : 0;
+    
+    try {
+        const { error } = await supabaseClient.from('refurb_lote_grupos').insert([{
+            lote_id: loteActualId,
+            marca: val('gr_marca') || null,
+            modelo: modelo,
+            capacidad: val('gr_capacidad') || null,
+            cantidad: cantidad,
+            costo_grupo: costoGrupo,
+            costo_unitario: unitario,
+            modo_costeo: 'promedio_grupo'
+        }]);
+        if(error) throw error;
+        toast(`Grupo agregado: ${modelo} (${cantidad} uds).`);
+        ['gr_marca','gr_modelo','gr_capacidad','gr_costo_grupo'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('gr_cantidad').value = 1;
+        calcularUnitario();
+        await loadAll();
+        renderGruposLote();
+    } catch(e) { 
+        logError('Agregar grupo', e); 
+        alert(getFriendlyError(e, 'Error al agregar grupo.')); 
+    }
+}
+
+function renderGruposLote() {
+    if(!loteActualId) return;
+    const tbody = document.getElementById('gruposTable');
+    if(!tbody) return;
+    
+    const grupos = cache.grupos.filter(g => g.lote_id === loteActualId);
+    
+    if(!grupos.length) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:15px;">Sin artículos cargados aún.</td></tr>`;
+    } else {
+        tbody.innerHTML = grupos.map(g => `<tr>
+            <td><b>${escapeHtml(g.marca || '')} ${escapeHtml(g.modelo)}</b><br><small style="color:var(--text-muted);">${escapeHtml(g.capacidad || '')}</small></td>
+            <td>${g.cantidad}</td>
+            <td><b>${money(g.costo_grupo)}</b></td>
+            <td>${money(g.costo_unitario)}</td>
+            <td>
+                <button class="btn btn-light" style="padding:3px 6px; font-size:10px;" onclick="eliminarGrupo('${g.id}')" title="Quitar"><i class="ti ti-trash"></i></button>
+            </td>
+        </tr>`).join('');
+    }
+    
+    const sumaArticulos = grupos.reduce((s, g) => s + (parseFloat(g.costo_grupo) || 0), 0);
+    const lote = cache.lotes.find(l => l.id === loteActualId);
+    const totalDeclarado = parseFloat(lote?.costo_total_lote) || 0;
+    const diferencia = sumaArticulos - totalDeclarado;
+    
+    document.getElementById('suma_articulos').textContent = money(sumaArticulos);
+    document.getElementById('total_declarado').textContent = money(totalDeclarado);
+    
+    const difEl = document.getElementById('diferencia_lote');
+    difEl.querySelector('strong').textContent = money(diferencia);
+    if(Math.abs(diferencia) < 0.01 || totalDeclarado === 0) {
+        difEl.style.color = '#065f46';
+        difEl.querySelector('strong').textContent = totalDeclarado === 0 ? 'Sin total declarado' : '✅ Cuadra';
+    } else {
+        difEl.style.color = '#dc2626';
+    }
+}
+
+async function eliminarGrupo(grupoId) {
+    if(!confirm('¿Quitar este grupo del lote? Los equipos individuales NO se borrarán.')) return;
+    try {
+        const { error } = await supabaseClient.from('refurb_lote_grupos').delete().eq('id', grupoId);
+        if(error) throw error;
+        toast('Grupo eliminado.');
+        await loadAll();
+        renderGruposLote();
+    } catch(e) { 
+        logError('Eliminar grupo', e); 
+        alert(getFriendlyError(e, 'Error al eliminar.')); 
+    }
+}
+
+async function eliminarLote(loteId) {
+    const lote = cache.lotes.find(l => l.id === loteId);
+    if(!lote) return;
+    if(!confirm(`¿Eliminar el lote ${lote.codigo_lote}? Esto también elimina sus grupos. Los equipos individuales quedan sin lote asociado.`)) return;
+    try {
+        await supabaseClient.from('refurb_lote_grupos').delete().eq('lote_id', loteId);
+        const { error } = await supabaseClient.from('refurb_lotes').delete().eq('id', loteId);
+        if(error) throw error;
+        toast('Lote eliminado.');
+        await loadAll();
+    } catch(e) { 
+        logError('Eliminar lote', e); 
+        alert(getFriendlyError(e, 'Error al eliminar el lote.')); 
     }
 }
 function startAppRefurbPoller() {
