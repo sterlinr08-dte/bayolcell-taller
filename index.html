@@ -188,6 +188,7 @@ tr:hover td { background: #f8fafc; }
             <button onclick="nav('ordenes',this)"><i class="ti ti-tool"></i> Órdenes de Trabajo</button>
             <button onclick="nav('inventario',this)"><i class="ti ti-package"></i> Inventario Taller</button>
             <button onclick="nav('etiquetas',this)"><i class="ti ti-barcode"></i> Impresión de Labels</button>
+            <button onclick="nav('proveedores',this)"><i class="ti ti-truck"></i> Proveedores</button>
             <button id="menu-refurb" onclick="nav('refurb',this)"><i class="ti ti-refresh"></i> Refurbish (Reacond.)</button>
         </div>
         <div class="side-bottom-logo">
@@ -424,7 +425,53 @@ tr:hover td { background: #f8fafc; }
                     </div>
                 </div>
             </div>
+<div id="v-proveedores" class="view">
+    <div class="layout-dashboard">
+        <div class="card">
+            <h3 style="margin-top:0;"><i class="ti ti-truck" style="color:var(--blue-btn);"></i> Registrar Nuevo Proveedor</h3>
+            <div class="form-row"><label>Nombre / Empresa *</label><input id="prov_nombre" placeholder="Ej. Juan Méndez / Mayorista RD"></div>
+            <div class="form-row"><label>Contacto (Persona)</label><input id="prov_contacto" placeholder="Persona de contacto"></div>
+            <div class="form-row"><label>WhatsApp / Teléfono</label><input id="prov_whatsapp" placeholder="809-000-0000"></div>
+            <div class="form-row"><label>Ciudad / Ubicación</label><input id="prov_ciudad" placeholder="Santo Domingo"></div>
+            <div class="form-row">
+                <label>Tipo de Proveedor</label>
+                <select id="prov_tipo">
+                    <option>Particular</option>
+                    <option>Mayorista</option>
+                    <option>Subasta</option>
+                    <option>Online</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <label>Confiabilidad</label>
+                <select id="prov_confiabilidad">
+                    <option>Por evaluar</option>
+                    <option>Excelente</option>
+                    <option>Buena</option>
+                    <option>Regular</option>
+                    <option>Mala</option>
+                </select>
+            </div>
+            <div class="form-row"><label>Notas</label><textarea id="prov_notas" rows="2" placeholder="Observaciones del proveedor"></textarea></div>
+            <button class="btn btn-blue" style="width:100%; margin-top:10px;" onclick="guardarProveedor()"><i class="ti ti-device-floppy"></i> Guardar Proveedor</button>
+        </div>
 
+        <div class="card">
+            <h3 style="margin-top:0;"><i class="ti ti-list" style="color:#10b981;"></i> Proveedores Registrados</h3>
+            <div class="form-row"><input id="prov_buscar" placeholder="🔍 Buscar por nombre, contacto o ciudad..." oninput="renderProveedores()"></div>
+            <div class="table-wrap" style="max-height:480px; overflow-y:auto;">
+                <table>
+                    <thead>
+                        <tr><th>Proveedor</th><th>Tipo</th><th>Confiabilidad</th><th>Contacto</th><th>Acciones</th></tr>
+                    </thead>
+                    <tbody id="proveedoresTable">
+                        <tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Cargando proveedores...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
             <div id="v-refurb" class="view">
                 <div class="grid-refurb">
                     <div class="card">
@@ -457,7 +504,7 @@ const CONFIG_KEY = "sb_publishable_PynS5ZjKoQ36HCpguVzxaw_KZOlagtz";
 const supabaseClient = supabase.createClient(CONFIG_URL, CONFIG_KEY);
 
 let sessionUser = null;
-let cache = { ordenes: [], clientes: [], equipos: [], piezas: [], activos: [], refurb: [] };
+let cache = { ordenes: [], clientes: [], equipos: [], piezas: [], activos: [], refurb: [], proveedores: [] };
 let refreshTimer = null;
 
 function logError(context, error) {
@@ -546,13 +593,14 @@ function nav(v, btn) {
 
 async function loadAll() {
     try {
-        const [rOrd, rCli, rEq, rPz, rAct, rRef] = await Promise.all([
+        const [rOrd, rCli, rEq, rPz, rAct, rRef, rProv] = await Promise.all([
             supabaseClient.from('ordenes_reparacion').select('*').order('creado_en', { ascending: false }),
             supabaseClient.from('clientes').select('*'),
             supabaseClient.from('equipos').select('*'),
             supabaseClient.from('piezas_inventario').select('*').order('sku', { ascending: true }),
             isAdminUser() ? supabaseClient.from('activos_taller').select('*').order('codigo', { ascending: true }) : Promise.resolve({ data: [], error: null }),
-            supabaseClient.from('equipos_refurbish').select('*').order('creado_en', { ascending: false })
+            supabaseClient.from('equipos_refurbish').select('*').order('creado_en', { ascending: false }),
+            supabaseClient.from('proveedores').select('*').eq('activo', true).order('nombre', { ascending: true })
         ]);
 
         requireSupabaseOk(rOrd, 'Cargar órdenes');
@@ -561,15 +609,16 @@ async function loadAll() {
         requireSupabaseOk(rPz, 'Cargar piezas');
         if(isAdminUser()) requireSupabaseOk(rAct, 'Cargar activos');
         requireSupabaseOk(rRef, 'Cargar refurbish');
-        
+        requireSupabaseOk(rProv, 'Cargar proveedores');
         cache = { 
-            ordenes: rOrd.data || [], 
-            clientes: rCli.data || [], 
-            equipos: rEq.data || [], 
-            piezas: rPz.data || [],
-            activos: rAct.data || [],
-            refurb: rRef.data || []
-        };
+    ordenes: rOrd.data || [], 
+    clientes: rCli.data || [], 
+    equipos: rEq.data || [], 
+    piezas: rPz.data || [],
+    activos: rAct.data || [],
+    refurb: rRef.data || [],
+    proveedores: rProv.data || []
+};
         renderAll();
     } catch(e) { logError('loadAll', e); toast(getFriendlyError(e, "Error cargando base de datos.")); }
 }
@@ -596,6 +645,7 @@ function renderAll() {
     document.getElementById("partsTable").innerHTML = cache.piezas.map(p => `<tr><td><code>${p.codigo}</code></td><td><b>${escapeHtml(p.nombre)}</b></td><td>${p.cantidad} uds</td><td>${money(p.costo)}</td></tr>`).join("");
     if(isAdminUser()) renderActivosTaller();
     renderRefurbishItems();
+    renderProveedores();
 }
 
 function renderOrders() {
@@ -1100,7 +1150,114 @@ function limpiarRecepcion() {
     clearPattern();
     togglePatternPanel();
 }
+/* ============================================================
+   MÓDULO PROVEEDORES
+   ============================================================ */
 
+async function cargarProveedores() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('proveedores')
+            .select('*')
+            .eq('activo', true)
+            .order('nombre', { ascending: true });
+        if(error) throw error;
+        cache.proveedores = data || [];
+        renderProveedores();
+    } catch(e) { 
+        logError('Cargar proveedores', e); 
+        toast('Error cargando proveedores.'); 
+    }
+}
+
+function renderProveedores() {
+    const tbody = document.getElementById('proveedoresTable');
+    if(!tbody) return;
+    
+    const filtro = (document.getElementById('prov_buscar')?.value || '').toLowerCase().trim();
+    let lista = cache.proveedores;
+    
+    if(filtro) {
+        lista = lista.filter(p => 
+            (p.nombre || '').toLowerCase().includes(filtro) ||
+            (p.contacto || '').toLowerCase().includes(filtro) ||
+            (p.ciudad || '').toLowerCase().includes(filtro)
+        );
+    }
+    
+    if(!lista.length) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">${filtro ? 'Sin resultados' : 'No hay proveedores registrados.'}</td></tr>`;
+        return;
+    }
+    
+    tbody.innerHTML = lista.map(p => {
+        let conf = escapeHtml(p.confiabilidad || 'Por evaluar');
+        let confStyle = 'background:#f1f5f9; color:#475569;';
+        if(p.confiabilidad === 'Excelente') confStyle = 'background:#d1fae5; color:#065f46;';
+        else if(p.confiabilidad === 'Buena') confStyle = 'background:#dbeafe; color:#1e40af;';
+        else if(p.confiabilidad === 'Regular') confStyle = 'background:#fef3c7; color:#92400e;';
+        else if(p.confiabilidad === 'Mala') confStyle = 'background:#fee2e2; color:#991b1b;';
+        
+        const wa = p.whatsapp ? `<a href="https://wa.me/${p.whatsapp.replace(/\D/g,'')}" target="_blank" style="color:#22c55e; text-decoration:none;"><i class="ti ti-brand-whatsapp"></i> ${escapeHtml(p.whatsapp)}</a>` : '<span style="color:var(--text-muted);">Sin contacto</span>';
+        
+        return `<tr>
+            <td>
+                <b>${escapeHtml(p.nombre)}</b>
+                ${p.ciudad ? `<br><small style="color:var(--text-muted);"><i class="ti ti-map-pin"></i> ${escapeHtml(p.ciudad)}</small>` : ''}
+            </td>
+            <td><span class="badge" style="background:#e0e7ff; color:#3730a3;">${escapeHtml(p.tipo || 'Particular')}</span></td>
+            <td><span class="badge" style="${confStyle}">${conf}</span></td>
+            <td>${escapeHtml(p.contacto || '-')}<br>${wa}</td>
+            <td>
+                <button class="btn btn-light" style="padding:4px 8px; font-size:11px;" onclick="eliminarProveedor('${p.id}')" title="Desactivar"><i class="ti ti-trash"></i></button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+async function guardarProveedor() {
+    try {
+        const nombre = val('prov_nombre');
+        if(!nombre) return alert('El nombre del proveedor es obligatorio.');
+        
+        const { error } = await supabaseClient.from('proveedores').insert([{
+            nombre: nombre,
+            contacto: val('prov_contacto') || null,
+            whatsapp: val('prov_whatsapp') || null,
+            ciudad: val('prov_ciudad') || null,
+            tipo: document.getElementById('prov_tipo').value,
+            confiabilidad: document.getElementById('prov_confiabilidad').value,
+            notas: val('prov_notas') || null,
+            activo: true
+        }]);
+        if(error) throw error;
+        
+        toast('Proveedor registrado correctamente.');
+        ['prov_nombre','prov_contacto','prov_whatsapp','prov_ciudad','prov_notas'].forEach(id => {
+            const el = document.getElementById(id);
+            if(el) el.value = '';
+        });
+        document.getElementById('prov_tipo').value = 'Particular';
+        document.getElementById('prov_confiabilidad').value = 'Por evaluar';
+        await cargarProveedores();
+    } catch(e) { 
+        logError('Guardar proveedor', e); 
+        alert(getFriendlyError(e, 'Error al guardar el proveedor.')); 
+    }
+}
+
+async function eliminarProveedor(id) {
+    if(!confirm('¿Desactivar este proveedor? No se borrará, solo se ocultará del listado.')) return;
+    try {
+        const { error } = await supabaseClient.from('proveedores').update({ activo: false }).eq('id', id);
+        if(error) throw error;
+        toast('Proveedor desactivado.');
+        await cargarProveedores();
+    } catch(e) { 
+        logError('Desactivar proveedor', e); 
+        alert(getFriendlyError(e, 'Error al desactivar el proveedor.')); 
+    }
+}
 function startAppRefurbPoller() {
     if(refreshTimer) clearInterval(refreshTimer);
     refreshTimer = setInterval(() => { if(sessionUser) loadAll(); }, 25000);
