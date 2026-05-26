@@ -105,7 +105,6 @@ td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: var(--text-dar
 tr:hover td { background: #f8fafc; }
 .badge { padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
 
-/* SECCIÓN CODES FLEXIBLE */
 .label-preview-card { background: #fff; border: 2px dashed #94a3b8; border-radius: 4px; padding: 12px; color: #000; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin: 0 auto; transition: none; }
 .barcode-visual { font-family: 'Libre Barcode 39', Arial, sans-serif; display: block; margin: 4px 0; line-height: 1; }
 
@@ -135,10 +134,8 @@ tr:hover td { background: #f8fafc; }
 .ticket-pattern-seq { font-size:10px; margin-top:2px; }
 .access-reveal-box { white-space:pre-line; font-size:11px; line-height:1.35; }
 
-/* FORMULARIO EN LÍNEA ACTIVOS */
 .form-inline-asset { display: grid; grid-template-columns: 0.8fr 1.5fr 0.6fr 1fr 1.3fr auto; gap: 10px; align-items: end; background: #f8fafc; border: 1px dashed var(--border-color); padding: 15px; border-radius: 8px; margin-bottom: 15px; }
 
-/* ESTILOS EXTRAS AUDITORÍA Y REFURB */
 .select-table-state { font-size: 12px; padding: 4px 8px; border-radius: 6px; font-weight: 700; border: 1px solid var(--border-color); cursor: pointer; outline: none; width: auto; display: inline-block; }
 .audit-text { font-size: 10px; color: var(--text-muted); display: block; margin-top: 2px; font-family: monospace; }
 .grid-refurb { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
@@ -191,7 +188,7 @@ tr:hover td { background: #f8fafc; }
             <button onclick="nav('proveedores',this)"><i class="ti ti-truck"></i> Proveedores</button>
             <button onclick="nav('lotes',this)"><i class="ti ti-packages"></i> Lotes de Compra</button>
             <button id="menu-refurb" onclick="nav('refurb',this)"><i class="ti ti-refresh"></i> Refurbish (Reacond.)</button>
-                    </div>
+        </div>
         <div class="side-bottom-logo">
             <h3>BAYOL <span>CELL</span></h3>
             <small>REP. & ACCESORIOS · PREMIUM</small>
@@ -206,6 +203,7 @@ tr:hover td { background: #f8fafc; }
         </header>
         
         <section class="content">
+            <!-- DASHBOARD -->
             <div id="v-dashboard" class="view active">
                 <div class="kpi-row">
                     <div class="kpi-box clickable" style="border-top-color:#3b82f6;" onclick="nav('ordenes')" title="Ver órdenes recibidas"><small>Recibidos Hoy</small><strong id="kHoy">0</strong><i class="ti ti-download"></i></div>
@@ -231,10 +229,13 @@ tr:hover td { background: #f8fafc; }
                     <div class="card">
                         <h3 style="margin:0 0 15px 0; font-size:15px; font-weight:700;">Acciones del Sistema</h3>
                         <button class="btn btn-blue" style="width:100%; margin-bottom:10px;" onclick="nav('recepcion')"><i class="ti ti-plus"></i> Nueva Recepción</button>
+                        <button class="btn btn-light" style="width:100%; margin-bottom:10px;" onclick="nav('lotes')"><i class="ti ti-packages"></i> Lotes de Compra</button>
+                        <button class="btn btn-light" style="width:100%;" onclick="nav('refurb')"><i class="ti ti-refresh"></i> Módulo Refurbish</button>
                     </div>
                 </div>
             </div>
 
+            <!-- RECEPCION -->
             <div id="v-recepcion" class="view">
                 <div class="block-grid">
                     <div class="block-card">
@@ -321,6 +322,7 @@ tr:hover td { background: #f8fafc; }
                 </div>
             </div>
 
+            <!-- ORDENES -->
             <div id="v-ordenes" class="view">
                 <div class="card">
                     <h3>Órdenes de Trabajo Activas</h3>
@@ -335,6 +337,7 @@ tr:hover td { background: #f8fafc; }
                 </div>
             </div>
 
+            <!-- INVENTARIO -->
             <div id="v-inventario" class="view">
                 <div class="layout-inventario">
                     <div class="card">
@@ -380,6 +383,7 @@ tr:hover td { background: #f8fafc; }
                 </div>
             </div>
 
+            <!-- ETIQUETAS -->
             <div id="v-etiquetas" class="view">
                 <div class="layout-dashboard">
                     <div class="card">
@@ -390,7 +394,7 @@ tr:hover td { background: #f8fafc; }
                         <div class="form-row"><label>Modelo y Color</label><input id="lbl_modelo" value="iPhone 11 Pro 64GB Silver" oninput="actualizarLabelLive()"></div>
                         <div class="form-row"><label>Capacidad (GB)</label><input id="lbl_gb" value="64 GB" oninput="actualizarLabelLive()"></div>
                         <div class="form-row"><label>Número IMEI / Serial</label><input id="lbl_imei" value="356789123456789" oninput="actualizarLabelLive()"></div>
-                        <div class="form-row"><label>Texto de Estado / Pie de Impresión</label><input id="lbl_estado_texto" value="Reacondicionado" placeholder="Ej: Usado Premium / Garantía 30 días" oninput="actualizarLabelLive()"></div>
+                        <div class="form-row"><label>Texto de Estado / Pie de Impresión</label><input id="lbl_estado_texto" value="" placeholder="Ej. CLASE A / AVISO BAT / AVISO PANT" oninput="actualizarLabelLive()"></div>
                         
                         <hr style="border:0; border-top:1px solid var(--border-color); margin:20px 0;">
                         <h4 style="margin:0 0 10px 0; font-size:12px; color:var(--blue-btn); text-transform:uppercase;">Calibración de Dimensiones Manual</h4>
@@ -421,151 +425,157 @@ tr:hover td { background: #f8fafc; }
                             <div style="text-align:left; margin-bottom:4px;"><b>GB:</b> <span id="lblLiveGb">64 GB</span></div>
                             <div style="text-align:left; margin-bottom:8px;"><b>IMEI:</b> <span id="lblLiveImei">356789123456789</span></div>
                             <div class="barcode-visual" id="lblLiveBarcode" style="font-size:42px;">*356789123456789*</div>
-                            <div style="font-weight:bold; margin-top:6px; text-transform:uppercase;" id="lblLiveEstadoContainer">REACONDICIONADO</div>
+                            <div style="font-weight:bold; margin-top:6px; text-transform:uppercase;" id="lblLiveEstadoContainer"></div>
                         </div>
                     </div>
                 </div>
             </div>
-<div id="v-proveedores" class="view">
-    <div class="layout-dashboard">
-        <div class="card">
-            <h3 style="margin-top:0;"><i class="ti ti-truck" style="color:var(--blue-btn);"></i> Registrar Nuevo Proveedor</h3>
-            <div class="form-row"><label>Nombre / Empresa *</label><input id="prov_nombre" placeholder="Ej. Juan Méndez / Mayorista RD"></div>
-            <div class="form-row"><label>Contacto (Persona)</label><input id="prov_contacto" placeholder="Persona de contacto"></div>
-            <div class="form-row"><label>WhatsApp / Teléfono</label><input id="prov_whatsapp" placeholder="809-000-0000"></div>
-            <div class="form-row"><label>Ciudad / Ubicación</label><input id="prov_ciudad" placeholder="Santo Domingo"></div>
-            <div class="form-row">
-                <label>Tipo de Proveedor</label>
-                <select id="prov_tipo">
-                    <option>Particular</option>
-                    <option>Mayorista</option>
-                    <option>Subasta</option>
-                    <option>Online</option>
-                </select>
-            </div>
-            <div class="form-row">
-                <label>Confiabilidad</label>
-                <select id="prov_confiabilidad">
-                    <option>Por evaluar</option>
-                    <option>Excelente</option>
-                    <option>Buena</option>
-                    <option>Regular</option>
-                    <option>Mala</option>
-                </select>
-            </div>
-            <div class="form-row"><label>Notas</label><textarea id="prov_notas" rows="2" placeholder="Observaciones del proveedor"></textarea></div>
-            <button class="btn btn-blue" style="width:100%; margin-top:10px;" onclick="guardarProveedor()"><i class="ti ti-device-floppy"></i> Guardar Proveedor</button>
-        </div>
 
-        <div class="card">
-            <h3 style="margin-top:0;"><i class="ti ti-list" style="color:#10b981;"></i> Proveedores Registrados</h3>
-            <div class="form-row"><input id="prov_buscar" placeholder="🔍 Buscar por nombre, contacto o ciudad..." oninput="renderProveedores()"></div>
-            <div class="table-wrap" style="max-height:480px; overflow-y:auto;">
-                <table>
-                    <thead>
-                        <tr><th>Proveedor</th><th>Tipo</th><th>Confiabilidad</th><th>Contacto</th><th>Acciones</th></tr>
-                    </thead>
-                    <tbody id="proveedoresTable">
-                        <tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Cargando proveedores...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
-            <div id="v-lotes" class="view">
-    <div id="lotes-lista">
-        <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <h3 style="margin:0;"><i class="ti ti-packages" style="color:var(--blue-btn);"></i> Lotes de Compra Registrados</h3>
-                <button class="btn btn-blue" onclick="abrirNuevoLote()"><i class="ti ti-plus"></i> Nuevo Lote</button>
-            </div>
-            <div class="form-row"><input id="lotes_buscar" placeholder="🔍 Buscar por código o proveedor..." oninput="renderLotes()"></div>
-            <div class="table-wrap" style="max-height:560px; overflow-y:auto;">
-                <table>
-                    <thead>
-                        <tr><th>Código</th><th>Proveedor</th><th>Fecha</th><th>Equipos</th><th>Total</th><th>Estado</th><th>Acciones</th></tr>
-                    </thead>
-                    <tbody id="lotesTable">
-                        <tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Cargando lotes...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <div id="lotes-detalle" style="display:none;">
-        <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <button class="btn btn-light" onclick="volverListaLotes()"><i class="ti ti-arrow-left"></i> Volver a Lotes</button>
-                <h3 style="margin:0;" id="loteDetalleTitulo">Lote</h3>
-                <span></span>
-            </div>
-
-            <div class="block-grid">
-                <div class="block-card">
-                    <div class="block-header header-blue-dark">Datos del Lote</div>
-                    <div class="block-body">
-                        <div><label>Código Lote</label><input id="lt_codigo" disabled></div>
-                        <div><label>Proveedor *</label><select id="lt_proveedor"></select></div>
-                        <div><label>Fecha de Compra *</label><input id="lt_fecha" type="date"></div>
-                        <div><label>Costo Total del Lote (RD$)</label><input id="lt_costo_total" type="number" step="0.01" placeholder="714803.26"></div>
-                        <div><label>Cantidad de Equipos Declarada</label><input id="lt_cantidad" type="number" placeholder="53"></div>
-                        <div><label>Notas / Comentario</label><textarea id="lt_notas" rows="2" placeholder="Ej: 53 dispositivos incluyendo apple watch"></textarea></div>
-                        <div><label>Estado</label><select id="lt_estado">
-                            <option value="Abierto">Abierto</option>
-                            <option value="En Proceso">En Proceso</option>
-                            <option value="Cerrado">Cerrado</option>
-                        </select></div>
-                        <button class="btn btn-blue" style="width:100%; margin-top:10px;" onclick="guardarDatosLote()"><i class="ti ti-device-floppy"></i> Guardar Datos del Lote</button>
+            <!-- PROVEEDORES -->
+            <div id="v-proveedores" class="view">
+                <div class="layout-dashboard">
+                    <div class="card">
+                        <h3 style="margin-top:0;"><i class="ti ti-truck" style="color:var(--blue-btn);"></i> Registrar Nuevo Proveedor</h3>
+                        <div class="form-row"><label>Nombre / Empresa *</label><input id="prov_nombre" placeholder="Ej. Juan Méndez / Mayorista RD"></div>
+                        <div class="form-row"><label>Contacto (Persona)</label><input id="prov_contacto" placeholder="Persona de contacto"></div>
+                        <div class="form-row"><label>WhatsApp / Teléfono</label><input id="prov_whatsapp" placeholder="809-000-0000"></div>
+                        <div class="form-row"><label>Ciudad / Ubicación</label><input id="prov_ciudad" placeholder="Santo Domingo"></div>
+                        <div class="form-row">
+                            <label>Tipo de Proveedor</label>
+                            <select id="prov_tipo">
+                                <option>Particular</option>
+                                <option>Mayorista</option>
+                                <option>Subasta</option>
+                                <option>Online</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label>Confiabilidad</label>
+                            <select id="prov_confiabilidad">
+                                <option>Por evaluar</option>
+                                <option>Excelente</option>
+                                <option>Buena</option>
+                                <option>Regular</option>
+                                <option>Mala</option>
+                            </select>
+                        </div>
+                        <div class="form-row"><label>Notas</label><textarea id="prov_notas" rows="2" placeholder="Observaciones del proveedor"></textarea></div>
+                        <button class="btn btn-blue" style="width:100%; margin-top:10px;" onclick="guardarProveedor()"><i class="ti ti-device-floppy"></i> Guardar Proveedor</button>
                     </div>
-                </div>
 
-                <div class="block-card" style="grid-column: span 2;">
-                    <div class="block-header header-blue-light">Agregar Artículos al Lote (por grupo de modelo)</div>
-                    <div class="block-body">
-                        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr 0.6fr 1fr; gap:10px;">
-                            <div><label>Marca</label><input id="gr_marca" placeholder="Apple"></div>
-                            <div><label>Modelo *</label><input id="gr_modelo" placeholder="iPhone 12 Pro Max"></div>
-                            <div><label>Color / Capacidad</label><input id="gr_capacidad" placeholder="256GB Azul"></div>
-                            <div><label>Cantidad *</label><input id="gr_cantidad" type="number" min="1" value="1" oninput="calcularUnitario()"></div>
-                            <div><label>Costo Grupo (RD$) *</label><input id="gr_costo_grupo" type="number" step="0.01" placeholder="40000" oninput="calcularUnitario()"></div>
-                        </div>
-                        <div style="background:#f1f5f9; border:1px solid var(--border-color); padding:8px; border-radius:6px; margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
-                            <span style="font-size:13px; color:var(--text-muted);">Costo unitario calculado:</span>
-                            <strong id="gr_unitario_preview" style="font-size:18px; color:var(--blue-btn);">RD$ 0.00</strong>
-                        </div>
-                        <button class="btn btn-blue" style="width:100%; margin-top:10px;" onclick="agregarGrupoLote()"><i class="ti ti-plus"></i> Agregar Grupo al Lote</button>
-
-                        <h4 style="margin:20px 0 10px 0; font-size:13px;">Artículos del Lote</h4>
-                        <div class="table-wrap" style="max-height:280px; overflow-y:auto;">
+                    <div class="card">
+                        <h3 style="margin-top:0;"><i class="ti ti-list" style="color:#10b981;"></i> Proveedores Registrados</h3>
+                        <div class="form-row"><input id="prov_buscar" placeholder="🔍 Buscar por nombre, contacto o ciudad..." oninput="renderProveedores()"></div>
+                        <div class="table-wrap" style="max-height:480px; overflow-y:auto;">
                             <table>
                                 <thead>
-                                    <tr><th>Modelo</th><th>Cant</th><th>Costo Grupo</th><th>Unitario</th><th>Acciones</th></tr>
+                                    <tr><th>Proveedor</th><th>Tipo</th><th>Confiabilidad</th><th>Contacto</th><th>Acciones</th></tr>
                                 </thead>
-                                <tbody id="gruposTable"></tbody>
+                                <tbody id="proveedoresTable">
+                                    <tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Cargando proveedores...</td></tr>
+                                </tbody>
                             </table>
                         </div>
-                        <div style="background:#f8fafc; padding:10px; border-radius:6px; margin-top:10px; border:1px dashed var(--border-color);">
-                            <div style="display:flex; justify-content:space-between; font-size:13px;">
-                                <span>Suma artículos cargados:</span>
-                                <strong id="suma_articulos">RD$ 0.00</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LOTES DE COMPRA -->
+            <div id="v-lotes" class="view">
+                <div id="lotes-lista">
+                    <div class="card">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                            <h3 style="margin:0;"><i class="ti ti-packages" style="color:var(--blue-btn);"></i> Lotes de Compra Registrados</h3>
+                            <button class="btn btn-blue" onclick="abrirNuevoLote()"><i class="ti ti-plus"></i> Nuevo Lote</button>
+                        </div>
+                        <div class="form-row"><input id="lotes_buscar" placeholder="🔍 Buscar por código o proveedor..." oninput="renderLotes()"></div>
+                        <div class="table-wrap" style="max-height:560px; overflow-y:auto;">
+                            <table>
+                                <thead>
+                                    <tr><th>Código</th><th>Proveedor</th><th>Fecha</th><th>Equipos</th><th>Total</th><th>Estado</th><th>Acciones</th></tr>
+                                </thead>
+                                <tbody id="lotesTable">
+                                    <tr><td colspan="7" style="text-align:center; color:var(--text-muted);">No hay lotes registrados.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="lotes-detalle" style="display:none;">
+                    <div class="card">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                            <button class="btn btn-light" onclick="volverListaLotes()"><i class="ti ti-arrow-left"></i> Volver a Lotes</button>
+                            <h3 style="margin:0;" id="loteDetalleTitulo">Lote</h3>
+                            <span></span>
+                        </div>
+
+                        <div class="block-grid">
+                            <div class="block-card">
+                                <div class="block-header header-blue-dark">Datos del Lote</div>
+                                <div class="block-body">
+                                    <div><label>Código Lote</label><input id="lt_codigo" disabled></div>
+                                    <div><label>Proveedor *</label><select id="lt_proveedor"></select></div>
+                                    <div><label>Fecha de Compra *</label><input id="lt_fecha" type="date"></div>
+                                    <div><label>Costo Total del Lote (RD$)</label><input id="lt_costo_total" type="number" step="0.01" placeholder="714803.26"></div>
+                                    <div><label>Cantidad de Equipos Declarada</label><input id="lt_cantidad" type="number" placeholder="53"></div>
+                                    <div><label>Notas / Comentario</label><textarea id="lt_notas" rows="2" placeholder="Ej: 53 dispositivos incluyendo apple watch"></textarea></div>
+                                    <div><label>Estado</label><select id="lt_estado">
+                                        <option value="Abierto">Abierto</option>
+                                        <option value="En Proceso">En Proceso</option>
+                                        <option value="Cerrado">Cerrado</option>
+                                    </select></div>
+                                    <button class="btn btn-blue" style="width:100%; margin-top:10px;" onclick="guardarDatosLote()"><i class="ti ti-device-floppy"></i> Guardar Datos del Lote</button>
+                                </div>
                             </div>
-                            <div style="display:flex; justify-content:space-between; font-size:13px; margin-top:4px;">
-                                <span>Total declarado del lote:</span>
-                                <strong id="total_declarado">RD$ 0.00</strong>
-                            </div>
-                            <div id="diferencia_lote" style="display:flex; justify-content:space-between; font-size:13px; margin-top:4px; font-weight:bold;">
-                                <span>Diferencia:</span>
-                                <strong>RD$ 0.00</strong>
+
+                            <div class="block-card" style="grid-column: span 2;">
+                                <div class="block-header header-blue-light">Agregar Artículos al Lote (por grupo de modelo)</div>
+                                <div class="block-body">
+                                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr 0.6fr 1fr; gap:10px;">
+                                        <div><label>Marca</label><input id="gr_marca" placeholder="Apple"></div>
+                                        <div><label>Modelo *</label><input id="gr_modelo" placeholder="iPhone 12 Pro Max"></div>
+                                        <div><label>Color / Capacidad</label><input id="gr_capacidad" placeholder="256GB Azul"></div>
+                                        <div><label>Cantidad *</label><input id="gr_cantidad" type="number" min="1" value="1" oninput="calcularUnitario()"></div>
+                                        <div><label>Costo Grupo (RD$) *</label><input id="gr_costo_grupo" type="number" step="0.01" placeholder="40000" oninput="calcularUnitario()"></div>
+                                    </div>
+                                    <div style="background:#f1f5f9; border:1px solid var(--border-color); padding:8px; border-radius:6px; margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
+                                        <span style="font-size:13px; color:var(--text-muted);">Costo unitario calculado:</span>
+                                        <strong id="gr_unitario_preview" style="font-size:18px; color:var(--blue-btn);">RD$ 0.00</strong>
+                                    </div>
+                                    <button class="btn btn-blue" style="width:100%; margin-top:10px;" onclick="agregarGrupoLote()"><i class="ti ti-plus"></i> Agregar Grupo al Lote</button>
+
+                                    <h4 style="margin:20px 0 10px 0; font-size:13px;">Artículos del Lote</h4>
+                                    <div class="table-wrap" style="max-height:280px; overflow-y:auto;">
+                                        <table>
+                                            <thead>
+                                                <tr><th>Modelo</th><th>Cant</th><th>Costo Grupo</th><th>Unitario</th><th>Acciones</th></tr>
+                                            </thead>
+                                            <tbody id="gruposTable"></tbody>
+                                        </table>
+                                    </div>
+                                    <div style="background:#f8fafc; padding:10px; border-radius:6px; margin-top:10px; border:1px dashed var(--border-color);">
+                                        <div style="display:flex; justify-content:space-between; font-size:13px;">
+                                            <span>Suma artículos cargados:</span>
+                                            <strong id="suma_articulos">RD$ 0.00</strong>
+                                        </div>
+                                        <div style="display:flex; justify-content:space-between; font-size:13px; margin-top:4px;">
+                                            <span>Total declarado del lote:</span>
+                                            <strong id="total_declarado">RD$ 0.00</strong>
+                                        </div>
+                                        <div id="diferencia_lote" style="display:flex; justify-content:space-between; font-size:13px; margin-top:4px; font-weight:bold;">
+                                            <span>Diferencia:</span>
+                                            <strong>RD$ 0.00</strong>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-</div>
+
+            <!-- REFURBISH -->
             <div id="v-refurb" class="view">
                 <div class="grid-refurb">
                     <div class="card">
@@ -625,6 +635,7 @@ function toast(msg) {
 function escapeHtml(s) { return (s ?? "").toString().replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[m])); }
 function money(n) { return "RD$ " + Number(n || 0).toLocaleString("es-DO", { minimumFractionDigits: 2 }); }
 function getChecked(id) { return [...document.querySelectorAll("#" + id + " input:checked")].map(x => x.value).join(", "); }
+function val(id) { return document.getElementById(id)?.value?.trim() || ""; }
 
 async function doLogin() {
     try {
@@ -684,22 +695,21 @@ function nav(v, btn) {
     const activeBtn = btn || document.querySelector(".nav button.active");
     document.getElementById("pageTitle").textContent = activeBtn ? activeBtn.textContent.trim() : v;
     if(v === 'etiquetas') { setTimeout(cambiarDimensionesManual, 50); }
+    if(v === 'lotes') { volverListaLotes(); }
 }
 
 async function loadAll() {
     try {
-        const [rOrd, rCli, rEq, rPz, rAct, rRef, rProv] = await Promise.all([
+        const [rOrd, rCli, rEq, rPz, rAct, rRef, rProv, rLot, rGrp] = await Promise.all([
             supabaseClient.from('ordenes_reparacion').select('*').order('creado_en', { ascending: false }),
             supabaseClient.from('clientes').select('*'),
             supabaseClient.from('equipos').select('*'),
-           supabaseClient.from('piezas_inventario').select('*').order('codigo', { ascending: true }),
+            supabaseClient.from('piezas_inventario').select('*').order('codigo', { ascending: true }),
             isAdminUser() ? supabaseClient.from('activos_taller').select('*').order('codigo', { ascending: true }) : Promise.resolve({ data: [], error: null }),
             supabaseClient.from('equipos_refurbish').select('*').order('creado_en', { ascending: false }),
             supabaseClient.from('proveedores').select('*').eq('activo', true).order('nombre', { ascending: true }),
             supabaseClient.from('refurb_lotes').select('*').order('creado_en', { ascending: false }),
             supabaseClient.from('refurb_lote_grupos').select('*').order('creado_en', { ascending: true })
-
-            
         ]);
 
         requireSupabaseOk(rOrd, 'Cargar órdenes');
@@ -711,10 +721,11 @@ async function loadAll() {
         requireSupabaseOk(rProv, 'Cargar proveedores');
         requireSupabaseOk(rLot, 'Cargar lotes');
         requireSupabaseOk(rGrp, 'Cargar grupos');
-        cache = {
-            ordenes: rOrd.data || [],
-            clientes: rCli.data || [],
-            equipos: rEq.data || [],
+        
+        cache = { 
+            ordenes: rOrd.data || [], 
+            clientes: rCli.data || [], 
+            equipos: rEq.data || [], 
             piezas: rPz.data || [],
             activos: rAct.data || [],
             refurb: rRef.data || [],
@@ -722,7 +733,7 @@ async function loadAll() {
             lotes: rLot.data || [],
             grupos: rGrp.data || []
         };
-           renderAll();
+        renderAll();
     } catch(e) { logError('loadAll', e); toast(getFriendlyError(e, "Error cargando base de datos.")); }
 }
 
@@ -750,6 +761,7 @@ function renderAll() {
     renderRefurbishItems();
     renderProveedores();
     renderLotes();
+    if(loteActualId) renderGruposLote();
 }
 
 function renderOrders() {
@@ -854,7 +866,326 @@ async function guardarActivoTaller() {
     } catch(e) { logError("Registrar activo", e); alert(getFriendlyError(e, "Error al registrar activo.")); }
 }
 
-/* MÓDULO REFURBISH */
+/* ============================================================
+   MÓDULO PROVEEDORES
+   ============================================================ */
+
+function renderProveedores() {
+    const tbody = document.getElementById('proveedoresTable');
+    if(!tbody) return;
+    
+    const filtro = (document.getElementById('prov_buscar')?.value || '').toLowerCase().trim();
+    let lista = cache.proveedores || [];
+    
+    if(filtro) {
+        lista = lista.filter(p => 
+            (p.nombre || '').toLowerCase().includes(filtro) ||
+            (p.contacto || '').toLowerCase().includes(filtro) ||
+            (p.ciudad || '').toLowerCase().includes(filtro)
+        );
+    }
+    
+    if(!lista.length) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">${filtro ? 'Sin resultados' : 'No hay proveedores registrados.'}</td></tr>`;
+        return;
+    }
+    
+    tbody.innerHTML = lista.map(p => {
+        let conf = escapeHtml(p.confiabilidad || 'Por evaluar');
+        let confStyle = 'background:#f1f5f9; color:#475569;';
+        if(p.confiabilidad === 'Excelente') confStyle = 'background:#d1fae5; color:#065f46;';
+        else if(p.confiabilidad === 'Buena') confStyle = 'background:#dbeafe; color:#1e40af;';
+        else if(p.confiabilidad === 'Regular') confStyle = 'background:#fef3c7; color:#92400e;';
+        else if(p.confiabilidad === 'Mala') confStyle = 'background:#fee2e2; color:#991b1b;';
+        
+        const wa = p.whatsapp ? `<a href="https://wa.me/${p.whatsapp.replace(/\D/g,'')}" target="_blank" style="color:#22c55e; text-decoration:none;"><i class="ti ti-brand-whatsapp"></i> ${escapeHtml(p.whatsapp)}</a>` : '<span style="color:var(--text-muted);">Sin contacto</span>';
+        
+        return `<tr>
+            <td>
+                <b>${escapeHtml(p.nombre)}</b>
+                ${p.ciudad ? `<br><small style="color:var(--text-muted);"><i class="ti ti-map-pin"></i> ${escapeHtml(p.ciudad)}</small>` : ''}
+            </td>
+            <td><span class="badge" style="background:#e0e7ff; color:#3730a3;">${escapeHtml(p.tipo || 'Particular')}</span></td>
+            <td><span class="badge" style="${confStyle}">${conf}</span></td>
+            <td>${escapeHtml(p.contacto || '-')}<br>${wa}</td>
+            <td>
+                <button class="btn btn-light" style="padding:4px 8px; font-size:11px;" onclick="eliminarProveedor('${p.id}')" title="Desactivar"><i class="ti ti-trash"></i></button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+async function guardarProveedor() {
+    try {
+        const nombre = val('prov_nombre');
+        if(!nombre) return alert('El nombre del proveedor es obligatorio.');
+        
+        const { error } = await supabaseClient.from('proveedores').insert([{
+            nombre: nombre,
+            contacto: val('prov_contacto') || null,
+            whatsapp: val('prov_whatsapp') || null,
+            ciudad: val('prov_ciudad') || null,
+            tipo: document.getElementById('prov_tipo').value,
+            confiabilidad: document.getElementById('prov_confiabilidad').value,
+            notas: val('prov_notas') || null,
+            activo: true
+        }]);
+        if(error) throw error;
+        
+        toast('Proveedor registrado correctamente.');
+        ['prov_nombre','prov_contacto','prov_whatsapp','prov_ciudad','prov_notas'].forEach(id => {
+            const el = document.getElementById(id);
+            if(el) el.value = '';
+        });
+        document.getElementById('prov_tipo').value = 'Particular';
+        document.getElementById('prov_confiabilidad').value = 'Por evaluar';
+        await loadAll();
+    } catch(e) { 
+        logError('Guardar proveedor', e); 
+        alert(getFriendlyError(e, 'Error al guardar el proveedor.')); 
+    }
+}
+
+async function eliminarProveedor(id) {
+    if(!confirm('¿Desactivar este proveedor? No se borrará, solo se ocultará del listado.')) return;
+    try {
+        const { error } = await supabaseClient.from('proveedores').update({ activo: false }).eq('id', id);
+        if(error) throw error;
+        toast('Proveedor desactivado.');
+        await loadAll();
+    } catch(e) { 
+        logError('Desactivar proveedor', e); 
+        alert(getFriendlyError(e, 'Error al desactivar el proveedor.')); 
+    }
+}
+
+/* ============================================================
+   MÓDULO LOTES DE COMPRA
+   ============================================================ */
+
+function renderLotes() {
+    const tbody = document.getElementById('lotesTable');
+    if(!tbody) return;
+    
+    const filtro = (document.getElementById('lotes_buscar')?.value || '').toLowerCase().trim();
+    let lista = cache.lotes || [];
+    
+    if(filtro) {
+        lista = lista.filter(l => {
+            const prov = cache.proveedores.find(p => p.id === l.proveedor_id);
+            return (l.codigo_lote || '').toLowerCase().includes(filtro) ||
+                   (prov?.nombre || '').toLowerCase().includes(filtro) ||
+                   (l.notas || '').toLowerCase().includes(filtro);
+        });
+    }
+    
+    if(!lista.length) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">${filtro ? 'Sin resultados' : 'No hay lotes registrados. Crea uno con + Nuevo Lote.'}</td></tr>`;
+        return;
+    }
+    
+    tbody.innerHTML = lista.map(l => {
+        const prov = cache.proveedores.find(p => p.id === l.proveedor_id);
+        const equiposEnLote = cache.refurb.filter(r => r.lote_id === l.id).length;
+        let estadoStyle = 'background:#e0f2fe; color:#0369a1;';
+        if(l.estado === 'En Proceso') estadoStyle = 'background:#fef3c7; color:#92400e;';
+        if(l.estado === 'Cerrado') estadoStyle = 'background:#d1fae5; color:#065f46;';
+        
+        return `<tr>
+            <td><b>${escapeHtml(l.codigo_lote || 'Sin código')}</b></td>
+            <td>${escapeHtml(prov?.nombre || 'Sin proveedor')}</td>
+            <td>${l.fecha_compra ? new Date(l.fecha_compra).toLocaleDateString('es-DO') : '-'}</td>
+            <td>${equiposEnLote} / ${l.cantidad_equipos || 0}</td>
+            <td><b>${money(l.costo_total_lote)}</b></td>
+            <td><span class="badge" style="${estadoStyle}">${escapeHtml(l.estado || 'Abierto')}</span></td>
+            <td>
+                <button class="btn btn-light" style="padding:4px 8px; font-size:11px;" onclick="abrirLote('${l.id}')"><i class="ti ti-eye"></i> Abrir</button>
+                <button class="btn btn-light" style="padding:4px 8px; font-size:11px;" onclick="eliminarLote('${l.id}')"><i class="ti ti-trash"></i></button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function calcularSiguienteCodigoLote() {
+    if(!cache.lotes || !cache.lotes.length) return 'LT-00001';
+    const numeros = cache.lotes.map(l => {
+        const m = (l.codigo_lote || '').match(/\d+/);
+        return m ? parseInt(m[0], 10) : 0;
+    });
+    return `LT-${String(Math.max(...numeros, 0) + 1).padStart(5, '0')}`;
+}
+
+async function abrirNuevoLote() {
+    try {
+        const codigo = calcularSiguienteCodigoLote();
+        const { data, error } = await supabaseClient.from('refurb_lotes').insert([{
+            codigo_lote: codigo,
+            fecha_compra: new Date().toISOString().slice(0, 10),
+            estado: 'Abierto',
+            creado_por: sessionUser?.id || null
+        }]).select().single();
+        if(error) throw error;
+        toast(`Lote ${codigo} creado.`);
+        await loadAll();
+        abrirLote(data.id);
+    } catch(e) { logError('Crear lote', e); alert(getFriendlyError(e, 'Error al crear el lote.')); }
+}
+
+function abrirLote(loteId) {
+    loteActualId = loteId;
+    const lote = cache.lotes.find(l => l.id === loteId);
+    if(!lote) return alert('Lote no encontrado.');
+    
+    document.getElementById('lotes-lista').style.display = 'none';
+    document.getElementById('lotes-detalle').style.display = 'block';
+    document.getElementById('loteDetalleTitulo').textContent = `Lote ${lote.codigo_lote}`;
+    
+    document.getElementById('lt_codigo').value = lote.codigo_lote || '';
+    document.getElementById('lt_fecha').value = lote.fecha_compra || '';
+    document.getElementById('lt_costo_total').value = lote.costo_total_lote || '';
+    document.getElementById('lt_cantidad').value = lote.cantidad_equipos || '';
+    document.getElementById('lt_notas').value = lote.notas || '';
+    document.getElementById('lt_estado').value = lote.estado || 'Abierto';
+    
+    const selProv = document.getElementById('lt_proveedor');
+    selProv.innerHTML = '<option value="">-- Sin asignar --</option>' + 
+        cache.proveedores.map(p => `<option value="${p.id}" ${p.id === lote.proveedor_id ? 'selected' : ''}>${escapeHtml(p.nombre)}</option>`).join('');
+    
+    ['gr_marca','gr_modelo','gr_capacidad','gr_costo_grupo'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('gr_cantidad').value = 1;
+    calcularUnitario();
+    renderGruposLote();
+}
+
+function volverListaLotes() {
+    loteActualId = null;
+    const listaEl = document.getElementById('lotes-lista');
+    const detalleEl = document.getElementById('lotes-detalle');
+    if(listaEl) listaEl.style.display = 'block';
+    if(detalleEl) detalleEl.style.display = 'none';
+    renderLotes();
+}
+
+async function guardarDatosLote() {
+    if(!loteActualId) return;
+    try {
+        const proveedor_id = document.getElementById('lt_proveedor').value || null;
+        const { error } = await supabaseClient.from('refurb_lotes').update({
+            proveedor_id: proveedor_id,
+            fecha_compra: document.getElementById('lt_fecha').value || null,
+            costo_total_lote: parseFloat(document.getElementById('lt_costo_total').value) || 0,
+            cantidad_equipos: parseInt(document.getElementById('lt_cantidad').value) || 0,
+            notas: val('lt_notas') || null,
+            estado: document.getElementById('lt_estado').value
+        }).eq('id', loteActualId);
+        if(error) throw error;
+        toast('Datos del lote guardados.');
+        await loadAll();
+        renderGruposLote();
+    } catch(e) { logError('Guardar lote', e); alert(getFriendlyError(e, 'Error al guardar.')); }
+}
+
+function calcularUnitario() {
+    const cant = parseInt(document.getElementById('gr_cantidad').value) || 1;
+    const costo = parseFloat(document.getElementById('gr_costo_grupo').value) || 0;
+    const unit = cant > 0 ? costo / cant : 0;
+    document.getElementById('gr_unitario_preview').textContent = money(unit);
+}
+
+async function agregarGrupoLote() {
+    if(!loteActualId) return alert('Primero abre o crea un lote.');
+    const modelo = val('gr_modelo');
+    if(!modelo) return alert('El modelo es obligatorio.');
+    const cantidad = parseInt(val('gr_cantidad')) || 1;
+    const costoGrupo = parseFloat(val('gr_costo_grupo')) || 0;
+    const unitario = cantidad > 0 ? costoGrupo / cantidad : 0;
+    
+    try {
+        const { error } = await supabaseClient.from('refurb_lote_grupos').insert([{
+            lote_id: loteActualId,
+            marca: val('gr_marca') || null,
+            modelo: modelo,
+            capacidad: val('gr_capacidad') || null,
+            cantidad: cantidad,
+            costo_grupo: costoGrupo,
+            costo_unitario: unitario,
+            modo_costeo: 'promedio_grupo'
+        }]);
+        if(error) throw error;
+        toast(`Grupo agregado: ${modelo}.`);
+        ['gr_marca','gr_modelo','gr_capacidad','gr_costo_grupo'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('gr_cantidad').value = 1;
+        calcularUnitario();
+        await loadAll();
+        renderGruposLote();
+    } catch(e) { logError('Agregar grupo', e); alert(getFriendlyError(e, 'Error al agregar grupo.')); }
+}
+
+function renderGruposLote() {
+    if(!loteActualId) return;
+    const tbody = document.getElementById('gruposTable');
+    if(!tbody) return;
+    
+    const grupos = (cache.grupos || []).filter(g => g.lote_id === loteActualId);
+    
+    if(!grupos.length) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:15px;">Sin artículos cargados aún.</td></tr>`;
+    } else {
+        tbody.innerHTML = grupos.map(g => `<tr>
+            <td><b>${escapeHtml(g.marca || '')} ${escapeHtml(g.modelo)}</b><br><small style="color:var(--text-muted);">${escapeHtml(g.capacidad || '')}</small></td>
+            <td>${g.cantidad}</td>
+            <td><b>${money(g.costo_grupo)}</b></td>
+            <td>${money(g.costo_unitario)}</td>
+            <td><button class="btn btn-light" style="padding:3px 6px; font-size:10px;" onclick="eliminarGrupo('${g.id}')"><i class="ti ti-trash"></i></button></td>
+        </tr>`).join('');
+    }
+    
+    const sumaArticulos = grupos.reduce((s, g) => s + (parseFloat(g.costo_grupo) || 0), 0);
+    const lote = cache.lotes.find(l => l.id === loteActualId);
+    const totalDeclarado = parseFloat(lote?.costo_total_lote) || 0;
+    const diferencia = sumaArticulos - totalDeclarado;
+    
+    document.getElementById('suma_articulos').textContent = money(sumaArticulos);
+    document.getElementById('total_declarado').textContent = money(totalDeclarado);
+    
+    const difEl = document.getElementById('diferencia_lote');
+    difEl.querySelector('strong').textContent = money(diferencia);
+    if(Math.abs(diferencia) < 0.01 || totalDeclarado === 0) {
+        difEl.style.color = '#065f46';
+        difEl.querySelector('strong').textContent = totalDeclarado === 0 ? 'Sin total' : '✅ Cuadra';
+    } else {
+        difEl.style.color = '#dc2626';
+    }
+}
+
+async function eliminarGrupo(grupoId) {
+    if(!confirm('¿Quitar este grupo del lote?')) return;
+    try {
+        const { error } = await supabaseClient.from('refurb_lote_grupos').delete().eq('id', grupoId);
+        if(error) throw error;
+        toast('Grupo eliminado.');
+        await loadAll();
+        renderGruposLote();
+    } catch(e) { logError('Eliminar grupo', e); alert(getFriendlyError(e, 'Error al eliminar.')); }
+}
+
+async function eliminarLote(loteId) {
+    const lote = cache.lotes.find(l => l.id === loteId);
+    if(!lote) return;
+    if(!confirm(`¿Eliminar el lote ${lote.codigo_lote}? Esto también elimina sus grupos.`)) return;
+    try {
+        await supabaseClient.from('refurb_lote_grupos').delete().eq('lote_id', loteId);
+        const { error } = await supabaseClient.from('refurb_lotes').delete().eq('id', loteId);
+        if(error) throw error;
+        toast('Lote eliminado.');
+        await loadAll();
+    } catch(e) { logError('Eliminar lote', e); alert(getFriendlyError(e, 'Error al eliminar el lote.')); }
+}
+
+/* ============================================================
+   MÓDULO REFURBISH (existente)
+   ============================================================ */
+
 async function registrarEquipoRefurb() {
     try {
         const mod = val("ref_modelo"), imei = val("ref_imei"), cost = parseFloat(val("ref_costo_compra")) || 0, vent = parseFloat(val("ref_precio_venta")) || 0;
@@ -954,7 +1285,7 @@ function enviarRefurbALabel(id) {
     document.getElementById("lbl_modelo").value = item.modelo;
     document.getElementById("lbl_gb").value = "---";
     document.getElementById("lbl_imei").value = item.imei;
-    document.getElementById("lbl_estado_texto").value = "Reacondicionado";
+    document.getElementById("lbl_estado_texto").value = "";
     actualizarLabelLive();
     nav("etiquetas");
 }
@@ -967,7 +1298,7 @@ function cargarEnLabel(id) {
     document.getElementById("lbl_modelo").value = eq.modelo || "";
     document.getElementById("lbl_gb").value = eq.capacidad || "128 GB";
     document.getElementById("lbl_imei").value = eq.imei || "";
-    document.getElementById("lbl_estado_texto").value = "Reparado Ok";
+    document.getElementById("lbl_estado_texto").value = "";
     actualizarLabelLive();
     nav("etiquetas");
 }
@@ -1017,7 +1348,6 @@ function imprimirLabelAdhesivo() {
     const estadoText = document.getElementById("lbl_estado_texto").value;
     const logoHtml = document.getElementById("lblLiveLogo").innerHTML;
 
-    // Tomar medidas dinámicas de los sliders
     const configW = document.getElementById("cfg_width").value;
     const configF = document.getElementById("cfg_font").value;
     const configBH = document.getElementById("cfg_barcode_h").value;
@@ -1245,7 +1575,6 @@ async function guardarRecepcion(imprimir) {
     } catch(e) { logError("Guardar recepción", e); alert(getFriendlyError(e, "Error al guardar los datos.")); }
 }
 
-function val(id) { return document.getElementById(id)?.value?.trim() || ""; }
 function limpiarRecepcion() {
     document.querySelectorAll("#v-recepcion input, #v-recepcion textarea").forEach(x => x.value = "");
     document.querySelectorAll("#v-recepcion input[type='checkbox']").forEach(x => x.checked = false);
@@ -1254,571 +1583,7 @@ function limpiarRecepcion() {
     clearPattern();
     togglePatternPanel();
 }
-/* ============================================================
-   MÓDULO PROVEEDORES
-   ============================================================ */
 
-async function cargarProveedores() {
-    try {
-        const { data, error } = await supabaseClient
-            .from('proveedores')
-            .select('*')
-            .eq('activo', true)
-            .order('nombre', { ascending: true });
-        if(error) throw error;
-        cache.proveedores = data || [];
-        renderProveedores();
-    } catch(e) { 
-        logError('Cargar proveedores', e); 
-        toast('Error cargando proveedores.'); 
-    }
-}
-
-function renderProveedores() {
-    const tbody = document.getElementById('proveedoresTable');
-    if(!tbody) return;
-    
-    const filtro = (document.getElementById('prov_buscar')?.value || '').toLowerCase().trim();
-    let lista = cache.proveedores;
-    
-    if(filtro) {
-        lista = lista.filter(p => 
-            (p.nombre || '').toLowerCase().includes(filtro) ||
-            (p.contacto || '').toLowerCase().includes(filtro) ||
-            (p.ciudad || '').toLowerCase().includes(filtro)
-        );
-    }
-    
-    if(!lista.length) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">${filtro ? 'Sin resultados' : 'No hay proveedores registrados.'}</td></tr>`;
-        return;
-    }
-    
-    tbody.innerHTML = lista.map(p => {
-        let conf = escapeHtml(p.confiabilidad || 'Por evaluar');
-        let confStyle = 'background:#f1f5f9; color:#475569;';
-        if(p.confiabilidad === 'Excelente') confStyle = 'background:#d1fae5; color:#065f46;';
-        else if(p.confiabilidad === 'Buena') confStyle = 'background:#dbeafe; color:#1e40af;';
-        else if(p.confiabilidad === 'Regular') confStyle = 'background:#fef3c7; color:#92400e;';
-        else if(p.confiabilidad === 'Mala') confStyle = 'background:#fee2e2; color:#991b1b;';
-        
-        const wa = p.whatsapp ? `<a href="https://wa.me/${p.whatsapp.replace(/\D/g,'')}" target="_blank" style="color:#22c55e; text-decoration:none;"><i class="ti ti-brand-whatsapp"></i> ${escapeHtml(p.whatsapp)}</a>` : '<span style="color:var(--text-muted);">Sin contacto</span>';
-        
-        return `<tr>
-            <td>
-                <b>${escapeHtml(p.nombre)}</b>
-                ${p.ciudad ? `<br><small style="color:var(--text-muted);"><i class="ti ti-map-pin"></i> ${escapeHtml(p.ciudad)}</small>` : ''}
-            </td>
-            <td><span class="badge" style="background:#e0e7ff; color:#3730a3;">${escapeHtml(p.tipo || 'Particular')}</span></td>
-            <td><span class="badge" style="${confStyle}">${conf}</span></td>
-            <td>${escapeHtml(p.contacto || '-')}<br>${wa}</td>
-            <td>
-                <button class="btn btn-light" style="padding:4px 8px; font-size:11px;" onclick="eliminarProveedor('${p.id}')" title="Desactivar"><i class="ti ti-trash"></i></button>
-            </td>
-        </tr>`;
-    }).join('');
-}
-
-async function guardarProveedor() {
-    try {
-        const nombre = val('prov_nombre');
-        if(!nombre) return alert('El nombre del proveedor es obligatorio.');
-        
-        const { error } = await supabaseClient.from('proveedores').insert([{
-            nombre: nombre,
-            contacto: val('prov_contacto') || null,
-            whatsapp: val('prov_whatsapp') || null,
-            ciudad: val('prov_ciudad') || null,
-            tipo: document.getElementById('prov_tipo').value,
-            confiabilidad: document.getElementById('prov_confiabilidad').value,
-            notas: val('prov_notas') || null,
-            activo: true
-        }]);
-        if(error) throw error;
-        
-        toast('Proveedor registrado correctamente.');
-        ['prov_nombre','prov_contacto','prov_whatsapp','prov_ciudad','prov_notas'].forEach(id => {
-            const el = document.getElementById(id);
-            if(el) el.value = '';
-        });
-        document.getElementById('prov_tipo').value = 'Particular';
-        document.getElementById('prov_confiabilidad').value = 'Por evaluar';
-        await cargarProveedores();
-    } catch(e) { 
-        logError('Guardar proveedor', e); 
-        alert(getFriendlyError(e, 'Error al guardar el proveedor.')); 
-    }
-}
-
-async function eliminarProveedor(id) {
-    if(!confirm('¿Desactivar este proveedor? No se borrará, solo se ocultará del listado.')) return;
-    try {
-        const { error } = await supabaseClient.from('proveedores').update({ activo: false }).eq('id', id);
-        if(error) throw error;
-        toast('Proveedor desactivado.');
-        await cargarProveedores();
-    } catch(e) { 
-        logError('Desactivar proveedor', e); 
-        alert(getFriendlyError(e, 'Error al desactivar el proveedor.')); 
-    }
-}
-    /* ============================================================
-   MÓDULO LOTES DE COMPRA
-   ============================================================ */
-
-function renderLotes() {
-    const tbody = document.getElementById('lotesTable');
-    if(!tbody) return;
-    
-    const filtro = (document.getElementById('lotes_buscar')?.value || '').toLowerCase().trim();
-    let lista = cache.lotes;
-    
-    if(filtro) {
-        lista = lista.filter(l => {
-            const prov = cache.proveedores.find(p => p.id === l.proveedor_id);
-            return (l.codigo_lote || '').toLowerCase().includes(filtro) ||
-                   (prov?.nombre || '').toLowerCase().includes(filtro) ||
-                   (l.notas || '').toLowerCase().includes(filtro);
-        });
-    }
-    
-    if(!lista.length) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">${filtro ? 'Sin resultados' : 'No hay lotes registrados. Crea uno con + Nuevo Lote.'}</td></tr>`;
-        return;
-    }
-    
-    tbody.innerHTML = lista.map(l => {
-        const prov = cache.proveedores.find(p => p.id === l.proveedor_id);
-        const equiposEnLote = cache.refurb.filter(r => r.lote_id === l.id).length;
-        let estadoStyle = 'background:#e0f2fe; color:#0369a1;';
-        if(l.estado === 'En Proceso') estadoStyle = 'background:#fef3c7; color:#92400e;';
-        if(l.estado === 'Cerrado') estadoStyle = 'background:#d1fae5; color:#065f46;';
-        
-        return `<tr>
-            <td><b>${escapeHtml(l.codigo_lote || 'Sin código')}</b></td>
-            <td>${escapeHtml(prov?.nombre || 'Sin proveedor')}</td>
-            <td>${l.fecha_compra ? new Date(l.fecha_compra).toLocaleDateString('es-DO') : '-'}</td>
-            <td>${equiposEnLote} / ${l.cantidad_equipos || 0}</td>
-            <td><b>${money(l.costo_total_lote)}</b></td>
-            <td><span class="badge" style="${estadoStyle}">${escapeHtml(l.estado || 'Abierto')}</span></td>
-            <td>
-                <button class="btn btn-light" style="padding:4px 8px; font-size:11px;" onclick="abrirLote('${l.id}')"><i class="ti ti-eye"></i> Abrir</button>
-                <button class="btn btn-light" style="padding:4px 8px; font-size:11px;" onclick="eliminarLote('${l.id}')"><i class="ti ti-trash"></i></button>
-            </td>
-        </tr>`;
-    }).join('');
-}
-
-function calcularSiguienteCodigoLote() {
-    if(!cache.lotes.length) return 'LT-00001';
-    const numeros = cache.lotes.map(l => {
-        const m = (l.codigo_lote || '').match(/\d+/);
-        return m ? parseInt(m[0], 10) : 0;
-    });
-    return `LT-${String(Math.max(...numeros, 0) + 1).padStart(5, '0')}`;
-}
-
-async function abrirNuevoLote() {
-    try {
-        const codigo = calcularSiguienteCodigoLote();
-        const { data, error } = await supabaseClient.from('refurb_lotes').insert([{
-            codigo_lote: codigo,
-            fecha_compra: new Date().toISOString().slice(0, 10),
-            estado: 'Abierto',
-            creado_por: sessionUser?.id || null
-        }]).select().single();
-        if(error) throw error;
-        toast(`Lote ${codigo} creado. Completa los datos.`);
-        await loadAll();
-        abrirLote(data.id);
-    } catch(e) { 
-        logError('Crear lote', e); 
-        alert(getFriendlyError(e, 'Error al crear el lote.')); 
-    }
-}
-
-function abrirLote(loteId) {
-    loteActualId = loteId;
-    const lote = cache.lotes.find(l => l.id === loteId);
-    if(!lote) return alert('Lote no encontrado.');
-    
-    document.getElementById('lotes-lista').style.display = 'none';
-    document.getElementById('lotes-detalle').style.display = 'block';
-    document.getElementById('loteDetalleTitulo').textContent = `Lote ${lote.codigo_lote}`;
-    
-    document.getElementById('lt_codigo').value = lote.codigo_lote || '';
-    document.getElementById('lt_fecha').value = lote.fecha_compra || '';
-    document.getElementById('lt_costo_total').value = lote.costo_total_lote || '';
-    document.getElementById('lt_cantidad').value = lote.cantidad_equipos || '';
-    document.getElementById('lt_notas').value = lote.notas || '';
-    document.getElementById('lt_estado').value = lote.estado || 'Abierto';
-    
-    const selProv = document.getElementById('lt_proveedor');
-    selProv.innerHTML = '<option value="">-- Sin asignar --</option>' + 
-        cache.proveedores.map(p => `<option value="${p.id}" ${p.id === lote.proveedor_id ? 'selected' : ''}>${escapeHtml(p.nombre)}</option>`).join('');
-    
-    ['gr_marca','gr_modelo','gr_capacidad','gr_costo_grupo'].forEach(id => document.getElementById(id).value = '');
-    document.getElementById('gr_cantidad').value = 1;
-    calcularUnitario();
-    renderGruposLote();
-}
-
-function volverListaLotes() {
-    loteActualId = null;
-    document.getElementById('lotes-lista').style.display = 'block';
-    document.getElementById('lotes-detalle').style.display = 'none';
-    renderLotes();
-}
-
-async function guardarDatosLote() {
-    if(!loteActualId) return;
-    try {
-        const proveedor_id = document.getElementById('lt_proveedor').value || null;
-        const { error } = await supabaseClient.from('refurb_lotes').update({
-            proveedor_id: proveedor_id,
-            fecha_compra: document.getElementById('lt_fecha').value || null,
-            costo_total_lote: parseFloat(document.getElementById('lt_costo_total').value) || 0,
-            cantidad_equipos: parseInt(document.getElementById('lt_cantidad').value) || 0,
-            notas: val('lt_notas') || null,
-            estado: document.getElementById('lt_estado').value
-        }).eq('id', loteActualId);
-        if(error) throw error;
-        toast('Datos del lote guardados.');
-        await loadAll();
-        renderGruposLote();
-    } catch(e) { 
-        logError('Guardar datos lote', e); 
-        alert(getFriendlyError(e, 'Error al guardar.')); 
-    }
-}
-
-function calcularUnitario() {
-    const cant = parseInt(document.getElementById('gr_cantidad').value) || 1;
-    const costo = parseFloat(document.getElementById('gr_costo_grupo').value) || 0;
-    const unit = cant > 0 ? costo / cant : 0;
-    document.getElementById('gr_unitario_preview').textContent = money(unit);
-}
-
-async function agregarGrupoLote() {
-    if(!loteActualId) return alert('Primero abre o crea un lote.');
-    const modelo = val('gr_modelo');
-    if(!modelo) return alert('El modelo es obligatorio.');
-    const cantidad = parseInt(val('gr_cantidad')) || 1;
-    const costoGrupo = parseFloat(val('gr_costo_grupo')) || 0;
-    const unitario = cantidad > 0 ? costoGrupo / cantidad : 0;
-    
-    try {
-        const { error } = await supabaseClient.from('refurb_lote_grupos').insert([{
-            lote_id: loteActualId,
-            marca: val('gr_marca') || null,
-            modelo: modelo,
-            capacidad: val('gr_capacidad') || null,
-            cantidad: cantidad,
-            costo_grupo: costoGrupo,
-            costo_unitario: unitario,
-            modo_costeo: 'promedio_grupo'
-        }]);
-        if(error) throw error;
-        toast(`Grupo agregado: ${modelo} (${cantidad} uds).`);
-        ['gr_marca','gr_modelo','gr_capacidad','gr_costo_grupo'].forEach(id => document.getElementById(id).value = '');
-        document.getElementById('gr_cantidad').value = 1;
-        calcularUnitario();
-        await loadAll();
-        renderGruposLote();
-    } catch(e) { 
-        logError('Agregar grupo', e); 
-        alert(getFriendlyError(e, 'Error al agregar grupo.')); 
-    }
-}
-
-function renderGruposLote() {
-    if(!loteActualId) return;
-    const tbody = document.getElementById('gruposTable');
-    if(!tbody) return;
-    
-    const grupos = cache.grupos.filter(g => g.lote_id === loteActualId);
-    
-    if(!grupos.length) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:15px;">Sin artículos cargados aún.</td></tr>`;
-    } else {
-        tbody.innerHTML = grupos.map(g => `<tr>
-            <td><b>${escapeHtml(g.marca || '')} ${escapeHtml(g.modelo)}</b><br><small style="color:var(--text-muted);">${escapeHtml(g.capacidad || '')}</small></td>
-            <td>${g.cantidad}</td>
-            <td><b>${money(g.costo_grupo)}</b></td>
-            <td>${money(g.costo_unitario)}</td>
-            <td>
-                <button class="btn btn-light" style="padding:3px 6px; font-size:10px;" onclick="eliminarGrupo('${g.id}')" title="Quitar"><i class="ti ti-trash"></i></button>
-            </td>
-        </tr>`).join('');
-    }
-    
-    const sumaArticulos = grupos.reduce((s, g) => s + (parseFloat(g.costo_grupo) || 0), 0);
-    const lote = cache.lotes.find(l => l.id === loteActualId);
-    const totalDeclarado = parseFloat(lote?.costo_total_lote) || 0;
-    const diferencia = sumaArticulos - totalDeclarado;
-    
-    document.getElementById('suma_articulos').textContent = money(sumaArticulos);
-    document.getElementById('total_declarado').textContent = money(totalDeclarado);
-    
-    const difEl = document.getElementById('diferencia_lote');
-    difEl.querySelector('strong').textContent = money(diferencia);
-    if(Math.abs(diferencia) < 0.01 || totalDeclarado === 0) {
-        difEl.style.color = '#065f46';
-        difEl.querySelector('strong').textContent = totalDeclarado === 0 ? 'Sin total declarado' : '✅ Cuadra';
-    } else {
-        difEl.style.color = '#dc2626';
-    }
-}
-
-async function eliminarGrupo(grupoId) {
-    if(!confirm('¿Quitar este grupo del lote? Los equipos individuales NO se borrarán.')) return;
-    try {
-        const { error } = await supabaseClient.from('refurb_lote_grupos').delete().eq('id', grupoId);
-        if(error) throw error;
-        toast('Grupo eliminado.');
-        await loadAll();
-        renderGruposLote();
-    } catch(e) { 
-        logError('Eliminar grupo', e); 
-        alert(getFriendlyError(e, 'Error al eliminar.')); 
-    }
-}
-
-async function eliminarLote(loteId) {
-    const lote = cache.lotes.find(l => l.id === loteId);
-    if(!lote) return;
-    if(!confirm(`¿Eliminar el lote ${lote.codigo_lote}? Esto también elimina sus grupos. Los equipos individuales quedan sin lote asociado.`)) return;
-    try {
-        await supabaseClient.from('refurb_lote_grupos').delete().eq('lote_id', loteId);
-        const { error } = await supabaseClient.from('refurb_lotes').delete().eq('id', loteId);
-        if(error) throw error;
-        toast('Lote eliminado.');
-        await loadAll();
-    } catch(e) { 
-        logError('Eliminar lote', e); 
-        alert(getFriendlyError(e, 'Error al eliminar el lote.')); 
-    }
-}
-    /* ============================================================
-   MÓDULO LOTES DE COMPRA
-   ============================================================ */
-
-function renderLotes() {
-    const tbody = document.getElementById('lotesTable');
-    if(!tbody) return;
-    
-    const filtro = (document.getElementById('lotes_buscar')?.value || '').toLowerCase().trim();
-    let lista = cache.lotes || [];
-    
-    if(filtro) {
-        lista = lista.filter(l => {
-            const prov = cache.proveedores.find(p => p.id === l.proveedor_id);
-            return (l.codigo_lote || '').toLowerCase().includes(filtro) ||
-                   (prov?.nombre || '').toLowerCase().includes(filtro) ||
-                   (l.notas || '').toLowerCase().includes(filtro);
-        });
-    }
-    
-    if(!lista.length) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">${filtro ? 'Sin resultados' : 'No hay lotes. Crea uno con + Nuevo Lote.'}</td></tr>`;
-        return;
-    }
-    
-    tbody.innerHTML = lista.map(l => {
-        const prov = cache.proveedores.find(p => p.id === l.proveedor_id);
-        const equiposEnLote = cache.refurb.filter(r => r.lote_id === l.id).length;
-        let estadoStyle = 'background:#e0f2fe; color:#0369a1;';
-        if(l.estado === 'En Proceso') estadoStyle = 'background:#fef3c7; color:#92400e;';
-        if(l.estado === 'Cerrado') estadoStyle = 'background:#d1fae5; color:#065f46;';
-        
-        return `<tr>
-            <td><b>${escapeHtml(l.codigo_lote || 'Sin código')}</b></td>
-            <td>${escapeHtml(prov?.nombre || 'Sin proveedor')}</td>
-            <td>${l.fecha_compra ? new Date(l.fecha_compra).toLocaleDateString('es-DO') : '-'}</td>
-            <td>${equiposEnLote} / ${l.cantidad_equipos || 0}</td>
-            <td><b>${money(l.costo_total_lote)}</b></td>
-            <td><span class="badge" style="${estadoStyle}">${escapeHtml(l.estado || 'Abierto')}</span></td>
-            <td>
-                <button class="btn btn-light" style="padding:4px 8px; font-size:11px;" onclick="abrirLote('${l.id}')"><i class="ti ti-eye"></i> Abrir</button>
-                <button class="btn btn-light" style="padding:4px 8px; font-size:11px;" onclick="eliminarLote('${l.id}')"><i class="ti ti-trash"></i></button>
-            </td>
-        </tr>`;
-    }).join('');
-}
-
-function calcularSiguienteCodigoLote() {
-    if(!cache.lotes || !cache.lotes.length) return 'LT-00001';
-    const numeros = cache.lotes.map(l => {
-        const m = (l.codigo_lote || '').match(/\d+/);
-        return m ? parseInt(m[0], 10) : 0;
-    });
-    return `LT-${String(Math.max(...numeros, 0) + 1).padStart(5, '0')}`;
-}
-
-async function abrirNuevoLote() {
-    try {
-        const codigo = calcularSiguienteCodigoLote();
-        const { data, error } = await supabaseClient.from('refurb_lotes').insert([{
-            codigo_lote: codigo,
-            fecha_compra: new Date().toISOString().slice(0, 10),
-            estado: 'Abierto',
-            creado_por: sessionUser?.id || null
-        }]).select().single();
-        if(error) throw error;
-        toast(`Lote ${codigo} creado.`);
-        await loadAll();
-        abrirLote(data.id);
-    } catch(e) { logError('Crear lote', e); alert(getFriendlyError(e, 'Error al crear el lote.')); }
-}
-
-function abrirLote(loteId) {
-    loteActualId = loteId;
-    const lote = cache.lotes.find(l => l.id === loteId);
-    if(!lote) return alert('Lote no encontrado.');
-    
-    document.getElementById('lotes-lista').style.display = 'none';
-    document.getElementById('lotes-detalle').style.display = 'block';
-    document.getElementById('loteDetalleTitulo').textContent = `Lote ${lote.codigo_lote}`;
-    
-    document.getElementById('lt_codigo').value = lote.codigo_lote || '';
-    document.getElementById('lt_fecha').value = lote.fecha_compra || '';
-    document.getElementById('lt_costo_total').value = lote.costo_total_lote || '';
-    document.getElementById('lt_cantidad').value = lote.cantidad_equipos || '';
-    document.getElementById('lt_notas').value = lote.notas || '';
-    document.getElementById('lt_estado').value = lote.estado || 'Abierto';
-    
-    const selProv = document.getElementById('lt_proveedor');
-    selProv.innerHTML = '<option value="">-- Sin asignar --</option>' + 
-        cache.proveedores.map(p => `<option value="${p.id}" ${p.id === lote.proveedor_id ? 'selected' : ''}>${escapeHtml(p.nombre)}</option>`).join('');
-    
-    ['gr_marca','gr_modelo','gr_capacidad','gr_costo_grupo'].forEach(id => document.getElementById(id).value = '');
-    document.getElementById('gr_cantidad').value = 1;
-    calcularUnitario();
-    renderGruposLote();
-}
-
-function volverListaLotes() {
-    loteActualId = null;
-    document.getElementById('lotes-lista').style.display = 'block';
-    document.getElementById('lotes-detalle').style.display = 'none';
-    renderLotes();
-}
-
-async function guardarDatosLote() {
-    if(!loteActualId) return;
-    try {
-        const proveedor_id = document.getElementById('lt_proveedor').value || null;
-        const { error } = await supabaseClient.from('refurb_lotes').update({
-            proveedor_id: proveedor_id,
-            fecha_compra: document.getElementById('lt_fecha').value || null,
-            costo_total_lote: parseFloat(document.getElementById('lt_costo_total').value) || 0,
-            cantidad_equipos: parseInt(document.getElementById('lt_cantidad').value) || 0,
-            notas: val('lt_notas') || null,
-            estado: document.getElementById('lt_estado').value
-        }).eq('id', loteActualId);
-        if(error) throw error;
-        toast('Datos del lote guardados.');
-        await loadAll();
-        renderGruposLote();
-    } catch(e) { logError('Guardar lote', e); alert(getFriendlyError(e, 'Error al guardar.')); }
-}
-
-function calcularUnitario() {
-    const cant = parseInt(document.getElementById('gr_cantidad').value) || 1;
-    const costo = parseFloat(document.getElementById('gr_costo_grupo').value) || 0;
-    const unit = cant > 0 ? costo / cant : 0;
-    document.getElementById('gr_unitario_preview').textContent = money(unit);
-}
-
-async function agregarGrupoLote() {
-    if(!loteActualId) return alert('Primero abre o crea un lote.');
-    const modelo = val('gr_modelo');
-    if(!modelo) return alert('El modelo es obligatorio.');
-    const cantidad = parseInt(val('gr_cantidad')) || 1;
-    const costoGrupo = parseFloat(val('gr_costo_grupo')) || 0;
-    const unitario = cantidad > 0 ? costoGrupo / cantidad : 0;
-    
-    try {
-        const { error } = await supabaseClient.from('refurb_lote_grupos').insert([{
-            lote_id: loteActualId,
-            marca: val('gr_marca') || null,
-            modelo: modelo,
-            capacidad: val('gr_capacidad') || null,
-            cantidad: cantidad,
-            costo_grupo: costoGrupo,
-            costo_unitario: unitario,
-            modo_costeo: 'promedio_grupo'
-        }]);
-        if(error) throw error;
-        toast(`Grupo agregado: ${modelo}.`);
-        ['gr_marca','gr_modelo','gr_capacidad','gr_costo_grupo'].forEach(id => document.getElementById(id).value = '');
-        document.getElementById('gr_cantidad').value = 1;
-        calcularUnitario();
-        await loadAll();
-        renderGruposLote();
-    } catch(e) { logError('Agregar grupo', e); alert(getFriendlyError(e, 'Error al agregar grupo.')); }
-}
-
-function renderGruposLote() {
-    if(!loteActualId) return;
-    const tbody = document.getElementById('gruposTable');
-    if(!tbody) return;
-    
-    const grupos = (cache.grupos || []).filter(g => g.lote_id === loteActualId);
-    
-    if(!grupos.length) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:15px;">Sin artículos cargados aún.</td></tr>`;
-    } else {
-        tbody.innerHTML = grupos.map(g => `<tr>
-            <td><b>${escapeHtml(g.marca || '')} ${escapeHtml(g.modelo)}</b><br><small style="color:var(--text-muted);">${escapeHtml(g.capacidad || '')}</small></td>
-            <td>${g.cantidad}</td>
-            <td><b>${money(g.costo_grupo)}</b></td>
-            <td>${money(g.costo_unitario)}</td>
-            <td><button class="btn btn-light" style="padding:3px 6px; font-size:10px;" onclick="eliminarGrupo('${g.id}')"><i class="ti ti-trash"></i></button></td>
-        </tr>`).join('');
-    }
-    
-    const sumaArticulos = grupos.reduce((s, g) => s + (parseFloat(g.costo_grupo) || 0), 0);
-    const lote = cache.lotes.find(l => l.id === loteActualId);
-    const totalDeclarado = parseFloat(lote?.costo_total_lote) || 0;
-    const diferencia = sumaArticulos - totalDeclarado;
-    
-    document.getElementById('suma_articulos').textContent = money(sumaArticulos);
-    document.getElementById('total_declarado').textContent = money(totalDeclarado);
-    
-    const difEl = document.getElementById('diferencia_lote');
-    difEl.querySelector('strong').textContent = money(diferencia);
-    if(Math.abs(diferencia) < 0.01 || totalDeclarado === 0) {
-        difEl.style.color = '#065f46';
-        difEl.querySelector('strong').textContent = totalDeclarado === 0 ? 'Sin total' : '✅ Cuadra';
-    } else {
-        difEl.style.color = '#dc2626';
-    }
-}
-
-async function eliminarGrupo(grupoId) {
-    if(!confirm('¿Quitar este grupo del lote?')) return;
-    try {
-        const { error } = await supabaseClient.from('refurb_lote_grupos').delete().eq('id', grupoId);
-        if(error) throw error;
-        toast('Grupo eliminado.');
-        await loadAll();
-        renderGruposLote();
-    } catch(e) { logError('Eliminar grupo', e); alert(getFriendlyError(e, 'Error al eliminar.')); }
-}
-
-async function eliminarLote(loteId) {
-    const lote = cache.lotes.find(l => l.id === loteId);
-    if(!lote) return;
-    if(!confirm(`¿Eliminar el lote ${lote.codigo_lote}? Esto también elimina sus grupos.`)) return;
-    try {
-        await supabaseClient.from('refurb_lote_grupos').delete().eq('lote_id', loteId);
-        const { error } = await supabaseClient.from('refurb_lotes').delete().eq('id', loteId);
-        if(error) throw error;
-        toast('Lote eliminado.');
-        await loadAll();
-    } catch(e) { logError('Eliminar lote', e); alert(getFriendlyError(e, 'Error al eliminar el lote.')); }
-}
 function startAppRefurbPoller() {
     if(refreshTimer) clearInterval(refreshTimer);
     refreshTimer = setInterval(() => { if(sessionUser) loadAll(); }, 25000);
