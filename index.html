@@ -384,6 +384,29 @@ button, a, .btn, .nav button, .prov-card, .lote-card {
 input[type=number]::-webkit-inner-spin-button,
 input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 input[type=number] { -moz-appearance: textfield; }
+
+/* ============================================================
+   TABS / PESTAÑAS
+   ============================================================ */
+.tabs-bar { display: flex; gap: 2px; background: #e2e8f0; border-radius: 10px; padding: 4px; margin-bottom: 16px; }
+.tab-btn { flex: 1; background: transparent; border: 0; padding: 10px 14px; border-radius: 8px; font-weight: 700; font-size: 13px; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; }
+.tab-btn:hover { background: rgba(255,255,255,0.5); color: var(--text-dark); }
+.tab-btn.active { background: #fff; color: var(--blue-btn); box-shadow: 0 2px 4px rgba(0,0,0,0.06); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+@media (max-width: 768px) {
+    .tab-btn { padding: 10px 8px; font-size: 12px; }
+    .tab-btn span { display: none; }
+}
+
+/* ============================================================
+   DROPDOWN CON BOTÓN CREAR RÁPIDO
+   ============================================================ */
+.input-with-action { display: flex; gap: 6px; align-items: stretch; }
+.input-with-action select, .input-with-action input { flex: 1; }
+.input-with-action .quick-add-btn { background: var(--blue-btn); color: #fff; border: 0; border-radius: 8px; padding: 0 14px; cursor: pointer; font-size: 18px; font-weight: 800; flex-shrink: 0; min-width: 44px; }
+.input-with-action .quick-add-btn:hover { background: #0044aa; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -425,7 +448,7 @@ input[type=number] { -moz-appearance: textfield; }
             <button onclick="nav('inventario',this)"><i class="ti ti-package"></i> Inventario Taller</button>
             <button onclick="nav('etiquetas',this)"><i class="ti ti-barcode"></i> Impresión de Labels</button>
             <button onclick="nav('articulos',this)"><i class="ti ti-database"></i> Catálogo de Artículos</button>
-            <button onclick="nav('proveedores',this)"><i class="ti ti-truck"></i> Proveedores y Lotes</button>
+            <button onclick="nav('proveedores',this)"><i class="ti ti-shopping-cart"></i> Compras</button>
             <button id="menu-refurb" onclick="nav('refurb',this)"><i class="ti ti-refresh"></i> Reacondicionados</button>
         </div>
         <div class="side-bottom-logo">
@@ -469,7 +492,7 @@ input[type=number] { -moz-appearance: textfield; }
                     <div class="card">
                         <h3 style="margin:0 0 15px 0; font-size:15px; font-weight:700;">Acciones del Sistema</h3>
                         <button class="btn btn-blue" style="width:100%; margin-bottom:10px;" onclick="nav('recepcion')"><i class="ti ti-plus"></i> Nueva Recepción</button>
-                        <button class="btn btn-light" style="width:100%; margin-bottom:10px;" onclick="nav('proveedores')"><i class="ti ti-truck"></i> Proveedores y Lotes</button>
+                        <button class="btn btn-light" style="width:100%; margin-bottom:10px;" onclick="nav('proveedores')"><i class="ti ti-shopping-cart"></i> Compras</button>
                         <button class="btn btn-light" style="width:100%; margin-bottom:10px;" onclick="nav('articulos')"><i class="ti ti-database"></i> Catálogo</button>
                         <button class="btn btn-light" style="width:100%;" onclick="nav('refurb')"><i class="ti ti-refresh"></i> Módulo Reacondicionados</button>
                     </div>
@@ -694,25 +717,48 @@ input[type=number] { -moz-appearance: textfield; }
                 </div>
             </div>
 
-            <!-- PROVEEDORES Y LOTES (anidados) -->
+            <!-- COMPRAS (Proveedores + Compras anidados) -->
             <div id="v-proveedores" class="view">
-                <!-- Lista de proveedores -->
+                <!-- Vista principal con TABS -->
                 <div id="prov-lista">
                     <div class="card">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                            <h3 style="margin:0;"><i class="ti ti-truck" style="color:var(--blue-btn);"></i> Proveedores Registrados</h3>
-                            <button class="btn btn-blue" onclick="abrirModalProveedor()"><i class="ti ti-plus"></i> Crear Proveedor</button>
+                        <!-- Acciones rápidas arriba -->
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
+                            <h3 style="margin:0;"><i class="ti ti-shopping-cart" style="color:var(--blue-btn);"></i> Compras</h3>
+                            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                                <button class="btn btn-light" onclick="abrirModalProveedor()" title="Crear nuevo proveedor"><i class="ti ti-plus"></i> Proveedor</button>
+                                <button class="btn btn-light" onclick="abrirModalArticulo()" title="Crear nuevo artículo"><i class="ti ti-plus"></i> Artículo</button>
+                                <button class="btn btn-blue" onclick="abrirModalNuevaCompra()"><i class="ti ti-shopping-cart-plus"></i> Nueva Compra</button>
+                            </div>
                         </div>
-                        <div class="form-row"><input id="prov_buscar" placeholder="🔍 Buscar por nombre, contacto o ciudad..." oninput="renderProveedores()"></div>
-                        <div id="proveedoresContainer" style="display:flex; flex-direction:column; gap:10px;">
-                            <p style="color:var(--text-muted); text-align:center;">Cargando proveedores...</p>
+                        
+                        <!-- TABS -->
+                        <div class="tabs-bar">
+                            <button class="tab-btn active" id="tab-compras" onclick="cambiarTab('compras')"><i class="ti ti-shopping-cart"></i> <span>Compras</span></button>
+                            <button class="tab-btn" id="tab-proveedores" onclick="cambiarTab('proveedores')"><i class="ti ti-truck"></i> <span>Proveedores</span></button>
+                        </div>
+                        
+                        <!-- TAB CONTENT: COMPRAS -->
+                        <div id="content-compras" class="tab-content active">
+                            <div class="form-row"><input id="compras_buscar" placeholder="🔍 Buscar por código, proveedor..." oninput="renderComprasTab()"></div>
+                            <div id="comprasContainer" style="display:flex; flex-direction:column; gap:10px;">
+                                <p style="color:var(--text-muted); text-align:center; padding:20px;">Cargando compras...</p>
+                            </div>
+                        </div>
+                        
+                        <!-- TAB CONTENT: PROVEEDORES -->
+                        <div id="content-proveedores" class="tab-content">
+                            <div class="form-row"><input id="prov_buscar" placeholder="🔍 Buscar por nombre, contacto o ciudad..." oninput="renderProveedores()"></div>
+                            <div id="proveedoresContainer" style="display:flex; flex-direction:column; gap:10px;">
+                                <p style="color:var(--text-muted); text-align:center;">Cargando proveedores...</p>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Detalle de proveedor con sus lotes -->
                 <div id="prov-detalle" style="display:none;">
-                    <button class="btn btn-light" onclick="volverListaProveedores()" style="margin-bottom:15px;"><i class="ti ti-arrow-left"></i> Volver a Proveedores</button>
+                    <button class="btn btn-light" onclick="volverListaProveedores()" style="margin-bottom:15px;"><i class="ti ti-arrow-left"></i> Volver</button>
                     
                     <div class="prov-detail-header">
                         <h2 id="provDetTitulo">Proveedor</h2>
@@ -823,7 +869,7 @@ input[type=number] { -moz-appearance: textfield; }
                 <div class="grid-refurb">
                     <div class="card">
                         <h3 style="margin-top:0;"><i class="ti ti-circle-plus" style="color:var(--blue-btn);"></i> Ingresar Equipo a Reacondicionados (Manual)</h3>
-                        <p style="color:var(--text-muted); font-size:12px; margin-bottom:10px;">⚡ Para ingreso masivo usa <a href="#" onclick="nav('proveedores'); return false;" style="color:var(--blue-btn); font-weight:700;">Proveedores y Lotes</a>.</p>
+                        <p style="color:var(--text-muted); font-size:12px; margin-bottom:10px;">⚡ Para ingreso masivo usa <a href="#" onclick="nav('proveedores'); return false;" style="color:var(--blue-btn); font-weight:700;">Compras</a>.</p>
                         <div class="form-row"><label>Modelo del Dispositivo *</label><input id="ref_modelo" placeholder="Ej. iPhone 12 Pro Max"></div>
                         <div class="form-row"><label>Número de IMEI / Serial *</label><input id="ref_imei" placeholder="358921..."></div>
                         <div class="form-row"><label>Costo de Compra (RD$) *</label><input id="ref_costo_compra" type="number" placeholder="12000"></div>
@@ -909,6 +955,42 @@ input[type=number] { -moz-appearance: textfield; }
         <div class="modal-footer">
             <button class="btn btn-light" onclick="cerrarModalArticulo()">Cancelar</button>
             <button class="btn btn-blue" onclick="guardarArticuloModal()"><i class="ti ti-device-floppy"></i> Guardar Artículo</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: NUEVA COMPRA -->
+<div id="modalNuevaCompra" class="modal-backdrop">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3><i class="ti ti-shopping-cart-plus"></i> Nueva Compra</h3>
+            <button class="modal-close" onclick="cerrarModalNuevaCompra()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-row">
+                <label>Proveedor *</label>
+                <div class="input-with-action">
+                    <select id="mod_compra_proveedor_id">
+                        <option value="">-- Seleccionar proveedor --</option>
+                    </select>
+                    <button class="quick-add-btn" onclick="abrirModalProveedor()" title="Crear nuevo proveedor">+</button>
+                </div>
+            </div>
+            <div class="form-row">
+                <label>Fecha de Compra</label>
+                <input id="mod_compra_fecha" type="date">
+            </div>
+            <div class="form-row">
+                <label>Notas / Comentario</label>
+                <textarea id="mod_compra_notas" rows="2" placeholder="Ej: 53 dispositivos incluyendo apple watch"></textarea>
+            </div>
+            <div style="background:#f0fdf4; border:1px solid #86efac; padding:10px; border-radius:8px; font-size:12px; color:#166534;">
+                <i class="ti ti-info-circle"></i> Después de crear la compra agregarás los equipos uno por uno con su IMEI.
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" onclick="cerrarModalNuevaCompra()">Cancelar</button>
+            <button class="btn btn-blue" onclick="crearNuevaCompra()"><i class="ti ti-device-floppy"></i> Crear Compra</button>
         </div>
     </div>
 </div>
@@ -1092,6 +1174,7 @@ function renderAll() {
     if(isAdminUser()) renderActivosTaller();
     renderRefurbishItems();
     renderProveedores();
+    renderComprasTab();
     renderArticulos();
     if(proveedorActualId) renderDetalleProveedor(proveedorActualId);
     if(loteActualId) renderEquiposLote();
@@ -1483,7 +1566,8 @@ function volverListaProveedores() {
     if(lista) lista.style.display = 'block';
     if(detalle) detalle.style.display = 'none';
     if(loteDet) loteDet.style.display = 'none';
-    renderProveedores();
+    // Reiniciar a tab Compras por defecto
+    cambiarTab('compras');
 }
 
 function volverDetalleProveedor() {
@@ -2096,6 +2180,121 @@ document.addEventListener('keydown', e => {
     document.getElementById(id).addEventListener('click', e => {
         if(e.target.id === id) document.getElementById(id).classList.remove('active');
     });
+});
+
+/* ============================================================
+   MÓDULO COMPRAS (Tabs + Nueva Compra)
+   ============================================================ */
+
+function cambiarTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.getElementById('tab-' + tab)?.classList.add('active');
+    document.getElementById('content-' + tab)?.classList.add('active');
+    if(tab === 'compras') renderComprasTab();
+    if(tab === 'proveedores') renderProveedores();
+}
+
+function renderComprasTab() {
+    const cont = document.getElementById('comprasContainer');
+    if(!cont) return;
+    const filtro = (document.getElementById('compras_buscar')?.value || '').toLowerCase().trim();
+    let lista = cache.lotes || [];
+    
+    if(filtro) {
+        lista = lista.filter(l => {
+            const prov = findProveedor(l.proveedor_id);
+            return (l.codigo_lote || '').toLowerCase().includes(filtro) ||
+                   (prov.nombre || '').toLowerCase().includes(filtro) ||
+                   (l.notas || '').toLowerCase().includes(filtro);
+        });
+    }
+    
+    if(!lista.length) {
+        cont.innerHTML = `<p style="color:var(--text-muted); text-align:center; padding:20px;">${filtro ? 'Sin resultados' : 'No hay compras registradas. Crea una con el botón "+ Nueva Compra".'}</p>`;
+        return;
+    }
+    
+    cont.innerHTML = lista.map(l => {
+        const equiposLote = cache.refurb.filter(r => r.lote_id === l.id);
+        const totalLote = equiposLote.reduce((s, e) => s + (parseFloat(e.costo_compra) || 0), 0);
+        const prov = findProveedor(l.proveedor_id);
+        let estadoStyle = 'background:#e0f2fe; color:#0369a1;';
+        if(l.estado === 'En Proceso') estadoStyle = 'background:#fef3c7; color:#92400e;';
+        if(l.estado === 'Cerrado') estadoStyle = 'background:#d1fae5; color:#065f46;';
+        const totalDisplay = isAdminUser() ? money(totalLote) : '';
+        return `<div class="lote-card">
+            <div>
+                <div class="lote-codigo">${escapeHtml(l.codigo_lote || 'Sin código')} <span class="badge" style="${estadoStyle}; margin-left:6px;">${escapeHtml(l.estado || 'Abierto')}</span></div>
+                <div class="lote-meta">
+                    <i class="ti ti-truck"></i> <b style="text-transform:uppercase;">${escapeHtml(prov.nombre || 'SIN PROVEEDOR')}</b> · 
+                    📅 ${l.fecha_compra ? new Date(l.fecha_compra).toLocaleDateString('es-DO') : '-'} · 
+                    ${equiposLote.length} equipo${equiposLote.length === 1 ? '' : 's'}
+                    ${l.notas ? '<br><span style="text-transform:uppercase;">' + escapeHtml(l.notas) + '</span>' : ''}
+                </div>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center;">
+                ${totalDisplay ? `<div class="lote-totals"><div class="total">${totalDisplay}</div></div>` : ''}
+                <button class="btn btn-blue" style="padding:6px 12px; font-size:12px;" onclick="abrirLoteDesdeCompras('${l.id}')"><i class="ti ti-folder-open"></i> Abrir</button>
+                <button class="btn btn-light" style="padding:6px 10px; font-size:12px;" onclick="eliminarLote('${l.id}')"><i class="ti ti-trash"></i></button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function abrirLoteDesdeCompras(loteId) {
+    const lote = cache.lotes.find(l => l.id === loteId);
+    if(!lote) return alert('Compra no encontrada.');
+    proveedorActualId = lote.proveedor_id;
+    document.getElementById('prov-lista').style.display = 'none';
+    document.getElementById('prov-detalle').style.display = 'none';
+    document.getElementById('lote-detalle').style.display = 'block';
+    abrirLote(loteId);
+}
+
+function abrirModalNuevaCompra() {
+    // Cargar proveedores en el dropdown
+    const sel = document.getElementById('mod_compra_proveedor_id');
+    sel.innerHTML = '<option value="">-- Seleccionar proveedor --</option>' + 
+        cache.proveedores.map(p => `<option value="${p.id}">${escapeHtml(p.nombre)}${p.ciudad ? ' · ' + escapeHtml(p.ciudad) : ''}</option>`).join('');
+    
+    document.getElementById('mod_compra_fecha').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('mod_compra_notas').value = '';
+    document.getElementById('modalNuevaCompra').classList.add('active');
+}
+
+function cerrarModalNuevaCompra() {
+    document.getElementById('modalNuevaCompra').classList.remove('active');
+}
+
+async function crearNuevaCompra() {
+    try {
+        const provId = val('mod_compra_proveedor_id');
+        if(!provId) return alert('Selecciona un proveedor.');
+        
+        const codigo = calcularSiguienteCodigoLote();
+        const { data, error } = await supabaseClient.from('refurb_lotes').insert([{
+            codigo_lote: codigo,
+            proveedor_id: provId,
+            fecha_compra: val('mod_compra_fecha') || new Date().toISOString().slice(0, 10),
+            notas: val('mod_compra_notas') || null,
+            estado: 'Abierto',
+            creado_por: sessionUser?.id || null
+        }]).select().single();
+        if(error) throw error;
+        toast(`Compra ${codigo} creada.`);
+        cerrarModalNuevaCompra();
+        await loadAll();
+        abrirLoteDesdeCompras(data.id);
+    } catch(e) { logError('Crear compra', e); alert(getFriendlyError(e)); }
+}
+
+// Cerrar modal con Escape y clic fuera
+document.addEventListener('keydown', e => {
+    if(e.key === 'Escape') cerrarModalNuevaCompra();
+});
+document.getElementById('modalNuevaCompra')?.addEventListener('click', e => {
+    if(e.target.id === 'modalNuevaCompra') cerrarModalNuevaCompra();
 });
 
 /* ============================================================
