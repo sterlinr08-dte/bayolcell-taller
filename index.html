@@ -426,7 +426,7 @@ input[type=number] { -moz-appearance: textfield; }
             <button onclick="nav('etiquetas',this)"><i class="ti ti-barcode"></i> Impresión de Labels</button>
             <button onclick="nav('articulos',this)"><i class="ti ti-database"></i> Catálogo de Artículos</button>
             <button onclick="nav('proveedores',this)"><i class="ti ti-truck"></i> Proveedores y Lotes</button>
-            <button id="menu-refurb" onclick="nav('refurb',this)"><i class="ti ti-refresh"></i> Refurbish (Reacond.)</button>
+            <button id="menu-refurb" onclick="nav('refurb',this)"><i class="ti ti-refresh"></i> Reacondicionados</button>
         </div>
         <div class="side-bottom-logo">
             <h3>BAYOL <span>CELL</span></h3>
@@ -471,7 +471,7 @@ input[type=number] { -moz-appearance: textfield; }
                         <button class="btn btn-blue" style="width:100%; margin-bottom:10px;" onclick="nav('recepcion')"><i class="ti ti-plus"></i> Nueva Recepción</button>
                         <button class="btn btn-light" style="width:100%; margin-bottom:10px;" onclick="nav('proveedores')"><i class="ti ti-truck"></i> Proveedores y Lotes</button>
                         <button class="btn btn-light" style="width:100%; margin-bottom:10px;" onclick="nav('articulos')"><i class="ti ti-database"></i> Catálogo</button>
-                        <button class="btn btn-light" style="width:100%;" onclick="nav('refurb')"><i class="ti ti-refresh"></i> Módulo Refurbish</button>
+                        <button class="btn btn-light" style="width:100%;" onclick="nav('refurb')"><i class="ti ti-refresh"></i> Módulo Reacondicionados</button>
                     </div>
                 </div>
             </div>
@@ -684,10 +684,10 @@ input[type=number] { -moz-appearance: textfield; }
                     <div class="table-wrap" style="max-height:560px; overflow-y:auto;">
                         <table>
                             <thead>
-                                <tr><th>Código</th><th>Marca</th><th>Modelo</th><th>Capacidad</th><th>Color</th><th>Acciones</th></tr>
+                                <tr><th>Código</th><th>Marca</th><th>Modelo</th><th>Capacidad</th><th>Referencia</th><th>IMEI</th><th>Acciones</th></tr>
                             </thead>
                             <tbody id="articulosTable">
-                                <tr><td colspan="6" style="text-align:center; color:var(--text-muted);">No hay artículos en el catálogo. Crea uno con el botón + Crear Artículo.</td></tr>
+                                <tr><td colspan="7" style="text-align:center; color:var(--text-muted);">No hay artículos en el catálogo. Crea uno con el botón + Crear Artículo.</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -758,20 +758,38 @@ input[type=number] { -moz-appearance: textfield; }
                                         <option value="Cerrado">Cerrado</option>
                                     </select></div>
                                     <button class="btn btn-blue" style="width:100%; margin-top:10px;" onclick="guardarDatosLote()"><i class="ti ti-device-floppy"></i> Guardar Notas y Estado</button>
+                                    
+                                    <details style="margin-top:15px; background:#f8fafc; border:1px solid var(--border-color); border-radius:8px; padding:10px;">
+                                        <summary style="cursor:pointer; font-weight:700; font-size:12px; color:var(--blue-btn); text-transform:uppercase;"><i class="ti ti-adjustments"></i> Calibración de Labels de Diagnóstico</summary>
+                                        <div style="margin-top:10px;">
+                                            <div class="form-row">
+                                                <div style="display:flex; justify-content:space-between;"><label>Ancho (mm)</label><span id="dlbl_w_val" style="font-size:11px; font-weight:bold;">58mm</span></div>
+                                                <input type="range" id="dlbl_width" min="40" max="100" value="58" oninput="cambiarDimensionesLabelDiag()">
+                                            </div>
+                                            <div class="form-row">
+                                                <div style="display:flex; justify-content:space-between;"><label>Tamaño Letra (px)</label><span id="dlbl_f_val" style="font-size:11px; font-weight:bold;">10px</span></div>
+                                                <input type="range" id="dlbl_font" min="8" max="16" value="10" oninput="cambiarDimensionesLabelDiag()">
+                                            </div>
+                                            <small style="color:var(--text-muted); font-size:10px;">La calibración se guarda en este navegador.</small>
+                                        </div>
+                                    </details>
+                                    
+                                    <button class="btn btn-dark" style="width:100%; margin-top:10px;" onclick="abrirPreviewLabelsLote()"><i class="ti ti-printer"></i> Imprimir Labels del Lote</button>
                                 </div>
                             </div>
 
                             <div class="block-card" style="grid-column: span 2;">
                                 <div class="block-header header-blue-light">Agregar Equipo al Lote</div>
                                 <div class="block-body">
-                                    <div class="art-picker-row">
+                                    <div style="display:grid; grid-template-columns: 1.5fr 1fr 1fr 1.2fr auto; gap:10px; align-items:end;" id="formAgregarEquipo">
                                         <div><label>Artículo *</label>
                                             <select id="eq_articulo_id" onchange="onArticuloChange()">
                                                 <option value="">-- Seleccionar artículo --</option>
                                             </select>
                                         </div>
-                                        <div><label>IMEI / Serial *</label><input id="eq_imei" placeholder="358921..."></div>
-                                        <div><label>Costo Unidad (RD$) *</label><input id="eq_costo" type="number" step="0.01" placeholder="6374.00"></div>
+                                        <div><label id="lbl_eq_imei">IMEI / Serial *</label><input id="eq_imei" placeholder="358921..." style="text-transform:uppercase;"></div>
+                                        <div id="costo_admin_wrap"><label>Costo Unidad (RD$) *</label><input id="eq_costo" type="number" step="0.01" placeholder="6374.00"></div>
+                                        <div><label>Notas rápidas</label><input id="eq_notas" placeholder="OPCIONAL: PANTALLA ROTA..." style="text-transform:uppercase;"></div>
                                         <button class="btn btn-blue" onclick="agregarEquipoAlLote()" style="height:42px;"><i class="ti ti-plus"></i> Agregar</button>
                                     </div>
                                     <div style="background:#f8fafc; border:1px dashed var(--border-color); padding:8px 12px; border-radius:6px; margin-top:8px; font-size:12px; color:var(--text-muted);">
@@ -782,14 +800,14 @@ input[type=number] { -moz-appearance: textfield; }
                                     <div class="table-wrap" style="max-height:340px; overflow-y:auto;">
                                         <table>
                                             <thead>
-                                                <tr><th>Artículo</th><th>IMEI</th><th>Costo</th><th>Acciones</th></tr>
+                                                <tr><th>Artículo</th><th>IMEI</th><th>Notas</th><th id="th_costo">Costo</th><th>Acciones</th></tr>
                                             </thead>
                                             <tbody id="equiposLoteTable">
-                                                <tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:15px;">Sin equipos agregados aún.</td></tr>
+                                                <tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:15px;">Sin equipos agregados aún.</td></tr>
                                             </tbody>
                                         </table>
                                     </div>
-                                    <div style="background:#dbeafe; padding:10px 14px; border-radius:6px; margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
+                                    <div style="background:#dbeafe; padding:10px 14px; border-radius:6px; margin-top:10px; display:flex; justify-content:space-between; align-items:center;" id="totalAcumuladoWrap">
                                         <span style="font-size:13px; font-weight:700; color:#1e3a8a;">TOTAL ACUMULADO:</span>
                                         <strong id="eq_total" style="font-size:18px; color:#1e3a8a;">RD$ 0.00</strong>
                                     </div>
@@ -800,11 +818,11 @@ input[type=number] { -moz-appearance: textfield; }
                 </div>
             </div>
 
-            <!-- REFURBISH -->
+            <!-- REACONDICIONADOS -->
             <div id="v-refurb" class="view">
                 <div class="grid-refurb">
                     <div class="card">
-                        <h3 style="margin-top:0;"><i class="ti ti-circle-plus" style="color:var(--blue-btn);"></i> Ingresar Equipo a Refurbish (Manual)</h3>
+                        <h3 style="margin-top:0;"><i class="ti ti-circle-plus" style="color:var(--blue-btn);"></i> Ingresar Equipo a Reacondicionados (Manual)</h3>
                         <p style="color:var(--text-muted); font-size:12px; margin-bottom:10px;">⚡ Para ingreso masivo usa <a href="#" onclick="nav('proveedores'); return false;" style="color:var(--blue-btn); font-weight:700;">Proveedores y Lotes</a>.</p>
                         <div class="form-row"><label>Modelo del Dispositivo *</label><input id="ref_modelo" placeholder="Ej. iPhone 12 Pro Max"></div>
                         <div class="form-row"><label>Número de IMEI / Serial *</label><input id="ref_imei" placeholder="358921..."></div>
@@ -876,14 +894,39 @@ input[type=number] { -moz-appearance: textfield; }
         <div class="modal-body">
             <input id="mod_art_id" type="hidden">
             <div class="form-row"><label>Código</label><input id="mod_art_codigo" value="AUTOMÁTICO" disabled></div>
-            <div class="form-row"><label>Marca *</label><input id="mod_art_marca" placeholder="Apple / Samsung / Xiaomi"></div>
-            <div class="form-row"><label>Modelo *</label><input id="mod_art_modelo" placeholder="iPhone 12 Pro Max / Galaxy S22"></div>
-            <div class="form-row"><label>Capacidad</label><input id="mod_art_capacidad" placeholder="256GB / 128GB / 64GB"></div>
-            <div class="form-row"><label>Color</label><input id="mod_art_color" placeholder="Azul / Negro / Plateado"></div>
+            <div class="form-row"><label>Marca *</label><input id="mod_art_marca" placeholder="APPLE / SAMSUNG / XIAOMI" style="text-transform:uppercase;"></div>
+            <div class="form-row"><label>Modelo *</label><input id="mod_art_modelo" placeholder="IPHONE 12 PRO MAX" style="text-transform:uppercase;"></div>
+            <div class="form-row"><label>Capacidad</label><input id="mod_art_capacidad" placeholder="256GB / 128GB / 64GB" style="text-transform:uppercase;"></div>
+            <div class="form-row"><label>Referencia</label><input id="mod_art_referencia" placeholder="REF DEL PROVEEDOR / CÓDIGO INTERNO" style="text-transform:uppercase;"></div>
+            <div class="form-row" style="background:#f1f5f9; padding:10px; border-radius:8px; border:1px solid var(--border-color);">
+                <label style="margin-bottom:8px; display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-dark); text-transform:none; font-weight:600;">
+                    <input type="checkbox" id="mod_art_lleva_imei" style="width:auto; min-height:auto;" checked>
+                    Este artículo lleva IMEI / Serial obligatorio
+                </label>
+                <small style="color:var(--text-muted); font-size:11px; line-height:1.4; display:block;">⚠️ Desmarca si es un accesorio o producto sin IMEI (cables, fundas, baterías sueltas, etc.)</small>
+            </div>
         </div>
         <div class="modal-footer">
             <button class="btn btn-light" onclick="cerrarModalArticulo()">Cancelar</button>
             <button class="btn btn-blue" onclick="guardarArticuloModal()"><i class="ti ti-device-floppy"></i> Guardar Artículo</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: PREVIEW LABELS DIAGNÓSTICO -->
+<div id="modalLabelDiag" class="modal-backdrop">
+    <div class="modal-box" style="max-width:600px;">
+        <div class="modal-header">
+            <h3><i class="ti ti-printer"></i> <span id="modalLabelTitulo">Vista Previa del Label</span></h3>
+            <button class="modal-close" onclick="cerrarModalLabelDiag()">✕</button>
+        </div>
+        <div class="modal-body" style="background:#f1f5f9;">
+            <div id="labelDiagPreview" style="display:flex; flex-direction:column; gap:10px; align-items:center; max-height:60vh; overflow-y:auto;"></div>
+            <p style="text-align:center; color:var(--text-muted); font-size:12px; margin-top:10px;" id="labelDiagInfo"></p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" onclick="cerrarModalLabelDiag()">Cancelar</button>
+            <button class="btn btn-blue" onclick="confirmarImprimirLabelDiag()"><i class="ti ti-printer"></i> Imprimir Ahora</button>
         </div>
     </div>
 </div>
@@ -1159,25 +1202,32 @@ function renderArticulos() {
         lista = lista.filter(a => 
             (a.marca || '').toLowerCase().includes(filtro) ||
             (a.modelo || '').toLowerCase().includes(filtro) ||
-            (a.color || '').toLowerCase().includes(filtro) ||
+            (a.referencia || '').toLowerCase().includes(filtro) ||
             (a.codigo || '').toLowerCase().includes(filtro)
         );
     }
     if(!lista.length) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">${filtro ? 'Sin resultados' : 'No hay artículos en el catálogo.'}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">${filtro ? 'Sin resultados' : 'No hay artículos en el catálogo.'}</td></tr>`;
         return;
     }
-    tbody.innerHTML = lista.map(a => `<tr>
-        <td data-label="Código"><code style="font-weight:700; color:var(--blue-btn);">${escapeHtml(a.codigo)}</code></td>
-        <td data-label="Marca"><b>${escapeHtml(a.marca)}</b></td>
-        <td data-label="Modelo">${escapeHtml(a.modelo)}</td>
-        <td data-label="Capacidad">${escapeHtml(a.capacidad || '-')}</td>
-        <td data-label="Color">${escapeHtml(a.color || '-')}</td>
-        <td data-label="Acciones">
-            <button class="btn btn-light" style="padding:4px 8px; font-size:11px;" onclick="editarArticulo('${a.id}')"><i class="ti ti-edit"></i></button>
-            <button class="btn btn-light" style="padding:4px 8px; font-size:11px;" onclick="eliminarArticulo('${a.id}')"><i class="ti ti-trash"></i></button>
-        </td>
-    </tr>`).join('');
+    tbody.innerHTML = lista.map(a => {
+        const llevaImei = a.lleva_imei !== false;
+        const badgeImei = llevaImei 
+            ? `<span class="badge" style="background:#dbeafe; color:#1e40af;">SÍ</span>`
+            : `<span class="badge" style="background:#fef3c7; color:#92400e;">NO</span>`;
+        return `<tr>
+            <td data-label="Código"><code style="font-weight:700; color:var(--blue-btn); text-transform:uppercase;">${escapeHtml(a.codigo)}</code></td>
+            <td data-label="Marca"><b style="text-transform:uppercase;">${escapeHtml(a.marca)}</b></td>
+            <td data-label="Modelo" style="text-transform:uppercase;">${escapeHtml(a.modelo)}</td>
+            <td data-label="Capacidad" style="text-transform:uppercase;">${escapeHtml(a.capacidad || '-')}</td>
+            <td data-label="Referencia" style="text-transform:uppercase;">${escapeHtml(a.referencia || '-')}</td>
+            <td data-label="IMEI">${badgeImei}</td>
+            <td data-label="Acciones">
+                <button class="btn btn-light" style="padding:4px 8px; font-size:11px;" onclick="editarArticulo('${a.id}')"><i class="ti ti-edit"></i></button>
+                <button class="btn btn-light" style="padding:4px 8px; font-size:11px;" onclick="eliminarArticulo('${a.id}')"><i class="ti ti-trash"></i></button>
+            </td>
+        </tr>`;
+    }).join('');
 }
 
 function calcularSiguienteCodigoArticulo() {
@@ -1192,7 +1242,8 @@ function calcularSiguienteCodigoArticulo() {
 function abrirModalArticulo() {
     document.getElementById('mod_art_id').value = '';
     document.getElementById('mod_art_codigo').value = calcularSiguienteCodigoArticulo();
-    ['mod_art_marca','mod_art_modelo','mod_art_capacidad','mod_art_color'].forEach(id => document.getElementById(id).value = '');
+    ['mod_art_marca','mod_art_modelo','mod_art_capacidad','mod_art_referencia'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('mod_art_lleva_imei').checked = true;
     document.getElementById('modalArtTitulo').textContent = 'Crear Artículo';
     document.getElementById('modalArticulo').classList.add('active');
 }
@@ -1209,7 +1260,8 @@ function editarArticulo(id) {
     document.getElementById('mod_art_marca').value = a.marca || '';
     document.getElementById('mod_art_modelo').value = a.modelo || '';
     document.getElementById('mod_art_capacidad').value = a.capacidad || '';
-    document.getElementById('mod_art_color').value = a.color || '';
+    document.getElementById('mod_art_referencia').value = a.referencia || '';
+    document.getElementById('mod_art_lleva_imei').checked = a.lleva_imei !== false;
     document.getElementById('modalArtTitulo').textContent = 'Editar Artículo';
     document.getElementById('modalArticulo').classList.add('active');
 }
@@ -1222,7 +1274,8 @@ async function guardarArticuloModal() {
         const data = {
             marca: marca, modelo: modelo,
             capacidad: val('mod_art_capacidad') || null,
-            color: val('mod_art_color') || null
+            referencia: val('mod_art_referencia') || null,
+            lleva_imei: document.getElementById('mod_art_lleva_imei').checked
         };
         if(id) {
             const { error } = await supabaseClient.from('articulos').update(data).eq('id', id);
@@ -1488,16 +1541,63 @@ function abrirLote(loteId) {
     // Cargar artículos al select
     const selArt = document.getElementById('eq_articulo_id');
     selArt.innerHTML = '<option value="">-- Seleccionar artículo --</option>' + 
-        cache.articulos.map(a => `<option value="${a.id}">${escapeHtml(a.codigo)} · ${escapeHtml(a.marca)} ${escapeHtml(a.modelo)} ${a.capacidad ? '· ' + escapeHtml(a.capacidad) : ''} ${a.color ? '· ' + escapeHtml(a.color) : ''}</option>`).join('');
+        cache.articulos.map(a => {
+            const llevaImei = a.lleva_imei !== false ? '' : ' [SIN IMEI]';
+            return `<option value="${a.id}" data-imei="${a.lleva_imei !== false ? 1 : 0}">${escapeHtml(a.codigo)} · ${escapeHtml(a.marca)} ${escapeHtml(a.modelo)} ${a.capacidad ? '· ' + escapeHtml(a.capacidad) : ''} ${a.referencia ? '· ' + escapeHtml(a.referencia) : ''}${llevaImei}</option>`;
+        }).join('');
     
     document.getElementById('eq_imei').value = '';
     document.getElementById('eq_costo').value = '';
+    document.getElementById('eq_notas').value = '';
+    
+    aplicarPermisosAdminLote();
+    cargarCalibracionLabelDiag();
     
     renderEquiposLote();
 }
 
+function aplicarPermisosAdminLote() {
+    const esAdmin = isAdminUser();
+    const costoWrap = document.getElementById('costo_admin_wrap');
+    const thCosto = document.getElementById('th_costo');
+    const totalWrap = document.getElementById('totalAcumuladoWrap');
+    if(costoWrap) costoWrap.style.display = esAdmin ? '' : 'none';
+    if(thCosto) thCosto.style.display = esAdmin ? '' : 'none';
+    if(totalWrap) totalWrap.style.display = esAdmin ? '' : 'none';
+}
+
+function cargarCalibracionLabelDiag() {
+    const w = localStorage.getItem('bayol_dlbl_w') || '58';
+    const f = localStorage.getItem('bayol_dlbl_f') || '10';
+    document.getElementById('dlbl_width').value = w;
+    document.getElementById('dlbl_font').value = f;
+    cambiarDimensionesLabelDiag();
+}
+
+function cambiarDimensionesLabelDiag() {
+    const w = document.getElementById('dlbl_width').value;
+    const f = document.getElementById('dlbl_font').value;
+    document.getElementById('dlbl_w_val').textContent = w + 'mm';
+    document.getElementById('dlbl_f_val').textContent = f + 'px';
+    localStorage.setItem('bayol_dlbl_w', w);
+    localStorage.setItem('bayol_dlbl_f', f);
+}
+
 function onArticuloChange() {
-    document.getElementById('eq_imei').focus();
+    const sel = document.getElementById('eq_articulo_id');
+    const lbl = document.getElementById('lbl_eq_imei');
+    const inp = document.getElementById('eq_imei');
+    const opt = sel.options[sel.selectedIndex];
+    const llevaImei = opt ? opt.getAttribute('data-imei') !== '0' : true;
+    
+    if(llevaImei) {
+        lbl.textContent = 'IMEI / Serial *';
+        inp.placeholder = '358921...';
+    } else {
+        lbl.textContent = 'Serial / Referencia (opcional)';
+        inp.placeholder = 'Sin IMEI - opcional';
+    }
+    inp.focus();
 }
 
 async function guardarDatosLote() {
@@ -1518,14 +1618,23 @@ async function agregarEquipoAlLote() {
     if(!loteActualId) return alert('Sin lote activo.');
     const artId = val('eq_articulo_id');
     const imei = val('eq_imei');
-    const costo = parseFloat(val('eq_costo')) || 0;
+    const notas = val('eq_notas');
     
     if(!artId) return alert('Selecciona un artículo del catálogo.');
-    if(!imei) return alert('IMEI / Serial es obligatorio.');
-    if(costo <= 0) return alert('Costo debe ser mayor a 0.');
     
     const art = findArticulo(artId);
-    const modeloCompleto = `${art.marca} ${art.modelo}${art.capacidad ? ' ' + art.capacidad : ''}${art.color ? ' ' + art.color : ''}`;
+    const llevaImei = art.lleva_imei !== false;
+    
+    if(llevaImei && !imei) return alert('Este artículo requiere IMEI / Serial.');
+    
+    let costo = 0;
+    if(isAdminUser()) {
+        costo = parseFloat(val('eq_costo')) || 0;
+        if(costo <= 0) return alert('Costo debe ser mayor a 0.');
+    }
+    // Si no es admin, el costo queda en 0 y el admin lo edita después
+    
+    const modeloCompleto = `${art.marca} ${art.modelo}${art.capacidad ? ' ' + art.capacidad : ''}${art.referencia ? ' ' + art.referencia : ''}`;
     
     try {
         const { error } = await supabaseClient.from('equipos_refurbish').insert([{
@@ -1534,16 +1643,18 @@ async function agregarEquipoAlLote() {
             modelo: modeloCompleto,
             marca: art.marca,
             capacidad: art.capacidad,
-            color: art.color,
-            imei: imei,
+            color: art.referencia,
+            imei: imei || null,
             costo_compra: costo,
             costo_repuestos: 0,
-            estado: 'Recibido'
+            estado: 'Recibido',
+            notas_diagnostico: notas || null
         }]);
         if(error) throw error;
         toast(`Equipo agregado: ${art.marca} ${art.modelo}`);
         document.getElementById('eq_imei').value = '';
         document.getElementById('eq_costo').value = '';
+        document.getElementById('eq_notas').value = '';
         document.getElementById('eq_articulo_id').focus();
         await loadAll();
     } catch(e) { logError('Agregar equipo al lote', e); alert(getFriendlyError(e)); }
@@ -1555,18 +1666,28 @@ function renderEquiposLote() {
     if(!tbody) return;
     
     const equipos = cache.refurb.filter(r => r.lote_id === loteActualId);
+    const esAdmin = isAdminUser();
+    const colspan = esAdmin ? 5 : 4;
     
     if(!equipos.length) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:15px;">Sin equipos agregados aún.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center; color:var(--text-muted); padding:15px;">Sin equipos agregados aún.</td></tr>`;
     } else {
         tbody.innerHTML = equipos.map(e => {
             const art = findArticulo(e.articulo_id);
-            const modeloMostrar = art.codigo ? `<b style="color:var(--blue-btn);">${escapeHtml(art.codigo)}</b> · ${escapeHtml(art.marca)} ${escapeHtml(art.modelo)}${art.capacidad ? ' ' + escapeHtml(art.capacidad) : ''}${art.color ? ' ' + escapeHtml(art.color) : ''}` : escapeHtml(e.modelo);
+            const modeloMostrar = art.codigo 
+                ? `<b style="color:var(--blue-btn); text-transform:uppercase;">${escapeHtml(art.codigo)}</b> · <span style="text-transform:uppercase;">${escapeHtml(art.marca)} ${escapeHtml(art.modelo)}${art.capacidad ? ' ' + escapeHtml(art.capacidad) : ''}${art.referencia ? ' ' + escapeHtml(art.referencia) : ''}</span>` 
+                : `<span style="text-transform:uppercase;">${escapeHtml(e.modelo)}</span>`;
+            const costoCell = esAdmin ? `<td data-label="Costo"><b>${money(e.costo_compra)}</b></td>` : '';
+            const notas = e.notas_diagnostico ? `<small style="color:var(--text-muted); text-transform:uppercase;">${escapeHtml(e.notas_diagnostico)}</small>` : '<span style="color:#cbd5e1;">-</span>';
             return `<tr>
                 <td data-label="Artículo">${modeloMostrar}</td>
-                <td data-label="IMEI"><code>${escapeHtml(e.imei)}</code></td>
-                <td data-label="Costo"><b>${money(e.costo_compra)}</b></td>
-                <td data-label="Acciones"><button class="btn btn-light" style="padding:3px 6px; font-size:10px;" onclick="eliminarEquipoLote('${e.id}')"><i class="ti ti-trash"></i></button></td>
+                <td data-label="IMEI"><code>${escapeHtml(e.imei || 'SIN IMEI')}</code></td>
+                <td data-label="Notas">${notas}</td>
+                ${costoCell}
+                <td data-label="Acciones">
+                    <button class="btn btn-light" style="padding:3px 6px; font-size:10px;" onclick="abrirPreviewLabelDiagIndividual('${e.id}')" title="Imprimir label"><i class="ti ti-printer"></i></button>
+                    <button class="btn btn-light" style="padding:3px 6px; font-size:10px;" onclick="eliminarEquipoLote('${e.id}')" title="Eliminar"><i class="ti ti-trash"></i></button>
+                </td>
             </tr>`;
         }).join('');
     }
@@ -1574,7 +1695,7 @@ function renderEquiposLote() {
     const totalLote = equipos.reduce((s, e) => s + (parseFloat(e.costo_compra) || 0), 0);
     document.getElementById('eq_count').textContent = equipos.length;
     document.getElementById('eq_total').textContent = money(totalLote);
-    document.getElementById('lt_costo_total_display').value = money(totalLote);
+    document.getElementById('lt_costo_total_display').value = esAdmin ? money(totalLote) : 'Solo Admin';
     document.getElementById('lt_cantidad_display').value = `${equipos.length} equipo${equipos.length === 1 ? '' : 's'}`;
 }
 
@@ -1975,6 +2096,88 @@ document.addEventListener('keydown', e => {
     document.getElementById(id).addEventListener('click', e => {
         if(e.target.id === id) document.getElementById(id).classList.remove('active');
     });
+});
+
+/* ============================================================
+   LABELS DE DIAGNÓSTICO (individual + lote)
+   ============================================================ */
+
+function generarHtmlLabelDiag(equipo) {
+    const art = findArticulo(equipo.articulo_id);
+    const lote = cache.lotes.find(l => l.id === equipo.lote_id);
+    const w = localStorage.getItem('bayol_dlbl_w') || '58';
+    const f = localStorage.getItem('bayol_dlbl_f') || '10';
+    
+    const marca = (art.marca || equipo.marca || '').toUpperCase();
+    const modelo = (art.modelo || equipo.modelo || '').toUpperCase();
+    const capacidad = (art.capacidad || equipo.capacidad || '').toUpperCase();
+    const referencia = (art.referencia || '').toUpperCase();
+    const imei = (equipo.imei || 'SIN IMEI').toUpperCase();
+    const codigoLote = (lote?.codigo_lote || '').toUpperCase();
+    const fecha = new Date().toLocaleDateString('es-DO');
+    const notas = (equipo.notas_diagnostico || '').toUpperCase();
+    
+    return `
+        <div class="diag-label" style="width:${w}mm; font-size:${f}px;">
+            <div class="diag-header" style="font-size:${parseInt(f) + 2}px;">
+                BAYOL CELL · DIAGNÓSTICO
+            </div>
+            <div class="diag-section">
+                <div class="diag-line diag-modelo">${escapeHtml(marca)} ${escapeHtml(modelo)}</div>
+                <div class="diag-line">${escapeHtml(capacidad)}${referencia ? ' · ' + escapeHtml(referencia) : ''}</div>
+            </div>
+            <div class="diag-section">
+                <div class="diag-line"><b>IMEI:</b> <span class="diag-imei">${escapeHtml(imei)}</span></div>
+                <div class="diag-line"><b>LOTE:</b> ${escapeHtml(codigoLote)}</div>
+                <div class="diag-line"><b>FECHA:</b> ${escapeHtml(fecha)}</div>
+            </div>
+            ${notas ? `<div class="diag-notas-area"><b>NOTAS:</b><br>${escapeHtml(notas)}</div>` : ''}
+        </div>
+    `;
+}
+
+function abrirPreviewLabelDiagIndividual(equipoId) {
+    const equipo = cache.refurb.find(r => r.id === equipoId);
+    if(!equipo) return alert('Equipo no encontrado.');
+    
+    const previewHtml = generarHtmlLabelDiag(equipo);
+    document.getElementById('labelDiagPreview').innerHTML = previewHtml;
+    document.getElementById('labelDiagInfo').textContent = 'Se imprimirá 1 label';
+    document.getElementById('modalLabelTitulo').textContent = 'Vista Previa del Label';
+    document.getElementById('modalLabelDiag').classList.add('active');
+}
+
+function abrirPreviewLabelsLote() {
+    if(!loteActualId) return alert('Sin lote activo.');
+    const equipos = cache.refurb.filter(r => r.lote_id === loteActualId);
+    if(!equipos.length) return alert('Este lote no tiene equipos.');
+    
+    const previewHtml = equipos.map(e => generarHtmlLabelDiag(e)).join('');
+    document.getElementById('labelDiagPreview').innerHTML = previewHtml;
+    document.getElementById('labelDiagInfo').textContent = `Se imprimirán ${equipos.length} label${equipos.length === 1 ? '' : 's'} de este lote`;
+    document.getElementById('modalLabelTitulo').textContent = `Vista Previa · ${equipos.length} Labels`;
+    document.getElementById('modalLabelDiag').classList.add('active');
+}
+
+function cerrarModalLabelDiag() {
+    document.getElementById('modalLabelDiag').classList.remove('active');
+}
+
+function confirmarImprimirLabelDiag() {
+    const preview = document.getElementById('labelDiagPreview').innerHTML;
+    document.getElementById('printArea').innerHTML = preview;
+    cerrarModalLabelDiag();
+    setTimeout(() => window.print(), 100);
+}
+
+// Cerrar modal de label con Escape
+document.addEventListener('keydown', e => {
+    if(e.key === 'Escape') cerrarModalLabelDiag();
+});
+
+// Cerrar modal al hacer clic fuera
+document.getElementById('modalLabelDiag').addEventListener('click', e => {
+    if(e.target.id === 'modalLabelDiag') cerrarModalLabelDiag();
 });
 
 const saved = localStorage.getItem("bayol_session");
