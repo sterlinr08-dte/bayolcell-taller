@@ -655,8 +655,8 @@ input[type=number] { -moz-appearance: textfield; }
                         <p style="color:var(--text-muted); font-size:13px;">Modifica los campos del dispositivo y ajusta las dimensiones milimétricas para calibrar tu impresora térmica.</p>
                         
                         <div class="form-row"><label>Marca del Dispositivo</label><input id="lbl_marca" value="Apple" oninput="actualizarLabelLive()"></div>
-                        <div class="form-row"><label>Modelo y Color</label><input id="lbl_modelo" value="iPhone 11 Pro 64GB Silver" oninput="actualizarLabelLive()"></div>
-                        <div class="form-row"><label>Capacidad (GB)</label><input id="lbl_gb" value="64 GB" oninput="actualizarLabelLive()"></div>
+                        <div class="form-row"><label>Modelo, Color y Capacidad</label><input id="lbl_modelo" value="iPhone 11 Pro 64GB Silver" oninput="actualizarLabelLive()"></div>
+                        <input id="lbl_gb" type="hidden" value="">
                         <div class="form-row"><label>Número IMEI / Serial</label><input id="lbl_imei" value="356789123456789" oninput="actualizarLabelLive()"></div>
                         <div class="form-row"><label>Texto de Estado / Pie de Impresión</label><input id="lbl_estado_texto" value="" placeholder="Ej. CLASE A / AVISO BAT / AVISO PANT" oninput="actualizarLabelLive()"></div>
                         
@@ -676,7 +676,10 @@ input[type=number] { -moz-appearance: textfield; }
                             <input type="range" id="cfg_barcode_h" min="25" max="70" value="42" oninput="cambiarDimensionesManual()">
                         </div>
 
-                        <button class="btn btn-blue" style="width:100%; margin-top:15px;" onclick="imprimirLabelAdhesivo()"><i class="ti ti-printer"></i> Imprimir en Label Printer</button>
+                        <div style="display:grid; grid-template-columns:1fr auto; gap:8px; margin-top:15px;">
+                            <button class="btn btn-blue" onclick="imprimirLabelAdhesivo()"><i class="ti ti-printer"></i> Imprimir en Label Printer</button>
+                            <button class="btn btn-light" onclick="abrirModalConfigImpresora()" title="Configurar impresora 2C-LP427B"><i class="ti ti-settings"></i></button>
+                        </div>
                     </div>
 
                     <div class="card" style="background:#f8fafc; display:flex; flex-direction:column; align-items:center; justify-content:center;">
@@ -686,7 +689,6 @@ input[type=number] { -moz-appearance: textfield; }
                             <div id="lblLiveLogo" style="font-size:24px; margin-bottom:5px;"><i class="ti ti-brand-apple"></i></div>
                             <div style="border-bottom:1px solid #000; margin-bottom:8px;"></div>
                             <div style="text-align:left; margin-bottom:4px;"><b>EQUIPO:</b> <span id="lblLiveMod">iPhone 11 Pro 64GB Silver</span></div>
-                            <div style="text-align:left; margin-bottom:4px;"><b>GB:</b> <span id="lblLiveGb">64 GB</span></div>
                             <div style="text-align:left; margin-bottom:8px;"><b>IMEI:</b> <span id="lblLiveImei">356789123456789</span></div>
                             <div class="barcode-visual" id="lblLiveBarcode" style="font-size:42px;">*356789123456789*</div>
                             <div style="font-weight:bold; margin-top:6px; text-transform:uppercase;" id="lblLiveEstadoContainer"></div>
@@ -959,6 +961,67 @@ input[type=number] { -moz-appearance: textfield; }
     </div>
 </div>
 
+<!-- MODAL: CONFIGURACIÓN IMPRESORA 2C-LP427B -->
+<div id="modalConfigImpresora" class="modal-backdrop">
+    <div class="modal-box" style="max-width:600px;">
+        <div class="modal-header">
+            <h3><i class="ti ti-settings"></i> Configurar Impresora 2C-LP427B</h3>
+            <button class="modal-close" onclick="cerrarModalConfigImpresora()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div style="background:#dbeafe; border:1px solid #93c5fd; padding:12px; border-radius:8px; margin-bottom:15px; font-size:13px; color:#1e40af;">
+                <b><i class="ti ti-info-circle"></i> Configuración inicial (solo 1 vez)</b><br>
+                Sigue estos pasos para que los labels impriman al tamaño exacto sin márgenes.
+            </div>
+            
+            <h4 style="margin:15px 0 8px 0; color:var(--blue-btn); font-size:13px;">📌 Paso 1: Configuración en Windows</h4>
+            <ol style="font-size:13px; line-height:1.6; padding-left:20px; margin:0 0 15px 0;">
+                <li>Ve a <b>Panel de Control</b> → <b>Dispositivos e Impresoras</b></li>
+                <li>Clic derecho en <b>2C-LP427B</b> → <b>Preferencias de impresión</b></li>
+                <li>En "Tamaño del papel" elige el tamaño de tu etiqueta (ej: 58mm × 40mm)</li>
+                <li>En "Orientación" deja en <b>Vertical</b></li>
+                <li>Clic en <b>Aceptar</b></li>
+            </ol>
+            
+            <h4 style="margin:15px 0 8px 0; color:var(--blue-btn); font-size:13px;">📌 Paso 2: Configuración en Chrome (primera impresión)</h4>
+            <ol style="font-size:13px; line-height:1.6; padding-left:20px; margin:0 0 15px 0;">
+                <li>Llena los datos del label en este sistema</li>
+                <li>Ajusta el ancho con el <b>slider de calibración</b> (lo recuerda automáticamente)</li>
+                <li>Clic en <b>"Imprimir en Label Printer"</b></li>
+                <li>En el diálogo de Chrome:
+                    <ul style="margin:6px 0;">
+                        <li>Destino: selecciona <b>2C-LP427B</b></li>
+                        <li>Páginas: <b>Todas</b></li>
+                        <li>Diseño: <b>Vertical</b></li>
+                        <li>Color: <b>Blanco y negro</b></li>
+                        <li><b>Más ajustes</b> → Márgenes: <b>Ninguno</b></li>
+                        <li><b>Más ajustes</b> → Escala: <b>100</b> o <b>Tamaño real</b></li>
+                        <li>Desmarca <b>"Encabezados y pies de página"</b></li>
+                    </ul>
+                </li>
+                <li>Clic en <b>Imprimir</b></li>
+            </ol>
+            
+            <div style="background:#d1fae5; border:1px solid #86efac; padding:12px; border-radius:8px; font-size:13px; color:#065f46;">
+                <b><i class="ti ti-check"></i> Después de la primera impresión:</b><br>
+                Chrome recordará la configuración. Las siguientes veces solo será: clic en Imprimir → clic en botón Imprimir del diálogo. ¡2 clicks!
+            </div>
+            
+            <h4 style="margin:15px 0 8px 0; color:var(--blue-btn); font-size:13px;">🔧 Si el label sale mal</h4>
+            <ul style="font-size:13px; line-height:1.6; padding-left:20px; margin:0;">
+                <li><b>Sale cortado:</b> Reduce el ancho con el slider (intenta 50mm o 55mm)</li>
+                <li><b>Sale muy chico:</b> Aumenta el tamaño de letra con el slider</li>
+                <li><b>Código de barras no se ve:</b> Aumenta la altura del barcode</li>
+                <li><b>Sale en blanco:</b> Verifica que la impresora esté seleccionada en Chrome</li>
+                <li><b>Sale con texto raro arriba:</b> En Chrome desmarca "Encabezados y pies de página"</li>
+            </ul>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-blue" onclick="cerrarModalConfigImpresora()" style="width:100%;">Entendido</button>
+        </div>
+    </div>
+</div>
+
 <!-- MODAL: NUEVA COMPRA -->
 <div id="modalNuevaCompra" class="modal-backdrop">
     <div class="modal-box">
@@ -1096,7 +1159,7 @@ function nav(v, btn) {
     }
     const activeBtn = btn || document.querySelector(".nav button.active");
     document.getElementById("pageTitle").textContent = activeBtn ? activeBtn.textContent.trim() : v;
-    if(v === 'etiquetas') { setTimeout(cambiarDimensionesManual, 50); }
+    if(v === 'etiquetas') { setTimeout(cargarCalibracionLabelVenta, 50); }
     if(v === 'proveedores') { volverListaProveedores(); }
     closeSidebar();
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1891,10 +1954,13 @@ function enviarRefurbALabel(id) {
     const item = cache.refurb.find(x => x.id === id);
     if(!item) return;
     const art = findArticulo(item.articulo_id);
-    document.getElementById("lbl_marca").value = art.marca || item.marca || "Generic";
-    document.getElementById("lbl_modelo").value = `${art.marca || ''} ${art.modelo || item.modelo}`.trim();
-    document.getElementById("lbl_gb").value = art.capacidad || item.capacidad || "---";
-    document.getElementById("lbl_imei").value = item.imei;
+    const marca = art.marca || item.marca || "";
+    const modelo = art.modelo || item.modelo || "";
+    const capacidad = art.capacidad || item.capacidad || "";
+    const referencia = art.referencia || "";
+    document.getElementById("lbl_marca").value = marca || "Generic";
+    document.getElementById("lbl_modelo").value = `${marca} ${modelo} ${capacidad} ${referencia}`.trim().replace(/\s+/g, ' ');
+    document.getElementById("lbl_imei").value = item.imei || "";
     document.getElementById("lbl_estado_texto").value = "";
     actualizarLabelLive();
     nav("etiquetas");
@@ -1904,9 +1970,11 @@ function cargarEnLabel(id) {
     const o = cache.ordenes.find(x => x.id === id);
     if(!o) return;
     const eq = findEquipo(o.equipo_id);
-    document.getElementById("lbl_marca").value = eq.marca || "Apple";
-    document.getElementById("lbl_modelo").value = eq.modelo || "";
-    document.getElementById("lbl_gb").value = eq.capacidad || "128 GB";
+    const marca = eq.marca || "Apple";
+    const modelo = eq.modelo || "";
+    const capacidad = eq.capacidad || "";
+    document.getElementById("lbl_marca").value = marca;
+    document.getElementById("lbl_modelo").value = `${modelo} ${capacidad}`.trim().replace(/\s+/g, ' ');
     document.getElementById("lbl_imei").value = eq.imei || "";
     document.getElementById("lbl_estado_texto").value = "";
     actualizarLabelLive();
@@ -1925,16 +1993,28 @@ function cambiarDimensionesManual() {
     if(card) { card.style.width = w + "mm"; card.style.fontSize = f + "px"; }
     const bar = document.getElementById("lblLiveBarcode");
     if(bar) bar.style.fontSize = bh + "px";
+    // Guardar en localStorage para que recuerde la calibración
+    localStorage.setItem('bayol_lbl_w', w);
+    localStorage.setItem('bayol_lbl_f', f);
+    localStorage.setItem('bayol_lbl_bh', bh);
+}
+
+function cargarCalibracionLabelVenta() {
+    const w = localStorage.getItem('bayol_lbl_w');
+    const f = localStorage.getItem('bayol_lbl_f');
+    const bh = localStorage.getItem('bayol_lbl_bh');
+    if(w) document.getElementById("cfg_width").value = w;
+    if(f) document.getElementById("cfg_font").value = f;
+    if(bh) document.getElementById("cfg_barcode_h").value = bh;
+    cambiarDimensionesManual();
 }
 
 function actualizarLabelLive() {
     const marca = document.getElementById("lbl_marca").value.toLowerCase();
     const mod = document.getElementById("lbl_modelo").value;
-    const gb = document.getElementById("lbl_gb").value;
     const imei = document.getElementById("lbl_imei").value;
     const estado = document.getElementById("lbl_estado_texto").value;
     document.getElementById("lblLiveMod").textContent = mod;
-    document.getElementById("lblLiveGb").textContent = gb;
     document.getElementById("lblLiveImei").textContent = imei;
     document.getElementById("lblLiveBarcode").textContent = `*${imei || '000000000'}*`;
     document.getElementById("lblLiveEstadoContainer").textContent = estado;
@@ -1944,27 +2024,39 @@ function actualizarLabelLive() {
 
 function imprimirLabelAdhesivo() {
     const mod = document.getElementById("lbl_modelo").value;
-    const gb = document.getElementById("lbl_gb").value;
     const imei = document.getElementById("lbl_imei").value;
     const estadoText = document.getElementById("lbl_estado_texto").value;
     const logoHtml = document.getElementById("lblLiveLogo").innerHTML;
     const configW = document.getElementById("cfg_width").value;
     const configF = document.getElementById("cfg_font").value;
     const configBH = document.getElementById("cfg_barcode_h").value;
+    
+    // Guardar calibración en localStorage para próximas impresiones
+    localStorage.setItem('bayol_lbl_w', configW);
+    localStorage.setItem('bayol_lbl_f', configF);
+    localStorage.setItem('bayol_lbl_bh', configBH);
+    
+    // CSS @page se inyecta dinámicamente con el tamaño exacto del label
     document.getElementById("printArea").innerHTML = `
-        <div style="width:${configW}mm; padding:8px; font-family:monospace; text-align:center; color:#000; font-size:${configF}px;">
+        <style>
+            @page { size: ${configW}mm auto; margin: 0; }
+            @media print {
+                body { margin: 0; padding: 0; }
+                .print-area { margin: 0 !important; padding: 0 !important; }
+            }
+        </style>
+        <div style="width:${configW}mm; padding:4px; font-family:monospace; text-align:center; color:#000; font-size:${configF}px; box-sizing:border-box;">
             <div style="font-size:${parseInt(configF) + 10}px; margin-bottom: 2px;">${logoHtml}</div>
-            ------------------------------------<br>
+            <div style="border-bottom:1px solid #000; margin:4px 0;"></div>
             <div style="text-align:left; line-height: 1.3;">
                 <b>EQUIPO:</b> ${escapeHtml(mod)}<br>
-                <b>GB:</b> ${escapeHtml(gb)}<br>
                 <b>IMEI:</b> ${escapeHtml(imei)}<br>
             </div>
             <div style="font-family:'Libre Barcode 39'; font-size:${configBH}px; margin:4px 0; display:block; line-height:1;">*${imei}*</div>
-            <b style="text-transform:uppercase;">${escapeHtml(estadoText)}</b>
+            <b style="text-transform:uppercase; display:block; margin-top:4px;">${escapeHtml(estadoText)}</b>
         </div>
     `;
-    window.print();
+    setTimeout(() => window.print(), 100);
 }
 
 function togglePasswordField(inputId, boton) {
@@ -2295,6 +2387,19 @@ document.addEventListener('keydown', e => {
 });
 document.getElementById('modalNuevaCompra')?.addEventListener('click', e => {
     if(e.target.id === 'modalNuevaCompra') cerrarModalNuevaCompra();
+});
+
+/* ============================================================
+   CONFIGURACIÓN IMPRESORA
+   ============================================================ */
+function abrirModalConfigImpresora() {
+    document.getElementById('modalConfigImpresora').classList.add('active');
+}
+function cerrarModalConfigImpresora() {
+    document.getElementById('modalConfigImpresora').classList.remove('active');
+}
+document.getElementById('modalConfigImpresora')?.addEventListener('click', e => {
+    if(e.target.id === 'modalConfigImpresora') cerrarModalConfigImpresora();
 });
 
 /* ============================================================
