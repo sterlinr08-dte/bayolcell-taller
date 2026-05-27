@@ -2,7 +2,10 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0033aa">
 <title>SISTEMA TALLER BAYOL CELL</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -180,6 +183,207 @@ tr:hover td { background: #f8fafc; }
     .print-area, .print-area * { visibility: visible; }
     .print-area { display: block; position: absolute; left: 0; top: 0; background: #fff; color: #000; margin: 0; padding: 0; }
 }
+
+/* ============================================================
+   BOTÓN MENÚ HAMBURGUESA (oculto en desktop)
+   ============================================================ */
+.menu-toggle { display: none; background: rgba(255,255,255,0.15); border: 0; color: #fff; width: 40px; height: 40px; border-radius: 8px; cursor: pointer; font-size: 20px; align-items: center; justify-content: center; flex-shrink: 0; }
+.sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9; }
+.sidebar-backdrop.active { display: block; }
+
+/* ============================================================
+   RESPONSIVE — TABLET (max 1024px)
+   ============================================================ */
+@media (max-width: 1024px) {
+    .kpi-row { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .block-grid { grid-template-columns: 1fr 1fr; }
+    .block-card[style*="grid-column: span 2"] { grid-column: span 2 !important; }
+    .layout-dashboard { grid-template-columns: 1fr; }
+    .grid-refurb { grid-template-columns: 1fr; }
+    .prov-detail-header .stats { grid-template-columns: repeat(2, 1fr); }
+    .art-picker-row { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .art-picker-row button { grid-column: span 2; height: auto; }
+    .form-inline-asset { grid-template-columns: 1fr 1fr; }
+    .form-inline-asset button { grid-column: span 2; }
+}
+
+/* ============================================================
+   RESPONSIVE — MÓVIL (max 768px)
+   ============================================================ */
+@media (max-width: 768px) {
+    body { overflow: auto; height: auto; min-height: 100vh; }
+    
+    .app { display: block !important; height: auto; min-height: 100vh; }
+    .sidebar {
+        position: fixed;
+        left: -280px;
+        top: 0;
+        width: 260px;
+        height: 100vh;
+        z-index: 20;
+        transition: left 0.3s ease;
+    }
+    .sidebar.open { left: 0; }
+    .main { display: block; width: 100%; }
+    
+    .top-bar {
+        height: 52px;
+        padding: 0 12px;
+        gap: 8px;
+        position: sticky;
+        top: 0;
+        z-index: 8;
+    }
+    .menu-toggle { display: inline-flex; }
+    .top-title { font-size: 13px; }
+    .top-right-info {
+        font-size: 10px;
+        padding: 3px 8px;
+    }
+    .top-right-info span { display: none; }
+    .top-bar .btn-light { padding: 4px 8px !important; font-size: 10px !important; }
+    
+    .content { padding: 12px; }
+    
+    .card { padding: 14px; margin-bottom: 14px; border-radius: 10px; }
+    
+    .kpi-row { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 14px; }
+    .kpi-box { padding: 10px; }
+    .kpi-box small { font-size: 9px; }
+    .kpi-box strong { font-size: 20px; }
+    .kpi-box i { font-size: 18px; right: 8px; bottom: 8px; }
+    
+    .block-grid { grid-template-columns: 1fr !important; gap: 12px; }
+    .block-card[style*="grid-column: span 2"] { grid-column: span 1 !important; }
+    .block-body { gap: 8px; }
+    
+    .layout-dashboard, .layout-inventario, .grid-refurb { grid-template-columns: 1fr !important; gap: 14px; }
+    
+    .table-wrap table thead { display: none; }
+    .table-wrap table, 
+    .table-wrap tbody, 
+    .table-wrap tr, 
+    .table-wrap td { display: block; width: 100%; }
+    .table-wrap tr {
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 10px;
+        margin-bottom: 8px;
+        background: #fff;
+    }
+    .table-wrap td {
+        border: 0;
+        padding: 4px 0;
+        text-align: left;
+        position: relative;
+        padding-left: 110px;
+        min-height: 24px;
+    }
+    .table-wrap td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 0;
+        top: 4px;
+        width: 100px;
+        font-weight: 700;
+        font-size: 10px;
+        text-transform: uppercase;
+        color: var(--text-muted);
+    }
+    .table-wrap td:not([data-label])::before { display: none; }
+    .table-wrap td:not([data-label]) { padding-left: 0; }
+    .table-wrap { border: 0; max-height: none !important; }
+    
+    .form-inline-asset { grid-template-columns: 1fr !important; }
+    .form-inline-asset button { grid-column: auto !important; }
+    
+    .prov-detail-header { padding: 14px; }
+    .prov-detail-header h2 { font-size: 18px; }
+    .prov-detail-header .stats { grid-template-columns: repeat(2, 1fr); gap: 6px; margin-top: 10px; }
+    .prov-detail-header .stat-item strong { font-size: 14px; }
+    
+    .prov-card { flex-direction: column; align-items: flex-start; gap: 10px; padding: 12px; }
+    .prov-card .prov-info { width: 100%; }
+    .prov-card .prov-actions { width: 100%; display: grid; grid-template-columns: 1fr auto auto; gap: 6px; }
+    .prov-card .prov-actions button { width: 100%; }
+    
+    .lote-card { flex-direction: column; align-items: flex-start; gap: 10px; padding: 12px; }
+    .lote-card > div:first-child { width: 100%; }
+    .lote-card > div:last-child { width: 100%; display: grid; grid-template-columns: 1fr auto auto; gap: 6px; align-items: center; }
+    .lote-card .lote-totals { text-align: left; }
+    
+    .art-picker-row { grid-template-columns: 1fr; gap: 8px; }
+    .art-picker-row button { grid-column: 1; height: auto; }
+    
+    .checks-layout { grid-template-columns: 1fr; }
+    
+    .pattern-grid { width: 180px; }
+    .pattern-dot { width: 50px; height: 50px; }
+    
+    .modal-backdrop { padding: 0; align-items: flex-end; }
+    .modal-box {
+        max-width: 100%;
+        max-height: 95vh;
+        border-radius: 16px 16px 0 0;
+        animation: slideUp 0.3s ease;
+    }
+    @keyframes slideUp {
+        from { transform: translateY(100%); }
+        to { transform: translateY(0); }
+    }
+    .modal-header { padding: 14px; border-radius: 16px 16px 0 0; }
+    .modal-header h3 { font-size: 14px; }
+    .modal-body { padding: 16px; }
+    .modal-footer { padding: 12px 16px; flex-direction: column-reverse; gap: 8px; }
+    .modal-footer button { width: 100%; }
+    
+    .btn { padding: 12px 16px; font-size: 14px; min-height: 44px; }
+    input, select, textarea { padding: 12px 14px; font-size: 16px; min-height: 44px; }
+    
+    .login-card { padding: 28px 20px; border-radius: 14px; }
+    .logo-login h1 { font-size: 22px; }
+    
+    .ticket-box { width: 100%; max-width: 76mm; margin: 0 auto; }
+    
+    .label-preview-card { width: 100% !important; max-width: 280px; }
+    
+    .side-profile { padding: 18px 16px; }
+    .nav { padding: 12px 8px; }
+    .nav button { padding: 13px 12px; font-size: 14px; }
+    
+    .refurb-item-card { padding: 12px; }
+    
+    .toast { left: 12px; right: 12px; bottom: 12px; text-align: center; }
+}
+
+/* ============================================================
+   RESPONSIVE — MÓVIL PEQUEÑO (max 380px)
+   ============================================================ */
+@media (max-width: 380px) {
+    .kpi-row { grid-template-columns: 1fr 1fr; }
+    .kpi-box strong { font-size: 18px; }
+    .prov-detail-header .stats { grid-template-columns: 1fr 1fr; }
+    .top-title { font-size: 12px; }
+}
+
+/* ============================================================
+   AJUSTES TÁCTILES Y SAFE AREAS iOS
+   ============================================================ */
+@supports (padding: max(0px)) {
+    @media (max-width: 768px) {
+        .top-bar { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
+        .content { padding-bottom: max(20px, env(safe-area-inset-bottom)); }
+        .toast { bottom: max(12px, env(safe-area-inset-bottom)); }
+    }
+}
+
+button, a, .btn, .nav button, .prov-card, .lote-card {
+    -webkit-tap-highlight-color: transparent;
+}
+
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type=number] { -moz-appearance: textfield; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -205,7 +409,8 @@ tr:hover td { background: #f8fafc; }
 </div>
 
 <div id="app" class="app">
-    <aside class="sidebar">
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeSidebar()"></div>
+    <aside class="sidebar" id="sidebar">
         <div class="side-profile">
             <div class="avatar" id="userAvatar">B</div>
             <div class="profile-info">
@@ -231,6 +436,7 @@ tr:hover td { background: #f8fafc; }
 
     <main class="main">
         <header class="top-bar">
+            <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Menú"><i class="ti ti-menu-2"></i></button>
             <div class="top-title" id="pageTitle">Dashboard</div>
             <div class="top-right-info"><i class="ti ti-user-shield"></i> Rol: <span id="userRole" style="text-transform:uppercase;">Técnico</span></div>
             <button class="btn btn-light" style="padding:4px 10px; font-size:11px; background:rgba(255,255,255,0.1); border:0; color:#fff;" onclick="logout()">Salir</button>
@@ -767,6 +973,23 @@ function nav(v, btn) {
     document.getElementById("pageTitle").textContent = activeBtn ? activeBtn.textContent.trim() : v;
     if(v === 'etiquetas') { setTimeout(cambiarDimensionesManual, 50); }
     if(v === 'proveedores') { volverListaProveedores(); }
+    closeSidebar();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ============================================================
+   SIDEBAR MÓVIL
+   ============================================================ */
+function toggleSidebar() {
+    const sb = document.getElementById('sidebar');
+    const bd = document.getElementById('sidebarBackdrop');
+    if(sb.classList.contains('open')) closeSidebar();
+    else { sb.classList.add('open'); bd.classList.add('active'); }
+}
+
+function closeSidebar() {
+    document.getElementById('sidebar')?.classList.remove('open');
+    document.getElementById('sidebarBackdrop')?.classList.remove('active');
 }
 
 async function loadAll() {
@@ -818,11 +1041,11 @@ function renderAll() {
     
     document.getElementById("recentOrders").innerHTML = cache.ordenes.slice(0, 5).map(o => {
         const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
-        return `<tr><td><b>#${o.numero_orden}</b></td><td>${escapeHtml(c.nombre)}</td><td>${escapeHtml(e.modelo)}</td><td>${escapeHtml(o.falla_reportada)}</td><td><span class="badge" style="background:#d1fae5;">${o.estado}</span></td></tr>`;
+        return `<tr><td data-label="Orden"><b>#${o.numero_orden}</b></td><td data-label="Cliente">${escapeHtml(c.nombre)}</td><td data-label="Equipo">${escapeHtml(e.modelo)}</td><td data-label="Falla">${escapeHtml(o.falla_reportada)}</td><td data-label="Estado"><span class="badge" style="background:#d1fae5;">${o.estado}</span></td></tr>`;
     }).join("");
     
     renderOrders();
-    document.getElementById("partsTable").innerHTML = cache.piezas.map(p => `<tr><td><code>${p.codigo}</code></td><td><b>${escapeHtml(p.nombre)}</b></td><td>${p.cantidad} uds</td><td>${money(p.costo)}</td></tr>`).join("");
+    document.getElementById("partsTable").innerHTML = cache.piezas.map(p => `<tr><td data-label="Código"><code>${p.codigo}</code></td><td data-label="Pieza"><b>${escapeHtml(p.nombre)}</b></td><td data-label="Stock">${p.cantidad} uds</td><td data-label="Costo">${money(p.costo)}</td></tr>`).join("");
     if(isAdminUser()) renderActivosTaller();
     renderRefurbishItems();
     renderProveedores();
@@ -835,13 +1058,13 @@ function renderOrders() {
     document.getElementById("ordersTable").innerHTML = cache.ordenes.map(o => {
         const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
         return `<tr>
-            <td><b>#${String(o.numero_orden ?? '').padStart(6, "0")}</b></td>
-            <td>${escapeHtml(c.nombre)}</td>
-            <td>${escapeHtml(e.modelo)}</td>
-            <td>${escapeHtml(o.falla_reportada)}</td>
-            <td><div class="access-mask">•••• <button class="btn btn-light" style="padding:1px 4px; font-size:10px" onclick="revelarClave('${o.id}', this)">Mostrar</button></div></td>
-            <td><span class="badge" style="background:#e0f2fe; color:#0369a1;">${o.estado}</span></td>
-            <td><button class="btn btn-light" style="padding:4px 8px;" onclick="cargarEnLabel('${o.id}')"><i class="ti ti-barcode"></i> Crear Label</button></td>
+            <td data-label="Orden"><b>#${String(o.numero_orden ?? '').padStart(6, "0")}</b></td>
+            <td data-label="Cliente">${escapeHtml(c.nombre)}</td>
+            <td data-label="Equipo">${escapeHtml(e.modelo)}</td>
+            <td data-label="Falla">${escapeHtml(o.falla_reportada)}</td>
+            <td data-label="Acceso"><div class="access-mask">•••• <button class="btn btn-light" style="padding:1px 4px; font-size:10px" onclick="revelarClave('${o.id}', this)">Mostrar</button></div></td>
+            <td data-label="Estado"><span class="badge" style="background:#e0f2fe; color:#0369a1;">${o.estado}</span></td>
+            <td data-label="Acciones"><button class="btn btn-light" style="padding:4px 8px;" onclick="cargarEnLabel('${o.id}')"><i class="ti ti-barcode"></i> Crear Label</button></td>
         </tr>`;
     }).join("");
 }
@@ -861,17 +1084,17 @@ function renderActivosTaller() {
             asignadosFormateado = a.asignado_a.split(',').map(t => `<span style="background:#f1f5f9; border:1px solid #cbd5e1; padding:2px 6px; border-radius:4px; font-size:11px; margin-right:4px; font-weight:600;">${escapeHtml(t.trim())}</span>`).join('');
         }
         return `<tr>
-            <td><code>${escapeHtml(a.codigo)}</code></td>
-            <td><b>${escapeHtml(a.nombre)}</b></td>
-            <td>${a.cantidad} Uds</td>
-            <td>
+            <td data-label="Código"><code>${escapeHtml(a.codigo)}</code></td>
+            <td data-label="Herramienta"><b>${escapeHtml(a.nombre)}</b></td>
+            <td data-label="Cantidad">${a.cantidad} Uds</td>
+            <td data-label="Estado">
                 <select class="select-table-state" style="${styleBadge}" onchange="cambiarEstadoActivo('${a.id}', this.value)">
                     <option value="Excelente" ${a.estado_tecnico === 'Excelente' ? 'selected' : ''}>Excelente</option>
                     <option value="Desgaste Medio" ${a.estado_tecnico === 'Desgaste Medio' ? 'selected' : ''}>Desgaste Medio</option>
                     <option value="Mantenimiento" ${a.estado_tecnico === 'Mantenimiento' ? 'selected' : ''}>Mantenimiento</option>
                 </select>
             </td>
-            <td><div style="display:flex; flex-wrap:wrap; gap:4px;">${asignadosFormateado}</div></td>
+            <td data-label="Asignado"><div style="display:flex; flex-wrap:wrap; gap:4px;">${asignadosFormateado}</div></td>
         </tr>`;
     }).join("");
 }
@@ -945,12 +1168,12 @@ function renderArticulos() {
         return;
     }
     tbody.innerHTML = lista.map(a => `<tr>
-        <td><code style="font-weight:700; color:var(--blue-btn);">${escapeHtml(a.codigo)}</code></td>
-        <td><b>${escapeHtml(a.marca)}</b></td>
-        <td>${escapeHtml(a.modelo)}</td>
-        <td>${escapeHtml(a.capacidad || '-')}</td>
-        <td>${escapeHtml(a.color || '-')}</td>
-        <td>
+        <td data-label="Código"><code style="font-weight:700; color:var(--blue-btn);">${escapeHtml(a.codigo)}</code></td>
+        <td data-label="Marca"><b>${escapeHtml(a.marca)}</b></td>
+        <td data-label="Modelo">${escapeHtml(a.modelo)}</td>
+        <td data-label="Capacidad">${escapeHtml(a.capacidad || '-')}</td>
+        <td data-label="Color">${escapeHtml(a.color || '-')}</td>
+        <td data-label="Acciones">
             <button class="btn btn-light" style="padding:4px 8px; font-size:11px;" onclick="editarArticulo('${a.id}')"><i class="ti ti-edit"></i></button>
             <button class="btn btn-light" style="padding:4px 8px; font-size:11px;" onclick="eliminarArticulo('${a.id}')"><i class="ti ti-trash"></i></button>
         </td>
@@ -1340,10 +1563,10 @@ function renderEquiposLote() {
             const art = findArticulo(e.articulo_id);
             const modeloMostrar = art.codigo ? `<b style="color:var(--blue-btn);">${escapeHtml(art.codigo)}</b> · ${escapeHtml(art.marca)} ${escapeHtml(art.modelo)}${art.capacidad ? ' ' + escapeHtml(art.capacidad) : ''}${art.color ? ' ' + escapeHtml(art.color) : ''}` : escapeHtml(e.modelo);
             return `<tr>
-                <td>${modeloMostrar}</td>
-                <td><code>${escapeHtml(e.imei)}</code></td>
-                <td><b>${money(e.costo_compra)}</b></td>
-                <td><button class="btn btn-light" style="padding:3px 6px; font-size:10px;" onclick="eliminarEquipoLote('${e.id}')"><i class="ti ti-trash"></i></button></td>
+                <td data-label="Artículo">${modeloMostrar}</td>
+                <td data-label="IMEI"><code>${escapeHtml(e.imei)}</code></td>
+                <td data-label="Costo"><b>${money(e.costo_compra)}</b></td>
+                <td data-label="Acciones"><button class="btn btn-light" style="padding:3px 6px; font-size:10px;" onclick="eliminarEquipoLote('${e.id}')"><i class="ti ti-trash"></i></button></td>
             </tr>`;
         }).join('');
     }
