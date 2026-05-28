@@ -410,6 +410,7 @@ input[type=number] { -moz-appearance: textfield; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.8.6/jsrsasign-all-min.js"></script>
 </head>
 <body>
 
@@ -737,14 +738,20 @@ input[type=number] { -moz-appearance: textfield; }
                         <div style="background:#d1fae5; border:1px solid #86efac; padding:14px; border-radius:8px; color:#065f46;">
                             <b><i class="ti ti-circle-check"></i> Cliente conectado correctamente</b>
                             <div style="margin-top:12px;">
-                                <label style="color:#065f46;">Impresora principal</label>
+                                <label style="color:#065f46;"><i class="ti ti-tag"></i> Impresora para LABELS (etiquetas)</label>
+                                <div style="display:flex; gap:6px; align-items:stretch; margin-bottom:12px;">
+                                    <select id="qzImpresoraLabels" style="flex:1;" onchange="qzGuardarImpresoras()">
+                                        <option value="">-- Cargando impresoras --</option>
+                                    </select>
+                                </div>
+                                <label style="color:#065f46;"><i class="ti ti-receipt"></i> Impresora para TICKETS (recibos)</label>
                                 <div style="display:flex; gap:6px; align-items:stretch;">
-                                    <select id="qzImpresoraSelect" style="flex:1;" onchange="qzGuardarImpresora()">
+                                    <select id="qzImpresoraTickets" style="flex:1;" onchange="qzGuardarImpresoras()">
                                         <option value="">-- Cargando impresoras --</option>
                                     </select>
                                     <button class="btn btn-light" onclick="qzCargarImpresoras()" title="Refrescar lista"><i class="ti ti-refresh"></i></button>
                                 </div>
-                                <button class="btn btn-dark" style="width:100%; margin-top:10px;" onclick="qzImprimirPrueba()"><i class="ti ti-printer"></i> Imprimir Prueba por QZ Tray</button>
+                                <button class="btn btn-dark" style="width:100%; margin-top:12px;" onclick="qzImprimirPrueba()"><i class="ti ti-printer"></i> Imprimir Prueba (Labels)</button>
                             </div>
                         </div>
                     </div>
@@ -1275,7 +1282,7 @@ function val(id) { return document.getElementById(id)?.value?.trim() || ""; }
    ============================================================ */
 let _imprimiendo = false;
 
-async function imprimirContenido(htmlContenido, copias, anchoMm, altoMm) {
+async function imprimirContenido(htmlContenido, copias, anchoMm, altoMm, tipo) {
     // Evitar doble disparo que congela kiosk
     if(_imprimiendo) return;
     _imprimiendo = true;
@@ -1283,10 +1290,12 @@ async function imprimirContenido(htmlContenido, copias, anchoMm, altoMm) {
     copias = parseInt(copias) || 1;
     if(copias < 1) copias = 1;
     if(copias > 50) copias = 50;
+    tipo = tipo || 'labels';
     
     // INTENTO 1: Imprimir directo por QZ Tray (sin diálogo, como InfoPlus)
-    if(_qzConectado && qzImpresoraActiva() && anchoMm && altoMm) {
-        const ok = await qzImprimirHtml(htmlContenido, anchoMm, altoMm, copias);
+    const impresoraQz = (tipo === 'tickets') ? qzImpresoraTickets() : qzImpresoraLabels();
+    if(_qzConectado && impresoraQz) {
+        const ok = await qzImprimirHtml(htmlContenido, anchoMm, altoMm, copias, tipo);
         if(ok) {
             toast('Impreso (' + copias + ' copia' + (copias > 1 ? 's' : '') + ')');
             _imprimiendo = false;
@@ -2415,7 +2424,7 @@ function renderPatternTicketHtml(sequence) {
 
 function imprimirTicketRecepcion(orden, incluirCredenciales) {
     const ticketHtml = buildTicketHtml(orden, incluirCredenciales);
-    imprimirContenido(ticketHtml, 1);
+    imprimirContenido(ticketHtml, 1, 76, null, 'tickets');
 }
 
 function buildAccessPayload() {
@@ -2747,6 +2756,87 @@ document.getElementById('modalLabelDiag').addEventListener('click', e => {
    ============================================================ */
 let _qzConectado = false;
 
+// Certificado público de BAYOL CELL (para que QZ Tray confíe sin avisos)
+const QZ_CERTIFICADO = `-----BEGIN CERTIFICATE-----
+MIIDwzCCAqugAwIBAgIUF/OKLfJLpukDit/9lCy2eMEyZ7kwDQYJKoZIhvcNAQEL
+BQAwcTELMAkGA1UEBhMCRE8xETAPBgNVBAgMCFZhbHZlcmRlMQwwCgYDVQQHDANN
+YW8xEzARBgNVBAoMCkJBWU9MIENFTEwxDzANBgNVBAsMBlRhbGxlcjEbMBkGA1UE
+AwwSQkFZT0wgQ0VMTCBTaXN0ZW1hMB4XDTI2MDUyODE2MzY0MFoXDTQ2MDUyMzE2
+MzY0MFowcTELMAkGA1UEBhMCRE8xETAPBgNVBAgMCFZhbHZlcmRlMQwwCgYDVQQH
+DANNYW8xEzARBgNVBAoMCkJBWU9MIENFTEwxDzANBgNVBAsMBlRhbGxlcjEbMBkG
+A1UEAwwSQkFZT0wgQ0VMTCBTaXN0ZW1hMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A
+MIIBCgKCAQEA00OsJ6+GVdEDcPr9yq0A0uD8R7lNlVEPXAHHmM6tvdxFtyvGm6NT
+mN5Y2GXYHSPG+kyEdV5vtKVc6DmqnASEu59Z4cFcYs49Lbcq6vM/stlBPn2G+Lme
+U1Co985AvQN9qc/0DLzrofwUQ8R23k0QISq+aL/RvrI/WckQyuonDkCUA6aURHFf
+kFzDIf/7ceMGAMRIXD13VUI22j4i2RqvTJiXE7HOb7+XygmVuI2jaPQqugCymaW0
+QSyr3qEqTwSo2MEemXPES6yIQYC6fwaZO5RdO7i8OsJLiI9T+D0EbtEb0C1Otf0f
+8Ak8/GUlaW/0kTIJXT+C4sMky4UAuwFLKwIDAQABo1MwUTAdBgNVHQ4EFgQUIekC
+6qRSbAWWRcUD4ZHaaLPoNR0wHwYDVR0jBBgwFoAUIekC6qRSbAWWRcUD4ZHaaLPo
+NR0wDwYDVR0TAQH/BAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAQEAVpsz7VlP9ay9
+HKU06g37xqBwcxLe2wy8BzbVuW8XVySBuD1B3IcOJ5Tbug9biQsd9nvXoXT2Psdk
+HAjp4Drk9Dosr4dIUON5V9Q8N4x0z1LilgAbkXsSewxPtLal4tZW1dTvjZvHYUpk
+yBfMk5PyVW6VbatNdZi3cnRGZYEkmUadU3PLvFVczvTwFOOOe0LQPYxYJbgVrD11
+JLQsGGa4RnJLfCYCxxjhyxsC94JHM+BWbQgxQEw0q4SAXR/CrWsvChxgi1F9OCI0
+H/IOwMsfPaJug2TrK4segfFDizhlb9JPTviV9eipowF2GpiMfeafBQlG5WkqRLMH
+DnOjztecxg==
+-----END CERTIFICATE-----`;
+
+// Llave privada (firma local; riesgo mínimo, solo permite imprimir en QZ local)
+const QZ_LLAVE_PRIVADA = `-----BEGIN PRIVATE KEY-----
+MIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQDTQ6wnr4ZV0QNw
++v3KrQDS4PxHuU2VUQ9cAceYzq293EW3K8abo1OY3ljYZdgdI8b6TIR1Xm+0pVzo
+OaqcBIS7n1nhwVxizj0ttyrq8z+y2UE+fYb4uZ5TUKj3zkC9A32pz/QMvOuh/BRD
+xHbeTRAhKr5ov9G+sj9ZyRDK6icOQJQDppREcV+QXMMh//tx4wYAxEhcPXdVQjba
+PiLZGq9MmJcTsc5vv5fKCZW4jaNo9Cq6ALKZpbRBLKveoSpPBKjYwR6Zc8RLrIhB
+gLp/Bpk7lF07uLw6wkuIj1P4PQRu0RvQLU61/R/wCTz8ZSVpb/SRMgldP4LiwyTL
+hQC7AUsrAgMBAAECggEAFEAmXl961vsEA25rqWPP8mbSh+WBRFDS0hTxlvoouUxF
++nrdvMl5F+woRAXvI0vspM103PNCbeRz9WahrfbY6ksqCHPKcUYnoxwtpvvOHUyp
+7l2F9I2GWaIfsDE7D2MoRoDCef4Z8BsDrkNEyaZFZ4h7W/sXFdpsLCUT0P+E4t6t
+K10VktSHXDHK7n8U0/vnaAnqiEhlmnzxokXi59cpHjcSZNRtU5Jxlv4ASbS7G3hC
+FwcKSifBgw8gEQpQBSHm+gGRdUJU5vulk5AsFmBqFzkU2ZolW4eT4hcDEPqWA6hs
+hZfAMDidsA8asIafE9YvJHiXmivkPM+TvgbybKhVsQKBgQD1avWFvqviUtt/K4s5
+pvAB7teBP82b5ZtafA920BXhC6DIM2edyCFd0ICG4jEg5hnAggryHLM+4IrDv/xy
+AiVlkXe7dwTA1uZQfLtZBncNNDo5C6b7zMY2rIANxqw6lGjhBRCQDL9LsYqWMoX2
+vvIJqw16M6a5m0WPmdStO6jhpQKBgQDcX7X9ffFpUvmEgEbRJ0MTjtCN+DY9SOpr
+7RN7y/h1r483H0IIjjLXDa7nkKKRqZfDfkAxE3sSEu80+FJb5hmyIDmEHADlkpT3
+qH/0ZeBMEFnk1RJdVec9n9/K4WGO1dM8QoCtDsLYX410WnxV7n7GMjIV79UABTyF
+ZhEiCppAjwKBgQCfp/ygDKHvc63d9mr1j5e1+jZynBpboCzH2cuJpOeG5zSq6V4w
+NEEYsgrbNQ129JquNSt/xJILhrJflGdbl+/SOqdk6pHKDkP4+pw610zd5ys1b1Ir
+n1UXvnL0A1qKJYBxWwUiYViVmqOpAKdMFX6KMaBr7mw5dTz0pcPJCvXcDQKBgQDR
+Dws6+6t1W33SMU79Q93iQ+2dgQcThIS+9h0xqAKAwpd+l2yxaRTZ5uUyUIeo39ZV
+YwPKisyKDORYv+qBu/xMez2VEmvXXgNsHrGkTLFH94sQBwJxAPlqAKzxbnZ6ZmcK
+F5yyj/pQAfXTl7O0YZhqtVvGa8sJRe5wLq+6N4y2CQKBgQDn5tLIe4hYgupJl0i/
+myl8zfasybWLq7FU+QFZE9VSAvsLhcRI57gQyN9RP0hpyKtqx044f0A0Kc9DS7rH
+a266U2lEn8S9Lw69TyNcnMmWY9HAZRFGiy293s4q2fE4ZfPe9N6AFdVooNdR37wH
+WboKZRe8Qt4O/fHxWtRqlkh1Tw==
+-----END PRIVATE KEY-----`;
+
+// Configurar firma de QZ Tray para que NO pida permiso
+function qzConfigurarFirma() {
+    if(!qzDisponible()) return;
+    // Certificado
+    qz.security.setCertificatePromise(function(resolve, reject) {
+        resolve(QZ_CERTIFICADO);
+    });
+    // Firma con la llave privada usando jsrsasign
+    qz.security.setSignatureAlgorithm("SHA512");
+    qz.security.setSignaturePromise(function(toSign) {
+        return function(resolve, reject) {
+            try {
+                if(typeof KJUR === 'undefined') { reject('jsrsasign no cargado'); return; }
+                const sig = new KJUR.crypto.Signature({ alg: "SHA512withRSA" });
+                sig.init(QZ_LLAVE_PRIVADA);
+                sig.updateString(toSign);
+                const hex = sig.sign();
+                resolve(stob64(hextorstr(hex)));
+            } catch(e) {
+                logError('QZ firma', e);
+                reject(e);
+            }
+        };
+    });
+}
+
 function qzDisponible() {
     return typeof qz !== 'undefined';
 }
@@ -2768,6 +2858,7 @@ async function qzVerificarConexion() {
     badge.style.cssText = 'background:#fef3c7; color:#92400e;';
     
     try {
+        qzConfigurarFirma();
         // Si ya hay conexión activa, no reconectar
         if(qz.websocket.isActive()) {
             _qzConectado = true;
@@ -2801,51 +2892,72 @@ function qzMostrarConectado() {
 
 async function qzCargarImpresoras() {
     if(!_qzConectado) return;
-    const sel = document.getElementById('qzImpresoraSelect');
-    if(!sel) return;
+    const selL = document.getElementById('qzImpresoraLabels');
+    const selT = document.getElementById('qzImpresoraTickets');
+    if(!selL || !selT) return;
     try {
         const impresoras = await qz.printers.find();
         const lista = Array.isArray(impresoras) ? impresoras : [impresoras];
-        const guardada = localStorage.getItem('bayol_qz_impresora') || '';
-        sel.innerHTML = lista.map(p => `<option value="${escapeHtml(p)}" ${p === guardada ? 'selected' : ''}>${escapeHtml(p)}</option>`).join('');
-        // Si hay una guardada, mantenerla; si no, intentar detectar la 4BARCODE
-        if(!guardada) {
-            const cuatroB = lista.find(p => /4barcode|4b-|2connect/i.test(p));
-            if(cuatroB) { sel.value = cuatroB; qzGuardarImpresora(); }
+        const guardadaL = localStorage.getItem('bayol_qz_labels') || '';
+        const guardadaT = localStorage.getItem('bayol_qz_tickets') || '';
+        
+        const opciones = lista.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
+        selL.innerHTML = opciones;
+        selT.innerHTML = opciones;
+        
+        // Restaurar selección guardada o autodetectar
+        if(guardadaL) selL.value = guardadaL;
+        else {
+            const etiq = lista.find(p => /4barcode|4b-|label|2connect/i.test(p));
+            if(etiq) selL.value = etiq;
         }
+        if(guardadaT) selT.value = guardadaT;
+        else {
+            const ticket = lista.find(p => /ticket|recibo|pos|80mm|58mm/i.test(p));
+            if(ticket) selT.value = ticket;
+        }
+        qzGuardarImpresoras();
     } catch(e) {
         logError('QZ cargar impresoras', e);
-        sel.innerHTML = '<option value="">Error al listar impresoras</option>';
+        const errOpt = '<option value="">Error al listar impresoras</option>';
+        selL.innerHTML = errOpt;
+        selT.innerHTML = errOpt;
     }
 }
 
-function qzGuardarImpresora() {
-    const sel = document.getElementById('qzImpresoraSelect');
-    if(sel && sel.value) {
-        localStorage.setItem('bayol_qz_impresora', sel.value);
-        toast('Impresora seleccionada: ' + sel.value);
-    }
+function qzGuardarImpresoras() {
+    const selL = document.getElementById('qzImpresoraLabels');
+    const selT = document.getElementById('qzImpresoraTickets');
+    if(selL && selL.value) localStorage.setItem('bayol_qz_labels', selL.value);
+    if(selT && selT.value) localStorage.setItem('bayol_qz_tickets', selT.value);
+    toast('Impresoras guardadas.');
 }
 
-function qzImpresoraActiva() {
-    return localStorage.getItem('bayol_qz_impresora') || '';
+function qzImpresoraLabels() {
+    return localStorage.getItem('bayol_qz_labels') || '';
 }
 
-// Imprime HTML directo por QZ Tray. Devuelve true si lo hizo, false si no pudo.
-async function qzImprimirHtml(htmlContenido, anchoMm, altoMm, copias) {
+function qzImpresoraTickets() {
+    return localStorage.getItem('bayol_qz_tickets') || '';
+}
+
+// Imprime HTML directo por QZ Tray. tipo: 'labels' o 'tickets'. Devuelve true si lo hizo.
+async function qzImprimirHtml(htmlContenido, anchoMm, altoMm, copias, tipo) {
     if(!_qzConectado || !qzDisponible()) return false;
-    const impresora = qzImpresoraActiva();
+    const impresora = (tipo === 'tickets') ? qzImpresoraTickets() : qzImpresoraLabels();
     if(!impresora) return false;
     
     copias = parseInt(copias) || 1;
     
     try {
-        const config = qz.configs.create(impresora, {
-            size: { width: anchoMm, height: altoMm },
-            units: 'mm',
-            margins: 0,
-            copies: copias
-        });
+        const opciones = { units: 'mm', margins: 0, copies: copias };
+        // Los labels tienen tamaño fijo; los tickets usan ancho de rollo con alto automático
+        if(tipo !== 'tickets' && anchoMm && altoMm) {
+            opciones.size = { width: anchoMm, height: altoMm };
+        } else if(tipo === 'tickets' && anchoMm) {
+            opciones.size = { width: anchoMm, height: null };
+        }
+        const config = qz.configs.create(impresora, opciones);
         
         const data = [{
             type: 'html',
@@ -2867,7 +2979,7 @@ async function qzImprimirPrueba() {
     const h = parseInt(document.getElementById('cfgi_height')?.value) || 25;
     const card = document.getElementById('previewImpresoraCard');
     const contenido = `<div style="width:${w}mm; height:${h}mm; padding:1mm; font-family:monospace; box-sizing:border-box;">${card ? card.innerHTML : 'PRUEBA BAYOL CELL'}</div>`;
-    const ok = await qzImprimirHtml(contenido, w, h, 1);
+    const ok = await qzImprimirHtml(contenido, w, h, 1, 'labels');
     if(ok) toast('Prueba enviada a la impresora.');
     else alert('No se pudo imprimir. Verifica que QZ Tray esté conectado y la impresora seleccionada.');
 }
@@ -2876,18 +2988,25 @@ async function qzImprimirPrueba() {
 async function qzAutoConectar() {
     if(!qzDisponible()) return;
     try {
+        qzConfigurarFirma();
         if(!qz.websocket.isActive()) {
             await qz.websocket.connect();
         }
         _qzConectado = true;
-        const imp = qzImpresoraActiva();
-        if(!imp) {
-            // intentar detectar 4BARCODE en segundo plano
+        const impL = qzImpresoraLabels();
+        const impT = qzImpresoraTickets();
+        if(!impL || !impT) {
             try {
                 const impresoras = await qz.printers.find();
                 const lista = Array.isArray(impresoras) ? impresoras : [impresoras];
-                const cuatroB = lista.find(p => /4barcode|4b-|2connect/i.test(p));
-                if(cuatroB) localStorage.setItem('bayol_qz_impresora', cuatroB);
+                if(!impL) {
+                    const etiq = lista.find(p => /4barcode|4b-|label|2connect/i.test(p));
+                    if(etiq) localStorage.setItem('bayol_qz_labels', etiq);
+                }
+                if(!impT) {
+                    const ticket = lista.find(p => /ticket|recibo|pos|80mm|58mm/i.test(p));
+                    if(ticket) localStorage.setItem('bayol_qz_tickets', ticket);
+                }
             } catch(e) { /* silencioso */ }
         }
     } catch(e) {
@@ -3147,7 +3266,7 @@ function imprimirReglaCalibracion() {
             <div style="position:absolute; left:0; right:0; bottom:0; height:8mm;">${marcasHtml}</div>
         </div>
     `;
-    imprimirContenido(reglaHtml, 1);
+    imprimirContenido(reglaHtml, 1, w, 15);
 }
 
 function abrirConfigWindows() {
