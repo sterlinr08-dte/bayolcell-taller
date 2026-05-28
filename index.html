@@ -409,6 +409,7 @@ input[type=number] { -moz-appearance: textfield; }
 .input-with-action .quick-add-btn:hover { background: #0044aa; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.js"></script>
 </head>
 <body>
 
@@ -711,6 +712,44 @@ input[type=number] { -moz-appearance: textfield; }
 
             <!-- CONFIGURACIÓN DE IMPRESORA -->
             <div id="v-configImpresora" class="view">
+                <!-- PANEL DE CONEXIÓN QZ TRAY -->
+                <div class="card" id="qzPanelCard" style="border-top:4px solid #06b6d4;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                        <h3 style="margin:0;"><i class="ti ti-plug-connected" style="color:#06b6d4;"></i> Cliente de Impresión Directa (QZ Tray)</h3>
+                        <span id="qzEstadoBadge" class="badge" style="background:#fef3c7; color:#92400e; font-size:12px;">Verificando...</span>
+                    </div>
+                    
+                    <!-- Estado: NO instalado -->
+                    <div id="qzNoInstalado" style="display:none; margin-top:15px;">
+                        <div style="background:#fef2f2; border:1px solid #fecaca; padding:14px; border-radius:8px; color:#991b1b;">
+                            <b><i class="ti ti-alert-triangle"></i> No tienes el Cliente de Impresión instalado</b>
+                            <p style="margin:8px 0; font-size:13px; line-height:1.5;">Para imprimir directo sin diálogo (como InfoPlus), descarga e instala QZ Tray. Es gratis.</p>
+                            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
+                                <a href="https://qz.io/download/" target="_blank" class="btn btn-blue" style="text-decoration:none;"><i class="ti ti-download"></i> Descargar QZ Tray</a>
+                                <button class="btn btn-light" onclick="qzVerificarConexion()"><i class="ti ti-refresh"></i> Ya lo instalé, reconectar</button>
+                            </div>
+                            <p style="margin:10px 0 0; font-size:11px; color:#92400e;">⚠️ Durante la instalación puede pedir instalar Java. Acéptalo, QZ Tray lo necesita.</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Estado: Conectado -->
+                    <div id="qzConectado" style="display:none; margin-top:15px;">
+                        <div style="background:#d1fae5; border:1px solid #86efac; padding:14px; border-radius:8px; color:#065f46;">
+                            <b><i class="ti ti-circle-check"></i> Cliente conectado correctamente</b>
+                            <div style="margin-top:12px;">
+                                <label style="color:#065f46;">Impresora principal</label>
+                                <div style="display:flex; gap:6px; align-items:stretch;">
+                                    <select id="qzImpresoraSelect" style="flex:1;" onchange="qzGuardarImpresora()">
+                                        <option value="">-- Cargando impresoras --</option>
+                                    </select>
+                                    <button class="btn btn-light" onclick="qzCargarImpresoras()" title="Refrescar lista"><i class="ti ti-refresh"></i></button>
+                                </div>
+                                <button class="btn btn-dark" style="width:100%; margin-top:10px;" onclick="qzImprimirPrueba()"><i class="ti ti-printer"></i> Imprimir Prueba por QZ Tray</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="layout-dashboard">
                     <!-- Lado izquierdo: controles -->
                     <div class="card">
@@ -1236,7 +1275,7 @@ function val(id) { return document.getElementById(id)?.value?.trim() || ""; }
    ============================================================ */
 let _imprimiendo = false;
 
-function imprimirContenido(htmlContenido, copias) {
+async function imprimirContenido(htmlContenido, copias, anchoMm, altoMm) {
     // Evitar doble disparo que congela kiosk
     if(_imprimiendo) return;
     _imprimiendo = true;
@@ -1245,20 +1284,29 @@ function imprimirContenido(htmlContenido, copias) {
     if(copias < 1) copias = 1;
     if(copias > 50) copias = 50;
     
+    // INTENTO 1: Imprimir directo por QZ Tray (sin diálogo, como InfoPlus)
+    if(_qzConectado && qzImpresoraActiva() && anchoMm && altoMm) {
+        const ok = await qzImprimirHtml(htmlContenido, anchoMm, altoMm, copias);
+        if(ok) {
+            toast('Impreso (' + copias + ' copia' + (copias > 1 ? 's' : '') + ')');
+            _imprimiendo = false;
+            return;
+        }
+        // Si QZ falla, sigue al método de navegador abajo
+    }
+    
+    // INTENTO 2 (respaldo): Método del navegador con diálogo
     const printArea = document.getElementById('printArea');
     if(!printArea) { _imprimiendo = false; return; }
     
-    // Repetir el contenido según número de copias (cada copia en su página)
     let contenidoFinal = '';
     for(let i = 0; i < copias; i++) {
         contenidoFinal += `<div style="page-break-after: always;">${htmlContenido}</div>`;
     }
     printArea.innerHTML = contenidoFinal;
     
-    // Esperar a que las fuentes estén listas antes de imprimir (evita cuelgue en kiosk)
     const lanzarImpresion = () => {
         window.print();
-        // Limpiar el área después de imprimir para no dejar a Chrome en estado raro
         setTimeout(() => {
             printArea.innerHTML = '';
             _imprimiendo = false;
@@ -1316,6 +1364,7 @@ function startApp() {
     document.getElementById("userRole").textContent = sessionUser.rol || sessionUser.nivel_acceso || sessionUser.nivel || "Técnico";
     applyAccessControls();
     startAppRefurbPoller();
+    qzAutoConectar();
     loadAll();
 }
 
@@ -1331,7 +1380,7 @@ function nav(v, btn) {
     const activeBtn = btn || document.querySelector(".nav button.active");
     document.getElementById("pageTitle").textContent = activeBtn ? activeBtn.textContent.trim() : v;
     if(v === 'etiquetas') { setTimeout(cargarCalibracionLabelVenta, 50); }
-    if(v === 'configImpresora') { setTimeout(inicializarConfigImpresora, 50); }
+    if(v === 'configImpresora') { setTimeout(() => { inicializarConfigImpresora(); qzVerificarConexion(); }, 50); }
     if(v === 'proveedores') { volverListaProveedores(); }
     closeSidebar();
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -2249,7 +2298,7 @@ function imprimirLabelAdhesivo() {
             <b style="text-transform:uppercase; display:block; font-size:${parseInt(configF) - 1}px;">${escapeHtml(estadoText)}</b>
         </div>
     `;
-    imprimirContenido(labelHtml, copias);
+    imprimirContenido(labelHtml, copias, parseInt(configW), parseInt(configH));
 }
 
 function togglePasswordField(inputId, boton) {
@@ -2680,7 +2729,7 @@ function confirmarImprimirLabelDiag() {
         </style>
         ${_labelDiagHtmlActual}
     `;
-    imprimirContenido(conPagina, copias);
+    imprimirContenido(conPagina, copias, parseInt(w), parseInt(h));
 }
 
 // Cerrar modal de label con Escape
@@ -2692,6 +2741,159 @@ document.addEventListener('keydown', e => {
 document.getElementById('modalLabelDiag').addEventListener('click', e => {
     if(e.target.id === 'modalLabelDiag') cerrarModalLabelDiag();
 });
+
+/* ============================================================
+   QZ TRAY — IMPRESIÓN DIRECTA (como cliente InfoPlus)
+   ============================================================ */
+let _qzConectado = false;
+
+function qzDisponible() {
+    return typeof qz !== 'undefined';
+}
+
+async function qzVerificarConexion() {
+    const badge = document.getElementById('qzEstadoBadge');
+    const noInst = document.getElementById('qzNoInstalado');
+    const conect = document.getElementById('qzConectado');
+    
+    if(!qzDisponible()) {
+        badge.textContent = 'Librería no cargada';
+        badge.style.cssText = 'background:#fee2e2; color:#991b1b;';
+        if(noInst) noInst.style.display = 'block';
+        if(conect) conect.style.display = 'none';
+        return;
+    }
+    
+    badge.textContent = 'Conectando...';
+    badge.style.cssText = 'background:#fef3c7; color:#92400e;';
+    
+    try {
+        // Si ya hay conexión activa, no reconectar
+        if(qz.websocket.isActive()) {
+            _qzConectado = true;
+            qzMostrarConectado();
+            return;
+        }
+        
+        await qz.websocket.connect();
+        _qzConectado = true;
+        qzMostrarConectado();
+    } catch(e) {
+        logError('QZ conexión', e);
+        _qzConectado = false;
+        badge.textContent = 'No instalado / No activo';
+        badge.style.cssText = 'background:#fee2e2; color:#991b1b;';
+        if(noInst) noInst.style.display = 'block';
+        if(conect) conect.style.display = 'none';
+    }
+}
+
+function qzMostrarConectado() {
+    const badge = document.getElementById('qzEstadoBadge');
+    const noInst = document.getElementById('qzNoInstalado');
+    const conect = document.getElementById('qzConectado');
+    badge.textContent = '✅ Conectado';
+    badge.style.cssText = 'background:#d1fae5; color:#065f46;';
+    if(noInst) noInst.style.display = 'none';
+    if(conect) conect.style.display = 'block';
+    qzCargarImpresoras();
+}
+
+async function qzCargarImpresoras() {
+    if(!_qzConectado) return;
+    const sel = document.getElementById('qzImpresoraSelect');
+    if(!sel) return;
+    try {
+        const impresoras = await qz.printers.find();
+        const lista = Array.isArray(impresoras) ? impresoras : [impresoras];
+        const guardada = localStorage.getItem('bayol_qz_impresora') || '';
+        sel.innerHTML = lista.map(p => `<option value="${escapeHtml(p)}" ${p === guardada ? 'selected' : ''}>${escapeHtml(p)}</option>`).join('');
+        // Si hay una guardada, mantenerla; si no, intentar detectar la 4BARCODE
+        if(!guardada) {
+            const cuatroB = lista.find(p => /4barcode|4b-|2connect/i.test(p));
+            if(cuatroB) { sel.value = cuatroB; qzGuardarImpresora(); }
+        }
+    } catch(e) {
+        logError('QZ cargar impresoras', e);
+        sel.innerHTML = '<option value="">Error al listar impresoras</option>';
+    }
+}
+
+function qzGuardarImpresora() {
+    const sel = document.getElementById('qzImpresoraSelect');
+    if(sel && sel.value) {
+        localStorage.setItem('bayol_qz_impresora', sel.value);
+        toast('Impresora seleccionada: ' + sel.value);
+    }
+}
+
+function qzImpresoraActiva() {
+    return localStorage.getItem('bayol_qz_impresora') || '';
+}
+
+// Imprime HTML directo por QZ Tray. Devuelve true si lo hizo, false si no pudo.
+async function qzImprimirHtml(htmlContenido, anchoMm, altoMm, copias) {
+    if(!_qzConectado || !qzDisponible()) return false;
+    const impresora = qzImpresoraActiva();
+    if(!impresora) return false;
+    
+    copias = parseInt(copias) || 1;
+    
+    try {
+        const config = qz.configs.create(impresora, {
+            size: { width: anchoMm, height: altoMm },
+            units: 'mm',
+            margins: 0,
+            copies: copias
+        });
+        
+        const data = [{
+            type: 'html',
+            format: 'plain',
+            data: htmlContenido
+        }];
+        
+        await qz.print(config, data);
+        return true;
+    } catch(e) {
+        logError('QZ imprimir', e);
+        toast('Error al imprimir por QZ Tray, usando método normal.');
+        return false;
+    }
+}
+
+async function qzImprimirPrueba() {
+    const w = parseInt(document.getElementById('cfgi_width')?.value) || 51;
+    const h = parseInt(document.getElementById('cfgi_height')?.value) || 25;
+    const card = document.getElementById('previewImpresoraCard');
+    const contenido = `<div style="width:${w}mm; height:${h}mm; padding:1mm; font-family:monospace; box-sizing:border-box;">${card ? card.innerHTML : 'PRUEBA BAYOL CELL'}</div>`;
+    const ok = await qzImprimirHtml(contenido, w, h, 1);
+    if(ok) toast('Prueba enviada a la impresora.');
+    else alert('No se pudo imprimir. Verifica que QZ Tray esté conectado y la impresora seleccionada.');
+}
+
+// Auto-conectar QZ al iniciar sesión (silencioso)
+async function qzAutoConectar() {
+    if(!qzDisponible()) return;
+    try {
+        if(!qz.websocket.isActive()) {
+            await qz.websocket.connect();
+        }
+        _qzConectado = true;
+        const imp = qzImpresoraActiva();
+        if(!imp) {
+            // intentar detectar 4BARCODE en segundo plano
+            try {
+                const impresoras = await qz.printers.find();
+                const lista = Array.isArray(impresoras) ? impresoras : [impresoras];
+                const cuatroB = lista.find(p => /4barcode|4b-|2connect/i.test(p));
+                if(cuatroB) localStorage.setItem('bayol_qz_impresora', cuatroB);
+            } catch(e) { /* silencioso */ }
+        }
+    } catch(e) {
+        _qzConectado = false; // QZ no está corriendo, se usará método normal
+    }
+}
 
 /* ============================================================
    CONFIGURACIÓN DE IMPRESORA — PERFILES MÚLTIPLES
@@ -2915,7 +3117,7 @@ function imprimirTestImpresora() {
             ${card.innerHTML}
         </div>
     `;
-    imprimirContenido(testHtml, 1);
+    imprimirContenido(testHtml, 1, w, h);
 }
 
 function imprimirReglaCalibracion() {
