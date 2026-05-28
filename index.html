@@ -677,7 +677,11 @@ input[type=number] { -moz-appearance: textfield; }
                             <input type="range" id="cfg_barcode_h" min="25" max="70" value="42" oninput="cambiarDimensionesManual()">
                         </div>
 
-                        <div style="display:grid; grid-template-columns:1fr auto; gap:8px; margin-top:15px;">
+                        <div class="form-row" style="margin-top:15px;">
+                            <label>Cantidad de Copias</label>
+                            <input type="number" id="lbl_copias" value="1" min="1" max="50" style="font-weight:700; font-size:16px;">
+                        </div>
+                        <div style="display:grid; grid-template-columns:1fr auto; gap:8px; margin-top:10px;">
                             <button class="btn btn-blue" onclick="imprimirLabelAdhesivo()"><i class="ti ti-printer"></i> Imprimir en Label Printer</button>
                             <button class="btn btn-light" onclick="abrirModalConfigImpresora()" title="Configurar impresora 2C-LP427B"><i class="ti ti-settings"></i></button>
                         </div>
@@ -1176,7 +1180,11 @@ input[type=number] { -moz-appearance: textfield; }
             <div id="labelDiagPreview" style="display:flex; flex-direction:column; gap:10px; align-items:center; max-height:60vh; overflow-y:auto;"></div>
             <p style="text-align:center; color:var(--text-muted); font-size:12px; margin-top:10px;" id="labelDiagInfo"></p>
         </div>
-        <div class="modal-footer">
+        <div class="modal-footer" style="flex-wrap:wrap; gap:10px;">
+            <div style="display:flex; align-items:center; gap:8px; margin-right:auto;">
+                <label style="margin:0; white-space:nowrap;">Copias c/u:</label>
+                <input type="number" id="diag_copias" value="1" min="1" max="50" style="width:70px; font-weight:700; min-height:auto; padding:8px;">
+            </div>
             <button class="btn btn-light" onclick="cerrarModalLabelDiag()">Cancelar</button>
             <button class="btn btn-blue" onclick="confirmarImprimirLabelDiag()"><i class="ti ti-printer"></i> Imprimir Ahora</button>
         </div>
@@ -1211,6 +1219,51 @@ function escapeHtml(s) { return (s ?? "").toString().replace(/[&<>"']/g, m => ({
 function money(n) { return "RD$ " + Number(n || 0).toLocaleString("es-DO", { minimumFractionDigits: 2 }); }
 function getChecked(id) { return [...document.querySelectorAll("#" + id + " input:checked")].map(x => x.value).join(", "); }
 function val(id) { return document.getElementById(id)?.value?.trim() || ""; }
+
+/* ============================================================
+   IMPRESIÓN CENTRAL ESTABLE (evita congelamiento en kiosk)
+   ============================================================ */
+let _imprimiendo = false;
+
+function imprimirContenido(htmlContenido, copias) {
+    // Evitar doble disparo que congela kiosk
+    if(_imprimiendo) return;
+    _imprimiendo = true;
+    
+    copias = parseInt(copias) || 1;
+    if(copias < 1) copias = 1;
+    if(copias > 50) copias = 50;
+    
+    const printArea = document.getElementById('printArea');
+    if(!printArea) { _imprimiendo = false; return; }
+    
+    // Repetir el contenido según número de copias (cada copia en su página)
+    let contenidoFinal = '';
+    for(let i = 0; i < copias; i++) {
+        contenidoFinal += `<div style="page-break-after: always;">${htmlContenido}</div>`;
+    }
+    printArea.innerHTML = contenidoFinal;
+    
+    // Esperar a que las fuentes estén listas antes de imprimir (evita cuelgue en kiosk)
+    const lanzarImpresion = () => {
+        window.print();
+        // Limpiar el área después de imprimir para no dejar a Chrome en estado raro
+        setTimeout(() => {
+            printArea.innerHTML = '';
+            _imprimiendo = false;
+        }, 500);
+    };
+    
+    if(document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(() => {
+            setTimeout(lanzarImpresion, 150);
+        }).catch(() => {
+            setTimeout(lanzarImpresion, 300);
+        });
+    } else {
+        setTimeout(lanzarImpresion, 300);
+    }
+}
 
 async function doLogin() {
     try {
@@ -2138,14 +2191,14 @@ function imprimirLabelAdhesivo() {
     const configW = document.getElementById("cfg_width").value;
     const configF = document.getElementById("cfg_font").value;
     const configBH = document.getElementById("cfg_barcode_h").value;
+    const copias = document.getElementById("lbl_copias")?.value || 1;
     
     // Guardar calibración en localStorage para próximas impresiones
     localStorage.setItem('bayol_lbl_w', configW);
     localStorage.setItem('bayol_lbl_f', configF);
     localStorage.setItem('bayol_lbl_bh', configBH);
     
-    // CSS @page se inyecta dinámicamente con el tamaño exacto del label
-    document.getElementById("printArea").innerHTML = `
+    const labelHtml = `
         <style>
             @page { size: ${configW}mm auto; margin: 0; }
             @media print {
@@ -2164,7 +2217,7 @@ function imprimirLabelAdhesivo() {
             <b style="text-transform:uppercase; display:block; margin-top:4px;">${escapeHtml(estadoText)}</b>
         </div>
     `;
-    setTimeout(() => window.print(), 100);
+    imprimirContenido(labelHtml, copias);
 }
 
 function togglePasswordField(inputId, boton) {
@@ -2280,10 +2333,8 @@ function renderPatternTicketHtml(sequence) {
 }
 
 function imprimirTicketRecepcion(orden, incluirCredenciales) {
-    const printArea = document.getElementById('printArea');
-    if(!printArea) return;
-    printArea.innerHTML = buildTicketHtml(orden, incluirCredenciales);
-    window.print();
+    const ticketHtml = buildTicketHtml(orden, incluirCredenciales);
+    imprimirContenido(ticketHtml, 1);
 }
 
 function buildAccessPayload() {
@@ -2548,14 +2599,18 @@ function generarHtmlLabelDiag(equipo) {
     `;
 }
 
+let _labelDiagHtmlActual = '';
+
 function abrirPreviewLabelDiagIndividual(equipoId) {
     const equipo = cache.refurb.find(r => r.id === equipoId);
     if(!equipo) return alert('Equipo no encontrado.');
     
     const previewHtml = generarHtmlLabelDiag(equipo);
+    _labelDiagHtmlActual = previewHtml;
     document.getElementById('labelDiagPreview').innerHTML = previewHtml;
     document.getElementById('labelDiagInfo').textContent = 'Se imprimirá 1 label';
     document.getElementById('modalLabelTitulo').textContent = 'Vista Previa del Label';
+    document.getElementById('diag_copias').value = 1;
     document.getElementById('modalLabelDiag').classList.add('active');
 }
 
@@ -2565,9 +2620,11 @@ function abrirPreviewLabelsLote() {
     if(!equipos.length) return alert('Este lote no tiene equipos.');
     
     const previewHtml = equipos.map(e => generarHtmlLabelDiag(e)).join('');
+    _labelDiagHtmlActual = previewHtml;
     document.getElementById('labelDiagPreview').innerHTML = previewHtml;
-    document.getElementById('labelDiagInfo').textContent = `Se imprimirán ${equipos.length} label${equipos.length === 1 ? '' : 's'} de este lote`;
+    document.getElementById('labelDiagInfo').textContent = `Se imprimirán ${equipos.length} label${equipos.length === 1 ? '' : 's'} de este lote (× copias)`;
     document.getElementById('modalLabelTitulo').textContent = `Vista Previa · ${equipos.length} Labels`;
+    document.getElementById('diag_copias').value = 1;
     document.getElementById('modalLabelDiag').classList.add('active');
 }
 
@@ -2576,10 +2633,9 @@ function cerrarModalLabelDiag() {
 }
 
 function confirmarImprimirLabelDiag() {
-    const preview = document.getElementById('labelDiagPreview').innerHTML;
-    document.getElementById('printArea').innerHTML = preview;
+    const copias = document.getElementById('diag_copias')?.value || 1;
     cerrarModalLabelDiag();
-    setTimeout(() => window.print(), 100);
+    imprimirContenido(_labelDiagHtmlActual, copias);
 }
 
 // Cerrar modal de label con Escape
@@ -2802,7 +2858,7 @@ function imprimirTestImpresora() {
     const m = parseInt(document.getElementById('cfgi_margin').value);
     const card = document.getElementById('previewImpresoraCard');
     
-    document.getElementById('printArea').innerHTML = `
+    const testHtml = `
         <style>
             @page { size: ${w}mm ${h}mm; margin: 0; }
             @media print {
@@ -2814,7 +2870,7 @@ function imprimirTestImpresora() {
             ${card.innerHTML}
         </div>
     `;
-    setTimeout(() => window.print(), 100);
+    imprimirContenido(testHtml, 1);
 }
 
 function imprimirReglaCalibracion() {
@@ -2831,7 +2887,7 @@ function imprimirReglaCalibracion() {
         marcasHtml += `<div style="position:absolute; left:${i}mm; bottom:0; width:${grosor}; height:${altura}; background:#000;">${label}</div>`;
     }
     
-    document.getElementById('printArea').innerHTML = `
+    const reglaHtml = `
         <style>
             @page { size: ${w}mm 15mm; margin: 0; }
             @media print {
@@ -2844,11 +2900,11 @@ function imprimirReglaCalibracion() {
             <div style="position:absolute; left:0; right:0; bottom:0; height:8mm;">${marcasHtml}</div>
         </div>
     `;
-    setTimeout(() => window.print(), 100);
+    imprimirContenido(reglaHtml, 1);
 }
 
 function abrirConfigWindows() {
-    alert('Para abrir la configuración de la impresora:\n\n1. Presiona Windows + R\n2. Escribe: control printers\n3. Presiona Enter\n4. Clic derecho en "2C-LP427B" → Preferencias de impresión\n\nDesde ahí ajustas tamaño del papel, velocidad, densidad, etc.');
+    alert('Para abrir la configuración de la impresora:\n\n1. Presiona Windows + R\n2. Escribe: control printers\n3. Presiona Enter\n4. Clic derecho en "4BARCODE 4B-2074B" → Preferencias de impresión\n\nDesde ahí ajustas tamaño del papel, velocidad, densidad, etc.');
 }
 
 // Cerrar modal nuevo perfil con Escape y clic fuera
