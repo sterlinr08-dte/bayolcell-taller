@@ -685,6 +685,16 @@ input[type=number] { -moz-appearance: textfield; }
                             <div style="display:flex; justify-content:space-between;"><label>Altura del Código de Barras (px)</label><span id="val_bar" style="font-size:12px; font-weight:bold;">35px</span></div>
                             <input type="range" id="cfg_barcode_h" min="15" max="70" value="35" oninput="cambiarDimensionesManual()">
                         </div>
+                        
+                        <div class="form-row">
+                            <label><i class="ti ti-rotate"></i> Rotación al imprimir</label>
+                            <select id="cfg_rotacion" onchange="cambiarDimensionesManual()">
+                                <option value="0">0° — Normal</option>
+                                <option value="90">90° — Girar a la derecha</option>
+                                <option value="180">180° — Invertido</option>
+                                <option value="270">270° — Girar a la izquierda</option>
+                            </select>
+                        </div>
 
                         <div class="form-row" style="margin-top:15px;">
                             <label>Cantidad de Copias</label>
@@ -962,6 +972,15 @@ input[type=number] { -moz-appearance: textfield; }
                                             <div class="form-row">
                                                 <div style="display:flex; justify-content:space-between;"><label>Tamaño Letra (px)</label><span id="dlbl_f_val" style="font-size:11px; font-weight:bold;">9px</span></div>
                                                 <input type="range" id="dlbl_font" min="6" max="16" value="9" oninput="cambiarDimensionesLabelDiag()">
+                                            </div>
+                                            <div class="form-row">
+                                                <label style="font-size:11px;"><i class="ti ti-rotate"></i> Rotación al imprimir</label>
+                                                <select id="dlbl_rotacion" onchange="cambiarDimensionesLabelDiag()" style="min-height:auto; padding:8px;">
+                                                    <option value="0">0° — Normal</option>
+                                                    <option value="90">90° — Girar derecha</option>
+                                                    <option value="180">180° — Invertido</option>
+                                                    <option value="270">270° — Girar izquierda</option>
+                                                </select>
                                             </div>
                                             <small style="color:var(--text-muted); font-size:10px;">La calibración se guarda en este navegador.</small>
                                         </div>
@@ -1947,9 +1966,11 @@ function cargarCalibracionLabelDiag() {
     const w = localStorage.getItem('bayol_dlbl_w') || '51';
     const h = localStorage.getItem('bayol_dlbl_h') || '25';
     const f = localStorage.getItem('bayol_dlbl_f') || '9';
+    const rot = localStorage.getItem('bayol_dlbl_rot') || '0';
     document.getElementById('dlbl_width').value = w;
     document.getElementById('dlbl_height').value = h;
     document.getElementById('dlbl_font').value = f;
+    if(document.getElementById('dlbl_rotacion')) document.getElementById('dlbl_rotacion').value = rot;
     cambiarDimensionesLabelDiag();
 }
 
@@ -1957,12 +1978,14 @@ function cambiarDimensionesLabelDiag() {
     const w = document.getElementById('dlbl_width').value;
     const h = document.getElementById('dlbl_height').value;
     const f = document.getElementById('dlbl_font').value;
+    const rot = document.getElementById('dlbl_rotacion')?.value || '0';
     document.getElementById('dlbl_w_val').textContent = w + 'mm';
     document.getElementById('dlbl_h_val').textContent = h + 'mm';
     document.getElementById('dlbl_f_val').textContent = f + 'px';
     localStorage.setItem('bayol_dlbl_w', w);
     localStorage.setItem('bayol_dlbl_h', h);
     localStorage.setItem('bayol_dlbl_f', f);
+    localStorage.setItem('bayol_dlbl_rot', rot);
 }
 
 function onArticuloChange() {
@@ -2222,6 +2245,7 @@ function cambiarDimensionesManual() {
     const h = document.getElementById("cfg_height").value;
     const f = document.getElementById("cfg_font").value;
     const bh = document.getElementById("cfg_barcode_h").value;
+    const rot = document.getElementById("cfg_rotacion")?.value || '0';
     document.getElementById("val_w").textContent = w + "mm";
     document.getElementById("val_h").textContent = h + "mm";
     document.getElementById("val_font").textContent = f + "px";
@@ -2235,6 +2259,7 @@ function cambiarDimensionesManual() {
     localStorage.setItem('bayol_lbl_h', h);
     localStorage.setItem('bayol_lbl_f', f);
     localStorage.setItem('bayol_lbl_bh', bh);
+    localStorage.setItem('bayol_lbl_rot', rot);
 }
 
 function cargarCalibracionLabelVenta() {
@@ -2242,10 +2267,12 @@ function cargarCalibracionLabelVenta() {
     const h = localStorage.getItem('bayol_lbl_h');
     const f = localStorage.getItem('bayol_lbl_f');
     const bh = localStorage.getItem('bayol_lbl_bh');
+    const rot = localStorage.getItem('bayol_lbl_rot') || '0';
     if(w) document.getElementById("cfg_width").value = w;
     if(h) document.getElementById("cfg_height").value = h;
     if(f) document.getElementById("cfg_font").value = f;
     if(bh) document.getElementById("cfg_barcode_h").value = bh;
+    if(document.getElementById("cfg_rotacion")) document.getElementById("cfg_rotacion").value = rot;
     cambiarDimensionesManual();
 }
 
@@ -2256,6 +2283,47 @@ function presetLabel2x1() {
     document.getElementById("cfg_barcode_h").value = 35;
     cambiarDimensionesManual();
     toast('Preset 2x1 pulgadas aplicado.');
+}
+
+/* Envuelve un contenido en un wrapper rotado para imprimir.
+   Devuelve { html, anchoFinal, altoFinal } con las dimensiones del papel rotado. */
+function aplicarRotacionImpresion(htmlContenido, anchoMm, altoMm, rotacion) {
+    rotacion = parseInt(rotacion) || 0;
+    if(rotacion === 0) {
+        return { html: htmlContenido, anchoFinal: anchoMm, altoFinal: altoMm };
+    }
+    
+    // Para 90° y 270°: el papel sigue siendo W×H pero el contenido se renderiza como H×W y se rota
+    if(rotacion === 90 || rotacion === 270) {
+        // El contenedor del contenido tiene las dimensiones intercambiadas (H×W)
+        // y se rota para encajar en el papel W×H
+        const contenidoAncho = altoMm;
+        const contenidoAlto = anchoMm;
+        const translateX = (rotacion === 90) ? anchoMm : 0;
+        const translateY = (rotacion === 90) ? 0 : altoMm;
+        const htmlRotado = `
+            <div style="width:${anchoMm}mm; height:${altoMm}mm; position:relative; overflow:hidden;">
+                <div style="width:${contenidoAncho}mm; height:${contenidoAlto}mm; position:absolute; top:0; left:0; transform:translate(${translateX}mm, ${translateY}mm) rotate(${rotacion}deg); transform-origin:0 0;">
+                    ${htmlContenido}
+                </div>
+            </div>
+        `;
+        return { html: htmlRotado, anchoFinal: anchoMm, altoFinal: altoMm };
+    }
+    
+    // Para 180°: mismas dimensiones, rotar todo
+    if(rotacion === 180) {
+        const htmlRotado = `
+            <div style="width:${anchoMm}mm; height:${altoMm}mm; position:relative; overflow:hidden;">
+                <div style="width:${anchoMm}mm; height:${altoMm}mm; position:absolute; top:0; left:0; transform:rotate(180deg); transform-origin:center center;">
+                    ${htmlContenido}
+                </div>
+            </div>
+        `;
+        return { html: htmlRotado, anchoFinal: anchoMm, altoFinal: altoMm };
+    }
+    
+    return { html: htmlContenido, anchoFinal: anchoMm, altoFinal: altoMm };
 }
 
 function actualizarLabelLive() {
@@ -2276,10 +2344,11 @@ function imprimirLabelAdhesivo() {
     const imei = document.getElementById("lbl_imei").value;
     const estadoText = document.getElementById("lbl_estado_texto").value;
     const logoHtml = document.getElementById("lblLiveLogo").innerHTML;
-    const configW = document.getElementById("cfg_width").value;
-    const configH = document.getElementById("cfg_height").value;
+    const configW = parseInt(document.getElementById("cfg_width").value);
+    const configH = parseInt(document.getElementById("cfg_height").value);
     const configF = document.getElementById("cfg_font").value;
     const configBH = document.getElementById("cfg_barcode_h").value;
+    const rotacion = parseInt(document.getElementById("cfg_rotacion")?.value) || 0;
     const copias = document.getElementById("lbl_copias")?.value || 1;
     
     // Guardar calibración en localStorage para próximas impresiones
@@ -2287,16 +2356,10 @@ function imprimirLabelAdhesivo() {
     localStorage.setItem('bayol_lbl_h', configH);
     localStorage.setItem('bayol_lbl_f', configF);
     localStorage.setItem('bayol_lbl_bh', configBH);
+    localStorage.setItem('bayol_lbl_rot', rotacion);
     
-    const labelHtml = `
-        <style>
-            @page { size: ${configW}mm ${configH}mm; margin: 0; }
-            @media print {
-                body { margin: 0; padding: 0; }
-                .print-area { margin: 0 !important; padding: 0 !important; }
-            }
-        </style>
-        <div style="width:${configW}mm; height:${configH}mm; padding:2px; font-family:monospace; text-align:center; color:#000; font-size:${configF}px; box-sizing:border-box; overflow:hidden;">
+    const contenidoLabel = `
+        <div style="width:100%; height:100%; padding:2px; font-family:monospace; text-align:center; color:#000; font-size:${configF}px; box-sizing:border-box; overflow:hidden;">
             <div style="font-size:${parseInt(configF) + 6}px; line-height:1;">${logoHtml}</div>
             <div style="border-bottom:1px solid #000; margin:2px 0;"></div>
             <div style="text-align:left; line-height: 1.2;">
@@ -2307,7 +2370,21 @@ function imprimirLabelAdhesivo() {
             <b style="text-transform:uppercase; display:block; font-size:${parseInt(configF) - 1}px;">${escapeHtml(estadoText)}</b>
         </div>
     `;
-    imprimirContenido(labelHtml, copias, parseInt(configW), parseInt(configH));
+    
+    // Aplicar rotación si está configurada
+    const { html: contenidoFinal, anchoFinal, altoFinal } = aplicarRotacionImpresion(contenidoLabel, configW, configH, rotacion);
+    
+    const labelHtml = `
+        <style>
+            @page { size: ${anchoFinal}mm ${altoFinal}mm; margin: 0; }
+            @media print {
+                body { margin: 0; padding: 0; }
+                .print-area { margin: 0 !important; padding: 0 !important; }
+            }
+        </style>
+        ${contenidoFinal}
+    `;
+    imprimirContenido(labelHtml, copias, anchoFinal, altoFinal);
 }
 
 function togglePasswordField(inputId, boton) {
@@ -2724,21 +2801,26 @@ function cerrarModalLabelDiag() {
 
 function confirmarImprimirLabelDiag() {
     const copias = document.getElementById('diag_copias')?.value || 1;
-    const w = localStorage.getItem('bayol_dlbl_w') || '51';
-    const h = localStorage.getItem('bayol_dlbl_h') || '25';
+    const w = parseInt(localStorage.getItem('bayol_dlbl_w') || '51');
+    const h = parseInt(localStorage.getItem('bayol_dlbl_h') || '25');
+    const rot = parseInt(localStorage.getItem('bayol_dlbl_rot') || '0');
     cerrarModalLabelDiag();
+    
+    // Aplicar rotación (si es 0 no cambia nada)
+    const { html: contenidoFinal, anchoFinal, altoFinal } = aplicarRotacionImpresion(_labelDiagHtmlActual, w, h, rot);
+    
     // Inyectar @page con altura FIJA para que la térmica corte bien cada etiqueta
     const conPagina = `
         <style>
-            @page { size: ${w}mm ${h}mm; margin: 0; }
+            @page { size: ${anchoFinal}mm ${altoFinal}mm; margin: 0; }
             @media print {
                 body { margin: 0; padding: 0; }
                 .print-area { margin: 0 !important; padding: 0 !important; }
             }
         </style>
-        ${_labelDiagHtmlActual}
+        ${contenidoFinal}
     `;
-    imprimirContenido(conPagina, copias, parseInt(w), parseInt(h));
+    imprimirContenido(conPagina, copias, anchoFinal, altoFinal);
 }
 
 // Cerrar modal de label con Escape
