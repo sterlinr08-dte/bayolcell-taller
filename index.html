@@ -2286,29 +2286,32 @@ function presetLabel2x1() {
 }
 
 /* Envuelve un contenido en un wrapper rotado para imprimir.
-   Devuelve { html, anchoFinal, altoFinal } con las dimensiones del papel rotado. */
+   En 90°/270° INTERCAMBIA W×H del papel (porque el papel físico cambia de orientación).
+   Devuelve { html, anchoFinal, altoFinal } con las dimensiones FINALES del papel. */
 function aplicarRotacionImpresion(htmlContenido, anchoMm, altoMm, rotacion) {
     rotacion = parseInt(rotacion) || 0;
+    
     if(rotacion === 0) {
         return { html: htmlContenido, anchoFinal: anchoMm, altoFinal: altoMm };
     }
     
-    // Para 90° y 270°: el papel sigue siendo W×H pero el contenido se renderiza como H×W y se rota
+    // Para 90° y 270°: el PAPEL FINAL tiene W×H intercambiados
+    // Ejemplo: 51×25 (2x1 horizontal) → 25×51 (1x2 vertical)
     if(rotacion === 90 || rotacion === 270) {
-        // El contenedor del contenido tiene las dimensiones intercambiadas (H×W)
-        // y se rota para encajar en el papel W×H
-        const contenidoAncho = altoMm;
-        const contenidoAlto = anchoMm;
-        const translateX = (rotacion === 90) ? anchoMm : 0;
-        const translateY = (rotacion === 90) ? 0 : altoMm;
+        const papelW = altoMm;   // el ancho del papel ahora es el alto original
+        const papelH = anchoMm;  // el alto del papel ahora es el ancho original
+        // El contenido se renderiza con el tamaño original (anchoMm × altoMm) y se rota
+        // para encajar en el nuevo papel (papelW × papelH)
+        const translateX = (rotacion === 90) ? papelW : 0;
+        const translateY = (rotacion === 90) ? 0 : papelH;
         const htmlRotado = `
-            <div style="width:${anchoMm}mm; height:${altoMm}mm; position:relative; overflow:hidden;">
-                <div style="width:${contenidoAncho}mm; height:${contenidoAlto}mm; position:absolute; top:0; left:0; transform:translate(${translateX}mm, ${translateY}mm) rotate(${rotacion}deg); transform-origin:0 0;">
+            <div style="width:${papelW}mm; height:${papelH}mm; position:relative; overflow:hidden;">
+                <div style="width:${anchoMm}mm; height:${altoMm}mm; position:absolute; top:0; left:0; transform:translate(${translateX}mm, ${translateY}mm) rotate(${rotacion}deg); transform-origin:0 0;">
                     ${htmlContenido}
                 </div>
             </div>
         `;
-        return { html: htmlRotado, anchoFinal: anchoMm, altoFinal: altoMm };
+        return { html: htmlRotado, anchoFinal: papelW, altoFinal: papelH };
     }
     
     // Para 180°: mismas dimensiones, rotar todo
