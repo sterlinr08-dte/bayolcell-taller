@@ -1032,13 +1032,25 @@ input[type=number] { -moz-appearance: textfield; }
 
             <!-- REACONDICIONADOS - NUEVO FLUJO -->
             <div id="v-refurb" class="view">
-                <!-- VISTA 1: LISTA DE LOTES POR PESTAÑA -->
-                <div id="reacondListaLotes">
-                    <div class="card">
-                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
-                            <h3 style="margin:0;"><i class="ti ti-recycle" style="color:#06b6d4;"></i> Reacondicionados</h3>
-                            <button class="btn btn-light" onclick="cargarLotesReacond()" style="padding:6px 12px; font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
-                        </div>
+                <!-- PESTAÑAS EXTERNAS DEL MÓDULO -->
+                <div style="background:#fff; border-radius:12px; padding:6px; margin-bottom:15px; display:flex; gap:4px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+                    <button id="reacondMainTabLotes" onclick="cambiarMainTabReacond('lotes')" class="reacond-main-tab active" style="flex:1; padding:12px; border:0; background:var(--blue-btn); color:#fff; border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">
+                        <i class="ti ti-stack"></i> Lotes
+                    </button>
+                    <button id="reacondMainTabCatalogo" onclick="cambiarMainTabReacond('catalogo')" class="reacond-main-tab" style="flex:1; padding:12px; border:0; background:transparent; color:var(--text-muted); border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">
+                        <i class="ti ti-list-details"></i> Catálogo de Fallas
+                    </button>
+                </div>
+                
+                <!-- CONTENIDO PESTAÑA LOTES -->
+                <div id="reacondMainContentLotes">
+                    <!-- VISTA 1: LISTA DE LOTES POR PESTAÑA -->
+                    <div id="reacondListaLotes">
+                        <div class="card">
+                            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
+                                <h3 style="margin:0;"><i class="ti ti-recycle" style="color:#06b6d4;"></i> Reacondicionados</h3>
+                                <button class="btn btn-light" onclick="cargarLotesReacond()" style="padding:6px 12px; font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
+                            </div>
                         
                         <!-- Tabs -->
                         <div class="tabs" style="display:flex; gap:4px; border-bottom:2px solid var(--border-color); margin-bottom:15px; flex-wrap:wrap;">
@@ -1093,9 +1105,80 @@ input[type=number] { -moz-appearance: textfield; }
                         <div id="reacondEquiposLista"></div>
                     </div>
                 </div>
+                </div>
+                <!-- /CONTENIDO PESTAÑA LOTES -->
+                
+                <!-- CONTENIDO PESTAÑA CATÁLOGO DE FALLAS -->
+                <div id="reacondMainContentCatalogo" style="display:none;">
+                    <div class="card">
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
+                            <h3 style="margin:0;"><i class="ti ti-list-details" style="color:#6366f1;"></i> Catálogo de Fallas</h3>
+                            <div style="display:flex; gap:6px;">
+                                <button class="btn btn-light" onclick="cargarCatalogoFallas()" style="padding:6px 10px; font-size:12px;"><i class="ti ti-refresh"></i></button>
+                                <button class="btn btn-dark" style="padding:6px 12px; background:#6366f1;" onclick="abrirModalFalla()"><i class="ti ti-plus"></i> Nueva Falla</button>
+                            </div>
+                        </div>
+                        
+                        <div style="background:#dbeafe; border:1px solid #93c5fd; padding:10px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#1e40af;">
+                            <b><i class="ti ti-info-circle"></i> Estas fallas se usarán en la evaluación.</b> Cada una tiene un nombre completo y uno corto para imprimir en el label.
+                        </div>
+                        
+                        <!-- Buscador -->
+                        <div class="form-row">
+                            <input type="text" id="fallasBuscador" placeholder="🔍 Buscar falla..." oninput="renderCatalogoFallas()" style="width:100%;">
+                        </div>
+                        
+                        <!-- Contenedor del catálogo -->
+                        <div id="fallasContainer" style="margin-top:15px;">
+                            <p style="color:var(--text-muted); text-align:center; padding:20px;">Cargando...</p>
+                        </div>
+                    </div>
+                </div>
+                <!-- /CONTENIDO PESTAÑA CATÁLOGO -->
             </div>
         </section>
     </main>
+</div>
+
+<!-- MODAL: CREAR/EDITAR FALLA -->
+<div id="modalFalla" class="modal-backdrop">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3><i class="ti ti-alert-triangle"></i> <span id="modalFallaTitulo">Nueva Falla</span></h3>
+            <button class="modal-close" onclick="cerrarModalFalla()">✕</button>
+        </div>
+        <div class="modal-body">
+            <input id="mod_falla_id" type="hidden">
+            <div class="form-row">
+                <label>Categoría *</label>
+                <select id="mod_falla_categoria"></select>
+            </div>
+            <div class="form-row">
+                <label>Nombre completo de la falla *</label>
+                <input id="mod_falla_nombre" placeholder="Ej. Pantalla rayada en esquina superior">
+                <small style="color:var(--text-muted); font-size:11px;">Nombre que verás en la evaluación.</small>
+            </div>
+            <div class="form-row">
+                <label>Nombre corto para label *</label>
+                <input id="mod_falla_corto" placeholder="Ej. PANT RAYADA" maxlength="40" style="text-transform:uppercase;">
+                <small style="color:var(--text-muted); font-size:11px;">Texto corto que sale impreso en el label adhesivo. Máximo 40 caracteres.</small>
+            </div>
+            <div class="form-row">
+                <label>Descripción (opcional)</label>
+                <textarea id="mod_falla_desc" rows="2" placeholder="Detalles adicionales..." style="resize:vertical;"></textarea>
+            </div>
+            <div class="form-row">
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" id="mod_falla_activa" checked>
+                    <span>Falla activa (disponible para usar)</span>
+                </label>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" onclick="cerrarModalFalla()">Cancelar</button>
+            <button class="btn btn-blue" onclick="guardarFalla()"><i class="ti ti-check"></i> Guardar</button>
+        </div>
+    </div>
 </div>
 
 <!-- MODAL: CREAR PROVEEDOR -->
@@ -1319,7 +1402,7 @@ const CONFIG_KEY = "sb_publishable_PynS5ZjKoQ36HCpguVzxaw_KZOlagtz";
 const supabaseClient = supabase.createClient(CONFIG_URL, CONFIG_KEY);
 
 let sessionUser = null;
-let cache = { ordenes: [], clientes: [], equipos: [], piezas: [], activos: [], refurb: [], proveedores: [], lotes: [], articulos: [] };
+let cache = { ordenes: [], clientes: [], equipos: [], piezas: [], activos: [], refurb: [], proveedores: [], lotes: [], articulos: [], fallaCategorias: [], fallas: [] };
 let proveedorActualId = null;
 let loteActualId = null;
 let refreshTimer = null;
@@ -2456,6 +2539,224 @@ async function marcarEvaluado(equipoId) {
         toast('Equipo evaluado.');
     } catch(e) {
         logError('Marcar evaluado', e);
+        alert(getFriendlyError(e));
+    }
+}
+
+/* ============================================================
+   REACONDICIONADOS - PESTAÑAS PRINCIPALES (Lotes / Catálogo)
+   ============================================================ */
+function cambiarMainTabReacond(tab) {
+    document.getElementById('reacondMainContentLotes').style.display = tab === 'lotes' ? 'block' : 'none';
+    document.getElementById('reacondMainContentCatalogo').style.display = tab === 'catalogo' ? 'block' : 'none';
+    
+    const btnLotes = document.getElementById('reacondMainTabLotes');
+    const btnCat = document.getElementById('reacondMainTabCatalogo');
+    if(tab === 'lotes') {
+        btnLotes.style.background = 'var(--blue-btn)';
+        btnLotes.style.color = '#fff';
+        btnCat.style.background = 'transparent';
+        btnCat.style.color = 'var(--text-muted)';
+        cargarLotesReacond();
+    } else {
+        btnCat.style.background = '#6366f1';
+        btnCat.style.color = '#fff';
+        btnLotes.style.background = 'transparent';
+        btnLotes.style.color = 'var(--text-muted)';
+        cargarCatalogoFallas();
+    }
+}
+
+/* ============================================================
+   CATÁLOGO DE FALLAS
+   ============================================================ */
+async function cargarCatalogoFallas() {
+    try {
+        const [{ data: cats, error: e1 }, { data: fallas, error: e2 }] = await Promise.all([
+            supabaseClient.from('falla_categorias').select('*').order('orden', { ascending: true }),
+            supabaseClient.from('fallas').select('*').order('nombre', { ascending: true })
+        ]);
+        if(e1) throw e1;
+        if(e2) throw e2;
+        cache.fallaCategorias = cats || [];
+        cache.fallas = fallas || [];
+        renderCatalogoFallas();
+    } catch(e) {
+        logError('Cargar catálogo fallas', e);
+        const cont = document.getElementById('fallasContainer');
+        if(cont) cont.innerHTML = `<p style="color:#ef4444; text-align:center; padding:20px;">Error al cargar: ${escapeHtml(getFriendlyError(e))}</p>`;
+    }
+}
+
+function renderCatalogoFallas() {
+    const cont = document.getElementById('fallasContainer');
+    if(!cont) return;
+    const buscador = (document.getElementById('fallasBuscador')?.value || '').toLowerCase().trim();
+    
+    const cats = (cache.fallaCategorias || []).filter(c => c.activa);
+    const fallas = (cache.fallas || []);
+    
+    // Filtrar fallas por buscador
+    const fallasFiltradas = buscador
+        ? fallas.filter(f => (f.nombre || '').toLowerCase().includes(buscador) || (f.nombre_corto || '').toLowerCase().includes(buscador))
+        : fallas;
+    
+    // Agrupar fallas por categoría
+    const porCategoria = {};
+    fallasFiltradas.forEach(f => {
+        const catId = f.categoria_id || 'sin_categoria';
+        if(!porCategoria[catId]) porCategoria[catId] = [];
+        porCategoria[catId].push(f);
+    });
+    
+    if(fallasFiltradas.length === 0) {
+        cont.innerHTML = buscador
+            ? `<p style="color:var(--text-muted); text-align:center; padding:30px;">No hay fallas que coincidan con "${escapeHtml(buscador)}"</p>`
+            : `<p style="color:var(--text-muted); text-align:center; padding:30px;">No hay fallas registradas. Crea la primera con "+ Nueva Falla".</p>`;
+        return;
+    }
+    
+    let html = '';
+    cats.forEach(cat => {
+        const lista = porCategoria[cat.id] || [];
+        if(lista.length === 0) return;
+        html += `
+            <div style="margin-bottom:20px;">
+                <div style="display:flex; align-items:center; gap:8px; padding:8px 12px; background:${cat.color}15; border-left:4px solid ${cat.color}; border-radius:6px; margin-bottom:8px;">
+                    <i class="ti ${escapeHtml(cat.icono)}" style="color:${cat.color}; font-size:18px;"></i>
+                    <b style="color:${cat.color}; font-size:14px; text-transform:uppercase;">${escapeHtml(cat.nombre)}</b>
+                    <span style="background:${cat.color}; color:#fff; padding:2px 8px; border-radius:10px; font-size:11px; margin-left:auto;">${lista.length}</span>
+                </div>
+                <div style="padding-left:8px;">
+                    ${lista.map(f => `
+                        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-bottom:1px solid #f1f5f9; gap:8px;">
+                            <div style="flex:1; min-width:0;">
+                                <div style="font-size:13px; ${f.activa ? '' : 'text-decoration:line-through; color:var(--text-muted);'}">${escapeHtml(f.nombre)}</div>
+                                <div style="font-size:10px; color:#6366f1; font-weight:700; margin-top:2px;">${escapeHtml(f.nombre_corto || '')}</div>
+                            </div>
+                            <div style="display:flex; gap:4px; flex-shrink:0;">
+                                <button onclick="editarFalla('${f.id}')" style="background:#dbeafe; color:#1e40af; border:0; padding:6px 8px; border-radius:6px; cursor:pointer;" title="Editar"><i class="ti ti-edit"></i></button>
+                                <button onclick="eliminarFalla('${f.id}')" style="background:#fee2e2; color:#991b1b; border:0; padding:6px 8px; border-radius:6px; cursor:pointer;" title="Eliminar"><i class="ti ti-trash"></i></button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    });
+    
+    // Fallas sin categoría
+    if(porCategoria['sin_categoria']) {
+        const lista = porCategoria['sin_categoria'];
+        html += `
+            <div style="margin-bottom:20px;">
+                <div style="padding:8px 12px; background:#f1f5f9; border-radius:6px; margin-bottom:8px;">
+                    <b style="color:#64748b; font-size:14px;">SIN CATEGORÍA</b>
+                </div>
+                ${lista.map(f => `
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-bottom:1px solid #f1f5f9;">
+                        <div style="flex:1;">
+                            <div style="font-size:13px;">${escapeHtml(f.nombre)}</div>
+                            <div style="font-size:10px; color:#6366f1; font-weight:700;">${escapeHtml(f.nombre_corto || '')}</div>
+                        </div>
+                        <div style="display:flex; gap:4px;">
+                            <button onclick="editarFalla('${f.id}')" style="background:#dbeafe; color:#1e40af; border:0; padding:6px 8px; border-radius:6px; cursor:pointer;"><i class="ti ti-edit"></i></button>
+                            <button onclick="eliminarFalla('${f.id}')" style="background:#fee2e2; color:#991b1b; border:0; padding:6px 8px; border-radius:6px; cursor:pointer;"><i class="ti ti-trash"></i></button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+    
+    cont.innerHTML = html;
+}
+
+function abrirModalFalla() {
+    document.getElementById('mod_falla_id').value = '';
+    document.getElementById('mod_falla_nombre').value = '';
+    document.getElementById('mod_falla_corto').value = '';
+    document.getElementById('mod_falla_desc').value = '';
+    document.getElementById('mod_falla_activa').checked = true;
+    document.getElementById('modalFallaTitulo').textContent = 'Nueva Falla';
+    
+    // Llenar select de categorías
+    const sel = document.getElementById('mod_falla_categoria');
+    sel.innerHTML = '<option value="">-- Seleccionar categoría --</option>' + 
+        (cache.fallaCategorias || []).filter(c => c.activa).map(c => 
+            `<option value="${c.id}">${escapeHtml(c.nombre)}</option>`
+        ).join('');
+    
+    document.getElementById('modalFalla').classList.add('active');
+}
+
+function editarFalla(id) {
+    const f = (cache.fallas || []).find(x => x.id === id);
+    if(!f) return;
+    
+    // Llenar select de categorías
+    const sel = document.getElementById('mod_falla_categoria');
+    sel.innerHTML = '<option value="">-- Seleccionar categoría --</option>' + 
+        (cache.fallaCategorias || []).filter(c => c.activa).map(c => 
+            `<option value="${c.id}" ${c.id === f.categoria_id ? 'selected' : ''}>${escapeHtml(c.nombre)}</option>`
+        ).join('');
+    
+    document.getElementById('mod_falla_id').value = f.id;
+    document.getElementById('mod_falla_nombre').value = f.nombre || '';
+    document.getElementById('mod_falla_corto').value = f.nombre_corto || '';
+    document.getElementById('mod_falla_desc').value = f.descripcion || '';
+    document.getElementById('mod_falla_activa').checked = f.activa !== false;
+    document.getElementById('modalFallaTitulo').textContent = 'Editar Falla';
+    document.getElementById('modalFalla').classList.add('active');
+}
+
+function cerrarModalFalla() {
+    document.getElementById('modalFalla').classList.remove('active');
+}
+
+async function guardarFalla() {
+    const id = document.getElementById('mod_falla_id').value;
+    const categoria_id = document.getElementById('mod_falla_categoria').value || null;
+    const nombre = document.getElementById('mod_falla_nombre').value.trim();
+    const nombre_corto = document.getElementById('mod_falla_corto').value.trim().toUpperCase();
+    const descripcion = document.getElementById('mod_falla_desc').value.trim() || null;
+    const activa = document.getElementById('mod_falla_activa').checked;
+    
+    if(!nombre) return alert('El nombre completo es obligatorio.');
+    if(!nombre_corto) return alert('El nombre corto para label es obligatorio.');
+    if(nombre_corto.length > 40) return alert('El nombre corto debe tener máximo 40 caracteres.');
+    
+    const datos = { categoria_id, nombre, nombre_corto, descripcion, activa };
+    
+    try {
+        if(id) {
+            const { error } = await supabaseClient.from('fallas').update(datos).eq('id', id);
+            if(error) throw error;
+            toast('Falla actualizada.');
+        } else {
+            const { error } = await supabaseClient.from('fallas').insert([datos]);
+            if(error) throw error;
+            toast('Falla creada.');
+        }
+        cerrarModalFalla();
+        await cargarCatalogoFallas();
+    } catch(e) {
+        logError('Guardar falla', e);
+        alert(getFriendlyError(e));
+    }
+}
+
+async function eliminarFalla(id) {
+    const f = (cache.fallas || []).find(x => x.id === id);
+    if(!f) return;
+    if(!confirm(`¿Eliminar la falla "${f.nombre}"?\n\nEsta acción no se puede deshacer.`)) return;
+    try {
+        const { error } = await supabaseClient.from('fallas').delete().eq('id', id);
+        if(error) throw error;
+        toast('Falla eliminada.');
+        await cargarCatalogoFallas();
+    } catch(e) {
+        logError('Eliminar falla', e);
         alert(getFriendlyError(e));
     }
 }
