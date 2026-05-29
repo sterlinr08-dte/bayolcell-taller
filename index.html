@@ -1197,12 +1197,15 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
             <!-- REACONDICIONADOS - NUEVO FLUJO -->
             <div id="v-refurb" class="view">
                 <!-- PESTAÑAS EXTERNAS DEL MÓDULO -->
-                <div style="background:#fff; border-radius:12px; padding:6px; margin-bottom:15px; display:flex; gap:4px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                    <button id="reacondMainTabLotes" onclick="cambiarMainTabReacond('lotes')" class="reacond-main-tab active" style="flex:1; padding:12px; border:0; background:var(--blue-btn); color:#fff; border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">
+                <div style="background:#fff; border-radius:12px; padding:6px; margin-bottom:15px; display:flex; gap:4px; box-shadow:0 1px 3px rgba(0,0,0,0.05); flex-wrap:wrap;">
+                    <button id="reacondMainTabLotes" onclick="cambiarMainTabReacond('lotes')" class="reacond-main-tab active" style="flex:1; min-width:90px; padding:12px; border:0; background:var(--blue-btn); color:#fff; border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">
                         <i class="ti ti-stack"></i> Lotes
                     </button>
-                    <button id="reacondMainTabCatalogo" onclick="cambiarMainTabReacond('catalogo')" class="reacond-main-tab" style="flex:1; padding:12px; border:0; background:transparent; color:var(--text-muted); border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">
+                    <button id="reacondMainTabCatalogo" onclick="cambiarMainTabReacond('catalogo')" class="reacond-main-tab" style="flex:1; min-width:90px; padding:12px; border:0; background:transparent; color:var(--text-muted); border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">
                         <i class="ti ti-list-details"></i> Catálogo de Fallas
+                    </button>
+                    <button id="reacondMainTabDevoluciones" onclick="cambiarMainTabReacond('devoluciones')" class="reacond-main-tab" style="flex:1; min-width:90px; padding:12px; border:0; background:transparent; color:var(--text-muted); border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">
+                        <i class="ti ti-rotate-2"></i> Devoluciones
                     </button>
                 </div>
                 
@@ -1305,6 +1308,25 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                     </div>
                 </div>
                 <!-- /CONTENIDO PESTAÑA CATÁLOGO -->
+                
+                <!-- CONTENIDO PESTAÑA DEVOLUCIONES -->
+                <div id="reacondMainContentDevoluciones" style="display:none;">
+                    <div class="card">
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
+                            <h3 style="margin:0;"><i class="ti ti-rotate-2" style="color:#dc2626;"></i> Devoluciones de Equipos</h3>
+                            <button class="btn btn-blue" onclick="abrirModalNuevaDevolucion()" style="background:linear-gradient(180deg,#dc2626,#991b1b); box-shadow:0 4px 0 #7f1d1d, 0 5px 10px rgba(220,38,38,0.3);">
+                                <i class="ti ti-plus"></i> Registrar Devolución
+                            </button>
+                        </div>
+                        <div style="background:#fef2f2; border:1px solid #fecaca; padding:12px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#991b1b;">
+                            <b><i class="ti ti-info-circle"></i> Aquí registras equipos que el cliente devolvió.</b> El sistema detecta automáticamente el historial completo y devuelve el equipo al flujo de reparación.
+                        </div>
+                        <div id="devolucionesLista">
+                            <p style="color:var(--text-muted); text-align:center; padding:30px; font-size:13px;">Cargando devoluciones...</p>
+                        </div>
+                    </div>
+                </div>
+                <!-- /CONTENIDO PESTAÑA DEVOLUCIONES -->
             </div>
 
             <!-- ============= CONFIGURACIÓN ============= -->
@@ -1561,6 +1583,79 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
         <div class="modal-footer">
             <button class="btn btn-light" onclick="cerrarModalLabelVenta()">Cancelar</button>
             <button class="btn btn-blue" onclick="imprimirLabelVenta()" style="background:#5b21b6;"><i class="ti ti-printer"></i> Imprimir</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: REGISTRAR DEVOLUCIÓN -->
+<div id="modalDevolucion" class="modal-backdrop">
+    <div class="modal-box" style="max-width:850px; width:95%;">
+        <div class="modal-header" style="background:linear-gradient(135deg, #dc2626, #991b1b); color:#fff; border-radius:12px 12px 0 0;">
+            <h3 style="color:#fff;"><i class="ti ti-rotate-2"></i> Registrar Devolución</h3>
+            <button class="modal-close" onclick="cerrarModalDevolucion()" style="color:#fff;">✕</button>
+        </div>
+        <div class="modal-body" style="max-height:80vh; overflow-y:auto;">
+            <input id="dev_equipo_id" type="hidden">
+            
+            <!-- PASO 1: Seleccionar equipo despachado -->
+            <h4 style="margin:0 0 8px; font-size:13px; color:#dc2626; text-transform:uppercase;"><i class="ti ti-search"></i> 1. Buscar equipo despachado</h4>
+            <div class="form-row">
+                <label>Selecciona el equipo que el cliente devolvió</label>
+                <div id="ss-dev-equipo"></div>
+                <small style="color:var(--text-muted); font-size:11px;">Busca por IMEI, modelo o cliente.</small>
+            </div>
+            
+            <!-- INFO DEL EQUIPO (se carga al seleccionar) -->
+            <div id="devInfoEquipo" style="display:none; margin-bottom:15px;"></div>
+            
+            <!-- PASO 2: Motivo y problemas -->
+            <div id="devCamposExtras" style="display:none;">
+                <h4 style="margin:15px 0 8px; font-size:13px; color:#dc2626; text-transform:uppercase;"><i class="ti ti-message"></i> 2. Motivo de la devolución</h4>
+                <div class="form-row">
+                    <label>¿Por qué devolvió el cliente? *</label>
+                    <textarea id="dev_motivo" rows="2" placeholder="Ej. El equipo se apaga solo, no carga, etc." style="resize:vertical;"></textarea>
+                </div>
+                
+                <h4 style="margin:15px 0 8px; font-size:13px; color:#dc2626; text-transform:uppercase;"><i class="ti ti-list-check"></i> 3. Problemas reportados</h4>
+                <div style="background:#f8fafc; padding:10px; border-radius:8px; margin-bottom:10px;">
+                    <p style="font-size:11px; color:var(--text-muted); margin:0 0 8px;">Selecciona los problemas que el cliente reportó (las fallas detectadas en evaluación):</p>
+                    <div id="devProblemasChecklist" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:6px;"></div>
+                </div>
+                
+                <!-- PASO 4: Cliente que devolvió (opcional) -->
+                <div class="form-row">
+                    <label>Cliente que devolvió (opcional)</label>
+                    <input id="dev_cliente" placeholder="Nombre del cliente">
+                </div>
+                
+                <!-- PASO 5: Re-asignar técnico -->
+                <h4 style="margin:15px 0 8px; font-size:13px; color:#dc2626; text-transform:uppercase;"><i class="ti ti-user-plus"></i> 4. Asignar técnico para la nueva reparación</h4>
+                <div class="form-row">
+                    <label>Técnico a cargo (puede ser el mismo de antes)</label>
+                    <div id="ss-dev-tecnico"></div>
+                </div>
+                
+                <!-- Diagnóstico inicial opcional -->
+                <div class="form-row">
+                    <label>Diagnóstico inicial (opcional)</label>
+                    <textarea id="dev_diagnostico" rows="2" placeholder="Tu primera impresión al revisar el equipo..." style="resize:vertical;"></textarea>
+                </div>
+                
+                <!-- Aviso de qué pasará -->
+                <div style="background:linear-gradient(135deg, #fef3c7, #fde68a); border:2px solid #f59e0b; padding:12px; border-radius:10px; font-size:12px; color:#78350f;">
+                    <b><i class="ti ti-alert-triangle"></i> ¿Qué sucederá al guardar?</b>
+                    <ul style="margin:6px 0 0 18px; padding:0; line-height:1.5;">
+                        <li>El equipo cambiará a estado <b>"En Proceso"</b></li>
+                        <li>Se incrementará el contador "Devuelto X veces"</li>
+                        <li>El técnico verá el equipo en su panel con historial completo</li>
+                        <li>Quedará registrado en el historial del equipo</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" onclick="cerrarModalDevolucion()">Cancelar</button>
+            <button class="btn btn-blue" onclick="guardarDevolucion()" style="background:linear-gradient(180deg,#dc2626,#991b1b); box-shadow:0 4px 0 #7f1d1d, 0 5px 10px rgba(220,38,38,0.3);"><i class="ti ti-check"></i> Registrar Devolución</button>
         </div>
     </div>
 </div>
@@ -3292,8 +3387,10 @@ function renderEquipoReacondCard(eq, num) {
             <div style="flex:1; min-width:200px;">
                 <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                     <span style="background:var(--blue-btn); color:#fff; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700;">#${num}</span>
+                    ${eq.veces_devuelto > 0 ? `<span title="Equipo devuelto ${eq.veces_devuelto} vez(es)" style="font-size:16px;">🔄</span>` : ''}
                     <b style="font-size:14px;">${escapeHtml(eq.modelo || 'Sin modelo')}</b>
                     <span class="badge" style="${badgeColor} font-size:11px;">${badgeText}</span>
+                    ${eq.veces_devuelto > 0 ? `<span class="badge" style="background:#fee2e2; color:#991b1b; font-size:10px; font-weight:700;">DEVUELTO ${eq.veces_devuelto}×</span>` : ''}
                     ${tecnico ? `<span class="badge" style="background:#e0e7ff; color:#3730a3; font-size:11px;"><i class="ti ti-user"></i> ${escapeHtml(tecnico.nombre)}</span>` : ''}
                 </div>
                 <div style="font-size:12px; color:var(--text-muted); margin-top:6px;">
@@ -3333,21 +3430,32 @@ async function marcarEvaluado(equipoId) {
 function cambiarMainTabReacond(tab) {
     document.getElementById('reacondMainContentLotes').style.display = tab === 'lotes' ? 'block' : 'none';
     document.getElementById('reacondMainContentCatalogo').style.display = tab === 'catalogo' ? 'block' : 'none';
+    const devCont = document.getElementById('reacondMainContentDevoluciones');
+    if(devCont) devCont.style.display = tab === 'devoluciones' ? 'block' : 'none';
     
     const btnLotes = document.getElementById('reacondMainTabLotes');
     const btnCat = document.getElementById('reacondMainTabCatalogo');
+    const btnDev = document.getElementById('reacondMainTabDevoluciones');
+    
+    // Reset todos
+    [btnLotes, btnCat, btnDev].forEach(b => { 
+        if(b) { b.style.background = 'transparent'; b.style.color = 'var(--text-muted)'; }
+    });
+    
     if(tab === 'lotes') {
         btnLotes.style.background = 'var(--blue-btn)';
         btnLotes.style.color = '#fff';
-        btnCat.style.background = 'transparent';
-        btnCat.style.color = 'var(--text-muted)';
         cargarLotesReacond();
-    } else {
+    } else if(tab === 'catalogo') {
         btnCat.style.background = '#6366f1';
         btnCat.style.color = '#fff';
-        btnLotes.style.background = 'transparent';
-        btnLotes.style.color = 'var(--text-muted)';
         cargarCatalogoFallas();
+    } else if(tab === 'devoluciones') {
+        if(btnDev) {
+            btnDev.style.background = 'linear-gradient(180deg,#dc2626,#991b1b)';
+            btnDev.style.color = '#fff';
+        }
+        cargarDevoluciones();
     }
 }
 
@@ -4223,22 +4331,26 @@ async function abrirPanelProceso(equipoId) {
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return alert('Equipo no encontrado.');
     
-    // Cargar piezas y fallas
+    // Cargar piezas, fallas y devoluciones previas
     let piezas = [];
     let fallas = [];
+    let devsPrev = [];
     try {
-        const [pzRes, flRes] = await Promise.all([
+        const [pzRes, flRes, devRes] = await Promise.all([
             supabaseClient.from('equipo_piezas_pedidas').select('*').eq('equipo_id', equipoId).order('creado_en', { ascending: true }),
-            supabaseClient.from('equipo_fallas').select('*').eq('equipo_id', equipoId)
+            supabaseClient.from('equipo_fallas').select('*').eq('equipo_id', equipoId),
+            supabaseClient.from('equipo_devoluciones').select('*').eq('equipo_id', equipoId).order('fecha_devolucion', { ascending: false })
         ]);
         piezas = pzRes.data || [];
         fallas = flRes.data || [];
+        devsPrev = devRes.data || [];
     } catch(e) {
         logError('Cargar panel proceso', e);
     }
     
     const tecnico = eq.tecnico_asignado_id ? (cache.tecnicos || []).find(t => t.id === eq.tecnico_asignado_id) : null;
     const estado = eq.estado_evaluacion || 'en_proceso';
+    const esEquipoDevuelto = (eq.veces_devuelto || 0) > 0;
     
     // ====== STEPPER VISUAL ======
     // Definir el orden de pasos
@@ -4371,12 +4483,35 @@ async function abrirPanelProceso(equipoId) {
             </div>
             <div class="modal-body" style="max-height:75vh; overflow-y:auto;">
                 <div style="background:#f1f5f9; padding:12px; border-radius:8px; margin-bottom:15px;">
-                    <b style="font-size:15px;">${escapeHtml(eq.modelo || 'Equipo')}</b><br>
+                    <b style="font-size:15px;">${escapeHtml(eq.modelo || 'Equipo')}</b>
+                    ${esEquipoDevuelto ? `<span class="badge" style="background:#fee2e2; color:#991b1b; margin-left:8px; font-size:11px;">🔄 DEVUELTO ${eq.veces_devuelto}×</span>` : ''}
+                    <br>
                     <span style="color:var(--text-muted); font-size:12px;">
                         IMEI: ${escapeHtml(eq.imei || '—')} 
                         ${tecnico ? ` · 👤 ${escapeHtml(tecnico.nombre)}` : ''}
+                        ${eq.ciclo_actual > 1 ? ` · Ciclo ${eq.ciclo_actual}` : ''}
                     </span>
                 </div>
+                
+                ${esEquipoDevuelto && devsPrev.length > 0 ? `
+                <div style="background:linear-gradient(135deg, #fef2f2, #fee2e2); border:2px solid #dc2626; padding:14px; border-radius:12px; margin-bottom:15px; box-shadow:0 4px 12px rgba(220, 38, 38, 0.15);">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+                        <i class="ti ti-rotate-2" style="color:#dc2626; font-size:22px;"></i>
+                        <b style="color:#991b1b; font-size:14px;">⚠️ EQUIPO DEVUELTO - Historial de Devoluciones</b>
+                    </div>
+                    <div style="font-size:12px; color:#7f1d1d;">
+                        ${devsPrev.slice(0, 5).map((d, idx) => {
+                            const fecha = new Date(d.fecha_devolucion).toLocaleDateString('es-DO', { dateStyle:'medium' });
+                            return `<div style="background:#fff; padding:8px 10px; border-radius:6px; margin-bottom:6px; border-left:3px solid #dc2626;">
+                                <b>Devolución ${devsPrev.length - idx} · ${escapeHtml(fecha)}</b>
+                                ${d.cliente_que_devolvio ? `<span style="color:#64748b;"> · ${escapeHtml(d.cliente_que_devolvio)}</span>` : ''}
+                                <div style="margin-top:3px;"><b>Motivo:</b> ${escapeHtml(d.motivo_devolucion)}</div>
+                                ${d.problemas_reportados ? `<div><b>Problemas:</b> ${escapeHtml(d.problemas_reportados)}</div>` : ''}
+                                ${d.diagnostico_inicial ? `<div><b>Diagnóstico:</b> ${escapeHtml(d.diagnostico_inicial)}</div>` : ''}
+                            </div>`;
+                        }).join('')}
+                    </div>
+                </div>` : ''}
                 
                 <h4 style="margin:0 0 8px; font-size:13px; color:var(--blue-btn); text-transform:uppercase;"><i class="ti ti-progress"></i> Progreso de Reparación</h4>
                 ${stepperHtml}
@@ -4743,6 +4878,332 @@ async function imprimirLabelVenta() {
     
     cerrarModalLabelVenta();
     imprimirContenido(labelHtml, copias, anchoFinal, altoFinal);
+}
+
+/* ============================================================
+   MÓDULO DE DEVOLUCIONES
+   ============================================================ */
+let _devolucionesCache = [];
+
+async function cargarDevoluciones() {
+    const cont = document.getElementById('devolucionesLista');
+    if(!cont) return;
+    cont.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:30px; font-size:13px;">Cargando devoluciones...</p>';
+    
+    try {
+        const { data, error } = await supabaseClient
+            .from('equipo_devoluciones')
+            .select('*')
+            .order('fecha_devolucion', { ascending: false });
+        if(error) throw error;
+        _devolucionesCache = data || [];
+        renderDevoluciones();
+    } catch(e) {
+        logError('Cargar devoluciones', e);
+        cont.innerHTML = `<p style="color:#dc2626; text-align:center; padding:20px;">Error al cargar: ${escapeHtml(getFriendlyError(e))}</p>`;
+    }
+}
+
+function renderDevoluciones() {
+    const cont = document.getElementById('devolucionesLista');
+    if(!cont) return;
+    if(_devolucionesCache.length === 0) {
+        cont.innerHTML = `<p style="color:var(--text-muted); text-align:center; padding:30px; font-size:13px;">No hay devoluciones registradas. Cuando un cliente devuelva un equipo, regístralo aquí.</p>`;
+        return;
+    }
+    
+    cont.innerHTML = _devolucionesCache.map(d => {
+        const eq = (cache.refurb || []).find(r => r.id === d.equipo_id);
+        const fecha = new Date(d.fecha_devolucion).toLocaleString('es-DO', { dateStyle:'short', timeStyle:'short' });
+        const cicloTxt = d.ciclo > 1 ? ` · Ciclo ${d.ciclo}` : '';
+        const estadoActual = eq ? (eq.estado_evaluacion || 'pendiente') : 'desconocido';
+        const estadoLabel = obtenerEtiquetaEstado(estadoActual);
+        
+        return `<div class="pieza-card" data-item-id="${d.id}" style="border-left:4px solid #dc2626;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap;">
+                <div style="flex:1; min-width:200px;">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <i class="ti ti-rotate-2" style="color:#dc2626; font-size:18px;"></i>
+                        <b style="font-size:14px;">${escapeHtml(eq?.modelo || 'Equipo desconocido')}</b>
+                        ${d.ciclo > 1 ? `<span class="badge" style="background:#fee2e2; color:#991b1b; font-size:10px;">DEVUELTO ${d.ciclo - 1}× ANTES</span>` : ''}
+                        <span class="badge" style="background:${estadoLabel.bg}; color:${estadoLabel.color}; font-size:10px;">${estadoLabel.text}</span>
+                    </div>
+                    <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
+                        <i class="ti ti-barcode"></i> IMEI: ${escapeHtml(eq?.imei || '—')}
+                        · <i class="ti ti-calendar"></i> ${escapeHtml(fecha)}${cicloTxt}
+                        ${d.cliente_que_devolvio ? ` · <i class="ti ti-user"></i> ${escapeHtml(d.cliente_que_devolvio)}` : ''}
+                    </div>
+                    <div style="background:#fef2f2; padding:8px 10px; border-radius:6px; margin-top:8px; font-size:12px;">
+                        <b style="color:#991b1b;">Motivo:</b> ${escapeHtml(d.motivo_devolucion)}
+                    </div>
+                    ${d.problemas_reportados ? `<div style="background:#fef3c7; padding:6px 10px; border-radius:6px; margin-top:4px; font-size:11px;">
+                        <b style="color:#92400e;">Problemas:</b> ${escapeHtml(d.problemas_reportados)}
+                    </div>` : ''}
+                    ${d.diagnostico_inicial ? `<div style="background:#f1f5f9; padding:6px 10px; border-radius:6px; margin-top:4px; font-size:11px;">
+                        <b>Diagnóstico:</b> ${escapeHtml(d.diagnostico_inicial)}
+                    </div>` : ''}
+                </div>
+                <div style="display:flex; gap:6px; align-items:center; flex-shrink:0;">
+                    ${eq ? `<button class="btn btn-dark" style="padding:8px 12px;" onclick="abrirPanelProceso('${eq.id}')"><i class="ti ti-tool"></i> Trabajar</button>` : ''}
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function obtenerEtiquetaEstado(estado) {
+    const map = {
+        'pendiente': { text: '🟡 Pendiente', bg:'#fef3c7', color:'#92400e' },
+        'en_evaluacion': { text: '⚠️ Evaluación', bg:'#dbeafe', color:'#1e40af' },
+        'evaluado': { text: '✅ Evaluado', bg:'#d1fae5', color:'#065f46' },
+        'en_proceso': { text: '🔧 En Proceso', bg:'#fed7aa', color:'#9a3412' },
+        'tecnico_recibio': { text: '📦 Recibido', bg:'#bfdbfe', color:'#1e40af' },
+        'espera_pieza': { text: '⏳ Espera pieza', bg:'#fde68a', color:'#92400e' },
+        'listo_revision': { text: '👁️ Revisión final', bg:'#e9d5ff', color:'#6b21a8' },
+        'listo_venta': { text: '🛒 Listo Venta', bg:'#ddd6fe', color:'#5b21b6' },
+        'vendido': { text: '✅ Despachado', bg:'#d1fae5', color:'#065f46' }
+    };
+    return map[estado] || { text: estado, bg:'#f1f5f9', color:'#64748b' };
+}
+
+async function abrirModalNuevaDevolucion() {
+    // Reset campos
+    document.getElementById('dev_equipo_id').value = '';
+    document.getElementById('dev_motivo').value = '';
+    document.getElementById('dev_cliente').value = '';
+    document.getElementById('dev_diagnostico').value = '';
+    document.getElementById('devInfoEquipo').style.display = 'none';
+    document.getElementById('devInfoEquipo').innerHTML = '';
+    document.getElementById('devCamposExtras').style.display = 'none';
+    document.getElementById('devProblemasChecklist').innerHTML = '';
+    
+    // Smart-select de equipos despachados
+    const despachados = (cache.refurb || []).filter(r => r.estado_evaluacion === 'vendido');
+    
+    if(despachados.length === 0) {
+        alert('No hay equipos despachados aún. Primero debes tener equipos en estado "Despachado" para poder registrar devoluciones.');
+        return;
+    }
+    
+    smartSelectInit({
+        containerId: 'ss-dev-equipo',
+        placeholder: '🔍 Buscar por IMEI, modelo o marca...',
+        items: despachados.map(eq => ({
+            id: eq.id,
+            label: `${eq.modelo || 'Equipo'} · IMEI: ${eq.imei || '—'}`,
+            sub: [
+                eq.marca,
+                eq.capacidad,
+                eq.veces_devuelto > 0 ? `Devuelto ${eq.veces_devuelto}×` : null
+            ].filter(x => x).join(' · '),
+            search: [eq.modelo, eq.imei, eq.marca, eq.capacidad].filter(x => x).join(' ').toLowerCase(),
+            meta: eq.veces_devuelto > 0 ? `${eq.veces_devuelto}×` : ''
+        })),
+        value: '',
+        onChange: (id) => {
+            if(id) cargarHistorialEquipoDevolucion(id);
+            else {
+                document.getElementById('devInfoEquipo').style.display = 'none';
+                document.getElementById('devCamposExtras').style.display = 'none';
+            }
+        }
+    });
+    
+    // Smart-select de técnicos activos
+    const tecnicosActivos = (cache.tecnicos || []).filter(t => t.activo);
+    smartSelectInit({
+        containerId: 'ss-dev-tecnico',
+        placeholder: '🔍 Buscar técnico...',
+        items: tecnicosActivos.map(t => ({
+            id: t.id,
+            label: t.nombre,
+            sub: [t.especialidad, t.telefono].filter(x => x).join(' · '),
+            search: [t.nombre, t.especialidad].filter(x => x).join(' ').toLowerCase(),
+            meta: t.rol === 'admin' ? 'ADMIN' : ''
+        })),
+        value: '',
+        onChange: () => {}
+    });
+    
+    document.getElementById('modalDevolucion').classList.add('active');
+    if(typeof inyectarBotonesVolver === 'function') inyectarBotonesVolver();
+}
+
+function cerrarModalDevolucion() {
+    document.getElementById('modalDevolucion').classList.remove('active');
+}
+
+async function cargarHistorialEquipoDevolucion(equipoId) {
+    const eq = (cache.refurb || []).find(r => r.id === equipoId);
+    if(!eq) return;
+    
+    document.getElementById('dev_equipo_id').value = equipoId;
+    
+    // Cargar historial: fallas, piezas, devoluciones previas, lote
+    try {
+        const [fallasRes, piezasRes, devsRes, histRes] = await Promise.all([
+            supabaseClient.from('equipo_fallas').select('*').eq('equipo_id', equipoId),
+            supabaseClient.from('equipo_piezas_pedidas').select('*').eq('equipo_id', equipoId),
+            supabaseClient.from('equipo_devoluciones').select('*').eq('equipo_id', equipoId).order('fecha_devolucion', { ascending: false }),
+            supabaseClient.from('equipo_historial').select('*').eq('equipo_id', equipoId).order('fecha', { ascending: false }).limit(10)
+        ]);
+        
+        const fallas = fallasRes.data || [];
+        const piezas = piezasRes.data || [];
+        const devsPrev = devsRes.data || [];
+        const historial = histRes.data || [];
+        const lote = (cache.lotes || []).find(l => l.id === eq.lote_id);
+        const proveedor = lote ? (cache.proveedores || []).find(p => p.id === lote.proveedor_id) : null;
+        
+        // Construir info del equipo
+        const fechaCompra = lote ? new Date(lote.fecha_compra || lote.creado_en).toLocaleDateString('es-DO') : '—';
+        const totalPiezas = piezas.reduce((s, p) => s + ((p.cantidad||1) * (p.costo_unitario||0)), 0);
+        const costoTotal = (eq.costo_compra || 0) + totalPiezas;
+        
+        document.getElementById('devInfoEquipo').style.display = 'block';
+        document.getElementById('devInfoEquipo').innerHTML = `
+            <div style="background:linear-gradient(135deg, #f1f5f9, #e2e8f0); border-radius:10px; padding:14px; margin-top:15px;">
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
+                    <i class="ti ti-device-mobile" style="color:var(--blue-btn); font-size:20px;"></i>
+                    <b style="font-size:15px;">${escapeHtml(eq.modelo || 'Equipo')}</b>
+                    ${eq.veces_devuelto > 0 ? `<span class="badge" style="background:#fee2e2; color:#991b1b;">⚠️ Ya devuelto ${eq.veces_devuelto}×</span>` : ''}
+                </div>
+                
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:8px; font-size:12px; margin-bottom:10px;">
+                    <div><b>IMEI:</b><br>${escapeHtml(eq.imei || '—')}</div>
+                    ${eq.capacidad ? `<div><b>Capacidad:</b><br>${escapeHtml(eq.capacidad)}</div>` : ''}
+                    <div><b>Compra:</b><br>${escapeHtml(fechaCompra)}</div>
+                    ${proveedor ? `<div><b>Proveedor:</b><br>${escapeHtml(proveedor.nombre)}</div>` : ''}
+                    ${lote ? `<div><b>Lote:</b><br>${escapeHtml(lote.codigo_lote || '—')}</div>` : ''}
+                    <div><b>Costo total invertido:</b><br><span style="color:#dc2626; font-weight:700;">${money(costoTotal)}</span></div>
+                </div>
+                
+                ${fallas.length > 0 ? `
+                <div style="margin-top:10px; padding-top:10px; border-top:1px dashed #cbd5e1;">
+                    <b style="font-size:11px; color:#991b1b; text-transform:uppercase;"><i class="ti ti-alert-triangle"></i> Fallas detectadas anteriormente:</b>
+                    <div style="margin-top:6px;">
+                        ${fallas.map(f => `<span class="badge" style="background:#fee2e2; color:#991b1b; font-size:10px; margin:2px;">${escapeHtml(f.falla_corto || f.falla_nombre)}</span>`).join('')}
+                    </div>
+                </div>` : ''}
+                
+                ${piezas.length > 0 ? `
+                <div style="margin-top:10px; padding-top:10px; border-top:1px dashed #cbd5e1;">
+                    <b style="font-size:11px; color:#1e40af; text-transform:uppercase;"><i class="ti ti-tools"></i> Piezas usadas en reparaciones previas:</b>
+                    <div style="margin-top:4px; font-size:11px;">
+                        ${piezas.map(p => `<div>• ${escapeHtml(p.pieza_nombre || 'Pieza')} ×${p.cantidad || 1} ${p.estado === 'rechazada' ? '(rechazada)' : ''}</div>`).join('')}
+                    </div>
+                </div>` : ''}
+                
+                ${devsPrev.length > 0 ? `
+                <div style="margin-top:10px; padding-top:10px; border-top:1px dashed #cbd5e1;">
+                    <b style="font-size:11px; color:#dc2626; text-transform:uppercase;"><i class="ti ti-rotate-2"></i> Devoluciones anteriores (${devsPrev.length}):</b>
+                    <div style="margin-top:4px; font-size:11px;">
+                        ${devsPrev.slice(0, 3).map(d => {
+                            const fd = new Date(d.fecha_devolucion).toLocaleDateString('es-DO');
+                            return `<div style="background:#fef2f2; padding:4px 8px; border-radius:4px; margin-top:3px;">• ${escapeHtml(fd)}: ${escapeHtml(d.motivo_devolucion.substring(0, 80))}${d.motivo_devolucion.length > 80 ? '...' : ''}</div>`;
+                        }).join('')}
+                    </div>
+                </div>` : ''}
+            </div>
+        `;
+        
+        // Llenar checklist de problemas con las fallas conocidas + opciones genéricas
+        const todasFallas = cache.fallas || [];
+        const fallasConocidas = todasFallas.filter(f => f.activa !== false);
+        document.getElementById('devProblemasChecklist').innerHTML = fallasConocidas.map(f => {
+            const yaEstaba = fallas.some(ef => ef.falla_id === f.id);
+            return `<label style="display:flex; align-items:center; gap:6px; padding:6px 8px; background:${yaEstaba ? '#fef3c7' : '#fff'}; border:1px solid #e2e8f0; border-radius:6px; cursor:pointer; font-size:12px;">
+                <input type="checkbox" name="dev_problema" value="${escapeHtml(f.nombre_corto || f.nombre)}" data-falla-id="${f.id}">
+                <span>${escapeHtml(f.nombre)}${yaEstaba ? ' <small style="color:#92400e;">(falla previa)</small>' : ''}</span>
+            </label>`;
+        }).join('');
+        
+        // Mostrar campos extras
+        document.getElementById('devCamposExtras').style.display = 'block';
+    } catch(e) {
+        logError('Cargar historial devolución', e);
+        alert(getFriendlyError(e));
+    }
+}
+
+async function guardarDevolucion() {
+    const equipoId = document.getElementById('dev_equipo_id').value;
+    const motivo = document.getElementById('dev_motivo').value.trim();
+    const cliente = document.getElementById('dev_cliente').value.trim();
+    const diagnostico = document.getElementById('dev_diagnostico').value.trim();
+    const tecnicoId = smartSelectGetValue('ss-dev-tecnico');
+    
+    if(!equipoId) return alert('Selecciona el equipo que se devolvió.');
+    if(!motivo) return alert('El motivo de devolución es obligatorio.');
+    if(!tecnicoId) return alert('Selecciona un técnico para esta reparación.');
+    
+    const eq = (cache.refurb || []).find(r => r.id === equipoId);
+    if(!eq) return alert('Equipo no encontrado.');
+    if(eq.estado_evaluacion !== 'vendido') {
+        return alert('Este equipo no está en estado "Despachado". Solo se pueden devolver equipos despachados.');
+    }
+    
+    // Capturar checklist de problemas
+    const checkboxes = document.querySelectorAll('#devProblemasChecklist input[type="checkbox"]:checked');
+    const problemasArr = Array.from(checkboxes).map(c => c.value);
+    const problemasStr = problemasArr.length > 0 ? problemasArr.join(', ') : null;
+    
+    // Calcular nuevo ciclo
+    const cicloNuevo = (eq.ciclo_actual || 1) + 1;
+    const vecesDevueltoNuevo = (eq.veces_devuelto || 0) + 1;
+    
+    try {
+        // 1. Registrar la devolución
+        const { data: devData, error: devError } = await supabaseClient
+            .from('equipo_devoluciones')
+            .insert([{
+                equipo_id: equipoId,
+                motivo_devolucion: motivo,
+                problemas_reportados: problemasStr,
+                ciclo: vecesDevueltoNuevo,
+                cliente_que_devolvio: cliente || null,
+                diagnostico_inicial: diagnostico || null,
+                registrado_por: sessionUser?.nombre || 'Admin'
+            }])
+            .select()
+            .single();
+        if(devError) throw devError;
+        
+        // 2. Actualizar el equipo: estado → en_proceso, contador, técnico, ciclo
+        const tecnico = (cache.tecnicos || []).find(t => t.id === tecnicoId);
+        const { error: eqError } = await supabaseClient
+            .from('equipos_refurbish')
+            .update({
+                estado_evaluacion: 'en_proceso',
+                tecnico_asignado_id: tecnicoId,
+                fecha_asignacion: new Date().toISOString(),
+                fecha_terminado: null,
+                veces_devuelto: vecesDevueltoNuevo,
+                ultima_devolucion: new Date().toISOString(),
+                ciclo_actual: cicloNuevo
+            })
+            .eq('id', equipoId);
+        if(eqError) throw eqError;
+        
+        // 3. Historial
+        await supabaseClient.from('equipo_historial').insert([{
+            equipo_id: equipoId,
+            estado_anterior: 'vendido',
+            estado_nuevo: 'en_proceso',
+            accion: `🔄 Equipo devuelto (${vecesDevueltoNuevo}× total) → asignado a ${tecnico?.nombre || 'técnico'}`,
+            notas: `Motivo: ${motivo}${problemasStr ? ' | Problemas: ' + problemasStr : ''}${diagnostico ? ' | Diagnóstico: ' + diagnostico : ''}`,
+            usuario: sessionUser?.nombre || 'Admin'
+        }]);
+        
+        toast('🔄 Devolución registrada. Equipo vuelto a "En Proceso".');
+        cerrarModalDevolucion();
+        await loadAll();
+        cargarDevoluciones();
+        if(devData?.id) resaltarItemNuevo(devData.id);
+    } catch(e) {
+        logError('Guardar devolución', e);
+        alert(getFriendlyError(e));
+    }
 }
 
 function renderRefurbishItems() {
