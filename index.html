@@ -420,6 +420,13 @@ input[type=number] { -moz-appearance: textfield; }
 .smart-select-empty button { margin-top: 8px; padding: 6px 12px; background: var(--blue-btn); color: #fff; border: 0; border-radius: 6px; cursor: pointer; font-size: 12px; }
 mark.ss-hl { background: #fef08a; color: inherit; padding: 0 1px; border-radius: 2px; }
 
+/* ========== TABS SCROLL HORIZONTAL (móvil) ========== */
+.reacond-tabs-scroll { scrollbar-width: thin; }
+.reacond-tabs-scroll::-webkit-scrollbar { height: 3px; }
+.reacond-tabs-scroll::-webkit-scrollbar-track { background: transparent; }
+.reacond-tabs-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+.reacond-tabs-scroll .tab-btn { flex-shrink: 0; white-space: nowrap; }
+
 /* ========== CHECKBOXES NORMALIZADOS (fix móvil) ========== */
 input[type="checkbox"]:not(.no-norm) { -webkit-appearance: none; appearance: none; width: 20px !important; height: 20px !important; border: 2px solid #cbd5e1; border-radius: 5px; background: #fff; cursor: pointer; position: relative; flex-shrink: 0; vertical-align: middle; margin: 0; transition: all 0.15s; }
 input[type="checkbox"]:not(.no-norm):checked { background: var(--blue-btn); border-color: var(--blue-btn); }
@@ -431,6 +438,9 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
 @media (max-width: 768px) {
     .tab-btn { padding: 10px 8px; font-size: 12px; }
     .tab-btn span { display: none; }
+    /* Pestañas Reacond en móvil: más compactas, scroll horizontal */
+    .reacond-tabs-scroll .tab-btn { padding: 10px 10px !important; font-size: 12px !important; }
+    .reacond-tabs-scroll .tab-btn span { display: inline !important; padding: 1px 5px !important; font-size: 10px !important; }
 }
 
 /* ============================================================
@@ -1092,7 +1102,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                             </div>
                         
                         <!-- Tabs -->
-                        <div class="tabs" style="display:flex; gap:4px; border-bottom:2px solid var(--border-color); margin-bottom:15px; flex-wrap:wrap; overflow-x:auto;">
+                        <div class="tabs reacond-tabs-scroll" style="display:flex; gap:4px; border-bottom:2px solid var(--border-color); margin-bottom:15px; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; padding-bottom:2px;">
                             <button class="tab-btn active" data-tab="pendientes" onclick="cambiarTabReacond('pendientes')" style="padding:10px 14px; background:none; border:0; border-bottom:3px solid transparent; cursor:pointer; font-weight:600; color:var(--text-muted); white-space:nowrap;">
                                 🟡 Pendientes <span id="cntPendientes" class="badge" style="background:#fef3c7; color:#92400e; margin-left:6px;">0</span>
                             </button>
