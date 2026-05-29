@@ -1158,6 +1158,93 @@ mark.ss-hl { background: #fef08a; color: inherit; padding: 0 1px; border-radius:
     </main>
 </div>
 
+<!-- MODAL: EVALUACIÓN DE EQUIPO (FALLAS + PIEZAS) -->
+<div id="modalEvaluacion" class="modal-backdrop">
+    <div class="modal-box" style="max-width:900px; width:95%;">
+        <div class="modal-header" style="background:linear-gradient(135deg, #6366f1, #8b5cf6); color:#fff; border-radius:12px 12px 0 0;">
+            <h3 style="color:#fff;"><i class="ti ti-clipboard-list"></i> <span id="evalTituloModal">Evaluando Equipo</span></h3>
+            <button class="modal-close" onclick="cerrarModalEvaluacion()" style="color:#fff;">✕</button>
+        </div>
+        <div class="modal-body" style="padding:0; max-height:75vh; overflow-y:auto;">
+            <input id="eval_equipo_id" type="hidden">
+            
+            <!-- Info del equipo -->
+            <div id="evalEquipoInfo" style="background:#f1f5f9; padding:12px 20px; border-bottom:1px solid var(--border-color); font-size:13px;"></div>
+            
+            <div style="padding:20px;">
+                <!-- Tabs internas -->
+                <div style="display:flex; gap:4px; border-bottom:2px solid var(--border-color); margin-bottom:15px;">
+                    <button class="eval-tab active" data-tab="fallas" onclick="cambiarTabEvaluacion('fallas')" style="padding:10px 16px; background:none; border:0; border-bottom:3px solid var(--blue-btn); cursor:pointer; font-weight:600; color:var(--blue-btn);">
+                        ⚠️ Fallas <span id="evalCntFallas" class="badge" style="background:#fef3c7; color:#92400e; margin-left:6px;">0</span>
+                    </button>
+                    <button class="eval-tab" data-tab="piezas" onclick="cambiarTabEvaluacion('piezas')" style="padding:10px 16px; background:none; border:0; border-bottom:3px solid transparent; cursor:pointer; font-weight:600; color:var(--text-muted);">
+                        🔧 Piezas <span id="evalCntPiezas" class="badge" style="background:#dbeafe; color:#1e40af; margin-left:6px;">0</span>
+                    </button>
+                    <button class="eval-tab" data-tab="resumen" onclick="cambiarTabEvaluacion('resumen')" style="padding:10px 16px; background:none; border:0; border-bottom:3px solid transparent; cursor:pointer; font-weight:600; color:var(--text-muted);">
+                        📋 Resumen
+                    </button>
+                </div>
+                
+                <!-- TAB FALLAS -->
+                <div id="evalTabFallas">
+                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:12px;">
+                        <input type="text" id="evalBuscarFalla" placeholder="🔍 Buscar falla..." oninput="renderFallasEvaluacion()" style="flex:1; min-width:180px;">
+                        <button class="btn btn-light" style="padding:8px 12px; font-size:12px;" onclick="evalExpandirTodas()"><i class="ti ti-square-arrow-down"></i> Expandir</button>
+                        <button class="btn btn-light" style="padding:8px 12px; font-size:12px;" onclick="evalContraerTodas()"><i class="ti ti-square-arrow-up"></i> Contraer</button>
+                    </div>
+                    <div id="evalFallasContenedor"></div>
+                </div>
+                
+                <!-- TAB PIEZAS -->
+                <div id="evalTabPiezas" style="display:none;">
+                    <div style="background:#dbeafe; border:1px solid #93c5fd; padding:10px; border-radius:8px; margin-bottom:12px; font-size:12px; color:#1e40af;">
+                        <b><i class="ti ti-info-circle"></i> Selecciona las piezas que el técnico necesitará para reparar este equipo.</b>
+                    </div>
+                    <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; margin-bottom:15px;">
+                        <div style="flex:1; min-width:200px;">
+                            <label style="font-size:12px;">Buscar pieza del inventario</label>
+                            <div id="ss-eval-pieza"></div>
+                        </div>
+                        <div style="width:90px;">
+                            <label style="font-size:12px;">Cantidad</label>
+                            <input type="number" id="eval_pieza_cantidad" value="1" min="1" max="50" style="font-weight:700;">
+                        </div>
+                        <button class="btn btn-blue" onclick="evalAgregarPieza()" style="padding:8px 14px;"><i class="ti ti-plus"></i> Agregar</button>
+                    </div>
+                    <div id="evalPiezasLista"></div>
+                </div>
+                
+                <!-- TAB RESUMEN -->
+                <div id="evalTabResumen" style="display:none;">
+                    <div class="form-row">
+                        <label><i class="ti ti-note"></i> Notas adicionales (van en el label)</label>
+                        <textarea id="eval_notas" rows="3" placeholder="Ej: Pantalla con manchas leves, batería 78%, etc." style="resize:vertical;"></textarea>
+                    </div>
+                    
+                    <div style="background:#f8fafc; border:1px solid var(--border-color); border-radius:8px; padding:15px; margin-top:15px;">
+                        <h4 style="margin:0 0 10px;"><i class="ti ti-list-check"></i> Fallas detectadas</h4>
+                        <div id="evalResumenFallas" style="font-size:13px;"></div>
+                    </div>
+                    
+                    <div style="background:#f8fafc; border:1px solid var(--border-color); border-radius:8px; padding:15px; margin-top:12px;">
+                        <h4 style="margin:0 0 10px;"><i class="ti ti-tools"></i> Piezas necesarias</h4>
+                        <div id="evalResumenPiezas" style="font-size:13px;"></div>
+                        <div id="evalCostoTotal" style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-color); font-weight:700; font-size:14px; color:var(--blue-btn);"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer" style="flex-wrap:wrap; gap:10px;">
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-right:auto;">
+                <input type="checkbox" id="eval_marcar_evaluado" style="width:18px; height:18px;">
+                <span style="font-weight:600;">✅ Marcar como evaluado</span>
+            </label>
+            <button class="btn btn-light" onclick="cerrarModalEvaluacion()">Cancelar</button>
+            <button class="btn btn-blue" onclick="guardarEvaluacion()"><i class="ti ti-device-floppy"></i> Guardar</button>
+        </div>
+    </div>
+</div>
+
 <!-- MODAL: CREAR/EDITAR FALLA -->
 <div id="modalFalla" class="modal-backdrop">
     <div class="modal-box">
@@ -2745,48 +2832,6 @@ function renderEquipoReacondCard(eq, num) {
     </div>`;
 }
 
-async function empezarEvaluacion(equipoId) {
-    try {
-        const { error } = await supabaseClient
-            .from('equipos_refurbish')
-            .update({ estado_evaluacion: 'en_evaluacion' })
-            .eq('id', equipoId);
-        if(error) throw error;
-        await loadAll();
-        renderDetalleLoteReacond();
-        toast('Equipo en evaluación.');
-    } catch(e) {
-        logError('Empezar evaluación', e);
-        alert(getFriendlyError(e));
-    }
-}
-
-function continuarEvaluacion(equipoId) {
-    // Por ahora abre el panel de notas (en próxima entrega será el panel de fallas completo)
-    const eq = (cache.refurb || []).find(r => r.id === equipoId);
-    if(!eq) return;
-    const notasActuales = eq.notas_diagnostico || '';
-    const nuevasNotas = prompt(`Notas de diagnóstico para ${eq.modelo}:\n(En próxima entrega: panel de fallas con checkboxes)`, notasActuales);
-    if(nuevasNotas === null) return;
-    guardarNotasEquipo(equipoId, nuevasNotas);
-}
-
-async function guardarNotasEquipo(equipoId, notas) {
-    try {
-        const { error } = await supabaseClient
-            .from('equipos_refurbish')
-            .update({ notas_diagnostico: notas })
-            .eq('id', equipoId);
-        if(error) throw error;
-        await loadAll();
-        renderDetalleLoteReacond();
-        toast('Notas guardadas.');
-    } catch(e) {
-        logError('Guardar notas', e);
-        alert(getFriendlyError(e));
-    }
-}
-
 async function marcarEvaluado(equipoId) {
     if(!confirm('¿Marcar este equipo como evaluado?')) return;
     try {
@@ -3018,6 +3063,449 @@ async function eliminarFalla(id) {
         await cargarCatalogoFallas();
     } catch(e) {
         logError('Eliminar falla', e);
+        alert(getFriendlyError(e));
+    }
+}
+
+/* ============================================================
+   PANEL DE EVALUACIÓN - FALLAS + PIEZAS
+   ============================================================ */
+const _evalState = {
+    equipoId: null,
+    fallasSeleccionadas: new Set(), // IDs de fallas marcadas
+    piezasSeleccionadas: [],         // [{pieza_id, pieza_nombre, cantidad, costo_unitario}]
+    categoriasContraidas: new Set(),  // IDs de categorías contraídas
+    tabActiva: 'fallas'
+};
+
+async function empezarEvaluacion(equipoId) {
+    // Si está pendiente, cambiar a en_evaluacion al abrir
+    const eq = (cache.refurb || []).find(r => r.id === equipoId);
+    if(!eq) return alert('Equipo no encontrado.');
+    
+    try {
+        // Cargar fallas y piezas si no están cargadas
+        if(!cache.fallas || cache.fallas.length === 0) {
+            await cargarCatalogoFallas();
+        }
+        
+        // Cambiar estado a en_evaluacion si está pendiente
+        if((eq.estado_evaluacion || 'pendiente') === 'pendiente') {
+            const { error } = await supabaseClient
+                .from('equipos_refurbish')
+                .update({ estado_evaluacion: 'en_evaluacion' })
+                .eq('id', equipoId);
+            if(error) throw error;
+        }
+        
+        await abrirModalEvaluacion(equipoId);
+    } catch(e) {
+        logError('Empezar evaluación', e);
+        alert(getFriendlyError(e));
+    }
+}
+
+function continuarEvaluacion(equipoId) {
+    abrirModalEvaluacion(equipoId);
+}
+
+async function abrirModalEvaluacion(equipoId) {
+    const eq = (cache.refurb || []).find(r => r.id === equipoId);
+    if(!eq) return alert('Equipo no encontrado.');
+    
+    // Cargar datos del catálogo si faltan
+    if(!cache.fallas || cache.fallas.length === 0) {
+        await cargarCatalogoFallas();
+    }
+    
+    // Cargar fallas y piezas ya guardadas del equipo
+    _evalState.equipoId = equipoId;
+    _evalState.fallasSeleccionadas = new Set();
+    _evalState.piezasSeleccionadas = [];
+    _evalState.categoriasContraidas = new Set();
+    _evalState.tabActiva = 'fallas';
+    
+    try {
+        const [{ data: fallasEq }, { data: piezasEq }] = await Promise.all([
+            supabaseClient.from('equipo_fallas').select('falla_id').eq('equipo_id', equipoId),
+            supabaseClient.from('equipo_piezas_pedidas').select('*').eq('equipo_id', equipoId)
+        ]);
+        (fallasEq || []).forEach(f => f.falla_id && _evalState.fallasSeleccionadas.add(f.falla_id));
+        _evalState.piezasSeleccionadas = (piezasEq || []).map(p => ({
+            id: p.id,
+            pieza_id: p.pieza_id,
+            pieza_nombre: p.pieza_nombre,
+            cantidad: p.cantidad || 1,
+            costo_unitario: p.costo_unitario || 0,
+            estado: p.estado || 'pendiente'
+        }));
+    } catch(e) {
+        logError('Cargar evaluación previa', e);
+    }
+    
+    // Llenar info del equipo
+    document.getElementById('evalTituloModal').textContent = `Evaluando: ${eq.modelo || 'Equipo'}`;
+    document.getElementById('evalEquipoInfo').innerHTML = `
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:8px; font-size:12px;">
+            <div><b><i class="ti ti-device-mobile"></i> Modelo:</b><br>${escapeHtml(eq.modelo || '—')}</div>
+            <div><b><i class="ti ti-barcode"></i> IMEI:</b><br>${escapeHtml(eq.imei || '—')}</div>
+            ${eq.color ? `<div><b><i class="ti ti-palette"></i> Color:</b><br>${escapeHtml(eq.color)}</div>` : ''}
+            ${eq.capacidad ? `<div><b><i class="ti ti-database"></i> Capacidad:</b><br>${escapeHtml(eq.capacidad)}</div>` : ''}
+        </div>
+    `;
+    document.getElementById('eval_equipo_id').value = equipoId;
+    document.getElementById('eval_notas').value = eq.notas_diagnostico || '';
+    document.getElementById('eval_marcar_evaluado').checked = (eq.estado_evaluacion === 'evaluado');
+    document.getElementById('evalBuscarFalla').value = '';
+    document.getElementById('eval_pieza_cantidad').value = 1;
+    
+    // Inicializar smart-select de piezas
+    smartSelectInit({
+        containerId: 'ss-eval-pieza',
+        placeholder: '🔍 Buscar pieza del inventario...',
+        items: (cache.piezas || []).filter(p => p.cantidad > 0 || true).map(p => ({
+            id: p.id,
+            label: p.nombre,
+            sub: `Stock: ${p.cantidad || 0} · Costo: ${money(p.costo || 0)}`,
+            search: [p.nombre, p.codigo].filter(x => x).join(' ').toLowerCase(),
+            _pieza: p
+        })),
+        value: '',
+        onChange: () => {}
+    });
+    
+    renderFallasEvaluacion();
+    renderPiezasEvaluacion();
+    renderResumenEvaluacion();
+    actualizarContadoresEvaluacion();
+    cambiarTabEvaluacion('fallas');
+    
+    document.getElementById('modalEvaluacion').classList.add('active');
+}
+
+function cerrarModalEvaluacion() {
+    document.getElementById('modalEvaluacion').classList.remove('active');
+}
+
+function cambiarTabEvaluacion(tab) {
+    _evalState.tabActiva = tab;
+    document.querySelectorAll('.eval-tab').forEach(b => {
+        const isActive = b.dataset.tab === tab;
+        b.classList.toggle('active', isActive);
+        b.style.borderBottomColor = isActive ? 'var(--blue-btn)' : 'transparent';
+        b.style.color = isActive ? 'var(--blue-btn)' : 'var(--text-muted)';
+    });
+    document.getElementById('evalTabFallas').style.display = tab === 'fallas' ? 'block' : 'none';
+    document.getElementById('evalTabPiezas').style.display = tab === 'piezas' ? 'block' : 'none';
+    document.getElementById('evalTabResumen').style.display = tab === 'resumen' ? 'block' : 'none';
+    if(tab === 'resumen') renderResumenEvaluacion();
+}
+
+function renderFallasEvaluacion() {
+    const cont = document.getElementById('evalFallasContenedor');
+    if(!cont) return;
+    const buscador = (document.getElementById('evalBuscarFalla')?.value || '').toLowerCase().trim();
+    const cats = (cache.fallaCategorias || []).filter(c => c.activa);
+    const fallas = (cache.fallas || []).filter(f => f.activa !== false);
+    
+    // Filtrar por buscador
+    const filtradas = buscador
+        ? fallas.filter(f => (f.nombre || '').toLowerCase().includes(buscador) || (f.nombre_corto || '').toLowerCase().includes(buscador))
+        : fallas;
+    
+    // Agrupar por categoría
+    const porCat = {};
+    filtradas.forEach(f => {
+        const cid = f.categoria_id || 'sin_cat';
+        if(!porCat[cid]) porCat[cid] = [];
+        porCat[cid].push(f);
+    });
+    
+    if(filtradas.length === 0) {
+        cont.innerHTML = `<p style="color:var(--text-muted); text-align:center; padding:30px;">${buscador ? 'Sin resultados.' : 'No hay fallas en el catálogo. Crea fallas en la pestaña Catálogo.'}</p>`;
+        return;
+    }
+    
+    let html = '';
+    cats.forEach(cat => {
+        const lista = porCat[cat.id] || [];
+        if(lista.length === 0) return;
+        const marcadas = lista.filter(f => _evalState.fallasSeleccionadas.has(f.id)).length;
+        const contraida = _evalState.categoriasContraidas.has(cat.id);
+        
+        html += `
+            <div style="margin-bottom:10px; border:1px solid ${cat.color}40; border-radius:8px; overflow:hidden;">
+                <div onclick="evalToggleCategoria('${cat.id}')" style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:${cat.color}15; cursor:pointer; user-select:none;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <i class="ti ${contraida ? 'ti-chevron-right' : 'ti-chevron-down'}" style="color:${cat.color};"></i>
+                        <i class="ti ${escapeHtml(cat.icono)}" style="color:${cat.color};"></i>
+                        <b style="color:${cat.color}; font-size:13px; text-transform:uppercase;">${escapeHtml(cat.nombre)}</b>
+                    </div>
+                    <span style="background:${marcadas > 0 ? cat.color : '#cbd5e1'}; color:#fff; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:700;">${marcadas}/${lista.length}</span>
+                </div>
+                ${!contraida ? `<div style="padding:6px 14px 10px;">
+                    ${lista.map(f => {
+                        const checked = _evalState.fallasSeleccionadas.has(f.id);
+                        return `<label style="display:flex; align-items:center; gap:8px; padding:6px 4px; cursor:pointer; border-bottom:1px solid #f1f5f9;">
+                            <input type="checkbox" ${checked ? 'checked' : ''} onchange="evalToggleFalla('${f.id}')" style="width:18px; height:18px; cursor:pointer; accent-color:${cat.color};">
+                            <div style="flex:1; min-width:0;">
+                                <div style="font-size:13px; ${checked ? 'font-weight:600;' : ''}">${escapeHtml(f.nombre)}</div>
+                                <div style="font-size:10px; color:#6366f1; font-weight:700;">${escapeHtml(f.nombre_corto || '')}</div>
+                            </div>
+                        </label>`;
+                    }).join('')}
+                </div>` : ''}
+            </div>
+        `;
+    });
+    
+    // Sin categoría
+    if(porCat['sin_cat']) {
+        const lista = porCat['sin_cat'];
+        const marcadas = lista.filter(f => _evalState.fallasSeleccionadas.has(f.id)).length;
+        html += `
+            <div style="margin-bottom:10px; border:1px solid #cbd5e1; border-radius:8px; overflow:hidden;">
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:#f1f5f9;">
+                    <b style="color:#64748b; font-size:13px;">SIN CATEGORÍA</b>
+                    <span style="background:#94a3b8; color:#fff; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:700;">${marcadas}/${lista.length}</span>
+                </div>
+                <div style="padding:6px 14px 10px;">
+                    ${lista.map(f => {
+                        const checked = _evalState.fallasSeleccionadas.has(f.id);
+                        return `<label style="display:flex; align-items:center; gap:8px; padding:6px 4px; cursor:pointer;">
+                            <input type="checkbox" ${checked ? 'checked' : ''} onchange="evalToggleFalla('${f.id}')" style="width:18px; height:18px;">
+                            <div style="flex:1;"><div style="font-size:13px;">${escapeHtml(f.nombre)}</div><div style="font-size:10px; color:#6366f1; font-weight:700;">${escapeHtml(f.nombre_corto || '')}</div></div>
+                        </label>`;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
+    cont.innerHTML = html;
+}
+
+function evalToggleFalla(fallaId) {
+    if(_evalState.fallasSeleccionadas.has(fallaId)) {
+        _evalState.fallasSeleccionadas.delete(fallaId);
+    } else {
+        _evalState.fallasSeleccionadas.add(fallaId);
+    }
+    actualizarContadoresEvaluacion();
+    // Solo re-renderizar contadores de categoría, no toda la lista (mantiene scroll)
+    renderFallasEvaluacion();
+}
+
+function evalToggleCategoria(catId) {
+    if(_evalState.categoriasContraidas.has(catId)) {
+        _evalState.categoriasContraidas.delete(catId);
+    } else {
+        _evalState.categoriasContraidas.add(catId);
+    }
+    renderFallasEvaluacion();
+}
+
+function evalExpandirTodas() {
+    _evalState.categoriasContraidas.clear();
+    renderFallasEvaluacion();
+}
+
+function evalContraerTodas() {
+    (cache.fallaCategorias || []).forEach(c => _evalState.categoriasContraidas.add(c.id));
+    renderFallasEvaluacion();
+}
+
+function actualizarContadoresEvaluacion() {
+    document.getElementById('evalCntFallas').textContent = _evalState.fallasSeleccionadas.size;
+    document.getElementById('evalCntPiezas').textContent = _evalState.piezasSeleccionadas.length;
+}
+
+function renderPiezasEvaluacion() {
+    const cont = document.getElementById('evalPiezasLista');
+    if(!cont) return;
+    
+    if(_evalState.piezasSeleccionadas.length === 0) {
+        cont.innerHTML = `<p style="color:var(--text-muted); text-align:center; padding:20px; font-size:13px;">Aún no has agregado piezas. Selecciona una arriba y dale "Agregar".</p>`;
+        return;
+    }
+    
+    let total = 0;
+    cont.innerHTML = _evalState.piezasSeleccionadas.map((p, idx) => {
+        const subtotal = (p.cantidad || 1) * (p.costo_unitario || 0);
+        total += subtotal;
+        return `
+            <div style="display:flex; gap:10px; align-items:center; padding:10px 12px; background:#fff; border:1px solid var(--border-color); border-radius:8px; margin-bottom:6px;">
+                <div style="flex:1; min-width:0;">
+                    <div style="font-weight:600; font-size:13px;">${escapeHtml(p.pieza_nombre || 'Pieza')}</div>
+                    <div style="font-size:11px; color:var(--text-muted);">Costo unitario: ${money(p.costo_unitario || 0)} · Subtotal: <b style="color:var(--blue-btn);">${money(subtotal)}</b></div>
+                </div>
+                <input type="number" value="${p.cantidad || 1}" min="1" max="50" onchange="evalCambiarCantidadPieza(${idx}, this.value)" style="width:65px; font-weight:700; padding:6px;">
+                <button onclick="evalQuitarPieza(${idx})" style="background:#fee2e2; color:#991b1b; border:0; padding:8px 10px; border-radius:6px; cursor:pointer;" title="Quitar"><i class="ti ti-trash"></i></button>
+            </div>
+        `;
+    }).join('') + `
+        <div style="margin-top:12px; padding:12px; background:#dbeafe; border-radius:8px; text-align:right; font-weight:700; color:#1e40af;">
+            TOTAL PIEZAS: ${money(total)}
+        </div>
+    `;
+}
+
+function evalAgregarPieza() {
+    const piezaId = smartSelectGetValue('ss-eval-pieza');
+    if(!piezaId) return alert('Selecciona una pieza primero.');
+    
+    const pieza = (cache.piezas || []).find(p => p.id === piezaId);
+    if(!pieza) return alert('Pieza no encontrada.');
+    
+    const cantidad = parseInt(document.getElementById('eval_pieza_cantidad').value) || 1;
+    if(cantidad < 1) return alert('Cantidad inválida.');
+    
+    // ¿Ya está agregada? Sumar cantidad
+    const existente = _evalState.piezasSeleccionadas.find(p => p.pieza_id === piezaId);
+    if(existente) {
+        existente.cantidad = (existente.cantidad || 0) + cantidad;
+    } else {
+        _evalState.piezasSeleccionadas.push({
+            pieza_id: piezaId,
+            pieza_nombre: pieza.nombre,
+            cantidad: cantidad,
+            costo_unitario: parseFloat(pieza.costo) || 0,
+            estado: 'pendiente'
+        });
+    }
+    
+    // Limpiar selector
+    smartSelectSetValue('ss-eval-pieza', '');
+    document.getElementById('eval_pieza_cantidad').value = 1;
+    
+    actualizarContadoresEvaluacion();
+    renderPiezasEvaluacion();
+}
+
+function evalQuitarPieza(idx) {
+    _evalState.piezasSeleccionadas.splice(idx, 1);
+    actualizarContadoresEvaluacion();
+    renderPiezasEvaluacion();
+}
+
+function evalCambiarCantidadPieza(idx, nuevaCant) {
+    const n = parseInt(nuevaCant) || 1;
+    if(n < 1) return;
+    if(_evalState.piezasSeleccionadas[idx]) {
+        _evalState.piezasSeleccionadas[idx].cantidad = n;
+        renderPiezasEvaluacion();
+    }
+}
+
+function renderResumenEvaluacion() {
+    // Resumen de fallas
+    const fallasEl = document.getElementById('evalResumenFallas');
+    if(fallasEl) {
+        if(_evalState.fallasSeleccionadas.size === 0) {
+            fallasEl.innerHTML = '<p style="color:var(--text-muted); font-size:12px;">No has marcado fallas todavía.</p>';
+        } else {
+            const fallasObj = (cache.fallas || []).filter(f => _evalState.fallasSeleccionadas.has(f.id));
+            fallasEl.innerHTML = fallasObj.map(f => {
+                const cat = (cache.fallaCategorias || []).find(c => c.id === f.categoria_id);
+                const color = cat?.color || '#64748b';
+                return `<div style="display:flex; gap:8px; padding:4px 0; align-items:center;">
+                    <span style="background:${color}; color:#fff; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:700; min-width:80px; text-align:center;">${escapeHtml(f.nombre_corto || '')}</span>
+                    <span>${escapeHtml(f.nombre)}</span>
+                </div>`;
+            }).join('');
+        }
+    }
+    
+    // Resumen de piezas
+    const piezasEl = document.getElementById('evalResumenPiezas');
+    const costoEl = document.getElementById('evalCostoTotal');
+    if(piezasEl) {
+        if(_evalState.piezasSeleccionadas.length === 0) {
+            piezasEl.innerHTML = '<p style="color:var(--text-muted); font-size:12px;">No has agregado piezas todavía.</p>';
+            if(costoEl) costoEl.innerHTML = '';
+        } else {
+            let total = 0;
+            piezasEl.innerHTML = _evalState.piezasSeleccionadas.map(p => {
+                const sub = (p.cantidad || 1) * (p.costo_unitario || 0);
+                total += sub;
+                return `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dashed #e5e7eb;">
+                    <span>${escapeHtml(p.pieza_nombre)} ×${p.cantidad}</span>
+                    <span style="font-weight:600;">${money(sub)}</span>
+                </div>`;
+            }).join('');
+            if(costoEl) costoEl.innerHTML = `<div style="display:flex; justify-content:space-between;"><span>TOTAL PIEZAS:</span><span>${money(total)}</span></div>`;
+        }
+    }
+}
+
+async function guardarEvaluacion() {
+    const equipoId = _evalState.equipoId;
+    if(!equipoId) return alert('No hay equipo activo.');
+    
+    const notas = document.getElementById('eval_notas').value.trim() || null;
+    const marcarEvaluado = document.getElementById('eval_marcar_evaluado').checked;
+    
+    try {
+        // 1. Borrar fallas previas y guardar nuevas
+        await supabaseClient.from('equipo_fallas').delete().eq('equipo_id', equipoId);
+        
+        const fallasArray = Array.from(_evalState.fallasSeleccionadas);
+        if(fallasArray.length > 0) {
+            const fallasObj = (cache.fallas || []).filter(f => _evalState.fallasSeleccionadas.has(f.id));
+            const cats = cache.fallaCategorias || [];
+            const inserts = fallasObj.map(f => {
+                const cat = cats.find(c => c.id === f.categoria_id);
+                return {
+                    equipo_id: equipoId,
+                    falla_id: f.id,
+                    falla_nombre: f.nombre,
+                    falla_corto: f.nombre_corto,
+                    falla_categoria: cat?.nombre || null
+                };
+            });
+            const { error: e1 } = await supabaseClient.from('equipo_fallas').insert(inserts);
+            if(e1) throw e1;
+        }
+        
+        // 2. Borrar piezas previas y guardar nuevas
+        await supabaseClient.from('equipo_piezas_pedidas').delete().eq('equipo_id', equipoId);
+        
+        if(_evalState.piezasSeleccionadas.length > 0) {
+            const insertsPz = _evalState.piezasSeleccionadas.map(p => ({
+                equipo_id: equipoId,
+                pieza_id: p.pieza_id,
+                pieza_nombre: p.pieza_nombre,
+                cantidad: p.cantidad,
+                costo_unitario: p.costo_unitario,
+                estado: p.estado || 'pendiente'
+            }));
+            const { error: e2 } = await supabaseClient.from('equipo_piezas_pedidas').insert(insertsPz);
+            if(e2) throw e2;
+        }
+        
+        // 3. Actualizar notas y estado del equipo
+        const updateData = { notas_diagnostico: notas };
+        if(marcarEvaluado) {
+            updateData.estado_evaluacion = 'evaluado';
+        } else {
+            updateData.estado_evaluacion = 'en_evaluacion';
+        }
+        // Actualizar costo de repuestos (suma de piezas)
+        const totalPiezas = _evalState.piezasSeleccionadas.reduce((s, p) => s + (p.cantidad || 1) * (p.costo_unitario || 0), 0);
+        updateData.costo_repuestos = totalPiezas;
+        
+        const { error: e3 } = await supabaseClient
+            .from('equipos_refurbish')
+            .update(updateData)
+            .eq('id', equipoId);
+        if(e3) throw e3;
+        
+        toast(marcarEvaluado ? 'Evaluación guardada y equipo marcado como evaluado.' : 'Evaluación guardada.');
+        cerrarModalEvaluacion();
+        await loadAll();
+        renderDetalleLoteReacond();
+    } catch(e) {
+        logError('Guardar evaluación', e);
         alert(getFriendlyError(e));
     }
 }
