@@ -1335,7 +1335,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                     <div class="card">
                         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
                             <h3 style="margin:0;"><i class="ti ti-rotate-2" style="color:#dc2626;"></i> Devoluciones de Equipos</h3>
-                            <button class="btn btn-blue" onclick="abrirModalNuevaDevolucion()" style="background:linear-gradient(180deg,#dc2626,#991b1b); box-shadow:0 4px 0 #7f1d1d, 0 5px 10px rgba(220,38,38,0.3);">
+                            <button id="btnRegistrarDevolucion" class="btn btn-blue" onclick="abrirModalNuevaDevolucion()" style="background:linear-gradient(180deg,#dc2626,#991b1b); box-shadow:0 4px 0 #7f1d1d, 0 5px 10px rgba(220,38,38,0.3);">
                                 <i class="ti ti-plus"></i> Registrar Devolución
                             </button>
                         </div>
@@ -1369,7 +1369,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                     <div class="card">
                         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
                             <h3 style="margin:0;"><i class="ti ti-users" style="color:var(--blue-btn);"></i> Técnicos del Taller</h3>
-                            <button class="btn btn-blue" onclick="abrirModalTecnico()"><i class="ti ti-plus"></i> Nuevo Técnico</button>
+                            <button id="btnNuevoTecnico" class="btn btn-blue" onclick="abrirModalTecnico()"><i class="ti ti-plus"></i> Nuevo Técnico</button>
                         </div>
                         <div style="background:#dbeafe; border:1px solid #93c5fd; padding:10px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#1e40af;">
                             <b><i class="ti ti-info-circle"></i> Aquí gestionas los técnicos que trabajarán los equipos.</b> Asígnales un rol para definir qué pueden hacer.
@@ -1383,7 +1383,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                     <div class="card">
                         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
                             <h3 style="margin:0;"><i class="ti ti-shield" style="color:#6366f1;"></i> Roles y Permisos</h3>
-                            <button class="btn btn-blue" onclick="abrirModalRol()" style="background:linear-gradient(180deg,#6366f1,#4338ca); box-shadow:0 4px 0 #3730a3;"><i class="ti ti-plus"></i> Nuevo Rol</button>
+                            <button id="btnNuevoRol" class="btn btn-blue" onclick="abrirModalRol()" style="background:linear-gradient(180deg,#6366f1,#4338ca); box-shadow:0 4px 0 #3730a3;"><i class="ti ti-plus"></i> Nuevo Rol</button>
                         </div>
                         <div style="background:#ede9fe; border:1px solid #c4b5fd; padding:10px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#5b21b6;">
                             <b><i class="ti ti-info-circle"></i> Crea roles personalizados con permisos específicos.</b> El rol "Administrador" tiene todos los permisos y no se puede eliminar.
@@ -2509,6 +2509,13 @@ function tienePermiso(permiso) {
     return permisos[permiso] === true;
 }
 
+// Devuelve el HTML del botón solo si el usuario tiene el permiso. Si no, cadena vacía.
+function permBtn(permiso, htmlBoton) {
+    return tienePermiso(permiso) ? htmlBoton : '';
+}
+// Alias legible
+function puedeVer(permiso) { return tienePermiso(permiso); }
+
 /* ============================================================
    CAMBIAR CONTRASEÑA
    ============================================================ */
@@ -2573,9 +2580,9 @@ function applyAccessControls() {
     // Mapeo de items de menú → permiso requerido
     const menuPermisos = {
         'menu-dashboard': 'ver_dashboard',
-        'menu-recepcion': null,        // todos los técnicos pueden recepcionar (ajustable)
-        'menu-ordenes': null,
-        'menu-inventario': null,
+        'menu-recepcion': 'recepcion_ver',
+        'menu-ordenes': 'ordenes_ver',
+        'menu-inventario': 'inventario_ver',
         'menu-etiquetas': 'imprimir_diag',
         'menu-configImpresora': 'config_impresora',
         'menu-articulos': 'catalogo_articulos',
@@ -2594,6 +2601,17 @@ function applyAccessControls() {
         } else {
             btn.style.display = tienePermiso(permisoReq) ? '' : 'none';
         }
+    });
+    
+    // Ocultar botones estáticos según permiso
+    const botonesEstaticos = {
+        'btnNuevoTecnico': 'config_tecnicos',
+        'btnNuevoRol': 'config_roles',
+        'btnRegistrarDevolucion': 'devoluciones_registrar'
+    };
+    Object.keys(botonesEstaticos).forEach(btnId => {
+        const btn = document.getElementById(btnId);
+        if(btn) btn.style.display = tienePermiso(botonesEstaticos[btnId]) ? '' : 'none';
     });
     
     // Si el dashboard está oculto, llevar al técnico a reacondicionado por defecto
@@ -2639,6 +2657,8 @@ function nav(v, btn) {
     if(v === 'configuracion') { setTimeout(() => { cambiarMainTabConfig('tecnicos'); }, 50); }
     closeSidebar();
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Re-aplicar permisos de botones estáticos tras renderizar
+    if(!isAdminUser()) setTimeout(() => applyAccessControls(), 150);
 }
 
 /* ============================================================
@@ -2931,8 +2951,8 @@ function renderArticulos() {
             <td data-label="Referencia" style="text-transform:uppercase;">${escapeHtml(a.referencia || '-')}</td>
             <td data-label="IMEI">${badgeImei}</td>
             <td data-label="Acciones">
-                <button class="btn btn-light" style="padding:4px 8px; font-size:11px;" onclick="editarArticulo('${a.id}')"><i class="ti ti-edit"></i></button>
-                <button class="btn btn-light" style="padding:4px 8px; font-size:11px;" onclick="eliminarArticulo('${a.id}')"><i class="ti ti-trash"></i></button>
+                ${permBtn('catalogo_articulos', `<button class="btn btn-light" style="padding:4px 8px; font-size:11px;" onclick="editarArticulo('${a.id}')"><i class="ti ti-edit"></i></button>`)}
+                ${permBtn('catalogo_articulos_eliminar', `<button class="btn btn-light" style="padding:4px 8px; font-size:11px;" onclick="eliminarArticulo('${a.id}')"><i class="ti ti-trash"></i></button>`)}
             </td>
         </tr>`;
     }).join('');
@@ -3056,8 +3076,8 @@ function renderProveedores() {
             </div>
             <div class="prov-actions">
                 <button class="btn btn-blue" style="padding:6px 12px; font-size:12px;" onclick="abrirProveedor('${p.id}')"><i class="ti ti-folder-open"></i> Ver Lotes</button>
-                <button class="btn btn-light" style="padding:6px 10px; font-size:12px;" onclick="editarProveedor('${p.id}')"><i class="ti ti-edit"></i></button>
-                <button class="btn btn-light" style="padding:6px 10px; font-size:12px;" onclick="eliminarProveedor('${p.id}')"><i class="ti ti-trash"></i></button>
+                ${permBtn('catalogo_proveedores', `<button class="btn btn-light" style="padding:6px 10px; font-size:12px;" onclick="editarProveedor('${p.id}')"><i class="ti ti-edit"></i></button>`)}
+                ${permBtn('catalogo_proveedores_eliminar', `<button class="btn btn-light" style="padding:6px 10px; font-size:12px;" onclick="eliminarProveedor('${p.id}')"><i class="ti ti-trash"></i></button>`)}
             </div>
         </div>`;
     }).join('');
@@ -3726,7 +3746,7 @@ function renderEquipoReacondCard(eq, num) {
         badgeColor = 'background:#ddd6fe; color:#5b21b6;';
         badgeText = '🛒 Listo para venta';
         accionBtn = `<button class="btn btn-dark" style="padding:8px 14px; background:#5b21b6;" onclick="abrirModalLabelVenta('${eq.id}')"><i class="ti ti-printer"></i> Label Venta</button>
-                     <button class="btn btn-dark" style="padding:8px 14px; background:linear-gradient(180deg,#10b981,#059669); box-shadow:0 4px 0 #047857;" onclick="marcarDespachado('${eq.id}')"><i class="ti ti-truck-delivery"></i> Despachar</button>
+                     ${permBtn('estado_despachar', `<button class="btn btn-dark" style="padding:8px 14px; background:linear-gradient(180deg,#10b981,#059669); box-shadow:0 4px 0 #047857;" onclick="marcarDespachado('${eq.id}')"><i class="ti ti-truck-delivery"></i> Despachar</button>`)}
                      <button class="btn btn-light" style="padding:8px 12px;" onclick="abrirPanelProceso('${eq.id}')" title="Ver detalles"><i class="ti ti-eye"></i></button>`;
     } else if(estado === 'vendido') {
         badgeColor = 'background:#d1fae5; color:#065f46;';
@@ -3883,8 +3903,8 @@ function renderCatalogoFallas() {
                                 <div style="font-size:10px; color:#6366f1; font-weight:700; margin-top:2px;">${escapeHtml(f.nombre_corto || '')}</div>
                             </div>
                             <div style="display:flex; gap:4px; flex-shrink:0;">
-                                <button onclick="editarFalla('${f.id}')" style="background:#dbeafe; color:#1e40af; border:0; padding:6px 8px; border-radius:6px; cursor:pointer;" title="Editar"><i class="ti ti-edit"></i></button>
-                                <button onclick="eliminarFalla('${f.id}')" style="background:#fee2e2; color:#991b1b; border:0; padding:6px 8px; border-radius:6px; cursor:pointer;" title="Eliminar"><i class="ti ti-trash"></i></button>
+                                ${permBtn('catalogo_fallas', `<button onclick="editarFalla('${f.id}')" style="background:#dbeafe; color:#1e40af; border:0; padding:6px 8px; border-radius:6px; cursor:pointer;" title="Editar"><i class="ti ti-edit"></i></button>`)}
+                                ${permBtn('catalogo_fallas_eliminar', `<button onclick="eliminarFalla('${f.id}')" style="background:#fee2e2; color:#991b1b; border:0; padding:6px 8px; border-radius:6px; cursor:pointer;" title="Eliminar"><i class="ti ti-trash"></i></button>`)}
                             </div>
                         </div>
                     `).join('')}
@@ -3908,8 +3928,8 @@ function renderCatalogoFallas() {
                             <div style="font-size:10px; color:#6366f1; font-weight:700;">${escapeHtml(f.nombre_corto || '')}</div>
                         </div>
                         <div style="display:flex; gap:4px;">
-                            <button onclick="editarFalla('${f.id}')" style="background:#dbeafe; color:#1e40af; border:0; padding:6px 8px; border-radius:6px; cursor:pointer;"><i class="ti ti-edit"></i></button>
-                            <button onclick="eliminarFalla('${f.id}')" style="background:#fee2e2; color:#991b1b; border:0; padding:6px 8px; border-radius:6px; cursor:pointer;"><i class="ti ti-trash"></i></button>
+                            ${permBtn('catalogo_fallas', `<button onclick="editarFalla('${f.id}')" style="background:#dbeafe; color:#1e40af; border:0; padding:6px 8px; border-radius:6px; cursor:pointer;"><i class="ti ti-edit"></i></button>`)}
+                            ${permBtn('catalogo_fallas_eliminar', `<button onclick="eliminarFalla('${f.id}')" style="background:#fee2e2; color:#991b1b; border:0; padding:6px 8px; border-radius:6px; cursor:pointer;"><i class="ti ti-trash"></i></button>`)}
                         </div>
                     </div>
                 `).join('')}
@@ -4532,8 +4552,8 @@ function renderTecnicos() {
                     ${t.notas ? `<div style="background:#f1f5f9; padding:6px 10px; border-radius:6px; margin-top:6px; font-size:12px;">${escapeHtml(t.notas)}</div>` : ''}
                 </div>
                 <div style="display:flex; gap:6px;">
-                    <button onclick="editarTecnico('${t.id}')" style="background:#dbeafe; color:#1e40af; border:0; padding:8px 10px; border-radius:6px; cursor:pointer;" title="Editar"><i class="ti ti-edit"></i></button>
-                    <button onclick="eliminarTecnico('${t.id}')" style="background:#fee2e2; color:#991b1b; border:0; padding:8px 10px; border-radius:6px; cursor:pointer;" title="Eliminar"><i class="ti ti-trash"></i></button>
+                    ${permBtn('config_tecnicos', `<button onclick="editarTecnico('${t.id}')" style="background:#dbeafe; color:#1e40af; border:0; padding:8px 10px; border-radius:6px; cursor:pointer;" title="Editar"><i class="ti ti-edit"></i></button>`)}
+                    ${permBtn('config_tecnicos_eliminar', `<button onclick="eliminarTecnico('${t.id}')" style="background:#fee2e2; color:#991b1b; border:0; padding:8px 10px; border-radius:6px; cursor:pointer;" title="Eliminar"><i class="ti ti-trash"></i></button>`)}
                 </div>
             </div>
         </div>`;
@@ -5653,8 +5673,16 @@ async function guardarDevolucion() {
    MÓDULO DE ROLES Y PERMISOS
    ============================================================ */
 
-// Definición de los 43 permisos en 7 grupos
+// Definición de los permisos en grupos
 const PERMISOS_DEF = [
+    {
+        grupo: '🏪 Atención al Cliente', color: '#0891b2',
+        items: [
+            { id: 'recepcion_ver', label: 'Ver módulo Recepción de Equipos' },
+            { id: 'ordenes_ver', label: 'Ver módulo Órdenes de Trabajo' },
+            { id: 'inventario_ver', label: 'Ver módulo Inventario Taller' }
+        ]
+    },
     {
         grupo: '🛒 Compras', color: '#1e40af',
         items: [
