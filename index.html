@@ -996,6 +996,11 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                             <div style="display:flex; justify-content:space-between;"><label>Margen Interno (mm)</label><span id="cfgi_m_val" style="font-size:12px; font-weight:bold;">1mm</span></div>
                             <input type="range" id="cfgi_margin" min="0" max="10" value="1" oninput="actualizarPreviewImpresora()">
                         </div>
+                        <div class="form-row">
+                            <div style="display:flex; justify-content:space-between;"><label><i class="ti ti-contrast"></i> Densidad / Oscuridad (nitidez)</label><span id="cfgi_dens_val" style="font-size:12px; font-weight:bold;">8</span></div>
+                            <input type="range" id="cfgi_density" min="0" max="15" value="8" oninput="guardarDensidad()">
+                            <small style="color:var(--text-muted); font-size:10px;">Más alto = más oscuro/nítido. Si sale muy claro, sube. Si se ve quemado/borroso, baja.</small>
+                        </div>
                         
                         <div class="form-row">
                             <label>Tipo de Label de este Perfil</label>
@@ -8000,6 +8005,13 @@ function qzImpresoraTickets() {
    Renderiza el HTML del label como imagen con html2canvas
    y la manda a la impresora. Imprime EXACTO a lo que se ve.
    ============================================================ */
+// Guarda la densidad (nitidez) que el sistema pasará a la impresora
+function guardarDensidad() {
+    const d = document.getElementById('cfgi_density')?.value || '8';
+    document.getElementById('cfgi_dens_val').textContent = d;
+    localStorage.setItem('bayol_densidad', d);
+}
+
 async function qzImprimirHtmlComoImagen(elementoHtml, anchoMm, altoMm, copias, tipo) {
     if(!_qzConectado || !qzDisponible()) return false;
     if(typeof html2canvas !== 'function') { 
@@ -8025,7 +8037,9 @@ async function qzImprimirHtmlComoImagen(elementoHtml, anchoMm, altoMm, copias, t
         
         const imgBase64 = canvas.toDataURL('image/png').split(',')[1];
         
-        const opciones = { units: 'mm', margins: 0, copies: copias };
+        // Densidad (nitidez/oscuridad) que controla el sistema y pasa a la impresora
+        const densidad = parseInt(localStorage.getItem('bayol_densidad') || '8');
+        const opciones = { units: 'mm', margins: 0, copies: copias, density: densidad };
         if(anchoMm && altoMm) opciones.size = { width: anchoMm, height: altoMm };
         const config = qz.configs.create(impresora, opciones);
         
@@ -8173,6 +8187,10 @@ function inicializarConfigImpresora() {
     if(!sel) return;
     sel.innerHTML = perfiles.map(p => `<option value="${escapeHtml(p.nombre)}" ${p.nombre === activo ? 'selected' : ''}>${escapeHtml(p.nombre)}</option>`).join('');
     cargarPerfilImpresora();
+    // Cargar densidad guardada
+    const dens = localStorage.getItem('bayol_densidad') || '8';
+    const densEl = document.getElementById('cfgi_density');
+    if(densEl) { densEl.value = dens; document.getElementById('cfgi_dens_val').textContent = dens; }
 }
 
 function cargarPerfilImpresora() {
