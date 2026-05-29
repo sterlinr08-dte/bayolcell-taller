@@ -1030,24 +1030,67 @@ input[type=number] { -moz-appearance: textfield; }
                 </div>
             </div>
 
-            <!-- REACONDICIONADOS -->
+            <!-- REACONDICIONADOS - NUEVO FLUJO -->
             <div id="v-refurb" class="view">
-                <div class="grid-refurb">
+                <!-- VISTA 1: LISTA DE LOTES POR PESTAÑA -->
+                <div id="reacondListaLotes">
                     <div class="card">
-                        <h3 style="margin-top:0;"><i class="ti ti-circle-plus" style="color:var(--blue-btn);"></i> Ingresar Equipo a Reacondicionados (Manual)</h3>
-                        <p style="color:var(--text-muted); font-size:12px; margin-bottom:10px;">⚡ Para ingreso masivo usa <a href="#" onclick="nav('proveedores'); return false;" style="color:var(--blue-btn); font-weight:700;">Compras</a>.</p>
-                        <div class="form-row"><label>Modelo del Dispositivo *</label><input id="ref_modelo" placeholder="Ej. iPhone 12 Pro Max"></div>
-                        <div class="form-row"><label>Número de IMEI / Serial *</label><input id="ref_imei" placeholder="358921..."></div>
-                        <div class="form-row"><label>Costo de Compra (RD$) *</label><input id="ref_costo_compra" type="number" placeholder="12000"></div>
-                        <div class="form-row"><label>Precio de Venta Estimado (RD$)</label><input id="ref_precio_venta" type="number" placeholder="22000"></div>
-                        <button class="btn btn-blue" style="width:100%; margin-top:10px;" onclick="registrarEquipoRefurb()"><i class="ti ti-plus"></i> Registrar Manualmente</button>
-                    </div>
-
-                    <div class="card">
-                        <h3 style="margin-top:0;"><i class="ti ti-report-analytics" style="color:#10b981;"></i> Equipos en Reacondicionamiento</h3>
-                        <div id="refurbListContainer" style="max-height:460px; overflow-y:auto; padding-right:5px;">
-                            <p style="color:var(--text-muted); text-align:center;">Cargando equipos...</p>
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
+                            <h3 style="margin:0;"><i class="ti ti-recycle" style="color:#06b6d4;"></i> Reacondicionados</h3>
+                            <button class="btn btn-light" onclick="cargarLotesReacond()" style="padding:6px 12px; font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
                         </div>
+                        
+                        <!-- Tabs -->
+                        <div class="tabs" style="display:flex; gap:4px; border-bottom:2px solid var(--border-color); margin-bottom:15px; flex-wrap:wrap;">
+                            <button class="tab-btn active" data-tab="pendientes" onclick="cambiarTabReacond('pendientes')" style="padding:10px 16px; background:none; border:0; border-bottom:3px solid transparent; cursor:pointer; font-weight:600; color:var(--text-muted);">
+                                🟡 Pendientes <span id="cntPendientes" class="badge" style="background:#fef3c7; color:#92400e; margin-left:6px;">0</span>
+                            </button>
+                            <button class="tab-btn" data-tab="evaluacion" onclick="cambiarTabReacond('evaluacion')" style="padding:10px 16px; background:none; border:0; border-bottom:3px solid transparent; cursor:pointer; font-weight:600; color:var(--text-muted);">
+                                ⚠️ En Evaluación <span id="cntEvaluacion" class="badge" style="background:#dbeafe; color:#1e40af; margin-left:6px;">0</span>
+                            </button>
+                            <button class="tab-btn" data-tab="terminados" onclick="cambiarTabReacond('terminados')" style="padding:10px 16px; background:none; border:0; border-bottom:3px solid transparent; cursor:pointer; font-weight:600; color:var(--text-muted);">
+                                ✅ Terminados <span id="cntTerminados" class="badge" style="background:#d1fae5; color:#065f46; margin-left:6px;">0</span>
+                            </button>
+                        </div>
+                        
+                        <!-- Container de la lista filtrada -->
+                        <div id="lotesReacondContainer">
+                            <p style="color:var(--text-muted); text-align:center; padding:20px;">Cargando...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- VISTA 2: DETALLE DEL LOTE (oculta por defecto) -->
+                <div id="reacondDetalleLote" style="display:none;">
+                    <div class="card">
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
+                            <button class="btn btn-light" onclick="volverListaLotesReacond()" style="padding:6px 12px;"><i class="ti ti-arrow-left"></i> Volver</button>
+                            <h3 id="reacondLoteTitulo" style="margin:0; flex:1; text-align:center;">Lote</h3>
+                            <span id="reacondLoteEstadoBadge" class="badge"></span>
+                        </div>
+                        
+                        <!-- Info del lote -->
+                        <div id="reacondLoteInfo" style="background:#f1f5f9; padding:12px; border-radius:8px; margin-bottom:15px; font-size:13px;"></div>
+                        
+                        <!-- Resumen de estados -->
+                        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-bottom:15px;">
+                            <div style="background:#fef3c7; padding:12px; border-radius:8px; text-align:center;">
+                                <div style="font-size:24px; font-weight:bold; color:#92400e;" id="kpiPendientes">0</div>
+                                <div style="font-size:11px; color:#92400e;">PENDIENTES</div>
+                            </div>
+                            <div style="background:#dbeafe; padding:12px; border-radius:8px; text-align:center;">
+                                <div style="font-size:24px; font-weight:bold; color:#1e40af;" id="kpiEnEval">0</div>
+                                <div style="font-size:11px; color:#1e40af;">EN EVALUACIÓN</div>
+                            </div>
+                            <div style="background:#d1fae5; padding:12px; border-radius:8px; text-align:center;">
+                                <div style="font-size:24px; font-weight:bold; color:#065f46;" id="kpiEvaluados">0</div>
+                                <div style="font-size:11px; color:#065f46;">EVALUADOS</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Lista de equipos -->
+                        <h4 style="margin:15px 0 10px;"><i class="ti ti-devices-pc"></i> Equipos del Lote</h4>
+                        <div id="reacondEquiposLista"></div>
                     </div>
                 </div>
             </div>
@@ -1410,6 +1453,7 @@ function nav(v, btn) {
     if(v === 'etiquetas') { setTimeout(cargarCalibracionLabelVenta, 50); }
     if(v === 'configImpresora') { setTimeout(() => { inicializarConfigImpresora(); qzVerificarConexion(); }, 50); }
     if(v === 'proveedores') { volverListaProveedores(); }
+    if(v === 'refurb') { setTimeout(() => { volverListaLotesReacond(); cargarLotesReacond(); }, 50); }
     closeSidebar();
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -1488,6 +1532,11 @@ function renderAll() {
     renderProveedores();
     renderComprasTab();
     renderArticulos();
+    // Refrescar vista Reacond si está activa
+    if(document.getElementById('v-refurb')?.classList.contains('active')) {
+        if(reacondLoteAbiertoId) renderDetalleLoteReacond();
+        else cargarLotesReacond();
+    }
     if(proveedorActualId) renderDetalleProveedor(proveedorActualId);
     if(loteActualId) renderEquiposLote();
 }
@@ -2149,8 +2198,271 @@ async function registrarEquipoRefurb() {
     } catch(e) { logError("Registrar refurbish", e); alert(getFriendlyError(e)); }
 }
 
+/* ============================================================
+   REACONDICIONADOS - NUEVO FLUJO POR LOTES
+   ============================================================ */
+let reacondTabActual = 'pendientes';
+let reacondLoteAbiertoId = null;
+
+function cargarLotesReacond() {
+    // Filtra solo lotes enviados a reacond y calcula sus contadores
+    const lotesReacond = (cache.lotes || []).filter(l => l.enviado_reacond === true);
+    
+    let contPend = 0, contEval = 0, contTerm = 0;
+    const lotesConEstado = lotesReacond.map(lote => {
+        const equipos = (cache.refurb || []).filter(r => r.lote_id === lote.id);
+        const pendientes = equipos.filter(e => (e.estado_evaluacion || 'pendiente') === 'pendiente').length;
+        const enEval = equipos.filter(e => e.estado_evaluacion === 'en_evaluacion').length;
+        const evaluados = equipos.filter(e => e.estado_evaluacion === 'evaluado').length;
+        const total = equipos.length;
+        
+        let estadoLote;
+        if(total === 0) estadoLote = 'pendientes';
+        else if(evaluados === total) estadoLote = 'terminados';
+        else if(enEval > 0 || evaluados > 0) estadoLote = 'evaluacion';
+        else estadoLote = 'pendientes';
+        
+        if(estadoLote === 'pendientes') contPend++;
+        else if(estadoLote === 'evaluacion') contEval++;
+        else contTerm++;
+        
+        return { lote, equipos, pendientes, enEval, evaluados, total, estadoLote };
+    });
+    
+    // Actualizar contadores en pestañas
+    const setBadge = (id, n) => { const el = document.getElementById(id); if(el) el.textContent = n; };
+    setBadge('cntPendientes', contPend);
+    setBadge('cntEvaluacion', contEval);
+    setBadge('cntTerminados', contTerm);
+    
+    renderLotesReacondTab(lotesConEstado);
+}
+
+function renderLotesReacondTab(lotesConEstado) {
+    const cont = document.getElementById('lotesReacondContainer');
+    if(!cont) return;
+    
+    const filtrados = lotesConEstado.filter(d => d.estadoLote === reacondTabActual);
+    
+    if(filtrados.length === 0) {
+        const msg = reacondTabActual === 'pendientes' 
+            ? 'No hay lotes pendientes. Envía un lote desde el módulo Compras.'
+            : reacondTabActual === 'evaluacion'
+            ? 'No hay lotes en evaluación.'
+            : 'No hay lotes terminados aún.';
+        cont.innerHTML = `<p style="color:var(--text-muted); text-align:center; padding:30px; font-size:13px;">${msg}</p>`;
+        return;
+    }
+    
+    cont.innerHTML = filtrados.map(d => {
+        const lote = d.lote;
+        const prov = (cache.proveedores || []).find(p => p.id === lote.proveedor_id);
+        const nombreLote = lote.nombre || ('Lote #' + (lote.id || '').slice(0,8));
+        const fechaCompra = lote.fecha_compra ? new Date(lote.fecha_compra).toLocaleDateString('es-DO') : '—';
+        const fechaEnvio = lote.fecha_envio_reacond ? new Date(lote.fecha_envio_reacond).toLocaleDateString('es-DO') : '—';
+        const progreso = d.total > 0 ? Math.round((d.evaluados / d.total) * 100) : 0;
+        
+        return `<div style="background:#fff; border:1px solid var(--border-color); border-radius:10px; padding:14px; margin-bottom:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
+                <div style="flex:1; min-width:200px;">
+                    <div style="font-weight:700; font-size:15px; color:var(--blue-btn);">${escapeHtml(nombreLote)}</div>
+                    <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+                        <i class="ti ti-truck"></i> ${escapeHtml(prov ? prov.nombre : 'Sin proveedor')}<br>
+                        <i class="ti ti-calendar"></i> Compra: ${fechaCompra} · Enviado: ${fechaEnvio}
+                    </div>
+                </div>
+                <button class="btn btn-blue" style="padding:8px 14px;" onclick="abrirLoteReacond('${lote.id}')"><i class="ti ti-folder-open"></i> Abrir Lote</button>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(80px, 1fr)); gap:8px; margin-top:12px;">
+                <div style="background:#fef3c7; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#92400e;">${d.pendientes}</b><br>Pendientes</div>
+                <div style="background:#dbeafe; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#1e40af;">${d.enEval}</b><br>En Eval</div>
+                <div style="background:#d1fae5; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#065f46;">${d.evaluados}</b><br>Evaluados</div>
+                <div style="background:#f1f5f9; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px;">${d.total}</b><br>Total</div>
+            </div>
+            <div style="background:#e5e7eb; height:6px; border-radius:3px; margin-top:10px; overflow:hidden;">
+                <div style="background:#10b981; height:100%; width:${progreso}%; transition:width 0.3s;"></div>
+            </div>
+            <div style="font-size:10px; color:var(--text-muted); text-align:right; margin-top:2px;">${progreso}% completado</div>
+        </div>`;
+    }).join('');
+}
+
+function cambiarTabReacond(tab) {
+    reacondTabActual = tab;
+    document.querySelectorAll('#reacondListaLotes .tab-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.tab === tab);
+    });
+    cargarLotesReacond();
+}
+
+function abrirLoteReacond(loteId) {
+    reacondLoteAbiertoId = loteId;
+    document.getElementById('reacondListaLotes').style.display = 'none';
+    document.getElementById('reacondDetalleLote').style.display = 'block';
+    renderDetalleLoteReacond();
+}
+
+function volverListaLotesReacond() {
+    reacondLoteAbiertoId = null;
+    document.getElementById('reacondListaLotes').style.display = 'block';
+    document.getElementById('reacondDetalleLote').style.display = 'none';
+    cargarLotesReacond();
+}
+
+function renderDetalleLoteReacond() {
+    if(!reacondLoteAbiertoId) return;
+    const lote = (cache.lotes || []).find(l => l.id === reacondLoteAbiertoId);
+    if(!lote) { volverListaLotesReacond(); return; }
+    const prov = (cache.proveedores || []).find(p => p.id === lote.proveedor_id);
+    const equipos = (cache.refurb || []).filter(r => r.lote_id === reacondLoteAbiertoId);
+    
+    // Titulo y info
+    const nombreLote = lote.nombre || ('Lote #' + (lote.id || '').slice(0,8));
+    document.getElementById('reacondLoteTitulo').textContent = nombreLote;
+    
+    const pendientes = equipos.filter(e => (e.estado_evaluacion || 'pendiente') === 'pendiente').length;
+    const enEval = equipos.filter(e => e.estado_evaluacion === 'en_evaluacion').length;
+    const evaluados = equipos.filter(e => e.estado_evaluacion === 'evaluado').length;
+    
+    document.getElementById('kpiPendientes').textContent = pendientes;
+    document.getElementById('kpiEnEval').textContent = enEval;
+    document.getElementById('kpiEvaluados').textContent = evaluados;
+    
+    // Badge de estado
+    const badge = document.getElementById('reacondLoteEstadoBadge');
+    if(evaluados === equipos.length && equipos.length > 0) {
+        badge.textContent = '✅ Terminado';
+        badge.style.cssText = 'background:#d1fae5; color:#065f46;';
+    } else if(enEval > 0 || evaluados > 0) {
+        badge.textContent = '⚠️ En Evaluación';
+        badge.style.cssText = 'background:#dbeafe; color:#1e40af;';
+    } else {
+        badge.textContent = '🟡 Pendiente';
+        badge.style.cssText = 'background:#fef3c7; color:#92400e;';
+    }
+    
+    // Info del lote
+    document.getElementById('reacondLoteInfo').innerHTML = `
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px;">
+            <div><b><i class="ti ti-truck"></i> Proveedor:</b><br>${escapeHtml(prov ? prov.nombre : 'Sin proveedor')}</div>
+            <div><b><i class="ti ti-calendar"></i> Compra:</b><br>${lote.fecha_compra ? new Date(lote.fecha_compra).toLocaleDateString('es-DO') : '—'}</div>
+            <div><b><i class="ti ti-package"></i> Total equipos:</b><br>${equipos.length}</div>
+        </div>
+    `;
+    
+    // Lista de equipos
+    const cont = document.getElementById('reacondEquiposLista');
+    if(equipos.length === 0) {
+        cont.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:20px;">Este lote no tiene equipos.</p>';
+        return;
+    }
+    cont.innerHTML = equipos.map((eq, idx) => renderEquipoReacondCard(eq, idx + 1)).join('');
+}
+
+function renderEquipoReacondCard(eq, num) {
+    const estado = eq.estado_evaluacion || 'pendiente';
+    let badgeColor, badgeText, accionBtn;
+    
+    if(estado === 'pendiente') {
+        badgeColor = 'background:#fef3c7; color:#92400e;';
+        badgeText = '🟡 Pendiente';
+        accionBtn = `<button class="btn btn-blue" style="padding:8px 14px;" onclick="empezarEvaluacion('${eq.id}')"><i class="ti ti-player-play"></i> Evaluar</button>`;
+    } else if(estado === 'en_evaluacion') {
+        badgeColor = 'background:#dbeafe; color:#1e40af;';
+        badgeText = '⚠️ En Evaluación';
+        accionBtn = `<button class="btn btn-dark" style="padding:8px 14px; background:#1e40af;" onclick="continuarEvaluacion('${eq.id}')"><i class="ti ti-edit"></i> Continuar</button>
+                     <button class="btn btn-light" style="padding:8px 12px;" onclick="marcarEvaluado('${eq.id}')" title="Marcar como evaluado"><i class="ti ti-check"></i></button>`;
+    } else {
+        badgeColor = 'background:#d1fae5; color:#065f46;';
+        badgeText = '✅ Evaluado';
+        accionBtn = `<button class="btn btn-light" style="padding:8px 12px;" onclick="abrirPreviewLabelDiagIndividual('${eq.id}')"><i class="ti ti-printer"></i> Label</button>
+                     <button class="btn btn-light" style="padding:8px 12px;" onclick="continuarEvaluacion('${eq.id}')" title="Ver/Editar"><i class="ti ti-eye"></i></button>`;
+    }
+    
+    return `<div style="background:#fff; border:1px solid var(--border-color); border-radius:8px; padding:12px; margin-bottom:8px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
+            <div style="flex:1; min-width:200px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="background:var(--blue-btn); color:#fff; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700;">#${num}</span>
+                    <b style="font-size:14px;">${escapeHtml(eq.modelo || 'Sin modelo')}</b>
+                    <span class="badge" style="${badgeColor} font-size:11px;">${badgeText}</span>
+                </div>
+                <div style="font-size:12px; color:var(--text-muted); margin-top:6px;">
+                    <i class="ti ti-barcode"></i> IMEI: ${escapeHtml(eq.imei || '—')}
+                    ${eq.color ? ' · ' + escapeHtml(eq.color) : ''}
+                    ${eq.capacidad ? ' · ' + escapeHtml(eq.capacidad) : ''}
+                </div>
+                ${eq.notas_diagnostico ? `<div style="background:#f1f5f9; padding:6px 10px; border-radius:6px; margin-top:6px; font-size:12px;"><b>Notas:</b> ${escapeHtml(eq.notas_diagnostico)}</div>` : ''}
+            </div>
+            <div style="display:flex; gap:6px; align-items:center;">
+                ${accionBtn}
+            </div>
+        </div>
+    </div>`;
+}
+
+async function empezarEvaluacion(equipoId) {
+    try {
+        const { error } = await supabaseClient
+            .from('equipos_refurbish')
+            .update({ estado_evaluacion: 'en_evaluacion' })
+            .eq('id', equipoId);
+        if(error) throw error;
+        await loadAll();
+        renderDetalleLoteReacond();
+        toast('Equipo en evaluación.');
+    } catch(e) {
+        logError('Empezar evaluación', e);
+        alert(getFriendlyError(e));
+    }
+}
+
+function continuarEvaluacion(equipoId) {
+    // Por ahora abre el panel de notas (en próxima entrega será el panel de fallas completo)
+    const eq = (cache.refurb || []).find(r => r.id === equipoId);
+    if(!eq) return;
+    const notasActuales = eq.notas_diagnostico || '';
+    const nuevasNotas = prompt(`Notas de diagnóstico para ${eq.modelo}:\n(En próxima entrega: panel de fallas con checkboxes)`, notasActuales);
+    if(nuevasNotas === null) return;
+    guardarNotasEquipo(equipoId, nuevasNotas);
+}
+
+async function guardarNotasEquipo(equipoId, notas) {
+    try {
+        const { error } = await supabaseClient
+            .from('equipos_refurbish')
+            .update({ notas_diagnostico: notas })
+            .eq('id', equipoId);
+        if(error) throw error;
+        await loadAll();
+        renderDetalleLoteReacond();
+        toast('Notas guardadas.');
+    } catch(e) {
+        logError('Guardar notas', e);
+        alert(getFriendlyError(e));
+    }
+}
+
+async function marcarEvaluado(equipoId) {
+    if(!confirm('¿Marcar este equipo como evaluado?')) return;
+    try {
+        const { error } = await supabaseClient
+            .from('equipos_refurbish')
+            .update({ estado_evaluacion: 'evaluado' })
+            .eq('id', equipoId);
+        if(error) throw error;
+        await loadAll();
+        renderDetalleLoteReacond();
+        toast('Equipo evaluado.');
+    } catch(e) {
+        logError('Marcar evaluado', e);
+        alert(getFriendlyError(e));
+    }
+}
+
 function renderRefurbishItems() {
     const cont = document.getElementById("refurbListContainer");
+    if(!cont) return; // El módulo viejo ya no existe, salir silenciosamente
     if(!cache.refurb.length) {
         cont.innerHTML = `<p style="color:var(--text-muted); text-align:center; font-size:13px; margin-top:20px;">No hay equipos en reacondicionamiento.</p>`;
         return;
@@ -2654,9 +2966,13 @@ function renderComprasTab() {
                     ${l.notas ? '<br><span style="text-transform:uppercase;">' + escapeHtml(l.notas) + '</span>' : ''}
                 </div>
             </div>
-            <div style="display:flex; gap:10px; align-items:center;">
+            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
                 ${totalDisplay ? `<div class="lote-totals"><div class="total">${totalDisplay}</div></div>` : ''}
                 <button class="btn btn-blue" style="padding:6px 12px; font-size:12px;" onclick="abrirLoteDesdeCompras('${l.id}')"><i class="ti ti-folder-open"></i> Abrir</button>
+                ${l.enviado_reacond 
+                    ? `<span class="badge" style="background:#d1fae5; color:#065f46; font-size:11px;"><i class="ti ti-circle-check"></i> En Reacond</span>`
+                    : `<button class="btn btn-dark" style="padding:6px 10px; font-size:12px; background:#06b6d4;" onclick="enviarLoteAReacond('${l.id}')" title="Enviar este lote a Reacondicionado"><i class="ti ti-send"></i> A Reacond</button>`
+                }
                 <button class="btn btn-light" style="padding:6px 10px; font-size:12px;" onclick="eliminarLote('${l.id}')"><i class="ti ti-trash"></i></button>
             </div>
         </div>`;
@@ -2671,6 +2987,28 @@ function abrirLoteDesdeCompras(loteId) {
     document.getElementById('prov-detalle').style.display = 'none';
     document.getElementById('lote-detalle').style.display = 'block';
     abrirLote(loteId);
+}
+
+async function enviarLoteAReacond(loteId) {
+    const lote = cache.lotes.find(l => l.id === loteId);
+    if(!lote) return alert('Lote no encontrado.');
+    const equiposLote = cache.refurb.filter(r => r.lote_id === loteId);
+    if(equiposLote.length === 0) {
+        return alert('Este lote no tiene equipos registrados. Agrega equipos primero antes de enviarlo a Reacondicionado.');
+    }
+    if(!confirm(`¿Enviar lote "${lote.nombre || lote.id.slice(0,8)}" a Reacondicionado?\n\n${equiposLote.length} equipos quedarán pendientes de evaluación.`)) return;
+    try {
+        const { error } = await supabaseClient
+            .from('refurb_lotes')
+            .update({ enviado_reacond: true, fecha_envio_reacond: new Date().toISOString() })
+            .eq('id', loteId);
+        if(error) throw error;
+        toast('Lote enviado a Reacondicionado.');
+        await loadAll();
+    } catch(e) {
+        logError('Enviar lote a reacond', e);
+        alert(getFriendlyError(e));
+    }
 }
 
 function abrirModalNuevaCompra() {
