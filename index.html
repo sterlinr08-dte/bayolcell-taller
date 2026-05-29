@@ -412,6 +412,12 @@ input[type=number] { -moz-appearance: textfield; }
 .smart-select-empty { padding: 20px; text-align: center; color: var(--text-muted); font-size: 13px; }
 .smart-select-empty button { margin-top: 8px; padding: 6px 12px; background: var(--blue-btn); color: #fff; border: 0; border-radius: 6px; cursor: pointer; font-size: 12px; }
 mark.ss-hl { background: #fef08a; color: inherit; padding: 0 1px; border-radius: 2px; }
+
+/* ========== CHECKBOXES NORMALIZADOS (fix móvil) ========== */
+input[type="checkbox"]:not(.no-norm) { -webkit-appearance: none; appearance: none; width: 20px !important; height: 20px !important; border: 2px solid #cbd5e1; border-radius: 5px; background: #fff; cursor: pointer; position: relative; flex-shrink: 0; vertical-align: middle; margin: 0; transition: all 0.15s; }
+input[type="checkbox"]:not(.no-norm):checked { background: var(--blue-btn); border-color: var(--blue-btn); }
+input[type="checkbox"]:not(.no-norm):checked::after { content: '✓'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #fff; font-size: 14px; font-weight: bold; line-height: 1; }
+input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
 .tab-content { display: none; }
 .tab-content.active { display: block; }
 
@@ -473,6 +479,7 @@ mark.ss-hl { background: #fef08a; color: inherit; padding: 0 1px; border-radius:
             <button onclick="nav('articulos',this)"><i class="ti ti-database"></i> Catálogo de Artículos</button>
             <button onclick="nav('proveedores',this)"><i class="ti ti-shopping-cart"></i> Compras</button>
             <button id="menu-refurb" onclick="nav('refurb',this)"><i class="ti ti-refresh"></i> Reacondicionados</button>
+            <button onclick="nav('configuracion',this)"><i class="ti ti-adjustments"></i> Configuración</button>
         </div>
         <div class="side-bottom-logo">
             <h3>BAYOL <span>CELL</span></h3>
@@ -1071,15 +1078,21 @@ mark.ss-hl { background: #fef08a; color: inherit; padding: 0 1px; border-radius:
                             </div>
                         
                         <!-- Tabs -->
-                        <div class="tabs" style="display:flex; gap:4px; border-bottom:2px solid var(--border-color); margin-bottom:15px; flex-wrap:wrap;">
-                            <button class="tab-btn active" data-tab="pendientes" onclick="cambiarTabReacond('pendientes')" style="padding:10px 16px; background:none; border:0; border-bottom:3px solid transparent; cursor:pointer; font-weight:600; color:var(--text-muted);">
+                        <div class="tabs" style="display:flex; gap:4px; border-bottom:2px solid var(--border-color); margin-bottom:15px; flex-wrap:wrap; overflow-x:auto;">
+                            <button class="tab-btn active" data-tab="pendientes" onclick="cambiarTabReacond('pendientes')" style="padding:10px 14px; background:none; border:0; border-bottom:3px solid transparent; cursor:pointer; font-weight:600; color:var(--text-muted); white-space:nowrap;">
                                 🟡 Pendientes <span id="cntPendientes" class="badge" style="background:#fef3c7; color:#92400e; margin-left:6px;">0</span>
                             </button>
-                            <button class="tab-btn" data-tab="evaluacion" onclick="cambiarTabReacond('evaluacion')" style="padding:10px 16px; background:none; border:0; border-bottom:3px solid transparent; cursor:pointer; font-weight:600; color:var(--text-muted);">
-                                ⚠️ En Evaluación <span id="cntEvaluacion" class="badge" style="background:#dbeafe; color:#1e40af; margin-left:6px;">0</span>
+                            <button class="tab-btn" data-tab="evaluacion" onclick="cambiarTabReacond('evaluacion')" style="padding:10px 14px; background:none; border:0; border-bottom:3px solid transparent; cursor:pointer; font-weight:600; color:var(--text-muted); white-space:nowrap;">
+                                ⚠️ Evaluación <span id="cntEvaluacion" class="badge" style="background:#dbeafe; color:#1e40af; margin-left:6px;">0</span>
                             </button>
-                            <button class="tab-btn" data-tab="terminados" onclick="cambiarTabReacond('terminados')" style="padding:10px 16px; background:none; border:0; border-bottom:3px solid transparent; cursor:pointer; font-weight:600; color:var(--text-muted);">
-                                ✅ Terminados <span id="cntTerminados" class="badge" style="background:#d1fae5; color:#065f46; margin-left:6px;">0</span>
+                            <button class="tab-btn" data-tab="proceso" onclick="cambiarTabReacond('proceso')" style="padding:10px 14px; background:none; border:0; border-bottom:3px solid transparent; cursor:pointer; font-weight:600; color:var(--text-muted); white-space:nowrap;">
+                                🔧 En Proceso <span id="cntProceso" class="badge" style="background:#fed7aa; color:#9a3412; margin-left:6px;">0</span>
+                            </button>
+                            <button class="tab-btn" data-tab="listo_venta" onclick="cambiarTabReacond('listo_venta')" style="padding:10px 14px; background:none; border:0; border-bottom:3px solid transparent; cursor:pointer; font-weight:600; color:var(--text-muted); white-space:nowrap;">
+                                🛒 Listo Venta <span id="cntListoVenta" class="badge" style="background:#ddd6fe; color:#5b21b6; margin-left:6px;">0</span>
+                            </button>
+                            <button class="tab-btn" data-tab="terminados" onclick="cambiarTabReacond('terminados')" style="padding:10px 14px; background:none; border:0; border-bottom:3px solid transparent; cursor:pointer; font-weight:600; color:var(--text-muted); white-space:nowrap;">
+                                ✅ Vendidos <span id="cntTerminados" class="badge" style="background:#d1fae5; color:#065f46; margin-left:6px;">0</span>
                             </button>
                         </div>
                         
@@ -1153,6 +1166,40 @@ mark.ss-hl { background: #fef08a; color: inherit; padding: 0 1px; border-radius:
                     </div>
                 </div>
                 <!-- /CONTENIDO PESTAÑA CATÁLOGO -->
+            </div>
+
+            <!-- ============= CONFIGURACIÓN ============= -->
+            <div id="v-configuracion" class="view">
+                <div style="background:#fff; border-radius:12px; padding:6px; margin-bottom:15px; display:flex; gap:4px; box-shadow:0 1px 3px rgba(0,0,0,0.05); flex-wrap:wrap;">
+                    <button id="cfgMainTabTecnicos" onclick="cambiarMainTabConfig('tecnicos')" class="cfg-main-tab" style="flex:1; min-width:140px; padding:12px; border:0; background:var(--blue-btn); color:#fff; border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">
+                        <i class="ti ti-users"></i> Técnicos
+                    </button>
+                    <button id="cfgMainTabGeneral" onclick="cambiarMainTabConfig('general')" class="cfg-main-tab" style="flex:1; min-width:140px; padding:12px; border:0; background:transparent; color:var(--text-muted); border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">
+                        <i class="ti ti-adjustments"></i> General
+                    </button>
+                </div>
+                
+                <!-- TAB TÉCNICOS -->
+                <div id="cfgContentTecnicos">
+                    <div class="card">
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
+                            <h3 style="margin:0;"><i class="ti ti-users" style="color:var(--blue-btn);"></i> Técnicos del Taller</h3>
+                            <button class="btn btn-blue" onclick="abrirModalTecnico()"><i class="ti ti-plus"></i> Nuevo Técnico</button>
+                        </div>
+                        <div style="background:#dbeafe; border:1px solid #93c5fd; padding:10px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#1e40af;">
+                            <b><i class="ti ti-info-circle"></i> Aquí gestionas los técnicos que trabajarán los equipos.</b> Cada técnico puede ser asignado a equipos reacondicionados.
+                        </div>
+                        <div id="tecnicosLista"></div>
+                    </div>
+                </div>
+                
+                <!-- TAB GENERAL -->
+                <div id="cfgContentGeneral" style="display:none;">
+                    <div class="card">
+                        <h3><i class="ti ti-adjustments"></i> Configuración General</h3>
+                        <p style="color:var(--text-muted);">Próximamente: configuración general del sistema (logos, datos del taller, etc.)</p>
+                    </div>
+                </div>
             </div>
         </section>
     </main>
@@ -1241,6 +1288,82 @@ mark.ss-hl { background: #fef08a; color: inherit; padding: 0 1px; border-radius:
             </label>
             <button class="btn btn-light" onclick="cerrarModalEvaluacion()">Cancelar</button>
             <button class="btn btn-blue" onclick="guardarEvaluacion()"><i class="ti ti-device-floppy"></i> Guardar</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: CREAR/EDITAR TÉCNICO -->
+<div id="modalTecnico" class="modal-backdrop">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3><i class="ti ti-user-plus"></i> <span id="modalTecnicoTitulo">Nuevo Técnico</span></h3>
+            <button class="modal-close" onclick="cerrarModalTecnico()">✕</button>
+        </div>
+        <div class="modal-body">
+            <input id="mod_tec_id" type="hidden">
+            <div class="form-row">
+                <label>Nombre completo *</label>
+                <input id="mod_tec_nombre" placeholder="Ej. Juan Pérez" style="text-transform:uppercase;">
+            </div>
+            <div class="form-row">
+                <label>Teléfono / WhatsApp</label>
+                <input id="mod_tec_telefono" placeholder="809-000-0000">
+            </div>
+            <div class="form-row">
+                <label>Especialidad</label>
+                <input id="mod_tec_especialidad" placeholder="Ej. iPhone, Samsung, Microsoldadura...">
+            </div>
+            <div class="form-row">
+                <label>Rol *</label>
+                <select id="mod_tec_rol">
+                    <option value="tecnico">Técnico (trabaja equipos)</option>
+                    <option value="admin">Administrador (gestiona todo)</option>
+                </select>
+                <small style="color:var(--text-muted); font-size:11px;">Admin puede asignar técnicos y aprobar piezas. Técnico solo trabaja equipos asignados.</small>
+            </div>
+            <div class="form-row">
+                <label>Notas (opcional)</label>
+                <textarea id="mod_tec_notas" rows="2" placeholder="Información adicional..." style="resize:vertical;"></textarea>
+            </div>
+            <div class="form-row">
+                <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                    <input type="checkbox" id="mod_tec_activo" checked>
+                    <span>Activo (disponible para asignar a equipos)</span>
+                </label>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" onclick="cerrarModalTecnico()">Cancelar</button>
+            <button class="btn btn-blue" onclick="guardarTecnico()"><i class="ti ti-check"></i> Guardar</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: ASIGNAR TÉCNICO A EQUIPO -->
+<div id="modalAsignarTecnico" class="modal-backdrop">
+    <div class="modal-box" style="max-width:550px;">
+        <div class="modal-header" style="background:linear-gradient(135deg, #f59e0b, #ef4444); color:#fff; border-radius:12px 12px 0 0;">
+            <h3 style="color:#fff;"><i class="ti ti-user-check"></i> Asignar Técnico</h3>
+            <button class="modal-close" onclick="cerrarModalAsignarTecnico()" style="color:#fff;">✕</button>
+        </div>
+        <div class="modal-body">
+            <input id="asign_equipo_id" type="hidden">
+            <div id="asignEquipoInfo" style="background:#f1f5f9; padding:12px; border-radius:8px; margin-bottom:15px; font-size:13px;"></div>
+            <div class="form-row">
+                <label>Selecciona técnico</label>
+                <div id="ss-asign-tecnico"></div>
+            </div>
+            <div class="form-row">
+                <label>Notas para el técnico (opcional)</label>
+                <textarea id="asign_notas" rows="3" placeholder="Instrucciones especiales..." style="resize:vertical;"></textarea>
+            </div>
+            <div style="background:#fef3c7; border:1px solid #fcd34d; padding:10px; border-radius:8px; font-size:12px; color:#92400e;">
+                <b><i class="ti ti-alert-triangle"></i> Al asignar, el equipo pasa a estado "En Proceso".</b> El técnico verá este equipo en su lista de trabajo.
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" onclick="cerrarModalAsignarTecnico()">Cancelar</button>
+            <button class="btn btn-blue" onclick="confirmarAsignarTecnico()"><i class="ti ti-check"></i> Asignar y pasar a Proceso</button>
         </div>
     </div>
 </div>
@@ -1505,7 +1628,7 @@ const CONFIG_KEY = "sb_publishable_PynS5ZjKoQ36HCpguVzxaw_KZOlagtz";
 const supabaseClient = supabase.createClient(CONFIG_URL, CONFIG_KEY);
 
 let sessionUser = null;
-let cache = { ordenes: [], clientes: [], equipos: [], piezas: [], activos: [], refurb: [], proveedores: [], lotes: [], articulos: [], fallaCategorias: [], fallas: [] };
+let cache = { ordenes: [], clientes: [], equipos: [], piezas: [], activos: [], refurb: [], proveedores: [], lotes: [], articulos: [], fallaCategorias: [], fallas: [], tecnicos: [] };
 let proveedorActualId = null;
 let loteActualId = null;
 let refreshTimer = null;
@@ -1857,6 +1980,7 @@ function nav(v, btn) {
     if(v === 'configImpresora') { setTimeout(() => { inicializarConfigImpresora(); qzVerificarConexion(); }, 50); }
     if(v === 'proveedores') { volverListaProveedores(); }
     if(v === 'refurb') { setTimeout(() => { volverListaLotesReacond(); cargarLotesReacond(); }, 50); }
+    if(v === 'configuracion') { setTimeout(() => { cambiarMainTabConfig('tecnicos'); }, 50); }
     closeSidebar();
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -1878,7 +2002,7 @@ function closeSidebar() {
 
 async function loadAll() {
     try {
-        const [rOrd, rCli, rEq, rPz, rAct, rRef, rProv, rLot, rArt] = await Promise.all([
+        const [rOrd, rCli, rEq, rPz, rAct, rRef, rProv, rLot, rArt, rTec] = await Promise.all([
             supabaseClient.from('ordenes_reparacion').select('*').order('creado_en', { ascending: false }),
             supabaseClient.from('clientes').select('*'),
             supabaseClient.from('equipos').select('*'),
@@ -1887,7 +2011,8 @@ async function loadAll() {
             supabaseClient.from('equipos_refurbish').select('*').order('creado_en', { ascending: false }),
             supabaseClient.from('proveedores').select('*').eq('activo', true).order('nombre', { ascending: true }),
             supabaseClient.from('refurb_lotes').select('*').order('creado_en', { ascending: false }),
-            supabaseClient.from('articulos').select('*').eq('activo', true).order('codigo', { ascending: true })
+            supabaseClient.from('articulos').select('*').eq('activo', true).order('codigo', { ascending: true }),
+            supabaseClient.from('tecnicos').select('*').order('nombre', { ascending: true })
         ]);
 
         requireSupabaseOk(rOrd, 'Cargar órdenes');
@@ -1899,11 +2024,14 @@ async function loadAll() {
         requireSupabaseOk(rProv, 'Cargar proveedores');
         requireSupabaseOk(rLot, 'Cargar lotes');
         requireSupabaseOk(rArt, 'Cargar artículos');
+        requireSupabaseOk(rTec, 'Cargar técnicos');
         
         cache = { 
             ordenes: rOrd.data || [], clientes: rCli.data || [], equipos: rEq.data || [], 
             piezas: rPz.data || [], activos: rAct.data || [], refurb: rRef.data || [],
-            proveedores: rProv.data || [], lotes: rLot.data || [], articulos: rArt.data || []
+            proveedores: rProv.data || [], lotes: rLot.data || [], articulos: rArt.data || [],
+            fallaCategorias: cache.fallaCategorias || [], fallas: cache.fallas || [],
+            tecnicos: rTec.data || []
         };
         renderAll();
     } catch(e) { logError('loadAll', e); toast(getFriendlyError(e, "Error cargando base de datos.")); }
@@ -2639,31 +2767,42 @@ function cargarLotesReacond() {
     // Filtra solo lotes enviados a reacond y calcula sus contadores
     const lotesReacond = (cache.lotes || []).filter(l => l.enviado_reacond === true);
     
-    let contPend = 0, contEval = 0, contTerm = 0;
+    let contPend = 0, contEval = 0, contProc = 0, contListo = 0, contTerm = 0;
     const lotesConEstado = lotesReacond.map(lote => {
         const equipos = (cache.refurb || []).filter(r => r.lote_id === lote.id);
         const pendientes = equipos.filter(e => (e.estado_evaluacion || 'pendiente') === 'pendiente').length;
         const enEval = equipos.filter(e => e.estado_evaluacion === 'en_evaluacion').length;
         const evaluados = equipos.filter(e => e.estado_evaluacion === 'evaluado').length;
+        const enProceso = equipos.filter(e => ['en_proceso','tecnico_recibio','espera_pieza','listo_revision'].includes(e.estado_evaluacion)).length;
+        const listoVenta = equipos.filter(e => e.estado_evaluacion === 'listo_venta').length;
+        const vendidos = equipos.filter(e => e.estado_evaluacion === 'vendido').length;
         const total = equipos.length;
         
+        // Decidir estado predominante del lote
         let estadoLote;
         if(total === 0) estadoLote = 'pendientes';
-        else if(evaluados === total) estadoLote = 'terminados';
-        else if(enEval > 0 || evaluados > 0) estadoLote = 'evaluacion';
+        else if(vendidos === total) estadoLote = 'terminados';
+        else if(listoVenta > 0 && listoVenta + vendidos === total) estadoLote = 'listo_venta';
+        else if(enProceso > 0) estadoLote = 'proceso';
+        else if(enEval > 0 || (evaluados > 0 && evaluados < total)) estadoLote = 'evaluacion';
+        else if(evaluados === total) estadoLote = 'proceso'; // todos evaluados pero ninguno aún en proceso = sigue siendo activo
         else estadoLote = 'pendientes';
         
         if(estadoLote === 'pendientes') contPend++;
         else if(estadoLote === 'evaluacion') contEval++;
+        else if(estadoLote === 'proceso') contProc++;
+        else if(estadoLote === 'listo_venta') contListo++;
         else contTerm++;
         
-        return { lote, equipos, pendientes, enEval, evaluados, total, estadoLote };
+        return { lote, equipos, pendientes, enEval, evaluados, enProceso, listoVenta, vendidos, total, estadoLote };
     });
     
     // Actualizar contadores en pestañas
     const setBadge = (id, n) => { const el = document.getElementById(id); if(el) el.textContent = n; };
     setBadge('cntPendientes', contPend);
     setBadge('cntEvaluacion', contEval);
+    setBadge('cntProceso', contProc);
+    setBadge('cntListoVenta', contListo);
     setBadge('cntTerminados', contTerm);
     
     renderLotesReacondTab(lotesConEstado);
@@ -2680,7 +2819,11 @@ function renderLotesReacondTab(lotesConEstado) {
             ? 'No hay lotes pendientes. Envía un lote desde el módulo Compras.'
             : reacondTabActual === 'evaluacion'
             ? 'No hay lotes en evaluación.'
-            : 'No hay lotes terminados aún.';
+            : reacondTabActual === 'proceso'
+            ? 'No hay lotes en proceso de reparación.'
+            : reacondTabActual === 'listo_venta'
+            ? 'No hay lotes con equipos listos para venta.'
+            : 'No hay lotes con equipos vendidos.';
         cont.innerHTML = `<p style="color:var(--text-muted); text-align:center; padding:30px; font-size:13px;">${msg}</p>`;
         return;
     }
@@ -2792,6 +2935,7 @@ function renderDetalleLoteReacond() {
 
 function renderEquipoReacondCard(eq, num) {
     const estado = eq.estado_evaluacion || 'pendiente';
+    const tecnico = eq.tecnico_asignado_id ? (cache.tecnicos || []).find(t => t.id === eq.tecnico_asignado_id) : null;
     let badgeColor, badgeText, accionBtn;
     
     if(estado === 'pendiente') {
@@ -2801,22 +2945,51 @@ function renderEquipoReacondCard(eq, num) {
     } else if(estado === 'en_evaluacion') {
         badgeColor = 'background:#dbeafe; color:#1e40af;';
         badgeText = '⚠️ En Evaluación';
-        accionBtn = `<button class="btn btn-dark" style="padding:8px 14px; background:#1e40af;" onclick="continuarEvaluacion('${eq.id}')"><i class="ti ti-edit"></i> Continuar</button>
-                     <button class="btn btn-light" style="padding:8px 12px;" onclick="marcarEvaluado('${eq.id}')" title="Marcar como evaluado"><i class="ti ti-check"></i></button>`;
-    } else {
+        accionBtn = `<button class="btn btn-dark" style="padding:8px 14px; background:#1e40af;" onclick="continuarEvaluacion('${eq.id}')"><i class="ti ti-edit"></i> Continuar</button>`;
+    } else if(estado === 'evaluado') {
         badgeColor = 'background:#d1fae5; color:#065f46;';
         badgeText = '✅ Evaluado';
-        accionBtn = `<button class="btn btn-light" style="padding:8px 12px;" onclick="abrirPreviewLabelDiagIndividual('${eq.id}')"><i class="ti ti-printer"></i> Label</button>
+        accionBtn = `<button class="btn btn-dark" style="padding:8px 14px; background:#f59e0b;" onclick="abrirModalAsignarTecnico('${eq.id}')"><i class="ti ti-user-plus"></i> Asignar a Técnico</button>
                      <button class="btn btn-light" style="padding:8px 12px;" onclick="continuarEvaluacion('${eq.id}')" title="Ver/Editar"><i class="ti ti-eye"></i></button>`;
+    } else if(estado === 'en_proceso') {
+        badgeColor = 'background:#fed7aa; color:#9a3412;';
+        badgeText = '🔧 En Proceso';
+        accionBtn = `<button class="btn btn-dark" style="padding:8px 14px; background:#9a3412;" onclick="abrirPanelProceso('${eq.id}')"><i class="ti ti-tool"></i> Trabajar</button>`;
+    } else if(estado === 'tecnico_recibio') {
+        badgeColor = 'background:#bfdbfe; color:#1e40af;';
+        badgeText = '📦 Técnico recibió';
+        accionBtn = `<button class="btn btn-dark" style="padding:8px 14px; background:#1e40af;" onclick="abrirPanelProceso('${eq.id}')"><i class="ti ti-tool"></i> Continuar</button>`;
+    } else if(estado === 'espera_pieza') {
+        badgeColor = 'background:#fde68a; color:#92400e;';
+        badgeText = '⏳ Espera pieza';
+        accionBtn = `<button class="btn btn-dark" style="padding:8px 14px; background:#f59e0b;" onclick="abrirPanelProceso('${eq.id}')"><i class="ti ti-tool"></i> Ver/Actualizar</button>`;
+    } else if(estado === 'listo_revision') {
+        badgeColor = 'background:#e9d5ff; color:#6b21a8;';
+        badgeText = '👁️ Listo para revisión';
+        accionBtn = `<button class="btn btn-dark" style="padding:8px 14px; background:#6b21a8;" onclick="abrirPanelProceso('${eq.id}')"><i class="ti ti-check"></i> Aprobar</button>`;
+    } else if(estado === 'listo_venta') {
+        badgeColor = 'background:#ddd6fe; color:#5b21b6;';
+        badgeText = '🛒 Listo para venta';
+        accionBtn = `<button class="btn btn-dark" style="padding:8px 14px; background:#5b21b6;" onclick="alert('Próximamente: Label de venta con barcode')"><i class="ti ti-printer"></i> Label Venta</button>
+                     <button class="btn btn-light" style="padding:8px 12px;" onclick="abrirPanelProceso('${eq.id}')" title="Ver detalles"><i class="ti ti-eye"></i></button>`;
+    } else if(estado === 'vendido') {
+        badgeColor = 'background:#d1fae5; color:#065f46;';
+        badgeText = '✅ Vendido';
+        accionBtn = `<button class="btn btn-light" style="padding:8px 12px;" onclick="abrirPanelProceso('${eq.id}')"><i class="ti ti-eye"></i> Ver</button>`;
+    } else {
+        badgeColor = 'background:#f1f5f9; color:#64748b;';
+        badgeText = estado;
+        accionBtn = `<button class="btn btn-light" style="padding:8px 12px;" onclick="continuarEvaluacion('${eq.id}')"><i class="ti ti-eye"></i></button>`;
     }
     
     return `<div style="background:#fff; border:1px solid var(--border-color); border-radius:8px; padding:12px; margin-bottom:8px;">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
             <div style="flex:1; min-width:200px;">
-                <div style="display:flex; align-items:center; gap:8px;">
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                     <span style="background:var(--blue-btn); color:#fff; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700;">#${num}</span>
                     <b style="font-size:14px;">${escapeHtml(eq.modelo || 'Sin modelo')}</b>
                     <span class="badge" style="${badgeColor} font-size:11px;">${badgeText}</span>
+                    ${tecnico ? `<span class="badge" style="background:#e0e7ff; color:#3730a3; font-size:11px;"><i class="ti ti-user"></i> ${escapeHtml(tecnico.nombre)}</span>` : ''}
                 </div>
                 <div style="font-size:12px; color:var(--text-muted); margin-top:6px;">
                     <i class="ti ti-barcode"></i> IMEI: ${escapeHtml(eq.imei || '—')}
@@ -2825,7 +2998,7 @@ function renderEquipoReacondCard(eq, num) {
                 </div>
                 ${eq.notas_diagnostico ? `<div style="background:#f1f5f9; padding:6px 10px; border-radius:6px; margin-top:6px; font-size:12px;"><b>Notas:</b> ${escapeHtml(eq.notas_diagnostico)}</div>` : ''}
             </div>
-            <div style="display:flex; gap:6px; align-items:center;">
+            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
                 ${accionBtn}
             </div>
         </div>
@@ -3506,6 +3679,466 @@ async function guardarEvaluacion() {
         renderDetalleLoteReacond();
     } catch(e) {
         logError('Guardar evaluación', e);
+        alert(getFriendlyError(e));
+    }
+}
+
+/* ============================================================
+   CONFIGURACIÓN - PESTAÑAS
+   ============================================================ */
+function cambiarMainTabConfig(tab) {
+    document.getElementById('cfgContentTecnicos').style.display = tab === 'tecnicos' ? 'block' : 'none';
+    document.getElementById('cfgContentGeneral').style.display = tab === 'general' ? 'block' : 'none';
+    
+    const btnTec = document.getElementById('cfgMainTabTecnicos');
+    const btnGen = document.getElementById('cfgMainTabGeneral');
+    if(tab === 'tecnicos') {
+        btnTec.style.background = 'var(--blue-btn)'; btnTec.style.color = '#fff';
+        btnGen.style.background = 'transparent'; btnGen.style.color = 'var(--text-muted)';
+        renderTecnicos();
+    } else {
+        btnGen.style.background = 'var(--blue-btn)'; btnGen.style.color = '#fff';
+        btnTec.style.background = 'transparent'; btnTec.style.color = 'var(--text-muted)';
+    }
+}
+
+/* ============================================================
+   CRUD TÉCNICOS
+   ============================================================ */
+function renderTecnicos() {
+    const cont = document.getElementById('tecnicosLista');
+    if(!cont) return;
+    const tecnicos = cache.tecnicos || [];
+    if(tecnicos.length === 0) {
+        cont.innerHTML = `<p style="color:var(--text-muted); text-align:center; padding:30px; font-size:13px;">No hay técnicos registrados. Crea el primero con "+ Nuevo Técnico".</p>`;
+        return;
+    }
+    cont.innerHTML = tecnicos.map(t => {
+        const rolBadge = t.rol === 'admin' 
+            ? '<span class="badge" style="background:#fef3c7; color:#92400e;"><i class="ti ti-shield"></i> Admin</span>'
+            : '<span class="badge" style="background:#dbeafe; color:#1e40af;"><i class="ti ti-tool"></i> Técnico</span>';
+        const activoBadge = t.activo 
+            ? '<span class="badge" style="background:#d1fae5; color:#065f46;">Activo</span>'
+            : '<span class="badge" style="background:#fee2e2; color:#991b1b;">Inactivo</span>';
+        return `<div style="background:#fff; border:1px solid var(--border-color); border-radius:8px; padding:14px; margin-bottom:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
+                <div style="flex:1; min-width:200px;">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <b style="font-size:15px;">${escapeHtml(t.nombre)}</b>
+                        ${rolBadge}
+                        ${activoBadge}
+                    </div>
+                    <div style="font-size:12px; color:var(--text-muted); margin-top:6px;">
+                        ${t.telefono ? `<i class="ti ti-phone"></i> ${escapeHtml(t.telefono)}` : ''}
+                        ${t.especialidad ? ` · <i class="ti ti-star"></i> ${escapeHtml(t.especialidad)}` : ''}
+                    </div>
+                    ${t.notas ? `<div style="background:#f1f5f9; padding:6px 10px; border-radius:6px; margin-top:6px; font-size:12px;">${escapeHtml(t.notas)}</div>` : ''}
+                </div>
+                <div style="display:flex; gap:6px;">
+                    <button onclick="editarTecnico('${t.id}')" style="background:#dbeafe; color:#1e40af; border:0; padding:8px 10px; border-radius:6px; cursor:pointer;" title="Editar"><i class="ti ti-edit"></i></button>
+                    <button onclick="eliminarTecnico('${t.id}')" style="background:#fee2e2; color:#991b1b; border:0; padding:8px 10px; border-radius:6px; cursor:pointer;" title="Eliminar"><i class="ti ti-trash"></i></button>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function abrirModalTecnico() {
+    document.getElementById('mod_tec_id').value = '';
+    document.getElementById('mod_tec_nombre').value = '';
+    document.getElementById('mod_tec_telefono').value = '';
+    document.getElementById('mod_tec_especialidad').value = '';
+    document.getElementById('mod_tec_rol').value = 'tecnico';
+    document.getElementById('mod_tec_notas').value = '';
+    document.getElementById('mod_tec_activo').checked = true;
+    document.getElementById('modalTecnicoTitulo').textContent = 'Nuevo Técnico';
+    document.getElementById('modalTecnico').classList.add('active');
+}
+
+function editarTecnico(id) {
+    const t = (cache.tecnicos || []).find(x => x.id === id);
+    if(!t) return;
+    document.getElementById('mod_tec_id').value = t.id;
+    document.getElementById('mod_tec_nombre').value = t.nombre || '';
+    document.getElementById('mod_tec_telefono').value = t.telefono || '';
+    document.getElementById('mod_tec_especialidad').value = t.especialidad || '';
+    document.getElementById('mod_tec_rol').value = t.rol || 'tecnico';
+    document.getElementById('mod_tec_notas').value = t.notas || '';
+    document.getElementById('mod_tec_activo').checked = t.activo !== false;
+    document.getElementById('modalTecnicoTitulo').textContent = 'Editar Técnico';
+    document.getElementById('modalTecnico').classList.add('active');
+}
+
+function cerrarModalTecnico() {
+    document.getElementById('modalTecnico').classList.remove('active');
+}
+
+async function guardarTecnico() {
+    const id = document.getElementById('mod_tec_id').value;
+    const nombre = document.getElementById('mod_tec_nombre').value.trim();
+    if(!nombre) return alert('El nombre es obligatorio.');
+    
+    const datos = {
+        nombre,
+        telefono: document.getElementById('mod_tec_telefono').value.trim() || null,
+        especialidad: document.getElementById('mod_tec_especialidad').value.trim() || null,
+        rol: document.getElementById('mod_tec_rol').value,
+        notas: document.getElementById('mod_tec_notas').value.trim() || null,
+        activo: document.getElementById('mod_tec_activo').checked
+    };
+    
+    try {
+        if(id) {
+            const { error } = await supabaseClient.from('tecnicos').update(datos).eq('id', id);
+            if(error) throw error;
+            toast('Técnico actualizado.');
+        } else {
+            const { error } = await supabaseClient.from('tecnicos').insert([datos]);
+            if(error) throw error;
+            toast('Técnico creado.');
+        }
+        cerrarModalTecnico();
+        await loadAll();
+    } catch(e) {
+        logError('Guardar técnico', e);
+        alert(getFriendlyError(e));
+    }
+}
+
+async function eliminarTecnico(id) {
+    const t = (cache.tecnicos || []).find(x => x.id === id);
+    if(!t) return;
+    if(!confirm(`¿Eliminar el técnico "${t.nombre}"?\n\nLos equipos asignados a él quedarán sin técnico asignado.`)) return;
+    try {
+        const { error } = await supabaseClient.from('tecnicos').delete().eq('id', id);
+        if(error) throw error;
+        toast('Técnico eliminado.');
+        await loadAll();
+    } catch(e) {
+        logError('Eliminar técnico', e);
+        alert(getFriendlyError(e));
+    }
+}
+
+/* ============================================================
+   ASIGNAR TÉCNICO A EQUIPO (Evaluado → En Proceso)
+   ============================================================ */
+function abrirModalAsignarTecnico(equipoId) {
+    const eq = (cache.refurb || []).find(r => r.id === equipoId);
+    if(!eq) return alert('Equipo no encontrado.');
+    
+    document.getElementById('asign_equipo_id').value = equipoId;
+    document.getElementById('asignEquipoInfo').innerHTML = `
+        <b>${escapeHtml(eq.modelo || 'Equipo')}</b><br>
+        <span style="color:var(--text-muted); font-size:12px;">IMEI: ${escapeHtml(eq.imei || '—')}</span>
+    `;
+    document.getElementById('asign_notas').value = '';
+    
+    // Smart-select de técnicos activos
+    const tecnicosActivos = (cache.tecnicos || []).filter(t => t.activo);
+    smartSelectInit({
+        containerId: 'ss-asign-tecnico',
+        placeholder: '🔍 Buscar técnico...',
+        items: tecnicosActivos.map(t => ({
+            id: t.id,
+            label: t.nombre,
+            sub: [t.especialidad, t.telefono].filter(x => x).join(' · '),
+            search: [t.nombre, t.especialidad, t.telefono].filter(x => x).join(' ').toLowerCase(),
+            meta: t.rol === 'admin' ? 'ADMIN' : ''
+        })),
+        value: eq.tecnico_asignado_id || '',
+        onChange: () => {}
+    });
+    
+    document.getElementById('modalAsignarTecnico').classList.add('active');
+}
+
+function cerrarModalAsignarTecnico() {
+    document.getElementById('modalAsignarTecnico').classList.remove('active');
+}
+
+async function confirmarAsignarTecnico() {
+    const equipoId = document.getElementById('asign_equipo_id').value;
+    const tecnicoId = smartSelectGetValue('ss-asign-tecnico');
+    const notas = document.getElementById('asign_notas').value.trim();
+    
+    if(!tecnicoId) return alert('Selecciona un técnico.');
+    
+    try {
+        const updateData = {
+            tecnico_asignado_id: tecnicoId,
+            fecha_asignacion: new Date().toISOString(),
+            estado_evaluacion: 'en_proceso'
+        };
+        if(notas) {
+            const eq = (cache.refurb || []).find(r => r.id === equipoId);
+            const notasPrev = eq?.notas_diagnostico || '';
+            updateData.notas_diagnostico = notasPrev + (notasPrev ? '\n\n' : '') + '[Asignación] ' + notas;
+        }
+        
+        const { error } = await supabaseClient.from('equipos_refurbish').update(updateData).eq('id', equipoId);
+        if(error) throw error;
+        
+        // Registrar en historial
+        const tecnico = (cache.tecnicos || []).find(t => t.id === tecnicoId);
+        await supabaseClient.from('equipo_historial').insert([{
+            equipo_id: equipoId,
+            estado_anterior: 'evaluado',
+            estado_nuevo: 'en_proceso',
+            accion: `Asignado a ${tecnico?.nombre || 'técnico'}`,
+            notas: notas || null,
+            usuario: sessionUser?.nombre || 'Admin'
+        }]);
+        
+        toast(`Equipo asignado a ${tecnico?.nombre || 'técnico'}.`);
+        cerrarModalAsignarTecnico();
+        await loadAll();
+        if(reacondLoteAbiertoId) renderDetalleLoteReacond();
+    } catch(e) {
+        logError('Asignar técnico', e);
+        alert(getFriendlyError(e));
+    }
+}
+
+/* ============================================================
+   PANEL DE EQUIPO EN PROCESO (estados del técnico + piezas)
+   ============================================================ */
+let _panelProcesoEquipoId = null;
+
+async function abrirPanelProceso(equipoId) {
+    _panelProcesoEquipoId = equipoId;
+    const eq = (cache.refurb || []).find(r => r.id === equipoId);
+    if(!eq) return alert('Equipo no encontrado.');
+    
+    // Cargar piezas y fallas
+    let piezas = [];
+    let fallas = [];
+    try {
+        const [pzRes, flRes] = await Promise.all([
+            supabaseClient.from('equipo_piezas_pedidas').select('*').eq('equipo_id', equipoId).order('creado_en', { ascending: true }),
+            supabaseClient.from('equipo_fallas').select('*').eq('equipo_id', equipoId)
+        ]);
+        piezas = pzRes.data || [];
+        fallas = flRes.data || [];
+    } catch(e) {
+        logError('Cargar panel proceso', e);
+    }
+    
+    const tecnico = eq.tecnico_asignado_id ? (cache.tecnicos || []).find(t => t.id === eq.tecnico_asignado_id) : null;
+    const estado = eq.estado_evaluacion || 'en_proceso';
+    
+    // Estados disponibles según estado actual
+    const estadosTecnico = [
+        { id: 'tecnico_recibio', label: '📦 Confirmar recepción', color: '#1e40af', bg: '#bfdbfe' },
+        { id: 'espera_pieza', label: '⏳ Marcar en espera de pieza', color: '#92400e', bg: '#fde68a' },
+        { id: 'listo_revision', label: '👁️ Listo para revisión', color: '#6b21a8', bg: '#e9d5ff' }
+    ];
+    
+    const fallasHtml = fallas.length > 0 ? fallas.map(f => `<span class="badge" style="background:#fee2e2; color:#991b1b; font-size:10px; margin:2px;">${escapeHtml(f.falla_corto || f.falla_nombre)}</span>`).join('') : '<span style="color:var(--text-muted); font-size:12px;">Sin fallas registradas</span>';
+    
+    const piezasHtml = piezas.length > 0 ? piezas.map(p => {
+        let estadoPieza, colorPieza;
+        if(p.estado === 'entregada') { estadoPieza = '✅ Entregada'; colorPieza = '#d1fae5'; }
+        else if(p.estado === 'aprobada') { estadoPieza = '👍 Aprobada'; colorPieza = '#dbeafe'; }
+        else if(p.estado === 'extra_pendiente') { estadoPieza = '⚠️ Extra - Pendiente admin'; colorPieza = '#fef3c7'; }
+        else if(p.estado === 'rechazada') { estadoPieza = '❌ Rechazada'; colorPieza = '#fee2e2'; }
+        else { estadoPieza = '⏳ Pendiente'; colorPieza = '#f1f5f9'; }
+        
+        const acciones = [];
+        if(p.estado === 'pendiente') acciones.push(`<button onclick="marcarPiezaEntregada('${p.id}')" style="background:#10b981; color:#fff; border:0; padding:6px 10px; border-radius:6px; cursor:pointer; font-size:11px;"><i class="ti ti-truck"></i> Entregar</button>`);
+        if(p.estado === 'extra_pendiente') acciones.push(`<button onclick="aprobarPiezaExtra('${p.id}')" style="background:#10b981; color:#fff; border:0; padding:6px 10px; border-radius:6px; cursor:pointer; font-size:11px;"><i class="ti ti-check"></i> Aprobar</button>`);
+        if(p.estado === 'extra_pendiente') acciones.push(`<button onclick="rechazarPiezaExtra('${p.id}')" style="background:#ef4444; color:#fff; border:0; padding:6px 10px; border-radius:6px; cursor:pointer; font-size:11px;"><i class="ti ti-x"></i> Rechazar</button>`);
+        
+        return `<div style="display:flex; justify-content:space-between; align-items:center; padding:10px; background:${colorPieza}; border-radius:6px; margin-bottom:6px; gap:8px; flex-wrap:wrap;">
+            <div style="flex:1; min-width:150px;">
+                <b style="font-size:13px;">${escapeHtml(p.pieza_nombre || 'Pieza')} ×${p.cantidad || 1}</b>
+                ${p.agregada_por_tecnico ? '<span class="badge" style="background:#fbbf24; color:#78350f; margin-left:6px; font-size:10px;">EXTRA</span>' : ''}
+                <div style="font-size:11px; color:#475569;">${estadoPieza} · ${money((p.cantidad||1)*(p.costo_unitario||0))}</div>
+            </div>
+            <div style="display:flex; gap:4px;">${acciones.join('')}</div>
+        </div>`;
+    }).join('') : '<p style="color:var(--text-muted); text-align:center; padding:10px;">Sin piezas asignadas.</p>';
+    
+    const modalHtml = `
+        <div class="modal-box" style="max-width:850px; width:95%;">
+            <div class="modal-header" style="background:linear-gradient(135deg, #f59e0b, #d97706); color:#fff; border-radius:12px 12px 0 0;">
+                <h3 style="color:#fff;"><i class="ti ti-tool"></i> Panel de Reparación</h3>
+                <button class="modal-close" onclick="cerrarPanelProceso()" style="color:#fff;">✕</button>
+            </div>
+            <div class="modal-body" style="max-height:75vh; overflow-y:auto;">
+                <div style="background:#f1f5f9; padding:12px; border-radius:8px; margin-bottom:15px;">
+                    <b style="font-size:15px;">${escapeHtml(eq.modelo || 'Equipo')}</b><br>
+                    <span style="color:var(--text-muted); font-size:12px;">
+                        IMEI: ${escapeHtml(eq.imei || '—')} 
+                        ${tecnico ? ` · 👤 ${escapeHtml(tecnico.nombre)}` : ''}
+                    </span>
+                </div>
+                
+                <h4 style="margin:0 0 8px;"><i class="ti ti-alert-triangle"></i> Fallas detectadas</h4>
+                <div style="margin-bottom:15px;">${fallasHtml}</div>
+                
+                <h4 style="margin:15px 0 8px;"><i class="ti ti-tools"></i> Piezas para la reparación</h4>
+                ${piezasHtml}
+                
+                <button class="btn btn-light" onclick="agregarPiezaExtra('${equipoId}')" style="width:100%; margin-top:10px; padding:10px;">
+                    <i class="ti ti-plus"></i> Técnico: Agregar pieza extra (apareció durante reparación)
+                </button>
+                
+                <h4 style="margin:20px 0 8px;"><i class="ti ti-progress-check"></i> Cambiar estado del equipo</h4>
+                <div style="display:grid; gap:8px;">
+                    ${estadosTecnico.map(e => `
+                        <button onclick="cambiarEstadoProceso('${equipoId}', '${e.id}')" 
+                                style="background:${e.bg}; color:${e.color}; border:0; padding:12px; border-radius:8px; cursor:pointer; font-weight:600; text-align:left; ${estado === e.id ? 'box-shadow:0 0 0 2px '+e.color : ''}">
+                            ${e.label}
+                            ${estado === e.id ? ' ← actual' : ''}
+                        </button>
+                    `).join('')}
+                </div>
+                
+                ${estado === 'listo_revision' ? `
+                    <div style="background:#fef3c7; border:2px solid #fcd34d; padding:14px; border-radius:8px; margin-top:15px;">
+                        <b><i class="ti ti-shield-check"></i> Aprobación del Admin</b>
+                        <p style="font-size:12px; color:#92400e; margin:6px 0;">El técnico marcó este equipo como listo. Revisa y aprueba.</p>
+                        <button onclick="aprobarTerminado('${equipoId}')" style="background:#10b981; color:#fff; border:0; padding:10px 20px; border-radius:8px; cursor:pointer; font-weight:700; width:100%;">
+                            <i class="ti ti-check"></i> APROBAR → Listo para Venta
+                        </button>
+                    </div>
+                ` : ''}
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-light" onclick="cerrarPanelProceso()">Cerrar</button>
+            </div>
+        </div>
+    `;
+    
+    // Crear/actualizar modal
+    let modal = document.getElementById('modalPanelProceso');
+    if(!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modalPanelProceso';
+        modal.className = 'modal-backdrop';
+        document.body.appendChild(modal);
+    }
+    modal.innerHTML = modalHtml;
+    modal.classList.add('active');
+}
+
+function cerrarPanelProceso() {
+    const modal = document.getElementById('modalPanelProceso');
+    if(modal) modal.classList.remove('active');
+    _panelProcesoEquipoId = null;
+}
+
+async function cambiarEstadoProceso(equipoId, nuevoEstado) {
+    const eq = (cache.refurb || []).find(r => r.id === equipoId);
+    if(!eq) return;
+    const estadoAnterior = eq.estado_evaluacion;
+    try {
+        const { error } = await supabaseClient.from('equipos_refurbish').update({ estado_evaluacion: nuevoEstado }).eq('id', equipoId);
+        if(error) throw error;
+        await supabaseClient.from('equipo_historial').insert([{
+            equipo_id: equipoId, estado_anterior: estadoAnterior, estado_nuevo: nuevoEstado,
+            accion: 'Cambio de estado',
+            usuario: sessionUser?.nombre || 'Usuario'
+        }]);
+        toast('Estado actualizado.');
+        await loadAll();
+        abrirPanelProceso(equipoId);
+        if(reacondLoteAbiertoId) renderDetalleLoteReacond();
+    } catch(e) {
+        logError('Cambiar estado proceso', e);
+        alert(getFriendlyError(e));
+    }
+}
+
+async function marcarPiezaEntregada(piezaId) {
+    try {
+        const { error } = await supabaseClient.from('equipo_piezas_pedidas').update({ 
+            estado: 'entregada', 
+            fecha_entrega: new Date().toISOString() 
+        }).eq('id', piezaId);
+        if(error) throw error;
+        toast('Pieza marcada como entregada.');
+        if(_panelProcesoEquipoId) abrirPanelProceso(_panelProcesoEquipoId);
+    } catch(e) {
+        logError('Marcar pieza entregada', e);
+        alert(getFriendlyError(e));
+    }
+}
+
+async function aprobarPiezaExtra(piezaId) {
+    try {
+        const { error } = await supabaseClient.from('equipo_piezas_pedidas').update({ 
+            estado: 'aprobada', 
+            aprobada_por_admin: true 
+        }).eq('id', piezaId);
+        if(error) throw error;
+        toast('Pieza extra aprobada.');
+        if(_panelProcesoEquipoId) abrirPanelProceso(_panelProcesoEquipoId);
+    } catch(e) {
+        logError('Aprobar pieza extra', e);
+        alert(getFriendlyError(e));
+    }
+}
+
+async function rechazarPiezaExtra(piezaId) {
+    if(!confirm('¿Rechazar esta pieza extra?')) return;
+    try {
+        const { error } = await supabaseClient.from('equipo_piezas_pedidas').update({ estado: 'rechazada' }).eq('id', piezaId);
+        if(error) throw error;
+        toast('Pieza rechazada.');
+        if(_panelProcesoEquipoId) abrirPanelProceso(_panelProcesoEquipoId);
+    } catch(e) {
+        logError('Rechazar pieza', e);
+        alert(getFriendlyError(e));
+    }
+}
+
+async function agregarPiezaExtra(equipoId) {
+    const nombre = prompt('Nombre de la pieza extra que apareció durante la reparación:');
+    if(!nombre || !nombre.trim()) return;
+    const costoStr = prompt('Costo unitario de la pieza (RD$):', '0');
+    const costo = parseFloat(costoStr) || 0;
+    const cantStr = prompt('Cantidad:', '1');
+    const cantidad = parseInt(cantStr) || 1;
+    
+    try {
+        const { error } = await supabaseClient.from('equipo_piezas_pedidas').insert([{
+            equipo_id: equipoId,
+            pieza_nombre: nombre.trim(),
+            cantidad: cantidad,
+            costo_unitario: costo,
+            estado: 'extra_pendiente',
+            agregada_por_tecnico: true
+        }]);
+        if(error) throw error;
+        toast('Pieza extra agregada, esperando aprobación del admin.');
+        if(_panelProcesoEquipoId) abrirPanelProceso(_panelProcesoEquipoId);
+    } catch(e) {
+        logError('Agregar pieza extra', e);
+        alert(getFriendlyError(e));
+    }
+}
+
+async function aprobarTerminado(equipoId) {
+    if(!confirm('¿Aprobar este equipo como TERMINADO y pasarlo a LISTO PARA VENTA?')) return;
+    try {
+        const { error } = await supabaseClient.from('equipos_refurbish').update({ 
+            estado_evaluacion: 'listo_venta',
+            fecha_terminado: new Date().toISOString()
+        }).eq('id', equipoId);
+        if(error) throw error;
+        await supabaseClient.from('equipo_historial').insert([{
+            equipo_id: equipoId, estado_anterior: 'listo_revision', estado_nuevo: 'listo_venta',
+            accion: 'Aprobado por admin → Listo para venta',
+            usuario: sessionUser?.nombre || 'Admin'
+        }]);
+        toast('Equipo aprobado y listo para venta.');
+        cerrarPanelProceso();
+        await loadAll();
+        if(reacondLoteAbiertoId) renderDetalleLoteReacond();
+    } catch(e) {
+        logError('Aprobar terminado', e);
         alert(getFriendlyError(e));
     }
 }
