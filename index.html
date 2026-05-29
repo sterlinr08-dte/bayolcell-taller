@@ -895,13 +895,13 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                     <div class="card" style="background:#f8fafc; display:flex; flex-direction:column; align-items:center; justify-content:center;">
                         <h4>Vista Previa</h4>
                         
-                        <div class="label-preview-card" id="labelCard" style="width: 72mm; font-size: 12px;">
+                        <div class="label-preview-card" id="labelCard" style="width: 72mm; font-size: 12px; font-weight:900; -webkit-text-stroke:0.4px #000; font-family:Arial,Helvetica,sans-serif;">
                             <div id="lblLiveLogo" style="font-size:24px; margin-bottom:5px;"><i class="ti ti-brand-apple"></i></div>
-                            <div style="border-bottom:1px solid #000; margin-bottom:8px;"></div>
-                            <div style="text-align:left; margin-bottom:4px;"><b>EQUIPO:</b> <span id="lblLiveMod">iPhone 11 Pro 64GB Silver</span></div>
-                            <div style="text-align:left; margin-bottom:8px;"><b>IMEI:</b> <span id="lblLiveImei">356789123456789</span></div>
+                            <div style="border-bottom:2px solid #000; margin-bottom:8px;"></div>
+                            <div style="text-align:left; margin-bottom:4px; font-weight:900; -webkit-text-stroke:0.4px #000;">EQUIPO: <span id="lblLiveMod">iPhone 11 Pro 64GB Silver</span></div>
+                            <div style="text-align:left; margin-bottom:8px; font-weight:900; -webkit-text-stroke:0.4px #000;">IMEI: <span id="lblLiveImei">356789123456789</span></div>
                             <div class="barcode-visual" id="lblLiveBarcode" style="font-size:42px;"></div>
-                            <div style="font-weight:bold; margin-top:6px; text-transform:uppercase;" id="lblLiveEstadoContainer"></div>
+                            <div style="font-weight:900; -webkit-text-stroke:0.4px #000; margin-top:6px; text-transform:uppercase;" id="lblLiveEstadoContainer"></div>
                         </div>
                     </div>
                 </div>
@@ -7104,7 +7104,7 @@ function actualizarLabelLive() {
     cambiarDimensionesManual();
 }
 
-function imprimirLabelAdhesivo() {
+async function imprimirLabelAdhesivo() {
     const mod = document.getElementById("lbl_modelo").value;
     const imei = document.getElementById("lbl_imei").value;
     const estadoText = document.getElementById("lbl_estado_texto").value;
@@ -7124,20 +7124,36 @@ function imprimirLabelAdhesivo() {
     localStorage.setItem('bayol_lbl_rot', rotacion);
     
     const contenidoLabel = `
-        <div style="width:${configW}mm; height:${configH}mm; padding:2px; font-family:monospace; text-align:center; color:#000; font-size:${configF}px; box-sizing:border-box; overflow:hidden;">
+        <div style="width:${configW}mm; height:${configH}mm; padding:2px; font-family:Arial,Helvetica,sans-serif; font-weight:900; -webkit-text-stroke:0.4px #000; text-align:center; color:#000; font-size:${configF}px; box-sizing:border-box; overflow:hidden;">
             <div style="font-size:${parseInt(configF) + 6}px; line-height:1;">${logoHtml}</div>
-            <div style="border-bottom:1px solid #000; margin:2px 0;"></div>
-            <div style="text-align:left; line-height: 1.2;">
-                <b>EQUIPO:</b> ${escapeHtml(mod)}<br>
-                <b>IMEI:</b> ${escapeHtml(imei)}
+            <div style="border-bottom:2px solid #000; margin:2px 0;"></div>
+            <div style="text-align:left; line-height: 1.2; font-weight:900; -webkit-text-stroke:0.4px #000;">
+                EQUIPO: ${escapeHtml(mod)}<br>
+                IMEI: ${escapeHtml(imei)}
             </div>
             <div style="margin:2px 0; display:flex; justify-content:center;">${(function(){ const b=generarBarcodeImg(imei, configBH); return b?`<img src="${b}" style="height:${configBH}px; max-width:95%;" />`:escapeHtml(imei); })()}</div>
-            <b style="text-transform:uppercase; display:block; font-size:${parseInt(configF) - 1}px;">${escapeHtml(estadoText)}</b>
+            <div style="text-transform:uppercase; display:block; font-weight:900; -webkit-text-stroke:0.4px #000; font-size:${parseInt(configF) - 1}px;">${escapeHtml(estadoText)}</div>
         </div>
     `;
     
     // Aplicar rotación si está configurada
     const { html: contenidoFinal, anchoFinal, altoFinal } = aplicarRotacionImpresion(contenidoLabel, configW, configH, rotacion);
+    
+    // === MÉTODO IMAGEN (negrita marcada, igual a la vista previa) ===
+    const metodo = localStorage.getItem('bayol_metodo_impresion') || 'imagen';
+    if(metodo === 'imagen' && _qzConectado && typeof html2canvas === 'function') {
+        const cont = document.createElement('div');
+        cont.style.position = 'fixed';
+        cont.style.left = '-9999px';
+        cont.style.top = '0';
+        cont.style.background = '#fff';
+        cont.innerHTML = contenidoFinal;
+        document.body.appendChild(cont);
+        const labelEl = cont.firstElementChild || cont;
+        const ok = await qzImprimirHtmlComoImagen(labelEl, anchoFinal, altoFinal, copias, 'labels');
+        document.body.removeChild(cont);
+        if(ok) { toast('🖨️ Label enviado (negrita marcada).'); return; }
+    }
     
     const labelHtml = `
         <style>
@@ -8228,41 +8244,41 @@ function actualizarPreviewImpresora() {
     let contenido = '';
     if(tipo === 'venta') {
         contenido = `
-            <div style="font-size:${f + 2}px; text-align:center; font-weight:bold;">📱 BAYOL CELL</div>
-            <div style="border-bottom:1px solid #000; margin:3px 0;"></div>
-            <div><b>EQUIPO:</b> APPLE IPHONE 12 PRO</div>
-            <div><b>IMEI:</b> 356789123456789</div>
+            <div style="font-size:${f + 2}px; text-align:center; font-weight:900; -webkit-text-stroke:0.4px #000;">📱 BAYOL CELL</div>
+            <div style="border-bottom:2px solid #000; margin:3px 0;"></div>
+            <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">EQUIPO: APPLE IPHONE 12 PRO</div>
+            <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">IMEI: 356789123456789</div>
             ${bh > 0 ? `<div style="text-align:center; margin:3px 0;">${(function(){ const b=generarBarcodeImg('356789123456789', bh); return b?`<img src="${b}" style="height:${bh}px; max-width:95%;" />`:''; })()}</div>` : ''}
-            <div style="text-align:center; font-weight:bold; text-transform:uppercase; font-size:${f - 1}px;">CLASE A · GARANTÍA 90 DÍAS</div>
+            <div style="text-align:center; font-weight:900; -webkit-text-stroke:0.4px #000; text-transform:uppercase; font-size:${f - 1}px;">CLASE A · GARANTÍA 90 DÍAS</div>
         `;
     } else if(tipo === 'diagnostico') {
         contenido = `
-            <div style="text-align:center; font-weight:bold; font-size:${f + 1}px; border-bottom:1px solid #000; padding-bottom:2px;">BAYOL CELL · DIAGNÓSTICO</div>
-            <div style="font-weight:bold; margin-top:3px;">APPLE IPHONE 12 PRO MAX</div>
-            <div>256GB · BLUE</div>
-            <div style="border-top:1px dashed #000; margin-top:3px; padding-top:3px;">
-                <div><b>IMEI:</b> 356789123456789</div>
-                <div><b>FECHA:</b> 27/05/2026</div>
-                <div><b>CLIENTE:</b> JUAN PÉREZ</div>
+            <div style="text-align:center; font-weight:900; -webkit-text-stroke:0.4px #000; font-size:${f + 1}px; border-bottom:2px solid #000; padding-bottom:2px;">BAYOL CELL · DIAGNÓSTICO</div>
+            <div style="font-weight:900; -webkit-text-stroke:0.4px #000; margin-top:3px;">APPLE IPHONE 12 PRO MAX</div>
+            <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">256GB · BLUE</div>
+            <div style="border-top:2px dashed #000; margin-top:3px; padding-top:3px;">
+                <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">IMEI: 356789123456789</div>
+                <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">FECHA: 27/05/2026</div>
+                <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">CLIENTE: JUAN PÉREZ</div>
             </div>
         `;
     } else if(tipo === 'diag_reacond') {
         contenido = `
-            <div style="text-align:center; font-weight:bold; font-size:${f + 1}px; border-bottom:1px solid #000; padding-bottom:2px;">BAYOL CELL · DIAG. REACOND</div>
-            <div style="font-weight:bold; margin-top:3px;">APPLE IPHONE 12 PRO MAX</div>
-            <div>256GB · LT-00001</div>
-            <div style="border-top:1px dashed #000; margin-top:3px; padding-top:3px;">
-                <div><b>IMEI:</b> 356789123456789</div>
-                <div><b>FECHA:</b> 27/05/2026</div>
+            <div style="text-align:center; font-weight:900; -webkit-text-stroke:0.4px #000; font-size:${f + 1}px; border-bottom:2px solid #000; padding-bottom:2px;">BAYOL CELL · DIAG. REACOND</div>
+            <div style="font-weight:900; -webkit-text-stroke:0.4px #000; margin-top:3px;">APPLE IPHONE 12 PRO MAX</div>
+            <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">256GB · LT-00001</div>
+            <div style="border-top:2px dashed #000; margin-top:3px; padding-top:3px;">
+                <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">IMEI: 356789123456789</div>
+                <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">FECHA: 27/05/2026</div>
             </div>
-            <div style="border-top:1px dashed #000; margin-top:3px; padding-top:3px; font-style:italic;">
-                <b>NOTAS:</b><br>
-                PANTALLA GHOST TOUCH
+            <div style="border-top:2px dashed #000; margin-top:3px; padding-top:3px;">
+                <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">NOTAS:</div>
+                <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">PANTALLA GHOST TOUCH</div>
             </div>
         `;
     }
     
-    card.style.cssText = `width:${w}mm; min-height:${h}mm; padding:${m}mm; background:#fff; color:#000; font-family:'Courier New', monospace; font-size:${f}px; line-height:1.3; box-shadow:0 4px 12px rgba(0,0,0,0.15); border:1px dashed #94a3b8; box-sizing:border-box;`;
+    card.style.cssText = `width:${w}mm; min-height:${h}mm; padding:${m}mm; background:#fff; color:#000; font-family:Arial,Helvetica,sans-serif; font-weight:900; font-size:${f}px; line-height:1.3; box-shadow:0 4px 12px rgba(0,0,0,0.15); border:1px dashed #94a3b8; box-sizing:border-box;`;
     card.innerHTML = contenido;
     
     // Actualizar detalles del perfil
