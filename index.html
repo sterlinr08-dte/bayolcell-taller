@@ -666,10 +666,10 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                     </div>
                     <div class="card">
                         <h3 style="margin:0 0 15px 0; font-size:15px; font-weight:700;">Acciones del Sistema</h3>
-                        <button class="btn btn-blue" style="width:100%; margin-bottom:10px;" onclick="nav('recepcion')"><i class="ti ti-plus"></i> Nueva Recepción</button>
-                        <button class="btn btn-light" style="width:100%; margin-bottom:10px;" onclick="nav('proveedores')"><i class="ti ti-shopping-cart"></i> Compras</button>
-                        <button class="btn btn-light" style="width:100%; margin-bottom:10px;" onclick="nav('articulos')"><i class="ti ti-database"></i> Catálogo</button>
-                        <button class="btn btn-light" style="width:100%;" onclick="nav('refurb')"><i class="ti ti-refresh"></i> Módulo Reacondicionados</button>
+                        <button id="accion-recepcion" class="btn btn-blue" style="width:100%; margin-bottom:10px;" onclick="nav('recepcion')"><i class="ti ti-plus"></i> Nueva Recepción</button>
+                        <button id="accion-compras" class="btn btn-light" style="width:100%; margin-bottom:10px;" onclick="nav('proveedores')"><i class="ti ti-shopping-cart"></i> Compras</button>
+                        <button id="accion-articulos" class="btn btn-light" style="width:100%; margin-bottom:10px;" onclick="nav('articulos')"><i class="ti ti-database"></i> Catálogo</button>
+                        <button id="accion-refurb" class="btn btn-light" style="width:100%;" onclick="nav('refurb')"><i class="ti ti-refresh"></i> Módulo Reacondicionados</button>
                     </div>
                 </div>
             </div>
@@ -2762,7 +2762,11 @@ function applyAccessControls() {
     const botonesEstaticos = {
         'btnNuevoTecnico': 'config_tecnicos',
         'btnNuevoRol': 'config_roles',
-        'btnRegistrarDevolucion': 'devoluciones_registrar'
+        'btnRegistrarDevolucion': 'devoluciones_registrar',
+        'accion-recepcion': 'recepcion_ver',
+        'accion-compras': 'compras_ver',
+        'accion-articulos': 'catalogo_articulos',
+        'accion-refurb': 'reacond_ver'
     };
     Object.keys(botonesEstaticos).forEach(btnId => {
         const btn = document.getElementById(btnId);
@@ -2794,7 +2798,28 @@ function startApp() {
     loadAll();
 }
 
+// Mapa de vista → permiso requerido para entrar
+const NAV_PERMISOS = {
+    'dashboard': 'ver_dashboard',
+    'recepcion': 'recepcion_ver',
+    'ordenes': 'ordenes_ver',
+    'inventario': 'inventario_ver',
+    'etiquetas': 'imprimir_diag',
+    'configImpresora': 'config_impresora',
+    'articulos': 'catalogo_articulos',
+    'proveedores': 'compras_ver',
+    'refurb': 'reacond_ver',
+    'configuracion': 'config_ver'
+};
+
 function nav(v, btn) {
+    // PORTERO CENTRAL: verifica permiso antes de entrar (sin importar de dónde venga el clic)
+    const permisoReq = NAV_PERMISOS[v];
+    if(permisoReq && !tienePermiso(permisoReq)) {
+        toast('🔒 No tienes permiso para acceder a esta sección.');
+        return; // bloquea el acceso
+    }
+    
     document.querySelectorAll(".view").forEach(x => x.classList.remove("active"));
     document.getElementById("v-" + v)?.classList.add("active");
     if(btn) {
@@ -5018,6 +5043,10 @@ async function abrirPanelProceso(equipoId) {
     const esEquipoDevuelto = (eq.veces_devuelto || 0) > 0;
     const estaReasignado = estado === 'reasignado';
     const tecnicoAnterior = eq.tecnico_anterior_id ? (cache.tecnicos || []).find(t => t.id === eq.tecnico_anterior_id) : null;
+    // NO JUEZ Y PARTE: solo el nuevo técnico asignado (o el admin) puede recibir el equipo reasignado.
+    // El técnico que lo reasignó (tecnico_anterior) NO puede recibirlo.
+    const soyElNuevoTecnico = sessionUser?._tipo === 'tecnico' && sessionUser?.id === eq.tecnico_asignado_id;
+    const puedeRecibirReasignado = isAdminUser() || soyElNuevoTecnico;
     
     // ====== STEPPER VISUAL ======
     // Definir el orden de pasos
@@ -5231,9 +5260,10 @@ async function abrirPanelProceso(equipoId) {
                     <div style="background:linear-gradient(135deg, #fef3c7, #fde68a); border:2px solid #f59e0b; padding:16px; border-radius:12px; margin-top:18px; box-shadow:0 4px 12px rgba(245,158,11,0.2);">
                         <b style="color:#78350f;"><i class="ti ti-user-share"></i> Equipo reasignado</b>
                         <p style="font-size:12px; color:#92400e; margin:8px 0;">
-                            Este equipo te fue reasignado${tecnicoAnterior ? ` (antes lo tenía <b>${escapeHtml(tecnicoAnterior.nombre)}</b>)` : ''}.
+                            ${soyElNuevoTecnico ? 'Este equipo te fue reasignado' : 'Equipo reasignado a <b>' + escapeHtml((cache.tecnicos||[]).find(t=>t.id===eq.tecnico_asignado_id)?.nombre || 'otro técnico') + '</b>'}${tecnicoAnterior ? ` (antes lo tenía <b>${escapeHtml(tecnicoAnterior.nombre)}</b>)` : ''}.
                             ${eq.motivo_reasignacion ? `<br><b>Motivo:</b> ${escapeHtml(eq.motivo_reasignacion)}` : ''}
                         </p>
+                        ${puedeRecibirReasignado ? `
                         <p style="font-size:12px; color:#92400e; margin:8px 0;">¿Cómo quieres recibirlo?</p>
                         <button onclick="recibirEquipoReasignado('${equipoId}', 'con_piezas')" style="background:linear-gradient(180deg,#10b981,#059669); color:#fff; border:0; padding:12px; border-radius:10px; cursor:pointer; font-weight:700; width:100%; box-shadow:0 4px 0 #047857; margin-bottom:8px;">
                             <i class="ti ti-package"></i> Recibir CON las piezas actuales
@@ -5241,6 +5271,12 @@ async function abrirPanelProceso(equipoId) {
                         <button onclick="recibirEquipoReasignado('${equipoId}', 'limpio')" style="background:linear-gradient(180deg,#3b82f6,#1e40af); color:#fff; border:0; padding:12px; border-radius:10px; cursor:pointer; font-weight:700; width:100%; box-shadow:0 4px 0 #1e3a8a;">
                             <i class="ti ti-refresh"></i> Recibir equipo LIMPIO (otra reparación)
                         </button>
+                        ` : `
+                        <div style="background:#fff; border-radius:8px; padding:10px; font-size:12px; color:#92400e; text-align:center;">
+                            <i class="ti ti-clock"></i> Esperando que el técnico asignado lo reciba.
+                            <br><small>No puedes recibir un equipo que tú reasignaste.</small>
+                        </div>
+                        `}
                     </div>
                 ` : ''}
                 
@@ -5487,6 +5523,12 @@ async function guardarReasignacion() {
 async function recibirEquipoReasignado(equipoId, modo) {
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return;
+    
+    // NO JUEZ Y PARTE: solo el nuevo técnico asignado o el admin pueden recibir
+    const soyNuevo = sessionUser?._tipo === 'tecnico' && sessionUser?.id === eq.tecnico_asignado_id;
+    if(!isAdminUser() && !soyNuevo) {
+        return alert('No puedes recibir este equipo. Solo el técnico al que fue reasignado puede recibirlo.');
+    }
     
     const mensaje = modo === 'limpio'
         ? '¿Recibir el equipo LIMPIO? Las piezas anteriores se marcarán como no usadas en esta nueva reparación.'
