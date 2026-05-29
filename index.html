@@ -3558,12 +3558,20 @@ function cambiarDimensionesLabelDiag() {
     const cont = document.getElementById('dlblPreviewVivo');
     if(cont) {
         const ejemplo = {
+            id: '__ejemplo__',
             articulo_id: null,
             marca: 'APPLE', modelo: 'IPHONE 12', capacidad: '128GB',
             imei: '356789104567890', 
             lote_id: null,
             notas_diagnostico: 'PANTALLA ROTA, NO CARGA'
         };
+        // Fallas de ejemplo para mostrar el checklist
+        _fallasPorEquipo['__ejemplo__'] = [
+            { falla_corto: 'CRISTAL ROTO' },
+            { falla_corto: 'GHOST TOUCH' },
+            { falla_corto: 'NO ENCIENDE' },
+            { falla_corto: 'PANT ROTA' }
+        ];
         // 1. HTML rápido
         cont.innerHTML = generarHtmlLabelDiag(ejemplo);
         // 2. Imagen real con debounce (lo que se imprime exacto)
@@ -4464,11 +4472,11 @@ function renderFallasEnTabPiezas() {
 }
 
 // Imprimir label de diagnóstico desde el resumen de evaluación
-function imprimirLabelDesdeEvaluacion() {
+async function imprimirLabelDesdeEvaluacion() {
     const equipoId = document.getElementById('eval_equipo_id').value;
     if(!equipoId) return alert('No hay equipo seleccionado.');
     if(typeof abrirPreviewLabelDiagIndividual === 'function') {
-        abrirPreviewLabelDiagIndividual(equipoId);
+        await abrirPreviewLabelDiagIndividual(equipoId);
     } else {
         alert('Función de label no disponible.');
     }
@@ -7604,6 +7612,9 @@ document.getElementById('modalConfigImpresora')?.addEventListener('click', e => 
    LABELS DE DIAGNÓSTICO (individual + lote)
    ============================================================ */
 
+// Cache de fallas por equipo para el label (se llena al abrir preview)
+let _fallasPorEquipo = {};
+
 function generarHtmlLabelDiag(equipo) {
     const art = findArticulo(equipo.articulo_id);
     const lote = cache.lotes.find(l => l.id === equipo.lote_id);
@@ -7620,21 +7631,44 @@ function generarHtmlLabelDiag(equipo) {
     const fecha = new Date().toLocaleDateString('es-DO');
     const notas = (equipo.notas_diagnostico || '').toUpperCase();
     
+    // Modelo abreviado (ej: "IP12 128GB") usando la misma lógica del label de venta
+    let modeloCorto = '';
+    try { modeloCorto = construirModeloAbreviado(equipo).toUpperCase(); } catch(e) { modeloCorto = `${marca} ${modelo}`.trim(); }
+    if(capacidad && !modeloCorto.includes(capacidad)) modeloCorto += ' ' + capacidad;
+    modeloCorto = modeloCorto.trim();
+    
+    // Fallas del equipo (checklist para que el técnico marque)
+    const fallasEq = _fallasPorEquipo[equipo.id] || [];
+    const fmenor = Math.max(7, parseInt(f) - 1); // texto fallas un pelín menor
+    let fallasHtml = '';
+    if(fallasEq.length > 0) {
+        // 1 columna si son pocas (≤4), 2 columnas si son muchas (5+)
+        const columnas = fallasEq.length >= 5 ? 2 : 1;
+        const itemsHtml = fallasEq.map(fa => {
+            const txt = (fa.falla_corto || fa.falla_nombre || '').toUpperCase();
+            return `<div style="font-size:${fmenor}px; font-weight:900; -webkit-text-stroke:0.3px #000; line-height:1.35; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">☐ ${escapeHtml(txt)}</div>`;
+        }).join('');
+        fallasHtml = `
+            <div class="diag-fallas-area" style="border-top:2px dashed #000; padding-top:0.5mm; margin-top:0.5mm;">
+                <div style="font-size:${fmenor}px; font-weight:900; -webkit-text-stroke:0.3px #000; margin-bottom:1px;">REVISAR / REPARAR:</div>
+                <div style="display:grid; grid-template-columns:repeat(${columnas}, 1fr); gap:0 6px;">${itemsHtml}</div>
+            </div>`;
+    }
+    
     return `
-        <div class="diag-label" style="width:${w}mm; height:${h}mm; font-size:${f}px; font-weight:900; -webkit-text-stroke:0.4px #000; line-height:1.25; padding:1mm; box-sizing:border-box; overflow:hidden; font-family:Arial,Helvetica,sans-serif; color:#000; page-break-after:always;">
+        <div class="diag-label" style="width:${w}mm; min-height:${h}mm; font-size:${f}px; font-weight:900; -webkit-text-stroke:0.4px #000; line-height:1.25; padding:1mm; box-sizing:border-box; overflow:hidden; font-family:Arial,Helvetica,sans-serif; color:#000; page-break-after:always;">
             <div class="diag-header" style="font-size:${f}px; font-weight:900; -webkit-text-stroke:0.4px #000; text-align:center; border-bottom:2px solid #000; padding-bottom:0.5mm; margin-bottom:0.5mm; font-family:Arial,Helvetica,sans-serif;">
-                BAYOL CELL · DIAGNÓSTICO
+                DIAGNÓSTICO
             </div>
             <div class="diag-section" style="margin-bottom:0.5mm;">
-                <div class="diag-line diag-modelo" style="font-weight:900; -webkit-text-stroke:0.4px #000; font-family:Arial,Helvetica,sans-serif;">${escapeHtml(marca)} ${escapeHtml(modelo)}</div>
-                <div class="diag-line" style="font-weight:900; -webkit-text-stroke:0.4px #000; font-family:Arial,Helvetica,sans-serif;">${escapeHtml(capacidad)}${referencia ? ' · ' + escapeHtml(referencia) : ''}</div>
+                <div class="diag-line diag-modelo" style="font-weight:900; -webkit-text-stroke:0.4px #000; font-family:Arial,Helvetica,sans-serif;">${escapeHtml(modeloCorto)}</div>
             </div>
             <div class="diag-section" style="margin-bottom:0.5mm;">
                 <div class="diag-line" style="font-weight:900; -webkit-text-stroke:0.4px #000; font-family:Arial,Helvetica,sans-serif;">IMEI: <span class="diag-imei" style="font-weight:900; -webkit-text-stroke:0.4px #000; font-family:Arial,Helvetica,sans-serif; letter-spacing:0.3px;">${escapeHtml(imei)}</span></div>
-                <div class="diag-line" style="font-weight:900; -webkit-text-stroke:0.4px #000; font-family:Arial,Helvetica,sans-serif;">LOTE: ${escapeHtml(codigoLote)}</div>
                 <div class="diag-line" style="font-weight:900; -webkit-text-stroke:0.4px #000; font-family:Arial,Helvetica,sans-serif;">FECHA: ${escapeHtml(fecha)}</div>
             </div>
             ${notas ? `<div class="diag-notas-area" style="border-top:2px dashed #000; padding-top:0.5mm; font-size:${f}px; font-weight:900; -webkit-text-stroke:0.4px #000; font-family:Arial,Helvetica,sans-serif;">NOTAS: ${escapeHtml(notas)}</div>` : ''}
+            ${fallasHtml}
         </div>
     `;
 }
@@ -7643,9 +7677,12 @@ let _labelDiagHtmlActual = '';
 let _labelDiagEquipoActual = null;
 let _labelDiagEquiposLote = null;
 
-function abrirPreviewLabelDiagIndividual(equipoId) {
+async function abrirPreviewLabelDiagIndividual(equipoId) {
     const equipo = cache.refurb.find(r => r.id === equipoId);
     if(!equipo) return alert('Equipo no encontrado.');
+    
+    // Cargar las fallas del equipo para el checklist
+    await cargarFallasParaLabel([equipoId]);
     
     _labelDiagEquipoActual = equipo;
     _labelDiagEquiposLote = null;
@@ -7658,10 +7695,32 @@ function abrirPreviewLabelDiagIndividual(equipoId) {
     document.getElementById('modalLabelDiag').classList.add('active');
 }
 
-function abrirPreviewLabelsLote() {
+// Carga las fallas de uno o varios equipos en _fallasPorEquipo
+async function cargarFallasParaLabel(equipoIds) {
+    try {
+        const { data, error } = await supabaseClient
+            .from('equipo_fallas')
+            .select('*')
+            .in('equipo_id', equipoIds);
+        if(error) throw error;
+        // Agrupar por equipo
+        _fallasPorEquipo = {};
+        (data || []).forEach(f => {
+            if(!_fallasPorEquipo[f.equipo_id]) _fallasPorEquipo[f.equipo_id] = [];
+            _fallasPorEquipo[f.equipo_id].push(f);
+        });
+    } catch(e) {
+        logError('Cargar fallas para label', e);
+    }
+}
+
+async function abrirPreviewLabelsLote() {
     if(!loteActualId) return alert('Sin lote activo.');
     const equipos = cache.refurb.filter(r => r.lote_id === loteActualId);
     if(!equipos.length) return alert('Este lote no tiene equipos.');
+    
+    // Cargar fallas de todos los equipos del lote
+    await cargarFallasParaLabel(equipos.map(e => e.id));
     
     _labelDiagEquipoActual = null;
     _labelDiagEquiposLote = equipos;
@@ -8253,27 +8312,30 @@ function actualizarPreviewImpresora() {
         `;
     } else if(tipo === 'diagnostico') {
         contenido = `
-            <div style="text-align:center; font-weight:900; -webkit-text-stroke:0.4px #000; font-size:${f + 1}px; border-bottom:2px solid #000; padding-bottom:2px;">BAYOL CELL · DIAGNÓSTICO</div>
-            <div style="font-weight:900; -webkit-text-stroke:0.4px #000; margin-top:3px;">APPLE IPHONE 12 PRO MAX</div>
-            <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">256GB · BLUE</div>
+            <div style="text-align:center; font-weight:900; -webkit-text-stroke:0.4px #000; font-size:${f + 1}px; border-bottom:2px solid #000; padding-bottom:2px;">DIAGNÓSTICO</div>
+            <div style="font-weight:900; -webkit-text-stroke:0.4px #000; margin-top:3px;">IP12 PRO MAX 256GB</div>
             <div style="border-top:2px dashed #000; margin-top:3px; padding-top:3px;">
                 <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">IMEI: 356789123456789</div>
                 <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">FECHA: 27/05/2026</div>
-                <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">CLIENTE: JUAN PÉREZ</div>
+            </div>
+            <div style="border-top:2px dashed #000; margin-top:3px; padding-top:3px;">
+                <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">REVISAR / REPARAR:</div>
+                <div style="font-weight:900; -webkit-text-stroke:0.3px #000;">☐ CRISTAL ROTO</div>
+                <div style="font-weight:900; -webkit-text-stroke:0.3px #000;">☐ GHOST TOUCH</div>
             </div>
         `;
     } else if(tipo === 'diag_reacond') {
         contenido = `
-            <div style="text-align:center; font-weight:900; -webkit-text-stroke:0.4px #000; font-size:${f + 1}px; border-bottom:2px solid #000; padding-bottom:2px;">BAYOL CELL · DIAG. REACOND</div>
-            <div style="font-weight:900; -webkit-text-stroke:0.4px #000; margin-top:3px;">APPLE IPHONE 12 PRO MAX</div>
-            <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">256GB · LT-00001</div>
+            <div style="text-align:center; font-weight:900; -webkit-text-stroke:0.4px #000; font-size:${f + 1}px; border-bottom:2px solid #000; padding-bottom:2px;">DIAGNÓSTICO</div>
+            <div style="font-weight:900; -webkit-text-stroke:0.4px #000; margin-top:3px;">IP12 PRO MAX 256GB</div>
             <div style="border-top:2px dashed #000; margin-top:3px; padding-top:3px;">
                 <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">IMEI: 356789123456789</div>
                 <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">FECHA: 27/05/2026</div>
             </div>
             <div style="border-top:2px dashed #000; margin-top:3px; padding-top:3px;">
-                <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">NOTAS:</div>
-                <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">PANTALLA GHOST TOUCH</div>
+                <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">REVISAR / REPARAR:</div>
+                <div style="font-weight:900; -webkit-text-stroke:0.3px #000;">☐ GHOST TOUCH</div>
+                <div style="font-weight:900; -webkit-text-stroke:0.3px #000;">☐ PANT ROTA</div>
             </div>
         `;
     }
