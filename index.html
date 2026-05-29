@@ -1332,10 +1332,13 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
             <!-- ============= CONFIGURACIÓN ============= -->
             <div id="v-configuracion" class="view">
                 <div style="background:#fff; border-radius:12px; padding:6px; margin-bottom:15px; display:flex; gap:4px; box-shadow:0 1px 3px rgba(0,0,0,0.05); flex-wrap:wrap;">
-                    <button id="cfgMainTabTecnicos" onclick="cambiarMainTabConfig('tecnicos')" class="cfg-main-tab" style="flex:1; min-width:140px; padding:12px; border:0; background:var(--blue-btn); color:#fff; border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">
+                    <button id="cfgMainTabTecnicos" onclick="cambiarMainTabConfig('tecnicos')" class="cfg-main-tab" style="flex:1; min-width:120px; padding:12px; border:0; background:var(--blue-btn); color:#fff; border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">
                         <i class="ti ti-users"></i> Técnicos
                     </button>
-                    <button id="cfgMainTabGeneral" onclick="cambiarMainTabConfig('general')" class="cfg-main-tab" style="flex:1; min-width:140px; padding:12px; border:0; background:transparent; color:var(--text-muted); border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">
+                    <button id="cfgMainTabRoles" onclick="cambiarMainTabConfig('roles')" class="cfg-main-tab" style="flex:1; min-width:120px; padding:12px; border:0; background:transparent; color:var(--text-muted); border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">
+                        <i class="ti ti-shield"></i> Roles
+                    </button>
+                    <button id="cfgMainTabGeneral" onclick="cambiarMainTabConfig('general')" class="cfg-main-tab" style="flex:1; min-width:120px; padding:12px; border:0; background:transparent; color:var(--text-muted); border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">
                         <i class="ti ti-adjustments"></i> General
                     </button>
                 </div>
@@ -1348,9 +1351,25 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                             <button class="btn btn-blue" onclick="abrirModalTecnico()"><i class="ti ti-plus"></i> Nuevo Técnico</button>
                         </div>
                         <div style="background:#dbeafe; border:1px solid #93c5fd; padding:10px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#1e40af;">
-                            <b><i class="ti ti-info-circle"></i> Aquí gestionas los técnicos que trabajarán los equipos.</b> Cada técnico puede ser asignado a equipos reacondicionados.
+                            <b><i class="ti ti-info-circle"></i> Aquí gestionas los técnicos que trabajarán los equipos.</b> Asígnales un rol para definir qué pueden hacer.
                         </div>
                         <div id="tecnicosLista"></div>
+                    </div>
+                </div>
+                
+                <!-- TAB ROLES -->
+                <div id="cfgContentRoles" style="display:none;">
+                    <div class="card">
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
+                            <h3 style="margin:0;"><i class="ti ti-shield" style="color:#6366f1;"></i> Roles y Permisos</h3>
+                            <button class="btn btn-blue" onclick="abrirModalRol()" style="background:linear-gradient(180deg,#6366f1,#4338ca); box-shadow:0 4px 0 #3730a3;"><i class="ti ti-plus"></i> Nuevo Rol</button>
+                        </div>
+                        <div style="background:#ede9fe; border:1px solid #c4b5fd; padding:10px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#5b21b6;">
+                            <b><i class="ti ti-info-circle"></i> Crea roles personalizados con permisos específicos.</b> El rol "Administrador" tiene todos los permisos y no se puede eliminar.
+                        </div>
+                        <div id="rolesLista">
+                            <p style="color:var(--text-muted); text-align:center; padding:20px;">Cargando roles...</p>
+                        </div>
                     </div>
                 </div>
                 
@@ -1475,12 +1494,18 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                 <input id="mod_tec_especialidad" placeholder="Ej. iPhone, Samsung, Microsoldadura...">
             </div>
             <div class="form-row">
-                <label>Rol *</label>
+                <label>Rol del sistema (rol simple - mantener compatibilidad)</label>
                 <select id="mod_tec_rol">
                     <option value="tecnico">Técnico (trabaja equipos)</option>
                     <option value="admin">Administrador (gestiona todo)</option>
                 </select>
-                <small style="color:var(--text-muted); font-size:11px;">Admin puede asignar técnicos y aprobar piezas. Técnico solo trabaja equipos asignados.</small>
+            </div>
+            <div class="form-row">
+                <label>Rol con permisos personalizados</label>
+                <select id="mod_tec_rol_id">
+                    <option value="">-- Sin rol personalizado (usar rol simple) --</option>
+                </select>
+                <small style="color:var(--text-muted); font-size:11px;">Selecciona un rol con permisos específicos creado en la pestaña "Roles".</small>
             </div>
             <div class="form-row">
                 <label>Notas (opcional)</label>
@@ -1583,6 +1608,51 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
         <div class="modal-footer">
             <button class="btn btn-light" onclick="cerrarModalLabelVenta()">Cancelar</button>
             <button class="btn btn-blue" onclick="imprimirLabelVenta()" style="background:#5b21b6;"><i class="ti ti-printer"></i> Imprimir</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: CREAR/EDITAR ROL -->
+<div id="modalRol" class="modal-backdrop">
+    <div class="modal-box" style="max-width:850px; width:95%;">
+        <div class="modal-header" style="background:linear-gradient(135deg, #6366f1, #4338ca); color:#fff; border-radius:12px 12px 0 0;">
+            <h3 style="color:#fff;"><i class="ti ti-shield"></i> <span id="modalRolTitulo">Nuevo Rol</span></h3>
+            <button class="modal-close" onclick="cerrarModalRol()" style="color:#fff;">✕</button>
+        </div>
+        <div class="modal-body" style="max-height:80vh; overflow-y:auto;">
+            <input id="mod_rol_id" type="hidden">
+            
+            <!-- Datos básicos -->
+            <div class="form-row">
+                <label>Nombre del rol *</label>
+                <input id="mod_rol_nombre" placeholder="Ej. Supervisor de Taller, Cajero, Técnico junior...">
+            </div>
+            <div class="form-row">
+                <label>Descripción</label>
+                <textarea id="mod_rol_descripcion" rows="2" placeholder="Para qué sirve este rol..." style="resize:vertical;"></textarea>
+            </div>
+            
+            <!-- Helpers -->
+            <div style="display:flex; gap:6px; flex-wrap:wrap; margin:15px 0 10px;">
+                <button class="btn btn-light" onclick="rolToggleTodos(true)" style="padding:6px 12px; font-size:11px;"><i class="ti ti-check"></i> Marcar todos</button>
+                <button class="btn btn-light" onclick="rolToggleTodos(false)" style="padding:6px 12px; font-size:11px;"><i class="ti ti-x"></i> Desmarcar todos</button>
+            </div>
+            
+            <!-- Permisos por grupo -->
+            <div id="permisosContainer">
+                <!-- Grupos generados dinámicamente -->
+            </div>
+            
+            <div class="form-row" style="margin-top:15px;">
+                <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                    <input type="checkbox" id="mod_rol_activo" checked>
+                    <span>Rol activo (disponible para asignar)</span>
+                </label>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" onclick="cerrarModalRol()">Cancelar</button>
+            <button class="btn btn-blue" onclick="guardarRol()" style="background:linear-gradient(180deg,#6366f1,#4338ca); box-shadow:0 4px 0 #3730a3;"><i class="ti ti-check"></i> Guardar Rol</button>
         </div>
     </div>
 </div>
@@ -4105,16 +4175,31 @@ async function guardarEvaluacion() {
 function cambiarMainTabConfig(tab) {
     document.getElementById('cfgContentTecnicos').style.display = tab === 'tecnicos' ? 'block' : 'none';
     document.getElementById('cfgContentGeneral').style.display = tab === 'general' ? 'block' : 'none';
+    const rolesCont = document.getElementById('cfgContentRoles');
+    if(rolesCont) rolesCont.style.display = tab === 'roles' ? 'block' : 'none';
     
     const btnTec = document.getElementById('cfgMainTabTecnicos');
+    const btnRoles = document.getElementById('cfgMainTabRoles');
     const btnGen = document.getElementById('cfgMainTabGeneral');
+    
+    // Reset todos
+    [btnTec, btnRoles, btnGen].forEach(b => {
+        if(b) { b.style.background = 'transparent'; b.style.color = 'var(--text-muted)'; }
+    });
+    
     if(tab === 'tecnicos') {
-        btnTec.style.background = 'var(--blue-btn)'; btnTec.style.color = '#fff';
-        btnGen.style.background = 'transparent'; btnGen.style.color = 'var(--text-muted)';
+        btnTec.style.background = 'var(--blue-btn)';
+        btnTec.style.color = '#fff';
         renderTecnicos();
-    } else {
-        btnGen.style.background = 'var(--blue-btn)'; btnGen.style.color = '#fff';
-        btnTec.style.background = 'transparent'; btnTec.style.color = 'var(--text-muted)';
+    } else if(tab === 'roles') {
+        if(btnRoles) {
+            btnRoles.style.background = 'linear-gradient(180deg,#6366f1,#4338ca)';
+            btnRoles.style.color = '#fff';
+        }
+        cargarRoles();
+    } else if(tab === 'general') {
+        btnGen.style.background = 'var(--blue-btn)';
+        btnGen.style.color = '#fff';
     }
 }
 
@@ -4136,12 +4221,17 @@ function renderTecnicos() {
         const activoBadge = t.activo 
             ? '<span class="badge" style="background:#d1fae5; color:#065f46;">Activo</span>'
             : '<span class="badge" style="background:#fee2e2; color:#991b1b;">Inactivo</span>';
+        const rolPersonalizado = t.rol_id ? (_rolesCache || []).find(r => r.id === t.rol_id) : null;
+        const rolPersonalBadge = rolPersonalizado 
+            ? `<span class="badge" style="background:#ede9fe; color:#5b21b6;"><i class="ti ti-shield"></i> ${escapeHtml(rolPersonalizado.nombre)}</span>` 
+            : '';
         return `<div data-item-id="${t.id}" style="background:#fff; border:1px solid var(--border-color); border-radius:8px; padding:14px; margin-bottom:8px;">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
                 <div style="flex:1; min-width:200px;">
                     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                         <b style="font-size:15px;">${escapeHtml(t.nombre)}</b>
                         ${rolBadge}
+                        ${rolPersonalBadge}
                         ${activoBadge}
                     </div>
                     <div style="font-size:12px; color:var(--text-muted); margin-top:6px;">
@@ -4159,6 +4249,16 @@ function renderTecnicos() {
     }).join('');
 }
 
+function llenarSelectorRolesTecnico(selectedRolId) {
+    const sel = document.getElementById('mod_tec_rol_id');
+    if(!sel) return;
+    const rolesActivos = (_rolesCache || []).filter(r => r.activo);
+    sel.innerHTML = '<option value="">-- Sin rol personalizado --</option>' + 
+        rolesActivos.map(r => 
+            `<option value="${r.id}" ${r.id === selectedRolId ? 'selected' : ''}>${escapeHtml(r.nombre)}${r.es_sistema ? ' (sistema)' : ''}</option>`
+        ).join('');
+}
+
 function abrirModalTecnico() {
     document.getElementById('mod_tec_id').value = '';
     document.getElementById('mod_tec_nombre').value = '';
@@ -4168,6 +4268,12 @@ function abrirModalTecnico() {
     document.getElementById('mod_tec_notas').value = '';
     document.getElementById('mod_tec_activo').checked = true;
     document.getElementById('modalTecnicoTitulo').textContent = 'Nuevo Técnico';
+    // Cargar roles antes de abrir
+    if(_rolesCache.length === 0) {
+        cargarRoles().then(() => llenarSelectorRolesTecnico(''));
+    } else {
+        llenarSelectorRolesTecnico('');
+    }
     document.getElementById('modalTecnico').classList.add('active');
 }
 
@@ -4182,6 +4288,11 @@ function editarTecnico(id) {
     document.getElementById('mod_tec_notas').value = t.notas || '';
     document.getElementById('mod_tec_activo').checked = t.activo !== false;
     document.getElementById('modalTecnicoTitulo').textContent = 'Editar Técnico';
+    if(_rolesCache.length === 0) {
+        cargarRoles().then(() => llenarSelectorRolesTecnico(t.rol_id || ''));
+    } else {
+        llenarSelectorRolesTecnico(t.rol_id || '');
+    }
     document.getElementById('modalTecnico').classList.add('active');
 }
 
@@ -4199,6 +4310,7 @@ async function guardarTecnico() {
         telefono: document.getElementById('mod_tec_telefono').value.trim() || null,
         especialidad: document.getElementById('mod_tec_especialidad').value.trim() || null,
         rol: document.getElementById('mod_tec_rol').value,
+        rol_id: document.getElementById('mod_tec_rol_id').value || null,
         notas: document.getElementById('mod_tec_notas').value.trim() || null,
         activo: document.getElementById('mod_tec_activo').checked
     };
@@ -5202,6 +5314,292 @@ async function guardarDevolucion() {
         if(devData?.id) resaltarItemNuevo(devData.id);
     } catch(e) {
         logError('Guardar devolución', e);
+        alert(getFriendlyError(e));
+    }
+}
+
+/* ============================================================
+   MÓDULO DE ROLES Y PERMISOS
+   ============================================================ */
+
+// Definición de los 43 permisos en 7 grupos
+const PERMISOS_DEF = [
+    {
+        grupo: '🛒 Compras', color: '#1e40af',
+        items: [
+            { id: 'compras_ver', label: 'Ver módulo de Compras' },
+            { id: 'compras_crear', label: 'Crear/editar lotes' },
+            { id: 'compras_eliminar', label: 'Eliminar lotes' },
+            { id: 'compras_ver_costos', label: 'Ver costos de compra' }
+        ]
+    },
+    {
+        grupo: '🔧 Reacondicionado', color: '#f59e0b',
+        items: [
+            { id: 'reacond_ver', label: 'Ver módulo Reacondicionado' },
+            { id: 'reacond_ver_todos', label: 'Ver TODOS los equipos (no solo los suyos)' },
+            { id: 'reacond_editar_propios', label: 'Editar equipos asignados a él' },
+            { id: 'reacond_editar_otros', label: 'Editar equipos de OTROS técnicos' },
+            { id: 'piezas_recibir', label: 'Marcar piezas como recibidas (técnico)' },
+            { id: 'piezas_entregar', label: 'Marcar piezas como entregadas (admin)' },
+            { id: 'piezas_aprobar_extra', label: 'Aprobar piezas extras' },
+            { id: 'piezas_agregar_extra', label: 'Agregar piezas adicionales' },
+            { id: 'estado_cambiar', label: 'Cambiar estado del equipo' },
+            { id: 'estado_despachar', label: 'Marcar como Despachado' }
+        ]
+    },
+    {
+        grupo: '🔄 Devoluciones', color: '#dc2626',
+        items: [
+            { id: 'devoluciones_ver', label: 'Ver devoluciones' },
+            { id: 'devoluciones_registrar', label: 'Registrar devoluciones' },
+            { id: 'devoluciones_eliminar', label: 'Eliminar devoluciones' }
+        ]
+    },
+    {
+        grupo: '📋 Catálogos', color: '#06b6d4',
+        items: [
+            { id: 'catalogo_fallas', label: 'Ver/editar Catálogo de Fallas' },
+            { id: 'catalogo_fallas_eliminar', label: 'Eliminar fallas' },
+            { id: 'catalogo_proveedores', label: 'Ver/editar Proveedores' },
+            { id: 'catalogo_proveedores_eliminar', label: 'Eliminar proveedores' },
+            { id: 'catalogo_articulos', label: 'Ver/editar Artículos' },
+            { id: 'catalogo_articulos_eliminar', label: 'Eliminar artículos' },
+            { id: 'catalogo_clientes', label: 'Ver/editar Clientes' },
+            { id: 'catalogo_clientes_eliminar', label: 'Eliminar clientes' }
+        ]
+    },
+    {
+        grupo: '⚙️ Configuración', color: '#64748b',
+        items: [
+            { id: 'config_ver', label: 'Ver módulo Configuración' },
+            { id: 'config_tecnicos', label: 'Crear/editar Técnicos' },
+            { id: 'config_tecnicos_eliminar', label: 'Eliminar técnicos' },
+            { id: 'config_roles', label: 'Crear/editar Roles' },
+            { id: 'config_roles_eliminar', label: 'Eliminar roles' },
+            { id: 'config_impresora', label: 'Configurar impresoras' }
+        ]
+    },
+    {
+        grupo: '🖨️ Impresión y Reportes', color: '#7c3aed',
+        items: [
+            { id: 'imprimir_diag', label: 'Imprimir label diagnóstico' },
+            { id: 'imprimir_venta', label: 'Imprimir label de venta' },
+            { id: 'ver_dashboard', label: 'Ver Dashboard / KPIs' },
+            { id: 'exportar_excel', label: 'Exportar a Excel' },
+            { id: 'ver_auditoria', label: 'Ver auditoría/historial' }
+        ]
+    },
+    {
+        grupo: '💬 Comunicación y Ventas', color: '#10b981',
+        items: [
+            { id: 'comunicacion_whatsapp', label: 'Enviar WhatsApp a clientes' },
+            { id: 'ver_datos_personales', label: 'Ver datos personales clientes (whatsapp/cédula)' },
+            { id: 'ventas_realizar', label: 'Realizar ventas' },
+            { id: 'ventas_descuentos', label: 'Aplicar descuentos' },
+            { id: 'ventas_anular', label: 'Anular ventas' },
+            { id: 'ventas_cobrar', label: 'Cobrar pagos' },
+            { id: 'ventas_cierre_caja', label: 'Cierre de caja' }
+        ]
+    }
+];
+
+let _rolesCache = [];
+
+async function cargarRoles() {
+    const cont = document.getElementById('rolesLista');
+    if(!cont) return;
+    try {
+        const { data, error } = await supabaseClient
+            .from('roles_taller')
+            .select('*')
+            .order('es_sistema', { ascending: false })
+            .order('nombre', { ascending: true });
+        if(error) throw error;
+        _rolesCache = data || [];
+        renderRoles();
+    } catch(e) {
+        logError('Cargar roles', e);
+        cont.innerHTML = `<p style="color:#dc2626; text-align:center; padding:20px;">Error: ${escapeHtml(getFriendlyError(e))}</p>`;
+    }
+}
+
+function renderRoles() {
+    const cont = document.getElementById('rolesLista');
+    if(!cont) return;
+    if(_rolesCache.length === 0) {
+        cont.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:30px;">No hay roles. Crea el primero con "+ Nuevo Rol".</p>';
+        return;
+    }
+    
+    cont.innerHTML = _rolesCache.map(r => {
+        const permisos = r.permisos || {};
+        const cantPermisos = Object.values(permisos).filter(v => v === true).length;
+        const totalPosibles = PERMISOS_DEF.reduce((s, g) => s + g.items.length, 0);
+        const tecnicosConRol = (cache.tecnicos || []).filter(t => t.rol_id === r.id).length;
+        
+        return `<div class="pieza-card" data-item-id="${r.id}" style="border-left:4px solid ${r.es_sistema ? '#dc2626' : '#6366f1'};">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap;">
+                <div style="flex:1; min-width:200px;">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <i class="ti ${r.es_sistema ? 'ti-crown' : 'ti-shield'}" style="color:${r.es_sistema ? '#dc2626' : '#6366f1'}; font-size:18px;"></i>
+                        <b style="font-size:15px;">${escapeHtml(r.nombre)}</b>
+                        ${r.es_sistema ? '<span class="badge" style="background:#fee2e2; color:#991b1b;">SISTEMA</span>' : ''}
+                        ${!r.activo ? '<span class="badge" style="background:#fef3c7; color:#92400e;">INACTIVO</span>' : ''}
+                    </div>
+                    ${r.descripcion ? `<div style="font-size:12px; color:var(--text-muted); margin-top:4px;">${escapeHtml(r.descripcion)}</div>` : ''}
+                    <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; font-size:11px;">
+                        <span class="badge" style="background:#dbeafe; color:#1e40af;"><i class="ti ti-check"></i> ${cantPermisos}/${totalPosibles} permisos</span>
+                        <span class="badge" style="background:#e0e7ff; color:#3730a3;"><i class="ti ti-users"></i> ${tecnicosConRol} técnico${tecnicosConRol === 1 ? '' : 's'}</span>
+                    </div>
+                </div>
+                <div style="display:flex; gap:6px;">
+                    <button onclick="editarRol('${r.id}')" style="background:#dbeafe; color:#1e40af; border:0; padding:8px 10px; border-radius:6px; cursor:pointer;" title="Ver/Editar"><i class="ti ti-edit"></i></button>
+                    ${!r.es_sistema ? `<button onclick="eliminarRol('${r.id}')" style="background:#fee2e2; color:#991b1b; border:0; padding:8px 10px; border-radius:6px; cursor:pointer;" title="Eliminar"><i class="ti ti-trash"></i></button>` : ''}
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function renderPermisosCheckboxes(permisos = {}) {
+    const cont = document.getElementById('permisosContainer');
+    if(!cont) return;
+    
+    cont.innerHTML = PERMISOS_DEF.map(grupo => {
+        const itemsHtml = grupo.items.map(item => {
+            const checked = permisos[item.id] === true ? 'checked' : '';
+            return `<label style="display:flex; align-items:flex-start; gap:8px; padding:8px; background:#fff; border-radius:6px; cursor:pointer; transition:background 0.15s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">
+                <input type="checkbox" data-permiso="${item.id}" ${checked}>
+                <span style="font-size:12px; line-height:1.3;">${escapeHtml(item.label)}</span>
+            </label>`;
+        }).join('');
+        
+        return `<details open style="background:${grupo.color}10; border:1px solid ${grupo.color}40; border-radius:10px; padding:10px; margin-bottom:8px;">
+            <summary style="cursor:pointer; font-weight:700; font-size:13px; color:${grupo.color}; padding:4px;">${escapeHtml(grupo.grupo)} (${grupo.items.length})</summary>
+            <div style="margin-top:8px; display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:4px;">
+                ${itemsHtml}
+            </div>
+        </details>`;
+    }).join('');
+}
+
+function abrirModalRol() {
+    document.getElementById('mod_rol_id').value = '';
+    document.getElementById('mod_rol_nombre').value = '';
+    document.getElementById('mod_rol_descripcion').value = '';
+    document.getElementById('mod_rol_activo').checked = true;
+    document.getElementById('modalRolTitulo').textContent = 'Nuevo Rol';
+    renderPermisosCheckboxes({});
+    document.getElementById('modalRol').classList.add('active');
+    if(typeof inyectarBotonesVolver === 'function') inyectarBotonesVolver();
+}
+
+function editarRol(id) {
+    const r = _rolesCache.find(x => x.id === id);
+    if(!r) return;
+    document.getElementById('mod_rol_id').value = r.id;
+    document.getElementById('mod_rol_nombre').value = r.nombre || '';
+    document.getElementById('mod_rol_descripcion').value = r.descripcion || '';
+    document.getElementById('mod_rol_activo').checked = r.activo !== false;
+    document.getElementById('modalRolTitulo').textContent = r.es_sistema ? `Ver Rol: ${r.nombre}` : 'Editar Rol';
+    renderPermisosCheckboxes(r.permisos || {});
+    
+    // Si es del sistema, deshabilitar nombre y permisos
+    document.getElementById('mod_rol_nombre').disabled = !!r.es_sistema;
+    
+    document.getElementById('modalRol').classList.add('active');
+    if(typeof inyectarBotonesVolver === 'function') inyectarBotonesVolver();
+}
+
+function cerrarModalRol() {
+    document.getElementById('modalRol').classList.remove('active');
+    document.getElementById('mod_rol_nombre').disabled = false;
+}
+
+function rolToggleTodos(marcar) {
+    document.querySelectorAll('#permisosContainer input[type="checkbox"]').forEach(cb => {
+        cb.checked = marcar;
+    });
+}
+
+async function guardarRol() {
+    const id = document.getElementById('mod_rol_id').value;
+    const nombre = document.getElementById('mod_rol_nombre').value.trim();
+    const descripcion = document.getElementById('mod_rol_descripcion').value.trim() || null;
+    const activo = document.getElementById('mod_rol_activo').checked;
+    
+    if(!nombre) return alert('El nombre del rol es obligatorio.');
+    
+    // Construir objeto de permisos
+    const permisos = {};
+    document.querySelectorAll('#permisosContainer input[type="checkbox"]').forEach(cb => {
+        permisos[cb.dataset.permiso] = cb.checked;
+    });
+    
+    // Si es rol del sistema, no permitir cambiar nombre
+    const rolExistente = id ? _rolesCache.find(r => r.id === id) : null;
+    if(rolExistente?.es_sistema) {
+        // Solo actualizar permisos y descripción
+        try {
+            const { error } = await supabaseClient
+                .from('roles_taller')
+                .update({ descripcion, permisos, activo })
+                .eq('id', id);
+            if(error) throw error;
+            toast('✅ Rol del sistema actualizado.');
+            cerrarModalRol();
+            await cargarRoles();
+            resaltarItemNuevo(id);
+        } catch(e) {
+            logError('Actualizar rol sistema', e);
+            alert(getFriendlyError(e));
+        }
+        return;
+    }
+    
+    const datos = { nombre, descripcion, permisos, activo };
+    
+    try {
+        let nuevoId = id;
+        if(id) {
+            const { error } = await supabaseClient.from('roles_taller').update(datos).eq('id', id);
+            if(error) throw error;
+            toast('✅ Rol actualizado.');
+        } else {
+            const { data, error } = await supabaseClient.from('roles_taller').insert([datos]).select().single();
+            if(error) throw error;
+            nuevoId = data?.id;
+            toast('✅ Rol creado.');
+        }
+        cerrarModalRol();
+        await cargarRoles();
+        resaltarItemNuevo(nuevoId);
+    } catch(e) {
+        logError('Guardar rol', e);
+        alert(getFriendlyError(e));
+    }
+}
+
+async function eliminarRol(id) {
+    const r = _rolesCache.find(x => x.id === id);
+    if(!r) return;
+    if(r.es_sistema) return alert('No se puede eliminar el rol del sistema.');
+    
+    // Verificar si hay técnicos con este rol
+    const tecnicosConRol = (cache.tecnicos || []).filter(t => t.rol_id === id);
+    if(tecnicosConRol.length > 0) {
+        return alert(`No se puede eliminar: ${tecnicosConRol.length} técnico(s) tienen este rol asignado. Primero cambia el rol de esos técnicos.`);
+    }
+    
+    if(!confirm(`¿Eliminar el rol "${r.nombre}"?\n\nEsta acción no se puede deshacer.`)) return;
+    try {
+        const { error } = await supabaseClient.from('roles_taller').delete().eq('id', id);
+        if(error) throw error;
+        toast('🗑️ Rol eliminado.');
+        await cargarRoles();
+    } catch(e) {
+        logError('Eliminar rol', e);
         alert(getFriendlyError(e));
     }
 }
