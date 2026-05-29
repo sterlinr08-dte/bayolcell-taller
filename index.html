@@ -562,6 +562,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
 <script src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.8.6/jsrsasign-all-min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
 </head>
 <body>
 
@@ -899,7 +900,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                             <div style="border-bottom:1px solid #000; margin-bottom:8px;"></div>
                             <div style="text-align:left; margin-bottom:4px;"><b>EQUIPO:</b> <span id="lblLiveMod">iPhone 11 Pro 64GB Silver</span></div>
                             <div style="text-align:left; margin-bottom:8px;"><b>IMEI:</b> <span id="lblLiveImei">356789123456789</span></div>
-                            <div class="barcode-visual" id="lblLiveBarcode" style="font-size:42px;">*356789123456789*</div>
+                            <div class="barcode-visual" id="lblLiveBarcode" style="font-size:42px;"></div>
                             <div style="font-weight:bold; margin-top:6px; text-transform:uppercase;" id="lblLiveEstadoContainer"></div>
                         </div>
                     </div>
@@ -5805,6 +5806,25 @@ function construirModeloAbreviado(eq) {
     return modelo.trim();
 }
 
+// Genera un código de barras como imagen base64 (Code 128, escaneable)
+function generarBarcodeImg(texto, alturaPx) {
+    if(typeof JsBarcode !== 'function' || !texto) return '';
+    try {
+        const canvas = document.createElement('canvas');
+        JsBarcode(canvas, String(texto), {
+            format: 'CODE128',
+            width: 2,
+            height: alturaPx || 40,
+            displayValue: false,
+            margin: 0
+        });
+        return canvas.toDataURL('image/png');
+    } catch(e) {
+        console.log('Error barcode:', e);
+        return '';
+    }
+}
+
 function generarHtmlLabelVenta() {
     const eq = (cache.refurb || []).find(r => r.id === _labelVentaEquipoId);
     if(!eq) return '';
@@ -5823,6 +5843,9 @@ function generarHtmlLabelVenta() {
     // Altura del logo dinámica según altura total
     const logoH = Math.max(8, Math.round(h * 0.25));
     
+    // Código de barras como imagen (escaneable, se renderiza siempre)
+    const barcodeImg = generarBarcodeImg(imei, bh);
+    
     return `
         <div style="width:${w}mm; height:${h}mm; padding:1mm; font-family:Arial, sans-serif; text-align:center; color:#000; box-sizing:border-box; overflow:hidden; display:flex; flex-direction:column; justify-content:space-between;">
             ${logoSvg ? `<div style="height:${logoH}mm; display:flex; justify-content:center; align-items:center; color:#000;">${logoSvg}</div>` : ''}
@@ -5831,7 +5854,7 @@ function generarHtmlLabelVenta() {
                 ${clase ? `<div style="font-size:${f-1}px; font-weight:bold; margin-top:1mm;">${escapeHtml(clase)}</div>` : ''}
             </div>
             <div style="display:flex; flex-direction:column; align-items:center;">
-                <div style="font-family:'Libre Barcode 39'; font-size:${bh}px; line-height:1; letter-spacing:0;">*${imei}*</div>
+                ${barcodeImg ? `<img src="${barcodeImg}" style="max-width:95%; height:${bh}px; object-fit:contain;" />` : `<div style="font-size:${f}px;">${escapeHtml(imei)}</div>`}
                 <div style="font-size:${Math.max(7, f-2)}px; font-weight:600; letter-spacing:1px; margin-top:0.5mm;">${escapeHtml(imei)}</div>
             </div>
         </div>
@@ -5891,6 +5914,25 @@ async function imprimirLabelVenta() {
     const contenido = generarHtmlLabelVenta();
     const { html: contenidoFinal, anchoFinal, altoFinal } = aplicarRotacionImpresion(contenido, w, h, rot);
     
+    cerrarModalLabelVenta();
+    
+    // === MÉTODO IMAGEN (idéntico a la vista previa) ===
+    const metodo = localStorage.getItem('bayol_metodo_impresion') || 'imagen';
+    if(metodo === 'imagen' && _qzConectado && typeof html2canvas === 'function') {
+        const cont = document.createElement('div');
+        cont.style.position = 'fixed';
+        cont.style.left = '-9999px';
+        cont.style.top = '0';
+        cont.style.background = '#fff';
+        cont.innerHTML = contenidoFinal;
+        document.body.appendChild(cont);
+        const labelEl = cont.firstElementChild || cont;
+        const ok = await qzImprimirHtmlComoImagen(labelEl, anchoFinal, altoFinal, copias, 'labels');
+        document.body.removeChild(cont);
+        if(ok) { toast('🖨️ Label de venta enviado (igual a la vista previa).'); return; }
+    }
+    
+    // === MÉTODO NORMAL (respaldo) ===
     const labelHtml = `
         <style>
             @page { size: ${anchoFinal}mm ${altoFinal}mm; margin: 0; }
@@ -5901,8 +5943,6 @@ async function imprimirLabelVenta() {
         </style>
         ${contenidoFinal}
     `;
-    
-    cerrarModalLabelVenta();
     imprimirContenido(labelHtml, copias, anchoFinal, altoFinal);
 }
 
@@ -6978,7 +7018,12 @@ function actualizarLabelLive() {
     const estado = document.getElementById("lbl_estado_texto").value;
     document.getElementById("lblLiveMod").textContent = mod;
     document.getElementById("lblLiveImei").textContent = imei;
-    document.getElementById("lblLiveBarcode").textContent = `*${imei || '000000000'}*`;
+    const liveBar = document.getElementById("lblLiveBarcode");
+    if(liveBar) {
+        const bh = parseInt(document.getElementById('cfg_barcode_h')?.value) || 35;
+        const imgB = generarBarcodeImg(imei || '000000000', bh);
+        liveBar.innerHTML = imgB ? `<img src="${imgB}" style="height:${bh}px; max-width:100%;" />` : `${imei || '000000000'}`;
+    }
     document.getElementById("lblLiveEstadoContainer").textContent = estado;
     document.getElementById("lblLiveLogo").innerHTML = (marca.includes("apple") || marca.includes("iphone")) ? `<i class="ti ti-brand-apple"></i>` : `<i class="ti ti-device-mobile"></i>`;
     cambiarDimensionesManual();
@@ -7011,7 +7056,7 @@ function imprimirLabelAdhesivo() {
                 <b>EQUIPO:</b> ${escapeHtml(mod)}<br>
                 <b>IMEI:</b> ${escapeHtml(imei)}
             </div>
-            <div style="font-family:'Libre Barcode 39'; font-size:${configBH}px; margin:2px 0; display:block; line-height:1;">*${imei}*</div>
+            <div style="margin:2px 0; display:flex; justify-content:center;">${(function(){ const b=generarBarcodeImg(imei, configBH); return b?`<img src="${b}" style="height:${configBH}px; max-width:95%;" />`:escapeHtml(imei); })()}</div>
             <b style="text-transform:uppercase; display:block; font-size:${parseInt(configF) - 1}px;">${escapeHtml(estadoText)}</b>
         </div>
     `;
@@ -8099,7 +8144,7 @@ function actualizarPreviewImpresora() {
             <div style="border-bottom:1px solid #000; margin:3px 0;"></div>
             <div><b>EQUIPO:</b> APPLE IPHONE 12 PRO</div>
             <div><b>IMEI:</b> 356789123456789</div>
-            ${bh > 0 ? `<div style="font-family:'Libre Barcode 39'; font-size:${bh}px; text-align:center; line-height:1; margin:3px 0;">*356789123456789*</div>` : ''}
+            ${bh > 0 ? `<div style="text-align:center; margin:3px 0;">${(function(){ const b=generarBarcodeImg('356789123456789', bh); return b?`<img src="${b}" style="height:${bh}px; max-width:95%;" />`:''; })()}</div>` : ''}
             <div style="text-align:center; font-weight:bold; text-transform:uppercase; font-size:${f - 1}px;">CLASE A · GARANTÍA 90 DÍAS</div>
         `;
     } else if(tipo === 'diagnostico') {
