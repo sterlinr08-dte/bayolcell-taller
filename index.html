@@ -630,6 +630,26 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                     <div class="kpi-box clickable" style="border-top-color:#06b6d4;" onclick="nav('refurb')"><small>Reacondicionados</small><strong id="kRefurb">0</strong><i class="ti ti-refresh"></i></div>
                 </div>
                 
+                <!-- KPIs de Reacondicionado -->
+                <h3 style="margin:15px 0 10px; font-size:14px; color:#06b6d4; text-transform:uppercase; display:flex; align-items:center; gap:8px;"><i class="ti ti-recycle"></i> Reacondicionados</h3>
+                <div class="kpi-row">
+                    <div class="kpi-box clickable" style="border-top-color:#f59e0b;" onclick="nav('refurb')"><small>🟡 Pendientes</small><strong id="kdPend">0</strong><i class="ti ti-clock"></i></div>
+                    <div class="kpi-box clickable" style="border-top-color:#3b82f6;" onclick="nav('refurb')"><small>⚠️ Evaluación</small><strong id="kdEval">0</strong><i class="ti ti-clipboard-list"></i></div>
+                    <div class="kpi-box clickable" style="border-top-color:#9a3412;" onclick="nav('refurb')"><small>🔧 En Proceso</small><strong id="kdProc">0</strong><i class="ti ti-tool"></i></div>
+                    <div class="kpi-box clickable" style="border-top-color:#5b21b6;" onclick="nav('refurb')"><small>🛒 Listo Venta</small><strong id="kdListoV">0</strong><i class="ti ti-shopping-cart"></i></div>
+                    <div class="kpi-box clickable" style="border-top-color:#10b981;" onclick="nav('refurb')"><small>✅ Despachados</small><strong id="kdDesp">0</strong><i class="ti ti-truck-delivery"></i></div>
+                    <div class="kpi-box clickable" style="border-top-color:#dc2626;" onclick="nav('refurb')"><small>🔄 Devoluciones</small><strong id="kdDev">0</strong><i class="ti ti-rotate-2"></i></div>
+                </div>
+                
+                <!-- Buscador global por IMEI -->
+                <div class="card" style="margin-top:15px;">
+                    <h3 style="margin:0 0 12px; font-size:15px;"><i class="ti ti-search" style="color:var(--blue-btn);"></i> Buscar equipo por IMEI / Modelo</h3>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <input type="text" id="buscadorGlobalImei" placeholder="🔍 Escribe IMEI, modelo o marca..." oninput="buscarEquipoGlobal()" style="flex:1; min-width:200px; padding:12px; font-size:14px;">
+                    </div>
+                    <div id="resultadoBusquedaGlobal" style="margin-top:12px;"></div>
+                </div>
+                
                 <div class="layout-dashboard">
                     <div class="card">
                         <h3 style="margin:0 0 15px 0; font-size:15px; font-weight:700;">Monitoreo de Órdenes Recientes</h3>
@@ -2499,6 +2519,16 @@ function renderAll() {
     document.getElementById("kListos").textContent = cache.ordenes.filter(o => ["listo", "listo_entrega"].includes(o.estado)).length;
     document.getElementById("kRefurb").textContent = cache.refurb.length;
     
+    // KPIs de Reacondicionado
+    const refurb = cache.refurb || [];
+    const setKpi = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+    setKpi('kdPend', refurb.filter(e => (e.estado_evaluacion || 'pendiente') === 'pendiente').length);
+    setKpi('kdEval', refurb.filter(e => ['en_evaluacion','evaluado'].includes(e.estado_evaluacion)).length);
+    setKpi('kdProc', refurb.filter(e => ['en_proceso','tecnico_recibio','espera_pieza','listo_revision'].includes(e.estado_evaluacion)).length);
+    setKpi('kdListoV', refurb.filter(e => e.estado_evaluacion === 'listo_venta').length);
+    setKpi('kdDesp', refurb.filter(e => e.estado_evaluacion === 'vendido').length);
+    setKpi('kdDev', refurb.filter(e => (e.veces_devuelto || 0) > 0).length);
+    
     document.getElementById("recentOrders").innerHTML = cache.ordenes.slice(0, 5).map(o => {
         const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
         return `<tr><td data-label="Orden"><b>#${o.numero_orden}</b></td><td data-label="Cliente">${escapeHtml(c.nombre)}</td><td data-label="Equipo">${escapeHtml(e.modelo)}</td><td data-label="Falla">${escapeHtml(o.falla_reportada)}</td><td data-label="Estado"><span class="badge" style="background:#d1fae5;">${o.estado}</span></td></tr>`;
@@ -2518,6 +2548,73 @@ function renderAll() {
     }
     if(proveedorActualId) renderDetalleProveedor(proveedorActualId);
     if(loteActualId) renderEquiposLote();
+}
+
+/* ============================================================
+   BUSCADOR GLOBAL POR IMEI / MODELO
+   ============================================================ */
+function buscarEquipoGlobal() {
+    const q = (document.getElementById('buscadorGlobalImei')?.value || '').toLowerCase().trim();
+    const cont = document.getElementById('resultadoBusquedaGlobal');
+    if(!cont) return;
+    
+    if(q.length < 2) {
+        cont.innerHTML = '';
+        return;
+    }
+    
+    // Buscar en equipos refurbish
+    const palabras = q.split(/\s+/).filter(p => p);
+    const resultados = (cache.refurb || []).filter(eq => {
+        const hay = [eq.imei, eq.modelo, eq.marca, eq.capacidad, eq.color].filter(x => x).join(' ').toLowerCase();
+        return palabras.every(p => hay.includes(p));
+    });
+    
+    if(resultados.length === 0) {
+        cont.innerHTML = `<p style="color:var(--text-muted); text-align:center; padding:15px; font-size:13px;">Sin resultados para "<b>${escapeHtml(q)}</b>"</p>`;
+        return;
+    }
+    
+    cont.innerHTML = resultados.slice(0, 10).map(eq => {
+        const estado = obtenerEtiquetaEstado(eq.estado_evaluacion || 'pendiente');
+        const lote = (cache.lotes || []).find(l => l.id === eq.lote_id);
+        const tecnico = eq.tecnico_asignado_id ? (cache.tecnicos || []).find(t => t.id === eq.tecnico_asignado_id) : null;
+        return `<div style="background:#fff; border:1px solid var(--border-color); border-radius:8px; padding:12px; margin-bottom:8px; cursor:pointer;" onclick="irAEquipoDesdeBusqueda('${eq.id}')">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap;">
+                <div style="flex:1; min-width:180px;">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        ${eq.veces_devuelto > 0 ? '🔄 ' : ''}
+                        <b style="font-size:14px;">${escapeHtml(eq.modelo || 'Equipo')}</b>
+                        <span class="badge" style="background:${estado.bg}; color:${estado.color}; font-size:10px;">${estado.text}</span>
+                    </div>
+                    <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+                        <i class="ti ti-barcode"></i> ${escapeHtml(eq.imei || '—')}
+                        ${lote ? ` · Lote: ${escapeHtml(lote.codigo_lote || '—')}` : ''}
+                        ${tecnico ? ` · 👤 ${escapeHtml(tecnico.nombre)}` : ''}
+                    </div>
+                </div>
+                <button class="btn btn-light" style="padding:6px 10px; font-size:12px;"><i class="ti ti-arrow-right"></i> Ver</button>
+            </div>
+        </div>`;
+    }).join('') + (resultados.length > 10 ? `<p style="text-align:center; color:var(--text-muted); font-size:11px;">Mostrando 10 de ${resultados.length} resultados</p>` : '');
+}
+
+function irAEquipoDesdeBusqueda(equipoId) {
+    const eq = (cache.refurb || []).find(r => r.id === equipoId);
+    if(!eq) return;
+    const estado = eq.estado_evaluacion || 'pendiente';
+    // Ir al módulo reacond y abrir el panel apropiado
+    nav('refurb');
+    setTimeout(() => {
+        if(['en_proceso','tecnico_recibio','espera_pieza','listo_revision','listo_venta','vendido'].includes(estado)) {
+            abrirPanelProceso(equipoId);
+        } else if(['en_evaluacion','evaluado'].includes(estado)) {
+            abrirModalEvaluacion(equipoId);
+        } else {
+            // Abrir el lote del equipo
+            if(eq.lote_id) abrirLoteReacond(eq.lote_id);
+        }
+    }, 200);
 }
 
 function renderOrders() {
@@ -3441,6 +3538,7 @@ function renderEquipoReacondCard(eq, num) {
         badgeColor = 'background:#ddd6fe; color:#5b21b6;';
         badgeText = '🛒 Listo para venta';
         accionBtn = `<button class="btn btn-dark" style="padding:8px 14px; background:#5b21b6;" onclick="abrirModalLabelVenta('${eq.id}')"><i class="ti ti-printer"></i> Label Venta</button>
+                     <button class="btn btn-dark" style="padding:8px 14px; background:linear-gradient(180deg,#10b981,#059669); box-shadow:0 4px 0 #047857;" onclick="marcarDespachado('${eq.id}')"><i class="ti ti-truck-delivery"></i> Despachar</button>
                      <button class="btn btn-light" style="padding:8px 12px;" onclick="abrirPanelProceso('${eq.id}')" title="Ver detalles"><i class="ti ti-eye"></i></button>`;
     } else if(estado === 'vendido') {
         badgeColor = 'background:#d1fae5; color:#065f46;';
@@ -4798,6 +4896,30 @@ async function aprobarTerminado(equipoId) {
         if(reacondLoteAbiertoId) renderDetalleLoteReacond();
     } catch(e) {
         logError('Aprobar terminado', e);
+        alert(getFriendlyError(e));
+    }
+}
+
+async function marcarDespachado(equipoId) {
+    const eq = (cache.refurb || []).find(r => r.id === equipoId);
+    if(!eq) return;
+    if(!confirm(`¿Marcar "${eq.modelo}" como DESPACHADO?\n\nEsto significa que el equipo fue vendido/entregado al cliente.`)) return;
+    try {
+        const { error } = await supabaseClient.from('equipos_refurbish').update({ 
+            estado_evaluacion: 'vendido',
+            fecha_despacho: new Date().toISOString()
+        }).eq('id', equipoId);
+        if(error) throw error;
+        await supabaseClient.from('equipo_historial').insert([{
+            equipo_id: equipoId, estado_anterior: 'listo_venta', estado_nuevo: 'vendido',
+            accion: '🚚 Equipo despachado al cliente',
+            usuario: sessionUser?.nombre || 'Admin'
+        }]);
+        toast('🚚 Equipo despachado.');
+        await loadAll();
+        if(reacondLoteAbiertoId) renderDetalleLoteReacond();
+    } catch(e) {
+        logError('Marcar despachado', e);
         alert(getFriendlyError(e));
     }
 }
