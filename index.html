@@ -501,6 +501,38 @@ mark.ss-hl { background: #fef08a; color: inherit; padding: 0 1px; border-radius:
 }
 .item-flash { animation: flashHighlight 1.5s ease-out; }
 
+/* ========== STEPPER VISUAL ESTILO AMAZON ========== */
+.stepper { display: flex; align-items: flex-start; justify-content: space-between; gap: 4px; padding: 12px 4px; position: relative; }
+.stepper-line { position: absolute; top: 30px; left: 30px; right: 30px; height: 3px; background: #e2e8f0; z-index: 0; border-radius: 2px; }
+.stepper-line-fill { position: absolute; top: 30px; left: 30px; height: 3px; background: linear-gradient(90deg, #10b981, #16a34a); z-index: 0; border-radius: 2px; transition: width 0.4s ease; }
+.stepper-step { flex: 1; display: flex; flex-direction: column; align-items: center; position: relative; z-index: 1; gap: 6px; cursor: pointer; padding: 4px; transition: transform 0.15s; }
+.stepper-step:active { transform: scale(0.96); }
+.stepper-circle { width: 36px; height: 36px; border-radius: 50%; background: #f1f5f9; border: 3px solid #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; color: #94a3b8; transition: all 0.25s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.06); }
+.stepper-step.completado .stepper-circle { background: linear-gradient(135deg, #10b981, #059669); border-color: #047857; color: #fff; box-shadow: 0 3px 8px rgba(16, 185, 129, 0.35); }
+.stepper-step.actual .stepper-circle { background: linear-gradient(135deg, #3b82f6, #1e40af); border-color: #1e3a8a; color: #fff; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2), 0 4px 12px rgba(59, 130, 246, 0.4); animation: pulseActual 2s ease-in-out infinite; }
+.stepper-step.pendiente .stepper-circle { background: #fff; border-color: #cbd5e1; color: #94a3b8; }
+.stepper-label { font-size: 10px; font-weight: 700; text-align: center; line-height: 1.2; color: #64748b; max-width: 70px; }
+.stepper-step.completado .stepper-label { color: #047857; }
+.stepper-step.actual .stepper-label { color: #1e40af; }
+@keyframes pulseActual { 0%, 100% { box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2), 0 4px 12px rgba(59, 130, 246, 0.4); } 50% { box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.1), 0 4px 16px rgba(59, 130, 246, 0.5); } }
+.stepper-step.bloqueado { opacity: 0.4; cursor: not-allowed; }
+.stepper-step.bloqueado:active { transform: none; }
+
+/* ========== PIEZAS CON ESTADOS DUALES ========== */
+.pieza-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; margin-bottom: 8px; transition: all 0.2s; }
+.pieza-card:hover { box-shadow: 0 4px 8px rgba(0,0,0,0.06); }
+.pieza-status-row { display: flex; gap: 10px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #e2e8f0; }
+.pieza-status-col { flex: 1; padding: 8px; border-radius: 8px; text-align: center; font-size: 11px; transition: all 0.2s; }
+.pieza-status-col.ok { background: #d1fae5; color: #065f46; }
+.pieza-status-col.pendiente { background: #fee2e2; color: #991b1b; }
+.pieza-status-col.esperando { background: #fef3c7; color: #92400e; }
+.pieza-action-btn { background: linear-gradient(180deg, #fff 0%, #f8fafc 100%); border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; font-size: 11px; font-weight: 700; cursor: pointer; width: 100%; margin-top: 6px; box-shadow: 0 2px 0 #cbd5e1; transition: all 0.15s; }
+.pieza-action-btn:hover { background: #f1f5f9; transform: translateY(-1px); }
+.pieza-action-btn:active { transform: translateY(1px); box-shadow: 0 1px 0 #cbd5e1; }
+.pieza-action-btn.entregar { background: linear-gradient(180deg, #3b82f6, #1e40af); color: #fff; border-color: #1e3a8a; box-shadow: 0 3px 0 #1e3a8a; }
+.pieza-action-btn.recibir { background: linear-gradient(180deg, #10b981, #059669); color: #fff; border-color: #047857; box-shadow: 0 3px 0 #047857; }
+.pieza-action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
 /* ========== CHECKBOXES NORMALIZADOS (fix móvil) ========== */
 input[type="checkbox"]:not(.no-norm) { -webkit-appearance: none; appearance: none; width: 20px !important; height: 20px !important; border: 2px solid #cbd5e1; border-radius: 5px; background: #fff; cursor: pointer; position: relative; flex-shrink: 0; vertical-align: middle; margin: 0; transition: all 0.15s; }
 input[type="checkbox"]:not(.no-norm):checked { background: var(--blue-btn); border-color: var(--blue-btn); }
@@ -3238,7 +3270,7 @@ function renderEquipoReacondCard(eq, num) {
         accionBtn = `<button class="btn btn-dark" style="padding:8px 14px; background:#f59e0b;" onclick="abrirPanelProceso('${eq.id}')"><i class="ti ti-tool"></i> Ver/Actualizar</button>`;
     } else if(estado === 'listo_revision') {
         badgeColor = 'background:#e9d5ff; color:#6b21a8;';
-        badgeText = '👁️ Listo para revisión';
+        badgeText = '👁️ Revisión final';
         accionBtn = `<button class="btn btn-dark" style="padding:8px 14px; background:#6b21a8;" onclick="abrirPanelProceso('${eq.id}')"><i class="ti ti-check"></i> Aprobar</button>`;
     } else if(estado === 'listo_venta') {
         badgeColor = 'background:#ddd6fe; color:#5b21b6;';
@@ -4208,38 +4240,129 @@ async function abrirPanelProceso(equipoId) {
     const tecnico = eq.tecnico_asignado_id ? (cache.tecnicos || []).find(t => t.id === eq.tecnico_asignado_id) : null;
     const estado = eq.estado_evaluacion || 'en_proceso';
     
-    // Estados disponibles según estado actual
-    const estadosTecnico = [
-        { id: 'tecnico_recibio', label: '📦 Confirmar recepción', color: '#1e40af', bg: '#bfdbfe' },
-        { id: 'espera_pieza', label: '⏳ Marcar en espera de pieza', color: '#92400e', bg: '#fde68a' },
-        { id: 'listo_revision', label: '👁️ Listo para revisión', color: '#6b21a8', bg: '#e9d5ff' }
+    // ====== STEPPER VISUAL ======
+    // Definir el orden de pasos
+    const pasos = [
+        { id: 'en_proceso', label: 'Asignado', icono: '📋' },
+        { id: 'tecnico_recibio', label: 'Recibido', icono: '📦' },
+        { id: 'espera_pieza', label: 'Espera pieza', icono: '⏳' },
+        { id: 'listo_revision', label: 'Revisión final', icono: '👁️' }
     ];
+    // Determinar índice del estado actual
+    const ordenEstados = ['en_proceso', 'tecnico_recibio', 'espera_pieza', 'listo_revision'];
+    let idxActual = ordenEstados.indexOf(estado);
+    if(idxActual === -1) idxActual = 0;
     
+    // Mapeo de transiciones válidas (qué paso puede activar el técnico)
+    const canGoto = (idx) => {
+        // Puede ir al siguiente paso, retroceder al anterior, o saltar a "espera pieza" desde recibido
+        if(idx === idxActual) return false; // ya está ahí
+        if(idx === idxActual + 1) return true; // siguiente
+        if(idx === idxActual - 1) return true; // anterior (corregir)
+        // Caso especial: de "tecnico_recibio" puede saltar a "listo_revision" si no hay piezas
+        if(estado === 'tecnico_recibio' && pasos[idx].id === 'listo_revision') return true;
+        // Desde "espera_pieza" puede volver a "tecnico_recibio" cuando llegan las piezas
+        if(estado === 'espera_pieza' && pasos[idx].id === 'tecnico_recibio') return true;
+        return false;
+    };
+    
+    const stepsHtml = pasos.map((p, idx) => {
+        let cls = 'pendiente';
+        if(idx < idxActual) cls = 'completado';
+        else if(idx === idxActual) cls = 'actual';
+        const habilitado = canGoto(idx);
+        const clickAttr = habilitado ? `onclick="cambiarEstadoProceso('${equipoId}', '${p.id}')"` : '';
+        return `<div class="stepper-step ${cls} ${!habilitado && idx !== idxActual ? 'bloqueado' : ''}" ${clickAttr}>
+            <div class="stepper-circle">${cls === 'completado' ? '✓' : p.icono}</div>
+            <div class="stepper-label">${p.label}</div>
+        </div>`;
+    }).join('');
+    const fillWidth = idxActual === 0 ? '0%' : `calc(${(idxActual / (pasos.length - 1)) * 100}% - 60px)`;
+    
+    const stepperHtml = `
+        <div style="background:#f8fafc; border:1px solid var(--border-color); border-radius:12px; padding:8px; margin-bottom:18px; position:relative;">
+            <div class="stepper">
+                <div class="stepper-line"></div>
+                <div class="stepper-line-fill" style="width: ${fillWidth};"></div>
+                ${stepsHtml}
+            </div>
+        </div>
+    `;
+    
+    // ====== FALLAS ======
     const fallasHtml = fallas.length > 0 ? fallas.map(f => `<span class="badge" style="background:#fee2e2; color:#991b1b; font-size:10px; margin:2px;">${escapeHtml(f.falla_corto || f.falla_nombre)}</span>`).join('') : '<span style="color:var(--text-muted); font-size:12px;">Sin fallas registradas</span>';
     
+    // ====== PIEZAS CON DOBLE CONFIRMACIÓN ======
     const piezasHtml = piezas.length > 0 ? piezas.map(p => {
-        let estadoPieza, colorPieza;
-        if(p.estado === 'entregada') { estadoPieza = '✅ Entregada'; colorPieza = '#d1fae5'; }
-        else if(p.estado === 'aprobada') { estadoPieza = '👍 Aprobada'; colorPieza = '#dbeafe'; }
-        else if(p.estado === 'extra_pendiente') { estadoPieza = '⚠️ Extra - Pendiente admin'; colorPieza = '#fef3c7'; }
-        else if(p.estado === 'rechazada') { estadoPieza = '❌ Rechazada'; colorPieza = '#fee2e2'; }
-        else { estadoPieza = '⏳ Pendiente'; colorPieza = '#f1f5f9'; }
+        // Estados de pieza:
+        // 'pendiente' = recién creada, admin no la ha marcado entregada
+        // 'entregada' = admin marcó entregada, esperando técnico la reciba
+        // 'recibida' = técnico confirmó recepción → lista para usar
+        // 'aprobada' = legacy (entregada)
+        // 'extra_pendiente' = técnico la agregó, admin debe aprobar
+        // 'rechazada' = admin rechazó
         
-        const acciones = [];
-        if(p.estado === 'pendiente') acciones.push(`<button onclick="marcarPiezaEntregada('${p.id}')" style="background:#10b981; color:#fff; border:0; padding:6px 10px; border-radius:6px; cursor:pointer; font-size:11px;"><i class="ti ti-truck"></i> Entregar</button>`);
-        if(p.estado === 'extra_pendiente') acciones.push(`<button onclick="aprobarPiezaExtra('${p.id}')" style="background:#10b981; color:#fff; border:0; padding:6px 10px; border-radius:6px; cursor:pointer; font-size:11px;"><i class="ti ti-check"></i> Aprobar</button>`);
-        if(p.estado === 'extra_pendiente') acciones.push(`<button onclick="rechazarPiezaExtra('${p.id}')" style="background:#ef4444; color:#fff; border:0; padding:6px 10px; border-radius:6px; cursor:pointer; font-size:11px;"><i class="ti ti-x"></i> Rechazar</button>`);
+        const esExtra = !!p.agregada_por_tecnico;
+        const esExtraNoAprobado = p.estado === 'extra_pendiente';
+        const esRechazada = p.estado === 'rechazada';
+        const estaEntregada = p.estado === 'entregada' || p.estado === 'aprobada';
+        const estaRecibida = p.estado === 'recibida';
+        const estaPendienteAdmin = p.estado === 'pendiente' || p.estado === 'extra_pendiente';
         
-        return `<div style="display:flex; justify-content:space-between; align-items:center; padding:10px; background:${colorPieza}; border-radius:6px; margin-bottom:6px; gap:8px; flex-wrap:wrap;">
-            <div style="flex:1; min-width:150px;">
-                <b style="font-size:13px;">${escapeHtml(p.pieza_nombre || 'Pieza')} ×${p.cantidad || 1}</b>
-                ${p.agregada_por_tecnico ? '<span class="badge" style="background:#fbbf24; color:#78350f; margin-left:6px; font-size:10px;">EXTRA</span>' : ''}
-                <div style="font-size:11px; color:#475569;">${estadoPieza} · ${money((p.cantidad||1)*(p.costo_unitario||0))}</div>
+        // === COLUMNA ADMIN (entregó pieza) ===
+        let adminCol = '';
+        if(esRechazada) {
+            adminCol = `<div class="pieza-status-col pendiente">❌ Pieza rechazada</div>`;
+        } else if(esExtraNoAprobado) {
+            adminCol = `<div class="pieza-status-col esperando">⚠️ Extra pendiente de aprobación</div>`;
+        } else if(estaEntregada || estaRecibida) {
+            adminCol = `<div class="pieza-status-col ok"><i class="ti ti-check"></i> Admin: Entregada</div>`;
+        } else {
+            adminCol = `<div class="pieza-status-col pendiente">⏳ Admin: NO entregada</div>`;
+        }
+        
+        // === COLUMNA TÉCNICO (recibió) ===
+        let tecCol = '';
+        if(esRechazada) {
+            tecCol = `<div class="pieza-status-col pendiente">—</div>`;
+        } else if(esExtraNoAprobado) {
+            tecCol = `<div class="pieza-status-col pendiente">—</div>`;
+        } else if(estaRecibida) {
+            tecCol = `<div class="pieza-status-col ok"><i class="ti ti-check"></i> Técnico: Recibida</div>`;
+        } else if(estaEntregada) {
+            tecCol = `<div class="pieza-status-col esperando">⏳ Esperando técnico confirme</div>`;
+        } else {
+            tecCol = `<div class="pieza-status-col pendiente">Pendiente admin</div>`;
+        }
+        
+        // === BOTONES DE ACCIÓN ===
+        const botones = [];
+        if(esExtraNoAprobado) {
+            botones.push(`<button class="pieza-action-btn" onclick="aprobarPiezaExtra('${p.id}')" style="background:linear-gradient(180deg,#10b981,#059669); color:#fff; border-color:#047857; box-shadow:0 3px 0 #047857;"><i class="ti ti-check"></i> Admin: Aprobar pieza extra</button>`);
+            botones.push(`<button class="pieza-action-btn" onclick="rechazarPiezaExtra('${p.id}')" style="background:#fee2e2; color:#991b1b;"><i class="ti ti-x"></i> Rechazar</button>`);
+        } else if(p.estado === 'pendiente') {
+            botones.push(`<button class="pieza-action-btn entregar" onclick="marcarPiezaEntregada('${p.id}')"><i class="ti ti-truck"></i> Admin: Marcar como ENTREGADA</button>`);
+        } else if(p.estado === 'entregada' || p.estado === 'aprobada') {
+            botones.push(`<button class="pieza-action-btn recibir" onclick="marcarPiezaRecibida('${p.id}')"><i class="ti ti-check"></i> Técnico: Confirmo RECIBIDA</button>`);
+        }
+        
+        return `<div class="pieza-card" data-item-id="${p.id}">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+                <div style="flex:1; min-width:0;">
+                    <b style="font-size:14px;">${escapeHtml(p.pieza_nombre || 'Pieza')} ×${p.cantidad || 1}</b>
+                    ${esExtra ? '<span class="badge" style="background:#fbbf24; color:#78350f; margin-left:6px; font-size:10px;">EXTRA</span>' : ''}
+                    <div style="font-size:11px; color:#64748b; margin-top:2px;">${money((p.cantidad||1)*(p.costo_unitario||0))}</div>
+                </div>
             </div>
-            <div style="display:flex; gap:4px;">${acciones.join('')}</div>
+            <div class="pieza-status-row">
+                ${adminCol}
+                ${tecCol}
+            </div>
+            ${botones.join('')}
         </div>`;
     }).join('') : '<p style="color:var(--text-muted); text-align:center; padding:10px;">Sin piezas asignadas.</p>';
     
+    // ====== MODAL ======
     const modalHtml = `
         <div class="modal-box" style="max-width:850px; width:95%;">
             <div class="modal-header" style="background:linear-gradient(135deg, #f59e0b, #d97706); color:#fff; border-radius:12px 12px 0 0;">
@@ -4255,32 +4378,24 @@ async function abrirPanelProceso(equipoId) {
                     </span>
                 </div>
                 
-                <h4 style="margin:0 0 8px;"><i class="ti ti-alert-triangle"></i> Fallas detectadas</h4>
+                <h4 style="margin:0 0 8px; font-size:13px; color:var(--blue-btn); text-transform:uppercase;"><i class="ti ti-progress"></i> Progreso de Reparación</h4>
+                ${stepperHtml}
+                
+                <h4 style="margin:18px 0 8px; font-size:13px; color:#991b1b; text-transform:uppercase;"><i class="ti ti-alert-triangle"></i> Fallas detectadas</h4>
                 <div style="margin-bottom:15px;">${fallasHtml}</div>
                 
-                <h4 style="margin:15px 0 8px;"><i class="ti ti-tools"></i> Piezas para la reparación</h4>
+                <h4 style="margin:18px 0 8px; font-size:13px; color:#1e40af; text-transform:uppercase;"><i class="ti ti-tools"></i> Piezas para la reparación</h4>
                 ${piezasHtml}
                 
-                <button class="btn btn-light" onclick="agregarPiezaExtra('${equipoId}')" style="width:100%; margin-top:10px; padding:10px;">
-                    <i class="ti ti-plus"></i> Técnico: Agregar pieza extra (apareció durante reparación)
+                <button class="btn btn-light" onclick="agregarPiezaExtra('${equipoId}')" style="width:100%; margin-top:10px; padding:12px;">
+                    <i class="ti ti-plus"></i> Agregar pieza adicional
                 </button>
                 
-                <h4 style="margin:20px 0 8px;"><i class="ti ti-progress-check"></i> Cambiar estado del equipo</h4>
-                <div style="display:grid; gap:8px;">
-                    ${estadosTecnico.map(e => `
-                        <button onclick="cambiarEstadoProceso('${equipoId}', '${e.id}')" 
-                                style="background:${e.bg}; color:${e.color}; border:0; padding:12px; border-radius:8px; cursor:pointer; font-weight:600; text-align:left; ${estado === e.id ? 'box-shadow:0 0 0 2px '+e.color : ''}">
-                            ${e.label}
-                            ${estado === e.id ? ' ← actual' : ''}
-                        </button>
-                    `).join('')}
-                </div>
-                
                 ${estado === 'listo_revision' ? `
-                    <div style="background:#fef3c7; border:2px solid #fcd34d; padding:14px; border-radius:8px; margin-top:15px;">
-                        <b><i class="ti ti-shield-check"></i> Aprobación del Admin</b>
-                        <p style="font-size:12px; color:#92400e; margin:6px 0;">El técnico marcó este equipo como listo. Revisa y aprueba.</p>
-                        <button onclick="aprobarTerminado('${equipoId}')" style="background:#10b981; color:#fff; border:0; padding:10px 20px; border-radius:8px; cursor:pointer; font-weight:700; width:100%;">
+                    <div style="background:linear-gradient(135deg, #fef3c7, #fde68a); border:2px solid #f59e0b; padding:16px; border-radius:12px; margin-top:18px; box-shadow:0 4px 12px rgba(245, 158, 11, 0.2);">
+                        <b style="color:#78350f;"><i class="ti ti-shield-check"></i> Aprobación del Administrador</b>
+                        <p style="font-size:12px; color:#92400e; margin:8px 0;">El técnico marcó este equipo en revisión final. Revísalo y aprueba para que pase a Listo Venta.</p>
+                        <button onclick="aprobarTerminado('${equipoId}')" style="background:linear-gradient(180deg,#10b981,#059669); color:#fff; border:0; padding:14px 20px; border-radius:10px; cursor:pointer; font-weight:700; width:100%; box-shadow:0 4px 0 #047857; font-size:14px;">
                             <i class="ti ti-check"></i> APROBAR → Listo para Venta
                         </button>
                     </div>
@@ -4302,6 +4417,8 @@ async function abrirPanelProceso(equipoId) {
     }
     modal.innerHTML = modalHtml;
     modal.classList.add('active');
+    // Re-inyectar botón Volver en este modal dinámico
+    if(typeof inyectarBotonesVolver === 'function') inyectarBotonesVolver();
 }
 
 function cerrarPanelProceso() {
@@ -4339,10 +4456,24 @@ async function marcarPiezaEntregada(piezaId) {
             fecha_entrega: new Date().toISOString() 
         }).eq('id', piezaId);
         if(error) throw error;
-        toast('Pieza marcada como entregada.');
+        toast('📦 Pieza marcada como entregada. Esperando confirmación del técnico.');
         if(_panelProcesoEquipoId) abrirPanelProceso(_panelProcesoEquipoId);
     } catch(e) {
         logError('Marcar pieza entregada', e);
+        alert(getFriendlyError(e));
+    }
+}
+
+async function marcarPiezaRecibida(piezaId) {
+    try {
+        const { error } = await supabaseClient.from('equipo_piezas_pedidas').update({ 
+            estado: 'recibida'
+        }).eq('id', piezaId);
+        if(error) throw error;
+        toast('✅ Pieza confirmada como recibida por el técnico.');
+        if(_panelProcesoEquipoId) abrirPanelProceso(_panelProcesoEquipoId);
+    } catch(e) {
+        logError('Marcar pieza recibida', e);
         alert(getFriendlyError(e));
     }
 }
