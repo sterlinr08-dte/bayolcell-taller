@@ -5881,15 +5881,15 @@ function generarHtmlLabelVenta() {
     const barcodeImg = generarBarcodeImg(imei, bh);
     
     return `
-        <div style="width:${w}mm; height:${h}mm; padding:1mm; font-family:Arial, sans-serif; font-weight:bold; text-align:center; color:#000; box-sizing:border-box; overflow:hidden; display:flex; flex-direction:column; justify-content:space-between;">
+        <div style="width:${w}mm; height:${h}mm; padding:1mm; font-family:Arial, sans-serif; font-weight:900; -webkit-text-stroke:0.4px #000; text-align:center; color:#000; box-sizing:border-box; overflow:hidden; display:flex; flex-direction:column; justify-content:space-between;">
             ${logoSvg ? `<div style="height:${logoH}mm; display:flex; justify-content:center; align-items:center; color:#000;">${logoSvg}</div>` : ''}
             <div style="flex:1; display:flex; flex-direction:column; justify-content:center; padding:0.5mm 0;">
-                <div style="font-size:${f}px; font-weight:bold; line-height:1.1; word-break:break-word;">${escapeHtml(modeloAbrev)}</div>
-                ${clase ? `<div style="font-size:${f-1}px; font-weight:bold; margin-top:1mm;">${escapeHtml(clase)}</div>` : ''}
+                <div style="font-size:${f}px; font-weight:900; -webkit-text-stroke:0.4px #000; line-height:1.1; word-break:break-word;">${escapeHtml(modeloAbrev)}</div>
+                ${clase ? `<div style="font-size:${f-1}px; font-weight:900; -webkit-text-stroke:0.4px #000; margin-top:1mm;">${escapeHtml(clase)}</div>` : ''}
             </div>
             <div style="display:flex; flex-direction:column; align-items:center;">
-                ${barcodeImg ? `<img src="${barcodeImg}" style="width:auto; max-width:100%; height:${bh}px; display:block;" />` : `<div style="font-size:${f}px; font-weight:bold;">${escapeHtml(imei)}</div>`}
-                <div style="font-size:${Math.max(7, f-2)}px; font-weight:bold; letter-spacing:1px; margin-top:0.5mm;">${escapeHtml(imei)}</div>
+                ${barcodeImg ? `<img src="${barcodeImg}" style="width:auto; max-width:100%; height:${bh}px; display:block;" />` : `<div style="font-size:${f}px; font-weight:900;">${escapeHtml(imei)}</div>`}
+                <div style="font-size:${Math.max(7, f-2)}px; font-weight:900; -webkit-text-stroke:0.3px #000; letter-spacing:1px; margin-top:0.5mm;">${escapeHtml(imei)}</div>
             </div>
         </div>
     `;
@@ -7605,20 +7605,20 @@ function generarHtmlLabelDiag(equipo) {
     const notas = (equipo.notas_diagnostico || '').toUpperCase();
     
     return `
-        <div class="diag-label" style="width:${w}mm; height:${h}mm; font-size:${f}px; font-weight:bold; line-height:1.25; padding:1mm; box-sizing:border-box; overflow:hidden; font-family:Arial,Helvetica,sans-serif; color:#000; page-break-after:always;">
-            <div class="diag-header" style="font-size:${f}px; font-weight:bold; text-align:center; border-bottom:1px solid #000; padding-bottom:0.5mm; margin-bottom:0.5mm; font-family:Arial,Helvetica,sans-serif;">
+        <div class="diag-label" style="width:${w}mm; height:${h}mm; font-size:${f}px; font-weight:900; -webkit-text-stroke:0.4px #000; line-height:1.25; padding:1mm; box-sizing:border-box; overflow:hidden; font-family:Arial,Helvetica,sans-serif; color:#000; page-break-after:always;">
+            <div class="diag-header" style="font-size:${f}px; font-weight:900; -webkit-text-stroke:0.4px #000; text-align:center; border-bottom:2px solid #000; padding-bottom:0.5mm; margin-bottom:0.5mm; font-family:Arial,Helvetica,sans-serif;">
                 BAYOL CELL · DIAGNÓSTICO
             </div>
             <div class="diag-section" style="margin-bottom:0.5mm;">
-                <div class="diag-line diag-modelo" style="font-weight:bold; font-family:Arial,Helvetica,sans-serif;">${escapeHtml(marca)} ${escapeHtml(modelo)}</div>
-                <div class="diag-line" style="font-weight:bold; font-family:Arial,Helvetica,sans-serif;">${escapeHtml(capacidad)}${referencia ? ' · ' + escapeHtml(referencia) : ''}</div>
+                <div class="diag-line diag-modelo" style="font-weight:900; -webkit-text-stroke:0.4px #000; font-family:Arial,Helvetica,sans-serif;">${escapeHtml(marca)} ${escapeHtml(modelo)}</div>
+                <div class="diag-line" style="font-weight:900; -webkit-text-stroke:0.4px #000; font-family:Arial,Helvetica,sans-serif;">${escapeHtml(capacidad)}${referencia ? ' · ' + escapeHtml(referencia) : ''}</div>
             </div>
             <div class="diag-section" style="margin-bottom:0.5mm;">
-                <div class="diag-line" style="font-weight:bold; font-family:Arial,Helvetica,sans-serif;"><b>IMEI:</b> <span class="diag-imei" style="font-weight:bold; font-family:Arial,Helvetica,sans-serif; letter-spacing:0.3px;">${escapeHtml(imei)}</span></div>
-                <div class="diag-line" style="font-weight:bold; font-family:Arial,Helvetica,sans-serif;"><b>LOTE:</b> ${escapeHtml(codigoLote)}</div>
-                <div class="diag-line" style="font-weight:bold; font-family:Arial,Helvetica,sans-serif;"><b>FECHA:</b> ${escapeHtml(fecha)}</div>
+                <div class="diag-line" style="font-weight:900; -webkit-text-stroke:0.4px #000; font-family:Arial,Helvetica,sans-serif;">IMEI: <span class="diag-imei" style="font-weight:900; -webkit-text-stroke:0.4px #000; font-family:Arial,Helvetica,sans-serif; letter-spacing:0.3px;">${escapeHtml(imei)}</span></div>
+                <div class="diag-line" style="font-weight:900; -webkit-text-stroke:0.4px #000; font-family:Arial,Helvetica,sans-serif;">LOTE: ${escapeHtml(codigoLote)}</div>
+                <div class="diag-line" style="font-weight:900; -webkit-text-stroke:0.4px #000; font-family:Arial,Helvetica,sans-serif;">FECHA: ${escapeHtml(fecha)}</div>
             </div>
-            ${notas ? `<div class="diag-notas-area" style="border-top:1px dashed #000; padding-top:0.5mm; font-size:${f}px; font-weight:bold; font-family:Arial,Helvetica,sans-serif;"><b>NOTAS:</b> ${escapeHtml(notas)}</div>` : ''}
+            ${notas ? `<div class="diag-notas-area" style="border-top:2px dashed #000; padding-top:0.5mm; font-size:${f}px; font-weight:900; -webkit-text-stroke:0.4px #000; font-family:Arial,Helvetica,sans-serif;">NOTAS: ${escapeHtml(notas)}</div>` : ''}
         </div>
     `;
 }
@@ -8024,9 +8024,9 @@ async function qzImprimirHtmlComoImagen(elementoHtml, anchoMm, altoMm, copias, t
     copias = parseInt(copias) || 1;
     
     try {
-        // 203 dpi: 8 dots/mm. Renderizamos a esa densidad para nitidez.
+        // 203 dpi: 8 dots/mm. Renderizamos a MAYOR densidad para texto grueso y nítido.
         const dpi = 203;
-        const escala = dpi / 96; // 96 = dpi base del navegador
+        const escala = (dpi / 96) * 2; // x2 extra para que la negrita se marque fuerte
         
         const canvas = await html2canvas(elementoHtml, {
             scale: escala,
