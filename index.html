@@ -1445,6 +1445,11 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                 
                 <!-- TAB PIEZAS -->
                 <div id="evalTabPiezas" style="display:none;">
+                    <!-- Cuadro resumen de fallas seleccionadas -->
+                    <div id="evalPiezasFallasResumen" style="background:linear-gradient(135deg, #fef3c7, #fde68a); border:1px solid #f59e0b; padding:12px; border-radius:8px; margin-bottom:12px;">
+                        <b style="font-size:12px; color:#92400e;"><i class="ti ti-alert-triangle"></i> Fallas detectadas en este equipo:</b>
+                        <div id="evalPiezasFallasChips" style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;"></div>
+                    </div>
                     <div style="background:#dbeafe; border:1px solid #93c5fd; padding:10px; border-radius:8px; margin-bottom:12px; font-size:12px; color:#1e40af;">
                         <b><i class="ti ti-info-circle"></i> Selecciona las piezas que el técnico necesitará para reparar este equipo.</b>
                     </div>
@@ -1479,16 +1484,25 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                         <div id="evalResumenPiezas" style="font-size:13px;"></div>
                         <div id="evalCostoTotal" style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-color); font-weight:700; font-size:14px; color:var(--blue-btn);"></div>
                     </div>
+                    
+                    <!-- Botón imprimir label de diagnóstico -->
+                    <div style="background:linear-gradient(135deg, #e0e7ff, #ddd6fe); border:1px solid #a5b4fc; border-radius:8px; padding:15px; margin-top:12px; text-align:center;">
+                        <p style="font-size:12px; color:#4338ca; margin:0 0 10px;"><i class="ti ti-printer"></i> Imprime el label de diagnóstico con las fallas de este equipo.</p>
+                        <button class="btn btn-blue" onclick="imprimirLabelDesdeEvaluacion()" style="background:linear-gradient(180deg,#6366f1,#4338ca); box-shadow:0 4px 0 #3730a3;"><i class="ti ti-printer"></i> Imprimir Label de Diagnóstico</button>
+                        <p style="font-size:11px; color:#6366f1; margin:8px 0 0;">💡 Guarda primero para que el label tenga las fallas actualizadas.</p>
+                    </div>
                 </div>
             </div>
         </div>
         <div class="modal-footer" style="flex-wrap:wrap; gap:10px;">
-            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-right:auto;">
-                <input type="checkbox" id="eval_marcar_evaluado" style="width:18px; height:18px;">
-                <span style="font-weight:600;">✅ Marcar como evaluado</span>
-            </label>
             <button class="btn btn-light" onclick="cerrarModalEvaluacion()">Cancelar</button>
-            <button class="btn btn-blue" onclick="guardarEvaluacion()"><i class="ti ti-device-floppy"></i> Guardar</button>
+            <!-- Botón Atrás (oculto en primer tab) -->
+            <button class="btn btn-light" id="evalBtnAtras" onclick="evalNavegarAtras()" style="display:none;"><i class="ti ti-arrow-left"></i> Atrás</button>
+            <!-- Botón Siguiente (oculto en último tab) -->
+            <button class="btn btn-blue" id="evalBtnSiguiente" onclick="evalNavegarSiguiente()">Siguiente <i class="ti ti-arrow-right"></i></button>
+            <!-- Botones del último tab (Resumen) -->
+            <button class="btn btn-light" id="evalBtnGuardar" onclick="guardarEvaluacion(false)" style="display:none;"><i class="ti ti-device-floppy"></i> Solo Guardar</button>
+            <button class="btn btn-blue" id="evalBtnGuardarEvaluado" onclick="guardarEvaluacion(true)" style="display:none; background:linear-gradient(180deg,#10b981,#059669); box-shadow:0 4px 0 #047857;"><i class="ti ti-circle-check"></i> Guardar y marcar evaluado</button>
         </div>
     </div>
 </div>
@@ -4120,7 +4134,6 @@ async function abrirModalEvaluacion(equipoId) {
     `;
     document.getElementById('eval_equipo_id').value = equipoId;
     document.getElementById('eval_notas').value = eq.notas_diagnostico || '';
-    document.getElementById('eval_marcar_evaluado').checked = (eq.estado_evaluacion === 'evaluado');
     document.getElementById('evalBuscarFalla').value = '';
     document.getElementById('eval_pieza_cantidad').value = 1;
     
@@ -4163,7 +4176,67 @@ function cambiarTabEvaluacion(tab) {
     document.getElementById('evalTabFallas').style.display = tab === 'fallas' ? 'block' : 'none';
     document.getElementById('evalTabPiezas').style.display = tab === 'piezas' ? 'block' : 'none';
     document.getElementById('evalTabResumen').style.display = tab === 'resumen' ? 'block' : 'none';
+    if(tab === 'piezas') renderFallasEnTabPiezas();
     if(tab === 'resumen') renderResumenEvaluacion();
+    actualizarBotonesWizard(tab);
+}
+
+// Muestra/oculta los botones según el tab (wizard)
+function actualizarBotonesWizard(tab) {
+    const btnAtras = document.getElementById('evalBtnAtras');
+    const btnSiguiente = document.getElementById('evalBtnSiguiente');
+    const btnGuardar = document.getElementById('evalBtnGuardar');
+    const btnGuardarEval = document.getElementById('evalBtnGuardarEvaluado');
+    
+    // Atrás: oculto en el primer tab (fallas)
+    btnAtras.style.display = tab === 'fallas' ? 'none' : 'inline-flex';
+    // Siguiente: visible en fallas y piezas, oculto en resumen
+    btnSiguiente.style.display = tab === 'resumen' ? 'none' : 'inline-flex';
+    // Guardar / Guardar+evaluado: solo en resumen
+    btnGuardar.style.display = tab === 'resumen' ? 'inline-flex' : 'none';
+    btnGuardarEval.style.display = tab === 'resumen' ? 'inline-flex' : 'none';
+}
+
+const _ordenTabsEval = ['fallas', 'piezas', 'resumen'];
+
+function evalNavegarSiguiente() {
+    const idx = _ordenTabsEval.indexOf(_evalState.tabActiva);
+    if(idx < _ordenTabsEval.length - 1) cambiarTabEvaluacion(_ordenTabsEval[idx + 1]);
+}
+
+function evalNavegarAtras() {
+    const idx = _ordenTabsEval.indexOf(_evalState.tabActiva);
+    if(idx > 0) cambiarTabEvaluacion(_ordenTabsEval[idx - 1]);
+}
+
+// Cuadro resumen de fallas seleccionadas en el tab Piezas
+function renderFallasEnTabPiezas() {
+    const cont = document.getElementById('evalPiezasFallasChips');
+    const wrap = document.getElementById('evalPiezasFallasResumen');
+    if(!cont || !wrap) return;
+    const idsSeleccionados = _evalState.fallasSeleccionadas ? Array.from(_evalState.fallasSeleccionadas) : [];
+    if(idsSeleccionados.length === 0) {
+        wrap.style.display = 'none';
+        return;
+    }
+    const fallas = cache.fallas || [];
+    wrap.style.display = 'block';
+    cont.innerHTML = idsSeleccionados.map(fid => {
+        const f = fallas.find(x => x.id === fid);
+        if(!f) return '';
+        return `<span class="badge" style="background:#fff; color:#92400e; border:1px solid #f59e0b; font-size:11px;">${escapeHtml(f.nombre_corto || f.nombre)}</span>`;
+    }).join('');
+}
+
+// Imprimir label de diagnóstico desde el resumen de evaluación
+function imprimirLabelDesdeEvaluacion() {
+    const equipoId = document.getElementById('eval_equipo_id').value;
+    if(!equipoId) return alert('No hay equipo seleccionado.');
+    if(typeof abrirPreviewLabelDiagIndividual === 'function') {
+        abrirPreviewLabelDiagIndividual(equipoId);
+    } else {
+        alert('Función de label no disponible.');
+    }
 }
 
 function renderFallasEvaluacion() {
@@ -4403,12 +4476,11 @@ function renderResumenEvaluacion() {
     }
 }
 
-async function guardarEvaluacion() {
+async function guardarEvaluacion(marcarEvaluado = false) {
     const equipoId = _evalState.equipoId;
     if(!equipoId) return alert('No hay equipo activo.');
     
     const notas = document.getElementById('eval_notas').value.trim() || null;
-    const marcarEvaluado = document.getElementById('eval_marcar_evaluado').checked;
     
     try {
         // 1. Borrar fallas previas y guardar nuevas
