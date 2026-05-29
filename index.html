@@ -593,16 +593,16 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
             </div>
         </div>
         <div class="nav">
-            <button class="active" onclick="nav('dashboard',this)"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
-            <button onclick="nav('recepcion',this)"><i class="ti ti-clipboard-plus"></i> Recepción de Equipos</button>
-            <button onclick="nav('ordenes',this)"><i class="ti ti-tool"></i> Órdenes de Trabajo</button>
-            <button onclick="nav('inventario',this)"><i class="ti ti-package"></i> Inventario Taller</button>
-            <button onclick="nav('etiquetas',this)"><i class="ti ti-barcode"></i> Impresión de Labels</button>
-            <button onclick="nav('configImpresora',this)"><i class="ti ti-settings"></i> Config. Impresora</button>
-            <button onclick="nav('articulos',this)"><i class="ti ti-database"></i> Catálogo de Artículos</button>
-            <button onclick="nav('proveedores',this)"><i class="ti ti-shopping-cart"></i> Compras</button>
+            <button class="active" id="menu-dashboard" onclick="nav('dashboard',this)"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
+            <button id="menu-recepcion" onclick="nav('recepcion',this)"><i class="ti ti-clipboard-plus"></i> Recepción de Equipos</button>
+            <button id="menu-ordenes" onclick="nav('ordenes',this)"><i class="ti ti-tool"></i> Órdenes de Trabajo</button>
+            <button id="menu-inventario" onclick="nav('inventario',this)"><i class="ti ti-package"></i> Inventario Taller</button>
+            <button id="menu-etiquetas" onclick="nav('etiquetas',this)"><i class="ti ti-barcode"></i> Impresión de Labels</button>
+            <button id="menu-configImpresora" onclick="nav('configImpresora',this)"><i class="ti ti-settings"></i> Config. Impresora</button>
+            <button id="menu-articulos" onclick="nav('articulos',this)"><i class="ti ti-database"></i> Catálogo de Artículos</button>
+            <button id="menu-proveedores" onclick="nav('proveedores',this)"><i class="ti ti-shopping-cart"></i> Compras</button>
             <button id="menu-refurb" onclick="nav('refurb',this)"><i class="ti ti-refresh"></i> Reacondicionados</button>
-            <button onclick="nav('configuracion',this)"><i class="ti ti-adjustments"></i> Configuración</button>
+            <button id="menu-configuracion" onclick="nav('configuracion',this)"><i class="ti ti-adjustments"></i> Configuración</button>
         </div>
         <div class="side-bottom-logo">
             <h3>BAYOL <span>CELL</span></h3>
@@ -615,6 +615,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
             <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Menú"><i class="ti ti-menu-2"></i></button>
             <div class="top-title" id="pageTitle">Dashboard</div>
             <div class="top-right-info"><i class="ti ti-user-shield"></i> Rol: <span id="userRole" style="text-transform:uppercase;">Técnico</span></div>
+            <button class="btn btn-light" style="padding:4px 10px; font-size:11px; background:rgba(255,255,255,0.1); border:0; color:#fff;" onclick="abrirModalCambiarClave(false)" title="Cambiar mi contraseña"><i class="ti ti-key"></i></button>
             <button class="btn btn-light" style="padding:4px 10px; font-size:11px; background:rgba(255,255,255,0.1); border:0; color:#fff;" onclick="logout()">Salir</button>
         </header>
         
@@ -1531,6 +1532,22 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                 <label>Notas (opcional)</label>
                 <textarea id="mod_tec_notas" rows="2" placeholder="Información adicional..." style="resize:vertical;"></textarea>
             </div>
+            
+            <!-- CREDENCIALES DE ACCESO -->
+            <div style="background:#ede9fe; border:1px solid #c4b5fd; border-radius:10px; padding:12px; margin:12px 0;">
+                <b style="color:#5b21b6; font-size:13px;"><i class="ti ti-key"></i> Credenciales de acceso (login del técnico)</b>
+                <p style="font-size:11px; color:#6b21a8; margin:4px 0 10px;">Si le asignas usuario y contraseña, el técnico podrá iniciar sesión. Cambiará la contraseña en su primer ingreso.</p>
+                <div class="form-row">
+                    <label>Usuario (para login)</label>
+                    <input id="mod_tec_usuario" placeholder="Ej. francis, juan2..." autocomplete="off">
+                </div>
+                <div class="form-row">
+                    <label>Contraseña temporal</label>
+                    <input id="mod_tec_clave" placeholder="El técnico la cambiará al entrar" autocomplete="off">
+                    <small style="color:var(--text-muted); font-size:11px;">Déjala vacía para no cambiar la contraseña actual (al editar).</small>
+                </div>
+            </div>
+            
             <div class="form-row">
                 <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
                     <input type="checkbox" id="mod_tec_activo" checked>
@@ -1628,6 +1645,33 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
         <div class="modal-footer">
             <button class="btn btn-light" onclick="cerrarModalLabelVenta()">Cancelar</button>
             <button class="btn btn-blue" onclick="imprimirLabelVenta()" style="background:#5b21b6;"><i class="ti ti-printer"></i> Imprimir</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: CAMBIAR CLAVE -->
+<div id="modalCambiarClave" class="modal-backdrop">
+    <div class="modal-box" style="max-width:450px;">
+        <div class="modal-header" style="background:linear-gradient(135deg, #10b981, #059669); color:#fff; border-radius:12px 12px 0 0;">
+            <h3 style="color:#fff;"><i class="ti ti-key"></i> Cambiar Contraseña</h3>
+            <button class="modal-close" onclick="cerrarModalCambiarClave()" style="color:#fff;">✕</button>
+        </div>
+        <div class="modal-body">
+            <div id="cambiarClaveAviso" style="display:none; background:#fef3c7; border:1px solid #fcd34d; padding:10px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#92400e;">
+                <b><i class="ti ti-alert-triangle"></i> Es tu primer ingreso.</b> Por seguridad, debes cambiar tu contraseña antes de continuar.
+            </div>
+            <div class="form-row">
+                <label>Nueva contraseña *</label>
+                <input type="password" id="cc_nueva" placeholder="Mínimo 4 caracteres">
+            </div>
+            <div class="form-row">
+                <label>Confirmar contraseña *</label>
+                <input type="password" id="cc_confirmar" placeholder="Repite la contraseña">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" id="cc_cancelar" onclick="cerrarModalCambiarClave()">Cancelar</button>
+            <button class="btn btn-blue" onclick="guardarNuevaClave()" style="background:linear-gradient(180deg,#10b981,#059669); box-shadow:0 4px 0 #047857;"><i class="ti ti-check"></i> Guardar</button>
         </div>
     </div>
 </div>
@@ -2393,25 +2437,169 @@ async function doLogin() {
     try {
         const u = val("loginUser"), p = val("loginPass");
         if(!u || !p) return alert("Ingrese datos.");
-        const { data, error } = await supabaseClient.from('usuarios').select('*').eq('usuario', u).eq('clave', p).eq('activo', true).limit(1);
-        if(error) throw error;
-        if(!data || !data.length) return alert("Operador no registrado.");
-        sessionUser = data[0];
-        localStorage.setItem("bayol_session", JSON.stringify(sessionUser));
-        startApp();
+        
+        // 1. Buscar primero en usuarios (admin)
+        const { data: usuariosData, error: errU } = await supabaseClient
+            .from('usuarios').select('*').eq('usuario', u).eq('clave', p).eq('activo', true).limit(1);
+        if(errU) throw errU;
+        
+        if(usuariosData && usuariosData.length) {
+            sessionUser = usuariosData[0];
+            sessionUser._tipo = 'usuario';
+            localStorage.setItem("bayol_session", JSON.stringify(sessionUser));
+            startApp();
+            return;
+        }
+        
+        // 2. Buscar en técnicos
+        const { data: tecData, error: errT } = await supabaseClient
+            .from('tecnicos').select('*').eq('usuario', u).eq('clave', p).eq('activo', true).limit(1);
+        if(errT) throw errT;
+        
+        if(tecData && tecData.length) {
+            const tec = tecData[0];
+            sessionUser = tec;
+            sessionUser._tipo = 'tecnico';
+            // Cargar el rol y permisos del técnico
+            if(tec.rol_id) {
+                try {
+                    const { data: rolData } = await supabaseClient.from('roles_taller').select('*').eq('id', tec.rol_id).limit(1);
+                    if(rolData && rolData.length) sessionUser._permisos = rolData[0].permisos || {};
+                } catch(e) { logError('Cargar permisos login', e); }
+            }
+            localStorage.setItem("bayol_session", JSON.stringify(sessionUser));
+            // Registrar último acceso
+            try { await supabaseClient.from('tecnicos').update({ ultimo_acceso: new Date().toISOString() }).eq('id', tec.id); } catch(e) {}
+            
+            // Si debe cambiar clave en primer login
+            if(tec.debe_cambiar_clave) {
+                startApp();
+                setTimeout(() => abrirModalCambiarClave(true), 500);
+            } else {
+                startApp();
+            }
+            return;
+        }
+        
+        alert("Usuario o contraseña incorrectos.");
     } catch(e) { logError("Login", e); alert("Error de autenticación."); }
 }
 
 function logout() { localStorage.removeItem("bayol_session"); location.reload(); }
 
 function isAdminUser() {
-    const role = (sessionUser?.rol || sessionUser?.nivel_acceso || sessionUser?.nivel || "").toString().trim().toLowerCase();
+    // Si es del tipo usuario, usar la lógica vieja
+    if(sessionUser?._tipo === 'usuario' || !sessionUser?._tipo) {
+        const role = (sessionUser?.rol || sessionUser?.nivel_acceso || sessionUser?.nivel || "").toString().trim().toLowerCase();
+        return ["admin", "administrador", "superadmin"].includes(role);
+    }
+    // Si es técnico, es admin solo si su rol simple es admin
+    const role = (sessionUser?.rol || "").toString().trim().toLowerCase();
     return ["admin", "administrador", "superadmin"].includes(role);
+}
+
+/* ============================================================
+   SISTEMA DE PERMISOS
+   ============================================================ */
+function tienePermiso(permiso) {
+    // Admin (usuario tradicional o técnico admin) tiene todo
+    if(isAdminUser()) return true;
+    // Si no tiene permisos cargados, denegar por defecto (excepto lo básico)
+    const permisos = sessionUser?._permisos || {};
+    return permisos[permiso] === true;
+}
+
+/* ============================================================
+   CAMBIAR CONTRASEÑA
+   ============================================================ */
+let _cambioClaveObligatorio = false;
+
+function abrirModalCambiarClave(obligatorio = false) {
+    _cambioClaveObligatorio = obligatorio;
+    document.getElementById('cc_nueva').value = '';
+    document.getElementById('cc_confirmar').value = '';
+    document.getElementById('cambiarClaveAviso').style.display = obligatorio ? 'block' : 'none';
+    document.getElementById('cc_cancelar').style.display = obligatorio ? 'none' : 'inline-flex';
+    document.getElementById('modalCambiarClave').classList.add('active');
+    if(typeof inyectarBotonesVolver === 'function') inyectarBotonesVolver();
+}
+
+function cerrarModalCambiarClave() {
+    if(_cambioClaveObligatorio) {
+        alert('Debes cambiar tu contraseña para continuar.');
+        return;
+    }
+    document.getElementById('modalCambiarClave').classList.remove('active');
+}
+
+async function guardarNuevaClave() {
+    const nueva = document.getElementById('cc_nueva').value.trim();
+    const confirmar = document.getElementById('cc_confirmar').value.trim();
+    
+    if(!nueva || nueva.length < 4) return alert('La contraseña debe tener al menos 4 caracteres.');
+    if(nueva !== confirmar) return alert('Las contraseñas no coinciden.');
+    
+    try {
+        const tabla = sessionUser._tipo === 'tecnico' ? 'tecnicos' : 'usuarios';
+        const { error } = await supabaseClient
+            .from(tabla)
+            .update({ clave: nueva, debe_cambiar_clave: false })
+            .eq('id', sessionUser.id);
+        if(error) throw error;
+        
+        sessionUser.clave = nueva;
+        sessionUser.debe_cambiar_clave = false;
+        localStorage.setItem("bayol_session", JSON.stringify(sessionUser));
+        
+        _cambioClaveObligatorio = false;
+        document.getElementById('modalCambiarClave').classList.remove('active');
+        toast('✅ Contraseña actualizada correctamente.');
+    } catch(e) {
+        logError('Cambiar clave', e);
+        alert(getFriendlyError(e));
+    }
 }
 
 function applyAccessControls() {
     const assetsCard = document.getElementById("assetsAdminCard");
     if(assetsCard) assetsCard.style.display = isAdminUser() ? "block" : "none";
+    
+    // Admin ve todo, no aplicar restricciones
+    if(isAdminUser()) {
+        document.querySelectorAll('.nav button').forEach(b => b.style.display = '');
+        return;
+    }
+    
+    // Mapeo de items de menú → permiso requerido
+    const menuPermisos = {
+        'menu-dashboard': 'ver_dashboard',
+        'menu-recepcion': null,        // todos los técnicos pueden recepcionar (ajustable)
+        'menu-ordenes': null,
+        'menu-inventario': null,
+        'menu-etiquetas': 'imprimir_diag',
+        'menu-configImpresora': 'config_impresora',
+        'menu-articulos': 'catalogo_articulos',
+        'menu-proveedores': 'compras_ver',
+        'menu-refurb': 'reacond_ver',
+        'menu-configuracion': 'config_ver'
+    };
+    
+    Object.keys(menuPermisos).forEach(menuId => {
+        const btn = document.getElementById(menuId);
+        if(!btn) return;
+        const permisoReq = menuPermisos[menuId];
+        // Si no requiere permiso específico, mostrar siempre. Si requiere, verificar.
+        if(permisoReq === null) {
+            btn.style.display = '';
+        } else {
+            btn.style.display = tienePermiso(permisoReq) ? '' : 'none';
+        }
+    });
+    
+    // Si el dashboard está oculto, llevar al técnico a reacondicionado por defecto
+    if(!tienePermiso('ver_dashboard') && tienePermiso('reacond_ver')) {
+        setTimeout(() => nav('refurb'), 100);
+    }
 }
 
 function setActiveNav(v) {
@@ -4323,6 +4511,9 @@ function renderTecnicos() {
         const rolPersonalBadge = rolPersonalizado 
             ? `<span class="badge" style="background:#ede9fe; color:#5b21b6;"><i class="ti ti-shield"></i> ${escapeHtml(rolPersonalizado.nombre)}</span>` 
             : '';
+        const loginBadge = t.usuario 
+            ? `<span class="badge" style="background:#d1fae5; color:#065f46;"><i class="ti ti-key"></i> ${escapeHtml(t.usuario)}</span>` 
+            : '<span class="badge" style="background:#f1f5f9; color:#94a3b8;"><i class="ti ti-lock-off"></i> Sin login</span>';
         return `<div data-item-id="${t.id}" style="background:#fff; border:1px solid var(--border-color); border-radius:8px; padding:14px; margin-bottom:8px;">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
                 <div style="flex:1; min-width:200px;">
@@ -4330,11 +4521,13 @@ function renderTecnicos() {
                         <b style="font-size:15px;">${escapeHtml(t.nombre)}</b>
                         ${rolBadge}
                         ${rolPersonalBadge}
+                        ${loginBadge}
                         ${activoBadge}
                     </div>
                     <div style="font-size:12px; color:var(--text-muted); margin-top:6px;">
                         ${t.telefono ? `<i class="ti ti-phone"></i> ${escapeHtml(t.telefono)}` : ''}
                         ${t.especialidad ? ` · <i class="ti ti-star"></i> ${escapeHtml(t.especialidad)}` : ''}
+                        ${t.ultimo_acceso ? ` · <i class="ti ti-clock"></i> Último acceso: ${new Date(t.ultimo_acceso).toLocaleDateString('es-DO')}` : ''}
                     </div>
                     ${t.notas ? `<div style="background:#f1f5f9; padding:6px 10px; border-radius:6px; margin-top:6px; font-size:12px;">${escapeHtml(t.notas)}</div>` : ''}
                 </div>
@@ -4364,6 +4557,8 @@ function abrirModalTecnico() {
     document.getElementById('mod_tec_especialidad').value = '';
     document.getElementById('mod_tec_rol').value = 'tecnico';
     document.getElementById('mod_tec_notas').value = '';
+    document.getElementById('mod_tec_usuario').value = '';
+    document.getElementById('mod_tec_clave').value = '';
     document.getElementById('mod_tec_activo').checked = true;
     document.getElementById('modalTecnicoTitulo').textContent = 'Nuevo Técnico';
     // Cargar roles antes de abrir
@@ -4384,6 +4579,8 @@ function editarTecnico(id) {
     document.getElementById('mod_tec_especialidad').value = t.especialidad || '';
     document.getElementById('mod_tec_rol').value = t.rol || 'tecnico';
     document.getElementById('mod_tec_notas').value = t.notas || '';
+    document.getElementById('mod_tec_usuario').value = t.usuario || '';
+    document.getElementById('mod_tec_clave').value = ''; // nunca mostrar la clave actual
     document.getElementById('mod_tec_activo').checked = t.activo !== false;
     document.getElementById('modalTecnicoTitulo').textContent = 'Editar Técnico';
     if(_rolesCache.length === 0) {
@@ -4403,6 +4600,9 @@ async function guardarTecnico() {
     const nombre = document.getElementById('mod_tec_nombre').value.trim();
     if(!nombre) return alert('El nombre es obligatorio.');
     
+    const usuario = document.getElementById('mod_tec_usuario').value.trim();
+    const clave = document.getElementById('mod_tec_clave').value.trim();
+    
     const datos = {
         nombre,
         telefono: document.getElementById('mod_tec_telefono').value.trim() || null,
@@ -4412,6 +4612,15 @@ async function guardarTecnico() {
         notas: document.getElementById('mod_tec_notas').value.trim() || null,
         activo: document.getElementById('mod_tec_activo').checked
     };
+    
+    // Manejar usuario (login)
+    datos.usuario = usuario || null;
+    
+    // Solo cambiar clave si se escribió una nueva
+    if(clave) {
+        datos.clave = clave;
+        datos.debe_cambiar_clave = true; // forzar cambio en primer login
+    }
     
     try {
         let nuevoId = id;
