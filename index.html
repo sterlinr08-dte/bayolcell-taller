@@ -7482,11 +7482,15 @@ function generarHtmlLabelDiag(equipo) {
 }
 
 let _labelDiagHtmlActual = '';
+let _labelDiagEquipoActual = null;
+let _labelDiagEquiposLote = null;
 
 function abrirPreviewLabelDiagIndividual(equipoId) {
     const equipo = cache.refurb.find(r => r.id === equipoId);
     if(!equipo) return alert('Equipo no encontrado.');
     
+    _labelDiagEquipoActual = equipo;
+    _labelDiagEquiposLote = null;
     const previewHtml = generarHtmlLabelDiag(equipo);
     _labelDiagHtmlActual = previewHtml;
     document.getElementById('labelDiagPreview').innerHTML = previewHtml;
@@ -7501,6 +7505,8 @@ function abrirPreviewLabelsLote() {
     const equipos = cache.refurb.filter(r => r.lote_id === loteActualId);
     if(!equipos.length) return alert('Este lote no tiene equipos.');
     
+    _labelDiagEquipoActual = null;
+    _labelDiagEquiposLote = equipos;
     const previewHtml = equipos.map(e => generarHtmlLabelDiag(e)).join('');
     _labelDiagHtmlActual = previewHtml;
     document.getElementById('labelDiagPreview').innerHTML = previewHtml;
@@ -7514,17 +7520,32 @@ function cerrarModalLabelDiag() {
     document.getElementById('modalLabelDiag').classList.remove('active');
 }
 
-function confirmarImprimirLabelDiag() {
-    const copias = document.getElementById('diag_copias')?.value || 1;
+async function confirmarImprimirLabelDiag() {
+    const copias = parseInt(document.getElementById('diag_copias')?.value || 1);
     const w = parseInt(localStorage.getItem('bayol_dlbl_w') || '51');
     const h = parseInt(localStorage.getItem('bayol_dlbl_h') || '25');
     const rot = parseInt(localStorage.getItem('bayol_dlbl_rot') || '0');
+    const usarTSPL = localStorage.getItem('bayol_usar_tspl') !== 'no'; // TSPL por defecto
     cerrarModalLabelDiag();
     
-    // Aplicar rotación (si es 0 no cambia nada)
-    const { html: contenidoFinal, anchoFinal, altoFinal } = aplicarRotacionImpresion(_labelDiagHtmlActual, w, h, rot);
+    // === MÉTODO TSPL (lenguaje nativo de la 4BARCODE) ===
+    if(usarTSPL && _qzConectado) {
+        let cmd = '';
+        if(_labelDiagEquiposLote && _labelDiagEquiposLote.length) {
+            // Todos los equipos del lote
+            cmd = _labelDiagEquiposLote.map(e => generarTSPLLabelDiag(e, copias)).join('');
+        } else if(_labelDiagEquipoActual) {
+            cmd = generarTSPLLabelDiag(_labelDiagEquipoActual, copias);
+        }
+        if(cmd) {
+            const ok = await qzImprimirRaw(cmd, 'labels');
+            if(ok) { toast('🖨️ Enviado a la impresora (TSPL).'); return; }
+            // si falló TSPL, cae al método HTML abajo
+        }
+    }
     
-    // Inyectar @page con altura FIJA para que la térmica corte bien cada etiqueta
+    // === MÉTODO HTML (respaldo) ===
+    const { html: contenidoFinal, anchoFinal, altoFinal } = aplicarRotacionImpresion(_labelDiagHtmlActual, w, h, rot);
     const conPagina = `
         <style>
             @page { size: ${anchoFinal}mm ${altoFinal}mm; margin: 0; }
@@ -7734,6 +7755,81 @@ function qzImpresoraLabels() {
     return localStorage.getItem('bayol_qz_labels') || '';
 }
 
+/* ============================================================
+   TSPL — LENGUAJE NATIVO DE LA 4BARCODE (impresión directa)
+   ============================================================ */
+// Escapa comillas para TSPL
+function tsplTxt(s) {
+    return String(s || '').replace(/"/g, "'").replace(/[\r\n]+/g, ' ').trim();
+}
+
+// Convierte mm a dots (203 dpi = 8 dots/mm)
+function mmToDots(mm) { return Math.round(parseFloat(mm) * 8); }
+
+// Genera comandos TSPL para el label de diagnóstico
+function generarTSPLLabelDiag(equipo, copias) {
+    const art = findArticulo(equipo.articulo_id);
+    const lote = cache.lotes.find(l => l.id === equipo.lote_id);
+    const w = parseInt(localStorage.getItem('bayol_dlbl_w') || '51');
+    const h = parseInt(localStorage.getItem('bayol_dlbl_h') || '25');
+    
+    const marca = tsplTxt((art.marca || equipo.marca || '').toUpperCase());
+    const modelo = tsplTxt((art.modelo || equipo.modelo || '').toUpperCase());
+    const capacidad = tsplTxt((art.capacidad || equipo.capacidad || '').toUpperCase());
+    const imei = tsplTxt((equipo.imei || 'SIN IMEI').toUpperCase());
+    const codigoLote = tsplTxt((lote?.codigo_lote || '').toUpperCase());
+    const fecha = tsplTxt(new Date().toLocaleDateString('es-DO'));
+    const notas = tsplTxt((equipo.notas_diagnostico || '').toUpperCase()).substring(0, 40);
+    
+    copias = parseInt(copias) || 1;
+    
+    // TSPL: coordenadas en dots. Fuente "1"=pequeña, "2","3" más grandes.
+    let cmd = '';
+    cmd += `SIZE ${w} mm, ${h} mm\r\n`;
+    cmd += `GAP 2 mm, 0 mm\r\n`;
+    cmd += `DIRECTION 1\r\n`;
+    cmd += `CLS\r\n`;
+    // Encabezado
+    cmd += `TEXT 10,8,"2",0,1,1,"BAYOL CELL - DIAGNOSTICO"\r\n`;
+    cmd += `BAR 10,28,${mmToDots(w)-20},2\r\n`;
+    // Modelo
+    cmd += `TEXT 10,36,"3",0,1,1,"${marca} ${modelo}"\r\n`;
+    cmd += `TEXT 10,62,"1",0,1,1,"${capacidad}"\r\n`;
+    // IMEI
+    cmd += `TEXT 10,80,"1",0,1,1,"IMEI: ${imei}"\r\n`;
+    cmd += `TEXT 10,98,"1",0,1,1,"LOTE: ${codigoLote}"\r\n`;
+    cmd += `TEXT 10,116,"1",0,1,1,"FECHA: ${fecha}"\r\n`;
+    // Notas (si hay)
+    if(notas) {
+        cmd += `TEXT 10,138,"1",0,1,1,"NOTAS: ${notas}"\r\n`;
+    }
+    cmd += `PRINT ${copias},1\r\n`;
+    return cmd;
+}
+
+// Manda comandos TSPL crudos por QZ Tray (lenguaje nativo de la impresora)
+async function qzImprimirRaw(comandosTSPL, tipo) {
+    if(!_qzConectado || !qzDisponible()) return false;
+    const impresora = (tipo === 'tickets') ? qzImpresoraTickets() : qzImpresoraLabels();
+    if(!impresora) { toast('No hay impresora de labels configurada.'); return false; }
+    
+    try {
+        const config = qz.configs.create(impresora);
+        const data = [{
+            type: 'raw',
+            format: 'command',
+            flavor: 'plain',
+            data: comandosTSPL
+        }];
+        await qz.print(config, data);
+        return true;
+    } catch(e) {
+        logError('QZ imprimir RAW (TSPL)', e);
+        toast('Error al imprimir TSPL: ' + (e?.message || e));
+        return false;
+    }
+}
+
 function qzImpresoraTickets() {
     return localStorage.getItem('bayol_qz_tickets') || '';
 }
@@ -7775,11 +7871,22 @@ async function qzImprimirHtml(htmlContenido, anchoMm, altoMm, copias, tipo) {
 async function qzImprimirPrueba() {
     const w = parseInt(document.getElementById('cfgi_width')?.value) || 51;
     const h = parseInt(document.getElementById('cfgi_height')?.value) || 25;
-    const card = document.getElementById('previewImpresoraCard');
-    const contenido = `<div style="width:${w}mm; height:${h}mm; padding:1mm; font-family:monospace; box-sizing:border-box;">${card ? card.innerHTML : 'PRUEBA BAYOL CELL'}</div>`;
-    const ok = await qzImprimirHtml(contenido, w, h, 1, 'labels');
-    if(ok) toast('Prueba enviada a la impresora.');
-    else alert('No se pudo imprimir. Verifica que QZ Tray esté conectado y la impresora seleccionada.');
+    
+    // Prueba con TSPL nativo (lenguaje de la 4BARCODE)
+    let cmd = '';
+    cmd += `SIZE ${w} mm, ${h} mm\r\n`;
+    cmd += `GAP 2 mm, 0 mm\r\n`;
+    cmd += `DIRECTION 1\r\n`;
+    cmd += `CLS\r\n`;
+    cmd += `TEXT 10,10,"3",0,1,1,"BAYOL CELL"\r\n`;
+    cmd += `TEXT 10,45,"2",0,1,1,"PRUEBA TSPL OK"\r\n`;
+    cmd += `TEXT 10,75,"1",0,1,1,"${tsplTxt(new Date().toLocaleString('es-DO'))}"\r\n`;
+    cmd += `BARCODE 10,100,"128",50,1,0,2,2,"123456789"\r\n`;
+    cmd += `PRINT 1,1\r\n`;
+    
+    const ok = await qzImprimirRaw(cmd, 'labels');
+    if(ok) toast('🖨️ Prueba TSPL enviada a la impresora.');
+    else alert('No se pudo imprimir. Verifica que QZ Tray esté conectado y la impresora de labels seleccionada.');
 }
 
 // Auto-conectar QZ al iniciar sesión (silencioso)
