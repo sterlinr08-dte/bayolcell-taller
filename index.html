@@ -427,6 +427,65 @@ mark.ss-hl { background: #fef08a; color: inherit; padding: 0 1px; border-radius:
 .reacond-tabs-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
 .reacond-tabs-scroll .tab-btn { flex-shrink: 0; white-space: nowrap; }
 
+/* ========== PESTAÑAS REACOND - ACTIVA CON FONDO AZUL ========== */
+.reacond-tabs-scroll .tab-btn { 
+    background: #f1f5f9 !important; 
+    color: #64748b !important; 
+    border: 2px solid transparent !important; 
+    border-radius: 10px !important; 
+    margin-right: 4px; 
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+.reacond-tabs-scroll .tab-btn:hover { 
+    background: #e2e8f0 !important; 
+    transform: translateY(-1px);
+}
+.reacond-tabs-scroll .tab-btn.active { 
+    background: linear-gradient(180deg, #2563eb 0%, #1e40af 100%) !important; 
+    color: #fff !important; 
+    border-color: #1e3a8a !important; 
+    box-shadow: 0 4px 0 #1e3a8a, 0 5px 12px rgba(37, 99, 235, 0.4) !important;
+    transform: translateY(0);
+}
+.reacond-tabs-scroll .tab-btn.active span { 
+    background: #fff !important; 
+    color: #1e40af !important; 
+    font-weight: 800 !important;
+}
+
+/* ========== ICONOS FLOTANTES CON SOMBRA ========== */
+.ti { filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15)); }
+.btn-blue .ti, .btn-dark .ti, button[style*="background:linear-gradient"] .ti { 
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3)); 
+}
+
+/* ========== MODAL HEADER CON BOTONES VOLVER + X ========== */
+.modal-back-btn { 
+    background: rgba(255,255,255,0.2); 
+    border: 1.5px solid rgba(255,255,255,0.35); 
+    color: #fff; 
+    padding: 6px 12px; 
+    border-radius: 20px; 
+    cursor: pointer; 
+    font-size: 12px; 
+    font-weight: 700; 
+    display: inline-flex; 
+    align-items: center; 
+    gap: 4px; 
+    transition: all 0.15s; 
+    margin-right: 8px;
+}
+.modal-back-btn:hover { background: rgba(255,255,255,0.35); }
+.modal-back-btn:active { transform: scale(0.95); }
+.modal-header-left { display: flex; align-items: center; flex: 1; gap: 8px; }
+
+/* ========== BOTONES DE ORIENTACIÓN (2x1 / 1x2) ========== */
+.btn-orientacion:hover { transform: translateY(-2px); box-shadow: 0 5px 0 #cbd5e1, 0 6px 12px rgba(0,0,0,0.08) !important; }
+.btn-orientacion:active { transform: translateY(0); box-shadow: 0 1px 0 #cbd5e1, 0 2px 4px rgba(0,0,0,0.05) !important; }
+.btn-orientacion.activo { background: linear-gradient(180deg, #dbeafe 0%, #bfdbfe 100%) !important; border-color: #1e40af !important; box-shadow: 0 4px 0 #1e3a8a, 0 5px 12px rgba(30, 64, 175, 0.3) !important; }
+.btn-orientacion.activo b { color: #1e3a8a !important; }
+
 /* ========== CHECKBOXES NORMALIZADOS (fix móvil) ========== */
 input[type="checkbox"]:not(.no-norm) { -webkit-appearance: none; appearance: none; width: 20px !important; height: 20px !important; border: 2px solid #cbd5e1; border-radius: 5px; background: #fff; cursor: pointer; position: relative; flex-shrink: 0; vertical-align: middle; margin: 0; transition: all 0.15s; }
 input[type="checkbox"]:not(.no-norm):checked { background: var(--blue-btn); border-color: var(--blue-btn); }
@@ -708,13 +767,22 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                         <div class="form-row"><label>Texto de Estado / Pie de Impresión</label><input id="lbl_estado_texto" value="" placeholder="Ej. CLASE A / AVISO BAT / AVISO PANT" oninput="actualizarLabelLive()"></div>
                         
                         <hr style="border:0; border-top:1px solid var(--border-color); margin:20px 0;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:6px;">
-                            <h4 style="margin:0; font-size:12px; color:var(--blue-btn); text-transform:uppercase;">Calibración de Dimensiones</h4>
-                            <div style="display:flex; gap:4px;">
-                                <button class="btn btn-light" style="padding:4px 10px; font-size:11px;" onclick="presetLabel2x1()"><i class="ti ti-ruler-2"></i> Preset 2x1"</button>
-                                <button class="btn btn-light" style="padding:4px 10px; font-size:11px;" onclick="presetLabel1x2()"><i class="ti ti-ruler-3"></i> Preset 1x2"</button>
-                            </div>
+                        
+                        <h4 style="margin:0 0 10px; font-size:12px; color:var(--blue-btn); text-transform:uppercase;"><i class="ti ti-photo"></i> Orientación del Papel</h4>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:15px;">
+                            <button class="btn-orientacion" data-orient="2x1" onclick="aplicarOrientacionConfig('2x1')" style="background:linear-gradient(180deg, #fff 0%, #f1f5f9 100%); border:2px solid #e2e8f0; border-radius:12px; padding:14px; cursor:pointer; text-align:center; box-shadow:0 3px 0 #cbd5e1, 0 4px 8px rgba(0,0,0,0.05); transition:all 0.15s;">
+                                <div style="width:60px; height:30px; background:#dbeafe; border:2px solid #1e40af; margin:0 auto 8px; border-radius:3px;"></div>
+                                <b style="font-size:13px; display:block; color:#0f172a;">2 × 1"</b>
+                                <small style="color:#64748b; font-size:10px;">Horizontal · 51×25mm</small>
+                            </button>
+                            <button class="btn-orientacion" data-orient="1x2" onclick="aplicarOrientacionConfig('1x2')" style="background:linear-gradient(180deg, #fff 0%, #f1f5f9 100%); border:2px solid #e2e8f0; border-radius:12px; padding:14px; cursor:pointer; text-align:center; box-shadow:0 3px 0 #cbd5e1, 0 4px 8px rgba(0,0,0,0.05); transition:all 0.15s;">
+                                <div style="width:30px; height:60px; background:#dbeafe; border:2px solid #1e40af; margin:0 auto 8px; border-radius:3px;"></div>
+                                <b style="font-size:13px; display:block; color:#0f172a;">1 × 2"</b>
+                                <small style="color:#64748b; font-size:10px;">Vertical · 25×51mm</small>
+                            </button>
                         </div>
+                        
+                        <h4 style="margin:15px 0 10px; font-size:12px; color:var(--blue-btn); text-transform:uppercase;"><i class="ti ti-adjustments-horizontal"></i> Ajuste fino (opcional)</h4>
                         
                         <div class="form-row">
                             <div style="display:flex; justify-content:space-between;"><label>Ancho del Papel (mm)</label><span id="val_w" style="font-size:12px; font-weight:bold;">51mm</span></div>
@@ -1102,21 +1170,21 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                             </div>
                         
                         <!-- Tabs -->
-                        <div class="tabs reacond-tabs-scroll" style="display:flex; gap:4px; border-bottom:2px solid var(--border-color); margin-bottom:15px; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; padding-bottom:2px;">
-                            <button class="tab-btn active" data-tab="pendientes" onclick="cambiarTabReacond('pendientes')" style="padding:10px 14px; background:none; border:0; border-bottom:3px solid transparent; cursor:pointer; font-weight:600; color:var(--text-muted); white-space:nowrap;">
-                                🟡 Pendientes <span id="cntPendientes" class="badge" style="background:#fef3c7; color:#92400e; margin-left:6px;">0</span>
+                        <div class="tabs reacond-tabs-scroll" style="display:flex; gap:4px; margin-bottom:15px; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; padding:4px 2px 6px;">
+                            <button class="tab-btn active" data-tab="pendientes" onclick="cambiarTabReacond('pendientes')" style="padding:11px 14px; cursor:pointer; font-weight:700; white-space:nowrap; font-size:13px;">
+                                🟡 Pendientes <span id="cntPendientes" class="badge" style="background:#fef3c7; color:#92400e; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
                             </button>
-                            <button class="tab-btn" data-tab="evaluacion" onclick="cambiarTabReacond('evaluacion')" style="padding:10px 14px; background:none; border:0; border-bottom:3px solid transparent; cursor:pointer; font-weight:600; color:var(--text-muted); white-space:nowrap;">
-                                ⚠️ Evaluación <span id="cntEvaluacion" class="badge" style="background:#dbeafe; color:#1e40af; margin-left:6px;">0</span>
+                            <button class="tab-btn" data-tab="evaluacion" onclick="cambiarTabReacond('evaluacion')" style="padding:11px 14px; cursor:pointer; font-weight:700; white-space:nowrap; font-size:13px;">
+                                ⚠️ Evaluación <span id="cntEvaluacion" class="badge" style="background:#dbeafe; color:#1e40af; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
                             </button>
-                            <button class="tab-btn" data-tab="proceso" onclick="cambiarTabReacond('proceso')" style="padding:10px 14px; background:none; border:0; border-bottom:3px solid transparent; cursor:pointer; font-weight:600; color:var(--text-muted); white-space:nowrap;">
-                                🔧 En Proceso <span id="cntProceso" class="badge" style="background:#fed7aa; color:#9a3412; margin-left:6px;">0</span>
+                            <button class="tab-btn" data-tab="proceso" onclick="cambiarTabReacond('proceso')" style="padding:11px 14px; cursor:pointer; font-weight:700; white-space:nowrap; font-size:13px;">
+                                🔧 En Proceso <span id="cntProceso" class="badge" style="background:#fed7aa; color:#9a3412; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
                             </button>
-                            <button class="tab-btn" data-tab="listo_venta" onclick="cambiarTabReacond('listo_venta')" style="padding:10px 14px; background:none; border:0; border-bottom:3px solid transparent; cursor:pointer; font-weight:600; color:var(--text-muted); white-space:nowrap;">
-                                🛒 Listo Venta <span id="cntListoVenta" class="badge" style="background:#ddd6fe; color:#5b21b6; margin-left:6px;">0</span>
+                            <button class="tab-btn" data-tab="listo_venta" onclick="cambiarTabReacond('listo_venta')" style="padding:11px 14px; cursor:pointer; font-weight:700; white-space:nowrap; font-size:13px;">
+                                🛒 Listo Venta <span id="cntListoVenta" class="badge" style="background:#ddd6fe; color:#5b21b6; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
                             </button>
-                            <button class="tab-btn" data-tab="terminados" onclick="cambiarTabReacond('terminados')" style="padding:10px 14px; background:none; border:0; border-bottom:3px solid transparent; cursor:pointer; font-weight:600; color:var(--text-muted); white-space:nowrap;">
-                                ✅ Vendidos <span id="cntTerminados" class="badge" style="background:#d1fae5; color:#065f46; margin-left:6px;">0</span>
+                            <button class="tab-btn" data-tab="terminados" onclick="cambiarTabReacond('terminados')" style="padding:11px 14px; cursor:pointer; font-weight:700; white-space:nowrap; font-size:13px;">
+                                ✅ Vendidos <span id="cntTerminados" class="badge" style="background:#d1fae5; color:#065f46; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
                             </button>
                         </div>
                         
@@ -1737,6 +1805,43 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
 const CONFIG_URL = "https://vkhwdvjtowrhkhqavnvk.supabase.co";
 const CONFIG_KEY = "sb_publishable_PynS5ZjKoQ36HCpguVzxaw_KZOlagtz"; 
 const supabaseClient = supabase.createClient(CONFIG_URL, CONFIG_KEY);
+
+/* ============================================================
+   AUTO-INYECTAR BOTÓN "VOLVER" EN TODOS LOS MODALES
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', () => {
+    inyectarBotonesVolver();
+});
+
+function inyectarBotonesVolver() {
+    document.querySelectorAll('.modal-close').forEach(btnX => {
+        const header = btnX.parentElement;
+        if(!header || header.querySelector('.modal-back-btn')) return; // ya tiene
+        
+        // Capturar el handler original del X
+        const onclickAttr = btnX.getAttribute('onclick') || '';
+        
+        // Crear botón Volver con el mismo handler
+        const backBtn = document.createElement('button');
+        backBtn.type = 'button';
+        backBtn.className = 'modal-back-btn';
+        backBtn.setAttribute('onclick', onclickAttr);
+        backBtn.innerHTML = '<i class="ti ti-arrow-left"></i> Volver';
+        
+        // Wrappear el h3 en un div izquierdo
+        const h3 = header.querySelector('h3');
+        if(h3) {
+            const leftDiv = document.createElement('div');
+            leftDiv.className = 'modal-header-left';
+            // Mover el h3 al div izquierdo
+            header.insertBefore(leftDiv, h3);
+            leftDiv.appendChild(h3);
+        }
+        
+        // Insertar Volver justo antes del X
+        header.insertBefore(backBtn, btnX);
+    });
+}
 
 let sessionUser = null;
 let cache = { ordenes: [], clientes: [], equipos: [], piezas: [], activos: [], refurb: [], proveedores: [], lotes: [], articulos: [], fallaCategorias: [], fallas: [], tecnicos: [] };
@@ -4586,6 +4691,7 @@ function cargarCalibracionLabelVenta() {
     if(bh) document.getElementById("cfg_barcode_h").value = bh;
     if(document.getElementById("cfg_rotacion")) document.getElementById("cfg_rotacion").value = rot;
     cambiarDimensionesManual();
+    cargarOrientacionPreferida();
 }
 
 function presetLabel2x1() {
@@ -4604,6 +4710,27 @@ function presetLabel1x2() {
     document.getElementById("cfg_barcode_h").value = 30;
     cambiarDimensionesManual();
     toast('Preset 1x2 pulgadas aplicado.');
+}
+
+function aplicarOrientacionConfig(orient) {
+    if(orient === '2x1') {
+        presetLabel2x1();
+    } else {
+        presetLabel1x2();
+    }
+    // Guardar preferencia
+    localStorage.setItem('bayol_orientacion_preferida', orient);
+    // Actualizar UI: marcar botón activo
+    document.querySelectorAll('.btn-orientacion').forEach(b => {
+        b.classList.toggle('activo', b.dataset.orient === orient);
+    });
+}
+
+function cargarOrientacionPreferida() {
+    const pref = localStorage.getItem('bayol_orientacion_preferida') || '2x1';
+    document.querySelectorAll('.btn-orientacion').forEach(b => {
+        b.classList.toggle('activo', b.dataset.orient === pref);
+    });
 }
 
 /* Envuelve un contenido en un wrapper rotado para imprimir.
