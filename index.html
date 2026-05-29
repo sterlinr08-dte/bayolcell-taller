@@ -148,6 +148,7 @@ tr:hover td { background: #f8fafc; }
 /* MODAL */
 .modal-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,0.6); backdrop-filter: blur(2px); display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
 .modal-backdrop.active { display: flex; }
+.modal-backdrop.modal-encima { z-index: 200; }
 .modal-box { background: #fff; border-radius: 12px; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.4); }
 .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; background: #0033aa; color: #fff; border-radius: 12px 12px 0 0; }
 .modal-header h3 { margin: 0; font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -526,7 +527,7 @@ mark.ss-hl { background: #fef08a; color: inherit; padding: 0 1px; border-radius:
 .pieza-status-col.ok { background: #d1fae5; color: #065f46; }
 .pieza-status-col.pendiente { background: #fee2e2; color: #991b1b; }
 .pieza-status-col.esperando { background: #fef3c7; color: #92400e; }
-.pieza-action-btn { background: linear-gradient(180deg, #fff 0%, #f8fafc 100%); border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 12px; font-size: 11px; font-weight: 700; cursor: pointer; width: 100%; margin-top: 6px; box-shadow: 0 2px 0 #cbd5e1; transition: all 0.15s; }
+.pieza-action-btn { background: linear-gradient(180deg, #fff 0%, #f8fafc 100%); border: 1px solid #cbd5e1; border-radius: 7px; padding: 7px 10px; font-size: 11px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 5px; box-shadow: 0 2px 0 #cbd5e1; transition: all 0.15s; }
 .pieza-action-btn:hover { background: #f1f5f9; transform: translateY(-1px); }
 .pieza-action-btn:active { transform: translateY(1px); box-shadow: 0 1px 0 #cbd5e1; }
 .pieza-action-btn.entregar { background: linear-gradient(180deg, #3b82f6, #1e40af); color: #fff; border-color: #1e3a8a; box-shadow: 0 3px 0 #1e3a8a; }
@@ -1848,7 +1849,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
 </div>
 
 <!-- MODAL: REASIGNAR TÉCNICO -->
-<div id="modalReasignar" class="modal-backdrop">
+<div id="modalReasignar" class="modal-backdrop modal-encima">
     <div class="modal-box" style="max-width:500px;">
         <div class="modal-header" style="background:linear-gradient(135deg, #f59e0b, #d97706); color:#fff; border-radius:12px 12px 0 0;">
             <h3 style="color:#fff;"><i class="ti ti-user-share"></i> Reasignar a otro técnico</h3>
@@ -5123,23 +5124,39 @@ async function abrirPanelProceso(equipoId) {
             tecCol = `<div class="pieza-status-col pendiente">Pendiente admin</div>`;
         }
         
-        // === BOTONES DE ACCIÓN ===
+        // === BOTONES DE ACCIÓN (lógica inteligente: admin vs técnico) ===
+        const esAdmin = tienePermiso('piezas_aprobar_extra'); // admin aprueba/entrega
         const botones = [];
         if(esExtraNoAprobado) {
-            botones.push(`<button class="pieza-action-btn" onclick="aprobarPiezaExtra('${p.id}')" style="background:linear-gradient(180deg,#10b981,#059669); color:#fff; border-color:#047857; box-shadow:0 3px 0 #047857;"><i class="ti ti-check"></i> Admin: Aprobar pieza extra</button>`);
-            botones.push(`<button class="pieza-action-btn" onclick="rechazarPiezaExtra('${p.id}')" style="background:#fee2e2; color:#991b1b;"><i class="ti ti-x"></i> Rechazar</button>`);
+            // Solo el admin aprueba/rechaza piezas extra
+            if(esAdmin) {
+                botones.push(`<button class="pieza-action-btn" onclick="aprobarPiezaExtra('${p.id}')" style="background:linear-gradient(180deg,#10b981,#059669); color:#fff; border-color:#047857; box-shadow:0 3px 0 #047857;"><i class="ti ti-check"></i> Aprobar pieza extra</button>`);
+                botones.push(`<button class="pieza-action-btn" onclick="rechazarPiezaExtra('${p.id}')" style="background:#fee2e2; color:#991b1b;"><i class="ti ti-x"></i> Rechazar</button>`);
+            } else {
+                botones.push(`<div style="text-align:center; font-size:11px; color:#92400e; padding:4px;"><i class="ti ti-clock"></i> Esperando aprobación del administrador</div>`);
+            }
         } else if(devolucionPendiente) {
-            // Admin debe aprobar/rechazar la devolución
-            botones.push(`<div style="background:#fef3c7; border:1px solid #fcd34d; border-radius:6px; padding:8px; margin-top:6px; font-size:11px; color:#92400e;"><b>Motivo devolución:</b> ${escapeHtml(p.motivo_devolucion_pieza || 'Sin motivo')}</div>`);
-            botones.push(`<button class="pieza-action-btn" onclick="aprobarDevolucionPieza('${p.id}')" style="background:linear-gradient(180deg,#6366f1,#4338ca); color:#fff; border-color:#3730a3; box-shadow:0 3px 0 #3730a3;"><i class="ti ti-check"></i> Admin: Aprobar devolución</button>`);
-            botones.push(`<button class="pieza-action-btn" onclick="rechazarDevolucionPieza('${p.id}')" style="background:#fee2e2; color:#991b1b;"><i class="ti ti-x"></i> Rechazar devolución</button>`);
+            // Admin aprueba/rechaza la devolución. El técnico solo ve el estado.
+            botones.push(`<div style="background:#fef3c7; border:1px solid #fcd34d; border-radius:6px; padding:8px; margin-top:6px; font-size:11px; color:#92400e;"><b>Motivo:</b> ${escapeHtml(p.motivo_devolucion_pieza || 'Sin motivo')}</div>`);
+            if(esAdmin) {
+                botones.push(`<button class="pieza-action-btn" onclick="aprobarDevolucionPieza('${p.id}')" style="background:linear-gradient(180deg,#6366f1,#4338ca); color:#fff; border-color:#3730a3; box-shadow:0 3px 0 #3730a3;"><i class="ti ti-check"></i> Aprobar devolución</button>`);
+                botones.push(`<button class="pieza-action-btn" onclick="rechazarDevolucionPieza('${p.id}')" style="background:#fee2e2; color:#991b1b;"><i class="ti ti-x"></i> Rechazar</button>`);
+            } else {
+                botones.push(`<div style="text-align:center; font-size:11px; color:#92400e; padding:4px;"><i class="ti ti-clock"></i> Esperando que el administrador apruebe</div>`);
+            }
         } else if(p.estado === 'pendiente') {
-            botones.push(`<button class="pieza-action-btn entregar" onclick="marcarPiezaEntregada('${p.id}')"><i class="ti ti-truck"></i> Admin: Marcar como ENTREGADA</button>`);
+            // Solo admin entrega piezas
+            if(esAdmin) {
+                botones.push(`<button class="pieza-action-btn entregar" onclick="marcarPiezaEntregada('${p.id}')"><i class="ti ti-truck"></i> Marcar como ENTREGADA</button>`);
+            } else {
+                botones.push(`<div style="text-align:center; font-size:11px; color:#92400e; padding:4px;"><i class="ti ti-clock"></i> Esperando que el administrador entregue la pieza</div>`);
+            }
         } else if(p.estado === 'entregada' || p.estado === 'aprobada') {
-            botones.push(`<button class="pieza-action-btn recibir" onclick="marcarPiezaRecibida('${p.id}')"><i class="ti ti-check"></i> Técnico: Confirmo RECIBIDA</button>`);
+            // El técnico confirma que la recibió
+            botones.push(`<button class="pieza-action-btn recibir" onclick="marcarPiezaRecibida('${p.id}')"><i class="ti ti-check"></i> Confirmo RECIBIDA</button>`);
         } else if(estaRecibida) {
             // Pieza recibida → el técnico puede solicitar devolverla
-            botones.push(`<button class="pieza-action-btn" onclick="solicitarDevolucionPieza('${p.id}')" style="background:#fff; color:#6366f1; border:1px solid #c4b5fd;"><i class="ti ti-rotate-2"></i> Devolver esta pieza</button>`);
+            botones.push(`<button class="pieza-action-btn" onclick="solicitarDevolucionPieza('${p.id}')" style="background:#fff; color:#6366f1; border:1px solid #c4b5fd;"><i class="ti ti-rotate-2"></i> Devolver pieza</button>`);
         }
         
         return `<div class="pieza-card" data-item-id="${p.id}">
@@ -5206,7 +5223,7 @@ async function abrirPanelProceso(equipoId) {
                 <h4 style="margin:18px 0 8px; font-size:13px; color:#1e40af; text-transform:uppercase;"><i class="ti ti-tools"></i> Piezas para la reparación</h4>
                 ${piezasHtml}
                 
-                <button class="btn btn-light" onclick="agregarPiezaExtra('${equipoId}')" style="width:100%; margin-top:10px; padding:12px;">
+                <button class="btn btn-light" onclick="agregarPiezaExtra('${equipoId}')" style="margin-top:10px; padding:8px 14px; font-size:12px;">
                     <i class="ti ti-plus"></i> Agregar pieza adicional
                 </button>
                 
@@ -5228,7 +5245,7 @@ async function abrirPanelProceso(equipoId) {
                 ` : ''}
                 
                 ${(!estaReasignado && estado !== 'listo_venta' && estado !== 'vendido') ? `
-                    <button class="btn btn-light" onclick="abrirModalReasignar('${equipoId}')" style="width:100%; margin-top:10px; padding:12px; background:#fef3c7; color:#92400e; border:1px solid #fcd34d;">
+                    <button class="btn btn-light" onclick="abrirModalReasignar('${equipoId}')" style="margin-top:10px; padding:8px 14px; font-size:12px; background:#fef3c7; color:#92400e; border:1px solid #fcd34d;">
                         <i class="ti ti-user-share"></i> Reasignar a otro técnico
                     </button>
                 ` : ''}
