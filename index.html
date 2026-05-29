@@ -1359,6 +1359,9 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                     <button id="cfgMainTabRoles" onclick="cambiarMainTabConfig('roles')" class="cfg-main-tab" style="flex:1; min-width:120px; padding:12px; border:0; background:transparent; color:var(--text-muted); border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">
                         <i class="ti ti-shield"></i> Roles
                     </button>
+                    <button id="cfgMainTabCatalogos" onclick="cambiarMainTabConfig('catalogos')" class="cfg-main-tab" style="flex:1; min-width:120px; padding:12px; border:0; background:transparent; color:var(--text-muted); border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">
+                        <i class="ti ti-tags"></i> Catálogos
+                    </button>
                     <button id="cfgMainTabGeneral" onclick="cambiarMainTabConfig('general')" class="cfg-main-tab" style="flex:1; min-width:120px; padding:12px; border:0; background:transparent; color:var(--text-muted); border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">
                         <i class="ti ti-adjustments"></i> General
                     </button>
@@ -1390,6 +1393,37 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                         </div>
                         <div id="rolesLista">
                             <p style="color:var(--text-muted); text-align:center; padding:20px;">Cargando roles...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- TAB CATÁLOGOS -->
+                <div id="cfgContentCatalogos" style="display:none;">
+                    <!-- Sección Categorías -->
+                    <div class="card">
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
+                            <h3 style="margin:0;"><i class="ti ti-category" style="color:#0891b2;"></i> Categorías</h3>
+                            <button class="btn btn-blue" onclick="abrirModalCategoria()" style="background:linear-gradient(180deg,#0891b2,#0e7490); box-shadow:0 4px 0 #155e75;"><i class="ti ti-plus"></i> Nueva Categoría</button>
+                        </div>
+                        <div style="background:#cffafe; border:1px solid #67e8f9; padding:10px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#155e75;">
+                            <b><i class="ti ti-info-circle"></i> Categorías generales</b> que podrás usar para clasificar artículos, equipos y más.
+                        </div>
+                        <div id="categoriasLista">
+                            <p style="color:var(--text-muted); text-align:center; padding:20px;">Cargando...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Sección Marcas -->
+                    <div class="card" style="margin-top:15px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
+                            <h3 style="margin:0;"><i class="ti ti-brand-apple" style="color:#6366f1;"></i> Marcas</h3>
+                            <button class="btn btn-blue" onclick="abrirModalMarca()" style="background:linear-gradient(180deg,#6366f1,#4338ca); box-shadow:0 4px 0 #3730a3;"><i class="ti ti-plus"></i> Nueva Marca</button>
+                        </div>
+                        <div style="background:#ede9fe; border:1px solid #c4b5fd; padding:10px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#5b21b6;">
+                            <b><i class="ti ti-info-circle"></i> Marcas</b> (Apple, Samsung, Xiaomi...) que podrás seleccionar al crear artículos y equipos.
+                        </div>
+                        <div id="marcasLista">
+                            <p style="color:var(--text-muted); text-align:center; padding:20px;">Cargando...</p>
                         </div>
                     </div>
                 </div>
@@ -1686,6 +1720,84 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
         <div class="modal-footer">
             <button class="btn btn-light" id="cc_cancelar" onclick="cerrarModalCambiarClave()">Cancelar</button>
             <button class="btn btn-blue" onclick="guardarNuevaClave()" style="background:linear-gradient(180deg,#10b981,#059669); box-shadow:0 4px 0 #047857;"><i class="ti ti-check"></i> Guardar</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: CREAR/EDITAR CATEGORÍA -->
+<div id="modalCategoria" class="modal-backdrop">
+    <div class="modal-box" style="max-width:500px;">
+        <div class="modal-header" style="background:linear-gradient(135deg, #0891b2, #0e7490); color:#fff; border-radius:12px 12px 0 0;">
+            <h3 style="color:#fff;"><i class="ti ti-category"></i> <span id="modalCategoriaTitulo">Nueva Categoría</span></h3>
+            <button class="modal-close" onclick="cerrarModalCategoria()" style="color:#fff;">✕</button>
+        </div>
+        <div class="modal-body">
+            <input id="mod_cat_id" type="hidden">
+            <div class="form-row">
+                <label>Nombre *</label>
+                <input id="mod_cat_nombre" placeholder="Ej. Celular, Tablet, Accesorio...">
+            </div>
+            <div class="form-row">
+                <label>Descripción (opcional)</label>
+                <input id="mod_cat_descripcion" placeholder="Para qué sirve esta categoría">
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <div class="form-row" style="flex:1; min-width:140px;">
+                    <label>Color</label>
+                    <input type="color" id="mod_cat_color" value="#0891b2" style="height:42px; padding:4px; cursor:pointer;">
+                </div>
+                <div class="form-row" style="flex:1; min-width:140px;">
+                    <label>Icono (Tabler)</label>
+                    <select id="mod_cat_icono">
+                        <option value="ti-category">📦 Categoría</option>
+                        <option value="ti-device-mobile">📱 Celular</option>
+                        <option value="ti-device-tablet">📲 Tablet</option>
+                        <option value="ti-device-laptop">💻 Laptop</option>
+                        <option value="ti-headphones">🎧 Accesorio</option>
+                        <option value="ti-plug">🔌 Cargador</option>
+                        <option value="ti-battery">🔋 Batería</option>
+                        <option value="ti-tools">🔧 Repuesto</option>
+                        <option value="ti-box">📦 Otro</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                    <input type="checkbox" id="mod_cat_activa" checked>
+                    <span>Activa</span>
+                </label>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" onclick="cerrarModalCategoria()">Cancelar</button>
+            <button class="btn btn-blue" onclick="guardarCategoria()" style="background:linear-gradient(180deg,#0891b2,#0e7490); box-shadow:0 4px 0 #155e75;"><i class="ti ti-check"></i> Guardar</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: CREAR/EDITAR MARCA -->
+<div id="modalMarca" class="modal-backdrop">
+    <div class="modal-box" style="max-width:450px;">
+        <div class="modal-header" style="background:linear-gradient(135deg, #6366f1, #4338ca); color:#fff; border-radius:12px 12px 0 0;">
+            <h3 style="color:#fff;"><i class="ti ti-brand-apple"></i> <span id="modalMarcaTitulo">Nueva Marca</span></h3>
+            <button class="modal-close" onclick="cerrarModalMarca()" style="color:#fff;">✕</button>
+        </div>
+        <div class="modal-body">
+            <input id="mod_marca_id" type="hidden">
+            <div class="form-row">
+                <label>Nombre de la marca *</label>
+                <input id="mod_marca_nombre" placeholder="Ej. Apple, Samsung, Xiaomi...">
+            </div>
+            <div class="form-row">
+                <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                    <input type="checkbox" id="mod_marca_activa" checked>
+                    <span>Activa</span>
+                </label>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" onclick="cerrarModalMarca()">Cancelar</button>
+            <button class="btn btn-blue" onclick="guardarMarca()" style="background:linear-gradient(180deg,#6366f1,#4338ca); box-shadow:0 4px 0 #3730a3;"><i class="ti ti-check"></i> Guardar</button>
         </div>
     </div>
 </div>
@@ -4555,13 +4667,16 @@ function cambiarMainTabConfig(tab) {
     document.getElementById('cfgContentGeneral').style.display = tab === 'general' ? 'block' : 'none';
     const rolesCont = document.getElementById('cfgContentRoles');
     if(rolesCont) rolesCont.style.display = tab === 'roles' ? 'block' : 'none';
+    const catCont = document.getElementById('cfgContentCatalogos');
+    if(catCont) catCont.style.display = tab === 'catalogos' ? 'block' : 'none';
     
     const btnTec = document.getElementById('cfgMainTabTecnicos');
     const btnRoles = document.getElementById('cfgMainTabRoles');
+    const btnCat = document.getElementById('cfgMainTabCatalogos');
     const btnGen = document.getElementById('cfgMainTabGeneral');
     
     // Reset todos
-    [btnTec, btnRoles, btnGen].forEach(b => {
+    [btnTec, btnRoles, btnCat, btnGen].forEach(b => {
         if(b) { b.style.background = 'transparent'; b.style.color = 'var(--text-muted)'; }
     });
     
@@ -4575,6 +4690,12 @@ function cambiarMainTabConfig(tab) {
             btnRoles.style.color = '#fff';
         }
         cargarRoles();
+    } else if(tab === 'catalogos') {
+        if(btnCat) {
+            btnCat.style.background = 'linear-gradient(180deg,#0891b2,#0e7490)';
+            btnCat.style.color = '#fff';
+        }
+        cargarCatalogosConfig();
     } else if(tab === 'general') {
         btnGen.style.background = 'var(--blue-btn)';
         btnGen.style.color = '#fff';
@@ -5737,6 +5858,238 @@ async function guardarDevolucion() {
         if(devData?.id) resaltarItemNuevo(devData.id);
     } catch(e) {
         logError('Guardar devolución', e);
+        alert(getFriendlyError(e));
+    }
+}
+
+/* ============================================================
+   MÓDULO DE CATÁLOGOS: CATEGORÍAS Y MARCAS
+   ============================================================ */
+let _categoriasCache = [];
+let _marcasCache = [];
+
+async function cargarCatalogosConfig() {
+    await Promise.all([cargarCategorias(), cargarMarcas()]);
+}
+
+async function cargarCategorias() {
+    const cont = document.getElementById('categoriasLista');
+    try {
+        const { data, error } = await supabaseClient.from('catalogo_categorias').select('*').order('nombre', { ascending: true });
+        if(error) throw error;
+        _categoriasCache = data || [];
+        renderCategorias();
+    } catch(e) {
+        logError('Cargar categorías', e);
+        if(cont) cont.innerHTML = `<p style="color:#dc2626; text-align:center; padding:20px;">Error: ${escapeHtml(getFriendlyError(e))}</p>`;
+    }
+}
+
+function renderCategorias() {
+    const cont = document.getElementById('categoriasLista');
+    if(!cont) return;
+    if(_categoriasCache.length === 0) {
+        cont.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:20px; font-size:13px;">No hay categorías. Crea la primera con "+ Nueva Categoría".</p>';
+        return;
+    }
+    cont.innerHTML = `<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:8px;">` + 
+        _categoriasCache.map(c => {
+            const color = c.color || '#0891b2';
+            const icono = c.icono || 'ti-category';
+            return `<div data-item-id="${c.id}" style="background:#fff; border:1px solid var(--border-color); border-left:4px solid ${color}; border-radius:8px; padding:12px;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+                    <div style="flex:1; min-width:0;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <i class="ti ${escapeHtml(icono)}" style="color:${color}; font-size:18px;"></i>
+                            <b style="font-size:14px;">${escapeHtml(c.nombre)}</b>
+                            ${!c.activa ? '<span class="badge" style="background:#fee2e2; color:#991b1b; font-size:9px;">INACTIVA</span>' : ''}
+                        </div>
+                        ${c.descripcion ? `<div style="font-size:11px; color:var(--text-muted); margin-top:4px;">${escapeHtml(c.descripcion)}</div>` : ''}
+                    </div>
+                    <div style="display:flex; gap:4px; flex-shrink:0;">
+                        <button onclick="editarCategoria('${c.id}')" style="background:#dbeafe; color:#1e40af; border:0; padding:6px 8px; border-radius:6px; cursor:pointer;" title="Editar"><i class="ti ti-edit"></i></button>
+                        <button onclick="eliminarCategoria('${c.id}')" style="background:#fee2e2; color:#991b1b; border:0; padding:6px 8px; border-radius:6px; cursor:pointer;" title="Eliminar"><i class="ti ti-trash"></i></button>
+                    </div>
+                </div>
+            </div>`;
+        }).join('') + `</div>`;
+}
+
+function abrirModalCategoria() {
+    document.getElementById('mod_cat_id').value = '';
+    document.getElementById('mod_cat_nombre').value = '';
+    document.getElementById('mod_cat_descripcion').value = '';
+    document.getElementById('mod_cat_color').value = '#0891b2';
+    document.getElementById('mod_cat_icono').value = 'ti-category';
+    document.getElementById('mod_cat_activa').checked = true;
+    document.getElementById('modalCategoriaTitulo').textContent = 'Nueva Categoría';
+    document.getElementById('modalCategoria').classList.add('active');
+    if(typeof inyectarBotonesVolver === 'function') inyectarBotonesVolver();
+}
+
+function editarCategoria(id) {
+    const c = _categoriasCache.find(x => x.id === id);
+    if(!c) return;
+    document.getElementById('mod_cat_id').value = c.id;
+    document.getElementById('mod_cat_nombre').value = c.nombre || '';
+    document.getElementById('mod_cat_descripcion').value = c.descripcion || '';
+    document.getElementById('mod_cat_color').value = c.color || '#0891b2';
+    document.getElementById('mod_cat_icono').value = c.icono || 'ti-category';
+    document.getElementById('mod_cat_activa').checked = c.activa !== false;
+    document.getElementById('modalCategoriaTitulo').textContent = 'Editar Categoría';
+    document.getElementById('modalCategoria').classList.add('active');
+    if(typeof inyectarBotonesVolver === 'function') inyectarBotonesVolver();
+}
+
+function cerrarModalCategoria() {
+    document.getElementById('modalCategoria').classList.remove('active');
+}
+
+async function guardarCategoria() {
+    const id = document.getElementById('mod_cat_id').value;
+    const nombre = document.getElementById('mod_cat_nombre').value.trim();
+    if(!nombre) return alert('El nombre es obligatorio.');
+    
+    const datos = {
+        nombre,
+        descripcion: document.getElementById('mod_cat_descripcion').value.trim() || null,
+        color: document.getElementById('mod_cat_color').value,
+        icono: document.getElementById('mod_cat_icono').value,
+        activa: document.getElementById('mod_cat_activa').checked
+    };
+    
+    try {
+        let nuevoId = id;
+        if(id) {
+            const { error } = await supabaseClient.from('catalogo_categorias').update(datos).eq('id', id);
+            if(error) throw error;
+            toast('✅ Categoría actualizada.');
+        } else {
+            const { data, error } = await supabaseClient.from('catalogo_categorias').insert([datos]).select().single();
+            if(error) throw error;
+            nuevoId = data?.id;
+            toast('✅ Categoría creada.');
+        }
+        cerrarModalCategoria();
+        await cargarCategorias();
+        resaltarItemNuevo(nuevoId);
+    } catch(e) {
+        logError('Guardar categoría', e);
+        alert(getFriendlyError(e));
+    }
+}
+
+async function eliminarCategoria(id) {
+    const c = _categoriasCache.find(x => x.id === id);
+    if(!c) return;
+    if(!confirm(`¿Eliminar la categoría "${c.nombre}"?`)) return;
+    try {
+        const { error } = await supabaseClient.from('catalogo_categorias').delete().eq('id', id);
+        if(error) throw error;
+        toast('🗑️ Categoría eliminada.');
+        await cargarCategorias();
+    } catch(e) {
+        logError('Eliminar categoría', e);
+        alert(getFriendlyError(e));
+    }
+}
+
+/* ---------- MARCAS ---------- */
+async function cargarMarcas() {
+    const cont = document.getElementById('marcasLista');
+    try {
+        const { data, error } = await supabaseClient.from('catalogo_marcas').select('*').order('nombre', { ascending: true });
+        if(error) throw error;
+        _marcasCache = data || [];
+        renderMarcas();
+    } catch(e) {
+        logError('Cargar marcas', e);
+        if(cont) cont.innerHTML = `<p style="color:#dc2626; text-align:center; padding:20px;">Error: ${escapeHtml(getFriendlyError(e))}</p>`;
+    }
+}
+
+function renderMarcas() {
+    const cont = document.getElementById('marcasLista');
+    if(!cont) return;
+    if(_marcasCache.length === 0) {
+        cont.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:20px; font-size:13px;">No hay marcas. Crea la primera con "+ Nueva Marca".</p>';
+        return;
+    }
+    cont.innerHTML = `<div style="display:flex; flex-wrap:wrap; gap:8px;">` + 
+        _marcasCache.map(m => {
+            return `<div data-item-id="${m.id}" style="background:#fff; border:1px solid var(--border-color); border-radius:8px; padding:8px 12px; display:flex; align-items:center; gap:8px;">
+                <i class="ti ti-brand-apple" style="color:#6366f1;"></i>
+                <b style="font-size:13px; ${m.activa ? '' : 'text-decoration:line-through; color:var(--text-muted);'}">${escapeHtml(m.nombre)}</b>
+                ${!m.activa ? '<span class="badge" style="background:#fee2e2; color:#991b1b; font-size:9px;">OFF</span>' : ''}
+                <button onclick="editarMarca('${m.id}')" style="background:#dbeafe; color:#1e40af; border:0; padding:4px 6px; border-radius:5px; cursor:pointer;" title="Editar"><i class="ti ti-edit"></i></button>
+                <button onclick="eliminarMarca('${m.id}')" style="background:#fee2e2; color:#991b1b; border:0; padding:4px 6px; border-radius:5px; cursor:pointer;" title="Eliminar"><i class="ti ti-trash"></i></button>
+            </div>`;
+        }).join('') + `</div>`;
+}
+
+function abrirModalMarca() {
+    document.getElementById('mod_marca_id').value = '';
+    document.getElementById('mod_marca_nombre').value = '';
+    document.getElementById('mod_marca_activa').checked = true;
+    document.getElementById('modalMarcaTitulo').textContent = 'Nueva Marca';
+    document.getElementById('modalMarca').classList.add('active');
+    if(typeof inyectarBotonesVolver === 'function') inyectarBotonesVolver();
+}
+
+function editarMarca(id) {
+    const m = _marcasCache.find(x => x.id === id);
+    if(!m) return;
+    document.getElementById('mod_marca_id').value = m.id;
+    document.getElementById('mod_marca_nombre').value = m.nombre || '';
+    document.getElementById('mod_marca_activa').checked = m.activa !== false;
+    document.getElementById('modalMarcaTitulo').textContent = 'Editar Marca';
+    document.getElementById('modalMarca').classList.add('active');
+    if(typeof inyectarBotonesVolver === 'function') inyectarBotonesVolver();
+}
+
+function cerrarModalMarca() {
+    document.getElementById('modalMarca').classList.remove('active');
+}
+
+async function guardarMarca() {
+    const id = document.getElementById('mod_marca_id').value;
+    const nombre = document.getElementById('mod_marca_nombre').value.trim();
+    if(!nombre) return alert('El nombre es obligatorio.');
+    
+    const datos = { nombre, activa: document.getElementById('mod_marca_activa').checked };
+    
+    try {
+        let nuevoId = id;
+        if(id) {
+            const { error } = await supabaseClient.from('catalogo_marcas').update(datos).eq('id', id);
+            if(error) throw error;
+            toast('✅ Marca actualizada.');
+        } else {
+            const { data, error } = await supabaseClient.from('catalogo_marcas').insert([datos]).select().single();
+            if(error) throw error;
+            nuevoId = data?.id;
+            toast('✅ Marca creada.');
+        }
+        cerrarModalMarca();
+        await cargarMarcas();
+        resaltarItemNuevo(nuevoId);
+    } catch(e) {
+        logError('Guardar marca', e);
+        alert(getFriendlyError(e));
+    }
+}
+
+async function eliminarMarca(id) {
+    const m = _marcasCache.find(x => x.id === id);
+    if(!m) return;
+    if(!confirm(`¿Eliminar la marca "${m.nombre}"?`)) return;
+    try {
+        const { error } = await supabaseClient.from('catalogo_marcas').delete().eq('id', id);
+        if(error) throw error;
+        toast('🗑️ Marca eliminada.');
+        await cargarMarcas();
+    } catch(e) {
+        logError('Eliminar marca', e);
         alert(getFriendlyError(e));
     }
 }
