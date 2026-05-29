@@ -674,6 +674,12 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                         <button id="accion-refurb" class="btn btn-light" style="width:100%;" onclick="nav('refurb')"><i class="ti ti-refresh"></i> Módulo Reacondicionados</button>
                     </div>
                 </div>
+                
+                <!-- PRODUCTIVIDAD POR EMPLEADO (servicio al cliente) -->
+                <div class="card" id="cardProductividad" style="margin-top:15px;">
+                    <h3 style="margin:0 0 12px 0; font-size:15px; font-weight:700;"><i class="ti ti-users" style="color:#0891b2;"></i> Clientes atendidos por empleado</h3>
+                    <div id="productividadEmpleados" style="font-size:13px;"></div>
+                </div>
             </div>
 
             <!-- RECEPCION -->
@@ -770,7 +776,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                     <div class="table-wrap">
                         <table>
                             <thead>
-                                <tr><th>Orden</th><th>Cliente</th><th>Equipo</th><th>Falla</th><th>Acceso Privado</th><th>Estado</th><th>Acciones</th></tr>
+                                <tr><th>Orden</th><th>Cliente</th><th>Equipo</th><th>Falla</th><th>Acceso Privado</th><th>Atendido por</th><th>Estado</th><th>Acciones</th></tr>
                             </thead>
                             <tbody id="ordersTable"></tbody>
                         </table>
@@ -2881,7 +2887,7 @@ function closeSidebar() {
 
 async function loadAll() {
     try {
-        const [rOrd, rCli, rEq, rPz, rAct, rRef, rProv, rLot, rArt, rTec] = await Promise.all([
+        const [rOrd, rCli, rEq, rPz, rAct, rRef, rProv, rLot, rArt, rTec, rUsr] = await Promise.all([
             supabaseClient.from('ordenes_reparacion').select('*').order('creado_en', { ascending: false }),
             supabaseClient.from('clientes').select('*'),
             supabaseClient.from('equipos').select('*'),
@@ -2891,7 +2897,8 @@ async function loadAll() {
             supabaseClient.from('proveedores').select('*').eq('activo', true).order('nombre', { ascending: true }),
             supabaseClient.from('refurb_lotes').select('*').order('creado_en', { ascending: false }),
             supabaseClient.from('articulos').select('*').eq('activo', true).order('codigo', { ascending: true }),
-            supabaseClient.from('tecnicos').select('*').order('nombre', { ascending: true })
+            supabaseClient.from('tecnicos').select('*').order('nombre', { ascending: true }),
+            supabaseClient.from('usuarios').select('id, nombre, usuario, rol').then(r => r, () => ({ data: [], error: null }))
         ]);
 
         requireSupabaseOk(rOrd, 'Cargar órdenes');
@@ -2910,13 +2917,23 @@ async function loadAll() {
             piezas: rPz.data || [], activos: rAct.data || [], refurb: rRef.data || [],
             proveedores: rProv.data || [], lotes: rLot.data || [], articulos: rArt.data || [],
             fallaCategorias: cache.fallaCategorias || [], fallas: cache.fallas || [],
-            tecnicos: rTec.data || []
+            tecnicos: rTec.data || [], usuarios: (rUsr && rUsr.data) || []
         };
         renderAll();
     } catch(e) { logError('loadAll', e); toast(getFriendlyError(e, "Error cargando base de datos.")); }
 }
 
 function findCliente(id) { return cache.clientes.find(x => x.id === id) || {}; }
+
+// Devuelve el nombre del empleado que creó algo (busca en usuarios y técnicos)
+function nombreEmpleado(id) {
+    if(!id) return '—';
+    const u = (cache.usuarios || []).find(x => x.id === id);
+    if(u) return u.nombre || u.usuario || '—';
+    const t = (cache.tecnicos || []).find(x => x.id === id);
+    if(t) return t.nombre || '—';
+    return '—';
+}
 function findEquipo(id) { return cache.equipos.find(x => x.id === id) || {}; }
 function findArticulo(id) { return cache.articulos.find(x => x.id === id) || {}; }
 function findProveedor(id) { return cache.proveedores.find(x => x.id === id) || {}; }
@@ -2959,6 +2976,39 @@ function renderAll() {
     }
     if(proveedorActualId) renderDetalleProveedor(proveedorActualId);
     if(loteActualId) renderEquiposLote();
+    renderProductividadEmpleados();
+}
+
+// Reporte: cuántos clientes/órdenes atendió cada empleado
+function renderProductividadEmpleados() {
+    const cont = document.getElementById('productividadEmpleados');
+    if(!cont) return;
+    const ordenes = cache.ordenes || [];
+    // Agrupar por empleado que creó la orden
+    const conteo = {};
+    ordenes.forEach(o => {
+        if(!o.creado_by) return;
+        conteo[o.creado_by] = (conteo[o.creado_by] || 0) + 1;
+    });
+    const filas = Object.entries(conteo)
+        .map(([id, n]) => ({ nombre: nombreEmpleado(id), n }))
+        .filter(x => x.nombre !== '—')
+        .sort((a, b) => b.n - a.n);
+    if(!filas.length) {
+        cont.innerHTML = `<div style="color:var(--text-muted); padding:8px 0;">Aún no hay órdenes registradas con empleado. Desde ahora, cada recepción guardará quién atendió.</div>`;
+        return;
+    }
+    const max = filas[0].n || 1;
+    cont.innerHTML = filas.map(f => {
+        const pct = Math.round((f.n / max) * 100);
+        return `<div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+            <div style="min-width:120px; font-weight:600;"><i class="ti ti-user" style="color:#0891b2;"></i> ${escapeHtml(f.nombre)}</div>
+            <div style="flex:1; background:#e2e8f0; border-radius:6px; overflow:hidden; height:20px;">
+                <div style="width:${pct}%; background:linear-gradient(90deg,#0891b2,#06b6d4); height:100%; border-radius:6px;"></div>
+            </div>
+            <div style="min-width:90px; text-align:right; font-weight:700;">${f.n} cliente${f.n === 1 ? '' : 's'}</div>
+        </div>`;
+    }).join('');
 }
 
 /* ============================================================
@@ -3037,6 +3087,7 @@ function renderOrders() {
             <td data-label="Equipo">${escapeHtml(e.modelo)}</td>
             <td data-label="Falla">${escapeHtml(o.falla_reportada)}</td>
             <td data-label="Acceso"><div class="access-mask">•••• <button class="btn btn-light" style="padding:1px 4px; font-size:10px" onclick="revelarClave('${o.id}', this)">Mostrar</button></div></td>
+            <td data-label="Atendido por"><span style="font-size:12px;"><i class="ti ti-user-check" style="color:#0891b2;"></i> ${escapeHtml(nombreEmpleado(o.creado_by))}</span></td>
             <td data-label="Estado"><span class="badge" style="background:#e0f2fe; color:#0369a1;">${o.estado}</span></td>
             <td data-label="Acciones"><button class="btn btn-light" style="padding:4px 8px;" onclick="cargarEnLabel('${o.id}')"><i class="ti ti-barcode"></i> Crear Label</button></td>
         </tr>`;
@@ -7242,6 +7293,7 @@ function buildTicketHtml(orden, incluirCredenciales) {
             <b>Condición física:</b> ${escapeHtml(getChecked('checksFisico') || 'Ninguna')}<br>
             <b>Accesorios:</b> ${escapeHtml(val('o_accesorios') || 'Ninguno')}<br>
             <b>Tipo de bloqueo:</b> ${escapeHtml(val('o_acceso') || 'N/A')}<br>
+            <b>Atendido por:</b> ${escapeHtml(sessionUser?.nombre || sessionUser?.usuario || '—')}<br>
             <div class="line"></div>
             <b>Seguridad:</b>
             <div class="ticket-sensitive">${buildTicketSecurityHtml(incluirCredenciales)}</div>
