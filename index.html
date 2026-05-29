@@ -392,6 +392,26 @@ input[type=number] { -moz-appearance: textfield; }
 .tab-btn { flex: 1; background: transparent; border: 0; padding: 10px 14px; border-radius: 8px; font-weight: 700; font-size: 13px; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; }
 .tab-btn:hover { background: rgba(255,255,255,0.5); color: var(--text-dark); }
 .tab-btn.active { background: #fff; color: var(--blue-btn); box-shadow: 0 2px 4px rgba(0,0,0,0.06); }
+
+/* ========== SMART SELECT (buscador inteligente) ========== */
+.smart-select { position: relative; width: 100%; }
+.smart-select-input { width: 100%; padding: 10px 36px 10px 36px; border: 1px solid var(--border-color); border-radius: 8px; background: #fff; font-size: 14px; cursor: text; transition: border 0.2s; box-sizing: border-box; }
+.smart-select-input:focus { outline: none; border-color: var(--blue-btn); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+.smart-select-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; font-size: 16px; }
+.smart-select-clear { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: #f1f5f9; border: 0; width: 22px; height: 22px; border-radius: 50%; cursor: pointer; color: #64748b; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.15s; }
+.smart-select-clear:hover { background: #fee2e2; color: #991b1b; }
+.smart-select-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #fff; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.12); max-height: 280px; overflow-y: auto; z-index: 1000; display: none; }
+.smart-select.open .smart-select-dropdown { display: block; }
+.smart-select-item { padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-size: 13px; transition: background 0.1s; }
+.smart-select-item:last-child { border-bottom: 0; }
+.smart-select-item:hover, .smart-select-item.highlighted { background: #eff6ff; }
+.smart-select-item.selected { background: #dbeafe; font-weight: 600; }
+.smart-select-item-title { font-weight: 600; color: var(--text-dark); margin-bottom: 2px; }
+.smart-select-item-sub { font-size: 11px; color: var(--text-muted); }
+.smart-select-item-meta { display: inline-block; background: #f1f5f9; color: #64748b; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; margin-left: 4px; }
+.smart-select-empty { padding: 20px; text-align: center; color: var(--text-muted); font-size: 13px; }
+.smart-select-empty button { margin-top: 8px; padding: 6px 12px; background: var(--blue-btn); color: #fff; border: 0; border-radius: 6px; cursor: pointer; font-size: 12px; }
+mark.ss-hl { background: #fef08a; color: inherit; padding: 0 1px; border-radius: 2px; }
 .tab-content { display: none; }
 .tab-content.active { display: block; }
 
@@ -995,9 +1015,7 @@ input[type=number] { -moz-appearance: textfield; }
                                 <div class="block-body">
                                     <div style="display:grid; grid-template-columns: 1.5fr 1fr 1fr 1.2fr auto; gap:10px; align-items:end;" id="formAgregarEquipo">
                                         <div><label>Artículo *</label>
-                                            <select id="eq_articulo_id" onchange="onArticuloChange()">
-                                                <option value="">-- Seleccionar artículo --</option>
-                                            </select>
+                                            <div id="ss-eq-articulo"></div>
                                         </div>
                                         <div><label id="lbl_eq_imei">IMEI / Serial *</label><input id="eq_imei" placeholder="358921..." style="text-transform:uppercase;"></div>
                                         <div id="costo_admin_wrap"><label>Costo Unidad (RD$) *</label><input id="eq_costo" type="number" step="0.01" placeholder="6374.00"></div>
@@ -1345,11 +1363,9 @@ input[type=number] { -moz-appearance: textfield; }
         <div class="modal-body">
             <div class="form-row">
                 <label>Proveedor *</label>
-                <div class="input-with-action">
-                    <select id="mod_compra_proveedor_id">
-                        <option value="">-- Seleccionar proveedor --</option>
-                    </select>
-                    <button class="quick-add-btn" onclick="abrirModalProveedor()" title="Crear nuevo proveedor">+</button>
+                <div style="display:flex; gap:6px; align-items:stretch;">
+                    <div id="ss-compra-proveedor" style="flex:1;"></div>
+                    <button class="quick-add-btn" onclick="abrirModalProveedor()" title="Crear nuevo proveedor" style="flex-shrink:0;">+</button>
                 </div>
             </div>
             <div class="form-row">
@@ -1421,6 +1437,223 @@ function escapeHtml(s) { return (s ?? "").toString().replace(/[&<>"']/g, m => ({
 function money(n) { return "RD$ " + Number(n || 0).toLocaleString("es-DO", { minimumFractionDigits: 2 }); }
 function getChecked(id) { return [...document.querySelectorAll("#" + id + " input:checked")].map(x => x.value).join(", "); }
 function val(id) { return document.getElementById(id)?.value?.trim() || ""; }
+
+/* ============================================================
+   SMART SELECT - Buscador inteligente reutilizable
+   ============================================================ */
+const _smartSelects = {}; // Registro de smart-selects activos por containerId
+
+/**
+ * Inicializa un smart-select dentro de un container.
+ * options = {
+ *   containerId: 'mi-container',
+ *   placeholder: 'Buscar...',
+ *   items: [{id, label, sub, search, meta}], // search = string concatenado para buscar
+ *   value: 'id-actual' (opcional),
+ *   onChange: function(id, item) {},
+ *   onCreate: function(query) {} (opcional, muestra "+ Crear nuevo"),
+ *   createLabel: '+ Crear nuevo' (opcional)
+ * }
+ */
+function smartSelectInit(options) {
+    const cont = document.getElementById(options.containerId);
+    if(!cont) return;
+    
+    const state = {
+        items: options.items || [],
+        value: options.value || '',
+        query: '',
+        highlightIdx: -1,
+        onChange: options.onChange || (() => {}),
+        onCreate: options.onCreate,
+        createLabel: options.createLabel || '+ Crear nuevo'
+    };
+    _smartSelects[options.containerId] = state;
+    
+    const selected = state.items.find(i => i.id === state.value);
+    cont.innerHTML = `
+        <div class="smart-select" id="${options.containerId}-ss">
+            <i class="ti ti-search smart-select-icon"></i>
+            <input type="text" class="smart-select-input" id="${options.containerId}-input" 
+                placeholder="${escapeHtml(options.placeholder || 'Buscar...')}" 
+                value="${selected ? escapeHtml(selected.label) : ''}"
+                autocomplete="off">
+            ${selected ? `<button type="button" class="smart-select-clear" onclick="smartSelectClear('${options.containerId}')" title="Limpiar">×</button>` : ''}
+            <div class="smart-select-dropdown" id="${options.containerId}-dropdown"></div>
+        </div>
+    `;
+    
+    const input = document.getElementById(options.containerId + '-input');
+    const ss = document.getElementById(options.containerId + '-ss');
+    
+    input.addEventListener('focus', () => {
+        state.query = '';
+        input.select();
+        ss.classList.add('open');
+        smartSelectRenderDropdown(options.containerId);
+    });
+    
+    input.addEventListener('input', e => {
+        state.query = e.target.value.trim().toLowerCase();
+        state.highlightIdx = -1;
+        ss.classList.add('open');
+        smartSelectRenderDropdown(options.containerId);
+    });
+    
+    input.addEventListener('keydown', e => {
+        const filtered = smartSelectFilter(state);
+        if(e.key === 'ArrowDown') {
+            e.preventDefault();
+            state.highlightIdx = Math.min(state.highlightIdx + 1, filtered.length - 1);
+            smartSelectRenderDropdown(options.containerId);
+        } else if(e.key === 'ArrowUp') {
+            e.preventDefault();
+            state.highlightIdx = Math.max(state.highlightIdx - 1, 0);
+            smartSelectRenderDropdown(options.containerId);
+        } else if(e.key === 'Enter') {
+            e.preventDefault();
+            if(state.highlightIdx >= 0 && filtered[state.highlightIdx]) {
+                smartSelectPick(options.containerId, filtered[state.highlightIdx].id);
+            }
+        } else if(e.key === 'Escape') {
+            ss.classList.remove('open');
+            input.blur();
+        }
+    });
+    
+    // Cerrar al clic afuera
+    document.addEventListener('click', e => {
+        if(!ss.contains(e.target)) ss.classList.remove('open');
+    });
+}
+
+function smartSelectFilter(state) {
+    if(!state.query) return state.items;
+    const q = state.query;
+    // Búsqueda inteligente: divide query en palabras y todas deben estar en el search
+    const palabras = q.split(/\s+/).filter(p => p.length > 0);
+    return state.items.filter(item => {
+        const haystack = (item.search || item.label || '').toLowerCase();
+        return palabras.every(p => haystack.includes(p));
+    });
+}
+
+function smartSelectHighlight(text, query) {
+    if(!query) return escapeHtml(text);
+    const safe = escapeHtml(text);
+    const palabras = query.split(/\s+/).filter(p => p.length > 0);
+    let result = safe;
+    palabras.forEach(p => {
+        const regex = new RegExp('(' + p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+        result = result.replace(regex, '<mark class="ss-hl">$1</mark>');
+    });
+    return result;
+}
+
+function smartSelectRenderDropdown(containerId) {
+    const state = _smartSelects[containerId];
+    if(!state) return;
+    const dd = document.getElementById(containerId + '-dropdown');
+    if(!dd) return;
+    
+    const filtered = smartSelectFilter(state);
+    
+    if(filtered.length === 0) {
+        dd.innerHTML = `<div class="smart-select-empty">
+            Sin resultados${state.query ? ' para "<b>' + escapeHtml(state.query) + '</b>"' : ''}
+            ${state.onCreate && state.query ? `<br><button onclick="smartSelectCreate('${containerId}')">${escapeHtml(state.createLabel)}</button>` : ''}
+        </div>`;
+        return;
+    }
+    
+    dd.innerHTML = filtered.slice(0, 50).map((item, idx) => {
+        const isSelected = item.id === state.value;
+        const isHl = idx === state.highlightIdx;
+        return `<div class="smart-select-item ${isSelected ? 'selected' : ''} ${isHl ? 'highlighted' : ''}" 
+            onclick="smartSelectPick('${containerId}', '${item.id}')">
+            <div class="smart-select-item-title">${smartSelectHighlight(item.label || '', state.query)}${item.meta ? '<span class="smart-select-item-meta">' + escapeHtml(item.meta) + '</span>' : ''}</div>
+            ${item.sub ? `<div class="smart-select-item-sub">${smartSelectHighlight(item.sub, state.query)}</div>` : ''}
+        </div>`;
+    }).join('');
+}
+
+function smartSelectPick(containerId, id) {
+    const state = _smartSelects[containerId];
+    if(!state) return;
+    const item = state.items.find(i => i.id === id);
+    if(!item) return;
+    state.value = id;
+    state.query = '';
+    const input = document.getElementById(containerId + '-input');
+    const ss = document.getElementById(containerId + '-ss');
+    if(input) input.value = item.label;
+    if(ss) ss.classList.remove('open');
+    
+    // Re-render para mostrar botón X
+    smartSelectRefreshUI(containerId);
+    state.onChange(id, item);
+}
+
+function smartSelectClear(containerId) {
+    const state = _smartSelects[containerId];
+    if(!state) return;
+    state.value = '';
+    state.query = '';
+    const input = document.getElementById(containerId + '-input');
+    if(input) input.value = '';
+    smartSelectRefreshUI(containerId);
+    state.onChange('', null);
+}
+
+function smartSelectRefreshUI(containerId) {
+    const state = _smartSelects[containerId];
+    if(!state) return;
+    const ss = document.getElementById(containerId + '-ss');
+    if(!ss) return;
+    const selected = state.items.find(i => i.id === state.value);
+    const existingClear = ss.querySelector('.smart-select-clear');
+    if(selected && !existingClear) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'smart-select-clear';
+        btn.setAttribute('onclick', `smartSelectClear('${containerId}')`);
+        btn.title = 'Limpiar';
+        btn.textContent = '×';
+        ss.querySelector('.smart-select-input').after(btn);
+    } else if(!selected && existingClear) {
+        existingClear.remove();
+    }
+}
+
+function smartSelectGetValue(containerId) {
+    return _smartSelects[containerId]?.value || '';
+}
+
+function smartSelectSetValue(containerId, id) {
+    const state = _smartSelects[containerId];
+    if(!state) return;
+    state.value = id || '';
+    const item = state.items.find(i => i.id === id);
+    const input = document.getElementById(containerId + '-input');
+    if(input) input.value = item ? item.label : '';
+    smartSelectRefreshUI(containerId);
+}
+
+function smartSelectUpdateItems(containerId, items) {
+    const state = _smartSelects[containerId];
+    if(!state) return;
+    state.items = items;
+    smartSelectRenderDropdown(containerId);
+}
+
+function smartSelectCreate(containerId) {
+    const state = _smartSelects[containerId];
+    if(!state || !state.onCreate) return;
+    const q = state.query;
+    const ss = document.getElementById(containerId + '-ss');
+    if(ss) ss.classList.remove('open');
+    state.onCreate(q);
+}
 
 /* ============================================================
    IMPRESIÓN CENTRAL ESTABLE (evita congelamiento en kiosk)
@@ -2066,13 +2299,38 @@ function abrirLote(loteId) {
     document.getElementById('lt_notas').value = lote.notas || '';
     document.getElementById('lt_estado').value = lote.estado || 'Abierto';
     
-    // Cargar artículos al select
-    const selArt = document.getElementById('eq_articulo_id');
-    selArt.innerHTML = '<option value="">-- Seleccionar artículo --</option>' + 
-        cache.articulos.map(a => {
-            const llevaImei = a.lleva_imei !== false ? '' : ' [SIN IMEI]';
-            return `<option value="${a.id}" data-imei="${a.lleva_imei !== false ? 1 : 0}">${escapeHtml(a.codigo)} · ${escapeHtml(a.marca)} ${escapeHtml(a.modelo)} ${a.capacidad ? '· ' + escapeHtml(a.capacidad) : ''} ${a.referencia ? '· ' + escapeHtml(a.referencia) : ''}${llevaImei}</option>`;
-        }).join('');
+    // Smart-select de artículos
+    smartSelectInit({
+        containerId: 'ss-eq-articulo',
+        placeholder: '🔍 Buscar por código, marca, modelo o capacidad...',
+        items: (cache.articulos || []).filter(a => a.activo !== false).map(a => {
+            const llevaImei = a.lleva_imei !== false;
+            const partes = [a.marca, a.modelo, a.capacidad, a.referencia].filter(x => x);
+            return {
+                id: a.id,
+                label: `${a.codigo} · ${partes.join(' ')}`,
+                sub: llevaImei ? 'Lleva IMEI/Serial' : 'SIN IMEI',
+                meta: llevaImei ? '' : 'SIN IMEI',
+                search: [a.codigo, a.marca, a.modelo, a.capacidad, a.referencia].filter(x => x).join(' ').toLowerCase(),
+                _lleva_imei: llevaImei
+            };
+        }),
+        value: '',
+        onChange: (id, item) => {
+            // Cambia el label de IMEI según el artículo
+            const lbl = document.getElementById('lbl_eq_imei');
+            const inp = document.getElementById('eq_imei');
+            if(!lbl || !inp) return;
+            if(item && item._lleva_imei === false) {
+                lbl.textContent = 'Serial / Referencia (opcional)';
+                inp.placeholder = 'Sin IMEI - opcional';
+            } else {
+                lbl.textContent = 'IMEI / Serial *';
+                inp.placeholder = '358921...';
+            }
+            if(item) inp.focus();
+        }
+    });
     
     document.getElementById('eq_imei').value = '';
     document.getElementById('eq_costo').value = '';
@@ -2121,7 +2379,9 @@ function cambiarDimensionesLabelDiag() {
 }
 
 function onArticuloChange() {
+    // Función legacy - reemplazada por smart-select onChange
     const sel = document.getElementById('eq_articulo_id');
+    if(!sel) return;
     const lbl = document.getElementById('lbl_eq_imei');
     const inp = document.getElementById('eq_imei');
     const opt = sel.options[sel.selectedIndex];
@@ -2153,7 +2413,7 @@ async function guardarDatosLote() {
 
 async function agregarEquipoAlLote() {
     if(!loteActualId) return alert('Sin lote activo.');
-    const artId = val('eq_articulo_id');
+    const artId = smartSelectGetValue('ss-eq-articulo');
     const imei = val('eq_imei');
     const notas = val('eq_notas');
     
@@ -2192,7 +2452,8 @@ async function agregarEquipoAlLote() {
         document.getElementById('eq_imei').value = '';
         document.getElementById('eq_costo').value = '';
         document.getElementById('eq_notas').value = '';
-        document.getElementById('eq_articulo_id').focus();
+        smartSelectSetValue('ss-eq-articulo', '');
+        document.getElementById(`ss-eq-articulo-input`)?.focus();
         await loadAll();
     } catch(e) { logError('Agregar equipo al lote', e); alert(getFriendlyError(e)); }
 }
@@ -3313,10 +3574,19 @@ async function enviarLoteAReacond(loteId) {
 }
 
 function abrirModalNuevaCompra() {
-    // Cargar proveedores en el dropdown
-    const sel = document.getElementById('mod_compra_proveedor_id');
-    sel.innerHTML = '<option value="">-- Seleccionar proveedor --</option>' + 
-        cache.proveedores.map(p => `<option value="${p.id}">${escapeHtml(p.nombre)}${p.ciudad ? ' · ' + escapeHtml(p.ciudad) : ''}</option>`).join('');
+    // Inicializar smart-select de proveedores
+    smartSelectInit({
+        containerId: 'ss-compra-proveedor',
+        placeholder: '🔍 Buscar proveedor por nombre, ciudad o tipo...',
+        items: (cache.proveedores || []).map(p => ({
+            id: p.id,
+            label: p.nombre,
+            sub: [p.ciudad, p.tipo, p.whatsapp].filter(x => x).join(' · '),
+            search: [p.nombre, p.ciudad, p.tipo, p.contacto, p.whatsapp].filter(x => x).join(' ').toLowerCase()
+        })),
+        value: '',
+        onChange: () => {}
+    });
     
     document.getElementById('mod_compra_fecha').value = new Date().toISOString().slice(0, 10);
     document.getElementById('mod_compra_notas').value = '';
@@ -3329,7 +3599,7 @@ function cerrarModalNuevaCompra() {
 
 async function crearNuevaCompra() {
     try {
-        const provId = val('mod_compra_proveedor_id');
+        const provId = smartSelectGetValue('ss-compra-proveedor');
         if(!provId) return alert('Selecciona un proveedor.');
         
         const codigo = calcularSiguienteCodigoLote();
