@@ -561,6 +561,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.8.6/jsrsasign-all-min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
 
@@ -1171,6 +1172,14 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                                                 </select>
                                             </div>
                                             <small style="color:var(--text-muted); font-size:10px;">La calibración se guarda en este navegador.</small>
+                                            
+                                            <!-- Vista previa en vivo de la calibración -->
+                                            <div style="margin-top:12px; padding-top:10px; border-top:1px dashed var(--border-color);">
+                                                <div style="font-size:11px; font-weight:700; color:var(--blue-btn); margin-bottom:8px;"><i class="ti ti-eye"></i> VISTA PREVIA EN VIVO</div>
+                                                <div style="display:flex; justify-content:center; background:#e2e8f0; padding:12px; border-radius:8px;">
+                                                    <div id="dlblPreviewVivo" style="background:#fff; box-shadow:0 2px 8px rgba(0,0,0,0.15);"></div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </details>
                                     
@@ -3538,6 +3547,19 @@ function cambiarDimensionesLabelDiag() {
     localStorage.setItem('bayol_dlbl_h', h);
     localStorage.setItem('bayol_dlbl_f', f);
     localStorage.setItem('bayol_dlbl_rot', rot);
+    
+    // Vista previa en vivo con un equipo de ejemplo
+    const cont = document.getElementById('dlblPreviewVivo');
+    if(cont) {
+        const ejemplo = {
+            articulo_id: null,
+            marca: 'APPLE', modelo: 'IPHONE 12', capacidad: '128GB',
+            imei: '356789104567890', 
+            lote_id: null,
+            notas_diagnostico: 'PANTALLA ROTA, NO CARGA'
+        };
+        cont.innerHTML = generarHtmlLabelDiag(ejemplo);
+    }
 }
 
 function presetLabelDiag2x1() {
@@ -7463,20 +7485,20 @@ function generarHtmlLabelDiag(equipo) {
     const notas = (equipo.notas_diagnostico || '').toUpperCase();
     
     return `
-        <div class="diag-label" style="width:${w}mm; height:${h}mm; font-size:${f}px; padding:1mm; box-sizing:border-box; overflow:hidden; font-family:Arial,sans-serif; color:#000; page-break-after:always;">
-            <div class="diag-header" style="font-size:${parseInt(f) + 1}px; font-weight:bold; text-align:center; border-bottom:1px solid #000; padding-bottom:0.5mm; margin-bottom:0.5mm;">
+        <div class="diag-label" style="width:${w}mm; height:${h}mm; font-size:${f}px; line-height:1.25; padding:1mm; box-sizing:border-box; overflow:hidden; font-family:Arial,Helvetica,sans-serif; color:#000; page-break-after:always;">
+            <div class="diag-header" style="font-size:${f}px; font-weight:bold; text-align:center; border-bottom:1px solid #000; padding-bottom:0.5mm; margin-bottom:0.5mm; font-family:Arial,Helvetica,sans-serif;">
                 BAYOL CELL · DIAGNÓSTICO
             </div>
             <div class="diag-section" style="margin-bottom:0.5mm;">
-                <div class="diag-line diag-modelo" style="font-weight:bold;">${escapeHtml(marca)} ${escapeHtml(modelo)}</div>
-                <div class="diag-line">${escapeHtml(capacidad)}${referencia ? ' · ' + escapeHtml(referencia) : ''}</div>
+                <div class="diag-line diag-modelo" style="font-weight:bold; font-family:Arial,Helvetica,sans-serif;">${escapeHtml(marca)} ${escapeHtml(modelo)}</div>
+                <div class="diag-line" style="font-family:Arial,Helvetica,sans-serif;">${escapeHtml(capacidad)}${referencia ? ' · ' + escapeHtml(referencia) : ''}</div>
             </div>
             <div class="diag-section" style="margin-bottom:0.5mm;">
-                <div class="diag-line"><b>IMEI:</b> <span class="diag-imei" style="font-family:monospace;">${escapeHtml(imei)}</span></div>
-                <div class="diag-line"><b>LOTE:</b> ${escapeHtml(codigoLote)}</div>
-                <div class="diag-line"><b>FECHA:</b> ${escapeHtml(fecha)}</div>
+                <div class="diag-line" style="font-family:Arial,Helvetica,sans-serif;"><b>IMEI:</b> <span class="diag-imei" style="font-family:Arial,Helvetica,sans-serif; letter-spacing:0.3px;">${escapeHtml(imei)}</span></div>
+                <div class="diag-line" style="font-family:Arial,Helvetica,sans-serif;"><b>LOTE:</b> ${escapeHtml(codigoLote)}</div>
+                <div class="diag-line" style="font-family:Arial,Helvetica,sans-serif;"><b>FECHA:</b> ${escapeHtml(fecha)}</div>
             </div>
-            ${notas ? `<div class="diag-notas-area" style="border-top:1px dashed #000; padding-top:0.5mm; font-size:${parseInt(f)-1}px;"><b>NOTAS:</b> ${escapeHtml(notas)}</div>` : ''}
+            ${notas ? `<div class="diag-notas-area" style="border-top:1px dashed #000; padding-top:0.5mm; font-size:${f}px; font-family:Arial,Helvetica,sans-serif;"><b>NOTAS:</b> ${escapeHtml(notas)}</div>` : ''}
         </div>
     `;
 }
@@ -7525,14 +7547,39 @@ async function confirmarImprimirLabelDiag() {
     const w = parseInt(localStorage.getItem('bayol_dlbl_w') || '51');
     const h = parseInt(localStorage.getItem('bayol_dlbl_h') || '25');
     const rot = parseInt(localStorage.getItem('bayol_dlbl_rot') || '0');
-    const usarTSPL = localStorage.getItem('bayol_usar_tspl') !== 'no'; // TSPL por defecto
+    const metodo = localStorage.getItem('bayol_metodo_impresion') || 'imagen'; // imagen | tspl | normal
     cerrarModalLabelDiag();
     
-    // === MÉTODO TSPL (lenguaje nativo de la 4BARCODE) ===
-    if(usarTSPL && _qzConectado) {
+    // === MÉTODO IMAGEN (idéntico a la vista previa) — POR DEFECTO ===
+    if(metodo === 'imagen' && _qzConectado && typeof html2canvas === 'function') {
+        // Renderizar cada label en un contenedor oculto y mandarlo como imagen
+        const equipos = (_labelDiagEquiposLote && _labelDiagEquiposLote.length)
+            ? _labelDiagEquiposLote
+            : (_labelDiagEquipoActual ? [_labelDiagEquipoActual] : []);
+        if(equipos.length) {
+            let algunoOk = false;
+            for(const eq of equipos) {
+                // Crear elemento oculto con el HTML del label
+                const cont = document.createElement('div');
+                cont.style.position = 'fixed';
+                cont.style.left = '-9999px';
+                cont.style.top = '0';
+                cont.style.background = '#fff';
+                cont.innerHTML = generarHtmlLabelDiag(eq);
+                document.body.appendChild(cont);
+                const labelEl = cont.firstElementChild || cont;
+                const ok = await qzImprimirHtmlComoImagen(labelEl, w, h, copias, 'labels');
+                document.body.removeChild(cont);
+                if(ok) algunoOk = true;
+            }
+            if(algunoOk) { toast('🖨️ Enviado a la impresora (igual a la vista previa).'); return; }
+        }
+    }
+    
+    // === MÉTODO TSPL (nativo, respaldo) ===
+    if(metodo === 'tspl' && _qzConectado) {
         let cmd = '';
         if(_labelDiagEquiposLote && _labelDiagEquiposLote.length) {
-            // Todos los equipos del lote
             cmd = _labelDiagEquiposLote.map(e => generarTSPLLabelDiag(e, copias)).join('');
         } else if(_labelDiagEquipoActual) {
             cmd = generarTSPLLabelDiag(_labelDiagEquipoActual, copias);
@@ -7540,11 +7587,10 @@ async function confirmarImprimirLabelDiag() {
         if(cmd) {
             const ok = await qzImprimirRaw(cmd, 'labels');
             if(ok) { toast('🖨️ Enviado a la impresora (TSPL).'); return; }
-            // si falló TSPL, cae al método HTML abajo
         }
     }
     
-    // === MÉTODO HTML (respaldo) ===
+    // === MÉTODO NORMAL HTML (último respaldo) ===
     const { html: contenidoFinal, anchoFinal, altoFinal } = aplicarRotacionImpresion(_labelDiagHtmlActual, w, h, rot);
     const conPagina = `
         <style>
@@ -7832,6 +7878,56 @@ async function qzImprimirRaw(comandosTSPL, tipo) {
 
 function qzImpresoraTickets() {
     return localStorage.getItem('bayol_qz_tickets') || '';
+}
+
+/* ============================================================
+   IMPRESIÓN HTML → IMAGEN (idéntico a la vista previa)
+   Renderiza el HTML del label como imagen con html2canvas
+   y la manda a la impresora. Imprime EXACTO a lo que se ve.
+   ============================================================ */
+async function qzImprimirHtmlComoImagen(elementoHtml, anchoMm, altoMm, copias, tipo) {
+    if(!_qzConectado || !qzDisponible()) return false;
+    if(typeof html2canvas !== 'function') { 
+        console.log('html2canvas no cargado'); 
+        return false; 
+    }
+    const impresora = (tipo === 'tickets') ? qzImpresoraTickets() : qzImpresoraLabels();
+    if(!impresora) { toast('No hay impresora de labels configurada.'); return false; }
+    
+    copias = parseInt(copias) || 1;
+    
+    try {
+        // 203 dpi: 8 dots/mm. Renderizamos a esa densidad para nitidez.
+        const dpi = 203;
+        const escala = dpi / 96; // 96 = dpi base del navegador
+        
+        const canvas = await html2canvas(elementoHtml, {
+            scale: escala,
+            backgroundColor: '#ffffff',
+            logging: false,
+            useCORS: true
+        });
+        
+        const imgBase64 = canvas.toDataURL('image/png').split(',')[1];
+        
+        const opciones = { units: 'mm', margins: 0, copies: copias };
+        if(anchoMm && altoMm) opciones.size = { width: anchoMm, height: altoMm };
+        const config = qz.configs.create(impresora, opciones);
+        
+        const data = [{
+            type: 'pixel',
+            format: 'image',
+            flavor: 'base64',
+            data: imgBase64
+        }];
+        
+        await qz.print(config, data);
+        return true;
+    } catch(e) {
+        logError('QZ imprimir imagen', e);
+        toast('Error al imprimir imagen: ' + (e?.message || e));
+        return false;
+    }
 }
 
 // Imprime HTML directo por QZ Tray. tipo: 'labels' o 'tickets'. Devuelve true si lo hizo.
