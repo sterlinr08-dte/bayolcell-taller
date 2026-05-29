@@ -1847,6 +1847,34 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
     </div>
 </div>
 
+<!-- MODAL: REASIGNAR TÉCNICO -->
+<div id="modalReasignar" class="modal-backdrop">
+    <div class="modal-box" style="max-width:500px;">
+        <div class="modal-header" style="background:linear-gradient(135deg, #f59e0b, #d97706); color:#fff; border-radius:12px 12px 0 0;">
+            <h3 style="color:#fff;"><i class="ti ti-user-share"></i> Reasignar a otro técnico</h3>
+            <button class="modal-close" onclick="cerrarModalReasignar()" style="color:#fff;">✕</button>
+        </div>
+        <div class="modal-body">
+            <input id="reasig_equipo_id" type="hidden">
+            <div style="background:#fef3c7; border:1px solid #fcd34d; padding:10px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#92400e;">
+                <b><i class="ti ti-info-circle"></i> El equipo pasará al nuevo técnico</b>, quien deberá recibirlo (con las piezas actuales o limpio para otra reparación).
+            </div>
+            <div class="form-row">
+                <label>Nuevo técnico *</label>
+                <div id="ss-reasig-tecnico"></div>
+            </div>
+            <div class="form-row">
+                <label>Motivo de la reasignación *</label>
+                <textarea id="reasig_motivo" rows="2" placeholder="Ej: El técnico anterior está ocupado, requiere especialista, etc." style="resize:vertical;"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" onclick="cerrarModalReasignar()">Cancelar</button>
+            <button class="btn btn-blue" onclick="guardarReasignacion()" style="background:linear-gradient(180deg,#f59e0b,#d97706); box-shadow:0 4px 0 #b45309;"><i class="ti ti-user-share"></i> Reasignar</button>
+        </div>
+    </div>
+</div>
+
 <!-- MODAL: REGISTRAR DEVOLUCIÓN -->
 <div id="modalDevolucion" class="modal-backdrop">
     <div class="modal-box" style="max-width:850px; width:95%;">
@@ -2858,7 +2886,7 @@ function renderAll() {
     const setKpi = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
     setKpi('kdPend', refurb.filter(e => (e.estado_evaluacion || 'pendiente') === 'pendiente').length);
     setKpi('kdEval', refurb.filter(e => ['en_evaluacion','evaluado'].includes(e.estado_evaluacion)).length);
-    setKpi('kdProc', refurb.filter(e => ['en_proceso','tecnico_recibio','espera_pieza','listo_revision'].includes(e.estado_evaluacion)).length);
+    setKpi('kdProc', refurb.filter(e => ['en_proceso','tecnico_recibio','espera_pieza','listo_revision','reasignado'].includes(e.estado_evaluacion)).length);
     setKpi('kdListoV', refurb.filter(e => e.estado_evaluacion === 'listo_venta').length);
     setKpi('kdDesp', refurb.filter(e => e.estado_evaluacion === 'vendido').length);
     setKpi('kdDev', refurb.filter(e => (e.veces_devuelto || 0) > 0).length);
@@ -2940,7 +2968,7 @@ function irAEquipoDesdeBusqueda(equipoId) {
     // Ir al módulo reacond y abrir el panel apropiado
     nav('refurb');
     setTimeout(() => {
-        if(['en_proceso','tecnico_recibio','espera_pieza','listo_revision','listo_venta','vendido'].includes(estado)) {
+        if(['en_proceso','tecnico_recibio','espera_pieza','listo_revision','listo_venta','vendido','reasignado'].includes(estado)) {
             abrirPanelProceso(equipoId);
         } else if(['en_evaluacion','evaluado'].includes(estado)) {
             abrirModalEvaluacion(equipoId);
@@ -3674,7 +3702,7 @@ function cargarLotesReacond() {
         const pendientes = equipos.filter(e => (e.estado_evaluacion || 'pendiente') === 'pendiente').length;
         const enEval = equipos.filter(e => e.estado_evaluacion === 'en_evaluacion').length;
         const evaluados = equipos.filter(e => e.estado_evaluacion === 'evaluado').length;
-        const enProceso = equipos.filter(e => ['en_proceso','tecnico_recibio','espera_pieza','listo_revision'].includes(e.estado_evaluacion)).length;
+        const enProceso = equipos.filter(e => ['en_proceso','tecnico_recibio','espera_pieza','listo_revision','reasignado'].includes(e.estado_evaluacion)).length;
         const listoVenta = equipos.filter(e => e.estado_evaluacion === 'listo_venta').length;
         const vendidos = equipos.filter(e => e.estado_evaluacion === 'vendido').length;
         const total = equipos.length;
@@ -3856,6 +3884,10 @@ function renderEquipoReacondCard(eq, num) {
         badgeColor = 'background:#fed7aa; color:#9a3412;';
         badgeText = '🔧 En Proceso';
         accionBtn = `<button class="btn btn-dark" style="padding:8px 14px; background:#9a3412;" onclick="abrirPanelProceso('${eq.id}')"><i class="ti ti-tool"></i> Trabajar</button>`;
+    } else if(estado === 'reasignado') {
+        badgeColor = 'background:#fef3c7; color:#92400e;';
+        badgeText = '👥 Reasignado';
+        accionBtn = `<button class="btn btn-dark" style="padding:8px 14px; background:#f59e0b;" onclick="abrirPanelProceso('${eq.id}')"><i class="ti ti-package"></i> Recibir</button>`;
     } else if(estado === 'tecnico_recibio') {
         badgeColor = 'background:#bfdbfe; color:#1e40af;';
         badgeText = '📦 Técnico recibió';
@@ -4983,6 +5015,8 @@ async function abrirPanelProceso(equipoId) {
     const tecnico = eq.tecnico_asignado_id ? (cache.tecnicos || []).find(t => t.id === eq.tecnico_asignado_id) : null;
     const estado = eq.estado_evaluacion || 'en_proceso';
     const esEquipoDevuelto = (eq.veces_devuelto || 0) > 0;
+    const estaReasignado = estado === 'reasignado';
+    const tecnicoAnterior = eq.tecnico_anterior_id ? (cache.tecnicos || []).find(t => t.id === eq.tecnico_anterior_id) : null;
     
     // ====== STEPPER VISUAL ======
     // Definir el orden de pasos
@@ -5052,11 +5086,17 @@ async function abrirPanelProceso(equipoId) {
         const estaEntregada = p.estado === 'entregada' || p.estado === 'aprobada';
         const estaRecibida = p.estado === 'recibida';
         const estaPendienteAdmin = p.estado === 'pendiente' || p.estado === 'extra_pendiente';
+        const devolucionPendiente = p.estado === 'devolucion_pendiente';
+        const estaDevuelta = p.estado === 'devuelta';
         
         // === COLUMNA ADMIN (entregó pieza) ===
         let adminCol = '';
         if(esRechazada) {
             adminCol = `<div class="pieza-status-col pendiente">❌ Pieza rechazada</div>`;
+        } else if(estaDevuelta) {
+            adminCol = `<div class="pieza-status-col" style="background:#e0e7ff; color:#3730a3;"><i class="ti ti-rotate-2"></i> Devuelta al inventario</div>`;
+        } else if(devolucionPendiente) {
+            adminCol = `<div class="pieza-status-col esperando">🔄 Devolución solicitada</div>`;
         } else if(esExtraNoAprobado) {
             adminCol = `<div class="pieza-status-col esperando">⚠️ Extra pendiente de aprobación</div>`;
         } else if(estaEntregada || estaRecibida) {
@@ -5069,6 +5109,10 @@ async function abrirPanelProceso(equipoId) {
         let tecCol = '';
         if(esRechazada) {
             tecCol = `<div class="pieza-status-col pendiente">—</div>`;
+        } else if(estaDevuelta) {
+            tecCol = `<div class="pieza-status-col" style="background:#e0e7ff; color:#3730a3;">Pieza devuelta</div>`;
+        } else if(devolucionPendiente) {
+            tecCol = `<div class="pieza-status-col esperando">⏳ Esperando aprobación admin</div>`;
         } else if(esExtraNoAprobado) {
             tecCol = `<div class="pieza-status-col pendiente">—</div>`;
         } else if(estaRecibida) {
@@ -5084,16 +5128,24 @@ async function abrirPanelProceso(equipoId) {
         if(esExtraNoAprobado) {
             botones.push(`<button class="pieza-action-btn" onclick="aprobarPiezaExtra('${p.id}')" style="background:linear-gradient(180deg,#10b981,#059669); color:#fff; border-color:#047857; box-shadow:0 3px 0 #047857;"><i class="ti ti-check"></i> Admin: Aprobar pieza extra</button>`);
             botones.push(`<button class="pieza-action-btn" onclick="rechazarPiezaExtra('${p.id}')" style="background:#fee2e2; color:#991b1b;"><i class="ti ti-x"></i> Rechazar</button>`);
+        } else if(devolucionPendiente) {
+            // Admin debe aprobar/rechazar la devolución
+            botones.push(`<div style="background:#fef3c7; border:1px solid #fcd34d; border-radius:6px; padding:8px; margin-top:6px; font-size:11px; color:#92400e;"><b>Motivo devolución:</b> ${escapeHtml(p.motivo_devolucion_pieza || 'Sin motivo')}</div>`);
+            botones.push(`<button class="pieza-action-btn" onclick="aprobarDevolucionPieza('${p.id}')" style="background:linear-gradient(180deg,#6366f1,#4338ca); color:#fff; border-color:#3730a3; box-shadow:0 3px 0 #3730a3;"><i class="ti ti-check"></i> Admin: Aprobar devolución</button>`);
+            botones.push(`<button class="pieza-action-btn" onclick="rechazarDevolucionPieza('${p.id}')" style="background:#fee2e2; color:#991b1b;"><i class="ti ti-x"></i> Rechazar devolución</button>`);
         } else if(p.estado === 'pendiente') {
             botones.push(`<button class="pieza-action-btn entregar" onclick="marcarPiezaEntregada('${p.id}')"><i class="ti ti-truck"></i> Admin: Marcar como ENTREGADA</button>`);
         } else if(p.estado === 'entregada' || p.estado === 'aprobada') {
             botones.push(`<button class="pieza-action-btn recibir" onclick="marcarPiezaRecibida('${p.id}')"><i class="ti ti-check"></i> Técnico: Confirmo RECIBIDA</button>`);
+        } else if(estaRecibida) {
+            // Pieza recibida → el técnico puede solicitar devolverla
+            botones.push(`<button class="pieza-action-btn" onclick="solicitarDevolucionPieza('${p.id}')" style="background:#fff; color:#6366f1; border:1px solid #c4b5fd;"><i class="ti ti-rotate-2"></i> Devolver esta pieza</button>`);
         }
         
         return `<div class="pieza-card" data-item-id="${p.id}">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
                 <div style="flex:1; min-width:0;">
-                    <b style="font-size:14px;">${escapeHtml(p.pieza_nombre || 'Pieza')} ×${p.cantidad || 1}</b>
+                    <b style="font-size:14px; ${estaDevuelta ? 'text-decoration:line-through; color:#94a3b8;' : ''}">${escapeHtml(p.pieza_nombre || 'Pieza')} ×${p.cantidad || 1}</b>
                     ${esExtra ? '<span class="badge" style="background:#fbbf24; color:#78350f; margin-left:6px; font-size:10px;">EXTRA</span>' : ''}
                     <div style="font-size:11px; color:#64748b; margin-top:2px;">${money((p.cantidad||1)*(p.costo_unitario||0))}</div>
                 </div>
@@ -5157,6 +5209,29 @@ async function abrirPanelProceso(equipoId) {
                 <button class="btn btn-light" onclick="agregarPiezaExtra('${equipoId}')" style="width:100%; margin-top:10px; padding:12px;">
                     <i class="ti ti-plus"></i> Agregar pieza adicional
                 </button>
+                
+                ${estaReasignado ? `
+                    <div style="background:linear-gradient(135deg, #fef3c7, #fde68a); border:2px solid #f59e0b; padding:16px; border-radius:12px; margin-top:18px; box-shadow:0 4px 12px rgba(245,158,11,0.2);">
+                        <b style="color:#78350f;"><i class="ti ti-user-share"></i> Equipo reasignado</b>
+                        <p style="font-size:12px; color:#92400e; margin:8px 0;">
+                            Este equipo te fue reasignado${tecnicoAnterior ? ` (antes lo tenía <b>${escapeHtml(tecnicoAnterior.nombre)}</b>)` : ''}.
+                            ${eq.motivo_reasignacion ? `<br><b>Motivo:</b> ${escapeHtml(eq.motivo_reasignacion)}` : ''}
+                        </p>
+                        <p style="font-size:12px; color:#92400e; margin:8px 0;">¿Cómo quieres recibirlo?</p>
+                        <button onclick="recibirEquipoReasignado('${equipoId}', 'con_piezas')" style="background:linear-gradient(180deg,#10b981,#059669); color:#fff; border:0; padding:12px; border-radius:10px; cursor:pointer; font-weight:700; width:100%; box-shadow:0 4px 0 #047857; margin-bottom:8px;">
+                            <i class="ti ti-package"></i> Recibir CON las piezas actuales
+                        </button>
+                        <button onclick="recibirEquipoReasignado('${equipoId}', 'limpio')" style="background:linear-gradient(180deg,#3b82f6,#1e40af); color:#fff; border:0; padding:12px; border-radius:10px; cursor:pointer; font-weight:700; width:100%; box-shadow:0 4px 0 #1e3a8a;">
+                            <i class="ti ti-refresh"></i> Recibir equipo LIMPIO (otra reparación)
+                        </button>
+                    </div>
+                ` : ''}
+                
+                ${(!estaReasignado && estado !== 'listo_venta' && estado !== 'vendido') ? `
+                    <button class="btn btn-light" onclick="abrirModalReasignar('${equipoId}')" style="width:100%; margin-top:10px; padding:12px; background:#fef3c7; color:#92400e; border:1px solid #fcd34d;">
+                        <i class="ti ti-user-share"></i> Reasignar a otro técnico
+                    </button>
+                ` : ''}
                 
                 ${estado === 'listo_revision' ? `
                     <div style="background:linear-gradient(135deg, #fef3c7, #fde68a); border:2px solid #f59e0b; padding:16px; border-radius:12px; margin-top:18px; box-shadow:0 4px 12px rgba(245, 158, 11, 0.2);">
@@ -5241,6 +5316,193 @@ async function marcarPiezaRecibida(piezaId) {
         if(_panelProcesoEquipoId) abrirPanelProceso(_panelProcesoEquipoId);
     } catch(e) {
         logError('Marcar pieza recibida', e);
+        alert(getFriendlyError(e));
+    }
+}
+
+/* ---------- DEVOLUCIÓN DE PIEZAS ---------- */
+async function solicitarDevolucionPieza(piezaId) {
+    const motivo = prompt('¿Por qué devuelves esta pieza?\n(Ej: No se necesitó, pieza defectuosa, sobró...)');
+    if(motivo === null) return; // canceló
+    if(!motivo.trim()) return alert('Debes indicar un motivo para devolver la pieza.');
+    try {
+        const { error } = await supabaseClient.from('equipo_piezas_pedidas').update({
+            estado: 'devolucion_pendiente',
+            devolucion_solicitada: true,
+            motivo_devolucion_pieza: motivo.trim(),
+            fecha_solicitud_devolucion: new Date().toISOString()
+        }).eq('id', piezaId);
+        if(error) throw error;
+        toast('🔄 Devolución solicitada. Esperando aprobación del admin.');
+        if(_panelProcesoEquipoId) abrirPanelProceso(_panelProcesoEquipoId);
+    } catch(e) {
+        logError('Solicitar devolución pieza', e);
+        alert(getFriendlyError(e));
+    }
+}
+
+async function aprobarDevolucionPieza(piezaId) {
+    if(!confirm('¿Aprobar la devolución de esta pieza?\n\nLa pieza se marcará como devuelta y se descontará del costo del equipo.')) return;
+    try {
+        // Obtener la pieza para saber su costo y equipo
+        const { data: pieza, error: e0 } = await supabaseClient.from('equipo_piezas_pedidas').select('*').eq('id', piezaId).single();
+        if(e0) throw e0;
+        
+        // Marcar como devuelta
+        const { error: e1 } = await supabaseClient.from('equipo_piezas_pedidas').update({
+            estado: 'devuelta'
+        }).eq('id', piezaId);
+        if(e1) throw e1;
+        
+        // Descontar del costo de repuestos del equipo
+        if(pieza && pieza.equipo_id) {
+            const eq = (cache.refurb || []).find(r => r.id === pieza.equipo_id);
+            if(eq) {
+                const costoPieza = (pieza.cantidad || 1) * (pieza.costo_unitario || 0);
+                const nuevoCostoRepuestos = Math.max(0, (eq.costo_repuestos || 0) - costoPieza);
+                await supabaseClient.from('equipos_refurbish').update({ costo_repuestos: nuevoCostoRepuestos }).eq('id', pieza.equipo_id);
+                // Historial
+                await supabaseClient.from('equipo_historial').insert([{
+                    equipo_id: pieza.equipo_id, estado_anterior: 'pieza_entregada', estado_nuevo: 'pieza_devuelta',
+                    accion: `🔄 Pieza devuelta: ${pieza.pieza_nombre} (−${money(costoPieza)})`,
+                    notas: pieza.motivo_devolucion_pieza || null,
+                    usuario: sessionUser?.nombre || 'Admin'
+                }]);
+            }
+        }
+        
+        toast('✅ Devolución aprobada. Pieza devuelta y costo actualizado.');
+        await loadAll();
+        if(_panelProcesoEquipoId) abrirPanelProceso(_panelProcesoEquipoId);
+    } catch(e) {
+        logError('Aprobar devolución pieza', e);
+        alert(getFriendlyError(e));
+    }
+}
+
+async function rechazarDevolucionPieza(piezaId) {
+    if(!confirm('¿Rechazar la devolución? La pieza vuelve a estar como recibida.')) return;
+    try {
+        const { error } = await supabaseClient.from('equipo_piezas_pedidas').update({
+            estado: 'recibida',
+            devolucion_solicitada: false
+        }).eq('id', piezaId);
+        if(error) throw error;
+        toast('La devolución fue rechazada. La pieza sigue asignada.');
+        if(_panelProcesoEquipoId) abrirPanelProceso(_panelProcesoEquipoId);
+    } catch(e) {
+        logError('Rechazar devolución pieza', e);
+        alert(getFriendlyError(e));
+    }
+}
+
+/* ---------- REASIGNACIÓN A OTRO TÉCNICO ---------- */
+function abrirModalReasignar(equipoId) {
+    document.getElementById('reasig_equipo_id').value = equipoId;
+    document.getElementById('reasig_motivo').value = '';
+    
+    const eq = (cache.refurb || []).find(r => r.id === equipoId);
+    const tecnicosActivos = (cache.tecnicos || []).filter(t => t.activo && t.id !== eq?.tecnico_asignado_id);
+    
+    smartSelectInit({
+        containerId: 'ss-reasig-tecnico',
+        placeholder: '🔍 Buscar técnico...',
+        items: tecnicosActivos.map(t => ({
+            id: t.id,
+            label: t.nombre,
+            sub: [t.especialidad, t.telefono].filter(x => x).join(' · '),
+            search: [t.nombre, t.especialidad].filter(x => x).join(' ').toLowerCase(),
+            meta: t.rol === 'admin' ? 'ADMIN' : ''
+        })),
+        value: '',
+        onChange: () => {}
+    });
+    
+    document.getElementById('modalReasignar').classList.add('active');
+    if(typeof inyectarBotonesVolver === 'function') inyectarBotonesVolver();
+}
+
+function cerrarModalReasignar() {
+    document.getElementById('modalReasignar').classList.remove('active');
+}
+
+async function guardarReasignacion() {
+    const equipoId = document.getElementById('reasig_equipo_id').value;
+    const motivo = document.getElementById('reasig_motivo').value.trim();
+    const nuevoTecnicoId = smartSelectGetValue('ss-reasig-tecnico');
+    
+    if(!equipoId) return alert('No hay equipo.');
+    if(!nuevoTecnicoId) return alert('Selecciona el nuevo técnico.');
+    if(!motivo) return alert('Indica el motivo de la reasignación.');
+    
+    const eq = (cache.refurb || []).find(r => r.id === equipoId);
+    if(!eq) return;
+    const nuevoTec = (cache.tecnicos || []).find(t => t.id === nuevoTecnicoId);
+    
+    try {
+        const { error } = await supabaseClient.from('equipos_refurbish').update({
+            estado_evaluacion: 'reasignado',
+            tecnico_anterior_id: eq.tecnico_asignado_id || null,
+            tecnico_asignado_id: nuevoTecnicoId,
+            fecha_reasignacion: new Date().toISOString(),
+            motivo_reasignacion: motivo
+        }).eq('id', equipoId);
+        if(error) throw error;
+        
+        await supabaseClient.from('equipo_historial').insert([{
+            equipo_id: equipoId, estado_anterior: eq.estado_evaluacion, estado_nuevo: 'reasignado',
+            accion: `👥 Reasignado a ${nuevoTec?.nombre || 'otro técnico'}`,
+            notas: motivo,
+            usuario: sessionUser?.nombre || 'Admin'
+        }]);
+        
+        toast(`👥 Equipo reasignado a ${nuevoTec?.nombre || 'el técnico'}.`);
+        cerrarModalReasignar();
+        cerrarPanelProceso();
+        await loadAll();
+        if(reacondLoteAbiertoId) renderDetalleLoteReacond();
+    } catch(e) {
+        logError('Guardar reasignación', e);
+        alert(getFriendlyError(e));
+    }
+}
+
+async function recibirEquipoReasignado(equipoId, modo) {
+    const eq = (cache.refurb || []).find(r => r.id === equipoId);
+    if(!eq) return;
+    
+    const mensaje = modo === 'limpio'
+        ? '¿Recibir el equipo LIMPIO? Las piezas anteriores se marcarán como no usadas en esta nueva reparación.'
+        : '¿Recibir el equipo CON las piezas actuales para continuar la reparación?';
+    if(!confirm(mensaje)) return;
+    
+    try {
+        // El equipo pasa a "en_proceso" con el nuevo técnico
+        const { error } = await supabaseClient.from('equipos_refurbish').update({
+            estado_evaluacion: 'en_proceso',
+            fecha_asignacion: new Date().toISOString()
+        }).eq('id', equipoId);
+        if(error) throw error;
+        
+        // Si recibe limpio, marcar las piezas actuales como devueltas (no usadas)
+        if(modo === 'limpio') {
+            await supabaseClient.from('equipo_piezas_pedidas')
+                .update({ estado: 'devuelta' })
+                .eq('equipo_id', equipoId)
+                .in('estado', ['recibida', 'entregada', 'aprobada', 'pendiente']);
+        }
+        
+        await supabaseClient.from('equipo_historial').insert([{
+            equipo_id: equipoId, estado_anterior: 'reasignado', estado_nuevo: 'en_proceso',
+            accion: modo === 'limpio' ? '📦 Equipo recibido LIMPIO (nueva reparación)' : '📦 Equipo recibido con piezas actuales',
+            usuario: sessionUser?.nombre || 'Técnico'
+        }]);
+        
+        toast(modo === 'limpio' ? '📦 Equipo recibido limpio. Puedes solicitar piezas nuevas.' : '📦 Equipo recibido con sus piezas.');
+        await loadAll();
+        if(_panelProcesoEquipoId) abrirPanelProceso(_panelProcesoEquipoId);
+    } catch(e) {
+        logError('Recibir equipo reasignado', e);
         alert(getFriendlyError(e));
     }
 }
@@ -5617,7 +5879,8 @@ function obtenerEtiquetaEstado(estado) {
         'espera_pieza': { text: '⏳ Espera pieza', bg:'#fde68a', color:'#92400e' },
         'listo_revision': { text: '👁️ Revisión final', bg:'#e9d5ff', color:'#6b21a8' },
         'listo_venta': { text: '🛒 Listo Venta', bg:'#ddd6fe', color:'#5b21b6' },
-        'vendido': { text: '✅ Despachado', bg:'#d1fae5', color:'#065f46' }
+        'vendido': { text: '✅ Despachado', bg:'#d1fae5', color:'#065f46' },
+        'reasignado': { text: '👥 Reasignado', bg:'#fef3c7', color:'#92400e' }
     };
     return map[estado] || { text: estado, bg:'#f1f5f9', color:'#64748b' };
 }
