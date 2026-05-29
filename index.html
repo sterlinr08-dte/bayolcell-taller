@@ -1394,7 +1394,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                     <div class="card">
                         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
                             <h3 style="margin:0;"><i class="ti ti-users" style="color:var(--blue-btn);"></i> Técnicos del Taller</h3>
-                            <button id="btnNuevoTecnico" class="btn btn-blue" onclick="abrirModalTecnico()"><i class="ti ti-plus"></i> Nuevo Técnico</button>
+                            <button id="btnNuevoTecnico" class="btn btn-blue" onclick="abrirModalTecnico()"><i class="ti ti-plus"></i> Nuevo Empleado</button>
                         </div>
                         <div style="background:#dbeafe; border:1px solid #93c5fd; padding:10px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#1e40af;">
                             <b><i class="ti ti-info-circle"></i> Aquí gestionas los técnicos que trabajarán los equipos.</b> Asígnales un rol para definir qué pueden hacer.
@@ -1567,11 +1567,19 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
 <div id="modalTecnico" class="modal-backdrop">
     <div class="modal-box">
         <div class="modal-header">
-            <h3><i class="ti ti-user-plus"></i> <span id="modalTecnicoTitulo">Nuevo Técnico</span></h3>
+            <h3><i class="ti ti-user-plus"></i> <span id="modalTecnicoTitulo">Nuevo Empleado</span></h3>
             <button class="modal-close" onclick="cerrarModalTecnico()">✕</button>
         </div>
         <div class="modal-body">
             <input id="mod_tec_id" type="hidden">
+            <div class="form-row">
+                <label>Tipo de empleado *</label>
+                <select id="mod_tec_tipo" onchange="actualizarCamposPorTipoEmpleado()">
+                    <option value="tecnico">🔧 Técnico (repara equipos)</option>
+                    <option value="servicio">🧑‍💼 Servicio al Cliente (recibe y entrega)</option>
+                </select>
+                <small style="color:var(--text-muted); font-size:11px;">El técnico procesa reparaciones. Servicio al cliente recibe clientes y crea órdenes.</small>
+            </div>
             <div class="form-row">
                 <label>Nombre completo *</label>
                 <input id="mod_tec_nombre" placeholder="Ej. Juan Pérez" style="text-transform:uppercase;">
@@ -4892,7 +4900,7 @@ function renderTecnicos() {
     if(!cont) return;
     const tecnicos = cache.tecnicos || [];
     if(tecnicos.length === 0) {
-        cont.innerHTML = `<p style="color:var(--text-muted); text-align:center; padding:30px; font-size:13px;">No hay técnicos registrados. Crea el primero con "+ Nuevo Técnico".</p>`;
+        cont.innerHTML = `<p style="color:var(--text-muted); text-align:center; padding:30px; font-size:13px;">No hay empleados registrados. Crea el primero con "+ Nuevo Empleado".</p>`;
         return;
     }
     cont.innerHTML = tecnicos.map(t => {
@@ -4902,6 +4910,9 @@ function renderTecnicos() {
         const activoBadge = t.activo 
             ? '<span class="badge" style="background:#d1fae5; color:#065f46;">Activo</span>'
             : '<span class="badge" style="background:#fee2e2; color:#991b1b;">Inactivo</span>';
+        const tipoBadge = (t.tipo_empleado === 'servicio')
+            ? '<span class="badge" style="background:#cffafe; color:#0e7490;"><i class="ti ti-headset"></i> Servicio al Cliente</span>'
+            : '<span class="badge" style="background:#e0e7ff; color:#3730a3;"><i class="ti ti-tool"></i> Técnico</span>';
         const rolPersonalizado = t.rol_id ? (_rolesCache || []).find(r => r.id === t.rol_id) : null;
         const rolPersonalBadge = rolPersonalizado 
             ? `<span class="badge" style="background:#ede9fe; color:#5b21b6;"><i class="ti ti-shield"></i> ${escapeHtml(rolPersonalizado.nombre)}</span>` 
@@ -4914,6 +4925,7 @@ function renderTecnicos() {
                 <div style="flex:1; min-width:200px;">
                     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                         <b style="font-size:15px;">${escapeHtml(t.nombre)}</b>
+                        ${tipoBadge}
                         ${rolBadge}
                         ${rolPersonalBadge}
                         ${loginBadge}
@@ -4947,6 +4959,7 @@ function llenarSelectorRolesTecnico(selectedRolId) {
 
 function abrirModalTecnico() {
     document.getElementById('mod_tec_id').value = '';
+    document.getElementById('mod_tec_tipo').value = 'tecnico';
     document.getElementById('mod_tec_nombre').value = '';
     document.getElementById('mod_tec_telefono').value = '';
     document.getElementById('mod_tec_especialidad').value = '';
@@ -4955,7 +4968,8 @@ function abrirModalTecnico() {
     document.getElementById('mod_tec_usuario').value = '';
     document.getElementById('mod_tec_clave').value = '';
     document.getElementById('mod_tec_activo').checked = true;
-    document.getElementById('modalTecnicoTitulo').textContent = 'Nuevo Técnico';
+    document.getElementById('modalTecnicoTitulo').textContent = 'Nuevo Empleado';
+    actualizarCamposPorTipoEmpleado();
     // Cargar roles antes de abrir
     if(_rolesCache.length === 0) {
         cargarRoles().then(() => llenarSelectorRolesTecnico(''));
@@ -4965,10 +4979,19 @@ function abrirModalTecnico() {
     document.getElementById('modalTecnico').classList.add('active');
 }
 
+// Ajusta los campos visibles según el tipo de empleado
+function actualizarCamposPorTipoEmpleado() {
+    const tipo = document.getElementById('mod_tec_tipo')?.value || 'tecnico';
+    const espRow = document.getElementById('mod_tec_especialidad')?.closest('.form-row');
+    // La especialidad solo aplica a técnicos
+    if(espRow) espRow.style.display = (tipo === 'tecnico') ? '' : 'none';
+}
+
 function editarTecnico(id) {
     const t = (cache.tecnicos || []).find(x => x.id === id);
     if(!t) return;
     document.getElementById('mod_tec_id').value = t.id;
+    document.getElementById('mod_tec_tipo').value = t.tipo_empleado || 'tecnico';
     document.getElementById('mod_tec_nombre').value = t.nombre || '';
     document.getElementById('mod_tec_telefono').value = t.telefono || '';
     document.getElementById('mod_tec_especialidad').value = t.especialidad || '';
@@ -4977,7 +5000,8 @@ function editarTecnico(id) {
     document.getElementById('mod_tec_usuario').value = t.usuario || '';
     document.getElementById('mod_tec_clave').value = ''; // nunca mostrar la clave actual
     document.getElementById('mod_tec_activo').checked = t.activo !== false;
-    document.getElementById('modalTecnicoTitulo').textContent = 'Editar Técnico';
+    document.getElementById('modalTecnicoTitulo').textContent = 'Editar Empleado';
+    actualizarCamposPorTipoEmpleado();
     if(_rolesCache.length === 0) {
         cargarRoles().then(() => llenarSelectorRolesTecnico(t.rol_id || ''));
     } else {
@@ -5000,6 +5024,7 @@ async function guardarTecnico() {
     
     const datos = {
         nombre,
+        tipo_empleado: document.getElementById('mod_tec_tipo').value || 'tecnico',
         telefono: document.getElementById('mod_tec_telefono').value.trim() || null,
         especialidad: document.getElementById('mod_tec_especialidad').value.trim() || null,
         rol: document.getElementById('mod_tec_rol').value,
@@ -5022,12 +5047,12 @@ async function guardarTecnico() {
         if(id) {
             const { error } = await supabaseClient.from('tecnicos').update(datos).eq('id', id);
             if(error) throw error;
-            toast('✅ Técnico actualizado.');
+            toast('✅ Empleado actualizado.');
         } else {
             const { data, error } = await supabaseClient.from('tecnicos').insert([datos]).select().single();
             if(error) throw error;
             nuevoId = data?.id;
-            toast('✅ Técnico creado.');
+            toast('✅ Empleado creado.');
         }
         cerrarModalTecnico();
         await loadAll();
