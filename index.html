@@ -2671,6 +2671,14 @@ function permBtn(permiso, htmlBoton) {
 // Alias legible
 function puedeVer(permiso) { return tienePermiso(permiso); }
 
+// Verifica que sea admin (o tenga permiso de aprobar) antes de una acción de gestión.
+// Devuelve true si puede; si no, avisa y devuelve false. Defensa en profundidad.
+function soloAdmin(accion) {
+    if(isAdminUser() || tienePermiso('piezas_aprobar_extra')) return true;
+    alert(`Solo el administrador puede ${accion || 'realizar esta acción'}. El técnico no tiene este permiso.`);
+    return false;
+}
+
 /* ============================================================
    CAMBIAR CONTRASEÑA
    ============================================================ */
@@ -5286,7 +5294,8 @@ async function abrirPanelProceso(equipoId) {
                     </button>
                 ` : ''}
                 
-                ${estado === 'listo_revision' ? `
+                ${estado === 'listo_revision' ? (
+                    puedeRecibirReasignado || tienePermiso('piezas_aprobar_extra') ? `
                     <div style="background:linear-gradient(135deg, #fef3c7, #fde68a); border:2px solid #f59e0b; padding:16px; border-radius:12px; margin-top:18px; box-shadow:0 4px 12px rgba(245, 158, 11, 0.2);">
                         <b style="color:#78350f;"><i class="ti ti-shield-check"></i> Aprobación del Administrador</b>
                         <p style="font-size:12px; color:#92400e; margin:8px 0;">El técnico marcó este equipo en revisión final. Revísalo y aprueba para que pase a Listo Venta.</p>
@@ -5294,7 +5303,13 @@ async function abrirPanelProceso(equipoId) {
                             <i class="ti ti-check"></i> APROBAR → Listo para Venta
                         </button>
                     </div>
-                ` : ''}
+                    ` : `
+                    <div style="background:#f1f5f9; border:1px solid #cbd5e1; padding:14px; border-radius:12px; margin-top:18px; text-align:center;">
+                        <b style="color:#475569;"><i class="ti ti-clock"></i> En revisión final</b>
+                        <p style="font-size:12px; color:#64748b; margin:6px 0 0;">Este equipo está esperando que el <b>administrador</b> lo apruebe.</p>
+                    </div>
+                    `
+                ) : ''}
             </div>
             <div class="modal-footer">
                 <button class="btn btn-light" onclick="cerrarPanelProceso()">Cerrar</button>
@@ -5345,6 +5360,7 @@ async function cambiarEstadoProceso(equipoId, nuevoEstado) {
 }
 
 async function marcarPiezaEntregada(piezaId) {
+    if(!soloAdmin('entregar piezas')) return;
     try {
         const { error } = await supabaseClient.from('equipo_piezas_pedidas').update({ 
             estado: 'entregada', 
@@ -5395,6 +5411,7 @@ async function solicitarDevolucionPieza(piezaId) {
 }
 
 async function aprobarDevolucionPieza(piezaId) {
+    if(!soloAdmin('aprobar devoluciones de piezas')) return;
     if(!confirm('¿Aprobar la devolución de esta pieza?\n\nLa pieza se marcará como devuelta y se descontará del costo del equipo.')) return;
     try {
         // Obtener la pieza para saber su costo y equipo
@@ -5434,6 +5451,7 @@ async function aprobarDevolucionPieza(piezaId) {
 }
 
 async function rechazarDevolucionPieza(piezaId) {
+    if(!soloAdmin('rechazar devoluciones de piezas')) return;
     if(!confirm('¿Rechazar la devolución? La pieza vuelve a estar como recibida.')) return;
     try {
         const { error } = await supabaseClient.from('equipo_piezas_pedidas').update({
@@ -5567,6 +5585,7 @@ async function recibirEquipoReasignado(equipoId, modo) {
 }
 
 async function aprobarPiezaExtra(piezaId) {
+    if(!soloAdmin('aprobar piezas extra')) return;
     try {
         const { error } = await supabaseClient.from('equipo_piezas_pedidas').update({ 
             estado: 'aprobada', 
@@ -5582,6 +5601,7 @@ async function aprobarPiezaExtra(piezaId) {
 }
 
 async function rechazarPiezaExtra(piezaId) {
+    if(!soloAdmin('rechazar piezas extra')) return;
     if(!confirm('¿Rechazar esta pieza extra?')) return;
     try {
         const { error } = await supabaseClient.from('equipo_piezas_pedidas').update({ estado: 'rechazada' }).eq('id', piezaId);
@@ -5621,6 +5641,10 @@ async function agregarPiezaExtra(equipoId) {
 }
 
 async function aprobarTerminado(equipoId) {
+    // Solo el admin (o quien tenga permiso de aprobar) puede aprobar. No juez y parte.
+    if(!isAdminUser() && !tienePermiso('piezas_aprobar_extra')) {
+        return alert('Solo el administrador puede aprobar equipos. El técnico no puede aprobar su propio trabajo.');
+    }
     if(!confirm('¿Aprobar este equipo como TERMINADO y pasarlo a LISTO PARA VENTA?')) return;
     try {
         const { error } = await supabaseClient.from('equipos_refurbish').update({ 
@@ -5644,6 +5668,9 @@ async function aprobarTerminado(equipoId) {
 }
 
 async function marcarDespachado(equipoId) {
+    if(!isAdminUser() && !tienePermiso('estado_despachar')) {
+        return alert('No tienes permiso para despachar equipos.');
+    }
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return;
     if(!confirm(`¿Marcar "${eq.modelo}" como DESPACHADO?\n\nEsto significa que el equipo fue vendido/entregado al cliente.`)) return;
@@ -7720,7 +7747,7 @@ async function qzImprimirHtml(htmlContenido, anchoMm, altoMm, copias, tipo) {
     copias = parseInt(copias) || 1;
     
     try {
-        const opciones = { units: 'mm', margins: 0, copies: copias };
+        const opciones = { units: 'mm', margins: 0, copies: copias, rasterize: true, scaleContent: true };
         // Los labels tienen tamaño fijo; los tickets usan ancho de rollo con alto automático
         if(tipo !== 'tickets' && anchoMm && altoMm) {
             opciones.size = { width: anchoMm, height: altoMm };
@@ -7730,8 +7757,9 @@ async function qzImprimirHtml(htmlContenido, anchoMm, altoMm, copias, tipo) {
         const config = qz.configs.create(impresora, opciones);
         
         const data = [{
-            type: 'html',
-            format: 'plain',
+            type: 'pixel',
+            format: 'html',
+            flavor: 'plain',
             data: htmlContenido
         }];
         
