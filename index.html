@@ -3559,7 +3559,36 @@ function cambiarDimensionesLabelDiag() {
             lote_id: null,
             notas_diagnostico: 'PANTALLA ROTA, NO CARGA'
         };
+        // 1. HTML rápido
         cont.innerHTML = generarHtmlLabelDiag(ejemplo);
+        // 2. Imagen real con debounce (lo que se imprime exacto)
+        if(_dlblPreviewDebounce) clearTimeout(_dlblPreviewDebounce);
+        _dlblPreviewDebounce = setTimeout(() => renderPreviewDiagImagenReal(ejemplo, w, h), 400);
+    }
+}
+
+let _dlblPreviewDebounce = null;
+async function renderPreviewDiagImagenReal(ejemplo, w, h) {
+    if(typeof html2canvas !== 'function') return;
+    const cont = document.getElementById('dlblPreviewVivo');
+    if(!cont) return;
+    try {
+        const tmp = document.createElement('div');
+        tmp.style.position = 'fixed';
+        tmp.style.left = '-9999px';
+        tmp.style.top = '0';
+        tmp.style.background = '#fff';
+        tmp.innerHTML = generarHtmlLabelDiag(ejemplo);
+        document.body.appendChild(tmp);
+        const labelEl = tmp.firstElementChild || tmp;
+        const escala = 203 / 96;
+        const canvas = await html2canvas(labelEl, { scale: escala, backgroundColor: '#ffffff', logging: false, useCORS: true });
+        document.body.removeChild(tmp);
+        const ratio = parseFloat(h) / parseFloat(w);
+        const anchoPreview = 220;
+        cont.innerHTML = `<img src="${canvas.toDataURL('image/png')}" style="width:${anchoPreview}px; height:${Math.round(anchoPreview*ratio)}px; display:block;" />`;
+    } catch(e) {
+        console.log('Preview diag imagen real:', e);
     }
 }
 
@@ -5854,12 +5883,14 @@ function generarHtmlLabelVenta() {
                 ${clase ? `<div style="font-size:${f-1}px; font-weight:bold; margin-top:1mm;">${escapeHtml(clase)}</div>` : ''}
             </div>
             <div style="display:flex; flex-direction:column; align-items:center;">
-                ${barcodeImg ? `<img src="${barcodeImg}" style="max-width:95%; height:${bh}px; object-fit:contain;" />` : `<div style="font-size:${f}px;">${escapeHtml(imei)}</div>`}
+                ${barcodeImg ? `<img src="${barcodeImg}" style="width:auto; max-width:100%; height:${bh}px; display:block;" />` : `<div style="font-size:${f}px;">${escapeHtml(imei)}</div>`}
                 <div style="font-size:${Math.max(7, f-2)}px; font-weight:600; letter-spacing:1px; margin-top:0.5mm;">${escapeHtml(imei)}</div>
             </div>
         </div>
     `;
 }
+
+let _lvPreviewDebounce = null;
 
 function renderPreviewLabelVenta() {
     const w = document.getElementById('lv_width').value;
@@ -5873,7 +5904,46 @@ function renderPreviewLabelVenta() {
     document.getElementById('lv_bh_val').textContent = bh + 'px';
     
     const preview = document.getElementById('lv_preview_card');
-    if(preview) preview.innerHTML = generarHtmlLabelVenta();
+    if(!preview) return;
+    
+    // 1. Mostrar el HTML de inmediato (respuesta rápida al mover sliders)
+    preview.style.border = '1px dashed #94a3b8';
+    preview.innerHTML = generarHtmlLabelVenta();
+    
+    // 2. Con debounce, reemplazar por la IMAGEN REAL (lo que se imprime exacto)
+    if(_lvPreviewDebounce) clearTimeout(_lvPreviewDebounce);
+    _lvPreviewDebounce = setTimeout(() => renderPreviewVentaImagenReal(w, h), 400);
+}
+
+// Genera la imagen real (igual a la impresión) y la muestra en el preview
+async function renderPreviewVentaImagenReal(w, h) {
+    if(typeof html2canvas !== 'function') return;
+    const preview = document.getElementById('lv_preview_card');
+    if(!preview) return;
+    
+    try {
+        // Crear el label en un contenedor oculto
+        const cont = document.createElement('div');
+        cont.style.position = 'fixed';
+        cont.style.left = '-9999px';
+        cont.style.top = '0';
+        cont.style.background = '#fff';
+        cont.innerHTML = generarHtmlLabelVenta();
+        document.body.appendChild(cont);
+        const labelEl = cont.firstElementChild || cont;
+        
+        const dpi = 203, escala = dpi / 96;
+        const canvas = await html2canvas(labelEl, { scale: escala, backgroundColor: '#ffffff', logging: false, useCORS: true });
+        document.body.removeChild(cont);
+        
+        // Mostrar la imagen real escalada al preview (manteniendo proporción real ancho:alto)
+        const ratio = parseFloat(h) / parseFloat(w);
+        const anchoPreview = 240; // px en pantalla
+        preview.innerHTML = `<img src="${canvas.toDataURL('image/png')}" style="width:${anchoPreview}px; height:${Math.round(anchoPreview * ratio)}px; display:block;" />`;
+    } catch(e) {
+        console.log('Preview imagen real:', e);
+        // si falla, se queda el HTML que ya pusimos
+    }
 }
 
 async function imprimirLabelVenta() {
