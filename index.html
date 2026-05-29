@@ -39,12 +39,17 @@ input, select, textarea { width: 100%; border: 1px solid var(--border-color); ba
 input:focus, select:focus, textarea:focus { border-color: var(--blue-btn); box-shadow: 0 0 0 3px rgba(0,86,179,0.15); }
 input[disabled] { background-color: #f1f5f9; color: #94a3b8; cursor: not-allowed; }
 
-.btn { border: 0; border-radius: 8px; padding: 11px 16px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; text-shadow: 0 1px 1px rgba(0,0,0,0.1); }
-.btn-blue { background: linear-gradient(180deg, #0066cc 0%, #0044aa 100%); color: #fff; box-shadow: 0 2px 4px rgba(0,68,170,0.3); }
-.btn-blue:hover { background: linear-gradient(180deg, #0077ee 0%, #0055cc 100%); }
-.btn-dark { background: #1e293b; color: #fff; border: 1px solid #334155; }
-.btn-light { background: #fff; border: 1px solid var(--border-color); color: var(--text-dark); text-shadow: none; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-.btn-light:hover { background: #f8fafc; }
+.btn { border: 0; border-radius: 10px; padding: 12px 18px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; text-shadow: 0 1px 1px rgba(0,0,0,0.1); transition: all 0.15s ease; transform: translateY(0); }
+.btn:active { transform: translateY(2px); }
+.btn-blue { background: linear-gradient(180deg, #1e88e5 0%, #1565c0 100%); color: #fff; box-shadow: 0 4px 0 #0d47a1, 0 5px 10px rgba(0,68,170,0.3); }
+.btn-blue:hover { background: linear-gradient(180deg, #2196f3 0%, #1976d2 100%); box-shadow: 0 4px 0 #0d47a1, 0 6px 14px rgba(0,68,170,0.4); }
+.btn-blue:active { box-shadow: 0 2px 0 #0d47a1, 0 3px 6px rgba(0,68,170,0.3); }
+.btn-dark { background: linear-gradient(180deg, #334155 0%, #1e293b 100%); color: #fff; box-shadow: 0 4px 0 #0f172a, 0 5px 10px rgba(0,0,0,0.2); }
+.btn-dark:hover { background: linear-gradient(180deg, #475569 0%, #334155 100%); }
+.btn-dark:active { box-shadow: 0 2px 0 #0f172a, 0 3px 6px rgba(0,0,0,0.2); }
+.btn-light { background: linear-gradient(180deg, #fff 0%, #f1f5f9 100%); border: 1px solid var(--border-color); color: var(--text-dark); text-shadow: none; box-shadow: 0 3px 0 #cbd5e1, 0 4px 8px rgba(0,0,0,0.05); }
+.btn-light:hover { background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%); }
+.btn-light:active { box-shadow: 0 1px 0 #cbd5e1, 0 2px 4px rgba(0,0,0,0.05); }
 .err { display: none; background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; padding: 10px; border-radius: 8px; font-size: 13px; margin-bottom: 15px; text-align: left; }
 
 .app { display: none; height: 100vh; }
@@ -146,7 +151,9 @@ tr:hover td { background: #f8fafc; }
 .modal-box { background: #fff; border-radius: 12px; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.4); }
 .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; background: #0033aa; color: #fff; border-radius: 12px 12px 0 0; }
 .modal-header h3 { margin: 0; font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-.modal-close { background: rgba(255,255,255,0.15); border: 0; color: #fff; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; }
+.modal-close { background: rgba(255,255,255,0.25); border: 2px solid rgba(255,255,255,0.4); color: #fff; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 18px; font-weight: bold; display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0; }
+.modal-close:hover { background: rgba(255,255,255,0.4); transform: scale(1.1); }
+.modal-close:active { transform: scale(0.95); }
 .modal-body { padding: 20px; }
 .modal-footer { padding: 12px 20px; border-top: 1px solid var(--border-color); display: flex; gap: 10px; justify-content: flex-end; background: #f8fafc; border-radius: 0 0 12px 12px; }
 
@@ -691,9 +698,12 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                         <div class="form-row"><label>Texto de Estado / Pie de Impresión</label><input id="lbl_estado_texto" value="" placeholder="Ej. CLASE A / AVISO BAT / AVISO PANT" oninput="actualizarLabelLive()"></div>
                         
                         <hr style="border:0; border-top:1px solid var(--border-color); margin:20px 0;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:6px;">
                             <h4 style="margin:0; font-size:12px; color:var(--blue-btn); text-transform:uppercase;">Calibración de Dimensiones</h4>
-                            <button class="btn btn-light" style="padding:4px 10px; font-size:11px;" onclick="presetLabel2x1()"><i class="ti ti-ruler-2"></i> Preset 2x1"</button>
+                            <div style="display:flex; gap:4px;">
+                                <button class="btn btn-light" style="padding:4px 10px; font-size:11px;" onclick="presetLabel2x1()"><i class="ti ti-ruler-2"></i> Preset 2x1"</button>
+                                <button class="btn btn-light" style="padding:4px 10px; font-size:11px;" onclick="presetLabel1x2()"><i class="ti ti-ruler-3"></i> Preset 1x2"</button>
+                            </div>
                         </div>
                         
                         <div class="form-row">
@@ -988,6 +998,10 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                                     <details style="margin-top:15px; background:#f8fafc; border:1px solid var(--border-color); border-radius:8px; padding:10px;">
                                         <summary style="cursor:pointer; font-weight:700; font-size:12px; color:var(--blue-btn); text-transform:uppercase;"><i class="ti ti-adjustments"></i> Calibración de Labels de Diagnóstico</summary>
                                         <div style="margin-top:10px;">
+                                            <div style="display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap;">
+                                                <button class="btn btn-light" style="padding:6px 10px; font-size:11px; flex:1;" onclick="presetLabelDiag2x1()"><i class="ti ti-ruler-2"></i> Preset 2x1"</button>
+                                                <button class="btn btn-light" style="padding:6px 10px; font-size:11px; flex:1;" onclick="presetLabelDiag1x2()"><i class="ti ti-ruler-3"></i> Preset 1x2"</button>
+                                            </div>
                                             <div class="form-row">
                                                 <div style="display:flex; justify-content:space-between;"><label>Ancho (mm)</label><span id="dlbl_w_val" style="font-size:11px; font-weight:bold;">51mm</span></div>
                                                 <input type="range" id="dlbl_width" min="20" max="100" value="51" oninput="cambiarDimensionesLabelDiag()">
@@ -2678,6 +2692,22 @@ function cambiarDimensionesLabelDiag() {
     localStorage.setItem('bayol_dlbl_h', h);
     localStorage.setItem('bayol_dlbl_f', f);
     localStorage.setItem('bayol_dlbl_rot', rot);
+}
+
+function presetLabelDiag2x1() {
+    document.getElementById('dlbl_width').value = 51;
+    document.getElementById('dlbl_height').value = 25;
+    document.getElementById('dlbl_font').value = 9;
+    cambiarDimensionesLabelDiag();
+    toast('Preset 2x1 pulgadas aplicado (51×25mm).');
+}
+
+function presetLabelDiag1x2() {
+    document.getElementById('dlbl_width').value = 25;
+    document.getElementById('dlbl_height').value = 51;
+    document.getElementById('dlbl_font').value = 8;
+    cambiarDimensionesLabelDiag();
+    toast('Preset 1x2 pulgadas aplicado (25×51mm).');
 }
 
 function onArticuloChange() {
@@ -4557,6 +4587,15 @@ function presetLabel2x1() {
     toast('Preset 2x1 pulgadas aplicado.');
 }
 
+function presetLabel1x2() {
+    document.getElementById("cfg_width").value = 25;
+    document.getElementById("cfg_height").value = 51;
+    document.getElementById("cfg_font").value = 9;
+    document.getElementById("cfg_barcode_h").value = 30;
+    cambiarDimensionesManual();
+    toast('Preset 1x2 pulgadas aplicado.');
+}
+
 /* Envuelve un contenido en un wrapper rotado para imprimir.
    En 90°/270° INTERCAMBIA W×H del papel (porque el papel físico cambia de orientación).
    Devuelve { html, anchoFinal, altoFinal } con las dimensiones FINALES del papel. */
@@ -5045,7 +5084,8 @@ document.getElementById('modalConfigImpresora')?.addEventListener('click', e => 
 function generarHtmlLabelDiag(equipo) {
     const art = findArticulo(equipo.articulo_id);
     const lote = cache.lotes.find(l => l.id === equipo.lote_id);
-    const w = localStorage.getItem('bayol_dlbl_w') || '58';
+    const w = localStorage.getItem('bayol_dlbl_w') || '51';
+    const h = localStorage.getItem('bayol_dlbl_h') || '25';
     const f = localStorage.getItem('bayol_dlbl_f') || '10';
     
     const marca = (art.marca || equipo.marca || '').toUpperCase();
@@ -5058,20 +5098,20 @@ function generarHtmlLabelDiag(equipo) {
     const notas = (equipo.notas_diagnostico || '').toUpperCase();
     
     return `
-        <div class="diag-label" style="width:${w}mm; font-size:${f}px;">
-            <div class="diag-header" style="font-size:${parseInt(f) + 2}px;">
+        <div class="diag-label" style="width:${w}mm; height:${h}mm; font-size:${f}px; padding:1mm; box-sizing:border-box; overflow:hidden; font-family:Arial,sans-serif; color:#000; page-break-after:always;">
+            <div class="diag-header" style="font-size:${parseInt(f) + 1}px; font-weight:bold; text-align:center; border-bottom:1px solid #000; padding-bottom:0.5mm; margin-bottom:0.5mm;">
                 BAYOL CELL · DIAGNÓSTICO
             </div>
-            <div class="diag-section">
-                <div class="diag-line diag-modelo">${escapeHtml(marca)} ${escapeHtml(modelo)}</div>
+            <div class="diag-section" style="margin-bottom:0.5mm;">
+                <div class="diag-line diag-modelo" style="font-weight:bold;">${escapeHtml(marca)} ${escapeHtml(modelo)}</div>
                 <div class="diag-line">${escapeHtml(capacidad)}${referencia ? ' · ' + escapeHtml(referencia) : ''}</div>
             </div>
-            <div class="diag-section">
-                <div class="diag-line"><b>IMEI:</b> <span class="diag-imei">${escapeHtml(imei)}</span></div>
+            <div class="diag-section" style="margin-bottom:0.5mm;">
+                <div class="diag-line"><b>IMEI:</b> <span class="diag-imei" style="font-family:monospace;">${escapeHtml(imei)}</span></div>
                 <div class="diag-line"><b>LOTE:</b> ${escapeHtml(codigoLote)}</div>
                 <div class="diag-line"><b>FECHA:</b> ${escapeHtml(fecha)}</div>
             </div>
-            ${notas ? `<div class="diag-notas-area"><b>NOTAS:</b><br>${escapeHtml(notas)}</div>` : ''}
+            ${notas ? `<div class="diag-notas-area" style="border-top:1px dashed #000; padding-top:0.5mm; font-size:${parseInt(f)-1}px;"><b>NOTAS:</b> ${escapeHtml(notas)}</div>` : ''}
         </div>
     `;
 }
