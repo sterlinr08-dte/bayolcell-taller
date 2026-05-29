@@ -456,6 +456,9 @@ mark.ss-hl { background: #fef08a; color: inherit; padding: 0 1px; border-radius:
 
 /* ========== ICONOS FLOTANTES CON SOMBRA ========== */
 .ti { filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15)); }
+/* Iconos medianos en botones y pestañas */
+.btn .ti, .tab-btn .ti, .reacond-main-tab .ti, .cfg-main-tab .ti, .eval-tab .ti, .modal-back-btn .ti { font-size: 17px !important; vertical-align: middle; }
+.btn { line-height: 1.2; }
 .btn-blue .ti, .btn-dark .ti, button[style*="background:linear-gradient"] .ti { 
     filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3)); 
 }
@@ -485,6 +488,18 @@ mark.ss-hl { background: #fef08a; color: inherit; padding: 0 1px; border-radius:
 .btn-orientacion:active { transform: translateY(0); box-shadow: 0 1px 0 #cbd5e1, 0 2px 4px rgba(0,0,0,0.05) !important; }
 .btn-orientacion.activo { background: linear-gradient(180deg, #dbeafe 0%, #bfdbfe 100%) !important; border-color: #1e40af !important; box-shadow: 0 4px 0 #1e3a8a, 0 5px 12px rgba(30, 64, 175, 0.3) !important; }
 .btn-orientacion.activo b { color: #1e3a8a !important; }
+
+/* ========== ANIMACIÓN ITEMS NUEVOS ========== */
+@keyframes itemFadeIn { 
+    from { opacity: 0; transform: translateY(-8px); background: #dbeafe; } 
+    to { opacity: 1; transform: translateY(0); } 
+}
+.item-nuevo { animation: itemFadeIn 0.6s ease-out; }
+@keyframes flashHighlight {
+    0% { background: #dbeafe; box-shadow: 0 0 0 3px rgba(37,99,235,0.4); }
+    100% { background: inherit; box-shadow: none; }
+}
+.item-flash { animation: flashHighlight 1.5s ease-out; }
 
 /* ========== CHECKBOXES NORMALIZADOS (fix móvil) ========== */
 input[type="checkbox"]:not(.no-norm) { -webkit-appearance: none; appearance: none; width: 20px !important; height: 20px !important; border: 2px solid #cbd5e1; border-radius: 5px; background: #fff; cursor: pointer; position: relative; flex-shrink: 0; vertical-align: middle; margin: 0; transition: all 0.15s; }
@@ -1184,7 +1199,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                                 🛒 Listo Venta <span id="cntListoVenta" class="badge" style="background:#ddd6fe; color:#5b21b6; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
                             </button>
                             <button class="tab-btn" data-tab="terminados" onclick="cambiarTabReacond('terminados')" style="padding:11px 14px; cursor:pointer; font-weight:700; white-space:nowrap; font-size:13px;">
-                                ✅ Vendidos <span id="cntTerminados" class="badge" style="background:#d1fae5; color:#065f46; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
+                                ✅ Despachado <span id="cntTerminados" class="badge" style="background:#d1fae5; color:#065f46; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
                             </button>
                         </div>
                         
@@ -1865,6 +1880,26 @@ function getChecked(id) { return [...document.querySelectorAll("#" + id + " inpu
 function val(id) { return document.getElementById(id)?.value?.trim() || ""; }
 
 /* ============================================================
+   RESALTAR ITEM NUEVO con animación + scroll suave
+   ============================================================ */
+function resaltarItemNuevo(itemId) {
+    if(!itemId) return;
+    // Espera un tick para que el DOM se actualice tras el render
+    setTimeout(() => {
+        const elementos = document.querySelectorAll(`[data-item-id="${itemId}"]`);
+        elementos.forEach(el => {
+            el.classList.add('item-nuevo');
+            // Hacer scroll suave hacia el item
+            try {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } catch(e) { /* algunos browsers viejos */ }
+            // Quitar la clase después de la animación
+            setTimeout(() => el.classList.remove('item-nuevo'), 700);
+        });
+    }, 100);
+}
+
+/* ============================================================
    SMART SELECT - Buscador inteligente reutilizable
    ============================================================ */
 const _smartSelects = {}; // Registro de smart-selects activos por containerId
@@ -2406,7 +2441,7 @@ function renderArticulos() {
         const badgeImei = llevaImei 
             ? `<span class="badge" style="background:#dbeafe; color:#1e40af;">SÍ</span>`
             : `<span class="badge" style="background:#fef3c7; color:#92400e;">NO</span>`;
-        return `<tr>
+        return `<tr data-item-id="${a.id}">
             <td data-label="Código"><code style="font-weight:700; color:var(--blue-btn); text-transform:uppercase;">${escapeHtml(a.codigo)}</code></td>
             <td data-label="Marca"><b style="text-transform:uppercase;">${escapeHtml(a.marca)}</b></td>
             <td data-label="Modelo" style="text-transform:uppercase;">${escapeHtml(a.modelo)}</td>
@@ -2468,19 +2503,22 @@ async function guardarArticuloModal() {
             referencia: val('mod_art_referencia') || null,
             lleva_imei: document.getElementById('mod_art_lleva_imei').checked
         };
+        let nuevoId = id;
         if(id) {
             const { error } = await supabaseClient.from('articulos').update(data).eq('id', id);
             if(error) throw error;
-            toast('Artículo actualizado.');
+            toast('✅ Artículo actualizado.');
         } else {
             data.codigo = calcularSiguienteCodigoArticulo();
             data.activo = true;
-            const { error } = await supabaseClient.from('articulos').insert([data]);
+            const { data: ins, error } = await supabaseClient.from('articulos').insert([data]).select().single();
             if(error) throw error;
-            toast(`Artículo ${data.codigo} creado.`);
+            nuevoId = ins?.id;
+            toast(`✅ Artículo ${data.codigo} creado.`);
         }
         cerrarModalArticulo();
         await loadAll();
+        resaltarItemNuevo(nuevoId);
     } catch(e) { logError('Guardar artículo', e); alert(getFriendlyError(e)); }
 }
 
@@ -2489,7 +2527,7 @@ async function eliminarArticulo(id) {
     try {
         const { error } = await supabaseClient.from('articulos').update({ activo: false }).eq('id', id);
         if(error) throw error;
-        toast('Artículo desactivado.');
+        toast('🗑️ Artículo desactivado.');
         await loadAll();
     } catch(e) { logError('Desactivar artículo', e); alert(getFriendlyError(e)); }
 }
@@ -2523,7 +2561,7 @@ function renderProveedores() {
         else if(p.confiabilidad === 'Regular') confStyle = 'background:#fef3c7; color:#92400e;';
         else if(p.confiabilidad === 'Mala') confStyle = 'background:#fee2e2; color:#991b1b;';
         const ini = (p.nombre || '?').charAt(0).toUpperCase();
-        return `<div class="prov-card">
+        return `<div class="prov-card" data-item-id="${p.id}">
             <div class="prov-avatar">${escapeHtml(ini)}</div>
             <div class="prov-info">
                 <h4>${escapeHtml(p.nombre)}</h4>
@@ -2585,18 +2623,21 @@ async function guardarProveedorModal() {
             confiabilidad: document.getElementById('mod_prov_confiabilidad').value,
             notas: val('mod_prov_notas') || null
         };
+        let nuevoId = id;
         if(id) {
             const { error } = await supabaseClient.from('proveedores').update(data).eq('id', id);
             if(error) throw error;
-            toast('Proveedor actualizado.');
+            toast('✅ Proveedor actualizado.');
         } else {
             data.activo = true;
-            const { error } = await supabaseClient.from('proveedores').insert([data]);
+            const { data: ins, error } = await supabaseClient.from('proveedores').insert([data]).select().single();
             if(error) throw error;
-            toast('Proveedor creado.');
+            nuevoId = ins?.id;
+            toast('✅ Proveedor creado.');
         }
         cerrarModalProveedor();
         await loadAll();
+        resaltarItemNuevo(nuevoId);
     } catch(e) { logError('Guardar proveedor', e); alert(getFriendlyError(e)); }
 }
 
@@ -2605,7 +2646,7 @@ async function eliminarProveedor(id) {
     try {
         const { error } = await supabaseClient.from('proveedores').update({ activo: false }).eq('id', id);
         if(error) throw error;
-        toast('Proveedor desactivado.');
+        toast('🗑️ Proveedor desactivado.');
         await loadAll();
     } catch(e) { logError('Desactivar proveedor', e); alert(getFriendlyError(e)); }
 }
@@ -3055,7 +3096,7 @@ function renderLotesReacondTab(lotesConEstado) {
             ? 'No hay lotes en proceso de reparación.'
             : reacondTabActual === 'listo_venta'
             ? 'No hay lotes con equipos listos para venta.'
-            : 'No hay lotes con equipos vendidos.';
+            : 'No hay lotes con equipos despachados.';
         cont.innerHTML = `<p style="color:var(--text-muted); text-align:center; padding:30px; font-size:13px;">${msg}</p>`;
         return;
     }
@@ -3206,7 +3247,7 @@ function renderEquipoReacondCard(eq, num) {
                      <button class="btn btn-light" style="padding:8px 12px;" onclick="abrirPanelProceso('${eq.id}')" title="Ver detalles"><i class="ti ti-eye"></i></button>`;
     } else if(estado === 'vendido') {
         badgeColor = 'background:#d1fae5; color:#065f46;';
-        badgeText = '✅ Vendido';
+        badgeText = '✅ Despachado';
         accionBtn = `<button class="btn btn-light" style="padding:8px 12px;" onclick="abrirPanelProceso('${eq.id}')"><i class="ti ti-eye"></i> Ver</button>`;
     } else {
         badgeColor = 'background:#f1f5f9; color:#64748b;';
@@ -3340,7 +3381,7 @@ function renderCatalogoFallas() {
                 </div>
                 <div style="padding-left:8px;">
                     ${lista.map(f => `
-                        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-bottom:1px solid #f1f5f9; gap:8px;">
+                        <div data-item-id="${f.id}" style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-bottom:1px solid #f1f5f9; gap:8px;">
                             <div style="flex:1; min-width:0;">
                                 <div style="font-size:13px; ${f.activa ? '' : 'text-decoration:line-through; color:var(--text-muted);'}">${escapeHtml(f.nombre)}</div>
                                 <div style="font-size:10px; color:#6366f1; font-weight:700; margin-top:2px;">${escapeHtml(f.nombre_corto || '')}</div>
@@ -3440,17 +3481,20 @@ async function guardarFalla() {
     const datos = { categoria_id, nombre, nombre_corto, descripcion, activa };
     
     try {
+        let nuevoId = id;
         if(id) {
             const { error } = await supabaseClient.from('fallas').update(datos).eq('id', id);
             if(error) throw error;
-            toast('Falla actualizada.');
+            toast('✅ Falla actualizada.');
         } else {
-            const { error } = await supabaseClient.from('fallas').insert([datos]);
+            const { data, error } = await supabaseClient.from('fallas').insert([datos]).select().single();
             if(error) throw error;
-            toast('Falla creada.');
+            nuevoId = data?.id;
+            toast('✅ Falla creada.');
         }
         cerrarModalFalla();
         await cargarCatalogoFallas();
+        resaltarItemNuevo(nuevoId);
     } catch(e) {
         logError('Guardar falla', e);
         alert(getFriendlyError(e));
@@ -3464,7 +3508,7 @@ async function eliminarFalla(id) {
     try {
         const { error } = await supabaseClient.from('fallas').delete().eq('id', id);
         if(error) throw error;
-        toast('Falla eliminada.');
+        toast('🗑️ Falla eliminada.');
         await cargarCatalogoFallas();
     } catch(e) {
         logError('Eliminar falla', e);
@@ -3952,7 +3996,7 @@ function renderTecnicos() {
         const activoBadge = t.activo 
             ? '<span class="badge" style="background:#d1fae5; color:#065f46;">Activo</span>'
             : '<span class="badge" style="background:#fee2e2; color:#991b1b;">Inactivo</span>';
-        return `<div style="background:#fff; border:1px solid var(--border-color); border-radius:8px; padding:14px; margin-bottom:8px;">
+        return `<div data-item-id="${t.id}" style="background:#fff; border:1px solid var(--border-color); border-radius:8px; padding:14px; margin-bottom:8px;">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
                 <div style="flex:1; min-width:200px;">
                     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
@@ -4020,17 +4064,21 @@ async function guardarTecnico() {
     };
     
     try {
+        let nuevoId = id;
         if(id) {
             const { error } = await supabaseClient.from('tecnicos').update(datos).eq('id', id);
             if(error) throw error;
-            toast('Técnico actualizado.');
+            toast('✅ Técnico actualizado.');
         } else {
-            const { error } = await supabaseClient.from('tecnicos').insert([datos]);
+            const { data, error } = await supabaseClient.from('tecnicos').insert([datos]).select().single();
             if(error) throw error;
-            toast('Técnico creado.');
+            nuevoId = data?.id;
+            toast('✅ Técnico creado.');
         }
         cerrarModalTecnico();
         await loadAll();
+        renderTecnicos();
+        resaltarItemNuevo(nuevoId);
     } catch(e) {
         logError('Guardar técnico', e);
         alert(getFriendlyError(e));
@@ -4044,8 +4092,9 @@ async function eliminarTecnico(id) {
     try {
         const { error } = await supabaseClient.from('tecnicos').delete().eq('id', id);
         if(error) throw error;
-        toast('Técnico eliminado.');
+        toast('🗑️ Técnico eliminado.');
         await loadAll();
+        renderTecnicos();
     } catch(e) {
         logError('Eliminar técnico', e);
         alert(getFriendlyError(e));
