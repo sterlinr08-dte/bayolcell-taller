@@ -7136,7 +7136,63 @@ function limpiarRecepcion() {
 
 function startAppRefurbPoller() {
     if(refreshTimer) clearInterval(refreshTimer);
-    refreshTimer = setInterval(() => { if(sessionUser) loadAll(); }, 30000);
+    // RESPALDO: poller cada 30s (funciona aunque Realtime no esté activo).
+    // Solo recarga si NO hay un modal abierto (para no interrumpir formularios).
+    refreshTimer = setInterval(() => {
+        if(sessionUser && !hayModalAbierto()) loadAll();
+    }, 30000);
+    // Intentar activar Supabase Realtime (tiempo real de verdad)
+    iniciarRealtime();
+}
+
+// Detecta si hay algún modal abierto (para no interrumpir al usuario)
+function hayModalAbierto() {
+    return document.querySelector('.modal-backdrop.active') !== null;
+}
+
+let _realtimeChannel = null;
+let _realtimeDebounce = null;
+
+function iniciarRealtime() {
+    // Si ya hay un canal, no duplicar
+    if(_realtimeChannel) return;
+    if(!supabaseClient || typeof supabaseClient.channel !== 'function') return;
+    
+    try {
+        // Escuchar cambios en TODAS las tablas principales
+        _realtimeChannel = supabaseClient
+            .channel('bayol-realtime')
+            .on('postgres_changes', { event: '*', schema: 'public' }, (payload) => {
+                // Recarga inteligente: con debounce para no saturar,
+                // y sin interrumpir si hay un modal abierto
+                onCambioRealtime(payload);
+            })
+            .subscribe((status) => {
+                if(status === 'SUBSCRIBED') {
+                    console.log('✅ Realtime activo - cambios en tiempo real');
+                }
+            });
+    } catch(e) {
+        // Si Realtime no está activo en Supabase, el poller de respaldo sigue funcionando
+        console.log('Realtime no disponible, usando poller de respaldo.');
+    }
+}
+
+function onCambioRealtime(payload) {
+    // Debounce: si llegan varios cambios juntos, esperar y recargar una sola vez
+    if(_realtimeDebounce) clearTimeout(_realtimeDebounce);
+    _realtimeDebounce = setTimeout(() => {
+        // No recargar si el usuario está escribiendo en un modal
+        if(hayModalAbierto()) return;
+        if(sessionUser) loadAll();
+    }, 800);
+}
+
+function detenerRealtime() {
+    if(_realtimeChannel) {
+        try { supabaseClient.removeChannel(_realtimeChannel); } catch(e) {}
+        _realtimeChannel = null;
+    }
 }
 
 // Cerrar modales con tecla Escape
