@@ -563,6 +563,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.8.6/jsrsasign-all-min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -605,6 +606,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
             <button id="menu-articulos" onclick="nav('articulos',this)"><i class="ti ti-database"></i> Catálogo de Artículos</button>
             <button id="menu-proveedores" onclick="nav('proveedores',this)"><i class="ti ti-shopping-cart"></i> Compras</button>
             <button id="menu-refurb" onclick="nav('refurb',this)"><i class="ti ti-refresh"></i> Reacondicionados</button>
+            <button id="menu-reportes" onclick="nav('reportes',this)"><i class="ti ti-chart-bar"></i> Reportes</button>
             <button id="menu-configuracion" onclick="nav('configuracion',this)"><i class="ti ti-adjustments"></i> Configuración</button>
         </div>
         <div class="side-bottom-logo">
@@ -1382,6 +1384,21 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                     </div>
                 </div>
                 <!-- /CONTENIDO PESTAÑA DEVOLUCIONES -->
+            </div>
+
+            <!-- ============= REPORTES ============= -->
+            <div id="v-reportes" class="view">
+                <div class="card" style="margin-bottom:15px;">
+                    <h2 style="margin:0 0 4px 0; font-size:18px;"><i class="ti ti-chart-bar" style="color:#0891b2;"></i> Reportes de Rendimiento</h2>
+                    <p style="color:var(--text-muted); font-size:13px; margin:0;">Evalúa el trabajo de cada técnico en servicio (clientes) y reacondicionados.</p>
+                </div>
+                <div class="card" style="margin-bottom:15px;">
+                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                        <label style="font-weight:600; font-size:13px;">Técnico:</label>
+                        <select id="rep_tecnico" onchange="renderReporteTecnico()" style="flex:1; min-width:200px; max-width:320px;"></select>
+                    </div>
+                </div>
+                <div id="reporteContenido"></div>
             </div>
 
             <!-- ============= CONFIGURACIÓN ============= -->
@@ -2819,6 +2836,7 @@ function applyAccessControls() {
         'menu-articulos': 'catalogo_articulos',
         'menu-proveedores': 'compras_ver',
         'menu-refurb': 'reacond_ver',
+        'menu-reportes': 'reportes_ver',
         'menu-configuracion': 'config_ver'
     };
     
@@ -2885,6 +2903,7 @@ const NAV_PERMISOS = {
     'articulos': 'catalogo_articulos',
     'proveedores': 'compras_ver',
     'refurb': 'reacond_ver',
+    'reportes': 'reportes_ver',
     'configuracion': 'config_ver'
 };
 
@@ -2911,6 +2930,7 @@ function nav(v, btn) {
     if(v === 'proveedores') { volverListaProveedores(); }
     if(v === 'refurb') { setTimeout(() => { volverListaLotesReacond(); cargarLotesReacond(); }, 50); }
     if(v === 'configuracion') { setTimeout(() => { cambiarMainTabConfig('tecnicos'); }, 50); }
+    if(v === 'reportes') { setTimeout(() => { inicializarReportes(); }, 50); }
     closeSidebar();
     window.scrollTo({ top: 0, behavior: 'smooth' });
     // Re-aplicar permisos de botones estáticos tras renderizar
@@ -6326,6 +6346,115 @@ function normalizarEstadoOrden(estado) {
     return equiv[estado] || estado || 'recibido';
 }
 
+// ============================================================
+//   MÓDULO REPORTES — Rendimiento por técnico
+// ============================================================
+let _repChart = null;
+
+function inicializarReportes() {
+    const sel = document.getElementById('rep_tecnico');
+    if(!sel) return;
+    const tecnicos = (cache.tecnicos || []).filter(t => t.tipo_empleado === 'tecnico' || (!t.tipo_empleado && t.rol !== 'admin'));
+    sel.innerHTML = '<option value="">-- Selecciona un técnico --</option>' +
+        tecnicos.map(t => `<option value="${t.id}">${escapeHtml(t.nombre)}</option>`).join('');
+    if(tecnicos.length) { sel.value = tecnicos[0].id; renderReporteTecnico(); }
+    else document.getElementById('reporteContenido').innerHTML = '<div class="card" style="color:var(--text-muted);">No hay técnicos registrados.</div>';
+}
+
+function calcularMetricasTecnico(tecnicoId) {
+    const ordenes = (cache.ordenes || []).filter(o => o.tecnico_asignado_id === tecnicoId);
+    const refurb = (cache.refurb || []).filter(r => r.tecnico_asignado_id === tecnicoId);
+    
+    const norm = (e) => normalizarEstadoOrden(e);
+    return {
+        // Servicio (clientes)
+        srv_total: ordenes.length,
+        srv_proceso: ordenes.filter(o => ['en_proceso','espera_repuesto','pendiente_cliente'].includes(norm(o.estado))).length,
+        srv_finalizadas: ordenes.filter(o => ['finalizado','entregado'].includes(norm(o.estado))).length,
+        srv_derivadas: ordenes.filter(o => o.tecnico_anterior_id === tecnicoId).length,
+        // Reacondicionados
+        rf_total: refurb.length,
+        rf_proceso: refurb.filter(r => ['en_proceso','tecnico_recibio','espera_pieza','listo_revision'].includes(r.estado_evaluacion)).length,
+        rf_terminados: refurb.filter(r => ['listo_venta','vendido'].includes(r.estado_evaluacion)).length,
+        rf_devueltos: refurb.filter(r => (r.veces_devuelto || 0) > 0).length,
+        // Piezas pendientes (Fase C)
+        piezas_pend: (cache.ordenPiezas || []).filter(p => p.tecnico_id === tecnicoId && ['recibida','devolucion_solicitada'].includes(p.estado)).length,
+        ordenes, refurb
+    };
+}
+
+function renderReporteTecnico() {
+    const tecnicoId = document.getElementById('rep_tecnico')?.value;
+    const cont = document.getElementById('reporteContenido');
+    if(!cont) return;
+    if(!tecnicoId) { cont.innerHTML = '<div class="card" style="color:var(--text-muted);">Selecciona un técnico para ver su reporte.</div>'; return; }
+    
+    const m = calcularMetricasTecnico(tecnicoId);
+    const tec = (cache.tecnicos || []).find(t => t.id === tecnicoId);
+    
+    const kpi = (label, val, color) => `<div class="kpi-box" style="border-top-color:${color};"><small>${label}</small><strong>${val}</strong></div>`;
+    
+    cont.innerHTML = `
+        <div class="card" style="margin-bottom:15px;">
+            <h3 style="margin:0 0 12px;"><i class="ti ti-headset" style="color:#0891b2;"></i> Servicio (Clientes)</h3>
+            <div class="kpi-grid">
+                ${kpi('Órdenes totales', m.srv_total, '#3b82f6')}
+                ${kpi('En proceso', m.srv_proceso, '#f59e0b')}
+                ${kpi('Finalizadas', m.srv_finalizadas, '#10b981')}
+                ${kpi('Derivó a otros', m.srv_derivadas, '#8b5cf6')}
+            </div>
+        </div>
+        <div class="card" style="margin-bottom:15px;">
+            <h3 style="margin:0 0 12px;"><i class="ti ti-refresh" style="color:#06b6d4;"></i> Reacondicionados</h3>
+            <div class="kpi-grid">
+                ${kpi('Equipos totales', m.rf_total, '#3b82f6')}
+                ${kpi('En proceso', m.rf_proceso, '#f59e0b')}
+                ${kpi('Terminados', m.rf_terminados, '#10b981')}
+                ${kpi('Le devolvieron', m.rf_devueltos, '#ef4444')}
+            </div>
+        </div>
+        <div class="card" style="margin-bottom:15px;">
+            <h3 style="margin:0 0 12px;"><i class="ti ti-chart-bar"></i> Comparativa</h3>
+            <canvas id="repCanvas" style="max-height:280px;"></canvas>
+        </div>
+        ${m.piezas_pend > 0 ? `<div class="card" style="margin-bottom:15px; border-left:4px solid #f59e0b;">
+            <b style="color:#9a3412;"><i class="ti ti-packages"></i> Tiene ${m.piezas_pend} pieza(s) pendiente(s)</b>
+            <button class="btn btn-light" style="margin-left:10px; font-size:12px;" onclick="verPiezasDelTecnico('${tecnicoId}')">Ver piezas</button>
+        </div>` : ''}
+        <div class="card">
+            <h3 style="margin:0 0 12px;"><i class="ti ti-list-details"></i> Detalle de trabajos</h3>
+            <div style="overflow-x:auto;">
+                <table class="data-table" style="width:100%; font-size:13px;">
+                    <thead><tr><th>Área</th><th>Equipo</th><th>Estado</th><th>Ref.</th></tr></thead>
+                    <tbody>
+                        ${m.ordenes.map(o => { const e = findEquipo(o.equipo_id); const et = obtenerEtiquetaOrden(normalizarEstadoOrden(o.estado)); return `<tr><td>🧾 Servicio</td><td>${escapeHtml(e.marca||'')} ${escapeHtml(e.modelo||'')}</td><td><span class="badge" style="background:${et.bg};color:${et.color};">${et.text}</span></td><td>${formatoOrden(o.numero_orden)}</td></tr>`; }).join('')}
+                        ${m.refurb.map(r => { const art = findArticulo(r.articulo_id); const et = obtenerEtiquetaEstado(r.estado_evaluacion||'pendiente'); return `<tr><td>🔧 Reacond</td><td>${escapeHtml(art.marca||r.marca||'')} ${escapeHtml(art.modelo||r.modelo||'')}</td><td><span class="badge" style="background:${et.bg};color:${et.color};">${et.text}</span></td><td>${escapeHtml(r.imei||'—')}</td></tr>`; }).join('')}
+                        ${(m.ordenes.length + m.refurb.length) === 0 ? '<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:20px;">Este técnico aún no tiene trabajos registrados.</td></tr>' : ''}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+    
+    // Gráfica comparativa
+    setTimeout(() => {
+        const canvas = document.getElementById('repCanvas');
+        if(!canvas || typeof Chart === 'undefined') return;
+        if(_repChart) { try { _repChart.destroy(); } catch(e){} }
+        _repChart = new Chart(canvas.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: ['Totales', 'En proceso', 'Terminadas', 'Problemas'],
+                datasets: [
+                    { label: 'Servicio', data: [m.srv_total, m.srv_proceso, m.srv_finalizadas, m.srv_derivadas], backgroundColor: '#0891b2' },
+                    { label: 'Reacondicionados', data: [m.rf_total, m.rf_proceso, m.rf_terminados, m.rf_devueltos], backgroundColor: '#f59e0b' }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+        });
+    }, 100);
+}
+
 // Filtro activo del tablero de taller
 let _filtroTaller = 'activas';
 function setFiltroTaller(f) {
@@ -7260,6 +7389,12 @@ const PERMISOS_DEF = [
             { id: 'devoluciones_ver', label: 'Ver devoluciones' },
             { id: 'devoluciones_registrar', label: 'Registrar devoluciones' },
             { id: 'devoluciones_eliminar', label: 'Eliminar devoluciones' }
+        ]
+    },
+    {
+        grupo: '📊 Reportes', color: '#0891b2',
+        items: [
+            { id: 'reportes_ver', label: 'Ver módulo de Reportes de rendimiento' }
         ]
     },
     {
