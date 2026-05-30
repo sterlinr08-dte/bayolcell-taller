@@ -2909,7 +2909,7 @@ function closeSidebar() {
 
 async function loadAll() {
     try {
-        const [rOrd, rCli, rEq, rPz, rAct, rRef, rProv, rLot, rArt, rTec, rUsr] = await Promise.all([
+        const [rOrd, rCli, rEq, rPz, rAct, rRef, rProv, rLot, rArt, rTec, rUsr, rOpz] = await Promise.all([
             supabaseClient.from('ordenes_reparacion').select('*').order('creado_en', { ascending: false }),
             supabaseClient.from('clientes').select('*'),
             supabaseClient.from('equipos').select('*'),
@@ -2920,7 +2920,8 @@ async function loadAll() {
             supabaseClient.from('refurb_lotes').select('*').order('creado_en', { ascending: false }),
             supabaseClient.from('articulos').select('*').eq('activo', true).order('codigo', { ascending: true }),
             supabaseClient.from('tecnicos').select('*').order('nombre', { ascending: true }),
-            supabaseClient.from('usuarios').select('id, nombre, usuario, rol').then(r => r, () => ({ data: [], error: null }))
+            supabaseClient.from('usuarios').select('id, nombre, usuario, rol').then(r => r, () => ({ data: [], error: null })),
+            supabaseClient.from('orden_piezas').select('*').order('creado_en', { ascending: true }).then(r => r, () => ({ data: [], error: null }))
         ]);
 
         requireSupabaseOk(rOrd, 'Cargar órdenes');
@@ -2939,7 +2940,8 @@ async function loadAll() {
             piezas: rPz.data || [], activos: rAct.data || [], refurb: rRef.data || [],
             proveedores: rProv.data || [], lotes: rLot.data || [], articulos: rArt.data || [],
             fallaCategorias: cache.fallaCategorias || [], fallas: cache.fallas || [],
-            tecnicos: rTec.data || [], usuarios: (rUsr && rUsr.data) || []
+            tecnicos: rTec.data || [], usuarios: (rUsr && rUsr.data) || [],
+            ordenPiezas: (rOpz && rOpz.data) || []
         };
         renderAll();
     } catch(e) { logError('loadAll', e); toast(getFriendlyError(e, "Error cargando base de datos.")); }
@@ -6333,6 +6335,34 @@ function renderTallerOrdenes() {
         }
         // Label de diagnóstico (con las fallas) — útil para el técnico
         acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px;" onclick="cargarEnLabel('${o.id}')"><i class="ti ti-clipboard-list"></i> Label</button>`;
+        // Solicitar pieza adicional (si está tomada y activa)
+        if((esAdmin || esMia) && o.tecnico_asignado_id && !['entregado','cancelado'].includes(estado)) {
+            acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#0e7490;" onclick="solicitarPiezaOrden('${o.id}')"><i class="ti ti-package-import"></i> Solicitar pieza</button>`;
+        }
+        
+        // Piezas de esta orden
+        const piezasOrden = (cache.ordenPiezas || []).filter(p => p.orden_id === o.id);
+        let piezasHtml = '';
+        if(piezasOrden.length) {
+            piezasHtml = `<div style="margin-top:8px; border-top:1px dashed var(--border-color); padding-top:6px;">
+                <div style="font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:4px;"><i class="ti ti-packages"></i> PIEZAS ADICIONALES:</div>
+                ${piezasOrden.map(p => {
+                    const ep = etiquetaPiezaOrden(p.estado);
+                    let btn = '';
+                    // Servicio entrega; técnico recibe
+                    if(p.estado === 'solicitada' && (esAdmin || sessionUser?._tipo === 'usuario' || true)) {
+                        btn = `<button class="btn btn-light" style="font-size:10px; padding:3px 7px; color:#1e40af;" onclick="entregarPiezaOrden('${p.id}')">Marcar entregada</button>`;
+                    } else if(p.estado === 'entregada' && (esAdmin || p.tecnico_id === sessionUser?.id)) {
+                        btn = `<button class="btn btn-light" style="font-size:10px; padding:3px 7px; color:#065f46;" onclick="recibirPiezaOrden('${p.id}')">Confirmar recibida</button>`;
+                    }
+                    return `<div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:3px; font-size:12px;">
+                        <span>${escapeHtml(p.pieza_nombre)} ${p.cantidad > 1 ? '×' + p.cantidad : ''}</span>
+                        <span class="badge" style="background:${ep.bg}; color:${ep.color}; font-size:10px;">${ep.text}</span>
+                        ${btn}
+                    </div>`;
+                }).join('')}
+            </div>`;
+        }
         
         return `<div style="background:#fff; border:1px solid var(--border-color); border-radius:8px; padding:12px; margin-bottom:8px;">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
@@ -6349,6 +6379,7 @@ function renderTallerOrdenes() {
                         ? `<div style="background:#fef2f2; border:2px solid #f87171; padding:8px 10px; border-radius:8px; margin-top:6px; font-size:13px;"><b style="color:#b91c1c;"><i class="ti ti-bell-ringing"></i> REQUIERE AUTORIZACIÓN:</b><br><span style="color:#7f1d1d;">${escapeHtml(o.nota_estado)}</span></div>`
                         : `<div style="background:#fef9c3; border:1px solid #fde047; padding:5px 8px; border-radius:6px; margin-top:6px; font-size:12px;"><i class="ti ti-info-circle"></i> ${escapeHtml(o.nota_estado)}</div>`)
                       : ''}
+                    ${piezasHtml}
                 </div>
                 <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">${acciones}</div>
             </div>
@@ -6414,6 +6445,78 @@ async function derivarOrden(ordenId) {
         toast(`🔄 Orden derivada a ${nuevoTec.nombre}.`);
         await loadAll();
     } catch(e) { logError('Derivar orden', e); alert(getFriendlyError(e)); }
+}
+
+// === FASE B: Piezas adicionales de una orden ===
+// El técnico solicita una pieza (texto libre)
+async function solicitarPiezaOrden(ordenId) {
+    const orden = (cache.ordenes || []).find(o => o.id === ordenId);
+    if(!orden) return;
+    const esAdmin = isAdminUser();
+    const esMia = orden.tecnico_asignado_id === sessionUser?.id;
+    if(!esAdmin && !esMia) return alert('Solo el técnico asignado puede solicitar piezas para esta orden.');
+    
+    const nombre = prompt('🔧 SOLICITAR PIEZA ADICIONAL\n\nEscribe el nombre de la pieza que necesitas:\n\nEjemplo: "Pantalla iPhone 12", "Batería", "Flex de carga"');
+    if(nombre === null) return;
+    if(!nombre.trim()) return alert('Escribe el nombre de la pieza.');
+    
+    const cantStr = prompt('¿Cuántas unidades? (deja 1 si es una sola)', '1');
+    if(cantStr === null) return;
+    const cantidad = parseInt(cantStr) || 1;
+    
+    try {
+        const { error } = await supabaseClient.from('orden_piezas').insert([{
+            orden_id: ordenId,
+            tecnico_id: orden.tecnico_asignado_id || sessionUser?.id,
+            pieza_nombre: nombre.trim(),
+            cantidad: cantidad,
+            estado: 'solicitada'
+        }]);
+        if(error) throw error;
+        toast('🔧 Pieza solicitada: ' + nombre.trim());
+        await loadAll();
+    } catch(e) { logError('Solicitar pieza orden', e); alert(getFriendlyError(e)); }
+}
+
+// Servicio marca la pieza como entregada al técnico
+async function entregarPiezaOrden(piezaId) {
+    try {
+        const { error } = await supabaseClient.from('orden_piezas').update({
+            estado: 'entregada',
+            fecha_entregada: new Date().toISOString()
+        }).eq('id', piezaId);
+        if(error) throw error;
+        toast('📦 Pieza marcada como entregada.');
+        await loadAll();
+    } catch(e) { logError('Entregar pieza orden', e); alert(getFriendlyError(e)); }
+}
+
+// El técnico confirma que recibió la pieza
+async function recibirPiezaOrden(piezaId) {
+    const pieza = (cache.ordenPiezas || []).find(p => p.id === piezaId);
+    if(!pieza) return;
+    const esAdmin = isAdminUser();
+    const esMia = pieza.tecnico_id === sessionUser?.id;
+    if(!esAdmin && !esMia) return alert('Solo el técnico que solicitó la pieza puede confirmar que la recibió.');
+    try {
+        const { error } = await supabaseClient.from('orden_piezas').update({
+            estado: 'recibida',
+            fecha_recibida: new Date().toISOString()
+        }).eq('id', piezaId);
+        if(error) throw error;
+        toast('✅ Pieza recibida. Ahora la tienes tú.');
+        await loadAll();
+    } catch(e) { logError('Recibir pieza orden', e); alert(getFriendlyError(e)); }
+}
+
+// Etiqueta visual del estado de una pieza
+function etiquetaPiezaOrden(estado) {
+    const map = {
+        'solicitada': { text: '🟡 Solicitada', bg:'#fef3c7', color:'#92400e' },
+        'entregada':  { text: '📦 Entregada (confirmar)', bg:'#dbeafe', color:'#1e40af' },
+        'recibida':   { text: '✅ Recibida', bg:'#d1fae5', color:'#065f46' }
+    };
+    return map[estado] || { text: estado, bg:'#f1f5f9', color:'#64748b' };
 }
 
 // El técnico se auto-asigna una orden (la toma)
