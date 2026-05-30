@@ -6521,7 +6521,15 @@ function renderTallerOrdenes() {
                 acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','${s}')">${lbl.text}</button>`;
             });
         } else if(puedeOperar && estado === 'finalizado') {
-            acciones += `<button class="btn btn-blue" style="font-size:12px; padding:6px 12px;" onclick="cambiarEstadoOrdenUI('${o.id}','entregado')"><i class="ti ti-package"></i> Marcar Entregado</button>`;
+            acciones += `<button class="btn btn-blue" style="font-size:12px; padding:6px 12px;" onclick="marcarEntregadoConGarantia('${o.id}')"><i class="ti ti-package"></i> Marcar Entregado</button>`;
+        } else if(estado === 'entregado') {
+            // Reabrir por garantía (si está dentro del plazo)
+            const info = infoGarantiaOrden(o);
+            if(info.vigente) {
+                acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#0369a1;" onclick="reabrirPorGarantia('${o.id}')"><i class="ti ti-shield-check"></i> Reabrir por garantía (${info.diasRestantes}d)</button>`;
+            } else if(info.tieneGarantia) {
+                acciones += `<span class="badge" style="background:#fee2e2; color:#991b1b; font-size:10px;">Garantía vencida</span>`;
+            }
         }
         // Cancelar (admin siempre; técnico si es suya y no finalizada)
         if((esAdmin || esMia) && !['entregado','cancelado'].includes(estado)) {
@@ -6576,6 +6584,7 @@ function renderTallerOrdenes() {
                         <span class="badge" style="background:${et.bg}; color:${et.color};">${et.text}</span>
                         ${tecnico ? `<span class="badge" style="background:#e0e7ff; color:#3730a3;"><i class="ti ti-tool"></i> ${escapeHtml(tecnico)}</span>` : '<span class="badge" style="background:#f1f5f9; color:#94a3b8;">Sin tomar</span>'}
                         ${o.tecnico_anterior_id ? `<span class="badge" style="background:#f3e8ff; color:#6b21a8;"><i class="ti ti-arrows-exchange"></i> Derivada</span>` : ''}
+                        ${o.es_garantia ? `<span class="badge" style="background:#dbeafe; color:#0369a1;"><i class="ti ti-shield-check"></i> GARANTÍA${o.veces_garantia > 1 ? ' ×' + o.veces_garantia : ''}</span>` : ''}
                     </div>
                     <div style="font-size:13px; margin-top:6px;"><b>${escapeHtml(c.nombre || '—')}</b> · ${escapeHtml(e.marca || '')} ${escapeHtml(e.modelo || '')}</div>
                     <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">${escapeHtml(o.falla_reportada || 'Sin falla descrita')}</div>
@@ -6871,6 +6880,60 @@ async function avanzarEstadoOrden(ordenId, nuevoEstado, nota) {
         toast('✅ Estado actualizado: ' + obtenerEtiquetaOrden(nuevoEstado).text);
         await loadAll();
     } catch(e) { logError('Avanzar estado orden', e); alert(getFriendlyError(e)); }
+}
+
+// === GARANTÍA ===
+// Calcula el estado de garantía de una orden
+function infoGarantiaOrden(orden) {
+    const dias = orden.dias_garantia || 0;
+    if(!dias || !orden.fecha_entregado) return { tieneGarantia: false, vigente: false, diasRestantes: 0 };
+    const entrega = new Date(orden.fecha_entregado);
+    const vence = new Date(entrega.getTime() + dias * 24 * 60 * 60 * 1000);
+    const hoy = new Date();
+    const diasRestantes = Math.ceil((vence - hoy) / (24 * 60 * 60 * 1000));
+    return { tieneGarantia: true, vigente: diasRestantes > 0, diasRestantes: Math.max(0, diasRestantes), vence };
+}
+
+// Marca como entregado y pregunta los días de garantía
+async function marcarEntregadoConGarantia(ordenId) {
+    const diasStr = prompt('📦 ENTREGAR EQUIPO\n\n¿Cuántos días de garantía? (deja 0 si no aplica)\n\nEjemplos: 30, 90', '90');
+    if(diasStr === null) return;
+    const dias = parseInt(diasStr) || 0;
+    try {
+        const { error } = await supabaseClient.from('ordenes_reparacion').update({
+            estado: 'entregado',
+            fecha_entregado: new Date().toISOString(),
+            dias_garantia: dias
+        }).eq('id', ordenId);
+        if(error) throw error;
+        toast(dias > 0 ? `📦 Entregado con ${dias} días de garantía.` : '📦 Entregado (sin garantía).');
+        await loadAll();
+    } catch(e) { logError('Marcar entregado', e); alert(getFriendlyError(e)); }
+}
+
+// Reabre una orden entregada por garantía
+async function reabrirPorGarantia(ordenId) {
+    const orden = (cache.ordenes || []).find(o => o.id === ordenId);
+    if(!orden) return;
+    const info = infoGarantiaOrden(orden);
+    if(!info.vigente) return alert('La garantía de esta orden ya venció. No se puede reabrir por garantía.');
+    
+    const motivo = prompt(`🛡️ REABRIR POR GARANTÍA\n\nQuedan ${info.diasRestantes} días de garantía.\n\n¿Qué problema reporta el cliente?\n\nEjemplo: "La pantalla volvió a fallar"`);
+    if(motivo === null) return;
+    if(!motivo.trim()) return alert('Indica el motivo de la garantía.');
+    
+    try {
+        const { error } = await supabaseClient.from('ordenes_reparacion').update({
+            estado: 'en_proceso',
+            es_garantia: true,
+            veces_garantia: (orden.veces_garantia || 0) + 1,
+            nota_estado: `🛡️ GARANTÍA: ${motivo.trim()}`,
+            fecha_reapertura_garantia: new Date().toISOString()
+        }).eq('id', ordenId);
+        if(error) throw error;
+        toast('🛡️ Orden reabierta por garantía. Vuelve a "En proceso".');
+        await loadAll();
+    } catch(e) { logError('Reabrir garantía', e); alert(getFriendlyError(e)); }
 }
 
 async function abrirModalNuevaDevolucion() {
