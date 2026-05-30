@@ -62,6 +62,8 @@ input[disabled] { background-color: #f1f5f9; color: #94a3b8; cursor: not-allowed
 .btn-sm:active { box-shadow: 0 1px 0 rgba(0,0,0,0.12); }
 .btn-lg { padding: 12px 22px; font-size: 14px; }
 .btn-block { width: 100%; }
+/* Acciones verticales: cada botón/select ocupa el ancho completo */
+.acciones-verticales .btn, .acciones-verticales select, .acciones-verticales button { width: 100%; justify-content: center; text-align: center; }
 /* Botón solo icono (para listas/tablas) */
 .btn-icon { padding: 7px 9px; font-size: 12px; border-radius: 7px; }
 .err { display: none; background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; padding: 10px; border-radius: 8px; font-size: 13px; margin-bottom: 15px; text-align: left; }
@@ -704,6 +706,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                         <button class="btn btn-light" id="fltOrdTodas" onclick="setFiltroTaller('todas')" style="font-size:12px;">Todas</button>
                         <button class="btn btn-light" id="fltOrdLibres" onclick="setFiltroTaller('libres')" style="font-size:12px;">📥 Sin tomar</button>
                         <button class="btn btn-light" id="fltOrdMias" onclick="setFiltroTaller('mias')" style="font-size:12px;">🔧 Mis órdenes</button>
+                        <button class="btn btn-light" id="fltOrdReasignadas" onclick="setFiltroTaller('reasignadas')" style="font-size:12px;">🔄 Reasignadas a mí</button>
                         <button class="btn btn-light" id="fltOrdActivas" onclick="setFiltroTaller('activas')" style="font-size:12px;">⚙️ Activas</button>
                     </div>
                     <div id="tallerOrdenesLista" style="font-size:13px;"></div>
@@ -728,18 +731,20 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                     </div>
 
                     <div class="block-card">
-                        <div class="block-header header-blue-light">Estado Físico de Recepción</div>
+                        <div class="block-header header-blue-light">Fallas del Equipo (problemas a reparar)</div>
                         <div class="block-body">
+                            <div style="font-size:12px; color:var(--text-muted); margin-bottom:6px;">Marca los problemas que reporta el cliente. Se crearán como tareas para los técnicos.</div>
                             <div class="checks-layout" id="checksFisico">
                                 <label><input type="checkbox" value="Pantalla rota"> Pantalla rota</label>
                                 <label><input type="checkbox" value="Mojado"> Mojado</label>
                                 <label><input type="checkbox" value="Tapa rota"> Tapa rota</label>
                                 <label><input type="checkbox" value="No enciende"> No enciende</label>
                                 <label><input type="checkbox" value="Sin señal"> Sin señal</label>
-                                <label><input type="checkbox" value="Batería inflada"> Batería mala</label>
+                                <label><input type="checkbox" value="Batería mala"> Batería mala</label>
                                 <label><input type="checkbox" value="Cámara rota"> Cámara rota</label>
                                 <label><input type="checkbox" value="Puerto malo"> Puerto malo</label>
                             </div>
+                            <div style="margin-top:8px;"><label>Estado Físico del Equipo (cómo llega)</label><textarea id="o_estado_fisico" rows="2" placeholder="Rayones en la tapa, esquina golpeada, sin marcas..."></textarea></div>
                             <div style="margin-top:5px;"><label>Accesorios que deja</label><input id="o_accesorios" placeholder="Cover, Cable, Nada"></div>
                         </div>
                     </div>
@@ -5327,14 +5332,19 @@ function construirSeccionTareas(tipo, refId, tareas) {
         const hecha = t.estado === 'hecha';
         const esMia = t.tecnico_id === sessionUser?.id;
         const puedeCompletar = isAdminUser() || esMia;
+        const reasignada = t.tecnico_anterior_id ? nombreEmpleado(t.tecnico_anterior_id) : null;
         return `<div style="display:flex; align-items:flex-start; gap:8px; padding:8px; border:1px solid ${hecha ? '#bbf7d0' : '#e2e8f0'}; background:${hecha ? '#f0fdf4' : '#fff'}; border-radius:8px; margin-bottom:6px;">
             <div style="flex:1;">
-                <div style="font-weight:600; font-size:13px; ${hecha ? 'text-decoration:line-through; color:#16a34a;' : ''}">${escapeHtml(t.descripcion)}</div>
-                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;"><i class="ti ti-user"></i> ${escapeHtml(tecNombre)} ${hecha ? '· ✅ Completada' : ''}</div>
+                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                    <span style="font-weight:600; font-size:13px; ${hecha ? 'text-decoration:line-through; color:#16a34a;' : ''}">${escapeHtml(t.descripcion)}</span>
+                    ${hecha ? `<span style="background:#16a34a; color:#fff; font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px;">✓ LISTO</span>` : ''}
+                </div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;"><i class="ti ti-user"></i> ${escapeHtml(tecNombre)}</div>
+                ${reasignada && !hecha ? `<div style="font-size:10px; color:#d97706; margin-top:2px;"><i class="ti ti-arrow-right"></i> Reasignada desde ${escapeHtml(reasignada)}</div>` : ''}
                 ${t.notas ? `<div style="font-size:11px; color:#64748b; margin-top:2px;">📝 ${escapeHtml(t.notas)}</div>` : ''}
             </div>
             <div style="display:flex; gap:4px;">
-                ${!hecha && puedeCompletar ? `<button onclick="completarTarea('${t.id}','${tipo}','${refId}')" style="background:#dcfce7; color:#166534; border:0; padding:6px 8px; border-radius:6px; cursor:pointer; font-size:11px;" title="Marcar hecha"><i class="ti ti-check"></i></button>` : ''}
+                ${!hecha && puedeCompletar ? `<button onclick="completarTarea('${t.id}','${tipo}','${refId}')" style="background:#dcfce7; color:#166534; border:0; padding:6px 8px; border-radius:6px; cursor:pointer; font-size:11px;" title="Marcar lista"><i class="ti ti-check"></i></button>` : ''}
                 ${!hecha ? `<button onclick="reasignarTarea('${t.id}','${tipo}','${refId}')" style="background:#fef3c7; color:#92400e; border:0; padding:6px 8px; border-radius:6px; cursor:pointer; font-size:11px;" title="Reasignar a otro técnico"><i class="ti ti-user-share"></i></button>` : ''}
                 ${hecha && (isAdminUser() || esMia) ? `<button onclick="reabrirTarea('${t.id}','${tipo}','${refId}')" style="background:#fef3c7; color:#92400e; border:0; padding:6px 8px; border-radius:6px; cursor:pointer; font-size:11px;" title="Reabrir"><i class="ti ti-rotate"></i></button>` : ''}
                 <button onclick="eliminarTarea('${t.id}','${tipo}','${refId}')" style="background:#fee2e2; color:#991b1b; border:0; padding:6px 8px; border-radius:6px; cursor:pointer; font-size:11px;" title="Eliminar"><i class="ti ti-trash"></i></button>
@@ -5342,16 +5352,23 @@ function construirSeccionTareas(tipo, refId, tareas) {
         </div>`;
     }).join('');
     
+    // Accesos rápidos de fallas comunes (se agregan como tareas)
+    const fallasRapidas = ['Pantalla rota','No enciende','Batería mala','Cámara rota','Puerto malo','Micro','Sin señal','Mojado'];
+    const chipsRapidos = fallasRapidas.map(f =>
+        `<button onclick="agregarFallaRapida('${tipo}','${refId}','${f}')" style="background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe; padding:4px 10px; border-radius:14px; cursor:pointer; font-size:11px; font-weight:600;">+ ${f}</button>`
+    ).join('');
+    
     return `
         <div style="background:#fff; border:2px solid #e2e8f0; padding:14px; border-radius:12px; margin-top:18px;">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
-                <b style="font-size:14px;"><i class="ti ti-list-check" style="color:#0891b2;"></i> Tareas del equipo</b>
+                <b style="font-size:14px;"><i class="ti ti-list-check" style="color:#0891b2;"></i> Fallas y Tareas del Equipo</b>
                 <button onclick="crearTarea('${tipo}','${refId}')" class="btn btn-blue" style="font-size:12px; padding:6px 12px;"><i class="ti ti-plus"></i> Agregar tarea</button>
             </div>
+            <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;">${chipsRapidos}</div>
             ${total > 0 ? `
                 <div style="margin-bottom:10px;">
                     <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">
-                        <span>Progreso: ${hechas} de ${total} tareas</span>
+                        <span>Progreso: ${hechas} de ${total} fallas resueltas</span>
                         <span style="font-weight:700; color:${todasHechas ? '#16a34a' : '#0891b2'};">${pct}%</span>
                     </div>
                     <div style="background:#e2e8f0; border-radius:6px; height:10px; overflow:hidden;">
@@ -5359,9 +5376,25 @@ function construirSeccionTareas(tipo, refId, tareas) {
                     </div>
                 </div>
                 ${filas}
-                ${todasHechas ? `<div style="background:#f0fdf4; border:1px solid #86efac; padding:8px; border-radius:8px; margin-top:6px; text-align:center; font-size:12px; color:#166534;"><i class="ti ti-circle-check"></i> ¡Todas las tareas completadas! El equipo está listo.</div>` : ''}
-            ` : `<div style="color:var(--text-muted); font-size:12px; padding:8px 0;">No hay tareas. Agrega las reparaciones que necesita este equipo y asígnalas a los técnicos.</div>`}
+                ${todasHechas ? `<div style="background:#f0fdf4; border:1px solid #86efac; padding:8px; border-radius:8px; margin-top:6px; text-align:center; font-size:12px; color:#166534;"><i class="ti ti-circle-check"></i> ¡Todas las fallas resueltas! El equipo está listo.</div>` : ''}
+            ` : `<div style="color:var(--text-muted); font-size:12px; padding:8px 0;">No hay fallas registradas. Usa los accesos rápidos de arriba o el botón "Agregar tarea".</div>`}
         </div>`;
+}
+
+// Agrega una falla común como tarea rápida (sin asignar)
+async function agregarFallaRapida(tipo, refId, falla) {
+    try {
+        const { error } = await supabaseClient.from('tareas_trabajo').insert([{
+            tipo: tipo, ref_id: refId,
+            descripcion: falla,
+            tecnico_id: null,
+            estado: 'pendiente',
+            creado_por: sessionUser?.id
+        }]);
+        if(error) throw error;
+        toast(`✅ "${falla}" agregada.`);
+        await refrescarPanelTareas(tipo, refId);
+    } catch(e) { logError('Agregar falla rápida', e); alert(getFriendlyError(e)); }
 }
 
 // Crear una tarea (cualquier técnico puede)
@@ -5503,6 +5536,7 @@ async function reasignarTarea(tareaId, tipo, refId) {
     try {
         const { error } = await supabaseClient.from('tareas_trabajo').update({
             tecnico_id: tecnicos[idx].id,
+            tecnico_anterior_id: tarea.tecnico_id || null,
             estado: 'pendiente'
         }).eq('id', tareaId);
         if(error) throw error;
@@ -6689,7 +6723,7 @@ function renderReporteTecnico() {
 let _filtroTaller = 'activas';
 function setFiltroTaller(f) {
     _filtroTaller = f;
-    ['todas','libres','mias','activas'].forEach(x => {
+    ['todas','libres','mias','reasignadas','activas'].forEach(x => {
         const btn = document.getElementById('fltOrd' + x.charAt(0).toUpperCase() + x.slice(1));
         if(btn) { btn.style.background = (x === f) ? 'var(--blue-btn)' : ''; btn.style.color = (x === f) ? '#fff' : ''; }
     });
@@ -6707,7 +6741,13 @@ function renderTallerOrdenes() {
     if(_filtroTaller === 'libres') {
         ordenes = ordenes.filter(o => !o.tecnico_asignado_id && normalizarEstadoOrden(o.estado) !== 'cancelado' && normalizarEstadoOrden(o.estado) !== 'entregado');
     } else if(_filtroTaller === 'mias') {
-        ordenes = ordenes.filter(o => o.tecnico_asignado_id === miId);
+        // Mis órdenes: las que tengo asignadas O donde tengo alguna tarea/falla asignada (incl. reasignaciones)
+        const misTareasOrden = new Set((cache.tareas || []).filter(t => t.tipo === 'orden' && t.tecnico_id === miId).map(t => t.ref_id));
+        ordenes = ordenes.filter(o => o.tecnico_asignado_id === miId || misTareasOrden.has(o.id));
+    } else if(_filtroTaller === 'reasignadas') {
+        // Órdenes con tareas que me reasignaron a mí (vengo de otro técnico)
+        const reasignadasAMi = new Set((cache.tareas || []).filter(t => t.tipo === 'orden' && t.tecnico_id === miId && t.tecnico_anterior_id).map(t => t.ref_id));
+        ordenes = ordenes.filter(o => reasignadasAMi.has(o.id));
     } else if(_filtroTaller === 'activas') {
         ordenes = ordenes.filter(o => !['entregado','cancelado'].includes(normalizarEstadoOrden(o.estado)));
     }
@@ -6822,6 +6862,7 @@ function renderTallerOrdenes() {
                     </div>
                     <div style="font-size:13px; margin-top:6px;"><b>${escapeHtml(c.nombre || '—')}</b> · ${escapeHtml(e.marca || '')} ${escapeHtml(e.modelo || '')}</div>
                     <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">${escapeHtml(o.falla_reportada || 'Sin falla descrita')}</div>
+                    <div style="font-size:11px; color:#94a3b8; margin-top:2px;"><i class="ti ti-clock"></i> Recibido: ${o.creado_en ? new Date(o.creado_en).toLocaleString('es-DO', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'}</div>
                     ${o.nota_estado ? (estado === 'pendiente_cliente'
                         ? `<div style="background:#fef2f2; border:2px solid #f87171; padding:8px 10px; border-radius:8px; margin-top:6px; font-size:13px;"><b style="color:#b91c1c;"><i class="ti ti-bell-ringing"></i> REQUIERE AUTORIZACIÓN:</b><br><span style="color:#7f1d1d;">${escapeHtml(o.nota_estado)}</span></div>`
                         : `<div style="background:#fef9c3; border:1px solid #fde047; padding:5px 8px; border-radius:6px; margin-top:6px; font-size:12px;"><i class="ti ti-info-circle"></i> ${escapeHtml(o.nota_estado)}</div>`)
@@ -6829,7 +6870,10 @@ function renderTallerOrdenes() {
                     ${piezasHtml}
                     ${tareasHtml}
                 </div>
-                <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">${acciones}</div>
+                <div style="display:flex; flex-direction:column; gap:6px; align-items:stretch; min-width:150px;" class="acciones-verticales">
+                    <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;"><i class="ti ti-settings"></i> Acciones / Estado</div>
+                    ${acciones}
+                </div>
             </div>
         </div>`;
     }).join('');
@@ -8360,7 +8404,7 @@ function buildTicketHtml(orden, incluirCredenciales) {
             <b>Capacidad:</b> ${escapeHtml(val('e_capacidad') || 'N/A')}<br>
             <b>IMEI / Serial:</b> ${escapeHtml(val('e_imei'))}<br>
             <b>Falla:</b> ${escapeHtml(val('o_falla') || 'N/A')}<br>
-            <b>Condición física:</b> ${escapeHtml(getChecked('checksFisico') || 'Ninguna')}<br>
+            <b>Condición física:</b> ${escapeHtml(val('o_estado_fisico') || 'Sin marcas')}<br>
             <b>Accesorios:</b> ${escapeHtml(val('o_accesorios') || 'Ninguno')}<br>
             <b>Tipo de bloqueo:</b> ${escapeHtml(val('o_acceso') || 'N/A')}<br>
             <b>Atendido por:</b> ${escapeHtml(sessionUser?.nombre || sessionUser?.usuario || '—')}<br>
@@ -8466,12 +8510,20 @@ async function guardarRecepcion(imprimir) {
         requireSupabaseOk(insC, 'Crear cliente');
         const insE = await supabaseClient.from('equipos').insert([{ cliente_id: insC.data.id, marca: val("e_marca") || 'Generic', modelo: val("e_modelo"), imei: val("e_imei"), capacidad: val("e_capacidad") || null }]).select().single();
         requireSupabaseOk(insE, 'Crear equipo');
+        const fallasCheck = getChecked("checksFisico"); // las fallas marcadas (problemas a reparar)
         const insO = await supabaseClient.from('ordenes_reparacion').insert([{
-            cliente_id: insC.data.id, equipo_id: insE.data.id, falla_reportada: val("o_falla"), condicion_fisica: getChecked("checksFisico") || 'Ninguna', accesorios_recibidos: val("o_accesorios") || 'Ninguno',
+            cliente_id: insC.data.id, equipo_id: insE.data.id, falla_reportada: val("o_falla"), condicion_fisica: val("o_estado_fisico") || 'Sin marcas', accesorios_recibidos: val("o_accesorios") || 'Ninguno',
             tipo_acceso: val("o_acceso"), clave_equipo: buildAccessPayload(), cuenta_icloud_google: buildAccountSummary(), creado_by: sessionUser.id, estado: 'recibido'
         }]).select().single();
         requireSupabaseOk(insO, 'Crear orden');
         toast("Equipo registrado.");
+        // Crear tareas automáticas desde: falla escrita + fallas marcadas en el checklist
+        const fallasDesdeTexto = (val("o_falla") || '').split(/[\/,;\n]+/).map(s => s.trim()).filter(Boolean);
+        const fallasDesdeCheck = fallasCheck ? fallasCheck.split(',').map(s => s.trim()).filter(Boolean) : [];
+        const todasFallas = [...fallasDesdeTexto, ...fallasDesdeCheck];
+        if(todasFallas.length > 0) {
+            await crearTareasDesdeFallas('orden', insO.data.id, todasFallas);
+        }
         if(imprimir) {
             const imprimirCredenciales = hasSensitiveAccessData() ? confirm("¿Imprimir credenciales en el ticket?") : false;
             imprimirTicketRecepcion(insO.data, imprimirCredenciales);
