@@ -680,6 +680,18 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                     <h3 style="margin:0 0 12px 0; font-size:15px; font-weight:700;"><i class="ti ti-users" style="color:#0891b2;"></i> Clientes atendidos por empleado</h3>
                     <div id="productividadEmpleados" style="font-size:13px;"></div>
                 </div>
+
+                <!-- TABLERO DE TALLER: órdenes de cliente (Fase 2) -->
+                <div class="card" id="cardTallerOrdenes" style="margin-top:15px;">
+                    <h3 style="margin:0 0 12px 0; font-size:15px; font-weight:700;"><i class="ti ti-tool" style="color:#9a3412;"></i> Taller · Órdenes de reparación</h3>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+                        <button class="btn btn-light" id="fltOrdTodas" onclick="setFiltroTaller('todas')" style="font-size:12px;">Todas</button>
+                        <button class="btn btn-light" id="fltOrdLibres" onclick="setFiltroTaller('libres')" style="font-size:12px;">📥 Sin tomar</button>
+                        <button class="btn btn-light" id="fltOrdMias" onclick="setFiltroTaller('mias')" style="font-size:12px;">🔧 Mis órdenes</button>
+                        <button class="btn btn-light" id="fltOrdActivas" onclick="setFiltroTaller('activas')" style="font-size:12px;">⚙️ Activas</button>
+                    </div>
+                    <div id="tallerOrdenesLista" style="font-size:13px;"></div>
+                </div>
             </div>
 
             <!-- RECEPCION -->
@@ -2949,10 +2961,10 @@ function findProveedor(id) { return cache.proveedores.find(x => x.id === id) || 
 function renderAll() {
     const today = new Date().toISOString().slice(0, 10);
     document.getElementById("kHoy").textContent = cache.ordenes.filter(o => (o.creado_en || "").slice(0, 10) === today).length;
-    document.getElementById("kDiag").textContent = cache.ordenes.filter(o => o.estado === "diagnostico").length;
-    document.getElementById("kRep").textContent = cache.ordenes.filter(o => o.estado === "en_reparacion").length;
-    document.getElementById("kPiezas").textContent = cache.ordenes.filter(o => o.estado === "espera_pieza").length;
-    document.getElementById("kListos").textContent = cache.ordenes.filter(o => ["listo", "listo_entrega"].includes(o.estado)).length;
+    document.getElementById("kDiag").textContent = cache.ordenes.filter(o => normalizarEstadoOrden(o.estado) === "recibido").length;
+    document.getElementById("kRep").textContent = cache.ordenes.filter(o => normalizarEstadoOrden(o.estado) === "en_proceso").length;
+    document.getElementById("kPiezas").textContent = cache.ordenes.filter(o => normalizarEstadoOrden(o.estado) === "espera_repuesto").length;
+    document.getElementById("kListos").textContent = cache.ordenes.filter(o => normalizarEstadoOrden(o.estado) === "finalizado").length;
     document.getElementById("kRefurb").textContent = cache.refurb.length;
     
     // KPIs de Reacondicionado
@@ -2985,6 +2997,10 @@ function renderAll() {
     if(proveedorActualId) renderDetalleProveedor(proveedorActualId);
     if(loteActualId) renderEquiposLote();
     renderProductividadEmpleados();
+    renderTallerOrdenes();
+    // Marcar el filtro activo del tablero (visual)
+    const btnAct = document.getElementById('fltOrdActivas');
+    if(btnAct && !btnAct.style.background) { btnAct.style.background = 'var(--blue-btn)'; btnAct.style.color = '#fff'; }
 }
 
 // Reporte: cuántos clientes/órdenes atendió cada empleado
@@ -3089,14 +3105,16 @@ function irAEquipoDesdeBusqueda(equipoId) {
 function renderOrders() {
     document.getElementById("ordersTable").innerHTML = cache.ordenes.map(o => {
         const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
+        const etOrd = obtenerEtiquetaOrden(normalizarEstadoOrden(o.estado));
+        const tecOrd = o.tecnico_asignado_id ? nombreEmpleado(o.tecnico_asignado_id) : null;
         return `<tr>
             <td data-label="Orden"><b>#${String(o.numero_orden ?? '').padStart(6, "0")}</b></td>
             <td data-label="Cliente">${escapeHtml(c.nombre)}</td>
             <td data-label="Equipo">${escapeHtml(e.modelo)}</td>
             <td data-label="Falla">${escapeHtml(o.falla_reportada)}</td>
             <td data-label="Acceso"><div class="access-mask">•••• <button class="btn btn-light" style="padding:1px 4px; font-size:10px" onclick="revelarClave('${o.id}', this)">Mostrar</button></div></td>
-            <td data-label="Atendido por"><span style="font-size:12px;"><i class="ti ti-user-check" style="color:#0891b2;"></i> ${escapeHtml(nombreEmpleado(o.creado_by))}</span></td>
-            <td data-label="Estado"><span class="badge" style="background:#e0f2fe; color:#0369a1;">${o.estado}</span></td>
+            <td data-label="Atendido por"><span style="font-size:12px;"><i class="ti ti-user-check" style="color:#0891b2;"></i> ${escapeHtml(nombreEmpleado(o.creado_by))}${tecOrd ? `<br><i class="ti ti-tool" style="color:#9a3412;"></i> ${escapeHtml(tecOrd)}` : ''}</span></td>
+            <td data-label="Estado"><span class="badge" style="background:${etOrd.bg}; color:${etOrd.color};">${etOrd.text}</span></td>
             <td data-label="Acciones"><button class="btn btn-light" style="padding:4px 8px;" onclick="cargarEnLabel('${o.id}')"><i class="ti ti-barcode"></i> Crear Label</button></td>
         </tr>`;
     }).join("");
@@ -6192,6 +6210,204 @@ function obtenerEtiquetaEstado(estado) {
     return map[estado] || { text: estado, bg:'#f1f5f9', color:'#64748b' };
 }
 
+// === FASE 2: Estados del flujo de ÓRDENES DE CLIENTE ===
+// Flujo: recibido → en_proceso → espera_repuesto / pendiente_cliente → finalizado → entregado (+ cancelado)
+const ORDEN_FLUJO = ['recibido', 'en_proceso', 'espera_repuesto', 'pendiente_cliente', 'finalizado', 'entregado'];
+
+function obtenerEtiquetaOrden(estado) {
+    const map = {
+        'recibido':         { text: '📥 Recibido', bg:'#e0f2fe', color:'#0369a1' },
+        'en_proceso':       { text: '🔧 En proceso', bg:'#fed7aa', color:'#9a3412' },
+        'espera_repuesto':  { text: '⏳ En espera de repuesto', bg:'#fde68a', color:'#92400e' },
+        'pendiente_cliente':{ text: '📞 Pendiente de cliente', bg:'#fbcfe8', color:'#9d174d' },
+        'finalizado':       { text: '✅ Finalizado', bg:'#d1fae5', color:'#065f46' },
+        'entregado':        { text: '📦 Entregado', bg:'#dcfce7', color:'#166534' },
+        'cancelado':        { text: '❌ Cancelado', bg:'#fee2e2', color:'#991b1b' },
+        // compatibilidad con estados viejos
+        'diagnostico':      { text: '📥 Recibido', bg:'#e0f2fe', color:'#0369a1' },
+        'en_reparacion':    { text: '🔧 En proceso', bg:'#fed7aa', color:'#9a3412' },
+        'espera_pieza':     { text: '⏳ En espera de repuesto', bg:'#fde68a', color:'#92400e' },
+        'listo':            { text: '✅ Finalizado', bg:'#d1fae5', color:'#065f46' },
+        'listo_entrega':    { text: '✅ Finalizado', bg:'#d1fae5', color:'#065f46' }
+    };
+    return map[estado] || { text: estado, bg:'#f1f5f9', color:'#64748b' };
+}
+
+// Normaliza estados viejos al nuevo flujo
+function normalizarEstadoOrden(estado) {
+    const equiv = {
+        'diagnostico': 'recibido', 'en_reparacion': 'en_proceso',
+        'espera_pieza': 'espera_repuesto', 'listo': 'finalizado', 'listo_entrega': 'finalizado'
+    };
+    return equiv[estado] || estado || 'recibido';
+}
+
+// Filtro activo del tablero de taller
+let _filtroTaller = 'activas';
+function setFiltroTaller(f) {
+    _filtroTaller = f;
+    ['todas','libres','mias','activas'].forEach(x => {
+        const btn = document.getElementById('fltOrd' + x.charAt(0).toUpperCase() + x.slice(1));
+        if(btn) { btn.style.background = (x === f) ? 'var(--blue-btn)' : ''; btn.style.color = (x === f) ? '#fff' : ''; }
+    });
+    renderTallerOrdenes();
+}
+
+function renderTallerOrdenes() {
+    const cont = document.getElementById('tallerOrdenesLista');
+    if(!cont) return;
+    let ordenes = (cache.ordenes || []).slice();
+    const esAdmin = isAdminUser();
+    const miId = sessionUser?.id;
+    
+    // Aplicar filtro
+    if(_filtroTaller === 'libres') {
+        ordenes = ordenes.filter(o => !o.tecnico_asignado_id && normalizarEstadoOrden(o.estado) !== 'cancelado' && normalizarEstadoOrden(o.estado) !== 'entregado');
+    } else if(_filtroTaller === 'mias') {
+        ordenes = ordenes.filter(o => o.tecnico_asignado_id === miId);
+    } else if(_filtroTaller === 'activas') {
+        ordenes = ordenes.filter(o => !['entregado','cancelado'].includes(normalizarEstadoOrden(o.estado)));
+    }
+    
+    if(!ordenes.length) {
+        cont.innerHTML = `<div style="color:var(--text-muted); padding:14px 0;">No hay órdenes en este filtro.</div>`;
+        return;
+    }
+    
+    const tecnicosActivos = (cache.tecnicos || []).filter(t => t.activo && (t.tipo_empleado === 'tecnico' || !t.tipo_empleado));
+    
+    cont.innerHTML = ordenes.map(o => {
+        const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
+        const estado = normalizarEstadoOrden(o.estado);
+        const et = obtenerEtiquetaOrden(estado);
+        const tecnico = o.tecnico_asignado_id ? nombreEmpleado(o.tecnico_asignado_id) : null;
+        const esMia = o.tecnico_asignado_id === miId;
+        const puedeOperar = esAdmin || esMia;
+        const numOrden = String(o.numero_orden ?? '').padStart(6, '0');
+        
+        // Botones de acción según estado
+        let acciones = '';
+        if(!o.tecnico_asignado_id && estado !== 'cancelado' && estado !== 'entregado') {
+            // Sin técnico: tomar (auto) o asignar (admin)
+            acciones += `<button class="btn btn-blue" style="font-size:12px; padding:6px 12px;" onclick="tomarOrden('${o.id}')"><i class="ti ti-hand-grab"></i> Tomar orden</button>`;
+            if(esAdmin && tecnicosActivos.length) {
+                acciones += `<select onchange="if(this.value)asignarOrdenTecnico('${o.id}', this.value)" style="font-size:12px; padding:6px;"><option value="">Asignar a…</option>${tecnicosActivos.map(t => `<option value="${t.id}">${escapeHtml(t.nombre)}</option>`).join('')}</select>`;
+            }
+        } else if(puedeOperar && !['entregado','cancelado','finalizado'].includes(estado)) {
+            // Avanzar estado: mostrar solo los siguientes posibles
+            const idx = ORDEN_FLUJO.indexOf(estado);
+            const siguientes = ORDEN_FLUJO.slice(idx + 1).filter(s => s !== 'entregado');
+            siguientes.forEach(s => {
+                const lbl = obtenerEtiquetaOrden(s);
+                acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','${s}')">${lbl.text}</button>`;
+            });
+        } else if(puedeOperar && estado === 'finalizado') {
+            acciones += `<button class="btn btn-blue" style="font-size:12px; padding:6px 12px;" onclick="cambiarEstadoOrdenUI('${o.id}','entregado')"><i class="ti ti-package"></i> Marcar Entregado</button>`;
+        }
+        // Cancelar (admin siempre; técnico si es suya y no finalizada)
+        if((esAdmin || esMia) && !['entregado','cancelado'].includes(estado)) {
+            acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#991b1b;" onclick="cambiarEstadoOrdenUI('${o.id}','cancelado')"><i class="ti ti-x"></i> Cancelar</button>`;
+        }
+        
+        return `<div style="background:#fff; border:1px solid var(--border-color); border-radius:8px; padding:12px; margin-bottom:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
+                <div style="flex:1; min-width:200px;">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <b>#${numOrden}</b>
+                        <span class="badge" style="background:${et.bg}; color:${et.color};">${et.text}</span>
+                        ${tecnico ? `<span class="badge" style="background:#e0e7ff; color:#3730a3;"><i class="ti ti-tool"></i> ${escapeHtml(tecnico)}</span>` : '<span class="badge" style="background:#f1f5f9; color:#94a3b8;">Sin tomar</span>'}
+                    </div>
+                    <div style="font-size:13px; margin-top:6px;"><b>${escapeHtml(c.nombre || '—')}</b> · ${escapeHtml(e.marca || '')} ${escapeHtml(e.modelo || '')}</div>
+                    <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">${escapeHtml(o.falla_reportada || 'Sin falla descrita')}</div>
+                    ${o.nota_estado ? `<div style="background:#fef9c3; border:1px solid #fde047; padding:5px 8px; border-radius:6px; margin-top:6px; font-size:12px;"><i class="ti ti-info-circle"></i> ${escapeHtml(o.nota_estado)}</div>` : ''}
+                </div>
+                <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">${acciones}</div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// Maneja el cambio de estado desde la UI (pide nota si es pendiente_cliente)
+async function cambiarEstadoOrdenUI(ordenId, nuevoEstado) {
+    if(nuevoEstado === 'cancelado') {
+        if(!confirm('¿Cancelar esta orden? Esta acción la marca como anulada.')) return;
+    }
+    if(nuevoEstado === 'pendiente_cliente') {
+        const nota = prompt('¿Qué se necesita del cliente? (información o autorización)\n\nEjemplo: "Autorizar cambio de batería - RD$1,200"');
+        if(nota === null) return; // canceló
+        await avanzarEstadoOrden(ordenId, nuevoEstado, nota.trim());
+        return;
+    }
+    await avanzarEstadoOrden(ordenId, nuevoEstado);
+}
+
+// El técnico se auto-asigna una orden (la toma)
+async function tomarOrden(ordenId) {
+    if(!sessionUser) return;
+    const orden = (cache.ordenes || []).find(o => o.id === ordenId);
+    if(!orden) return alert('Orden no encontrada.');
+    if(orden.tecnico_asignado_id && orden.tecnico_asignado_id !== sessionUser.id) {
+        const t = nombreEmpleado(orden.tecnico_asignado_id);
+        return alert(`Esta orden ya fue tomada por ${t}.`);
+    }
+    if(!confirm(`¿Tomar la orden #${String(orden.numero_orden ?? '').padStart(6,'0')}?\n\nQuedará asignada a ti y pasará a "En proceso".`)) return;
+    try {
+        const { error } = await supabaseClient.from('ordenes_reparacion').update({
+            tecnico_asignado_id: sessionUser.id,
+            estado: 'en_proceso',
+            fecha_asignacion: new Date().toISOString()
+        }).eq('id', ordenId);
+        if(error) throw error;
+        toast('✅ Orden tomada. Ahora está en proceso.');
+        await loadAll();
+    } catch(e) { logError('Tomar orden', e); alert(getFriendlyError(e)); }
+}
+
+// Admin/servicio asigna la orden a un técnico específico
+async function asignarOrdenTecnico(ordenId, tecnicoId) {
+    if(!tecnicoId) return;
+    try {
+        const { error } = await supabaseClient.from('ordenes_reparacion').update({
+            tecnico_asignado_id: tecnicoId,
+            estado: 'en_proceso',
+            fecha_asignacion: new Date().toISOString()
+        }).eq('id', ordenId);
+        if(error) throw error;
+        toast('✅ Orden asignada a ' + nombreEmpleado(tecnicoId) + '.');
+        await loadAll();
+    } catch(e) { logError('Asignar orden', e); alert(getFriendlyError(e)); }
+}
+
+// Avanza el estado de la orden (solo hacia adelante)
+async function avanzarEstadoOrden(ordenId, nuevoEstado, nota) {
+    const orden = (cache.ordenes || []).find(o => o.id === ordenId);
+    if(!orden) return;
+    const actual = normalizarEstadoOrden(orden.estado);
+    // Anti juez-y-parte: el técnico solo puede mover SU orden
+    const esAdmin = isAdminUser();
+    if(!esAdmin && orden.tecnico_asignado_id !== sessionUser?.id) {
+        return alert('Solo el técnico asignado (o un administrador) puede cambiar el estado.');
+    }
+    // Validar que solo avance (no retroceda), salvo cancelar
+    if(nuevoEstado !== 'cancelado') {
+        const iActual = ORDEN_FLUJO.indexOf(actual);
+        const iNuevo = ORDEN_FLUJO.indexOf(nuevoEstado);
+        if(iNuevo !== -1 && iActual !== -1 && iNuevo < iActual) {
+            return alert('El estado solo puede avanzar, no retroceder.');
+        }
+    }
+    try {
+        const upd = { estado: nuevoEstado };
+        if(typeof nota === 'string') upd.nota_estado = nota || null;
+        if(nuevoEstado === 'finalizado') upd.fecha_finalizado = new Date().toISOString();
+        if(nuevoEstado === 'entregado') upd.fecha_entregado = new Date().toISOString();
+        const { error } = await supabaseClient.from('ordenes_reparacion').update(upd).eq('id', ordenId);
+        if(error) throw error;
+        toast('✅ Estado actualizado: ' + obtenerEtiquetaOrden(nuevoEstado).text);
+        await loadAll();
+    } catch(e) { logError('Avanzar estado orden', e); alert(getFriendlyError(e)); }
+}
+
 async function abrirModalNuevaDevolucion() {
     // Reset campos
     document.getElementById('dev_equipo_id').value = '';
@@ -7423,7 +7639,7 @@ async function guardarRecepcion(imprimir) {
         requireSupabaseOk(insE, 'Crear equipo');
         const insO = await supabaseClient.from('ordenes_reparacion').insert([{
             cliente_id: insC.data.id, equipo_id: insE.data.id, falla_reportada: val("o_falla"), condicion_fisica: getChecked("checksFisico") || 'Ninguna', accesorios_recibidos: val("o_accesorios") || 'Ninguno',
-            tipo_acceso: val("o_acceso"), clave_equipo: buildAccessPayload(), cuenta_icloud_google: buildAccountSummary(), creado_by: sessionUser.id
+            tipo_acceso: val("o_acceso"), clave_equipo: buildAccessPayload(), cuenta_icloud_google: buildAccountSummary(), creado_by: sessionUser.id, estado: 'recibido'
         }]).select().single();
         requireSupabaseOk(insO, 'Crear orden');
         toast("Equipo registrado.");
