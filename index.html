@@ -2954,7 +2954,7 @@ function closeSidebar() {
 
 async function loadAll() {
     try {
-        const [rOrd, rCli, rEq, rPz, rAct, rRef, rProv, rLot, rArt, rTec, rUsr, rOpz] = await Promise.all([
+        const [rOrd, rCli, rEq, rPz, rAct, rRef, rProv, rLot, rArt, rTec, rUsr, rOpz, rTk] = await Promise.all([
             supabaseClient.from('ordenes_reparacion').select('*').order('creado_en', { ascending: false }),
             supabaseClient.from('clientes').select('*'),
             supabaseClient.from('equipos').select('*'),
@@ -2966,7 +2966,8 @@ async function loadAll() {
             supabaseClient.from('articulos').select('*').eq('activo', true).order('codigo', { ascending: true }),
             supabaseClient.from('tecnicos').select('*').order('nombre', { ascending: true }),
             supabaseClient.from('usuarios').select('id, nombre, usuario, rol').then(r => r, () => ({ data: [], error: null })),
-            supabaseClient.from('orden_piezas').select('*').order('creado_en', { ascending: true }).then(r => r, () => ({ data: [], error: null }))
+            supabaseClient.from('orden_piezas').select('*').order('creado_en', { ascending: true }).then(r => r, () => ({ data: [], error: null })),
+            supabaseClient.from('tareas_trabajo').select('*').order('creado_en', { ascending: true }).then(r => r, () => ({ data: [], error: null }))
         ]);
 
         requireSupabaseOk(rOrd, 'Cargar órdenes');
@@ -2986,7 +2987,8 @@ async function loadAll() {
             proveedores: rProv.data || [], lotes: rLot.data || [], articulos: rArt.data || [],
             fallaCategorias: cache.fallaCategorias || [], fallas: cache.fallas || [],
             tecnicos: rTec.data || [], usuarios: (rUsr && rUsr.data) || [],
-            ordenPiezas: (rOpz && rOpz.data) || []
+            ordenPiezas: (rOpz && rOpz.data) || [],
+            tareas: (rTk && rTk.data) || []
         };
         renderAll();
     } catch(e) { logError('loadAll', e); toast(getFriendlyError(e, "Error cargando base de datos.")); }
@@ -5286,6 +5288,138 @@ async function confirmarAsignarTecnico() {
    PANEL DE EQUIPO EN PROCESO (estados del técnico + piezas)
    ============================================================ */
 let _panelProcesoEquipoId = null;
+let _tareasEquipoActual = [];
+
+// ============================================================
+//   SISTEMA DE TAREAS (genérico: reacondicionados Y órdenes)
+//   tipo = 'equipo' (reacond) | 'orden' (cliente de tienda)
+// ============================================================
+
+// Construye la sección HTML de tareas (reutilizable)
+function construirSeccionTareas(tipo, refId, tareas) {
+    tareas = tareas || [];
+    const total = tareas.length;
+    const hechas = tareas.filter(t => t.estado === 'hecha').length;
+    const pct = total > 0 ? Math.round((hechas / total) * 100) : 0;
+    const todasHechas = total > 0 && hechas === total;
+    
+    const filas = tareas.map(t => {
+        const tecNombre = t.tecnico_id ? nombreEmpleado(t.tecnico_id) : 'Sin asignar';
+        const hecha = t.estado === 'hecha';
+        const esMia = t.tecnico_id === sessionUser?.id;
+        const puedeCompletar = isAdminUser() || esMia;
+        return `<div style="display:flex; align-items:flex-start; gap:8px; padding:8px; border:1px solid ${hecha ? '#bbf7d0' : '#e2e8f0'}; background:${hecha ? '#f0fdf4' : '#fff'}; border-radius:8px; margin-bottom:6px;">
+            <div style="flex:1;">
+                <div style="font-weight:600; font-size:13px; ${hecha ? 'text-decoration:line-through; color:#16a34a;' : ''}">${escapeHtml(t.descripcion)}</div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;"><i class="ti ti-user"></i> ${escapeHtml(tecNombre)} ${hecha ? '· ✅ Completada' : ''}</div>
+                ${t.notas ? `<div style="font-size:11px; color:#64748b; margin-top:2px;">📝 ${escapeHtml(t.notas)}</div>` : ''}
+            </div>
+            <div style="display:flex; gap:4px;">
+                ${!hecha && puedeCompletar ? `<button onclick="completarTarea('${t.id}','${tipo}','${refId}')" style="background:#dcfce7; color:#166534; border:0; padding:6px 8px; border-radius:6px; cursor:pointer; font-size:11px;" title="Marcar hecha"><i class="ti ti-check"></i></button>` : ''}
+                ${hecha && (isAdminUser() || esMia) ? `<button onclick="reabrirTarea('${t.id}','${tipo}','${refId}')" style="background:#fef3c7; color:#92400e; border:0; padding:6px 8px; border-radius:6px; cursor:pointer; font-size:11px;" title="Reabrir"><i class="ti ti-rotate"></i></button>` : ''}
+                <button onclick="eliminarTarea('${t.id}','${tipo}','${refId}')" style="background:#fee2e2; color:#991b1b; border:0; padding:6px 8px; border-radius:6px; cursor:pointer; font-size:11px;" title="Eliminar"><i class="ti ti-trash"></i></button>
+            </div>
+        </div>`;
+    }).join('');
+    
+    return `
+        <div style="background:#fff; border:2px solid #e2e8f0; padding:14px; border-radius:12px; margin-top:18px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+                <b style="font-size:14px;"><i class="ti ti-list-check" style="color:#0891b2;"></i> Tareas del equipo</b>
+                <button onclick="crearTarea('${tipo}','${refId}')" class="btn btn-blue" style="font-size:12px; padding:6px 12px;"><i class="ti ti-plus"></i> Agregar tarea</button>
+            </div>
+            ${total > 0 ? `
+                <div style="margin-bottom:10px;">
+                    <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">
+                        <span>Progreso: ${hechas} de ${total} tareas</span>
+                        <span style="font-weight:700; color:${todasHechas ? '#16a34a' : '#0891b2'};">${pct}%</span>
+                    </div>
+                    <div style="background:#e2e8f0; border-radius:6px; height:10px; overflow:hidden;">
+                        <div style="width:${pct}%; height:100%; background:${todasHechas ? '#16a34a' : 'linear-gradient(90deg,#0891b2,#06b6d4)'}; border-radius:6px; transition:width 0.3s;"></div>
+                    </div>
+                </div>
+                ${filas}
+                ${todasHechas ? `<div style="background:#f0fdf4; border:1px solid #86efac; padding:8px; border-radius:8px; margin-top:6px; text-align:center; font-size:12px; color:#166534;"><i class="ti ti-circle-check"></i> ¡Todas las tareas completadas! El equipo está listo.</div>` : ''}
+            ` : `<div style="color:var(--text-muted); font-size:12px; padding:8px 0;">No hay tareas. Agrega las reparaciones que necesita este equipo y asígnalas a los técnicos.</div>`}
+        </div>`;
+}
+
+// Crear una tarea (cualquier técnico puede)
+async function crearTarea(tipo, refId) {
+    const desc = prompt('🔧 NUEVA TAREA\n\n¿Qué hay que hacer?\n\nEjemplo: "Cambiar pantalla", "Microsoldadura", "Cambiar batería"');
+    if(desc === null) return;
+    if(!desc.trim()) return alert('Escribe qué hay que hacer.');
+    
+    // Elegir técnico (lista numerada)
+    const tecnicos = (cache.tecnicos || []).filter(t => t.activo && (t.tipo_empleado === 'tecnico' || (!t.tipo_empleado && t.rol !== 'admin')));
+    let tecnicoId = null;
+    if(tecnicos.length) {
+        const lista = tecnicos.map((t, i) => `${i + 1}. ${t.nombre}`).join('\n');
+        const sel = prompt(`¿A qué técnico se le asigna?\n\n${lista}\n\nEscribe el número (o deja vacío para "Sin asignar"):`);
+        if(sel === null) return;
+        if(sel.trim()) {
+            const idx = parseInt(sel) - 1;
+            if(!isNaN(idx) && idx >= 0 && idx < tecnicos.length) tecnicoId = tecnicos[idx].id;
+        }
+    }
+    
+    try {
+        const { error } = await supabaseClient.from('tareas_trabajo').insert([{
+            tipo: tipo, ref_id: refId,
+            descripcion: desc.trim(),
+            tecnico_id: tecnicoId,
+            estado: 'pendiente',
+            creado_por: sessionUser?.id
+        }]);
+        if(error) throw error;
+        toast('✅ Tarea agregada.');
+        await refrescarPanelTareas(tipo, refId);
+    } catch(e) { logError('Crear tarea', e); alert(getFriendlyError(e)); }
+}
+
+// Marcar tarea como hecha
+async function completarTarea(tareaId, tipo, refId) {
+    const nota = prompt('¿Alguna nota sobre el trabajo? (opcional)');
+    try {
+        const upd = { estado: 'hecha', fecha_completada: new Date().toISOString() };
+        if(nota && nota.trim()) upd.notas = nota.trim();
+        const { error } = await supabaseClient.from('tareas_trabajo').update(upd).eq('id', tareaId);
+        if(error) throw error;
+        toast('✅ Tarea completada.');
+        await refrescarPanelTareas(tipo, refId);
+    } catch(e) { logError('Completar tarea', e); alert(getFriendlyError(e)); }
+}
+
+// Reabrir una tarea completada
+async function reabrirTarea(tareaId, tipo, refId) {
+    try {
+        const { error } = await supabaseClient.from('tareas_trabajo').update({ estado: 'pendiente', fecha_completada: null }).eq('id', tareaId);
+        if(error) throw error;
+        toast('Tarea reabierta.');
+        await refrescarPanelTareas(tipo, refId);
+    } catch(e) { logError('Reabrir tarea', e); alert(getFriendlyError(e)); }
+}
+
+// Eliminar una tarea
+async function eliminarTarea(tareaId, tipo, refId) {
+    if(!confirm('¿Eliminar esta tarea?')) return;
+    try {
+        const { error } = await supabaseClient.from('tareas_trabajo').delete().eq('id', tareaId);
+        if(error) throw error;
+        toast('Tarea eliminada.');
+        await refrescarPanelTareas(tipo, refId);
+    } catch(e) { logError('Eliminar tarea', e); alert(getFriendlyError(e)); }
+}
+
+// Refresca el panel correcto según el tipo
+async function refrescarPanelTareas(tipo, refId) {
+    await loadAll();
+    if(tipo === 'equipo' && typeof abrirPanelProceso === 'function') {
+        await abrirPanelProceso(refId);
+    } else if(tipo === 'orden') {
+        renderTallerOrdenes();
+    }
+}
 
 async function abrirPanelProceso(equipoId) {
     _panelProcesoEquipoId = equipoId;
@@ -5296,15 +5430,19 @@ async function abrirPanelProceso(equipoId) {
     let piezas = [];
     let fallas = [];
     let devsPrev = [];
+    let tareas = [];
     try {
-        const [pzRes, flRes, devRes] = await Promise.all([
+        const [pzRes, flRes, devRes, tkRes] = await Promise.all([
             supabaseClient.from('equipo_piezas_pedidas').select('*').eq('equipo_id', equipoId).order('creado_en', { ascending: true }),
             supabaseClient.from('equipo_fallas').select('*').eq('equipo_id', equipoId),
-            supabaseClient.from('equipo_devoluciones').select('*').eq('equipo_id', equipoId).order('fecha_devolucion', { ascending: false })
+            supabaseClient.from('equipo_devoluciones').select('*').eq('equipo_id', equipoId).order('fecha_devolucion', { ascending: false }),
+            supabaseClient.from('tareas_trabajo').select('*').eq('tipo', 'equipo').eq('ref_id', equipoId).order('creado_en', { ascending: true }).then(r => r, () => ({ data: [], error: null }))
         ]);
         piezas = pzRes.data || [];
         fallas = flRes.data || [];
         devsPrev = devRes.data || [];
+        tareas = (tkRes && tkRes.data) || [];
+        _tareasEquipoActual = tareas;
     } catch(e) {
         logError('Cargar panel proceso', e);
     }
@@ -5556,6 +5694,8 @@ async function abrirPanelProceso(equipoId) {
                         <i class="ti ti-user-share"></i> Reasignar a otro técnico
                     </button>
                 ` : ''}
+                
+                ${construirSeccionTareas('equipo', equipoId, tareas)}
                 
                 ${estado === 'listo_revision' ? (
                     puedeRecibirReasignado || tienePermiso('piezas_aprobar_extra') ? `
@@ -6576,6 +6716,10 @@ function renderTallerOrdenes() {
             </div>`;
         }
         
+        // Tareas de esta orden (sistema genérico, tipo='orden')
+        const tareasOrden = (cache.tareas || []).filter(t => t.tipo === 'orden' && t.ref_id === o.id);
+        const tareasHtml = construirSeccionTareas('orden', o.id, tareasOrden);
+        
         return `<div style="background:#fff; border:1px solid var(--border-color); border-radius:8px; padding:12px; margin-bottom:8px;">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
                 <div style="flex:1; min-width:200px;">
@@ -6593,6 +6737,7 @@ function renderTallerOrdenes() {
                         : `<div style="background:#fef9c3; border:1px solid #fde047; padding:5px 8px; border-radius:6px; margin-top:6px; font-size:12px;"><i class="ti ti-info-circle"></i> ${escapeHtml(o.nota_estado)}</div>`)
                       : ''}
                     ${piezasHtml}
+                    ${tareasHtml}
                 </div>
                 <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">${acciones}</div>
             </div>
