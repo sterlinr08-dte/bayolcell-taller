@@ -6315,6 +6315,10 @@ function renderTallerOrdenes() {
         if((esAdmin || esMia) && !['entregado','cancelado'].includes(estado)) {
             acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#991b1b;" onclick="cambiarEstadoOrdenUI('${o.id}','cancelado')"><i class="ti ti-x"></i> Cancelar</button>`;
         }
+        // Derivar a otro técnico (solo si está tomada y en proceso)
+        if((esAdmin || esMia) && o.tecnico_asignado_id && !['entregado','cancelado','finalizado'].includes(estado)) {
+            acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#6b21a8;" onclick="derivarOrden('${o.id}')"><i class="ti ti-arrows-exchange"></i> Derivar</button>`;
+        }
         
         return `<div style="background:#fff; border:1px solid var(--border-color); border-radius:8px; padding:12px; margin-bottom:8px;">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
@@ -6323,6 +6327,7 @@ function renderTallerOrdenes() {
                         <b>#${numOrden}</b>
                         <span class="badge" style="background:${et.bg}; color:${et.color};">${et.text}</span>
                         ${tecnico ? `<span class="badge" style="background:#e0e7ff; color:#3730a3;"><i class="ti ti-tool"></i> ${escapeHtml(tecnico)}</span>` : '<span class="badge" style="background:#f1f5f9; color:#94a3b8;">Sin tomar</span>'}
+                        ${o.tecnico_anterior_id ? `<span class="badge" style="background:#f3e8ff; color:#6b21a8;"><i class="ti ti-arrows-exchange"></i> Derivada</span>` : ''}
                     </div>
                     <div style="font-size:13px; margin-top:6px;"><b>${escapeHtml(c.nombre || '—')}</b> · ${escapeHtml(e.marca || '')} ${escapeHtml(e.modelo || '')}</div>
                     <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">${escapeHtml(o.falla_reportada || 'Sin falla descrita')}</div>
@@ -6346,6 +6351,51 @@ async function cambiarEstadoOrdenUI(ordenId, nuevoEstado) {
         return;
     }
     await avanzarEstadoOrden(ordenId, nuevoEstado);
+}
+
+// === FASE 3: Derivación técnica (pasar la orden a otro técnico) ===
+async function derivarOrden(ordenId) {
+    const orden = (cache.ordenes || []).find(o => o.id === ordenId);
+    if(!orden) return alert('Orden no encontrada.');
+    const esAdmin = isAdminUser();
+    const esMia = orden.tecnico_asignado_id === sessionUser?.id;
+    // Anti juez-y-parte: solo el técnico asignado o un admin pueden derivar
+    if(!esAdmin && !esMia) {
+        return alert('Solo el técnico asignado (o un administrador) puede derivar esta orden.');
+    }
+    const estado = normalizarEstadoOrden(orden.estado);
+    if(['entregado','cancelado'].includes(estado)) {
+        return alert('No se puede derivar una orden ya entregada o cancelada.');
+    }
+    // Técnicos disponibles (excluyendo al actual)
+    const tecnicos = (cache.tecnicos || []).filter(t => t.activo && (t.tipo_empleado === 'tecnico' || (!t.tipo_empleado && t.rol !== 'admin')) && t.id !== orden.tecnico_asignado_id);
+    if(!tecnicos.length) return alert('No hay otros técnicos disponibles para derivar.');
+    
+    // Construir lista para el prompt
+    const lista = tecnicos.map((t, i) => `${i + 1}. ${t.nombre}`).join('\n');
+    const sel = prompt(`DERIVAR ORDEN #${String(orden.numero_orden ?? '').padStart(6,'0')} a otro técnico:\n\n${lista}\n\nEscribe el número del técnico:`);
+    if(sel === null) return;
+    const idx = parseInt(sel) - 1;
+    if(isNaN(idx) || idx < 0 || idx >= tecnicos.length) return alert('Selección inválida.');
+    const nuevoTec = tecnicos[idx];
+    
+    const motivo = prompt(`Motivo de la derivación a ${nuevoTec.nombre}:\n\nEjemplo: "Requiere microsoldadura" o "No pude resolver el problema de carga"`);
+    if(motivo === null) return;
+    if(!motivo.trim()) return alert('Debes indicar el motivo de la derivación.');
+    
+    try {
+        const { error } = await supabaseClient.from('ordenes_reparacion').update({
+            tecnico_anterior_id: orden.tecnico_asignado_id || null,
+            tecnico_asignado_id: nuevoTec.id,
+            estado: 'en_proceso',
+            fecha_derivacion: new Date().toISOString(),
+            motivo_derivacion: motivo.trim(),
+            nota_estado: `Derivado de ${nombreEmpleado(orden.tecnico_asignado_id)}: ${motivo.trim()}`
+        }).eq('id', ordenId);
+        if(error) throw error;
+        toast(`🔄 Orden derivada a ${nuevoTec.nombre}.`);
+        await loadAll();
+    } catch(e) { logError('Derivar orden', e); alert(getFriendlyError(e)); }
 }
 
 // El técnico se auto-asigna una orden (la toma)
