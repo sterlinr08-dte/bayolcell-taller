@@ -2129,7 +2129,16 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
         <div class="modal-body">
             <input id="mod_art_id" type="hidden">
             <div class="form-row"><label>Código</label><input id="mod_art_codigo" value="AUTOMÁTICO" disabled></div>
-            <div class="form-row"><label>Marca *</label><input id="mod_art_marca" placeholder="APPLE / SAMSUNG / XIAOMI" style="text-transform:uppercase;"></div>
+            <div class="form-row"><label>Marca *</label>
+                <input id="mod_art_marca" list="dl_marcas" placeholder="APPLE / SAMSUNG / XIAOMI" style="text-transform:uppercase;" autocomplete="off">
+                <datalist id="dl_marcas"></datalist>
+                <small style="color:var(--text-muted); font-size:11px;">Elige del catálogo o escribe una nueva.</small>
+            </div>
+            <div class="form-row"><label>Categoría</label>
+                <input id="mod_art_categoria" list="dl_categorias" placeholder="CELULAR / TABLET / ACCESORIO" style="text-transform:uppercase;" autocomplete="off">
+                <datalist id="dl_categorias"></datalist>
+                <small style="color:var(--text-muted); font-size:11px;">Elige del catálogo o escribe una nueva.</small>
+            </div>
             <div class="form-row"><label>Modelo *</label><input id="mod_art_modelo" placeholder="IPHONE 12 PRO MAX" style="text-transform:uppercase;"></div>
             <div class="form-row"><label>Capacidad</label><input id="mod_art_capacidad" placeholder="256GB / 128GB / 64GB" style="text-transform:uppercase;"></div>
             <div class="form-row"><label>Referencia</label><input id="mod_art_referencia" placeholder="REF DEL PROVEEDOR / CÓDIGO INTERNO" style="text-transform:uppercase;"></div>
@@ -3273,25 +3282,40 @@ function calcularSiguienteCodigoArticulo() {
     return `ART-${String(Math.max(...numeros, 0) + 1).padStart(3, '0')}`;
 }
 
-function abrirModalArticulo() {
+async function abrirModalArticulo() {
     document.getElementById('mod_art_id').value = '';
     document.getElementById('mod_art_codigo').value = calcularSiguienteCodigoArticulo();
-    ['mod_art_marca','mod_art_modelo','mod_art_capacidad','mod_art_referencia'].forEach(id => document.getElementById(id).value = '');
+    ['mod_art_marca','mod_art_modelo','mod_art_capacidad','mod_art_referencia','mod_art_categoria'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
     document.getElementById('mod_art_lleva_imei').checked = true;
     document.getElementById('modalArtTitulo').textContent = 'Crear Artículo';
+    await llenarDatalistsCatalogo();
     document.getElementById('modalArticulo').classList.add('active');
+}
+
+// Llena los datalist de marcas y categorías desde el catálogo
+async function llenarDatalistsCatalogo() {
+    // Asegurar que los catálogos estén cargados
+    if(_marcasCache.length === 0 && typeof cargarMarcas === 'function') { try { await cargarMarcas(); } catch(e){} }
+    if(_categoriasCache.length === 0 && typeof cargarCategorias === 'function') { try { await cargarCategorias(); } catch(e){} }
+    const dlM = document.getElementById('dl_marcas');
+    if(dlM) dlM.innerHTML = (_marcasCache || []).filter(m => m.activa !== false).map(m => `<option value="${escapeHtml((m.nombre||'').toUpperCase())}">`).join('');
+    const dlC = document.getElementById('dl_categorias');
+    if(dlC) dlC.innerHTML = (_categoriasCache || []).filter(c => c.activa !== false).map(c => `<option value="${escapeHtml((c.nombre||'').toUpperCase())}">`).join('');
 }
 
 function cerrarModalArticulo() {
     document.getElementById('modalArticulo').classList.remove('active');
 }
 
-function editarArticulo(id) {
+async function editarArticulo(id) {
     const a = findArticulo(id);
     if(!a) return;
+    await llenarDatalistsCatalogo();
     document.getElementById('mod_art_id').value = a.id;
     document.getElementById('mod_art_codigo').value = a.codigo;
     document.getElementById('mod_art_marca').value = a.marca || '';
+    const catEl = document.getElementById('mod_art_categoria');
+    if(catEl) catEl.value = a.categoria || '';
     document.getElementById('mod_art_modelo').value = a.modelo || '';
     document.getElementById('mod_art_capacidad').value = a.capacidad || '';
     document.getElementById('mod_art_referencia').value = a.referencia || '';
@@ -3307,6 +3331,7 @@ async function guardarArticuloModal() {
         const id = val('mod_art_id');
         const data = {
             marca: marca, modelo: modelo,
+            categoria: val('mod_art_categoria') || null,
             capacidad: val('mod_art_capacidad') || null,
             referencia: val('mod_art_referencia') || null,
             lleva_imei: document.getElementById('mod_art_lleva_imei').checked
@@ -3325,9 +3350,32 @@ async function guardarArticuloModal() {
             toast(`✅ Artículo ${data.codigo} creado.`);
         }
         cerrarModalArticulo();
+        // Si la marca o categoría son nuevas, agregarlas al catálogo para la próxima vez
+        await registrarEnCatalogoSiEsNueva(marca, val('mod_art_categoria'));
         await loadAll();
         resaltarItemNuevo(nuevoId);
     } catch(e) { logError('Guardar artículo', e); alert(getFriendlyError(e)); }
+}
+
+// Agrega marca/categoría al catálogo si no existían (silencioso)
+async function registrarEnCatalogoSiEsNueva(marca, categoria) {
+    try {
+        if(marca) {
+            const existe = (_marcasCache || []).some(m => (m.nombre||'').toUpperCase() === marca.toUpperCase());
+            if(!existe) {
+                await supabaseClient.from('catalogo_marcas').insert([{ nombre: marca.toUpperCase(), activa: true }]).then(r=>r, ()=>{});
+            }
+        }
+        if(categoria) {
+            const existe = (_categoriasCache || []).some(c => (c.nombre||'').toUpperCase() === categoria.toUpperCase());
+            if(!existe) {
+                await supabaseClient.from('catalogo_categorias').insert([{ nombre: categoria.toUpperCase(), activa: true }]).then(r=>r, ()=>{});
+            }
+        }
+        // Refrescar caches
+        if(typeof cargarMarcas === 'function') { try { await cargarMarcas(); } catch(e){} }
+        if(typeof cargarCategorias === 'function') { try { await cargarCategorias(); } catch(e){} }
+    } catch(e) { /* silencioso, no bloquea el guardado */ }
 }
 
 async function eliminarArticulo(id) {
