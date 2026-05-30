@@ -7325,10 +7325,12 @@ async function cargarEnLabel(id) {
 // Genera y muestra el label de diagnóstico para una ORDEN DE CLIENTE
 async function abrirPreviewLabelDiagOrden(orden) {
     const eq = findEquipo(orden.equipo_id);
+    const cli = findCliente(orden.cliente_id);
     const w = localStorage.getItem('bayol_dlbl_w') || '51';
     const h = localStorage.getItem('bayol_dlbl_h') || '25';
     const f = localStorage.getItem('bayol_dlbl_f') || '10';
     
+    const cliente = (cli.nombre || 'SIN CLIENTE').toUpperCase();
     const marca = (eq.marca || '').toUpperCase();
     const modelo = (eq.modelo || '').toUpperCase();
     const capacidad = (eq.capacidad || '').toUpperCase();
@@ -7354,10 +7356,11 @@ async function abrirPreviewLabelDiagOrden(orden) {
     
     const labelHtml = `
         <div class="diag-label" style="width:${w}mm; min-height:${h}mm; font-size:${f}px; font-weight:900; -webkit-text-stroke:0.4px #000; line-height:1.25; padding:1mm; box-sizing:border-box; overflow:hidden; font-family:Arial,Helvetica,sans-serif; color:#000;">
-            <div style="font-size:${f}px; font-weight:900; -webkit-text-stroke:0.4px #000; text-align:center; border-bottom:2px solid #000; padding-bottom:0.5mm; margin-bottom:0.5mm;">DIAGNÓSTICO</div>
+            <div style="font-size:${f}px; font-weight:900; -webkit-text-stroke:0.4px #000; text-align:center; border-bottom:2px solid #000; padding-bottom:0.5mm; margin-bottom:0.5mm;">ORDEN DE SERVICIO</div>
+            <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">${formatoOrden(orden.numero_orden)}</div>
+            <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">CLIENTE: ${escapeHtml(cliente)}</div>
             <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">${escapeHtml(modeloCorto)}</div>
             <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">IMEI: ${escapeHtml(imei)}</div>
-            <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">ORDEN: ${formatoOrden(orden.numero_orden)}</div>
             <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">FECHA: ${escapeHtml(fecha)}</div>
             ${fallasHtml}
         </div>
@@ -7369,8 +7372,8 @@ async function abrirPreviewLabelDiagOrden(orden) {
     _labelDiagEquiposLote = null;
     _labelDiagOrdenActual = orden;
     document.getElementById('labelDiagPreview').innerHTML = labelHtml;
-    document.getElementById('labelDiagInfo').textContent = 'Se imprimirá 1 label de diagnóstico';
-    document.getElementById('modalLabelTitulo').textContent = 'Label de Diagnóstico · ' + formatoOrden(orden.numero_orden);
+    document.getElementById('labelDiagInfo').textContent = 'Se imprimirá 1 label de orden de servicio';
+    document.getElementById('modalLabelTitulo').textContent = 'Label Orden de Servicio · ' + formatoOrden(orden.numero_orden);
     document.getElementById('diag_copias').value = 1;
     document.getElementById('modalLabelDiag').classList.add('active');
 }
