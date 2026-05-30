@@ -5333,38 +5333,31 @@ function construirSeccionTareas(tipo, refId, tareas) {
         const esMia = t.tecnico_id === sessionUser?.id;
         const puedeCompletar = isAdminUser() || esMia;
         const reasignada = t.tecnico_anterior_id ? nombreEmpleado(t.tecnico_anterior_id) : null;
-        return `<div style="display:flex; align-items:flex-start; gap:8px; padding:8px; border:1px solid ${hecha ? '#bbf7d0' : '#e2e8f0'}; background:${hecha ? '#f0fdf4' : '#fff'}; border-radius:8px; margin-bottom:6px;">
+        return `<div style="display:flex; align-items:flex-start; gap:6px; padding:6px 8px; border:1px solid ${hecha ? '#bbf7d0' : '#e2e8f0'}; background:${hecha ? '#f0fdf4' : '#fff'}; border-radius:6px; margin-bottom:4px;">
             <div style="flex:1;">
                 <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-                    <span style="font-weight:600; font-size:13px; ${hecha ? 'text-decoration:line-through; color:#16a34a;' : ''}">${escapeHtml(t.descripcion)}</span>
-                    ${hecha ? `<span style="background:#16a34a; color:#fff; font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px;">✓ LISTO</span>` : ''}
+                    <span style="font-weight:600; font-size:12px; ${hecha ? 'text-decoration:line-through; color:#16a34a;' : ''}">${escapeHtml(t.descripcion)}</span>
+                    ${hecha ? `<span style="background:#16a34a; color:#fff; font-size:9px; font-weight:700; padding:1px 7px; border-radius:10px;">✓ LISTO</span>` : ''}
                 </div>
-                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;"><i class="ti ti-user"></i> ${escapeHtml(tecNombre)}</div>
-                ${reasignada && !hecha ? `<div style="font-size:10px; color:#d97706; margin-top:2px;"><i class="ti ti-arrow-right"></i> Reasignada desde ${escapeHtml(reasignada)}</div>` : ''}
-                ${t.notas ? `<div style="font-size:11px; color:#64748b; margin-top:2px;">📝 ${escapeHtml(t.notas)}</div>` : ''}
+                <div style="font-size:10px; color:var(--text-muted); margin-top:1px;"><i class="ti ti-user"></i> ${escapeHtml(tecNombre)}</div>
+                ${reasignada && !hecha ? `<div style="font-size:9px; color:#d97706; margin-top:1px;"><i class="ti ti-arrow-right"></i> Reasignada desde ${escapeHtml(reasignada)}</div>` : ''}
+                ${t.notas ? `<div style="font-size:10px; color:#64748b; margin-top:1px;">📝 ${escapeHtml(t.notas)}</div>` : ''}
             </div>
-            <div style="display:flex; gap:4px;">
-                ${!hecha && puedeCompletar ? `<button onclick="completarTarea('${t.id}','${tipo}','${refId}')" style="background:#dcfce7; color:#166534; border:0; padding:6px 8px; border-radius:6px; cursor:pointer; font-size:11px;" title="Marcar lista"><i class="ti ti-check"></i></button>` : ''}
-                ${!hecha ? `<button onclick="reasignarTarea('${t.id}','${tipo}','${refId}')" style="background:#fef3c7; color:#92400e; border:0; padding:6px 8px; border-radius:6px; cursor:pointer; font-size:11px;" title="Reasignar a otro técnico"><i class="ti ti-user-share"></i></button>` : ''}
-                ${hecha && (isAdminUser() || esMia) ? `<button onclick="reabrirTarea('${t.id}','${tipo}','${refId}')" style="background:#fef3c7; color:#92400e; border:0; padding:6px 8px; border-radius:6px; cursor:pointer; font-size:11px;" title="Reabrir"><i class="ti ti-rotate"></i></button>` : ''}
-                <button onclick="eliminarTarea('${t.id}','${tipo}','${refId}')" style="background:#fee2e2; color:#991b1b; border:0; padding:6px 8px; border-radius:6px; cursor:pointer; font-size:11px;" title="Eliminar"><i class="ti ti-trash"></i></button>
+            <div style="display:flex; gap:3px;">
+                ${!hecha && puedeCompletar ? `<button onclick="completarTarea('${t.id}','${tipo}','${refId}')" style="background:#dcfce7; color:#166534; border:0; padding:5px 7px; border-radius:5px; cursor:pointer; font-size:10px;" title="Marcar lista"><i class="ti ti-check"></i></button>` : ''}
+                ${!hecha ? `<button onclick="reasignarTarea('${t.id}','${tipo}','${refId}')" style="background:#fef3c7; color:#92400e; border:0; padding:5px 7px; border-radius:5px; cursor:pointer; font-size:10px;" title="Reasignar a otro técnico"><i class="ti ti-user-share"></i></button>` : ''}
+                ${hecha && (isAdminUser() || esMia) ? `<button onclick="reabrirTarea('${t.id}','${tipo}','${refId}')" style="background:#fef3c7; color:#92400e; border:0; padding:5px 7px; border-radius:5px; cursor:pointer; font-size:10px;" title="Reabrir"><i class="ti ti-rotate"></i></button>` : ''}
+                <button onclick="eliminarTarea('${t.id}','${tipo}','${refId}')" style="background:#fee2e2; color:#991b1b; border:0; padding:5px 7px; border-radius:5px; cursor:pointer; font-size:10px;" title="Eliminar"><i class="ti ti-trash"></i></button>
             </div>
         </div>`;
     }).join('');
     
-    // Accesos rápidos de fallas comunes (se agregan como tareas)
-    const fallasRapidas = ['Pantalla rota','No enciende','Batería mala','Cámara rota','Puerto malo','Micro','Sin señal','Mojado'];
-    const chipsRapidos = fallasRapidas.map(f =>
-        `<button onclick="agregarFallaRapida('${tipo}','${refId}','${f}')" style="background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe; padding:4px 10px; border-radius:14px; cursor:pointer; font-size:11px; font-weight:600;">+ ${f}</button>`
-    ).join('');
-    
     return `
-        <div style="background:#fff; border:2px solid #e2e8f0; padding:14px; border-radius:12px; margin-top:18px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
-                <b style="font-size:14px;"><i class="ti ti-list-check" style="color:#0891b2;"></i> Fallas y Tareas del Equipo</b>
-                <button onclick="crearTarea('${tipo}','${refId}')" class="btn btn-blue" style="font-size:12px; padding:6px 12px;"><i class="ti ti-plus"></i> Agregar tarea</button>
+        <div style="background:#fff; border:2px solid #e2e8f0; padding:10px; border-radius:10px; margin-top:14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+                <b style="font-size:13px;"><i class="ti ti-list-check" style="color:#0891b2;"></i> Fallas y Tareas del Equipo</b>
+                <button onclick="crearTarea('${tipo}','${refId}')" class="btn btn-blue" style="font-size:11px; padding:5px 10px;"><i class="ti ti-plus"></i> Agregar tarea</button>
             </div>
-            <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;">${chipsRapidos}</div>
             ${total > 0 ? `
                 <div style="margin-bottom:10px;">
                     <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">
@@ -5379,22 +5372,6 @@ function construirSeccionTareas(tipo, refId, tareas) {
                 ${todasHechas ? `<div style="background:#f0fdf4; border:1px solid #86efac; padding:8px; border-radius:8px; margin-top:6px; text-align:center; font-size:12px; color:#166534;"><i class="ti ti-circle-check"></i> ¡Todas las fallas resueltas! El equipo está listo.</div>` : ''}
             ` : `<div style="color:var(--text-muted); font-size:12px; padding:8px 0;">No hay fallas registradas. Usa los accesos rápidos de arriba o el botón "Agregar tarea".</div>`}
         </div>`;
-}
-
-// Agrega una falla común como tarea rápida (sin asignar)
-async function agregarFallaRapida(tipo, refId, falla) {
-    try {
-        const { error } = await supabaseClient.from('tareas_trabajo').insert([{
-            tipo: tipo, ref_id: refId,
-            descripcion: falla,
-            tecnico_id: null,
-            estado: 'pendiente',
-            creado_por: sessionUser?.id
-        }]);
-        if(error) throw error;
-        toast(`✅ "${falla}" agregada.`);
-        await refrescarPanelTareas(tipo, refId);
-    } catch(e) { logError('Agregar falla rápida', e); alert(getFriendlyError(e)); }
 }
 
 // Crear una tarea (cualquier técnico puede)
@@ -6871,7 +6848,8 @@ function renderTallerOrdenes() {
                     ${tareasHtml}
                 </div>
                 <div style="display:flex; flex-direction:column; gap:6px; align-items:stretch; min-width:150px;" class="acciones-verticales">
-                    <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;"><i class="ti ti-settings"></i> Acciones / Estado</div>
+                    <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;"><i class="ti ti-settings"></i> Estado del Equipo</div>
+                    <div style="background:${et.bg}; color:${et.color}; border:2px solid ${et.color}; padding:6px 10px; border-radius:8px; font-size:12px; font-weight:700; text-align:center;"><i class="ti ti-circle-dot"></i> ${et.text}</div>
                     ${acciones}
                 </div>
             </div>
