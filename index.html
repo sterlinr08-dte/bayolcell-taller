@@ -614,6 +614,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
         </div>
         <div class="nav">
             <button class="active" id="menu-dashboard" onclick="nav('dashboard',this)"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
+            <button id="menu-miTrabajo" onclick="nav('miTrabajo',this)"><i class="ti ti-briefcase"></i> Mi Trabajo</button>
             <button id="menu-recepcion" onclick="nav('recepcion',this)"><i class="ti ti-clipboard-plus"></i> Recepción de Equipos</button>
             <button id="menu-ordenes" onclick="nav('ordenes',this)"><i class="ti ti-tool"></i> Órdenes de Trabajo</button>
             <button id="menu-inventario" onclick="nav('inventario',this)"><i class="ti ti-package"></i> Inventario Taller</button>
@@ -641,6 +642,16 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
         </header>
         
         <section class="content">
+            <!-- MI TRABAJO (técnico) -->
+            <div id="v-miTrabajo" class="view">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:14px;">
+                    <h2 style="margin:0;"><i class="ti ti-briefcase" style="color:#0891b2;"></i> Mi Trabajo</h2>
+                    <button class="btn btn-light" onclick="renderMiTrabajo()" style="font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
+                </div>
+                <div id="miTrabajoResumen" class="kpi-row" style="margin-bottom:14px;"></div>
+                <div id="miTrabajoContenido"></div>
+            </div>
+
             <!-- DASHBOARD -->
             <div id="v-dashboard" class="view active">
                 <div class="kpi-row">
@@ -2844,9 +2855,19 @@ function applyAccessControls() {
         return;
     }
     
+    // MODO "SOLO MI TRABAJO": el técnico solo ve esa pantalla
+    if(tienePermiso('solo_mi_trabajo')) {
+        document.querySelectorAll('.nav button').forEach(b => {
+            b.style.display = (b.id === 'menu-miTrabajo') ? '' : 'none';
+        });
+        setTimeout(() => nav('miTrabajo'), 100);
+        return;
+    }
+    
     // Mapeo de items de menú → permiso requerido
     const menuPermisos = {
         'menu-dashboard': 'ver_dashboard',
+        'menu-miTrabajo': null,
         'menu-recepcion': 'recepcion_ver',
         'menu-ordenes': 'ordenes_ver',
         'menu-inventario': 'inventario_ver',
@@ -2914,6 +2935,7 @@ function startApp() {
 // Mapa de vista → permiso requerido para entrar
 const NAV_PERMISOS = {
     'dashboard': 'ver_dashboard',
+    'miTrabajo': null,
     'recepcion': 'recepcion_ver',
     'ordenes': 'ordenes_ver',
     'inventario': 'inventario_ver',
@@ -2950,6 +2972,7 @@ function nav(v, btn) {
     if(v === 'refurb') { setTimeout(() => { volverListaLotesReacond(); cargarLotesReacond(); }, 50); }
     if(v === 'configuracion') { setTimeout(() => { cambiarMainTabConfig('tecnicos'); }, 50); }
     if(v === 'reportes') { setTimeout(() => { inicializarReportes(); }, 50); }
+    if(v === 'miTrabajo') { setTimeout(() => { renderMiTrabajo(); }, 50); }
     closeSidebar();
     window.scrollTo({ top: 0, behavior: 'smooth' });
     // Re-aplicar permisos de botones estáticos tras renderizar
@@ -3074,6 +3097,7 @@ function renderAll() {
     if(loteActualId) renderEquiposLote();
     renderProductividadEmpleados();
     renderTallerOrdenes();
+    if(document.getElementById('v-miTrabajo')?.classList.contains('active')) renderMiTrabajo();
     // Marcar el filtro activo del tablero (visual)
     const btnAct = document.getElementById('fltOrdActivas');
     if(btnAct && !btnAct.style.background) { btnAct.style.background = 'var(--blue-btn)'; btnAct.style.color = '#fff'; }
@@ -6738,7 +6762,11 @@ function renderTallerOrdenes() {
     
     const tecnicosActivos = (cache.tecnicos || []).filter(t => t.activo && (t.tipo_empleado === 'tecnico' || !t.tipo_empleado));
     
-    cont.innerHTML = ordenes.map(o => {
+    cont.innerHTML = ordenes.map(o => construirCardOrden(o, esAdmin, miId, tecnicosActivos)).join('');
+}
+
+// Construye el HTML de UNA orden (reutilizable: tablero taller + Mi Trabajo)
+function construirCardOrden(o, esAdmin, miId, tecnicosActivos) {
         const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
         const estado = normalizarEstadoOrden(o.estado);
         const et = obtenerEtiquetaOrden(estado);
@@ -6856,7 +6884,86 @@ function renderTallerOrdenes() {
                 </div>
             </div>
         </div>`;
-    }).join('');
+}
+
+// ============================================================
+//   MI TRABAJO (pantalla del técnico: todo lo suyo junto)
+// ============================================================
+function renderMiTrabajo() {
+    const miId = sessionUser?.id;
+    const esAdmin = isAdminUser();
+    const resumen = document.getElementById('miTrabajoResumen');
+    const cont = document.getElementById('miTrabajoContenido');
+    if(!cont) return;
+    
+    const tecnicosActivos = (cache.tecnicos || []).filter(t => t.activo && (t.tipo_empleado === 'tecnico' || !t.tipo_empleado));
+    
+    // Órdenes: disponibles (sin tomar) + mías
+    const todasOrd = (cache.ordenes || []).filter(o => !['entregado','cancelado'].includes(normalizarEstadoOrden(o.estado)));
+    const disponibles = todasOrd.filter(o => !o.tecnico_asignado_id);
+    const misTareasOrden = new Set((cache.tareas || []).filter(t => t.tipo === 'orden' && t.tecnico_id === miId).map(t => t.ref_id));
+    const misOrdenes = todasOrd.filter(o => o.tecnico_asignado_id === miId || misTareasOrden.has(o.id));
+    
+    // Reacondicionados míos
+    const misReacond = (cache.refurb || []).filter(e => e.tecnico_asignado_id === miId && !['vendido'].includes(e.estado_evaluacion));
+    
+    // Fallas pendientes mías
+    const misFallasPend = (cache.tareas || []).filter(t => t.tecnico_id === miId && t.estado !== 'hecha').length;
+    const reasignadasAMi = (cache.tareas || []).filter(t => t.tecnico_id === miId && t.tecnico_anterior_id && t.estado !== 'hecha').length;
+    
+    // Resumen (KPIs)
+    resumen.innerHTML = `
+        <div class="kpi-box" style="border-top-color:#3b82f6;"><small>Disponibles</small><strong>${disponibles.length}</strong><i class="ti ti-inbox"></i></div>
+        <div class="kpi-box" style="border-top-color:#0891b2;"><small>Mis órdenes</small><strong>${misOrdenes.length}</strong><i class="ti ti-tool"></i></div>
+        <div class="kpi-box" style="border-top-color:#f59e0b;"><small>Mis reacond.</small><strong>${misReacond.length}</strong><i class="ti ti-refresh"></i></div>
+        <div class="kpi-box" style="border-top-color:#dc2626;"><small>Fallas pend.</small><strong>${misFallasPend}</strong><i class="ti ti-alert-triangle"></i></div>
+        ${reasignadasAMi > 0 ? `<div class="kpi-box" style="border-top-color:#d97706;"><small>Reasignadas a mí</small><strong>${reasignadasAMi}</strong><i class="ti ti-arrows-exchange"></i></div>` : ''}
+    `;
+    
+    let html = '';
+    
+    // SECCIÓN: Órdenes disponibles
+    html += `<div style="margin-bottom:18px;">
+        <h3 style="font-size:15px; margin:0 0 8px;"><i class="ti ti-inbox" style="color:#3b82f6;"></i> Órdenes Disponibles (sin tomar)</h3>`;
+    if(disponibles.length) {
+        html += disponibles.map(o => construirCardOrden(o, esAdmin, miId, tecnicosActivos)).join('');
+    } else {
+        html += `<div style="color:var(--text-muted); font-size:13px; padding:8px 0;">No hay órdenes disponibles ahora.</div>`;
+    }
+    html += `</div>`;
+    
+    // SECCIÓN: Mis órdenes
+    html += `<div style="margin-bottom:18px;">
+        <h3 style="font-size:15px; margin:0 0 8px;"><i class="ti ti-tool" style="color:#0891b2;"></i> Mis Órdenes Asignadas</h3>`;
+    if(misOrdenes.length) {
+        html += misOrdenes.map(o => construirCardOrden(o, esAdmin, miId, tecnicosActivos)).join('');
+    } else {
+        html += `<div style="color:var(--text-muted); font-size:13px; padding:8px 0;">No tienes órdenes asignadas.</div>`;
+    }
+    html += `</div>`;
+    
+    // SECCIÓN: Mis reacondicionados
+    html += `<div style="margin-bottom:18px;">
+        <h3 style="font-size:15px; margin:0 0 8px;"><i class="ti ti-refresh" style="color:#f59e0b;"></i> Mis Reacondicionados</h3>`;
+    if(misReacond.length) {
+        html += misReacond.map(eq => {
+            const tareasEq = (cache.tareas || []).filter(t => t.tipo === 'equipo' && t.ref_id === eq.id);
+            const pend = tareasEq.filter(t => t.estado !== 'hecha').length;
+            const estLabel = (eq.estado_evaluacion || 'en_proceso').replace(/_/g, ' ');
+            return `<div style="background:#fff; border:1px solid var(--border-color); border-radius:8px; padding:12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                <div>
+                    <b>${escapeHtml(eq.marca || '')} ${escapeHtml(eq.modelo || '')}</b> ${eq.capacidad ? '· ' + escapeHtml(eq.capacidad) : ''}
+                    <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">Estado: ${escapeHtml(estLabel)} ${pend > 0 ? `· ${pend} falla(s) pendiente(s)` : '· ✅ sin pendientes'}</div>
+                </div>
+                <button class="btn btn-dark" style="padding:8px 14px;" onclick="abrirPanelProceso('${eq.id}')"><i class="ti ti-tool"></i> Trabajar</button>
+            </div>`;
+        }).join('');
+    } else {
+        html += `<div style="color:var(--text-muted); font-size:13px; padding:8px 0;">No tienes equipos reacondicionados asignados.</div>`;
+    }
+    html += `</div>`;
+    
+    cont.innerHTML = html;
 }
 
 // Maneja el cambio de estado desde la UI (pide nota si es pendiente_cliente)
@@ -7697,6 +7804,12 @@ async function eliminarMarca(id) {
 
 // Definición de los permisos en grupos
 const PERMISOS_DEF = [
+    {
+        grupo: '🔧 Modo Técnico', color: '#0891b2',
+        items: [
+            { id: 'solo_mi_trabajo', label: 'SOLO ver la pantalla "Mi Trabajo" (oculta todo lo demás)' }
+        ]
+    },
     {
         grupo: '🏪 Atención al Cliente', color: '#0891b2',
         items: [
