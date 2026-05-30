@@ -2956,6 +2956,12 @@ function nombreEmpleado(id) {
     if(t) return t.nombre || '—';
     return '—';
 }
+
+// Formato del número de orden/ticket: ORD-000123
+function formatoOrden(numero) {
+    const n = String(numero ?? '').padStart(6, '0');
+    return `ORD-${n}`;
+}
 function findEquipo(id) { return cache.equipos.find(x => x.id === id) || {}; }
 function findArticulo(id) { return cache.articulos.find(x => x.id === id) || {}; }
 function findProveedor(id) { return cache.proveedores.find(x => x.id === id) || {}; }
@@ -2981,7 +2987,7 @@ function renderAll() {
     
     document.getElementById("recentOrders").innerHTML = cache.ordenes.slice(0, 5).map(o => {
         const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
-        return `<tr><td data-label="Orden"><b>#${o.numero_orden}</b></td><td data-label="Cliente">${escapeHtml(c.nombre)}</td><td data-label="Equipo">${escapeHtml(e.modelo)}</td><td data-label="Falla">${escapeHtml(o.falla_reportada)}</td><td data-label="Estado"><span class="badge" style="background:#d1fae5;">${o.estado}</span></td></tr>`;
+        return `<tr><td data-label="Orden"><b>${formatoOrden(o.numero_orden)}</b></td><td data-label="Cliente">${escapeHtml(c.nombre)}</td><td data-label="Equipo">${escapeHtml(e.modelo)}</td><td data-label="Falla">${escapeHtml(o.falla_reportada)}</td><td data-label="Estado"><span class="badge" style="background:#d1fae5;">${o.estado}</span></td></tr>`;
     }).join("");
     
     renderOrders();
@@ -3110,14 +3116,14 @@ function renderOrders() {
         const etOrd = obtenerEtiquetaOrden(normalizarEstadoOrden(o.estado));
         const tecOrd = o.tecnico_asignado_id ? nombreEmpleado(o.tecnico_asignado_id) : null;
         return `<tr>
-            <td data-label="Orden"><b>#${String(o.numero_orden ?? '').padStart(6, "0")}</b></td>
+            <td data-label="Orden"><b>${formatoOrden(o.numero_orden)}</b></td>
             <td data-label="Cliente">${escapeHtml(c.nombre)}</td>
             <td data-label="Equipo">${escapeHtml(e.modelo)}</td>
             <td data-label="Falla">${escapeHtml(o.falla_reportada)}</td>
             <td data-label="Acceso"><div class="access-mask">•••• <button class="btn btn-light" style="padding:1px 4px; font-size:10px" onclick="revelarClave('${o.id}', this)">Mostrar</button></div></td>
             <td data-label="Atendido por"><span style="font-size:12px;"><i class="ti ti-user-check" style="color:#0891b2;"></i> ${escapeHtml(nombreEmpleado(o.creado_by))}${tecOrd ? `<br><i class="ti ti-tool" style="color:#9a3412;"></i> ${escapeHtml(tecOrd)}` : ''}</span></td>
             <td data-label="Estado"><span class="badge" style="background:${etOrd.bg}; color:${etOrd.color};">${etOrd.text}</span></td>
-            <td data-label="Acciones"><button class="btn btn-light" style="padding:4px 8px;" onclick="cargarEnLabel('${o.id}')"><i class="ti ti-barcode"></i> Crear Label</button></td>
+            <td data-label="Acciones"><button class="btn btn-light" style="padding:4px 8px;" onclick="cargarEnLabel('${o.id}')"><i class="ti ti-clipboard-list"></i> Label Diagnóstico</button></td>
         </tr>`;
     }).join("");
 }
@@ -6290,7 +6296,7 @@ function renderTallerOrdenes() {
         const tecnico = o.tecnico_asignado_id ? nombreEmpleado(o.tecnico_asignado_id) : null;
         const esMia = o.tecnico_asignado_id === miId;
         const puedeOperar = esAdmin || esMia;
-        const numOrden = String(o.numero_orden ?? '').padStart(6, '0');
+        const numOrden = formatoOrden(o.numero_orden);
         
         // Botones de acción según estado
         let acciones = '';
@@ -6319,12 +6325,14 @@ function renderTallerOrdenes() {
         if((esAdmin || esMia) && o.tecnico_asignado_id && !['entregado','cancelado','finalizado'].includes(estado)) {
             acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#6b21a8;" onclick="derivarOrden('${o.id}')"><i class="ti ti-arrows-exchange"></i> Derivar</button>`;
         }
+        // Label de diagnóstico (con las fallas) — útil para el técnico
+        acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px;" onclick="cargarEnLabel('${o.id}')"><i class="ti ti-clipboard-list"></i> Label</button>`;
         
         return `<div style="background:#fff; border:1px solid var(--border-color); border-radius:8px; padding:12px; margin-bottom:8px;">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
                 <div style="flex:1; min-width:200px;">
                     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                        <b>#${numOrden}</b>
+                        <b>${numOrden}</b>
                         <span class="badge" style="background:${et.bg}; color:${et.color};">${et.text}</span>
                         ${tecnico ? `<span class="badge" style="background:#e0e7ff; color:#3730a3;"><i class="ti ti-tool"></i> ${escapeHtml(tecnico)}</span>` : '<span class="badge" style="background:#f1f5f9; color:#94a3b8;">Sin tomar</span>'}
                         ${o.tecnico_anterior_id ? `<span class="badge" style="background:#f3e8ff; color:#6b21a8;"><i class="ti ti-arrows-exchange"></i> Derivada</span>` : ''}
@@ -6373,7 +6381,7 @@ async function derivarOrden(ordenId) {
     
     // Construir lista para el prompt
     const lista = tecnicos.map((t, i) => `${i + 1}. ${t.nombre}`).join('\n');
-    const sel = prompt(`DERIVAR ORDEN #${String(orden.numero_orden ?? '').padStart(6,'0')} a otro técnico:\n\n${lista}\n\nEscribe el número del técnico:`);
+    const sel = prompt(`DERIVAR ORDEN ${formatoOrden(orden.numero_orden)} a otro técnico:\n\n${lista}\n\nEscribe el número del técnico:`);
     if(sel === null) return;
     const idx = parseInt(sel) - 1;
     if(isNaN(idx) || idx < 0 || idx >= tecnicos.length) return alert('Selección inválida.');
@@ -6407,7 +6415,7 @@ async function tomarOrden(ordenId) {
         const t = nombreEmpleado(orden.tecnico_asignado_id);
         return alert(`Esta orden ya fue tomada por ${t}.`);
     }
-    if(!confirm(`¿Tomar la orden #${String(orden.numero_orden ?? '').padStart(6,'0')}?\n\nQuedará asignada a ti y pasará a "En proceso".`)) return;
+    if(!confirm(`¿Tomar la orden ${formatoOrden(orden.numero_orden)}?\n\nQuedará asignada a ti y pasará a "En proceso".`)) return;
     try {
         const { error } = await supabaseClient.from('ordenes_reparacion').update({
             tecnico_asignado_id: sessionUser.id,
@@ -7307,19 +7315,64 @@ function enviarRefurbALabel(id) {
     nav("etiquetas");
 }
 
-function cargarEnLabel(id) {
+async function cargarEnLabel(id) {
     const o = cache.ordenes.find(x => x.id === id);
     if(!o) return;
-    const eq = findEquipo(o.equipo_id);
-    const marca = eq.marca || "Apple";
-    const modelo = eq.modelo || "";
-    const capacidad = eq.capacidad || "";
-    document.getElementById("lbl_marca").value = marca;
-    document.getElementById("lbl_modelo").value = `${modelo} ${capacidad}`.trim().replace(/\s+/g, ' ');
-    document.getElementById("lbl_imei").value = eq.imei || "";
-    document.getElementById("lbl_estado_texto").value = "";
-    actualizarLabelLive();
-    nav("etiquetas");
+    // Para órdenes de cliente: mostrar el label de DIAGNÓSTICO con las fallas (no código de barras)
+    await abrirPreviewLabelDiagOrden(o);
+}
+
+// Genera y muestra el label de diagnóstico para una ORDEN DE CLIENTE
+async function abrirPreviewLabelDiagOrden(orden) {
+    const eq = findEquipo(orden.equipo_id);
+    const w = localStorage.getItem('bayol_dlbl_w') || '51';
+    const h = localStorage.getItem('bayol_dlbl_h') || '25';
+    const f = localStorage.getItem('bayol_dlbl_f') || '10';
+    
+    const marca = (eq.marca || '').toUpperCase();
+    const modelo = (eq.modelo || '').toUpperCase();
+    const capacidad = (eq.capacidad || '').toUpperCase();
+    const imei = (eq.imei || 'SIN IMEI').toUpperCase();
+    const fecha = new Date().toLocaleDateString('es-DO');
+    const modeloCorto = `${marca} ${modelo} ${capacidad}`.replace(/\s+/g, ' ').trim();
+    
+    // Separar la falla reportada (texto libre) en items para el checklist
+    const fallasTexto = (orden.falla_reportada || '').split(/[\/,;\n]+/).map(s => s.trim()).filter(Boolean);
+    const fmenor = Math.max(7, parseInt(f) - 1);
+    let fallasHtml = '';
+    if(fallasTexto.length > 0) {
+        const columnas = fallasTexto.length >= 5 ? 2 : 1;
+        const items = fallasTexto.map(t =>
+            `<div style="font-size:${fmenor}px; font-weight:900; -webkit-text-stroke:0.3px #000; line-height:1.35; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">☐ ${escapeHtml(t.toUpperCase())}</div>`
+        ).join('');
+        fallasHtml = `
+            <div style="border-top:2px dashed #000; padding-top:0.5mm; margin-top:0.5mm;">
+                <div style="font-size:${fmenor}px; font-weight:900; -webkit-text-stroke:0.3px #000; margin-bottom:1px;">REVISAR / REPARAR:</div>
+                <div style="display:grid; grid-template-columns:repeat(${columnas}, 1fr); gap:0 6px;">${items}</div>
+            </div>`;
+    }
+    
+    const labelHtml = `
+        <div class="diag-label" style="width:${w}mm; min-height:${h}mm; font-size:${f}px; font-weight:900; -webkit-text-stroke:0.4px #000; line-height:1.25; padding:1mm; box-sizing:border-box; overflow:hidden; font-family:Arial,Helvetica,sans-serif; color:#000;">
+            <div style="font-size:${f}px; font-weight:900; -webkit-text-stroke:0.4px #000; text-align:center; border-bottom:2px solid #000; padding-bottom:0.5mm; margin-bottom:0.5mm;">DIAGNÓSTICO</div>
+            <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">${escapeHtml(modeloCorto)}</div>
+            <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">IMEI: ${escapeHtml(imei)}</div>
+            <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">ORDEN: ${formatoOrden(orden.numero_orden)}</div>
+            <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">FECHA: ${escapeHtml(fecha)}</div>
+            ${fallasHtml}
+        </div>
+    `;
+    
+    // Reusar el modal de label de diagnóstico existente
+    _labelDiagHtmlActual = labelHtml;
+    _labelDiagEquipoActual = null;
+    _labelDiagEquiposLote = null;
+    _labelDiagOrdenActual = orden;
+    document.getElementById('labelDiagPreview').innerHTML = labelHtml;
+    document.getElementById('labelDiagInfo').textContent = 'Se imprimirá 1 label de diagnóstico';
+    document.getElementById('modalLabelTitulo').textContent = 'Label de Diagnóstico · ' + formatoOrden(orden.numero_orden);
+    document.getElementById('diag_copias').value = 1;
+    document.getElementById('modalLabelDiag').classList.add('active');
 }
 
 /* LÓGICA DE ETIQUETAS */
@@ -7579,7 +7632,7 @@ function buildTicketHtml(orden, incluirCredenciales) {
             <h2>BAYOL CELL</h2>
             <div style="text-align:center;font-weight:bold;">TICKET DE RECEPCIÓN</div>
             <div class="line"></div>
-            <b>Orden:</b> ${escapeHtml(orden?.id || '')}<br>
+            <b>Orden:</b> ${escapeHtml(orden?.numero_orden != null ? formatoOrden(orden.numero_orden) : (orden?.id || ''))}<br>
             <b>Cliente:</b> ${escapeHtml(val('c_nombre'))}<br>
             <b>WhatsApp:</b> ${escapeHtml(val('c_whatsapp'))}<br>
             <b>Cédula:</b> ${escapeHtml(val('c_cedula') || 'N/A')}<br>
@@ -8026,6 +8079,7 @@ function generarHtmlLabelDiag(equipo) {
 let _labelDiagHtmlActual = '';
 let _labelDiagEquipoActual = null;
 let _labelDiagEquiposLote = null;
+let _labelDiagOrdenActual = null;
 
 async function abrirPreviewLabelDiagIndividual(equipoId) {
     const equipo = cache.refurb.find(r => r.id === equipoId);
@@ -8094,6 +8148,26 @@ async function confirmarImprimirLabelDiag() {
     const rot = parseInt(localStorage.getItem('bayol_dlbl_rot') || '0');
     const metodo = localStorage.getItem('bayol_metodo_impresion') || 'imagen'; // imagen | tspl | normal
     cerrarModalLabelDiag();
+    
+    // === CASO ORDEN DE CLIENTE: ya tenemos el HTML en _labelDiagHtmlActual ===
+    if(_labelDiagOrdenActual) {
+        const ordenLbl = _labelDiagOrdenActual;
+        _labelDiagOrdenActual = null; // reset
+        if(metodo === 'imagen' && _qzConectado && typeof html2canvas === 'function') {
+            const cont = document.createElement('div');
+            cont.style.position = 'fixed'; cont.style.left = '-9999px'; cont.style.top = '0'; cont.style.background = '#fff';
+            cont.innerHTML = _labelDiagHtmlActual;
+            document.body.appendChild(cont);
+            const labelEl = cont.firstElementChild || cont;
+            const ok = await qzImprimirHtmlComoImagen(labelEl, w, h, copias, 'labels');
+            document.body.removeChild(cont);
+            if(ok) { toast('🖨️ Label de diagnóstico enviado.'); return; }
+        }
+        // Respaldo HTML normal
+        const { html: cf, anchoFinal: af, altoFinal: alf } = aplicarRotacionImpresion(_labelDiagHtmlActual, w, h, rot);
+        imprimirContenido(`<style>@page{size:${af}mm ${alf}mm;margin:0;}@media print{body{margin:0;padding:0;}}</style>${cf}`, copias, af, alf);
+        return;
+    }
     
     // === MÉTODO IMAGEN (idéntico a la vista previa) — POR DEFECTO ===
     if(metodo === 'imagen' && _qzConectado && typeof html2canvas === 'function') {
