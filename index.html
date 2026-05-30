@@ -5299,6 +5299,8 @@ async function confirmarAsignarTecnico() {
         }]);
         
         toast(`Equipo asignado a ${tecnico?.nombre || 'técnico'}.`);
+        // Las fallas SIN asignar de este equipo pasan al técnico
+        await asignarFallasSinDueno('equipo', equipoId, tecnicoId);
         cerrarModalAsignarTecnico();
         await loadAll();
         if(reacondLoteAbiertoId) renderDetalleLoteReacond();
@@ -6838,7 +6840,6 @@ function renderTallerOrdenes() {
                         ${o.es_garantia ? `<span class="badge" style="background:#dbeafe; color:#0369a1;"><i class="ti ti-shield-check"></i> GARANTÍA${o.veces_garantia > 1 ? ' ×' + o.veces_garantia : ''}</span>` : ''}
                     </div>
                     <div style="font-size:13px; margin-top:6px;"><b>${escapeHtml(c.nombre || '—')}</b> · ${escapeHtml(e.marca || '')} ${escapeHtml(e.modelo || '')}</div>
-                    <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">${escapeHtml(o.falla_reportada || 'Sin falla descrita')}</div>
                     ${o.condicion_fisica && o.condicion_fisica !== 'Sin marcas' ? `<div style="font-size:11px; color:#7c3aed; margin-top:2px;"><i class="ti ti-note"></i> Estado físico: ${escapeHtml(o.condicion_fisica)}</div>` : ''}
                     <div style="font-size:11px; color:#94a3b8; margin-top:2px;"><i class="ti ti-clock"></i> Recibido: ${o.creado_en ? new Date(o.creado_en).toLocaleString('es-DO', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'}</div>
                     ${o.nota_estado ? (estado === 'pendiente_cliente'
@@ -7091,8 +7092,20 @@ async function tomarOrden(ordenId) {
         const fallasTexto = (orden.falla_reportada || '').split(/[\/,;\n]+/).map(s => s.trim()).filter(Boolean);
         const n = await crearTareasDesdeFallas('orden', ordenId, fallasTexto);
         if(n > 0) toast(`📋 ${n} tarea(s) creada(s) desde las fallas.`);
+        // Las fallas SIN asignar pasan a este técnico
+        await asignarFallasSinDueno('orden', ordenId, sessionUser.id);
         await loadAll();
     } catch(e) { logError('Tomar orden', e); alert(getFriendlyError(e)); }
+}
+
+// Asigna al técnico todas las tareas/fallas que estén sin dueño (al tomar/asignar la orden o equipo)
+async function asignarFallasSinDueno(tipo, refId, tecnicoId) {
+    if(!tecnicoId) return;
+    try {
+        await supabaseClient.from('tareas_trabajo')
+            .update({ tecnico_id: tecnicoId })
+            .eq('tipo', tipo).eq('ref_id', refId).is('tecnico_id', null);
+    } catch(e) { logError('Asignar fallas sin dueño', e); }
 }
 
 // Admin/servicio asigna la orden a un técnico específico
@@ -7112,6 +7125,8 @@ async function asignarOrdenTecnico(ordenId, tecnicoId) {
             const fallasTexto = (ordenAsig.falla_reportada || '').split(/[\/,;\n]+/).map(s => s.trim()).filter(Boolean);
             await crearTareasDesdeFallas('orden', ordenId, fallasTexto);
         }
+        // Las fallas SIN asignar pasan a este técnico
+        await asignarFallasSinDueno('orden', ordenId, tecnicoId);
         await loadAll();
     } catch(e) { logError('Asignar orden', e); alert(getFriendlyError(e)); }
 }
