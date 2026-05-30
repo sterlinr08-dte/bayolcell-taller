@@ -6232,7 +6232,7 @@ function obtenerEtiquetaOrden(estado) {
         'recibido':         { text: '📥 Recibido', bg:'#e0f2fe', color:'#0369a1' },
         'en_proceso':       { text: '🔧 En proceso', bg:'#fed7aa', color:'#9a3412' },
         'espera_repuesto':  { text: '⏳ En espera de repuesto', bg:'#fde68a', color:'#92400e' },
-        'pendiente_cliente':{ text: '📞 Pendiente de cliente', bg:'#fbcfe8', color:'#9d174d' },
+        'pendiente_cliente':{ text: '🔔 Esperando autorización', bg:'#fbcfe8', color:'#9d174d' },
         'finalizado':       { text: '✅ Finalizado', bg:'#d1fae5', color:'#065f46' },
         'entregado':        { text: '📦 Entregado', bg:'#dcfce7', color:'#166534' },
         'cancelado':        { text: '❌ Cancelado', bg:'#fee2e2', color:'#991b1b' },
@@ -6307,7 +6307,13 @@ function renderTallerOrdenes() {
                 acciones += `<select onchange="if(this.value)asignarOrdenTecnico('${o.id}', this.value)" style="font-size:12px; padding:6px;"><option value="">Asignar a…</option>${tecnicosActivos.map(t => `<option value="${t.id}">${escapeHtml(t.nombre)}</option>`).join('')}</select>`;
             }
         } else if(puedeOperar && !['entregado','cancelado','finalizado'].includes(estado)) {
-            // Avanzar estado: mostrar solo los siguientes posibles
+            // Estados temporales: desde "esperando autorización" o "en espera de repuesto" se RESUELVE y vuelve a en proceso
+            if(estado === 'pendiente_cliente') {
+                acciones += `<button class="btn btn-blue" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-check"></i> Autorización resuelta</button>`;
+            } else if(estado === 'espera_repuesto') {
+                acciones += `<button class="btn btn-blue" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-check"></i> Repuesto llegó</button>`;
+            }
+            // Mostrar los estados siguientes posibles
             const idx = ORDEN_FLUJO.indexOf(estado);
             const siguientes = ORDEN_FLUJO.slice(idx + 1).filter(s => s !== 'entregado');
             siguientes.forEach(s => {
@@ -6339,7 +6345,10 @@ function renderTallerOrdenes() {
                     </div>
                     <div style="font-size:13px; margin-top:6px;"><b>${escapeHtml(c.nombre || '—')}</b> · ${escapeHtml(e.marca || '')} ${escapeHtml(e.modelo || '')}</div>
                     <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">${escapeHtml(o.falla_reportada || 'Sin falla descrita')}</div>
-                    ${o.nota_estado ? `<div style="background:#fef9c3; border:1px solid #fde047; padding:5px 8px; border-radius:6px; margin-top:6px; font-size:12px;"><i class="ti ti-info-circle"></i> ${escapeHtml(o.nota_estado)}</div>` : ''}
+                    ${o.nota_estado ? (estado === 'pendiente_cliente'
+                        ? `<div style="background:#fef2f2; border:2px solid #f87171; padding:8px 10px; border-radius:8px; margin-top:6px; font-size:13px;"><b style="color:#b91c1c;"><i class="ti ti-bell-ringing"></i> REQUIERE AUTORIZACIÓN:</b><br><span style="color:#7f1d1d;">${escapeHtml(o.nota_estado)}</span></div>`
+                        : `<div style="background:#fef9c3; border:1px solid #fde047; padding:5px 8px; border-radius:6px; margin-top:6px; font-size:12px;"><i class="ti ti-info-circle"></i> ${escapeHtml(o.nota_estado)}</div>`)
+                      : ''}
                 </div>
                 <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">${acciones}</div>
             </div>
@@ -6353,8 +6362,9 @@ async function cambiarEstadoOrdenUI(ordenId, nuevoEstado) {
         if(!confirm('¿Cancelar esta orden? Esta acción la marca como anulada.')) return;
     }
     if(nuevoEstado === 'pendiente_cliente') {
-        const nota = prompt('¿Qué se necesita del cliente? (información o autorización)\n\nEjemplo: "Autorizar cambio de batería - RD$1,200"');
+        const nota = prompt('🔔 ESPERANDO AUTORIZACIÓN DEL CLIENTE\n\n¿Qué necesitas que el cliente autorice o informe?\n\nEjemplos:\n• "Autorizar cambio de batería - RD$1,200"\n• "Se dañó el flex al abrir, autorizar reemplazo"\n• "Necesito la contraseña del equipo"');
         if(nota === null) return; // canceló
+        if(!nota.trim()) return alert('Debes escribir qué se necesita autorizar.');
         await avanzarEstadoOrden(ordenId, nuevoEstado, nota.trim());
         return;
     }
@@ -6453,8 +6463,10 @@ async function avanzarEstadoOrden(ordenId, nuevoEstado, nota) {
     if(!esAdmin && orden.tecnico_asignado_id !== sessionUser?.id) {
         return alert('Solo el técnico asignado (o un administrador) puede cambiar el estado.');
     }
-    // Validar que solo avance (no retroceda), salvo cancelar
-    if(nuevoEstado !== 'cancelado') {
+    // Validar que solo avance (no retroceda), salvo cancelar o resolver estados temporales
+    const estadosTemporales = ['espera_repuesto', 'pendiente_cliente'];
+    const esResolverTemporal = estadosTemporales.includes(actual) && nuevoEstado === 'en_proceso';
+    if(nuevoEstado !== 'cancelado' && !esResolverTemporal) {
         const iActual = ORDEN_FLUJO.indexOf(actual);
         const iNuevo = ORDEN_FLUJO.indexOf(nuevoEstado);
         if(iNuevo !== -1 && iActual !== -1 && iNuevo < iActual) {
@@ -6464,6 +6476,8 @@ async function avanzarEstadoOrden(ordenId, nuevoEstado, nota) {
     try {
         const upd = { estado: nuevoEstado };
         if(typeof nota === 'string') upd.nota_estado = nota || null;
+        // Al resolver un estado temporal, limpiar la nota
+        if(esResolverTemporal) upd.nota_estado = null;
         if(nuevoEstado === 'finalizado') upd.fecha_finalizado = new Date().toISOString();
         if(nuevoEstado === 'entregado') upd.fecha_entregado = new Date().toISOString();
         const { error } = await supabaseClient.from('ordenes_reparacion').update(upd).eq('id', ordenId);
