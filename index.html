@@ -8054,28 +8054,30 @@ async function abrirPreviewLabelDiagOrden(orden) {
     
     // Separar la falla reportada (texto libre) en items para el checklist
     const fallasTexto = (orden.falla_reportada || '').split(/[\/,;\n]+/).map(s => s.trim()).filter(Boolean);
-    const fmenor = Math.max(7, parseInt(f) - 1);
+    // Letra base más grande para orden de servicio
+    const fBase = Math.max(parseInt(f), 12);
+    const fmenor = Math.max(10, fBase - 1);
     let fallasHtml = '';
     if(fallasTexto.length > 0) {
         const columnas = fallasTexto.length >= 5 ? 2 : 1;
         const items = fallasTexto.map(t =>
-            `<div style="font-size:${fmenor}px; font-weight:900; -webkit-text-stroke:0.3px #000; line-height:1.35; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">☐ ${escapeHtml(t.toUpperCase())}</div>`
+            `<div style="font-size:${fmenor}px; font-weight:900; -webkit-text-stroke:0.3px #000; line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">☐ ${escapeHtml(t.toUpperCase())}</div>`
         ).join('');
         fallasHtml = `
             <div style="border-top:2px dashed #000; padding-top:0.5mm; margin-top:0.5mm;">
-                <div style="font-size:${fmenor}px; font-weight:900; -webkit-text-stroke:0.3px #000; margin-bottom:1px;">REVISAR / REPARAR:</div>
-                <div style="display:grid; grid-template-columns:repeat(${columnas}, 1fr); gap:0 6px;">${items}</div>
+                <div style="font-size:${fmenor}px; font-weight:900; -webkit-text-stroke:0.3px #000; margin-bottom:1px; text-align:left;">REVISAR / REPARAR:</div>
+                <div style="display:grid; grid-template-columns:repeat(${columnas}, 1fr); gap:0 6px; text-align:left;">${items}</div>
             </div>`;
     }
     
     const labelHtml = `
-        <div class="diag-label" style="width:${w}mm; min-height:${h}mm; font-size:${f}px; font-weight:900; -webkit-text-stroke:0.4px #000; line-height:1.25; padding:1mm; box-sizing:border-box; overflow:hidden; font-family:Arial,Helvetica,sans-serif; color:#000;">
-            <div style="font-size:${f}px; font-weight:900; -webkit-text-stroke:0.4px #000; text-align:center; border-bottom:2px solid #000; padding-bottom:0.5mm; margin-bottom:0.5mm;">ORDEN DE SERVICIO</div>
-            <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">${formatoOrden(orden.numero_orden)}</div>
-            <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">CLIENTE: ${escapeHtml(cliente)}</div>
-            <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">${escapeHtml(modeloCorto)}</div>
-            <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">IMEI: ${escapeHtml(imei)}</div>
-            <div style="font-weight:900; -webkit-text-stroke:0.4px #000;">FECHA: ${escapeHtml(fecha)}</div>
+        <div class="diag-label" style="width:${w}mm; min-height:${h}mm; font-size:${fBase}px; font-weight:900; -webkit-text-stroke:0.4px #000; line-height:1.22; padding:1mm; box-sizing:border-box; overflow:hidden; font-family:Arial,Helvetica,sans-serif; color:#000; text-align:left;">
+            <div style="font-size:${fBase}px; font-weight:900; -webkit-text-stroke:0.4px #000; text-align:center; border-bottom:2px solid #000; padding-bottom:0.5mm; margin-bottom:0.5mm;">ORDEN DE SERVICIO</div>
+            <div style="font-weight:900; -webkit-text-stroke:0.4px #000; text-align:left;">${formatoOrden(orden.numero_orden)}</div>
+            <div style="font-weight:900; -webkit-text-stroke:0.4px #000; text-align:left;">CLIENTE: ${escapeHtml(cliente)}</div>
+            <div style="font-weight:900; -webkit-text-stroke:0.4px #000; text-align:left;">${escapeHtml(modeloCorto)}</div>
+            <div style="font-weight:900; -webkit-text-stroke:0.4px #000; text-align:left;">IMEI: ${escapeHtml(imei)}</div>
+            <div style="font-weight:900; -webkit-text-stroke:0.4px #000; text-align:left;">FECHA: ${escapeHtml(fecha)}</div>
             ${fallasHtml}
         </div>
     `;
@@ -8873,9 +8875,12 @@ async function confirmarImprimirLabelDiag() {
         if(metodo === 'imagen' && _qzConectado && typeof html2canvas === 'function') {
             const cont = document.createElement('div');
             cont.style.position = 'fixed'; cont.style.left = '-9999px'; cont.style.top = '0'; cont.style.background = '#fff';
+            cont.style.width = w + 'mm'; cont.style.height = h + 'mm'; cont.style.overflow = 'hidden';
             cont.innerHTML = _labelDiagHtmlActual;
             document.body.appendChild(cont);
             const labelEl = cont.firstElementChild || cont;
+            // Forzar alto exacto del label (no min-height) para que no avance etiqueta en blanco
+            if(labelEl && labelEl.style) { labelEl.style.minHeight = '0'; labelEl.style.height = h + 'mm'; }
             const ok = await qzImprimirHtmlComoImagen(labelEl, w, h, copias, 'labels');
             document.body.removeChild(cont);
             if(ok) { toast('🖨️ Label de diagnóstico enviado.'); return; }
@@ -9244,11 +9249,21 @@ async function qzImprimirHtmlComoImagen(elementoHtml, anchoMm, altoMm, copias, t
         const dpi = 203;
         const escala = (dpi / 96) * 2; // x2 extra para que la negrita se marque fuerte
         
+        // Tamaño físico exacto en px @96dpi (1mm = 3.7795px) para que la imagen
+        // NO sea más alta que la etiqueta (evita que avance un label en blanco extra)
+        const pxPorMm = 96 / 25.4;
+        const wPx = anchoMm ? Math.round(anchoMm * pxPorMm) : elementoHtml.offsetWidth;
+        const hPx = altoMm ? Math.round(altoMm * pxPorMm) : elementoHtml.offsetHeight;
+        
         const canvas = await html2canvas(elementoHtml, {
             scale: escala,
             backgroundColor: '#ffffff',
             logging: false,
-            useCORS: true
+            useCORS: true,
+            width: wPx,
+            height: hPx,
+            windowWidth: wPx,
+            windowHeight: hPx
         });
         
         const imgBase64 = canvas.toDataURL('image/png').split(',')[1];
