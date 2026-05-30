@@ -39,17 +39,31 @@ input, select, textarea { width: 100%; border: 1px solid var(--border-color); ba
 input:focus, select:focus, textarea:focus { border-color: var(--blue-btn); box-shadow: 0 0 0 3px rgba(0,86,179,0.15); }
 input[disabled] { background-color: #f1f5f9; color: #94a3b8; cursor: not-allowed; }
 
-.btn { border: 0; border-radius: 10px; padding: 12px 18px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; text-shadow: 0 1px 1px rgba(0,0,0,0.1); transition: all 0.15s ease; transform: translateY(0); }
+.btn { border: 0; border-radius: 8px; padding: 8px 14px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 12.5px; text-shadow: 0 1px 1px rgba(0,0,0,0.1); transition: all 0.15s ease; transform: translateY(0); }
 .btn:active { transform: translateY(2px); }
-.btn-blue { background: linear-gradient(180deg, #1e88e5 0%, #1565c0 100%); color: #fff; box-shadow: 0 4px 0 #0d47a1, 0 5px 10px rgba(0,68,170,0.3); }
-.btn-blue:hover { background: linear-gradient(180deg, #2196f3 0%, #1976d2 100%); box-shadow: 0 4px 0 #0d47a1, 0 6px 14px rgba(0,68,170,0.4); }
-.btn-blue:active { box-shadow: 0 2px 0 #0d47a1, 0 3px 6px rgba(0,68,170,0.3); }
-.btn-dark { background: linear-gradient(180deg, #334155 0%, #1e293b 100%); color: #fff; box-shadow: 0 4px 0 #0f172a, 0 5px 10px rgba(0,0,0,0.2); }
+.btn:disabled, .btn[disabled] { opacity: 0.5; cursor: not-allowed; box-shadow: none !important; transform: none !important; }
+.btn-blue { background: linear-gradient(180deg, #1e88e5 0%, #1565c0 100%); color: #fff; box-shadow: 0 3px 0 #0d47a1, 0 4px 8px rgba(0,68,170,0.25); }
+.btn-blue:hover { background: linear-gradient(180deg, #2196f3 0%, #1976d2 100%); box-shadow: 0 3px 0 #0d47a1, 0 5px 12px rgba(0,68,170,0.35); }
+.btn-blue:active { box-shadow: 0 1px 0 #0d47a1, 0 2px 5px rgba(0,68,170,0.3); }
+.btn-dark { background: linear-gradient(180deg, #334155 0%, #1e293b 100%); color: #fff; box-shadow: 0 3px 0 #0f172a, 0 4px 8px rgba(0,0,0,0.2); }
 .btn-dark:hover { background: linear-gradient(180deg, #475569 0%, #334155 100%); }
-.btn-dark:active { box-shadow: 0 2px 0 #0f172a, 0 3px 6px rgba(0,0,0,0.2); }
-.btn-light { background: linear-gradient(180deg, #fff 0%, #f1f5f9 100%); border: 1px solid var(--border-color); color: var(--text-dark); text-shadow: none; box-shadow: 0 3px 0 #cbd5e1, 0 4px 8px rgba(0,0,0,0.05); }
+.btn-dark:active { box-shadow: 0 1px 0 #0f172a, 0 2px 5px rgba(0,0,0,0.2); }
+.btn-light { background: linear-gradient(180deg, #fff 0%, #f1f5f9 100%); border: 1px solid var(--border-color); color: var(--text-dark); text-shadow: none; box-shadow: 0 2px 0 #cbd5e1, 0 3px 6px rgba(0,0,0,0.05); }
 .btn-light:hover { background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%); }
 .btn-light:active { box-shadow: 0 1px 0 #cbd5e1, 0 2px 4px rgba(0,0,0,0.05); }
+.btn-danger { background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%); color: #fff; box-shadow: 0 3px 0 #991b1b, 0 4px 8px rgba(220,38,38,0.25); }
+.btn-danger:hover { background: linear-gradient(180deg, #f87171 0%, #ef4444 100%); }
+.btn-danger:active { box-shadow: 0 1px 0 #991b1b, 0 2px 5px rgba(220,38,38,0.3); }
+.btn-success { background: linear-gradient(180deg, #10b981 0%, #059669 100%); color: #fff; box-shadow: 0 3px 0 #047857, 0 4px 8px rgba(5,150,105,0.25); }
+.btn-success:hover { background: linear-gradient(180deg, #34d399 0%, #10b981 100%); }
+.btn-success:active { box-shadow: 0 1px 0 #047857, 0 2px 5px rgba(5,150,105,0.3); }
+/* Tamaños */
+.btn-sm { padding: 5px 10px; font-size: 11.5px; border-radius: 7px; box-shadow: 0 2px 0 rgba(0,0,0,0.12); }
+.btn-sm:active { box-shadow: 0 1px 0 rgba(0,0,0,0.12); }
+.btn-lg { padding: 12px 22px; font-size: 14px; }
+.btn-block { width: 100%; }
+/* Botón solo icono (para listas/tablas) */
+.btn-icon { padding: 7px 9px; font-size: 12px; border-radius: 7px; }
 .err { display: none; background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; padding: 10px; border-radius: 8px; font-size: 13px; margin-bottom: 15px; text-align: left; }
 
 .app { display: none; height: 100vh; }
@@ -345,7 +359,7 @@ tr:hover td { background: #f8fafc; }
     .modal-footer { padding: 12px 16px; flex-direction: column-reverse; gap: 8px; }
     .modal-footer button { width: 100%; }
     
-    .btn { padding: 12px 16px; font-size: 14px; min-height: 44px; }
+    .btn { padding: 9px 14px; font-size: 13px; min-height: 40px; }
     input, select, textarea { padding: 12px 14px; font-size: 16px; min-height: 44px; }
     
     .login-card { padding: 28px 20px; border-radius: 14px; }
@@ -458,7 +472,7 @@ mark.ss-hl { background: #fef08a; color: inherit; padding: 0 1px; border-radius:
 /* ========== ICONOS FLOTANTES CON SOMBRA ========== */
 .ti { filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15)); }
 /* Iconos medianos en botones y pestañas */
-.btn .ti, .tab-btn .ti, .reacond-main-tab .ti, .cfg-main-tab .ti, .eval-tab .ti, .modal-back-btn .ti { font-size: 17px !important; vertical-align: middle; }
+.btn .ti, .tab-btn .ti, .reacond-main-tab .ti, .cfg-main-tab .ti, .eval-tab .ti, .modal-back-btn .ti { font-size: 15px !important; vertical-align: middle; }
 .btn { line-height: 1.2; }
 .btn-blue .ti, .btn-dark .ti, button[style*="background:linear-gradient"] .ti { 
     filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3)); 
@@ -5386,7 +5400,31 @@ async function completarTarea(tareaId, tipo, refId) {
         const { error } = await supabaseClient.from('tareas_trabajo').update(upd).eq('id', tareaId);
         if(error) throw error;
         toast('✅ Tarea completada.');
-        await refrescarPanelTareas(tipo, refId);
+        await loadAll();
+        
+        // ¿Era la última tarea? Verificar si TODAS están hechas
+        const tareasRef = (cache.tareas || []).filter(t => t.tipo === tipo && t.ref_id === refId);
+        const todasHechas = tareasRef.length > 0 && tareasRef.every(t => t.estado === 'hecha');
+        
+        if(todasHechas) {
+            const msg = tipo === 'equipo'
+                ? '✅ ¡Todas las tareas completadas!\n\n¿Pasar el equipo a REVISIÓN FINAL para que el administrador lo apruebe?'
+                : '✅ ¡Todas las tareas completadas!\n\n¿Marcar la orden como FINALIZADA (lista para entregar)?';
+            if(confirm(msg)) {
+                if(tipo === 'equipo') {
+                    await supabaseClient.from('equipos_refurbish').update({ estado_evaluacion: 'listo_revision' }).eq('id', refId);
+                    toast('👁️ Equipo en revisión final.');
+                } else {
+                    await supabaseClient.from('ordenes_reparacion').update({ estado: 'finalizado', fecha_finalizado: new Date().toISOString() }).eq('id', refId);
+                    toast('✅ Orden finalizada.');
+                }
+                await loadAll();
+            }
+        }
+        
+        // Refrescar el panel correspondiente
+        if(tipo === 'equipo' && typeof abrirPanelProceso === 'function') { await abrirPanelProceso(refId); }
+        else if(tipo === 'orden') { renderTallerOrdenes(); }
     } catch(e) { logError('Completar tarea', e); alert(getFriendlyError(e)); }
 }
 
