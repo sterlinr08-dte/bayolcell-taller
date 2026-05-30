@@ -8071,7 +8071,7 @@ async function abrirPreviewLabelDiagOrden(orden) {
     }
     
     const labelHtml = `
-        <div class="diag-label" style="width:${w}mm; min-height:${h}mm; font-size:${fBase}px; font-weight:900; -webkit-text-stroke:0.4px #000; line-height:1.22; padding:1mm; box-sizing:border-box; overflow:hidden; font-family:Arial,Helvetica,sans-serif; color:#000; text-align:left;">
+        <div class="diag-label" style="width:${w}mm; height:${h}mm; font-size:${fBase}px; font-weight:900; -webkit-text-stroke:0.4px #000; line-height:1.22; padding:1mm; box-sizing:border-box; overflow:hidden; font-family:Arial,Helvetica,sans-serif; color:#000; text-align:left;">
             <div style="font-size:${fBase}px; font-weight:900; -webkit-text-stroke:0.4px #000; text-align:center; border-bottom:2px solid #000; padding-bottom:0.5mm; margin-bottom:0.5mm;">ORDEN DE SERVICIO</div>
             <div style="font-weight:900; -webkit-text-stroke:0.4px #000; text-align:left;">${formatoOrden(orden.numero_orden)}</div>
             <div style="font-weight:900; -webkit-text-stroke:0.4px #000; text-align:left;">CLIENTE: ${escapeHtml(cliente)}</div>
