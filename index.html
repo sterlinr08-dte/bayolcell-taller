@@ -1576,6 +1576,22 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
 </div>
 
 <!-- MODAL: CREAR/EDITAR TÉCNICO -->
+<div id="modalPiezasTecnico" class="modal-backdrop">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3><i class="ti ti-packages"></i> <span id="piezasTecnicoTitulo">Piezas del técnico</span></h3>
+            <button class="modal-close" onclick="cerrarModalPiezasTecnico()">✕</button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size:12px; color:var(--text-muted); margin:0 0 12px;">Piezas que este técnico tiene en su poder (recibidas o pendientes de devolver).</p>
+            <div id="piezasTecnicoLista"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" onclick="cerrarModalPiezasTecnico()">Cerrar</button>
+        </div>
+    </div>
+</div>
+
 <div id="modalTecnico" class="modal-backdrop">
     <div class="modal-box">
         <div class="modal-header">
@@ -4965,6 +4981,11 @@ function renderTecnicos() {
                     ${t.notas ? `<div style="background:#f1f5f9; padding:6px 10px; border-radius:6px; margin-top:6px; font-size:12px;">${escapeHtml(t.notas)}</div>` : ''}
                 </div>
                 <div style="display:flex; gap:6px;">
+                    ${(t.tipo_empleado === 'tecnico' || (!t.tipo_empleado && t.rol !== 'admin')) ? (function(){
+                        const piezasTec = (cache.ordenPiezas || []).filter(p => p.tecnico_id === t.id && ['recibida','devolucion_solicitada'].includes(p.estado));
+                        const n = piezasTec.length;
+                        return `<button onclick="verPiezasDelTecnico('${t.id}')" style="background:${n > 0 ? '#fed7aa' : '#f1f5f9'}; color:${n > 0 ? '#9a3412' : '#64748b'}; border:0; padding:8px 10px; border-radius:6px; cursor:pointer;" title="Piezas en su poder"><i class="ti ti-packages"></i>${n > 0 ? ' ' + n : ''}</button>`;
+                    })() : ''}
                     ${permBtn('config_tecnicos', `<button onclick="editarTecnico('${t.id}')" style="background:#dbeafe; color:#1e40af; border:0; padding:8px 10px; border-radius:6px; cursor:pointer;" title="Editar"><i class="ti ti-edit"></i></button>`)}
                     ${permBtn('config_tecnicos_eliminar', `<button onclick="eliminarTecnico('${t.id}')" style="background:#fee2e2; color:#991b1b; border:0; padding:8px 10px; border-radius:6px; cursor:pointer;" title="Eliminar"><i class="ti ti-trash"></i></button>`)}
                 </div>
@@ -6350,10 +6371,16 @@ function renderTallerOrdenes() {
                     const ep = etiquetaPiezaOrden(p.estado);
                     let btn = '';
                     // Servicio entrega; técnico recibe
-                    if(p.estado === 'solicitada' && (esAdmin || sessionUser?._tipo === 'usuario' || true)) {
+                    if(p.estado === 'solicitada') {
                         btn = `<button class="btn btn-light" style="font-size:10px; padding:3px 7px; color:#1e40af;" onclick="entregarPiezaOrden('${p.id}')">Marcar entregada</button>`;
                     } else if(p.estado === 'entregada' && (esAdmin || p.tecnico_id === sessionUser?.id)) {
                         btn = `<button class="btn btn-light" style="font-size:10px; padding:3px 7px; color:#065f46;" onclick="recibirPiezaOrden('${p.id}')">Confirmar recibida</button>`;
+                    } else if(p.estado === 'recibida' && (esAdmin || p.tecnico_id === sessionUser?.id)) {
+                        // El técnico puede devolver la pieza que no usó
+                        btn = `<button class="btn btn-light" style="font-size:10px; padding:3px 7px; color:#9a3412;" onclick="devolverPiezaOrden('${p.id}')"><i class="ti ti-arrow-back-up"></i> Devolver</button>`;
+                    } else if(p.estado === 'devolucion_solicitada') {
+                        // Servicio confirma la devolución
+                        btn = `<button class="btn btn-light" style="font-size:10px; padding:3px 7px; color:#475569;" onclick="confirmarDevolucionPiezaOrden('${p.id}')">Confirmar devolución</button>`;
                     }
                     return `<div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:3px; font-size:12px;">
                         <span>${escapeHtml(p.pieza_nombre)} ${p.cantidad > 1 ? '×' + p.cantidad : ''}</span>
@@ -6509,12 +6536,91 @@ async function recibirPiezaOrden(piezaId) {
     } catch(e) { logError('Recibir pieza orden', e); alert(getFriendlyError(e)); }
 }
 
+// === FASE C: Devolución de pieza ===
+// El técnico solicita devolver una pieza que no usó
+async function devolverPiezaOrden(piezaId) {
+    const pieza = (cache.ordenPiezas || []).find(p => p.id === piezaId);
+    if(!pieza) return;
+    const esAdmin = isAdminUser();
+    const esMia = pieza.tecnico_id === sessionUser?.id;
+    if(!esAdmin && !esMia) return alert('Solo el técnico que tiene la pieza puede solicitar devolverla.');
+    const motivo = prompt(`↩️ DEVOLVER PIEZA: ${pieza.pieza_nombre}\n\n¿Por qué la devuelves?\n\nEjemplos:\n• "No se utilizó, el daño era otro"\n• "Era para probar, no hizo falta"`);
+    if(motivo === null) return;
+    try {
+        const { error } = await supabaseClient.from('orden_piezas').update({
+            estado: 'devolucion_solicitada',
+            nota: motivo.trim() || 'Devolución solicitada'
+        }).eq('id', piezaId);
+        if(error) throw error;
+        toast('↩️ Devolución solicitada. Entrégala a servicio para que la confirme.');
+        await loadAll();
+    } catch(e) { logError('Devolver pieza orden', e); alert(getFriendlyError(e)); }
+}
+
+// Servicio confirma que recibió la pieza devuelta
+async function confirmarDevolucionPiezaOrden(piezaId) {
+    if(!confirm('¿Confirmar que recibiste esta pieza devuelta del técnico?')) return;
+    try {
+        const { error } = await supabaseClient.from('orden_piezas').update({
+            estado: 'devuelta',
+            fecha_recibida: new Date().toISOString()
+        }).eq('id', piezaId);
+        if(error) throw error;
+        toast('🔄 Devolución confirmada. La pieza ya no está con el técnico.');
+        await loadAll();
+    } catch(e) { logError('Confirmar devolución pieza', e); alert(getFriendlyError(e)); }
+}
+
+// Muestra las piezas que un técnico TIENE en su poder (recibidas o pendientes de devolver)
+function verPiezasDelTecnico(tecnicoId) {
+    const tec = (cache.tecnicos || []).find(t => t.id === tecnicoId);
+    const nombre = tec?.nombre || nombreEmpleado(tecnicoId);
+    // Piezas que el técnico tiene: recibidas o con devolución pendiente
+    const piezas = (cache.ordenPiezas || []).filter(p =>
+        p.tecnico_id === tecnicoId && ['recibida', 'devolucion_solicitada'].includes(p.estado)
+    );
+    
+    const cont = document.getElementById('piezasTecnicoLista');
+    const titulo = document.getElementById('piezasTecnicoTitulo');
+    if(titulo) titulo.textContent = 'Piezas en poder de ' + nombre;
+    
+    if(!piezas.length) {
+        if(cont) cont.innerHTML = `<div style="color:var(--text-muted); padding:14px;">Este técnico no tiene piezas pendientes. ✅</div>`;
+    } else {
+        if(cont) cont.innerHTML = piezas.map(p => {
+            const orden = (cache.ordenes || []).find(o => o.id === p.orden_id);
+            const numOrd = orden ? formatoOrden(orden.numero_orden) : '—';
+            const ep = etiquetaPiezaOrden(p.estado);
+            return `<div style="background:#fff; border:1px solid var(--border-color); border-radius:8px; padding:10px; margin-bottom:6px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                    <div>
+                        <b>${escapeHtml(p.pieza_nombre)}</b> ${p.cantidad > 1 ? '×' + p.cantidad : ''}
+                        <span class="badge" style="background:${ep.bg}; color:${ep.color}; font-size:10px; margin-left:6px;">${ep.text}</span>
+                        <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Orden ${numOrd}</div>
+                        ${p.nota ? `<div style="font-size:11px; color:#9a3412; margin-top:2px;">↩️ ${escapeHtml(p.nota)}</div>` : ''}
+                    </div>
+                    <div>
+                        ${p.estado === 'devolucion_solicitada' ? `<button class="btn btn-blue" style="font-size:11px; padding:5px 9px;" onclick="confirmarDevolucionPiezaOrden('${p.id}')"><i class="ti ti-check"></i> Confirmar devolución</button>` : ''}
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+    document.getElementById('modalPiezasTecnico').classList.add('active');
+}
+
+function cerrarModalPiezasTecnico() {
+    document.getElementById('modalPiezasTecnico').classList.remove('active');
+}
+
 // Etiqueta visual del estado de una pieza
 function etiquetaPiezaOrden(estado) {
     const map = {
         'solicitada': { text: '🟡 Solicitada', bg:'#fef3c7', color:'#92400e' },
         'entregada':  { text: '📦 Entregada (confirmar)', bg:'#dbeafe', color:'#1e40af' },
-        'recibida':   { text: '✅ Recibida', bg:'#d1fae5', color:'#065f46' }
+        'recibida':   { text: '✅ Recibida (con el técnico)', bg:'#d1fae5', color:'#065f46' },
+        'devolucion_solicitada': { text: '↩️ Devolución pendiente', bg:'#fed7aa', color:'#9a3412' },
+        'devuelta':   { text: '🔄 Devuelta', bg:'#e2e8f0', color:'#475569' }
     };
     return map[estado] || { text: estado, bg:'#f1f5f9', color:'#64748b' };
 }
