@@ -1589,8 +1589,9 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                 <select id="mod_tec_tipo" onchange="actualizarCamposPorTipoEmpleado()">
                     <option value="tecnico">🔧 Técnico (repara equipos)</option>
                     <option value="servicio">🧑‍💼 Servicio al Cliente (recibe y entrega)</option>
+                    <option value="admin">🛡️ Administrador (gestiona todo)</option>
                 </select>
-                <small style="color:var(--text-muted); font-size:11px;">El técnico procesa reparaciones. Servicio al cliente recibe clientes y crea órdenes.</small>
+                <small style="color:var(--text-muted); font-size:11px;">El técnico procesa reparaciones. Servicio al cliente recibe clientes. Administrador gestiona todo el sistema.</small>
             </div>
             <div class="form-row">
                 <label>Nombre completo *</label>
@@ -1604,8 +1605,9 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                 <label>Especialidad</label>
                 <input id="mod_tec_especialidad" placeholder="Ej. iPhone, Samsung, Microsoldadura...">
             </div>
-            <div class="form-row">
-                <label>Rol del sistema (rol simple - mantener compatibilidad)</label>
+            <!-- Rol del sistema: OCULTO (se define automático según el tipo). Se mantiene para compatibilidad. -->
+            <div class="form-row" style="display:none;">
+                <label>Rol del sistema (automático)</label>
                 <select id="mod_tec_rol">
                     <option value="tecnico">Técnico (trabaja equipos)</option>
                     <option value="admin">Administrador (gestiona todo)</option>
@@ -4922,15 +4924,14 @@ function renderTecnicos() {
         return;
     }
     cont.innerHTML = tecnicos.map(t => {
-        const rolBadge = t.rol === 'admin' 
-            ? '<span class="badge" style="background:#fef3c7; color:#92400e;"><i class="ti ti-shield"></i> Admin</span>'
-            : '<span class="badge" style="background:#dbeafe; color:#1e40af;"><i class="ti ti-tool"></i> Técnico</span>';
         const activoBadge = t.activo 
             ? '<span class="badge" style="background:#d1fae5; color:#065f46;">Activo</span>'
             : '<span class="badge" style="background:#fee2e2; color:#991b1b;">Inactivo</span>';
         const tipoBadge = (t.tipo_empleado === 'servicio')
             ? '<span class="badge" style="background:#cffafe; color:#0e7490;"><i class="ti ti-headset"></i> Servicio al Cliente</span>'
-            : '<span class="badge" style="background:#e0e7ff; color:#3730a3;"><i class="ti ti-tool"></i> Técnico</span>';
+            : (t.tipo_empleado === 'admin' || (!t.tipo_empleado && t.rol === 'admin'))
+                ? '<span class="badge" style="background:#fef3c7; color:#92400e;"><i class="ti ti-shield"></i> Administrador</span>'
+                : '<span class="badge" style="background:#e0e7ff; color:#3730a3;"><i class="ti ti-tool"></i> Técnico</span>';
         const rolPersonalizado = t.rol_id ? (_rolesCache || []).find(r => r.id === t.rol_id) : null;
         const rolPersonalBadge = rolPersonalizado 
             ? `<span class="badge" style="background:#ede9fe; color:#5b21b6;"><i class="ti ti-shield"></i> ${escapeHtml(rolPersonalizado.nombre)}</span>` 
@@ -4944,7 +4945,6 @@ function renderTecnicos() {
                     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                         <b style="font-size:15px;">${escapeHtml(t.nombre)}</b>
                         ${tipoBadge}
-                        ${rolBadge}
                         ${rolPersonalBadge}
                         ${loginBadge}
                         ${activoBadge}
@@ -5003,13 +5003,19 @@ function actualizarCamposPorTipoEmpleado() {
     const espRow = document.getElementById('mod_tec_especialidad')?.closest('.form-row');
     // La especialidad solo aplica a técnicos
     if(espRow) espRow.style.display = (tipo === 'tecnico') ? '' : 'none';
+    // El "rol del sistema" (oculto) se ajusta automático: admin si el tipo es admin
+    const rolEl = document.getElementById('mod_tec_rol');
+    if(rolEl) rolEl.value = (tipo === 'admin') ? 'admin' : 'tecnico';
 }
 
 function editarTecnico(id) {
     const t = (cache.tecnicos || []).find(x => x.id === id);
     if(!t) return;
     document.getElementById('mod_tec_id').value = t.id;
-    document.getElementById('mod_tec_tipo').value = t.tipo_empleado || 'tecnico';
+    // Deducir el tipo: si no tiene tipo_empleado pero su rol es admin, mostrarlo como admin
+    let tipoEmp = t.tipo_empleado;
+    if(!tipoEmp) tipoEmp = (t.rol === 'admin') ? 'admin' : 'tecnico';
+    document.getElementById('mod_tec_tipo').value = tipoEmp;
     document.getElementById('mod_tec_nombre').value = t.nombre || '';
     document.getElementById('mod_tec_telefono').value = t.telefono || '';
     document.getElementById('mod_tec_especialidad').value = t.especialidad || '';
@@ -5040,12 +5046,13 @@ async function guardarTecnico() {
     const usuario = document.getElementById('mod_tec_usuario').value.trim();
     const clave = document.getElementById('mod_tec_clave').value.trim();
     
+    const tipoEmp = document.getElementById('mod_tec_tipo').value || 'tecnico';
     const datos = {
         nombre,
-        tipo_empleado: document.getElementById('mod_tec_tipo').value || 'tecnico',
+        tipo_empleado: tipoEmp,
         telefono: document.getElementById('mod_tec_telefono').value.trim() || null,
         especialidad: document.getElementById('mod_tec_especialidad').value.trim() || null,
-        rol: document.getElementById('mod_tec_rol').value,
+        rol: (tipoEmp === 'admin') ? 'admin' : 'tecnico',
         rol_id: document.getElementById('mod_tec_rol_id').value || null,
         notas: document.getElementById('mod_tec_notas').value.trim() || null,
         activo: document.getElementById('mod_tec_activo').checked
