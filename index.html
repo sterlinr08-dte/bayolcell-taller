@@ -212,7 +212,7 @@ tr:hover td { background: #f8fafc; }
    BOTÓN MENÚ HAMBURGUESA (oculto en desktop)
    ============================================================ */
 .menu-toggle { display: none; background: rgba(255,255,255,0.15); border: 0; color: #fff; width: 40px; height: 40px; border-radius: 8px; cursor: pointer; font-size: 20px; align-items: center; justify-content: center; flex-shrink: 0; }
-.sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9; }
+.sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 15; }
 .sidebar-backdrop.active { display: block; }
 
 /* ============================================================
@@ -241,14 +241,17 @@ tr:hover td { background: #f8fafc; }
     body:not(.logged-in) .app { display: none !important; }
     .sidebar {
         position: fixed;
-        left: -280px;
+        left: -90vw;
         top: 0;
-        width: 260px;
+        width: 78vw;
+        max-width: 300px;
         height: 100vh;
         z-index: 20;
         transition: left 0.3s ease;
+        overflow-y: auto;
     }
     .sidebar.open { left: 0; }
+    .sidebar .nav button { font-size: 14px; padding: 11px 14px; }
     .main { display: block; width: 100%; }
     
     .top-bar {
@@ -268,7 +271,7 @@ tr:hover td { background: #f8fafc; }
     .top-right-info span { display: none; }
     .top-bar .btn-light { padding: 4px 8px !important; font-size: 10px !important; }
     
-    .content { padding: 12px; }
+    .content { padding: 12px; overflow-y: visible; height: auto; flex: none; }
     
     .card { padding: 14px; margin-bottom: 14px; border-radius: 10px; }
     
@@ -2882,6 +2885,13 @@ function applyAccessControls() {
         document.querySelectorAll('.nav button').forEach(b => {
             b.style.display = (b.id === 'menu-miTrabajo') ? '' : 'none';
         });
+        // Ocultar el botón de menú (no hay a dónde navegar) y cerrar el sidebar
+        const toggle = document.querySelector('.menu-toggle');
+        if(toggle) toggle.style.display = 'none';
+        if(typeof closeSidebar === 'function') closeSidebar();
+        // Asegurar que el scroll quede libre (por si el backdrop trabó la página)
+        document.body.style.overflow = '';
+        document.body.style.position = '';
         setTimeout(() => nav('miTrabajo'), 100);
         return;
     }
