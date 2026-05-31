@@ -6752,6 +6752,62 @@ function calcularTiemposReparacion(tecnicoId) {
     };
 }
 
+// Reporte de fallas y modelos más comunes (ranking con barras)
+function construirReporteComunes() {
+    // Contar fallas (de tareas_trabajo + falla_reportada de órdenes)
+    const fallasCount = {};
+    (cache.tareas || []).forEach(t => {
+        const desc = (t.descripcion || '').trim();
+        if(desc) { const k = desc.toLowerCase(); fallasCount[k] = (fallasCount[k] || 0) + 1; }
+    });
+    // Contar modelos (de equipos en órdenes + reacond)
+    const modelosCount = {};
+    (cache.ordenes || []).forEach(o => {
+        const e = findEquipo(o.equipo_id);
+        const m = `${e.marca || ''} ${e.modelo || ''}`.trim();
+        if(m) modelosCount[m] = (modelosCount[m] || 0) + 1;
+    });
+    (cache.refurb || []).forEach(eq => {
+        const m = `${eq.marca || ''} ${eq.modelo || ''}`.trim();
+        if(m) modelosCount[m] = (modelosCount[m] || 0) + 1;
+    });
+    
+    const topFallas = Object.entries(fallasCount).sort((a,b) => b[1]-a[1]).slice(0, 8);
+    const topModelos = Object.entries(modelosCount).sort((a,b) => b[1]-a[1]).slice(0, 8);
+    
+    const barras = (datos, color) => {
+        if(!datos.length) return `<div style="color:var(--text-muted); font-size:12px; padding:6px 0;">Sin datos aún.</div>`;
+        const max = datos[0][1] || 1;
+        return datos.map(([nombre, n]) => {
+            const pct = Math.round((n / max) * 100);
+            return `<div style="margin-bottom:6px;">
+                <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:2px;">
+                    <span style="font-weight:600; text-transform:capitalize;">${escapeHtml(nombre)}</span>
+                    <span style="font-weight:700; color:${color};">${n}</span>
+                </div>
+                <div style="background:#e2e8f0; border-radius:5px; height:8px; overflow:hidden;">
+                    <div style="width:${pct}%; height:100%; background:${color}; border-radius:5px;"></div>
+                </div>
+            </div>`;
+        }).join('');
+    };
+    
+    return `
+        <div class="card" style="margin-bottom:15px;">
+            <h3 style="margin:0 0 12px;"><i class="ti ti-chart-bar" style="color:#6366f1;"></i> Lo Más Común</h3>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:18px;">
+                <div>
+                    <div style="font-weight:700; font-size:13px; margin-bottom:8px; color:#dc2626;"><i class="ti ti-alert-triangle"></i> Fallas más comunes</div>
+                    ${barras(topFallas, '#dc2626')}
+                </div>
+                <div>
+                    <div style="font-weight:700; font-size:13px; margin-bottom:8px; color:#0891b2;"><i class="ti ti-device-mobile"></i> Modelos que más entran</div>
+                    ${barras(topModelos, '#0891b2')}
+                </div>
+            </div>
+        </div>`;
+}
+
 function inicializarReportes() {
     // Bloque de promedio GENERAL del taller (todos los técnicos)
     const gen = calcularTiemposReparacion(null);
@@ -6767,7 +6823,8 @@ function inicializarReportes() {
                     ${kpiG('🔧 Trabajo reacond.', formatoHoras(gen.rf_trabajo.prom), '#f59e0b')}
                 </div>
                 <div style="font-size:11px; color:var(--text-muted); margin-top:8px;">Basado en ${gen.ord_trabajo.n} orden(es) y ${gen.rf_trabajo.n} reacondicionado(s) completados.</div>
-            </div>`;
+            </div>
+            ${construirReporteComunes()}`;
     }
     
     const sel = document.getElementById('rep_tecnico');
@@ -7260,7 +7317,71 @@ function renderMiTrabajo() {
         ${construirPanelPedidosPiezas(miId)}
     </div>`;
     
+    // SECCIÓN: Mi historial de reparaciones (terminadas)
+    html += `<div style="margin-bottom:18px;">
+        <h3 style="font-size:15px; margin:0 0 8px;"><i class="ti ti-history" style="color:#16a34a;"></i> Mi Historial de Reparaciones</h3>
+        ${construirHistorialTecnico(miId)}
+    </div>`;
+    
     cont.innerHTML = html;
+}
+
+// Construye el historial de reparaciones terminadas de un técnico (órdenes entregadas/finalizadas + reacond vendidos)
+function construirHistorialTecnico(tecnicoId) {
+    const items = [];
+    // Órdenes finalizadas o entregadas
+    (cache.ordenes || []).forEach(o => {
+        if(o.tecnico_asignado_id !== tecnicoId) return;
+        const est = normalizarEstadoOrden(o.estado);
+        if(est === 'finalizado' || est === 'entregado') {
+            const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
+            const fecha = o.fecha_entregado || o.fecha_finalizado || o.creado_en;
+            items.push({
+                fecha: fecha,
+                equipo: `${e.marca || ''} ${e.modelo || ''}`.trim() || 'Equipo',
+                detalle: `Orden ${formatoOrden(o.numero_orden)} · ${c.nombre || 'Cliente'}`,
+                tipo: 'Servicio',
+                color: '#3b82f6'
+            });
+        }
+    });
+    // Reacondicionados vendidos/terminados
+    (cache.refurb || []).forEach(eq => {
+        if(eq.tecnico_asignado_id !== tecnicoId) return;
+        if(['listo_venta', 'vendido'].includes(eq.estado_evaluacion)) {
+            items.push({
+                fecha: eq.fecha_despacho || eq.fecha_asignacion,
+                equipo: `${eq.marca || ''} ${eq.modelo || ''}`.trim() || 'Equipo',
+                detalle: `Reacondicionado · ${(eq.estado_evaluacion || '').replace(/_/g, ' ')}`,
+                tipo: 'Reacond',
+                color: '#f59e0b'
+            });
+        }
+    });
+    if(!items.length) {
+        return `<div style="color:var(--text-muted); font-size:13px; padding:8px 0;">Aún no tienes reparaciones terminadas.</div>`;
+    }
+    // Ordenar por fecha descendente (más reciente primero)
+    items.sort((a, b) => new Date(b.fecha || 0) - new Date(a.fecha || 0));
+    
+    const filas = items.map(it => {
+        const fechaTxt = it.fecha ? new Date(it.fecha).toLocaleDateString('es-DO', {day:'2-digit',month:'2-digit',year:'numeric'}) : '—';
+        return `<tr>
+            <td style="white-space:nowrap; font-size:12px;">${fechaTxt}</td>
+            <td><span class="badge" style="background:${it.color}22; color:${it.color}; font-size:10px;">${it.tipo}</span></td>
+            <td style="font-weight:600;">${escapeHtml(it.equipo)}</td>
+            <td style="font-size:12px; color:var(--text-muted);">${escapeHtml(it.detalle)}</td>
+        </tr>`;
+    }).join('');
+    
+    return `
+        <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">${items.length} reparación(es) terminada(s)</div>
+        <div style="overflow-x:auto;">
+            <table class="data-table" style="width:100%; font-size:13px;">
+                <thead><tr><th>Fecha</th><th>Tipo</th><th>Equipo</th><th>Detalle</th></tr></thead>
+                <tbody>${filas}</tbody>
+            </table>
+        </div>`;
 }
 
 // Maneja el cambio de estado desde la UI (pide nota si es pendiente_cliente)
