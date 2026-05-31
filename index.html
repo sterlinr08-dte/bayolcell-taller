@@ -1295,6 +1295,9 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                     <button id="reacondMainTabDevoluciones" onclick="cambiarMainTabReacond('devoluciones')" class="reacond-main-tab" style="flex:1; min-width:90px; padding:12px; border:0; background:transparent; color:var(--text-muted); border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">
                         <i class="ti ti-rotate-2"></i> Devoluciones
                     </button>
+                    <button id="reacondMainTabPiezas" onclick="cambiarMainTabReacond('piezas')" class="reacond-main-tab" style="flex:1; min-width:90px; padding:12px; border:0; background:transparent; color:var(--text-muted); border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">
+                        <i class="ti ti-packages"></i> Pedidos de Piezas
+                    </button>
                 </div>
                 
                 <!-- CONTENIDO PESTAÑA LOTES -->
@@ -1415,6 +1418,23 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                     </div>
                 </div>
                 <!-- /CONTENIDO PESTAÑA DEVOLUCIONES -->
+
+                <!-- CONTENIDO PESTAÑA PEDIDOS DE PIEZAS -->
+                <div id="reacondMainContentPiezas" style="display:none;">
+                    <div class="card">
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
+                            <h3 style="margin:0;"><i class="ti ti-packages" style="color:#0891b2;"></i> Pedidos de Piezas (Reacondicionados)</h3>
+                            <button class="btn btn-light" onclick="renderPedidosPiezasReacond()" style="padding:6px 12px; font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
+                        </div>
+                        <div style="background:#ecfeff; border:1px solid #a5f3fc; padding:12px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#0e7490;">
+                            <b><i class="ti ti-info-circle"></i> Aquí ves todas las piezas que los técnicos necesitan para los equipos.</b> Revisa cuáles están pedidas (por conseguir), entregadas, en uso o devueltas.
+                        </div>
+                        <div id="pedidosPiezasReacondCont">
+                            <p style="color:var(--text-muted); text-align:center; padding:30px; font-size:13px;">Cargando pedidos...</p>
+                        </div>
+                    </div>
+                </div>
+                <!-- /CONTENIDO PESTAÑA PIEZAS -->
             </div>
 
             <!-- ============= REPORTES ============= -->
@@ -2999,7 +3019,7 @@ function closeSidebar() {
 
 async function loadAll() {
     try {
-        const [rOrd, rCli, rEq, rPz, rAct, rRef, rProv, rLot, rArt, rTec, rUsr, rOpz, rTk] = await Promise.all([
+        const [rOrd, rCli, rEq, rPz, rAct, rRef, rProv, rLot, rArt, rTec, rUsr, rOpz, rTk, rPzR] = await Promise.all([
             supabaseClient.from('ordenes_reparacion').select('*').order('creado_en', { ascending: false }),
             supabaseClient.from('clientes').select('*'),
             supabaseClient.from('equipos').select('*'),
@@ -3012,7 +3032,8 @@ async function loadAll() {
             supabaseClient.from('tecnicos').select('*').order('nombre', { ascending: true }),
             supabaseClient.from('usuarios').select('id, nombre, usuario, rol').then(r => r, () => ({ data: [], error: null })),
             supabaseClient.from('orden_piezas').select('*').order('creado_en', { ascending: true }).then(r => r, () => ({ data: [], error: null })),
-            supabaseClient.from('tareas_trabajo').select('*').order('creado_en', { ascending: true }).then(r => r, () => ({ data: [], error: null }))
+            supabaseClient.from('tareas_trabajo').select('*').order('creado_en', { ascending: true }).then(r => r, () => ({ data: [], error: null })),
+            supabaseClient.from('equipo_piezas_pedidas').select('*').order('creado_en', { ascending: true }).then(r => r, () => ({ data: [], error: null }))
         ]);
 
         requireSupabaseOk(rOrd, 'Cargar órdenes');
@@ -3033,7 +3054,8 @@ async function loadAll() {
             fallaCategorias: cache.fallaCategorias || [], fallas: cache.fallas || [],
             tecnicos: rTec.data || [], usuarios: (rUsr && rUsr.data) || [],
             ordenPiezas: (rOpz && rOpz.data) || [],
-            tareas: (rTk && rTk.data) || []
+            tareas: (rTk && rTk.data) || [],
+            piezasReacond: (rPzR && rPzR.data) || []
         };
         renderAll();
     } catch(e) { logError('loadAll', e); toast(getFriendlyError(e, "Error cargando base de datos.")); }
@@ -4304,13 +4326,16 @@ function cambiarMainTabReacond(tab) {
     document.getElementById('reacondMainContentCatalogo').style.display = tab === 'catalogo' ? 'block' : 'none';
     const devCont = document.getElementById('reacondMainContentDevoluciones');
     if(devCont) devCont.style.display = tab === 'devoluciones' ? 'block' : 'none';
+    const pzCont = document.getElementById('reacondMainContentPiezas');
+    if(pzCont) pzCont.style.display = tab === 'piezas' ? 'block' : 'none';
     
     const btnLotes = document.getElementById('reacondMainTabLotes');
     const btnCat = document.getElementById('reacondMainTabCatalogo');
     const btnDev = document.getElementById('reacondMainTabDevoluciones');
+    const btnPz = document.getElementById('reacondMainTabPiezas');
     
     // Reset todos
-    [btnLotes, btnCat, btnDev].forEach(b => { 
+    [btnLotes, btnCat, btnDev, btnPz].forEach(b => { 
         if(b) { b.style.background = 'transparent'; b.style.color = 'var(--text-muted)'; }
     });
     
@@ -4328,6 +4353,12 @@ function cambiarMainTabReacond(tab) {
             btnDev.style.color = '#fff';
         }
         cargarDevoluciones();
+    } else if(tab === 'piezas') {
+        if(btnPz) {
+            btnPz.style.background = 'linear-gradient(180deg,#0891b2,#0e7490)';
+            btnPz.style.color = '#fff';
+        }
+        renderPedidosPiezasReacond();
     }
 }
 
@@ -6985,6 +7016,73 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos) {
 }
 
 // ============================================================
+//   PANEL DE PEDIDOS DE PIEZAS (reacondicionados)
+// ============================================================
+function etiquetaEstadoPiezaReacond(estado) {
+    const map = {
+        'pendiente':            { txt: '🟡 Pedida',        bg:'#fef3c7', color:'#92400e' },
+        'solicitada':           { txt: '🟡 Pedida',        bg:'#fef3c7', color:'#92400e' },
+        'entregada':            { txt: '📦 Entregada',     bg:'#dbeafe', color:'#1e40af' },
+        'recibida':             { txt: '🔧 En uso',        bg:'#dcfce7', color:'#166534' },
+        'devolucion_pendiente': { txt: '🔄 Devolución...', bg:'#fed7aa', color:'#9a3412' },
+        'devuelta':             { txt: '↩️ Devuelta',      bg:'#f1f5f9', color:'#64748b' },
+        'extra':                { txt: '➕ Extra',         bg:'#e9d5ff', color:'#6b21a8' }
+    };
+    return map[estado] || { txt: estado, bg:'#f1f5f9', color:'#64748b' };
+}
+
+// Construye el HTML del panel de pedidos de piezas. Si tecnicoId se pasa, filtra solo ese técnico.
+function construirPanelPedidosPiezas(soloTecnicoId) {
+    let piezas = (cache.piezasReacond || []);
+    if(soloTecnicoId) {
+        // filtrar por equipos asignados a ese técnico
+        const misEquipos = new Set((cache.refurb || []).filter(e => e.tecnico_asignado_id === soloTecnicoId).map(e => e.id));
+        piezas = piezas.filter(p => misEquipos.has(p.equipo_id));
+    }
+    if(!piezas.length) {
+        return `<div style="color:var(--text-muted); font-size:13px; padding:10px 0;">No hay pedidos de piezas.</div>`;
+    }
+    // Agrupar por estado para resumen
+    const cuenta = {};
+    piezas.forEach(p => { cuenta[p.estado] = (cuenta[p.estado] || 0) + 1; });
+    const resumenChips = Object.keys(cuenta).map(est => {
+        const e = etiquetaEstadoPiezaReacond(est);
+        return `<span class="badge" style="background:${e.bg}; color:${e.color}; font-size:11px;">${e.txt}: ${cuenta[est]}</span>`;
+    }).join(' ');
+    
+    const filas = piezas.map(p => {
+        const eq = (cache.refurb || []).find(e => e.id === p.equipo_id) || {};
+        const et = etiquetaEstadoPiezaReacond(p.estado);
+        const tecNombre = eq.tecnico_asignado_id ? nombreEmpleado(eq.tecnico_asignado_id) : 'Sin asignar';
+        return `<tr>
+            <td style="font-weight:600;">${escapeHtml(p.pieza_nombre || '—')}</td>
+            <td style="text-align:center;">${p.cantidad || 1}</td>
+            <td>${escapeHtml(eq.marca || '')} ${escapeHtml(eq.modelo || '')}</td>
+            <td style="font-size:12px;">${escapeHtml(tecNombre)}</td>
+            <td><span class="badge" style="background:${et.bg}; color:${et.color}; font-size:11px;">${et.txt}</span></td>
+        </tr>`;
+    }).join('');
+    
+    return `
+        <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;">${resumenChips}</div>
+        <div style="overflow-x:auto;">
+            <table class="data-table" style="width:100%; font-size:13px;">
+                <thead><tr>
+                    <th>Pieza</th><th style="text-align:center;">Cant.</th><th>Equipo</th><th>Técnico</th><th>Estado</th>
+                </tr></thead>
+                <tbody>${filas}</tbody>
+            </table>
+        </div>`;
+}
+
+// Renderiza el panel en la vista de reacondicionados (admin/supervisor: todos)
+function renderPedidosPiezasReacond() {
+    const cont = document.getElementById('pedidosPiezasReacondCont');
+    if(!cont) return;
+    cont.innerHTML = construirPanelPedidosPiezas(null);
+}
+
+// ============================================================
 //   MI TRABAJO (pantalla del técnico: todo lo suyo junto)
 // ============================================================
 function renderMiTrabajo() {
@@ -7061,6 +7159,12 @@ function renderMiTrabajo() {
         html += `<div style="color:var(--text-muted); font-size:13px; padding:8px 0;">No tienes equipos reacondicionados asignados.</div>`;
     }
     html += `</div>`;
+    
+    // SECCIÓN: Mis pedidos de piezas (reacond)
+    html += `<div style="margin-bottom:18px;">
+        <h3 style="font-size:15px; margin:0 0 8px;"><i class="ti ti-packages" style="color:#0891b2;"></i> Mis Pedidos de Piezas</h3>
+        ${construirPanelPedidosPiezas(miId)}
+    </div>`;
     
     cont.innerHTML = html;
 }
