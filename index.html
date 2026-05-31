@@ -2892,7 +2892,9 @@ function applyAccessControls() {
         // Asegurar que el scroll quede libre (por si el backdrop trabó la página)
         document.body.style.overflow = '';
         document.body.style.position = '';
-        setTimeout(() => nav('miTrabajo'), 100);
+        // Navegar a Mi Trabajo SOLO si no estamos ya ahí (evita bucle de scroll)
+        const yaEnMiTrabajo = document.getElementById('v-miTrabajo')?.classList.contains('active');
+        if(!yaEnMiTrabajo) setTimeout(() => nav('miTrabajo'), 100);
         return;
     }
     
@@ -3008,8 +3010,8 @@ function nav(v, btn) {
     if(v === 'miTrabajo') { setTimeout(() => { renderMiTrabajo(); }, 50); }
     closeSidebar();
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    // Re-aplicar permisos de botones estáticos tras renderizar
-    if(!isAdminUser()) setTimeout(() => applyAccessControls(), 150);
+    // Re-aplicar permisos de botones estáticos tras renderizar (NO en modo solo-mi-trabajo, causa bucle)
+    if(!isAdminUser() && !tienePermiso('solo_mi_trabajo')) setTimeout(() => applyAccessControls(), 150);
 }
 
 /* ============================================================
