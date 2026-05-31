@@ -6879,30 +6879,30 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos) {
         const tareasOrden = (cache.tareas || []).filter(t => t.tipo === 'orden' && t.ref_id === o.id);
         const tareasHtml = construirSeccionTareas('orden', o.id, tareasOrden);
         
-        return `<div style="background:#fff; border:1px solid var(--border-color); border-radius:8px; padding:12px; margin-bottom:8px;">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
+        return `<div style="background:#fff; border:1px solid var(--border-color); border-radius:7px; padding:8px 10px; margin-bottom:6px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:6px;">
                 <div style="flex:1; min-width:200px;">
-                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                        <b>${numOrden}</b>
-                        <span class="badge" style="background:${et.bg}; color:${et.color};">${et.text}</span>
-                        ${tecnico ? `<span class="badge" style="background:#e0e7ff; color:#3730a3;"><i class="ti ti-tool"></i> ${escapeHtml(tecnico)}</span>` : '<span class="badge" style="background:#f1f5f9; color:#94a3b8;">Sin tomar</span>'}
-                        ${o.tecnico_anterior_id ? `<span class="badge" style="background:#f3e8ff; color:#6b21a8;"><i class="ti ti-arrows-exchange"></i> Derivada</span>` : ''}
-                        ${o.es_garantia ? `<span class="badge" style="background:#dbeafe; color:#0369a1;"><i class="ti ti-shield-check"></i> GARANTÍA${o.veces_garantia > 1 ? ' ×' + o.veces_garantia : ''}</span>` : ''}
+                    <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap;">
+                        <b style="font-size:13px;">${numOrden}</b>
+                        <span class="badge" style="background:${et.bg}; color:${et.color}; font-size:10px; padding:1px 7px;">${et.text}</span>
+                        ${tecnico ? `<span class="badge" style="background:#e0e7ff; color:#3730a3; font-size:10px; padding:1px 7px;"><i class="ti ti-tool"></i> ${escapeHtml(tecnico)}</span>` : '<span class="badge" style="background:#f1f5f9; color:#94a3b8; font-size:10px; padding:1px 7px;">Sin tomar</span>'}
+                        ${o.tecnico_anterior_id ? `<span class="badge" style="background:#f3e8ff; color:#6b21a8; font-size:10px; padding:1px 7px;"><i class="ti ti-arrows-exchange"></i> Derivada</span>` : ''}
+                        ${o.es_garantia ? `<span class="badge" style="background:#dbeafe; color:#0369a1; font-size:10px; padding:1px 7px;"><i class="ti ti-shield-check"></i> GARANTÍA${o.veces_garantia > 1 ? ' ×' + o.veces_garantia : ''}</span>` : ''}
                     </div>
-                    <div style="font-size:13px; margin-top:6px;"><b>${escapeHtml(c.nombre || '—')}</b> · ${escapeHtml(e.marca || '')} ${escapeHtml(e.modelo || '')}</div>
-                    ${o.condicion_fisica && o.condicion_fisica !== 'Sin marcas' ? `<div style="font-size:11px; color:#7c3aed; margin-top:2px;"><i class="ti ti-note"></i> Estado físico: ${escapeHtml(o.condicion_fisica)}</div>` : ''}
-                    <div style="font-size:11px; color:#94a3b8; margin-top:2px;"><i class="ti ti-clock"></i> Recibido: ${o.creado_en ? new Date(o.creado_en).toLocaleString('es-DO', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'}</div>
-                    ${o.tecnico_asignado_id && o.fecha_asignacion ? `<div style="font-size:11px; color:#0891b2; font-weight:600; margin-top:2px;"><i class="ti ti-stopwatch"></i> Tomada: ${tiempoDesde(o.fecha_asignacion)}</div>` : ''}
+                    <div style="font-size:12px; margin-top:4px;"><b>${escapeHtml(c.nombre || '—')}</b> · ${escapeHtml(e.marca || '')} ${escapeHtml(e.modelo || '')}</div>
+                    ${o.condicion_fisica && o.condicion_fisica !== 'Sin marcas' ? `<div style="font-size:10px; color:#7c3aed; margin-top:1px;"><i class="ti ti-note"></i> Estado físico: ${escapeHtml(o.condicion_fisica)}</div>` : ''}
+                    <div style="font-size:10px; color:#94a3b8; margin-top:1px;"><i class="ti ti-clock"></i> Recibido: ${o.creado_en ? new Date(o.creado_en).toLocaleString('es-DO', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'}</div>
+                    ${o.tecnico_asignado_id && o.fecha_asignacion ? `<div style="font-size:10px; color:#0891b2; font-weight:600; margin-top:1px;"><i class="ti ti-stopwatch"></i> Tomada: ${tiempoDesde(o.fecha_asignacion)}</div>` : ''}
                     ${o.nota_estado ? (estado === 'pendiente_cliente'
-                        ? `<div style="background:#fef2f2; border:2px solid #f87171; padding:8px 10px; border-radius:8px; margin-top:6px; font-size:13px;"><b style="color:#b91c1c;"><i class="ti ti-bell-ringing"></i> REQUIERE AUTORIZACIÓN:</b><br><span style="color:#7f1d1d;">${escapeHtml(o.nota_estado)}</span></div>`
-                        : `<div style="background:#fef9c3; border:1px solid #fde047; padding:5px 8px; border-radius:6px; margin-top:6px; font-size:12px;"><i class="ti ti-info-circle"></i> ${escapeHtml(o.nota_estado)}</div>`)
+                        ? `<div style="background:#fef2f2; border:2px solid #f87171; padding:6px 8px; border-radius:6px; margin-top:5px; font-size:12px;"><b style="color:#b91c1c;"><i class="ti ti-bell-ringing"></i> REQUIERE AUTORIZACIÓN:</b><br><span style="color:#7f1d1d;">${escapeHtml(o.nota_estado)}</span></div>`
+                        : `<div style="background:#fef9c3; border:1px solid #fde047; padding:4px 7px; border-radius:5px; margin-top:5px; font-size:11px;"><i class="ti ti-info-circle"></i> ${escapeHtml(o.nota_estado)}</div>`)
                       : ''}
                     ${piezasHtml}
                     ${tareasHtml}
                 </div>
-                <div style="display:flex; flex-direction:column; gap:6px; align-items:stretch; min-width:150px;" class="acciones-verticales">
-                    <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;"><i class="ti ti-settings"></i> Estado del Equipo</div>
-                    <div style="background:${et.bg}; color:${et.color}; border:2px solid ${et.color}; padding:6px 10px; border-radius:8px; font-size:12px; font-weight:700; text-align:center;"><i class="ti ti-circle-dot"></i> ${et.text}</div>
+                <div style="display:flex; flex-direction:column; gap:5px; align-items:stretch; min-width:140px;" class="acciones-verticales">
+                    <div style="font-size:10px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;"><i class="ti ti-settings"></i> Estado del Equipo</div>
+                    <div style="background:${et.bg}; color:${et.color}; border:2px solid ${et.color}; padding:5px 9px; border-radius:7px; font-size:11px; font-weight:700; text-align:center;"><i class="ti ti-circle-dot"></i> ${et.text}</div>
                     ${acciones}
                 </div>
             </div>
