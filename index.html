@@ -6752,22 +6752,99 @@ function calcularTiemposReparacion(tecnicoId) {
     };
 }
 
+// Filtro de fechas para reportes/historial. Por defecto: último mes.
+let _repFiltroFechas = { desde: null, hasta: null, label: '1 mes' };
+
+// Devuelve true si una fecha ISO cae dentro del rango del filtro actual
+function fechaEnRango(fechaISO) {
+    if(!fechaISO) return false;
+    const f = new Date(fechaISO);
+    if(isNaN(f)) return false;
+    if(_repFiltroFechas.desde && f < new Date(_repFiltroFechas.desde)) return false;
+    if(_repFiltroFechas.hasta && f > new Date(_repFiltroFechas.hasta + 'T23:59:59')) return false;
+    return true;
+}
+
+// Aplica un período rápido (en días) o 'todo'
+function setPeriodoReporte(dias, label) {
+    if(dias === 'todo') {
+        _repFiltroFechas = { desde: null, hasta: null, label: 'Todo' };
+    } else {
+        const hasta = new Date();
+        const desde = new Date();
+        desde.setDate(desde.getDate() - dias);
+        _repFiltroFechas = {
+            desde: desde.toISOString().slice(0,10),
+            hasta: hasta.toISOString().slice(0,10),
+            label: label
+        };
+    }
+    const dDesde = document.getElementById('rep_fecha_desde');
+    const dHasta = document.getElementById('rep_fecha_hasta');
+    if(dDesde) dDesde.value = _repFiltroFechas.desde || '';
+    if(dHasta) dHasta.value = _repFiltroFechas.hasta || '';
+    inicializarReportes();
+    if(typeof renderMiTrabajo === 'function' && document.getElementById('v-miTrabajo')?.classList.contains('active')) renderMiTrabajo();
+}
+
+// Aplica fechas personalizadas desde los inputs
+function aplicarFechasPersonalizadas() {
+    const desde = document.getElementById('rep_fecha_desde')?.value || null;
+    const hasta = document.getElementById('rep_fecha_hasta')?.value || null;
+    _repFiltroFechas = { desde, hasta, label: 'Personalizado' };
+    inicializarReportes();
+    if(typeof renderMiTrabajo === 'function' && document.getElementById('v-miTrabajo')?.classList.contains('active')) renderMiTrabajo();
+}
+
+// Construye la barra de filtro de fechas (reutilizable)
+function construirFiltroFechas(conPersonalizado) {
+    const lbl = _repFiltroFechas.label;
+    const btn = (dias, texto) => {
+        const activo = lbl === texto;
+        return `<button onclick="setPeriodoReporte(${dias === 'todo' ? "'todo'" : dias},'${texto}')" style="padding:6px 12px; border-radius:8px; border:1px solid ${activo ? '#0891b2' : '#cbd5e1'}; background:${activo ? '#0891b2' : '#fff'}; color:${activo ? '#fff' : '#475569'}; font-size:12px; font-weight:600; cursor:pointer;">${texto}</button>`;
+    };
+    let html = `<div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-bottom:12px;">
+        <span style="font-size:12px; font-weight:700; color:var(--text-muted);"><i class="ti ti-calendar"></i> Período:</span>
+        ${btn(1, 'Hoy')}${btn(15, '15 días')}${btn(30, '1 mes')}${btn(90, '3 meses')}${btn('todo', 'Todo')}`;
+    if(conPersonalizado) {
+        html += `
+        <span style="font-size:12px; color:var(--text-muted); margin-left:6px;">Desde:</span>
+        <input type="date" id="rep_fecha_desde" value="${_repFiltroFechas.desde || ''}" style="padding:5px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px;">
+        <span style="font-size:12px; color:var(--text-muted);">Hasta:</span>
+        <input type="date" id="rep_fecha_hasta" value="${_repFiltroFechas.hasta || ''}" style="padding:5px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px;">
+        <button onclick="aplicarFechasPersonalizadas()" class="btn btn-blue" style="padding:5px 12px; font-size:12px;">Aplicar</button>`;
+    }
+    html += `</div>`;
+    return html;
+}
+
+// Inicializar el filtro por defecto (último mes) la primera vez
+(function initFiltroFechasDefault(){
+    const hasta = new Date();
+    const desde = new Date();
+    desde.setDate(desde.getDate() - 30);
+    _repFiltroFechas = { desde: desde.toISOString().slice(0,10), hasta: hasta.toISOString().slice(0,10), label: '1 mes' };
+})();
+
 // Reporte de fallas y modelos más comunes (ranking con barras)
 function construirReporteComunes() {
-    // Contar fallas (de tareas_trabajo + falla_reportada de órdenes)
+    // Contar fallas (de tareas_trabajo) dentro del rango de fechas
     const fallasCount = {};
     (cache.tareas || []).forEach(t => {
+        if(!fechaEnRango(t.creado_en)) return;
         const desc = (t.descripcion || '').trim();
         if(desc) { const k = desc.toLowerCase(); fallasCount[k] = (fallasCount[k] || 0) + 1; }
     });
-    // Contar modelos (de equipos en órdenes + reacond)
+    // Contar modelos (de equipos en órdenes + reacond) dentro del rango
     const modelosCount = {};
     (cache.ordenes || []).forEach(o => {
+        if(!fechaEnRango(o.creado_en)) return;
         const e = findEquipo(o.equipo_id);
         const m = `${e.marca || ''} ${e.modelo || ''}`.trim();
         if(m) modelosCount[m] = (modelosCount[m] || 0) + 1;
     });
     (cache.refurb || []).forEach(eq => {
+        if(!fechaEnRango(eq.creado_en)) return;
         const m = `${eq.marca || ''} ${eq.modelo || ''}`.trim();
         if(m) modelosCount[m] = (modelosCount[m] || 0) + 1;
     });
@@ -6792,8 +6869,23 @@ function construirReporteComunes() {
         }).join('');
     };
     
+    // Contar reparaciones terminadas en el período
+    let repTerminadas = 0;
+    (cache.ordenes || []).forEach(o => {
+        const est = normalizarEstadoOrden(o.estado);
+        if((est === 'finalizado' || est === 'entregado') && fechaEnRango(o.fecha_finalizado || o.fecha_entregado || o.creado_en)) repTerminadas++;
+    });
+    (cache.refurb || []).forEach(eq => {
+        if(['listo_venta','vendido'].includes(eq.estado_evaluacion) && fechaEnRango(eq.fecha_despacho || eq.creado_en)) repTerminadas++;
+    });
+    
     return `
         <div class="card" style="margin-bottom:15px;">
+            ${construirFiltroFechas(true)}
+            <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:8px; padding:10px; margin-bottom:14px; text-align:center;">
+                <div style="font-size:13px; color:#166534;">Reparaciones terminadas en el período (${_repFiltroFechas.label})</div>
+                <div style="font-size:28px; font-weight:800; color:#16a34a;">${repTerminadas}</div>
+            </div>
             <h3 style="margin:0 0 12px;"><i class="ti ti-chart-bar" style="color:#6366f1;"></i> Lo Más Común</h3>
             <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:18px;">
                 <div>
@@ -7329,13 +7421,14 @@ function renderMiTrabajo() {
 // Construye el historial de reparaciones terminadas de un técnico (órdenes entregadas/finalizadas + reacond vendidos)
 function construirHistorialTecnico(tecnicoId) {
     const items = [];
-    // Órdenes finalizadas o entregadas
+    // Órdenes finalizadas o entregadas (dentro del rango de fechas)
     (cache.ordenes || []).forEach(o => {
         if(o.tecnico_asignado_id !== tecnicoId) return;
         const est = normalizarEstadoOrden(o.estado);
         if(est === 'finalizado' || est === 'entregado') {
-            const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
             const fecha = o.fecha_entregado || o.fecha_finalizado || o.creado_en;
+            if(!fechaEnRango(fecha)) return;
+            const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
             items.push({
                 fecha: fecha,
                 equipo: `${e.marca || ''} ${e.modelo || ''}`.trim() || 'Equipo',
@@ -7345,12 +7438,14 @@ function construirHistorialTecnico(tecnicoId) {
             });
         }
     });
-    // Reacondicionados vendidos/terminados
+    // Reacondicionados vendidos/terminados (dentro del rango)
     (cache.refurb || []).forEach(eq => {
         if(eq.tecnico_asignado_id !== tecnicoId) return;
         if(['listo_venta', 'vendido'].includes(eq.estado_evaluacion)) {
+            const fecha = eq.fecha_despacho || eq.fecha_asignacion;
+            if(!fechaEnRango(fecha)) return;
             items.push({
-                fecha: eq.fecha_despacho || eq.fecha_asignacion,
+                fecha: fecha,
                 equipo: `${eq.marca || ''} ${eq.modelo || ''}`.trim() || 'Equipo',
                 detalle: `Reacondicionado · ${(eq.estado_evaluacion || '').replace(/_/g, ' ')}`,
                 tipo: 'Reacond',
@@ -7358,8 +7453,9 @@ function construirHistorialTecnico(tecnicoId) {
             });
         }
     });
+    const filtroHtml = construirFiltroFechas(true);
     if(!items.length) {
-        return `<div style="color:var(--text-muted); font-size:13px; padding:8px 0;">Aún no tienes reparaciones terminadas.</div>`;
+        return filtroHtml + `<div style="color:var(--text-muted); font-size:13px; padding:8px 0;">No hay reparaciones terminadas en este período.</div>`;
     }
     // Ordenar por fecha descendente (más reciente primero)
     items.sort((a, b) => new Date(b.fecha || 0) - new Date(a.fecha || 0));
@@ -7374,8 +7470,8 @@ function construirHistorialTecnico(tecnicoId) {
         </tr>`;
     }).join('');
     
-    return `
-        <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">${items.length} reparación(es) terminada(s)</div>
+    return filtroHtml + `
+        <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">${items.length} reparación(es) terminada(s) en el período (${_repFiltroFechas.label})</div>
         <div style="overflow-x:auto;">
             <table class="data-table" style="width:100%; font-size:13px;">
                 <thead><tr><th>Fecha</th><th>Tipo</th><th>Equipo</th><th>Detalle</th></tr></thead>
