@@ -7039,6 +7039,58 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos) {
         </div>`;
 }
 
+// Detecta piezas "no utilizadas": el técnico las tiene pero el equipo ya terminó, o nunca las confirmó.
+function detectarPiezasNoUtilizadas(soloTecnicoId) {
+    let piezas = (cache.piezasReacond || []);
+    if(soloTecnicoId) {
+        const misEquipos = new Set((cache.refurb || []).filter(e => e.tecnico_asignado_id === soloTecnicoId).map(e => e.id));
+        piezas = piezas.filter(p => misEquipos.has(p.equipo_id));
+    }
+    const terminados = ['listo_venta', 'vendido'];
+    return piezas.filter(p => {
+        const eq = (cache.refurb || []).find(e => e.id === p.equipo_id);
+        if(!eq) return false;
+        const equipoTerminado = terminados.includes(eq.estado_evaluacion);
+        // Caso A: tiene la pieza (entregada o en uso) y el equipo ya terminó → sobrante
+        const tieneYTermino = ['entregada','recibida'].includes(p.estado) && equipoTerminado;
+        // Caso B: entregada pero nunca confirmada (limbo), sin importar estado del equipo
+        const entregadaSinConfirmar = p.estado === 'entregada';
+        return tieneYTermino || entregadaSinConfirmar;
+    });
+}
+
+// Construye la alerta de piezas no utilizadas
+function construirAlertaPiezasNoUsadas(soloTecnicoId) {
+    const noUsadas = detectarPiezasNoUtilizadas(soloTecnicoId);
+    if(!noUsadas.length) return '';
+    const filas = noUsadas.map(p => {
+        const eq = (cache.refurb || []).find(e => e.id === p.equipo_id) || {};
+        const et = etiquetaEstadoPiezaReacond(p.estado);
+        const tecNombre = eq.tecnico_asignado_id ? nombreEmpleado(eq.tecnico_asignado_id) : 'Sin asignar';
+        const equipoTerminado = ['listo_venta','vendido'].includes(eq.estado_evaluacion);
+        const motivo = equipoTerminado ? 'Equipo terminado, pieza no devuelta' : 'Entregada sin confirmar';
+        return `<tr>
+            <td style="font-weight:600;">${escapeHtml(p.pieza_nombre || '—')}</td>
+            <td style="text-align:center;">${p.cantidad || 1}</td>
+            <td>${escapeHtml(eq.marca || '')} ${escapeHtml(eq.modelo || '')}</td>
+            <td style="font-size:12px;">${escapeHtml(tecNombre)}</td>
+            <td><span class="badge" style="background:${et.bg}; color:${et.color}; font-size:11px;">${et.txt}</span></td>
+            <td style="font-size:11px; color:#9a3412;">${motivo}</td>
+        </tr>`;
+    }).join('');
+    return `
+        <div style="background:#fff7ed; border:2px solid #fb923c; border-radius:10px; padding:12px; margin-bottom:15px;">
+            <div style="font-weight:700; color:#9a3412; margin-bottom:8px;"><i class="ti ti-alert-triangle"></i> Piezas No Utilizadas (${noUsadas.length}) — requieren revisión</div>
+            <div style="font-size:12px; color:#9a3412; margin-bottom:10px;">Estas piezas están en manos de un técnico pero el equipo ya terminó, o no fueron confirmadas. Conviene devolverlas al inventario o confirmar su uso.</div>
+            <div style="overflow-x:auto;">
+                <table class="data-table" style="width:100%; font-size:13px;">
+                    <thead><tr><th>Pieza</th><th style="text-align:center;">Cant.</th><th>Equipo</th><th>Técnico</th><th>Estado</th><th>Motivo</th></tr></thead>
+                    <tbody>${filas}</tbody>
+                </table>
+            </div>
+        </div>`;
+}
+
 // ============================================================
 //   PANEL DE PEDIDOS DE PIEZAS (reacondicionados)
 // ============================================================
@@ -7064,7 +7116,8 @@ function construirPanelPedidosPiezas(soloTecnicoId) {
         piezas = piezas.filter(p => misEquipos.has(p.equipo_id));
     }
     if(!piezas.length) {
-        return `<div style="color:var(--text-muted); font-size:13px; padding:10px 0;">No hay pedidos de piezas.</div>`;
+        const alerta = construirAlertaPiezasNoUsadas(soloTecnicoId);
+        return alerta + `<div style="color:var(--text-muted); font-size:13px; padding:10px 0;">No hay pedidos de piezas.</div>`;
     }
     // Agrupar por estado para resumen
     const cuenta = {};
@@ -7092,6 +7145,7 @@ function construirPanelPedidosPiezas(soloTecnicoId) {
     }).join('');
     
     return `
+        ${construirAlertaPiezasNoUsadas(soloTecnicoId)}
         <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;">${resumenChips}</div>
         <div style="overflow-x:auto;">
             <table class="data-table" style="width:100%; font-size:13px;">
