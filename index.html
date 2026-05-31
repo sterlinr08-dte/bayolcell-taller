@@ -7097,21 +7097,23 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos) {
                 acciones += `<select onchange="if(this.value)asignarOrdenTecnico('${o.id}', this.value)" style="font-size:12px; padding:6px;"><option value="">Asignar a…</option>${tecnicosActivos.map(t => `<option value="${t.id}">${escapeHtml(t.nombre)}</option>`).join('')}</select>`;
             }
         } else if(puedeOperar && !['entregado','cancelado','finalizado'].includes(estado)) {
-            // Estados temporales: desde "esperando autorización" o "en espera de repuesto" se RESUELVE y vuelve a en proceso
+            // Estados de espera: RESOLVER (vuelve a en proceso) + opción de finalizar directo
             if(estado === 'pendiente_cliente') {
                 acciones += `<button class="btn btn-blue" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-check"></i> Autorización resuelta</button>`;
+                acciones += `<button class="btn btn-success" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','finalizado')"><i class="ti ti-circle-check"></i> Finalizar</button>`;
             } else if(estado === 'espera_repuesto') {
                 acciones += `<button class="btn btn-blue" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-check"></i> Repuesto llegó</button>`;
+                acciones += `<button class="btn btn-success" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','finalizado')"><i class="ti ti-circle-check"></i> Finalizar</button>`;
+            } else {
+                // EN PROCESO (o recibido): mostrar todas las opciones útiles
+                acciones += `<button class="btn btn-success" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','finalizado')"><i class="ti ti-circle-check"></i> Finalizar</button>`;
+                acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#92400e;" onclick="cambiarEstadoOrdenUI('${o.id}','espera_repuesto')"><i class="ti ti-hourglass"></i> En espera de repuesto</button>`;
+                acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#9a3412;" onclick="cambiarEstadoOrdenUI('${o.id}','pendiente_cliente')"><i class="ti ti-bell"></i> Esperando autorización</button>`;
             }
-            // Mostrar los estados siguientes posibles
-            const idx = ORDEN_FLUJO.indexOf(estado);
-            const siguientes = ORDEN_FLUJO.slice(idx + 1).filter(s => s !== 'entregado');
-            siguientes.forEach(s => {
-                const lbl = obtenerEtiquetaOrden(s);
-                acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','${s}')">${lbl.text}</button>`;
-            });
         } else if(puedeOperar && estado === 'finalizado') {
             acciones += `<button class="btn btn-blue" style="font-size:12px; padding:6px 12px;" onclick="marcarEntregadoConGarantia('${o.id}')"><i class="ti ti-package"></i> Marcar Entregado</button>`;
+            // Permitir reabrir si se finalizó por error
+            acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-rotate"></i> Volver a proceso</button>`;
         } else if(estado === 'entregado') {
             // Reabrir por garantía (si está dentro del plazo)
             const info = infoGarantiaOrden(o);
