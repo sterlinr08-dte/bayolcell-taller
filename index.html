@@ -5961,16 +5961,35 @@ async function marcarPiezaEntregada(piezaId) {
 
 async function marcarPiezaRecibida(piezaId) {
     try {
+        // Obtener la pieza pedida para saber su vínculo al inventario y cantidad
+        const { data: pp, error: e0 } = await supabaseClient.from('equipo_piezas_pedidas').select('*').eq('id', piezaId).single();
+        if(e0) throw e0;
         const { error } = await supabaseClient.from('equipo_piezas_pedidas').update({ 
             estado: 'recibida'
         }).eq('id', piezaId);
         if(error) throw error;
-        toast('✅ Pieza confirmada como recibida por el técnico.');
+        // Bajar del stock del inventario (solo si está vinculada con pieza_id)
+        if(pp && pp.pieza_id) {
+            await ajustarStockInventario(pp.pieza_id, -(pp.cantidad || 1));
+        }
+        toast('✅ Pieza confirmada como recibida. Stock actualizado.');
+        await loadAll();
         if(_panelProcesoEquipoId) abrirPanelProceso(_panelProcesoEquipoId);
     } catch(e) {
         logError('Marcar pieza recibida', e);
         alert(getFriendlyError(e));
     }
+}
+
+// Ajusta el stock de una pieza del inventario (delta puede ser negativo para restar o positivo para sumar)
+async function ajustarStockInventario(piezaId, delta) {
+    try {
+        const pieza = (cache.piezas || []).find(p => p.id === piezaId);
+        const actual = pieza ? (pieza.cantidad || 0) : 0;
+        const nuevo = Math.max(0, actual + delta);
+        const { error } = await supabaseClient.from('piezas_inventario').update({ cantidad: nuevo }).eq('id', piezaId);
+        if(error) throw error;
+    } catch(e) { logError('Ajustar stock inventario', e); }
 }
 
 /* ---------- DEVOLUCIÓN DE PIEZAS ---------- */
@@ -6007,6 +6026,11 @@ async function aprobarDevolucionPieza(piezaId) {
             estado: 'devuelta'
         }).eq('id', piezaId);
         if(e1) throw e1;
+        
+        // Reintegrar al stock del inventario (solo si la pieza estaba "en uso"/recibida y vinculada)
+        if(pieza && pieza.pieza_id && pieza.estado === 'recibida') {
+            await ajustarStockInventario(pieza.pieza_id, (pieza.cantidad || 1));
+        }
         
         // Descontar del costo de repuestos del equipo
         if(pieza && pieza.equipo_id) {
@@ -7054,9 +7078,13 @@ function construirPanelPedidosPiezas(soloTecnicoId) {
         const eq = (cache.refurb || []).find(e => e.id === p.equipo_id) || {};
         const et = etiquetaEstadoPiezaReacond(p.estado);
         const tecNombre = eq.tecnico_asignado_id ? nombreEmpleado(eq.tecnico_asignado_id) : 'Sin asignar';
+        const invPieza = p.pieza_id ? (cache.piezas || []).find(x => x.id === p.pieza_id) : null;
+        const stock = invPieza ? (invPieza.cantidad || 0) : null;
+        const stockTxt = stock === null ? '<span style="color:#94a3b8;">—</span>' : `<span style="font-weight:700; color:${stock <= 0 ? '#dc2626' : (stock <= 2 ? '#d97706' : '#16a34a')};">${stock}</span>`;
         return `<tr>
             <td style="font-weight:600;">${escapeHtml(p.pieza_nombre || '—')}</td>
             <td style="text-align:center;">${p.cantidad || 1}</td>
+            <td style="text-align:center;">${stockTxt}</td>
             <td>${escapeHtml(eq.marca || '')} ${escapeHtml(eq.modelo || '')}</td>
             <td style="font-size:12px;">${escapeHtml(tecNombre)}</td>
             <td><span class="badge" style="background:${et.bg}; color:${et.color}; font-size:11px;">${et.txt}</span></td>
@@ -7068,7 +7096,7 @@ function construirPanelPedidosPiezas(soloTecnicoId) {
         <div style="overflow-x:auto;">
             <table class="data-table" style="width:100%; font-size:13px;">
                 <thead><tr>
-                    <th>Pieza</th><th style="text-align:center;">Cant.</th><th>Equipo</th><th>Técnico</th><th>Estado</th>
+                    <th>Pieza</th><th style="text-align:center;">Cant.</th><th style="text-align:center;">Stock</th><th>Equipo</th><th>Técnico</th><th>Estado</th>
                 </tr></thead>
                 <tbody>${filas}</tbody>
             </table>
