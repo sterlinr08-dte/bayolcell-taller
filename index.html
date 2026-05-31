@@ -1423,6 +1423,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                     <h2 style="margin:0 0 4px 0; font-size:18px;"><i class="ti ti-chart-bar" style="color:#0891b2;"></i> Reportes de Rendimiento</h2>
                     <p style="color:var(--text-muted); font-size:13px; margin:0;">Evalúa el trabajo de cada técnico en servicio (clientes) y reacondicionados.</p>
                 </div>
+                <div id="reporteGeneralTiempos"></div>
                 <div class="card" style="margin-bottom:15px;">
                     <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                         <label style="font-weight:600; font-size:13px;">Técnico:</label>
@@ -6640,7 +6641,68 @@ function normalizarEstadoOrden(estado) {
 // ============================================================
 let _repChart = null;
 
+// Calcula promedio de horas entre dos fechas para una lista de registros.
+// Devuelve {prom, n} en horas (decimal) y cantidad de muestras válidas.
+function promedioHoras(registros, campoInicio, campoFin) {
+    let suma = 0, n = 0;
+    registros.forEach(r => {
+        const ini = r[campoInicio] ? new Date(r[campoInicio]) : null;
+        const fin = r[campoFin] ? new Date(r[campoFin]) : null;
+        if(ini && fin && !isNaN(ini) && !isNaN(fin) && fin > ini) {
+            suma += (fin - ini) / 3600000; // ms → horas
+            n++;
+        }
+    });
+    return { prom: n ? suma / n : 0, n };
+}
+
+// Formatea horas decimales a "Xh Ym" o "Xd Yh"
+function formatoHoras(horas) {
+    if(!horas || horas <= 0) return '—';
+    const totalMin = Math.round(horas * 60);
+    const dias = Math.floor(totalMin / 1440);
+    const h = Math.floor((totalMin % 1440) / 60);
+    const m = totalMin % 60;
+    if(dias >= 1) return `${dias}d ${h}h`;
+    if(h >= 1) return `${h}h ${m}min`;
+    return `${m}min`;
+}
+
+// Métricas de tiempo (trabajo y total) para órdenes y reacondicionados de un técnico (o todos si tecnicoId=null)
+function calcularTiemposReparacion(tecnicoId) {
+    let ordenes = (cache.ordenes || []);
+    let refurb = (cache.refurb || []);
+    if(tecnicoId) {
+        ordenes = ordenes.filter(o => o.tecnico_asignado_id === tecnicoId);
+        refurb = refurb.filter(r => r.tecnico_asignado_id === tecnicoId);
+    }
+    return {
+        // Órdenes de cliente
+        ord_trabajo: promedioHoras(ordenes, 'fecha_asignacion', 'fecha_finalizado'),
+        ord_total: promedioHoras(ordenes, 'creado_en', 'fecha_entregado'),
+        // Reacondicionados (trabajo: desde asignación → hasta despacho/venta)
+        rf_trabajo: promedioHoras(refurb, 'fecha_asignacion', 'fecha_despacho'),
+    };
+}
+
 function inicializarReportes() {
+    // Bloque de promedio GENERAL del taller (todos los técnicos)
+    const gen = calcularTiemposReparacion(null);
+    const genCont = document.getElementById('reporteGeneralTiempos');
+    if(genCont) {
+        const kpiG = (label, val, color) => `<div class="kpi-box" style="border-top-color:${color};"><small>${label}</small><strong style="font-size:18px;">${val}</strong></div>`;
+        genCont.innerHTML = `
+            <div class="card" style="margin-bottom:15px; background:linear-gradient(135deg,#ecfeff,#f0f9ff);">
+                <h3 style="margin:0 0 12px;"><i class="ti ti-building-store" style="color:#0891b2;"></i> Promedio General del Taller</h3>
+                <div class="kpi-grid">
+                    ${kpiG('⏱️ Trabajo órdenes', formatoHoras(gen.ord_trabajo.prom), '#0891b2')}
+                    ${kpiG('📦 Total cliente', formatoHoras(gen.ord_total.prom), '#3b82f6')}
+                    ${kpiG('🔧 Trabajo reacond.', formatoHoras(gen.rf_trabajo.prom), '#f59e0b')}
+                </div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:8px;">Basado en ${gen.ord_trabajo.n} orden(es) y ${gen.rf_trabajo.n} reacondicionado(s) completados.</div>
+            </div>`;
+    }
+    
     const sel = document.getElementById('rep_tecnico');
     if(!sel) return;
     const tecnicos = (cache.tecnicos || []).filter(t => t.tipo_empleado === 'tecnico' || (!t.tipo_empleado && t.rol !== 'admin'));
@@ -6679,6 +6741,7 @@ function renderReporteTecnico() {
     if(!tecnicoId) { cont.innerHTML = '<div class="card" style="color:var(--text-muted);">Selecciona un técnico para ver su reporte.</div>'; return; }
     
     const m = calcularMetricasTecnico(tecnicoId);
+    const mt = calcularTiemposReparacion(tecnicoId);
     const tec = (cache.tecnicos || []).find(t => t.id === tecnicoId);
     
     const kpi = (label, val, color) => `<div class="kpi-box" style="border-top-color:${color};"><small>${label}</small><strong>${val}</strong></div>`;
@@ -6700,6 +6763,18 @@ function renderReporteTecnico() {
                 ${kpi('En proceso', m.rf_proceso, '#f59e0b')}
                 ${kpi('Terminados', m.rf_terminados, '#10b981')}
                 ${kpi('Le devolvieron', m.rf_devueltos, '#ef4444')}
+            </div>
+        </div>
+        <div class="card" style="margin-bottom:15px;">
+            <h3 style="margin:0 0 12px;"><i class="ti ti-stopwatch" style="color:#0891b2;"></i> Tiempos Promedio</h3>
+            <div class="kpi-grid">
+                ${kpi('⏱️ Trabajo (órdenes)', formatoHoras(mt.ord_trabajo.prom), '#0891b2')}
+                ${kpi('📦 Total cliente', formatoHoras(mt.ord_total.prom), '#3b82f6')}
+                ${kpi('🔧 Trabajo (reacond.)', formatoHoras(mt.rf_trabajo.prom), '#f59e0b')}
+            </div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:8px;">
+                <i class="ti ti-info-circle"></i> Trabajo = desde que lo toma hasta finalizar · Total cliente = desde recepción hasta entrega.
+                ${mt.ord_trabajo.n + mt.ord_total.n + mt.rf_trabajo.n === 0 ? '<br>Aún no hay trabajos completados para calcular promedios.' : ''}
             </div>
         </div>
         <div class="card" style="margin-bottom:15px;">
