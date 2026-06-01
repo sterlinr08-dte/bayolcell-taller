@@ -7133,9 +7133,11 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos) {
         }
         // Label de diagnóstico (con las fallas) — útil para el técnico
         acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px;" onclick="cargarEnLabel('${o.id}')"><i class="ti ti-clipboard-list"></i> Label</button>`;
-        // Solicitar pieza adicional (si está tomada y activa)
-        if((esAdmin || esMia) && o.tecnico_asignado_id && !['entregado','cancelado'].includes(estado)) {
-            acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#0e7490;" onclick="solicitarPiezaOrden('${o.id}')"><i class="ti ti-package-import"></i> Solicitar pieza</button>`;
+        // Solicitar pieza: si está tomada y activa, O en garantía (entregado pero con garantía vigente)
+        const enGarantiaVigente = estado === 'entregado' && infoGarantiaOrden(o).vigente;
+        if((esAdmin || esMia) && o.tecnico_asignado_id && (!['entregado','cancelado'].includes(estado) || enGarantiaVigente)) {
+            const txtBtn = enGarantiaVigente ? 'Solicitar pieza (garantía)' : 'Solicitar pieza';
+            acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#0e7490;" onclick="solicitarPiezaOrden('${o.id}')"><i class="ti ti-package-import"></i> ${txtBtn}</button>`;
         }
         
         // Piezas de esta orden
