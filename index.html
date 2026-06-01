@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#0033aa">
+<meta name="theme-color" content="#dc2626">
 <title>SISTEMA TALLER BAYOL CELL</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -128,9 +128,9 @@ input[disabled] { background-color: #f8fafc; color: #94a3b8; cursor: not-allowed
 .block-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; align-items: start; }
 .block-card { background: #fff; border-radius: 8px; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); overflow: hidden; }
 .block-header { padding: 11px 14px; font-size: 12px; font-weight: 800; color: #fff; text-transform: uppercase; letter-spacing: 0.5px; text-shadow: 0 1px 1px rgba(0,0,0,0.1); }
-.header-blue-dark { background: #0033aa; }
-.header-blue-light { background: #0056b3; }
-.header-blue-sec { background: #0044cc; }
+.header-blue-dark { background: #dc2626; }
+.header-blue-light { background: #b91c1c; }
+.header-blue-sec { background: #dc2626; }
 .block-body { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
 
 .checks-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
@@ -184,8 +184,8 @@ tr:hover td { background: #f8fafc; }
 .modal-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,0.6); backdrop-filter: blur(2px); display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
 .modal-backdrop.active { display: flex; }
 .modal-backdrop.modal-encima { z-index: 200; }
-.modal-box { background: #fff; border-radius: 12px; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.4); }
-.modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; background: #0033aa; color: #fff; border-radius: 12px 12px 0 0; }
+.modal-box { background: #fff; border-radius: 18px; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 60px -12px rgba(15,23,42,0.35); }
+.modal-header { padding: 16px 20px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, #dc2626, #b91c1c); color: #fff; border-radius: 18px 18px 0 0; }
 .modal-header h3 { margin: 0; font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
 .modal-close { background: rgba(255,255,255,0.25); border: 2px solid rgba(255,255,255,0.4); color: #fff; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 18px; font-weight: bold; display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0; }
 .modal-close:hover { background: rgba(255,255,255,0.4); transform: scale(1.1); }
@@ -196,7 +196,7 @@ tr:hover td { background: #f8fafc; }
 /* TARJETAS DE PROVEEDOR */
 .prov-card { background: #fff; border: 1px solid var(--border-color); border-radius: 10px; padding: 14px 16px; display: flex; gap: 14px; align-items: center; transition: all 0.15s; }
 .prov-card:hover { border-color: var(--blue-btn); box-shadow: 0 4px 8px rgba(220,38,38,0.1); }
-.prov-card .prov-avatar { width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, #0044aa, #0066cc); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px; flex-shrink: 0; }
+.prov-card .prov-avatar { width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px; flex-shrink: 0; }
 .prov-card .prov-info { flex: 1; }
 .prov-card .prov-info h4 { margin: 0 0 2px; font-size: 14px; font-weight: 700; }
 .prov-card .prov-info .meta { font-size: 11px; color: var(--text-muted); }
@@ -483,15 +483,15 @@ mark.ss-hl { background: #fef08a; color: inherit; padding: 0 1px; border-radius:
     transform: translateY(-1px);
 }
 .reacond-tabs-scroll .tab-btn.active { 
-    background: linear-gradient(180deg, #2563eb 0%, #1e40af 100%) !important; 
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important; 
     color: #fff !important; 
-    border-color: #1e3a8a !important; 
-    box-shadow: 0 4px 0 #1e3a8a, 0 5px 12px rgba(37, 99, 235, 0.4) !important;
+    border-color: #b91c1c !important; 
+    box-shadow: 0 4px 12px rgba(220,38,38,0.4) !important;
     transform: translateY(0);
 }
 .reacond-tabs-scroll .tab-btn.active span { 
     background: #fff !important; 
-    color: #1e40af !important; 
+    color: #b91c1c !important; 
     font-weight: 800 !important;
 }
 
@@ -527,8 +527,8 @@ mark.ss-hl { background: #fef08a; color: inherit; padding: 0 1px; border-radius:
 /* ========== BOTONES DE ORIENTACIÓN (2x1 / 1x2) ========== */
 .btn-orientacion:hover { transform: translateY(-2px); box-shadow: 0 5px 0 #cbd5e1, 0 6px 12px rgba(0,0,0,0.08) !important; }
 .btn-orientacion:active { transform: translateY(0); box-shadow: 0 1px 0 #cbd5e1, 0 2px 4px rgba(0,0,0,0.05) !important; }
-.btn-orientacion.activo { background: linear-gradient(180deg, #dbeafe 0%, #bfdbfe 100%) !important; border-color: #1e40af !important; box-shadow: 0 4px 0 #1e3a8a, 0 5px 12px rgba(30, 64, 175, 0.3) !important; }
-.btn-orientacion.activo b { color: #1e3a8a !important; }
+.btn-orientacion.activo { background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%) !important; border-color: #fca5a5 !important; box-shadow: 0 4px 0 #991b1b, 0 5px 12px rgba(30, 64, 175, 0.3) !important; }
+.btn-orientacion.activo b { color: #dc2626 !important; }
 
 /* ========== ANIMACIÓN ITEMS NUEVOS ========== */
 @keyframes itemFadeIn { 
@@ -550,11 +550,11 @@ mark.ss-hl { background: #fef08a; color: inherit; padding: 0 1px; border-radius:
 .stepper-step:active { transform: scale(0.96); }
 .stepper-circle { width: 36px; height: 36px; border-radius: 50%; background: #f1f5f9; border: 3px solid #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; color: #94a3b8; transition: all 0.25s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.06); }
 .stepper-step.completado .stepper-circle { background: linear-gradient(135deg, #10b981, #059669); border-color: #047857; color: #fff; box-shadow: 0 3px 8px rgba(16, 185, 129, 0.35); }
-.stepper-step.actual .stepper-circle { background: linear-gradient(135deg, #3b82f6, #1e40af); border-color: #1e3a8a; color: #fff; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2), 0 4px 12px rgba(59, 130, 246, 0.4); animation: pulseActual 2s ease-in-out infinite; }
+.stepper-step.actual .stepper-circle { background: linear-gradient(135deg, #ef4444, #dc2626); border-color: #b91c1c; color: #fff; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2), 0 4px 12px rgba(59, 130, 246, 0.4); animation: pulseActual 2s ease-in-out infinite; }
 .stepper-step.pendiente .stepper-circle { background: #fff; border-color: #cbd5e1; color: #94a3b8; }
 .stepper-label { font-size: 10px; font-weight: 700; text-align: center; line-height: 1.2; color: #64748b; max-width: 70px; }
 .stepper-step.completado .stepper-label { color: #047857; }
-.stepper-step.actual .stepper-label { color: #1e40af; }
+.stepper-step.actual .stepper-label { color: #b91c1c; }
 @keyframes pulseActual { 0%, 100% { box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2), 0 4px 12px rgba(59, 130, 246, 0.4); } 50% { box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.1), 0 4px 16px rgba(59, 130, 246, 0.5); } }
 .stepper-step.bloqueado { opacity: 0.4; cursor: not-allowed; }
 .stepper-step.bloqueado:active { transform: none; }
@@ -570,7 +570,7 @@ mark.ss-hl { background: #fef08a; color: inherit; padding: 0 1px; border-radius:
 .pieza-action-btn { background: linear-gradient(180deg, #fff 0%, #f8fafc 100%); border: 1px solid #cbd5e1; border-radius: 7px; padding: 7px 10px; font-size: 11px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 5px; box-shadow: 0 2px 0 #cbd5e1; transition: all 0.15s; }
 .pieza-action-btn:hover { background: #f1f5f9; transform: translateY(-1px); }
 .pieza-action-btn:active { transform: translateY(1px); box-shadow: 0 1px 0 #cbd5e1; }
-.pieza-action-btn.entregar { background: linear-gradient(180deg, #3b82f6, #1e40af); color: #fff; border-color: #1e3a8a; box-shadow: 0 3px 0 #1e3a8a; }
+.pieza-action-btn.entregar { background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; border-color: #b91c1c; box-shadow: 0 3px 0 #991b1b; }
 .pieza-action-btn.recibir { background: linear-gradient(180deg, #10b981, #059669); color: #fff; border-color: #047857; box-shadow: 0 3px 0 #047857; }
 .pieza-action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
@@ -596,7 +596,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
 .input-with-action { display: flex; gap: 6px; align-items: stretch; }
 .input-with-action select, .input-with-action input { flex: 1; }
 .input-with-action .quick-add-btn { background: var(--blue-btn); color: #fff; border: 0; border-radius: 8px; padding: 0 14px; cursor: pointer; font-size: 18px; font-weight: 800; flex-shrink: 0; min-width: 44px; }
-.input-with-action .quick-add-btn:hover { background: #0044aa; }
+.input-with-action .quick-add-btn:hover { background: #b91c1c; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.js"></script>
@@ -610,7 +610,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
 <div id="login" class="login">
     <div class="login-card">
         <div class="logo-login">
-            <div style="font-size:32px; color:#0056b3;"><i class="ti ti-device-mobile-cog"></i></div>
+            <div style="font-size:32px; color:#dc2626;"><i class="ti ti-device-mobile-cog"></i></div>
             <div><h1>BAYOL <span>CELL</span></h1><small style="color:var(--text-muted); font-weight:700; font-size:10px; display:block; text-align:left;">SISTEMA MAESTRO ERP</small></div>
         </div>
         <div id="loginErr" class="err"></div>
@@ -707,7 +707,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
             <!-- DASHBOARD -->
             <div id="v-dashboard" class="view active">
                 <div class="kpi-row">
-                    <div class="kpi-box clickable" style="border-top-color:#3b82f6;" onclick="nav('ordenes')"><small>Recibidos Hoy</small><strong id="kHoy">0</strong><i class="ti ti-download"></i></div>
+                    <div class="kpi-box clickable" style="border-top-color:#ef4444;" onclick="nav('ordenes')"><small>Recibidos Hoy</small><strong id="kHoy">0</strong><i class="ti ti-download"></i></div>
                     <div class="kpi-box clickable" style="border-top-color:#f59e0b;" onclick="nav('ordenes')"><small>En Diagnóstico</small><strong id="kDiag">0</strong><i class="ti ti-search"></i></div>
                     <div class="kpi-box clickable" style="border-top-color:#10b981;" onclick="nav('ordenes')"><small>En Reparación</small><strong id="kRep">0</strong><i class="ti ti-settings"></i></div>
                     <div class="kpi-box clickable" style="border-top-color:#ef4444;" onclick="nav('inventario')"><small>Espera Pieza</small><strong id="kPiezas">0</strong><i class="ti ti-hourglass"></i></div>
@@ -719,7 +719,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                 <h3 style="margin:15px 0 10px; font-size:14px; color:#06b6d4; text-transform:uppercase; display:flex; align-items:center; gap:8px;"><i class="ti ti-recycle"></i> Reacondicionados</h3>
                 <div class="kpi-row">
                     <div class="kpi-box clickable" style="border-top-color:#f59e0b;" onclick="nav('refurb')"><small>🟡 Pendientes</small><strong id="kdPend">0</strong><i class="ti ti-clock"></i></div>
-                    <div class="kpi-box clickable" style="border-top-color:#3b82f6;" onclick="nav('refurb')"><small>⚠️ Evaluación</small><strong id="kdEval">0</strong><i class="ti ti-clipboard-list"></i></div>
+                    <div class="kpi-box clickable" style="border-top-color:#ef4444;" onclick="nav('refurb')"><small>⚠️ Evaluación</small><strong id="kdEval">0</strong><i class="ti ti-clipboard-list"></i></div>
                     <div class="kpi-box clickable" style="border-top-color:#9a3412;" onclick="nav('refurb')"><small>🔧 En Proceso</small><strong id="kdProc">0</strong><i class="ti ti-tool"></i></div>
                     <div class="kpi-box clickable" style="border-top-color:#5b21b6;" onclick="nav('refurb')"><small>🛒 Listo Venta</small><strong id="kdListoV">0</strong><i class="ti ti-shopping-cart"></i></div>
                     <div class="kpi-box clickable" style="border-top-color:#10b981;" onclick="nav('refurb')"><small>✅ Despachados</small><strong id="kdDesp">0</strong><i class="ti ti-truck-delivery"></i></div>
@@ -985,12 +985,12 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                         <h4 style="margin:0 0 10px; font-size:12px; color:var(--blue-btn); text-transform:uppercase;"><i class="ti ti-photo"></i> Orientación del Papel</h4>
                         <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:15px;">
                             <button class="btn-orientacion" data-orient="2x1" onclick="aplicarOrientacionConfig('2x1')" style="background:linear-gradient(180deg, #fff 0%, #f1f5f9 100%); border:2px solid #e2e8f0; border-radius:12px; padding:14px; cursor:pointer; text-align:center; box-shadow:0 3px 0 #cbd5e1, 0 4px 8px rgba(0,0,0,0.05); transition:all 0.15s;">
-                                <div style="width:60px; height:30px; background:#dbeafe; border:2px solid #1e40af; margin:0 auto 8px; border-radius:3px;"></div>
+                                <div style="width:60px; height:30px; background:#dbeafe; border:2px solid #b91c1c; margin:0 auto 8px; border-radius:3px;"></div>
                                 <b style="font-size:13px; display:block; color:#0f172a;">2 × 1"</b>
                                 <small style="color:#64748b; font-size:10px;">Horizontal · 51×25mm</small>
                             </button>
                             <button class="btn-orientacion" data-orient="1x2" onclick="aplicarOrientacionConfig('1x2')" style="background:linear-gradient(180deg, #fff 0%, #f1f5f9 100%); border:2px solid #e2e8f0; border-radius:12px; padding:14px; cursor:pointer; text-align:center; box-shadow:0 3px 0 #cbd5e1, 0 4px 8px rgba(0,0,0,0.05); transition:all 0.15s;">
-                                <div style="width:30px; height:60px; background:#dbeafe; border:2px solid #1e40af; margin:0 auto 8px; border-radius:3px;"></div>
+                                <div style="width:30px; height:60px; background:#dbeafe; border:2px solid #b91c1c; margin:0 auto 8px; border-radius:3px;"></div>
                                 <b style="font-size:13px; display:block; color:#0f172a;">1 × 2"</b>
                                 <small style="color:#64748b; font-size:10px;">Vertical · 25×51mm</small>
                             </button>
@@ -1101,7 +1101,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                     <div class="card">
                         <h3 style="margin:0 0 15px 0;"><i class="ti ti-settings" style="color:var(--blue-btn);"></i> Configuración de Impresora 2C-LP427B</h3>
                         
-                        <div style="background:#dbeafe; border:1px solid #93c5fd; padding:10px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#1e40af;">
+                        <div style="background:#dbeafe; border:1px solid #93c5fd; padding:10px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#b91c1c;">
                             <b><i class="ti ti-info-circle"></i> Ajusta el tamaño y verifica con la "Vista Previa" al lado.</b> Cuando esté bien, guarda como perfil.
                         </div>
                         
@@ -1364,8 +1364,8 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                                         </table>
                                     </div>
                                     <div style="background:#dbeafe; padding:10px 14px; border-radius:6px; margin-top:10px; display:flex; justify-content:space-between; align-items:center;" id="totalAcumuladoWrap">
-                                        <span style="font-size:13px; font-weight:700; color:#1e3a8a;">TOTAL ACUMULADO:</span>
-                                        <strong id="eq_total" style="font-size:18px; color:#1e3a8a;">RD$ 0.00</strong>
+                                        <span style="font-size:13px; font-weight:700; color:#991b1b;">TOTAL ACUMULADO:</span>
+                                        <strong id="eq_total" style="font-size:18px; color:#991b1b;">RD$ 0.00</strong>
                                     </div>
                                 </div>
                             </div>
@@ -1408,7 +1408,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                                 🟡 Pendientes <span id="cntPendientes" class="badge" style="background:#fef3c7; color:#92400e; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
                             </button>
                             <button class="tab-btn" data-tab="evaluacion" onclick="cambiarTabReacond('evaluacion')" style="padding:11px 14px; cursor:pointer; font-weight:700; white-space:nowrap; font-size:13px;">
-                                ⚠️ Evaluación <span id="cntEvaluacion" class="badge" style="background:#dbeafe; color:#1e40af; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
+                                ⚠️ Evaluación <span id="cntEvaluacion" class="badge" style="background:#dbeafe; color:#b91c1c; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
                             </button>
                             <button class="tab-btn" data-tab="proceso" onclick="cambiarTabReacond('proceso')" style="padding:11px 14px; cursor:pointer; font-weight:700; white-space:nowrap; font-size:13px;">
                                 🔧 En Proceso <span id="cntProceso" class="badge" style="background:#fed7aa; color:#9a3412; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
@@ -1447,8 +1447,8 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                                 <div style="font-size:11px; color:#92400e;">PENDIENTES</div>
                             </div>
                             <div style="background:#dbeafe; padding:12px; border-radius:8px; text-align:center;">
-                                <div style="font-size:24px; font-weight:bold; color:#1e40af;" id="kpiEnEval">0</div>
-                                <div style="font-size:11px; color:#1e40af;">EN EVALUACIÓN</div>
+                                <div style="font-size:24px; font-weight:bold; color:#b91c1c;" id="kpiEnEval">0</div>
+                                <div style="font-size:11px; color:#b91c1c;">EN EVALUACIÓN</div>
                             </div>
                             <div style="background:#d1fae5; padding:12px; border-radius:8px; text-align:center;">
                                 <div style="font-size:24px; font-weight:bold; color:#065f46;" id="kpiEvaluados">0</div>
@@ -1475,7 +1475,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                             </div>
                         </div>
                         
-                        <div style="background:#dbeafe; border:1px solid #93c5fd; padding:10px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#1e40af;">
+                        <div style="background:#dbeafe; border:1px solid #93c5fd; padding:10px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#b91c1c;">
                             <b><i class="ti ti-info-circle"></i> Estas fallas se usarán en la evaluación.</b> Cada una tiene un nombre completo y uno corto para imprimir en el label.
                         </div>
                         
@@ -1569,7 +1569,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                             <h3 style="margin:0;"><i class="ti ti-users" style="color:var(--blue-btn);"></i> Técnicos del Taller</h3>
                             <button id="btnNuevoTecnico" class="btn btn-blue" onclick="abrirModalTecnico()"><i class="ti ti-plus"></i> Nuevo Empleado</button>
                         </div>
-                        <div style="background:#dbeafe; border:1px solid #93c5fd; padding:10px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#1e40af;">
+                        <div style="background:#dbeafe; border:1px solid #93c5fd; padding:10px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#b91c1c;">
                             <b><i class="ti ti-info-circle"></i> Aquí gestionas los técnicos que trabajarán los equipos.</b> Asígnales un rol para definir qué pueden hacer.
                         </div>
                         <div id="tecnicosLista"></div>
@@ -1655,7 +1655,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                         ⚠️ Fallas <span id="evalCntFallas" class="badge" style="background:#fef3c7; color:#92400e; margin-left:6px;">0</span>
                     </button>
                     <button class="eval-tab" data-tab="piezas" onclick="cambiarTabEvaluacion('piezas')" style="padding:10px 16px; background:none; border:0; border-bottom:3px solid transparent; cursor:pointer; font-weight:600; color:var(--text-muted);">
-                        🔧 Piezas <span id="evalCntPiezas" class="badge" style="background:#dbeafe; color:#1e40af; margin-left:6px;">0</span>
+                        🔧 Piezas <span id="evalCntPiezas" class="badge" style="background:#dbeafe; color:#b91c1c; margin-left:6px;">0</span>
                     </button>
                     <button class="eval-tab" data-tab="resumen" onclick="cambiarTabEvaluacion('resumen')" style="padding:10px 16px; background:none; border:0; border-bottom:3px solid transparent; cursor:pointer; font-weight:600; color:var(--text-muted);">
                         📋 Resumen
@@ -1679,7 +1679,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                         <b style="font-size:12px; color:#92400e;"><i class="ti ti-alert-triangle"></i> Fallas detectadas en este equipo:</b>
                         <div id="evalPiezasFallasChips" style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;"></div>
                     </div>
-                    <div style="background:#dbeafe; border:1px solid #93c5fd; padding:10px; border-radius:8px; margin-bottom:12px; font-size:12px; color:#1e40af;">
+                    <div style="background:#dbeafe; border:1px solid #93c5fd; padding:10px; border-radius:8px; margin-bottom:12px; font-size:12px; color:#b91c1c;">
                         <b><i class="ti ti-info-circle"></i> Selecciona las piezas que el técnico necesitará para reparar este equipo.</b>
                     </div>
                     <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; margin-bottom:15px;">
@@ -2349,7 +2349,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
             <button class="modal-close" onclick="cerrarModalConfigImpresora()">✕</button>
         </div>
         <div class="modal-body">
-            <div style="background:#dbeafe; border:1px solid #93c5fd; padding:12px; border-radius:8px; margin-bottom:15px; font-size:13px; color:#1e40af;">
+            <div style="background:#dbeafe; border:1px solid #93c5fd; padding:12px; border-radius:8px; margin-bottom:15px; font-size:13px; color:#b91c1c;">
                 <b><i class="ti ti-info-circle"></i> Configuración inicial (solo 1 vez)</b><br>
                 Sigue estos pasos para que los labels impriman al tamaño exacto sin márgenes.
             </div>
@@ -3690,7 +3690,7 @@ function renderArticulos() {
     tbody.innerHTML = lista.map(a => {
         const llevaImei = a.lleva_imei !== false;
         const badgeImei = llevaImei 
-            ? `<span class="badge" style="background:#dbeafe; color:#1e40af;">SÍ</span>`
+            ? `<span class="badge" style="background:#dbeafe; color:#b91c1c;">SÍ</span>`
             : `<span class="badge" style="background:#fef3c7; color:#92400e;">NO</span>`;
         return `<tr data-item-id="${a.id}">
             <td data-label="Código"><code style="font-weight:700; color:var(--blue-btn); text-transform:uppercase;">${escapeHtml(a.codigo)}</code></td>
@@ -3847,7 +3847,7 @@ function renderProveedores() {
         const equiposProv = cache.refurb.filter(r => lotesProv.some(l => l.id === r.lote_id));
         let confStyle = 'background:#f1f5f9; color:#475569;';
         if(p.confiabilidad === 'Excelente') confStyle = 'background:#d1fae5; color:#065f46;';
-        else if(p.confiabilidad === 'Buena') confStyle = 'background:#dbeafe; color:#1e40af;';
+        else if(p.confiabilidad === 'Buena') confStyle = 'background:#dbeafe; color:#b91c1c;';
         else if(p.confiabilidad === 'Regular') confStyle = 'background:#fef3c7; color:#92400e;';
         else if(p.confiabilidad === 'Mala') confStyle = 'background:#fee2e2; color:#991b1b;';
         const ini = (p.nombre || '?').charAt(0).toUpperCase();
@@ -4462,7 +4462,7 @@ function renderLotesReacondTab(lotesConEstado) {
             </div>
             <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(80px, 1fr)); gap:8px; margin-top:12px;">
                 <div style="background:#fef3c7; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#92400e;">${d.pendientes}</b><br>Pendientes</div>
-                <div style="background:#dbeafe; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#1e40af;">${d.enEval}</b><br>En Eval</div>
+                <div style="background:#dbeafe; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#b91c1c;">${d.enEval}</b><br>En Eval</div>
                 <div style="background:#d1fae5; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#065f46;">${d.evaluados}</b><br>Evaluados</div>
                 <div style="background:#f1f5f9; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px;">${d.total}</b><br>Total</div>
             </div>
@@ -4522,7 +4522,7 @@ function renderDetalleLoteReacond() {
         badge.style.cssText = 'background:#d1fae5; color:#065f46;';
     } else if(enEval > 0 || evaluados > 0) {
         badge.textContent = '⚠️ En Evaluación';
-        badge.style.cssText = 'background:#dbeafe; color:#1e40af;';
+        badge.style.cssText = 'background:#dbeafe; color:#b91c1c;';
     } else {
         badge.textContent = '🟡 Pendiente';
         badge.style.cssText = 'background:#fef3c7; color:#92400e;';
@@ -4556,9 +4556,9 @@ function renderEquipoReacondCard(eq, num) {
         badgeText = '🟡 Pendiente';
         accionBtn = `<button class="btn btn-blue" style="padding:8px 14px;" onclick="empezarEvaluacion('${eq.id}')"><i class="ti ti-player-play"></i> Evaluar</button>`;
     } else if(estado === 'en_evaluacion') {
-        badgeColor = 'background:#dbeafe; color:#1e40af;';
+        badgeColor = 'background:#dbeafe; color:#b91c1c;';
         badgeText = '⚠️ En Evaluación';
-        accionBtn = `<button class="btn btn-dark" style="padding:8px 14px; background:#1e40af;" onclick="continuarEvaluacion('${eq.id}')"><i class="ti ti-edit"></i> Continuar</button>`;
+        accionBtn = `<button class="btn btn-dark" style="padding:8px 14px; background:#b91c1c;" onclick="continuarEvaluacion('${eq.id}')"><i class="ti ti-edit"></i> Continuar</button>`;
     } else if(estado === 'evaluado') {
         badgeColor = 'background:#d1fae5; color:#065f46;';
         badgeText = '✅ Evaluado';
@@ -4573,9 +4573,9 @@ function renderEquipoReacondCard(eq, num) {
         badgeText = '👥 Reasignado';
         accionBtn = `<button class="btn btn-dark" style="padding:8px 14px; background:#f59e0b;" onclick="abrirPanelProceso('${eq.id}')"><i class="ti ti-package"></i> Recibir</button>`;
     } else if(estado === 'tecnico_recibio') {
-        badgeColor = 'background:#bfdbfe; color:#1e40af;';
+        badgeColor = 'background:#bfdbfe; color:#b91c1c;';
         badgeText = '📦 Técnico recibió';
-        accionBtn = `<button class="btn btn-dark" style="padding:8px 14px; background:#1e40af;" onclick="abrirPanelProceso('${eq.id}')"><i class="ti ti-tool"></i> Continuar</button>`;
+        accionBtn = `<button class="btn btn-dark" style="padding:8px 14px; background:#b91c1c;" onclick="abrirPanelProceso('${eq.id}')"><i class="ti ti-tool"></i> Continuar</button>`;
     } else if(estado === 'espera_pieza') {
         badgeColor = 'background:#fde68a; color:#92400e;';
         badgeText = '⏳ Espera pieza';
@@ -4755,7 +4755,7 @@ function renderCatalogoFallas() {
                                 <div style="font-size:10px; color:#6366f1; font-weight:700; margin-top:2px;">${escapeHtml(f.nombre_corto || '')}</div>
                             </div>
                             <div style="display:flex; gap:4px; flex-shrink:0;">
-                                ${permBtn('catalogo_fallas', `<button onclick="editarFalla('${f.id}')" style="background:#dbeafe; color:#1e40af; border:0; padding:6px 8px; border-radius:6px; cursor:pointer;" title="Editar"><i class="ti ti-edit"></i></button>`)}
+                                ${permBtn('catalogo_fallas', `<button onclick="editarFalla('${f.id}')" style="background:#dbeafe; color:#b91c1c; border:0; padding:6px 8px; border-radius:6px; cursor:pointer;" title="Editar"><i class="ti ti-edit"></i></button>`)}
                                 ${permBtn('catalogo_fallas_eliminar', `<button onclick="eliminarFalla('${f.id}')" style="background:#fee2e2; color:#991b1b; border:0; padding:6px 8px; border-radius:6px; cursor:pointer;" title="Eliminar"><i class="ti ti-trash"></i></button>`)}
                             </div>
                         </div>
@@ -4780,7 +4780,7 @@ function renderCatalogoFallas() {
                             <div style="font-size:10px; color:#6366f1; font-weight:700;">${escapeHtml(f.nombre_corto || '')}</div>
                         </div>
                         <div style="display:flex; gap:4px;">
-                            ${permBtn('catalogo_fallas', `<button onclick="editarFalla('${f.id}')" style="background:#dbeafe; color:#1e40af; border:0; padding:6px 8px; border-radius:6px; cursor:pointer;"><i class="ti ti-edit"></i></button>`)}
+                            ${permBtn('catalogo_fallas', `<button onclick="editarFalla('${f.id}')" style="background:#dbeafe; color:#b91c1c; border:0; padding:6px 8px; border-radius:6px; cursor:pointer;"><i class="ti ti-edit"></i></button>`)}
                             ${permBtn('catalogo_fallas_eliminar', `<button onclick="eliminarFalla('${f.id}')" style="background:#fee2e2; color:#991b1b; border:0; padding:6px 8px; border-radius:6px; cursor:pointer;"><i class="ti ti-trash"></i></button>`)}
                         </div>
                     </div>
@@ -5220,7 +5220,7 @@ function renderPiezasEvaluacion() {
             </div>
         `;
     }).join('') + `
-        <div style="margin-top:12px; padding:12px; background:#dbeafe; border-radius:8px; text-align:right; font-weight:700; color:#1e40af;">
+        <div style="margin-top:12px; padding:12px; background:#dbeafe; border-radius:8px; text-align:right; font-weight:700; color:#b91c1c;">
             TOTAL PIEZAS: ${money(total)}
         </div>
     `;
@@ -5483,7 +5483,7 @@ function renderTecnicos() {
                         const n = piezasTec.length;
                         return `<button onclick="verPiezasDelTecnico('${t.id}')" style="background:${n > 0 ? '#fed7aa' : '#f1f5f9'}; color:${n > 0 ? '#9a3412' : '#64748b'}; border:0; padding:8px 10px; border-radius:6px; cursor:pointer;" title="Piezas en su poder"><i class="ti ti-packages"></i>${n > 0 ? ' ' + n : ''}</button>`;
                     })() : ''}
-                    ${permBtn('config_tecnicos', `<button onclick="editarTecnico('${t.id}')" style="background:#dbeafe; color:#1e40af; border:0; padding:8px 10px; border-radius:6px; cursor:pointer;" title="Editar"><i class="ti ti-edit"></i></button>`)}
+                    ${permBtn('config_tecnicos', `<button onclick="editarTecnico('${t.id}')" style="background:#dbeafe; color:#b91c1c; border:0; padding:8px 10px; border-radius:6px; cursor:pointer;" title="Editar"><i class="ti ti-edit"></i></button>`)}
                     ${permBtn('config_tecnicos_eliminar', `<button onclick="eliminarTecnico('${t.id}')" style="background:#fee2e2; color:#991b1b; border:0; padding:8px 10px; border-radius:6px; cursor:pointer;" title="Eliminar"><i class="ti ti-trash"></i></button>`)}
                 </div>
             </div>
@@ -6169,7 +6169,7 @@ async function abrirPanelProceso(equipoId) {
                 <h4 style="margin:18px 0 8px; font-size:13px; color:#991b1b; text-transform:uppercase;"><i class="ti ti-alert-triangle"></i> Fallas detectadas</h4>
                 <div style="margin-bottom:15px;">${fallasHtml}</div>
                 
-                <h4 style="margin:18px 0 8px; font-size:13px; color:#1e40af; text-transform:uppercase;"><i class="ti ti-tools"></i> Piezas para la reparación</h4>
+                <h4 style="margin:18px 0 8px; font-size:13px; color:#b91c1c; text-transform:uppercase;"><i class="ti ti-tools"></i> Piezas para la reparación</h4>
                 ${piezasHtml}
                 
                 <button class="btn btn-light" onclick="agregarPiezaExtra('${equipoId}')" style="margin-top:10px; padding:8px 14px; font-size:12px;">
@@ -6188,7 +6188,7 @@ async function abrirPanelProceso(equipoId) {
                         <button onclick="recibirEquipoReasignado('${equipoId}', 'con_piezas')" style="background:linear-gradient(180deg,#10b981,#059669); color:#fff; border:0; padding:12px; border-radius:10px; cursor:pointer; font-weight:700; width:100%; box-shadow:0 4px 0 #047857; margin-bottom:8px;">
                             <i class="ti ti-package"></i> Recibir CON las piezas actuales
                         </button>
-                        <button onclick="recibirEquipoReasignado('${equipoId}', 'limpio')" style="background:linear-gradient(180deg,#3b82f6,#1e40af); color:#fff; border:0; padding:12px; border-radius:10px; cursor:pointer; font-weight:700; width:100%; box-shadow:0 4px 0 #1e3a8a;">
+                        <button onclick="recibirEquipoReasignado('${equipoId}', 'limpio')" style="background:linear-gradient(180deg,#ef4444,#b91c1c); color:#fff; border:0; padding:12px; border-radius:10px; cursor:pointer; font-weight:700; width:100%; box-shadow:0 4px 0 #991b1b;">
                             <i class="ti ti-refresh"></i> Recibir equipo LIMPIO (otra reparación)
                         </button>
                         ` : `
@@ -6987,10 +6987,10 @@ function renderDevoluciones() {
 function obtenerEtiquetaEstado(estado) {
     const map = {
         'pendiente': { text: '🟡 Pendiente', bg:'#fef3c7', color:'#92400e' },
-        'en_evaluacion': { text: '⚠️ Evaluación', bg:'#dbeafe', color:'#1e40af' },
+        'en_evaluacion': { text: '⚠️ Evaluación', bg:'#dbeafe', color:'#b91c1c' },
         'evaluado': { text: '✅ Evaluado', bg:'#d1fae5', color:'#065f46' },
         'en_proceso': { text: '🔧 En Proceso', bg:'#fed7aa', color:'#9a3412' },
-        'tecnico_recibio': { text: '📦 Recibido', bg:'#bfdbfe', color:'#1e40af' },
+        'tecnico_recibio': { text: '📦 Recibido', bg:'#bfdbfe', color:'#b91c1c' },
         'espera_pieza': { text: '⏳ Espera pieza', bg:'#fde68a', color:'#92400e' },
         'listo_revision': { text: '👁️ Revisión final', bg:'#e9d5ff', color:'#6b21a8' },
         'listo_venta': { text: '🛒 Listo Venta', bg:'#ddd6fe', color:'#5b21b6' },
@@ -7242,7 +7242,7 @@ function inicializarReportes() {
                 <h3 style="margin:0 0 12px;"><i class="ti ti-building-store" style="color:#0891b2;"></i> Promedio General del Taller</h3>
                 <div class="kpi-grid">
                     ${kpiG('⏱️ Trabajo órdenes', formatoHoras(gen.ord_trabajo.prom), '#0891b2')}
-                    ${kpiG('📦 Total cliente', formatoHoras(gen.ord_total.prom), '#3b82f6')}
+                    ${kpiG('📦 Total cliente', formatoHoras(gen.ord_total.prom), '#ef4444')}
                     ${kpiG('🔧 Trabajo reacond.', formatoHoras(gen.rf_trabajo.prom), '#f59e0b')}
                 </div>
                 <div style="font-size:11px; color:var(--text-muted); margin-top:8px;">Basado en ${gen.ord_trabajo.n} orden(es) y ${gen.rf_trabajo.n} reacondicionado(s) completados.</div>
@@ -7297,7 +7297,7 @@ function renderReporteTecnico() {
         <div class="card" style="margin-bottom:15px;">
             <h3 style="margin:0 0 12px;"><i class="ti ti-headset" style="color:#0891b2;"></i> Servicio (Clientes)</h3>
             <div class="kpi-grid">
-                ${kpi('Órdenes totales', m.srv_total, '#3b82f6')}
+                ${kpi('Órdenes totales', m.srv_total, '#ef4444')}
                 ${kpi('En proceso', m.srv_proceso, '#f59e0b')}
                 ${kpi('Finalizadas', m.srv_finalizadas, '#10b981')}
                 ${kpi('Derivó a otros', m.srv_derivadas, '#8b5cf6')}
@@ -7306,7 +7306,7 @@ function renderReporteTecnico() {
         <div class="card" style="margin-bottom:15px;">
             <h3 style="margin:0 0 12px;"><i class="ti ti-refresh" style="color:#06b6d4;"></i> Reacondicionados</h3>
             <div class="kpi-grid">
-                ${kpi('Equipos totales', m.rf_total, '#3b82f6')}
+                ${kpi('Equipos totales', m.rf_total, '#ef4444')}
                 ${kpi('En proceso', m.rf_proceso, '#f59e0b')}
                 ${kpi('Terminados', m.rf_terminados, '#10b981')}
                 ${kpi('Le devolvieron', m.rf_devueltos, '#ef4444')}
@@ -7316,7 +7316,7 @@ function renderReporteTecnico() {
             <h3 style="margin:0 0 12px;"><i class="ti ti-stopwatch" style="color:#0891b2;"></i> Tiempos Promedio</h3>
             <div class="kpi-grid">
                 ${kpi('⏱️ Trabajo (órdenes)', formatoHoras(mt.ord_trabajo.prom), '#0891b2')}
-                ${kpi('📦 Total cliente', formatoHoras(mt.ord_total.prom), '#3b82f6')}
+                ${kpi('📦 Total cliente', formatoHoras(mt.ord_total.prom), '#ef4444')}
                 ${kpi('🔧 Trabajo (reacond.)', formatoHoras(mt.rf_trabajo.prom), '#f59e0b')}
             </div>
             <div style="font-size:11px; color:var(--text-muted); margin-top:8px;">
@@ -7439,7 +7439,7 @@ function renderPiezasSolicitadas() {
         items.push({
             pieza: p.pieza_nombre || 'Pieza', cantidad: p.cantidad || 1, estado: p.estado || 'solicitada',
             origen: o ? `Orden ${formatoOrden(o.numero_orden)}` : 'Orden', cliente: c.nombre || '', tecnico: tec,
-            tipo: 'Orden', color: '#3b82f6', fecha: p.creado_en
+            tipo: 'Orden', color: '#ef4444', fecha: p.creado_en
         });
     });
     // Piezas de reacondicionados
@@ -7487,7 +7487,7 @@ function renderPiezasSolicitadas() {
     cont.innerHTML = `
         <div style="display:flex; gap:10px; margin-bottom:10px; font-size:12px;">
             <span style="background:#fef3c7; color:#92400e; padding:4px 10px; border-radius:8px; font-weight:700;">🟡 ${pend} pendientes</span>
-            <span style="background:#dbeafe; color:#1e40af; padding:4px 10px; border-radius:8px; font-weight:700;">📦 ${entr} entregadas/recibidas</span>
+            <span style="background:#dbeafe; color:#b91c1c; padding:4px 10px; border-radius:8px; font-weight:700;">📦 ${entr} entregadas/recibidas</span>
         </div>
         <div style="overflow-x:auto;"><table class="data-table" style="width:100%; font-size:13px;">
             <thead><tr><th>Pieza</th><th>Cant</th><th>Origen</th><th>Técnico</th><th>Tipo</th><th>Estado</th></tr></thead>
@@ -7891,7 +7891,7 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
                     let btn = '';
                     // Servicio entrega; técnico recibe
                     if(p.estado === 'solicitada') {
-                        btn = `<button class="btn btn-light" style="font-size:10px; padding:3px 7px; color:#1e40af;" onclick="entregarPiezaOrden('${p.id}')">Marcar entregada</button>`;
+                        btn = `<button class="btn btn-light" style="font-size:10px; padding:3px 7px; color:#b91c1c;" onclick="entregarPiezaOrden('${p.id}')">Marcar entregada</button>`;
                     } else if(p.estado === 'entregada' && (esAdmin || p.tecnico_id === sessionUser?.id)) {
                         btn = `<button class="btn btn-light" style="font-size:10px; padding:3px 7px; color:#065f46;" onclick="recibirPiezaOrden('${p.id}')">Confirmar recibida</button>`;
                     } else if(p.estado === 'recibida' && (esAdmin || p.tecnico_id === sessionUser?.id)) {
@@ -8005,7 +8005,7 @@ function etiquetaEstadoPiezaReacond(estado) {
     const map = {
         'pendiente':            { txt: '🟡 Pedida',        bg:'#fef3c7', color:'#92400e' },
         'solicitada':           { txt: '🟡 Pedida',        bg:'#fef3c7', color:'#92400e' },
-        'entregada':            { txt: '📦 Entregada',     bg:'#dbeafe', color:'#1e40af' },
+        'entregada':            { txt: '📦 Entregada',     bg:'#dbeafe', color:'#b91c1c' },
         'recibida':             { txt: '🔧 En uso',        bg:'#dcfce7', color:'#166534' },
         'devolucion_pendiente': { txt: '🔄 Devolución...', bg:'#fed7aa', color:'#9a3412' },
         'devuelta':             { txt: '↩️ Devuelta',      bg:'#f1f5f9', color:'#64748b' },
@@ -8321,10 +8321,10 @@ function abrirModalGenerico(titulo, contenidoHtml) {
         modal.onclick = (e) => { if(e.target === modal) modal.remove(); };
         document.body.appendChild(modal);
     }
-    modal.innerHTML = `<div style="background:#fff; border-radius:12px; padding:18px; max-width:520px; width:100%; max-height:85vh; overflow-y:auto;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-            <b style="font-size:16px;">${escapeHtml(titulo)}</b>
-            <button onclick="document.getElementById('modalGenerico').remove()" style="background:#fee2e2; color:#991b1b; border:0; width:32px; height:32px; border-radius:8px; cursor:pointer; font-size:16px;">✕</button>
+    modal.innerHTML = `<div style="background:#fff; border-radius:18px; padding:20px; max-width:520px; width:100%; max-height:85vh; overflow-y:auto; box-shadow:0 25px 60px -12px rgba(15,23,42,0.35);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+            <b style="font-size:16px; color:#dc2626;">${escapeHtml(titulo)}</b>
+            <button onclick="document.getElementById('modalGenerico').remove()" style="background:#fee2e2; color:#991b1b; border:0; width:32px; height:32px; border-radius:10px; cursor:pointer; font-size:16px;">✕</button>
         </div>
         ${contenidoHtml}
     </div>`;
@@ -8357,7 +8357,7 @@ function renderAtencionCliente() {
     if(kpisCont) {
         const kpi = (label, val, color, icon) => `<div class="kpi-box" style="border-top-color:${color};"><small>${label}</small><strong>${val}</strong><i class="ti ${icon}"></i></div>`;
         kpisCont.innerHTML = `
-            ${kpi('Recibidos Hoy', recibidosHoy, '#3b82f6', 'ti-download')}
+            ${kpi('Recibidos Hoy', recibidosHoy, '#ef4444', 'ti-download')}
             ${kpi('En Diagnóstico', enDiag, '#f59e0b', 'ti-search')}
             ${kpi('En Reparación', enRep, '#10b981', 'ti-settings')}
             ${kpi('Espera Pieza', esperaPieza, '#ef4444', 'ti-hourglass')}
@@ -8503,7 +8503,7 @@ function construirHistorialGeneral(tecnicoId) {
             const fecha = o.fecha_entregado || o.fecha_finalizado || o.creado_en;
             if(!fechaEnRango(fecha)) return;
             const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
-            items.push({ fecha, equipo: `${e.marca||''} ${e.modelo||''}`.trim()||'Equipo', detalle: `${formatoOrden(o.numero_orden)} · ${c.nombre||'Cliente'}`, tec: o.tecnico_asignado_id ? nombreEmpleado(o.tecnico_asignado_id) : '—', tipo:'Servicio', color:'#3b82f6' });
+            items.push({ fecha, equipo: `${e.marca||''} ${e.modelo||''}`.trim()||'Equipo', detalle: `${formatoOrden(o.numero_orden)} · ${c.nombre||'Cliente'}`, tec: o.tecnico_asignado_id ? nombreEmpleado(o.tecnico_asignado_id) : '—', tipo:'Servicio', color:'#ef4444' });
         }
     });
     if(!items.length) return `<div style="color:var(--text-muted); font-size:13px;">No hay reparaciones terminadas en este período.</div>`;
@@ -8543,7 +8543,7 @@ function renderMiTrabajo() {
     
     // Resumen (KPIs)
     resumen.innerHTML = `
-        <div class="kpi-box" style="border-top-color:#3b82f6;"><small>Disponibles</small><strong>${disponibles.length}</strong><i class="ti ti-inbox"></i></div>
+        <div class="kpi-box" style="border-top-color:#ef4444;"><small>Disponibles</small><strong>${disponibles.length}</strong><i class="ti ti-inbox"></i></div>
         <div class="kpi-box" style="border-top-color:#0891b2;"><small>Mis órdenes</small><strong>${misOrdenes.length}</strong><i class="ti ti-tool"></i></div>
         <div class="kpi-box" style="border-top-color:#f59e0b;"><small>Mis reacond.</small><strong>${misReacond.length}</strong><i class="ti ti-refresh"></i></div>
         <div class="kpi-box" style="border-top-color:#dc2626;"><small>Fallas pend.</small><strong>${misFallasPend}</strong><i class="ti ti-alert-triangle"></i></div>
@@ -8554,7 +8554,7 @@ function renderMiTrabajo() {
     
     // SECCIÓN: Órdenes disponibles
     html += `<div style="margin-bottom:18px;">
-        <h3 style="font-size:15px; margin:0 0 8px;"><i class="ti ti-inbox" style="color:#3b82f6;"></i> Órdenes Disponibles (sin tomar)</h3>`;
+        <h3 style="font-size:15px; margin:0 0 8px;"><i class="ti ti-inbox" style="color:#ef4444;"></i> Órdenes Disponibles (sin tomar)</h3>`;
     if(disponibles.length) {
         html += disponibles.map(o => construirCardOrden(o, esAdmin, miId, tecnicosActivos)).join('');
     } else {
@@ -8625,7 +8625,7 @@ function construirHistorialTecnico(tecnicoId) {
                 equipo: `${e.marca || ''} ${e.modelo || ''}`.trim() || 'Equipo',
                 detalle: `Orden ${formatoOrden(o.numero_orden)} · ${c.nombre || 'Cliente'}`,
                 tipo: 'Servicio',
-                color: '#3b82f6'
+                color: '#ef4444'
             });
         }
     });
@@ -8895,7 +8895,7 @@ function cerrarModalPiezasTecnico() {
 function etiquetaPiezaOrden(estado) {
     const map = {
         'solicitada': { text: '🟡 Solicitada', bg:'#fef3c7', color:'#92400e' },
-        'entregada':  { text: '📦 Entregada (confirmar)', bg:'#dbeafe', color:'#1e40af' },
+        'entregada':  { text: '📦 Entregada (confirmar)', bg:'#dbeafe', color:'#b91c1c' },
         'recibida':   { text: '✅ Recibida (con el técnico)', bg:'#d1fae5', color:'#065f46' },
         'devolucion_solicitada': { text: '↩️ Devolución pendiente', bg:'#fed7aa', color:'#9a3412' },
         'devuelta':   { text: '🔄 Devuelta', bg:'#e2e8f0', color:'#475569' }
@@ -9211,7 +9211,7 @@ async function cargarHistorialEquipoDevolucion(equipoId) {
                 
                 ${piezas.length > 0 ? `
                 <div style="margin-top:10px; padding-top:10px; border-top:1px dashed #cbd5e1;">
-                    <b style="font-size:11px; color:#1e40af; text-transform:uppercase;"><i class="ti ti-tools"></i> Piezas usadas en reparaciones previas:</b>
+                    <b style="font-size:11px; color:#b91c1c; text-transform:uppercase;"><i class="ti ti-tools"></i> Piezas usadas en reparaciones previas:</b>
                     <div style="margin-top:4px; font-size:11px;">
                         ${piezas.map(p => `<div>• ${escapeHtml(p.pieza_nombre || 'Pieza')} ×${p.cantidad || 1} ${p.estado === 'rechazada' ? '(rechazada)' : ''}</div>`).join('')}
                     </div>
@@ -9374,7 +9374,7 @@ function renderCategorias() {
                         ${c.descripcion ? `<div style="font-size:11px; color:var(--text-muted); margin-top:4px;">${escapeHtml(c.descripcion)}</div>` : ''}
                     </div>
                     <div style="display:flex; gap:4px; flex-shrink:0;">
-                        <button onclick="editarCategoria('${c.id}')" style="background:#dbeafe; color:#1e40af; border:0; padding:6px 8px; border-radius:6px; cursor:pointer;" title="Editar"><i class="ti ti-edit"></i></button>
+                        <button onclick="editarCategoria('${c.id}')" style="background:#dbeafe; color:#b91c1c; border:0; padding:6px 8px; border-radius:6px; cursor:pointer;" title="Editar"><i class="ti ti-edit"></i></button>
                         <button onclick="eliminarCategoria('${c.id}')" style="background:#fee2e2; color:#991b1b; border:0; padding:6px 8px; border-radius:6px; cursor:pointer;" title="Eliminar"><i class="ti ti-trash"></i></button>
                     </div>
                 </div>
@@ -9488,7 +9488,7 @@ function renderMarcas() {
                 <i class="ti ti-brand-apple" style="color:#6366f1;"></i>
                 <b style="font-size:13px; ${m.activa ? '' : 'text-decoration:line-through; color:var(--text-muted);'}">${escapeHtml(m.nombre)}</b>
                 ${!m.activa ? '<span class="badge" style="background:#fee2e2; color:#991b1b; font-size:9px;">OFF</span>' : ''}
-                <button onclick="editarMarca('${m.id}')" style="background:#dbeafe; color:#1e40af; border:0; padding:4px 6px; border-radius:5px; cursor:pointer;" title="Editar"><i class="ti ti-edit"></i></button>
+                <button onclick="editarMarca('${m.id}')" style="background:#dbeafe; color:#b91c1c; border:0; padding:4px 6px; border-radius:5px; cursor:pointer;" title="Editar"><i class="ti ti-edit"></i></button>
                 <button onclick="eliminarMarca('${m.id}')" style="background:#fee2e2; color:#991b1b; border:0; padding:4px 6px; border-radius:5px; cursor:pointer;" title="Eliminar"><i class="ti ti-trash"></i></button>
             </div>`;
         }).join('') + `</div>`;
@@ -9583,7 +9583,7 @@ const PERMISOS_DEF = [
         ]
     },
     {
-        grupo: '🛒 Compras', color: '#1e40af',
+        grupo: '🛒 Compras', color: '#b91c1c',
         items: [
             { id: 'compras_ver', label: 'Ver módulo de Compras' },
             { id: 'compras_crear', label: 'Crear/editar lotes' },
@@ -9714,12 +9714,12 @@ function renderRoles() {
                     </div>
                     ${r.descripcion ? `<div style="font-size:12px; color:var(--text-muted); margin-top:4px;">${escapeHtml(r.descripcion)}</div>` : ''}
                     <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; font-size:11px;">
-                        <span class="badge" style="background:#dbeafe; color:#1e40af;"><i class="ti ti-check"></i> ${cantPermisos}/${totalPosibles} permisos</span>
+                        <span class="badge" style="background:#dbeafe; color:#b91c1c;"><i class="ti ti-check"></i> ${cantPermisos}/${totalPosibles} permisos</span>
                         <span class="badge" style="background:#e0e7ff; color:#3730a3;"><i class="ti ti-users"></i> ${tecnicosConRol} técnico${tecnicosConRol === 1 ? '' : 's'}</span>
                     </div>
                 </div>
                 <div style="display:flex; gap:6px;">
-                    <button onclick="editarRol('${r.id}')" style="background:#dbeafe; color:#1e40af; border:0; padding:8px 10px; border-radius:6px; cursor:pointer;" title="Ver/Editar"><i class="ti ti-edit"></i></button>
+                    <button onclick="editarRol('${r.id}')" style="background:#dbeafe; color:#b91c1c; border:0; padding:8px 10px; border-radius:6px; cursor:pointer;" title="Ver/Editar"><i class="ti ti-edit"></i></button>
                     ${!r.es_sistema ? `<button onclick="eliminarRol('${r.id}')" style="background:#fee2e2; color:#991b1b; border:0; padding:8px 10px; border-radius:6px; cursor:pointer;" title="Eliminar"><i class="ti ti-trash"></i></button>` : ''}
                 </div>
             </div>
@@ -9890,7 +9890,7 @@ function renderRefurbishItems() {
                 <tr><td>Costo Compra:</td><td><b>${money(item.costo_compra)}</b></td></tr>
                 <tr><td>Inversión Piezas:</td><td style="color:#ef4444;"><b>+ ${money(item.costo_repuestos)}</b></td></tr>
                 <tr style="background:#f1f5f9;"><td>Costo Total:</td><td><b>${money(costoTotal)}</b></td></tr>
-                <tr><td>P. Venta Estimado:</td><td style="color:#0044aa;"><b>${money(item.precio_venta_estimado)}</b></td></tr>
+                <tr><td>P. Venta Estimado:</td><td style="color:#dc2626;"><b>${money(item.precio_venta_estimado)}</b></td></tr>
                 <tr style="background:#d1fae5;"><td>Margen:</td><td style="color:#065f46;"><b>${money(margen)}</b></td></tr>
             </table>
             <div style="display:flex; gap:6px; align-items:center; background:#fff; padding:6px; border:1px solid #cbd5e1; border-radius:6px;">
