@@ -841,6 +841,20 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                         </div>
                     </div>
                 </div>
+                
+                <!-- Recepciones realizadas (ver y editar) -->
+                <div class="card" style="margin-top:16px;">
+                    <h3 style="font-size:16px; margin:0 0 10px;"><i class="ti ti-history" style="color:#0891b2;"></i> Recepciones Realizadas</h3>
+                    <input id="recepBuscador" oninput="renderRecepcionesRealizadas()" placeholder="🔍 Buscar por número o cliente..." style="width:100%; padding:8px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; margin-bottom:10px;">
+                    <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; align-items:center;">
+                        <span style="font-size:11px; font-weight:700; color:var(--text-muted);"><i class="ti ti-calendar"></i> Fecha:</span>
+                        <button class="btn btn-light" onclick="_recepFechaFiltro=0; renderRecepcionesRealizadas()" style="font-size:11px; padding:4px 9px;">Todas</button>
+                        <button class="btn btn-light" onclick="_recepFechaFiltro=1; renderRecepcionesRealizadas()" style="font-size:11px; padding:4px 9px;">Hoy</button>
+                        <button class="btn btn-light" onclick="_recepFechaFiltro=7; renderRecepcionesRealizadas()" style="font-size:11px; padding:4px 9px;">7 días</button>
+                        <button class="btn btn-light" onclick="_recepFechaFiltro=30; renderRecepcionesRealizadas()" style="font-size:11px; padding:4px 9px;">30 días</button>
+                    </div>
+                    <div id="recepcionesLista"></div>
+                </div>
             </div>
 
             <!-- ORDENES -->
@@ -3135,6 +3149,7 @@ function nav(v, btn) {
     if(v === 'reportes') { setTimeout(() => { inicializarReportes(); }, 50); }
     if(v === 'miTrabajo') { setTimeout(() => { renderMiTrabajo(); }, 50); }
     if(v === 'atencion') { setTimeout(() => { renderAtencionCliente(); }, 50); }
+    if(v === 'recepcion') { setTimeout(() => { if(typeof renderRecepcionesRealizadas === 'function') renderRecepcionesRealizadas(); }, 50); }
     closeSidebar();
     window.scrollTo({ top: 0, behavior: 'smooth' });
     // Re-aplicar permisos de botones estáticos tras renderizar (NO en modo solo-mi-trabajo, causa bucle)
@@ -3390,6 +3405,7 @@ function renderAll() {
     renderTallerOrdenes();
     if(document.getElementById('v-miTrabajo')?.classList.contains('active')) renderMiTrabajo();
     if(document.getElementById('v-atencion')?.classList.contains('active')) renderAtencionCliente();
+    if(document.getElementById('v-recepcion')?.classList.contains('active') && typeof renderRecepcionesRealizadas === 'function') renderRecepcionesRealizadas();
     // Alertas de equipos demorados en el dashboard
     const demCont = document.getElementById('dashboardDemoras');
     if(demCont && typeof construirAlertaDemoras === 'function') demCont.innerHTML = construirAlertaDemoras(true);
@@ -7354,6 +7370,46 @@ function renderTallerOrdenes() {
 }
 
 // Construye el HTML de UNA orden (reutilizable: tablero taller + Mi Trabajo)
+// Lista de recepciones realizadas (con buscador y filtro de fecha) en el módulo Recepción
+let _recepFechaFiltro = 0;
+function renderRecepcionesRealizadas() {
+    const cont = document.getElementById('recepcionesLista');
+    if(!cont) return;
+    let ordenes = (cache.ordenes || []).slice();
+    // Filtro de fecha
+    if(_recepFechaFiltro > 0) ordenes = ordenes.filter(o => diasDesde(o.creado_en) < _recepFechaFiltro);
+    // Buscador
+    const txt = (document.getElementById('recepBuscador')?.value || '').trim().toLowerCase();
+    if(txt) {
+        ordenes = ordenes.filter(o => {
+            const c = findCliente(o.cliente_id);
+            return formatoOrden(o.numero_orden).toLowerCase().includes(txt) || (c.nombre || '').toLowerCase().includes(txt);
+        });
+    }
+    // Ordenar por fecha de recepción (más reciente primero)
+    ordenes.sort((a,b) => new Date(b.creado_en||0) - new Date(a.creado_en||0));
+    if(!ordenes.length) { cont.innerHTML = `<div style="color:var(--text-muted); font-size:13px;">No hay recepciones en este filtro.</div>`; return; }
+    
+    cont.innerHTML = `<div style="overflow-x:auto;"><table class="data-table" style="width:100%; font-size:13px;">
+        <thead><tr><th>Orden</th><th>Fecha</th><th>Cliente</th><th>Equipo</th><th>Estado</th><th>Acción</th></tr></thead>
+        <tbody>${ordenes.slice(0, 100).map(o => {
+            const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
+            const fecha = o.creado_en ? new Date(o.creado_en).toLocaleDateString('es-DO',{day:'2-digit',month:'2-digit',year:'numeric'}) : '—';
+            const est = etiquetaEstadoTexto(o.estado);
+            const cerrada = ['entregado','cancelado'].includes(normalizarEstadoOrden(o.estado));
+            return `<tr>
+                <td style="font-weight:700;">${formatoOrden(o.numero_orden)}</td>
+                <td style="white-space:nowrap; font-size:12px;">${fecha}</td>
+                <td>${escapeHtml(c.nombre || '—')}</td>
+                <td style="font-size:12px;">${escapeHtml(e.marca||'')} ${escapeHtml(e.modelo||'')}</td>
+                <td style="font-size:11px; color:#0891b2;">${est}</td>
+                <td>${cerrada ? '<span style="font-size:11px; color:#94a3b8;">Cerrada</span>' : `<button class="btn btn-light" style="font-size:11px; padding:4px 9px; color:#6b21a8;" onclick="abrirEditarRecepcion('${o.id}')"><i class="ti ti-edit"></i> Editar</button>`}</td>
+            </tr>`;
+        }).join('')}</tbody>
+    </table></div>
+    <div style="font-size:11px; color:var(--text-muted); margin-top:6px;">${ordenes.length} recepción(es)${ordenes.length > 100 ? ' (mostrando 100)' : ''}</div>`;
+}
+
 // Editar datos de recepción de una orden (corrige errores de captura)
 function abrirEditarRecepcion(ordenId) {
     const o = (cache.ordenes || []).find(x => x.id === ordenId);
@@ -7393,9 +7449,14 @@ function abrirEditarRecepcion(ordenId) {
             
             <div style="border-top:2px dashed #cbd5e1; margin:12px 0 10px; padding-top:10px;">
                 <label style="font-size:13px; font-weight:700; color:#0891b2;"><i class="ti ti-list-check"></i> Fallas / Problemas a reparar</label>
-                <div id="ed_listaFallas" style="margin:8px 0;">${construirListaFallasEditable(o.id)}</div>
+                <div style="font-size:11px; color:var(--text-muted); margin:6px 0 4px;">Marca los problemas que reporta el cliente:</div>
+                <div id="ed_checksFallas" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:4px; margin-bottom:8px;">
+                    ${construirChecklistFallasEdit(o.id)}
+                </div>
+                <div style="font-size:11px; color:var(--text-muted); margin:6px 0 4px;">Fallas registradas (puedes quitarlas):</div>
+                <div id="ed_listaFallas" style="margin:4px 0;">${construirListaFallasEditable(o.id)}</div>
                 <div style="display:flex; gap:6px;">
-                    <input id="ed_nuevaFalla" placeholder="Nueva falla (ej: Pantalla rota)" style="flex:1; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px;" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarFallaEnEdicion('${o.id}');}">
+                    <input id="ed_nuevaFalla" placeholder="Otra falla (texto libre)" style="flex:1; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px;" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarFallaEnEdicion('${o.id}');}">
                     <button onclick="agregarFallaEnEdicion('${o.id}')" class="btn btn-blue" style="font-size:12px; padding:8px 12px;"><i class="ti ti-plus"></i> Agregar</button>
                 </div>
             </div>
@@ -7403,6 +7464,49 @@ function abrirEditarRecepcion(ordenId) {
             <button onclick="guardarEditarRecepcion('${o.id}','${o.cliente_id}','${o.equipo_id}')" class="btn btn-blue" style="width:100%; padding:10px; margin-top:6px;"><i class="ti ti-device-floppy"></i> Guardar cambios</button>
         </div>`;
     abrirModalGenerico('✏️ Editar datos de recepción · ' + formatoOrden(o.numero_orden), contenido);
+}
+
+// Checklist de fallas comunes en el modal de edición (marcadas = ya existen como tarea)
+const FALLAS_COMUNES = ['Pantalla rota','Mojado','Tapa rota','No enciende','Sin señal','Batería mala','Cámara rota','Puerto malo'];
+function construirChecklistFallasEdit(ordenId) {
+    const existentes = (cache.tareas || [])
+        .filter(t => t.tipo === 'orden' && t.ref_id === ordenId)
+        .map(t => (t.descripcion || '').trim().toLowerCase());
+    return FALLAS_COMUNES.map(f => {
+        const marcada = existentes.includes(f.toLowerCase());
+        return `<label style="display:flex; align-items:center; gap:5px; font-size:12px; cursor:pointer; padding:3px;">
+            <input type="checkbox" ${marcada ? 'checked' : ''} onchange="toggleFallaComun('${ordenId}', this.value, this.checked)" value="${escapeHtml(f)}"> ${escapeHtml(f)}
+        </label>`;
+    }).join('');
+}
+
+// Al marcar/desmarcar una falla común: la agrega o la quita
+async function toggleFallaComun(ordenId, falla, marcada) {
+    try {
+        if(marcada) {
+            // Agregar si no existe
+            const yaExiste = (cache.tareas || []).some(t => t.tipo === 'orden' && t.ref_id === ordenId && (t.descripcion||'').trim().toLowerCase() === falla.toLowerCase());
+            if(!yaExiste) {
+                await supabaseClient.from('tareas_trabajo').insert([{ tipo:'orden', ref_id:ordenId, descripcion:falla, estado:'pendiente', creado_por: sessionUser?.nombre || 'Servicio' }]);
+            }
+        } else {
+            // Quitar la tarea con esa descripción (si no está hecha)
+            const tarea = (cache.tareas || []).find(t => t.tipo === 'orden' && t.ref_id === ordenId && (t.descripcion||'').trim().toLowerCase() === falla.toLowerCase());
+            if(tarea) {
+                if(tarea.estado === 'hecha') { alert('Esa falla ya fue resuelta, no se puede quitar.'); construirChecklistRefrescar(ordenId); return; }
+                await supabaseClient.from('tareas_trabajo').delete().eq('id', tarea.id);
+            }
+        }
+        const { data } = await supabaseClient.from('tareas_trabajo').select('*');
+        cache.tareas = data || cache.tareas;
+        construirChecklistRefrescar(ordenId);
+    } catch(e) { logError('Toggle falla común', e); alert(getFriendlyError(e)); }
+}
+function construirChecklistRefrescar(ordenId) {
+    const chk = document.getElementById('ed_checksFallas');
+    if(chk) chk.innerHTML = construirChecklistFallasEdit(ordenId);
+    const lista = document.getElementById('ed_listaFallas');
+    if(lista) lista.innerHTML = construirListaFallasEditable(ordenId);
 }
 
 // Construye la lista editable de fallas (tareas) de una orden, dentro del modal de edición
@@ -7432,8 +7536,7 @@ async function agregarFallaEnEdicion(ordenId) {
         // Refrescar el cache de tareas y la lista del modal
         const { data } = await supabaseClient.from('tareas_trabajo').select('*');
         cache.tareas = data || cache.tareas;
-        const lista = document.getElementById('ed_listaFallas');
-        if(lista) lista.innerHTML = construirListaFallasEditable(ordenId);
+        construirChecklistRefrescar(ordenId);
     } catch(e) { logError('Agregar falla edición', e); alert(getFriendlyError(e)); }
 }
 
@@ -7444,8 +7547,7 @@ async function quitarFallaEnEdicion(tareaId, ordenId) {
         await supabaseClient.from('tareas_trabajo').delete().eq('id', tareaId);
         const { data } = await supabaseClient.from('tareas_trabajo').select('*');
         cache.tareas = data || cache.tareas;
-        const lista = document.getElementById('ed_listaFallas');
-        if(lista) lista.innerHTML = construirListaFallasEditable(ordenId);
+        construirChecklistRefrescar(ordenId);
     } catch(e) { logError('Quitar falla edición', e); alert(getFriendlyError(e)); }
 }
 
