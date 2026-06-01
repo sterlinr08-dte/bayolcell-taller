@@ -694,6 +694,12 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                     <div class="kpi-box clickable" style="border-top-color:#dc2626;" onclick="nav('refurb')"><small>🔄 Devoluciones</small><strong id="kdDev">0</strong><i class="ti ti-rotate-2"></i></div>
                 </div>
                 
+                <!-- Panel Inteligente (alertas + tendencias) -->
+                <div id="dashboardSmart" style="margin-top:15px;"></div>
+                
+                <!-- Alertas de equipos demorados -->
+                <div id="dashboardDemoras" style="margin-top:15px;"></div>
+                
                 <!-- Buscador global por IMEI -->
                 <div class="card" style="margin-top:15px;">
                     <h3 style="margin:0 0 12px; font-size:15px;"><i class="ti ti-search" style="color:var(--blue-btn);"></i> Buscar equipo por IMEI / Modelo</h3>
@@ -3078,7 +3084,12 @@ function startApp() {
     actualizarBotonNotif();
     startAppRefurbPoller();
     qzAutoConectar();
-    loadAll();
+    loadAll().then(() => {
+        // Mostrar ventana de pendientes al técnico (una vez por sesión)
+        if(!sessionStorage.getItem('bayol_pendientes_visto')) {
+            setTimeout(() => { mostrarPendientesTecnico(); sessionStorage.setItem('bayol_pendientes_visto', '1'); }, 800);
+        }
+    });
 }
 
 // Mapa de vista → permiso requerido para entrar
@@ -3202,6 +3213,37 @@ function findCliente(id) { return cache.clientes.find(x => x.id === id) || {}; }
 
 // Bandera para no notificar en la primera carga
 let _notifYaInicializado = false;
+
+// Días configurables para considerar un equipo "demorado" (default 5)
+let _diasDemora = parseInt(localStorage.getItem('bayol_dias_demora') || '5', 10);
+function setDiasDemora(n) {
+    _diasDemora = Math.max(1, parseInt(n, 10) || 5);
+    localStorage.setItem('bayol_dias_demora', _diasDemora);
+    if(document.getElementById('v-atencion')?.classList.contains('active')) renderAtencionCliente();
+    if(document.getElementById('v-dashboard')?.classList.contains('active')) renderAll();
+}
+// Calcula días transcurridos desde una fecha ISO
+function diasDesde(fechaISO) {
+    if(!fechaISO) return 0;
+    const ms = Date.now() - new Date(fechaISO).getTime();
+    return Math.floor(ms / (1000 * 60 * 60 * 24));
+}
+// Devuelve las órdenes de cliente demoradas (activas y pasadas del límite desde recepción)
+function ordenesDemoradas() {
+    return (cache.ordenes || []).filter(o => {
+        const est = normalizarEstadoOrden(o.estado);
+        if(['entregado','cancelado','finalizado'].includes(est)) return false;
+        return diasDesde(o.creado_en) >= _diasDemora;
+    }).sort((a,b) => new Date(a.creado_en) - new Date(b.creado_en));
+}
+// Reacondicionados demorados (solo para quien tiene permiso de reacond)
+function reacondDemorados() {
+    return (cache.refurb || []).filter(eq => {
+        if(['listo_venta','vendido'].includes(eq.estado_evaluacion)) return false;
+        return diasDesde(eq.creado_en) >= _diasDemora;
+    }).sort((a,b) => new Date(a.creado_en) - new Date(b.creado_en));
+}
+
 
 // Compara cache anterior vs nuevo y dispara notificaciones de eventos relevantes
 function detectarEventosYNotificar(prev, nuevo) {
@@ -3348,6 +3390,12 @@ function renderAll() {
     renderTallerOrdenes();
     if(document.getElementById('v-miTrabajo')?.classList.contains('active')) renderMiTrabajo();
     if(document.getElementById('v-atencion')?.classList.contains('active')) renderAtencionCliente();
+    // Alertas de equipos demorados en el dashboard
+    const demCont = document.getElementById('dashboardDemoras');
+    if(demCont && typeof construirAlertaDemoras === 'function') demCont.innerHTML = construirAlertaDemoras(true);
+    // Panel inteligente (alertas + tendencias) en el dashboard
+    const smartCont = document.getElementById('dashboardSmart');
+    if(smartCont && typeof construirPanelInteligente === 'function') smartCont.innerHTML = construirPanelInteligente();
     // Marcar el filtro activo del tablero (visual)
     const btnAct = document.getElementById('fltOrdActivas');
     if(btnAct && !btnAct.style.background) { btnAct.style.background = 'var(--blue-btn)'; btnAct.style.color = '#fff'; }
@@ -5606,7 +5654,7 @@ let _tareasEquipoActual = [];
 // ============================================================
 
 // Construye la sección HTML de tareas (reutilizable)
-function construirSeccionTareas(tipo, refId, tareas, cerrada) {
+function construirSeccionTareas(tipo, refId, tareas, cerrada, soloAgregar) {
     tareas = tareas || [];
     const total = tareas.length;
     const hechas = tareas.filter(t => t.estado === 'hecha').length;
@@ -5630,21 +5678,24 @@ function construirSeccionTareas(tipo, refId, tareas, cerrada) {
                 ${t.notas ? `<div style="font-size:10px; color:#64748b; margin-top:1px;">📝 ${escapeHtml(t.notas)}</div>` : ''}
             </div>
             <div style="display:flex; gap:3px; flex-shrink:0;">
-                ${cerrada ? '' : `
+                ${cerrada ? '' : (soloAgregar ? `
+                <button onclick="eliminarTarea('${t.id}','${tipo}','${refId}')" style="background:#fee2e2; color:#991b1b; border:0; padding:5px 7px; border-radius:5px; cursor:pointer; font-size:10px;" title="Eliminar"><i class="ti ti-trash"></i></button>
+                ` : `
                 ${!hecha && puedeCompletar ? `<button onclick="completarTarea('${t.id}','${tipo}','${refId}')" style="background:#dcfce7; color:#166534; border:0; padding:5px 7px; border-radius:5px; cursor:pointer; font-size:10px;" title="Marcar lista"><i class="ti ti-check"></i></button>` : ''}
                 ${!hecha ? `<button onclick="reasignarTarea('${t.id}','${tipo}','${refId}')" style="background:#fef3c7; color:#92400e; border:0; padding:5px 7px; border-radius:5px; cursor:pointer; font-size:10px;" title="Reasignar a otro técnico"><i class="ti ti-user-share"></i></button>` : ''}
                 ${hecha && (isAdminUser() || esMia) ? `<button onclick="reabrirTarea('${t.id}','${tipo}','${refId}')" style="background:#fef3c7; color:#92400e; border:0; padding:5px 7px; border-radius:5px; cursor:pointer; font-size:10px;" title="Reabrir"><i class="ti ti-rotate"></i></button>` : ''}
                 <button onclick="eliminarTarea('${t.id}','${tipo}','${refId}')" style="background:#fee2e2; color:#991b1b; border:0; padding:5px 7px; border-radius:5px; cursor:pointer; font-size:10px;" title="Eliminar"><i class="ti ti-trash"></i></button>
-                `}
+                `)}
             </div>
         </div>`;
     }).join('');
     
+    const puedeAgregar = !cerrada; // servicio (soloAgregar) y técnico/admin pueden agregar
     return `
         <div style="background:#fff; border:2px solid #e2e8f0; padding:10px; border-radius:10px; margin-top:14px;">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
                 <b style="font-size:13px;"><i class="ti ti-list-check" style="color:#0891b2;"></i> Fallas y Tareas del Equipo</b>
-                ${cerrada ? '' : `<button onclick="crearTarea('${tipo}','${refId}')" class="btn btn-blue" style="font-size:11px; padding:5px 10px;"><i class="ti ti-plus"></i> Agregar tarea</button>`}
+                ${puedeAgregar ? `<button onclick="crearTarea('${tipo}','${refId}')" class="btn btn-blue" style="font-size:11px; padding:5px 10px;"><i class="ti ti-plus"></i> Agregar tarea</button>` : ''}
             </div>
             ${total > 0 ? `
                 <div style="margin-bottom:10px;">
@@ -5658,7 +5709,7 @@ function construirSeccionTareas(tipo, refId, tareas, cerrada) {
                 </div>
                 ${filas}
                 ${todasHechas ? `<div style="background:#f0fdf4; border:1px solid #86efac; padding:8px; border-radius:8px; margin-top:6px; text-align:center; font-size:12px; color:#166534;"><i class="ti ti-circle-check"></i> ¡Todas las fallas resueltas! El equipo está listo.</div>` : ''}
-            ` : `<div style="color:var(--text-muted); font-size:12px; padding:8px 0;">${cerrada ? 'Esta orden está cerrada. No se pueden agregar tareas.' : 'No hay fallas registradas. Usa los accesos rápidos de arriba o el botón "Agregar tarea".'}</div>`}
+            ` : `<div style="color:var(--text-muted); font-size:12px; padding:8px 0;">${cerrada ? 'Esta orden está cerrada. No se pueden agregar tareas.' : 'No hay fallas registradas. Usa el botón "Agregar tarea".'}</div>`}
         </div>`;
 }
 
@@ -7301,22 +7352,86 @@ function renderTallerOrdenes() {
 }
 
 // Construye el HTML de UNA orden (reutilizable: tablero taller + Mi Trabajo)
-function construirCardOrden(o, esAdmin, miId, tecnicosActivos) {
+// Editar datos de recepción de una orden (corrige errores de captura)
+function abrirEditarRecepcion(ordenId) {
+    const o = (cache.ordenes || []).find(x => x.id === ordenId);
+    if(!o) return;
+    // Permiso: admin, servicio (recepcion_ver) o el técnico asignado
+    if(!isAdminUser() && !tienePermiso('recepcion_ver') && o.tecnico_asignado_id !== sessionUser?.id) {
+        return alert('No tienes permiso para editar esta orden.');
+    }
+    const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
+    const contenido = `
+        <div style="max-height:70vh; overflow-y:auto;">
+            <div style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">Corrige los datos que se capturaron mal en la recepción.</div>
+            <label style="font-size:12px; font-weight:600;">Cliente (nombre)</label>
+            <input id="ed_cliente" value="${escapeHtml(c.nombre || '')}" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin:3px 0 10px; font-size:13px;">
+            <label style="font-size:12px; font-weight:600;">Teléfono</label>
+            <input id="ed_telefono" value="${escapeHtml(c.telefono || '')}" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin:3px 0 10px; font-size:13px;">
+            <div style="display:flex; gap:8px;">
+                <div style="flex:1;"><label style="font-size:12px; font-weight:600;">Marca</label>
+                    <input id="ed_marca" value="${escapeHtml(e.marca || '')}" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin:3px 0 10px; font-size:13px;"></div>
+                <div style="flex:1;"><label style="font-size:12px; font-weight:600;">Modelo</label>
+                    <input id="ed_modelo" value="${escapeHtml(e.modelo || '')}" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin:3px 0 10px; font-size:13px;"></div>
+            </div>
+            <div style="display:flex; gap:8px;">
+                <div style="flex:1;"><label style="font-size:12px; font-weight:600;">Capacidad</label>
+                    <input id="ed_capacidad" value="${escapeHtml(e.capacidad || '')}" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin:3px 0 10px; font-size:13px;"></div>
+                <div style="flex:1;"><label style="font-size:12px; font-weight:600;">IMEI</label>
+                    <input id="ed_imei" value="${escapeHtml(e.imei || '')}" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin:3px 0 10px; font-size:13px;"></div>
+            </div>
+            <label style="font-size:12px; font-weight:600;">Estado físico (cómo llegó)</label>
+            <textarea id="ed_fisico" rows="2" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin:3px 0 10px; font-size:13px;">${escapeHtml(o.condicion_fisica || '')}</textarea>
+            <label style="font-size:12px; font-weight:600;">Falla reportada</label>
+            <textarea id="ed_falla" rows="2" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin:3px 0 10px; font-size:13px;">${escapeHtml(o.falla_reportada || '')}</textarea>
+            <label style="font-size:12px; font-weight:600;">Accesorios recibidos</label>
+            <input id="ed_accesorios" value="${escapeHtml(o.accesorios_recibidos || '')}" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin:3px 0 10px; font-size:13px;">
+            <label style="font-size:12px; font-weight:600;">Clave / patrón del equipo</label>
+            <input id="ed_clave" value="${escapeHtml(o.clave_equipo || '')}" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin:3px 0 10px; font-size:13px;">
+            <button onclick="guardarEditarRecepcion('${o.id}','${o.cliente_id}','${o.equipo_id}')" class="btn btn-blue" style="width:100%; padding:10px; margin-top:6px;"><i class="ti ti-device-floppy"></i> Guardar cambios</button>
+        </div>`;
+    abrirModalGenerico('✏️ Editar datos de recepción · ' + formatoOrden(o.numero_orden), contenido);
+}
+
+async function guardarEditarRecepcion(ordenId, clienteId, equipoId) {
+    try {
+        const g = id => (document.getElementById(id)?.value || '').trim();
+        // Actualizar cliente
+        await supabaseClient.from('clientes').update({ nombre: g('ed_cliente'), telefono: g('ed_telefono') }).eq('id', clienteId);
+        // Actualizar equipo
+        await supabaseClient.from('equipos').update({ marca: g('ed_marca'), modelo: g('ed_modelo'), capacidad: g('ed_capacidad'), imei: g('ed_imei') }).eq('id', equipoId);
+        // Actualizar orden
+        await supabaseClient.from('ordenes_reparacion').update({
+            condicion_fisica: g('ed_fisico'), falla_reportada: g('ed_falla'),
+            accesorios_recibidos: g('ed_accesorios'), clave_equipo: g('ed_clave')
+        }).eq('id', ordenId);
+        toast('✅ Datos de recepción actualizados.');
+        document.getElementById('modalGenerico')?.remove();
+        await loadAll();
+    } catch(e) { logError('Editar recepción', e); alert(getFriendlyError(e)); }
+}
+
+// Editar datos de recepción de una orden (corrige errores de captura)
+function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
         const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
         const estado = normalizarEstadoOrden(o.estado);
         const et = obtenerEtiquetaOrden(estado);
         const tecnico = o.tecnico_asignado_id ? nombreEmpleado(o.tecnico_asignado_id) : null;
         const esMia = o.tecnico_asignado_id === miId;
-        const puedeOperar = esAdmin || esMia;
+        // Servicio al cliente NO opera como técnico (no toma ni repara), pero sí asigna/entrega/reabre
+        const esServicio = modoServicio && !esAdmin;
+        const puedeOperar = (esAdmin || esMia) && !esServicio;
         const numOrden = formatoOrden(o.numero_orden);
         
         // Botones de acción según estado
         let acciones = '';
         if(!o.tecnico_asignado_id && estado !== 'cancelado' && estado !== 'entregado') {
-            // Sin técnico: tomar (auto) o asignar (admin)
-            acciones += `<button class="btn btn-blue" style="font-size:12px; padding:6px 12px;" onclick="tomarOrden('${o.id}')"><i class="ti ti-hand-grab"></i> Tomar orden</button>`;
-            if(esAdmin && tecnicosActivos.length) {
-                acciones += `<select onchange="if(this.value)asignarOrdenTecnico('${o.id}', this.value)" style="font-size:12px; padding:6px;"><option value="">Asignar a…</option>${tecnicosActivos.map(t => `<option value="${t.id}">${escapeHtml(t.nombre)}</option>`).join('')}</select>`;
+            // Sin técnico: tomar (solo técnicos/admin, NO servicio) o asignar (admin y servicio)
+            if(!esServicio) {
+                acciones += `<button class="btn btn-blue" style="font-size:12px; padding:6px 12px;" onclick="tomarOrden('${o.id}')"><i class="ti ti-hand-grab"></i> Tomar orden</button>`;
+            }
+            if((esAdmin || esServicio) && tecnicosActivos.length) {
+                acciones += `<select onchange="if(this.value)asignarOrdenTecnico('${o.id}', this.value)" style="font-size:12px; padding:6px;"><option value="">Asignar a un técnico…</option>${tecnicosActivos.map(t => `<option value="${t.id}">${escapeHtml(t.nombre)}</option>`).join('')}</select>`;
             }
         } else if(puedeOperar && !['entregado','cancelado','finalizado'].includes(estado)) {
             // Estados de espera: RESOLVER (vuelve a en proceso) + opción de finalizar directo
@@ -7332,10 +7447,10 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos) {
                 acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#92400e;" onclick="cambiarEstadoOrdenUI('${o.id}','espera_repuesto')"><i class="ti ti-hourglass"></i> En espera de repuesto</button>`;
                 acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#9a3412;" onclick="cambiarEstadoOrdenUI('${o.id}','pendiente_cliente')"><i class="ti ti-bell"></i> Esperando autorización</button>`;
             }
-        } else if(puedeOperar && estado === 'finalizado') {
+        } else if((puedeOperar || esServicio) && estado === 'finalizado') {
             acciones += `<button class="btn btn-blue" style="font-size:12px; padding:6px 12px;" onclick="marcarEntregadoConGarantia('${o.id}')"><i class="ti ti-package"></i> Marcar Entregado</button>`;
-            // Permitir reabrir si se finalizó por error
-            acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-rotate"></i> Volver a proceso</button>`;
+            // Volver a proceso solo técnico/admin (no servicio)
+            if(puedeOperar) acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-rotate"></i> Volver a proceso</button>`;
         } else if(estado === 'entregado') {
             // Reabrir por garantía (si está dentro del plazo) — solo admin/servicio
             const puedeReabrir = esAdmin || tienePermiso('recepcion_ver');
@@ -7360,6 +7475,14 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos) {
         }
         // Label de diagnóstico (con las fallas) — útil para el técnico
         acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px;" onclick="cargarEnLabel('${o.id}')"><i class="ti ti-clipboard-list"></i> Label</button>`;
+        // Ver historial del cliente (admin y servicio)
+        if((esAdmin || (typeof tienePermiso === 'function' && tienePermiso('recepcion_ver'))) && o.cliente_id) {
+            acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#0891b2;" onclick="verHistorialCliente('${o.cliente_id}')"><i class="ti ti-history"></i> Historial cliente</button>`;
+        }
+        // Editar datos de recepción (admin, servicio o técnico asignado) si no está entregada/cancelada
+        if((esAdmin || esServicio || esMia) && !['entregado','cancelado'].includes(estado)) {
+            acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#6b21a8;" onclick="abrirEditarRecepcion('${o.id}')"><i class="ti ti-edit"></i> Editar datos</button>`;
+        }
         // Solicitar pieza: si está tomada y activa, O en garantía (entregado pero con garantía vigente)
         const enGarantiaVigente = estado === 'entregado' && infoGarantiaOrden(o).vigente;
         if((esAdmin || esMia) && o.tecnico_asignado_id && (!['entregado','cancelado'].includes(estado) || enGarantiaVigente)) {
@@ -7399,8 +7522,9 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos) {
         
         // Tareas de esta orden (sistema genérico, tipo='orden')
         const tareasOrden = (cache.tareas || []).filter(t => t.tipo === 'orden' && t.ref_id === o.id);
+        // Cerrada si entregada/cancelada. Servicio puede AGREGAR fallas pero no resolverlas (soloAgregar)
         const ordenCerrada = ['entregado','cancelado'].includes(estado);
-        const tareasHtml = construirSeccionTareas('orden', o.id, tareasOrden, ordenCerrada);
+        const tareasHtml = construirSeccionTareas('orden', o.id, tareasOrden, ordenCerrada, esServicio);
         
         return `<div style="background:#fff; border:1px solid var(--border-color); border-radius:7px; padding:8px 10px; margin-bottom:6px;">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:6px;">
@@ -7557,6 +7681,265 @@ function renderPedidosPiezasReacond() {
     cont.innerHTML = construirPanelPedidosPiezas(null);
 }
 
+// Muestra una ventana emergente con los pendientes del técnico al iniciar sesión
+function mostrarPendientesTecnico() {
+    if(!sessionUser || isAdminUser()) return;
+    // Solo a técnicos (no a servicio/atención)
+    const esTecnico = (sessionUser.tipo_empleado === 'tecnico' || !sessionUser.tipo_empleado) && !tienePermiso('solo_atencion');
+    if(!esTecnico) return;
+    const miId = sessionUser.id;
+    
+    const misOrdenes = (cache.ordenes || []).filter(o => o.tecnico_asignado_id === miId && !['entregado','cancelado','finalizado'].includes(normalizarEstadoOrden(o.estado)));
+    const misFallas = (cache.tareas || []).filter(t => t.tecnico_id === miId && t.estado !== 'hecha');
+    const misPiezas = (cache.piezasReacond || []).filter(p => {
+        const eq = (cache.refurb || []).find(r => r.id === p.equipo_id);
+        return eq && eq.tecnico_asignado_id === miId && p.estado === 'recibida';
+    });
+    const disponibles = (cache.ordenes || []).filter(o => !o.tecnico_asignado_id && !['entregado','cancelado'].includes(normalizarEstadoOrden(o.estado)));
+    
+    const total = misOrdenes.length + misFallas.length + misPiezas.length + disponibles.length;
+    if(total === 0) return; // nada que mostrar
+    
+    const linea = (icon, color, texto, n) => n > 0 ? `
+        <div style="display:flex; align-items:center; gap:10px; padding:10px 12px; background:${color}11; border:1px solid ${color}44; border-radius:10px; margin-bottom:8px;">
+            <span style="font-size:22px;">${icon}</span>
+            <div style="flex:1;"><strong style="font-size:15px; color:${color};">${n}</strong> <span style="font-size:13px;">${texto}</span></div>
+        </div>` : '';
+    
+    const contenido = `
+        <div style="margin-bottom:4px;">
+            ${linea('🔧', '#0891b2', misOrdenes.length === 1 ? 'orden activa tuya' : 'órdenes activas tuyas', misOrdenes.length)}
+            ${linea('⚠️', '#dc2626', misFallas.length === 1 ? 'falla sin resolver' : 'fallas sin resolver', misFallas.length)}
+            ${linea('📦', '#f59e0b', misPiezas.length === 1 ? 'pieza recibida (úsala)' : 'piezas recibidas (úsalas)', misPiezas.length)}
+            ${linea('📥', '#8b5cf6', disponibles.length === 1 ? 'orden disponible para tomar' : 'órdenes disponibles para tomar', disponibles.length)}
+        </div>
+        <div style="display:flex; gap:8px; margin-top:14px;">
+            <button onclick="document.getElementById('modalGenerico').remove(); nav('miTrabajo');" class="btn btn-blue" style="flex:1; padding:10px;"><i class="ti ti-briefcase"></i> Ver Mi Trabajo</button>
+            <button onclick="document.getElementById('modalGenerico').remove();" class="btn btn-light" style="padding:10px 16px;">Cerrar</button>
+        </div>`;
+    
+    abrirModalGenerico(`🔔 Tus pendientes, ${(sessionUser.nombre || '').split(' ')[0]}`, contenido);
+}
+
+// Bloque visual de alertas de equipos demorados
+function construirAlertaDemoras(incluirReacond) {
+    const ordsDem = ordenesDemoradas();
+    const verReacond = incluirReacond && (isAdminUser() || (typeof tienePermiso === 'function' && tienePermiso('refurb_ver')));
+    const refDem = verReacond ? reacondDemorados() : [];
+    const total = ordsDem.length + refDem.length;
+    
+    let html = `<div class="card" style="margin-bottom:14px; border-left:4px solid ${total > 0 ? '#ef4444' : '#86efac'};">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+            <h3 style="font-size:15px; margin:0;"><i class="ti ti-alert-triangle" style="color:${total > 0 ? '#ef4444' : '#16a34a'};"></i> Equipos Demorados (${total})</h3>
+            <div style="display:flex; align-items:center; gap:6px; font-size:12px;">
+                <span style="color:var(--text-muted);">Avisar tras</span>
+                <input type="number" min="1" value="${_diasDemora}" onchange="setDiasDemora(this.value)" style="width:55px; padding:4px 6px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px;">
+                <span style="color:var(--text-muted);">días</span>
+            </div>
+        </div>`;
+    
+    if(total === 0) {
+        html += `<div style="color:#16a34a; font-size:13px;"><i class="ti ti-circle-check"></i> Ningún equipo demorado. ¡Todo al día!</div>`;
+    } else {
+        const fila = (nombre, detalle, dias, color) => `
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:8px 10px; border:1px solid #fecaca; background:#fef2f2; border-radius:8px; margin-bottom:5px;">
+                <div style="min-width:0;">
+                    <div style="font-weight:600; font-size:13px;">${escapeHtml(nombre)}</div>
+                    <div style="font-size:11px; color:var(--text-muted);">${escapeHtml(detalle)}</div>
+                </div>
+                <span style="background:${color}; color:#fff; font-size:11px; font-weight:700; padding:3px 9px; border-radius:12px; white-space:nowrap;">${dias} días</span>
+            </div>`;
+        ordsDem.forEach(o => {
+            const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
+            const d = diasDesde(o.creado_en);
+            html += fila(`${formatoOrden(o.numero_orden)} · ${c.nombre || 'Cliente'}`, `${e.marca||''} ${e.modelo||''} · ${etiquetaEstadoTexto(o.estado)}`, d, d >= _diasDemora*2 ? '#991b1b' : '#ef4444');
+        });
+        if(verReacond && refDem.length) {
+            html += `<div style="font-size:11px; font-weight:700; color:#9a3412; margin:8px 0 4px;">♻️ Reacondicionados demorados</div>`;
+            refDem.forEach(eq => {
+                const d = diasDesde(eq.creado_en);
+                html += fila(`${eq.marca||''} ${eq.modelo||''}`.trim() || 'Equipo', `Reacondicionado · ${(eq.estado_evaluacion||'').replace(/_/g,' ')}`, d, d >= _diasDemora*2 ? '#991b1b' : '#f59e0b');
+            });
+        }
+    }
+    html += `</div>`;
+    return html;
+}
+
+// ============================================================
+//   PANEL INTELIGENTE (alertas automáticas + tendencias)
+// ============================================================
+let _diasPiezaTarda = parseInt(localStorage.getItem('bayol_dias_pieza') || '3', 10);
+function setDiasPiezaTarda(n) {
+    _diasPiezaTarda = Math.max(1, parseInt(n,10) || 3);
+    localStorage.setItem('bayol_dias_pieza', _diasPiezaTarda);
+    renderAll();
+}
+
+function construirPanelInteligente() {
+    // Solo si tiene permiso
+    if(!isAdminUser() && !tienePermiso('ver_panel_smart')) return '';
+    
+    const alertas = [];
+    
+    // 1. Piezas que tardan en llegar (solicitadas/entregada hace X días, no recibidas) - reacond + órdenes
+    const ahora = Date.now();
+    (cache.piezasReacond || []).forEach(p => {
+        if(['solicitada','pendiente','entregada','aprobada'].includes(p.estado)) {
+            const d = diasDesde(p.fecha_entrega || p.creado_en);
+            if(d >= _diasPiezaTarda) alertas.push({ icon:'📦', color:'#f59e0b', txt:`Pieza "${p.pieza_nombre || 'pieza'}" pedida hace ${d} días, aún no se confirma recibida` });
+        }
+    });
+    (cache.ordenPiezas || []).forEach(p => {
+        if(['solicitada','entregada'].includes(p.estado)) {
+            const d = diasDesde(p.creado_en);
+            if(d >= _diasPiezaTarda) alertas.push({ icon:'📦', color:'#f59e0b', txt:`Pieza "${p.pieza_nombre || 'pieza'}" (orden) pedida hace ${d} días` });
+        }
+    });
+    
+    // 2. Técnico sobrecargado (+5 órdenes activas)
+    const carga = {};
+    (cache.ordenes || []).forEach(o => {
+        if(o.tecnico_asignado_id && !['entregado','cancelado','finalizado'].includes(normalizarEstadoOrden(o.estado))) {
+            carga[o.tecnico_asignado_id] = (carga[o.tecnico_asignado_id] || 0) + 1;
+        }
+    });
+    Object.entries(carga).forEach(([tecId, n]) => {
+        if(n > 5) alertas.push({ icon:'🔧', color:'#dc2626', txt:`${nombreEmpleado(tecId)} tiene ${n} órdenes activas (sobrecargado)` });
+    });
+    
+    // 3. Cliente esperando autorización +2 días
+    (cache.ordenes || []).forEach(o => {
+        if(normalizarEstadoOrden(o.estado) === 'pendiente_cliente') {
+            const d = diasDesde(o.fecha_derivacion || o.creado_en);
+            if(d >= 2) {
+                const c = findCliente(o.cliente_id);
+                alertas.push({ icon:'🔔', color:'#9a3412', txt:`${c.nombre || 'Cliente'} (${formatoOrden(o.numero_orden)}) lleva ${d} días esperando autorización` });
+            }
+        }
+    });
+    
+    // === TENDENCIAS ===
+    const hoy = new Date();
+    const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+    const inicioMesAnt = new Date(hoy.getFullYear(), hoy.getMonth()-1, 1);
+    const finMesAnt = new Date(hoy.getFullYear(), hoy.getMonth(), 0, 23, 59, 59);
+    const enRango = (f, ini, fin) => { if(!f) return false; const d = new Date(f); return d >= ini && (!fin || d <= fin); };
+    
+    const recibMes = (cache.ordenes||[]).filter(o => enRango(o.creado_en, inicioMes)).length;
+    const recibMesAnt = (cache.ordenes||[]).filter(o => enRango(o.creado_en, inicioMesAnt, finMesAnt)).length;
+    const difRecib = recibMesAnt > 0 ? Math.round(((recibMes - recibMesAnt) / recibMesAnt) * 100) : (recibMes > 0 ? 100 : 0);
+    
+    // Falla y modelo más frecuente (todo el histórico)
+    const fc = {}, mc = {}, dc = {};
+    (cache.tareas||[]).forEach(t => { const k=(t.descripcion||'').trim().toLowerCase(); if(k) fc[k]=(fc[k]||0)+1; });
+    (cache.ordenes||[]).forEach(o => {
+        const e = findEquipo(o.equipo_id); const m = `${e.marca||''} ${e.modelo||''}`.trim(); if(m) mc[m]=(mc[m]||0)+1;
+        if(o.creado_en){ const dia = new Date(o.creado_en).toLocaleDateString('es-DO',{weekday:'long'}); dc[dia]=(dc[dia]||0)+1; }
+    });
+    const top = obj => { const e = Object.entries(obj).sort((a,b)=>b[1]-a[1])[0]; return e ? `${e[0]} (${e[1]})` : '—'; };
+    
+    // Render
+    let html = `<div class="card" style="margin-bottom:15px; background:linear-gradient(135deg,#faf5ff,#eff6ff); border:1px solid #ddd6fe;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+            <h3 style="margin:0;"><i class="ti ti-bulb" style="color:#7c3aed;"></i> Panel Inteligente</h3>
+            <div style="font-size:11px; color:var(--text-muted); display:flex; align-items:center; gap:5px;">Pieza tarda tras <input type="number" min="1" value="${_diasPiezaTarda}" onchange="setDiasPiezaTarda(this.value)" style="width:48px; padding:3px 5px; border:1px solid #cbd5e1; border-radius:5px; font-size:11px;"> días</div>
+        </div>`;
+    
+    // Alertas
+    if(alertas.length) {
+        html += `<div style="font-weight:700; font-size:12px; color:#dc2626; margin-bottom:6px;">⚡ ${alertas.length} alerta(s) que requieren atención</div>`;
+        html += alertas.slice(0, 10).map(a => `
+            <div style="display:flex; align-items:center; gap:8px; padding:7px 10px; background:#fff; border:1px solid ${a.color}33; border-left:3px solid ${a.color}; border-radius:7px; margin-bottom:5px;">
+                <span>${a.icon}</span><span style="font-size:12px;">${escapeHtml(a.txt)}</span>
+            </div>`).join('');
+    } else {
+        html += `<div style="color:#16a34a; font-size:13px; margin-bottom:10px;"><i class="ti ti-circle-check"></i> Sin alertas. Todo bajo control.</div>`;
+    }
+    
+    // Tendencias
+    const flecha = difRecib > 0 ? `▲ +${difRecib}%` : (difRecib < 0 ? `▼ ${difRecib}%` : '= igual');
+    const colorTend = difRecib > 0 ? '#16a34a' : (difRecib < 0 ? '#dc2626' : '#64748b');
+    html += `
+        <div style="font-weight:700; font-size:12px; color:#7c3aed; margin:12px 0 6px;">📊 Tendencias</div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px;">
+            <div style="background:#fff; border-radius:8px; padding:10px; border:1px solid #e2e8f0;">
+                <div style="font-size:11px; color:var(--text-muted);">Recibidas este mes</div>
+                <div style="font-size:20px; font-weight:800;">${recibMes}</div>
+                <div style="font-size:11px; color:${colorTend}; font-weight:700;">${flecha} vs mes anterior (${recibMesAnt})</div>
+            </div>
+            <div style="background:#fff; border-radius:8px; padding:10px; border:1px solid #e2e8f0;">
+                <div style="font-size:11px; color:var(--text-muted);">⚠️ Falla más común</div>
+                <div style="font-size:14px; font-weight:700; text-transform:capitalize;">${escapeHtml(top(fc))}</div>
+            </div>
+            <div style="background:#fff; border-radius:8px; padding:10px; border:1px solid #e2e8f0;">
+                <div style="font-size:11px; color:var(--text-muted);">📱 Modelo más frecuente</div>
+                <div style="font-size:14px; font-weight:700;">${escapeHtml(top(mc))}</div>
+            </div>
+            <div style="background:#fff; border-radius:8px; padding:10px; border:1px solid #e2e8f0;">
+                <div style="font-size:11px; color:var(--text-muted);">📅 Día más ocupado</div>
+                <div style="font-size:14px; font-weight:700; text-transform:capitalize;">${escapeHtml(top(dc))}</div>
+            </div>
+        </div>`;
+    html += `</div>`;
+    return html;
+}
+
+// Etiqueta de texto corta para un estado de orden
+function etiquetaEstadoTexto(estado) {
+    const e = normalizarEstadoOrden(estado);
+    const map = { recibido:'En diagnóstico', en_proceso:'En reparación', espera_repuesto:'Espera pieza', pendiente_cliente:'Esperando autorización', finalizado:'Finalizado', entregado:'Entregado', cancelado:'Cancelado' };
+    return map[e] || e;
+}
+
+// Historial completo de un cliente (todas sus órdenes)
+function verHistorialCliente(clienteId) {
+    const c = findCliente(clienteId);
+    const ords = (cache.ordenes || []).filter(o => o.cliente_id === clienteId).sort((a,b) => new Date(b.creado_en) - new Date(a.creado_en));
+    let html = `<div style="max-height:70vh; overflow-y:auto;">
+        <h3 style="margin:0 0 4px;"><i class="ti ti-user"></i> ${escapeHtml(c.nombre || 'Cliente')}</h3>
+        <div style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">${escapeHtml(c.telefono || 'Sin teléfono')} · ${ords.length} orden(es) en total</div>`;
+    if(!ords.length) {
+        html += `<div style="color:var(--text-muted);">Sin órdenes registradas.</div>`;
+    } else {
+        html += ords.map(o => {
+            const e = findEquipo(o.equipo_id);
+            const fecha = o.creado_en ? new Date(o.creado_en).toLocaleDateString('es-DO') : '—';
+            const est = etiquetaEstadoTexto(o.estado);
+            const esGar = o.es_garantia ? ' 🛡️' : '';
+            return `<div style="border:1px solid #e2e8f0; border-radius:8px; padding:8px 10px; margin-bottom:6px;">
+                <div style="display:flex; justify-content:space-between; gap:6px;">
+                    <strong style="font-size:13px;">${formatoOrden(o.numero_orden)}${esGar}</strong>
+                    <span style="font-size:11px; color:var(--text-muted);">${fecha}</span>
+                </div>
+                <div style="font-size:12px;">${e.marca||''} ${e.modelo||''} · ${escapeHtml(o.falla_reportada || 'Sin falla')}</div>
+                <div style="font-size:11px; color:#0891b2; margin-top:2px;">${est}</div>
+            </div>`;
+        }).join('');
+    }
+    html += `</div>`;
+    abrirModalGenerico('Historial del Cliente', html);
+}
+
+// Modal genérico simple
+function abrirModalGenerico(titulo, contenidoHtml) {
+    let modal = document.getElementById('modalGenerico');
+    if(!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modalGenerico';
+        modal.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:50; display:flex; align-items:center; justify-content:center; padding:16px;';
+        modal.onclick = (e) => { if(e.target === modal) modal.remove(); };
+        document.body.appendChild(modal);
+    }
+    modal.innerHTML = `<div style="background:#fff; border-radius:12px; padding:18px; max-width:520px; width:100%; max-height:85vh; overflow-y:auto;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <b style="font-size:16px;">${escapeHtml(titulo)}</b>
+            <button onclick="document.getElementById('modalGenerico').remove()" style="background:#fee2e2; color:#991b1b; border:0; width:32px; height:32px; border-radius:8px; cursor:pointer; font-size:16px;">✕</button>
+        </div>
+        ${contenidoHtml}
+    </div>`;
+}
+
 // ============================================================
 //   ATENCIÓN AL CLIENTE (pantalla de servicio)
 // ============================================================
@@ -7594,12 +7977,20 @@ function renderAtencionCliente() {
     
     let html = '';
     
-    // SECCIÓN: Listas para entregar
+    // SECCIÓN: Alertas de equipos demorados (con reacond si tiene permiso)
+    html += construirAlertaDemoras(true);
+    
+    // SECCIÓN: Buscar historial de cliente
+    html += `<div class="card" style="margin-bottom:14px;">
+        <h3 style="font-size:15px; margin:0 0 10px;"><i class="ti ti-user-search" style="color:#0891b2;"></i> Buscar Historial de Cliente</h3>
+        <input id="atencionBuscarCliente" oninput="renderAtencionClientesBusqueda()" placeholder="🔍 Nombre o teléfono del cliente..." style="width:100%; padding:8px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
+        <div id="atencionClientesResultado" style="margin-top:8px;"></div>
+    </div>`;
     const paraEntregar = ordenes.filter(o => normalizarEstadoOrden(o.estado) === 'finalizado');
     html += `<div class="card" style="margin-bottom:14px;">
         <h3 style="font-size:15px; margin:0 0 10px;"><i class="ti ti-circle-check" style="color:#8b5cf6;"></i> Listas para Entregar (${paraEntregar.length})</h3>`;
     if(paraEntregar.length) {
-        html += paraEntregar.map(o => construirCardOrden(o, esAdmin, miId, tecnicosActivos)).join('');
+        html += paraEntregar.map(o => construirCardOrden(o, esAdmin, miId, tecnicosActivos, true)).join('');
     } else {
         html += `<div style="color:var(--text-muted); font-size:13px;">No hay equipos listos para entregar.</div>`;
     }
@@ -7610,7 +8001,7 @@ function renderAtencionCliente() {
     html += `<div class="card" style="margin-bottom:14px;">
         <h3 style="font-size:15px; margin:0 0 10px;"><i class="ti ti-bell" style="color:#9a3412;"></i> Esperando Autorización del Cliente (${espAut.length})</h3>`;
     if(espAut.length) {
-        html += espAut.map(o => construirCardOrden(o, esAdmin, miId, tecnicosActivos)).join('');
+        html += espAut.map(o => construirCardOrden(o, esAdmin, miId, tecnicosActivos, true)).join('');
     } else {
         html += `<div style="color:var(--text-muted); font-size:13px;">Ninguna orden esperando autorización.</div>`;
     }
@@ -7620,10 +8011,17 @@ function renderAtencionCliente() {
     html += `<div class="card" style="margin-bottom:14px;">
         <h3 style="font-size:15px; margin:0 0 10px;"><i class="ti ti-tool" style="color:#9a3412;"></i> Todas las Órdenes de Trabajo</h3>
         <input id="atencionBuscador" oninput="renderAtencionListaOrdenes()" placeholder="🔍 Buscar por número o cliente..." style="width:100%; padding:8px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; margin-bottom:10px;">
-        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
+        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
             <button class="btn btn-light" onclick="_atencionFiltro='todas'; renderAtencionListaOrdenes()" style="font-size:12px;">Todas</button>
             <button class="btn btn-light" onclick="_atencionFiltro='activas'; renderAtencionListaOrdenes()" style="font-size:12px;">⚙️ Activas</button>
             <button class="btn btn-light" onclick="_atencionFiltro='entregadas'; renderAtencionListaOrdenes()" style="font-size:12px;">📦 Entregadas</button>
+        </div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; align-items:center;">
+            <span style="font-size:11px; font-weight:700; color:var(--text-muted);"><i class="ti ti-calendar"></i> Fecha:</span>
+            <button class="btn btn-light" onclick="_atencionFechaFiltro=0; renderAtencionListaOrdenes()" style="font-size:11px; padding:4px 9px;">Todas</button>
+            <button class="btn btn-light" onclick="_atencionFechaFiltro=1; renderAtencionListaOrdenes()" style="font-size:11px; padding:4px 9px;">Hoy</button>
+            <button class="btn btn-light" onclick="_atencionFechaFiltro=7; renderAtencionListaOrdenes()" style="font-size:11px; padding:4px 9px;">7 días</button>
+            <button class="btn btn-light" onclick="_atencionFechaFiltro=30; renderAtencionListaOrdenes()" style="font-size:11px; padding:4px 9px;">30 días</button>
         </div>
         <div id="atencionListaOrdenes"></div>
     </div>`;
@@ -7648,6 +8046,28 @@ function renderAtencionCliente() {
 }
 
 let _atencionFiltro = 'activas';
+let _atencionFechaFiltro = 0; // 0 = todas las fechas; N = últimos N días
+function renderAtencionClientesBusqueda() {
+    const cont = document.getElementById('atencionClientesResultado');
+    if(!cont) return;
+    const txt = (document.getElementById('atencionBuscarCliente')?.value || '').trim().toLowerCase();
+    if(!txt) { cont.innerHTML = ''; return; }
+    const encontrados = (cache.clientes || []).filter(c => 
+        (c.nombre || '').toLowerCase().includes(txt) || (c.telefono || '').toLowerCase().includes(txt)
+    ).slice(0, 10);
+    if(!encontrados.length) { cont.innerHTML = `<div style="color:var(--text-muted); font-size:13px;">Sin clientes que coincidan.</div>`; return; }
+    cont.innerHTML = encontrados.map(c => {
+        const numOrds = (cache.ordenes || []).filter(o => o.cliente_id === c.id).length;
+        return `<div onclick="verHistorialCliente('${c.id}')" style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:5px; cursor:pointer;">
+            <div>
+                <div style="font-weight:600; font-size:13px;">${escapeHtml(c.nombre || 'Cliente')}</div>
+                <div style="font-size:11px; color:var(--text-muted);">${escapeHtml(c.telefono || 'Sin teléfono')}</div>
+            </div>
+            <span style="background:#e0f2fe; color:#0369a1; font-size:11px; font-weight:700; padding:3px 9px; border-radius:12px;">${numOrds} orden(es)</span>
+        </div>`;
+    }).join('');
+}
+
 function renderAtencionListaOrdenes() {
     const cont = document.getElementById('atencionListaOrdenes');
     if(!cont) return;
@@ -7658,6 +8078,11 @@ function renderAtencionListaOrdenes() {
     if(_atencionFiltro === 'activas') ordenes = ordenes.filter(o => !['entregado','cancelado'].includes(normalizarEstadoOrden(o.estado)));
     else if(_atencionFiltro === 'entregadas') ordenes = ordenes.filter(o => normalizarEstadoOrden(o.estado) === 'entregado');
     
+    // Filtro de fecha (días hacia atrás desde la recepción; 0 = todas)
+    if(_atencionFechaFiltro > 0) {
+        ordenes = ordenes.filter(o => diasDesde(o.creado_en) < _atencionFechaFiltro);
+    }
+    
     const txt = (document.getElementById('atencionBuscador')?.value || '').trim().toLowerCase();
     if(txt) {
         ordenes = ordenes.filter(o => {
@@ -7665,8 +8090,10 @@ function renderAtencionListaOrdenes() {
             return formatoOrden(o.numero_orden).toLowerCase().includes(txt) || (c.nombre || '').toLowerCase().includes(txt);
         });
     }
+    // Ordenar por fecha de recepción (más reciente primero)
+    ordenes = ordenes.slice().sort((a,b) => new Date(b.creado_en||0) - new Date(a.creado_en||0));
     if(!ordenes.length) { cont.innerHTML = `<div style="color:var(--text-muted); font-size:13px;">No hay órdenes en este filtro.</div>`; return; }
-    cont.innerHTML = ordenes.map(o => construirCardOrden(o, esAdmin, miId, tecnicosActivos)).join('');
+    cont.innerHTML = ordenes.map(o => construirCardOrden(o, esAdmin, miId, tecnicosActivos, true)).join('');
 }
 
 function renderAtencionHistorial() {
@@ -7862,7 +8289,12 @@ function fallasPendientesDe(tipo, refId) {
 // Maneja el cambio de estado desde la UI (pide nota si es pendiente_cliente)
 async function cambiarEstadoOrdenUI(ordenId, nuevoEstado) {
     if(nuevoEstado === 'cancelado') {
-        if(!confirm('¿Cancelar esta orden? Esta acción la marca como anulada.')) return;
+        const piezasOrden = (cache.ordenPiezas || []).filter(p => p.orden_id === ordenId && !['devuelta','recibida'].includes(p.estado));
+        let msg = '¿Cancelar esta orden? Esta acción la marca como anulada.';
+        if(piezasOrden.length > 0) {
+            msg = `⚠️ Esta orden tiene ${piezasOrden.length} pieza(s) solicitada(s)/en proceso.\n\nRevisa si debes devolverlas antes de cancelar.\n\n¿Cancelar de todos modos?`;
+        }
+        if(!confirm(msg)) return;
     }
     // No permitir finalizar si quedan fallas/tareas pendientes
     if(nuevoEstado === 'finalizado') {
@@ -8190,6 +8622,17 @@ function infoGarantiaOrden(orden) {
 
 // Marca como entregado y pregunta los días de garantía
 async function marcarEntregadoConGarantia(ordenId) {
+    const orden = (cache.ordenes || []).find(o => o.id === ordenId);
+    if(!orden) return;
+    const est = normalizarEstadoOrden(orden.estado);
+    // Sentido común: solo se entrega lo que está finalizado
+    if(est !== 'finalizado') {
+        if(isAdminUser()) {
+            if(!confirm('⚠️ Esta orden no está marcada como FINALIZADA.\n\n¿Entregar de todos modos? (recomendado finalizar primero)')) return;
+        } else {
+            return alert('⚠️ Solo se puede entregar una orden FINALIZADA.\n\nMarca la reparación como finalizada antes de entregar.');
+        }
+    }
     const diasStr = prompt('📦 ENTREGAR EQUIPO\n\n¿Cuántos días de garantía? (deja 0 si no aplica)\n\nEjemplos: 30, 90', '90');
     if(diasStr === null) return;
     const dias = parseInt(diasStr) || 0;
@@ -8817,6 +9260,7 @@ const PERMISOS_DEF = [
             { id: 'imprimir_diag', label: 'Imprimir label diagnóstico' },
             { id: 'imprimir_venta', label: 'Imprimir label de venta' },
             { id: 'ver_dashboard', label: 'Ver Dashboard / KPIs' },
+            { id: 'ver_panel_smart', label: '🧠 Ver Panel Inteligente (alertas y tendencias)' },
             { id: 'exportar_excel', label: 'Exportar a Excel' },
             { id: 'ver_auditoria', label: 'Ver auditoría/historial' }
         ]
@@ -9134,15 +9578,26 @@ async function abrirPreviewLabelDiagOrden(orden) {
     const fecha = new Date().toLocaleDateString('es-DO');
     const modeloCorto = `${marca} ${modelo} ${capacidad}`.replace(/\s+/g, ' ').trim();
     
-    // Separar la falla reportada (texto libre) en items para el checklist
+    // Reunir fallas: del texto libre (falla_reportada) + de las tareas de la orden
     const fallasTexto = (orden.falla_reportada || '').split(/[\/,;\n]+/).map(s => s.trim()).filter(Boolean);
+    const fallasTareas = (cache.tareas || [])
+        .filter(t => t.tipo === 'orden' && t.ref_id === orden.id)
+        .map(t => (t.descripcion || '').trim())
+        .filter(Boolean);
+    // Combinar sin duplicar (comparando en minúsculas)
+    const vistas = new Set();
+    const todasFallas = [];
+    [...fallasTexto, ...fallasTareas].forEach(fa => {
+        const k = fa.toLowerCase();
+        if(!vistas.has(k)) { vistas.add(k); todasFallas.push(fa); }
+    });
     // Letra base más grande para orden de servicio
     const fBase = Math.max(parseInt(f), 12);
     const fmenor = Math.max(10, fBase - 1);
     let fallasHtml = '';
-    if(fallasTexto.length > 0) {
-        const columnas = fallasTexto.length >= 5 ? 2 : 1;
-        const items = fallasTexto.map(t =>
+    if(todasFallas.length > 0) {
+        const columnas = todasFallas.length >= 5 ? 2 : 1;
+        const items = todasFallas.map(t =>
             `<div style="font-size:${fmenor}px; font-weight:900; -webkit-text-stroke:0.3px #000; line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">☐ ${escapeHtml(t.toUpperCase())}</div>`
         ).join('');
         fallasHtml = `
