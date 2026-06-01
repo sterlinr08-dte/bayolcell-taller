@@ -620,6 +620,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
         <div class="nav">
             <button class="active" id="menu-dashboard" onclick="nav('dashboard',this)"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
             <button id="menu-miTrabajo" onclick="nav('miTrabajo',this)"><i class="ti ti-briefcase"></i> Mi Trabajo</button>
+            <button id="menu-atencion" onclick="nav('atencion',this)"><i class="ti ti-headset"></i> Atención al Cliente</button>
             <button id="menu-recepcion" onclick="nav('recepcion',this)"><i class="ti ti-clipboard-plus"></i> Recepción de Equipos</button>
             <button id="menu-ordenes" onclick="nav('ordenes',this)"><i class="ti ti-tool"></i> Órdenes de Trabajo</button>
             <button id="menu-inventario" onclick="nav('inventario',this)"><i class="ti ti-package"></i> Inventario Taller</button>
@@ -648,6 +649,19 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
         </header>
         
         <section class="content">
+            <!-- ATENCIÓN AL CLIENTE (servicio) -->
+            <div id="v-atencion" class="view">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:14px;">
+                    <h2 style="margin:0;"><i class="ti ti-headset" style="color:#0891b2;"></i> Atención al Cliente</h2>
+                    <div style="display:flex; gap:6px;">
+                        <button class="btn btn-blue" onclick="nav('recepcion')" style="font-size:12px;"><i class="ti ti-plus"></i> Recibir equipo</button>
+                        <button class="btn btn-light" onclick="renderAtencionCliente()" style="font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
+                    </div>
+                </div>
+                <div id="atencionKpis" class="kpi-row" style="margin-bottom:16px;"></div>
+                <div id="atencionContenido"></div>
+            </div>
+
             <!-- MI TRABAJO (técnico) -->
             <div id="v-miTrabajo" class="view">
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:14px;">
@@ -2983,6 +2997,20 @@ function applyAccessControls() {
         return;
     }
     
+    // MODO "SOLO ATENCIÓN AL CLIENTE": servicio solo ve esa pantalla (+ recepción para recibir)
+    if(tienePermiso('solo_atencion')) {
+        document.querySelectorAll('.nav button').forEach(b => {
+            b.style.display = (b.id === 'menu-atencion' || b.id === 'menu-recepcion') ? '' : 'none';
+        });
+        if(typeof closeSidebar === 'function') closeSidebar();
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        const yaEnAtencion = document.getElementById('v-atencion')?.classList.contains('active');
+        const yaEnRecepcion = document.getElementById('v-recepcion')?.classList.contains('active');
+        if(!yaEnAtencion && !yaEnRecepcion) setTimeout(() => nav('atencion'), 100);
+        return;
+    }
+    
     // Mapeo de items de menú → permiso requerido
     const menuPermisos = {
         'menu-dashboard': 'ver_dashboard',
@@ -3057,6 +3085,7 @@ function startApp() {
 const NAV_PERMISOS = {
     'dashboard': 'ver_dashboard',
     'miTrabajo': null,
+    'atencion': null,
     'recepcion': 'recepcion_ver',
     'ordenes': 'ordenes_ver',
     'inventario': 'inventario_ver',
@@ -3094,10 +3123,11 @@ function nav(v, btn) {
     if(v === 'configuracion') { setTimeout(() => { cambiarMainTabConfig('tecnicos'); }, 50); }
     if(v === 'reportes') { setTimeout(() => { inicializarReportes(); }, 50); }
     if(v === 'miTrabajo') { setTimeout(() => { renderMiTrabajo(); }, 50); }
+    if(v === 'atencion') { setTimeout(() => { renderAtencionCliente(); }, 50); }
     closeSidebar();
     window.scrollTo({ top: 0, behavior: 'smooth' });
     // Re-aplicar permisos de botones estáticos tras renderizar (NO en modo solo-mi-trabajo, causa bucle)
-    if(!isAdminUser() && !tienePermiso('solo_mi_trabajo')) setTimeout(() => applyAccessControls(), 150);
+    if(!isAdminUser() && !tienePermiso('solo_mi_trabajo') && !tienePermiso('solo_atencion')) setTimeout(() => applyAccessControls(), 150);
 }
 
 /* ============================================================
@@ -3317,6 +3347,7 @@ function renderAll() {
     renderProductividadEmpleados();
     renderTallerOrdenes();
     if(document.getElementById('v-miTrabajo')?.classList.contains('active')) renderMiTrabajo();
+    if(document.getElementById('v-atencion')?.classList.contains('active')) renderAtencionCliente();
     // Marcar el filtro activo del tablero (visual)
     const btnAct = document.getElementById('fltOrdActivas');
     if(btnAct && !btnAct.style.background) { btnAct.style.background = 'var(--blue-btn)'; btnAct.style.color = '#fff'; }
@@ -6959,6 +6990,7 @@ function setPeriodoReporte(dias, label) {
     if(dHasta) dHasta.value = _repFiltroFechas.hasta || '';
     inicializarReportes();
     if(typeof renderMiTrabajo === 'function' && document.getElementById('v-miTrabajo')?.classList.contains('active')) renderMiTrabajo();
+    if(document.getElementById('v-atencion')?.classList.contains('active')) renderAtencionHistorial();
 }
 
 // Aplica fechas personalizadas desde los inputs
@@ -6968,6 +7000,7 @@ function aplicarFechasPersonalizadas() {
     _repFiltroFechas = { desde, hasta, label: 'Personalizado' };
     inicializarReportes();
     if(typeof renderMiTrabajo === 'function' && document.getElementById('v-miTrabajo')?.classList.contains('active')) renderMiTrabajo();
+    if(document.getElementById('v-atencion')?.classList.contains('active')) renderAtencionHistorial();
 }
 
 // Construye la barra de filtro de fechas (reutilizable)
@@ -7519,6 +7552,148 @@ function renderPedidosPiezasReacond() {
     const cont = document.getElementById('pedidosPiezasReacondCont');
     if(!cont) return;
     cont.innerHTML = construirPanelPedidosPiezas(null);
+}
+
+// ============================================================
+//   ATENCIÓN AL CLIENTE (pantalla de servicio)
+// ============================================================
+let _atencionTecnicoHist = ''; // técnico seleccionado para el historial (vacío = todos)
+
+function renderAtencionCliente() {
+    const esAdmin = isAdminUser();
+    const miId = sessionUser?.id;
+    const kpisCont = document.getElementById('atencionKpis');
+    const cont = document.getElementById('atencionContenido');
+    if(!cont) return;
+    
+    const tecnicosActivos = (cache.tecnicos || []).filter(t => t.activo && (t.tipo_empleado === 'tecnico' || !t.tipo_empleado));
+    const ordenes = (cache.ordenes || []);
+    
+    // KPIs (sin reacondicionados)
+    const hoy = new Date().toDateString();
+    const recibidosHoy = ordenes.filter(o => o.creado_en && new Date(o.creado_en).toDateString() === hoy).length;
+    const enDiag = ordenes.filter(o => normalizarEstadoOrden(o.estado) === 'recibido').length;
+    const enRep = ordenes.filter(o => normalizarEstadoOrden(o.estado) === 'en_proceso').length;
+    const esperaPieza = ordenes.filter(o => normalizarEstadoOrden(o.estado) === 'espera_repuesto').length;
+    const listos = ordenes.filter(o => normalizarEstadoOrden(o.estado) === 'finalizado').length;
+    const espAutoriz = ordenes.filter(o => normalizarEstadoOrden(o.estado) === 'pendiente_cliente').length;
+    
+    if(kpisCont) {
+        const kpi = (label, val, color, icon) => `<div class="kpi-box" style="border-top-color:${color};"><small>${label}</small><strong>${val}</strong><i class="ti ${icon}"></i></div>`;
+        kpisCont.innerHTML = `
+            ${kpi('Recibidos Hoy', recibidosHoy, '#3b82f6', 'ti-download')}
+            ${kpi('En Diagnóstico', enDiag, '#f59e0b', 'ti-search')}
+            ${kpi('En Reparación', enRep, '#10b981', 'ti-settings')}
+            ${kpi('Espera Pieza', esperaPieza, '#ef4444', 'ti-hourglass')}
+            ${kpi('Listos Entrega', listos, '#8b5cf6', 'ti-circle-check')}
+        `;
+    }
+    
+    let html = '';
+    
+    // SECCIÓN: Listas para entregar
+    const paraEntregar = ordenes.filter(o => normalizarEstadoOrden(o.estado) === 'finalizado');
+    html += `<div class="card" style="margin-bottom:14px;">
+        <h3 style="font-size:15px; margin:0 0 10px;"><i class="ti ti-circle-check" style="color:#8b5cf6;"></i> Listas para Entregar (${paraEntregar.length})</h3>`;
+    if(paraEntregar.length) {
+        html += paraEntregar.map(o => construirCardOrden(o, esAdmin, miId, tecnicosActivos)).join('');
+    } else {
+        html += `<div style="color:var(--text-muted); font-size:13px;">No hay equipos listos para entregar.</div>`;
+    }
+    html += `</div>`;
+    
+    // SECCIÓN: Esperando autorización del cliente
+    const espAut = ordenes.filter(o => normalizarEstadoOrden(o.estado) === 'pendiente_cliente');
+    html += `<div class="card" style="margin-bottom:14px;">
+        <h3 style="font-size:15px; margin:0 0 10px;"><i class="ti ti-bell" style="color:#9a3412;"></i> Esperando Autorización del Cliente (${espAut.length})</h3>`;
+    if(espAut.length) {
+        html += espAut.map(o => construirCardOrden(o, esAdmin, miId, tecnicosActivos)).join('');
+    } else {
+        html += `<div style="color:var(--text-muted); font-size:13px;">Ninguna orden esperando autorización.</div>`;
+    }
+    html += `</div>`;
+    
+    // SECCIÓN: Todas las órdenes (buscador + filtros)
+    html += `<div class="card" style="margin-bottom:14px;">
+        <h3 style="font-size:15px; margin:0 0 10px;"><i class="ti ti-tool" style="color:#9a3412;"></i> Todas las Órdenes de Trabajo</h3>
+        <input id="atencionBuscador" oninput="renderAtencionListaOrdenes()" placeholder="🔍 Buscar por número o cliente..." style="width:100%; padding:8px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; margin-bottom:10px;">
+        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
+            <button class="btn btn-light" onclick="_atencionFiltro='todas'; renderAtencionListaOrdenes()" style="font-size:12px;">Todas</button>
+            <button class="btn btn-light" onclick="_atencionFiltro='activas'; renderAtencionListaOrdenes()" style="font-size:12px;">⚙️ Activas</button>
+            <button class="btn btn-light" onclick="_atencionFiltro='entregadas'; renderAtencionListaOrdenes()" style="font-size:12px;">📦 Entregadas</button>
+        </div>
+        <div id="atencionListaOrdenes"></div>
+    </div>`;
+    
+    // SECCIÓN: Historial de reparaciones de los técnicos
+    html += `<div class="card" style="margin-bottom:14px;">
+        <h3 style="font-size:15px; margin:0 0 10px;"><i class="ti ti-history" style="color:#16a34a;"></i> Historial de Reparaciones</h3>
+        ${construirFiltroFechas(true)}
+        <div style="margin-bottom:10px;">
+            <label style="font-size:12px; font-weight:600; color:var(--text-muted);">Técnico:</label>
+            <select id="atencionTecnicoHist" onchange="_atencionTecnicoHist=this.value; renderAtencionHistorial()" style="padding:6px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px; margin-left:6px;">
+                <option value="">Todos los técnicos</option>
+                ${tecnicosActivos.map(t => `<option value="${t.id}" ${_atencionTecnicoHist === t.id ? 'selected' : ''}>${escapeHtml(t.nombre)}</option>`).join('')}
+            </select>
+        </div>
+        <div id="atencionHistorial"></div>
+    </div>`;
+    
+    cont.innerHTML = html;
+    renderAtencionListaOrdenes();
+    renderAtencionHistorial();
+}
+
+let _atencionFiltro = 'activas';
+function renderAtencionListaOrdenes() {
+    const cont = document.getElementById('atencionListaOrdenes');
+    if(!cont) return;
+    const esAdmin = isAdminUser();
+    const miId = sessionUser?.id;
+    const tecnicosActivos = (cache.tecnicos || []).filter(t => t.activo && (t.tipo_empleado === 'tecnico' || !t.tipo_empleado));
+    let ordenes = (cache.ordenes || []);
+    if(_atencionFiltro === 'activas') ordenes = ordenes.filter(o => !['entregado','cancelado'].includes(normalizarEstadoOrden(o.estado)));
+    else if(_atencionFiltro === 'entregadas') ordenes = ordenes.filter(o => normalizarEstadoOrden(o.estado) === 'entregado');
+    
+    const txt = (document.getElementById('atencionBuscador')?.value || '').trim().toLowerCase();
+    if(txt) {
+        ordenes = ordenes.filter(o => {
+            const c = findCliente(o.cliente_id);
+            return formatoOrden(o.numero_orden).toLowerCase().includes(txt) || (c.nombre || '').toLowerCase().includes(txt);
+        });
+    }
+    if(!ordenes.length) { cont.innerHTML = `<div style="color:var(--text-muted); font-size:13px;">No hay órdenes en este filtro.</div>`; return; }
+    cont.innerHTML = ordenes.map(o => construirCardOrden(o, esAdmin, miId, tecnicosActivos)).join('');
+}
+
+function renderAtencionHistorial() {
+    const cont = document.getElementById('atencionHistorial');
+    if(!cont) return;
+    // Solo órdenes de cliente (sin reacondicionados). Filtra por técnico si hay uno elegido.
+    cont.innerHTML = construirHistorialGeneral(_atencionTecnicoHist || null);
+}
+
+// Historial de técnicos (solo órdenes de cliente, sin reacondicionados). Si tecnicoId, filtra a uno.
+function construirHistorialGeneral(tecnicoId) {
+    const items = [];
+    (cache.ordenes || []).forEach(o => {
+        if(tecnicoId && o.tecnico_asignado_id !== tecnicoId) return;
+        const est = normalizarEstadoOrden(o.estado);
+        if(est === 'finalizado' || est === 'entregado') {
+            const fecha = o.fecha_entregado || o.fecha_finalizado || o.creado_en;
+            if(!fechaEnRango(fecha)) return;
+            const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
+            items.push({ fecha, equipo: `${e.marca||''} ${e.modelo||''}`.trim()||'Equipo', detalle: `${formatoOrden(o.numero_orden)} · ${c.nombre||'Cliente'}`, tec: o.tecnico_asignado_id ? nombreEmpleado(o.tecnico_asignado_id) : '—', tipo:'Servicio', color:'#3b82f6' });
+        }
+    });
+    if(!items.length) return `<div style="color:var(--text-muted); font-size:13px;">No hay reparaciones terminadas en este período.</div>`;
+    items.sort((a,b) => new Date(b.fecha||0) - new Date(a.fecha||0));
+    const filas = items.map(it => {
+        const f = it.fecha ? new Date(it.fecha).toLocaleDateString('es-DO',{day:'2-digit',month:'2-digit',year:'numeric'}) : '—';
+        return `<tr><td style="white-space:nowrap; font-size:12px;">${f}</td><td><span class="badge" style="background:${it.color}22; color:${it.color}; font-size:10px;">${it.tipo}</span></td><td style="font-weight:600;">${escapeHtml(it.equipo)}</td><td style="font-size:12px; color:var(--text-muted);">${escapeHtml(it.detalle)}</td><td style="font-size:12px;">${escapeHtml(it.tec)}</td></tr>`;
+    }).join('');
+    return `<div style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">${items.length} reparación(es) en el período (${_repFiltroFechas.label})</div>
+        <div style="overflow-x:auto;"><table class="data-table" style="width:100%; font-size:13px;"><thead><tr><th>Fecha</th><th>Tipo</th><th>Equipo</th><th>Detalle</th><th>Técnico</th></tr></thead><tbody>${filas}</tbody></table></div>`;
 }
 
 // ============================================================
@@ -8559,7 +8734,8 @@ const PERMISOS_DEF = [
     {
         grupo: '🔧 Modo Técnico', color: '#0891b2',
         items: [
-            { id: 'solo_mi_trabajo', label: 'SOLO ver la pantalla "Mi Trabajo" (oculta todo lo demás)' }
+            { id: 'solo_mi_trabajo', label: 'SOLO ver la pantalla "Mi Trabajo" (oculta todo lo demás)' },
+            { id: 'solo_atencion', label: 'SOLO ver la pantalla "Atención al Cliente" (oculta todo lo demás)' }
         ]
     },
     {
