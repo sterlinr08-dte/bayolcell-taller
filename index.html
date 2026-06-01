@@ -7347,8 +7347,10 @@ function renderTallerOrdenes() {
     }
     
     const tecnicosActivos = (cache.tecnicos || []).filter(t => t.activo && (t.tipo_empleado === 'tecnico' || !t.tipo_empleado));
-    
-    cont.innerHTML = ordenes.map(o => construirCardOrden(o, esAdmin, miId, tecnicosActivos)).join('');
+    // Si el usuario es de servicio al cliente (no técnico, no admin), ocultar botones de técnico
+    const esTecnicoReal = sessionUser?.tipo_empleado === 'tecnico';
+    const esModoServicio = !esAdmin && !esTecnicoReal && (tienePermiso('solo_atencion') || tienePermiso('recepcion_ver') || sessionUser?.tipo_empleado === 'servicio');
+    cont.innerHTML = ordenes.map(o => construirCardOrden(o, esAdmin, miId, tecnicosActivos, esModoServicio)).join('');
 }
 
 // Construye el HTML de UNA orden (reutilizable: tablero taller + Mi Trabajo)
@@ -7388,9 +7390,63 @@ function abrirEditarRecepcion(ordenId) {
             <input id="ed_accesorios" value="${escapeHtml(o.accesorios_recibidos || '')}" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin:3px 0 10px; font-size:13px;">
             <label style="font-size:12px; font-weight:600;">Clave / patrón del equipo</label>
             <input id="ed_clave" value="${escapeHtml(o.clave_equipo || '')}" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin:3px 0 10px; font-size:13px;">
+            
+            <div style="border-top:2px dashed #cbd5e1; margin:12px 0 10px; padding-top:10px;">
+                <label style="font-size:13px; font-weight:700; color:#0891b2;"><i class="ti ti-list-check"></i> Fallas / Problemas a reparar</label>
+                <div id="ed_listaFallas" style="margin:8px 0;">${construirListaFallasEditable(o.id)}</div>
+                <div style="display:flex; gap:6px;">
+                    <input id="ed_nuevaFalla" placeholder="Nueva falla (ej: Pantalla rota)" style="flex:1; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px;" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarFallaEnEdicion('${o.id}');}">
+                    <button onclick="agregarFallaEnEdicion('${o.id}')" class="btn btn-blue" style="font-size:12px; padding:8px 12px;"><i class="ti ti-plus"></i> Agregar</button>
+                </div>
+            </div>
+            
             <button onclick="guardarEditarRecepcion('${o.id}','${o.cliente_id}','${o.equipo_id}')" class="btn btn-blue" style="width:100%; padding:10px; margin-top:6px;"><i class="ti ti-device-floppy"></i> Guardar cambios</button>
         </div>`;
     abrirModalGenerico('✏️ Editar datos de recepción · ' + formatoOrden(o.numero_orden), contenido);
+}
+
+// Construye la lista editable de fallas (tareas) de una orden, dentro del modal de edición
+function construirListaFallasEditable(ordenId) {
+    const fallas = (cache.tareas || []).filter(t => t.tipo === 'orden' && t.ref_id === ordenId);
+    if(!fallas.length) return `<div style="font-size:12px; color:var(--text-muted);">Sin fallas registradas. Agrega una abajo.</div>`;
+    return fallas.map(t => {
+        const hecha = t.estado === 'hecha';
+        return `<div style="display:flex; align-items:center; gap:6px; padding:5px 8px; border:1px solid #e2e8f0; border-radius:6px; margin-bottom:4px;">
+            <span style="flex:1; font-size:12px; ${hecha ? 'text-decoration:line-through; color:#16a34a;' : ''}">${escapeHtml(t.descripcion)}${hecha ? ' ✓' : ''}</span>
+            <button onclick="quitarFallaEnEdicion('${t.id}','${ordenId}')" style="background:#fee2e2; color:#991b1b; border:0; padding:4px 7px; border-radius:5px; cursor:pointer; font-size:11px;" title="Quitar"><i class="ti ti-trash"></i></button>
+        </div>`;
+    }).join('');
+}
+
+// Agrega una falla nueva durante la edición
+async function agregarFallaEnEdicion(ordenId) {
+    const inp = document.getElementById('ed_nuevaFalla');
+    const desc = (inp?.value || '').trim();
+    if(!desc) return;
+    try {
+        await supabaseClient.from('tareas_trabajo').insert([{
+            tipo: 'orden', ref_id: ordenId, descripcion: desc, estado: 'pendiente',
+            creado_por: sessionUser?.nombre || 'Servicio'
+        }]);
+        if(inp) inp.value = '';
+        // Refrescar el cache de tareas y la lista del modal
+        const { data } = await supabaseClient.from('tareas_trabajo').select('*');
+        cache.tareas = data || cache.tareas;
+        const lista = document.getElementById('ed_listaFallas');
+        if(lista) lista.innerHTML = construirListaFallasEditable(ordenId);
+    } catch(e) { logError('Agregar falla edición', e); alert(getFriendlyError(e)); }
+}
+
+// Quita (elimina) una falla durante la edición
+async function quitarFallaEnEdicion(tareaId, ordenId) {
+    if(!confirm('¿Quitar esta falla?')) return;
+    try {
+        await supabaseClient.from('tareas_trabajo').delete().eq('id', tareaId);
+        const { data } = await supabaseClient.from('tareas_trabajo').select('*');
+        cache.tareas = data || cache.tareas;
+        const lista = document.getElementById('ed_listaFallas');
+        if(lista) lista.innerHTML = construirListaFallasEditable(ordenId);
+    } catch(e) { logError('Quitar falla edición', e); alert(getFriendlyError(e)); }
 }
 
 async function guardarEditarRecepcion(ordenId, clienteId, equipoId) {
