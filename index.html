@@ -624,6 +624,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
             <button id="menu-recepcion" onclick="nav('recepcion',this)"><i class="ti ti-clipboard-plus"></i> Recepción de Equipos</button>
             <button id="menu-ordenes" onclick="nav('ordenes',this)"><i class="ti ti-tool"></i> Órdenes de Trabajo</button>
             <button id="menu-inventario" onclick="nav('inventario',this)"><i class="ti ti-package"></i> Inventario Taller</button>
+            <button id="menu-piezasSolicitadas" onclick="nav('piezasSolicitadas',this)"><i class="ti ti-packages"></i> Piezas Solicitadas</button>
             <button id="menu-etiquetas" onclick="nav('etiquetas',this)"><i class="ti ti-barcode"></i> Impresión de Labels</button>
             <button id="menu-configImpresora" onclick="nav('configImpresora',this)"><i class="ti ti-settings"></i> Config. Impresora</button>
             <button id="menu-articulos" onclick="nav('articulos',this)"><i class="ti ti-database"></i> Catálogo de Artículos</button>
@@ -774,7 +775,10 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                     <div class="block-card">
                         <div class="block-header header-blue-light">Fallas del Equipo (problemas a reparar)</div>
                         <div class="block-body">
-                            <div style="font-size:12px; color:var(--text-muted); margin-bottom:6px;">Marca los problemas que reporta el cliente. Se crearán como tareas para los técnicos.</div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px;">
+                                <div style="font-size:12px; color:var(--text-muted);">Marca los problemas que reporta el cliente. Se crearán como tareas para los técnicos.</div>
+                                <button id="btnEditarFallasComunes" onclick="abrirEditorFallasComunes()" class="btn btn-light" style="font-size:11px; padding:4px 9px; display:none;"><i class="ti ti-settings"></i> Editar</button>
+                            </div>
                             <div class="checks-layout" id="checksFisico">
                                 <label><input type="checkbox" value="Pantalla rota"> Pantalla rota</label>
                                 <label><input type="checkbox" value="Mojado"> Mojado</label>
@@ -915,6 +919,20 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                             </table>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- PIEZAS SOLICITADAS (panel central) -->
+            <div id="v-piezasSolicitadas" class="view">
+                <h2 style="margin:0 0 14px;"><i class="ti ti-packages" style="color:#0891b2;"></i> Piezas Solicitadas</h2>
+                <div class="card">
+                    <input id="psBuscador" oninput="renderPiezasSolicitadas()" placeholder="🔍 Buscar pieza, técnico, orden o equipo..." style="width:100%; padding:8px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; margin-bottom:10px;">
+                    <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px;">
+                        <button class="btn btn-light" onclick="_psFiltro='todas'; renderPiezasSolicitadas()" style="font-size:12px;">Todas</button>
+                        <button class="btn btn-light" onclick="_psFiltro='pendientes'; renderPiezasSolicitadas()" style="font-size:12px;">🟡 Pendientes</button>
+                        <button class="btn btn-light" onclick="_psFiltro='entregadas'; renderPiezasSolicitadas()" style="font-size:12px;">📦 Entregadas</button>
+                    </div>
+                    <div id="piezasSolicitadasLista"></div>
                 </div>
             </div>
 
@@ -3038,6 +3056,7 @@ function applyAccessControls() {
         'menu-recepcion': 'recepcion_ver',
         'menu-ordenes': 'ordenes_ver',
         'menu-inventario': 'inventario_ver',
+        'menu-piezasSolicitadas': 'inventario_ver',
         'menu-etiquetas': 'imprimir_diag',
         'menu-configImpresora': 'config_impresora',
         'menu-articulos': 'catalogo_articulos',
@@ -3114,6 +3133,7 @@ const NAV_PERMISOS = {
     'recepcion': 'recepcion_ver',
     'ordenes': 'ordenes_ver',
     'inventario': 'inventario_ver',
+    'piezasSolicitadas': 'inventario_ver',
     'etiquetas': 'imprimir_diag',
     'configImpresora': 'config_impresora',
     'articulos': 'catalogo_articulos',
@@ -3149,7 +3169,8 @@ function nav(v, btn) {
     if(v === 'reportes') { setTimeout(() => { inicializarReportes(); }, 50); }
     if(v === 'miTrabajo') { setTimeout(() => { renderMiTrabajo(); }, 50); }
     if(v === 'atencion') { setTimeout(() => { renderAtencionCliente(); }, 50); }
-    if(v === 'recepcion') { setTimeout(() => { if(typeof renderRecepcionesRealizadas === 'function') renderRecepcionesRealizadas(); }, 50); }
+    if(v === 'recepcion') { setTimeout(() => { if(typeof renderRecepcionesRealizadas === 'function') renderRecepcionesRealizadas(); if(typeof refrescarChecklistRecepcion === 'function') refrescarChecklistRecepcion(); }, 50); }
+    if(v === 'piezasSolicitadas') { setTimeout(() => { if(typeof renderPiezasSolicitadas === 'function') renderPiezasSolicitadas(); }, 50); }
     closeSidebar();
     window.scrollTo({ top: 0, behavior: 'smooth' });
     // Re-aplicar permisos de botones estáticos tras renderizar (NO en modo solo-mi-trabajo, causa bucle)
@@ -3173,7 +3194,7 @@ function closeSidebar() {
 
 async function loadAll() {
     try {
-        const [rOrd, rCli, rEq, rPz, rAct, rRef, rProv, rLot, rArt, rTec, rUsr, rOpz, rTk, rPzR] = await Promise.all([
+        const [rOrd, rCli, rEq, rPz, rAct, rRef, rProv, rLot, rArt, rTec, rUsr, rOpz, rTk, rPzR, rFC] = await Promise.all([
             supabaseClient.from('ordenes_reparacion').select('*').order('creado_en', { ascending: false }),
             supabaseClient.from('clientes').select('*'),
             supabaseClient.from('equipos').select('*'),
@@ -3187,7 +3208,8 @@ async function loadAll() {
             supabaseClient.from('usuarios').select('id, nombre, usuario, rol').then(r => r, () => ({ data: [], error: null })),
             supabaseClient.from('orden_piezas').select('*').order('creado_en', { ascending: true }).then(r => r, () => ({ data: [], error: null })),
             supabaseClient.from('tareas_trabajo').select('*').order('creado_en', { ascending: true }).then(r => r, () => ({ data: [], error: null })),
-            supabaseClient.from('equipo_piezas_pedidas').select('*').order('creado_en', { ascending: true }).then(r => r, () => ({ data: [], error: null }))
+            supabaseClient.from('equipo_piezas_pedidas').select('*').order('creado_en', { ascending: true }).then(r => r, () => ({ data: [], error: null })),
+            supabaseClient.from('fallas_comunes').select('*').order('orden', { ascending: true }).then(r => r, () => ({ data: [], error: null }))
         ]);
 
         requireSupabaseOk(rOrd, 'Cargar órdenes');
@@ -3211,7 +3233,8 @@ async function loadAll() {
             tecnicos: rTec.data || [], usuarios: (rUsr && rUsr.data) || [],
             ordenPiezas: (rOpz && rOpz.data) || [],
             tareas: (rTk && rTk.data) || [],
-            piezasReacond: (rPzR && rPzR.data) || []
+            piezasReacond: (rPzR && rPzR.data) || [],
+            fallasComunes: (rFC && rFC.data) || (cache.fallasComunes || [])
         };
         // Solo notificar si ya había datos cargados antes (no en la primera carga)
         if(_notifYaInicializado) {
@@ -3405,7 +3428,8 @@ function renderAll() {
     renderTallerOrdenes();
     if(document.getElementById('v-miTrabajo')?.classList.contains('active')) renderMiTrabajo();
     if(document.getElementById('v-atencion')?.classList.contains('active')) renderAtencionCliente();
-    if(document.getElementById('v-recepcion')?.classList.contains('active') && typeof renderRecepcionesRealizadas === 'function') renderRecepcionesRealizadas();
+    if(document.getElementById('v-piezasSolicitadas')?.classList.contains('active') && typeof renderPiezasSolicitadas === 'function') renderPiezasSolicitadas();
+    if(document.getElementById('v-recepcion')?.classList.contains('active') && typeof renderRecepcionesRealizadas === 'function') { renderRecepcionesRealizadas(); if(typeof refrescarChecklistRecepcion === 'function') refrescarChecklistRecepcion(); }
     // Alertas de equipos demorados en el dashboard
     const demCont = document.getElementById('dashboardDemoras');
     if(demCont && typeof construirAlertaDemoras === 'function') demCont.innerHTML = construirAlertaDemoras(true);
@@ -7370,6 +7394,84 @@ function renderTallerOrdenes() {
 }
 
 // Construye el HTML de UNA orden (reutilizable: tablero taller + Mi Trabajo)
+// Panel central que junta TODAS las piezas solicitadas (órdenes de cliente + reacondicionados)
+let _psFiltro = 'todas';
+function renderPiezasSolicitadas() {
+    const cont = document.getElementById('piezasSolicitadasLista');
+    if(!cont) return;
+    const items = [];
+    // Piezas de órdenes de cliente
+    (cache.ordenPiezas || []).forEach(p => {
+        const o = (cache.ordenes || []).find(x => x.id === p.orden_id);
+        const c = o ? findCliente(o.cliente_id) : {};
+        const tec = p.tecnico_id ? nombreEmpleado(p.tecnico_id) : (o && o.tecnico_asignado_id ? nombreEmpleado(o.tecnico_asignado_id) : '—');
+        items.push({
+            pieza: p.pieza_nombre || 'Pieza', cantidad: p.cantidad || 1, estado: p.estado || 'solicitada',
+            origen: o ? `Orden ${formatoOrden(o.numero_orden)}` : 'Orden', cliente: c.nombre || '', tecnico: tec,
+            tipo: 'Orden', color: '#3b82f6', fecha: p.creado_en
+        });
+    });
+    // Piezas de reacondicionados
+    (cache.piezasReacond || []).forEach(p => {
+        const eq = (cache.refurb || []).find(x => x.id === p.equipo_id);
+        const tec = eq && eq.tecnico_asignado_id ? nombreEmpleado(eq.tecnico_asignado_id) : '—';
+        items.push({
+            pieza: p.pieza_nombre || 'Pieza', cantidad: p.cantidad || 1, estado: p.estado || 'pendiente',
+            origen: eq ? `${eq.marca||''} ${eq.modelo||''}`.trim() : 'Reacond', cliente: '', tecnico: tec,
+            tipo: 'Reacond', color: '#f59e0b', fecha: p.fecha_entrega || p.creado_en
+        });
+    });
+    
+    // Filtro por estado
+    let filtrados = items;
+    if(_psFiltro === 'pendientes') filtrados = items.filter(i => ['solicitada','pendiente','extra_pendiente','aprobada'].includes(i.estado));
+    else if(_psFiltro === 'entregadas') filtrados = items.filter(i => ['entregada','recibida'].includes(i.estado));
+    
+    // Buscador
+    const txt = (document.getElementById('psBuscador')?.value || '').trim().toLowerCase();
+    if(txt) filtrados = filtrados.filter(i => 
+        i.pieza.toLowerCase().includes(txt) || i.tecnico.toLowerCase().includes(txt) ||
+        i.origen.toLowerCase().includes(txt) || (i.cliente||'').toLowerCase().includes(txt)
+    );
+    
+    filtrados.sort((a,b) => new Date(b.fecha||0) - new Date(a.fecha||0));
+    
+    if(!filtrados.length) { cont.innerHTML = `<div style="color:var(--text-muted); font-size:13px;">No hay piezas en este filtro.</div>`; return; }
+    
+    // Resumen por estado
+    const pend = items.filter(i => ['solicitada','pendiente','extra_pendiente','aprobada'].includes(i.estado)).length;
+    const entr = items.filter(i => ['entregada','recibida'].includes(i.estado)).length;
+    
+    const etiqEstado = (e) => {
+        const map = {
+            solicitada:['🟡 Solicitada','#d97706'], pendiente:['🟡 Pendiente','#d97706'],
+            entregada:['📦 Entregada','#0891b2'], aprobada:['✅ Aprobada','#16a34a'],
+            recibida:['✅ Recibida','#16a34a'], devuelta:['↩️ Devuelta','#64748b'],
+            extra_pendiente:['⏳ Extra pendiente','#9a3412'], rechazada:['❌ Rechazada','#dc2626']
+        };
+        const [txt, col] = map[e] || [e, '#64748b'];
+        return `<span style="background:${col}22; color:${col}; font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px;">${txt}</span>`;
+    };
+    
+    cont.innerHTML = `
+        <div style="display:flex; gap:10px; margin-bottom:10px; font-size:12px;">
+            <span style="background:#fef3c7; color:#92400e; padding:4px 10px; border-radius:8px; font-weight:700;">🟡 ${pend} pendientes</span>
+            <span style="background:#dbeafe; color:#1e40af; padding:4px 10px; border-radius:8px; font-weight:700;">📦 ${entr} entregadas/recibidas</span>
+        </div>
+        <div style="overflow-x:auto;"><table class="data-table" style="width:100%; font-size:13px;">
+            <thead><tr><th>Pieza</th><th>Cant</th><th>Origen</th><th>Técnico</th><th>Tipo</th><th>Estado</th></tr></thead>
+            <tbody>${filtrados.map(i => `<tr>
+                <td style="font-weight:600;">${escapeHtml(i.pieza)}</td>
+                <td>${i.cantidad}</td>
+                <td style="font-size:12px;">${escapeHtml(i.origen)}${i.cliente ? ' · ' + escapeHtml(i.cliente) : ''}</td>
+                <td style="font-size:12px;">${escapeHtml(i.tecnico)}</td>
+                <td><span style="background:${i.color}22; color:${i.color}; font-size:10px; padding:2px 7px; border-radius:8px;">${i.tipo}</span></td>
+                <td>${etiqEstado(i.estado)}</td>
+            </tr>`).join('')}</tbody>
+        </table></div>
+        <div style="font-size:11px; color:var(--text-muted); margin-top:6px;">${filtrados.length} pieza(s)</div>`;
+}
+
 // Lista de recepciones realizadas (con buscador y filtro de fecha) en el módulo Recepción
 let _recepFechaFiltro = 0;
 function renderRecepcionesRealizadas() {
@@ -7425,9 +7527,9 @@ function renderRecepcionesRealizadas() {
 function abrirEditarRecepcion(ordenId) {
     const o = (cache.ordenes || []).find(x => x.id === ordenId);
     if(!o) return;
-    // Permiso: admin, servicio (recepcion_ver) o el técnico asignado
-    if(!isAdminUser() && !tienePermiso('recepcion_ver') && o.tecnico_asignado_id !== sessionUser?.id) {
-        return alert('No tienes permiso para editar esta orden.');
+    // Permiso: solo admin o servicio (recepcion_ver). El técnico NO puede editar datos.
+    if(!isAdminUser() && !tienePermiso('recepcion_ver')) {
+        return alert('Solo el administrador o servicio al cliente pueden editar los datos de recepción.');
     }
     const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
     const contenido = `
@@ -7478,12 +7580,96 @@ function abrirEditarRecepcion(ordenId) {
 }
 
 // Checklist de fallas comunes en el modal de edición (marcadas = ya existen como tarea)
-const FALLAS_COMUNES = ['Pantalla rota','Mojado','Tapa rota','No enciende','Sin señal','Batería mala','Cámara rota','Puerto malo'];
+// Lista por defecto de fallas comunes (si la tabla está vacía)
+const FALLAS_COMUNES_DEFAULT = ['Pantalla rota','Mojado','Tapa rota','No enciende','Sin señal','Batería mala','Cámara rota','Puerto malo'];
+// Devuelve la lista actual de fallas comunes (de la tabla si hay, si no las default)
+function obtenerFallasComunes() {
+    const t = (cache.fallasComunes || []).filter(f => f.activo !== false);
+    if(t.length) return t.map(f => f.nombre);
+    return FALLAS_COMUNES_DEFAULT;
+}
+// Llena el checklist de recepción con las fallas comunes de la tabla
+function refrescarChecklistRecepcion() {
+    const cont = document.getElementById('checksFisico');
+    if(!cont) return;
+    const fallas = obtenerFallasComunes();
+    cont.innerHTML = fallas.map(f => `<label><input type="checkbox" value="${escapeHtml(f)}"> ${escapeHtml(f)}</label>`).join('');
+    // Mostrar botón editar solo a admin
+    const btn = document.getElementById('btnEditarFallasComunes');
+    if(btn) btn.style.display = isAdminUser() ? 'inline-flex' : 'none';
+}
+
+// Editor de fallas comunes (admin): editar, agregar, quitar
+function abrirEditorFallasComunes() {
+    if(!isAdminUser()) return alert('Solo el administrador puede editar las fallas comunes.');
+    const fallas = (cache.fallasComunes || []).filter(f => f.activo !== false).sort((a,b) => (a.orden||0)-(b.orden||0));
+    let filas;
+    if(!fallas.length) {
+        // Si la tabla está vacía, mostrar las default como referencia
+        filas = `<div style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">La tabla está vacía. Corre el SQL primero, o agrega fallas abajo.</div>`;
+    } else {
+        filas = fallas.map(f => `
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:5px;">
+                <input id="fc_${f.id}" value="${escapeHtml(f.nombre)}" style="flex:1; padding:7px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px;">
+                <button onclick="guardarNombreFalla('${f.id}')" style="background:#dcfce7; color:#166534; border:0; padding:6px 9px; border-radius:6px; cursor:pointer;" title="Guardar"><i class="ti ti-check"></i></button>
+                <button onclick="quitarFallaComun('${f.id}')" style="background:#fee2e2; color:#991b1b; border:0; padding:6px 9px; border-radius:6px; cursor:pointer;" title="Quitar"><i class="ti ti-trash"></i></button>
+            </div>`).join('');
+    }
+    const contenido = `
+        <div style="margin-bottom:10px;">${filas}</div>
+        <div style="display:flex; gap:6px; border-top:1px dashed #cbd5e1; padding-top:10px;">
+            <input id="fc_nueva" placeholder="Nueva falla común" style="flex:1; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px;" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarFallaComunNueva();}">
+            <button onclick="agregarFallaComunNueva()" class="btn btn-blue" style="font-size:12px; padding:8px 12px;"><i class="ti ti-plus"></i> Agregar</button>
+        </div>`;
+    abrirModalGenerico('⚙️ Editar Fallas Comunes', contenido);
+}
+
+async function guardarNombreFalla(id) {
+    const nuevo = (document.getElementById('fc_' + id)?.value || '').trim();
+    if(!nuevo) return alert('El nombre no puede estar vacío.');
+    try {
+        await supabaseClient.from('fallas_comunes').update({ nombre: nuevo }).eq('id', id);
+        await recargarFallasComunes();
+        toast('✅ Falla actualizada.');
+    } catch(e) { logError('Guardar falla común', e); alert(getFriendlyError(e)); }
+}
+
+async function quitarFallaComun(id) {
+    if(!confirm('¿Quitar esta falla común de la lista?')) return;
+    try {
+        await supabaseClient.from('fallas_comunes').delete().eq('id', id);
+        await recargarFallasComunes();
+        abrirEditorFallasComunes(); // refrescar el modal
+        toast('Falla quitada.');
+    } catch(e) { logError('Quitar falla común', e); alert(getFriendlyError(e)); }
+}
+
+async function agregarFallaComunNueva() {
+    const inp = document.getElementById('fc_nueva');
+    const nombre = (inp?.value || '').trim();
+    if(!nombre) return;
+    try {
+        const maxOrden = Math.max(0, ...(cache.fallasComunes || []).map(f => f.orden || 0));
+        await supabaseClient.from('fallas_comunes').insert([{ nombre, orden: maxOrden + 1, activo: true }]);
+        if(inp) inp.value = '';
+        await recargarFallasComunes();
+        abrirEditorFallasComunes(); // refrescar el modal
+        toast('✅ Falla agregada.');
+    } catch(e) { logError('Agregar falla común', e); alert(getFriendlyError(e)); }
+}
+
+async function recargarFallasComunes() {
+    const { data } = await supabaseClient.from('fallas_comunes').select('*').order('orden', { ascending: true });
+    cache.fallasComunes = data || cache.fallasComunes;
+    refrescarChecklistRecepcion();
+}
+
+// Llena el checklist de recepción con las fallas comunes de la tabla
 function construirChecklistFallasEdit(ordenId) {
     const existentes = (cache.tareas || [])
         .filter(t => t.tipo === 'orden' && t.ref_id === ordenId)
         .map(t => (t.descripcion || '').trim().toLowerCase());
-    return FALLAS_COMUNES.map(f => {
+    return obtenerFallasComunes().map(f => {
         const marcada = existentes.includes(f.toLowerCase());
         return `<label style="display:flex; align-items:center; gap:5px; font-size:12px; cursor:pointer; padding:3px;">
             <input type="checkbox" ${marcada ? 'checked' : ''} onchange="toggleFallaComun('${ordenId}', this.value, this.checked)" value="${escapeHtml(f)}"> ${escapeHtml(f)}
@@ -7616,10 +7802,14 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
                 acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#92400e;" onclick="cambiarEstadoOrdenUI('${o.id}','espera_repuesto')"><i class="ti ti-hourglass"></i> En espera de repuesto</button>`;
                 acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#9a3412;" onclick="cambiarEstadoOrdenUI('${o.id}','pendiente_cliente')"><i class="ti ti-bell"></i> Esperando autorización</button>`;
             }
-        } else if((puedeOperar || esServicio) && estado === 'finalizado') {
+        } else if((esAdmin || esServicio) && estado === 'finalizado') {
+            // Orden finalizada: solo servicio al cliente y admin pueden actuar (el técnico no hace nada)
             acciones += `<button class="btn btn-blue" style="font-size:12px; padding:6px 12px;" onclick="marcarEntregadoConGarantia('${o.id}')"><i class="ti ti-package"></i> Marcar Entregado</button>`;
-            // Volver a proceso solo técnico/admin (no servicio)
-            if(puedeOperar) acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-rotate"></i> Volver a proceso</button>`;
+            // Volver a proceso solo admin (corrección de errores)
+            if(esAdmin) acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-rotate"></i> Volver a proceso</button>`;
+        } else if(estado === 'finalizado') {
+            // Técnico viendo una orden finalizada: solo informativo, no puede hacer nada
+            acciones += `<span class="badge" style="background:#dcfce7; color:#166534; font-size:11px;">✓ Finalizada · esperando entrega</span>`;
         } else if(estado === 'entregado') {
             // Reabrir por garantía (si está dentro del plazo) — solo admin/servicio
             const puedeReabrir = esAdmin || tienePermiso('recepcion_ver');
@@ -7634,8 +7824,8 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
                 acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#6b21a8;" onclick="reabrirOrden('${o.id}','otra')"><i class="ti ti-rotate-clockwise"></i> Reabrir (otra razón)</button>`;
             }
         }
-        // Cancelar (admin siempre; técnico si es suya y no finalizada)
-        if((esAdmin || esMia) && !['entregado','cancelado'].includes(estado)) {
+        // Cancelar: SOLO servicio al cliente y admin (técnico NO puede cancelar)
+        if((esAdmin || esServicio) && !['entregado','cancelado','finalizado'].includes(estado)) {
             acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#991b1b;" onclick="cambiarEstadoOrdenUI('${o.id}','cancelado')"><i class="ti ti-x"></i> Cancelar</button>`;
         }
         // Derivar a otro técnico (solo si está tomada y en proceso)
@@ -7648,8 +7838,8 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
         if((esAdmin || (typeof tienePermiso === 'function' && tienePermiso('recepcion_ver'))) && o.cliente_id) {
             acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#0891b2;" onclick="verHistorialCliente('${o.cliente_id}')"><i class="ti ti-history"></i> Historial cliente</button>`;
         }
-        // Editar datos de recepción (admin, servicio o técnico asignado) si no está entregada/cancelada
-        if((esAdmin || esServicio || esMia) && !['entregado','cancelado'].includes(estado)) {
+        // Editar datos de recepción: SOLO servicio al cliente y admin (técnico NO)
+        if((esAdmin || esServicio) && !['entregado','cancelado'].includes(estado)) {
             acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#6b21a8;" onclick="abrirEditarRecepcion('${o.id}')"><i class="ti ti-edit"></i> Editar datos</button>`;
         }
         // Solicitar pieza: si está tomada y activa, O en garantía (entregado pero con garantía vigente)
@@ -10250,13 +10440,14 @@ function iniciarRealtime() {
 }
 
 function onCambioRealtime(payload) {
-    // Debounce: si llegan varios cambios juntos, esperar y recargar una sola vez
+    // Debounce corto: si llegan varios cambios juntos, recargar una sola vez
     if(_realtimeDebounce) clearTimeout(_realtimeDebounce);
     _realtimeDebounce = setTimeout(() => {
-        // No recargar si el usuario está escribiendo en un modal
-        if(hayModalAbierto()) return;
-        if(sessionUser) loadAll();
-    }, 800);
+        if(!sessionUser) return;
+        // Si hay un modal abierto, recargar datos en segundo plano para detectar notificaciones,
+        // pero sin re-renderizar la vista (para no interrumpir lo que el usuario escribe)
+        loadAll();
+    }, 400);
 }
 
 function detenerRealtime() {
