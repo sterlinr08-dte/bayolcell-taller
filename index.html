@@ -642,6 +642,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
             <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Menú"><i class="ti ti-menu-2"></i></button>
             <div class="top-title" id="pageTitle">Dashboard</div>
             <div class="top-right-info"><i class="ti ti-user-shield"></i> Rol: <span id="userRole" style="text-transform:uppercase;">Técnico</span></div>
+            <button class="btn btn-light" id="btnNotif" style="padding:4px 10px; font-size:11px; background:rgba(255,255,255,0.1); border:0; color:#fff;" onclick="toggleNotificaciones()" title="Activar/desactivar notificaciones con sonido"><i class="ti ti-bell"></i></button>
             <button class="btn btn-light" style="padding:4px 10px; font-size:11px; background:rgba(255,255,255,0.1); border:0; color:#fff;" onclick="abrirModalCambiarClave(false)" title="Cambiar mi contraseña"><i class="ti ti-key"></i></button>
             <button class="btn btn-light" style="padding:4px 10px; font-size:11px; background:rgba(255,255,255,0.1); border:0; color:#fff;" onclick="logout()">Salir</button>
         </header>
@@ -2436,6 +2437,85 @@ function toast(msg) {
     if(t) { t.textContent = msg; t.style.display = "block"; setTimeout(() => t.style.display = "none", 3000); }
 }
 function escapeHtml(s) { return (s ?? "").toString().replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[m])); }
+
+/* ============================================================
+   NOTIFICACIONES CON SONIDO (Web Audio API)
+   ============================================================ */
+let _audioCtx = null;
+let _audioHabilitado = false;
+let _notifConfig = { activadas: localStorage.getItem('bayol_notif') !== 'off' };
+
+// Inicializa el audio tras el primer toque del usuario (requerido por navegadores)
+function activarAudioNotif() {
+    if(_audioHabilitado) return;
+    try {
+        _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        _audioHabilitado = true;
+        // Pedir permiso de notificaciones del sistema
+        if('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+    } catch(e) { /* silencioso */ }
+}
+
+// Reproduce un tono. tipo: 'orden' | 'pieza' | 'finalizado'
+function reproducirSonido(tipo) {
+    if(!_audioHabilitado || !_audioCtx || !_notifConfig.activadas) return;
+    try {
+        const ctx = _audioCtx;
+        // Definición de cada sonido (frecuencias y duración distintas)
+        const sonidos = {
+            orden:      [{f:880, t:0},  {f:1180, t:0.12}],            // ding-dong agudo (nueva orden)
+            pieza:      [{f:660, t:0},  {f:660, t:0.15}],             // doble beep medio (pieza)
+            finalizado: [{f:523, t:0},  {f:659, t:0.1}, {f:784, t:0.2}] // acorde ascendente (éxito)
+        };
+        const notas = sonidos[tipo] || sonidos.orden;
+        notas.forEach(n => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = n.f;
+            gain.gain.setValueAtTime(0.0001, ctx.currentTime + n.t);
+            gain.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + n.t + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + n.t + 0.18);
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.start(ctx.currentTime + n.t);
+            osc.stop(ctx.currentTime + n.t + 0.2);
+        });
+    } catch(e) { /* silencioso */ }
+}
+
+// Notificación completa: sonido + toast + notificación del sistema
+function notificar(tipo, titulo, mensaje) {
+    if(!_notifConfig.activadas) return;
+    reproducirSonido(tipo);
+    toast(mensaje || titulo);
+    // Notificación del sistema (si la pestaña no está visible y hay permiso)
+    try {
+        if('Notification' in window && Notification.permission === 'granted' && document.hidden) {
+            const iconos = { orden: '🔔', pieza: '📦', finalizado: '✅' };
+            new Notification(`${iconos[tipo] || '🔔'} ${titulo}`, { body: mensaje || '', tag: 'bayol-' + tipo });
+        }
+    } catch(e) { /* silencioso */ }
+}
+
+// Activar/desactivar notificaciones
+function toggleNotificaciones() {
+    _notifConfig.activadas = !_notifConfig.activadas;
+    localStorage.setItem('bayol_notif', _notifConfig.activadas ? 'on' : 'off');
+    if(_notifConfig.activadas) { activarAudioNotif(); reproducirSonido('orden'); toast('🔔 Notificaciones activadas'); }
+    else toast('🔕 Notificaciones desactivadas');
+    actualizarBotonNotif();
+}
+function actualizarBotonNotif() {
+    const b = document.getElementById('btnNotif');
+    if(b) b.innerHTML = _notifConfig.activadas ? '<i class="ti ti-bell"></i>' : '<i class="ti ti-bell-off"></i>';
+}
+
+// Activar audio al primer toque/clic en cualquier parte
+document.addEventListener('click', activarAudioNotif, { once: true });
+document.addEventListener('touchstart', activarAudioNotif, { once: true });
+
 function money(n) { return "RD$ " + Number(n || 0).toLocaleString("es-DO", { minimumFractionDigits: 2 }); }
 function getChecked(id) { return [...document.querySelectorAll("#" + id + " input:checked")].map(x => x.value).join(", "); }
 function val(id) { return document.getElementById(id)?.value?.trim() || ""; }
@@ -2967,6 +3047,7 @@ function startApp() {
     document.getElementById("userAvatar").textContent = (sessionUser.nombre || "B").charAt(0).toUpperCase();
     document.getElementById("userRole").textContent = sessionUser.rol || sessionUser.nivel_acceso || sessionUser.nivel || "Técnico";
     applyAccessControls();
+    actualizarBotonNotif();
     startAppRefurbPoller();
     qzAutoConectar();
     loadAll();
@@ -3064,7 +3145,9 @@ async function loadAll() {
         requireSupabaseOk(rArt, 'Cargar artículos');
         requireSupabaseOk(rTec, 'Cargar técnicos');
         
-        cache = { 
+        // Detectar eventos nuevos para notificar (comparando con el cache anterior)
+        const prev = cache;
+        const nuevoCache = { 
             ordenes: rOrd.data || [], clientes: rCli.data || [], equipos: rEq.data || [], 
             piezas: rPz.data || [], activos: rAct.data || [], refurb: rRef.data || [],
             proveedores: rProv.data || [], lotes: rLot.data || [], articulos: rArt.data || [],
@@ -3074,11 +3157,86 @@ async function loadAll() {
             tareas: (rTk && rTk.data) || [],
             piezasReacond: (rPzR && rPzR.data) || []
         };
+        // Solo notificar si ya había datos cargados antes (no en la primera carga)
+        if(_notifYaInicializado) {
+            detectarEventosYNotificar(prev, nuevoCache);
+        }
+        _notifYaInicializado = true;
+        
+        cache = nuevoCache;
         renderAll();
     } catch(e) { logError('loadAll', e); toast(getFriendlyError(e, "Error cargando base de datos.")); }
 }
 
 function findCliente(id) { return cache.clientes.find(x => x.id === id) || {}; }
+
+// Bandera para no notificar en la primera carga
+let _notifYaInicializado = false;
+
+// Compara cache anterior vs nuevo y dispara notificaciones de eventos relevantes
+function detectarEventosYNotificar(prev, nuevo) {
+    try {
+        const miId = sessionUser?.id;
+        const esAdmin = isAdminUser();
+        const esServicio = tienePermiso && tienePermiso('recepcion_ver');
+        
+        // 1) NUEVA ORDEN recibida (para todos)
+        const ordenesPrevIds = new Set((prev.ordenes || []).map(o => o.id));
+        const nuevasOrdenes = (nuevo.ordenes || []).filter(o => !ordenesPrevIds.has(o.id));
+        if(nuevasOrdenes.length > 0) {
+            const o = nuevasOrdenes[0];
+            const c = (nuevo.clientes || []).find(x => x.id === o.cliente_id);
+            notificar('orden', 'Nueva orden recibida', `${formatoOrden(o.numero_orden)} · ${c?.nombre || 'Cliente'}${nuevasOrdenes.length > 1 ? ' y ' + (nuevasOrdenes.length-1) + ' más' : ''}`);
+        }
+        
+        // 2) PIEZA solicitada o entregada (técnico y servicio)
+        if(esAdmin || esServicio || true) {
+            // Piezas de reacond: nuevas solicitudes o cambios a entregada
+            const pzPrev = {};
+            (prev.piezasReacond || []).forEach(p => pzPrev[p.id] = p.estado);
+            (nuevo.piezasReacond || []).forEach(p => {
+                const estadoAnterior = pzPrev[p.id];
+                if(estadoAnterior === undefined && (p.estado === 'pendiente' || p.estado === 'solicitada')) {
+                    notificar('pieza', 'Pieza solicitada', `${p.pieza_nombre || 'Pieza'} (reacondicionado)`);
+                } else if(estadoAnterior && estadoAnterior !== 'entregada' && p.estado === 'entregada') {
+                    notificar('pieza', 'Pieza entregada', `${p.pieza_nombre || 'Pieza'} lista para el técnico`);
+                }
+            });
+            // Piezas de órdenes
+            const opPrev = {};
+            (prev.ordenPiezas || []).forEach(p => opPrev[p.id] = p.estado);
+            (nuevo.ordenPiezas || []).forEach(p => {
+                const estadoAnterior = opPrev[p.id];
+                if(estadoAnterior === undefined && p.estado === 'solicitada') {
+                    notificar('pieza', 'Pieza solicitada', `${p.pieza_nombre || 'Pieza'} (orden)`);
+                } else if(estadoAnterior && estadoAnterior !== 'entregada' && p.estado === 'entregada') {
+                    notificar('pieza', 'Pieza entregada', `${p.pieza_nombre || 'Pieza'} lista`);
+                }
+            });
+        }
+        
+        // 3) PROCESO FINALIZADO (orden finalizada o reacond listo)
+        const ordPrevEstado = {};
+        (prev.ordenes || []).forEach(o => ordPrevEstado[o.id] = normalizarEstadoOrden(o.estado));
+        (nuevo.ordenes || []).forEach(o => {
+            const ant = ordPrevEstado[o.id];
+            const act = normalizarEstadoOrden(o.estado);
+            if(ant && ant !== 'finalizado' && act === 'finalizado') {
+                const c = (nuevo.clientes || []).find(x => x.id === o.cliente_id);
+                notificar('finalizado', 'Reparación finalizada', `${formatoOrden(o.numero_orden)} · ${c?.nombre || 'Cliente'} lista para entregar`);
+            }
+        });
+        const rfPrevEstado = {};
+        (prev.refurb || []).forEach(e => rfPrevEstado[e.id] = e.estado_evaluacion);
+        (nuevo.refurb || []).forEach(e => {
+            const ant = rfPrevEstado[e.id];
+            if(ant && ant !== 'listo_venta' && e.estado_evaluacion === 'listo_venta') {
+                notificar('finalizado', 'Reacondicionado listo', `${e.marca || ''} ${e.modelo || ''} listo para venta`);
+            }
+        });
+    } catch(e) { /* silencioso, no romper loadAll */ }
+}
+
 
 // Devuelve el nombre del empleado que creó algo (busca en usuarios y técnicos)
 function nombreEmpleado(id) {
