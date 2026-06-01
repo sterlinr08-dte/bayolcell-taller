@@ -14,13 +14,16 @@
 
 <style>
 :root {
-    --bg-main: #eef2f7;
-    --sidebar-bg: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-    --sidebar-btn-bg: linear-gradient(180deg, #334155 0%, #1e293b 100%);
-    --blue-btn: #0056b3;
-    --text-dark: #0f172a;
+    --bg-main: #f1f5f9;
+    --sidebar-bg: #ffffff;
+    --sidebar-btn-bg: #fef2f2;
+    --blue-btn: #dc2626;
+    --red-soft: #dc2626;
+    --red-light: #fef2f2;
+    --red-mid: #fee2e2;
+    --text-dark: #1e293b;
     --text-muted: #64748b;
-    --border-color: #cbd5e1;
+    --border-color: #e2e8f0;
     --card-bg: #ffffff;
 }
 
@@ -42,7 +45,7 @@ input[disabled] { background-color: #f1f5f9; color: #94a3b8; cursor: not-allowed
 .btn { border: 0; border-radius: 8px; padding: 8px 14px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 12.5px; text-shadow: 0 1px 1px rgba(0,0,0,0.1); transition: all 0.15s ease; transform: translateY(0); }
 .btn:active { transform: translateY(2px); }
 .btn:disabled, .btn[disabled] { opacity: 0.5; cursor: not-allowed; box-shadow: none !important; transform: none !important; }
-.btn-blue { background: linear-gradient(180deg, #1e88e5 0%, #1565c0 100%); color: #fff; box-shadow: 0 3px 0 #0d47a1, 0 4px 8px rgba(0,68,170,0.25); }
+.btn-blue { background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%); color: #fff; box-shadow: 0 3px 0 #991b1b, 0 4px 8px rgba(220,38,38,0.25); }
 .btn-blue:hover { background: linear-gradient(180deg, #2196f3 0%, #1976d2 100%); box-shadow: 0 3px 0 #0d47a1, 0 5px 12px rgba(0,68,170,0.35); }
 .btn-blue:active { box-shadow: 0 1px 0 #0d47a1, 0 2px 5px rgba(0,68,170,0.3); }
 .btn-dark { background: linear-gradient(180deg, #334155 0%, #1e293b 100%); color: #fff; box-shadow: 0 3px 0 #0f172a, 0 4px 8px rgba(0,0,0,0.2); }
@@ -69,24 +72,34 @@ input[disabled] { background-color: #f1f5f9; color: #94a3b8; cursor: not-allowed
 .err { display: none; background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; padding: 10px; border-radius: 8px; font-size: 13px; margin-bottom: 15px; text-align: left; }
 
 .app { display: none; height: 100vh; }
-.sidebar { width: 260px; background: var(--sidebar-bg); color: #fff; display: flex; flex-direction: column; flex-shrink: 0; box-shadow: 4px 0 15px rgba(0,0,0,0.15); z-index: 10; }
-.side-profile { padding: 22px 20px; display: flex; align-items: center; gap: 12px; background: rgba(0,0,0,0.15); border-bottom: 1px solid rgba(255,255,255,0.05); }
-.avatar { width: 42px; height: 42px; border-radius: 50%; background: #475569; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; border: 2px solid #cbd5e1; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-.profile-info h4 { margin: 0; font-size: 14px; font-weight: 700; color: #f8fafc; }
-.profile-info small { color: #22c55e; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+.sidebar { width: 268px; background: var(--sidebar-bg); color: var(--text-dark); display: flex; flex-direction: column; flex-shrink: 0; box-shadow: 2px 0 16px rgba(0,0,0,0.06); z-index: 10; border-right: 1px solid #eef2f7; }
 
-.nav { padding: 15px 10px; overflow-y: auto; flex: 1; }
-.nav button { width: 100%; background: transparent; color: #94a3b8; border: 0; border-radius: 8px; padding: 11px 12px; margin-bottom: 6px; text-align: left; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 13px; border: 1px solid transparent; }
-.nav button:hover { background: rgba(255,255,255,0.05); color: #fff; }
-.nav button.active { background: var(--sidebar-btn-bg); color: #fff; font-weight: 700; border: 1px solid #475569; box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 2px 4px rgba(0,0,0,0.2); }
+/* Logo estilo NEXUS */
+.side-brand { padding: 20px 18px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #f1f5f9; }
+.brand-icon { width: 46px; height: 46px; border-radius: 13px; background: linear-gradient(135deg, #ef4444, #dc2626); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 24px; box-shadow: 0 6px 14px rgba(220,38,38,0.3); flex-shrink: 0; }
+.brand-text h3 { margin: 0; font-size: 18px; font-weight: 800; color: #1e293b; letter-spacing: -0.3px; }
+.brand-text small { display: block; font-size: 10px; color: #94a3b8; font-weight: 700; letter-spacing: 0.5px; margin-top: 1px; }
 
-.side-bottom-logo { padding: 20px; text-align: center; border-top: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.2); }
-.side-bottom-logo h3 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: 0.5px; color: #fff; }
-.side-bottom-logo h3 span { color: #ef4444; }
-.side-bottom-logo small { display: block; font-size: 9px; color: #64748b; margin-top: 2px; font-weight: 700; }
+.nav { padding: 14px 12px; overflow-y: auto; flex: 1; }
+.nav-section { font-size: 10px; font-weight: 800; color: #94a3b8; letter-spacing: 1px; padding: 14px 10px 6px; }
+.nav-section:first-child { padding-top: 4px; }
+.nav button { width: 100%; background: #fff; color: #475569; border: 1px solid #f1f5f9; border-radius: 12px; padding: 13px 14px; margin-bottom: 7px; text-align: left; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 12px; font-size: 13.5px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
+.nav button i { font-size: 19px; color: #94a3b8; flex-shrink: 0; }
+.nav button span { flex: 1; }
+.nav button:hover { background: var(--red-light); color: #dc2626; border-color: var(--red-mid); }
+.nav button:hover i { color: #dc2626; }
+.nav button.active { background: linear-gradient(135deg, #fef2f2, #fee2e2); color: #dc2626; font-weight: 800; border: 1.5px solid #fca5a5; box-shadow: 0 4px 10px rgba(220,38,38,0.12); }
+.nav button.active i { color: #dc2626; }
+.nav-badge-admin { background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; font-size: 9px; font-weight: 800; padding: 3px 9px; border-radius: 20px; letter-spacing: 0.5px; flex: 0 !important; }
+
+/* Tarjeta de usuario estilo NEXUS */
+.side-user { margin: 10px 12px 14px; padding: 12px 14px; display: flex; align-items: center; gap: 11px; background: #fff; border: 1px solid #f1f5f9; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+.avatar { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; box-shadow: 0 3px 8px rgba(220,38,38,0.25); flex-shrink: 0; }
+.profile-info h4 { margin: 0; font-size: 14px; font-weight: 800; color: #1e293b; }
+.profile-info small { color: #16a34a; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
 
 .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-.top-bar { height: 56px; background: #0056b3; color: #fff; display: flex; align-items: center; padding: 0 24px; gap: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+.top-bar { height: 58px; background: linear-gradient(135deg, #dc2626, #b91c1c); color: #fff; display: flex; align-items: center; padding: 0 24px; gap: 15px; box-shadow: 0 2px 10px rgba(220,38,38,0.2); }
 .top-title { font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
 .top-right-info { margin-left: auto; font-size: 12px; font-weight: 600; background: rgba(255,255,255,0.15); padding: 5px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); }
 
@@ -610,32 +623,44 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
 <div id="app" class="app">
     <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeSidebar()"></div>
     <aside class="sidebar" id="sidebar">
-        <div class="side-profile">
+        <!-- Logo estilo NEXUS -->
+        <div class="side-brand">
+            <div class="brand-icon"><i class="ti ti-device-mobile"></i></div>
+            <div class="brand-text">
+                <h3>BAYOL CELL</h3>
+                <small>V5 · TALLER RD</small>
+            </div>
+        </div>
+        
+        <div class="nav">
+            <div class="nav-section">PRINCIPAL</div>
+            <button class="active" id="menu-dashboard" onclick="nav('dashboard',this)"><i class="ti ti-layout-dashboard"></i> <span>Dashboard</span></button>
+            <button id="menu-miTrabajo" onclick="nav('miTrabajo',this)"><i class="ti ti-briefcase"></i> <span>Mi Trabajo</span></button>
+            <button id="menu-atencion" onclick="nav('atencion',this)"><i class="ti ti-headset"></i> <span>Atención al Cliente</span></button>
+            <button id="menu-recepcion" onclick="nav('recepcion',this)"><i class="ti ti-clipboard-plus"></i> <span>Recepción de Equipos</span></button>
+            <button id="menu-ordenes" onclick="nav('ordenes',this)"><i class="ti ti-tool"></i> <span>Órdenes de Trabajo</span></button>
+            
+            <div class="nav-section">INVENTARIO</div>
+            <button id="menu-inventario" onclick="nav('inventario',this)"><i class="ti ti-package"></i> <span>Inventario Taller</span></button>
+            <button id="menu-piezasSolicitadas" onclick="nav('piezasSolicitadas',this)"><i class="ti ti-packages"></i> <span>Piezas Solicitadas</span></button>
+            <button id="menu-articulos" onclick="nav('articulos',this)"><i class="ti ti-database"></i> <span>Catálogo de Artículos</span></button>
+            <button id="menu-proveedores" onclick="nav('proveedores',this)"><i class="ti ti-shopping-cart"></i> <span>Compras</span></button>
+            <button id="menu-refurb" onclick="nav('refurb',this)"><i class="ti ti-refresh"></i> <span>Reacondicionados</span></button>
+            
+            <div class="nav-section">SISTEMA</div>
+            <button id="menu-etiquetas" onclick="nav('etiquetas',this)"><i class="ti ti-barcode"></i> <span>Impresión de Labels</span></button>
+            <button id="menu-configImpresora" onclick="nav('configImpresora',this)"><i class="ti ti-printer"></i> <span>Config. Impresora</span></button>
+            <button id="menu-reportes" onclick="nav('reportes',this)"><i class="ti ti-chart-bar"></i> <span>Reportes</span></button>
+            <button id="menu-configuracion" onclick="nav('configuracion',this)"><i class="ti ti-adjustments"></i> <span>Configuración</span> <span class="nav-badge-admin">ADMIN</span></button>
+        </div>
+        
+        <!-- Tarjeta de usuario estilo NEXUS -->
+        <div class="side-user">
             <div class="avatar" id="userAvatar">B</div>
             <div class="profile-info">
                 <h4 id="userName">Cargando...</h4>
-                <small><i class="ti ti-circle-filled" style="font-size:8px;"></i> En Línea</small>
+                <small><i class="ti ti-circle-filled" style="font-size:7px; color:#16a34a;"></i> En Línea</small>
             </div>
-        </div>
-        <div class="nav">
-            <button class="active" id="menu-dashboard" onclick="nav('dashboard',this)"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
-            <button id="menu-miTrabajo" onclick="nav('miTrabajo',this)"><i class="ti ti-briefcase"></i> Mi Trabajo</button>
-            <button id="menu-atencion" onclick="nav('atencion',this)"><i class="ti ti-headset"></i> Atención al Cliente</button>
-            <button id="menu-recepcion" onclick="nav('recepcion',this)"><i class="ti ti-clipboard-plus"></i> Recepción de Equipos</button>
-            <button id="menu-ordenes" onclick="nav('ordenes',this)"><i class="ti ti-tool"></i> Órdenes de Trabajo</button>
-            <button id="menu-inventario" onclick="nav('inventario',this)"><i class="ti ti-package"></i> Inventario Taller</button>
-            <button id="menu-piezasSolicitadas" onclick="nav('piezasSolicitadas',this)"><i class="ti ti-packages"></i> Piezas Solicitadas</button>
-            <button id="menu-etiquetas" onclick="nav('etiquetas',this)"><i class="ti ti-barcode"></i> Impresión de Labels</button>
-            <button id="menu-configImpresora" onclick="nav('configImpresora',this)"><i class="ti ti-settings"></i> Config. Impresora</button>
-            <button id="menu-articulos" onclick="nav('articulos',this)"><i class="ti ti-database"></i> Catálogo de Artículos</button>
-            <button id="menu-proveedores" onclick="nav('proveedores',this)"><i class="ti ti-shopping-cart"></i> Compras</button>
-            <button id="menu-refurb" onclick="nav('refurb',this)"><i class="ti ti-refresh"></i> Reacondicionados</button>
-            <button id="menu-reportes" onclick="nav('reportes',this)"><i class="ti ti-chart-bar"></i> Reportes</button>
-            <button id="menu-configuracion" onclick="nav('configuracion',this)"><i class="ti ti-adjustments"></i> Configuración</button>
-        </div>
-        <div class="side-bottom-logo">
-            <h3>BAYOL <span>CELL</span></h3>
-            <small>REP. & ACCESORIOS · PREMIUM</small>
         </div>
     </aside>
 
