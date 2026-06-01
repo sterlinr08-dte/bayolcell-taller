@@ -5937,6 +5937,17 @@ async function cambiarEstadoProceso(equipoId, nuevoEstado) {
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return;
     const estadoAnterior = eq.estado_evaluacion;
+    // No permitir pasar a revisión final si quedan fallas pendientes
+    if(nuevoEstado === 'listo_revision') {
+        const pend = fallasPendientesDe('equipo', equipoId);
+        if(pend > 0) {
+            if(isAdminUser()) {
+                if(!confirm(`⚠️ Este equipo tiene ${pend} falla(s) SIN resolver.\n\nComo administrador puedes pasarlo a revisión de todos modos.\n\n¿Forzar?`)) return;
+            } else {
+                return alert(`⚠️ No puedes pasar a revisión todavía.\n\nQuedan ${pend} falla(s) pendiente(s). Marca todas las fallas como resueltas (✓) primero.`);
+            }
+        }
+    }
     try {
         const { error } = await supabaseClient.from('equipos_refurbish').update({ estado_evaluacion: nuevoEstado }).eq('id', equipoId);
         if(error) throw error;
@@ -7484,10 +7495,26 @@ function construirHistorialTecnico(tecnicoId) {
         </div>`;
 }
 
+// Cuenta cuántas fallas/tareas pendientes tiene una orden o equipo
+function fallasPendientesDe(tipo, refId) {
+    return (cache.tareas || []).filter(t => t.tipo === tipo && t.ref_id === refId && t.estado !== 'hecha').length;
+}
+
 // Maneja el cambio de estado desde la UI (pide nota si es pendiente_cliente)
 async function cambiarEstadoOrdenUI(ordenId, nuevoEstado) {
     if(nuevoEstado === 'cancelado') {
         if(!confirm('¿Cancelar esta orden? Esta acción la marca como anulada.')) return;
+    }
+    // No permitir finalizar si quedan fallas/tareas pendientes
+    if(nuevoEstado === 'finalizado') {
+        const pend = fallasPendientesDe('orden', ordenId);
+        if(pend > 0) {
+            if(isAdminUser()) {
+                if(!confirm(`⚠️ Esta orden tiene ${pend} falla(s) SIN resolver.\n\nComo administrador puedes finalizarla de todos modos.\n\n¿Forzar finalización?`)) return;
+            } else {
+                return alert(`⚠️ No puedes finalizar todavía.\n\nQuedan ${pend} falla(s) pendiente(s). Marca todas las fallas como resueltas (✓) antes de finalizar.`);
+            }
+        }
     }
     if(nuevoEstado === 'pendiente_cliente') {
         const nota = prompt('🔔 ESPERANDO AUTORIZACIÓN DEL CLIENTE\n\n¿Qué necesitas que el cliente autorice o informe?\n\nEjemplos:\n• "Autorizar cambio de batería - RD$1,200"\n• "Se dañó el flex al abrir, autorizar reemplazo"\n• "Necesito la contraseña del equipo"');
