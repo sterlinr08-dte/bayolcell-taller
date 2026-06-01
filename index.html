@@ -723,6 +723,10 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                         <button class="btn btn-light" id="fltOrdMias" onclick="setFiltroTaller('mias')" style="font-size:12px;">🔧 Mis órdenes</button>
                         <button class="btn btn-light" id="fltOrdReasignadas" onclick="setFiltroTaller('reasignadas')" style="font-size:12px;">🔄 Reasignadas a mí</button>
                         <button class="btn btn-light" id="fltOrdActivas" onclick="setFiltroTaller('activas')" style="font-size:12px;">⚙️ Activas</button>
+                        <button class="btn btn-light" id="fltOrdEntregadas" onclick="setFiltroTaller('entregadas')" style="font-size:12px;">📦 Entregadas</button>
+                    </div>
+                    <div style="margin-bottom:12px;">
+                        <input id="buscadorTaller" oninput="renderTallerOrdenes()" placeholder="🔍 Buscar por número de orden o cliente..." style="width:100%; padding:8px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
                     </div>
                     <div id="tallerOrdenesLista" style="font-size:13px;"></div>
                 </div>
@@ -7050,7 +7054,7 @@ function renderReporteTecnico() {
 let _filtroTaller = 'activas';
 function setFiltroTaller(f) {
     _filtroTaller = f;
-    ['todas','libres','mias','reasignadas','activas'].forEach(x => {
+    ['todas','libres','mias','reasignadas','activas','entregadas'].forEach(x => {
         const btn = document.getElementById('fltOrd' + x.charAt(0).toUpperCase() + x.slice(1));
         if(btn) { btn.style.background = (x === f) ? 'var(--blue-btn)' : ''; btn.style.color = (x === f) ? '#fff' : ''; }
     });
@@ -7077,10 +7081,23 @@ function renderTallerOrdenes() {
         ordenes = ordenes.filter(o => reasignadasAMi.has(o.id));
     } else if(_filtroTaller === 'activas') {
         ordenes = ordenes.filter(o => !['entregado','cancelado'].includes(normalizarEstadoOrden(o.estado)));
+    } else if(_filtroTaller === 'entregadas') {
+        ordenes = ordenes.filter(o => normalizarEstadoOrden(o.estado) === 'entregado');
+    }
+    
+    // Buscador de texto (número de orden o cliente)
+    const txtBuscar = (document.getElementById('buscadorTaller')?.value || '').trim().toLowerCase();
+    if(txtBuscar) {
+        ordenes = ordenes.filter(o => {
+            const c = findCliente(o.cliente_id);
+            const numTxt = formatoOrden(o.numero_orden).toLowerCase();
+            const cliTxt = (c.nombre || '').toLowerCase();
+            return numTxt.includes(txtBuscar) || cliTxt.includes(txtBuscar);
+        });
     }
     
     if(!ordenes.length) {
-        cont.innerHTML = `<div style="color:var(--text-muted); padding:14px 0;">No hay órdenes en este filtro.</div>`;
+        cont.innerHTML = `<div style="color:var(--text-muted); padding:14px 0;">No hay órdenes en este filtro${txtBuscar ? ' o búsqueda' : ''}.</div>`;
         return;
     }
     
@@ -7126,12 +7143,17 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos) {
             // Permitir reabrir si se finalizó por error
             acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-rotate"></i> Volver a proceso</button>`;
         } else if(estado === 'entregado') {
-            // Reabrir por garantía (si está dentro del plazo)
+            // Reabrir por garantía (si está dentro del plazo) — solo admin/servicio
+            const puedeReabrir = esAdmin || tienePermiso('recepcion_ver');
             const info = infoGarantiaOrden(o);
-            if(info.vigente) {
-                acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#0369a1;" onclick="reabrirPorGarantia('${o.id}')"><i class="ti ti-shield-check"></i> Reabrir por garantía (${info.diasRestantes}d)</button>`;
-            } else if(info.tieneGarantia) {
-                acciones += `<span class="badge" style="background:#fee2e2; color:#991b1b; font-size:10px;">Garantía vencida</span>`;
+            if(puedeReabrir) {
+                if(info.vigente) {
+                    acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#0369a1;" onclick="reabrirPorGarantia('${o.id}')"><i class="ti ti-shield-check"></i> Reabrir por garantía (${info.diasRestantes}d)</button>`;
+                } else if(info.tieneGarantia) {
+                    acciones += `<span class="badge" style="background:#fee2e2; color:#991b1b; font-size:10px;">Garantía vencida</span>`;
+                }
+                // Reabrir por otra razón (siempre disponible para admin/servicio)
+                acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#6b21a8;" onclick="reabrirOrden('${o.id}','otra')"><i class="ti ti-rotate-clockwise"></i> Reabrir (otra razón)</button>`;
             }
         }
         // Cancelar (admin siempre; técnico si es suya y no finalizada)
@@ -7848,27 +7870,53 @@ async function marcarEntregadoConGarantia(ordenId) {
 
 // Reabre una orden entregada por garantía
 async function reabrirPorGarantia(ordenId) {
+    return reabrirOrden(ordenId, 'garantia');
+}
+
+// Reabre una orden entregada. motivo: 'garantia' o 'otra'. Vuelve al mismo técnico que la hizo.
+async function reabrirOrden(ordenId, tipoMotivo) {
     const orden = (cache.ordenes || []).find(o => o.id === ordenId);
     if(!orden) return;
-    const info = infoGarantiaOrden(orden);
-    if(!info.vigente) return alert('La garantía de esta orden ya venció. No se puede reabrir por garantía.');
+    // Permiso: admin o servicio al cliente
+    if(!isAdminUser() && !tienePermiso('recepcion_ver')) {
+        return alert('Solo un administrador o personal de servicio al cliente puede reabrir órdenes.');
+    }
+    const tecAnterior = orden.tecnico_asignado_id ? nombreEmpleado(orden.tecnico_asignado_id) : null;
     
-    const motivo = prompt(`🛡️ REABRIR POR GARANTÍA\n\nQuedan ${info.diasRestantes} días de garantía.\n\n¿Qué problema reporta el cliente?\n\nEjemplo: "La pantalla volvió a fallar"`);
-    if(motivo === null) return;
-    if(!motivo.trim()) return alert('Indica el motivo de la garantía.');
+    let updates = { estado: 'en_proceso' };
+    let avisoTecnico = '';
+    
+    if(tipoMotivo === 'garantia') {
+        const info = infoGarantiaOrden(orden);
+        if(!info.vigente) {
+            // Garantía vencida: ofrecer reabrir por otra razón
+            if(!confirm('⚠️ La garantía de esta orden ya venció.\n\n¿Reabrir por OTRA razón (no garantía)?')) return;
+            return reabrirOrden(ordenId, 'otra');
+        }
+        const motivo = prompt(`🛡️ REABRIR POR GARANTÍA\n\nQuedan ${info.diasRestantes} días de garantía.\n\n¿Qué problema reporta el cliente?\n\nEjemplo: "La pantalla volvió a fallar"`);
+        if(motivo === null) return;
+        if(!motivo.trim()) return alert('Indica el motivo de la garantía.');
+        updates.es_garantia = true;
+        updates.veces_garantia = (orden.veces_garantia || 0) + 1;
+        updates.nota_estado = `🛡️ GARANTÍA: ${motivo.trim()}`;
+        updates.fecha_reapertura_garantia = new Date().toISOString();
+        avisoTecnico = '🛡️ Reabierta por GARANTÍA';
+    } else {
+        // Otra razón
+        const motivo = prompt(`🔄 REABRIR ORDEN (otra razón)\n\n¿Por qué se reabre esta orden?\n\nEjemplo: "El cliente reporta otro problema", "Revisión adicional solicitada"`);
+        if(motivo === null) return;
+        if(!motivo.trim()) return alert('Indica la razón de la reapertura.');
+        updates.nota_estado = `🔄 REABIERTA: ${motivo.trim()}`;
+        updates.es_garantia = false;
+        avisoTecnico = '🔄 Reabierta (no garantía)';
+    }
     
     try {
-        const { error } = await supabaseClient.from('ordenes_reparacion').update({
-            estado: 'en_proceso',
-            es_garantia: true,
-            veces_garantia: (orden.veces_garantia || 0) + 1,
-            nota_estado: `🛡️ GARANTÍA: ${motivo.trim()}`,
-            fecha_reapertura_garantia: new Date().toISOString()
-        }).eq('id', ordenId);
+        const { error } = await supabaseClient.from('ordenes_reparacion').update(updates).eq('id', ordenId);
         if(error) throw error;
-        toast('🛡️ Orden reabierta por garantía. Vuelve a "En proceso".');
+        toast(`${avisoTecnico}. Vuelve a "En proceso"${tecAnterior ? ' con ' + tecAnterior : ''}.`);
         await loadAll();
-    } catch(e) { logError('Reabrir garantía', e); alert(getFriendlyError(e)); }
+    } catch(e) { logError('Reabrir orden', e); alert(getFriendlyError(e)); }
 }
 
 async function abrirModalNuevaDevolucion() {
