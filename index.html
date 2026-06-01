@@ -7396,14 +7396,25 @@ function renderRecepcionesRealizadas() {
             const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
             const fecha = o.creado_en ? new Date(o.creado_en).toLocaleDateString('es-DO',{day:'2-digit',month:'2-digit',year:'numeric'}) : '—';
             const est = etiquetaEstadoTexto(o.estado);
-            const cerrada = ['entregado','cancelado'].includes(normalizarEstadoOrden(o.estado));
+            const estadoN = normalizarEstadoOrden(o.estado);
+            let accionHtml;
+            if(estadoN === 'entregado') {
+                // Entregada: cerrada pero se puede reabrir con concepto libre
+                accionHtml = `<button class="btn btn-light" style="font-size:11px; padding:4px 9px; color:#6b21a8;" onclick="reabrirOrden('${o.id}','otra')"><i class="ti ti-rotate-clockwise"></i> Reabrir</button>`;
+            } else if(estadoN === 'cancelado') {
+                // Cancelada: cerrada definitivo
+                accionHtml = `<span style="font-size:11px; color:#94a3b8;">Cerrada</span>`;
+            } else {
+                // Activa: editar
+                accionHtml = `<button class="btn btn-light" style="font-size:11px; padding:4px 9px; color:#6b21a8;" onclick="abrirEditarRecepcion('${o.id}')"><i class="ti ti-edit"></i> Editar</button>`;
+            }
             return `<tr>
                 <td style="font-weight:700;">${formatoOrden(o.numero_orden)}</td>
                 <td style="white-space:nowrap; font-size:12px;">${fecha}</td>
                 <td>${escapeHtml(c.nombre || '—')}</td>
                 <td style="font-size:12px;">${escapeHtml(e.marca||'')} ${escapeHtml(e.modelo||'')}</td>
                 <td style="font-size:11px; color:#0891b2;">${est}</td>
-                <td>${cerrada ? '<span style="font-size:11px; color:#94a3b8;">Cerrada</span>' : `<button class="btn btn-light" style="font-size:11px; padding:4px 9px; color:#6b21a8;" onclick="abrirEditarRecepcion('${o.id}')"><i class="ti ti-edit"></i> Editar</button>`}</td>
+                <td>${accionHtml}</td>
             </tr>`;
         }).join('')}</tbody>
     </table></div>
