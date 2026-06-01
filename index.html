@@ -218,12 +218,13 @@ tr:hover td { background: #f8fafc; }
 /* ============================================================
    RESPONSIVE — TABLET (max 1024px)
    ============================================================ */
-@media (max-width: 1024px) {
+/* ============================================================
+   RESPONSIVE — TABLET GRANDE (769px a 1024px): ajustes de columnas
+   ============================================================ */
+@media (min-width: 769px) and (max-width: 1024px) {
     .kpi-row { grid-template-columns: repeat(3, 1fr); gap: 10px; }
     .block-grid { grid-template-columns: 1fr 1fr; }
     .block-card[style*="grid-column: span 2"] { grid-column: span 2 !important; }
-    .layout-dashboard { grid-template-columns: 1fr; }
-    .grid-refurb { grid-template-columns: 1fr; }
     .prov-detail-header .stats { grid-template-columns: repeat(2, 1fr); }
     .art-picker-row { grid-template-columns: 1fr 1fr; gap: 10px; }
     .art-picker-row button { grid-column: span 2; height: auto; }
@@ -232,9 +233,9 @@ tr:hover td { background: #f8fafc; }
 }
 
 /* ============================================================
-   RESPONSIVE — MÓVIL (max 768px)
+   RESPONSIVE — MÓVIL Y TABLET (max 1024px)
    ============================================================ */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
     body { overflow: auto; height: auto; min-height: 100vh; }
     
     body.logged-in .app { display: block !important; height: auto; min-height: 100vh; }
@@ -275,7 +276,7 @@ tr:hover td { background: #f8fafc; }
     
     .card { padding: 14px; margin-bottom: 14px; border-radius: 10px; }
     
-    .kpi-row { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 14px; }
+    .kpi-row { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-bottom: 14px; }
     .kpi-box { padding: 10px; }
     .kpi-box small { font-size: 9px; }
     .kpi-box strong { font-size: 20px; }
@@ -398,7 +399,7 @@ tr:hover td { background: #f8fafc; }
    AJUSTES TÁCTILES Y SAFE AREAS iOS
    ============================================================ */
 @supports (padding: max(0px)) {
-    @media (max-width: 768px) {
+    @media (max-width: 1024px) {
         .top-bar { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
         .content { padding-bottom: max(20px, env(safe-area-inset-bottom)); }
         .toast { bottom: max(12px, env(safe-area-inset-bottom)); }
