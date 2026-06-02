@@ -3087,7 +3087,7 @@ function applyAccessControls() {
         'menu-recepcion': 'recepcion_ver',
         'menu-ordenes': 'ordenes_ver',
         'menu-inventario': 'inventario_ver',
-        'menu-piezasSolicitadas': 'inventario_ver',
+        'menu-piezasSolicitadas': null,
         'menu-etiquetas': 'imprimir_diag',
         'menu-configImpresora': 'config_impresora',
         'menu-articulos': 'catalogo_articulos',
@@ -3164,7 +3164,7 @@ const NAV_PERMISOS = {
     'recepcion': 'recepcion_ver',
     'ordenes': 'ordenes_ver',
     'inventario': 'inventario_ver',
-    'piezasSolicitadas': 'inventario_ver',
+    'piezasSolicitadas': null,
     'etiquetas': 'imprimir_diag',
     'configImpresora': 'config_impresora',
     'articulos': 'catalogo_articulos',
@@ -7430,33 +7430,42 @@ let _psFiltro = 'todas';
 function renderPiezasSolicitadas() {
     const cont = document.getElementById('piezasSolicitadasLista');
     if(!cont) return;
+    // Detectar si es técnico (no admin, no servicio): solo ve SUS piezas
+    const miId = sessionUser?.id;
+    const esTecnico = !isAdminUser() && !tienePermiso('recepcion_ver') && !tienePermiso('inventario_ver') ? true : (sessionUser?.tipo_empleado === 'tecnico');
+    const soloMias = esTecnico && !isAdminUser();
     const items = [];
     // Piezas de órdenes de cliente
     (cache.ordenPiezas || []).forEach(p => {
         const o = (cache.ordenes || []).find(x => x.id === p.orden_id);
         const c = o ? findCliente(o.cliente_id) : {};
-        const tec = p.tecnico_id ? nombreEmpleado(p.tecnico_id) : (o && o.tecnico_asignado_id ? nombreEmpleado(o.tecnico_asignado_id) : '—');
+        const tecId = p.tecnico_id || (o && o.tecnico_asignado_id) || null;
+        const tec = tecId ? nombreEmpleado(tecId) : '—';
         items.push({
             pieza: p.pieza_nombre || 'Pieza', cantidad: p.cantidad || 1, estado: p.estado || 'solicitada',
-            origen: o ? `Orden ${formatoOrden(o.numero_orden)}` : 'Orden', cliente: c.nombre || '', tecnico: tec,
+            origen: o ? `Orden ${formatoOrden(o.numero_orden)}` : 'Orden', cliente: c.nombre || '', tecnico: tec, tecnicoId: tecId,
             tipo: 'Orden', color: '#ef4444', fecha: p.creado_en
         });
     });
     // Piezas de reacondicionados
     (cache.piezasReacond || []).forEach(p => {
         const eq = (cache.refurb || []).find(x => x.id === p.equipo_id);
-        const tec = eq && eq.tecnico_asignado_id ? nombreEmpleado(eq.tecnico_asignado_id) : '—';
+        const tecId = eq && eq.tecnico_asignado_id ? eq.tecnico_asignado_id : null;
+        const tec = tecId ? nombreEmpleado(tecId) : '—';
         items.push({
             pieza: p.pieza_nombre || 'Pieza', cantidad: p.cantidad || 1, estado: p.estado || 'pendiente',
-            origen: eq ? `${eq.marca||''} ${eq.modelo||''}`.trim() : 'Reacond', cliente: '', tecnico: tec,
+            origen: eq ? `${eq.marca||''} ${eq.modelo||''}`.trim() : 'Reacond', cliente: '', tecnico: tec, tecnicoId: tecId,
             tipo: 'Reacond', color: '#f59e0b', fecha: p.fecha_entrega || p.creado_en
         });
     });
     
+    // Si es técnico, mostrar solo sus piezas
+    let baseItems = soloMias ? items.filter(i => i.tecnicoId === miId) : items;
+    
     // Filtro por estado
-    let filtrados = items;
-    if(_psFiltro === 'pendientes') filtrados = items.filter(i => ['solicitada','pendiente','extra_pendiente','aprobada'].includes(i.estado));
-    else if(_psFiltro === 'entregadas') filtrados = items.filter(i => ['entregada','recibida'].includes(i.estado));
+    let filtrados = baseItems;
+    if(_psFiltro === 'pendientes') filtrados = baseItems.filter(i => ['solicitada','pendiente','extra_pendiente','aprobada'].includes(i.estado));
+    else if(_psFiltro === 'entregadas') filtrados = baseItems.filter(i => ['entregada','recibida'].includes(i.estado));
     
     // Buscador
     const txt = (document.getElementById('psBuscador')?.value || '').trim().toLowerCase();
@@ -7469,9 +7478,9 @@ function renderPiezasSolicitadas() {
     
     if(!filtrados.length) { cont.innerHTML = `<div style="color:var(--text-muted); font-size:13px;">No hay piezas en este filtro.</div>`; return; }
     
-    // Resumen por estado
-    const pend = items.filter(i => ['solicitada','pendiente','extra_pendiente','aprobada'].includes(i.estado)).length;
-    const entr = items.filter(i => ['entregada','recibida'].includes(i.estado)).length;
+    // Resumen por estado (de las piezas visibles para este usuario)
+    const pend = baseItems.filter(i => ['solicitada','pendiente','extra_pendiente','aprobada'].includes(i.estado)).length;
+    const entr = baseItems.filter(i => ['entregada','recibida'].includes(i.estado)).length;
     
     const etiqEstado = (e) => {
         const map = {
@@ -8015,6 +8024,61 @@ function etiquetaEstadoPiezaReacond(estado) {
 }
 
 // Construye el HTML del panel de pedidos de piezas. Si tecnicoId se pasa, filtra solo ese técnico.
+// Junta TODAS las piezas que pidió un técnico (de órdenes de cliente + reacondicionados)
+function construirMisPiezasTodas(miId) {
+    const items = [];
+    // Piezas de órdenes de cliente asignadas a este técnico
+    (cache.ordenPiezas || []).forEach(p => {
+        const o = (cache.ordenes || []).find(x => x.id === p.orden_id);
+        const tecId = p.tecnico_id || (o && o.tecnico_asignado_id) || null;
+        if(tecId !== miId) return;
+        items.push({
+            pieza: p.pieza_nombre || 'Pieza', estado: p.estado || 'solicitada',
+            origen: o ? `Orden ${formatoOrden(o.numero_orden)}` : 'Orden', tipo: 'Orden', color: '#ef4444', fecha: p.creado_en
+        });
+    });
+    // Piezas de reacondicionados de este técnico
+    (cache.piezasReacond || []).forEach(p => {
+        const eq = (cache.refurb || []).find(e => e.id === p.equipo_id);
+        if(!eq || eq.tecnico_asignado_id !== miId) return;
+        items.push({
+            pieza: p.pieza_nombre || 'Pieza', estado: p.estado || 'pendiente',
+            origen: `${eq.marca||''} ${eq.modelo||''}`.trim() || 'Reacond', tipo: 'Reacond', color: '#f59e0b', fecha: p.fecha_entrega || p.creado_en
+        });
+    });
+    if(!items.length) return `<div style="color:var(--text-muted); font-size:13px; padding:10px 0;">No has solicitado piezas todavía.</div>`;
+    items.sort((a,b) => new Date(b.fecha||0) - new Date(a.fecha||0));
+    
+    const etiq = (e) => {
+        const map = {
+            solicitada:['🟡 Solicitada','#d97706'], pendiente:['🟡 Pendiente','#d97706'],
+            entregada:['📦 Entregada','#0891b2'], aprobada:['✅ Aprobada','#16a34a'],
+            recibida:['✅ Recibida','#16a34a'], devuelta:['↩️ Devuelta','#64748b'],
+            extra_pendiente:['⏳ Extra pendiente','#9a3412'], rechazada:['❌ Rechazada','#dc2626'],
+            devolucion_pendiente:['↩️ Dev. pendiente','#9a3412'], devuelta_pendiente:['↩️ Dev. pendiente','#9a3412']
+        };
+        const [txt, col] = map[e] || [e, '#64748b'];
+        return `<span style="background:${col}22; color:${col}; font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px;">${txt}</span>`;
+    };
+    const pend = items.filter(i => ['solicitada','pendiente','extra_pendiente','aprobada'].includes(i.estado)).length;
+    const entr = items.filter(i => ['entregada','recibida'].includes(i.estado)).length;
+    
+    return `
+        <div style="display:flex; gap:10px; margin-bottom:10px; font-size:12px; flex-wrap:wrap;">
+            <span style="background:#fef3c7; color:#92400e; padding:4px 10px; border-radius:8px; font-weight:700;">🟡 ${pend} esperando</span>
+            <span style="background:#dbeafe; color:#1e40af; padding:4px 10px; border-radius:8px; font-weight:700;">📦 ${entr} entregadas/recibidas</span>
+        </div>
+        <div style="overflow-x:auto;"><table class="data-table" style="width:100%; font-size:13px;">
+            <thead><tr><th>Pieza</th><th>Origen</th><th>Tipo</th><th>Estado</th></tr></thead>
+            <tbody>${items.map(i => `<tr>
+                <td style="font-weight:600;">${escapeHtml(i.pieza)}</td>
+                <td style="font-size:12px;">${escapeHtml(i.origen)}</td>
+                <td><span style="background:${i.color}22; color:${i.color}; font-size:10px; padding:2px 7px; border-radius:8px;">${i.tipo}</span></td>
+                <td>${etiq(i.estado)}</td>
+            </tr>`).join('')}</tbody>
+        </table></div>`;
+}
+
 function construirPanelPedidosPiezas(soloTecnicoId) {
     let piezas = (cache.piezasReacond || []);
     if(soloTecnicoId) {
@@ -8594,10 +8658,10 @@ function renderMiTrabajo() {
     }
     html += `</div>`;
     
-    // SECCIÓN: Mis pedidos de piezas (reacond)
+    // SECCIÓN: Mis pedidos de piezas (órdenes de cliente + reacondicionados)
     html += `<div style="margin-bottom:18px;">
         <h3 style="font-size:15px; margin:0 0 8px;"><i class="ti ti-packages" style="color:#0891b2;"></i> Mis Pedidos de Piezas</h3>
-        ${construirPanelPedidosPiezas(miId)}
+        ${construirMisPiezasTodas(miId)}
     </div>`;
     
     // SECCIÓN: Mi historial de reparaciones (terminadas)
