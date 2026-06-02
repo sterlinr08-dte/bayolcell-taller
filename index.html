@@ -81,34 +81,34 @@ input[disabled] { background-color: #f8fafc; color: #94a3b8; cursor: not-allowed
 .err { display: none; background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; padding: 10px; border-radius: 8px; font-size: 13px; margin-bottom: 15px; text-align: left; }
 
 .app { display: none; height: 100vh; }
-.sidebar { width: 268px; background: var(--sidebar-bg); color: var(--text-dark); display: flex; flex-direction: column; flex-shrink: 0; box-shadow: 2px 0 16px rgba(0,0,0,0.06); z-index: 10; border-right: 1px solid #eef2f7; }
+.sidebar { width: 268px; background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); color: #e2e8f0; display: flex; flex-direction: column; flex-shrink: 0; box-shadow: 2px 0 20px rgba(0,0,0,0.25); z-index: 10; border-right: 1px solid #000; }
 
 /* Logo estilo NEXUS */
-.side-brand { padding: 18px 16px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #f1f5f9; }
+.side-brand { padding: 18px 16px; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid rgba(255,255,255,0.06); }
 .brand-icon { width: 46px; height: 46px; border-radius: 13px; background: linear-gradient(135deg, #ef4444, #dc2626); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 24px; box-shadow: 0 6px 14px rgba(220,38,38,0.3); flex-shrink: 0; }
-.brand-text h3 { margin: 0; font-size: 18px; font-weight: 800; color: #1e293b; letter-spacing: -0.3px; }
+.brand-text h3 { margin: 0; font-size: 18px; font-weight: 800; color: #fff; letter-spacing: -0.3px; }
 .brand-text small { display: block; font-size: 10px; color: #94a3b8; font-weight: 700; letter-spacing: 0.5px; margin-top: 1px; }
 
 .nav { padding: 14px 12px; overflow-y: auto; flex: 1; }
-.nav-section { font-size: 10px; font-weight: 800; color: #94a3b8; letter-spacing: 1px; padding: 14px 10px 6px; }
+.nav-section { font-size: 10px; font-weight: 800; color: #64748b; letter-spacing: 1px; padding: 14px 10px 6px; }
 .nav-section:first-child { padding-top: 4px; }
-.nav button { width: 100%; background: #fff; color: #475569; border: 1px solid #f1f5f9; border-radius: 12px; padding: 13px 14px; margin-bottom: 7px; text-align: left; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 12px; font-size: 13.5px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
-.nav button i { font-size: 19px; color: #94a3b8; flex-shrink: 0; }
+.nav button { width: 100%; background: rgba(255,255,255,0.03); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 13px 14px; margin-bottom: 7px; text-align: left; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 12px; font-size: 13.5px; }
+.nav button i { font-size: 19px; color: #64748b; flex-shrink: 0; }
 .nav button span { flex: 1; }
-.nav button:hover { background: var(--red-light); color: #dc2626; border-color: var(--red-mid); }
-.nav button:hover i { color: #dc2626; }
-.nav button.active { background: linear-gradient(135deg, #fef2f2, #fee2e2); color: #dc2626; font-weight: 800; border: 1.5px solid #fca5a5; box-shadow: 0 4px 10px rgba(220,38,38,0.12); }
-.nav button.active i { color: #dc2626; }
+.nav button:hover { background: rgba(220,38,38,0.12); color: #fff; border-color: rgba(220,38,38,0.3); }
+.nav button:hover i { color: #f87171; }
+.nav button.active { background: linear-gradient(135deg, #dc2626, #b91c1c); color: #fff; font-weight: 800; border: 1.5px solid #ef4444; box-shadow: 0 4px 12px rgba(220,38,38,0.35); }
+.nav button.active i { color: #fff; }
 .nav-badge-admin { background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; font-size: 9px; font-weight: 800; padding: 3px 9px; border-radius: 20px; letter-spacing: 0.5px; flex: 0 !important; }
 
-/* Tarjeta de usuario estilo NEXUS */
-.side-user { margin: 10px 12px 14px; padding: 12px 14px; display: flex; align-items: center; gap: 11px; background: #fff; border: 1px solid #f1f5f9; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+/* Tarjeta de usuario estilo NEXUS (oscura) */
+.side-user { margin: 10px 12px 14px; padding: 12px 14px; display: flex; align-items: center; gap: 11px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
 .avatar { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; box-shadow: 0 3px 8px rgba(220,38,38,0.25); flex-shrink: 0; }
-.profile-info h4 { margin: 0; font-size: 14px; font-weight: 800; color: #1e293b; }
-.profile-info small { color: #16a34a; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+.profile-info h4 { margin: 0; font-size: 14px; font-weight: 800; color: #fff; }
+.profile-info small { color: #4ade80; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
 
 .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-.top-bar { height: 58px; background: linear-gradient(135deg, #dc2626, #b91c1c); color: #fff; display: flex; align-items: center; padding: 0 24px; gap: 15px; box-shadow: 0 2px 10px rgba(220,38,38,0.2); }
+.top-bar { height: 58px; background: linear-gradient(135deg, #1e293b, #0f172a); color: #fff; display: flex; align-items: center; padding: 0 24px; gap: 15px; box-shadow: 0 2px 12px rgba(0,0,0,0.18); border-bottom: 2px solid #dc2626; }
 .top-title { font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
 .top-right-info { margin-left: auto; font-size: 12px; font-weight: 600; background: rgba(255,255,255,0.15); padding: 5px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); }
 
