@@ -912,6 +912,13 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
             <!-- ORDENES -->
             <div id="v-ordenes" class="view">
                 <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                        <h3 style="margin:0;"><i class="ti ti-users" style="color:#0891b2;"></i> Carga de Trabajo por Técnico</h3>
+                        <button class="btn btn-light" style="font-size:12px;" onclick="toggleCargaTecnicos()"><i class="ti ti-eye"></i> <span id="cargaToggleTxt">Ocultar</span></button>
+                    </div>
+                    <div id="cargaTecnicosPanel" style="margin-top:12px;"></div>
+                </div>
+                <div class="card">
                     <h3>Órdenes de Trabajo Activas</h3>
                     <div class="table-wrap">
                         <table>
@@ -1194,6 +1201,45 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                         <div style="margin-top:15px; background:#fff; padding:10px; border-radius:8px; border:1px solid var(--border-color); font-size:11px;">
                             <b style="color:var(--text-dark);">📋 Datos del Perfil:</b>
                             <div id="perfilDetalles" style="color:var(--text-muted); margin-top:6px; line-height:1.6;"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- CONFIGURACIÓN LABEL ORDEN DE SERVICIO -->
+                <div class="card" style="border-top:4px solid #dc2626;">
+                    <h3 style="margin:0 0 6px;"><i class="ti ti-clipboard-list" style="color:#dc2626;"></i> Label de Orden de Servicio</h3>
+                    <p style="color:var(--text-muted); font-size:13px; margin-bottom:14px;">Ajusta el tamaño y elige qué líneas se imprimen en el label de orden (sin código de barras).</p>
+                    <div class="layout-dashboard">
+                        <div>
+                            <h4 style="margin:0 0 10px; font-size:12px; color:#dc2626; text-transform:uppercase;">📐 Tamaño</h4>
+                            <div class="form-row">
+                                <div style="display:flex; justify-content:space-between;"><label>Ancho (mm)</label><span id="lblord_w_val" style="font-size:12px; font-weight:bold;">51mm</span></div>
+                                <input type="range" id="lblord_w" min="20" max="100" value="51" oninput="guardarMedidasLabelOrden()">
+                            </div>
+                            <div class="form-row">
+                                <div style="display:flex; justify-content:space-between;"><label>Alto (mm)</label><span id="lblord_h_val" style="font-size:12px; font-weight:bold;">25mm</span></div>
+                                <input type="range" id="lblord_h" min="15" max="100" value="25" oninput="guardarMedidasLabelOrden()">
+                            </div>
+                            <div class="form-row">
+                                <div style="display:flex; justify-content:space-between;"><label>Tamaño de Letra (px)</label><span id="lblord_f_val" style="font-size:12px; font-weight:bold;">10px</span></div>
+                                <input type="range" id="lblord_f" min="8" max="22" value="10" oninput="guardarMedidasLabelOrden()">
+                            </div>
+                            <h4 style="margin:14px 0 8px; font-size:12px; color:#dc2626; text-transform:uppercase;">✓ Líneas a imprimir</h4>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                                <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;"><input type="checkbox" id="lblord_orden" onchange="guardarCamposLabelOrden()" style="width:auto;"> N° Orden</label>
+                                <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;"><input type="checkbox" id="lblord_cliente" onchange="guardarCamposLabelOrden()" style="width:auto;"> Cliente</label>
+                                <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;"><input type="checkbox" id="lblord_equipo" onchange="guardarCamposLabelOrden()" style="width:auto;"> Equipo/Modelo</label>
+                                <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;"><input type="checkbox" id="lblord_imei" onchange="guardarCamposLabelOrden()" style="width:auto;"> IMEI</label>
+                                <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;"><input type="checkbox" id="lblord_fecha" onchange="guardarCamposLabelOrden()" style="width:auto;"> Fecha</label>
+                                <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;"><input type="checkbox" id="lblord_fallas" onchange="guardarCamposLabelOrden()" style="width:auto;"> Fallas</label>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 style="margin:0 0 10px; font-size:12px; color:#dc2626; text-transform:uppercase;">👁️ Vista Previa</h4>
+                            <div style="display:flex; justify-content:center; padding:15px; background:#cbd5e1; border-radius:8px; min-height:120px;">
+                                <div id="lblordPreview"></div>
+                            </div>
+                            <p style="font-size:11px; color:var(--text-muted); margin-top:8px;">Los cambios se guardan automáticamente. Tip: para horizontal, pon el ancho mayor que el alto.</p>
                         </div>
                     </div>
                 </div>
@@ -3313,7 +3359,7 @@ function nav(v, btn) {
     const activeBtn = btn || document.querySelector(".nav button.active");
     document.getElementById("pageTitle").textContent = activeBtn ? activeBtn.textContent.trim() : v;
     if(v === 'etiquetas') { setTimeout(cargarCalibracionLabelVenta, 50); }
-    if(v === 'configImpresora') { setTimeout(() => { inicializarConfigImpresora(); qzVerificarConexion(); }, 50); }
+    if(v === 'configImpresora') { setTimeout(() => { inicializarConfigImpresora(); qzVerificarConexion(); if(typeof cargarConfigLabelOrden === 'function') cargarConfigLabelOrden(); }, 50); }
     if(v === 'proveedores') { volverListaProveedores(); }
     if(v === 'refurb') { setTimeout(() => { volverListaLotesReacond(); cargarLotesReacond(); }, 50); }
     if(v === 'configuracion') { setTimeout(() => { cambiarMainTabConfig('tecnicos'); }, 50); }
@@ -3578,6 +3624,7 @@ function renderAll() {
     if(loteActualId) renderEquiposLote();
     renderProductividadEmpleados();
     renderTallerOrdenes();
+    if(typeof renderCargaTecnicos === 'function') renderCargaTecnicos();
     if(document.getElementById('v-miTrabajo')?.classList.contains('active')) renderMiTrabajo();
     if(document.getElementById('v-atencion')?.classList.contains('active')) renderAtencionCliente();
     if(document.getElementById('v-piezasSolicitadas')?.classList.contains('active') && typeof renderPiezasSolicitadas === 'function') renderPiezasSolicitadas();
@@ -7567,6 +7614,64 @@ function setFiltroTaller(f) {
     renderTallerOrdenes();
 }
 
+// Panel de carga de trabajo por técnico (dentro de Órdenes de Trabajo)
+let _cargaTecnicosVisible = true;
+function toggleCargaTecnicos() {
+    _cargaTecnicosVisible = !_cargaTecnicosVisible;
+    const panel = document.getElementById('cargaTecnicosPanel');
+    const txt = document.getElementById('cargaToggleTxt');
+    if(panel) panel.style.display = _cargaTecnicosVisible ? 'block' : 'none';
+    if(txt) txt.textContent = _cargaTecnicosVisible ? 'Ocultar' : 'Mostrar';
+}
+function renderCargaTecnicos() {
+    const cont = document.getElementById('cargaTecnicosPanel');
+    if(!cont) return;
+    const tecnicos = (cache.tecnicos || []).filter(t => t.activo && (t.tipo_empleado === 'tecnico' || !t.tipo_empleado));
+    if(!tecnicos.length) { cont.innerHTML = `<div style="color:var(--text-muted); font-size:13px;">No hay técnicos activos.</div>`; return; }
+    
+    const activos = ['recibido','en_proceso','espera_repuesto','pendiente_cliente'];
+    const tarjetas = tecnicos.map(t => {
+        const ordenesAll = (cache.ordenes || []).filter(o => o.tecnico_asignado_id === t.id);
+        const ordenesActivas = ordenesAll.filter(o => activos.includes(normalizarEstadoOrden(o.estado)));
+        const ordenesFin = ordenesAll.filter(o => ['finalizado','entregado'].includes(normalizarEstadoOrden(o.estado)));
+        const reacond = (cache.refurb || []).filter(e => e.tecnico_asignado_id === t.id && e.estado_evaluacion !== 'vendido');
+        // Fallas pendientes (tareas asignadas a este técnico, no hechas)
+        const fallasPend = (cache.tareas || []).filter(tk => tk.tecnico_id === t.id && tk.estado !== 'hecha').length;
+        const totalActivos = ordenesActivas.length + reacond.length;
+        const iniciales = (t.nombre || '?').split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase();
+        const cargaColor = totalActivos >= 5 ? '#dc2626' : (totalActivos >= 1 ? '#0891b2' : '#94a3b8');
+        const cargaBg = totalActivos >= 5 ? '#fee2e2' : (totalActivos >= 1 ? '#e0f2fe' : '#f1f5f9');
+        
+        const listaOrdenes = ordenesActivas.slice(0, 5).map(o => {
+            const e = findEquipo(o.equipo_id);
+            return `<div style="font-size:12px; line-height:1.5;">• ${formatoOrden(o.numero_orden)} · ${escapeHtml((e.marca||'') + ' ' + (e.modelo||''))}</div>`;
+        }).join('') || `<div style="font-size:12px; color:var(--text-muted);">Sin órdenes activas</div>`;
+        
+        return `<div style="background:#fff; border:1px solid #eef2f7; border-radius:14px; padding:14px; box-shadow:inset 0 1px 0 rgba(255,255,255,0.9), 0 4px 14px rgba(15,23,42,0.06);">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+                <div style="width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg,#ef4444,#dc2626); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:14px;">${escapeHtml(iniciales)}</div>
+                <div style="flex:1; min-width:0;">
+                    <div style="font-weight:700; font-size:14px;">${escapeHtml(t.nombre)}</div>
+                    <div style="font-size:11px; color:var(--text-muted);">${escapeHtml(t.especialidad || 'Técnico')}</div>
+                </div>
+                <div style="background:${cargaBg}; color:${cargaColor}; font-size:12px; font-weight:700; padding:3px 10px; border-radius:8px;">${totalActivos} activos</div>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:6px; text-align:center;">
+                <div style="background:#f8fafc; border-radius:8px; padding:8px 2px;"><div style="font-size:18px; font-weight:700;">${ordenesActivas.length}</div><div style="font-size:10px; color:var(--text-muted);">Órdenes</div></div>
+                <div style="background:#f8fafc; border-radius:8px; padding:8px 2px;"><div style="font-size:18px; font-weight:700;">${reacond.length}</div><div style="font-size:10px; color:var(--text-muted);">Reacond</div></div>
+                <div style="background:#f8fafc; border-radius:8px; padding:8px 2px;"><div style="font-size:18px; font-weight:700; color:${fallasPend>0?'#d97706':'inherit'};">${fallasPend}</div><div style="font-size:10px; color:var(--text-muted);">Fallas</div></div>
+                <div style="background:#f0fdf4; border-radius:8px; padding:8px 2px;"><div style="font-size:18px; font-weight:700; color:#16a34a;">${ordenesFin.length}</div><div style="font-size:10px; color:var(--text-muted);">Listas</div></div>
+            </div>
+            <div style="margin-top:10px; border-top:1px solid #f1f5f9; padding-top:8px;">
+                <div style="font-size:11px; color:var(--text-muted); margin-bottom:3px;">Órdenes activas:</div>
+                ${listaOrdenes}
+            </div>
+        </div>`;
+    }).join('');
+    
+    cont.innerHTML = `<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:12px;">${tarjetas}</div>`;
+}
+
 function renderTallerOrdenes() {
     const cont = document.getElementById('tallerOrdenesLista');
     if(!cont) return;
@@ -10137,12 +10242,84 @@ async function cargarEnLabel(id) {
 }
 
 // Genera y muestra el label de diagnóstico para una ORDEN DE CLIENTE
+// Campos configurables del Label de Orden de Servicio (qué líneas se imprimen)
+function obtenerCamposLabelOrden() {
+    const def = { orden:true, cliente:true, equipo:true, imei:true, fecha:true, fallas:true };
+    try {
+        const guardado = JSON.parse(localStorage.getItem('bayol_lblord_campos') || '{}');
+        return { ...def, ...guardado };
+    } catch(e) { return def; }
+}
+function guardarCamposLabelOrden() {
+    const campos = {
+        orden: document.getElementById('lblord_orden')?.checked ?? true,
+        cliente: document.getElementById('lblord_cliente')?.checked ?? true,
+        equipo: document.getElementById('lblord_equipo')?.checked ?? true,
+        imei: document.getElementById('lblord_imei')?.checked ?? true,
+        fecha: document.getElementById('lblord_fecha')?.checked ?? true,
+        fallas: document.getElementById('lblord_fallas')?.checked ?? true
+    };
+    localStorage.setItem('bayol_lblord_campos', JSON.stringify(campos));
+    actualizarPreviewLabelOrden();
+}
+// Guardar medidas del label de orden
+function guardarMedidasLabelOrden() {
+    const w = document.getElementById('lblord_w')?.value || '51';
+    const h = document.getElementById('lblord_h')?.value || '25';
+    const f = document.getElementById('lblord_f')?.value || '10';
+    localStorage.setItem('bayol_dlbl_w', w);
+    localStorage.setItem('bayol_dlbl_h', h);
+    localStorage.setItem('bayol_dlbl_f', f);
+    const sw = document.getElementById('lblord_w_val'); if(sw) sw.textContent = w + 'mm';
+    const sh = document.getElementById('lblord_h_val'); if(sh) sh.textContent = h + 'mm';
+    const sf = document.getElementById('lblord_f_val'); if(sf) sf.textContent = f + 'px';
+    actualizarPreviewLabelOrden();
+}
+// Vista previa del label de orden (con datos de ejemplo)
+function actualizarPreviewLabelOrden() {
+    const cont = document.getElementById('lblordPreview');
+    if(!cont) return;
+    const w = localStorage.getItem('bayol_dlbl_w') || '51';
+    const h = localStorage.getItem('bayol_dlbl_h') || '25';
+    const f = Math.max(parseInt(localStorage.getItem('bayol_dlbl_f') || '10'), 12);
+    const fmenor = Math.max(10, f - 1);
+    const c = obtenerCamposLabelOrden();
+    const linea = (cond, txt) => cond ? `<div style="font-weight:900; -webkit-text-stroke:0.4px #000;">${txt}</div>` : '';
+    cont.innerHTML = `
+        <div style="width:${w}mm; height:${h}mm; font-size:${f}px; font-weight:900; -webkit-text-stroke:0.4px #000; line-height:1.22; padding:1mm; box-sizing:border-box; overflow:hidden; font-family:Arial; color:#000; background:#fff; border:1px solid #000;">
+            <div style="text-align:center; border-bottom:2px solid #000; padding-bottom:0.5mm; margin-bottom:0.5mm;">ORDEN DE SERVICIO</div>
+            ${linea(c.orden, 'ORD-000005')}
+            ${linea(c.cliente, 'CLIENTE: CHECO')}
+            ${linea(c.equipo, 'APPLE 13 PRO 128')}
+            ${linea(c.imei, 'IMEI: 000000')}
+            ${linea(c.fecha, 'FECHA: 2/6/2026')}
+            ${c.fallas ? `<div style="border-top:2px dashed #000; padding-top:0.5mm; margin-top:0.5mm; font-size:${fmenor}px;">REVISAR / REPARAR:<div>☐ PANTALLA ROTA</div></div>` : ''}
+        </div>`;
+}
+function cargarConfigLabelOrden() {
+    const w = localStorage.getItem('bayol_dlbl_w') || '51';
+    const h = localStorage.getItem('bayol_dlbl_h') || '25';
+    const f = localStorage.getItem('bayol_dlbl_f') || '10';
+    const set = (id,v) => { const el=document.getElementById(id); if(el) el.value=v; };
+    set('lblord_w', w); set('lblord_h', h); set('lblord_f', f);
+    const sw = document.getElementById('lblord_w_val'); if(sw) sw.textContent = w + 'mm';
+    const sh = document.getElementById('lblord_h_val'); if(sh) sh.textContent = h + 'mm';
+    const sf = document.getElementById('lblord_f_val'); if(sf) sf.textContent = f + 'px';
+    const c = obtenerCamposLabelOrden();
+    const chk = (id,v) => { const el=document.getElementById(id); if(el) el.checked=v; };
+    chk('lblord_orden',c.orden); chk('lblord_cliente',c.cliente); chk('lblord_equipo',c.equipo);
+    chk('lblord_imei',c.imei); chk('lblord_fecha',c.fecha); chk('lblord_fallas',c.fallas);
+    actualizarPreviewLabelOrden();
+}
+
 async function abrirPreviewLabelDiagOrden(orden) {
     const eq = findEquipo(orden.equipo_id);
     const cli = findCliente(orden.cliente_id);
     const w = localStorage.getItem('bayol_dlbl_w') || '51';
     const h = localStorage.getItem('bayol_dlbl_h') || '25';
     const f = localStorage.getItem('bayol_dlbl_f') || '10';
+    // Campos a mostrar (configurable). Por defecto todos activos.
+    const campos = obtenerCamposLabelOrden();
     
     const cliente = (cli.nombre || 'SIN CLIENTE').toUpperCase();
     const marca = (eq.marca || '').toUpperCase();
@@ -10169,7 +10346,7 @@ async function abrirPreviewLabelDiagOrden(orden) {
     const fBase = Math.max(parseInt(f), 12);
     const fmenor = Math.max(10, fBase - 1);
     let fallasHtml = '';
-    if(todasFallas.length > 0) {
+    if(campos.fallas && todasFallas.length > 0) {
         const columnas = todasFallas.length >= 5 ? 2 : 1;
         const items = todasFallas.map(t =>
             `<div style="font-size:${fmenor}px; font-weight:900; -webkit-text-stroke:0.3px #000; line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">☐ ${escapeHtml(t.toUpperCase())}</div>`
@@ -10181,14 +10358,15 @@ async function abrirPreviewLabelDiagOrden(orden) {
             </div>`;
     }
     
+    const linea = (cond, contenido) => cond ? `<div style="font-weight:900; -webkit-text-stroke:0.4px #000; text-align:left;">${contenido}</div>` : '';
     const labelHtml = `
         <div class="diag-label" style="width:${w}mm; height:${h}mm; font-size:${fBase}px; font-weight:900; -webkit-text-stroke:0.4px #000; line-height:1.22; padding:1mm; box-sizing:border-box; overflow:hidden; font-family:Arial,Helvetica,sans-serif; color:#000; text-align:left;">
             <div style="font-size:${fBase}px; font-weight:900; -webkit-text-stroke:0.4px #000; text-align:center; border-bottom:2px solid #000; padding-bottom:0.5mm; margin-bottom:0.5mm;">ORDEN DE SERVICIO</div>
-            <div style="font-weight:900; -webkit-text-stroke:0.4px #000; text-align:left;">${formatoOrden(orden.numero_orden)}</div>
-            <div style="font-weight:900; -webkit-text-stroke:0.4px #000; text-align:left;">CLIENTE: ${escapeHtml(cliente)}</div>
-            <div style="font-weight:900; -webkit-text-stroke:0.4px #000; text-align:left;">${escapeHtml(modeloCorto)}</div>
-            <div style="font-weight:900; -webkit-text-stroke:0.4px #000; text-align:left;">IMEI: ${escapeHtml(imei)}</div>
-            <div style="font-weight:900; -webkit-text-stroke:0.4px #000; text-align:left;">FECHA: ${escapeHtml(fecha)}</div>
+            ${linea(campos.orden, formatoOrden(orden.numero_orden))}
+            ${linea(campos.cliente, 'CLIENTE: ' + escapeHtml(cliente))}
+            ${linea(campos.equipo, escapeHtml(modeloCorto))}
+            ${linea(campos.imei, 'IMEI: ' + escapeHtml(imei))}
+            ${linea(campos.fecha, 'FECHA: ' + escapeHtml(fecha))}
             ${fallasHtml}
         </div>
     `;
