@@ -42,24 +42,29 @@ input, select, textarea { width: 100%; border: 1.5px solid #e2e8f0; background: 
 input:focus, select:focus, textarea:focus { border-color: #fca5a5; box-shadow: 0 0 0 3px rgba(220,38,38,0.12); }
 input[disabled] { background-color: #f8fafc; color: #94a3b8; cursor: not-allowed; }
 
-.btn { border: 0; border-radius: 11px; padding: 9px 16px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 7px; font-size: 12.5px; transition: all 0.18s ease; transform: translateY(0); }
+.btn { border: 0; border-radius: 10px; padding: 8px 15px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 7px; font-size: 12.5px; transition: all 0.16s ease; transform: translateY(0); line-height: 1.2; }
 .btn:active { transform: translateY(1px); }
 .btn:disabled, .btn[disabled] { opacity: 0.5; cursor: not-allowed; box-shadow: none !important; transform: none !important; }
-.btn-blue { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: #fff; box-shadow: 0 4px 12px rgba(220,38,38,0.28); }
-.btn-blue:hover { background: linear-gradient(135deg, #f05252 0%, #e02424 100%); box-shadow: 0 6px 18px rgba(220,38,38,0.38); }
-.btn-blue:active { box-shadow: 0 2px 8px rgba(220,38,38,0.3); }
-.btn-dark { background: linear-gradient(135deg, #334155 0%, #1e293b 100%); color: #fff; box-shadow: 0 4px 12px rgba(15,23,42,0.25); }
-.btn-dark:hover { background: linear-gradient(135deg, #475569 0%, #334155 100%); box-shadow: 0 6px 18px rgba(15,23,42,0.32); }
-.btn-dark:active { box-shadow: 0 2px 8px rgba(15,23,42,0.25); }
-.btn-light { background: #fff; border: 1px solid #e2e8f0; color: var(--text-dark); text-shadow: none; box-shadow: 0 2px 6px rgba(15,23,42,0.05); }
-.btn-light:hover { background: var(--red-light); border-color: #fca5a5; color: #dc2626; box-shadow: 0 4px 10px rgba(220,38,38,0.1); }
-.btn-light:active { box-shadow: 0 1px 4px rgba(15,23,42,0.05); }
-.btn-danger { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: #fff; box-shadow: 0 4px 12px rgba(220,38,38,0.28); }
-.btn-danger:hover { background: linear-gradient(135deg, #f87171 0%, #ef4444 100%); box-shadow: 0 6px 18px rgba(220,38,38,0.38); }
-.btn-danger:active { box-shadow: 0 1px 0 #991b1b, 0 2px 5px rgba(220,38,38,0.3); }
-.btn-success { background: linear-gradient(180deg, #10b981 0%, #059669 100%); color: #fff; box-shadow: 0 3px 0 #047857, 0 4px 8px rgba(5,150,105,0.25); }
-.btn-success:hover { background: linear-gradient(180deg, #34d399 0%, #10b981 100%); }
-.btn-success:active { box-shadow: 0 1px 0 #047857, 0 2px 5px rgba(5,150,105,0.3); }
+/* PRINCIPAL (rojo) */
+.btn-blue { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: #fff; box-shadow: 0 3px 10px rgba(220,38,38,0.25); }
+.btn-blue:hover { background: linear-gradient(135deg, #f05252 0%, #e02424 100%); box-shadow: 0 5px 14px rgba(220,38,38,0.32); }
+.btn-blue:active { box-shadow: 0 2px 6px rgba(220,38,38,0.28); }
+/* SECUNDARIO OSCURO */
+.btn-dark { background: #334155; color: #fff; box-shadow: 0 3px 10px rgba(15,23,42,0.18); }
+.btn-dark:hover { background: #475569; box-shadow: 0 5px 14px rgba(15,23,42,0.24); }
+.btn-dark:active { box-shadow: 0 2px 6px rgba(15,23,42,0.18); }
+/* SECUNDARIO CLARO */
+.btn-light { background: #fff; border: 1px solid #e2e8f0; color: var(--text-dark); text-shadow: none; box-shadow: 0 1px 4px rgba(15,23,42,0.05); }
+.btn-light:hover { background: var(--red-light); border-color: #fca5a5; color: #dc2626; box-shadow: 0 3px 8px rgba(220,38,38,0.1); }
+.btn-light:active { box-shadow: 0 1px 3px rgba(15,23,42,0.05); }
+/* PELIGRO (rojo oscuro, distinto del principal) */
+.btn-danger { background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%); color: #fff; box-shadow: 0 3px 10px rgba(153,27,27,0.3); }
+.btn-danger:hover { background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); box-shadow: 0 5px 14px rgba(153,27,27,0.38); }
+.btn-danger:active { box-shadow: 0 2px 6px rgba(153,27,27,0.3); }
+/* ÉXITO (verde) */
+.btn-success { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; box-shadow: 0 3px 10px rgba(5,150,105,0.25); }
+.btn-success:hover { background: linear-gradient(135deg, #34d399 0%, #10b981 100%); box-shadow: 0 5px 14px rgba(5,150,105,0.32); }
+.btn-success:active { box-shadow: 0 2px 6px rgba(5,150,105,0.28); }
 /* Tamaños */
 .btn-sm { padding: 5px 10px; font-size: 11.5px; border-radius: 7px; box-shadow: 0 2px 0 rgba(0,0,0,0.12); }
 .btn-sm:active { box-shadow: 0 1px 0 rgba(0,0,0,0.12); }
@@ -386,6 +391,8 @@ tr:hover td { background: #f8fafc; }
     .modal-footer button { width: 100%; }
     
     .btn { padding: 9px 14px; font-size: 13px; min-height: 40px; }
+    /* Botones de acción dentro de tablas/cards más compactos en móvil */
+    .data-table .btn, td .btn, .data-table button:not(.btn), td button:not(.btn) { min-height: 32px; padding: 6px 10px; font-size: 11.5px; }
     input, select, textarea { padding: 12px 14px; font-size: 16px; min-height: 44px; }
     
     .login-card { padding: 28px 20px; border-radius: 14px; }
@@ -525,9 +532,9 @@ mark.ss-hl { background: #fef08a; color: inherit; padding: 0 1px; border-radius:
 .modal-header-left { display: flex; align-items: center; flex: 1; gap: 8px; }
 
 /* ========== BOTONES DE ORIENTACIÓN (2x1 / 1x2) ========== */
-.btn-orientacion:hover { transform: translateY(-2px); box-shadow: 0 5px 0 #cbd5e1, 0 6px 12px rgba(0,0,0,0.08) !important; }
-.btn-orientacion:active { transform: translateY(0); box-shadow: 0 1px 0 #cbd5e1, 0 2px 4px rgba(0,0,0,0.05) !important; }
-.btn-orientacion.activo { background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%) !important; border-color: #fca5a5 !important; box-shadow: 0 4px 0 #991b1b, 0 5px 12px rgba(30, 64, 175, 0.3) !important; }
+.btn-orientacion:hover { transform: translateY(-2px); box-shadow: 0 3px 10px rgba(0,0,0,0.08) !important; }
+.btn-orientacion:active { transform: translateY(0); box-shadow: 0 3px 10px rgba(0,0,0,0.05) !important; }
+.btn-orientacion.activo { background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%) !important; border-color: #fca5a5 !important; box-shadow: 0 4px 12px rgba(220,38,38,0.25) !important; }
 .btn-orientacion.activo b { color: #dc2626 !important; }
 
 /* ========== ANIMACIÓN ITEMS NUEVOS ========== */
@@ -567,11 +574,11 @@ mark.ss-hl { background: #fef08a; color: inherit; padding: 0 1px; border-radius:
 .pieza-status-col.ok { background: #d1fae5; color: #065f46; }
 .pieza-status-col.pendiente { background: #fee2e2; color: #991b1b; }
 .pieza-status-col.esperando { background: #fef3c7; color: #92400e; }
-.pieza-action-btn { background: linear-gradient(180deg, #fff 0%, #f8fafc 100%); border: 1px solid #cbd5e1; border-radius: 7px; padding: 7px 10px; font-size: 11px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 5px; box-shadow: 0 2px 0 #cbd5e1; transition: all 0.15s; }
+.pieza-action-btn { background: linear-gradient(180deg, #fff 0%, #f8fafc 100%); border: 1px solid #cbd5e1; border-radius: 7px; padding: 7px 10px; font-size: 11px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 5px; box-shadow: 0 3px 8px rgba(15,23,42,0.12); transition: all 0.15s; }
 .pieza-action-btn:hover { background: #f1f5f9; transform: translateY(-1px); }
-.pieza-action-btn:active { transform: translateY(1px); box-shadow: 0 1px 0 #cbd5e1; }
-.pieza-action-btn.entregar { background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; border-color: #b91c1c; box-shadow: 0 3px 0 #991b1b; }
-.pieza-action-btn.recibir { background: linear-gradient(180deg, #10b981, #059669); color: #fff; border-color: #047857; box-shadow: 0 3px 0 #047857; }
+.pieza-action-btn:active { transform: translateY(1px); box-shadow: 0 3px 8px rgba(15,23,42,0.12); }
+.pieza-action-btn.entregar { background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; border-color: #b91c1c; box-shadow: 0 3px 8px rgba(220,38,38,0.25); }
+.pieza-action-btn.recibir { background: linear-gradient(135deg, #10b981, #059669); color: #fff; border-color: #047857; box-shadow: 0 3px 8px rgba(5,150,105,0.25); }
 .pieza-action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ========== CHECKBOXES NORMALIZADOS (fix móvil) ========== */
@@ -984,12 +991,12 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                         
                         <h4 style="margin:0 0 10px; font-size:12px; color:var(--blue-btn); text-transform:uppercase;"><i class="ti ti-photo"></i> Orientación del Papel</h4>
                         <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:15px;">
-                            <button class="btn-orientacion" data-orient="2x1" onclick="aplicarOrientacionConfig('2x1')" style="background:linear-gradient(180deg, #fff 0%, #f1f5f9 100%); border:2px solid #e2e8f0; border-radius:12px; padding:14px; cursor:pointer; text-align:center; box-shadow:0 3px 0 #cbd5e1, 0 4px 8px rgba(0,0,0,0.05); transition:all 0.15s;">
+                            <button class="btn-orientacion" data-orient="2x1" onclick="aplicarOrientacionConfig('2x1')" style="background:linear-gradient(180deg, #fff 0%, #f1f5f9 100%); border:2px solid #e2e8f0; border-radius:12px; padding:11px; cursor:pointer; text-align:center; box-shadow:0 2px 6px rgba(15,23,42,0.06); transition:all 0.15s;">
                                 <div style="width:60px; height:30px; background:#dbeafe; border:2px solid #b91c1c; margin:0 auto 8px; border-radius:3px;"></div>
                                 <b style="font-size:13px; display:block; color:#0f172a;">2 × 1"</b>
                                 <small style="color:#64748b; font-size:10px;">Horizontal · 51×25mm</small>
                             </button>
-                            <button class="btn-orientacion" data-orient="1x2" onclick="aplicarOrientacionConfig('1x2')" style="background:linear-gradient(180deg, #fff 0%, #f1f5f9 100%); border:2px solid #e2e8f0; border-radius:12px; padding:14px; cursor:pointer; text-align:center; box-shadow:0 3px 0 #cbd5e1, 0 4px 8px rgba(0,0,0,0.05); transition:all 0.15s;">
+                            <button class="btn-orientacion" data-orient="1x2" onclick="aplicarOrientacionConfig('1x2')" style="background:linear-gradient(180deg, #fff 0%, #f1f5f9 100%); border:2px solid #e2e8f0; border-radius:12px; padding:11px; cursor:pointer; text-align:center; box-shadow:0 2px 6px rgba(15,23,42,0.06); transition:all 0.15s;">
                                 <div style="width:30px; height:60px; background:#dbeafe; border:2px solid #b91c1c; margin:0 auto 8px; border-radius:3px;"></div>
                                 <b style="font-size:13px; display:block; color:#0f172a;">1 × 2"</b>
                                 <small style="color:#64748b; font-size:10px;">Vertical · 25×51mm</small>
@@ -1497,7 +1504,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                     <div class="card">
                         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
                             <h3 style="margin:0;"><i class="ti ti-rotate-2" style="color:#dc2626;"></i> Devoluciones de Equipos</h3>
-                            <button id="btnRegistrarDevolucion" class="btn btn-blue" onclick="abrirModalNuevaDevolucion()" style="background:linear-gradient(180deg,#dc2626,#991b1b); box-shadow:0 4px 0 #7f1d1d, 0 5px 10px rgba(220,38,38,0.3);">
+                            <button id="btnRegistrarDevolucion" class="btn btn-blue" onclick="abrirModalNuevaDevolucion()" style="background:linear-gradient(135deg,#ef4444,#dc2626); box-shadow:0 3px 10px rgba(220,38,38,0.25);">
                                 <i class="ti ti-plus"></i> Registrar Devolución
                             </button>
                         </div>
@@ -1581,7 +1588,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                     <div class="card">
                         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
                             <h3 style="margin:0;"><i class="ti ti-shield" style="color:#6366f1;"></i> Roles y Permisos</h3>
-                            <button id="btnNuevoRol" class="btn btn-blue" onclick="abrirModalRol()" style="background:linear-gradient(180deg,#6366f1,#4338ca); box-shadow:0 4px 0 #3730a3;"><i class="ti ti-plus"></i> Nuevo Rol</button>
+                            <button id="btnNuevoRol" class="btn btn-blue" onclick="abrirModalRol()" style="background:linear-gradient(135deg,#6366f1,#4f46e5); box-shadow:0 3px 10px rgba(99,102,241,0.25);"><i class="ti ti-plus"></i> Nuevo Rol</button>
                         </div>
                         <div style="background:#ede9fe; border:1px solid #c4b5fd; padding:10px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#5b21b6;">
                             <b><i class="ti ti-info-circle"></i> Crea roles personalizados con permisos específicos.</b> El rol "Administrador" tiene todos los permisos y no se puede eliminar.
@@ -1598,7 +1605,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                     <div class="card">
                         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
                             <h3 style="margin:0;"><i class="ti ti-category" style="color:#0891b2;"></i> Categorías</h3>
-                            <button class="btn btn-blue" onclick="abrirModalCategoria()" style="background:linear-gradient(180deg,#0891b2,#0e7490); box-shadow:0 4px 0 #155e75;"><i class="ti ti-plus"></i> Nueva Categoría</button>
+                            <button class="btn btn-blue" onclick="abrirModalCategoria()" style="background:linear-gradient(135deg,#0891b2,#0e7490); box-shadow:0 3px 10px rgba(8,145,178,0.25);"><i class="ti ti-plus"></i> Nueva Categoría</button>
                         </div>
                         <div style="background:#cffafe; border:1px solid #67e8f9; padding:10px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#155e75;">
                             <b><i class="ti ti-info-circle"></i> Categorías generales</b> que podrás usar para clasificar artículos, equipos y más.
@@ -1612,7 +1619,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                     <div class="card" style="margin-top:15px;">
                         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
                             <h3 style="margin:0;"><i class="ti ti-brand-apple" style="color:#6366f1;"></i> Marcas</h3>
-                            <button class="btn btn-blue" onclick="abrirModalMarca()" style="background:linear-gradient(180deg,#6366f1,#4338ca); box-shadow:0 4px 0 #3730a3;"><i class="ti ti-plus"></i> Nueva Marca</button>
+                            <button class="btn btn-blue" onclick="abrirModalMarca()" style="background:linear-gradient(135deg,#6366f1,#4f46e5); box-shadow:0 3px 10px rgba(99,102,241,0.25);"><i class="ti ti-plus"></i> Nueva Marca</button>
                         </div>
                         <div style="background:#ede9fe; border:1px solid #c4b5fd; padding:10px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#5b21b6;">
                             <b><i class="ti ti-info-circle"></i> Marcas</b> (Apple, Samsung, Xiaomi...) que podrás seleccionar al crear artículos y equipos.
@@ -1717,7 +1724,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                     <!-- Botón imprimir label de diagnóstico -->
                     <div style="background:linear-gradient(135deg, #e0e7ff, #ddd6fe); border:1px solid #a5b4fc; border-radius:8px; padding:15px; margin-top:12px; text-align:center;">
                         <p style="font-size:12px; color:#4338ca; margin:0 0 10px;"><i class="ti ti-printer"></i> Imprime el label de diagnóstico con las fallas de este equipo.</p>
-                        <button class="btn btn-blue" onclick="imprimirLabelDesdeEvaluacion()" style="background:linear-gradient(180deg,#6366f1,#4338ca); box-shadow:0 4px 0 #3730a3;"><i class="ti ti-printer"></i> Imprimir Label de Diagnóstico</button>
+                        <button class="btn btn-blue" onclick="imprimirLabelDesdeEvaluacion()" style="background:linear-gradient(135deg,#6366f1,#4f46e5); box-shadow:0 3px 10px rgba(99,102,241,0.25);"><i class="ti ti-printer"></i> Imprimir Label de Diagnóstico</button>
                         <p style="font-size:11px; color:#6366f1; margin:8px 0 0;">💡 Guarda primero para que el label tenga las fallas actualizadas.</p>
                     </div>
                 </div>
@@ -1731,7 +1738,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
             <button class="btn btn-blue" id="evalBtnSiguiente" onclick="evalNavegarSiguiente()">Siguiente <i class="ti ti-arrow-right"></i></button>
             <!-- Botones del último tab (Resumen) -->
             <button class="btn btn-light" id="evalBtnGuardar" onclick="guardarEvaluacion(false)" style="display:none;"><i class="ti ti-device-floppy"></i> Solo Guardar</button>
-            <button class="btn btn-blue" id="evalBtnGuardarEvaluado" onclick="guardarEvaluacion(true)" style="display:none; background:linear-gradient(180deg,#10b981,#059669); box-shadow:0 4px 0 #047857;"><i class="ti ti-circle-check"></i> Guardar y marcar evaluado</button>
+            <button class="btn btn-blue" id="evalBtnGuardarEvaluado" onclick="guardarEvaluacion(true)" style="display:none; background:linear-gradient(180deg,#10b981,#059669); box-shadow:0 3px 8px rgba(15,23,42,0.12);"><i class="ti ti-circle-check"></i> Guardar y marcar evaluado</button>
         </div>
     </div>
 </div>
@@ -1940,7 +1947,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
         </div>
         <div class="modal-footer">
             <button class="btn btn-light" id="cc_cancelar" onclick="cerrarModalCambiarClave()">Cancelar</button>
-            <button class="btn btn-blue" onclick="guardarNuevaClave()" style="background:linear-gradient(180deg,#10b981,#059669); box-shadow:0 4px 0 #047857;"><i class="ti ti-check"></i> Guardar</button>
+            <button class="btn btn-blue" onclick="guardarNuevaClave()" style="background:linear-gradient(180deg,#10b981,#059669); box-shadow:0 3px 8px rgba(15,23,42,0.12);"><i class="ti ti-check"></i> Guardar</button>
         </div>
     </div>
 </div>
@@ -1991,7 +1998,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
         </div>
         <div class="modal-footer">
             <button class="btn btn-light" onclick="cerrarModalCategoria()">Cancelar</button>
-            <button class="btn btn-blue" onclick="guardarCategoria()" style="background:linear-gradient(180deg,#0891b2,#0e7490); box-shadow:0 4px 0 #155e75;"><i class="ti ti-check"></i> Guardar</button>
+            <button class="btn btn-blue" onclick="guardarCategoria()" style="background:linear-gradient(135deg,#0891b2,#0e7490); box-shadow:0 3px 10px rgba(8,145,178,0.25);"><i class="ti ti-check"></i> Guardar</button>
         </div>
     </div>
 </div>
@@ -2018,7 +2025,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
         </div>
         <div class="modal-footer">
             <button class="btn btn-light" onclick="cerrarModalMarca()">Cancelar</button>
-            <button class="btn btn-blue" onclick="guardarMarca()" style="background:linear-gradient(180deg,#6366f1,#4338ca); box-shadow:0 4px 0 #3730a3;"><i class="ti ti-check"></i> Guardar</button>
+            <button class="btn btn-blue" onclick="guardarMarca()" style="background:linear-gradient(135deg,#6366f1,#4f46e5); box-shadow:0 3px 10px rgba(99,102,241,0.25);"><i class="ti ti-check"></i> Guardar</button>
         </div>
     </div>
 </div>
@@ -2063,7 +2070,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
         </div>
         <div class="modal-footer">
             <button class="btn btn-light" onclick="cerrarModalRol()">Cancelar</button>
-            <button class="btn btn-blue" onclick="guardarRol()" style="background:linear-gradient(180deg,#6366f1,#4338ca); box-shadow:0 4px 0 #3730a3;"><i class="ti ti-check"></i> Guardar Rol</button>
+            <button class="btn btn-blue" onclick="guardarRol()" style="background:linear-gradient(135deg,#6366f1,#4f46e5); box-shadow:0 3px 10px rgba(99,102,241,0.25);"><i class="ti ti-check"></i> Guardar Rol</button>
         </div>
     </div>
 </div>
@@ -2091,7 +2098,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
         </div>
         <div class="modal-footer">
             <button class="btn btn-light" onclick="cerrarModalReasignar()">Cancelar</button>
-            <button class="btn btn-blue" onclick="guardarReasignacion()" style="background:linear-gradient(180deg,#f59e0b,#d97706); box-shadow:0 4px 0 #b45309;"><i class="ti ti-user-share"></i> Reasignar</button>
+            <button class="btn btn-blue" onclick="guardarReasignacion()" style="background:linear-gradient(180deg,#f59e0b,#d97706); box-shadow:0 3px 8px rgba(15,23,42,0.12);"><i class="ti ti-user-share"></i> Reasignar</button>
         </div>
     </div>
 </div>
@@ -2164,7 +2171,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
         </div>
         <div class="modal-footer">
             <button class="btn btn-light" onclick="cerrarModalDevolucion()">Cancelar</button>
-            <button class="btn btn-blue" onclick="guardarDevolucion()" style="background:linear-gradient(180deg,#dc2626,#991b1b); box-shadow:0 4px 0 #7f1d1d, 0 5px 10px rgba(220,38,38,0.3);"><i class="ti ti-check"></i> Registrar Devolución</button>
+            <button class="btn btn-blue" onclick="guardarDevolucion()" style="background:linear-gradient(135deg,#ef4444,#dc2626); box-shadow:0 3px 10px rgba(220,38,38,0.25);"><i class="ti ti-check"></i> Registrar Devolución</button>
         </div>
     </div>
 </div>
@@ -4587,7 +4594,7 @@ function renderEquipoReacondCard(eq, num) {
         badgeColor = 'background:#ddd6fe; color:#5b21b6;';
         badgeText = '🛒 Listo para venta';
         accionBtn = `<button class="btn btn-dark" style="padding:8px 14px; background:#5b21b6;" onclick="abrirModalLabelVenta('${eq.id}')"><i class="ti ti-printer"></i> Label Venta</button>
-                     ${permBtn('estado_despachar', `<button class="btn btn-dark" style="padding:8px 14px; background:linear-gradient(180deg,#10b981,#059669); box-shadow:0 4px 0 #047857;" onclick="marcarDespachado('${eq.id}')"><i class="ti ti-truck-delivery"></i> Despachar</button>`)}
+                     ${permBtn('estado_despachar', `<button class="btn btn-dark" style="padding:8px 14px; background:linear-gradient(180deg,#10b981,#059669); box-shadow:0 3px 8px rgba(15,23,42,0.12);" onclick="marcarDespachado('${eq.id}')"><i class="ti ti-truck-delivery"></i> Despachar</button>`)}
                      <button class="btn btn-light" style="padding:8px 12px;" onclick="abrirPanelProceso('${eq.id}')" title="Ver detalles"><i class="ti ti-eye"></i></button>`;
     } else if(estado === 'vendido') {
         badgeColor = 'background:#d1fae5; color:#065f46;';
@@ -6078,7 +6085,7 @@ async function abrirPanelProceso(equipoId) {
         if(esExtraNoAprobado) {
             // Solo el admin aprueba/rechaza piezas extra
             if(esAdmin) {
-                botones.push(`<button class="pieza-action-btn" onclick="aprobarPiezaExtra('${p.id}')" style="background:linear-gradient(180deg,#10b981,#059669); color:#fff; border-color:#047857; box-shadow:0 3px 0 #047857;"><i class="ti ti-check"></i> Aprobar pieza extra</button>`);
+                botones.push(`<button class="pieza-action-btn" onclick="aprobarPiezaExtra('${p.id}')" style="background:linear-gradient(180deg,#10b981,#059669); color:#fff; border-color:#047857; box-shadow:0 3px 8px rgba(15,23,42,0.12);"><i class="ti ti-check"></i> Aprobar pieza extra</button>`);
                 botones.push(`<button class="pieza-action-btn" onclick="rechazarPiezaExtra('${p.id}')" style="background:#fee2e2; color:#991b1b;"><i class="ti ti-x"></i> Rechazar</button>`);
             } else {
                 botones.push(`<div style="text-align:center; font-size:11px; color:#92400e; padding:4px;"><i class="ti ti-clock"></i> Esperando aprobación del administrador</div>`);
@@ -6087,7 +6094,7 @@ async function abrirPanelProceso(equipoId) {
             // Admin aprueba/rechaza la devolución. El técnico solo ve el estado.
             botones.push(`<div style="background:#fef3c7; border:1px solid #fcd34d; border-radius:6px; padding:8px; margin-top:6px; font-size:11px; color:#92400e;"><b>Motivo:</b> ${escapeHtml(p.motivo_devolucion_pieza || 'Sin motivo')}</div>`);
             if(esAdmin) {
-                botones.push(`<button class="pieza-action-btn" onclick="aprobarDevolucionPieza('${p.id}')" style="background:linear-gradient(180deg,#6366f1,#4338ca); color:#fff; border-color:#3730a3; box-shadow:0 3px 0 #3730a3;"><i class="ti ti-check"></i> Aprobar devolución</button>`);
+                botones.push(`<button class="pieza-action-btn" onclick="aprobarDevolucionPieza('${p.id}')" style="background:linear-gradient(180deg,#6366f1,#4338ca); color:#fff; border-color:#3730a3; box-shadow:0 3px 8px rgba(15,23,42,0.12);"><i class="ti ti-check"></i> Aprobar devolución</button>`);
                 botones.push(`<button class="pieza-action-btn" onclick="rechazarDevolucionPieza('${p.id}')" style="background:#fee2e2; color:#991b1b;"><i class="ti ti-x"></i> Rechazar</button>`);
             } else {
                 botones.push(`<div style="text-align:center; font-size:11px; color:#92400e; padding:4px;"><i class="ti ti-clock"></i> Esperando que el administrador apruebe</div>`);
@@ -6184,10 +6191,10 @@ async function abrirPanelProceso(equipoId) {
                         </p>
                         ${puedeRecibirReasignado ? `
                         <p style="font-size:12px; color:#92400e; margin:8px 0;">¿Cómo quieres recibirlo?</p>
-                        <button onclick="recibirEquipoReasignado('${equipoId}', 'con_piezas')" style="background:linear-gradient(180deg,#10b981,#059669); color:#fff; border:0; padding:12px; border-radius:10px; cursor:pointer; font-weight:700; width:100%; box-shadow:0 4px 0 #047857; margin-bottom:8px;">
+                        <button onclick="recibirEquipoReasignado('${equipoId}', 'con_piezas')" style="background:linear-gradient(180deg,#10b981,#059669); color:#fff; border:0; padding:12px; border-radius:10px; cursor:pointer; font-weight:700; width:100%; box-shadow:0 3px 8px rgba(15,23,42,0.12); margin-bottom:8px;">
                             <i class="ti ti-package"></i> Recibir CON las piezas actuales
                         </button>
-                        <button onclick="recibirEquipoReasignado('${equipoId}', 'limpio')" style="background:linear-gradient(180deg,#ef4444,#b91c1c); color:#fff; border:0; padding:12px; border-radius:10px; cursor:pointer; font-weight:700; width:100%; box-shadow:0 4px 0 #991b1b;">
+                        <button onclick="recibirEquipoReasignado('${equipoId}', 'limpio')" style="background:linear-gradient(180deg,#ef4444,#b91c1c); color:#fff; border:0; padding:12px; border-radius:10px; cursor:pointer; font-weight:700; width:100%; box-shadow:0 3px 8px rgba(15,23,42,0.12);">
                             <i class="ti ti-refresh"></i> Recibir equipo LIMPIO (otra reparación)
                         </button>
                         ` : `
@@ -6212,7 +6219,7 @@ async function abrirPanelProceso(equipoId) {
                     <div style="background:linear-gradient(135deg, #fef3c7, #fde68a); border:2px solid #f59e0b; padding:16px; border-radius:12px; margin-top:18px; box-shadow:0 4px 12px rgba(245, 158, 11, 0.2);">
                         <b style="color:#78350f;"><i class="ti ti-shield-check"></i> Aprobación del Administrador</b>
                         <p style="font-size:12px; color:#92400e; margin:8px 0;">El técnico marcó este equipo en revisión final. Revísalo y aprueba para que pase a Listo Venta.</p>
-                        <button onclick="aprobarTerminado('${equipoId}')" style="background:linear-gradient(180deg,#10b981,#059669); color:#fff; border:0; padding:14px 20px; border-radius:10px; cursor:pointer; font-weight:700; width:100%; box-shadow:0 4px 0 #047857; font-size:14px;">
+                        <button onclick="aprobarTerminado('${equipoId}')" style="background:linear-gradient(180deg,#10b981,#059669); color:#fff; border:0; padding:14px 20px; border-radius:10px; cursor:pointer; font-weight:700; width:100%; box-shadow:0 3px 8px rgba(15,23,42,0.12); font-size:14px;">
                             <i class="ti ti-check"></i> APROBAR → Listo para Venta
                         </button>
                     </div>
