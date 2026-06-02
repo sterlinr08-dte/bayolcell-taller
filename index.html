@@ -1646,8 +1646,17 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                 <!-- TAB GENERAL -->
                 <div id="cfgContentGeneral" style="display:none;">
                     <div class="card">
-                        <h3><i class="ti ti-adjustments"></i> Configuración General</h3>
-                        <p style="color:var(--text-muted);">Próximamente: configuración general del sistema (logos, datos del taller, etc.)</p>
+                        <h3><i class="ti ti-building-store"></i> Datos del Taller</h3>
+                        <p style="color:var(--text-muted); font-size:13px; margin-bottom:14px;">Estos datos aparecen en el recibo de recepción que se imprime al cliente.</p>
+                        <label style="font-size:12px; font-weight:600;">Nombre del taller</label>
+                        <input id="cfgTallerNombre" placeholder="BAYOL CELL" style="margin:3px 0 10px;">
+                        <label style="font-size:12px; font-weight:600;">Teléfono</label>
+                        <input id="cfgTallerTel" placeholder="809-000-0000" style="margin:3px 0 10px;">
+                        <label style="font-size:12px; font-weight:600;">Dirección</label>
+                        <input id="cfgTallerDir" placeholder="Calle, sector, ciudad" style="margin:3px 0 10px;">
+                        <label style="font-size:12px; font-weight:600;">Mensaje al pie (opcional)</label>
+                        <input id="cfgTallerPie" placeholder="Gracias por su preferencia" style="margin:3px 0 12px;">
+                        <button onclick="guardarDatosTaller()" class="btn btn-blue" style="width:100%;"><i class="ti ti-device-floppy"></i> Guardar datos del taller</button>
                     </div>
                 </div>
                 <div id="cfgContentFallas" style="display:none;">
@@ -3336,7 +3345,7 @@ function closeSidebar() {
 
 async function loadAll() {
     try {
-        const [rOrd, rCli, rEq, rPz, rAct, rRef, rProv, rLot, rArt, rTec, rUsr, rOpz, rTk, rPzR, rFC] = await Promise.all([
+        const [rOrd, rCli, rEq, rPz, rAct, rRef, rProv, rLot, rArt, rTec, rUsr, rOpz, rTk, rPzR, rFC, rCT] = await Promise.all([
             supabaseClient.from('ordenes_reparacion').select('*').order('creado_en', { ascending: false }),
             supabaseClient.from('clientes').select('*'),
             supabaseClient.from('equipos').select('*'),
@@ -3351,7 +3360,8 @@ async function loadAll() {
             supabaseClient.from('orden_piezas').select('*').order('creado_en', { ascending: true }).then(r => r, () => ({ data: [], error: null })),
             supabaseClient.from('tareas_trabajo').select('*').order('creado_en', { ascending: true }).then(r => r, () => ({ data: [], error: null })),
             supabaseClient.from('equipo_piezas_pedidas').select('*').order('creado_en', { ascending: true }).then(r => r, () => ({ data: [], error: null })),
-            supabaseClient.from('fallas_comunes').select('*').order('orden', { ascending: true }).then(r => r, () => ({ data: [], error: null }))
+            supabaseClient.from('fallas_comunes').select('*').order('orden', { ascending: true }).then(r => r, () => ({ data: [], error: null })),
+            supabaseClient.from('config_taller').select('*').eq('id', 1).maybeSingle().then(r => r, () => ({ data: null, error: null }))
         ]);
 
         requireSupabaseOk(rOrd, 'Cargar órdenes');
@@ -3376,7 +3386,8 @@ async function loadAll() {
             ordenPiezas: (rOpz && rOpz.data) || [],
             tareas: (rTk && rTk.data) || [],
             piezasReacond: (rPzR && rPzR.data) || [],
-            fallasComunes: (rFC && rFC.data) || (cache.fallasComunes || [])
+            fallasComunes: (rFC && rFC.data) || (cache.fallasComunes || []),
+            configTaller: (rCT && rCT.data) || (cache.configTaller || null)
         };
         // Solo notificar si ya había datos cargados antes (no en la primera carga)
         if(_notifYaInicializado) {
@@ -3553,7 +3564,7 @@ function renderAll() {
     }).join("");
     
     renderOrders();
-    document.getElementById("partsTable").innerHTML = cache.piezas.map(p => `<tr><td data-label="Código"><code>${p.codigo}</code></td><td data-label="Pieza"><b>${escapeHtml(p.nombre)}</b></td><td data-label="Stock">${p.cantidad} uds</td><td data-label="Costo">${money(p.costo)}</td></tr>`).join("");
+    document.getElementById("partsTable").innerHTML = cache.piezas.map(p => `<tr><td data-label="Código"><code>${escapeHtml(p.codigo||'')}</code></td><td data-label="Pieza"><b>${escapeHtml(p.nombre)}</b></td><td data-label="Stock">${p.cantidad} uds</td><td data-label="Costo">${money(p.costo)}</td></tr>`).join("");
     if(isAdminUser()) renderActivosTaller();
     renderProveedores();
     renderComprasTab();
@@ -5543,12 +5554,54 @@ function cambiarMainTabConfig(tab) {
     } else if(tab === 'general') {
         btnGen.style.background = 'var(--blue-btn)';
         btnGen.style.color = '#fff';
+        cargarDatosTallerEnForm();
     } else if(tab === 'fallas') {
         if(btnFallas) {
             btnFallas.style.background = 'var(--blue-btn)';
             btnFallas.style.color = '#fff';
         }
         renderCfgFallas();
+    }
+}
+
+// Datos del taller (para el recibo). Globales en Supabase, con respaldo en localStorage.
+function obtenerDatosTaller() {
+    const c = cache.configTaller || {};
+    return {
+        nombre: c.nombre || localStorage.getItem('bayol_taller_nombre') || 'BAYOL CELL',
+        tel: c.telefono || localStorage.getItem('bayol_taller_tel') || '',
+        dir: c.direccion || localStorage.getItem('bayol_taller_dir') || '',
+        pie: c.pie || localStorage.getItem('bayol_taller_pie') || 'Gracias por su preferencia'
+    };
+}
+function cargarDatosTallerEnForm() {
+    const d = obtenerDatosTaller();
+    const set = (id, v) => { const el = document.getElementById(id); if(el) el.value = v; };
+    set('cfgTallerNombre', d.nombre); set('cfgTallerTel', d.tel);
+    set('cfgTallerDir', d.dir); set('cfgTallerPie', d.pie);
+}
+async function guardarDatosTaller() {
+    const g = id => (document.getElementById(id)?.value || '').trim();
+    const datos = {
+        nombre: g('cfgTallerNombre') || 'BAYOL CELL',
+        telefono: g('cfgTallerTel'),
+        direccion: g('cfgTallerDir'),
+        pie: g('cfgTallerPie') || 'Gracias por su preferencia'
+    };
+    // Respaldo local siempre (por si no hay conexión)
+    localStorage.setItem('bayol_taller_nombre', datos.nombre);
+    localStorage.setItem('bayol_taller_tel', datos.telefono);
+    localStorage.setItem('bayol_taller_dir', datos.direccion);
+    localStorage.setItem('bayol_taller_pie', datos.pie);
+    try {
+        const { error } = await supabaseClient.from('config_taller')
+            .update({ ...datos, actualizado_en: new Date().toISOString() }).eq('id', 1);
+        if(error) throw error;
+        cache.configTaller = { id: 1, ...datos };
+        toast('✅ Datos del taller guardados (todos los dispositivos).', 'success');
+    } catch(e) {
+        logError('Guardar datos taller', e);
+        toast('Guardado solo en este equipo (sin conexión a la tabla). Corre el SQL si falta.', 'error');
     }
 }
 
@@ -6466,7 +6519,8 @@ async function ajustarStockInventario(piezaId, delta) {
         const nuevo = Math.max(0, actual + delta);
         const { error } = await supabaseClient.from('piezas_inventario').update({ cantidad: nuevo }).eq('id', piezaId);
         if(error) throw error;
-    } catch(e) { logError('Ajustar stock inventario', e); }
+        await loadAll();
+    } catch(e) { logError('Ajustar stock inventario', e); toastError(getFriendlyError(e)); }
 }
 
 /* ---------- DEVOLUCIÓN DE PIEZAS ---------- */
@@ -8014,6 +8068,7 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
         }
         // Label de diagnóstico (con las fallas) — útil para el técnico
         acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px;" onclick="cargarEnLabel('${o.id}')"><i class="ti ti-clipboard-list"></i> Label</button>`;
+        acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px;" onclick="reimprimirRecibo('${o.id}')"><i class="ti ti-receipt"></i> Recibo</button>`;
         // Ver historial del cliente (admin y servicio)
         if((esAdmin || (typeof tienePermiso === 'function' && tienePermiso('recepcion_ver'))) && o.cliente_id) {
             acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#0891b2;" onclick="verHistorialCliente('${o.cliente_id}')"><i class="ti ti-history"></i> Historial cliente</button>`;
@@ -8506,7 +8561,7 @@ function verHistorialCliente(clienteId) {
                     <strong style="font-size:13px;">${formatoOrden(o.numero_orden)}${esGar}</strong>
                     <span style="font-size:11px; color:var(--text-muted);">${fecha}</span>
                 </div>
-                <div style="font-size:12px;">${e.marca||''} ${e.modelo||''} · ${escapeHtml(o.falla_reportada || 'Sin falla')}</div>
+                <div style="font-size:12px;">${escapeHtml(e.marca||'')} ${escapeHtml(e.modelo||'')} · ${escapeHtml(o.falla_reportada || 'Sin falla')}</div>
                 <div style="font-size:11px; color:#0891b2; margin-top:2px;">${est}</div>
             </div>`;
         }).join('');
@@ -10402,12 +10457,16 @@ function hasSensitiveAccessData() {
 }
 
 function buildTicketHtml(orden, incluirCredenciales) {
+    const t = obtenerDatosTaller();
     return `
         <div class="ticket-box">
-            <h2>BAYOL CELL</h2>
-            <div style="text-align:center;font-weight:bold;">TICKET DE RECEPCIÓN</div>
+            <h2>${escapeHtml(t.nombre)}</h2>
+            ${t.tel ? `<div style="text-align:center; font-size:11px;">Tel: ${escapeHtml(t.tel)}</div>` : ''}
+            ${t.dir ? `<div style="text-align:center; font-size:11px;">${escapeHtml(t.dir)}</div>` : ''}
+            <div style="text-align:center;font-weight:bold; margin-top:4px;">TICKET DE RECEPCIÓN</div>
             <div class="line"></div>
             <b>Orden:</b> ${escapeHtml(orden?.numero_orden != null ? formatoOrden(orden.numero_orden) : (orden?.id || ''))}<br>
+            <b>Fecha:</b> ${new Date().toLocaleString('es-DO', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}<br>
             <b>Cliente:</b> ${escapeHtml(val('c_nombre'))}<br>
             <b>WhatsApp:</b> ${escapeHtml(val('c_whatsapp'))}<br>
             <b>Cédula:</b> ${escapeHtml(val('c_cedula') || 'N/A')}<br>
@@ -10425,6 +10484,39 @@ function buildTicketHtml(orden, incluirCredenciales) {
             <div class="ticket-sensitive">${buildTicketSecurityHtml(incluirCredenciales)}</div>
             <div class="line"></div>
             <div class="small">El cliente autoriza diagnóstico y manipulación técnica del equipo recibido.</div>
+            ${t.pie ? `<div class="small" style="text-align:center; margin-top:4px;">${escapeHtml(t.pie)}</div>` : ''}
+            <br><br>
+            ___________________________<br>
+            Firma del cliente
+        </div>
+    `;
+}
+
+// Recibo desde una orden GUARDADA (para reimprimir). Usa datos de la BD, no del formulario.
+function buildReciboReimpresion(orden) {
+    const t = obtenerDatosTaller();
+    const c = findCliente(orden.cliente_id), e = findEquipo(orden.equipo_id);
+    return `
+        <div class="ticket-box">
+            <h2>${escapeHtml(t.nombre)}</h2>
+            ${t.tel ? `<div style="text-align:center; font-size:11px;">Tel: ${escapeHtml(t.tel)}</div>` : ''}
+            ${t.dir ? `<div style="text-align:center; font-size:11px;">${escapeHtml(t.dir)}</div>` : ''}
+            <div style="text-align:center;font-weight:bold; margin-top:4px;">TICKET DE RECEPCIÓN</div>
+            <div class="line"></div>
+            <b>Orden:</b> ${escapeHtml(formatoOrden(orden.numero_orden))}<br>
+            <b>Fecha:</b> ${orden.creado_en ? new Date(orden.creado_en).toLocaleString('es-DO',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'}<br>
+            <b>Cliente:</b> ${escapeHtml(c.nombre || '')}<br>
+            <b>WhatsApp:</b> ${escapeHtml(c.telefono || '')}<br>
+            <div class="line"></div>
+            <b>Equipo:</b> ${escapeHtml(e.marca || '')} ${escapeHtml(e.modelo || '')}<br>
+            <b>Capacidad:</b> ${escapeHtml(e.capacidad || 'N/A')}<br>
+            <b>IMEI / Serial:</b> ${escapeHtml(e.imei || 'N/A')}<br>
+            <b>Falla:</b> ${escapeHtml(orden.falla_reportada || 'N/A')}<br>
+            <b>Condición física:</b> ${escapeHtml(orden.condicion_fisica || 'Sin marcas')}<br>
+            <b>Accesorios:</b> ${escapeHtml(orden.accesorios_recibidos || 'Ninguno')}<br>
+            <div class="line"></div>
+            <div class="small">El cliente autoriza diagnóstico y manipulación técnica del equipo recibido.</div>
+            ${t.pie ? `<div class="small" style="text-align:center; margin-top:4px;">${escapeHtml(t.pie)}</div>` : ''}
             <br><br>
             ___________________________<br>
             Firma del cliente
@@ -10469,6 +10561,16 @@ function renderPatternTicketHtml(sequence) {
 function imprimirTicketRecepcion(orden, incluirCredenciales) {
     const ticketHtml = buildTicketHtml(orden, incluirCredenciales);
     imprimirContenido(ticketHtml, 1, 76, null, 'tickets');
+}
+
+// Reimprime el recibo de recepción desde una orden ya guardada (botón "Recibo")
+function reimprimirRecibo(ordenId) {
+    const o = (cache.ordenes || []).find(x => x.id === ordenId);
+    if(!o) return toast('Orden no encontrada.', 'error');
+    try {
+        const html = buildReciboReimpresion(o);
+        imprimirContenido(html, 1, 76, null, 'tickets');
+    } catch(e) { logError('Reimprimir recibo', e); toastError(getFriendlyError(e)); }
 }
 
 function buildAccessPayload() {
