@@ -1225,6 +1225,10 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                                 <div style="display:flex; justify-content:space-between;"><label>Tamaño de Letra (px)</label><span id="lblord_f_val" style="font-size:12px; font-weight:bold;">10px</span></div>
                                 <input type="range" id="lblord_f" min="8" max="22" value="10" oninput="guardarMedidasLabelOrden()">
                             </div>
+                            <div class="form-row">
+                                <div style="display:flex; justify-content:space-between;"><label>Margen interno (mm)</label><span id="lblord_m_val" style="font-size:12px; font-weight:bold;">1mm</span></div>
+                                <input type="range" id="lblord_m" min="0" max="8" step="0.5" value="1" oninput="guardarMedidasLabelOrden()">
+                            </div>
                             <h4 style="margin:14px 0 8px; font-size:12px; color:#dc2626; text-transform:uppercase;">✓ Líneas a imprimir</h4>
                             <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
                                 <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;"><input type="checkbox" id="lblord_orden" onchange="guardarCamposLabelOrden()" style="width:auto;"> N° Orden</label>
@@ -1241,6 +1245,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                                 <div id="lblordPreview"></div>
                             </div>
                             <p style="font-size:11px; color:var(--text-muted); margin-top:8px;">Los cambios se guardan automáticamente. Tip: para horizontal, pon el ancho mayor que el alto.</p>
+                            <button onclick="guardarMedidasLabelOrden(); guardarCamposLabelOrden(); toast('✅ Configuración del label guardada.', 'success');" class="btn btn-blue" style="width:100%; margin-top:8px;"><i class="ti ti-device-floppy"></i> Guardar configuración</button>
                         </div>
                     </div>
                 </div>
@@ -10407,12 +10412,15 @@ function guardarMedidasLabelOrden() {
     const w = document.getElementById('lblord_w')?.value || '51';
     const h = document.getElementById('lblord_h')?.value || '25';
     const f = document.getElementById('lblord_f')?.value || '10';
+    const m = document.getElementById('lblord_m')?.value || '1';
     localStorage.setItem('bayol_dlbl_w', w);
     localStorage.setItem('bayol_dlbl_h', h);
     localStorage.setItem('bayol_dlbl_f', f);
+    localStorage.setItem('bayol_dlbl_m', m);
     const sw = document.getElementById('lblord_w_val'); if(sw) sw.textContent = w + 'mm';
     const sh = document.getElementById('lblord_h_val'); if(sh) sh.textContent = h + 'mm';
     const sf = document.getElementById('lblord_f_val'); if(sf) sf.textContent = f + 'px';
+    const sm = document.getElementById('lblord_m_val'); if(sm) sm.textContent = m + 'mm';
     actualizarPreviewLabelOrden();
 }
 // Vista previa del label de orden (con datos de ejemplo)
@@ -10424,9 +10432,10 @@ function actualizarPreviewLabelOrden() {
     const f = Math.max(parseInt(localStorage.getItem('bayol_dlbl_f') || '10'), 12);
     const fmenor = Math.max(10, f - 1);
     const c = obtenerCamposLabelOrden();
+    const m = localStorage.getItem('bayol_dlbl_m') || '1';
     const linea = (cond, txt) => cond ? `<div style="font-weight:900; -webkit-text-stroke:0.4px #000;">${txt}</div>` : '';
     cont.innerHTML = `
-        <div style="width:${w}mm; height:${h}mm; font-size:${f}px; font-weight:900; -webkit-text-stroke:0.4px #000; line-height:1.22; padding:1mm; box-sizing:border-box; overflow:hidden; font-family:Arial; color:#000; background:#fff; border:1px solid #000;">
+        <div style="width:${w}mm; height:${h}mm; font-size:${f}px; font-weight:900; -webkit-text-stroke:0.4px #000; line-height:1.22; padding:${m}mm; box-sizing:border-box; overflow:hidden; font-family:Arial; color:#000; background:#fff; border:1px solid #000;">
             <div style="text-align:center; border-bottom:2px solid #000; padding-bottom:0.5mm; margin-bottom:0.5mm;">ORDEN DE SERVICIO</div>
             ${linea(c.orden, 'ORD-000005')}
             ${linea(c.cliente, 'CLIENTE: CHECO')}
@@ -10440,11 +10449,13 @@ function cargarConfigLabelOrden() {
     const w = localStorage.getItem('bayol_dlbl_w') || '51';
     const h = localStorage.getItem('bayol_dlbl_h') || '25';
     const f = localStorage.getItem('bayol_dlbl_f') || '10';
+    const m = localStorage.getItem('bayol_dlbl_m') || '1';
     const set = (id,v) => { const el=document.getElementById(id); if(el) el.value=v; };
-    set('lblord_w', w); set('lblord_h', h); set('lblord_f', f);
+    set('lblord_w', w); set('lblord_h', h); set('lblord_f', f); set('lblord_m', m);
     const sw = document.getElementById('lblord_w_val'); if(sw) sw.textContent = w + 'mm';
     const sh = document.getElementById('lblord_h_val'); if(sh) sh.textContent = h + 'mm';
     const sf = document.getElementById('lblord_f_val'); if(sf) sf.textContent = f + 'px';
+    const sm = document.getElementById('lblord_m_val'); if(sm) sm.textContent = m + 'mm';
     const c = obtenerCamposLabelOrden();
     const chk = (id,v) => { const el=document.getElementById(id); if(el) el.checked=v; };
     chk('lblord_orden',c.orden); chk('lblord_cliente',c.cliente); chk('lblord_equipo',c.equipo);
@@ -10500,7 +10511,7 @@ async function abrirPreviewLabelDiagOrden(orden) {
     
     const linea = (cond, contenido) => cond ? `<div style="font-weight:900; -webkit-text-stroke:0.4px #000; text-align:left;">${contenido}</div>` : '';
     const labelHtml = `
-        <div class="diag-label" style="width:${w}mm; height:${h}mm; font-size:${fBase}px; font-weight:900; -webkit-text-stroke:0.4px #000; line-height:1.22; padding:1mm; box-sizing:border-box; overflow:hidden; font-family:Arial,Helvetica,sans-serif; color:#000; text-align:left;">
+        <div class="diag-label" style="width:${w}mm; height:${h}mm; font-size:${fBase}px; font-weight:900; -webkit-text-stroke:0.4px #000; line-height:1.22; padding:${localStorage.getItem('bayol_dlbl_m') || '1'}mm; box-sizing:border-box; overflow:hidden; font-family:Arial,Helvetica,sans-serif; color:#000; text-align:left;">
             <div style="font-size:${fBase}px; font-weight:900; -webkit-text-stroke:0.4px #000; text-align:center; border-bottom:2px solid #000; padding-bottom:0.5mm; margin-bottom:0.5mm;">ORDEN DE SERVICIO</div>
             ${linea(campos.orden, formatoOrden(orden.numero_orden))}
             ${linea(campos.cliente, 'CLIENTE: ' + escapeHtml(cliente))}
