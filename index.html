@@ -3372,7 +3372,15 @@ function nav(v, btn) {
     if(v === 'reportes') { setTimeout(() => { inicializarReportes(); }, 50); }
     if(v === 'miTrabajo') { setTimeout(() => { renderMiTrabajo(); }, 50); }
     if(v === 'atencion') { setTimeout(() => { renderAtencionCliente(); }, 50); }
-    if(v === 'recepcion') { setTimeout(() => { if(typeof renderRecepcionesRealizadas === 'function') renderRecepcionesRealizadas(); if(typeof refrescarChecklistRecepcion === 'function') refrescarChecklistRecepcion(); }, 50); }
+    if(v === 'recepcion') { setTimeout(async () => {
+        if(typeof renderRecepcionesRealizadas === 'function') renderRecepcionesRealizadas();
+        // Recargar fallas comunes desde la BD para reflejar cambios hechos en Config
+        try {
+            const { data } = await supabaseClient.from('fallas_comunes').select('*').order('orden', { ascending: true });
+            if(data) cache.fallasComunes = data;
+        } catch(e) {}
+        if(typeof refrescarChecklistRecepcion === 'function') refrescarChecklistRecepcion();
+    }, 50); }
     if(v === 'piezasSolicitadas') { setTimeout(() => { if(typeof renderPiezasSolicitadas === 'function') renderPiezasSolicitadas(); }, 50); }
     closeSidebar();
     window.scrollTo({ top: 0, behavior: 'smooth' });
