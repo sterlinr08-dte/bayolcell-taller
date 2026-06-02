@@ -548,6 +548,7 @@ mark.ss-hl { background: #fef08a; color: inherit; padding: 0 1px; border-radius:
 .btn-orientacion.activo b { color: #dc2626 !important; }
 
 /* ========== ANIMACIÓN ITEMS NUEVOS ========== */
+@keyframes pulso { 0%,100% { transform:scale(1); opacity:0.25; } 50% { transform:scale(1.6); opacity:0; } }
 @keyframes itemFadeIn { 
     from { opacity: 0; transform: translateY(-8px); background: #dbeafe; } 
     to { opacity: 1; transform: translateY(0); } 
@@ -3391,7 +3392,7 @@ function closeSidebar() {
 
 async function loadAll() {
     try {
-        const [rOrd, rCli, rEq, rPz, rAct, rRef, rProv, rLot, rArt, rTec, rUsr, rOpz, rTk, rPzR, rFC, rCT] = await Promise.all([
+        const [rOrd, rCli, rEq, rPz, rAct, rRef, rProv, rLot, rArt, rTec, rUsr, rOpz, rTk, rPzR, rFC, rCT, rNotas] = await Promise.all([
             supabaseClient.from('ordenes_reparacion').select('*').order('creado_en', { ascending: false }),
             supabaseClient.from('clientes').select('*'),
             supabaseClient.from('equipos').select('*'),
@@ -3407,7 +3408,8 @@ async function loadAll() {
             supabaseClient.from('tareas_trabajo').select('*').order('creado_en', { ascending: true }).then(r => r, () => ({ data: [], error: null })),
             supabaseClient.from('equipo_piezas_pedidas').select('*').order('creado_en', { ascending: true }).then(r => r, () => ({ data: [], error: null })),
             supabaseClient.from('fallas_comunes').select('*').order('orden', { ascending: true }).then(r => r, () => ({ data: [], error: null })),
-            supabaseClient.from('config_taller').select('*').eq('id', 1).maybeSingle().then(r => r, () => ({ data: null, error: null }))
+            supabaseClient.from('config_taller').select('*').eq('id', 1).maybeSingle().then(r => r, () => ({ data: null, error: null })),
+            supabaseClient.from('orden_notas').select('*').order('creado_en', { ascending: true }).then(r => r, () => ({ data: [], error: null }))
         ]);
 
         requireSupabaseOk(rOrd, 'Cargar órdenes');
@@ -3433,7 +3435,8 @@ async function loadAll() {
             tareas: (rTk && rTk.data) || [],
             piezasReacond: (rPzR && rPzR.data) || [],
             fallasComunes: (rFC && rFC.data) || (cache.fallasComunes || []),
-            configTaller: (rCT && rCT.data) || (cache.configTaller || null)
+            configTaller: (rCT && rCT.data) || (cache.configTaller || null),
+            ordenNotas: (rNotas && rNotas.data) || (cache.ordenNotas || [])
         };
         // Solo notificar si ya había datos cargados antes (no en la primera carga)
         if(_notifYaInicializado) {
@@ -7614,6 +7617,109 @@ function setFiltroTaller(f) {
     renderTallerOrdenes();
 }
 
+// ===== NOTAS DE ÓRDENES (tipo chat técnico ↔ servicio) =====
+function notasDeOrden(ordenId) {
+    return (cache.ordenNotas || []).filter(n => n.orden_id === ordenId)
+        .sort((a,b) => new Date(a.creado_en||0) - new Date(b.creado_en||0));
+}
+function notasSinLeerDeTecnico(tecnicoId) {
+    // Notas escritas por el técnico, en sus órdenes, no leídas por servicio
+    const ordenesTec = (cache.ordenes || []).filter(o => o.tecnico_asignado_id === tecnicoId).map(o => o.id);
+    return (cache.ordenNotas || []).filter(n => ordenesTec.includes(n.orden_id) && n.autor_rol === 'tecnico' && !n.leida_servicio).length;
+}
+async function agregarNotaOrden(ordenId) {
+    const inp = document.getElementById('nota_input_' + ordenId);
+    const msg = (inp?.value || '').trim();
+    if(!msg) return;
+    try {
+        const esTecnico = sessionUser?.tipo_empleado === 'tecnico' || (!isAdminUser() && !tienePermiso('recepcion_ver'));
+        await supabaseClient.from('orden_notas').insert([{
+            orden_id: ordenId, mensaje: msg,
+            autor_id: sessionUser?.id || null,
+            autor_nombre: sessionUser?.nombre || 'Usuario',
+            autor_rol: esTecnico ? 'tecnico' : 'servicio',
+            leida_servicio: !esTecnico
+        }]);
+        if(inp) inp.value = '';
+        await loadAll();
+        // Reabrir el chat si está en un modal
+        const cont = document.getElementById('chatNotas_' + ordenId);
+        if(cont) cont.innerHTML = construirChatNotas(ordenId);
+    } catch(e) { logError('Agregar nota orden', e); toastError(getFriendlyError(e)); }
+}
+async function marcarNotasLeidas(ordenId) {
+    try {
+        await supabaseClient.from('orden_notas').update({ leida_servicio: true })
+            .eq('orden_id', ordenId).eq('autor_rol', 'tecnico');
+        (cache.ordenNotas || []).forEach(n => { if(n.orden_id === ordenId && n.autor_rol === 'tecnico') n.leida_servicio = true; });
+    } catch(e) { logError('Marcar notas leídas', e); }
+}
+function construirChatNotas(ordenId) {
+    const notas = notasDeOrden(ordenId);
+    const mensajes = notas.length ? notas.map(n => {
+        const esTec = n.autor_rol === 'tecnico';
+        const fecha = n.creado_en ? new Date(n.creado_en).toLocaleString('es-DO',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+        return `<div style="display:flex; ${esTec ? 'justify-content:flex-start' : 'justify-content:flex-end'}; margin-bottom:6px;">
+            <div style="max-width:80%; background:${esTec ? '#fef3c7' : '#dbeafe'}; border-radius:10px; padding:7px 10px;">
+                <div style="font-size:10px; font-weight:700; color:${esTec ? '#92400e' : '#1e40af'};">${escapeHtml(n.autor_nombre || '')} ${esTec ? '🔧' : '🎧'}</div>
+                <div style="font-size:13px; color:#1e293b; white-space:pre-wrap;">${escapeHtml(n.mensaje)}</div>
+                <div style="font-size:9px; color:#94a3b8; text-align:right;">${fecha}</div>
+            </div>
+        </div>`;
+    }).join('') : `<div style="font-size:12px; color:var(--text-muted); text-align:center; padding:10px;">Sin notas todavía.</div>`;
+    return `
+        <div id="chatNotas_${ordenId}" style="max-height:240px; overflow-y:auto; background:#f8fafc; border-radius:10px; padding:10px; margin-bottom:8px;">${mensajes}</div>
+        <div style="display:flex; gap:6px;">
+            <input id="nota_input_${ordenId}" placeholder="Escribe una nota..." style="flex:1;" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarNotaOrden('${ordenId}');}">
+            <button onclick="agregarNotaOrden('${ordenId}')" class="btn btn-blue" style="font-size:12px;"><i class="ti ti-send"></i></button>
+        </div>`;
+}
+// Abrir notas de una orden en modal
+function abrirNotasOrden(ordenId) {
+    const o = (cache.ordenes || []).find(x => x.id === ordenId);
+    const num = o ? formatoOrden(o.numero_orden) : '';
+    abrirModalGenerico('💬 Notas · ' + num, construirChatNotas(ordenId));
+    // Si es servicio/admin, marcar como leídas
+    if(isAdminUser() || tienePermiso('recepcion_ver')) {
+        marcarNotasLeidas(ordenId).then(() => { if(typeof renderCargaTecnicos==='function') renderCargaTecnicos(); });
+    }
+}
+// Detalle del técnico: todo lo que está trabajando
+function abrirDetalleTecnico(tecnicoId) {
+    const t = (cache.tecnicos || []).find(x => x.id === tecnicoId);
+    if(!t) return;
+    const activos = ['recibido','en_proceso','espera_repuesto','pendiente_cliente'];
+    const ordenes = (cache.ordenes || []).filter(o => o.tecnico_asignado_id === tecnicoId && activos.includes(normalizarEstadoOrden(o.estado)));
+    const reacond = (cache.refurb || []).filter(e => e.tecnico_asignado_id === tecnicoId && e.estado_evaluacion !== 'vendido');
+    
+    let html = '';
+    if(ordenes.length) {
+        html += `<div style="font-size:13px; font-weight:700; margin:4px 0 8px; color:#dc2626;">🔧 Órdenes (${ordenes.length})</div>`;
+        html += ordenes.map(o => {
+            const e = findEquipo(o.equipo_id), c = findCliente(o.cliente_id);
+            const nNotas = notasDeOrden(o.id).length;
+            const sinLeer = notasDeOrden(o.id).filter(n => n.autor_rol==='tecnico' && !n.leida_servicio).length;
+            return `<div style="border:1px solid #e2e8f0; border-radius:10px; padding:10px; margin-bottom:8px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                    <div style="font-weight:700; font-size:13px;">${formatoOrden(o.numero_orden)} · ${escapeHtml(c.nombre||'')}</div>
+                    <span style="font-size:10px; color:#0891b2;">${etiquetaEstadoTexto(o.estado)}</span>
+                </div>
+                <div style="font-size:12px; color:var(--text-muted); margin:2px 0 6px;">${escapeHtml((e.marca||'')+' '+(e.modelo||''))}</div>
+                <button onclick="abrirNotasOrden('${o.id}')" class="btn btn-light" style="font-size:11px; padding:5px 10px; ${sinLeer>0?'border-color:#fca5a5; color:#dc2626;':''}">
+                    <i class="ti ti-message"></i> Notas ${nNotas>0?`(${nNotas})`:''} ${sinLeer>0?`<span style="background:#dc2626;color:#fff;border-radius:8px;padding:0 6px;margin-left:4px;">${sinLeer} nuevo</span>`:''}
+                </button>
+            </div>`;
+        }).join('');
+    }
+    if(reacond.length) {
+        html += `<div style="font-size:13px; font-weight:700; margin:12px 0 8px; color:#d97706;">🔄 Reacondicionados (${reacond.length})</div>`;
+        html += reacond.map(e => `<div style="border:1px solid #e2e8f0; border-radius:10px; padding:10px; margin-bottom:6px; font-size:13px;">${escapeHtml((e.marca||'')+' '+(e.modelo||''))} · <span style="font-size:11px; color:#0891b2;">${escapeHtml(e.estado_evaluacion||'')}</span></div>`).join('');
+    }
+    if(!ordenes.length && !reacond.length) html = `<div style="color:var(--text-muted); text-align:center; padding:20px;">Este técnico no tiene trabajo activo.</div>`;
+    
+    abrirModalGenerico('👤 ' + escapeHtml(t.nombre), html);
+}
+
 // Panel de carga de trabajo por técnico (dentro de Órdenes de Trabajo)
 let _cargaTecnicosVisible = true;
 function toggleCargaTecnicos() {
@@ -7641,18 +7747,21 @@ function renderCargaTecnicos() {
         const iniciales = (t.nombre || '?').split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase();
         const cargaColor = totalActivos >= 5 ? '#dc2626' : (totalActivos >= 1 ? '#0891b2' : '#94a3b8');
         const cargaBg = totalActivos >= 5 ? '#fee2e2' : (totalActivos >= 1 ? '#e0f2fe' : '#f1f5f9');
+        const avisos = notasSinLeerDeTecnico(t.id);
         
         const listaOrdenes = ordenesActivas.slice(0, 5).map(o => {
             const e = findEquipo(o.equipo_id);
             return `<div style="font-size:12px; line-height:1.5;">• ${formatoOrden(o.numero_orden)} · ${escapeHtml((e.marca||'') + ' ' + (e.modelo||''))}</div>`;
         }).join('') || `<div style="font-size:12px; color:var(--text-muted);">Sin órdenes activas</div>`;
         
-        return `<div style="background:#fff; border:1px solid #eef2f7; border-radius:14px; padding:14px; box-shadow:inset 0 1px 0 rgba(255,255,255,0.9), 0 4px 14px rgba(15,23,42,0.06);">
+        return `<div onclick="abrirDetalleTecnico('${t.id}')" style="position:relative; cursor:pointer; background:#fff; border:1px solid #eef2f7; border-radius:14px; padding:14px; box-shadow:inset 0 1px 0 rgba(255,255,255,0.9), 0 4px 14px rgba(15,23,42,0.06); transition:transform 0.15s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+            ${avisos > 0 ? `<div style="position:absolute; top:10px; right:10px; background:#dc2626; color:#fff; font-size:11px; font-weight:700; min-width:20px; height:20px; border-radius:10px; display:flex; align-items:center; justify-content:center; padding:0 6px; box-shadow:0 2px 6px rgba(220,38,38,0.4);">${avisos}</div>
+            <div style="position:absolute; top:8px; right:8px; width:24px; height:24px; border-radius:50%; background:#dc2626; opacity:0.25; animation:pulso 1.5s infinite;"></div>` : ''}
             <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
                 <div style="width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg,#ef4444,#dc2626); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:14px;">${escapeHtml(iniciales)}</div>
                 <div style="flex:1; min-width:0;">
                     <div style="font-weight:700; font-size:14px;">${escapeHtml(t.nombre)}</div>
-                    <div style="font-size:11px; color:var(--text-muted);">${escapeHtml(t.especialidad || 'Técnico')}</div>
+                    <div style="font-size:11px; color:var(--text-muted);">${escapeHtml(t.especialidad || 'Técnico')} ${avisos>0?'· <span style=\"color:#dc2626; font-weight:700;\">💬 '+avisos+' nota(s) nueva(s)</span>':''}</div>
                 </div>
                 <div style="background:${cargaBg}; color:${cargaColor}; font-size:12px; font-weight:700; padding:3px 10px; border-radius:8px;">${totalActivos} activos</div>
             </div>
@@ -7663,7 +7772,7 @@ function renderCargaTecnicos() {
                 <div style="background:#f0fdf4; border-radius:8px; padding:8px 2px;"><div style="font-size:18px; font-weight:700; color:#16a34a;">${ordenesFin.length}</div><div style="font-size:10px; color:var(--text-muted);">Listas</div></div>
             </div>
             <div style="margin-top:10px; border-top:1px solid #f1f5f9; padding-top:8px;">
-                <div style="font-size:11px; color:var(--text-muted); margin-bottom:3px;">Órdenes activas:</div>
+                <div style="font-size:11px; color:var(--text-muted); margin-bottom:3px;">Toca para ver el detalle →</div>
                 ${listaOrdenes}
             </div>
         </div>`;
@@ -8174,6 +8283,10 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
         // Label de diagnóstico (con las fallas) — útil para el técnico
         acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px;" onclick="cargarEnLabel('${o.id}')"><i class="ti ti-clipboard-list"></i> Label</button>`;
         acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px;" onclick="reimprimirRecibo('${o.id}')"><i class="ti ti-receipt"></i> Recibo</button>`;
+        // Notas de la orden (técnico escribe, servicio lee) — con badge de sin leer
+        const sinLeerNota = (cache.ordenNotas || []).filter(n => n.orden_id === o.id && n.autor_rol === 'tecnico' && !n.leida_servicio).length;
+        const totalNotas = (cache.ordenNotas || []).filter(n => n.orden_id === o.id).length;
+        acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; ${sinLeerNota>0?'border-color:#fca5a5; color:#dc2626;':''}" onclick="abrirNotasOrden('${o.id}')"><i class="ti ti-message"></i> Notas${totalNotas>0?` (${totalNotas})`:''}${sinLeerNota>0?` <span style="background:#dc2626;color:#fff;border-radius:8px;padding:0 5px;">${sinLeerNota}</span>`:''}</button>`;
         // Ver historial del cliente (admin y servicio)
         if((esAdmin || (typeof tienePermiso === 'function' && tienePermiso('recepcion_ver'))) && o.cliente_id) {
             acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#0891b2;" onclick="verHistorialCliente('${o.cliente_id}')"><i class="ti ti-history"></i> Historial cliente</button>`;
