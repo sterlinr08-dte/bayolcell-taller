@@ -1577,6 +1577,9 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                     <button id="cfgMainTabGeneral" onclick="cambiarMainTabConfig('general')" class="cfg-main-tab" style="flex:1; min-width:120px; padding:12px; border:0; background:transparent; color:var(--text-muted); border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">
                         <i class="ti ti-adjustments"></i> General
                     </button>
+                    <button id="cfgMainTabFallas" onclick="cambiarMainTabConfig('fallas')" class="cfg-main-tab" style="flex:1; min-width:120px; padding:12px; border:0; background:transparent; color:var(--text-muted); border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">
+                        <i class="ti ti-list-check"></i> Fallas
+                    </button>
                 </div>
                 
                 <!-- TAB TÉCNICOS -->
@@ -1645,6 +1648,17 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                     <div class="card">
                         <h3><i class="ti ti-adjustments"></i> Configuración General</h3>
                         <p style="color:var(--text-muted);">Próximamente: configuración general del sistema (logos, datos del taller, etc.)</p>
+                    </div>
+                </div>
+                <div id="cfgContentFallas" style="display:none;">
+                    <div class="card">
+                        <h3><i class="ti ti-list-check"></i> Fallas Comunes</h3>
+                        <p style="color:var(--text-muted); font-size:13px; margin-bottom:14px;">Estas son las fallas que aparecen en el checklist de recepción. Puedes cambiar el nombre, agregar o quitar. Los cambios los ven todos los usuarios.</p>
+                        <div id="cfgFallasLista"></div>
+                        <div style="display:flex; gap:6px; border-top:1px dashed #cbd5e1; padding-top:12px; margin-top:6px;">
+                            <input id="cfgFallaNueva" placeholder="Nueva falla común (ej: No carga)" style="flex:1;" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarFallaComunNueva(true);}">
+                            <button onclick="agregarFallaComunNueva(true)" class="btn btn-blue" style="font-size:12px;"><i class="ti ti-plus"></i> Agregar</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -5458,14 +5472,17 @@ function cambiarMainTabConfig(tab) {
     if(rolesCont) rolesCont.style.display = tab === 'roles' ? 'block' : 'none';
     const catCont = document.getElementById('cfgContentCatalogos');
     if(catCont) catCont.style.display = tab === 'catalogos' ? 'block' : 'none';
+    const fallasCont = document.getElementById('cfgContentFallas');
+    if(fallasCont) fallasCont.style.display = tab === 'fallas' ? 'block' : 'none';
     
     const btnTec = document.getElementById('cfgMainTabTecnicos');
     const btnRoles = document.getElementById('cfgMainTabRoles');
     const btnCat = document.getElementById('cfgMainTabCatalogos');
     const btnGen = document.getElementById('cfgMainTabGeneral');
+    const btnFallas = document.getElementById('cfgMainTabFallas');
     
     // Reset todos
-    [btnTec, btnRoles, btnCat, btnGen].forEach(b => {
+    [btnTec, btnRoles, btnCat, btnGen, btnFallas].forEach(b => {
         if(b) { b.style.background = 'transparent'; b.style.color = 'var(--text-muted)'; }
     });
     
@@ -5475,20 +5492,43 @@ function cambiarMainTabConfig(tab) {
         renderTecnicos();
     } else if(tab === 'roles') {
         if(btnRoles) {
-            btnRoles.style.background = 'linear-gradient(180deg,#6366f1,#4338ca)';
+            btnRoles.style.background = 'linear-gradient(135deg,#6366f1,#4f46e5)';
             btnRoles.style.color = '#fff';
         }
         cargarRoles();
     } else if(tab === 'catalogos') {
         if(btnCat) {
-            btnCat.style.background = 'linear-gradient(180deg,#0891b2,#0e7490)';
+            btnCat.style.background = 'linear-gradient(135deg,#0891b2,#0e7490)';
             btnCat.style.color = '#fff';
         }
         cargarCatalogosConfig();
     } else if(tab === 'general') {
         btnGen.style.background = 'var(--blue-btn)';
         btnGen.style.color = '#fff';
+    } else if(tab === 'fallas') {
+        if(btnFallas) {
+            btnFallas.style.background = 'var(--blue-btn)';
+            btnFallas.style.color = '#fff';
+        }
+        renderCfgFallas();
     }
+}
+
+// Renderiza la lista editable de fallas comunes en Configuración
+function renderCfgFallas() {
+    const cont = document.getElementById('cfgFallasLista');
+    if(!cont) return;
+    const fallas = (cache.fallasComunes || []).filter(f => f.activo !== false).sort((a,b) => (a.orden||0)-(b.orden||0));
+    if(!fallas.length) {
+        cont.innerHTML = `<p style="color:var(--text-muted); font-size:13px; padding:10px 0;">No hay fallas. Si la tabla está vacía, agrégalas abajo o corre el SQL inicial.</p>`;
+        return;
+    }
+    cont.innerHTML = fallas.map(f => `
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:7px;">
+            <input id="cfgfc_${f.id}" value="${escapeHtml(f.nombre)}" style="flex:1;">
+            <button onclick="guardarNombreFalla('${f.id}', true)" class="btn btn-success" style="font-size:11px; padding:7px 11px;" title="Guardar"><i class="ti ti-check"></i></button>
+            <button onclick="quitarFallaComun('${f.id}', true)" class="btn btn-danger" style="font-size:11px; padding:7px 11px;" title="Quitar"><i class="ti ti-trash"></i></button>
+        </div>`).join('');
 }
 
 /* ============================================================
@@ -7722,28 +7762,31 @@ function abrirEditorFallasComunes() {
     abrirModalGenerico('⚙️ Editar Fallas Comunes', contenido);
 }
 
-async function guardarNombreFalla(id) {
-    const nuevo = (document.getElementById('fc_' + id)?.value || '').trim();
+async function guardarNombreFalla(id, desdeConfig) {
+    const inputId = desdeConfig ? ('cfgfc_' + id) : ('fc_' + id);
+    const nuevo = (document.getElementById(inputId)?.value || '').trim();
     if(!nuevo) return toast('El nombre no puede estar vacío.', 'error');
     try {
         await supabaseClient.from('fallas_comunes').update({ nombre: nuevo }).eq('id', id);
         await recargarFallasComunes();
-        toast('✅ Falla actualizada.');
+        if(desdeConfig) renderCfgFallas();
+        toast('✅ Falla actualizada.', 'success');
     } catch(e) { logError('Guardar falla común', e); toastError(getFriendlyError(e)); }
 }
 
-async function quitarFallaComun(id) {
+async function quitarFallaComun(id, desdeConfig) {
     if(!await confirmar('¿Quitar esta falla común de la lista?')) return;
     try {
         await supabaseClient.from('fallas_comunes').delete().eq('id', id);
         await recargarFallasComunes();
-        abrirEditorFallasComunes(); // refrescar el modal
+        if(desdeConfig) renderCfgFallas();
+        else abrirEditorFallasComunes(); // refrescar el modal
         toast('Falla quitada.');
     } catch(e) { logError('Quitar falla común', e); toastError(getFriendlyError(e)); }
 }
 
-async function agregarFallaComunNueva() {
-    const inp = document.getElementById('fc_nueva');
+async function agregarFallaComunNueva(desdeConfig) {
+    const inp = document.getElementById(desdeConfig ? 'cfgFallaNueva' : 'fc_nueva');
     const nombre = (inp?.value || '').trim();
     if(!nombre) return;
     try {
@@ -7751,8 +7794,9 @@ async function agregarFallaComunNueva() {
         await supabaseClient.from('fallas_comunes').insert([{ nombre, orden: maxOrden + 1, activo: true }]);
         if(inp) inp.value = '';
         await recargarFallasComunes();
-        abrirEditorFallasComunes(); // refrescar el modal
-        toast('✅ Falla agregada.');
+        if(desdeConfig) renderCfgFallas();
+        else abrirEditorFallasComunes(); // refrescar el modal
+        toast('✅ Falla agregada.', 'success');
     } catch(e) { logError('Agregar falla común', e); toastError(getFriendlyError(e)); }
 }
 
