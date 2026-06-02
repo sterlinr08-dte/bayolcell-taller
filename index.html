@@ -2592,6 +2592,44 @@ function confirmar(mensaje, opciones) {
         bg.onclick = (e) => { if(e.target === bg) cerrar(false); };
     });
 }
+
+// Modal de entrada de texto (reemplaza prompt). Devuelve Promise<string|null>.
+function pedirTexto(mensaje, opciones) {
+    opciones = opciones || {};
+    const valorInicial = opciones.valor || '';
+    const placeholder = opciones.placeholder || '';
+    const multilinea = opciones.multilinea || false;
+    const tipo = opciones.tipo || 'text'; // text o number
+    return new Promise((resolve) => {
+        const prev = document.getElementById('modalPrompt');
+        if(prev) prev.remove();
+        const bg = document.createElement('div');
+        bg.id = 'modalPrompt';
+        bg.style.cssText = 'position:fixed; inset:0; background:rgba(15,23,42,0.6); z-index:300; display:flex; align-items:center; justify-content:center; padding:20px;';
+        const campo = multilinea
+            ? `<textarea id="promptInput" rows="3" placeholder="${escapeHtml(placeholder)}" style="width:100%;">${escapeHtml(valorInicial)}</textarea>`
+            : `<input id="promptInput" type="${tipo}" value="${escapeHtml(valorInicial)}" placeholder="${escapeHtml(placeholder)}" style="width:100%;">`;
+        bg.innerHTML = `
+            <div style="background:#fff; border-radius:18px; max-width:420px; width:100%; box-shadow:0 25px 60px -12px rgba(15,23,42,0.4); overflow:hidden;">
+                <div style="padding:20px 22px 10px;">
+                    <div style="font-size:14px; color:#1e293b; line-height:1.5; white-space:pre-line; margin-bottom:12px;">${escapeHtml(mensaje)}</div>
+                    ${campo}
+                </div>
+                <div style="display:flex; gap:10px; padding:14px 22px 22px;">
+                    <button id="promptCancel" class="btn btn-light" style="flex:1;">Cancelar</button>
+                    <button id="promptOk" class="btn btn-blue" style="flex:1;">Aceptar</button>
+                </div>
+            </div>`;
+        document.body.appendChild(bg);
+        const input = bg.querySelector('#promptInput');
+        setTimeout(() => input?.focus(), 50);
+        const cerrar = (val) => { bg.remove(); resolve(val); };
+        bg.querySelector('#promptOk').onclick = () => cerrar(input.value);
+        bg.querySelector('#promptCancel').onclick = () => cerrar(null);
+        bg.onclick = (e) => { if(e.target === bg) cerrar(null); };
+        if(!multilinea) input.addEventListener('keydown', e => { if(e.key === 'Enter') cerrar(input.value); });
+    });
+}
 function escapeHtml(s) { return (s ?? "").toString().replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[m])); }
 
 /* ============================================================
@@ -5884,7 +5922,7 @@ function construirSeccionTareas(tipo, refId, tareas, cerrada, soloAgregar) {
 
 // Crear una tarea (cualquier técnico puede)
 async function crearTarea(tipo, refId) {
-    const desc = prompt('🔧 NUEVA TAREA\n\n¿Qué hay que hacer?\n\nEjemplo: "Cambiar pantalla", "Microsoldadura", "Cambiar batería"');
+    const desc = await pedirTexto('🔧 NUEVA TAREA\n\n¿Qué hay que hacer?\n\nEjemplo: "Cambiar pantalla", "Microsoldadura", "Cambiar batería"');
     if(desc === null) return;
     if(!desc.trim()) return toast('Escribe qué hay que hacer.', 'error');
     
@@ -5893,7 +5931,7 @@ async function crearTarea(tipo, refId) {
     let tecnicoId = null;
     if(tecnicos.length) {
         const lista = tecnicos.map((t, i) => `${i + 1}. ${t.nombre}`).join('\n');
-        const sel = prompt(`¿A qué técnico se le asigna?\n\n${lista}\n\nEscribe el número (o deja vacío para "Sin asignar"):`);
+        const sel = await pedirTexto(`¿A qué técnico se le asigna?\n\n${lista}\n\nEscribe el número (o deja vacío para "Sin asignar"):`);
         if(sel === null) return;
         if(sel.trim()) {
             const idx = parseInt(sel) - 1;
@@ -5917,7 +5955,7 @@ async function crearTarea(tipo, refId) {
 
 // Marcar tarea como hecha
 async function completarTarea(tareaId, tipo, refId) {
-    const nota = prompt('¿Alguna nota sobre el trabajo? (opcional)');
+    const nota = await pedirTexto('¿Alguna nota sobre el trabajo? (opcional)');
     try {
         const upd = { estado: 'hecha', fecha_completada: new Date().toISOString() };
         if(nota && nota.trim()) upd.notas = nota.trim();
@@ -6014,7 +6052,7 @@ async function reasignarTarea(tareaId, tipo, refId) {
     const tecnicos = (cache.tecnicos || []).filter(t => t.activo && (t.tipo_empleado === 'tecnico' || (!t.tipo_empleado && t.rol !== 'admin')) && t.id !== tarea.tecnico_id);
     if(!tecnicos.length) return toast('No hay otros técnicos disponibles.', 'error');
     const lista = tecnicos.map((t, i) => `${i + 1}. ${t.nombre}`).join('\n');
-    const sel = prompt(`REASIGNAR TAREA: ${tarea.descripcion}\n\n¿A qué técnico se la pasas?\n\n${lista}\n\nEscribe el número:`);
+    const sel = await pedirTexto(`REASIGNAR TAREA: ${tarea.descripcion}\n\n¿A qué técnico se la pasas?\n\n${lista}\n\nEscribe el número:`);
     if(sel === null) return;
     const idx = parseInt(sel) - 1;
     if(isNaN(idx) || idx < 0 || idx >= tecnicos.length) return toast('Selección inválida.', 'error');
@@ -6433,7 +6471,7 @@ async function ajustarStockInventario(piezaId, delta) {
 
 /* ---------- DEVOLUCIÓN DE PIEZAS ---------- */
 async function solicitarDevolucionPieza(piezaId) {
-    const motivo = prompt('¿Por qué devuelves esta pieza?\n(Ej: No se necesitó, pieza defectuosa, sobró...)');
+    const motivo = await pedirTexto('¿Por qué devuelves esta pieza?\n(Ej: No se necesitó, pieza defectuosa, sobró...)');
     if(motivo === null) return; // canceló
     if(!motivo.trim()) return toast('Debes indicar un motivo para devolver la pieza.', 'error');
     try {
@@ -6662,11 +6700,11 @@ async function rechazarPiezaExtra(piezaId) {
 }
 
 async function agregarPiezaExtra(equipoId) {
-    const nombre = prompt('Nombre de la pieza extra que apareció durante la reparación:');
+    const nombre = await pedirTexto('Nombre de la pieza extra que apareció durante la reparación:');
     if(!nombre || !nombre.trim()) return;
-    const costoStr = prompt('Costo unitario de la pieza (RD$):', '0');
+    const costoStr = await pedirTexto('Costo unitario de la pieza (RD$):', {valor:'0'});
     const costo = parseFloat(costoStr) || 0;
-    const cantStr = prompt('Cantidad:', '1');
+    const cantStr = await pedirTexto('Cantidad:', {valor:'1'});
     const cantidad = parseInt(cantStr) || 1;
     
     try {
@@ -8864,7 +8902,7 @@ async function cambiarEstadoOrdenUI(ordenId, nuevoEstado) {
         }
     }
     if(nuevoEstado === 'pendiente_cliente') {
-        const nota = prompt('🔔 ESPERANDO AUTORIZACIÓN DEL CLIENTE\n\n¿Qué necesitas que el cliente autorice o informe?\n\nEjemplos:\n• "Autorizar cambio de batería - RD$1,200"\n• "Se dañó el flex al abrir, autorizar reemplazo"\n• "Necesito la contraseña del equipo"');
+        const nota = await pedirTexto('🔔 ESPERANDO AUTORIZACIÓN DEL CLIENTE\n\n¿Qué necesitas que el cliente autorice o informe?\n\nEjemplos:\n• "Autorizar cambio de batería - RD$1,200"\n• "Se dañó el flex al abrir, autorizar reemplazo"\n• "Necesito la contraseña del equipo"');
         if(nota === null) return; // canceló
         if(!nota.trim()) return toast('Debes escribir qué se necesita autorizar.', 'error');
         await avanzarEstadoOrden(ordenId, nuevoEstado, nota.trim());
@@ -8893,13 +8931,13 @@ async function derivarOrden(ordenId) {
     
     // Construir lista para el prompt
     const lista = tecnicos.map((t, i) => `${i + 1}. ${t.nombre}`).join('\n');
-    const sel = prompt(`DERIVAR ORDEN ${formatoOrden(orden.numero_orden)} a otro técnico:\n\n${lista}\n\nEscribe el número del técnico:`);
+    const sel = await pedirTexto(`DERIVAR ORDEN ${formatoOrden(orden.numero_orden)} a otro técnico:\n\n${lista}\n\nEscribe el número del técnico:`);
     if(sel === null) return;
     const idx = parseInt(sel) - 1;
     if(isNaN(idx) || idx < 0 || idx >= tecnicos.length) return toast('Selección inválida.', 'error');
     const nuevoTec = tecnicos[idx];
     
-    const motivo = prompt(`Motivo de la derivación a ${nuevoTec.nombre}:\n\nEjemplo: "Requiere microsoldadura" o "No pude resolver el problema de carga"`);
+    const motivo = await pedirTexto(`Motivo de la derivación a ${nuevoTec.nombre}:\n\nEjemplo: "Requiere microsoldadura" o "No pude resolver el problema de carga"`);
     if(motivo === null) return;
     if(!motivo.trim()) return toast('Debes indicar el motivo de la derivación.', 'error');
     
@@ -8927,11 +8965,11 @@ async function solicitarPiezaOrden(ordenId) {
     const esMia = orden.tecnico_asignado_id === sessionUser?.id;
     if(!esAdmin && !esMia) return toast('Solo el técnico asignado puede solicitar piezas para esta orden.', 'error');
     
-    const nombre = prompt('🔧 SOLICITAR PIEZA ADICIONAL\n\nEscribe el nombre de la pieza que necesitas:\n\nEjemplo: "Pantalla iPhone 12", "Batería", "Flex de carga"');
+    const nombre = await pedirTexto('🔧 SOLICITAR PIEZA ADICIONAL\n\nEscribe el nombre de la pieza que necesitas:\n\nEjemplo: "Pantalla iPhone 12", "Batería", "Flex de carga"');
     if(nombre === null) return;
     if(!nombre.trim()) return toast('Escribe el nombre de la pieza.', 'error');
     
-    const cantStr = prompt('¿Cuántas unidades? (deja 1 si es una sola)', '1');
+    const cantStr = await pedirTexto('¿Cuántas unidades? (deja 1 si es una sola)', {valor:'1'});
     if(cantStr === null) return;
     const cantidad = parseInt(cantStr) || 1;
     
@@ -8988,7 +9026,7 @@ async function devolverPiezaOrden(piezaId) {
     const esAdmin = isAdminUser();
     const esMia = pieza.tecnico_id === sessionUser?.id;
     if(!esAdmin && !esMia) return toast('Solo el técnico que tiene la pieza puede solicitar devolverla.', 'error');
-    const motivo = prompt(`↩️ DEVOLVER PIEZA: ${pieza.pieza_nombre}\n\n¿Por qué la devuelves?\n\nEjemplos:\n• "No se utilizó, el daño era otro"\n• "Era para probar, no hizo falta"`);
+    const motivo = await pedirTexto(`↩️ DEVOLVER PIEZA: ${pieza.pieza_nombre}\n\n¿Por qué la devuelves?\n\nEjemplos:\n• "No se utilizó, el daño era otro"\n• "Era para probar, no hizo falta"`);
     if(motivo === null) return;
     try {
         const { error } = await supabaseClient.from('orden_piezas').update({
@@ -9189,7 +9227,7 @@ async function marcarEntregadoConGarantia(ordenId) {
             return toast('⚠️ Solo se puede entregar una orden FINALIZADA.\n\nMarca la reparación como finalizada antes de entregar.', 'error');
         }
     }
-    const diasStr = prompt('📦 ENTREGAR EQUIPO\n\n¿Cuántos días de garantía? (deja 0 si no aplica)\n\nEjemplos: 30, 90', '90');
+    const diasStr = await pedirTexto('📦 ENTREGAR EQUIPO\n\n¿Cuántos días de garantía? (deja 0 si no aplica)\n\nEjemplos: 30, 90', {valor:'90'});
     if(diasStr === null) return;
     const dias = parseInt(diasStr) || 0;
     try {
@@ -9229,7 +9267,7 @@ async function reabrirOrden(ordenId, tipoMotivo) {
             if(!await confirmar('⚠️ La garantía de esta orden ya venció.\n\n¿Reabrir por OTRA razón (no garantía)?')) return;
             return reabrirOrden(ordenId, 'otra');
         }
-        const motivo = prompt(`🛡️ REABRIR POR GARANTÍA\n\nQuedan ${info.diasRestantes} días de garantía.\n\n¿Qué problema reporta el cliente?\n\nEjemplo: "La pantalla volvió a fallar"`);
+        const motivo = await pedirTexto(`🛡️ REABRIR POR GARANTÍA\n\nQuedan ${info.diasRestantes} días de garantía.\n\n¿Qué problema reporta el cliente?\n\nEjemplo: "La pantalla volvió a fallar"`);
         if(motivo === null) return;
         if(!motivo.trim()) return toast('Indica el motivo de la garantía.', 'error');
         updates.es_garantia = true;
@@ -9239,7 +9277,7 @@ async function reabrirOrden(ordenId, tipoMotivo) {
         avisoTecnico = '🛡️ Reabierta por GARANTÍA';
     } else {
         // Otra razón
-        const motivo = prompt(`🔄 REABRIR ORDEN (otra razón)\n\n¿Por qué se reabre esta orden?\n\nEjemplo: "El cliente reporta otro problema", "Revisión adicional solicitada"`);
+        const motivo = await pedirTexto(`🔄 REABRIR ORDEN (otra razón)\n\n¿Por qué se reabre esta orden?\n\nEjemplo: "El cliente reporta otro problema", "Revisión adicional solicitada"`);
         if(motivo === null) return;
         if(!motivo.trim()) return toast('Indica la razón de la reapertura.', 'error');
         updates.nota_estado = `🔄 REABIERTA: ${motivo.trim()}`;
