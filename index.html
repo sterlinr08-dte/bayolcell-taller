@@ -7642,9 +7642,22 @@ async function agregarNotaOrden(ordenId) {
         }]);
         if(inp) inp.value = '';
         await loadAll();
-        // Reabrir el chat si está en un modal
+        // Refrescar el chat dentro del modal de notas
         const cont = document.getElementById('chatNotas_' + ordenId);
-        if(cont) cont.innerHTML = construirChatNotas(ordenId);
+        if(cont) {
+            cont.innerHTML = notasDeOrden(ordenId).map(n => {
+                const esTec = n.autor_rol === 'tecnico';
+                const fecha = n.creado_en ? new Date(n.creado_en).toLocaleString('es-DO',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+                return `<div style="display:flex; ${esTec ? 'justify-content:flex-start' : 'justify-content:flex-end'}; margin-bottom:6px;">
+                    <div style="max-width:80%; background:${esTec ? '#fef3c7' : '#dbeafe'}; border-radius:10px; padding:7px 10px;">
+                        <div style="font-size:10px; font-weight:700; color:${esTec ? '#92400e' : '#1e40af'};">${escapeHtml(n.autor_nombre || '')} ${esTec ? '🔧' : '🎧'}</div>
+                        <div style="font-size:13px; color:#1e293b; white-space:pre-wrap;">${escapeHtml(n.mensaje)}</div>
+                        <div style="font-size:9px; color:#94a3b8; text-align:right;">${fecha}</div>
+                    </div>
+                </div>`;
+            }).join('') || `<div style="font-size:12px; color:var(--text-muted); text-align:center; padding:10px;">Sin notas todavía.</div>`;
+            cont.scrollTop = cont.scrollHeight;
+        }
     } catch(e) { logError('Agregar nota orden', e); toastError(getFriendlyError(e)); }
 }
 async function marcarNotasLeidas(ordenId) {
@@ -7674,11 +7687,25 @@ function construirChatNotas(ordenId) {
             <button onclick="agregarNotaOrden('${ordenId}')" class="btn btn-blue" style="font-size:12px;"><i class="ti ti-send"></i></button>
         </div>`;
 }
-// Abrir notas de una orden en modal
+// Abrir notas de una orden en modal (independiente del modal de detalle)
 function abrirNotasOrden(ordenId) {
     const o = (cache.ordenes || []).find(x => x.id === ordenId);
     const num = o ? formatoOrden(o.numero_orden) : '';
-    abrirModalGenerico('💬 Notas · ' + num, construirChatNotas(ordenId));
+    // Modal propio (id distinto) para no encimarse con el detalle del técnico
+    const prev = document.getElementById('modalNotas');
+    if(prev) prev.remove();
+    const modal = document.createElement('div');
+    modal.id = 'modalNotas';
+    modal.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:320; display:flex; align-items:center; justify-content:center; padding:16px; overflow-y:auto;';
+    modal.onclick = (e) => { if(e.target === modal) modal.remove(); };
+    modal.innerHTML = `<div style="background:#fff; border-radius:18px; padding:20px; max-width:460px; width:100%; max-height:85vh; overflow-y:auto; box-shadow:0 25px 60px -12px rgba(15,23,42,0.4);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+            <b style="font-size:16px; color:#dc2626;"><i class="ti ti-message"></i> Notas · ${escapeHtml(num)}</b>
+            <button onclick="document.getElementById('modalNotas').remove()" style="background:#fee2e2; color:#991b1b; border:0; width:32px; height:32px; border-radius:10px; cursor:pointer; font-size:16px;">✕</button>
+        </div>
+        ${construirChatNotas(ordenId)}
+    </div>`;
+    document.body.appendChild(modal);
     // Si es servicio/admin, marcar como leídas
     if(isAdminUser() || tienePermiso('recepcion_ver')) {
         marcarNotasLeidas(ordenId).then(() => { if(typeof renderCargaTecnicos==='function') renderCargaTecnicos(); });
