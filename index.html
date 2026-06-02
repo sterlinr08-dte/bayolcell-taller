@@ -50,15 +50,15 @@ input[disabled] { background-color: #f8fafc; color: #94a3b8; cursor: not-allowed
 .btn:active { transform: translateY(1px); }
 .btn:disabled, .btn[disabled] { opacity: 0.5; cursor: not-allowed; box-shadow: none !important; transform: none !important; }
 /* PRINCIPAL (rojo) */
-.btn-blue { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: #fff; box-shadow: 0 3px 10px rgba(220,38,38,0.25); }
-.btn-blue:hover { background: linear-gradient(135deg, #f05252 0%, #e02424 100%); box-shadow: 0 5px 14px rgba(220,38,38,0.32); }
+.btn-blue { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: #fff; box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), 0 3px 10px rgba(220,38,38,0.25); }
+.btn-blue:hover { background: linear-gradient(135deg, #f05252 0%, #e02424 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), 0 5px 14px rgba(220,38,38,0.32); }
 .btn-blue:active { box-shadow: 0 2px 6px rgba(220,38,38,0.28); }
 /* SECUNDARIO OSCURO */
 .btn-dark { background: #334155; color: #fff; box-shadow: 0 3px 10px rgba(15,23,42,0.18); }
 .btn-dark:hover { background: #475569; box-shadow: 0 5px 14px rgba(15,23,42,0.24); }
 .btn-dark:active { box-shadow: 0 2px 6px rgba(15,23,42,0.18); }
 /* SECUNDARIO CLARO */
-.btn-light { background: #fff; border: 1px solid #e2e8f0; color: var(--text-dark); text-shadow: none; box-shadow: 0 1px 4px rgba(15,23,42,0.05); }
+.btn-light { background: #fff; border: 1px solid #e2e8f0; color: var(--text-dark); text-shadow: none; box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 1px 4px rgba(15,23,42,0.06); }
 .btn-light:hover { background: var(--red-light); border-color: #fca5a5; color: #dc2626; box-shadow: 0 3px 8px rgba(220,38,38,0.1); }
 .btn-light:active { box-shadow: 0 1px 3px rgba(15,23,42,0.05); }
 /* PELIGRO (rojo oscuro, distinto del principal) */
@@ -116,7 +116,7 @@ input[disabled] { background-color: #f8fafc; color: #94a3b8; cursor: not-allowed
 .view { display: none; }
 .view.active { display: block; }
 
-.card { background: var(--card-bg); border-radius: 16px; border: 1px solid #eef2f7; padding: 16px; box-shadow: 0 4px 16px rgba(15,23,42,0.06), 0 1px 3px rgba(15,23,42,0.04); margin-bottom: 14px; }
+.card { background: var(--card-bg); border-radius: 16px; border: 1px solid #eef2f7; padding: 16px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 4px 16px rgba(15,23,42,0.07), 0 1px 3px rgba(15,23,42,0.04); margin-bottom: 14px; }
 .data-table { border-collapse: separate; border-spacing: 0; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(15,23,42,0.05); border: 1px solid #eef2f7; }
 .data-table thead tr { background: #f8fafc; }
 .data-table th { text-align: left; padding: 11px 12px; font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #f1f5f9; }
@@ -124,7 +124,7 @@ input[disabled] { background-color: #f8fafc; color: #94a3b8; cursor: not-allowed
 .data-table tbody tr:last-child td { border-bottom: 0; }
 .data-table tbody tr:hover { background: #fef9f9; }
 .kpi-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 20px; }
-.kpi-box { background: #fff; border-radius: 14px; padding: 16px; border-top: 4px solid var(--red-soft); box-shadow: 0 4px 14px rgba(15,23,42,0.06), 0 1px 3px rgba(15,23,42,0.04); position: relative; border: 1px solid #eef2f7; }
+.kpi-box { background: #fff; border-radius: 14px; padding: 16px; border-top: 4px solid var(--red-soft); box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 4px 14px rgba(15,23,42,0.07), 0 1px 3px rgba(15,23,42,0.04); position: relative; border: 1px solid #eef2f7; }
 .kpi-box.clickable { cursor: pointer; }
 .kpi-box.clickable:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(15,23,42,0.08); }
 .kpi-box small { font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; display: block; }
@@ -2532,9 +2532,51 @@ function requireSupabaseOk(response, context) {
     if(response?.error) { logError(context, response.error); throw response.error; }
     return response;
 }
-function toast(msg) {
+function toast(msg, tipo) {
     const t = document.getElementById("toast");
-    if(t) { t.textContent = msg; t.style.display = "block"; setTimeout(() => t.style.display = "none", 3000); }
+    if(!t) return;
+    t.textContent = msg;
+    // Color según tipo: error (rojo), success (verde), default (oscuro)
+    if(tipo === 'error') { t.style.background = '#dc2626'; t.style.color = '#fff'; }
+    else if(tipo === 'success') { t.style.background = '#16a34a'; t.style.color = '#fff'; }
+    else { t.style.background = '#0f172a'; t.style.color = '#fff'; }
+    t.style.display = "block";
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.style.display = "none", tipo === 'error' ? 4000 : 3000);
+}
+function toastError(msg) { toast(msg, 'error'); }
+
+// Modal de confirmación (reemplaza confirm()). Devuelve una Promise<boolean>.
+function confirmar(mensaje, opciones) {
+    opciones = opciones || {};
+    const textoOk = opciones.ok || 'Confirmar';
+    const textoCancel = opciones.cancel || 'Cancelar';
+    const peligro = opciones.peligro !== false; // por defecto botón rojo
+    return new Promise((resolve) => {
+        const prev = document.getElementById('modalConfirm');
+        if(prev) prev.remove();
+        const bg = document.createElement('div');
+        bg.id = 'modalConfirm';
+        bg.style.cssText = 'position:fixed; inset:0; background:rgba(15,23,42,0.6); z-index:300; display:flex; align-items:center; justify-content:center; padding:20px;';
+        bg.innerHTML = `
+            <div style="background:#fff; border-radius:18px; max-width:400px; width:100%; box-shadow:0 25px 60px -12px rgba(15,23,42,0.4); overflow:hidden;">
+                <div style="padding:22px 22px 8px; text-align:center;">
+                    <div style="width:52px; height:52px; border-radius:50%; background:${peligro ? '#fee2e2' : '#dbeafe'}; display:flex; align-items:center; justify-content:center; margin:0 auto 14px;">
+                        <i class="ti ${peligro ? 'ti-alert-triangle' : 'ti-help'}" style="font-size:26px; color:${peligro ? '#dc2626' : '#2563eb'};"></i>
+                    </div>
+                    <div style="font-size:15px; color:#1e293b; line-height:1.5; white-space:pre-line;">${escapeHtml(mensaje)}</div>
+                </div>
+                <div style="display:flex; gap:10px; padding:16px 22px 22px;">
+                    <button id="confCancel" class="btn btn-light" style="flex:1;">${escapeHtml(textoCancel)}</button>
+                    <button id="confOk" class="btn ${peligro ? 'btn-danger' : 'btn-blue'}" style="flex:1;">${escapeHtml(textoOk)}</button>
+                </div>
+            </div>`;
+        document.body.appendChild(bg);
+        const cerrar = (val) => { bg.remove(); resolve(val); };
+        bg.querySelector('#confOk').onclick = () => cerrar(true);
+        bg.querySelector('#confCancel').onclick = () => cerrar(false);
+        bg.onclick = (e) => { if(e.target === bg) cerrar(false); };
+    });
 }
 function escapeHtml(s) { return (s ?? "").toString().replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[m])); }
 
@@ -2916,7 +2958,7 @@ async function imprimirContenido(htmlContenido, copias, anchoMm, altoMm, tipo) {
 async function doLogin() {
     try {
         const u = val("loginUser"), p = val("loginPass");
-        if(!u || !p) return alert("Ingrese datos.");
+        if(!u || !p) return toast("Ingrese datos.", 'error');
         
         // 1. Buscar primero en usuarios (admin)
         const { data: usuariosData, error: errU } = await supabaseClient
@@ -2961,8 +3003,8 @@ async function doLogin() {
             return;
         }
         
-        alert("Usuario o contraseña incorrectos.");
-    } catch(e) { logError("Login", e); alert("Error de autenticación."); }
+        toast("Usuario o contraseña incorrectos.", 'error');
+    } catch(e) { logError("Login", e); toast("Error de autenticación.", 'error'); }
 }
 
 function logout() { localStorage.removeItem("bayol_session"); location.reload(); }
@@ -3000,7 +3042,7 @@ function puedeVer(permiso) { return tienePermiso(permiso); }
 // Devuelve true si puede; si no, avisa y devuelve false. Defensa en profundidad.
 function soloAdmin(accion) {
     if(isAdminUser() || tienePermiso('piezas_aprobar_extra')) return true;
-    alert(`Solo el administrador puede ${accion || 'realizar esta acción'}. El técnico no tiene este permiso.`);
+    toast(`Solo el administrador puede ${accion || 'realizar esta acción'}. El técnico no tiene este permiso.`, 'error');
     return false;
 }
 
@@ -3021,7 +3063,7 @@ function abrirModalCambiarClave(obligatorio = false) {
 
 function cerrarModalCambiarClave() {
     if(_cambioClaveObligatorio) {
-        alert('Debes cambiar tu contraseña para continuar.');
+        toast('Debes cambiar tu contraseña para continuar.', 'error');
         return;
     }
     document.getElementById('modalCambiarClave').classList.remove('active');
@@ -3031,8 +3073,8 @@ async function guardarNuevaClave() {
     const nueva = document.getElementById('cc_nueva').value.trim();
     const confirmar = document.getElementById('cc_confirmar').value.trim();
     
-    if(!nueva || nueva.length < 4) return alert('La contraseña debe tener al menos 4 caracteres.');
-    if(nueva !== confirmar) return alert('Las contraseñas no coinciden.');
+    if(!nueva || nueva.length < 4) return toast('La contraseña debe tener al menos 4 caracteres.', 'error');
+    if(nueva !== confirmar) return toast('Las contraseñas no coinciden.', 'error');
     
     try {
         const tabla = sessionUser._tipo === 'tecnico' ? 'tecnicos' : 'usuarios';
@@ -3051,7 +3093,7 @@ async function guardarNuevaClave() {
         toast('✅ Contraseña actualizada correctamente.');
     } catch(e) {
         logError('Cambiar clave', e);
-        alert(getFriendlyError(e));
+        toastError(getFriendlyError(e));
     }
 }
 
@@ -3636,7 +3678,7 @@ function renderActivosTaller() {
 }
 
 async function cambiarEstadoActivo(activoId, nuevoEstado) {
-    if(!isAdminUser()) return alert("Sin permiso.");
+    if(!isAdminUser()) return toast("Sin permiso.", 'error');
     try {
         const { error } = await supabaseClient.from('activos_taller').update({
             estado_tecnico: nuevoEstado,
@@ -3646,11 +3688,11 @@ async function cambiarEstadoActivo(activoId, nuevoEstado) {
         if(error) throw error;
         toast("Estado actualizado.");
         await loadAll();
-    } catch(e) { logError("Actualizar estado activo", e); alert(getFriendlyError(e)); await loadAll(); }
+    } catch(e) { logError("Actualizar estado activo", e); toastError(getFriendlyError(e)); await loadAll(); }
 }
 
 function toggleFormActivo() {
-    if(!isAdminUser()) return alert("Sin permiso.");
+    if(!isAdminUser()) return toast("Sin permiso.", 'error');
     const el = document.getElementById("formAssetContainer");
     el.style.display = el.style.display === "none" ? "block" : "none";
 }
@@ -3666,10 +3708,10 @@ function calcularSiguienteCodigoActivo() {
 }
 
 async function guardarActivoTaller() {
-    if(!isAdminUser()) return alert("Sin permiso.");
+    if(!isAdminUser()) return toast("Sin permiso.", 'error');
     try {
         const nom = val("ast_nombre"), cant = parseInt(val("ast_cantidad")) || 1, est = document.getElementById("ast_estado").value, asig = val("ast_asignado");
-        if(!nom) return alert("Nombre requerido.");
+        if(!nom) return toast("Nombre requerido.", 'error');
         const { error } = await supabaseClient.from('activos_taller').insert([{
             codigo: calcularSiguienteCodigoActivo(), nombre: nom, cantidad: cant, estado_tecnico: est, asignado_a: asig,
             actualizado_por: sessionUser.nombre || sessionUser.usuario, actualizado_en: new Date().toISOString()
@@ -3679,7 +3721,7 @@ async function guardarActivoTaller() {
         document.getElementById("ast_nombre").value = "";
         toggleFormActivo();
         await loadAll();
-    } catch(e) { logError("Registrar activo", e); alert(getFriendlyError(e)); }
+    } catch(e) { logError("Registrar activo", e); toastError(getFriendlyError(e)); }
 }
 
 /* ============================================================
@@ -3777,7 +3819,7 @@ async function editarArticulo(id) {
 async function guardarArticuloModal() {
     try {
         const marca = val('mod_art_marca'), modelo = val('mod_art_modelo');
-        if(!marca || !modelo) return alert('Marca y modelo son obligatorios.');
+        if(!marca || !modelo) return toast('Marca y modelo son obligatorios.', 'error');
         const id = val('mod_art_id');
         const data = {
             marca: marca, modelo: modelo,
@@ -3804,7 +3846,7 @@ async function guardarArticuloModal() {
         await registrarEnCatalogoSiEsNueva(marca, val('mod_art_categoria'));
         await loadAll();
         resaltarItemNuevo(nuevoId);
-    } catch(e) { logError('Guardar artículo', e); alert(getFriendlyError(e)); }
+    } catch(e) { logError('Guardar artículo', e); toastError(getFriendlyError(e)); }
 }
 
 // Agrega marca/categoría al catálogo si no existían (silencioso)
@@ -3829,13 +3871,13 @@ async function registrarEnCatalogoSiEsNueva(marca, categoria) {
 }
 
 async function eliminarArticulo(id) {
-    if(!confirm('¿Desactivar este artículo?')) return;
+    if(!await confirmar('¿Desactivar este artículo?')) return;
     try {
         const { error } = await supabaseClient.from('articulos').update({ activo: false }).eq('id', id);
         if(error) throw error;
         toast('🗑️ Artículo desactivado.');
         await loadAll();
-    } catch(e) { logError('Desactivar artículo', e); alert(getFriendlyError(e)); }
+    } catch(e) { logError('Desactivar artículo', e); toastError(getFriendlyError(e)); }
 }
 
 /* ============================================================
@@ -3918,7 +3960,7 @@ function editarProveedor(id) {
 async function guardarProveedorModal() {
     try {
         const nombre = val('mod_prov_nombre');
-        if(!nombre) return alert('Nombre obligatorio.');
+        if(!nombre) return toast('Nombre obligatorio.', 'error');
         const id = val('mod_prov_id');
         const data = {
             nombre: nombre,
@@ -3944,17 +3986,17 @@ async function guardarProveedorModal() {
         cerrarModalProveedor();
         await loadAll();
         resaltarItemNuevo(nuevoId);
-    } catch(e) { logError('Guardar proveedor', e); alert(getFriendlyError(e)); }
+    } catch(e) { logError('Guardar proveedor', e); toastError(getFriendlyError(e)); }
 }
 
 async function eliminarProveedor(id) {
-    if(!confirm('¿Desactivar este proveedor? No se borrará, solo se ocultará.')) return;
+    if(!await confirmar('¿Desactivar este proveedor? No se borrará, solo se ocultará.')) return;
     try {
         const { error } = await supabaseClient.from('proveedores').update({ activo: false }).eq('id', id);
         if(error) throw error;
         toast('🗑️ Proveedor desactivado.');
         await loadAll();
-    } catch(e) { logError('Desactivar proveedor', e); alert(getFriendlyError(e)); }
+    } catch(e) { logError('Desactivar proveedor', e); toastError(getFriendlyError(e)); }
 }
 
 function abrirProveedor(provId) {
@@ -4060,13 +4102,13 @@ async function crearLoteDesdeProveedor() {
         toast(`Lote ${codigo} creado.`);
         await loadAll();
         abrirLote(data.id);
-    } catch(e) { logError('Crear lote', e); alert(getFriendlyError(e)); }
+    } catch(e) { logError('Crear lote', e); toastError(getFriendlyError(e)); }
 }
 
 function abrirLote(loteId) {
     loteActualId = loteId;
     const lote = cache.lotes.find(l => l.id === loteId);
-    if(!lote) return alert('Lote no encontrado.');
+    if(!lote) return toast('Lote no encontrado.', 'error');
     
     document.getElementById('prov-detalle').style.display = 'none';
     document.getElementById('lote-detalle').style.display = 'block';
@@ -4252,26 +4294,26 @@ async function guardarDatosLote() {
         if(error) throw error;
         toast('Datos del lote guardados.');
         await loadAll();
-    } catch(e) { logError('Guardar lote', e); alert(getFriendlyError(e)); }
+    } catch(e) { logError('Guardar lote', e); toastError(getFriendlyError(e)); }
 }
 
 async function agregarEquipoAlLote() {
-    if(!loteActualId) return alert('Sin lote activo.');
+    if(!loteActualId) return toast('Sin lote activo.', 'error');
     const artId = smartSelectGetValue('ss-eq-articulo');
     const imei = val('eq_imei');
     const notas = val('eq_notas');
     
-    if(!artId) return alert('Selecciona un artículo del catálogo.');
+    if(!artId) return toast('Selecciona un artículo del catálogo.', 'error');
     
     const art = findArticulo(artId);
     const llevaImei = art.lleva_imei !== false;
     
-    if(llevaImei && !imei) return alert('Este artículo requiere IMEI / Serial.');
+    if(llevaImei && !imei) return toast('Este artículo requiere IMEI / Serial.', 'error');
     
     let costo = 0;
     if(isAdminUser()) {
         costo = parseFloat(val('eq_costo')) || 0;
-        if(costo <= 0) return alert('Costo debe ser mayor a 0.');
+        if(costo <= 0) return toast('Costo debe ser mayor a 0.', 'error');
     }
     // Si no es admin, el costo queda en 0 y el admin lo edita después
     
@@ -4299,7 +4341,7 @@ async function agregarEquipoAlLote() {
         smartSelectSetValue('ss-eq-articulo', '');
         document.getElementById(`ss-eq-articulo-input`)?.focus();
         await loadAll();
-    } catch(e) { logError('Agregar equipo al lote', e); alert(getFriendlyError(e)); }
+    } catch(e) { logError('Agregar equipo al lote', e); toastError(getFriendlyError(e)); }
 }
 
 function renderEquiposLote() {
@@ -4342,13 +4384,13 @@ function renderEquiposLote() {
 }
 
 async function eliminarEquipoLote(equipoId) {
-    if(!confirm('¿Quitar este equipo del lote?')) return;
+    if(!await confirmar('¿Quitar este equipo del lote?')) return;
     try {
         const { error } = await supabaseClient.from('equipos_refurbish').delete().eq('id', equipoId);
         if(error) throw error;
         toast('Equipo eliminado.');
         await loadAll();
-    } catch(e) { logError('Eliminar equipo', e); alert(getFriendlyError(e)); }
+    } catch(e) { logError('Eliminar equipo', e); toastError(getFriendlyError(e)); }
 }
 
 async function eliminarLote(loteId) {
@@ -4357,7 +4399,7 @@ async function eliminarLote(loteId) {
     const equiposLote = cache.refurb.filter(r => r.lote_id === loteId).length;
     let msg = `¿Eliminar el lote ${lote.codigo_lote}?`;
     if(equiposLote > 0) msg += `\n\n⚠️ Este lote tiene ${equiposLote} equipo(s) que también serán eliminados.`;
-    if(!confirm(msg)) return;
+    if(!await confirmar(msg)) return;
     try {
         await supabaseClient.from('equipos_refurbish').delete().eq('lote_id', loteId);
         const { error } = await supabaseClient.from('refurb_lotes').delete().eq('id', loteId);
@@ -4365,7 +4407,7 @@ async function eliminarLote(loteId) {
         toast('Lote eliminado.');
         if(loteActualId === loteId) volverDetalleProveedor();
         await loadAll();
-    } catch(e) { logError('Eliminar lote', e); alert(getFriendlyError(e)); }
+    } catch(e) { logError('Eliminar lote', e); toastError(getFriendlyError(e)); }
 }
 
 /* ============================================================
@@ -4375,7 +4417,7 @@ async function eliminarLote(loteId) {
 async function registrarEquipoRefurb() {
     try {
         const mod = val("ref_modelo"), imei = val("ref_imei"), cost = parseFloat(val("ref_costo_compra")) || 0, vent = parseFloat(val("ref_precio_venta")) || 0;
-        if(!mod || !imei) return alert("Modelo e IMEI son mandatorios.");
+        if(!mod || !imei) return toast("Modelo e IMEI son mandatorios.", 'error');
         const { error } = await supabaseClient.from('equipos_refurbish').insert([{
             modelo: mod, imei: imei, costo_compra: cost, precio_venta_estimado: vent, costo_repuestos: 0, estado: 'Recibido'
         }]);
@@ -4383,7 +4425,7 @@ async function registrarEquipoRefurb() {
         toast("Equipo registrado.");
         ['ref_modelo','ref_imei','ref_costo_compra','ref_precio_venta'].forEach(id => document.getElementById(id).value = '');
         await loadAll();
-    } catch(e) { logError("Registrar refurbish", e); alert(getFriendlyError(e)); }
+    } catch(e) { logError("Registrar refurbish", e); toastError(getFriendlyError(e)); }
 }
 
 /* ============================================================
@@ -4643,7 +4685,7 @@ function renderEquipoReacondCard(eq, num) {
 }
 
 async function marcarEvaluado(equipoId) {
-    if(!confirm('¿Marcar este equipo como evaluado?')) return;
+    if(!await confirmar('¿Marcar este equipo como evaluado?')) return;
     try {
         const { error } = await supabaseClient
             .from('equipos_refurbish')
@@ -4655,7 +4697,7 @@ async function marcarEvaluado(equipoId) {
         toast('Equipo evaluado.');
     } catch(e) {
         logError('Marcar evaluado', e);
-        alert(getFriendlyError(e));
+        toastError(getFriendlyError(e));
     }
 }
 
@@ -4858,9 +4900,9 @@ async function guardarFalla() {
     const descripcion = document.getElementById('mod_falla_desc').value.trim() || null;
     const activa = document.getElementById('mod_falla_activa').checked;
     
-    if(!nombre) return alert('El nombre completo es obligatorio.');
-    if(!nombre_corto) return alert('El nombre corto para label es obligatorio.');
-    if(nombre_corto.length > 40) return alert('El nombre corto debe tener máximo 40 caracteres.');
+    if(!nombre) return toast('El nombre completo es obligatorio.', 'error');
+    if(!nombre_corto) return toast('El nombre corto para label es obligatorio.', 'error');
+    if(nombre_corto.length > 40) return toast('El nombre corto debe tener máximo 40 caracteres.', 'error');
     
     const datos = { categoria_id, nombre, nombre_corto, descripcion, activa };
     
@@ -4881,14 +4923,14 @@ async function guardarFalla() {
         resaltarItemNuevo(nuevoId);
     } catch(e) {
         logError('Guardar falla', e);
-        alert(getFriendlyError(e));
+        toastError(getFriendlyError(e));
     }
 }
 
 async function eliminarFalla(id) {
     const f = (cache.fallas || []).find(x => x.id === id);
     if(!f) return;
-    if(!confirm(`¿Eliminar la falla "${f.nombre}"?\n\nEsta acción no se puede deshacer.`)) return;
+    if(!await confirmar(`¿Eliminar la falla "${f.nombre}"?\n\nEsta acción no se puede deshacer.`)) return;
     try {
         const { error } = await supabaseClient.from('fallas').delete().eq('id', id);
         if(error) throw error;
@@ -4896,7 +4938,7 @@ async function eliminarFalla(id) {
         await cargarCatalogoFallas();
     } catch(e) {
         logError('Eliminar falla', e);
-        alert(getFriendlyError(e));
+        toastError(getFriendlyError(e));
     }
 }
 
@@ -4914,7 +4956,7 @@ const _evalState = {
 async function empezarEvaluacion(equipoId) {
     // Si está pendiente, cambiar a en_evaluacion al abrir
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
-    if(!eq) return alert('Equipo no encontrado.');
+    if(!eq) return toast('Equipo no encontrado.', 'error');
     
     try {
         // Cargar fallas y piezas si no están cargadas
@@ -4934,7 +4976,7 @@ async function empezarEvaluacion(equipoId) {
         await abrirModalEvaluacion(equipoId);
     } catch(e) {
         logError('Empezar evaluación', e);
-        alert(getFriendlyError(e));
+        toastError(getFriendlyError(e));
     }
 }
 
@@ -4944,7 +4986,7 @@ function continuarEvaluacion(equipoId) {
 
 async function abrirModalEvaluacion(equipoId) {
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
-    if(!eq) return alert('Equipo no encontrado.');
+    if(!eq) return toast('Equipo no encontrado.', 'error');
     
     // Cargar datos del catálogo si faltan
     if(!cache.fallas || cache.fallas.length === 0) {
@@ -5085,11 +5127,11 @@ function renderFallasEnTabPiezas() {
 // Imprimir label de diagnóstico desde el resumen de evaluación
 async function imprimirLabelDesdeEvaluacion() {
     const equipoId = document.getElementById('eval_equipo_id').value;
-    if(!equipoId) return alert('No hay equipo seleccionado.');
+    if(!equipoId) return toast('No hay equipo seleccionado.', 'error');
     if(typeof abrirPreviewLabelDiagIndividual === 'function') {
         await abrirPreviewLabelDiagIndividual(equipoId);
     } else {
-        alert('Función de label no disponible.');
+        toast('Función de label no disponible.', 'error');
     }
 }
 
@@ -5244,13 +5286,13 @@ function renderPiezasEvaluacion() {
 
 function evalAgregarPieza() {
     const piezaId = smartSelectGetValue('ss-eval-pieza');
-    if(!piezaId) return alert('Selecciona una pieza primero.');
+    if(!piezaId) return toast('Selecciona una pieza primero.', 'error');
     
     const pieza = (cache.piezas || []).find(p => p.id === piezaId);
-    if(!pieza) return alert('Pieza no encontrada.');
+    if(!pieza) return toast('Pieza no encontrada.', 'error');
     
     const cantidad = parseInt(document.getElementById('eval_pieza_cantidad').value) || 1;
-    if(cantidad < 1) return alert('Cantidad inválida.');
+    if(cantidad < 1) return toast('Cantidad inválida.', 'error');
     
     // ¿Ya está agregada? Sumar cantidad
     const existente = _evalState.piezasSeleccionadas.find(p => p.pieza_id === piezaId);
@@ -5332,7 +5374,7 @@ function renderResumenEvaluacion() {
 
 async function guardarEvaluacion(marcarEvaluado = false) {
     const equipoId = _evalState.equipoId;
-    if(!equipoId) return alert('No hay equipo activo.');
+    if(!equipoId) return toast('No hay equipo activo.', 'error');
     
     const notas = document.getElementById('eval_notas').value.trim() || null;
     
@@ -5402,7 +5444,7 @@ async function guardarEvaluacion(marcarEvaluado = false) {
         renderDetalleLoteReacond();
     } catch(e) {
         logError('Guardar evaluación', e);
-        alert(getFriendlyError(e));
+        toastError(getFriendlyError(e));
     }
 }
 
@@ -5583,7 +5625,7 @@ function cerrarModalTecnico() {
 async function guardarTecnico() {
     const id = document.getElementById('mod_tec_id').value;
     const nombre = document.getElementById('mod_tec_nombre').value.trim();
-    if(!nombre) return alert('El nombre es obligatorio.');
+    if(!nombre) return toast('El nombre es obligatorio.', 'error');
     
     const usuario = document.getElementById('mod_tec_usuario').value.trim();
     const clave = document.getElementById('mod_tec_clave').value.trim();
@@ -5627,14 +5669,14 @@ async function guardarTecnico() {
         resaltarItemNuevo(nuevoId);
     } catch(e) {
         logError('Guardar técnico', e);
-        alert(getFriendlyError(e));
+        toastError(getFriendlyError(e));
     }
 }
 
 async function eliminarTecnico(id) {
     const t = (cache.tecnicos || []).find(x => x.id === id);
     if(!t) return;
-    if(!confirm(`¿Eliminar el técnico "${t.nombre}"?\n\nLos equipos asignados a él quedarán sin técnico asignado.`)) return;
+    if(!await confirmar(`¿Eliminar el técnico "${t.nombre}"?\n\nLos equipos asignados a él quedarán sin técnico asignado.`)) return;
     try {
         const { error } = await supabaseClient.from('tecnicos').delete().eq('id', id);
         if(error) throw error;
@@ -5643,7 +5685,7 @@ async function eliminarTecnico(id) {
         renderTecnicos();
     } catch(e) {
         logError('Eliminar técnico', e);
-        alert(getFriendlyError(e));
+        toastError(getFriendlyError(e));
     }
 }
 
@@ -5652,7 +5694,7 @@ async function eliminarTecnico(id) {
    ============================================================ */
 function abrirModalAsignarTecnico(equipoId) {
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
-    if(!eq) return alert('Equipo no encontrado.');
+    if(!eq) return toast('Equipo no encontrado.', 'error');
     
     document.getElementById('asign_equipo_id').value = equipoId;
     document.getElementById('asignEquipoInfo').innerHTML = `
@@ -5689,7 +5731,7 @@ async function confirmarAsignarTecnico() {
     const tecnicoId = smartSelectGetValue('ss-asign-tecnico');
     const notas = document.getElementById('asign_notas').value.trim();
     
-    if(!tecnicoId) return alert('Selecciona un técnico.');
+    if(!tecnicoId) return toast('Selecciona un técnico.', 'error');
     
     try {
         const updateData = {
@@ -5725,7 +5767,7 @@ async function confirmarAsignarTecnico() {
         if(reacondLoteAbiertoId) renderDetalleLoteReacond();
     } catch(e) {
         logError('Asignar técnico', e);
-        alert(getFriendlyError(e));
+        toastError(getFriendlyError(e));
     }
 }
 
@@ -5804,7 +5846,7 @@ function construirSeccionTareas(tipo, refId, tareas, cerrada, soloAgregar) {
 async function crearTarea(tipo, refId) {
     const desc = prompt('🔧 NUEVA TAREA\n\n¿Qué hay que hacer?\n\nEjemplo: "Cambiar pantalla", "Microsoldadura", "Cambiar batería"');
     if(desc === null) return;
-    if(!desc.trim()) return alert('Escribe qué hay que hacer.');
+    if(!desc.trim()) return toast('Escribe qué hay que hacer.', 'error');
     
     // Elegir técnico (lista numerada)
     const tecnicos = (cache.tecnicos || []).filter(t => t.activo && (t.tipo_empleado === 'tecnico' || (!t.tipo_empleado && t.rol !== 'admin')));
@@ -5830,7 +5872,7 @@ async function crearTarea(tipo, refId) {
         if(error) throw error;
         toast('✅ Tarea agregada.');
         await refrescarPanelTareas(tipo, refId);
-    } catch(e) { logError('Crear tarea', e); alert(getFriendlyError(e)); }
+    } catch(e) { logError('Crear tarea', e); toastError(getFriendlyError(e)); }
 }
 
 // Marcar tarea como hecha
@@ -5852,7 +5894,7 @@ async function completarTarea(tareaId, tipo, refId) {
             const msg = tipo === 'equipo'
                 ? '✅ ¡Todas las tareas completadas!\n\n¿Pasar el equipo a REVISIÓN FINAL para que el administrador lo apruebe?'
                 : '✅ ¡Todas las tareas completadas!\n\n¿Marcar la orden como FINALIZADA (lista para entregar)?';
-            if(confirm(msg)) {
+            if(await confirmar(msg, {peligro:false, ok:'Sí, continuar'})) {
                 if(tipo === 'equipo') {
                     await supabaseClient.from('equipos_refurbish').update({ estado_evaluacion: 'listo_revision' }).eq('id', refId);
                     toast('👁️ Equipo en revisión final.');
@@ -5867,7 +5909,7 @@ async function completarTarea(tareaId, tipo, refId) {
         // Refrescar el panel correspondiente
         if(tipo === 'equipo' && typeof abrirPanelProceso === 'function') { await abrirPanelProceso(refId); }
         else if(tipo === 'orden') { renderTallerOrdenes(); }
-    } catch(e) { logError('Completar tarea', e); alert(getFriendlyError(e)); }
+    } catch(e) { logError('Completar tarea', e); toastError(getFriendlyError(e)); }
 }
 
 // Reabrir una tarea completada
@@ -5877,18 +5919,18 @@ async function reabrirTarea(tareaId, tipo, refId) {
         if(error) throw error;
         toast('Tarea reabierta.');
         await refrescarPanelTareas(tipo, refId);
-    } catch(e) { logError('Reabrir tarea', e); alert(getFriendlyError(e)); }
+    } catch(e) { logError('Reabrir tarea', e); toastError(getFriendlyError(e)); }
 }
 
 // Eliminar una tarea
 async function eliminarTarea(tareaId, tipo, refId) {
-    if(!confirm('¿Eliminar esta tarea?')) return;
+    if(!await confirmar('¿Eliminar esta tarea?')) return;
     try {
         const { error } = await supabaseClient.from('tareas_trabajo').delete().eq('id', tareaId);
         if(error) throw error;
         toast('Tarea eliminada.');
         await refrescarPanelTareas(tipo, refId);
-    } catch(e) { logError('Eliminar tarea', e); alert(getFriendlyError(e)); }
+    } catch(e) { logError('Eliminar tarea', e); toastError(getFriendlyError(e)); }
 }
 
 // Refresca el panel correcto según el tipo
@@ -5930,12 +5972,12 @@ async function reasignarTarea(tareaId, tipo, refId) {
     const tarea = (cache.tareas || []).find(t => t.id === tareaId);
     if(!tarea) return;
     const tecnicos = (cache.tecnicos || []).filter(t => t.activo && (t.tipo_empleado === 'tecnico' || (!t.tipo_empleado && t.rol !== 'admin')) && t.id !== tarea.tecnico_id);
-    if(!tecnicos.length) return alert('No hay otros técnicos disponibles.');
+    if(!tecnicos.length) return toast('No hay otros técnicos disponibles.', 'error');
     const lista = tecnicos.map((t, i) => `${i + 1}. ${t.nombre}`).join('\n');
     const sel = prompt(`REASIGNAR TAREA: ${tarea.descripcion}\n\n¿A qué técnico se la pasas?\n\n${lista}\n\nEscribe el número:`);
     if(sel === null) return;
     const idx = parseInt(sel) - 1;
-    if(isNaN(idx) || idx < 0 || idx >= tecnicos.length) return alert('Selección inválida.');
+    if(isNaN(idx) || idx < 0 || idx >= tecnicos.length) return toast('Selección inválida.', 'error');
     try {
         const { error } = await supabaseClient.from('tareas_trabajo').update({
             tecnico_id: tecnicos[idx].id,
@@ -5945,13 +5987,13 @@ async function reasignarTarea(tareaId, tipo, refId) {
         if(error) throw error;
         toast(`🔄 Tarea reasignada a ${tecnicos[idx].nombre}.`);
         await refrescarPanelTareas(tipo, refId);
-    } catch(e) { logError('Reasignar tarea', e); alert(getFriendlyError(e)); }
+    } catch(e) { logError('Reasignar tarea', e); toastError(getFriendlyError(e)); }
 }
 
 async function abrirPanelProceso(equipoId) {
     _panelProcesoEquipoId = equipoId;
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
-    if(!eq) return alert('Equipo no encontrado.');
+    if(!eq) return toast('Equipo no encontrado.', 'error');
     
     // Cargar piezas, fallas y devoluciones previas
     let piezas = [];
@@ -6276,9 +6318,9 @@ async function cambiarEstadoProceso(equipoId, nuevoEstado) {
         const pend = fallasPendientesDe('equipo', equipoId);
         if(pend > 0) {
             if(isAdminUser()) {
-                if(!confirm(`⚠️ Este equipo tiene ${pend} falla(s) SIN resolver.\n\nComo administrador puedes pasarlo a revisión de todos modos.\n\n¿Forzar?`)) return;
+                if(!await confirmar(`⚠️ Este equipo tiene ${pend} falla(s) SIN resolver.\n\nComo administrador puedes pasarlo a revisión de todos modos.\n\n¿Forzar?`)) return;
             } else {
-                return alert(`⚠️ No puedes pasar a revisión todavía.\n\nQuedan ${pend} falla(s) pendiente(s). Marca todas las fallas como resueltas (✓) primero.`);
+                return toast(`⚠️ No puedes pasar a revisión todavía.\n\nQuedan ${pend} falla(s) pendiente(s). Marca todas las fallas como resueltas (✓) primero.`, 'error');
             }
         }
     }
@@ -6296,7 +6338,7 @@ async function cambiarEstadoProceso(equipoId, nuevoEstado) {
         if(reacondLoteAbiertoId) renderDetalleLoteReacond();
     } catch(e) {
         logError('Cambiar estado proceso', e);
-        alert(getFriendlyError(e));
+        toastError(getFriendlyError(e));
     }
 }
 
@@ -6312,7 +6354,7 @@ async function marcarPiezaEntregada(piezaId) {
         if(_panelProcesoEquipoId) abrirPanelProceso(_panelProcesoEquipoId);
     } catch(e) {
         logError('Marcar pieza entregada', e);
-        alert(getFriendlyError(e));
+        toastError(getFriendlyError(e));
     }
 }
 
@@ -6334,7 +6376,7 @@ async function marcarPiezaRecibida(piezaId) {
         if(_panelProcesoEquipoId) abrirPanelProceso(_panelProcesoEquipoId);
     } catch(e) {
         logError('Marcar pieza recibida', e);
-        alert(getFriendlyError(e));
+        toastError(getFriendlyError(e));
     }
 }
 
@@ -6353,7 +6395,7 @@ async function ajustarStockInventario(piezaId, delta) {
 async function solicitarDevolucionPieza(piezaId) {
     const motivo = prompt('¿Por qué devuelves esta pieza?\n(Ej: No se necesitó, pieza defectuosa, sobró...)');
     if(motivo === null) return; // canceló
-    if(!motivo.trim()) return alert('Debes indicar un motivo para devolver la pieza.');
+    if(!motivo.trim()) return toast('Debes indicar un motivo para devolver la pieza.', 'error');
     try {
         const { error } = await supabaseClient.from('equipo_piezas_pedidas').update({
             estado: 'devolucion_pendiente',
@@ -6366,13 +6408,13 @@ async function solicitarDevolucionPieza(piezaId) {
         if(_panelProcesoEquipoId) abrirPanelProceso(_panelProcesoEquipoId);
     } catch(e) {
         logError('Solicitar devolución pieza', e);
-        alert(getFriendlyError(e));
+        toastError(getFriendlyError(e));
     }
 }
 
 async function aprobarDevolucionPieza(piezaId) {
     if(!soloAdmin('aprobar devoluciones de piezas')) return;
-    if(!confirm('¿Aprobar la devolución de esta pieza?\n\nLa pieza se marcará como devuelta y se descontará del costo del equipo.')) return;
+    if(!await confirmar('¿Aprobar la devolución de esta pieza?\n\nLa pieza se marcará como devuelta y se descontará del costo del equipo.')) return;
     try {
         // Obtener la pieza para saber su costo y equipo
         const { data: pieza, error: e0 } = await supabaseClient.from('equipo_piezas_pedidas').select('*').eq('id', piezaId).single();
@@ -6411,13 +6453,13 @@ async function aprobarDevolucionPieza(piezaId) {
         if(_panelProcesoEquipoId) abrirPanelProceso(_panelProcesoEquipoId);
     } catch(e) {
         logError('Aprobar devolución pieza', e);
-        alert(getFriendlyError(e));
+        toastError(getFriendlyError(e));
     }
 }
 
 async function rechazarDevolucionPieza(piezaId) {
     if(!soloAdmin('rechazar devoluciones de piezas')) return;
-    if(!confirm('¿Rechazar la devolución? La pieza vuelve a estar como recibida.')) return;
+    if(!await confirmar('¿Rechazar la devolución? La pieza vuelve a estar como recibida.')) return;
     try {
         const { error } = await supabaseClient.from('equipo_piezas_pedidas').update({
             estado: 'recibida',
@@ -6428,7 +6470,7 @@ async function rechazarDevolucionPieza(piezaId) {
         if(_panelProcesoEquipoId) abrirPanelProceso(_panelProcesoEquipoId);
     } catch(e) {
         logError('Rechazar devolución pieza', e);
-        alert(getFriendlyError(e));
+        toastError(getFriendlyError(e));
     }
 }
 
@@ -6467,9 +6509,9 @@ async function guardarReasignacion() {
     const motivo = document.getElementById('reasig_motivo').value.trim();
     const nuevoTecnicoId = smartSelectGetValue('ss-reasig-tecnico');
     
-    if(!equipoId) return alert('No hay equipo.');
-    if(!nuevoTecnicoId) return alert('Selecciona el nuevo técnico.');
-    if(!motivo) return alert('Indica el motivo de la reasignación.');
+    if(!equipoId) return toast('No hay equipo.', 'error');
+    if(!nuevoTecnicoId) return toast('Selecciona el nuevo técnico.', 'error');
+    if(!motivo) return toast('Indica el motivo de la reasignación.', 'error');
     
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return;
@@ -6499,7 +6541,7 @@ async function guardarReasignacion() {
         if(reacondLoteAbiertoId) renderDetalleLoteReacond();
     } catch(e) {
         logError('Guardar reasignación', e);
-        alert(getFriendlyError(e));
+        toastError(getFriendlyError(e));
     }
 }
 
@@ -6510,13 +6552,13 @@ async function recibirEquipoReasignado(equipoId, modo) {
     // NO JUEZ Y PARTE: solo el nuevo técnico asignado o el admin pueden recibir
     const soyNuevo = sessionUser?._tipo === 'tecnico' && sessionUser?.id === eq.tecnico_asignado_id;
     if(!isAdminUser() && !soyNuevo) {
-        return alert('No puedes recibir este equipo. Solo el técnico al que fue reasignado puede recibirlo.');
+        return toast('No puedes recibir este equipo. Solo el técnico al que fue reasignado puede recibirlo.', 'error');
     }
     
     const mensaje = modo === 'limpio'
         ? '¿Recibir el equipo LIMPIO? Las piezas anteriores se marcarán como no usadas en esta nueva reparación.'
         : '¿Recibir el equipo CON las piezas actuales para continuar la reparación?';
-    if(!confirm(mensaje)) return;
+    if(!await confirmar(mensaje)) return;
     
     try {
         // El equipo pasa a "en_proceso" con el nuevo técnico
@@ -6545,7 +6587,7 @@ async function recibirEquipoReasignado(equipoId, modo) {
         if(_panelProcesoEquipoId) abrirPanelProceso(_panelProcesoEquipoId);
     } catch(e) {
         logError('Recibir equipo reasignado', e);
-        alert(getFriendlyError(e));
+        toastError(getFriendlyError(e));
     }
 }
 
@@ -6561,13 +6603,13 @@ async function aprobarPiezaExtra(piezaId) {
         if(_panelProcesoEquipoId) abrirPanelProceso(_panelProcesoEquipoId);
     } catch(e) {
         logError('Aprobar pieza extra', e);
-        alert(getFriendlyError(e));
+        toastError(getFriendlyError(e));
     }
 }
 
 async function rechazarPiezaExtra(piezaId) {
     if(!soloAdmin('rechazar piezas extra')) return;
-    if(!confirm('¿Rechazar esta pieza extra?')) return;
+    if(!await confirmar('¿Rechazar esta pieza extra?')) return;
     try {
         const { error } = await supabaseClient.from('equipo_piezas_pedidas').update({ estado: 'rechazada' }).eq('id', piezaId);
         if(error) throw error;
@@ -6575,7 +6617,7 @@ async function rechazarPiezaExtra(piezaId) {
         if(_panelProcesoEquipoId) abrirPanelProceso(_panelProcesoEquipoId);
     } catch(e) {
         logError('Rechazar pieza', e);
-        alert(getFriendlyError(e));
+        toastError(getFriendlyError(e));
     }
 }
 
@@ -6601,16 +6643,16 @@ async function agregarPiezaExtra(equipoId) {
         if(_panelProcesoEquipoId) abrirPanelProceso(_panelProcesoEquipoId);
     } catch(e) {
         logError('Agregar pieza extra', e);
-        alert(getFriendlyError(e));
+        toastError(getFriendlyError(e));
     }
 }
 
 async function aprobarTerminado(equipoId) {
     // Solo el admin (o quien tenga permiso de aprobar) puede aprobar. No juez y parte.
     if(!isAdminUser() && !tienePermiso('piezas_aprobar_extra')) {
-        return alert('Solo el administrador puede aprobar equipos. El técnico no puede aprobar su propio trabajo.');
+        return toast('Solo el administrador puede aprobar equipos. El técnico no puede aprobar su propio trabajo.', 'error');
     }
-    if(!confirm('¿Aprobar este equipo como TERMINADO y pasarlo a LISTO PARA VENTA?')) return;
+    if(!await confirmar('¿Aprobar este equipo como TERMINADO y pasarlo a LISTO PARA VENTA?')) return;
     try {
         const { error } = await supabaseClient.from('equipos_refurbish').update({ 
             estado_evaluacion: 'listo_venta',
@@ -6628,17 +6670,17 @@ async function aprobarTerminado(equipoId) {
         if(reacondLoteAbiertoId) renderDetalleLoteReacond();
     } catch(e) {
         logError('Aprobar terminado', e);
-        alert(getFriendlyError(e));
+        toastError(getFriendlyError(e));
     }
 }
 
 async function marcarDespachado(equipoId) {
     if(!isAdminUser() && !tienePermiso('estado_despachar')) {
-        return alert('No tienes permiso para despachar equipos.');
+        return toast('No tienes permiso para despachar equipos.', 'error');
     }
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return;
-    if(!confirm(`¿Marcar "${eq.modelo}" como DESPACHADO?\n\nEsto significa que el equipo fue vendido/entregado al cliente.`)) return;
+    if(!await confirmar(`¿Marcar "${eq.modelo}" como DESPACHADO?\n\nEsto significa que el equipo fue vendido/entregado al cliente.`)) return;
     try {
         const { error } = await supabaseClient.from('equipos_refurbish').update({ 
             estado_evaluacion: 'vendido',
@@ -6655,7 +6697,7 @@ async function marcarDespachado(equipoId) {
         if(reacondLoteAbiertoId) renderDetalleLoteReacond();
     } catch(e) {
         logError('Marcar despachado', e);
-        alert(getFriendlyError(e));
+        toastError(getFriendlyError(e));
     }
 }
 
@@ -6697,7 +6739,7 @@ let _labelVentaEquipoId = null;
 
 function abrirModalLabelVenta(equipoId) {
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
-    if(!eq) return alert('Equipo no encontrado.');
+    if(!eq) return toast('Equipo no encontrado.', 'error');
     
     _labelVentaEquipoId = equipoId;
     document.getElementById('lv_equipo_id').value = equipoId;
@@ -6872,8 +6914,8 @@ async function imprimirLabelVenta() {
     const rot = parseInt(document.getElementById('lv_rotacion').value) || 0;
     const copias = document.getElementById('lv_copias').value || 1;
     
-    if(!modeloAbrev || !modeloAbrev.trim()) return alert('Escribe el modelo abreviado.');
-    if(!eq.imei) return alert('Este equipo no tiene IMEI registrado.');
+    if(!modeloAbrev || !modeloAbrev.trim()) return toast('Escribe el modelo abreviado.', 'error');
+    if(!eq.imei) return toast('Este equipo no tiene IMEI registrado.', 'error');
     
     // Guardar calibración
     localStorage.setItem('bayol_lv_w', w);
@@ -7585,7 +7627,7 @@ function abrirEditarRecepcion(ordenId) {
     if(!o) return;
     // Permiso: solo admin o servicio (recepcion_ver). El técnico NO puede editar datos.
     if(!isAdminUser() && !tienePermiso('recepcion_ver')) {
-        return alert('Solo el administrador o servicio al cliente pueden editar los datos de recepción.');
+        return toast('Solo el administrador o servicio al cliente pueden editar los datos de recepción.', 'error');
     }
     const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
     const contenido = `
@@ -7657,7 +7699,7 @@ function refrescarChecklistRecepcion() {
 
 // Editor de fallas comunes (admin): editar, agregar, quitar
 function abrirEditorFallasComunes() {
-    if(!isAdminUser()) return alert('Solo el administrador puede editar las fallas comunes.');
+    if(!isAdminUser()) return toast('Solo el administrador puede editar las fallas comunes.', 'error');
     const fallas = (cache.fallasComunes || []).filter(f => f.activo !== false).sort((a,b) => (a.orden||0)-(b.orden||0));
     let filas;
     if(!fallas.length) {
@@ -7682,22 +7724,22 @@ function abrirEditorFallasComunes() {
 
 async function guardarNombreFalla(id) {
     const nuevo = (document.getElementById('fc_' + id)?.value || '').trim();
-    if(!nuevo) return alert('El nombre no puede estar vacío.');
+    if(!nuevo) return toast('El nombre no puede estar vacío.', 'error');
     try {
         await supabaseClient.from('fallas_comunes').update({ nombre: nuevo }).eq('id', id);
         await recargarFallasComunes();
         toast('✅ Falla actualizada.');
-    } catch(e) { logError('Guardar falla común', e); alert(getFriendlyError(e)); }
+    } catch(e) { logError('Guardar falla común', e); toastError(getFriendlyError(e)); }
 }
 
 async function quitarFallaComun(id) {
-    if(!confirm('¿Quitar esta falla común de la lista?')) return;
+    if(!await confirmar('¿Quitar esta falla común de la lista?')) return;
     try {
         await supabaseClient.from('fallas_comunes').delete().eq('id', id);
         await recargarFallasComunes();
         abrirEditorFallasComunes(); // refrescar el modal
         toast('Falla quitada.');
-    } catch(e) { logError('Quitar falla común', e); alert(getFriendlyError(e)); }
+    } catch(e) { logError('Quitar falla común', e); toastError(getFriendlyError(e)); }
 }
 
 async function agregarFallaComunNueva() {
@@ -7711,7 +7753,7 @@ async function agregarFallaComunNueva() {
         await recargarFallasComunes();
         abrirEditorFallasComunes(); // refrescar el modal
         toast('✅ Falla agregada.');
-    } catch(e) { logError('Agregar falla común', e); alert(getFriendlyError(e)); }
+    } catch(e) { logError('Agregar falla común', e); toastError(getFriendlyError(e)); }
 }
 
 async function recargarFallasComunes() {
@@ -7746,14 +7788,14 @@ async function toggleFallaComun(ordenId, falla, marcada) {
             // Quitar la tarea con esa descripción (si no está hecha)
             const tarea = (cache.tareas || []).find(t => t.tipo === 'orden' && t.ref_id === ordenId && (t.descripcion||'').trim().toLowerCase() === falla.toLowerCase());
             if(tarea) {
-                if(tarea.estado === 'hecha') { alert('Esa falla ya fue resuelta, no se puede quitar.'); construirChecklistRefrescar(ordenId); return; }
+                if(tarea.estado === 'hecha') { toast('Esa falla ya fue resuelta, no se puede quitar.', 'error'); construirChecklistRefrescar(ordenId); return; }
                 await supabaseClient.from('tareas_trabajo').delete().eq('id', tarea.id);
             }
         }
         const { data } = await supabaseClient.from('tareas_trabajo').select('*');
         cache.tareas = data || cache.tareas;
         construirChecklistRefrescar(ordenId);
-    } catch(e) { logError('Toggle falla común', e); alert(getFriendlyError(e)); }
+    } catch(e) { logError('Toggle falla común', e); toastError(getFriendlyError(e)); }
 }
 function construirChecklistRefrescar(ordenId) {
     const chk = document.getElementById('ed_checksFallas');
@@ -7790,18 +7832,18 @@ async function agregarFallaEnEdicion(ordenId) {
         const { data } = await supabaseClient.from('tareas_trabajo').select('*');
         cache.tareas = data || cache.tareas;
         construirChecklistRefrescar(ordenId);
-    } catch(e) { logError('Agregar falla edición', e); alert(getFriendlyError(e)); }
+    } catch(e) { logError('Agregar falla edición', e); toastError(getFriendlyError(e)); }
 }
 
 // Quita (elimina) una falla durante la edición
 async function quitarFallaEnEdicion(tareaId, ordenId) {
-    if(!confirm('¿Quitar esta falla?')) return;
+    if(!await confirmar('¿Quitar esta falla?')) return;
     try {
         await supabaseClient.from('tareas_trabajo').delete().eq('id', tareaId);
         const { data } = await supabaseClient.from('tareas_trabajo').select('*');
         cache.tareas = data || cache.tareas;
         construirChecklistRefrescar(ordenId);
-    } catch(e) { logError('Quitar falla edición', e); alert(getFriendlyError(e)); }
+    } catch(e) { logError('Quitar falla edición', e); toastError(getFriendlyError(e)); }
 }
 
 async function guardarEditarRecepcion(ordenId, clienteId, equipoId) {
@@ -7819,7 +7861,7 @@ async function guardarEditarRecepcion(ordenId, clienteId, equipoId) {
         toast('✅ Datos de recepción actualizados.');
         document.getElementById('modalGenerico')?.remove();
         await loadAll();
-    } catch(e) { logError('Editar recepción', e); alert(getFriendlyError(e)); }
+    } catch(e) { logError('Editar recepción', e); toastError(getFriendlyError(e)); }
 }
 
 // Editar datos de recepción de una orden (corrige errores de captura)
@@ -8764,23 +8806,23 @@ async function cambiarEstadoOrdenUI(ordenId, nuevoEstado) {
         if(piezasOrden.length > 0) {
             msg = `⚠️ Esta orden tiene ${piezasOrden.length} pieza(s) solicitada(s)/en proceso.\n\nRevisa si debes devolverlas antes de cancelar.\n\n¿Cancelar de todos modos?`;
         }
-        if(!confirm(msg)) return;
+        if(!await confirmar(msg)) return;
     }
     // No permitir finalizar si quedan fallas/tareas pendientes
     if(nuevoEstado === 'finalizado') {
         const pend = fallasPendientesDe('orden', ordenId);
         if(pend > 0) {
             if(isAdminUser()) {
-                if(!confirm(`⚠️ Esta orden tiene ${pend} falla(s) SIN resolver.\n\nComo administrador puedes finalizarla de todos modos.\n\n¿Forzar finalización?`)) return;
+                if(!await confirmar(`⚠️ Esta orden tiene ${pend} falla(s) SIN resolver.\n\nComo administrador puedes finalizarla de todos modos.\n\n¿Forzar finalización?`)) return;
             } else {
-                return alert(`⚠️ No puedes finalizar todavía.\n\nQuedan ${pend} falla(s) pendiente(s). Marca todas las fallas como resueltas (✓) antes de finalizar.`);
+                return toast(`⚠️ No puedes finalizar todavía.\n\nQuedan ${pend} falla(s) pendiente(s). Marca todas las fallas como resueltas (✓) antes de finalizar.`, 'error');
             }
         }
     }
     if(nuevoEstado === 'pendiente_cliente') {
         const nota = prompt('🔔 ESPERANDO AUTORIZACIÓN DEL CLIENTE\n\n¿Qué necesitas que el cliente autorice o informe?\n\nEjemplos:\n• "Autorizar cambio de batería - RD$1,200"\n• "Se dañó el flex al abrir, autorizar reemplazo"\n• "Necesito la contraseña del equipo"');
         if(nota === null) return; // canceló
-        if(!nota.trim()) return alert('Debes escribir qué se necesita autorizar.');
+        if(!nota.trim()) return toast('Debes escribir qué se necesita autorizar.', 'error');
         await avanzarEstadoOrden(ordenId, nuevoEstado, nota.trim());
         return;
     }
@@ -8790,32 +8832,32 @@ async function cambiarEstadoOrdenUI(ordenId, nuevoEstado) {
 // === FASE 3: Derivación técnica (pasar la orden a otro técnico) ===
 async function derivarOrden(ordenId) {
     const orden = (cache.ordenes || []).find(o => o.id === ordenId);
-    if(!orden) return alert('Orden no encontrada.');
+    if(!orden) return toast('Orden no encontrada.', 'error');
     const esAdmin = isAdminUser();
     const esMia = orden.tecnico_asignado_id === sessionUser?.id;
     // Anti juez-y-parte: solo el técnico asignado o un admin pueden derivar
     if(!esAdmin && !esMia) {
-        return alert('Solo el técnico asignado (o un administrador) puede derivar esta orden.');
+        return toast('Solo el técnico asignado (o un administrador) puede derivar esta orden.', 'error');
     }
     const estado = normalizarEstadoOrden(orden.estado);
     if(['entregado','cancelado'].includes(estado)) {
-        return alert('No se puede derivar una orden ya entregada o cancelada.');
+        return toast('No se puede derivar una orden ya entregada o cancelada.', 'error');
     }
     // Técnicos disponibles (excluyendo al actual)
     const tecnicos = (cache.tecnicos || []).filter(t => t.activo && (t.tipo_empleado === 'tecnico' || (!t.tipo_empleado && t.rol !== 'admin')) && t.id !== orden.tecnico_asignado_id);
-    if(!tecnicos.length) return alert('No hay otros técnicos disponibles para derivar.');
+    if(!tecnicos.length) return toast('No hay otros técnicos disponibles para derivar.', 'error');
     
     // Construir lista para el prompt
     const lista = tecnicos.map((t, i) => `${i + 1}. ${t.nombre}`).join('\n');
     const sel = prompt(`DERIVAR ORDEN ${formatoOrden(orden.numero_orden)} a otro técnico:\n\n${lista}\n\nEscribe el número del técnico:`);
     if(sel === null) return;
     const idx = parseInt(sel) - 1;
-    if(isNaN(idx) || idx < 0 || idx >= tecnicos.length) return alert('Selección inválida.');
+    if(isNaN(idx) || idx < 0 || idx >= tecnicos.length) return toast('Selección inválida.', 'error');
     const nuevoTec = tecnicos[idx];
     
     const motivo = prompt(`Motivo de la derivación a ${nuevoTec.nombre}:\n\nEjemplo: "Requiere microsoldadura" o "No pude resolver el problema de carga"`);
     if(motivo === null) return;
-    if(!motivo.trim()) return alert('Debes indicar el motivo de la derivación.');
+    if(!motivo.trim()) return toast('Debes indicar el motivo de la derivación.', 'error');
     
     try {
         const { error } = await supabaseClient.from('ordenes_reparacion').update({
@@ -8829,7 +8871,7 @@ async function derivarOrden(ordenId) {
         if(error) throw error;
         toast(`🔄 Orden derivada a ${nuevoTec.nombre}.`);
         await loadAll();
-    } catch(e) { logError('Derivar orden', e); alert(getFriendlyError(e)); }
+    } catch(e) { logError('Derivar orden', e); toastError(getFriendlyError(e)); }
 }
 
 // === FASE B: Piezas adicionales de una orden ===
@@ -8839,11 +8881,11 @@ async function solicitarPiezaOrden(ordenId) {
     if(!orden) return;
     const esAdmin = isAdminUser();
     const esMia = orden.tecnico_asignado_id === sessionUser?.id;
-    if(!esAdmin && !esMia) return alert('Solo el técnico asignado puede solicitar piezas para esta orden.');
+    if(!esAdmin && !esMia) return toast('Solo el técnico asignado puede solicitar piezas para esta orden.', 'error');
     
     const nombre = prompt('🔧 SOLICITAR PIEZA ADICIONAL\n\nEscribe el nombre de la pieza que necesitas:\n\nEjemplo: "Pantalla iPhone 12", "Batería", "Flex de carga"');
     if(nombre === null) return;
-    if(!nombre.trim()) return alert('Escribe el nombre de la pieza.');
+    if(!nombre.trim()) return toast('Escribe el nombre de la pieza.', 'error');
     
     const cantStr = prompt('¿Cuántas unidades? (deja 1 si es una sola)', '1');
     if(cantStr === null) return;
@@ -8860,7 +8902,7 @@ async function solicitarPiezaOrden(ordenId) {
         if(error) throw error;
         toast('🔧 Pieza solicitada: ' + nombre.trim());
         await loadAll();
-    } catch(e) { logError('Solicitar pieza orden', e); alert(getFriendlyError(e)); }
+    } catch(e) { logError('Solicitar pieza orden', e); toastError(getFriendlyError(e)); }
 }
 
 // Servicio marca la pieza como entregada al técnico
@@ -8873,7 +8915,7 @@ async function entregarPiezaOrden(piezaId) {
         if(error) throw error;
         toast('📦 Pieza marcada como entregada.');
         await loadAll();
-    } catch(e) { logError('Entregar pieza orden', e); alert(getFriendlyError(e)); }
+    } catch(e) { logError('Entregar pieza orden', e); toastError(getFriendlyError(e)); }
 }
 
 // El técnico confirma que recibió la pieza
@@ -8882,7 +8924,7 @@ async function recibirPiezaOrden(piezaId) {
     if(!pieza) return;
     const esAdmin = isAdminUser();
     const esMia = pieza.tecnico_id === sessionUser?.id;
-    if(!esAdmin && !esMia) return alert('Solo el técnico que solicitó la pieza puede confirmar que la recibió.');
+    if(!esAdmin && !esMia) return toast('Solo el técnico que solicitó la pieza puede confirmar que la recibió.', 'error');
     try {
         const { error } = await supabaseClient.from('orden_piezas').update({
             estado: 'recibida',
@@ -8891,7 +8933,7 @@ async function recibirPiezaOrden(piezaId) {
         if(error) throw error;
         toast('✅ Pieza recibida. Ahora la tienes tú.');
         await loadAll();
-    } catch(e) { logError('Recibir pieza orden', e); alert(getFriendlyError(e)); }
+    } catch(e) { logError('Recibir pieza orden', e); toastError(getFriendlyError(e)); }
 }
 
 // === FASE C: Devolución de pieza ===
@@ -8901,7 +8943,7 @@ async function devolverPiezaOrden(piezaId) {
     if(!pieza) return;
     const esAdmin = isAdminUser();
     const esMia = pieza.tecnico_id === sessionUser?.id;
-    if(!esAdmin && !esMia) return alert('Solo el técnico que tiene la pieza puede solicitar devolverla.');
+    if(!esAdmin && !esMia) return toast('Solo el técnico que tiene la pieza puede solicitar devolverla.', 'error');
     const motivo = prompt(`↩️ DEVOLVER PIEZA: ${pieza.pieza_nombre}\n\n¿Por qué la devuelves?\n\nEjemplos:\n• "No se utilizó, el daño era otro"\n• "Era para probar, no hizo falta"`);
     if(motivo === null) return;
     try {
@@ -8912,12 +8954,12 @@ async function devolverPiezaOrden(piezaId) {
         if(error) throw error;
         toast('↩️ Devolución solicitada. Entrégala a servicio para que la confirme.');
         await loadAll();
-    } catch(e) { logError('Devolver pieza orden', e); alert(getFriendlyError(e)); }
+    } catch(e) { logError('Devolver pieza orden', e); toastError(getFriendlyError(e)); }
 }
 
 // Servicio confirma que recibió la pieza devuelta
 async function confirmarDevolucionPiezaOrden(piezaId) {
-    if(!confirm('¿Confirmar que recibiste esta pieza devuelta del técnico?')) return;
+    if(!await confirmar('¿Confirmar que recibiste esta pieza devuelta del técnico?')) return;
     try {
         const { error } = await supabaseClient.from('orden_piezas').update({
             estado: 'devuelta',
@@ -8926,7 +8968,7 @@ async function confirmarDevolucionPiezaOrden(piezaId) {
         if(error) throw error;
         toast('🔄 Devolución confirmada. La pieza ya no está con el técnico.');
         await loadAll();
-    } catch(e) { logError('Confirmar devolución pieza', e); alert(getFriendlyError(e)); }
+    } catch(e) { logError('Confirmar devolución pieza', e); toastError(getFriendlyError(e)); }
 }
 
 // Muestra las piezas que un técnico TIENE en su poder (recibidas o pendientes de devolver)
@@ -8987,12 +9029,12 @@ function etiquetaPiezaOrden(estado) {
 async function tomarOrden(ordenId) {
     if(!sessionUser) return;
     const orden = (cache.ordenes || []).find(o => o.id === ordenId);
-    if(!orden) return alert('Orden no encontrada.');
+    if(!orden) return toast('Orden no encontrada.', 'error');
     if(orden.tecnico_asignado_id && orden.tecnico_asignado_id !== sessionUser.id) {
         const t = nombreEmpleado(orden.tecnico_asignado_id);
-        return alert(`Esta orden ya fue tomada por ${t}.`);
+        return toast(`Esta orden ya fue tomada por ${t}.`, 'error');
     }
-    if(!confirm(`¿Tomar la orden ${formatoOrden(orden.numero_orden)}?\n\nQuedará asignada a ti y pasará a "En proceso".`)) return;
+    if(!await confirmar(`¿Tomar la orden ${formatoOrden(orden.numero_orden)}?\n\nQuedará asignada a ti y pasará a "En proceso".`)) return;
     try {
         const { error } = await supabaseClient.from('ordenes_reparacion').update({
             tecnico_asignado_id: sessionUser.id,
@@ -9008,7 +9050,7 @@ async function tomarOrden(ordenId) {
         // Las fallas SIN asignar pasan a este técnico
         await asignarFallasSinDueno('orden', ordenId, sessionUser.id);
         await loadAll();
-    } catch(e) { logError('Tomar orden', e); alert(getFriendlyError(e)); }
+    } catch(e) { logError('Tomar orden', e); toastError(getFriendlyError(e)); }
 }
 
 // Asigna al técnico todas las tareas/fallas que estén sin dueño (al tomar/asignar la orden o equipo)
@@ -9041,7 +9083,7 @@ async function asignarOrdenTecnico(ordenId, tecnicoId) {
         // Las fallas SIN asignar pasan a este técnico
         await asignarFallasSinDueno('orden', ordenId, tecnicoId);
         await loadAll();
-    } catch(e) { logError('Asignar orden', e); alert(getFriendlyError(e)); }
+    } catch(e) { logError('Asignar orden', e); toastError(getFriendlyError(e)); }
 }
 
 // Avanza el estado de la orden (solo hacia adelante)
@@ -9052,7 +9094,7 @@ async function avanzarEstadoOrden(ordenId, nuevoEstado, nota) {
     // Anti juez-y-parte: el técnico solo puede mover SU orden
     const esAdmin = isAdminUser();
     if(!esAdmin && orden.tecnico_asignado_id !== sessionUser?.id) {
-        return alert('Solo el técnico asignado (o un administrador) puede cambiar el estado.');
+        return toast('Solo el técnico asignado (o un administrador) puede cambiar el estado.', 'error');
     }
     // Validar que solo avance (no retroceda), salvo cancelar o resolver estados temporales
     const estadosTemporales = ['espera_repuesto', 'pendiente_cliente'];
@@ -9061,7 +9103,7 @@ async function avanzarEstadoOrden(ordenId, nuevoEstado, nota) {
         const iActual = ORDEN_FLUJO.indexOf(actual);
         const iNuevo = ORDEN_FLUJO.indexOf(nuevoEstado);
         if(iNuevo !== -1 && iActual !== -1 && iNuevo < iActual) {
-            return alert('El estado solo puede avanzar, no retroceder.');
+            return toast('El estado solo puede avanzar, no retroceder.', 'error');
         }
     }
     try {
@@ -9075,7 +9117,7 @@ async function avanzarEstadoOrden(ordenId, nuevoEstado, nota) {
         if(error) throw error;
         toast('✅ Estado actualizado: ' + obtenerEtiquetaOrden(nuevoEstado).text);
         await loadAll();
-    } catch(e) { logError('Avanzar estado orden', e); alert(getFriendlyError(e)); }
+    } catch(e) { logError('Avanzar estado orden', e); toastError(getFriendlyError(e)); }
 }
 
 // === GARANTÍA ===
@@ -9098,9 +9140,9 @@ async function marcarEntregadoConGarantia(ordenId) {
     // Sentido común: solo se entrega lo que está finalizado
     if(est !== 'finalizado') {
         if(isAdminUser()) {
-            if(!confirm('⚠️ Esta orden no está marcada como FINALIZADA.\n\n¿Entregar de todos modos? (recomendado finalizar primero)')) return;
+            if(!await confirmar('⚠️ Esta orden no está marcada como FINALIZADA.\n\n¿Entregar de todos modos? (recomendado finalizar primero)')) return;
         } else {
-            return alert('⚠️ Solo se puede entregar una orden FINALIZADA.\n\nMarca la reparación como finalizada antes de entregar.');
+            return toast('⚠️ Solo se puede entregar una orden FINALIZADA.\n\nMarca la reparación como finalizada antes de entregar.', 'error');
         }
     }
     const diasStr = prompt('📦 ENTREGAR EQUIPO\n\n¿Cuántos días de garantía? (deja 0 si no aplica)\n\nEjemplos: 30, 90', '90');
@@ -9115,7 +9157,7 @@ async function marcarEntregadoConGarantia(ordenId) {
         if(error) throw error;
         toast(dias > 0 ? `📦 Entregado con ${dias} días de garantía.` : '📦 Entregado (sin garantía).');
         await loadAll();
-    } catch(e) { logError('Marcar entregado', e); alert(getFriendlyError(e)); }
+    } catch(e) { logError('Marcar entregado', e); toastError(getFriendlyError(e)); }
 }
 
 // Reabre una orden entregada por garantía
@@ -9129,7 +9171,7 @@ async function reabrirOrden(ordenId, tipoMotivo) {
     if(!orden) return;
     // Permiso: admin o servicio al cliente
     if(!isAdminUser() && !tienePermiso('recepcion_ver')) {
-        return alert('Solo un administrador o personal de servicio al cliente puede reabrir órdenes.');
+        return toast('Solo un administrador o personal de servicio al cliente puede reabrir órdenes.', 'error');
     }
     const tecAnterior = orden.tecnico_asignado_id ? nombreEmpleado(orden.tecnico_asignado_id) : null;
     
@@ -9140,12 +9182,12 @@ async function reabrirOrden(ordenId, tipoMotivo) {
         const info = infoGarantiaOrden(orden);
         if(!info.vigente) {
             // Garantía vencida: ofrecer reabrir por otra razón
-            if(!confirm('⚠️ La garantía de esta orden ya venció.\n\n¿Reabrir por OTRA razón (no garantía)?')) return;
+            if(!await confirmar('⚠️ La garantía de esta orden ya venció.\n\n¿Reabrir por OTRA razón (no garantía)?')) return;
             return reabrirOrden(ordenId, 'otra');
         }
         const motivo = prompt(`🛡️ REABRIR POR GARANTÍA\n\nQuedan ${info.diasRestantes} días de garantía.\n\n¿Qué problema reporta el cliente?\n\nEjemplo: "La pantalla volvió a fallar"`);
         if(motivo === null) return;
-        if(!motivo.trim()) return alert('Indica el motivo de la garantía.');
+        if(!motivo.trim()) return toast('Indica el motivo de la garantía.', 'error');
         updates.es_garantia = true;
         updates.veces_garantia = (orden.veces_garantia || 0) + 1;
         updates.nota_estado = `🛡️ GARANTÍA: ${motivo.trim()}`;
@@ -9155,7 +9197,7 @@ async function reabrirOrden(ordenId, tipoMotivo) {
         // Otra razón
         const motivo = prompt(`🔄 REABRIR ORDEN (otra razón)\n\n¿Por qué se reabre esta orden?\n\nEjemplo: "El cliente reporta otro problema", "Revisión adicional solicitada"`);
         if(motivo === null) return;
-        if(!motivo.trim()) return alert('Indica la razón de la reapertura.');
+        if(!motivo.trim()) return toast('Indica la razón de la reapertura.', 'error');
         updates.nota_estado = `🔄 REABIERTA: ${motivo.trim()}`;
         updates.es_garantia = false;
         avisoTecnico = '🔄 Reabierta (no garantía)';
@@ -9166,7 +9208,7 @@ async function reabrirOrden(ordenId, tipoMotivo) {
         if(error) throw error;
         toast(`${avisoTecnico}. Vuelve a "En proceso"${tecAnterior ? ' con ' + tecAnterior : ''}.`);
         await loadAll();
-    } catch(e) { logError('Reabrir orden', e); alert(getFriendlyError(e)); }
+    } catch(e) { logError('Reabrir orden', e); toastError(getFriendlyError(e)); }
 }
 
 async function abrirModalNuevaDevolucion() {
@@ -9184,7 +9226,7 @@ async function abrirModalNuevaDevolucion() {
     const despachados = (cache.refurb || []).filter(r => r.estado_evaluacion === 'vendido');
     
     if(despachados.length === 0) {
-        alert('No hay equipos despachados aún. Primero debes tener equipos en estado "Despachado" para poder registrar devoluciones.');
+        toast('No hay equipos despachados aún. Primero debes tener equipos en estado "Despachado" para poder registrar devoluciones.', 'error');
         return;
     }
     
@@ -9325,7 +9367,7 @@ async function cargarHistorialEquipoDevolucion(equipoId) {
         document.getElementById('devCamposExtras').style.display = 'block';
     } catch(e) {
         logError('Cargar historial devolución', e);
-        alert(getFriendlyError(e));
+        toastError(getFriendlyError(e));
     }
 }
 
@@ -9336,14 +9378,14 @@ async function guardarDevolucion() {
     const diagnostico = document.getElementById('dev_diagnostico').value.trim();
     const tecnicoId = smartSelectGetValue('ss-dev-tecnico');
     
-    if(!equipoId) return alert('Selecciona el equipo que se devolvió.');
-    if(!motivo) return alert('El motivo de devolución es obligatorio.');
-    if(!tecnicoId) return alert('Selecciona un técnico para esta reparación.');
+    if(!equipoId) return toast('Selecciona el equipo que se devolvió.', 'error');
+    if(!motivo) return toast('El motivo de devolución es obligatorio.', 'error');
+    if(!tecnicoId) return toast('Selecciona un técnico para esta reparación.', 'error');
     
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
-    if(!eq) return alert('Equipo no encontrado.');
+    if(!eq) return toast('Equipo no encontrado.', 'error');
     if(eq.estado_evaluacion !== 'vendido') {
-        return alert('Este equipo no está en estado "Despachado". Solo se pueden devolver equipos despachados.');
+        return toast('Este equipo no está en estado "Despachado". Solo se pueden devolver equipos despachados.', 'error');
     }
     
     // Capturar checklist de problemas
@@ -9405,7 +9447,7 @@ async function guardarDevolucion() {
         if(devData?.id) resaltarItemNuevo(devData.id);
     } catch(e) {
         logError('Guardar devolución', e);
-        alert(getFriendlyError(e));
+        toastError(getFriendlyError(e));
     }
 }
 
@@ -9495,7 +9537,7 @@ function cerrarModalCategoria() {
 async function guardarCategoria() {
     const id = document.getElementById('mod_cat_id').value;
     const nombre = document.getElementById('mod_cat_nombre').value.trim();
-    if(!nombre) return alert('El nombre es obligatorio.');
+    if(!nombre) return toast('El nombre es obligatorio.', 'error');
     
     const datos = {
         nombre,
@@ -9522,14 +9564,14 @@ async function guardarCategoria() {
         resaltarItemNuevo(nuevoId);
     } catch(e) {
         logError('Guardar categoría', e);
-        alert(getFriendlyError(e));
+        toastError(getFriendlyError(e));
     }
 }
 
 async function eliminarCategoria(id) {
     const c = _categoriasCache.find(x => x.id === id);
     if(!c) return;
-    if(!confirm(`¿Eliminar la categoría "${c.nombre}"?`)) return;
+    if(!await confirmar(`¿Eliminar la categoría "${c.nombre}"?`)) return;
     try {
         const { error } = await supabaseClient.from('catalogo_categorias').delete().eq('id', id);
         if(error) throw error;
@@ -9537,7 +9579,7 @@ async function eliminarCategoria(id) {
         await cargarCategorias();
     } catch(e) {
         logError('Eliminar categoría', e);
-        alert(getFriendlyError(e));
+        toastError(getFriendlyError(e));
     }
 }
 
@@ -9601,7 +9643,7 @@ function cerrarModalMarca() {
 async function guardarMarca() {
     const id = document.getElementById('mod_marca_id').value;
     const nombre = document.getElementById('mod_marca_nombre').value.trim();
-    if(!nombre) return alert('El nombre es obligatorio.');
+    if(!nombre) return toast('El nombre es obligatorio.', 'error');
     
     const datos = { nombre, activa: document.getElementById('mod_marca_activa').checked };
     
@@ -9622,14 +9664,14 @@ async function guardarMarca() {
         resaltarItemNuevo(nuevoId);
     } catch(e) {
         logError('Guardar marca', e);
-        alert(getFriendlyError(e));
+        toastError(getFriendlyError(e));
     }
 }
 
 async function eliminarMarca(id) {
     const m = _marcasCache.find(x => x.id === id);
     if(!m) return;
-    if(!confirm(`¿Eliminar la marca "${m.nombre}"?`)) return;
+    if(!await confirmar(`¿Eliminar la marca "${m.nombre}"?`)) return;
     try {
         const { error } = await supabaseClient.from('catalogo_marcas').delete().eq('id', id);
         if(error) throw error;
@@ -9637,7 +9679,7 @@ async function eliminarMarca(id) {
         await cargarMarcas();
     } catch(e) {
         logError('Eliminar marca', e);
-        alert(getFriendlyError(e));
+        toastError(getFriendlyError(e));
     }
 }
 
@@ -9874,7 +9916,7 @@ async function guardarRol() {
     const descripcion = document.getElementById('mod_rol_descripcion').value.trim() || null;
     const activo = document.getElementById('mod_rol_activo').checked;
     
-    if(!nombre) return alert('El nombre del rol es obligatorio.');
+    if(!nombre) return toast('El nombre del rol es obligatorio.', 'error');
     
     // Construir objeto de permisos
     const permisos = {};
@@ -9898,7 +9940,7 @@ async function guardarRol() {
             resaltarItemNuevo(id);
         } catch(e) {
             logError('Actualizar rol sistema', e);
-            alert(getFriendlyError(e));
+            toastError(getFriendlyError(e));
         }
         return;
     }
@@ -9922,22 +9964,22 @@ async function guardarRol() {
         resaltarItemNuevo(nuevoId);
     } catch(e) {
         logError('Guardar rol', e);
-        alert(getFriendlyError(e));
+        toastError(getFriendlyError(e));
     }
 }
 
 async function eliminarRol(id) {
     const r = _rolesCache.find(x => x.id === id);
     if(!r) return;
-    if(r.es_sistema) return alert('No se puede eliminar el rol del sistema.');
+    if(r.es_sistema) return toast('No se puede eliminar el rol del sistema.', 'error');
     
     // Verificar si hay técnicos con este rol
     const tecnicosConRol = (cache.tecnicos || []).filter(t => t.rol_id === id);
     if(tecnicosConRol.length > 0) {
-        return alert(`No se puede eliminar: ${tecnicosConRol.length} técnico(s) tienen este rol asignado. Primero cambia el rol de esos técnicos.`);
+        return toast(`No se puede eliminar: ${tecnicosConRol.length} técnico(s) tienen este rol asignado. Primero cambia el rol de esos técnicos.`, 'error');
     }
     
-    if(!confirm(`¿Eliminar el rol "${r.nombre}"?\n\nEsta acción no se puede deshacer.`)) return;
+    if(!await confirmar(`¿Eliminar el rol "${r.nombre}"?\n\nEsta acción no se puede deshacer.`)) return;
     try {
         const { error } = await supabaseClient.from('roles_taller').delete().eq('id', id);
         if(error) throw error;
@@ -9945,7 +9987,7 @@ async function eliminarRol(id) {
         await cargarRoles();
     } catch(e) {
         logError('Eliminar rol', e);
-        alert(getFriendlyError(e));
+        toastError(getFriendlyError(e));
     }
 }
 
@@ -10393,7 +10435,7 @@ async function revelarClave(ordenId, boton) {
 
 async function guardarRecepcion(imprimir) {
     try {
-        if(!val("c_nombre") || !val("c_whatsapp") || !val("e_marca") || !val("e_modelo") || !val("e_imei")) return alert("Faltan campos mandatorios.");
+        if(!val("c_nombre") || !val("c_whatsapp") || !val("e_marca") || !val("e_modelo") || !val("e_imei")) return toast("Faltan campos mandatorios.", 'error');
         const insC = await supabaseClient.from('clientes').insert([{ nombre: val("c_nombre"), whatsapp: val("c_whatsapp") || null, cedula: val("c_cedula") || null }]).select().single();
         requireSupabaseOk(insC, 'Crear cliente');
         const insE = await supabaseClient.from('equipos').insert([{ cliente_id: insC.data.id, marca: val("e_marca") || 'Generic', modelo: val("e_modelo"), imei: val("e_imei"), capacidad: val("e_capacidad") || null }]).select().single();
@@ -10419,7 +10461,7 @@ async function guardarRecepcion(imprimir) {
         limpiarRecepcion();
         await loadAll();
         nav("ordenes");
-    } catch(e) { logError("Guardar recepción", e); alert(getFriendlyError(e)); }
+    } catch(e) { logError("Guardar recepción", e); toastError(getFriendlyError(e)); }
 }
 
 function limpiarRecepcion() {
@@ -10574,7 +10616,7 @@ function renderComprasTab() {
 
 function abrirLoteDesdeCompras(loteId) {
     const lote = cache.lotes.find(l => l.id === loteId);
-    if(!lote) return alert('Compra no encontrada.');
+    if(!lote) return toast('Compra no encontrada.', 'error');
     proveedorActualId = lote.proveedor_id;
     document.getElementById('prov-lista').style.display = 'none';
     document.getElementById('prov-detalle').style.display = 'none';
@@ -10584,12 +10626,12 @@ function abrirLoteDesdeCompras(loteId) {
 
 async function enviarLoteAReacond(loteId) {
     const lote = cache.lotes.find(l => l.id === loteId);
-    if(!lote) return alert('Lote no encontrado.');
+    if(!lote) return toast('Lote no encontrado.', 'error');
     const equiposLote = cache.refurb.filter(r => r.lote_id === loteId);
     if(equiposLote.length === 0) {
-        return alert('Este lote no tiene equipos registrados. Agrega equipos primero antes de enviarlo a Reacondicionado.');
+        return toast('Este lote no tiene equipos registrados. Agrega equipos primero antes de enviarlo a Reacondicionado.', 'error');
     }
-    if(!confirm(`¿Enviar lote "${lote.nombre || lote.id.slice(0,8)}" a Reacondicionado?\n\n${equiposLote.length} equipos quedarán pendientes de evaluación.`)) return;
+    if(!await confirmar(`¿Enviar lote "${lote.nombre || lote.id.slice(0,8)}" a Reacondicionado?\n\n${equiposLote.length} equipos quedarán pendientes de evaluación.`)) return;
     try {
         const { error } = await supabaseClient
             .from('refurb_lotes')
@@ -10600,7 +10642,7 @@ async function enviarLoteAReacond(loteId) {
         await loadAll();
     } catch(e) {
         logError('Enviar lote a reacond', e);
-        alert(getFriendlyError(e));
+        toastError(getFriendlyError(e));
     }
 }
 
@@ -10631,7 +10673,7 @@ function cerrarModalNuevaCompra() {
 async function crearNuevaCompra() {
     try {
         const provId = smartSelectGetValue('ss-compra-proveedor');
-        if(!provId) return alert('Selecciona un proveedor.');
+        if(!provId) return toast('Selecciona un proveedor.', 'error');
         
         const codigo = calcularSiguienteCodigoLote();
         const { data, error } = await supabaseClient.from('refurb_lotes').insert([{
@@ -10647,7 +10689,7 @@ async function crearNuevaCompra() {
         cerrarModalNuevaCompra();
         await loadAll();
         abrirLoteDesdeCompras(data.id);
-    } catch(e) { logError('Crear compra', e); alert(getFriendlyError(e)); }
+    } catch(e) { logError('Crear compra', e); toastError(getFriendlyError(e)); }
 }
 
 // Cerrar modal con Escape y clic fuera
@@ -10743,7 +10785,7 @@ let _labelDiagOrdenActual = null;
 
 async function abrirPreviewLabelDiagIndividual(equipoId) {
     const equipo = cache.refurb.find(r => r.id === equipoId);
-    if(!equipo) return alert('Equipo no encontrado.');
+    if(!equipo) return toast('Equipo no encontrado.', 'error');
     
     // Cargar las fallas del equipo para el checklist
     await cargarFallasParaLabel([equipoId]);
@@ -10779,9 +10821,9 @@ async function cargarFallasParaLabel(equipoIds) {
 }
 
 async function abrirPreviewLabelsLote() {
-    if(!loteActualId) return alert('Sin lote activo.');
+    if(!loteActualId) return toast('Sin lote activo.', 'error');
     const equipos = cache.refurb.filter(r => r.lote_id === loteActualId);
-    if(!equipos.length) return alert('Este lote no tiene equipos.');
+    if(!equipos.length) return toast('Este lote no tiene equipos.', 'error');
     
     // Cargar fallas de todos los equipos del lote
     await cargarFallasParaLabel(equipos.map(e => e.id));
@@ -11283,7 +11325,7 @@ async function qzImprimirPrueba() {
     
     const ok = await qzImprimirRaw(cmd, 'labels');
     if(ok) toast('🖨️ Prueba TSPL enviada a la impresora.');
-    else alert('No se pudo imprimir. Verifica que QZ Tray esté conectado y la impresora de labels seleccionada.');
+    else toast('No se pudo imprimir. Verifica que QZ Tray esté conectado y la impresora de labels seleccionada.', 'error');
 }
 
 // Auto-conectar QZ al iniciar sesión (silencioso)
@@ -11458,7 +11500,7 @@ async function guardarPerfilActual() {
     const nombre = sel.value;
     const perfiles = obtenerPerfilesImpresora();
     const idx = perfiles.findIndex(p => p.nombre === nombre);
-    if(idx < 0) return alert('Perfil no encontrado.');
+    if(idx < 0) return toast('Perfil no encontrado.', 'error');
     
     perfiles[idx] = {
         nombre: nombre,
@@ -11486,11 +11528,11 @@ function cerrarModalNuevoPerfil() {
 
 function confirmarNuevoPerfil() {
     const nombre = val('mod_perfil_nombre');
-    if(!nombre) return alert('Escribe un nombre para el perfil.');
+    if(!nombre) return toast('Escribe un nombre para el perfil.', 'error');
     
     const perfiles = obtenerPerfilesImpresora();
     if(perfiles.find(p => p.nombre.toLowerCase() === nombre.toLowerCase())) {
-        return alert('Ya existe un perfil con ese nombre.');
+        return toast('Ya existe un perfil con ese nombre.', 'error');
     }
     
     perfiles.push({
@@ -11510,15 +11552,15 @@ function confirmarNuevoPerfil() {
     toast(`Perfil "${nombre}" creado.`);
 }
 
-function eliminarPerfilActual() {
+async function eliminarPerfilActual() {
     const sel = document.getElementById('cfg_perfil_actual');
     if(!sel) return;
     const nombre = sel.value;
     
     const perfiles = obtenerPerfilesImpresora();
-    if(perfiles.length <= 1) return alert('No puedes eliminar el único perfil. Debe haber al menos uno.');
+    if(perfiles.length <= 1) return toast('No puedes eliminar el único perfil. Debe haber al menos uno.', 'error');
     
-    if(!confirm(`¿Eliminar el perfil "${nombre}"?`)) return;
+    if(!await confirmar(`¿Eliminar el perfil "${nombre}"?`)) return;
     
     const nuevos = perfiles.filter(p => p.nombre !== nombre);
     guardarPerfilesImpresora(nuevos);
@@ -11579,7 +11621,7 @@ function imprimirReglaCalibracion() {
 }
 
 function abrirConfigWindows() {
-    alert('Para abrir la configuración de la impresora:\n\n1. Presiona Windows + R\n2. Escribe: control printers\n3. Presiona Enter\n4. Clic derecho en "4BARCODE 4B-2074B" → Preferencias de impresión\n\nDesde ahí ajustas tamaño del papel, velocidad, densidad, etc.');
+    toast('Para abrir la configuración de la impresora:\n\n1. Presiona Windows + R\n2. Escribe: control printers\n3. Presiona Enter\n4. Clic derecho en "4BARCODE 4B-2074B" → Preferencias de impresión\n\nDesde ahí ajustas tamaño del papel, velocidad, densidad, etc.', 'error');
 }
 
 // Cerrar modal nuevo perfil con Escape y clic fuera
