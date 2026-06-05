@@ -842,6 +842,15 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                             <div><label>Capacidad (GB) *</label><input id="e_capacidad" placeholder="128GB"></div>
                             <div><label>IMEI / Serial *</label><input id="e_imei" placeholder="356789..."></div>
                             <div><label>Estado Físico del Equipo (cómo llega)</label><textarea id="o_estado_fisico" rows="2" placeholder="Rayones en la tapa, esquina golpeada, sin marcas..."></textarea></div>
+                            <div style="display:flex; gap:10px;">
+                                <div style="flex:1;"><label>Prioridad</label>
+                                    <select id="o_prioridad" style="width:100%;">
+                                        <option value="normal">🟢 Normal</option>
+                                        <option value="urgente">🔴 Urgente</option>
+                                    </select>
+                                </div>
+                                <div style="flex:1;"><label>Entrega estimada</label><input id="o_fecha_estimada" type="date"></div>
+                            </div>
                         </div>
                     </div>
 
@@ -1483,6 +1492,9 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                     <button id="reacondMainTabPiezas" onclick="cambiarMainTabReacond('piezas')" class="reacond-main-tab" style="flex:1; min-width:90px; padding:12px; border:0; background:transparent; color:var(--text-muted); border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">
                         <i class="ti ti-packages"></i> Pedidos de Piezas
                     </button>
+                    <button id="reacondMainTabRentabilidad" onclick="cambiarMainTabReacond('rentabilidad')" class="reacond-main-tab" style="flex:1; min-width:90px; padding:12px; border:0; background:transparent; color:var(--text-muted); border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">
+                        <i class="ti ti-cash"></i> Rentabilidad
+                    </button>
                 </div>
                 
                 <!-- CONTENIDO PESTAÑA LOTES -->
@@ -1620,6 +1632,14 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                     </div>
                 </div>
                 <!-- /CONTENIDO PESTAÑA PIEZAS -->
+
+                <!-- CONTENIDO PESTAÑA RENTABILIDAD -->
+                <div id="reacondMainContentRentabilidad" style="display:none;">
+                    <div id="rentabilidadReacondCont">
+                        <p style="color:var(--text-muted); text-align:center; padding:30px; font-size:13px;">Cargando rentabilidad...</p>
+                    </div>
+                </div>
+                <!-- /CONTENIDO PESTAÑA RENTABILIDAD -->
             </div>
 
             <!-- ============= REPORTES ============= -->
@@ -1628,6 +1648,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                     <h2 style="margin:0 0 4px 0; font-size:18px;"><i class="ti ti-chart-bar" style="color:#0891b2;"></i> Reportes de Rendimiento</h2>
                     <p style="color:var(--text-muted); font-size:13px; margin:0;">Evalúa el trabajo de cada técnico en servicio (clientes) y reacondicionados.</p>
                 </div>
+                <div id="reporteCobros"></div>
                 <div id="reporteGeneralTiempos"></div>
                 <div class="card" style="margin-bottom:15px;">
                     <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
@@ -4724,6 +4745,9 @@ function volverListaLotesReacond() {
     reacondLoteAbiertoId = null;
     document.getElementById('reacondListaLotes').style.display = 'block';
     document.getElementById('reacondDetalleLote').style.display = 'none';
+    // La pestaña de Rentabilidad (datos financieros) solo es visible para admin
+    const btnRent = document.getElementById('reacondMainTabRentabilidad');
+    if(btnRent) btnRent.style.display = isAdminUser() ? '' : 'none';
     cargarLotesReacond();
 }
 
@@ -4847,6 +4871,11 @@ function renderEquipoReacondCard(eq, num) {
                     ${eq.color ? ' · ' + escapeHtml(eq.color) : ''}
                     ${eq.capacidad ? ' · ' + escapeHtml(eq.capacidad) : ''}
                 </div>
+                ${estado === 'vendido' && isAdminUser() && eq.precio_venta_real != null ? (() => {
+                    const invE = (Number(eq.costo_compra) || 0) + (Number(eq.costo_repuestos) || 0);
+                    const ganE = Number(eq.precio_venta_real) - invE;
+                    return `<div style="font-size:11px; font-weight:700; margin-top:5px; color:${ganE >= 0 ? '#15803d' : '#dc2626'};"><i class="ti ti-cash"></i> Vendido: ${money(Number(eq.precio_venta_real))} · Ganancia: ${money(ganE)}</div>`;
+                })() : ''}
                 ${tecnico && eq.fecha_asignacion ? `<div style="font-size:11px; color:#0891b2; font-weight:600; margin-top:4px;"><i class="ti ti-stopwatch"></i> Tomado: ${tiempoDesde(eq.fecha_asignacion)}</div>` : ''}
                 ${eq.notas_diagnostico ? `<div style="background:#f1f5f9; padding:6px 10px; border-radius:6px; margin-top:6px; font-size:12px;"><b>Notas:</b> ${escapeHtml(eq.notas_diagnostico)}</div>` : ''}
             </div>
@@ -4884,17 +4913,28 @@ function cambiarMainTabReacond(tab) {
     if(devCont) devCont.style.display = tab === 'devoluciones' ? 'block' : 'none';
     const pzCont = document.getElementById('reacondMainContentPiezas');
     if(pzCont) pzCont.style.display = tab === 'piezas' ? 'block' : 'none';
-    
+    const rentCont = document.getElementById('reacondMainContentRentabilidad');
+    if(rentCont) rentCont.style.display = tab === 'rentabilidad' ? 'block' : 'none';
+
     const btnLotes = document.getElementById('reacondMainTabLotes');
     const btnCat = document.getElementById('reacondMainTabCatalogo');
     const btnDev = document.getElementById('reacondMainTabDevoluciones');
     const btnPz = document.getElementById('reacondMainTabPiezas');
-    
+    const btnRent = document.getElementById('reacondMainTabRentabilidad');
+
     // Reset todos
-    [btnLotes, btnCat, btnDev, btnPz].forEach(b => { 
+    [btnLotes, btnCat, btnDev, btnPz, btnRent].forEach(b => {
         if(b) { b.style.background = 'transparent'; b.style.color = 'var(--text-muted)'; }
     });
-    
+
+    if(tab === 'rentabilidad') {
+        if(btnRent) {
+            btnRent.style.background = 'linear-gradient(180deg,#16a34a,#15803d)';
+            btnRent.style.color = '#fff';
+        }
+        renderRentabilidadReacond();
+        return;
+    }
     if(tab === 'lotes') {
         btnLotes.style.background = 'var(--blue-btn)';
         btnLotes.style.color = '#fff';
@@ -4916,6 +4956,194 @@ function cambiarMainTabReacond(tab) {
         }
         renderPedidosPiezasReacond();
     }
+}
+
+/* ============================================================
+   CENTRO DE RENTABILIDAD DE REACONDICIONADOS
+   ============================================================ */
+// Cambia el período del reporte de rentabilidad (comparte el estado global _repFiltroFechas)
+function setPeriodoRentabilidad(dias, label) {
+    if(dias === 'todo') {
+        _repFiltroFechas = { desde: null, hasta: null, label: 'Todo' };
+    } else {
+        const hasta = new Date();
+        const desde = new Date();
+        desde.setDate(desde.getDate() - dias);
+        _repFiltroFechas = { desde: desde.toISOString().slice(0,10), hasta: hasta.toISOString().slice(0,10), label };
+    }
+    renderRentabilidadReacond();
+}
+
+function renderRentabilidadReacond() {
+    const cont = document.getElementById('rentabilidadReacondCont');
+    if(!cont) return;
+    if(!isAdminUser()) {
+        cont.innerHTML = `<div class="card" style="text-align:center; color:var(--text-muted); padding:34px;">
+            <i class="ti ti-lock" style="font-size:34px; color:#cbd5e1;"></i>
+            <p style="margin:10px 0 0; font-size:13px;">El centro de rentabilidad es solo para administradores.</p>
+        </div>`;
+        return;
+    }
+
+    const equipos = cache.refurb || [];
+    const inv = (e) => (Number(e.costo_compra) || 0) + (Number(e.costo_repuestos) || 0);
+    const esVendido = (e) => e.estado_evaluacion === 'vendido';
+    const tieneP = (e) => e.precio_venta_real != null && Number(e.precio_venta_real) > 0;
+
+    // === VENTAS DEL PERÍODO (por fecha de despacho) ===
+    const vendidosRango = equipos.filter(e => esVendido(e) && fechaEnRango(e.fecha_despacho || e.creado_en));
+    let ingresos = 0, inversionRecup = 0, conPrecio = 0, sinPrecio = 0;
+    let sumEstim = 0, sumRealVsEstim = 0, conEstim = 0;
+    vendidosRango.forEach(e => {
+        if(tieneP(e)) {
+            const pv = Number(e.precio_venta_real);
+            ingresos += pv; inversionRecup += inv(e); conPrecio++;
+            if(Number(e.precio_venta_estimado) > 0) { sumEstim += Number(e.precio_venta_estimado); sumRealVsEstim += pv; conEstim++; }
+        } else sinPrecio++;
+    });
+    const ganancia = ingresos - inversionRecup;
+    const margen = inversionRecup > 0 ? (ganancia / inversionRecup) * 100 : 0;
+    const ticketProm = conPrecio ? ingresos / conPrecio : 0;
+    const gColor = ganancia >= 0 ? '#16a34a' : '#dc2626';
+
+    // === CAPITAL CONGELADO (inventario aún sin vender, estado actual) ===
+    const enInventario = equipos.filter(e => !esVendido(e));
+    const capitalCongelado = enInventario.reduce((s, e) => s + inv(e), 0);
+    const estancados = enInventario
+        .map(e => ({ e, dias: diasDesde(e.fecha_compra || e.creado_en) }))
+        .sort((a, b) => b.dias - a.dias)
+        .slice(0, 5);
+
+    // === ROI POR LOTE ===
+    const porLote = {};
+    equipos.forEach(e => {
+        const lid = e.lote_id || '_sin';
+        if(!porLote[lid]) porLote[lid] = { invTotal: 0, invVendidos: 0, ingresos: 0, vendidos: 0, total: 0 };
+        const L = porLote[lid];
+        L.invTotal += inv(e); L.total++;
+        if(esVendido(e) && tieneP(e)) { L.ingresos += Number(e.precio_venta_real); L.invVendidos += inv(e); L.vendidos++; }
+    });
+    const lotesRank = Object.entries(porLote).map(([lid, d]) => {
+        const lote = lid === '_sin' ? null : (cache.lotes || []).find(l => l.id === lid);
+        const prov = lote ? (cache.proveedores || []).find(p => p.id === lote.proveedor_id) : null;
+        const ganReal = d.ingresos - d.invVendidos;       // ganancia ya realizada (solo unidades vendidas)
+        const pendiente = d.invTotal - d.invVendidos;       // capital aún invertido sin vender
+        return {
+            codigo: lote?.codigo_lote || 'Sin lote', prov: prov?.nombre || '—',
+            ...d, ganReal, pendiente,
+            roi: d.invVendidos > 0 ? (ganReal / d.invVendidos) * 100 : 0,
+            pctVendido: d.total ? Math.round(d.vendidos / d.total * 100) : 0
+        };
+    }).sort((a, b) => b.ganReal - a.ganReal);
+
+    // === GANANCIA POR TÉCNICO (vendidos del período) ===
+    const porTec = {};
+    vendidosRango.forEach(e => {
+        if(!tieneP(e)) return;
+        const tid = e.tecnico_asignado_id || '_sin';
+        if(!porTec[tid]) porTec[tid] = { ganancia: 0, n: 0 };
+        porTec[tid].ganancia += Number(e.precio_venta_real) - inv(e);
+        porTec[tid].n++;
+    });
+    const tecRank = Object.entries(porTec).map(([tid, d]) => {
+        const t = tid === '_sin' ? null : (cache.tecnicos || []).find(x => x.id === tid);
+        return { nombre: t?.nombre || 'Sin técnico asignado', ...d };
+    }).sort((a, b) => b.ganancia - a.ganancia);
+
+    // ----- Render -----
+    const periodoBtn = (dias, texto) => {
+        const activo = _repFiltroFechas.label === texto;
+        return `<button onclick="setPeriodoRentabilidad(${dias === 'todo' ? "'todo'" : dias},'${texto}')" style="padding:6px 12px; border-radius:8px; border:1px solid ${activo ? '#16a34a' : '#cbd5e1'}; background:${activo ? '#16a34a' : '#fff'}; color:${activo ? '#fff' : '#475569'}; font-size:12px; font-weight:600; cursor:pointer;">${texto}</button>`;
+    };
+    const kpi = (label, val, color, sub) => `<div class="kpi-box" style="border-top-color:${color};"><small>${label}</small><strong style="font-size:18px;">${val}</strong>${sub ? `<span style="font-size:10px; color:var(--text-muted);">${sub}</span>` : ''}</div>`;
+
+    const maxGanLote = lotesRank.length ? Math.max(1, ...lotesRank.map(l => Math.abs(l.ganReal))) : 1;
+    const filasLotes = lotesRank.length ? lotesRank.map(l => {
+        const pct = Math.round((Math.abs(l.ganReal) / maxGanLote) * 100);
+        const col = l.ganReal >= 0 ? '#16a34a' : '#dc2626';
+        return `<div style="border:1px solid #e2e8f0; border-radius:10px; padding:11px 13px; margin-bottom:9px; background:#fff;">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; gap:8px; flex-wrap:wrap;">
+                <b style="font-size:13px;">📦 ${escapeHtml(l.codigo)} <span style="color:var(--text-muted); font-weight:400; font-size:11px;">· ${escapeHtml(l.prov)}</span></b>
+                <span style="font-weight:800; color:${col};">${money(l.ganReal)} <span style="font-size:10px; color:var(--text-muted);">(ROI ${l.roi.toFixed(0)}%)</span></span>
+            </div>
+            <div style="background:#e2e8f0; border-radius:5px; height:7px; overflow:hidden; margin:6px 0;">
+                <div style="width:${pct}%; height:100%; background:${col}; border-radius:5px;"></div>
+            </div>
+            <div style="display:flex; gap:14px; flex-wrap:wrap; font-size:11px; color:#475569;">
+                <span>Inversión: <b>${money(l.invTotal)}</b></span>
+                <span>Vendido: <b>${l.vendidos}/${l.total}</b> (${l.pctVendido}%)</span>
+                <span>Recuperado: <b style="color:#16a34a;">${money(l.ingresos)}</b></span>
+                ${l.pendiente > 0 ? `<span>Pendiente: <b style="color:#b45309;">${money(l.pendiente)}</b></span>` : ''}
+            </div>
+        </div>`;
+    }).join('') : `<div style="color:var(--text-muted); font-size:12px; padding:6px 0;">Aún no hay lotes con datos.</div>`;
+
+    const maxGanTec = tecRank.length ? Math.max(1, ...tecRank.map(t => Math.abs(t.ganancia))) : 1;
+    const filasTec = tecRank.length ? tecRank.map(t => {
+        const pct = Math.round((Math.abs(t.ganancia) / maxGanTec) * 100);
+        const col = t.ganancia >= 0 ? '#16a34a' : '#dc2626';
+        return `<div style="margin-bottom:9px;">
+            <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:3px;">
+                <span style="font-weight:600;">${escapeHtml(t.nombre)} <span style="color:var(--text-muted); font-weight:400;">(${t.n} vendido${t.n === 1 ? '' : 's'})</span></span>
+                <span style="font-weight:800; color:${col};">${money(t.ganancia)}</span>
+            </div>
+            <div style="background:#e2e8f0; border-radius:5px; height:8px; overflow:hidden;">
+                <div style="width:${pct}%; height:100%; background:${col}; border-radius:5px;"></div>
+            </div>
+        </div>`;
+    }).join('') : `<div style="color:var(--text-muted); font-size:12px; padding:6px 0;">Sin ventas con precio en el período.</div>`;
+
+    const filasEstancados = estancados.length ? estancados.map(({ e, dias }) => {
+        const alerta = dias >= 30;
+        return `<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:7px 0; border-bottom:1px dashed #e2e8f0; font-size:12px;">
+            <span><i class="ti ti-device-mobile" style="color:#64748b;"></i> ${escapeHtml(e.modelo || 'Equipo')} <span style="color:var(--text-muted);">· ${money(inv(e))}</span></span>
+            <span style="font-weight:700; color:${alerta ? '#dc2626' : '#b45309'};">${dias} día${dias === 1 ? '' : 's'}</span>
+        </div>`;
+    }).join('') : `<div style="color:var(--text-muted); font-size:12px; padding:6px 0;">Sin equipos en inventario. 🎉</div>`;
+
+    cont.innerHTML = `
+        <div class="card" style="margin-bottom:14px; background:linear-gradient(135deg,#f0fdf4,#ecfdf5);">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
+                <div>
+                    <h3 style="margin:0 0 3px;"><i class="ti ti-cash" style="color:#16a34a;"></i> Centro de Rentabilidad</h3>
+                    <p style="color:var(--text-muted); font-size:12px; margin:0;">Cuánto inviertes, cuánto vendes y cuánto ganas de verdad con los reacondicionados.</p>
+                </div>
+                <button class="btn btn-light" onclick="renderRentabilidadReacond()" style="padding:6px 12px; font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:12px 0 14px;">
+                <span style="font-size:12px; font-weight:700; color:var(--text-muted);"><i class="ti ti-calendar"></i> Ventas del período:</span>
+                ${periodoBtn(1, 'Hoy')}${periodoBtn(15, '15 días')}${periodoBtn(30, '1 mes')}${periodoBtn(90, '3 meses')}${periodoBtn('todo', 'Todo')}
+            </div>
+            <div class="kpi-grid">
+                ${kpi('💰 Ingresos por ventas', money(ingresos), '#16a34a', `${conPrecio} equipo(s)`)}
+                ${kpi('🛒 Inversión recuperada', money(inversionRecup), '#0891b2')}
+                ${kpi('📈 Ganancia neta', money(ganancia), gColor, `margen ${margen.toFixed(1)}%`)}
+                ${kpi('🎯 Ticket promedio', money(ticketProm), '#6366f1')}
+            </div>
+            ${conEstim ? `<div style="font-size:11px; color:var(--text-muted); margin-top:9px;"><i class="ti ti-target-arrow"></i> Estimado vs real: vendiste ${sumRealVsEstim >= sumEstim ? 'por encima' : 'por debajo'} de lo estimado (${money(sumRealVsEstim)} real vs ${money(sumEstim)} estimado en ${conEstim} equipo(s)).</div>` : ''}
+            ${sinPrecio ? `<div style="background:#fef3c7; border:1px solid #fcd34d; color:#92400e; font-size:11px; border-radius:8px; padding:8px 10px; margin-top:10px;"><i class="ti ti-alert-triangle"></i> ${sinPrecio} equipo(s) vendido(s) sin precio registrado (se despacharon antes de pedir el monto). No suman a los ingresos.</div>` : ''}
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:14px;">
+            <div class="card" style="margin:0;">
+                <h4 style="margin:0 0 4px; font-size:14px;"><i class="ti ti-snowflake" style="color:#0891b2;"></i> Capital congelado en inventario</h4>
+                <p style="font-size:11px; color:var(--text-muted); margin:0 0 10px;">Dinero invertido en equipos que todavía no se han vendido.</p>
+                <div style="font-size:26px; font-weight:800; color:#b45309;">${money(capitalCongelado)}</div>
+                <div style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">${enInventario.length} equipo(s) en inventario</div>
+                <h5 style="margin:8px 0 4px; font-size:12px; color:#475569;">⏳ Más tiempo sin venderse</h5>
+                ${filasEstancados}
+            </div>
+            <div class="card" style="margin:0;">
+                <h4 style="margin:0 0 10px; font-size:14px;"><i class="ti ti-trophy" style="color:#16a34a;"></i> Ganancia por técnico <span style="font-size:11px; color:var(--text-muted); font-weight:400;">(${_repFiltroFechas.label})</span></h4>
+                ${filasTec}
+            </div>
+        </div>
+
+        <div class="card" style="margin-top:14px;">
+            <h4 style="margin:0 0 4px; font-size:14px;"><i class="ti ti-stack-2" style="color:#6366f1;"></i> Rentabilidad por lote</h4>
+            <p style="font-size:11px; color:var(--text-muted); margin:0 0 12px;">Ganancia ya realizada (unidades vendidas) y capital aún pendiente por recuperar, por cada lote de compra.</p>
+            ${filasLotes}
+        </div>`;
 }
 
 /* ============================================================
@@ -6922,19 +7150,29 @@ async function marcarDespachado(equipoId) {
     }
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return;
-    if(!await confirmar(`¿Marcar "${eq.modelo}" como DESPACHADO?\n\nEsto significa que el equipo fue vendido/entregado al cliente.`)) return;
+    // Capturar el PRECIO DE VENTA REAL al despachar (alimenta el Centro de Rentabilidad)
+    const inversion = (Number(eq.costo_compra) || 0) + (Number(eq.costo_repuestos) || 0);
+    const sugerido = Number(eq.precio_venta_estimado) > 0 ? Number(eq.precio_venta_estimado) : inversion;
+    const precioStr = await pedirTexto(
+        `🚚 DESPACHAR / VENDER\n\n"${eq.modelo}"\nInversión en este equipo: ${money(inversion)}\n\n¿A cuánto se vendió al cliente? (RD$)`,
+        { valor: sugerido ? String(sugerido) : '', tipo: 'number', placeholder: '0.00' }
+    );
+    if(precioStr === null) return; // canceló
+    const precioVenta = parseFloat(precioStr) || 0;
+    const ganancia = precioVenta - inversion;
     try {
-        const { error } = await supabaseClient.from('equipos_refurbish').update({ 
+        const { error } = await supabaseClient.from('equipos_refurbish').update({
             estado_evaluacion: 'vendido',
-            fecha_despacho: new Date().toISOString()
+            fecha_despacho: new Date().toISOString(),
+            precio_venta_real: precioVenta
         }).eq('id', equipoId);
         if(error) throw error;
         await supabaseClient.from('equipo_historial').insert([{
             equipo_id: equipoId, estado_anterior: 'listo_venta', estado_nuevo: 'vendido',
-            accion: '🚚 Equipo despachado al cliente',
+            accion: `🚚 Despachado/vendido en ${money(precioVenta)} (ganancia ${money(ganancia)})`,
             usuario: sessionUser?.nombre || 'Admin'
         }]);
-        toast('🚚 Equipo despachado.');
+        toast(ganancia >= 0 ? `🚚 Vendido. Ganancia: ${money(ganancia)}` : `🚚 Vendido (pérdida ${money(ganancia)})`, ganancia >= 0 ? 'success' : 'error');
         await loadAll();
         if(reacondLoteAbiertoId) renderDetalleLoteReacond();
     } catch(e) {
@@ -7531,9 +7769,78 @@ function construirReporteComunes() {
         </div>`;
 }
 
+// Reporte de COBROS: dinero cobrado (costo_final) de órdenes entregadas en el período
+function construirReporteCobros() {
+    const fmt = (n) => 'RD$' + Number(n || 0).toLocaleString('es-DO', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+
+    // Órdenes entregadas dentro del rango (por fecha de entrega; fallback a creado_en)
+    const entregadas = (cache.ordenes || []).filter(o =>
+        normalizarEstadoOrden(o.estado) === 'entregado' &&
+        fechaEnRango(o.fecha_entregado || o.creado_en)
+    );
+
+    let totalCobrado = 0, conPrecio = 0, sinPrecio = 0;
+    const porTecnico = {}; // id -> { monto, cobradas, sinPrecio }
+
+    entregadas.forEach(o => {
+        const tieneP = o.costo_final != null && Number(o.costo_final) > 0;
+        const monto = tieneP ? Number(o.costo_final) : 0;
+        if(tieneP) { totalCobrado += monto; conPrecio++; } else { sinPrecio++; }
+
+        const tid = o.tecnico_asignado_id || '_sin';
+        if(!porTecnico[tid]) porTecnico[tid] = { monto: 0, cobradas: 0, sinPrecio: 0 };
+        if(tieneP) { porTecnico[tid].monto += monto; porTecnico[tid].cobradas++; }
+        else porTecnico[tid].sinPrecio++;
+    });
+
+    const ticketProm = conPrecio ? totalCobrado / conPrecio : 0;
+
+    // Ranking por técnico (de mayor a menor monto)
+    const ranking = Object.entries(porTecnico)
+        .map(([tid, d]) => {
+            const tec = tid === '_sin' ? null : (cache.tecnicos || []).find(t => t.id === tid);
+            return { nombre: tec ? tec.nombre : 'Sin técnico asignado', ...d };
+        })
+        .sort((a, b) => b.monto - a.monto);
+
+    const maxMonto = ranking.length ? (ranking[0].monto || 1) : 1;
+    const filasRanking = ranking.length
+        ? ranking.map(r => {
+            const pct = Math.round((r.monto / maxMonto) * 100);
+            return `<div style="margin-bottom:10px;">
+                <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:3px;">
+                    <span style="font-weight:600;">${escapeHtml(r.nombre)} <span style="color:var(--text-muted); font-weight:400;">(${r.cobradas} cobrada${r.cobradas === 1 ? '' : 's'}${r.sinPrecio ? ` · ${r.sinPrecio} sin precio` : ''})</span></span>
+                    <span style="font-weight:800; color:#16a34a;">${fmt(r.monto)}</span>
+                </div>
+                <div style="background:#e2e8f0; border-radius:5px; height:9px; overflow:hidden;">
+                    <div style="width:${pct}%; height:100%; background:linear-gradient(90deg,#16a34a,#22c55e); border-radius:5px;"></div>
+                </div>
+            </div>`;
+        }).join('')
+        : `<div style="color:var(--text-muted); font-size:12px; padding:6px 0;">Sin cobros registrados en el período.</div>`;
+
+    const kpi = (label, val, color, sub) => `<div class="kpi-box" style="border-top-color:${color};"><small>${label}</small><strong style="font-size:18px;">${val}</strong>${sub ? `<span style="font-size:10px; color:var(--text-muted);">${sub}</span>` : ''}</div>`;
+
+    return `
+        <div class="card" style="margin-bottom:15px; background:linear-gradient(135deg,#f0fdf4,#ecfdf5);">
+            <h3 style="margin:0 0 4px;"><i class="ti ti-cash" style="color:#16a34a;"></i> Reporte de Cobros</h3>
+            <p style="color:var(--text-muted); font-size:12px; margin:0 0 12px;">Dinero cobrado por reparaciones entregadas en el período (${_repFiltroFechas.label}).</p>
+            <div class="kpi-grid">
+                ${kpi('💵 Total cobrado', fmt(totalCobrado), '#16a34a', `${conPrecio} orden(es)`)}
+                ${kpi('📦 Entregadas', entregadas.length, '#0891b2', sinPrecio ? `${sinPrecio} sin precio` : 'todas con precio')}
+                ${kpi('🎯 Ticket promedio', fmt(ticketProm), '#6366f1')}
+            </div>
+            ${sinPrecio ? `<div style="background:#fef3c7; border:1px solid #fcd34d; color:#92400e; font-size:11px; border-radius:8px; padding:8px 10px; margin-top:10px;"><i class="ti ti-alert-triangle"></i> Hay ${sinPrecio} orden(es) entregada(s) sin precio final registrado. El total no las incluye.</div>` : ''}
+            <h4 style="margin:16px 0 10px; font-size:13px; color:#15803d;"><i class="ti ti-trophy"></i> Cobros por técnico</h4>
+            ${filasRanking}
+        </div>`;
+}
+
 function inicializarReportes() {
     // Bloque de promedio GENERAL del taller (todos los técnicos)
     const gen = calcularTiemposReparacion(null);
+    const cobrosCont = document.getElementById('reporteCobros');
+    if(cobrosCont) cobrosCont.innerHTML = construirReporteCobros();
     const genCont = document.getElementById('reporteGeneralTiempos');
     if(genCont) {
         const kpiG = (label, val, color) => `<div class="kpi-box" style="border-top-color:${color};"><small>${label}</small><strong style="font-size:18px;">${val}</strong></div>`;
@@ -8022,7 +8329,10 @@ function renderTallerOrdenes() {
         cont.innerHTML = `<div style="color:var(--text-muted); padding:14px 0;">No hay órdenes en este filtro${txtBuscar ? ' o búsqueda' : ''}.</div>`;
         return;
     }
-    
+
+    // Las URGENTES van primero (sort estable: conserva el orden del resto)
+    ordenes.sort((a, b) => (a.prioridad === 'urgente' ? 0 : 1) - (b.prioridad === 'urgente' ? 0 : 1));
+
     const tecnicosActivos = (cache.tecnicos || []).filter(t => t.activo && (t.tipo_empleado === 'tecnico' || !t.tipo_empleado));
     // Si el usuario es de servicio al cliente (no técnico, no admin), ocultar botones de técnico
     const esTecnicoReal = sessionUser?.tipo_empleado === 'tecnico';
@@ -8203,6 +8513,15 @@ function abrirEditarRecepcion(ordenId) {
             <textarea id="ed_falla" rows="2" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin:3px 0 8px; font-size:13px;">${escapeHtml(o.falla_reportada || '')}</textarea>
             <label style="font-size:12px; font-weight:600;">Accesorios recibidos</label>
             <input id="ed_accesorios" value="${escapeHtml(o.accesorios_recibidos || '')}" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin:3px 0 8px; font-size:13px;">
+            <div style="display:flex; gap:8px;">
+                <div style="flex:1;"><label style="font-size:12px; font-weight:600;">Prioridad</label>
+                    <select id="ed_prioridad" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin:3px 0 8px; font-size:13px;">
+                        <option value="normal" ${o.prioridad !== 'urgente' ? 'selected' : ''}>🟢 Normal</option>
+                        <option value="urgente" ${o.prioridad === 'urgente' ? 'selected' : ''}>🔴 Urgente</option>
+                    </select></div>
+                <div style="flex:1;"><label style="font-size:12px; font-weight:600;">Entrega estimada</label>
+                    <input id="ed_fecha_estimada" type="date" value="${escapeHtml(o.fecha_estimada_entrega || '')}" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin:3px 0 8px; font-size:13px;"></div>
+            </div>
             <label style="font-size:12px; font-weight:600;">Clave / patrón del equipo</label>
             <input id="ed_clave" value="${escapeHtml(o.clave_equipo || '')}" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin:3px 0 8px; font-size:13px;">
             
@@ -8408,7 +8727,8 @@ async function guardarEditarRecepcion(ordenId, clienteId, equipoId) {
         // Actualizar orden
         await supabaseClient.from('ordenes_reparacion').update({
             condicion_fisica: g('ed_fisico'), falla_reportada: g('ed_falla'),
-            accesorios_recibidos: g('ed_accesorios'), clave_equipo: g('ed_clave')
+            accesorios_recibidos: g('ed_accesorios'), clave_equipo: g('ed_clave'),
+            prioridad: g('ed_prioridad') || 'normal', fecha_estimada_entrega: g('ed_fecha_estimada') || null
         }).eq('id', ordenId);
         toast('✅ Datos de recepción actualizados.');
         document.getElementById('modalGenerico')?.remove();
@@ -8549,17 +8869,29 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
                         ${tecnico ? `<span class="badge" style="background:#e0e7ff; color:#3730a3; font-size:10px; padding:1px 7px;"><i class="ti ti-tool"></i> ${escapeHtml(tecnico)}</span>` : '<span class="badge" style="background:#f1f5f9; color:#94a3b8; font-size:10px; padding:1px 7px;">Sin tomar</span>'}
                         ${o.tecnico_anterior_id ? `<span class="badge" style="background:#f3e8ff; color:#6b21a8; font-size:10px; padding:1px 7px;"><i class="ti ti-arrows-exchange"></i> Derivada</span>` : ''}
                         ${o.es_garantia ? `<span class="badge" style="background:#dbeafe; color:#0369a1; font-size:10px; padding:1px 7px;"><i class="ti ti-shield-check"></i> GARANTÍA${o.veces_garantia > 1 ? ' ×' + o.veces_garantia : ''}</span>` : ''}
+                        ${o.prioridad === 'urgente'
+                            ? `<span onclick="togglePrioridadOrden('${o.id}')" title="Quitar urgencia" class="badge" style="background:#fee2e2; color:#b91c1c; font-size:10px; padding:1px 7px; cursor:pointer; font-weight:700;"><i class="ti ti-flame"></i> URGENTE</span>`
+                            : `<span onclick="togglePrioridadOrden('${o.id}')" title="Marcar como urgente" class="badge" style="background:#f1f5f9; color:#94a3b8; font-size:10px; padding:1px 7px; cursor:pointer;"><i class="ti ti-flame"></i> Marcar urgente</span>`}
                     </div>
                     <div style="font-size:12px; margin-top:4px;"><b>${escapeHtml(c.nombre || '—')}</b> · ${escapeHtml(e.marca || '')} ${escapeHtml(e.modelo || '')}</div>
                     ${o.condicion_fisica && o.condicion_fisica !== 'Sin marcas' ? `<div style="font-size:10px; color:#7c3aed; margin-top:1px;"><i class="ti ti-note"></i> Estado físico: ${escapeHtml(o.condicion_fisica)}</div>` : ''}
                     <div style="font-size:10px; color:#94a3b8; margin-top:1px;"><i class="ti ti-clock"></i> Recibido: ${o.creado_en ? new Date(o.creado_en).toLocaleString('es-DO', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'}</div>
                     ${o.tecnico_asignado_id && o.fecha_asignacion ? `<div style="font-size:10px; color:#0891b2; font-weight:600; margin-top:1px;"><i class="ti ti-stopwatch"></i> Tomada: ${tiempoDesde(o.fecha_asignacion)}</div>` : ''}
+                    ${(() => {
+                        if(!o.fecha_estimada_entrega) return '';
+                        const fechaTxt = new Date(o.fecha_estimada_entrega + 'T00:00:00').toLocaleDateString('es-DO', {day:'2-digit', month:'2-digit', year:'numeric'});
+                        const pendiente = !['finalizado','entregado','cancelado'].includes(estado);
+                        const vencida = pendiente && (o.fecha_estimada_entrega < new Date().toISOString().slice(0,10));
+                        return `<div style="font-size:10px; font-weight:600; margin-top:1px; color:${vencida ? '#dc2626' : '#0d9488'};"><i class="ti ti-calendar-event"></i> Entrega estimada: ${fechaTxt}${vencida ? ' ⚠️ atrasada' : ''}</div>`;
+                    })()}
                     ${o.nota_estado ? (estado === 'pendiente_cliente'
                         ? `<div style="background:#fef2f2; border:2px solid #f87171; padding:6px 8px; border-radius:6px; margin-top:5px; font-size:12px;"><b style="color:#b91c1c;"><i class="ti ti-bell-ringing"></i> REQUIERE AUTORIZACIÓN:</b><br><span style="color:#7f1d1d;">${escapeHtml(o.nota_estado)}</span></div>`
                         : `<div style="background:#fef9c3; border:1px solid #fde047; padding:4px 7px; border-radius:5px; margin-top:5px; font-size:11px;"><i class="ti ti-info-circle"></i> ${escapeHtml(o.nota_estado)}</div>`)
                       : ''}
                     ${piezasHtml}
                     ${tareasHtml}
+                    ${o.solucion_aplicada ? `<div style="background:#f0fdf4; border:1px solid #86efac; padding:4px 7px; border-radius:5px; margin-top:5px; font-size:11px; color:#166534;"><i class="ti ti-circle-check"></i> <b>Solución:</b> ${escapeHtml(o.solucion_aplicada)}</div>` : ''}
+                    ${o.costo_final != null && estado === 'entregado' ? `<div style="font-size:11px; font-weight:700; color:#15803d; margin-top:3px;"><i class="ti ti-cash"></i> Cobrado: RD$${Number(o.costo_final).toLocaleString('es-DO')}</div>` : ''}
                 </div>
                 <div style="display:flex; flex-direction:column; gap:5px; align-items:stretch; min-width:140px;" class="acciones-verticales">
                     <div style="font-size:10px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;"><i class="ti ti-settings"></i> Estado del Equipo</div>
@@ -9375,6 +9707,14 @@ async function cambiarEstadoOrdenUI(ordenId, nuevoEstado) {
                 return toast(`⚠️ No puedes finalizar todavía.\n\nQuedan ${pend} falla(s) pendiente(s). Marca todas las fallas como resueltas (✓) antes de finalizar.`, 'error');
             }
         }
+        // Registro de la reparación: qué se le hizo al equipo
+        const ordenSol = (cache.ordenes || []).find(o => o.id === ordenId);
+        const solPrevia = ordenSol?.solucion_aplicada || '';
+        const solucion = await pedirTexto('✅ FINALIZAR REPARACIÓN\n\n¿Qué se le hizo al equipo? (solución aplicada)\n\nEjemplos:\n• "Cambio de pantalla original"\n• "Limpieza y cambio de conector de carga"\n• "Reballing de CPU, equipo enciende normal"', { valor: solPrevia, multilinea: true, placeholder: 'Describe la reparación realizada...' });
+        if(solucion === null) return; // canceló
+        if(!solucion.trim()) return toast('Escribe brevemente qué se le hizo al equipo.', 'error');
+        await avanzarEstadoOrden(ordenId, nuevoEstado, undefined, solucion.trim());
+        return;
     }
     if(nuevoEstado === 'pendiente_cliente') {
         const nota = await pedirTexto('🔔 ESPERANDO AUTORIZACIÓN DEL CLIENTE\n\n¿Qué necesitas que el cliente autorice o informe?\n\nEjemplos:\n• "Autorizar cambio de batería - RD$1,200"\n• "Se dañó el flex al abrir, autorizar reemplazo"\n• "Necesito la contraseña del equipo"');
@@ -9384,6 +9724,22 @@ async function cambiarEstadoOrdenUI(ordenId, nuevoEstado) {
         return;
     }
     await avanzarEstadoOrden(ordenId, nuevoEstado);
+}
+
+// Marca/quita la prioridad URGENTE de una orden
+async function togglePrioridadOrden(ordenId) {
+    const orden = (cache.ordenes || []).find(o => o.id === ordenId);
+    if(!orden) return toast('Orden no encontrada.', 'error');
+    // Permiso: admin, servicio al cliente, o el técnico asignado
+    const puede = isAdminUser() || tienePermiso('recepcion_ver') || orden.tecnico_asignado_id === sessionUser?.id;
+    if(!puede) return toast('No tienes permiso para cambiar la prioridad de esta orden.', 'error');
+    const nueva = orden.prioridad === 'urgente' ? 'normal' : 'urgente';
+    try {
+        const { error } = await supabaseClient.from('ordenes_reparacion').update({ prioridad: nueva }).eq('id', ordenId);
+        if(error) throw error;
+        toast(nueva === 'urgente' ? '🔴 Marcada como URGENTE.' : '🟢 Prioridad normal.');
+        await loadAll();
+    } catch(e) { logError('Cambiar prioridad orden', e); toastError(getFriendlyError(e)); }
 }
 
 // === FASE 3: Derivación técnica (pasar la orden a otro técnico) ===
@@ -9666,7 +10022,7 @@ async function asignarOrdenTecnico(ordenId, tecnicoId) {
 }
 
 // Avanza el estado de la orden (solo hacia adelante)
-async function avanzarEstadoOrden(ordenId, nuevoEstado, nota) {
+async function avanzarEstadoOrden(ordenId, nuevoEstado, nota, solucion) {
     const orden = (cache.ordenes || []).find(o => o.id === ordenId);
     if(!orden) return;
     const actual = normalizarEstadoOrden(orden.estado);
@@ -9690,7 +10046,10 @@ async function avanzarEstadoOrden(ordenId, nuevoEstado, nota) {
         if(typeof nota === 'string') upd.nota_estado = nota || null;
         // Al resolver un estado temporal, limpiar la nota
         if(esResolverTemporal) upd.nota_estado = null;
-        if(nuevoEstado === 'finalizado') upd.fecha_finalizado = new Date().toISOString();
+        if(nuevoEstado === 'finalizado') {
+            upd.fecha_finalizado = new Date().toISOString();
+            if(typeof solucion === 'string' && solucion) upd.solucion_aplicada = solucion;
+        }
         if(nuevoEstado === 'entregado') upd.fecha_entregado = new Date().toISOString();
         const { error } = await supabaseClient.from('ordenes_reparacion').update(upd).eq('id', ordenId);
         if(error) throw error;
@@ -9727,14 +10086,20 @@ async function marcarEntregadoConGarantia(ordenId) {
     const diasStr = await pedirTexto('📦 ENTREGAR EQUIPO\n\n¿Cuántos días de garantía? (deja 0 si no aplica)\n\nEjemplos: 30, 90', {valor:'90'});
     if(diasStr === null) return;
     const dias = parseInt(diasStr) || 0;
+    // Precio final cobrado (un solo número; el inventario/costos viven en el sistema principal)
+    const precioStr = await pedirTexto('💵 PRECIO FINAL COBRADO\n\n¿Cuánto se le cobró al cliente por esta reparación? (RD$)\n\nDéjalo vacío si no aplica.', { valor: orden.costo_final != null ? String(orden.costo_final) : '', tipo: 'number', placeholder: '0.00' });
+    if(precioStr === null) return; // canceló
+    const precio = precioStr.trim() === '' ? null : (parseFloat(precioStr) || 0);
     try {
         const { error } = await supabaseClient.from('ordenes_reparacion').update({
             estado: 'entregado',
             fecha_entregado: new Date().toISOString(),
-            dias_garantia: dias
+            dias_garantia: dias,
+            costo_final: precio
         }).eq('id', ordenId);
         if(error) throw error;
-        toast(dias > 0 ? `📦 Entregado con ${dias} días de garantía.` : '📦 Entregado (sin garantía).');
+        const garTxt = dias > 0 ? `con ${dias} días de garantía` : 'sin garantía';
+        toast(precio != null ? `📦 Entregado ${garTxt} · RD$${precio.toLocaleString('es-DO')}` : `📦 Entregado (${garTxt}).`);
         await loadAll();
     } catch(e) { logError('Marcar entregado', e); toastError(getFriendlyError(e)); }
 }
@@ -11158,7 +11523,8 @@ async function guardarRecepcion(imprimir) {
         const fallasCheck = getChecked("checksFisico"); // las fallas marcadas (problemas a reparar)
         const insO = await supabaseClient.from('ordenes_reparacion').insert([{
             cliente_id: insC.data.id, equipo_id: insE.data.id, falla_reportada: val("o_falla"), condicion_fisica: val("o_estado_fisico") || 'Sin marcas', accesorios_recibidos: val("o_accesorios") || 'Ninguno',
-            tipo_acceso: val("o_acceso"), clave_equipo: buildAccessPayload(), cuenta_icloud_google: buildAccountSummary(), creado_by: sessionUser.id, estado: 'recibido'
+            tipo_acceso: val("o_acceso"), clave_equipo: buildAccessPayload(), cuenta_icloud_google: buildAccountSummary(), creado_by: sessionUser.id, estado: 'recibido',
+            prioridad: val("o_prioridad") || 'normal', fecha_estimada_entrega: val("o_fecha_estimada") || null
         }]).select().single();
         requireSupabaseOk(insO, 'Crear orden');
         toast("Equipo registrado.");
@@ -11184,6 +11550,8 @@ function limpiarRecepcion() {
     document.querySelectorAll("#v-recepcion input[type='checkbox']").forEach(x => x.checked = false);
     const tipo = document.getElementById('o_acceso');
     if(tipo) tipo.value = 'PIN';
+    const prio = document.getElementById('o_prioridad');
+    if(prio) prio.value = 'normal';
     clearPattern();
     togglePatternPanel();
 }
