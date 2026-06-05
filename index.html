@@ -818,6 +818,15 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                             <div><label>Capacidad (GB) *</label><input id="e_capacidad" placeholder="128GB"></div>
                             <div><label>IMEI / Serial *</label><input id="e_imei" placeholder="356789..."></div>
                             <div><label>Estado Físico del Equipo (cómo llega)</label><textarea id="o_estado_fisico" rows="2" placeholder="Rayones en la tapa, esquina golpeada, sin marcas..."></textarea></div>
+                            <div style="display:flex; gap:10px;">
+                                <div style="flex:1;"><label>Prioridad</label>
+                                    <select id="o_prioridad" style="width:100%;">
+                                        <option value="normal">🟢 Normal</option>
+                                        <option value="urgente">🔴 Urgente</option>
+                                    </select>
+                                </div>
+                                <div style="flex:1;"><label>Entrega estimada</label><input id="o_fecha_estimada" type="date"></div>
+                            </div>
                         </div>
                     </div>
 
@@ -7995,7 +8004,10 @@ function renderTallerOrdenes() {
         cont.innerHTML = `<div style="color:var(--text-muted); padding:14px 0;">No hay órdenes en este filtro${txtBuscar ? ' o búsqueda' : ''}.</div>`;
         return;
     }
-    
+
+    // Las URGENTES van primero (sort estable: conserva el orden del resto)
+    ordenes.sort((a, b) => (a.prioridad === 'urgente' ? 0 : 1) - (b.prioridad === 'urgente' ? 0 : 1));
+
     const tecnicosActivos = (cache.tecnicos || []).filter(t => t.activo && (t.tipo_empleado === 'tecnico' || !t.tipo_empleado));
     // Si el usuario es de servicio al cliente (no técnico, no admin), ocultar botones de técnico
     const esTecnicoReal = sessionUser?.tipo_empleado === 'tecnico';
@@ -8176,6 +8188,15 @@ function abrirEditarRecepcion(ordenId) {
             <textarea id="ed_falla" rows="2" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin:3px 0 8px; font-size:13px;">${escapeHtml(o.falla_reportada || '')}</textarea>
             <label style="font-size:12px; font-weight:600;">Accesorios recibidos</label>
             <input id="ed_accesorios" value="${escapeHtml(o.accesorios_recibidos || '')}" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin:3px 0 8px; font-size:13px;">
+            <div style="display:flex; gap:8px;">
+                <div style="flex:1;"><label style="font-size:12px; font-weight:600;">Prioridad</label>
+                    <select id="ed_prioridad" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin:3px 0 8px; font-size:13px;">
+                        <option value="normal" ${o.prioridad !== 'urgente' ? 'selected' : ''}>🟢 Normal</option>
+                        <option value="urgente" ${o.prioridad === 'urgente' ? 'selected' : ''}>🔴 Urgente</option>
+                    </select></div>
+                <div style="flex:1;"><label style="font-size:12px; font-weight:600;">Entrega estimada</label>
+                    <input id="ed_fecha_estimada" type="date" value="${escapeHtml(o.fecha_estimada_entrega || '')}" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin:3px 0 8px; font-size:13px;"></div>
+            </div>
             <label style="font-size:12px; font-weight:600;">Clave / patrón del equipo</label>
             <input id="ed_clave" value="${escapeHtml(o.clave_equipo || '')}" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin:3px 0 8px; font-size:13px;">
             
@@ -8381,7 +8402,8 @@ async function guardarEditarRecepcion(ordenId, clienteId, equipoId) {
         // Actualizar orden
         await supabaseClient.from('ordenes_reparacion').update({
             condicion_fisica: g('ed_fisico'), falla_reportada: g('ed_falla'),
-            accesorios_recibidos: g('ed_accesorios'), clave_equipo: g('ed_clave')
+            accesorios_recibidos: g('ed_accesorios'), clave_equipo: g('ed_clave'),
+            prioridad: g('ed_prioridad') || 'normal', fecha_estimada_entrega: g('ed_fecha_estimada') || null
         }).eq('id', ordenId);
         toast('✅ Datos de recepción actualizados.');
         document.getElementById('modalGenerico')?.remove();
@@ -8522,17 +8544,28 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
                         ${tecnico ? `<span class="badge" style="background:#e0e7ff; color:#3730a3; font-size:10px; padding:1px 7px;"><i class="ti ti-tool"></i> ${escapeHtml(tecnico)}</span>` : '<span class="badge" style="background:#f1f5f9; color:#94a3b8; font-size:10px; padding:1px 7px;">Sin tomar</span>'}
                         ${o.tecnico_anterior_id ? `<span class="badge" style="background:#f3e8ff; color:#6b21a8; font-size:10px; padding:1px 7px;"><i class="ti ti-arrows-exchange"></i> Derivada</span>` : ''}
                         ${o.es_garantia ? `<span class="badge" style="background:#dbeafe; color:#0369a1; font-size:10px; padding:1px 7px;"><i class="ti ti-shield-check"></i> GARANTÍA${o.veces_garantia > 1 ? ' ×' + o.veces_garantia : ''}</span>` : ''}
+                        ${o.prioridad === 'urgente'
+                            ? `<span onclick="togglePrioridadOrden('${o.id}')" title="Quitar urgencia" class="badge" style="background:#fee2e2; color:#b91c1c; font-size:10px; padding:1px 7px; cursor:pointer; font-weight:700;"><i class="ti ti-flame"></i> URGENTE</span>`
+                            : `<span onclick="togglePrioridadOrden('${o.id}')" title="Marcar como urgente" class="badge" style="background:#f1f5f9; color:#94a3b8; font-size:10px; padding:1px 7px; cursor:pointer;"><i class="ti ti-flame"></i> Marcar urgente</span>`}
                     </div>
                     <div style="font-size:12px; margin-top:4px;"><b>${escapeHtml(c.nombre || '—')}</b> · ${escapeHtml(e.marca || '')} ${escapeHtml(e.modelo || '')}</div>
                     ${o.condicion_fisica && o.condicion_fisica !== 'Sin marcas' ? `<div style="font-size:10px; color:#7c3aed; margin-top:1px;"><i class="ti ti-note"></i> Estado físico: ${escapeHtml(o.condicion_fisica)}</div>` : ''}
                     <div style="font-size:10px; color:#94a3b8; margin-top:1px;"><i class="ti ti-clock"></i> Recibido: ${o.creado_en ? new Date(o.creado_en).toLocaleString('es-DO', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'}</div>
                     ${o.tecnico_asignado_id && o.fecha_asignacion ? `<div style="font-size:10px; color:#0891b2; font-weight:600; margin-top:1px;"><i class="ti ti-stopwatch"></i> Tomada: ${tiempoDesde(o.fecha_asignacion)}</div>` : ''}
+                    ${(() => {
+                        if(!o.fecha_estimada_entrega) return '';
+                        const fechaTxt = new Date(o.fecha_estimada_entrega + 'T00:00:00').toLocaleDateString('es-DO', {day:'2-digit', month:'2-digit', year:'numeric'});
+                        const pendiente = !['finalizado','entregado','cancelado'].includes(estado);
+                        const vencida = pendiente && (o.fecha_estimada_entrega < new Date().toISOString().slice(0,10));
+                        return `<div style="font-size:10px; font-weight:600; margin-top:1px; color:${vencida ? '#dc2626' : '#0d9488'};"><i class="ti ti-calendar-event"></i> Entrega estimada: ${fechaTxt}${vencida ? ' ⚠️ atrasada' : ''}</div>`;
+                    })()}
                     ${o.nota_estado ? (estado === 'pendiente_cliente'
                         ? `<div style="background:#fef2f2; border:2px solid #f87171; padding:6px 8px; border-radius:6px; margin-top:5px; font-size:12px;"><b style="color:#b91c1c;"><i class="ti ti-bell-ringing"></i> REQUIERE AUTORIZACIÓN:</b><br><span style="color:#7f1d1d;">${escapeHtml(o.nota_estado)}</span></div>`
                         : `<div style="background:#fef9c3; border:1px solid #fde047; padding:4px 7px; border-radius:5px; margin-top:5px; font-size:11px;"><i class="ti ti-info-circle"></i> ${escapeHtml(o.nota_estado)}</div>`)
                       : ''}
                     ${piezasHtml}
                     ${tareasHtml}
+                    ${o.solucion_aplicada ? `<div style="background:#f0fdf4; border:1px solid #86efac; padding:4px 7px; border-radius:5px; margin-top:5px; font-size:11px; color:#166534;"><i class="ti ti-circle-check"></i> <b>Solución:</b> ${escapeHtml(o.solucion_aplicada)}</div>` : ''}
                 </div>
                 <div style="display:flex; flex-direction:column; gap:5px; align-items:stretch; min-width:140px;" class="acciones-verticales">
                     <div style="font-size:10px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;"><i class="ti ti-settings"></i> Estado del Equipo</div>
@@ -9348,6 +9381,14 @@ async function cambiarEstadoOrdenUI(ordenId, nuevoEstado) {
                 return toast(`⚠️ No puedes finalizar todavía.\n\nQuedan ${pend} falla(s) pendiente(s). Marca todas las fallas como resueltas (✓) antes de finalizar.`, 'error');
             }
         }
+        // Registro de la reparación: qué se le hizo al equipo
+        const ordenSol = (cache.ordenes || []).find(o => o.id === ordenId);
+        const solPrevia = ordenSol?.solucion_aplicada || '';
+        const solucion = await pedirTexto('✅ FINALIZAR REPARACIÓN\n\n¿Qué se le hizo al equipo? (solución aplicada)\n\nEjemplos:\n• "Cambio de pantalla original"\n• "Limpieza y cambio de conector de carga"\n• "Reballing de CPU, equipo enciende normal"', { valor: solPrevia, multilinea: true, placeholder: 'Describe la reparación realizada...' });
+        if(solucion === null) return; // canceló
+        if(!solucion.trim()) return toast('Escribe brevemente qué se le hizo al equipo.', 'error');
+        await avanzarEstadoOrden(ordenId, nuevoEstado, undefined, solucion.trim());
+        return;
     }
     if(nuevoEstado === 'pendiente_cliente') {
         const nota = await pedirTexto('🔔 ESPERANDO AUTORIZACIÓN DEL CLIENTE\n\n¿Qué necesitas que el cliente autorice o informe?\n\nEjemplos:\n• "Autorizar cambio de batería - RD$1,200"\n• "Se dañó el flex al abrir, autorizar reemplazo"\n• "Necesito la contraseña del equipo"');
@@ -9357,6 +9398,22 @@ async function cambiarEstadoOrdenUI(ordenId, nuevoEstado) {
         return;
     }
     await avanzarEstadoOrden(ordenId, nuevoEstado);
+}
+
+// Marca/quita la prioridad URGENTE de una orden
+async function togglePrioridadOrden(ordenId) {
+    const orden = (cache.ordenes || []).find(o => o.id === ordenId);
+    if(!orden) return toast('Orden no encontrada.', 'error');
+    // Permiso: admin, servicio al cliente, o el técnico asignado
+    const puede = isAdminUser() || tienePermiso('recepcion_ver') || orden.tecnico_asignado_id === sessionUser?.id;
+    if(!puede) return toast('No tienes permiso para cambiar la prioridad de esta orden.', 'error');
+    const nueva = orden.prioridad === 'urgente' ? 'normal' : 'urgente';
+    try {
+        const { error } = await supabaseClient.from('ordenes_reparacion').update({ prioridad: nueva }).eq('id', ordenId);
+        if(error) throw error;
+        toast(nueva === 'urgente' ? '🔴 Marcada como URGENTE.' : '🟢 Prioridad normal.');
+        await loadAll();
+    } catch(e) { logError('Cambiar prioridad orden', e); toastError(getFriendlyError(e)); }
 }
 
 // === FASE 3: Derivación técnica (pasar la orden a otro técnico) ===
@@ -9639,7 +9696,7 @@ async function asignarOrdenTecnico(ordenId, tecnicoId) {
 }
 
 // Avanza el estado de la orden (solo hacia adelante)
-async function avanzarEstadoOrden(ordenId, nuevoEstado, nota) {
+async function avanzarEstadoOrden(ordenId, nuevoEstado, nota, solucion) {
     const orden = (cache.ordenes || []).find(o => o.id === ordenId);
     if(!orden) return;
     const actual = normalizarEstadoOrden(orden.estado);
@@ -9663,7 +9720,10 @@ async function avanzarEstadoOrden(ordenId, nuevoEstado, nota) {
         if(typeof nota === 'string') upd.nota_estado = nota || null;
         // Al resolver un estado temporal, limpiar la nota
         if(esResolverTemporal) upd.nota_estado = null;
-        if(nuevoEstado === 'finalizado') upd.fecha_finalizado = new Date().toISOString();
+        if(nuevoEstado === 'finalizado') {
+            upd.fecha_finalizado = new Date().toISOString();
+            if(typeof solucion === 'string' && solucion) upd.solucion_aplicada = solucion;
+        }
         if(nuevoEstado === 'entregado') upd.fecha_entregado = new Date().toISOString();
         const { error } = await supabaseClient.from('ordenes_reparacion').update(upd).eq('id', ordenId);
         if(error) throw error;
@@ -11121,7 +11181,8 @@ async function guardarRecepcion(imprimir) {
         const fallasCheck = getChecked("checksFisico"); // las fallas marcadas (problemas a reparar)
         const insO = await supabaseClient.from('ordenes_reparacion').insert([{
             cliente_id: insC.data.id, equipo_id: insE.data.id, falla_reportada: val("o_falla"), condicion_fisica: val("o_estado_fisico") || 'Sin marcas', accesorios_recibidos: val("o_accesorios") || 'Ninguno',
-            tipo_acceso: val("o_acceso"), clave_equipo: buildAccessPayload(), cuenta_icloud_google: buildAccountSummary(), creado_by: sessionUser.id, estado: 'recibido'
+            tipo_acceso: val("o_acceso"), clave_equipo: buildAccessPayload(), cuenta_icloud_google: buildAccountSummary(), creado_by: sessionUser.id, estado: 'recibido',
+            prioridad: val("o_prioridad") || 'normal', fecha_estimada_entrega: val("o_fecha_estimada") || null
         }]).select().single();
         requireSupabaseOk(insO, 'Crear orden');
         toast("Equipo registrado.");
@@ -11147,6 +11208,8 @@ function limpiarRecepcion() {
     document.querySelectorAll("#v-recepcion input[type='checkbox']").forEach(x => x.checked = false);
     const tipo = document.getElementById('o_acceso');
     if(tipo) tipo.value = 'PIN';
+    const prio = document.getElementById('o_prioridad');
+    if(prio) prio.value = 'normal';
     clearPattern();
     togglePatternPanel();
 }
