@@ -14149,11 +14149,20 @@ function _pintarConsulta() {
             <p style="font-size:12px; color:var(--text-muted); margin:0 0 12px;">Estimado para el cliente. No guarda nada.</p>
             <div class="form-row"><label>Equipo / concepto (opcional)</label><input type="text" id="cqEquipo" placeholder="Ej: iPhone 11 64GB" oninput="_consultaCalcular()"></div>
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                <div class="form-row" style="flex:1; min-width:130px;"><label>Monto a financiar (RD$)</label><input type="number" id="cqMonto" min="0" step="0.01" placeholder="0.00" oninput="_consultaCalcular()"></div>
+                <div class="form-row" style="flex:1; min-width:130px;"><label>Precio del equipo (RD$)</label><input type="number" id="cqPrecio" min="0" step="0.01" placeholder="0.00" oninput="_consultaCalcular()"></div>
+                <div class="form-row" style="flex:1; min-width:130px;"><label>Inicial</label>
+                    <div style="display:flex; gap:4px;">
+                        <input type="number" id="cqInicial" min="0" step="0.01" value="0" placeholder="0.00" oninput="_consultaCalcular()" style="flex:1;">
+                        <select id="cqInicialTipo" onchange="_consultaCalcular()" style="width:74px; flex:none;"><option value="rd">RD$</option><option value="pct">%</option></select>
+                    </div>
+                </div>
+            </div>
+            <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:8px 10px; font-size:13px; margin-bottom:12px;">Monto a financiar: <b id="cqFinanciadoPrev">RD$ 0.00</b> <span style="color:var(--text-muted);">(precio − inicial)</span></div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
                 <div class="form-row" style="flex:1; min-width:110px;"><label>Tasa % por cuota</label><input type="number" id="cqTasa" min="0" step="0.01" value="0" oninput="_consultaCalcular()"></div>
+                <div class="form-row" style="flex:1; min-width:140px;"><label>Tipo de préstamo</label><select id="cqMetodo" onchange="_consultaCalcular()"><option value="plano">Plano (sobre el monto)</option><option value="saldo">Sobre saldo (francés)</option></select></div>
             </div>
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                <div class="form-row" style="flex:1; min-width:140px;"><label>Tipo de préstamo</label><select id="cqMetodo" onchange="_consultaCalcular()"><option value="plano">Plano (sobre el monto)</option><option value="saldo">Sobre saldo (francés)</option></select></div>
                 <div class="form-row" style="flex:1; min-width:120px;"><label>Frecuencia</label><select id="cqFrec" onchange="_consultaCalcular()"><option value="semanal">Semanal</option><option value="quincenal">Quincenal</option><option value="mensual" selected>Mensual</option></select></div>
                 <div class="form-row" style="flex:1; min-width:100px;"><label># de cuotas</label><input type="number" id="cqCuotas" min="1" step="1" value="6" oninput="_consultaCalcular()"></div>
             </div>
@@ -14162,11 +14171,13 @@ function _pintarConsulta() {
     _consultaCalcular();
 }
 function _consultaObj() {
-    const monto = parseFloat(document.getElementById('cqMonto')?.value) || 0;
+    const precio = parseFloat(document.getElementById('cqPrecio')?.value) || 0;
+    const iniVal = parseFloat(document.getElementById('cqInicial')?.value) || 0;
+    const inicial = (document.getElementById('cqInicialTipo')?.value === 'pct') ? Math.round(precio * iniVal) / 100 : iniVal;
     const nc = Math.max(1, parseInt(document.getElementById('cqCuotas')?.value, 10) || 1);
     return {
         concepto: (document.getElementById('cqEquipo')?.value || '').trim(),
-        monto_total: monto, inicial: 0, num_cuotas: nc,
+        monto_total: precio, inicial: Math.min(inicial, precio), num_cuotas: nc,
         frecuencia: document.getElementById('cqFrec')?.value || 'mensual',
         interes_metodo: document.getElementById('cqMetodo')?.value || 'plano',
         interes_tasa: parseFloat(document.getElementById('cqTasa')?.value) || 0,
@@ -14177,7 +14188,9 @@ function _consultaCalcular() {
     const cont = document.getElementById('cqResultado');
     if(!cont) return;
     const o = _consultaObj();
-    if(o.monto_total <= 0) { cont.innerHTML = `<div class="card" style="color:var(--text-muted);">Ingresa el monto a financiar para ver el estimado.</div>`; return; }
+    const prev = document.getElementById('cqFinanciadoPrev');
+    if(prev) prev.textContent = money(finFinanciado(o));
+    if(o.monto_total <= 0) { cont.innerHTML = `<div class="card" style="color:var(--text-muted);">Ingresa el precio del equipo para ver el estimado.</div>`; return; }
     o.valor_cuota = finValorCuotaCalc(o);
     const interes = finInteresTotal(o);
     const total = finMontoCuotas(o);
@@ -14213,7 +14226,9 @@ function _consultaImprimir() {
         <hr>
         <table><tbody>
             ${o.concepto ? `<tr><td>Equipo</td><td style="text-align:right;">${escapeHtml(o.concepto)}</td></tr>` : ''}
-            <tr><td>Monto a financiar</td><td style="text-align:right;">${money(o.monto_total)}</td></tr>
+            <tr><td>Precio del equipo</td><td style="text-align:right;">${money(o.monto_total)}</td></tr>
+            <tr><td>Inicial</td><td style="text-align:right;">${money(o.inicial)}</td></tr>
+            <tr><td>Monto a financiar</td><td style="text-align:right;">${money(finFinanciado(o))}</td></tr>
             <tr><td>Tipo de préstamo</td><td style="text-align:right;">${o.interes_metodo === 'saldo' ? 'Sobre saldo' : 'Plano'} ${Number(o.interes_tasa) || 0}% por cuota</td></tr>
             <tr><td>Plazo</td><td style="text-align:right;">${o.num_cuotas} cuotas ${_finFrecAdj(o.frecuencia)}</td></tr>
             <tr style="font-weight:700;"><td>Cuota</td><td style="text-align:right;">${money(o.valor_cuota)}</td></tr>
