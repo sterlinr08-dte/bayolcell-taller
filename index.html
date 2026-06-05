@@ -1613,6 +1613,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                     <h2 style="margin:0 0 4px 0; font-size:18px;"><i class="ti ti-chart-bar" style="color:#0891b2;"></i> Reportes de Rendimiento</h2>
                     <p style="color:var(--text-muted); font-size:13px; margin:0;">Evalúa el trabajo de cada técnico en servicio (clientes) y reacondicionados.</p>
                 </div>
+                <div id="reporteCobros"></div>
                 <div id="reporteGeneralTiempos"></div>
                 <div class="card" style="margin-bottom:15px;">
                     <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
@@ -7513,9 +7514,78 @@ function construirReporteComunes() {
         </div>`;
 }
 
+// Reporte de COBROS: dinero cobrado (costo_final) de órdenes entregadas en el período
+function construirReporteCobros() {
+    const fmt = (n) => 'RD$' + Number(n || 0).toLocaleString('es-DO', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+
+    // Órdenes entregadas dentro del rango (por fecha de entrega; fallback a creado_en)
+    const entregadas = (cache.ordenes || []).filter(o =>
+        normalizarEstadoOrden(o.estado) === 'entregado' &&
+        fechaEnRango(o.fecha_entregado || o.creado_en)
+    );
+
+    let totalCobrado = 0, conPrecio = 0, sinPrecio = 0;
+    const porTecnico = {}; // id -> { monto, cobradas, sinPrecio }
+
+    entregadas.forEach(o => {
+        const tieneP = o.costo_final != null && Number(o.costo_final) > 0;
+        const monto = tieneP ? Number(o.costo_final) : 0;
+        if(tieneP) { totalCobrado += monto; conPrecio++; } else { sinPrecio++; }
+
+        const tid = o.tecnico_asignado_id || '_sin';
+        if(!porTecnico[tid]) porTecnico[tid] = { monto: 0, cobradas: 0, sinPrecio: 0 };
+        if(tieneP) { porTecnico[tid].monto += monto; porTecnico[tid].cobradas++; }
+        else porTecnico[tid].sinPrecio++;
+    });
+
+    const ticketProm = conPrecio ? totalCobrado / conPrecio : 0;
+
+    // Ranking por técnico (de mayor a menor monto)
+    const ranking = Object.entries(porTecnico)
+        .map(([tid, d]) => {
+            const tec = tid === '_sin' ? null : (cache.tecnicos || []).find(t => t.id === tid);
+            return { nombre: tec ? tec.nombre : 'Sin técnico asignado', ...d };
+        })
+        .sort((a, b) => b.monto - a.monto);
+
+    const maxMonto = ranking.length ? (ranking[0].monto || 1) : 1;
+    const filasRanking = ranking.length
+        ? ranking.map(r => {
+            const pct = Math.round((r.monto / maxMonto) * 100);
+            return `<div style="margin-bottom:10px;">
+                <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:3px;">
+                    <span style="font-weight:600;">${escapeHtml(r.nombre)} <span style="color:var(--text-muted); font-weight:400;">(${r.cobradas} cobrada${r.cobradas === 1 ? '' : 's'}${r.sinPrecio ? ` · ${r.sinPrecio} sin precio` : ''})</span></span>
+                    <span style="font-weight:800; color:#16a34a;">${fmt(r.monto)}</span>
+                </div>
+                <div style="background:#e2e8f0; border-radius:5px; height:9px; overflow:hidden;">
+                    <div style="width:${pct}%; height:100%; background:linear-gradient(90deg,#16a34a,#22c55e); border-radius:5px;"></div>
+                </div>
+            </div>`;
+        }).join('')
+        : `<div style="color:var(--text-muted); font-size:12px; padding:6px 0;">Sin cobros registrados en el período.</div>`;
+
+    const kpi = (label, val, color, sub) => `<div class="kpi-box" style="border-top-color:${color};"><small>${label}</small><strong style="font-size:18px;">${val}</strong>${sub ? `<span style="font-size:10px; color:var(--text-muted);">${sub}</span>` : ''}</div>`;
+
+    return `
+        <div class="card" style="margin-bottom:15px; background:linear-gradient(135deg,#f0fdf4,#ecfdf5);">
+            <h3 style="margin:0 0 4px;"><i class="ti ti-cash" style="color:#16a34a;"></i> Reporte de Cobros</h3>
+            <p style="color:var(--text-muted); font-size:12px; margin:0 0 12px;">Dinero cobrado por reparaciones entregadas en el período (${_repFiltroFechas.label}).</p>
+            <div class="kpi-grid">
+                ${kpi('💵 Total cobrado', fmt(totalCobrado), '#16a34a', `${conPrecio} orden(es)`)}
+                ${kpi('📦 Entregadas', entregadas.length, '#0891b2', sinPrecio ? `${sinPrecio} sin precio` : 'todas con precio')}
+                ${kpi('🎯 Ticket promedio', fmt(ticketProm), '#6366f1')}
+            </div>
+            ${sinPrecio ? `<div style="background:#fef3c7; border:1px solid #fcd34d; color:#92400e; font-size:11px; border-radius:8px; padding:8px 10px; margin-top:10px;"><i class="ti ti-alert-triangle"></i> Hay ${sinPrecio} orden(es) entregada(s) sin precio final registrado. El total no las incluye.</div>` : ''}
+            <h4 style="margin:16px 0 10px; font-size:13px; color:#15803d;"><i class="ti ti-trophy"></i> Cobros por técnico</h4>
+            ${filasRanking}
+        </div>`;
+}
+
 function inicializarReportes() {
     // Bloque de promedio GENERAL del taller (todos los técnicos)
     const gen = calcularTiemposReparacion(null);
+    const cobrosCont = document.getElementById('reporteCobros');
+    if(cobrosCont) cobrosCont.innerHTML = construirReporteCobros();
     const genCont = document.getElementById('reporteGeneralTiempos');
     if(genCont) {
         const kpiG = (label, val, color) => `<div class="kpi-box" style="border-top-color:${color};"><small>${label}</small><strong style="font-size:18px;">${val}</strong></div>`;
