@@ -8566,6 +8566,7 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
                     ${piezasHtml}
                     ${tareasHtml}
                     ${o.solucion_aplicada ? `<div style="background:#f0fdf4; border:1px solid #86efac; padding:4px 7px; border-radius:5px; margin-top:5px; font-size:11px; color:#166534;"><i class="ti ti-circle-check"></i> <b>Solución:</b> ${escapeHtml(o.solucion_aplicada)}</div>` : ''}
+                    ${o.costo_final != null && estado === 'entregado' ? `<div style="font-size:11px; font-weight:700; color:#15803d; margin-top:3px;"><i class="ti ti-cash"></i> Cobrado: RD$${Number(o.costo_final).toLocaleString('es-DO')}</div>` : ''}
                 </div>
                 <div style="display:flex; flex-direction:column; gap:5px; align-items:stretch; min-width:140px;" class="acciones-verticales">
                     <div style="font-size:10px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;"><i class="ti ti-settings"></i> Estado del Equipo</div>
@@ -9760,14 +9761,20 @@ async function marcarEntregadoConGarantia(ordenId) {
     const diasStr = await pedirTexto('📦 ENTREGAR EQUIPO\n\n¿Cuántos días de garantía? (deja 0 si no aplica)\n\nEjemplos: 30, 90', {valor:'90'});
     if(diasStr === null) return;
     const dias = parseInt(diasStr) || 0;
+    // Precio final cobrado (un solo número; el inventario/costos viven en el sistema principal)
+    const precioStr = await pedirTexto('💵 PRECIO FINAL COBRADO\n\n¿Cuánto se le cobró al cliente por esta reparación? (RD$)\n\nDéjalo vacío si no aplica.', { valor: orden.costo_final != null ? String(orden.costo_final) : '', tipo: 'number', placeholder: '0.00' });
+    if(precioStr === null) return; // canceló
+    const precio = precioStr.trim() === '' ? null : (parseFloat(precioStr) || 0);
     try {
         const { error } = await supabaseClient.from('ordenes_reparacion').update({
             estado: 'entregado',
             fecha_entregado: new Date().toISOString(),
-            dias_garantia: dias
+            dias_garantia: dias,
+            costo_final: precio
         }).eq('id', ordenId);
         if(error) throw error;
-        toast(dias > 0 ? `📦 Entregado con ${dias} días de garantía.` : '📦 Entregado (sin garantía).');
+        const garTxt = dias > 0 ? `con ${dias} días de garantía` : 'sin garantía';
+        toast(precio != null ? `📦 Entregado ${garTxt} · RD$${precio.toLocaleString('es-DO')}` : `📦 Entregado (${garTxt}).`);
         await loadAll();
     } catch(e) { logError('Marcar entregado', e); toastError(getFriendlyError(e)); }
 }
