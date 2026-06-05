@@ -12372,6 +12372,24 @@ function finFinanciado(f) {
 function finSaldo(f) {
     return Math.max(0, Math.round((finFinanciado(f) - finAbonado(f)) * 100) / 100);
 }
+// Mora acumulada: por cada cuota vencida no cubierta, según config del financiamiento
+function finMoraAcumulada(f) {
+    if(!f.mora_tipo || f.mora_tipo === 'ninguna' || !(Number(f.mora_valor) > 0)) return 0;
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const vencidas = finCronograma(f).filter(c => !c.cubierta && c.vence < hoy);
+    let mora = 0;
+    vencidas.forEach(c => {
+        if(f.mora_tipo === 'porcentaje') mora += Number(c.valor) * Number(f.mora_valor) / 100;
+        else if(f.mora_tipo === 'fijo') mora += Number(f.mora_valor);
+    });
+    return Math.round(mora * 100) / 100;
+}
+function finMoraCobrada(f) { return finPagosDe(f.id).reduce((s, p) => s + Number(p.mora || 0), 0); }
+function finMoraPendiente(f) { return Math.max(0, Math.round((finMoraAcumulada(f) - finMoraCobrada(f)) * 100) / 100); }
+function finMoraTxt(f) {
+    if(!f.mora_tipo || f.mora_tipo === 'ninguna') return 'Sin mora';
+    return f.mora_tipo === 'porcentaje' ? `${f.mora_valor}% por cuota vencida` : `${money(f.mora_valor)} por cuota vencida`;
+}
 function _finAddPeriodo(fechaISO, frecuencia, n) {
     const d = new Date((fechaISO || '').slice(0, 10) + 'T00:00:00');
     if(frecuencia === 'semanal') d.setDate(d.getDate() + 7 * n);
@@ -12620,16 +12638,19 @@ function _pintarDetalleFin() {
     </div>`;
 
     // Registrar abono
+    const moraPend = finMoraPendiente(f);
     if(puedeCobrar && est !== 'saldado' && est !== 'cancelado') {
         html += `<div class="card" style="margin-bottom:14px;">
             <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-cash" style="color:#16a34a;"></i> Registrar abono</h3>
+            ${moraPend > 0 ? `<div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:8px 12px; border-radius:8px; margin-bottom:10px; font-size:12.5px;">⚠️ Mora acumulada por atraso: <b>${money(moraPend)}</b> (${finMoraTxt(f)})</div>` : ''}
             <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
-                <div style="flex:1; min-width:130px;"><label>Monto (RD$)</label><input type="number" id="finAbonoMonto" min="0" step="0.01" placeholder="0.00" value="${f.valor_cuota}"></div>
-                <div style="flex:1; min-width:130px;"><label>Método</label><select id="finAbonoMetodo"><option value="efectivo">Efectivo</option><option value="transferencia">Transferencia</option><option value="tarjeta">Tarjeta</option></select></div>
-                <div style="flex:2; min-width:160px;"><label>Nota (opcional)</label><input type="text" id="finAbonoNota" placeholder="Ref. / observación"></div>
+                <div style="flex:1; min-width:120px;"><label>Abono a capital (RD$)</label><input type="number" id="finAbonoMonto" min="0" step="0.01" placeholder="0.00" value="${f.valor_cuota}"></div>
+                ${moraPend > 0 ? `<div style="flex:1; min-width:110px;"><label>Mora a cobrar (RD$)</label><input type="number" id="finAbonoMora" min="0" step="0.01" value="${moraPend}"></div>` : ''}
+                <div style="flex:1; min-width:120px;"><label>Método</label><select id="finAbonoMetodo"><option value="efectivo">Efectivo</option><option value="transferencia">Transferencia</option><option value="tarjeta">Tarjeta</option></select></div>
+                <div style="flex:2; min-width:150px;"><label>Nota (opcional)</label><input type="text" id="finAbonoNota" placeholder="Ref. / observación"></div>
                 <button class="btn btn-blue" onclick="registrarAbonoFin('${f.id}')" style="height:40px;"><i class="ti ti-plus"></i> Cobrar</button>
             </div>
-            <small style="color:var(--text-muted);">Saldo actual: <b>${money(saldo)}</b></small>
+            <small style="color:var(--text-muted);">Saldo de capital: <b>${money(saldo)}</b>${moraPend > 0 ? ' · Mora pendiente: <b>' + money(moraPend) + '</b>' : ''}</small>
         </div>`;
     }
 
@@ -12882,6 +12903,10 @@ function abrirModalNuevaSolicitud() {
             <div class="form-row" style="flex:1; min-width:120px;"><label>Frecuencia</label><select id="solFrecuencia"><option value="semanal">Semanal</option><option value="quincenal">Quincenal</option><option value="mensual" selected>Mensual</option></select></div>
         </div>
         <div class="form-row"><label>Fecha de inicio (al aprobar)</label><input type="date" id="solFechaInicio" value="${hoyISO}"></div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <div class="form-row" style="flex:1; min-width:140px;"><label>Mora por atraso</label><select id="solMoraTipo" onchange="_solMoraLabel()"><option value="ninguna">Sin mora</option><option value="porcentaje">% de la cuota</option><option value="fijo">Monto fijo (RD$)</option></select></div>
+            <div class="form-row" style="flex:1; min-width:120px;"><label id="solMoraValorLbl">Valor</label><input type="number" id="solMoraValor" min="0" step="0.01" value="0"></div>
+        </div>
         <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:10px; margin-bottom:12px; font-size:13px;">
             Monto a financiar: <b id="solFinanciadoPrev">RD$ 0.00</b><br>
             Valor de cada cuota: <b id="solCuotaPrev" style="color:#16a34a;">RD$ 0.00</b>
@@ -12906,6 +12931,11 @@ function _solPrefillCliente() {
     const refs = finReferenciasDe(id);
     set('solRef1Nombre', refs[0]?.nombre); set('solRef1Tel', refs[0]?.telefono); set('solRef1Par', refs[0]?.parentesco);
     set('solRef2Nombre', refs[1]?.nombre); set('solRef2Tel', refs[1]?.telefono); set('solRef2Par', refs[1]?.parentesco);
+}
+function _solMoraLabel() {
+    const t = document.getElementById('solMoraTipo')?.value;
+    const lbl = document.getElementById('solMoraValorLbl');
+    if(lbl) lbl.textContent = t === 'porcentaje' ? '% por cuota' : (t === 'fijo' ? 'RD$ por cuota' : 'Valor');
 }
 function _solRecalcCuota() {
     const total = parseFloat(document.getElementById('solMontoTotal')?.value) || 0;
@@ -12960,6 +12990,8 @@ async function guardarSolicitud() {
             concepto, equipo_imei: val('solImei') || null,
             monto_total: total, inicial, num_cuotas: nc, frecuencia, valor_cuota: valorCuota,
             fecha_inicio: fechaInicio, estado: 'pendiente',
+            mora_tipo: document.getElementById('solMoraTipo')?.value || 'ninguna',
+            mora_valor: parseFloat(document.getElementById('solMoraValor')?.value) || 0,
             notas: val('solNotas') || null, creado_por: usuario
         }]);
         if(errS) throw errS;
@@ -12995,6 +13027,8 @@ async function aprobarSolicitud(solId) {
             valor_cuota: s.valor_cuota,
             fecha_inicio: s.fecha_inicio,
             estado: 'activo',
+            mora_tipo: s.mora_tipo || 'ninguna',
+            mora_valor: s.mora_valor || 0,
             notas: s.notas,
             creado_por: usuario
         }]).select('id').single();
@@ -13034,15 +13068,17 @@ async function registrarAbonoFin(finId) {
     const f = (_finCache.financiamientos || []).find(x => x.id === finId);
     if(!f) return;
     const monto = parseFloat(document.getElementById('finAbonoMonto')?.value) || 0;
+    const mora = parseFloat(document.getElementById('finAbonoMora')?.value) || 0;
     const metodo = document.getElementById('finAbonoMetodo')?.value || 'efectivo';
     const nota = (document.getElementById('finAbonoNota')?.value || '').trim() || null;
     const saldo = finSaldo(f);
-    if(monto <= 0) { toast('Ingresa un monto válido.', 'error'); return; }
+    if(monto <= 0 && mora <= 0) { toast('Ingresa un monto válido.', 'error'); return; }
     if(monto > saldo + 0.001) { toast(`El abono supera el saldo pendiente (${money(saldo)}).`, 'error'); return; }
     try {
         const { error } = await supabaseClient.from('financiamiento_pagos').insert([{
             financiamiento_id: finId,
             monto,
+            mora,
             metodo,
             nota,
             recibido_por: sessionUser?.nombre || sessionUser?.usuario || 'Sistema'
@@ -13132,7 +13168,9 @@ function imprimirReciboFin(pagoId) {
         </table>
         <hr>
         <table>
-            <tr class="tot"><td>MONTO PAGADO</td><td style="text-align:right;">${money(p.monto)}</td></tr>
+            <tr><td>Abono a capital</td><td style="text-align:right;">${money(p.monto)}</td></tr>
+            ${Number(p.mora) > 0 ? `<tr><td>Mora por atraso</td><td style="text-align:right;">${money(p.mora)}</td></tr>` : ''}
+            <tr class="tot"><td>TOTAL RECIBIDO</td><td style="text-align:right;">${money(Number(p.monto || 0) + Number(p.mora || 0))}</td></tr>
             <tr><td>Saldo restante</td><td style="text-align:right;">${money(saldoTras)}</td></tr>
         </table>
         <div class="muted" style="margin-top:8px;">Recibido por: ${escapeHtml(p.recibido_por || '')}</div>`;
