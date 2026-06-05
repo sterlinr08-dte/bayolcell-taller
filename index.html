@@ -12352,7 +12352,7 @@ document.getElementById('modalNuevoPerfil')?.addEventListener('click', e => {
 //   Carga sus propios datos (NO toca loadAll) para evitar
 //   conflictos con el desarrollo del módulo de taller.
 // ============================================================
-let _finCache = { financiamientos: [], pagos: [], solicitudes: [], clientes: [], referencias: [], config: {}, documentos: [] };
+let _finCache = { financiamientos: [], pagos: [], solicitudes: [], clientes: [], referencias: [], config: {}, documentos: [], planes: [] };
 let _finTab = 'solicitudes';     // solicitudes | financiamientos
 let _finFiltro = 'activos';      // activos | atrasados | saldados | todos
 let _solFiltro = 'pendientes';   // pendientes | aprobadas | rechazadas | todas
@@ -12372,30 +12372,60 @@ function finAbonado(f) {
 function finFinanciado(f) {
     return Math.max(0, Number(f.monto_total || 0) - Number(f.inicial || 0));
 }
-// Interés total según método: 'plano' (tasa x capital x n) o 'saldo' (amortización francesa)
-function finInteresTotal(f) {
+// ---- Motor de cálculo (soporta tasa mixta: fase 1 a tasa1, resto a tasa2) ----
+function _finFases(f) {
+    const n = Math.max(1, parseInt(f.num_cuotas, 10) || 1);
+    const tasa1 = (Number(f.interes_tasa) || 0) / 100;
+    let n1 = parseInt(f.cuotas_fase1, 10) || 0;
+    if(n1 < 0) n1 = 0; if(n1 > n) n1 = n;
+    const tieneFase2 = n1 > 0 && f.tasa2 != null && f.tasa2 !== '' && n1 < n;
+    const tasa2 = tieneFase2 ? (Number(f.tasa2) || 0) / 100 : tasa1;
+    const phases = tieneFase2 ? [{ rate: tasa1, count: n1 }, { rate: tasa2, count: n - n1 }] : [{ rate: tasa1, count: n }];
+    return { n, phases, metodo: f.interes_metodo || 'plano' };
+}
+// Genera el cronograma con monto, capital, interés y saldo de cada cuota
+function finSchedule(f) {
+    const r2 = x => Math.round(x * 100) / 100;
     const cap = finFinanciado(f);
-    const n = Math.max(1, parseInt(f.num_cuotas, 10) || 1);
-    const tasa = Number(f.interes_tasa || 0);
-    const m = f.interes_metodo || 'ninguno';
-    if(!(tasa > 0) || m === 'ninguno' || !m || cap <= 0) return 0;
-    if(m === 'plano') return Math.round(cap * (tasa / 100) * n * 100) / 100;
-    if(m === 'saldo') {
-        const i = tasa / 100;
-        const cuota = cap * i / (1 - Math.pow(1 + i, -n));
-        return Math.round((cuota * n - cap) * 100) / 100;
+    const { n, phases, metodo } = _finFases(f);
+    const rows = [];
+    if(cap <= 0) { for(let i = 1; i <= n; i++) rows.push({ num: i, cuota: 0, interes: 0, capital: 0, saldo: 0 }); return rows; }
+    let saldoCap = cap, idx = 0, periodsLeft = n;
+    if(metodo === 'saldo') {
+        for(const ph of phases) {
+            const i = ph.rate;
+            const cuota = i > 0 ? saldoCap * i / (1 - Math.pow(1 + i, -periodsLeft)) : saldoCap / periodsLeft;
+            for(let k = 0; k < ph.count; k++) {
+                idx++;
+                const interes = i > 0 ? saldoCap * i : 0;
+                let capPart = (idx === n) ? saldoCap : cuota - interes;
+                saldoCap = saldoCap - capPart; if(saldoCap < 0) saldoCap = 0;
+                rows.push({ num: idx, cuota: r2(capPart + interes), interes: r2(interes), capital: r2(capPart), saldo: 0 });
+                periodsLeft--;
+            }
+        }
+    } else { // plano
+        const capPart = cap / n;
+        for(const ph of phases) {
+            for(let k = 0; k < ph.count; k++) {
+                idx++;
+                const interes = cap * ph.rate;
+                let cp = (idx === n) ? saldoCap : capPart;
+                saldoCap = saldoCap - cp; if(saldoCap < 0) saldoCap = 0;
+                rows.push({ num: idx, cuota: r2(cp + interes), interes: r2(interes), capital: r2(cp), saldo: 0 });
+            }
+        }
     }
-    return 0;
+    // Saldo = total que falta por pagar después de cada cuota
+    let acc = rows.reduce((s, r) => s + r.cuota, 0);
+    rows.forEach(r => { acc = r2(acc - r.cuota); if(acc < 0) acc = 0; r.saldo = acc; });
+    return rows;
 }
-// Monto total a cobrar en cuotas = capital + interés
-function finMontoCuotas(f) {
-    return Math.round((finFinanciado(f) + finInteresTotal(f)) * 100) / 100;
-}
-// Valor de cuota calculado (incluye interés)
-function finValorCuotaCalc(f) {
-    const n = Math.max(1, parseInt(f.num_cuotas, 10) || 1);
-    return Math.round((finMontoCuotas(f) / n) * 100) / 100;
-}
+function finInteresTotal(f) { return Math.round(finSchedule(f).reduce((s, r) => s + r.interes, 0) * 100) / 100; }
+// Monto total a cobrar en cuotas = suma de las cuotas
+function finMontoCuotas(f) { return Math.round(finSchedule(f).reduce((s, r) => s + r.cuota, 0) * 100) / 100; }
+// Valor de la primera cuota (referencia; con tasa mixta las cuotas cambian)
+function finValorCuotaCalc(f) { const s = finSchedule(f); return s.length ? s[0].cuota : 0; }
 function finSaldo(f) {
     return Math.max(0, Math.round((finMontoCuotas(f) - finAbonado(f)) * 100) / 100);
 }
@@ -12427,29 +12457,25 @@ function _finAddPeriodo(fechaISO, frecuencia, n) {
 function _finFmtFecha(d) {
     return d.toLocaleDateString('es-DO', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
-// Construye el cronograma de cuotas con el estado de pago de cada una
+// Construye el cronograma de cuotas con el estado de pago de cada una (usa finSchedule)
 function finCronograma(f) {
-    const n = Math.max(1, parseInt(f.num_cuotas, 10) || 1);
-    const aCobrar = finMontoCuotas(f);
     const abonado = finAbonado(f);
-    const valorBase = Math.round((Number(f.valor_cuota) || (aCobrar / n)) * 100) / 100;
     const cuotas = [];
     let acum = 0;
-    for(let i = 1; i <= n; i++) {
-        let valor = (i < n) ? valorBase : Math.round((aCobrar - valorBase * (n - 1)) * 100) / 100;
-        if(valor < 0) valor = 0;
+    finSchedule(f).forEach(s => {
+        const valor = s.cuota;
         const previo = acum;
         acum = Math.round((acum + valor) * 100) / 100;
         const pagadoEnCuota = Math.max(0, Math.min(valor, Math.round((abonado - previo) * 100) / 100));
         cuotas.push({
-            num: i,
+            num: s.num,
             valor,
-            vence: _finAddPeriodo(f.fecha_inicio, f.frecuencia, i),
+            vence: _finAddPeriodo(f.fecha_inicio, f.frecuencia, s.num),
             cubierta: abonado >= acum - 0.001,
             pagado: pagadoEnCuota,
             pendiente: Math.round((valor - pagadoEnCuota) * 100) / 100
         });
-    }
+    });
     return cuotas;
 }
 function finEstado(f) {
@@ -12475,35 +12501,22 @@ function finBadge(estado) {
 }
 const FIN_FREC_TXT = { semanal: 'Semanal', quincenal: 'Quincenal', mensual: 'Mensual' };
 
-// Texto descriptivo del interés
+// Texto descriptivo del interés (incluye tasa mixta)
 function finInteresTxt(obj) {
-    const m = obj.interes_metodo || 'ninguno';
-    const t = Number(obj.interes_tasa || 0);
-    if(m === 'ninguno' || !m || !(t > 0)) return 'Sin interés';
-    return (m === 'plano' ? 'Interés plano ' : 'Interés sobre saldo ') + t + '% por cuota';
-}
-// Tabla de amortización: funciona con solicitud o financiamiento (mismos campos)
-function _finAmortizacionRows(obj) {
-    const n = Math.max(1, parseInt(obj.num_cuotas, 10) || 1);
-    const cap = finFinanciado(obj);
-    const m = obj.interes_metodo || 'ninguno';
-    const tasa = Number(obj.interes_tasa || 0);
-    const cuota = Number(obj.valor_cuota) || finValorCuotaCalc(obj);
-    let saldoCap = cap;
-    let saldoTotal = finMontoCuotas(obj);
-    const rows = [];
-    for(let i = 1; i <= n; i++) {
-        let pago = (i < n) ? cuota : saldoTotal;
-        if(pago < 0) pago = 0;
-        let interes, capital;
-        if(m === 'saldo' && tasa > 0) { interes = Math.round(saldoCap * (tasa / 100) * 100) / 100; capital = Math.round((pago - interes) * 100) / 100; }
-        else if(m === 'plano' && tasa > 0) { interes = Math.round(cap * (tasa / 100) * 100) / 100; capital = Math.round((pago - interes) * 100) / 100; }
-        else { interes = 0; capital = pago; }
-        saldoCap = Math.round((saldoCap - capital) * 100) / 100; if(saldoCap < 0) saldoCap = 0;
-        saldoTotal = Math.round((saldoTotal - pago) * 100) / 100; if(saldoTotal < 0) saldoTotal = 0;
-        rows.push({ num: i, vence: _finAddPeriodo(obj.fecha_inicio, obj.frecuencia, i), cuota: pago, interes, capital, saldo: saldoTotal });
+    const m = obj.interes_metodo || 'plano';
+    const t1 = Number(obj.interes_tasa || 0);
+    const n1 = parseInt(obj.cuotas_fase1, 10) || 0;
+    const t2 = Number(obj.tasa2 || 0);
+    const base = (m === 'plano' ? 'Plano' : 'Sobre saldo');
+    if(!(t1 > 0) && !(t2 > 0)) return 'Sin interés';
+    if(n1 > 0 && obj.tasa2 != null && obj.tasa2 !== '') {
+        return `${base} · mixta: ${t1}% las primeras ${n1} cuotas, luego ${t2}%`;
     }
-    return rows;
+    return `${base} ${t1}% por cuota`;
+}
+// Tabla de amortización (usa finSchedule, soporta tasa mixta)
+function _finAmortizacionRows(obj) {
+    return finSchedule(obj).map(s => ({ num: s.num, vence: _finAddPeriodo(obj.fecha_inicio, obj.frecuencia, s.num), cuota: s.cuota, interes: s.interes, capital: s.capital, saldo: s.saldo }));
 }
 function _finAmortizacionHTML(obj) {
     const cap = finFinanciado(obj);
@@ -12522,14 +12535,15 @@ function _finAmortizacionHTML(obj) {
 // ---- Carga de datos ----
 async function cargarFinanciamientos() {
     try {
-        const [rf, rp, rs, rc, rr, rcfg, rdoc] = await Promise.all([
+        const [rf, rp, rs, rc, rr, rcfg, rdoc, rplan] = await Promise.all([
             supabaseClient.from('financiamientos').select('*').order('creado_en', { ascending: false }),
             supabaseClient.from('financiamiento_pagos').select('*').order('creado_en', { ascending: true }),
             supabaseClient.from('fin_solicitudes').select('*').order('creado_en', { ascending: false }),
             supabaseClient.from('fin_clientes').select('*').order('creado_en', { ascending: false }),
             supabaseClient.from('fin_referencias').select('*').order('creado_en', { ascending: true }),
             supabaseClient.from('fin_config').select('*').eq('id', 1).maybeSingle(),
-            supabaseClient.from('fin_documentos').select('*').order('creado_en', { ascending: true })
+            supabaseClient.from('fin_documentos').select('*').order('creado_en', { ascending: true }),
+            supabaseClient.from('fin_planes').select('*').order('creado_en', { ascending: true })
         ]);
         if(rf.error) throw rf.error;
         if(rp.error) throw rp.error;
@@ -12543,6 +12557,7 @@ async function cargarFinanciamientos() {
         _finCache.referencias = rr.data || [];
         _finCache.config = (rcfg && rcfg.data) || _finCache.config || {};
         _finCache.documentos = (rdoc && rdoc.data) || [];
+        _finCache.planes = (rplan && rplan.data) || [];
     } catch(e) {
         console.error('cargarFinanciamientos', e);
         toast('Error cargando financiamientos.', 'error');
@@ -13011,9 +13026,14 @@ function abrirModalNuevaSolicitud() {
             <div class="form-row" style="flex:1; min-width:120px;"><label>Frecuencia</label><select id="solFrecuencia"><option value="semanal">Semanal</option><option value="quincenal">Quincenal</option><option value="mensual" selected>Mensual</option></select></div>
         </div>
         <div class="form-row"><label>Fecha de inicio (al aprobar)</label><input type="date" id="solFechaInicio" value="${hoyISO}"></div>
+        <div class="form-row"><label>⚡ Plan Smart (opcional)</label><select id="solPlan" onchange="_aplicarPlanSol()"><option value="">— Manual —</option>${_finPlanesOptions()}</select></div>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
             <div class="form-row" style="flex:1; min-width:150px;"><label>Interés</label><select id="solInteresMetodo" onchange="_solRecalcCuota()"><option value="plano">Plano (sobre el monto)</option><option value="saldo">Sobre saldo (francés)</option></select></div>
             <div class="form-row" style="flex:1; min-width:110px;"><label>Tasa % por cuota</label><input type="number" id="solInteresTasa" min="0" step="0.01" value="0" oninput="_solRecalcCuota()"></div>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <div class="form-row" style="flex:1; min-width:150px;"><label>Tasa mixta: cuotas a tasa inicial</label><input type="number" id="solCuotasFase1" min="0" step="1" value="0" oninput="_solRecalcCuota()" placeholder="0 = tasa única"></div>
+            <div class="form-row" style="flex:1; min-width:110px;"><label>Tasa 2 (resto) %</label><input type="number" id="solTasa2" min="0" step="0.01" value="0" oninput="_solRecalcCuota()"></div>
         </div>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
             <div class="form-row" style="flex:1; min-width:140px;"><label>Mora por atraso</label><select id="solMoraTipo" onchange="_solMoraLabel()"><option value="ninguna"${moraSel('ninguna')}>Sin mora</option><option value="porcentaje"${moraSel('porcentaje')}>% de la cuota</option><option value="fijo"${moraSel('fijo')}>Monto fijo (RD$)</option></select></div>
@@ -13051,6 +13071,25 @@ function _solMoraLabel() {
     const lbl = document.getElementById('solMoraValorLbl');
     if(lbl) lbl.textContent = t === 'porcentaje' ? '% por cuota' : (t === 'fijo' ? 'RD$ por cuota' : 'Valor');
 }
+// Opciones de planes activos para los selectores
+function _finPlanesOptions() {
+    return (_finCache.planes || []).filter(p => p.activo !== false).map(p => `<option value="${p.id}">${escapeHtml(p.nombre)}</option>`).join('');
+}
+// Aplica un plan al formulario de solicitud
+function _aplicarPlanSol() {
+    const id = document.getElementById('solPlan')?.value;
+    if(!id) return;
+    const p = (_finCache.planes || []).find(x => x.id === id);
+    if(!p) return;
+    const set = (cid, v) => { const el = document.getElementById(cid); if(el) el.value = v; };
+    set('solInteresMetodo', p.metodo || 'saldo');
+    set('solInteresTasa', p.tasa1 || 0);
+    set('solCuotasFase1', p.cuotas_fase1 || 0);
+    set('solTasa2', p.tasa2 || 0);
+    if(p.num_cuotas) set('solNumCuotas', p.num_cuotas);
+    if(p.frecuencia) set('solFrecuencia', p.frecuencia);
+    _solRecalcCuota();
+}
 // Calcula la inicial en RD$ según el tipo elegido (RD$ o % del total)
 function _solInicialRD() {
     const total = parseFloat(document.getElementById('solMontoTotal')?.value) || 0;
@@ -13065,8 +13104,10 @@ function _solRecalcCuota() {
     const financiado = Math.max(0, total - inicial);
     const obj = {
         monto_total: total, inicial, num_cuotas: nc,
-        interes_metodo: document.getElementById('solInteresMetodo')?.value || 'ninguno',
-        interes_tasa: parseFloat(document.getElementById('solInteresTasa')?.value) || 0
+        interes_metodo: document.getElementById('solInteresMetodo')?.value || 'plano',
+        interes_tasa: parseFloat(document.getElementById('solInteresTasa')?.value) || 0,
+        cuotas_fase1: parseInt(document.getElementById('solCuotasFase1')?.value, 10) || 0,
+        tasa2: parseFloat(document.getElementById('solTasa2')?.value) || 0
     };
     const interes = finInteresTotal(obj);
     const totalPagar = finMontoCuotas(obj);
@@ -13094,9 +13135,12 @@ async function guardarSolicitud() {
     if(!concepto) { toast('Indica qué se financia (concepto).', 'error'); return; }
     if(total <= 0) { toast('El precio total debe ser mayor que 0.', 'error'); return; }
     if(inicial < 0 || inicial >= total) { toast('La inicial debe ser menor que el precio total.', 'error'); return; }
-    const interesMetodo = document.getElementById('solInteresMetodo')?.value || 'ninguno';
+    const interesMetodo = document.getElementById('solInteresMetodo')?.value || 'plano';
     const interesTasa = parseFloat(document.getElementById('solInteresTasa')?.value) || 0;
-    const valorCuota = finValorCuotaCalc({ monto_total: total, inicial, num_cuotas: nc, interes_metodo: interesMetodo, interes_tasa: interesTasa });
+    const cuotasFase1 = parseInt(document.getElementById('solCuotasFase1')?.value, 10) || 0;
+    const tasa2 = parseFloat(document.getElementById('solTasa2')?.value) || 0;
+    const planId = document.getElementById('solPlan')?.value || null;
+    const valorCuota = finValorCuotaCalc({ monto_total: total, inicial, num_cuotas: nc, interes_metodo: interesMetodo, interes_tasa: interesTasa, cuotas_fase1: cuotasFase1, tasa2 });
     const usuario = sessionUser?.nombre || sessionUser?.usuario || 'Sistema';
     const datosCliente = {
         nombre, apellido: val('solApellido') || null, cedula: val('solCedula') || null,
@@ -13126,6 +13170,7 @@ async function guardarSolicitud() {
             monto_total: total, inicial, num_cuotas: nc, frecuencia, valor_cuota: valorCuota,
             fecha_inicio: fechaInicio, estado: 'pendiente',
             interes_metodo: interesMetodo, interes_tasa: interesTasa,
+            cuotas_fase1: cuotasFase1, tasa2: tasa2, plan_id: planId,
             mora_tipo: document.getElementById('solMoraTipo')?.value || 'ninguna',
             mora_valor: parseFloat(document.getElementById('solMoraValor')?.value) || 0,
             notas: val('solNotas') || null, creado_por: usuario
@@ -13163,8 +13208,9 @@ async function aprobarSolicitud(solId) {
             valor_cuota: s.valor_cuota,
             fecha_inicio: s.fecha_inicio,
             estado: 'activo',
-            interes_metodo: s.interes_metodo || 'ninguno',
+            interes_metodo: s.interes_metodo || 'plano',
             interes_tasa: s.interes_tasa || 0,
+            cuotas_fase1: s.cuotas_fase1 || 0, tasa2: s.tasa2 || 0, plan_id: s.plan_id || null,
             mora_tipo: s.mora_tipo || 'ninguna',
             mora_valor: s.mora_valor || 0,
             notas: s.notas,
@@ -13899,7 +13945,70 @@ function _pintarConfigFin() {
 
         <div style="text-align:right; margin-bottom:20px;">
             <button class="btn btn-blue" onclick="guardarConfigFin()"><i class="ti ti-device-floppy"></i> Guardar configuración</button>
+        </div>
+
+        <div class="card" style="margin-bottom:20px;">
+            <h3 style="margin:0 0 4px; font-size:15px;"><i class="ti ti-bolt" style="color:#f59e0b;"></i> Planes Smart (tasa mixta)</h3>
+            <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px;">Planes con tasa que cambia en el tiempo. Se eligen en la solicitud y la consulta.</p>
+            <div id="finPlanesLista" style="margin-bottom:12px;">${_planesListaHTML()}</div>
+            <div style="border-top:1px dashed #e2e8f0; padding-top:10px;">
+                <b style="font-size:13px;">Nuevo plan</b>
+                <div class="form-row" style="margin-top:6px;"><label>Nombre</label><input type="text" id="plNombre" placeholder="Ej: Mixto 8 meses (4x15% + 4x10%)"></div>
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <div class="form-row" style="flex:1; min-width:130px;"><label>Método</label><select id="plMetodo"><option value="saldo">Sobre saldo</option><option value="plano">Plano</option></select></div>
+                    <div class="form-row" style="flex:1; min-width:90px;"><label># cuotas</label><input type="number" id="plNumCuotas" min="1" step="1" value="8"></div>
+                    <div class="form-row" style="flex:1; min-width:120px;"><label>Frecuencia</label><select id="plFrec"><option value="semanal">Semanal</option><option value="quincenal">Quincenal</option><option value="mensual" selected>Mensual</option></select></div>
+                </div>
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <div class="form-row" style="flex:1; min-width:120px;"><label>Tasa inicial %</label><input type="number" id="plTasa1" min="0" step="0.01" value="0"></div>
+                    <div class="form-row" style="flex:1; min-width:130px;"><label>Cuotas a tasa inicial</label><input type="number" id="plCuotasFase1" min="0" step="1" value="0" placeholder="0 = tasa única"></div>
+                    <div class="form-row" style="flex:1; min-width:120px;"><label>Tasa 2 (resto) %</label><input type="number" id="plTasa2" min="0" step="0.01" value="0"></div>
+                </div>
+                <div style="text-align:right;"><button class="btn btn-blue" onclick="guardarPlanSmart()" style="font-size:12px;"><i class="ti ti-plus"></i> Agregar plan</button></div>
+            </div>
         </div>`;
+}
+function _planesListaHTML() {
+    const planes = _finCache.planes || [];
+    if(!planes.length) return `<div style="color:var(--text-muted); font-size:13px;">No hay planes creados.</div>`;
+    return planes.map(p => {
+        const mixto = (p.cuotas_fase1 > 0 && Number(p.tasa2) >= 0 && p.cuotas_fase1 < p.num_cuotas);
+        const desc = mixto ? `${p.tasa1}% las primeras ${p.cuotas_fase1}, luego ${p.tasa2}%` : `${p.tasa1}% por cuota`;
+        return `<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; border:1px solid #e2e8f0; border-radius:8px; padding:8px 10px; margin-bottom:6px;">
+            <div style="font-size:13px;"><b>${escapeHtml(p.nombre)}</b><br><span style="color:var(--text-muted); font-size:12px;">${p.num_cuotas} cuotas ${FIN_FREC_TXT[p.frecuencia] || p.frecuencia || ''} · ${p.metodo === 'saldo' ? 'Sobre saldo' : 'Plano'} · ${desc}</span></div>
+            <button class="btn btn-light" onclick="eliminarPlanSmart('${p.id}')" style="font-size:11px; color:#b91c1c;"><i class="ti ti-trash"></i></button>
+        </div>`;
+    }).join('');
+}
+async function guardarPlanSmart() {
+    const nombre = (document.getElementById('plNombre')?.value || '').trim();
+    if(!nombre) { toast('Ponle un nombre al plan.', 'error'); return; }
+    const fila = {
+        nombre,
+        metodo: document.getElementById('plMetodo')?.value || 'saldo',
+        num_cuotas: Math.max(1, parseInt(document.getElementById('plNumCuotas')?.value, 10) || 1),
+        cuotas_fase1: parseInt(document.getElementById('plCuotasFase1')?.value, 10) || 0,
+        tasa1: parseFloat(document.getElementById('plTasa1')?.value) || 0,
+        tasa2: parseFloat(document.getElementById('plTasa2')?.value) || 0,
+        frecuencia: document.getElementById('plFrec')?.value || 'mensual'
+    };
+    try {
+        const { error } = await supabaseClient.from('fin_planes').insert([fila]);
+        if(error) throw error;
+        toast('✅ Plan agregado.');
+        await cargarFinanciamientos();
+        _pintarConfigFin();
+    } catch(e) { console.error('guardarPlanSmart', e); toast('No se pudo guardar el plan.', 'error'); }
+}
+async function eliminarPlanSmart(id) {
+    if(!confirm('¿Eliminar este plan?')) return;
+    try {
+        const { error } = await supabaseClient.from('fin_planes').delete().eq('id', id);
+        if(error) throw error;
+        toast('Plan eliminado.');
+        await cargarFinanciamientos();
+        _pintarConfigFin();
+    } catch(e) { console.error('eliminarPlanSmart', e); toast('No se pudo eliminar.', 'error'); }
 }
 function _finRestaurarContrato() {
     if(!confirm('¿Restaurar el texto del contrato a su versión por defecto?')) return;
@@ -13973,6 +14082,10 @@ function editarSolicitud(id) {
             <div class="form-row" style="flex:1; min-width:100px;"><label>Tasa % por cuota</label><input type="number" id="edsInteresTasa" min="0" step="0.01" value="${s.interes_tasa || 0}"></div>
         </div>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <div class="form-row" style="flex:1; min-width:150px;"><label>Tasa mixta: cuotas a tasa inicial</label><input type="number" id="edsCuotasFase1" min="0" step="1" value="${s.cuotas_fase1 || 0}" placeholder="0 = tasa única"></div>
+            <div class="form-row" style="flex:1; min-width:100px;"><label>Tasa 2 (resto) %</label><input type="number" id="edsTasa2" min="0" step="0.01" value="${s.tasa2 || 0}"></div>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
             <div class="form-row" style="flex:1; min-width:120px;"><label>Fecha inicio</label><input type="date" id="edsFecha" value="${(s.fecha_inicio || '').slice(0, 10)}"></div>
             <div class="form-row" style="flex:1; min-width:120px;"><label>Mora</label><select id="edsMoraTipo"><option value="ninguna" ${s.mora_tipo === 'ninguna' ? 'selected' : ''}>Sin mora</option><option value="porcentaje" ${s.mora_tipo === 'porcentaje' ? 'selected' : ''}>% por cuota</option><option value="fijo" ${s.mora_tipo === 'fijo' ? 'selected' : ''}>Fijo por cuota</option></select></div>
             <div class="form-row" style="flex:1; min-width:90px;"><label>Valor mora</label><input type="number" id="edsMoraValor" min="0" step="0.01" value="${s.mora_valor || 0}"></div>
@@ -13989,17 +14102,19 @@ async function guardarEdicionSolicitud(id) {
     const inicial = (document.getElementById('edsInicialTipo')?.value === 'pct') ? Math.round(total * inicialVal) / 100 : inicialVal;
     const nc = Math.max(1, parseInt(document.getElementById('edsCuotas')?.value, 10) || 1);
     if(total <= 0 || inicial >= total) { toast('Revisa el precio total y la inicial.', 'error'); return; }
-    const interesMetodo = document.getElementById('edsInteresMetodo')?.value || 'ninguno';
+    const interesMetodo = document.getElementById('edsInteresMetodo')?.value || 'plano';
     const interesTasa = parseFloat(document.getElementById('edsInteresTasa')?.value) || 0;
+    const cuotasFase1 = parseInt(document.getElementById('edsCuotasFase1')?.value, 10) || 0;
+    const tasa2 = parseFloat(document.getElementById('edsTasa2')?.value) || 0;
     try {
         const { error } = await supabaseClient.from('fin_solicitudes').update({
             concepto: (document.getElementById('edsConcepto')?.value || '').trim(),
             equipo_imei: (document.getElementById('edsImei')?.value || '').trim() || null,
             monto_total: total, inicial, num_cuotas: nc,
             frecuencia: document.getElementById('edsFrec')?.value || 'mensual',
-            valor_cuota: finValorCuotaCalc({ monto_total: total, inicial, num_cuotas: nc, interes_metodo: interesMetodo, interes_tasa: interesTasa }),
+            valor_cuota: finValorCuotaCalc({ monto_total: total, inicial, num_cuotas: nc, interes_metodo: interesMetodo, interes_tasa: interesTasa, cuotas_fase1: cuotasFase1, tasa2 }),
             fecha_inicio: document.getElementById('edsFecha')?.value,
-            interes_metodo: interesMetodo, interes_tasa: interesTasa,
+            interes_metodo: interesMetodo, interes_tasa: interesTasa, cuotas_fase1: cuotasFase1, tasa2: tasa2,
             mora_tipo: document.getElementById('edsMoraTipo')?.value || 'ninguna',
             mora_valor: parseFloat(document.getElementById('edsMoraValor')?.value) || 0
         }).eq('id', id);
@@ -14158,9 +14273,14 @@ function _pintarConsulta() {
                 </div>
             </div>
             <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:8px 10px; font-size:13px; margin-bottom:12px;">Monto a financiar: <b id="cqFinanciadoPrev">RD$ 0.00</b> <span style="color:var(--text-muted);">(precio − inicial)</span></div>
+            <div class="form-row"><label>⚡ Plan Smart (opcional)</label><select id="cqPlan" onchange="_aplicarPlanConsulta()"><option value="">— Manual —</option>${_finPlanesOptions()}</select></div>
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
                 <div class="form-row" style="flex:1; min-width:110px;"><label>Tasa % por cuota</label><input type="number" id="cqTasa" min="0" step="0.01" value="0" oninput="_consultaCalcular()"></div>
                 <div class="form-row" style="flex:1; min-width:140px;"><label>Tipo de préstamo</label><select id="cqMetodo" onchange="_consultaCalcular()"><option value="plano">Plano (sobre el monto)</option><option value="saldo">Sobre saldo (francés)</option></select></div>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <div class="form-row" style="flex:1; min-width:150px;"><label>Tasa mixta: cuotas a tasa inicial</label><input type="number" id="cqCuotasFase1" min="0" step="1" value="0" oninput="_consultaCalcular()" placeholder="0 = tasa única"></div>
+                <div class="form-row" style="flex:1; min-width:100px;"><label>Tasa 2 (resto) %</label><input type="number" id="cqTasa2" min="0" step="0.01" value="0" oninput="_consultaCalcular()"></div>
             </div>
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
                 <div class="form-row" style="flex:1; min-width:120px;"><label>Frecuencia</label><select id="cqFrec" onchange="_consultaCalcular()"><option value="semanal">Semanal</option><option value="quincenal">Quincenal</option><option value="mensual" selected>Mensual</option></select></div>
@@ -14168,6 +14288,18 @@ function _pintarConsulta() {
             </div>
         </div>
         <div id="cqResultado"></div>`;
+    _consultaCalcular();
+}
+function _aplicarPlanConsulta() {
+    const id = document.getElementById('cqPlan')?.value;
+    if(!id) return;
+    const p = (_finCache.planes || []).find(x => x.id === id);
+    if(!p) return;
+    const set = (cid, v) => { const el = document.getElementById(cid); if(el) el.value = v; };
+    set('cqMetodo', p.metodo || 'saldo'); set('cqTasa', p.tasa1 || 0);
+    set('cqCuotasFase1', p.cuotas_fase1 || 0); set('cqTasa2', p.tasa2 || 0);
+    if(p.num_cuotas) set('cqCuotas', p.num_cuotas);
+    if(p.frecuencia) set('cqFrec', p.frecuencia);
     _consultaCalcular();
 }
 function _consultaObj() {
@@ -14181,6 +14313,8 @@ function _consultaObj() {
         frecuencia: document.getElementById('cqFrec')?.value || 'mensual',
         interes_metodo: document.getElementById('cqMetodo')?.value || 'plano',
         interes_tasa: parseFloat(document.getElementById('cqTasa')?.value) || 0,
+        cuotas_fase1: parseInt(document.getElementById('cqCuotasFase1')?.value, 10) || 0,
+        tasa2: parseFloat(document.getElementById('cqTasa2')?.value) || 0,
         fecha_inicio: new Date().toISOString().slice(0, 10)
     };
 }
