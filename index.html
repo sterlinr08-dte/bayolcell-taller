@@ -578,20 +578,20 @@ mark.ss-hl { background: #fef08a; color: inherit; padding: 0 1px; border-radius:
 .stepper-step.bloqueado:active { transform: none; }
 
 /* ========== ESTADO VISUAL (columna de la tarjeta de orden) ========== */
-.ev-card { border-radius: 14px; padding: 10px; background: linear-gradient(180deg,#ffffff,#f8fafc); border: 1px solid #eef2f7; box-shadow: 0 1px 3px rgba(15,23,42,0.05); }
-.ev-card.ev-cancel { background: linear-gradient(180deg,#fff,#fef2f2); border: 1px dashed #fca5a5; }
-.ev-chip { display: flex; align-items: center; gap: 9px; border-radius: 11px; padding: 9px 11px; color: #fff; box-shadow: 0 8px 18px -8px var(--ev-shadow, rgba(15,23,42,0.45)); }
-.ev-ic { width: 31px; height: 31px; border-radius: 50%; background: rgba(255,255,255,0.22); display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
+.ev-card { border-radius: 16px; padding: 10px; background: linear-gradient(135deg, rgba(255,255,255,0.62), rgba(255,255,255,0.36)); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.7); box-shadow: 0 10px 26px -16px rgba(15,23,42,0.35), inset 0 1px 0 rgba(255,255,255,0.9); }
+.ev-card.ev-cancel { background: linear-gradient(180deg, rgba(255,255,255,0.7),#fef2f2); border: 1px dashed #fca5a5; }
+.ev-chip { display: flex; align-items: center; gap: 9px; border-radius: 13px; padding: 10px 12px; color: #fff; box-shadow: 0 12px 24px -10px var(--ev-shadow, rgba(15,23,42,0.45)), inset 0 2px 0 rgba(255,255,255,0.45), inset 0 -6px 14px -8px rgba(0,0,0,0.28); }
+.ev-ic { width: 33px; height: 33px; border-radius: 50%; background: rgba(255,255,255,0.28); display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; box-shadow: inset 0 1px 1px rgba(255,255,255,0.6); }
 .ev-tx { line-height: 1.18; min-width: 0; flex: 1; }
-.ev-tx b { font-size: 12.5px; font-weight: 800; letter-spacing: 0.2px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ev-tx small { font-size: 10px; opacity: 0.92; font-weight: 600; }
-.ev-dot { width: 9px; height: 9px; border-radius: 50%; background: #fff; flex-shrink: 0; position: relative; box-shadow: 0 0 0 2px rgba(255,255,255,0.35); }
+.ev-tx b { font-size: 12.5px; font-weight: 800; letter-spacing: 0.2px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 1px rgba(0,0,0,0.12); }
+.ev-tx small { font-size: 10px; opacity: 0.95; font-weight: 600; }
+.ev-dot { width: 9px; height: 9px; border-radius: 50%; background: #fff; flex-shrink: 0; position: relative; box-shadow: 0 0 0 2px rgba(255,255,255,0.4); }
 .ev-dot.live::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: #fff; animation: evPulse 1.5s ease-out infinite; }
 @keyframes evPulse { 0% { transform: scale(1); opacity: 0.75; } 100% { transform: scale(2.9); opacity: 0; } }
 .ev-steps { display: flex; gap: 4px; margin-top: 9px; }
-.ev-seg { flex: 1; height: 5px; border-radius: 4px; background: #e6eaf0; transition: background 0.3s ease; }
-.ev-seg.on { background: linear-gradient(90deg, var(--ev-g1), var(--ev-g2)); box-shadow: 0 1px 3px -1px var(--ev-g2); }
-.ev-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 7px; font-size: 9.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.4px; }
+.ev-seg { flex: 1; height: 6px; border-radius: 5px; background: rgba(148,163,184,0.3); box-shadow: inset 0 1px 2px rgba(15,23,42,0.12); transition: background 0.3s ease; }
+.ev-seg.on { background: linear-gradient(90deg, var(--ev-g1), var(--ev-g2)); box-shadow: 0 2px 6px -2px var(--ev-g2), inset 0 1px 0 rgba(255,255,255,0.5); }
+.ev-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 7px; font-size: 9.5px; font-weight: 800; color: #7a8aa3; text-transform: uppercase; letter-spacing: 0.4px; }
 .ev-foot .ev-fase { color: var(--ev-g2); }
 
 /* ========== PIEZAS CON ESTADOS DUALES ========== */
@@ -632,6 +632,97 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
 .input-with-action select, .input-with-action input { flex: 1; }
 .input-with-action .quick-add-btn { background: var(--blue-btn); color: #fff; border: 0; border-radius: 8px; padding: 0 14px; cursor: pointer; font-size: 18px; font-weight: 800; flex-shrink: 0; min-width: 44px; }
 .input-with-action .quick-add-btn:hover { background: #b91c1c; }
+
+/* ============================================================
+   🎨 TEMA "LIQUID GLASS" + 3D SUTIL  (override global)
+   Re-estiliza clases existentes. No cambia HTML ni JS.
+   ============================================================ */
+:root{ --glass-bg: rgba(255,255,255,0.72); --glass-brd: rgba(255,255,255,0.7); }
+
+/* Fondo con aurora suave para que el vidrio refracte */
+body{
+  background:
+    radial-gradient(900px 600px at 82% -12%, rgba(239,68,68,0.16), transparent 60%),
+    radial-gradient(820px 600px at -4% -2%, rgba(99,102,241,0.13), transparent 55%),
+    radial-gradient(900px 720px at 104% 112%, rgba(14,165,233,0.13), transparent 55%),
+    radial-gradient(720px 600px at 16% 120%, rgba(217,70,239,0.10), transparent 55%),
+    var(--bg-main) !important;
+  background-attachment: fixed;
+}
+
+/* ---------- SIDEBAR con aurora ---------- */
+.sidebar{ position:relative; overflow:hidden;
+  background:linear-gradient(180deg,#101a2e 0%, #080d18 100%) !important; border-right:1px solid rgba(0,0,0,0.6); }
+.sidebar::before{ content:''; position:absolute; top:-130px; left:-70px; width:340px; height:340px; border-radius:50%;
+  background:radial-gradient(circle, rgba(239,68,68,0.45), transparent 65%); filter:blur(34px); pointer-events:none; z-index:0; }
+.sidebar::after{ content:''; position:absolute; bottom:-150px; right:-90px; width:320px; height:320px; border-radius:50%;
+  background:radial-gradient(circle, rgba(56,189,248,0.24), transparent 65%); filter:blur(40px); pointer-events:none; z-index:0; }
+.sidebar > *{ position:relative; z-index:1; }
+
+.brand-icon{ border-radius:16px;
+  box-shadow:0 12px 26px -6px rgba(220,38,38,0.7), inset 0 2px 2px rgba(255,255,255,0.5), inset 0 -3px 6px rgba(0,0,0,0.25) !important; }
+
+/* Nav items como vidrio; activo en rojo líquido */
+.nav button{ border-radius:14px;
+  background:linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)) !important;
+  border:1px solid rgba(255,255,255,0.08); box-shadow:inset 0 1px 0 rgba(255,255,255,0.10);
+  transition:all .2s cubic-bezier(.2,.8,.2,1); }
+.nav button:hover{ transform:translateY(-2px);
+  background:linear-gradient(135deg, rgba(239,68,68,0.16), rgba(239,68,68,0.06)) !important;
+  border-color:rgba(248,113,113,0.4); box-shadow:0 10px 22px -12px rgba(239,68,68,0.6), inset 0 1px 0 rgba(255,255,255,0.18); }
+.nav button.active{ position:relative;
+  background:linear-gradient(145deg, rgba(248,113,113,0.96), rgba(185,28,28,0.94)) !important;
+  border:1px solid rgba(255,255,255,0.45);
+  box-shadow:0 14px 30px -10px rgba(220,38,38,0.8), inset 0 2px 0 rgba(255,255,255,0.4), inset 0 -6px 14px -8px rgba(0,0,0,0.4); }
+.nav button.active::after{ content:''; position:absolute; left:-12px; top:50%; transform:translateY(-50%);
+  width:5px; height:24px; border-radius:0 7px 7px 0; background:#fff; box-shadow:0 0 13px rgba(255,255,255,0.85); }
+
+.side-user{ background:linear-gradient(135deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04)) !important;
+  border:1px solid rgba(255,255,255,0.14); backdrop-filter:blur(8px); border-radius:18px; }
+.avatar{ box-shadow:0 8px 18px -4px rgba(220,38,38,0.6), inset 0 2px 2px rgba(255,255,255,0.45) !important; }
+
+/* ---------- TOP BAR (vidrio oscuro con borde rojo) ---------- */
+.top-bar{ background:linear-gradient(135deg, rgba(19,28,46,0.92), rgba(11,18,32,0.92)) !important;
+  backdrop-filter:blur(12px) saturate(140%); box-shadow:0 6px 22px -10px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08);
+  border-bottom:0; position:relative; }
+.top-bar::after{ content:''; position:absolute; left:0; right:0; bottom:0; height:2px;
+  background:linear-gradient(90deg,#ef4444,#b91c1c, transparent); }
+.top-right-info{ background:linear-gradient(145deg,#f87171,#b91c1c) !important; border:0;
+  box-shadow:0 10px 20px -10px rgba(220,38,38,0.7), inset 0 1px 0 rgba(255,255,255,0.35); }
+
+/* ---------- CARDS de vidrio líquido ---------- */
+.card{
+  background:linear-gradient(135deg, rgba(255,255,255,0.78), rgba(255,255,255,0.62)) !important;
+  backdrop-filter:blur(20px) saturate(170%); -webkit-backdrop-filter:blur(20px) saturate(170%);
+  border:1px solid var(--glass-brd); border-radius:20px;
+  box-shadow:0 16px 44px -22px rgba(15,23,42,0.4), inset 0 1px 0 rgba(255,255,255,0.9); }
+
+/* ---------- KPIs de vidrio + 3D ---------- */
+.kpi-box{
+  background:linear-gradient(135deg, rgba(255,255,255,0.78), rgba(255,255,255,0.6)) !important;
+  backdrop-filter:blur(18px) saturate(170%); -webkit-backdrop-filter:blur(18px) saturate(170%);
+  border:1px solid var(--glass-brd); border-radius:18px;
+  box-shadow:0 14px 34px -20px rgba(15,23,42,0.35), inset 0 1px 0 rgba(255,255,255,0.9);
+  transition:transform .2s cubic-bezier(.2,.8,.2,1), box-shadow .2s; }
+.kpi-box.clickable:hover{ transform:translateY(-4px) scale(1.012);
+  box-shadow:0 26px 46px -22px rgba(15,23,42,0.4), inset 0 1px 0 rgba(255,255,255,0.95); }
+.kpi-box i{ opacity:0.14; }
+
+/* ---------- BOTONES con relieve 3D ---------- */
+.btn{ transition:transform .16s ease, box-shadow .16s ease, background .16s ease; }
+.btn-blue{ box-shadow:0 12px 24px -10px rgba(220,38,38,0.7), inset 0 2px 0 rgba(255,255,255,0.4), inset 0 -3px 8px rgba(0,0,0,0.18) !important; }
+.btn-blue:hover{ transform:translateY(-2px); }
+.btn-success{ box-shadow:0 12px 24px -12px rgba(5,150,105,0.65), inset 0 2px 0 rgba(255,255,255,0.35) !important; }
+.btn-success:hover{ transform:translateY(-2px); }
+.btn-dark{ background:linear-gradient(145deg,#3a4a63,#1a2638) !important; box-shadow:0 12px 24px -12px rgba(15,23,42,0.75), inset 0 2px 0 rgba(255,255,255,0.16) !important; }
+.btn-dark:hover{ transform:translateY(-2px); }
+.btn-danger:hover{ transform:translateY(-2px); }
+.btn-light{ background:linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0.7)) !important;
+  border:1px solid rgba(255,255,255,0.85); box-shadow:inset 0 1px 0 rgba(255,255,255,0.95), 0 6px 14px -8px rgba(15,23,42,0.3) !important; }
+.btn-light:hover{ transform:translateY(-2px); border-color:#fca5a5; }
+
+/* Reduce el efecto en pantallas que no soportan blur bien o usuarios con menos movimiento */
+@media (prefers-reduced-motion: reduce){ .btn:hover, .kpi-box.clickable:hover, .nav button:hover{ transform:none !important; } }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.js"></script>
