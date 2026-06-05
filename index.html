@@ -7752,40 +7752,147 @@ function abrirNotasOrden(ordenId) {
         marcarNotasLeidas(ordenId).then(() => { if(typeof renderCargaTecnicos==='function') renderCargaTecnicos(); });
     }
 }
-// Detalle del técnico: todo lo que está trabajando
+// Detalle del técnico: resumen + nota arriba + órdenes con más detalle
 function abrirDetalleTecnico(tecnicoId) {
     const t = (cache.tecnicos || []).find(x => x.id === tecnicoId);
     if(!t) return;
     const activos = ['recibido','en_proceso','espera_repuesto','pendiente_cliente'];
     const ordenes = (cache.ordenes || []).filter(o => o.tecnico_asignado_id === tecnicoId && activos.includes(normalizarEstadoOrden(o.estado)));
     const reacond = (cache.refurb || []).filter(e => e.tecnico_asignado_id === tecnicoId && e.estado_evaluacion !== 'vendido');
-    
-    let html = '';
+    const finalizadas = (cache.ordenes || []).filter(o => o.tecnico_asignado_id === tecnicoId && ['finalizado','entregado'].includes(normalizarEstadoOrden(o.estado))).length;
+    const demoradas = ordenes.filter(o => diasDesde(o.creado_en) >= _diasDemora).length;
+    const avisos = notasSinLeerDeTecnico(tecnicoId);
+    const iniciales = (t.nombre || '?').split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase();
+
+    // ===== Cabecera: nombre + campanita de notificación (notas sin leer) =====
+    const header = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+            <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+                <div style="width:42px; height:42px; border-radius:50%; background:linear-gradient(135deg,#ef4444,#dc2626); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:bold; flex-shrink:0;">${escapeHtml(iniciales)}</div>
+                <div style="min-width:0;">
+                    <b style="font-size:16px; color:#dc2626;">${escapeHtml(t.nombre)}</b>
+                    <div style="font-size:11px; color:var(--text-muted);">${escapeHtml(t.especialidad || 'Técnico')}</div>
+                </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+                <div title="Notas sin leer" style="position:relative; width:40px; height:40px; border-radius:11px; background:#fef2f2; display:flex; align-items:center; justify-content:center; color:#dc2626; font-size:20px;">
+                    <i class="ti ti-bell${avisos>0?'-ringing':''}"></i>
+                    ${avisos>0?`<span style="position:absolute; top:-5px; right:-5px; background:#dc2626; color:#fff; font-size:10px; font-weight:700; min-width:18px; height:18px; border-radius:9px; display:flex; align-items:center; justify-content:center; padding:0 4px; box-shadow:0 2px 6px rgba(220,38,38,0.4);">${avisos}</span>`:''}
+                </div>
+                <button onclick="document.getElementById('modalDetalleTecnico').remove()" style="background:#fee2e2; color:#991b1b; border:0; width:34px; height:34px; border-radius:11px; cursor:pointer; font-size:16px;">✕</button>
+            </div>
+        </div>`;
+
+    // ===== Aviso de notas sin leer (debajo de la campana) =====
+    const bannerNotas = avisos > 0
+        ? `<div style="display:flex; align-items:center; gap:8px; background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; border-radius:10px; padding:8px 12px; margin-bottom:12px; font-size:12px; font-weight:600;"><i class="ti ti-bell-ringing"></i> Tienes ${avisos} nota(s) nueva(s) de este técnico. Ábrelas en cada orden abajo.</div>`
+        : '';
+
+    // ===== Nota directa al técnico (ARRIBA) =====
+    const opciones = ordenes.map(o => {
+        const e = findEquipo(o.equipo_id);
+        return `<option value="${o.id}">${formatoOrden(o.numero_orden)} · ${escapeHtml((e.marca||'')+' '+(e.modelo||''))}</option>`;
+    }).join('');
+    const notaBox = ordenes.length ? `
+        <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:12px; padding:12px; margin-bottom:14px;">
+            <div style="font-size:13px; font-weight:700; color:#92400e; margin-bottom:8px;"><i class="ti ti-message-plus"></i> Enviar nota al técnico</div>
+            ${ordenes.length > 1
+                ? `<select id="notatec_orden_${tecnicoId}" style="width:100%; margin-bottom:6px; padding:8px; border:1px solid #fcd34d; border-radius:8px; font-size:12px;">${opciones}</select>`
+                : `<input type="hidden" id="notatec_orden_${tecnicoId}" value="${ordenes[0].id}">`}
+            <div style="display:flex; gap:6px;">
+                <input id="notatec_input_${tecnicoId}" placeholder="Escribe una nota para el técnico..." style="flex:1; padding:8px; border:1px solid #fcd34d; border-radius:8px; font-size:13px;" onkeydown="if(event.key==='Enter'){event.preventDefault();enviarNotaTecnicoTop('${tecnicoId}');}">
+                <button onclick="enviarNotaTecnicoTop('${tecnicoId}')" class="btn btn-blue" style="font-size:12px;"><i class="ti ti-send"></i></button>
+            </div>
+        </div>` : '';
+
+    // ===== Resumen del técnico (estadísticas) =====
+    const stat = (valor, etiqueta, color, bg) => `<div style="background:${bg||'#f8fafc'}; border-radius:10px; padding:9px 4px; text-align:center;"><div style="font-size:19px; font-weight:700; color:${color||'inherit'};">${valor}</div><div style="font-size:10px; color:var(--text-muted);">${etiqueta}</div></div>`;
+    const resumen = `
+        <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin-bottom:14px;">
+            ${stat(ordenes.length, 'Activas', '#0891b2')}
+            ${stat(demoradas, 'Demoradas', demoradas>0?'#dc2626':'#94a3b8', demoradas>0?'#fff1f2':null)}
+            ${stat(finalizadas, 'Finalizadas', '#16a34a', '#f0fdf4')}
+            ${stat(reacond.length, 'Reacond', '#d97706')}
+            ${stat(avisos, 'Notas', avisos>0?'#dc2626':'#94a3b8')}
+        </div>`;
+
+    // ===== Órdenes con más detalle =====
+    let listaOrdenes = '';
     if(ordenes.length) {
-        html += `<div style="font-size:13px; font-weight:700; margin:4px 0 8px; color:#dc2626;">🔧 Órdenes (${ordenes.length})</div>`;
-        html += ordenes.map(o => {
+        listaOrdenes += `<div style="font-size:13px; font-weight:700; margin:4px 0 8px; color:#dc2626;">🔧 Órdenes activas (${ordenes.length})</div>`;
+        listaOrdenes += ordenes.map(o => {
             const e = findEquipo(o.equipo_id), c = findCliente(o.cliente_id);
+            const et = obtenerEtiquetaOrden(normalizarEstadoOrden(o.estado));
+            const dias = diasDesde(o.creado_en);
+            const demorada = dias >= _diasDemora;
             const nNotas = notasDeOrden(o.id).length;
             const sinLeer = notasDeOrden(o.id).filter(n => n.autor_rol==='tecnico' && !n.leida_servicio).length;
-            return `<div style="border:1px solid #e2e8f0; border-radius:10px; padding:10px; margin-bottom:8px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-                    <div style="font-weight:700; font-size:13px;">${formatoOrden(o.numero_orden)} · ${escapeHtml(c.nombre||'')}</div>
-                    <span style="font-size:10px; color:#0891b2;">${etiquetaEstadoTexto(o.estado)}</span>
+            const contacto = (c.whatsapp || c.telefono || '').trim();
+            const waDigits = contacto.replace(/\D/g,'');
+            const falla = (o.falla_reportada || '').trim();
+            const equipoTxt = ((e.marca||'')+' '+(e.modelo||'')+(e.capacidad?(' '+e.capacidad):'')).trim();
+            return `<div style="border:1px solid #e2e8f0; border-radius:12px; padding:12px; margin-bottom:10px; ${demorada?'border-color:#fca5a5; background:#fff7f7;':''}">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:6px;">
+                    <div style="min-width:0;">
+                        <div style="font-weight:700; font-size:14px;">${formatoOrden(o.numero_orden)}</div>
+                        <div style="font-size:12px; color:#475569;">${escapeHtml(c.nombre||'Cliente')}</div>
+                    </div>
+                    <span style="font-size:10px; font-weight:700; background:${et.bg}; color:${et.color}; padding:3px 8px; border-radius:8px; white-space:nowrap;">${et.text}</span>
                 </div>
-                <div style="font-size:12px; color:var(--text-muted); margin:2px 0 6px;">${escapeHtml((e.marca||'')+' '+(e.modelo||''))}</div>
-                <button onclick="abrirNotasOrden('${o.id}')" class="btn btn-light" style="font-size:11px; padding:5px 10px; ${sinLeer>0?'border-color:#fca5a5; color:#dc2626;':''}">
-                    <i class="ti ti-message"></i> Notas ${nNotas>0?`(${nNotas})`:''} ${sinLeer>0?`<span style="background:#dc2626;color:#fff;border-radius:8px;padding:0 6px;margin-left:4px;">${sinLeer} nuevo</span>`:''}
-                </button>
+                <div style="font-size:12px; color:var(--text-muted); margin-bottom:5px;"><i class="ti ti-device-mobile"></i> ${escapeHtml(equipoTxt || 'Equipo')}</div>
+                ${falla ? `<div style="font-size:12px; color:#1e293b; background:#f8fafc; border-radius:8px; padding:6px 9px; margin-bottom:7px;"><b style="color:#dc2626;">Falla:</b> ${escapeHtml(falla)}</div>` : ''}
+                <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; font-size:11px;">
+                    <span style="${demorada?'color:#dc2626; font-weight:700;':'color:var(--text-muted);'}"><i class="ti ti-clock"></i> ${dias} día${dias===1?'':'s'}${demorada?' · ⚠️ demorada':''}</span>
+                    ${contacto ? `<a href="https://wa.me/${waDigits}" target="_blank" style="text-decoration:none; color:#16a34a; font-weight:600;"><i class="ti ti-brand-whatsapp"></i> ${escapeHtml(contacto)}</a>` : ''}
+                    <button onclick="abrirNotasOrden('${o.id}')" class="btn btn-light" style="font-size:11px; padding:4px 10px; margin-left:auto; ${sinLeer>0?'border-color:#fca5a5; color:#dc2626;':''}"><i class="ti ti-bell"></i> Notas${nNotas>0?` (${nNotas})`:''}${sinLeer>0?` <span style="background:#dc2626;color:#fff;border-radius:8px;padding:0 5px;">${sinLeer}</span>`:''}</button>
+                </div>
             </div>`;
         }).join('');
     }
     if(reacond.length) {
-        html += `<div style="font-size:13px; font-weight:700; margin:12px 0 8px; color:#d97706;">🔄 Reacondicionados (${reacond.length})</div>`;
-        html += reacond.map(e => `<div style="border:1px solid #e2e8f0; border-radius:10px; padding:10px; margin-bottom:6px; font-size:13px;">${escapeHtml((e.marca||'')+' '+(e.modelo||''))} · <span style="font-size:11px; color:#0891b2;">${escapeHtml(e.estado_evaluacion||'')}</span></div>`).join('');
+        listaOrdenes += `<div style="font-size:13px; font-weight:700; margin:12px 0 8px; color:#d97706;">🔄 Reacondicionados (${reacond.length})</div>`;
+        listaOrdenes += reacond.map(e => `<div style="border:1px solid #e2e8f0; border-radius:10px; padding:10px; margin-bottom:6px; font-size:13px;">${escapeHtml((e.marca||'')+' '+(e.modelo||''))} · <span style="font-size:11px; color:#0891b2;">${escapeHtml(e.estado_evaluacion||'')}</span></div>`).join('');
     }
-    if(!ordenes.length && !reacond.length) html = `<div style="color:var(--text-muted); text-align:center; padding:20px;">Este técnico no tiene trabajo activo.</div>`;
-    
-    abrirModalGenerico('👤 ' + escapeHtml(t.nombre), html);
+    if(!ordenes.length && !reacond.length) listaOrdenes = `<div style="color:var(--text-muted); text-align:center; padding:20px;">Este técnico no tiene trabajo activo.</div>`;
+
+    // ===== Modal propio (más amplio) =====
+    const prev = document.getElementById('modalDetalleTecnico');
+    if(prev) prev.remove();
+    const modal = document.createElement('div');
+    modal.id = 'modalDetalleTecnico';
+    modal.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:60; display:flex; align-items:center; justify-content:center; padding:16px; overflow-y:auto;';
+    modal.onclick = (e) => { if(e.target === modal) modal.remove(); };
+    modal.innerHTML = `<div style="background:#fff; border-radius:18px; padding:20px; max-width:640px; width:100%; max-height:88vh; overflow-y:auto; box-shadow:0 25px 60px -12px rgba(15,23,42,0.4);">
+        ${header}
+        ${bannerNotas}
+        ${notaBox}
+        ${resumen}
+        ${listaOrdenes}
+    </div>`;
+    document.body.appendChild(modal);
+}
+
+// Enviar una nota directa al técnico desde su módulo (servicio -> técnico)
+async function enviarNotaTecnicoTop(tecnicoId) {
+    const sel = document.getElementById('notatec_orden_' + tecnicoId);
+    const inp = document.getElementById('notatec_input_' + tecnicoId);
+    const ordenId = sel ? sel.value : '';
+    const msg = (inp?.value || '').trim();
+    if(!ordenId) return toast('Selecciona una orden para la nota.', 'error');
+    if(!msg) return;
+    try {
+        await supabaseClient.from('orden_notas').insert([{
+            orden_id: ordenId, mensaje: msg,
+            autor_id: sessionUser?.id || null,
+            autor_nombre: sessionUser?.nombre || 'Servicio',
+            autor_rol: 'servicio',
+            leida_servicio: true
+        }]);
+        if(inp) inp.value = '';
+        toast('✅ Nota enviada al técnico.', 'success');
+        await loadAll();
+        abrirDetalleTecnico(tecnicoId); // refrescar el módulo
+    } catch(e) { logError('Nota al técnico', e); toastError(getFriendlyError(e)); }
 }
 
 // Panel de carga de trabajo por técnico (dentro de Órdenes de Trabajo)
