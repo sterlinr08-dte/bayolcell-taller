@@ -2748,7 +2748,7 @@ function notificar(tipo, titulo, mensaje) {
     // Notificación del sistema (si la pestaña no está visible y hay permiso)
     try {
         if('Notification' in window && Notification.permission === 'granted' && document.hidden) {
-            const iconos = { orden: '🔔', pieza: '📦', finalizado: '✅' };
+            const iconos = { orden: '🔔', pieza: '📦', finalizado: '✅', nota: '💬' };
             new Notification(`${iconos[tipo] || '🔔'} ${titulo}`, { body: mensaje || '', tag: 'bayol-' + tipo });
         }
     } catch(e) { /* silencioso */ }
@@ -3459,6 +3459,8 @@ async function loadAll() {
         
         cache = nuevoCache;
         renderAll();
+        // Si el chat de notas está abierto, refrescarlo en vivo con los mensajes nuevos
+        if(typeof refrescarNotasModalAbierto === 'function') refrescarNotasModalAbierto();
     } catch(e) { logError('loadAll', e); toast(getFriendlyError(e, "Error cargando base de datos.")); }
 }
 
@@ -3557,6 +3559,24 @@ function detectarEventosYNotificar(prev, nuevo) {
             const ant = rfPrevEstado[e.id];
             if(ant && ant !== 'listo_venta' && e.estado_evaluacion === 'listo_venta') {
                 notificar('finalizado', 'Reacondicionado listo', `${e.marca || ''} ${e.modelo || ''} listo para venta`);
+            }
+        });
+
+        // 4) NOTA NUEVA en el chat de una orden (técnico <-> servicio)
+        const notasPrevIds = new Set((prev.ordenNotas || []).map(n => n.id));
+        (nuevo.ordenNotas || []).filter(n => !notasPrevIds.has(n.id)).forEach(n => {
+            if(n.autor_id && n.autor_id === miId) return; // no avisarle al autor de su propia nota
+            const o = (nuevo.ordenes || []).find(x => x.id === n.orden_id);
+            const num = o ? formatoOrden(o.numero_orden) : '';
+            const texto = `${n.autor_nombre || 'Mensaje'}: ${(n.mensaje || '').slice(0, 60)}${num ? ' · ' + num : ''}`;
+            if(n.autor_rol === 'tecnico') {
+                // Nota escrita por el técnico: la recibe servicio/admin
+                if(esAdmin || esServicio) notificar('nota', 'Nota del técnico', texto);
+            } else {
+                // Nota de servicio: la recibe el técnico asignado a esa orden
+                if(o && o.tecnico_asignado_id && o.tecnico_asignado_id === miId) {
+                    notificar('nota', 'Nota de servicio', texto);
+                }
             }
         });
     } catch(e) { /* silencioso, no romper loadAll */ }
@@ -7658,17 +7678,7 @@ async function agregarNotaOrden(ordenId) {
         // Refrescar el chat dentro del modal de notas
         const cont = document.getElementById('chatNotas_' + ordenId);
         if(cont) {
-            cont.innerHTML = notasDeOrden(ordenId).map(n => {
-                const esTec = n.autor_rol === 'tecnico';
-                const fecha = n.creado_en ? new Date(n.creado_en).toLocaleString('es-DO',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
-                return `<div style="display:flex; ${esTec ? 'justify-content:flex-start' : 'justify-content:flex-end'}; margin-bottom:6px;">
-                    <div style="max-width:80%; background:${esTec ? '#fef3c7' : '#dbeafe'}; border-radius:10px; padding:7px 10px;">
-                        <div style="font-size:10px; font-weight:700; color:${esTec ? '#92400e' : '#1e40af'};">${escapeHtml(n.autor_nombre || '')} ${esTec ? '🔧' : '🎧'}</div>
-                        <div style="font-size:13px; color:#1e293b; white-space:pre-wrap;">${escapeHtml(n.mensaje)}</div>
-                        <div style="font-size:9px; color:#94a3b8; text-align:right;">${fecha}</div>
-                    </div>
-                </div>`;
-            }).join('') || `<div style="font-size:12px; color:var(--text-muted); text-align:center; padding:10px;">Sin notas todavía.</div>`;
+            cont.innerHTML = notasMensajesHTML(ordenId);
             cont.scrollTop = cont.scrollHeight;
         }
     } catch(e) { logError('Agregar nota orden', e); toastError(getFriendlyError(e)); }
@@ -7680,9 +7690,11 @@ async function marcarNotasLeidas(ordenId) {
         (cache.ordenNotas || []).forEach(n => { if(n.orden_id === ordenId && n.autor_rol === 'tecnico') n.leida_servicio = true; });
     } catch(e) { logError('Marcar notas leídas', e); }
 }
-function construirChatNotas(ordenId) {
+// Dibuja los globos de mensajes de una orden (reutilizable: chat inicial, al enviar y al refrescar en vivo)
+function notasMensajesHTML(ordenId) {
     const notas = notasDeOrden(ordenId);
-    const mensajes = notas.length ? notas.map(n => {
+    if(!notas.length) return `<div style="font-size:12px; color:var(--text-muted); text-align:center; padding:10px;">Sin notas todavía.</div>`;
+    return notas.map(n => {
         const esTec = n.autor_rol === 'tecnico';
         const fecha = n.creado_en ? new Date(n.creado_en).toLocaleString('es-DO',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
         return `<div style="display:flex; ${esTec ? 'justify-content:flex-start' : 'justify-content:flex-end'}; margin-bottom:6px;">
@@ -7692,7 +7704,23 @@ function construirChatNotas(ordenId) {
                 <div style="font-size:9px; color:#94a3b8; text-align:right;">${fecha}</div>
             </div>
         </div>`;
-    }).join('') : `<div style="font-size:12px; color:var(--text-muted); text-align:center; padding:10px;">Sin notas todavía.</div>`;
+    }).join('');
+}
+// Si el chat de notas está abierto, refresca sus mensajes en vivo (lo llama loadAll tras cada recarga)
+function refrescarNotasModalAbierto() {
+    const cont = document.querySelector('#modalNotas [id^="chatNotas_"]');
+    if(!cont) return;
+    const ordenId = cont.id.replace('chatNotas_', '');
+    const cercaAbajo = cont.scrollHeight - cont.scrollTop - cont.clientHeight < 50;
+    cont.innerHTML = notasMensajesHTML(ordenId);
+    if(cercaAbajo) cont.scrollTop = cont.scrollHeight;
+    // Si quien mira es servicio/admin, marcar como leídas las notas nuevas del técnico
+    if((isAdminUser() || tienePermiso('recepcion_ver')) && notasDeOrden(ordenId).some(n => n.autor_rol === 'tecnico' && !n.leida_servicio)) {
+        marcarNotasLeidas(ordenId).then(() => { if(typeof renderCargaTecnicos==='function') renderCargaTecnicos(); });
+    }
+}
+function construirChatNotas(ordenId) {
+    const mensajes = notasMensajesHTML(ordenId);
     return `
         <div id="chatNotas_${ordenId}" style="max-height:240px; overflow-y:auto; background:#f8fafc; border-radius:10px; padding:10px; margin-bottom:8px;">${mensajes}</div>
         <div style="display:flex; gap:6px;">
