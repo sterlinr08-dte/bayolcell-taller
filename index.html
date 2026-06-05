@@ -8780,10 +8780,11 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
             // Orden finalizada: solo servicio al cliente y admin pueden actuar (el técnico no hace nada)
             acciones += `<button class="btn btn-blue" style="font-size:12px; padding:6px 12px;" onclick="marcarEntregadoConGarantia('${o.id}')"><i class="ti ti-package"></i> Marcar Entregado</button>`;
             // Volver a proceso solo admin (corrección de errores)
-            if(esAdmin) acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-rotate"></i> Volver a proceso</button>`;
+            if(esAdmin) acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px;" onclick="reabrirOrdenProceso('${o.id}')"><i class="ti ti-rotate"></i> Volver a proceso</button>`;
         } else if(estado === 'finalizado') {
-            // Técnico viendo una orden finalizada: solo informativo, no puede hacer nada
+            // Técnico viendo una orden finalizada: informativa + puede reabrirla si su equipo sigue fallando
             acciones += `<span class="badge" style="background:#dcfce7; color:#166534; font-size:11px;">✓ Finalizada · esperando entrega</span>`;
+            if(esMia) acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#92400e;" onclick="reabrirOrdenProceso('${o.id}')"><i class="ti ti-rotate"></i> Volver a proceso</button>`;
         } else if(estado === 'entregado') {
             // Reabrir por garantía (si está dentro del plazo) — solo admin/servicio
             const puedeReabrir = esAdmin || tienePermiso('recepcion_ver');
@@ -9730,6 +9731,19 @@ async function cambiarEstadoOrdenUI(ordenId, nuevoEstado) {
     await avanzarEstadoOrden(ordenId, nuevoEstado);
 }
 
+// Reabre una orden FINALIZADA y la devuelve a EN PROCESO.
+// La usa el técnico asignado (o admin) cuando detecta que el equipo sigue fallando.
+async function reabrirOrdenProceso(ordenId) {
+    const orden = (cache.ordenes || []).find(o => o.id === ordenId);
+    if(!orden) return toast('Orden no encontrada.', 'error');
+    // Anti juez-y-parte: solo el técnico asignado o un admin
+    if(!isAdminUser() && orden.tecnico_asignado_id !== sessionUser?.id) {
+        return toast('Solo el técnico asignado (o un administrador) puede reabrir esta orden.', 'error');
+    }
+    if(!await confirmar('¿Volver esta orden a EN PROCESO?\n\nÚsalo si el equipo sigue fallando y necesitas seguir trabajándolo. Podrás agregar tareas o piezas y finalizarla de nuevo.', {peligro:false, ok:'Sí, volver a proceso'})) return;
+    await avanzarEstadoOrden(ordenId, 'en_proceso');
+}
+
 // Marca/quita la prioridad URGENTE de una orden
 async function togglePrioridadOrden(ordenId) {
     const orden = (cache.ordenes || []).find(o => o.id === ordenId);
@@ -10038,7 +10052,9 @@ async function avanzarEstadoOrden(ordenId, nuevoEstado, nota, solucion) {
     // Validar que solo avance (no retroceda), salvo cancelar o resolver estados temporales
     const estadosTemporales = ['espera_repuesto', 'pendiente_cliente'];
     const esResolverTemporal = estadosTemporales.includes(actual) && nuevoEstado === 'en_proceso';
-    if(nuevoEstado !== 'cancelado' && !esResolverTemporal) {
+    // Reabrir una orden finalizada (el técnico detectó que el equipo sigue fallando) vuelve a proceso
+    const esReabrirFinalizado = actual === 'finalizado' && nuevoEstado === 'en_proceso';
+    if(nuevoEstado !== 'cancelado' && !esResolverTemporal && !esReabrirFinalizado) {
         const iActual = ORDEN_FLUJO.indexOf(actual);
         const iNuevo = ORDEN_FLUJO.indexOf(nuevoEstado);
         if(iNuevo !== -1 && iActual !== -1 && iNuevo < iActual) {
@@ -10050,6 +10066,8 @@ async function avanzarEstadoOrden(ordenId, nuevoEstado, nota, solucion) {
         if(typeof nota === 'string') upd.nota_estado = nota || null;
         // Al resolver un estado temporal, limpiar la nota
         if(esResolverTemporal) upd.nota_estado = null;
+        // Al reabrir una orden finalizada, limpiar la fecha de finalización (ya no está finalizada)
+        if(esReabrirFinalizado) upd.fecha_finalizado = null;
         if(nuevoEstado === 'finalizado') {
             upd.fecha_finalizado = new Date().toISOString();
             if(typeof solucion === 'string' && solucion) upd.solucion_aplicada = solucion;
