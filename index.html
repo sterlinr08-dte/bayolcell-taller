@@ -722,9 +722,12 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                         <button class="btn btn-light" onclick="renderFinanciamientos()" style="font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
                     </div>
                 </div>
-                <div style="display:flex; gap:8px; margin-bottom:14px;">
-                    <button id="finTabSolicitudes" onclick="finCambiarTab('solicitudes')"><i class="ti ti-file-text"></i> Solicitudes</button>
-                    <button id="finTabFinanciamientos" onclick="finCambiarTab('financiamientos')"><i class="ti ti-cash"></i> Financiamientos</button>
+                <div style="display:flex; gap:8px; margin-bottom:14px; overflow-x:auto; padding-bottom:4px;">
+                    <button id="finTabSolicitudes" onclick="finCambiarTab('solicitudes')" style="white-space:nowrap;"><i class="ti ti-file-text"></i> Solicitudes</button>
+                    <button id="finTabFinanciamientos" onclick="finCambiarTab('financiamientos')" style="white-space:nowrap;"><i class="ti ti-cash"></i> Financiamientos</button>
+                    <button id="finTabClientes" onclick="finCambiarTab('clientes')" style="white-space:nowrap;"><i class="ti ti-users"></i> Clientes</button>
+                    <button id="finTabCobros" onclick="finCambiarTab('cobros')" style="white-space:nowrap;"><i class="ti ti-calendar-due"></i> Cobros</button>
+                    <button id="finTabReportes" onclick="finCambiarTab('reportes')" style="white-space:nowrap;"><i class="ti ti-chart-bar"></i> Reportes</button>
                 </div>
                 <div id="finKpis" class="kpi-row" style="margin-bottom:16px;"></div>
                 <div id="finContenido"></div>
@@ -12469,16 +12472,19 @@ function finCambiarTab(tab) {
     _pintarTabFin();
 }
 function _pintarTabFin() {
-    // Resaltar pestaña activa
-    const ts = document.getElementById('finTabSolicitudes');
-    const tf = document.getElementById('finTabFinanciamientos');
+    const tabs = { solicitudes: 'finTabSolicitudes', financiamientos: 'finTabFinanciamientos', clientes: 'finTabClientes', cobros: 'finTabCobros', reportes: 'finTabReportes' };
     const act = 'background:#16a34a; color:#fff; font-weight:700;';
     const ina = 'background:#f1f5f9; color:#475569;';
-    if(ts) ts.style.cssText = 'border:0; border-radius:8px; padding:8px 16px; cursor:pointer; font-size:13px; ' + (_finTab === 'solicitudes' ? act : ina);
-    if(tf) tf.style.cssText = 'border:0; border-radius:8px; padding:8px 16px; cursor:pointer; font-size:13px; ' + (_finTab === 'financiamientos' ? act : ina);
+    Object.keys(tabs).forEach(k => {
+        const el = document.getElementById(tabs[k]);
+        if(el) el.style.cssText = 'border:0; border-radius:8px; padding:8px 16px; cursor:pointer; font-size:13px; white-space:nowrap; ' + (_finTab === k ? act : ina);
+    });
     const btnNuevo = document.getElementById('btnNuevaSolicitud');
     if(btnNuevo) btnNuevo.style.display = (_finTab === 'solicitudes' && (isAdminUser() || tienePermiso('financiamientos_crear'))) ? '' : 'none';
     if(_finTab === 'solicitudes') _pintarSolicitudes();
+    else if(_finTab === 'clientes') _pintarClientes();
+    else if(_finTab === 'cobros') _pintarCobros();
+    else if(_finTab === 'reportes') _pintarReportes();
     else _pintarFinanciamientos();
 }
 function _pintarFinanciamientos() {
@@ -13163,6 +13169,198 @@ function imprimirEstadoCuentaFin(finId) {
         <h3>Abonos</h3>
         <table><thead><tr><th>Recibo</th><th>Fecha</th><th style="text-align:right;">Monto</th></tr></thead><tbody>${pagosHtml}</tbody></table>`;
     _finAbrirImpresion('Estado de cuenta #' + (f.codigo || ''), cuerpo);
+}
+
+// ============================================================
+//   PESTAÑA CLIENTES (de financiamiento)
+// ============================================================
+let _cliDetalleId = null;
+let _cliBusqueda = '';
+function finFinanciamientosDeCliente(clienteId) {
+    return (_finCache.financiamientos || []).filter(f => f.fin_cliente_id === clienteId);
+}
+function _pintarClientes() {
+    if(_cliDetalleId) { _pintarFichaCliente(); return; }
+    const kpis = document.getElementById('finKpis');
+    const cont = document.getElementById('finContenido');
+    if(!cont) return;
+    const clientes = _finCache.clientes || [];
+    const conActivo = clientes.filter(c => finFinanciamientosDeCliente(c.id).some(f => ['activo', 'atrasado'].includes(finEstado(f))));
+    if(kpis) {
+        const kpi = (label, val, color, icon) => `<div class="kpi-box" style="border-top-color:${color};"><small>${label}</small><strong>${val}</strong><i class="ti ${icon}"></i></div>`;
+        kpis.innerHTML = kpi('Clientes', clientes.length, '#0891b2', 'ti-users') + kpi('Con financiamiento activo', conActivo.length, '#16a34a', 'ti-user-check');
+    }
+    let html = `<div class="card" style="margin-bottom:14px;">
+        <input id="cliBuscador" oninput="_cliBusqueda=this.value; _pintarListaCli()" value="${escapeHtml(_cliBusqueda)}" placeholder="🔍 Buscar por nombre, cédula o teléfono..." style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
+        <div id="cliLista" style="margin-top:12px;"></div>
+    </div>`;
+    cont.innerHTML = html;
+    _pintarListaCli();
+}
+function _pintarListaCli() {
+    const cont = document.getElementById('cliLista');
+    if(!cont) return;
+    let lista = (_finCache.clientes || []).slice().sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+    const q = (_cliBusqueda || '').trim().toLowerCase();
+    if(q) lista = lista.filter(c => `${c.nombre || ''} ${c.apellido || ''}`.toLowerCase().includes(q) || (c.cedula || '').toLowerCase().includes(q) || (c.telefono || '').toLowerCase().includes(q));
+    if(!lista.length) { cont.innerHTML = `<div style="color:var(--text-muted); font-size:13px;">No hay clientes registrados.</div>`; return; }
+    cont.innerHTML = lista.map(c => {
+        const fins = finFinanciamientosDeCliente(c.id);
+        const saldo = fins.reduce((s, f) => s + finSaldo(f), 0);
+        const activos = fins.filter(f => ['activo', 'atrasado'].includes(finEstado(f))).length;
+        return `<div style="border:1px solid #e2e8f0; border-radius:12px; padding:12px; margin-bottom:10px; background:#fff; display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+            <div style="min-width:0;">
+                <div style="font-weight:700; font-size:14px;">${escapeHtml(`${c.nombre || ''} ${c.apellido || ''}`.trim())}</div>
+                <div style="font-size:12px; color:var(--text-muted);">${c.cedula ? '🪪 ' + escapeHtml(c.cedula) + ' · ' : ''}${c.telefono ? '📞 ' + escapeHtml(c.telefono) : ''}</div>
+                <div style="font-size:12px; color:var(--text-muted);">${fins.length} financiamiento(s)${activos ? ' · ' + activos + ' activo(s)' : ''}${saldo > 0 ? ' · Saldo ' + money(saldo) : ''}</div>
+            </div>
+            <button class="btn btn-blue" onclick="verFinCliente('${c.id}')" style="font-size:12px;"><i class="ti ti-id"></i> Ficha</button>
+        </div>`;
+    }).join('');
+}
+function verFinCliente(id) { _cliDetalleId = id; _finTab = 'clientes'; _pintarTabFin(); }
+function volverListaCli() { _cliDetalleId = null; _pintarClientes(); }
+function _pintarFichaCliente() {
+    const cont = document.getElementById('finContenido');
+    const kpis = document.getElementById('finKpis');
+    if(kpis) kpis.innerHTML = '';
+    const c = finClienteDe(_cliDetalleId);
+    if(!c) { volverListaCli(); return; }
+    const refs = finReferenciasDe(c.id);
+    const fins = finFinanciamientosDeCliente(c.id);
+    const dato = (label, val) => `<div style="font-size:12.5px;"><span style="color:var(--text-muted);">${label}:</span> <b>${escapeHtml(val || '—')}</b></div>`;
+    let html = `<button class="btn btn-light" onclick="volverListaCli()" style="font-size:12px; margin-bottom:12px;"><i class="ti ti-arrow-left"></i> Volver a clientes</button>`;
+    html += `<div class="card" style="margin-bottom:14px;">
+        <h3 style="margin:0 0 10px; font-size:16px;"><i class="ti ti-user" style="color:#0891b2;"></i> ${escapeHtml(`${c.nombre || ''} ${c.apellido || ''}`.trim())}</h3>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:8px;">
+            ${dato('Cédula', c.cedula)}${dato('Teléfono', c.telefono)}${dato('Dirección', c.direccion)}
+            ${dato('Lugar de trabajo', c.lugar_trabajo)}${dato('Ocupación', c.ocupacion)}${dato('Tiempo laborando', c.tiempo_laborando)}
+            ${dato('Ingreso mensual', c.ingreso_mensual ? money(c.ingreso_mensual) : '—')}
+        </div>
+        ${refs.length ? '<div style="margin-top:10px;"><b style="font-size:12.5px;">Referencias:</b>' + refs.map(r => `<div style="font-size:12.5px; color:var(--text-muted);">• ${escapeHtml(r.nombre)}${r.parentesco ? ' (' + escapeHtml(r.parentesco) + ')' : ''}${r.telefono ? ' · ' + escapeHtml(r.telefono) : ''}</div>`).join('') + '</div>' : ''}
+    </div>`;
+    html += `<div class="card" style="margin-bottom:14px;"><h3 style="margin:0 0 10px; font-size:14px;"><i class="ti ti-cash" style="color:#16a34a;"></i> Financiamientos (${fins.length})</h3>`;
+    if(fins.length) {
+        html += fins.map(f => `<div style="border:1px solid #e2e8f0; border-radius:10px; padding:10px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+            <div><div style="font-weight:600; font-size:13px;">#${f.codigo} · ${escapeHtml(f.concepto || '')}</div><div style="font-size:12px; color:var(--text-muted);">Saldo ${money(finSaldo(f))} · ${finBadge(finEstado(f))}</div></div>
+            <button class="btn btn-light" onclick="verFinanciamiento('${f.id}')" style="font-size:12px;"><i class="ti ti-eye"></i> Ver</button>
+        </div>`).join('');
+    } else { html += `<div style="color:var(--text-muted); font-size:13px;">Sin financiamientos.</div>`; }
+    html += `</div>`;
+    cont.innerHTML = html;
+}
+
+// ============================================================
+//   PESTAÑA COBROS (agenda + morosidad)
+// ============================================================
+let _cobrosFiltro = 'atrasados';   // atrasados | hoy | semana | mes
+function finCuotasPendientes() {
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const res = [];
+    (_finCache.financiamientos || []).forEach(f => {
+        const est = finEstado(f);
+        if(est === 'saldado' || est === 'cancelado') return;
+        finCronograma(f).forEach(c => {
+            if(c.cubierta) return;
+            const dias = Math.round((hoy - c.vence) / 86400000); // >0 = atraso, <0 = faltan
+            res.push({ f, cuota: c, dias });
+        });
+    });
+    return res.sort((a, b) => a.cuota.vence - b.cuota.vence);
+}
+function _pintarCobros() {
+    const kpis = document.getElementById('finKpis');
+    const cont = document.getElementById('finContenido');
+    if(!cont) return;
+    const todas = finCuotasPendientes();
+    const atrasadas = todas.filter(x => x.dias > 0);
+    const hoyC = todas.filter(x => x.dias === 0);
+    const totalAtraso = atrasadas.reduce((s, x) => s + x.cuota.pendiente, 0);
+    if(kpis) {
+        const kpi = (label, val, color, icon) => `<div class="kpi-box" style="border-top-color:${color};"><small>${label}</small><strong>${val}</strong><i class="ti ${icon}"></i></div>`;
+        kpis.innerHTML = kpi('Vencen hoy', hoyC.length, '#b45309', 'ti-calendar-due') + kpi('Atrasadas', atrasadas.length, '#b91c1c', 'ti-alert-triangle') + kpi('Monto en atraso', money(totalAtraso), '#dc2626', 'ti-cash');
+    }
+    const filtros = { atrasados: '⚠️ Atrasados', hoy: '📅 Vencen hoy', semana: '7 días', mes: '30 días' };
+    let html = `<div class="card" style="margin-bottom:14px;">
+        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
+            ${Object.keys(filtros).map(k => `<button class="btn btn-light" onclick="_cobrosFiltro='${k}'; _pintarCobros()" style="font-size:12px; ${_cobrosFiltro === k ? 'background:#dcfce7; color:#15803d; font-weight:700;' : ''}">${filtros[k]}</button>`).join('')}
+        </div>
+        <div id="cobrosLista"></div>
+    </div>`;
+    cont.innerHTML = html;
+    let lista;
+    if(_cobrosFiltro === 'atrasados') lista = atrasadas;
+    else if(_cobrosFiltro === 'hoy') lista = hoyC;
+    else if(_cobrosFiltro === 'semana') lista = todas.filter(x => x.dias >= -7);
+    else lista = todas.filter(x => x.dias >= -30);
+    const cont2 = document.getElementById('cobrosLista');
+    if(!lista.length) { cont2.innerHTML = `<div style="color:var(--text-muted); font-size:13px;">Nada por cobrar en esta vista. 🎉</div>`; return; }
+    cont2.innerHTML = lista.map(x => {
+        const etiqueta = x.dias > 0 ? `<span style="color:#b91c1c; font-weight:700;">🔴 ${x.dias} día(s) de atraso</span>` : (x.dias === 0 ? `<span style="color:#b45309; font-weight:700;">📅 Vence hoy</span>` : `<span style="color:#64748b;">Faltan ${Math.abs(x.dias)} día(s)</span>`);
+        return `<div style="border:1px solid #e2e8f0; border-radius:10px; padding:10px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+            <div style="min-width:0;">
+                <div style="font-weight:700; font-size:13px;">${escapeHtml(x.f.cliente_nombre || '')} <span style="color:#94a3b8;">#${x.f.codigo}</span></div>
+                <div style="font-size:12px; color:var(--text-muted);">${escapeHtml(x.f.concepto || '')} · Cuota ${x.cuota.num}/${x.f.num_cuotas} · Vence ${_finFmtFecha(x.cuota.vence)}</div>
+                <div style="font-size:12px;">${etiqueta} · Pendiente: <b>${money(x.cuota.pendiente)}</b></div>
+            </div>
+            <button class="btn btn-blue" onclick="verFinanciamiento('${x.f.id}')" style="font-size:12px;"><i class="ti ti-cash"></i> Cobrar</button>
+        </div>`;
+    }).join('');
+}
+
+// ============================================================
+//   PESTAÑA REPORTES (caja + cartera)
+// ============================================================
+function _pintarReportes() {
+    const kpis = document.getElementById('finKpis');
+    const cont = document.getElementById('finContenido');
+    if(!cont) return;
+    if(kpis) kpis.innerHTML = '';
+    const fins = _finCache.financiamientos || [];
+    const pagos = _finCache.pagos || [];
+    const ahora = new Date();
+    const hoyStr = ahora.toDateString();
+    const inicioSemana = new Date(ahora); inicioSemana.setDate(ahora.getDate() - ahora.getDay());
+    const sumaPagos = (filtro) => pagos.filter(filtro).reduce((s, p) => s + Number(p.monto || 0), 0);
+    const cobradoHoy = sumaPagos(p => new Date(p.creado_en).toDateString() === hoyStr);
+    const cobradoSemana = sumaPagos(p => new Date(p.creado_en) >= inicioSemana);
+    const cobradoMes = sumaPagos(p => { const d = new Date(p.creado_en); return d.getMonth() === ahora.getMonth() && d.getFullYear() === ahora.getFullYear(); });
+    const porMetodo = { efectivo: 0, transferencia: 0, tarjeta: 0 };
+    pagos.filter(p => { const d = new Date(p.creado_en); return d.getMonth() === ahora.getMonth() && d.getFullYear() === ahora.getFullYear(); }).forEach(p => { porMetodo[p.metodo] = (porMetodo[p.metodo] || 0) + Number(p.monto || 0); });
+    // Cartera
+    const activos = fins.filter(f => ['activo', 'atrasado'].includes(finEstado(f)));
+    const totalFinanciado = fins.reduce((s, f) => s + finFinanciado(f), 0);
+    const totalCobrado = fins.reduce((s, f) => s + finAbonado(f), 0);
+    const porCobrar = activos.reduce((s, f) => s + finSaldo(f), 0);
+    const atrasados = fins.filter(f => finEstado(f) === 'atrasado');
+    const saldados = fins.filter(f => finEstado(f) === 'saldado').length;
+    const morosidad = activos.length ? Math.round(atrasados.length / activos.length * 100) : 0;
+    const fila = (l, v) => `<tr><td>${l}</td><td style="text-align:right; font-weight:600;">${v}</td></tr>`;
+    cont.innerHTML = `
+        <div class="card" style="margin-bottom:14px;">
+            <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-cash" style="color:#16a34a;"></i> Caja (cobrado)</h3>
+            <div class="kpi-row">
+                <div class="kpi-box" style="border-top-color:#16a34a;"><small>Hoy</small><strong>${money(cobradoHoy)}</strong></div>
+                <div class="kpi-box" style="border-top-color:#0891b2;"><small>Esta semana</small><strong>${money(cobradoSemana)}</strong></div>
+                <div class="kpi-box" style="border-top-color:#7c3aed;"><small>Este mes</small><strong>${money(cobradoMes)}</strong></div>
+            </div>
+            <div class="table-wrap" style="margin-top:8px;"><table><tbody>
+                ${fila('💵 Efectivo (mes)', money(porMetodo.efectivo))}
+                ${fila('🏦 Transferencia (mes)', money(porMetodo.transferencia))}
+                ${fila('💳 Tarjeta (mes)', money(porMetodo.tarjeta))}
+            </tbody></table></div>
+        </div>
+        <div class="card" style="margin-bottom:14px;">
+            <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-wallet" style="color:#0891b2;"></i> Cartera</h3>
+            <div class="table-wrap"><table><tbody>
+                ${fila('Financiamientos activos', activos.length)}
+                ${fila('Total financiado (histórico)', money(totalFinanciado))}
+                ${fila('Total cobrado (abonos)', money(totalCobrado))}
+                ${fila('Por cobrar (saldo activo)', money(porCobrar))}
+                ${fila('Saldados', saldados)}
+                ${fila('En atraso', `${atrasados.length} <span style="color:#b91c1c;">(${morosidad}% morosidad)</span>`)}
+            </tbody></table></div>
+        </div>`;
 }
 
 const saved = localStorage.getItem("bayol_session");
