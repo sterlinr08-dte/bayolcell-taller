@@ -719,7 +719,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                     <h2 style="margin:0;"><i class="ti ti-cash" style="color:#16a34a;"></i> Financiamientos</h2>
                     <div style="display:flex; gap:6px;">
                         <button class="btn btn-blue" id="btnNuevaSolicitud" onclick="abrirModalNuevaSolicitud()" style="font-size:12px;"><i class="ti ti-plus"></i> Nueva solicitud</button>
-                        <button class="btn btn-light" id="btnConfigFin" onclick="abrirConfigFinanciamiento()" style="font-size:12px;" title="Configuración (abogado/contrato)"><i class="ti ti-settings"></i></button>
+                        <button class="btn btn-light" id="btnConfigFin" onclick="finCambiarTab('config')" style="font-size:12px;" title="Configuración (abogado/contrato)"><i class="ti ti-settings"></i></button>
                         <button class="btn btn-light" onclick="renderFinanciamientos()" style="font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
                     </div>
                 </div>
@@ -729,6 +729,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                     <button id="finTabClientes" onclick="finCambiarTab('clientes')" style="white-space:nowrap;"><i class="ti ti-users"></i> Clientes</button>
                     <button id="finTabCobros" onclick="finCambiarTab('cobros')" style="white-space:nowrap;"><i class="ti ti-calendar-due"></i> Cobros</button>
                     <button id="finTabReportes" onclick="finCambiarTab('reportes')" style="white-space:nowrap;"><i class="ti ti-chart-bar"></i> Reportes</button>
+                    <button id="finTabConfig" onclick="finCambiarTab('config')" style="white-space:nowrap;"><i class="ti ti-settings"></i> Configuración</button>
                 </div>
                 <div id="finKpis" class="kpi-row" style="margin-bottom:16px;"></div>
                 <div id="finContenido"></div>
@@ -12496,19 +12497,23 @@ function finCambiarTab(tab) {
     _pintarTabFin();
 }
 function _pintarTabFin() {
-    const tabs = { solicitudes: 'finTabSolicitudes', financiamientos: 'finTabFinanciamientos', clientes: 'finTabClientes', cobros: 'finTabCobros', reportes: 'finTabReportes' };
+    const tabs = { solicitudes: 'finTabSolicitudes', financiamientos: 'finTabFinanciamientos', clientes: 'finTabClientes', cobros: 'finTabCobros', reportes: 'finTabReportes', config: 'finTabConfig' };
     const act = 'background:#16a34a; color:#fff; font-weight:700;';
     const ina = 'background:#f1f5f9; color:#475569;';
     Object.keys(tabs).forEach(k => {
         const el = document.getElementById(tabs[k]);
         if(el) el.style.cssText = 'border:0; border-radius:8px; padding:8px 16px; cursor:pointer; font-size:13px; white-space:nowrap; ' + (_finTab === k ? act : ina);
     });
+    // La pestaña de configuración solo para admin / permiso
+    const cfgTab = document.getElementById('finTabConfig');
+    if(cfgTab) cfgTab.style.display = (isAdminUser() || tienePermiso('config_ver') || tienePermiso('financiamientos_aprobar')) ? '' : 'none';
     const btnNuevo = document.getElementById('btnNuevaSolicitud');
     if(btnNuevo) btnNuevo.style.display = (_finTab === 'solicitudes' && (isAdminUser() || tienePermiso('financiamientos_crear'))) ? '' : 'none';
     if(_finTab === 'solicitudes') _pintarSolicitudes();
     else if(_finTab === 'clientes') _pintarClientes();
     else if(_finTab === 'cobros') _pintarCobros();
     else if(_finTab === 'reportes') _pintarReportes();
+    else if(_finTab === 'config') _pintarConfigFin();
     else _pintarFinanciamientos();
 }
 function _pintarFinanciamientos() {
@@ -12871,6 +12876,10 @@ function abrirModalNuevaSolicitud() {
     const clientes = (_finCache.clientes || []).slice().sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
     const opciones = clientes.map(c => `<option value="${c.id}">${escapeHtml(`${c.nombre || ''} ${c.apellido || ''}`.trim())}${c.cedula ? ' — ' + escapeHtml(c.cedula) : ''}</option>`).join('');
     const hoyISO = new Date().toISOString().slice(0, 10);
+    const mcfg = _finCache.config || {};
+    const moraTipoDef = mcfg.mora_tipo_def || 'ninguna';
+    const moraValorDef = mcfg.mora_valor_def || 0;
+    const moraSel = t => moraTipoDef === t ? ' selected' : '';
     const html = `
         ${clientes.length ? `<div class="form-row"><label>Cliente existente (opcional)</label>
             <select id="solClienteExistente" onchange="_solPrefillCliente()"><option value="">— Cliente nuevo —</option>${opciones}</select>
@@ -12918,8 +12927,8 @@ function abrirModalNuevaSolicitud() {
         </div>
         <div class="form-row"><label>Fecha de inicio (al aprobar)</label><input type="date" id="solFechaInicio" value="${hoyISO}"></div>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
-            <div class="form-row" style="flex:1; min-width:140px;"><label>Mora por atraso</label><select id="solMoraTipo" onchange="_solMoraLabel()"><option value="ninguna">Sin mora</option><option value="porcentaje">% de la cuota</option><option value="fijo">Monto fijo (RD$)</option></select></div>
-            <div class="form-row" style="flex:1; min-width:120px;"><label id="solMoraValorLbl">Valor</label><input type="number" id="solMoraValor" min="0" step="0.01" value="0"></div>
+            <div class="form-row" style="flex:1; min-width:140px;"><label>Mora por atraso</label><select id="solMoraTipo" onchange="_solMoraLabel()"><option value="ninguna"${moraSel('ninguna')}>Sin mora</option><option value="porcentaje"${moraSel('porcentaje')}>% de la cuota</option><option value="fijo"${moraSel('fijo')}>Monto fijo (RD$)</option></select></div>
+            <div class="form-row" style="flex:1; min-width:120px;"><label id="solMoraValorLbl">Valor</label><input type="number" id="solMoraValor" min="0" step="0.01" value="${moraValorDef}"></div>
         </div>
         <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:10px; margin-bottom:12px; font-size:13px;">
             Monto a financiar: <b id="solFinanciadoPrev">RD$ 0.00</b><br>
@@ -12931,7 +12940,7 @@ function abrirModalNuevaSolicitud() {
             <button class="btn btn-blue" onclick="guardarSolicitud()"><i class="ti ti-device-floppy"></i> Guardar solicitud</button>
         </div>`;
     abrirModalGenerico('Nueva solicitud de financiamiento', html);
-    setTimeout(_solRecalcCuota, 30);
+    setTimeout(() => { _solRecalcCuota(); _solMoraLabel(); }, 30);
 }
 function _solPrefillCliente() {
     const id = document.getElementById('solClienteExistente')?.value;
@@ -13156,7 +13165,7 @@ function _finAbrirImpresion(titulo, cuerpo) {
         </style></head><body>
         ${cuerpo}
         <hr>
-        <div class="muted" style="text-align:center;">${escapeHtml((cache.configTaller || {}).pie || 'Gracias por su pago')}</div>
+        <div class="muted" style="text-align:center;">${escapeHtml((_finCache.config && _finCache.config.recibo_pie) || (cache.configTaller || {}).pie || 'Gracias por su pago')}</div>
         <div style="text-align:center; margin-top:14px;"><button onclick="window.print()" style="padding:8px 16px; font-size:14px; cursor:pointer;">🖨️ Imprimir</button></div>
         </body></html>`);
     w.document.close();
@@ -13581,16 +13590,10 @@ function imprimirContratoFin(finId) {
         <div style="text-align:center;">
             <h1>${escapeHtml(c.nombre || 'BAYOL CELL')}</h1>
             ${c.direccion ? `<div class="muted">${escapeHtml(c.direccion)}</div>` : ''}${c.telefono ? `<div class="muted">Tel: ${escapeHtml(c.telefono)}</div>` : ''}
-            <h2 style="border:0; text-align:center;">CONTRATO DE VENTA CONDICIONAL CON FINANCIAMIENTO Y RECONOCIMIENTO DE DEUDA</h2>
+            <h2 style="border:0; text-align:center;">${escapeHtml(cfg.contrato_titulo || FIN_CONTRATO_TITULO_DEF)}</h2>
         </div>
-        <p class="clausula">Entre <b>${escapeHtml(c.nombre || 'la empresa')}</b>${c.direccion ? ', con domicilio en ' + escapeHtml(c.direccion) : ''} (EL ACREEDOR), y <b>${escapeHtml(f.cliente_nombre || '')}</b>, dominicano(a), mayor de edad, portador(a) de la cédula de identidad No. <b>${escapeHtml(f.cliente_cedula || '__________')}</b>${f.cliente_telefono ? ', teléfono ' + escapeHtml(f.cliente_telefono) : ''} (EL DEUDOR), se ha convenido y pactado lo siguiente:</p>
-        <p class="clausula"><b>PRIMERO (Objeto):</b> EL ACREEDOR vende a EL DEUDOR, mediante financiamiento, el siguiente bien: <b>${escapeHtml(f.concepto || '')}</b>${f.equipo_imei ? ', IMEI ' + escapeHtml(f.equipo_imei) : ''}, por un precio total de <b>${money(f.monto_total)}</b>.</p>
-        <p class="clausula"><b>SEGUNDO (Forma de pago):</b> EL DEUDOR pagó una inicial de <b>${money(f.inicial)}</b> y se obliga a pagar el saldo de <b>${money(fin)}</b> en <b>${f.num_cuotas} cuotas ${_finFrecAdj(f.frecuencia)}</b> de <b>${money(f.valor_cuota)}</b> cada una, conforme al calendario anexo, iniciando el <b>${fechaInicioTxt}</b>.</p>
-        <p class="clausula"><b>TERCERO (Mora):</b> El atraso en el pago de cualquier cuota generará un recargo por mora de <b>${f.mora_tipo && f.mora_tipo !== 'ninguna' ? finMoraTxt(f) : 'el monto que las partes acuerden'}</b>.</p>
-        <p class="clausula"><b>CUARTO (Vencimiento anticipado):</b> La falta de pago de las cuotas dará derecho a EL ACREEDOR a exigir la totalidad del saldo pendiente y/o la devolución del bien financiado, sin necesidad de previo aviso.</p>
-        <p class="clausula"><b>QUINTO (Reserva de dominio):</b> El bien permanece en garantía y propiedad de EL ACREEDOR hasta el pago total de la deuda.</p>
-        <p class="clausula"><b>SEXTO (Reconocimiento y evidencia):</b> EL DEUDOR reconoce la presente deuda y la valida mediante su firma${f.video_url ? ' y declaración grabada en video que reposa en archivo' : ''}.</p>
-        ${cfg.clausulas_extra ? `<p class="clausula"><b>SÉPTIMO:</b> ${escapeHtml(cfg.clausulas_extra)}</p>` : ''}
+        ${_finContratoParrafos(f)}
+        ${cfg.clausulas_extra ? `<p class="clausula">${escapeHtml(cfg.clausulas_extra)}</p>` : ''}
         <h2>Calendario de cuotas</h2>
         <table><thead><tr><th>#</th><th>Vence</th><th style="text-align:right;">Monto</th></tr></thead><tbody>${crono}</tbody></table>
         ${(cedFrente || cedDorso) ? `<h2>Cédula del deudor</h2><div class="ced">${cedFrente ? `<img src="${cedFrente.url}">` : ''}${cedDorso ? `<img src="${cedDorso.url}">` : ''}</div>` : ''}
@@ -13693,41 +13696,119 @@ async function _finSubirDoc(input, tipo, clienteId, finId, refId) {
 // ============================================================
 //   CONFIGURACIÓN DEL MÓDULO (credenciales del abogado)
 // ============================================================
-function abrirConfigFinanciamiento() {
-    if(!(isAdminUser() || tienePermiso('config_ver') || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso.', 'error'); return; }
-    const cfg = _finCache.config || {};
-    const html = `
-        <p style="font-size:12.5px; color:var(--text-muted); margin-top:0;">Estos datos saldrán impresos en el contrato (legalización de firmas).</p>
-        <div class="form-row"><label>Nombre del abogado / notario</label><input type="text" id="cfgAbgNombre" value="${escapeHtml(cfg.abogado_nombre || '')}"></div>
-        <div class="form-row"><label>Título</label><input type="text" id="cfgAbgTitulo" value="${escapeHtml(cfg.abogado_titulo || 'Abogado Notario Público')}"></div>
-        <div style="display:flex; gap:10px; flex-wrap:wrap;">
-            <div class="form-row" style="flex:1; min-width:130px;"><label>Matrícula / Colegiatura No.</label><input type="text" id="cfgAbgMatricula" value="${escapeHtml(cfg.abogado_matricula || '')}"></div>
-            <div class="form-row" style="flex:1; min-width:130px;"><label>Municipio</label><input type="text" id="cfgAbgMunicipio" value="${escapeHtml(cfg.abogado_municipio || '')}"></div>
-        </div>
-        <div class="form-row"><label>Cláusula adicional (opcional)</label><textarea id="cfgClausulas" rows="3" placeholder="Texto extra que se añadirá al contrato">${escapeHtml(cfg.clausulas_extra || '')}</textarea></div>
-        <div style="display:flex; gap:8px; justify-content:flex-end;">
-            <button class="btn btn-light" onclick="document.getElementById('modalGenerico').remove()">Cancelar</button>
-            <button class="btn btn-blue" onclick="guardarConfigFinanciamiento()"><i class="ti ti-device-floppy"></i> Guardar</button>
-        </div>`;
-    abrirModalGenerico('Configuración de Financiamiento', html);
+// Plantilla por defecto del cuerpo del contrato (con variables {{...}})
+const FIN_CONTRATO_TITULO_DEF = 'CONTRATO DE VENTA CONDICIONAL CON FINANCIAMIENTO Y RECONOCIMIENTO DE DEUDA';
+const FIN_CONTRATO_CUERPO_DEF = `Entre {{tienda}}{{tienda_dir}} (EL ACREEDOR), y {{cliente}}, dominicano(a), mayor de edad, portador(a) de la cédula de identidad No. {{cedula}}, teléfono {{telefono}} (EL DEUDOR), se ha convenido y pactado lo siguiente:
+PRIMERO (Objeto): EL ACREEDOR vende a EL DEUDOR, mediante financiamiento, el siguiente bien: {{equipo}}, IMEI {{imei}}, por un precio total de {{total}}.
+SEGUNDO (Forma de pago): EL DEUDOR pagó una inicial de {{inicial}} y se obliga a pagar el saldo de {{financiado}} en {{cuotas}} cuotas {{frecuencia}} de {{valor_cuota}} cada una, conforme al calendario anexo, iniciando el {{fecha_inicio}}.
+TERCERO (Mora): El atraso en el pago de cualquier cuota generará un recargo por mora de {{mora}}.
+CUARTO (Vencimiento anticipado): La falta de pago de las cuotas dará derecho a EL ACREEDOR a exigir la totalidad del saldo pendiente y/o la devolución del bien financiado.
+QUINTO (Reserva de dominio): El bien permanece en garantía y propiedad de EL ACREEDOR hasta el pago total de la deuda.
+SEXTO (Reconocimiento): EL DEUDOR reconoce la presente deuda y se compromete a pagarla en los plazos acordados.`;
+const FIN_CONTRATO_VARS = ['tienda', 'cliente', 'cedula', 'telefono', 'equipo', 'imei', 'total', 'inicial', 'financiado', 'cuotas', 'valor_cuota', 'frecuencia', 'fecha_inicio', 'mora', 'fecha_hoy'];
+
+function _finRellenarPlantilla(tpl, f) {
+    const c = cache.configTaller || {};
+    const map = {
+        tienda: c.nombre || 'BAYOL CELL',
+        tienda_dir: c.direccion ? ', con domicilio en ' + c.direccion : '',
+        cliente: f.cliente_nombre || '',
+        cedula: f.cliente_cedula || '__________',
+        telefono: f.cliente_telefono || '—',
+        equipo: f.concepto || '',
+        imei: f.equipo_imei || '—',
+        total: money(f.monto_total),
+        inicial: money(f.inicial),
+        financiado: money(finFinanciado(f)),
+        cuotas: f.num_cuotas,
+        valor_cuota: money(f.valor_cuota),
+        frecuencia: _finFrecAdj(f.frecuencia),
+        fecha_inicio: _finFmtFecha(_finAddPeriodo(f.fecha_inicio, f.frecuencia, 0)),
+        mora: (f.mora_tipo && f.mora_tipo !== 'ninguna') ? finMoraTxt(f) : 'el monto que las partes acuerden',
+        fecha_hoy: new Date().toLocaleDateString('es-DO', { day: '2-digit', month: 'long', year: 'numeric' })
+    };
+    return escapeHtml(tpl).replace(/\{\{(\w+)\}\}/g, (m, k) => (k in map) ? escapeHtml(String(map[k])) : m);
 }
-async function guardarConfigFinanciamiento() {
+// Genera los párrafos del contrato (cuerpo) para impresión
+function _finContratoParrafos(f) {
+    const tpl = (_finCache.config && _finCache.config.contrato_cuerpo) || FIN_CONTRATO_CUERPO_DEF;
+    return _finRellenarPlantilla(tpl, f).split(/\n+/).filter(l => l.trim()).map(l => `<p class="clausula">${l}</p>`).join('');
+}
+
+// ---- Pestaña Configuración ----
+function _pintarConfigFin() {
+    const kpis = document.getElementById('finKpis');
+    const cont = document.getElementById('finContenido');
+    if(kpis) kpis.innerHTML = '';
+    if(!cont) return;
+    if(!(isAdminUser() || tienePermiso('config_ver') || tienePermiso('financiamientos_aprobar'))) {
+        cont.innerHTML = `<div class="card"><div style="color:var(--text-muted);">No tienes permiso para ver la configuración.</div></div>`;
+        return;
+    }
+    const cfg = _finCache.config || {};
+    cont.innerHTML = `
+        <div class="card" style="margin-bottom:14px;">
+            <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-gavel" style="color:#7c3aed;"></i> Datos del abogado / notario</h3>
+            <div class="form-row"><label>Nombre</label><input type="text" id="cfgAbgNombre" value="${escapeHtml(cfg.abogado_nombre || '')}"></div>
+            <div class="form-row"><label>Título</label><input type="text" id="cfgAbgTitulo" value="${escapeHtml(cfg.abogado_titulo || 'Abogado Notario Público')}"></div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <div class="form-row" style="flex:1; min-width:130px;"><label>Matrícula / Colegiatura No.</label><input type="text" id="cfgAbgMatricula" value="${escapeHtml(cfg.abogado_matricula || '')}"></div>
+                <div class="form-row" style="flex:1; min-width:130px;"><label>Municipio</label><input type="text" id="cfgAbgMunicipio" value="${escapeHtml(cfg.abogado_municipio || '')}"></div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom:14px;">
+            <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-file-text" style="color:#0891b2;"></i> Redacción del contrato</h3>
+            <div class="form-row"><label>Título del contrato</label><input type="text" id="cfgContratoTitulo" value="${escapeHtml(cfg.contrato_titulo || FIN_CONTRATO_TITULO_DEF)}"></div>
+            <div class="form-row"><label>Cuerpo / cláusulas (una por línea)</label>
+                <textarea id="cfgContratoCuerpo" rows="12" style="font-family:inherit; line-height:1.5;">${escapeHtml(cfg.contrato_cuerpo || FIN_CONTRATO_CUERPO_DEF)}</textarea>
+            </div>
+            <div style="background:#f1f5f9; border-radius:8px; padding:8px 10px; font-size:11.5px; color:#475569; margin-bottom:8px;">
+                <b>Variables disponibles</b> (se rellenan solas al imprimir): ${FIN_CONTRATO_VARS.map(v => `<code style="background:#fff; border:1px solid #e2e8f0; border-radius:4px; padding:1px 4px; margin:1px; display:inline-block;">{{${v}}}</code>`).join(' ')}
+            </div>
+            <button class="btn btn-light" onclick="_finRestaurarContrato()" style="font-size:12px;"><i class="ti ti-rotate"></i> Restaurar texto por defecto</button>
+            <div class="form-row" style="margin-top:10px;"><label>Cláusula adicional (se añade al final, opcional)</label><textarea id="cfgClausulas" rows="2">${escapeHtml(cfg.clausulas_extra || '')}</textarea></div>
+        </div>
+
+        <div class="card" style="margin-bottom:14px;">
+            <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-adjustments" style="color:#16a34a;"></i> Otras opciones</h3>
+            <div class="form-row"><label>Pie del recibo de pago</label><input type="text" id="cfgReciboPie" value="${escapeHtml(cfg.recibo_pie || '')}" placeholder="Ej: Gracias por su pago"></div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <div class="form-row" style="flex:1; min-width:140px;"><label>Mora por defecto</label><select id="cfgMoraTipoDef"><option value="ninguna" ${(cfg.mora_tipo_def || 'ninguna') === 'ninguna' ? 'selected' : ''}>Sin mora</option><option value="porcentaje" ${cfg.mora_tipo_def === 'porcentaje' ? 'selected' : ''}>% por cuota</option><option value="fijo" ${cfg.mora_tipo_def === 'fijo' ? 'selected' : ''}>Fijo por cuota</option></select></div>
+                <div class="form-row" style="flex:1; min-width:120px;"><label>Valor mora por defecto</label><input type="number" id="cfgMoraValorDef" min="0" step="0.01" value="${cfg.mora_valor_def || 0}"></div>
+            </div>
+        </div>
+
+        <div style="text-align:right; margin-bottom:20px;">
+            <button class="btn btn-blue" onclick="guardarConfigFin()"><i class="ti ti-device-floppy"></i> Guardar configuración</button>
+        </div>`;
+}
+function _finRestaurarContrato() {
+    if(!confirm('¿Restaurar el texto del contrato a su versión por defecto?')) return;
+    const t = document.getElementById('cfgContratoTitulo'); if(t) t.value = FIN_CONTRATO_TITULO_DEF;
+    const b = document.getElementById('cfgContratoCuerpo'); if(b) b.value = FIN_CONTRATO_CUERPO_DEF;
+}
+async function guardarConfigFin() {
     const datos = {
         id: 1,
         abogado_nombre: (document.getElementById('cfgAbgNombre')?.value || '').trim() || null,
         abogado_titulo: (document.getElementById('cfgAbgTitulo')?.value || '').trim() || null,
         abogado_matricula: (document.getElementById('cfgAbgMatricula')?.value || '').trim() || null,
         abogado_municipio: (document.getElementById('cfgAbgMunicipio')?.value || '').trim() || null,
+        contrato_titulo: (document.getElementById('cfgContratoTitulo')?.value || '').trim() || null,
+        contrato_cuerpo: (document.getElementById('cfgContratoCuerpo')?.value || '').trim() || null,
         clausulas_extra: (document.getElementById('cfgClausulas')?.value || '').trim() || null,
+        recibo_pie: (document.getElementById('cfgReciboPie')?.value || '').trim() || null,
+        mora_tipo_def: document.getElementById('cfgMoraTipoDef')?.value || 'ninguna',
+        mora_valor_def: parseFloat(document.getElementById('cfgMoraValorDef')?.value) || 0,
         actualizado_en: new Date().toISOString()
     };
     try {
         const { error } = await supabaseClient.from('fin_config').upsert(datos);
         if(error) throw error;
         _finCache.config = datos;
-        document.getElementById('modalGenerico')?.remove();
         toast('✅ Configuración guardada.');
-    } catch(e) { console.error('guardarConfigFinanciamiento', e); toast('No se pudo guardar.', 'error'); }
+    } catch(e) { console.error('guardarConfigFin', e); toast('No se pudo guardar.', 'error'); }
 }
 
 // ============================================================
