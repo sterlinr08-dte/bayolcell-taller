@@ -577,6 +577,23 @@ mark.ss-hl { background: #fef08a; color: inherit; padding: 0 1px; border-radius:
 .stepper-step.bloqueado { opacity: 0.4; cursor: not-allowed; }
 .stepper-step.bloqueado:active { transform: none; }
 
+/* ========== ESTADO VISUAL (columna de la tarjeta de orden) ========== */
+.ev-card { border-radius: 14px; padding: 10px; background: linear-gradient(180deg,#ffffff,#f8fafc); border: 1px solid #eef2f7; box-shadow: 0 1px 3px rgba(15,23,42,0.05); }
+.ev-card.ev-cancel { background: linear-gradient(180deg,#fff,#fef2f2); border: 1px dashed #fca5a5; }
+.ev-chip { display: flex; align-items: center; gap: 9px; border-radius: 11px; padding: 9px 11px; color: #fff; box-shadow: 0 8px 18px -8px var(--ev-shadow, rgba(15,23,42,0.45)); }
+.ev-ic { width: 31px; height: 31px; border-radius: 50%; background: rgba(255,255,255,0.22); display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
+.ev-tx { line-height: 1.18; min-width: 0; flex: 1; }
+.ev-tx b { font-size: 12.5px; font-weight: 800; letter-spacing: 0.2px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ev-tx small { font-size: 10px; opacity: 0.92; font-weight: 600; }
+.ev-dot { width: 9px; height: 9px; border-radius: 50%; background: #fff; flex-shrink: 0; position: relative; box-shadow: 0 0 0 2px rgba(255,255,255,0.35); }
+.ev-dot.live::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: #fff; animation: evPulse 1.5s ease-out infinite; }
+@keyframes evPulse { 0% { transform: scale(1); opacity: 0.75; } 100% { transform: scale(2.9); opacity: 0; } }
+.ev-steps { display: flex; gap: 4px; margin-top: 9px; }
+.ev-seg { flex: 1; height: 5px; border-radius: 4px; background: #e6eaf0; transition: background 0.3s ease; }
+.ev-seg.on { background: linear-gradient(90deg, var(--ev-g1), var(--ev-g2)); box-shadow: 0 1px 3px -1px var(--ev-g2); }
+.ev-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 7px; font-size: 9.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.4px; }
+.ev-foot .ev-fase { color: var(--ev-g2); }
+
 /* ========== PIEZAS CON ESTADOS DUALES ========== */
 .pieza-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; margin-bottom: 8px; transition: all 0.2s; }
 .pieza-card:hover { box-shadow: 0 4px 8px rgba(0,0,0,0.06); }
@@ -7565,6 +7582,37 @@ function obtenerEtiquetaOrden(estado) {
     return map[estado] || { text: estado, bg:'#f1f5f9', color:'#64748b' };
 }
 
+// Componente visual moderno del estado de una orden (chip con degradado + stepper de progreso).
+// Pensado para la columna "Estado del Equipo" que ve el técnico.
+function construirEstadoVisual(estadoRaw) {
+    const estado = normalizarEstadoOrden(estadoRaw);
+    const viz = {
+        'recibido':          { g1:'#38bdf8', g2:'#0284c7', icon:'ti-package-import', label:'Recibido',       sub:'En recepción',       step:1, fase:'Recepción',  live:false },
+        'en_proceso':        { g1:'#fbbf24', g2:'#d97706', icon:'ti-tool',           label:'En proceso',     sub:'Reparando ahora',    step:2, fase:'Reparación', live:true  },
+        'espera_repuesto':   { g1:'#facc15', g2:'#ca8a04', icon:'ti-hourglass-high', label:'Espera repuesto',sub:'En pausa',           step:2, fase:'Reparación', live:true  },
+        'pendiente_cliente': { g1:'#f472b6', g2:'#db2777', icon:'ti-bell-ringing',   label:'Autorización',   sub:'Espera al cliente',  step:2, fase:'Reparación', live:true  },
+        'finalizado':        { g1:'#34d399', g2:'#059669', icon:'ti-circle-check',   label:'Finalizado',     sub:'Listo p/ entregar',  step:3, fase:'Listo',      live:false },
+        'entregado':         { g1:'#4ade80', g2:'#16a34a', icon:'ti-package',        label:'Entregado',      sub:'Completado',         step:4, fase:'Entrega',    live:false },
+        'cancelado':         { g1:'#f87171', g2:'#dc2626', icon:'ti-ban',            label:'Cancelado',      sub:'Orden anulada',      step:0, fase:'Anulada',    live:false }
+    };
+    const v = viz[estado] || viz['recibido'];
+    const total = 4;
+    const cancel = estado === 'cancelado';
+    const segs = Array.from({ length: total }, (_, i) =>
+        `<div class="ev-seg ${!cancel && i < v.step ? 'on' : ''}"></div>`
+    ).join('');
+    return `
+    <div class="ev-card ${cancel ? 'ev-cancel' : ''}" style="--ev-g1:${v.g1}; --ev-g2:${v.g2};">
+        <div class="ev-chip" style="background:linear-gradient(135deg, ${v.g1}, ${v.g2}); --ev-shadow:${v.g2}66;">
+            <span class="ev-ic"><i class="ti ${v.icon}"></i></span>
+            <span class="ev-tx"><b>${v.label}</b><small>${v.sub}</small></span>
+            ${v.live ? '<span class="ev-dot live"></span>' : (cancel ? '' : '<span class="ev-dot"></span>')}
+        </div>
+        ${cancel ? '' : `<div class="ev-steps">${segs}</div>
+        <div class="ev-foot"><span>Paso ${v.step} de ${total}</span><span class="ev-fase">${v.fase}</span></div>`}
+    </div>`;
+}
+
 // Normaliza estados viejos al nuevo flujo
 function normalizarEstadoOrden(estado) {
     const equiv = {
@@ -8898,9 +8946,9 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
                     ${o.solucion_aplicada ? `<div style="background:#f0fdf4; border:1px solid #86efac; padding:4px 7px; border-radius:5px; margin-top:5px; font-size:11px; color:#166534;"><i class="ti ti-circle-check"></i> <b>Solución:</b> ${escapeHtml(o.solucion_aplicada)}</div>` : ''}
                     ${o.costo_final != null && estado === 'entregado' ? `<div style="font-size:11px; font-weight:700; color:#15803d; margin-top:3px;"><i class="ti ti-cash"></i> Cobrado: RD$${Number(o.costo_final).toLocaleString('es-DO')}</div>` : ''}
                 </div>
-                <div style="display:flex; flex-direction:column; gap:5px; align-items:stretch; min-width:140px;" class="acciones-verticales">
+                <div style="display:flex; flex-direction:column; gap:7px; align-items:stretch; min-width:172px;" class="acciones-verticales">
                     <div style="font-size:10px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;"><i class="ti ti-settings"></i> Estado del Equipo</div>
-                    <div style="background:${et.bg}; color:${et.color}; border:2px solid ${et.color}; padding:5px 9px; border-radius:7px; font-size:11px; font-weight:700; text-align:center;"><i class="ti ti-circle-dot"></i> ${et.text}</div>
+                    ${construirEstadoVisual(estado)}
                     ${acciones}
                 </div>
             </div>
