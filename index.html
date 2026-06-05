@@ -3261,10 +3261,10 @@ function applyAccessControls() {
         return;
     }
     
-    // MODO "SOLO ATENCIÓN AL CLIENTE": servicio solo ve esa pantalla (+ recepción para recibir)
+    // MODO "SOLO ATENCIÓN AL CLIENTE": servicio solo ve esa pantalla (+ recepción para recibir, + financiamientos si tiene permiso)
     if(tienePermiso('solo_atencion')) {
         document.querySelectorAll('.nav button').forEach(b => {
-            b.style.display = (b.id === 'menu-atencion' || b.id === 'menu-recepcion') ? '' : 'none';
+            b.style.display = (b.id === 'menu-atencion' || b.id === 'menu-recepcion' || (b.id === 'menu-financiamientos' && tienePermiso('financiamientos_ver'))) ? '' : 'none';
         });
         if(typeof closeSidebar === 'function') closeSidebar();
         document.body.style.overflow = '';
