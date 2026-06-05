@@ -12919,7 +12919,12 @@ function abrirModalNuevaSolicitud() {
         <div class="form-row"><label>IMEI / Serie (opcional)</label><input type="text" id="solImei"></div>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
             <div class="form-row" style="flex:1; min-width:120px;"><label>Precio total (RD$) *</label><input type="number" id="solMontoTotal" min="0" step="0.01" oninput="_solRecalcCuota()" placeholder="0.00"></div>
-            <div class="form-row" style="flex:1; min-width:120px;"><label>Inicial (RD$)</label><input type="number" id="solInicial" min="0" step="0.01" value="0" oninput="_solRecalcCuota()" placeholder="0.00"></div>
+            <div class="form-row" style="flex:1; min-width:120px;"><label>Inicial</label>
+                <div style="display:flex; gap:4px;">
+                    <input type="number" id="solInicial" min="0" step="0.01" value="0" oninput="_solRecalcCuota()" placeholder="0.00" style="flex:1;">
+                    <select id="solInicialTipo" onchange="_solRecalcCuota()" style="width:74px; flex:none;"><option value="rd">RD$</option><option value="pct">%</option></select>
+                </div>
+            </div>
         </div>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
             <div class="form-row" style="flex:1; min-width:120px;"><label># de cuotas *</label><input type="number" id="solNumCuotas" min="1" step="1" value="1" oninput="_solRecalcCuota()"></div>
@@ -12931,6 +12936,7 @@ function abrirModalNuevaSolicitud() {
             <div class="form-row" style="flex:1; min-width:120px;"><label id="solMoraValorLbl">Valor</label><input type="number" id="solMoraValor" min="0" step="0.01" value="${moraValorDef}"></div>
         </div>
         <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:10px; margin-bottom:12px; font-size:13px;">
+            Inicial aplicada: <b id="solInicialPrev">RD$ 0.00</b><br>
             Monto a financiar: <b id="solFinanciadoPrev">RD$ 0.00</b><br>
             Valor de cada cuota: <b id="solCuotaPrev" style="color:#16a34a;">RD$ 0.00</b>
         </div>
@@ -12960,13 +12966,22 @@ function _solMoraLabel() {
     const lbl = document.getElementById('solMoraValorLbl');
     if(lbl) lbl.textContent = t === 'porcentaje' ? '% por cuota' : (t === 'fijo' ? 'RD$ por cuota' : 'Valor');
 }
+// Calcula la inicial en RD$ según el tipo elegido (RD$ o % del total)
+function _solInicialRD() {
+    const total = parseFloat(document.getElementById('solMontoTotal')?.value) || 0;
+    const v = parseFloat(document.getElementById('solInicial')?.value) || 0;
+    const tipo = document.getElementById('solInicialTipo')?.value || 'rd';
+    return tipo === 'pct' ? Math.round(total * v) / 100 : v;
+}
 function _solRecalcCuota() {
     const total = parseFloat(document.getElementById('solMontoTotal')?.value) || 0;
-    const inicial = parseFloat(document.getElementById('solInicial')?.value) || 0;
+    const inicial = _solInicialRD();
     const nc = Math.max(1, parseInt(document.getElementById('solNumCuotas')?.value, 10) || 1);
     const financiado = Math.max(0, total - inicial);
+    const elI = document.getElementById('solInicialPrev');
     const elF = document.getElementById('solFinanciadoPrev');
     const elC = document.getElementById('solCuotaPrev');
+    if(elI) elI.textContent = money(inicial);
     if(elF) elF.textContent = money(financiado);
     if(elC) elC.textContent = money(Math.round((financiado / nc) * 100) / 100);
 }
@@ -12976,7 +12991,7 @@ async function guardarSolicitud() {
     const nombre = val('solNombre');
     const concepto = val('solConcepto');
     const total = parseFloat(document.getElementById('solMontoTotal')?.value) || 0;
-    const inicial = parseFloat(document.getElementById('solInicial')?.value) || 0;
+    const inicial = _solInicialRD();
     const nc = Math.max(1, parseInt(document.getElementById('solNumCuotas')?.value, 10) || 1);
     const frecuencia = document.getElementById('solFrecuencia')?.value || 'mensual';
     const fechaInicio = val('solFechaInicio') || new Date().toISOString().slice(0, 10);
@@ -13839,7 +13854,12 @@ function editarSolicitud(id) {
         <div class="form-row"><label>IMEI</label><input type="text" id="edsImei" value="${escapeHtml(s.equipo_imei || '')}"></div>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
             <div class="form-row" style="flex:1; min-width:110px;"><label>Precio total</label><input type="number" id="edsTotal" min="0" step="0.01" value="${s.monto_total}"></div>
-            <div class="form-row" style="flex:1; min-width:110px;"><label>Inicial</label><input type="number" id="edsInicial" min="0" step="0.01" value="${s.inicial}"></div>
+            <div class="form-row" style="flex:1; min-width:110px;"><label>Inicial</label>
+                <div style="display:flex; gap:4px;">
+                    <input type="number" id="edsInicial" min="0" step="0.01" value="${s.inicial}" style="flex:1;">
+                    <select id="edsInicialTipo" style="width:70px; flex:none;"><option value="rd">RD$</option><option value="pct">%</option></select>
+                </div>
+            </div>
         </div>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
             <div class="form-row" style="flex:1; min-width:110px;"><label># cuotas</label><input type="number" id="edsCuotas" min="1" step="1" value="${s.num_cuotas}"></div>
@@ -13858,7 +13878,8 @@ function editarSolicitud(id) {
 }
 async function guardarEdicionSolicitud(id) {
     const total = parseFloat(document.getElementById('edsTotal')?.value) || 0;
-    const inicial = parseFloat(document.getElementById('edsInicial')?.value) || 0;
+    const inicialVal = parseFloat(document.getElementById('edsInicial')?.value) || 0;
+    const inicial = (document.getElementById('edsInicialTipo')?.value === 'pct') ? Math.round(total * inicialVal) / 100 : inicialVal;
     const nc = Math.max(1, parseInt(document.getElementById('edsCuotas')?.value, 10) || 1);
     if(total <= 0 || inicial >= total) { toast('Revisa el precio total y la inicial.', 'error'); return; }
     try {
