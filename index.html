@@ -6025,7 +6025,7 @@ function construirSeccionTareas(tipo, refId, tareas, cerrada, soloAgregar) {
                 <button onclick="eliminarTarea('${t.id}','${tipo}','${refId}')" style="background:#fee2e2; color:#991b1b; border:0; padding:5px 7px; border-radius:5px; cursor:pointer; font-size:10px;" title="Eliminar"><i class="ti ti-trash"></i></button>
                 ` : `
                 ${!hecha && puedeCompletar ? `<button onclick="completarTarea('${t.id}','${tipo}','${refId}')" style="background:#dcfce7; color:#166534; border:0; padding:5px 7px; border-radius:5px; cursor:pointer; font-size:10px;" title="Marcar lista"><i class="ti ti-check"></i></button>` : ''}
-                ${!hecha ? `<button onclick="reasignarTarea('${t.id}','${tipo}','${refId}')" style="background:#fef3c7; color:#92400e; border:0; padding:5px 7px; border-radius:5px; cursor:pointer; font-size:10px;" title="Reasignar a otro técnico"><i class="ti ti-user-share"></i></button>` : ''}
+                ${!hecha && tipo !== 'orden' ? `<button onclick="reasignarTarea('${t.id}','${tipo}','${refId}')" style="background:#fef3c7; color:#92400e; border:0; padding:5px 7px; border-radius:5px; cursor:pointer; font-size:10px;" title="Reasignar a otro técnico"><i class="ti ti-user-share"></i></button>` : ''}
                 ${hecha && (isAdminUser() || esMia) ? `<button onclick="reabrirTarea('${t.id}','${tipo}','${refId}')" style="background:#fef3c7; color:#92400e; border:0; padding:5px 7px; border-radius:5px; cursor:pointer; font-size:10px;" title="Reabrir"><i class="ti ti-rotate"></i></button>` : ''}
                 <button onclick="eliminarTarea('${t.id}','${tipo}','${refId}')" style="background:#fee2e2; color:#991b1b; border:0; padding:5px 7px; border-radius:5px; cursor:pointer; font-size:10px;" title="Eliminar"><i class="ti ti-trash"></i></button>
                 `)}
@@ -9388,18 +9388,40 @@ async function derivarOrden(ordenId) {
     const motivo = await pedirTexto(`Motivo de la derivación a ${nuevoTec.nombre}:\n\nEjemplo: "Requiere microsoldadura" o "No pude resolver el problema de carga"`);
     if(motivo === null) return;
     if(!motivo.trim()) return toast('Debes indicar el motivo de la derivación.', 'error');
-    
+
     try {
+        const oldTecId = orden.tecnico_asignado_id || null;
         const { error } = await supabaseClient.from('ordenes_reparacion').update({
-            tecnico_anterior_id: orden.tecnico_asignado_id || null,
+            tecnico_anterior_id: oldTecId,
             tecnico_asignado_id: nuevoTec.id,
             estado: 'en_proceso',
             fecha_derivacion: new Date().toISOString(),
             motivo_derivacion: motivo.trim(),
-            nota_estado: `Derivado de ${nombreEmpleado(orden.tecnico_asignado_id)}: ${motivo.trim()}`
+            nota_estado: `Derivado de ${nombreEmpleado(oldTecId)}: ${motivo.trim()}`
         }).eq('id', ordenId);
         if(error) throw error;
-        toast(`🔄 Orden derivada a ${nuevoTec.nombre}.`);
+
+        // El equipo se lleva TODO: fallas pendientes y piezas en curso pasan al nuevo técnico
+        let fallasMovidas = 0, piezasMovidas = 0;
+        const tareasPend = (cache.tareas || []).filter(t => t.tipo === 'orden' && t.ref_id === ordenId && t.estado !== 'hecha');
+        if(tareasPend.length) {
+            const { error: eT } = await supabaseClient.from('tareas_trabajo')
+                .update({ tecnico_id: nuevoTec.id, tecnico_anterior_id: oldTecId, estado: 'pendiente' })
+                .in('id', tareasPend.map(t => t.id));
+            if(!eT) fallasMovidas = tareasPend.length;
+        }
+        const piezasPend = (cache.ordenPiezas || []).filter(p => p.orden_id === ordenId && !['devuelta','devolucion_solicitada'].includes(p.estado));
+        if(piezasPend.length) {
+            const { error: eP } = await supabaseClient.from('orden_piezas')
+                .update({ tecnico_id: nuevoTec.id })
+                .in('id', piezasPend.map(p => p.id));
+            if(!eP) piezasMovidas = piezasPend.length;
+        }
+
+        const extra = [];
+        if(fallasMovidas) extra.push(`${fallasMovidas} falla(s) pendiente(s)`);
+        if(piezasMovidas) extra.push(`${piezasMovidas} pieza(s)`);
+        toast(`🔄 Orden derivada a ${nuevoTec.nombre}${extra.length ? ' — se llevó ' + extra.join(' y ') : ''}.`);
         await loadAll();
     } catch(e) { logError('Derivar orden', e); toastError(getFriendlyError(e)); }
 }
