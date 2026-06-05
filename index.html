@@ -724,6 +724,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                     </div>
                 </div>
                 <div style="display:flex; gap:8px; margin-bottom:14px; overflow-x:auto; padding-bottom:4px;">
+                    <button id="finTabConsulta" onclick="finCambiarTab('consulta')" style="white-space:nowrap;"><i class="ti ti-calculator"></i> Consulta</button>
                     <button id="finTabSolicitudes" onclick="finCambiarTab('solicitudes')" style="white-space:nowrap;"><i class="ti ti-file-text"></i> Solicitudes</button>
                     <button id="finTabFinanciamientos" onclick="finCambiarTab('financiamientos')" style="white-space:nowrap;"><i class="ti ti-cash"></i> Financiamientos</button>
                     <button id="finTabClientes" onclick="finCambiarTab('clientes')" style="white-space:nowrap;"><i class="ti ti-users"></i> Clientes</button>
@@ -12565,7 +12566,7 @@ function finCambiarTab(tab) {
     _pintarTabFin();
 }
 function _pintarTabFin() {
-    const tabs = { solicitudes: 'finTabSolicitudes', financiamientos: 'finTabFinanciamientos', clientes: 'finTabClientes', cobros: 'finTabCobros', reportes: 'finTabReportes', config: 'finTabConfig' };
+    const tabs = { consulta: 'finTabConsulta', solicitudes: 'finTabSolicitudes', financiamientos: 'finTabFinanciamientos', clientes: 'finTabClientes', cobros: 'finTabCobros', reportes: 'finTabReportes', config: 'finTabConfig' };
     const act = 'background:#16a34a; color:#fff; font-weight:700;';
     const ina = 'background:#f1f5f9; color:#475569;';
     Object.keys(tabs).forEach(k => {
@@ -12577,7 +12578,8 @@ function _pintarTabFin() {
     if(cfgTab) cfgTab.style.display = (isAdminUser() || tienePermiso('config_ver') || tienePermiso('financiamientos_aprobar')) ? '' : 'none';
     const btnNuevo = document.getElementById('btnNuevaSolicitud');
     if(btnNuevo) btnNuevo.style.display = (_finTab === 'solicitudes' && (isAdminUser() || tienePermiso('financiamientos_crear'))) ? '' : 'none';
-    if(_finTab === 'solicitudes') _pintarSolicitudes();
+    if(_finTab === 'consulta') _pintarConsulta();
+    else if(_finTab === 'solicitudes') _pintarSolicitudes();
     else if(_finTab === 'clientes') _pintarClientes();
     else if(_finTab === 'cobros') _pintarCobros();
     else if(_finTab === 'reportes') _pintarReportes();
@@ -14131,6 +14133,101 @@ function whatsappRecordatorioFin(finId) {
     if(moraP > 0) msg += `Mora acumulada: ${money(moraP)}. `;
     msg += `Saldo pendiente: ${money(saldo)}. ¡Gracias por su pago!`;
     window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+// ============================================================
+//   PESTAÑA CONSULTA (simulador rápido, no guarda nada)
+// ============================================================
+function _pintarConsulta() {
+    const kpis = document.getElementById('finKpis');
+    const cont = document.getElementById('finContenido');
+    if(kpis) kpis.innerHTML = '';
+    if(!cont) return;
+    cont.innerHTML = `
+        <div class="card" style="margin-bottom:14px;">
+            <h3 style="margin:0 0 4px; font-size:15px;"><i class="ti ti-calculator" style="color:#0891b2;"></i> Consulta rápida de financiamiento</h3>
+            <p style="font-size:12px; color:var(--text-muted); margin:0 0 12px;">Estimado para el cliente. No guarda nada.</p>
+            <div class="form-row"><label>Equipo / concepto (opcional)</label><input type="text" id="cqEquipo" placeholder="Ej: iPhone 11 64GB" oninput="_consultaCalcular()"></div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <div class="form-row" style="flex:1; min-width:130px;"><label>Monto a financiar (RD$)</label><input type="number" id="cqMonto" min="0" step="0.01" placeholder="0.00" oninput="_consultaCalcular()"></div>
+                <div class="form-row" style="flex:1; min-width:110px;"><label>Tasa % por cuota</label><input type="number" id="cqTasa" min="0" step="0.01" value="0" oninput="_consultaCalcular()"></div>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <div class="form-row" style="flex:1; min-width:140px;"><label>Tipo de préstamo</label><select id="cqMetodo" onchange="_consultaCalcular()"><option value="plano">Plano (sobre el monto)</option><option value="saldo">Sobre saldo (francés)</option></select></div>
+                <div class="form-row" style="flex:1; min-width:120px;"><label>Frecuencia</label><select id="cqFrec" onchange="_consultaCalcular()"><option value="semanal">Semanal</option><option value="quincenal">Quincenal</option><option value="mensual" selected>Mensual</option></select></div>
+                <div class="form-row" style="flex:1; min-width:100px;"><label># de cuotas</label><input type="number" id="cqCuotas" min="1" step="1" value="6" oninput="_consultaCalcular()"></div>
+            </div>
+        </div>
+        <div id="cqResultado"></div>`;
+    _consultaCalcular();
+}
+function _consultaObj() {
+    const monto = parseFloat(document.getElementById('cqMonto')?.value) || 0;
+    const nc = Math.max(1, parseInt(document.getElementById('cqCuotas')?.value, 10) || 1);
+    return {
+        concepto: (document.getElementById('cqEquipo')?.value || '').trim(),
+        monto_total: monto, inicial: 0, num_cuotas: nc,
+        frecuencia: document.getElementById('cqFrec')?.value || 'mensual',
+        interes_metodo: document.getElementById('cqMetodo')?.value || 'plano',
+        interes_tasa: parseFloat(document.getElementById('cqTasa')?.value) || 0,
+        fecha_inicio: new Date().toISOString().slice(0, 10)
+    };
+}
+function _consultaCalcular() {
+    const cont = document.getElementById('cqResultado');
+    if(!cont) return;
+    const o = _consultaObj();
+    if(o.monto_total <= 0) { cont.innerHTML = `<div class="card" style="color:var(--text-muted);">Ingresa el monto a financiar para ver el estimado.</div>`; return; }
+    o.valor_cuota = finValorCuotaCalc(o);
+    const interes = finInteresTotal(o);
+    const total = finMontoCuotas(o);
+    const kpi = (label, val, color) => `<div class="kpi-box" style="border-top-color:${color};"><small>${label}</small><strong>${val}</strong></div>`;
+    cont.innerHTML = `
+        <div class="kpi-row" style="margin-bottom:14px;">
+            ${kpi('Cuota', money(o.valor_cuota), '#16a34a')}
+            ${kpi('Interés total', money(interes), '#b45309')}
+            ${kpi('Total a pagar', money(total), '#1d4ed8')}
+        </div>
+        <div class="card" style="margin-bottom:14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                <h3 style="margin:0; font-size:15px;"><i class="ti ti-table"></i> Tabla de amortización</h3>
+                <button class="btn btn-light" onclick="_consultaImprimir()" style="font-size:12px;"><i class="ti ti-printer"></i> Imprimir estimado</button>
+            </div>
+            <div style="margin-top:10px;">${_finAmortizacionHTML(o)}</div>
+        </div>`;
+}
+function _consultaImprimir() {
+    const o = _consultaObj();
+    if(o.monto_total <= 0) { toast('Ingresa el monto.', 'error'); return; }
+    o.valor_cuota = finValorCuotaCalc(o);
+    const c = cache.configTaller || {};
+    const rows = _finAmortizacionRows(o);
+    const conInteres = finInteresTotal(o) > 0;
+    const w = window.open('', '_blank', 'width=480,height=700');
+    if(!w) { toast('Permite las ventanas emergentes para imprimir.', 'error'); return; }
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Estimado de financiamiento</title>
+        <style>body{font-family:'Segoe UI',Arial,sans-serif;color:#111;padding:20px;max-width:440px;margin:0 auto;font-size:13px;}
+        table{width:100%;border-collapse:collapse;font-size:12px;} th,td{padding:5px 4px;border-bottom:1px solid #e5e7eb;text-align:left;}
+        h2,h3{margin:6px 0;} .muted{color:#666;font-size:11px;} @media print{button{display:none;}}</style></head><body>
+        <div style="text-align:center;"><h2 style="margin:0;">${escapeHtml(c.nombre || 'BAYOL CELL')}</h2><div class="muted">ESTIMADO DE FINANCIAMIENTO</div></div>
+        <hr>
+        <table><tbody>
+            ${o.concepto ? `<tr><td>Equipo</td><td style="text-align:right;">${escapeHtml(o.concepto)}</td></tr>` : ''}
+            <tr><td>Monto a financiar</td><td style="text-align:right;">${money(o.monto_total)}</td></tr>
+            <tr><td>Tipo de préstamo</td><td style="text-align:right;">${o.interes_metodo === 'saldo' ? 'Sobre saldo' : 'Plano'} ${Number(o.interes_tasa) || 0}% por cuota</td></tr>
+            <tr><td>Plazo</td><td style="text-align:right;">${o.num_cuotas} cuotas ${_finFrecAdj(o.frecuencia)}</td></tr>
+            <tr style="font-weight:700;"><td>Cuota</td><td style="text-align:right;">${money(o.valor_cuota)}</td></tr>
+            ${conInteres ? `<tr><td>Interés total</td><td style="text-align:right;">${money(finInteresTotal(o))}</td></tr>` : ''}
+            <tr style="font-weight:700;"><td>Total a pagar</td><td style="text-align:right;">${money(finMontoCuotas(o))}</td></tr>
+        </tbody></table>
+        <hr>
+        <h3>Plan de cuotas</h3>
+        <table><thead><tr><th>#</th><th>Vence</th>${conInteres ? '<th style="text-align:right;">Cap.</th><th style="text-align:right;">Int.</th>' : ''}<th style="text-align:right;">Cuota</th><th style="text-align:right;">Saldo</th></tr></thead>
+        <tbody>${rows.map(r => `<tr><td>${r.num}</td><td>${_finFmtFecha(r.vence)}</td>${conInteres ? `<td style="text-align:right;">${money(r.capital)}</td><td style="text-align:right;">${money(r.interes)}</td>` : ''}<td style="text-align:right;">${money(r.cuota)}</td><td style="text-align:right;">${money(r.saldo)}</td></tr>`).join('')}</tbody></table>
+        <p class="muted" style="text-align:center; margin-top:14px;">Estimado generado el ${new Date().toLocaleString('es-DO')}. Sujeto a aprobación.</p>
+        <div style="text-align:center; margin-top:14px;"><button onclick="window.print()" style="padding:8px 16px; font-size:14px; cursor:pointer;">🖨️ Imprimir</button></div>
+        </body></html>`);
+    w.document.close();
 }
 
 const saved = localStorage.getItem("bayol_session");
