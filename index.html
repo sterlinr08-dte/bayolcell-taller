@@ -12450,6 +12450,34 @@ function finBadge(estado) {
 }
 const FIN_FREC_TXT = { semanal: 'Semanal', quincenal: 'Quincenal', mensual: 'Mensual' };
 
+// Tabla de amortización: funciona con solicitud o financiamiento (mismos campos)
+function _finAmortizacionRows(obj) {
+    const n = Math.max(1, parseInt(obj.num_cuotas, 10) || 1);
+    const financiado = Math.max(0, Number(obj.monto_total || 0) - Number(obj.inicial || 0));
+    const valorBase = Math.round((Number(obj.valor_cuota) || (financiado / n)) * 100) / 100;
+    let saldo = financiado;
+    const rows = [];
+    for(let i = 1; i <= n; i++) {
+        let valor = (i < n) ? valorBase : Math.round(saldo * 100) / 100;
+        if(valor < 0) valor = 0;
+        saldo = Math.round((saldo - valor) * 100) / 100;
+        if(saldo < 0) saldo = 0;
+        rows.push({ num: i, vence: _finAddPeriodo(obj.fecha_inicio, obj.frecuencia, i), cuota: valor, saldo });
+    }
+    return rows;
+}
+function _finAmortizacionHTML(obj) {
+    const financiado = Math.max(0, Number(obj.monto_total || 0) - Number(obj.inicial || 0));
+    const rows = _finAmortizacionRows(obj);
+    return `<div class="table-wrap"><table>
+        <thead><tr><th>#</th><th>Vence</th><th style="text-align:right;">Cuota</th><th style="text-align:right;">Saldo</th></tr></thead>
+        <tbody>
+            <tr style="background:#f8fafc;"><td colspan="2"><b>Precio ${money(obj.monto_total)} − Inicial ${money(obj.inicial)}</b></td><td colspan="2" style="text-align:right;"><b>A financiar: ${money(financiado)}</b></td></tr>
+            ${rows.map(r => `<tr><td>${r.num}</td><td>${_finFmtFecha(r.vence)}</td><td style="text-align:right;">${money(r.cuota)}</td><td style="text-align:right;">${money(r.saldo)}</td></tr>`).join('')}
+        </tbody>
+    </table></div>`;
+}
+
 // ---- Carga de datos ----
 async function cargarFinanciamientos() {
     try {
@@ -12665,17 +12693,19 @@ function _pintarDetalleFin() {
         </div>`;
     }
 
-    // Cronograma de cuotas
+    // Cronograma de cuotas / amortización (con saldo restante)
+    let _saldoAmort = finFinanciado(f);
     html += `<div class="card" style="margin-bottom:14px;">
-        <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-calendar-stats" style="color:#0891b2;"></i> Plan de cuotas</h3>
-        <div class="table-wrap"><table><thead><tr><th>#</th><th>Vence</th><th>Cuota</th><th>Estado</th></tr></thead><tbody>`;
+        <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-calendar-stats" style="color:#0891b2;"></i> Plan de cuotas / Amortización</h3>
+        <div class="table-wrap"><table><thead><tr><th>#</th><th>Vence</th><th style="text-align:right;">Cuota</th><th style="text-align:right;">Saldo</th><th>Estado</th></tr></thead><tbody>`;
     html += crono.map(c => {
         let badge, color;
         if(c.cubierta) { badge = '✅ Pagada'; color = '#16a34a'; }
         else if(c.pagado > 0) { badge = `🟡 Parcial (${money(c.pagado)})`; color = '#b45309'; }
         else if(c.vence < hoy) { badge = '🔴 Vencida'; color = '#b91c1c'; }
         else { badge = '⚪ Pendiente'; color = '#64748b'; }
-        return `<tr><td>${c.num}</td><td>${_finFmtFecha(c.vence)}</td><td>${money(c.valor)}</td><td style="color:${color}; font-weight:600;">${badge}</td></tr>`;
+        _saldoAmort = Math.round((_saldoAmort - c.valor) * 100) / 100; if(_saldoAmort < 0) _saldoAmort = 0;
+        return `<tr><td>${c.num}</td><td>${_finFmtFecha(c.vence)}</td><td style="text-align:right;">${money(c.valor)}</td><td style="text-align:right;">${money(_saldoAmort)}</td><td style="color:${color}; font-weight:600;">${badge}</td></tr>`;
     }).join('');
     html += `</tbody></table></div></div>`;
 
@@ -12852,6 +12882,12 @@ function _pintarDetalleSol() {
             ${dato('Inicio', _finFmtFecha(_finAddPeriodo(s.fecha_inicio, s.frecuencia, 0)))}
         </div>
         ${s.notas ? `<div style="margin-top:8px; font-size:12.5px; color:var(--text-muted);">📝 ${escapeHtml(s.notas)}</div>` : ''}
+    </div>`;
+
+    // Tabla de amortización
+    html += `<div class="card" style="margin-bottom:14px;">
+        <h3 style="margin:0 0 10px; font-size:14px;"><i class="ti ti-table" style="color:#7c3aed;"></i> Tabla de amortización</h3>
+        ${_finAmortizacionHTML(s)}
     </div>`;
 
     // Acciones
