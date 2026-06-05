@@ -661,6 +661,7 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
             <button class="active" id="menu-dashboard" onclick="nav('dashboard',this)"><i class="ti ti-layout-dashboard"></i> <span>Dashboard</span></button>
             <button id="menu-miTrabajo" onclick="nav('miTrabajo',this)"><i class="ti ti-briefcase"></i> <span>Mi Trabajo</span></button>
             <button id="menu-atencion" onclick="nav('atencion',this)"><i class="ti ti-headset"></i> <span>Atención al Cliente</span></button>
+            <button id="menu-financiamientos" onclick="nav('financiamientos',this)"><i class="ti ti-cash"></i> <span>Financiamientos</span></button>
             <button id="menu-recepcion" onclick="nav('recepcion',this)"><i class="ti ti-clipboard-plus"></i> <span>Recepción de Equipos</span></button>
             <button id="menu-ordenes" onclick="nav('ordenes',this)"><i class="ti ti-tool"></i> <span>Órdenes de Trabajo</span></button>
             
@@ -710,6 +711,19 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                 </div>
                 <div id="atencionKpis" class="kpi-row" style="margin-bottom:16px;"></div>
                 <div id="atencionContenido"></div>
+            </div>
+
+            <!-- FINANCIAMIENTOS (servicio al cliente) -->
+            <div id="v-financiamientos" class="view">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:14px;">
+                    <h2 style="margin:0;"><i class="ti ti-cash" style="color:#16a34a;"></i> Financiamientos</h2>
+                    <div style="display:flex; gap:6px;">
+                        <button class="btn btn-blue" id="btnNuevoFinanciamiento" onclick="abrirModalNuevoFinanciamiento()" style="font-size:12px;"><i class="ti ti-plus"></i> Nuevo financiamiento</button>
+                        <button class="btn btn-light" onclick="renderFinanciamientos()" style="font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
+                    </div>
+                </div>
+                <div id="finKpis" class="kpi-row" style="margin-bottom:16px;"></div>
+                <div id="finContenido"></div>
             </div>
 
             <!-- MI TRABAJO (técnico) -->
@@ -3266,9 +3280,10 @@ function applyAccessControls() {
         'menu-proveedores': 'compras_ver',
         'menu-refurb': 'reacond_ver',
         'menu-reportes': 'reportes_ver',
-        'menu-configuracion': 'config_ver'
+        'menu-configuracion': 'config_ver',
+        'menu-financiamientos': 'financiamientos_ver'
     };
-    
+
     Object.keys(menuPermisos).forEach(menuId => {
         const btn = document.getElementById(menuId);
         if(!btn) return;
@@ -3343,7 +3358,8 @@ const NAV_PERMISOS = {
     'proveedores': 'compras_ver',
     'refurb': 'reacond_ver',
     'reportes': 'reportes_ver',
-    'configuracion': 'config_ver'
+    'configuracion': 'config_ver',
+    'financiamientos': 'financiamientos_ver'
 };
 
 function nav(v, btn) {
@@ -3372,6 +3388,7 @@ function nav(v, btn) {
     if(v === 'reportes') { setTimeout(() => { inicializarReportes(); }, 50); }
     if(v === 'miTrabajo') { setTimeout(() => { renderMiTrabajo(); }, 50); }
     if(v === 'atencion') { setTimeout(() => { renderAtencionCliente(); }, 50); }
+    if(v === 'financiamientos') { setTimeout(() => { renderFinanciamientos(); }, 50); }
     if(v === 'recepcion') { setTimeout(async () => {
         if(typeof renderRecepcionesRealizadas === 'function') renderRecepcionesRealizadas();
         // Recargar fallas comunes desde la BD para reflejar cambios hechos en Config
@@ -10295,6 +10312,15 @@ const PERMISOS_DEF = [
         ]
     },
     {
+        grupo: '💵 Financiamientos', color: '#16a34a',
+        items: [
+            { id: 'financiamientos_ver', label: 'Ver módulo de Financiamientos' },
+            { id: 'financiamientos_crear', label: 'Crear/editar financiamientos' },
+            { id: 'financiamientos_cobrar', label: 'Registrar abonos/pagos' },
+            { id: 'financiamientos_eliminar', label: 'Cancelar/eliminar financiamientos' }
+        ]
+    },
+    {
         grupo: '📋 Catálogos', color: '#06b6d4',
         items: [
             { id: 'catalogo_fallas', label: 'Ver/editar Catálogo de Fallas' },
@@ -12309,6 +12335,540 @@ document.addEventListener('keydown', e => {
 document.getElementById('modalNuevoPerfil')?.addEventListener('click', e => {
     if(e.target.id === 'modalNuevoPerfil') cerrarModalNuevoPerfil();
 });
+
+// ============================================================
+//   MÓDULO DE FINANCIAMIENTOS (servicio al cliente)
+//   Carga sus propios datos (NO toca loadAll) para evitar
+//   conflictos con el desarrollo del módulo de taller.
+// ============================================================
+let _finCache = { financiamientos: [], pagos: [] };
+let _finFiltro = 'activos';      // activos | atrasados | saldados | todos
+let _finBusqueda = '';
+let _finDetalleId = null;        // id del financiamiento abierto en detalle
+
+// ---- Helpers de cálculo ----
+function finPagosDe(finId) {
+    return (_finCache.pagos || []).filter(p => p.financiamiento_id === finId)
+        .sort((a, b) => new Date(a.creado_en) - new Date(b.creado_en));
+}
+function finAbonado(f) {
+    return finPagosDe(f.id).reduce((s, p) => s + Number(p.monto || 0), 0);
+}
+function finFinanciado(f) {
+    return Math.max(0, Number(f.monto_total || 0) - Number(f.inicial || 0));
+}
+function finSaldo(f) {
+    return Math.max(0, Math.round((finFinanciado(f) - finAbonado(f)) * 100) / 100);
+}
+function _finAddPeriodo(fechaISO, frecuencia, n) {
+    const d = new Date((fechaISO || '').slice(0, 10) + 'T00:00:00');
+    if(frecuencia === 'semanal') d.setDate(d.getDate() + 7 * n);
+    else if(frecuencia === 'quincenal') d.setDate(d.getDate() + 15 * n);
+    else d.setMonth(d.getMonth() + n); // mensual
+    return d;
+}
+function _finFmtFecha(d) {
+    return d.toLocaleDateString('es-DO', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+// Construye el cronograma de cuotas con el estado de pago de cada una
+function finCronograma(f) {
+    const n = Math.max(1, parseInt(f.num_cuotas, 10) || 1);
+    const financiado = finFinanciado(f);
+    const abonado = finAbonado(f);
+    const valorBase = Math.round((Number(f.valor_cuota) || (financiado / n)) * 100) / 100;
+    const cuotas = [];
+    let acum = 0;
+    for(let i = 1; i <= n; i++) {
+        let valor = (i < n) ? valorBase : Math.round((financiado - valorBase * (n - 1)) * 100) / 100;
+        if(valor < 0) valor = 0;
+        const previo = acum;
+        acum = Math.round((acum + valor) * 100) / 100;
+        const pagadoEnCuota = Math.max(0, Math.min(valor, Math.round((abonado - previo) * 100) / 100));
+        cuotas.push({
+            num: i,
+            valor,
+            vence: _finAddPeriodo(f.fecha_inicio, f.frecuencia, i),
+            cubierta: abonado >= acum - 0.001,
+            pagado: pagadoEnCuota,
+            pendiente: Math.round((valor - pagadoEnCuota) * 100) / 100
+        });
+    }
+    return cuotas;
+}
+function finEstado(f) {
+    if(f.estado === 'cancelado') return 'cancelado';
+    if(finSaldo(f) <= 0.001) return 'saldado';
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const hayVencida = finCronograma(f).some(c => !c.cubierta && c.vence < hoy);
+    return hayVencida ? 'atrasado' : 'activo';
+}
+function finProximaCuota(f) {
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    return finCronograma(f).find(c => !c.cubierta) || null;
+}
+const FIN_ESTADO_INFO = {
+    activo:    { txt: 'Al día',   color: '#16a34a', bg: '#dcfce7' },
+    atrasado:  { txt: 'Atrasado', color: '#b91c1c', bg: '#fee2e2' },
+    saldado:   { txt: 'Saldado',  color: '#1d4ed8', bg: '#dbeafe' },
+    cancelado: { txt: 'Cancelado',color: '#64748b', bg: '#e2e8f0' }
+};
+function finBadge(estado) {
+    const i = FIN_ESTADO_INFO[estado] || FIN_ESTADO_INFO.activo;
+    return `<span style="background:${i.bg}; color:${i.color}; font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px;">${i.txt}</span>`;
+}
+const FIN_FREC_TXT = { semanal: 'Semanal', quincenal: 'Quincenal', mensual: 'Mensual' };
+
+// ---- Carga de datos ----
+async function cargarFinanciamientos() {
+    try {
+        const [rf, rp] = await Promise.all([
+            supabaseClient.from('financiamientos').select('*').order('creado_en', { ascending: false }),
+            supabaseClient.from('financiamiento_pagos').select('*').order('creado_en', { ascending: true })
+        ]);
+        if(rf.error) throw rf.error;
+        if(rp.error) throw rp.error;
+        _finCache.financiamientos = rf.data || [];
+        _finCache.pagos = rp.data || [];
+    } catch(e) {
+        console.error('cargarFinanciamientos', e);
+        toast('Error cargando financiamientos.', 'error');
+    }
+}
+
+// ---- Render principal ----
+async function renderFinanciamientos() {
+    // Permiso para crear: mostrar/ocultar botón superior
+    const btnNuevo = document.getElementById('btnNuevoFinanciamiento');
+    if(btnNuevo) btnNuevo.style.display = (isAdminUser() || tienePermiso('financiamientos_crear')) ? '' : 'none';
+    await cargarFinanciamientos();
+    _pintarFinanciamientos();
+}
+function _pintarFinanciamientos() {
+    if(_finDetalleId) { _pintarDetalleFin(); return; }
+    const kpis = document.getElementById('finKpis');
+    const cont = document.getElementById('finContenido');
+    if(!cont) return;
+    const lista = _finCache.financiamientos || [];
+
+    // KPIs
+    const activos = lista.filter(f => ['activo', 'atrasado'].includes(finEstado(f)));
+    const porCobrar = activos.reduce((s, f) => s + finSaldo(f), 0);
+    const atrasados = lista.filter(f => finEstado(f) === 'atrasado');
+    const montoAtrasado = atrasados.reduce((s, f) => {
+        return s + finCronograma(f).filter(c => !c.cubierta && c.vence < new Date()).reduce((a, c) => a + c.pendiente, 0);
+    }, 0);
+    const ahora = new Date();
+    const cobradoMes = (_finCache.pagos || []).filter(p => {
+        const d = new Date(p.creado_en);
+        return d.getMonth() === ahora.getMonth() && d.getFullYear() === ahora.getFullYear();
+    }).reduce((s, p) => s + Number(p.monto || 0), 0);
+    if(kpis) {
+        const kpi = (label, val, color, icon) => `<div class="kpi-box" style="border-top-color:${color};"><small>${label}</small><strong>${val}</strong><i class="ti ${icon}"></i></div>`;
+        kpis.innerHTML =
+            kpi('Activos', activos.length, '#16a34a', 'ti-cash') +
+            kpi('Por Cobrar', money(porCobrar), '#0891b2', 'ti-coins') +
+            kpi('Atrasados', atrasados.length, '#b91c1c', 'ti-alert-triangle') +
+            kpi('Cobrado este mes', money(cobradoMes), '#7c3aed', 'ti-trending-up');
+    }
+
+    // Filtro + buscador
+    let html = `<div class="card" style="margin-bottom:14px;">
+        <input id="finBuscador" oninput="_finBusqueda=this.value; _pintarListaFin()" value="${escapeHtml(_finBusqueda)}" placeholder="🔍 Buscar por cliente, concepto o # código..." style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; margin-bottom:10px;">
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            ${['activos', 'atrasados', 'saldados', 'todos'].map(ff => `<button class="btn btn-light" onclick="_finFiltro='${ff}'; _pintarFinanciamientos()" style="font-size:12px; ${_finFiltro === ff ? 'background:#dcfce7; color:#15803d; font-weight:700;' : ''}">${({ activos: '⚙️ Activos', atrasados: '⚠️ Atrasados', saldados: '✅ Saldados', todos: 'Todos' })[ff]}</button>`).join('')}
+        </div>
+        <div id="finLista" style="margin-top:12px;"></div>
+    </div>`;
+    cont.innerHTML = html;
+    _pintarListaFin();
+}
+function _pintarListaFin() {
+    const cont = document.getElementById('finLista');
+    if(!cont) return;
+    let lista = (_finCache.financiamientos || []).slice();
+    // Filtro por estado
+    if(_finFiltro === 'activos') lista = lista.filter(f => ['activo', 'atrasado'].includes(finEstado(f)));
+    else if(_finFiltro === 'atrasados') lista = lista.filter(f => finEstado(f) === 'atrasado');
+    else if(_finFiltro === 'saldados') lista = lista.filter(f => finEstado(f) === 'saldado');
+    // Buscador
+    const q = (_finBusqueda || '').trim().toLowerCase();
+    if(q) lista = lista.filter(f =>
+        (f.cliente_nombre || '').toLowerCase().includes(q) ||
+        (f.concepto || '').toLowerCase().includes(q) ||
+        String(f.codigo || '').includes(q)
+    );
+    if(!lista.length) {
+        cont.innerHTML = `<div style="color:var(--text-muted); font-size:13px; padding:8px 0;">No hay financiamientos en esta vista.</div>`;
+        return;
+    }
+    cont.innerHTML = lista.map(f => {
+        const est = finEstado(f);
+        const saldo = finSaldo(f);
+        const financiado = finFinanciado(f);
+        const abonado = finAbonado(f);
+        const pct = financiado > 0 ? Math.min(100, Math.round(abonado / financiado * 100)) : 100;
+        const prox = finProximaCuota(f);
+        return `<div style="border:1px solid #e2e8f0; border-radius:12px; padding:12px; margin-bottom:10px; background:#fff;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap;">
+                <div style="min-width:0; flex:1;">
+                    <div style="font-weight:700; font-size:14px;">${escapeHtml(f.cliente_nombre || 'Sin cliente')} <span style="color:#94a3b8; font-weight:600; font-size:12px;">#${f.codigo || '—'}</span></div>
+                    <div style="font-size:12.5px; color:var(--text-muted);">${escapeHtml(f.concepto || '')}</div>
+                </div>
+                ${finBadge(est)}
+            </div>
+            <div style="display:flex; gap:14px; flex-wrap:wrap; margin-top:8px; font-size:12px;">
+                <span><b>Total:</b> ${money(f.monto_total)}</span>
+                <span><b>Saldo:</b> <span style="color:${saldo > 0 ? '#b91c1c' : '#16a34a'}; font-weight:700;">${money(saldo)}</span></span>
+                <span><b>Cuota:</b> ${money(f.valor_cuota)} · ${FIN_FREC_TXT[f.frecuencia] || f.frecuencia}</span>
+                ${prox ? `<span><b>Próx. vence:</b> ${_finFmtFecha(prox.vence)}</span>` : ''}
+            </div>
+            <div style="background:#f1f5f9; border-radius:999px; height:7px; margin-top:8px; overflow:hidden;">
+                <div style="height:100%; width:${pct}%; background:${est === 'atrasado' ? '#dc2626' : '#16a34a'};"></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+                <small style="color:var(--text-muted);">${pct}% pagado</small>
+                <button class="btn btn-blue" onclick="verFinanciamiento('${f.id}')" style="font-size:12px;"><i class="ti ti-eye"></i> Ver / Cobrar</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ---- Detalle de un financiamiento ----
+function verFinanciamiento(id) { _finDetalleId = id; _pintarFinanciamientos(); }
+function volverListaFin() { _finDetalleId = null; _pintarFinanciamientos(); }
+function _pintarDetalleFin() {
+    const cont = document.getElementById('finContenido');
+    const kpis = document.getElementById('finKpis');
+    if(kpis) kpis.innerHTML = '';
+    const f = (_finCache.financiamientos || []).find(x => x.id === _finDetalleId);
+    if(!f) { volverListaFin(); return; }
+    const est = finEstado(f);
+    const saldo = finSaldo(f);
+    const abonado = finAbonado(f);
+    const crono = finCronograma(f);
+    const pagos = finPagosDe(f.id);
+    const puedeCobrar = isAdminUser() || tienePermiso('financiamientos_cobrar');
+    const puedeEliminar = isAdminUser() || tienePermiso('financiamientos_eliminar');
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+
+    let html = `<button class="btn btn-light" onclick="volverListaFin()" style="font-size:12px; margin-bottom:12px;"><i class="ti ti-arrow-left"></i> Volver a la lista</button>`;
+
+    // Encabezado / resumen
+    html += `<div class="card" style="margin-bottom:14px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap;">
+            <div>
+                <h3 style="margin:0 0 2px; font-size:16px;">${escapeHtml(f.cliente_nombre || 'Sin cliente')} <span style="color:#94a3b8; font-size:13px;">#${f.codigo || '—'}</span></h3>
+                <div style="font-size:13px; color:var(--text-muted);">${escapeHtml(f.concepto || '')}${f.equipo_imei ? ' · IMEI: ' + escapeHtml(f.equipo_imei) : ''}</div>
+                ${f.cliente_telefono ? `<div style="font-size:12px; color:var(--text-muted);"><i class="ti ti-phone"></i> ${escapeHtml(f.cliente_telefono)}</div>` : ''}
+            </div>
+            <div style="text-align:right;">${finBadge(est)}<div style="margin-top:6px;"><button class="btn btn-light" onclick="imprimirEstadoCuentaFin('${f.id}')" style="font-size:11px;"><i class="ti ti-printer"></i> Estado de cuenta</button></div></div>
+        </div>
+        <div class="kpi-row" style="margin-top:12px;">
+            <div class="kpi-box" style="border-top-color:#1e293b;"><small>Precio total</small><strong>${money(f.monto_total)}</strong></div>
+            <div class="kpi-box" style="border-top-color:#7c3aed;"><small>Inicial</small><strong>${money(f.inicial)}</strong></div>
+            <div class="kpi-box" style="border-top-color:#16a34a;"><small>Abonado</small><strong>${money(abonado)}</strong></div>
+            <div class="kpi-box" style="border-top-color:#b91c1c;"><small>Saldo pendiente</small><strong>${money(saldo)}</strong></div>
+        </div>
+        <div style="font-size:12px; color:var(--text-muted); margin-top:8px;">
+            ${f.num_cuotas} cuota${f.num_cuotas == 1 ? '' : 's'} de ${money(f.valor_cuota)} · ${FIN_FREC_TXT[f.frecuencia] || f.frecuencia} · Inicio ${_finFmtFecha(_finAddPeriodo(f.fecha_inicio, f.frecuencia, 0))}
+            ${f.notas ? '<br>📝 ' + escapeHtml(f.notas) : ''}
+        </div>
+    </div>`;
+
+    // Registrar abono
+    if(puedeCobrar && est !== 'saldado' && est !== 'cancelado') {
+        html += `<div class="card" style="margin-bottom:14px;">
+            <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-cash" style="color:#16a34a;"></i> Registrar abono</h3>
+            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+                <div style="flex:1; min-width:130px;"><label>Monto (RD$)</label><input type="number" id="finAbonoMonto" min="0" step="0.01" placeholder="0.00" value="${f.valor_cuota}"></div>
+                <div style="flex:1; min-width:130px;"><label>Método</label><select id="finAbonoMetodo"><option value="efectivo">Efectivo</option><option value="transferencia">Transferencia</option><option value="tarjeta">Tarjeta</option></select></div>
+                <div style="flex:2; min-width:160px;"><label>Nota (opcional)</label><input type="text" id="finAbonoNota" placeholder="Ref. / observación"></div>
+                <button class="btn btn-blue" onclick="registrarAbonoFin('${f.id}')" style="height:40px;"><i class="ti ti-plus"></i> Cobrar</button>
+            </div>
+            <small style="color:var(--text-muted);">Saldo actual: <b>${money(saldo)}</b></small>
+        </div>`;
+    }
+
+    // Cronograma de cuotas
+    html += `<div class="card" style="margin-bottom:14px;">
+        <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-calendar-stats" style="color:#0891b2;"></i> Plan de cuotas</h3>
+        <div class="table-wrap"><table><thead><tr><th>#</th><th>Vence</th><th>Cuota</th><th>Estado</th></tr></thead><tbody>`;
+    html += crono.map(c => {
+        let badge, color;
+        if(c.cubierta) { badge = '✅ Pagada'; color = '#16a34a'; }
+        else if(c.pagado > 0) { badge = `🟡 Parcial (${money(c.pagado)})`; color = '#b45309'; }
+        else if(c.vence < hoy) { badge = '🔴 Vencida'; color = '#b91c1c'; }
+        else { badge = '⚪ Pendiente'; color = '#64748b'; }
+        return `<tr><td>${c.num}</td><td>${_finFmtFecha(c.vence)}</td><td>${money(c.valor)}</td><td style="color:${color}; font-weight:600;">${badge}</td></tr>`;
+    }).join('');
+    html += `</tbody></table></div></div>`;
+
+    // Historial de pagos
+    html += `<div class="card" style="margin-bottom:14px;">
+        <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-history" style="color:#7c3aed;"></i> Historial de abonos (${pagos.length})</h3>`;
+    if(pagos.length) {
+        html += `<div class="table-wrap"><table><thead><tr><th>Recibo</th><th>Fecha</th><th>Monto</th><th>Método</th><th></th></tr></thead><tbody>`;
+        html += pagos.slice().reverse().map(p => `<tr>
+            <td>#${p.recibo || '—'}</td>
+            <td>${new Date(p.creado_en).toLocaleString('es-DO', { dateStyle: 'short', timeStyle: 'short' })}</td>
+            <td>${money(p.monto)}</td>
+            <td style="text-transform:capitalize;">${escapeHtml(p.metodo || '')}</td>
+            <td><button class="btn btn-light" onclick="imprimirReciboFin('${p.id}')" style="font-size:11px; padding:3px 8px;"><i class="ti ti-printer"></i> Recibo</button></td>
+        </tr>`).join('');
+        html += `</tbody></table></div>`;
+    } else {
+        html += `<div style="color:var(--text-muted); font-size:13px;">Aún no hay abonos registrados.</div>`;
+    }
+    html += `</div>`;
+
+    // Cancelar
+    if(puedeEliminar && est !== 'cancelado') {
+        html += `<div style="text-align:right; margin-bottom:20px;"><button class="btn btn-light" onclick="cancelarFinanciamiento('${f.id}')" style="font-size:12px; color:#b91c1c;"><i class="ti ti-ban"></i> Cancelar financiamiento</button></div>`;
+    }
+
+    cont.innerHTML = html;
+}
+
+// ---- Crear financiamiento ----
+function abrirModalNuevoFinanciamiento() {
+    if(!(isAdminUser() || tienePermiso('financiamientos_crear'))) { toast('No tienes permiso para crear financiamientos.', 'error'); return; }
+    const clientes = (cache.clientes || []).slice().sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+    const opciones = clientes.map(c => {
+        const nom = `${c.nombre || ''} ${c.apellido || ''}`.trim();
+        const extra = c.whatsapp || c.cedula || '';
+        return `<option value="${c.id}">${escapeHtml(nom)}${extra ? ' — ' + escapeHtml(extra) : ''}</option>`;
+    }).join('');
+    const hoyISO = new Date().toISOString().slice(0, 10);
+    const html = `
+        <div class="form-row"><label>Cliente *</label>
+            <select id="finCliente">${clientes.length ? '<option value="">— Seleccionar cliente —</option>' + opciones : '<option value="">No hay clientes registrados</option>'}</select>
+        </div>
+        <div class="form-row"><label>Concepto / qué se financia *</label>
+            <input type="text" id="finConcepto" placeholder="Ej: iPhone 11 64GB" maxlength="120">
+        </div>
+        <div class="form-row"><label>IMEI / Serie (opcional)</label>
+            <input type="text" id="finImei" placeholder="IMEI del equipo">
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <div class="form-row" style="flex:1; min-width:120px;"><label>Precio total (RD$) *</label><input type="number" id="finMontoTotal" min="0" step="0.01" oninput="_finRecalcCuota()" placeholder="0.00"></div>
+            <div class="form-row" style="flex:1; min-width:120px;"><label>Inicial (RD$)</label><input type="number" id="finInicial" min="0" step="0.01" value="0" oninput="_finRecalcCuota()" placeholder="0.00"></div>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <div class="form-row" style="flex:1; min-width:120px;"><label># de cuotas *</label><input type="number" id="finNumCuotas" min="1" step="1" value="1" oninput="_finRecalcCuota()"></div>
+            <div class="form-row" style="flex:1; min-width:120px;"><label>Frecuencia</label>
+                <select id="finFrecuencia"><option value="semanal">Semanal</option><option value="quincenal">Quincenal</option><option value="mensual" selected>Mensual</option></select>
+            </div>
+        </div>
+        <div class="form-row"><label>Fecha de inicio</label><input type="date" id="finFechaInicio" value="${hoyISO}"></div>
+        <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:10px; margin-bottom:12px; font-size:13px;">
+            Monto a financiar: <b id="finFinanciadoPrev">RD$ 0.00</b><br>
+            Valor de cada cuota: <b id="finCuotaPrev" style="color:#16a34a;">RD$ 0.00</b>
+        </div>
+        <div class="form-row"><label>Notas (opcional)</label><textarea id="finNotas" rows="2" placeholder="Observaciones"></textarea></div>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button class="btn btn-light" onclick="document.getElementById('modalGenerico').remove()">Cancelar</button>
+            <button class="btn btn-blue" onclick="guardarFinanciamiento()"><i class="ti ti-device-floppy"></i> Guardar</button>
+        </div>`;
+    abrirModalGenerico('Nuevo financiamiento', html);
+    setTimeout(_finRecalcCuota, 30);
+}
+function _finRecalcCuota() {
+    const total = parseFloat(document.getElementById('finMontoTotal')?.value) || 0;
+    const inicial = parseFloat(document.getElementById('finInicial')?.value) || 0;
+    const nc = Math.max(1, parseInt(document.getElementById('finNumCuotas')?.value, 10) || 1);
+    const financiado = Math.max(0, total - inicial);
+    const cuota = Math.round((financiado / nc) * 100) / 100;
+    const elF = document.getElementById('finFinanciadoPrev');
+    const elC = document.getElementById('finCuotaPrev');
+    if(elF) elF.textContent = money(financiado);
+    if(elC) elC.textContent = money(cuota);
+}
+async function guardarFinanciamiento() {
+    if(!(isAdminUser() || tienePermiso('financiamientos_crear'))) { toast('No tienes permiso.', 'error'); return; }
+    const clienteId = document.getElementById('finCliente')?.value;
+    const concepto = (document.getElementById('finConcepto')?.value || '').trim();
+    const total = parseFloat(document.getElementById('finMontoTotal')?.value) || 0;
+    const inicial = parseFloat(document.getElementById('finInicial')?.value) || 0;
+    const nc = Math.max(1, parseInt(document.getElementById('finNumCuotas')?.value, 10) || 1);
+    const frecuencia = document.getElementById('finFrecuencia')?.value || 'mensual';
+    const fechaInicio = document.getElementById('finFechaInicio')?.value || new Date().toISOString().slice(0, 10);
+    if(!clienteId) { toast('Selecciona un cliente.', 'error'); return; }
+    if(!concepto) { toast('Indica qué se financia (concepto).', 'error'); return; }
+    if(total <= 0) { toast('El precio total debe ser mayor que 0.', 'error'); return; }
+    if(inicial < 0 || inicial >= total) { toast('La inicial debe ser menor que el precio total.', 'error'); return; }
+    const cli = (cache.clientes || []).find(c => c.id === clienteId) || {};
+    const valorCuota = Math.round(((total - inicial) / nc) * 100) / 100;
+    const fila = {
+        cliente_id: clienteId,
+        cliente_nombre: `${cli.nombre || ''} ${cli.apellido || ''}`.trim() || 'Cliente',
+        cliente_telefono: cli.whatsapp || cli.telefono_alterno || null,
+        cliente_cedula: cli.cedula || null,
+        concepto,
+        equipo_imei: (document.getElementById('finImei')?.value || '').trim() || null,
+        monto_total: total,
+        inicial,
+        num_cuotas: nc,
+        frecuencia,
+        valor_cuota: valorCuota,
+        fecha_inicio: fechaInicio,
+        estado: 'activo',
+        notas: (document.getElementById('finNotas')?.value || '').trim() || null,
+        creado_por: sessionUser?.nombre || sessionUser?.usuario || 'Sistema'
+    };
+    try {
+        const { error } = await supabaseClient.from('financiamientos').insert([fila]);
+        if(error) throw error;
+        document.getElementById('modalGenerico')?.remove();
+        toast('✅ Financiamiento creado.');
+        await renderFinanciamientos();
+    } catch(e) {
+        console.error('guardarFinanciamiento', e);
+        toast('No se pudo guardar el financiamiento.', 'error');
+    }
+}
+
+// ---- Registrar abono ----
+async function registrarAbonoFin(finId) {
+    if(!(isAdminUser() || tienePermiso('financiamientos_cobrar'))) { toast('No tienes permiso para cobrar.', 'error'); return; }
+    const f = (_finCache.financiamientos || []).find(x => x.id === finId);
+    if(!f) return;
+    const monto = parseFloat(document.getElementById('finAbonoMonto')?.value) || 0;
+    const metodo = document.getElementById('finAbonoMetodo')?.value || 'efectivo';
+    const nota = (document.getElementById('finAbonoNota')?.value || '').trim() || null;
+    const saldo = finSaldo(f);
+    if(monto <= 0) { toast('Ingresa un monto válido.', 'error'); return; }
+    if(monto > saldo + 0.001) { toast(`El abono supera el saldo pendiente (${money(saldo)}).`, 'error'); return; }
+    try {
+        const { error } = await supabaseClient.from('financiamiento_pagos').insert([{
+            financiamiento_id: finId,
+            monto,
+            metodo,
+            nota,
+            recibido_por: sessionUser?.nombre || sessionUser?.usuario || 'Sistema'
+        }]);
+        if(error) throw error;
+        // Si queda saldado, actualizar estado
+        await cargarFinanciamientos();
+        const fAct = (_finCache.financiamientos || []).find(x => x.id === finId);
+        if(fAct && finSaldo(fAct) <= 0.001 && fAct.estado !== 'saldado') {
+            await supabaseClient.from('financiamientos').update({ estado: 'saldado' }).eq('id', finId);
+            fAct.estado = 'saldado';
+        }
+        toast('✅ Abono registrado.');
+        // Ofrecer imprimir el recibo recién creado
+        const nuevo = finPagosDe(finId).slice(-1)[0];
+        _pintarFinanciamientos();
+        if(nuevo) setTimeout(() => imprimirReciboFin(nuevo.id), 250);
+    } catch(e) {
+        console.error('registrarAbonoFin', e);
+        toast('No se pudo registrar el abono.', 'error');
+    }
+}
+
+// ---- Cancelar ----
+async function cancelarFinanciamiento(finId) {
+    if(!(isAdminUser() || tienePermiso('financiamientos_eliminar'))) { toast('No tienes permiso.', 'error'); return; }
+    if(!confirm('¿Cancelar este financiamiento? Quedará marcado como cancelado (no se borran los abonos registrados).')) return;
+    try {
+        const { error } = await supabaseClient.from('financiamientos').update({ estado: 'cancelado' }).eq('id', finId);
+        if(error) throw error;
+        toast('Financiamiento cancelado.');
+        await renderFinanciamientos();
+    } catch(e) {
+        console.error('cancelarFinanciamiento', e);
+        toast('No se pudo cancelar.', 'error');
+    }
+}
+
+// ---- Impresión (recibo y estado de cuenta) ----
+function _finCabeceraImpresion() {
+    const c = cache.configTaller || {};
+    return `<div style="text-align:center; margin-bottom:10px;">
+        <div style="font-size:20px; font-weight:800;">${escapeHtml(c.nombre || 'BAYOL CELL')}</div>
+        ${c.direccion ? `<div style="font-size:12px;">${escapeHtml(c.direccion)}</div>` : ''}
+        ${c.telefono ? `<div style="font-size:12px;">Tel: ${escapeHtml(c.telefono)}</div>` : ''}
+    </div>`;
+}
+function _finAbrirImpresion(titulo, cuerpo) {
+    const w = window.open('', '_blank', 'width=420,height=640');
+    if(!w) { toast('Permite las ventanas emergentes para imprimir.', 'error'); return; }
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escapeHtml(titulo)}</title>
+        <style>
+            body { font-family: 'Segoe UI', Arial, sans-serif; color:#111; padding:16px; max-width:380px; margin:0 auto; }
+            table { width:100%; border-collapse:collapse; font-size:12px; }
+            th, td { padding:5px 4px; text-align:left; border-bottom:1px solid #e5e7eb; }
+            h3 { margin:6px 0; }
+            .tot { font-size:14px; font-weight:700; }
+            .muted { color:#666; font-size:11px; }
+            hr { border:0; border-top:1px dashed #999; margin:10px 0; }
+            @media print { button { display:none; } }
+        </style></head><body>
+        ${cuerpo}
+        <hr>
+        <div class="muted" style="text-align:center;">${escapeHtml((cache.configTaller || {}).pie || 'Gracias por su pago')}</div>
+        <div style="text-align:center; margin-top:14px;"><button onclick="window.print()" style="padding:8px 16px; font-size:14px; cursor:pointer;">🖨️ Imprimir</button></div>
+        </body></html>`);
+    w.document.close();
+}
+function imprimirReciboFin(pagoId) {
+    const p = (_finCache.pagos || []).find(x => x.id === pagoId);
+    if(!p) { toast('Recibo no encontrado.', 'error'); return; }
+    const f = (_finCache.financiamientos || []).find(x => x.id === p.financiamiento_id) || {};
+    // Saldo al momento (después de este pago) = financiado - abonos hasta e incluyendo este
+    const pagosOrden = finPagosDe(f.id);
+    let acum = 0; for(const pg of pagosOrden) { acum += Number(pg.monto || 0); if(pg.id === pagoId) break; }
+    const saldoTras = Math.max(0, Math.round((finFinanciado(f) - acum) * 100) / 100);
+    const cuerpo = `${_finCabeceraImpresion()}
+        <h3 style="text-align:center;">RECIBO DE PAGO</h3>
+        <div class="muted" style="text-align:center;">Recibo #${p.recibo || '—'} · ${new Date(p.creado_en).toLocaleString('es-DO')}</div>
+        <hr>
+        <table>
+            <tr><td>Cliente</td><td style="text-align:right;">${escapeHtml(f.cliente_nombre || '')}</td></tr>
+            <tr><td>Financiamiento</td><td style="text-align:right;">#${f.codigo || '—'}</td></tr>
+            <tr><td>Concepto</td><td style="text-align:right;">${escapeHtml(f.concepto || '')}</td></tr>
+            <tr><td>Método</td><td style="text-align:right; text-transform:capitalize;">${escapeHtml(p.metodo || '')}</td></tr>
+            ${p.nota ? `<tr><td>Nota</td><td style="text-align:right;">${escapeHtml(p.nota)}</td></tr>` : ''}
+        </table>
+        <hr>
+        <table>
+            <tr class="tot"><td>MONTO PAGADO</td><td style="text-align:right;">${money(p.monto)}</td></tr>
+            <tr><td>Saldo restante</td><td style="text-align:right;">${money(saldoTras)}</td></tr>
+        </table>
+        <div class="muted" style="margin-top:8px;">Recibido por: ${escapeHtml(p.recibido_por || '')}</div>`;
+    _finAbrirImpresion('Recibo #' + (p.recibo || ''), cuerpo);
+}
+function imprimirEstadoCuentaFin(finId) {
+    const f = (_finCache.financiamientos || []).find(x => x.id === finId);
+    if(!f) return;
+    const crono = finCronograma(f);
+    const pagos = finPagosDe(f.id);
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const cronoHtml = crono.map(c => {
+        const est = c.cubierta ? 'Pagada' : (c.pagado > 0 ? 'Parcial' : (c.vence < hoy ? 'Vencida' : 'Pendiente'));
+        return `<tr><td>${c.num}</td><td>${_finFmtFecha(c.vence)}</td><td style="text-align:right;">${money(c.valor)}</td><td style="text-align:right;">${est}</td></tr>`;
+    }).join('');
+    const pagosHtml = pagos.length ? pagos.map(p => `<tr><td>#${p.recibo || '—'}</td><td>${new Date(p.creado_en).toLocaleDateString('es-DO')}</td><td style="text-align:right;">${money(p.monto)}</td></tr>`).join('') : `<tr><td colspan="3" class="muted">Sin abonos</td></tr>`;
+    const cuerpo = `${_finCabeceraImpresion()}
+        <h3 style="text-align:center;">ESTADO DE CUENTA</h3>
+        <div class="muted" style="text-align:center;">${new Date().toLocaleString('es-DO')}</div>
+        <hr>
+        <table>
+            <tr><td>Cliente</td><td style="text-align:right;">${escapeHtml(f.cliente_nombre || '')}</td></tr>
+            <tr><td>Financiamiento</td><td style="text-align:right;">#${f.codigo || '—'}</td></tr>
+            <tr><td>Concepto</td><td style="text-align:right;">${escapeHtml(f.concepto || '')}</td></tr>
+            <tr><td>Precio total</td><td style="text-align:right;">${money(f.monto_total)}</td></tr>
+            <tr><td>Inicial</td><td style="text-align:right;">${money(f.inicial)}</td></tr>
+            <tr><td>Abonado</td><td style="text-align:right;">${money(finAbonado(f))}</td></tr>
+            <tr class="tot"><td>SALDO PENDIENTE</td><td style="text-align:right;">${money(finSaldo(f))}</td></tr>
+        </table>
+        <hr>
+        <h3>Plan de cuotas</h3>
+        <table><thead><tr><th>#</th><th>Vence</th><th style="text-align:right;">Cuota</th><th style="text-align:right;">Estado</th></tr></thead><tbody>${cronoHtml}</tbody></table>
+        <hr>
+        <h3>Abonos</h3>
+        <table><thead><tr><th>Recibo</th><th>Fecha</th><th style="text-align:right;">Monto</th></tr></thead><tbody>${pagosHtml}</tbody></table>`;
+    _finAbrirImpresion('Estado de cuenta #' + (f.codigo || ''), cuerpo);
+}
 
 const saved = localStorage.getItem("bayol_session");
 if(saved) { try { sessionUser = JSON.parse(saved); startApp(); } catch(e){ logError("Restaurar sesión local", e); localStorage.removeItem("bayol_session"); } }
