@@ -12371,8 +12371,32 @@ function finAbonado(f) {
 function finFinanciado(f) {
     return Math.max(0, Number(f.monto_total || 0) - Number(f.inicial || 0));
 }
+// Interés total según método: 'plano' (tasa x capital x n) o 'saldo' (amortización francesa)
+function finInteresTotal(f) {
+    const cap = finFinanciado(f);
+    const n = Math.max(1, parseInt(f.num_cuotas, 10) || 1);
+    const tasa = Number(f.interes_tasa || 0);
+    const m = f.interes_metodo || 'ninguno';
+    if(!(tasa > 0) || m === 'ninguno' || !m || cap <= 0) return 0;
+    if(m === 'plano') return Math.round(cap * (tasa / 100) * n * 100) / 100;
+    if(m === 'saldo') {
+        const i = tasa / 100;
+        const cuota = cap * i / (1 - Math.pow(1 + i, -n));
+        return Math.round((cuota * n - cap) * 100) / 100;
+    }
+    return 0;
+}
+// Monto total a cobrar en cuotas = capital + interés
+function finMontoCuotas(f) {
+    return Math.round((finFinanciado(f) + finInteresTotal(f)) * 100) / 100;
+}
+// Valor de cuota calculado (incluye interés)
+function finValorCuotaCalc(f) {
+    const n = Math.max(1, parseInt(f.num_cuotas, 10) || 1);
+    return Math.round((finMontoCuotas(f) / n) * 100) / 100;
+}
 function finSaldo(f) {
-    return Math.max(0, Math.round((finFinanciado(f) - finAbonado(f)) * 100) / 100);
+    return Math.max(0, Math.round((finMontoCuotas(f) - finAbonado(f)) * 100) / 100);
 }
 // Mora acumulada: por cada cuota vencida no cubierta, según config del financiamiento
 function finMoraAcumulada(f) {
@@ -12405,13 +12429,13 @@ function _finFmtFecha(d) {
 // Construye el cronograma de cuotas con el estado de pago de cada una
 function finCronograma(f) {
     const n = Math.max(1, parseInt(f.num_cuotas, 10) || 1);
-    const financiado = finFinanciado(f);
+    const aCobrar = finMontoCuotas(f);
     const abonado = finAbonado(f);
-    const valorBase = Math.round((Number(f.valor_cuota) || (financiado / n)) * 100) / 100;
+    const valorBase = Math.round((Number(f.valor_cuota) || (aCobrar / n)) * 100) / 100;
     const cuotas = [];
     let acum = 0;
     for(let i = 1; i <= n; i++) {
-        let valor = (i < n) ? valorBase : Math.round((financiado - valorBase * (n - 1)) * 100) / 100;
+        let valor = (i < n) ? valorBase : Math.round((aCobrar - valorBase * (n - 1)) * 100) / 100;
         if(valor < 0) valor = 0;
         const previo = acum;
         acum = Math.round((acum + valor) * 100) / 100;
@@ -12450,30 +12474,46 @@ function finBadge(estado) {
 }
 const FIN_FREC_TXT = { semanal: 'Semanal', quincenal: 'Quincenal', mensual: 'Mensual' };
 
+// Texto descriptivo del interés
+function finInteresTxt(obj) {
+    const m = obj.interes_metodo || 'ninguno';
+    const t = Number(obj.interes_tasa || 0);
+    if(m === 'ninguno' || !m || !(t > 0)) return 'Sin interés';
+    return (m === 'plano' ? 'Interés plano ' : 'Interés sobre saldo ') + t + '% por cuota';
+}
 // Tabla de amortización: funciona con solicitud o financiamiento (mismos campos)
 function _finAmortizacionRows(obj) {
     const n = Math.max(1, parseInt(obj.num_cuotas, 10) || 1);
-    const financiado = Math.max(0, Number(obj.monto_total || 0) - Number(obj.inicial || 0));
-    const valorBase = Math.round((Number(obj.valor_cuota) || (financiado / n)) * 100) / 100;
-    let saldo = financiado;
+    const cap = finFinanciado(obj);
+    const m = obj.interes_metodo || 'ninguno';
+    const tasa = Number(obj.interes_tasa || 0);
+    const cuota = Number(obj.valor_cuota) || finValorCuotaCalc(obj);
+    let saldoCap = cap;
+    let saldoTotal = finMontoCuotas(obj);
     const rows = [];
     for(let i = 1; i <= n; i++) {
-        let valor = (i < n) ? valorBase : Math.round(saldo * 100) / 100;
-        if(valor < 0) valor = 0;
-        saldo = Math.round((saldo - valor) * 100) / 100;
-        if(saldo < 0) saldo = 0;
-        rows.push({ num: i, vence: _finAddPeriodo(obj.fecha_inicio, obj.frecuencia, i), cuota: valor, saldo });
+        let pago = (i < n) ? cuota : saldoTotal;
+        if(pago < 0) pago = 0;
+        let interes, capital;
+        if(m === 'saldo' && tasa > 0) { interes = Math.round(saldoCap * (tasa / 100) * 100) / 100; capital = Math.round((pago - interes) * 100) / 100; }
+        else if(m === 'plano' && tasa > 0) { interes = Math.round(cap * (tasa / 100) * 100) / 100; capital = Math.round((pago - interes) * 100) / 100; }
+        else { interes = 0; capital = pago; }
+        saldoCap = Math.round((saldoCap - capital) * 100) / 100; if(saldoCap < 0) saldoCap = 0;
+        saldoTotal = Math.round((saldoTotal - pago) * 100) / 100; if(saldoTotal < 0) saldoTotal = 0;
+        rows.push({ num: i, vence: _finAddPeriodo(obj.fecha_inicio, obj.frecuencia, i), cuota: pago, interes, capital, saldo: saldoTotal });
     }
     return rows;
 }
 function _finAmortizacionHTML(obj) {
-    const financiado = Math.max(0, Number(obj.monto_total || 0) - Number(obj.inicial || 0));
+    const cap = finFinanciado(obj);
+    const interes = finInteresTotal(obj);
+    const conInteres = interes > 0;
     const rows = _finAmortizacionRows(obj);
-    return `<div class="table-wrap"><table>
-        <thead><tr><th>#</th><th>Vence</th><th style="text-align:right;">Cuota</th><th style="text-align:right;">Saldo</th></tr></thead>
+    return `<div style="font-size:12px; color:var(--text-muted); margin-bottom:6px;">A financiar: <b>${money(cap)}</b>${conInteres ? ` · Interés: <b>${money(interes)}</b> · Total a pagar: <b>${money(finMontoCuotas(obj))}</b> · ${escapeHtml(finInteresTxt(obj))}` : ''}</div>
+    <div class="table-wrap"><table>
+        <thead><tr><th>#</th><th>Vence</th>${conInteres ? '<th style="text-align:right;">Capital</th><th style="text-align:right;">Interés</th>' : ''}<th style="text-align:right;">Cuota</th><th style="text-align:right;">Saldo</th></tr></thead>
         <tbody>
-            <tr style="background:#f8fafc;"><td colspan="2"><b>Precio ${money(obj.monto_total)} − Inicial ${money(obj.inicial)}</b></td><td colspan="2" style="text-align:right;"><b>A financiar: ${money(financiado)}</b></td></tr>
-            ${rows.map(r => `<tr><td>${r.num}</td><td>${_finFmtFecha(r.vence)}</td><td style="text-align:right;">${money(r.cuota)}</td><td style="text-align:right;">${money(r.saldo)}</td></tr>`).join('')}
+            ${rows.map(r => `<tr><td>${r.num}</td><td>${_finFmtFecha(r.vence)}</td>${conInteres ? `<td style="text-align:right;">${money(r.capital)}</td><td style="text-align:right;">${money(r.interes)}</td>` : ''}<td style="text-align:right;">${money(r.cuota)}</td><td style="text-align:right;">${money(r.saldo)}</td></tr>`).join('')}
         </tbody>
     </table></div>`;
 }
@@ -12672,6 +12712,7 @@ function _pintarDetalleFin() {
         </div>
         <div style="font-size:12px; color:var(--text-muted); margin-top:8px;">
             ${f.num_cuotas} cuota${f.num_cuotas == 1 ? '' : 's'} de ${money(f.valor_cuota)} · ${FIN_FREC_TXT[f.frecuencia] || f.frecuencia} · Inicio ${_finFmtFecha(_finAddPeriodo(f.fecha_inicio, f.frecuencia, 0))}
+            ${finInteresTotal(f) > 0 ? `<br>💵 A financiar ${money(finFinanciado(f))} + interés ${money(finInteresTotal(f))} = total ${money(finMontoCuotas(f))} · ${escapeHtml(finInteresTxt(f))}` : ''}
             ${f.notas ? '<br>📝 ' + escapeHtml(f.notas) : ''}
         </div>
     </div>`;
@@ -12878,6 +12919,7 @@ function _pintarDetalleSol() {
             ${dato('Precio total', money(s.monto_total))}
             ${dato('Inicial', money(s.inicial))}
             ${dato('A financiar', money(financiado))}
+            ${finInteresTotal(s) > 0 ? dato('Interés', `${money(finInteresTotal(s))} (${escapeHtml(finInteresTxt(s))})`) + dato('Total a pagar', money(finMontoCuotas(s))) : ''}
             ${dato('Cuotas', `${s.num_cuotas} x ${money(s.valor_cuota)} (${FIN_FREC_TXT[s.frecuencia] || s.frecuencia})`)}
             ${dato('Inicio', _finFmtFecha(_finAddPeriodo(s.fecha_inicio, s.frecuencia, 0)))}
         </div>
@@ -12968,12 +13010,17 @@ function abrirModalNuevaSolicitud() {
         </div>
         <div class="form-row"><label>Fecha de inicio (al aprobar)</label><input type="date" id="solFechaInicio" value="${hoyISO}"></div>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <div class="form-row" style="flex:1; min-width:150px;"><label>Interés</label><select id="solInteresMetodo" onchange="_solRecalcCuota()"><option value="ninguno">Sin interés</option><option value="plano">Plano (sobre el monto)</option><option value="saldo">Sobre saldo (francés)</option></select></div>
+            <div class="form-row" style="flex:1; min-width:110px;"><label>Tasa % por cuota</label><input type="number" id="solInteresTasa" min="0" step="0.01" value="0" oninput="_solRecalcCuota()"></div>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
             <div class="form-row" style="flex:1; min-width:140px;"><label>Mora por atraso</label><select id="solMoraTipo" onchange="_solMoraLabel()"><option value="ninguna"${moraSel('ninguna')}>Sin mora</option><option value="porcentaje"${moraSel('porcentaje')}>% de la cuota</option><option value="fijo"${moraSel('fijo')}>Monto fijo (RD$)</option></select></div>
             <div class="form-row" style="flex:1; min-width:120px;"><label id="solMoraValorLbl">Valor</label><input type="number" id="solMoraValor" min="0" step="0.01" value="${moraValorDef}"></div>
         </div>
         <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:10px; margin-bottom:12px; font-size:13px;">
             Inicial aplicada: <b id="solInicialPrev">RD$ 0.00</b><br>
             Monto a financiar: <b id="solFinanciadoPrev">RD$ 0.00</b><br>
+            <span id="solInteresPrevWrap" style="display:none;">Interés: <b id="solInteresPrev">RD$ 0.00</b> · Total a pagar: <b id="solTotalPrev">RD$ 0.00</b><br></span>
             Valor de cada cuota: <b id="solCuotaPrev" style="color:#16a34a;">RD$ 0.00</b>
         </div>
         <div class="form-row"><label>Notas (opcional)</label><textarea id="solNotas" rows="2"></textarea></div>
@@ -13014,12 +13061,22 @@ function _solRecalcCuota() {
     const inicial = _solInicialRD();
     const nc = Math.max(1, parseInt(document.getElementById('solNumCuotas')?.value, 10) || 1);
     const financiado = Math.max(0, total - inicial);
-    const elI = document.getElementById('solInicialPrev');
-    const elF = document.getElementById('solFinanciadoPrev');
-    const elC = document.getElementById('solCuotaPrev');
-    if(elI) elI.textContent = money(inicial);
-    if(elF) elF.textContent = money(financiado);
-    if(elC) elC.textContent = money(Math.round((financiado / nc) * 100) / 100);
+    const obj = {
+        monto_total: total, inicial, num_cuotas: nc,
+        interes_metodo: document.getElementById('solInteresMetodo')?.value || 'ninguno',
+        interes_tasa: parseFloat(document.getElementById('solInteresTasa')?.value) || 0
+    };
+    const interes = finInteresTotal(obj);
+    const totalPagar = finMontoCuotas(obj);
+    const cuota = finValorCuotaCalc(obj);
+    const set = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = v; };
+    set('solInicialPrev', money(inicial));
+    set('solFinanciadoPrev', money(financiado));
+    set('solCuotaPrev', money(cuota));
+    const wrap = document.getElementById('solInteresPrevWrap');
+    if(wrap) wrap.style.display = interes > 0 ? '' : 'none';
+    set('solInteresPrev', money(interes));
+    set('solTotalPrev', money(totalPagar));
 }
 async function guardarSolicitud() {
     if(!(isAdminUser() || tienePermiso('financiamientos_crear'))) { toast('No tienes permiso.', 'error'); return; }
@@ -13035,7 +13092,9 @@ async function guardarSolicitud() {
     if(!concepto) { toast('Indica qué se financia (concepto).', 'error'); return; }
     if(total <= 0) { toast('El precio total debe ser mayor que 0.', 'error'); return; }
     if(inicial < 0 || inicial >= total) { toast('La inicial debe ser menor que el precio total.', 'error'); return; }
-    const valorCuota = Math.round(((total - inicial) / nc) * 100) / 100;
+    const interesMetodo = document.getElementById('solInteresMetodo')?.value || 'ninguno';
+    const interesTasa = parseFloat(document.getElementById('solInteresTasa')?.value) || 0;
+    const valorCuota = finValorCuotaCalc({ monto_total: total, inicial, num_cuotas: nc, interes_metodo: interesMetodo, interes_tasa: interesTasa });
     const usuario = sessionUser?.nombre || sessionUser?.usuario || 'Sistema';
     const datosCliente = {
         nombre, apellido: val('solApellido') || null, cedula: val('solCedula') || null,
@@ -13064,6 +13123,7 @@ async function guardarSolicitud() {
             concepto, equipo_imei: val('solImei') || null,
             monto_total: total, inicial, num_cuotas: nc, frecuencia, valor_cuota: valorCuota,
             fecha_inicio: fechaInicio, estado: 'pendiente',
+            interes_metodo: interesMetodo, interes_tasa: interesTasa,
             mora_tipo: document.getElementById('solMoraTipo')?.value || 'ninguna',
             mora_valor: parseFloat(document.getElementById('solMoraValor')?.value) || 0,
             notas: val('solNotas') || null, creado_por: usuario
@@ -13101,6 +13161,8 @@ async function aprobarSolicitud(solId) {
             valor_cuota: s.valor_cuota,
             fecha_inicio: s.fecha_inicio,
             estado: 'activo',
+            interes_metodo: s.interes_metodo || 'ninguno',
+            interes_tasa: s.interes_tasa || 0,
             mora_tipo: s.mora_tipo || 'ninguna',
             mora_valor: s.mora_valor || 0,
             notas: s.notas,
@@ -13228,7 +13290,7 @@ function imprimirReciboFin(pagoId) {
     // Saldo al momento (después de este pago) = financiado - abonos hasta e incluyendo este
     const pagosOrden = finPagosDe(f.id);
     let acum = 0; for(const pg of pagosOrden) { acum += Number(pg.monto || 0); if(pg.id === pagoId) break; }
-    const saldoTras = Math.max(0, Math.round((finFinanciado(f) - acum) * 100) / 100);
+    const saldoTras = Math.max(0, Math.round((finMontoCuotas(f) - acum) * 100) / 100);
     const cuerpo = `${_finCabeceraImpresion()}
         <h3 style="text-align:center;">RECIBO DE PAGO</h3>
         <div class="muted" style="text-align:center;">Recibo #${p.recibo || '—'} · ${new Date(p.creado_en).toLocaleString('es-DO')}</div>
@@ -13493,8 +13555,8 @@ function _finTienda() { return (cache.configTaller || {}).nombre || 'BAYOL CELL'
 function _finFrecAdj(frec) { return ({ semanal: 'semanales', quincenal: 'quincenales', mensual: 'mensuales' })[frec] || frec; }
 // Texto que el cliente lee frente a la cámara (evidencia)
 function _finTextoEvidencia(f) {
-    const fin = finFinanciado(f);
-    return `Yo, ${f.cliente_nombre || ''}${f.cliente_cedula ? ', cédula ' + f.cliente_cedula : ''}, declaro de manera voluntaria que tomé un financiamiento con ${_finTienda()} por ${f.concepto || 'un equipo'}${f.equipo_imei ? ', IMEI ' + f.equipo_imei : ''}. El precio total es ${money(f.monto_total)}; di una inicial de ${money(f.inicial)} y me comprometo a pagar el saldo de ${money(fin)} en ${f.num_cuotas} cuotas ${_finFrecAdj(f.frecuencia)} de ${money(f.valor_cuota)} cada una. Reconozco esta deuda y me comprometo a pagarla en los plazos acordados.`;
+    const aPagar = finMontoCuotas(f);
+    return `Yo, ${f.cliente_nombre || ''}${f.cliente_cedula ? ', cédula ' + f.cliente_cedula : ''}, declaro de manera voluntaria que tomé un financiamiento con ${_finTienda()} por ${f.concepto || 'un equipo'}${f.equipo_imei ? ', IMEI ' + f.equipo_imei : ''}. El precio total es ${money(f.monto_total)}; di una inicial de ${money(f.inicial)} y me comprometo a pagar el saldo de ${money(aPagar)} en ${f.num_cuotas} cuotas ${_finFrecAdj(f.frecuencia)} de ${money(f.valor_cuota)} cada una. Reconozco esta deuda y me comprometo a pagarla en los plazos acordados.`;
 }
 
 // ---- Pad de firma ----
@@ -13751,12 +13813,12 @@ async function _finSubirDoc(input, tipo, clienteId, finId, refId) {
 const FIN_CONTRATO_TITULO_DEF = 'CONTRATO DE VENTA CONDICIONAL CON FINANCIAMIENTO Y RECONOCIMIENTO DE DEUDA';
 const FIN_CONTRATO_CUERPO_DEF = `Entre {{tienda}}{{tienda_dir}} (EL ACREEDOR), y {{cliente}}, dominicano(a), mayor de edad, portador(a) de la cédula de identidad No. {{cedula}}, teléfono {{telefono}} (EL DEUDOR), se ha convenido y pactado lo siguiente:
 PRIMERO (Objeto): EL ACREEDOR vende a EL DEUDOR, mediante financiamiento, el siguiente bien: {{equipo}}, IMEI {{imei}}, por un precio total de {{total}}.
-SEGUNDO (Forma de pago): EL DEUDOR pagó una inicial de {{inicial}} y se obliga a pagar el saldo de {{financiado}} en {{cuotas}} cuotas {{frecuencia}} de {{valor_cuota}} cada una, conforme al calendario anexo, iniciando el {{fecha_inicio}}.
+SEGUNDO (Forma de pago): EL DEUDOR pagó una inicial de {{inicial}} y se obliga a pagar el saldo de {{total_pagar}} (capital {{financiado}} más intereses {{interes}}) en {{cuotas}} cuotas {{frecuencia}} de {{valor_cuota}} cada una, conforme al calendario anexo, iniciando el {{fecha_inicio}}.
 TERCERO (Mora): El atraso en el pago de cualquier cuota generará un recargo por mora de {{mora}}.
 CUARTO (Vencimiento anticipado): La falta de pago de las cuotas dará derecho a EL ACREEDOR a exigir la totalidad del saldo pendiente y/o la devolución del bien financiado.
 QUINTO (Reserva de dominio): El bien permanece en garantía y propiedad de EL ACREEDOR hasta el pago total de la deuda.
 SEXTO (Reconocimiento): EL DEUDOR reconoce la presente deuda y se compromete a pagarla en los plazos acordados.`;
-const FIN_CONTRATO_VARS = ['tienda', 'cliente', 'cedula', 'telefono', 'equipo', 'imei', 'total', 'inicial', 'financiado', 'cuotas', 'valor_cuota', 'frecuencia', 'fecha_inicio', 'mora', 'fecha_hoy'];
+const FIN_CONTRATO_VARS = ['tienda', 'cliente', 'cedula', 'telefono', 'equipo', 'imei', 'total', 'inicial', 'financiado', 'interes', 'total_pagar', 'tasa', 'cuotas', 'valor_cuota', 'frecuencia', 'fecha_inicio', 'mora', 'fecha_hoy'];
 
 function _finRellenarPlantilla(tpl, f) {
     const c = cache.configTaller || {};
@@ -13771,6 +13833,9 @@ function _finRellenarPlantilla(tpl, f) {
         total: money(f.monto_total),
         inicial: money(f.inicial),
         financiado: money(finFinanciado(f)),
+        interes: money(finInteresTotal(f)),
+        total_pagar: money(finMontoCuotas(f)),
+        tasa: (Number(f.interes_tasa) || 0) + '%',
         cuotas: f.num_cuotas,
         valor_cuota: money(f.valor_cuota),
         frecuencia: _finFrecAdj(f.frecuencia),
@@ -13902,6 +13967,10 @@ function editarSolicitud(id) {
             <div class="form-row" style="flex:1; min-width:110px;"><label>Frecuencia</label><select id="edsFrec"><option value="semanal" ${s.frecuencia === 'semanal' ? 'selected' : ''}>Semanal</option><option value="quincenal" ${s.frecuencia === 'quincenal' ? 'selected' : ''}>Quincenal</option><option value="mensual" ${s.frecuencia === 'mensual' ? 'selected' : ''}>Mensual</option></select></div>
         </div>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <div class="form-row" style="flex:1; min-width:150px;"><label>Interés</label><select id="edsInteresMetodo"><option value="ninguno" ${(s.interes_metodo || 'ninguno') === 'ninguno' ? 'selected' : ''}>Sin interés</option><option value="plano" ${s.interes_metodo === 'plano' ? 'selected' : ''}>Plano</option><option value="saldo" ${s.interes_metodo === 'saldo' ? 'selected' : ''}>Sobre saldo</option></select></div>
+            <div class="form-row" style="flex:1; min-width:100px;"><label>Tasa % por cuota</label><input type="number" id="edsInteresTasa" min="0" step="0.01" value="${s.interes_tasa || 0}"></div>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
             <div class="form-row" style="flex:1; min-width:120px;"><label>Fecha inicio</label><input type="date" id="edsFecha" value="${(s.fecha_inicio || '').slice(0, 10)}"></div>
             <div class="form-row" style="flex:1; min-width:120px;"><label>Mora</label><select id="edsMoraTipo"><option value="ninguna" ${s.mora_tipo === 'ninguna' ? 'selected' : ''}>Sin mora</option><option value="porcentaje" ${s.mora_tipo === 'porcentaje' ? 'selected' : ''}>% por cuota</option><option value="fijo" ${s.mora_tipo === 'fijo' ? 'selected' : ''}>Fijo por cuota</option></select></div>
             <div class="form-row" style="flex:1; min-width:90px;"><label>Valor mora</label><input type="number" id="edsMoraValor" min="0" step="0.01" value="${s.mora_valor || 0}"></div>
@@ -13918,14 +13987,17 @@ async function guardarEdicionSolicitud(id) {
     const inicial = (document.getElementById('edsInicialTipo')?.value === 'pct') ? Math.round(total * inicialVal) / 100 : inicialVal;
     const nc = Math.max(1, parseInt(document.getElementById('edsCuotas')?.value, 10) || 1);
     if(total <= 0 || inicial >= total) { toast('Revisa el precio total y la inicial.', 'error'); return; }
+    const interesMetodo = document.getElementById('edsInteresMetodo')?.value || 'ninguno';
+    const interesTasa = parseFloat(document.getElementById('edsInteresTasa')?.value) || 0;
     try {
         const { error } = await supabaseClient.from('fin_solicitudes').update({
             concepto: (document.getElementById('edsConcepto')?.value || '').trim(),
             equipo_imei: (document.getElementById('edsImei')?.value || '').trim() || null,
             monto_total: total, inicial, num_cuotas: nc,
             frecuencia: document.getElementById('edsFrec')?.value || 'mensual',
-            valor_cuota: Math.round(((total - inicial) / nc) * 100) / 100,
+            valor_cuota: finValorCuotaCalc({ monto_total: total, inicial, num_cuotas: nc, interes_metodo: interesMetodo, interes_tasa: interesTasa }),
             fecha_inicio: document.getElementById('edsFecha')?.value,
+            interes_metodo: interesMetodo, interes_tasa: interesTasa,
             mora_tipo: document.getElementById('edsMoraTipo')?.value || 'ninguna',
             mora_valor: parseFloat(document.getElementById('edsMoraValor')?.value) || 0
         }).eq('id', id);
