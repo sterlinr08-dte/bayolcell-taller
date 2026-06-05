@@ -718,9 +718,13 @@ input[type="checkbox"]:not(.no-norm):hover { border-color: var(--blue-btn); }
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:14px;">
                     <h2 style="margin:0;"><i class="ti ti-cash" style="color:#16a34a;"></i> Financiamientos</h2>
                     <div style="display:flex; gap:6px;">
-                        <button class="btn btn-blue" id="btnNuevoFinanciamiento" onclick="abrirModalNuevoFinanciamiento()" style="font-size:12px;"><i class="ti ti-plus"></i> Nuevo financiamiento</button>
+                        <button class="btn btn-blue" id="btnNuevaSolicitud" onclick="abrirModalNuevaSolicitud()" style="font-size:12px;"><i class="ti ti-plus"></i> Nueva solicitud</button>
                         <button class="btn btn-light" onclick="renderFinanciamientos()" style="font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
                     </div>
+                </div>
+                <div style="display:flex; gap:8px; margin-bottom:14px;">
+                    <button id="finTabSolicitudes" onclick="finCambiarTab('solicitudes')"><i class="ti ti-file-text"></i> Solicitudes</button>
+                    <button id="finTabFinanciamientos" onclick="finCambiarTab('financiamientos')"><i class="ti ti-cash"></i> Financiamientos</button>
                 </div>
                 <div id="finKpis" class="kpi-row" style="margin-bottom:16px;"></div>
                 <div id="finContenido"></div>
@@ -10315,7 +10319,8 @@ const PERMISOS_DEF = [
         grupo: '💵 Financiamientos', color: '#16a34a',
         items: [
             { id: 'financiamientos_ver', label: 'Ver módulo de Financiamientos' },
-            { id: 'financiamientos_crear', label: 'Crear/editar financiamientos' },
+            { id: 'financiamientos_crear', label: 'Crear solicitudes de financiamiento' },
+            { id: 'financiamientos_aprobar', label: 'Aprobar/rechazar solicitudes' },
             { id: 'financiamientos_cobrar', label: 'Registrar abonos/pagos' },
             { id: 'financiamientos_eliminar', label: 'Cancelar/eliminar financiamientos' }
         ]
@@ -12341,10 +12346,14 @@ document.getElementById('modalNuevoPerfil')?.addEventListener('click', e => {
 //   Carga sus propios datos (NO toca loadAll) para evitar
 //   conflictos con el desarrollo del módulo de taller.
 // ============================================================
-let _finCache = { financiamientos: [], pagos: [] };
+let _finCache = { financiamientos: [], pagos: [], solicitudes: [], clientes: [], referencias: [] };
+let _finTab = 'solicitudes';     // solicitudes | financiamientos
 let _finFiltro = 'activos';      // activos | atrasados | saldados | todos
+let _solFiltro = 'pendientes';   // pendientes | aprobadas | rechazadas | todas
 let _finBusqueda = '';
+let _solBusqueda = '';
 let _finDetalleId = null;        // id del financiamiento abierto en detalle
+let _solDetalleId = null;        // id de la solicitud abierta en detalle
 
 // ---- Helpers de cálculo ----
 function finPagosDe(finId) {
@@ -12421,27 +12430,56 @@ const FIN_FREC_TXT = { semanal: 'Semanal', quincenal: 'Quincenal', mensual: 'Men
 // ---- Carga de datos ----
 async function cargarFinanciamientos() {
     try {
-        const [rf, rp] = await Promise.all([
+        const [rf, rp, rs, rc, rr] = await Promise.all([
             supabaseClient.from('financiamientos').select('*').order('creado_en', { ascending: false }),
-            supabaseClient.from('financiamiento_pagos').select('*').order('creado_en', { ascending: true })
+            supabaseClient.from('financiamiento_pagos').select('*').order('creado_en', { ascending: true }),
+            supabaseClient.from('fin_solicitudes').select('*').order('creado_en', { ascending: false }),
+            supabaseClient.from('fin_clientes').select('*').order('creado_en', { ascending: false }),
+            supabaseClient.from('fin_referencias').select('*').order('creado_en', { ascending: true })
         ]);
         if(rf.error) throw rf.error;
         if(rp.error) throw rp.error;
+        if(rs.error) throw rs.error;
+        if(rc.error) throw rc.error;
+        if(rr.error) throw rr.error;
         _finCache.financiamientos = rf.data || [];
         _finCache.pagos = rp.data || [];
+        _finCache.solicitudes = rs.data || [];
+        _finCache.clientes = rc.data || [];
+        _finCache.referencias = rr.data || [];
     } catch(e) {
         console.error('cargarFinanciamientos', e);
         toast('Error cargando financiamientos.', 'error');
     }
 }
+function finClienteDe(id) { return (_finCache.clientes || []).find(c => c.id === id) || null; }
+function finReferenciasDe(clienteId) { return (_finCache.referencias || []).filter(r => r.cliente_id === clienteId); }
 
 // ---- Render principal ----
 async function renderFinanciamientos() {
-    // Permiso para crear: mostrar/ocultar botón superior
-    const btnNuevo = document.getElementById('btnNuevoFinanciamiento');
+    const btnNuevo = document.getElementById('btnNuevaSolicitud');
     if(btnNuevo) btnNuevo.style.display = (isAdminUser() || tienePermiso('financiamientos_crear')) ? '' : 'none';
     await cargarFinanciamientos();
-    _pintarFinanciamientos();
+    _pintarTabFin();
+}
+function finCambiarTab(tab) {
+    _finTab = tab;
+    _finDetalleId = null;
+    _solDetalleId = null;
+    _pintarTabFin();
+}
+function _pintarTabFin() {
+    // Resaltar pestaña activa
+    const ts = document.getElementById('finTabSolicitudes');
+    const tf = document.getElementById('finTabFinanciamientos');
+    const act = 'background:#16a34a; color:#fff; font-weight:700;';
+    const ina = 'background:#f1f5f9; color:#475569;';
+    if(ts) ts.style.cssText = 'border:0; border-radius:8px; padding:8px 16px; cursor:pointer; font-size:13px; ' + (_finTab === 'solicitudes' ? act : ina);
+    if(tf) tf.style.cssText = 'border:0; border-radius:8px; padding:8px 16px; cursor:pointer; font-size:13px; ' + (_finTab === 'financiamientos' ? act : ina);
+    const btnNuevo = document.getElementById('btnNuevaSolicitud');
+    if(btnNuevo) btnNuevo.style.display = (_finTab === 'solicitudes' && (isAdminUser() || tienePermiso('financiamientos_crear'))) ? '' : 'none';
+    if(_finTab === 'solicitudes') _pintarSolicitudes();
+    else _pintarFinanciamientos();
 }
 function _pintarFinanciamientos() {
     if(_finDetalleId) { _pintarDetalleFin(); return; }
@@ -12534,7 +12572,7 @@ function _pintarListaFin() {
 }
 
 // ---- Detalle de un financiamiento ----
-function verFinanciamiento(id) { _finDetalleId = id; _pintarFinanciamientos(); }
+function verFinanciamiento(id) { _finDetalleId = id; _finTab = 'financiamientos'; _solDetalleId = null; _pintarTabFin(); }
 function volverListaFin() { _finDetalleId = null; _pintarFinanciamientos(); }
 function _pintarDetalleFin() {
     const cont = document.getElementById('finContenido');
@@ -12629,101 +12667,358 @@ function _pintarDetalleFin() {
     cont.innerHTML = html;
 }
 
-// ---- Crear financiamiento ----
-function abrirModalNuevoFinanciamiento() {
-    if(!(isAdminUser() || tienePermiso('financiamientos_crear'))) { toast('No tienes permiso para crear financiamientos.', 'error'); return; }
-    const clientes = (cache.clientes || []).slice().sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
-    const opciones = clientes.map(c => {
-        const nom = `${c.nombre || ''} ${c.apellido || ''}`.trim();
-        const extra = c.whatsapp || c.cedula || '';
-        return `<option value="${c.id}">${escapeHtml(nom)}${extra ? ' — ' + escapeHtml(extra) : ''}</option>`;
-    }).join('');
+// ============================================================
+//   SOLICITUDES DE FINANCIAMIENTO
+// ============================================================
+const SOL_ESTADO_INFO = {
+    pendiente: { txt: 'Pendiente', color: '#b45309', bg: '#fef3c7' },
+    aprobada:  { txt: 'Aprobada',  color: '#15803d', bg: '#dcfce7' },
+    rechazada: { txt: 'Rechazada', color: '#b91c1c', bg: '#fee2e2' }
+};
+function solBadge(e) {
+    const i = SOL_ESTADO_INFO[e] || SOL_ESTADO_INFO.pendiente;
+    return `<span style="background:${i.bg}; color:${i.color}; font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px;">${i.txt}</span>`;
+}
+
+// ---- Render lista de solicitudes ----
+function _pintarSolicitudes() {
+    if(_solDetalleId) { _pintarDetalleSol(); return; }
+    const kpis = document.getElementById('finKpis');
+    const cont = document.getElementById('finContenido');
+    if(!cont) return;
+    const lista = _finCache.solicitudes || [];
+    const pend = lista.filter(s => s.estado === 'pendiente');
+    const apro = lista.filter(s => s.estado === 'aprobada');
+    const rech = lista.filter(s => s.estado === 'rechazada');
+    if(kpis) {
+        const kpi = (label, val, color, icon) => `<div class="kpi-box" style="border-top-color:${color};"><small>${label}</small><strong>${val}</strong><i class="ti ${icon}"></i></div>`;
+        kpis.innerHTML =
+            kpi('Pendientes', pend.length, '#b45309', 'ti-clock') +
+            kpi('Aprobadas', apro.length, '#16a34a', 'ti-circle-check') +
+            kpi('Rechazadas', rech.length, '#b91c1c', 'ti-circle-x') +
+            kpi('Total', lista.length, '#0891b2', 'ti-file-text');
+    }
+    let html = `<div class="card" style="margin-bottom:14px;">
+        <input id="solBuscador" oninput="_solBusqueda=this.value; _pintarListaSol()" value="${escapeHtml(_solBusqueda)}" placeholder="🔍 Buscar por cliente, concepto o # código..." style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; margin-bottom:10px;">
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            ${['pendientes', 'aprobadas', 'rechazadas', 'todas'].map(ff => `<button class="btn btn-light" onclick="_solFiltro='${ff}'; _pintarSolicitudes()" style="font-size:12px; ${_solFiltro === ff ? 'background:#dcfce7; color:#15803d; font-weight:700;' : ''}">${({ pendientes: '⏳ Pendientes', aprobadas: '✅ Aprobadas', rechazadas: '❌ Rechazadas', todas: 'Todas' })[ff]}</button>`).join('')}
+        </div>
+        <div id="solLista" style="margin-top:12px;"></div>
+    </div>`;
+    cont.innerHTML = html;
+    _pintarListaSol();
+}
+function _pintarListaSol() {
+    const cont = document.getElementById('solLista');
+    if(!cont) return;
+    let lista = (_finCache.solicitudes || []).slice();
+    const mapaFiltro = { pendientes: 'pendiente', aprobadas: 'aprobada', rechazadas: 'rechazada' };
+    if(mapaFiltro[_solFiltro]) lista = lista.filter(s => s.estado === mapaFiltro[_solFiltro]);
+    const q = (_solBusqueda || '').trim().toLowerCase();
+    if(q) lista = lista.filter(s =>
+        (s.cliente_nombre || '').toLowerCase().includes(q) ||
+        (s.concepto || '').toLowerCase().includes(q) ||
+        String(s.codigo || '').includes(q)
+    );
+    if(!lista.length) { cont.innerHTML = `<div style="color:var(--text-muted); font-size:13px; padding:8px 0;">No hay solicitudes en esta vista.</div>`; return; }
+    cont.innerHTML = lista.map(s => `<div style="border:1px solid #e2e8f0; border-radius:12px; padding:12px; margin-bottom:10px; background:#fff;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap;">
+            <div style="min-width:0; flex:1;">
+                <div style="font-weight:700; font-size:14px;">${escapeHtml(s.cliente_nombre || 'Sin cliente')} <span style="color:#94a3b8; font-weight:600; font-size:12px;">#${s.codigo || '—'}</span></div>
+                <div style="font-size:12.5px; color:var(--text-muted);">${escapeHtml(s.concepto || '')}</div>
+            </div>
+            ${solBadge(s.estado)}
+        </div>
+        <div style="display:flex; gap:14px; flex-wrap:wrap; margin-top:8px; font-size:12px;">
+            <span><b>Total:</b> ${money(s.monto_total)}</span>
+            <span><b>Inicial:</b> ${money(s.inicial)}</span>
+            <span><b>Cuota:</b> ${money(s.valor_cuota)} · ${FIN_FREC_TXT[s.frecuencia] || s.frecuencia} x${s.num_cuotas}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+            <small style="color:var(--text-muted);">${s.creado_en ? new Date(s.creado_en).toLocaleDateString('es-DO') : ''}</small>
+            <button class="btn btn-blue" onclick="verSolicitud('${s.id}')" style="font-size:12px;"><i class="ti ti-eye"></i> Ver solicitud</button>
+        </div>
+    </div>`).join('');
+}
+
+// ---- Detalle de una solicitud ----
+function verSolicitud(id) { _solDetalleId = id; _pintarSolicitudes(); }
+function volverListaSol() { _solDetalleId = null; _pintarSolicitudes(); }
+function _pintarDetalleSol() {
+    const cont = document.getElementById('finContenido');
+    const kpis = document.getElementById('finKpis');
+    if(kpis) kpis.innerHTML = '';
+    const s = (_finCache.solicitudes || []).find(x => x.id === _solDetalleId);
+    if(!s) { volverListaSol(); return; }
+    const cli = finClienteDe(s.cliente_id) || {};
+    const refs = finReferenciasDe(s.cliente_id);
+    const puedeAprobar = isAdminUser() || tienePermiso('financiamientos_aprobar');
+    const financiado = Math.max(0, Number(s.monto_total) - Number(s.inicial));
+    const dato = (label, val) => `<div style="font-size:12.5px;"><span style="color:var(--text-muted);">${label}:</span> <b>${escapeHtml(val || '—')}</b></div>`;
+
+    let html = `<button class="btn btn-light" onclick="volverListaSol()" style="font-size:12px; margin-bottom:12px;"><i class="ti ti-arrow-left"></i> Volver a solicitudes</button>`;
+
+    html += `<div class="card" style="margin-bottom:14px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap;">
+            <h3 style="margin:0; font-size:16px;">Solicitud #${s.codigo || '—'} ${solBadge(s.estado)}</h3>
+            <small style="color:var(--text-muted);">${s.creado_en ? new Date(s.creado_en).toLocaleString('es-DO') : ''}</small>
+        </div>
+        ${s.estado === 'rechazada' && s.motivo_rechazo ? `<div style="background:#fee2e2; color:#991b1b; padding:8px 12px; border-radius:8px; margin-top:10px; font-size:13px;">❌ Motivo de rechazo: ${escapeHtml(s.motivo_rechazo)}</div>` : ''}
+        ${s.estado === 'aprobada' ? `<div style="background:#dcfce7; color:#15803d; padding:8px 12px; border-radius:8px; margin-top:10px; font-size:13px;">✅ Aprobada${s.decidido_por ? ' por ' + escapeHtml(s.decidido_por) : ''}. ${s.financiamiento_id ? '<a href="javascript:void(0)" onclick="_finTab=\'financiamientos\'; verFinanciamiento(\'' + s.financiamiento_id + '\')" style="color:#15803d; font-weight:700;">Ver financiamiento →</a>' : ''}</div>` : ''}
+    </div>`;
+
+    // Datos del cliente
+    html += `<div class="card" style="margin-bottom:14px;">
+        <h3 style="margin:0 0 10px; font-size:14px;"><i class="ti ti-user" style="color:#0891b2;"></i> Datos del cliente</h3>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:8px;">
+            ${dato('Nombre', `${cli.nombre || ''} ${cli.apellido || ''}`.trim())}
+            ${dato('Cédula', cli.cedula)}
+            ${dato('Teléfono', cli.telefono)}
+            ${dato('Dirección', cli.direccion)}
+        </div>
+    </div>`;
+
+    // Datos laborales
+    html += `<div class="card" style="margin-bottom:14px;">
+        <h3 style="margin:0 0 10px; font-size:14px;"><i class="ti ti-briefcase" style="color:#7c3aed;"></i> Datos laborales</h3>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:8px;">
+            ${dato('Lugar de trabajo', cli.lugar_trabajo)}
+            ${dato('Ocupación', cli.ocupacion)}
+            ${dato('Tiempo laborando', cli.tiempo_laborando)}
+            ${dato('Ingreso mensual', cli.ingreso_mensual ? money(cli.ingreso_mensual) : '—')}
+        </div>
+    </div>`;
+
+    // Referencias
+    html += `<div class="card" style="margin-bottom:14px;">
+        <h3 style="margin:0 0 10px; font-size:14px;"><i class="ti ti-users" style="color:#16a34a;"></i> Referencias (${refs.length})</h3>`;
+    if(refs.length) {
+        html += refs.map(r => `<div style="border-bottom:1px solid #f1f5f9; padding:6px 0; font-size:13px;"><b>${escapeHtml(r.nombre)}</b>${r.parentesco ? ' · ' + escapeHtml(r.parentesco) : ''}${r.telefono ? ' · 📞 ' + escapeHtml(r.telefono) : ''}</div>`).join('');
+    } else {
+        html += `<div style="color:var(--text-muted); font-size:13px;">Sin referencias registradas.</div>`;
+    }
+    html += `</div>`;
+
+    // Financiamiento solicitado
+    html += `<div class="card" style="margin-bottom:14px;">
+        <h3 style="margin:0 0 10px; font-size:14px;"><i class="ti ti-cash" style="color:#16a34a;"></i> Financiamiento solicitado</h3>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:8px;">
+            ${dato('Concepto', s.concepto)}
+            ${dato('IMEI', s.equipo_imei)}
+            ${dato('Precio total', money(s.monto_total))}
+            ${dato('Inicial', money(s.inicial))}
+            ${dato('A financiar', money(financiado))}
+            ${dato('Cuotas', `${s.num_cuotas} x ${money(s.valor_cuota)} (${FIN_FREC_TXT[s.frecuencia] || s.frecuencia})`)}
+            ${dato('Inicio', _finFmtFecha(_finAddPeriodo(s.fecha_inicio, s.frecuencia, 0)))}
+        </div>
+        ${s.notas ? `<div style="margin-top:8px; font-size:12.5px; color:var(--text-muted);">📝 ${escapeHtml(s.notas)}</div>` : ''}
+    </div>`;
+
+    // Acciones
+    if(s.estado === 'pendiente' && puedeAprobar) {
+        html += `<div style="display:flex; gap:8px; justify-content:flex-end; margin-bottom:20px;">
+            <button class="btn btn-light" onclick="rechazarSolicitud('${s.id}')" style="color:#b91c1c;"><i class="ti ti-x"></i> Rechazar</button>
+            <button class="btn btn-blue" onclick="aprobarSolicitud('${s.id}')"><i class="ti ti-check"></i> Aprobar y crear financiamiento</button>
+        </div>`;
+    }
+    cont.innerHTML = html;
+}
+
+// ---- Crear solicitud ----
+function abrirModalNuevaSolicitud() {
+    if(!(isAdminUser() || tienePermiso('financiamientos_crear'))) { toast('No tienes permiso para crear solicitudes.', 'error'); return; }
+    const clientes = (_finCache.clientes || []).slice().sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+    const opciones = clientes.map(c => `<option value="${c.id}">${escapeHtml(`${c.nombre || ''} ${c.apellido || ''}`.trim())}${c.cedula ? ' — ' + escapeHtml(c.cedula) : ''}</option>`).join('');
     const hoyISO = new Date().toISOString().slice(0, 10);
     const html = `
-        <div class="form-row"><label>Cliente *</label>
-            <select id="finCliente">${clientes.length ? '<option value="">— Seleccionar cliente —</option>' + opciones : '<option value="">No hay clientes registrados</option>'}</select>
-        </div>
-        <div class="form-row"><label>Concepto / qué se financia *</label>
-            <input type="text" id="finConcepto" placeholder="Ej: iPhone 11 64GB" maxlength="120">
-        </div>
-        <div class="form-row"><label>IMEI / Serie (opcional)</label>
-            <input type="text" id="finImei" placeholder="IMEI del equipo">
+        ${clientes.length ? `<div class="form-row"><label>Cliente existente (opcional)</label>
+            <select id="solClienteExistente" onchange="_solPrefillCliente()"><option value="">— Cliente nuevo —</option>${opciones}</select>
+        </div>` : ''}
+        <h4 style="margin:6px 0; font-size:13px; color:#0891b2;"><i class="ti ti-user"></i> Datos del cliente</h4>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <div class="form-row" style="flex:1; min-width:130px;"><label>Nombre *</label><input type="text" id="solNombre"></div>
+            <div class="form-row" style="flex:1; min-width:130px;"><label>Apellido</label><input type="text" id="solApellido"></div>
         </div>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
-            <div class="form-row" style="flex:1; min-width:120px;"><label>Precio total (RD$) *</label><input type="number" id="finMontoTotal" min="0" step="0.01" oninput="_finRecalcCuota()" placeholder="0.00"></div>
-            <div class="form-row" style="flex:1; min-width:120px;"><label>Inicial (RD$)</label><input type="number" id="finInicial" min="0" step="0.01" value="0" oninput="_finRecalcCuota()" placeholder="0.00"></div>
+            <div class="form-row" style="flex:1; min-width:130px;"><label>Cédula</label><input type="text" id="solCedula"></div>
+            <div class="form-row" style="flex:1; min-width:130px;"><label>Teléfono / WhatsApp</label><input type="text" id="solTelefono"></div>
+        </div>
+        <div class="form-row"><label>Dirección</label><input type="text" id="solDireccion"></div>
+        <h4 style="margin:6px 0; font-size:13px; color:#7c3aed;"><i class="ti ti-briefcase"></i> Datos laborales</h4>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <div class="form-row" style="flex:1; min-width:130px;"><label>Lugar de trabajo</label><input type="text" id="solLugarTrabajo"></div>
+            <div class="form-row" style="flex:1; min-width:130px;"><label>Ocupación</label><input type="text" id="solOcupacion"></div>
         </div>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
-            <div class="form-row" style="flex:1; min-width:120px;"><label># de cuotas *</label><input type="number" id="finNumCuotas" min="1" step="1" value="1" oninput="_finRecalcCuota()"></div>
-            <div class="form-row" style="flex:1; min-width:120px;"><label>Frecuencia</label>
-                <select id="finFrecuencia"><option value="semanal">Semanal</option><option value="quincenal">Quincenal</option><option value="mensual" selected>Mensual</option></select>
-            </div>
+            <div class="form-row" style="flex:1; min-width:130px;"><label>Tiempo laborando</label><input type="text" id="solTiempoLaborando" placeholder="Ej: 2 años"></div>
+            <div class="form-row" style="flex:1; min-width:130px;"><label>Ingreso mensual (RD$)</label><input type="number" id="solIngreso" min="0" step="0.01" placeholder="0.00"></div>
         </div>
-        <div class="form-row"><label>Fecha de inicio</label><input type="date" id="finFechaInicio" value="${hoyISO}"></div>
+        <h4 style="margin:6px 0; font-size:13px; color:#16a34a;"><i class="ti ti-users"></i> Referencias</h4>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <div class="form-row" style="flex:2; min-width:120px;"><label>Referencia 1 - Nombre</label><input type="text" id="solRef1Nombre"></div>
+            <div class="form-row" style="flex:1; min-width:90px;"><label>Teléfono</label><input type="text" id="solRef1Tel"></div>
+            <div class="form-row" style="flex:1; min-width:90px;"><label>Parentesco</label><input type="text" id="solRef1Par"></div>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <div class="form-row" style="flex:2; min-width:120px;"><label>Referencia 2 - Nombre</label><input type="text" id="solRef2Nombre"></div>
+            <div class="form-row" style="flex:1; min-width:90px;"><label>Teléfono</label><input type="text" id="solRef2Tel"></div>
+            <div class="form-row" style="flex:1; min-width:90px;"><label>Parentesco</label><input type="text" id="solRef2Par"></div>
+        </div>
+        <h4 style="margin:6px 0; font-size:13px; color:#16a34a;"><i class="ti ti-cash"></i> Financiamiento solicitado</h4>
+        <div class="form-row"><label>Concepto / qué se financia *</label><input type="text" id="solConcepto" placeholder="Ej: iPhone 11 64GB" maxlength="120"></div>
+        <div class="form-row"><label>IMEI / Serie (opcional)</label><input type="text" id="solImei"></div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <div class="form-row" style="flex:1; min-width:120px;"><label>Precio total (RD$) *</label><input type="number" id="solMontoTotal" min="0" step="0.01" oninput="_solRecalcCuota()" placeholder="0.00"></div>
+            <div class="form-row" style="flex:1; min-width:120px;"><label>Inicial (RD$)</label><input type="number" id="solInicial" min="0" step="0.01" value="0" oninput="_solRecalcCuota()" placeholder="0.00"></div>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <div class="form-row" style="flex:1; min-width:120px;"><label># de cuotas *</label><input type="number" id="solNumCuotas" min="1" step="1" value="1" oninput="_solRecalcCuota()"></div>
+            <div class="form-row" style="flex:1; min-width:120px;"><label>Frecuencia</label><select id="solFrecuencia"><option value="semanal">Semanal</option><option value="quincenal">Quincenal</option><option value="mensual" selected>Mensual</option></select></div>
+        </div>
+        <div class="form-row"><label>Fecha de inicio (al aprobar)</label><input type="date" id="solFechaInicio" value="${hoyISO}"></div>
         <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:10px; margin-bottom:12px; font-size:13px;">
-            Monto a financiar: <b id="finFinanciadoPrev">RD$ 0.00</b><br>
-            Valor de cada cuota: <b id="finCuotaPrev" style="color:#16a34a;">RD$ 0.00</b>
+            Monto a financiar: <b id="solFinanciadoPrev">RD$ 0.00</b><br>
+            Valor de cada cuota: <b id="solCuotaPrev" style="color:#16a34a;">RD$ 0.00</b>
         </div>
-        <div class="form-row"><label>Notas (opcional)</label><textarea id="finNotas" rows="2" placeholder="Observaciones"></textarea></div>
+        <div class="form-row"><label>Notas (opcional)</label><textarea id="solNotas" rows="2"></textarea></div>
         <div style="display:flex; gap:8px; justify-content:flex-end;">
             <button class="btn btn-light" onclick="document.getElementById('modalGenerico').remove()">Cancelar</button>
-            <button class="btn btn-blue" onclick="guardarFinanciamiento()"><i class="ti ti-device-floppy"></i> Guardar</button>
+            <button class="btn btn-blue" onclick="guardarSolicitud()"><i class="ti ti-device-floppy"></i> Guardar solicitud</button>
         </div>`;
-    abrirModalGenerico('Nuevo financiamiento', html);
-    setTimeout(_finRecalcCuota, 30);
+    abrirModalGenerico('Nueva solicitud de financiamiento', html);
+    setTimeout(_solRecalcCuota, 30);
 }
-function _finRecalcCuota() {
-    const total = parseFloat(document.getElementById('finMontoTotal')?.value) || 0;
-    const inicial = parseFloat(document.getElementById('finInicial')?.value) || 0;
-    const nc = Math.max(1, parseInt(document.getElementById('finNumCuotas')?.value, 10) || 1);
+function _solPrefillCliente() {
+    const id = document.getElementById('solClienteExistente')?.value;
+    const set = (campo, val) => { const el = document.getElementById(campo); if(el) el.value = val || ''; };
+    if(!id) { ['solNombre', 'solApellido', 'solCedula', 'solTelefono', 'solDireccion', 'solLugarTrabajo', 'solOcupacion', 'solTiempoLaborando', 'solIngreso', 'solRef1Nombre', 'solRef1Tel', 'solRef1Par', 'solRef2Nombre', 'solRef2Tel', 'solRef2Par'].forEach(c => set(c, '')); return; }
+    const c = finClienteDe(id) || {};
+    set('solNombre', c.nombre); set('solApellido', c.apellido); set('solCedula', c.cedula);
+    set('solTelefono', c.telefono); set('solDireccion', c.direccion);
+    set('solLugarTrabajo', c.lugar_trabajo); set('solOcupacion', c.ocupacion);
+    set('solTiempoLaborando', c.tiempo_laborando); set('solIngreso', c.ingreso_mensual);
+    const refs = finReferenciasDe(id);
+    set('solRef1Nombre', refs[0]?.nombre); set('solRef1Tel', refs[0]?.telefono); set('solRef1Par', refs[0]?.parentesco);
+    set('solRef2Nombre', refs[1]?.nombre); set('solRef2Tel', refs[1]?.telefono); set('solRef2Par', refs[1]?.parentesco);
+}
+function _solRecalcCuota() {
+    const total = parseFloat(document.getElementById('solMontoTotal')?.value) || 0;
+    const inicial = parseFloat(document.getElementById('solInicial')?.value) || 0;
+    const nc = Math.max(1, parseInt(document.getElementById('solNumCuotas')?.value, 10) || 1);
     const financiado = Math.max(0, total - inicial);
-    const cuota = Math.round((financiado / nc) * 100) / 100;
-    const elF = document.getElementById('finFinanciadoPrev');
-    const elC = document.getElementById('finCuotaPrev');
+    const elF = document.getElementById('solFinanciadoPrev');
+    const elC = document.getElementById('solCuotaPrev');
     if(elF) elF.textContent = money(financiado);
-    if(elC) elC.textContent = money(cuota);
+    if(elC) elC.textContent = money(Math.round((financiado / nc) * 100) / 100);
 }
-async function guardarFinanciamiento() {
+async function guardarSolicitud() {
     if(!(isAdminUser() || tienePermiso('financiamientos_crear'))) { toast('No tienes permiso.', 'error'); return; }
-    const clienteId = document.getElementById('finCliente')?.value;
-    const concepto = (document.getElementById('finConcepto')?.value || '').trim();
-    const total = parseFloat(document.getElementById('finMontoTotal')?.value) || 0;
-    const inicial = parseFloat(document.getElementById('finInicial')?.value) || 0;
-    const nc = Math.max(1, parseInt(document.getElementById('finNumCuotas')?.value, 10) || 1);
-    const frecuencia = document.getElementById('finFrecuencia')?.value || 'mensual';
-    const fechaInicio = document.getElementById('finFechaInicio')?.value || new Date().toISOString().slice(0, 10);
-    if(!clienteId) { toast('Selecciona un cliente.', 'error'); return; }
+    const val = id => (document.getElementById(id)?.value || '').trim();
+    const nombre = val('solNombre');
+    const concepto = val('solConcepto');
+    const total = parseFloat(document.getElementById('solMontoTotal')?.value) || 0;
+    const inicial = parseFloat(document.getElementById('solInicial')?.value) || 0;
+    const nc = Math.max(1, parseInt(document.getElementById('solNumCuotas')?.value, 10) || 1);
+    const frecuencia = document.getElementById('solFrecuencia')?.value || 'mensual';
+    const fechaInicio = val('solFechaInicio') || new Date().toISOString().slice(0, 10);
+    if(!nombre) { toast('El nombre del cliente es obligatorio.', 'error'); return; }
     if(!concepto) { toast('Indica qué se financia (concepto).', 'error'); return; }
     if(total <= 0) { toast('El precio total debe ser mayor que 0.', 'error'); return; }
     if(inicial < 0 || inicial >= total) { toast('La inicial debe ser menor que el precio total.', 'error'); return; }
-    const cli = (cache.clientes || []).find(c => c.id === clienteId) || {};
     const valorCuota = Math.round(((total - inicial) / nc) * 100) / 100;
-    const fila = {
-        cliente_id: clienteId,
-        cliente_nombre: `${cli.nombre || ''} ${cli.apellido || ''}`.trim() || 'Cliente',
-        cliente_telefono: cli.whatsapp || cli.telefono_alterno || null,
-        cliente_cedula: cli.cedula || null,
-        concepto,
-        equipo_imei: (document.getElementById('finImei')?.value || '').trim() || null,
-        monto_total: total,
-        inicial,
-        num_cuotas: nc,
-        frecuencia,
-        valor_cuota: valorCuota,
-        fecha_inicio: fechaInicio,
-        estado: 'activo',
-        notas: (document.getElementById('finNotas')?.value || '').trim() || null,
-        creado_por: sessionUser?.nombre || sessionUser?.usuario || 'Sistema'
+    const usuario = sessionUser?.nombre || sessionUser?.usuario || 'Sistema';
+    const datosCliente = {
+        nombre, apellido: val('solApellido') || null, cedula: val('solCedula') || null,
+        telefono: val('solTelefono') || null, direccion: val('solDireccion') || null,
+        lugar_trabajo: val('solLugarTrabajo') || null, ocupacion: val('solOcupacion') || null,
+        tiempo_laborando: val('solTiempoLaborando') || null,
+        ingreso_mensual: parseFloat(document.getElementById('solIngreso')?.value) || 0
     };
     try {
-        const { error } = await supabaseClient.from('financiamientos').insert([fila]);
-        if(error) throw error;
+        let clienteId = document.getElementById('solClienteExistente')?.value || '';
+        if(clienteId) {
+            await supabaseClient.from('fin_clientes').update(datosCliente).eq('id', clienteId);
+        } else {
+            const { data, error } = await supabaseClient.from('fin_clientes').insert([{ ...datosCliente, creado_por: usuario }]).select('id').single();
+            if(error) throw error;
+            clienteId = data.id;
+            // Guardar referencias solo para cliente nuevo
+            const refs = [];
+            if(val('solRef1Nombre')) refs.push({ cliente_id: clienteId, nombre: val('solRef1Nombre'), telefono: val('solRef1Tel') || null, parentesco: val('solRef1Par') || null });
+            if(val('solRef2Nombre')) refs.push({ cliente_id: clienteId, nombre: val('solRef2Nombre'), telefono: val('solRef2Tel') || null, parentesco: val('solRef2Par') || null });
+            if(refs.length) await supabaseClient.from('fin_referencias').insert(refs);
+        }
+        const { error: errS } = await supabaseClient.from('fin_solicitudes').insert([{
+            cliente_id: clienteId,
+            cliente_nombre: `${nombre} ${val('solApellido')}`.trim(),
+            concepto, equipo_imei: val('solImei') || null,
+            monto_total: total, inicial, num_cuotas: nc, frecuencia, valor_cuota: valorCuota,
+            fecha_inicio: fechaInicio, estado: 'pendiente',
+            notas: val('solNotas') || null, creado_por: usuario
+        }]);
+        if(errS) throw errS;
         document.getElementById('modalGenerico')?.remove();
-        toast('✅ Financiamiento creado.');
+        toast('✅ Solicitud registrada (pendiente de aprobación).');
+        _finTab = 'solicitudes'; _solFiltro = 'pendientes';
         await renderFinanciamientos();
     } catch(e) {
-        console.error('guardarFinanciamiento', e);
-        toast('No se pudo guardar el financiamiento.', 'error');
+        console.error('guardarSolicitud', e);
+        toast('No se pudo guardar la solicitud.', 'error');
+    }
+}
+async function aprobarSolicitud(solId) {
+    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso para aprobar.', 'error'); return; }
+    const s = (_finCache.solicitudes || []).find(x => x.id === solId);
+    if(!s || s.estado !== 'pendiente') return;
+    if(!confirm('¿Aprobar esta solicitud y crear el financiamiento?')) return;
+    const cli = finClienteDe(s.cliente_id) || {};
+    const usuario = sessionUser?.nombre || sessionUser?.usuario || 'Sistema';
+    try {
+        const { data: fin, error } = await supabaseClient.from('financiamientos').insert([{
+            fin_cliente_id: s.cliente_id,
+            solicitud_id: s.id,
+            cliente_nombre: s.cliente_nombre || `${cli.nombre || ''} ${cli.apellido || ''}`.trim() || 'Cliente',
+            cliente_telefono: cli.telefono || null,
+            cliente_cedula: cli.cedula || null,
+            concepto: s.concepto,
+            equipo_imei: s.equipo_imei,
+            monto_total: s.monto_total,
+            inicial: s.inicial,
+            num_cuotas: s.num_cuotas,
+            frecuencia: s.frecuencia,
+            valor_cuota: s.valor_cuota,
+            fecha_inicio: s.fecha_inicio,
+            estado: 'activo',
+            notas: s.notas,
+            creado_por: usuario
+        }]).select('id').single();
+        if(error) throw error;
+        await supabaseClient.from('fin_solicitudes').update({ estado: 'aprobada', decidido_por: usuario, decidido_en: new Date().toISOString(), financiamiento_id: fin.id }).eq('id', solId);
+        toast('✅ Solicitud aprobada. Financiamiento creado.');
+        _solDetalleId = null;
+        _finTab = 'financiamientos';
+        await cargarFinanciamientos();
+        verFinanciamiento(fin.id);
+    } catch(e) {
+        console.error('aprobarSolicitud', e);
+        toast('No se pudo aprobar la solicitud.', 'error');
+    }
+}
+async function rechazarSolicitud(solId) {
+    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso para rechazar.', 'error'); return; }
+    const s = (_finCache.solicitudes || []).find(x => x.id === solId);
+    if(!s || s.estado !== 'pendiente') return;
+    const motivo = prompt('Motivo del rechazo (opcional):', '');
+    if(motivo === null) return; // canceló
+    const usuario = sessionUser?.nombre || sessionUser?.usuario || 'Sistema';
+    try {
+        const { error } = await supabaseClient.from('fin_solicitudes').update({ estado: 'rechazada', motivo_rechazo: (motivo || '').trim() || null, decidido_por: usuario, decidido_en: new Date().toISOString() }).eq('id', solId);
+        if(error) throw error;
+        toast('Solicitud rechazada.');
+        await renderFinanciamientos();
+    } catch(e) {
+        console.error('rechazarSolicitud', e);
+        toast('No se pudo rechazar la solicitud.', 'error');
     }
 }
 
