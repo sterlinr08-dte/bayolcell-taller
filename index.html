@@ -13010,7 +13010,7 @@ function abrirModalNuevaSolicitud() {
         </div>
         <div class="form-row"><label>Fecha de inicio (al aprobar)</label><input type="date" id="solFechaInicio" value="${hoyISO}"></div>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
-            <div class="form-row" style="flex:1; min-width:150px;"><label>Interés</label><select id="solInteresMetodo" onchange="_solRecalcCuota()"><option value="ninguno">Sin interés</option><option value="plano">Plano (sobre el monto)</option><option value="saldo">Sobre saldo (francés)</option></select></div>
+            <div class="form-row" style="flex:1; min-width:150px;"><label>Interés</label><select id="solInteresMetodo" onchange="_solRecalcCuota()"><option value="plano">Plano (sobre el monto)</option><option value="saldo">Sobre saldo (francés)</option></select></div>
             <div class="form-row" style="flex:1; min-width:110px;"><label>Tasa % por cuota</label><input type="number" id="solInteresTasa" min="0" step="0.01" value="0" oninput="_solRecalcCuota()"></div>
         </div>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
@@ -13967,7 +13967,7 @@ function editarSolicitud(id) {
             <div class="form-row" style="flex:1; min-width:110px;"><label>Frecuencia</label><select id="edsFrec"><option value="semanal" ${s.frecuencia === 'semanal' ? 'selected' : ''}>Semanal</option><option value="quincenal" ${s.frecuencia === 'quincenal' ? 'selected' : ''}>Quincenal</option><option value="mensual" ${s.frecuencia === 'mensual' ? 'selected' : ''}>Mensual</option></select></div>
         </div>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
-            <div class="form-row" style="flex:1; min-width:150px;"><label>Interés</label><select id="edsInteresMetodo"><option value="ninguno" ${(s.interes_metodo || 'ninguno') === 'ninguno' ? 'selected' : ''}>Sin interés</option><option value="plano" ${s.interes_metodo === 'plano' ? 'selected' : ''}>Plano</option><option value="saldo" ${s.interes_metodo === 'saldo' ? 'selected' : ''}>Sobre saldo</option></select></div>
+            <div class="form-row" style="flex:1; min-width:150px;"><label>Interés</label><select id="edsInteresMetodo"><option value="plano" ${(s.interes_metodo || 'plano') !== 'saldo' ? 'selected' : ''}>Plano</option><option value="saldo" ${s.interes_metodo === 'saldo' ? 'selected' : ''}>Sobre saldo</option></select></div>
             <div class="form-row" style="flex:1; min-width:100px;"><label>Tasa % por cuota</label><input type="number" id="edsInteresTasa" min="0" step="0.01" value="${s.interes_tasa || 0}"></div>
         </div>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
