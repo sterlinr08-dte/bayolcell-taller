@@ -138,7 +138,41 @@ footer img{height:40px;margin-bottom:14px;border-radius:8px}
   .brand span{display:none}
   section{padding:38px 0}
 }
+
+/* ===== HERO MÁS IMPACTANTE ===== */
+.hero{position:relative}
+.hero .logo-big{animation:float 5.5s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+/* Resplandor detrás del hero */
+.hero-glow{position:absolute;left:50%;top:-40px;transform:translateX(-50%);
+  width:min(620px,92%);height:420px;z-index:-1;pointer-events:none;
+  background:radial-gradient(closest-side, rgba(239,68,68,.35), transparent 70%);
+  filter:blur(20px);animation:pulse 6s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.75;transform:translateX(-50%) scale(1)}50%{opacity:1;transform:translateX(-50%) scale(1.08)}}
+.hero h1 .r{background:linear-gradient(120deg,#ff6b6b,#ef4444,#ff9d9d);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+/* Barra de confianza */
+.trust{display:flex;justify-content:center;gap:14px 26px;flex-wrap:wrap;margin-top:30px}
+.trust div{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;color:var(--muted);
+  background:var(--glass);border:1px solid var(--brd);padding:9px 15px;border-radius:999px}
+.trust div i{color:#fca5a5;font-size:17px}
+/* Indicador de scroll */
+.scroll-ind{display:inline-flex;margin-top:34px;color:var(--muted);font-size:26px;animation:bob 1.8s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0);opacity:.6}50%{transform:translateY(8px);opacity:1}}
+
+/* ===== ANIMACIONES AL DESPLAZAR (scroll reveal) =====
+   Solo se ocultan si el JS esta activo (clase .js). Sin JS, todo se ve normal. */
+.js .reveal, .js .card, .js .sec-title, .js .final{
+  opacity:0;transform:translateY(28px);
+  transition:opacity .7s cubic-bezier(.2,.8,.2,1), transform .7s cubic-bezier(.2,.8,.2,1)}
+.js .reveal.in, .js .card.in, .js .sec-title.in, .js .final.in{opacity:1;transform:none}
+.js .reveal.d1{transition-delay:.07s}.js .reveal.d2{transition-delay:.14s}
+.js .reveal.d3{transition-delay:.21s}.js .reveal.d4{transition-delay:.28s}
+@media (prefers-reduced-motion: reduce){
+  .js .reveal, .js .card, .js .sec-title, .js .final{opacity:1;transform:none;transition:none}
+  .hero .logo-big,.hero-glow,.scroll-ind{animation:none}
+}
 </style>
+<script>document.documentElement.classList.add('js');</script>
 </head>
 <body>
 
@@ -155,13 +189,21 @@ footer img{height:40px;margin-bottom:14px;border-radius:8px}
 
 <!-- HERO -->
 <main id="inicio" class="wrap hero">
-  <span class="badge-loc"><i class="ti ti-map-pin"></i> Santiago &amp; Moca · República Dominicana</span>
-  <h1>Tu solución <span class="r">móvil</span> completa</h1>
-  <p class="sub">Financiamiento de celulares, taller de reparación especializado, importación de piezas originales y distribución al por mayor. Todo en un solo lugar.</p>
-  <div class="cta">
+  <div class="hero-glow"></div>
+  <img class="logo-big reveal" src="assets/logo.png" alt="Bayolcell">
+  <span class="badge-loc reveal d1"><i class="ti ti-map-pin"></i> Santiago &amp; Moca · República Dominicana</span>
+  <h1 class="reveal d1">Tu solución <span class="r">móvil</span> completa</h1>
+  <p class="sub reveal d2">Financiamiento de celulares, taller de reparación especializado, importación de piezas originales y distribución al por mayor. Todo en un solo lugar.</p>
+  <div class="cta reveal d3">
     <a class="btn btn-wa" href="https://wa.me/18495644791" target="_blank" rel="noopener"><i class="ti ti-brand-whatsapp"></i> Escríbenos por WhatsApp</a>
     <a class="btn btn-ghost" href="#servicios"><i class="ti ti-apps"></i> Ver servicios</a>
   </div>
+  <div class="trust reveal d4">
+    <div><i class="ti ti-star-filled"></i> 4.3 ★ en Google</div>
+    <div><i class="ti ti-map-pin"></i> 2 sucursales</div>
+    <div><i class="ti ti-brand-facebook"></i> +2.6k seguidores</div>
+  </div>
+  <a href="#servicios" class="scroll-ind" aria-label="Ver más"><i class="ti ti-chevron-down"></i></a>
 </main>
 
 <!-- SERVICIOS -->
@@ -232,6 +274,22 @@ footer img{height:40px;margin-bottom:14px;border-radius:8px}
   </div>
 </section>
 
+<!-- INSTAGRAM (muro en vivo) -->
+<section id="instagram" class="wrap">
+  <div class="sec-title">
+    <h2>Síguenos en Instagram</h2>
+    <p>Lo último de Bayolcell — ofertas, equipos y novedades, en vivo.</p>
+  </div>
+  <div class="card" id="ig-feed">
+    <!-- AQUI SE INSERTARA EL MURO AUTOMATICO DE INSTAGRAM (widget) -->
+    <div style="text-align:center;padding:6px 0">
+      <i class="ti ti-brand-instagram" style="font-size:46px;color:#fca5a5"></i>
+      <p style="color:var(--muted);margin:12px auto 18px;max-width:420px">Mira nuestras últimas publicaciones y novedades directamente en nuestro Instagram.</p>
+      <a class="btn btn-red" href="https://www.instagram.com/bayolcell" target="_blank" rel="noopener"><i class="ti ti-brand-instagram"></i> Ver @bayolcell</a>
+    </div>
+  </div>
+</section>
+
 <!-- CTA FINAL -->
 <section class="wrap">
   <div class="final">
@@ -258,6 +316,21 @@ footer img{height:40px;margin-bottom:14px;border-radius:8px}
 <!-- WhatsApp flotante -->
 <a class="fab" href="https://wa.me/18495644791" target="_blank" rel="noopener" aria-label="WhatsApp"><i class="ti ti-brand-whatsapp"></i></a>
 
-<script>document.getElementById('y').textContent=new Date().getFullYear();</script>
+<script>
+  document.getElementById('y').textContent=new Date().getFullYear();
+  // Animaciones al desplazar (scroll reveal)
+  (function(){
+    var els=document.querySelectorAll('.reveal, .card, .sec-title, .final');
+    // Aparicion escalonada de las tarjetas dentro de cada grilla
+    document.querySelectorAll('.grid').forEach(function(g){
+      g.querySelectorAll('.card').forEach(function(c,i){ c.style.transitionDelay=(i*0.08)+'s'; });
+    });
+    if(!('IntersectionObserver' in window)){ els.forEach(function(e){e.classList.add('in');}); return; }
+    var io=new IntersectionObserver(function(entries){
+      entries.forEach(function(en){ if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } });
+    },{threshold:0.12, rootMargin:'0px 0px -8% 0px'});
+    els.forEach(function(e){ io.observe(e); });
+  })();
+</script>
 </body>
 </html>
