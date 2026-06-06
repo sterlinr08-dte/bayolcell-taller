@@ -1097,6 +1097,7 @@ body{
                             <tbody id="ordersTable"></tbody>
                         </table>
                     </div>
+                    <div id="ordersPagination"></div>
                 </div>
             </div>
 
@@ -3958,22 +3959,72 @@ function irAEquipoDesdeBusqueda(equipoId) {
     }, 200);
 }
 
+const ORDERS_PER_PAGE = 10;
+let ordersPage = 1;
+
 function renderOrders() {
-    document.getElementById("ordersTable").innerHTML = cache.ordenes.map(o => {
-        const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
-        const etOrd = obtenerEtiquetaOrden(normalizarEstadoOrden(o.estado));
-        const tecOrd = o.tecnico_asignado_id ? nombreEmpleado(o.tecnico_asignado_id) : null;
-        return `<tr>
-            <td data-label="Orden"><b>${formatoOrden(o.numero_orden)}</b></td>
-            <td data-label="Cliente">${escapeHtml(c.nombre)}</td>
-            <td data-label="Equipo">${escapeHtml(e.modelo)}</td>
-            <td data-label="Falla">${escapeHtml(o.falla_reportada)}</td>
-            <td data-label="Acceso"><div class="access-mask">•••• <button class="btn btn-light" style="padding:1px 4px; font-size:10px" onclick="revelarClave('${o.id}', this)">Mostrar</button></div></td>
-            <td data-label="Atendido por"><span style="font-size:12px;"><i class="ti ti-user-check" style="color:#0891b2;"></i> ${escapeHtml(nombreEmpleado(o.creado_by))}${tecOrd ? `<br><i class="ti ti-tool" style="color:#9a3412;"></i> ${escapeHtml(tecOrd)}` : ''}</span></td>
-            <td data-label="Estado"><span class="badge" style="background:${etOrd.bg}; color:${etOrd.color};">${etOrd.text}</span></td>
-            <td data-label="Acciones"><button class="btn btn-light" style="padding:4px 8px;" onclick="cargarEnLabel('${o.id}')"><i class="ti ti-clipboard-list"></i> Label Diagnóstico</button></td>
-        </tr>`;
-    }).join("");
+    const tbody = document.getElementById("ordersTable");
+    if(!tbody) return;
+    const todas = cache.ordenes || [];
+    const total = todas.length;
+    const totalPag = Math.max(1, Math.ceil(total / ORDERS_PER_PAGE));
+    if(ordersPage > totalPag) ordersPage = totalPag;
+    if(ordersPage < 1) ordersPage = 1;
+    const inicio = (ordersPage - 1) * ORDERS_PER_PAGE;
+    const pagina = todas.slice(inicio, inicio + ORDERS_PER_PAGE);
+
+    if(total === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:18px;">No hay órdenes de trabajo activas.</td></tr>`;
+    } else {
+        tbody.innerHTML = pagina.map(o => {
+            const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
+            const etOrd = obtenerEtiquetaOrden(normalizarEstadoOrden(o.estado));
+            const tecOrd = o.tecnico_asignado_id ? nombreEmpleado(o.tecnico_asignado_id) : null;
+            return `<tr>
+                <td data-label="Orden"><b>${formatoOrden(o.numero_orden)}</b></td>
+                <td data-label="Cliente">${escapeHtml(c.nombre)}</td>
+                <td data-label="Equipo">${escapeHtml(e.modelo)}</td>
+                <td data-label="Falla">${escapeHtml(o.falla_reportada)}</td>
+                <td data-label="Acceso"><div class="access-mask">•••• <button class="btn btn-light" style="padding:1px 4px; font-size:10px" onclick="revelarClave('${o.id}', this)">Mostrar</button></div></td>
+                <td data-label="Atendido por"><span style="font-size:12px;"><i class="ti ti-user-check" style="color:#0891b2;"></i> ${escapeHtml(nombreEmpleado(o.creado_by))}${tecOrd ? `<br><i class="ti ti-tool" style="color:#9a3412;"></i> ${escapeHtml(tecOrd)}` : ''}</span></td>
+                <td data-label="Estado"><span class="badge" style="background:${etOrd.bg}; color:${etOrd.color};">${etOrd.text}</span></td>
+                <td data-label="Acciones"><button class="btn btn-light" style="padding:4px 8px;" onclick="cargarEnLabel('${o.id}')"><i class="ti ti-clipboard-list"></i> Label Diagnóstico</button></td>
+            </tr>`;
+        }).join("");
+    }
+    renderOrdersPagination(total, totalPag, inicio, pagina.length);
+}
+
+function renderOrdersPagination(total, totalPag, inicio, enPagina) {
+    const cont = document.getElementById("ordersPagination");
+    if(!cont) return;
+    if(total <= ORDERS_PER_PAGE) { cont.innerHTML = ''; return; }
+    const desde = inicio + 1, hasta = inicio + enPagina;
+    // Botones de pagina con ventana (1 … actual-1, actual, actual+1 … total)
+    let nums = '', last = 0;
+    for(let p = 1; p <= totalPag; p++) {
+        if(p === 1 || p === totalPag || (p >= ordersPage - 1 && p <= ordersPage + 1)) {
+            if(last && p - last > 1) nums += `<span style="padding:0 4px; color:var(--text-muted);">…</span>`;
+            nums += `<button class="btn ${p === ordersPage ? 'btn-blue' : 'btn-light'}" style="padding:5px 11px; min-width:38px;" onclick="goOrdersPage(${p})">${p}</button>`;
+            last = p;
+        }
+    }
+    cont.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-top:14px;">
+            <span style="font-size:12px; color:var(--text-muted);">Mostrando ${desde}–${hasta} de ${total} órdenes</span>
+            <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                <button class="btn btn-light" style="padding:5px 10px;" onclick="goOrdersPage(${ordersPage - 1})" ${ordersPage === 1 ? 'disabled' : ''}><i class="ti ti-chevron-left"></i></button>
+                ${nums}
+                <button class="btn btn-light" style="padding:5px 10px;" onclick="goOrdersPage(${ordersPage + 1})" ${ordersPage === totalPag ? 'disabled' : ''}><i class="ti ti-chevron-right"></i></button>
+            </div>
+        </div>`;
+}
+
+function goOrdersPage(p) {
+    ordersPage = p;
+    renderOrders();
+    const card = document.getElementById('ordersTable')?.closest('.card');
+    if(card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function renderActivosTaller() {
