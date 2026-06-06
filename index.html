@@ -651,8 +651,10 @@ body{
 }
 
 /* ---------- SIDEBAR con aurora ---------- */
-.sidebar{ position:relative; overflow:hidden;
-  background:linear-gradient(180deg,#101a2e 0%, #080d18 100%) !important; border-right:1px solid rgba(0,0,0,0.6); }
+.sidebar{ background:linear-gradient(180deg,#101a2e 0%, #080d18 100%) !important; border-right:1px solid rgba(0,0,0,0.6); }
+/* position/overflow SOLO en escritorio: en movil el sidebar es un drawer fixed
+   (max-width:1024px) y no debemos pisar su posicionamiento. */
+@media (min-width:1025px){ .sidebar{ position:relative; overflow:hidden; } }
 .sidebar::before{ content:''; position:absolute; top:-130px; left:-70px; width:340px; height:340px; border-radius:50%;
   background:radial-gradient(circle, rgba(239,68,68,0.45), transparent 65%); filter:blur(34px); pointer-events:none; z-index:0; }
 .sidebar::after{ content:''; position:absolute; bottom:-150px; right:-90px; width:320px; height:320px; border-radius:50%;
