@@ -15001,7 +15001,19 @@ function _consultaImprimir() {
 }
 
 const saved = localStorage.getItem("bayol_session");
-if(saved) { try { sessionUser = JSON.parse(saved); startApp(); } catch(e){ logError("Restaurar sesión local", e); localStorage.removeItem("bayol_session"); } }
+if(saved) {
+    // Solo restaura la sesión si existe una sesión segura (Supabase Auth) activa.
+    supabaseClient.auth.getSession().then(function(res){
+        var hasSession = res && res.data && res.data.session;
+        if(hasSession) {
+            try { sessionUser = JSON.parse(saved); startApp(); }
+            catch(e){ logError("Restaurar sesión local", e); localStorage.removeItem("bayol_session"); }
+        } else {
+            // Sesión segura ausente/expirada: pedir inicio de sesión de nuevo.
+            localStorage.removeItem("bayol_session");
+        }
+    }).catch(function(){ localStorage.removeItem("bayol_session"); });
+}
 </script>
 </body>
 </html>
