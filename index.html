@@ -279,6 +279,21 @@ footer::before{ content:''; position:absolute; top:-1px; left:0; right:0; height
   background:rgba(255,255,255,0.06);border:1px solid var(--brd);padding:6px 11px;border-radius:999px;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.1)}
 .chip i{color:#fca5a5;font-size:15px}
+
+/* ===== CARRUSEL (varias imagenes en el mismo espacio) ===== */
+.carousel{position:relative;overflow:hidden;border-radius:18px;border:1px solid var(--brd);background:#0b0f1a;
+  box-shadow:0 24px 50px -24px rgba(239,68,68,.5)}
+.car-track{display:flex;transition:transform .55s cubic-bezier(.2,.8,.2,1)}
+.car-slide{min-width:100%;width:100%;height:440px;object-fit:contain;display:block;background:#0b0f1a}
+.car-prev,.car-next{position:absolute;top:50%;transform:translateY(-50%);z-index:3;width:42px;height:42px;border-radius:50%;
+  border:1px solid rgba(255,255,255,.22);background:rgba(8,12,22,.6);backdrop-filter:blur(6px);color:#fff;font-size:24px;line-height:1;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s}
+.car-prev:hover,.car-next:hover{background:rgba(239,68,68,.75);transform:translateY(-50%) scale(1.06)}
+.car-prev{left:10px}.car-next{right:10px}
+.car-dots{position:absolute;bottom:10px;left:0;right:0;display:flex;justify-content:center;gap:7px;z-index:3}
+.car-dot{width:8px;height:8px;border-radius:50%;border:0;background:rgba(255,255,255,.45);cursor:pointer;padding:0;transition:all .25s}
+.car-dot.active{background:#ef4444;width:22px;border-radius:5px}
+@media (max-width:760px){.car-slide{height:360px}}
 </style>
 <script>document.documentElement.classList.add('js');</script>
 </head>
@@ -384,7 +399,15 @@ footer::before{ content:''; position:absolute; top:-1px; left:0; right:0; height
     <p>La energía del futuro — muévete diferente.</p>
   </div>
   <div class="moto reveal">
-    <div class="moto-img"><img src="assets/moto-roja.jpg" alt="Pasola eléctrica STUDIO LQ-H8"></div>
+    <div class="carousel" data-carousel>
+      <div class="car-track">
+      <img class="car-slide" src="assets/moto-roja.jpg" alt="Pasola eléctrica STUDIO LQ-H8">
+      <img class="car-slide" src="assets/moto-specs.jpg" alt="Ficha técnica de la pasola eléctrica">
+      </div>
+      <button class="car-prev" aria-label="Anterior">‹</button>
+      <button class="car-next" aria-label="Siguiente">›</button>
+      <div class="car-dots"></div>
+    </div>
     <div class="moto-info">
       <div class="eyebrow">Nueva · STUDIO LQ-H8</div>
       <h3>Pasola 100% eléctrica</h3>
@@ -417,7 +440,6 @@ footer::before{ content:''; position:absolute; top:-1px; left:0; right:0; height
       </div>
     </div>
   </div>
-  <img class="moto-extra reveal" src="assets/moto-specs.jpg" alt="Especificaciones de la pasola eléctrica y colores disponibles">
 </section>
 
 <!-- FINANCIAMIENTO -->
@@ -427,7 +449,14 @@ footer::before{ content:''; position:absolute; top:-1px; left:0; right:0; height
     <p>Si tienes buen crédito, llévatelo <b style="color:#fff">hoy mismo</b>. Aprobación rápida, sin esperas.</p>
   </div>
   <div class="moto reveal">
-    <div class="moto-img"><img src="assets/financiamiento.jpg" alt="Financiamiento Bayolcell" style="max-height:560px;object-fit:contain;background:#0b0f1a"></div>
+    <div class="carousel" data-carousel>
+      <div class="car-track">
+      <img class="car-slide" src="assets/financiamiento.jpg" alt="Financiamiento disponible Bayolcell">
+      </div>
+      <button class="car-prev" aria-label="Anterior">‹</button>
+      <button class="car-next" aria-label="Siguiente">›</button>
+      <div class="car-dots"></div>
+    </div>
     <div class="moto-info">
       <div class="eyebrow">Aprobación rápida · Sin esperas</div>
       <h3>Llévatelo hoy y paga cómodo</h3>
@@ -461,7 +490,14 @@ footer::before{ content:''; position:absolute; top:-1px; left:0; right:0; height
     <p>Te evaluamos tu equipo y lo recibimos como <b style="color:#fff">parte del pago</b>.</p>
   </div>
   <div class="moto reveal">
-    <div class="moto-img"><img src="assets/canje.jpg" alt="Cambia tu iPhone viejo por uno más nuevo" style="max-height:560px;object-fit:contain;background:#0b0f1a"></div>
+    <div class="carousel" data-carousel>
+      <div class="car-track">
+      <img class="car-slide" src="assets/canje.jpg" alt="Cambia tu iPhone viejo por uno más nuevo">
+      </div>
+      <button class="car-prev" aria-label="Anterior">‹</button>
+      <button class="car-next" aria-label="Siguiente">›</button>
+      <div class="car-dots"></div>
+    </div>
     <div class="moto-info">
       <div class="eyebrow">Plan canje · Parte de pago</div>
       <h3>Estrena uno más nuevo</h3>
@@ -574,6 +610,27 @@ footer::before{ content:''; position:absolute; top:-1px; left:0; right:0; height
   function toggleMenu(e){ e.stopPropagation(); var d=document.getElementById('menuDrop'); if(d) d.classList.toggle('open'); }
   window.toggleMenu = toggleMenu;
   document.addEventListener('click', function(){ var d=document.getElementById('menuDrop'); if(d) d.classList.remove('open'); });
+
+  // Carruseles (varias imagenes en el mismo espacio)
+  document.querySelectorAll('[data-carousel]').forEach(function(car){
+    var track = car.querySelector('.car-track');
+    var slides = car.querySelectorAll('.car-slide');
+    var dotsWrap = car.querySelector('.car-dots');
+    var prev = car.querySelector('.car-prev'), next = car.querySelector('.car-next');
+    var i = 0;
+    if(slides.length <= 1){ if(prev) prev.style.display='none'; if(next) next.style.display='none'; if(dotsWrap) dotsWrap.style.display='none'; return; }
+    if(dotsWrap){ slides.forEach(function(_, k){ var d=document.createElement('button'); d.className='car-dot'+(k===0?' active':''); d.setAttribute('aria-label','Imagen '+(k+1)); d.addEventListener('click', function(){ go(k); }); dotsWrap.appendChild(d); }); }
+    function update(){ track.style.transform='translateX(-'+(i*100)+'%)'; if(dotsWrap){ dotsWrap.querySelectorAll('.car-dot').forEach(function(d,k){ d.classList.toggle('active', k===i); }); } }
+    function go(k){ i=(k+slides.length)%slides.length; update(); }
+    if(prev) prev.addEventListener('click', function(){ go(i-1); });
+    if(next) next.addEventListener('click', function(){ go(i+1); });
+    var x0=null;
+    car.addEventListener('touchstart', function(e){ x0=e.touches[0].clientX; }, {passive:true});
+    car.addEventListener('touchend', function(e){ if(x0===null) return; var dx=e.changedTouches[0].clientX-x0; if(Math.abs(dx)>40) go(i+(dx<0?1:-1)); x0=null; });
+    var timer=setInterval(function(){ go(i+1); }, 6000);
+    car.addEventListener('mouseenter', function(){ clearInterval(timer); });
+    update();
+  });
   // Animaciones al desplazar (scroll reveal)
   (function(){
     var els=document.querySelectorAll('.reveal, .card, .sec-title, .final');
