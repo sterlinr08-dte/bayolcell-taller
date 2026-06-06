@@ -75,7 +75,7 @@ input[disabled] { background-color: #f8fafc; color: #94a3b8; cursor: not-allowed
 .btn-lg { padding: 12px 22px; font-size: 14px; }
 .btn-block { width: 100%; }
 /* Acciones verticales: cada botón/select ocupa el ancho completo */
-.acciones-verticales .btn, .acciones-verticales select, .acciones-verticales button { width: 100%; justify-content: center; text-align: center; }
+.acciones-verticales .btn, .acciones-verticales select, .acciones-verticales button { width: 100%; justify-content: flex-start; text-align: left; }
 /* Botón solo icono (para listas/tablas) */
 .btn-icon { padding: 7px 9px; font-size: 12px; border-radius: 7px; }
 .err { display: none; background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; padding: 10px; border-radius: 8px; font-size: 13px; margin-bottom: 15px; text-align: left; }
@@ -728,6 +728,28 @@ body{
 
 /* Reduce el efecto en pantallas que no soportan blur bien o usuarios con menos movimiento */
 @media (prefers-reduced-motion: reduce){ .btn:hover, .kpi-box.clickable:hover, .nav button:hover{ transform:none !important; } }
+
+/* ============================================================
+   📐 TEXTO ALINEADO A LA IZQUIERDA (todo el sistema)
+   Deja todo "lineal y a nivel". Se EXCLUYEN por funcion:
+   tickets/etiquetas que se imprimen (van centrados) y los
+   totales de dinero (van a la derecha por legibilidad).
+   ============================================================ */
+.app, .app .card, .app .kpi-box,
+.app h1, .app h2, .app h3, .app h4, .app h5, .app h6,
+.app p, .app label, .app li, .app dt, .app dd,
+.app th, .app td, .app caption, .app legend, .app summary,
+.app .badge, .acciones-verticales { text-align: left !important; }
+
+/* Excepciones: impresion fisica de tickets/etiquetas permanece centrada */
+.label-preview-card, .label-preview-card *,
+.ticket-box, .ticket-box *,
+.pattern-summary, .ticket-pattern-wrap, .ticket-pattern-wrap *,
+.stepper-label { text-align: center !important; }
+
+/* Totales / importes numericos siguen a la derecha */
+.lote-card .lote-totals, .lote-card .lote-totals *,
+.text-right, .num, .money, .text-end { text-align: right !important; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.js"></script>
