@@ -198,6 +198,14 @@ footer img{height:40px;margin-bottom:14px;border-radius:8px}
 .moto-extra{display:block;max-width:520px;width:100%;margin:18px auto 0;border-radius:18px;border:1px solid var(--brd)}
 @media (max-width:760px){.moto{grid-template-columns:1fr}.specs{grid-template-columns:1fr 1fr}}
 @media (max-width:430px){.specs{grid-template-columns:1fr}}
+
+/* ===== FEED DE INSTAGRAM ===== */
+.ig-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px}
+.ig-grid a{position:relative;display:block;aspect-ratio:1/1;border-radius:14px;overflow:hidden;border:1px solid var(--brd)}
+.ig-grid img{width:100%;height:100%;object-fit:cover;transition:transform .35s}
+.ig-grid a::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent,rgba(239,68,68,.25));opacity:0;transition:opacity .25s}
+.ig-grid a:hover img{transform:scale(1.07)}
+.ig-grid a:hover::after{opacity:1}
 </style>
 <script>document.documentElement.classList.add('js');</script>
 </head>
@@ -399,6 +407,24 @@ footer img{height:40px;margin-bottom:14px;border-radius:8px}
       entries.forEach(function(en){ if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } });
     },{threshold:0.12, rootMargin:'0px 0px -8% 0px'});
     els.forEach(function(e){ io.observe(e); });
+  })();
+
+  // Feed de Instagram (se llena solo desde assets/instagram.json)
+  (function(){
+    var feed=document.getElementById('ig-feed');
+    if(!feed) return;
+    fetch('assets/instagram.json?v='+Date.now()).then(function(r){return r.ok?r.json():[];}).then(function(items){
+      if(!Array.isArray(items)||!items.length) return; // sin posts: deja el boton
+      var cells=items.slice(0,9).map(function(p){
+        var cap=(p.caption||'Publicación de Bayolcell').replace(/"/g,'&quot;').slice(0,90);
+        return '<a href="'+p.permalink+'" target="_blank" rel="noopener" title="'+cap+'">'+
+               '<img loading="lazy" src="'+p.image+'" alt="'+cap+'"></a>';
+      }).join('');
+      feed.innerHTML='<div class="ig-grid">'+cells+'</div>'+
+        '<div style="text-align:center;margin-top:18px">'+
+        '<a class="btn btn-red" href="https://www.instagram.com/bayolcell" target="_blank" rel="noopener">'+
+        '<i class="ti ti-brand-instagram"></i> Ver más en @bayolcell</a></div>';
+    }).catch(function(){});
   })();
 </script>
 </body>
