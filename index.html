@@ -220,10 +220,36 @@ footer img{height:40px;margin-bottom:14px;border-radius:8px}
 .ig-grid a::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent,rgba(239,68,68,.25));opacity:0;transition:opacity .25s}
 .ig-grid a:hover img{transform:scale(1.07)}
 .ig-grid a:hover::after{opacity:1}
+
+/* ===== CINTA DE ANUNCIOS (marquee) ===== */
+.topbar{background:linear-gradient(90deg,#7f1d1d,#ef4444,#7f1d1d);color:#fff;overflow:hidden;position:relative;z-index:40;
+  box-shadow:0 2px 10px -4px rgba(0,0,0,.6)}
+.topbar .track{display:flex;width:max-content;white-space:nowrap;animation:marq 26s linear infinite}
+.topbar .track span{display:inline-flex;align-items:center;gap:8px;padding:8px 26px;font-size:13px;font-weight:800;letter-spacing:.3px}
+.topbar .track span i{font-size:15px}
+@keyframes marq{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.topbar:hover .track{animation-play-state:paused}
+@media (prefers-reduced-motion:reduce){.topbar .track{animation:none}}
 </style>
 <script>document.documentElement.classList.add('js');</script>
 </head>
 <body>
+
+<!-- CINTA DE ANUNCIOS -->
+<div class="topbar" aria-hidden="true">
+  <div class="track">
+    <span><i class="ti ti-credit-card"></i> Financiamiento disponible</span>
+    <span><i class="ti ti-motorbike"></i> Pasola eléctrica desde RD$52,500</span>
+    <span><i class="ti ti-tool"></i> Reparación con garantía</span>
+    <span><i class="ti ti-package-import"></i> Piezas originales importadas</span>
+    <span><i class="ti ti-map-pin"></i> Santiago &amp; Moca</span>
+    <span><i class="ti ti-credit-card"></i> Financiamiento disponible</span>
+    <span><i class="ti ti-motorbike"></i> Pasola eléctrica desde RD$52,500</span>
+    <span><i class="ti ti-tool"></i> Reparación con garantía</span>
+    <span><i class="ti ti-package-import"></i> Piezas originales importadas</span>
+    <span><i class="ti ti-map-pin"></i> Santiago &amp; Moca</span>
+  </div>
+</div>
 
 <!-- HEADER -->
 <header>
