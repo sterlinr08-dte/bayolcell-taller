@@ -171,6 +171,33 @@ footer img{height:40px;margin-bottom:14px;border-radius:8px}
   .js .reveal, .js .card, .js .sec-title, .js .final{opacity:1;transform:none;transition:none}
   .hero .logo-big,.hero-glow,.scroll-ind{animation:none}
 }
+
+/* ===== MOTONETA ELÉCTRICA (producto destacado) ===== */
+.moto{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:center;
+  background:linear-gradient(135deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
+  border:1px solid var(--brd);border-radius:24px;padding:24px;
+  backdrop-filter:blur(14px) saturate(150%);
+  box-shadow:0 22px 50px -28px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.08)}
+.moto-img{position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--brd);
+  box-shadow:0 24px 50px -24px rgba(239,68,68,.5)}
+.moto-img img{width:100%;display:block}
+.moto-info .eyebrow{color:#fca5a5;font-weight:800;letter-spacing:1px;text-transform:uppercase;font-size:12px}
+.moto-info h3{font-size:clamp(23px,4vw,31px);font-weight:900;margin:6px 0 2px}
+.price-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:14px 0}
+.price-tag{font-size:32px;font-weight:900;color:#fff;line-height:1}
+.fin-badge{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:800;
+  color:#34d399;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.35);padding:7px 13px;border-radius:999px}
+.specs{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:9px 16px;margin:16px 0}
+.specs li{display:flex;align-items:flex-start;gap:8px;font-size:13.8px;color:var(--muted)}
+.specs li i{color:#fca5a5;font-size:17px;flex-shrink:0;margin-top:1px}
+.colors{margin:14px 0;font-size:14px;color:var(--muted);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dots{display:inline-flex;gap:7px}
+.dots span{width:19px;height:19px;border-radius:50%;border:2px solid rgba(255,255,255,.55);display:inline-block}
+.moto-info .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.moto-info .actions .btn{font-size:14px;padding:12px 18px}
+.moto-extra{display:block;max-width:520px;width:100%;margin:18px auto 0;border-radius:18px;border:1px solid var(--brd)}
+@media (max-width:760px){.moto{grid-template-columns:1fr}.specs{grid-template-columns:1fr 1fr}}
+@media (max-width:430px){.specs{grid-template-columns:1fr}}
 </style>
 <script>document.documentElement.classList.add('js');</script>
 </head>
@@ -234,6 +261,49 @@ footer img{height:40px;margin-bottom:14px;border-radius:8px}
       <p>Venta al por mayor para negocios y técnicos. Surte tu tienda con productos de calidad.</p>
     </div>
   </div>
+</section>
+
+<!-- MOTONETA ELÉCTRICA -->
+<section id="motoneta" class="wrap">
+  <div class="sec-title">
+    <h2>Motoneta Eléctrica ⚡</h2>
+    <p>La energía del futuro — muévete diferente.</p>
+  </div>
+  <div class="moto reveal">
+    <div class="moto-img"><img src="assets/moto-roja.jpg" alt="Motoneta eléctrica STUDIO LQ-H8"></div>
+    <div class="moto-info">
+      <div class="eyebrow">Nueva · STUDIO LQ-H8</div>
+      <h3>Motoneta 100% eléctrica</h3>
+      <div class="price-row">
+        <span class="price-tag">RD$ 52,500</span>
+        <span class="fin-badge"><i class="ti ti-credit-card"></i> Disponible con financiamiento</span>
+      </div>
+      <ul class="specs">
+        <li><i class="ti ti-bolt"></i> Motor 1000W de cobre puro</li>
+        <li><i class="ti ti-battery-3"></i> Batería de litio 48/20</li>
+        <li><i class="ti ti-gauge"></i> Hasta 90 km/h</li>
+        <li><i class="ti ti-map-pin"></i> Autonomía 70 km</li>
+        <li><i class="ti ti-disc"></i> Frenos de disco del. y tras.</li>
+        <li><i class="ti ti-arrows-down"></i> Amortiguación hidráulica</li>
+        <li><i class="ti ti-clock-hour-8"></i> Carga 6–8 horas</li>
+        <li><i class="ti ti-weight"></i> Soporta +200 kg</li>
+      </ul>
+      <div class="colors">Colores disponibles:
+        <span class="dots">
+          <span style="background:#f5f5f5" title="Blanca"></span>
+          <span style="background:#1d4ed8" title="Azul"></span>
+          <span style="background:#111827" title="Negra"></span>
+          <span style="background:#dc2626" title="Roja"></span>
+          <span style="background:#6b7280" title="Gris"></span>
+        </span>
+      </div>
+      <div class="actions">
+        <a class="btn btn-red" href="https://wa.me/18495644791?text=Hola%2C%20me%20interesa%20la%20Motoneta%20El%C3%A9ctrica%20(RD%2452%2C500)%20con%20financiamiento" target="_blank" rel="noopener"><i class="ti ti-credit-card"></i> Solicitar financiamiento</a>
+        <a class="btn btn-wa" href="https://wa.me/18495644791?text=Hola%2C%20quiero%20m%C3%A1s%20informaci%C3%B3n%20de%20la%20Motoneta%20El%C3%A9ctrica" target="_blank" rel="noopener"><i class="ti ti-brand-whatsapp"></i> Más información</a>
+      </div>
+    </div>
+  </div>
+  <img class="moto-extra reveal" src="assets/moto-specs.jpg" alt="Especificaciones de la motoneta eléctrica y colores disponibles">
 </section>
 
 <!-- SUCURSALES -->
