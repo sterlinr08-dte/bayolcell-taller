@@ -41,14 +41,9 @@ header{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px) saturate(150%
   border-bottom:1px solid var(--brd);}
 .nav{display:flex;align-items:center;justify-content:space-between;height:80px}
 .brand{display:flex;align-items:center}
-/* Logo dentro de icono redondo negro con aro de brillo */
-.logo-badge{width:66px;height:66px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-  background:radial-gradient(circle at 32% 26%, #1b2538, #05070d 75%);
-  border:1px solid rgba(255,255,255,0.12);
-  box-shadow:0 10px 26px -8px rgba(239,68,68,0.55), inset 0 1px 0 rgba(255,255,255,0.14);
-  overflow:hidden;transition:transform .2s}
-.logo-badge:hover{transform:translateY(-1px) scale(1.03)}
-.logo-badge img{width:86%;height:86%;object-fit:contain}
+/* Logo completo visible */
+.brand img{height:60px;width:auto;display:block;filter:drop-shadow(0 6px 14px rgba(239,68,68,0.35));transition:transform .2s}
+.brand:hover img{transform:translateY(-1px) scale(1.02)}
 /* Boton menu (tres rayitas) redondo negro */
 .menu-wrap{position:relative}
 .menu-btn{width:50px;height:50px;border-radius:50%;cursor:pointer;font-size:23px;color:#fff;
@@ -234,7 +229,7 @@ footer img{height:40px;margin-bottom:14px;border-radius:8px}
 <header>
   <div class="wrap nav">
     <a class="brand" href="#inicio" aria-label="Inicio">
-      <span class="logo-badge"><img src="assets/logo.png" alt="Bayolcell"></span>
+      <img src="assets/logo.png" alt="Bayolcell">
     </a>
     <div class="menu-wrap">
       <button class="menu-btn" id="menuBtn" aria-label="Menú" onclick="toggleMenu(event)"><i class="ti ti-menu-2"></i></button>
