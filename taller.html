@@ -2753,7 +2753,14 @@ body{
 <script>
 const CONFIG_URL = "https://vkhwdvjtowrhkhqavnvk.supabase.co";
 const CONFIG_KEY = "sb_publishable_PynS5ZjKoQ36HCpguVzxaw_KZOlagtz"; 
-const supabaseClient = supabase.createClient(CONFIG_URL, CONFIG_KEY);
+const supabaseClient = supabase.createClient(CONFIG_URL, CONFIG_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
+});
+// Mantiene fresca la sesion segura para evitar "JWT expired" (al volver a la pestana, al enfocar y cada 10 min)
+function _bcRefreshSession(){ try{ supabaseClient.auth.getSession(); }catch(e){} }
+document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='visible') _bcRefreshSession(); });
+window.addEventListener('focus', _bcRefreshSession);
+setInterval(_bcRefreshSession, 10 * 60 * 1000);
 
 /* ============================================================
    AUTO-INYECTAR BOTÓN "VOLVER" EN TODOS LOS MODALES
@@ -2799,7 +2806,11 @@ let loteActualId = null;
 let refreshTimer = null;
 
 function logError(context, error) { console.error(`[BAYOL CELL] ${context}:`, error); }
-function getFriendlyError(error, fallback) { return error?.message || fallback || "Error inesperado."; }
+function getFriendlyError(error, fallback) {
+    const m = error?.message || '';
+    if(/jwt|expired|token/i.test(m)) { _bcRefreshSession(); return "Tu sesión se renovó. Por favor intenta de nuevo; si persiste, recarga la página."; }
+    return m || fallback || "Error inesperado.";
+}
 function requireSupabaseOk(response, context) {
     if(response?.error) { logError(context, response.error); throw response.error; }
     return response;
