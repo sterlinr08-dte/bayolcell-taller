@@ -3320,17 +3320,7 @@ async function doLogin() {
             return;
         }
 
-        // 2. RESPALDO TEMPORAL (sistema anterior) — activo mientras se completa la migración de seguridad
-        const { data: usuariosData, error: errU } = await supabaseClient
-            .from('usuarios').select('*').eq('usuario', u).eq('clave', p).eq('activo', true).limit(1);
-        if(errU) throw errU;
-        if(usuariosData && usuariosData.length) { await aplicarSesionDesdeFila(usuariosData[0], 'usuario'); return; }
-
-        const { data: tecData, error: errT } = await supabaseClient
-            .from('tecnicos').select('*').eq('usuario', u).eq('clave', p).eq('activo', true).limit(1);
-        if(errT) throw errT;
-        if(tecData && tecData.length) { await aplicarSesionDesdeFila(tecData[0], 'tecnico'); return; }
-
+        // El acceso ahora es únicamente con el sistema seguro (Supabase Auth)
         toast("Usuario o contraseña incorrectos.", 'error');
     } catch(e) { logError("Login", e); toast("Error de autenticación.", 'error'); }
 }
@@ -3410,11 +3400,10 @@ async function guardarNuevaClave() {
         const tabla = sessionUser._tipo === 'tecnico' ? 'tecnicos' : 'usuarios';
         const { error } = await supabaseClient
             .from(tabla)
-            .update({ clave: nueva, debe_cambiar_clave: false })
+            .update({ debe_cambiar_clave: false })
             .eq('id', sessionUser.id);
         if(error) throw error;
 
-        sessionUser.clave = nueva;
         sessionUser.debe_cambiar_clave = false;
         localStorage.setItem("bayol_session", JSON.stringify(sessionUser));
         
@@ -6320,7 +6309,7 @@ async function resetClaveTecnico(id) {
         // Actualiza la cuenta de acceso segura (Supabase Auth)
         await supabaseClient.rpc('app_sync_acceso', { p_tipo: 'tecnico', p_ref_id: id, p_usuario: t.usuario, p_clave: nueva });
         // Marca que debe cambiarla al entrar
-        const { error } = await supabaseClient.from('tecnicos').update({ clave: nueva, debe_cambiar_clave: true }).eq('id', id);
+        const { error } = await supabaseClient.from('tecnicos').update({ debe_cambiar_clave: true }).eq('id', id);
         if(error) throw error;
         await loadAll();
         renderTecnicos();
@@ -6387,8 +6376,7 @@ async function guardarTecnico() {
     
     // Solo cambiar clave si se escribió una nueva
     if(clave) {
-        datos.clave = clave;
-        datos.debe_cambiar_clave = true; // forzar cambio en primer login
+        datos.debe_cambiar_clave = true; // forzar cambio en primer login (la clave va al acceso seguro, no a la tabla)
     }
     
     try {
