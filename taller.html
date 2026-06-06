@@ -3249,59 +3249,66 @@ async function imprimirContenido(htmlContenido, copias, anchoMm, altoMm, tipo) {
     }
 }
 
+async function aplicarSesionDesdeFila(fila, tipo) {
+    sessionUser = fila;
+    sessionUser._tipo = tipo;
+    if(tipo === 'tecnico' && fila.rol_id) {
+        try {
+            const { data: rolData } = await supabaseClient.from('roles_taller').select('*').eq('id', fila.rol_id).limit(1);
+            if(rolData && rolData.length) sessionUser._permisos = rolData[0].permisos || {};
+        } catch(e) { logError('Cargar permisos login', e); }
+    }
+    localStorage.setItem("bayol_session", JSON.stringify(sessionUser));
+    if(tipo === 'tecnico') {
+        try { await supabaseClient.from('tecnicos').update({ ultimo_acceso: new Date().toISOString() }).eq('id', fila.id); } catch(e) {}
+    }
+    if(fila.debe_cambiar_clave) { startApp(); setTimeout(() => abrirModalCambiarClave(true), 500); }
+    else { startApp(); }
+}
+
 async function doLogin() {
     try {
         const u = val("loginUser"), p = val("loginPass");
         if(!u || !p) return toast("Ingrese datos.", 'error');
-        
-        // 1. Buscar primero en usuarios (admin)
+
+        // 1. LOGIN SEGURO (Supabase Auth)
+        const email = u.trim().toLowerCase() + "@bayolcell.app";
+        let authUser = null;
+        try {
+            const { data: authData, error: authErr } = await supabaseClient.auth.signInWithPassword({ email, password: p });
+            if(!authErr && authData && authData.user) authUser = authData.user;
+        } catch(e) { /* pasa al respaldo */ }
+
+        if(authUser) {
+            const meta = authUser.user_metadata || {};
+            const tipo = (meta.tipo === 'usuario') ? 'usuario' : 'tecnico';
+            const tabla = tipo === 'tecnico' ? 'tecnicos' : 'usuarios';
+            const { data: rows, error: e2 } = await supabaseClient.from(tabla).select('*').eq('id', meta.ref_id).limit(1);
+            if(e2) throw e2;
+            if(!rows || !rows.length || rows[0].activo === false) {
+                try { await supabaseClient.auth.signOut(); } catch(e) {}
+                return toast("Tu cuenta está desactivada. Contacta al administrador.", 'error');
+            }
+            await aplicarSesionDesdeFila(rows[0], tipo);
+            return;
+        }
+
+        // 2. RESPALDO TEMPORAL (sistema anterior) — activo mientras se completa la migración de seguridad
         const { data: usuariosData, error: errU } = await supabaseClient
             .from('usuarios').select('*').eq('usuario', u).eq('clave', p).eq('activo', true).limit(1);
         if(errU) throw errU;
-        
-        if(usuariosData && usuariosData.length) {
-            sessionUser = usuariosData[0];
-            sessionUser._tipo = 'usuario';
-            localStorage.setItem("bayol_session", JSON.stringify(sessionUser));
-            startApp();
-            return;
-        }
-        
-        // 2. Buscar en técnicos
+        if(usuariosData && usuariosData.length) { await aplicarSesionDesdeFila(usuariosData[0], 'usuario'); return; }
+
         const { data: tecData, error: errT } = await supabaseClient
             .from('tecnicos').select('*').eq('usuario', u).eq('clave', p).eq('activo', true).limit(1);
         if(errT) throw errT;
-        
-        if(tecData && tecData.length) {
-            const tec = tecData[0];
-            sessionUser = tec;
-            sessionUser._tipo = 'tecnico';
-            // Cargar el rol y permisos del técnico
-            if(tec.rol_id) {
-                try {
-                    const { data: rolData } = await supabaseClient.from('roles_taller').select('*').eq('id', tec.rol_id).limit(1);
-                    if(rolData && rolData.length) sessionUser._permisos = rolData[0].permisos || {};
-                } catch(e) { logError('Cargar permisos login', e); }
-            }
-            localStorage.setItem("bayol_session", JSON.stringify(sessionUser));
-            // Registrar último acceso
-            try { await supabaseClient.from('tecnicos').update({ ultimo_acceso: new Date().toISOString() }).eq('id', tec.id); } catch(e) {}
-            
-            // Si debe cambiar clave en primer login
-            if(tec.debe_cambiar_clave) {
-                startApp();
-                setTimeout(() => abrirModalCambiarClave(true), 500);
-            } else {
-                startApp();
-            }
-            return;
-        }
-        
+        if(tecData && tecData.length) { await aplicarSesionDesdeFila(tecData[0], 'tecnico'); return; }
+
         toast("Usuario o contraseña incorrectos.", 'error');
     } catch(e) { logError("Login", e); toast("Error de autenticación.", 'error'); }
 }
 
-function logout() { localStorage.removeItem("bayol_session"); location.reload(); }
+async function logout() { try { await supabaseClient.auth.signOut(); } catch(e) {} localStorage.removeItem("bayol_session"); location.reload(); }
 
 function isAdminUser() {
     // Si es del tipo usuario, usar la lógica vieja
@@ -3371,13 +3378,15 @@ async function guardarNuevaClave() {
     if(nueva !== confirmar) return toast('Las contraseñas no coinciden.', 'error');
     
     try {
+        // Actualiza la contraseña segura (Supabase Auth)
+        try { await supabaseClient.auth.updateUser({ password: nueva }); } catch(e) { logError('Auth update pass', e); }
         const tabla = sessionUser._tipo === 'tecnico' ? 'tecnicos' : 'usuarios';
         const { error } = await supabaseClient
             .from(tabla)
             .update({ clave: nueva, debe_cambiar_clave: false })
             .eq('id', sessionUser.id);
         if(error) throw error;
-        
+
         sessionUser.clave = nueva;
         sessionUser.debe_cambiar_clave = false;
         localStorage.setItem("bayol_session", JSON.stringify(sessionUser));
@@ -6318,6 +6327,11 @@ async function guardarTecnico() {
             if(error) throw error;
             nuevoId = data?.id;
             toast('✅ Empleado creado.');
+        }
+        // Sincroniza la cuenta de acceso segura (Supabase Auth) si tiene usuario
+        if(datos.usuario && nuevoId) {
+            try { await supabaseClient.rpc('app_sync_acceso', { p_tipo: 'tecnico', p_ref_id: nuevoId, p_usuario: datos.usuario, p_clave: clave || '' }); }
+            catch(e) { logError('Sync acceso empleado', e); }
         }
         cerrarModalTecnico();
         await loadAll();
