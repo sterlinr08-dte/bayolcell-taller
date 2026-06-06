@@ -39,16 +39,34 @@ a{color:inherit;text-decoration:none}
 header{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px) saturate(150%);
   background:linear-gradient(180deg, rgba(8,12,22,0.85), rgba(8,12,22,0.55));
   border-bottom:1px solid var(--brd);}
-.nav{display:flex;align-items:center;justify-content:space-between;height:78px}
-.brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.3px}
-.brand img{height:62px;width:auto;border-radius:8px}
-.brand span{display:none}
-.brand span b{color:var(--red)}
-.emp-btn{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;
-  padding:6px 10px;border-radius:10px;border:1px solid var(--brd);
-  background:linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
-  transition:all .2s;white-space:nowrap}
-.emp-btn:hover{border-color:rgba(248,113,113,.5);background:linear-gradient(135deg, rgba(239,68,68,.18), rgba(239,68,68,.06));transform:translateY(-1px)}
+.nav{display:flex;align-items:center;justify-content:space-between;height:80px}
+.brand{display:flex;align-items:center}
+/* Logo dentro de icono redondo negro con aro de brillo */
+.logo-badge{width:66px;height:66px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 32% 26%, #1b2538, #05070d 75%);
+  border:1px solid rgba(255,255,255,0.12);
+  box-shadow:0 10px 26px -8px rgba(239,68,68,0.55), inset 0 1px 0 rgba(255,255,255,0.14);
+  overflow:hidden;transition:transform .2s}
+.logo-badge:hover{transform:translateY(-1px) scale(1.03)}
+.logo-badge img{width:86%;height:86%;object-fit:contain}
+/* Boton menu (tres rayitas) redondo negro */
+.menu-wrap{position:relative}
+.menu-btn{width:50px;height:50px;border-radius:50%;cursor:pointer;font-size:23px;color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 32% 26%, #1b2538, #05070d 75%);
+  border:1px solid rgba(255,255,255,0.14);
+  box-shadow:0 8px 18px -8px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.12);transition:all .2s}
+.menu-btn:hover{border-color:rgba(248,113,113,0.5);transform:translateY(-1px)}
+.menu-drop{position:absolute;right:0;top:calc(100% + 12px);min-width:230px;display:flex;flex-direction:column;gap:2px;padding:8px;
+  border-radius:18px;background:linear-gradient(135deg, rgba(18,24,38,0.97), rgba(8,12,22,0.97));
+  backdrop-filter:blur(16px) saturate(150%);border:1px solid rgba(255,255,255,0.12);
+  box-shadow:0 26px 54px -20px rgba(0,0,0,0.75);
+  opacity:0;visibility:hidden;transform:translateY(-8px) scale(.98);transform-origin:top right;transition:all .2s;z-index:70}
+.menu-drop.open{opacity:1;visibility:visible;transform:none}
+.menu-drop a{display:flex;align-items:center;gap:11px;padding:12px 14px;border-radius:11px;color:#e7ecf5;font-weight:700;font-size:14.5px;text-decoration:none}
+.menu-drop a:hover{background:rgba(255,255,255,0.07)}
+.menu-drop a i{font-size:19px;color:#fca5a5;width:20px;text-align:center}
+.menu-drop a.emp{margin-top:5px;padding-top:13px;border-top:1px solid rgba(255,255,255,0.1);color:#fca5a5}
 
 /* ===== HERO ===== */
 .hero{text-align:center;padding:64px 0 40px}
@@ -215,11 +233,19 @@ footer img{height:40px;margin-bottom:14px;border-radius:8px}
 <!-- HEADER -->
 <header>
   <div class="wrap nav">
-    <a class="brand" href="#inicio">
-      <img src="assets/logo.png" alt="Bayolcell logo">
-      <span>Bayol<b>cell</b></span>
+    <a class="brand" href="#inicio" aria-label="Inicio">
+      <span class="logo-badge"><img src="assets/logo.png" alt="Bayolcell"></span>
     </a>
-    <a class="emp-btn" href="taller.html"><i class="ti ti-lock"></i> Acceso empleados</a>
+    <div class="menu-wrap">
+      <button class="menu-btn" id="menuBtn" aria-label="Menú" onclick="toggleMenu(event)"><i class="ti ti-menu-2"></i></button>
+      <nav class="menu-drop" id="menuDrop">
+        <a href="#servicios"><i class="ti ti-apps"></i> Servicios</a>
+        <a href="#motoneta"><i class="ti ti-motorbike"></i> Pasola Eléctrica</a>
+        <a href="#sucursales"><i class="ti ti-map-pin"></i> Sucursales</a>
+        <a href="https://wa.me/18495644791" target="_blank" rel="noopener"><i class="ti ti-brand-whatsapp"></i> Contacto</a>
+        <a class="emp" href="taller.html"><i class="ti ti-lock"></i> Acceso empleados</a>
+      </nav>
+    </div>
   </div>
 </header>
 
@@ -396,6 +422,11 @@ footer img{height:40px;margin-bottom:14px;border-radius:8px}
 
 <script>
   document.getElementById('y').textContent=new Date().getFullYear();
+
+  // Menu desplegable (boton de tres rayitas)
+  function toggleMenu(e){ e.stopPropagation(); var d=document.getElementById('menuDrop'); if(d) d.classList.toggle('open'); }
+  window.toggleMenu = toggleMenu;
+  document.addEventListener('click', function(){ var d=document.getElementById('menuDrop'); if(d) d.classList.remove('open'); });
   // Animaciones al desplazar (scroll reveal)
   (function(){
     var els=document.querySelectorAll('.reveal, .card, .sec-title, .final');
