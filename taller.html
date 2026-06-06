@@ -6208,6 +6208,7 @@ function renderTecnicos() {
                         return `<button onclick="verPiezasDelTecnico('${t.id}')" style="background:${n > 0 ? '#fed7aa' : '#f1f5f9'}; color:${n > 0 ? '#9a3412' : '#64748b'}; border:0; padding:8px 10px; border-radius:6px; cursor:pointer;" title="Piezas en su poder"><i class="ti ti-packages"></i>${n > 0 ? ' ' + n : ''}</button>`;
                     })() : ''}
                     ${permBtn('config_tecnicos', `<button onclick="editarTecnico('${t.id}')" style="background:#dbeafe; color:#b91c1c; border:0; padding:8px 10px; border-radius:6px; cursor:pointer;" title="Editar"><i class="ti ti-edit"></i></button>`)}
+                    ${t.usuario ? permBtn('config_tecnicos', `<button onclick="resetClaveTecnico('${t.id}')" style="background:#fef3c7; color:#92400e; border:0; padding:8px 10px; border-radius:6px; cursor:pointer;" title="Resetear contraseña"><i class="ti ti-key"></i></button>`) : ''}
                     ${permBtn('config_tecnicos_eliminar', `<button onclick="eliminarTecnico('${t.id}')" style="background:#fee2e2; color:#991b1b; border:0; padding:8px 10px; border-radius:6px; cursor:pointer;" title="Eliminar"><i class="ti ti-trash"></i></button>`)}
                 </div>
             </div>
@@ -6256,6 +6257,30 @@ function actualizarCamposPorTipoEmpleado() {
     // El "rol del sistema" (oculto) se ajusta automático: admin si el tipo es admin
     const rolEl = document.getElementById('mod_tec_rol');
     if(rolEl) rolEl.value = (tipo === 'admin') ? 'admin' : 'tecnico';
+}
+
+async function resetClaveTecnico(id) {
+    const t = (cache.tecnicos || []).find(x => x.id === id);
+    if(!t) return;
+    if(!t.usuario) return toast('Este empleado no tiene usuario de acceso.', 'error');
+    const sugerida = 'Bayol' + Math.floor(1000 + Math.random() * 9000);
+    const nueva = (prompt(`Contraseña provisional para "${t.nombre}" (usuario: ${t.usuario}).\n\nPuedes dejar la sugerida o escribir otra.\nEl empleado deberá cambiarla al iniciar sesión.`, sugerida) || '').trim();
+    if(!nueva) return;
+    if(nueva.length < 4) return toast('La contraseña debe tener al menos 4 caracteres.', 'error');
+    try {
+        // Actualiza la cuenta de acceso segura (Supabase Auth)
+        await supabaseClient.rpc('app_sync_acceso', { p_tipo: 'tecnico', p_ref_id: id, p_usuario: t.usuario, p_clave: nueva });
+        // Marca que debe cambiarla al entrar
+        const { error } = await supabaseClient.from('tecnicos').update({ clave: nueva, debe_cambiar_clave: true }).eq('id', id);
+        if(error) throw error;
+        await loadAll();
+        renderTecnicos();
+        toast(`✅ Clave provisional de ${t.nombre}: ${nueva} — la deberá cambiar al entrar.`, 'success');
+        try { alert(`Contraseña provisional para ${t.nombre}\n(usuario: ${t.usuario})\n\n👉  ${nueva}\n\nEntrégasela al empleado. Se le pedirá cambiarla al iniciar sesión.`); } catch(e) {}
+    } catch(e) {
+        logError('Reset clave técnico', e);
+        toastError(getFriendlyError(e));
+    }
 }
 
 function editarTecnico(id) {
