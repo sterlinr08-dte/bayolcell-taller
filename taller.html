@@ -4220,7 +4220,7 @@ async function importarCatalogoInfoplus(input) {
             data.push({
                 codigo: cod,
                 descripcion: (row[iDesc] || '').trim(),
-                existencia: parseInt(row[iExist]) || 0,
+                existencia: 0, // el stock real del taller viene de los despachos de Info Plus, no del CSV
                 referencia: (iRef >= 0 ? (row[iRef] || '') : '').trim(),
                 marca: (iMarca >= 0 ? (row[iMarca] || '') : '').trim(),
                 actualizado_en: new Date().toISOString()
