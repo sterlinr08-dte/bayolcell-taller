@@ -890,7 +890,7 @@ body{
                         </div>
                         <div class="table-wrap" style="max-height:520px; overflow-y:auto;">
                             <table>
-                                <thead><tr><th>#</th><th>Fecha</th><th>Descripción</th><th>Sucursal</th><th style="text-align:right;">Debe</th><th style="text-align:right;">Haber</th><th></th></tr></thead>
+                                <thead><tr><th>#</th><th>Fecha</th><th>Descripción</th><th>Sucursal</th><th style="text-align:right;">Débito</th><th style="text-align:right;">Crédito</th><th></th></tr></thead>
                                 <tbody id="libroDiarioTable"><tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Sin asientos.</td></tr></tbody>
                             </table>
                         </div>
@@ -2321,7 +2321,7 @@ body{
             <div class="form-row" style="margin-top:8px;"><label>Descripción / concepto *</label><input id="as_descripcion" placeholder="Ej. Pago de alquiler de abril"></div>
             <div class="table-wrap" style="margin-top:8px;">
                 <table>
-                    <thead><tr><th style="min-width:200px;">Cuenta</th><th style="width:120px; text-align:right;">Debe</th><th style="width:120px; text-align:right;">Haber</th><th></th></tr></thead>
+                    <thead><tr><th style="min-width:200px;">Cuenta</th><th style="width:120px; text-align:right;">Débito</th><th style="width:120px; text-align:right;">Crédito</th><th></th></tr></thead>
                     <tbody id="as_lineas"></tbody>
                 </table>
             </div>
@@ -4406,7 +4406,7 @@ function recalcularAsiento() {
     });
     const dif = d - h;
     const el = document.getElementById('as_totales');
-    if(el) el.innerHTML = `<span>Debe: ${money(d)}</span><span>Haber: ${money(h)}</span><span style="color:${Math.abs(dif) < 0.005 ? '#16a34a' : '#dc2626'}">Diferencia: ${money(dif)}</span>`;
+    if(el) el.innerHTML = `<span>Débito: ${money(d)}</span><span>Crédito: ${money(h)}</span><span style="color:${Math.abs(dif) < 0.005 ? '#16a34a' : '#dc2626'}">Diferencia: ${money(dif)}</span>`;
 }
 function abrirModalAsiento() {
     if(!_cuentasCache || !_cuentasCache.length) { cargarCatalogoCuentas().then(() => abrirModalAsiento()); return; }
@@ -4437,7 +4437,7 @@ async function guardarAsiento() {
     if(lineas.length < 2) return toast('Un asiento necesita al menos 2 líneas con monto y cuenta.', 'error');
     const td = lineas.reduce((s, l) => s + l.debe, 0), th = lineas.reduce((s, l) => s + l.haber, 0);
     if(td <= 0) return toast('El asiento no tiene montos.', 'error');
-    if(Math.abs(td - th) >= 0.005) return toast('El asiento no cuadra: Debe (' + money(td) + ') ≠ Haber (' + money(th) + ').', 'error');
+    if(Math.abs(td - th) >= 0.005) return toast('El asiento no cuadra: Débito (' + money(td) + ') ≠ Crédito (' + money(th) + ').', 'error');
     try {
         const { data: maxA } = await supabaseClient.from('conta_asientos').select('numero').order('numero', { ascending: false }).limit(1);
         const numero = ((maxA && maxA[0] && maxA[0].numero) || 0) + 1;
