@@ -3647,7 +3647,18 @@ function applyAccessControls() {
         if(!yaEnAtencion && !yaEnRecepcion) setTimeout(() => nav('atencion'), 100);
         return;
     }
-    
+
+    // MODO "SOLO CONTABILIDAD": la contadora solo ve el módulo de Contabilidad
+    if(tienePermiso('solo_contabilidad')) {
+        document.querySelectorAll('.nav button').forEach(b => { b.style.display = (b.id === 'menu-contabilidad') ? '' : 'none'; });
+        if(typeof closeSidebar === 'function') closeSidebar();
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        const yaEnConta = document.getElementById('v-contabilidad')?.classList.contains('active');
+        if(!yaEnConta) setTimeout(() => nav('contabilidad'), 100);
+        return;
+    }
+
     // Mapeo de items de menú → permiso requerido
     const menuPermisos = {
         'menu-dashboard': 'ver_dashboard',
@@ -3811,7 +3822,7 @@ function nav(v, btn) {
     closeSidebar();
     window.scrollTo({ top: 0, behavior: 'smooth' });
     // Re-aplicar permisos de botones estáticos tras renderizar (NO en modo solo-mi-trabajo, causa bucle)
-    if(!isAdminUser() && !tienePermiso('solo_mi_trabajo') && !tienePermiso('solo_atencion')) setTimeout(() => applyAccessControls(), 150);
+    if(!isAdminUser() && !tienePermiso('solo_mi_trabajo') && !tienePermiso('solo_atencion') && !tienePermiso('solo_contabilidad')) setTimeout(() => applyAccessControls(), 150);
 }
 
 /* ============================================================
@@ -11649,7 +11660,8 @@ const PERMISOS_DEF = [
     {
         grupo: '🧮 Contabilidad', color: '#0891b2',
         items: [
-            { id: 'contabilidad_ver', label: 'Ver módulo de Contabilidad (gastos, reportes)' }
+            { id: 'contabilidad_ver', label: 'Ver módulo de Contabilidad (catálogo, asientos, reportes)' },
+            { id: 'solo_contabilidad', label: 'SOLO ver Contabilidad (oculta todo lo demás) — ideal para la contadora' }
         ]
     },
     {
