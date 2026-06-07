@@ -1125,7 +1125,7 @@ body{
                         <div class="table-wrap">
                             <table>
                                 <thead>
-                                    <tr><th>Código SKU</th><th>Pieza / Componente</th><th>Stock</th><th>Costo Unidad</th></tr>
+                                    <tr><th>Código</th><th>Descripción</th><th>Marca</th><th>Referencia</th><th>Existencia</th><th>Costo</th></tr>
                                 </thead>
                                 <tbody id="partsTable"></tbody>
                             </table>
@@ -3901,7 +3901,7 @@ function renderAll() {
     }).join("");
     
     renderOrders();
-    document.getElementById("partsTable").innerHTML = cache.piezas.map(p => `<tr><td data-label="Código"><code>${escapeHtml(p.codigo||'')}</code></td><td data-label="Pieza"><b>${escapeHtml(p.nombre)}</b></td><td data-label="Stock">${p.cantidad} uds</td><td data-label="Costo">${money(p.costo)}</td></tr>`).join("");
+    document.getElementById("partsTable").innerHTML = cache.piezas.map(p => `<tr><td data-label="Código"><code>${escapeHtml(p.codigo||'')}</code></td><td data-label="Descripción"><b>${escapeHtml(p.nombre||'')}</b></td><td data-label="Marca">${escapeHtml(p.marca||'')}</td><td data-label="Referencia">${escapeHtml(p.referencia||'')}</td><td data-label="Existencia">${p.cantidad} uds</td><td data-label="Costo">${money(p.costo)}</td></tr>`).join("");
     if(isAdminUser()) renderActivosTaller();
     renderProveedores();
     renderComprasTab();
