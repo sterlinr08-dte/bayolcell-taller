@@ -856,6 +856,8 @@ body{
                 <div style="display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;">
                     <button id="contaTabCat" class="btn btn-blue" style="font-size:12px;" onclick="contaTab('catalogo')"><i class="ti ti-book"></i> Catálogo de Cuentas</button>
                     <button id="contaTabAs" class="btn btn-light" style="font-size:12px;" onclick="contaTab('asientos')"><i class="ti ti-notebook"></i> Asientos / Libro Diario</button>
+                    <button id="contaTabMay" class="btn btn-light" style="font-size:12px;" onclick="contaTab('mayor')"><i class="ti ti-list-details"></i> Libro Mayor</button>
+                    <button id="contaTabBal" class="btn btn-light" style="font-size:12px;" onclick="contaTab('balanza')"><i class="ti ti-scale"></i> Balanza de Comprobación</button>
                 </div>
 
                 <!-- TAB: CATÁLOGO -->
@@ -892,6 +894,43 @@ body{
                             <table>
                                 <thead><tr><th>#</th><th>Fecha</th><th>Descripción</th><th>Sucursal</th><th style="text-align:right;">Débito</th><th style="text-align:right;">Crédito</th><th></th></tr></thead>
                                 <tbody id="libroDiarioTable"><tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Sin asientos.</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: LIBRO MAYOR -->
+                <div id="conta-mayor" style="display:none;">
+                    <h3 style="margin:0 0 12px;">Libro Mayor (por cuenta)</h3>
+                    <div class="card">
+                        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
+                            <select id="lm_cuenta" onchange="renderLibroMayor()" style="min-width:240px;"></select>
+                            <input type="month" id="lm_mes" onchange="renderLibroMayor()">
+                            <select id="lm_sucursal" onchange="renderLibroMayor()"><option value="">Todas las sucursales</option><option value="Santiago">Santiago</option><option value="Moca">Moca</option></select>
+                            <button class="btn btn-light" style="font-size:12px;" onclick="renderLibroMayor()"><i class="ti ti-refresh"></i> Actualizar</button>
+                        </div>
+                        <div class="table-wrap" style="max-height:520px; overflow-y:auto;">
+                            <table>
+                                <thead><tr><th>Fecha</th><th>Asiento</th><th>Descripción</th><th style="text-align:right;">Débito</th><th style="text-align:right;">Crédito</th><th style="text-align:right;">Saldo</th></tr></thead>
+                                <tbody id="libroMayorTable"><tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Selecciona una cuenta.</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB: BALANZA DE COMPROBACIÓN -->
+                <div id="conta-balanza" style="display:none;">
+                    <h3 style="margin:0 0 12px;">Balanza de Comprobación</h3>
+                    <div class="card">
+                        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
+                            <input type="month" id="bal_mes" onchange="renderBalanza()">
+                            <select id="bal_sucursal" onchange="renderBalanza()"><option value="">Todas las sucursales</option><option value="Santiago">Santiago</option><option value="Moca">Moca</option></select>
+                            <button class="btn btn-light" style="font-size:12px;" onclick="renderBalanza()"><i class="ti ti-refresh"></i> Actualizar</button>
+                        </div>
+                        <div class="table-wrap" style="max-height:520px; overflow-y:auto;">
+                            <table>
+                                <thead><tr><th>Código</th><th>Cuenta</th><th style="text-align:right;">Débitos</th><th style="text-align:right;">Créditos</th><th style="text-align:right;">Saldo Deudor</th><th style="text-align:right;">Saldo Acreedor</th></tr></thead>
+                                <tbody id="balanzaTable"><tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Sin movimientos.</td></tr></tbody>
                             </table>
                         </div>
                     </div>
@@ -4376,14 +4415,81 @@ async function eliminarCuenta(id) {
 
 // ===== CONTABILIDAD — ASIENTOS (partida doble) + LIBRO DIARIO =====
 function contaTab(name) {
-    const cat = document.getElementById('conta-catalogo'), as = document.getElementById('conta-asientos');
-    const bc = document.getElementById('contaTabCat'), ba = document.getElementById('contaTabAs');
-    const on = name === 'asientos';
-    if(cat) cat.style.display = on ? 'none' : '';
-    if(as) as.style.display = on ? '' : 'none';
-    if(bc) bc.className = 'btn ' + (on ? 'btn-light' : 'btn-blue');
-    if(ba) ba.className = 'btn ' + (on ? 'btn-blue' : 'btn-light');
-    if(on) { const mm = document.getElementById('as_filtroMes'); if(mm && !mm.value) mm.value = new Date().toISOString().slice(0,7); renderLibroDiario(); }
+    const tabs = { catalogo:'conta-catalogo', asientos:'conta-asientos', mayor:'conta-mayor', balanza:'conta-balanza' };
+    const btns = { catalogo:'contaTabCat', asientos:'contaTabAs', mayor:'contaTabMay', balanza:'contaTabBal' };
+    Object.keys(tabs).forEach(k => { const el = document.getElementById(tabs[k]); if(el) el.style.display = (k === name ? '' : 'none'); const b = document.getElementById(btns[k]); if(b) b.className = 'btn ' + (k === name ? 'btn-blue' : 'btn-light'); });
+    const hoyMes = new Date().toISOString().slice(0,7);
+    if(name === 'asientos') { const mm = document.getElementById('as_filtroMes'); if(mm && !mm.value) mm.value = hoyMes; renderLibroDiario(); }
+    if(name === 'mayor') { const mm = document.getElementById('lm_mes'); if(mm && !mm.value) mm.value = hoyMes; cargarSelectCuentasLM(); renderLibroMayor(); }
+    if(name === 'balanza') { const mm = document.getElementById('bal_mes'); if(mm && !mm.value) mm.value = hoyMes; renderBalanza(); }
+}
+async function _contaCargarLibro() {
+    const [ra, rl] = await Promise.all([
+        supabaseClient.from('conta_asientos').select('id,numero,fecha,sucursal,descripcion'),
+        supabaseClient.from('conta_asiento_lineas').select('asiento_id,cuenta_codigo,cuenta_nombre,debe,haber')
+    ]);
+    const amap = {}; (ra.data || []).forEach(a => amap[a.id] = a);
+    return (rl.data || []).map(l => ({ ...l, a: amap[l.asiento_id] })).filter(x => x.a);
+}
+function cargarSelectCuentasLM() {
+    const sel = document.getElementById('lm_cuenta'); if(!sel) return;
+    if(!_cuentasCache || !_cuentasCache.length) { cargarCatalogoCuentas().then(cargarSelectCuentasLM); return; }
+    const prev = sel.value;
+    const cuentas = _cuentasCache.filter(c => c.permite_movimiento);
+    sel.innerHTML = '<option value="">— Selecciona una cuenta —</option>' + cuentas.map(c => `<option value="${escapeHtml(c.codigo)}">${escapeHtml(c.codigo)} · ${escapeHtml(c.nombre)}</option>`).join('');
+    if(prev) sel.value = prev;
+}
+function _natSaldo(nat, debe, haber) { return nat === 'acreedora' ? (haber - debe) : (debe - haber); }
+async function renderLibroMayor() {
+    const tb = document.getElementById('libroMayorTable'); if(!tb) return;
+    const cod = document.getElementById('lm_cuenta')?.value;
+    const mes = document.getElementById('lm_mes')?.value;
+    const suc = document.getElementById('lm_sucursal')?.value;
+    if(!cod) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);">Selecciona una cuenta.</td></tr>'; return; }
+    try {
+        const cuenta = (_cuentasCache || []).find(c => c.codigo === cod);
+        const nat = cuenta ? cuenta.naturaleza : 'deudora';
+        let libro = (await _contaCargarLibro()).filter(x => x.cuenta_codigo === cod);
+        if(suc) libro = libro.filter(x => x.a.sucursal === suc);
+        libro.sort((p, q) => (p.a.fecha || '').localeCompare(q.a.fecha || '') || (p.a.numero || 0) - (q.a.numero || 0));
+        let ini = null, fin = null;
+        if(mes) { ini = mes + '-01'; const d = new Date(mes + '-01T00:00:00'); d.setMonth(d.getMonth() + 1); fin = d.toISOString().slice(0,10); }
+        let saldoAnt = 0;
+        if(ini) libro.filter(x => x.a.fecha < ini).forEach(x => saldoAnt += _natSaldo(nat, Number(x.debe || 0), Number(x.haber || 0)));
+        const periodo = libro.filter(x => !ini || (x.a.fecha >= ini && x.a.fecha < fin));
+        let saldo = saldoAnt, rows = '';
+        if(ini) rows += `<tr style="background:rgba(0,0,0,0.03);"><td colspan="5"><i>Saldo anterior</i></td><td style="text-align:right;font-weight:700;">${money(saldoAnt)}</td></tr>`;
+        periodo.forEach(x => { saldo += _natSaldo(nat, Number(x.debe || 0), Number(x.haber || 0)); rows += `<tr><td>${x.a.fecha || ''}</td><td>#${x.a.numero || ''}</td><td>${escapeHtml(x.a.descripcion || '')}</td><td style="text-align:right;">${x.debe > 0 ? money(x.debe) : ''}</td><td style="text-align:right;">${x.haber > 0 ? money(x.haber) : ''}</td><td style="text-align:right;font-weight:700;">${money(saldo)}</td></tr>`; });
+        if(!periodo.length && !ini) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);">Sin movimientos.</td></tr>'; return; }
+        rows += `<tr style="background:rgba(8,145,178,0.08); font-weight:800;"><td colspan="5">Saldo final</td><td style="text-align:right;">${money(saldo)}</td></tr>`;
+        tb.innerHTML = rows;
+    } catch(e) { logError('Libro mayor', e); tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#dc2626;">Error al cargar.</td></tr>'; }
+}
+async function renderBalanza() {
+    const tb = document.getElementById('balanzaTable'); if(!tb) return;
+    const mes = document.getElementById('bal_mes')?.value;
+    const suc = document.getElementById('bal_sucursal')?.value;
+    try {
+        if(!_cuentasCache || !_cuentasCache.length) await cargarCatalogoCuentas();
+        const natMap = {}, nomMap = {}; (_cuentasCache || []).forEach(c => { natMap[c.codigo] = c.naturaleza; nomMap[c.codigo] = c.nombre; });
+        let libro = await _contaCargarLibro();
+        if(suc) libro = libro.filter(x => x.a.sucursal === suc);
+        if(mes) { const ini = mes + '-01'; const d = new Date(mes + '-01T00:00:00'); d.setMonth(d.getMonth() + 1); const fin = d.toISOString().slice(0,10); libro = libro.filter(x => x.a.fecha >= ini && x.a.fecha < fin); }
+        const acc = {};
+        libro.forEach(x => { const k = x.cuenta_codigo; if(!acc[k]) acc[k] = { d:0, h:0 }; acc[k].d += Number(x.debe || 0); acc[k].h += Number(x.haber || 0); });
+        const codes = Object.keys(acc).sort();
+        if(!codes.length) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);">Sin movimientos en este filtro.</td></tr>'; return; }
+        let totD = 0, totH = 0, totSD = 0, totSH = 0;
+        let rows = codes.map(k => {
+            const d = acc[k].d, h = acc[k].h, nat = natMap[k] || 'deudora';
+            const s = _natSaldo(nat, d, h), sd = s > 0 ? s : 0, sh = s < 0 ? -s : 0;
+            totD += d; totH += h; totSD += sd; totSH += sh;
+            return `<tr><td><code>${escapeHtml(k)}</code></td><td>${escapeHtml(nomMap[k] || '')}</td><td style="text-align:right;">${money(d)}</td><td style="text-align:right;">${money(h)}</td><td style="text-align:right;">${sd ? money(sd) : ''}</td><td style="text-align:right;">${sh ? money(sh) : ''}</td></tr>`;
+        }).join('');
+        const cuadra = Math.abs(totD - totH) < 0.005;
+        rows += `<tr style="background:rgba(8,145,178,0.08); font-weight:800;"><td colspan="2">TOTALES ${cuadra ? '✅' : '⚠️ no cuadra'}</td><td style="text-align:right;">${money(totD)}</td><td style="text-align:right;">${money(totH)}</td><td style="text-align:right;">${money(totSD)}</td><td style="text-align:right;">${money(totSH)}</td></tr>`;
+        tb.innerHTML = rows;
+    } catch(e) { logError('Balanza', e); tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#dc2626;">Error al cargar.</td></tr>'; }
 }
 function _opcionesCuentasMov(sel) {
     const cuentas = (_cuentasCache || []).filter(c => c.permite_movimiento && c.activa);
