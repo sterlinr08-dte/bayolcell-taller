@@ -858,6 +858,7 @@ body{
                     <button id="contaTabAs" class="btn btn-light" style="font-size:12px;" onclick="contaTab('asientos')"><i class="ti ti-notebook"></i> Asientos / Libro Diario</button>
                     <button id="contaTabMay" class="btn btn-light" style="font-size:12px;" onclick="contaTab('mayor')"><i class="ti ti-list-details"></i> Libro Mayor</button>
                     <button id="contaTabBal" class="btn btn-light" style="font-size:12px;" onclick="contaTab('balanza')"><i class="ti ti-scale"></i> Balanza de Comprobación</button>
+                    <button id="contaTabEF" class="btn btn-light" style="font-size:12px;" onclick="contaTab('estados')"><i class="ti ti-report-money"></i> Estados Financieros</button>
                 </div>
 
                 <!-- TAB: CATÁLOGO -->
@@ -934,6 +935,21 @@ body{
                             </table>
                         </div>
                     </div>
+                </div>
+
+                <!-- TAB: ESTADOS FINANCIEROS -->
+                <div id="conta-estados" style="display:none;">
+                    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
+                        <select id="ef_tipo" onchange="renderEstados()" style="font-weight:700;">
+                            <option value="resultados">Estado de Resultados</option>
+                            <option value="balance">Balance General</option>
+                            <option value="flujo">Flujo de Efectivo</option>
+                        </select>
+                        <input type="month" id="ef_mes" onchange="renderEstados()">
+                        <select id="ef_sucursal" onchange="renderEstados()"><option value="">Combinado (todas)</option><option value="Santiago">Santiago</option><option value="Moca">Moca</option></select>
+                        <button class="btn btn-light" style="font-size:12px;" onclick="renderEstados()"><i class="ti ti-refresh"></i> Generar</button>
+                    </div>
+                    <div class="card"><div id="ef_contenido" style="overflow-x:auto;"><p style="color:var(--text-muted); text-align:center;">Selecciona el reporte y el período.</p></div></div>
                 </div>
             </div>
 
@@ -4415,13 +4431,113 @@ async function eliminarCuenta(id) {
 
 // ===== CONTABILIDAD — ASIENTOS (partida doble) + LIBRO DIARIO =====
 function contaTab(name) {
-    const tabs = { catalogo:'conta-catalogo', asientos:'conta-asientos', mayor:'conta-mayor', balanza:'conta-balanza' };
-    const btns = { catalogo:'contaTabCat', asientos:'contaTabAs', mayor:'contaTabMay', balanza:'contaTabBal' };
+    const tabs = { catalogo:'conta-catalogo', asientos:'conta-asientos', mayor:'conta-mayor', balanza:'conta-balanza', estados:'conta-estados' };
+    const btns = { catalogo:'contaTabCat', asientos:'contaTabAs', mayor:'contaTabMay', balanza:'contaTabBal', estados:'contaTabEF' };
     Object.keys(tabs).forEach(k => { const el = document.getElementById(tabs[k]); if(el) el.style.display = (k === name ? '' : 'none'); const b = document.getElementById(btns[k]); if(b) b.className = 'btn ' + (k === name ? 'btn-blue' : 'btn-light'); });
     const hoyMes = new Date().toISOString().slice(0,7);
     if(name === 'asientos') { const mm = document.getElementById('as_filtroMes'); if(mm && !mm.value) mm.value = hoyMes; renderLibroDiario(); }
     if(name === 'mayor') { const mm = document.getElementById('lm_mes'); if(mm && !mm.value) mm.value = hoyMes; cargarSelectCuentasLM(); renderLibroMayor(); }
     if(name === 'balanza') { const mm = document.getElementById('bal_mes'); if(mm && !mm.value) mm.value = hoyMes; renderBalanza(); }
+    if(name === 'estados') { const mm = document.getElementById('ef_mes'); if(mm && !mm.value) mm.value = hoyMes; renderEstados(); }
+}
+// ===== ESTADOS FINANCIEROS (Fase D) =====
+function _periodoMes(mes){ if(!mes) return {ini:null,fin:null}; const ini=mes+'-01'; const d=new Date(mes+'-01T00:00:00'); d.setMonth(d.getMonth()+1); return {ini, fin:d.toISOString().slice(0,10)}; }
+function _aggLibro(libro){ const acc={}; libro.forEach(x=>{ const k=x.cuenta_codigo; if(!acc[k])acc[k]={d:0,h:0}; acc[k].d+=Number(x.debe||0); acc[k].h+=Number(x.haber||0); }); return acc; }
+function renderEstados(){
+    const t = document.getElementById('ef_tipo')?.value;
+    if(t === 'balance') renderBalanceGeneral();
+    else if(t === 'flujo') renderFlujoEfectivo();
+    else renderEstadoResultados();
+}
+async function _datosEstados(){
+    if(!_cuentasCache || !_cuentasCache.length) await cargarCatalogoCuentas();
+    const info = {}; (_cuentasCache||[]).forEach(c => info[c.codigo] = { tipo:c.tipo, nombre:c.nombre, nat:c.naturaleza });
+    let libro = await _contaCargarLibro();
+    const suc = document.getElementById('ef_sucursal')?.value;
+    if(suc) libro = libro.filter(x => x.a.sucursal === suc);
+    return { info, libro };
+}
+function _tituloPeriodo(){ const mes=document.getElementById('ef_mes')?.value; const suc=document.getElementById('ef_sucursal')?.value||'Combinado (Santiago + Moca)'; return (mes?('Mes '+mes):'Todo')+' · '+suc; }
+async function renderEstadoResultados(){
+    const cont = document.getElementById('ef_contenido'); if(!cont) return;
+    cont.innerHTML = 'Calculando...';
+    try{
+        const { info, libro } = await _datosEstados();
+        const { ini, fin } = _periodoMes(document.getElementById('ef_mes').value);
+        const lib = libro.filter(x => !ini || (x.a.fecha >= ini && x.a.fecha < fin));
+        const acc = _aggLibro(lib);
+        function seccion(tipo, modo){ let html='', total=0; Object.keys(acc).sort().forEach(k=>{ if(info[k] && info[k].tipo===tipo){ const v = modo==='ing' ? (acc[k].h-acc[k].d) : (acc[k].d-acc[k].h); if(Math.abs(v)<0.005) return; total+=v; html+=`<tr><td style="padding-left:20px;">${escapeHtml(info[k].nombre)}</td><td style="text-align:right;">${money(v)}</td></tr>`; } }); return {html,total}; }
+        const ing = seccion('ingreso','ing'), cos = seccion('costo','gas'), gas = seccion('gasto','gas');
+        const bruta = ing.total - cos.total, neta = bruta - gas.total;
+        cont.innerHTML = `<h3 style="text-align:center; margin:0;">BAYOL CELL, S.R.L.</h3>
+        <p style="text-align:center; margin:2px 0 14px; color:var(--text-muted);">Estado de Resultados · ${_tituloPeriodo()} · RD$</p>
+        <table style="width:100%; font-size:13.5px;">
+          <tr><td colspan="2" style="font-weight:800; color:#0891b2; padding-top:6px;">INGRESOS</td></tr>${ing.html}
+          <tr style="font-weight:800; border-top:1px solid var(--brd,#e5e7eb);"><td>Total Ingresos</td><td style="text-align:right;">${money(ing.total)}</td></tr>
+          <tr><td colspan="2" style="font-weight:800; color:#0891b2; padding-top:8px;">COSTO DE VENTAS</td></tr>${cos.html}
+          <tr style="font-weight:800;"><td>Total Costo de Ventas</td><td style="text-align:right;">${money(cos.total)}</td></tr>
+          <tr style="font-weight:800; background:rgba(8,145,178,0.08);"><td>MARGEN BRUTO</td><td style="text-align:right;">${money(bruta)}</td></tr>
+          <tr><td colspan="2" style="font-weight:800; color:#0891b2; padding-top:8px;">GASTOS</td></tr>${gas.html}
+          <tr style="font-weight:800;"><td>Total Gastos</td><td style="text-align:right;">${money(gas.total)}</td></tr>
+          <tr style="font-weight:900; background:${neta>=0?'rgba(22,163,74,0.14)':'rgba(220,38,38,0.14)'};"><td>${neta>=0?'GANANCIA NETA DEL PERÍODO':'PÉRDIDA NETA DEL PERÍODO'}</td><td style="text-align:right;">${money(neta)}</td></tr>
+        </table>`;
+    }catch(e){ logError('Estado de resultados', e); cont.innerHTML='<p style="color:#dc2626;">Error al generar.</p>'; }
+}
+async function renderBalanceGeneral(){
+    const cont = document.getElementById('ef_contenido'); if(!cont) return;
+    cont.innerHTML = 'Calculando...';
+    try{
+        const { info, libro } = await _datosEstados();
+        const { fin } = _periodoMes(document.getElementById('ef_mes').value);
+        const lib = libro.filter(x => !fin || x.a.fecha < fin);  // acumulado hasta fin de mes
+        const acc = _aggLibro(lib);
+        function seccion(tipo){ let html='', total=0; Object.keys(acc).sort().forEach(k=>{ if(info[k] && info[k].tipo===tipo){ const v=_natSaldo(info[k].nat, acc[k].d, acc[k].h); if(Math.abs(v)<0.005) return; total+=v; html+=`<tr><td style="padding-left:20px;">${escapeHtml(info[k].nombre)}</td><td style="text-align:right;">${money(v)}</td></tr>`; } }); return {html,total}; }
+        const act = seccion('activo'), pas = seccion('pasivo'), pat = seccion('patrimonio');
+        // Resultado del ejercicio (acumulado) = ingresos - costos - gastos
+        let ing=0,cos=0,gas=0; Object.keys(acc).forEach(k=>{ if(!info[k])return; if(info[k].tipo==='ingreso') ing+=(acc[k].h-acc[k].d); if(info[k].tipo==='costo') cos+=(acc[k].d-acc[k].h); if(info[k].tipo==='gasto') gas+=(acc[k].d-acc[k].h); });
+        const resultado = ing - cos - gas;
+        const totalPat = pat.total + resultado;
+        const totalPasPat = pas.total + totalPat;
+        const cuadra = Math.abs(act.total - totalPasPat) < 0.01;
+        cont.innerHTML = `<h3 style="text-align:center; margin:0;">BAYOL CELL, S.R.L.</h3>
+        <p style="text-align:center; margin:2px 0 14px; color:var(--text-muted);">Balance General (Situación Financiera) · ${_tituloPeriodo()} · RD$</p>
+        <table style="width:100%; font-size:13.5px;">
+          <tr><td colspan="2" style="font-weight:800; color:#0891b2;">ACTIVOS</td></tr>${act.html}
+          <tr style="font-weight:800; background:rgba(8,145,178,0.08);"><td>TOTAL ACTIVOS</td><td style="text-align:right;">${money(act.total)}</td></tr>
+          <tr><td colspan="2" style="font-weight:800; color:#0891b2; padding-top:10px;">PASIVOS</td></tr>${pas.html}
+          <tr style="font-weight:800;"><td>Total Pasivos</td><td style="text-align:right;">${money(pas.total)}</td></tr>
+          <tr><td colspan="2" style="font-weight:800; color:#0891b2; padding-top:8px;">PATRIMONIO</td></tr>${pat.html}
+          <tr><td style="padding-left:20px;">Resultado del Ejercicio</td><td style="text-align:right;">${money(resultado)}</td></tr>
+          <tr style="font-weight:800;"><td>Total Patrimonio</td><td style="text-align:right;">${money(totalPat)}</td></tr>
+          <tr style="font-weight:900; background:${cuadra?'rgba(22,163,74,0.14)':'rgba(220,38,38,0.14)'};"><td>TOTAL PASIVO + PATRIMONIO ${cuadra?'✅':'⚠️'}</td><td style="text-align:right;">${money(totalPasPat)}</td></tr>
+        </table>`;
+    }catch(e){ logError('Balance general', e); cont.innerHTML='<p style="color:#dc2626;">Error al generar.</p>'; }
+}
+async function renderFlujoEfectivo(){
+    const cont = document.getElementById('ef_contenido'); if(!cont) return;
+    cont.innerHTML = 'Calculando...';
+    try{
+        const { info, libro } = await _datosEstados();
+        const esEfectivo = c => (c||'').startsWith('1101') && info[c] && info[c].tipo==='activo';
+        const { ini, fin } = _periodoMes(document.getElementById('ef_mes').value);
+        let inicial = 0;
+        if(ini) libro.filter(x => esEfectivo(x.cuenta_codigo) && x.a.fecha < ini).forEach(x => inicial += Number(x.debe||0) - Number(x.haber||0));
+        const periodo = libro.filter(x => esEfectivo(x.cuenta_codigo) && (!ini || (x.a.fecha >= ini && x.a.fecha < fin)));
+        let entradas=0, salidas=0; periodo.forEach(x => { entradas += Number(x.debe||0); salidas += Number(x.haber||0); });
+        const neto = entradas - salidas, final = inicial + neto;
+        const movs = periodo.slice().sort((p,q)=>(p.a.fecha||'').localeCompare(q.a.fecha||'')).map(x=>`<tr><td>${x.a.fecha||''}</td><td>${escapeHtml(x.a.descripcion||'')}</td><td style="text-align:right; color:#16a34a;">${x.debe>0?money(x.debe):''}</td><td style="text-align:right; color:#dc2626;">${x.haber>0?money(x.haber):''}</td></tr>`).join('');
+        cont.innerHTML = `<h3 style="text-align:center; margin:0;">BAYOL CELL, S.R.L.</h3>
+        <p style="text-align:center; margin:2px 0 14px; color:var(--text-muted);">Flujo de Efectivo · ${_tituloPeriodo()} · RD$</p>
+        <table style="width:100%; font-size:13.5px; margin-bottom:14px;">
+          <tr><td>Efectivo al inicio del período</td><td style="text-align:right;">${money(inicial)}</td></tr>
+          <tr style="color:#16a34a;"><td>(+) Entradas de efectivo</td><td style="text-align:right;">${money(entradas)}</td></tr>
+          <tr style="color:#dc2626;"><td>(−) Salidas de efectivo</td><td style="text-align:right;">${money(salidas)}</td></tr>
+          <tr style="font-weight:800; background:rgba(8,145,178,0.08);"><td>Flujo neto del período</td><td style="text-align:right;">${money(neto)}</td></tr>
+          <tr style="font-weight:900;"><td>Efectivo al final del período</td><td style="text-align:right;">${money(final)}</td></tr>
+        </table>
+        <h4 style="margin:6px 0;">Detalle de movimientos de efectivo</h4>
+        <table style="width:100%; font-size:12.5px;"><thead><tr><th>Fecha</th><th>Concepto</th><th style="text-align:right;">Entrada</th><th style="text-align:right;">Salida</th></tr></thead><tbody>${movs || '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);">Sin movimientos de efectivo.</td></tr>'}</tbody></table>`;
+    }catch(e){ logError('Flujo de efectivo', e); cont.innerHTML='<p style="color:#dc2626;">Error al generar.</p>'; }
 }
 async function _contaCargarLibro() {
     const [ra, rl] = await Promise.all([
