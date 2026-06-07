@@ -1456,6 +1456,28 @@ body{
                         </table>
                     </div>
                 </div>
+
+                <!-- CATÁLOGO DE PIEZAS (INFO PLUS) -->
+                <div class="card" id="infoplusCard" style="margin-top:15px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+                        <h3 style="margin:0;"><i class="ti ti-packages" style="color:#0891b2;"></i> Catálogo de Piezas (Info Plus)</h3>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                            <span id="infoplusCount" style="font-size:13px; color:var(--text-muted);"></span>
+                            <label class="btn btn-blue" style="font-size:13px; cursor:pointer; margin:0;"><i class="ti ti-upload"></i> Importar CSV
+                                <input type="file" id="infoplusFile" accept=".csv,text/csv" style="display:none;" onchange="importarCatalogoInfoplus(this)">
+                            </label>
+                        </div>
+                    </div>
+                    <p style="color:var(--text-muted); font-size:13px; margin-bottom:12px;">Sube el archivo CSV de artículos exportado de Info Plus. Sirve para sugerir piezas según las fallas y para que los códigos coincidan con los despachos.</p>
+                    <div id="infoplusImportMsg" style="font-size:13px; margin-bottom:10px;"></div>
+                    <div class="form-row"><input id="ip_buscar" placeholder="🔍 Buscar pieza por código, descripción o marca..." oninput="renderInfoplusBusqueda()"></div>
+                    <div class="table-wrap" style="max-height:420px; overflow-y:auto;">
+                        <table>
+                            <thead><tr><th>Código</th><th>Descripción</th><th>Marca</th><th>Existencia</th></tr></thead>
+                            <tbody id="infoplusTable"><tr><td colspan="4" style="text-align:center; color:var(--text-muted);">Aún no has importado el catálogo. Usa "Importar CSV".</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
 
             <!-- COMPRAS (Proveedores + Compras anidados) -->
@@ -3604,6 +3626,7 @@ function nav(v, btn) {
     if(v === 'miTrabajo') { setTimeout(() => { renderMiTrabajo(); }, 50); }
     if(v === 'atencion') { setTimeout(() => { renderAtencionCliente(); }, 50); }
     if(v === 'financiamientos') { setTimeout(() => { renderFinanciamientos(); }, 50); }
+    if(v === 'articulos') { setTimeout(() => { actualizarInfoplusCount(); renderInfoplusBusqueda(); }, 50); }
     if(v === 'recepcion') { setTimeout(async () => {
         if(typeof renderRecepcionesRealizadas === 'function') renderRecepcionesRealizadas();
         // Recargar fallas comunes desde la BD para reflejar cambios hechos en Config
@@ -4155,6 +4178,88 @@ async function guardarActivoTaller() {
 /* ============================================================
    MÓDULO CATÁLOGO DE ARTÍCULOS
    ============================================================ */
+
+// ===== CATÁLOGO INFO PLUS (importación CSV + búsqueda) =====
+function parseCSV(text) {
+    const rows = []; let row = [], field = '', inQ = false;
+    for(let i = 0; i < text.length; i++) {
+        const c = text[i];
+        if(inQ) {
+            if(c === '"') { if(text[i+1] === '"') { field += '"'; i++; } else inQ = false; }
+            else field += c;
+        } else {
+            if(c === '"') inQ = true;
+            else if(c === ',') { row.push(field); field = ''; }
+            else if(c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+            else if(c === '\r') { /* ignorar */ }
+            else field += c;
+        }
+    }
+    if(field.length || row.length) { row.push(field); rows.push(row); }
+    return rows;
+}
+
+async function importarCatalogoInfoplus(input) {
+    const file = input.files && input.files[0];
+    if(!file) return;
+    const msg = document.getElementById('infoplusImportMsg');
+    const setMsg = (t, color) => { if(msg) { msg.textContent = t; msg.style.color = color || 'var(--text-muted)'; } };
+    setMsg('Leyendo archivo...');
+    try {
+        const text = await file.text();
+        const rows = parseCSV(text);
+        if(rows.length < 2) { setMsg('El archivo está vacío o no tiene datos.', '#dc2626'); input.value = ''; return; }
+        const head = rows[0].map(h => (h || '').trim().toLowerCase());
+        const idx = (...names) => { for(const n of names) { const k = head.findIndex(h => h.includes(n)); if(k >= 0) return k; } return -1; };
+        const iCod = idx('código', 'codigo'), iDesc = idx('descrip'), iExist = idx('exist'), iRef = idx('refer'), iMarca = idx('marca');
+        if(iCod < 0 || iDesc < 0) { setMsg('No encontré las columnas Código y Descripción en el archivo.', '#dc2626'); input.value = ''; return; }
+        const data = [];
+        for(let r = 1; r < rows.length; r++) {
+            const row = rows[r]; if(!row) continue;
+            const cod = (row[iCod] || '').trim(); if(!cod) continue;
+            data.push({
+                codigo: cod,
+                descripcion: (row[iDesc] || '').trim(),
+                existencia: parseInt(row[iExist]) || 0,
+                referencia: (iRef >= 0 ? (row[iRef] || '') : '').trim(),
+                marca: (iMarca >= 0 ? (row[iMarca] || '') : '').trim(),
+                actualizado_en: new Date().toISOString()
+            });
+        }
+        if(!data.length) { setMsg('No se encontraron filas válidas.', '#dc2626'); input.value = ''; return; }
+        let done = 0; const lote = 500;
+        for(let i = 0; i < data.length; i += lote) {
+            const batch = data.slice(i, i + lote);
+            const { error } = await supabaseClient.from('infoplus_articulos').upsert(batch, { onConflict: 'codigo' });
+            if(error) throw error;
+            done += batch.length;
+            setMsg('Importando... ' + done + ' / ' + data.length);
+        }
+        setMsg('✅ Catálogo importado: ' + data.length + ' artículos.', '#16a34a');
+        input.value = '';
+        actualizarInfoplusCount();
+        renderInfoplusBusqueda();
+    } catch(e) { logError('Importar catálogo Info Plus', e); setMsg('Error: ' + getFriendlyError(e), '#dc2626'); input.value = ''; }
+}
+
+async function actualizarInfoplusCount() {
+    const el = document.getElementById('infoplusCount'); if(!el) return;
+    try { const { count } = await supabaseClient.from('infoplus_articulos').select('*', { count: 'exact', head: true }); el.textContent = (count || 0).toLocaleString('es-DO') + ' artículos'; }
+    catch(e) { /* silencio */ }
+}
+
+async function renderInfoplusBusqueda() {
+    const tb = document.getElementById('infoplusTable'); if(!tb) return;
+    const q = (document.getElementById('ip_buscar')?.value || '').replace(/[,()%]/g, ' ').trim();
+    try {
+        let query = supabaseClient.from('infoplus_articulos').select('codigo,descripcion,marca,existencia');
+        if(q) query = query.or('codigo.ilike.%' + q + '%,descripcion.ilike.%' + q + '%,marca.ilike.%' + q + '%');
+        const { data, error } = await query.order('codigo').limit(100);
+        if(error) throw error;
+        if(!data || !data.length) { tb.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted);">Sin resultados.</td></tr>'; return; }
+        tb.innerHTML = data.map(a => `<tr><td><b>${escapeHtml(a.codigo)}</b></td><td>${escapeHtml(a.descripcion || '')}</td><td>${escapeHtml(a.marca || '')}</td><td>${a.existencia || 0}</td></tr>`).join('');
+    } catch(e) { tb.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#dc2626;">Error al cargar.</td></tr>'; }
+}
 
 function renderArticulos() {
     const tbody = document.getElementById('articulosTable');
