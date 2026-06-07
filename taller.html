@@ -852,21 +852,48 @@ body{
 
             <!-- CONTABILIDAD (solo admin + contadora) -->
             <div id="v-contabilidad" class="view">
-                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:6px;">
-                    <h2 style="margin:0;"><i class="ti ti-calculator" style="color:#0891b2;"></i> Contabilidad — Catálogo de Cuentas</h2>
-                    <div style="display:flex; gap:6px;">
+                <h2 style="margin:0 0 12px;"><i class="ti ti-calculator" style="color:#0891b2;"></i> Contabilidad</h2>
+                <div style="display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;">
+                    <button id="contaTabCat" class="btn btn-blue" style="font-size:12px;" onclick="contaTab('catalogo')"><i class="ti ti-book"></i> Catálogo de Cuentas</button>
+                    <button id="contaTabAs" class="btn btn-light" style="font-size:12px;" onclick="contaTab('asientos')"><i class="ti ti-notebook"></i> Asientos / Libro Diario</button>
+                </div>
+
+                <!-- TAB: CATÁLOGO -->
+                <div id="conta-catalogo">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:4px;">
+                        <h3 style="margin:0;">Catálogo de Cuentas (NIIF)</h3>
                         <button class="btn btn-blue" onclick="abrirModalCuenta()" style="font-size:12px;"><i class="ti ti-plus"></i> Nueva cuenta</button>
-                        <button class="btn btn-light" onclick="cargarCatalogoCuentas()" style="font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
+                    </div>
+                    <p style="color:var(--text-muted); font-size:12.5px; margin:4px 0 12px;">Plan de cuentas conforme a normas internacionales (NIIF). Editable.</p>
+                    <div class="card">
+                        <div class="form-row"><input id="cta_buscar" placeholder="🔍 Buscar por código o nombre de cuenta..." oninput="renderCatalogoCuentas()"></div>
+                        <div class="table-wrap" style="max-height:520px; overflow-y:auto;">
+                            <table>
+                                <thead><tr><th>Código</th><th>Cuenta</th><th>Tipo</th><th>Naturaleza</th><th>Mov.</th><th>Acciones</th></tr></thead>
+                                <tbody id="cuentasTable"><tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Cargando...</td></tr></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
-                <p style="color:var(--text-muted); font-size:12.5px; margin:0 0 14px;">Plan de cuentas conforme a normas internacionales (NIIF). Puedes crear, editar o desactivar cuentas según tus necesidades.</p>
-                <div class="card">
-                    <div class="form-row"><input id="cta_buscar" placeholder="🔍 Buscar por código o nombre de cuenta..." oninput="renderCatalogoCuentas()"></div>
-                    <div class="table-wrap" style="max-height:560px; overflow-y:auto;">
-                        <table>
-                            <thead><tr><th>Código</th><th>Cuenta</th><th>Tipo</th><th>Naturaleza</th><th>Mov.</th><th>Acciones</th></tr></thead>
-                            <tbody id="cuentasTable"><tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Cargando...</td></tr></tbody>
-                        </table>
+
+                <!-- TAB: ASIENTOS / LIBRO DIARIO -->
+                <div id="conta-asientos" style="display:none;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+                        <h3 style="margin:0;">Asientos contables (Libro Diario)</h3>
+                        <button class="btn btn-blue" onclick="abrirModalAsiento()" style="font-size:12px;"><i class="ti ti-plus"></i> Nuevo asiento</button>
+                    </div>
+                    <div class="card">
+                        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
+                            <input type="month" id="as_filtroMes" onchange="renderLibroDiario()">
+                            <select id="as_filtroSucursal" onchange="renderLibroDiario()"><option value="">Todas las sucursales</option><option value="Santiago">Santiago</option><option value="Moca">Moca</option></select>
+                            <button class="btn btn-light" style="font-size:12px;" onclick="renderLibroDiario()"><i class="ti ti-refresh"></i> Actualizar</button>
+                        </div>
+                        <div class="table-wrap" style="max-height:520px; overflow-y:auto;">
+                            <table>
+                                <thead><tr><th>#</th><th>Fecha</th><th>Descripción</th><th>Sucursal</th><th style="text-align:right;">Debe</th><th style="text-align:right;">Haber</th><th></th></tr></thead>
+                                <tbody id="libroDiarioTable"><tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Sin asientos.</td></tr></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2274,6 +2301,36 @@ body{
         <div class="modal-footer">
             <button class="btn btn-light" id="cc_cancelar" onclick="cerrarModalCambiarClave()">Cancelar</button>
             <button class="btn btn-blue" onclick="guardarNuevaClave()" style="background:linear-gradient(180deg,#10b981,#059669); box-shadow:0 3px 8px rgba(15,23,42,0.12);"><i class="ti ti-check"></i> Guardar</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: ASIENTO CONTABLE -->
+<div id="modalAsiento" class="modal-backdrop">
+    <div class="modal-box" style="max-width:780px;">
+        <div class="modal-header" style="background:linear-gradient(135deg,#0891b2,#0e7490); color:#fff; border-radius:12px 12px 0 0;">
+            <h3 style="color:#fff;"><i class="ti ti-notebook"></i> Nuevo asiento contable</h3>
+            <button class="modal-close" onclick="cerrarModalAsiento()" style="color:#fff;">✕</button>
+        </div>
+        <div class="modal-body">
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px;">
+                <div><label>Fecha *</label><input type="date" id="as_fecha"></div>
+                <div><label>Sucursal</label><select id="as_sucursal"><option value="Santiago">Santiago</option><option value="Moca">Moca</option><option value="General">General</option></select></div>
+                <div><label>Referencia</label><input id="as_referencia" placeholder="N° factura, recibo..."></div>
+            </div>
+            <div class="form-row" style="margin-top:8px;"><label>Descripción / concepto *</label><input id="as_descripcion" placeholder="Ej. Pago de alquiler de abril"></div>
+            <div class="table-wrap" style="margin-top:8px;">
+                <table>
+                    <thead><tr><th style="min-width:200px;">Cuenta</th><th style="width:120px; text-align:right;">Debe</th><th style="width:120px; text-align:right;">Haber</th><th></th></tr></thead>
+                    <tbody id="as_lineas"></tbody>
+                </table>
+            </div>
+            <button class="btn btn-light" style="font-size:12px; margin-top:8px;" onclick="agregarLineaAsiento()"><i class="ti ti-plus"></i> Agregar línea</button>
+            <div id="as_totales" style="display:flex; gap:18px; justify-content:flex-end; margin-top:12px; font-weight:800; font-size:14px; flex-wrap:wrap;"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" onclick="cerrarModalAsiento()">Cancelar</button>
+            <button class="btn btn-blue" onclick="guardarAsiento()"><i class="ti ti-check"></i> Guardar asiento</button>
         </div>
     </div>
 </div>
@@ -4315,6 +4372,118 @@ async function eliminarCuenta(id) {
     if(!await confirmar('¿Eliminar la cuenta "' + (c ? c.nombre : '') + '"?\n\nSi ya tiene movimientos, mejor desactívala en vez de eliminarla.')) return;
     try { const { error } = await supabaseClient.from('conta_cuentas').delete().eq('id', id); if(error) throw error; toast('Cuenta eliminada.'); cargarCatalogoCuentas(); }
     catch(e) { logError('Eliminar cuenta', e); toastError(getFriendlyError(e)); }
+}
+
+// ===== CONTABILIDAD — ASIENTOS (partida doble) + LIBRO DIARIO =====
+function contaTab(name) {
+    const cat = document.getElementById('conta-catalogo'), as = document.getElementById('conta-asientos');
+    const bc = document.getElementById('contaTabCat'), ba = document.getElementById('contaTabAs');
+    const on = name === 'asientos';
+    if(cat) cat.style.display = on ? 'none' : '';
+    if(as) as.style.display = on ? '' : 'none';
+    if(bc) bc.className = 'btn ' + (on ? 'btn-light' : 'btn-blue');
+    if(ba) ba.className = 'btn ' + (on ? 'btn-blue' : 'btn-light');
+    if(on) { const mm = document.getElementById('as_filtroMes'); if(mm && !mm.value) mm.value = new Date().toISOString().slice(0,7); renderLibroDiario(); }
+}
+function _opcionesCuentasMov(sel) {
+    const cuentas = (_cuentasCache || []).filter(c => c.permite_movimiento && c.activa);
+    return '<option value="">— Cuenta —</option>' + cuentas.map(c => `<option value="${escapeHtml(c.codigo)}"${sel === c.codigo ? ' selected' : ''}>${escapeHtml(c.codigo)} · ${escapeHtml(c.nombre)}</option>`).join('');
+}
+function agregarLineaAsiento(cuenta, debe, haber) {
+    const tb = document.getElementById('as_lineas'); if(!tb) return;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><select class="as-cuenta" style="width:100%;">${_opcionesCuentasMov(cuenta)}</select></td>
+        <td><input type="number" class="as-debe" min="0" step="0.01" value="${debe || ''}" style="text-align:right; width:110px;" oninput="recalcularAsiento()"></td>
+        <td><input type="number" class="as-haber" min="0" step="0.01" value="${haber || ''}" style="text-align:right; width:110px;" oninput="recalcularAsiento()"></td>
+        <td><button onclick="this.closest('tr').remove(); recalcularAsiento();" style="background:#fee2e2;color:#991b1b;border:0;padding:6px 8px;border-radius:6px;cursor:pointer;"><i class="ti ti-x"></i></button></td>`;
+    tb.appendChild(tr);
+}
+function recalcularAsiento() {
+    let d = 0, h = 0;
+    document.querySelectorAll('#as_lineas tr').forEach(tr => {
+        d += parseFloat(tr.querySelector('.as-debe').value) || 0;
+        h += parseFloat(tr.querySelector('.as-haber').value) || 0;
+    });
+    const dif = d - h;
+    const el = document.getElementById('as_totales');
+    if(el) el.innerHTML = `<span>Debe: ${money(d)}</span><span>Haber: ${money(h)}</span><span style="color:${Math.abs(dif) < 0.005 ? '#16a34a' : '#dc2626'}">Diferencia: ${money(dif)}</span>`;
+}
+function abrirModalAsiento() {
+    if(!_cuentasCache || !_cuentasCache.length) { cargarCatalogoCuentas().then(() => abrirModalAsiento()); return; }
+    document.getElementById('as_fecha').value = new Date().toISOString().slice(0,10);
+    document.getElementById('as_sucursal').value = 'Santiago';
+    document.getElementById('as_referencia').value = '';
+    document.getElementById('as_descripcion').value = '';
+    document.getElementById('as_lineas').innerHTML = '';
+    agregarLineaAsiento(); agregarLineaAsiento();
+    recalcularAsiento();
+    document.getElementById('modalAsiento').classList.add('active');
+}
+function cerrarModalAsiento() { document.getElementById('modalAsiento').classList.remove('active'); }
+async function guardarAsiento() {
+    const fecha = document.getElementById('as_fecha').value;
+    const sucursal = document.getElementById('as_sucursal').value;
+    const referencia = document.getElementById('as_referencia').value.trim() || null;
+    const descripcion = document.getElementById('as_descripcion').value.trim();
+    if(!fecha) return toast('Indica la fecha.', 'error');
+    if(!descripcion) return toast('Indica la descripción.', 'error');
+    const lineas = [];
+    document.querySelectorAll('#as_lineas tr').forEach(tr => {
+        const cod = tr.querySelector('.as-cuenta').value;
+        const debe = parseFloat(tr.querySelector('.as-debe').value) || 0;
+        const haber = parseFloat(tr.querySelector('.as-haber').value) || 0;
+        if(cod && (debe > 0 || haber > 0)) { const c = _cuentasCache.find(x => x.codigo === cod); lineas.push({ cuenta_codigo: cod, cuenta_nombre: c ? c.nombre : '', debe, haber }); }
+    });
+    if(lineas.length < 2) return toast('Un asiento necesita al menos 2 líneas con monto y cuenta.', 'error');
+    const td = lineas.reduce((s, l) => s + l.debe, 0), th = lineas.reduce((s, l) => s + l.haber, 0);
+    if(td <= 0) return toast('El asiento no tiene montos.', 'error');
+    if(Math.abs(td - th) >= 0.005) return toast('El asiento no cuadra: Debe (' + money(td) + ') ≠ Haber (' + money(th) + ').', 'error');
+    try {
+        const { data: maxA } = await supabaseClient.from('conta_asientos').select('numero').order('numero', { ascending: false }).limit(1);
+        const numero = ((maxA && maxA[0] && maxA[0].numero) || 0) + 1;
+        const { data: asiento, error: e1 } = await supabaseClient.from('conta_asientos').insert({ numero, fecha, sucursal, referencia, descripcion, creado_por: sessionUser?.id || null }).select().single();
+        if(e1) throw e1;
+        const filas = lineas.map((l, i) => ({ asiento_id: asiento.id, cuenta_codigo: l.cuenta_codigo, cuenta_nombre: l.cuenta_nombre, debe: l.debe, haber: l.haber, orden: i }));
+        const { error: e2 } = await supabaseClient.from('conta_asiento_lineas').insert(filas);
+        if(e2) throw e2;
+        cerrarModalAsiento();
+        toast('✅ Asiento #' + numero + ' registrado.');
+        renderLibroDiario();
+    } catch(e) { logError('Guardar asiento', e); toastError(getFriendlyError(e)); }
+}
+async function renderLibroDiario() {
+    const tb = document.getElementById('libroDiarioTable'); if(!tb) return;
+    const mes = document.getElementById('as_filtroMes')?.value;
+    const suc = document.getElementById('as_filtroSucursal')?.value;
+    try {
+        let q = supabaseClient.from('conta_asientos').select('*');
+        if(mes) { const ini = mes + '-01'; const d = new Date(mes + '-01T00:00:00'); d.setMonth(d.getMonth() + 1); q = q.gte('fecha', ini).lt('fecha', d.toISOString().slice(0,10)); }
+        if(suc) q = q.eq('sucursal', suc);
+        const { data: asientos, error } = await q.order('fecha', { ascending: false }).order('numero', { ascending: false });
+        if(error) throw error;
+        if(!asientos || !asientos.length) { tb.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);">Sin asientos en este filtro.</td></tr>'; return; }
+        const ids = asientos.map(a => a.id);
+        const { data: lineas } = await supabaseClient.from('conta_asiento_lineas').select('*').in('asiento_id', ids);
+        const porAs = {}; (lineas || []).forEach(l => { (porAs[l.asiento_id] = porAs[l.asiento_id] || []).push(l); });
+        tb.innerHTML = asientos.map(a => {
+            const ls = porAs[a.id] || [];
+            const tot = ls.reduce((s, l) => s + Number(l.debe || 0), 0);
+            const detalle = ls.map(l => `<tr style="background:rgba(0,0,0,0.02); font-size:12px;"><td></td><td colspan="3" style="padding-left:18px;">${escapeHtml(l.cuenta_codigo || '')} · ${escapeHtml(l.cuenta_nombre || '')}</td><td style="text-align:right;">${l.debe > 0 ? money(l.debe) : ''}</td><td style="text-align:right;">${l.haber > 0 ? money(l.haber) : ''}</td><td></td></tr>`).join('');
+            return `<tr>
+                <td><b>${a.numero || ''}</b></td><td>${a.fecha || ''}</td><td>${escapeHtml(a.descripcion || '')}${a.referencia ? ` <small style="color:var(--text-muted)">(${escapeHtml(a.referencia)})</small>` : ''}</td>
+                <td>${escapeHtml(a.sucursal || '')}</td><td style="text-align:right; font-weight:700;">${money(tot)}</td><td style="text-align:right; font-weight:700;">${money(tot)}</td>
+                <td style="white-space:nowrap;">
+                    <button onclick="var n=this.closest('tr').nextElementSibling; n.style.display=(n.style.display==='none'?'':'none');" style="background:#dbeafe;color:#1e40af;border:0;padding:6px 8px;border-radius:6px;cursor:pointer;" title="Ver detalle"><i class="ti ti-eye"></i></button>
+                    <button onclick="eliminarAsiento('${a.id}')" style="background:#fee2e2;color:#991b1b;border:0;padding:6px 8px;border-radius:6px;cursor:pointer;" title="Eliminar"><i class="ti ti-trash"></i></button>
+                </td></tr>
+                <tr style="display:none;"><td colspan="7" style="padding:0;"><table style="width:100%;"><tbody>${detalle}</tbody></table></td></tr>`;
+        }).join('');
+    } catch(e) { logError('Render libro diario', e); tb.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#dc2626;">Error al cargar.</td></tr>'; }
+}
+async function eliminarAsiento(id) {
+    if(!await confirmar('¿Eliminar este asiento? Se borrarán sus líneas.')) return;
+    try { const { error } = await supabaseClient.from('conta_asientos').delete().eq('id', id); if(error) throw error; toast('Asiento eliminado.'); renderLibroDiario(); }
+    catch(e) { logError('Eliminar asiento', e); toastError(getFriendlyError(e)); }
 }
 
 // ===== CATÁLOGO INFO PLUS (importación CSV + búsqueda) =====
