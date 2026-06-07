@@ -852,42 +852,20 @@ body{
 
             <!-- CONTABILIDAD (solo admin + contadora) -->
             <div id="v-contabilidad" class="view">
-                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:14px;">
-                    <h2 style="margin:0;"><i class="ti ti-calculator" style="color:#0891b2;"></i> Contabilidad — Gastos</h2>
-                    <button class="btn btn-light" onclick="renderGastos()" style="font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
-                </div>
-
-                <div class="card" style="margin-bottom:15px;">
-                    <h3 style="margin:0 0 12px 0;"><i class="ti ti-plus" style="color:var(--blue-btn);"></i> Registrar gasto</h3>
-                    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px;">
-                        <div><label>Fecha</label><input type="date" id="g_fecha"></div>
-                        <div><label>Categoría</label>
-                            <div class="input-with-action">
-                                <select id="g_categoria"></select>
-                                <button class="quick-add-btn" type="button" onclick="agregarCategoriaConta()" title="Nueva categoría">+</button>
-                            </div>
-                        </div>
-                        <div><label>Sucursal</label><select id="g_sucursal"><option value="Santiago">Santiago</option><option value="Moca">Moca</option></select></div>
-                        <div><label>Monto (RD$)</label><input type="number" id="g_monto" step="0.01" min="0" placeholder="0.00"></div>
-                        <div><label>Método de pago</label><select id="g_metodo"><option>Efectivo</option><option>Transferencia</option><option>Cheque</option><option>Tarjeta</option><option>Otro</option></select></div>
-                        <div style="grid-column:1/-1;"><label>Descripción / nota</label><input id="g_descripcion" placeholder="Detalle del gasto (opcional)"></div>
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:6px;">
+                    <h2 style="margin:0;"><i class="ti ti-calculator" style="color:#0891b2;"></i> Contabilidad — Catálogo de Cuentas</h2>
+                    <div style="display:flex; gap:6px;">
+                        <button class="btn btn-blue" onclick="abrirModalCuenta()" style="font-size:12px;"><i class="ti ti-plus"></i> Nueva cuenta</button>
+                        <button class="btn btn-light" onclick="cargarCatalogoCuentas()" style="font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
                     </div>
-                    <div style="margin-top:12px;"><button class="btn btn-blue" onclick="guardarGasto()"><i class="ti ti-device-floppy"></i> Guardar gasto</button></div>
                 </div>
-
+                <p style="color:var(--text-muted); font-size:12.5px; margin:0 0 14px;">Plan de cuentas conforme a normas internacionales (NIIF). Puedes crear, editar o desactivar cuentas según tus necesidades.</p>
                 <div class="card">
-                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
-                        <h3 style="margin:0;">Gastos registrados</h3>
-                        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-                            <input type="month" id="g_filtroMes" onchange="renderGastos()">
-                            <select id="g_filtroSucursal" onchange="renderGastos()"><option value="">Todas las sucursales</option><option value="Santiago">Santiago</option><option value="Moca">Moca</option></select>
-                        </div>
-                    </div>
-                    <div id="g_total" style="font-size:15px; font-weight:800; margin-bottom:10px; color:#0891b2;"></div>
-                    <div class="table-wrap" style="max-height:480px; overflow-y:auto;">
+                    <div class="form-row"><input id="cta_buscar" placeholder="🔍 Buscar por código o nombre de cuenta..." oninput="renderCatalogoCuentas()"></div>
+                    <div class="table-wrap" style="max-height:560px; overflow-y:auto;">
                         <table>
-                            <thead><tr><th>Fecha</th><th>Categoría</th><th>Sucursal</th><th>Método</th><th>Descripción</th><th style="text-align:right;">Monto</th><th></th></tr></thead>
-                            <tbody id="gastosTable"><tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Sin gastos registrados.</td></tr></tbody>
+                            <thead><tr><th>Código</th><th>Cuenta</th><th>Tipo</th><th>Naturaleza</th><th>Mov.</th><th>Acciones</th></tr></thead>
+                            <tbody id="cuentasTable"><tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Cargando...</td></tr></tbody>
                         </table>
                     </div>
                 </div>
@@ -2300,11 +2278,45 @@ body{
     </div>
 </div>
 
+<!-- MODAL: CUENTA CONTABLE -->
+<div id="modalCuenta" class="modal-backdrop">
+    <div class="modal-box" style="max-width:520px;">
+        <div class="modal-header" style="background:linear-gradient(135deg,#0891b2,#0e7490); color:#fff; border-radius:12px 12px 0 0;">
+            <h3 style="color:#fff;" id="modalCuentaTitulo"><i class="ti ti-book"></i> Nueva cuenta</h3>
+            <button class="modal-close" onclick="cerrarModalCuenta()" style="color:#fff;">✕</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="cta_id">
+            <div class="form-row"><label>Código *</label><input id="cta_codigo" placeholder="Ej. 6217"></div>
+            <div class="form-row"><label>Nombre de la cuenta *</label><input id="cta_nombre" placeholder="Ej. Gastos de representación"></div>
+            <div class="form-row"><label>Tipo *</label>
+                <select id="cta_tipo">
+                    <option value="activo">Activo</option><option value="pasivo">Pasivo</option>
+                    <option value="patrimonio">Patrimonio</option><option value="ingreso">Ingreso</option>
+                    <option value="costo">Costo</option><option value="gasto">Gasto</option>
+                </select>
+            </div>
+            <div class="form-row"><label>Naturaleza *</label>
+                <select id="cta_naturaleza"><option value="deudora">Deudora</option><option value="acreedora">Acreedora</option></select>
+            </div>
+            <div class="form-row"><label>Cuenta padre (código, opcional)</label><input id="cta_padre" placeholder="Ej. 62"></div>
+            <div class="form-row" style="display:flex; gap:18px; align-items:center;">
+                <label style="display:flex; align-items:center; gap:6px; margin:0;"><input type="checkbox" id="cta_movimiento" checked> Permite movimientos</label>
+                <label style="display:flex; align-items:center; gap:6px; margin:0;"><input type="checkbox" id="cta_activa" checked> Activa</label>
+            </div>
+            <small style="color:var(--text-muted); font-size:11px;">"Permite movimientos" = cuenta de detalle donde se registran asientos. Desmárcalo si es un grupo/encabezado.</small>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" onclick="cerrarModalCuenta()">Cancelar</button>
+            <button class="btn btn-blue" onclick="guardarCuenta()"><i class="ti ti-check"></i> Guardar</button>
+        </div>
+    </div>
+</div>
+
 <!-- MODAL: CREAR/EDITAR CATEGORÍA -->
 <div id="modalCategoria" class="modal-backdrop">
     <div class="modal-box" style="max-width:500px;">
-        <div class="modal-header" style="background:linear-gradient(135deg, #0891b2, #0e7490); color:#fff; border-radius:12px 12px 0 0;">
-            <h3 style="color:#fff;"><i class="ti ti-category"></i> <span id="modalCategoriaTitulo">Nueva Categoría</span></h3>
+        <div class="modal-header" style="background:linear-gradient(135deg, #0891b2, #0e7490); color:#fff; border-radius:12px 12px 0 0;">            <h3 style="color:#fff;"><i class="ti ti-category"></i> <span id="modalCategoriaTitulo">Nueva Categoría</span></h3>
             <button class="modal-close" onclick="cerrarModalCategoria()" style="color:#fff;">✕</button>
         </div>
         <div class="modal-body">
@@ -3673,7 +3685,7 @@ function nav(v, btn) {
     if(v === 'atencion') { setTimeout(() => { renderAtencionCliente(); }, 50); }
     if(v === 'financiamientos') { setTimeout(() => { renderFinanciamientos(); }, 50); }
     if(v === 'articulos') { setTimeout(() => { actualizarInfoplusCount(); renderInfoplusBusqueda(); }, 50); }
-    if(v === 'contabilidad') { setTimeout(() => { cargarCategoriasConta(); renderGastos(); }, 50); }
+    if(v === 'contabilidad') { setTimeout(() => { cargarCatalogoCuentas(); }, 50); }
     if(v === 'recepcion') { setTimeout(async () => {
         if(typeof renderRecepcionesRealizadas === 'function') renderRecepcionesRealizadas();
         // Recargar fallas comunes desde la BD para reflejar cambios hechos en Config
@@ -4226,67 +4238,83 @@ async function guardarActivoTaller() {
    MÓDULO CATÁLOGO DE ARTÍCULOS
    ============================================================ */
 
-// ===== CONTABILIDAD — GASTOS (Fase 1) =====
-async function cargarCategoriasConta() {
-    const f = document.getElementById('g_fecha'); if(f && !f.value) f.value = new Date().toISOString().slice(0,10);
-    const mm = document.getElementById('g_filtroMes'); if(mm && !mm.value) mm.value = new Date().toISOString().slice(0,7);
-    const sel = document.getElementById('g_categoria'); if(!sel) return;
+// ===== CONTABILIDAD — CATÁLOGO DE CUENTAS (NIIF) =====
+let _cuentasCache = [];
+async function cargarCatalogoCuentas() {
     try {
-        const { data, error } = await supabaseClient.from('conta_categorias').select('nombre').eq('activa', true).eq('tipo', 'gasto').order('orden');
+        const { data, error } = await supabaseClient.from('conta_cuentas').select('*').order('codigo');
         if(error) throw error;
-        sel.innerHTML = (data || []).map(c => `<option>${escapeHtml(c.nombre)}</option>`).join('');
-    } catch(e) { logError('Cargar categorías contabilidad', e); }
+        _cuentasCache = data || [];
+        renderCatalogoCuentas();
+    } catch(e) { logError('Cargar catálogo de cuentas', e); const tb = document.getElementById('cuentasTable'); if(tb) tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#dc2626;">Error al cargar.</td></tr>'; }
 }
-async function agregarCategoriaConta() {
-    const nombre = (prompt('Nombre de la nueva categoría de gasto:') || '').trim();
-    if(!nombre) return;
+function _ctaIndent(codigo) { const l = (codigo || '').length; return l <= 1 ? 0 : (l === 2 ? 1 : (l <= 4 ? 2 : 3)); }
+function renderCatalogoCuentas() {
+    const tb = document.getElementById('cuentasTable'); if(!tb) return;
+    const q = (document.getElementById('cta_buscar')?.value || '').toLowerCase().trim();
+    let list = _cuentasCache;
+    if(q) list = list.filter(c => (c.codigo || '').toLowerCase().includes(q) || (c.nombre || '').toLowerCase().includes(q));
+    if(!list.length) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);">Sin cuentas.</td></tr>'; return; }
+    const tipos = { activo:'Activo', pasivo:'Pasivo', patrimonio:'Patrimonio', ingreso:'Ingreso', costo:'Costo', gasto:'Gasto' };
+    tb.innerHTML = list.map(c => {
+        const ind = _ctaIndent(c.codigo) * 16;
+        const grupo = !c.permite_movimiento;
+        return `<tr style="${c.activa ? '' : 'opacity:0.45;'}">
+            <td><code>${escapeHtml(c.codigo)}</code></td>
+            <td style="padding-left:${ind}px; ${grupo ? 'font-weight:800;' : ''}">${escapeHtml(c.nombre)}</td>
+            <td>${tipos[c.tipo] || c.tipo}</td>
+            <td>${c.naturaleza === 'deudora' ? 'Deudora' : 'Acreedora'}</td>
+            <td>${c.permite_movimiento ? '<i class="ti ti-check" style="color:#16a34a;"></i>' : '—'}</td>
+            <td style="white-space:nowrap;">
+                <button onclick="abrirModalCuenta('${c.id}')" style="background:#dbeafe;color:#b91c1c;border:0;padding:6px 8px;border-radius:6px;cursor:pointer;" title="Editar"><i class="ti ti-edit"></i></button>
+                <button onclick="eliminarCuenta('${c.id}')" style="background:#fee2e2;color:#991b1b;border:0;padding:6px 8px;border-radius:6px;cursor:pointer;" title="Eliminar"><i class="ti ti-trash"></i></button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+function abrirModalCuenta(id) {
+    const c = id ? _cuentasCache.find(x => x.id === id) : null;
+    document.getElementById('cta_id').value = c ? c.id : '';
+    document.getElementById('cta_codigo').value = c ? c.codigo : '';
+    document.getElementById('cta_nombre').value = c ? c.nombre : '';
+    document.getElementById('cta_tipo').value = c ? c.tipo : 'gasto';
+    document.getElementById('cta_naturaleza').value = c ? c.naturaleza : 'deudora';
+    document.getElementById('cta_padre').value = c ? (c.padre_codigo || '') : '';
+    document.getElementById('cta_movimiento').checked = c ? !!c.permite_movimiento : true;
+    document.getElementById('cta_activa').checked = c ? !!c.activa : true;
+    document.getElementById('modalCuentaTitulo').innerHTML = c ? '<i class="ti ti-edit"></i> Editar cuenta' : '<i class="ti ti-book"></i> Nueva cuenta';
+    document.getElementById('modalCuenta').classList.add('active');
+}
+function cerrarModalCuenta() { document.getElementById('modalCuenta').classList.remove('active'); }
+async function guardarCuenta() {
+    const id = document.getElementById('cta_id').value;
+    const codigo = document.getElementById('cta_codigo').value.trim();
+    const nombre = document.getElementById('cta_nombre').value.trim();
+    if(!codigo) return toast('Indica el código.', 'error');
+    if(!nombre) return toast('Indica el nombre.', 'error');
+    const datos = {
+        codigo, nombre,
+        tipo: document.getElementById('cta_tipo').value,
+        naturaleza: document.getElementById('cta_naturaleza').value,
+        padre_codigo: document.getElementById('cta_padre').value.trim() || null,
+        permite_movimiento: document.getElementById('cta_movimiento').checked,
+        activa: document.getElementById('cta_activa').checked
+    };
     try {
-        const { error } = await supabaseClient.from('conta_categorias').insert({ nombre, tipo: 'gasto', orden: 999 });
+        let error;
+        if(id) { ({ error } = await supabaseClient.from('conta_cuentas').update(datos).eq('id', id)); }
+        else { ({ error } = await supabaseClient.from('conta_cuentas').insert(datos)); }
         if(error) throw error;
-        await cargarCategoriasConta();
-        const sel = document.getElementById('g_categoria'); if(sel) sel.value = nombre;
-        toast('✅ Categoría agregada.');
-    } catch(e) { logError('Agregar categoría', e); toastError(getFriendlyError(e)); }
+        cerrarModalCuenta();
+        toast(id ? '✅ Cuenta actualizada.' : '✅ Cuenta creada.');
+        cargarCatalogoCuentas();
+    } catch(e) { logError('Guardar cuenta', e); toastError(getFriendlyError(e)); }
 }
-async function guardarGasto() {
-    const fecha = document.getElementById('g_fecha').value;
-    const categoria = document.getElementById('g_categoria').value;
-    const sucursal = document.getElementById('g_sucursal').value;
-    const monto = parseFloat(document.getElementById('g_monto').value);
-    const metodo = document.getElementById('g_metodo').value;
-    const descripcion = document.getElementById('g_descripcion').value.trim();
-    if(!fecha) return toast('Indica la fecha.', 'error');
-    if(!categoria) return toast('Selecciona una categoría.', 'error');
-    if(!monto || monto <= 0) return toast('Indica un monto válido.', 'error');
-    try {
-        const { error } = await supabaseClient.from('conta_gastos').insert({ fecha, categoria, sucursal, monto, metodo_pago: metodo, descripcion: descripcion || null, creado_por: sessionUser?.id || null });
-        if(error) throw error;
-        document.getElementById('g_monto').value = '';
-        document.getElementById('g_descripcion').value = '';
-        toast('✅ Gasto registrado.');
-        renderGastos();
-    } catch(e) { logError('Guardar gasto', e); toastError(getFriendlyError(e)); }
-}
-async function renderGastos() {
-    const tb = document.getElementById('gastosTable'); if(!tb) return;
-    const mes = document.getElementById('g_filtroMes')?.value;
-    const suc = document.getElementById('g_filtroSucursal')?.value;
-    try {
-        let q = supabaseClient.from('conta_gastos').select('*');
-        if(mes) { const ini = mes + '-01'; const d = new Date(mes + '-01T00:00:00'); d.setMonth(d.getMonth() + 1); q = q.gte('fecha', ini).lt('fecha', d.toISOString().slice(0,10)); }
-        if(suc) q = q.eq('sucursal', suc);
-        const { data, error } = await q.order('fecha', { ascending: false }).order('creado_en', { ascending: false });
-        if(error) throw error;
-        const tot = (data || []).reduce((s, g) => s + Number(g.monto || 0), 0);
-        const el = document.getElementById('g_total'); if(el) el.textContent = 'Total: ' + money(tot) + '  ·  ' + (data ? data.length : 0) + ' gasto(s)';
-        if(!data || !data.length) { tb.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Sin gastos en este filtro.</td></tr>'; return; }
-        tb.innerHTML = data.map(g => `<tr><td>${g.fecha || ''}</td><td>${escapeHtml(g.categoria || '')}</td><td>${escapeHtml(g.sucursal || '')}</td><td>${escapeHtml(g.metodo_pago || '')}</td><td>${escapeHtml(g.descripcion || '')}</td><td style="text-align:right; font-weight:700;">${money(g.monto)}</td><td><button onclick="eliminarGasto('${g.id}')" style="background:#fee2e2; color:#991b1b; border:0; padding:6px 8px; border-radius:6px; cursor:pointer;" title="Eliminar"><i class="ti ti-trash"></i></button></td></tr>`).join('');
-    } catch(e) { logError('Render gastos', e); tb.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#dc2626;">Error al cargar.</td></tr>'; }
-}
-async function eliminarGasto(id) {
-    if(!await confirmar('¿Eliminar este gasto?')) return;
-    try { const { error } = await supabaseClient.from('conta_gastos').delete().eq('id', id); if(error) throw error; toast('Gasto eliminado.'); renderGastos(); }
-    catch(e) { logError('Eliminar gasto', e); toastError(getFriendlyError(e)); }
+async function eliminarCuenta(id) {
+    const c = _cuentasCache.find(x => x.id === id);
+    if(!await confirmar('¿Eliminar la cuenta "' + (c ? c.nombre : '') + '"?\n\nSi ya tiene movimientos, mejor desactívala en vez de eliminarla.')) return;
+    try { const { error } = await supabaseClient.from('conta_cuentas').delete().eq('id', id); if(error) throw error; toast('Cuenta eliminada.'); cargarCatalogoCuentas(); }
+    catch(e) { logError('Eliminar cuenta', e); toastError(getFriendlyError(e)); }
 }
 
 // ===== CATÁLOGO INFO PLUS (importación CSV + búsqueda) =====
