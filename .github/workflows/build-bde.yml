@@ -28,18 +28,37 @@ jobs:
         with:
           node-version: '20'
 
-      - name: (Opcional) Incluir libimobiledevice en el instalador
+      - name: Empaquetar libimobiledevice (binarios de Windows) dentro del instalador
         continue-on-error: true
         shell: pwsh
         run: |
-          $url = "${{ vars.LIBIMOBILEDEVICE_URL }}"
-          if ($url) {
-            Write-Host "Descargando libimobiledevice desde la variable LIBIMOBILEDEVICE_URL..."
-            Invoke-WebRequest -Uri $url -OutFile libi.zip
-            Expand-Archive -Path libi.zip -DestinationPath bin -Force
-            Write-Host "libimobiledevice empaquetado en bin/."
-          } else {
-            Write-Host "No hay LIBIMOBILEDEVICE_URL configurada; se omite. El usuario lo instala con scoop (ver README)."
+          $ErrorActionPreference = "Continue"
+          try {
+            # Si hay una URL configurada, se usa esa (zip con los .exe y .dll)
+            $url = "${{ vars.LIBIMOBILEDEVICE_URL }}"
+            if ($url) {
+              Write-Host "Descargando libimobiledevice desde LIBIMOBILEDEVICE_URL..."
+              Invoke-WebRequest -Uri $url -OutFile libi.zip
+              Expand-Archive -Path libi.zip -DestinationPath bin -Force
+            } else {
+              # Si no, se instala con scoop y se copian los binarios a bin/
+              Write-Host "Instalando libimobiledevice con scoop..."
+              Set-ExecutionPolicy -Scope Process Bypass -Force
+              Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
+              scoop install git
+              scoop bucket add extras
+              scoop install libimobiledevice
+              $src = scoop prefix libimobiledevice
+              Write-Host "Copiando desde $src"
+              New-Item -ItemType Directory -Force -Path bin | Out-Null
+              Copy-Item "$src\*" -Destination bin -Recurse -Force
+            }
+            Write-Host "=== Contenido de bin/ ==="
+            Get-ChildItem -Recurse bin | Select-Object Name, Length | Format-Table -AutoSize
+            if (Test-Path "bin\ideviceinfo.exe") { Write-Host "OK: ideviceinfo.exe empaquetado." }
+            else { Write-Host "AVISO: no se encontro ideviceinfo.exe en bin/." }
+          } catch {
+            Write-Host "ERROR empaquetando libimobiledevice: $_"
           }
 
       - name: Instalar dependencias
