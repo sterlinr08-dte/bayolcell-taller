@@ -750,6 +750,20 @@ body{
 /* Totales / importes numericos siguen a la derecha */
 .lote-card .lote-totals, .lote-card .lote-totals *,
 .text-right, .num, .money, .text-end { text-align: right !important; }
+
+/* ===== INDICADOR DE CARGA (logo girando + resplandor rojo) ===== */
+#appLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(700px 500px at 50% 40%, rgba(239,68,68,0.12), transparent 70%), #070b14;
+  transition:opacity .55s ease, visibility .55s; perspective:900px;}
+#appLoader.hide{opacity:0;visibility:hidden;}
+#appLoader .ldr-ring{position:absolute;width:230px;height:230px;max-width:62vw;max-height:62vw;border-radius:50%;
+  border:3px solid rgba(239,68,68,0.18);border-top-color:#ef4444;animation:ldrSpin 1s linear infinite;}
+#appLoader .ldr-logo{width:170px;max-width:44vw;height:auto;
+  animation:ldrFlip 2.4s cubic-bezier(.4,.05,.3,1) infinite, ldrGlow 1.5s ease-in-out infinite;}
+@keyframes ldrSpin{to{transform:rotate(360deg)}}
+@keyframes ldrFlip{0%{transform:rotateY(0)}100%{transform:rotateY(360deg)}}
+@keyframes ldrGlow{0%,100%{filter:drop-shadow(0 0 6px rgba(239,68,68,0.45))}50%{filter:drop-shadow(0 0 28px rgba(239,68,68,0.95))}}
+@media (prefers-reduced-motion:reduce){#appLoader .ldr-logo{animation:ldrGlow 1.5s ease-in-out infinite}#appLoader .ldr-ring{animation:none}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.js"></script>
@@ -759,6 +773,19 @@ body{
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
+
+<!-- INDICADOR DE CARGA -->
+<div id="appLoader" aria-hidden="true">
+  <div class="ldr-ring"></div>
+  <img class="ldr-logo" src="assets/logo.png" alt="Cargando">
+</div>
+<script>
+  (function(){
+    function hide(){ var l=document.getElementById('appLoader'); if(l) setTimeout(function(){ l.classList.add('hide'); }, 500); }
+    if(document.readyState === 'complete') hide(); else window.addEventListener('load', hide);
+    setTimeout(hide, 6000);
+  })();
+</script>
 
 <div id="login" class="login">
     <div class="login-card">
