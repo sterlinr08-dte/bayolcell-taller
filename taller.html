@@ -883,6 +883,28 @@ body{
                 <h2 style="margin:0 0 4px;"><i class="ti ti-stethoscope" style="color:#dc2626;"></i> Diagnóstico IA — Motor de Reparación</h2>
                 <p style="color:var(--text-muted); font-size:12.5px; margin:0 0 14px;">Describe el equipo y los síntomas (y pega el panic log si lo tienes). La IA razona el diagnóstico, los pasos de reparación y las piezas probables.</p>
 
+                <div class="card" style="margin-bottom:14px; border-left:4px solid #16a34a;">
+                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                        <i class="ti ti-usb" style="color:#16a34a; font-size:22px;"></i>
+                        <div style="flex:1; min-width:200px;">
+                            <b>App de escritorio — leer iPhone por USB</b>
+                            <div style="font-size:12px; color:var(--text-muted);">Instálala en la PC del taller para conectar el iPhone por cable y leer todo (batería, panic logs) automáticamente.</div>
+                        </div>
+                        <a class="btn btn-blue" href="https://github.com/sterlinr08-dte/bayolcell-taller/releases/latest" target="_blank" rel="noopener"><i class="ti ti-download"></i> Descargar app</a>
+                        <button class="btn btn-light" onclick="var p=document.getElementById('appPasos'); p.style.display = (p.style.display==='none'||!p.style.display)?'block':'none';"><i class="ti ti-list-check"></i> Ver pasos</button>
+                    </div>
+                    <div id="appPasos" style="display:none; margin-top:12px; font-size:13px; line-height:1.6;">
+                        <ol style="margin:0; padding-left:18px;">
+                            <li>Toca <b>“Descargar app”</b>, baja el archivo <b>Setup .exe</b> y ábrelo para instalar.</li>
+                            <li>Si Windows avisa “editor desconocido”: <b>Más información → Ejecutar de todas formas</b>.</li>
+                            <li>Para leer el iPhone: instala <b>iTunes</b> (o Apple Mobile Device Support) y al conectar el teléfono dale <b>“Confiar”</b>.</li>
+                            <li>Abre <b>BAYOL Diagnostic Engine</b> y entra con <b>tu mismo usuario y clave</b>.</li>
+                            <li>Conecta el iPhone por USB → <b>Leer dispositivo</b> → aparece modelo, batería y panic logs, y de ahí al diagnóstico con IA.</li>
+                            <li>Todo lo que guardes queda <b>sincronizado</b> con este sistema (web y app comparten la misma base).</li>
+                        </ol>
+                    </div>
+                </div>
+
                 <div class="card" style="margin-bottom:14px;">
                     <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px;">
                         <div><label>Modelo</label><input id="dg_modelo" placeholder="Ej. iPhone 12"></div>
