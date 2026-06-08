@@ -252,6 +252,69 @@ function analizarPanicManual() {
   cont.innerHTML = html;
 }
 
+// ---------------- HISTORIAL DE PANIC ----------------
+async function guardarPanicHist(btn) {
+  const panic_string = (document.getElementById('panicManual').value || '').trim();
+  if (!panic_string) { alert('No hay panic log para guardar.'); return; }
+  const i = (ultimaLectura && ultimaLectura.info) || {};
+  const modelo = document.getElementById('ia_modelo').value.trim() || MODELOS[i.ProductType] || i.ProductType || '';
+  const m = window.matchPanic(panic_string);
+  btn.disabled = true; const o = btn.textContent; btn.textContent = 'Guardando…';
+  try {
+    const { error } = await sb.from('panic_logs').insert({
+      modelo, ios_version: i.ProductVersion || document.getElementById('ia_ios').value.trim() || null,
+      imei: i.InternationalMobileEquipmentIdentity || null, udid: ultimaLectura ? ultimaLectura.udid : null,
+      panic_code: m ? m.codigo : null, panic_string, raw: panic_string.slice(0, 20000)
+    });
+    if (error) throw error;
+    btn.textContent = '✅ Guardado';
+    if (!document.getElementById('panicHist').classList.contains('hidden')) cargarPanicHist();
+    setTimeout(() => { btn.disabled = false; btn.textContent = o; }, 1500);
+  } catch (e) { btn.disabled = false; btn.textContent = o; alert('No se pudo guardar: ' + (e.message || '')); }
+}
+function togglePanicHist() {
+  const c = document.getElementById('panicHist');
+  const mostrar = c.classList.contains('hidden');
+  c.classList.toggle('hidden', !mostrar);
+  if (mostrar) cargarPanicHist();
+}
+async function cargarPanicHist() {
+  const c = document.getElementById('panicHist');
+  c.innerHTML = '<span class="spin"></span> Cargando…';
+  try {
+    const { data, error } = await sb.from('panic_logs')
+      .select('id,created_at,modelo,panic_code,panic_string').order('created_at', { ascending: false }).limit(50);
+    if (error) throw error;
+    if (!data || !data.length) { c.innerHTML = '<p class="muted" style="text-align:left">Aún no hay panic guardados.</p>'; return; }
+    window._panicHist = {};
+    let html = '<table style="width:100%;border-collapse:collapse;font-size:13px">'
+      + '<tr style="text-align:left;color:#888"><th style="padding:6px">Fecha</th><th>Modelo</th><th>Código</th><th></th></tr>';
+    data.forEach(r => {
+      window._panicHist[r.id] = r;
+      const f = new Date(r.created_at).toLocaleString('es-DO', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+      html += '<tr style="border-top:1px solid #eee"><td style="padding:6px">'+f+'</td><td>'+escapar(r.modelo||'—')+'</td><td>'+escapar(r.panic_code||'—')+'</td>'
+        + '<td style="text-align:right"><button class="btn sec" style="padding:5px 9px;font-size:12px" onclick="verPanicHist(\''+r.id+'\')">Ver</button> '
+        + '<button class="btn sec" style="padding:5px 9px;font-size:12px" onclick="borrarPanicHist(\''+r.id+'\')">🗑</button></td></tr>';
+    });
+    html += '</table>';
+    c.innerHTML = html;
+  } catch (e) { c.innerHTML = '<p style="color:#cc0000">Error al cargar: '+escapar(e.message||'')+'</p>'; }
+}
+function verPanicHist(id) {
+  const r = (window._panicHist || {})[id]; if (!r) return;
+  document.getElementById('panicManual').value = r.panic_string || '';
+  if (r.modelo) document.getElementById('ia_modelo').value = r.modelo;
+  analizarPanicManual();
+}
+async function borrarPanicHist(id) {
+  if (!confirm('¿Eliminar este panic del historial?')) return;
+  try {
+    const { error } = await sb.from('panic_logs').delete().eq('id', id);
+    if (error) throw error;
+    cargarPanicHist();
+  } catch (e) { alert('No se pudo eliminar: ' + (e.message || '')); }
+}
+
 // ---------------- PASO A LA IA ----------------
 function pasarAIA() {
   if (ultimaLectura) {

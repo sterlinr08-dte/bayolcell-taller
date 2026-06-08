@@ -165,7 +165,12 @@
             <span id="panicFileNombre" class="muted" style="text-align:left"></span>
           </div>
           <textarea id="panicManual" rows="6" placeholder="Pega aquí el contenido del panic-full-*.ips o súbelo con el botón de arriba…"></textarea>
-          <div style="margin-top:10px"><button class="btn" onclick="analizarPanicManual()">Analizar panic</button></div>
+          <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn" onclick="analizarPanicManual()">Analizar panic</button>
+            <button class="btn sec" onclick="guardarPanicHist(this)">💾 Guardar en historial</button>
+            <button class="btn sec" onclick="togglePanicHist()">🕘 Ver historial</button>
+          </div>
+          <div id="panicHist" class="hidden" style="margin-top:14px"></div>
           <div id="panicResultado" style="margin-top:14px"></div>
         </div>
       </section>

@@ -916,6 +916,10 @@ body{
                             <span id="dg_panic_nombre" style="font-size:12px; color:#888;"></span>
                         </div>
                         <textarea id="dg_panic" rows="4" style="width:100%; font-family:monospace; font-size:12px;" placeholder="panic-full... (pégalo aquí o súbelo con el botón de arriba)"></textarea>
+                        <div style="display:flex; gap:8px; margin-top:6px; flex-wrap:wrap;">
+                            <button type="button" class="btn btn-light" style="font-size:12px;" onclick="guardarPanicHistorial(this)"><i class="ti ti-device-floppy"></i> Guardar panic en historial</button>
+                            <button type="button" class="btn btn-light" style="font-size:12px;" onclick="togglePanicHistorial()"><i class="ti ti-history"></i> Ver historial de panic</button>
+                        </div>
                     </div>
                     <div class="form-row" style="margin-top:8px;"><label>Historial / contexto</label><input id="dg_historial" placeholder="Ej. llegó mojado, reparado antes, se cayó..."></div>
                     <div style="margin-top:12px;"><button class="btn btn-blue" id="dg_btn" onclick="diagnosticarIA()"><i class="ti ti-brain"></i> Diagnosticar con IA</button></div>
@@ -930,6 +934,16 @@ body{
                         </div>
                     </div>
                     <div id="diagResultado" style="white-space:pre-wrap; font-size:13.5px; line-height:1.5;"></div>
+                </div>
+
+                <div class="card" id="panicHistCard" style="display:none; margin-bottom:14px;">
+                    <h3 style="margin:0 0 10px;"><i class="ti ti-history" style="color:#7c3aed;"></i> Historial de Panic Logs</h3>
+                    <div class="table-wrap" style="max-height:340px; overflow-y:auto;">
+                        <table>
+                            <thead><tr><th>Fecha</th><th>Modelo</th><th>Código</th><th></th><th></th></tr></thead>
+                            <tbody id="panicHistTable"><tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Cargando…</td></tr></tbody>
+                        </table>
+                    </div>
                 </div>
 
                 <div class="card">
@@ -4850,6 +4864,85 @@ function cargarPanicArchivo(input){
     };
     reader.readAsText(file);
     input.value = ''; // permite volver a subir el mismo archivo
+}
+// ---- Historial de Panic Logs ----
+function _detectarPanicCode(s){
+    if(!s) return null;
+    const t = s.toLowerCase();
+    if(/i2c0.*(hang|stuck|scl)/.test(t)) return 'i2c0 hang / SCL stuck low';
+    if(/i2c1.*(hang|stuck)/.test(t)) return 'i2c1 hang';
+    if(/i2c2.*(hang|stuck)/.test(t)) return 'i2c2 hang';
+    if(/i2c3.*(hang|stuck)/.test(t)) return 'i2c3 hang';
+    if(/prs0/.test(t)) return 'missing sensor prs0 (flex de carga)';
+    if(/mic[12]/.test(t)) return 'missing sensor mic (flex/micrófono)';
+    if(/tg0b/.test(t)) return 'missing sensor TG0B (batería)';
+    if(/data abort|aop/.test(t)) return 'AOP DATA ABORT (CPU)';
+    if(/soc hot|overheat/.test(t)) return 'SoC Hot (CPU sobrecalienta)';
+    if(/nand|flash storage/.test(t)) return 'NAND / almacenamiento';
+    if(/baseband|pcie/.test(t)) return 'baseband (antena/celular)';
+    if(/\bsep\b|sep fault/.test(t)) return 'SEP fault (Face/Touch ID)';
+    return null;
+}
+async function guardarPanicHistorial(btn){
+    const panic_string = (document.getElementById('dg_panic').value || '').trim();
+    if(!panic_string) return toast('No hay panic log para guardar.', 'error');
+    const modelo = (document.getElementById('dg_modelo').value || '').trim();
+    const ios_version = (document.getElementById('dg_ios').value || '').trim();
+    const panic_code = _detectarPanicCode(panic_string);
+    const orig = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Guardando...';
+    try{
+        const { error } = await supabaseClient.from('panic_logs').insert({
+            modelo, ios_version, panic_code, panic_string,
+            raw: panic_string.slice(0, 20000),
+            analisis_ia: (_ultimoDiag && _ultimoDiag.diagnostico) || null
+        });
+        if(error) throw error;
+        toast('Panic guardado en el historial.', 'success');
+        if(document.getElementById('panicHistCard').style.display !== 'none') cargarPanicHistorial();
+    }catch(e){ logError('Guardar panic', e); toast('No se pudo guardar: ' + getFriendlyError(e), 'error'); }
+    finally{ btn.disabled = false; btn.innerHTML = orig; }
+}
+function togglePanicHistorial(){
+    const card = document.getElementById('panicHistCard');
+    const mostrar = card.style.display === 'none';
+    card.style.display = mostrar ? 'block' : 'none';
+    if(mostrar) cargarPanicHistorial();
+}
+async function cargarPanicHistorial(){
+    const tb = document.getElementById('panicHistTable');
+    tb.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Cargando…</td></tr>';
+    try{
+        const { data, error } = await supabaseClient.from('panic_logs')
+            .select('id,created_at,modelo,panic_code').order('created_at', { ascending:false }).limit(50);
+        if(error) throw error;
+        if(!data || !data.length){ tb.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Aún no hay panic guardados.</td></tr>'; return; }
+        tb.innerHTML = data.map(r => {
+            const f = new Date(r.created_at).toLocaleString('es-DO', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit' });
+            return `<tr><td>${f}</td><td>${escapeHtml(r.modelo||'—')}</td><td>${escapeHtml(r.panic_code||'—')}</td>`+
+                `<td><button class="btn btn-light" style="font-size:11px;" title="Cargar" onclick="verPanicHistorial('${r.id}')"><i class="ti ti-eye"></i></button></td>`+
+                `<td><button class="btn btn-light" style="font-size:11px;" title="Eliminar" onclick="eliminarPanicHistorial('${r.id}')"><i class="ti ti-trash"></i></button></td></tr>`;
+        }).join('');
+    }catch(e){ logError('Historial panic', e); tb.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#dc2626;">Error al cargar.</td></tr>'; }
+}
+async function verPanicHistorial(id){
+    try{
+        const { data, error } = await supabaseClient.from('panic_logs').select('*').eq('id', id).maybeSingle();
+        if(error) throw error;
+        if(!data) return;
+        document.getElementById('dg_panic').value = data.panic_string || data.raw || '';
+        if(data.modelo) document.getElementById('dg_modelo').value = data.modelo;
+        if(data.ios_version) document.getElementById('dg_ios').value = data.ios_version;
+        toast('Panic cargado en el formulario.', 'success');
+        document.getElementById('dg_panic').scrollIntoView({ behavior:'smooth', block:'center' });
+    }catch(e){ logError('Ver panic', e); toast('No se pudo cargar.', 'error'); }
+}
+async function eliminarPanicHistorial(id){
+    if(!confirm('¿Eliminar este panic del historial?')) return;
+    try{
+        const { error } = await supabaseClient.from('panic_logs').delete().eq('id', id);
+        if(error) throw error;
+        toast('Eliminado.', 'success'); cargarPanicHistorial();
+    }catch(e){ logError('Eliminar panic', e); toast('No se pudo eliminar: ' + getFriendlyError(e), 'error'); }
 }
 async function diagnosticarIA(){
     const modelo = (document.getElementById('dg_modelo').value || '').trim();
