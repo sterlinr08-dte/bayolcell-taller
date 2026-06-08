@@ -6,5 +6,7 @@ window.BDE_CONFIG = {
   SUPABASE_KEY: 'sb_publishable_PynS5ZjKoQ36HCpguVzxaw_KZOlagtz',
   // Dominio de correo interno para el login (usuario -> usuario@bayolcell.app)
   AUTH_DOMAIN: 'bayolcell.app',
-  EDGE_FUNCTION: 'bde-diagnostico'
+  EDGE_FUNCTION: 'bde-diagnostico',
+  EDGE_TERMICO: 'bde-termico',
+  STORAGE_BUCKET: 'diagnostico-img'
 };

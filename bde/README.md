@@ -83,7 +83,19 @@ Cuando termine, el instalador queda en `bde/dist/` (ej.
 
 ---
 
+## Cámara térmica (Fase 3 — incluida)
+En el menú **🌡️ Cámara térmica**:
+1. Conecta la cámara térmica por USB (la mayoría aparecen como una webcam).
+2. Selecciónala en la lista → **Iniciar**. Verás la imagen en vivo.
+3. **Capturar** (o **Subir imagen**) → **Analizar con IA**: detecta zonas
+   calientes/frías, posibles cortos y PMIC recalentado, con la tabla de umbrales.
+4. **Guardar captura**: queda en Supabase asociada al diagnóstico.
+
+> Nota: las temperaturas exactas en °C dependen del software propio de cada
+> cámara (FLIR/Qianli). Aun sin escala, la IA detecta las zonas calientes por
+> color. La integración del SDK radiométrico se puede sumar después.
+
 ## Próximas fases
-- **Fase 3:** cámara térmica · **Fase 4:** microscopio + IA visual ·
-  **Fase 5:** esquemáticos · **Fase 6:** base de conocimiento que aprende ·
+- **Fase 4:** microscopio + IA visual · **Fase 5:** esquemáticos ·
+  **Fase 6:** base de conocimiento que aprende ·
   **Fase 7:** sensor INA226 (corriente en tiempo real).

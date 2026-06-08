@@ -63,12 +63,13 @@ function iniciarApp() {
 }
 
 // ---------------- NAVEGACIÓN ----------------
-const TITULOS = { lector:'Lector de dispositivo', panic:'Analizador de Panic Log', ia:'Diagnóstico IA' };
+const TITULOS = { lector:'Lector de dispositivo', panic:'Analizador de Panic Log', ia:'Diagnóstico IA', termica:'Cámara térmica' };
 function vista(v, btn) {
   document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  ['lector','panic','ia'].forEach(x => document.getElementById('v-'+x).classList.toggle('hidden', x !== v));
+  ['lector','panic','ia','termica'].forEach(x => document.getElementById('v-'+x).classList.toggle('hidden', x !== v));
   document.getElementById('tbTitle').textContent = TITULOS[v] || '';
+  if (v === 'termica') prepararTermica();
 }
 
 // ---------------- HERRAMIENTAS (libimobiledevice) ----------------
@@ -310,6 +311,136 @@ async function guardarDiagnostico(btn) {
       modelo: d.body.modelo, ios_version: d.body.ios_version,
       panic_log_raw: d.body.panic_log, sintomas: d.body.sintomas,
       ia_diagnostico: d.diagnostico
+    });
+    if (error) throw error;
+    btn.textContent = '✅ Guardado';
+  } catch (e) {
+    btn.disabled = false; btn.textContent = '💾 Reintentar guardar';
+    alert('No se pudo guardar: ' + (e.message||''));
+  }
+}
+
+// ---------------- CÁMARA TÉRMICA (Fase 3) ----------------
+let termStream = null;
+let termImgB64 = null;       // imagen capturada (data URL)
+let termPreparada = false;
+const UMBRALES = [
+  ['CPU / SoC (A-series)', 'Normal 30–65° · Alerta 65–80° · Crítico >80°'],
+  ['PMIC (gestión energía)', 'Normal 25–55° · Alerta 55–75° · Crítico >75°'],
+  ['Audio IC', 'Normal 25–50° · Alerta 50–70° · Crítico >70°'],
+  ['Tristar / Hydra IC', 'Normal 25–45° · Alerta 45–65° · Crítico >65°'],
+  ['Capacitores SMD', 'Normal 20–40° · Alerta 40–60° · Crítico >60°'],
+  ['NAND Flash', 'Normal 25–55° · Alerta 55–70° · Crítico >70°'],
+  ['Baseband IC', 'Normal 25–50° · Alerta 50–70° · Crítico >70°'],
+  ['Touch IC', 'Normal 25–45° · Alerta 45–65° · Crítico >65°']
+];
+
+async function prepararTermica() {
+  if (termPreparada) return;
+  termPreparada = true;
+  // Tabla de umbrales
+  document.getElementById('termUmbrales').innerHTML =
+    UMBRALES.map(u => '<div class="field"><label>'+u[0]+'</label><b style="font-size:12px">'+u[1]+'</b></div>').join('');
+  // Lista de cámaras
+  try {
+    // Pedir permiso una vez para poder ver los nombres de las cámaras
+    const tmp = await navigator.mediaDevices.getUserMedia({ video: true });
+    tmp.getTracks().forEach(t => t.stop());
+    const devs = await navigator.mediaDevices.enumerateDevices();
+    const cams = devs.filter(d => d.kind === 'videoinput');
+    const sel = document.getElementById('termCam');
+    sel.innerHTML = cams.map((c, i) => '<option value="'+c.deviceId+'">'+(c.label || ('Cámara '+(i+1)))+'</option>').join('')
+      || '<option value="">No se detectaron cámaras</option>';
+  } catch (e) {
+    document.getElementById('termHint').textContent = 'No se pudo acceder a las cámaras: ' + (e.message||'') + '. Conecta la cámara térmica y dale permiso.';
+  }
+}
+
+async function iniciarCamaraTermica() {
+  detenerCamaraTermica();
+  const id = document.getElementById('termCam').value;
+  try {
+    termStream = await navigator.mediaDevices.getUserMedia({
+      video: id ? { deviceId: { exact: id } } : true
+    });
+    document.getElementById('termVideo').srcObject = termStream;
+  } catch (e) {
+    alert('No se pudo iniciar la cámara: ' + (e.message||''));
+  }
+}
+
+function detenerCamaraTermica() {
+  if (termStream) { termStream.getTracks().forEach(t => t.stop()); termStream = null; }
+  const v = document.getElementById('termVideo');
+  if (v) v.srcObject = null;
+}
+
+function capturarTermica() {
+  const v = document.getElementById('termVideo');
+  if (!v.srcObject) { alert('Primero inicia la cámara o sube una imagen.'); return; }
+  const c = document.getElementById('termCanvas');
+  c.width = v.videoWidth || 640; c.height = v.videoHeight || 480;
+  c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+  termImgB64 = c.toDataURL('image/jpeg', 0.9);
+  mostrarCapturaTermica();
+}
+
+function cargarImagenTermica(input) {
+  const f = input.files && input.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = e => { termImgB64 = String(e.target.result); mostrarCapturaTermica(); };
+  r.readAsDataURL(f);
+  input.value = '';
+}
+
+function mostrarCapturaTermica() {
+  document.getElementById('termCaptura').classList.remove('hidden');
+  document.getElementById('termImg').src = termImgB64;
+  document.getElementById('termBtnIA').disabled = false;
+  document.getElementById('termBtnGuardar').disabled = false;
+  document.getElementById('termResultado').innerHTML = 'Imagen lista. Presiona “Analizar con IA”.';
+}
+
+async function analizarTermica() {
+  if (!termImgB64) return;
+  const btn = document.getElementById('termBtnIA');
+  const out = document.getElementById('termResultado');
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Analizando…';
+  out.innerHTML = '<span class="spin"></span> La IA está analizando la imagen térmica…';
+  try {
+    const modelo = document.getElementById('ia_modelo').value.trim() ||
+      (ultimaLectura && (MODELOS[ultimaLectura.info?.ProductType] || ultimaLectura.info?.ProductType)) || '';
+    const { data, error } = await sb.functions.invoke(CFG.EDGE_TERMICO, {
+      body: { imagen_base64: termImgB64, modelo, contexto: document.getElementById('ia_historial').value.trim() }
+    });
+    if (error) throw error;
+    if (!data || !data.ok) throw new Error(data && data.error ? data.error : 'La IA no respondió.');
+    window._ultimoTermico = data.analisis;
+    out.innerHTML = '<div class="ia-box">'+escapar(data.analisis)+'</div>';
+  } catch (e) {
+    let m = e.message || 'Error';
+    if (/permis|denied|jwt|auth/i.test(m)) m = 'No tienes permiso o tu sesión expiró.';
+    out.innerHTML = '<div class="alert critico"><div><div class="t">No se pudo analizar</div><div>'+escapar(m)+'</div></div></div>';
+  } finally {
+    btn.disabled = false; btn.textContent = '🧠 Analizar con IA';
+  }
+}
+
+async function guardarTermica() {
+  if (!termImgB64) return;
+  const btn = document.getElementById('termBtnGuardar');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  try {
+    // data URL -> Blob
+    const resp = await fetch(termImgB64); const blob = await resp.blob();
+    const nombre = 'termica/' + Date.now() + '.jpg';
+    const up = await sb.storage.from(CFG.STORAGE_BUCKET).upload(nombre, blob, { contentType: 'image/jpeg', upsert: false });
+    if (up.error) throw up.error;
+    const modelo = document.getElementById('ia_modelo').value.trim() || '';
+    const { error } = await sb.from('diagnostico_imagenes').insert({
+      tipo: 'termica', storage_path: nombre, modelo,
+      analisis_ia: window._ultimoTermico || null
     });
     if (error) throw error;
     btn.textContent = '✅ Guardado';

@@ -116,7 +116,7 @@
       <button id="m-lector" class="active" onclick="vista('lector',this)">📱 <span>Lector de dispositivo</span></button>
       <button id="m-panic" onclick="vista('panic',this)">📋 <span>Panic Log</span></button>
       <button id="m-ia" onclick="vista('ia',this)">🧠 <span>Diagnóstico IA</span></button>
-      <button disabled>🌡️ <span>Cámara térmica</span><span class="tag">Fase 3</span></button>
+      <button id="m-termica" onclick="vista('termica',this)">🌡️ <span>Cámara térmica</span></button>
       <button disabled>🔬 <span>Microscopio</span><span class="tag">Fase 4</span></button>
       <button disabled>📐 <span>Esquemáticos</span><span class="tag">Fase 5</span></button>
     </nav>
@@ -191,6 +191,43 @@
             <h3><span class="ic">📄</span> Resultado del diagnóstico</h3>
             <div id="iaResultado" class="muted" style="text-align:left">Aún no hay diagnóstico. Llena los datos y presiona “Diagnosticar con IA”.</div>
           </div>
+        </div>
+      </section>
+
+      <!-- ---------- VISTA CÁMARA TÉRMICA ---------- -->
+      <section id="v-termica" class="hidden">
+        <div class="grid2">
+          <div class="card">
+            <h3><span class="ic">🌡️</span> Cámara térmica en vivo</h3>
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+              <select id="termCam" style="flex:1;min-width:160px"></select>
+              <button class="btn sec" onclick="iniciarCamaraTermica()">▶ Iniciar</button>
+              <button class="btn sec" onclick="detenerCamaraTermica()">■ Detener</button>
+            </div>
+            <video id="termVideo" autoplay playsinline muted style="width:100%;border-radius:10px;background:#000;aspect-ratio:4/3;object-fit:contain"></video>
+            <canvas id="termCanvas" class="hidden"></canvas>
+            <div style="display:flex;gap:8px;margin-top:10px">
+              <button class="btn" onclick="capturarTermica()">📸 Capturar</button>
+              <button class="btn sec" onclick="document.getElementById('termFile').click()">📂 Subir imagen</button>
+              <input type="file" id="termFile" accept="image/*" style="display:none" onchange="cargarImagenTermica(this)">
+            </div>
+            <p class="muted" id="termHint" style="text-align:left;margin-top:8px">Selecciona la cámara térmica (suele aparecer como una webcam USB) y dale Iniciar. Si no tiene escala de temperatura, la IA igual detecta las zonas calientes por color.</p>
+          </div>
+          <div class="card">
+            <h3><span class="ic">📄</span> Análisis térmico</h3>
+            <div id="termCaptura" class="hidden" style="margin-bottom:10px">
+              <img id="termImg" style="width:100%;border-radius:10px;border:1px solid var(--borde)">
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn" id="termBtnIA" onclick="analizarTermica()" disabled>🧠 Analizar con IA</button>
+              <button class="btn sec" id="termBtnGuardar" onclick="guardarTermica()" disabled>💾 Guardar captura</button>
+            </div>
+            <div id="termResultado" class="muted" style="text-align:left;margin-top:12px">Captura o sube una imagen térmica y presiona “Analizar con IA”.</div>
+          </div>
+        </div>
+        <div class="card">
+          <h3><span class="ic">🌡️</span> Umbrales de temperatura por componente (referencia)</h3>
+          <div class="row" id="termUmbrales"></div>
         </div>
       </section>
 
