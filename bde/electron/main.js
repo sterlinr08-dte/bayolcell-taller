@@ -1,6 +1,6 @@
 // BAYOL DIAGNOSTIC ENGINE - Proceso principal de Electron (Fase 2)
 // Crea la ventana, maneja la lectura del iPhone por USB y expone los datos al renderer.
-const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, desktopCapturer } = require('electron');
 const path = require('path');
 const usb = require('./ipc-handlers/usb-handler');
 
@@ -44,6 +44,12 @@ ipcMain.handle('bde:checkTools', async () => {
 // Lee el iPhone conectado: info general, batería y panic logs
 ipcMain.handle('bde:leerDispositivo', async () => {
   return usb.leerDispositivo();
+});
+
+// Lista de ventanas/pantallas para "capturar de pantalla" (ej. el programa de REEFOX)
+ipcMain.handle('bde:getSources', async () => {
+  const sources = await desktopCapturer.getSources({ types: ['screen', 'window'] });
+  return sources.map(s => ({ id: s.id, name: s.name }));
 });
 
 app.whenReady().then(() => {

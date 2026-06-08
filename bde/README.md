@@ -148,6 +148,10 @@ se repite, se **confirma** (sube su confiabilidad) en vez de duplicarse. El moto
 de IA le da prioridad a los casos más confirmados del taller. Incluye estadísticas
 (total de casos, tasa de éxito, modelo más frecuente).
 
+> Equipos REEFOX (microscopio/térmica): si usan el programa propio de REEFOX en
+> vez de verse como webcam, usa el botón **📺 "Capturar de REEFOX"**: abre el
+> programa de REEFOX y elige su ventana; BDE toma la imagen y la analiza con IA.
+
 ## Próximas fases
 - **Fase 7:** sensor INA226 (corriente en tiempo real). Requiere hardware (~$15).
   **Fase 6:** base de conocimiento que aprende ·

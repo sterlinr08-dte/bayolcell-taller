@@ -671,6 +671,41 @@ function copiarComponente(el, texto) {
   } catch (e) { /* nada */ }
 }
 
+// ---------------- CAPTURA DE PANTALLA (para el programa de REEFOX) ----------------
+let _capTarget = null;
+async function capturarPantalla(target) {
+  _capTarget = target;
+  if (!window.bde || !window.bde.getSources) { alert('La captura de pantalla solo funciona en la app de escritorio instalada.'); return; }
+  try {
+    const sources = await window.bde.getSources();
+    const list = document.getElementById('srcList');
+    list.innerHTML = sources.map(s =>
+      '<button class="btn sec" style="display:block;width:100%;text-align:left;margin-bottom:6px" onclick="capturarDeFuente(\''+s.id+'\')">'+escapar(s.name)+'</button>'
+    ).join('') || '<p class="muted">No se encontraron ventanas.</p>';
+    document.getElementById('srcPicker').classList.remove('hidden');
+  } catch (e) { alert('No se pudo listar las ventanas: ' + (e.message||'')); }
+}
+
+async function capturarDeFuente(id) {
+  document.getElementById('srcPicker').classList.add('hidden');
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: { mandatory: { chromeMediaSource: 'desktop', chromeMediaSourceId: id, maxWidth: 1920, maxHeight: 1080 } }
+    });
+    const video = document.createElement('video');
+    video.srcObject = stream; await video.play();
+    await new Promise(r => setTimeout(r, 300));
+    const c = document.createElement('canvas');
+    c.width = video.videoWidth || 1280; c.height = video.videoHeight || 720;
+    c.getContext('2d').drawImage(video, 0, 0, c.width, c.height);
+    const data = c.toDataURL('image/jpeg', 0.92);
+    stream.getTracks().forEach(t => t.stop());
+    if (_capTarget === 'termica') { termImgB64 = data; mostrarCapturaTermica(); vista('termica', document.getElementById('m-termica')); }
+    else { micImgB64 = data; mostrarCapturaMicro(); vista('microscopio', document.getElementById('m-microscopio')); }
+  } catch (e) { alert('No se pudo capturar la pantalla: ' + (e.message||'')); }
+}
+
 // ---------------- BASE DE CONOCIMIENTO (Fase 6) ----------------
 async function cargarConocimiento() {
   // Prellenar el formulario con el último diagnóstico si está vacío

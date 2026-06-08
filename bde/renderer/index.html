@@ -212,8 +212,9 @@
             </div>
             <video id="termVideo" autoplay playsinline muted style="width:100%;border-radius:10px;background:#000;aspect-ratio:4/3;object-fit:contain"></video>
             <canvas id="termCanvas" class="hidden"></canvas>
-            <div style="display:flex;gap:8px;margin-top:10px">
+            <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
               <button class="btn" onclick="capturarTermica()">📸 Capturar</button>
+              <button class="btn sec" onclick="capturarPantalla('termica')">📺 Capturar de REEFOX</button>
               <button class="btn sec" onclick="document.getElementById('termFile').click()">📂 Subir imagen</button>
               <input type="file" id="termFile" accept="image/*" style="display:none" onchange="cargarImagenTermica(this)">
             </div>
@@ -249,8 +250,9 @@
             </div>
             <video id="micVideo" autoplay playsinline muted style="width:100%;border-radius:10px;background:#000;aspect-ratio:4/3;object-fit:contain"></video>
             <canvas id="micCanvas" class="hidden"></canvas>
-            <div style="display:flex;gap:8px;margin-top:10px">
+            <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
               <button class="btn" onclick="capturarMicro()">📸 Capturar</button>
+              <button class="btn sec" onclick="capturarPantalla('micro')">📺 Capturar de REEFOX</button>
               <button class="btn sec" onclick="document.getElementById('micFile').click()">📂 Subir imagen</button>
               <input type="file" id="micFile" accept="image/*" style="display:none" onchange="cargarImagenMicro(this)">
             </div>
@@ -317,6 +319,16 @@
       </section>
 
     </div>
+  </div>
+</div>
+
+<!-- Selector de ventana/pantalla para "Capturar de pantalla" (REEFOX) -->
+<div id="srcPicker" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:60;display:flex;align-items:center;justify-content:center">
+  <div class="card" style="max-width:440px;width:90%;max-height:75vh;overflow:auto">
+    <h3><span class="ic" style="color:var(--rojo)">📺</span> Elige la ventana a capturar</h3>
+    <p class="muted" style="text-align:left;margin-bottom:10px">Abre el programa de REEFOX (microscopio o térmica) y elígelo de la lista.</p>
+    <div id="srcList"></div>
+    <button class="btn sec" style="margin-top:10px;width:100%" onclick="document.getElementById('srcPicker').classList.add('hidden')">Cancelar</button>
   </div>
 </div>
 
