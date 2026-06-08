@@ -1,0 +1,46 @@
+{
+  "name": "bayol-diagnostic-engine",
+  "version": "2.0.0",
+  "description": "BAYOL DIAGNOSTIC ENGINE - Fase 2: App de escritorio con lector USB de iPhone",
+  "author": "BAYOL CELL",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win --x64",
+    "pack": "electron-builder --dir"
+  },
+  "build": {
+    "appId": "com.bayolcell.diagnostic",
+    "productName": "BAYOL Diagnostic Engine",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "renderer/**/*",
+      "data/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "bin",
+        "to": "bin"
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "renderer/css/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "BAYOL Diagnostic Engine"
+    }
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  }
+}

@@ -1,0 +1,10 @@
+// Puente seguro entre la interfaz (renderer) y el sistema (main).
+// Solo expone funciones concretas, nunca acceso directo a Node.
+const { contextBridge, ipcRenderer } = require('electron');
+
+contextBridge.exposeInMainWorld('bde', {
+  // Devuelve { ok, version } si libimobiledevice está instalado
+  checkTools: () => ipcRenderer.invoke('bde:checkTools'),
+  // Lee el iPhone conectado por USB
+  leerDispositivo: () => ipcRenderer.invoke('bde:leerDispositivo')
+});

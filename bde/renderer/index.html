@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BAYOL Diagnostic Engine</title>
+<style>
+  :root{
+    --negro:#0A0A0A; --negro2:#141414; --rojo:#CC0000; --rojo2:#ff2d2d;
+    --blanco:#ffffff; --gris:#e9e9ec; --texto:#1a1a1a; --borde:#e3e3e8;
+    --ok:#0a8f3c; --warn:#c98a00; --crit:#cc0000;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Inter,Arial,Helvetica,sans-serif;background:var(--gris);color:var(--texto);height:100vh;overflow:hidden}
+  .hidden{display:none!important}
+  button{font-family:inherit;cursor:pointer;border:none}
+  .btn{background:var(--rojo);color:#fff;padding:11px 18px;border-radius:10px;font-weight:700;font-size:14px;transition:.15s}
+  .btn:hover{background:var(--rojo2)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn.sec{background:#222}
+  .btn.sec:hover{background:#000}
+
+  /* ---------- LOGIN ---------- */
+  #login{position:fixed;inset:0;background:radial-gradient(1200px 700px at 50% -10%,#1d0000,#0A0A0A 60%);display:flex;align-items:center;justify-content:center;z-index:50}
+  .login-card{background:#111;border:1px solid #2a2a2a;border-radius:18px;padding:34px 30px;width:360px;box-shadow:0 25px 60px rgba(0,0,0,.6);text-align:center}
+  .login-logo{width:74px;height:74px;border-radius:50%;background:#000;border:2px solid var(--rojo);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-weight:900;color:var(--rojo);font-size:30px;box-shadow:0 0 24px rgba(204,0,0,.5)}
+  .login-card h1{color:#fff;font-size:17px;letter-spacing:.5px;margin-bottom:2px}
+  .login-card p{color:#888;font-size:12px;margin-bottom:20px}
+  .login-card input{width:100%;background:#0a0a0a;border:1px solid #2c2c2c;color:#fff;padding:12px 14px;border-radius:10px;margin-bottom:12px;font-size:14px}
+  .login-card input:focus{outline:none;border-color:var(--rojo)}
+  .login-card .btn{width:100%;margin-top:4px}
+  #loginMsg{color:#ff6b6b;font-size:12px;min-height:16px;margin-top:10px}
+
+  /* ---------- LAYOUT ---------- */
+  #app{display:flex;height:100vh}
+  .sidebar{width:230px;background:var(--negro);color:#cfcfcf;display:flex;flex-direction:column;flex-shrink:0}
+  .brand{padding:18px 18px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #1e1e1e}
+  .brand .dot{width:34px;height:34px;border-radius:50%;background:#000;border:2px solid var(--rojo);display:flex;align-items:center;justify-content:center;color:var(--rojo);font-weight:900}
+  .brand b{color:#fff;font-size:13px;line-height:1.1}
+  .brand span{color:#777;font-size:10px}
+  .nav{flex:1;padding:10px 8px;overflow:auto}
+  .nav button{width:100%;text-align:left;background:none;color:#bdbdbd;padding:11px 12px;border-radius:9px;font-size:13.5px;display:flex;align-items:center;gap:10px;margin-bottom:2px}
+  .nav button:hover{background:#1b1b1b;color:#fff}
+  .nav button.active{background:var(--rojo);color:#fff}
+  .nav button:disabled{color:#555;cursor:default}
+  .nav button:disabled:hover{background:none}
+  .nav .tag{margin-left:auto;font-size:9px;background:#2a2a2a;color:#999;padding:2px 6px;border-radius:6px}
+  .side-foot{padding:12px;border-top:1px solid #1e1e1e;font-size:11px;color:#888}
+  .side-foot b{color:#fff;display:block;font-size:12px}
+  .side-foot button{margin-top:8px;width:100%;background:#1c1c1c;color:#ddd;padding:8px;border-radius:8px;font-size:12px}
+  .side-foot button:hover{background:var(--rojo);color:#fff}
+
+  .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+  .topbar{height:56px;background:#111;border-bottom:1px solid #1e1e1e;display:flex;align-items:center;padding:0 20px;gap:14px;color:#fff}
+  .topbar h2{font-size:15px;font-weight:700}
+  .topbar .estado{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:#aaa}
+  .led{width:9px;height:9px;border-radius:50%;background:#555}
+  .led.on{background:#19c34a;box-shadow:0 0 8px #19c34a}
+  .led.busy{background:#e0a400;box-shadow:0 0 8px #e0a400}
+  .content{flex:1;overflow:auto;padding:22px;background:#f1f1f4}
+
+  .card{background:#fff;border:1px solid var(--borde);border-radius:14px;padding:18px 20px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+  .card h3{font-size:14px;color:#111;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .card h3 .ic{color:var(--rojo)}
+  .row{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+  .field{background:#fafafa;border:1px solid #eee;border-radius:10px;padding:9px 12px}
+  .field label{display:block;font-size:10.5px;color:#999;text-transform:uppercase;letter-spacing:.4px}
+  .field b{font-size:14px;color:#111}
+
+  .alert{display:flex;gap:10px;padding:11px 13px;border-radius:10px;margin-bottom:8px;font-size:13px;border-left:4px solid}
+  .alert.critico{background:#fff1f1;border-color:var(--crit);color:#7a0000}
+  .alert.alerta{background:#fff8e8;border-color:var(--warn);color:#6b4d00}
+  .alert.info{background:#eef4ff;border-color:#2563eb;color:#13357a}
+  .alert .t{font-weight:700}
+
+  .bigbtn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:40px}
+  .usb-circle{width:120px;height:120px;border-radius:50%;border:3px dashed #ccc;display:flex;align-items:center;justify-content:center;font-size:48px;color:#bbb}
+  .muted{color:#888;font-size:13px;text-align:center;max-width:420px}
+
+  .panic-box{background:#0d0d0d;color:#d6ffd6;font-family:Consolas,monospace;font-size:12px;border-radius:10px;padding:14px;white-space:pre-wrap;max-height:220px;overflow:auto;border:1px solid #222}
+  .ia-box{background:#fff;border:1px solid var(--borde);border-radius:12px;padding:16px;white-space:pre-wrap;font-size:13.5px;line-height:1.5}
+  textarea,select,input.txt{width:100%;border:1px solid #ddd;border-radius:9px;padding:10px;font-size:13px;font-family:inherit}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0}
+  .chip{border:1px solid #ddd;background:#fff;padding:7px 12px;border-radius:20px;font-size:12.5px;cursor:pointer;user-select:none}
+  .chip.on{background:var(--rojo);color:#fff;border-color:var(--rojo)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:900px){.grid2{grid-template-columns:1fr}}
+  .spin{width:18px;height:18px;border:3px solid #fff;border-top-color:transparent;border-radius:50%;display:inline-block;animation:sp .8s linear infinite;vertical-align:middle}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .demo-banner{background:#fff8e8;border:1px solid #f0d68a;color:#6b4d00;padding:8px 12px;border-radius:9px;font-size:12.5px;margin-bottom:14px}
+</style>
+</head>
+<body>
+
+<!-- ====================== LOGIN ====================== -->
+<div id="login">
+  <div class="login-card">
+    <div class="login-logo">B</div>
+    <h1>BAYOL DIAGNOSTIC ENGINE</h1>
+    <p>Acceso de técnico — Fase 2</p>
+    <input id="lgUser" type="text" placeholder="Usuario (ej. francis)" autocomplete="username">
+    <input id="lgPass" type="password" placeholder="Contraseña" autocomplete="current-password">
+    <button class="btn" id="lgBtn" onclick="doLogin()">Entrar</button>
+    <div id="loginMsg"></div>
+  </div>
+</div>
+
+<!-- ====================== APP ====================== -->
+<div id="app" class="hidden">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="dot">B</div>
+      <div><b>DIAGNOSTIC ENGINE</b><span>BAYOL CELL</span></div>
+    </div>
+    <nav class="nav">
+      <button id="m-lector" class="active" onclick="vista('lector',this)">📱 <span>Lector de dispositivo</span></button>
+      <button id="m-panic" onclick="vista('panic',this)">📋 <span>Panic Log</span></button>
+      <button id="m-ia" onclick="vista('ia',this)">🧠 <span>Diagnóstico IA</span></button>
+      <button disabled>🌡️ <span>Cámara térmica</span><span class="tag">Fase 3</span></button>
+      <button disabled>🔬 <span>Microscopio</span><span class="tag">Fase 4</span></button>
+      <button disabled>📐 <span>Esquemáticos</span><span class="tag">Fase 5</span></button>
+    </nav>
+    <div class="side-foot">
+      <b id="sfUser">—</b>
+      <span id="sfRol">técnico</span>
+      <button onclick="logout()">Cerrar sesión</button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <h2 id="tbTitle">Lector de dispositivo</h2>
+      <div class="estado">
+        <span class="led" id="ledTools"></span><span id="toolsTxt">Verificando herramientas…</span>
+        <span class="led" id="ledDev"></span><span id="devTxt">Sin dispositivo</span>
+      </div>
+    </div>
+    <div class="content">
+
+      <!-- ---------- VISTA LECTOR ---------- -->
+      <section id="v-lector">
+        <div id="demoBanner" class="demo-banner hidden"></div>
+        <div class="card">
+          <h3><span class="ic">📱</span> Lectura del iPhone por USB</h3>
+          <div id="lectorInicio" class="bigbtn">
+            <div class="usb-circle">⚡</div>
+            <p class="muted">Conecta el iPhone por USB, desbloquéalo y toca <b>“Confiar”</b> si aparece. Luego presiona el botón para leer todos los datos automáticamente.</p>
+            <div style="display:flex;gap:10px">
+              <button class="btn" id="btnLeer" onclick="leerDispositivo()">Leer dispositivo</button>
+              <button class="btn sec" onclick="leerDemo()">Modo demostración</button>
+            </div>
+          </div>
+          <div id="lectorResultado" class="hidden"></div>
+        </div>
+      </section>
+
+      <!-- ---------- VISTA PANIC ---------- -->
+      <section id="v-panic" class="hidden">
+        <div class="card">
+          <h3><span class="ic">📋</span> Analizador de Panic Log</h3>
+          <p class="muted" style="text-align:left;margin-bottom:10px">Se llenan solos al leer el dispositivo. También puedes pegar un panic log manualmente.</p>
+          <textarea id="panicManual" rows="6" placeholder="Pega aquí el contenido del panic-full-*.ips si lo tienes…"></textarea>
+          <div style="margin-top:10px"><button class="btn" onclick="analizarPanicManual()">Analizar panic</button></div>
+          <div id="panicResultado" style="margin-top:14px"></div>
+        </div>
+      </section>
+
+      <!-- ---------- VISTA IA ---------- -->
+      <section id="v-ia" class="hidden">
+        <div class="grid2">
+          <div class="card">
+            <h3><span class="ic">🧠</span> Datos para la IA</h3>
+            <div class="field" style="margin-bottom:10px"><label>Modelo</label><input class="txt" id="ia_modelo" placeholder="iPhone 12"></div>
+            <div class="field" style="margin-bottom:10px"><label>Versión iOS</label><input class="txt" id="ia_ios" placeholder="16.3.1"></div>
+            <div class="field" style="margin-bottom:10px"><label>Batería (voltaje / ciclos / salud)</label><input class="txt" id="ia_bateria" placeholder="3950 mV / 540 ciclos / 86%"></div>
+            <label style="font-size:12px;color:#666">Síntomas</label>
+            <div class="chips" id="ia_chips"></div>
+            <textarea id="ia_extra" rows="2" placeholder="Otros síntomas o detalles del cliente…" style="margin-top:6px"></textarea>
+            <label style="font-size:12px;color:#666;margin-top:10px;display:block">Panic log (opcional)</label>
+            <textarea id="ia_panic" rows="3" placeholder="Se llena solo al leer el dispositivo…"></textarea>
+            <label style="font-size:12px;color:#666;margin-top:10px;display:block">Historial / reparaciones previas</label>
+            <textarea id="ia_historial" rows="2" placeholder="Ej: llegó mojado, problema de audio previo…"></textarea>
+            <button class="btn" style="margin-top:14px;width:100%" id="btnIA" onclick="diagnosticarIA()">⚡ Diagnosticar con IA</button>
+          </div>
+          <div class="card">
+            <h3><span class="ic">📄</span> Resultado del diagnóstico</h3>
+            <div id="iaResultado" class="muted" style="text-align:left">Aún no hay diagnóstico. Llena los datos y presiona “Diagnosticar con IA”.</div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="../data/panic-codes.js"></script>
+<script src="../data/battery-rules.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
