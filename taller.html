@@ -910,6 +910,7 @@ body{
                         <div><label>Modelo</label><input id="dg_modelo" placeholder="Ej. iPhone 12"></div>
                         <div><label>Versión iOS</label><input id="dg_ios" placeholder="Ej. 16.3.1"></div>
                         <div><label>Batería (voltaje/ciclos/%)</label><input id="dg_bateria" placeholder="Ej. 3.8V · 450 ciclos · 87%"></div>
+                        <div><label>Consumo en fuente DC (Amperios)</label><input id="dg_consumo" placeholder="Ej. 0.00 A · 0.05 A · 0.6 A de golpe"></div>
                     </div>
                     <div style="margin-top:10px;"><label>Síntomas</label>
                         <div id="dg_sintomas" style="display:flex; flex-wrap:wrap; gap:6px; margin:6px 0;">
@@ -4970,6 +4971,7 @@ async function diagnosticarIA(){
     const modelo = (document.getElementById('dg_modelo').value || '').trim();
     const ios_version = (document.getElementById('dg_ios').value || '').trim();
     const bateria = (document.getElementById('dg_bateria').value || '').trim();
+    const consumo = (document.getElementById('dg_consumo').value || '').trim();
     const panic_log = (document.getElementById('dg_panic').value || '').trim();
     const historial = (document.getElementById('dg_historial').value || '').trim();
     const sintomas = _diagSintomas();
@@ -4978,7 +4980,7 @@ async function diagnosticarIA(){
     btn.disabled = true; const txtOrig = btn.innerHTML; btn.innerHTML = '<i class="ti ti-loader"></i> Analizando...';
     card.style.display = 'block'; res.textContent = '🤖 La IA está analizando el caso… (puede tardar unos segundos)';
     try{
-        const { data, error } = await supabaseClient.functions.invoke('bde-diagnostico', { body: { modelo, ios_version, bateria, panic_log, sintomas, historial } });
+        const { data, error } = await supabaseClient.functions.invoke('bde-diagnostico', { body: { modelo, ios_version, bateria, consumo, panic_log, sintomas, historial } });
         if(error) throw error;
         if(!data || !data.ok){ res.textContent = '⚠️ ' + ((data && data.error) || 'No se pudo obtener el diagnóstico.'); }
         else { res.textContent = data.diagnostico || 'Sin respuesta.'; _ultimoDiag = { modelo, ios_version, bateria, panic_log, historial, sintomas, diagnostico: data.diagnostico }; }

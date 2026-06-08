@@ -343,6 +343,7 @@ async function diagnosticarIA() {
     modelo: document.getElementById('ia_modelo').value.trim(),
     ios_version: document.getElementById('ia_ios').value.trim(),
     bateria: document.getElementById('ia_bateria').value.trim(),
+    consumo: document.getElementById('ia_consumo').value.trim(),
     panic_log: document.getElementById('ia_panic').value.trim(),
     sintomas,
     historial: document.getElementById('ia_historial').value.trim()
