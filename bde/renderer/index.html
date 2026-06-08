@@ -119,6 +119,7 @@
       <button id="m-termica" onclick="vista('termica',this)">🌡️ <span>Cámara térmica</span></button>
       <button id="m-microscopio" onclick="vista('microscopio',this)">🔬 <span>Microscopio</span></button>
       <button id="m-esquematicos" onclick="vista('esquematicos',this)">📐 <span>Esquemáticos</span></button>
+      <button id="m-conocimiento" onclick="vista('conocimiento',this)">📚 <span>Base de conocimiento</span></button>
     </nav>
     <div class="side-foot">
       <b id="sfUser">—</b>
@@ -286,6 +287,32 @@
         </div>
         <div style="flex:1; border-radius:12px; overflow:hidden; border:1px solid var(--borde); background:#fff;">
           <webview id="reefoxView" partition="persist:reefox" style="width:100%; height:100%;" allowpopups></webview>
+        </div>
+      </section>
+
+      <!-- ---------- VISTA BASE DE CONOCIMIENTO ---------- -->
+      <section id="v-conocimiento" class="hidden">
+        <div class="row" id="conoStats" style="margin-bottom:16px"></div>
+        <div class="grid2">
+          <div class="card">
+            <h3><span class="ic">➕</span> Registrar caso resuelto</h3>
+            <div class="field" style="margin-bottom:8px"><label>Modelo</label><input class="txt" id="co_modelo" placeholder="iPhone 12"></div>
+            <div class="field" style="margin-bottom:8px"><label>Código de panic (si aplica)</label><input class="txt" id="co_panic" placeholder="i2c2 hang"></div>
+            <div class="field" style="margin-bottom:8px"><label>Síntomas (separados por coma)</label><input class="txt" id="co_sintomas" placeholder="no carga, mojado"></div>
+            <div class="field" style="margin-bottom:8px"><label>Solución aplicada</label><textarea id="co_solucion" rows="2" placeholder="Reemplazo de flex de carga y limpieza ultrasonido"></textarea></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <div class="field" style="flex:1"><label>¿Exitoso?</label>
+                <select id="co_exitoso"><option value="true">Sí ✅</option><option value="false">No ❌</option></select></div>
+              <div class="field" style="flex:1"><label>Tiempo (min)</label><input class="txt" id="co_tiempo" type="number" placeholder="45"></div>
+            </div>
+            <div class="field" style="margin:8px 0"><label>Piezas usadas (separadas por coma)</label><input class="txt" id="co_piezas" placeholder="Flex de carga iPhone 12"></div>
+            <button class="btn" style="width:100%" id="co_btn" onclick="registrarCaso()">💾 Guardar / confirmar caso</button>
+            <p class="muted" style="text-align:left;margin-top:8px">Si ya existe un caso igual (mismo modelo, código y solución), se <b>confirma</b> y sube su confiabilidad en vez de duplicarse.</p>
+          </div>
+          <div class="card">
+            <h3><span class="ic">📚</span> Casos guardados</h3>
+            <div id="conoLista" class="muted" style="text-align:left">Cargando…</div>
+          </div>
         </div>
       </section>
 

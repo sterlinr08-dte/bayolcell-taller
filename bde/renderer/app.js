@@ -63,15 +63,16 @@ function iniciarApp() {
 }
 
 // ---------------- NAVEGACIÓN ----------------
-const TITULOS = { lector:'Lector de dispositivo', panic:'Analizador de Panic Log', ia:'Diagnóstico IA', termica:'Cámara térmica', microscopio:'Microscopio', esquematicos:'Esquemáticos (REEFOX)' };
+const TITULOS = { lector:'Lector de dispositivo', panic:'Analizador de Panic Log', ia:'Diagnóstico IA', termica:'Cámara térmica', microscopio:'Microscopio', esquematicos:'Esquemáticos (REEFOX)', conocimiento:'Base de conocimiento' };
 function vista(v, btn) {
   document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  ['lector','panic','ia','termica','microscopio','esquematicos'].forEach(x => document.getElementById('v-'+x).classList.toggle('hidden', x !== v));
+  ['lector','panic','ia','termica','microscopio','esquematicos','conocimiento'].forEach(x => document.getElementById('v-'+x).classList.toggle('hidden', x !== v));
   document.getElementById('tbTitle').textContent = TITULOS[v] || '';
   if (v === 'termica') prepararTermica();
   if (v === 'microscopio') prepararMicro();
   if (v === 'esquematicos') prepararEsquematicos();
+  if (v === 'conocimiento') cargarConocimiento();
 }
 
 // ---------------- HERRAMIENTAS (libimobiledevice) ----------------
@@ -668,6 +669,93 @@ function copiarComponente(el, texto) {
     el.classList.add('on');
     setTimeout(() => { el.textContent = orig; el.classList.remove('on'); }, 1200);
   } catch (e) { /* nada */ }
+}
+
+// ---------------- BASE DE CONOCIMIENTO (Fase 6) ----------------
+async function cargarConocimiento() {
+  // Prellenar el formulario con el último diagnóstico si está vacío
+  if (!document.getElementById('co_modelo').value) {
+    document.getElementById('co_modelo').value = document.getElementById('ia_modelo').value || '';
+    document.getElementById('co_panic').value = (window.matchPanic && document.getElementById('ia_panic').value)
+      ? ((window.matchPanic(document.getElementById('ia_panic').value) || {}).codigo || '') : '';
+  }
+  const lista = document.getElementById('conoLista');
+  lista.innerHTML = '<span class="spin"></span> Cargando…';
+  try {
+    const { data, error } = await sb.from('conocimiento_casos')
+      .select('*').order('veces_confirmado', { ascending: false }).order('created_at', { ascending: false }).limit(100);
+    if (error) throw error;
+    renderConoStats(data || []);
+    if (!data || !data.length) { lista.innerHTML = '<p class="muted" style="text-align:left">Aún no hay casos. Registra el primero al terminar una reparación.</p>'; return; }
+    window._conoCasos = {};
+    let html = '';
+    data.forEach(c => {
+      window._conoCasos[c.id] = c;
+      const ok = c.exitoso ? '✅' : '❌';
+      html += '<div style="border:1px solid #eee;border-radius:10px;padding:10px;margin-bottom:8px">'
+        + '<div style="display:flex;justify-content:space-between;gap:8px"><b>'+escapar(c.modelo||'—')+'</b>'
+        + '<span class="muted">'+ok+' · confirmado '+(c.veces_confirmado||1)+'×</span></div>'
+        + (c.panic_code ? '<div style="font-size:12px;color:#888">'+escapar(c.panic_code)+'</div>' : '')
+        + (c.sintomas && c.sintomas.length ? '<div style="font-size:12px">Síntomas: '+escapar(c.sintomas.join(', '))+'</div>' : '')
+        + '<div style="font-size:13px;margin-top:4px">'+escapar(c.solucion||'')+'</div>'
+        + '<div style="text-align:right"><button class="btn sec" style="padding:4px 8px;font-size:11px" onclick="borrarCaso(\''+c.id+'\')">🗑</button></div>'
+        + '</div>';
+    });
+    lista.innerHTML = html;
+  } catch (e) { lista.innerHTML = '<p style="color:#cc0000">Error: '+escapar(e.message||'')+'</p>'; }
+}
+
+function renderConoStats(casos) {
+  const cont = document.getElementById('conoStats');
+  const total = casos.length;
+  const exitosos = casos.filter(c => c.exitoso).length;
+  const pct = total ? Math.round((exitosos/total)*100) : 0;
+  const porModelo = {};
+  casos.forEach(c => { if (c.modelo) porModelo[c.modelo] = (porModelo[c.modelo]||0)+1; });
+  const topModelo = Object.entries(porModelo).sort((a,b)=>b[1]-a[1])[0];
+  cont.innerHTML =
+    '<div class="field"><label>Casos guardados</label><b>'+total+'</b></div>'
+    + '<div class="field"><label>Tasa de éxito</label><b>'+pct+'%</b></div>'
+    + '<div class="field"><label>Modelo más frecuente</label><b>'+(topModelo?escapar(topModelo[0])+' ('+topModelo[1]+')':'—')+'</b></div>';
+}
+
+async function registrarCaso() {
+  const modelo = document.getElementById('co_modelo').value.trim();
+  const panic_code = document.getElementById('co_panic').value.trim() || null;
+  const sintomas = document.getElementById('co_sintomas').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const solucion = document.getElementById('co_solucion').value.trim();
+  const exitoso = document.getElementById('co_exitoso').value === 'true';
+  const tiempo_minutos = parseInt(document.getElementById('co_tiempo').value, 10) || null;
+  const piezas = document.getElementById('co_piezas').value.split(',').map(s=>s.trim()).filter(Boolean);
+  if (!modelo || !solucion) { alert('Pon al menos el modelo y la solución aplicada.'); return; }
+  const btn = document.getElementById('co_btn'); btn.disabled = true; const o = btn.textContent; btn.textContent = 'Guardando…';
+  try {
+    // ¿Existe ya un caso igual? (mismo modelo + código + solución) -> se confirma
+    let q = sb.from('conocimiento_casos').select('id,veces_confirmado').eq('modelo', modelo).eq('solucion', solucion);
+    q = panic_code ? q.eq('panic_code', panic_code) : q.is('panic_code', null);
+    const { data: ex } = await q.maybeSingle();
+    if (ex) {
+      const { error } = await sb.from('conocimiento_casos').update({ veces_confirmado: (ex.veces_confirmado||1)+1, exitoso }).eq('id', ex.id);
+      if (error) throw error;
+      btn.textContent = '✅ Caso confirmado (+1)';
+    } else {
+      const { error } = await sb.from('conocimiento_casos').insert({
+        modelo, panic_code, sintomas, solucion, exitoso, tiempo_minutos, piezas_usadas: piezas
+      });
+      if (error) throw error;
+      btn.textContent = '✅ Caso guardado';
+    }
+    document.getElementById('co_solucion').value = '';
+    document.getElementById('co_piezas').value = '';
+    cargarConocimiento();
+    setTimeout(() => { btn.disabled = false; btn.textContent = o; }, 1500);
+  } catch (e) { btn.disabled = false; btn.textContent = o; alert('No se pudo guardar: ' + (e.message||'')); }
+}
+
+async function borrarCaso(id) {
+  if (!confirm('¿Eliminar este caso de la base de conocimiento?')) return;
+  try { const { error } = await sb.from('conocimiento_casos').delete().eq('id', id); if (error) throw error; cargarConocimiento(); }
+  catch (e) { alert('No se pudo eliminar: ' + (e.message||'')); }
 }
 
 // Si ya hay sesión activa al abrir, entrar directo

@@ -141,7 +141,14 @@ IA** (U2, J3300, etc.) para copiarlos y buscarlos en REEFOX.
 > No se incluyen archivos de esquemáticos (son material con licencia); se usa
 > tu propia cuenta de REEFOX.
 
+## Base de conocimiento que aprende (Fase 6 — incluida)
+En el menú **📚 Base de conocimiento** registras cada reparación resuelta
+(modelo, código de panic, síntomas, solución, éxito, tiempo, piezas). Si un caso
+se repite, se **confirma** (sube su confiabilidad) en vez de duplicarse. El motor
+de IA le da prioridad a los casos más confirmados del taller. Incluye estadísticas
+(total de casos, tasa de éxito, modelo más frecuente).
+
 ## Próximas fases
-- **Fase 6:** base de conocimiento que aprende ·
+- **Fase 7:** sensor INA226 (corriente en tiempo real). Requiere hardware (~$15).
   **Fase 6:** base de conocimiento que aprende ·
   **Fase 7:** sensor INA226 (corriente en tiempo real).
