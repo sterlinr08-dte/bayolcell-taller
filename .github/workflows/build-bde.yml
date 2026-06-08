@@ -16,6 +16,7 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
+    timeout-minutes: 25
     defaults:
       run:
         working-directory: bde
@@ -30,33 +31,36 @@ jobs:
 
       - name: Empaquetar libimobiledevice (binarios de Windows) dentro del instalador
         continue-on-error: true
+        timeout-minutes: 8
         shell: pwsh
         run: |
           $ErrorActionPreference = "Continue"
           try {
-            # Si hay una URL configurada, se usa esa (zip con los .exe y .dll)
             $url = "${{ vars.LIBIMOBILEDEVICE_URL }}"
             if ($url) {
               Write-Host "Descargando libimobiledevice desde LIBIMOBILEDEVICE_URL..."
               Invoke-WebRequest -Uri $url -OutFile libi.zip
               Expand-Archive -Path libi.zip -DestinationPath bin -Force
             } else {
-              # Si no, se instala con scoop y se copian los binarios a bin/
-              Write-Host "Instalando libimobiledevice con scoop..."
-              Set-ExecutionPolicy -Scope Process Bypass -Force
-              Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
-              scoop install git
-              scoop bucket add extras
-              scoop install libimobiledevice
-              $src = scoop prefix libimobiledevice
-              Write-Host "Copiando desde $src"
-              New-Item -ItemType Directory -Force -Path bin | Out-Null
-              Copy-Item "$src\*" -Destination bin -Recurse -Force
+              Write-Host "Descargando nuget.exe..."
+              Invoke-WebRequest -Uri https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -OutFile nuget.exe
+              Write-Host "Instalando imobiledevice-net (binarios nativos de Windows)..."
+              .\nuget.exe install imobiledevice-net -OutputDirectory nupkgs -ExcludeVersion -NonInteractive
+              $native = Get-ChildItem -Path nupkgs -Recurse -Directory |
+                Where-Object { $_.FullName -match 'runtimes\\win[0-9a-z-]*-x64\\native$' } |
+                Select-Object -First 1
+              if ($native) {
+                Write-Host "Copiando binarios desde $($native.FullName)"
+                New-Item -ItemType Directory -Force -Path bin | Out-Null
+                Copy-Item "$($native.FullName)\*" -Destination bin -Recurse -Force
+              } else {
+                Write-Host "AVISO: no se encontro la carpeta native win-x64 en el paquete."
+              }
             }
             Write-Host "=== Contenido de bin/ ==="
-            Get-ChildItem -Recurse bin | Select-Object Name, Length | Format-Table -AutoSize
-            if (Test-Path "bin\ideviceinfo.exe") { Write-Host "OK: ideviceinfo.exe empaquetado." }
-            else { Write-Host "AVISO: no se encontro ideviceinfo.exe en bin/." }
+            Get-ChildItem -Recurse bin | Select-Object FullName, Length | Format-Table -AutoSize
+            if (Test-Path "bin\ideviceinfo.exe") { Write-Host "RESULTADO: OK - ideviceinfo.exe empaquetado." }
+            else { Write-Host "RESULTADO: AVISO - no se encontro ideviceinfo.exe en bin/." }
           } catch {
             Write-Host "ERROR empaquetando libimobiledevice: $_"
           }
