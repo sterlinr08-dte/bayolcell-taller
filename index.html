@@ -33,6 +33,19 @@ body::before{content:'';position:fixed;inset:0;z-index:-2;pointer-events:none;
    radial-gradient(700px 600px at 10% 120%, rgba(217,70,239,0.12), transparent 55%);}
 body::after{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;
   background:linear-gradient(180deg, rgba(7,11,20,0) 0%, rgba(7,11,20,0.4) 100%);}
+/* ===== INDICADOR DE CARGA (logo girando + resplandor rojo) ===== */
+.loader{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(700px 500px at 50% 40%, rgba(239,68,68,0.12), transparent 70%), #070b14;
+  transition:opacity .6s ease, visibility .6s; perspective:900px;}
+.loader.hide{opacity:0;visibility:hidden;}
+.loader .loader-ring{position:absolute;width:240px;height:240px;max-width:64vw;max-height:64vw;border-radius:50%;
+  border:3px solid rgba(239,68,68,0.18);border-top-color:#ef4444;animation:ldrSpin 1s linear infinite;}
+.loader .loader-logo{width:180px;max-width:46vw;height:auto;
+  animation:ldrFlip 2.4s cubic-bezier(.4,.05,.3,1) infinite, ldrGlow 1.5s ease-in-out infinite;}
+@keyframes ldrSpin{to{transform:rotate(360deg)}}
+@keyframes ldrFlip{0%{transform:rotateY(0)}100%{transform:rotateY(360deg)}}
+@keyframes ldrGlow{0%,100%{filter:drop-shadow(0 0 6px rgba(239,68,68,0.45))}50%{filter:drop-shadow(0 0 28px rgba(239,68,68,0.95))}}
+@media (prefers-reduced-motion:reduce){.loader .loader-logo{animation:ldrGlow 1.5s ease-in-out infinite}.loader .loader-ring{animation:none}}
 .wrap{max-width:1100px;margin:0 auto;padding:0 20px}
 a{color:inherit;text-decoration:none}
 
@@ -299,6 +312,11 @@ footer::before{ content:''; position:absolute; top:-1px; left:0; right:0; height
 <script>document.documentElement.classList.add('js');</script>
 </head>
 <body>
+<!-- INDICADOR DE CARGA -->
+<div id="loader" class="loader" aria-hidden="true">
+  <div class="loader-ring"></div>
+  <img class="loader-logo" src="assets/logo.png" alt="Cargando Bayolcell">
+</div>
 
 <!-- CINTA DE ANUNCIOS -->
 <div class="topbar" aria-hidden="true">
@@ -634,6 +652,13 @@ footer::before{ content:''; position:absolute; top:-1px; left:0; right:0; height
 
 <script>
   document.getElementById('y').textContent=new Date().getFullYear();
+
+  // Ocultar indicador de carga al terminar
+  (function(){
+    function hideLoader(){ var l=document.getElementById('loader'); if(l) setTimeout(function(){ l.classList.add('hide'); }, 500); }
+    if(document.readyState === 'complete') hideLoader(); else window.addEventListener('load', hideLoader);
+    setTimeout(hideLoader, 5000); // por si acaso
+  })();
 
   // Registro de visitas (solo cuenta; el admin las ve dentro del taller)
   (function(){
