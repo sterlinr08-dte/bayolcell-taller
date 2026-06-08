@@ -118,7 +118,7 @@
       <button id="m-ia" onclick="vista('ia',this)">🧠 <span>Diagnóstico IA</span></button>
       <button id="m-termica" onclick="vista('termica',this)">🌡️ <span>Cámara térmica</span></button>
       <button id="m-microscopio" onclick="vista('microscopio',this)">🔬 <span>Microscopio</span></button>
-      <button disabled>📐 <span>Esquemáticos</span><span class="tag">Fase 5</span></button>
+      <button id="m-esquematicos" onclick="vista('esquematicos',this)">📐 <span>Esquemáticos</span></button>
     </nav>
     <div class="side-foot">
       <b id="sfUser">—</b>
@@ -266,6 +266,26 @@
             </div>
             <div id="micResultado" class="muted" style="text-align:left;margin-top:12px">Captura o sube una imagen del microscopio y presiona “Analizar con IA”.</div>
           </div>
+        </div>
+      </section>
+
+      <!-- ---------- VISTA ESQUEMÁTICOS (REEFOX) ---------- -->
+      <section id="v-esquematicos" class="hidden" style="height:calc(100vh - 100px); display:flex; flex-direction:column;">
+        <div class="card" style="margin-bottom:10px;">
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <b style="font-size:13px;">📐 Esquemáticos (REEFOX)</b>
+            <span class="muted" style="text-align:left;">Entra con tu cuenta de REEFOX. Tu sesión queda guardada.</span>
+            <div style="flex:1"></div>
+            <button class="btn sec" onclick="reefoxRecargar()">⟲ Recargar</button>
+            <button class="btn sec" onclick="reefoxAbrirFuera()">↗ Abrir en navegador</button>
+          </div>
+          <div style="margin-top:10px;">
+            <div class="muted" style="text-align:left; margin-bottom:4px;">Componentes detectados por la IA (toca para copiar y buscar en REEFOX):</div>
+            <div class="chips" id="reefoxComponentes"><span class="muted">— Aún no hay diagnóstico. Haz un diagnóstico y aquí saldrán los componentes.</span></div>
+          </div>
+        </div>
+        <div style="flex:1; border-radius:12px; overflow:hidden; border:1px solid var(--borde); background:#fff;">
+          <webview id="reefoxView" partition="persist:reefox" style="width:100%; height:100%;" allowpopups></webview>
         </div>
       </section>
 

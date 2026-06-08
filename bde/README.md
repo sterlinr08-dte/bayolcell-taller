@@ -132,7 +132,16 @@ En el menú **🔬 Microscopio**: conecta el microscopio USB (aparece como webca
 pads levantados, quemaduras, tombstoning, etc., con su acción recomendada.
 Las capturas se guardan en Supabase (mismo expediente).
 
+## Esquemáticos REEFOX (Fase 5 — incluida)
+En el menú **📐 Esquemáticos** se abre REEFOX embebido. Entra con tu cuenta
+(la sesión queda guardada). Arriba aparecen los **componentes detectados por la
+IA** (U2, J3300, etc.) para copiarlos y buscarlos en REEFOX.
+
+> La dirección de REEFOX se configura en `renderer/config.js` → `REEFOX_URL`.
+> No se incluyen archivos de esquemáticos (son material con licencia); se usa
+> tu propia cuenta de REEFOX.
+
 ## Próximas fases
-- **Fase 5:** esquemáticos ·
+- **Fase 6:** base de conocimiento que aprende ·
   **Fase 6:** base de conocimiento que aprende ·
   **Fase 7:** sensor INA226 (corriente en tiempo real).

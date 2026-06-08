@@ -63,14 +63,15 @@ function iniciarApp() {
 }
 
 // ---------------- NAVEGACIÓN ----------------
-const TITULOS = { lector:'Lector de dispositivo', panic:'Analizador de Panic Log', ia:'Diagnóstico IA', termica:'Cámara térmica', microscopio:'Microscopio' };
+const TITULOS = { lector:'Lector de dispositivo', panic:'Analizador de Panic Log', ia:'Diagnóstico IA', termica:'Cámara térmica', microscopio:'Microscopio', esquematicos:'Esquemáticos (REEFOX)' };
 function vista(v, btn) {
   document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  ['lector','panic','ia','termica','microscopio'].forEach(x => document.getElementById('v-'+x).classList.toggle('hidden', x !== v));
+  ['lector','panic','ia','termica','microscopio','esquematicos'].forEach(x => document.getElementById('v-'+x).classList.toggle('hidden', x !== v));
   document.getElementById('tbTitle').textContent = TITULOS[v] || '';
   if (v === 'termica') prepararTermica();
   if (v === 'microscopio') prepararMicro();
+  if (v === 'esquematicos') prepararEsquematicos();
 }
 
 // ---------------- HERRAMIENTAS (libimobiledevice) ----------------
@@ -613,6 +614,60 @@ async function guardarMicro() {
     btn.disabled = false; btn.textContent = '💾 Reintentar guardar';
     alert('No se pudo guardar: ' + (e.message||''));
   }
+}
+
+// ---------------- ESQUEMÁTICOS REEFOX (Fase 5) ----------------
+let reefoxCargado = false;
+
+function prepararEsquematicos() {
+  const wv = document.getElementById('reefoxView');
+  if (wv && !reefoxCargado) {
+    wv.src = CFG.REEFOX_URL;
+    reefoxCargado = true;
+  }
+  renderComponentesDetectados();
+}
+
+function reefoxRecargar() {
+  const wv = document.getElementById('reefoxView');
+  try { wv.reload(); } catch (e) { wv.src = CFG.REEFOX_URL; }
+}
+
+function reefoxAbrirFuera() {
+  window.open(CFG.REEFOX_URL, '_blank');
+}
+
+// Saca referencias de componentes (U2, J3300, PP_VCC, C12...) del último diagnóstico/panic
+function extraerComponentes(texto) {
+  if (!texto) return [];
+  const out = new Set();
+  const re = /\b(U\d{2,5}|J\d{3,5}|FL\d{2,4}|L\d{3,4}|C\d{3,4}|R\d{3,4}|Q\d{3,4}|PP[_A-Z0-9]{2,}|PMIC|Tristar|Tigris|Hydra|Audio IC|Touch IC|baseband|NAND|SEP)\b/gi;
+  let m;
+  while ((m = re.exec(texto)) !== null) { out.add(m[1]); if (out.size >= 24) break; }
+  return Array.from(out);
+}
+
+function renderComponentesDetectados() {
+  const cont = document.getElementById('reefoxComponentes');
+  if (!cont) return;
+  const fuente = [(window._ultimoDiag && window._ultimoDiag.diagnostico) || '',
+                  document.getElementById('ia_panic') ? document.getElementById('ia_panic').value : ''].join('\n');
+  const comps = extraerComponentes(fuente);
+  if (!comps.length) {
+    cont.innerHTML = '<span class="muted">— Aún no hay componentes. Haz un diagnóstico y aquí saldrán para buscarlos en REEFOX.</span>';
+    return;
+  }
+  cont.innerHTML = comps.map(c => '<span class="chip" title="Copiar" onclick="copiarComponente(this,\''+c.replace(/'/g,"")+'\')">'+escapar(c)+'</span>').join('');
+}
+
+function copiarComponente(el, texto) {
+  try {
+    navigator.clipboard.writeText(texto);
+    const orig = el.textContent;
+    el.textContent = '✓ ' + texto;
+    el.classList.add('on');
+    setTimeout(() => { el.textContent = orig; el.classList.remove('on'); }, 1200);
+  } catch (e) { /* nada */ }
 }
 
 // Si ya hay sesión activa al abrir, entrar directo

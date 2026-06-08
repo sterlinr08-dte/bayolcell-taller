@@ -9,5 +9,7 @@ window.BDE_CONFIG = {
   EDGE_FUNCTION: 'bde-diagnostico',
   EDGE_TERMICO: 'bde-termico',
   EDGE_VISUAL: 'bde-visual',
-  STORAGE_BUCKET: 'diagnostico-img'
+  STORAGE_BUCKET: 'diagnostico-img',
+  // Esquemáticos REEFOX (Fase 5). Cambia esta URL por la que usas para entrar.
+  REEFOX_URL: 'https://www.reefox.net'
 };
