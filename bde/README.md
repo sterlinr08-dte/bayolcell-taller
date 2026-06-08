@@ -11,6 +11,25 @@ IA puede usar la IA.
 
 ---
 
+## ⭐ Forma fácil: descargar el .exe ya armado (sin comandos)
+
+GitHub arma el instalador automáticamente. Para obtenerlo:
+
+1. En el repositorio, entra a la pestaña **Actions**.
+2. Abre **"Armar BAYOL Diagnostic Engine (.exe)"** → botón **"Run workflow"** (rama `main`).
+3. Espera a que termine (unos minutos) → abre la ejecución → en **Artifacts** descarga
+   **`BAYOL-Diagnostic-Engine-Windows`** (un `.zip` con el `Setup.exe` adentro).
+4. Descomprime y ejecuta el `Setup.exe` → instalar → ícono en el escritorio.
+
+> Para que quede como **Release** descargable con enlace fijo, publica un tag que
+> empiece con `bde-v` (ej. `bde-v2.0.0`) y el `.exe` aparecerá en la sección Releases.
+
+Con este método **no necesitas Node ni comandos**. Solo falta, en la PC, el driver
+de Apple (iTunes) y libimobiledevice (abajo) — o que lo empaquetemos en el
+instalador (ver nota al final).
+
+---
+
 ## ¿Qué necesito en la PC del taller? (una sola vez)
 
 ### 1. Node.js
@@ -94,6 +113,17 @@ En el menú **🌡️ Cámara térmica**:
 > Nota: las temperaturas exactas en °C dependen del software propio de cada
 > cámara (FLIR/Qianli). Aun sin escala, la IA detecta las zonas calientes por
 > color. La integración del SDK radiométrico se puede sumar después.
+
+## Nota: empaquetar libimobiledevice dentro del instalador (para vender)
+Para que el cliente NO tenga que instalar libimobiledevice con scoop, se pueden
+incluir sus binarios de Windows dentro del `.exe`:
+1. Sube a algún lugar un `.zip` con `idevice_id.exe`, `ideviceinfo.exe`,
+   `idevicecrashreport.exe` y sus `.dll`.
+2. En GitHub → Settings → Secrets and variables → Actions → **Variables** →
+   crea **`LIBIMOBILEDEVICE_URL`** con el enlace al `.zip`.
+3. El próximo armado los incluirá solos en `bin/` y quedarán dentro del instalador.
+
+(El driver de Apple / iTunes sigue siendo el único requisito externo, por ser de Apple.)
 
 ## Próximas fases
 - **Fase 4:** microscopio + IA visual · **Fase 5:** esquemáticos ·

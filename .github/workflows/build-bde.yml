@@ -1,0 +1,62 @@
+name: Armar BAYOL Diagnostic Engine (.exe)
+
+# Genera el instalador de Windows automáticamente.
+# - Botón manual: pestaña Actions -> "Armar BAYOL Diagnostic Engine (.exe)" -> Run workflow
+# - O al publicar un tag que empiece con "bde-v" (ej. bde-v2.0.0): además crea un Release con el .exe
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'bde-v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: bde
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: (Opcional) Incluir libimobiledevice en el instalador
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $url = "${{ vars.LIBIMOBILEDEVICE_URL }}"
+          if ($url) {
+            Write-Host "Descargando libimobiledevice desde la variable LIBIMOBILEDEVICE_URL..."
+            Invoke-WebRequest -Uri $url -OutFile libi.zip
+            Expand-Archive -Path libi.zip -DestinationPath bin -Force
+            Write-Host "libimobiledevice empaquetado en bin/."
+          } else {
+            Write-Host "No hay LIBIMOBILEDEVICE_URL configurada; se omite. El usuario lo instala con scoop (ver README)."
+          }
+
+      - name: Instalar dependencias
+        run: npm install
+
+      - name: Generar instalador (.exe)
+        run: npm run dist
+
+      - name: Subir el instalador como artefacto descargable
+        uses: actions/upload-artifact@v4
+        with:
+          name: BAYOL-Diagnostic-Engine-Windows
+          path: bde/dist/*.exe
+          if-no-files-found: error
+
+      - name: Publicar Release (solo si es un tag bde-v*)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: bde/dist/*.exe
