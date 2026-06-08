@@ -826,6 +826,7 @@ body{
             <button id="menu-atencion" onclick="nav('atencion',this)"><i class="ti ti-headset"></i> <span>Atención al Cliente</span></button>
             <button id="menu-financiamientos" onclick="nav('financiamientos',this)"><i class="ti ti-cash"></i> <span>Financiamientos</span></button>
             <button id="menu-contabilidad" onclick="nav('contabilidad',this)"><i class="ti ti-calculator"></i> <span>Contabilidad</span></button>
+            <button id="menu-diagnostico" onclick="nav('diagnostico',this)"><i class="ti ti-stethoscope"></i> <span>Diagnóstico IA</span></button>
             <button id="menu-recepcion" onclick="nav('recepcion',this)"><i class="ti ti-clipboard-plus"></i> <span>Recepción de Equipos</span></button>
             <button id="menu-ordenes" onclick="nav('ordenes',this)"><i class="ti ti-tool"></i> <span>Órdenes de Trabajo</span></button>
             
@@ -875,6 +876,65 @@ body{
                 </div>
                 <div id="atencionKpis" class="kpi-row" style="margin-bottom:16px;"></div>
                 <div id="atencionContenido"></div>
+            </div>
+
+            <!-- DIAGNÓSTICO IA (motor de reparación) -->
+            <div id="v-diagnostico" class="view">
+                <h2 style="margin:0 0 4px;"><i class="ti ti-stethoscope" style="color:#dc2626;"></i> Diagnóstico IA — Motor de Reparación</h2>
+                <p style="color:var(--text-muted); font-size:12.5px; margin:0 0 14px;">Describe el equipo y los síntomas (y pega el panic log si lo tienes). La IA razona el diagnóstico, los pasos de reparación y las piezas probables.</p>
+
+                <div class="card" style="margin-bottom:14px;">
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px;">
+                        <div><label>Modelo</label><input id="dg_modelo" placeholder="Ej. iPhone 12"></div>
+                        <div><label>Versión iOS</label><input id="dg_ios" placeholder="Ej. 16.3.1"></div>
+                        <div><label>Batería (voltaje/ciclos/%)</label><input id="dg_bateria" placeholder="Ej. 3.8V · 450 ciclos · 87%"></div>
+                    </div>
+                    <div style="margin-top:10px;"><label>Síntomas</label>
+                        <div id="dg_sintomas" style="display:flex; flex-wrap:wrap; gap:6px; margin:6px 0;">
+                            <button type="button" class="diag-sint btn btn-light" style="font-size:11px; padding:5px 10px;" onclick="diagToggleSint(this)">No enciende</button>
+                            <button type="button" class="diag-sint btn btn-light" style="font-size:11px; padding:5px 10px;" onclick="diagToggleSint(this)">Bootloop</button>
+                            <button type="button" class="diag-sint btn btn-light" style="font-size:11px; padding:5px 10px;" onclick="diagToggleSint(this)">No carga</button>
+                            <button type="button" class="diag-sint btn btn-light" style="font-size:11px; padding:5px 10px;" onclick="diagToggleSint(this)">Sin imagen</button>
+                            <button type="button" class="diag-sint btn btn-light" style="font-size:11px; padding:5px 10px;" onclick="diagToggleSint(this)">Sin touch</button>
+                            <button type="button" class="diag-sint btn btn-light" style="font-size:11px; padding:5px 10px;" onclick="diagToggleSint(this)">Sin señal / red</button>
+                            <button type="button" class="diag-sint btn btn-light" style="font-size:11px; padding:5px 10px;" onclick="diagToggleSint(this)">Sin audio</button>
+                            <button type="button" class="diag-sint btn btn-light" style="font-size:11px; padding:5px 10px;" onclick="diagToggleSint(this)">Se calienta</button>
+                            <button type="button" class="diag-sint btn btn-light" style="font-size:11px; padding:5px 10px;" onclick="diagToggleSint(this)">Mojado</button>
+                            <button type="button" class="diag-sint btn btn-light" style="font-size:11px; padding:5px 10px;" onclick="diagToggleSint(this)">Se reinicia</button>
+                            <button type="button" class="diag-sint btn btn-light" style="font-size:11px; padding:5px 10px;" onclick="diagToggleSint(this)">Batería se agota</button>
+                            <button type="button" class="diag-sint btn btn-light" style="font-size:11px; padding:5px 10px;" onclick="diagToggleSint(this)">Sin Face ID</button>
+                            <button type="button" class="diag-sint btn btn-light" style="font-size:11px; padding:5px 10px;" onclick="diagToggleSint(this)">Cámara falla</button>
+                            <button type="button" class="diag-sint btn btn-light" style="font-size:11px; padding:5px 10px;" onclick="diagToggleSint(this)">No reconoce SIM</button>
+                        </div>
+                        <input id="dg_sint_extra" placeholder="Otros síntomas (texto libre)...">
+                    </div>
+                    <div style="margin-top:10px;"><label>Panic log (opcional — pégalo aquí)</label>
+                        <textarea id="dg_panic" rows="4" style="width:100%; font-family:monospace; font-size:12px;" placeholder="panic-full... (si el equipo lo generó)"></textarea>
+                    </div>
+                    <div class="form-row" style="margin-top:8px;"><label>Historial / contexto</label><input id="dg_historial" placeholder="Ej. llegó mojado, reparado antes, se cayó..."></div>
+                    <div style="margin-top:12px;"><button class="btn btn-blue" id="dg_btn" onclick="diagnosticarIA()"><i class="ti ti-brain"></i> Diagnosticar con IA</button></div>
+                </div>
+
+                <div class="card" id="diagResultadoCard" style="display:none; margin-bottom:14px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+                        <h3 style="margin:0;"><i class="ti ti-report-medical" style="color:#16a34a;"></i> Diagnóstico</h3>
+                        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                            <button class="btn btn-light" style="font-size:12px;" onclick="guardarDiagnosticoIA()"><i class="ti ti-device-floppy"></i> Guardar diagnóstico</button>
+                            <button class="btn btn-light" style="font-size:12px;" onclick="guardarCasoConocimiento()"><i class="ti ti-bookmark"></i> Guardar como caso resuelto</button>
+                        </div>
+                    </div>
+                    <div id="diagResultado" style="white-space:pre-wrap; font-size:13.5px; line-height:1.5;"></div>
+                </div>
+
+                <div class="card">
+                    <h3 style="margin:0 0 10px;"><i class="ti ti-database" style="color:#0891b2;"></i> Base de Conocimiento (casos resueltos)</h3>
+                    <div class="table-wrap" style="max-height:340px; overflow-y:auto;">
+                        <table>
+                            <thead><tr><th>Modelo</th><th>Panic</th><th>Solución</th><th>✓</th><th></th></tr></thead>
+                            <tbody id="conocimientoTable"><tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Aún no hay casos guardados.</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
 
             <!-- CONTABILIDAD (solo admin + contadora) -->
@@ -3702,7 +3762,8 @@ function applyAccessControls() {
         'menu-reportes': 'reportes_ver',
         'menu-configuracion': 'config_ver',
         'menu-financiamientos': 'financiamientos_ver',
-        'menu-contabilidad': 'contabilidad_ver'
+        'menu-contabilidad': 'contabilidad_ver',
+        'menu-diagnostico': 'diagnostico_ver'
     };
 
     Object.keys(menuPermisos).forEach(menuId => {
@@ -3804,7 +3865,8 @@ const NAV_PERMISOS = {
     'reportes': 'reportes_ver',
     'configuracion': 'config_ver',
     'financiamientos': 'financiamientos_ver',
-    'contabilidad': 'contabilidad_ver'
+    'contabilidad': 'contabilidad_ver',
+    'diagnostico': 'diagnostico_ver'
 };
 
 function nav(v, btn) {
@@ -3836,6 +3898,7 @@ function nav(v, btn) {
     if(v === 'financiamientos') { setTimeout(() => { renderFinanciamientos(); }, 50); }
     if(v === 'articulos') { setTimeout(() => { actualizarInfoplusCount(); renderInfoplusBusqueda(); }, 50); }
     if(v === 'contabilidad') { setTimeout(() => { cargarCatalogoCuentas(); }, 50); }
+    if(v === 'diagnostico') { setTimeout(() => { cargarConocimiento(); }, 50); }
     if(v === 'recepcion') { setTimeout(async () => {
         if(typeof renderRecepcionesRealizadas === 'function') renderRecepcionesRealizadas();
         // Recargar fallas comunes desde la BD para reflejar cambios hechos en Config
@@ -4744,6 +4807,68 @@ async function eliminarAsiento(id) {
     if(!await confirmar('¿Eliminar este asiento? Se borrarán sus líneas.')) return;
     try { const { error } = await supabaseClient.from('conta_asientos').delete().eq('id', id); if(error) throw error; toast('Asiento eliminado.'); renderLibroDiario(); }
     catch(e) { logError('Eliminar asiento', e); toastError(getFriendlyError(e)); }
+}
+
+// ===== DIAGNÓSTICO IA (BAYOL DIAGNOSTIC ENGINE — Fase 1) =====
+let _ultimoDiag = null;
+function diagToggleSint(btn){ btn.classList.toggle('on'); btn.classList.toggle('btn-blue'); btn.classList.toggle('btn-light'); }
+function _diagSintomas(){
+    const chips = Array.from(document.querySelectorAll('#dg_sintomas .diag-sint.on')).map(b => b.textContent.trim());
+    const extra = (document.getElementById('dg_sint_extra')?.value || '').trim();
+    if(extra) chips.push(extra);
+    return chips;
+}
+async function diagnosticarIA(){
+    const modelo = (document.getElementById('dg_modelo').value || '').trim();
+    const ios_version = (document.getElementById('dg_ios').value || '').trim();
+    const bateria = (document.getElementById('dg_bateria').value || '').trim();
+    const panic_log = (document.getElementById('dg_panic').value || '').trim();
+    const historial = (document.getElementById('dg_historial').value || '').trim();
+    const sintomas = _diagSintomas();
+    if(!modelo && !panic_log && !sintomas.length) return toast('Indica al menos el modelo y los síntomas.', 'error');
+    const btn = document.getElementById('dg_btn'), card = document.getElementById('diagResultadoCard'), res = document.getElementById('diagResultado');
+    btn.disabled = true; const txtOrig = btn.innerHTML; btn.innerHTML = '<i class="ti ti-loader"></i> Analizando...';
+    card.style.display = 'block'; res.textContent = '🤖 La IA está analizando el caso… (puede tardar unos segundos)';
+    try{
+        const { data, error } = await supabaseClient.functions.invoke('bde-diagnostico', { body: { modelo, ios_version, bateria, panic_log, sintomas, historial } });
+        if(error) throw error;
+        if(!data || !data.ok){ res.textContent = '⚠️ ' + ((data && data.error) || 'No se pudo obtener el diagnóstico.'); }
+        else { res.textContent = data.diagnostico || 'Sin respuesta.'; _ultimoDiag = { modelo, ios_version, bateria, panic_log, historial, sintomas, diagnostico: data.diagnostico }; }
+    }catch(e){ logError('Diagnóstico IA', e); res.textContent = '⚠️ Error: ' + getFriendlyError(e); }
+    finally{ btn.disabled = false; btn.innerHTML = txtOrig; }
+}
+async function guardarDiagnosticoIA(){
+    if(!_ultimoDiag) return toast('Primero genera un diagnóstico.', 'error');
+    try{
+        const { error } = await supabaseClient.from('diagnosticos').insert({ modelo: _ultimoDiag.modelo || null, ios_version: _ultimoDiag.ios_version || null, panic_log_raw: _ultimoDiag.panic_log || null, sintomas: _ultimoDiag.sintomas, ia_diagnostico: _ultimoDiag.diagnostico, creado_por: sessionUser?.id || null });
+        if(error) throw error;
+        toast('✅ Diagnóstico guardado.');
+    }catch(e){ logError('Guardar diagnóstico', e); toastError(getFriendlyError(e)); }
+}
+async function guardarCasoConocimiento(){
+    if(!_ultimoDiag) return toast('Primero genera un diagnóstico.', 'error');
+    const solucion = (prompt('¿Cuál fue la SOLUCIÓN que funcionó? (se guarda en la base de conocimiento)') || '').trim();
+    if(!solucion) return;
+    try{
+        const { error } = await supabaseClient.from('conocimiento_casos').insert({ modelo: _ultimoDiag.modelo || null, sintomas: _ultimoDiag.sintomas, solucion, exitoso: true });
+        if(error) throw error;
+        toast('✅ Caso guardado en la base de conocimiento.');
+        cargarConocimiento();
+    }catch(e){ logError('Guardar caso', e); toastError(getFriendlyError(e)); }
+}
+async function cargarConocimiento(){
+    const tb = document.getElementById('conocimientoTable'); if(!tb) return;
+    try{
+        const { data, error } = await supabaseClient.from('conocimiento_casos').select('*').order('created_at', { ascending: false }).limit(100);
+        if(error) throw error;
+        if(!data || !data.length){ tb.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);">Aún no hay casos guardados.</td></tr>'; return; }
+        tb.innerHTML = data.map(c => `<tr><td>${escapeHtml(c.modelo || '')}</td><td>${escapeHtml(c.panic_code || '')}</td><td>${escapeHtml(c.solucion || '')}</td><td>${c.exitoso ? '✅' : ''}</td><td><button onclick="eliminarCaso('${c.id}')" style="background:#fee2e2;color:#991b1b;border:0;padding:5px 7px;border-radius:6px;cursor:pointer;"><i class="ti ti-trash"></i></button></td></tr>`).join('');
+    }catch(e){ logError('Cargar conocimiento', e); }
+}
+async function eliminarCaso(id){
+    if(!await confirmar('¿Eliminar este caso de la base de conocimiento?')) return;
+    try{ const { error } = await supabaseClient.from('conocimiento_casos').delete().eq('id', id); if(error) throw error; toast('Caso eliminado.'); cargarConocimiento(); }
+    catch(e){ logError('Eliminar caso', e); toastError(getFriendlyError(e)); }
 }
 
 // ===== CATÁLOGO INFO PLUS (importación CSV + búsqueda) =====
@@ -11690,6 +11815,12 @@ const PERMISOS_DEF = [
         items: [
             { id: 'contabilidad_ver', label: 'Ver módulo de Contabilidad (catálogo, asientos, reportes)' },
             { id: 'solo_contabilidad', label: 'SOLO ver Contabilidad (oculta todo lo demás) — ideal para la contadora' }
+        ]
+    },
+    {
+        grupo: '🔬 Diagnóstico IA', color: '#dc2626',
+        items: [
+            { id: 'diagnostico_ver', label: 'Usar el módulo de Diagnóstico IA (motor de reparación)' }
         ]
     },
     {
