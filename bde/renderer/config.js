@@ -8,5 +8,6 @@ window.BDE_CONFIG = {
   AUTH_DOMAIN: 'bayolcell.app',
   EDGE_FUNCTION: 'bde-diagnostico',
   EDGE_TERMICO: 'bde-termico',
+  EDGE_VISUAL: 'bde-visual',
   STORAGE_BUCKET: 'diagnostico-img'
 };

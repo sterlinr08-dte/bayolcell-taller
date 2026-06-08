@@ -63,13 +63,14 @@ function iniciarApp() {
 }
 
 // ---------------- NAVEGACIÓN ----------------
-const TITULOS = { lector:'Lector de dispositivo', panic:'Analizador de Panic Log', ia:'Diagnóstico IA', termica:'Cámara térmica' };
+const TITULOS = { lector:'Lector de dispositivo', panic:'Analizador de Panic Log', ia:'Diagnóstico IA', termica:'Cámara térmica', microscopio:'Microscopio' };
 function vista(v, btn) {
   document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  ['lector','panic','ia','termica'].forEach(x => document.getElementById('v-'+x).classList.toggle('hidden', x !== v));
+  ['lector','panic','ia','termica','microscopio'].forEach(x => document.getElementById('v-'+x).classList.toggle('hidden', x !== v));
   document.getElementById('tbTitle').textContent = TITULOS[v] || '';
   if (v === 'termica') prepararTermica();
+  if (v === 'microscopio') prepararMicro();
 }
 
 // ---------------- HERRAMIENTAS (libimobiledevice) ----------------
@@ -504,6 +505,107 @@ async function guardarTermica() {
     const { error } = await sb.from('diagnostico_imagenes').insert({
       tipo: 'termica', storage_path: nombre, modelo,
       analisis_ia: window._ultimoTermico || null
+    });
+    if (error) throw error;
+    btn.textContent = '✅ Guardado';
+  } catch (e) {
+    btn.disabled = false; btn.textContent = '💾 Reintentar guardar';
+    alert('No se pudo guardar: ' + (e.message||''));
+  }
+}
+
+// ---------------- MICROSCOPIO (Fase 4) ----------------
+let micStream = null;
+let micImgB64 = null;
+let micPreparado = false;
+
+async function prepararMicro() {
+  if (micPreparado) return;
+  micPreparado = true;
+  try {
+    const tmp = await navigator.mediaDevices.getUserMedia({ video: true });
+    tmp.getTracks().forEach(t => t.stop());
+    const devs = await navigator.mediaDevices.enumerateDevices();
+    const cams = devs.filter(d => d.kind === 'videoinput');
+    const sel = document.getElementById('micCam');
+    sel.innerHTML = cams.map((c, i) => '<option value="'+c.deviceId+'">'+(c.label || ('Cámara '+(i+1)))+'</option>').join('')
+      || '<option value="">No se detectaron cámaras</option>';
+  } catch (e) { /* sin permiso aún */ }
+}
+
+async function iniciarMicroscopio() {
+  detenerMicroscopio();
+  const id = document.getElementById('micCam').value;
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({ video: id ? { deviceId: { exact: id } } : true });
+    document.getElementById('micVideo').srcObject = micStream;
+  } catch (e) { alert('No se pudo iniciar el microscopio: ' + (e.message||'')); }
+}
+
+function detenerMicroscopio() {
+  if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+  const v = document.getElementById('micVideo'); if (v) v.srcObject = null;
+}
+
+function capturarMicro() {
+  const v = document.getElementById('micVideo');
+  if (!v.srcObject) { alert('Primero inicia el microscopio o sube una imagen.'); return; }
+  const c = document.getElementById('micCanvas');
+  c.width = v.videoWidth || 640; c.height = v.videoHeight || 480;
+  c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+  micImgB64 = c.toDataURL('image/jpeg', 0.92);
+  mostrarCapturaMicro();
+}
+
+function cargarImagenMicro(input) {
+  const f = input.files && input.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = e => { micImgB64 = String(e.target.result); mostrarCapturaMicro(); };
+  r.readAsDataURL(f); input.value = '';
+}
+
+function mostrarCapturaMicro() {
+  document.getElementById('micCaptura').classList.remove('hidden');
+  document.getElementById('micImg').src = micImgB64;
+  document.getElementById('micBtnIA').disabled = false;
+  document.getElementById('micBtnGuardar').disabled = false;
+  document.getElementById('micResultado').innerHTML = 'Imagen lista. Presiona “Analizar con IA”.';
+}
+
+async function analizarMicro() {
+  if (!micImgB64) return;
+  const btn = document.getElementById('micBtnIA'), out = document.getElementById('micResultado');
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Analizando…';
+  out.innerHTML = '<span class="spin"></span> La IA está revisando la imagen del microscopio…';
+  try {
+    const modelo = document.getElementById('ia_modelo').value.trim() ||
+      (ultimaLectura && (MODELOS[ultimaLectura.info?.ProductType] || ultimaLectura.info?.ProductType)) || '';
+    const { data, error } = await sb.functions.invoke(CFG.EDGE_VISUAL, {
+      body: { imagen_base64: micImgB64, modelo, contexto: document.getElementById('ia_historial').value.trim() }
+    });
+    if (error) throw error;
+    if (!data || !data.ok) throw new Error(data && data.error ? data.error : 'La IA no respondió.');
+    window._ultimoMicro = data.analisis;
+    out.innerHTML = '<div class="ia-box">'+escapar(data.analisis)+'</div>';
+  } catch (e) {
+    let m = e.message || 'Error';
+    if (/permis|denied|jwt|auth/i.test(m)) m = 'No tienes permiso o tu sesión expiró.';
+    out.innerHTML = '<div class="alert critico"><div><div class="t">No se pudo analizar</div><div>'+escapar(m)+'</div></div></div>';
+  } finally { btn.disabled = false; btn.textContent = '🧠 Analizar con IA'; }
+}
+
+async function guardarMicro() {
+  if (!micImgB64) return;
+  const btn = document.getElementById('micBtnGuardar');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  try {
+    const resp = await fetch(micImgB64); const blob = await resp.blob();
+    const nombre = 'microscopio/' + Date.now() + '.jpg';
+    const up = await sb.storage.from(CFG.STORAGE_BUCKET).upload(nombre, blob, { contentType: 'image/jpeg', upsert: false });
+    if (up.error) throw up.error;
+    const modelo = document.getElementById('ia_modelo').value.trim() || '';
+    const { error } = await sb.from('diagnostico_imagenes').insert({
+      tipo: 'microscopio', storage_path: nombre, modelo, analisis_ia: window._ultimoMicro || null
     });
     if (error) throw error;
     btn.textContent = '✅ Guardado';

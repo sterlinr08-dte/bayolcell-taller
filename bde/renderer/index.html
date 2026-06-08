@@ -117,7 +117,7 @@
       <button id="m-panic" onclick="vista('panic',this)">📋 <span>Panic Log</span></button>
       <button id="m-ia" onclick="vista('ia',this)">🧠 <span>Diagnóstico IA</span></button>
       <button id="m-termica" onclick="vista('termica',this)">🌡️ <span>Cámara térmica</span></button>
-      <button disabled>🔬 <span>Microscopio</span><span class="tag">Fase 4</span></button>
+      <button id="m-microscopio" onclick="vista('microscopio',this)">🔬 <span>Microscopio</span></button>
       <button disabled>📐 <span>Esquemáticos</span><span class="tag">Fase 5</span></button>
     </nav>
     <div class="side-foot">
@@ -233,6 +233,39 @@
         <div class="card">
           <h3><span class="ic">🌡️</span> Umbrales de temperatura por componente (referencia)</h3>
           <div class="row" id="termUmbrales"></div>
+        </div>
+      </section>
+
+      <!-- ---------- VISTA MICROSCOPIO ---------- -->
+      <section id="v-microscopio" class="hidden">
+        <div class="grid2">
+          <div class="card">
+            <h3><span class="ic">🔬</span> Microscopio en vivo</h3>
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+              <select id="micCam" style="flex:1;min-width:160px"></select>
+              <button class="btn sec" onclick="iniciarMicroscopio()">▶ Iniciar</button>
+              <button class="btn sec" onclick="detenerMicroscopio()">■ Detener</button>
+            </div>
+            <video id="micVideo" autoplay playsinline muted style="width:100%;border-radius:10px;background:#000;aspect-ratio:4/3;object-fit:contain"></video>
+            <canvas id="micCanvas" class="hidden"></canvas>
+            <div style="display:flex;gap:8px;margin-top:10px">
+              <button class="btn" onclick="capturarMicro()">📸 Capturar</button>
+              <button class="btn sec" onclick="document.getElementById('micFile').click()">📂 Subir imagen</button>
+              <input type="file" id="micFile" accept="image/*" style="display:none" onchange="cargarImagenMicro(this)">
+            </div>
+            <p class="muted" style="text-align:left;margin-top:8px">Selecciona el microscopio USB (aparece como webcam) y dale Iniciar. La IA detecta corrosión, soldadura fría, puentes de estaño, pads levantados, quemaduras, etc.</p>
+          </div>
+          <div class="card">
+            <h3><span class="ic">📄</span> Análisis visual</h3>
+            <div id="micCaptura" class="hidden" style="margin-bottom:10px">
+              <img id="micImg" style="width:100%;border-radius:10px;border:1px solid var(--borde)">
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn" id="micBtnIA" onclick="analizarMicro()" disabled>🧠 Analizar con IA</button>
+              <button class="btn sec" id="micBtnGuardar" onclick="guardarMicro()" disabled>💾 Guardar captura</button>
+            </div>
+            <div id="micResultado" class="muted" style="text-align:left;margin-top:12px">Captura o sube una imagen del microscopio y presiona “Analizar con IA”.</div>
+          </div>
         </div>
       </section>
 

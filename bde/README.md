@@ -125,7 +125,14 @@ incluir sus binarios de Windows dentro del `.exe`:
 
 (El driver de Apple / iTunes sigue siendo el único requisito externo, por ser de Apple.)
 
+## Microscopio (Fase 4 — incluida)
+En el menú **🔬 Microscopio**: conecta el microscopio USB (aparece como webcam),
+**Iniciar** → ves la placa en vivo → **Capturar** (o **Subir imagen**) →
+**Analizar con IA**. La IA detecta corrosión, soldadura fría, puentes de estaño,
+pads levantados, quemaduras, tombstoning, etc., con su acción recomendada.
+Las capturas se guardan en Supabase (mismo expediente).
+
 ## Próximas fases
-- **Fase 4:** microscopio + IA visual · **Fase 5:** esquemáticos ·
+- **Fase 5:** esquemáticos ·
   **Fase 6:** base de conocimiento que aprende ·
   **Fase 7:** sensor INA226 (corriente en tiempo real).
