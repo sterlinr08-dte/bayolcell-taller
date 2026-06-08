@@ -3703,21 +3703,23 @@ function applyAccessControls() {
         return;
     }
     
-    // MODO "SOLO MI TRABAJO": el técnico solo ve esa pantalla
+    // MODO "SOLO MI TRABAJO": el técnico solo ve esa pantalla (+ Diagnóstico IA si tiene el permiso)
     if(tienePermiso('solo_mi_trabajo')) {
+        const verDiag = tienePermiso('diagnostico_ver');
         document.querySelectorAll('.nav button').forEach(b => {
-            b.style.display = (b.id === 'menu-miTrabajo') ? '' : 'none';
+            b.style.display = (b.id === 'menu-miTrabajo' || (verDiag && b.id === 'menu-diagnostico')) ? '' : 'none';
         });
-        // Ocultar el botón de menú (no hay a dónde navegar) y cerrar el sidebar
+        // Si solo hay "Mi Trabajo", ocultar el botón de menú; si además tiene Diagnóstico IA, mantenerlo para poder cambiar
         const toggle = document.querySelector('.menu-toggle');
-        if(toggle) toggle.style.display = 'none';
+        if(toggle) toggle.style.display = verDiag ? '' : 'none';
         if(typeof closeSidebar === 'function') closeSidebar();
         // Asegurar que el scroll quede libre (por si el backdrop trabó la página)
         document.body.style.overflow = '';
         document.body.style.position = '';
-        // Navegar a Mi Trabajo SOLO si no estamos ya ahí (evita bucle de scroll)
+        // Navegar a Mi Trabajo SOLO si no estamos ya en una de las pantallas permitidas (evita bucle de scroll)
         const yaEnMiTrabajo = document.getElementById('v-miTrabajo')?.classList.contains('active');
-        if(!yaEnMiTrabajo) setTimeout(() => nav('miTrabajo'), 100);
+        const yaEnDiag = document.getElementById('v-diagnostico')?.classList.contains('active');
+        if(!yaEnMiTrabajo && !yaEnDiag) setTimeout(() => nav('miTrabajo'), 100);
         return;
     }
     
