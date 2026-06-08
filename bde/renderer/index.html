@@ -158,8 +158,13 @@
       <section id="v-panic" class="hidden">
         <div class="card">
           <h3><span class="ic">📋</span> Analizador de Panic Log</h3>
-          <p class="muted" style="text-align:left;margin-bottom:10px">Se llenan solos al leer el dispositivo. También puedes pegar un panic log manualmente.</p>
-          <textarea id="panicManual" rows="6" placeholder="Pega aquí el contenido del panic-full-*.ips si lo tienes…"></textarea>
+          <p class="muted" style="text-align:left;margin-bottom:10px">Se llenan solos al leer el dispositivo. También puedes pegar un panic log o subir el archivo.</p>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+            <input type="file" id="panicFile" accept=".ips,.txt,.json,.log" style="display:none" onchange="cargarPanicArchivo(this)">
+            <button class="btn sec" onclick="document.getElementById('panicFile').click()">📂 Subir archivo .ips</button>
+            <span id="panicFileNombre" class="muted" style="text-align:left"></span>
+          </div>
+          <textarea id="panicManual" rows="6" placeholder="Pega aquí el contenido del panic-full-*.ips o súbelo con el botón de arriba…"></textarea>
           <div style="margin-top:10px"><button class="btn" onclick="analizarPanicManual()">Analizar panic</button></div>
           <div id="panicResultado" style="margin-top:14px"></div>
         </div>

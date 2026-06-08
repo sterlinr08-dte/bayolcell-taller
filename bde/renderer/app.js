@@ -213,6 +213,32 @@ function pintarPanicDesdeLectura(r) {
   if (r.panics[0]) document.getElementById('panicManual').value = r.panics[0].panicString || '';
 }
 
+// Carga un archivo .ips/.txt, extrae el panicString y lo analiza
+function cargarPanicArchivo(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  const nom = document.getElementById('panicFileNombre');
+  if (nom) nom.textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const txt = String(e.target.result || '');
+    let panicString = '';
+    try {
+      const nl = txt.indexOf('\n');
+      const body = JSON.parse(txt.slice(nl + 1));
+      panicString = body.panicString || body.panicStringStr || '';
+    } catch (_) {}
+    if (!panicString) {
+      const m = txt.match(/"panicString"\s*:\s*"([\s\S]*?)"\s*[,}]/);
+      if (m) panicString = m[1].replace(/\\n/g, '\n');
+    }
+    document.getElementById('panicManual').value = panicString || txt.slice(0, 8000);
+    analizarPanicManual();
+  };
+  reader.readAsText(file);
+  input.value = '';
+}
+
 function analizarPanicManual() {
   const txt = document.getElementById('panicManual').value.trim();
   const cont = document.getElementById('panicResultado');

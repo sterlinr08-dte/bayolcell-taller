@@ -908,8 +908,14 @@ body{
                         </div>
                         <input id="dg_sint_extra" placeholder="Otros síntomas (texto libre)...">
                     </div>
-                    <div style="margin-top:10px;"><label>Panic log (opcional — pégalo aquí)</label>
-                        <textarea id="dg_panic" rows="4" style="width:100%; font-family:monospace; font-size:12px;" placeholder="panic-full... (si el equipo lo generó)"></textarea>
+                    <div style="margin-top:10px;">
+                        <label>Panic log (opcional — pégalo o sube el archivo)</label>
+                        <div style="display:flex; gap:8px; align-items:center; margin:4px 0 6px;">
+                            <input type="file" id="dg_panic_file" accept=".ips,.txt,.json,.log" style="display:none;" onchange="cargarPanicArchivo(this)">
+                            <button type="button" class="btn btn-light" onclick="document.getElementById('dg_panic_file').click()"><i class="ti ti-file-upload"></i> Subir archivo .ips</button>
+                            <span id="dg_panic_nombre" style="font-size:12px; color:#888;"></span>
+                        </div>
+                        <textarea id="dg_panic" rows="4" style="width:100%; font-family:monospace; font-size:12px;" placeholder="panic-full... (pégalo aquí o súbelo con el botón de arriba)"></textarea>
                     </div>
                     <div class="form-row" style="margin-top:8px;"><label>Historial / contexto</label><input id="dg_historial" placeholder="Ej. llegó mojado, reparado antes, se cayó..."></div>
                     <div style="margin-top:12px;"><button class="btn btn-blue" id="dg_btn" onclick="diagnosticarIA()"><i class="ti ti-brain"></i> Diagnosticar con IA</button></div>
@@ -4819,6 +4825,31 @@ function _diagSintomas(){
     const extra = (document.getElementById('dg_sint_extra')?.value || '').trim();
     if(extra) chips.push(extra);
     return chips;
+}
+// Carga un archivo de panic (.ips/.txt) y extrae el panicString al textarea
+function cargarPanicArchivo(input){
+    const file = input.files && input.files[0];
+    if(!file) return;
+    const nombre = document.getElementById('dg_panic_nombre');
+    if(nombre) nombre.textContent = file.name;
+    const reader = new FileReader();
+    reader.onload = function(e){
+        const txt = String(e.target.result || '');
+        let panicString = '';
+        // Los .ips suelen traer: 1ra línea = cabecera JSON, resto = cuerpo JSON con "panicString"
+        try {
+            const nl = txt.indexOf('\n');
+            const body = JSON.parse(txt.slice(nl + 1));
+            panicString = body.panicString || body.panicStringStr || '';
+        } catch(_){}
+        if(!panicString){
+            const m = txt.match(/"panicString"\s*:\s*"([\s\S]*?)"\s*[,}]/);
+            if(m) panicString = m[1].replace(/\\n/g, '\n');
+        }
+        document.getElementById('dg_panic').value = panicString || txt.slice(0, 8000);
+    };
+    reader.readAsText(file);
+    input.value = ''; // permite volver a subir el mismo archivo
 }
 async function diagnosticarIA(){
     const modelo = (document.getElementById('dg_modelo').value || '').trim();
