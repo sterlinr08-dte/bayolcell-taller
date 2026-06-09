@@ -280,6 +280,17 @@
             <p class="muted" style="text-align:left;margin-top:8px">El estado de bloqueo SIM confiable se obtiene por chequeo de IMEI (servicio en línea).</p>
           </div>
         </div>
+        <div class="card">
+          <h3><span class="ic">📡</span> Códigos de Tubo SIM por compañía</h3>
+          <p class="muted" style="text-align:left">Guarda aquí tus códigos/ICCID por compañía. Cuando identifiques a qué operador está bloqueado el iPhone, tienes el código a mano.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin:8px 0">
+            <div class="field" style="flex:1;min-width:120px"><label>Compañía</label><input class="txt" id="ts_comp" placeholder="AT&T, T-Mobile…"></div>
+            <div class="field" style="flex:2;min-width:160px"><label>Código / ICCID</label><input class="txt" id="ts_iccid" placeholder="8901..."></div>
+            <div class="field" style="flex:2;min-width:140px"><label>Nota (opcional)</label><input class="txt" id="ts_nota" placeholder="modelo/iOS, truco…"></div>
+            <button class="btn" id="ts_btn" onclick="agregarTuboSim(this)">➕ Guardar</button>
+          </div>
+          <div id="tuboSimLista" class="muted" style="text-align:left">Cargando…</div>
+        </div>
         <div class="card hidden" id="appsCard">
           <h3><span class="ic">📲</span> Apps instaladas</h3>
           <pre id="appsBox" class="panic-box" style="max-height:240px"></pre>

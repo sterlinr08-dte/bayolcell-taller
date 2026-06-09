@@ -71,6 +71,7 @@ function vista(v, btn) {
   document.getElementById('tbTitle').textContent = TITULOS[v] || '';
   if (v === 'bateria' && ultimaLectura) pintarBateria(ultimaLectura.info, ultimaLectura.bateria);
   if (v === 'pantalla') prepararPantalla();
+  if (v === 'herramientas') cargarTuboSim();
   if (v === 'termica') prepararTermica();
   if (v === 'microscopio') prepararMicro();
   if (v === 'esquematicos') prepararEsquematicos();
@@ -546,13 +547,17 @@ function pintarFicha(r) {
   document.getElementById('fichaTec').innerHTML = html;
   document.getElementById('btnImprimirFicha').classList.remove('hidden');
 
-  // Carrier / IMEI
-  const operador = i['kCTPostponementInfoServiceProvider'] || i.CarrierBundleName || '';
+  // Carrier / IMEI — muestra TODO lo que iOS deje leer relacionado al operador
   let cbox = '<div class="row">';
   cbox += fila('Región del equipo', (i.RegionInfo||'—') + (_regionNombre(i.RegionInfo)?' · '+_regionNombre(i.RegionInfo):''));
-  if (operador) cbox += fila('Operador (SIM actual)', operador);
   cbox += fila('IMEI', i.InternationalMobileEquipmentIdentity || '—');
+  Object.keys(i).forEach(k => {
+    if (/carrier|provider|postpone|operator|telephony|sim\b|iccid|spn/i.test(k) && i[k] && String(i[k]).length < 60) {
+      cbox += fila(k.replace(/^kCT|InfoService|Info/g,''), i[k]);
+    }
+  });
   cbox += '</div>';
+  cbox += '<div class="alert alerta" style="margin-top:8px"><div>Si está <b>bloqueado</b>, la compañía exacta se ve poniendo una SIM y leyendo el mensaje en el iPhone. Guarda abajo el código del tubo SIM por compañía.</div></div>';
   document.getElementById('carrierBox').innerHTML = cbox;
   if (i.InternationalMobileEquipmentIdentity) document.getElementById('btnImei').classList.remove('hidden');
 }
@@ -596,6 +601,46 @@ async function accApps() {
 function verificarImei() {
   const imei = _fichaInfo && _fichaInfo.info ? _fichaInfo.info.InternationalMobileEquipmentIdentity : '';
   if (imei) window.open('https://www.imei.info/?imei=' + encodeURIComponent(imei), '_blank');
+}
+
+async function agregarTuboSim(btn) {
+  const compania = document.getElementById('ts_comp').value.trim();
+  const iccid = document.getElementById('ts_iccid').value.trim() || null;
+  const nota = document.getElementById('ts_nota').value.trim() || null;
+  if (!compania) { alert('Pon la compañía.'); return; }
+  btn.disabled = true; const o = btn.textContent; btn.textContent = 'Guardando…';
+  try {
+    const { error } = await sb.from('tubo_sim_codigos').insert({ compania, iccid, nota });
+    if (error) throw error;
+    document.getElementById('ts_comp').value = ''; document.getElementById('ts_iccid').value = ''; document.getElementById('ts_nota').value = '';
+    cargarTuboSim();
+  } catch (e) { alert('No se pudo guardar: ' + (e.message||'')); }
+  finally { btn.disabled = false; btn.textContent = o; }
+}
+
+async function cargarTuboSim() {
+  const cont = document.getElementById('tuboSimLista');
+  if (!cont) return;
+  cont.innerHTML = '<span class="spin"></span> Cargando…';
+  try {
+    const { data, error } = await sb.from('tubo_sim_codigos').select('*').order('compania', { ascending: true });
+    if (error) throw error;
+    if (!data || !data.length) { cont.innerHTML = '<span class="muted">Aún no hay códigos guardados. Agrega el primero arriba.</span>'; return; }
+    cont.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:13px">'
+      + '<tr style="text-align:left;color:#888"><th style="padding:6px">Compañía</th><th>Código / ICCID</th><th>Nota</th><th></th></tr>'
+      + data.map(r => '<tr style="border-top:1px solid #eee">'
+        + '<td style="padding:6px;font-weight:700">' + escapar(r.compania) + '</td>'
+        + '<td style="font-family:Consolas,monospace">' + escapar(r.iccid||'—') + (r.iccid?' <button class="btn sec" style="padding:2px 7px;font-size:11px" onclick="navigator.clipboard.writeText(\''+escapar(r.iccid)+'\')">copiar</button>':'') + '</td>'
+        + '<td>' + escapar(r.nota||'') + '</td>'
+        + '<td style="text-align:right"><button class="btn sec" style="padding:3px 8px;font-size:11px" onclick="eliminarTuboSim(\''+r.id+'\')">🗑</button></td></tr>').join('')
+      + '</table>';
+  } catch (e) { cont.innerHTML = '<span style="color:#cc0000">Error al cargar.</span>'; }
+}
+
+async function eliminarTuboSim(id) {
+  if (!confirm('¿Eliminar este código?')) return;
+  try { const { error } = await sb.from('tubo_sim_codigos').delete().eq('id', id); if (error) throw error; cargarTuboSim(); }
+  catch (e) { alert('No se pudo eliminar: ' + (e.message||'')); }
 }
 
 function imprimirFicha() {
