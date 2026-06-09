@@ -107,6 +107,9 @@ async function leerDispositivo() {
   const bateria = parseKV(bat.stdout);
   Object.assign(bateria, await _ioBateria(udid));
 
+  // 3b) Almacenamiento (para la pantalla de Inicio)
+  const disk = parseKV((await run('ideviceinfo', ['-u', udid, '-q', 'com.apple.disk_usage'], 15000)).stdout);
+
   // 4) Panic logs
   const crashDir = path.join(os.tmpdir(), 'bayol_crash_' + udid);
   try { fs.mkdirSync(crashDir, { recursive: true }); } catch (e) {}
@@ -127,7 +130,7 @@ async function leerDispositivo() {
     walk(crashDir);
   } catch (e) {}
 
-  return { ok: true, udid, info, bateria, panics };
+  return { ok: true, udid, info, bateria, disk, panics };
 }
 
 // ---- Backup / restauración del iPhone (idevicebackup2) ----
@@ -194,6 +197,8 @@ async function _ioBateria(udid) {
   const des = gi('DesignCapacity'); if (des) out.DesignCapacity = des;
   const nom = gi('NominalChargeCapacity') || gi('AppleRawMaxCapacity'); if (nom) out.NominalChargeCapacity = nom;
   const volt = gi('Voltage'); if (volt) out.BatteryVoltage = volt;
+  const temp = gi('Temperature'); if (temp) out.Temperature = temp; // centi-°C (ej 3012 = 30.12°C)
+  const cur = gi('CurrentCapacity'); if (cur) out.CurrentCapacity = cur; // % actual
   return out;
 }
 

@@ -77,6 +77,8 @@ function limpiarDatosDispositivo() {
   const val = (id, v) => { const e = document.getElementById(id); if (e) e.value = v; };
   const hide = (id) => { const e = document.getElementById(id); if (e) e.classList.add('hidden'); };
   const show = (id) => { const e = document.getElementById(id); if (e) e.classList.remove('hidden'); };
+  // Inicio
+  set('inicioContenido', ''); hide('inicioContenido'); show('inicioVacio');
   // Lector
   set('lectorResultado', ''); hide('lectorResultado'); show('lectorInicio');
   // Batería
@@ -112,11 +114,12 @@ async function autoLeer() {
 }
 
 // ---------------- NAVEGACIÓN ----------------
-const TITULOS = { lector:'Lector de dispositivo', panic:'Analizador de Panic Log', ia:'Diagnóstico IA', bateria:'Batería', pantalla:'Pantalla', herramientas:'Herramientas iPhone', termica:'Cámara térmica', microscopio:'Microscopio', esquematicos:'Esquemáticos (REEFOX)', conocimiento:'Base de conocimiento', mantenimiento:'Mantenimiento' };
+const TITULOS = { inicio:'Inicio', lector:'Lector de dispositivo', panic:'Analizador de Panic Log', ia:'Diagnóstico IA', bateria:'Batería', pantalla:'Pantalla', herramientas:'Herramientas iPhone', termica:'Cámara térmica', microscopio:'Microscopio', esquematicos:'Esquemáticos (REEFOX)', conocimiento:'Base de conocimiento', mantenimiento:'Mantenimiento' };
 function vista(v, btn) {
   document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  ['lector','panic','ia','bateria','pantalla','herramientas','termica','microscopio','esquematicos','conocimiento','mantenimiento'].forEach(x => document.getElementById('v-'+x).classList.toggle('hidden', x !== v));
+  ['inicio','lector','panic','ia','bateria','pantalla','herramientas','termica','microscopio','esquematicos','conocimiento','mantenimiento'].forEach(x => document.getElementById('v-'+x).classList.toggle('hidden', x !== v));
+  if (v === 'inicio' && ultimaLectura) renderInicio(ultimaLectura.info, ultimaLectura.bateria, ultimaLectura.disk);
   document.getElementById('tbTitle').textContent = TITULOS[v] || '';
   if (v === 'bateria' && ultimaLectura) pintarBateria(ultimaLectura.info, ultimaLectura.bateria);
   if (v === 'pantalla') prepararPantalla();
@@ -187,8 +190,83 @@ function leerDemo() {
 const MODELOS = { 'iPhone13,2':'iPhone 12', 'iPhone10,3':'iPhone X', 'iPhone14,2':'iPhone 13 Pro',
   'iPhone12,1':'iPhone 11', 'iPhone15,2':'iPhone 14 Pro', 'iPhone14,5':'iPhone 13' };
 
+function _gbR(b) { const n = parseInt(b, 10); return isNaN(n) ? null : Math.round(n / (1024 * 1024 * 1024)); }
+const REGION_MAP_I = { 'LL':'EE.UU.', 'ZP':'Hong Kong', 'CH':'China', 'LZ':'Latinoamérica', 'BR':'Brasil', 'J':'Japón', 'C':'Canadá', 'E':'México', 'B':'Reino Unido', 'X':'Australia', 'IP':'España', 'TA':'Taiwán', 'ZA':'Singapur' };
+function _regNom(ri) { if (!ri) return ''; const c = ri.split('/')[0]; for (const k of Object.keys(REGION_MAP_I).sort((a,b)=>b.length-a.length)) if (c.startsWith(k)) return REGION_MAP_I[k]; return ''; }
+
+function renderInicio(info, bateria, disk) {
+  const cont = document.getElementById('inicioContenido');
+  const vacio = document.getElementById('inicioVacio');
+  if (!cont) return;
+  if (!info || !info.ProductType) { if (vacio) vacio.classList.remove('hidden'); cont.classList.add('hidden'); return; }
+  bateria = bateria || {}; disk = disk || {};
+  if (vacio) vacio.classList.add('hidden'); cont.classList.remove('hidden');
+
+  const sp = (window.specsDe && window.specsDe(info.ProductType)) || {};
+  const nombre = sp.nombre || MODELOS[info.ProductType] || info.ProductType || 'iPhone';
+  const ev = window.evaluarBateria(bateria);
+  const salud = ev.saludPct;
+  const cur = parseInt(bateria.CurrentCapacity || bateria.BatteryCurrentCapacity, 10);
+  const temp = bateria.Temperature ? (parseInt(bateria.Temperature, 10) / 100).toFixed(1) + '°C' : '—';
+  const totalGb = _gbR(disk.TotalDiskCapacity), freeGb = _gbR(disk.TotalDataAvailable);
+  const ringCol = salud == null ? '#94a3b8' : (salud >= 85 ? '#16a34a' : (salud >= 80 ? '#d97706' : '#dc2626'));
+  const ringPct = salud != null ? salud : 0;
+  const f = (l, v) => '<div class="field"><label>' + l + '</label><b>' + escapar(v || '—') + '</b></div>';
+
+  let html = '<div class="grid2">';
+  // IZQUIERDA: equipo + batería
+  html += '<div class="card" style="text-align:center">'
+    + '<div style="font-size:64px;line-height:1">📱</div>'
+    + '<h3 style="justify-content:center;margin-top:6px">' + escapar(nombre) + '</h3>'
+    + '<div class="muted">' + escapar((totalGb ? totalGb + ' GB' : '') + (info.DeviceColor ? '' : '')) + (info.ProductType ? ' · ' + info.ProductType : '') + '</div>'
+    + '<div style="margin:16px auto;width:130px;height:130px;border-radius:50%;background:conic-gradient(' + ringCol + ' ' + (ringPct*3.6) + 'deg,#e5e7eb 0);display:flex;align-items:center;justify-content:center">'
+    + '<div style="width:100px;height:100px;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center">'
+    + '<b style="font-size:26px;color:' + ringCol + '">' + (salud != null ? salud + '%' : '—') + '</b><span class="muted" style="font-size:11px">salud</span></div></div>'
+    + '<div class="row" style="grid-template-columns:1fr 1fr">'
+    + f('Carga actual', (isNaN(cur) ? '—' : cur + '%'))
+    + f('Ciclos', (ev.ciclos != null ? ev.ciclos : '—'))
+    + f('Voltaje', (ev.voltaje != null ? ev.voltaje + ' mV' : '—'))
+    + f('Temperatura', temp)
+    + '</div>'
+    + '<div style="display:flex;gap:8px;margin-top:10px;justify-content:center;flex-wrap:wrap">'
+    + '<span class="estado-pill" style="background:#dcfce7;color:#166534;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700">' + escapar(info.ActivationState || '—') + '</span>'
+    + '</div></div>';
+
+  // DERECHA: información del equipo
+  html += '<div class="card"><h3><span class="ic">📋</span> Información del equipo</h3><div class="row">';
+  html += f('Modelo', nombre + (info.ProductType ? ' (' + info.ProductType + ')' : ''));
+  html += f('iOS', info.ProductVersion + (info.BuildVersion ? ' (' + info.BuildVersion + ')' : ''));
+  html += f('Capacidad', totalGb ? (totalGb + ' GB' + (freeGb != null ? ' · ' + freeGb + ' GB libres' : '')) : (info.HardwareModel || '—'));
+  if (sp.chip) html += f('Chip (CPU)', sp.chip);
+  if (sp.ram) html += f('RAM', sp.ram);
+  if (sp.pantalla) html += f('Pantalla', sp.pantalla + (sp.ppi ? ' · ' + sp.ppi + ' ppi' : ''));
+  if (sp.camara) html += f('Cámara', sp.camara);
+  html += f('IMEI', info.InternationalMobileEquipmentIdentity);
+  if (info.InternationalMobileEquipmentIdentity2) html += f('IMEI 2', info.InternationalMobileEquipmentIdentity2);
+  html += f('Número de serie', info.SerialNumber);
+  html += f('Región', (info.RegionInfo || '') + (_regNom(info.RegionInfo) ? ' · ' + _regNom(info.RegionInfo) : ''));
+  html += f('Módem (Baseband)', info.BasebandVersion);
+  html += f('MAC WiFi', info.WiFiAddress);
+  html += f('UDID', (ultimaLectura && ultimaLectura.udid) || info.UniqueDeviceID);
+  html += '</div></div>';
+  html += '</div>';
+
+  // Accesos rápidos
+  const tile = (ic, lab, v, col) => '<button class="btn" onclick="vista(\'' + v + '\',document.getElementById(\'m-' + v + '\'))" style="flex:1;min-width:120px;background:#fff;color:#222;border:1px solid var(--borde);border-top:4px solid ' + col + ';border-radius:12px;padding:14px 8px;font-weight:700"><div style="font-size:24px">' + ic + '</div>' + lab + '</button>';
+  html += '<div style="display:flex;gap:10px;margin-top:4px;flex-wrap:wrap">'
+    + tile('🔋', 'Batería', 'bateria', '#dc2626')
+    + tile('🖥️', 'Pantalla', 'pantalla', '#2563eb')
+    + tile('🧰', 'Herramientas', 'herramientas', '#0891b2')
+    + tile('🧠', 'Diagnóstico IA', 'ia', '#7c3aed')
+    + tile('📋', 'Panic Log', 'panic', '#16a34a')
+    + '</div>';
+
+  cont.innerHTML = html;
+}
+
 function procesarLectura(r) {
   ultimaLectura = r;
+  renderInicio(r.info, r.bateria, r.disk);
   const led = document.getElementById('ledDev'), txt = document.getElementById('devTxt');
   led.className = 'led on'; txt.textContent = (r.demo ? 'DEMO' : 'Conectado');
   document.getElementById('lectorInicio').classList.add('hidden');

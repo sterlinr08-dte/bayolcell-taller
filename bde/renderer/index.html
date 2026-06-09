@@ -118,7 +118,8 @@
       <div><b>DIAGNOSTIC ENGINE</b><span>BAYOL CELL</span></div>
     </div>
     <nav class="nav">
-      <button id="m-lector" class="active" onclick="vista('lector',this)">📱 <span>Lector de dispositivo</span></button>
+      <button id="m-inicio" class="active" onclick="vista('inicio',this)">🏠 <span>Inicio</span></button>
+      <button id="m-lector" onclick="vista('lector',this)">📱 <span>Lector de dispositivo</span></button>
       <button id="m-panic" onclick="vista('panic',this)">📋 <span>Panic Log</span></button>
       <button id="m-ia" onclick="vista('ia',this)">🧠 <span>Diagnóstico IA</span></button>
       <button id="m-bateria" onclick="vista('bateria',this)">🔋 <span>Batería</span></button>
@@ -147,8 +148,18 @@
     </div>
     <div class="content">
 
+      <!-- ---------- VISTA INICIO (estilo 3uTools) ---------- -->
+      <section id="v-inicio">
+        <div id="inicioVacio" class="card" style="text-align:center;padding:40px">
+          <div style="font-size:54px">📱</div>
+          <h3 style="justify-content:center">Conecta un iPhone por USB</h3>
+          <p class="muted">Desbloquéalo y dale “Confiar”. La información aparecerá aquí sola.</p>
+        </div>
+        <div id="inicioContenido" class="hidden"></div>
+      </section>
+
       <!-- ---------- VISTA LECTOR ---------- -->
-      <section id="v-lector">
+      <section id="v-lector" class="hidden">
         <div id="demoBanner" class="demo-banner hidden"></div>
         <div class="card">
           <h3><span class="ic">📱</span> Lectura del iPhone por USB</h3>
@@ -495,6 +506,7 @@
 <script src="config.js"></script>
 <script src="../data/panic-codes.js"></script>
 <script src="../data/battery-rules.js"></script>
+<script src="../data/iphone-specs.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
