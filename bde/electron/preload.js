@@ -13,5 +13,12 @@ contextBridge.exposeInMainWorld('bde', {
   iphoneBackup: () => ipcRenderer.invoke('bde:iphoneBackup'),
   iphoneRestore: () => ipcRenderer.invoke('bde:iphoneRestore'),
   openBackups: () => ipcRenderer.invoke('bde:openBackups'),
-  onOpProgress: (cb) => ipcRenderer.on('bde:opProgress', (_e, l) => cb(l))
+  onOpProgress: (cb) => ipcRenderer.on('bde:opProgress', (_e, l) => cb(l)),
+  // Herramientas iPhone
+  infoIphone: () => ipcRenderer.invoke('bde:infoIphone'),
+  deviceAccion: (a) => ipcRenderer.invoke('bde:deviceAccion', a),
+  salirRecovery: () => ipcRenderer.invoke('bde:salirRecovery'),
+  captura: () => ipcRenderer.invoke('bde:captura'),
+  appsLista: () => ipcRenderer.invoke('bde:appsLista'),
+  abrirArchivo: (f) => ipcRenderer.invoke('bde:abrirArchivo', f)
 });

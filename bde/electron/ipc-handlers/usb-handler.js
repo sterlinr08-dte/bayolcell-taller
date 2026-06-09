@@ -177,4 +177,50 @@ async function iphoneRestore(onLine) {
   return { ok: false, motivo: 'fallo', code };
 }
 
-module.exports = { checkTools, leerDispositivo, backupsBase, iphoneBackup, iphoneRestore };
+// ---- Herramientas iPhone (ficha técnica completa + acciones) ----
+async function infoCompleta() {
+  if (!(await checkTools()).ok) return { ok: false, motivo: 'no_instalado' };
+  const udid = await _udidConectado();
+  if (!udid) return { ok: false, motivo: 'sin_dispositivo' };
+  const gen = await run('ideviceinfo', ['-u', udid], 25000);
+  if (gen.err && /pairing|trust|lockdown/i.test(gen.stderr)) return { ok: false, motivo: 'sin_trust' };
+  const info = parseKV(gen.stdout);
+  const disk = parseKV((await run('ideviceinfo', ['-u', udid, '-q', 'com.apple.disk_usage'], 15000)).stdout);
+  const bat = parseKV((await run('ideviceinfo', ['-u', udid, '-q', 'com.apple.mobile.battery'], 15000)).stdout);
+  return { ok: true, udid, info, disk, bateria: bat };
+}
+
+async function deviceAccion(accion) {
+  const udid = await _udidConectado();
+  if (!udid) return { ok: false, motivo: 'sin_dispositivo' };
+  if (accion === 'restart') { await run('idevicediagnostics', ['-u', udid, 'restart'], 15000); return { ok: true }; }
+  if (accion === 'shutdown') { await run('idevicediagnostics', ['-u', udid, 'shutdown'], 15000); return { ok: true }; }
+  return { ok: false };
+}
+
+async function salirRecovery() {
+  const r = await run('irecovery', ['-n'], 15000);
+  if (r.err && (r.err.code === 'ENOENT' || /not recognized/i.test(r.stderr))) return { ok: false, motivo: 'no_tool' };
+  return { ok: true };
+}
+
+async function captura() {
+  const udid = await _udidConectado();
+  if (!udid) return { ok: false, motivo: 'sin_dispositivo' };
+  const dir = path.join(backupsBase(), 'capturas');
+  try { fs.mkdirSync(dir, { recursive: true }); } catch (e) {}
+  const file = path.join(dir, 'iphone_' + Date.now() + '.png');
+  const r = await run('idevicescreenshot', ['-u', udid, file], 30000);
+  if (r.err) return { ok: false, motivo: 'fallo', detalle: (r.stderr || '').slice(0, 300) };
+  return { ok: true, file };
+}
+
+async function appsLista() {
+  const udid = await _udidConectado();
+  if (!udid) return { ok: false, motivo: 'sin_dispositivo' };
+  const r = await run('ideviceinstaller', ['-u', udid, 'list'], 30000);
+  if (r.err && (r.err.code === 'ENOENT' || /not recognized/i.test(r.stderr))) return { ok: false, motivo: 'no_tool' };
+  return { ok: true, salida: (r.stdout || '') };
+}
+
+module.exports = { checkTools, leerDispositivo, backupsBase, iphoneBackup, iphoneRestore, infoCompleta, deviceAccion, salirRecovery, captura, appsLista };

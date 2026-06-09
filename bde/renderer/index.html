@@ -118,6 +118,7 @@
       <button id="m-ia" onclick="vista('ia',this)">🧠 <span>Diagnóstico IA</span></button>
       <button id="m-bateria" onclick="vista('bateria',this)">🔋 <span>Batería</span></button>
       <button id="m-pantalla" onclick="vista('pantalla',this)">🖥️ <span>Pantalla</span></button>
+      <button id="m-herramientas" onclick="vista('herramientas',this)">🧰 <span>Herramientas iPhone</span></button>
       <button id="m-termica" onclick="vista('termica',this)">🌡️ <span>Cámara térmica</span></button>
       <button id="m-microscopio" onclick="vista('microscopio',this)">🔬 <span>Microscopio</span></button>
       <button id="m-esquematicos" onclick="vista('esquematicos',this)">📐 <span>Esquemáticos</span></button>
@@ -249,6 +250,39 @@
             <li>Cárgalo <b>sin interrupción hasta 100%</b> (de corrido).</li>
             <li>Reinícialo y vuelve a <b>leer la batería</b> aquí para comparar.</li>
           </ol>
+        </div>
+      </section>
+
+      <!-- ---------- VISTA HERRAMIENTAS IPHONE ---------- -->
+      <section id="v-herramientas" class="hidden">
+        <div class="card">
+          <h3><span class="ic">🧰</span> Herramientas del iPhone</h3>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn" id="btnFicha" onclick="leerFicha(this)">📄 Leer ficha técnica</button>
+            <button class="btn sec" onclick="accDispositivo('restart')">🔄 Reiniciar</button>
+            <button class="btn sec" onclick="accDispositivo('shutdown')">⏻ Apagar</button>
+            <button class="btn sec" onclick="accSalirRecovery()">🩹 Salir de Recovery</button>
+            <button class="btn sec" onclick="accCaptura()">📸 Captura de pantalla</button>
+            <button class="btn sec" onclick="accApps()">📲 Apps instaladas</button>
+          </div>
+          <div id="hToolMsg" class="muted" style="text-align:left;margin-top:10px"></div>
+        </div>
+        <div class="grid2">
+          <div class="card">
+            <h3><span class="ic">📄</span> Ficha técnica</h3>
+            <div id="fichaTec" class="muted" style="text-align:left">Conecta el iPhone y presiona “Leer ficha técnica”.</div>
+            <button class="btn sec hidden" id="btnImprimirFicha" style="margin-top:10px" onclick="imprimirFicha()">🖨️ Imprimir / guardar ficha</button>
+          </div>
+          <div class="card">
+            <h3><span class="ic">🔒</span> Compañía / Bloqueo (IMEI)</h3>
+            <div id="carrierBox" class="muted" style="text-align:left">—</div>
+            <button class="btn sec hidden" id="btnImei" style="margin-top:10px" onclick="verificarImei()">🔎 Verificar IMEI (compañía / bloqueo)</button>
+            <p class="muted" style="text-align:left;margin-top:8px">El estado de bloqueo SIM confiable se obtiene por chequeo de IMEI (servicio en línea).</p>
+          </div>
+        </div>
+        <div class="card hidden" id="appsCard">
+          <h3><span class="ic">📲</span> Apps instaladas</h3>
+          <pre id="appsBox" class="panic-box" style="max-height:240px"></pre>
         </div>
       </section>
 

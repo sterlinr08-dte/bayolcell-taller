@@ -63,11 +63,11 @@ function iniciarApp() {
 }
 
 // ---------------- NAVEGACIÓN ----------------
-const TITULOS = { lector:'Lector de dispositivo', panic:'Analizador de Panic Log', ia:'Diagnóstico IA', bateria:'Batería', pantalla:'Pantalla', termica:'Cámara térmica', microscopio:'Microscopio', esquematicos:'Esquemáticos (REEFOX)', conocimiento:'Base de conocimiento', mantenimiento:'Mantenimiento' };
+const TITULOS = { lector:'Lector de dispositivo', panic:'Analizador de Panic Log', ia:'Diagnóstico IA', bateria:'Batería', pantalla:'Pantalla', herramientas:'Herramientas iPhone', termica:'Cámara térmica', microscopio:'Microscopio', esquematicos:'Esquemáticos (REEFOX)', conocimiento:'Base de conocimiento', mantenimiento:'Mantenimiento' };
 function vista(v, btn) {
   document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  ['lector','panic','ia','bateria','pantalla','termica','microscopio','esquematicos','conocimiento','mantenimiento'].forEach(x => document.getElementById('v-'+x).classList.toggle('hidden', x !== v));
+  ['lector','panic','ia','bateria','pantalla','herramientas','termica','microscopio','esquematicos','conocimiento','mantenimiento'].forEach(x => document.getElementById('v-'+x).classList.toggle('hidden', x !== v));
   document.getElementById('tbTitle').textContent = TITULOS[v] || '';
   if (v === 'bateria' && ultimaLectura) pintarBateria(ultimaLectura.info, ultimaLectura.bateria);
   if (v === 'pantalla') prepararPantalla();
@@ -491,6 +491,118 @@ async function cargarHistorialBateria() {
           return '<tr style="border-top:1px solid #eee"><td style="padding:4px">'+f+'</td><td>'+m+'</td><td>'+(r.salud_pct!=null?r.salud_pct+'%':'—')+'</td><td>'+(r.ciclos!=null?r.ciclos:'—')+'</td></tr>'; }).join('')
       + '</table>';
   } catch (e) { cont.innerHTML = '<span style="color:#cc0000">Error al cargar historial.</span>'; }
+}
+
+// ---------------- HERRAMIENTAS IPHONE ----------------
+let _fichaInfo = null;
+const REGION_MAP = { 'LL':'EE.UU.', 'ZP':'Hong Kong / Asia', 'ZA':'Singapur', 'CH':'China', 'LZ':'Latinoamérica', 'BR':'Brasil', 'J':'Japón', 'TA':'Taiwán', 'X':'Australia', 'B':'Reino Unido/Irlanda', 'C':'Canadá', 'E':'México', 'AE':'Emiratos', 'IP':'España' };
+function _regionNombre(ri) {
+  if (!ri) return '';
+  const code = ri.split('/')[0];
+  for (const k of Object.keys(REGION_MAP).sort((a,b)=>b.length-a.length)) { if (code.startsWith(k)) return REGION_MAP[k]; }
+  return '';
+}
+function _gb(bytes) { const n = parseInt(bytes,10); return isNaN(n) ? null : Math.round(n / (1024*1024*1024)); }
+
+async function leerFicha(btn) {
+  if (!window.bde || !window.bde.infoIphone) { alert('Solo funciona en la app de escritorio instalada.'); return; }
+  const msg = document.getElementById('hToolMsg');
+  btn.disabled = true; const o = btn.textContent; btn.innerHTML = '<span class="spin"></span> Leyendo…';
+  msg.textContent = '';
+  try {
+    const r = await window.bde.infoIphone();
+    if (!r.ok) {
+      msg.innerHTML = '<span style="color:#cc0000">' + ({no_instalado:'Falta libimobiledevice.', sin_dispositivo:'No hay iPhone conectado (desbloquéalo y dale "Confiar").', sin_trust:'El iPhone no confía en esta PC. Dale "Confiar".'}[r.motivo] || 'No se pudo leer.') + '</span>';
+      return;
+    }
+    _fichaInfo = r;
+    pintarFicha(r);
+  } finally { btn.disabled = false; btn.textContent = o; }
+}
+
+function pintarFicha(r) {
+  const i = r.info || {}, d = r.disk || {};
+  const modelo = MODELOS[i.ProductType] || i.ProductType || '—';
+  const totalGb = _gb(d.TotalDiskCapacity), freeGb = _gb(d.TotalDataAvailable);
+  const fila = (l, v) => v ? `<div class="field"><label>${l}</label><b>${escapar(v)}</b></div>` : '';
+  let html = '<div class="row">';
+  html += fila('Modelo', modelo + (i.ProductType ? ' ('+i.ProductType+')' : ''));
+  html += fila('iOS', i.ProductVersion);
+  html += fila('Capacidad', totalGb ? totalGb+' GB' : (i.HardwareModel||''));
+  html += fila('Almacenamiento libre', freeGb != null ? freeGb+' GB libres' : '');
+  html += fila('Región', (i.RegionInfo||'') + (_regionNombre(i.RegionInfo) ? ' · '+_regionNombre(i.RegionInfo) : ''));
+  html += fila('IMEI', i.InternationalMobileEquipmentIdentity);
+  html += fila('IMEI 2', i.InternationalMobileEquipmentIdentity2);
+  html += fila('Serie', i.SerialNumber);
+  html += fila('Módem (Baseband)', i.BasebandVersion);
+  html += fila('Activación', i.ActivationState);
+  html += fila('MAC WiFi', i.WiFiAddress);
+  html += fila('MAC Bluetooth', i.BluetoothAddress);
+  html += fila('Nombre', i.DeviceName);
+  html += '</div>';
+  if (i.ActivationState && i.ActivationState !== 'Activated') {
+    html += '<div class="alert alerta" style="margin-top:10px"><div>Estado de activación: <b>'+escapar(i.ActivationState)+'</b>. Verifica iCloud / bloqueo de activación antes de comprar.</div></div>';
+  }
+  document.getElementById('fichaTec').innerHTML = html;
+  document.getElementById('btnImprimirFicha').classList.remove('hidden');
+
+  // Carrier / IMEI
+  const operador = i['kCTPostponementInfoServiceProvider'] || i.CarrierBundleName || '';
+  let cbox = '<div class="row">';
+  cbox += fila('Región del equipo', (i.RegionInfo||'—') + (_regionNombre(i.RegionInfo)?' · '+_regionNombre(i.RegionInfo):''));
+  if (operador) cbox += fila('Operador (SIM actual)', operador);
+  cbox += fila('IMEI', i.InternationalMobileEquipmentIdentity || '—');
+  cbox += '</div>';
+  document.getElementById('carrierBox').innerHTML = cbox;
+  if (i.InternationalMobileEquipmentIdentity) document.getElementById('btnImei').classList.remove('hidden');
+}
+
+async function accDispositivo(accion) {
+  const msg = document.getElementById('hToolMsg');
+  if (!window.bde || !window.bde.deviceAccion) { alert('Solo en la app de escritorio.'); return; }
+  if (accion === 'shutdown' && !confirm('¿Apagar el iPhone conectado?')) return;
+  msg.innerHTML = '<span class="spin"></span> Enviando orden…';
+  const r = await window.bde.deviceAccion(accion);
+  msg.innerHTML = r.ok ? '✅ Orden enviada (' + (accion==='restart'?'reiniciar':'apagar') + ').' : '⚠️ ' + (r.motivo==='sin_dispositivo'?'No hay iPhone conectado.':'No se pudo.');
+}
+
+async function accSalirRecovery() {
+  const msg = document.getElementById('hToolMsg');
+  msg.innerHTML = '<span class="spin"></span> Intentando salir de Recovery…';
+  const r = await window.bde.salirRecovery();
+  msg.innerHTML = r.ok ? '✅ Listo, debería reiniciar normal.' : (r.motivo==='no_tool' ? '⚠️ Falta la herramienta "irecovery" en esta PC para esta función.' : '⚠️ No se pudo (¿está en modo Recovery?).');
+}
+
+async function accCaptura() {
+  const msg = document.getElementById('hToolMsg');
+  msg.innerHTML = '<span class="spin"></span> Tomando captura…';
+  const r = await window.bde.captura();
+  if (r.ok) msg.innerHTML = '✅ Captura guardada. <a href="#" onclick="window.bde.abrirArchivo(\''+r.file.replace(/\\/g,'\\\\')+'\');return false;">Ver archivo</a>';
+  else if (r.motivo === 'sin_dispositivo') msg.innerHTML = '⚠️ No hay iPhone conectado.';
+  else msg.innerHTML = '⚠️ No se pudo (en iOS nuevos puede requerir imagen de desarrollador).';
+}
+
+async function accApps() {
+  const msg = document.getElementById('hToolMsg');
+  msg.innerHTML = '<span class="spin"></span> Leyendo apps…';
+  const r = await window.bde.appsLista();
+  if (r.ok) {
+    document.getElementById('appsCard').classList.remove('hidden');
+    document.getElementById('appsBox').textContent = r.salida || '(sin datos)';
+    msg.innerHTML = '✅ Apps listadas abajo.';
+  } else msg.innerHTML = r.motivo==='no_tool' ? '⚠️ Falta "ideviceinstaller" en esta PC.' : '⚠️ No hay iPhone conectado.';
+}
+
+function verificarImei() {
+  const imei = _fichaInfo && _fichaInfo.info ? _fichaInfo.info.InternationalMobileEquipmentIdentity : '';
+  if (imei) window.open('https://www.imei.info/?imei=' + encodeURIComponent(imei), '_blank');
+}
+
+function imprimirFicha() {
+  const cont = document.getElementById('fichaTec');
+  const w = window.open('', '_blank');
+  w.document.write('<html><head><title>Ficha técnica</title></head><body style="font-family:Arial;padding:20px"><h2>BAYOL CELL — Ficha técnica</h2>' + cont.innerHTML.replace(/class="[^"]*"/g,'') + '<p style="margin-top:20px;color:#888">' + new Date().toLocaleString('es-DO') + '</p></body></html>');
+  w.document.close(); w.print();
 }
 
 // ---------------- PANTALLA (cambio + True Tone, con JC) ----------------

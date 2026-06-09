@@ -57,6 +57,14 @@ ipcMain.handle('bde:iphoneBackup', async (e) => usb.iphoneBackup((l) => { try { 
 ipcMain.handle('bde:iphoneRestore', async (e) => usb.iphoneRestore((l) => { try { e.sender.send('bde:opProgress', l); } catch (_) {} }));
 ipcMain.handle('bde:openBackups', async () => { const dir = usb.backupsBase(); try { shell.openPath(dir); } catch (_) {} return dir; });
 
+// Herramientas iPhone
+ipcMain.handle('bde:infoIphone', async () => usb.infoCompleta());
+ipcMain.handle('bde:deviceAccion', async (_e, accion) => usb.deviceAccion(accion));
+ipcMain.handle('bde:salirRecovery', async () => usb.salirRecovery());
+ipcMain.handle('bde:captura', async () => usb.captura());
+ipcMain.handle('bde:appsLista', async () => usb.appsLista());
+ipcMain.handle('bde:abrirArchivo', async (_e, f) => { try { shell.showItemInFolder(f); } catch (_) {} return true; });
+
 app.whenReady().then(() => {
   createWindow();
   app.on('activate', () => {
