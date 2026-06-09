@@ -1419,8 +1419,8 @@ body{
                         <p style="color:var(--text-muted); font-size:13px;">Modifica los campos del dispositivo y ajusta las dimensiones milimétricas para calibrar tu impresora térmica.</p>
                         
                         <div class="form-row"><label>Marca del Dispositivo</label><input id="lbl_marca" value="Apple" oninput="actualizarLabelLive()"></div>
-                        <div class="form-row"><label>Modelo, Color y Capacidad</label><input id="lbl_modelo" value="iPhone 11 Pro 64GB Silver" oninput="actualizarLabelLive()"></div>
-                        <input id="lbl_gb" type="hidden" value="">
+                        <div class="form-row"><label>Modelo y Color</label><input id="lbl_modelo" value="iPhone 11 Pro Silver" oninput="actualizarLabelLive()"></div>
+                        <div class="form-row"><label>Capacidad</label><input id="lbl_gb" value="" placeholder="Ej. 64GB / 128GB / 256GB" oninput="actualizarLabelLive()"></div>
                         <div class="form-row"><label>Número IMEI / Serial</label><input id="lbl_imei" value="356789123456789" oninput="actualizarLabelLive()"></div>
                         <div class="form-row"><label>Texto de Estado / Pie de Impresión</label><input id="lbl_estado_texto" value="" placeholder="Ej. CLASE A / AVISO BAT / AVISO PANT" oninput="actualizarLabelLive()"></div>
                         
@@ -12492,8 +12492,11 @@ const LABEL_FONT_STACK = "'Arial Rounded MT Bold','Arial Black',Arial,Helvetica,
 
 function _datosLabelEquipo() {
     const marca = (document.getElementById("lbl_marca")?.value || '').toLowerCase();
+    const mod = (document.getElementById("lbl_modelo")?.value || '').trim();
+    const cap = (document.getElementById("lbl_gb")?.value || '').trim();
     return {
-        mod: document.getElementById("lbl_modelo")?.value || '',
+        // La capacidad se pega al equipo (sin la palabra "capacidad")
+        mod: cap ? `${mod} ${cap}` : mod,
         imei: document.getElementById("lbl_imei")?.value || '',
         estado: document.getElementById("lbl_estado_texto")?.value || '',
         logo: (marca.includes("apple") || marca.includes("iphone")) ? '<i class="ti ti-brand-apple"></i>' : '<i class="ti ti-device-mobile"></i>'
