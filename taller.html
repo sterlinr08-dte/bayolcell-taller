@@ -842,7 +842,7 @@ body{
             <button id="menu-contabilidad" onclick="nav('contabilidad',this)"><i class="ti ti-calculator"></i> <span>Contabilidad</span></button>
             <button id="menu-diagnostico" onclick="nav('diagnostico',this)"><i class="ti ti-stethoscope"></i> <span>Diagnóstico IA</span></button>
             <button id="menu-recepcion" onclick="nav('recepcion',this)"><i class="ti ti-clipboard-plus"></i> <span>Recepción de Equipos</span></button>
-            <button id="menu-ordenes" onclick="nav('ordenes',this)"><i class="ti ti-tool"></i> <span>Órdenes de Trabajo</span></button>
+            <button id="menu-ordenes" onclick="nav('ordenes',this)"><i class="ti ti-tool"></i> <span>Órdenes de Servicio</span></button>
             
             <div class="nav-section">INVENTARIO</div>
             <button id="menu-inventario" onclick="nav('inventario',this)"><i class="ti ti-package"></i> <span>Inventario Taller</span></button>
@@ -1234,12 +1234,23 @@ body{
                         <div class="block-header header-blue-dark">Datos del Cliente y Equipo</div>
                         <div class="block-body">
                             <div><label>Nombre Cliente *</label><input id="c_nombre" placeholder="Ej. Juan Pérez"></div>
-                            <div><label>WhatsApp *</label><input id="c_whatsapp" placeholder="809-123-4567"></div>
-                            <div><label>Cédula</label><input id="c_cedula" placeholder="001-0000000-0"></div>
+                            <div><label>WhatsApp *</label><input id="c_whatsapp" placeholder="809-123-4567" onblur="chequearClienteExistente()"></div>
+                            <div><label>Cédula</label><input id="c_cedula" placeholder="001-0000000-0" onblur="chequearClienteExistente()"></div>
+                            <div style="display:flex; gap:10px;">
+                                <div style="flex:1;"><label>Tipo de cliente</label>
+                                    <select id="c_tipo" style="width:100%;" onchange="toggleRncRecepcion()">
+                                        <option value="final">🧍 Cliente final</option>
+                                        <option value="tienda">🏪 Tienda / Mayorista</option>
+                                    </select>
+                                </div>
+                                <div style="flex:1; display:none;" id="rowRnc"><label>RNC (tienda)</label><input id="c_rnc" placeholder="1-01-00000-0"></div>
+                            </div>
+                            <div id="avisoClienteExiste" style="display:none; font-size:12px; background:#dbeafe; color:#1e40af; border:1px solid #93c5fd; border-radius:8px; padding:6px 10px; margin-bottom:6px;"></div>
                             <div><label>Marca *</label><input id="e_marca" placeholder="Apple, Samsung, etc."></div>
                             <div><label>Modelo Exacto *</label><input id="e_modelo" placeholder="iPhone 13 Pro Max"></div>
                             <div><label>Capacidad (GB) *</label><input id="e_capacidad" placeholder="128GB"></div>
-                            <div><label>IMEI / Serial *</label><input id="e_imei" placeholder="356789..."></div>
+                            <div><label>IMEI / Serial *</label><input id="e_imei" placeholder="356789..." onblur="chequearEquipoExistente()"></div>
+                            <div id="avisoEquipoExiste" style="display:none; font-size:12px; background:#fef3c7; color:#92400e; border:1px solid #fcd34d; border-radius:8px; padding:6px 10px; margin-bottom:6px;"></div>
                             <div><label>Estado Físico del Equipo (cómo llega)</label><textarea id="o_estado_fisico" rows="2" placeholder="Rayones en la tapa, esquina golpeada, sin marcas..."></textarea></div>
                             <div style="display:flex; gap:10px;">
                                 <div style="flex:1;"><label>Prioridad</label>
@@ -1352,7 +1363,7 @@ body{
                     <div id="cargaTecnicosPanel" style="margin-top:12px;"></div>
                 </div>
                 <div class="card">
-                    <h3>Órdenes de Trabajo Activas</h3>
+                    <h3>Órdenes de Servicio Activas</h3>
                     <div class="table-wrap">
                         <table>
                             <thead>
@@ -9642,7 +9653,7 @@ async function enviarNotaTecnicoTop(tecnicoId) {
     } catch(e) { logError('Nota al técnico', e); toastError(getFriendlyError(e)); }
 }
 
-// Panel de carga de trabajo por técnico (dentro de Órdenes de Trabajo)
+// Panel de carga de trabajo por técnico (dentro de Órdenes de Servicio)
 let _cargaTecnicosVisible = true;
 function toggleCargaTecnicos() {
     _cargaTecnicosVisible = !_cargaTecnicosVisible;
@@ -10308,6 +10319,7 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
         // Ver historial del cliente (admin y servicio)
         if((esAdmin || (typeof tienePermiso === 'function' && tienePermiso('recepcion_ver'))) && o.cliente_id) {
             acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#0891b2;" onclick="verHistorialCliente('${o.cliente_id}')"><i class="ti ti-history"></i> Historial cliente</button>`;
+            if(o.equipo_id) acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#b45309;" onclick="verHistorialEquipo('${o.equipo_id}')"><i class="ti ti-device-mobile"></i> Historial equipo</button>`;
         }
         // Editar datos de recepción: SOLO servicio al cliente y admin (técnico NO)
         if((esAdmin || esServicio) && !['entregado','cancelado'].includes(estado)) {
@@ -10369,7 +10381,7 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
                             ? `<span onclick="togglePrioridadOrden('${o.id}')" title="Quitar urgencia" class="badge" style="background:#fee2e2; color:#b91c1c; font-size:10px; padding:1px 7px; cursor:pointer; font-weight:700;"><i class="ti ti-flame"></i> URGENTE</span>`
                             : `<span onclick="togglePrioridadOrden('${o.id}')" title="Marcar como urgente" class="badge" style="background:#f1f5f9; color:#94a3b8; font-size:10px; padding:1px 7px; cursor:pointer;"><i class="ti ti-flame"></i> Marcar urgente</span>`}
                     </div>
-                    <div style="font-size:12px; margin-top:4px;"><b>${escapeHtml(c.nombre || '—')}</b> · ${escapeHtml(e.marca || '')} ${escapeHtml(e.modelo || '')}</div>
+                    <div style="font-size:12px; margin-top:4px;"><b>${escapeHtml(c.nombre || '—')}</b>${c.tipo_cliente === 'tienda' ? ` <span class="badge" style="background:#ede9fe; color:#6d28d9; font-size:9px; padding:1px 6px;">🏪 TIENDA</span>` : ''} · ${escapeHtml(e.marca || '')} ${escapeHtml(e.modelo || '')}</div>
                     ${(o.clave_equipo && (esMia || esAdmin || esServicio)) ? `<div style="font-size:11px; margin-top:3px; display:flex; align-items:center; gap:5px; flex-wrap:wrap;"><i class="ti ti-key" style="color:#0891b2;"></i> <b>Clave del equipo:</b> <span class="access-mask" data-visible="0">•••• <button class="btn btn-light" style="padding:1px 6px; font-size:10px;" onclick="revelarClave('${o.id}', this)">Mostrar</button></span></div>` : ''}
                     ${o.condicion_fisica && o.condicion_fisica !== 'Sin marcas' ? `<div style="font-size:10px; color:#7c3aed; margin-top:1px;"><i class="ti ti-note"></i> Estado físico: ${escapeHtml(o.condicion_fisica)}</div>` : ''}
                     <div style="font-size:10px; color:#94a3b8; margin-top:1px;"><i class="ti ti-clock"></i> Recibido: ${o.creado_en ? new Date(o.creado_en).toLocaleString('es-DO', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'}</div>
@@ -10907,7 +10919,7 @@ function renderAtencionCliente() {
     
     // SECCIÓN: Todas las órdenes (buscador + filtros)
     html += `<div class="card" style="margin-bottom:14px;">
-        <h3 style="font-size:15px; margin:0 0 10px;"><i class="ti ti-tool" style="color:#9a3412;"></i> Todas las Órdenes de Trabajo</h3>
+        <h3 style="font-size:15px; margin:0 0 10px;"><i class="ti ti-tool" style="color:#9a3412;"></i> Todas las Órdenes de Servicio</h3>
         <input id="atencionBuscador" oninput="renderAtencionListaOrdenes()" placeholder="🔍 Buscar por número o cliente..." style="width:100%; padding:8px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; margin-bottom:10px;">
         <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
             <button class="btn btn-light" onclick="_atencionFiltro='todas'; renderAtencionListaOrdenes()" style="font-size:12px;">Todas</button>
@@ -12158,7 +12170,7 @@ const PERMISOS_DEF = [
         grupo: '🏪 Atención al Cliente', color: '#0891b2',
         items: [
             { id: 'recepcion_ver', label: 'Ver módulo Recepción de Equipos' },
-            { id: 'ordenes_ver', label: 'Ver módulo Órdenes de Trabajo' },
+            { id: 'ordenes_ver', label: 'Ver módulo Órdenes de Servicio' },
             { id: 'inventario_ver', label: 'Ver módulo Inventario Taller' }
         ]
     },
@@ -13072,13 +13084,49 @@ async function revelarClave(ordenId, boton) {
 async function guardarRecepcion(imprimir) {
     try {
         if(!val("c_nombre") || !val("c_whatsapp") || !val("e_marca") || !val("e_modelo") || !val("e_imei")) return toast("Faltan campos mandatorios.", 'error');
-        const insC = await supabaseClient.from('clientes').insert([{ nombre: val("c_nombre"), whatsapp: val("c_whatsapp") || null, cedula: val("c_cedula") || null }]).select().single();
-        requireSupabaseOk(insC, 'Crear cliente');
-        const insE = await supabaseClient.from('equipos').insert([{ cliente_id: insC.data.id, marca: val("e_marca") || 'Generic', modelo: val("e_modelo"), imei: val("e_imei"), capacidad: val("e_capacidad") || null }]).select().single();
-        requireSupabaseOk(insE, 'Crear equipo');
+        const tipoCli = val("c_tipo") || 'final';
+        const rncCli = val("c_rnc") || null;
+        // ===== NO DUPLICAR CLIENTE: buscar por WhatsApp o cédula =====
+        const waNorm = (val("c_whatsapp") || '').replace(/\D/g, '');
+        const cedNorm = (val("c_cedula") || '').trim();
+        let clienteId = null;
+        const clienteExistente = (cache.clientes || []).find(c =>
+            (waNorm && (c.whatsapp || '').replace(/\D/g, '') === waNorm) ||
+            (cedNorm && (c.cedula || '').trim() === cedNorm)
+        );
+        if(clienteExistente) {
+            clienteId = clienteExistente.id;
+            await supabaseClient.from('clientes').update({
+                nombre: val("c_nombre") || clienteExistente.nombre,
+                whatsapp: val("c_whatsapp") || clienteExistente.whatsapp,
+                cedula: cedNorm || clienteExistente.cedula,
+                tipo_cliente: tipoCli, rnc: rncCli || clienteExistente.rnc || null
+            }).eq('id', clienteId);
+        } else {
+            const insC = await supabaseClient.from('clientes').insert([{ nombre: val("c_nombre"), whatsapp: val("c_whatsapp") || null, cedula: cedNorm || null, tipo_cliente: tipoCli, rnc: rncCli }]).select().single();
+            requireSupabaseOk(insC, 'Crear cliente');
+            clienteId = insC.data.id;
+        }
+        // ===== NO DUPLICAR EQUIPO: buscar por IMEI =====
+        const imeiNorm = (val("e_imei") || '').trim();
+        let equipoId = null;
+        const equipoExistente = imeiNorm ? (cache.equipos || []).find(e => (e.imei || '').trim() === imeiNorm) : null;
+        if(equipoExistente) {
+            equipoId = equipoExistente.id;
+            await supabaseClient.from('equipos').update({
+                cliente_id: clienteId,
+                marca: val("e_marca") || equipoExistente.marca,
+                modelo: val("e_modelo") || equipoExistente.modelo,
+                capacidad: val("e_capacidad") || equipoExistente.capacidad
+            }).eq('id', equipoId);
+        } else {
+            const insE = await supabaseClient.from('equipos').insert([{ cliente_id: clienteId, marca: val("e_marca") || 'Generic', modelo: val("e_modelo"), imei: imeiNorm, capacidad: val("e_capacidad") || null }]).select().single();
+            requireSupabaseOk(insE, 'Crear equipo');
+            equipoId = insE.data.id;
+        }
         const fallasCheck = getChecked("checksFisico"); // las fallas marcadas (problemas a reparar)
         const insO = await supabaseClient.from('ordenes_reparacion').insert([{
-            cliente_id: insC.data.id, equipo_id: insE.data.id, falla_reportada: val("o_falla"), condicion_fisica: val("o_estado_fisico") || 'Sin marcas', accesorios_recibidos: val("o_accesorios") || 'Ninguno',
+            cliente_id: clienteId, equipo_id: equipoId, falla_reportada: val("o_falla"), condicion_fisica: val("o_estado_fisico") || 'Sin marcas', accesorios_recibidos: val("o_accesorios") || 'Ninguno',
             tipo_acceso: val("o_acceso"), clave_equipo: buildAccessPayload(), cuenta_icloud_google: buildAccountSummary(), creado_by: sessionUser.id, estado: 'recibido',
             prioridad: val("o_prioridad") || 'normal', fecha_estimada_entrega: val("o_fecha_estimada") || null
         }]).select().single();
@@ -13108,8 +13156,88 @@ function limpiarRecepcion() {
     if(tipo) tipo.value = 'PIN';
     const prio = document.getElementById('o_prioridad');
     if(prio) prio.value = 'normal';
+    const tcli = document.getElementById('c_tipo');
+    if(tcli) tcli.value = 'final';
+    toggleRncRecepcion();
+    const a1 = document.getElementById('avisoClienteExiste'); if(a1) a1.style.display = 'none';
+    const a2 = document.getElementById('avisoEquipoExiste'); if(a2) a2.style.display = 'none';
     clearPattern();
     togglePatternPanel();
+}
+
+// Muestra/oculta el campo RNC según el tipo de cliente
+function toggleRncRecepcion() {
+    const row = document.getElementById('rowRnc');
+    if(row) row.style.display = (document.getElementById('c_tipo')?.value === 'tienda') ? '' : 'none';
+}
+
+// Avisa si el cliente ya existe (por WhatsApp o cédula) y precarga sus datos
+function chequearClienteExistente() {
+    const aviso = document.getElementById('avisoClienteExiste');
+    if(!aviso) return;
+    const wa = (val('c_whatsapp') || '').replace(/\D/g, '');
+    const ced = (val('c_cedula') || '').trim();
+    if(!wa && !ced) { aviso.style.display = 'none'; return; }
+    const c = (cache.clientes || []).find(x =>
+        (wa && (x.whatsapp || '').replace(/\D/g, '') === wa) ||
+        (ced && (x.cedula || '').trim() === ced)
+    );
+    if(!c) { aviso.style.display = 'none'; return; }
+    // Precargar datos del cliente existente (sin pisar lo que ya escribió)
+    if(!val('c_nombre') && c.nombre) document.getElementById('c_nombre').value = c.nombre;
+    if(!val('c_cedula') && c.cedula) document.getElementById('c_cedula').value = c.cedula;
+    if(c.tipo_cliente) { const t = document.getElementById('c_tipo'); if(t) t.value = c.tipo_cliente; }
+    if(!val('c_rnc') && c.rnc) { const r = document.getElementById('c_rnc'); if(r) r.value = c.rnc; }
+    toggleRncRecepcion();
+    const nOrd = (cache.ordenes || []).filter(o => o.cliente_id === c.id).length;
+    const esTienda = c.tipo_cliente === 'tienda';
+    aviso.style.display = 'block';
+    aviso.innerHTML = `${esTienda ? '🏪' : '🧍'} Cliente ya registrado: <b>${escapeHtml(c.nombre || '')}</b> · ${nOrd} orden(es). <a href="#" onclick="verHistorialCliente('${c.id}');return false;" style="color:#1d4ed8; font-weight:700;">Ver historial</a> — se reusará (no se duplica).`;
+}
+
+// Avisa si el equipo (IMEI) ya vino antes y precarga marca/modelo/capacidad
+function chequearEquipoExistente() {
+    const aviso = document.getElementById('avisoEquipoExiste');
+    if(!aviso) return;
+    const imei = (val('e_imei') || '').trim();
+    if(!imei) { aviso.style.display = 'none'; return; }
+    const e = (cache.equipos || []).find(x => (x.imei || '').trim() === imei);
+    if(!e) { aviso.style.display = 'none'; return; }
+    if(!val('e_marca') && e.marca) document.getElementById('e_marca').value = e.marca;
+    if(!val('e_modelo') && e.modelo) document.getElementById('e_modelo').value = e.modelo;
+    if(!val('e_capacidad') && e.capacidad) document.getElementById('e_capacidad').value = e.capacidad;
+    const nOrd = (cache.ordenes || []).filter(o => o.equipo_id === e.id).length;
+    aviso.style.display = 'block';
+    aviso.innerHTML = `⚠️ Este equipo ya está registrado (${nOrd} orden(es) anteriores). <a href="#" onclick="verHistorialEquipo('${e.id}');return false;" style="color:#b45309; font-weight:700;">Ver historial del equipo</a>`;
+}
+
+// Historial de un equipo por su IMEI (todas las órdenes de ese mismo aparato)
+function verHistorialEquipo(equipoId) {
+    const e = findEquipo(equipoId);
+    const ords = (cache.ordenes || []).filter(o => o.equipo_id === equipoId).sort((a, b) => new Date(b.creado_en) - new Date(a.creado_en));
+    let html = `<div style="max-height:70vh; overflow-y:auto;">
+        <h3 style="margin:0 0 4px;"><i class="ti ti-device-mobile"></i> ${escapeHtml((e.marca || '') + ' ' + (e.modelo || ''))}</h3>
+        <div style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">IMEI: ${escapeHtml(e.imei || '—')} · ${ords.length} orden(es) en total</div>`;
+    if(!ords.length) {
+        html += `<div style="color:var(--text-muted);">Sin órdenes registradas.</div>`;
+    } else {
+        html += ords.map(o => {
+            const c = findCliente(o.cliente_id);
+            const fecha = o.creado_en ? new Date(o.creado_en).toLocaleDateString('es-DO') : '—';
+            const est = etiquetaEstadoTexto(o.estado);
+            const esGar = o.es_garantia ? ' 🛡️' : '';
+            return `<div style="border:1px solid #e2e8f0; border-radius:8px; padding:8px 10px; margin-bottom:6px;">
+                <div style="display:flex; justify-content:space-between; gap:6px;">
+                    <strong style="font-size:13px;">${formatoOrden(o.numero_orden)}${esGar}</strong>
+                    <span style="font-size:11px; color:var(--text-muted);">${fecha}</span>
+                </div>
+                <div style="font-size:12px;">${escapeHtml(c.nombre || 'Cliente')} · ${escapeHtml(o.falla_reportada || 'Sin falla')}</div>
+                <div style="font-size:11px; color:#0891b2; margin-top:2px;">${est}</div>
+            </div>`;
+        }).join('');
+    }
+    html += `</div>`;
+    abrirModalGenerico('Historial del equipo (IMEI)', html);
 }
 
 function startAppRefurbPoller() {
