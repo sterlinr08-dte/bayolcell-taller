@@ -444,7 +444,7 @@ function pintarBateria(info, bat) {
 
   // Detección
   if (ev.saludPct == null) {
-    html += '<div class="alert critico" style="margin-top:10px"><div><div class="t">⚠️ No se pudo leer la salud de la batería</div><div>Puede ser una <b>pieza no reconocida</b> o el "Mensaje importante de la batería". Aquí es donde entra tu <b>JC V1SE</b> para reprogramarla.</div></div></div>';
+    html += '<div class="alert alerta" style="margin-top:10px"><div><div class="t">No se leyeron los datos detallados (ciclos/salud)</div><div>Verifica que el iPhone esté <b>desbloqueado</b> y con <b>"Confiar"</b>. Si aun así no salen, puede ser una <b>batería no reconocida</b> (ahí entra tu JC V1SE) o un iOS que no expone estos datos por USB.</div></div></div>';
   } else if (ev.alertas.length) {
     ev.alertas.forEach(a => { html += '<div class="alert '+a.nivel+'" style="margin-top:8px"><div><div class="t">'+escapar(a.titulo)+'</div><div>'+escapar(a.causa)+'</div></div></div>'; });
   } else if (ev.saludPct < 80) {

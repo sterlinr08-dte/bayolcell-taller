@@ -97,9 +97,10 @@ async function leerDispositivo() {
   }
   const info = parseKV(gen.stdout);
 
-  // 3) Dominio batería
+  // 3) Dominio batería (carga/estado) + IORegistry (ciclos/salud/capacidad)
   const bat = await run('ideviceinfo', ['-u', udid, '-q', 'com.apple.mobile.battery'], 15000);
   const bateria = parseKV(bat.stdout);
+  Object.assign(bateria, await _ioBateria(udid));
 
   // 4) Panic logs
   const crashDir = path.join(os.tmpdir(), 'bayol_crash_' + udid);
@@ -177,6 +178,20 @@ async function iphoneRestore(onLine) {
   return { ok: false, motivo: 'fallo', code };
 }
 
+// Lee ciclos/salud/capacidad de la batería del IORegistry (como 3uTools).
+// El dominio com.apple.mobile.battery NO trae estos datos; el IORegistry sí.
+async function _ioBateria(udid) {
+  const r = await run('idevicediagnostics', ['-u', udid, 'ioregistry', 'IOPMPowerSource'], 20000);
+  const txt = r.stdout || '';
+  const gi = (k) => { const m = txt.match(new RegExp('<key>' + k + '<\\/key>\\s*<integer>(\\d+)<\\/integer>')); return m ? m[1] : null; };
+  const out = {};
+  const cyc = gi('CycleCount'); if (cyc) out.CycleCount = cyc;
+  const des = gi('DesignCapacity'); if (des) out.DesignCapacity = des;
+  const nom = gi('NominalChargeCapacity') || gi('AppleRawMaxCapacity'); if (nom) out.NominalChargeCapacity = nom;
+  const volt = gi('Voltage'); if (volt) out.BatteryVoltage = volt;
+  return out;
+}
+
 // ---- Herramientas iPhone (ficha técnica completa + acciones) ----
 async function infoCompleta() {
   if (!(await checkTools()).ok) return { ok: false, motivo: 'no_instalado' };
@@ -187,6 +202,7 @@ async function infoCompleta() {
   const info = parseKV(gen.stdout);
   const disk = parseKV((await run('ideviceinfo', ['-u', udid, '-q', 'com.apple.disk_usage'], 15000)).stdout);
   const bat = parseKV((await run('ideviceinfo', ['-u', udid, '-q', 'com.apple.mobile.battery'], 15000)).stdout);
+  Object.assign(bat, await _ioBateria(udid));
   return { ok: true, udid, info, disk, bateria: bat };
 }
 
