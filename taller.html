@@ -1697,7 +1697,10 @@ body{
                         <h3 style="margin:0;"><i class="ti ti-packages" style="color:#0891b2;"></i> Catálogo de Piezas (Info Plus)</h3>
                         <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
                             <span id="infoplusCount" style="font-size:13px; color:var(--text-muted);"></span>
-                            <button class="btn btn-success" id="ipSyncBtn" style="font-size:13px;" onclick="sincronizarInfoplus(this)"><i class="ti ti-refresh"></i> Sincronizar con Info Plus</button>
+                            <button class="btn btn-success" id="ipSyncBtn" style="font-size:13px;" onclick="sincronizarInfoplus(this)"><i class="ti ti-refresh"></i> Sincronizar precios (Info Plus)</button>
+                            <label class="btn btn-blue" style="font-size:13px; cursor:pointer; margin:0;"><i class="ti ti-building-warehouse"></i> Cargar existencia Taller (CSV)
+                                <input type="file" id="tallerFile" accept=".csv,text/csv" style="display:none;" onchange="importarExistenciaTaller(this)">
+                            </label>
                             <label class="btn btn-light" style="font-size:13px; cursor:pointer; margin:0;"><i class="ti ti-upload"></i> Importar CSV
                                 <input type="file" id="infoplusFile" accept=".csv,text/csv" style="display:none;" onchange="importarCatalogoInfoplus(this)">
                             </label>
@@ -5099,6 +5102,36 @@ async function sincronizarInfoplus(btn){
         }
     }catch(e){ logError('Sincronizar Info Plus', e); if(msg){ msg.style.color = '#dc2626'; msg.textContent = '⚠️ Error: ' + getFriendlyError(e); } }
     finally{ btn.disabled = false; btn.innerHTML = orig; }
+}
+function _csvCampos(linea){ const out=[]; const re=/"([^"]*)"/g; let m; while((m=re.exec(linea))) out.push(m[1]); if(!out.length) return linea.split(','); return out; }
+async function importarExistenciaTaller(input){
+    const file = input.files && input.files[0]; if(!file) return;
+    const msg = document.getElementById('infoplusImportMsg');
+    if(msg){ msg.style.color='var(--text-muted)'; msg.textContent='⏳ Leyendo CSV del taller…'; }
+    try{
+        const texto = await file.text();
+        const lineas = texto.split(/\r?\n/).filter(l=>l.trim());
+        if(!lineas.length) throw new Error('El archivo está vacío.');
+        const header = _csvCampos(lineas[0]).map(h=>h.toLowerCase());
+        const iCod = header.findIndex(h=>h.includes('articulo') && !h.includes('desc'));
+        const iEx = header.findIndex(h=>h.includes('existencia'));
+        if(iCod<0 || iEx<0) throw new Error('No encontré las columnas "Articulo" y "Existencia" en el CSV.');
+        const datos = {};
+        for(let k=1;k<lineas.length;k++){
+            const c = _csvCampos(lineas[k]); if(c.length<=Math.max(iCod,iEx)) continue;
+            const cod = (c[iCod]||'').trim();
+            const ex = parseFloat(String(c[iEx]||'0').replace(',','.'))||0;
+            if(cod) datos[cod] = Math.round(ex);
+        }
+        const n = Object.keys(datos).length;
+        if(!n) throw new Error('No se leyeron artículos del CSV.');
+        if(msg) msg.textContent='⏳ Cargando '+n+' artículos del taller…';
+        const { error } = await supabaseClient.rpc('set_taller_existencia', { datos });
+        if(error) throw error;
+        if(msg){ msg.style.color='#16a34a'; msg.textContent='✅ Existencia del taller actualizada: '+n+' artículos.'; }
+        actualizarInfoplusCount(); renderInfoplusBusqueda();
+    }catch(e){ logError('Importar existencia taller', e); if(msg){ msg.style.color='#dc2626'; msg.textContent='⚠️ '+getFriendlyError(e); } }
+    finally{ input.value=''; }
 }
 async function actualizarInfoplusCount() {
     const el = document.getElementById('infoplusCount'); if(!el) return;
