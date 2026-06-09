@@ -9602,10 +9602,15 @@ function renderPiezasSolicitadas() {
         const c = o ? findCliente(o.cliente_id) : {};
         const tecId = p.tecnico_id || (o && o.tecnico_asignado_id) || null;
         const tec = tecId ? nombreEmpleado(tecId) : '—';
+        const eqO = o ? findEquipo(o.equipo_id) : null;
         items.push({
+            id: p.id, kind: 'orden',
             pieza: p.pieza_nombre || 'Pieza', cantidad: p.cantidad || 1, estado: p.estado || 'solicitada',
             origen: o ? `Orden ${formatoOrden(o.numero_orden)}` : 'Orden', cliente: c.nombre || '', tecnico: tec, tecnicoId: tecId,
-            tipo: 'Orden', color: '#ef4444', fecha: p.creado_en
+            tipo: 'Orden', color: '#ef4444', fecha: p.creado_en,
+            grupoKey: 'O_' + (o ? o.id : p.id),
+            grupoTitulo: (o ? `Orden ${formatoOrden(o.numero_orden)}` : 'Orden') + (eqO ? ` · ${(eqO.marca||'')} ${(eqO.modelo||'')}`.replace(/\s+$/,'') : ''),
+            grupoSub: c.nombre ? `Cliente: ${c.nombre}` : ''
         });
     });
     // Piezas de reacondicionados
@@ -9614,9 +9619,13 @@ function renderPiezasSolicitadas() {
         const tecId = eq && eq.tecnico_asignado_id ? eq.tecnico_asignado_id : null;
         const tec = tecId ? nombreEmpleado(tecId) : '—';
         items.push({
+            id: p.id, kind: 'reacond',
             pieza: p.pieza_nombre || 'Pieza', cantidad: p.cantidad || 1, estado: p.estado || 'pendiente',
             origen: eq ? `${eq.marca||''} ${eq.modelo||''}`.trim() : 'Reacond', cliente: '', tecnico: tec, tecnicoId: tecId,
-            tipo: 'Reacond', color: '#f59e0b', fecha: p.fecha_entrega || p.creado_en
+            tipo: 'Reacond', color: '#f59e0b', fecha: p.fecha_entrega || p.creado_en,
+            grupoKey: 'R_' + (eq ? eq.id : p.id),
+            grupoTitulo: eq ? `${(eq.marca||'')} ${(eq.modelo||'')}`.trim() + (eq.capacidad ? ` · ${eq.capacidad}` : '') : 'Reacondicionado',
+            grupoSub: 'Reacondicionado'
         });
     });
     
@@ -9638,11 +9647,14 @@ function renderPiezasSolicitadas() {
     filtrados.sort((a,b) => new Date(b.fecha||0) - new Date(a.fecha||0));
     
     if(!filtrados.length) { cont.innerHTML = `<div style="color:var(--text-muted); font-size:13px;">No hay piezas en este filtro.</div>`; return; }
-    
+
     // Resumen por estado (de las piezas visibles para este usuario)
     const pend = baseItems.filter(i => ['solicitada','pendiente','extra_pendiente','aprobada'].includes(i.estado)).length;
     const entr = baseItems.filter(i => ['entregada','recibida'].includes(i.estado)).length;
-    
+
+    const puedeEntregar = isAdminUser() || tienePermiso('recepcion_ver') || tienePermiso('inventario_ver') || tienePermiso('piezas_entregar');
+    const esAdminAprob = isAdminUser() || tienePermiso('piezas_aprobar_extra');
+
     const etiqEstado = (e) => {
         const map = {
             solicitada:['🟡 Solicitada','#d97706'], pendiente:['🟡 Pendiente','#d97706'],
@@ -9653,24 +9665,49 @@ function renderPiezasSolicitadas() {
         const [txt, col] = map[e] || [e, '#64748b'];
         return `<span style="background:${col}22; color:${col}; font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px;">${txt}</span>`;
     };
-    
-    cont.innerHTML = `
-        <div style="display:flex; gap:10px; margin-bottom:10px; font-size:12px;">
-            <span style="background:#fef3c7; color:#92400e; padding:4px 10px; border-radius:8px; font-weight:700;">🟡 ${pend} pendientes</span>
-            <span style="background:#dbeafe; color:#b91c1c; padding:4px 10px; border-radius:8px; font-weight:700;">📦 ${entr} entregadas/recibidas</span>
-        </div>
-        <div style="overflow-x:auto;"><table class="data-table" style="width:100%; font-size:13px;">
-            <thead><tr><th>Pieza</th><th>Cant</th><th>Origen</th><th>Técnico</th><th>Tipo</th><th>Estado</th></tr></thead>
-            <tbody>${filtrados.map(i => `<tr>
-                <td style="font-weight:600;">${escapeHtml(i.pieza)}</td>
-                <td>${i.cantidad}</td>
-                <td style="font-size:12px;">${escapeHtml(i.origen)}${i.cliente ? ' · ' + escapeHtml(i.cliente) : ''}</td>
-                <td style="font-size:12px;">${escapeHtml(i.tecnico)}</td>
-                <td><span style="background:${i.color}22; color:${i.color}; font-size:10px; padding:2px 7px; border-radius:8px;">${i.tipo}</span></td>
-                <td>${etiqEstado(i.estado)}</td>
-            </tr>`).join('')}</tbody>
-        </table></div>
-        <div style="font-size:11px; color:var(--text-muted); margin-top:6px;">${filtrados.length} pieza(s)</div>`;
+    const botonAccion = (i) => {
+        const b = (color, txt, fn) => `<button class="btn" style="background:${color}; color:#fff; font-size:11px; padding:5px 10px; border:none; border-radius:8px;" onclick="${fn}">${txt}</button>`;
+        if(i.kind === 'orden') {
+            if(i.estado === 'solicitada' && puedeEntregar) return b('#0891b2','📦 Entregar', `entregarPiezaOrden('${i.id}')`);
+            if(i.estado === 'entregada' && (isAdminUser() || i.tecnicoId === miId)) return b('#16a34a','✅ Confirmar recibida', `recibirPiezaOrden('${i.id}')`);
+        } else {
+            if(i.estado === 'extra_pendiente' && esAdminAprob) return b('#7c3aed','✔ Aprobar extra', `aprobarPiezaExtra('${i.id}')`);
+            if(i.estado === 'pendiente' && puedeEntregar) return b('#0891b2','📦 Entregar', `marcarPiezaEntregada('${i.id}')`);
+            if((i.estado === 'entregada' || i.estado === 'aprobada') && (isAdminUser() || i.tecnicoId === miId)) return b('#16a34a','✅ Confirmar recibida', `marcarPiezaRecibida('${i.id}')`);
+        }
+        return '';
+    };
+
+    // Agrupar por equipo/orden
+    const grupos = {};
+    filtrados.forEach(i => { (grupos[i.grupoKey] = grupos[i.grupoKey] || { info: i, piezas: [] }).piezas.push(i); });
+    const fechaMax = g => Math.max(...g.piezas.map(p => +new Date(p.fecha || 0)));
+    const ordenGrupos = Object.values(grupos).sort((a,b) => fechaMax(b) - fechaMax(a));
+
+    let html = `<div style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap; font-size:12px;">
+        <span style="background:#fef3c7; color:#92400e; padding:4px 10px; border-radius:8px; font-weight:700;">🟡 ${pend} pendientes</span>
+        <span style="background:#dbeafe; color:#1e40af; padding:4px 10px; border-radius:8px; font-weight:700;">📦 ${entr} entregadas/recibidas</span>
+    </div>`;
+    ordenGrupos.forEach(g => {
+        const i = g.info;
+        html += `<div style="background:#fff; border:1px solid var(--border-color); border-left:5px solid ${i.color}; border-radius:12px; padding:12px 14px; margin-bottom:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; border-bottom:1px solid #eef1f4; padding-bottom:8px; margin-bottom:8px;">
+                <div>
+                    <span class="badge" style="background:#eef2f7; color:#334155; font-size:10px; padding:2px 7px;">${i.tipo}</span>
+                    <b style="font-size:14px; margin-left:6px;">${escapeHtml(i.grupoTitulo)}</b>
+                    ${i.grupoSub ? `<span style="color:var(--text-muted); font-size:12px; margin-left:6px;">${escapeHtml(i.grupoSub)}</span>` : ''}
+                </div>
+                <span style="font-size:12px; color:#3730a3; font-weight:600;"><i class="ti ti-tool"></i> ${escapeHtml(i.tecnico)}</span>
+            </div>
+            ${g.piezas.map(p => `<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:5px 0;">
+                <span style="flex:1; min-width:140px; font-size:13px; font-weight:600;">• ${escapeHtml(p.pieza)}${p.cantidad > 1 ? ' ×' + p.cantidad : ''}</span>
+                ${etiqEstado(p.estado)}
+                ${botonAccion(p)}
+            </div>`).join('')}
+        </div>`;
+    });
+    html += `<div style="font-size:11px; color:var(--text-muted); margin-top:6px;">${filtrados.length} pieza(s) · ${ordenGrupos.length} equipo(s)</div>`;
+    cont.innerHTML = html;
 }
 
 // Lista de recepciones realizadas (con buscador y filtro de fecha) en el módulo Recepción
