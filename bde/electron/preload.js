@@ -7,6 +7,8 @@ contextBridge.exposeInMainWorld('bde', {
   checkTools: () => ipcRenderer.invoke('bde:checkTools'),
   // Lee el iPhone conectado por USB
   leerDispositivo: () => ipcRenderer.invoke('bde:leerDispositivo'),
+  // UDID del iPhone conectado ahora (auto-detección)
+  dispositivoActual: () => ipcRenderer.invoke('bde:dispositivoActual'),
   // Lista de ventanas/pantallas para capturar (ej. el programa de REEFOX)
   getSources: () => ipcRenderer.invoke('bde:getSources'),
   // Backup / restauración del iPhone

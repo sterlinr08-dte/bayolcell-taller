@@ -73,6 +73,11 @@ function leerPanicIps(file) {
   };
 }
 
+// Devuelve el UDID del iPhone conectado ahora (o null). Rápido, para auto-detección.
+async function dispositivoActual() {
+  try { return await _udidConectado(); } catch (e) { return null; }
+}
+
 // Lee TODO el dispositivo: info general + batería + panic logs
 async function leerDispositivo() {
   const check = await checkTools();
@@ -239,4 +244,4 @@ async function appsLista() {
   return { ok: true, salida: (r.stdout || '') };
 }
 
-module.exports = { checkTools, leerDispositivo, backupsBase, iphoneBackup, iphoneRestore, infoCompleta, deviceAccion, salirRecovery, captura, appsLista };
+module.exports = { checkTools, leerDispositivo, dispositivoActual, backupsBase, iphoneBackup, iphoneRestore, infoCompleta, deviceAccion, salirRecovery, captura, appsLista };

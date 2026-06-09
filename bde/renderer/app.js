@@ -61,6 +61,54 @@ function iniciarApp() {
   cont.innerHTML = SINTOMAS.map(s => `<span class="chip" onclick="this.classList.toggle('on')">${s}</span>`).join('');
   verificarHerramientas();
   initUpdates();
+  startAutoDetect();
+}
+
+// ---------------- AUTO-DETECCIÓN DE EQUIPO (como 3uTools) ----------------
+let udidVisto = '__init__';
+function _setLedDev(estado, texto) {
+  const led = document.getElementById('ledDev'), t = document.getElementById('devTxt');
+  if (led) led.className = 'led' + (estado === 'busy' ? ' busy' : (estado ? ' on' : ''));
+  if (t) t.textContent = texto;
+}
+function limpiarDatosDispositivo() {
+  ultimaLectura = null; _batActual = null; _fichaInfo = null;
+  const set = (id, html) => { const e = document.getElementById(id); if (e) e.innerHTML = html; };
+  const val = (id, v) => { const e = document.getElementById(id); if (e) e.value = v; };
+  const hide = (id) => { const e = document.getElementById(id); if (e) e.classList.add('hidden'); };
+  const show = (id) => { const e = document.getElementById(id); if (e) e.classList.remove('hidden'); };
+  // Lector
+  set('lectorResultado', ''); hide('lectorResultado'); show('lectorInicio');
+  // Batería
+  set('batResultado', ''); const ba=document.getElementById('btnBatAntes'), bd=document.getElementById('btnBatDespues'); if(ba)ba.disabled=true; if(bd)bd.disabled=true;
+  // Herramientas / ficha
+  set('fichaTec', 'Conecta el iPhone y presiona “Leer ficha técnica”.'); set('carrierBox', '—');
+  hide('btnImprimirFicha'); hide('btnImei'); hide('appsCard');
+  // Campos prellenados del equipo anterior
+  ['ia_modelo','ia_ios','ia_bateria','ia_consumo','ia_panic','pt_modelo','pt_imei'].forEach(id => val(id, ''));
+}
+function startAutoDetect() {
+  if (!window.bde || !window.bde.dispositivoActual) return;
+  setInterval(async () => {
+    if (document.hidden) return;
+    let u = null;
+    try { u = await window.bde.dispositivoActual(); } catch (e) { return; }
+    if (u === udidVisto) return;
+    udidVisto = u;
+    if (!u) { limpiarDatosDispositivo(); _setLedDev(false, 'Sin dispositivo'); return; }
+    // Nuevo equipo conectado → limpiar el anterior y leer el nuevo solo
+    limpiarDatosDispositivo();
+    _setLedDev('busy', 'Equipo detectado…');
+    autoLeer();
+  }, 4000);
+}
+async function autoLeer() {
+  try {
+    const r = await window.bde.leerDispositivo();
+    if (r.ok) { procesarLectura(r); udidVisto = r.udid; }
+    else if (r.motivo === 'sin_trust') { _setLedDev('busy', 'Dale "Confiar" en el iPhone'); udidVisto = null; }
+    else { _setLedDev(false, 'Sin dispositivo'); }
+  } catch (e) { _setLedDev(false, 'Sin dispositivo'); }
 }
 
 // ---------------- NAVEGACIÓN ----------------

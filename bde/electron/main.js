@@ -48,6 +48,9 @@ ipcMain.handle('bde:leerDispositivo', async () => {
   return usb.leerDispositivo();
 });
 
+// UDID del iPhone conectado ahora (para auto-detección de cambios)
+ipcMain.handle('bde:dispositivoActual', async () => usb.dispositivoActual());
+
 // Lista de ventanas/pantallas para "capturar de pantalla" (ej. el programa de REEFOX)
 ipcMain.handle('bde:getSources', async () => {
   const sources = await desktopCapturer.getSources({ types: ['screen', 'window'] });
