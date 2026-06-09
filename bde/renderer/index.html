@@ -154,6 +154,21 @@
           </div>
           <div id="lectorResultado" class="hidden"></div>
         </div>
+
+        <div class="card">
+          <h3><span class="ic">💾</span> Backup del iPhone (respaldo del cliente)</h3>
+          <p class="muted" style="text-align:left">Haz un respaldo del iPhone <b>antes de repararlo</b>, por si algo se pierde. Se guarda en la PC (Documentos → BAYOL Backups). El primero tarda; los siguientes son más rápidos.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+            <button class="btn" id="btnBackupIphone" onclick="backupIphone(this)">💾 Hacer backup del iPhone</button>
+            <button class="btn sec" onclick="abrirCarpetaBackups()">📂 Abrir carpeta de backups</button>
+            <button class="btn sec" style="color:#b91c1c" onclick="restaurarIphone(this)">♻️ Restaurar backup al iPhone</button>
+          </div>
+          <pre id="opProgreso" class="panic-box hidden" style="margin-top:10px;max-height:160px"></pre>
+          <div style="margin-top:12px;border-top:1px dashed var(--borde);padding-top:10px">
+            <b style="font-size:13px">🔄 Actualizar / bajar iOS</b>
+            <p class="muted" style="text-align:left;margin-top:4px">Actualizar iOS es pesado (5–7 GB) y delicado; <b>bajar de versión casi nunca se puede</b> (Apple solo firma versiones nuevas). Recomendado hacerlo con cuidado desde Finder/iTunes o 3uTools. Aquí, si quieres, agregamos el botón con sus avisos.</p>
+          </div>
+        </div>
       </section>
 
       <!-- ---------- VISTA PANIC ---------- -->

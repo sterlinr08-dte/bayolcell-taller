@@ -1,7 +1,7 @@
 // MÓDULO 1 — LECTOR DE DISPOSITIVO (USB)
 // Ejecuta libimobiledevice (ideviceinfo / idevicecrashreport) para leer el
 // iPhone conectado SIN jailbreak y extraer datos + panic logs automáticamente.
-const { execFile } = require('child_process');
+const { execFile, spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -124,4 +124,57 @@ async function leerDispositivo() {
   return { ok: true, udid, info, bateria, panics };
 }
 
-module.exports = { checkTools, leerDispositivo };
+// ---- Backup / restauración del iPhone (idevicebackup2) ----
+function backupsBase() {
+  return path.join(os.homedir(), 'Documents', 'BAYOL Backups');
+}
+
+// Ejecuta un comando y manda cada línea de salida a onLine (para mostrar progreso)
+function runStream(name, args, onLine) {
+  return new Promise((resolve) => {
+    let proc;
+    try { proc = spawn(tool(name), args, { windowsHide: true }); }
+    catch (e) { onLine('ERROR: ' + e.message); return resolve(-1); }
+    let buf = '';
+    const handle = (chunk) => {
+      buf += chunk.toString();
+      let i;
+      while ((i = buf.indexOf('\n')) >= 0) { const l = buf.slice(0, i).trim(); if (l) onLine(l); buf = buf.slice(i + 1); }
+    };
+    proc.stdout.on('data', handle);
+    proc.stderr.on('data', handle);
+    proc.on('error', (e) => { onLine('ERROR: ' + e.message); resolve(-1); });
+    proc.on('close', (code) => { if (buf.trim()) onLine(buf.trim()); resolve(code); });
+  });
+}
+
+async function _udidConectado() {
+  const list = await run('idevice_id', ['-l'], 10000);
+  return (list.stdout || '').split(/\r?\n/).map(s => s.trim()).filter(Boolean)[0] || null;
+}
+
+async function iphoneBackup(onLine) {
+  if (!(await checkTools()).ok) return { ok: false, motivo: 'no_instalado' };
+  const udid = await _udidConectado();
+  if (!udid) return { ok: false, motivo: 'sin_dispositivo' };
+  const dir = backupsBase();
+  try { fs.mkdirSync(dir, { recursive: true }); } catch (e) {}
+  onLine('Iniciando backup del iPhone (' + udid + ')…');
+  onLine('Carpeta: ' + dir);
+  const code = await runStream('idevicebackup2', ['-u', udid, 'backup', '--full', dir], onLine);
+  if (code === 0) return { ok: true, dir: path.join(dir, udid) };
+  return { ok: false, motivo: 'fallo', code };
+}
+
+async function iphoneRestore(onLine) {
+  if (!(await checkTools()).ok) return { ok: false, motivo: 'no_instalado' };
+  const udid = await _udidConectado();
+  if (!udid) return { ok: false, motivo: 'sin_dispositivo' };
+  const dir = backupsBase();
+  onLine('Restaurando backup al iPhone (' + udid + ')… NO desconectes el equipo.');
+  const code = await runStream('idevicebackup2', ['-u', udid, 'restore', '--system', '--settings', dir], onLine);
+  if (code === 0) return { ok: true };
+  return { ok: false, motivo: 'fallo', code };
+}
+
+module.exports = { checkTools, leerDispositivo, backupsBase, iphoneBackup, iphoneRestore };

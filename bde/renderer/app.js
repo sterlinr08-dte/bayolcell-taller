@@ -871,6 +871,53 @@ async function backupDatos(btn) {
   finally { btn.disabled = false; btn.textContent = o; }
 }
 
+// ---------------- BACKUP DEL IPHONE ----------------
+let _opSubscrito = false;
+function _opLog(line) {
+  const el = document.getElementById('opProgreso');
+  if (!el) return;
+  el.classList.remove('hidden');
+  el.textContent += line + '\n';
+  el.scrollTop = el.scrollHeight;
+}
+function _subOp() {
+  if (_opSubscrito || !window.bde || !window.bde.onOpProgress) return;
+  window.bde.onOpProgress(_opLog); _opSubscrito = true;
+}
+
+async function backupIphone(btn) {
+  if (!window.bde || !window.bde.iphoneBackup) { alert('El backup del iPhone solo funciona en la app de escritorio instalada.'); return; }
+  _subOp();
+  const el = document.getElementById('opProgreso'); el.classList.remove('hidden'); el.textContent = '';
+  btn.disabled = true; const o = btn.textContent; btn.textContent = 'Respaldando…';
+  try {
+    const r = await window.bde.iphoneBackup();
+    if (r.ok) _opLog('✅ Backup completo. Carpeta: ' + r.dir);
+    else if (r.motivo === 'no_instalado') _opLog('⚠️ Falta libimobiledevice en la PC.');
+    else if (r.motivo === 'sin_dispositivo') _opLog('⚠️ No hay iPhone conectado (desbloquéalo y dale "Confiar").');
+    else _opLog('❌ No se completó el backup (código ' + r.code + '). Si el iPhone pide clave de cifrado de copias, revísalo.');
+  } catch (e) { _opLog('❌ Error: ' + (e.message || '')); }
+  finally { btn.disabled = false; btn.textContent = o; }
+}
+
+async function restaurarIphone(btn) {
+  if (!window.bde || !window.bde.iphoneRestore) { alert('Solo funciona en la app de escritorio instalada.'); return; }
+  if (!confirm('⚠️ Restaurar SOBREESCRIBE los datos del iPhone con el último backup guardado. Úsalo solo en el MISMO equipo. ¿Continuar?')) return;
+  _subOp();
+  const el = document.getElementById('opProgreso'); el.classList.remove('hidden'); el.textContent = '';
+  btn.disabled = true; const o = btn.textContent; btn.textContent = 'Restaurando…';
+  try {
+    const r = await window.bde.iphoneRestore();
+    _opLog(r.ok ? '✅ Restauración completa.' : '❌ No se completó (código ' + r.code + ').');
+  } catch (e) { _opLog('❌ Error: ' + (e.message || '')); }
+  finally { btn.disabled = false; btn.textContent = o; }
+}
+
+async function abrirCarpetaBackups() {
+  if (window.bde && window.bde.openBackups) await window.bde.openBackups();
+  else alert('Solo en la app de escritorio.');
+}
+
 // Si ya hay sesión activa al abrir, entrar directo
 (async () => {
   const { data } = await sb.auth.getSession();

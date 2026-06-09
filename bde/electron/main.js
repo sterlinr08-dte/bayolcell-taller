@@ -52,6 +52,11 @@ ipcMain.handle('bde:getSources', async () => {
   return sources.map(s => ({ id: s.id, name: s.name }));
 });
 
+// Backup / restauración del iPhone (envía progreso línea por línea al renderer)
+ipcMain.handle('bde:iphoneBackup', async (e) => usb.iphoneBackup((l) => { try { e.sender.send('bde:opProgress', l); } catch (_) {} }));
+ipcMain.handle('bde:iphoneRestore', async (e) => usb.iphoneRestore((l) => { try { e.sender.send('bde:opProgress', l); } catch (_) {} }));
+ipcMain.handle('bde:openBackups', async () => { const dir = usb.backupsBase(); try { shell.openPath(dir); } catch (_) {} return dir; });
+
 app.whenReady().then(() => {
   createWindow();
   app.on('activate', () => {
