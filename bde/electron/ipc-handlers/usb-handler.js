@@ -189,16 +189,34 @@ async function iphoneRestore(onLine) {
 // Lee ciclos/salud/capacidad de la batería del IORegistry (como 3uTools).
 // El dominio com.apple.mobile.battery NO trae estos datos; el IORegistry sí.
 async function _ioBateria(udid) {
-  const r = await run('idevicediagnostics', ['-u', udid, 'ioregistry', 'IOPMPowerSource'], 20000);
-  const txt = r.stdout || '';
-  const gi = (k) => { const m = txt.match(new RegExp('<key>' + k + '<\\/key>\\s*<integer>(\\d+)<\\/integer>')); return m ? m[1] : null; };
   const out = {};
-  const cyc = gi('CycleCount'); if (cyc) out.CycleCount = cyc;
-  const des = gi('DesignCapacity'); if (des) out.DesignCapacity = des;
-  const nom = gi('NominalChargeCapacity') || gi('AppleRawMaxCapacity'); if (nom) out.NominalChargeCapacity = nom;
-  const volt = gi('Voltage'); if (volt) out.BatteryVoltage = volt;
-  const temp = gi('Temperature'); if (temp) out.Temperature = temp; // centi-°C (ej 3012 = 30.12°C)
-  const cur = gi('CurrentCapacity'); if (cur) out.CurrentCapacity = cur; // % actual
+  const clases = ['IOPMPowerSource', 'AppleSmartBattery', ''];
+  let parseo = false, ultErr = '', ultTxt = '';
+  for (const cls of clases) {
+    const args = ['-u', udid, 'ioregistry']; if (cls) args.push(cls);
+    const r = await run('idevicediagnostics', args, 20000);
+    if (r.err && r.err.code === 'ENOENT') { out._diag = 'No está idevicediagnostics en la PC.'; return out; }
+    const txt = (r.stdout || '');
+    if (!txt) { ultErr = (r.stderr || '').replace(/\s+/g, ' ').trim().slice(0, 140); continue; }
+    ultTxt = txt;
+    // Acepta <integer>, <real> y formato ioreg "Clave" = valor
+    const gi = (k) => {
+      let m = txt.match(new RegExp('<key>' + k + '<\\/key>\\s*<(?:integer|real)>(-?\\d+)'));
+      if (m) return m[1];
+      m = txt.match(new RegExp('"?' + k + '"?\\s*[=:]\\s*(-?\\d+)'));
+      return m ? m[1] : null;
+    };
+    const put = (k, name) => { const v = gi(k); if (v && !out[name]) { out[name] = v; parseo = true; } };
+    put('CycleCount', 'CycleCount');
+    put('DesignCapacity', 'DesignCapacity');
+    const nom = gi('NominalChargeCapacity') || gi('AppleRawMaxCapacity');
+    if (nom && !out.NominalChargeCapacity) { out.NominalChargeCapacity = nom; parseo = true; }
+    put('Voltage', 'BatteryVoltage');
+    put('Temperature', 'Temperature');
+    put('CurrentCapacity', 'CurrentCapacity');
+    if (out.CycleCount || out.DesignCapacity) break;
+  }
+  if (!parseo) out._diag = ultErr ? ('relay: ' + ultErr) : (ultTxt ? ('formato: ' + ultTxt.replace(/\s+/g, ' ').slice(0, 180)) : 'IORegistry sin respuesta (iOS nuevo puede bloquearlo).');
   return out;
 }
 

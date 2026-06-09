@@ -230,7 +230,9 @@ function renderInicio(info, bateria, disk) {
     + '</div>'
     + '<div style="display:flex;gap:8px;margin-top:10px;justify-content:center;flex-wrap:wrap">'
     + '<span class="estado-pill" style="background:#dcfce7;color:#166534;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700">' + escapar(info.ActivationState || '—') + '</span>'
-    + '</div></div>';
+    + '</div>'
+    + ((salud == null && bateria._diag) ? '<div class="muted" style="font-size:10px;margin-top:8px">ⓘ Salud/ciclos no disponibles — ' + escapar(bateria._diag) + '</div>' : '')
+    + '</div>';
 
   // DERECHA: información del equipo
   html += '<div class="card"><h3><span class="ic">📋</span> Información del equipo</h3><div class="row">';
