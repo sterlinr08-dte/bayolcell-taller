@@ -17,6 +17,10 @@
     "directories": {
       "output": "dist"
     },
+    "artifactName": "BAYOL-Diagnostic-Engine-Setup.${ext}",
+    "publish": [
+      { "provider": "github", "owner": "sterlinr08-dte", "repo": "bayolcell-taller", "releaseType": "release" }
+    ],
     "files": [
       "electron/**/*",
       "renderer/**/*",
@@ -37,6 +41,9 @@
       "createDesktopShortcut": true,
       "shortcutName": "BAYOL Diagnostic Engine"
     }
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9"
   },
   "devDependencies": {
     "electron": "^31.0.0",

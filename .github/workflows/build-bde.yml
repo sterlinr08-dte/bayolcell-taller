@@ -65,25 +65,21 @@ jobs:
             Write-Host "ERROR empaquetando libimobiledevice: $_"
           }
 
+      - name: Subir el numero de version (para que la auto-actualizacion detecte la nueva)
+        shell: pwsh
+        run: npm version "2.0.${{ github.run_number }}" --no-git-tag-version --allow-same-version
+
       - name: Instalar dependencias
         run: npm install
 
-      - name: Generar instalador (.exe)
-        run: npm run dist
+      - name: Generar instalador y PUBLICAR (auto-update con .exe y latest.yml)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder --win --x64 --publish always
 
       - name: Subir el instalador como artefacto descargable
         uses: actions/upload-artifact@v4
         with:
           name: BAYOL-Diagnostic-Engine-Windows
           path: bde/dist/*.exe
-          if-no-files-found: error
-
-      - name: Publicar Release con enlace fijo (para compartir)
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || 'bde-latest' }}
-          name: BAYOL Diagnostic Engine (Windows)
-          body: |
-            Instalador de BAYOL Diagnostic Engine para Windows.
-            Descarga el archivo .exe de abajo, ejecútalo e instálalo.
-          files: bde/dist/*.exe
+          if-no-files-found: warn

@@ -3,6 +3,8 @@
 const { app, BrowserWindow, ipcMain, shell, desktopCapturer } = require('electron');
 const path = require('path');
 const usb = require('./ipc-handlers/usb-handler');
+let autoUpdater = null;
+try { autoUpdater = require('electron-updater').autoUpdater; } catch (e) { /* en desarrollo puede no estar */ }
 
 let win = null;
 
@@ -65,8 +67,34 @@ ipcMain.handle('bde:captura', async () => usb.captura());
 ipcMain.handle('bde:appsLista', async () => usb.appsLista());
 ipcMain.handle('bde:abrirArchivo', async (_e, f) => { try { shell.showItemInFolder(f); } catch (_) {} return true; });
 
+// ---- Auto-actualización (electron-updater) ----
+ipcMain.handle('bde:appVersion', async () => app.getVersion());
+ipcMain.handle('bde:buscarUpdate', async () => {
+  if (!autoUpdater) return { ok: false, motivo: 'no_disponible' };
+  try { await autoUpdater.checkForUpdates(); return { ok: true }; }
+  catch (e) { return { ok: false, error: String(e) }; }
+});
+ipcMain.handle('bde:instalarUpdate', async () => {
+  if (autoUpdater) { setImmediate(() => autoUpdater.quitAndInstall()); }
+  return { ok: true };
+});
+
+function _sendUpd(msg) { try { if (win && !win.isDestroyed()) win.webContents.send('bde:update', msg); } catch (_) {} }
+if (autoUpdater) {
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.on('checking-for-update', () => _sendUpd('buscando'));
+  autoUpdater.on('update-available', () => _sendUpd('disponible'));
+  autoUpdater.on('update-not-available', () => _sendUpd('nada'));
+  autoUpdater.on('download-progress', (p) => _sendUpd('descargando:' + Math.round(p.percent || 0)));
+  autoUpdater.on('update-downloaded', () => _sendUpd('listo'));
+  autoUpdater.on('error', (e) => _sendUpd('error:' + (e && e.message ? e.message : String(e))));
+}
+
 app.whenReady().then(() => {
   createWindow();
+  // Buscar actualizaciones al abrir (en segundo plano)
+  if (autoUpdater) setTimeout(() => { try { autoUpdater.checkForUpdates(); } catch (e) {} }, 4000);
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });

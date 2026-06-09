@@ -60,6 +60,7 @@ function iniciarApp() {
   const cont = document.getElementById('ia_chips');
   cont.innerHTML = SINTOMAS.map(s => `<span class="chip" onclick="this.classList.toggle('on')">${s}</span>`).join('');
   verificarHerramientas();
+  initUpdates();
 }
 
 // ---------------- NAVEGACIÓN ----------------
@@ -76,7 +77,10 @@ function vista(v, btn) {
   if (v === 'microscopio') prepararMicro();
   if (v === 'esquematicos') prepararEsquematicos();
   if (v === 'conocimiento') cargarConocimiento();
-  if (v === 'mantenimiento') { const e=document.getElementById('mtVersion'); if(e) e.textContent = CFG.APP_VERSION || '—'; }
+  if (v === 'mantenimiento') {
+    const e = document.getElementById('mtVersion');
+    if (e) { if (window.bde && window.bde.appVersion) window.bde.appVersion().then(ver => e.textContent = ver || CFG.APP_VERSION).catch(()=>e.textContent=CFG.APP_VERSION); else e.textContent = CFG.APP_VERSION || '—'; }
+  }
 }
 
 // ---------------- HERRAMIENTAS (libimobiledevice) ----------------
@@ -1110,26 +1114,79 @@ async function borrarCaso(id) {
 }
 
 // ---------------- MANTENIMIENTO (actualizar / versión anterior / backup) ----------------
+// ----- Auto-actualización + notificación -----
+let _updSub = false;
+function initUpdates() {
+  if (_updSub || !window.bde || !window.bde.onUpdate) return;
+  window.bde.onUpdate(onUpdate); _updSub = true;
+  try { if (window.Notification && Notification.permission === 'default') Notification.requestPermission(); } catch (e) {}
+}
+function _notif(titulo, cuerpo) {
+  try { if (window.Notification && Notification.permission === 'granted') new Notification(titulo, { body: cuerpo }); } catch (e) {}
+}
+function _bannerUpd(html, botones) {
+  const b = document.getElementById('updBanner');
+  if (!b) return;
+  b.classList.remove('hidden');
+  document.getElementById('updBannerTxt').innerHTML = html;
+  document.getElementById('updBannerBtns').innerHTML = botones || '';
+}
+function cerrarBannerUpd() { const b = document.getElementById('updBanner'); if (b) b.classList.add('hidden'); }
+function onUpdate(m) {
+  const out = document.getElementById('mtUpd');
+  if (m === 'buscando') { if (out) out.innerHTML = '<span class="spin"></span> Buscando actualización…'; }
+  else if (m === 'disponible') {
+    _bannerUpd('⬇ <b>Hay una actualización nueva</b><br>Descargando en segundo plano…');
+    _notif('BAYOL — Actualización disponible', 'Se está descargando la nueva versión.');
+    if (out) out.innerHTML = '⬇ Descargando actualización…';
+  } else if (m.indexOf('descargando:') === 0) {
+    const p = m.split(':')[1];
+    _bannerUpd('⬇ Descargando actualización… <b>' + p + '%</b>');
+    if (out) out.innerHTML = '⬇ Descargando… ' + p + '%';
+  } else if (m === 'listo') {
+    _bannerUpd('✅ <b>Actualización lista</b><br>Reinicia para instalarla.',
+      '<button class="btn" style="background:#16a34a" onclick="window.bde.instalarUpdate()">Reiniciar e instalar</button>'
+      + '<button class="btn sec" onclick="cerrarBannerUpd()">Luego</button>');
+    _notif('BAYOL — Actualización lista', 'Reinicia la app para instalar la nueva versión.');
+    if (out) out.innerHTML = '✅ Lista. <button class="btn" onclick="window.bde.instalarUpdate()">Reiniciar e instalar</button>';
+  } else if (m === 'nada') { if (out) out.innerHTML = '✅ Ya tienes la última versión.'; }
+  else if (m.indexOf('error') === 0) { if (out) out.innerHTML = '<span style="color:#cc0000">No se pudo actualizar: ' + escapar(m.slice(6)) + '. Usa la descarga manual.</span>'; }
+}
+
 async function actualizarApp(btn) {
   const out = document.getElementById('mtUpd');
+  initUpdates();
+  // Si la app tiene auto-actualización, úsala
+  if (window.bde && window.bde.buscarUpdate) {
+    btn.disabled = true; const o = btn.textContent; btn.textContent = 'Buscando…';
+    out.innerHTML = '<span class="spin"></span> Buscando actualización…';
+    try {
+      const r = await window.bde.buscarUpdate();
+      if (r && r.ok === false) await actualizarAppManual(out); // autoupdater no disponible → manual
+    } catch (e) { await actualizarAppManual(out); }
+    finally { btn.disabled = false; btn.textContent = o; }
+    return;
+  }
   btn.disabled = true; const o = btn.textContent; btn.textContent = 'Buscando…';
+  await actualizarAppManual(out);
+  btn.disabled = false; btn.textContent = o;
+}
+
+async function actualizarAppManual(out) {
   out.innerHTML = '<span class="spin"></span> Buscando última versión…';
   try {
     const r = await fetch('https://api.github.com/repos/' + CFG.REPO + '/releases/latest');
     const d = await r.json();
     const asset = (d.assets || []).find(a => /\.exe$/i.test(a.name));
-    const fecha = d.published_at ? new Date(d.published_at).toLocaleString('es-DO') : '';
     if (asset) {
-      out.innerHTML = '<div class="alert info"><div><div class="t">Última versión disponible</div>'
-        + '<div>Publicada: ' + escapar(fecha) + '</div></div></div>'
-        + '<button class="btn" style="margin-top:8px" onclick="window.open(\'' + asset.browser_download_url + '\',\'_blank\')">⬇ Descargar e instalar ahora</button>'
-        + '<p class="muted" style="text-align:left;margin-top:6px">Al terminar de descargar, abre el archivo, instala encima y vuelve a abrir la app.</p>';
+      out.innerHTML = '<button class="btn" onclick="window.open(\'' + asset.browser_download_url + '\',\'_blank\')">⬇ Descargar e instalar</button>'
+        + '<p class="muted" style="text-align:left;margin-top:6px">Abre el archivo descargado e instala encima.</p>';
     } else {
       out.innerHTML = '<button class="btn" onclick="window.open(\'https://github.com/' + CFG.REPO + '/releases/latest\',\'_blank\')">⬇ Abrir descarga</button>';
     }
   } catch (e) {
-    out.innerHTML = '<div class="alert critico"><div>No se pudo verificar. <a href="#" onclick="window.open(\'https://github.com/' + CFG.REPO + '/releases/latest\',\'_blank\');return false;">Abrir descarga manual</a></div></div>';
-  } finally { btn.disabled = false; btn.textContent = o; }
+    out.innerHTML = '<div class="alert critico"><div>No se pudo verificar. <a href="#" onclick="window.open(\'https://github.com/' + CFG.REPO + '/releases/latest\',\'_blank\');return false;">Descarga manual</a></div></div>';
+  }
 }
 
 function versionAnterior() {

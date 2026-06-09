@@ -20,5 +20,10 @@ contextBridge.exposeInMainWorld('bde', {
   salirRecovery: () => ipcRenderer.invoke('bde:salirRecovery'),
   captura: () => ipcRenderer.invoke('bde:captura'),
   appsLista: () => ipcRenderer.invoke('bde:appsLista'),
-  abrirArchivo: (f) => ipcRenderer.invoke('bde:abrirArchivo', f)
+  abrirArchivo: (f) => ipcRenderer.invoke('bde:abrirArchivo', f),
+  // Auto-actualización
+  appVersion: () => ipcRenderer.invoke('bde:appVersion'),
+  buscarUpdate: () => ipcRenderer.invoke('bde:buscarUpdate'),
+  instalarUpdate: () => ipcRenderer.invoke('bde:instalarUpdate'),
+  onUpdate: (cb) => ipcRenderer.on('bde:update', (_e, m) => cb(m))
 });
