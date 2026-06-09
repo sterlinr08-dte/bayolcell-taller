@@ -555,6 +555,12 @@ mark.ss-hl { background: #fef08a; color: inherit; padding: 0 1px; border-radius:
 .ps-tec-header .ps-tec-nombre { font-size:15px; font-weight:800; color:#312e81; }
 .ps-tec-header .ps-tec-cont { font-size:11px; font-weight:700; color:#4338ca; background:#fff; padding:2px 9px; border-radius:10px; }
 
+/* Organizador del menú lateral (Configuración → General) */
+.menu-orden-item { display:flex; align-items:center; gap:10px; padding:10px 12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; cursor:grab; transition:all .12s; }
+.menu-orden-item:hover { border-color:#94a3b8; background:#fff; box-shadow:0 2px 6px rgba(15,23,42,0.06); }
+.menu-orden-item:active { cursor:grabbing; }
+.menu-orden-item.arrastrando { opacity:0.4; }
+
 /* ========== ANIMACIÓN ITEMS NUEVOS ========== */
 @keyframes pulso { 0%,100% { transform:scale(1); opacity:0.25; } 50% { transform:scale(1.6); opacity:0; } }
 @keyframes itemFadeIn { 
@@ -2180,6 +2186,15 @@ body{
                         <input id="cfgTallerPie" placeholder="Gracias por su preferencia" style="margin:3px 0 12px;">
                         <button onclick="guardarDatosTaller()" class="btn btn-blue" style="width:100%;"><i class="ti ti-device-floppy"></i> Guardar datos del taller</button>
                     </div>
+                    <div class="card">
+                        <h3><i class="ti ti-arrows-move" style="color:var(--blue-btn);"></i> Organizar menú lateral</h3>
+                        <p style="color:var(--text-muted); font-size:13px; margin-bottom:12px;">Arrastra los íconos para ponerlos en el orden que quieras. Cuando termines, pulsa <b>Guardar orden</b>. El orden se guarda en esta computadora.</p>
+                        <div id="menuOrdenLista" style="display:flex; flex-direction:column; gap:6px; margin-bottom:14px;"></div>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <button onclick="guardarOrdenMenu()" class="btn btn-blue" style="flex:1; min-width:140px;"><i class="ti ti-device-floppy"></i> Guardar orden</button>
+                            <button onclick="restaurarOrdenMenu()" class="btn btn-light"><i class="ti ti-rotate"></i> Restaurar por defecto</button>
+                        </div>
+                    </div>
                 </div>
                 <div id="cfgContentFallas" style="display:none;">
                     <div class="card">
@@ -3104,6 +3119,7 @@ setInterval(_bcRefreshSession, 10 * 60 * 1000);
    ============================================================ */
 document.addEventListener('DOMContentLoaded', () => {
     inyectarBotonesVolver();
+    aplicarOrdenMenu();
 });
 
 function inyectarBotonesVolver() {
@@ -7113,6 +7129,78 @@ async function guardarEvaluacion(marcarEvaluado = false) {
 /* ============================================================
    CONFIGURACIÓN - PESTAÑAS
    ============================================================ */
+/* ===== ORGANIZADOR DEL MENÚ LATERAL (arrastrar para reordenar) ===== */
+const MENU_ORDEN_KEY = 'bayol_menu_orden';
+
+function _navBotonesMenu() {
+    return Array.from(document.querySelectorAll('.nav > button[id^="menu-"]'));
+}
+
+// Aplica el orden guardado a los botones del menú lateral. Si no hay orden
+// personalizado, deja el orden por defecto (con los separadores de sección).
+function aplicarOrdenMenu() {
+    const nav = document.querySelector('.nav');
+    if(!nav) return;
+    let orden = null;
+    try { orden = JSON.parse(localStorage.getItem(MENU_ORDEN_KEY) || 'null'); } catch(e) { orden = null; }
+    const secciones = nav.querySelectorAll('.nav-section');
+    if(!Array.isArray(orden) || !orden.length) {
+        secciones.forEach(s => s.style.display = ''); // orden por defecto: mostrar secciones
+        return;
+    }
+    // Orden personalizado: ocultar separadores y reordenar los botones
+    secciones.forEach(s => s.style.display = 'none');
+    orden.forEach(id => { const b = document.getElementById(id); if(b) nav.appendChild(b); });
+    // Botones que no estaban en el orden guardado (nuevos) quedan al final
+    _navBotonesMenu().forEach(b => { if(!orden.includes(b.id)) nav.appendChild(b); });
+}
+
+// Dibuja la lista arrastrable en Configuración → General
+function renderOrganizadorMenu() {
+    const cont = document.getElementById('menuOrdenLista');
+    if(!cont) return;
+    cont.innerHTML = _navBotonesMenu().map(b => {
+        const icono = b.querySelector('i')?.outerHTML || '';
+        const label = b.querySelector('span')?.textContent || b.textContent.trim();
+        return `<div class="menu-orden-item" draggable="true" data-id="${b.id}"
+            ondragstart="_menuDragStart(event)" ondragover="_menuDragOver(event)" ondrop="_menuDrop(event)" ondragend="_menuDragEnd(event)">
+            <i class="ti ti-grip-vertical" style="color:#94a3b8;"></i>
+            <span style="font-size:18px; width:26px; text-align:center;">${icono}</span>
+            <span style="flex:1; font-weight:600; font-size:13px;">${escapeHtml(label)}</span>
+        </div>`;
+    }).join('');
+}
+
+let _menuDragId = null;
+function _menuDragStart(e) { _menuDragId = e.currentTarget.dataset.id; e.currentTarget.classList.add('arrastrando'); e.dataTransfer.effectAllowed = 'move'; }
+function _menuDragEnd(e) { e.currentTarget.classList.remove('arrastrando'); }
+function _menuDrop(e) { e.preventDefault(); }
+function _menuDragOver(e) {
+    e.preventDefault();
+    const cont = document.getElementById('menuOrdenLista');
+    if(!cont) return;
+    const arrastrando = cont.querySelector(`[data-id="${_menuDragId}"]`);
+    const sobre = e.currentTarget;
+    if(!arrastrando || arrastrando === sobre) return;
+    const rect = sobre.getBoundingClientRect();
+    const despues = (e.clientY - rect.top) > rect.height / 2;
+    cont.insertBefore(arrastrando, despues ? sobre.nextSibling : sobre);
+}
+
+function guardarOrdenMenu() {
+    const cont = document.getElementById('menuOrdenLista');
+    if(!cont) return;
+    const orden = Array.from(cont.querySelectorAll('.menu-orden-item')).map(d => d.dataset.id);
+    localStorage.setItem(MENU_ORDEN_KEY, JSON.stringify(orden));
+    aplicarOrdenMenu();
+    toast('✅ Orden del menú guardado.');
+}
+
+function restaurarOrdenMenu() {
+    localStorage.removeItem(MENU_ORDEN_KEY);
+    location.reload();
+}
+
 function cambiarMainTabConfig(tab) {
     document.getElementById('cfgContentTecnicos').style.display = tab === 'tecnicos' ? 'block' : 'none';
     document.getElementById('cfgContentGeneral').style.display = tab === 'general' ? 'block' : 'none';
@@ -7154,6 +7242,7 @@ function cambiarMainTabConfig(tab) {
         btnGen.style.background = 'var(--blue-btn)';
         btnGen.style.color = '#fff';
         cargarDatosTallerEnForm();
+        renderOrganizadorMenu();
     } else if(tab === 'fallas') {
         if(btnFallas) {
             btnFallas.style.background = 'var(--blue-btn)';
