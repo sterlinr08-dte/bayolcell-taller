@@ -116,6 +116,7 @@
       <button id="m-lector" class="active" onclick="vista('lector',this)">📱 <span>Lector de dispositivo</span></button>
       <button id="m-panic" onclick="vista('panic',this)">📋 <span>Panic Log</span></button>
       <button id="m-ia" onclick="vista('ia',this)">🧠 <span>Diagnóstico IA</span></button>
+      <button id="m-bateria" onclick="vista('bateria',this)">🔋 <span>Batería</span></button>
       <button id="m-termica" onclick="vista('termica',this)">🌡️ <span>Cámara térmica</span></button>
       <button id="m-microscopio" onclick="vista('microscopio',this)">🔬 <span>Microscopio</span></button>
       <button id="m-esquematicos" onclick="vista('esquematicos',this)">📐 <span>Esquemáticos</span></button>
@@ -214,6 +215,39 @@
             <h3><span class="ic">📄</span> Resultado del diagnóstico</h3>
             <div id="iaResultado" class="muted" style="text-align:left">Aún no hay diagnóstico. Llena los datos y presiona “Diagnosticar con IA”.</div>
           </div>
+        </div>
+      </section>
+
+      <!-- ---------- VISTA BATERÍA ---------- -->
+      <section id="v-bateria" class="hidden">
+        <div class="grid2">
+          <div class="card">
+            <h3><span class="ic">🔋</span> Estado de la batería</h3>
+            <p class="muted" style="text-align:left">Conecta el iPhone y léela. Trabaja junto a tu JC V1SE: aquí lees, detectas y registras; el JC hace la reprogramación.</p>
+            <button class="btn" style="width:100%;margin:8px 0" id="btnLeerBat" onclick="leerBateria(this)">🔋 Leer batería del iPhone</button>
+            <button class="btn sec" style="width:100%" onclick="leerBateriaDemo()">Ver con datos de demostración</button>
+            <div id="batResultado" style="margin-top:14px"></div>
+          </div>
+          <div class="card">
+            <h3><span class="ic">📋</span> Registro antes / después</h3>
+            <p class="muted" style="text-align:left">Guarda la lectura antes y después de pasar el JC, para ver la mejora y dejarlo en el expediente.</p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">
+              <button class="btn sec" id="btnBatAntes" onclick="guardarBateria('antes',this)" disabled>💾 Guardar “ANTES”</button>
+              <button class="btn sec" id="btnBatDespues" onclick="guardarBateria('despues',this)" disabled>💾 Guardar “DESPUÉS”</button>
+            </div>
+            <div id="batHistorial" class="muted" style="text-align:left;margin-top:8px">Lee una batería para empezar.</div>
+          </div>
+        </div>
+        <div class="card">
+          <h3><span class="ic">♻️</span> Recalibración manual guiada (sin hardware)</h3>
+          <p class="muted" style="text-align:left">Cuando la lectura de salud/ciclos quedó rara, este ciclo ayuda a que el iPhone recalibre su medición. No reemplaza al JC, pero a veces corrige el dato.</p>
+          <ol style="font-size:13.5px;line-height:1.9;margin:6px 0 0 18px">
+            <li>Carga el iPhone hasta <b>100%</b> y déjalo conectado <b>2 horas más</b>.</li>
+            <li>Úsalo normal hasta que <b>se apague solo</b> por batería (0%).</li>
+            <li>Déjalo apagado <b>unas horas</b>.</li>
+            <li>Cárgalo <b>sin interrupción hasta 100%</b> (de corrido).</li>
+            <li>Reinícialo y vuelve a <b>leer la batería</b> aquí para comparar.</li>
+          </ol>
         </div>
       </section>
 

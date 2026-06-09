@@ -63,12 +63,13 @@ function iniciarApp() {
 }
 
 // ---------------- NAVEGACIÓN ----------------
-const TITULOS = { lector:'Lector de dispositivo', panic:'Analizador de Panic Log', ia:'Diagnóstico IA', termica:'Cámara térmica', microscopio:'Microscopio', esquematicos:'Esquemáticos (REEFOX)', conocimiento:'Base de conocimiento', mantenimiento:'Mantenimiento' };
+const TITULOS = { lector:'Lector de dispositivo', panic:'Analizador de Panic Log', ia:'Diagnóstico IA', bateria:'Batería', termica:'Cámara térmica', microscopio:'Microscopio', esquematicos:'Esquemáticos (REEFOX)', conocimiento:'Base de conocimiento', mantenimiento:'Mantenimiento' };
 function vista(v, btn) {
   document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  ['lector','panic','ia','termica','microscopio','esquematicos','conocimiento','mantenimiento'].forEach(x => document.getElementById('v-'+x).classList.toggle('hidden', x !== v));
+  ['lector','panic','ia','bateria','termica','microscopio','esquematicos','conocimiento','mantenimiento'].forEach(x => document.getElementById('v-'+x).classList.toggle('hidden', x !== v));
   document.getElementById('tbTitle').textContent = TITULOS[v] || '';
+  if (v === 'bateria' && ultimaLectura) pintarBateria(ultimaLectura.info, ultimaLectura.bateria);
   if (v === 'termica') prepararTermica();
   if (v === 'microscopio') prepararMicro();
   if (v === 'esquematicos') prepararEsquematicos();
@@ -386,6 +387,109 @@ async function guardarDiagnostico(btn) {
     btn.disabled = false; btn.textContent = '💾 Reintentar guardar';
     alert('No se pudo guardar: ' + (e.message||''));
   }
+}
+
+// ---------------- BATERÍA ----------------
+let _batActual = null; // { info, bateria, eval }
+
+async function leerBateria(btn) {
+  if (!window.bde || !window.bde.leerDispositivo) { alert('Leer la batería solo funciona en la app de escritorio.'); return; }
+  btn.disabled = true; const o = btn.textContent; btn.innerHTML = '<span class="spin"></span> Leyendo…';
+  try {
+    const r = await window.bde.leerDispositivo();
+    if (!r.ok) { document.getElementById('batResultado').innerHTML = '<div class="alert alerta"><div>'+escapar(r.mensaje||'No se pudo leer.')+'</div></div>'; return; }
+    ultimaLectura = r;
+    pintarBateria(r.info, r.bateria);
+  } finally { btn.disabled = false; btn.textContent = o; }
+}
+
+function leerBateriaDemo() {
+  pintarBateria(
+    { ProductType:'iPhone13,2', InternationalMobileEquipmentIdentity:'356789104567890', ProductVersion:'16.3.1' },
+    { BatteryVoltage:'3980', CycleCount:'612', DesignCapacity:'2815', NominalChargeCapacity:'2360', ExternalChargeCapable:'true' }
+  );
+}
+
+function _semaforo(valor, verde, amarillo, inv) {
+  if (valor == null) return ['#94a3b8','—'];
+  let ok = inv ? valor <= verde : valor >= verde;
+  let med = inv ? valor <= amarillo : valor >= amarillo;
+  if (ok) return ['#16a34a','🟢'];
+  if (med) return ['#d97706','🟡'];
+  return ['#dc2626','🔴'];
+}
+
+function pintarBateria(info, bat) {
+  info = info || {}; bat = bat || {};
+  const ev = window.evaluarBateria(bat);
+  _batActual = { info, bateria: bat, eval: ev };
+  document.getElementById('btnBatAntes').disabled = false;
+  document.getElementById('btnBatDespues').disabled = false;
+
+  const sSalud = _semaforo(ev.saludPct, 85, 80, false);
+  const sCiclos = _semaforo(ev.ciclos, 400, 800, true);
+  const vOk = ev.voltaje != null && ev.voltaje >= 3200 && ev.voltaje <= 4350;
+
+  const card = (label, valor, color, emoji) =>
+    '<div class="field" style="border-left:4px solid '+color+'"><label>'+label+'</label><b>'+(emoji?emoji+' ':'')+valor+'</b></div>';
+
+  let html = '<div class="row">';
+  html += card('Salud', (ev.saludPct!=null?ev.saludPct+'%':'—'), sSalud[0], sSalud[1]);
+  html += card('Ciclos', (ev.ciclos!=null?ev.ciclos:'—'), sCiclos[0], sCiclos[1]);
+  html += card('Voltaje', (ev.voltaje!=null?ev.voltaje+' mV':'—'), vOk?'#16a34a':'#dc2626', vOk?'🟢':'🔴');
+  html += card('Capacidad', (ev.nominalCap||'—')+' / '+(ev.designCap||'—')+' mAh', '#64748b', '');
+  html += '</div>';
+
+  // Detección
+  if (ev.saludPct == null) {
+    html += '<div class="alert critico" style="margin-top:10px"><div><div class="t">⚠️ No se pudo leer la salud de la batería</div><div>Puede ser una <b>pieza no reconocida</b> o el "Mensaje importante de la batería". Aquí es donde entra tu <b>JC V1SE</b> para reprogramarla.</div></div></div>';
+  } else if (ev.alertas.length) {
+    ev.alertas.forEach(a => { html += '<div class="alert '+a.nivel+'" style="margin-top:8px"><div><div class="t">'+escapar(a.titulo)+'</div><div>'+escapar(a.causa)+'</div></div></div>'; });
+  } else if (ev.saludPct < 80) {
+    html += '<div class="alert alerta" style="margin-top:10px"><div><div class="t">Batería degradada ('+ev.saludPct+'%)</div><div>Recomendado reemplazar. Si vas a reprogramar con el JC, registra antes/después.</div></div></div>';
+  } else {
+    html += '<div class="alert info" style="margin-top:10px"><div><div class="t">Batería en buen estado</div><div>Salud '+ev.saludPct+'% · '+(ev.ciclos!=null?ev.ciclos+' ciclos':'')+'</div></div></div>';
+  }
+  document.getElementById('batResultado').innerHTML = html;
+  cargarHistorialBateria();
+}
+
+async function guardarBateria(momento, btn) {
+  if (!_batActual) return;
+  const i = _batActual.info, ev = _batActual.eval;
+  btn.disabled = true; const o = btn.textContent; btn.textContent = 'Guardando…';
+  try {
+    const { error } = await sb.from('bateria_registros').insert({
+      modelo: MODELOS[i.ProductType] || i.ProductType || null,
+      imei: i.InternationalMobileEquipmentIdentity || null,
+      udid: ultimaLectura ? ultimaLectura.udid : null,
+      salud_pct: ev.saludPct, ciclos: ev.ciclos, voltaje: ev.voltaje,
+      nominal_mah: ev.nominalCap, design_mah: ev.designCap, momento
+    });
+    if (error) throw error;
+    btn.textContent = '✅ Guardado';
+    cargarHistorialBateria();
+    setTimeout(() => { btn.disabled = false; btn.textContent = o; }, 1500);
+  } catch (e) { btn.disabled = false; btn.textContent = o; alert('No se pudo guardar: ' + (e.message||'')); }
+}
+
+async function cargarHistorialBateria() {
+  const cont = document.getElementById('batHistorial');
+  if (!cont) return;
+  const imei = _batActual && _batActual.info ? _batActual.info.InternationalMobileEquipmentIdentity : null;
+  try {
+    let q = sb.from('bateria_registros').select('created_at,momento,salud_pct,ciclos,voltaje').order('created_at', { ascending: false }).limit(10);
+    if (imei) q = q.eq('imei', imei);
+    const { data, error } = await q;
+    if (error) throw error;
+    if (!data || !data.length) { cont.innerHTML = '<span class="muted">Sin registros de este equipo todavía.</span>'; return; }
+    cont.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:12.5px">'
+      + '<tr style="text-align:left;color:#888"><th style="padding:4px">Fecha</th><th>Momento</th><th>Salud</th><th>Ciclos</th></tr>'
+      + data.map(r => { const f = new Date(r.created_at).toLocaleString('es-DO',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+          const m = r.momento==='antes'?'🟠 Antes':(r.momento==='despues'?'🟢 Después':'Lectura');
+          return '<tr style="border-top:1px solid #eee"><td style="padding:4px">'+f+'</td><td>'+m+'</td><td>'+(r.salud_pct!=null?r.salud_pct+'%':'—')+'</td><td>'+(r.ciclos!=null?r.ciclos:'—')+'</td></tr>'; }).join('')
+      + '</table>';
+  } catch (e) { cont.innerHTML = '<span style="color:#cc0000">Error al cargar historial.</span>'; }
 }
 
 // ---------------- CÁMARA TÉRMICA (Fase 3) ----------------
