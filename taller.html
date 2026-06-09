@@ -1698,8 +1698,8 @@ body{
                         <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
                             <span id="infoplusCount" style="font-size:13px; color:var(--text-muted);"></span>
                             <button class="btn btn-success" id="ipSyncBtn" style="font-size:13px;" onclick="sincronizarInfoplus(this)"><i class="ti ti-refresh"></i> Sincronizar precios (Info Plus)</button>
-                            <label class="btn btn-blue" style="font-size:13px; cursor:pointer; margin:0;"><i class="ti ti-building-warehouse"></i> Cargar existencia Taller (CSV)
-                                <input type="file" id="tallerFile" accept=".csv,text/csv" style="display:none;" onchange="importarExistenciaTaller(this)">
+                            <label class="btn btn-blue" style="font-size:13px; cursor:pointer; margin:0;"><i class="ti ti-building-warehouse"></i> Cargar existencia Taller (CSV/HTML)
+                                <input type="file" id="tallerFile" accept=".csv,.html,.htm,text/csv,text/html" style="display:none;" onchange="importarExistenciaTaller(this)">
                             </label>
                             <label class="btn btn-light" style="font-size:13px; cursor:pointer; margin:0;"><i class="ti ti-upload"></i> Importar CSV
                                 <input type="file" id="infoplusFile" accept=".csv,text/csv" style="display:none;" onchange="importarCatalogoInfoplus(this)">
@@ -5110,18 +5110,35 @@ async function importarExistenciaTaller(input){
     if(msg){ msg.style.color='var(--text-muted)'; msg.textContent='⏳ Leyendo CSV del taller…'; }
     try{
         const texto = await file.text();
-        const lineas = texto.split(/\r?\n/).filter(l=>l.trim());
-        if(!lineas.length) throw new Error('El archivo está vacío.');
-        const header = _csvCampos(lineas[0]).map(h=>h.toLowerCase());
-        const iCod = header.findIndex(h=>h.includes('articulo') && !h.includes('desc'));
-        const iEx = header.findIndex(h=>h.includes('existencia'));
-        if(iCod<0 || iEx<0) throw new Error('No encontré las columnas "Articulo" y "Existencia" en el CSV.');
+        if(!texto.trim()) throw new Error('El archivo está vacío.');
         const datos = {};
-        for(let k=1;k<lineas.length;k++){
-            const c = _csvCampos(lineas[k]); if(c.length<=Math.max(iCod,iEx)) continue;
-            const cod = (c[iCod]||'').trim();
-            const ex = parseFloat(String(c[iEx]||'0').replace(',','.'))||0;
-            if(cod) datos[cod] = Math.round(ex);
+        if(/<\s*tr/i.test(texto) || /<\s*table/i.test(texto)){
+            // Reporte HTML de Info Plus: Código | Descripción | Referencia | Localización | Existencia | ...
+            const filas = texto.match(/<tr[^>]*>([\s\S]*?)<\/tr>/gi) || [];
+            filas.forEach(f=>{
+                const tds = f.match(/<td[^>]*>([\s\S]*?)<\/td>/gi) || [];
+                const vals = tds.map(td => td.replace(/<[^>]+>/g,'').replace(/&nbsp;/gi,' ').trim());
+                if(vals.length>=5){
+                    const cod = (vals[0]||'').trim();
+                    if(/^\d+$/.test(cod)){
+                        const ex = Math.round(parseFloat(String(vals[4]).replace(/,/g,''))||0);
+                        datos[cod] = ex;
+                    }
+                }
+            });
+        } else {
+            // CSV
+            const lineas = texto.split(/\r?\n/).filter(l=>l.trim());
+            const header = _csvCampos(lineas[0]).map(h=>h.toLowerCase());
+            const iCod = header.findIndex(h=>h.includes('articulo') && !h.includes('desc'));
+            const iEx = header.findIndex(h=>h.includes('existencia'));
+            if(iCod<0 || iEx<0) throw new Error('No encontré las columnas "Articulo" y "Existencia" en el CSV.');
+            for(let k=1;k<lineas.length;k++){
+                const c = _csvCampos(lineas[k]); if(c.length<=Math.max(iCod,iEx)) continue;
+                const cod = (c[iCod]||'').trim();
+                const ex = parseFloat(String(c[iEx]||'0').replace(',','.'))||0;
+                if(cod) datos[cod] = Math.round(ex);
+            }
         }
         const n = Object.keys(datos).length;
         if(!n) throw new Error('No se leyeron artículos del CSV.');
