@@ -12513,7 +12513,7 @@ function generarHtmlLabelEquipo(f, bh) {
     bh = parseInt(bh) || 25;
     const b = generarBarcodeImg(d.imei || '000000000', bh);
     return `
-        <div style="font-size:${f + 5}px; line-height:1;">${d.logo}</div>
+        <div style="font-size:${f + 14}px; line-height:1; margin-bottom:1px;">${d.logo}</div>
         <div style="border-bottom:2px solid #000; margin:1px 0 2px;"></div>
         <div style="text-align:left; line-height:1.15;">EQUIPO: ${escapeHtml(d.mod)}</div>
         <div style="text-align:left; line-height:1.15; margin-bottom:1px;">IMEI: ${escapeHtml(d.imei)}</div>
