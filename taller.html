@@ -12493,7 +12493,19 @@ function cambiarDimensionesManual() {
     document.getElementById("val_font").textContent = f + "px";
     document.getElementById("val_bar").textContent = bh + "px";
     const card = document.getElementById("labelCard");
-    if(card) { card.style.width = w + "mm"; card.style.fontSize = f + "px"; }
+    if(card) {
+        // La vista previa muestra el TAMAÑO REAL del label (ancho × alto) para que
+        // lo que se ve sea exactamente lo que se imprime.
+        card.style.width = w + "mm";
+        card.style.height = h + "mm";
+        card.style.fontSize = f + "px";
+        card.style.padding = "2px";
+        card.style.boxSizing = "border-box";
+        card.style.overflow = "hidden";
+        card.style.display = "flex";
+        card.style.flexDirection = "column";
+        card.style.justifyContent = "center";
+    }
     const bar = document.getElementById("lblLiveBarcode");
     if(bar) bar.style.fontSize = bh + "px";
     // Guardar en localStorage para que recuerde la calibración
@@ -12638,20 +12650,29 @@ async function imprimirLabelAdhesivo() {
     localStorage.setItem('bayol_lbl_f', configF);
     localStorage.setItem('bayol_lbl_bh', configBH);
     localStorage.setItem('bayol_lbl_rot', rotacion);
-    
-    const contenidoLabel = `
-        <div style="width:${configW}mm; height:${configH}mm; padding:2px; font-family:Arial,Helvetica,sans-serif; font-weight:900; -webkit-text-stroke:0.4px #000; text-align:center; color:#000; font-size:${configF}px; box-sizing:border-box; overflow:hidden;">
-            <div style="font-size:${parseInt(configF) + 6}px; line-height:1;">${logoHtml}</div>
-            <div style="border-bottom:2px solid #000; margin:2px 0;"></div>
-            <div style="text-align:left; line-height: 1.2; font-weight:900; -webkit-text-stroke:0.4px #000;">
-                EQUIPO: ${escapeHtml(mod)}<br>
-                IMEI: ${escapeHtml(imei)}
-            </div>
-            <div style="margin:2px 0; display:flex; justify-content:center;">${(function(){ const b=generarBarcodeImg(imei, configBH); return b?`<img src="${b}" style="height:${configBH}px; max-width:95%;" />`:escapeHtml(imei); })()}</div>
-            <div style="text-transform:uppercase; display:block; font-weight:900; -webkit-text-stroke:0.4px #000; font-size:${parseInt(configF) - 1}px;">${escapeHtml(estadoText)}</div>
-        </div>
-    `;
-    
+
+    // Asegurar que la vista previa esté actualizada con los datos actuales
+    actualizarLabelLive();
+
+    // === SE IMPRIME EXACTAMENTE LO QUE SE VE EN LA VISTA PREVIA ===
+    // Clonamos la tarjeta de vista previa (#labelCard) y le quitamos solo la
+    // decoración (borde punteado, sombra) — el contenido y la posición quedan idénticos.
+    const cardPreview = document.getElementById("labelCard");
+    const clonLabel = cardPreview.cloneNode(true);
+    clonLabel.removeAttribute("id");
+    clonLabel.style.width = configW + "mm";
+    clonLabel.style.height = configH + "mm";
+    clonLabel.style.fontSize = configF + "px";
+    clonLabel.style.padding = "2px";
+    clonLabel.style.boxSizing = "border-box";
+    clonLabel.style.overflow = "hidden";
+    clonLabel.style.margin = "0";
+    clonLabel.style.border = "2px solid transparent"; // mantiene el mismo box-model sin línea visible
+    clonLabel.style.borderRadius = "0";
+    clonLabel.style.boxShadow = "none";
+    clonLabel.style.background = "#fff";
+    const contenidoLabel = clonLabel.outerHTML;
+
     // Aplicar rotación si está configurada
     const { html: contenidoFinal, anchoFinal, altoFinal } = aplicarRotacionImpresion(contenidoLabel, configW, configH, rotacion);
     
