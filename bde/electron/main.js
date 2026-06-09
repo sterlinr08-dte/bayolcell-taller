@@ -84,8 +84,8 @@ ipcMain.handle('bde:instalarUpdate', async () => {
 
 function _sendUpd(msg) { try { if (win && !win.isDestroyed()) win.webContents.send('bde:update', msg); } catch (_) {} }
 if (autoUpdater) {
-  autoUpdater.autoDownload = true;
-  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.autoDownload = true;            // descarga en segundo plano (no instala)
+  autoUpdater.autoInstallOnAppQuit = false;   // NUNCA instala solo: solo cuando el técnico acepta
   autoUpdater.on('checking-for-update', () => _sendUpd('buscando'));
   autoUpdater.on('update-available', () => _sendUpd('disponible'));
   autoUpdater.on('update-not-available', () => _sendUpd('nada'));

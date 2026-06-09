@@ -1192,11 +1192,11 @@ function onUpdate(m) {
     _bannerUpd('⬇ Descargando actualización… <b>' + p + '%</b>');
     if (out) out.innerHTML = '⬇ Descargando… ' + p + '%';
   } else if (m === 'listo') {
-    _bannerUpd('✅ <b>Actualización lista</b><br>Reinicia para instalarla.',
+    _bannerUpd('✅ <b>Actualización lista</b><br>Instálala <b>cuando termines</b> tu trabajo (no perderás nada).',
       '<button class="btn" style="background:#16a34a" onclick="window.bde.instalarUpdate()">Reiniciar e instalar</button>'
-      + '<button class="btn sec" onclick="cerrarBannerUpd()">Luego</button>');
-    _notif('BAYOL — Actualización lista', 'Reinicia la app para instalar la nueva versión.');
-    if (out) out.innerHTML = '✅ Lista. <button class="btn" onclick="window.bde.instalarUpdate()">Reiniciar e instalar</button>';
+      + '<button class="btn sec" onclick="cerrarBannerUpd()">Ahora no</button>');
+    _notif('BAYOL — Actualización lista', 'Cuando termines tu trabajo, reinicia para instalarla.');
+    if (out) out.innerHTML = '✅ Lista. Instálala cuando puedas: <button class="btn" onclick="window.bde.instalarUpdate()">Reiniciar e instalar</button>';
   } else if (m === 'nada') { if (out) out.innerHTML = '✅ Ya tienes la última versión.'; }
   else if (m.indexOf('error') === 0) { if (out) out.innerHTML = '<span style="color:#cc0000">No se pudo actualizar: ' + escapar(m.slice(6)) + '. Usa la descarga manual.</span>'; }
 }
