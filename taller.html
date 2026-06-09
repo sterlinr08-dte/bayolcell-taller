@@ -3767,7 +3767,7 @@ function applyAccessControls() {
     if(tienePermiso('solo_mi_trabajo')) {
         const verDiag = tienePermiso('diagnostico_ver');
         document.querySelectorAll('.nav button').forEach(b => {
-            b.style.display = (b.id === 'menu-miTrabajo' || (verDiag && b.id === 'menu-diagnostico')) ? '' : 'none';
+            b.style.display = (b.id === 'menu-miTrabajo' || b.id === 'menu-piezasSolicitadas' || (verDiag && b.id === 'menu-diagnostico')) ? '' : 'none';
         });
         // Si solo hay "Mi Trabajo", ocultar el botón de menú; si además tiene Diagnóstico IA, mantenerlo para poder cambiar
         const toggle = document.querySelector('.menu-toggle');
@@ -3786,7 +3786,7 @@ function applyAccessControls() {
     // MODO "SOLO ATENCIÓN AL CLIENTE": servicio solo ve esa pantalla (+ recepción para recibir, + financiamientos si tiene permiso)
     if(tienePermiso('solo_atencion')) {
         document.querySelectorAll('.nav button').forEach(b => {
-            b.style.display = (b.id === 'menu-atencion' || b.id === 'menu-recepcion' || (b.id === 'menu-ordenes' && tienePermiso('ordenes_ver')) || (b.id === 'menu-financiamientos' && tienePermiso('financiamientos_ver'))) ? '' : 'none';
+            b.style.display = (b.id === 'menu-atencion' || b.id === 'menu-recepcion' || b.id === 'menu-piezasSolicitadas' || (b.id === 'menu-ordenes' && tienePermiso('ordenes_ver')) || (b.id === 'menu-financiamientos' && tienePermiso('financiamientos_ver'))) ? '' : 'none';
         });
         if(typeof closeSidebar === 'function') closeSidebar();
         document.body.style.overflow = '';
@@ -9679,10 +9679,17 @@ function setPsTab(t) {
 function renderPiezasSolicitadas() {
     const cont = document.getElementById('piezasSolicitadasLista');
     if(!cont) return;
-    // Detectar si es técnico (no admin, no servicio): solo ve SUS piezas
     const miId = sessionUser?.id;
-    const esTecnico = !isAdminUser() && !tienePermiso('recepcion_ver') && !tienePermiso('inventario_ver') ? true : (sessionUser?.tipo_empleado === 'tecnico');
-    const soloMias = esTecnico && !isAdminUser();
+    // Servicio / atención al cliente: ve el módulo pero SOLO la pestaña de Órdenes de Servicio
+    const esServicio = !isAdminUser() && (sessionUser?.tipo_empleado === 'servicio' || tienePermiso('solo_atencion'));
+    const tabReacond = document.getElementById('psTabReacond');
+    if(esServicio) {
+        _psTab = 'orden';
+        if(tabReacond) tabReacond.style.display = 'none';
+        document.getElementById('psTabOrden')?.classList.add('ps-tab-activa');
+    } else if(tabReacond) {
+        tabReacond.style.display = '';
+    }
     const items = [];
     // Piezas de órdenes de cliente
     (cache.ordenPiezas || []).forEach(p => {
@@ -9717,8 +9724,9 @@ function renderPiezasSolicitadas() {
         });
     });
 
-    // Si es técnico, mostrar solo sus piezas
-    let baseItems = soloMias ? items.filter(i => i.tecnicoId === miId) : items;
+    // Todos (admin, servicio y técnicos) ven TODAS las piezas, organizadas por técnico.
+    // El botón de "Confirmar recibida" solo aparece para quien la solicitó (o el admin).
+    let baseItems = items;
     // Filtro por PESTAÑA (Órdenes de Servicio / Reacondicionados)
     baseItems = baseItems.filter(i => i.kind === _psTab);
 
