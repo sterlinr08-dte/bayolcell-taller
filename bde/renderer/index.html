@@ -117,6 +117,7 @@
       <button id="m-panic" onclick="vista('panic',this)">📋 <span>Panic Log</span></button>
       <button id="m-ia" onclick="vista('ia',this)">🧠 <span>Diagnóstico IA</span></button>
       <button id="m-bateria" onclick="vista('bateria',this)">🔋 <span>Batería</span></button>
+      <button id="m-pantalla" onclick="vista('pantalla',this)">🖥️ <span>Pantalla</span></button>
       <button id="m-termica" onclick="vista('termica',this)">🌡️ <span>Cámara térmica</span></button>
       <button id="m-microscopio" onclick="vista('microscopio',this)">🔬 <span>Microscopio</span></button>
       <button id="m-esquematicos" onclick="vista('esquematicos',this)">📐 <span>Esquemáticos</span></button>
@@ -248,6 +249,39 @@
             <li>Cárgalo <b>sin interrupción hasta 100%</b> (de corrido).</li>
             <li>Reinícialo y vuelve a <b>leer la batería</b> aquí para comparar.</li>
           </ol>
+        </div>
+      </section>
+
+      <!-- ---------- VISTA PANTALLA ---------- -->
+      <section id="v-pantalla" class="hidden">
+        <div class="grid2">
+          <div class="card">
+            <h3><span class="ic">🖥️</span> Cambio de pantalla — asistente (con JC V1SE)</h3>
+            <p class="muted" style="text-align:left">El JC copia los datos de la pantalla original a la nueva (para que no marque “Pantalla desconocida” y siga el True Tone). BDE te guía y lo documenta.</p>
+            <ol style="font-size:13.5px;line-height:1.9;margin:6px 0 0 18px">
+              <li>Con la pantalla <b>ORIGINAL</b> aún conectada, en el JC <b>lee y guarda</b> los datos (EEPROM).</li>
+              <li>Conecta la pantalla de <b>REEMPLAZO</b> al flex del JC.</li>
+              <li>En el JC, <b>escribe/copia</b> los datos guardados a la pantalla nueva.</li>
+              <li>Monta la pantalla nueva en el iPhone y enciéndelo.</li>
+              <li>Verifica abajo (True Tone, mensaje, brillo) y <b>guarda el registro</b>.</li>
+            </ol>
+          </div>
+          <div class="card">
+            <h3><span class="ic">✅</span> Verificación y registro</h3>
+            <div class="field" style="margin-bottom:8px"><label>Modelo</label><input class="txt" id="pt_modelo" placeholder="iPhone 12"></div>
+            <div class="field" style="margin-bottom:8px"><label>IMEI (opcional)</label><input class="txt" id="pt_imei" placeholder="35..."></div>
+            <div class="field" style="margin-bottom:8px"><label>Tipo de pantalla nueva</label>
+              <select id="pt_tipo"><option value="original">Original</option><option value="copiada">Copiada con JC</option><option value="incell">Incell/compatible</option><option value="oled">OLED compatible</option></select></div>
+            <label style="font-size:12px;color:#666;display:block;margin-top:6px">Marca lo que quedó funcionando:</label>
+            <div style="display:flex;flex-direction:column;gap:6px;margin:8px 0;font-size:14px">
+              <label><input type="checkbox" id="pt_truetone"> True Tone funciona</label>
+              <label><input type="checkbox" id="pt_sinmensaje"> Desapareció el “Mensaje de pantalla”</label>
+              <label><input type="checkbox" id="pt_brillo"> Brillo automático funciona</label>
+              <label><input type="checkbox" id="pt_tactil"> Multitáctil OK (toda la pantalla)</label>
+            </div>
+            <button class="btn" style="width:100%" id="pt_btn" onclick="guardarPantalla(this)">💾 Guardar registro</button>
+            <div id="ptHistorial" class="muted" style="text-align:left;margin-top:12px">—</div>
+          </div>
         </div>
       </section>
 

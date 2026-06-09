@@ -63,13 +63,14 @@ function iniciarApp() {
 }
 
 // ---------------- NAVEGACIÓN ----------------
-const TITULOS = { lector:'Lector de dispositivo', panic:'Analizador de Panic Log', ia:'Diagnóstico IA', bateria:'Batería', termica:'Cámara térmica', microscopio:'Microscopio', esquematicos:'Esquemáticos (REEFOX)', conocimiento:'Base de conocimiento', mantenimiento:'Mantenimiento' };
+const TITULOS = { lector:'Lector de dispositivo', panic:'Analizador de Panic Log', ia:'Diagnóstico IA', bateria:'Batería', pantalla:'Pantalla', termica:'Cámara térmica', microscopio:'Microscopio', esquematicos:'Esquemáticos (REEFOX)', conocimiento:'Base de conocimiento', mantenimiento:'Mantenimiento' };
 function vista(v, btn) {
   document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  ['lector','panic','ia','bateria','termica','microscopio','esquematicos','conocimiento','mantenimiento'].forEach(x => document.getElementById('v-'+x).classList.toggle('hidden', x !== v));
+  ['lector','panic','ia','bateria','pantalla','termica','microscopio','esquematicos','conocimiento','mantenimiento'].forEach(x => document.getElementById('v-'+x).classList.toggle('hidden', x !== v));
   document.getElementById('tbTitle').textContent = TITULOS[v] || '';
   if (v === 'bateria' && ultimaLectura) pintarBateria(ultimaLectura.info, ultimaLectura.bateria);
+  if (v === 'pantalla') prepararPantalla();
   if (v === 'termica') prepararTermica();
   if (v === 'microscopio') prepararMicro();
   if (v === 'esquematicos') prepararEsquematicos();
@@ -489,6 +490,58 @@ async function cargarHistorialBateria() {
           const m = r.momento==='antes'?'🟠 Antes':(r.momento==='despues'?'🟢 Después':'Lectura');
           return '<tr style="border-top:1px solid #eee"><td style="padding:4px">'+f+'</td><td>'+m+'</td><td>'+(r.salud_pct!=null?r.salud_pct+'%':'—')+'</td><td>'+(r.ciclos!=null?r.ciclos:'—')+'</td></tr>'; }).join('')
       + '</table>';
+  } catch (e) { cont.innerHTML = '<span style="color:#cc0000">Error al cargar historial.</span>'; }
+}
+
+// ---------------- PANTALLA (cambio + True Tone, con JC) ----------------
+function prepararPantalla() {
+  if (ultimaLectura && ultimaLectura.info) {
+    const i = ultimaLectura.info;
+    if (!document.getElementById('pt_modelo').value) document.getElementById('pt_modelo').value = MODELOS[i.ProductType] || i.ProductType || '';
+    if (!document.getElementById('pt_imei').value) document.getElementById('pt_imei').value = i.InternationalMobileEquipmentIdentity || '';
+  }
+  cargarHistorialPantalla();
+}
+
+async function guardarPantalla(btn) {
+  const modelo = document.getElementById('pt_modelo').value.trim();
+  const imei = document.getElementById('pt_imei').value.trim() || null;
+  if (!modelo) { alert('Pon al menos el modelo.'); return; }
+  btn.disabled = true; const o = btn.textContent; btn.textContent = 'Guardando…';
+  try {
+    const { error } = await sb.from('pantalla_registros').insert({
+      modelo, imei, udid: ultimaLectura ? ultimaLectura.udid : null,
+      tipo_pantalla: document.getElementById('pt_tipo').value,
+      true_tone: document.getElementById('pt_truetone').checked,
+      mensaje_pantalla: !document.getElementById('pt_sinmensaje').checked, // marca = ya no hay mensaje
+      brillo_auto: document.getElementById('pt_brillo').checked,
+      multitactil_ok: document.getElementById('pt_tactil').checked
+    });
+    if (error) throw error;
+    btn.textContent = '✅ Guardado';
+    cargarHistorialPantalla();
+    setTimeout(() => { btn.disabled = false; btn.textContent = o; }, 1500);
+  } catch (e) { btn.disabled = false; btn.textContent = o; alert('No se pudo guardar: ' + (e.message||'')); }
+}
+
+async function cargarHistorialPantalla() {
+  const cont = document.getElementById('ptHistorial');
+  if (!cont) return;
+  const imei = document.getElementById('pt_imei').value.trim();
+  try {
+    let q = sb.from('pantalla_registros').select('created_at,modelo,tipo_pantalla,true_tone,mensaje_pantalla,brillo_auto').order('created_at', { ascending: false }).limit(10);
+    if (imei) q = q.eq('imei', imei);
+    const { data, error } = await q;
+    if (error) throw error;
+    if (!data || !data.length) { cont.innerHTML = '<span class="muted">Sin registros todavía.</span>'; return; }
+    cont.innerHTML = data.map(r => {
+      const f = new Date(r.created_at).toLocaleString('es-DO', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+      const chk = (b) => b ? '✅' : '❌';
+      return '<div style="border-top:1px solid #eee;padding:6px 0;font-size:12.5px">'
+        + '<b>'+escapar(r.modelo||'—')+'</b> · '+escapar(r.tipo_pantalla||'')+' <span class="muted">('+f+')</span><br>'
+        + 'True Tone '+chk(r.true_tone)+' · Sin mensaje '+chk(!r.mensaje_pantalla)+' · Brillo auto '+chk(r.brillo_auto)
+        + '</div>';
+    }).join('');
   } catch (e) { cont.innerHTML = '<span style="color:#cc0000">Error al cargar historial.</span>'; }
 }
 
