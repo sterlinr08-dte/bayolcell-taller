@@ -11,5 +11,8 @@ window.BDE_CONFIG = {
   EDGE_VISUAL: 'bde-visual',
   STORAGE_BUCKET: 'diagnostico-img',
   // Esquemáticos REEFOX (Fase 5). Cambia esta URL por la que usas para entrar.
-  REEFOX_URL: 'https://www.reefox.net'
+  REEFOX_URL: 'https://www.reefox.net',
+  // Mantenimiento
+  APP_VERSION: '2.0.0',
+  REPO: 'sterlinr08-dte/bayolcell-taller'
 };

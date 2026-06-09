@@ -120,6 +120,7 @@
       <button id="m-microscopio" onclick="vista('microscopio',this)">🔬 <span>Microscopio</span></button>
       <button id="m-esquematicos" onclick="vista('esquematicos',this)">📐 <span>Esquemáticos</span></button>
       <button id="m-conocimiento" onclick="vista('conocimiento',this)">📚 <span>Base de conocimiento</span></button>
+      <button id="m-mantenimiento" onclick="vista('mantenimiento',this)">🛠️ <span>Mantenimiento</span></button>
     </nav>
     <div class="side-foot">
       <b id="sfUser">—</b>
@@ -315,6 +316,30 @@
           <div class="card">
             <h3><span class="ic">📚</span> Casos guardados</h3>
             <div id="conoLista" class="muted" style="text-align:left">Cargando…</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- VISTA MANTENIMIENTO ---------- -->
+      <section id="v-mantenimiento" class="hidden">
+        <div class="row">
+          <div class="card">
+            <h3><span class="ic">🔄</span> Actualizar app</h3>
+            <p class="muted" style="text-align:left">Descarga e instala la última versión del programa.</p>
+            <p style="font-size:13px;margin:6px 0">Versión instalada: <b id="mtVersion">—</b></p>
+            <button class="btn" style="width:100%" onclick="actualizarApp(this)">🔄 Buscar e instalar actualización</button>
+            <div id="mtUpd" class="muted" style="text-align:left;margin-top:10px"></div>
+          </div>
+          <div class="card">
+            <h3><span class="ic">⏪</span> Volver a versión anterior</h3>
+            <p class="muted" style="text-align:left">Si una actualización te dio problemas, instala una versión anterior.</p>
+            <button class="btn sec" style="width:100%;margin-top:8px" onclick="versionAnterior()">⏪ Ver versiones anteriores</button>
+          </div>
+          <div class="card">
+            <h3><span class="ic">💾</span> Backup de datos</h3>
+            <p class="muted" style="text-align:left">Descarga una copia de seguridad de toda la base de datos (solo admin).</p>
+            <button class="btn" style="width:100%;background:#0891b2;margin-top:8px" onclick="backupDatos(this)">💾 Hacer backup ahora</button>
+            <div id="mtBackup" class="muted" style="text-align:left;margin-top:10px"></div>
           </div>
         </div>
       </section>

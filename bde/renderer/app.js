@@ -63,16 +63,17 @@ function iniciarApp() {
 }
 
 // ---------------- NAVEGACIÓN ----------------
-const TITULOS = { lector:'Lector de dispositivo', panic:'Analizador de Panic Log', ia:'Diagnóstico IA', termica:'Cámara térmica', microscopio:'Microscopio', esquematicos:'Esquemáticos (REEFOX)', conocimiento:'Base de conocimiento' };
+const TITULOS = { lector:'Lector de dispositivo', panic:'Analizador de Panic Log', ia:'Diagnóstico IA', termica:'Cámara térmica', microscopio:'Microscopio', esquematicos:'Esquemáticos (REEFOX)', conocimiento:'Base de conocimiento', mantenimiento:'Mantenimiento' };
 function vista(v, btn) {
   document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  ['lector','panic','ia','termica','microscopio','esquematicos','conocimiento'].forEach(x => document.getElementById('v-'+x).classList.toggle('hidden', x !== v));
+  ['lector','panic','ia','termica','microscopio','esquematicos','conocimiento','mantenimiento'].forEach(x => document.getElementById('v-'+x).classList.toggle('hidden', x !== v));
   document.getElementById('tbTitle').textContent = TITULOS[v] || '';
   if (v === 'termica') prepararTermica();
   if (v === 'microscopio') prepararMicro();
   if (v === 'esquematicos') prepararEsquematicos();
   if (v === 'conocimiento') cargarConocimiento();
+  if (v === 'mantenimiento') { const e=document.getElementById('mtVersion'); if(e) e.textContent = CFG.APP_VERSION || '—'; }
 }
 
 // ---------------- HERRAMIENTAS (libimobiledevice) ----------------
@@ -792,6 +793,82 @@ async function borrarCaso(id) {
   if (!confirm('¿Eliminar este caso de la base de conocimiento?')) return;
   try { const { error } = await sb.from('conocimiento_casos').delete().eq('id', id); if (error) throw error; cargarConocimiento(); }
   catch (e) { alert('No se pudo eliminar: ' + (e.message||'')); }
+}
+
+// ---------------- MANTENIMIENTO (actualizar / versión anterior / backup) ----------------
+async function actualizarApp(btn) {
+  const out = document.getElementById('mtUpd');
+  btn.disabled = true; const o = btn.textContent; btn.textContent = 'Buscando…';
+  out.innerHTML = '<span class="spin"></span> Buscando última versión…';
+  try {
+    const r = await fetch('https://api.github.com/repos/' + CFG.REPO + '/releases/latest');
+    const d = await r.json();
+    const asset = (d.assets || []).find(a => /\.exe$/i.test(a.name));
+    const fecha = d.published_at ? new Date(d.published_at).toLocaleString('es-DO') : '';
+    if (asset) {
+      out.innerHTML = '<div class="alert info"><div><div class="t">Última versión disponible</div>'
+        + '<div>Publicada: ' + escapar(fecha) + '</div></div></div>'
+        + '<button class="btn" style="margin-top:8px" onclick="window.open(\'' + asset.browser_download_url + '\',\'_blank\')">⬇ Descargar e instalar ahora</button>'
+        + '<p class="muted" style="text-align:left;margin-top:6px">Al terminar de descargar, abre el archivo, instala encima y vuelve a abrir la app.</p>';
+    } else {
+      out.innerHTML = '<button class="btn" onclick="window.open(\'https://github.com/' + CFG.REPO + '/releases/latest\',\'_blank\')">⬇ Abrir descarga</button>';
+    }
+  } catch (e) {
+    out.innerHTML = '<div class="alert critico"><div>No se pudo verificar. <a href="#" onclick="window.open(\'https://github.com/' + CFG.REPO + '/releases/latest\',\'_blank\');return false;">Abrir descarga manual</a></div></div>';
+  } finally { btn.disabled = false; btn.textContent = o; }
+}
+
+function versionAnterior() {
+  window.open('https://github.com/' + CFG.REPO + '/releases', '_blank');
+}
+
+// Tablas a respaldar (datos del negocio)
+const BACKUP_TABLAS = ['clientes','equipos','ordenes_reparacion','orden_piezas','orden_piezas_usadas','orden_notas','orden_historial',
+  'tareas_trabajo','equipo_fallas','equipo_piezas_pedidas','equipo_devoluciones','equipo_historial','equipos_refurbish',
+  'refurb_lotes','refurb_evaluaciones','refurb_bitacora','refurb_ventas','costos_refurb',
+  'tecnicos','usuarios','roles','roles_taller','proveedores','articulos','piezas_inventario','movimientos_inventario',
+  'fallas','falla_categorias','fallas_comunes','catalogo_categorias','catalogo_marcas','activos_taller','config_taller','control_calidad',
+  'financiamientos','financiamiento_pagos','fin_clientes','fin_referencias','fin_solicitudes','fin_planes','fin_config','fin_documentos',
+  'conta_cuentas','conta_categorias','conta_asientos','conta_asiento_lineas','conta_movimientos',
+  'conocimiento_casos','diagnosticos','diagnostico_imagenes','panic_logs','infoplus_articulos','web_visitas'];
+
+async function _fetchAll(tabla) {
+  let desde = 0, paso = 1000, todo = [];
+  while (true) {
+    const { data, error } = await sb.from(tabla).select('*').range(desde, desde + paso - 1);
+    if (error) throw error;
+    todo = todo.concat(data || []);
+    if (!data || data.length < paso) break;
+    desde += paso;
+  }
+  return todo;
+}
+
+async function backupDatos(btn) {
+  const out = document.getElementById('mtBackup');
+  if (!sesionTecnico || sesionTecnico.rol !== 'admin') {
+    out.innerHTML = '<div class="alert alerta"><div>El backup completo es solo para el administrador. Entra con el usuario admin.</div></div>';
+    return;
+  }
+  btn.disabled = true; const o = btn.textContent; btn.textContent = 'Respaldando…';
+  const backup = { _meta: { fecha: new Date().toISOString(), version: CFG.APP_VERSION, por: sesionTecnico.nombre }, tablas: {} };
+  let hechas = 0, fallidas = [];
+  for (const tabla of BACKUP_TABLAS) {
+    out.innerHTML = '<span class="spin"></span> Respaldando ' + tabla + '… (' + hechas + '/' + BACKUP_TABLAS.length + ')';
+    try { backup.tablas[tabla] = await _fetchAll(tabla); hechas++; }
+    catch (e) { fallidas.push(tabla); }
+  }
+  try {
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'bayol-backup-' + new Date().toISOString().slice(0,10) + '.json';
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    const total = Object.values(backup.tablas).reduce((s,arr) => s + (arr ? arr.length : 0), 0);
+    out.innerHTML = '<div class="alert info"><div><div class="t">✅ Backup descargado</div>'
+      + '<div>' + hechas + ' tablas · ' + total + ' registros' + (fallidas.length ? ' · (sin acceso: ' + fallidas.join(', ') + ')' : '') + '</div></div></div>';
+  } catch (e) { out.innerHTML = '<div class="alert critico"><div>No se pudo crear el archivo: ' + escapar(e.message||'') + '</div></div>'; }
+  finally { btn.disabled = false; btn.textContent = o; }
 }
 
 // Si ya hay sesión activa al abrir, entrar directo
