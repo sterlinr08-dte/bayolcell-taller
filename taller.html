@@ -1425,7 +1425,16 @@ body{
                         <div class="form-row"><label>Texto de Estado / Pie de Impresión</label><input id="lbl_estado_texto" value="" placeholder="Ej. CLASE A / AVISO BAT / AVISO PANT" oninput="actualizarLabelLive()"></div>
                         
                         <hr style="border:0; border-top:1px solid var(--border-color); margin:20px 0;">
-                        
+
+                        <div class="form-row" style="margin:0 0 10px;">
+                            <label>Cantidad de Copias</label>
+                            <input type="number" id="lbl_copias" value="1" min="1" max="50" style="font-weight:700; font-size:16px;">
+                        </div>
+                        <div style="display:grid; grid-template-columns:1fr auto; gap:8px; margin-bottom:20px;">
+                            <button class="btn btn-blue" onclick="imprimirLabelAdhesivo()" style="font-size:15px; padding:13px;"><i class="ti ti-printer"></i> Imprimir en Label Printer</button>
+                            <button class="btn btn-light" onclick="abrirModalConfigImpresora()" title="Configurar impresora 2C-LP427B"><i class="ti ti-settings"></i></button>
+                        </div>
+
                         <h4 style="margin:0 0 10px; font-size:12px; color:var(--blue-btn); text-transform:uppercase;"><i class="ti ti-photo"></i> Orientación del Papel</h4>
                         <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:15px;">
                             <button class="btn-orientacion" data-orient="2x1" onclick="aplicarOrientacionConfig('2x1')" style="background:linear-gradient(180deg, #fff 0%, #f1f5f9 100%); border:2px solid #e2e8f0; border-radius:12px; padding:11px; cursor:pointer; text-align:center; box-shadow:0 2px 6px rgba(15,23,42,0.06); transition:all 0.15s;">
@@ -1469,14 +1478,6 @@ body{
                             </select>
                         </div>
 
-                        <div class="form-row" style="margin-top:15px;">
-                            <label>Cantidad de Copias</label>
-                            <input type="number" id="lbl_copias" value="1" min="1" max="50" style="font-weight:700; font-size:16px;">
-                        </div>
-                        <div style="display:grid; grid-template-columns:1fr auto; gap:8px; margin-top:10px;">
-                            <button class="btn btn-blue" onclick="imprimirLabelAdhesivo()"><i class="ti ti-printer"></i> Imprimir en Label Printer</button>
-                            <button class="btn btn-light" onclick="abrirModalConfigImpresora()" title="Configurar impresora 2C-LP427B"><i class="ti ti-settings"></i></button>
-                        </div>
                     </div>
 
                     <div class="card" style="background:#f8fafc; display:flex; flex-direction:column; align-items:center; justify-content:center;">
