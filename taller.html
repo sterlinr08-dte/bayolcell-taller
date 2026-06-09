@@ -547,6 +547,14 @@ mark.ss-hl { background: #fef08a; color: inherit; padding: 0 1px; border-radius:
 .btn-orientacion.activo { background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%) !important; border-color: #fca5a5 !important; box-shadow: 0 4px 12px rgba(220,38,38,0.25) !important; }
 .btn-orientacion.activo b { color: #dc2626 !important; }
 
+/* Pestañas de Piezas Solicitadas (Órdenes de Servicio / Reacondicionados) */
+.ps-tab { flex:1; padding:13px 12px; border:2px solid #e2e8f0; border-radius:12px; background:#f8fafc; font-weight:700; font-size:14px; color:#475569; cursor:pointer; transition:all .15s; display:flex; align-items:center; justify-content:center; gap:6px; }
+.ps-tab:hover { border-color:#cbd5e1; transform:translateY(-1px); }
+.ps-tab-activa { background:linear-gradient(135deg,#ecfeff 0%,#cffafe 100%); border-color:#06b6d4; color:#0e7490; box-shadow:0 4px 12px rgba(6,182,212,0.22); }
+.ps-tec-header { display:flex; align-items:center; gap:8px; margin:18px 0 8px; padding:8px 12px; background:linear-gradient(135deg,#eef2ff 0%,#e0e7ff 100%); border-radius:10px; border-left:5px solid #4f46e5; }
+.ps-tec-header .ps-tec-nombre { font-size:15px; font-weight:800; color:#312e81; }
+.ps-tec-header .ps-tec-cont { font-size:11px; font-weight:700; color:#4338ca; background:#fff; padding:2px 9px; border-radius:10px; }
+
 /* ========== ANIMACIÓN ITEMS NUEVOS ========== */
 @keyframes pulso { 0%,100% { transform:scale(1); opacity:0.25; } 50% { transform:scale(1.6); opacity:0; } }
 @keyframes itemFadeIn { 
@@ -1401,11 +1409,15 @@ body{
             <div id="v-piezasSolicitadas" class="view">
                 <h2 style="margin:0 0 14px;"><i class="ti ti-packages" style="color:#0891b2;"></i> Piezas Solicitadas</h2>
                 <div class="card">
+                    <div class="ps-tabs" style="display:flex; gap:8px; margin-bottom:14px;">
+                        <button id="psTabOrden" class="ps-tab ps-tab-activa" onclick="setPsTab('orden')"><i class="ti ti-tool"></i> Órdenes de Servicio</button>
+                        <button id="psTabReacond" class="ps-tab" onclick="setPsTab('reacond')"><i class="ti ti-recycle"></i> Reacondicionados</button>
+                    </div>
                     <input id="psBuscador" oninput="renderPiezasSolicitadas()" placeholder="🔍 Buscar pieza, técnico, orden o equipo..." style="width:100%; padding:8px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; margin-bottom:10px;">
                     <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px;">
                         <button class="btn btn-light" onclick="_psFiltro='todas'; renderPiezasSolicitadas()" style="font-size:12px;">Todas</button>
                         <button class="btn btn-light" onclick="_psFiltro='pendientes'; renderPiezasSolicitadas()" style="font-size:12px;">🟡 Pendientes</button>
-                        <button class="btn btn-light" onclick="_psFiltro='entregadas'; renderPiezasSolicitadas()" style="font-size:12px;">📦 Entregadas</button>
+                        <button class="btn btn-light" onclick="_psFiltro='entregadas'; renderPiezasSolicitadas()" style="font-size:12px;">📦 Entregadas/recibidas</button>
                     </div>
                     <div id="piezasSolicitadasLista"></div>
                 </div>
@@ -9655,6 +9667,15 @@ function renderTallerOrdenes() {
 // Construye el HTML de UNA orden (reutilizable: tablero taller + Mi Trabajo)
 // Panel central que junta TODAS las piezas solicitadas (órdenes de cliente + reacondicionados)
 let _psFiltro = 'todas';
+let _psTab = 'orden'; // 'orden' = Órdenes de Servicio | 'reacond' = Reacondicionados
+
+function setPsTab(t) {
+    _psTab = t;
+    document.getElementById('psTabOrden')?.classList.toggle('ps-tab-activa', t === 'orden');
+    document.getElementById('psTabReacond')?.classList.toggle('ps-tab-activa', t === 'reacond');
+    renderPiezasSolicitadas();
+}
+
 function renderPiezasSolicitadas() {
     const cont = document.getElementById('piezasSolicitadasLista');
     if(!cont) return;
@@ -9668,10 +9689,10 @@ function renderPiezasSolicitadas() {
         const o = (cache.ordenes || []).find(x => x.id === p.orden_id);
         const c = o ? findCliente(o.cliente_id) : {};
         const tecId = p.tecnico_id || (o && o.tecnico_asignado_id) || null;
-        const tec = tecId ? nombreEmpleado(tecId) : '—';
+        const tec = tecId ? nombreEmpleado(tecId) : 'Sin asignar';
         const eqO = o ? findEquipo(o.equipo_id) : null;
         items.push({
-            id: p.id, kind: 'orden',
+            id: p.id, kind: 'orden', ordenId: p.orden_id,
             pieza: p.pieza_nombre || 'Pieza', cantidad: p.cantidad || 1, estado: p.estado || 'solicitada',
             origen: o ? `Orden ${formatoOrden(o.numero_orden)}` : 'Orden', cliente: c.nombre || '', tecnico: tec, tecnicoId: tecId,
             tipo: 'Orden', color: '#ef4444', fecha: p.creado_en,
@@ -9684,9 +9705,9 @@ function renderPiezasSolicitadas() {
     (cache.piezasReacond || []).forEach(p => {
         const eq = (cache.refurb || []).find(x => x.id === p.equipo_id);
         const tecId = eq && eq.tecnico_asignado_id ? eq.tecnico_asignado_id : null;
-        const tec = tecId ? nombreEmpleado(tecId) : '—';
+        const tec = tecId ? nombreEmpleado(tecId) : 'Sin asignar';
         items.push({
-            id: p.id, kind: 'reacond',
+            id: p.id, kind: 'reacond', equipoId: p.equipo_id,
             pieza: p.pieza_nombre || 'Pieza', cantidad: p.cantidad || 1, estado: p.estado || 'pendiente',
             origen: eq ? `${eq.marca||''} ${eq.modelo||''}`.trim() : 'Reacond', cliente: '', tecnico: tec, tecnicoId: tecId,
             tipo: 'Reacond', color: '#f59e0b', fecha: p.fecha_entrega || p.creado_en,
@@ -9695,27 +9716,25 @@ function renderPiezasSolicitadas() {
             grupoSub: 'Reacondicionado'
         });
     });
-    
+
     // Si es técnico, mostrar solo sus piezas
     let baseItems = soloMias ? items.filter(i => i.tecnicoId === miId) : items;
-    
+    // Filtro por PESTAÑA (Órdenes de Servicio / Reacondicionados)
+    baseItems = baseItems.filter(i => i.kind === _psTab);
+
     // Filtro por estado
     let filtrados = baseItems;
     if(_psFiltro === 'pendientes') filtrados = baseItems.filter(i => ['solicitada','pendiente','extra_pendiente','aprobada'].includes(i.estado));
     else if(_psFiltro === 'entregadas') filtrados = baseItems.filter(i => ['entregada','recibida'].includes(i.estado));
-    
+
     // Buscador
     const txt = (document.getElementById('psBuscador')?.value || '').trim().toLowerCase();
-    if(txt) filtrados = filtrados.filter(i => 
+    if(txt) filtrados = filtrados.filter(i =>
         i.pieza.toLowerCase().includes(txt) || i.tecnico.toLowerCase().includes(txt) ||
         i.origen.toLowerCase().includes(txt) || (i.cliente||'').toLowerCase().includes(txt)
     );
-    
-    filtrados.sort((a,b) => new Date(b.fecha||0) - new Date(a.fecha||0));
-    
-    if(!filtrados.length) { cont.innerHTML = `<div style="color:var(--text-muted); font-size:13px;">No hay piezas en este filtro.</div>`; return; }
 
-    // Resumen por estado (de las piezas visibles para este usuario)
+    // Resumen por estado (de la pestaña actual)
     const pend = baseItems.filter(i => ['solicitada','pendiente','extra_pendiente','aprobada'].includes(i.estado)).length;
     const entr = baseItems.filter(i => ['entregada','recibida'].includes(i.estado)).length;
 
@@ -9744,36 +9763,66 @@ function renderPiezasSolicitadas() {
         }
         return '';
     };
+    // Botón para que el técnico (o admin) escriba/pida otra pieza directo en este grupo
+    const botonPedir = (i) => {
+        const puede = isAdminUser() || i.tecnicoId === miId;
+        if(!puede) return '';
+        if(i.kind === 'orden' && i.ordenId) return `<button class="btn btn-light" style="font-size:11px; padding:4px 9px;" onclick="solicitarPiezaOrden('${i.ordenId}')"><i class="ti ti-plus"></i> Pedir pieza</button>`;
+        if(i.kind === 'reacond' && i.equipoId) return `<button class="btn btn-light" style="font-size:11px; padding:4px 9px;" onclick="agregarPiezaExtra('${i.equipoId}')"><i class="ti ti-plus"></i> Pedir pieza</button>`;
+        return '';
+    };
 
-    // Agrupar por equipo/orden
-    const grupos = {};
-    filtrados.forEach(i => { (grupos[i.grupoKey] = grupos[i.grupoKey] || { info: i, piezas: [] }).piezas.push(i); });
-    const fechaMax = g => Math.max(...g.piezas.map(p => +new Date(p.fecha || 0)));
-    const ordenGrupos = Object.values(grupos).sort((a,b) => fechaMax(b) - fechaMax(a));
-
-    let html = `<div style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap; font-size:12px;">
+    const tabNombre = _psTab === 'orden' ? 'Órdenes de Servicio' : 'Reacondicionados';
+    let html = `<div style="display:flex; gap:10px; margin-bottom:6px; flex-wrap:wrap; font-size:12px;">
         <span style="background:#fef3c7; color:#92400e; padding:4px 10px; border-radius:8px; font-weight:700;">🟡 ${pend} pendientes</span>
         <span style="background:#dbeafe; color:#1e40af; padding:4px 10px; border-radius:8px; font-weight:700;">📦 ${entr} entregadas/recibidas</span>
     </div>`;
-    ordenGrupos.forEach(g => {
-        const i = g.info;
-        html += `<div style="background:#fff; border:1px solid var(--border-color); border-left:5px solid ${i.color}; border-radius:12px; padding:12px 14px; margin-bottom:10px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; border-bottom:1px solid #eef1f4; padding-bottom:8px; margin-bottom:8px;">
-                <div>
-                    <span class="badge" style="background:#eef2f7; color:#334155; font-size:10px; padding:2px 7px;">${i.tipo}</span>
-                    <b style="font-size:14px; margin-left:6px;">${escapeHtml(i.grupoTitulo)}</b>
-                    ${i.grupoSub ? `<span style="color:var(--text-muted); font-size:12px; margin-left:6px;">${escapeHtml(i.grupoSub)}</span>` : ''}
-                </div>
-                <span style="font-size:12px; color:#3730a3; font-weight:600;"><i class="ti ti-tool"></i> ${escapeHtml(i.tecnico)}</span>
-            </div>
-            ${g.piezas.map(p => `<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:5px 0;">
-                <span style="flex:1; min-width:140px; font-size:13px; font-weight:600;">• ${escapeHtml(p.pieza)}${p.cantidad > 1 ? ' ×' + p.cantidad : ''}</span>
-                ${etiqEstado(p.estado)}
-                ${botonAccion(p)}
-            </div>`).join('')}
-        </div>`;
+
+    if(!filtrados.length) {
+        cont.innerHTML = html + `<div style="color:var(--text-muted); font-size:13px; padding:20px 4px; text-align:center;">No hay piezas en <b>${tabNombre}</b> con este filtro.</div>`;
+        return;
+    }
+
+    // 1) Agrupar por TÉCNICO. 2) Dentro de cada técnico, agrupar por equipo/orden.
+    const porTec = {};
+    filtrados.forEach(i => {
+        const tk = i.tecnicoId || ('s_' + i.tecnico);
+        (porTec[tk] = porTec[tk] || { tecnico: i.tecnico, items: [] }).items.push(i);
     });
-    html += `<div style="font-size:11px; color:var(--text-muted); margin-top:6px;">${filtrados.length} pieza(s) · ${ordenGrupos.length} equipo(s)</div>`;
+    const fechaMaxArr = arr => Math.max(...arr.map(p => +new Date(p.fecha || 0)));
+    const tecnicos = Object.values(porTec).sort((a,b) => fechaMaxArr(b.items) - fechaMaxArr(a.items));
+
+    tecnicos.forEach(t => {
+        const pendTec = t.items.filter(i => ['solicitada','pendiente','extra_pendiente','aprobada'].includes(i.estado)).length;
+        html += `<div class="ps-tec-header">
+            <i class="ti ti-user-cog" style="color:#4f46e5; font-size:18px;"></i>
+            <span class="ps-tec-nombre">${escapeHtml(t.tecnico)}</span>
+            <span class="ps-tec-cont">${t.items.length} pieza(s)${pendTec ? ' · ' + pendTec + ' pend.' : ''}</span>
+        </div>`;
+        // Grupos (equipo/orden) de este técnico
+        const grupos = {};
+        t.items.forEach(i => { (grupos[i.grupoKey] = grupos[i.grupoKey] || { info: i, piezas: [] }).piezas.push(i); });
+        const ordenGrupos = Object.values(grupos).sort((a,b) => fechaMaxArr(b.piezas) - fechaMaxArr(a.piezas));
+        ordenGrupos.forEach(g => {
+            const i = g.info;
+            html += `<div style="background:#fff; border:1px solid var(--border-color); border-left:5px solid ${i.color}; border-radius:12px; padding:12px 14px; margin-bottom:10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; border-bottom:1px solid #eef1f4; padding-bottom:8px; margin-bottom:8px;">
+                    <div>
+                        <span class="badge" style="background:#eef2f7; color:#334155; font-size:10px; padding:2px 7px;">${i.tipo}</span>
+                        <b style="font-size:14px; margin-left:6px;">${escapeHtml(i.grupoTitulo)}</b>
+                        ${i.grupoSub ? `<span style="color:var(--text-muted); font-size:12px; margin-left:6px;">${escapeHtml(i.grupoSub)}</span>` : ''}
+                    </div>
+                    ${botonPedir(i)}
+                </div>
+                ${g.piezas.map(p => `<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:5px 0;">
+                    <span style="flex:1; min-width:140px; font-size:13px; font-weight:600;">• ${escapeHtml(p.pieza)}${p.cantidad > 1 ? ' ×' + p.cantidad : ''}</span>
+                    ${etiqEstado(p.estado)}
+                    ${botonAccion(p)}
+                </div>`).join('')}
+            </div>`;
+        });
+    });
+    html += `<div style="font-size:11px; color:var(--text-muted); margin-top:6px;">${filtrados.length} pieza(s) · ${tecnicos.length} técnico(s)</div>`;
     cont.innerHTML = html;
 }
 
