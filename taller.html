@@ -1697,7 +1697,8 @@ body{
                         <h3 style="margin:0;"><i class="ti ti-packages" style="color:#0891b2;"></i> Catálogo de Piezas (Info Plus)</h3>
                         <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
                             <span id="infoplusCount" style="font-size:13px; color:var(--text-muted);"></span>
-                            <label class="btn btn-blue" style="font-size:13px; cursor:pointer; margin:0;"><i class="ti ti-upload"></i> Importar CSV
+                            <button class="btn btn-success" id="ipSyncBtn" style="font-size:13px;" onclick="sincronizarInfoplus(this)"><i class="ti ti-refresh"></i> Sincronizar con Info Plus</button>
+                            <label class="btn btn-light" style="font-size:13px; cursor:pointer; margin:0;"><i class="ti ti-upload"></i> Importar CSV
                                 <input type="file" id="infoplusFile" accept=".csv,text/csv" style="display:none;" onchange="importarCatalogoInfoplus(this)">
                             </label>
                         </div>
@@ -5084,6 +5085,21 @@ async function importarCatalogoInfoplus(input) {
     } catch(e) { logError('Importar catálogo Info Plus', e); setMsg('Error: ' + getFriendlyError(e), '#dc2626'); input.value = ''; }
 }
 
+async function sincronizarInfoplus(btn){
+    const msg = document.getElementById('infoplusImportMsg');
+    const orig = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Sincronizando...';
+    if(msg){ msg.style.color = 'var(--text-muted)'; msg.textContent = '⏳ Conectando con Info Plus y actualizando el catálogo…'; }
+    try{
+        const { data, error } = await supabaseClient.functions.invoke('infoplus-sync', { body: {} });
+        if(error) throw error;
+        if(!data || !data.ok){ if(msg){ msg.style.color = '#dc2626'; msg.textContent = '⚠️ ' + ((data && data.error) || 'No se pudo sincronizar.'); } }
+        else {
+            if(msg){ msg.style.color = '#16a34a'; msg.textContent = '✅ Catálogo actualizado: ' + (data.total||0).toLocaleString('es-DO') + ' artículos sincronizados desde Info Plus.'; }
+            actualizarInfoplusCount(); renderInfoplusBusqueda();
+        }
+    }catch(e){ logError('Sincronizar Info Plus', e); if(msg){ msg.style.color = '#dc2626'; msg.textContent = '⚠️ Error: ' + getFriendlyError(e); } }
+    finally{ btn.disabled = false; btn.innerHTML = orig; }
+}
 async function actualizarInfoplusCount() {
     const el = document.getElementById('infoplusCount'); if(!el) return;
     try { const { count } = await supabaseClient.from('infoplus_articulos').select('*', { count: 'exact', head: true }); el.textContent = (count || 0).toLocaleString('es-DO') + ' artículos'; }
