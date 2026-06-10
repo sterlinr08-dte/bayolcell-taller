@@ -10307,7 +10307,7 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
                 acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#9a3412;" onclick="cambiarEstadoOrdenUI('${o.id}','pendiente_cliente')"><i class="ti ti-bell"></i> Esperando autorización</button>`;
             }
             // No se pudo reparar (equipo con daño sin solución) — técnico asignado o admin
-            if(esAdmin || esMia) acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#b91c1c; border-color:#fca5a5;" onclick="marcarNoReparado('${o.id}')"><i class="ti ti-thumb-down"></i> No se pudo reparar</button>`;
+            if(esAdmin || esMia) acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#b91c1c; border-color:#fca5a5;" onclick="marcarNoReparado('${o.id}')"><i class="ti ti-thumb-down"></i> NO REPARADO</button>`;
         } else if((esAdmin || esServicio) && estado === 'finalizado') {
             // Orden finalizada: solo servicio al cliente y admin pueden actuar (el técnico no hace nada)
             acciones += `<button class="btn btn-blue" style="font-size:12px; padding:6px 12px;" onclick="marcarEntregadoConGarantia('${o.id}')"><i class="ti ti-package"></i> Marcar Entregado</button>`;
@@ -11320,7 +11320,7 @@ async function marcarNoReparado(ordenId) {
         motivo = await pedirTexto('¿Por qué no se pudo reparar? (OBLIGATORIO)\n\nEjemplo: "Placa dañada por humedad, sin solución" · "No existe la pieza"');
         if(motivo === null) return; // canceló toda la acción
         if(motivo.trim()) break;
-        toast('⚠️ El comentario es obligatorio para marcar "No se pudo reparar".', 'error');
+        toast('⚠️ El comentario es obligatorio para marcar "NO REPARADO".', 'error');
     }
     // Manejar las piezas YA entregadas/recibidas de esta orden: preguntar por cada una
     const piezas = (cache.ordenPiezas || []).filter(p => p.orden_id === ordenId && ['entregada','recibida'].includes(p.estado));
