@@ -12994,7 +12994,7 @@ function buildTicketSecurityHtml(incluirCredenciales) {
     }
     const lines = [];
     const add = (label, value) => { if(value) lines.push(`<div class="cred-line"><b>${escapeHtml(label)}:</b> ${escapeHtml(value)}</div>`); };
-    add('PIN / patrón / contraseña del equipo', val('o_clave'));
+    add('Clave', val('o_clave'));
     add('Apple ID / correo', val('o_apple_id'));
     add('Contraseña Apple ID', val('o_apple_password'));
     add('Cuenta Google / Gmail', val('o_google_account'));
@@ -13042,7 +13042,7 @@ function buildAccessPayload() {
     const add = (label, value) => { if(value) lines.push(`${label}: ${value}`); };
     add('Tipo de bloqueo', val('o_acceso'));
     if(val('o_acceso') === 'Patrón') add('Patrón visual', getPatternSequence());
-    add('PIN / patrón / contraseña del equipo', val('o_clave'));
+    add('Clave', val('o_clave'));
     add('Apple ID / correo', val('o_apple_id'));
     add('Contraseña Apple ID', val('o_apple_password'));
     add('Cuenta Google / Gmail', val('o_google_account'));
@@ -13061,7 +13061,8 @@ function buildAccountSummary() {
 }
 
 function formatAccessDetails(o) {
-    const sensitive = o.clave_equipo || 'Sin clave registrada';
+    // Limpia el texto redundante de órdenes viejas ("PIN / patrón / contraseña del equipo" → "Clave")
+    const sensitive = (o.clave_equipo || 'Sin clave registrada').replace(/PIN \/ patrón \/ contraseña del equipo:/g, 'Clave:');
     const account = o.cuenta_icloud_google ? `\nCuenta registrada: ${o.cuenta_icloud_google}` : '';
     if(String(sensitive).includes('Apple ID') || String(sensitive).includes('Cuenta Google') || String(sensitive).includes('Cuenta Samsung')) return sensitive;
     return `${sensitive}${account}`.trim();
