@@ -1727,7 +1727,7 @@ body{
                         <h3 style="margin:0;"><i class="ti ti-packages" style="color:#0891b2;"></i> Catálogo de Piezas (Info Plus)</h3>
                         <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
                             <span id="infoplusCount" style="font-size:13px; color:var(--text-muted);"></span>
-                            <button class="btn btn-success" id="ipSyncBtn" style="font-size:13px;" onclick="sincronizarInfoplus(this)"><i class="ti ti-refresh"></i> Sincronizar precios (Info Plus)</button>
+                            <button class="btn btn-success" id="ipSyncBtn" style="font-size:13px;" onclick="sincronizarInfoplus(this)"><i class="ti ti-refresh"></i> Sincronizar Taller (Info Plus)</button>
                             <label class="btn btn-blue" style="font-size:13px; cursor:pointer; margin:0;"><i class="ti ti-building-warehouse"></i> Cargar existencia Taller (CSV/HTML)
                                 <input type="file" id="tallerFile" accept=".csv,.html,.htm,text/csv,text/html" style="display:none;" onchange="importarExistenciaTaller(this)">
                             </label>
@@ -1736,7 +1736,7 @@ body{
                             </label>
                         </div>
                     </div>
-                    <p style="color:var(--text-muted); font-size:13px; margin-bottom:12px;">Sube el archivo CSV de artículos exportado de Info Plus. Sirve para sugerir piezas según las fallas y para que los códigos coincidan con los despachos.</p>
+                    <p style="color:var(--text-muted); font-size:13px; margin-bottom:12px;"><b>"Sincronizar Taller"</b> trae automáticamente la <b>existencia, precio y costo</b> del almacén Taller (Info Plus, en vivo). Los botones de CSV son solo de respaldo manual.</p>
                     <div id="infoplusImportMsg" style="font-size:13px; margin-bottom:10px;"></div>
                     <div class="form-row"><input id="ip_buscar" placeholder="🔍 Buscar pieza por código, descripción o marca..." oninput="renderInfoplusBusqueda()"></div>
                     <div class="table-wrap" style="max-height:420px; overflow-y:auto;">
@@ -5163,7 +5163,7 @@ async function sincronizarInfoplus(btn){
         if(error) throw error;
         if(!data || !data.ok){ if(msg){ msg.style.color = '#dc2626'; msg.textContent = '⚠️ ' + ((data && data.error) || 'No se pudo sincronizar.'); } }
         else {
-            if(msg){ msg.style.color = '#16a34a'; msg.textContent = '✅ Catálogo actualizado: ' + (data.total||0).toLocaleString('es-DO') + ' artículos sincronizados desde Info Plus.'; }
+            if(msg){ msg.style.color = '#16a34a'; msg.textContent = '✅ Taller sincronizado: ' + (data.total||0).toLocaleString('es-DO') + ' artículos · ' + (data.unidades||0).toLocaleString('es-DO') + ' unidades en existencia (Info Plus, almacén Taller).'; }
             actualizarInfoplusCount(); renderInfoplusBusqueda();
         }
     }catch(e){ logError('Sincronizar Info Plus', e); if(msg){ msg.style.color = '#dc2626'; msg.textContent = '⚠️ Error: ' + getFriendlyError(e); } }
