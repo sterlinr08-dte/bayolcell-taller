@@ -1952,6 +1952,7 @@ body{
                             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
                                 <h3 style="margin:0;"><i class="ti ti-recycle" style="color:#06b6d4;"></i> Reacondicionados</h3>
                                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                                    <button class="btn btn-success" onclick="abrirModalConsumoTaller()" style="padding:6px 12px; font-size:12px;"><i class="ti ti-tool"></i> Registrar pieza usada</button>
                                     <button class="btn btn-blue" id="btnRegistrarExistente" onclick="abrirModalRegistrarExistente()" style="padding:6px 12px; font-size:12px;"><i class="ti ti-archive"></i> Registrar equipo existente</button>
                                     <button class="btn btn-light" onclick="refrescarVista(cargarLotesReacond, this)" style="padding:6px 12px; font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
                                 </div>
@@ -2844,6 +2845,35 @@ body{
 </div>
 
 <!-- MODAL: ASIGNAR TÉCNICO A EQUIPO -->
+<!-- MODAL: Registrar PIEZA USADA (consumo del taller) -->
+<div id="modalConsumoTaller" class="modal-backdrop">
+    <div class="modal-box" style="max-width:560px;">
+        <div class="modal-header" style="background:linear-gradient(135deg,#15803d,#16a34a); color:#fff; border-radius:12px 12px 0 0;">
+            <h3 style="color:#fff;"><i class="ti ti-tool"></i> Registrar pieza usada</h3>
+            <button class="modal-close" onclick="cerrarModalConsumoTaller()" style="color:#fff;">✕</button>
+        </div>
+        <div class="modal-body">
+            <p style="color:var(--text-muted); font-size:12px; margin:0 0 12px;">Registra la pieza del <b>catálogo de Info Plus</b> que usaste en un reacondicionado. Esto descuenta del control del Taller (lo que Info Plus aún no descontó).</p>
+            <div class="form-row"><label>Buscar pieza en Info Plus *</label>
+                <input id="ct_buscar" placeholder="🔍 Código, descripción o marca…" autocomplete="off" oninput="buscarPiezaConsumo()">
+                <small style="color:var(--text-muted); font-size:11px;">Escribe y elige de la lista.</small>
+            </div>
+            <div class="form-row"><label>Pieza seleccionada</label>
+                <select id="ct_pieza"><option value="">— Busca y selecciona una pieza —</option></select>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div class="form-row"><label>Cantidad *</label><input id="ct_cantidad" type="number" min="1" step="1" value="1"></div>
+                <div class="form-row"><label>Nota (opcional)</label><input id="ct_nota" placeholder="Equipo / detalle"></div>
+            </div>
+            <div id="ct_msg" style="font-size:12px; margin-top:4px;"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" onclick="cerrarModalConsumoTaller()">Cancelar</button>
+            <button class="btn btn-success" onclick="guardarConsumoTaller(this)"><i class="ti ti-device-floppy"></i> Registrar pieza usada</button>
+        </div>
+    </div>
+</div>
+
 <!-- MODAL: Registrar equipo EXISTENTE (previo al sistema) -->
 <div id="modalRegistrarExistente" class="modal-backdrop">
     <div class="modal-box" style="max-width:560px;">
@@ -5423,17 +5453,19 @@ async function renderEstadisticas(btn){
     cont.innerHTML = '<p style="text-align:center; color:var(--text-muted); padding:30px;">Cargando…</p>';
     try {
         const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
-        const [invRes, topRes, ventasRes, ordRes, vtaRes, repRes] = await Promise.all([
+        const [invRes, topRes, ventasRes, ordRes, vtaRes, repRes, tcRes] = await Promise.all([
             supabaseClient.rpc('stats_inventario'),
             supabaseClient.rpc('stats_inventario_top', { lim: 10 }),
             supabaseClient.from('refurb_ventas').select('precio_venta_real, vendido_en').limit(5000),
             supabaseClient.from('ordenes_reparacion').select('estado, precio_cliente, fecha_entregado').limit(8000),
             supabaseClient.rpc('stats_ventas', _estRango()),
-            supabaseClient.rpc('stats_reposicion', { p_dias: 30, p_umbral_dias: 15, p_cobertura_dias: 30 })
+            supabaseClient.rpc('stats_reposicion', { p_dias: 30, p_umbral_dias: 15, p_cobertura_dias: 30 }),
+            supabaseClient.rpc('stats_taller_control')
         ]);
         const inv = invRes.data || {};
         const vt = (vtaRes && vtaRes.data && !vtaRes.data.error) ? vtaRes.data : null;
         const rep = (repRes && repRes.data && !repRes.data.error) ? repRes.data : null;
+        const tc = (tcRes && tcRes.data && !tcRes.data.error) ? tcRes.data : null;
         const top = topRes.data || [];
         const ventas = ventasRes.data || [];
         const ordenes = ordRes.data || [];
@@ -5547,7 +5579,36 @@ async function renderEstadisticas(btn){
             </div>`;
         }
 
-        cont.innerHTML = `${vtHtml}` + `${repHtml}` + `
+        // ===== CONTROL DEL TALLER (consumo vs Info Plus) =====
+        let tcHtml = '';
+        if(tc && (tc.items||[]).length){
+            const items = tc.items;
+            const fil = items.map(it=>{
+                const real = Number(it.real_estimado);
+                const pend = Number(it.pendiente);
+                return `<tr>
+                    <td><b>${escapeHtml(it.codigo||'')}</b></td>
+                    <td>${escapeHtml(it.descripcion||'—')}</td>
+                    <td style="text-align:center;">${_statNum(it.infoplus_taller)}</td>
+                    <td style="text-align:center; color:${pend>0?'#d97706':'#16a34a'}; font-weight:700;">${_statNum(pend)}</td>
+                    <td style="text-align:center; font-weight:700; color:${real<0?'#dc2626':'#0891b2'};">${_statNum(real)}</td>
+                    <td style="text-align:center;">${pend>0?`<button class="btn btn-light" style="padding:3px 8px; font-size:11px;" onclick="reconciliarTaller('${escapeHtml(it.codigo)}')">Ya descontado</button>`:'✅'}</td>
+                </tr>`;
+            }).join('');
+            tcHtml = `
+            <div class="card" style="margin-bottom:15px; border-top:3px solid #16a34a;">
+                <h3 style="margin:0 0 4px;"><i class="ti ti-tool" style="color:#16a34a;"></i> Control del Taller (consumo interno)</h3>
+                <p style="color:var(--text-muted); font-size:12px; margin:0 0 12px;">Piezas que los técnicos <b>ya usaron</b> en reacondicionados pero que Info Plus <b>todavía no ha descontado</b>. "Real" = lo que Info Plus dice menos lo ya consumido. Cuando la cajera lo descuente en Info Plus, toca <b>"Ya descontado"</b> para cuadrar.</p>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-bottom:14px;">
+                    ${_statCard('Piezas pendientes de descontar', _statNum(tc.total_pendiente), '#d97706', 'en '+_statNum(tc.codigos_pendientes)+' productos')}
+                </div>
+                <div class="table-wrap" style="max-height:420px; overflow-y:auto;"><table><thead><tr>
+                    <th>Código</th><th>Pieza</th><th>Info Plus (Taller)</th><th>Consumido pend.</th><th>Real ≈</th><th>Acción</th>
+                </tr></thead><tbody>${fil}</tbody></table></div>
+            </div>`;
+        }
+
+        cont.innerHTML = `${vtHtml}` + `${repHtml}` + `${tcHtml}` + `
         <!-- VENTAS INTERNAS (TALLER) -->
         <div class="card" style="margin-bottom:15px;">
             <h3 style="margin:0 0 12px;"><i class="ti ti-tool" style="color:#0891b2;"></i> Ventas internas del taller (reacondicionados + servicio)</h3>
@@ -6397,6 +6458,75 @@ async function guardarEquipoExistente(btn) {
     } finally {
         if(btn){ btn.disabled = false; btn.innerHTML = orig; }
     }
+}
+
+/* ============================================================
+   CONSUMO DEL TALLER (pieza usada) — para control vs Info Plus
+   ============================================================ */
+function abrirModalConsumoTaller(){
+    ['ct_buscar','ct_nota'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    document.getElementById('ct_cantidad').value = '1';
+    document.getElementById('ct_pieza').innerHTML = '<option value="">— Busca y selecciona una pieza —</option>';
+    const m = document.getElementById('ct_msg'); if(m) m.textContent='';
+    document.getElementById('modalConsumoTaller').classList.add('active');
+}
+function cerrarModalConsumoTaller(){ document.getElementById('modalConsumoTaller').classList.remove('active'); }
+let _ctBuscarTimer = null;
+function buscarPiezaConsumo(){
+    clearTimeout(_ctBuscarTimer);
+    _ctBuscarTimer = setTimeout(async ()=>{
+        const q = (document.getElementById('ct_buscar')?.value || '').replace(/[,()%]/g,' ').trim();
+        const sel = document.getElementById('ct_pieza');
+        if(q.length < 2){ sel.innerHTML = '<option value="">— Escribe al menos 2 letras —</option>'; return; }
+        try {
+            let query = supabaseClient.from('infoplus_articulos').select('codigo,descripcion,marca')
+                .or('codigo.ilike.%'+q+'%,descripcion.ilike.%'+q+'%,marca.ilike.%'+q+'%').order('codigo').limit(40);
+            const { data, error } = await query;
+            if(error) throw error;
+            if(!data || !data.length){ sel.innerHTML = '<option value="">Sin resultados</option>'; return; }
+            sel.innerHTML = '<option value="">— Selecciona —</option>' + data.map(a=>{
+                const desc = (a.descripcion||'').trim();
+                return `<option value="${escapeHtml(a.codigo)}" data-desc="${escapeHtml(desc)}">${escapeHtml(a.codigo)} · ${escapeHtml(desc)}</option>`;
+            }).join('');
+        } catch(e){ sel.innerHTML = '<option value="">Error al buscar</option>'; }
+    }, 300);
+}
+async function guardarConsumoTaller(btn){
+    const sel = document.getElementById('ct_pieza');
+    const codigo = sel.value;
+    const desc = sel.options[sel.selectedIndex]?.getAttribute('data-desc') || '';
+    const cantidad = parseInt(document.getElementById('ct_cantidad').value) || 0;
+    const nota = (document.getElementById('ct_nota')?.value || '').trim();
+    const msg = document.getElementById('ct_msg');
+    if(!codigo){ if(msg){ msg.style.color='#dc2626'; msg.textContent='Busca y selecciona la pieza del catálogo.'; } return; }
+    if(cantidad < 1){ if(msg){ msg.style.color='#dc2626'; msg.textContent='La cantidad debe ser 1 o más.'; } return; }
+    const orig = btn ? btn.innerHTML : '';
+    if(btn){ btn.disabled=true; btn.innerHTML='<i class="ti ti-loader"></i> Registrando…'; }
+    try {
+        const esTec = sessionUser?._tipo === 'tecnico';
+        const { error } = await supabaseClient.from('taller_consumo').insert([{
+            infoplus_codigo: codigo, descripcion: desc || null, cantidad: cantidad,
+            tecnico_id: esTec ? sessionUser?.id : null,
+            tecnico_nombre: sessionUser?.nombre || null,
+            nota: nota || null,
+            creado_por: sessionUser?.nombre || sessionUser?.usuario || null
+        }]);
+        if(error) throw error;
+        toast('✅ Pieza usada registrada. Descontada del control del Taller.');
+        cerrarModalConsumoTaller();
+    } catch(e){ logError('Registrar consumo taller', e); if(msg){ msg.style.color='#dc2626'; msg.textContent='⚠️ '+getFriendlyError(e); } }
+    finally { if(btn){ btn.disabled=false; btn.innerHTML=orig; } }
+}
+// Marcar como ya descontadas en Info Plus las piezas pendientes de un código (reconciliación)
+async function reconciliarTaller(codigo){
+    if(!await confirmar('¿Confirmas que la cajera YA descontó estas piezas en Info Plus? Se quitarán del pendiente.')) return;
+    try {
+        const { data, error } = await supabaseClient.rpc('reconciliar_taller_consumo', { p_codigo: codigo });
+        if(error) throw error;
+        if(data && data.error) return toast('No autorizado.', 'error');
+        toast('✅ Reconciliado. Ya cuadra con Info Plus.');
+        if(typeof renderEstadisticas === 'function') renderEstadisticas();
+    } catch(e){ logError('Reconciliar taller', e); toastError(getFriendlyError(e)); }
 }
 
 // Botón "Actualizar": vuelve a TRAER los datos del servidor y luego redibuja
