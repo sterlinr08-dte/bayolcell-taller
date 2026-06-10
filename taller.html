@@ -5398,6 +5398,24 @@ function _statCard(titulo, valor, color, sub){
         ${sub ? `<div style="font-size:12px; color:var(--text-muted); margin-top:3px;">${sub}</div>` : ''}
     </div>`;
 }
+// Período seleccionado para las VENTAS de tienda (Info Plus)
+let _estPeriodo = 'mes';
+function _estRango(){
+    const hoy = new Date();
+    const fmt = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    const hasta = fmt(hoy);
+    let desde;
+    if(_estPeriodo==='mes') desde = fmt(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
+    else if(_estPeriodo==='30d'){ const d=new Date(hoy); d.setDate(d.getDate()-29); desde=fmt(d); }
+    else if(_estPeriodo==='anio') desde = hoy.getFullYear()+'-01-01';
+    else desde = '2025-01-01';
+    return { p_desde: desde, p_hasta: hasta };
+}
+function setEstPeriodo(p){ _estPeriodo = p; renderEstadisticas(); }
+function _estPeriodoBtns(){
+    const opts = [['mes','Este mes'],['30d','Últimos 30 días'],['anio','Este año'],['todo','Todo']];
+    return opts.map(([k,txt])=>`<button onclick="setEstPeriodo('${k}')" style="padding:6px 12px; border:1px solid ${_estPeriodo===k?'#16a34a':'var(--border-color)'}; background:${_estPeriodo===k?'#16a34a':'#fff'}; color:${_estPeriodo===k?'#fff':'var(--text-dark)'}; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">${txt}</button>`).join(' ');
+}
 async function renderEstadisticas(btn){
     if(!esDueno()){ return; }
     const cont = document.getElementById('estadisticasContenido'); if(!cont) return;
@@ -5405,13 +5423,15 @@ async function renderEstadisticas(btn){
     cont.innerHTML = '<p style="text-align:center; color:var(--text-muted); padding:30px;">Cargando…</p>';
     try {
         const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
-        const [invRes, topRes, ventasRes, ordRes] = await Promise.all([
+        const [invRes, topRes, ventasRes, ordRes, vtaRes] = await Promise.all([
             supabaseClient.rpc('stats_inventario'),
             supabaseClient.rpc('stats_inventario_top', { lim: 10 }),
             supabaseClient.from('refurb_ventas').select('precio_venta_real, vendido_en').limit(5000),
-            supabaseClient.from('ordenes_reparacion').select('estado, precio_cliente, fecha_entregado').limit(8000)
+            supabaseClient.from('ordenes_reparacion').select('estado, precio_cliente, fecha_entregado').limit(8000),
+            supabaseClient.rpc('stats_ventas', _estRango())
         ]);
         const inv = invRes.data || {};
+        const vt = (vtaRes && vtaRes.data && !vtaRes.data.error) ? vtaRes.data : null;
         const top = topRes.data || [];
         const ventas = ventasRes.data || [];
         const ordenes = ordRes.data || [];
@@ -5442,10 +5462,51 @@ async function renderEstadisticas(btn){
             }</tbody></table></div>`
             : '<p style="color:var(--text-muted);">Sin datos de inventario todavía.</p>';
 
-        cont.innerHTML = `
-        <!-- VENTAS -->
+        // ===== VENTAS DE TIENDA (Info Plus) =====
+        let vtHtml;
+        if(!vt){
+            vtHtml = `<div class="card" style="margin-bottom:15px;"><h3 style="margin:0 0 8px;"><i class="ti ti-cash" style="color:#16a34a;"></i> Ventas de tienda (Info Plus)</h3>
+                <p style="color:#dc2626; font-size:13px; margin:0;">No se pudieron cargar las ventas (¿permiso o conexión?). Intenta Actualizar.</p></div>`;
+        } else {
+            const rs = vt.resumen || {};
+            const margenPct = (Number(rs.venta)>0) ? Math.round(Number(rs.margen)/Number(rs.venta)*100) : 0;
+            const cats = vt.por_categoria || [];
+            const tops = vt.top_productos || [];
+            const meses = vt.por_mes || [];
+            const maxMes = meses.reduce((m,x)=>Math.max(m, Number(x.venta)||0), 0) || 1;
+            const catHtml = cats.length
+                ? `<div class="table-wrap"><table><thead><tr><th>Categoría</th><th>Facturas</th><th>Venta</th><th>Ganancia</th></tr></thead><tbody>${
+                    cats.map(c=>`<tr><td><b>${escapeHtml(c.categoria)}</b></td><td>${_statNum(c.facturas)}</td><td>${_statRD(c.venta)}</td><td style="color:#16a34a;">${_statRD(c.margen)}</td></tr>`).join('')
+                  }</tbody></table></div>` : '<p style="color:var(--text-muted);">Sin ventas en el período.</p>';
+            const topVtHtml = tops.length
+                ? `<div class="table-wrap"><table><thead><tr><th>Código</th><th>Producto</th><th>Unid.</th><th>Venta</th><th>Ganancia</th></tr></thead><tbody>${
+                    tops.map(t=>`<tr><td><b>${escapeHtml(t.producto_id||'')}</b></td><td>${escapeHtml(t.descripcion||'—')}</td><td>${_statNum(t.unidades)}</td><td>${_statRD(t.venta)}</td><td style="color:#16a34a;">${_statRD(t.margen)}</td></tr>`).join('')
+                  }</tbody></table></div>` : '<p style="color:var(--text-muted);">Sin productos en el período.</p>';
+            const mesHtml = meses.length
+                ? meses.map(x=>{ const w=Math.round((Number(x.venta)||0)/maxMes*100); return `<div style="margin-bottom:6px;"><div style="display:flex; justify-content:space-between; font-size:12px;"><span>${x.mes}</span><span style="color:#16a34a; font-weight:600;">${_statRD(x.venta)}</span></div><div style="background:#e5e7eb; border-radius:6px; height:10px; overflow:hidden;"><div style="width:${w}%; height:100%; background:#16a34a;"></div></div></div>`; }).join('')
+                : '<p style="color:var(--text-muted);">Sin datos.</p>';
+            vtHtml = `
+            <div class="card" style="margin-bottom:15px; border-top:3px solid #16a34a;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+                    <h3 style="margin:0;"><i class="ti ti-cash" style="color:#16a34a;"></i> Ventas de tienda (Info Plus)</h3>
+                    <div style="display:flex; gap:6px; flex-wrap:wrap;">${_estPeriodoBtns()}</div>
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px;">
+                    ${_statCard('Venta del período', _statRD(rs.venta), '#16a34a', _statNum(rs.facturas)+' facturas')}
+                    ${_statCard('Ganancia (margen)', _statRD(rs.margen), '#16a34a', margenPct+'% sobre la venta')}
+                    ${_statCard('Costo de lo vendido', _statRD(rs.costo), '#7c3aed', '')}
+                    ${_statCard('Unidades vendidas', _statNum(rs.unidades), '#0891b2', '')}
+                </div>
+                <div style="margin-top:16px;"><div style="font-size:13px; font-weight:600; margin-bottom:6px;">Ventas por categoría</div>${catHtml}</div>
+                <div style="margin-top:16px;"><div style="font-size:13px; font-weight:600; margin-bottom:6px;">Top 15 productos más vendidos (por venta)</div>${topVtHtml}</div>
+                <div style="margin-top:16px;"><div style="font-size:13px; font-weight:600; margin-bottom:8px;">Tendencia por mes (todo el historial)</div>${mesHtml}</div>
+            </div>`;
+        }
+
+        cont.innerHTML = `${vtHtml}` + `
+        <!-- VENTAS INTERNAS (TALLER) -->
         <div class="card" style="margin-bottom:15px;">
-            <h3 style="margin:0 0 12px;"><i class="ti ti-cash" style="color:#16a34a;"></i> Ventas</h3>
+            <h3 style="margin:0 0 12px;"><i class="ti ti-tool" style="color:#0891b2;"></i> Ventas internas del taller (reacondicionados + servicio)</h3>
             <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px;">
                 ${_statCard('Reacondicionados vendidos (mes)', _statRD(rvMesMonto), '#16a34a', _statNum(rvMesN)+' equipos este mes')}
                 ${_statCard('Reacondicionados (histórico)', _statRD(rvTotalMonto), '#16a34a', _statNum(rvTotalN)+' equipos en total')}
@@ -5473,10 +5534,10 @@ async function renderEstadisticas(btn){
             </div>
         </div>
 
-        <!-- COMPRAS / VENTAS DE TIENDA -->
+        <!-- COMPRAS (pendiente API) -->
         <div class="card" style="margin-bottom:15px; background:#faf5ff; border:1px dashed #c4b5fd;">
-            <h3 style="margin:0 0 6px;"><i class="ti ti-shopping-cart" style="color:#7c3aed;"></i> Compras y ventas de tienda (Info Plus)</h3>
-            <p style="color:#6b21a8; font-size:13px; margin:0;">📡 Estos números (compras a proveedores, ventas de mostrador, márgenes) se <b>activan automáticamente</b> en cuanto conectemos la <b>API general de Info Plus</b>. Por ahora ves lo que ya controla el sistema: reacondicionados, servicio e inventario.</p>
+            <h3 style="margin:0 0 6px;"><i class="ti ti-shopping-cart" style="color:#7c3aed;"></i> Compras a proveedores (Info Plus)</h3>
+            <p style="color:#6b21a8; font-size:13px; margin:0;">📡 Las compras a proveedores se <b>activarán</b> cuando Info Plus habilite ese endpoint. Las <b>ventas</b> ya están conectadas y en vivo arriba. ✅</p>
         </div>`;
     } catch(e){
         logError('Estadísticas', e);
