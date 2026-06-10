@@ -3115,12 +3115,38 @@ body{
 
 <script>
 const CONFIG_URL = "https://vkhwdvjtowrhkhqavnvk.supabase.co";
-const CONFIG_KEY = "sb_publishable_PynS5ZjKoQ36HCpguVzxaw_KZOlagtz"; 
+const CONFIG_KEY = "sb_publishable_PynS5ZjKoQ36HCpguVzxaw_KZOlagtz";
+
+// Interceptor: si una peticion a Supabase falla por "JWT expired", renueva el
+// token y reintenta SOLA (el empleado no ve el error ni pierde lo que hacia).
+let _bcRefreshing = null;
+async function _bcFetch(input, init) {
+    let res = await fetch(input, init);
+    try {
+        const url = (typeof input === 'string') ? input : (input && input.url) || '';
+        if(res.status === 401 && !/\/auth\/v1\//.test(url)) { // no tocar las llamadas de auth (evita bucles)
+            const body = await res.clone().text().catch(() => '');
+            if(/jwt|expired|token/i.test(body)) {
+                _bcRefreshing = _bcRefreshing || supabaseClient.auth.refreshSession();
+                const out = await _bcRefreshing; _bcRefreshing = null;
+                const token = out?.data?.session?.access_token;
+                if(token && typeof input === 'string') {
+                    const h = new Headers((init && init.headers) || {});
+                    h.set('Authorization', 'Bearer ' + token);
+                    res = await fetch(input, Object.assign({}, init, { headers: h }));
+                }
+            }
+        }
+    } catch(e) { _bcRefreshing = null; }
+    return res;
+}
+
 const supabaseClient = supabase.createClient(CONFIG_URL, CONFIG_KEY, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
+  global: { fetch: _bcFetch }
 });
 // Mantiene fresca la sesion segura para evitar "JWT expired" (al volver a la pestana, al enfocar y cada 10 min)
-function _bcRefreshSession(){ try{ supabaseClient.auth.getSession(); }catch(e){} }
+function _bcRefreshSession(){ try{ supabaseClient.auth.refreshSession(); }catch(e){} }
 document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='visible') _bcRefreshSession(); });
 window.addEventListener('focus', _bcRefreshSession);
 setInterval(_bcRefreshSession, 10 * 60 * 1000);
