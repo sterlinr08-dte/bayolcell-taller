@@ -4277,7 +4277,7 @@ function renderAll() {
     const setKpi = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
     setKpi('kdPend', refurb.filter(e => (e.estado_evaluacion || 'pendiente') === 'pendiente').length);
     setKpi('kdEval', refurb.filter(e => ['en_evaluacion','evaluado'].includes(e.estado_evaluacion)).length);
-    setKpi('kdProc', refurb.filter(e => ['en_proceso','tecnico_recibio','espera_pieza','listo_revision','reasignado'].includes(e.estado_evaluacion)).length);
+    setKpi('kdProc', refurb.filter(e => ['en_proceso','tecnico_recibio','espera_pieza','listo_revision','reasignado','reparacion_externa'].includes(e.estado_evaluacion)).length);
     setKpi('kdListoV', refurb.filter(e => e.estado_evaluacion === 'listo_venta').length);
     setKpi('kdDesp', refurb.filter(e => e.estado_evaluacion === 'vendido').length);
     setKpi('kdDev', refurb.filter(e => (e.veces_devuelto || 0) > 0).length);
@@ -4406,7 +4406,7 @@ function irAEquipoDesdeBusqueda(equipoId) {
     // Ir al módulo reacond y abrir el panel apropiado
     nav('refurb');
     setTimeout(() => {
-        if(['en_proceso','tecnico_recibio','espera_pieza','listo_revision','listo_venta','vendido','reasignado'].includes(estado)) {
+        if(['en_proceso','tecnico_recibio','espera_pieza','listo_revision','listo_venta','vendido','reasignado','reparacion_externa'].includes(estado)) {
             abrirPanelProceso(equipoId);
         } else if(['en_evaluacion','evaluado'].includes(estado)) {
             abrirModalEvaluacion(equipoId);
@@ -5952,7 +5952,7 @@ function cargarLotesReacond() {
         const pendientes = equipos.filter(e => (e.estado_evaluacion || 'pendiente') === 'pendiente').length;
         const enEval = equipos.filter(e => e.estado_evaluacion === 'en_evaluacion').length;
         const evaluados = equipos.filter(e => e.estado_evaluacion === 'evaluado').length;
-        const enProceso = equipos.filter(e => ['en_proceso','tecnico_recibio','espera_pieza','listo_revision','reasignado'].includes(e.estado_evaluacion)).length;
+        const enProceso = equipos.filter(e => ['en_proceso','tecnico_recibio','espera_pieza','listo_revision','reasignado','reparacion_externa'].includes(e.estado_evaluacion)).length;
         const listoVenta = equipos.filter(e => e.estado_evaluacion === 'listo_venta').length;
         const vendidos = equipos.filter(e => e.estado_evaluacion === 'vendido').length;
         const total = equipos.length;
@@ -8121,7 +8121,18 @@ async function abrirPanelProceso(equipoId) {
                 <button class="btn btn-light" onclick="agregarPiezaExtra('${equipoId}')" style="margin-top:10px; padding:8px 14px; font-size:12px;">
                     <i class="ti ti-plus"></i> Agregar pieza adicional
                 </button>
-                
+                ${estado === 'reparacion_externa' ? `
+                    <div style="background:#e0e7ff; border:2px solid #6366f1; padding:14px; border-radius:12px; margin-top:14px;">
+                        <b style="color:#3730a3;"><i class="ti ti-external-link"></i> EN REPARACIÓN EXTERNA</b>
+                        <p style="font-size:12px; color:#3730a3; margin:6px 0;">Enviado a: <b>${escapeHtml(eq.taller_externo || '—')}</b></p>
+                        <button class="btn btn-blue" style="font-size:12px; padding:7px 12px;" onclick="cambiarEstadoProceso('${equipoId}','tecnico_recibio')"><i class="ti ti-rotate"></i> Volvió de reparación externa</button>
+                    </div>
+                ` : `
+                    <button class="btn btn-light" onclick="enviarRefurbExterno('${equipoId}')" style="margin-top:10px; margin-left:8px; padding:8px 14px; font-size:12px; color:#3730a3; border-color:#c7d2fe;">
+                        <i class="ti ti-external-link"></i> Enviar a reparación externa
+                    </button>
+                `}
+
                 ${estaReasignado ? `
                     <div style="background:linear-gradient(135deg, #fef3c7, #fde68a); border:2px solid #f59e0b; padding:16px; border-radius:12px; margin-top:18px; box-shadow:0 4px 12px rgba(245,158,11,0.2);">
                         <b style="color:#78350f;"><i class="ti ti-user-share"></i> Equipo reasignado</b>
@@ -8534,6 +8545,32 @@ async function agregarPiezaExtra(equipoId) {
         logError('Agregar pieza extra', e);
         toastError(getFriendlyError(e));
     }
+}
+
+// Envía un equipo reacondicionado a REPARACIÓN EXTERNA (otro taller), guardando a dónde.
+async function enviarRefurbExterno(equipoId) {
+    const eq = (cache.refurb || []).find(r => r.id === equipoId);
+    if(!eq) return toast('Equipo no encontrado.', 'error');
+    let destino = '';
+    while(true) {
+        destino = await pedirTexto('🔧 REPARACIÓN EXTERNA\n\n¿A dónde / a quién se envía el equipo? (OBLIGATORIO)\n\nEjemplo: "Taller microsoldadura Juan", "Centro X - capital"');
+        if(destino === null) return;
+        if(destino.trim()) break;
+        toast('Indica a dónde se envió el equipo.', 'error');
+    }
+    const nota = await pedirTexto('Nota / motivo (opcional):\n\nEjemplo: "Requiere reballing de CPU"', { valor: '' });
+    if(nota === null) return;
+    const destinoFull = destino.trim() + (nota.trim() ? ' · ' + nota.trim() : '');
+    try {
+        const { error } = await supabaseClient.from('equipos_refurbish').update({
+            estado_evaluacion: 'reparacion_externa',
+            taller_externo: destinoFull
+        }).eq('id', equipoId);
+        if(error) throw error;
+        toast('🔧 Equipo enviado a reparación externa: ' + destino.trim());
+        await loadAll();
+        if(typeof abrirPanelProceso === 'function') abrirPanelProceso(equipoId);
+    } catch(e) { logError('Refurb reparación externa', e); toastError(getFriendlyError(e)); }
 }
 
 // El técnico solicita una pieza para reacondicionados SIN equipo/lote seleccionado.
@@ -8984,7 +9021,8 @@ function obtenerEtiquetaEstado(estado) {
         'listo_revision': { text: '👁️ Revisión final', bg:'#e9d5ff', color:'#6b21a8' },
         'listo_venta': { text: '🛒 Listo Venta', bg:'#ddd6fe', color:'#5b21b6' },
         'vendido': { text: '✅ Despachado', bg:'#d1fae5', color:'#065f46' },
-        'reasignado': { text: '👥 Reasignado', bg:'#fef3c7', color:'#92400e' }
+        'reasignado': { text: '👥 Reasignado', bg:'#fef3c7', color:'#92400e' },
+        'reparacion_externa': { text: '🔧 Reparación externa', bg:'#e0e7ff', color:'#3730a3' }
     };
     const _r = map[estado] || { text: estado, bg:'#f1f5f9', color:'#64748b' };
     return { ..._r, text: (_r.text || '').toUpperCase() };
@@ -9004,6 +9042,7 @@ function obtenerEtiquetaOrden(estado) {
         'entregado':        { text: '📦 Entregado', bg:'#dcfce7', color:'#166534' },
         'cancelado':        { text: '❌ Cancelado', bg:'#fee2e2', color:'#991b1b' },
         'no_reparado':      { text: '🚫 No reparado', bg:'#ffe4e6', color:'#9f1239' },
+        'reparacion_externa':{ text: '🔧 Reparación externa', bg:'#e0e7ff', color:'#3730a3' },
         // compatibilidad con estados viejos
         'diagnostico':      { text: '📥 Recibido', bg:'#e0f2fe', color:'#0369a1' },
         'en_reparacion':    { text: '🔧 En proceso', bg:'#fed7aa', color:'#9a3412' },
@@ -9027,7 +9066,8 @@ function construirEstadoVisual(estadoRaw) {
         'finalizado':        { g1:'#34d399', g2:'#059669', icon:'ti-thumb-up',      label:'Finalizado',     sub:'Listo p/ entregar',  step:3, fase:'Listo',      live:false },
         'entregado':         { g1:'#4ade80', g2:'#16a34a', icon:'ti-package',        label:'Entregado',      sub:'Completado',         step:4, fase:'Entrega',    live:false },
         'cancelado':         { g1:'#f87171', g2:'#dc2626', icon:'ti-ban',            label:'Cancelado',      sub:'Orden anulada',      step:0, fase:'Anulada',    live:false },
-        'no_reparado':       { g1:'#fb7185', g2:'#9f1239', icon:'ti-thumb-down',     label:'No reparado',    sub:'Devolver al cliente',step:0, fase:'Sin solución',live:false }
+        'no_reparado':       { g1:'#fb7185', g2:'#9f1239', icon:'ti-thumb-down',     label:'No reparado',    sub:'Devolver al cliente',step:0, fase:'Sin solución',live:false },
+        'reparacion_externa':{ g1:'#818cf8', g2:'#3730a3', icon:'ti-external-link',  label:'Reparación externa', sub:'Fuera del taller', step:2, fase:'Externa',     live:true  }
     };
     const v = viz[estado] || viz['recibido'];
     const total = 4;
@@ -10333,7 +10373,7 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
             if((esAdmin || esServicio) && tecnicosActivos.length) {
                 acciones += `<select onchange="if(this.value)asignarOrdenTecnico('${o.id}', this.value)" style="font-size:12px; padding:6px;"><option value="">Asignar a un técnico…</option>${tecnicosActivos.map(t => `<option value="${t.id}">${escapeHtml(t.nombre)}</option>`).join('')}</select>`;
             }
-        } else if(puedeOperar && !['entregado','cancelado','finalizado','no_reparado'].includes(estado)) {
+        } else if(puedeOperar && !['entregado','cancelado','finalizado','no_reparado','reparacion_externa'].includes(estado)) {
             // Estados de espera: RESOLVER (vuelve a en proceso) + opción de finalizar directo
             if(estado === 'pendiente_cliente') {
                 acciones += `<button class="btn btn-blue" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-check"></i> AUTORIZACIÓN RESUELTA</button>`;
@@ -10380,13 +10420,20 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
             }
             // Admin puede reabrir un "no reparado" si el cliente insiste o aparece solución
             if(esAdmin) acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#6b21a8;" onclick="reabrirOrdenProceso('${o.id}')"><i class="ti ti-rotate"></i> Reabrir</button>`;
+        } else if(estado === 'reparacion_externa') {
+            const dest = o.taller_externo ? ` → ${escapeHtml(o.taller_externo)}` : '';
+            acciones += `<span class="badge" style="background:#e0e7ff; color:#3730a3; font-size:11px;">🔧 REPARACIÓN EXTERNA${dest}</span>`;
+            if(esAdmin || esMia || esServicio) {
+                acciones += `<button class="btn btn-success" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','finalizado')"><i class="ti ti-circle-check"></i> VOLVIÓ REPARADO · FINALIZAR</button>`;
+                acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-rotate"></i> VOLVIÓ · CONTINUAR AQUÍ</button>`;
+            }
         }
         // Cancelar: SOLO servicio al cliente y admin (técnico NO puede cancelar)
-        if((esAdmin || esServicio) && !['entregado','cancelado','finalizado','no_reparado'].includes(estado)) {
+        if((esAdmin || esServicio) && !['entregado','cancelado','finalizado','no_reparado','reparacion_externa'].includes(estado)) {
             acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#991b1b;" onclick="cambiarEstadoOrdenUI('${o.id}','cancelado')"><i class="ti ti-x"></i> Cancelar</button>`;
         }
         // Derivar a otro técnico (solo si está tomada y en proceso)
-        if((esAdmin || esMia) && o.tecnico_asignado_id && !['entregado','cancelado','finalizado','no_reparado'].includes(estado)) {
+        if((esAdmin || esMia) && o.tecnico_asignado_id && !['entregado','cancelado','finalizado','no_reparado','reparacion_externa'].includes(estado)) {
             acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#6b21a8;" onclick="derivarOrden('${o.id}')"><i class="ti ti-arrows-exchange"></i> DERIVAR</button>`;
         }
         // Label y Recibo: SOLO admin y servicio al cliente (el técnico NO los ve)
@@ -10404,12 +10451,12 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
             if(o.equipo_id) acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#b45309;" onclick="verHistorialEquipo('${o.equipo_id}')"><i class="ti ti-device-mobile"></i> Historial equipo</button>`;
         }
         // Editar datos de recepción: SOLO servicio al cliente y admin (técnico NO)
-        if((esAdmin || esServicio) && !['entregado','cancelado','no_reparado'].includes(estado)) {
+        if((esAdmin || esServicio) && !['entregado','cancelado','no_reparado','reparacion_externa'].includes(estado)) {
             acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#6b21a8;" onclick="abrirEditarRecepcion('${o.id}')"><i class="ti ti-edit"></i> Editar datos</button>`;
         }
         // Solicitar pieza: si está tomada y activa, O en garantía (entregado pero con garantía vigente)
         const enGarantiaVigente = estado === 'entregado' && infoGarantiaOrden(o).vigente;
-        if((esAdmin || esMia) && o.tecnico_asignado_id && (!['entregado','cancelado','no_reparado'].includes(estado) || enGarantiaVigente)) {
+        if((esAdmin || esMia) && o.tecnico_asignado_id && (!['entregado','cancelado','no_reparado','reparacion_externa'].includes(estado) || enGarantiaVigente)) {
             const txtBtn = enGarantiaVigente ? 'SOLICITAR PIEZA (GARANTÍA)' : 'SOLICITAR PIEZA';
             acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#0e7490;" onclick="solicitarPiezaOrden('${o.id}')"><i class="ti ti-package-import"></i> ${txtBtn}</button>`;
         }
@@ -10880,7 +10927,7 @@ function construirPanelInteligente() {
 // Etiqueta de texto corta para un estado de orden
 function etiquetaEstadoTexto(estado) {
     const e = normalizarEstadoOrden(estado);
-    const map = { recibido:'En diagnóstico', en_proceso:'En reparación', espera_repuesto:'Espera pieza', pendiente_cliente:'Esperando autorización', finalizado:'Finalizado', entregado:'Entregado', cancelado:'Cancelado', no_reparado:'No reparado' };
+    const map = { recibido:'En diagnóstico', en_proceso:'En reparación', espera_repuesto:'Espera pieza', pendiente_cliente:'Esperando autorización', finalizado:'Finalizado', entregado:'Entregado', cancelado:'Cancelado', no_reparado:'No reparado', reparacion_externa:'Reparación externa' };
     return (map[e] || e).toUpperCase();
 }
 
@@ -11427,6 +11474,35 @@ async function togglePrioridadOrden(ordenId) {
 }
 
 // === FASE 3: Derivación técnica (pasar la orden a otro técnico) ===
+// Deriva la orden a REPARACIÓN EXTERNA (otro taller). Guarda a dónde se envió.
+async function derivarExterno(ordenId) {
+    const orden = (cache.ordenes || []).find(o => o.id === ordenId);
+    if(!orden) return;
+    let destino = '';
+    while(true) {
+        destino = await pedirTexto('🔧 REPARACIÓN EXTERNA\n\n¿A dónde / a quién se envía el equipo? (OBLIGATORIO)\n\nEjemplo: "Taller microsoldadura Juan", "Centro X - capital"');
+        if(destino === null) return; // canceló
+        if(destino.trim()) break;
+        toast('Indica a dónde se envió el equipo.', 'error');
+    }
+    const nota = await pedirTexto('Nota / motivo (opcional):\n\nEjemplo: "Requiere reballing de CPU"', { valor: '' });
+    if(nota === null) return; // canceló
+    try {
+        const oldTecId = orden.tecnico_asignado_id || null;
+        const { error } = await supabaseClient.from('ordenes_reparacion').update({
+            estado: 'reparacion_externa',
+            tecnico_anterior_id: oldTecId,
+            fecha_derivacion: new Date().toISOString(),
+            motivo_derivacion: nota.trim() || null,
+            taller_externo: destino.trim(),
+            nota_estado: `🔧 REPARACIÓN EXTERNA → ${destino.trim()}${nota.trim() ? ' · ' + nota.trim() : ''}`
+        }).eq('id', ordenId);
+        if(error) throw error;
+        toast('🔧 Enviado a reparación externa: ' + destino.trim());
+        await loadAll();
+    } catch(e) { logError('Derivar externo', e); toastError(getFriendlyError(e)); }
+}
+
 async function derivarOrden(ordenId) {
     const orden = (cache.ordenes || []).find(o => o.id === ordenId);
     if(!orden) return toast('Orden no encontrada.', 'error');
@@ -11442,15 +11518,16 @@ async function derivarOrden(ordenId) {
     }
     // Técnicos disponibles (excluyendo al actual)
     const tecnicos = (cache.tecnicos || []).filter(t => t.activo && (t.tipo_empleado === 'tecnico' || (!t.tipo_empleado && t.rol !== 'admin')) && t.id !== orden.tecnico_asignado_id);
-    if(!tecnicos.length) return toast('No hay otros técnicos disponibles para derivar.', 'error');
-    
-    // Construir lista para el prompt
-    const lista = tecnicos.map((t, i) => `${i + 1}. ${t.nombre}`).join('\n');
-    const sel = await pedirTexto(`DERIVAR ORDEN ${formatoOrden(orden.numero_orden)} a otro técnico:\n\n${lista}\n\nEscribe el número del técnico:`);
+
+    // Opciones: 0 = reparación externa (otro taller), 1..n = técnicos internos
+    const lista = ['0. 🔧 Reparación EXTERNA (otro taller / fuera)']
+        .concat(tecnicos.map((t, i) => `${i + 1}. ${t.nombre}`)).join('\n');
+    const sel = await pedirTexto(`DERIVAR ORDEN ${formatoOrden(orden.numero_orden)}\n\n¿A dónde la derivas?\n\n${lista}\n\nEscribe el número:`);
     if(sel === null) return;
-    const idx = parseInt(sel) - 1;
-    if(isNaN(idx) || idx < 0 || idx >= tecnicos.length) return toast('Selección inválida.', 'error');
-    const nuevoTec = tecnicos[idx];
+    const num = parseInt(sel);
+    if(isNaN(num) || num < 0 || num > tecnicos.length) return toast('Selección inválida.', 'error');
+    if(num === 0) return derivarExterno(ordenId); // reparación externa
+    const nuevoTec = tecnicos[num - 1];
     
     const motivo = await pedirTexto(`Motivo de la derivación a ${nuevoTec.nombre}:\n\nEjemplo: "Requiere microsoldadura" o "No pude resolver el problema de carga"`);
     if(motivo === null) return;
