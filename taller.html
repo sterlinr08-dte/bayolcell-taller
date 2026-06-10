@@ -11314,9 +11314,14 @@ async function marcarNoReparado(ordenId) {
         return toast('Solo el técnico asignado (o un administrador) puede marcar esto.', 'error');
     }
     if(!await confirmar('❌ ¿Marcar este equipo como NO REPARADO?\n\nÚsalo cuando el equipo tiene un daño sin solución. Pasará a Servicio para devolverlo al cliente.')) return;
-    const motivo = await pedirTexto('¿Por qué no se pudo reparar?\n\nEjemplo: "Placa dañada por humedad, sin solución" · "No existe la pieza"');
-    if(motivo === null) return;
-    if(!motivo.trim()) return toast('Indica el motivo.', 'error');
+    // El comentario/motivo es OBLIGATORIO: insiste hasta que escriban algo (o cancelen del todo)
+    let motivo = '';
+    while(true) {
+        motivo = await pedirTexto('¿Por qué no se pudo reparar? (OBLIGATORIO)\n\nEjemplo: "Placa dañada por humedad, sin solución" · "No existe la pieza"');
+        if(motivo === null) return; // canceló toda la acción
+        if(motivo.trim()) break;
+        toast('⚠️ El comentario es obligatorio para marcar "No se pudo reparar".', 'error');
+    }
     // Manejar las piezas YA entregadas/recibidas de esta orden: preguntar por cada una
     const piezas = (cache.ordenPiezas || []).filter(p => p.orden_id === ordenId && ['entregada','recibida'].includes(p.estado));
     let devueltas = 0, usadas = 0;
