@@ -1712,10 +1712,10 @@ body{
                     <div class="table-wrap" style="max-height:560px; overflow-y:auto;">
                         <table>
                             <thead>
-                                <tr><th>Código</th><th>Marca</th><th>Modelo</th><th>Capacidad</th><th>Referencia</th><th>IMEI</th><th>Acciones</th></tr>
+                                <tr><th>Código</th><th>Descripción</th><th>Marca</th><th>Modelo</th><th>Capacidad</th><th>Referencia</th><th>Precio</th><th>IMEI</th><th>Acciones</th></tr>
                             </thead>
                             <tbody id="articulosTable">
-                                <tr><td colspan="7" style="text-align:center; color:var(--text-muted);">No hay artículos en el catálogo. Crea uno con el botón + Crear Artículo.</td></tr>
+                                <tr><td colspan="9" style="text-align:center; color:var(--text-muted);">No hay artículos en el catálogo. Crea uno con el botón + Crear Artículo.</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -2942,7 +2942,14 @@ body{
         </div>
         <div class="modal-body">
             <input id="mod_art_id" type="hidden">
-            <div class="form-row"><label>Código</label><input id="mod_art_codigo" value="AUTOMÁTICO" disabled></div>
+            <div class="form-row"><label>Código (Info Plus) *</label>
+                <input id="mod_art_codigo" placeholder="Ej. 1078" style="text-transform:uppercase;" autocomplete="off">
+                <small style="color:var(--text-muted); font-size:11px;">Escribe el <b>mismo código que tiene en Info Plus</b> para que la existencia y el precio se amarren automáticamente.</small>
+            </div>
+            <div class="form-row"><label>Descripción (Info Plus)</label>
+                <input id="mod_art_descripcion" placeholder="Tal como aparece en Info Plus" style="text-transform:uppercase;" autocomplete="off">
+                <small style="color:var(--text-muted); font-size:11px;">El nombre del artículo igual que en Info Plus.</small>
+            </div>
             <div class="form-row"><label>Marca *</label>
                 <input id="mod_art_marca" list="dl_marcas" placeholder="APPLE / SAMSUNG / XIAOMI" style="text-transform:uppercase;" autocomplete="off">
                 <datalist id="dl_marcas"></datalist>
@@ -2956,6 +2963,12 @@ body{
             <div class="form-row"><label>Modelo *</label><input id="mod_art_modelo" placeholder="IPHONE 12 PRO MAX" style="text-transform:uppercase;"></div>
             <div class="form-row"><label>Capacidad</label><input id="mod_art_capacidad" placeholder="256GB / 128GB / 64GB" style="text-transform:uppercase;"></div>
             <div class="form-row"><label>Referencia</label><input id="mod_art_referencia" placeholder="REF DEL PROVEEDOR / CÓDIGO INTERNO" style="text-transform:uppercase;"></div>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+                <div class="form-row"><label>Precio</label><input id="mod_art_precio" type="number" step="0.01" min="0" placeholder="0.00"></div>
+                <div class="form-row"><label>Precio especial</label><input id="mod_art_precio_especial" type="number" step="0.01" min="0" placeholder="0.00"></div>
+                <div class="form-row"><label>Costo</label><input id="mod_art_costo" type="number" step="0.01" min="0" placeholder="0.00"></div>
+            </div>
+            <small style="color:var(--text-muted); font-size:11px; display:block; margin:-4px 0 8px;">Si dejas los precios vacíos, se llenarán solos con el sync de Info Plus.</small>
             <div class="form-row" style="background:#f1f5f9; padding:10px; border-radius:8px; border:1px solid var(--border-color);">
                 <label style="margin-bottom:8px; display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-dark); text-transform:none; font-weight:600;">
                     <input type="checkbox" id="mod_art_lleva_imei" style="width:auto; min-height:auto;" checked>
@@ -5291,28 +5304,32 @@ function renderArticulos() {
     const filtro = (document.getElementById('art_buscar')?.value || '').toLowerCase().trim();
     let lista = cache.articulos || [];
     if(filtro) {
-        lista = lista.filter(a => 
+        lista = lista.filter(a =>
             (a.marca || '').toLowerCase().includes(filtro) ||
             (a.modelo || '').toLowerCase().includes(filtro) ||
+            (a.descripcion || '').toLowerCase().includes(filtro) ||
             (a.referencia || '').toLowerCase().includes(filtro) ||
             (a.codigo || '').toLowerCase().includes(filtro)
         );
     }
     if(!lista.length) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">${filtro ? 'Sin resultados' : 'No hay artículos en el catálogo.'}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-muted);">${filtro ? 'Sin resultados' : 'No hay artículos en el catálogo.'}</td></tr>`;
         return;
     }
     tbody.innerHTML = lista.map(a => {
         const llevaImei = a.lleva_imei !== false;
-        const badgeImei = llevaImei 
+        const badgeImei = llevaImei
             ? `<span class="badge" style="background:#dbeafe; color:#b91c1c;">SÍ</span>`
             : `<span class="badge" style="background:#fef3c7; color:#92400e;">NO</span>`;
+        const precioTxt = (a.precio != null && a.precio !== '') ? 'RD$ ' + Number(a.precio).toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-';
         return `<tr data-item-id="${a.id}">
             <td data-label="Código"><code style="font-weight:700; color:var(--blue-btn); text-transform:uppercase;">${escapeHtml(a.codigo)}</code></td>
+            <td data-label="Descripción" style="text-transform:uppercase;">${escapeHtml(a.descripcion || '-')}</td>
             <td data-label="Marca"><b style="text-transform:uppercase;">${escapeHtml(a.marca)}</b></td>
             <td data-label="Modelo" style="text-transform:uppercase;">${escapeHtml(a.modelo)}</td>
             <td data-label="Capacidad" style="text-transform:uppercase;">${escapeHtml(a.capacidad || '-')}</td>
             <td data-label="Referencia" style="text-transform:uppercase;">${escapeHtml(a.referencia || '-')}</td>
+            <td data-label="Precio" style="white-space:nowrap;">${precioTxt}</td>
             <td data-label="IMEI">${badgeImei}</td>
             <td data-label="Acciones">
                 ${permBtn('catalogo_articulos', `<button class="btn btn-light" style="padding:4px 8px; font-size:11px;" onclick="editarArticulo('${a.id}')"><i class="ti ti-edit"></i></button>`)}
@@ -5333,8 +5350,8 @@ function calcularSiguienteCodigoArticulo() {
 
 async function abrirModalArticulo() {
     document.getElementById('mod_art_id').value = '';
-    document.getElementById('mod_art_codigo').value = calcularSiguienteCodigoArticulo();
-    ['mod_art_marca','mod_art_modelo','mod_art_capacidad','mod_art_referencia','mod_art_categoria'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+    ['mod_art_codigo','mod_art_descripcion','mod_art_marca','mod_art_modelo','mod_art_capacidad','mod_art_referencia','mod_art_categoria','mod_art_precio','mod_art_precio_especial','mod_art_costo'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+    document.getElementById('mod_art_codigo').disabled = false;
     document.getElementById('mod_art_lleva_imei').checked = true;
     document.getElementById('modalArtTitulo').textContent = 'Crear Artículo';
     await llenarDatalistsCatalogo();
@@ -5362,12 +5379,17 @@ async function editarArticulo(id) {
     await llenarDatalistsCatalogo();
     document.getElementById('mod_art_id').value = a.id;
     document.getElementById('mod_art_codigo').value = a.codigo;
+    document.getElementById('mod_art_codigo').disabled = false;
+    document.getElementById('mod_art_descripcion').value = a.descripcion || '';
     document.getElementById('mod_art_marca').value = a.marca || '';
     const catEl = document.getElementById('mod_art_categoria');
     if(catEl) catEl.value = a.categoria || '';
     document.getElementById('mod_art_modelo').value = a.modelo || '';
     document.getElementById('mod_art_capacidad').value = a.capacidad || '';
     document.getElementById('mod_art_referencia').value = a.referencia || '';
+    document.getElementById('mod_art_precio').value = (a.precio ?? '') === null ? '' : (a.precio ?? '');
+    document.getElementById('mod_art_precio_especial').value = (a.precio_especial ?? '') === null ? '' : (a.precio_especial ?? '');
+    document.getElementById('mod_art_costo').value = (a.costo ?? '') === null ? '' : (a.costo ?? '');
     document.getElementById('mod_art_lleva_imei').checked = a.lleva_imei !== false;
     document.getElementById('modalArtTitulo').textContent = 'Editar Artículo';
     document.getElementById('modalArticulo').classList.add('active');
@@ -5376,13 +5398,21 @@ async function editarArticulo(id) {
 async function guardarArticuloModal() {
     try {
         const marca = val('mod_art_marca'), modelo = val('mod_art_modelo');
+        const codigo = (val('mod_art_codigo') || '').trim().toUpperCase();
+        if(!codigo) return toast('El código (Info Plus) es obligatorio.', 'error');
         if(!marca || !modelo) return toast('Marca y modelo son obligatorios.', 'error');
+        const numOrNull = (id) => { const v = val(id); return v === '' || v == null ? null : Number(v); };
         const id = val('mod_art_id');
         const data = {
+            codigo: codigo,
+            descripcion: val('mod_art_descripcion') || null,
             marca: marca, modelo: modelo,
             categoria: val('mod_art_categoria') || null,
             capacidad: val('mod_art_capacidad') || null,
             referencia: val('mod_art_referencia') || null,
+            precio: numOrNull('mod_art_precio'),
+            precio_especial: numOrNull('mod_art_precio_especial'),
+            costo: numOrNull('mod_art_costo'),
             lleva_imei: document.getElementById('mod_art_lleva_imei').checked
         };
         let nuevoId = id;
@@ -5391,7 +5421,9 @@ async function guardarArticuloModal() {
             if(error) throw error;
             toast('✅ Artículo actualizado.');
         } else {
-            data.codigo = calcularSiguienteCodigoArticulo();
+            // Evitar códigos duplicados (la clave que amarra con Info Plus)
+            const { data: dup } = await supabaseClient.from('articulos').select('id').eq('codigo', codigo).limit(1);
+            if(dup && dup.length) return toast(`Ya existe un artículo con el código ${codigo}.`, 'error');
             data.activo = true;
             const { data: ins, error } = await supabaseClient.from('articulos').insert([data]).select().single();
             if(error) throw error;
