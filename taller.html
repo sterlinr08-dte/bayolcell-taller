@@ -1736,7 +1736,8 @@ body{
                             </label>
                         </div>
                     </div>
-                    <p style="color:var(--text-muted); font-size:13px; margin-bottom:12px;"><b>"Sincronizar Taller"</b> trae automáticamente la <b>existencia, precio y costo</b> del almacén Taller (Info Plus, en vivo). Los botones de CSV son solo de respaldo manual.</p>
+                    <p style="color:var(--text-muted); font-size:13px; margin-bottom:12px;"><b>"Sincronizar Taller"</b> trae automáticamente la <b>existencia, precio y costo</b> del almacén Taller (Info Plus, en vivo). La sincronización automática corre cada minuto. Los botones de CSV son solo de respaldo manual.</p>
+                    <div id="infoplusSyncEstado" style="font-size:13px; margin-bottom:10px; display:none;"></div>
                     <div id="infoplusImportMsg" style="font-size:13px; margin-bottom:10px;"></div>
                     <div class="form-row"><input id="ip_buscar" placeholder="🔍 Buscar pieza por código, descripción o marca..." oninput="renderInfoplusBusqueda()"></div>
                     <div class="table-wrap" style="max-height:420px; overflow-y:auto;">
@@ -5220,6 +5221,39 @@ async function actualizarInfoplusCount() {
     const el = document.getElementById('infoplusCount'); if(!el) return;
     try { const { count } = await supabaseClient.from('infoplus_articulos').select('*', { count: 'exact', head: true }); el.textContent = (count || 0).toLocaleString('es-DO') + ' artículos'; }
     catch(e) { /* silencio */ }
+    verificarSyncInfoplus();
+}
+
+// Aviso de estado de la sincronización automática (lee la bitácora infoplus_sync_log)
+async function verificarSyncInfoplus() {
+    const box = document.getElementById('infoplusSyncEstado'); if(!box) return;
+    try {
+        const { data, error } = await supabaseClient
+            .from('infoplus_sync_log')
+            .select('creado_en, ok, total, unidades, error')
+            .order('creado_en', { ascending: false })
+            .limit(1);
+        if(error) throw error;
+        if(!data || !data.length){ box.style.display = 'none'; return; }
+        const ult = data[0];
+        const fecha = new Date(ult.creado_en);
+        const minutos = Math.floor((Date.now() - fecha.getTime()) / 60000);
+        const hora = fecha.toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' });
+        box.style.display = 'block';
+        if(!ult.ok){
+            // La última corrida falló
+            box.style.cssText = 'font-size:13px; margin-bottom:10px; display:block; background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; padding:8px 12px; border-radius:8px;';
+            box.innerHTML = `<b>⚠️ La sincronización con Info Plus FALLÓ</b> (última vez ${hora}). ${escapeHtml((ult.error||'').slice(0,150))}. Puedes intentar el botón "Sincronizar Taller" manualmente.`;
+        } else if(minutos >= 10){
+            // Hace rato que no entra una sincronización buena
+            box.style.cssText = 'font-size:13px; margin-bottom:10px; display:block; background:#fffbeb; border:1px solid #fde68a; color:#92400e; padding:8px 12px; border-radius:8px;';
+            box.innerHTML = `<b>⚠️ La última sincronización buena fue hace ${minutos} min</b> (${hora}). Debería entrar una cada minuto; si esto sigue subiendo, Info Plus podría estar caído o limitando la clave.`;
+        } else {
+            // Todo bien
+            box.style.cssText = 'font-size:13px; margin-bottom:10px; display:block; background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; padding:8px 12px; border-radius:8px;';
+            box.innerHTML = `✅ Sincronización automática al día — última: ${hora} · ${(ult.total||0).toLocaleString('es-DO')} artículos.`;
+        }
+    } catch(e){ box.style.display = 'none'; }
 }
 
 // Nombres de los almacenes de Info Plus (clave = codalmacen)
