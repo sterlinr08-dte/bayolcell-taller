@@ -10297,16 +10297,16 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
         } else if(puedeOperar && !['entregado','cancelado','finalizado','no_reparado'].includes(estado)) {
             // Estados de espera: RESOLVER (vuelve a en proceso) + opción de finalizar directo
             if(estado === 'pendiente_cliente') {
-                acciones += `<button class="btn btn-blue" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-check"></i> Autorización resuelta</button>`;
-                acciones += `<button class="btn btn-success" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','finalizado')"><i class="ti ti-circle-check"></i> Finalizar</button>`;
+                acciones += `<button class="btn btn-blue" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-check"></i> AUTORIZACIÓN RESUELTA</button>`;
+                acciones += `<button class="btn btn-success" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','finalizado')"><i class="ti ti-circle-check"></i> FINALIZAR</button>`;
             } else if(estado === 'espera_repuesto') {
-                acciones += `<button class="btn btn-blue" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-check"></i> Repuesto llegó</button>`;
-                acciones += `<button class="btn btn-success" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','finalizado')"><i class="ti ti-circle-check"></i> Finalizar</button>`;
+                acciones += `<button class="btn btn-blue" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-check"></i> REPUESTO LLEGÓ</button>`;
+                acciones += `<button class="btn btn-success" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','finalizado')"><i class="ti ti-circle-check"></i> FINALIZAR</button>`;
             } else {
                 // EN PROCESO (o recibido): mostrar todas las opciones útiles
-                acciones += `<button class="btn btn-success" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','finalizado')"><i class="ti ti-circle-check"></i> Finalizar</button>`;
-                acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#92400e;" onclick="cambiarEstadoOrdenUI('${o.id}','espera_repuesto')"><i class="ti ti-hourglass"></i> En espera de repuesto</button>`;
-                acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#9a3412;" onclick="cambiarEstadoOrdenUI('${o.id}','pendiente_cliente')"><i class="ti ti-bell"></i> Esperando autorización</button>`;
+                acciones += `<button class="btn btn-success" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','finalizado')"><i class="ti ti-circle-check"></i> FINALIZAR</button>`;
+                acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#92400e;" onclick="cambiarEstadoOrdenUI('${o.id}','espera_repuesto')"><i class="ti ti-hourglass"></i> EN ESPERA DE REPUESTO</button>`;
+                acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#9a3412;" onclick="cambiarEstadoOrdenUI('${o.id}','pendiente_cliente')"><i class="ti ti-bell"></i> ESPERANDO AUTORIZACIÓN</button>`;
             }
             // No se pudo reparar (equipo con daño sin solución) — técnico asignado o admin
             if(esAdmin || esMia) acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#b91c1c; border-color:#fca5a5;" onclick="marcarNoReparado('${o.id}')"><i class="ti ti-thumb-down"></i> NO REPARADO</button>`;
