@@ -8536,6 +8536,38 @@ async function agregarPiezaExtra(equipoId) {
     }
 }
 
+// El técnico solicita una pieza para reacondicionados SIN equipo/lote seleccionado.
+// Queda 'pendiente' para que el admin la entregue, igual que las demás.
+async function solicitarPiezaReacondLibre() {
+    let nombre = '';
+    while(true) {
+        nombre = await pedirTexto('🔧 SOLICITAR PIEZA (Reacondicionados)\n\nEscribe la pieza que necesitas:\n\nEjemplo: "Pantalla iPhone 11", "Batería 13 Pro", "Flex de carga"');
+        if(nombre === null) return; // canceló
+        if(nombre.trim()) break;
+        toast('Escribe el nombre de la pieza.', 'error');
+    }
+    const cantStr = await pedirTexto('¿Cuántas unidades? (deja 1 si es una sola)', { valor: '1' });
+    if(cantStr === null) return;
+    const cantidad = parseInt(cantStr) || 1;
+    try {
+        const { error } = await supabaseClient.from('equipo_piezas_pedidas').insert([{
+            equipo_id: null,
+            tecnico_id: sessionUser?.id || null,
+            pieza_nombre: nombre.trim(),
+            cantidad: cantidad,
+            estado: 'pendiente',
+            agregada_por_tecnico: true
+        }]);
+        if(error) throw error;
+        toast('✅ Pieza solicitada. Aparece en Piezas Solicitadas (Reacondicionados).');
+        await loadAll();
+        if(typeof renderPiezasSolicitadas === 'function') renderPiezasSolicitadas();
+    } catch(e) {
+        logError('Solicitar pieza reacond libre', e);
+        toastError(getFriendlyError(e));
+    }
+}
+
 async function aprobarTerminado(equipoId) {
     // Solo el admin (o quien tenga permiso de aprobar) puede aprobar. No juez y parte.
     if(!isAdminUser() && !tienePermiso('piezas_aprobar_extra')) {
@@ -9841,16 +9873,18 @@ function renderPiezasSolicitadas() {
     // Piezas de reacondicionados
     (cache.piezasReacond || []).forEach(p => {
         const eq = (cache.refurb || []).find(x => x.id === p.equipo_id);
-        const tecId = eq && eq.tecnico_asignado_id ? eq.tecnico_asignado_id : null;
+        // tecnico: del equipo si lo hay; si no (solicitud sin equipo), el que la pidió
+        const tecId = (eq && eq.tecnico_asignado_id) || p.tecnico_id || null;
         const tec = tecId ? nombreEmpleado(tecId) : 'Sin asignar';
+        const sinEquipo = !eq;
         items.push({
-            id: p.id, kind: 'reacond', equipoId: p.equipo_id,
+            id: p.id, kind: 'reacond', equipoId: p.equipo_id || null,
             pieza: p.pieza_nombre || 'Pieza', cantidad: p.cantidad || 1, estado: p.estado || 'pendiente',
-            origen: eq ? `${eq.marca||''} ${eq.modelo||''}`.trim() : 'Reacond', cliente: '', tecnico: tec, tecnicoId: tecId,
+            origen: eq ? `${eq.marca||''} ${eq.modelo||''}`.trim() : 'Sin equipo', cliente: '', tecnico: tec, tecnicoId: tecId,
             tipo: 'Reacond', color: '#f59e0b', fecha: p.fecha_entrega || p.creado_en,
-            grupoKey: 'R_' + (eq ? eq.id : p.id),
-            grupoTitulo: eq ? `${(eq.marca||'')} ${(eq.modelo||'')}`.trim() + (eq.capacidad ? ` · ${eq.capacidad}` : '') : 'Reacondicionado',
-            grupoSub: 'Reacondicionado'
+            grupoKey: eq ? ('R_' + eq.id) : ('RG_' + (tecId || p.id)),
+            grupoTitulo: eq ? `${(eq.marca||'')} ${(eq.modelo||'')}`.trim() + (eq.capacidad ? ` · ${eq.capacidad}` : '') : '📋 Piezas sin equipo asignado',
+            grupoSub: sinEquipo ? 'Solicitud general' : 'Reacondicionado'
         });
     });
 
@@ -9915,6 +9949,11 @@ function renderPiezasSolicitadas() {
         <span style="background:#fef3c7; color:#92400e; padding:4px 10px; border-radius:8px; font-weight:700;">🟡 ${pend} pendientes</span>
         <span style="background:#dbeafe; color:#1e40af; padding:4px 10px; border-radius:8px; font-weight:700;">📦 ${entr} entregadas/recibidas</span>
     </div>`;
+
+    // En Reacondicionados: el técnico puede pedir una pieza aunque no tenga ningún equipo/lote
+    if(_psTab === 'reacond') {
+        html += `<div style="margin-bottom:12px;"><button class="btn btn-blue" style="font-size:13px; padding:9px 14px;" onclick="solicitarPiezaReacondLibre()"><i class="ti ti-plus"></i> Solicitar pieza (sin equipo)</button></div>`;
+    }
 
     if(!filtrados.length) {
         cont.innerHTML = html + `<div style="color:var(--text-muted); font-size:13px; padding:20px 4px; text-align:center;">No hay piezas en <b>${tabNombre}</b> con este filtro.</div>`;
