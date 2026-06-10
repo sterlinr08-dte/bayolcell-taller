@@ -9632,7 +9632,7 @@ function abrirDetalleTecnico(tecnicoId) {
                 <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; font-size:11px;">
                     <span style="${demorada?'color:#dc2626; font-weight:700;':'color:var(--text-muted);'}"><i class="ti ti-clock"></i> ${dias} día${dias===1?'':'s'}${demorada?' · ⚠️ demorada':''}</span>
                     ${contacto ? `<a href="https://wa.me/${waDigits}" target="_blank" style="text-decoration:none; color:#16a34a; font-weight:600;"><i class="ti ti-brand-whatsapp"></i> ${escapeHtml(contacto)}</a>` : ''}
-                    <button onclick="abrirNotasOrden('${o.id}')" class="btn btn-light" style="font-size:11px; padding:4px 10px; margin-left:auto; ${sinLeer>0?'border-color:#fca5a5; color:#dc2626;':''}"><i class="ti ti-bell"></i> Notas${nNotas>0?` (${nNotas})`:''}${sinLeer>0?` <span style="background:#dc2626;color:#fff;border-radius:8px;padding:0 5px;">${sinLeer}</span>`:''}</button>
+                    <button onclick="abrirNotasOrden('${o.id}')" class="btn btn-light" style="font-size:11px; padding:4px 10px; margin-left:auto; ${sinLeer>0?'border-color:#fca5a5; color:#dc2626;':''}"><i class="ti ti-bell"></i> NOTAS${nNotas>0?` (${nNotas})`:''}${sinLeer>0?` <span style="background:#dc2626;color:#fff;border-radius:8px;padding:0 5px;">${sinLeer}</span>`:''}</button>
                 </div>
             </div>`;
         }).join('');
@@ -10348,7 +10348,7 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
         }
         // Derivar a otro técnico (solo si está tomada y en proceso)
         if((esAdmin || esMia) && o.tecnico_asignado_id && !['entregado','cancelado','finalizado','no_reparado'].includes(estado)) {
-            acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#6b21a8;" onclick="derivarOrden('${o.id}')"><i class="ti ti-arrows-exchange"></i> Derivar</button>`;
+            acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#6b21a8;" onclick="derivarOrden('${o.id}')"><i class="ti ti-arrows-exchange"></i> DERIVAR</button>`;
         }
         // Label y Recibo: SOLO admin y servicio al cliente (el técnico NO los ve)
         if(esAdmin || esServicio) {
@@ -10358,7 +10358,7 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
         // Notas de la orden (técnico escribe, servicio lee) — con badge de sin leer
         const sinLeerNota = (cache.ordenNotas || []).filter(n => n.orden_id === o.id && n.autor_rol === 'tecnico' && !n.leida_servicio).length;
         const totalNotas = (cache.ordenNotas || []).filter(n => n.orden_id === o.id).length;
-        acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; ${sinLeerNota>0?'border-color:#fca5a5; color:#dc2626;':''}" onclick="abrirNotasOrden('${o.id}')"><i class="ti ti-message"></i> Notas${totalNotas>0?` (${totalNotas})`:''}${sinLeerNota>0?` <span style="background:#dc2626;color:#fff;border-radius:8px;padding:0 5px;">${sinLeerNota}</span>`:''}</button>`;
+        acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; ${sinLeerNota>0?'border-color:#fca5a5; color:#dc2626;':''}" onclick="abrirNotasOrden('${o.id}')"><i class="ti ti-message"></i> NOTAS${totalNotas>0?` (${totalNotas})`:''}${sinLeerNota>0?` <span style="background:#dc2626;color:#fff;border-radius:8px;padding:0 5px;">${sinLeerNota}</span>`:''}</button>`;
         // Ver historial del cliente (admin y servicio)
         if((esAdmin || (typeof tienePermiso === 'function' && tienePermiso('recepcion_ver'))) && o.cliente_id) {
             acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#0891b2;" onclick="verHistorialCliente('${o.cliente_id}')"><i class="ti ti-history"></i> Historial cliente</button>`;
@@ -10371,7 +10371,7 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
         // Solicitar pieza: si está tomada y activa, O en garantía (entregado pero con garantía vigente)
         const enGarantiaVigente = estado === 'entregado' && infoGarantiaOrden(o).vigente;
         if((esAdmin || esMia) && o.tecnico_asignado_id && (!['entregado','cancelado','no_reparado'].includes(estado) || enGarantiaVigente)) {
-            const txtBtn = enGarantiaVigente ? 'Solicitar pieza (garantía)' : 'Solicitar pieza';
+            const txtBtn = enGarantiaVigente ? 'SOLICITAR PIEZA (GARANTÍA)' : 'SOLICITAR PIEZA';
             acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#0e7490;" onclick="solicitarPiezaOrden('${o.id}')"><i class="ti ti-package-import"></i> ${txtBtn}</button>`;
         }
         
