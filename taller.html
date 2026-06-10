@@ -8970,6 +8970,7 @@ function obtenerEtiquetaOrden(estado) {
         'finalizado':       { text: '✅ Finalizado', bg:'#d1fae5', color:'#065f46' },
         'entregado':        { text: '📦 Entregado', bg:'#dcfce7', color:'#166534' },
         'cancelado':        { text: '❌ Cancelado', bg:'#fee2e2', color:'#991b1b' },
+        'no_reparado':      { text: '🚫 No reparado', bg:'#ffe4e6', color:'#9f1239' },
         // compatibilidad con estados viejos
         'diagnostico':      { text: '📥 Recibido', bg:'#e0f2fe', color:'#0369a1' },
         'en_reparacion':    { text: '🔧 En proceso', bg:'#fed7aa', color:'#9a3412' },
@@ -8991,11 +8992,12 @@ function construirEstadoVisual(estadoRaw) {
         'pendiente_cliente': { g1:'#f472b6', g2:'#db2777', icon:'ti-bell-ringing',   label:'Autorización',   sub:'Espera al cliente',  step:2, fase:'Reparación', live:true  },
         'finalizado':        { g1:'#34d399', g2:'#059669', icon:'ti-circle-check',   label:'Finalizado',     sub:'Listo p/ entregar',  step:3, fase:'Listo',      live:false },
         'entregado':         { g1:'#4ade80', g2:'#16a34a', icon:'ti-package',        label:'Entregado',      sub:'Completado',         step:4, fase:'Entrega',    live:false },
-        'cancelado':         { g1:'#f87171', g2:'#dc2626', icon:'ti-ban',            label:'Cancelado',      sub:'Orden anulada',      step:0, fase:'Anulada',    live:false }
+        'cancelado':         { g1:'#f87171', g2:'#dc2626', icon:'ti-ban',            label:'Cancelado',      sub:'Orden anulada',      step:0, fase:'Anulada',    live:false },
+        'no_reparado':       { g1:'#fb7185', g2:'#9f1239', icon:'ti-thumb-down',     label:'No reparado',    sub:'Devolver al cliente',step:0, fase:'Sin solución',live:false }
     };
     const v = viz[estado] || viz['recibido'];
     const total = 4;
-    const cancel = estado === 'cancelado';
+    const cancel = estado === 'cancelado' || estado === 'no_reparado';
     const segs = Array.from({ length: total }, (_, i) =>
         `<div class="ev-seg ${!cancel && i < v.step ? 'on' : ''}"></div>`
     ).join('');
@@ -10290,7 +10292,7 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
             if((esAdmin || esServicio) && tecnicosActivos.length) {
                 acciones += `<select onchange="if(this.value)asignarOrdenTecnico('${o.id}', this.value)" style="font-size:12px; padding:6px;"><option value="">Asignar a un técnico…</option>${tecnicosActivos.map(t => `<option value="${t.id}">${escapeHtml(t.nombre)}</option>`).join('')}</select>`;
             }
-        } else if(puedeOperar && !['entregado','cancelado','finalizado'].includes(estado)) {
+        } else if(puedeOperar && !['entregado','cancelado','finalizado','no_reparado'].includes(estado)) {
             // Estados de espera: RESOLVER (vuelve a en proceso) + opción de finalizar directo
             if(estado === 'pendiente_cliente') {
                 acciones += `<button class="btn btn-blue" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-check"></i> Autorización resuelta</button>`;
@@ -10304,6 +10306,8 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
                 acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#92400e;" onclick="cambiarEstadoOrdenUI('${o.id}','espera_repuesto')"><i class="ti ti-hourglass"></i> En espera de repuesto</button>`;
                 acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#9a3412;" onclick="cambiarEstadoOrdenUI('${o.id}','pendiente_cliente')"><i class="ti ti-bell"></i> Esperando autorización</button>`;
             }
+            // No se pudo reparar (equipo con daño sin solución) — técnico asignado o admin
+            if(esAdmin || esMia) acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#b91c1c; border-color:#fca5a5;" onclick="marcarNoReparado('${o.id}')"><i class="ti ti-thumb-down"></i> No se pudo reparar</button>`;
         } else if((esAdmin || esServicio) && estado === 'finalizado') {
             // Orden finalizada: solo servicio al cliente y admin pueden actuar (el técnico no hace nada)
             acciones += `<button class="btn btn-blue" style="font-size:12px; padding:6px 12px;" onclick="marcarEntregadoConGarantia('${o.id}')"><i class="ti ti-package"></i> Marcar Entregado</button>`;
@@ -10326,13 +10330,22 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
                 // Reabrir por otra razón (siempre disponible para admin/servicio)
                 acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#6b21a8;" onclick="reabrirOrden('${o.id}','otra')"><i class="ti ti-rotate-clockwise"></i> Reabrir (otra razón)</button>`;
             }
+        } else if(estado === 'no_reparado') {
+            acciones += `<span class="badge" style="background:#ffe4e6; color:#9f1239; font-size:11px;">🚫 No reparado</span>`;
+            if(o.fecha_entregado) {
+                acciones += `<span class="badge" style="background:#e2e8f0; color:#334155; font-size:10px;">Devuelto al cliente</span>`;
+            } else if(esAdmin || (typeof tienePermiso === 'function' && tienePermiso('recepcion_ver'))) {
+                acciones += `<button class="btn btn-blue" style="font-size:11px; padding:5px 9px;" onclick="marcarDevueltoSinReparar('${o.id}')"><i class="ti ti-package"></i> Devuelto al cliente</button>`;
+            }
+            // Admin puede reabrir un "no reparado" si el cliente insiste o aparece solución
+            if(esAdmin) acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#6b21a8;" onclick="reabrirOrdenProceso('${o.id}')"><i class="ti ti-rotate"></i> Reabrir</button>`;
         }
         // Cancelar: SOLO servicio al cliente y admin (técnico NO puede cancelar)
-        if((esAdmin || esServicio) && !['entregado','cancelado','finalizado'].includes(estado)) {
+        if((esAdmin || esServicio) && !['entregado','cancelado','finalizado','no_reparado'].includes(estado)) {
             acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#991b1b;" onclick="cambiarEstadoOrdenUI('${o.id}','cancelado')"><i class="ti ti-x"></i> Cancelar</button>`;
         }
         // Derivar a otro técnico (solo si está tomada y en proceso)
-        if((esAdmin || esMia) && o.tecnico_asignado_id && !['entregado','cancelado','finalizado'].includes(estado)) {
+        if((esAdmin || esMia) && o.tecnico_asignado_id && !['entregado','cancelado','finalizado','no_reparado'].includes(estado)) {
             acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#6b21a8;" onclick="derivarOrden('${o.id}')"><i class="ti ti-arrows-exchange"></i> Derivar</button>`;
         }
         // Label de diagnóstico (con las fallas) — útil para el técnico
@@ -10348,12 +10361,12 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
             if(o.equipo_id) acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#b45309;" onclick="verHistorialEquipo('${o.equipo_id}')"><i class="ti ti-device-mobile"></i> Historial equipo</button>`;
         }
         // Editar datos de recepción: SOLO servicio al cliente y admin (técnico NO)
-        if((esAdmin || esServicio) && !['entregado','cancelado'].includes(estado)) {
+        if((esAdmin || esServicio) && !['entregado','cancelado','no_reparado'].includes(estado)) {
             acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#6b21a8;" onclick="abrirEditarRecepcion('${o.id}')"><i class="ti ti-edit"></i> Editar datos</button>`;
         }
         // Solicitar pieza: si está tomada y activa, O en garantía (entregado pero con garantía vigente)
         const enGarantiaVigente = estado === 'entregado' && infoGarantiaOrden(o).vigente;
-        if((esAdmin || esMia) && o.tecnico_asignado_id && (!['entregado','cancelado'].includes(estado) || enGarantiaVigente)) {
+        if((esAdmin || esMia) && o.tecnico_asignado_id && (!['entregado','cancelado','no_reparado'].includes(estado) || enGarantiaVigente)) {
             const txtBtn = enGarantiaVigente ? 'Solicitar pieza (garantía)' : 'Solicitar pieza';
             acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#0e7490;" onclick="solicitarPiezaOrden('${o.id}')"><i class="ti ti-package-import"></i> ${txtBtn}</button>`;
         }
@@ -10824,7 +10837,7 @@ function construirPanelInteligente() {
 // Etiqueta de texto corta para un estado de orden
 function etiquetaEstadoTexto(estado) {
     const e = normalizarEstadoOrden(estado);
-    const map = { recibido:'En diagnóstico', en_proceso:'En reparación', espera_repuesto:'Espera pieza', pendiente_cliente:'Esperando autorización', finalizado:'Finalizado', entregado:'Entregado', cancelado:'Cancelado' };
+    const map = { recibido:'En diagnóstico', en_proceso:'En reparación', espera_repuesto:'Espera pieza', pendiente_cliente:'Esperando autorización', finalizado:'Finalizado', entregado:'Entregado', cancelado:'Cancelado', no_reparado:'No reparado' };
     return map[e] || e;
 }
 
@@ -11263,6 +11276,52 @@ async function cambiarEstadoOrdenUI(ordenId, nuevoEstado) {
 
 // Reabre una orden FINALIZADA y la devuelve a EN PROCESO.
 // La usa el técnico asignado (o admin) cuando detecta que el equipo sigue fallando.
+// El equipo no se pudo reparar (daño sin solución). Pide motivo, maneja las piezas
+// entregadas (devolver al stock o marcarlas usadas) y pasa la orden a "No reparado".
+async function marcarNoReparado(ordenId) {
+    const orden = (cache.ordenes || []).find(o => o.id === ordenId);
+    if(!orden) return toast('Orden no encontrada.', 'error');
+    if(!isAdminUser() && orden.tecnico_asignado_id !== sessionUser?.id) {
+        return toast('Solo el técnico asignado (o un administrador) puede marcar esto.', 'error');
+    }
+    if(!await confirmar('❌ ¿Marcar este equipo como NO REPARADO?\n\nÚsalo cuando el equipo tiene un daño sin solución. Pasará a Servicio para devolverlo al cliente.')) return;
+    const motivo = await pedirTexto('¿Por qué no se pudo reparar?\n\nEjemplo: "Placa dañada por humedad, sin solución" · "No existe la pieza"');
+    if(motivo === null) return;
+    if(!motivo.trim()) return toast('Indica el motivo.', 'error');
+    // Manejar las piezas YA entregadas/recibidas de esta orden: preguntar por cada una
+    const piezas = (cache.ordenPiezas || []).filter(p => p.orden_id === ordenId && ['entregada','recibida'].includes(p.estado));
+    let devueltas = 0, usadas = 0;
+    for(const p of piezas) {
+        const dev = await confirmar(`Pieza: ${p.pieza_nombre || 'Pieza'}${(p.cantidad||1) > 1 ? ' ×' + p.cantidad : ''}\n\n¿Se DEVUELVE al stock?\n\nAceptar = devolver  ·  Cancelar = se usó / se dañó`);
+        if(dev) {
+            try { await supabaseClient.from('orden_piezas').update({ estado: 'devuelta' }).eq('id', p.id); devueltas++; } catch(e) { logError('Devolver pieza', e); }
+        } else { usadas++; }
+    }
+    try {
+        const { error } = await supabaseClient.from('ordenes_reparacion').update({
+            estado: 'no_reparado',
+            nota_estado: '🚫 NO REPARADO: ' + motivo.trim(),
+            fecha_finalizado: new Date().toISOString()
+        }).eq('id', ordenId);
+        if(error) throw error;
+        const resumenPz = piezas.length ? ` · Piezas: ${devueltas} devuelta(s), ${usadas} usada(s)` : '';
+        toast('🚫 Marcado como No reparado. Pasó a Servicio para devolver al cliente.' + resumenPz);
+        await loadAll();
+    } catch(e) { logError('No reparado', e); toastError(getFriendlyError(e)); }
+}
+
+// Servicio confirma que el equipo (sin reparar) fue devuelto al cliente
+async function marcarDevueltoSinReparar(ordenId) {
+    if(!isAdminUser() && !tienePermiso('recepcion_ver')) return toast('Solo servicio al cliente o un administrador puede hacer esto.', 'error');
+    if(!await confirmar('📦 ¿Confirmar que el equipo (sin reparar) fue devuelto al cliente?')) return;
+    try {
+        const { error } = await supabaseClient.from('ordenes_reparacion').update({ fecha_entregado: new Date().toISOString() }).eq('id', ordenId);
+        if(error) throw error;
+        toast('📦 Equipo devuelto al cliente (sin reparar).');
+        await loadAll();
+    } catch(e) { logError('Devolver sin reparar', e); toastError(getFriendlyError(e)); }
+}
+
 async function reabrirOrdenProceso(ordenId) {
     const orden = (cache.ordenes || []).find(o => o.id === ordenId);
     if(!orden) return toast('Orden no encontrada.', 'error');
