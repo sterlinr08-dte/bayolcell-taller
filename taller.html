@@ -8954,7 +8954,8 @@ function obtenerEtiquetaEstado(estado) {
         'vendido': { text: '✅ Despachado', bg:'#d1fae5', color:'#065f46' },
         'reasignado': { text: '👥 Reasignado', bg:'#fef3c7', color:'#92400e' }
     };
-    return map[estado] || { text: estado, bg:'#f1f5f9', color:'#64748b' };
+    const _r = map[estado] || { text: estado, bg:'#f1f5f9', color:'#64748b' };
+    return { ..._r, text: (_r.text || '').toUpperCase() };
 }
 
 // === FASE 2: Estados del flujo de ÓRDENES DE CLIENTE ===
@@ -8978,7 +8979,8 @@ function obtenerEtiquetaOrden(estado) {
         'listo':            { text: '✅ Finalizado', bg:'#d1fae5', color:'#065f46' },
         'listo_entrega':    { text: '✅ Finalizado', bg:'#d1fae5', color:'#065f46' }
     };
-    return map[estado] || { text: estado, bg:'#f1f5f9', color:'#64748b' };
+    const _r = map[estado] || { text: estado, bg:'#f1f5f9', color:'#64748b' };
+    return { ..._r, text: (_r.text || '').toUpperCase() };
 }
 
 // Componente visual moderno del estado de una orden (chip con degradado + stepper de progreso).
@@ -9005,7 +9007,7 @@ function construirEstadoVisual(estadoRaw) {
     <div class="ev-card ${cancel ? 'ev-cancel' : ''}" style="--ev-g1:${v.g1}; --ev-g2:${v.g2};">
         <div class="ev-chip" style="background:linear-gradient(135deg, ${v.g1}, ${v.g2}); --ev-shadow:${v.g2}66;">
             <span class="ev-ic"><i class="ti ${v.icon}"></i></span>
-            <span class="ev-tx"><b>${v.label}</b><small>${v.sub}</small></span>
+            <span class="ev-tx"><b>${(v.label||'').toUpperCase()}</b><small>${(v.sub||'').toUpperCase()}</small></span>
             ${v.live ? '<span class="ev-dot live"></span>' : (cancel ? '' : '<span class="ev-dot"></span>')}
         </div>
         ${cancel ? '' : `<div class="ev-steps">${segs}</div>
@@ -10840,7 +10842,7 @@ function construirPanelInteligente() {
 function etiquetaEstadoTexto(estado) {
     const e = normalizarEstadoOrden(estado);
     const map = { recibido:'En diagnóstico', en_proceso:'En reparación', espera_repuesto:'Espera pieza', pendiente_cliente:'Esperando autorización', finalizado:'Finalizado', entregado:'Entregado', cancelado:'Cancelado', no_reparado:'No reparado' };
-    return map[e] || e;
+    return (map[e] || e).toUpperCase();
 }
 
 // Historial completo de un cliente (todas sus órdenes)
