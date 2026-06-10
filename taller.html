@@ -1948,7 +1948,10 @@ body{
                         <div class="card">
                             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
                                 <h3 style="margin:0;"><i class="ti ti-recycle" style="color:#06b6d4;"></i> Reacondicionados</h3>
-                                <button class="btn btn-light" onclick="cargarLotesReacond()" style="padding:6px 12px; font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
+                                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                                    <button class="btn btn-blue" id="btnRegistrarExistente" onclick="abrirModalRegistrarExistente()" style="padding:6px 12px; font-size:12px; display:none;"><i class="ti ti-archive"></i> Registrar equipo existente</button>
+                                    <button class="btn btn-light" onclick="cargarLotesReacond()" style="padding:6px 12px; font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
+                                </div>
                             </div>
                         
                         <!-- Tabs -->
@@ -2838,6 +2841,49 @@ body{
 </div>
 
 <!-- MODAL: ASIGNAR TÉCNICO A EQUIPO -->
+<!-- MODAL: Registrar equipo EXISTENTE (previo al sistema) -->
+<div id="modalRegistrarExistente" class="modal-backdrop">
+    <div class="modal-box" style="max-width:560px;">
+        <div class="modal-header" style="background:linear-gradient(135deg,#0891b2,#06b6d4); color:#fff; border-radius:12px 12px 0 0;">
+            <h3 style="color:#fff;"><i class="ti ti-archive"></i> Registrar equipo existente</h3>
+            <button class="modal-close" onclick="cerrarModalRegistrarExistente()" style="color:#fff;">✕</button>
+        </div>
+        <div class="modal-body">
+            <p style="color:var(--text-muted); font-size:12px; margin:0 0 12px;">Para equipos que ya tenías <b>antes del sistema</b>. Cae directo en su estado real y asignado a su técnico. Quedan en el lote <b>HISTÓRICO</b>.</p>
+            <div class="form-row"><label>Modelo *</label><input id="rex_modelo" placeholder="IPHONE 11 / SAMSUNG A14…" style="text-transform:uppercase;"></div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div class="form-row"><label>Marca</label><input id="rex_marca" placeholder="APPLE / SAMSUNG" style="text-transform:uppercase;"></div>
+                <div class="form-row"><label>Capacidad</label><input id="rex_capacidad" placeholder="128GB" style="text-transform:uppercase;"></div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div class="form-row"><label>Color</label><input id="rex_color" placeholder="NEGRO" style="text-transform:uppercase;"></div>
+                <div class="form-row"><label>Costo de compra (opcional)</label><input id="rex_costo" type="number" step="0.01" min="0" placeholder="0.00"></div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div class="form-row"><label>IMEI</label><input id="rex_imei" placeholder="IMEI / opcional"></div>
+                <div class="form-row"><label>Serial</label><input id="rex_serial" placeholder="Serial / opcional"></div>
+            </div>
+            <div class="form-row"><label>Técnico que lo tiene *</label>
+                <select id="rex_tecnico"><option value="">— Selecciona el técnico —</option></select>
+            </div>
+            <div class="form-row"><label>Estado actual *</label>
+                <select id="rex_estado">
+                    <option value="en_proceso">🔧 En Proceso</option>
+                    <option value="espera_pieza">⏳ Espera pieza</option>
+                    <option value="listo_revision">👁️ Revisión final</option>
+                    <option value="listo_venta">🛒 Listo para venta</option>
+                    <option value="pendiente">🟡 Pendiente (sin empezar)</option>
+                </select>
+            </div>
+            <div class="form-row"><label>Nota (opcional)</label><textarea id="rex_nota" rows="2" placeholder="Detalle de en qué punto va, falla, etc."></textarea></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" onclick="cerrarModalRegistrarExistente()">Cancelar</button>
+            <button class="btn btn-blue" onclick="guardarEquipoExistente(this)"><i class="ti ti-device-floppy"></i> Registrar equipo</button>
+        </div>
+    </div>
+</div>
+
 <div id="modalAsignarTecnico" class="modal-backdrop">
     <div class="modal-box" style="max-width:550px;">
         <div class="modal-header" style="background:linear-gradient(135deg, #f59e0b, #ef4444); color:#fff; border-radius:12px 12px 0 0;">
@@ -3949,7 +3995,11 @@ function applyAccessControls() {
     // Módulo PRIVADO de Estadísticas: solo el dueño (por ID), nadie más
     const btnStats = document.getElementById('menu-estadisticas');
     if(btnStats) btnStats.style.display = esDueno() ? '' : 'none';
-    
+
+    // Registrar equipo existente (carga de equipos previos al sistema): solo admin
+    const btnRegEx = document.getElementById('btnRegistrarExistente');
+    if(btnRegEx) btnRegEx.style.display = isAdminUser() ? '' : 'none';
+
     // Si el dashboard está oculto, llevar al técnico a reacondicionado por defecto
     if(!tienePermiso('ver_dashboard') && tienePermiso('reacond_ver')) {
         setTimeout(() => nav('refurb'), 100);
@@ -6156,6 +6206,90 @@ async function registrarEquipoRefurb() {
    ============================================================ */
 let reacondTabActual = 'pendientes';
 let reacondLoteAbiertoId = null;
+
+/* ============================================================
+   REGISTRAR EQUIPO EXISTENTE (equipos que ya estaban antes del sistema)
+   Cae directo en su estado real y asignado a su técnico, en el lote HISTÓRICO.
+   ============================================================ */
+function abrirModalRegistrarExistente() {
+    if(!isAdminUser()) return toast('Solo el administrador puede registrar equipos existentes.', 'error');
+    // Limpiar campos
+    ['rex_modelo','rex_marca','rex_capacidad','rex_color','rex_costo','rex_imei','rex_serial','rex_nota'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+    document.getElementById('rex_estado').value = 'en_proceso';
+    // Poblar técnicos
+    const sel = document.getElementById('rex_tecnico');
+    const tecnicos = (cache.tecnicos || []).filter(t => t.activo && (t.tipo_empleado === 'tecnico' || (!t.tipo_empleado && t.rol !== 'admin')));
+    sel.innerHTML = '<option value="">— Selecciona el técnico —</option>' +
+        tecnicos.map(t => `<option value="${t.id}">${escapeHtml(t.nombre || t.usuario || 'Técnico')}</option>`).join('');
+    document.getElementById('modalRegistrarExistente').classList.add('active');
+}
+function cerrarModalRegistrarExistente() {
+    document.getElementById('modalRegistrarExistente').classList.remove('active');
+}
+// Busca el lote HISTÓRICO; si no existe lo crea (uno solo para todos los equipos previos)
+async function _getOrCreateLoteHistorico() {
+    const { data: ex } = await supabaseClient.from('refurb_lotes').select('id').eq('codigo_lote', 'HISTORICO').limit(1);
+    if(ex && ex.length) return ex[0].id;
+    const { data: ins, error } = await supabaseClient.from('refurb_lotes').insert([{
+        codigo_lote: 'HISTORICO',
+        notas: 'Equipos que ya existían antes del sistema',
+        estado: 'en_proceso',
+        enviado_reacond: true,
+        fecha_envio_reacond: new Date().toISOString(),
+        creado_por: sessionUser?.id || null
+    }]).select('id').single();
+    if(error) throw error;
+    return ins.id;
+}
+async function guardarEquipoExistente(btn) {
+    if(!isAdminUser()) return toast('Solo el administrador puede registrar equipos existentes.', 'error');
+    const v = (id) => (document.getElementById(id)?.value || '').trim();
+    const modelo = v('rex_modelo').toUpperCase();
+    const tecnicoId = v('rex_tecnico');
+    const estado = v('rex_estado') || 'en_proceso';
+    if(!modelo) return toast('El modelo es obligatorio.', 'error');
+    if(!tecnicoId) return toast('Selecciona el técnico que tiene el equipo.', 'error');
+    const orig = btn ? btn.innerHTML : '';
+    if(btn){ btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Registrando…'; }
+    try {
+        const loteId = await _getOrCreateLoteHistorico();
+        const costo = v('rex_costo');
+        const fila = {
+            modelo: modelo,
+            marca: v('rex_marca').toUpperCase() || null,
+            capacidad: v('rex_capacidad').toUpperCase() || null,
+            color: v('rex_color').toUpperCase() || null,
+            imei: v('rex_imei') || null,
+            serial: v('rex_serial') || null,
+            costo_compra: costo === '' ? null : Number(costo),
+            costo_origen: 'historico',
+            lote_id: loteId,
+            tecnico_asignado_id: tecnicoId,
+            fecha_asignacion: new Date().toISOString(),
+            estado_evaluacion: estado,
+            notas_diagnostico: '[Equipo existente] Registrado al sistema.' + (v('rex_nota') ? ' ' + v('rex_nota') : ''),
+            creado_en: new Date().toISOString()
+        };
+        const { data: ins, error } = await supabaseClient.from('equipos_refurbish').insert([fila]).select('id').single();
+        if(error) throw error;
+        try {
+            await supabaseClient.from('equipo_historial').insert([{
+                equipo_id: ins.id, estado_anterior: null, estado_nuevo: estado,
+                accion: '📦 Registrado como equipo existente (antes del sistema)',
+                usuario: sessionUser?.nombre || 'Admin'
+            }]);
+        } catch(_e) {}
+        toast('✅ Equipo registrado y asignado al técnico.');
+        cerrarModalRegistrarExistente();
+        await loadAll();
+        if(typeof cargarLotesReacond === 'function') cargarLotesReacond();
+    } catch(e) {
+        logError('Registrar equipo existente', e);
+        toastError(getFriendlyError(e));
+    } finally {
+        if(btn){ btn.disabled = false; btn.innerHTML = orig; }
+    }
+}
 
 function cargarLotesReacond() {
     // Filtra solo lotes enviados a reacond y calcula sus contadores
