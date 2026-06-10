@@ -10348,9 +10348,11 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
         if((esAdmin || esMia) && o.tecnico_asignado_id && !['entregado','cancelado','finalizado','no_reparado'].includes(estado)) {
             acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#6b21a8;" onclick="derivarOrden('${o.id}')"><i class="ti ti-arrows-exchange"></i> Derivar</button>`;
         }
-        // Label de diagnóstico (con las fallas) — útil para el técnico
-        acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px;" onclick="cargarEnLabel('${o.id}')"><i class="ti ti-clipboard-list"></i> Label</button>`;
-        acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px;" onclick="reimprimirRecibo('${o.id}')"><i class="ti ti-receipt"></i> Recibo</button>`;
+        // Label y Recibo: SOLO admin y servicio al cliente (el técnico NO los ve)
+        if(esAdmin || esServicio) {
+            acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px;" onclick="cargarEnLabel('${o.id}')"><i class="ti ti-clipboard-list"></i> Label</button>`;
+            acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px;" onclick="reimprimirRecibo('${o.id}')"><i class="ti ti-receipt"></i> Recibo</button>`;
+        }
         // Notas de la orden (técnico escribe, servicio lee) — con badge de sin leer
         const sinLeerNota = (cache.ordenNotas || []).filter(n => n.orden_id === o.id && n.autor_rol === 'tecnico' && !n.leida_servicio).length;
         const totalNotas = (cache.ordenNotas || []).filter(n => n.orden_id === o.id).length;
