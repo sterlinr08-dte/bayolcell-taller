@@ -3757,11 +3757,13 @@ function isAdminUser() {
     return ["admin", "administrador", "superadmin"].includes(role);
 }
 
-// ID interno del DUEÑO (ESTERLIN ESPINAL). El módulo de Estadísticas es solo para él:
-// ni técnicos ni otros admin (incl. la contadora) lo ven. Candado por ID, no por rol.
-const OWNER_IDS = ['c11f8c1f-f666-4e7a-8741-393f67bc26ea'];
+// IDs internos del DUEÑO (ESTERLIN ESPINAL). El módulo de Estadísticas es solo para él:
+// ni técnicos ni otros admin (incl. la contadora) lo ven. Candado por ID de cuenta, no por rol.
+// - 8ccbe4c8... = cuenta 'admin' (Administrador BAYOL CELL) con la que entra hoy.
+// - c11f8c1f... = registro de técnico ESTERLIN ESPINAL (por si más adelante tiene login propio).
+const OWNER_IDS = ['8ccbe4c8-e699-4cab-80a0-0d1634862d80', 'c11f8c1f-f666-4e7a-8741-393f67bc26ea'];
 function esDueno() {
-    return sessionUser?._tipo === 'tecnico' && OWNER_IDS.includes(sessionUser?.id);
+    return OWNER_IDS.includes(sessionUser?.id);
 }
 
 /* ============================================================
