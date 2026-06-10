@@ -1741,8 +1741,8 @@ body{
                     <div class="form-row"><input id="ip_buscar" placeholder="🔍 Buscar pieza por código, descripción o marca..." oninput="renderInfoplusBusqueda()"></div>
                     <div class="table-wrap" style="max-height:420px; overflow-y:auto;">
                         <table>
-                            <thead><tr><th>Código</th><th>Descripción</th><th>Marca</th><th>Existencia</th></tr></thead>
-                            <tbody id="infoplusTable"><tr><td colspan="4" style="text-align:center; color:var(--text-muted);">Aún no has importado el catálogo. Usa "Importar CSV".</td></tr></tbody>
+                            <thead><tr><th>Código</th><th>Descripción</th><th>Marca</th><th>Taller</th><th>En otros almacenes</th></tr></thead>
+                            <tbody id="infoplusTable"><tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Aún no has importado el catálogo. Usa "Importar CSV".</td></tr></tbody>
                         </table>
                     </div>
                 </div>
@@ -5222,17 +5222,33 @@ async function actualizarInfoplusCount() {
     catch(e) { /* silencio */ }
 }
 
+// Nombres de los almacenes de Info Plus (clave = codalmacen)
+const INFOPLUS_ALMACENES = { '1': 'Oficina Santiago', '3': 'Garantía China', '4': 'Moca', '5': '2do Nivel', '6': 'Taller' };
+function _htmlExistenciasOtros(existencias) {
+    if(!existencias || typeof existencias !== 'object') return '<span style="color:var(--text-muted);">—</span>';
+    // Mostrar todos los almacenes menos el Taller (6, que ya tiene su columna), solo con cantidad > 0
+    const partes = Object.keys(INFOPLUS_ALMACENES)
+        .filter(k => k !== '6' && Number(existencias[k]) > 0)
+        .map(k => `<span class="badge" style="background:#e0f2fe; color:#075985; margin:1px 2px;">${INFOPLUS_ALMACENES[k]}: <b>${Number(existencias[k])}</b></span>`);
+    return partes.length ? partes.join(' ') : '<span style="color:var(--text-muted);">—</span>';
+}
 async function renderInfoplusBusqueda() {
     const tb = document.getElementById('infoplusTable'); if(!tb) return;
     const q = (document.getElementById('ip_buscar')?.value || '').replace(/[,()%]/g, ' ').trim();
     try {
-        let query = supabaseClient.from('infoplus_articulos').select('codigo,descripcion,marca,existencia');
+        let query = supabaseClient.from('infoplus_articulos').select('codigo,descripcion,marca,existencia,existencias');
         if(q) query = query.or('codigo.ilike.%' + q + '%,descripcion.ilike.%' + q + '%,marca.ilike.%' + q + '%');
         const { data, error } = await query.order('codigo').limit(100);
         if(error) throw error;
-        if(!data || !data.length) { tb.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted);">Sin resultados.</td></tr>'; return; }
-        tb.innerHTML = data.map(a => `<tr><td><b>${escapeHtml(a.codigo)}</b></td><td>${escapeHtml(a.descripcion || '')}</td><td>${escapeHtml(a.marca || '')}</td><td>${a.existencia || 0}</td></tr>`).join('');
-    } catch(e) { tb.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#dc2626;">Error al cargar.</td></tr>'; }
+        if(!data || !data.length) { tb.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Sin resultados.</td></tr>'; return; }
+        tb.innerHTML = data.map(a => {
+            const taller = Number(a.existencia) || 0;
+            const tallerHtml = taller > 0
+                ? `<b style="color:#16a34a;">${taller}</b>`
+                : `<span style="color:#dc2626;">0</span>`;
+            return `<tr><td><b>${escapeHtml(a.codigo)}</b></td><td>${escapeHtml(a.descripcion || '')}</td><td>${escapeHtml(a.marca || '')}</td><td>${tallerHtml}</td><td>${_htmlExistenciasOtros(a.existencias)}</td></tr>`;
+        }).join('');
+    } catch(e) { tb.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#dc2626;">Error al cargar.</td></tr>'; }
 }
 
 function renderArticulos() {
