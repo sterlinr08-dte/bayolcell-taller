@@ -5423,15 +5423,17 @@ async function renderEstadisticas(btn){
     cont.innerHTML = '<p style="text-align:center; color:var(--text-muted); padding:30px;">Cargando…</p>';
     try {
         const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
-        const [invRes, topRes, ventasRes, ordRes, vtaRes] = await Promise.all([
+        const [invRes, topRes, ventasRes, ordRes, vtaRes, repRes] = await Promise.all([
             supabaseClient.rpc('stats_inventario'),
             supabaseClient.rpc('stats_inventario_top', { lim: 10 }),
             supabaseClient.from('refurb_ventas').select('precio_venta_real, vendido_en').limit(5000),
             supabaseClient.from('ordenes_reparacion').select('estado, precio_cliente, fecha_entregado').limit(8000),
-            supabaseClient.rpc('stats_ventas', _estRango())
+            supabaseClient.rpc('stats_ventas', _estRango()),
+            supabaseClient.rpc('stats_reposicion', { p_dias: 30, p_umbral_dias: 15, p_cobertura_dias: 30 })
         ]);
         const inv = invRes.data || {};
         const vt = (vtaRes && vtaRes.data && !vtaRes.data.error) ? vtaRes.data : null;
+        const rep = (repRes && repRes.data && !repRes.data.error) ? repRes.data : null;
         const top = topRes.data || [];
         const ventas = ventasRes.data || [];
         const ordenes = ordRes.data || [];
@@ -5503,7 +5505,49 @@ async function renderEstadisticas(btn){
             </div>`;
         }
 
-        cont.innerHTML = `${vtHtml}` + `
+        // ===== REPOSICIÓN / AGOTAMIENTO (mercancía física) =====
+        let repHtml;
+        if(!rep){
+            repHtml = `<div class="card" style="margin-bottom:15px;"><h3 style="margin:0 0 8px;"><i class="ti ti-alert-triangle" style="color:#dc2626;"></i> Reposición / Agotamiento</h3>
+                <p style="color:#dc2626; font-size:13px; margin:0;">No se pudo cargar el reporte de reposición. Intenta Actualizar.</p></div>`;
+        } else {
+            const items = rep.items || [];
+            const filas = items.map(it=>{
+                const d = it.dias_restantes;
+                const agot = Number(it.stock_actual)===0;
+                const diasTxt = agot ? '<span style="color:#dc2626; font-weight:700;">AGOTADO</span>' : (d==null?'—':`<b style="color:${d<7?'#dc2626':(d<15?'#d97706':'#16a34a')};">${d} días</b>`);
+                const tallerTxt = Number(it.stock_taller)===0 ? '<span style="color:#dc2626; font-weight:700;">0</span>' : _statNum(it.stock_taller);
+                return `<tr>
+                    <td><b>${escapeHtml(it.producto_id||'')}</b></td>
+                    <td>${escapeHtml(it.descripcion||'—')}</td>
+                    <td style="text-align:center;">${_statNum(it.vendidos)}</td>
+                    <td style="text-align:center;">${_statNum(it.stock_actual)}</td>
+                    <td style="text-align:center;">${tallerTxt}</td>
+                    <td style="text-align:center;">${diasTxt}</td>
+                    <td style="text-align:center;"><b style="color:#0891b2;">${_statNum(it.sugerido_reponer)}</b></td>
+                    <td>${_statRD(it.valor_reponer)}</td>
+                </tr>`;
+            }).join('');
+            const tabla = items.length
+                ? `<div class="table-wrap" style="max-height:480px; overflow-y:auto;"><table><thead><tr>
+                    <th>Código</th><th>Producto</th><th>Vend. 30d</th><th>Stock total</th><th>Stock Taller</th><th>Dura</th><th>Reponer</th><th>Costo reponer</th>
+                   </tr></thead><tbody>${filas}</tbody></table></div>`
+                : '<p style="color:#16a34a; padding:10px;">✅ Ninguna mercancía en riesgo de agotarse según las ventas de los últimos 30 días.</p>';
+            repHtml = `
+            <div class="card" style="margin-bottom:15px; border-top:3px solid #dc2626;">
+                <h3 style="margin:0 0 4px;"><i class="ti ti-alert-triangle" style="color:#dc2626;"></i> Reposición / Agotamiento de mercancía</h3>
+                <p style="color:var(--text-muted); font-size:12px; margin:0 0 12px;">Mercancía física (sin servicios) que se vende y se está acabando, según las ventas de los <b>últimos 30 días</b>. "Dura" = a este ritmo, cuánto te queda. "Reponer" = sugerido para cubrir 30 días.</p>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:14px;">
+                    ${_statCard('Productos en alerta', _statNum(rep.total_alertas), '#d97706', 'se están agotando')}
+                    ${_statCard('Ya agotados', _statNum(rep.agotados), '#dc2626', 'stock total en 0, pero se venden')}
+                    ${_statCard('Sin stock en el Taller', _statNum(rep.sin_taller), '#dc2626', 'falta para reacondicionar')}
+                    ${_statCard('Inversión sugerida', _statRD(rep.valor_sugerido), '#0891b2', 'para reponer 30 días')}
+                </div>
+                ${tabla}
+            </div>`;
+        }
+
+        cont.innerHTML = `${vtHtml}` + `${repHtml}` + `
         <!-- VENTAS INTERNAS (TALLER) -->
         <div class="card" style="margin-bottom:15px;">
             <h3 style="margin:0 0 12px;"><i class="ti ti-tool" style="color:#0891b2;"></i> Ventas internas del taller (reacondicionados + servicio)</h3>
