@@ -886,7 +886,7 @@ body{
                     <h2 style="margin:0;"><i class="ti ti-headset" style="color:#0891b2;"></i> Atención al Cliente</h2>
                     <div style="display:flex; gap:6px;">
                         <button class="btn btn-blue" onclick="nav('recepcion')" style="font-size:12px;"><i class="ti ti-plus"></i> Recibir equipo</button>
-                        <button class="btn btn-light" onclick="renderAtencionCliente()" style="font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
+                        <button class="btn btn-light" onclick="refrescarVista(renderAtencionCliente, this)" style="font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
                     </div>
                 </div>
                 <div id="atencionKpis" class="kpi-row" style="margin-bottom:16px;"></div>
@@ -1125,7 +1125,7 @@ body{
             <div id="v-miTrabajo" class="view">
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:14px;">
                     <h2 style="margin:0;"><i class="ti ti-briefcase" style="color:#0891b2;"></i> Mi Trabajo</h2>
-                    <button class="btn btn-light" onclick="renderMiTrabajo()" style="font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
+                    <button class="btn btn-light" onclick="refrescarVista(renderMiTrabajo, this)" style="font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
                 </div>
                 <div id="miTrabajoResumen" class="kpi-row" style="margin-bottom:14px;"></div>
                 <div id="miTrabajoContenido"></div>
@@ -1950,7 +1950,7 @@ body{
                                 <h3 style="margin:0;"><i class="ti ti-recycle" style="color:#06b6d4;"></i> Reacondicionados</h3>
                                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
                                     <button class="btn btn-blue" id="btnRegistrarExistente" onclick="abrirModalRegistrarExistente()" style="padding:6px 12px; font-size:12px; display:none;"><i class="ti ti-archive"></i> Registrar equipo existente</button>
-                                    <button class="btn btn-light" onclick="cargarLotesReacond()" style="padding:6px 12px; font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
+                                    <button class="btn btn-light" onclick="refrescarVista(cargarLotesReacond, this)" style="padding:6px 12px; font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
                                 </div>
                             </div>
                         
@@ -2068,7 +2068,7 @@ body{
                     <div class="card">
                         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
                             <h3 style="margin:0;"><i class="ti ti-packages" style="color:#0891b2;"></i> Pedidos de Piezas (Reacondicionados)</h3>
-                            <button class="btn btn-light" onclick="renderPedidosPiezasReacond()" style="padding:6px 12px; font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
+                            <button class="btn btn-light" onclick="refrescarVista(renderPedidosPiezasReacond, this)" style="padding:6px 12px; font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
                         </div>
                         <div style="background:#ecfeff; border:1px solid #a5f3fc; padding:12px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#0e7490;">
                             <b><i class="ti ti-info-circle"></i> Aquí ves todas las piezas que los técnicos necesitan para los equipos.</b> Revisa cuáles están pedidas (por conseguir), entregadas, en uso o devueltas.
@@ -6291,6 +6291,22 @@ async function guardarEquipoExistente(btn) {
     }
 }
 
+// Botón "Actualizar": vuelve a TRAER los datos del servidor y luego redibuja
+// (antes solo redibujaba la caché, por eso parecía que no actualizaba).
+async function refrescarVista(renderFn, btn) {
+    const orig = btn ? btn.innerHTML : '';
+    if(btn){ btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Actualizando…'; }
+    try {
+        await loadAll();
+        if(typeof renderFn === 'function') await renderFn();
+    } catch(e) {
+        logError('Actualizar vista', e);
+        toastError(getFriendlyError(e));
+    } finally {
+        if(btn){ btn.disabled = false; btn.innerHTML = orig; }
+    }
+}
+
 function cargarLotesReacond() {
     // Filtra solo lotes enviados a reacond y calcula sus contadores
     const lotesReacond = (cache.lotes || []).filter(l => l.enviado_reacond === true);
@@ -6771,7 +6787,7 @@ function renderRentabilidadReacond() {
                     <h3 style="margin:0 0 3px;"><i class="ti ti-cash" style="color:#16a34a;"></i> Centro de Rentabilidad</h3>
                     <p style="color:var(--text-muted); font-size:12px; margin:0;">Cuánto inviertes, cuánto vendes y cuánto ganas de verdad con los reacondicionados.</p>
                 </div>
-                <button class="btn btn-light" onclick="renderRentabilidadReacond()" style="padding:6px 12px; font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
+                <button class="btn btn-light" onclick="refrescarVista(renderRentabilidadReacond, this)" style="padding:6px 12px; font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
             </div>
             <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:12px 0 14px;">
                 <span style="font-size:12px; font-weight:700; color:var(--text-muted);"><i class="ti ti-calendar"></i> Ventas del período:</span>
