@@ -8968,7 +8968,7 @@ function obtenerEtiquetaOrden(estado) {
         'en_proceso':       { text: '🔧 En proceso', bg:'#fed7aa', color:'#9a3412' },
         'espera_repuesto':  { text: '⏳ En espera de repuesto', bg:'#fde68a', color:'#92400e' },
         'pendiente_cliente':{ text: '🔔 Esperando autorización', bg:'#fbcfe8', color:'#9d174d' },
-        'finalizado':       { text: '✅ Finalizado', bg:'#d1fae5', color:'#065f46' },
+        'finalizado':       { text: '👍 Finalizado', bg:'#d1fae5', color:'#065f46' },
         'entregado':        { text: '📦 Entregado', bg:'#dcfce7', color:'#166534' },
         'cancelado':        { text: '❌ Cancelado', bg:'#fee2e2', color:'#991b1b' },
         'no_reparado':      { text: '🚫 No reparado', bg:'#ffe4e6', color:'#9f1239' },
@@ -8976,8 +8976,8 @@ function obtenerEtiquetaOrden(estado) {
         'diagnostico':      { text: '📥 Recibido', bg:'#e0f2fe', color:'#0369a1' },
         'en_reparacion':    { text: '🔧 En proceso', bg:'#fed7aa', color:'#9a3412' },
         'espera_pieza':     { text: '⏳ En espera de repuesto', bg:'#fde68a', color:'#92400e' },
-        'listo':            { text: '✅ Finalizado', bg:'#d1fae5', color:'#065f46' },
-        'listo_entrega':    { text: '✅ Finalizado', bg:'#d1fae5', color:'#065f46' }
+        'listo':            { text: '👍 Finalizado', bg:'#d1fae5', color:'#065f46' },
+        'listo_entrega':    { text: '👍 Finalizado', bg:'#d1fae5', color:'#065f46' }
     };
     const _r = map[estado] || { text: estado, bg:'#f1f5f9', color:'#64748b' };
     return { ..._r, text: (_r.text || '').toUpperCase() };
@@ -8992,7 +8992,7 @@ function construirEstadoVisual(estadoRaw) {
         'en_proceso':        { g1:'#fbbf24', g2:'#d97706', icon:'ti-tool',           label:'En proceso',     sub:'Reparando ahora',    step:2, fase:'Reparación', live:true  },
         'espera_repuesto':   { g1:'#facc15', g2:'#ca8a04', icon:'ti-hourglass-high', label:'Espera repuesto',sub:'En pausa',           step:2, fase:'Reparación', live:true  },
         'pendiente_cliente': { g1:'#f472b6', g2:'#db2777', icon:'ti-bell-ringing',   label:'Autorización',   sub:'Espera al cliente',  step:2, fase:'Reparación', live:true  },
-        'finalizado':        { g1:'#34d399', g2:'#059669', icon:'ti-circle-check',   label:'Finalizado',     sub:'Listo p/ entregar',  step:3, fase:'Listo',      live:false },
+        'finalizado':        { g1:'#34d399', g2:'#059669', icon:'ti-thumb-up',      label:'Finalizado',     sub:'Listo p/ entregar',  step:3, fase:'Listo',      live:false },
         'entregado':         { g1:'#4ade80', g2:'#16a34a', icon:'ti-package',        label:'Entregado',      sub:'Completado',         step:4, fase:'Entrega',    live:false },
         'cancelado':         { g1:'#f87171', g2:'#dc2626', icon:'ti-ban',            label:'Cancelado',      sub:'Orden anulada',      step:0, fase:'Anulada',    live:false },
         'no_reparado':       { g1:'#fb7185', g2:'#9f1239', icon:'ti-thumb-down',     label:'No reparado',    sub:'Devolver al cliente',step:0, fase:'Sin solución',live:false }
