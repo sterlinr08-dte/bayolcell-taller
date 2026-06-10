@@ -855,6 +855,7 @@ body{
             <button id="menu-etiquetas" onclick="nav('etiquetas',this)"><i class="ti ti-barcode"></i> <span>Impresión de Labels</span></button>
             <button id="menu-configImpresora" onclick="nav('configImpresora',this)"><i class="ti ti-printer"></i> <span>Config. Impresora</span></button>
             <button id="menu-reportes" onclick="nav('reportes',this)"><i class="ti ti-chart-bar"></i> <span>Reportes</span></button>
+            <button id="menu-estadisticas" onclick="nav('estadisticas',this)" style="display:none;"><i class="ti ti-chart-pie-2"></i> <span>Estadísticas</span> <span class="nav-badge-admin" style="background:#7c3aed;">PRIVADO</span></button>
             <button id="menu-configuracion" onclick="nav('configuracion',this)"><i class="ti ti-adjustments"></i> <span>Configuración</span> <span class="nav-badge-admin">ADMIN</span></button>
         </div>
         
@@ -2100,6 +2101,20 @@ body{
                     </div>
                 </div>
                 <div id="reporteContenido"></div>
+            </div>
+
+            <!-- ============= ESTADÍSTICAS (PRIVADO - SOLO DUEÑO) ============= -->
+            <div id="v-estadisticas" class="view">
+                <div class="card" style="margin-bottom:15px; border-left:4px solid #7c3aed;">
+                    <h2 style="margin:0 0 4px 0; font-size:18px;"><i class="ti ti-chart-pie-2" style="color:#7c3aed;"></i> Estadísticas <span style="font-size:11px; background:#7c3aed; color:#fff; padding:2px 8px; border-radius:10px; vertical-align:middle;">PRIVADO</span></h2>
+                    <p style="color:var(--text-muted); font-size:13px; margin:0;">Módulo interno. Solo tú lo ves — ni técnicos ni contadora. Ventas, compras e inventario.</p>
+                    <div style="margin-top:10px;">
+                        <button class="btn btn-light" style="font-size:13px;" onclick="renderEstadisticas(this)"><i class="ti ti-refresh"></i> Actualizar</button>
+                    </div>
+                </div>
+                <div id="estadisticasContenido">
+                    <p style="text-align:center; color:var(--text-muted); padding:30px;">Cargando…</p>
+                </div>
             </div>
 
             <!-- ============= CONFIGURACIÓN ============= -->
@@ -3742,6 +3757,13 @@ function isAdminUser() {
     return ["admin", "administrador", "superadmin"].includes(role);
 }
 
+// ID interno del DUEÑO (ESTERLIN ESPINAL). El módulo de Estadísticas es solo para él:
+// ni técnicos ni otros admin (incl. la contadora) lo ven. Candado por ID, no por rol.
+const OWNER_IDS = ['c11f8c1f-f666-4e7a-8741-393f67bc26ea'];
+function esDueno() {
+    return sessionUser?._tipo === 'tecnico' && OWNER_IDS.includes(sessionUser?.id);
+}
+
 /* ============================================================
    SISTEMA DE PERMISOS
    ============================================================ */
@@ -3921,6 +3943,10 @@ function applyAccessControls() {
         const btn = document.getElementById(btnId);
         if(btn) btn.style.display = tienePermiso(botonesEstaticos[btnId]) ? '' : 'none';
     });
+
+    // Módulo PRIVADO de Estadísticas: solo el dueño (por ID), nadie más
+    const btnStats = document.getElementById('menu-estadisticas');
+    if(btnStats) btnStats.style.display = esDueno() ? '' : 'none';
     
     // Si el dashboard está oculto, llevar al técnico a reacondicionado por defecto
     if(!tienePermiso('ver_dashboard') && tienePermiso('reacond_ver')) {
@@ -3999,6 +4025,11 @@ const NAV_PERMISOS = {
 };
 
 function nav(v, btn) {
+    // Candado especial: Estadísticas es privado del dueño (por ID), no por rol admin
+    if(v === 'estadisticas' && !esDueno()) {
+        toast('🔒 Módulo privado.');
+        return;
+    }
     // PORTERO CENTRAL: verifica permiso antes de entrar (sin importar de dónde venga el clic)
     const permisoReq = NAV_PERMISOS[v];
     if(permisoReq && !tienePermiso(permisoReq)) {
@@ -4022,6 +4053,7 @@ function nav(v, btn) {
     if(v === 'refurb') { setTimeout(() => { volverListaLotesReacond(); cargarLotesReacond(); }, 50); }
     if(v === 'configuracion') { setTimeout(() => { cambiarMainTabConfig('tecnicos'); }, 50); }
     if(v === 'reportes') { setTimeout(() => { inicializarReportes(); }, 50); }
+    if(v === 'estadisticas') { setTimeout(() => { renderEstadisticas(); }, 50); }
     if(v === 'miTrabajo') { setTimeout(() => { renderMiTrabajo(); }, 50); }
     if(v === 'atencion') { setTimeout(() => { renderAtencionCliente(); }, 50); }
     if(v === 'financiamientos') { setTimeout(() => { renderFinanciamientos(); }, 50); }
@@ -5296,6 +5328,105 @@ async function renderInfoplusBusqueda() {
             return `<tr><td><b>${escapeHtml(a.codigo)}</b></td><td>${escapeHtml(a.descripcion || '')}</td><td>${escapeHtml(a.marca || '')}</td><td>${tallerHtml}</td><td>${_htmlExistenciasOtros(a.existencias)}</td></tr>`;
         }).join('');
     } catch(e) { tb.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#dc2626;">Error al cargar.</td></tr>'; }
+}
+
+/* ============================================================
+   ESTADÍSTICAS (PRIVADO - SOLO DUEÑO)
+   Ventas (reacondicionados + servicio), Compras (Info Plus, próx.), Inventario.
+   ============================================================ */
+function _statRD(n){ return 'RD$ ' + Number(n||0).toLocaleString('es-DO',{minimumFractionDigits:2, maximumFractionDigits:2}); }
+function _statNum(n){ return Number(n||0).toLocaleString('es-DO'); }
+function _statCard(titulo, valor, color, sub){
+    return `<div style="background:#fff; border-radius:12px; padding:16px; box-shadow:0 1px 3px rgba(0,0,0,0.06); border-top:3px solid ${color};">
+        <div style="font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.3px;">${titulo}</div>
+        <div style="font-size:22px; font-weight:800; color:${color}; margin-top:4px; line-height:1.1;">${valor}</div>
+        ${sub ? `<div style="font-size:12px; color:var(--text-muted); margin-top:3px;">${sub}</div>` : ''}
+    </div>`;
+}
+async function renderEstadisticas(btn){
+    if(!esDueno()){ return; }
+    const cont = document.getElementById('estadisticasContenido'); if(!cont) return;
+    if(btn){ const o=btn.innerHTML; btn.disabled=true; btn.innerHTML='<i class="ti ti-loader"></i> Actualizando…'; setTimeout(()=>{btn.disabled=false; btn.innerHTML=o;}, 1200); }
+    cont.innerHTML = '<p style="text-align:center; color:var(--text-muted); padding:30px;">Cargando…</p>';
+    try {
+        const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+        const [invRes, topRes, ventasRes, ordRes] = await Promise.all([
+            supabaseClient.rpc('stats_inventario'),
+            supabaseClient.rpc('stats_inventario_top', { lim: 10 }),
+            supabaseClient.from('refurb_ventas').select('precio_venta_real, vendido_en').limit(5000),
+            supabaseClient.from('ordenes_reparacion').select('estado, precio_cliente, fecha_entregado').limit(8000)
+        ]);
+        const inv = invRes.data || {};
+        const top = topRes.data || [];
+        const ventas = ventasRes.data || [];
+        const ordenes = ordRes.data || [];
+
+        // --- VENTAS de reacondicionados (propias) ---
+        let rvTotalMonto=0, rvTotalN=0, rvMesMonto=0, rvMesN=0;
+        ventas.forEach(v=>{ const m=Number(v.precio_venta_real)||0; rvTotalMonto+=m; rvTotalN++; if(v.vendido_en && v.vendido_en>=inicioMes){ rvMesMonto+=m; rvMesN++; } });
+
+        // --- ÓRDENES de servicio (entregadas = cobradas) ---
+        let osEntregadasN=0, osIngresos=0, osMesN=0, osMesIngresos=0, osAbiertas=0;
+        const abiertosNo = ['entregado','cancelado','no_reparado'];
+        ordenes.forEach(o=>{
+            const est=(o.estado||'').toLowerCase();
+            if(est==='entregado'){ osEntregadasN++; const m=Number(o.precio_cliente)||0; osIngresos+=m;
+                if(o.fecha_entregado && o.fecha_entregado>=inicioMes){ osMesN++; osMesIngresos+=m; } }
+            if(!abiertosNo.includes(est)) osAbiertas++;
+        });
+
+        const alm = inv.por_almacen || {};
+        const nombresAlm = (typeof INFOPLUS_ALMACENES!=='undefined') ? INFOPLUS_ALMACENES : {};
+        const porAlmHtml = Object.keys(alm).length
+            ? Object.keys(alm).map(k=>`<span class="badge" style="background:#ede9fe; color:#5b21b6; margin:2px;">${(nombresAlm[k]||('Almacén '+k))}: <b>${_statNum(alm[k])}</b></span>`).join(' ')
+            : '<span style="color:var(--text-muted);">Sin datos</span>';
+
+        const topHtml = top.length
+            ? `<div class="table-wrap"><table><thead><tr><th>Código</th><th>Descripción</th><th>Unid.</th><th>Costo</th><th>Valor en inventario</th></tr></thead><tbody>${
+                top.map(t=>`<tr><td><b>${escapeHtml(t.codigo)}</b></td><td>${escapeHtml(t.descripcion||'')}</td><td>${_statNum(t.unidades)}</td><td>${_statRD(t.costo)}</td><td><b>${_statRD(t.valor)}</b></td></tr>`).join('')
+            }</tbody></table></div>`
+            : '<p style="color:var(--text-muted);">Sin datos de inventario todavía.</p>';
+
+        cont.innerHTML = `
+        <!-- VENTAS -->
+        <div class="card" style="margin-bottom:15px;">
+            <h3 style="margin:0 0 12px;"><i class="ti ti-cash" style="color:#16a34a;"></i> Ventas</h3>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px;">
+                ${_statCard('Reacondicionados vendidos (mes)', _statRD(rvMesMonto), '#16a34a', _statNum(rvMesN)+' equipos este mes')}
+                ${_statCard('Reacondicionados (histórico)', _statRD(rvTotalMonto), '#16a34a', _statNum(rvTotalN)+' equipos en total')}
+                ${_statCard('Órdenes de servicio cobradas (mes)', _statRD(osMesIngresos), '#0891b2', _statNum(osMesN)+' entregadas este mes')}
+                ${_statCard('Servicio cobrado (histórico)', _statRD(osIngresos), '#0891b2', _statNum(osEntregadasN)+' entregadas · '+_statNum(osAbiertas)+' abiertas')}
+            </div>
+        </div>
+
+        <!-- INVENTARIO -->
+        <div class="card" style="margin-bottom:15px;">
+            <h3 style="margin:0 0 12px;"><i class="ti ti-package" style="color:#7c3aed;"></i> Inventario (Info Plus, todos los almacenes)</h3>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px;">
+                ${_statCard('Valor al costo', _statRD(inv.valor_costo), '#7c3aed', 'lo que te costó la mercancía')}
+                ${_statCard('Valor a precio de venta', _statRD(inv.valor_precio), '#16a34a', 'si se vendiera todo')}
+                ${_statCard('Unidades en existencia', _statNum(inv.unidades_total), '#0891b2', _statNum(inv.articulos_con_stock)+' artículos con stock')}
+                ${_statCard('Artículos agotados', _statNum(inv.articulos_agotados), '#dc2626', 'de '+_statNum(inv.total_articulos)+' en catálogo')}
+            </div>
+            <div style="margin-top:14px;">
+                <div style="font-size:13px; font-weight:600; margin-bottom:6px;">Unidades por almacén</div>
+                ${porAlmHtml}
+            </div>
+            <div style="margin-top:16px;">
+                <div style="font-size:13px; font-weight:600; margin-bottom:6px;">Top 10 artículos por valor en inventario</div>
+                ${topHtml}
+            </div>
+        </div>
+
+        <!-- COMPRAS / VENTAS DE TIENDA -->
+        <div class="card" style="margin-bottom:15px; background:#faf5ff; border:1px dashed #c4b5fd;">
+            <h3 style="margin:0 0 6px;"><i class="ti ti-shopping-cart" style="color:#7c3aed;"></i> Compras y ventas de tienda (Info Plus)</h3>
+            <p style="color:#6b21a8; font-size:13px; margin:0;">📡 Estos números (compras a proveedores, ventas de mostrador, márgenes) se <b>activan automáticamente</b> en cuanto conectemos la <b>API general de Info Plus</b>. Por ahora ves lo que ya controla el sistema: reacondicionados, servicio e inventario.</p>
+        </div>`;
+    } catch(e){
+        logError('Estadísticas', e);
+        cont.innerHTML = '<div class="card"><p style="color:#dc2626;">⚠️ No se pudieron cargar las estadísticas: '+escapeHtml(getFriendlyError(e))+'</p></div>';
+    }
 }
 
 function renderArticulos() {
