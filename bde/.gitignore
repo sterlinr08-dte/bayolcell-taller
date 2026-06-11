@@ -1,0 +1,6 @@
+node_modules/
+dist/
+*.log
+# Binarios de libimobiledevice (se descargan en la PC del taller, no se suben al repo)
+bin/*.exe
+bin/*.dll

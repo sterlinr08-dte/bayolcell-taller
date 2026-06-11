@@ -1,0 +1,10 @@
+Coloca aquí los binarios de libimobiledevice para Windows si NO los instalas con scoop.
+
+Archivos que van en esta carpeta (de un release de libimobiledevice-win32):
+  - idevice_id.exe
+  - ideviceinfo.exe
+  - idevicecrashreport.exe
+  - (y los .dll que vengan junto a ellos)
+
+Si instalas libimobiledevice con scoop (recomendado, ver README.md), NO necesitas
+poner nada aquí: la app los encontrará automáticamente en el PATH del sistema.

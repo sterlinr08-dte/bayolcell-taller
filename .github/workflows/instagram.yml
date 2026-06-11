@@ -1,0 +1,46 @@
+name: Actualizar feed de Instagram
+
+on:
+  # Corrida automática EN PAUSA hasta tener el token de Meta/Instagram.
+  # Para reactivarla, quita el '#' de las dos líneas de abajo (schedule).
+  # schedule:
+  #   - cron: '0 */12 * * *'   # cada 12 horas
+  workflow_dispatch:          # permite ejecutarlo manualmente cuando quieras
+
+permissions:
+  contents: write
+
+concurrency:
+  group: instagram-feed
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Traer publicaciones de Instagram
+        env:
+          IG_TOKEN: ${{ secrets.IG_TOKEN }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+        run: python scripts/fetch_instagram.py
+
+      - name: Guardar cambios (si hay)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          mkdir -p assets/ig
+          git add assets/instagram.json assets/ig 2>/dev/null || true
+          if git diff --staged --quiet; then
+            echo "Sin cambios en el feed."
+          else
+            git commit -m "Actualiza feed de Instagram [skip ci]"
+            git push
+          fi

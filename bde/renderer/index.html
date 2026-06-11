@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BAYOL Diagnostic Engine</title>
+<style>
+  :root{
+    --negro:#0A0A0A; --negro2:#141414; --rojo:#CC0000; --rojo2:#ff2d2d;
+    --blanco:#ffffff; --gris:#e9e9ec; --texto:#1a1a1a; --borde:#e3e3e8;
+    --ok:#0a8f3c; --warn:#c98a00; --crit:#cc0000;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Inter,Arial,Helvetica,sans-serif;background:var(--gris);color:var(--texto);height:100vh;overflow:hidden}
+  .hidden{display:none!important}
+  button{font-family:inherit;cursor:pointer;border:none}
+  .btn{background:var(--rojo);color:#fff;padding:11px 18px;border-radius:10px;font-weight:700;font-size:14px;transition:.15s}
+  .btn:hover{background:var(--rojo2)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn.sec{background:#222}
+  .btn.sec:hover{background:#000}
+
+  /* ---------- LOGIN ---------- */
+  #login{position:fixed;inset:0;background:radial-gradient(1200px 700px at 50% -10%,#1d0000,#0A0A0A 60%);display:flex;align-items:center;justify-content:center;z-index:50}
+  .login-card{background:#111;border:1px solid #2a2a2a;border-radius:18px;padding:34px 30px;width:360px;box-shadow:0 25px 60px rgba(0,0,0,.6);text-align:center}
+  .login-logo{width:74px;height:74px;border-radius:50%;background:#000;border:2px solid var(--rojo);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-weight:900;color:var(--rojo);font-size:30px;box-shadow:0 0 24px rgba(204,0,0,.5)}
+  .login-card h1{color:#fff;font-size:17px;letter-spacing:.5px;margin-bottom:2px}
+  .login-card p{color:#888;font-size:12px;margin-bottom:20px}
+  .login-card input{width:100%;background:#0a0a0a;border:1px solid #2c2c2c;color:#fff;padding:12px 14px;border-radius:10px;margin-bottom:12px;font-size:14px}
+  .login-card input:focus{outline:none;border-color:var(--rojo)}
+  .login-card .btn{width:100%;margin-top:4px}
+  #loginMsg{color:#ff6b6b;font-size:12px;min-height:16px;margin-top:10px}
+
+  /* ---------- LAYOUT ---------- */
+  #app{display:flex;height:100vh}
+  .sidebar{width:230px;background:var(--negro);color:#cfcfcf;display:flex;flex-direction:column;flex-shrink:0}
+  .brand{padding:18px 18px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #1e1e1e}
+  .brand .dot{width:34px;height:34px;border-radius:50%;background:#000;border:2px solid var(--rojo);display:flex;align-items:center;justify-content:center;color:var(--rojo);font-weight:900}
+  .brand b{color:#fff;font-size:13px;line-height:1.1}
+  .brand span{color:#777;font-size:10px}
+  .nav{flex:1;padding:10px 8px;overflow:auto}
+  .nav button{width:100%;text-align:left;background:none;color:#bdbdbd;padding:11px 12px;border-radius:9px;font-size:13.5px;display:flex;align-items:center;gap:10px;margin-bottom:2px}
+  .nav button:hover{background:#1b1b1b;color:#fff}
+  .nav button.active{background:var(--rojo);color:#fff}
+  .nav button:disabled{color:#555;cursor:default}
+  .nav button:disabled:hover{background:none}
+  .nav .tag{margin-left:auto;font-size:9px;background:#2a2a2a;color:#999;padding:2px 6px;border-radius:6px}
+  .side-foot{padding:12px;border-top:1px solid #1e1e1e;font-size:11px;color:#888}
+  .side-foot b{color:#fff;display:block;font-size:12px}
+  .side-foot button{margin-top:8px;width:100%;background:#1c1c1c;color:#ddd;padding:8px;border-radius:8px;font-size:12px}
+  .side-foot button:hover{background:var(--rojo);color:#fff}
+
+  .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+  .topbar{height:56px;background:#111;border-bottom:1px solid #1e1e1e;display:flex;align-items:center;padding:0 20px;gap:14px;color:#fff}
+  .topbar h2{font-size:15px;font-weight:700}
+  .topbar .estado{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:#aaa}
+  .led{width:9px;height:9px;border-radius:50%;background:#555}
+  .led.on{background:#19c34a;box-shadow:0 0 8px #19c34a}
+  .led.busy{background:#e0a400;box-shadow:0 0 8px #e0a400}
+  .content{flex:1;overflow:auto;padding:22px;background:#f1f1f4}
+
+  .card{background:#fff;border:1px solid var(--borde);border-radius:14px;padding:18px 20px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+  .card h3{font-size:14px;color:#111;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .card h3 .ic{color:var(--rojo)}
+  .row{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+  .field{background:#fafafa;border:1px solid #eee;border-radius:10px;padding:9px 12px}
+  .field label{display:block;font-size:10.5px;color:#999;text-transform:uppercase;letter-spacing:.4px}
+  .field b{font-size:14px;color:#111}
+
+  .alert{display:flex;gap:10px;padding:11px 13px;border-radius:10px;margin-bottom:8px;font-size:13px;border-left:4px solid}
+  .alert.critico{background:#fff1f1;border-color:var(--crit);color:#7a0000}
+  .alert.alerta{background:#fff8e8;border-color:var(--warn);color:#6b4d00}
+  .alert.info{background:#eef4ff;border-color:#2563eb;color:#13357a}
+  .alert .t{font-weight:700}
+
+  .bigbtn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:40px}
+  .usb-circle{width:120px;height:120px;border-radius:50%;border:3px dashed #ccc;display:flex;align-items:center;justify-content:center;font-size:48px;color:#bbb}
+  .muted{color:#888;font-size:13px;text-align:center;max-width:420px}
+
+  .panic-box{background:#0d0d0d;color:#d6ffd6;font-family:Consolas,monospace;font-size:12px;border-radius:10px;padding:14px;white-space:pre-wrap;max-height:220px;overflow:auto;border:1px solid #222}
+  .ia-box{background:#fff;border:1px solid var(--borde);border-radius:12px;padding:16px;white-space:pre-wrap;font-size:13.5px;line-height:1.5}
+  textarea,select,input.txt{width:100%;border:1px solid #ddd;border-radius:9px;padding:10px;font-size:13px;font-family:inherit}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0}
+  .chip{border:1px solid #ddd;background:#fff;padding:7px 12px;border-radius:20px;font-size:12.5px;cursor:pointer;user-select:none}
+  .chip.on{background:var(--rojo);color:#fff;border-color:var(--rojo)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:900px){.grid2{grid-template-columns:1fr}}
+  .spin{width:18px;height:18px;border:3px solid #fff;border-top-color:transparent;border-radius:50%;display:inline-block;animation:sp .8s linear infinite;vertical-align:middle}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .demo-banner{background:#fff8e8;border:1px solid #f0d68a;color:#6b4d00;padding:8px 12px;border-radius:9px;font-size:12.5px;margin-bottom:14px}
+</style>
+</head>
+<body>
+
+<!-- ====================== LOGIN ====================== -->
+<div id="login">
+  <div class="login-card">
+    <div class="login-logo">B</div>
+    <h1>BAYOL DIAGNOSTIC ENGINE</h1>
+    <p>Acceso de técnico — Fase 2</p>
+    <input id="lgUser" type="text" placeholder="Usuario (ej. francis)" autocomplete="username">
+    <input id="lgPass" type="password" placeholder="Contraseña" autocomplete="current-password">
+    <button class="btn" id="lgBtn" onclick="doLogin()">Entrar</button>
+    <div id="loginMsg"></div>
+  </div>
+</div>
+
+<!-- ====================== APP ====================== -->
+<div id="app" class="hidden">
+  <!-- Aviso flotante de actualización -->
+  <div id="updBanner" class="hidden" style="position:fixed;top:14px;right:14px;z-index:80;background:#0f172a;color:#fff;padding:14px 16px;border-radius:12px;box-shadow:0 12px 34px rgba(0,0,0,.45);max-width:330px;font-size:13px;border:1px solid #1e293b">
+    <div id="updBannerTxt"></div>
+    <div id="updBannerBtns" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"></div>
+  </div>
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="dot">B</div>
+      <div><b>DIAGNOSTIC ENGINE</b><span>BAYOL CELL</span></div>
+    </div>
+    <nav class="nav">
+      <button id="m-inicio" class="active" onclick="vista('inicio',this)">🏠 <span>Inicio</span></button>
+      <button id="m-lector" onclick="vista('lector',this)">📱 <span>Lector de dispositivo</span></button>
+      <button id="m-panic" onclick="vista('panic',this)">📋 <span>Panic Log</span></button>
+      <button id="m-ia" onclick="vista('ia',this)">🧠 <span>Diagnóstico IA</span></button>
+      <button id="m-bateria" onclick="vista('bateria',this)">🔋 <span>Batería</span></button>
+      <button id="m-pantalla" onclick="vista('pantalla',this)">🖥️ <span>Pantalla</span></button>
+      <button id="m-herramientas" onclick="vista('herramientas',this)">🧰 <span>Herramientas iPhone</span></button>
+      <button id="m-termica" onclick="vista('termica',this)">🌡️ <span>Cámara térmica</span></button>
+      <button id="m-microscopio" onclick="vista('microscopio',this)">🔬 <span>Microscopio</span></button>
+      <button id="m-esquematicos" onclick="vista('esquematicos',this)">📐 <span>Esquemáticos</span></button>
+      <button id="m-conocimiento" onclick="vista('conocimiento',this)">📚 <span>Base de conocimiento</span></button>
+      <button id="m-mantenimiento" onclick="vista('mantenimiento',this)">🛠️ <span>Mantenimiento</span></button>
+    </nav>
+    <div class="side-foot">
+      <b id="sfUser">—</b>
+      <span id="sfRol">técnico</span>
+      <button onclick="logout()">Cerrar sesión</button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <h2 id="tbTitle">Lector de dispositivo</h2>
+      <div class="estado">
+        <span class="led" id="ledTools"></span><span id="toolsTxt">Verificando herramientas…</span>
+        <span class="led" id="ledDev"></span><span id="devTxt">Sin dispositivo</span>
+      </div>
+    </div>
+    <div class="content">
+
+      <!-- ---------- VISTA INICIO (estilo 3uTools) ---------- -->
+      <section id="v-inicio">
+        <div id="inicioVacio" class="card" style="text-align:center;padding:40px">
+          <div style="font-size:54px">📱</div>
+          <h3 style="justify-content:center">Conecta un iPhone por USB</h3>
+          <p class="muted">Desbloquéalo y dale “Confiar”. La información aparecerá aquí sola.</p>
+        </div>
+        <div id="inicioContenido" class="hidden"></div>
+      </section>
+
+      <!-- ---------- VISTA LECTOR ---------- -->
+      <section id="v-lector" class="hidden">
+        <div id="demoBanner" class="demo-banner hidden"></div>
+        <div class="card">
+          <h3><span class="ic">📱</span> Lectura del iPhone por USB</h3>
+          <div id="lectorInicio" class="bigbtn">
+            <div class="usb-circle">⚡</div>
+            <p class="muted">Conecta el iPhone por USB, desbloquéalo y toca <b>“Confiar”</b> si aparece. Luego presiona el botón para leer todos los datos automáticamente.</p>
+            <div style="display:flex;gap:10px">
+              <button class="btn" id="btnLeer" onclick="leerDispositivo()">Leer dispositivo</button>
+              <button class="btn sec" onclick="leerDemo()">Modo demostración</button>
+            </div>
+          </div>
+          <div id="lectorResultado" class="hidden"></div>
+        </div>
+
+        <div class="card">
+          <h3><span class="ic">💾</span> Backup del iPhone (respaldo del cliente)</h3>
+          <p class="muted" style="text-align:left">Haz un respaldo del iPhone <b>antes de repararlo</b>, por si algo se pierde. Se guarda en la PC (Documentos → BAYOL Backups). El primero tarda; los siguientes son más rápidos.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+            <button class="btn" id="btnBackupIphone" onclick="backupIphone(this)">💾 Hacer backup del iPhone</button>
+            <button class="btn sec" onclick="abrirCarpetaBackups()">📂 Abrir carpeta de backups</button>
+            <button class="btn sec" style="color:#b91c1c" onclick="restaurarIphone(this)">♻️ Restaurar backup al iPhone</button>
+          </div>
+          <pre id="opProgreso" class="panic-box hidden" style="margin-top:10px;max-height:160px"></pre>
+          <div style="margin-top:12px;border-top:1px dashed var(--borde);padding-top:10px">
+            <b style="font-size:13px">🔄 Actualizar / bajar iOS</b>
+            <p class="muted" style="text-align:left;margin-top:4px">Actualizar iOS es pesado (5–7 GB) y delicado; <b>bajar de versión casi nunca se puede</b> (Apple solo firma versiones nuevas). Recomendado hacerlo con cuidado desde Finder/iTunes o 3uTools. Aquí, si quieres, agregamos el botón con sus avisos.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- VISTA PANIC ---------- -->
+      <section id="v-panic" class="hidden">
+        <div class="card">
+          <h3><span class="ic">📋</span> Analizador de Panic Log</h3>
+          <p class="muted" style="text-align:left;margin-bottom:10px">Se llenan solos al leer el dispositivo. También puedes pegar un panic log o subir el archivo.</p>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+            <input type="file" id="panicFile" accept=".ips,.txt,.json,.log" style="display:none" onchange="cargarPanicArchivo(this)">
+            <button class="btn sec" onclick="document.getElementById('panicFile').click()">📂 Subir archivo .ips</button>
+            <span id="panicFileNombre" class="muted" style="text-align:left"></span>
+          </div>
+          <textarea id="panicManual" rows="6" placeholder="Pega aquí el contenido del panic-full-*.ips o súbelo con el botón de arriba…"></textarea>
+          <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn" onclick="analizarPanicManual()">Analizar panic</button>
+            <button class="btn sec" onclick="guardarPanicHist(this)">💾 Guardar en historial</button>
+            <button class="btn sec" onclick="togglePanicHist()">🕘 Ver historial</button>
+          </div>
+          <div id="panicHist" class="hidden" style="margin-top:14px"></div>
+          <div id="panicResultado" style="margin-top:14px"></div>
+        </div>
+      </section>
+
+      <!-- ---------- VISTA IA ---------- -->
+      <section id="v-ia" class="hidden">
+        <div class="grid2">
+          <div class="card">
+            <h3><span class="ic">🧠</span> Datos para la IA</h3>
+            <div class="field" style="margin-bottom:10px"><label>Modelo</label><input class="txt" id="ia_modelo" placeholder="iPhone 12"></div>
+            <div class="field" style="margin-bottom:10px"><label>Versión iOS</label><input class="txt" id="ia_ios" placeholder="16.3.1"></div>
+            <div class="field" style="margin-bottom:10px"><label>Batería (voltaje / ciclos / salud)</label><input class="txt" id="ia_bateria" placeholder="3950 mV / 540 ciclos / 86%"></div>
+            <div class="field" style="margin-bottom:10px"><label>Consumo en fuente DC (Amperios)</label><input class="txt" id="ia_consumo" placeholder="0.00 A / 0.05 A / 0.6 A de golpe"></div>
+            <label style="font-size:12px;color:#666">Síntomas</label>
+            <div class="chips" id="ia_chips"></div>
+            <textarea id="ia_extra" rows="2" placeholder="Otros síntomas o detalles del cliente…" style="margin-top:6px"></textarea>
+            <label style="font-size:12px;color:#666;margin-top:10px;display:block">Panic log (opcional)</label>
+            <textarea id="ia_panic" rows="3" placeholder="Se llena solo al leer el dispositivo…"></textarea>
+            <label style="font-size:12px;color:#666;margin-top:10px;display:block">Historial / reparaciones previas</label>
+            <textarea id="ia_historial" rows="2" placeholder="Ej: llegó mojado, problema de audio previo…"></textarea>
+            <button class="btn" style="margin-top:14px;width:100%" id="btnIA" onclick="diagnosticarIA()">⚡ Diagnosticar con IA</button>
+          </div>
+          <div class="card">
+            <h3><span class="ic">📄</span> Resultado del diagnóstico</h3>
+            <div id="iaResultado" class="muted" style="text-align:left">Aún no hay diagnóstico. Llena los datos y presiona “Diagnosticar con IA”.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- VISTA BATERÍA ---------- -->
+      <section id="v-bateria" class="hidden">
+        <div class="grid2">
+          <div class="card">
+            <h3><span class="ic">🔋</span> Estado de la batería</h3>
+            <p class="muted" style="text-align:left">Conecta el iPhone y léela. Trabaja junto a tu JC V1SE: aquí lees, detectas y registras; el JC hace la reprogramación.</p>
+            <button class="btn" style="width:100%;margin:8px 0" id="btnLeerBat" onclick="leerBateria(this)">🔋 Leer batería del iPhone</button>
+            <button class="btn sec" style="width:100%" onclick="leerBateriaDemo()">Ver con datos de demostración</button>
+            <div id="batResultado" style="margin-top:14px"></div>
+          </div>
+          <div class="card">
+            <h3><span class="ic">📋</span> Registro antes / después</h3>
+            <p class="muted" style="text-align:left">Guarda la lectura antes y después de pasar el JC, para ver la mejora y dejarlo en el expediente.</p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">
+              <button class="btn sec" id="btnBatAntes" onclick="guardarBateria('antes',this)" disabled>💾 Guardar “ANTES”</button>
+              <button class="btn sec" id="btnBatDespues" onclick="guardarBateria('despues',this)" disabled>💾 Guardar “DESPUÉS”</button>
+            </div>
+            <div id="batHistorial" class="muted" style="text-align:left;margin-top:8px">Lee una batería para empezar.</div>
+          </div>
+        </div>
+        <div class="card">
+          <h3><span class="ic">♻️</span> Recalibración manual guiada (sin hardware)</h3>
+          <p class="muted" style="text-align:left">Cuando la lectura de salud/ciclos quedó rara, este ciclo ayuda a que el iPhone recalibre su medición. No reemplaza al JC, pero a veces corrige el dato.</p>
+          <ol style="font-size:13.5px;line-height:1.9;margin:6px 0 0 18px">
+            <li>Carga el iPhone hasta <b>100%</b> y déjalo conectado <b>2 horas más</b>.</li>
+            <li>Úsalo normal hasta que <b>se apague solo</b> por batería (0%).</li>
+            <li>Déjalo apagado <b>unas horas</b>.</li>
+            <li>Cárgalo <b>sin interrupción hasta 100%</b> (de corrido).</li>
+            <li>Reinícialo y vuelve a <b>leer la batería</b> aquí para comparar.</li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- ---------- VISTA HERRAMIENTAS IPHONE ---------- -->
+      <section id="v-herramientas" class="hidden">
+        <div class="card">
+          <h3><span class="ic">🧰</span> Herramientas del iPhone</h3>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn" id="btnFicha" onclick="leerFicha(this)">📄 Leer ficha técnica</button>
+            <button class="btn sec" onclick="accDispositivo('restart')">🔄 Reiniciar</button>
+            <button class="btn sec" onclick="accDispositivo('shutdown')">⏻ Apagar</button>
+            <button class="btn sec" onclick="accSalirRecovery()">🩹 Salir de Recovery</button>
+            <button class="btn sec" onclick="accCaptura()">📸 Captura de pantalla</button>
+            <button class="btn sec" onclick="accApps()">📲 Apps instaladas</button>
+          </div>
+          <div id="hToolMsg" class="muted" style="text-align:left;margin-top:10px"></div>
+        </div>
+        <div class="grid2">
+          <div class="card">
+            <h3><span class="ic">📄</span> Ficha técnica</h3>
+            <div id="fichaTec" class="muted" style="text-align:left">Conecta el iPhone y presiona “Leer ficha técnica”.</div>
+            <button class="btn sec hidden" id="btnImprimirFicha" style="margin-top:10px" onclick="imprimirFicha()">🖨️ Imprimir / guardar ficha</button>
+          </div>
+          <div class="card">
+            <h3><span class="ic">🔒</span> Compañía / Bloqueo (IMEI)</h3>
+            <div id="carrierBox" class="muted" style="text-align:left">—</div>
+            <button class="btn sec hidden" id="btnImei" style="margin-top:10px" onclick="verificarImei()">🔎 Verificar IMEI (compañía / bloqueo)</button>
+            <p class="muted" style="text-align:left;margin-top:8px">El estado de bloqueo SIM confiable se obtiene por chequeo de IMEI (servicio en línea).</p>
+          </div>
+        </div>
+        <div class="card">
+          <h3><span class="ic">📡</span> Códigos de Tubo SIM por compañía</h3>
+          <p class="muted" style="text-align:left">Guarda aquí tus códigos/ICCID por compañía. Cuando identifiques a qué operador está bloqueado el iPhone, tienes el código a mano.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin:8px 0">
+            <div class="field" style="flex:1;min-width:120px"><label>Compañía</label><input class="txt" id="ts_comp" placeholder="AT&T, T-Mobile…"></div>
+            <div class="field" style="flex:2;min-width:160px"><label>Código / ICCID</label><input class="txt" id="ts_iccid" placeholder="8901..."></div>
+            <div class="field" style="flex:2;min-width:140px"><label>Nota (opcional)</label><input class="txt" id="ts_nota" placeholder="modelo/iOS, truco…"></div>
+            <button class="btn" id="ts_btn" onclick="agregarTuboSim(this)">➕ Guardar</button>
+          </div>
+          <div id="tuboSimLista" class="muted" style="text-align:left">Cargando…</div>
+        </div>
+        <div class="card hidden" id="appsCard">
+          <h3><span class="ic">📲</span> Apps instaladas</h3>
+          <pre id="appsBox" class="panic-box" style="max-height:240px"></pre>
+        </div>
+      </section>
+
+      <!-- ---------- VISTA PANTALLA ---------- -->
+      <section id="v-pantalla" class="hidden">
+        <div class="grid2">
+          <div class="card">
+            <h3><span class="ic">🖥️</span> Cambio de pantalla — asistente (con JC V1SE)</h3>
+            <p class="muted" style="text-align:left">El JC copia los datos de la pantalla original a la nueva (para que no marque “Pantalla desconocida” y siga el True Tone). BDE te guía y lo documenta.</p>
+            <ol style="font-size:13.5px;line-height:1.9;margin:6px 0 0 18px">
+              <li>Con la pantalla <b>ORIGINAL</b> aún conectada, en el JC <b>lee y guarda</b> los datos (EEPROM).</li>
+              <li>Conecta la pantalla de <b>REEMPLAZO</b> al flex del JC.</li>
+              <li>En el JC, <b>escribe/copia</b> los datos guardados a la pantalla nueva.</li>
+              <li>Monta la pantalla nueva en el iPhone y enciéndelo.</li>
+              <li>Verifica abajo (True Tone, mensaje, brillo) y <b>guarda el registro</b>.</li>
+            </ol>
+          </div>
+          <div class="card">
+            <h3><span class="ic">✅</span> Verificación y registro</h3>
+            <div class="field" style="margin-bottom:8px"><label>Modelo</label><input class="txt" id="pt_modelo" placeholder="iPhone 12"></div>
+            <div class="field" style="margin-bottom:8px"><label>IMEI (opcional)</label><input class="txt" id="pt_imei" placeholder="35..."></div>
+            <div class="field" style="margin-bottom:8px"><label>Tipo de pantalla nueva</label>
+              <select id="pt_tipo"><option value="original">Original</option><option value="copiada">Copiada con JC</option><option value="incell">Incell/compatible</option><option value="oled">OLED compatible</option></select></div>
+            <label style="font-size:12px;color:#666;display:block;margin-top:6px">Marca lo que quedó funcionando:</label>
+            <div style="display:flex;flex-direction:column;gap:6px;margin:8px 0;font-size:14px">
+              <label><input type="checkbox" id="pt_truetone"> True Tone funciona</label>
+              <label><input type="checkbox" id="pt_sinmensaje"> Desapareció el “Mensaje de pantalla”</label>
+              <label><input type="checkbox" id="pt_brillo"> Brillo automático funciona</label>
+              <label><input type="checkbox" id="pt_tactil"> Multitáctil OK (toda la pantalla)</label>
+            </div>
+            <button class="btn" style="width:100%" id="pt_btn" onclick="guardarPantalla(this)">💾 Guardar registro</button>
+            <div id="ptHistorial" class="muted" style="text-align:left;margin-top:12px">—</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- VISTA CÁMARA TÉRMICA ---------- -->
+      <section id="v-termica" class="hidden">
+        <div class="grid2">
+          <div class="card">
+            <h3><span class="ic">🌡️</span> Cámara térmica en vivo</h3>
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+              <select id="termCam" style="flex:1;min-width:160px"></select>
+              <button class="btn sec" onclick="iniciarCamaraTermica()">▶ Iniciar</button>
+              <button class="btn sec" onclick="detenerCamaraTermica()">■ Detener</button>
+            </div>
+            <video id="termVideo" autoplay playsinline muted style="width:100%;border-radius:10px;background:#000;aspect-ratio:4/3;object-fit:contain"></video>
+            <canvas id="termCanvas" class="hidden"></canvas>
+            <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+              <button class="btn" onclick="capturarTermica()">📸 Capturar</button>
+              <button class="btn sec" onclick="capturarPantalla('termica')">📺 Capturar de REEFOX</button>
+              <button class="btn sec" onclick="document.getElementById('termFile').click()">📂 Subir imagen</button>
+              <input type="file" id="termFile" accept="image/*" style="display:none" onchange="cargarImagenTermica(this)">
+            </div>
+            <p class="muted" id="termHint" style="text-align:left;margin-top:8px">Selecciona la cámara térmica (suele aparecer como una webcam USB) y dale Iniciar. Si no tiene escala de temperatura, la IA igual detecta las zonas calientes por color.</p>
+          </div>
+          <div class="card">
+            <h3><span class="ic">📄</span> Análisis térmico</h3>
+            <div id="termCaptura" class="hidden" style="margin-bottom:10px">
+              <img id="termImg" style="width:100%;border-radius:10px;border:1px solid var(--borde)">
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn" id="termBtnIA" onclick="analizarTermica()" disabled>🧠 Analizar con IA</button>
+              <button class="btn sec" id="termBtnGuardar" onclick="guardarTermica()" disabled>💾 Guardar captura</button>
+            </div>
+            <div id="termResultado" class="muted" style="text-align:left;margin-top:12px">Captura o sube una imagen térmica y presiona “Analizar con IA”.</div>
+          </div>
+        </div>
+        <div class="card">
+          <h3><span class="ic">🌡️</span> Umbrales de temperatura por componente (referencia)</h3>
+          <div class="row" id="termUmbrales"></div>
+        </div>
+      </section>
+
+      <!-- ---------- VISTA MICROSCOPIO ---------- -->
+      <section id="v-microscopio" class="hidden">
+        <div class="grid2">
+          <div class="card">
+            <h3><span class="ic">🔬</span> Microscopio en vivo</h3>
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+              <select id="micCam" style="flex:1;min-width:160px"></select>
+              <button class="btn sec" onclick="iniciarMicroscopio()">▶ Iniciar</button>
+              <button class="btn sec" onclick="detenerMicroscopio()">■ Detener</button>
+            </div>
+            <video id="micVideo" autoplay playsinline muted style="width:100%;border-radius:10px;background:#000;aspect-ratio:4/3;object-fit:contain"></video>
+            <canvas id="micCanvas" class="hidden"></canvas>
+            <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+              <button class="btn" onclick="capturarMicro()">📸 Capturar</button>
+              <button class="btn sec" onclick="capturarPantalla('micro')">📺 Capturar de REEFOX</button>
+              <button class="btn sec" onclick="document.getElementById('micFile').click()">📂 Subir imagen</button>
+              <input type="file" id="micFile" accept="image/*" style="display:none" onchange="cargarImagenMicro(this)">
+            </div>
+            <p class="muted" style="text-align:left;margin-top:8px">Selecciona el microscopio USB (aparece como webcam) y dale Iniciar. La IA detecta corrosión, soldadura fría, puentes de estaño, pads levantados, quemaduras, etc.</p>
+          </div>
+          <div class="card">
+            <h3><span class="ic">📄</span> Análisis visual</h3>
+            <div id="micCaptura" class="hidden" style="margin-bottom:10px">
+              <img id="micImg" style="width:100%;border-radius:10px;border:1px solid var(--borde)">
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn" id="micBtnIA" onclick="analizarMicro()" disabled>🧠 Analizar con IA</button>
+              <button class="btn sec" id="micBtnGuardar" onclick="guardarMicro()" disabled>💾 Guardar captura</button>
+            </div>
+            <div id="micResultado" class="muted" style="text-align:left;margin-top:12px">Captura o sube una imagen del microscopio y presiona “Analizar con IA”.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- VISTA ESQUEMÁTICOS (REEFOX) ---------- -->
+      <section id="v-esquematicos" class="hidden" style="height:calc(100vh - 100px); display:flex; flex-direction:column;">
+        <div class="card" style="margin-bottom:10px;">
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <b style="font-size:13px;">📐 Esquemáticos (REEFOX)</b>
+            <span class="muted" style="text-align:left;">Entra con tu cuenta de REEFOX. Tu sesión queda guardada.</span>
+            <div style="flex:1"></div>
+            <button class="btn sec" onclick="reefoxRecargar()">⟲ Recargar</button>
+            <button class="btn sec" onclick="reefoxAbrirFuera()">↗ Abrir en navegador</button>
+          </div>
+          <div style="margin-top:10px;">
+            <div class="muted" style="text-align:left; margin-bottom:4px;">Componentes detectados por la IA (toca para copiar y buscar en REEFOX):</div>
+            <div class="chips" id="reefoxComponentes"><span class="muted">— Aún no hay diagnóstico. Haz un diagnóstico y aquí saldrán los componentes.</span></div>
+          </div>
+        </div>
+        <div style="flex:1; border-radius:12px; overflow:hidden; border:1px solid var(--borde); background:#fff;">
+          <webview id="reefoxView" partition="persist:reefox" style="width:100%; height:100%;" allowpopups></webview>
+        </div>
+      </section>
+
+      <!-- ---------- VISTA BASE DE CONOCIMIENTO ---------- -->
+      <section id="v-conocimiento" class="hidden">
+        <div class="row" id="conoStats" style="margin-bottom:16px"></div>
+        <div class="grid2">
+          <div class="card">
+            <h3><span class="ic">➕</span> Registrar caso resuelto</h3>
+            <div class="field" style="margin-bottom:8px"><label>Modelo</label><input class="txt" id="co_modelo" placeholder="iPhone 12"></div>
+            <div class="field" style="margin-bottom:8px"><label>Código de panic (si aplica)</label><input class="txt" id="co_panic" placeholder="i2c2 hang"></div>
+            <div class="field" style="margin-bottom:8px"><label>Síntomas (separados por coma)</label><input class="txt" id="co_sintomas" placeholder="no carga, mojado"></div>
+            <div class="field" style="margin-bottom:8px"><label>Solución aplicada</label><textarea id="co_solucion" rows="2" placeholder="Reemplazo de flex de carga y limpieza ultrasonido"></textarea></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <div class="field" style="flex:1"><label>¿Exitoso?</label>
+                <select id="co_exitoso"><option value="true">Sí ✅</option><option value="false">No ❌</option></select></div>
+              <div class="field" style="flex:1"><label>Tiempo (min)</label><input class="txt" id="co_tiempo" type="number" placeholder="45"></div>
+            </div>
+            <div class="field" style="margin:8px 0"><label>Piezas usadas (separadas por coma)</label><input class="txt" id="co_piezas" placeholder="Flex de carga iPhone 12"></div>
+            <button class="btn" style="width:100%" id="co_btn" onclick="registrarCaso()">💾 Guardar / confirmar caso</button>
+            <p class="muted" style="text-align:left;margin-top:8px">Si ya existe un caso igual (mismo modelo, código y solución), se <b>confirma</b> y sube su confiabilidad en vez de duplicarse.</p>
+          </div>
+          <div class="card">
+            <h3><span class="ic">📚</span> Casos guardados</h3>
+            <div id="conoLista" class="muted" style="text-align:left">Cargando…</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- VISTA MANTENIMIENTO ---------- -->
+      <section id="v-mantenimiento" class="hidden">
+        <div class="row">
+          <div class="card">
+            <h3><span class="ic">🔄</span> Actualizar app</h3>
+            <p class="muted" style="text-align:left">Descarga e instala la última versión del programa.</p>
+            <p style="font-size:13px;margin:6px 0">Versión instalada: <b id="mtVersion">—</b></p>
+            <button class="btn" style="width:100%" onclick="actualizarApp(this)">🔄 Buscar e instalar actualización</button>
+            <div id="mtUpd" class="muted" style="text-align:left;margin-top:10px"></div>
+          </div>
+          <div class="card">
+            <h3><span class="ic">⏪</span> Volver a versión anterior</h3>
+            <p class="muted" style="text-align:left">Si una actualización te dio problemas, instala una versión anterior.</p>
+            <button class="btn sec" style="width:100%;margin-top:8px" onclick="versionAnterior()">⏪ Ver versiones anteriores</button>
+          </div>
+          <div class="card">
+            <h3><span class="ic">💾</span> Backup de datos</h3>
+            <p class="muted" style="text-align:left">Descarga una copia de seguridad de toda la base de datos (solo admin).</p>
+            <button class="btn" style="width:100%;background:#0891b2;margin-top:8px" onclick="backupDatos(this)">💾 Hacer backup ahora</button>
+            <div id="mtBackup" class="muted" style="text-align:left;margin-top:10px"></div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<!-- Selector de ventana/pantalla para "Capturar de pantalla" (REEFOX) -->
+<div id="srcPicker" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:60;display:flex;align-items:center;justify-content:center">
+  <div class="card" style="max-width:440px;width:90%;max-height:75vh;overflow:auto">
+    <h3><span class="ic" style="color:var(--rojo)">📺</span> Elige la ventana a capturar</h3>
+    <p class="muted" style="text-align:left;margin-bottom:10px">Abre el programa de REEFOX (microscopio o térmica) y elígelo de la lista.</p>
+    <div id="srcList"></div>
+    <button class="btn sec" style="margin-top:10px;width:100%" onclick="document.getElementById('srcPicker').classList.add('hidden')">Cancelar</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="../data/panic-codes.js"></script>
+<script src="../data/battery-rules.js"></script>
+<script src="../data/iphone-specs.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
