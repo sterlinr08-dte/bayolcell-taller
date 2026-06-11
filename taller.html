@@ -10687,6 +10687,12 @@ function renderPiezasSolicitadas() {
         if(!editable || !puede) return '';
         return `<button class="btn btn-light" style="font-size:11px; padding:4px 8px;" title="Editar pieza" onclick="editarPiezaSolicitada('${i.id}','${i.kind}','${i.tecnicoId||''}')"><i class="ti ti-edit"></i></button>`;
     };
+    // Botón BORRAR: solo administración o servicio
+    const puedeBorrarPieza = isAdminUser() || esServicio;
+    const botonBorrar = (i) => {
+        if(!puedeBorrarPieza) return '';
+        return `<button class="btn btn-light" style="font-size:11px; padding:4px 8px; color:#dc2626;" title="Borrar pieza" onclick="borrarPiezaSolicitada('${i.id}','${i.kind}')"><i class="ti ti-trash"></i></button>`;
+    };
 
     const tabNombre = _psTab === 'orden' ? 'Órdenes de Servicio' : 'Reacondicionados';
     let html = `<div style="display:flex; gap:10px; margin-bottom:6px; flex-wrap:wrap; font-size:12px;">
@@ -10742,6 +10748,7 @@ function renderPiezasSolicitadas() {
                     ${etiqEstado(p.estado)}
                     ${botonEditar(p)}
                     ${botonAccion(p)}
+                    ${botonBorrar(p)}
                 </div>`).join('')}
             </div>`;
         });
@@ -10771,6 +10778,21 @@ async function editarPiezaSolicitada(id, kind, tecnicoId){
         await loadAll();
         renderPiezasSolicitadas();
     } catch(e){ logError('Editar pieza solicitada', e); toastError(getFriendlyError(e)); }
+}
+
+// Borrar una pieza solicitada. SOLO administración o servicio.
+async function borrarPiezaSolicitada(id, kind){
+    const esServ = !isAdminUser() && (sessionUser?.tipo_empleado === 'servicio' || tienePermiso('solo_atencion') || tienePermiso('recepcion_ver'));
+    if(!(isAdminUser() || esServ)) return toast('Solo administración o servicio pueden borrar piezas.', 'error');
+    if(!await confirmar('¿Borrar esta pieza solicitada? Esta acción no se puede deshacer.')) return;
+    const tabla = kind === 'orden' ? 'orden_piezas' : 'equipo_piezas_pedidas';
+    try {
+        const { error } = await supabaseClient.from(tabla).delete().eq('id', id);
+        if(error) throw error;
+        toast('🗑️ Pieza borrada.');
+        await loadAll();
+        renderPiezasSolicitadas();
+    } catch(e){ logError('Borrar pieza solicitada', e); toastError(getFriendlyError(e)); }
 }
 
 // Lista de recepciones realizadas (con buscador y filtro de fecha) en el módulo Recepción
