@@ -5453,19 +5453,23 @@ async function renderEstadisticas(btn){
     cont.innerHTML = '<p style="text-align:center; color:var(--text-muted); padding:30px;">Cargando…</p>';
     try {
         const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
-        const [invRes, topRes, ventasRes, ordRes, vtaRes, repRes, tcRes] = await Promise.all([
+        const [invRes, topRes, ventasRes, ordRes, vtaRes, repRes, tcRes, rentRes, dormRes] = await Promise.all([
             supabaseClient.rpc('stats_inventario'),
             supabaseClient.rpc('stats_inventario_top', { lim: 10 }),
             supabaseClient.from('refurb_ventas').select('precio_venta_real, vendido_en').limit(5000),
             supabaseClient.from('ordenes_reparacion').select('estado, precio_cliente, fecha_entregado').limit(8000),
             supabaseClient.rpc('stats_ventas', _estRango()),
             supabaseClient.rpc('stats_reposicion', { p_dias: 30, p_umbral_dias: 15, p_cobertura_dias: 30 }),
-            supabaseClient.rpc('stats_taller_control')
+            supabaseClient.rpc('stats_taller_control'),
+            supabaseClient.rpc('stats_rentabilidad', Object.assign(_estRango(), { p_lim: 25 })),
+            supabaseClient.rpc('stats_sin_rotacion', { p_dias: 90, p_lim: 50 })
         ]);
         const inv = invRes.data || {};
         const vt = (vtaRes && vtaRes.data && !vtaRes.data.error) ? vtaRes.data : null;
         const rep = (repRes && repRes.data && !repRes.data.error) ? repRes.data : null;
         const tc = (tcRes && tcRes.data && !tcRes.data.error) ? tcRes.data : null;
+        const rent = (rentRes && rentRes.data && !rentRes.data.error) ? rentRes.data : null;
+        const dorm = (dormRes && dormRes.data && !dormRes.data.error) ? dormRes.data : null;
         const top = topRes.data || [];
         const ventas = ventasRes.data || [];
         const ordenes = ordRes.data || [];
@@ -5608,7 +5612,61 @@ async function renderEstadisticas(btn){
             </div>`;
         }
 
-        cont.innerHTML = `${vtHtml}` + `${repHtml}` + `${tcHtml}` + `
+        // ===== RENTABILIDAD POR PRODUCTO =====
+        let rentHtml = '';
+        if(rent && (rent.items||[]).length){
+            const fr = rent.items.map(it=>`<tr>
+                <td><b>${escapeHtml(it.producto_id||'')}</b></td>
+                <td>${escapeHtml(it.descripcion||'—')}</td>
+                <td style="text-align:center;">${_statNum(it.unidades)}</td>
+                <td>${_statRD(it.venta)}</td>
+                <td style="color:#16a34a; font-weight:700;">${_statRD(it.ganancia)}</td>
+                <td style="text-align:center;">${_statNum(it.margen_pct)}%</td>
+                <td style="text-align:center;">${_statNum(it.stock_unidades)}</td>
+                <td style="color:#7c3aed;">${_statRD(it.valor_stock)}</td>
+            </tr>`).join('');
+            rentHtml = `
+            <div class="card" style="margin-bottom:15px; border-top:3px solid #16a34a;">
+                <h3 style="margin:0 0 4px;"><i class="ti ti-trending-up" style="color:#16a34a;"></i> Rentabilidad por producto</h3>
+                <p style="color:var(--text-muted); font-size:12px; margin:0 0 12px;">Lo que más <b>ganancia</b> te deja en el período, y cuánto <b>capital tienes parado</b> en stock de cada uno. (Top 25 por ganancia)</p>
+                <div class="table-wrap" style="max-height:460px; overflow-y:auto;"><table><thead><tr>
+                    <th>Código</th><th>Producto</th><th>Unid.</th><th>Venta</th><th>Ganancia</th><th>Margen</th><th>Stock</th><th>Capital parado</th>
+                </tr></thead><tbody>${fr}</tbody></table></div>
+            </div>`;
+        }
+
+        // ===== PRODUCTOS QUE NO ROTAN (dinero dormido) =====
+        let dormHtml = '';
+        if(dorm){
+            const items = dorm.items||[];
+            const fd = items.map(it=>{
+                const uv = it.ultima_venta ? new Date(it.ultima_venta).toLocaleDateString('es-DO') : '<span style="color:#dc2626;">Nunca</span>';
+                return `<tr>
+                    <td><b>${escapeHtml(it.codigo||'')}</b></td>
+                    <td>${escapeHtml(it.descripcion||'—')}</td>
+                    <td style="text-align:center;">${_statNum(it.stock_unidades)}</td>
+                    <td style="color:#dc2626; font-weight:700;">${_statRD(it.valor_dormido)}</td>
+                    <td style="text-align:center;">${uv}</td>
+                </tr>`;
+            }).join('');
+            const tablaD = items.length
+                ? `<div class="table-wrap" style="max-height:460px; overflow-y:auto;"><table><thead><tr>
+                    <th>Código</th><th>Producto</th><th>Stock</th><th>Dinero dormido</th><th>Última venta</th>
+                   </tr></thead><tbody>${fd}</tbody></table></div>`
+                : '<p style="color:#16a34a; padding:10px;">✅ Todo tu stock ha rotado en los últimos 90 días.</p>';
+            dormHtml = `
+            <div class="card" style="margin-bottom:15px; border-top:3px solid #dc2626;">
+                <h3 style="margin:0 0 4px;"><i class="ti ti-zzz" style="color:#dc2626;"></i> Productos que NO rotan (dinero dormido)</h3>
+                <p style="color:var(--text-muted); font-size:12px; margin:0 0 12px;">Tienen stock pero <b>no se han vendido en 90 días</b>. Es capital parado que podrías mover (oferta, traslado, etc.). Ordenado por el que más dinero tiene dormido.</p>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-bottom:14px;">
+                    ${_statCard('Productos sin rotar', _statNum(dorm.total_productos), '#dc2626', 'sin venta en 90 días')}
+                    ${_statCard('Dinero dormido', _statRD(dorm.valor_dormido_total), '#dc2626', 'capital parado en ese stock')}
+                </div>
+                ${tablaD}
+            </div>`;
+        }
+
+        cont.innerHTML = `${vtHtml}` + `${rentHtml}` + `${repHtml}` + `${dormHtml}` + `${tcHtml}` + `
         <!-- VENTAS INTERNAS (TALLER) -->
         <div class="card" style="margin-bottom:15px;">
             <h3 style="margin:0 0 12px;"><i class="ti ti-tool" style="color:#0891b2;"></i> Ventas internas del taller (reacondicionados + servicio)</h3>
