@@ -5453,7 +5453,7 @@ async function renderEstadisticas(btn){
     cont.innerHTML = '<p style="text-align:center; color:var(--text-muted); padding:30px;">Cargando…</p>';
     try {
         const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
-        const [invRes, topRes, ventasRes, ordRes, vtaRes, repRes, tcRes, rentRes, dormRes] = await Promise.all([
+        const [invRes, topRes, ventasRes, ordRes, vtaRes, repRes, tcRes, rentRes, dormRes, cliRes] = await Promise.all([
             supabaseClient.rpc('stats_inventario'),
             supabaseClient.rpc('stats_inventario_top', { lim: 10 }),
             supabaseClient.from('refurb_ventas').select('precio_venta_real, vendido_en').limit(5000),
@@ -5462,7 +5462,8 @@ async function renderEstadisticas(btn){
             supabaseClient.rpc('stats_reposicion', { p_dias: 30, p_umbral_dias: 15, p_cobertura_dias: 30 }),
             supabaseClient.rpc('stats_taller_control'),
             supabaseClient.rpc('stats_rentabilidad', Object.assign(_estRango(), { p_lim: 25 })),
-            supabaseClient.rpc('stats_sin_rotacion', { p_dias: 90, p_lim: 50 })
+            supabaseClient.rpc('stats_sin_rotacion', { p_dias: 90, p_lim: 50 }),
+            supabaseClient.rpc('stats_clientes', Object.assign(_estRango(), { p_lim: 30 }))
         ]);
         const inv = invRes.data || {};
         const vt = (vtaRes && vtaRes.data && !vtaRes.data.error) ? vtaRes.data : null;
@@ -5470,6 +5471,7 @@ async function renderEstadisticas(btn){
         const tc = (tcRes && tcRes.data && !tcRes.data.error) ? tcRes.data : null;
         const rent = (rentRes && rentRes.data && !rentRes.data.error) ? rentRes.data : null;
         const dorm = (dormRes && dormRes.data && !dormRes.data.error) ? dormRes.data : null;
+        const cli = (cliRes && cliRes.data && !cliRes.data.error) ? cliRes.data : null;
         const top = topRes.data || [];
         const ventas = ventasRes.data || [];
         const ordenes = ordRes.data || [];
@@ -5666,7 +5668,41 @@ async function renderEstadisticas(btn){
             </div>`;
         }
 
-        cont.innerHTML = `${vtHtml}` + `${rentHtml}` + `${repHtml}` + `${dormHtml}` + `${tcHtml}` + `
+        // ===== CLIENTES FRECUENTES =====
+        let cliHtml = '';
+        if(cli && (cli.items||[]).length){
+            const hoy = new Date();
+            const fc = cli.items.map((it,idx)=>{
+                const ult = it.ultima_compra ? new Date(it.ultima_compra) : null;
+                const diasSin = ult ? Math.floor((hoy - ult)/86400000) : null;
+                const ultTxt = ult ? ult.toLocaleDateString('es-DO') : '—';
+                const alerta = (diasSin!=null && diasSin>30) ? ` <span style="color:#dc2626; font-size:11px;">(${diasSin}d sin comprar)</span>` : '';
+                return `<tr>
+                    <td style="text-align:center; color:var(--text-muted);">${idx+1}</td>
+                    <td><b>${escapeHtml(it.cliente_cuenta||'')}</b></td>
+                    <td>${escapeHtml((it.direccion||'—').slice(0,40))}</td>
+                    <td style="text-align:center;">${_statNum(it.facturas)}</td>
+                    <td style="font-weight:700;">${_statRD(it.total)}</td>
+                    <td style="color:#16a34a;">${_statRD(it.ganancia)}</td>
+                    <td>${_statRD(it.ticket_promedio)}</td>
+                    <td style="font-size:12px;">${ultTxt}${alerta}</td>
+                </tr>`;
+            }).join('');
+            cliHtml = `
+            <div class="card" style="margin-bottom:15px; border-top:3px solid #0891b2;">
+                <h3 style="margin:0 0 4px;"><i class="ti ti-users" style="color:#0891b2;"></i> Clientes frecuentes</h3>
+                <p style="color:var(--text-muted); font-size:12px; margin:0 0 12px;">Tus mejores clientes del período (por monto comprado). "Ticket prom." = cuánto gasta por factura. Si tiene <span style="color:#dc2626;">(Xd sin comprar)</span>, lleva rato sin volver — buena señal para darle seguimiento. (Top 30)</p>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-bottom:14px;">
+                    ${_statCard('Clientes que compraron', _statNum(cli.total_clientes), '#0891b2', 'en el período')}
+                    ${_statCard('Venta total del período', _statRD(cli.venta_total), '#16a34a', '')}
+                </div>
+                <div class="table-wrap" style="max-height:480px; overflow-y:auto;"><table><thead><tr>
+                    <th>#</th><th>Cuenta</th><th>Dirección</th><th>Facturas</th><th>Total comprado</th><th>Ganancia</th><th>Ticket prom.</th><th>Última compra</th>
+                </tr></thead><tbody>${fc}</tbody></table></div>
+            </div>`;
+        }
+
+        cont.innerHTML = `${vtHtml}` + `${cliHtml}` + `${rentHtml}` + `${repHtml}` + `${dormHtml}` + `${tcHtml}` + `
         <!-- VENTAS INTERNAS (TALLER) -->
         <div class="card" style="margin-bottom:15px;">
             <h3 style="margin:0 0 12px;"><i class="ti ti-tool" style="color:#0891b2;"></i> Ventas internas del taller (reacondicionados + servicio)</h3>
