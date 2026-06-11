@@ -5446,6 +5446,15 @@ function _estPeriodoBtns(){
     const opts = [['mes','Este mes'],['30d','Últimos 30 días'],['anio','Este año'],['todo','Todo']];
     return opts.map(([k,txt])=>`<button onclick="setEstPeriodo('${k}')" style="padding:6px 12px; border:1px solid ${_estPeriodo===k?'#16a34a':'var(--border-color)'}; background:${_estPeriodo===k?'#16a34a':'#fff'}; color:${_estPeriodo===k?'#fff':'var(--text-dark)'}; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">${txt}</button>`).join(' ');
 }
+// Localidad para el reporte de Reposición/Agotamiento (qué almacenes mirar)
+let _repLocalidad = 'todos';
+const _REP_ALMACENES = { todos: null, santiago: ['1'], moca: ['4'] };
+const _REP_LABEL = { todos: 'Todas las localidades', santiago: 'Santiago (Oficina)', moca: 'Moca' };
+function setRepLocalidad(loc){ _repLocalidad = loc; renderEstadisticas(); }
+function _repLocBtns(){
+    const opts = [['todos','Todas'],['santiago','Santiago'],['moca','Moca']];
+    return opts.map(([k,txt])=>`<button onclick="setRepLocalidad('${k}')" style="padding:5px 11px; border:1px solid ${_repLocalidad===k?'#dc2626':'var(--border-color)'}; background:${_repLocalidad===k?'#dc2626':'#fff'}; color:${_repLocalidad===k?'#fff':'var(--text-dark)'}; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">${txt}</button>`).join(' ');
+}
 async function renderEstadisticas(btn){
     if(!esDueno()){ return; }
     const cont = document.getElementById('estadisticasContenido'); if(!cont) return;
@@ -5459,7 +5468,7 @@ async function renderEstadisticas(btn){
             supabaseClient.from('refurb_ventas').select('precio_venta_real, vendido_en').limit(5000),
             supabaseClient.from('ordenes_reparacion').select('estado, precio_cliente, fecha_entregado').limit(8000),
             supabaseClient.rpc('stats_ventas', _estRango()),
-            supabaseClient.rpc('stats_reposicion', { p_dias: 30, p_umbral_dias: 15, p_cobertura_dias: 30 }),
+            supabaseClient.rpc('stats_reposicion', { p_dias: 30, p_umbral_dias: 15, p_cobertura_dias: 30, p_almacenes: _REP_ALMACENES[_repLocalidad] }),
             supabaseClient.rpc('stats_taller_control'),
             supabaseClient.rpc('stats_rentabilidad', Object.assign(_estRango(), { p_lim: 25 })),
             supabaseClient.rpc('stats_sin_rotacion', { p_dias: 90, p_lim: 50 }),
@@ -5566,18 +5575,23 @@ async function renderEstadisticas(btn){
                     <td>${_statRD(it.valor_reponer)}</td>
                 </tr>`;
             }).join('');
+            const esLoc = _repLocalidad !== 'todos';
+            const stockLbl = _repLocalidad === 'santiago' ? 'Stock Santiago' : (_repLocalidad === 'moca' ? 'Stock Moca' : 'Stock total');
             const tabla = items.length
                 ? `<div class="table-wrap" style="max-height:480px; overflow-y:auto;"><table><thead><tr>
-                    <th>Código</th><th>Producto</th><th>Vend. 30d</th><th>Stock total</th><th>Stock Taller</th><th>Dura</th><th>Reponer</th><th>Costo reponer</th>
+                    <th>Código</th><th>Producto</th><th>Vend. 30d</th><th>${stockLbl}</th><th>Stock Taller</th><th>Dura</th><th>Reponer</th><th>Costo reponer</th>
                    </tr></thead><tbody>${filas}</tbody></table></div>`
-                : '<p style="color:#16a34a; padding:10px;">✅ Ninguna mercancía en riesgo de agotarse según las ventas de los últimos 30 días.</p>';
+                : `<p style="color:#16a34a; padding:10px;">✅ Nada en riesgo de agotarse en <b>${_REP_LABEL[_repLocalidad]}</b> según las ventas de los últimos 30 días.</p>`;
             repHtml = `
             <div class="card" style="margin-bottom:15px; border-top:3px solid #dc2626;">
-                <h3 style="margin:0 0 4px;"><i class="ti ti-alert-triangle" style="color:#dc2626;"></i> Reposición / Agotamiento de mercancía</h3>
-                <p style="color:var(--text-muted); font-size:12px; margin:0 0 12px;">Mercancía física (sin servicios) que se vende y se está acabando, según las ventas de los <b>últimos 30 días</b>. "Dura" = a este ritmo, cuánto te queda. "Reponer" = sugerido para cubrir 30 días.</p>
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:4px;">
+                    <h3 style="margin:0;"><i class="ti ti-alert-triangle" style="color:#dc2626;"></i> Reposición / Agotamiento — ${_REP_LABEL[_repLocalidad]}</h3>
+                    <div style="display:flex; gap:6px; flex-wrap:wrap;"><span style="font-size:11px; color:var(--text-muted); align-self:center;">📍 Localidad:</span>${_repLocBtns()}</div>
+                </div>
+                <p style="color:var(--text-muted); font-size:12px; margin:0 0 12px;">Mercancía física (sin servicios) que se vende y se está acabando en <b>${_REP_LABEL[_repLocalidad]}</b>, según las ventas de los <b>últimos 30 días</b>. "Dura" = a este ritmo, cuánto le queda al stock de esa localidad. "Reponer" = sugerido para cubrir 30 días.</p>
                 <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:14px;">
-                    ${_statCard('Productos en alerta', _statNum(rep.total_alertas), '#d97706', 'se están agotando')}
-                    ${_statCard('Ya agotados', _statNum(rep.agotados), '#dc2626', 'stock total en 0, pero se venden')}
+                    ${_statCard('Productos en alerta', _statNum(rep.total_alertas), '#d97706', 'se están agotando' + (esLoc ? ' en '+_REP_LABEL[_repLocalidad] : ''))}
+                    ${_statCard(esLoc ? 'Agotados en '+(_repLocalidad==='santiago'?'Santiago':'Moca') : 'Ya agotados', _statNum(rep.agotados), '#dc2626', 'stock en 0 pero se venden')}
                     ${_statCard('Sin stock en el Taller', _statNum(rep.sin_taller), '#dc2626', 'falta para reacondicionar')}
                     ${_statCard('Inversión sugerida', _statRD(rep.valor_sugerido), '#0891b2', 'para reponer 30 días')}
                 </div>
