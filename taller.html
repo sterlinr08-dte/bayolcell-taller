@@ -10744,7 +10744,7 @@ function renderPiezasSolicitadas() {
                     ${botonPedir(i)}
                 </div>
                 ${g.piezas.map(p => `<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:5px 0;">
-                    <span style="flex:1; min-width:120px; font-size:13px; font-weight:600;">• ${escapeHtml(p.pieza)}${p.cantidad > 1 ? ' ×' + p.cantidad : ''}</span>
+                    <span style="flex:1 1 160px; min-width:0; font-size:13px; font-weight:600; word-break:break-word; overflow-wrap:anywhere; line-height:1.35;">• ${escapeHtml(p.pieza)}${p.cantidad > 1 ? ' ×' + p.cantidad : ''}</span>
                     ${etiqEstado(p.estado)}
                     ${botonEditar(p)}
                     ${botonAccion(p)}
@@ -11886,7 +11886,7 @@ function renderAtencionCliente() {
         <div id="atencionHistorial"></div>
     </div>`;
     
-    cont.innerHTML = html;
+    cont.innerHTML = `<div style="max-width:640px; overflow-wrap:anywhere; word-break:break-word;">${html}</div>`;
     renderAtencionListaOrdenes();
     renderAtencionHistorial();
 }
