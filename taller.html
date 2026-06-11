@@ -15804,6 +15804,33 @@ function _pintarDetalleFin() {
         </div>
     </div>`;
 
+    // Control MDM (gestión del equipo Apple)
+    const puedeMDM = isAdminUser() || tienePermiso('financiamientos_aprobar');
+    if(puedeMDM) {
+        const est = f.mdm_estado || 'ninguno';
+        const estInfo = { ninguno: { t: 'Sin MDM', c: '#64748b', b: '#e2e8f0' }, activo: { t: 'Activo', c: '#15803d', b: '#dcfce7' }, bloqueado: { t: 'Bloqueado', c: '#b91c1c', b: '#fee2e2' }, liberado: { t: 'Liberado', c: '#1d4ed8', b: '#dbeafe' } }[est] || { t: est, c: '#64748b', b: '#e2e8f0' };
+        const enMora = finEstado(f) === 'atrasado';
+        html += `<div class="card" style="margin-bottom:14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                <h3 style="margin:0; font-size:15px;"><i class="ti ti-device-mobile-cog" style="color:#0f172a;"></i> Control MDM <span style="background:${estInfo.b}; color:${estInfo.c}; font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px;">${estInfo.t}</span></h3>
+            </div>
+            ${enMora && f.mdm_enrolado && est === 'activo' ? `<div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:8px 12px; border-radius:8px; margin-top:10px; font-size:12.5px;">⚠️ Cliente en atraso y equipo enrolado — candidato a bloqueo desde Hexnode.</div>` : ''}
+            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin-top:10px;">
+                <label style="display:flex; align-items:center; gap:6px; font-size:13px; text-transform:none; color:var(--text-dark);"><input type="checkbox" id="mdmEnrolado" ${f.mdm_enrolado ? 'checked' : ''} style="width:auto;"> Equipo enrolado en MDM</label>
+                <div style="flex:1; min-width:130px;"><label>Estado</label><select id="mdmEstado"><option value="ninguno" ${est === 'ninguno' ? 'selected' : ''}>Sin MDM</option><option value="activo" ${est === 'activo' ? 'selected' : ''}>Activo</option><option value="bloqueado" ${est === 'bloqueado' ? 'selected' : ''}>Bloqueado</option><option value="liberado" ${est === 'liberado' ? 'selected' : ''}>Liberado</option></select></div>
+                <div style="flex:1; min-width:130px;"><label>Serial / IMEI enrolado</label><input type="text" id="mdmSerial" value="${escapeHtml(f.mdm_serial || f.equipo_imei || '')}"></div>
+            </div>
+            <div style="margin-top:8px;"><label>Notas MDM</label><input type="text" id="mdmNotas" value="${escapeHtml(f.mdm_notas || '')}" placeholder="Proveedor: ${escapeHtml(f.mdm_proveedor || 'Hexnode')}"></div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;">
+                <button class="btn btn-blue" onclick="guardarMDM('${f.id}')" style="font-size:12px;"><i class="ti ti-device-floppy"></i> Guardar</button>
+                <button class="btn btn-light" onclick="mdmSetEstado('${f.id}','bloqueado')" style="font-size:12px; color:#b91c1c;"><i class="ti ti-lock"></i> Marcar Bloqueado</button>
+                <button class="btn btn-light" onclick="mdmSetEstado('${f.id}','activo')" style="font-size:12px; color:#15803d;"><i class="ti ti-lock-open"></i> Marcar Activo</button>
+                ${est !== 'liberado' && finEstado(f) === 'saldado' ? `<button class="btn btn-light" onclick="mdmSetEstado('${f.id}','liberado')" style="font-size:12px; color:#1d4ed8;"><i class="ti ti-circle-check"></i> Liberar (saldado)</button>` : ''}
+            </div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:8px;">El bloqueo/desbloqueo real se hace en el panel de <b>Hexnode</b>. Aquí se lleva el registro y control.</div>
+        </div>`;
+    }
+
     // Registrar abono
     const moraPend = finMoraPendiente(f);
     if(puedeCobrar && est !== 'saldado' && est !== 'cancelado') {
@@ -17318,6 +17345,36 @@ function whatsappRecordatorioFin(finId) {
     if(moraP > 0) msg += `Mora acumulada: ${money(moraP)}. `;
     msg += `Saldo pendiente: ${money(saldo)}. ¡Gracias por su pago!`;
     window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+// ---- Control MDM ----
+async function guardarMDM(finId) {
+    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso.', 'error'); return; }
+    const datos = {
+        mdm_enrolado: !!document.getElementById('mdmEnrolado')?.checked,
+        mdm_estado: document.getElementById('mdmEstado')?.value || 'ninguno',
+        mdm_serial: (document.getElementById('mdmSerial')?.value || '').trim() || null,
+        mdm_notas: (document.getElementById('mdmNotas')?.value || '').trim() || null
+    };
+    try {
+        const { error } = await supabaseClient.from('financiamientos').update(datos).eq('id', finId);
+        if(error) throw error;
+        toast('✅ Control MDM guardado.');
+        await renderFinanciamientos();
+    } catch(e) { console.error('guardarMDM', e); toast('No se pudo guardar.', 'error'); }
+}
+async function mdmSetEstado(finId, estado) {
+    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso.', 'error'); return; }
+    const txt = { bloqueado: 'marcar como BLOQUEADO', activo: 'marcar como ACTIVO', liberado: 'marcar como LIBERADO' }[estado] || 'actualizar';
+    if(!confirm(`¿Confirmas ${txt}? Recuerda hacer la acción real en Hexnode.`)) return;
+    try {
+        const upd = { mdm_estado: estado };
+        if(estado !== 'ninguno') upd.mdm_enrolado = true;
+        const { error } = await supabaseClient.from('financiamientos').update(upd).eq('id', finId);
+        if(error) throw error;
+        toast('✅ Estado MDM actualizado.');
+        await renderFinanciamientos();
+    } catch(e) { console.error('mdmSetEstado', e); toast('No se pudo actualizar.', 'error'); }
 }
 
 // ============================================================
