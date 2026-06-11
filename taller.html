@@ -3304,6 +3304,28 @@ let loteActualId = null;
 let refreshTimer = null;
 
 function logError(context, error) { console.error(`[BAYOL CELL] ${context}:`, error); }
+
+// ===== CAZADOR GLOBAL DE ERRORES (depuración) =====
+// Captura errores inesperados que pasan FUERA de los try/catch, para que no fallen
+// en silencio. Quedan guardados (últimos 30) y se pueden revisar.
+window._bcErrores = [];
+function _bcRegistrarError(tipo, msg, donde){
+    try {
+        window._bcErrores.unshift({ ts: new Date().toISOString(), tipo, msg: String(msg || '').slice(0,300), donde: String(donde || '') });
+        if(window._bcErrores.length > 30) window._bcErrores.length = 30;
+        try { localStorage.setItem('bayol_errores', JSON.stringify(window._bcErrores)); } catch(_e){}
+    } catch(_e){}
+}
+window.addEventListener('error', function(ev){
+    logError('Error inesperado', ev.error || ev.message);
+    _bcRegistrarError('error', (ev.error && ev.error.message) || ev.message, (ev.filename || '') + (ev.lineno ? (':' + ev.lineno) : ''));
+});
+window.addEventListener('unhandledrejection', function(ev){
+    logError('Promesa sin manejar', ev.reason);
+    _bcRegistrarError('promesa', (ev.reason && (ev.reason.message || ev.reason)) || 'desconocido', '');
+});
+// Para revisar errores recientes: escribir bayolVerErrores() en la consola del navegador
+window.bayolVerErrores = function(){ console.table(window._bcErrores); return window._bcErrores; };
 function getFriendlyError(error, fallback) {
     const m = error?.message || '';
     if(/jwt|expired|token/i.test(m)) { _bcRefreshSession(); return "Tu sesión se renovó. Por favor intenta de nuevo; si persiste, recarga la página."; }
