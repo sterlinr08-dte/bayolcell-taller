@@ -5455,6 +5455,14 @@ function _repLocBtns(){
     const opts = [['todos','Todas'],['santiago','Santiago'],['moca','Moca']];
     return opts.map(([k,txt])=>`<button onclick="setRepLocalidad('${k}')" style="padding:5px 11px; border:1px solid ${_repLocalidad===k?'#dc2626':'var(--border-color)'}; background:${_repLocalidad===k?'#dc2626':'#fff'}; color:${_repLocalidad===k?'#fff':'var(--text-dark)'}; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">${txt}</button>`).join(' ');
 }
+// Filtro por TIPO de mercancía en Reposición (busca en la descripción)
+let _repBuscar = '';
+function setRepBuscar(t){ _repBuscar = t; const inp=document.getElementById('repBuscarInput'); if(inp) inp.value=t; renderEstadisticas(); }
+function _repBuscarDesdeInput(){ _repBuscar = (document.getElementById('repBuscarInput')?.value || '').trim(); renderEstadisticas(); }
+function _repTipoBtns(){
+    const opts = [['','Todas'],['PANTALLA','Pantallas'],['CELULAR','Celulares'],['BATERIA','Baterías'],['FLEX','Flex'],['CAMARA','Cámaras'],['CRISTAL','Cristales'],['CARGA','Pin de carga']];
+    return opts.map(([k,txt])=>`<button onclick="setRepBuscar('${k}')" style="padding:4px 10px; border:1px solid ${_repBuscar.toUpperCase()===k?'#0891b2':'var(--border-color)'}; background:${_repBuscar.toUpperCase()===k?'#0891b2':'#fff'}; color:${_repBuscar.toUpperCase()===k?'#fff':'var(--text-dark)'}; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer;">${txt}</button>`).join(' ');
+}
 async function renderEstadisticas(btn){
     if(!esDueno()){ return; }
     const cont = document.getElementById('estadisticasContenido'); if(!cont) return;
@@ -5468,7 +5476,7 @@ async function renderEstadisticas(btn){
             supabaseClient.from('refurb_ventas').select('precio_venta_real, vendido_en').limit(5000),
             supabaseClient.from('ordenes_reparacion').select('estado, precio_cliente, fecha_entregado').limit(8000),
             supabaseClient.rpc('stats_ventas', _estRango()),
-            supabaseClient.rpc('stats_reposicion', { p_dias: 30, p_umbral_dias: 15, p_cobertura_dias: 30, p_almacenes: _REP_ALMACENES[_repLocalidad] }),
+            supabaseClient.rpc('stats_reposicion', { p_dias: 30, p_umbral_dias: 15, p_cobertura_dias: 30, p_almacenes: _REP_ALMACENES[_repLocalidad], p_buscar: _repBuscar || null }),
             supabaseClient.rpc('stats_taller_control'),
             supabaseClient.rpc('stats_rentabilidad', Object.assign(_estRango(), { p_lim: 25 })),
             supabaseClient.rpc('stats_sin_rotacion', { p_dias: 90, p_lim: 50 }),
@@ -5588,7 +5596,15 @@ async function renderEstadisticas(btn){
                     <h3 style="margin:0;"><i class="ti ti-alert-triangle" style="color:#dc2626;"></i> Reposición / Agotamiento — ${_REP_LABEL[_repLocalidad]}</h3>
                     <div style="display:flex; gap:6px; flex-wrap:wrap;"><span style="font-size:11px; color:var(--text-muted); align-self:center;">📍 Localidad:</span>${_repLocBtns()}</div>
                 </div>
-                <p style="color:var(--text-muted); font-size:12px; margin:0 0 12px;">Mercancía física (sin servicios) que se vende y se está acabando en <b>${_REP_LABEL[_repLocalidad]}</b>, según las ventas de los <b>últimos 30 días</b>. "Dura" = a este ritmo, cuánto le queda al stock de esa localidad. "Reponer" = sugerido para cubrir 30 días.</p>
+                <p style="color:var(--text-muted); font-size:12px; margin:0 0 10px;">Mercancía física (sin servicios) que se vende y se está acabando en <b>${_REP_LABEL[_repLocalidad]}</b>, según las ventas de los <b>últimos 30 días</b>. "Dura" = a este ritmo, cuánto le queda. "Reponer" = sugerido para cubrir 30 días.</p>
+                <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">
+                    <span style="font-size:11px; color:var(--text-muted);">🏷️ Tipo:</span>${_repTipoBtns()}
+                </div>
+                <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px;">
+                    <input id="repBuscarInput" value="${escapeHtml(_repBuscar)}" placeholder="🔍 Buscar (ej. iphone 11 pantalla, bateria a14...)" onkeydown="if(event.key==='Enter'){_repBuscarDesdeInput();}" style="flex:1; min-width:200px; padding:7px 11px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
+                    <button class="btn btn-blue" style="font-size:12px; padding:6px 12px;" onclick="_repBuscarDesdeInput()"><i class="ti ti-search"></i> Filtrar</button>
+                    ${_repBuscar ? `<button class="btn btn-light" style="font-size:12px; padding:6px 12px;" onclick="setRepBuscar('')">✕ Limpiar</button>` : ''}
+                </div>
                 <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:14px;">
                     ${_statCard('Productos en alerta', _statNum(rep.total_alertas), '#d97706', 'se están agotando' + (esLoc ? ' en '+_REP_LABEL[_repLocalidad] : ''))}
                     ${_statCard(esLoc ? 'Agotados en '+(_repLocalidad==='santiago'?'Santiago':'Moca') : 'Ya agotados', _statNum(rep.agotados), '#dc2626', 'stock en 0 pero se venden')}
