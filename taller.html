@@ -10680,6 +10680,13 @@ function renderPiezasSolicitadas() {
         if(i.kind === 'reacond' && i.equipoId) return `<button class="btn btn-light" style="font-size:11px; padding:4px 9px;" onclick="agregarPiezaExtra('${i.equipoId}')"><i class="ti ti-plus"></i> Pedir pieza</button>`;
         return '';
     };
+    // Botón para EDITAR una pieza ya pedida (nombre y cantidad). Solo admin o quien la pidió, y si aún no se entregó.
+    const botonEditar = (i) => {
+        const editable = ['solicitada','pendiente','extra_pendiente','aprobada'].includes(i.estado);
+        const puede = isAdminUser() || i.tecnicoId === miId;
+        if(!editable || !puede) return '';
+        return `<button class="btn btn-light" style="font-size:11px; padding:4px 8px;" title="Editar pieza" onclick="editarPiezaSolicitada('${i.id}','${i.kind}','${i.tecnicoId||''}')"><i class="ti ti-edit"></i></button>`;
+    };
 
     const tabNombre = _psTab === 'orden' ? 'Órdenes de Servicio' : 'Reacondicionados';
     let html = `<div style="display:flex; gap:10px; margin-bottom:6px; flex-wrap:wrap; font-size:12px;">
@@ -10706,8 +10713,10 @@ function renderPiezasSolicitadas() {
     const fechaMaxArr = arr => Math.max(...arr.map(p => +new Date(p.fecha || 0)));
     const tecnicos = Object.values(porTec).sort((a,b) => fechaMaxArr(b.items) - fechaMaxArr(a.items));
 
-    tecnicos.forEach(t => {
+    tecnicos.forEach((t, idx) => {
         const pendTec = t.items.filter(i => ['solicitada','pendiente','extra_pendiente','aprobada'].includes(i.estado)).length;
+        // Bloque por técnico: angosto (max-width) y bien separado del anterior
+        html += `<div style="max-width:560px; margin-bottom:30px; ${idx > 0 ? 'border-top:2px dashed #d8dee6; padding-top:18px;' : ''}">`;
         html += `<div class="ps-tec-header">
             <i class="ti ti-user-cog" style="color:#4f46e5; font-size:18px;"></i>
             <span class="ps-tec-nombre">${escapeHtml(t.tecnico)}</span>
@@ -10719,7 +10728,7 @@ function renderPiezasSolicitadas() {
         const ordenGrupos = Object.values(grupos).sort((a,b) => fechaMaxArr(b.piezas) - fechaMaxArr(a.piezas));
         ordenGrupos.forEach(g => {
             const i = g.info;
-            html += `<div style="background:#fff; border:1px solid var(--border-color); border-left:5px solid ${i.color}; border-radius:12px; padding:12px 14px; margin-bottom:10px;">
+            html += `<div style="background:#fff; border:1px solid var(--border-color); border-left:5px solid ${i.color}; border-radius:12px; padding:11px 13px; margin-bottom:9px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; border-bottom:1px solid #eef1f4; padding-bottom:8px; margin-bottom:8px;">
                     <div>
                         <span class="badge" style="background:#eef2f7; color:#334155; font-size:10px; padding:2px 7px;">${i.tipo}</span>
@@ -10729,15 +10738,39 @@ function renderPiezasSolicitadas() {
                     ${botonPedir(i)}
                 </div>
                 ${g.piezas.map(p => `<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:5px 0;">
-                    <span style="flex:1; min-width:140px; font-size:13px; font-weight:600;">• ${escapeHtml(p.pieza)}${p.cantidad > 1 ? ' ×' + p.cantidad : ''}</span>
+                    <span style="flex:1; min-width:120px; font-size:13px; font-weight:600;">• ${escapeHtml(p.pieza)}${p.cantidad > 1 ? ' ×' + p.cantidad : ''}</span>
                     ${etiqEstado(p.estado)}
+                    ${botonEditar(p)}
                     ${botonAccion(p)}
                 </div>`).join('')}
             </div>`;
         });
+        html += `</div>`;
     });
     html += `<div style="font-size:11px; color:var(--text-muted); margin-top:6px;">${filtrados.length} pieza(s) · ${tecnicos.length} técnico(s)</div>`;
     cont.innerHTML = html;
+}
+
+// Editar una pieza ya solicitada (nombre y cantidad). Solo admin o el técnico que la pidió.
+async function editarPiezaSolicitada(id, kind, tecnicoId){
+    if(!(isAdminUser() || tecnicoId === sessionUser?.id)) return toast('No puedes editar esta pieza.', 'error');
+    const tabla = kind === 'orden' ? 'orden_piezas' : 'equipo_piezas_pedidas';
+    const lista = kind === 'orden' ? (cache.ordenPiezas || []) : (cache.piezasReacond || []);
+    const p = lista.find(x => x.id === id);
+    if(!p) return toast('No encontré la pieza.', 'error');
+    const nombre = await pedirTexto('✏️ Editar nombre de la pieza:', { valor: p.pieza_nombre || '' });
+    if(nombre === null || nombre === undefined) return;       // canceló
+    if(!nombre.trim()) return toast('El nombre no puede quedar vacío.', 'error');
+    const cantStr = await pedirTexto('Cantidad:', { valor: String(p.cantidad || 1) });
+    if(cantStr === null || cantStr === undefined) return;     // canceló
+    const cantidad = Math.max(1, parseInt(cantStr) || 1);
+    try {
+        const { error } = await supabaseClient.from(tabla).update({ pieza_nombre: nombre.trim(), cantidad: cantidad }).eq('id', id);
+        if(error) throw error;
+        toast('✅ Pieza actualizada.');
+        await loadAll();
+        renderPiezasSolicitadas();
+    } catch(e){ logError('Editar pieza solicitada', e); toastError(getFriendlyError(e)); }
 }
 
 // Lista de recepciones realizadas (con buscador y filtro de fecha) en el módulo Recepción
