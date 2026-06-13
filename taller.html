@@ -1170,6 +1170,10 @@ body{
                         <div class="kpi-box" style="border-top-color:#f59e0b;"><small>Personas únicas</small><strong id="wvUnicas">—</strong><i class="ti ti-users"></i></div>
                     </div>
                     <p style="font-size:11px; color:var(--text-muted); margin-top:8px;">Solo cuenta visitantes <b>reales</b> de bayolcell.com (NO los empleados que usan el sistema). "Personas únicas" = visitantes distintos; "Total visitas" = veces que abrieron la página. <span id="wvInternasNota" style="opacity:.8;">Internas excluidas: <b id="wvInternas">0</b>.</span></p>
+                    <div style="margin-top:10px;">
+                        <div style="font-size:12px; font-weight:700; color:var(--text-dark); margin-bottom:4px;"><i class="ti ti-chart-bar" style="color:#0891b2;"></i> Visitas por día (últimos 14 días)</div>
+                        <div id="wvChart"><div style="color:var(--text-muted); font-size:12px;">Cargando…</div></div>
+                    </div>
                 </div>
 
                 <!-- Panel Inteligente (alertas + tendencias) -->
@@ -4083,6 +4087,26 @@ async function renderWebVisitas() {
         _wvSet('wvHoy', r.hoy); _wvSet('wv7', r.d7); _wvSet('wv30', r.d30); _wvSet('wvTotal', r.total); _wvSet('wvUnicas', r.unicas);
         const intEl = document.getElementById('wvInternas');
         if(intEl) intEl.textContent = (Number(r.internas)||0).toLocaleString('es-DO');
+        // Gráfica de visitas por día (últimos 14 días)
+        const chartEl = document.getElementById('wvChart');
+        if(chartEl){
+            try {
+                const { data: dias } = await supabaseClient.rpc('web_visitas_por_dia', { p_dias: 14 });
+                const arr = dias || [];
+                const maxV = Math.max(1, ...arr.map(d => Number(d.visitas) || 0));
+                const barras = arr.map(d => {
+                    const v = Number(d.visitas) || 0;
+                    const h = Math.max(2, Math.round(v / maxV * 80));
+                    return `<div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; min-width:0;">
+                        <span style="font-size:10px; color:var(--text-muted); margin-bottom:2px;">${v || ''}</span>
+                        <div style="width:62%; max-width:22px; height:${h}px; background:${v>0?'#0891b2':'#e2e8f0'}; border-radius:3px 3px 0 0;" title="${d.dia}: ${v} visitas · ${d.unicas} únicas"></div>
+                    </div>`;
+                }).join('');
+                const fechas = arr.map(d => `<div style="flex:1; text-align:center; font-size:9px; color:var(--text-muted); white-space:nowrap;">${d.dia.slice(8,10)}/${d.dia.slice(5,7)}</div>`).join('');
+                chartEl.innerHTML = `<div style="display:flex; align-items:flex-end; gap:4px; height:108px; padding-top:4px;">${barras}</div>
+                    <div style="display:flex; gap:4px; margin-top:4px;">${fechas}</div>`;
+            } catch(e){ chartEl.innerHTML = '<div style="color:var(--text-muted); font-size:12px;">No se pudo cargar la gráfica.</div>'; }
+        }
     } catch(e) { logError('Visitas web', e); }
 }
 
