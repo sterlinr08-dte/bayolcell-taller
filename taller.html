@@ -1166,9 +1166,10 @@ body{
                         <div class="kpi-box" style="border-top-color:#0891b2;"><small>Hoy</small><strong id="wvHoy">—</strong><i class="ti ti-calendar"></i></div>
                         <div class="kpi-box" style="border-top-color:#6366f1;"><small>Últimos 7 días</small><strong id="wv7">—</strong><i class="ti ti-calendar-week"></i></div>
                         <div class="kpi-box" style="border-top-color:#8b5cf6;"><small>Últimos 30 días</small><strong id="wv30">—</strong><i class="ti ti-calendar-month"></i></div>
-                        <div class="kpi-box" style="border-top-color:#10b981;"><small>Total histórico</small><strong id="wvTotal">—</strong><i class="ti ti-eye"></i></div>
+                        <div class="kpi-box" style="border-top-color:#10b981;"><small>Total visitas</small><strong id="wvTotal">—</strong><i class="ti ti-eye"></i></div>
+                        <div class="kpi-box" style="border-top-color:#f59e0b;"><small>Personas únicas</small><strong id="wvUnicas">—</strong><i class="ti ti-users"></i></div>
                     </div>
-                    <p style="font-size:11px; color:var(--text-muted); margin-top:8px;">Cuenta una visita por sesión de cada visitante de bayolcell.com.</p>
+                    <p style="font-size:11px; color:var(--text-muted); margin-top:8px;">Solo cuenta visitantes <b>reales</b> de bayolcell.com (NO los empleados que usan el sistema). "Personas únicas" = visitantes distintos; "Total visitas" = veces que abrieron la página. <span id="wvInternasNota" style="opacity:.8;">Internas excluidas: <b id="wvInternas">0</b>.</span></p>
                 </div>
 
                 <!-- Panel Inteligente (alertas + tendencias) -->
@@ -3799,6 +3800,8 @@ async function imprimirContenido(htmlContenido, copias, anchoMm, altoMm, tipo) {
 async function aplicarSesionDesdeFila(fila, tipo) {
     sessionUser = fila;
     sessionUser._tipo = tipo;
+    // Marca este navegador como INTERNO (empleado/admin) para no contar sus visitas al portal como cliente
+    try { localStorage.setItem('bayol_interno', '1'); } catch(e) {}
     if(tipo === 'tecnico' && fila.rol_id) {
         try {
             const { data: rolData } = await supabaseClient.from('roles_taller').select('*').eq('id', fila.rol_id).limit(1);
@@ -4074,19 +4077,12 @@ async function renderWebVisitas() {
     const card = document.getElementById('webVisitasCard');
     if(card) card.style.display = 'block';
     try {
-        const ahora = new Date();
-        const inicioHoy = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate()).toISOString();
-        const d7 = new Date(Date.now() - 7 * 86400000).toISOString();
-        const d30 = new Date(Date.now() - 30 * 86400000).toISOString();
-        async function contar(desde) {
-            let q = supabaseClient.from('web_visitas').select('*', { count: 'exact', head: true });
-            if(desde) q = q.gte('created_at', desde);
-            const { count, error } = await q;
-            if(error) throw error;
-            return count || 0;
-        }
-        const [total, hoy, c7, c30] = await Promise.all([contar(null), contar(inicioHoy), contar(d7), contar(d30)]);
-        _wvSet('wvTotal', total); _wvSet('wvHoy', hoy); _wvSet('wv7', c7); _wvSet('wv30', c30);
+        const { data, error } = await supabaseClient.rpc('web_visitas_resumen');
+        if(error) throw error;
+        const r = data || {};
+        _wvSet('wvHoy', r.hoy); _wvSet('wv7', r.d7); _wvSet('wv30', r.d30); _wvSet('wvTotal', r.total); _wvSet('wvUnicas', r.unicas);
+        const intEl = document.getElementById('wvInternas');
+        if(intEl) intEl.textContent = (Number(r.internas)||0).toLocaleString('es-DO');
     } catch(e) { logError('Visitas web', e); }
 }
 

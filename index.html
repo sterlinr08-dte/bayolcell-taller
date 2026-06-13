@@ -693,7 +693,12 @@ footer::before{ content:''; position:absolute; top:-1px; left:0; right:0; height
       if(sessionStorage.getItem('bc_visit')) return;
       if(!window.supabase) return;
       var sb = window.supabase.createClient("https://vkhwdvjtowrhkhqavnvk.supabase.co","sb_publishable_PynS5ZjKoQ36HCpguVzxaw_KZOlagtz");
-      sb.from('web_visitas').insert({ path: location.pathname, referrer: document.referrer || null, ua: navigator.userAgent })
+      // ID persistente del visitante (para contar PERSONAS únicas, no visitas repetidas)
+      var vid = localStorage.getItem('bc_visitor_id');
+      if(!vid){ vid = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : (Date.now()+'-'+Math.random().toString(36).slice(2)); try{ localStorage.setItem('bc_visitor_id', vid); }catch(e){} }
+      // ¿Dispositivo interno? (alguien que usa el sistema del taller en este mismo navegador)
+      var interno = localStorage.getItem('bayol_interno') === '1';
+      sb.from('web_visitas').insert({ path: location.pathname, referrer: document.referrer || null, ua: navigator.userAgent, visitor_id: vid, interno: interno })
         .then(function(){ try{ sessionStorage.setItem('bc_visit','1'); }catch(e){} }, function(){});
     }catch(e){}
   })();
