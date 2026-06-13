@@ -10735,7 +10735,7 @@ function renderPiezasSolicitadas() {
             id: p.id, kind: 'orden', ordenId: p.orden_id,
             pieza: p.pieza_nombre || 'Pieza', cantidad: p.cantidad || 1, estado: p.estado || 'solicitada',
             origen: o ? `Orden ${formatoOrden(o.numero_orden)}` : 'Orden', cliente: c.nombre || '', tecnico: tec, tecnicoId: tecId,
-            tipo: 'Orden', color: '#ef4444', fecha: p.creado_en,
+            tipo: 'Orden', color: '#ef4444', fecha: p.creado_en, fechaSolicitud: p.creado_en,
             grupoKey: 'O_' + (o ? o.id : p.id),
             grupoTitulo: (o ? `Orden ${formatoOrden(o.numero_orden)}` : 'Orden') + (eqO ? ` · ${(eqO.marca||'')} ${(eqO.modelo||'')}`.replace(/\s+$/,'') : ''),
             grupoSub: c.nombre ? `Cliente: ${c.nombre}` : ''
@@ -10752,7 +10752,7 @@ function renderPiezasSolicitadas() {
             id: p.id, kind: 'reacond', equipoId: p.equipo_id || null,
             pieza: p.pieza_nombre || 'Pieza', cantidad: p.cantidad || 1, estado: p.estado || 'pendiente',
             origen: eq ? `${eq.marca||''} ${eq.modelo||''}`.trim() : 'Sin equipo', cliente: '', tecnico: tec, tecnicoId: tecId,
-            tipo: 'Reacond', color: '#f59e0b', fecha: p.fecha_entrega || p.creado_en,
+            tipo: 'Reacond', color: '#f59e0b', fecha: p.fecha_entrega || p.creado_en, fechaSolicitud: p.creado_en,
             grupoKey: eq ? ('R_' + eq.id) : ('RG_' + (tecId || p.id)),
             grupoTitulo: eq ? `${(eq.marca||'')} ${(eq.modelo||'')}`.trim() + (eq.capacidad ? ` · ${eq.capacidad}` : '') : '📋 Piezas sin equipo asignado',
             grupoSub: sinEquipo ? 'Solicitud general' : 'Reacondicionado'
@@ -10879,14 +10879,17 @@ function renderPiezasSolicitadas() {
                     </div>
                     ${botonPedir(i)}
                 </div>
-                ${g.piezas.map(p => `<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:5px 0;">
-                    <span style="flex:1 1 160px; min-width:0; font-size:13px; font-weight:600; word-break:break-word; overflow-wrap:anywhere; line-height:1.35;">• ${escapeHtml(p.pieza)}${p.cantidad > 1 ? ' ×' + p.cantidad : ''}</span>
-                    ${_psFiltro === 'historial' && p.fecha ? `<span style="font-size:11px; color:var(--text-muted); white-space:nowrap;">📅 ${new Date(p.fecha).toLocaleString('es-DO', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' })}</span>` : ''}
+                ${g.piezas.map(p => { const _fdt = d => d ? new Date(d).toLocaleString('es-DO', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) : ''; return `<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:5px 0;">
+                    <div style="flex:1 1 180px; min-width:0;">
+                        <div style="font-size:13px; font-weight:600; word-break:break-word; overflow-wrap:anywhere; line-height:1.35;">• ${escapeHtml(p.pieza)}${p.cantidad > 1 ? ' ×' + p.cantidad : ''}</div>
+                        ${p.fechaSolicitud ? `<div style="font-size:10px; color:var(--text-muted);">🕐 Pedida: ${_fdt(p.fechaSolicitud)}</div>` : ''}
+                        ${_psFiltro === 'historial' && p.fecha && p.fecha !== p.fechaSolicitud ? `<div style="font-size:10px; color:#16a34a;">📦 Entregada: ${_fdt(p.fecha)}</div>` : ''}
+                    </div>
                     ${etiqEstado(p.estado)}
                     ${botonEditar(p)}
                     ${botonAccion(p)}
                     ${botonBorrar(p)}
-                </div>`).join('')}
+                </div>`; }).join('')}
             </div>`;
         });
         html += `</div>`;
