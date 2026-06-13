@@ -1238,6 +1238,15 @@ body{
 
             <!-- RECEPCION -->
             <div id="v-recepcion" class="view">
+                <div class="card" style="margin-bottom:15px; max-width:560px; border-top:3px solid #f59e0b;">
+                    <h3 style="margin:0 0 4px; font-size:15px;"><i class="ti ti-star" style="color:#f59e0b;"></i> Pedir reseña a un cliente (sin orden)</h3>
+                    <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px;">Para clientes que <b>solo vinieron a comprar</b> (no se registra orden). Pon su WhatsApp y mándale el enlace de reseña de Google.</p>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <input id="resenaWa" placeholder="WhatsApp (ej. 809-123-4567)" onkeydown="if(event.key==='Enter')enviarResenaWhatsapp()" style="flex:1; min-width:180px; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px;">
+                        <button class="btn" style="background:#f59e0b; color:#fff; font-size:13px; padding:9px 14px;" onclick="enviarResenaWhatsapp()"><i class="ti ti-brand-whatsapp"></i> Enviar reseña</button>
+                    </div>
+                    <div id="resenaWaMsg" style="font-size:12px; margin-top:6px;"></div>
+                </div>
                 <div class="block-grid">
                     <div class="block-card">
                         <div class="block-header header-blue-dark">Datos del Cliente y Equipo</div>
@@ -11226,6 +11235,19 @@ async function guardarEditarRecepcion(ordenId, clienteId, equipoId) {
 // Editar datos de recepción de una orden (corrige errores de captura)
 // Enlace de reseña de Google (Perfil de Empresa BAYOL CELL)
 const RESENA_GOOGLE = 'https://share.google/iqIYsfVeciXd3MzLL';
+
+// Enviar enlace de reseña por WhatsApp a un cliente que solo compró (sin orden)
+function enviarResenaWhatsapp(){
+    const el = document.getElementById('resenaWa');
+    const msgEl = document.getElementById('resenaWaMsg');
+    const raw = (el?.value || '').replace(/\D/g, '');
+    if(raw.length < 10){ if(msgEl){ msgEl.style.color = '#dc2626'; msgEl.textContent = 'Pon un número de WhatsApp válido (al menos 10 dígitos).'; } return; }
+    const num = raw.length === 10 ? '1' + raw : raw;
+    const msg = encodeURIComponent(`¡Gracias por tu compra en BAYOL CELL! 🙌 Si quedaste contento con tu equipo, te agradeceríamos muchísimo una reseña en Google ⭐ (te toma 20 segundos): ${RESENA_GOOGLE}`);
+    window.open(`https://wa.me/${num}?text=${msg}`, '_blank');
+    if(msgEl){ msgEl.style.color = '#16a34a'; msgEl.textContent = '✅ Abriendo WhatsApp con el mensaje listo…'; }
+    if(el) el.value = '';
+}
 
 function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
         const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
