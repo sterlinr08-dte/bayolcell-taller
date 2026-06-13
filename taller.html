@@ -10881,7 +10881,7 @@ function renderPiezasSolicitadas() {
                 </div>
                 ${g.piezas.map(p => `<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:5px 0;">
                     <span style="flex:1 1 160px; min-width:0; font-size:13px; font-weight:600; word-break:break-word; overflow-wrap:anywhere; line-height:1.35;">• ${escapeHtml(p.pieza)}${p.cantidad > 1 ? ' ×' + p.cantidad : ''}</span>
-                    ${_psFiltro === 'historial' && p.fecha ? `<span style="font-size:11px; color:var(--text-muted); white-space:nowrap;">📅 ${new Date(p.fecha).toLocaleDateString('es-DO')}</span>` : ''}
+                    ${_psFiltro === 'historial' && p.fecha ? `<span style="font-size:11px; color:var(--text-muted); white-space:nowrap;">📅 ${new Date(p.fecha).toLocaleString('es-DO', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' })}</span>` : ''}
                     ${etiqEstado(p.estado)}
                     ${botonEditar(p)}
                     ${botonAccion(p)}
