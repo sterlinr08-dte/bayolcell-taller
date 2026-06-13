@@ -1450,9 +1450,9 @@ body{
                     </div>
                     <input id="psBuscador" oninput="renderPiezasSolicitadas()" placeholder="🔍 Buscar pieza, técnico, orden o equipo..." style="width:100%; padding:8px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; margin-bottom:10px;">
                     <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px;">
-                        <button class="btn btn-light" onclick="_psFiltro='todas'; renderPiezasSolicitadas()" style="font-size:12px;">Todas</button>
-                        <button class="btn btn-light" onclick="_psFiltro='pendientes'; renderPiezasSolicitadas()" style="font-size:12px;">🟡 Pendientes</button>
-                        <button class="btn btn-light" onclick="_psFiltro='entregadas'; renderPiezasSolicitadas()" style="font-size:12px;">📦 Entregadas/recibidas</button>
+                        <button id="psFlt_activas" class="btn btn-light" onclick="setPsFiltro('activas')" style="font-size:12px;">🟡 Activas</button>
+                        <button id="psFlt_historial" class="btn btn-light" onclick="setPsFiltro('historial')" style="font-size:12px;">📋 Historial</button>
+                        <button id="psFlt_todas" class="btn btn-light" onclick="setPsFiltro('todas')" style="font-size:12px;">Todas</button>
                     </div>
                     <div id="piezasSolicitadasLista"></div>
                 </div>
@@ -10694,7 +10694,11 @@ function renderTallerOrdenes() {
 
 // Construye el HTML de UNA orden (reutilizable: tablero taller + Mi Trabajo)
 // Panel central que junta TODAS las piezas solicitadas (órdenes de cliente + reacondicionados)
-let _psFiltro = 'todas';
+let _psFiltro = 'activas';
+function _psHighlightFiltro(){
+    ['todas','activas','historial'].forEach(k => { const b = document.getElementById('psFlt_'+k); if(b){ const on = (k === _psFiltro); b.style.background = on ? 'var(--blue-btn)' : ''; b.style.color = on ? '#fff' : ''; } });
+}
+function setPsFiltro(f){ _psFiltro = f; renderPiezasSolicitadas(); }
 let _psTab = 'orden'; // 'orden' = Órdenes de Servicio | 'reacond' = Reacondicionados
 
 function setPsTab(t) {
@@ -10707,6 +10711,7 @@ function setPsTab(t) {
 function renderPiezasSolicitadas() {
     const cont = document.getElementById('piezasSolicitadasLista');
     if(!cont) return;
+    _psHighlightFiltro();
     const miId = sessionUser?.id;
     // Servicio / atención al cliente: ve el módulo pero SOLO la pestaña de Órdenes de Servicio
     const esServicio = !isAdminUser() && (sessionUser?.tipo_empleado === 'servicio' || tienePermiso('solo_atencion'));
@@ -10762,8 +10767,10 @@ function renderPiezasSolicitadas() {
 
     // Filtro por estado
     let filtrados = baseItems;
-    if(_psFiltro === 'pendientes') filtrados = baseItems.filter(i => ['solicitada','pendiente','extra_pendiente','aprobada'].includes(i.estado));
-    else if(_psFiltro === 'entregadas') filtrados = baseItems.filter(i => ['entregada','recibida'].includes(i.estado));
+    // Activas = todo lo que aún está en proceso (incluye 'entregada', que espera confirmación del técnico).
+    // Historial = lo ya completado: recibida (confirmada por el técnico), devuelta o rechazada.
+    if(_psFiltro === 'activas') filtrados = baseItems.filter(i => ['solicitada','pendiente','extra_pendiente','aprobada','entregada'].includes(i.estado));
+    else if(_psFiltro === 'historial') filtrados = baseItems.filter(i => ['recibida','devuelta','rechazada'].includes(i.estado));
 
     // Buscador
     const txt = (document.getElementById('psBuscador')?.value || '').trim().toLowerCase();
@@ -10773,8 +10780,8 @@ function renderPiezasSolicitadas() {
     );
 
     // Resumen por estado (de la pestaña actual)
-    const pend = baseItems.filter(i => ['solicitada','pendiente','extra_pendiente','aprobada'].includes(i.estado)).length;
-    const entr = baseItems.filter(i => ['entregada','recibida'].includes(i.estado)).length;
+    const pend = baseItems.filter(i => ['solicitada','pendiente','extra_pendiente','aprobada','entregada'].includes(i.estado)).length;
+    const entr = baseItems.filter(i => ['recibida','devuelta','rechazada'].includes(i.estado)).length;
 
     const puedeEntregar = isAdminUser() || tienePermiso('recepcion_ver') || tienePermiso('inventario_ver') || tienePermiso('piezas_entregar');
     const esAdminAprob = isAdminUser() || tienePermiso('piezas_aprobar_extra');
@@ -10825,8 +10832,8 @@ function renderPiezasSolicitadas() {
 
     const tabNombre = _psTab === 'orden' ? 'Órdenes de Servicio' : 'Reacondicionados';
     let html = `<div style="display:flex; gap:10px; margin-bottom:6px; flex-wrap:wrap; font-size:12px;">
-        <span style="background:#fef3c7; color:#92400e; padding:4px 10px; border-radius:8px; font-weight:700;">🟡 ${pend} pendientes</span>
-        <span style="background:#dbeafe; color:#1e40af; padding:4px 10px; border-radius:8px; font-weight:700;">📦 ${entr} entregadas/recibidas</span>
+        <span style="background:#fef3c7; color:#92400e; padding:4px 10px; border-radius:8px; font-weight:700;">🟡 ${pend} activas</span>
+        <span style="background:#dbeafe; color:#1e40af; padding:4px 10px; border-radius:8px; font-weight:700;">📋 ${entr} en historial</span>
     </div>`;
 
     // En Reacondicionados: el técnico puede pedir una pieza aunque no tenga ningún equipo/lote
@@ -10874,6 +10881,7 @@ function renderPiezasSolicitadas() {
                 </div>
                 ${g.piezas.map(p => `<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:5px 0;">
                     <span style="flex:1 1 160px; min-width:0; font-size:13px; font-weight:600; word-break:break-word; overflow-wrap:anywhere; line-height:1.35;">• ${escapeHtml(p.pieza)}${p.cantidad > 1 ? ' ×' + p.cantidad : ''}</span>
+                    ${_psFiltro === 'historial' && p.fecha ? `<span style="font-size:11px; color:var(--text-muted); white-space:nowrap;">📅 ${new Date(p.fecha).toLocaleDateString('es-DO')}</span>` : ''}
                     ${etiqEstado(p.estado)}
                     ${botonEditar(p)}
                     ${botonAccion(p)}
