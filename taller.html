@@ -5512,7 +5512,7 @@ async function renderEstadisticas(btn){
     cont.innerHTML = '<p style="text-align:center; color:var(--text-muted); padding:30px;">Cargando…</p>';
     try {
         const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
-        const [invRes, topRes, ventasRes, ordRes, vtaRes, repRes, tcRes, rentRes, dormRes, cliRes] = await Promise.all([
+        const [invRes, topRes, ventasRes, ordRes, vtaRes, repRes, tcRes, rentRes, dormRes, cliRes, canRes] = await Promise.all([
             supabaseClient.rpc('stats_inventario'),
             supabaseClient.rpc('stats_inventario_top', { lim: 10 }),
             supabaseClient.from('refurb_ventas').select('precio_venta_real, vendido_en').limit(5000),
@@ -5522,7 +5522,8 @@ async function renderEstadisticas(btn){
             supabaseClient.rpc('stats_taller_control'),
             supabaseClient.rpc('stats_rentabilidad', Object.assign(_estRango(), { p_lim: 25 })),
             supabaseClient.rpc('stats_sin_rotacion', { p_dias: 90, p_lim: 50 }),
-            supabaseClient.rpc('stats_clientes', Object.assign(_estRango(), { p_lim: 30 }))
+            supabaseClient.rpc('stats_clientes', Object.assign(_estRango(), { p_lim: 30 })),
+            supabaseClient.rpc('stats_ventas_canal', _estRango())
         ]);
         const inv = invRes.data || {};
         const vt = (vtaRes && vtaRes.data && !vtaRes.data.error) ? vtaRes.data : null;
@@ -5531,6 +5532,7 @@ async function renderEstadisticas(btn){
         const rent = (rentRes && rentRes.data && !rentRes.data.error) ? rentRes.data : null;
         const dorm = (dormRes && dormRes.data && !dormRes.data.error) ? dormRes.data : null;
         const cli = (cliRes && cliRes.data && !cliRes.data.error) ? cliRes.data : null;
+        const can = (canRes && canRes.data && !canRes.data.error) ? canRes.data : null;
         const top = topRes.data || [];
         const ventas = ventasRes.data || [];
         const ordenes = ordRes.data || [];
@@ -5774,7 +5776,53 @@ async function renderEstadisticas(btn){
             </div>`;
         }
 
-        cont.innerHTML = `${vtHtml}` + `${cliHtml}` + `${rentHtml}` + `${repHtml}` + `${dormHtml}` + `${tcHtml}` + `
+        // ===== VENTAS: CONTADO vs POR MAYOR =====
+        let canHtml = '';
+        if(can){
+            const co = can.contado || { venta:0, costo:0, margen:0, facturas:0, unidades:0, por_categoria:[], top_productos:[] };
+            const ma = can.mayor   || { venta:0, costo:0, margen:0, facturas:0, unidades:0, por_categoria:[], top_productos:[] };
+            const pct = (o) => Number(o.venta)>0 ? Math.round(Number(o.margen)/Number(o.venta)*100) : 0;
+            const totalV = (Number(co.venta)||0) + (Number(ma.venta)||0);
+            const wCo = totalV>0 ? Math.round(Number(co.venta)/totalV*100) : 0;
+            const wMa = totalV>0 ? Math.round(Number(ma.venta)/totalV*100) : 0;
+            const detalle = (o) => {
+                const cats = (o.por_categoria||[]).map(c=>`<tr><td><b>${escapeHtml(c.categoria)}</b></td><td>${_statRD(c.venta)}</td><td style="color:#16a34a;">${_statRD(c.margen)}</td></tr>`).join('');
+                const tops = (o.top_productos||[]).map(t=>`<tr><td>${escapeHtml((t.descripcion||t.producto_id||'—')).slice(0,32)}</td><td style="text-align:center;">${_statNum(t.unidades)}</td><td>${_statRD(t.venta)}</td></tr>`).join('');
+                return `<div style="font-size:12px; font-weight:600; margin:10px 0 4px;">Por categoría</div>
+                    <div class="table-wrap"><table><thead><tr><th>Categoría</th><th>Venta</th><th>Ganancia</th></tr></thead><tbody>${cats||'<tr><td colspan="3" style="color:var(--text-muted);">Sin ventas</td></tr>'}</tbody></table></div>
+                    <div style="font-size:12px; font-weight:600; margin:10px 0 4px;">Top 10 que venden</div>
+                    <div class="table-wrap"><table><thead><tr><th>Producto</th><th>Unid.</th><th>Venta</th></tr></thead><tbody>${tops||'<tr><td colspan="3" style="color:var(--text-muted);">Sin ventas</td></tr>'}</tbody></table></div>`;
+            };
+            const colCanal = (titulo, ico, color, o) => `
+                <div style="flex:1; min-width:280px; background:#fff; border:1px solid var(--border-color); border-top:3px solid ${color}; border-radius:12px; padding:14px;">
+                    <h4 style="margin:0 0 10px; color:${color};"><i class="ti ${ico}"></i> ${titulo}</h4>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                        ${_statCard('Venta', _statRD(o.venta), color, _statNum(o.facturas)+' facturas')}
+                        ${_statCard('Ganancia', _statRD(o.margen), '#16a34a', pct(o)+'% de margen')}
+                    </div>
+                    ${detalle(o)}
+                </div>`;
+            canHtml = `
+            <div class="card" style="margin-bottom:15px; border-top:3px solid #6366f1;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:6px;">
+                    <h3 style="margin:0;"><i class="ti ti-arrows-split" style="color:#6366f1;"></i> Ventas: Contado vs Por Mayor</h3>
+                    <div style="display:flex; gap:6px; flex-wrap:wrap;">${_estPeriodoBtns()}</div>
+                </div>
+                <p style="color:var(--text-muted); font-size:12px; margin:0 0 10px;"><b>Contado</b> = mostrador (consumidor final) · <b>Por mayor</b> = tiendas/clientes con cuenta. Con su margen y el detalle de lo que venden.</p>
+                <div style="margin-bottom:12px;">
+                    <div style="display:flex; height:26px; border-radius:8px; overflow:hidden; font-size:11px; font-weight:700; color:#fff;">
+                        <div style="width:${wCo}%; background:#0891b2; display:flex; align-items:center; justify-content:center; min-width:fit-content; padding:0 6px;" title="Contado">${wCo>8?('Contado '+wCo+'%'):''}</div>
+                        <div style="width:${wMa}%; background:#6366f1; display:flex; align-items:center; justify-content:center; min-width:fit-content; padding:0 6px;" title="Por mayor">${wMa>8?('Por mayor '+wMa+'%'):''}</div>
+                    </div>
+                </div>
+                <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                    ${colCanal('Al contado (mostrador)','ti-cash','#0891b2', co)}
+                    ${colCanal('Al por mayor (tiendas)','ti-building-store','#6366f1', ma)}
+                </div>
+            </div>`;
+        }
+
+        cont.innerHTML = `${vtHtml}` + `${canHtml}` + `${cliHtml}` + `${rentHtml}` + `${repHtml}` + `${dormHtml}` + `${tcHtml}` + `
         <!-- VENTAS INTERNAS (TALLER) -->
         <div class="card" style="margin-bottom:15px;">
             <h3 style="margin:0 0 12px;"><i class="ti ti-tool" style="color:#0891b2;"></i> Ventas internas del taller (reacondicionados + servicio)</h3>
