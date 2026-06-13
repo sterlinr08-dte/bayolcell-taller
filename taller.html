@@ -11224,6 +11224,9 @@ async function guardarEditarRecepcion(ordenId, clienteId, equipoId) {
 }
 
 // Editar datos de recepción de una orden (corrige errores de captura)
+// Enlace de reseña de Google (Perfil de Empresa BAYOL CELL)
+const RESENA_GOOGLE = 'https://share.google/iqIYsfVeciXd3MzLL';
+
 function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
         const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
         const estado = normalizarEstadoOrden(o.estado);
@@ -11282,6 +11285,14 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
                 }
                 // Reabrir por otra razón (siempre disponible para admin/servicio)
                 acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#6b21a8;" onclick="reabrirOrden('${o.id}','otra')"><i class="ti ti-rotate-clockwise"></i> Reabrir (otra razón)</button>`;
+            }
+            // ⭐ Pedir reseña de Google al cliente por WhatsApp
+            const waR = (c.whatsapp || '').replace(/\D/g, '');
+            const waRLink = waR ? (waR.length === 10 ? '1' + waR : waR) : '';
+            if(waRLink){
+                const equipoTxtR = `${(e.marca||'')} ${(e.modelo||'')}`.trim();
+                const msgR = encodeURIComponent(`¡Hola ${c.nombre||''}! 🙌 Gracias por confiar en BAYOL CELL. Si quedaste satisfecho con tu ${equipoTxtR}, te agradeceríamos muchísimo una reseña en Google ⭐ (te toma 20 segundos): ${RESENA_GOOGLE}`);
+                acciones += `<a class="btn" style="font-size:11px; padding:5px 9px; background:#f59e0b; color:#fff;" href="https://wa.me/${waRLink}?text=${msgR}" target="_blank" rel="noopener"><i class="ti ti-star"></i> Pedir reseña</a>`;
             }
         } else if(estado === 'no_reparado') {
             acciones += `<span class="badge" style="background:#ffe4e6; color:#9f1239; font-size:11px;">🚫 No reparado</span>`;
