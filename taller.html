@@ -2860,6 +2860,31 @@ body{
 
 <!-- MODAL: ASIGNAR TÉCNICO A EQUIPO -->
 <!-- MODAL: Registrar PIEZA USADA (consumo del taller) -->
+<!-- MODAL: Enviar notificación al equipo (MDM) -->
+<div id="modalMdmNotif" class="modal-backdrop">
+    <div class="modal-box" style="max-width:460px;">
+        <div class="modal-header" style="background:linear-gradient(135deg,#7c3aed,#a855f7); color:#fff; border-radius:12px 12px 0 0;">
+            <h3 style="color:#fff;"><i class="ti ti-message-2"></i> Enviar notificación al equipo</h3>
+            <button class="modal-close" onclick="cerrarNotifMdm()" style="color:#fff;">✕</button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px;">Elige un mensaje rápido o escribe uno propio. Le llega a la pantalla del equipo del cliente.</p>
+            <div style="display:flex; flex-direction:column; gap:6px;">
+                <button class="btn btn-light" style="justify-content:flex-start;" onclick="enviarNotifMdm('Le recordamos que su cuota está próxima a vencer. Gracias — BAYOL CELL')">🔔 Recordatorio de pago</button>
+                <button class="btn btn-light" style="justify-content:flex-start;" onclick="enviarNotifMdm('Su cuota está VENCIDA. Por favor regularice su pago para evitar el bloqueo del equipo. — BAYOL CELL')">⚠️ Cuota vencida</button>
+                <button class="btn btn-light" style="justify-content:flex-start;" onclick="enviarNotifMdm('ÚLTIMO AVISO: regularice su pago HOY o el equipo será bloqueado. — BAYOL CELL')">🚨 Último aviso</button>
+                <button class="btn btn-light" style="justify-content:flex-start;" onclick="enviarNotifMdm('¡Gracias por su pago! Su cuenta está al día. — BAYOL CELL')">✅ Pago recibido</button>
+            </div>
+            <div style="margin-top:12px;">
+                <label style="font-size:12px; font-weight:600;">✍️ Mensaje personalizado</label>
+                <textarea id="notifMdmTexto" rows="2" placeholder="Escribe tu mensaje..." style="width:100%; padding:8px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; margin-top:4px;"></textarea>
+                <button class="btn btn-blue" style="margin-top:6px; width:100%;" onclick="enviarNotifMdmCustom()"><i class="ti ti-send"></i> Enviar personalizado</button>
+            </div>
+            <div id="notifMdmMsg" style="font-size:12px; margin-top:8px;"></div>
+        </div>
+    </div>
+</div>
+
 <div id="modalConsumoTaller" class="modal-backdrop">
     <div class="modal-box" style="max-width:560px;">
         <div class="modal-header" style="background:linear-gradient(135deg,#15803d,#16a34a); color:#fff; border-radius:12px 12px 0 0;">
@@ -15995,14 +16020,17 @@ function _pintarDetalleFin() {
                 <div style="font-size:12px; font-weight:700; color:#0f172a; margin-bottom:6px;"><i class="ti ti-bolt" style="color:#f59e0b;"></i> Acción real en Hexnode</div>
                 <button class="btn btn-blue" onclick="mdmVerificar('${f.id}', this)" style="font-size:12px; width:100%; margin-bottom:6px;"><i class="ti ti-rosette-discount-check"></i> Verificar enrolamiento (antes de entregar)</button>
                 <div id="mdmVerif_${f.id}" style="font-size:12.5px; margin-bottom:8px;"></div>
+                <div id="mdmLoc_${f.id}" style="font-size:12.5px; margin-bottom:8px;"></div>
                 <div style="display:flex; gap:6px; flex-wrap:wrap;">
                     <button class="btn btn-light" onclick="mdmAccionReal('${f.id}','bloquear')" style="font-size:12px; color:#b91c1c;"><i class="ti ti-lock"></i> Bloquear equipo</button>
                     <button class="btn btn-light" onclick="mdmAccionReal('${f.id}','desbloquear')" style="font-size:12px; color:#15803d;"><i class="ti ti-lock-open"></i> Desbloquear equipo</button>
-                    <button class="btn btn-light" onclick="mdmEnviarMensaje('${f.id}')" style="font-size:12px; color:#7c3aed;"><i class="ti ti-message-2"></i> Enviar notificación</button>
+                    <button class="btn btn-light" onclick="abrirNotifMdm('${f.id}')" style="font-size:12px; color:#7c3aed;"><i class="ti ti-message-2"></i> Enviar notificación</button>
+                    <button class="btn btn-light" onclick="mdmUbicar('${f.id}', this)" style="font-size:12px; color:#0369a1;"><i class="ti ti-map-pin"></i> Ubicar equipo</button>
+                    <button class="btn btn-light" onclick="window.open('https://bayolcell.uem.hexnode.com','_blank')" style="font-size:12px; color:#0369a1;"><i class="ti ti-history"></i> Ver historial de ubicaciones</button>
                     <button class="btn btn-light" onclick="mdmBorrarEquipo('${f.id}')" style="font-size:12px; color:#dc2626; border-color:#fca5a5;"><i class="ti ti-eraser"></i> Borrar equipo recuperado</button>
                     <button class="btn btn-light" onclick="mdmLiberarEquipo('${f.id}')" style="font-size:12px; color:#0369a1; border-color:#7dd3fc;"><i class="ti ti-lock-open-2"></i> Liberar equipo (saldado)</button>
                 </div>
-                <div style="font-size:11px; color:var(--text-muted); margin-top:6px;">Estos botones envían la orden directo a Hexnode (requiere equipo enrolado/supervisado y la API configurada).</div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:6px;">Estos botones envían la orden directo a Hexnode (requiere equipo enrolado/supervisado y la API configurada). El historial de ubicaciones se ve en la consola de Hexnode.</div>
             </div>
         </div>`;
     }
@@ -17581,6 +17609,54 @@ async function mdmVerificar(finId, btn) {
     } catch(e){
         if(cont) cont.innerHTML = `<div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:8px 12px; border-radius:8px;">⚠️ Error al verificar: ${escapeHtml(e.message || String(e))}</div>`;
     } finally { if(btn){ btn.disabled = false; btn.innerHTML = orig; } }
+}
+// ===== Notificaciones al equipo (modal con plantillas) =====
+let _notifMdmFinId = null;
+function abrirNotifMdm(finId){
+    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso.', 'error'); return; }
+    _notifMdmFinId = finId;
+    const t = document.getElementById('notifMdmTexto'); if(t) t.value = '';
+    const m = document.getElementById('notifMdmMsg'); if(m) m.textContent = '';
+    document.getElementById('modalMdmNotif').classList.add('active');
+}
+function cerrarNotifMdm(){ document.getElementById('modalMdmNotif').classList.remove('active'); }
+async function enviarNotifMdm(texto){
+    if(!_notifMdmFinId) return;
+    const m = document.getElementById('notifMdmMsg');
+    if(m){ m.style.color = 'var(--text-muted)'; m.textContent = 'Enviando notificación...'; }
+    try {
+        const { data, error } = await supabaseClient.functions.invoke('mdm-accion', { body: { financiamiento_id: _notifMdmFinId, accion: 'mensaje', mensaje: texto } });
+        if(error){ let det=''; try{ det=(await error.context.json()).error||''; }catch(_){} throw new Error(det||error.message); }
+        if(data && data.error) throw new Error(data.error + (data.detalle ? ' — ' + data.detalle : ''));
+        if(m){ m.style.color = '#16a34a'; m.textContent = '✅ Notificación enviada al equipo.'; }
+        toast('✅ Notificación enviada.');
+        setTimeout(cerrarNotifMdm, 1000);
+    } catch(e){ if(m){ m.style.color = '#dc2626'; m.textContent = '⚠️ ' + (e.message || e); } }
+}
+function enviarNotifMdmCustom(){
+    const t = (document.getElementById('notifMdmTexto')?.value || '').trim();
+    if(!t){ toast('Escribe un mensaje primero.', 'error'); return; }
+    enviarNotifMdm(t);
+}
+// Ubicar el equipo (ubicación actual via Hexnode)
+async function mdmUbicar(finId, btn){
+    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso.', 'error'); return; }
+    const cont = document.getElementById('mdmLoc_' + finId);
+    const orig = btn ? btn.innerHTML : '';
+    if(btn){ btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Ubicando…'; }
+    if(cont) cont.innerHTML = '';
+    try {
+        const { data, error } = await supabaseClient.functions.invoke('mdm-accion', { body: { financiamiento_id: finId, accion: 'ubicacion' } });
+        if(error){ let det=''; try{ det=(await error.context.json()).error||''; }catch(_){} throw new Error(det||error.message); }
+        if(data && data.ok && data.lat != null){
+            const f = data.fecha ? (' · ' + new Date(data.fecha).toLocaleString('es-DO')) : '';
+            if(cont) cont.innerHTML = `<div style="background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; padding:8px 12px; border-radius:8px;"><b>📍 Última ubicación del equipo</b>${escapeHtml(f)}<br><a href="${data.maps}" target="_blank" rel="noopener" style="color:#0369a1; font-weight:700;"><i class="ti ti-external-link"></i> Ver en Google Maps</a></div>`;
+        } else {
+            const msg = (data && data.error) || 'No hay ubicación disponible aún.';
+            if(cont) cont.innerHTML = `<div style="background:#fffbeb; border:1px solid #fde68a; color:#92400e; padding:8px 12px; border-radius:8px;">⏳ ${escapeHtml(msg)}</div>`;
+        }
+    } catch(e){ if(cont) cont.innerHTML = `<div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:8px 12px; border-radius:8px;">⚠️ ${escapeHtml(e.message || String(e))}</div>`; }
+    finally { if(btn){ btn.disabled = false; btn.innerHTML = orig; } }
 }
 // Enviar una notificación/mensaje a la pantalla del equipo del cliente (vía Hexnode)
 async function mdmEnviarMensaje(finId) {
