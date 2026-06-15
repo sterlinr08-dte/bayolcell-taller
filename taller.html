@@ -15999,6 +15999,7 @@ function _pintarDetalleFin() {
                     <button class="btn btn-light" onclick="mdmAccionReal('${f.id}','bloquear')" style="font-size:12px; color:#b91c1c;"><i class="ti ti-lock"></i> Bloquear equipo</button>
                     <button class="btn btn-light" onclick="mdmAccionReal('${f.id}','desbloquear')" style="font-size:12px; color:#15803d;"><i class="ti ti-lock-open"></i> Desbloquear equipo</button>
                     <button class="btn btn-light" onclick="mdmEnviarMensaje('${f.id}')" style="font-size:12px; color:#7c3aed;"><i class="ti ti-message-2"></i> Enviar notificación</button>
+                    <button class="btn btn-light" onclick="mdmBorrarEquipo('${f.id}')" style="font-size:12px; color:#dc2626; border-color:#fca5a5;"><i class="ti ti-eraser"></i> Borrar equipo recuperado</button>
                 </div>
                 <div style="font-size:11px; color:var(--text-muted); margin-top:6px;">Estos botones envían la orden directo a Hexnode (requiere equipo enrolado/supervisado y la API configurada).</div>
             </div>
@@ -17592,6 +17593,21 @@ async function mdmEnviarMensaje(finId) {
         if(data && data.error) throw new Error(data.error + (data.detalle ? ' — ' + data.detalle : ''));
         toast('✅ Notificación enviada al equipo.');
     } catch(e){ console.error('mdmEnviarMensaje', e); toast('No se pudo enviar: ' + (e.message || e), 'error'); }
+}
+// Borrar (wipe) un equipo recuperado: lo deja limpio, sin la cuenta del cliente, listo para revender.
+async function mdmBorrarEquipo(finId) {
+    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso.', 'error'); return; }
+    if(!confirm('⚠️ BORRADO TOTAL del equipo recuperado.\n\nEsto BORRA TODO: la cuenta del cliente, sus datos y su clave. El equipo queda LIMPIO para revender (sin candado de cuenta).\n\nSolo hazlo si YA recuperaste el equipo físicamente.\n\n¿Continuar?')) return;
+    const conf = await pedirTexto('Para confirmar el borrado total, escribe la palabra: BORRAR');
+    if(!conf || conf.trim().toUpperCase() !== 'BORRAR') { toast('Borrado cancelado.', 'error'); return; }
+    toast('Enviando orden de borrado a Hexnode...');
+    try {
+        const { data, error } = await supabaseClient.functions.invoke('mdm-accion', { body: { financiamiento_id: finId, accion: 'borrar' } });
+        if(error){ let det=''; try{ det=(await error.context.json()).error||''; }catch(_){} throw new Error(det||error.message); }
+        if(data && data.error) throw new Error(data.error + (data.detalle ? ' — ' + data.detalle : ''));
+        toast('✅ Orden de borrado enviada. El equipo se reseteará limpio (sin la cuenta del cliente).');
+        await renderFinanciamientos();
+    } catch(e){ console.error('mdmBorrarEquipo', e); toast('No se pudo borrar en Hexnode: ' + (e.message || e), 'error'); }
 }
 async function mdmSetEstado(finId, estado) {
     if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso.', 'error'); return; }
