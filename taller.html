@@ -16000,6 +16000,7 @@ function _pintarDetalleFin() {
                     <button class="btn btn-light" onclick="mdmAccionReal('${f.id}','desbloquear')" style="font-size:12px; color:#15803d;"><i class="ti ti-lock-open"></i> Desbloquear equipo</button>
                     <button class="btn btn-light" onclick="mdmEnviarMensaje('${f.id}')" style="font-size:12px; color:#7c3aed;"><i class="ti ti-message-2"></i> Enviar notificación</button>
                     <button class="btn btn-light" onclick="mdmBorrarEquipo('${f.id}')" style="font-size:12px; color:#dc2626; border-color:#fca5a5;"><i class="ti ti-eraser"></i> Borrar equipo recuperado</button>
+                    <button class="btn btn-light" onclick="mdmLiberarEquipo('${f.id}')" style="font-size:12px; color:#0369a1; border-color:#7dd3fc;"><i class="ti ti-lock-open-2"></i> Liberar equipo (saldado)</button>
                 </div>
                 <div style="font-size:11px; color:var(--text-muted); margin-top:6px;">Estos botones envían la orden directo a Hexnode (requiere equipo enrolado/supervisado y la API configurada).</div>
             </div>
@@ -17608,6 +17609,19 @@ async function mdmBorrarEquipo(finId) {
         toast('✅ Orden de borrado enviada. El equipo se reseteará limpio (sin la cuenta del cliente).');
         await renderFinanciamientos();
     } catch(e){ console.error('mdmBorrarEquipo', e); toast('No se pudo borrar en Hexnode: ' + (e.message || e), 'error'); }
+}
+// Liberar el equipo cuando el cliente SALDA: quita el MDM (disenroll), sin borrar sus datos. Queda 100% del cliente.
+async function mdmLiberarEquipo(finId) {
+    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso.', 'error'); return; }
+    if(!confirm('🎓 LIBERAR equipo (financiamiento saldado).\n\nEsto QUITA el MDM del equipo (se va el "administrado por BAYOL CELL"). El equipo queda 100% del cliente. NO se borran sus datos.\n\nHazlo solo si el cliente YA pagó todo.\n\n¿Continuar?')) return;
+    toast('Liberando equipo en Hexnode...');
+    try {
+        const { data, error } = await supabaseClient.functions.invoke('mdm-accion', { body: { financiamiento_id: finId, accion: 'liberar' } });
+        if(error){ let det=''; try{ det=(await error.context.json()).error||''; }catch(_){} throw new Error(det||error.message); }
+        if(data && data.error) throw new Error(data.error + (data.detalle ? ' — ' + data.detalle : ''));
+        toast('✅ Equipo liberado. El MDM se quitará del equipo (queda libre para el cliente).');
+        await renderFinanciamientos();
+    } catch(e){ console.error('mdmLiberarEquipo', e); toast('No se pudo liberar en Hexnode: ' + (e.message || e), 'error'); }
 }
 async function mdmSetEstado(finId, estado) {
     if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso.', 'error'); return; }
