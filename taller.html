@@ -15975,10 +15975,11 @@ function _pintarDetalleFin() {
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap;">
             <div>
                 <h3 style="margin:0 0 2px; font-size:16px;">${escapeHtml(f.cliente_nombre || 'Sin cliente')} <span style="color:#94a3b8; font-size:13px;">#${f.codigo || '—'}</span></h3>
-                <div style="font-size:13px; color:var(--text-muted);">${escapeHtml(f.concepto || '')}${f.equipo_imei ? ' · IMEI: ' + escapeHtml(f.equipo_imei) : ''}</div>
+                <div style="font-size:13px; color:var(--text-muted);">📱 ${escapeHtml(f.concepto || '')}${f.equipo_capacidad ? ' · ' + escapeHtml(f.equipo_capacidad) : ''}${f.equipo_imei ? ' · IMEI: ' + escapeHtml(f.equipo_imei) : ''}</div>
                 ${f.cliente_telefono ? `<div style="font-size:12px; color:var(--text-muted);"><i class="ti ti-phone"></i> ${escapeHtml(f.cliente_telefono)}</div>` : ''}
+                ${(finClienteDe(f.fin_cliente_id) || {}).email ? `<div style="font-size:12px; color:var(--text-muted);"><i class="ti ti-mail"></i> ${escapeHtml((finClienteDe(f.fin_cliente_id) || {}).email)}</div>` : ''}
             </div>
-            <div style="text-align:right;">${finBadge(est)}<div style="margin-top:6px; display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end;"><button class="btn btn-light" onclick="abrirContratoFin('${f.id}')" style="font-size:11px;"><i class="ti ti-file-certificate"></i> Contrato${f.contrato_en ? ' ✓' : ''}</button><button class="btn btn-light" onclick="imprimirEstadoCuentaFin('${f.id}')" style="font-size:11px;"><i class="ti ti-printer"></i> Estado de cuenta</button></div></div>
+            <div style="text-align:right;">${finBadge(est)}<div style="margin-top:6px; display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end;"><button class="btn btn-light" onclick="abrirContratoFin('${f.id}')" style="font-size:11px;"><i class="ti ti-file-certificate"></i> Contrato${f.contrato_en ? ' ✓' : ''}</button><button class="btn btn-light" onclick="imprimirCalendarioPagos('${f.id}')" style="font-size:11px;"><i class="ti ti-calendar"></i> Calendario de pagos</button><button class="btn btn-light" onclick="imprimirEstadoCuentaFin('${f.id}')" style="font-size:11px;"><i class="ti ti-printer"></i> Estado de cuenta</button></div></div>
         </div>
         <div class="kpi-row" style="margin-top:12px;">
             <div class="kpi-box" style="border-top-color:#1e293b;"><small>Precio total</small><strong>${money(f.monto_total)}</strong></div>
@@ -16288,7 +16289,10 @@ function abrirModalNuevaSolicitud() {
             <div class="form-row" style="flex:1; min-width:130px;"><label>Cédula</label><input type="text" id="solCedula"></div>
             <div class="form-row" style="flex:1; min-width:130px;"><label>Teléfono / WhatsApp</label><input type="text" id="solTelefono"></div>
         </div>
-        <div class="form-row"><label>Dirección</label><input type="text" id="solDireccion"></div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <div class="form-row" style="flex:1; min-width:130px;"><label>Correo electrónico</label><input type="email" id="solEmail" placeholder="cliente@correo.com"></div>
+            <div class="form-row" style="flex:1; min-width:130px;"><label>Dirección</label><input type="text" id="solDireccion"></div>
+        </div>
         <h4 style="margin:6px 0; font-size:13px; color:#7c3aed;"><i class="ti ti-briefcase"></i> Datos laborales</h4>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
             <div class="form-row" style="flex:1; min-width:130px;"><label>Lugar de trabajo</label><input type="text" id="solLugarTrabajo"></div>
@@ -16309,9 +16313,13 @@ function abrirModalNuevaSolicitud() {
             <div class="form-row" style="flex:1; min-width:90px;"><label>Teléfono</label><input type="text" id="solRef2Tel"></div>
             <div class="form-row" style="flex:1; min-width:90px;"><label>Parentesco</label><input type="text" id="solRef2Par"></div>
         </div>
-        <h4 style="margin:6px 0; font-size:13px; color:#16a34a;"><i class="ti ti-cash"></i> Financiamiento solicitado</h4>
-        <div class="form-row"><label>Concepto / qué se financia *</label><input type="text" id="solConcepto" placeholder="Ej: iPhone 11 64GB" maxlength="120"></div>
+        <h4 style="margin:6px 0; font-size:13px; color:#16a34a;"><i class="ti ti-device-mobile"></i> Equipo a financiar</h4>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <div class="form-row" style="flex:2; min-width:140px;"><label>Nombre del equipo *</label><input type="text" id="solConcepto" placeholder="Ej: iPhone 11" maxlength="120"></div>
+            <div class="form-row" style="flex:1; min-width:100px;"><label>Capacidad (GB)</label><input type="text" id="solCapacidad" placeholder="Ej: 128 GB"></div>
+        </div>
         <div class="form-row"><label>IMEI / Serie (opcional)</label><input type="text" id="solImei"></div>
+        <h4 style="margin:6px 0; font-size:13px; color:#16a34a;"><i class="ti ti-cash"></i> Financiamiento solicitado</h4>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
             <div class="form-row" style="flex:1; min-width:120px;"><label>Precio total (RD$) *</label><input type="number" id="solMontoTotal" min="0" step="0.01" oninput="_solRecalcCuota()" placeholder="0.00"></div>
             <div class="form-row" style="flex:1; min-width:120px;"><label>Inicial</label>
@@ -16356,10 +16364,10 @@ function abrirModalNuevaSolicitud() {
 function _solPrefillCliente() {
     const id = document.getElementById('solClienteExistente')?.value;
     const set = (campo, val) => { const el = document.getElementById(campo); if(el) el.value = val || ''; };
-    if(!id) { ['solNombre', 'solApellido', 'solCedula', 'solTelefono', 'solDireccion', 'solLugarTrabajo', 'solOcupacion', 'solTiempoLaborando', 'solIngreso', 'solRef1Nombre', 'solRef1Tel', 'solRef1Par', 'solRef2Nombre', 'solRef2Tel', 'solRef2Par'].forEach(c => set(c, '')); return; }
+    if(!id) { ['solNombre', 'solApellido', 'solCedula', 'solTelefono', 'solEmail', 'solDireccion', 'solLugarTrabajo', 'solOcupacion', 'solTiempoLaborando', 'solIngreso', 'solRef1Nombre', 'solRef1Tel', 'solRef1Par', 'solRef2Nombre', 'solRef2Tel', 'solRef2Par'].forEach(c => set(c, '')); return; }
     const c = finClienteDe(id) || {};
     set('solNombre', c.nombre); set('solApellido', c.apellido); set('solCedula', c.cedula);
-    set('solTelefono', c.telefono); set('solDireccion', c.direccion);
+    set('solTelefono', c.telefono); set('solEmail', c.email); set('solDireccion', c.direccion);
     set('solLugarTrabajo', c.lugar_trabajo); set('solOcupacion', c.ocupacion);
     set('solTiempoLaborando', c.tiempo_laborando); set('solIngreso', c.ingreso_mensual);
     const refs = finReferenciasDe(id);
@@ -16444,7 +16452,7 @@ async function guardarSolicitud() {
     const usuario = sessionUser?.nombre || sessionUser?.usuario || 'Sistema';
     const datosCliente = {
         nombre, apellido: val('solApellido') || null, cedula: val('solCedula') || null,
-        telefono: val('solTelefono') || null, direccion: val('solDireccion') || null,
+        telefono: val('solTelefono') || null, email: val('solEmail') || null, direccion: val('solDireccion') || null,
         lugar_trabajo: val('solLugarTrabajo') || null, ocupacion: val('solOcupacion') || null,
         tiempo_laborando: val('solTiempoLaborando') || null,
         ingreso_mensual: parseFloat(document.getElementById('solIngreso')?.value) || 0
@@ -16466,7 +16474,7 @@ async function guardarSolicitud() {
         const { error: errS } = await supabaseClient.from('fin_solicitudes').insert([{
             cliente_id: clienteId,
             cliente_nombre: `${nombre} ${val('solApellido')}`.trim(),
-            concepto, equipo_imei: val('solImei') || null,
+            concepto, equipo_capacidad: val('solCapacidad') || null, equipo_imei: val('solImei') || null,
             monto_total: total, inicial, num_cuotas: nc, frecuencia, valor_cuota: valorCuota,
             fecha_inicio: fechaInicio, estado: 'pendiente',
             interes_metodo: interesMetodo, interes_tasa: interesTasa,
@@ -16500,6 +16508,7 @@ async function aprobarSolicitud(solId) {
             cliente_telefono: cli.telefono || null,
             cliente_cedula: cli.cedula || null,
             concepto: s.concepto,
+            equipo_capacidad: s.equipo_capacidad || null,
             equipo_imei: s.equipo_imei,
             monto_total: s.monto_total,
             inicial: s.inicial,
@@ -16693,6 +16702,34 @@ function imprimirEstadoCuentaFin(finId) {
     _finAbrirImpresion('Estado de cuenta #' + (f.codigo || ''), cuerpo);
 }
 
+// Calendario de pagos: tabla simple con la FECHA y el MONTO de cada cuota
+function imprimirCalendarioPagos(finId) {
+    const f = (_finCache.financiamientos || []).find(x => x.id === finId);
+    if(!f) return;
+    const crono = finCronograma(f);
+    const cli = finClienteDe(f.fin_cliente_id) || {};
+    const total = crono.reduce((s, c) => s + Number(c.valor || 0), 0);
+    const filas = crono.map(c => `<tr><td style="text-align:center;">${c.num}</td><td>${_finFmtFecha(c.vence)}</td><td style="text-align:right;">${money(c.valor)}</td></tr>`).join('');
+    const cuerpo = `${_finCabeceraImpresion()}
+        <h3 style="text-align:center;">CALENDARIO DE PAGOS</h3>
+        <div class="muted" style="text-align:center;">${new Date().toLocaleString('es-DO')}</div>
+        <hr>
+        <table>
+            <tr><td>Cliente</td><td style="text-align:right;">${escapeHtml(f.cliente_nombre || '')}</td></tr>
+            ${cli.cedula ? `<tr><td>Cédula</td><td style="text-align:right;">${escapeHtml(cli.cedula)}</td></tr>` : ''}
+            <tr><td>Equipo</td><td style="text-align:right;">${escapeHtml(f.concepto || '')}${f.equipo_capacidad ? ' · ' + escapeHtml(f.equipo_capacidad) : ''}</td></tr>
+            <tr><td>Financiamiento</td><td style="text-align:right;">#${f.codigo || '—'}</td></tr>
+            <tr><td>Plan</td><td style="text-align:right;">${f.num_cuotas} cuota(s) ${FIN_FREC_TXT[f.frecuencia] || f.frecuencia} · inicia ${_finFmtFecha(_finAddPeriodo(f.fecha_inicio, f.frecuencia, 0))}</td></tr>
+        </table>
+        <hr>
+        <h3>Fechas de pago</h3>
+        <table><thead><tr><th style="text-align:center;">Cuota</th><th>Fecha de pago</th><th style="text-align:right;">Monto</th></tr></thead>
+        <tbody>${filas}</tbody>
+        <tfoot><tr class="tot"><td colspan="2">TOTAL A PAGAR</td><td style="text-align:right;">${money(total)}</td></tr></tfoot></table>
+        <div class="muted" style="margin-top:8px;">* Las fechas son las acordadas. Conserve este calendario para no atrasarse.</div>`;
+    _finAbrirImpresion('Calendario de pagos #' + (f.codigo || ''), cuerpo);
+}
+
 // ============================================================
 //   PESTAÑA CLIENTES (de financiamiento)
 // ============================================================
@@ -16763,7 +16800,7 @@ function _pintarFichaCliente() {
     html += `<div class="card" style="margin-bottom:14px;">
         <h3 style="margin:0 0 10px; font-size:16px;"><i class="ti ti-user" style="color:#0891b2;"></i> ${escapeHtml(`${c.nombre || ''} ${c.apellido || ''}`.trim())}</h3>
         <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:8px;">
-            ${dato('Cédula', c.cedula)}${dato('Teléfono', c.telefono)}${dato('Dirección', c.direccion)}
+            ${dato('Cédula', c.cedula)}${dato('Teléfono', c.telefono)}${dato('Correo', c.email)}${dato('Dirección', c.direccion)}
             ${dato('Lugar de trabajo', c.lugar_trabajo)}${dato('Ocupación', c.ocupacion)}${dato('Tiempo laborando', c.tiempo_laborando)}
             ${dato('Ingreso mensual', c.ingreso_mensual ? money(c.ingreso_mensual) : '—')}
         </div>
@@ -17159,24 +17196,34 @@ async function _finSubirDoc(input, tipo, clienteId, finId, refId) {
 // ============================================================
 // Plantilla por defecto del cuerpo del contrato (con variables {{...}})
 const FIN_CONTRATO_TITULO_DEF = 'CONTRATO DE VENTA CONDICIONAL CON FINANCIAMIENTO Y RECONOCIMIENTO DE DEUDA';
-const FIN_CONTRATO_CUERPO_DEF = `Entre {{tienda}}{{tienda_dir}} (EL ACREEDOR), y {{cliente}}, dominicano(a), mayor de edad, portador(a) de la cédula de identidad No. {{cedula}}, teléfono {{telefono}} (EL DEUDOR), se ha convenido y pactado lo siguiente:
-PRIMERO (Objeto): EL ACREEDOR vende a EL DEUDOR, mediante financiamiento, el siguiente bien: {{equipo}}, IMEI {{imei}}, por un precio total de {{total}}.
-SEGUNDO (Forma de pago): EL DEUDOR pagó una inicial de {{inicial}} y se obliga a pagar el saldo de {{total_pagar}} (capital {{financiado}} más intereses {{interes}}) en {{cuotas}} cuotas {{frecuencia}} de {{valor_cuota}} cada una, conforme al calendario anexo, iniciando el {{fecha_inicio}}.
+const FIN_CONTRATO_CUERPO_DEF = `Entre {{tienda}}{{tienda_dir}} (EL ACREEDOR), y {{cliente}}, dominicano(a), mayor de edad, portador(a) de la cédula de identidad No. {{cedula}}, teléfono {{telefono}}, correo electrónico {{email}}, con domicilio en {{direccion}} (EL DEUDOR), se ha convenido y pactado lo siguiente:
+PRIMERO (Objeto): EL ACREEDOR vende a EL DEUDOR, mediante financiamiento, el siguiente bien: {{equipo}}, capacidad {{capacidad}}, IMEI {{imei}}, por un precio total de {{total}}.
+SEGUNDO (Forma de pago): EL DEUDOR pagó una inicial de {{inicial}} y se obliga a pagar el saldo de {{total_pagar}} (capital {{financiado}} más intereses {{interes}}) en {{cuotas}} cuotas {{frecuencia}} de {{valor_cuota}} cada una, conforme al calendario de pagos anexo, iniciando el {{fecha_inicio}}.
 TERCERO (Mora): El atraso en el pago de cualquier cuota generará un recargo por mora de {{mora}}.
 CUARTO (Vencimiento anticipado): La falta de pago de las cuotas dará derecho a EL ACREEDOR a exigir la totalidad del saldo pendiente y/o la devolución del bien financiado.
 QUINTO (Reserva de dominio): El bien permanece en garantía y propiedad de EL ACREEDOR hasta el pago total de la deuda.
-SEXTO (Reconocimiento): EL DEUDOR reconoce la presente deuda y se compromete a pagarla en los plazos acordados.`;
-const FIN_CONTRATO_VARS = ['tienda', 'cliente', 'cedula', 'telefono', 'equipo', 'imei', 'total', 'inicial', 'financiado', 'interes', 'total_pagar', 'tasa', 'cuotas', 'valor_cuota', 'frecuencia', 'fecha_inicio', 'mora', 'fecha_hoy'];
+SEXTO (Referencias): EL DEUDOR declara como referencias personales: {{referencias}}.
+SÉPTIMO (Reconocimiento): EL DEUDOR reconoce la presente deuda y se compromete a pagarla en los plazos acordados.`;
+const FIN_CONTRATO_VARS = ['tienda', 'cliente', 'cedula', 'telefono', 'email', 'direccion', 'referencias', 'equipo', 'capacidad', 'imei', 'total', 'inicial', 'financiado', 'interes', 'total_pagar', 'tasa', 'cuotas', 'valor_cuota', 'frecuencia', 'fecha_inicio', 'mora', 'fecha_hoy'];
 
 function _finRellenarPlantilla(tpl, f) {
     const c = cache.configTaller || {};
+    const cli = finClienteDe(f.fin_cliente_id) || {};
+    const refs = finReferenciasDe(f.fin_cliente_id) || [];
+    const refsTxt = refs.length
+        ? refs.map((r, i) => `${i + 1}) ${r.nombre || ''}${r.parentesco ? ' (' + r.parentesco + ')' : ''}${r.telefono ? ' — Tel. ' + r.telefono : ''}`).join('; ')
+        : 'sin referencias registradas';
     const map = {
         tienda: c.nombre || 'BAYOL CELL',
         tienda_dir: c.direccion ? ', con domicilio en ' + c.direccion : '',
         cliente: f.cliente_nombre || '',
         cedula: f.cliente_cedula || '__________',
         telefono: f.cliente_telefono || '—',
+        email: cli.email || '—',
+        direccion: cli.direccion || '—',
+        referencias: refsTxt,
         equipo: f.concepto || '',
+        capacidad: f.equipo_capacidad || '—',
         imei: f.equipo_imei || '—',
         total: money(f.monto_total),
         inicial: money(f.inicial),
@@ -17439,7 +17486,10 @@ function editarCliente(id) {
             <div class="form-row" style="flex:1; min-width:130px;"><label>Cédula</label><input type="text" id="ecCedula" value="${v(c.cedula)}"></div>
             <div class="form-row" style="flex:1; min-width:130px;"><label>Teléfono</label><input type="text" id="ecTelefono" value="${v(c.telefono)}"></div>
         </div>
-        <div class="form-row"><label>Dirección</label><input type="text" id="ecDireccion" value="${v(c.direccion)}"></div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <div class="form-row" style="flex:1; min-width:130px;"><label>Correo electrónico</label><input type="email" id="ecEmail" value="${v(c.email)}" placeholder="cliente@correo.com"></div>
+            <div class="form-row" style="flex:1; min-width:130px;"><label>Dirección</label><input type="text" id="ecDireccion" value="${v(c.direccion)}"></div>
+        </div>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
             <div class="form-row" style="flex:1; min-width:130px;"><label>Lugar de trabajo</label><input type="text" id="ecLugar" value="${v(c.lugar_trabajo)}"></div>
             <div class="form-row" style="flex:1; min-width:130px;"><label>Ocupación</label><input type="text" id="ecOcupacion" value="${v(c.ocupacion)}"></div>
@@ -17471,7 +17521,7 @@ async function guardarEdicionCliente(id) {
     try {
         await supabaseClient.from('fin_clientes').update({
             nombre: val('ecNombre'), apellido: val('ecApellido') || null, cedula: val('ecCedula') || null,
-            telefono: val('ecTelefono') || null, direccion: val('ecDireccion') || null,
+            telefono: val('ecTelefono') || null, email: val('ecEmail') || null, direccion: val('ecDireccion') || null,
             lugar_trabajo: val('ecLugar') || null, ocupacion: val('ecOcupacion') || null,
             tiempo_laborando: val('ecTiempo') || null, ingreso_mensual: parseFloat(document.getElementById('ecIngreso')?.value) || 0
         }).eq('id', id);
