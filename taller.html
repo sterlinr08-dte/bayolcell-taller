@@ -17641,7 +17641,7 @@ async function mdmVerificar(finId, btn) {
         if(error){ let det=''; try{ det=(await error.context.json()).error||''; }catch(_){} throw new Error(det||error.message); }
         if(data && data.enrolado){
             const d = data.device || {};
-            const detalle = [d.model, d.platform, d.imei ? ('IMEI ' + d.imei) : ''].filter(Boolean).join(' · ');
+            const detalle = [d.model, d.os ? ('Android ' + d.os) : d.platform, d.serial ? ('Serie ' + d.serial) : '', d.imei ? ('IMEI ' + d.imei) : ''].filter(Boolean).join(' · ');
             // Estado de conexión (¿el equipo tiene internet / está conectado?)
             let conexHtml = '';
             if(d.ultima_conexion){
@@ -17657,10 +17657,16 @@ async function mdmVerificar(finId, btn) {
                 else if(mins < 60*24) hace = 'hace ' + Math.round(mins/60) + ' h';
                 else hace = 'hace ' + Math.round(mins/1440) + ' días';
                 conexHtml = `<br><span style="color:${col}; font-weight:700;">${ico} ${txt}</span> · última conexión ${escapeHtml(t.toLocaleString('es-DO'))} (${hace})`;
+            } else if(d.agente_activo){
+                conexHtml = `<br><span style="color:#166534; font-weight:700;">🟢 Agente activo (conectado)</span>`;
             } else {
                 conexHtml = `<br><span style="color:#92400e;">🟡 No se pudo leer la última conexión (el equipo se reportará al abrir internet).</span>`;
             }
-            if(cont) cont.innerHTML = `<div style="background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; padding:8px 12px; border-radius:8px;"><b>✅ Equipo enrolado en Hexnode.</b><br>Estado: ${escapeHtml(d.estado || 'enrolled')}${detalle ? ' · ' + escapeHtml(detalle) : ''}${conexHtml}<br><b>✅ LISTO para entregar al cliente.</b></div>`;
+            // Estado actual del equipo: bloqueado o activo
+            const lockHtml = d.bloqueado
+                ? `<br><span style="color:#b91c1c; font-weight:700;">🔒 Actualmente BLOQUEADO</span>`
+                : `<br><span style="color:#166534; font-weight:700;">🔓 Activo (no bloqueado)</span>`;
+            if(cont) cont.innerHTML = `<div style="background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; padding:8px 12px; border-radius:8px;"><b>✅ Equipo enrolado en Hexnode.</b>${d.name ? '<br>📱 ' + escapeHtml(d.name) : ''}<br>Estado: ${escapeHtml(d.estado || 'enrolled')}${detalle ? ' · ' + escapeHtml(detalle) : ''}${conexHtml}${lockHtml}<br><b>✅ LISTO para entregar al cliente.</b></div>`;
         } else {
             const msg = (data && data.error) || 'El equipo NO aparece enrolado en Hexnode.';
             if(cont) cont.innerHTML = `<div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:8px 12px; border-radius:8px;"><b>❌ NO verificado.</b><br>${escapeHtml(msg)}<br><b>⚠️ NO entregues el equipo todavía.</b></div>`;

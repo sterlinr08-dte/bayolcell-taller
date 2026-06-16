@@ -35,9 +35,13 @@ Pedirle a Info Plus que **habilite la clave** para estos endpoints (hoy dan "Err
 - `prefactura`, `cotizacion`, `presupuesto`
 - *(Cuando los habiliten → conectarlos al sistema.)*
 
-## ✅ 6. Pruebas pendientes del MDM
-- Probar el botón de **notificación** en vivo en un equipo real.
-- Hacer una **entrega real completa** (verificar → entregar → cobrar → bloquear/liberar).
+## ✅ 6. Pruebas del MDM — HECHAS (16 jun 2026)
+Probadas en vivo contra el equipo real (Smooth 6.5, Android 11, ID Hexnode 1):
+- ✅ Verificar enrolamiento + conexión (muestra modelo, última conexión, 🟢 en línea, 🔒/🔓 estado).
+- ✅ Notificación a la pantalla (se arregló: el endpoint correcto es `message`, no `broadcast_message`).
+- ✅ Bloquear / Desbloquear (orden aceptada por Hexnode).
+- ⏳ Ubicar: responde "rastreo APAGADO" → falta activar la política (pendiente #2).
+- Falta: hacer una **entrega real completa** con un cliente (verificar → entregar → cobrar → liberar).
 
 ---
 
