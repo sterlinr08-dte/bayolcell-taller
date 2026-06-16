@@ -6,15 +6,21 @@
 
 ---
 
-## 🔐 1. Crear política de Android (Hexnode) — exit password + FRP + bloquear reset  ⬅️ PRIORIDAD
-**Objetivo:** que NO puedan quitar el MDM con un reset de fábrica por modo recovery, y blindar la pantalla de bloqueo.
-- En Hexnode → **Policies → New Policy** → "FINANCIAMIENTO BAYOL CELL ANDROID" (plataforma Android):
-  1. **Kiosk Lockdown** → "Password to exit" = `bayol0530*` (contraseña de salida).
-  2. **Factory Reset Protection (FRP)** → activar con **la cuenta de Google del negocio** (si resetean, queda pidiendo TU cuenta).
-  3. **Restrictions** → desactivar **"Allow factory reset"**.
-  4. **Location Tracking** → activar (para que el botón "Ubicar equipo" funcione).
-  5. **Guardar** y **asociar la política** al equipo Android (hoy la columna Devices = 0, hay que asociarla).
-- *(Lo hacemos juntos: tú entras a Hexnode y mandas capturas, yo te guío.)*
+## ✅ 1. Política de Android (Hexnode) — HECHA (16 jun 2026)
+Política "FINANCIAMIENTO BAYOL CELL ANDROID" creada, asociada al equipo y probada:
+- ✅ **FRP** activado con cuenta `admin@bayolcell.com` (ID Google `104664341594312054855`). Si resetean por recovery, pide ESA cuenta.
+- ✅ **Reset de fábrica BLOQUEADO** (y "reset avanzado", modo desarrollador y depuración USB apagados).
+- ✅ **Auto-conceder permisos** a "Hexnode para trabajar" (com.hexnode.mdm.work).
+- ✅ Batería "NOT OPTIMIZED" para el agente (sincroniza en segundo plano).
+- ✅ **PROBADO:** bloqueo/desbloqueo funciona con la **app CERRADA** (no depende de tenerla abierta).
+- ⚠️ **Llave maestra:** la contraseña de Google de `admin@bayolcell.com` es la que reactiva un equipo tras un formateo. NO perderla.
+- ⚠️ **bayol0530\*** era para la "contraseña de salida" (Kiosk) — quedó PENDIENTE (no se puso, porque no queremos activar kiosk completo). Revisar si hace falta.
+
+## ⏳ 2. Pendientes finos del Android
+- 📍 **Ubicación:** activar el rastreo (el botón "Ubicar" aún dice "rastreo APAGADO"). Ver dónde se enciende (política o Admin → General Settings).
+- 🔑 **Contraseña de salida del Lost Mode** (`bayol0530*`): confirmar dónde se configura sin activar kiosk completo.
+- 📋 **Checklist de enrolamiento** para la empleada (4 pasos): enrolar QR → abrir Hexnode/permitir → Autostart (marcas baratas) → verificar 🟢 en el sistema.
+- 💡 Comprar equipos con Android limpio (Motorola/Samsung) = menos pasos manuales (autostart).
 
 ## 🧰 3. Simplificar el módulo de Financiamiento (para el vendedor)
 - Hacerlo fácil de entender y usar para el vendedor.
