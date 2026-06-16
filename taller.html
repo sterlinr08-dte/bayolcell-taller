@@ -17643,10 +17643,19 @@ function mdmMostrarResultado(finId, titulo, detalle, tipo){
     const hora = new Date().toLocaleString('es-DO');
     cont.innerHTML = `<div style="background:${s.bg}; border:1px solid ${s.bd}; color:${s.col}; padding:9px 12px; border-radius:8px;"><b>${s.ico} ${escapeHtml(titulo)}</b>${detalle ? '<br>' + detalle : ''}<br><span style="font-size:11px; opacity:.85;">🕐 ${escapeHtml(hora)}</span></div>`;
 }
+// Lee el IMEI/serial y el ID Hexnode escritos en el panel, para que los comandos encuentren el equipo solos (sin verificar/guardar antes)
+function _mdmExtra(){
+    const e = {};
+    const s = (document.getElementById('mdmSerial')?.value || '').trim();
+    const d = (document.getElementById('mdmDeviceId')?.value || '').trim();
+    if(s) e.serial = s;
+    if(d) e.device_id = d;
+    return e;
+}
 // Tras una acción, vuelve a leer Hexnode y dice si el equipo está conectado (si lo está, ya se aplicó)
 async function mdmConfirmarAplicado(finId, accionTxt){
     try {
-        const { data } = await supabaseClient.functions.invoke('mdm-accion', { body: { financiamiento_id: finId, accion: 'verificar' } });
+        const { data } = await supabaseClient.functions.invoke('mdm-accion', { body: { financiamiento_id: finId, accion: 'verificar', ..._mdmExtra() } });
         if(data && data.enrolado){
             const d = data.device || {};
             if(d.ultima_conexion){
@@ -17674,7 +17683,7 @@ async function mdmAccionReal(finId, accion) {
     if(!confirm(aviso)) return;
     toast('Enviando orden a Hexnode...');
     try {
-        const { data, error } = await supabaseClient.functions.invoke('mdm-accion', { body: { financiamiento_id: finId, accion } });
+        const { data, error } = await supabaseClient.functions.invoke('mdm-accion', { body: { financiamiento_id: finId, accion, ..._mdmExtra() } });
         if(error) {
             let det = '';
             try { det = (await error.context.json()).error || ''; } catch(_) {}
@@ -17698,7 +17707,7 @@ async function mdmVerificar(finId, btn) {
     if(btn){ btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Verificando…'; }
     if(cont) cont.innerHTML = '';
     try {
-        const { data, error } = await supabaseClient.functions.invoke('mdm-accion', { body: { financiamiento_id: finId, accion: 'verificar' } });
+        const { data, error } = await supabaseClient.functions.invoke('mdm-accion', { body: { financiamiento_id: finId, accion: 'verificar', ..._mdmExtra() } });
         if(error){ let det=''; try{ det=(await error.context.json()).error||''; }catch(_){} throw new Error(det||error.message); }
         if(data && data.enrolado){
             const d = data.device || {};
@@ -17751,7 +17760,7 @@ async function enviarNotifMdm(texto){
     const m = document.getElementById('notifMdmMsg');
     if(m){ m.style.color = 'var(--text-muted)'; m.textContent = 'Enviando notificación...'; }
     try {
-        const { data, error } = await supabaseClient.functions.invoke('mdm-accion', { body: { financiamiento_id: _notifMdmFinId, accion: 'mensaje', mensaje: texto } });
+        const { data, error } = await supabaseClient.functions.invoke('mdm-accion', { body: { financiamiento_id: _notifMdmFinId, accion: 'mensaje', mensaje: texto, ..._mdmExtra() } });
         if(error){ let det=''; try{ det=(await error.context.json()).error||''; }catch(_){} throw new Error(det||error.message); }
         if(data && data.error) throw new Error(data.error + (data.detalle ? ' — ' + data.detalle : ''));
         if(m){ m.style.color = '#16a34a'; m.textContent = '✅ Notificación enviada al equipo.'; }
@@ -17775,7 +17784,7 @@ async function mdmUbicar(finId, btn){
     if(btn){ btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Ubicando…'; }
     if(cont) cont.innerHTML = '';
     try {
-        const { data, error } = await supabaseClient.functions.invoke('mdm-accion', { body: { financiamiento_id: finId, accion: 'ubicacion' } });
+        const { data, error } = await supabaseClient.functions.invoke('mdm-accion', { body: { financiamiento_id: finId, accion: 'ubicacion', ..._mdmExtra() } });
         if(error){ let det=''; try{ det=(await error.context.json()).error||''; }catch(_){} throw new Error(det||error.message); }
         if(data && data.ok && data.lat != null){
             const f = data.fecha ? (' · ' + new Date(data.fecha).toLocaleString('es-DO')) : '';
@@ -17808,7 +17817,7 @@ async function mdmBorrarEquipo(finId) {
     if(!conf || conf.trim().toUpperCase() !== 'BORRAR') { toast('Borrado cancelado.', 'error'); return; }
     toast('Enviando orden de borrado a Hexnode...');
     try {
-        const { data, error } = await supabaseClient.functions.invoke('mdm-accion', { body: { financiamiento_id: finId, accion: 'borrar' } });
+        const { data, error } = await supabaseClient.functions.invoke('mdm-accion', { body: { financiamiento_id: finId, accion: 'borrar', ..._mdmExtra() } });
         if(error){ let det=''; try{ det=(await error.context.json()).error||''; }catch(_){} throw new Error(det||error.message); }
         if(data && data.error) throw new Error(data.error + (data.detalle ? ' — ' + data.detalle : ''));
         toast('✅ Orden de borrado enviada. El equipo se reseteará limpio (sin la cuenta del cliente).');
@@ -17821,7 +17830,7 @@ async function mdmLiberarEquipo(finId) {
     if(!confirm('🎓 LIBERAR equipo (financiamiento saldado).\n\nEsto QUITA el MDM del equipo (se va el "administrado por BAYOL CELL"). El equipo queda 100% del cliente. NO se borran sus datos.\n\nHazlo solo si el cliente YA pagó todo.\n\n¿Continuar?')) return;
     toast('Liberando equipo en Hexnode...');
     try {
-        const { data, error } = await supabaseClient.functions.invoke('mdm-accion', { body: { financiamiento_id: finId, accion: 'liberar' } });
+        const { data, error } = await supabaseClient.functions.invoke('mdm-accion', { body: { financiamiento_id: finId, accion: 'liberar', ..._mdmExtra() } });
         if(error){ let det=''; try{ det=(await error.context.json()).error||''; }catch(_){} throw new Error(det||error.message); }
         if(data && data.error) throw new Error(data.error + (data.detalle ? ' — ' + data.detalle : ''));
         toast('✅ Equipo liberado. El MDM se quitará del equipo (queda libre para el cliente).');
