@@ -817,7 +817,10 @@ body{
         </div>
         <div class="form-row">
             <label>Contraseña Corporativa</label>
-            <input id="loginPass" type="password" placeholder="••••" onkeydown="if(event.key==='Enter')doLogin()">
+            <div style="position:relative;">
+                <input id="loginPass" type="password" placeholder="••••" style="padding-right:44px;" onkeydown="if(event.key==='Enter')doLogin()">
+                <button type="button" id="loginPassEye" onclick="toggleLoginPass()" aria-label="Mostrar contraseña" style="position:absolute; right:6px; top:50%; transform:translateY(-50%); background:transparent; border:0; color:#94a3b8; cursor:pointer; padding:6px; display:flex; align-items:center;"><i class="ti ti-eye"></i></button>
+            </div>
         </div>
         <button class="btn btn-blue" style="width:100%" onclick="doLogin()"><i class="ti ti-login"></i> Autenticar Operador</button>
         <a href="index.html" style="display:flex; align-items:center; justify-content:center; gap:7px; width:100%; margin-top:10px; padding:11px; border-radius:10px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.05); color:#cbd5e1; font-weight:700; font-size:13px; text-decoration:none;"><i class="ti ti-arrow-left"></i> Volver a la página principal</a>
@@ -3854,6 +3857,14 @@ async function aplicarSesionDesdeFila(fila, tipo) {
     else { startApp(); }
 }
 
+function toggleLoginPass() {
+    const inp = document.getElementById('loginPass');
+    const eye = document.getElementById('loginPassEye');
+    if(!inp) return;
+    const mostrar = inp.type === 'password';
+    inp.type = mostrar ? 'text' : 'password';
+    if(eye) eye.innerHTML = mostrar ? '<i class="ti ti-eye-off"></i>' : '<i class="ti ti-eye"></i>';
+}
 async function doLogin() {
     try {
         const u = val("loginUser"), p = val("loginPass");
