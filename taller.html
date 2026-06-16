@@ -17570,7 +17570,10 @@ async function guardarMDM(finId) {
 async function mdmAccionReal(finId, accion) {
     if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso.', 'error'); return; }
     const txt = accion === 'bloquear' ? 'BLOQUEAR el equipo en Hexnode' : 'DESBLOQUEAR el equipo en Hexnode';
-    if(!confirm(`¿Confirmas ${txt}? La orden se enviará al dispositivo.`)) return;
+    const aviso = accion === 'bloquear'
+        ? `¿Confirmas ${txt}?\n\n📶 IMPORTANTE: si el equipo tiene internet AHORA, se bloquea en segundos.\nSi está apagado o sin internet, la orden queda EN ESPERA y se aplica sola en cuanto el cliente conecte (no se pierde).`
+        : `¿Confirmas ${txt}?\n\n📶 Si el equipo tiene internet AHORA, se desbloquea en segundos. Si no, se aplica cuando conecte.`;
+    if(!confirm(aviso)) return;
     toast('Enviando orden a Hexnode...');
     try {
         const { data, error } = await supabaseClient.functions.invoke('mdm-accion', { body: { financiamiento_id: finId, accion } });
@@ -17580,7 +17583,9 @@ async function mdmAccionReal(finId, accion) {
             throw new Error(det || error.message);
         }
         if(data && data.error) throw new Error(data.error + (data.detalle ? ' — ' + data.detalle : ''));
-        toast('✅ Orden ejecutada en Hexnode.');
+        toast(accion === 'bloquear'
+            ? '✅ Orden de BLOQUEO enviada. Si el equipo tiene internet se bloquea ya; si no, se aplica al conectarse.'
+            : '✅ Orden de DESBLOQUEO enviada. Si el equipo tiene internet se aplica ya; si no, al conectarse.');
         await renderFinanciamientos();
     } catch(e) {
         console.error('mdmAccionReal', e);
