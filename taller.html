@@ -16028,6 +16028,7 @@ function _pintarDetalleFin() {
                     <button class="btn btn-light" onclick="mdmBorrarEquipo('${f.id}')" style="font-size:12px; color:#dc2626; border-color:#fca5a5;"><i class="ti ti-eraser"></i> Borrar equipo recuperado</button>
                     <button class="btn btn-light" onclick="mdmLiberarEquipo('${f.id}')" style="font-size:12px; color:#0369a1; border-color:#7dd3fc;"><i class="ti ti-lock-open-2"></i> Liberar equipo (saldado)</button>
                 </div>
+                <div id="mdmRes_${f.id}" style="font-size:12.5px; margin-top:10px;"></div>
                 <div style="font-size:11px; color:var(--text-muted); margin-top:6px;">Estos botones envían la orden directo a Hexnode (requiere equipo enrolado/supervisado y la API configurada). El historial de ubicaciones se ve en la consola de Hexnode.</div>
             </div>
         </div>`;
@@ -17567,6 +17568,42 @@ async function guardarMDM(finId) {
     } catch(e) { console.error('guardarMDM', e); toast('No se pudo guardar.', 'error'); }
 }
 // Acción real contra Hexnode vía Edge Function
+// Banner persistente que confirma qué acción se aplicó al equipo (queda visible, no desaparece como el toast)
+function mdmMostrarResultado(finId, titulo, detalle, tipo){
+    const cont = document.getElementById('mdmRes_' + finId);
+    if(!cont) return;
+    const estilos = {
+        ok:    { bg:'#f0fdf4', bd:'#bbf7d0', col:'#166534', ico:'✅' },
+        info:  { bg:'#eff6ff', bd:'#bfdbfe', col:'#1e40af', ico:'ℹ️' },
+        warn:  { bg:'#fffbeb', bd:'#fde68a', col:'#92400e', ico:'⏳' },
+        error: { bg:'#fef2f2', bd:'#fecaca', col:'#991b1b', ico:'⚠️' }
+    };
+    const s = estilos[tipo] || estilos.info;
+    const hora = new Date().toLocaleString('es-DO');
+    cont.innerHTML = `<div style="background:${s.bg}; border:1px solid ${s.bd}; color:${s.col}; padding:9px 12px; border-radius:8px;"><b>${s.ico} ${escapeHtml(titulo)}</b>${detalle ? '<br>' + detalle : ''}<br><span style="font-size:11px; opacity:.85;">🕐 ${escapeHtml(hora)}</span></div>`;
+}
+// Tras una acción, vuelve a leer Hexnode y dice si el equipo está conectado (si lo está, ya se aplicó)
+async function mdmConfirmarAplicado(finId, accionTxt){
+    try {
+        const { data } = await supabaseClient.functions.invoke('mdm-accion', { body: { financiamiento_id: finId, accion: 'verificar' } });
+        if(data && data.enrolado){
+            const d = data.device || {};
+            if(d.ultima_conexion){
+                const mins = (Date.now() - new Date(d.ultima_conexion).getTime()) / 60000;
+                if(mins < 60){
+                    mdmMostrarResultado(finId, `${accionTxt} — APLICADO en el equipo`, `📶 El equipo está 🟢 conectado a internet, así que la orden ya le llegó.`, 'ok');
+                    return;
+                }
+                let hace = mins < 1440 ? ('hace ' + Math.round(mins/60) + ' h') : ('hace ' + Math.round(mins/1440) + ' días');
+                mdmMostrarResultado(finId, `${accionTxt} — EN ESPERA`, `📶 El equipo está 🔴 sin internet (última conexión ${hace}). La orden queda guardada y se aplica sola cuando el cliente conecte.`, 'warn');
+                return;
+            }
+        }
+        mdmMostrarResultado(finId, `${accionTxt} — orden enviada`, `Se mandó a Hexnode. Si el equipo tiene internet se aplica enseguida; si no, al conectarse.`, 'info');
+    } catch(_e){
+        mdmMostrarResultado(finId, `${accionTxt} — orden enviada`, `Se mandó a Hexnode. Si el equipo tiene internet se aplica enseguida; si no, al conectarse.`, 'info');
+    }
+}
 async function mdmAccionReal(finId, accion) {
     if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso.', 'error'); return; }
     const txt = accion === 'bloquear' ? 'BLOQUEAR el equipo en Hexnode' : 'DESBLOQUEAR el equipo en Hexnode';
@@ -17583,13 +17620,14 @@ async function mdmAccionReal(finId, accion) {
             throw new Error(det || error.message);
         }
         if(data && data.error) throw new Error(data.error + (data.detalle ? ' — ' + data.detalle : ''));
-        toast(accion === 'bloquear'
-            ? '✅ Orden de BLOQUEO enviada. Si el equipo tiene internet se bloquea ya; si no, se aplica al conectarse.'
-            : '✅ Orden de DESBLOQUEO enviada. Si el equipo tiene internet se aplica ya; si no, al conectarse.');
-        await renderFinanciamientos();
+        const accionTxt = accion === 'bloquear' ? '🔒 Bloqueo' : '🔓 Desbloqueo';
+        toast('✅ Orden enviada a Hexnode.');
+        mdmMostrarResultado(finId, `${accionTxt} — comprobando…`, 'Confirmando con el equipo si ya se aplicó…', 'info');
+        await mdmConfirmarAplicado(finId, accionTxt);
     } catch(e) {
         console.error('mdmAccionReal', e);
         toast('No se pudo ejecutar en Hexnode: ' + (e.message || e), 'error');
+        mdmMostrarResultado(finId, 'No se pudo ejecutar en Hexnode', escapeHtml(e.message || String(e)), 'error');
     }
 }
 // Verifica que el equipo esté bien enrolado/conectado en Hexnode (antes de entregar al cliente)
@@ -17651,7 +17689,10 @@ async function enviarNotifMdm(texto){
         if(data && data.error) throw new Error(data.error + (data.detalle ? ' — ' + data.detalle : ''));
         if(m){ m.style.color = '#16a34a'; m.textContent = '✅ Notificación enviada al equipo.'; }
         toast('✅ Notificación enviada.');
+        const fid = _notifMdmFinId;
         setTimeout(cerrarNotifMdm, 1000);
+        mdmMostrarResultado(fid, '💬 Notificación — comprobando…', 'El mensaje: "' + escapeHtml(texto) + '"', 'info');
+        mdmConfirmarAplicado(fid, '💬 Notificación');
     } catch(e){ if(m){ m.style.color = '#dc2626'; m.textContent = '⚠️ ' + (e.message || e); } }
 }
 function enviarNotifMdmCustom(){
