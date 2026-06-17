@@ -843,6 +843,7 @@ body{
             <div class="nav-section">PRINCIPAL</div>
             <button class="active" id="menu-dashboard" onclick="nav('dashboard',this)"><i class="ti ti-layout-dashboard"></i> <span>Dashboard</span></button>
             <button id="menu-miTrabajo" onclick="nav('miTrabajo',this)"><i class="ti ti-briefcase"></i> <span>Mi Trabajo</span></button>
+            <button id="menu-misIncentivos" onclick="nav('misIncentivos',this)" style="display:none;"><i class="ti ti-coin"></i> <span>Mis Incentivos</span></button>
             <button id="menu-atencion" onclick="nav('atencion',this)"><i class="ti ti-headset"></i> <span>Atención al Cliente</span></button>
             <button id="menu-financiamientos" onclick="nav('financiamientos',this)"><i class="ti ti-cash"></i> <span>Financiamientos</span></button>
             <button id="menu-contabilidad" onclick="nav('contabilidad',this)"><i class="ti ti-calculator"></i> <span>Contabilidad</span></button>
@@ -1466,6 +1467,12 @@ body{
             <div id="v-incentivos" class="view">
                 <h2 style="margin:0 0 14px;"><i class="ti ti-coin" style="color:#f59e0b;"></i> Incentivos Técnicos</h2>
                 <div id="incentivosContenido"></div>
+            </div>
+
+            <!-- MIS INCENTIVOS (técnico) -->
+            <div id="v-misIncentivos" class="view">
+                <h2 style="margin:0 0 14px;"><i class="ti ti-coin" style="color:#f59e0b;"></i> Mis Incentivos</h2>
+                <div id="misIncentivosContenido"></div>
             </div>
 
             <!-- ETIQUETAS -->
@@ -4011,6 +4018,7 @@ function applyAccessControls() {
     // Admin ve todo, no aplicar restricciones
     if(isAdminUser()) {
         document.querySelectorAll('.nav button').forEach(b => b.style.display = '');
+        const _mi = document.getElementById('menu-misIncentivos'); if(_mi) _mi.style.display = 'none'; // admin usa el módulo completo
         return;
     }
     
@@ -4018,7 +4026,7 @@ function applyAccessControls() {
     if(tienePermiso('solo_mi_trabajo')) {
         const verDiag = tienePermiso('diagnostico_ver');
         document.querySelectorAll('.nav button').forEach(b => {
-            b.style.display = (b.id === 'menu-miTrabajo' || b.id === 'menu-piezasSolicitadas' || (verDiag && b.id === 'menu-diagnostico')) ? '' : 'none';
+            b.style.display = (b.id === 'menu-miTrabajo' || b.id === 'menu-misIncentivos' || b.id === 'menu-piezasSolicitadas' || (verDiag && b.id === 'menu-diagnostico')) ? '' : 'none';
         });
         // Si solo hay "Mi Trabajo", ocultar el botón de menú; si además tiene Diagnóstico IA, mantenerlo para poder cambiar
         const toggle = document.querySelector('.menu-toggle');
@@ -4063,6 +4071,7 @@ function applyAccessControls() {
     const menuPermisos = {
         'menu-dashboard': 'ver_dashboard',
         'menu-miTrabajo': null,
+        'menu-misIncentivos': null,
         'menu-recepcion': 'recepcion_ver',
         'menu-ordenes': 'ordenes_ver',
         'menu-inventario': 'inventario_ver',
@@ -4153,6 +4162,23 @@ function _incQuincena(offset) {
 }
 function _incFmtFecha(f) { try { return new Date((f || '').slice(0,10) + 'T00:00:00').toLocaleDateString('es-DO', { day:'2-digit', month:'2-digit', year:'numeric' }); } catch(e) { return f || ''; } }
 function _incTipoTxt(t) { return t === 'pulido' ? '✨ Pulido pantalla' : (t === 'manual' ? '✏️ Manual' : '🔧 Reparación'); }
+function _incEstadoBadge(e) {
+    if(e === 'pagado') return '<span style="background:#dcfce7; color:#16a34a; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px;">Pagado</span>';
+    if(e === 'validado') return '<span style="background:#dbeafe; color:#1d4ed8; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px;">Validado</span>';
+    return '<span style="background:#fef3c7; color:#b45309; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px;">Pendiente</span>';
+}
+function _incRefrescar() {
+    if(document.getElementById('v-misIncentivos')?.classList.contains('active') && typeof renderMisIncentivos === 'function') renderMisIncentivos();
+    else renderIncentivos();
+}
+function _incMiTipoCambio() {
+    const tipo = document.getElementById('miTipo')?.value;
+    const inp = document.getElementById('miIncentivo');
+    if(!inp) return;
+    if(tipo === 'reparacion') { inp.value = INC_REPARACION; inp.readOnly = true; }
+    else if(tipo === 'pulido') { inp.value = INC_PULIDO; inp.readOnly = true; }
+    else { inp.readOnly = false; }
+}
 function _incEnRango(r) {
     const f = (r.fecha || '').slice(0,10);
     if(_incDesde && f < _incDesde) return false;
@@ -4218,7 +4244,7 @@ async function renderIncentivos() {
     html += `<div class="card" style="margin-bottom:10px; padding:10px;">
         <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:flex-end;">
             <div style="flex:1; min-width:120px;"><label style="font-size:10px; color:#64748b;">Técnico</label><select id="incFTec" onchange="_incAplicarFiltros()" ${cf}><option value="">Todos</option>${optsFTec}</select></div>
-            <div style="width:140px;"><label style="font-size:10px; color:#64748b;">Estado</label><select id="incFEstado" onchange="_incAplicarFiltros()" ${cf}><option value="" ${_incFiltroEstado===''?'selected':''}>Todos</option><option value="pendiente" ${_incFiltroEstado==='pendiente'?'selected':''}>Pendiente</option><option value="pagado" ${_incFiltroEstado==='pagado'?'selected':''}>Pagado</option></select></div>
+            <div style="width:140px;"><label style="font-size:10px; color:#64748b;">Estado</label><select id="incFEstado" onchange="_incAplicarFiltros()" ${cf}><option value="" ${_incFiltroEstado===''?'selected':''}>Todos</option><option value="pendiente" ${_incFiltroEstado==='pendiente'?'selected':''}>Por validar</option><option value="validado" ${_incFiltroEstado==='validado'?'selected':''}>Validado</option><option value="pagado" ${_incFiltroEstado==='pagado'?'selected':''}>Pagado</option></select></div>
             <div style="width:120px;"><label style="font-size:10px; color:#64748b;">Desde</label><input type="date" id="incFDesde" value="${_incDesde}" onchange="_incAplicarFiltros()" ${cf}></div>
             <div style="width:120px;"><label style="font-size:10px; color:#64748b;">Hasta</label><input type="date" id="incFHasta" value="${_incHasta}" onchange="_incAplicarFiltros()" ${cf}></div>
             <button class="btn btn-blue btn-sm" onclick="_incQuincena(0)" style="height:30px;">Quincena actual</button>
@@ -4235,29 +4261,33 @@ async function renderIncentivos() {
     const resumen = {};
     enRango.forEach(r => {
         const k = r.tecnico_id || '_';
-        if(!resumen[k]) resumen[k] = { nombre: r.tecnico_nombre || 'Técnico', rep:0, pul:0, otros:0, pend:0, pagado:0 };
+        if(!resumen[k]) resumen[k] = { nombre: r.tecnico_nombre || 'Técnico', rep:0, pul:0, otros:0, porValidar:0, porPagar:0, pagado:0 };
         if(r.tipo === 'pulido') resumen[k].pul++; else if(r.tipo === 'manual') resumen[k].otros++; else resumen[k].rep++;
-        if(r.estado === 'pagado') resumen[k].pagado += Number(r.monto_incentivo||0); else resumen[k].pend += Number(r.monto_incentivo||0);
+        const m = Number(r.monto_incentivo||0);
+        if(r.estado === 'pagado') resumen[k].pagado += m; else if(r.estado === 'validado') resumen[k].porPagar += m; else resumen[k].porValidar += m;
     });
     const resKeys = Object.keys(resumen);
-    const gtPend = resKeys.reduce((s,k) => s + resumen[k].pend, 0);
+    const gtValidar = resKeys.reduce((s,k) => s + resumen[k].porValidar, 0);
+    const gtPagar = resKeys.reduce((s,k) => s + resumen[k].porPagar, 0);
     const gtPag = resKeys.reduce((s,k) => s + resumen[k].pagado, 0);
     const periodoTxt = (_incDesde || _incHasta) ? `${_incDesde ? _incFmtFecha(_incDesde) : '...'} al ${_incHasta ? _incFmtFecha(_incHasta) : '...'}` : 'Todos los registros';
     if(resKeys.length) {
         html += `<div class="card" style="margin-bottom:10px; padding:12px;">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
                 <div style="font-size:13px; font-weight:700;"><i class="ti ti-users" style="color:#7c3aed;"></i> Resumen por técnico <span style="font-size:11px; color:#64748b; font-weight:400;">(${escapeHtml(periodoTxt)})</span></div>
-                <div style="font-size:13px;">💰 Total a pagar: <b style="color:#b45309; font-size:15px;">${money(gtPend)}</b>${gtPag>0?` · <span style="color:#16a34a;">Pagado ${money(gtPag)}</span>`:''}</div>
+                <div style="font-size:12.5px;">⏳ Por validar: <b style="color:#b45309;">${money(gtValidar)}</b> · 💰 Por pagar: <b style="color:#1d4ed8; font-size:15px;">${money(gtPagar)}</b>${gtPag>0?` · <span style="color:#16a34a;">Pagado ${money(gtPag)}</span>`:''}</div>
             </div>
-            <div class="table-wrap"><table><thead><tr><th>Técnico</th><th style="text-align:center;">Reparaciones</th><th style="text-align:center;">Pulidos</th><th style="text-align:right;">Pendiente de pago</th><th style="text-align:right;">Pagado</th><th></th></tr></thead><tbody>
+            <div class="table-wrap"><table><thead><tr><th>Técnico</th><th style="text-align:center;">Rep.</th><th style="text-align:center;">Pul.</th><th style="text-align:right;">Por validar</th><th style="text-align:right;">Por pagar</th><th style="text-align:right;">Pagado</th><th></th></tr></thead><tbody>
             ${resKeys.map(k => { const r = resumen[k]; return `<tr>
                 <td><b>${escapeHtml(r.nombre)}</b></td>
-                <td style="text-align:center;">${r.rep}${r.otros?` <span style="color:#94a3b8;">(+${r.otros} man.)</span>`:''}</td>
+                <td style="text-align:center;">${r.rep}${r.otros?` <span style="color:#94a3b8;">(+${r.otros})</span>`:''}</td>
                 <td style="text-align:center;">${r.pul}</td>
-                <td style="text-align:right; color:#b45309; font-weight:700;">${money(r.pend)}</td>
+                <td style="text-align:right; color:#b45309;">${money(r.porValidar)}</td>
+                <td style="text-align:right; color:#1d4ed8; font-weight:700;">${money(r.porPagar)}</td>
                 <td style="text-align:right; color:#16a34a;">${money(r.pagado)}</td>
                 <td style="text-align:right; white-space:nowrap;">
-                    ${r.pend > 0 ? `<button class="btn btn-blue btn-sm" onclick="guardarReporteIncentivos('${k}')" title="Guardar pago y marcar pagado"><i class="ti ti-device-floppy"></i> Pagar</button>` : ''}
+                    ${r.porValidar > 0 ? `<button class="btn btn-light btn-sm" onclick="validarTodoTecnico('${k}')" title="Validar todos los pendientes" style="color:#1d4ed8;"><i class="ti ti-rosette-discount-check"></i> Validar</button>` : ''}
+                    ${r.porPagar > 0 ? `<button class="btn btn-blue btn-sm" onclick="guardarReporteIncentivos('${k}')" title="Pagar validados y guardar reporte"><i class="ti ti-cash"></i> Pagar</button>` : ''}
                     <button class="btn btn-light btn-sm" onclick="imprimirIncentivosTecnico('${k}')" title="Imprimir resumen"><i class="ti ti-printer"></i></button>
                 </td>
             </tr>`; }).join('')}
@@ -4272,7 +4302,7 @@ async function renderIncentivos() {
     } else {
         html += `<div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Técnico</th><th>Ticket</th><th>Tipo</th><th style="text-align:right;">Monto factura</th><th style="text-align:right;">Incentivo</th><th>Estado</th><th></th></tr></thead><tbody>`;
         html += lista.map(r => {
-            const pagado = r.estado === 'pagado';
+            const est = r.estado;
             return `<tr>
                 <td>${_incFmtFecha(r.fecha)}</td>
                 <td>${escapeHtml(r.tecnico_nombre || '')}</td>
@@ -4280,12 +4310,12 @@ async function renderIncentivos() {
                 <td>${_incTipoTxt(r.tipo)}</td>
                 <td style="text-align:right;">${r.monto_factura ? money(r.monto_factura) : '-'}</td>
                 <td style="text-align:right; font-weight:700;">${money(r.monto_incentivo)}</td>
-                <td>${pagado ? '<span style="background:#dcfce7; color:#16a34a; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px;">Pagado</span>' : '<span style="background:#fef3c7; color:#b45309; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px;">Pendiente</span>'}</td>
+                <td>${_incEstadoBadge(est)}</td>
                 <td style="white-space:nowrap; text-align:right;">
-                    ${pagado
-                        ? `<button class="btn btn-light btn-sm" onclick="setEstadoIncentivo('${r.id}','pendiente')" title="Marcar pendiente">↩</button>`
-                        : `<button class="btn btn-light btn-sm" onclick="setEstadoIncentivo('${r.id}','pagado')" title="Marcar pagado" style="color:#16a34a;"><i class="ti ti-check"></i></button>`}
-                    <button class="btn btn-light btn-sm" onclick="editarIncentivo('${r.id}')" title="Editar" style="color:#0369a1;"><i class="ti ti-pencil"></i></button>
+                    ${est === 'pendiente' ? `<button class="btn btn-light btn-sm" onclick="setEstadoIncentivo('${r.id}','validado')" title="Validar (firmado y sellado)" style="color:#1d4ed8;"><i class="ti ti-rosette-discount-check"></i></button>` : ''}
+                    ${est === 'validado' ? `<button class="btn btn-light btn-sm" onclick="setEstadoIncentivo('${r.id}','pendiente')" title="Quitar validación">↩</button>` : ''}
+                    ${est === 'pagado' ? `<button class="btn btn-light btn-sm" onclick="setEstadoIncentivo('${r.id}','validado')" title="Revertir pago">↩</button>` : ''}
+                    ${est !== 'pagado' ? `<button class="btn btn-light btn-sm" onclick="editarIncentivo('${r.id}')" title="Editar" style="color:#0369a1;"><i class="ti ti-pencil"></i></button>` : ''}
                     <button class="btn btn-light btn-sm" onclick="borrarIncentivo('${r.id}')" title="Borrar" style="color:#b91c1c;"><i class="ti ti-trash"></i></button>
                 </td>
             </tr>`;
@@ -4335,7 +4365,7 @@ async function guardarIncentivo() {
         fecha: document.getElementById('incFecha')?.value || new Date().toISOString().slice(0,10),
         ticket: (document.getElementById('incTicket')?.value || '').trim() || null,
         monto_factura: parseFloat(document.getElementById('incMontoFactura')?.value) || 0,
-        tipo, monto_incentivo, estado: 'pendiente',
+        tipo, monto_incentivo, estado: 'validado',
         nota: (document.getElementById('incNota')?.value || '').trim() || null,
         creado_por: sessionUser?.nombre || sessionUser?.usuario || 'Sistema'
     };
@@ -4365,14 +4395,29 @@ async function setEstadoIncentivo(id, estado) {
         renderIncentivos();
     } catch(e) { console.error('setEstadoIncentivo', e); toast('No se pudo actualizar.', 'error'); }
 }
-async function borrarIncentivo(id) {
+async function validarTodoTecnico(tecnicoId) {
     if(!isAdminUser()) { toast('Solo administradores.', 'error'); return; }
+    const regs = _incCache.filter(r => (r.tecnico_id || '_') === tecnicoId && _incEnRango(r) && r.estado === 'pendiente');
+    if(!regs.length) { toast('No hay pendientes por validar de ese técnico en el rango.', 'error'); return; }
+    if(!confirm(`¿Validar ${regs.length} trabajo(s) de ${regs[0].tecnico_nombre || 'este técnico'}?\n\nConfirmas que sus tickets están firmados y sellados.`)) return;
+    try {
+        const ids = regs.map(r => r.id);
+        const { error } = await supabaseClient.from('taller_incentivos').update({ estado: 'validado' }).in('id', ids);
+        if(error) throw error;
+        toast('✅ Trabajos validados.');
+        renderIncentivos();
+    } catch(e) { console.error('validarTodoTecnico', e); toast('No se pudo validar.', 'error'); }
+}
+async function borrarIncentivo(id) {
+    const r = _incCache.find(x => x.id === id);
+    const puede = isAdminUser() || (r && r.tecnico_id === sessionUser?.id && r.estado === 'pendiente');
+    if(!puede) { toast('No puedes borrar este registro.', 'error'); return; }
     if(!confirm('¿Borrar este registro de incentivo?')) return;
     try {
         const { error } = await supabaseClient.from('taller_incentivos').delete().eq('id', id);
         if(error) throw error;
         toast('Registro borrado.');
-        renderIncentivos();
+        _incRefrescar();
     } catch(e) { console.error('borrarIncentivo', e); toast('No se pudo borrar.', 'error'); }
 }
 function _incEditTipoCambio() {
@@ -4384,9 +4429,10 @@ function _incEditTipoCambio() {
     else { inp.readOnly = false; }
 }
 function editarIncentivo(id) {
-    if(!isAdminUser()) { toast('Solo administradores.', 'error'); return; }
     const r = _incCache.find(x => x.id === id);
     if(!r) { toast('Registro no encontrado.', 'error'); return; }
+    const puede = isAdminUser() || (r.tecnico_id === sessionUser?.id && r.estado === 'pendiente');
+    if(!puede) { toast('No puedes editar este registro.', 'error'); return; }
     const tecs = (cache.tecnicos || []).filter(t => t.activo !== false).sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''));
     const opts = tecs.map(t => `<option value="${t.id}" ${t.id===r.tecnico_id?'selected':''}>${escapeHtml(t.nombre || t.usuario || 'Técnico')}</option>`).join('');
     const ci = 'style="padding:7px 10px; font-size:13px;"';
@@ -4413,15 +4459,17 @@ function editarIncentivo(id) {
     abrirModalGenerico('Editar incentivo', html);
 }
 async function guardarEdicionIncentivo(id) {
-    if(!isAdminUser()) { toast('Solo administradores.', 'error'); return; }
+    const _r = _incCache.find(x => x.id === id);
+    const puede = isAdminUser() || (_r && _r.tecnico_id === sessionUser?.id && _r.estado === 'pendiente');
+    if(!puede) { toast('No puedes editar este registro.', 'error'); return; }
     const tecSel = document.getElementById('edTecnico');
     const monto_incentivo = parseFloat(document.getElementById('edIncentivo')?.value) || 0;
     if(monto_incentivo <= 0) { toast('El incentivo debe ser mayor que 0.', 'error'); return; }
     const _mf = parseFloat(document.getElementById('edFactura')?.value) || 0;
     if(_mf <= 0) { toast('El monto de la factura es obligatorio.', 'error'); return; }
     const upd = {
-        tecnico_id: tecSel?.value || null,
-        tecnico_nombre: tecSel?.options[tecSel.selectedIndex]?.text || null,
+        tecnico_id: isAdminUser() ? (tecSel?.value || null) : (sessionUser?.id || _r?.tecnico_id || null),
+        tecnico_nombre: isAdminUser() ? (tecSel?.options[tecSel.selectedIndex]?.text || null) : (sessionUser?.nombre || sessionUser?.usuario || _r?.tecnico_nombre || null),
         fecha: document.getElementById('edFecha')?.value || null,
         ticket: (document.getElementById('edTicket')?.value || '').trim() || null,
         tipo: document.getElementById('edTipo')?.value || 'reparacion',
@@ -4441,7 +4489,7 @@ async function guardarEdicionIncentivo(id) {
         if(error) throw error;
         document.getElementById('modalGenerico')?.remove();
         toast('✅ Actualizado.');
-        renderIncentivos();
+        _incRefrescar();
     } catch(e) { console.error('guardarEdicionIncentivo', e); toast('No se pudo guardar.', 'error'); }
 }
 function imprimirIncentivosTecnico(tecnicoId) {
@@ -4490,8 +4538,8 @@ function imprimirIncentivosTecnico(tecnicoId) {
 }
 async function guardarReporteIncentivos(tecnicoId) {
     if(!isAdminUser()) { toast('Solo administradores.', 'error'); return; }
-    const regs = _incCache.filter(r => (r.tecnico_id || '_') === tecnicoId && _incEnRango(r) && r.estado !== 'pagado');
-    if(!regs.length) { toast('No hay trabajos pendientes de ese técnico en el rango.', 'error'); return; }
+    const regs = _incCache.filter(r => (r.tecnico_id || '_') === tecnicoId && _incEnRango(r) && r.estado === 'validado');
+    if(!regs.length) { toast('No hay trabajos VALIDADOS de ese técnico en el rango. Valida primero los tickets (firmados y sellados).', 'error'); return; }
     const nombre = regs[0].tecnico_nombre || 'Técnico';
     const total = regs.reduce((s,r) => s + Number(r.monto_incentivo||0), 0);
     const periodoTxt = (_incDesde || _incHasta) ? `${_incDesde ? _incFmtFecha(_incDesde) : '...'} al ${_incHasta ? _incFmtFecha(_incHasta) : '...'}` : 'todos los registros';
@@ -4589,6 +4637,89 @@ async function borrarReporteGuardado(id) {
         renderIncentivos();
     } catch(e) { console.error('borrarReporteGuardado', e); toast('No se pudo borrar.', 'error'); }
 }
+/* ---- Pantalla del técnico: registrar y ver sus propios incentivos ---- */
+async function renderMisIncentivos() {
+    const cont = document.getElementById('misIncentivosContenido');
+    if(!cont) return;
+    const yo = sessionUser?.id;
+    if(!yo) { cont.innerHTML = '<div class="card"><div style="color:var(--text-muted);">No se pudo identificar tu usuario.</div></div>'; return; }
+    try {
+        const { data } = await supabaseClient.from('taller_incentivos').select('*').eq('tecnico_id', yo).order('creado_en', { ascending: false });
+        _incCache = data || [];
+    } catch(e) { _incCache = []; }
+    const hoy = new Date().toISOString().slice(0,10);
+    const ci = 'style="padding:6px 9px; font-size:12px; border-radius:8px;" onkeydown="if(event.key===\'Enter\')guardarMiIncentivo()"';
+    const selTipo = t => _incUltimoTipo === t ? 'selected' : '';
+    let html = `<div class="card" style="margin-bottom:10px; padding:12px;">
+        <div style="font-size:13px; font-weight:700; margin-bottom:8px;"><i class="ti ti-plus" style="color:#16a34a;"></i> Registrar mi trabajo</div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:flex-end;">
+            <div style="width:120px;"><label style="font-size:10px; color:#64748b;">Fecha</label><input type="date" id="miFecha" value="${hoy}" ${ci}></div>
+            <div style="width:120px;"><label style="font-size:10px; color:#64748b;"># Ticket</label><input type="text" id="miTicket" placeholder="CO000..." ${ci}></div>
+            <div style="flex:1; min-width:150px;"><label style="font-size:10px; color:#64748b;">Tipo</label><select id="miTipo" onchange="_incMiTipoCambio()" ${ci}>
+                <option value="reparacion" ${selTipo('reparacion')}>🔧 Reparación (+50)</option>
+                <option value="pulido" ${selTipo('pulido')}>✨ Pulido (+100)</option>
+                <option value="manual" ${selTipo('manual')}>✏️ Manual</option>
+            </select></div>
+            <div style="width:90px;"><label style="font-size:10px; color:#64748b;">Incentivo</label><input type="number" id="miIncentivo" value="${INC_REPARACION}" readonly ${ci}></div>
+            <div style="width:110px;"><label style="font-size:10px; color:#64748b;">Monto factura *</label><input type="number" id="miMontoFactura" min="0" step="0.01" placeholder="0" ${ci}></div>
+            <div style="flex:1; min-width:120px;"><label style="font-size:10px; color:#64748b;">Nota (opc.)</label><input type="text" id="miNota" placeholder="Detalle" ${ci}></div>
+            <button class="btn btn-blue btn-sm" onclick="guardarMiIncentivo()" style="height:32px;"><i class="ti ti-device-floppy"></i> Registrar</button>
+        </div>
+        <div style="font-size:11px; color:#64748b; margin-top:6px;">💡 Si un ticket tiene varios servicios, regístralos uno por uno con el mismo número de ticket.</div>
+    </div>`;
+    const sum = (e) => _incCache.filter(r => r.estado === e).reduce((s,r) => s + Number(r.monto_incentivo||0), 0);
+    html += `<div class="card" style="margin-bottom:10px; padding:10px; font-size:13px;">⏳ Por validar: <b style="color:#b45309;">${money(sum('pendiente'))}</b> &nbsp;·&nbsp; ✅ Validado (por cobrar): <b style="color:#1d4ed8;">${money(sum('validado'))}</b> &nbsp;·&nbsp; 💵 Pagado: <b style="color:#16a34a;">${money(sum('pagado'))}</b></div>`;
+    html += `<div class="card"><div style="font-size:13px; font-weight:700; margin-bottom:8px;"><i class="ti ti-list" style="color:#0891b2;"></i> Mis registros (${_incCache.length})</div>`;
+    if(!_incCache.length) {
+        html += `<div style="color:var(--text-muted); font-size:13px;">Aún no has registrado trabajos.</div>`;
+    } else {
+        html += `<div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Ticket</th><th>Tipo</th><th style="text-align:right;">Incentivo</th><th>Estado</th><th></th></tr></thead><tbody>`;
+        html += _incCache.map(r => `<tr>
+            <td>${_incFmtFecha(r.fecha)}</td>
+            <td>${escapeHtml(r.ticket || '-')}</td>
+            <td>${_incTipoTxt(r.tipo)}</td>
+            <td style="text-align:right; font-weight:700;">${money(r.monto_incentivo)}</td>
+            <td>${_incEstadoBadge(r.estado)}</td>
+            <td style="text-align:right; white-space:nowrap;">${r.estado === 'pendiente' ? `<button class="btn btn-light btn-sm" onclick="editarIncentivo('${r.id}')" title="Editar"><i class="ti ti-pencil"></i></button> <button class="btn btn-light btn-sm" onclick="borrarIncentivo('${r.id}')" title="Borrar" style="color:#b91c1c;"><i class="ti ti-trash"></i></button>` : '<span style="font-size:11px; color:#94a3b8;">—</span>'}</td>
+        </tr>`).join('');
+        html += `</tbody></table></div>`;
+    }
+    html += `</div>`;
+    cont.innerHTML = html;
+    setTimeout(_incMiTipoCambio, 20);
+}
+async function guardarMiIncentivo() {
+    const yo = sessionUser?.id;
+    if(!yo) { toast('No se pudo identificar tu usuario.', 'error'); return; }
+    const tipo = document.getElementById('miTipo')?.value || 'reparacion';
+    const monto_incentivo = parseFloat(document.getElementById('miIncentivo')?.value) || 0;
+    if(monto_incentivo <= 0) { toast('El incentivo debe ser mayor que 0.', 'error'); return; }
+    const mf = parseFloat(document.getElementById('miMontoFactura')?.value) || 0;
+    if(mf <= 0) { toast('El monto de la factura es obligatorio.', 'error'); const e = document.getElementById('miMontoFactura'); if(e) e.focus(); return; }
+    const ticket = (document.getElementById('miTicket')?.value || '').trim() || null;
+    const fila = {
+        tecnico_id: yo, tecnico_nombre: sessionUser?.nombre || sessionUser?.usuario || 'Técnico',
+        fecha: document.getElementById('miFecha')?.value || new Date().toISOString().slice(0,10),
+        ticket, monto_factura: mf, tipo, monto_incentivo, estado: 'pendiente',
+        nota: (document.getElementById('miNota')?.value || '').trim() || null,
+        creado_por: sessionUser?.nombre || sessionUser?.usuario || 'Técnico'
+    };
+    if(ticket) {
+        const dup = _incCache.filter(r => (r.ticket || '').trim().toLowerCase() === ticket.toLowerCase());
+        if(dup.length) {
+            const l = dup.map(d => `• ${_incTipoTxt(d.tipo).replace(/[^\x20-\x7EñÑáéíóúÁÉÍÓÚ ]/g,'').trim()} (${money(d.monto_incentivo)})`).join('\n');
+            if(!confirm(`El ticket "${ticket}" ya lo registraste (${dup.length}):\n\n${l}\n\n¿Agregar OTRO servicio a este mismo ticket?`)) return;
+        }
+    }
+    try {
+        const { error } = await supabaseClient.from('taller_incentivos').insert([fila]);
+        if(error) throw error;
+        _incUltimoTipo = tipo;
+        toast('✅ Registrado.');
+        await renderMisIncentivos();
+        setTimeout(() => { const t = document.getElementById('miTicket'); if(t) t.focus(); }, 60);
+    } catch(e) { console.error('guardarMiIncentivo', e); toast('No se pudo registrar.', 'error'); }
+}
 async function renderWebVisitas() {
     if(!isAdminUser()) return;
     const card = document.getElementById('webVisitasCard');
@@ -4652,6 +4783,7 @@ const NAV_PERMISOS = {
     'ordenes': 'ordenes_ver',
     'inventario': 'inventario_ver',
     'piezasSolicitadas': null,
+    'misIncentivos': null,
     'etiquetas': 'imprimir_diag',
     'configImpresora': 'config_impresora',
     'articulos': 'catalogo_articulos',
@@ -4716,6 +4848,7 @@ function nav(v, btn) {
     }, 50); }
     if(v === 'piezasSolicitadas') { setTimeout(() => { if(typeof renderPiezasSolicitadas === 'function') renderPiezasSolicitadas(); }, 50); }
     if(v === 'incentivos') { setTimeout(() => { if(typeof renderIncentivos === 'function') renderIncentivos(); }, 50); }
+    if(v === 'misIncentivos') { setTimeout(() => { if(typeof renderMisIncentivos === 'function') renderMisIncentivos(); }, 50); }
     closeSidebar();
     window.scrollTo({ top: 0, behavior: 'smooth' });
     // Re-aplicar permisos de botones estáticos tras renderizar (NO en modo solo-mi-trabajo, causa bucle)
