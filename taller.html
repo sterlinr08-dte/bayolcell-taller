@@ -4137,7 +4137,7 @@ function _wvSet(id, v) { const el = document.getElementById(id); if(el) el.textC
    INCENTIVOS DE TÉCNICOS (solo administradores)
    ============================================================ */
 const INC_REPARACION = 50, INC_PULIDO = 100;
-let _incCache = [], _incFiltroTec = '', _incFiltroEstado = '', _incDesde = '', _incHasta = '';
+let _incCache = [], _incReportes = [], _incFiltroTec = '', _incFiltroEstado = '', _incDesde = '', _incHasta = '';
 let _incUltimoTecnico = '', _incUltimoTipo = 'reparacion';
 function _incQuincena(offset) {
     // offset 0 = quincena actual, -1 = quincena pasada
@@ -4182,6 +4182,10 @@ async function renderIncentivos() {
         const { data } = await supabaseClient.from('taller_incentivos').select('*').order('creado_en', { ascending: false });
         _incCache = data || [];
     } catch(e) { _incCache = []; }
+    try {
+        const { data: reps } = await supabaseClient.from('taller_incentivo_reportes').select('*').order('creado_en', { ascending: false });
+        _incReportes = reps || [];
+    } catch(e) { _incReportes = []; }
 
     const tecs = (cache.tecnicos || []).filter(t => t.activo !== false).sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''));
     const opts = tecs.map(t => `<option value="${t.id}" ${t.id===_incUltimoTecnico?'selected':''}>${escapeHtml(t.nombre || t.usuario || 'Técnico')}</option>`).join('');
@@ -4252,7 +4256,10 @@ async function renderIncentivos() {
                 <td style="text-align:center;">${r.pul}</td>
                 <td style="text-align:right; color:#b45309; font-weight:700;">${money(r.pend)}</td>
                 <td style="text-align:right; color:#16a34a;">${money(r.pagado)}</td>
-                <td style="text-align:right;"><button class="btn btn-light" onclick="imprimirIncentivosTecnico('${k}')" style="font-size:11px;"><i class="ti ti-printer"></i> Imprimir</button></td>
+                <td style="text-align:right; white-space:nowrap;">
+                    ${r.pend > 0 ? `<button class="btn btn-blue btn-sm" onclick="guardarReporteIncentivos('${k}')" title="Guardar pago y marcar pagado"><i class="ti ti-device-floppy"></i> Pagar</button>` : ''}
+                    <button class="btn btn-light btn-sm" onclick="imprimirIncentivosTecnico('${k}')" title="Imprimir resumen"><i class="ti ti-printer"></i></button>
+                </td>
             </tr>`; }).join('')}
             </tbody></table></div>
         </div>`;
@@ -4286,6 +4293,27 @@ async function renderIncentivos() {
         html += `</tbody></table></div>`;
     }
     html += `</div>`;
+
+    // Reportes de pago guardados (historial)
+    if(_incReportes.length) {
+        html += `<div class="card" style="margin-top:10px; padding:12px;">
+            <div style="font-size:13px; font-weight:700; margin-bottom:8px;"><i class="ti ti-folder" style="color:#0891b2;"></i> Reportes de pago guardados (${_incReportes.length})</div>
+            <div class="table-wrap"><table><thead><tr><th>Guardado</th><th>Técnico</th><th>Período</th><th style="text-align:center;">Trabajos</th><th style="text-align:right;">Total</th><th></th></tr></thead><tbody>
+            ${_incReportes.map(rp => `<tr>
+                <td>${_incFmtFecha((rp.creado_en||'').slice(0,10))}</td>
+                <td><b>${escapeHtml(rp.tecnico_nombre||'')}</b></td>
+                <td>${rp.desde?_incFmtFecha(rp.desde):'...'} al ${rp.hasta?_incFmtFecha(rp.hasta):'...'}</td>
+                <td style="text-align:center;">${rp.cantidad||0}</td>
+                <td style="text-align:right; font-weight:700;">${money(rp.total)}</td>
+                <td style="white-space:nowrap; text-align:right;">
+                    <button class="btn btn-light btn-sm" onclick="imprimirReporteGuardado('${rp.id}')" title="Imprimir"><i class="ti ti-printer"></i></button>
+                    <button class="btn btn-light btn-sm" onclick="editarReporteGuardado('${rp.id}')" title="Editar nota" style="color:#0369a1;"><i class="ti ti-pencil"></i></button>
+                    <button class="btn btn-light btn-sm" onclick="borrarReporteGuardado('${rp.id}')" title="Borrar" style="color:#b91c1c;"><i class="ti ti-trash"></i></button>
+                </td>
+            </tr>`).join('')}
+            </tbody></table></div>
+        </div>`;
+    }
 
     cont.innerHTML = html;
     setTimeout(_incTipoCambio, 20);
@@ -4459,6 +4487,107 @@ function imprimirIncentivosTecnico(tecnicoId) {
         </body></html>`);
     w.document.close(); w.focus();
     setTimeout(() => { try { w.print(); } catch(e) {} }, 400);
+}
+async function guardarReporteIncentivos(tecnicoId) {
+    if(!isAdminUser()) { toast('Solo administradores.', 'error'); return; }
+    const regs = _incCache.filter(r => (r.tecnico_id || '_') === tecnicoId && _incEnRango(r) && r.estado !== 'pagado');
+    if(!regs.length) { toast('No hay trabajos pendientes de ese técnico en el rango.', 'error'); return; }
+    const nombre = regs[0].tecnico_nombre || 'Técnico';
+    const total = regs.reduce((s,r) => s + Number(r.monto_incentivo||0), 0);
+    const periodoTxt = (_incDesde || _incHasta) ? `${_incDesde ? _incFmtFecha(_incDesde) : '...'} al ${_incHasta ? _incFmtFecha(_incHasta) : '...'}` : 'todos los registros';
+    if(!confirm(`Guardar reporte de pago de ${nombre} por ${money(total)} (${regs.length} trabajos, ${periodoTxt})?\n\nEsto marcará esos trabajos como PAGADOS.`)) return;
+    const detalle = regs.map(r => ({ fecha: r.fecha, ticket: r.ticket, tipo: r.tipo, monto_incentivo: r.monto_incentivo }));
+    try {
+        const { error } = await supabaseClient.from('taller_incentivo_reportes').insert([{
+            tecnico_id: tecnicoId === '_' ? null : tecnicoId, tecnico_nombre: nombre,
+            desde: _incDesde || null, hasta: _incHasta || null, total, cantidad: regs.length,
+            detalle, creado_por: sessionUser?.nombre || sessionUser?.usuario || 'Sistema'
+        }]);
+        if(error) throw error;
+        const ids = regs.map(r => r.id);
+        await supabaseClient.from('taller_incentivos').update({ estado: 'pagado', pagado_en: new Date().toISOString() }).in('id', ids);
+        toast('✅ Reporte guardado y trabajos marcados como pagados.');
+        renderIncentivos();
+    } catch(e) { console.error('guardarReporteIncentivos', e); toast('No se pudo guardar el reporte.', 'error'); }
+}
+function imprimirReporteGuardado(id) {
+    const rp = _incReportes.find(x => x.id === id);
+    if(!rp) { toast('Reporte no encontrado.', 'error'); return; }
+    const det = Array.isArray(rp.detalle) ? rp.detalle : [];
+    const cfg = cache.configTaller || {};
+    const tienda = cfg.nombre || 'BAYOL CELL';
+    const rep = det.filter(d => d.tipo === 'reparacion').length;
+    const pul = det.filter(d => d.tipo === 'pulido').length;
+    const periodo = `Período: ${rp.desde ? _incFmtFecha(rp.desde) : '...'} al ${rp.hasta ? _incFmtFecha(rp.hasta) : '...'}`;
+    const filas = det.map(d => `<tr><td>${_incFmtFecha(d.fecha)}</td><td>${escapeHtml(d.ticket||'-')}</td><td>${_incTipoTxt(d.tipo).replace(/[^\x20-\x7EñÑáéíóúÁÉÍÓÚ ]/g,'').trim()}</td><td style="text-align:right;">${money(d.monto_incentivo)}</td></tr>`).join('');
+    const w = window.open('', '_blank');
+    if(!w) { toast('Permite las ventanas emergentes para imprimir.', 'error'); return; }
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Reporte de pago ${escapeHtml(rp.tecnico_nombre||'')}</title>
+        <style>
+            body{font-family:Arial,Helvetica,sans-serif; color:#0f172a; padding:24px; max-width:680px; margin:0 auto;}
+            h1{font-size:20px; margin:0;} h2{font-size:15px; margin:2px 0 0; color:#475569;}
+            .muted{color:#64748b; font-size:12px;}
+            table{width:100%; border-collapse:collapse; margin-top:12px; font-size:13px;}
+            th,td{border:1px solid #cbd5e1; padding:6px 8px; text-align:left;} th{background:#f1f5f9;}
+            .tot{font-size:17px; font-weight:bold; margin-top:14px; text-align:right;}
+            .firma{margin-top:46px; display:flex; justify-content:space-between; gap:30px;}
+            .firma div{flex:1; border-top:1px solid #0f172a; padding-top:6px; text-align:center; font-size:12px;}
+            hr{border:0; border-top:1px solid #e2e8f0; margin:12px 0;}
+        </style></head><body>
+        <h1>${escapeHtml(tienda)}</h1>
+        <h2>Reporte de Pago de Incentivos</h2>
+        <div class="muted">Guardado: ${_incFmtFecha((rp.creado_en||'').slice(0,10))}</div>
+        <hr>
+        <div><b>Técnico:</b> ${escapeHtml(rp.tecnico_nombre||'')}</div>
+        <div class="muted">${escapeHtml(periodo)}</div>
+        <div class="muted">Reparaciones: ${rep} &nbsp;·&nbsp; Pulidos: ${pul} &nbsp;·&nbsp; Total trabajos: ${det.length}</div>
+        ${rp.nota ? `<div class="muted">Nota: ${escapeHtml(rp.nota)}</div>` : ''}
+        <table><thead><tr><th>Fecha</th><th>Ticket</th><th>Tipo</th><th style="text-align:right;">Incentivo</th></tr></thead>
+        <tbody>${filas}</tbody></table>
+        <div class="tot">TOTAL PAGADO: ${money(rp.total)}</div>
+        <div class="firma"><div>Entregado por</div><div>Recibido por (${escapeHtml(rp.tecnico_nombre||'')})</div></div>
+        </body></html>`);
+    w.document.close(); w.focus();
+    setTimeout(() => { try { w.print(); } catch(e) {} }, 400);
+}
+function editarReporteGuardado(id) {
+    if(!isAdminUser()) { toast('Solo administradores.', 'error'); return; }
+    const rp = _incReportes.find(x => x.id === id);
+    if(!rp) { toast('Reporte no encontrado.', 'error'); return; }
+    const det = Array.isArray(rp.detalle) ? rp.detalle : [];
+    const filas = det.map(d => `<div style="font-size:12px; color:var(--text-muted); display:flex; justify-content:space-between;"><span>${_incFmtFecha(d.fecha)} · ${escapeHtml(d.ticket||'-')} · ${_incTipoTxt(d.tipo)}</span><span>${money(d.monto_incentivo)}</span></div>`).join('');
+    const html = `
+        <div style="font-size:13px; margin-bottom:6px;"><b>${escapeHtml(rp.tecnico_nombre||'')}</b> · ${rp.desde?_incFmtFecha(rp.desde):'...'} al ${rp.hasta?_incFmtFecha(rp.hasta):'...'}</div>
+        <div style="border:1px solid #e2e8f0; border-radius:8px; padding:8px; margin-bottom:10px; max-height:180px; overflow:auto;">${filas || '<span class="muted">Sin detalle</span>'}</div>
+        <div style="text-align:right; font-weight:700; margin-bottom:10px;">Total: ${money(rp.total)}</div>
+        <div class="form-row"><label>Nota del reporte</label><input type="text" id="repNota" value="${escapeHtml(rp.nota||'')}" placeholder="Ej: Pagado en efectivo el 15/06" style="padding:8px 10px;"></div>
+        <div style="font-size:11px; color:#64748b; margin-bottom:10px;">💡 Para cambiar los trabajos incluidos, bórralo y vuelve a generarlo.</div>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button class="btn btn-light" onclick="document.getElementById('modalGenerico').remove()">Cancelar</button>
+            <button class="btn btn-blue" onclick="guardarEdicionReporte('${id}')"><i class="ti ti-device-floppy"></i> Guardar</button>
+        </div>`;
+    abrirModalGenerico('Editar reporte de pago', html);
+}
+async function guardarEdicionReporte(id) {
+    if(!isAdminUser()) { toast('Solo administradores.', 'error'); return; }
+    const nota = (document.getElementById('repNota')?.value || '').trim() || null;
+    try {
+        const { error } = await supabaseClient.from('taller_incentivo_reportes').update({ nota }).eq('id', id);
+        if(error) throw error;
+        document.getElementById('modalGenerico')?.remove();
+        toast('✅ Reporte actualizado.');
+        renderIncentivos();
+    } catch(e) { console.error('guardarEdicionReporte', e); toast('No se pudo guardar.', 'error'); }
+}
+async function borrarReporteGuardado(id) {
+    if(!isAdminUser()) { toast('Solo administradores.', 'error'); return; }
+    if(!confirm('¿Borrar este reporte de pago guardado?\n\n(Los trabajos seguirán marcados como pagados. Si quieres revertir un pago, hazlo en la lista de registros.)')) return;
+    try {
+        const { error } = await supabaseClient.from('taller_incentivo_reportes').delete().eq('id', id);
+        if(error) throw error;
+        toast('Reporte borrado.');
+        renderIncentivos();
+    } catch(e) { console.error('borrarReporteGuardado', e); toast('No se pudo borrar.', 'error'); }
 }
 async function renderWebVisitas() {
     if(!isAdminUser()) return;
