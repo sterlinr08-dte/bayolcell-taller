@@ -4202,7 +4202,7 @@ async function renderIncentivos() {
                 <option value="manual" ${selTipo('manual')}>✏️ Manual</option>
             </select></div>
             <div style="width:90px;"><label style="font-size:10px; color:#64748b;">Incentivo</label><input type="number" id="incMontoIncentivo" value="${INC_REPARACION}" readonly ${ci}></div>
-            <div style="width:100px;"><label style="font-size:10px; color:#64748b;">Factura (opc.)</label><input type="number" id="incMontoFactura" min="0" step="0.01" placeholder="0" ${ci}></div>
+            <div style="width:100px;"><label style="font-size:10px; color:#64748b;">Monto de la factura</label><input type="number" id="incMontoFactura" min="0" step="0.01" placeholder="0" ${ci}></div>
             <div style="flex:1; min-width:120px;"><label style="font-size:10px; color:#64748b;">Nota (opc.)</label><input type="text" id="incNota" placeholder="Detalle" ${ci}></div>
             <button class="btn btn-blue btn-sm" onclick="guardarIncentivo()" style="height:32px;"><i class="ti ti-device-floppy"></i> Registrar</button>
         </div>
@@ -4263,7 +4263,7 @@ async function renderIncentivos() {
     if(!lista.length) {
         html += `<div style="color:var(--text-muted); font-size:13px;">No hay registros con esos filtros.</div>`;
     } else {
-        html += `<div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Técnico</th><th>Ticket</th><th>Tipo</th><th style="text-align:right;">Factura</th><th style="text-align:right;">Incentivo</th><th>Estado</th><th></th></tr></thead><tbody>`;
+        html += `<div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Técnico</th><th>Ticket</th><th>Tipo</th><th style="text-align:right;">Monto factura</th><th style="text-align:right;">Incentivo</th><th>Estado</th><th></th></tr></thead><tbody>`;
         html += lista.map(r => {
             const pagado = r.estado === 'pagado';
             return `<tr>
@@ -4365,7 +4365,7 @@ function editarIncentivo(id) {
                 <option value="manual" ${r.tipo==='manual'?'selected':''}>✏️ Manual</option>
             </select></div>
             <div class="form-row" style="flex:1; min-width:100px;"><label>Incentivo</label><input type="number" id="edIncentivo" value="${r.monto_incentivo}" ${r.tipo==='manual'?'':'readonly'} ${ci}></div>
-            <div class="form-row" style="flex:1; min-width:100px;"><label>Factura</label><input type="number" id="edFactura" value="${r.monto_factura||0}" ${ci}></div>
+            <div class="form-row" style="flex:1; min-width:100px;"><label>Monto de la factura</label><input type="number" id="edFactura" value="${r.monto_factura||0}" ${ci}></div>
         </div>
         <div class="form-row"><label>Nota</label><input type="text" id="edNota" value="${escapeHtml(r.nota||'')}" ${ci}></div>
         <div style="display:flex; gap:8px; justify-content:flex-end;">
