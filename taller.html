@@ -4286,8 +4286,9 @@ async function renderIncentivos() {
     const resumen = {};
     enRango.forEach(r => {
         const k = r.tecnico_id || '_';
-        if(!resumen[k]) resumen[k] = { nombre: r.tecnico_nombre || 'Técnico', rep:0, pul:0, otros:0, porValidar:0, porPagar:0, pagado:0 };
+        if(!resumen[k]) resumen[k] = { nombre: r.tecnico_nombre || 'Técnico', rep:0, pul:0, otros:0, generado:0, porValidar:0, porPagar:0, pagado:0 };
         if(r.tipo === 'pulido') resumen[k].pul++; else if(r.tipo === 'manual') resumen[k].otros++; else resumen[k].rep++;
+        resumen[k].generado += Number(r.monto_factura||0);
         const m = Number(r.monto_incentivo||0);
         if(r.estado === 'pagado') resumen[k].pagado += m; else if(r.estado === 'validado') resumen[k].porPagar += m; else resumen[k].porValidar += m;
     });
@@ -4295,18 +4296,20 @@ async function renderIncentivos() {
     const gtValidar = resKeys.reduce((s,k) => s + resumen[k].porValidar, 0);
     const gtPagar = resKeys.reduce((s,k) => s + resumen[k].porPagar, 0);
     const gtPag = resKeys.reduce((s,k) => s + resumen[k].pagado, 0);
+    const gtGenerado = resKeys.reduce((s,k) => s + resumen[k].generado, 0);
     const periodoTxt = (_incDesde || _incHasta) ? `${_incDesde ? _incFmtFecha(_incDesde) : '...'} al ${_incHasta ? _incFmtFecha(_incHasta) : '...'}` : 'Todos los registros';
     if(resKeys.length) {
         html += `<div class="card" style="margin-bottom:10px; padding:12px;">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
                 <div style="font-size:13px; font-weight:700;"><i class="ti ti-users" style="color:#7c3aed;"></i> Resumen por técnico <span style="font-size:11px; color:#64748b; font-weight:400;">(${escapeHtml(periodoTxt)})</span></div>
-                <div style="font-size:12.5px;">⏳ Por validar: <b style="color:#b45309;">${money(gtValidar)}</b> · 💰 Por pagar: <b style="color:#1d4ed8; font-size:15px;">${money(gtPagar)}</b>${gtPag>0?` · <span style="color:#16a34a;">Pagado ${money(gtPag)}</span>`:''}</div>
+                <div style="font-size:12.5px;">🧾 Generado: <b style="color:#0f172a;">${money(gtGenerado)}</b> · ⏳ Por validar: <b style="color:#b45309;">${money(gtValidar)}</b> · 💰 Por pagar: <b style="color:#1d4ed8; font-size:15px;">${money(gtPagar)}</b>${gtPag>0?` · <span style="color:#16a34a;">Pagado ${money(gtPag)}</span>`:''}</div>
             </div>
-            <div class="table-wrap"><table><thead><tr><th>Técnico</th><th style="text-align:center;">Rep.</th><th style="text-align:center;">Pul.</th><th style="text-align:right;">Por validar</th><th style="text-align:right;">Por pagar</th><th style="text-align:right;">Pagado</th><th></th></tr></thead><tbody>
+            <div class="table-wrap"><table><thead><tr><th>Técnico</th><th style="text-align:center;">Rep.</th><th style="text-align:center;">Pul.</th><th style="text-align:right;">Generado (facturas)</th><th style="text-align:right;">Por validar</th><th style="text-align:right;">Por pagar</th><th style="text-align:right;">Pagado</th><th></th></tr></thead><tbody>
             ${resKeys.map(k => { const r = resumen[k]; const ab = _incExpandido === k; return `<tr style="cursor:pointer; ${ab?'background:#f8fafc;':''}" onclick="incToggleTec('${k}')" title="Toca para ver/ocultar sus tickets">
                 <td><i class="ti ti-chevron-${ab?'down':'right'}" style="color:#94a3b8;"></i> <b>${escapeHtml(r.nombre)}</b></td>
                 <td style="text-align:center;">${r.rep}${r.otros?` <span style="color:#94a3b8;">(+${r.otros})</span>`:''}</td>
                 <td style="text-align:center;">${r.pul}</td>
+                <td style="text-align:right; font-weight:700; color:#0f172a;">${money(r.generado)}</td>
                 <td style="text-align:right; color:#b45309;">${money(r.porValidar)}</td>
                 <td style="text-align:right; color:#1d4ed8; font-weight:700;">${money(r.porPagar)}</td>
                 <td style="text-align:right; color:#16a34a;">${money(r.pagado)}</td>
