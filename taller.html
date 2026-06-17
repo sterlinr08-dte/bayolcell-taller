@@ -1137,6 +1137,10 @@ body{
                 </div>
                 <div id="miTrabajoResumen" class="kpi-row" style="margin-bottom:14px;"></div>
                 <div id="miTrabajoContenido"></div>
+                <div id="miTrabajoIncentivosWrap">
+                    <h3 style="margin:22px 0 10px;"><i class="ti ti-coin" style="color:#d97706;"></i> Mis Incentivos</h3>
+                    <div id="miTrabajoIncentivos"></div>
+                </div>
             </div>
 
             <!-- DASHBOARD -->
@@ -4026,7 +4030,7 @@ function applyAccessControls() {
     if(tienePermiso('solo_mi_trabajo')) {
         const verDiag = tienePermiso('diagnostico_ver');
         document.querySelectorAll('.nav button').forEach(b => {
-            b.style.display = (b.id === 'menu-miTrabajo' || b.id === 'menu-misIncentivos' || b.id === 'menu-piezasSolicitadas' || (verDiag && b.id === 'menu-diagnostico')) ? '' : 'none';
+            b.style.display = (b.id === 'menu-miTrabajo' || b.id === 'menu-piezasSolicitadas' || (verDiag && b.id === 'menu-diagnostico')) ? '' : 'none';
         });
         // Si solo hay "Mi Trabajo", ocultar el botón de menú; si además tiene Diagnóstico IA, mantenerlo para poder cambiar
         const toggle = document.querySelector('.menu-toggle');
@@ -4071,7 +4075,6 @@ function applyAccessControls() {
     const menuPermisos = {
         'menu-dashboard': 'ver_dashboard',
         'menu-miTrabajo': null,
-        'menu-misIncentivos': null,
         'menu-recepcion': 'recepcion_ver',
         'menu-ordenes': 'ordenes_ver',
         'menu-inventario': 'inventario_ver',
@@ -4193,7 +4196,8 @@ function _incEstadoBadge(e) {
     return '<span style="background:#fef3c7; color:#b45309; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px;">Pendiente</span>';
 }
 function _incRefrescar() {
-    if(document.getElementById('v-misIncentivos')?.classList.contains('active') && typeof renderMisIncentivos === 'function') renderMisIncentivos();
+    if(document.getElementById('v-miTrabajo')?.classList.contains('active') && typeof renderMisIncentivos === 'function') renderMisIncentivos('miTrabajoIncentivos');
+    else if(document.getElementById('v-misIncentivos')?.classList.contains('active') && typeof renderMisIncentivos === 'function') renderMisIncentivos();
     else renderIncentivos();
 }
 function _incMiTipoCambio() {
@@ -4664,8 +4668,11 @@ async function borrarReporteGuardado(id) {
     } catch(e) { console.error('borrarReporteGuardado', e); toast('No se pudo borrar.', 'error'); }
 }
 /* ---- Pantalla del técnico: registrar y ver sus propios incentivos ---- */
-async function renderMisIncentivos() {
-    const cont = document.getElementById('misIncentivosContenido');
+function _misIncTarget() {
+    return document.getElementById('v-miTrabajo')?.classList.contains('active') ? 'miTrabajoIncentivos' : 'misIncentivosContenido';
+}
+async function renderMisIncentivos(targetId) {
+    const cont = document.getElementById(targetId || _misIncTarget());
     if(!cont) return;
     const yo = sessionUser?.id;
     if(!yo) { cont.innerHTML = '<div class="card"><div style="color:var(--text-muted);">No se pudo identificar tu usuario.</div></div>'; return; }
@@ -4859,7 +4866,7 @@ function nav(v, btn) {
     if(v === 'configuracion') { setTimeout(() => { cambiarMainTabConfig('tecnicos'); }, 50); }
     if(v === 'reportes') { setTimeout(() => { inicializarReportes(); }, 50); }
     if(v === 'estadisticas') { setTimeout(() => { renderEstadisticas(); }, 50); }
-    if(v === 'miTrabajo') { setTimeout(() => { renderMiTrabajo(); }, 50); }
+    if(v === 'miTrabajo') { setTimeout(() => { renderMiTrabajo(); const _wrap = document.getElementById('miTrabajoIncentivosWrap'); if(_wrap){ if(!isAdminUser() && typeof renderMisIncentivos === 'function') { _wrap.style.display = ''; renderMisIncentivos('miTrabajoIncentivos'); } else { _wrap.style.display = 'none'; } } }, 50); }
     if(v === 'atencion') { setTimeout(() => { renderAtencionCliente(); }, 50); }
     if(v === 'financiamientos') { setTimeout(() => { renderFinanciamientos(); }, 50); }
     if(v === 'articulos') { setTimeout(() => { actualizarInfoplusCount(); renderInfoplusBusqueda(); }, 50); }
