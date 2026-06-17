@@ -4148,6 +4148,29 @@ function _wvSet(id, v) { const el = document.getElementById(id); if(el) el.textC
 const INC_REPARACION = 50, INC_PULIDO = 100;
 let _incCache = [], _incReportes = [], _incFiltroTec = '', _incFiltroEstado = '', _incDesde = '', _incHasta = '';
 let _incUltimoTecnico = '', _incUltimoTipo = 'reparacion';
+let _incVer = {}; // cuántos registros mostrar por técnico (de 10 en 10)
+let _miVer = 10;
+function incVerMas(k) { _incVer[k] = (_incVer[k] || 10) + 10; renderIncentivos(); }
+function incVerMenos(k) { _incVer[k] = 10; renderIncentivos(); }
+function miVerMas() { _miVer += 10; renderMisIncentivos(); }
+function _incFilaRegistro(r) {
+    const est = r.estado;
+    return `<tr>
+        <td>${_incFmtFecha(r.fecha)}</td>
+        <td>${escapeHtml(r.ticket || '-')}</td>
+        <td>${_incTipoTxt(r.tipo)}</td>
+        <td style="text-align:right;">${r.monto_factura ? money(r.monto_factura) : '-'}</td>
+        <td style="text-align:right; font-weight:700;">${money(r.monto_incentivo)}</td>
+        <td>${_incEstadoBadge(est)}</td>
+        <td style="white-space:nowrap; text-align:right;">
+            ${est === 'pendiente' ? `<button class="btn btn-light btn-sm" onclick="setEstadoIncentivo('${r.id}','validado')" title="Validar (firmado y sellado)" style="color:#1d4ed8;"><i class="ti ti-rosette-discount-check"></i></button>` : ''}
+            ${est === 'validado' ? `<button class="btn btn-light btn-sm" onclick="setEstadoIncentivo('${r.id}','pendiente')" title="Quitar validación">↩</button>` : ''}
+            ${est === 'pagado' ? `<button class="btn btn-light btn-sm" onclick="setEstadoIncentivo('${r.id}','validado')" title="Revertir pago">↩</button>` : ''}
+            ${est !== 'pagado' ? `<button class="btn btn-light btn-sm" onclick="editarIncentivo('${r.id}')" title="Editar" style="color:#0369a1;"><i class="ti ti-pencil"></i></button>` : ''}
+            <button class="btn btn-light btn-sm" onclick="borrarIncentivo('${r.id}')" title="Borrar" style="color:#b91c1c;"><i class="ti ti-trash"></i></button>
+        </td>
+    </tr>`;
+}
 function _incQuincena(offset) {
     // offset 0 = quincena actual, -1 = quincena pasada
     const hoy = new Date(); hoy.setHours(0,0,0,0);
@@ -4295,32 +4318,27 @@ async function renderIncentivos() {
         </div>`;
     }
 
-    // Lista de registros
+    // Lista de registros — agrupada por técnico, de 10 en 10
     html += `<div class="card"><h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-list" style="color:#0891b2;"></i> Registros (${lista.length})</h3>`;
     if(!lista.length) {
         html += `<div style="color:var(--text-muted); font-size:13px;">No hay registros con esos filtros.</div>`;
     } else {
-        html += `<div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Técnico</th><th>Ticket</th><th>Tipo</th><th style="text-align:right;">Monto factura</th><th style="text-align:right;">Incentivo</th><th>Estado</th><th></th></tr></thead><tbody>`;
-        html += lista.map(r => {
-            const est = r.estado;
-            return `<tr>
-                <td>${_incFmtFecha(r.fecha)}</td>
-                <td>${escapeHtml(r.tecnico_nombre || '')}</td>
-                <td>${escapeHtml(r.ticket || '-')}</td>
-                <td>${_incTipoTxt(r.tipo)}</td>
-                <td style="text-align:right;">${r.monto_factura ? money(r.monto_factura) : '-'}</td>
-                <td style="text-align:right; font-weight:700;">${money(r.monto_incentivo)}</td>
-                <td>${_incEstadoBadge(est)}</td>
-                <td style="white-space:nowrap; text-align:right;">
-                    ${est === 'pendiente' ? `<button class="btn btn-light btn-sm" onclick="setEstadoIncentivo('${r.id}','validado')" title="Validar (firmado y sellado)" style="color:#1d4ed8;"><i class="ti ti-rosette-discount-check"></i></button>` : ''}
-                    ${est === 'validado' ? `<button class="btn btn-light btn-sm" onclick="setEstadoIncentivo('${r.id}','pendiente')" title="Quitar validación">↩</button>` : ''}
-                    ${est === 'pagado' ? `<button class="btn btn-light btn-sm" onclick="setEstadoIncentivo('${r.id}','validado')" title="Revertir pago">↩</button>` : ''}
-                    ${est !== 'pagado' ? `<button class="btn btn-light btn-sm" onclick="editarIncentivo('${r.id}')" title="Editar" style="color:#0369a1;"><i class="ti ti-pencil"></i></button>` : ''}
-                    <button class="btn btn-light btn-sm" onclick="borrarIncentivo('${r.id}')" title="Borrar" style="color:#b91c1c;"><i class="ti ti-trash"></i></button>
-                </td>
-            </tr>`;
-        }).join('');
-        html += `</tbody></table></div>`;
+        const grupos = {};
+        lista.forEach(r => { const k = r.tecnico_id || '_'; (grupos[k] = grupos[k] || { nombre: r.tecnico_nombre || 'Técnico', items: [] }).items.push(r); });
+        Object.keys(grupos).forEach(k => {
+            const g = grupos[k];
+            const verN = _incVer[k] || 10;
+            const mostrar = g.items.slice(0, verN);
+            html += `<div style="font-weight:700; font-size:12.5px; margin:12px 0 4px; color:#0f172a; border-bottom:2px solid #eef2f7; padding-bottom:3px;">👤 ${escapeHtml(g.nombre)} <span style="color:#94a3b8; font-weight:400;">(${g.items.length} ticket${g.items.length===1?'':'s'})</span></div>`;
+            html += `<div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Ticket</th><th>Tipo</th><th style="text-align:right;">Monto factura</th><th style="text-align:right;">Incentivo</th><th>Estado</th><th></th></tr></thead><tbody>`;
+            html += mostrar.map(_incFilaRegistro).join('');
+            html += `</tbody></table></div>`;
+            if(g.items.length > verN) {
+                html += `<div style="text-align:center; margin:6px 0;"><button class="btn btn-light btn-sm" onclick="incVerMas('${k}')"><i class="ti ti-chevron-down"></i> Ver 10 más (${g.items.length - verN} restantes)</button></div>`;
+            } else if(verN > 10 && g.items.length > 10) {
+                html += `<div style="text-align:center; margin:6px 0;"><button class="btn btn-light btn-sm" onclick="incVerMenos('${k}')"><i class="ti ti-chevron-up"></i> Mostrar menos</button></div>`;
+            }
+        });
     }
     html += `</div>`;
 
@@ -4673,8 +4691,9 @@ async function renderMisIncentivos() {
     if(!_incCache.length) {
         html += `<div style="color:var(--text-muted); font-size:13px;">Aún no has registrado trabajos.</div>`;
     } else {
+        const mostrar = _incCache.slice(0, _miVer);
         html += `<div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Ticket</th><th>Tipo</th><th style="text-align:right;">Incentivo</th><th>Estado</th><th></th></tr></thead><tbody>`;
-        html += _incCache.map(r => `<tr>
+        html += mostrar.map(r => `<tr>
             <td>${_incFmtFecha(r.fecha)}</td>
             <td>${escapeHtml(r.ticket || '-')}</td>
             <td>${_incTipoTxt(r.tipo)}</td>
@@ -4683,6 +4702,7 @@ async function renderMisIncentivos() {
             <td style="text-align:right; white-space:nowrap;">${r.estado === 'pendiente' ? `<button class="btn btn-light btn-sm" onclick="editarIncentivo('${r.id}')" title="Editar"><i class="ti ti-pencil"></i></button> <button class="btn btn-light btn-sm" onclick="borrarIncentivo('${r.id}')" title="Borrar" style="color:#b91c1c;"><i class="ti ti-trash"></i></button>` : '<span style="font-size:11px; color:#94a3b8;">—</span>'}</td>
         </tr>`).join('');
         html += `</tbody></table></div>`;
+        if(_incCache.length > _miVer) html += `<div style="text-align:center; margin:6px 0;"><button class="btn btn-light btn-sm" onclick="miVerMas()"><i class="ti ti-chevron-down"></i> Ver 10 más (${_incCache.length - _miVer} restantes)</button></div>`;
     }
     html += `</div>`;
     cont.innerHTML = html;
