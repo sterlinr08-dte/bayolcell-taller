@@ -849,6 +849,7 @@ body{
             <button id="menu-diagnostico" onclick="nav('diagnostico',this)"><i class="ti ti-stethoscope"></i> <span>Diagnóstico IA</span></button>
             <button id="menu-recepcion" onclick="nav('recepcion',this)"><i class="ti ti-clipboard-plus"></i> <span>Recepción de Equipos</span></button>
             <button id="menu-ordenes" onclick="nav('ordenes',this)"><i class="ti ti-tool"></i> <span>Órdenes de Servicio</span></button>
+            <button id="menu-incentivos" onclick="nav('incentivos',this)" style="display:none;"><i class="ti ti-coin"></i> <span>Incentivos Técnicos</span> <span class="nav-badge-admin">ADMIN</span></button>
             
             <div class="nav-section">INVENTARIO</div>
             <button id="menu-inventario" onclick="nav('inventario',this)"><i class="ti ti-package"></i> <span>Inventario Taller</span></button>
@@ -1459,6 +1460,12 @@ body{
                     </div>
                     <div id="piezasSolicitadasLista"></div>
                 </div>
+            </div>
+
+            <!-- INCENTIVOS TÉCNICOS -->
+            <div id="v-incentivos" class="view">
+                <h2 style="margin:0 0 14px;"><i class="ti ti-coin" style="color:#f59e0b;"></i> Incentivos Técnicos</h2>
+                <div id="incentivosContenido"></div>
             </div>
 
             <!-- ETIQUETAS -->
@@ -4103,6 +4110,10 @@ function applyAccessControls() {
     const btnStats = document.getElementById('menu-estadisticas');
     if(btnStats) btnStats.style.display = esDueno() ? '' : 'none';
 
+    // Incentivos Técnicos: solo administradores
+    const btnInc = document.getElementById('menu-incentivos');
+    if(btnInc) btnInc.style.display = isAdminUser() ? '' : 'none';
+
     // Registrar equipo existente (carga de equipos previos al sistema): solo admin
     const btnRegEx = document.getElementById('btnRegistrarExistente');
     if(btnRegEx) btnRegEx.style.display = isAdminUser() ? '' : 'none';
@@ -4121,6 +4132,230 @@ function setActiveNav(v) {
 }
 
 function _wvSet(id, v) { const el = document.getElementById(id); if(el) el.textContent = (v == null ? '—' : v.toLocaleString('es-DO')); }
+
+/* ============================================================
+   INCENTIVOS DE TÉCNICOS (solo administradores)
+   ============================================================ */
+const INC_REPARACION = 50, INC_PULIDO = 100;
+let _incCache = [], _incFiltroTec = '', _incFiltroEstado = '', _incDesde = '', _incHasta = '';
+function _incFmtFecha(f) { try { return new Date((f || '').slice(0,10) + 'T00:00:00').toLocaleDateString('es-DO', { day:'2-digit', month:'2-digit', year:'numeric' }); } catch(e) { return f || ''; } }
+function _incTipoTxt(t) { return t === 'pulido' ? '✨ Pulido pantalla' : (t === 'manual' ? '✏️ Manual' : '🔧 Reparación'); }
+function _incEnRango(r) {
+    const f = (r.fecha || '').slice(0,10);
+    if(_incDesde && f < _incDesde) return false;
+    if(_incHasta && f > _incHasta) return false;
+    return true;
+}
+function _incTipoCambio() {
+    const tipo = document.getElementById('incTipo')?.value;
+    const inp = document.getElementById('incMontoIncentivo');
+    if(!inp) return;
+    if(tipo === 'reparacion') { inp.value = INC_REPARACION; inp.readOnly = true; }
+    else if(tipo === 'pulido') { inp.value = INC_PULIDO; inp.readOnly = true; }
+    else { inp.readOnly = false; inp.value = inp.value || ''; inp.focus(); }
+}
+function _incAplicarFiltros() {
+    _incFiltroTec = document.getElementById('incFTec')?.value || '';
+    _incFiltroEstado = document.getElementById('incFEstado')?.value || '';
+    _incDesde = document.getElementById('incFDesde')?.value || '';
+    _incHasta = document.getElementById('incFHasta')?.value || '';
+    renderIncentivos();
+}
+async function renderIncentivos() {
+    const cont = document.getElementById('incentivosContenido');
+    if(!cont) return;
+    if(!isAdminUser()) { cont.innerHTML = '<div class="card"><div style="color:var(--text-muted);">Módulo solo para administradores.</div></div>'; return; }
+    try {
+        const { data } = await supabaseClient.from('taller_incentivos').select('*').order('creado_en', { ascending: false });
+        _incCache = data || [];
+    } catch(e) { _incCache = []; }
+
+    const tecs = (cache.tecnicos || []).filter(t => t.activo !== false).sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''));
+    const opts = tecs.map(t => `<option value="${t.id}">${escapeHtml(t.nombre || t.usuario || 'Técnico')}</option>`).join('');
+    const hoy = new Date().toISOString().slice(0,10);
+
+    // Formulario de registro
+    let html = `<div class="card" style="margin-bottom:14px;">
+        <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-plus" style="color:#16a34a;"></i> Registrar trabajo / incentivo</h3>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <div class="form-row" style="flex:1; min-width:160px;"><label>Técnico *</label><select id="incTecnico"><option value="">— Elige —</option>${opts}</select></div>
+            <div class="form-row" style="flex:1; min-width:120px;"><label>Fecha</label><input type="date" id="incFecha" value="${hoy}"></div>
+            <div class="form-row" style="flex:1; min-width:120px;"><label># Ticket / Factura</label><input type="text" id="incTicket" placeholder="Ej: CO00092919"></div>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <div class="form-row" style="flex:1; min-width:140px;"><label>Tipo de trabajo</label><select id="incTipo" onchange="_incTipoCambio()">
+                <option value="reparacion">🔧 Reparación (+RD$50)</option>
+                <option value="pulido">✨ Pulido pantalla iPhone/Apple Watch (+RD$100)</option>
+                <option value="manual">✏️ Monto manual</option>
+            </select></div>
+            <div class="form-row" style="flex:1; min-width:120px;"><label>Incentivo (RD$)</label><input type="number" id="incMontoIncentivo" value="${INC_REPARACION}" readonly></div>
+            <div class="form-row" style="flex:1; min-width:120px;"><label>Monto factura (informativo)</label><input type="number" id="incMontoFactura" min="0" step="0.01" placeholder="0.00"></div>
+        </div>
+        <div class="form-row"><label>Nota (opcional)</label><input type="text" id="incNota" placeholder="Detalle del trabajo"></div>
+        <div style="text-align:right;"><button class="btn btn-blue" onclick="guardarIncentivo()"><i class="ti ti-device-floppy"></i> Registrar</button></div>
+    </div>`;
+
+    // Filtros
+    const optsFTec = tecs.map(t => `<option value="${t.id}" ${_incFiltroTec===t.id?'selected':''}>${escapeHtml(t.nombre || t.usuario || 'Técnico')}</option>`).join('');
+    html += `<div class="card" style="margin-bottom:14px;">
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+            <div class="form-row" style="flex:1; min-width:140px; margin:0;"><label>Técnico</label><select id="incFTec" onchange="_incAplicarFiltros()"><option value="">Todos</option>${optsFTec}</select></div>
+            <div class="form-row" style="flex:1; min-width:120px; margin:0;"><label>Estado</label><select id="incFEstado" onchange="_incAplicarFiltros()"><option value="" ${_incFiltroEstado===''?'selected':''}>Todos</option><option value="pendiente" ${_incFiltroEstado==='pendiente'?'selected':''}>Pendiente de pago</option><option value="pagado" ${_incFiltroEstado==='pagado'?'selected':''}>Pagado</option></select></div>
+            <div class="form-row" style="flex:1; min-width:120px; margin:0;"><label>Desde</label><input type="date" id="incFDesde" value="${_incDesde}" onchange="_incAplicarFiltros()"></div>
+            <div class="form-row" style="flex:1; min-width:120px; margin:0;"><label>Hasta</label><input type="date" id="incFHasta" value="${_incHasta}" onchange="_incAplicarFiltros()"></div>
+            <button class="btn btn-light" onclick="_incLimpiarFiltros()" style="font-size:12px;"><i class="ti ti-x"></i> Limpiar</button>
+        </div>
+    </div>`;
+
+    // Datos filtrados
+    const enRango = _incCache.filter(r => _incEnRango(r) && (!_incFiltroTec || r.tecnico_id === _incFiltroTec));
+    const lista = enRango.filter(r => !_incFiltroEstado || r.estado === _incFiltroEstado);
+
+    // Resumen por técnico (sobre el rango + técnico, ignorando estado)
+    const resumen = {};
+    enRango.forEach(r => {
+        const k = r.tecnico_id || '_';
+        if(!resumen[k]) resumen[k] = { nombre: r.tecnico_nombre || 'Técnico', rep:0, pul:0, otros:0, pend:0, pagado:0 };
+        if(r.tipo === 'pulido') resumen[k].pul++; else if(r.tipo === 'manual') resumen[k].otros++; else resumen[k].rep++;
+        if(r.estado === 'pagado') resumen[k].pagado += Number(r.monto_incentivo||0); else resumen[k].pend += Number(r.monto_incentivo||0);
+    });
+    const resKeys = Object.keys(resumen);
+    if(resKeys.length) {
+        html += `<div class="card" style="margin-bottom:14px;">
+            <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-users" style="color:#7c3aed;"></i> Resumen por técnico</h3>
+            <div class="table-wrap"><table><thead><tr><th>Técnico</th><th style="text-align:center;">Reparaciones</th><th style="text-align:center;">Pulidos</th><th style="text-align:right;">Pendiente de pago</th><th style="text-align:right;">Pagado</th><th></th></tr></thead><tbody>
+            ${resKeys.map(k => { const r = resumen[k]; return `<tr>
+                <td><b>${escapeHtml(r.nombre)}</b></td>
+                <td style="text-align:center;">${r.rep}${r.otros?` <span style="color:#94a3b8;">(+${r.otros} man.)</span>`:''}</td>
+                <td style="text-align:center;">${r.pul}</td>
+                <td style="text-align:right; color:#b45309; font-weight:700;">${money(r.pend)}</td>
+                <td style="text-align:right; color:#16a34a;">${money(r.pagado)}</td>
+                <td style="text-align:right;"><button class="btn btn-light" onclick="imprimirIncentivosTecnico('${k}')" style="font-size:11px;"><i class="ti ti-printer"></i> Imprimir</button></td>
+            </tr>`; }).join('')}
+            </tbody></table></div>
+        </div>`;
+    }
+
+    // Lista de registros
+    html += `<div class="card"><h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-list" style="color:#0891b2;"></i> Registros (${lista.length})</h3>`;
+    if(!lista.length) {
+        html += `<div style="color:var(--text-muted); font-size:13px;">No hay registros con esos filtros.</div>`;
+    } else {
+        html += `<div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Técnico</th><th>Ticket</th><th>Tipo</th><th style="text-align:right;">Factura</th><th style="text-align:right;">Incentivo</th><th>Estado</th><th></th></tr></thead><tbody>`;
+        html += lista.map(r => {
+            const pagado = r.estado === 'pagado';
+            return `<tr>
+                <td>${_incFmtFecha(r.fecha)}</td>
+                <td>${escapeHtml(r.tecnico_nombre || '')}</td>
+                <td>${escapeHtml(r.ticket || '-')}</td>
+                <td>${_incTipoTxt(r.tipo)}</td>
+                <td style="text-align:right;">${r.monto_factura ? money(r.monto_factura) : '-'}</td>
+                <td style="text-align:right; font-weight:700;">${money(r.monto_incentivo)}</td>
+                <td>${pagado ? '<span style="background:#dcfce7; color:#16a34a; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px;">Pagado</span>' : '<span style="background:#fef3c7; color:#b45309; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px;">Pendiente</span>'}</td>
+                <td style="white-space:nowrap; text-align:right;">
+                    ${pagado
+                        ? `<button class="btn btn-light" onclick="setEstadoIncentivo('${r.id}','pendiente')" style="font-size:11px;">↩ Pendiente</button>`
+                        : `<button class="btn btn-light" onclick="setEstadoIncentivo('${r.id}','pagado')" style="font-size:11px; color:#16a34a;"><i class="ti ti-check"></i> Pagar</button>`}
+                    <button class="btn btn-light" onclick="borrarIncentivo('${r.id}')" style="font-size:11px; color:#b91c1c;"><i class="ti ti-trash"></i></button>
+                </td>
+            </tr>`;
+        }).join('');
+        html += `</tbody></table></div>`;
+    }
+    html += `</div>`;
+
+    cont.innerHTML = html;
+    setTimeout(_incTipoCambio, 20);
+}
+function _incLimpiarFiltros() { _incFiltroTec=''; _incFiltroEstado=''; _incDesde=''; _incHasta=''; renderIncentivos(); }
+async function guardarIncentivo() {
+    if(!isAdminUser()) { toast('Solo administradores.', 'error'); return; }
+    const tecSel = document.getElementById('incTecnico');
+    const tecnico_id = tecSel?.value || '';
+    if(!tecnico_id) { toast('Elige el técnico.', 'error'); return; }
+    const tecnico_nombre = tecSel.options[tecSel.selectedIndex]?.text || '';
+    const tipo = document.getElementById('incTipo')?.value || 'reparacion';
+    const monto_incentivo = parseFloat(document.getElementById('incMontoIncentivo')?.value) || 0;
+    if(monto_incentivo <= 0) { toast('El incentivo debe ser mayor que 0.', 'error'); return; }
+    const fila = {
+        tecnico_id, tecnico_nombre,
+        fecha: document.getElementById('incFecha')?.value || new Date().toISOString().slice(0,10),
+        ticket: (document.getElementById('incTicket')?.value || '').trim() || null,
+        monto_factura: parseFloat(document.getElementById('incMontoFactura')?.value) || 0,
+        tipo, monto_incentivo, estado: 'pendiente',
+        nota: (document.getElementById('incNota')?.value || '').trim() || null,
+        creado_por: sessionUser?.nombre || sessionUser?.usuario || 'Sistema'
+    };
+    try {
+        const { error } = await supabaseClient.from('taller_incentivos').insert([fila]);
+        if(error) throw error;
+        toast('✅ Incentivo registrado.');
+        renderIncentivos();
+    } catch(e) { console.error('guardarIncentivo', e); toast('No se pudo registrar.', 'error'); }
+}
+async function setEstadoIncentivo(id, estado) {
+    if(!isAdminUser()) { toast('Solo administradores.', 'error'); return; }
+    try {
+        const upd = { estado, pagado_en: estado === 'pagado' ? new Date().toISOString() : null };
+        const { error } = await supabaseClient.from('taller_incentivos').update(upd).eq('id', id);
+        if(error) throw error;
+        renderIncentivos();
+    } catch(e) { console.error('setEstadoIncentivo', e); toast('No se pudo actualizar.', 'error'); }
+}
+async function borrarIncentivo(id) {
+    if(!isAdminUser()) { toast('Solo administradores.', 'error'); return; }
+    if(!confirm('¿Borrar este registro de incentivo?')) return;
+    try {
+        const { error } = await supabaseClient.from('taller_incentivos').delete().eq('id', id);
+        if(error) throw error;
+        toast('Registro borrado.');
+        renderIncentivos();
+    } catch(e) { console.error('borrarIncentivo', e); toast('No se pudo borrar.', 'error'); }
+}
+function imprimirIncentivosTecnico(tecnicoId) {
+    const regs = _incCache.filter(r => (r.tecnico_id || '_') === tecnicoId && _incEnRango(r)).sort((a,b) => (a.fecha||'').localeCompare(b.fecha||''));
+    if(!regs.length) { toast('No hay registros de ese técnico en el rango.', 'error'); return; }
+    const nombre = regs[0].tecnico_nombre || 'Técnico';
+    const pend = regs.filter(r => r.estado !== 'pagado');
+    const totalPend = pend.reduce((s,r) => s + Number(r.monto_incentivo||0), 0);
+    const totalGeneral = regs.reduce((s,r) => s + Number(r.monto_incentivo||0), 0);
+    const cfg = cache.configTaller || {};
+    const tienda = cfg.nombre || 'BAYOL CELL';
+    const rep = regs.filter(r => r.tipo === 'reparacion').length;
+    const pul = regs.filter(r => r.tipo === 'pulido').length;
+    const periodo = (_incDesde || _incHasta) ? `Período: ${_incDesde ? _incFmtFecha(_incDesde) : '...'} al ${_incHasta ? _incFmtFecha(_incHasta) : '...'}` : 'Todos los registros';
+    const filas = regs.map(r => `<tr><td>${_incFmtFecha(r.fecha)}</td><td>${escapeHtml(r.ticket||'-')}</td><td>${_incTipoTxt(r.tipo).replace(/[^\x20-\x7EñÑáéíóúÁÉÍÓÚ ]/g,'').trim()}</td><td style="text-align:right;">${money(r.monto_incentivo)}</td><td>${r.estado==='pagado'?'Pagado':'Pendiente'}</td></tr>`).join('');
+    const w = window.open('', '_blank');
+    if(!w) { toast('Permite las ventanas emergentes para imprimir.', 'error'); return; }
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Incentivos ${escapeHtml(nombre)}</title>
+        <style>
+            body{font-family:Arial,Helvetica,sans-serif; color:#0f172a; padding:24px; max-width:680px; margin:0 auto;}
+            h1{font-size:20px; margin:0;} h2{font-size:15px; margin:2px 0 0; color:#475569;}
+            .muted{color:#64748b; font-size:12px;}
+            table{width:100%; border-collapse:collapse; margin-top:12px; font-size:13px;}
+            th,td{border:1px solid #cbd5e1; padding:6px 8px; text-align:left;}
+            th{background:#f1f5f9;}
+            .tot{font-size:16px; font-weight:bold; margin-top:14px; text-align:right;}
+            .firma{margin-top:46px; display:flex; justify-content:space-between; gap:30px;}
+            .firma div{flex:1; border-top:1px solid #0f172a; padding-top:6px; text-align:center; font-size:12px;}
+            hr{border:0; border-top:1px solid #e2e8f0; margin:12px 0;}
+        </style></head><body>
+        <h1>${escapeHtml(tienda)}</h1>
+        <h2>Reporte de Incentivos — Técnico</h2>
+        <div class="muted">${new Date().toLocaleString('es-DO')}</div>
+        <hr>
+        <div><b>Técnico:</b> ${escapeHtml(nombre)}</div>
+        <div class="muted">${escapeHtml(periodo)}</div>
+        <div class="muted">Reparaciones: ${rep} &nbsp;·&nbsp; Pulidos: ${pul} &nbsp;·&nbsp; Total trabajos: ${regs.length}</div>
+        <table><thead><tr><th>Fecha</th><th>Ticket</th><th>Tipo</th><th style="text-align:right;">Incentivo</th><th>Estado</th></tr></thead>
+        <tbody>${filas}</tbody></table>
+        <div class="tot">Pendiente de pago: ${money(totalPend)}</div>
+        <div class="muted" style="text-align:right;">Total general (todos): ${money(totalGeneral)}</div>
+        <div class="firma"><div>Entregado por</div><div>Recibido por (${escapeHtml(nombre)})</div></div>
+        </body></html>`);
+    w.document.close(); w.focus();
+    setTimeout(() => { try { w.print(); } catch(e) {} }, 400);
+}
 async function renderWebVisitas() {
     if(!isAdminUser()) return;
     const card = document.getElementById('webVisitasCard');
@@ -4202,6 +4437,11 @@ function nav(v, btn) {
         toast('🔒 Módulo privado.');
         return;
     }
+    // Incentivos Técnicos: solo administradores
+    if(v === 'incentivos' && !isAdminUser()) {
+        toast('🔒 Módulo solo para administradores.');
+        return;
+    }
     // PORTERO CENTRAL: verifica permiso antes de entrar (sin importar de dónde venga el clic)
     const permisoReq = NAV_PERMISOS[v];
     if(permisoReq && !tienePermiso(permisoReq)) {
@@ -4242,6 +4482,7 @@ function nav(v, btn) {
         if(typeof refrescarChecklistRecepcion === 'function') refrescarChecklistRecepcion();
     }, 50); }
     if(v === 'piezasSolicitadas') { setTimeout(() => { if(typeof renderPiezasSolicitadas === 'function') renderPiezasSolicitadas(); }, 50); }
+    if(v === 'incentivos') { setTimeout(() => { if(typeof renderIncentivos === 'function') renderIncentivos(); }, 50); }
     closeSidebar();
     window.scrollTo({ top: 0, behavior: 'smooth' });
     // Re-aplicar permisos de botones estáticos tras renderizar (NO en modo solo-mi-trabajo, causa bucle)
