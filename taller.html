@@ -4138,6 +4138,19 @@ function _wvSet(id, v) { const el = document.getElementById(id); if(el) el.textC
    ============================================================ */
 const INC_REPARACION = 50, INC_PULIDO = 100;
 let _incCache = [], _incFiltroTec = '', _incFiltroEstado = '', _incDesde = '', _incHasta = '';
+let _incUltimoTecnico = '', _incUltimoTipo = 'reparacion';
+function _incQuincena(offset) {
+    // offset 0 = quincena actual, -1 = quincena pasada
+    const hoy = new Date(); hoy.setHours(0,0,0,0);
+    let y = hoy.getFullYear(), m = hoy.getMonth(), primera = hoy.getDate() <= 15;
+    // representar quincena como índice global y restar offset
+    let idx = (y * 24) + (m * 2) + (primera ? 0 : 1) + offset;
+    y = Math.floor(idx / 24); const rem = idx % 24; m = Math.floor(rem / 2); primera = (rem % 2) === 0;
+    const f = (yy, mm, dd) => `${yy}-${String(mm+1).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;
+    if(primera) { _incDesde = f(y, m, 1); _incHasta = f(y, m, 15); }
+    else { const ultimo = new Date(y, m+1, 0).getDate(); _incDesde = f(y, m, 16); _incHasta = f(y, m, ultimo); }
+    renderIncentivos();
+}
 function _incFmtFecha(f) { try { return new Date((f || '').slice(0,10) + 'T00:00:00').toLocaleDateString('es-DO', { day:'2-digit', month:'2-digit', year:'numeric' }); } catch(e) { return f || ''; } }
 function _incTipoTxt(t) { return t === 'pulido' ? '✨ Pulido pantalla' : (t === 'manual' ? '✏️ Manual' : '🔧 Reparación'); }
 function _incEnRango(r) {
@@ -4171,39 +4184,42 @@ async function renderIncentivos() {
     } catch(e) { _incCache = []; }
 
     const tecs = (cache.tecnicos || []).filter(t => t.activo !== false).sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''));
-    const opts = tecs.map(t => `<option value="${t.id}">${escapeHtml(t.nombre || t.usuario || 'Técnico')}</option>`).join('');
+    const opts = tecs.map(t => `<option value="${t.id}" ${t.id===_incUltimoTecnico?'selected':''}>${escapeHtml(t.nombre || t.usuario || 'Técnico')}</option>`).join('');
+    const selTipo = t => _incUltimoTipo===t ? 'selected' : '';
     const hoy = new Date().toISOString().slice(0,10);
 
-    // Formulario de registro
-    let html = `<div class="card" style="margin-bottom:14px;">
-        <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-plus" style="color:#16a34a;"></i> Registrar trabajo / incentivo</h3>
-        <div style="display:flex; gap:10px; flex-wrap:wrap;">
-            <div class="form-row" style="flex:1; min-width:160px;"><label>Técnico *</label><select id="incTecnico"><option value="">— Elige —</option>${opts}</select></div>
-            <div class="form-row" style="flex:1; min-width:120px;"><label>Fecha</label><input type="date" id="incFecha" value="${hoy}"></div>
-            <div class="form-row" style="flex:1; min-width:120px;"><label># Ticket / Factura</label><input type="text" id="incTicket" placeholder="Ej: CO00092919"></div>
-        </div>
-        <div style="display:flex; gap:10px; flex-wrap:wrap;">
-            <div class="form-row" style="flex:1; min-width:140px;"><label>Tipo de trabajo</label><select id="incTipo" onchange="_incTipoCambio()">
-                <option value="reparacion">🔧 Reparación (+RD$50)</option>
-                <option value="pulido">✨ Pulido pantalla iPhone/Apple Watch (+RD$100)</option>
-                <option value="manual">✏️ Monto manual</option>
+    // Formulario de registro (compacto)
+    const ci = 'style="padding:6px 9px; font-size:12px; border-radius:8px;" onkeydown="if(event.key===\'Enter\')guardarIncentivo()"';
+    let html = `<div class="card" style="margin-bottom:10px; padding:12px;">
+        <div style="font-size:13px; font-weight:700; margin-bottom:8px;"><i class="ti ti-plus" style="color:#16a34a;"></i> Registrar trabajo</div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:flex-end;">
+            <div style="flex:1; min-width:120px;"><label style="font-size:10px; color:#64748b;">Técnico *</label><select id="incTecnico" ${ci}><option value="">— Elige —</option>${opts}</select></div>
+            <div style="width:120px;"><label style="font-size:10px; color:#64748b;">Fecha</label><input type="date" id="incFecha" value="${hoy}" ${ci}></div>
+            <div style="width:110px;"><label style="font-size:10px; color:#64748b;"># Ticket</label><input type="text" id="incTicket" placeholder="CO000..." ${ci}></div>
+            <div style="flex:1; min-width:150px;"><label style="font-size:10px; color:#64748b;">Tipo</label><select id="incTipo" onchange="_incTipoCambio()" ${ci}>
+                <option value="reparacion" ${selTipo('reparacion')}>🔧 Reparación (+50)</option>
+                <option value="pulido" ${selTipo('pulido')}>✨ Pulido (+100)</option>
+                <option value="manual" ${selTipo('manual')}>✏️ Manual</option>
             </select></div>
-            <div class="form-row" style="flex:1; min-width:120px;"><label>Incentivo (RD$)</label><input type="number" id="incMontoIncentivo" value="${INC_REPARACION}" readonly></div>
-            <div class="form-row" style="flex:1; min-width:120px;"><label>Monto factura (informativo)</label><input type="number" id="incMontoFactura" min="0" step="0.01" placeholder="0.00"></div>
+            <div style="width:90px;"><label style="font-size:10px; color:#64748b;">Incentivo</label><input type="number" id="incMontoIncentivo" value="${INC_REPARACION}" readonly ${ci}></div>
+            <div style="width:100px;"><label style="font-size:10px; color:#64748b;">Factura (opc.)</label><input type="number" id="incMontoFactura" min="0" step="0.01" placeholder="0" ${ci}></div>
+            <div style="flex:1; min-width:120px;"><label style="font-size:10px; color:#64748b;">Nota (opc.)</label><input type="text" id="incNota" placeholder="Detalle" ${ci}></div>
+            <button class="btn btn-blue btn-sm" onclick="guardarIncentivo()" style="height:32px;"><i class="ti ti-device-floppy"></i> Registrar</button>
         </div>
-        <div class="form-row"><label>Nota (opcional)</label><input type="text" id="incNota" placeholder="Detalle del trabajo"></div>
-        <div style="text-align:right;"><button class="btn btn-blue" onclick="guardarIncentivo()"><i class="ti ti-device-floppy"></i> Registrar</button></div>
     </div>`;
 
     // Filtros
     const optsFTec = tecs.map(t => `<option value="${t.id}" ${_incFiltroTec===t.id?'selected':''}>${escapeHtml(t.nombre || t.usuario || 'Técnico')}</option>`).join('');
-    html += `<div class="card" style="margin-bottom:14px;">
-        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
-            <div class="form-row" style="flex:1; min-width:140px; margin:0;"><label>Técnico</label><select id="incFTec" onchange="_incAplicarFiltros()"><option value="">Todos</option>${optsFTec}</select></div>
-            <div class="form-row" style="flex:1; min-width:120px; margin:0;"><label>Estado</label><select id="incFEstado" onchange="_incAplicarFiltros()"><option value="" ${_incFiltroEstado===''?'selected':''}>Todos</option><option value="pendiente" ${_incFiltroEstado==='pendiente'?'selected':''}>Pendiente de pago</option><option value="pagado" ${_incFiltroEstado==='pagado'?'selected':''}>Pagado</option></select></div>
-            <div class="form-row" style="flex:1; min-width:120px; margin:0;"><label>Desde</label><input type="date" id="incFDesde" value="${_incDesde}" onchange="_incAplicarFiltros()"></div>
-            <div class="form-row" style="flex:1; min-width:120px; margin:0;"><label>Hasta</label><input type="date" id="incFHasta" value="${_incHasta}" onchange="_incAplicarFiltros()"></div>
-            <button class="btn btn-light" onclick="_incLimpiarFiltros()" style="font-size:12px;"><i class="ti ti-x"></i> Limpiar</button>
+    const cf = 'style="padding:6px 9px; font-size:12px; border-radius:8px;"';
+    html += `<div class="card" style="margin-bottom:10px; padding:10px;">
+        <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:flex-end;">
+            <div style="flex:1; min-width:120px;"><label style="font-size:10px; color:#64748b;">Técnico</label><select id="incFTec" onchange="_incAplicarFiltros()" ${cf}><option value="">Todos</option>${optsFTec}</select></div>
+            <div style="width:140px;"><label style="font-size:10px; color:#64748b;">Estado</label><select id="incFEstado" onchange="_incAplicarFiltros()" ${cf}><option value="" ${_incFiltroEstado===''?'selected':''}>Todos</option><option value="pendiente" ${_incFiltroEstado==='pendiente'?'selected':''}>Pendiente</option><option value="pagado" ${_incFiltroEstado==='pagado'?'selected':''}>Pagado</option></select></div>
+            <div style="width:120px;"><label style="font-size:10px; color:#64748b;">Desde</label><input type="date" id="incFDesde" value="${_incDesde}" onchange="_incAplicarFiltros()" ${cf}></div>
+            <div style="width:120px;"><label style="font-size:10px; color:#64748b;">Hasta</label><input type="date" id="incFHasta" value="${_incHasta}" onchange="_incAplicarFiltros()" ${cf}></div>
+            <button class="btn btn-blue btn-sm" onclick="_incQuincena(0)" style="height:30px;">Quincena actual</button>
+            <button class="btn btn-light btn-sm" onclick="_incQuincena(-1)" style="height:30px;">Quincena pasada</button>
+            <button class="btn btn-light btn-sm" onclick="_incLimpiarFiltros()" style="height:30px;"><i class="ti ti-x"></i></button>
         </div>
     </div>`;
 
@@ -4220,9 +4236,15 @@ async function renderIncentivos() {
         if(r.estado === 'pagado') resumen[k].pagado += Number(r.monto_incentivo||0); else resumen[k].pend += Number(r.monto_incentivo||0);
     });
     const resKeys = Object.keys(resumen);
+    const gtPend = resKeys.reduce((s,k) => s + resumen[k].pend, 0);
+    const gtPag = resKeys.reduce((s,k) => s + resumen[k].pagado, 0);
+    const periodoTxt = (_incDesde || _incHasta) ? `${_incDesde ? _incFmtFecha(_incDesde) : '...'} al ${_incHasta ? _incFmtFecha(_incHasta) : '...'}` : 'Todos los registros';
     if(resKeys.length) {
-        html += `<div class="card" style="margin-bottom:14px;">
-            <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-users" style="color:#7c3aed;"></i> Resumen por técnico</h3>
+        html += `<div class="card" style="margin-bottom:10px; padding:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
+                <div style="font-size:13px; font-weight:700;"><i class="ti ti-users" style="color:#7c3aed;"></i> Resumen por técnico <span style="font-size:11px; color:#64748b; font-weight:400;">(${escapeHtml(periodoTxt)})</span></div>
+                <div style="font-size:13px;">💰 Total a pagar: <b style="color:#b45309; font-size:15px;">${money(gtPend)}</b>${gtPag>0?` · <span style="color:#16a34a;">Pagado ${money(gtPag)}</span>`:''}</div>
+            </div>
             <div class="table-wrap"><table><thead><tr><th>Técnico</th><th style="text-align:center;">Reparaciones</th><th style="text-align:center;">Pulidos</th><th style="text-align:right;">Pendiente de pago</th><th style="text-align:right;">Pagado</th><th></th></tr></thead><tbody>
             ${resKeys.map(k => { const r = resumen[k]; return `<tr>
                 <td><b>${escapeHtml(r.nombre)}</b></td>
@@ -4254,9 +4276,10 @@ async function renderIncentivos() {
                 <td>${pagado ? '<span style="background:#dcfce7; color:#16a34a; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px;">Pagado</span>' : '<span style="background:#fef3c7; color:#b45309; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px;">Pendiente</span>'}</td>
                 <td style="white-space:nowrap; text-align:right;">
                     ${pagado
-                        ? `<button class="btn btn-light" onclick="setEstadoIncentivo('${r.id}','pendiente')" style="font-size:11px;">↩ Pendiente</button>`
-                        : `<button class="btn btn-light" onclick="setEstadoIncentivo('${r.id}','pagado')" style="font-size:11px; color:#16a34a;"><i class="ti ti-check"></i> Pagar</button>`}
-                    <button class="btn btn-light" onclick="borrarIncentivo('${r.id}')" style="font-size:11px; color:#b91c1c;"><i class="ti ti-trash"></i></button>
+                        ? `<button class="btn btn-light btn-sm" onclick="setEstadoIncentivo('${r.id}','pendiente')" title="Marcar pendiente">↩</button>`
+                        : `<button class="btn btn-light btn-sm" onclick="setEstadoIncentivo('${r.id}','pagado')" title="Marcar pagado" style="color:#16a34a;"><i class="ti ti-check"></i></button>`}
+                    <button class="btn btn-light btn-sm" onclick="editarIncentivo('${r.id}')" title="Editar" style="color:#0369a1;"><i class="ti ti-pencil"></i></button>
+                    <button class="btn btn-light btn-sm" onclick="borrarIncentivo('${r.id}')" title="Borrar" style="color:#b91c1c;"><i class="ti ti-trash"></i></button>
                 </td>
             </tr>`;
         }).join('');
@@ -4289,8 +4312,10 @@ async function guardarIncentivo() {
     try {
         const { error } = await supabaseClient.from('taller_incentivos').insert([fila]);
         if(error) throw error;
+        _incUltimoTecnico = tecnico_id; _incUltimoTipo = tipo; // recordar para el siguiente registro
         toast('✅ Incentivo registrado.');
-        renderIncentivos();
+        await renderIncentivos();
+        setTimeout(() => { const t = document.getElementById('incTicket'); if(t) t.focus(); }, 60);
     } catch(e) { console.error('guardarIncentivo', e); toast('No se pudo registrar.', 'error'); }
 }
 async function setEstadoIncentivo(id, estado) {
@@ -4311,6 +4336,66 @@ async function borrarIncentivo(id) {
         toast('Registro borrado.');
         renderIncentivos();
     } catch(e) { console.error('borrarIncentivo', e); toast('No se pudo borrar.', 'error'); }
+}
+function _incEditTipoCambio() {
+    const tipo = document.getElementById('edTipo')?.value;
+    const inp = document.getElementById('edIncentivo');
+    if(!inp) return;
+    if(tipo === 'reparacion') { inp.value = INC_REPARACION; inp.readOnly = true; }
+    else if(tipo === 'pulido') { inp.value = INC_PULIDO; inp.readOnly = true; }
+    else { inp.readOnly = false; }
+}
+function editarIncentivo(id) {
+    if(!isAdminUser()) { toast('Solo administradores.', 'error'); return; }
+    const r = _incCache.find(x => x.id === id);
+    if(!r) { toast('Registro no encontrado.', 'error'); return; }
+    const tecs = (cache.tecnicos || []).filter(t => t.activo !== false).sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''));
+    const opts = tecs.map(t => `<option value="${t.id}" ${t.id===r.tecnico_id?'selected':''}>${escapeHtml(t.nombre || t.usuario || 'Técnico')}</option>`).join('');
+    const ci = 'style="padding:7px 10px; font-size:13px;"';
+    const html = `
+        <div class="form-row"><label>Técnico</label><select id="edTecnico" ${ci}>${opts}</select></div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <div class="form-row" style="flex:1; min-width:130px;"><label>Fecha</label><input type="date" id="edFecha" value="${(r.fecha||'').slice(0,10)}" ${ci}></div>
+            <div class="form-row" style="flex:1; min-width:130px;"><label># Ticket</label><input type="text" id="edTicket" value="${escapeHtml(r.ticket||'')}" ${ci}></div>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <div class="form-row" style="flex:1; min-width:150px;"><label>Tipo</label><select id="edTipo" onchange="_incEditTipoCambio()" ${ci}>
+                <option value="reparacion" ${r.tipo==='reparacion'?'selected':''}>🔧 Reparación (+50)</option>
+                <option value="pulido" ${r.tipo==='pulido'?'selected':''}>✨ Pulido (+100)</option>
+                <option value="manual" ${r.tipo==='manual'?'selected':''}>✏️ Manual</option>
+            </select></div>
+            <div class="form-row" style="flex:1; min-width:100px;"><label>Incentivo</label><input type="number" id="edIncentivo" value="${r.monto_incentivo}" ${r.tipo==='manual'?'':'readonly'} ${ci}></div>
+            <div class="form-row" style="flex:1; min-width:100px;"><label>Factura</label><input type="number" id="edFactura" value="${r.monto_factura||0}" ${ci}></div>
+        </div>
+        <div class="form-row"><label>Nota</label><input type="text" id="edNota" value="${escapeHtml(r.nota||'')}" ${ci}></div>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button class="btn btn-light" onclick="document.getElementById('modalGenerico').remove()">Cancelar</button>
+            <button class="btn btn-blue" onclick="guardarEdicionIncentivo('${id}')"><i class="ti ti-device-floppy"></i> Guardar</button>
+        </div>`;
+    abrirModalGenerico('Editar incentivo', html);
+}
+async function guardarEdicionIncentivo(id) {
+    if(!isAdminUser()) { toast('Solo administradores.', 'error'); return; }
+    const tecSel = document.getElementById('edTecnico');
+    const monto_incentivo = parseFloat(document.getElementById('edIncentivo')?.value) || 0;
+    if(monto_incentivo <= 0) { toast('El incentivo debe ser mayor que 0.', 'error'); return; }
+    const upd = {
+        tecnico_id: tecSel?.value || null,
+        tecnico_nombre: tecSel?.options[tecSel.selectedIndex]?.text || null,
+        fecha: document.getElementById('edFecha')?.value || null,
+        ticket: (document.getElementById('edTicket')?.value || '').trim() || null,
+        tipo: document.getElementById('edTipo')?.value || 'reparacion',
+        monto_incentivo,
+        monto_factura: parseFloat(document.getElementById('edFactura')?.value) || 0,
+        nota: (document.getElementById('edNota')?.value || '').trim() || null
+    };
+    try {
+        const { error } = await supabaseClient.from('taller_incentivos').update(upd).eq('id', id);
+        if(error) throw error;
+        document.getElementById('modalGenerico')?.remove();
+        toast('✅ Actualizado.');
+        renderIncentivos();
+    } catch(e) { console.error('guardarEdicionIncentivo', e); toast('No se pudo guardar.', 'error'); }
 }
 function imprimirIncentivosTecnico(tecnicoId) {
     const regs = _incCache.filter(r => (r.tecnico_id || '_') === tecnicoId && _incEnRango(r)).sort((a,b) => (a.fecha||'').localeCompare(b.fecha||''));
