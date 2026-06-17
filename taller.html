@@ -4309,6 +4309,14 @@ async function guardarIncentivo() {
         nota: (document.getElementById('incNota')?.value || '').trim() || null,
         creado_por: sessionUser?.nombre || sessionUser?.usuario || 'Sistema'
     };
+    // El mismo ticket puede tener varios servicios; avisar si ya existe para no duplicar por error
+    if(fila.ticket) {
+        const dup = _incCache.filter(r => (r.ticket || '').trim().toLowerCase() === fila.ticket.toLowerCase());
+        if(dup.length) {
+            const lista2 = dup.map(d => `• ${d.tecnico_nombre} — ${_incTipoTxt(d.tipo).replace(/[^\x20-\x7EñÑáéíóúÁÉÍÓÚ ]/g,'').trim()} (${money(d.monto_incentivo)})`).join('\n');
+            if(!confirm(`⚠️ El ticket "${fila.ticket}" ya tiene ${dup.length} servicio(s) registrado(s):\n\n${lista2}\n\n¿Agregar OTRO servicio a este mismo ticket?`)) return;
+        }
+    }
     try {
         const { error } = await supabaseClient.from('taller_incentivos').insert([fila]);
         if(error) throw error;
@@ -4389,6 +4397,13 @@ async function guardarEdicionIncentivo(id) {
         monto_factura: parseFloat(document.getElementById('edFactura')?.value) || 0,
         nota: (document.getElementById('edNota')?.value || '').trim() || null
     };
+    if(upd.ticket) {
+        const dup = _incCache.filter(r => r.id !== id && (r.ticket || '').trim().toLowerCase() === upd.ticket.toLowerCase());
+        if(dup.length) {
+            const lista2 = dup.map(d => `• ${d.tecnico_nombre} — ${_incTipoTxt(d.tipo).replace(/[^\x20-\x7EñÑáéíóúÁÉÍÓÚ ]/g,'').trim()}`).join('\n');
+            if(!confirm(`⚠️ El ticket "${upd.ticket}" ya está en otro(s) registro(s):\n\n${lista2}\n\n¿Guardar de todos modos?`)) return;
+        }
+    }
     try {
         const { error } = await supabaseClient.from('taller_incentivos').update(upd).eq('id', id);
         if(error) throw error;
