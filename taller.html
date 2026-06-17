@@ -4149,7 +4149,9 @@ const INC_REPARACION = 50, INC_PULIDO = 100;
 let _incCache = [], _incReportes = [], _incFiltroTec = '', _incFiltroEstado = '', _incDesde = '', _incHasta = '';
 let _incUltimoTecnico = '', _incUltimoTipo = 'reparacion';
 let _incVer = {}; // cuántos registros mostrar por técnico (de 10 en 10)
+let _incExpandido = ''; // técnico cuyos tickets están desplegados ('' = ninguno)
 let _miVer = 10;
+function incToggleTec(k) { _incExpandido = (_incExpandido === k) ? '' : k; renderIncentivos(); }
 function incVerMas(k) { _incVer[k] = (_incVer[k] || 10) + 10; renderIncentivos(); }
 function incVerMenos(k) { _incVer[k] = 10; renderIncentivos(); }
 function miVerMas() { _miVer += 10; renderMisIncentivos(); }
@@ -4301,46 +4303,49 @@ async function renderIncentivos() {
                 <div style="font-size:12.5px;">⏳ Por validar: <b style="color:#b45309;">${money(gtValidar)}</b> · 💰 Por pagar: <b style="color:#1d4ed8; font-size:15px;">${money(gtPagar)}</b>${gtPag>0?` · <span style="color:#16a34a;">Pagado ${money(gtPag)}</span>`:''}</div>
             </div>
             <div class="table-wrap"><table><thead><tr><th>Técnico</th><th style="text-align:center;">Rep.</th><th style="text-align:center;">Pul.</th><th style="text-align:right;">Por validar</th><th style="text-align:right;">Por pagar</th><th style="text-align:right;">Pagado</th><th></th></tr></thead><tbody>
-            ${resKeys.map(k => { const r = resumen[k]; return `<tr>
-                <td><b>${escapeHtml(r.nombre)}</b></td>
+            ${resKeys.map(k => { const r = resumen[k]; const ab = _incExpandido === k; return `<tr style="cursor:pointer; ${ab?'background:#f8fafc;':''}" onclick="incToggleTec('${k}')" title="Toca para ver/ocultar sus tickets">
+                <td><i class="ti ti-chevron-${ab?'down':'right'}" style="color:#94a3b8;"></i> <b>${escapeHtml(r.nombre)}</b></td>
                 <td style="text-align:center;">${r.rep}${r.otros?` <span style="color:#94a3b8;">(+${r.otros})</span>`:''}</td>
                 <td style="text-align:center;">${r.pul}</td>
                 <td style="text-align:right; color:#b45309;">${money(r.porValidar)}</td>
                 <td style="text-align:right; color:#1d4ed8; font-weight:700;">${money(r.porPagar)}</td>
                 <td style="text-align:right; color:#16a34a;">${money(r.pagado)}</td>
                 <td style="text-align:right; white-space:nowrap;">
-                    ${r.porValidar > 0 ? `<button class="btn btn-light btn-sm" onclick="validarTodoTecnico('${k}')" title="Validar todos los pendientes" style="color:#1d4ed8;"><i class="ti ti-rosette-discount-check"></i> Validar</button>` : ''}
-                    ${r.porPagar > 0 ? `<button class="btn btn-blue btn-sm" onclick="guardarReporteIncentivos('${k}')" title="Pagar validados y guardar reporte"><i class="ti ti-cash"></i> Pagar</button>` : ''}
-                    <button class="btn btn-light btn-sm" onclick="imprimirIncentivosTecnico('${k}')" title="Imprimir resumen"><i class="ti ti-printer"></i></button>
+                    ${r.porValidar > 0 ? `<button class="btn btn-light btn-sm" onclick="event.stopPropagation(); validarTodoTecnico('${k}')" title="Validar todos los pendientes" style="color:#1d4ed8;"><i class="ti ti-rosette-discount-check"></i> Validar</button>` : ''}
+                    ${r.porPagar > 0 ? `<button class="btn btn-blue btn-sm" onclick="event.stopPropagation(); guardarReporteIncentivos('${k}')" title="Pagar validados y guardar reporte"><i class="ti ti-cash"></i> Pagar</button>` : ''}
+                    <button class="btn btn-light btn-sm" onclick="event.stopPropagation(); imprimirIncentivosTecnico('${k}')" title="Imprimir resumen"><i class="ti ti-printer"></i></button>
                 </td>
             </tr>`; }).join('')}
             </tbody></table></div>
         </div>`;
     }
 
-    // Lista de registros — agrupada por técnico, de 10 en 10
-    html += `<div class="card"><h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-list" style="color:#0891b2;"></i> Registros (${lista.length})</h3>`;
-    if(!lista.length) {
-        html += `<div style="color:var(--text-muted); font-size:13px;">No hay registros con esos filtros.</div>`;
-    } else {
-        const grupos = {};
-        lista.forEach(r => { const k = r.tecnico_id || '_'; (grupos[k] = grupos[k] || { nombre: r.tecnico_nombre || 'Técnico', items: [] }).items.push(r); });
-        Object.keys(grupos).forEach(k => {
-            const g = grupos[k];
+    // Detalle: tickets del técnico seleccionado (acordeón, de 10 en 10)
+    if(resKeys.length) {
+        html += `<div class="card">`;
+        if(!_incExpandido || !resumen[_incExpandido]) {
+            html += `<div style="color:var(--text-muted); font-size:13px;"><i class="ti ti-hand-click"></i> Toca un técnico en el resumen de arriba para ver sus tickets.</div>`;
+        } else {
+            const k = _incExpandido;
+            const items = lista.filter(r => (r.tecnico_id || '_') === k);
             const verN = _incVer[k] || 10;
-            const mostrar = g.items.slice(0, verN);
-            html += `<div style="font-weight:700; font-size:12.5px; margin:12px 0 4px; color:#0f172a; border-bottom:2px solid #eef2f7; padding-bottom:3px;">👤 ${escapeHtml(g.nombre)} <span style="color:#94a3b8; font-weight:400;">(${g.items.length} ticket${g.items.length===1?'':'s'})</span></div>`;
-            html += `<div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Ticket</th><th>Tipo</th><th style="text-align:right;">Monto factura</th><th style="text-align:right;">Incentivo</th><th>Estado</th><th></th></tr></thead><tbody>`;
-            html += mostrar.map(_incFilaRegistro).join('');
-            html += `</tbody></table></div>`;
-            if(g.items.length > verN) {
-                html += `<div style="text-align:center; margin:6px 0;"><button class="btn btn-light btn-sm" onclick="incVerMas('${k}')"><i class="ti ti-chevron-down"></i> Ver 10 más (${g.items.length - verN} restantes)</button></div>`;
-            } else if(verN > 10 && g.items.length > 10) {
-                html += `<div style="text-align:center; margin:6px 0;"><button class="btn btn-light btn-sm" onclick="incVerMenos('${k}')"><i class="ti ti-chevron-up"></i> Mostrar menos</button></div>`;
+            const mostrar = items.slice(0, verN);
+            html += `<div style="font-weight:700; font-size:13px; margin-bottom:8px;"><i class="ti ti-list" style="color:#0891b2;"></i> Tickets de ${escapeHtml(resumen[k].nombre)} <span style="color:#94a3b8; font-weight:400;">(${items.length})</span></div>`;
+            if(!items.length) {
+                html += `<div style="color:var(--text-muted); font-size:13px;">Sin tickets con esos filtros.</div>`;
+            } else {
+                html += `<div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Ticket</th><th>Tipo</th><th style="text-align:right;">Monto factura</th><th style="text-align:right;">Incentivo</th><th>Estado</th><th></th></tr></thead><tbody>`;
+                html += mostrar.map(_incFilaRegistro).join('');
+                html += `</tbody></table></div>`;
+                if(items.length > verN) {
+                    html += `<div style="text-align:center; margin:6px 0;"><button class="btn btn-light btn-sm" onclick="incVerMas('${k}')"><i class="ti ti-chevron-down"></i> Ver 10 más (${items.length - verN} restantes)</button></div>`;
+                } else if(verN > 10 && items.length > 10) {
+                    html += `<div style="text-align:center; margin:6px 0;"><button class="btn btn-light btn-sm" onclick="incVerMenos('${k}')"><i class="ti ti-chevron-up"></i> Mostrar menos</button></div>`;
+                }
             }
-        });
+        }
+        html += `</div>`;
     }
-    html += `</div>`;
 
     // Reportes de pago guardados (historial)
     if(_incReportes.length) {
