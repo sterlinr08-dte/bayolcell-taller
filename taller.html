@@ -4202,7 +4202,7 @@ async function renderIncentivos() {
                 <option value="manual" ${selTipo('manual')}>✏️ Manual</option>
             </select></div>
             <div style="width:90px;"><label style="font-size:10px; color:#64748b;">Incentivo</label><input type="number" id="incMontoIncentivo" value="${INC_REPARACION}" readonly ${ci}></div>
-            <div style="width:100px;"><label style="font-size:10px; color:#64748b;">Monto de la factura</label><input type="number" id="incMontoFactura" min="0" step="0.01" placeholder="0" ${ci}></div>
+            <div style="width:100px;"><label style="font-size:10px; color:#64748b;">Monto factura *</label><input type="number" id="incMontoFactura" min="0" step="0.01" placeholder="0" ${ci}></div>
             <div style="flex:1; min-width:120px;"><label style="font-size:10px; color:#64748b;">Nota (opc.)</label><input type="text" id="incNota" placeholder="Detalle" ${ci}></div>
             <button class="btn btn-blue btn-sm" onclick="guardarIncentivo()" style="height:32px;"><i class="ti ti-device-floppy"></i> Registrar</button>
         </div>
@@ -4300,6 +4300,8 @@ async function guardarIncentivo() {
     const tipo = document.getElementById('incTipo')?.value || 'reparacion';
     const monto_incentivo = parseFloat(document.getElementById('incMontoIncentivo')?.value) || 0;
     if(monto_incentivo <= 0) { toast('El incentivo debe ser mayor que 0.', 'error'); return; }
+    const _montoFact = parseFloat(document.getElementById('incMontoFactura')?.value) || 0;
+    if(_montoFact <= 0) { toast('El monto de la factura es obligatorio.', 'error'); const mf = document.getElementById('incMontoFactura'); if(mf) mf.focus(); return; }
     const fila = {
         tecnico_id, tecnico_nombre,
         fecha: document.getElementById('incFecha')?.value || new Date().toISOString().slice(0,10),
@@ -4373,7 +4375,7 @@ function editarIncentivo(id) {
                 <option value="manual" ${r.tipo==='manual'?'selected':''}>✏️ Manual</option>
             </select></div>
             <div class="form-row" style="flex:1; min-width:100px;"><label>Incentivo</label><input type="number" id="edIncentivo" value="${r.monto_incentivo}" ${r.tipo==='manual'?'':'readonly'} ${ci}></div>
-            <div class="form-row" style="flex:1; min-width:100px;"><label>Monto de la factura</label><input type="number" id="edFactura" value="${r.monto_factura||0}" ${ci}></div>
+            <div class="form-row" style="flex:1; min-width:100px;"><label>Monto de la factura *</label><input type="number" id="edFactura" value="${r.monto_factura||0}" ${ci}></div>
         </div>
         <div class="form-row"><label>Nota</label><input type="text" id="edNota" value="${escapeHtml(r.nota||'')}" ${ci}></div>
         <div style="display:flex; gap:8px; justify-content:flex-end;">
@@ -4387,6 +4389,8 @@ async function guardarEdicionIncentivo(id) {
     const tecSel = document.getElementById('edTecnico');
     const monto_incentivo = parseFloat(document.getElementById('edIncentivo')?.value) || 0;
     if(monto_incentivo <= 0) { toast('El incentivo debe ser mayor que 0.', 'error'); return; }
+    const _mf = parseFloat(document.getElementById('edFactura')?.value) || 0;
+    if(_mf <= 0) { toast('El monto de la factura es obligatorio.', 'error'); return; }
     const upd = {
         tecnico_id: tecSel?.value || null,
         tecnico_nombre: tecSel?.options[tecSel.selectedIndex]?.text || null,
