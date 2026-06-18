@@ -2054,7 +2054,10 @@ body{
                         </div>
                         
                         <!-- Lista de equipos -->
-                        <h4 style="margin:15px 0 10px;"><i class="ti ti-devices-pc"></i> Equipos del Lote</h4>
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin:15px 0 10px;">
+                            <h4 style="margin:0;"><i class="ti ti-devices-pc"></i> Equipos del Lote</h4>
+                            <button class="btn btn-dark" style="padding:8px 14px; background:#f59e0b;" onclick="abrirModalAsignarLote()"><i class="ti ti-users"></i> Asignar a técnico</button>
+                        </div>
                         <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
                             <input id="reacondBusq" placeholder="🔍 Buscar / escanear por IMEI, código o modelo…" oninput="renderDetalleLoteReacond()" onkeydown="if(event.key==='Enter'){event.preventDefault();renderDetalleLoteReacond();}" autocomplete="off" style="flex:1; min-width:220px; padding:9px 12px; font-size:13px; border:1px solid #cbd5e1; border-radius:8px;">
                             <select id="reacondFiltroEstado" onchange="renderDetalleLoteReacond()" style="padding:9px 12px; font-size:13px; border:1px solid #cbd5e1; border-radius:8px;">
@@ -3029,6 +3032,36 @@ body{
         <div class="modal-footer">
             <button class="btn btn-light" onclick="cerrarModalAsignarTecnico()">Cancelar</button>
             <button class="btn btn-blue" onclick="confirmarAsignarTecnico()"><i class="ti ti-check"></i> Asignar y pasar a Proceso</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: ASIGNAR EN BLOQUE (cantidad de equipos a un técnico) -->
+<div id="modalAsignarLote" class="modal-backdrop">
+    <div class="modal-box" style="max-width:520px;">
+        <div class="modal-header" style="background:linear-gradient(135deg, #f59e0b, #ef4444); color:#fff; border-radius:12px 12px 0 0;">
+            <h3 style="color:#fff;"><i class="ti ti-users"></i> Asignar equipos a un técnico</h3>
+            <button class="modal-close" onclick="cerrarModalAsignarLote()" style="color:#fff;">✕</button>
+        </div>
+        <div class="modal-body">
+            <p style="color:var(--text-muted); font-size:12.5px; margin:0 0 12px;">Elige el técnico y cuántos equipos <b>evaluados</b> (sin asignar) va a empezar a trabajar. Se le asignan los primeros de la lista y pasan a <b>En Proceso</b>.</p>
+            <div class="form-row">
+                <label>Técnico</label>
+                <div id="ss-asignlote-tecnico"></div>
+            </div>
+            <div class="form-row">
+                <label>Cantidad de equipos a asignar</label>
+                <input id="asignlote_cantidad" type="number" min="1" value="1" style="font-weight:700;">
+                <div id="asignlote_disp" style="font-size:12px; color:#64748b; margin-top:4px;"></div>
+            </div>
+            <div class="form-row">
+                <label>Nota (opcional)</label>
+                <textarea id="asignlote_nota" rows="2" placeholder="Instrucciones..." style="resize:vertical;"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" onclick="cerrarModalAsignarLote()">Cancelar</button>
+            <button class="btn btn-blue" onclick="confirmarAsignarLote(this)"><i class="ti ti-check"></i> Asignar</button>
         </div>
     </div>
 </div>
@@ -9565,6 +9598,71 @@ async function confirmarAsignarTecnico() {
         logError('Asignar técnico', e);
         toastError(getFriendlyError(e));
     }
+}
+
+// ===== Asignación EN BLOQUE: una cantidad de equipos evaluados a un técnico =====
+function _equiposEvaluadosDisponibles() {
+    if(!reacondLoteAbiertoId) return [];
+    return (cache.refurb || [])
+        .filter(r => r.lote_id === reacondLoteAbiertoId && r.estado_evaluacion === 'evaluado' && !r.tecnico_asignado_id)
+        .sort((a, b) => (a.creado_en || '').localeCompare(b.creado_en || ''));
+}
+function abrirModalAsignarLote() {
+    if(!reacondLoteAbiertoId) return toast('Abre un lote primero.', 'error');
+    const disp = _equiposEvaluadosDisponibles();
+    if(!disp.length) return toast('No hay equipos evaluados sin asignar en este lote.', 'error');
+    document.getElementById('asignlote_cantidad').value = Math.min(1, disp.length) || 1;
+    document.getElementById('asignlote_cantidad').max = disp.length;
+    document.getElementById('asignlote_cantidad').value = disp.length; // por defecto, todos
+    document.getElementById('asignlote_disp').textContent = `Hay ${disp.length} equipo(s) evaluado(s) disponibles para asignar.`;
+    document.getElementById('asignlote_nota').value = '';
+    const tecnicosActivos = (cache.tecnicos || []).filter(t => t.activo);
+    smartSelectInit({
+        containerId: 'ss-asignlote-tecnico',
+        placeholder: '🔍 Buscar técnico...',
+        items: tecnicosActivos.map(t => ({
+            id: t.id, label: t.nombre,
+            sub: [t.especialidad, t.telefono].filter(x => x).join(' · '),
+            search: [t.nombre, t.especialidad, t.telefono].filter(x => x).join(' ').toLowerCase()
+        })),
+        value: '', onChange: () => {}
+    });
+    document.getElementById('modalAsignarLote').classList.add('active');
+}
+function cerrarModalAsignarLote() { document.getElementById('modalAsignarLote').classList.remove('active'); }
+async function confirmarAsignarLote(btn) {
+    const tecnicoId = smartSelectGetValue('ss-asignlote-tecnico');
+    if(!tecnicoId) return toast('Selecciona un técnico.', 'error');
+    const disp = _equiposEvaluadosDisponibles();
+    let cant = parseInt(document.getElementById('asignlote_cantidad').value) || 0;
+    if(cant < 1) return toast('La cantidad debe ser 1 o más.', 'error');
+    if(cant > disp.length) cant = disp.length;
+    const nota = (document.getElementById('asignlote_nota').value || '').trim();
+    const tecnico = (cache.tecnicos || []).find(t => t.id === tecnicoId);
+    const elegidos = disp.slice(0, cant);
+    if(!await confirmar(`¿Asignar ${cant} equipo(s) a ${tecnico?.nombre || 'el técnico'}?\n\nPasarán a "En Proceso".`)) return;
+    const orig = btn ? btn.innerHTML : '';
+    if(btn){ btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Asignando…'; }
+    try {
+        const ids = elegidos.map(e => e.id);
+        const upd = { tecnico_asignado_id: tecnicoId, fecha_asignacion: new Date().toISOString(), estado_evaluacion: 'en_proceso' };
+        const { error } = await supabaseClient.from('equipos_refurbish').update(upd).in('id', ids);
+        if(error) throw error;
+        // Historial + fallas sin dueño por cada equipo
+        for(const e of elegidos) {
+            try {
+                await supabaseClient.from('equipo_historial').insert([{ equipo_id: e.id, estado_anterior: 'evaluado', estado_nuevo: 'en_proceso', accion: `Asignado a ${tecnico?.nombre || 'técnico'} (en bloque)`, notas: nota || null, usuario: sessionUser?.nombre || 'Admin' }]);
+                await asignarFallasSinDueno('equipo', e.id, tecnicoId);
+            } catch(_e) {}
+        }
+        toast(`✅ ${cant} equipo(s) asignado(s) a ${tecnico?.nombre || 'técnico'}.`);
+        cerrarModalAsignarLote();
+        await loadAll();
+        if(reacondLoteAbiertoId) renderDetalleLoteReacond();
+    } catch(e) {
+        logError('Asignar en bloque', e);
+        toastError(getFriendlyError(e));
+    } finally { if(btn){ btn.disabled = false; btn.innerHTML = orig; } }
 }
 
 /* ============================================================
