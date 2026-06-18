@@ -7121,9 +7121,9 @@ function _smartSelectIconClick(containerId) {
 async function abrirBuscadorArticulos() {
     abrirModalGenerico('🔍 Artículos (Info Plus)', `
         <input id="artBuscModal" placeholder="Buscar por código, descripción, marca o referencia…" autocomplete="off" oninput="renderBuscadorArticulos()" style="width:100%; padding:10px 12px; font-size:14px; border:1px solid #cbd5e1; border-radius:8px; margin-bottom:10px;">
-        <div id="artBuscModalLista"><div style="text-align:center; color:#64748b; padding:20px;">⏳ Cargando artículos…</div></div>
+        <div id="artBuscModalLista"><div style="text-align:center; color:#64748b; padding:20px;">⏳ Cargando artículos (Info Plus)…</div></div>
     `);
-    await _ensureInfoplusArticulos();
+    await _ensureInfoplusArticulos(true); // refrescar desde Info Plus para ver nuevos/cambios al instante
     renderBuscadorArticulos();
     setTimeout(() => { const b = document.getElementById('artBuscModal'); if(b) b.focus(); }, 60);
 }
