@@ -2011,7 +2011,7 @@ body{
                                 🔧 En Proceso <span id="cntProceso" class="badge" style="background:#fed7aa; color:#9a3412; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
                             </button>
                             <button class="tab-btn" data-tab="listo_venta" onclick="cambiarTabReacond('listo_venta')" style="padding:11px 14px; cursor:pointer; font-weight:700; white-space:nowrap; font-size:13px;">
-                                🛒 Listo Venta <span id="cntListoVenta" class="badge" style="background:#ddd6fe; color:#5b21b6; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
+                                🛒 Listo <span id="cntListoVenta" class="badge" style="background:#ddd6fe; color:#5b21b6; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
                             </button>
                             <button class="tab-btn" data-tab="terminados" onclick="cambiarTabReacond('terminados')" style="padding:11px 14px; cursor:pointer; font-weight:700; white-space:nowrap; font-size:13px;">
                                 ✅ Despachado <span id="cntTerminados" class="badge" style="background:#d1fae5; color:#065f46; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
@@ -2057,7 +2057,7 @@ body{
                             </div>
                             <div id="kpiCardListoV" onclick="_reacondFiltrarPorEstado('listo_venta')" title="Clic para filtrar" style="background:#ddd6fe; padding:12px; border-radius:8px; text-align:center; cursor:pointer; border:2px solid transparent;">
                                 <div style="font-size:24px; font-weight:bold; color:#5b21b6;" id="kpiListoV">0</div>
-                                <div style="font-size:11px; color:#5b21b6;">LISTO VENTA</div>
+                                <div style="font-size:11px; color:#5b21b6;">LISTO</div>
                             </div>
                             <div id="kpiCardDespachado" onclick="_reacondFiltrarPorEstado('vendido')" title="Clic para filtrar" style="background:#dcfce7; padding:12px; border-radius:8px; text-align:center; cursor:pointer; border:2px solid transparent;">
                                 <div style="font-size:24px; font-weight:bold; color:#15803d;" id="kpiDespachado">0</div>
@@ -2072,7 +2072,7 @@ body{
                                 <label style="display:inline-flex; align-items:center; gap:6px; font-size:12px; color:#475569; cursor:pointer;"><input type="checkbox" id="reacondSelTodos" onclick="_reacondSelTodos(this.checked)" style="width:16px; height:16px; cursor:pointer; accent-color:#f59e0b;"> Marcar todos</label>
                                 <span id="reacondSelCount" style="font-size:12px; color:#b45309; font-weight:700;"></span>
                                 <button class="btn btn-dark" style="padding:8px 14px; background:#f59e0b;" onclick="abrirModalAsignarLote()"><i class="ti ti-users"></i> Asignar a técnico</button>
-                                <button class="btn btn-dark" style="padding:8px 14px; background:#5b21b6;" onclick="pasarSeleccionListoVenta()"><i class="ti ti-shopping-cart"></i> Pasar a Listo venta</button>
+                                <button class="btn btn-dark" style="padding:8px 14px; background:#5b21b6;" onclick="pasarSeleccionListoVenta()"><i class="ti ti-shopping-cart"></i> Pasar a Listo</button>
                             </div>
                         </div>
                         <div id="reacondTecnicosRow" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;"></div>
@@ -8023,30 +8023,39 @@ function renderLotesReacondTab(lotesConEstado) {
     }).join('');
 }
 
-// Muestra los EQUIPOS en estado Listo para venta / Despachado (de todos los lotes), con acciones
+// Muestra los EQUIPOS Listo / Despachado AGRUPADOS POR LOTE (de todos los lotes)
 function renderEquiposEstadoReacond(estadoEq, lotesConEstado, cont) {
-    const filas = [];
-    lotesConEstado.forEach(d => {
-        d.equipos.filter(e => e.estado_evaluacion === estadoEq).forEach(e => filas.push({ e, lote: d.lote }));
-    });
-    if(!filas.length) {
-        cont.innerHTML = `<p style="color:var(--text-muted); text-align:center; padding:30px; font-size:13px;">${estadoEq === 'listo_venta' ? 'No hay equipos listos para venta.' : 'No hay equipos despachados.'}</p>`;
+    const grupos = lotesConEstado
+        .map(d => ({ lote: d.lote, equipos: d.equipos.filter(e => e.estado_evaluacion === estadoEq) }))
+        .filter(g => g.equipos.length);
+    const totalEq = grupos.reduce((s, g) => s + g.equipos.length, 0);
+    if(!totalEq) {
+        cont.innerHTML = `<p style="color:var(--text-muted); text-align:center; padding:30px; font-size:13px;">${estadoEq === 'listo_venta' ? 'No hay equipos listos.' : 'No hay equipos despachados al almacén principal.'}</p>`;
         return;
     }
-    cont.innerHTML = filas.map(({ e, lote }) => {
-        const tec = e.tecnico_asignado_id ? (cache.tecnicos || []).find(t => t.id === e.tecnico_asignado_id) : null;
-        const acciones = estadoEq === 'listo_venta'
-            ? `<button class="btn btn-light" style="padding:7px 12px; font-size:12px; color:#5b21b6;" onclick="abrirModalLabelVenta('${e.id}')"><i class="ti ti-printer"></i> Label Venta</button>
-               ${permBtn('estado_despachar', `<button class="btn btn-dark" style="padding:7px 12px; font-size:12px; background:linear-gradient(180deg,#10b981,#059669);" onclick="marcarDespachado('${e.id}')"><i class="ti ti-truck-delivery"></i> Despachar</button>`)}
-               <button class="btn btn-light" style="padding:7px 10px; font-size:12px;" onclick="abrirPanelProceso('${e.id}')" title="Ver"><i class="ti ti-eye"></i></button>`
-            : `${(isAdminUser() && e.precio_venta_real != null) ? `<span style="font-size:12px; color:#15803d; font-weight:700;"><i class="ti ti-cash"></i> ${money(Number(e.precio_venta_real))}</span>` : ''}
-               <button class="btn btn-light" style="padding:7px 10px; font-size:12px;" onclick="abrirPanelProceso('${e.id}')" title="Ver"><i class="ti ti-eye"></i></button>`;
-        return `<div style="background:#fff; border:1px solid var(--border-color); border-radius:10px; padding:12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-            <div style="min-width:200px;">
-                <div style="font-weight:700; font-size:14px;">${escapeHtml(e.modelo || 'Equipo')} <span class="badge" style="${estadoEq === 'listo_venta' ? 'background:#ddd6fe; color:#5b21b6;' : 'background:#dcfce7; color:#15803d;'} font-size:11px;">${estadoEq === 'listo_venta' ? '🛒 Listo Venta' : '✅ Despachado'}</span></div>
-                <div style="font-size:12px; color:var(--text-muted); margin-top:3px;"><i class="ti ti-barcode"></i> ${escapeHtml(e.imei || '—')} · Lote ${escapeHtml(lote.codigo_lote || '')}${tec ? ' · 👤 ' + escapeHtml(tec.nombre) : ''}</div>
+    cont.innerHTML = grupos.map(g => {
+        const prov = (cache.proveedores || []).find(p => p.id === g.lote.proveedor_id);
+        const filasEq = g.equipos.map(e => {
+            const tec = e.tecnico_asignado_id ? (cache.tecnicos || []).find(t => t.id === e.tecnico_asignado_id) : null;
+            const acciones = estadoEq === 'listo_venta'
+                ? `${permBtn('estado_despachar', `<button class="btn btn-dark" style="padding:6px 11px; font-size:12px; background:linear-gradient(180deg,#10b981,#059669);" onclick="marcarDespachado('${e.id}')"><i class="ti ti-truck-delivery"></i> Despachar al almacén</button>`)}
+                   <button class="btn btn-light" style="padding:6px 9px; font-size:12px;" onclick="abrirPanelProceso('${e.id}')" title="Ver"><i class="ti ti-eye"></i></button>`
+                : `${e.fecha_despacho ? `<span style="font-size:11px; color:#15803d;"><i class="ti ti-calendar"></i> ${new Date(e.fecha_despacho).toLocaleDateString('es-DO')}</span>` : ''}
+                   <button class="btn btn-light" style="padding:6px 9px; font-size:12px;" onclick="abrirPanelProceso('${e.id}')" title="Ver"><i class="ti ti-eye"></i></button>`;
+            return `<div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; padding:8px 10px; border:1px solid #eef2f7; border-radius:8px; margin-bottom:6px;">
+                <div style="min-width:180px;">
+                    <div style="font-weight:700; font-size:13.5px;">${escapeHtml(e.modelo || 'Equipo')}</div>
+                    <div style="font-size:11.5px; color:var(--text-muted);"><i class="ti ti-barcode"></i> ${escapeHtml(e.imei || '—')}${tec ? ' · 👤 ' + escapeHtml(tec.nombre) : ''}</div>
+                </div>
+                <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">${acciones}</div>
+            </div>`;
+        }).join('');
+        return `<div style="background:#fff; border:1px solid var(--border-color); border-radius:10px; padding:12px; margin-bottom:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+                <div style="font-weight:700; font-size:14px; color:var(--blue-btn);">📦 Lote ${escapeHtml(g.lote.codigo_lote || (g.lote.id || '').slice(0,8))} <span style="color:#94a3b8; font-weight:600; font-size:12px;">· ${escapeHtml(prov ? prov.nombre : 'Sin proveedor')}</span></div>
+                <span class="badge" style="${estadoEq === 'listo_venta' ? 'background:#ddd6fe; color:#5b21b6;' : 'background:#dcfce7; color:#15803d;'} font-size:11px; font-weight:700;">${estadoEq === 'listo_venta' ? '🛒 Listos: ' + g.equipos.length : '🚚 Despachados: ' + g.equipos.length}</span>
             </div>
-            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">${acciones}</div>
+            ${filasEq}
         </div>`;
     }).join('');
 }
@@ -8222,10 +8231,9 @@ function renderEquipoReacondCard(eq, num) {
         accionPrincipal = `abrirPanelProceso('${eq.id}')`;
     } else if(estado === 'listo_venta') {
         badgeColor = 'background:#ddd6fe; color:#5b21b6;';
-        badgeText = '🛒 Listo para venta';
+        badgeText = '🛒 Listo';
         accionPrincipal = `abrirPanelProceso('${eq.id}')`;
-        botones = `<button class="btn btn-dark" style="padding:8px 14px; background:#5b21b6;" onclick="event.stopPropagation(); abrirModalLabelVenta('${eq.id}')"><i class="ti ti-printer"></i> Label Venta</button>
-                     ${permBtn('estado_despachar', `<button class="btn btn-dark" style="padding:8px 14px; background:linear-gradient(180deg,#10b981,#059669); box-shadow:0 3px 8px rgba(15,23,42,0.12);" onclick="event.stopPropagation(); marcarDespachado('${eq.id}')"><i class="ti ti-truck-delivery"></i> Despachar</button>`)}`;
+        botones = `${permBtn('estado_despachar', `<button class="btn btn-dark" style="padding:8px 14px; background:linear-gradient(180deg,#10b981,#059669); box-shadow:0 3px 8px rgba(15,23,42,0.12);" onclick="event.stopPropagation(); marcarDespachado('${eq.id}')"><i class="ti ti-truck-delivery"></i> Despachar al almacén</button>`)}`;
     } else if(estado === 'vendido') {
         badgeColor = 'background:#d1fae5; color:#065f46;';
         badgeText = '✅ Despachado';
@@ -8254,11 +8262,7 @@ function renderEquipoReacondCard(eq, num) {
                     ${eq.color ? ' · ' + escapeHtml(eq.color) : ''}
                     ${eq.capacidad ? ' · ' + escapeHtml(eq.capacidad) : ''}
                 </div>
-                ${estado === 'vendido' && isAdminUser() && eq.precio_venta_real != null ? (() => {
-                    const invE = (Number(eq.costo_compra) || 0) + (Number(eq.costo_repuestos) || 0);
-                    const ganE = Number(eq.precio_venta_real) - invE;
-                    return `<div style="font-size:11px; font-weight:700; margin-top:5px; color:${ganE >= 0 ? '#15803d' : '#dc2626'};"><i class="ti ti-cash"></i> Vendido: ${money(Number(eq.precio_venta_real))} · Ganancia: ${money(ganE)}</div>`;
-                })() : ''}
+                ${estado === 'vendido' && eq.fecha_despacho ? `<div style="font-size:11px; font-weight:700; margin-top:5px; color:#15803d;"><i class="ti ti-truck-delivery"></i> Despachado al almacén: ${new Date(eq.fecha_despacho).toLocaleDateString('es-DO')}</div>` : ''}
                 ${tecnico && eq.fecha_asignacion ? `<div style="font-size:11px; color:#0891b2; font-weight:600; margin-top:4px;"><i class="ti ti-stopwatch"></i> Tomado: ${tiempoDesde(eq.fecha_asignacion)}</div>` : ''}
                 ${eq.notas_diagnostico ? `<div style="background:#f1f5f9; padding:6px 10px; border-radius:6px; margin-top:6px; font-size:12px;"><b>Notas:</b> ${escapeHtml(eq.notas_diagnostico)}</div>` : ''}
             </div>
@@ -10832,29 +10836,20 @@ async function marcarDespachado(equipoId) {
     }
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return;
-    // Capturar el PRECIO DE VENTA REAL al despachar (alimenta el Centro de Rentabilidad)
-    const inversion = (Number(eq.costo_compra) || 0) + (Number(eq.costo_repuestos) || 0);
-    const sugerido = Number(eq.precio_venta_estimado) > 0 ? Number(eq.precio_venta_estimado) : inversion;
-    const precioStr = await pedirTexto(
-        `🚚 DESPACHAR / VENDER\n\n"${eq.modelo}"\nInversión en este equipo: ${money(inversion)}\n\n¿A cuánto se vendió al cliente? (RD$)`,
-        { valor: sugerido ? String(sugerido) : '', tipo: 'number', placeholder: '0.00' }
-    );
-    if(precioStr === null) return; // canceló
-    const precioVenta = parseFloat(precioStr) || 0;
-    const ganancia = precioVenta - inversion;
+    // El taller es para CONTROL: "despachar" = entregar al almacén principal (no es una venta, no se pide precio)
+    if(!await confirmar(`🚚 ¿Despachar "${eq.modelo}" al almacén principal?\n\nQuedará registrado como Despachado.`)) return;
     try {
         const { error } = await supabaseClient.from('equipos_refurbish').update({
             estado_evaluacion: 'vendido',
-            fecha_despacho: new Date().toISOString(),
-            precio_venta_real: precioVenta
+            fecha_despacho: new Date().toISOString()
         }).eq('id', equipoId);
         if(error) throw error;
         await supabaseClient.from('equipo_historial').insert([{
             equipo_id: equipoId, estado_anterior: 'listo_venta', estado_nuevo: 'vendido',
-            accion: `🚚 Despachado/vendido en ${money(precioVenta)} (ganancia ${money(ganancia)})`,
+            accion: '🚚 Despachado al almacén principal',
             usuario: sessionUser?.nombre || 'Admin'
         }]);
-        toast(ganancia >= 0 ? `🚚 Vendido. Ganancia: ${money(ganancia)}` : `🚚 Vendido (pérdida ${money(ganancia)})`, ganancia >= 0 ? 'success' : 'error');
+        toast('🚚 Despachado al almacén principal.');
         await loadAll();
         if(reacondLoteAbiertoId) renderDetalleLoteReacond();
     } catch(e) {
