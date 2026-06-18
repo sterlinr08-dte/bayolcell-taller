@@ -18326,29 +18326,22 @@ function _mdmDispRender() {
         return [d.name, d.serial, d.imei, d.model, d.platform].some(x => String(x || '').toLowerCase().includes(q));
     };
     const lista = _mdmDispCache.filter(coincide);
-    const disponibles = [], ocupados = [];
-    lista.forEach(d => { const o = _mdmDispOcupadoPor(d, lm); if(o) ocupados.push([d, o]); else disponibles.push(d); });
+    const disponibles = [];
+    lista.forEach(d => { if(!_mdmDispOcupadoPor(d, lm)) disponibles.push(d); });
     if(!_mdmDispCache.length) { cont.innerHTML = `<div style="color:#64748b; padding:16px; text-align:center;">No hay equipos enrolados en Hexnode todavía.</div>`; return; }
     let html = '';
-    const fila = (d, ocupadoEtq) => {
+    const fila = (d) => {
         const sub = [d.model, d.platform ? (d.platform + (d.os ? ' ' + d.os : '')) : '', d.imei ? 'IMEI ' + escapeHtml(d.imei) : '', d.serial ? 'Serie ' + escapeHtml(d.serial) : ''].filter(Boolean).join(' · ');
-        const btn = ocupadoEtq
-            ? `<span style="font-size:11px; color:#b45309; background:#fef3c7; padding:4px 8px; border-radius:8px; white-space:nowrap;">🔗 ${escapeHtml(ocupadoEtq)}</span>`
-            : `<button class="btn btn-blue btn-sm" style="font-size:12px; white-space:nowrap;" onclick="_mdmDispUsar(${d.id})"><i class="ti ti-link"></i> Usar este</button>`;
-        return `<div style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding:9px 10px; border:1px solid #e2e8f0; border-radius:10px; margin-bottom:6px; ${ocupadoEtq ? 'opacity:.7;' : ''}">
+        return `<div style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding:9px 10px; border:1px solid #e2e8f0; border-radius:10px; margin-bottom:6px;">
             <div style="min-width:0;">
                 <div style="font-weight:700; font-size:13.5px;">${escapeHtml(d.name || d.model || ('Equipo ' + d.id))} <span style="color:#94a3b8; font-weight:600; font-size:11px;">Hexnode #${d.id}</span></div>
                 <div style="font-size:11.5px; color:#64748b; word-break:break-all;">${sub}</div>
             </div>
-            ${btn}
+            <button class="btn btn-blue btn-sm" style="font-size:12px; white-space:nowrap;" onclick="_mdmDispUsar(${d.id})"><i class="ti ti-link"></i> Usar este</button>
         </div>`;
     };
     html += `<div style="font-size:12px; font-weight:700; color:#166534; margin:2px 0 6px;">✅ Disponibles para enlazar (${disponibles.length})</div>`;
-    html += disponibles.length ? disponibles.map(d => fila(d, null)).join('') : `<div style="color:#64748b; font-size:12.5px; padding:6px 0 10px;">${q ? 'Ninguno coincide con la búsqueda.' : 'No hay equipos disponibles (todos están enlazados).'}</div>`;
-    if(ocupados.length) {
-        html += `<div style="font-size:12px; font-weight:700; color:#92400e; margin:12px 0 6px;">🔗 Ya enlazados (${ocupados.length})</div>`;
-        html += ocupados.map(([d, o]) => fila(d, o)).join('');
-    }
+    html += disponibles.length ? disponibles.map(d => fila(d)).join('') : `<div style="color:#64748b; font-size:12.5px; padding:6px 0 10px;">${q ? 'Ninguno coincide con la búsqueda.' : 'No hay equipos disponibles (todos están enlazados).'}</div>`;
     cont.innerHTML = html;
 }
 function _mdmDispUsar(deviceId) {
