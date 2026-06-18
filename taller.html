@@ -4965,6 +4965,19 @@ function startApp() {
     startAppRefurbPoller();
     qzAutoConectar();
     loadAll().then(() => {
+        // Restaurar la última pestaña donde estaba (si tiene permiso y no es un modo forzado)
+        try {
+            const last = localStorage.getItem('bayol_nav_actual');
+            const modoForzado = tienePermiso('solo_mi_trabajo') || tienePermiso('solo_atencion') || tienePermiso('solo_contabilidad');
+            if(last && !modoForzado) {
+                const permisoReq = NAV_PERMISOS[last];
+                const permitido = !permisoReq || tienePermiso(permisoReq);
+                const especial = (last === 'estadisticas' && !esDueno()) || (last === 'incentivos' && !isAdminUser());
+                if(permitido && !especial && document.getElementById('v-' + last)) {
+                    setTimeout(() => { try { nav(last); } catch(e){} }, 150);
+                }
+            }
+        } catch(e){}
         // Mostrar ventana de pendientes al técnico (una vez por sesión)
         if(!sessionStorage.getItem('bayol_pendientes_visto')) {
             setTimeout(() => { mostrarPendientesTecnico(); sessionStorage.setItem('bayol_pendientes_visto', '1'); }, 800);
@@ -5048,6 +5061,7 @@ function nav(v, btn) {
     if(v === 'incentivos') { setTimeout(() => { if(typeof renderIncentivos === 'function') renderIncentivos(); }, 50); }
     if(v === 'misIncentivos') { setTimeout(() => { if(typeof renderMisIncentivos === 'function') renderMisIncentivos(); }, 50); }
     if(v === 'registroTickets') { const pt = document.getElementById('pageTitle'); if(pt) pt.textContent = 'Registro de Ticket'; const b = document.getElementById('regTickBusq'); if(b) b.value = ''; setTimeout(() => { if(typeof cargarRegistroTickets === 'function') cargarRegistroTickets(); }, 50); }
+    try { localStorage.setItem('bayol_nav_actual', v); } catch(e){} // recordar la pestaña para mantenerla al recargar
     closeSidebar();
     window.scrollTo({ top: 0, behavior: 'smooth' });
     // Re-aplicar permisos de botones estáticos tras renderizar (NO en modo solo-mi-trabajo, causa bucle)
