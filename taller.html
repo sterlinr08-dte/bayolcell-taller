@@ -7345,7 +7345,10 @@ async function agregarEquipoAlLote() {
     if(!artId) return toast('Selecciona un artículo del catálogo.', 'error');
 
     // El catálogo es el de Info Plus (artId = código del artículo)
-    const art = _findInfoplusArt(artId);
+    // Tomar la info del propio selector (siempre la tiene); respaldo: el caché
+    const _ss = _smartSelects['ss-eq-articulo'];
+    const _selItem = (_ss && _ss.items) ? _ss.items.find(i => String(i.id) === String(artId)) : null;
+    const art = (_selItem && _selItem._ip) || _findInfoplusArt(artId);
     if(!art) return toast('Artículo no encontrado en el catálogo de Info Plus.', 'error');
     if(!imei) return toast('Este equipo requiere IMEI / Serial.', 'error');
 
