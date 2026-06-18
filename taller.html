@@ -3281,6 +3281,17 @@ body{
             <button class="modal-close" onclick="cerrarModalLabelDiag()">✕</button>
         </div>
         <div class="modal-body" style="background:#f1f5f9;">
+            <div id="labelCalibPanel" style="background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:10px; margin-bottom:10px;">
+                <div style="font-size:12px; font-weight:700; color:#0f172a; margin-bottom:6px;"><i class="ti ti-adjustments"></i> Calibrar label <span style="font-weight:400; color:#64748b;">— se imprime igual a como se ve aquí</span></div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;">
+                    <div style="width:88px;"><label style="font-size:10px; color:#64748b;">Letra (px)</label><input type="number" id="mlbl_font" min="6" max="80" oninput="_recalibrarLabelDiag()" style="width:100%; padding:6px; min-height:auto; font-weight:700; text-align:center;"></div>
+                    <div style="width:96px;"><label style="font-size:10px; color:#64748b;">Margen izq (mm)</label><input type="number" id="mlbl_ml" min="0" max="20" oninput="_recalibrarLabelDiag()" style="width:100%; padding:6px; min-height:auto; text-align:center;"></div>
+                    <div style="width:96px;"><label style="font-size:10px; color:#64748b;">Margen der (mm)</label><input type="number" id="mlbl_mr" min="0" max="20" oninput="_recalibrarLabelDiag()" style="width:100%; padding:6px; min-height:auto; text-align:center;"></div>
+                    <div style="width:80px;"><label style="font-size:10px; color:#64748b;">Ancho (mm)</label><input type="number" id="mlbl_w" min="20" max="120" oninput="_recalibrarLabelDiag()" style="width:100%; padding:6px; min-height:auto; text-align:center;"></div>
+                    <div style="width:80px;"><label style="font-size:10px; color:#64748b;">Alto (mm)</label><input type="number" id="mlbl_h" min="10" max="120" oninput="_recalibrarLabelDiag()" style="width:100%; padding:6px; min-height:auto; text-align:center;"></div>
+                    <div style="width:110px;"><label style="font-size:10px; color:#64748b;">Rotación</label><select id="mlbl_rot" onchange="_recalibrarLabelDiag()" style="width:100%; padding:6px; min-height:auto;"><option value="0">0° Normal</option><option value="90">90°</option><option value="180">180°</option><option value="270">270°</option></select></div>
+                </div>
+            </div>
             <div id="labelDiagPreview" style="display:flex; flex-direction:column; gap:10px; align-items:center; max-height:60vh; overflow-y:auto;"></div>
             <p style="text-align:center; color:var(--text-muted); font-size:12px; margin-top:10px;" id="labelDiagInfo"></p>
         </div>
@@ -14833,6 +14844,7 @@ async function abrirPreviewLabelDiagOrden(orden) {
     document.getElementById('labelDiagInfo').textContent = 'Se imprimirá 1 label de orden de servicio';
     document.getElementById('modalLabelTitulo').textContent = 'Label Orden de Servicio · ' + formatoOrden(orden.numero_orden);
     document.getElementById('diag_copias').value = 1;
+    const _cp = document.getElementById('labelCalibPanel'); if(_cp) _cp.style.display = 'none';
     document.getElementById('modalLabelDiag').classList.add('active');
 }
 
@@ -15764,6 +15776,7 @@ async function abrirPreviewLabelDiagIndividual(equipoId) {
     document.getElementById('labelDiagInfo').textContent = 'Se imprimirá 1 label';
     document.getElementById('modalLabelTitulo').textContent = 'Vista Previa del Label';
     document.getElementById('diag_copias').value = 1;
+    _cargarControlesModalLabel();
     document.getElementById('modalLabelDiag').classList.add('active');
 }
 
@@ -15802,11 +15815,44 @@ async function abrirPreviewLabelsLote() {
     document.getElementById('labelDiagInfo').textContent = `Se imprimirán ${equipos.length} label${equipos.length === 1 ? '' : 's'} de este lote (× copias)`;
     document.getElementById('modalLabelTitulo').textContent = `Vista Previa · ${equipos.length} Labels`;
     document.getElementById('diag_copias').value = 1;
+    _cargarControlesModalLabel();
     document.getElementById('modalLabelDiag').classList.add('active');
 }
 
 function cerrarModalLabelDiag() {
     document.getElementById('modalLabelDiag').classList.remove('active');
+}
+// Carga los controles de calibración de la ventana flotante desde lo guardado
+function _cargarControlesModalLabel() {
+    const _cp = document.getElementById('labelCalibPanel'); if(_cp) _cp.style.display = '';
+    const g = (k, d) => localStorage.getItem(k) || d;
+    const set = (id, v) => { const e = document.getElementById(id); if(e) e.value = v; };
+    set('mlbl_font', g('bayol_dlbl_f', '9'));
+    set('mlbl_ml', g('bayol_dlbl_ml', '3'));
+    set('mlbl_mr', g('bayol_dlbl_mr', '3'));
+    set('mlbl_w', g('bayol_dlbl_w', '51'));
+    set('mlbl_h', g('bayol_dlbl_h', '25'));
+    set('mlbl_rot', g('bayol_dlbl_rot', '0'));
+}
+// Recalibra desde la ventana flotante: guarda y vuelve a dibujar la vista previa EXACTA que se imprime
+function _recalibrarLabelDiag() {
+    const v = id => document.getElementById(id)?.value;
+    let f = parseInt(v('mlbl_font')) || 9; if(f < 6) f = 6; if(f > 80) f = 80;
+    localStorage.setItem('bayol_dlbl_f', f);
+    localStorage.setItem('bayol_dlbl_ml', v('mlbl_ml') || '3');
+    localStorage.setItem('bayol_dlbl_mr', v('mlbl_mr') || '3');
+    localStorage.setItem('bayol_dlbl_w', v('mlbl_w') || '51');
+    localStorage.setItem('bayol_dlbl_h', v('mlbl_h') || '25');
+    localStorage.setItem('bayol_dlbl_rot', v('mlbl_rot') || '0');
+    // Regenerar la vista previa con los MISMOS ajustes que se imprimen
+    let html = '';
+    if(_labelDiagEquiposLote && _labelDiagEquiposLote.length) html = _labelDiagEquiposLote.map(e => generarHtmlLabelDiag(e)).join('');
+    else if(_labelDiagEquipoActual) html = generarHtmlLabelDiag(_labelDiagEquipoActual);
+    else html = _labelDiagHtmlActual; // orden u otro origen
+    _labelDiagHtmlActual = html;
+    const cont = document.getElementById('labelDiagPreview'); if(cont) cont.innerHTML = html;
+    // Sincronizar el panel de calibración del lote si está en pantalla
+    if(document.getElementById('dlbl_font') && typeof cargarCalibracionLabelDiag === 'function') cargarCalibracionLabelDiag();
 }
 
 async function confirmarImprimirLabelDiag() {
