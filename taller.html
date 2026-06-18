@@ -16667,6 +16667,7 @@ function _pintarDetalleFin() {
             <div style="margin-top:8px;"><label>Notas MDM</label><input type="text" id="mdmNotas" value="${escapeHtml(f.mdm_notas || '')}" placeholder="Proveedor: ${escapeHtml(f.mdm_proveedor || 'Hexnode')}"></div>
             <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;">
                 <button class="btn btn-blue" onclick="guardarMDM('${f.id}')" style="font-size:12px;"><i class="ti ti-device-floppy"></i> Guardar datos</button>
+                <button class="btn btn-light" onclick="abrirBuscadorEquipos('${f.id}')" style="font-size:12px; color:#0369a1; border-color:#7dd3fc;"><i class="ti ti-search"></i> Buscar equipos disponibles</button>
             </div>
             <div style="border-top:1px dashed #e2e8f0; margin-top:10px; padding-top:10px;">
                 <div style="font-size:12px; font-weight:700; color:#0f172a; margin-bottom:6px;"><i class="ti ti-bolt" style="color:#f59e0b;"></i> Acción real en Hexnode</div>
@@ -18269,6 +18270,96 @@ async function guardarMDM(finId) {
         toast('✅ Control MDM guardado.');
         await renderFinanciamientos();
     } catch(e) { console.error('guardarMDM', e); toast('No se pudo guardar.', 'error'); }
+}
+// ===== Buscador de equipos enrolados DISPONIBLES (no enlazados a ningún cliente) =====
+let _mdmDispCache = [];     // equipos traídos de Hexnode
+let _mdmDispFinId = null;   // financiamiento al que se va a enlazar
+let _mdmDispBusq = '';
+// Arma un mapa de qué equipos ya están enlazados a un financiamiento (por ID Hexnode y por serial/IMEI)
+function _mdmLinkMap() {
+    const porId = {}, porSerial = {};
+    (_finCache.financiamientos || []).forEach(f => {
+        if(f.id === _mdmDispFinId) return; // el financiamiento actual no cuenta como "ocupado"
+        const etiqueta = (f.cliente_nombre || 'Cliente') + (f.codigo ? ' #' + f.codigo : '');
+        if(f.mdm_device_id) porId[String(f.mdm_device_id).trim()] = etiqueta;
+        [f.mdm_serial, f.equipo_imei].forEach(s => { if(s) porSerial[String(s).toLowerCase().trim()] = etiqueta; });
+    });
+    return { porId, porSerial };
+}
+function _mdmDispOcupadoPor(d, lm) {
+    if(d.id != null && lm.porId[String(d.id).trim()]) return lm.porId[String(d.id).trim()];
+    const s = String(d.serial || '').toLowerCase().trim();
+    const i = String(d.imei || '').toLowerCase().trim();
+    if(s && lm.porSerial[s]) return lm.porSerial[s];
+    if(i && lm.porSerial[i]) return lm.porSerial[i];
+    return null;
+}
+async function abrirBuscadorEquipos(finId) {
+    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso.', 'error'); return; }
+    _mdmDispFinId = finId; _mdmDispBusq = '';
+    abrirModalGenerico('🔍 Equipos enrolados disponibles', `
+        <div style="font-size:12.5px; color:#475569; margin-bottom:8px;">Equipos enrolados en Hexnode que <b>aún no están enlazados</b> a ningún cliente. Búscalos por IMEI, serie, modelo o nombre (puedes poner solo los <b>últimos 4 dígitos</b>).</div>
+        <input id="mdmDispBusq" placeholder="Buscar… (ej. 7678, modelo, serie)" oninput="_mdmDispFiltrar(this.value)" autocomplete="off" style="width:100%; padding:10px 12px; font-size:14px; border:1px solid #cbd5e1; border-radius:8px; margin-bottom:10px;">
+        <div id="mdmDispLista"><div style="text-align:center; color:#64748b; padding:24px;">⏳ Cargando equipos de Hexnode…</div></div>
+    `);
+    try {
+        const { data, error } = await supabaseClient.functions.invoke('mdm-accion', { body: { accion: 'listar' } });
+        if(error){ let det=''; try{ det=(await error.context.json()).error||''; }catch(_){} throw new Error(det||error.message); }
+        if(data && data.error) throw new Error(data.error);
+        _mdmDispCache = (data && data.devices) || [];
+    } catch(e) {
+        const l = document.getElementById('mdmDispLista');
+        if(l) l.innerHTML = `<div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:10px 12px; border-radius:8px;">⚠️ No se pudo cargar la lista de Hexnode: ${escapeHtml(e.message || String(e))}</div>`;
+        return;
+    }
+    _mdmDispRender();
+    setTimeout(() => { const b = document.getElementById('mdmDispBusq'); if(b) b.focus(); }, 60);
+}
+function _mdmDispFiltrar(v) { _mdmDispBusq = (v || '').toLowerCase().trim(); _mdmDispRender(); }
+function _mdmDispRender() {
+    const cont = document.getElementById('mdmDispLista');
+    if(!cont) return;
+    const lm = _mdmLinkMap();
+    const q = _mdmDispBusq;
+    const coincide = d => {
+        if(!q) return true;
+        return [d.name, d.serial, d.imei, d.model, d.platform].some(x => String(x || '').toLowerCase().includes(q));
+    };
+    const lista = _mdmDispCache.filter(coincide);
+    const disponibles = [], ocupados = [];
+    lista.forEach(d => { const o = _mdmDispOcupadoPor(d, lm); if(o) ocupados.push([d, o]); else disponibles.push(d); });
+    if(!_mdmDispCache.length) { cont.innerHTML = `<div style="color:#64748b; padding:16px; text-align:center;">No hay equipos enrolados en Hexnode todavía.</div>`; return; }
+    let html = '';
+    const fila = (d, ocupadoEtq) => {
+        const sub = [d.model, d.platform ? (d.platform + (d.os ? ' ' + d.os : '')) : '', d.imei ? 'IMEI ' + escapeHtml(d.imei) : '', d.serial ? 'Serie ' + escapeHtml(d.serial) : ''].filter(Boolean).join(' · ');
+        const btn = ocupadoEtq
+            ? `<span style="font-size:11px; color:#b45309; background:#fef3c7; padding:4px 8px; border-radius:8px; white-space:nowrap;">🔗 ${escapeHtml(ocupadoEtq)}</span>`
+            : `<button class="btn btn-blue btn-sm" style="font-size:12px; white-space:nowrap;" onclick="_mdmDispUsar(${d.id})"><i class="ti ti-link"></i> Usar este</button>`;
+        return `<div style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding:9px 10px; border:1px solid #e2e8f0; border-radius:10px; margin-bottom:6px; ${ocupadoEtq ? 'opacity:.7;' : ''}">
+            <div style="min-width:0;">
+                <div style="font-weight:700; font-size:13.5px;">${escapeHtml(d.name || d.model || ('Equipo ' + d.id))} <span style="color:#94a3b8; font-weight:600; font-size:11px;">Hexnode #${d.id}</span></div>
+                <div style="font-size:11.5px; color:#64748b; word-break:break-all;">${sub}</div>
+            </div>
+            ${btn}
+        </div>`;
+    };
+    html += `<div style="font-size:12px; font-weight:700; color:#166534; margin:2px 0 6px;">✅ Disponibles para enlazar (${disponibles.length})</div>`;
+    html += disponibles.length ? disponibles.map(d => fila(d, null)).join('') : `<div style="color:#64748b; font-size:12.5px; padding:6px 0 10px;">${q ? 'Ninguno coincide con la búsqueda.' : 'No hay equipos disponibles (todos están enlazados).'}</div>`;
+    if(ocupados.length) {
+        html += `<div style="font-size:12px; font-weight:700; color:#92400e; margin:12px 0 6px;">🔗 Ya enlazados (${ocupados.length})</div>`;
+        html += ocupados.map(([d, o]) => fila(d, o)).join('');
+    }
+    cont.innerHTML = html;
+}
+function _mdmDispUsar(deviceId) {
+    const d = _mdmDispCache.find(x => String(x.id) === String(deviceId));
+    if(!d) return;
+    const s = document.getElementById('mdmSerial'); if(s) s.value = d.imei || d.serial || '';
+    const did = document.getElementById('mdmDeviceId'); if(did) did.value = String(d.id);
+    const chk = document.getElementById('mdmEnrolado'); if(chk) chk.checked = true;
+    const m = document.getElementById('modalGenerico'); if(m) m.remove();
+    toast('✅ Equipo seleccionado. Dale "Guardar datos" para enlazarlo a este cliente.');
+    const g = document.getElementById('mdmSerial'); if(g){ g.scrollIntoView({ behavior:'smooth', block:'center' }); g.style.transition='background .3s'; g.style.background='#fef9c3'; setTimeout(()=>{ g.style.background=''; }, 1200); }
 }
 // Acción real contra Hexnode vía Edge Function
 // Banner persistente que confirma qué acción se aplicó al equipo (queda visible, no desaparece como el toast)
