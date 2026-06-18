@@ -7085,60 +7085,72 @@ async function crearLoteDesdeProveedor() {
     } catch(e) { logError('Crear lote', e); toastError(getFriendlyError(e)); }
 }
 
-function abrirLote(loteId) {
+// Carga los artículos de Info Plus (mismos del sistema Info Plus) para usarlos en compras
+async function _ensureInfoplusArticulos(force) {
+    if(!force && cache.infoplusArticulos && cache.infoplusArticulos.length) return cache.infoplusArticulos;
+    const all = [];
+    const pageSize = 1000;
+    try {
+        for(let from = 0; ; from += pageSize) {
+            const { data, error } = await supabaseClient.from('infoplus_articulos').select('codigo,descripcion,marca,referencia,costo').order('codigo').range(from, from + pageSize - 1);
+            if(error) break;
+            if(!data || !data.length) break;
+            all.push(...data);
+            if(data.length < pageSize) break;
+        }
+    } catch(e) { logError('Cargar artículos Info Plus', e); }
+    cache.infoplusArticulos = all;
+    return all;
+}
+function _findInfoplusArt(codigo) { return (cache.infoplusArticulos || []).find(a => String(a.codigo) === String(codigo)) || null; }
+function _initLoteArticuloSelect() {
+    smartSelectInit({
+        containerId: 'ss-eq-articulo',
+        placeholder: '🔍 Buscar por código, descripción o marca (Info Plus)...',
+        items: (cache.infoplusArticulos || []).map(a => ({
+            id: a.codigo,
+            label: `${a.codigo} · ${(a.descripcion || '').trim()}`,
+            sub: a.marca || '',
+            search: [a.codigo, a.descripcion, a.marca, a.referencia].filter(x => x).join(' ').toLowerCase(),
+            _ip: a
+        })),
+        value: '',
+        onChange: (id, item) => {
+            const inp = document.getElementById('eq_imei');
+            if(inp) inp.focus();
+            // Prefijar el costo desde Info Plus si está vacío
+            const c = document.getElementById('eq_costo');
+            if(c && item && item._ip && (!c.value || Number(c.value) === 0) && Number(item._ip.costo) > 0) c.value = Number(item._ip.costo);
+        }
+    });
+}
+async function abrirLote(loteId) {
     loteActualId = loteId;
     const lote = cache.lotes.find(l => l.id === loteId);
     if(!lote) return toast('Lote no encontrado.', 'error');
-    
+
     document.getElementById('prov-detalle').style.display = 'none';
     document.getElementById('lote-detalle').style.display = 'block';
     document.getElementById('loteDetTitulo').textContent = `${lote.codigo_lote} · ${findProveedor(lote.proveedor_id).nombre || 'Sin proveedor'}`;
-    
+
     document.getElementById('lt_codigo').value = lote.codigo_lote || '';
     document.getElementById('lt_fecha').value = lote.fecha_compra || '';
     document.getElementById('lt_notas').value = lote.notas || '';
     document.getElementById('lt_estado').value = lote.estado || 'Abierto';
-    
-    // Smart-select de artículos
-    smartSelectInit({
-        containerId: 'ss-eq-articulo',
-        placeholder: '🔍 Buscar por código, marca, modelo o capacidad...',
-        items: (cache.articulos || []).filter(a => a.activo !== false).map(a => {
-            const llevaImei = a.lleva_imei !== false;
-            const partes = [a.marca, a.modelo, a.capacidad, a.referencia].filter(x => x);
-            return {
-                id: a.id,
-                label: `${a.codigo} · ${partes.join(' ')}`,
-                sub: llevaImei ? 'Lleva IMEI/Serial' : 'SIN IMEI',
-                meta: llevaImei ? '' : 'SIN IMEI',
-                search: [a.codigo, a.marca, a.modelo, a.capacidad, a.referencia].filter(x => x).join(' ').toLowerCase(),
-                _lleva_imei: llevaImei
-            };
-        }),
-        value: '',
-        onChange: (id, item) => {
-            // Cambia el label de IMEI según el artículo
-            const lbl = document.getElementById('lbl_eq_imei');
-            const inp = document.getElementById('eq_imei');
-            if(!lbl || !inp) return;
-            if(item && item._lleva_imei === false) {
-                lbl.textContent = 'Serial / Referencia (opcional)';
-                inp.placeholder = 'Sin IMEI - opcional';
-            } else {
-                lbl.textContent = 'IMEI / Serial *';
-                inp.placeholder = '358921...';
-            }
-            if(item) inp.focus();
-        }
-    });
-    
+    const lbl = document.getElementById('lbl_eq_imei'); if(lbl) lbl.textContent = 'IMEI / Serial *';
+
+    // Smart-select de artículos (mismos de Info Plus, para que sean compatibles)
+    _initLoteArticuloSelect();
+    await _ensureInfoplusArticulos();
+    _initLoteArticuloSelect();
+
     document.getElementById('eq_imei').value = '';
     document.getElementById('eq_costo').value = '';
     document.getElementById('eq_notas').value = '';
-    
+
     aplicarPermisosAdminLote();
     cargarCalibracionLabelDiag();
-    
+
     renderEquiposLote();
 }
 
@@ -7282,31 +7294,33 @@ async function agregarEquipoAlLote() {
     const artId = smartSelectGetValue('ss-eq-articulo');
     const imei = val('eq_imei');
     const notas = val('eq_notas');
-    
+
     if(!artId) return toast('Selecciona un artículo del catálogo.', 'error');
-    
-    const art = findArticulo(artId);
-    const llevaImei = art.lleva_imei !== false;
-    
-    if(llevaImei && !imei) return toast('Este artículo requiere IMEI / Serial.', 'error');
-    
+
+    // El catálogo es el de Info Plus (artId = código del artículo)
+    const art = _findInfoplusArt(artId);
+    if(!art) return toast('Artículo no encontrado en el catálogo de Info Plus.', 'error');
+    if(!imei) return toast('Este equipo requiere IMEI / Serial.', 'error');
+
     let costo = 0;
     if(isAdminUser()) {
         costo = parseFloat(val('eq_costo')) || 0;
         if(costo <= 0) return toast('Costo debe ser mayor a 0.', 'error');
     }
     // Si no es admin, el costo queda en 0 y el admin lo edita después
-    
-    const modeloCompleto = `${art.marca} ${art.modelo}${art.capacidad ? ' ' + art.capacidad : ''}${art.referencia ? ' ' + art.referencia : ''}`;
-    
+
+    const desc = (art.descripcion || '').trim();
+    const modeloCompleto = [art.marca, desc].filter(x => x).join(' ').trim() || art.codigo;
+
     try {
         const { error } = await supabaseClient.from('equipos_refurbish').insert([{
-            articulo_id: artId,
+            articulo_id: null,
+            articulo_codigo: art.codigo,
             lote_id: loteActualId,
             modelo: modeloCompleto,
-            marca: art.marca,
-            capacidad: art.capacidad,
-            color: art.referencia,
+            marca: art.marca || null,
+            capacidad: null,
+            color: art.referencia || null,
             imei: imei || null,
             costo_compra: costo,
             costo_repuestos: 0,
@@ -7314,7 +7328,7 @@ async function agregarEquipoAlLote() {
             notas_diagnostico: notas || null
         }]);
         if(error) throw error;
-        toast(`Equipo agregado: ${art.marca} ${art.modelo}`);
+        toast(`Equipo agregado: ${modeloCompleto}`);
         document.getElementById('eq_imei').value = '';
         document.getElementById('eq_costo').value = '';
         document.getElementById('eq_notas').value = '';
