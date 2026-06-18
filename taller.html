@@ -18361,12 +18361,15 @@ function _mdmDispRender() {
 function _mdmDispUsar(deviceId) {
     const d = _mdmDispCache.find(x => String(x.id) === String(deviceId));
     if(!d) return;
+    const finId = _mdmDispFinId;
     const s = document.getElementById('mdmSerial'); if(s) s.value = d.imei || d.serial || '';
     const did = document.getElementById('mdmDeviceId'); if(did) did.value = String(d.id);
     const chk = document.getElementById('mdmEnrolado'); if(chk) chk.checked = true;
     const m = document.getElementById('modalGenerico'); if(m) m.remove();
-    toast('✅ Equipo seleccionado. Dale "Guardar datos" para enlazarlo a este cliente.');
+    toast('✅ Equipo seleccionado. Verificando en Hexnode…');
     const g = document.getElementById('mdmSerial'); if(g){ g.scrollIntoView({ behavior:'smooth', block:'center' }); g.style.transition='background .3s'; g.style.background='#fef9c3'; setTimeout(()=>{ g.style.background=''; }, 1200); }
+    // Verificar automáticamente en Hexnode que sigue enrolado y conectado (esto también guarda el enlace)
+    setTimeout(() => { if(typeof mdmVerificar === 'function' && finId) mdmVerificar(finId); }, 200);
 }
 // Acción real contra Hexnode vía Edge Function
 // Banner persistente que confirma qué acción se aplicó al equipo (queda visible, no desaparece como el toast)
