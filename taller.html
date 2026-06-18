@@ -2973,7 +2973,7 @@ body{
         </div>
         <div class="modal-body">
             <p style="color:var(--text-muted); font-size:12px; margin:0 0 12px;">Para equipos que ya tenías <b>antes del sistema</b>. Cae directo en su estado real y asignado a su técnico. Quedan en el lote <b>HISTÓRICO</b>.</p>
-            <div class="form-row"><label>Modelo *</label><input id="rex_modelo" placeholder="IPHONE 11 / SAMSUNG A14…" style="text-transform:uppercase;"></div>
+            <div class="form-row"><label>Equipo (del inventario Info Plus) *</label><div id="ss-rex-modelo"></div></div>
             <div class="form-row"><label>Costo de compra (opcional)</label><input id="rex_costo" type="number" step="0.01" min="0" placeholder="0.00"></div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                 <div class="form-row"><label>IMEI</label><input id="rex_imei" placeholder="IMEI / opcional"></div>
@@ -7684,10 +7684,10 @@ function _reacondActualizarSelUI() {
    REGISTRAR EQUIPO EXISTENTE (equipos que ya estaban antes del sistema)
    Cae directo en su estado real y asignado a su técnico, en el lote HISTÓRICO.
    ============================================================ */
-function abrirModalRegistrarExistente() {
+async function abrirModalRegistrarExistente() {
     if(!isAdminUser()) return toast('Solo el administrador puede registrar equipos existentes.', 'error');
     // Limpiar campos
-    ['rex_modelo','rex_marca','rex_capacidad','rex_color','rex_costo','rex_imei','rex_serial','rex_nota'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+    ['rex_costo','rex_imei','rex_serial','rex_nota'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
     document.getElementById('rex_estado').value = 'en_proceso';
     // Poblar técnicos
     const sel = document.getElementById('rex_tecnico');
@@ -7695,6 +7695,29 @@ function abrirModalRegistrarExistente() {
     sel.innerHTML = '<option value="">— Selecciona el técnico —</option>' +
         tecnicos.map(t => `<option value="${t.id}">${escapeHtml(t.nombre || t.usuario || 'Técnico')}</option>`).join('');
     document.getElementById('modalRegistrarExistente').classList.add('active');
+    // Selector de equipo del inventario Info Plus (igual que en Compras)
+    _initRexModeloSelect();
+    await _ensureInfoplusArticulos();
+    _initRexModeloSelect();
+}
+function _initRexModeloSelect() {
+    smartSelectInit({
+        containerId: 'ss-rex-modelo',
+        placeholder: '🔍 Buscar equipo por código, descripción o marca (Info Plus)...',
+        items: (cache.infoplusArticulos || []).map(a => ({
+            id: a.codigo,
+            label: `${a.codigo} · ${(a.descripcion || '').trim()}`,
+            sub: [a.marca, a.referencia ? ('Ref: ' + a.referencia) : '', Number(a.existencia) > 0 ? (a.existencia + ' en taller') : ''].filter(x => x).join(' · '),
+            search: [a.codigo, a.descripcion, a.marca, a.referencia, a.referencia_fabrica].filter(x => x).join(' ').toLowerCase(),
+            _ip: a
+        })),
+        value: '',
+        onChange: (id, item) => {
+            const c = document.getElementById('rex_costo');
+            if(c && item && item._ip && (!c.value || Number(c.value) === 0) && Number(item._ip.costo) > 0) c.value = Number(item._ip.costo);
+        },
+        onIconClick: () => abrirBuscadorArticulos('ss-rex-modelo')
+    });
 }
 function cerrarModalRegistrarExistente() {
     document.getElementById('modalRegistrarExistente').classList.remove('active');
@@ -7717,10 +7740,15 @@ async function _getOrCreateLoteHistorico() {
 async function guardarEquipoExistente(btn) {
     if(!isAdminUser()) return toast('Solo el administrador puede registrar equipos existentes.', 'error');
     const v = (id) => (document.getElementById(id)?.value || '').trim();
-    const modelo = v('rex_modelo').toUpperCase();
+    // El equipo se elige del inventario Info Plus
+    const codigoArt = smartSelectGetValue('ss-rex-modelo');
+    const stRex = _smartSelects['ss-rex-modelo'];
+    const itemRex = (stRex && stRex.items) ? stRex.items.find(i => String(i.id) === String(codigoArt)) : null;
+    const art = (itemRex && itemRex._ip) || (codigoArt ? _findInfoplusArt(codigoArt) : null);
+    const modelo = art ? (art.descripcion || art.codigo || '').trim().toUpperCase() : '';
     const tecnicoId = v('rex_tecnico');
     const estado = v('rex_estado') || 'en_proceso';
-    if(!modelo) return toast('El modelo es obligatorio.', 'error');
+    if(!modelo) return toast('Elige el equipo del inventario Info Plus.', 'error');
     if(!tecnicoId) return toast('Selecciona el técnico que tiene el equipo.', 'error');
     const orig = btn ? btn.innerHTML : '';
     if(btn){ btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Registrando…'; }
@@ -7729,9 +7757,10 @@ async function guardarEquipoExistente(btn) {
         const costo = v('rex_costo');
         const fila = {
             modelo: modelo,
-            marca: v('rex_marca').toUpperCase() || null,
-            capacidad: v('rex_capacidad').toUpperCase() || null,
-            color: v('rex_color').toUpperCase() || null,
+            articulo_codigo: art ? art.codigo : null,
+            marca: art && art.marca ? String(art.marca).toUpperCase() : null,
+            capacidad: null,
+            color: art && art.referencia ? String(art.referencia).toUpperCase() : null,
             imei: v('rex_imei') || null,
             serial: v('rex_serial') || null,
             costo_compra: costo === '' ? null : Number(costo),
