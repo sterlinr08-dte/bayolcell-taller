@@ -7398,10 +7398,15 @@ function renderEquiposLote() {
         tbody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center; color:var(--text-muted); padding:15px;">Sin equipos agregados aún.</td></tr>`;
     } else {
         tbody.innerHTML = equipos.map(e => {
-            const art = findArticulo(e.articulo_id);
-            const modeloMostrar = art.codigo 
-                ? `<b style="color:var(--blue-btn); text-transform:uppercase;">${escapeHtml(art.codigo)}</b> · <span style="text-transform:uppercase;">${escapeHtml(art.marca)} ${escapeHtml(art.modelo)}${art.capacidad ? ' ' + escapeHtml(art.capacidad) : ''}${art.referencia ? ' ' + escapeHtml(art.referencia) : ''}</span>` 
-                : `<span style="text-transform:uppercase;">${escapeHtml(e.modelo)}</span>`;
+            // Info completa del artículo (de Info Plus por código; respaldo: lo guardado en el equipo)
+            const ip = e.articulo_codigo ? _findInfoplusArt(e.articulo_codigo) : null;
+            const codigo = e.articulo_codigo || '';
+            const desc = (ip && ip.descripcion) || e.modelo || '';
+            const marca = (ip && ip.marca) || e.marca || '';
+            const ref = (ip && ip.referencia) || e.color || '';
+            const precio = ip && Number(ip.precio) > 0 ? Number(ip.precio) : 0;
+            const detalle = [marca ? escapeHtml(marca) : '', ref ? '🔖 ' + escapeHtml(ref) : '', precio ? '💲 ' + money(precio) : ''].filter(x => x).join(' · ');
+            const modeloMostrar = `${codigo ? `<b style="color:var(--blue-btn);">Cód. ${escapeHtml(codigo)}</b> · ` : ''}<span style="text-transform:uppercase; font-weight:600;">${escapeHtml(desc)}</span>${detalle ? `<div style="font-size:11px; color:#64748b; text-transform:none;">${detalle}</div>` : ''}`;
             const costoCell = esAdmin ? `<td data-label="Costo"><b>${money(e.costo_compra)}</b></td>` : '';
             const notas = e.notas_diagnostico ? `<small style="color:var(--text-muted); text-transform:uppercase;">${escapeHtml(e.notas_diagnostico)}</small>` : '<span style="color:#cbd5e1;">-</span>';
             return `<tr>
