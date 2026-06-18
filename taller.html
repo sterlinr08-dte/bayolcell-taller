@@ -127,12 +127,12 @@ input[disabled] { background-color: #f8fafc; color: #94a3b8; cursor: not-allowed
 .data-table tbody tr:last-child td { border-bottom: 0; }
 .data-table tbody tr:hover { background: #fef9f9; }
 .kpi-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 20px; }
-.kpi-box { background: #fff; border-radius: 14px; padding: 16px; border-top: 4px solid var(--red-soft); box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 4px 14px rgba(15,23,42,0.07), 0 1px 3px rgba(15,23,42,0.04); position: relative; border: 1px solid #eef2f7; }
+.kpi-box { background: #fff; border-radius: 12px; padding: 10px 12px; border-top: 4px solid var(--red-soft); box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 4px 14px rgba(15,23,42,0.07), 0 1px 3px rgba(15,23,42,0.04); position: relative; border: 1px solid #eef2f7; }
 .kpi-box.clickable { cursor: pointer; }
 .kpi-box.clickable:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(15,23,42,0.08); }
-.kpi-box small { font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; display: block; }
-.kpi-box strong { font-size: 26px; font-weight: 800; display: block; margin-top: 4px; color: var(--text-dark); }
-.kpi-box i { position: absolute; right: 12px; bottom: 12px; font-size: 22px; color: var(--text-muted); opacity: 0.2; }
+.kpi-box small { font-size: 9.5px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; display: block; }
+.kpi-box strong { font-size: 19px; font-weight: 800; display: block; margin-top: 2px; color: var(--text-dark); }
+.kpi-box i { position: absolute; right: 10px; bottom: 9px; font-size: 17px; color: var(--text-muted); opacity: 0.2; }
 
 .layout-dashboard { display: grid; grid-template-columns: 1.3fr 0.7fr; gap: 20px; }
 .layout-inventario { display: flex; flex-direction: column; gap: 20px; }
@@ -1141,6 +1141,16 @@ body{
                     <div id="miTrabajoIncentivos"></div>
                 </div>
                 <div id="miTrabajoContenido"></div>
+            </div>
+
+            <!-- REGISTRO DE TICKET (página del sistema) -->
+            <div id="v-registroTickets" class="view">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:14px;">
+                    <h2 style="margin:0;"><i class="ti ti-list-details" style="color:#0891b2;"></i> Registro de Ticket</h2>
+                    <button class="btn btn-light" onclick="nav('miTrabajo')" style="font-size:12px;"><i class="ti ti-arrow-left"></i> Volver a Mi Trabajo</button>
+                </div>
+                <input id="regTickBusq" placeholder="Buscar por # ticket o nota…" autocomplete="off" oninput="renderRegistroTickets()" style="width:100%; padding:10px 12px; font-size:14px; border:1px solid #cbd5e1; border-radius:8px; margin-bottom:12px;">
+                <div id="registroTicketsContenido"></div>
             </div>
 
             <!-- DASHBOARD -->
@@ -4196,7 +4206,7 @@ function _incEstadoBadge(e) {
     return '<span style="background:#fef3c7; color:#b45309; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px;">Pendiente</span>';
 }
 function _incRefrescar() {
-    if(document.getElementById('regTicketsLista')) { renderRegistroTicketsModal(); }
+    if(document.getElementById('v-registroTickets')?.classList.contains('active')) { cargarRegistroTickets(); return; }
     if(document.getElementById('v-miTrabajo')?.classList.contains('active') && typeof renderMisIncentivos === 'function') renderMisIncentivos('miTrabajoIncentivos');
     else if(document.getElementById('v-misIncentivos')?.classList.contains('active') && typeof renderMisIncentivos === 'function') renderMisIncentivos();
     else renderIncentivos();
@@ -4768,42 +4778,57 @@ async function renderMisIncentivos(targetId) {
     html += `<div style="text-align:center; margin-top:2px;"><button class="btn btn-light btn-sm" onclick="abrirRegistroTickets()"><i class="ti ti-list-details" style="color:#0891b2;"></i> Ver Registro de Ticket (${_incCache.length})</button></div>`;
     cont.innerHTML = html;
 }
-// Ventana "Registro de Ticket": muestra todos los tickets registrados por el técnico
-async function abrirRegistroTickets() {
+// "Registro de Ticket": página del sistema (no flotante). Muestra los tickets del técnico agrupados.
+function abrirRegistroTickets() { nav('registroTickets'); }
+async function cargarRegistroTickets() {
     const yo = sessionUser?.id;
-    if(!yo) { toast('No se pudo identificar tu usuario.', 'error'); return; }
-    abrirModalGenerico('📋 Registro de Ticket', `
-        <input id="regTickBusq" placeholder="Buscar por # ticket o nota…" autocomplete="off" oninput="renderRegistroTicketsModal()" style="width:100%; padding:9px 12px; font-size:14px; border:1px solid #cbd5e1; border-radius:8px; margin-bottom:10px;">
-        <div id="regTicketsLista"><div style="text-align:center; color:#64748b; padding:18px;">⏳ Cargando…</div></div>
-    `);
+    const cont = document.getElementById('registroTicketsContenido');
+    if(!yo) { if(cont) cont.innerHTML = '<div style="color:var(--text-muted); padding:16px;">No se pudo identificar tu usuario.</div>'; return; }
+    if(cont) cont.innerHTML = '<div style="text-align:center; color:#64748b; padding:20px;">⏳ Cargando…</div>';
     try {
         const { data } = await supabaseClient.from('taller_incentivos').select('*').eq('tecnico_id', yo).order('creado_en', { ascending: false });
         _incCache = data || [];
-    } catch(e) {}
-    renderRegistroTicketsModal();
+    } catch(e) { _incCache = []; }
+    renderRegistroTickets();
 }
-function renderRegistroTicketsModal() {
-    const cont = document.getElementById('regTicketsLista');
+function renderRegistroTickets() {
+    const cont = document.getElementById('registroTicketsContenido');
     if(!cont) return;
     const q = (document.getElementById('regTickBusq')?.value || '').toLowerCase().trim();
-    let list = _incCache || [];
-    if(q) list = list.filter(r => (r.ticket || '').toLowerCase().includes(q) || (r.nota || '').toLowerCase().includes(q));
     const sum = (e) => (_incCache || []).filter(r => r.estado === e).reduce((s,r) => s + Number(r.monto_incentivo||0), 0);
-    let html = `<div style="font-size:12.5px; margin-bottom:8px;">⏳ Por validar: <b style="color:#b45309;">${money(sum('pendiente'))}</b> · ✅ Por cobrar: <b style="color:#1d4ed8;">${money(sum('validado'))}</b> · 💵 Pagado: <b style="color:#16a34a;">${money(sum('pagado'))}</b></div>`;
-    if(!list.length) {
-        html += `<div style="color:#64748b; text-align:center; padding:18px;">${q ? 'No hay tickets que coincidan.' : 'Aún no has registrado tickets.'}</div>`;
+    // Agrupar por # de ticket (los sin número quedan cada uno por su lado)
+    const grupos = {}, orden = [];
+    (_incCache || []).forEach(r => {
+        const key = (r.ticket || '').trim() ? ('t:' + (r.ticket || '').trim().toLowerCase()) : ('id:' + r.id);
+        if(!grupos[key]) { grupos[key] = { ticket: r.ticket || '', fecha: r.fecha, factura: Number(r.monto_factura||0), items: [] }; orden.push(key); }
+        grupos[key].items.push(r);
+        if(Number(r.monto_factura||0) > grupos[key].factura) grupos[key].factura = Number(r.monto_factura||0);
+    });
+    let keys = orden;
+    if(q) keys = orden.filter(k => { const g = grupos[k]; return (g.ticket || '').toLowerCase().includes(q) || g.items.some(it => (it.nota || '').toLowerCase().includes(q)); });
+    let html = `<div class="card" style="margin-bottom:10px; padding:10px; font-size:13px;">⏳ Por validar: <b style="color:#b45309;">${money(sum('pendiente'))}</b> &nbsp;·&nbsp; ✅ Por cobrar: <b style="color:#1d4ed8;">${money(sum('validado'))}</b> &nbsp;·&nbsp; 💵 Pagado: <b style="color:#16a34a;">${money(sum('pagado'))}</b></div>`;
+    if(!keys.length) {
+        html += `<div style="color:#64748b; text-align:center; padding:24px;">${q ? 'No hay tickets que coincidan.' : 'Aún no has registrado tickets.'}</div>`;
         cont.innerHTML = html; return;
     }
-    html += `<div class="table-wrap"><table><thead><tr><th>Fecha</th><th># Ticket</th><th>Tipo</th><th style="text-align:right;">Incentivo</th><th>Estado</th><th></th></tr></thead><tbody>`;
-    html += list.map(r => `<tr>
-        <td>${_incFmtFecha(r.fecha)}</td>
-        <td>${escapeHtml(r.ticket || '-')}</td>
-        <td>${_incTipoTxt(r.tipo)}</td>
-        <td style="text-align:right; font-weight:700;">${money(r.monto_incentivo)}</td>
-        <td>${_incEstadoBadge(r.estado)}</td>
-        <td style="text-align:right; white-space:nowrap;">${r.estado === 'pendiente' ? `<button class="btn btn-light btn-sm" onclick="editarIncentivo('${r.id}')" title="Editar"><i class="ti ti-pencil"></i></button> <button class="btn btn-light btn-sm" onclick="borrarIncentivo('${r.id}')" title="Borrar" style="color:#b91c1c;"><i class="ti ti-trash"></i></button>` : '<span style="font-size:11px; color:#94a3b8;">—</span>'}</td>
-    </tr>`).join('');
-    html += `</tbody></table></div><div style="font-size:11px; color:#64748b; margin-top:6px;">Solo puedes editar/borrar los que están ⏳ Por validar.</div>`;
+    html += keys.map(k => {
+        const g = grupos[k];
+        const totalInc = g.items.reduce((s,it) => s + Number(it.monto_incentivo||0), 0);
+        const filas = g.items.map(it => `<tr>
+            <td>${_incTipoTxt(it.tipo)}${it.nota ? ` <span style="color:#94a3b8; font-size:11px;">· ${escapeHtml(it.nota)}</span>` : ''}</td>
+            <td style="text-align:right; font-weight:700;">${money(it.monto_incentivo)}</td>
+            <td style="text-align:center;">${_incEstadoBadge(it.estado)}</td>
+            <td style="text-align:right; white-space:nowrap;">${it.estado === 'pendiente' ? `<button class="btn btn-light btn-sm" onclick="editarIncentivo('${it.id}')" title="Editar"><i class="ti ti-pencil"></i></button> <button class="btn btn-light btn-sm" onclick="borrarIncentivo('${it.id}')" title="Borrar" style="color:#b91c1c;"><i class="ti ti-trash"></i></button>` : '<span style="font-size:11px; color:#94a3b8;">—</span>'}</td>
+        </tr>`).join('');
+        return `<div style="border:1px solid #e2e8f0; border-radius:12px; margin-bottom:10px; padding:10px 12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
+                <div style="font-weight:700; font-size:14px;">🎫 ${escapeHtml(g.ticket || 'Sin #')} <span style="color:#94a3b8; font-weight:600; font-size:12px;">· ${_incFmtFecha(g.fecha)}</span></div>
+                <div style="font-size:12px; color:#475569;">🧾 Factura: <b>${money(g.factura)}</b> · ${g.items.length} servicio${g.items.length>1?'s':''} · Incentivo: <b style="color:#16a34a;">${money(totalInc)}</b></div>
+            </div>
+            <div class="table-wrap"><table><thead><tr><th>Servicio</th><th style="text-align:right;">Incentivo</th><th style="text-align:center;">Estado</th><th></th></tr></thead><tbody>${filas}</tbody></table></div>
+        </div>`;
+    }).join('');
+    html += `<div style="font-size:11px; color:#64748b; margin-top:2px;">Solo puedes editar/borrar los servicios que están ⏳ Por validar.</div>`;
     cont.innerHTML = html;
 }
 async function guardarMiIncentivo() {
@@ -4967,6 +4992,7 @@ function nav(v, btn) {
     if(v === 'piezasSolicitadas') { setTimeout(() => { if(typeof renderPiezasSolicitadas === 'function') renderPiezasSolicitadas(); }, 50); }
     if(v === 'incentivos') { setTimeout(() => { if(typeof renderIncentivos === 'function') renderIncentivos(); }, 50); }
     if(v === 'misIncentivos') { setTimeout(() => { if(typeof renderMisIncentivos === 'function') renderMisIncentivos(); }, 50); }
+    if(v === 'registroTickets') { const pt = document.getElementById('pageTitle'); if(pt) pt.textContent = 'Registro de Ticket'; const b = document.getElementById('regTickBusq'); if(b) b.value = ''; setTimeout(() => { if(typeof cargarRegistroTickets === 'function') cargarRegistroTickets(); }, 50); }
     closeSidebar();
     window.scrollTo({ top: 0, behavior: 'smooth' });
     // Re-aplicar permisos de botones estáticos tras renderizar (NO en modo solo-mi-trabajo, causa bucle)
