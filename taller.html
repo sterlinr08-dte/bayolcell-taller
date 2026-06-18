@@ -7977,58 +7977,58 @@ function renderDetalleLoteReacond() {
 function renderEquipoReacondCard(eq, num) {
     const estado = eq.estado_evaluacion || 'pendiente';
     const tecnico = eq.tecnico_asignado_id ? (cache.tecnicos || []).find(t => t.id === eq.tecnico_asignado_id) : null;
-    let badgeColor, badgeText, accionBtn;
-    
+    let badgeColor, badgeText, accionPrincipal = '', botones = '';
+
     if(estado === 'pendiente') {
         badgeColor = 'background:#fef3c7; color:#92400e;';
         badgeText = '🟡 Pendiente';
-        accionBtn = `<button class="btn btn-blue" style="padding:8px 14px;" onclick="empezarEvaluacion('${eq.id}')"><i class="ti ti-player-play"></i> Evaluar</button>`;
+        accionPrincipal = `empezarEvaluacion('${eq.id}')`;
     } else if(estado === 'en_evaluacion') {
         badgeColor = 'background:#dbeafe; color:#b91c1c;';
         badgeText = '⚠️ En Evaluación';
-        accionBtn = `<button class="btn btn-dark" style="padding:8px 14px; background:#b91c1c;" onclick="continuarEvaluacion('${eq.id}')"><i class="ti ti-edit"></i> Continuar</button>`;
+        accionPrincipal = `continuarEvaluacion('${eq.id}')`;
     } else if(estado === 'evaluado') {
         badgeColor = 'background:#d1fae5; color:#065f46;';
         badgeText = '✅ Evaluado';
-        accionBtn = `<button class="btn btn-dark" style="padding:8px 14px; background:#f59e0b;" onclick="abrirModalAsignarTecnico('${eq.id}')"><i class="ti ti-user-plus"></i> Asignar a Técnico</button>
-                     <button class="btn btn-light" style="padding:8px 12px;" onclick="continuarEvaluacion('${eq.id}')" title="Ver/Editar"><i class="ti ti-eye"></i></button>`;
+        accionPrincipal = `abrirModalAsignarTecnico('${eq.id}')`;
+        botones = `<button class="btn btn-light" style="padding:8px 12px;" onclick="event.stopPropagation(); continuarEvaluacion('${eq.id}')" title="Ver/Editar"><i class="ti ti-eye"></i></button>`;
     } else if(estado === 'en_proceso') {
         badgeColor = 'background:#fed7aa; color:#9a3412;';
         badgeText = '🔧 En Proceso';
-        accionBtn = `<button class="btn btn-dark" style="padding:8px 14px; background:#9a3412;" onclick="abrirPanelProceso('${eq.id}')"><i class="ti ti-tool"></i> Trabajar</button>`;
+        accionPrincipal = `abrirPanelProceso('${eq.id}')`;
     } else if(estado === 'reasignado') {
         badgeColor = 'background:#fef3c7; color:#92400e;';
         badgeText = '👥 Reasignado';
-        accionBtn = `<button class="btn btn-dark" style="padding:8px 14px; background:#f59e0b;" onclick="abrirPanelProceso('${eq.id}')"><i class="ti ti-package"></i> Recibir</button>`;
+        accionPrincipal = `abrirPanelProceso('${eq.id}')`;
     } else if(estado === 'tecnico_recibio') {
         badgeColor = 'background:#bfdbfe; color:#b91c1c;';
         badgeText = '📦 Técnico recibió';
-        accionBtn = `<button class="btn btn-dark" style="padding:8px 14px; background:#b91c1c;" onclick="abrirPanelProceso('${eq.id}')"><i class="ti ti-tool"></i> Continuar</button>`;
+        accionPrincipal = `abrirPanelProceso('${eq.id}')`;
     } else if(estado === 'espera_pieza') {
         badgeColor = 'background:#fde68a; color:#92400e;';
         badgeText = '⏳ Espera pieza';
-        accionBtn = `<button class="btn btn-dark" style="padding:8px 14px; background:#f59e0b;" onclick="abrirPanelProceso('${eq.id}')"><i class="ti ti-tool"></i> Ver/Actualizar</button>`;
+        accionPrincipal = `abrirPanelProceso('${eq.id}')`;
     } else if(estado === 'listo_revision') {
         badgeColor = 'background:#e9d5ff; color:#6b21a8;';
         badgeText = '👁️ Revisión final';
-        accionBtn = `<button class="btn btn-dark" style="padding:8px 14px; background:#6b21a8;" onclick="abrirPanelProceso('${eq.id}')"><i class="ti ti-check"></i> Aprobar</button>`;
+        accionPrincipal = `abrirPanelProceso('${eq.id}')`;
     } else if(estado === 'listo_venta') {
         badgeColor = 'background:#ddd6fe; color:#5b21b6;';
         badgeText = '🛒 Listo para venta';
-        accionBtn = `<button class="btn btn-dark" style="padding:8px 14px; background:#5b21b6;" onclick="abrirModalLabelVenta('${eq.id}')"><i class="ti ti-printer"></i> Label Venta</button>
-                     ${permBtn('estado_despachar', `<button class="btn btn-dark" style="padding:8px 14px; background:linear-gradient(180deg,#10b981,#059669); box-shadow:0 3px 8px rgba(15,23,42,0.12);" onclick="marcarDespachado('${eq.id}')"><i class="ti ti-truck-delivery"></i> Despachar</button>`)}
-                     <button class="btn btn-light" style="padding:8px 12px;" onclick="abrirPanelProceso('${eq.id}')" title="Ver detalles"><i class="ti ti-eye"></i></button>`;
+        accionPrincipal = `abrirPanelProceso('${eq.id}')`;
+        botones = `<button class="btn btn-dark" style="padding:8px 14px; background:#5b21b6;" onclick="event.stopPropagation(); abrirModalLabelVenta('${eq.id}')"><i class="ti ti-printer"></i> Label Venta</button>
+                     ${permBtn('estado_despachar', `<button class="btn btn-dark" style="padding:8px 14px; background:linear-gradient(180deg,#10b981,#059669); box-shadow:0 3px 8px rgba(15,23,42,0.12);" onclick="event.stopPropagation(); marcarDespachado('${eq.id}')"><i class="ti ti-truck-delivery"></i> Despachar</button>`)}`;
     } else if(estado === 'vendido') {
         badgeColor = 'background:#d1fae5; color:#065f46;';
         badgeText = '✅ Despachado';
-        accionBtn = `<button class="btn btn-light" style="padding:8px 12px;" onclick="abrirPanelProceso('${eq.id}')"><i class="ti ti-eye"></i> Ver</button>`;
+        accionPrincipal = `abrirPanelProceso('${eq.id}')`;
     } else {
         badgeColor = 'background:#f1f5f9; color:#64748b;';
         badgeText = estado;
-        accionBtn = `<button class="btn btn-light" style="padding:8px 12px;" onclick="continuarEvaluacion('${eq.id}')"><i class="ti ti-eye"></i></button>`;
+        accionPrincipal = `continuarEvaluacion('${eq.id}')`;
     }
     
-    return `<div style="background:#fff; border:1px solid var(--border-color); border-radius:8px; padding:12px; margin-bottom:8px;">
+    return `<div onclick="${accionPrincipal}" title="Clic para continuar" style="background:#fff; border:1px solid var(--border-color); border-radius:8px; padding:12px; margin-bottom:8px; cursor:pointer; transition:background .15s, box-shadow .15s;" onmouseover="this.style.background='#f8fafc'; this.style.boxShadow='0 2px 8px rgba(15,23,42,0.08)';" onmouseout="this.style.background='#fff'; this.style.boxShadow='none';">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
             <div style="flex:1; min-width:200px;">
                 <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
@@ -8053,7 +8053,8 @@ function renderEquipoReacondCard(eq, num) {
                 ${eq.notas_diagnostico ? `<div style="background:#f1f5f9; padding:6px 10px; border-radius:6px; margin-top:6px; font-size:12px;"><b>Notas:</b> ${escapeHtml(eq.notas_diagnostico)}</div>` : ''}
             </div>
             <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-                ${accionBtn}
+                ${botones}
+                <i class="ti ti-chevron-right" style="color:#94a3b8; font-size:20px;" title="Clic para abrir"></i>
             </div>
         </div>
     </div>`;
