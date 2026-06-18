@@ -1137,7 +1137,7 @@ body{
                 </div>
                 <div id="miTrabajoResumen" class="kpi-row" style="margin-bottom:14px;"></div>
                 <div id="miTrabajoIncentivosWrap">
-                    <h3 style="margin:18px 0 10px;"><i class="ti ti-coin" style="color:#d97706;"></i> Mis Incentivos — Registrar mis tickets</h3>
+                    <h3 style="margin:18px 0 10px;"><i class="ti ti-coin" style="color:#d97706;"></i> Registrar Ticket</h3>
                     <div id="miTrabajoIncentivos"></div>
                 </div>
                 <div id="miTrabajoContenido"></div>
@@ -4196,6 +4196,7 @@ function _incEstadoBadge(e) {
     return '<span style="background:#fef3c7; color:#b45309; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px;">Pendiente</span>';
 }
 function _incRefrescar() {
+    if(document.getElementById('regTicketsLista')) { renderRegistroTicketsModal(); }
     if(document.getElementById('v-miTrabajo')?.classList.contains('active') && typeof renderMisIncentivos === 'function') renderMisIncentivos('miTrabajoIncentivos');
     else if(document.getElementById('v-misIncentivos')?.classList.contains('active') && typeof renderMisIncentivos === 'function') renderMisIncentivos();
     else renderIncentivos();
@@ -4690,7 +4691,7 @@ async function renderMisIncentivos(targetId) {
     const ci = 'style="padding:6px 9px; font-size:12px; border-radius:8px;" onkeydown="if(event.key===\'Enter\')guardarMiIncentivo()"';
     const selTipo = t => _incUltimoTipo === t ? 'selected' : '';
     let html = `<div class="card" style="margin-bottom:10px; padding:12px;">
-        <div style="font-size:13px; font-weight:700; margin-bottom:8px;"><i class="ti ti-plus" style="color:#16a34a;"></i> Registrar mi trabajo</div>
+        <div style="font-size:13px; font-weight:700; margin-bottom:8px;"><i class="ti ti-plus" style="color:#16a34a;"></i> Registrar Ticket</div>
         <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:flex-end;">
             <div style="width:120px;"><label style="font-size:10px; color:#64748b;">Fecha</label><input type="date" id="miFecha" value="${hoy}" ${ci}></div>
             <div style="width:120px;"><label style="font-size:10px; color:#64748b;"># Ticket</label><input type="text" id="miTicket" placeholder="CO000..." ${ci}></div>
@@ -4702,32 +4703,53 @@ async function renderMisIncentivos(targetId) {
             <div style="width:90px;"><label style="font-size:10px; color:#64748b;">Incentivo</label><input type="number" id="miIncentivo" value="${INC_REPARACION}" readonly ${ci}></div>
             <div style="width:110px;"><label style="font-size:10px; color:#64748b;">Monto factura *</label><input type="number" id="miMontoFactura" min="0" step="0.01" placeholder="0" ${ci}></div>
             <div style="flex:1; min-width:120px;"><label style="font-size:10px; color:#64748b;">Nota (opc.)</label><input type="text" id="miNota" placeholder="Detalle" ${ci}></div>
-            <button class="btn btn-blue btn-sm" onclick="guardarMiIncentivo()" style="height:32px;"><i class="ti ti-device-floppy"></i> Registrar</button>
+            <button class="btn btn-blue btn-sm" onclick="guardarMiIncentivo()" style="height:32px;"><i class="ti ti-device-floppy"></i> Guardar</button>
         </div>
-        <div style="font-size:11px; color:#64748b; margin-top:6px;">💡 Si un ticket tiene varios servicios, regístralos uno por uno con el mismo número de ticket.</div>
+        <div style="font-size:11px; color:#64748b; margin-top:6px;">💡 Si un ticket tiene varios servicios, regístralos uno por uno con el mismo número de ticket. Al guardar, el ticket aparece en <b>Registro de Ticket</b>.</div>
     </div>`;
     const sum = (e) => _incCache.filter(r => r.estado === e).reduce((s,r) => s + Number(r.monto_incentivo||0), 0);
     html += `<div class="card" style="margin-bottom:10px; padding:10px; font-size:13px;">⏳ Por validar: <b style="color:#b45309;">${money(sum('pendiente'))}</b> &nbsp;·&nbsp; ✅ Validado (por cobrar): <b style="color:#1d4ed8;">${money(sum('validado'))}</b> &nbsp;·&nbsp; 💵 Pagado: <b style="color:#16a34a;">${money(sum('pagado'))}</b></div>`;
-    html += `<div class="card"><div style="font-size:13px; font-weight:700; margin-bottom:8px;"><i class="ti ti-list" style="color:#0891b2;"></i> Mis registros (${_incCache.length})</div>`;
-    if(!_incCache.length) {
-        html += `<div style="color:var(--text-muted); font-size:13px;">Aún no has registrado trabajos.</div>`;
-    } else {
-        const mostrar = _incCache.slice(0, _miVer);
-        html += `<div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Ticket</th><th>Tipo</th><th style="text-align:right;">Incentivo</th><th>Estado</th><th></th></tr></thead><tbody>`;
-        html += mostrar.map(r => `<tr>
-            <td>${_incFmtFecha(r.fecha)}</td>
-            <td>${escapeHtml(r.ticket || '-')}</td>
-            <td>${_incTipoTxt(r.tipo)}</td>
-            <td style="text-align:right; font-weight:700;">${money(r.monto_incentivo)}</td>
-            <td>${_incEstadoBadge(r.estado)}</td>
-            <td style="text-align:right; white-space:nowrap;">${r.estado === 'pendiente' ? `<button class="btn btn-light btn-sm" onclick="editarIncentivo('${r.id}')" title="Editar"><i class="ti ti-pencil"></i></button> <button class="btn btn-light btn-sm" onclick="borrarIncentivo('${r.id}')" title="Borrar" style="color:#b91c1c;"><i class="ti ti-trash"></i></button>` : '<span style="font-size:11px; color:#94a3b8;">—</span>'}</td>
-        </tr>`).join('');
-        html += `</tbody></table></div>`;
-        if(_incCache.length > _miVer) html += `<div style="text-align:center; margin:6px 0;"><button class="btn btn-light btn-sm" onclick="miVerMas()"><i class="ti ti-chevron-down"></i> Ver 10 más (${_incCache.length - _miVer} restantes)</button></div>`;
-    }
-    html += `</div>`;
+    html += `<div style="text-align:center; margin-top:2px;"><button class="btn btn-light btn-sm" onclick="abrirRegistroTickets()"><i class="ti ti-list-details" style="color:#0891b2;"></i> Ver Registro de Ticket (${_incCache.length})</button></div>`;
     cont.innerHTML = html;
     setTimeout(_incMiTipoCambio, 20);
+}
+// Ventana "Registro de Ticket": muestra todos los tickets registrados por el técnico
+async function abrirRegistroTickets() {
+    const yo = sessionUser?.id;
+    if(!yo) { toast('No se pudo identificar tu usuario.', 'error'); return; }
+    abrirModalGenerico('📋 Registro de Ticket', `
+        <input id="regTickBusq" placeholder="Buscar por # ticket o nota…" autocomplete="off" oninput="renderRegistroTicketsModal()" style="width:100%; padding:9px 12px; font-size:14px; border:1px solid #cbd5e1; border-radius:8px; margin-bottom:10px;">
+        <div id="regTicketsLista"><div style="text-align:center; color:#64748b; padding:18px;">⏳ Cargando…</div></div>
+    `);
+    try {
+        const { data } = await supabaseClient.from('taller_incentivos').select('*').eq('tecnico_id', yo).order('creado_en', { ascending: false });
+        _incCache = data || [];
+    } catch(e) {}
+    renderRegistroTicketsModal();
+}
+function renderRegistroTicketsModal() {
+    const cont = document.getElementById('regTicketsLista');
+    if(!cont) return;
+    const q = (document.getElementById('regTickBusq')?.value || '').toLowerCase().trim();
+    let list = _incCache || [];
+    if(q) list = list.filter(r => (r.ticket || '').toLowerCase().includes(q) || (r.nota || '').toLowerCase().includes(q));
+    const sum = (e) => (_incCache || []).filter(r => r.estado === e).reduce((s,r) => s + Number(r.monto_incentivo||0), 0);
+    let html = `<div style="font-size:12.5px; margin-bottom:8px;">⏳ Por validar: <b style="color:#b45309;">${money(sum('pendiente'))}</b> · ✅ Por cobrar: <b style="color:#1d4ed8;">${money(sum('validado'))}</b> · 💵 Pagado: <b style="color:#16a34a;">${money(sum('pagado'))}</b></div>`;
+    if(!list.length) {
+        html += `<div style="color:#64748b; text-align:center; padding:18px;">${q ? 'No hay tickets que coincidan.' : 'Aún no has registrado tickets.'}</div>`;
+        cont.innerHTML = html; return;
+    }
+    html += `<div class="table-wrap"><table><thead><tr><th>Fecha</th><th># Ticket</th><th>Tipo</th><th style="text-align:right;">Incentivo</th><th>Estado</th><th></th></tr></thead><tbody>`;
+    html += list.map(r => `<tr>
+        <td>${_incFmtFecha(r.fecha)}</td>
+        <td>${escapeHtml(r.ticket || '-')}</td>
+        <td>${_incTipoTxt(r.tipo)}</td>
+        <td style="text-align:right; font-weight:700;">${money(r.monto_incentivo)}</td>
+        <td>${_incEstadoBadge(r.estado)}</td>
+        <td style="text-align:right; white-space:nowrap;">${r.estado === 'pendiente' ? `<button class="btn btn-light btn-sm" onclick="editarIncentivo('${r.id}')" title="Editar"><i class="ti ti-pencil"></i></button> <button class="btn btn-light btn-sm" onclick="borrarIncentivo('${r.id}')" title="Borrar" style="color:#b91c1c;"><i class="ti ti-trash"></i></button>` : '<span style="font-size:11px; color:#94a3b8;">—</span>'}</td>
+    </tr>`).join('');
+    html += `</tbody></table></div><div style="font-size:11px; color:#64748b; margin-top:6px;">Solo puedes editar/borrar los que están ⏳ Por validar.</div>`;
+    cont.innerHTML = html;
 }
 async function guardarMiIncentivo() {
     const yo = sessionUser?.id;
@@ -12852,7 +12874,7 @@ function renderMiTrabajo() {
         <div class="kpi-box" style="border-top-color:#f59e0b;"><small>Mis reacond.</small><strong>${misReacond.length}</strong><i class="ti ti-refresh"></i></div>
         <div class="kpi-box" style="border-top-color:#dc2626;"><small>Fallas pend.</small><strong>${misFallasPend}</strong><i class="ti ti-alert-triangle"></i></div>
         ${reasignadasAMi > 0 ? `<div class="kpi-box" style="border-top-color:#d97706;"><small>Reasignadas a mí</small><strong>${reasignadasAMi}</strong><i class="ti ti-arrows-exchange"></i></div>` : ''}
-        ${!esAdmin ? `<div class="kpi-box" style="border-top-color:#16a34a; cursor:pointer;" onclick="irARegistrarTicket()" title="Registrar un ticket de incentivo"><small>Registrar ticket</small><strong style="color:#16a34a; font-size:22px;">＋</strong><i class="ti ti-coin"></i></div>` : ''}
+        ${!esAdmin ? `<div class="kpi-box" style="border-top-color:#16a34a; cursor:pointer;" onclick="abrirRegistroTickets()" title="Ver todos los tickets registrados"><small>Registro de Ticket</small><strong style="color:#16a34a; font-size:22px;"><i class="ti ti-list-details"></i></strong><i class="ti ti-coin"></i></div>` : ''}
     `;
     
     let html = '';
