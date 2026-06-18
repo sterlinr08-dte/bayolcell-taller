@@ -7991,7 +7991,6 @@ function renderEquipoReacondCard(eq, num) {
         badgeColor = 'background:#d1fae5; color:#065f46;';
         badgeText = '✅ Evaluado';
         accionPrincipal = `abrirModalAsignarTecnico('${eq.id}')`;
-        botones = `<button class="btn btn-light" style="padding:8px 12px;" onclick="event.stopPropagation(); continuarEvaluacion('${eq.id}')" title="Ver/Editar"><i class="ti ti-eye"></i></button>`;
     } else if(estado === 'en_proceso') {
         badgeColor = 'background:#fed7aa; color:#9a3412;';
         badgeText = '🔧 En Proceso';
@@ -8036,6 +8035,7 @@ function renderEquipoReacondCard(eq, num) {
                     ${eq.veces_devuelto > 0 ? `<span title="Equipo devuelto ${eq.veces_devuelto} vez(es)" style="font-size:16px;">🔄</span>` : ''}
                     <b style="font-size:14px;">${escapeHtml(eq.modelo || 'Sin modelo')}</b>
                     <span class="badge" style="${badgeColor} font-size:11px;">${badgeText}</span>
+                    ${estado === 'evaluado' ? `<button onclick="event.stopPropagation(); continuarEvaluacion('${eq.id}')" title="Ver / Editar evaluación" style="background:#d1fae5; color:#065f46; border:1px solid #6ee7b7; border-radius:6px; padding:2px 7px; cursor:pointer; font-size:12px;"><i class="ti ti-eye"></i></button>` : ''}
                     ${eq.veces_devuelto > 0 ? `<span class="badge" style="background:#fee2e2; color:#991b1b; font-size:10px; font-weight:700;">DEVUELTO ${eq.veces_devuelto}×</span>` : ''}
                     ${tecnico ? `<span class="badge" style="background:#e0e7ff; color:#3730a3; font-size:11px;"><i class="ti ti-user"></i> ${escapeHtml(tecnico.nombre)}</span>` : ''}
                 </div>
