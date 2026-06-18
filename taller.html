@@ -2056,7 +2056,11 @@ body{
                         <!-- Lista de equipos -->
                         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin:15px 0 10px;">
                             <h4 style="margin:0;"><i class="ti ti-devices-pc"></i> Equipos del Lote</h4>
-                            <button class="btn btn-dark" style="padding:8px 14px; background:#f59e0b;" onclick="abrirModalAsignarLote()"><i class="ti ti-users"></i> Asignar a técnico</button>
+                            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                                <label style="display:inline-flex; align-items:center; gap:6px; font-size:12px; color:#475569; cursor:pointer;"><input type="checkbox" id="reacondSelTodos" onclick="_reacondSelTodos(this.checked)" style="width:16px; height:16px; cursor:pointer; accent-color:#f59e0b;"> Marcar todos</label>
+                                <span id="reacondSelCount" style="font-size:12px; color:#b45309; font-weight:700;"></span>
+                                <button class="btn btn-dark" style="padding:8px 14px; background:#f59e0b;" onclick="abrirModalAsignarLote()"><i class="ti ti-users"></i> Asignar a técnico</button>
+                            </div>
                         </div>
                         <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
                             <input id="reacondBusq" placeholder="🔍 Buscar / escanear por IMEI, código o modelo…" oninput="renderDetalleLoteReacond()" onkeydown="if(event.key==='Enter'){event.preventDefault();renderDetalleLoteReacond();}" autocomplete="off" style="flex:1; min-width:220px; padding:9px 12px; font-size:13px; border:1px solid #cbd5e1; border-radius:8px;">
@@ -3049,11 +3053,11 @@ body{
                 <label>Técnico</label>
                 <div id="ss-asignlote-tecnico"></div>
             </div>
-            <div class="form-row">
+            <div class="form-row" id="asignlote_cantidadRow">
                 <label>Cantidad de equipos a asignar</label>
                 <input id="asignlote_cantidad" type="number" min="1" value="1" style="font-weight:700;">
-                <div id="asignlote_disp" style="font-size:12px; color:#64748b; margin-top:4px;"></div>
             </div>
+            <div id="asignlote_disp" style="font-size:12px; color:#64748b; margin:-4px 0 12px;"></div>
             <div class="form-row">
                 <label>Nota (opcional)</label>
                 <textarea id="asignlote_nota" rows="2" placeholder="Instrucciones..." style="resize:vertical;"></textarea>
@@ -7673,6 +7677,20 @@ async function registrarEquipoRefurb() {
    ============================================================ */
 let reacondTabActual = 'pendientes';
 let reacondLoteAbiertoId = null;
+let _reacondSel = new Set(); // equipos marcados con casilla para asignar en bloque
+function _reacondToggleSel(id, checked) {
+    if(checked) _reacondSel.add(id); else _reacondSel.delete(id);
+    _reacondActualizarSelUI();
+}
+function _reacondSelTodos(checked) {
+    _equiposEvaluadosDisponibles().forEach(e => { if(checked) _reacondSel.add(e.id); else _reacondSel.delete(e.id); });
+    if(reacondLoteAbiertoId) renderDetalleLoteReacond();
+}
+function _reacondActualizarSelUI() {
+    const n = _equiposEvaluadosDisponibles().filter(e => _reacondSel.has(e.id)).length;
+    const el = document.getElementById('reacondSelCount');
+    if(el) el.textContent = n ? `${n} seleccionado(s)` : '';
+}
 
 /* ============================================================
    REGISTRAR EQUIPO EXISTENTE (equipos que ya estaban antes del sistema)
@@ -7951,6 +7969,7 @@ function cambiarTabReacond(tab) {
 
 function abrirLoteReacond(loteId) {
     reacondLoteAbiertoId = loteId;
+    _reacondSel = new Set(); // limpiar selección al abrir un lote
     document.getElementById('reacondListaLotes').style.display = 'none';
     document.getElementById('reacondDetalleLote').style.display = 'block';
     renderDetalleLoteReacond();
@@ -8041,6 +8060,11 @@ function renderDetalleLoteReacond() {
         return;
     }
     cont.innerHTML = filtrados.map(x => renderEquipoReacondCard(x.eq, x.num)).join('');
+    // Estado de la selección (casillas) y del "Marcar todos"
+    _reacondActualizarSelUI();
+    const disp = _equiposEvaluadosDisponibles();
+    const todos = document.getElementById('reacondSelTodos');
+    if(todos) todos.checked = disp.length > 0 && disp.every(e => _reacondSel.has(e.id));
 }
 
 function renderEquipoReacondCard(eq, num) {
@@ -8100,6 +8124,7 @@ function renderEquipoReacondCard(eq, num) {
         <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
             <div style="flex:1; min-width:200px;">
                 <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    ${(estado === 'evaluado' && !eq.tecnico_asignado_id) ? `<input type="checkbox" onclick="event.stopPropagation(); _reacondToggleSel('${eq.id}', this.checked)" ${_reacondSel.has(eq.id) ? 'checked' : ''} title="Seleccionar para asignar" style="width:18px; height:18px; cursor:pointer; accent-color:#f59e0b;">` : ''}
                     <span style="background:var(--blue-btn); color:#fff; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700;">#${num}</span>
                     ${eq.veces_devuelto > 0 ? `<span title="Equipo devuelto ${eq.veces_devuelto} vez(es)" style="font-size:16px;">🔄</span>` : ''}
                     <b style="font-size:14px;">${escapeHtml(eq.modelo || 'Sin modelo')}</b>
@@ -9611,10 +9636,18 @@ function abrirModalAsignarLote() {
     if(!reacondLoteAbiertoId) return toast('Abre un lote primero.', 'error');
     const disp = _equiposEvaluadosDisponibles();
     if(!disp.length) return toast('No hay equipos evaluados sin asignar en este lote.', 'error');
-    document.getElementById('asignlote_cantidad').value = Math.min(1, disp.length) || 1;
-    document.getElementById('asignlote_cantidad').max = disp.length;
-    document.getElementById('asignlote_cantidad').value = disp.length; // por defecto, todos
-    document.getElementById('asignlote_disp').textContent = `Hay ${disp.length} equipo(s) evaluado(s) disponibles para asignar.`;
+    const sel = disp.filter(e => _reacondSel.has(e.id));
+    const cantRow = document.getElementById('asignlote_cantidadRow');
+    if(sel.length) {
+        // Hay equipos marcados con casilla → se asignan esos
+        if(cantRow) cantRow.style.display = 'none';
+        document.getElementById('asignlote_disp').textContent = `Se asignarán los ${sel.length} equipo(s) que marcaste.`;
+    } else {
+        if(cantRow) cantRow.style.display = '';
+        document.getElementById('asignlote_cantidad').max = disp.length;
+        document.getElementById('asignlote_cantidad').value = disp.length; // por defecto, todos
+        document.getElementById('asignlote_disp').textContent = `Hay ${disp.length} equipo(s) evaluado(s) disponibles. (O marca con casilla los que quieras.)`;
+    }
     document.getElementById('asignlote_nota').value = '';
     const tecnicosActivos = (cache.tecnicos || []).filter(t => t.activo);
     smartSelectInit({
@@ -9634,12 +9667,19 @@ async function confirmarAsignarLote(btn) {
     const tecnicoId = smartSelectGetValue('ss-asignlote-tecnico');
     if(!tecnicoId) return toast('Selecciona un técnico.', 'error');
     const disp = _equiposEvaluadosDisponibles();
-    let cant = parseInt(document.getElementById('asignlote_cantidad').value) || 0;
-    if(cant < 1) return toast('La cantidad debe ser 1 o más.', 'error');
-    if(cant > disp.length) cant = disp.length;
+    const marcados = disp.filter(e => _reacondSel.has(e.id));
+    let elegidos;
+    if(marcados.length) {
+        elegidos = marcados; // usar los que marcó con casilla
+    } else {
+        let cant = parseInt(document.getElementById('asignlote_cantidad').value) || 0;
+        if(cant < 1) return toast('Marca equipos con la casilla o pon una cantidad.', 'error');
+        if(cant > disp.length) cant = disp.length;
+        elegidos = disp.slice(0, cant);
+    }
+    const cant = elegidos.length;
     const nota = (document.getElementById('asignlote_nota').value || '').trim();
     const tecnico = (cache.tecnicos || []).find(t => t.id === tecnicoId);
-    const elegidos = disp.slice(0, cant);
     if(!await confirmar(`¿Asignar ${cant} equipo(s) a ${tecnico?.nombre || 'el técnico'}?\n\nPasarán a "En Proceso".`)) return;
     const orig = btn ? btn.innerHTML : '';
     if(btn){ btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Asignando…'; }
@@ -9656,6 +9696,7 @@ async function confirmarAsignarLote(btn) {
             } catch(_e) {}
         }
         toast(`✅ ${cant} equipo(s) asignado(s) a ${tecnico?.nombre || 'técnico'}.`);
+        _reacondSel = new Set(); // limpiar selección
         cerrarModalAsignarLote();
         await loadAll();
         if(reacondLoteAbiertoId) renderDetalleLoteReacond();
