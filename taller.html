@@ -8070,8 +8070,19 @@ function imprimirReporteCostosLote() {
     if(!isAdminUser()) return toast('Solo el administrador.', 'error');
     if(!reacondLoteAbiertoId) return toast('Abre un lote primero.', 'error');
     const lote = (cache.lotes || []).find(l => l.id === reacondLoteAbiertoId);
-    const equipos = (cache.refurb || []).filter(r => r.lote_id === reacondLoteAbiertoId);
-    if(!equipos.length) return toast('Este lote no tiene equipos.', 'error');
+    let equipos = (cache.refurb || []).filter(r => r.lote_id === reacondLoteAbiertoId);
+    // Aplicar los mismos filtros que se ven en pantalla (técnico, estado, búsqueda)
+    const fEstado = document.getElementById('reacondFiltroEstado')?.value || '';
+    const q = (document.getElementById('reacondBusq')?.value || '').toLowerCase().trim();
+    const filtrosTxt = [];
+    if(_reacondFiltroTec) { const t = (cache.tecnicos||[]).find(x => x.id === _reacondFiltroTec); equipos = equipos.filter(e => e.tecnico_asignado_id === _reacondFiltroTec); filtrosTxt.push('Técnico: ' + escapeHtml(t?.nombre || '')); }
+    if(fEstado) {
+        const lbl = { pendiente:'Pendiente', en_evaluacion:'En evaluación', evaluado:'Evaluado', en_proceso:'En proceso', reasignado:'Reasignado', listo_venta:'Listo', vendido:'Despachado' }[fEstado] || fEstado;
+        equipos = equipos.filter(e => (e.estado_evaluacion||'pendiente') === fEstado);
+        filtrosTxt.push('Estado: ' + lbl);
+    }
+    if(q) { equipos = equipos.filter(e => [e.imei, e.articulo_codigo, e.modelo, e.marca].filter(Boolean).join(' ').toLowerCase().includes(q)); filtrosTxt.push('Búsqueda: "' + escapeHtml(q) + '"'); }
+    if(!equipos.length) return toast('No hay equipos para el reporte (revisa los filtros).', 'error');
     const prov = (cache.proveedores || []).find(p => p.id === lote.proveedor_id);
     const cfg = cache.configTaller || {};
     const tienda = cfg.nombre || 'BAYOL CELL';
@@ -8103,6 +8114,7 @@ function imprimirReporteCostosLote() {
         <div class="muted">${new Date().toLocaleString('es-DO')}</div>
         <hr>
         <div><b>Proveedor:</b> ${escapeHtml(prov ? prov.nombre : 'Sin proveedor')} &nbsp;·&nbsp; <b>Equipos:</b> ${equipos.length}</div>
+        ${filtrosTxt.length ? `<div class="muted" style="margin-top:3px;"><b>Filtro:</b> ${filtrosTxt.join(' · ')}</div>` : ''}
         <table><thead><tr><th>#</th><th>Modelo</th><th>IMEI</th><th style="text-align:right;">Compra</th><th style="text-align:right;">Piezas</th><th style="text-align:right;">Costo final</th></tr></thead>
         <tbody>${filas}</tbody>
         <tfoot><tr><td colspan="3" style="text-align:right;">TOTALES:</td><td style="text-align:right;">${money(tCompra)}</td><td style="text-align:right;">${money(tPiezas)}</td><td style="text-align:right;">${money(tFinal)}</td></tr></tfoot>
