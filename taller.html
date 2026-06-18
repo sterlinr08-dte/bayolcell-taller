@@ -2031,15 +2031,15 @@ body{
                         
                         <!-- Resumen de estados -->
                         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-bottom:15px;">
-                            <div style="background:#fef3c7; padding:12px; border-radius:8px; text-align:center;">
+                            <div id="kpiCardPendiente" onclick="_reacondFiltrarPorEstado('pendiente')" title="Clic para filtrar" style="background:#fef3c7; padding:12px; border-radius:8px; text-align:center; cursor:pointer; border:2px solid transparent;">
                                 <div style="font-size:24px; font-weight:bold; color:#92400e;" id="kpiPendientes">0</div>
                                 <div style="font-size:11px; color:#92400e;">PENDIENTES</div>
                             </div>
-                            <div style="background:#dbeafe; padding:12px; border-radius:8px; text-align:center;">
+                            <div id="kpiCardEnEval" onclick="_reacondFiltrarPorEstado('en_evaluacion')" title="Clic para filtrar" style="background:#dbeafe; padding:12px; border-radius:8px; text-align:center; cursor:pointer; border:2px solid transparent;">
                                 <div style="font-size:24px; font-weight:bold; color:#b91c1c;" id="kpiEnEval">0</div>
                                 <div style="font-size:11px; color:#b91c1c;">EN EVALUACIÓN</div>
                             </div>
-                            <div style="background:#d1fae5; padding:12px; border-radius:8px; text-align:center;">
+                            <div id="kpiCardEvaluado" onclick="_reacondFiltrarPorEstado('evaluado')" title="Clic para filtrar" style="background:#d1fae5; padding:12px; border-radius:8px; text-align:center; cursor:pointer; border:2px solid transparent;">
                                 <div style="font-size:24px; font-weight:bold; color:#065f46;" id="kpiEvaluados">0</div>
                                 <div style="font-size:11px; color:#065f46;">EVALUADOS</div>
                             </div>
@@ -7840,6 +7840,13 @@ function volverListaLotesReacond() {
     cargarLotesReacond();
 }
 
+// Clic en una tarjeta de estado = filtrar por ese estado (clic de nuevo = quitar filtro)
+function _reacondFiltrarPorEstado(estado) {
+    const sel = document.getElementById('reacondFiltroEstado');
+    if(!sel) return;
+    sel.value = (sel.value === estado) ? '' : estado;
+    renderDetalleLoteReacond();
+}
 function renderDetalleLoteReacond() {
     if(!reacondLoteAbiertoId) return;
     const lote = (cache.lotes || []).find(l => l.id === reacondLoteAbiertoId);
@@ -7889,6 +7896,10 @@ function renderDetalleLoteReacond() {
     }
     const q = (document.getElementById('reacondBusq')?.value || '').toLowerCase().trim();
     const fEstado = document.getElementById('reacondFiltroEstado')?.value || '';
+    // Resaltar la tarjeta de estado activa
+    const cardMap = { pendiente: 'kpiCardPendiente', en_evaluacion: 'kpiCardEnEval', evaluado: 'kpiCardEvaluado' };
+    ['kpiCardPendiente','kpiCardEnEval','kpiCardEvaluado'].forEach(id => { const c = document.getElementById(id); if(c) c.style.border = '2px solid transparent'; });
+    if(cardMap[fEstado]) { const c = document.getElementById(cardMap[fEstado]); if(c) c.style.border = '2px solid #0f172a'; }
     let filtrados = equipos.map((eq, i) => ({ eq, num: i + 1 }));
     if(fEstado) filtrados = filtrados.filter(x => (x.eq.estado_evaluacion || 'pendiente') === fEstado);
     if(q) {
