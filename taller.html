@@ -2385,10 +2385,9 @@ body{
                     <!-- Botón imprimir label de diagnóstico -->
                     <div style="background:linear-gradient(135deg, #e0e7ff, #ddd6fe); border:1px solid #a5b4fc; border-radius:8px; padding:15px; margin-top:12px; text-align:center;">
                         <p style="font-size:12px; color:#4338ca; margin:0 0 10px;"><i class="ti ti-printer"></i> Imprime el label de diagnóstico con las fallas de este equipo.</p>
-                        <label style="display:inline-flex; align-items:center; gap:7px; font-size:13px; color:#065f46; font-weight:700; background:#d1fae5; border:1px solid #6ee7b7; padding:7px 12px; border-radius:8px; cursor:pointer; margin-bottom:10px;"><input type="checkbox" id="evalMarcarEvaluado" checked style="width:18px; height:18px; accent-color:#059669; cursor:pointer;"> ✅ Marcar como Evaluado al imprimir</label>
-                        <br>
+                        <input type="checkbox" id="evalMarcarEvaluado" checked style="display:none;">
                         <button class="btn btn-blue" onclick="imprimirLabelDesdeEvaluacion()" style="background:linear-gradient(135deg,#6366f1,#4f46e5); box-shadow:0 3px 10px rgba(99,102,241,0.25);"><i class="ti ti-printer"></i> Imprimir Label de Diagnóstico</button>
-                        <p style="font-size:11px; color:#6366f1; margin:8px 0 0;">💡 Si dejas el check marcado, el equipo queda como <b>✅ Evaluado</b>. Si lo desmarcas, solo se guarda.</p>
+                        <p style="font-size:11px; color:#6366f1; margin:8px 0 0;">💡 Al imprimir, el equipo queda marcado como <b>✅ Evaluado</b>.</p>
                     </div>
                 </div>
             </div>
@@ -5037,9 +5036,9 @@ function nav(v, btn) {
     document.getElementById("pageTitle").textContent = activeBtn ? activeBtn.textContent.trim() : v;
     if(v === 'etiquetas') { setTimeout(cargarCalibracionLabelVenta, 50); }
     if(v === 'configImpresora') { setTimeout(() => { inicializarConfigImpresora(); qzVerificarConexion(); if(typeof cargarConfigLabelOrden === 'function') cargarConfigLabelOrden(); }, 50); }
-    if(v === 'proveedores') { volverListaProveedores(); }
-    if(v === 'refurb') { setTimeout(() => { volverListaLotesReacond(); cargarLotesReacond(); }, 50); }
-    if(v === 'configuracion') { setTimeout(() => { cambiarMainTabConfig('tecnicos'); }, 50); }
+    if(v === 'proveedores') { volverListaProveedores(); setTimeout(() => { const st = localStorage.getItem('bayol_subtab_compras'); if(st && st !== 'compras' && typeof cambiarTab === 'function') cambiarTab(st); }, 60); }
+    if(v === 'refurb') { setTimeout(() => { volverListaLotesReacond(); const st = localStorage.getItem('bayol_subtab_reacond') || 'lotes'; if(typeof cambiarMainTabReacond === 'function') cambiarMainTabReacond(st); }, 50); }
+    if(v === 'configuracion') { setTimeout(() => { cambiarMainTabConfig(localStorage.getItem('bayol_subtab_config') || 'tecnicos'); }, 50); }
     if(v === 'reportes') { setTimeout(() => { inicializarReportes(); }, 50); }
     if(v === 'estadisticas') { setTimeout(() => { renderEstadisticas(); }, 50); }
     if(v === 'miTrabajo') { setTimeout(() => { renderMiTrabajo(); const _wrap = document.getElementById('miTrabajoIncentivosWrap'); if(_wrap){ if(!isAdminUser() && typeof renderMisIncentivos === 'function') { _wrap.style.display = ''; renderMisIncentivos('miTrabajoIncentivos'); } else { _wrap.style.display = 'none'; } } }, 50); }
@@ -8097,6 +8096,7 @@ async function marcarEvaluado(equipoId) {
    REACONDICIONADOS - PESTAÑAS PRINCIPALES (Lotes / Catálogo)
    ============================================================ */
 function cambiarMainTabReacond(tab) {
+    try { localStorage.setItem('bayol_subtab_reacond', tab); } catch(e){} // recordar sub-pestaña
     document.getElementById('reacondMainContentLotes').style.display = tab === 'lotes' ? 'block' : 'none';
     document.getElementById('reacondMainContentCatalogo').style.display = tab === 'catalogo' ? 'block' : 'none';
     const devCont = document.getElementById('reacondMainContentDevoluciones');
@@ -9128,6 +9128,7 @@ function restaurarOrdenMenu() {
 }
 
 function cambiarMainTabConfig(tab) {
+    try { localStorage.setItem('bayol_subtab_config', tab); } catch(e){} // recordar sub-pestaña de Configuración
     document.getElementById('cfgContentTecnicos').style.display = tab === 'tecnicos' ? 'block' : 'none';
     document.getElementById('cfgContentGeneral').style.display = tab === 'general' ? 'block' : 'none';
     const rolesCont = document.getElementById('cfgContentRoles');
@@ -15569,6 +15570,7 @@ document.addEventListener('keydown', e => {
    ============================================================ */
 
 function cambiarTab(tab) {
+    try { localStorage.setItem('bayol_subtab_compras', tab); } catch(e){} // recordar sub-pestaña de Compras
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     document.getElementById('tab-' + tab)?.classList.add('active');
