@@ -4232,6 +4232,7 @@ function _wvSet(id, v) { const el = document.getElementById(id); if(el) el.textC
    ============================================================ */
 const INC_REPARACION = 50, INC_PULIDO = 100;
 let _incCache = [], _incReportes = [], _incFiltroTec = '', _incFiltroEstado = '', _incDesde = '', _incHasta = '';
+let _incQuincenaSel = null; // 0 = quincena actual, -1 = pasada, null = ninguna (para resaltar el botón)
 let _incUltimoTecnico = '', _incUltimoTipo = 'reparacion';
 let _incVer = {}; // cuántos registros mostrar por técnico (de 10 en 10)
 let _incExpandido = ''; // técnico cuyos tickets están desplegados ('' = ninguno)
@@ -4275,6 +4276,7 @@ function _incFilaServicioAgrupada(r) {
     </tr>`;
 }
 function _incQuincena(offset) {
+    _incQuincenaSel = offset; // recordar cuál quincena está activa (para resaltar)
     // offset 0 = quincena actual, -1 = quincena pasada
     const hoy = new Date(); hoy.setHours(0,0,0,0);
     let y = hoy.getFullYear(), m = hoy.getMonth(), primera = hoy.getDate() <= 15;
@@ -4324,8 +4326,10 @@ function _incTipoCambio() {
 function _incAplicarFiltros() {
     _incFiltroTec = document.getElementById('incFTec')?.value || '';
     _incFiltroEstado = document.getElementById('incFEstado')?.value || '';
-    _incDesde = document.getElementById('incFDesde')?.value || '';
-    _incHasta = document.getElementById('incFHasta')?.value || '';
+    const dNuevo = document.getElementById('incFDesde')?.value || '';
+    const hNuevo = document.getElementById('incFHasta')?.value || '';
+    if(dNuevo !== _incDesde || hNuevo !== _incHasta) _incQuincenaSel = null; // si cambia las fechas a mano, ya no hay quincena activa
+    _incDesde = dNuevo; _incHasta = hNuevo;
     renderIncentivos();
 }
 async function renderIncentivos() {
@@ -4371,8 +4375,8 @@ async function renderIncentivos() {
             <div style="width:140px;"><label style="font-size:10px; color:#64748b;">Estado</label><select id="incFEstado" onchange="_incAplicarFiltros()" ${cf}><option value="" ${_incFiltroEstado===''?'selected':''}>Todos</option><option value="pendiente" ${_incFiltroEstado==='pendiente'?'selected':''}>Por validar</option><option value="validado" ${_incFiltroEstado==='validado'?'selected':''}>Validado</option><option value="pagado" ${_incFiltroEstado==='pagado'?'selected':''}>Pagado</option></select></div>
             <div style="width:120px;"><label style="font-size:10px; color:#64748b;">Desde</label><input type="date" id="incFDesde" value="${_incDesde}" onchange="_incAplicarFiltros()" ${cf}></div>
             <div style="width:120px;"><label style="font-size:10px; color:#64748b;">Hasta</label><input type="date" id="incFHasta" value="${_incHasta}" onchange="_incAplicarFiltros()" ${cf}></div>
-            <button class="btn btn-blue btn-sm" onclick="_incQuincena(0)" style="height:30px;">Quincena actual</button>
-            <button class="btn btn-light btn-sm" onclick="_incQuincena(-1)" style="height:30px;">Quincena pasada</button>
+            <button class="btn btn-sm" onclick="_incQuincena(0)" style="height:30px; ${_incQuincenaSel === 0 ? 'background:linear-gradient(180deg,#16a34a,#15803d); color:#fff; border:0; box-shadow:0 2px 6px rgba(22,163,74,0.35);' : 'background:#fff; color:#0f172a; border:1px solid #cbd5e1;'}">${_incQuincenaSel === 0 ? '✅ ' : ''}Quincena actual</button>
+            <button class="btn btn-sm" onclick="_incQuincena(-1)" style="height:30px; ${_incQuincenaSel === -1 ? 'background:linear-gradient(180deg,#16a34a,#15803d); color:#fff; border:0; box-shadow:0 2px 6px rgba(22,163,74,0.35);' : 'background:#fff; color:#0f172a; border:1px solid #cbd5e1;'}">${_incQuincenaSel === -1 ? '✅ ' : ''}Quincena pasada</button>
             <button class="btn btn-light btn-sm" onclick="_incLimpiarFiltros()" style="height:30px;"><i class="ti ti-x"></i></button>
         </div>
     </div>`;
@@ -4497,7 +4501,7 @@ async function renderIncentivos() {
 
     cont.innerHTML = html;
 }
-function _incLimpiarFiltros() { _incFiltroTec=''; _incFiltroEstado=''; _incDesde=''; _incHasta=''; renderIncentivos(); }
+function _incLimpiarFiltros() { _incFiltroTec=''; _incFiltroEstado=''; _incDesde=''; _incHasta=''; _incQuincenaSel=null; renderIncentivos(); }
 async function guardarIncentivo() {
     if(!isAdminUser()) { toast('Solo administradores.', 'error'); return; }
     const tecSel = document.getElementById('incTecnico');
