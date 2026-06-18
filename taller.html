@@ -7128,13 +7128,32 @@ function _initLoteArticuloSelect() {
         onIconClick: abrirBuscadorArticulos
     });
 }
+// Selector de piezas en la evaluación (inventario de Info Plus)
+function _initEvalPiezaSelect() {
+    smartSelectInit({
+        containerId: 'ss-eval-pieza',
+        placeholder: '🔍 Buscar pieza del inventario (Info Plus)...',
+        items: (cache.infoplusArticulos || []).map(a => ({
+            id: a.codigo,
+            label: `${a.codigo} · ${(a.descripcion || '').trim()}`,
+            sub: [a.marca, Number(a.existencia) > 0 ? ('Stock ' + a.existencia) : 'Sin stock', Number(a.costo) > 0 ? ('Costo ' + money(a.costo)) : ''].filter(x => x).join(' · '),
+            search: [a.codigo, a.descripcion, a.marca, a.referencia].filter(x => x).join(' ').toLowerCase(),
+            _ip: a
+        })),
+        value: '',
+        onChange: () => {},
+        onIconClick: () => abrirBuscadorArticulos('ss-eval-pieza')
+    });
+}
 // Cuando se da clic en la lupita de un smart-select que tiene buscador completo
 function _smartSelectIconClick(containerId) {
     const st = _smartSelects[containerId];
     if(st && typeof st.onIconClick === 'function') st.onIconClick();
 }
 // Ventana flotante con TODOS los artículos de Info Plus + barra de búsqueda (para elegir)
-async function abrirBuscadorArticulos() {
+let _artBuscTarget = 'ss-eq-articulo';
+async function abrirBuscadorArticulos(targetSS) {
+    _artBuscTarget = (typeof targetSS === 'string' && targetSS) ? targetSS : 'ss-eq-articulo';
     abrirModalGenerico('🔍 Artículos (Info Plus)', `
         <input id="artBuscModal" placeholder="Buscar por código, descripción, marca o referencia…" autocomplete="off" oninput="renderBuscadorArticulos()" style="width:100%; padding:10px 12px; font-size:14px; border:1px solid #cbd5e1; border-radius:8px; margin-bottom:10px;">
         <div id="artBuscModalLista"><div style="text-align:center; color:#64748b; padding:20px;">⏳ Cargando artículos (Info Plus)…</div></div>
@@ -7181,13 +7200,14 @@ function renderBuscadorArticulos() {
         }).join('');
 }
 function _artBuscElegir(codigo) {
+    const target = _artBuscTarget || 'ss-eq-articulo';
     // Asegurar que el artículo está en los items del smart-select; si no, agregarlo
-    const st = _smartSelects['ss-eq-articulo'];
+    const st = _smartSelects[target];
     const a = _findInfoplusArt(codigo);
     if(st && a && !st.items.find(it => String(it.id) === String(codigo))) {
         st.items.push({ id: a.codigo, label: `${a.codigo} · ${(a.descripcion||'').trim()}`, sub: a.marca||'', search: [a.codigo,a.descripcion,a.marca,a.referencia].filter(x=>x).join(' ').toLowerCase(), _ip: a });
     }
-    smartSelectPick('ss-eq-articulo', codigo);
+    smartSelectPick(target, codigo);
     const m = document.getElementById('modalGenerico'); if(m) m.remove();
 }
 async function abrirLote(loteId) {
@@ -8526,6 +8546,7 @@ async function abrirModalEvaluacion(equipoId) {
         _evalState.piezasSeleccionadas = (piezasEq || []).map(p => ({
             id: p.id,
             pieza_id: p.pieza_id,
+            pieza_codigo: p.pieza_codigo || null,
             pieza_nombre: p.pieza_nombre,
             cantidad: p.cantidad || 1,
             costo_unitario: p.costo_unitario || 0,
@@ -8550,20 +8571,9 @@ async function abrirModalEvaluacion(equipoId) {
     document.getElementById('evalBuscarFalla').value = '';
     document.getElementById('eval_pieza_cantidad').value = 1;
     
-    // Inicializar smart-select de piezas
-    smartSelectInit({
-        containerId: 'ss-eval-pieza',
-        placeholder: '🔍 Buscar pieza del inventario...',
-        items: (cache.piezas || []).filter(p => p.cantidad > 0 || true).map(p => ({
-            id: p.id,
-            label: p.nombre,
-            sub: `Stock: ${p.cantidad || 0} · Costo: ${money(p.costo || 0)}`,
-            search: [p.nombre, p.codigo].filter(x => x).join(' ').toLowerCase(),
-            _pieza: p
-        })),
-        value: '',
-        onChange: () => {}
-    });
+    // Inicializar smart-select de piezas (inventario de Info Plus)
+    await _ensureInfoplusArticulos();
+    _initEvalPiezaSelect();
     
     renderFallasEvaluacion();
     renderPiezasEvaluacion();
@@ -8605,8 +8615,9 @@ function actualizarBotonesWizard(tab) {
     btnAtras.style.display = tab === 'fallas' ? 'none' : 'inline-flex';
     // Siguiente: visible en fallas y piezas, oculto en resumen
     btnSiguiente.style.display = tab === 'resumen' ? 'none' : 'inline-flex';
-    // Guardar / Guardar+evaluado: solo en resumen
-    btnGuardar.style.display = tab === 'resumen' ? 'inline-flex' : 'none';
+    // "Solo Guardar" SIEMPRE visible (para guardar fallas/piezas sin tener que llegar al Resumen)
+    btnGuardar.style.display = 'inline-flex';
+    // "Guardar y marcar evaluado": solo en resumen
     btnGuardarEval.style.display = tab === 'resumen' ? 'inline-flex' : 'none';
 }
 
@@ -8802,23 +8813,27 @@ function renderPiezasEvaluacion() {
 }
 
 function evalAgregarPieza() {
-    const piezaId = smartSelectGetValue('ss-eval-pieza');
-    if(!piezaId) return toast('Selecciona una pieza primero.', 'error');
-    
-    const pieza = (cache.piezas || []).find(p => p.id === piezaId);
-    if(!pieza) return toast('Pieza no encontrada.', 'error');
-    
+    const codigo = smartSelectGetValue('ss-eval-pieza');
+    if(!codigo) return toast('Selecciona una pieza primero.', 'error');
+
+    // Inventario de Info Plus: tomar del selector (siempre tiene _ip) o del caché
+    const st = _smartSelects['ss-eval-pieza'];
+    const selItem = (st && st.items) ? st.items.find(i => String(i.id) === String(codigo)) : null;
+    const pieza = (selItem && selItem._ip) || _findInfoplusArt(codigo);
+    if(!pieza) return toast('Pieza no encontrada en el inventario de Info Plus.', 'error');
+
     const cantidad = parseInt(document.getElementById('eval_pieza_cantidad').value) || 1;
     if(cantidad < 1) return toast('Cantidad inválida.', 'error');
-    
-    // ¿Ya está agregada? Sumar cantidad
-    const existente = _evalState.piezasSeleccionadas.find(p => p.pieza_id === piezaId);
+
+    // ¿Ya está agregada? Sumar cantidad (por código)
+    const existente = _evalState.piezasSeleccionadas.find(p => (p.pieza_codigo || '') === String(codigo));
     if(existente) {
         existente.cantidad = (existente.cantidad || 0) + cantidad;
     } else {
         _evalState.piezasSeleccionadas.push({
-            pieza_id: piezaId,
-            pieza_nombre: pieza.nombre,
+            pieza_id: null,
+            pieza_codigo: String(codigo),
+            pieza_nombre: (pieza.descripcion || codigo).trim(),
             cantidad: cantidad,
             costo_unitario: parseFloat(pieza.costo) || 0,
             estado: 'pendiente'
@@ -8923,7 +8938,8 @@ async function guardarEvaluacion(marcarEvaluado = false) {
         if(_evalState.piezasSeleccionadas.length > 0) {
             const insertsPz = _evalState.piezasSeleccionadas.map(p => ({
                 equipo_id: equipoId,
-                pieza_id: p.pieza_id,
+                pieza_id: p.pieza_id || null,
+                pieza_codigo: p.pieza_codigo || null,
                 pieza_nombre: p.pieza_nombre,
                 cantidad: p.cantidad,
                 costo_unitario: p.costo_unitario,
