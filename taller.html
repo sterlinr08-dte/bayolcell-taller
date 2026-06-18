@@ -16655,7 +16655,7 @@ function _pintarDetalleFin() {
         const enMora = finEstado(f) === 'atrasado';
         html += `<div class="card" style="margin-bottom:14px;">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-                <h3 style="margin:0; font-size:15px;"><i class="ti ti-device-mobile-cog" style="color:#0f172a;"></i> Control MDM <span style="background:${estInfo.b}; color:${estInfo.c}; font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px;">${estInfo.t}</span></h3>
+                <h3 style="margin:0; font-size:15px;"><i class="ti ti-device-mobile-cog" style="color:#0f172a;"></i> Control MDM <span id="mdmBadge_${f.id}" style="background:${estInfo.b}; color:${estInfo.c}; font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px;">${estInfo.t}</span></h3>
             </div>
             ${enMora && f.mdm_enrolado && est === 'activo' ? `<div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:8px 12px; border-radius:8px; margin-top:10px; font-size:12.5px;">⚠️ Cliente en atraso y equipo enrolado — candidato a bloqueo desde Hexnode.</div>` : ''}
             <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin-top:10px;">
@@ -18334,6 +18334,8 @@ async function mdmAccionReal(finId, accion) {
         if(data && data.error) throw new Error(data.error + (data.detalle ? ' — ' + data.detalle : ''));
         const accionTxt = accion === 'bloquear' ? '🔒 Bloqueo' : '🔓 Desbloqueo';
         toast('✅ Orden enviada a Hexnode.');
+        // ✨ Poner el estado automáticamente según la acción
+        await _mdmAplicarEstadoAuto(finId, accion === 'bloquear' ? 'bloqueado' : 'activo', true);
         mdmMostrarResultado(finId, `${accionTxt} — comprobando…`, 'Confirmando con el equipo si ya se aplicó…', 'info');
         await mdmConfirmarAplicado(finId, accionTxt);
     } catch(e) {
@@ -18341,6 +18343,25 @@ async function mdmAccionReal(finId, accion) {
         toast('No se pudo ejecutar en Hexnode: ' + (e.message || e), 'error');
         mdmMostrarResultado(finId, 'No se pudo ejecutar en Hexnode', escapeHtml(e.message || String(e)), 'error');
     }
+}
+// Pone el ESTADO automáticamente según lo que diga Hexnode (sin tener que elegirlo a mano)
+const _MDM_EST_INFO = { ninguno:{t:'Sin MDM',c:'#64748b',b:'#e2e8f0'}, activo:{t:'Activo',c:'#15803d',b:'#dcfce7'}, bloqueado:{t:'Bloqueado',c:'#b91c1c',b:'#fee2e2'}, liberado:{t:'Liberado',c:'#1d4ed8',b:'#dbeafe'} };
+async function _mdmAplicarEstadoAuto(finId, estado, enrolado, deviceId){
+    // Reflejar en la pantalla al instante (selector + casilla + insignia)
+    const sel = document.getElementById('mdmEstado'); if(sel) sel.value = estado;
+    const chk = document.getElementById('mdmEnrolado'); if(chk && enrolado) chk.checked = true;
+    const did = document.getElementById('mdmDeviceId'); if(did && deviceId && !did.value.trim()) did.value = deviceId;
+    const badge = document.getElementById('mdmBadge_' + finId);
+    if(badge){ const i = _MDM_EST_INFO[estado] || _MDM_EST_INFO.ninguno; badge.textContent = i.t; badge.style.background = i.b; badge.style.color = i.c; }
+    // Guardar en silencio (sin re-render para no borrar el resultado en pantalla)
+    try {
+        const upd = { mdm_estado: estado };
+        if(enrolado) upd.mdm_enrolado = true;
+        if(deviceId) upd.mdm_device_id = String(deviceId);
+        await supabaseClient.from('financiamientos').update(upd).eq('id', finId);
+        const f = (_finCache.financiamientos || []).find(x => x.id === finId);
+        if(f){ f.mdm_estado = estado; if(enrolado) f.mdm_enrolado = true; if(deviceId) f.mdm_device_id = String(deviceId); }
+    } catch(_e){}
 }
 // Verifica que el equipo esté bien enrolado/conectado en Hexnode (antes de entregar al cliente)
 async function mdmVerificar(finId, btn) {
@@ -18378,7 +18399,11 @@ async function mdmVerificar(finId, btn) {
             const lockHtml = d.bloqueado
                 ? `<br><span style="color:#b91c1c; font-weight:700;">🔒 Actualmente BLOQUEADO</span>`
                 : `<br><span style="color:#166534; font-weight:700;">🔓 Activo (no bloqueado)</span>`;
-            if(cont) cont.innerHTML = `<div style="background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; padding:8px 12px; border-radius:8px;"><b>✅ Equipo enrolado en Hexnode.</b>${d.name ? '<br>📱 ' + escapeHtml(d.name) : ''}<br>Estado: ${escapeHtml(d.estado || 'enrolled')}${detalle ? ' · ' + escapeHtml(detalle) : ''}${conexHtml}${lockHtml}<br><b>✅ LISTO para entregar al cliente.</b></div>`;
+            // ✨ Poner el ESTADO automáticamente según Hexnode (bloqueado / activo) y guardarlo
+            const estadoReal = d.bloqueado ? 'bloqueado' : 'activo';
+            await _mdmAplicarEstadoAuto(finId, estadoReal, true, d.device_id || d.id);
+            const autoTxt = `<br><span style="color:#1e40af; font-weight:700;">🔄 Estado actualizado automáticamente a "${estadoReal === 'bloqueado' ? 'Bloqueado' : 'Activo'}".</span>`;
+            if(cont) cont.innerHTML = `<div style="background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; padding:8px 12px; border-radius:8px;"><b>✅ Equipo enrolado en Hexnode.</b>${d.name ? '<br>📱 ' + escapeHtml(d.name) : ''}<br>Estado: ${escapeHtml(d.estado || 'enrolled')}${detalle ? ' · ' + escapeHtml(detalle) : ''}${conexHtml}${lockHtml}${autoTxt}<br><b>✅ LISTO para entregar al cliente.</b></div>`;
         } else {
             const msg = (data && data.error) || 'El equipo NO aparece enrolado en Hexnode.';
             if(cont) cont.innerHTML = `<div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:8px 12px; border-radius:8px;"><b>❌ NO verificado.</b><br>${escapeHtml(msg)}<br><b>⚠️ NO entregues el equipo todavía.</b></div>`;
