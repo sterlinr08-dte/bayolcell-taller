@@ -2060,8 +2060,10 @@ body{
                                 <label style="display:inline-flex; align-items:center; gap:6px; font-size:12px; color:#475569; cursor:pointer;"><input type="checkbox" id="reacondSelTodos" onclick="_reacondSelTodos(this.checked)" style="width:16px; height:16px; cursor:pointer; accent-color:#f59e0b;"> Marcar todos</label>
                                 <span id="reacondSelCount" style="font-size:12px; color:#b45309; font-weight:700;"></span>
                                 <button class="btn btn-dark" style="padding:8px 14px; background:#f59e0b;" onclick="abrirModalAsignarLote()"><i class="ti ti-users"></i> Asignar a técnico</button>
+                                <button class="btn btn-dark" style="padding:8px 14px; background:#5b21b6;" onclick="pasarSeleccionListoVenta()"><i class="ti ti-shopping-cart"></i> Pasar a Listo venta</button>
                             </div>
                         </div>
+                        <div id="reacondTecnicosRow" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;"></div>
                         <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
                             <input id="reacondBusq" placeholder="🔍 Buscar / escanear por IMEI, código o modelo…" oninput="renderDetalleLoteReacond()" onkeydown="if(event.key==='Enter'){event.preventDefault();renderDetalleLoteReacond();}" autocomplete="off" style="flex:1; min-width:220px; padding:9px 12px; font-size:13px; border:1px solid #cbd5e1; border-radius:8px;">
                             <select id="reacondFiltroEstado" onchange="renderDetalleLoteReacond()" style="padding:9px 12px; font-size:13px; border:1px solid #cbd5e1; border-radius:8px;">
@@ -7672,6 +7674,19 @@ async function registrarEquipoRefurb() {
 let reacondTabActual = 'pendientes';
 let reacondLoteAbiertoId = null;
 let _reacondSel = new Set(); // equipos marcados con casilla para asignar en bloque
+let _reacondFiltroTec = ''; // filtrar la lista por técnico (clic en su chip)
+const _REACOND_ESTADOS_TRABAJO = ['en_proceso','tecnico_recibio','espera_pieza','listo_revision','reasignado','reparacion_externa'];
+function _reacondTecnicosResumen() {
+    // Técnicos con equipos asignados (en trabajo) en el lote abierto
+    const res = {};
+    (cache.refurb || []).filter(r => r.lote_id === reacondLoteAbiertoId && r.tecnico_asignado_id && _REACOND_ESTADOS_TRABAJO.includes(r.estado_evaluacion))
+        .forEach(r => { res[r.tecnico_asignado_id] = (res[r.tecnico_asignado_id] || 0) + 1; });
+    return res;
+}
+function _reacondFiltrarTec(tecId) {
+    _reacondFiltroTec = (_reacondFiltroTec === tecId) ? '' : tecId;
+    renderDetalleLoteReacond();
+}
 function _reacondToggleSel(id, checked) {
     if(checked) _reacondSel.add(id); else _reacondSel.delete(id);
     _reacondActualizarSelUI();
@@ -7993,6 +8008,7 @@ function cambiarTabReacond(tab) {
 function abrirLoteReacond(loteId) {
     reacondLoteAbiertoId = loteId;
     _reacondSel = new Set(); // limpiar selección al abrir un lote
+    _reacondFiltroTec = '';
     document.getElementById('reacondListaLotes').style.display = 'none';
     document.getElementById('reacondDetalleLote').style.display = 'block';
     renderDetalleLoteReacond();
@@ -8056,6 +8072,21 @@ function renderDetalleLoteReacond() {
         </div>
     `;
     
+    // Fila de técnicos con equipos asignados (clic para filtrar)
+    const rowTec = document.getElementById('reacondTecnicosRow');
+    if(rowTec) {
+        const resTec = _reacondTecnicosResumen();
+        const keys = Object.keys(resTec);
+        if(!keys.length) { rowTec.innerHTML = ''; }
+        else {
+            rowTec.innerHTML = `<span style="font-size:12px; color:#64748b; align-self:center;">👷 Técnicos:</span>` + keys.map(tid => {
+                const t = (cache.tecnicos || []).find(x => x.id === tid);
+                const activo = _reacondFiltroTec === tid;
+                return `<button onclick="_reacondFiltrarTec('${tid}')" style="border:1px solid ${activo ? '#0f172a' : '#c7d2fe'}; background:${activo ? '#0f172a' : '#e0e7ff'}; color:${activo ? '#fff' : '#3730a3'}; padding:5px 11px; border-radius:999px; cursor:pointer; font-size:12px; font-weight:700;"><i class="ti ti-user"></i> ${escapeHtml(t?.nombre || 'Técnico')} · ${resTec[tid]}</button>`;
+            }).join('') + (_reacondFiltroTec ? `<button onclick="_reacondFiltrarTec('${_reacondFiltroTec}')" style="border:0; background:transparent; color:#b91c1c; cursor:pointer; font-size:12px;">✕ quitar filtro</button>` : '');
+        }
+    }
+
     // Lista de equipos (con buscador + filtro de estado, conservando el número original)
     const cont = document.getElementById('reacondEquiposLista');
     if(equipos.length === 0) {
@@ -8069,6 +8100,7 @@ function renderDetalleLoteReacond() {
     ['kpiCardPendiente','kpiCardEnEval','kpiCardEvaluado'].forEach(id => { const c = document.getElementById(id); if(c) c.style.border = '2px solid transparent'; });
     if(cardMap[fEstado]) { const c = document.getElementById(cardMap[fEstado]); if(c) c.style.border = '2px solid #0f172a'; }
     let filtrados = equipos.map((eq, i) => ({ eq, num: i + 1 }));
+    if(_reacondFiltroTec) filtrados = filtrados.filter(x => x.eq.tecnico_asignado_id === _reacondFiltroTec);
     if(fEstado) filtrados = filtrados.filter(x => (x.eq.estado_evaluacion || 'pendiente') === fEstado);
     if(q) {
         const palabras = q.split(/\s+/).filter(Boolean);
@@ -9686,6 +9718,24 @@ function abrirModalAsignarLote() {
     document.getElementById('modalAsignarLote').classList.add('active');
 }
 function cerrarModalAsignarLote() { document.getElementById('modalAsignarLote').classList.remove('active'); }
+// Pasar en bloque los evaluados seleccionados directo a "Listo para venta" (no requieren reparación)
+async function pasarSeleccionListoVenta() {
+    if(!reacondLoteAbiertoId) return toast('Abre un lote primero.', 'error');
+    const disp = _equiposEvaluadosDisponibles();
+    const sel = disp.filter(e => _reacondSel.has(e.id));
+    if(!sel.length) return toast('Marca con la casilla los equipos evaluados que pasan a Listo para venta.', 'error');
+    if(!await confirmar(`¿Pasar ${sel.length} equipo(s) evaluado(s) a "🛒 Listo para venta"?\n\n(Se asume que NO requieren reparación.)`)) return;
+    try {
+        const ids = sel.map(e => e.id);
+        const { error } = await supabaseClient.from('equipos_refurbish').update({ estado_evaluacion: 'listo_venta' }).in('id', ids);
+        if(error) throw error;
+        for(const e of sel) { try { await supabaseClient.from('equipo_historial').insert([{ equipo_id: e.id, estado_anterior: 'evaluado', estado_nuevo: 'listo_venta', accion: 'Pasado a Listo para venta sin reparación (en bloque)', usuario: sessionUser?.nombre || 'Admin' }]); } catch(_e) {} }
+        toast(`✅ ${sel.length} equipo(s) a Listo para venta.`);
+        _reacondSel = new Set();
+        await loadAll();
+        if(reacondLoteAbiertoId) renderDetalleLoteReacond();
+    } catch(e) { logError('Pasar a listo venta en bloque', e); toastError(getFriendlyError(e)); }
+}
 async function confirmarAsignarLote(btn) {
     const tecnicoId = smartSelectGetValue('ss-asignlote-tecnico');
     if(!tecnicoId) return toast('Selecciona un técnico.', 'error');
