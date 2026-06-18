@@ -1772,8 +1772,8 @@ body{
                     <div class="form-row"><input id="ip_buscar" placeholder="🔍 Buscar pieza por código, descripción o marca..." oninput="renderInfoplusBusqueda()"></div>
                     <div class="table-wrap" style="max-height:420px; overflow-y:auto;">
                         <table>
-                            <thead><tr><th>Código</th><th>Descripción</th><th>Marca</th><th>Taller</th><th>En otros almacenes</th></tr></thead>
-                            <tbody id="infoplusTable"><tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Aún no has importado el catálogo. Usa "Importar CSV".</td></tr></tbody>
+                            <thead><tr><th>Código</th><th>Descripción</th><th>Marca</th><th>Referencia</th><th style="text-align:right;">Costo</th><th style="text-align:right;">Precio</th><th>Taller</th><th>En otros almacenes</th></tr></thead>
+                            <tbody id="infoplusTable"><tr><td colspan="8" style="text-align:center; color:var(--text-muted);">Aún no has importado el catálogo. Usa "Importar CSV".</td></tr></tbody>
                         </table>
                     </div>
                 </div>
@@ -3601,14 +3601,15 @@ function smartSelectInit(options) {
         highlightIdx: -1,
         onChange: options.onChange || (() => {}),
         onCreate: options.onCreate,
-        createLabel: options.createLabel || '+ Crear nuevo'
+        createLabel: options.createLabel || '+ Crear nuevo',
+        onIconClick: options.onIconClick || null
     };
     _smartSelects[options.containerId] = state;
-    
+
     const selected = state.items.find(i => i.id === state.value);
     cont.innerHTML = `
         <div class="smart-select" id="${options.containerId}-ss">
-            <i class="ti ti-search smart-select-icon"></i>
+            <i class="ti ti-search smart-select-icon" ${state.onIconClick ? `style="cursor:pointer; pointer-events:auto;" title="Ver todos los artículos" onclick="_smartSelectIconClick('${options.containerId}')"` : ''}></i>
             <input type="text" class="smart-select-input" id="${options.containerId}-input" 
                 placeholder="${escapeHtml(options.placeholder || 'Buscar...')}" 
                 value="${selected ? escapeHtml(selected.label) : ''}"
@@ -6246,19 +6247,22 @@ async function renderInfoplusBusqueda() {
     const tb = document.getElementById('infoplusTable'); if(!tb) return;
     const q = (document.getElementById('ip_buscar')?.value || '').replace(/[,()%]/g, ' ').trim();
     try {
-        let query = supabaseClient.from('infoplus_articulos').select('codigo,descripcion,marca,existencia,existencias');
-        if(q) query = query.or('codigo.ilike.%' + q + '%,descripcion.ilike.%' + q + '%,marca.ilike.%' + q + '%');
+        let query = supabaseClient.from('infoplus_articulos').select('codigo,descripcion,marca,referencia,referencia_fabrica,costo,precio,existencia,existencias');
+        if(q) query = query.or('codigo.ilike.%' + q + '%,descripcion.ilike.%' + q + '%,marca.ilike.%' + q + '%,referencia.ilike.%' + q + '%');
         const { data, error } = await query.order('codigo').limit(100);
         if(error) throw error;
-        if(!data || !data.length) { tb.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Sin resultados.</td></tr>'; return; }
+        if(!data || !data.length) { tb.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">Sin resultados.</td></tr>'; return; }
         tb.innerHTML = data.map(a => {
             const taller = Number(a.existencia) || 0;
             const tallerHtml = taller > 0
                 ? `<b style="color:#16a34a;">${taller}</b>`
                 : `<span style="color:#dc2626;">0</span>`;
-            return `<tr><td><b>${escapeHtml(a.codigo)}</b></td><td>${escapeHtml(a.descripcion || '')}</td><td>${escapeHtml(a.marca || '')}</td><td>${tallerHtml}</td><td>${_htmlExistenciasOtros(a.existencias)}</td></tr>`;
+            const ref = a.referencia || a.referencia_fabrica || '';
+            const costo = Number(a.costo) > 0 ? money(a.costo) : '<span style="color:#cbd5e1;">—</span>';
+            const precio = Number(a.precio) > 0 ? `<b>${money(a.precio)}</b>` : '<span style="color:#cbd5e1;">—</span>';
+            return `<tr><td><b>${escapeHtml(a.codigo)}</b></td><td>${escapeHtml(a.descripcion || '')}</td><td>${escapeHtml(a.marca || '')}</td><td>${escapeHtml(ref)}</td><td style="text-align:right;">${costo}</td><td style="text-align:right;">${precio}</td><td>${tallerHtml}</td><td>${_htmlExistenciasOtros(a.existencias)}</td></tr>`;
         }).join('');
-    } catch(e) { tb.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#dc2626;">Error al cargar.</td></tr>'; }
+    } catch(e) { tb.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#dc2626;">Error al cargar.</td></tr>'; }
 }
 
 /* ============================================================
@@ -7072,7 +7076,7 @@ async function _ensureInfoplusArticulos(force) {
     const pageSize = 1000;
     try {
         for(let from = 0; ; from += pageSize) {
-            const { data, error } = await supabaseClient.from('infoplus_articulos').select('codigo,descripcion,marca,referencia,costo').order('codigo').range(from, from + pageSize - 1);
+            const { data, error } = await supabaseClient.from('infoplus_articulos').select('codigo,descripcion,marca,referencia,referencia_fabrica,costo,precio,precio_especial,existencia,existencias').order('codigo').range(from, from + pageSize - 1);
             if(error) break;
             if(!data || !data.length) break;
             all.push(...data);
@@ -7090,8 +7094,8 @@ function _initLoteArticuloSelect() {
         items: (cache.infoplusArticulos || []).map(a => ({
             id: a.codigo,
             label: `${a.codigo} · ${(a.descripcion || '').trim()}`,
-            sub: a.marca || '',
-            search: [a.codigo, a.descripcion, a.marca, a.referencia].filter(x => x).join(' ').toLowerCase(),
+            sub: [a.marca, a.referencia ? ('Ref: ' + a.referencia) : '', Number(a.precio) > 0 ? ('Precio ' + money(a.precio)) : '', Number(a.existencia) > 0 ? (a.existencia + ' en taller') : ''].filter(x => x).join(' · '),
+            search: [a.codigo, a.descripcion, a.marca, a.referencia, a.referencia_fabrica].filter(x => x).join(' ').toLowerCase(),
             _ip: a
         })),
         value: '',
@@ -7101,8 +7105,66 @@ function _initLoteArticuloSelect() {
             // Prefijar el costo desde Info Plus si está vacío
             const c = document.getElementById('eq_costo');
             if(c && item && item._ip && (!c.value || Number(c.value) === 0) && Number(item._ip.costo) > 0) c.value = Number(item._ip.costo);
-        }
+        },
+        onIconClick: abrirBuscadorArticulos
     });
+}
+// Cuando se da clic en la lupita de un smart-select que tiene buscador completo
+function _smartSelectIconClick(containerId) {
+    const st = _smartSelects[containerId];
+    if(st && typeof st.onIconClick === 'function') st.onIconClick();
+}
+// Ventana flotante con TODOS los artículos de Info Plus + barra de búsqueda (para elegir)
+async function abrirBuscadorArticulos() {
+    abrirModalGenerico('🔍 Artículos (Info Plus)', `
+        <input id="artBuscModal" placeholder="Buscar por código, descripción, marca o referencia…" autocomplete="off" oninput="renderBuscadorArticulos()" style="width:100%; padding:10px 12px; font-size:14px; border:1px solid #cbd5e1; border-radius:8px; margin-bottom:10px;">
+        <div id="artBuscModalLista"><div style="text-align:center; color:#64748b; padding:20px;">⏳ Cargando artículos…</div></div>
+    `);
+    await _ensureInfoplusArticulos();
+    renderBuscadorArticulos();
+    setTimeout(() => { const b = document.getElementById('artBuscModal'); if(b) b.focus(); }, 60);
+}
+function renderBuscadorArticulos() {
+    const cont = document.getElementById('artBuscModalLista');
+    if(!cont) return;
+    const q = (document.getElementById('artBuscModal')?.value || '').toLowerCase().trim();
+    let lista = cache.infoplusArticulos || [];
+    if(q) {
+        const palabras = q.split(/\s+/).filter(Boolean);
+        lista = lista.filter(a => {
+            const hay = [a.codigo, a.descripcion, a.marca, a.referencia, a.referencia_fabrica].filter(x => x).join(' ').toLowerCase();
+            return palabras.every(p => hay.includes(p));
+        });
+    }
+    if(!lista.length) {
+        cont.innerHTML = `<div style="color:#64748b; text-align:center; padding:18px;">${q ? 'No hay artículos que coincidan.' : 'No hay artículos. Sincroniza Info Plus.'}</div>`;
+        return;
+    }
+    const total = lista.length;
+    lista = lista.slice(0, 200);
+    cont.innerHTML = `<div style="font-size:11px; color:#64748b; margin-bottom:6px;">${total} artículo${total!==1?'s':''}${total>200?' (mostrando 200, refina la búsqueda)':''}</div>` +
+        lista.map(a => {
+            const exist = Number(a.existencia) || 0;
+            const existHtml = exist > 0 ? `<span style="color:#16a34a; font-weight:700;">${exist} en taller</span>` : `<span style="color:#dc2626;">0 en taller</span>`;
+            const precio = Number(a.precio) > 0 ? ` · 💲 Precio: <b>${money(a.precio)}</b>` : '';
+            const costo = Number(a.costo) > 0 ? ` · Costo: ${money(a.costo)}` : '';
+            const ref = a.referencia ? ` · Ref: ${escapeHtml(a.referencia)}` : '';
+            return `<div onclick="_artBuscElegir('${String(a.codigo).replace(/'/g,"\\'")}')" style="border:1px solid #e2e8f0; border-radius:10px; padding:9px 11px; margin-bottom:6px; cursor:pointer;" onmouseover="this.style.background='#f0f9ff'" onmouseout="this.style.background=''">
+                <div style="font-weight:700; font-size:13.5px;">${escapeHtml(a.codigo)} <span style="color:#94a3b8; font-weight:600; font-size:11px;">${escapeHtml(a.marca || '')}</span></div>
+                <div style="font-size:12.5px; color:#334155;">${escapeHtml(a.descripcion || '(sin descripción)')}</div>
+                <div style="font-size:11.5px; color:#64748b; margin-top:2px;">${existHtml}${precio}${costo}${ref}</div>
+            </div>`;
+        }).join('');
+}
+function _artBuscElegir(codigo) {
+    // Asegurar que el artículo está en los items del smart-select; si no, agregarlo
+    const st = _smartSelects['ss-eq-articulo'];
+    const a = _findInfoplusArt(codigo);
+    if(st && a && !st.items.find(it => String(it.id) === String(codigo))) {
+        st.items.push({ id: a.codigo, label: `${a.codigo} · ${(a.descripcion||'').trim()}`, sub: a.marca||'', search: [a.codigo,a.descripcion,a.marca,a.referencia].filter(x=>x).join(' ').toLowerCase(), _ip: a });
+    }
+    smartSelectPick('ss-eq-articulo', codigo);
+    const m = document.getElementById('modalGenerico'); if(m) m.remove();
 }
 async function abrirLote(loteId) {
     loteActualId = loteId;
