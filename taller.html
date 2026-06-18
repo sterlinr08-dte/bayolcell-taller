@@ -1136,11 +1136,11 @@ body{
                     <button class="btn btn-light" onclick="refrescarVista(renderMiTrabajo, this)" style="font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
                 </div>
                 <div id="miTrabajoResumen" class="kpi-row" style="margin-bottom:14px;"></div>
-                <div id="miTrabajoContenido"></div>
                 <div id="miTrabajoIncentivosWrap">
-                    <h3 style="margin:22px 0 10px;"><i class="ti ti-coin" style="color:#d97706;"></i> Mis Incentivos</h3>
+                    <h3 style="margin:18px 0 10px;"><i class="ti ti-coin" style="color:#d97706;"></i> Mis Incentivos — Registrar mis tickets</h3>
                     <div id="miTrabajoIncentivos"></div>
                 </div>
+                <div id="miTrabajoContenido"></div>
             </div>
 
             <!-- DASHBOARD -->
@@ -4670,6 +4670,12 @@ async function borrarReporteGuardado(id) {
 /* ---- Pantalla del técnico: registrar y ver sus propios incentivos ---- */
 function _misIncTarget() {
     return document.getElementById('v-miTrabajo')?.classList.contains('active') ? 'miTrabajoIncentivos' : 'misIncentivosContenido';
+}
+// Lleva al técnico al módulo de registro de tickets (Mis Incentivos) dentro de Mi Trabajo y enfoca el # Ticket
+function irARegistrarTicket() {
+    const wrap = document.getElementById('miTrabajoIncentivosWrap');
+    if(wrap) wrap.scrollIntoView({ behavior:'smooth', block:'start' });
+    setTimeout(() => { const t = document.getElementById('miTicket'); if(t){ t.focus(); t.style.transition='background .3s'; t.style.background='#fef9c3'; setTimeout(()=>{ t.style.background=''; }, 1200); } }, 350);
 }
 async function renderMisIncentivos(targetId) {
     const cont = document.getElementById(targetId || _misIncTarget());
@@ -12846,6 +12852,7 @@ function renderMiTrabajo() {
         <div class="kpi-box" style="border-top-color:#f59e0b;"><small>Mis reacond.</small><strong>${misReacond.length}</strong><i class="ti ti-refresh"></i></div>
         <div class="kpi-box" style="border-top-color:#dc2626;"><small>Fallas pend.</small><strong>${misFallasPend}</strong><i class="ti ti-alert-triangle"></i></div>
         ${reasignadasAMi > 0 ? `<div class="kpi-box" style="border-top-color:#d97706;"><small>Reasignadas a mí</small><strong>${reasignadasAMi}</strong><i class="ti ti-arrows-exchange"></i></div>` : ''}
+        ${!esAdmin ? `<div class="kpi-box" style="border-top-color:#16a34a; cursor:pointer;" onclick="irARegistrarTicket()" title="Registrar un ticket de incentivo"><small>Registrar ticket</small><strong style="color:#16a34a; font-size:22px;">＋</strong><i class="ti ti-coin"></i></div>` : ''}
     `;
     
     let html = '';
