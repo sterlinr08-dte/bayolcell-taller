@@ -7947,21 +7947,30 @@ function cargarLotesReacond() {
         return { lote, equipos, pendientes, enEval, evaluados, enProceso, listoVenta, vendidos, total, estadoLote };
     });
     
-    // Actualizar contadores en pestañas
+    // Actualizar contadores en pestañas (Listo/Despachado cuentan EQUIPOS, no lotes)
     const setBadge = (id, n) => { const el = document.getElementById(id); if(el) el.textContent = n; };
+    const eqListo = lotesConEstado.reduce((s, d) => s + d.listoVenta, 0);
+    const eqDesp = lotesConEstado.reduce((s, d) => s + d.vendidos, 0);
     setBadge('cntPendientes', contPend);
     setBadge('cntEvaluacion', contEval);
     setBadge('cntProceso', contProc);
-    setBadge('cntListoVenta', contListo);
-    setBadge('cntTerminados', contTerm);
-    
+    setBadge('cntListoVenta', eqListo);
+    setBadge('cntTerminados', eqDesp);
+
     renderLotesReacondTab(lotesConEstado);
 }
 
 function renderLotesReacondTab(lotesConEstado) {
     const cont = document.getElementById('lotesReacondContainer');
     if(!cont) return;
-    
+
+    // Las pestañas Listo Venta y Despachado muestran los EQUIPOS (de todos los lotes), no lotes completos
+    if(reacondTabActual === 'listo_venta' || reacondTabActual === 'terminados') {
+        const estadoEq = reacondTabActual === 'listo_venta' ? 'listo_venta' : 'vendido';
+        renderEquiposEstadoReacond(estadoEq, lotesConEstado, cont);
+        return;
+    }
+
     const filtrados = lotesConEstado.filter(d => d.estadoLote === reacondTabActual);
     
     if(filtrados.length === 0) {
@@ -7997,16 +8006,47 @@ function renderLotesReacondTab(lotesConEstado) {
                 </div>
                 <button class="btn btn-blue" style="padding:8px 14px;" onclick="abrirLoteReacond('${lote.id}')"><i class="ti ti-folder-open"></i> Abrir Lote</button>
             </div>
-            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(80px, 1fr)); gap:8px; margin-top:12px;">
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(72px, 1fr)); gap:8px; margin-top:12px;">
                 <div style="background:#fef3c7; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#92400e;">${d.pendientes}</b><br>Pendientes</div>
                 <div style="background:#dbeafe; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#b91c1c;">${d.enEval}</b><br>En Eval</div>
                 <div style="background:#d1fae5; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#065f46;">${d.evaluados}</b><br>Evaluados</div>
+                <div style="background:#fed7aa; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#9a3412;">${d.enProceso}</b><br>En Proceso</div>
+                <div style="background:#ddd6fe; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#5b21b6;">${d.listoVenta}</b><br>Listo Venta</div>
+                <div style="background:#dcfce7; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#15803d;">${d.vendidos}</b><br>Despachado</div>
                 <div style="background:#f1f5f9; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px;">${d.total}</b><br>Total</div>
             </div>
             <div style="background:#e5e7eb; height:6px; border-radius:3px; margin-top:10px; overflow:hidden;">
                 <div style="background:#10b981; height:100%; width:${progreso}%; transition:width 0.3s;"></div>
             </div>
             <div style="font-size:10px; color:var(--text-muted); text-align:right; margin-top:2px;">${progreso}% completado</div>
+        </div>`;
+    }).join('');
+}
+
+// Muestra los EQUIPOS en estado Listo para venta / Despachado (de todos los lotes), con acciones
+function renderEquiposEstadoReacond(estadoEq, lotesConEstado, cont) {
+    const filas = [];
+    lotesConEstado.forEach(d => {
+        d.equipos.filter(e => e.estado_evaluacion === estadoEq).forEach(e => filas.push({ e, lote: d.lote }));
+    });
+    if(!filas.length) {
+        cont.innerHTML = `<p style="color:var(--text-muted); text-align:center; padding:30px; font-size:13px;">${estadoEq === 'listo_venta' ? 'No hay equipos listos para venta.' : 'No hay equipos despachados.'}</p>`;
+        return;
+    }
+    cont.innerHTML = filas.map(({ e, lote }) => {
+        const tec = e.tecnico_asignado_id ? (cache.tecnicos || []).find(t => t.id === e.tecnico_asignado_id) : null;
+        const acciones = estadoEq === 'listo_venta'
+            ? `<button class="btn btn-light" style="padding:7px 12px; font-size:12px; color:#5b21b6;" onclick="abrirModalLabelVenta('${e.id}')"><i class="ti ti-printer"></i> Label Venta</button>
+               ${permBtn('estado_despachar', `<button class="btn btn-dark" style="padding:7px 12px; font-size:12px; background:linear-gradient(180deg,#10b981,#059669);" onclick="marcarDespachado('${e.id}')"><i class="ti ti-truck-delivery"></i> Despachar</button>`)}
+               <button class="btn btn-light" style="padding:7px 10px; font-size:12px;" onclick="abrirPanelProceso('${e.id}')" title="Ver"><i class="ti ti-eye"></i></button>`
+            : `${(isAdminUser() && e.precio_venta_real != null) ? `<span style="font-size:12px; color:#15803d; font-weight:700;"><i class="ti ti-cash"></i> ${money(Number(e.precio_venta_real))}</span>` : ''}
+               <button class="btn btn-light" style="padding:7px 10px; font-size:12px;" onclick="abrirPanelProceso('${e.id}')" title="Ver"><i class="ti ti-eye"></i></button>`;
+        return `<div style="background:#fff; border:1px solid var(--border-color); border-radius:10px; padding:12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <div style="min-width:200px;">
+                <div style="font-weight:700; font-size:14px;">${escapeHtml(e.modelo || 'Equipo')} <span class="badge" style="${estadoEq === 'listo_venta' ? 'background:#ddd6fe; color:#5b21b6;' : 'background:#dcfce7; color:#15803d;'} font-size:11px;">${estadoEq === 'listo_venta' ? '🛒 Listo Venta' : '✅ Despachado'}</span></div>
+                <div style="font-size:12px; color:var(--text-muted); margin-top:3px;"><i class="ti ti-barcode"></i> ${escapeHtml(e.imei || '—')} · Lote ${escapeHtml(lote.codigo_lote || '')}${tec ? ' · 👤 ' + escapeHtml(tec.nombre) : ''}</div>
+            </div>
+            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">${acciones}</div>
         </div>`;
     }).join('');
 }
