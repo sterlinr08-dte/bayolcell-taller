@@ -1882,8 +1882,12 @@ body{
                                                 <input type="range" id="dlbl_height" min="15" max="100" value="25" oninput="cambiarDimensionesLabelDiag()">
                                             </div>
                                             <div class="form-row">
-                                                <div style="display:flex; justify-content:space-between;"><label>Tamaño Letra (px)</label><span id="dlbl_f_val" style="font-size:11px; font-weight:bold;">9px</span></div>
-                                                <input type="range" id="dlbl_font" min="6" max="40" value="9" oninput="cambiarDimensionesLabelDiag()">
+                                                <div style="display:flex; justify-content:space-between; align-items:center;"><label>Tamaño Letra (px)</label><input type="number" id="dlbl_font_num" min="6" max="80" value="9" oninput="document.getElementById('dlbl_font').value=Math.min(this.value||9,40); cambiarDimensionesLabelDiag();" style="width:60px; padding:4px 6px; font-size:12px; font-weight:bold; text-align:center; min-height:auto;"></div>
+                                                <input type="range" id="dlbl_font" min="6" max="40" value="9" oninput="document.getElementById('dlbl_font_num').value=this.value; cambiarDimensionesLabelDiag()">
+                                            </div>
+                                            <div class="form-row">
+                                                <div style="display:flex; justify-content:space-between;"><label>Margen izquierdo (mm)</label><span id="dlbl_ml_val" style="font-size:11px; font-weight:bold;">3mm</span></div>
+                                                <input type="range" id="dlbl_ml" min="0" max="15" value="3" oninput="cambiarDimensionesLabelDiag()">
                                             </div>
                                             <div class="form-row">
                                                 <div style="display:flex; justify-content:space-between;"><label>Margen derecho (mm)</label><span id="dlbl_mr_val" style="font-size:11px; font-weight:bold;">3mm</span></div>
@@ -7261,10 +7265,13 @@ function cargarCalibracionLabelDiag() {
     const f = localStorage.getItem('bayol_dlbl_f') || '9';
     const rot = localStorage.getItem('bayol_dlbl_rot') || '0';
     const mr = localStorage.getItem('bayol_dlbl_mr') || '3';
+    const ml = localStorage.getItem('bayol_dlbl_ml') || '3';
     document.getElementById('dlbl_width').value = w;
     document.getElementById('dlbl_height').value = h;
-    document.getElementById('dlbl_font').value = f;
+    document.getElementById('dlbl_font').value = Math.min(parseInt(f) || 9, 40);
+    if(document.getElementById('dlbl_font_num')) document.getElementById('dlbl_font_num').value = f;
     if(document.getElementById('dlbl_mr')) document.getElementById('dlbl_mr').value = mr;
+    if(document.getElementById('dlbl_ml')) document.getElementById('dlbl_ml').value = ml;
     if(document.getElementById('dlbl_rotacion')) document.getElementById('dlbl_rotacion').value = rot;
     cambiarDimensionesLabelDiag();
 }
@@ -7272,17 +7279,21 @@ function cargarCalibracionLabelDiag() {
 function cambiarDimensionesLabelDiag() {
     const w = document.getElementById('dlbl_width').value;
     const h = document.getElementById('dlbl_height').value;
-    const f = document.getElementById('dlbl_font').value;
+    // El tamaño de letra puede venir del número (editable, hasta 80) o del slider
+    let f = parseInt(document.getElementById('dlbl_font_num')?.value || document.getElementById('dlbl_font').value) || 9;
+    if(f < 6) f = 6; if(f > 80) f = 80;
     const rot = document.getElementById('dlbl_rotacion')?.value || '0';
     const mr = document.getElementById('dlbl_mr')?.value || '3';
+    const ml = document.getElementById('dlbl_ml')?.value || '3';
     document.getElementById('dlbl_w_val').textContent = w + 'mm';
     document.getElementById('dlbl_h_val').textContent = h + 'mm';
-    document.getElementById('dlbl_f_val').textContent = f + 'px';
     if(document.getElementById('dlbl_mr_val')) document.getElementById('dlbl_mr_val').textContent = mr + 'mm';
+    if(document.getElementById('dlbl_ml_val')) document.getElementById('dlbl_ml_val').textContent = ml + 'mm';
     localStorage.setItem('bayol_dlbl_w', w);
     localStorage.setItem('bayol_dlbl_h', h);
     localStorage.setItem('bayol_dlbl_f', f);
     localStorage.setItem('bayol_dlbl_mr', mr);
+    localStorage.setItem('bayol_dlbl_ml', ml);
     localStorage.setItem('bayol_dlbl_rot', rot);
     
     // Vista previa en vivo con un equipo de ejemplo
@@ -15680,6 +15691,7 @@ function generarHtmlLabelDiag(equipo) {
     const h = localStorage.getItem('bayol_dlbl_h') || '25';
     const f = localStorage.getItem('bayol_dlbl_f') || '10';
     const mr = localStorage.getItem('bayol_dlbl_mr') || '3'; // margen derecho (mm)
+    const ml = localStorage.getItem('bayol_dlbl_ml') || '3'; // margen izquierdo (mm)
 
     const marca = (art.marca || equipo.marca || '').toUpperCase();
     const modelo = (art.modelo || equipo.modelo || '').toUpperCase();
@@ -15715,7 +15727,7 @@ function generarHtmlLabelDiag(equipo) {
     }
     
     return `
-        <div class="diag-label" style="width:${w}mm; min-height:${h}mm; font-size:${f}px; font-weight:900; -webkit-text-stroke:0.4px #000; line-height:1.25; padding:1mm ${mr}mm 1mm 1mm; box-sizing:border-box; overflow:hidden; font-family:Arial,Helvetica,sans-serif; color:#000; page-break-after:always;">
+        <div class="diag-label" style="width:${w}mm; min-height:${h}mm; font-size:${f}px; font-weight:900; -webkit-text-stroke:0.4px #000; line-height:1.25; padding:1mm ${mr}mm 1mm ${ml}mm; box-sizing:border-box; overflow:hidden; font-family:Arial,Helvetica,sans-serif; color:#000; page-break-after:always;">
             <div class="diag-header" style="font-size:${f}px; font-weight:900; -webkit-text-stroke:0.4px #000; text-align:center; border-bottom:2px solid #000; padding-bottom:0.5mm; margin-bottom:0.5mm; font-family:Arial,Helvetica,sans-serif;">
                 DIAGNÓSTICO
             </div>
