@@ -3290,6 +3290,7 @@ body{
                     <div style="width:80px;"><label style="font-size:10px; color:#64748b;">Ancho (mm)</label><input type="number" id="mlbl_w" min="20" max="120" oninput="_recalibrarLabelDiag()" style="width:100%; padding:6px; min-height:auto; text-align:center;"></div>
                     <div style="width:80px;"><label style="font-size:10px; color:#64748b;">Alto (mm)</label><input type="number" id="mlbl_h" min="10" max="120" oninput="_recalibrarLabelDiag()" style="width:100%; padding:6px; min-height:auto; text-align:center;"></div>
                     <div style="width:110px;"><label style="font-size:10px; color:#64748b;">Rotación</label><select id="mlbl_rot" onchange="_recalibrarLabelDiag()" style="width:100%; padding:6px; min-height:auto;"><option value="0">0° Normal</option><option value="90">90°</option><option value="180">180°</option><option value="270">270°</option></select></div>
+                    <button class="btn btn-light" onclick="_resetCalibracionLabel()" title="Volver a los valores recomendados" style="font-size:11px; padding:7px 10px;"><i class="ti ti-refresh"></i> Restablecer</button>
                 </div>
             </div>
             <div id="labelDiagPreview" style="display:flex; flex-direction:column; gap:10px; align-items:center; max-height:60vh; overflow-y:auto;"></div>
@@ -7273,10 +7274,10 @@ function aplicarPermisosAdminLote() {
 function cargarCalibracionLabelDiag() {
     const w = localStorage.getItem('bayol_dlbl_w') || '51';
     const h = localStorage.getItem('bayol_dlbl_h') || '25';
-    const f = localStorage.getItem('bayol_dlbl_f') || '9';
+    const f = localStorage.getItem('bayol_dlbl_f') || '14';
     const rot = localStorage.getItem('bayol_dlbl_rot') || '0';
     const mr = localStorage.getItem('bayol_dlbl_mr') || '3';
-    const ml = localStorage.getItem('bayol_dlbl_ml') || '3';
+    const ml = localStorage.getItem('bayol_dlbl_ml') || '4';
     document.getElementById('dlbl_width').value = w;
     document.getElementById('dlbl_height').value = h;
     document.getElementById('dlbl_font').value = Math.min(parseInt(f) || 9, 40);
@@ -7295,7 +7296,7 @@ function cambiarDimensionesLabelDiag() {
     if(f < 6) f = 6; if(f > 80) f = 80;
     const rot = document.getElementById('dlbl_rotacion')?.value || '0';
     const mr = document.getElementById('dlbl_mr')?.value || '3';
-    const ml = document.getElementById('dlbl_ml')?.value || '3';
+    const ml = document.getElementById('dlbl_ml')?.value || '4';
     document.getElementById('dlbl_w_val').textContent = w + 'mm';
     document.getElementById('dlbl_h_val').textContent = h + 'mm';
     if(document.getElementById('dlbl_mr_val')) document.getElementById('dlbl_mr_val').textContent = mr + 'mm';
@@ -15701,9 +15702,9 @@ function generarHtmlLabelDiag(equipo) {
     const lote = cache.lotes.find(l => l.id === equipo.lote_id);
     const w = localStorage.getItem('bayol_dlbl_w') || '51';
     const h = localStorage.getItem('bayol_dlbl_h') || '25';
-    const f = localStorage.getItem('bayol_dlbl_f') || '10';
+    const f = localStorage.getItem('bayol_dlbl_f') || '14';
     const mr = localStorage.getItem('bayol_dlbl_mr') || '3'; // margen derecho (mm)
-    const ml = localStorage.getItem('bayol_dlbl_ml') || '3'; // margen izquierdo (mm)
+    const ml = localStorage.getItem('bayol_dlbl_ml') || '4'; // margen izquierdo (mm)
 
     const marca = (art.marca || equipo.marca || '').toUpperCase();
     const modelo = (art.modelo || equipo.modelo || '').toUpperCase();
@@ -15827,12 +15828,24 @@ function _cargarControlesModalLabel() {
     const _cp = document.getElementById('labelCalibPanel'); if(_cp) _cp.style.display = '';
     const g = (k, d) => localStorage.getItem(k) || d;
     const set = (id, v) => { const e = document.getElementById(id); if(e) e.value = v; };
-    set('mlbl_font', g('bayol_dlbl_f', '9'));
-    set('mlbl_ml', g('bayol_dlbl_ml', '3'));
+    set('mlbl_font', g('bayol_dlbl_f', '14'));
+    set('mlbl_ml', g('bayol_dlbl_ml', '4'));
     set('mlbl_mr', g('bayol_dlbl_mr', '3'));
     set('mlbl_w', g('bayol_dlbl_w', '51'));
     set('mlbl_h', g('bayol_dlbl_h', '25'));
     set('mlbl_rot', g('bayol_dlbl_rot', '0'));
+}
+// Valores recomendados (calibración por defecto)
+function _resetCalibracionLabel() {
+    const set = (id, v) => { const e = document.getElementById(id); if(e) e.value = v; };
+    set('mlbl_font', '14');
+    set('mlbl_ml', '4');
+    set('mlbl_mr', '3');
+    set('mlbl_w', '51');
+    set('mlbl_h', '25');
+    set('mlbl_rot', localStorage.getItem('bayol_dlbl_rot') || '0'); // conservar la rotación que ya funciona
+    _recalibrarLabelDiag();
+    toast('✅ Calibración restablecida (recomendada).');
 }
 // Recalibra desde la ventana flotante: guarda y vuelve a dibujar la vista previa EXACTA que se imprime
 function _recalibrarLabelDiag() {
