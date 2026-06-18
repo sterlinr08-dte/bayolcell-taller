@@ -16668,6 +16668,7 @@ function _pintarDetalleFin() {
             <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;">
                 <button class="btn btn-blue" onclick="guardarMDM('${f.id}')" style="font-size:12px;"><i class="ti ti-device-floppy"></i> Guardar datos</button>
                 <button class="btn btn-light" onclick="abrirBuscadorEquipos('${f.id}')" style="font-size:12px; color:#0369a1; border-color:#7dd3fc;"><i class="ti ti-search"></i> Buscar equipos disponibles</button>
+                ${(f.mdm_serial || f.mdm_device_id) ? `<button class="btn btn-light" onclick="desvincularEquipoMDM('${f.id}')" style="font-size:12px; color:#b45309; border-color:#fcd34d;"><i class="ti ti-unlink"></i> Quitar equipo de este cliente</button>` : ''}
             </div>
             <div style="border-top:1px dashed #e2e8f0; margin-top:10px; padding-top:10px;">
                 <div style="font-size:12px; font-weight:700; color:#0f172a; margin-bottom:6px;"><i class="ti ti-bolt" style="color:#f59e0b;"></i> Acción real en Hexnode</div>
@@ -18271,6 +18272,17 @@ async function guardarMDM(finId) {
         await renderFinanciamientos();
     } catch(e) { console.error('guardarMDM', e); toast('No se pudo guardar.', 'error'); }
 }
+// Quita el equipo de este cliente (lo desvincula) para poder asignarlo a otro. NO toca Hexnode, solo el enlace en el sistema.
+async function desvincularEquipoMDM(finId) {
+    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso.', 'error'); return; }
+    if(!confirm('¿Quitar el equipo de este cliente?\n\nEsto SUELTA el enlace en el sistema para que el equipo quede DISPONIBLE y lo puedas asignar a otro cliente.\n\n(No borra ni desenrola nada en Hexnode. Si el cliente no saldó, recuerda recuperar/desenrolar el equipo aparte.)')) return;
+    try {
+        const { error } = await supabaseClient.from('financiamientos').update({ mdm_device_id: null, mdm_serial: null, mdm_estado: 'ninguno', mdm_enrolado: false }).eq('id', finId);
+        if(error) throw error;
+        toast('✅ Equipo desvinculado. Ya queda disponible para otro cliente.');
+        await renderFinanciamientos();
+    } catch(e) { console.error('desvincularEquipoMDM', e); toast('No se pudo desvincular.', 'error'); }
+}
 // ===== Buscador de equipos enrolados DISPONIBLES (no enlazados a ningún cliente) =====
 let _mdmDispCache = [];     // equipos traídos de Hexnode
 let _mdmDispFinId = null;   // financiamiento al que se va a enlazar
@@ -18280,6 +18292,8 @@ function _mdmLinkMap() {
     const porId = {}, porSerial = {};
     (_finCache.financiamientos || []).forEach(f => {
         if(f.id === _mdmDispFinId) return; // el financiamiento actual no cuenta como "ocupado"
+        // Si el equipo ya se LIBERÓ (saldado) o se BORRÓ (recuperado), ese cliente ya NO lo retiene → queda disponible para otro
+        if(f.mdm_estado === 'liberado' || f.mdm_estado === 'borrado') return;
         const etiqueta = (f.cliente_nombre || 'Cliente') + (f.codigo ? ' #' + f.codigo : '');
         if(f.mdm_device_id) porId[String(f.mdm_device_id).trim()] = etiqueta;
         [f.mdm_serial, f.equipo_imei].forEach(s => { if(s) porSerial[String(s).toLowerCase().trim()] = etiqueta; });
