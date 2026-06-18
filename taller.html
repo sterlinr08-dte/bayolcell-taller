@@ -10313,6 +10313,18 @@ async function abrirPanelProceso(equipoId) {
                 <button class="btn btn-light" onclick="agregarPiezaExtra('${equipoId}')" style="margin-top:10px; padding:8px 14px; font-size:12px;">
                     <i class="ti ti-plus"></i> Agregar pieza adicional
                 </button>
+                ${isAdminUser() ? (() => {
+                    const sumPiezas = piezas.reduce((s, p) => s + (Number(p.cantidad)||1) * (Number(p.costo_unitario)||0), 0);
+                    const compra = Number(eq.costo_compra) || 0;
+                    const final = compra + sumPiezas;
+                    return `<div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:12px; margin-top:14px;">
+                        <b style="color:#166534; font-size:13px;"><i class="ti ti-cash"></i> Costo del equipo</b>
+                        <div style="display:flex; justify-content:space-between; font-size:13px; margin-top:8px;"><span>Costo de compra:</span><b>${money(compra)}</b></div>
+                        <div style="display:flex; justify-content:space-between; font-size:13px; margin-top:4px;"><span>Piezas usadas (${piezas.length}):</span><b>${money(sumPiezas)}</b></div>
+                        <div style="display:flex; justify-content:space-between; font-size:16px; margin-top:8px; padding-top:8px; border-top:1px dashed #86efac; font-weight:800; color:#166534;"><span>COSTO FINAL:</span><span>${money(final)}</span></div>
+                        ${estado === 'listo_venta' ? `<button class="btn btn-light" onclick="agregarPiezaInfoPlus('${equipoId}')" style="margin-top:10px; padding:8px 12px; font-size:12px; color:#0369a1; border-color:#7dd3fc;"><i class="ti ti-search"></i> Agregar pieza del inventario (Info Plus)</button>` : ''}
+                    </div>`;
+                })() : ''}
                 ${estado === 'reparacion_externa' ? `
                     <div style="background:#e0e7ff; border:2px solid #6366f1; padding:14px; border-radius:12px; margin-top:14px;">
                         <b style="color:#3730a3;"><i class="ti ti-external-link"></i> EN REPARACIÓN EXTERNA</b>
@@ -10723,6 +10735,33 @@ async function rechazarPiezaExtra(piezaId) {
     }
 }
 
+// Recalcula el costo de repuestos del equipo = suma de todas sus piezas (cantidad × costo)
+async function _recalcularCostoRepuestos(equipoId) {
+    try {
+        const { data } = await supabaseClient.from('equipo_piezas_pedidas').select('cantidad,costo_unitario').eq('equipo_id', equipoId);
+        const total = (data || []).reduce((s, p) => s + (Number(p.cantidad)||1) * (Number(p.costo_unitario)||0), 0);
+        await supabaseClient.from('equipos_refurbish').update({ costo_repuestos: total }).eq('id', equipoId);
+    } catch(e) { logError('Recalcular costo repuestos', e); }
+}
+// Agregar una pieza desde el inventario de Info Plus (con su costo) al equipo Listo, para sumar al costo final
+function agregarPiezaInfoPlus(equipoId) {
+    abrirBuscadorArticulos(null, (a) => _agregarPiezaInfoPlusConfirm(equipoId, a));
+}
+async function _agregarPiezaInfoPlusConfirm(equipoId, a) {
+    try {
+        const { error } = await supabaseClient.from('equipo_piezas_pedidas').insert([{
+            equipo_id: equipoId, pieza_id: null, pieza_codigo: a.codigo,
+            pieza_nombre: (a.descripcion || a.codigo || '').trim(),
+            cantidad: 1, costo_unitario: Number(a.costo) || 0,
+            estado: 'aprobada', agregada_por_tecnico: false
+        }]);
+        if(error) throw error;
+        await _recalcularCostoRepuestos(equipoId);
+        toast('✅ Pieza agregada al costo: ' + (a.descripcion || a.codigo));
+        await loadAll();
+        abrirPanelProceso(equipoId);
+    } catch(e) { logError('agregarPiezaInfoPlus', e); toastError(getFriendlyError(e)); }
+}
 async function agregarPiezaExtra(equipoId) {
     const nombre = await pedirTexto('Nombre de la pieza extra que apareció durante la reparación:');
     if(!nombre || !nombre.trim()) return;
