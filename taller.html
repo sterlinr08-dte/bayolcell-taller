@@ -7145,14 +7145,19 @@ function renderBuscadorArticulos() {
     cont.innerHTML = `<div style="font-size:11px; color:#64748b; margin-bottom:6px;">${total} artículo${total!==1?'s':''}${total>200?' (mostrando 200, refina la búsqueda)':''}</div>` +
         lista.map(a => {
             const exist = Number(a.existencia) || 0;
-            const existHtml = exist > 0 ? `<span style="color:#16a34a; font-weight:700;">${exist} en taller</span>` : `<span style="color:#dc2626;">0 en taller</span>`;
-            const precio = Number(a.precio) > 0 ? ` · 💲 Precio: <b>${money(a.precio)}</b>` : '';
+            const existHtml = exist > 0 ? `<span class="badge" style="background:#dcfce7; color:#166534;">Taller: <b>${exist}</b></span>` : `<span class="badge" style="background:#fee2e2; color:#991b1b;">Taller: 0</span>`;
+            const otros = _htmlExistenciasOtros(a.existencias);
+            const refLinea = a.referencia ? `<div style="font-size:12px; color:#0f172a; margin-top:1px;">🔖 Referencia: <b>${escapeHtml(a.referencia)}</b></div>` : '';
+            const refFab = a.referencia_fabrica ? `<div style="font-size:11px; color:#64748b;">Ref. fábrica: ${escapeHtml(a.referencia_fabrica)}</div>` : '';
+            const precio = Number(a.precio) > 0 ? `💲 Precio: <b style="color:#0f172a;">${money(a.precio)}</b>` : '';
+            const precioEsp = Number(a.precio_especial) > 0 ? ` · Precio especial: <b>${money(a.precio_especial)}</b>` : '';
             const costo = Number(a.costo) > 0 ? ` · Costo: ${money(a.costo)}` : '';
-            const ref = a.referencia ? ` · Ref: ${escapeHtml(a.referencia)}` : '';
-            return `<div onclick="_artBuscElegir('${String(a.codigo).replace(/'/g,"\\'")}')" style="border:1px solid #e2e8f0; border-radius:10px; padding:9px 11px; margin-bottom:6px; cursor:pointer;" onmouseover="this.style.background='#f0f9ff'" onmouseout="this.style.background=''">
-                <div style="font-weight:700; font-size:13.5px;">${escapeHtml(a.codigo)} <span style="color:#94a3b8; font-weight:600; font-size:11px;">${escapeHtml(a.marca || '')}</span></div>
-                <div style="font-size:12.5px; color:#334155;">${escapeHtml(a.descripcion || '(sin descripción)')}</div>
-                <div style="font-size:11.5px; color:#64748b; margin-top:2px;">${existHtml}${precio}${costo}${ref}</div>
+            return `<div onclick="_artBuscElegir('${String(a.codigo).replace(/'/g,"\\'")}')" style="border:1px solid #e2e8f0; border-radius:10px; padding:10px 12px; margin-bottom:7px; cursor:pointer;" onmouseover="this.style.background='#f0f9ff'" onmouseout="this.style.background=''">
+                <div style="font-weight:700; font-size:13.5px;">Código ${escapeHtml(a.codigo)} <span style="color:#94a3b8; font-weight:600; font-size:11px;">· ${escapeHtml(a.marca || '')}</span></div>
+                <div style="font-size:12.5px; color:#334155; font-weight:600;">${escapeHtml(a.descripcion || '(sin descripción)')}</div>
+                ${refLinea}${refFab}
+                <div style="font-size:11.5px; color:#64748b; margin-top:3px;">${precio}${precioEsp}${costo}</div>
+                <div style="margin-top:4px;">${existHtml} ${otros}</div>
             </div>`;
         }).join('');
 }
