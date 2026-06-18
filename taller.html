@@ -1922,6 +1922,9 @@ body{
                                         <div><label>Notas rápidas</label><input id="eq_notas" placeholder="OPCIONAL: PANTALLA ROTA..." style="text-transform:uppercase;"></div>
                                         <button class="btn btn-blue" onclick="agregarEquipoAlLote()" style="height:42px;"><i class="ti ti-plus"></i> Agregar</button>
                                     </div>
+                                    <div style="margin-top:8px;">
+                                        <label style="display:inline-flex; align-items:center; gap:6px; font-size:13px; text-transform:none; color:var(--text-dark); cursor:pointer;"><input type="checkbox" id="eq_garantia" style="width:auto;"> 🛡️ Es por garantía (permite repetir el mismo IMEI)</label>
+                                    </div>
                                     <div style="background:#f8fafc; border:1px dashed var(--border-color); padding:8px 12px; border-radius:6px; margin-top:8px; font-size:12px; color:var(--text-muted);">
                                         💡 Los artículos son los mismos de <b>Info Plus</b>. ¿No aparece uno? Créalo en Info Plus y dale <b>"Sincronizar"</b> en Catálogo de Artículos.
                                     </div>
@@ -7194,6 +7197,7 @@ async function abrirLote(loteId) {
     document.getElementById('eq_imei').value = '';
     document.getElementById('eq_costo').value = '';
     document.getElementById('eq_notas').value = '';
+    const _g = document.getElementById('eq_garantia'); if(_g) _g.checked = false;
 
     aplicarPermisosAdminLote();
     cargarCalibracionLabelDiag();
@@ -7352,6 +7356,18 @@ async function agregarEquipoAlLote() {
     if(!art) return toast('Artículo no encontrado en el catálogo de Info Plus.', 'error');
     if(!imei) return toast('Este equipo requiere IMEI / Serial.', 'error');
 
+    const esGarantia = !!document.getElementById('eq_garantia')?.checked;
+    // El IMEI no se puede repetir, EXCEPTO si es por garantía (el mismo equipo regresa)
+    if(imei && !esGarantia) {
+        const imeiNorm = imei.toLowerCase().trim();
+        const rep = (cache.refurb || []).find(r => (r.imei || '').toLowerCase().trim() === imeiNorm);
+        if(rep) {
+            const loteRep = cache.lotes.find(l => l.id === rep.lote_id);
+            const dondeTxt = loteRep ? ('lote ' + (loteRep.codigo_lote || '')) : 'otro lote';
+            return toast(`⚠️ Ese IMEI (${imei}) ya está registrado en ${dondeTxt}. Si el equipo volvió por garantía, marca la casilla "Es por garantía".`, 'error');
+        }
+    }
+
     let costo = 0;
     if(isAdminUser()) {
         costo = parseFloat(val('eq_costo')) || 0;
@@ -7375,10 +7391,12 @@ async function agregarEquipoAlLote() {
             costo_compra: costo,
             costo_repuestos: 0,
             estado: 'Recibido',
-            notas_diagnostico: notas || null
+            es_garantia: esGarantia,
+            notas_diagnostico: (esGarantia ? 'GARANTÍA' + (notas ? ' · ' + notas : '') : (notas || null))
         }]);
         if(error) throw error;
-        toast(`Equipo agregado: ${modeloCompleto}`);
+        toast(esGarantia ? `🛡️ Equipo por garantía agregado: ${modeloCompleto}` : `Equipo agregado: ${modeloCompleto}`);
+        const _g = document.getElementById('eq_garantia'); if(_g) _g.checked = false;
         document.getElementById('eq_imei').value = '';
         document.getElementById('eq_costo').value = '';
         document.getElementById('eq_notas').value = '';
@@ -7409,7 +7427,8 @@ function renderEquiposLote() {
             const ref = (ip && ip.referencia) || e.color || '';
             const precio = ip && Number(ip.precio) > 0 ? Number(ip.precio) : 0;
             const detalle = [marca ? escapeHtml(marca) : '', ref ? '🔖 ' + escapeHtml(ref) : '', precio ? '💲 ' + money(precio) : ''].filter(x => x).join(' · ');
-            const modeloMostrar = `${codigo ? `<b style="color:var(--blue-btn);">Cód. ${escapeHtml(codigo)}</b> · ` : ''}<span style="text-transform:uppercase; font-weight:600;">${escapeHtml(desc)}</span>${detalle ? `<div style="font-size:11px; color:#64748b; text-transform:none;">${detalle}</div>` : ''}`;
+            const garantiaBadge = e.es_garantia ? ` <span class="badge" style="background:#fef3c7; color:#92400e;">🛡️ GARANTÍA</span>` : '';
+            const modeloMostrar = `${codigo ? `<b style="color:var(--blue-btn);">Cód. ${escapeHtml(codigo)}</b> · ` : ''}<span style="text-transform:uppercase; font-weight:600;">${escapeHtml(desc)}</span>${garantiaBadge}${detalle ? `<div style="font-size:11px; color:#64748b; text-transform:none;">${detalle}</div>` : ''}`;
             const costoCell = esAdmin ? `<td data-label="Costo"><b>${money(e.costo_compra)}</b></td>` : '';
             const notas = e.notas_diagnostico ? `<small style="color:var(--text-muted); text-transform:uppercase;">${escapeHtml(e.notas_diagnostico)}</small>` : '<span style="color:#cbd5e1;">-</span>';
             return `<tr>
