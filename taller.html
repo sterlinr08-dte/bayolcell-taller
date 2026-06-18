@@ -2073,6 +2073,7 @@ body{
                                 <span id="reacondSelCount" style="font-size:12px; color:#b45309; font-weight:700;"></span>
                                 <button class="btn btn-dark" style="padding:8px 14px; background:#f59e0b;" onclick="abrirModalAsignarLote()"><i class="ti ti-users"></i> Asignar a técnico</button>
                                 <button class="btn btn-dark" style="padding:8px 14px; background:#5b21b6;" onclick="pasarSeleccionListoVenta()"><i class="ti ti-shopping-cart"></i> Pasar a Listo</button>
+                                <button id="btnReporteCostosLote" class="btn btn-light" style="padding:8px 14px; color:#166534; border-color:#86efac; display:none;" onclick="imprimirReporteCostosLote()"><i class="ti ti-file-invoice"></i> Reporte de costos</button>
                             </div>
                         </div>
                         <div id="reacondTecnicosRow" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;"></div>
@@ -8064,6 +8065,53 @@ function renderEquiposEstadoReacond(estadoEq, lotesConEstado, cont) {
     }).join('');
 }
 
+// Reporte de costos del lote: por cada equipo Compra + Piezas = Costo final, con totales (solo admin)
+function imprimirReporteCostosLote() {
+    if(!isAdminUser()) return toast('Solo el administrador.', 'error');
+    if(!reacondLoteAbiertoId) return toast('Abre un lote primero.', 'error');
+    const lote = (cache.lotes || []).find(l => l.id === reacondLoteAbiertoId);
+    const equipos = (cache.refurb || []).filter(r => r.lote_id === reacondLoteAbiertoId);
+    if(!equipos.length) return toast('Este lote no tiene equipos.', 'error');
+    const prov = (cache.proveedores || []).find(p => p.id === lote.proveedor_id);
+    const cfg = cache.configTaller || {};
+    const tienda = cfg.nombre || 'BAYOL CELL';
+    let tCompra = 0, tPiezas = 0, tFinal = 0;
+    const filas = equipos.map((e, i) => {
+        const compra = Number(e.costo_compra) || 0;
+        const piezas = Number(e.costo_repuestos) || 0;
+        const fin = compra + piezas;
+        tCompra += compra; tPiezas += piezas; tFinal += fin;
+        return `<tr><td>${i+1}</td><td>${escapeHtml(e.modelo || '')}</td><td>${escapeHtml(e.imei || '-')}</td>
+            <td style="text-align:right;">${money(compra)}</td><td style="text-align:right;">${money(piezas)}</td>
+            <td style="text-align:right; font-weight:bold;">${money(fin)}</td></tr>`;
+    }).join('');
+    const w = window.open('', '_blank');
+    if(!w) { toast('Permite las ventanas emergentes para imprimir.', 'error'); return; }
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Costos lote ${escapeHtml(lote.codigo_lote||'')}</title>
+        <style>
+            body{font-family:Arial,Helvetica,sans-serif; color:#0f172a; padding:24px; max-width:760px; margin:0 auto;}
+            h1{font-size:20px; margin:0;} h2{font-size:15px; margin:2px 0 0; color:#475569;}
+            .muted{color:#64748b; font-size:12px;}
+            table{width:100%; border-collapse:collapse; margin-top:12px; font-size:12.5px;}
+            th,td{border:1px solid #cbd5e1; padding:6px 8px; text-align:left;}
+            th{background:#f1f5f9;}
+            tfoot td{font-weight:bold; background:#f8fafc;}
+            hr{border:0; border-top:1px solid #e2e8f0; margin:12px 0;}
+        </style></head><body>
+        <h1>${escapeHtml(tienda)}</h1>
+        <h2>Reporte de costos — Lote ${escapeHtml(lote.codigo_lote || '')}</h2>
+        <div class="muted">${new Date().toLocaleString('es-DO')}</div>
+        <hr>
+        <div><b>Proveedor:</b> ${escapeHtml(prov ? prov.nombre : 'Sin proveedor')} &nbsp;·&nbsp; <b>Equipos:</b> ${equipos.length}</div>
+        <table><thead><tr><th>#</th><th>Modelo</th><th>IMEI</th><th style="text-align:right;">Compra</th><th style="text-align:right;">Piezas</th><th style="text-align:right;">Costo final</th></tr></thead>
+        <tbody>${filas}</tbody>
+        <tfoot><tr><td colspan="3" style="text-align:right;">TOTALES:</td><td style="text-align:right;">${money(tCompra)}</td><td style="text-align:right;">${money(tPiezas)}</td><td style="text-align:right;">${money(tFinal)}</td></tr></tfoot>
+        </table>
+        <p class="muted" style="text-align:center; margin-top:24px;">Documento de control interno · No es una factura de venta</p>
+        <script>window.onload=function(){window.print();}<\/script>
+        </body></html>`);
+    w.document.close();
+}
 function cambiarTabReacond(tab) {
     reacondTabActual = tab;
     document.querySelectorAll('#reacondListaLotes .tab-btn').forEach(b => {
@@ -8123,6 +8171,7 @@ function renderDetalleLoteReacond() {
     _setKpi('kpiProceso', enProceso);
     _setKpi('kpiListoV', listoV);
     _setKpi('kpiDespachado', despachados);
+    const _br = document.getElementById('btnReporteCostosLote'); if(_br) _br.style.display = isAdminUser() ? '' : 'none';
     
     // Badge de estado
     const badge = document.getElementById('reacondLoteEstadoBadge');
