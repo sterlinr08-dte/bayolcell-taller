@@ -2047,6 +2047,17 @@ body{
                         
                         <!-- Lista de equipos -->
                         <h4 style="margin:15px 0 10px;"><i class="ti ti-devices-pc"></i> Equipos del Lote</h4>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
+                            <input id="reacondBusq" placeholder="🔍 Buscar / escanear por IMEI, código o modelo…" oninput="renderDetalleLoteReacond()" onkeydown="if(event.key==='Enter'){event.preventDefault();renderDetalleLoteReacond();}" autocomplete="off" style="flex:1; min-width:220px; padding:9px 12px; font-size:13px; border:1px solid #cbd5e1; border-radius:8px;">
+                            <select id="reacondFiltroEstado" onchange="renderDetalleLoteReacond()" style="padding:9px 12px; font-size:13px; border:1px solid #cbd5e1; border-radius:8px;">
+                                <option value="">Todos los estados</option>
+                                <option value="pendiente">🟡 Pendiente</option>
+                                <option value="en_evaluacion">⚠️ En evaluación</option>
+                                <option value="evaluado">✅ Evaluado</option>
+                                <option value="en_proceso">🔧 En proceso</option>
+                                <option value="reasignado">↪️ Reasignado</option>
+                            </select>
+                        </div>
                         <div id="reacondEquiposLista"></div>
                     </div>
                 </div>
@@ -7870,13 +7881,29 @@ function renderDetalleLoteReacond() {
         </div>
     `;
     
-    // Lista de equipos
+    // Lista de equipos (con buscador + filtro de estado, conservando el número original)
     const cont = document.getElementById('reacondEquiposLista');
     if(equipos.length === 0) {
         cont.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:20px;">Este lote no tiene equipos.</p>';
         return;
     }
-    cont.innerHTML = equipos.map((eq, idx) => renderEquipoReacondCard(eq, idx + 1)).join('');
+    const q = (document.getElementById('reacondBusq')?.value || '').toLowerCase().trim();
+    const fEstado = document.getElementById('reacondFiltroEstado')?.value || '';
+    let filtrados = equipos.map((eq, i) => ({ eq, num: i + 1 }));
+    if(fEstado) filtrados = filtrados.filter(x => (x.eq.estado_evaluacion || 'pendiente') === fEstado);
+    if(q) {
+        const palabras = q.split(/\s+/).filter(Boolean);
+        filtrados = filtrados.filter(x => {
+            const e = x.eq;
+            const hay = [e.imei, e.articulo_codigo, e.modelo, e.marca, e.capacidad, e.color].filter(v => v).join(' ').toLowerCase();
+            return palabras.every(p => hay.includes(p));
+        });
+    }
+    if(!filtrados.length) {
+        cont.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:20px;">Ningún equipo coincide con la búsqueda/filtro.</p>';
+        return;
+    }
+    cont.innerHTML = filtrados.map(x => renderEquipoReacondCard(x.eq, x.num)).join('');
 }
 
 function renderEquipoReacondCard(eq, num) {
