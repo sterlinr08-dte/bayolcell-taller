@@ -7132,12 +7132,18 @@ function volverDetalleProveedor() {
    ============================================================ */
 
 function calcularSiguienteCodigoLote() {
-    if(!cache.lotes || !cache.lotes.length) return 'LT-00001';
-    const numeros = cache.lotes.map(l => {
-        const m = (l.codigo_lote || '').match(/\d+/);
-        return m ? parseInt(m[0], 10) : 0;
+    // Formato AÑOMES-0001 (ej. 202606-0001); la numeración reinicia cada mes
+    const now = new Date();
+    const prefijo = String(now.getFullYear()) + String(now.getMonth() + 1).padStart(2, '0') + '-';
+    let max = 0;
+    (cache.lotes || []).forEach(l => {
+        const c = (l.codigo_lote || '').trim();
+        if(c.startsWith(prefijo)) {
+            const n = parseInt(c.slice(prefijo.length), 10);
+            if(!isNaN(n) && n > max) max = n;
+        }
     });
-    return `LT-${String(Math.max(...numeros, 0) + 1).padStart(5, '0')}`;
+    return prefijo + String(max + 1).padStart(4, '0');
 }
 
 async function crearLoteDesdeProveedor() {
@@ -7946,7 +7952,7 @@ function renderLotesReacondTab(lotesConEstado) {
     cont.innerHTML = filtrados.map(d => {
         const lote = d.lote;
         const prov = (cache.proveedores || []).find(p => p.id === lote.proveedor_id);
-        const nombreLote = lote.nombre || ('Lote #' + (lote.id || '').slice(0,8));
+        const nombreLote = lote.codigo_lote || lote.nombre || ('Lote #' + (lote.id || '').slice(0,8));
         const fechaCompra = lote.fecha_compra ? new Date(lote.fecha_compra).toLocaleDateString('es-DO') : '—';
         const fechaEnvio = lote.fecha_envio_reacond ? new Date(lote.fecha_envio_reacond).toLocaleDateString('es-DO') : '—';
         const progreso = d.total > 0 ? Math.round((d.evaluados / d.total) * 100) : 0;
@@ -8017,7 +8023,7 @@ function renderDetalleLoteReacond() {
     const equipos = (cache.refurb || []).filter(r => r.lote_id === reacondLoteAbiertoId);
     
     // Titulo y info
-    const nombreLote = lote.nombre || ('Lote #' + (lote.id || '').slice(0,8));
+    const nombreLote = lote.codigo_lote || lote.nombre || ('Lote #' + (lote.id || '').slice(0,8));
     document.getElementById('reacondLoteTitulo').textContent = nombreLote;
     
     const pendientes = equipos.filter(e => (e.estado_evaluacion || 'pendiente') === 'pendiente').length;
