@@ -2332,6 +2332,11 @@ body{
                         <button class="btn btn-light" style="padding:8px 12px; font-size:12px;" onclick="evalExpandirTodas()"><i class="ti ti-square-arrow-down"></i> Expandir</button>
                         <button class="btn btn-light" style="padding:8px 12px; font-size:12px;" onclick="evalContraerTodas()"><i class="ti ti-square-arrow-up"></i> Contraer</button>
                     </div>
+                    <!-- Fallas seleccionadas en vivo (se ven mientras evalúas) -->
+                    <div id="evalFallasSelWrap" style="display:none; background:linear-gradient(135deg, #fef3c7, #fde68a); border:1px solid #f59e0b; padding:10px 12px; border-radius:8px; margin-bottom:12px;">
+                        <b style="font-size:12px; color:#92400e;"><i class="ti ti-checklist"></i> Fallas seleccionadas (<span id="evalFallasSelCount">0</span>):</b>
+                        <div id="evalFallasSelChips" style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;"></div>
+                    </div>
                     <div id="evalFallasContenedor"></div>
                 </div>
                 
@@ -8779,6 +8784,19 @@ function renderFallasEvaluacion() {
     }
     
     cont.innerHTML = html;
+    renderFallasSelChips();
+}
+// Muestra en vivo las fallas ya seleccionadas (chips removibles) en la pestaña Fallas
+function renderFallasSelChips() {
+    const wrap = document.getElementById('evalFallasSelWrap');
+    const chips = document.getElementById('evalFallasSelChips');
+    const cnt = document.getElementById('evalFallasSelCount');
+    if(!wrap || !chips) return;
+    const sel = (cache.fallas || []).filter(f => _evalState.fallasSeleccionadas.has(f.id));
+    if(cnt) cnt.textContent = sel.length;
+    if(!sel.length) { wrap.style.display = 'none'; chips.innerHTML = ''; return; }
+    wrap.style.display = 'block';
+    chips.innerHTML = sel.map(f => `<span style="background:#fff; border:1px solid #f59e0b; color:#92400e; padding:3px 9px; border-radius:12px; font-size:11px; font-weight:700; display:inline-flex; align-items:center; gap:6px;">${escapeHtml(f.nombre_corto || f.nombre)} <span onclick="evalToggleFalla('${f.id}')" style="cursor:pointer; color:#b91c1c; font-weight:900;" title="Quitar">✕</span></span>`).join('');
 }
 
 function evalToggleFalla(fallaId) {
