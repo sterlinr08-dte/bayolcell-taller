@@ -2051,6 +2051,18 @@ body{
                                 <div style="font-size:24px; font-weight:bold; color:#065f46;" id="kpiEvaluados">0</div>
                                 <div style="font-size:11px; color:#065f46;">EVALUADOS</div>
                             </div>
+                            <div id="kpiCardProceso" onclick="_reacondFiltrarPorEstado('en_proceso')" title="Clic para filtrar" style="background:#fed7aa; padding:12px; border-radius:8px; text-align:center; cursor:pointer; border:2px solid transparent;">
+                                <div style="font-size:24px; font-weight:bold; color:#9a3412;" id="kpiProceso">0</div>
+                                <div style="font-size:11px; color:#9a3412;">EN PROCESO</div>
+                            </div>
+                            <div id="kpiCardListoV" onclick="_reacondFiltrarPorEstado('listo_venta')" title="Clic para filtrar" style="background:#ddd6fe; padding:12px; border-radius:8px; text-align:center; cursor:pointer; border:2px solid transparent;">
+                                <div style="font-size:24px; font-weight:bold; color:#5b21b6;" id="kpiListoV">0</div>
+                                <div style="font-size:11px; color:#5b21b6;">LISTO VENTA</div>
+                            </div>
+                            <div id="kpiCardDespachado" onclick="_reacondFiltrarPorEstado('vendido')" title="Clic para filtrar" style="background:#dcfce7; padding:12px; border-radius:8px; text-align:center; cursor:pointer; border:2px solid transparent;">
+                                <div style="font-size:24px; font-weight:bold; color:#15803d;" id="kpiDespachado">0</div>
+                                <div style="font-size:11px; color:#15803d;">DESPACHADO</div>
+                            </div>
                         </div>
                         
                         <!-- Lista de equipos -->
@@ -2073,6 +2085,8 @@ body{
                                 <option value="evaluado">✅ Evaluado</option>
                                 <option value="en_proceso">🔧 En proceso</option>
                                 <option value="reasignado">↪️ Reasignado</option>
+                                <option value="listo_venta">🛒 Listo para venta</option>
+                                <option value="vendido">✅ Despachado</option>
                             </select>
                         </div>
                         <div id="reacondEquiposLista"></div>
@@ -8045,10 +8059,17 @@ function renderDetalleLoteReacond() {
     const pendientes = equipos.filter(e => (e.estado_evaluacion || 'pendiente') === 'pendiente').length;
     const enEval = equipos.filter(e => e.estado_evaluacion === 'en_evaluacion').length;
     const evaluados = equipos.filter(e => e.estado_evaluacion === 'evaluado').length;
-    
+    const enProceso = equipos.filter(e => _REACOND_ESTADOS_TRABAJO.includes(e.estado_evaluacion)).length;
+    const listoV = equipos.filter(e => e.estado_evaluacion === 'listo_venta').length;
+    const despachados = equipos.filter(e => e.estado_evaluacion === 'vendido').length;
+
     document.getElementById('kpiPendientes').textContent = pendientes;
     document.getElementById('kpiEnEval').textContent = enEval;
     document.getElementById('kpiEvaluados').textContent = evaluados;
+    const _setKpi = (id, v) => { const e = document.getElementById(id); if(e) e.textContent = v; };
+    _setKpi('kpiProceso', enProceso);
+    _setKpi('kpiListoV', listoV);
+    _setKpi('kpiDespachado', despachados);
     
     // Badge de estado
     const badge = document.getElementById('reacondLoteEstadoBadge');
@@ -8096,8 +8117,8 @@ function renderDetalleLoteReacond() {
     const q = (document.getElementById('reacondBusq')?.value || '').toLowerCase().trim();
     const fEstado = document.getElementById('reacondFiltroEstado')?.value || '';
     // Resaltar la tarjeta de estado activa
-    const cardMap = { pendiente: 'kpiCardPendiente', en_evaluacion: 'kpiCardEnEval', evaluado: 'kpiCardEvaluado' };
-    ['kpiCardPendiente','kpiCardEnEval','kpiCardEvaluado'].forEach(id => { const c = document.getElementById(id); if(c) c.style.border = '2px solid transparent'; });
+    const cardMap = { pendiente: 'kpiCardPendiente', en_evaluacion: 'kpiCardEnEval', evaluado: 'kpiCardEvaluado', en_proceso: 'kpiCardProceso', listo_venta: 'kpiCardListoV', vendido: 'kpiCardDespachado' };
+    ['kpiCardPendiente','kpiCardEnEval','kpiCardEvaluado','kpiCardProceso','kpiCardListoV','kpiCardDespachado'].forEach(id => { const c = document.getElementById(id); if(c) c.style.border = '2px solid transparent'; });
     if(cardMap[fEstado]) { const c = document.getElementById(cardMap[fEstado]); if(c) c.style.border = '2px solid #0f172a'; }
     let filtrados = equipos.map((eq, i) => ({ eq, num: i + 1 }));
     if(_reacondFiltroTec) filtrados = filtrados.filter(x => x.eq.tecnico_asignado_id === _reacondFiltroTec);
