@@ -10234,6 +10234,9 @@ async function abrirPanelProceso(equipoId) {
                     <button class="btn btn-light" onclick="abrirModalReasignar('${equipoId}')" style="margin-top:10px; padding:8px 14px; font-size:12px; background:#fef3c7; color:#92400e; border:1px solid #fcd34d;">
                         <i class="ti ti-user-share"></i> Reasignar a otro técnico
                     </button>
+                    <button class="btn btn-light" onclick="marcarListoVentaDirecto('${equipoId}')" style="margin-top:10px; margin-left:8px; padding:8px 14px; font-size:12px; background:#ddd6fe; color:#5b21b6; border:1px solid #c4b5fd;">
+                        <i class="ti ti-shopping-cart"></i> No requiere reparación → Listo para venta
+                    </button>
                 ` : ''}
                 
                 ${construirSeccionTareas('equipo', equipoId, tareas, (cache.refurb||[]).find(r=>r.id===equipoId)?.estado_evaluacion === 'vendido')}
@@ -10281,6 +10284,13 @@ function cerrarPanelProceso() {
     _panelProcesoEquipoId = null;
 }
 
+// Pasar un equipo directo a "Listo para venta" cuando no requiere reparación
+async function marcarListoVentaDirecto(equipoId) {
+    const eq = (cache.refurb || []).find(r => r.id === equipoId);
+    if(!eq) return;
+    if(!await confirmar('¿Este equipo NO requiere reparación y pasa directo a "🛒 Listo para venta"?')) return;
+    await cambiarEstadoProceso(equipoId, 'listo_venta');
+}
 async function cambiarEstadoProceso(equipoId, nuevoEstado) {
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return;
