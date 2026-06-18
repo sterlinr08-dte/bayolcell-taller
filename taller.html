@@ -4289,11 +4289,20 @@ async function renderIncentivos() {
 
     // Resumen por técnico (sobre el rango + técnico, ignorando estado)
     const resumen = {};
+    const _facturaVista = {}; // para contar la factura UNA sola vez por ticket (no por servicio)
     enRango.forEach(r => {
         const k = r.tecnico_id || '_';
         if(!resumen[k]) resumen[k] = { nombre: r.tecnico_nombre || 'Técnico', rep:0, pul:0, otros:0, generado:0, porValidar:0, porPagar:0, pagado:0 };
         if(r.tipo === 'pulido') resumen[k].pul++; else if(r.tipo === 'manual') resumen[k].otros++; else resumen[k].rep++;
-        resumen[k].generado += Number(r.monto_factura||0);
+        // Generado = total de facturas: si el ticket tiene varios servicios, su monto cuenta una sola vez
+        const factura = Number(r.monto_factura||0);
+        const tkey = (r.ticket || '').trim() ? (k + '|' + (r.ticket || '').trim().toLowerCase()) : null;
+        if(tkey) {
+            const prev = _facturaVista[tkey] || 0;
+            if(factura > prev) { resumen[k].generado += (factura - prev); _facturaVista[tkey] = factura; }
+        } else {
+            resumen[k].generado += factura; // sin # de ticket: contar cada uno
+        }
         const m = Number(r.monto_incentivo||0);
         if(r.estado === 'pagado') resumen[k].pagado += m; else if(r.estado === 'validado') resumen[k].porPagar += m; else resumen[k].porValidar += m;
     });
@@ -4678,6 +4687,58 @@ function irARegistrarTicket() {
     if(wrap) wrap.scrollIntoView({ behavior:'smooth', block:'start' });
     setTimeout(() => { const t = document.getElementById('miTicket'); if(t){ t.focus(); t.style.transition='background .3s'; t.style.background='#fef9c3'; setTimeout(()=>{ t.style.background=''; }, 1200); } }, 350);
 }
+// ---- Líneas de servicio del ticket (un ticket puede tener varias reparaciones) ----
+function _miServiciosHtml(arr) {
+    const ci = 'style="padding:6px 9px; font-size:12px; border-radius:8px;" onkeydown="if(event.key===\'Enter\')guardarMiIncentivo()"';
+    return arr.map((s, i) => {
+        const sel = t => s.tipo === t ? 'selected' : '';
+        return `<div data-srv="${i}" style="display:flex; gap:6px; align-items:flex-end; flex-wrap:wrap; margin-bottom:6px;">
+            <div style="flex:1; min-width:150px;"><label style="font-size:10px; color:#64748b;">Tipo</label>
+                <select class="miSrvTipo" onchange="_miSrvTipoCambio(${i})" ${ci}>
+                    <option value="reparacion" ${sel('reparacion')}>🔧 Reparación (+50)</option>
+                    <option value="pulido" ${sel('pulido')}>✨ Pulido (+100)</option>
+                    <option value="manual" ${sel('manual')}>✏️ Manual</option>
+                </select></div>
+            <div style="width:90px;"><label style="font-size:10px; color:#64748b;">Incentivo</label><input type="number" class="miSrvInc" value="${s.incentivo}" ${s.tipo === 'manual' ? '' : 'readonly'} ${ci}></div>
+            <div style="flex:1; min-width:120px;"><label style="font-size:10px; color:#64748b;">Nota (opc.)</label><input type="text" class="miSrvNota" value="${escapeHtml(s.nota || '')}" placeholder="Detalle" ${ci}></div>
+            <button class="btn btn-light btn-sm" onclick="_miAgregarServicio()" title="Agregar otro servicio al mismo ticket" style="height:32px; color:#16a34a; border-color:#86efac; font-weight:700;"><i class="ti ti-plus"></i></button>
+            ${arr.length > 1 ? `<button class="btn btn-light btn-sm" onclick="_miQuitarServicio(${i})" title="Quitar este servicio" style="height:32px; color:#b91c1c;"><i class="ti ti-x"></i></button>` : ''}
+        </div>`;
+    }).join('');
+}
+function _miLeerServicios() {
+    const cont = document.getElementById('miServicios');
+    if(!cont) return [];
+    return [...cont.querySelectorAll('[data-srv]')].map(row => ({
+        tipo: row.querySelector('.miSrvTipo')?.value || 'reparacion',
+        incentivo: parseFloat(row.querySelector('.miSrvInc')?.value) || 0,
+        nota: (row.querySelector('.miSrvNota')?.value || '').trim()
+    }));
+}
+function _miAgregarServicio() {
+    const arr = _miLeerServicios();
+    arr.push({ tipo: 'reparacion', incentivo: INC_REPARACION, nota: '' });
+    const cont = document.getElementById('miServicios');
+    if(cont){ cont.innerHTML = _miServiciosHtml(arr); const filas = cont.querySelectorAll('[data-srv]'); const ult = filas[filas.length-1]; if(ult) ult.querySelector('.miSrvTipo')?.focus(); }
+}
+function _miQuitarServicio(i) {
+    const arr = _miLeerServicios();
+    arr.splice(i, 1);
+    if(!arr.length) arr.push({ tipo: 'reparacion', incentivo: INC_REPARACION, nota: '' });
+    const cont = document.getElementById('miServicios');
+    if(cont) cont.innerHTML = _miServiciosHtml(arr);
+}
+function _miSrvTipoCambio(i) {
+    const cont = document.getElementById('miServicios');
+    const row = cont?.querySelector(`[data-srv="${i}"]`);
+    if(!row) return;
+    const tipo = row.querySelector('.miSrvTipo')?.value;
+    const inc = row.querySelector('.miSrvInc');
+    if(!inc) return;
+    if(tipo === 'reparacion') { inc.value = INC_REPARACION; inc.readOnly = true; }
+    else if(tipo === 'pulido') { inc.value = INC_PULIDO; inc.readOnly = true; }
+    else { inc.readOnly = false; inc.value = ''; inc.focus(); }
+}
 async function renderMisIncentivos(targetId) {
     const cont = document.getElementById(targetId || _misIncTarget());
     if(!cont) return;
@@ -4689,30 +4750,23 @@ async function renderMisIncentivos(targetId) {
     } catch(e) { _incCache = []; }
     const hoy = new Date().toISOString().slice(0,10);
     const ci = 'style="padding:6px 9px; font-size:12px; border-radius:8px;" onkeydown="if(event.key===\'Enter\')guardarMiIncentivo()"';
-    const selTipo = t => _incUltimoTipo === t ? 'selected' : '';
+    const srvIni = [{ tipo: _incUltimoTipo || 'reparacion', incentivo: (_incUltimoTipo === 'pulido' ? INC_PULIDO : INC_REPARACION), nota: '' }];
     let html = `<div class="card" style="margin-bottom:10px; padding:12px;">
         <div style="font-size:13px; font-weight:700; margin-bottom:8px;"><i class="ti ti-plus" style="color:#16a34a;"></i> Registrar Ticket</div>
-        <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:flex-end;">
+        <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:flex-end; margin-bottom:8px;">
             <div style="width:120px;"><label style="font-size:10px; color:#64748b;">Fecha</label><input type="date" id="miFecha" value="${hoy}" ${ci}></div>
-            <div style="width:120px;"><label style="font-size:10px; color:#64748b;"># Ticket</label><input type="text" id="miTicket" placeholder="CO000..." ${ci}></div>
-            <div style="flex:1; min-width:150px;"><label style="font-size:10px; color:#64748b;">Tipo</label><select id="miTipo" onchange="_incMiTipoCambio()" ${ci}>
-                <option value="reparacion" ${selTipo('reparacion')}>🔧 Reparación (+50)</option>
-                <option value="pulido" ${selTipo('pulido')}>✨ Pulido (+100)</option>
-                <option value="manual" ${selTipo('manual')}>✏️ Manual</option>
-            </select></div>
-            <div style="width:90px;"><label style="font-size:10px; color:#64748b;">Incentivo</label><input type="number" id="miIncentivo" value="${INC_REPARACION}" readonly ${ci}></div>
-            <div style="width:110px;"><label style="font-size:10px; color:#64748b;">Monto factura *</label><input type="number" id="miMontoFactura" min="0" step="0.01" placeholder="0" ${ci}></div>
-            <div style="flex:1; min-width:120px;"><label style="font-size:10px; color:#64748b;">Nota (opc.)</label><input type="text" id="miNota" placeholder="Detalle" ${ci}></div>
-            <button class="btn btn-blue btn-sm" onclick="guardarMiIncentivo()" style="height:32px;"><i class="ti ti-device-floppy"></i> Guardar</button>
-            <button class="btn btn-light btn-sm" onclick="guardarMiIncentivo(true)" style="height:32px; color:#16a34a; border-color:#86efac;" title="Guarda este servicio y deja el MISMO # de ticket para agregar otra reparación"><i class="ti ti-plus"></i> Otro servicio</button>
+            <div style="width:130px;"><label style="font-size:10px; color:#64748b;"># Ticket</label><input type="text" id="miTicket" placeholder="CO000..." ${ci}></div>
+            <div style="width:120px;"><label style="font-size:10px; color:#64748b;">Monto factura *</label><input type="number" id="miMontoFactura" min="0" step="0.01" placeholder="0" ${ci}></div>
         </div>
-        <div style="font-size:11px; color:#64748b; margin-top:6px;">💡 <b>¿El ticket tiene varias reparaciones?</b> Guarda la primera con <b>"Otro servicio"</b> (mantiene el mismo # de ticket y monto) y registra la siguiente. Usa <b>"Guardar"</b> cuando termines ese ticket.</div>
+        <div style="font-size:10px; color:#64748b; margin-bottom:4px; font-weight:700;">Servicios de este ticket <span style="font-weight:400;">(usa el ＋ para agregar otra reparación al mismo ticket)</span></div>
+        <div id="miServicios">${_miServiciosHtml(srvIni)}</div>
+        <div style="margin-top:10px;"><button class="btn btn-blue btn-sm" onclick="guardarMiIncentivo()" style="height:32px;"><i class="ti ti-device-floppy"></i> Guardar ticket</button></div>
+        <div style="font-size:11px; color:#64748b; margin-top:6px;">💡 Si el ticket tiene <b>más de una reparación</b>, dale al <b>＋</b> junto al Tipo para agregar otra línea; al final dale <b>"Guardar ticket"</b> y todas quedan en el mismo # de ticket.</div>
     </div>`;
     const sum = (e) => _incCache.filter(r => r.estado === e).reduce((s,r) => s + Number(r.monto_incentivo||0), 0);
     html += `<div class="card" style="margin-bottom:10px; padding:10px; font-size:13px;">⏳ Por validar: <b style="color:#b45309;">${money(sum('pendiente'))}</b> &nbsp;·&nbsp; ✅ Validado (por cobrar): <b style="color:#1d4ed8;">${money(sum('validado'))}</b> &nbsp;·&nbsp; 💵 Pagado: <b style="color:#16a34a;">${money(sum('pagado'))}</b></div>`;
     html += `<div style="text-align:center; margin-top:2px;"><button class="btn btn-light btn-sm" onclick="abrirRegistroTickets()"><i class="ti ti-list-details" style="color:#0891b2;"></i> Ver Registro de Ticket (${_incCache.length})</button></div>`;
     cont.innerHTML = html;
-    setTimeout(_incMiTipoCambio, 20);
 }
 // Ventana "Registro de Ticket": muestra todos los tickets registrados por el técnico
 async function abrirRegistroTickets() {
@@ -4752,48 +4806,36 @@ function renderRegistroTicketsModal() {
     html += `</tbody></table></div><div style="font-size:11px; color:#64748b; margin-top:6px;">Solo puedes editar/borrar los que están ⏳ Por validar.</div>`;
     cont.innerHTML = html;
 }
-async function guardarMiIncentivo(mantenerTicket) {
+async function guardarMiIncentivo() {
     const yo = sessionUser?.id;
     if(!yo) { toast('No se pudo identificar tu usuario.', 'error'); return; }
-    const tipo = document.getElementById('miTipo')?.value || 'reparacion';
-    const monto_incentivo = parseFloat(document.getElementById('miIncentivo')?.value) || 0;
-    if(monto_incentivo <= 0) { toast('El incentivo debe ser mayor que 0.', 'error'); return; }
     const mf = parseFloat(document.getElementById('miMontoFactura')?.value) || 0;
     if(mf <= 0) { toast('El monto de la factura es obligatorio.', 'error'); const e = document.getElementById('miMontoFactura'); if(e) e.focus(); return; }
     const ticket = (document.getElementById('miTicket')?.value || '').trim() || null;
     const fecha = document.getElementById('miFecha')?.value || new Date().toISOString().slice(0,10);
-    const fila = {
-        tecnico_id: yo, tecnico_nombre: sessionUser?.nombre || sessionUser?.usuario || 'Técnico',
-        fecha, ticket, monto_factura: mf, tipo, monto_incentivo, estado: 'pendiente',
-        nota: (document.getElementById('miNota')?.value || '').trim() || null,
-        creado_por: sessionUser?.nombre || sessionUser?.usuario || 'Técnico'
-    };
-    // "Otro servicio" (mantenerTicket) agrega al mismo ticket sin preguntar; "Guardar" sí avisa si el ticket ya existe
-    if(mantenerTicket && !ticket) { toast('Pon el # de ticket para agregarle otro servicio.', 'error'); const t = document.getElementById('miTicket'); if(t) t.focus(); return; }
-    if(!mantenerTicket && ticket) {
+    const servicios = _miLeerServicios().filter(s => Number(s.incentivo) > 0);
+    if(!servicios.length) { toast('Agrega al menos un servicio con incentivo.', 'error'); return; }
+    const nombre = sessionUser?.nombre || sessionUser?.usuario || 'Técnico';
+    // Si el ticket ya existe de un registro anterior, avisar (evita duplicar por error)
+    if(ticket) {
         const dup = _incCache.filter(r => (r.ticket || '').trim().toLowerCase() === ticket.toLowerCase());
         if(dup.length) {
             const l = dup.map(d => `• ${_incTipoTxt(d.tipo).replace(/[^\x20-\x7EñÑáéíóúÁÉÍÓÚ ]/g,'').trim()} (${money(d.monto_incentivo)})`).join('\n');
-            if(!confirm(`El ticket "${ticket}" ya lo registraste (${dup.length}):\n\n${l}\n\n¿Agregar OTRO servicio a este mismo ticket?`)) return;
+            if(!confirm(`El ticket "${ticket}" ya tiene servicios registrados (${dup.length}):\n\n${l}\n\n¿Agregar estos servicios al mismo ticket?`)) return;
         }
     }
+    const filas = servicios.map(s => ({
+        tecnico_id: yo, tecnico_nombre: nombre,
+        fecha, ticket, monto_factura: mf, tipo: s.tipo, monto_incentivo: Number(s.incentivo), estado: 'pendiente',
+        nota: s.nota || null, creado_por: nombre
+    }));
     try {
-        const { error } = await supabaseClient.from('taller_incentivos').insert([fila]);
+        const { error } = await supabaseClient.from('taller_incentivos').insert(filas);
         if(error) throw error;
-        _incUltimoTipo = tipo;
-        toast(mantenerTicket ? ('✅ Servicio agregado al ticket ' + ticket + '. Registra el siguiente.') : '✅ Registrado.');
+        _incUltimoTipo = servicios[servicios.length - 1].tipo;
+        toast(`✅ ${filas.length} servicio${filas.length > 1 ? 's' : ''} registrado${filas.length > 1 ? 's' : ''}${ticket ? ' en el ticket ' + ticket : ''}.`);
         await renderMisIncentivos();
-        setTimeout(() => {
-            if(mantenerTicket && ticket) {
-                // Mantener el mismo ticket, monto de factura y fecha para seguir agregando servicios
-                const t = document.getElementById('miTicket'); if(t) t.value = ticket;
-                const mfEl = document.getElementById('miMontoFactura'); if(mfEl) mfEl.value = mf;
-                const fEl = document.getElementById('miFecha'); if(fEl) fEl.value = fecha;
-                const tp = document.getElementById('miTipo'); if(tp) tp.focus();
-            } else {
-                const t = document.getElementById('miTicket'); if(t) t.focus();
-            }
-        }, 60);
+        setTimeout(() => { const t = document.getElementById('miTicket'); if(t) t.focus(); }, 60);
     } catch(e) { console.error('guardarMiIncentivo', e); toast('No se pudo registrar.', 'error'); }
 }
 async function renderWebVisitas() {
