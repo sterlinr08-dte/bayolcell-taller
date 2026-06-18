@@ -1930,6 +1930,11 @@ body{
                                     </div>
 
                                     <h4 style="margin:20px 0 10px 0; font-size:13px;">Equipos del Lote (<span id="eq_count">0</span>)</h4>
+                                    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">
+                                        <input id="eqLoteBusq" placeholder="🔍 Buscar por IMEI, código o modelo…" oninput="renderEquiposLote()" autocomplete="off" style="flex:1; min-width:200px; padding:8px 11px; font-size:13px; border:1px solid #cbd5e1; border-radius:8px;">
+                                        <select id="eqLoteFiltro" onchange="renderEquiposLote()" style="padding:8px 11px; font-size:13px; border:1px solid #cbd5e1; border-radius:8px;"><option value="">Todos los artículos</option></select>
+                                        <select id="eqLoteFiltroGar" onchange="renderEquiposLote()" style="padding:8px 11px; font-size:13px; border:1px solid #cbd5e1; border-radius:8px;"><option value="">Todos</option><option value="garantia">🛡️ Solo garantía</option><option value="normal">Sin garantía</option></select>
+                                    </div>
                                     <div class="table-wrap" style="max-height:340px; overflow-y:auto;">
                                         <table>
                                             <thead>
@@ -7410,13 +7415,42 @@ function renderEquiposLote() {
     if(!loteActualId) return;
     const tbody = document.getElementById('equiposLoteTable');
     if(!tbody) return;
-    
-    const equipos = cache.refurb.filter(r => r.lote_id === loteActualId);
+
+    const equiposAll = cache.refurb.filter(r => r.lote_id === loteActualId);
     const esAdmin = isAdminUser();
     const colspan = esAdmin ? 5 : 4;
-    
-    if(!equipos.length) {
+
+    // Poblar el filtro de artículos con los distintos del lote (conservando la selección)
+    const selFiltro = document.getElementById('eqLoteFiltro');
+    if(selFiltro) {
+        const prev = selFiltro.value;
+        const arts = {};
+        equiposAll.forEach(e => { const c = e.articulo_codigo || ''; if(c && !arts[c]) arts[c] = (e.modelo || c); });
+        selFiltro.innerHTML = `<option value="">Todos los artículos (${Object.keys(arts).length})</option>` +
+            Object.keys(arts).sort().map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c + ' · ' + arts[c])}</option>`).join('');
+        if(prev && arts[prev]) selFiltro.value = prev;
+    }
+
+    // Aplicar buscador + filtros
+    const q = (document.getElementById('eqLoteBusq')?.value || '').toLowerCase().trim();
+    const fArt = document.getElementById('eqLoteFiltro')?.value || '';
+    const fGar = document.getElementById('eqLoteFiltroGar')?.value || '';
+    let equipos = equiposAll;
+    if(fArt) equipos = equipos.filter(e => (e.articulo_codigo || '') === fArt);
+    if(fGar === 'garantia') equipos = equipos.filter(e => e.es_garantia);
+    else if(fGar === 'normal') equipos = equipos.filter(e => !e.es_garantia);
+    if(q) {
+        const palabras = q.split(/\s+/).filter(Boolean);
+        equipos = equipos.filter(e => {
+            const hay = [e.imei, e.articulo_codigo, e.modelo, e.marca, e.color].filter(x => x).join(' ').toLowerCase();
+            return palabras.every(p => hay.includes(p));
+        });
+    }
+
+    if(!equiposAll.length) {
         tbody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center; color:var(--text-muted); padding:15px;">Sin equipos agregados aún.</td></tr>`;
+    } else if(!equipos.length) {
+        tbody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center; color:var(--text-muted); padding:15px;">Ningún equipo coincide con la búsqueda/filtro.</td></tr>`;
     } else {
         tbody.innerHTML = equipos.map(e => {
             // Info completa del artículo (de Info Plus por código; respaldo: lo guardado en el equipo)
@@ -7444,11 +7478,12 @@ function renderEquiposLote() {
         }).join('');
     }
     
-    const totalLote = equipos.reduce((s, e) => s + (parseFloat(e.costo_compra) || 0), 0);
-    document.getElementById('eq_count').textContent = equipos.length;
+    const totalLote = equiposAll.reduce((s, e) => s + (parseFloat(e.costo_compra) || 0), 0);
+    const filtrando = equipos.length !== equiposAll.length;
+    document.getElementById('eq_count').textContent = filtrando ? `${equipos.length} de ${equiposAll.length}` : equiposAll.length;
     document.getElementById('eq_total').textContent = money(totalLote);
     document.getElementById('lt_costo_total_display').value = esAdmin ? money(totalLote) : 'Solo Admin';
-    document.getElementById('lt_cantidad_display').value = `${equipos.length} equipo${equipos.length === 1 ? '' : 's'}`;
+    document.getElementById('lt_cantidad_display').value = `${equiposAll.length} equipo${equiposAll.length === 1 ? '' : 's'}`;
 }
 
 async function eliminarEquipoLote(equipoId) {
