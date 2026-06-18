@@ -1931,7 +1931,7 @@ body{
 
                                     <h4 style="margin:20px 0 10px 0; font-size:13px;">Equipos del Lote (<span id="eq_count">0</span>)</h4>
                                     <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">
-                                        <input id="eqLoteBusq" placeholder="🔍 Buscar por IMEI, código o modelo…" oninput="renderEquiposLote()" autocomplete="off" style="flex:1; min-width:200px; padding:8px 11px; font-size:13px; border:1px solid #cbd5e1; border-radius:8px;">
+                                        <input id="eqLoteBusq" placeholder="🔍 Buscar / escanear por IMEI, código o modelo…" oninput="renderEquiposLote()" onkeydown="if(event.key==='Enter'){event.preventDefault();renderEquiposLote();}" autocomplete="off" style="flex:1; min-width:200px; padding:8px 11px; font-size:13px; border:1px solid #cbd5e1; border-radius:8px;">
                                         <select id="eqLoteFiltro" onchange="renderEquiposLote()" style="padding:8px 11px; font-size:13px; border:1px solid #cbd5e1; border-radius:8px;"><option value="">Todos los artículos</option></select>
                                         <select id="eqLoteFiltroGar" onchange="renderEquiposLote()" style="padding:8px 11px; font-size:13px; border:1px solid #cbd5e1; border-radius:8px;"><option value="">Todos</option><option value="garantia">🛡️ Solo garantía</option><option value="normal">Sin garantía</option></select>
                                     </div>
