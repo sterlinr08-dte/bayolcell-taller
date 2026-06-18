@@ -8665,6 +8665,8 @@ function renderFallasEnTabPiezas() {
 async function imprimirLabelDesdeEvaluacion() {
     const equipoId = document.getElementById('eval_equipo_id').value;
     if(!equipoId) return toast('No hay equipo seleccionado.', 'error');
+    // Guardar primero para que las fallas/piezas detectadas salgan en el label (aunque no se hayan guardado antes)
+    try { await guardarEvaluacion(false); } catch(e) { logError('Guardar antes de imprimir label', e); }
     if(typeof abrirPreviewLabelDiagIndividual === 'function') {
         await abrirPreviewLabelDiagIndividual(equipoId);
     } else {
