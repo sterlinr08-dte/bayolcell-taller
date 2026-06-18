@@ -4704,8 +4704,9 @@ async function renderMisIncentivos(targetId) {
             <div style="width:110px;"><label style="font-size:10px; color:#64748b;">Monto factura *</label><input type="number" id="miMontoFactura" min="0" step="0.01" placeholder="0" ${ci}></div>
             <div style="flex:1; min-width:120px;"><label style="font-size:10px; color:#64748b;">Nota (opc.)</label><input type="text" id="miNota" placeholder="Detalle" ${ci}></div>
             <button class="btn btn-blue btn-sm" onclick="guardarMiIncentivo()" style="height:32px;"><i class="ti ti-device-floppy"></i> Guardar</button>
+            <button class="btn btn-light btn-sm" onclick="guardarMiIncentivo(true)" style="height:32px; color:#16a34a; border-color:#86efac;" title="Guarda este servicio y deja el MISMO # de ticket para agregar otra reparación"><i class="ti ti-plus"></i> Otro servicio</button>
         </div>
-        <div style="font-size:11px; color:#64748b; margin-top:6px;">💡 Si un ticket tiene varios servicios, regístralos uno por uno con el mismo número de ticket. Al guardar, el ticket aparece en <b>Registro de Ticket</b>.</div>
+        <div style="font-size:11px; color:#64748b; margin-top:6px;">💡 <b>¿El ticket tiene varias reparaciones?</b> Guarda la primera con <b>"Otro servicio"</b> (mantiene el mismo # de ticket y monto) y registra la siguiente. Usa <b>"Guardar"</b> cuando termines ese ticket.</div>
     </div>`;
     const sum = (e) => _incCache.filter(r => r.estado === e).reduce((s,r) => s + Number(r.monto_incentivo||0), 0);
     html += `<div class="card" style="margin-bottom:10px; padding:10px; font-size:13px;">⏳ Por validar: <b style="color:#b45309;">${money(sum('pendiente'))}</b> &nbsp;·&nbsp; ✅ Validado (por cobrar): <b style="color:#1d4ed8;">${money(sum('validado'))}</b> &nbsp;·&nbsp; 💵 Pagado: <b style="color:#16a34a;">${money(sum('pagado'))}</b></div>`;
@@ -4751,7 +4752,7 @@ function renderRegistroTicketsModal() {
     html += `</tbody></table></div><div style="font-size:11px; color:#64748b; margin-top:6px;">Solo puedes editar/borrar los que están ⏳ Por validar.</div>`;
     cont.innerHTML = html;
 }
-async function guardarMiIncentivo() {
+async function guardarMiIncentivo(mantenerTicket) {
     const yo = sessionUser?.id;
     if(!yo) { toast('No se pudo identificar tu usuario.', 'error'); return; }
     const tipo = document.getElementById('miTipo')?.value || 'reparacion';
@@ -4760,14 +4761,16 @@ async function guardarMiIncentivo() {
     const mf = parseFloat(document.getElementById('miMontoFactura')?.value) || 0;
     if(mf <= 0) { toast('El monto de la factura es obligatorio.', 'error'); const e = document.getElementById('miMontoFactura'); if(e) e.focus(); return; }
     const ticket = (document.getElementById('miTicket')?.value || '').trim() || null;
+    const fecha = document.getElementById('miFecha')?.value || new Date().toISOString().slice(0,10);
     const fila = {
         tecnico_id: yo, tecnico_nombre: sessionUser?.nombre || sessionUser?.usuario || 'Técnico',
-        fecha: document.getElementById('miFecha')?.value || new Date().toISOString().slice(0,10),
-        ticket, monto_factura: mf, tipo, monto_incentivo, estado: 'pendiente',
+        fecha, ticket, monto_factura: mf, tipo, monto_incentivo, estado: 'pendiente',
         nota: (document.getElementById('miNota')?.value || '').trim() || null,
         creado_por: sessionUser?.nombre || sessionUser?.usuario || 'Técnico'
     };
-    if(ticket) {
+    // "Otro servicio" (mantenerTicket) agrega al mismo ticket sin preguntar; "Guardar" sí avisa si el ticket ya existe
+    if(mantenerTicket && !ticket) { toast('Pon el # de ticket para agregarle otro servicio.', 'error'); const t = document.getElementById('miTicket'); if(t) t.focus(); return; }
+    if(!mantenerTicket && ticket) {
         const dup = _incCache.filter(r => (r.ticket || '').trim().toLowerCase() === ticket.toLowerCase());
         if(dup.length) {
             const l = dup.map(d => `• ${_incTipoTxt(d.tipo).replace(/[^\x20-\x7EñÑáéíóúÁÉÍÓÚ ]/g,'').trim()} (${money(d.monto_incentivo)})`).join('\n');
@@ -4778,9 +4781,19 @@ async function guardarMiIncentivo() {
         const { error } = await supabaseClient.from('taller_incentivos').insert([fila]);
         if(error) throw error;
         _incUltimoTipo = tipo;
-        toast('✅ Registrado.');
+        toast(mantenerTicket ? ('✅ Servicio agregado al ticket ' + ticket + '. Registra el siguiente.') : '✅ Registrado.');
         await renderMisIncentivos();
-        setTimeout(() => { const t = document.getElementById('miTicket'); if(t) t.focus(); }, 60);
+        setTimeout(() => {
+            if(mantenerTicket && ticket) {
+                // Mantener el mismo ticket, monto de factura y fecha para seguir agregando servicios
+                const t = document.getElementById('miTicket'); if(t) t.value = ticket;
+                const mfEl = document.getElementById('miMontoFactura'); if(mfEl) mfEl.value = mf;
+                const fEl = document.getElementById('miFecha'); if(fEl) fEl.value = fecha;
+                const tp = document.getElementById('miTipo'); if(tp) tp.focus();
+            } else {
+                const t = document.getElementById('miTicket'); if(t) t.focus();
+            }
+        }, 60);
     } catch(e) { console.error('guardarMiIncentivo', e); toast('No se pudo registrar.', 'error'); }
 }
 async function renderWebVisitas() {
