@@ -103,6 +103,34 @@ Hay **dos tipos de cuenta** que entran a la app:
 ## La web pública (index.html)
 `index.html` es la **landing pública** de `bayolcell.com` (título "Bayolcell — Tu solución móvil completa | Santiago & Moca"). Es independiente de `taller.html`. Lleva reseñas de Google, info de la tienda y registra visitas (`web_visitas`). Rara vez se toca; el trabajo casi siempre es en `taller.html`.
 
+## Integraciones, APIs y servicios externos
+**Conexión a Supabase (en `taller.html`, ~línea 3367):**
+- `CONFIG_URL = "https://vkhwdvjtowrhkhqavnvk.supabase.co"` y `CONFIG_KEY = "sb_publishable_..."` → con eso se crea `supabaseClient` (`createClient`).
+- La `CONFIG_KEY` es la **clave publicable (pública)**: es segura para el navegador y ya está en el HTML desplegado. La seguridad real la dan las **RLS policies** de cada tabla.
+- 🔒 **Secretos (NUNCA en el repo):** el `service_role`, el token de Hexnode, la clave de Info Plus y la API key de IA viven como **secrets de las Edge Functions en Supabase**, no en el código. No los pidas ni los pegues en archivos.
+- Hay un wrapper de `fetch` que auto-refresca la sesión (token 401) — no romperlo.
+
+**Edge Functions (Supabase) — se llaman con `supabaseClient.functions.invoke('slug', { body })`:**
+- **`mdm-accion`** (v23) — puente con **Hexnode MDM**. Acciones: bloquear, desbloquear, ubicar, **notificar (endpoint `message`, NO `broadcast_message`)**, wipe, verificar enrolamiento, liberar (disenroll). Usado en el módulo Financiamientos (~línea 19300+).
+- **`infoplus-sync`** (v10) — sincroniza **artículos/inventario** de Info Plus → tabla `infoplus_articulos`.
+- **`infoplus-ventas-sync`** (v2) — sincroniza **ventas** de Info Plus → `infoplus_ventas` (~56k) + logs.
+- **`bde-diagnostico`** (v8) — motor de **Diagnóstico IA** (analiza panic logs/datos del iPhone con IA).
+- **`bde-termico`** (v2) y **`bde-visual`** (v2) — análisis térmico y visual del diagnóstico.
+- Todas con `verify_jwt: true` (requieren sesión válida).
+
+**Info Plus** = ERP/punto de venta externo de la tienda. La app **lee** su inventario y ventas (sync automática). Faltan endpoints por habilitar del lado de Info Plus (`compra`, `cliente`, `prefactura`, etc.) → ver `PENDIENTES.md` #5.
+
+**Hexnode** = MDM (Mobile Device Management) para los equipos financiados (bloqueo remoto si no pagan). Plan PRO anual comprado. Detalles, políticas y pendientes finos en `PENDIENTES.md`.
+
+**Otros (ya hechos, ver `PENDIENTES.md`):** Reseñas de Google (web + WhatsApp), correo **Zoho** (MX configurado), métricas de visitas web.
+
+## Estructura del repositorio
+- **`taller.html`** — la app interna (lo principal). **`index.html`** — web pública. **`CNAME`** — `bayolcell.com`.
+- **`bde/`** — **BAYOL DIAGNOSTIC ENGINE**: app de **escritorio (Electron, Windows)** que lee el iPhone por USB (modelo, iOS, batería, voltaje, ciclos, panic logs) y los manda al motor de Diagnóstico IA en Supabase. Se conecta al mismo Supabase y mismo login. Datos en `bde/data/` (iphone-specs, battery-rules, panic-codes).
+- **`scripts/fetch_instagram.py`** — baja el feed de Instagram para la web pública.
+- **`.github/workflows/`** — `build-bde.yml` (arma el `.exe` del BDE; publica Release con tag `bde-v*`) e `instagram.yml` (actualiza el feed de Instagram).
+- **`PENDIENTES.md`** — pendientes de MDM/Financiamiento/Info Plus.
+
 ## Módulo REACONDICIONADOS (refurbish) — el más trabajado
 Compra de lotes de equipos usados, reparación y despacho al almacén. **El taller es de CONTROL, no de venta** (no se piden precios de venta; "despachar" = enviar al almacén principal).
 
