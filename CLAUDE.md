@@ -1,0 +1,81 @@
+# CLAUDE.md — Guía para Claude (BAYOL CELL)
+
+Contexto para que cualquier chat nuevo retome el trabajo sin perder tiempo.
+
+## Qué es este proyecto
+Sistema interno de **BAYOL CELL** (tienda/taller de celulares en Santiago y Moca, Rep. Dominicana).
+- **`taller.html`** → la app interna (admin/taller). Es **UN SOLO archivo HTML gigante (~19,700 líneas, ~1.3 MB)** con todo el JS embebido en `<script>`. Título: "SISTEMA TALLER BAYOL CELL". **Aquí se trabaja casi siempre.**
+- **`index.html`** → página pública (landing) de bayolcell.com.
+- **`PENDIENTES.md`** → tareas pendientes del lado MDM/Financiamiento (Hexnode, Info Plus, etc.). Léelo si el tema es financiamiento o MDM.
+
+## Stack y despliegue
+- **Sin build, sin framework.** HTML + JavaScript puro (vanilla) en un archivo. Se edita directo.
+- **Backend: Supabase.** Cliente global `supabaseClient`. Proyecto "BayolCell-taller", id `vkhwdvjtowrhkhqavnvk` (org `gmjedhkktbffnanmebkf`). Hay tools MCP de Supabase (cárgalas con ToolSearch: `list_tables`, `execute_sql`, `apply_migration`).
+- **Deploy: GitHub Pages** sobre dominio `bayolcell.com` (ver `CNAME`). Repo: `sterlinr08-dte/bayolcell-taller`.
+- **Push a `main` = producción en vivo.** Cada push actualiza la app real.
+
+## Cómo trabajar con el usuario (IMPORTANTE)
+- El usuario (**Sterling**, dueño) **no es programador**. Responde **en español, sencillo**, sin jerga.
+- Siempre termina con un **"Para probarlo:"** con pasos concretos, e indica recargar con **Ctrl + Shift + R** (caché).
+- Confirma decisiones de producto con preguntas cortas cuando haya ambigüedad real; si no, procede.
+- El usuario suele responder "Si" a las propuestas de seguimiento — ten lista la siguiente acción.
+
+## Git / flujo de cambios
+1. Editar `taller.html`.
+2. **Verificar sintaxis JS antes de commitear** (el archivo es enorme; un error rompe todo):
+   ```bash
+   node -e 'const fs=require("fs");const h=fs.readFileSync("taller.html","utf8");const re=/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi;let m,i=0,bad=0;while((m=re.exec(h))){i++;try{new Function(m[1])}catch(e){bad++;console.log("Block #"+i,e.message)}}console.log("Checked "+i+" blocks, "+bad+" errors.")'
+   ```
+3. Commit descriptivo + push.
+   - La rama asignada para desarrollo es `claude/bayol-cell-taller-WHlam`. Históricamente el trabajo se ha integrado en `main` (producción / GitHub Pages).
+   - **Pide confirmación al usuario antes de cada push a `main`** (es producción). No asumas autorización previa: cada push se confirma con él.
+
+## Convenciones de código en taller.html
+- Funciones globales sueltas (no módulos). Estado global en `cache = { refurb, lotes, tecnicos, proveedores, articulos, fallas, ... }`. Recargar datos: `await loadAll()`.
+- Helpers comunes: `money(n)` (formatea RD$), `escapeHtml(s)`, `toast(msg)` / `toastError(...)`, `confirmar(msg)` (async, devuelve bool), `pedirTexto(mensaje, {valor, tipo:'number', multilinea})` (async, devuelve string o null), `logError(ctx, e)`, `getFriendlyError(e)`.
+- Permisos: `isAdminUser()`, `tienePermiso('clave')`, `soloAdmin('accion')`. `sessionUser` = usuario actual (`.id`, `.nombre`, `._tipo`).
+- Empleados/técnicos: `nombreEmpleado(id)`; lista en `cache.tecnicos`.
+- **Modales:** patrón `div.modal-backdrop` con dentro `.modal-box` > `.modal-header`/`.modal-body`/`.modal-footer`; se muestra con `modal.classList.add('active')`. Ejemplo completo: `abrirPanelProceso` / `verHistorialEquipo`.
+- **Impresión:** `window.open('','_blank')` + `document.write(...)` + `window.print()`. Ejemplo: `imprimirReporteCostosLote`, `imprimirIncentivosTecnico`.
+- **Buscador de Info Plus** (inventario): `abrirBuscadorArticulos(null, (articulo) => {...})` — el callback recibe `{codigo, descripcion, costo, ...}`.
+
+## Módulo REACONDICIONADOS (refurbish) — el más trabajado
+Compra de lotes de equipos usados, reparación y despacho al almacén. **El taller es de CONTROL, no de venta** (no se piden precios de venta; "despachar" = enviar al almacén principal).
+
+### Tablas Supabase
+- **`refurb_lotes`**: `id, codigo_lote, proveedor_id, fecha_compra, costo_total_lote, cantidad_equipos, gastos_envio (NUEVA, courier), notas, estado, enviado_reacond`.
+- **`equipos_refurbish`**: `id, lote_id, modelo, imei, marca, articulo_id, estado_evaluacion, costo_compra, costo_repuestos, tecnico_asignado_id, tecnico_anterior_id, veces_devuelto, fecha_terminado, fecha_despacho`. (Único NOT NULL sin default: `modelo`.)
+- **`equipo_piezas_pedidas`**: `equipo_id, pieza_id, pieza_codigo, pieza_nombre, cantidad, costo_unitario, estado, agregada_por_tecnico`.
+- **`equipo_fallas`**: `equipo_id, falla_id, falla_nombre, falla_corto`.
+- **`equipo_historial`**: `equipo_id, estado_anterior, estado_nuevo, accion, notas, usuario, fecha`. (Se inserta en cada cambio de estado.)
+- **`tareas_trabajo`**: `tipo ('equipo'|'orden'), ref_id, descripcion, tecnico_id, tecnico_anterior_id, estado ('pendiente'|'hecha'), notas, fecha_completada, creado_en`.
+- **`equipo_devoluciones`**.
+
+### Flujo de estados (`estado_evaluacion`)
+`pendiente` → `en_evaluacion` → `evaluado` → `en_proceso` (asignado a técnico) → `tecnico_recibio` → (`espera_pieza`) → `listo_revision` → `listo_venta` (Listo) → `vendido` (Despachado).
+Extras: `reasignado`, `reparacion_externa`.
+- Etiquetas/colores: `obtenerEtiquetaEstado(estado)`.
+- Transiciones clave: `empezarEvaluacion`, `guardarEvaluacion`, `abrirModalAsignarTecnico`/`asignar`, `cambiarEstadoProceso` (stepper del técnico, candado: no pasa a revisión con fallas pendientes), `aprobarTerminado` (admin → Listo), `marcarDespachado` (→ vendido).
+- Acción al hacer clic en una tarjeta según estado: ver función render de tarjetas (~línea 8261, `accionPrincipal`).
+- **Probado en vivo (19 jun 2026):** el flujo completo Pendiente→Despachado funciona a nivel de datos.
+
+### Modelo de COSTOS (solo admin lo ve)
+**Costo final = `costo_compra` + flete (envío) + `costo_repuestos`** (suma de piezas).
+- **Flete proporcional:** el `gastos_envio` del lote se reparte entre equipos **proporcional a su `costo_compra`** (si no hay costos, partes iguales). Helper: **`calcularFleteEquipo(eq)`**. Editar envío: **`editarGastosEnvioLote()`**.
+- **Piezas:** `_recalcularCostoRepuestos(equipoId)` recalcula `costo_repuestos` sumando `cantidad*costo_unitario`. Agregar pieza desde Info Plus (solo cuando está Listo): **`agregarPiezaInfoPlus(equipoId)`**.
+- Recuadro de costo: dentro de `abrirPanelProceso` (gated `isAdminUser()`).
+
+### Reportes y vistas (añadidos esta sesión)
+- **`imprimirReporteCostosLote()`** — reporte imprimible del lote: columnas #, Modelo, IMEI, Compra, Envío, Piezas, Costo final + totales. Encabezado muestra envío total del lote. **Respeta los filtros activos** (técnico/estado/búsqueda) de la pantalla. Botón "📄 Reporte de costos" en el detalle del lote (solo admin).
+- **`verHistorialEquipo(equipoId)`** / `cerrarHistorialEquipo()` — el **ojito 👁️** (en TODAS las tarjetas). Vista de **solo lectura**: encabezado, 💰 costos (admin), 👨‍🔧 trabajo por técnico (tareas agrupadas), 🧩 piezas con costos, ⚠️ fallas, 🕓 línea de tiempo (historial). En `evaluado` además hay un lápiz ✏️ que abre `continuarEvaluacion` (editar evaluación).
+
+## Otros módulos en taller.html (referencia rápida)
+- **Órdenes de cliente** (reparaciones de clientes): flujo `ORDEN_FLUJO = recibido → en_proceso → espera_repuesto → pendiente_cliente → finalizado → entregado`. Etiquetas: `obtenerEtiquetaOrden`.
+- **Incentivos a técnicos** (pagos por reparación/pulido): `imprimirIncentivosTecnico`, etc.
+- **Financiamiento / MDM (Hexnode)** e **Info Plus sync** — ver `PENDIENTES.md`.
+- **Estadísticas / Rentabilidad** — nota: la pestaña Rentabilidad se alimentaba de precio de venta (que ya no se captura en taller). Idea pendiente: adaptarla para mostrar **inversión** (compra+envío+piezas) por lote/equipo.
+
+## Ideas/pendientes mencionados (no hechos aún)
+- Imprimir el historial individual del equipo (mini-reporte por equipo).
+- Adaptar pestaña "Rentabilidad" a inversión por lote/equipo (sin ventas).
+- Casos especiales por probar en vivo: equipo devuelto, reasignar técnico, reparación externa.
