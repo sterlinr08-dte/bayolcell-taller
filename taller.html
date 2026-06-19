@@ -2074,6 +2074,7 @@ body{
                                 <button class="btn btn-dark" style="padding:8px 14px; background:#f59e0b;" onclick="abrirModalAsignarLote()"><i class="ti ti-users"></i> Asignar a técnico</button>
                                 <button class="btn btn-dark" style="padding:8px 14px; background:#5b21b6;" onclick="pasarSeleccionListoVenta()"><i class="ti ti-shopping-cart"></i> Pasar a Listo</button>
                                 <button id="btnReporteCostosLote" class="btn btn-light" style="padding:8px 14px; color:#166534; border-color:#86efac; display:none;" onclick="imprimirReporteCostosLote()"><i class="ti ti-file-invoice"></i> Reporte de costos</button>
+                                <button id="btnExcelCostosLote" class="btn btn-light" style="padding:8px 14px; color:#15803d; border-color:#86efac; display:none;" onclick="exportarReporteCostosLoteExcel()"><i class="ti ti-file-spreadsheet"></i> Exportar Excel</button>
                             </div>
                         </div>
                         <div id="reacondTecnicosRow" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;"></div>
@@ -8066,24 +8067,31 @@ function renderEquiposEstadoReacond(estadoEq, lotesConEstado, cont) {
 }
 
 // Reporte de costos del lote: por cada equipo Compra + Piezas = Costo final, con totales (solo admin)
-function imprimirReporteCostosLote() {
-    if(!isAdminUser()) return toast('Solo el administrador.', 'error');
-    if(!reacondLoteAbiertoId) return toast('Abre un lote primero.', 'error');
+// Filtra los equipos del lote abierto con los mismos filtros de pantalla. Devuelve datos o null (con aviso).
+function _datosReporteCostosLote() {
+    if(!isAdminUser()) { toast('Solo el administrador.', 'error'); return null; }
+    if(!reacondLoteAbiertoId) { toast('Abre un lote primero.', 'error'); return null; }
     const lote = (cache.lotes || []).find(l => l.id === reacondLoteAbiertoId);
     let equipos = (cache.refurb || []).filter(r => r.lote_id === reacondLoteAbiertoId);
-    // Aplicar los mismos filtros que se ven en pantalla (técnico, estado, búsqueda)
     const fEstado = document.getElementById('reacondFiltroEstado')?.value || '';
     const q = (document.getElementById('reacondBusq')?.value || '').toLowerCase().trim();
     const filtrosTxt = [];
-    if(_reacondFiltroTec) { const t = (cache.tecnicos||[]).find(x => x.id === _reacondFiltroTec); equipos = equipos.filter(e => e.tecnico_asignado_id === _reacondFiltroTec); filtrosTxt.push('Técnico: ' + escapeHtml(t?.nombre || '')); }
+    if(_reacondFiltroTec) { const t = (cache.tecnicos||[]).find(x => x.id === _reacondFiltroTec); equipos = equipos.filter(e => e.tecnico_asignado_id === _reacondFiltroTec); filtrosTxt.push('Técnico: ' + (t?.nombre || '')); }
     if(fEstado) {
         const lbl = { pendiente:'Pendiente', en_evaluacion:'En evaluación', evaluado:'Evaluado', en_proceso:'En proceso', reasignado:'Reasignado', listo_venta:'Listo', vendido:'Despachado' }[fEstado] || fEstado;
         equipos = equipos.filter(e => (e.estado_evaluacion||'pendiente') === fEstado);
         filtrosTxt.push('Estado: ' + lbl);
     }
-    if(q) { equipos = equipos.filter(e => [e.imei, e.articulo_codigo, e.modelo, e.marca].filter(Boolean).join(' ').toLowerCase().includes(q)); filtrosTxt.push('Búsqueda: "' + escapeHtml(q) + '"'); }
-    if(!equipos.length) return toast('No hay equipos para el reporte (revisa los filtros).', 'error');
+    if(q) { equipos = equipos.filter(e => [e.imei, e.articulo_codigo, e.modelo, e.marca].filter(Boolean).join(' ').toLowerCase().includes(q)); filtrosTxt.push('Búsqueda: "' + q + '"'); }
+    if(!equipos.length) { toast('No hay equipos para el reporte (revisa los filtros).', 'error'); return null; }
     const prov = (cache.proveedores || []).find(p => p.id === lote.proveedor_id);
+    return { lote, equipos, prov, filtrosTxt };
+}
+
+function imprimirReporteCostosLote() {
+    const datos = _datosReporteCostosLote();
+    if(!datos) return;
+    const { lote, equipos, prov, filtrosTxt } = datos;
     const cfg = cache.configTaller || {};
     const tienda = cfg.nombre || 'BAYOL CELL';
     let tCompra = 0, tFlete = 0, tPiezas = 0, tFinal = 0;
@@ -8124,6 +8132,49 @@ function imprimirReporteCostosLote() {
         <script>window.onload=function(){window.print();}<\/script>
         </body></html>`);
     w.document.close();
+}
+
+// Exporta el reporte de costos del lote a Excel (.xls que abre directo en Excel). Respeta los filtros activos.
+function exportarReporteCostosLoteExcel() {
+    const datos = _datosReporteCostosLote();
+    if(!datos) return;
+    const { lote, equipos, prov, filtrosTxt } = datos;
+    const cfg = cache.configTaller || {};
+    const tienda = cfg.nombre || 'BAYOL CELL';
+    let tCompra = 0, tFlete = 0, tPiezas = 0, tFinal = 0;
+    const n2 = (v) => (Number(v) || 0).toFixed(2);
+    const filas = equipos.map((e, i) => {
+        const compra = Number(e.costo_compra) || 0;
+        const flete = calcularFleteEquipo(e);
+        const piezas = Number(e.costo_repuestos) || 0;
+        const fin = compra + flete + piezas;
+        tCompra += compra; tFlete += flete; tPiezas += piezas; tFinal += fin;
+        const estLbl = obtenerEtiquetaEstado(e.estado_evaluacion || 'pendiente').text;
+        return `<tr><td>${i+1}</td><td>${escapeHtml(e.modelo || '')}</td><td>${escapeHtml(e.imei || '-')}</td><td>${escapeHtml(estLbl)}</td>
+            <td>${n2(compra)}</td><td>${n2(flete)}</td><td>${n2(piezas)}</td><td>${n2(fin)}</td></tr>`;
+    }).join('');
+    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head><meta charset="utf-8"></head><body>
+        <table border="1">
+            <tr><th colspan="8" style="font-size:16px;">${escapeHtml(tienda)} — Reporte de costos · Lote ${escapeHtml(lote.codigo_lote || '')}</th></tr>
+            <tr><td colspan="8">Fecha: ${new Date().toLocaleString('es-DO')}</td></tr>
+            <tr><td colspan="4">Proveedor: ${escapeHtml(prov ? prov.nombre : 'Sin proveedor')}</td><td colspan="2">Equipos: ${equipos.length}</td><td colspan="2">Envío total lote: ${n2(lote.gastos_envio)}</td></tr>
+            ${filtrosTxt.length ? `<tr><td colspan="8">Filtro: ${escapeHtml(filtrosTxt.join(' · '))}</td></tr>` : ''}
+            <tr><td colspan="8"></td></tr>
+            <tr><th>#</th><th>Modelo</th><th>IMEI</th><th>Estado</th><th>Compra</th><th>Envío</th><th>Piezas</th><th>Costo final</th></tr>
+            ${filas}
+            <tr><td colspan="4"><b>TOTALES</b></td><td><b>${n2(tCompra)}</b></td><td><b>${n2(tFlete)}</b></td><td><b>${n2(tPiezas)}</b></td><td><b>${n2(tFinal)}</b></td></tr>
+        </table>
+        </body></html>`;
+    const blob = new Blob(['﻿' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Costos_${(lote.codigo_lote || 'lote').replace(/[^A-Za-z0-9_-]/g, '')}_${new Date().toISOString().slice(0,10)}.xls`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+    toast('✅ Excel descargado.');
 }
 function cambiarTabReacond(tab) {
     reacondTabActual = tab;
@@ -8185,6 +8236,7 @@ function renderDetalleLoteReacond() {
     _setKpi('kpiListoV', listoV);
     _setKpi('kpiDespachado', despachados);
     const _br = document.getElementById('btnReporteCostosLote'); if(_br) _br.style.display = isAdminUser() ? '' : 'none';
+    const _bx = document.getElementById('btnExcelCostosLote'); if(_bx) _bx.style.display = isAdminUser() ? '' : 'none';
     
     // Badge de estado
     const badge = document.getElementById('reacondLoteEstadoBadge');
