@@ -39,6 +39,49 @@ Sistema interno de **BAYOL CELL** (tienda/taller de celulares en Santiago y Moca
 - **Impresión:** `window.open('','_blank')` + `document.write(...)` + `window.print()`. Ejemplo: `imprimirReporteCostosLote`, `imprimirIncentivosTecnico`.
 - **Buscador de Info Plus** (inventario): `abrirBuscadorArticulos(null, (articulo) => {...})` — el callback recibe `{codigo, descripcion, costo, ...}`.
 
+## Navegación / módulos de la app
+La barra lateral cambia de vista con **`nav('nombre', this)`**. Cada vista es un `<div id="v-nombre" class="view">`. El título superior y los permisos controlan qué se ve. Algunos menús están ocultos según rol (`style="display:none"` que se activa por permisos).
+
+**PRINCIPAL**
+- `dashboard` — Dashboard (KPIs, resumen). Render: `renderAll()`.
+- `miTrabajo` — Mi Trabajo (vista del técnico: sus equipos/órdenes). `mostrarPendientesTecnico()`.
+- `misIncentivos` — Mis Incentivos (técnico).
+- `atencion` — Atención al Cliente (servicio/recepción rápida).
+- `financiamientos` — Financiamientos (ventas a crédito + MDM Hexnode). Ver `PENDIENTES.md`.
+- `contabilidad` — Contabilidad (cuentas, asientos, estados, libro mayor/diario, balanza). Tablas `conta_*`.
+- `diagnostico` — Diagnóstico IA.
+- `recepcion` — Recepción de Equipos (crear órdenes de cliente).
+- `ordenes` — Órdenes de Servicio (reparaciones de clientes). `renderOrders()` / `renderTallerOrdenes()`.
+- `incentivos` — Incentivos Técnicos (ADMIN). `renderIncentivos()`.
+
+**INVENTARIO**
+- `inventario` — Inventario Taller.
+- `piezasSolicitadas` — Piezas Solicitadas. `renderPiezasSolicitadas()`.
+- `articulos` — Catálogo de Artículos. `renderArticulos()`.
+- `proveedores` — Compras / Proveedores. `renderProveedores()`.
+- `refurb` — **Reacondicionados** (lo más trabajado, ver abajo). `cargarLotesReacond()` / `renderDetalleLoteReacond()`.
+
+**SISTEMA**
+- `etiquetas` — Impresión de Labels (códigos de barra).
+- `configImpresora` — Config. Impresora.
+- `reportes` — Reportes.
+- `estadisticas` — Estadísticas (PRIVADO/admin).
+- `configuracion` — Configuración (ADMIN): técnicos, roles, fallas, datos del taller.
+
+## Tablas Supabase (mapa general)
+Hay ~70 tablas; muchas están vacías (features futuras). Las **activas** que importan:
+- **Reacondicionados:** `refurb_lotes`, `equipos_refurbish`, `equipo_piezas_pedidas`, `equipo_fallas`, `equipo_historial`, `equipo_devoluciones`, `tareas_trabajo` (compartida con órdenes).
+- **Órdenes de cliente:** `ordenes_reparacion`, `orden_notas`, `orden_piezas`, `tareas_trabajo` (tipo='orden').
+- **Clientes/equipos:** `clientes`, `equipos`.
+- **Técnicos/usuarios/roles:** `tecnicos`, `usuarios`, `roles`/`roles_taller`. `sessionUser` sale de aquí.
+- **Catálogo fallas:** `fallas`, `falla_categorias`, `fallas_comunes`, `catalogo_marcas`.
+- **Incentivos:** `taller_incentivos`.
+- **Info Plus (ERP externo, inventario/ventas):** `infoplus_articulos` (~2,000), `infoplus_ventas` (~56,000), `infoplus_ventas_log`, `infoplus_sync_log`. Sincronización automática.
+- **Financiamiento/MDM:** `financiamientos`, `fin_clientes`, `fin_planes`, `fin_pagos`/`financiamiento_pagos`, `fin_solicitudes`, `fin_config`, `fin_documentos`, `fin_referencias`.
+- **Contabilidad:** `conta_cuentas`, `conta_categorias`, `conta_asientos`, `conta_asiento_lineas`, `conta_movimientos`.
+- **Config/varios:** `config_taller` (datos de la tienda, `cache.configTaller`), `proveedores`, `web_visitas`.
+- Para ver columnas exactas usa MCP Supabase: `list_tables` (verbose) o `execute_sql` sobre `information_schema.columns`.
+
 ## Módulo REACONDICIONADOS (refurbish) — el más trabajado
 Compra de lotes de equipos usados, reparación y despacho al almacén. **El taller es de CONTROL, no de venta** (no se piden precios de venta; "despachar" = enviar al almacén principal).
 
