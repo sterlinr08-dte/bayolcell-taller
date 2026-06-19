@@ -8320,7 +8320,8 @@ function renderEquipoReacondCard(eq, num) {
                     ${eq.veces_devuelto > 0 ? `<span title="Equipo devuelto ${eq.veces_devuelto} vez(es)" style="font-size:16px;">🔄</span>` : ''}
                     <b style="font-size:14px;">${escapeHtml(eq.modelo || 'Sin modelo')}</b>
                     <span class="badge" style="${badgeColor} font-size:11px;">${badgeText}</span>
-                    ${estado === 'evaluado' ? `<button onclick="event.stopPropagation(); continuarEvaluacion('${eq.id}')" title="Ver / Editar evaluación" style="background:#d1fae5; color:#065f46; border:1px solid #6ee7b7; border-radius:6px; padding:2px 7px; cursor:pointer; font-size:12px;"><i class="ti ti-eye"></i></button>` : ''}
+                    <button onclick="event.stopPropagation(); verHistorialEquipo('${eq.id}')" title="Ver historial completo (trabajo, técnicos y costos)" style="background:#cffafe; color:#0e7490; border:1px solid #67e8f9; border-radius:6px; padding:2px 7px; cursor:pointer; font-size:12px;"><i class="ti ti-eye"></i></button>
+                    ${estado === 'evaluado' ? `<button onclick="event.stopPropagation(); continuarEvaluacion('${eq.id}')" title="Editar evaluación" style="background:#d1fae5; color:#065f46; border:1px solid #6ee7b7; border-radius:6px; padding:2px 7px; cursor:pointer; font-size:12px;"><i class="ti ti-pencil"></i></button>` : ''}
                     ${eq.veces_devuelto > 0 ? `<span class="badge" style="background:#fee2e2; color:#991b1b; font-size:10px; font-weight:700;">DEVUELTO ${eq.veces_devuelto}×</span>` : ''}
                     ${tecnico ? `<span class="badge" style="background:#e0e7ff; color:#3730a3; font-size:11px;"><i class="ti ti-user"></i> ${escapeHtml(tecnico.nombre)}</span>` : ''}
                 </div>
@@ -10478,6 +10479,112 @@ function cerrarPanelProceso() {
     const modal = document.getElementById('modalPanelProceso');
     if(modal) modal.classList.remove('active');
     _panelProcesoEquipoId = null;
+}
+
+function cerrarHistorialEquipo() {
+    const modal = document.getElementById('modalHistorialEquipo');
+    if(modal) modal.classList.remove('active');
+}
+
+// Vista de SOLO LECTURA: todo lo que se le hizo al equipo, qué hizo cada técnico y los costos
+async function verHistorialEquipo(equipoId) {
+    const eq = (cache.refurb || []).find(r => r.id === equipoId);
+    if(!eq) return toast('Equipo no encontrado.', 'error');
+    const esAdmin = isAdminUser();
+    let historial = [], tareas = [], fallas = [], piezas = [];
+    try {
+        const [hRes, tRes, fRes, pRes] = await Promise.all([
+            supabaseClient.from('equipo_historial').select('*').eq('equipo_id', equipoId).order('fecha', { ascending: true }).then(r => r, () => ({ data: [] })),
+            supabaseClient.from('tareas_trabajo').select('*').eq('tipo', 'equipo').eq('ref_id', equipoId).order('creado_en', { ascending: true }).then(r => r, () => ({ data: [] })),
+            supabaseClient.from('equipo_fallas').select('*').eq('equipo_id', equipoId).then(r => r, () => ({ data: [] })),
+            supabaseClient.from('equipo_piezas_pedidas').select('*').eq('equipo_id', equipoId).order('creado_en', { ascending: true }).then(r => r, () => ({ data: [] }))
+        ]);
+        historial = hRes.data || []; tareas = tRes.data || []; fallas = fRes.data || []; piezas = pRes.data || [];
+    } catch(e) { logError('Ver historial equipo', e); }
+
+    const fmtFecha = (x) => x ? new Date(x).toLocaleString('es-DO', { dateStyle: 'short', timeStyle: 'short' }) : '';
+    const et = obtenerEtiquetaEstado(eq.estado_evaluacion || 'pendiente');
+    const tecnicoActual = eq.tecnico_asignado_id ? nombreEmpleado(eq.tecnico_asignado_id) : null;
+
+    // --- Costos (solo admin) ---
+    const compra = Number(eq.costo_compra) || 0;
+    const flete = calcularFleteEquipo(eq);
+    const sumPiezas = piezas.reduce((s, p) => s + (Number(p.cantidad) || 1) * (Number(p.costo_unitario) || 0), 0);
+    const finalC = compra + flete + sumPiezas;
+    const costosHtml = esAdmin ? `<div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:12px;">
+        <div style="display:flex; justify-content:space-between; font-size:13px;"><span>Costo de compra:</span><b>${money(compra)}</b></div>
+        ${flete > 0 ? `<div style="display:flex; justify-content:space-between; font-size:13px; margin-top:3px;"><span>Envío (proporcional):</span><b>${money(flete)}</b></div>` : ''}
+        <div style="display:flex; justify-content:space-between; font-size:13px; margin-top:3px;"><span>Piezas (${piezas.length}):</span><b>${money(sumPiezas)}</b></div>
+        <div style="display:flex; justify-content:space-between; font-size:15px; margin-top:6px; padding-top:6px; border-top:1px dashed #86efac; font-weight:800; color:#166534;"><span>COSTO FINAL:</span><span>${money(finalC)}</span></div>
+    </div>` : '<div style="color:#94a3b8; font-size:12px;">Los costos solo los ve el administrador.</div>';
+
+    // --- Trabajo por técnico (agrupado) ---
+    const porTec = {};
+    tareas.forEach(t => { const k = t.tecnico_id || '_sin'; (porTec[k] = porTec[k] || []).push(t); });
+    const trabajoHtml = Object.keys(porTec).length ? Object.entries(porTec).map(([tid, arr]) => {
+        const nombre = tid === '_sin' ? 'Sin asignar' : nombreEmpleado(tid);
+        const hechas = arr.filter(t => t.estado === 'hecha').length;
+        const items = arr.map(t => `<li style="margin:2px 0; ${t.estado === 'hecha' ? 'color:#16a34a;' : ''}">${t.estado === 'hecha' ? '✅' : '⏳'} ${escapeHtml(t.descripcion || '')}${t.notas ? ` <span style="color:#64748b;">— ${escapeHtml(t.notas)}</span>` : ''}${t.fecha_completada ? ` <span style="color:#94a3b8; font-size:10px;">(${fmtFecha(t.fecha_completada)})</span>` : ''}</li>`).join('');
+        return `<div style="margin-bottom:8px;"><b style="font-size:13px; color:#3730a3;"><i class="ti ti-user"></i> ${escapeHtml(nombre)}</b> <span style="font-size:11px; color:#64748b;">(${hechas}/${arr.length} hechas)</span><ul style="margin:4px 0 0; padding-left:18px; font-size:12px;">${items}</ul></div>`;
+    }).join('') : '<div style="color:#94a3b8; font-size:12px;">Aún no hay tareas registradas.</div>';
+
+    // --- Piezas usadas ---
+    const piezasHtml = piezas.length ? piezas.map(p => {
+        const sub = (Number(p.cantidad) || 1) * (Number(p.costo_unitario) || 0);
+        const quien = p.agregada_por_tecnico ? ' · agregada por técnico' : '';
+        return `<div style="display:flex; justify-content:space-between; font-size:12px; padding:4px 0; border-bottom:1px solid #f1f5f9;"><span>${escapeHtml(p.pieza_nombre || 'Pieza')} ×${p.cantidad || 1} <span style="color:#94a3b8;">(${escapeHtml(p.estado || '')}${quien})</span></span>${esAdmin ? `<b>${money(sub)}</b>` : ''}</div>`;
+    }).join('') : '<div style="color:#94a3b8; font-size:12px;">Sin piezas registradas.</div>';
+
+    // --- Fallas ---
+    const fallasHtml = fallas.length ? fallas.map(f => `<span class="badge" style="background:#fee2e2; color:#991b1b; font-size:10px; margin:2px;">${escapeHtml(f.falla_corto || f.falla_nombre || 'Falla')}</span>`).join('') : '<span style="color:#94a3b8; font-size:12px;">Sin fallas registradas.</span>';
+
+    // --- Línea de tiempo (historial de estados) ---
+    const timelineHtml = historial.length ? historial.map(h => {
+        const de = h.estado_anterior ? obtenerEtiquetaEstado(h.estado_anterior).text : '';
+        const a = h.estado_nuevo ? obtenerEtiquetaEstado(h.estado_nuevo).text : '';
+        return `<div style="border-left:2px solid #cbd5e1; padding:3px 0 6px 12px; margin-left:4px;">
+            <div style="font-size:12px; font-weight:600;">${escapeHtml(h.accion || 'Cambio de estado')} ${de && a ? `<span style="color:#64748b; font-weight:400; font-size:11px;">(${de} → ${a})</span>` : ''}</div>
+            <div style="font-size:10px; color:#94a3b8;">${fmtFecha(h.fecha)}${h.usuario ? ' · ' + escapeHtml(h.usuario) : ''}</div>
+        </div>`;
+    }).join('') : '<div style="color:#94a3b8; font-size:12px;">Sin movimientos registrados.</div>';
+
+    const seccion = (titulo, contenido) => `<div style="margin-top:14px;"><h4 style="margin:0 0 6px; font-size:12px; text-transform:uppercase; color:#475569; letter-spacing:.3px;">${titulo}</h4>${contenido}</div>`;
+
+    const modalHtml = `
+        <div class="modal-box" style="max-width:680px; width:95%;">
+            <div class="modal-header" style="background:linear-gradient(135deg, #0891b2, #0e7490); color:#fff; border-radius:12px 12px 0 0;">
+                <h3 style="color:#fff;"><i class="ti ti-history"></i> Historial del equipo</h3>
+                <button class="modal-close" onclick="cerrarHistorialEquipo()" style="color:#fff;">✕</button>
+            </div>
+            <div class="modal-body" style="max-height:78vh; overflow-y:auto;">
+                <div style="background:#f1f5f9; padding:12px; border-radius:8px;">
+                    <b style="font-size:15px;">${escapeHtml(eq.modelo || 'Equipo')}</b>
+                    <span class="badge" style="background:${et.bg}; color:${et.color}; margin-left:8px; font-size:11px;">${et.text}</span>
+                    ${eq.veces_devuelto > 0 ? `<span class="badge" style="background:#fee2e2; color:#991b1b; margin-left:6px; font-size:10px;">🔄 DEVUELTO ${eq.veces_devuelto}×</span>` : ''}
+                    <div style="font-size:12px; color:#64748b; margin-top:4px;">IMEI: ${escapeHtml(eq.imei || '—')}${tecnicoActual ? ` · 👤 Técnico actual: <b>${escapeHtml(tecnicoActual)}</b>` : ''}</div>
+                </div>
+                ${seccion('💰 Costos', costosHtml)}
+                ${seccion('👨‍🔧 Trabajo por técnico', trabajoHtml)}
+                ${seccion('🧩 Piezas usadas', `<div style="background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:8px 10px;">${piezasHtml}</div>`)}
+                ${seccion('⚠️ Fallas registradas', `<div>${fallasHtml}</div>`)}
+                ${seccion('🕓 Línea de tiempo', `<div style="margin-top:4px;">${timelineHtml}</div>`)}
+            </div>
+            <div class="modal-footer">
+                ${eq.estado_evaluacion !== 'vendido' ? `<button class="btn btn-light" onclick="cerrarHistorialEquipo(); continuarEvaluacion('${equipoId}')"><i class="ti ti-pencil"></i> Editar evaluación</button>` : ''}
+                <button class="btn btn-blue" onclick="cerrarHistorialEquipo()">Cerrar</button>
+            </div>
+        </div>`;
+
+    let modal = document.getElementById('modalHistorialEquipo');
+    if(!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modalHistorialEquipo';
+        modal.className = 'modal-backdrop';
+        document.body.appendChild(modal);
+    }
+    modal.innerHTML = modalHtml;
+    modal.classList.add('active');
+    if(typeof inyectarBotonesVolver === 'function') inyectarBotonesVolver();
 }
 
 // Pasar un equipo directo a "Listo para venta" cuando no requiere reparación
