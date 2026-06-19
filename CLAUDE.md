@@ -118,7 +118,26 @@ Hay **dos tipos de cuenta** que entran a la app:
 - **`bde-termico`** (v2) y **`bde-visual`** (v2) — análisis térmico y visual del diagnóstico.
 - Todas con `verify_jwt: true` (requieren sesión válida).
 
-**Info Plus** = ERP/punto de venta externo de la tienda. La app **lee** su inventario y ventas (sync automática). Faltan endpoints por habilitar del lado de Info Plus (`compra`, `cliente`, `prefactura`, etc.) → ver `PENDIENTES.md` #5.
+**Info Plus** = ERP/punto de venta externo de la tienda (Info Plus **Platinum**). La app **lee** su inventario y ventas (sync automática) y **ya puede escribir** (probado 19 jun 2026, ver detalle abajo).
+
+### Info Plus — API (detalle técnico, descubierto/probado 19 jun 2026)
+- **Host:** `https://apicliente.infoplusplatinum.com/api/{endpoint}`.
+- **Patrón de llamada:** siempre con query `?basedatos=...&clave=...`. Las lecturas son **GET**; las escrituras son **POST** con el modelo en el **body** (JSON) y `basedatos`+`clave` en el query.
+- **Credenciales = secrets de Supabase** (Edge Functions → Secrets): `INFOPLUS_BASE` = `bayol`, `INFOPLUS_CLAVE` = (la clave; **NUNCA escribirla en código/repo**). ⚠️ Al guardarlas, **quitar espacios/saltos de línea** (pasó que se guardaron con `\n` y daba "Error en las credenciales"); en código conviene hacer `.trim()`.
+  - ⚠️ Deuda técnica: la función vieja `infoplus-sync` tiene la clave **incrustada (hardcoded)**. Idealmente migrarla a leer solo de `INFOPLUS_CLAVE`.
+- **Endpoints CONFIRMADOS que existen:**
+  - `listaarticulos` (GET) — `?...&codarticulo=&codalmacen=N`. Ya se usa en `infoplus-sync`.
+  - `cliente` (GET) — existe (para leer clientes). ✅
+  - `ajuste` (POST) — **ajuste de inventario, PROBADO y funciona** ("Se ha creado correctamente"). ✅
+  - ❌ NO existen con esos nombres: `clientes`, `listaclientes`, `compra`, `listacompras` (dan 404). El nombre real de **compra** hay que pedírselo a Dagoberto (contacto de Info Plus).
+- **Almacenes (codalmacen):** `1` = **principal**, `6` = **TALLER**; también 3,4,5. La sync guarda existencia por almacén en `infoplus_articulos.existencias` (jsonb) y `existencia` (int) = almacén 6 (taller).
+- **🔑 `codarticulo` = el `codigo`** de `infoplus_articulos` (probado: mandé codarticulo 2775 y lo aceptó). `infoplus_articulos` ya trae `costo`, `precio`, `descripcion`, existencias por almacén.
+- **Modelo `AjusteModel`** (cabecera): `codajuste`(""), `fecha`("2026-6-19"), `hora`("HH:MM:SS"), `total`, `cancelado`, `codempleado`, `comentario`, `codminventario`(2), `codlocalidad`(almacén, ej. 6), `codcatalogo`("1110194"), `subsidio`, `esmaterialgastable`, `codcentrocosto`, `codactivofijo`, `codotrascompras`, `detallesajuste[]`, `detallesajuste2[]`, `seriales[]` (aquí van los **IMEI**).
+  - `DetalleAjusteModel`: `codarticulo`(int), `precio`, `cantidad`, `codunidad`(1), `movimiento`(1 ó 2: falta confirmar visualmente cuál SUMA y cuál RESTA), `fvencimiento`, `caracteristicas`.
+- **Pantalla de COMPRA (capturada)** — campos: Compra No., Fecha/Fecha Original/Vencimiento, **Proveedor** (códigos propios de Info Plus: 10 Alta Señal, 29 Importadora Fuhao, etc.), **Empleado** (6 = Esterlin), Orden/Liquidación/Factura/Pedido No., Ciudad, Comentario, Moneda(DOP), NCF/DGII, Cód. Verificación, Proveedor Informal, Centro de Costo, **Localidad** (Oficina Santiago), Subtotal/Descuentos/Impuesto/Total, Crédito, Impuesto Incluido, Material Gastable, Archivo. **Artículos**: Artículo(codigo)+Descripción+Referencia+Cantidad+Costo+Monto+Descuento. **Series**: Serial(IMEI)+Compra+Rango+**Lote**.
+- **PENDIENTE para registrar compras de lotes en Info Plus:** (1) nombre exacto del endpoint de compra + su modelo/JSON (pedir a Dagoberto); (2) **mapear los proveedores del taller con el código de proveedor de Info Plus** (una vez). El lote encaja perfecto: cada equipo = una línea de artículo, su IMEI va en Series, `codigo_lote` en el campo Lote.
+- **Funciones de prueba** desplegadas y **desactivadas (stub)**: `infoplus-test`, `infoplus-ajuste-test` (se pueden borrar desde el panel).
+- **Cómo invocar una Edge Function para probar** (sin la app): `select net.http_post(url:='https://vkhwdvjtowrhkhqavnvk.supabase.co/functions/v1/<slug>', body:='{}'::jsonb, headers:='{"apikey":"<anon>","Authorization":"Bearer <anon>"}'::jsonb, timeout_milliseconds:=30000);` y luego `select content from net._http_response where id=<request_id>;` (usa `pg_net`).
 
 **Hexnode** = MDM (Mobile Device Management) para los equipos financiados (bloqueo remoto si no pagan). Plan PRO anual comprado. Detalles, políticas y pendientes finos en `PENDIENTES.md`.
 
