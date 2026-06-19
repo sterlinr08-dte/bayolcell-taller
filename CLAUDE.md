@@ -82,6 +82,27 @@ Hay ~70 tablas; muchas están vacías (features futuras). Las **activas** que im
 - **Config/varios:** `config_taller` (datos de la tienda, `cache.configTaller`), `proveedores`, `web_visitas`.
 - Para ver columnas exactas usa MCP Supabase: `list_tables` (verbose) o `execute_sql` sobre `information_schema.columns`.
 
+## Usuarios, roles y permisos
+Hay **dos tipos de cuenta** que entran a la app:
+- **`usuarios`** (cuenta tradicional/admin) — usa `rol` / `nivel_acceso` (admin, administrador, superadmin).
+- **`tecnicos`** (empleados) — tiene `rol_id` → `roles_taller.permisos` (JSON con las claves de permiso), `tipo_empleado` (`'admin'` | `'tecnico'` | `'servicio'`), `activo`, `debe_cambiar_clave`, `ultimo_acceso`.
+
+`sessionUser` = la fila del usuario logueado + `._tipo` (`'usuario'`|`'tecnico'`) + `._permisos` (objeto). Se guarda en `localStorage` (`bayol_session`). Login en `aplicarSesionDesdeFila(fila, tipo)`.
+
+**Funciones de control de acceso:**
+- `isAdminUser()` — true si el rol es admin/administrador/superadmin. El admin **tiene todo**.
+- `tienePermiso('clave')` — admin siempre true; si no, mira `sessionUser._permisos['clave'] === true`.
+- `permBtn(permiso, html)` — devuelve el botón solo si tiene el permiso (si no, `''`). `puedeVer(permiso)` = alias.
+- `soloAdmin(accion)` — true si es admin (o tiene `piezas_aprobar_extra`); si no, avisa y devuelve false. **Defensa en profundidad** (no juez y parte: el técnico no aprueba/despacha su propio trabajo).
+- `esDueno()` — candado especial **solo para Sterling (el dueño)** por ID de cuenta (`OWNER_IDS`). El módulo **Estadísticas** es solo para él: ni técnicos ni otros admin (incluida la contadora) lo ven.
+
+**Claves de permiso usadas** (las pone el admin por rol en Configuración): `ver_dashboard`, `solo_mi_trabajo`, `solo_atencion`, `solo_contabilidad`, `recepcion_ver`, `ordenes_ver`, `inventario_ver`, `refurb_ver`/`reacond_ver`, `diagnostico_ver`, `config_ver`, `financiamientos_ver`/`_crear`/`_aprobar`/`_cobrar`/`_eliminar`, `piezas_aprobar_extra`, `piezas_entregar`, `estado_despachar`, `catalogo_articulos_eliminar`, `ver_panel_smart`.
+
+> ⚠️ **Contraseñas NUNCA van al repo.** No las pidas ni las escribas en archivos. El usuario las maneja él.
+
+## La web pública (index.html)
+`index.html` es la **landing pública** de `bayolcell.com` (título "Bayolcell — Tu solución móvil completa | Santiago & Moca"). Es independiente de `taller.html`. Lleva reseñas de Google, info de la tienda y registra visitas (`web_visitas`). Rara vez se toca; el trabajo casi siempre es en `taller.html`.
+
 ## Módulo REACONDICIONADOS (refurbish) — el más trabajado
 Compra de lotes de equipos usados, reparación y despacho al almacén. **El taller es de CONTROL, no de venta** (no se piden precios de venta; "despachar" = enviar al almacén principal).
 
