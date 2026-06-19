@@ -8114,7 +8114,7 @@ function imprimirReporteCostosLote() {
         <h2>Reporte de costos — Lote ${escapeHtml(lote.codigo_lote || '')}</h2>
         <div class="muted">${new Date().toLocaleString('es-DO')}</div>
         <hr>
-        <div><b>Proveedor:</b> ${escapeHtml(prov ? prov.nombre : 'Sin proveedor')} &nbsp;·&nbsp; <b>Equipos:</b> ${equipos.length}</div>
+        <div><b>Proveedor:</b> ${escapeHtml(prov ? prov.nombre : 'Sin proveedor')} &nbsp;·&nbsp; <b>Equipos:</b> ${equipos.length} &nbsp;·&nbsp; <b>Envío total del lote:</b> ${money(Number(lote.gastos_envio)||0)}</div>
         ${filtrosTxt.length ? `<div class="muted" style="margin-top:3px;"><b>Filtro:</b> ${filtrosTxt.join(' · ')}</div>` : ''}
         <table><thead><tr><th>#</th><th>Modelo</th><th>IMEI</th><th style="text-align:right;">Compra</th><th style="text-align:right;">Envío</th><th style="text-align:right;">Piezas</th><th style="text-align:right;">Costo final</th></tr></thead>
         <tbody>${filas}</tbody>
