@@ -8086,14 +8086,15 @@ function imprimirReporteCostosLote() {
     const prov = (cache.proveedores || []).find(p => p.id === lote.proveedor_id);
     const cfg = cache.configTaller || {};
     const tienda = cfg.nombre || 'BAYOL CELL';
-    let tCompra = 0, tPiezas = 0, tFinal = 0;
+    let tCompra = 0, tFlete = 0, tPiezas = 0, tFinal = 0;
     const filas = equipos.map((e, i) => {
         const compra = Number(e.costo_compra) || 0;
+        const flete = calcularFleteEquipo(e);
         const piezas = Number(e.costo_repuestos) || 0;
-        const fin = compra + piezas;
-        tCompra += compra; tPiezas += piezas; tFinal += fin;
+        const fin = compra + flete + piezas;
+        tCompra += compra; tFlete += flete; tPiezas += piezas; tFinal += fin;
         return `<tr><td>${i+1}</td><td>${escapeHtml(e.modelo || '')}</td><td>${escapeHtml(e.imei || '-')}</td>
-            <td style="text-align:right;">${money(compra)}</td><td style="text-align:right;">${money(piezas)}</td>
+            <td style="text-align:right;">${money(compra)}</td><td style="text-align:right;">${money(flete)}</td><td style="text-align:right;">${money(piezas)}</td>
             <td style="text-align:right; font-weight:bold;">${money(fin)}</td></tr>`;
     }).join('');
     const w = window.open('', '_blank');
@@ -8115,9 +8116,9 @@ function imprimirReporteCostosLote() {
         <hr>
         <div><b>Proveedor:</b> ${escapeHtml(prov ? prov.nombre : 'Sin proveedor')} &nbsp;·&nbsp; <b>Equipos:</b> ${equipos.length}</div>
         ${filtrosTxt.length ? `<div class="muted" style="margin-top:3px;"><b>Filtro:</b> ${filtrosTxt.join(' · ')}</div>` : ''}
-        <table><thead><tr><th>#</th><th>Modelo</th><th>IMEI</th><th style="text-align:right;">Compra</th><th style="text-align:right;">Piezas</th><th style="text-align:right;">Costo final</th></tr></thead>
+        <table><thead><tr><th>#</th><th>Modelo</th><th>IMEI</th><th style="text-align:right;">Compra</th><th style="text-align:right;">Envío</th><th style="text-align:right;">Piezas</th><th style="text-align:right;">Costo final</th></tr></thead>
         <tbody>${filas}</tbody>
-        <tfoot><tr><td colspan="3" style="text-align:right;">TOTALES:</td><td style="text-align:right;">${money(tCompra)}</td><td style="text-align:right;">${money(tPiezas)}</td><td style="text-align:right;">${money(tFinal)}</td></tr></tfoot>
+        <tfoot><tr><td colspan="3" style="text-align:right;">TOTALES:</td><td style="text-align:right;">${money(tCompra)}</td><td style="text-align:right;">${money(tFlete)}</td><td style="text-align:right;">${money(tPiezas)}</td><td style="text-align:right;">${money(tFinal)}</td></tr></tfoot>
         </table>
         <p class="muted" style="text-align:center; margin-top:24px;">Documento de control interno · No es una factura de venta</p>
         <script>window.onload=function(){window.print();}<\/script>
@@ -8204,6 +8205,7 @@ function renderDetalleLoteReacond() {
             <div><b><i class="ti ti-truck"></i> Proveedor:</b><br>${escapeHtml(prov ? prov.nombre : 'Sin proveedor')}</div>
             <div><b><i class="ti ti-calendar"></i> Compra:</b><br>${lote.fecha_compra ? new Date(lote.fecha_compra).toLocaleDateString('es-DO') : '—'}</div>
             <div><b><i class="ti ti-package"></i> Total equipos:</b><br>${equipos.length}</div>
+            ${isAdminUser() ? `<div><b><i class="ti ti-plane-departure"></i> Envío (courier):</b><br><span>${money(Number(lote.gastos_envio)||0)}</span> <button onclick="editarGastosEnvioLote()" title="Editar gastos de envío" style="background:#e0f2fe; color:#0369a1; border:1px solid #7dd3fc; border-radius:6px; padding:1px 6px; cursor:pointer; font-size:12px; margin-left:4px;"><i class="ti ti-pencil"></i></button></div>` : ''}
         </div>
     `;
     
@@ -10377,10 +10379,12 @@ async function abrirPanelProceso(equipoId) {
                 ${isAdminUser() ? (() => {
                     const sumPiezas = piezas.reduce((s, p) => s + (Number(p.cantidad)||1) * (Number(p.costo_unitario)||0), 0);
                     const compra = Number(eq.costo_compra) || 0;
-                    const final = compra + sumPiezas;
+                    const flete = calcularFleteEquipo(eq);
+                    const final = compra + flete + sumPiezas;
                     return `<div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:12px; margin-top:14px;">
                         <b style="color:#166534; font-size:13px;"><i class="ti ti-cash"></i> Costo del equipo</b>
                         <div style="display:flex; justify-content:space-between; font-size:13px; margin-top:8px;"><span>Costo de compra:</span><b>${money(compra)}</b></div>
+                        ${flete > 0 ? `<div style="display:flex; justify-content:space-between; font-size:13px; margin-top:4px;"><span>Envío (proporcional):</span><b>${money(flete)}</b></div>` : ''}
                         <div style="display:flex; justify-content:space-between; font-size:13px; margin-top:4px;"><span>Piezas usadas (${piezas.length}):</span><b>${money(sumPiezas)}</b></div>
                         <div style="display:flex; justify-content:space-between; font-size:16px; margin-top:8px; padding-top:8px; border-top:1px dashed #86efac; font-weight:800; color:#166534;"><span>COSTO FINAL:</span><span>${money(final)}</span></div>
                         ${estado === 'listo_venta' ? `<button class="btn btn-light" onclick="agregarPiezaInfoPlus('${equipoId}')" style="margin-top:10px; padding:8px 12px; font-size:12px; color:#0369a1; border-color:#7dd3fc;"><i class="ti ti-search"></i> Agregar pieza del inventario (Info Plus)</button>` : ''}
@@ -10803,6 +10807,34 @@ async function _recalcularCostoRepuestos(equipoId) {
         const total = (data || []).reduce((s, p) => s + (Number(p.cantidad)||1) * (Number(p.costo_unitario)||0), 0);
         await supabaseClient.from('equipos_refurbish').update({ costo_repuestos: total }).eq('id', equipoId);
     } catch(e) { logError('Recalcular costo repuestos', e); }
+}
+// Flete (gasto de envío del lote) que le toca a un equipo, repartido PROPORCIONAL al costo de compra
+function calcularFleteEquipo(eq) {
+    if(!eq || !eq.lote_id) return 0;
+    const lote = (cache.lotes || []).find(l => l.id === eq.lote_id);
+    const total = Number(lote?.gastos_envio) || 0;
+    if(total <= 0) return 0;
+    const equipos = (cache.refurb || []).filter(r => r.lote_id === eq.lote_id);
+    const base = equipos.reduce((s, e) => s + (Number(e.costo_compra) || 0), 0);
+    if(base > 0) return total * ((Number(eq.costo_compra) || 0) / base);
+    return equipos.length ? total / equipos.length : 0; // si no hay costos, repartir por partes iguales
+}
+// Editar los gastos de envío (courier) del lote — se reparte proporcional al costo de cada equipo
+async function editarGastosEnvioLote() {
+    if(!isAdminUser()) return toast('Solo el administrador.', 'error');
+    if(!reacondLoteAbiertoId) return;
+    const lote = (cache.lotes || []).find(l => l.id === reacondLoteAbiertoId);
+    const actual = Number(lote?.gastos_envio) || 0;
+    const val = await pedirTexto(`Gastos de envío del lote (courier).\n\nSe repartirá proporcional al costo de compra de cada equipo.\n\nMonto total:`, { valor: String(actual), tipo: 'number' });
+    if(val === null) return;
+    const monto = parseFloat(String(val).replace(/[^0-9.]/g, '')) || 0;
+    try {
+        const { error } = await supabaseClient.from('refurb_lotes').update({ gastos_envio: monto }).eq('id', reacondLoteAbiertoId);
+        if(error) throw error;
+        toast('✅ Gastos de envío guardados: ' + money(monto));
+        await loadAll();
+        renderDetalleLoteReacond();
+    } catch(e) { logError('Editar gastos envío', e); toastError(getFriendlyError(e)); }
 }
 // Agregar una pieza desde el inventario de Info Plus (con su costo) al equipo Listo, para sumar al costo final
 function agregarPiezaInfoPlus(equipoId) {
