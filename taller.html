@@ -7244,14 +7244,23 @@ function verLineasImportCompra(idx) {
     const f = _impComprasData[idx]; if(!f) return;
     const cont = document.getElementById('impResultado');
     const yaExiste = (cache.lotes || []).some(l => (l.codigo_lote || '') === f.factura);
-    const filas = f.lineas.map((l, j) => `
-      <tr>
+    // Detecta posible ITBIS: el costo tiene más de 2 decimales (señal de división ÷1.18) y al ×1.18 da número limpio.
+    const _decimales = (v) => { const s = String(v); const i = s.indexOf('.'); return i < 0 ? 0 : (s.length - i - 1); };
+    const _sospechosoITBIS = (p) => { const n = Number(p) || 0; if(_decimales(n) <= 2) return false; const x = n * 1.18; return Math.abs(x * 100 - Math.round(x * 100)) < 1; };
+    const filas = f.lineas.map((l, j) => {
+        const sosp = _sospechosoITBIS(l.precio);
+        return `
+      <tr style="${sosp ? 'background:#fffbeb;' : ''}">
         <td style="text-align:center;"><input type="checkbox" id="impchk_${j}" style="width:17px; height:17px;"></td>
-        <td>${escapeHtml(l.producto)}</td>
+        <td>${escapeHtml(l.producto)} ${sosp ? '<span title="El costo parece traer el 18% rebajado (ITBIS). Revísalo." style="cursor:help;">⚠️</span>' : ''}</td>
         <td style="text-align:center; color:#64748b;">${escapeHtml(String(l.codproducto ?? ''))}</td>
         <td style="text-align:center;">${l.cantidad}</td>
-        <td style="text-align:right;">${money(l.precio)}</td>
-      </tr>`).join('');
+        <td style="text-align:right; white-space:nowrap;">
+          RD$ <input type="number" step="0.01" id="impcost_${j}" value="${Number(l.precio) || 0}" style="width:100px; text-align:right; padding:3px 5px;">
+          <button type="button" title="Sumarle el 18% (corregir ITBIS)" onclick="_impMas18(${j})" style="background:#dbeafe; color:#1e40af; border:1px solid #93c5fd; border-radius:5px; padding:2px 6px; cursor:pointer; font-size:11px;">+18%</button>
+        </td>
+      </tr>`;
+    }).join('');
     cont.innerHTML = `
       <button class="btn btn-light" style="padding:5px 10px; font-size:12px; margin-bottom:10px;" onclick="buscarComprasInfoPlus()"><i class="ti ti-arrow-left"></i> Volver</button>
       <div style="font-size:13px; margin-bottom:4px;"><b>Compra ${escapeHtml(f.factura)}</b> · ${escapeHtml(f.proveedor || '')}</div>
@@ -7264,15 +7273,24 @@ function verLineasImportCompra(idx) {
       <button class="btn btn-success" style="margin-top:14px;" onclick="crearLoteDesdeCompraInfoPlus(${idx})"><i class="ti ti-package"></i> Crear lote con lo marcado</button>`;
 }
 
+// Suma el 18% al costo editable de una línea (corrige el ITBIS que Info Plus le rebajó)
+function _impMas18(j) {
+    const inp = document.getElementById('impcost_' + j);
+    if(!inp) return;
+    const v = parseFloat(inp.value) || 0;
+    inp.value = (Math.round(v * 1.18 * 100) / 100);
+}
+
 async function crearLoteDesdeCompraInfoPlus(idx) {
     const f = _impComprasData[idx]; if(!f) return;
-    const seleccion = f.lineas.map((l, j) => ({ l, checked: document.getElementById('impchk_' + j)?.checked })).filter(x => x.checked);
+    const seleccion = f.lineas.map((l, j) => ({ l, j, checked: document.getElementById('impchk_' + j)?.checked, costo: parseFloat(document.getElementById('impcost_' + j)?.value) })).filter(x => x.checked);
     if(!seleccion.length) return toast('Marca al menos un modelo.', 'error');
+    if(seleccion.some(x => isNaN(x.costo) || x.costo < 0)) return toast('Hay un costo inválido. Revísalo.', 'error');
     const totalEquipos = seleccion.reduce((s, x) => s + (parseInt(x.l.cantidad) || 0), 0);
     if(totalEquipos <= 0) return toast('Las líneas marcadas no tienen cantidad.', 'error');
     if(!await confirmar(`Se creará un lote con ${totalEquipos} equipo(s) individual(es) de la compra ${f.factura}. ¿Continuar?`)) return;
     try {
-        const costoTotal = seleccion.reduce((s, x) => s + (Number(x.l.precio) || 0) * (parseInt(x.l.cantidad) || 0), 0);
+        const costoTotal = seleccion.reduce((s, x) => s + (Number(x.costo) || 0) * (parseInt(x.l.cantidad) || 0), 0);
         const prov = (cache.proveedores || []).find(p => (p.nombre || '').trim().toLowerCase() === (f.proveedor || '').trim().toLowerCase());
         const { data: lote, error: eLote } = await supabaseClient.from('refurb_lotes').insert([{
             codigo_lote: f.factura,
@@ -7292,7 +7310,7 @@ async function crearLoteDesdeCompraInfoPlus(idx) {
                 lote_id: lote.id,
                 modelo: (x.l.producto || '').trim(),
                 articulo_codigo: x.l.codproducto != null ? String(x.l.codproducto) : null,
-                costo_compra: Number(x.l.precio) || 0,
+                costo_compra: Number(x.costo) || 0,
                 costo_repuestos: 0,
                 estado_evaluacion: 'pendiente',
                 costo_origen: 'infoplus_compra',
