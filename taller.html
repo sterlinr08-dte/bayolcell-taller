@@ -1790,6 +1790,7 @@ body{
                             <div style="display:flex; gap:8px; flex-wrap:wrap;">
                                 <button class="btn btn-light" onclick="abrirModalProveedor()" title="Crear nuevo proveedor"><i class="ti ti-plus"></i> Proveedor</button>
                                 <button class="btn btn-blue" onclick="abrirModalNuevaCompra()"><i class="ti ti-shopping-cart-plus"></i> Nueva Compra</button>
+                                <button class="btn btn-dark" style="background:#0891b2;" onclick="abrirImportarCompraInfoPlus()" title="Jalar una compra de Info Plus y crear el lote de reacondicionados"><i class="ti ti-download"></i> Importar de Info Plus</button>
                             </div>
                         </div>
                         
@@ -7184,6 +7185,130 @@ async function crearLoteDesdeProveedor() {
         await loadAll();
         abrirLote(data.id);
     } catch(e) { logError('Crear lote', e); toastError(getFriendlyError(e)); }
+}
+
+// ===== IMPORTAR COMPRA DE INFO PLUS → crear lote de reacondicionados =====
+// Cada unidad de un artículo se vuelve un equipo INDIVIDUAL (cada IMEI tendrá su propio costo).
+let _impComprasData = [];
+function abrirImportarCompraInfoPlus() {
+    const hoy = new Date();
+    const hace30 = new Date(); hace30.setDate(hace30.getDate() - 30);
+    const fmt = (d) => d.toISOString().slice(0, 10);
+    let modal = document.getElementById('modalImportCompra');
+    if(!modal) { modal = document.createElement('div'); modal.id = 'modalImportCompra'; modal.className = 'modal-backdrop'; document.body.appendChild(modal); }
+    modal.innerHTML = `
+      <div class="modal-box" style="max-width:760px; width:96%;">
+        <div class="modal-header" style="background:linear-gradient(135deg,#0891b2,#0e7490); color:#fff; border-radius:12px 12px 0 0;">
+          <h3 style="color:#fff;"><i class="ti ti-download"></i> Importar compra de Info Plus</h3>
+          <button class="modal-close" onclick="cerrarImportCompra()" style="color:#fff;">✕</button>
+        </div>
+        <div class="modal-body" style="max-height:78vh; overflow-y:auto;">
+          <p style="font-size:13px; color:#475569; margin:0 0 12px;">Elige el rango de fechas, busca la compra que registraste en Info Plus y marca los <b>modelos de teléfono</b>. Cada unidad será un equipo individual con su costo.</p>
+          <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+            <div><label style="font-size:12px; font-weight:600;">Desde</label><br><input type="date" id="impDesde" value="${fmt(hace30)}"></div>
+            <div><label style="font-size:12px; font-weight:600;">Hasta</label><br><input type="date" id="impHasta" value="${fmt(hoy)}"></div>
+            <button class="btn btn-blue" onclick="buscarComprasInfoPlus()"><i class="ti ti-search"></i> Buscar</button>
+          </div>
+          <div id="impResultado" style="margin-top:16px;"></div>
+        </div>
+      </div>`;
+    modal.classList.add('active');
+}
+function cerrarImportCompra() { const m = document.getElementById('modalImportCompra'); if(m) m.classList.remove('active'); }
+
+async function buscarComprasInfoPlus() {
+    const desde = document.getElementById('impDesde')?.value;
+    const hasta = document.getElementById('impHasta')?.value;
+    if(!desde || !hasta) return toast('Elige las dos fechas.', 'error');
+    const cont = document.getElementById('impResultado');
+    cont.innerHTML = '<p style="text-align:center; color:#64748b; padding:16px;">Buscando en Info Plus...</p>';
+    const ip = (s) => { const [y, m, d] = s.split('-'); return `${parseInt(y)}-${parseInt(m)}-${parseInt(d)}`; }; // Info Plus quiere YYYY-M-D
+    try {
+        const { data, error } = await supabaseClient.functions.invoke('infoplus-compras', { body: { desde: ip(desde), hasta: ip(hasta) } });
+        if(error) throw error;
+        if(!data || !data.ok) throw new Error(data?.error || 'No se pudo leer.');
+        _impComprasData = data.facturas || [];
+        if(!_impComprasData.length) { cont.innerHTML = '<p style="text-align:center; color:#64748b; padding:16px;">No hay compras en ese rango.</p>'; return; }
+        cont.innerHTML = `<div style="font-size:12px; color:#64748b; margin-bottom:8px;">${_impComprasData.length} compra(s) encontradas:</div>` + _impComprasData.map((f, i) => `
+          <div style="border:1px solid #e2e8f0; border-radius:10px; padding:10px 12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+            <div>
+              <b style="font-size:14px;">${escapeHtml(f.factura)}</b> <span class="badge" style="background:#e0f2fe; color:#0369a1; font-size:10px;">${escapeHtml(f.termino || '')}</span>
+              <div style="font-size:12px; color:#64748b;">${escapeHtml(f.proveedor || 'Sin proveedor')} · ${f.fecha ? new Date(f.fecha).toLocaleDateString('es-DO') : ''} · ${f.lineas.length} línea(s) · ${money(f.total)}</div>
+            </div>
+            <button class="btn btn-blue" style="padding:6px 12px; font-size:12px;" onclick="verLineasImportCompra(${i})"><i class="ti ti-eye"></i> Ver / crear lote</button>
+          </div>`).join('');
+    } catch(e) { logError('Buscar compras Info Plus', e); cont.innerHTML = `<p style="text-align:center; color:#b91c1c; padding:16px;">Error: ${escapeHtml(getFriendlyError(e))}</p>`; }
+}
+
+function verLineasImportCompra(idx) {
+    const f = _impComprasData[idx]; if(!f) return;
+    const cont = document.getElementById('impResultado');
+    const yaExiste = (cache.lotes || []).some(l => (l.codigo_lote || '') === f.factura);
+    const filas = f.lineas.map((l, j) => `
+      <tr>
+        <td style="text-align:center;"><input type="checkbox" id="impchk_${j}" style="width:17px; height:17px;"></td>
+        <td>${escapeHtml(l.producto)}</td>
+        <td style="text-align:center; color:#64748b;">${escapeHtml(String(l.codproducto ?? ''))}</td>
+        <td style="text-align:center;">${l.cantidad}</td>
+        <td style="text-align:right;">${money(l.precio)}</td>
+      </tr>`).join('');
+    cont.innerHTML = `
+      <button class="btn btn-light" style="padding:5px 10px; font-size:12px; margin-bottom:10px;" onclick="buscarComprasInfoPlus()"><i class="ti ti-arrow-left"></i> Volver</button>
+      <div style="font-size:13px; margin-bottom:4px;"><b>Compra ${escapeHtml(f.factura)}</b> · ${escapeHtml(f.proveedor || '')}</div>
+      ${yaExiste ? '<div style="background:#fef3c7; color:#92400e; font-size:12px; padding:6px 10px; border-radius:8px; margin-bottom:8px;">⚠️ Ya existe un lote con este número de factura. Si continúas, crearás otro.</div>' : ''}
+      <p style="font-size:12px; color:#475569; margin:0 0 8px;">Marca los <b>modelos de teléfono</b> que entran al lote (cada unidad = un equipo). Las piezas/accesorios <b>no</b> los marques.</p>
+      <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
+        <thead><tr style="background:#f1f5f9;"><th style="padding:6px;">✓</th><th style="text-align:left; padding:6px;">Producto</th><th>Código</th><th>Cant.</th><th style="text-align:right; padding:6px;">Costo c/u</th></tr></thead>
+        <tbody>${filas}</tbody>
+      </table>
+      <button class="btn btn-success" style="margin-top:14px;" onclick="crearLoteDesdeCompraInfoPlus(${idx})"><i class="ti ti-package"></i> Crear lote con lo marcado</button>`;
+}
+
+async function crearLoteDesdeCompraInfoPlus(idx) {
+    const f = _impComprasData[idx]; if(!f) return;
+    const seleccion = f.lineas.map((l, j) => ({ l, checked: document.getElementById('impchk_' + j)?.checked })).filter(x => x.checked);
+    if(!seleccion.length) return toast('Marca al menos un modelo.', 'error');
+    const totalEquipos = seleccion.reduce((s, x) => s + (parseInt(x.l.cantidad) || 0), 0);
+    if(totalEquipos <= 0) return toast('Las líneas marcadas no tienen cantidad.', 'error');
+    if(!await confirmar(`Se creará un lote con ${totalEquipos} equipo(s) individual(es) de la compra ${f.factura}. ¿Continuar?`)) return;
+    try {
+        const costoTotal = seleccion.reduce((s, x) => s + (Number(x.l.precio) || 0) * (parseInt(x.l.cantidad) || 0), 0);
+        const prov = (cache.proveedores || []).find(p => (p.nombre || '').trim().toLowerCase() === (f.proveedor || '').trim().toLowerCase());
+        const { data: lote, error: eLote } = await supabaseClient.from('refurb_lotes').insert([{
+            codigo_lote: f.factura,
+            proveedor_id: prov?.id || null,
+            fecha_compra: f.fecha || new Date().toISOString().slice(0, 10),
+            costo_total_lote: Math.round(costoTotal * 100) / 100,
+            cantidad_equipos: totalEquipos,
+            estado: 'Abierto',
+            notas: `Importado de Info Plus · Factura ${f.factura} · Proveedor: ${f.proveedor || ''}`,
+            creado_por: sessionUser?.id || null
+        }]).select().single();
+        if(eLote) throw eLote;
+        const equipos = [];
+        seleccion.forEach(x => {
+            const n = parseInt(x.l.cantidad) || 0;
+            for(let k = 0; k < n; k++) equipos.push({
+                lote_id: lote.id,
+                modelo: (x.l.producto || '').trim(),
+                articulo_codigo: x.l.codproducto != null ? String(x.l.codproducto) : null,
+                costo_compra: Number(x.l.precio) || 0,
+                costo_repuestos: 0,
+                estado_evaluacion: 'pendiente',
+                costo_origen: 'infoplus_compra',
+                fecha_compra: f.fecha || null
+            });
+        });
+        for(let i = 0; i < equipos.length; i += 200) {
+            const { error: eEq } = await supabaseClient.from('equipos_refurbish').insert(equipos.slice(i, i + 200));
+            if(eEq) throw eEq;
+        }
+        toast(`✅ Lote ${f.factura} creado con ${totalEquipos} equipo(s).`);
+        cerrarImportCompra();
+        await loadAll();
+        if(typeof nav === 'function') nav('refurb', document.getElementById('menu-refurb'));
+        if(typeof abrirLoteReacond === 'function') abrirLoteReacond(lote.id);
+    } catch(e) { logError('Crear lote desde compra Info Plus', e); toastError(getFriendlyError(e)); }
 }
 
 // Carga los artículos de Info Plus (mismos del sistema Info Plus) para usarlos en compras
