@@ -1110,6 +1110,7 @@ body{
                         <input type="month" id="ef_mes" onchange="renderEstados()">
                         <select id="ef_sucursal" onchange="renderEstados()"><option value="">Combinado (todas)</option><option value="Santiago">Santiago</option><option value="Moca">Moca</option></select>
                         <select id="ef_metodo" onchange="cambiarMetodoCosteo()" title="Método de valoración de inventarios declarado en la nota"><option value="promedio">Método: Promedio Ponderado</option><option value="peps">Método: PEPS</option></select>
+                        <select id="ef_calculo" onchange="renderEstados()" title="Cómo se calcula el costo de ventas en el Estado de Resultados"><option value="perpetuo">Costo: Perpetuo (Info Plus)</option><option value="periodico">Costo: Periódico</option></select>
                         <button class="btn btn-light" style="font-size:12px;" onclick="renderEstados()"><i class="ti ti-refresh"></i> Generar</button>
                     </div>
                     <div class="card"><div id="ef_contenido" style="overflow-x:auto;"><p style="color:var(--text-muted); text-align:center;">Selecciona el reporte y el período.</p></div></div>
@@ -6033,18 +6034,43 @@ async function renderEstadoResultados(){
     try{
         const { info, libro } = await _datosEstados();
         const { ini, fin } = _periodoMes(document.getElementById('ef_mes').value);
+        const calc = document.getElementById('ef_calculo')?.value || 'perpetuo';
         const lib = libro.filter(x => !ini || (x.a.fecha >= ini && x.a.fecha < fin));
         const acc = _aggLibro(lib);
         function seccion(tipo, modo){ let html='', total=0; Object.keys(acc).sort().forEach(k=>{ if(info[k] && info[k].tipo===tipo){ const v = modo==='ing' ? (acc[k].h-acc[k].d) : (acc[k].d-acc[k].h); if(Math.abs(v)<0.005) return; total+=v; html+=`<tr><td style="padding-left:20px;">${escapeHtml(info[k].nombre)}</td><td style="text-align:right;">${money(v)}</td></tr>`; } }); return {html,total}; }
-        const ing = seccion('ingreso','ing'), cos = seccion('costo','gas'), gas = seccion('gasto','gas');
-        const bruta = ing.total - cos.total, neta = bruta - gas.total;
+        const ing = seccion('ingreso','ing'), gas = seccion('gasto','gas');
+        // Costo de ventas: PERPETUO (cuentas de costo del período) o PERIÓDICO (inv. inicial + compras − inv. final físico)
+        let cosBloque, cosTotal, cosTitulo, aviso = '';
+        if(calc === 'periodico'){
+            const inv110 = libro.filter(x => x.cuenta_codigo === '110301');
+            let invIni = 0, compras = 0;
+            inv110.forEach(x => {
+                const d = Number(x.debe||0), h = Number(x.haber||0), f = x.a.fecha, ap = (x.a.referencia === 'APERTURA');
+                if(ini){ if(f < ini) invIni += d - h; else if(f < fin){ if(ap) invIni += d - h; else compras += d; } }
+                else { if(ap) invIni += d - h; else compras += d; }
+            });
+            invIni = _r2(invIni); compras = _r2(compras);
+            const { data } = await supabaseClient.rpc('infoplus_valor_inventario');
+            const invFin = _r2((data && data[0] && Number(data[0].total_todos)) || 0);
+            cosTotal = _r2(invIni + compras - invFin);
+            cosTitulo = 'COSTO DE VENTAS (Periódico)';
+            cosBloque = `<tr><td style="padding-left:20px;">Inventario inicial</td><td style="text-align:right;">${money(invIni)}</td></tr>
+              <tr><td style="padding-left:20px;">(+) Compras del período</td><td style="text-align:right;">${money(compras)}</td></tr>
+              <tr><td style="padding-left:20px;">(−) Inventario final (conteo físico)</td><td style="text-align:right;">${money(invFin)}</td></tr>`;
+            aviso = `<div style="background:rgba(234,179,8,0.12); color:#92400e; font-size:11.5px; padding:6px 10px; border-radius:6px; margin:8px 0;">Método <b>periódico</b>: usa el inventario final físico de hoy (Info Plus). Es exacto para el período acumulado hasta la fecha del conteo; requiere tener registrada la Apertura y las Compras.</div>`;
+        } else {
+            const cos = seccion('costo','gas');
+            cosTotal = cos.total; cosBloque = cos.html; cosTitulo = 'COSTO DE VENTAS';
+        }
+        const bruta = _r2(ing.total - cosTotal), neta = _r2(bruta - gas.total);
         cont.innerHTML = `<h3 style="text-align:center; margin:0;">BAYOL CELL, S.R.L.</h3>
-        <p style="text-align:center; margin:2px 0 14px; color:var(--text-muted);">Estado de Resultados · ${_tituloPeriodo()} · RD$</p>
+        <p style="text-align:center; margin:2px 0 14px; color:var(--text-muted);">Estado de Resultados · ${_tituloPeriodo()} · ${calc==='periodico'?'Costo periódico':'Costo perpetuo'} · RD$</p>
+        ${aviso}
         <table style="width:100%; font-size:13.5px;">
           <tr><td colspan="2" style="font-weight:800; color:#0891b2; padding-top:6px;">INGRESOS</td></tr>${ing.html}
           <tr style="font-weight:800; border-top:1px solid var(--brd,#e5e7eb);"><td>Total Ingresos</td><td style="text-align:right;">${money(ing.total)}</td></tr>
-          <tr><td colspan="2" style="font-weight:800; color:#0891b2; padding-top:8px;">COSTO DE VENTAS</td></tr>${cos.html}
-          <tr style="font-weight:800;"><td>Total Costo de Ventas</td><td style="text-align:right;">${money(cos.total)}</td></tr>
+          <tr><td colspan="2" style="font-weight:800; color:#0891b2; padding-top:8px;">${cosTitulo}</td></tr>${cosBloque}
+          <tr style="font-weight:800;"><td>Total Costo de Ventas</td><td style="text-align:right;">${money(cosTotal)}</td></tr>
           <tr style="font-weight:800; background:rgba(8,145,178,0.08);"><td>MARGEN BRUTO</td><td style="text-align:right;">${money(bruta)}</td></tr>
           <tr><td colspan="2" style="font-weight:800; color:#0891b2; padding-top:8px;">GASTOS</td></tr>${gas.html}
           <tr style="font-weight:800;"><td>Total Gastos</td><td style="text-align:right;">${money(gas.total)}</td></tr>
