@@ -1040,6 +1040,7 @@ body{
                             <button class="btn btn-light" onclick="abrirApertura()" style="font-size:12px;" title="Asiento de apertura: saldos iniciales (inventario, caja, capital...)"><i class="ti ti-flag"></i> Apertura</button>
                             <button class="btn btn-light" onclick="abrirAutoIP()" style="font-size:12px;" title="Generar asientos de VENTAS a partir de Info Plus"><i class="ti ti-bolt"></i> Ventas Info Plus</button>
                             <button class="btn btn-light" onclick="abrirAutoIPC()" style="font-size:12px;" title="Generar asientos de COMPRAS a proveedores a partir de Info Plus"><i class="ti ti-shopping-cart"></i> Compras Info Plus</button>
+                            <button class="btn btn-success" onclick="abrirRegGasto()" style="font-size:12px;" title="Registrar un gasto (alquiler, luz, sueldos, etc.) — arma el asiento solo"><i class="ti ti-receipt"></i> Registrar gasto</button>
                             <button class="btn btn-blue" onclick="abrirModalAsiento()" style="font-size:12px;"><i class="ti ti-plus"></i> Nuevo asiento</button>
                         </div>
                     </div>
@@ -2773,6 +2774,47 @@ body{
         <div class="modal-footer">
             <button class="btn btn-light" onclick="cerrarAutoIPC()">Cancelar</button>
             <button class="btn btn-blue" id="aipc_btnGen" onclick="generarAutoIPC()" disabled><i class="ti ti-check"></i> Generar asientos</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: REGISTRAR GASTO (forma sencilla para el contador) -->
+<div id="modalRegGasto" class="modal-backdrop">
+    <div class="modal-box" style="max-width:560px;">
+        <div class="modal-header" style="background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; border-radius:12px 12px 0 0;">
+            <h3 style="color:#fff;"><i class="ti ti-receipt"></i> Registrar gasto</h3>
+            <button class="modal-close" onclick="cerrarRegGasto()" style="color:#fff;">✕</button>
+        </div>
+        <div class="modal-body">
+            <p style="color:var(--text-muted); font-size:12.5px; margin:0 0 12px;">
+                Registra un gasto sin preocuparte por débitos y créditos: el sistema arma el asiento contable correcto solo.
+            </p>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div><label>Fecha *</label><input type="date" id="rgto_fecha"></div>
+                <div><label>Sucursal</label><select id="rgto_sucursal"><option value="General">General (ambas)</option><option value="Santiago">Santiago</option><option value="Moca">Moca</option></select></div>
+            </div>
+            <div class="form-row" style="margin-top:8px;"><label>Tipo de gasto *</label><select id="rgto_cuenta"></select></div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px;">
+                <div><label>Monto (RD$) *</label><input type="number" step="0.01" min="0" id="rgto_monto" placeholder="0.00"></div>
+                <div><label>Pagado con *</label><select id="rgto_metodo">
+                    <option value="110101">Efectivo (Caja General)</option>
+                    <option value="110103">Banco (transferencia/cheque)</option>
+                    <option value="2105">Tarjeta de crédito</option>
+                    <option value="2101">A crédito (queda por pagar)</option>
+                </select></div>
+            </div>
+            <div style="margin-top:10px; padding:8px 10px; border:1px solid var(--brd,#e5e7eb); border-radius:8px;">
+                <label style="display:flex; align-items:center; gap:8px; margin:0; font-size:13px;">
+                    <input type="checkbox" id="rgto_itbis"> El monto <b>incluye ITBIS (18%)</b> y quiero separarlo (crédito fiscal)
+                </label>
+            </div>
+            <div class="form-row" style="margin-top:8px;"><label>Descripción / concepto *</label><input id="rgto_desc" placeholder="Ej. Alquiler del local de Santiago - junio"></div>
+            <div class="form-row" style="margin-top:8px;"><label>Referencia / NCF (opcional)</label><input id="rgto_ref" placeholder="N° factura, NCF, recibo..."></div>
+            <div id="rgto_resumen" style="margin-top:12px; font-size:12.5px; color:var(--text-muted);"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" onclick="cerrarRegGasto()">Cancelar</button>
+            <button class="btn btn-success" onclick="guardarRegGasto()"><i class="ti ti-check"></i> Registrar gasto</button>
         </div>
     </div>
 </div>
@@ -6451,6 +6493,77 @@ async function generarAutoIPC() {
         renderLibroDiario();
     } catch(e) { logError('Generar compras Info Plus', e); toastError(getFriendlyError(e)); }
     finally { btn.disabled = false; btn.innerHTML = '<i class="ti ti-check"></i> Generar asientos'; }
+}
+
+// ===== CONTABILIDAD — REGISTRAR GASTO (forma sencilla, arma el asiento solo) =====
+function _ctaNombre(cod) { return ((_cuentasCache || []).find(c => c.codigo === cod) || {}).nombre || _aipCuentaNombre(cod); }
+function _opcionesGastos() {
+    const gastos = (_cuentasCache || []).filter(c => c.tipo === 'gasto' && c.permite_movimiento && c.activa);
+    const grupos = {};
+    gastos.forEach(c => { const g = c.codigo.slice(0, 2); (grupos[g] = grupos[g] || []).push(c); });
+    const nombreGrupo = g => { const x = (_cuentasCache || []).find(c => c.codigo === g); return x ? x.nombre : ('Grupo ' + g); };
+    return '<option value="">— Elige el tipo de gasto —</option>' + Object.keys(grupos).sort().map(g =>
+        `<optgroup label="${escapeHtml(nombreGrupo(g))}">` +
+        grupos[g].sort((a, b) => a.codigo.localeCompare(b.codigo)).map(c => `<option value="${escapeHtml(c.codigo)}">${escapeHtml(c.nombre)}</option>`).join('') +
+        `</optgroup>`).join('');
+}
+async function abrirRegGasto() {
+    if(!_cuentasCache || !_cuentasCache.length) await cargarCatalogoCuentas();
+    document.getElementById('rgto_cuenta').innerHTML = _opcionesGastos();
+    document.getElementById('rgto_fecha').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('rgto_sucursal').value = 'General';
+    document.getElementById('rgto_monto').value = '';
+    document.getElementById('rgto_metodo').value = '110101';
+    document.getElementById('rgto_itbis').checked = false;
+    document.getElementById('rgto_desc').value = '';
+    document.getElementById('rgto_ref').value = '';
+    document.getElementById('rgto_resumen').innerHTML = '';
+    ['rgto_monto', 'rgto_cuenta', 'rgto_metodo', 'rgto_itbis'].forEach(id => { const el = document.getElementById(id); if(el) { el.oninput = recalcRegGasto; el.onchange = recalcRegGasto; } });
+    document.getElementById('modalRegGasto').classList.add('active');
+}
+function cerrarRegGasto() { document.getElementById('modalRegGasto').classList.remove('active'); }
+function recalcRegGasto() {
+    const total = _r2(parseFloat(document.getElementById('rgto_monto').value) || 0);
+    const cod = document.getElementById('rgto_cuenta').value;
+    const metodo = document.getElementById('rgto_metodo').value;
+    const incItbis = document.getElementById('rgto_itbis').checked;
+    const el = document.getElementById('rgto_resumen');
+    if(!(total > 0) || !cod) { el.innerHTML = ''; return; }
+    const neto = incItbis ? _r2(total / 1.18) : total, itbis = incItbis ? _r2(total - neto) : 0;
+    let txt = `Quedará así: <b>${escapeHtml(_ctaNombre(cod))}</b> ${money(neto)}`;
+    if(itbis > 0) txt += ` + ITBIS ${money(itbis)}`;
+    txt += ` &nbsp;→&nbsp; sale de <b>${escapeHtml(_ctaNombre(metodo))}</b> ${money(total)}.`;
+    el.innerHTML = txt;
+}
+async function guardarRegGasto() {
+    const fecha = document.getElementById('rgto_fecha').value;
+    const cod = document.getElementById('rgto_cuenta').value;
+    const total = _r2(parseFloat(document.getElementById('rgto_monto').value) || 0);
+    const metodo = document.getElementById('rgto_metodo').value;
+    const sucursal = document.getElementById('rgto_sucursal').value;
+    const desc = document.getElementById('rgto_desc').value.trim();
+    const ref = document.getElementById('rgto_ref').value.trim() || null;
+    const incItbis = document.getElementById('rgto_itbis').checked;
+    if(!fecha) return toast('Indica la fecha.', 'error');
+    if(!cod) return toast('Elige el tipo de gasto.', 'error');
+    if(!(total > 0)) return toast('Indica el monto del gasto.', 'error');
+    if(!desc) return toast('Escribe la descripción del gasto.', 'error');
+    const neto = incItbis ? _r2(total / 1.18) : total, itbis = incItbis ? _r2(total - neto) : 0;
+    const lineas = [{ cuenta_codigo: cod, cuenta_nombre: _ctaNombre(cod), debe: neto, haber: 0 }];
+    if(itbis > 0) lineas.push({ cuenta_codigo: '1104', cuenta_nombre: _ctaNombre('1104'), debe: itbis, haber: 0 });
+    lineas.push({ cuenta_codigo: metodo, cuenta_nombre: _ctaNombre(metodo), debe: 0, haber: total });
+    try {
+        const { data: maxA } = await supabaseClient.from('conta_asientos').select('numero').order('numero', { ascending: false }).limit(1);
+        const numero = ((maxA && maxA[0] && maxA[0].numero) || 0) + 1;
+        const { data: asiento, error: e1 } = await supabaseClient.from('conta_asientos').insert({ numero, fecha, sucursal, referencia: ref, descripcion: desc, creado_por: sessionUser?.id || null }).select().single();
+        if(e1) throw e1;
+        const filas = lineas.map((l, i) => ({ asiento_id: asiento.id, cuenta_codigo: l.cuenta_codigo, cuenta_nombre: l.cuenta_nombre, debe: _r2(l.debe), haber: _r2(l.haber), orden: i }));
+        const { error: e2 } = await supabaseClient.from('conta_asiento_lineas').insert(filas);
+        if(e2) throw e2;
+        toast('✅ Gasto registrado (asiento #' + numero + ').');
+        cerrarRegGasto();
+        renderLibroDiario();
+    } catch(e) { logError('Registrar gasto', e); toastError(getFriendlyError(e)); }
 }
 
 // ===== DIAGNÓSTICO IA (BAYOL DIAGNOSTIC ENGINE — Fase 1) =====
