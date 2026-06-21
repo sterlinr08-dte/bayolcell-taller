@@ -1105,9 +1105,11 @@ body{
                             <option value="balance">Balance General</option>
                             <option value="flujo">Flujo de Efectivo</option>
                             <option value="cxc">Cuentas por Cobrar (Info Plus)</option>
+                            <option value="verif">Verificación de Costo</option>
                         </select>
                         <input type="month" id="ef_mes" onchange="renderEstados()">
                         <select id="ef_sucursal" onchange="renderEstados()"><option value="">Combinado (todas)</option><option value="Santiago">Santiago</option><option value="Moca">Moca</option></select>
+                        <select id="ef_metodo" onchange="cambiarMetodoCosteo()" title="Método de valoración de inventarios declarado en la nota"><option value="promedio">Método: Promedio Ponderado</option><option value="peps">Método: PEPS</option></select>
                         <button class="btn btn-light" style="font-size:12px;" onclick="renderEstados()"><i class="ti ti-refresh"></i> Generar</button>
                     </div>
                     <div class="card"><div id="ef_contenido" style="overflow-x:auto;"><p style="color:var(--text-muted); text-align:center;">Selecciona el reporte y el período.</p></div></div>
@@ -5938,18 +5940,65 @@ function contaTab(name) {
     if(name === 'asientos') { const mm = document.getElementById('as_filtroMes'); if(mm && !mm.value) mm.value = hoyMes; renderLibroDiario(); }
     if(name === 'mayor') { const mm = document.getElementById('lm_mes'); if(mm && !mm.value) mm.value = hoyMes; cargarSelectCuentasLM(); renderLibroMayor(); }
     if(name === 'balanza') { const mm = document.getElementById('bal_mes'); if(mm && !mm.value) mm.value = hoyMes; renderBalanza(); }
-    if(name === 'estados') { const mm = document.getElementById('ef_mes'); if(mm && !mm.value) mm.value = hoyMes; renderEstados(); }
+    if(name === 'estados') { const mm = document.getElementById('ef_mes'); if(mm && !mm.value) mm.value = hoyMes; const me = document.getElementById('ef_metodo'); if(me) me.value = _metodoCosteo(); renderEstados(); }
 }
 // ===== ESTADOS FINANCIEROS (Fase D) =====
 function _periodoMes(mes){ if(!mes) return {ini:null,fin:null}; const ini=mes+'-01'; const d=new Date(mes+'-01T00:00:00'); d.setMonth(d.getMonth()+1); return {ini, fin:d.toISOString().slice(0,10)}; }
-const _EF_NOTA = '<p style="margin-top:14px; font-size:11px; color:var(--text-muted); border-top:1px solid var(--brd,#e5e7eb); padding-top:8px; line-height:1.5;">Estados financieros preparados conforme a la <b>NIIF para las PYMES</b>. Inventarios valorados al <b>costo promedio ponderado</b> bajo sistema de inventario perpetuo. Cifras expresadas en pesos dominicanos (RD$). Sujeto a revisión y validación del Contador Público Autorizado.</p>';
 function _aggLibro(libro){ const acc={}; libro.forEach(x=>{ const k=x.cuenta_codigo; if(!acc[k])acc[k]={d:0,h:0}; acc[k].d+=Number(x.debe||0); acc[k].h+=Number(x.haber||0); }); return acc; }
 function renderEstados(){
     const t = document.getElementById('ef_tipo')?.value;
     if(t === 'balance') renderBalanceGeneral();
     else if(t === 'flujo') renderFlujoEfectivo();
     else if(t === 'cxc') renderCxC();
+    else if(t === 'verif') renderCostoVerif();
     else renderEstadoResultados();
+}
+// Método de costeo declarado (etiqueta para la nota). Se guarda en el navegador.
+function _metodoCosteo(){ return localStorage.getItem('bayol_metodo_costeo') || 'promedio'; }
+function _metodoCosteoTxt(){ return _metodoCosteo() === 'peps' ? 'PEPS (primeras entradas, primeras salidas)' : 'costo promedio ponderado'; }
+function cambiarMetodoCosteo(){ const s = document.getElementById('ef_metodo'); if(s) localStorage.setItem('bayol_metodo_costeo', s.value); renderEstados(); }
+function _notaNIIF(){ return `<p style="margin-top:14px; font-size:11px; color:var(--text-muted); border-top:1px solid var(--brd,#e5e7eb); padding-top:8px; line-height:1.5;">Estados financieros preparados conforme a la <b>NIIF para las PYMES</b>. Inventarios valorados al <b>${_metodoCosteoTxt()}</b> bajo sistema de inventario perpetuo. Cifras expresadas en pesos dominicanos (RD$). Sujeto a revisión y validación del Contador Público Autorizado (CPA).</p>`; }
+// Verificación de costo: compara el método perpetuo (Info Plus) con el periódico (Inv. inicial + Compras − Inv. final)
+async function renderCostoVerif(){
+    const cont = document.getElementById('ef_contenido'); if(!cont) return;
+    cont.innerHTML = 'Calculando...';
+    try{
+        const libro = await _contaCargarLibro();
+        const inv = libro.filter(x => x.cuenta_codigo === '110301');
+        let apertura = 0, totalDebe = 0, totalHaber = 0;
+        inv.forEach(x => { const d = Number(x.debe || 0), h = Number(x.haber || 0); totalDebe += d; totalHaber += h; if(x.a && x.a.referencia === 'APERTURA') apertura += d; });
+        const compras = _r2(totalDebe - apertura);
+        const cogsPerp = _r2(totalHaber);
+        const invLibro = _r2(totalDebe - totalHaber);
+        const { data } = await supabaseClient.rpc('infoplus_valor_inventario');
+        const invFisico = _r2((data && data[0] && Number(data[0].total_todos)) || 0);
+        const cogsPeriodico = _r2(_r2(apertura) + compras - invFisico);
+        const dif = _r2(cogsPeriodico - cogsPerp);
+        const difInv = _r2(invLibro - invFisico);
+        const okFila = (Math.abs(dif) < 1) ? 'rgba(22,163,74,0.14)' : 'rgba(234,179,8,0.18)';
+        cont.innerHTML = `<h3 style="text-align:center; margin:0;">BAYOL CELL, S.R.L.</h3>
+        <p style="text-align:center; margin:2px 0 12px; color:var(--text-muted);">Verificación del Costo de Ventas · RD$</p>
+        <div style="background:rgba(8,145,178,0.06); border-radius:8px; padding:10px 12px; margin-bottom:12px; font-size:12.5px; color:var(--text-muted);">
+            Compara cómo se obtuvo el costo por <b>dos caminos</b>. Si la diferencia es ~0, el inventario cuadra. Una diferencia grande indica faltantes, ajustes o que aún no has registrado la <b>Apertura</b> y las <b>Compras</b>.
+        </div>
+        <table style="width:100%; font-size:13.5px;">
+          <tr><td colspan="2" style="font-weight:800; color:#0891b2;">MÉTODO PERIÓDICO</td></tr>
+          <tr><td style="padding-left:18px;">Inventario inicial (apertura)</td><td style="text-align:right;">${money(_r2(apertura))}</td></tr>
+          <tr><td style="padding-left:18px;">(+) Compras del período</td><td style="text-align:right;">${money(compras)}</td></tr>
+          <tr><td style="padding-left:18px;">(−) Inventario final (conteo Info Plus)</td><td style="text-align:right;">${money(invFisico)}</td></tr>
+          <tr style="font-weight:800; border-top:1px solid var(--brd,#e5e7eb);"><td>Costo de ventas (periódico)</td><td style="text-align:right;">${money(cogsPeriodico)}</td></tr>
+          <tr><td colspan="2" style="font-weight:800; color:#0891b2; padding-top:10px;">MÉTODO PERPETUO (Info Plus)</td></tr>
+          <tr style="font-weight:800;"><td>Costo de ventas (perpetuo / promedio ponderado)</td><td style="text-align:right;">${money(cogsPerp)}</td></tr>
+          <tr style="font-weight:900; background:${okFila};"><td>DIFERENCIA ${Math.abs(dif) < 1 ? '✅ cuadra' : '⚠️ revisar'}</td><td style="text-align:right;">${money(dif)}</td></tr>
+        </table>
+        <table style="width:100%; font-size:12.5px; margin-top:14px;">
+          <tr><td colspan="2" style="font-weight:800; color:#0891b2;">CHEQUEO DEL INVENTARIO</td></tr>
+          <tr><td style="padding-left:18px;">Inventario según libros (apertura + compras − costo)</td><td style="text-align:right;">${money(invLibro)}</td></tr>
+          <tr><td style="padding-left:18px;">Inventario físico (Info Plus hoy)</td><td style="text-align:right;">${money(invFisico)}</td></tr>
+          <tr style="font-weight:800; background:${Math.abs(difInv) < 1 ? 'rgba(22,163,74,0.14)' : 'rgba(234,179,8,0.18)'};"><td>Diferencia de inventario</td><td style="text-align:right;">${money(difInv)}</td></tr>
+        </table>
+        ${_notaNIIF()}`;
+    }catch(e){ logError('Verificación de costo', e); cont.innerHTML = '<p style="color:#dc2626;">Error al generar.</p>'; }
 }
 async function renderCxC(){
     const cont = document.getElementById('ef_contenido'); if(!cont) return;
@@ -6000,7 +6049,7 @@ async function renderEstadoResultados(){
           <tr><td colspan="2" style="font-weight:800; color:#0891b2; padding-top:8px;">GASTOS</td></tr>${gas.html}
           <tr style="font-weight:800;"><td>Total Gastos</td><td style="text-align:right;">${money(gas.total)}</td></tr>
           <tr style="font-weight:900; background:${neta>=0?'rgba(22,163,74,0.14)':'rgba(220,38,38,0.14)'};"><td>${neta>=0?'GANANCIA NETA DEL PERÍODO':'PÉRDIDA NETA DEL PERÍODO'}</td><td style="text-align:right;">${money(neta)}</td></tr>
-        </table>${_EF_NOTA}`;
+        </table>${_notaNIIF()}`;
     }catch(e){ logError('Estado de resultados', e); cont.innerHTML='<p style="color:#dc2626;">Error al generar.</p>'; }
 }
 async function renderBalanceGeneral(){
@@ -6030,7 +6079,7 @@ async function renderBalanceGeneral(){
           <tr><td style="padding-left:20px;">Resultado del Ejercicio</td><td style="text-align:right;">${money(resultado)}</td></tr>
           <tr style="font-weight:800;"><td>Total Patrimonio</td><td style="text-align:right;">${money(totalPat)}</td></tr>
           <tr style="font-weight:900; background:${cuadra?'rgba(22,163,74,0.14)':'rgba(220,38,38,0.14)'};"><td>TOTAL PASIVO + PATRIMONIO ${cuadra?'✅':'⚠️'}</td><td style="text-align:right;">${money(totalPasPat)}</td></tr>
-        </table>${_EF_NOTA}`;
+        </table>${_notaNIIF()}`;
     }catch(e){ logError('Balance general', e); cont.innerHTML='<p style="color:#dc2626;">Error al generar.</p>'; }
 }
 async function renderFlujoEfectivo(){
