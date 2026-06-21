@@ -1041,6 +1041,7 @@ body{
                             <button class="btn btn-light" onclick="abrirAutoIP()" style="font-size:12px;" title="Generar asientos de VENTAS a partir de Info Plus"><i class="ti ti-bolt"></i> Ventas Info Plus</button>
                             <button class="btn btn-light" onclick="abrirAutoIPC()" style="font-size:12px;" title="Generar asientos de COMPRAS a proveedores a partir de Info Plus"><i class="ti ti-shopping-cart"></i> Compras Info Plus</button>
                             <button class="btn btn-success" onclick="abrirRegGasto()" style="font-size:12px;" title="Registrar un gasto (alquiler, luz, sueldos, etc.) — arma el asiento solo"><i class="ti ti-receipt"></i> Registrar gasto</button>
+                            <button class="btn" onclick="abrirMovEf()" style="font-size:12px; background:#0e7490; color:#fff;" title="Registrar entrada o salida de efectivo (cobros, aportes, préstamos, transferencias) — arma el asiento solo"><i class="ti ti-cash-banknote"></i> Movimiento de efectivo</button>
                             <button class="btn btn-blue" onclick="abrirModalAsiento()" style="font-size:12px;"><i class="ti ti-plus"></i> Nuevo asiento</button>
                         </div>
                     </div>
@@ -2815,6 +2816,50 @@ body{
         <div class="modal-footer">
             <button class="btn btn-light" onclick="cerrarRegGasto()">Cancelar</button>
             <button class="btn btn-success" onclick="guardarRegGasto()"><i class="ti ti-check"></i> Registrar gasto</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: MOVIMIENTO DE EFECTIVO (caja/banco — entradas/salidas/transferencias) -->
+<div id="modalMovEf" class="modal-backdrop">
+    <div class="modal-box" style="max-width:560px;">
+        <div class="modal-header" style="background:linear-gradient(135deg,#0e7490,#155e75); color:#fff; border-radius:12px 12px 0 0;">
+            <h3 style="color:#fff;"><i class="ti ti-cash-banknote"></i> Movimiento de efectivo</h3>
+            <button class="modal-close" onclick="cerrarMovEf()" style="color:#fff;">✕</button>
+        </div>
+        <div class="modal-body">
+            <p style="color:var(--text-muted); font-size:12.5px; margin:0 0 12px;">
+                Registra el dinero que <b>entra</b> o <b>sale</b> de caja/banco (cobros, aportes, préstamos, compra de equipos, transferencias). El sistema arma el asiento solo y alimenta el reporte de Flujo de Efectivo.<br>
+                <small>Para gastos del día (luz, alquiler, sueldos...) usa mejor el botón <b>"Registrar gasto"</b>.</small>
+            </p>
+            <div style="display:flex; gap:6px; margin-bottom:10px;">
+                <button type="button" id="mef_tEntrada" class="btn btn-success" style="flex:1; font-size:13px;" onclick="cambiarTipoMovEf('entrada')"><i class="ti ti-arrow-down-left"></i> Entra dinero</button>
+                <button type="button" id="mef_tSalida" class="btn btn-light" style="flex:1; font-size:13px;" onclick="cambiarTipoMovEf('salida')"><i class="ti ti-arrow-up-right"></i> Sale dinero</button>
+                <button type="button" id="mef_tTransf" class="btn btn-light" style="flex:1; font-size:13px;" onclick="cambiarTipoMovEf('transferencia')"><i class="ti ti-transfer"></i> Transferencia</button>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div><label>Fecha *</label><input type="date" id="mef_fecha"></div>
+                <div><label>Sucursal</label><select id="mef_sucursal"><option value="General">General (ambas)</option><option value="Santiago">Santiago</option><option value="Moca">Moca</option></select></div>
+            </div>
+            <div class="form-row" style="margin-top:8px;" id="mef_wConcepto"><label id="mef_lblConcepto">Concepto *</label><select id="mef_concepto"></select></div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px;">
+                <div><label id="mef_lblCuenta">Cuenta de efectivo *</label><select id="mef_cuenta" onchange="recalcMovEf()">
+                    <option value="110101">Caja General (efectivo)</option>
+                    <option value="110103">Bancos</option>
+                </select></div>
+                <div id="mef_wHacia" style="display:none;"><label>Hacia *</label><select id="mef_hacia" onchange="recalcMovEf()">
+                    <option value="110103">Bancos</option>
+                    <option value="110101">Caja General (efectivo)</option>
+                </select></div>
+                <div><label>Monto (RD$) *</label><input type="number" step="0.01" min="0" id="mef_monto" placeholder="0.00" oninput="recalcMovEf()"></div>
+            </div>
+            <div class="form-row" style="margin-top:8px;"><label>Descripción / concepto *</label><input id="mef_desc" placeholder="Ej. Cobro a cliente Juan Pérez"></div>
+            <div class="form-row" style="margin-top:8px;"><label>Referencia (opcional)</label><input id="mef_ref" placeholder="N° recibo, transferencia..."></div>
+            <div id="mef_resumen" style="margin-top:12px; font-size:12.5px; color:var(--text-muted);"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" onclick="cerrarMovEf()">Cancelar</button>
+            <button class="btn" style="background:#0e7490; color:#fff;" onclick="guardarMovEf()"><i class="ti ti-check"></i> Registrar movimiento</button>
         </div>
     </div>
 </div>
@@ -6565,6 +6610,95 @@ async function guardarRegGasto() {
         cerrarRegGasto();
         renderLibroDiario();
     } catch(e) { logError('Registrar gasto', e); toastError(getFriendlyError(e)); }
+}
+
+// ===== CONTABILIDAD — MOVIMIENTO DE EFECTIVO (caja/banco) =====
+const _mefEntrada = [
+    { label: 'Cobro a cliente (a crédito)', cod: '110201' },
+    { label: 'Aporte de capital / socios', cod: '32' },
+    { label: 'Préstamo recibido', cod: '2201' },
+    { label: 'Otro ingreso (en efectivo)', cod: '4202' }
+];
+const _mefSalida = [
+    { label: 'Pago a proveedor (cuentas por pagar)', cod: '2101' },
+    { label: 'Pago de préstamo', cod: '2201' },
+    { label: 'Compra de mobiliario / equipo de oficina', cod: '120101' },
+    { label: 'Compra de equipo de taller / herramientas', cod: '120102' },
+    { label: 'Retiro de socios', cod: '32' }
+];
+let _mefTipo = 'entrada';
+function abrirMovEf() {
+    if(!_cuentasCache || !_cuentasCache.length) cargarCatalogoCuentas();
+    document.getElementById('mef_fecha').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('mef_sucursal').value = 'General';
+    document.getElementById('mef_cuenta').value = '110101';
+    document.getElementById('mef_hacia').value = '110103';
+    document.getElementById('mef_monto').value = '';
+    document.getElementById('mef_desc').value = '';
+    document.getElementById('mef_ref').value = '';
+    cambiarTipoMovEf('entrada');
+    document.getElementById('modalMovEf').classList.add('active');
+}
+function cerrarMovEf() { document.getElementById('modalMovEf').classList.remove('active'); }
+function cambiarTipoMovEf(t) {
+    _mefTipo = t;
+    const set = (id, on) => { const b = document.getElementById(id); if(!b) return; b.className = 'btn ' + (on ? 'btn-success' : 'btn-light'); b.style.flex = '1'; };
+    set('mef_tEntrada', t === 'entrada'); set('mef_tSalida', t === 'salida'); set('mef_tTransf', t === 'transferencia');
+    const wConcepto = document.getElementById('mef_wConcepto'), wHacia = document.getElementById('mef_wHacia'), lblCuenta = document.getElementById('mef_lblCuenta');
+    if(t === 'transferencia') {
+        wConcepto.style.display = 'none'; wHacia.style.display = ''; lblCuenta.textContent = 'Desde *';
+    } else {
+        wConcepto.style.display = ''; wHacia.style.display = 'none'; lblCuenta.textContent = 'Cuenta de efectivo *';
+        const lista = t === 'entrada' ? _mefEntrada : _mefSalida;
+        document.getElementById('mef_lblConcepto').textContent = t === 'entrada' ? '¿De dónde entra? *' : '¿Para qué sale? *';
+        document.getElementById('mef_concepto').innerHTML = lista.map(c => `<option value="${c.cod}">${escapeHtml(c.label)}</option>`).join('');
+    }
+    recalcMovEf();
+}
+function _mefLineas() {
+    const monto = _r2(parseFloat(document.getElementById('mef_monto').value) || 0);
+    const cuenta = document.getElementById('mef_cuenta').value;
+    if(!(monto > 0)) return null;
+    if(_mefTipo === 'transferencia') {
+        const hacia = document.getElementById('mef_hacia').value;
+        if(hacia === cuenta) return 'igual';
+        return [{ cuenta_codigo: hacia, cuenta_nombre: _ctaNombre(hacia), debe: monto, haber: 0 }, { cuenta_codigo: cuenta, cuenta_nombre: _ctaNombre(cuenta), debe: 0, haber: monto }];
+    }
+    const concepto = document.getElementById('mef_concepto').value;
+    if(_mefTipo === 'entrada') return [{ cuenta_codigo: cuenta, cuenta_nombre: _ctaNombre(cuenta), debe: monto, haber: 0 }, { cuenta_codigo: concepto, cuenta_nombre: _ctaNombre(concepto), debe: 0, haber: monto }];
+    return [{ cuenta_codigo: concepto, cuenta_nombre: _ctaNombre(concepto), debe: monto, haber: 0 }, { cuenta_codigo: cuenta, cuenta_nombre: _ctaNombre(cuenta), debe: 0, haber: monto }];
+}
+function recalcMovEf() {
+    const el = document.getElementById('mef_resumen');
+    const L = _mefLineas();
+    if(!L) { el.innerHTML = ''; return; }
+    if(L === 'igual') { el.innerHTML = '<span style="color:#dc2626;">El "desde" y el "hacia" no pueden ser la misma cuenta.</span>'; return; }
+    const d = L.find(x => x.debe > 0), h = L.find(x => x.haber > 0);
+    el.innerHTML = `Quedará: <b>${escapeHtml(d.cuenta_nombre)}</b> recibe ${money(d.debe)} &nbsp;→&nbsp; sale de <b>${escapeHtml(h.cuenta_nombre)}</b> ${money(h.haber)}.`;
+}
+async function guardarMovEf() {
+    const fecha = document.getElementById('mef_fecha').value;
+    const sucursal = document.getElementById('mef_sucursal').value;
+    const desc = document.getElementById('mef_desc').value.trim();
+    const ref = document.getElementById('mef_ref').value.trim() || null;
+    if(!fecha) return toast('Indica la fecha.', 'error');
+    const L = _mefLineas();
+    if(L === 'igual') return toast('El "desde" y el "hacia" no pueden ser la misma cuenta.', 'error');
+    if(!L) return toast('Indica el monto del movimiento.', 'error');
+    if(!desc) return toast('Escribe la descripción.', 'error');
+    const tipoTxt = { entrada: 'Entrada de efectivo', salida: 'Salida de efectivo', transferencia: 'Transferencia de efectivo' }[_mefTipo];
+    try {
+        const { data: maxA } = await supabaseClient.from('conta_asientos').select('numero').order('numero', { ascending: false }).limit(1);
+        const numero = ((maxA && maxA[0] && maxA[0].numero) || 0) + 1;
+        const { data: asiento, error: e1 } = await supabaseClient.from('conta_asientos').insert({ numero, fecha, sucursal, referencia: ref, descripcion: tipoTxt + ': ' + desc, creado_por: sessionUser?.id || null }).select().single();
+        if(e1) throw e1;
+        const filas = L.map((l, i) => ({ asiento_id: asiento.id, cuenta_codigo: l.cuenta_codigo, cuenta_nombre: l.cuenta_nombre, debe: _r2(l.debe), haber: _r2(l.haber), orden: i }));
+        const { error: e2 } = await supabaseClient.from('conta_asiento_lineas').insert(filas);
+        if(e2) throw e2;
+        toast('✅ Movimiento registrado (asiento #' + numero + ').');
+        cerrarMovEf();
+        renderLibroDiario();
+    } catch(e) { logError('Movimiento de efectivo', e); toastError(getFriendlyError(e)); }
 }
 
 // ===== DIAGNÓSTICO IA (BAYOL DIAGNOSTIC ENGINE — Fase 1) =====
