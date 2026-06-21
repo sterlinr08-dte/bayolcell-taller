@@ -1036,7 +1036,10 @@ body{
                 <div id="conta-asientos" style="display:none;">
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
                         <h3 style="margin:0;">Asientos contables (Libro Diario)</h3>
-                        <button class="btn btn-blue" onclick="abrirModalAsiento()" style="font-size:12px;"><i class="ti ti-plus"></i> Nuevo asiento</button>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <button class="btn btn-light" onclick="abrirAutoIP()" style="font-size:12px;" title="Generar asientos automáticos a partir de las ventas de Info Plus"><i class="ti ti-bolt"></i> Generar desde Info Plus</button>
+                            <button class="btn btn-blue" onclick="abrirModalAsiento()" style="font-size:12px;"><i class="ti ti-plus"></i> Nuevo asiento</button>
+                        </div>
                     </div>
                     <div class="card">
                         <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
@@ -2666,6 +2669,39 @@ body{
         <div class="modal-footer">
             <button class="btn btn-light" onclick="cerrarModalAsiento()">Cancelar</button>
             <button class="btn btn-blue" onclick="guardarAsiento()"><i class="ti ti-check"></i> Guardar asiento</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: GENERAR ASIENTOS DESDE INFO PLUS -->
+<div id="modalAutoIP" class="modal-backdrop">
+    <div class="modal-box" style="max-width:860px;">
+        <div class="modal-header" style="background:linear-gradient(135deg,#0891b2,#0e7490); color:#fff; border-radius:12px 12px 0 0;">
+            <h3 style="color:#fff;"><i class="ti ti-bolt"></i> Generar asientos desde Info Plus</h3>
+            <button class="modal-close" onclick="cerrarAutoIP()" style="color:#fff;">✕</button>
+        </div>
+        <div class="modal-body">
+            <p style="color:var(--text-muted); font-size:12.5px; margin:0 0 12px;">
+                Crea automáticamente <b>un asiento contable por mes</b> con tus ventas reales de Info Plus (contado, crédito y costo de la mercancía vendida). Así se llenan solos el Estado de Resultados, la Balanza y el Balance. Los asientos se marcan con referencia <code>AUTO-IP</code> y puedes volver a generarlos cuando quieras (reemplaza los anteriores, no los duplica).
+            </p>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px;">
+                <div><label>Desde (mes)</label><input type="month" id="aip_desde"></div>
+                <div><label>Hasta (mes)</label><input type="month" id="aip_hasta"></div>
+            </div>
+            <div style="margin-top:12px; padding:10px 12px; border:1px solid var(--brd,#e5e7eb); border-radius:8px; background:rgba(8,145,178,0.05);">
+                <label style="display:flex; align-items:center; gap:8px; margin:0; font-weight:600;">
+                    <input type="checkbox" id="aip_itbis" onchange="previsualizarAutoIP()"> Los montos de venta <b>incluyen ITBIS (18%)</b> — separarlo a "ITBIS por Pagar"
+                </label>
+                <small style="color:var(--text-muted); font-size:11px;">Activa o desactiva esta casilla y compara el total con tu cuadre de Info Plus para ver cuál coincide.</small>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:12px;">
+                <button class="btn btn-light" style="font-size:12px;" onclick="previsualizarAutoIP()"><i class="ti ti-eye"></i> Previsualizar</button>
+            </div>
+            <div id="aip_preview" style="margin-top:12px;"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" onclick="cerrarAutoIP()">Cancelar</button>
+            <button class="btn btn-blue" id="aip_btnGen" onclick="generarAutoIP()" disabled><i class="ti ti-check"></i> Generar asientos</button>
         </div>
     </div>
 </div>
@@ -6012,6 +6048,148 @@ async function eliminarAsiento(id) {
     if(!await confirmar('¿Eliminar este asiento? Se borrarán sus líneas.')) return;
     try { const { error } = await supabaseClient.from('conta_asientos').delete().eq('id', id); if(error) throw error; toast('Asiento eliminado.'); renderLibroDiario(); }
     catch(e) { logError('Eliminar asiento', e); toastError(getFriendlyError(e)); }
+}
+
+// ===== CONTABILIDAD — GENERAR ASIENTOS DESDE INFO PLUS (ventas + costo) =====
+const AIP_REF = 'AUTO-IP';
+let _aipResumen = null;   // filas crudas del RPC {mes,tipo,venta,costo,facturas}
+const _r2 = n => Math.round((Number(n) || 0) * 100) / 100;
+function _aipCuentaNombre(cod) {
+    const c = (_cuentasCache || []).find(x => x.codigo === cod);
+    if(c) return c.nombre;
+    const def = { '110101':'Caja General', '110201':'Clientes', '4101':'Ventas al Contado', '4102':'Ventas a Crédito', '2102':'ITBIS por Pagar', '5101':'Costo de Mercancías Vendidas', '110301':'Inventario de Mercancías' };
+    return def[cod] || cod;
+}
+function abrirAutoIP() {
+    _aipResumen = null;
+    document.getElementById('aip_desde').value = '';
+    document.getElementById('aip_hasta').value = '';
+    document.getElementById('aip_itbis').checked = false;
+    document.getElementById('aip_preview').innerHTML = '';
+    document.getElementById('aip_btnGen').disabled = true;
+    document.getElementById('modalAutoIP').classList.add('active');
+    if(!_cuentasCache || !_cuentasCache.length) cargarCatalogoCuentas();
+}
+function cerrarAutoIP() { document.getElementById('modalAutoIP').classList.remove('active'); }
+function _aipFinDeMes(mesYYYYMM) { const [y, m] = mesYYYYMM.split('-').map(Number); const dd = new Date(y, m, 0).getDate(); return mesYYYYMM + '-' + String(dd).padStart(2, '0'); }
+// Convierte el resumen crudo en filas por mes {mes, co_venta, co_costo, cr_venta, cr_costo}
+function _aipPorMes(filas) {
+    const map = {};
+    (filas || []).forEach(r => {
+        const k = r.mes; if(!map[k]) map[k] = { mes:k, co_venta:0, co_costo:0, cr_venta:0, cr_costo:0 };
+        if(r.tipo === 'CR') { map[k].cr_venta += Number(r.venta || 0); map[k].cr_costo += Number(r.costo || 0); }
+        else { map[k].co_venta += Number(r.venta || 0); map[k].co_costo += Number(r.costo || 0); }
+    });
+    return Object.values(map).sort((a, b) => a.mes.localeCompare(b.mes));
+}
+// Construye las líneas de débito/crédito de un mes según el ITBIS
+function _aipLineasMes(m, incItbis) {
+    const co_v = _r2(m.co_venta), cr_v = _r2(m.cr_venta), costo = _r2(m.co_costo + m.cr_costo);
+    let co_net = co_v, cr_net = cr_v, itbis = 0;
+    if(incItbis) {
+        co_net = _r2(co_v / 1.18); cr_net = _r2(cr_v / 1.18);
+        itbis = _r2((co_v - co_net) + (cr_v - cr_net));
+    }
+    const L = [];
+    const add = (cod, debe, haber) => { if(_r2(debe) > 0 || _r2(haber) > 0) L.push({ cuenta_codigo: cod, cuenta_nombre: _aipCuentaNombre(cod), debe: _r2(debe), haber: _r2(haber) }); };
+    add('110101', co_v, 0);           // Caja General (entra el contado bruto)
+    add('110201', cr_v, 0);           // Clientes / Cuentas por Cobrar (crédito bruto)
+    add('4101', 0, co_net);           // Ventas al Contado (neto)
+    add('4102', 0, cr_net);           // Ventas a Crédito (neto)
+    add('2102', 0, itbis);            // ITBIS por Pagar
+    add('5101', costo, 0);            // Costo de Mercancías Vendidas
+    add('110301', 0, costo);          // Inventario de Mercancías (sale la mercancía)
+    return L;
+}
+async function previsualizarAutoIP() {
+    const cont = document.getElementById('aip_preview');
+    const btn = document.getElementById('aip_btnGen');
+    cont.innerHTML = '<p style="color:var(--text-muted);">Calculando...</p>';
+    btn.disabled = true;
+    try {
+        if(!_cuentasCache || !_cuentasCache.length) await cargarCatalogoCuentas();
+        const desde = document.getElementById('aip_desde').value;
+        const hasta = document.getElementById('aip_hasta').value;
+        const p_desde = desde ? desde + '-01' : null;
+        const p_hasta = hasta ? _aipFinDeMes(hasta) : null;
+        const { data, error } = await supabaseClient.rpc('infoplus_resumen_ventas_mensual', { p_desde, p_hasta });
+        if(error) throw error;
+        _aipResumen = data || [];
+        const meses = _aipPorMes(_aipResumen);
+        if(!meses.length) { cont.innerHTML = '<p style="color:#dc2626;">No hay ventas en ese rango.</p>'; return; }
+        const incItbis = document.getElementById('aip_itbis').checked;
+        let tV = 0, tC = 0, tCR = 0, tIt = 0;
+        const rows = meses.map(m => {
+            const L = _aipLineasMes(m, incItbis);
+            const it = (L.find(x => x.cuenta_codigo === '2102') || {}).haber || 0;
+            const vNeta = (L.filter(x => x.cuenta_codigo === '4101' || x.cuenta_codigo === '4102').reduce((s, x) => s + x.haber, 0));
+            const costo = (L.find(x => x.cuenta_codigo === '5101') || {}).debe || 0;
+            tV += vNeta; tC += costo; tCR += _r2(m.cr_venta); tIt += it;
+            return `<tr><td>${m.mes}</td><td style="text-align:right;">${money(_r2(m.co_venta))}</td><td style="text-align:right;">${money(_r2(m.cr_venta))}</td><td style="text-align:right;">${money(it)}</td><td style="text-align:right;">${money(vNeta)}</td><td style="text-align:right;">${money(costo)}</td></tr>`;
+        }).join('');
+        cont.innerHTML = `
+            <div style="display:flex; gap:14px; flex-wrap:wrap; margin-bottom:10px; font-size:12.5px;">
+                <span><b>${meses.length}</b> asientos a generar</span>
+                <span>Ventas netas: <b>${money(tV)}</b></span>
+                ${incItbis ? `<span>ITBIS: <b>${money(tIt)}</b></span>` : ''}
+                <span>Costo de ventas: <b>${money(tC)}</b></span>
+                <span style="color:#16a34a;">Margen bruto: <b>${money(_r2(tV - tC))}</b></span>
+            </div>
+            <div class="table-wrap" style="max-height:300px; overflow-y:auto;">
+                <table style="font-size:12.5px;">
+                    <thead><tr><th>Mes</th><th style="text-align:right;">Contado (bruto)</th><th style="text-align:right;">Crédito (bruto)</th><th style="text-align:right;">ITBIS</th><th style="text-align:right;">Venta neta</th><th style="text-align:right;">Costo</th></tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>
+            <small style="color:var(--text-muted); font-size:11px;">Se crea 1 asiento por mes (fecha = último día del mes), referencia <code>AUTO-IP</code>, sucursal "General" (Info Plus no separa Santiago/Moca).</small>`;
+        btn.disabled = false;
+    } catch(e) { logError('Previsualizar Info Plus', e); cont.innerHTML = '<p style="color:#dc2626;">Error: ' + escapeHtml(getFriendlyError(e)) + '</p>'; }
+}
+async function generarAutoIP() {
+    const btn = document.getElementById('aip_btnGen');
+    try {
+        if(!_aipResumen) { await previsualizarAutoIP(); if(!_aipResumen) return; }
+        if(!_cuentasCache || !_cuentasCache.length) await cargarCatalogoCuentas();
+        const incItbis = document.getElementById('aip_itbis').checked;
+        const meses = _aipPorMes(_aipResumen);
+        if(!meses.length) return toast('No hay datos para generar.', 'error');
+        const fechaIni = _aipFinDeMes(meses[0].mes), fechaFin = _aipFinDeMes(meses[meses.length - 1].mes);
+        if(!await confirmar(`Se van a generar ${meses.length} asientos mensuales (de ${meses[0].mes} a ${meses[meses.length - 1].mes}) con las ventas de Info Plus.\n\nSi ya existen asientos automáticos (AUTO-IP) en ese rango, se reemplazan.\n\n¿Continuar?`)) return;
+        btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Generando...';
+        // 1) Borrar asientos AUTO-IP existentes dentro del rango (para no duplicar)
+        const { data: viejos } = await supabaseClient.from('conta_asientos').select('id').eq('referencia', AIP_REF).gte('fecha', fechaIni).lte('fecha', fechaFin);
+        if(viejos && viejos.length) {
+            const ids = viejos.map(a => a.id);
+            await supabaseClient.from('conta_asiento_lineas').delete().in('asiento_id', ids);
+            await supabaseClient.from('conta_asientos').delete().in('id', ids);
+        }
+        // 2) Número correlativo de partida
+        const { data: maxA } = await supabaseClient.from('conta_asientos').select('numero').order('numero', { ascending: false }).limit(1);
+        let numero = ((maxA && maxA[0] && maxA[0].numero) || 0);
+        // 3) Construir asientos (1 por mes) descartando meses sin movimiento
+        const aGenerar = [];
+        meses.forEach(m => {
+            const L = _aipLineasMes(m, incItbis);
+            const td = L.reduce((s, x) => s + x.debe, 0);
+            if(td <= 0) return;
+            numero++;
+            aGenerar.push({ numero, fecha: _aipFinDeMes(m.mes), sucursal: 'General', referencia: AIP_REF, descripcion: 'Ventas Info Plus — ' + m.mes + ' (ambas sucursales)', lineas: L });
+        });
+        if(!aGenerar.length) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-check"></i> Generar asientos'; return toast('No hubo montos para generar.', 'error'); }
+        const cab = aGenerar.map(a => ({ numero: a.numero, fecha: a.fecha, sucursal: a.sucursal, referencia: a.referencia, descripcion: a.descripcion, creado_por: sessionUser?.id || null }));
+        const { data: insertados, error: e1 } = await supabaseClient.from('conta_asientos').insert(cab).select('id,numero');
+        if(e1) throw e1;
+        const idPorNum = {}; (insertados || []).forEach(a => idPorNum[a.numero] = a.id);
+        const filas = [];
+        aGenerar.forEach(a => { const aid = idPorNum[a.numero]; a.lineas.forEach((l, i) => filas.push({ asiento_id: aid, cuenta_codigo: l.cuenta_codigo, cuenta_nombre: l.cuenta_nombre, debe: l.debe, haber: l.haber, orden: i })); });
+        const { error: e2 } = await supabaseClient.from('conta_asiento_lineas').insert(filas);
+        if(e2) throw e2;
+        toast('✅ ' + aGenerar.length + ' asientos generados desde Info Plus.');
+        cerrarAutoIP();
+        const mm = document.getElementById('as_filtroMes'); if(mm) mm.value = '';
+        renderLibroDiario();
+    } catch(e) { logError('Generar asientos Info Plus', e); toastError(getFriendlyError(e)); }
+    finally { btn.disabled = false; btn.innerHTML = '<i class="ti ti-check"></i> Generar asientos'; }
 }
 
 // ===== DIAGNÓSTICO IA (BAYOL DIAGNOSTIC ENGINE — Fase 1) =====
