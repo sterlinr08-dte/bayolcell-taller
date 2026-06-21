@@ -5897,6 +5897,7 @@ function contaTab(name) {
 }
 // ===== ESTADOS FINANCIEROS (Fase D) =====
 function _periodoMes(mes){ if(!mes) return {ini:null,fin:null}; const ini=mes+'-01'; const d=new Date(mes+'-01T00:00:00'); d.setMonth(d.getMonth()+1); return {ini, fin:d.toISOString().slice(0,10)}; }
+const _EF_NOTA = '<p style="margin-top:14px; font-size:11px; color:var(--text-muted); border-top:1px solid var(--brd,#e5e7eb); padding-top:8px; line-height:1.5;">Estados financieros preparados conforme a la <b>NIIF para las PYMES</b>. Inventarios valorados al <b>costo promedio ponderado</b> bajo sistema de inventario perpetuo. Cifras expresadas en pesos dominicanos (RD$). Sujeto a revisión y validación del Contador Público Autorizado.</p>';
 function _aggLibro(libro){ const acc={}; libro.forEach(x=>{ const k=x.cuenta_codigo; if(!acc[k])acc[k]={d:0,h:0}; acc[k].d+=Number(x.debe||0); acc[k].h+=Number(x.haber||0); }); return acc; }
 function renderEstados(){
     const t = document.getElementById('ef_tipo')?.value;
@@ -5954,7 +5955,7 @@ async function renderEstadoResultados(){
           <tr><td colspan="2" style="font-weight:800; color:#0891b2; padding-top:8px;">GASTOS</td></tr>${gas.html}
           <tr style="font-weight:800;"><td>Total Gastos</td><td style="text-align:right;">${money(gas.total)}</td></tr>
           <tr style="font-weight:900; background:${neta>=0?'rgba(22,163,74,0.14)':'rgba(220,38,38,0.14)'};"><td>${neta>=0?'GANANCIA NETA DEL PERÍODO':'PÉRDIDA NETA DEL PERÍODO'}</td><td style="text-align:right;">${money(neta)}</td></tr>
-        </table>`;
+        </table>${_EF_NOTA}`;
     }catch(e){ logError('Estado de resultados', e); cont.innerHTML='<p style="color:#dc2626;">Error al generar.</p>'; }
 }
 async function renderBalanceGeneral(){
@@ -5984,7 +5985,7 @@ async function renderBalanceGeneral(){
           <tr><td style="padding-left:20px;">Resultado del Ejercicio</td><td style="text-align:right;">${money(resultado)}</td></tr>
           <tr style="font-weight:800;"><td>Total Patrimonio</td><td style="text-align:right;">${money(totalPat)}</td></tr>
           <tr style="font-weight:900; background:${cuadra?'rgba(22,163,74,0.14)':'rgba(220,38,38,0.14)'};"><td>TOTAL PASIVO + PATRIMONIO ${cuadra?'✅':'⚠️'}</td><td style="text-align:right;">${money(totalPasPat)}</td></tr>
-        </table>`;
+        </table>${_EF_NOTA}`;
     }catch(e){ logError('Balance general', e); cont.innerHTML='<p style="color:#dc2626;">Error al generar.</p>'; }
 }
 async function renderFlujoEfectivo(){
