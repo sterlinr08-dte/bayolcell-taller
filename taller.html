@@ -1037,7 +1037,9 @@ body{
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
                         <h3 style="margin:0;">Asientos contables (Libro Diario)</h3>
                         <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                            <button class="btn btn-light" onclick="abrirAutoIP()" style="font-size:12px;" title="Generar asientos automáticos a partir de las ventas de Info Plus"><i class="ti ti-bolt"></i> Generar desde Info Plus</button>
+                            <button class="btn btn-light" onclick="abrirApertura()" style="font-size:12px;" title="Asiento de apertura: saldos iniciales (inventario, caja, capital...)"><i class="ti ti-flag"></i> Apertura</button>
+                            <button class="btn btn-light" onclick="abrirAutoIP()" style="font-size:12px;" title="Generar asientos de VENTAS a partir de Info Plus"><i class="ti ti-bolt"></i> Ventas Info Plus</button>
+                            <button class="btn btn-light" onclick="abrirAutoIPC()" style="font-size:12px;" title="Generar asientos de COMPRAS a proveedores a partir de Info Plus"><i class="ti ti-shopping-cart"></i> Compras Info Plus</button>
                             <button class="btn btn-blue" onclick="abrirModalAsiento()" style="font-size:12px;"><i class="ti ti-plus"></i> Nuevo asiento</button>
                         </div>
                     </div>
@@ -1100,6 +1102,7 @@ body{
                             <option value="resultados">Estado de Resultados</option>
                             <option value="balance">Balance General</option>
                             <option value="flujo">Flujo de Efectivo</option>
+                            <option value="cxc">Cuentas por Cobrar (Info Plus)</option>
                         </select>
                         <input type="month" id="ef_mes" onchange="renderEstados()">
                         <select id="ef_sucursal" onchange="renderEstados()"><option value="">Combinado (todas)</option><option value="Santiago">Santiago</option><option value="Moca">Moca</option></select>
@@ -2702,6 +2705,74 @@ body{
         <div class="modal-footer">
             <button class="btn btn-light" onclick="cerrarAutoIP()">Cancelar</button>
             <button class="btn btn-blue" id="aip_btnGen" onclick="generarAutoIP()" disabled><i class="ti ti-check"></i> Generar asientos</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: ASIENTO DE APERTURA (saldos iniciales) -->
+<div id="modalApertura" class="modal-backdrop">
+    <div class="modal-box" style="max-width:640px;">
+        <div class="modal-header" style="background:linear-gradient(135deg,#0891b2,#0e7490); color:#fff; border-radius:12px 12px 0 0;">
+            <h3 style="color:#fff;"><i class="ti ti-flag"></i> Asiento de apertura (saldos iniciales)</h3>
+            <button class="modal-close" onclick="cerrarApertura()" style="color:#fff;">✕</button>
+        </div>
+        <div class="modal-body">
+            <p style="color:var(--text-muted); font-size:12.5px; margin:0 0 10px;">
+                Pon con qué saldos arranca el negocio en una fecha. El <b>Capital</b> se calcula solo para que todo cuadre. Esto hace que el Balance General empiece correcto. (Se marca <code>APERTURA</code> y se puede rehacer.)
+            </p>
+            <div style="margin-bottom:10px;"><label>Fecha de apertura *</label><input type="date" id="ap_fecha" style="max-width:200px;"></div>
+            <div style="font-weight:800; color:#0891b2; margin:6px 0;">ACTIVOS (lo que tienes)</div>
+            <div style="display:grid; grid-template-columns:1fr 150px; gap:8px 10px; align-items:center;">
+                <label style="margin:0;">Inventario de Mercancías <small id="ap_invHint" style="color:var(--text-muted);"></small></label><input type="number" step="0.01" id="ap_110301" oninput="recalcApertura()">
+                <label style="margin:0;">Caja General</label><input type="number" step="0.01" id="ap_110101" value="0" oninput="recalcApertura()">
+                <label style="margin:0;">Bancos</label><input type="number" step="0.01" id="ap_110103" value="0" oninput="recalcApertura()">
+                <label style="margin:0;">Cuentas por Cobrar (Clientes)</label><input type="number" step="0.01" id="ap_110201" value="0" oninput="recalcApertura()">
+                <label style="margin:0;">Mobiliario y Equipos</label><input type="number" step="0.01" id="ap_120101" value="0" oninput="recalcApertura()">
+                <label style="margin:0;">Equipos de Taller y Herramientas</label><input type="number" step="0.01" id="ap_120102" value="0" oninput="recalcApertura()">
+            </div>
+            <div style="font-weight:800; color:#0891b2; margin:12px 0 6px;">PASIVOS (lo que debes)</div>
+            <div style="display:grid; grid-template-columns:1fr 150px; gap:8px 10px; align-items:center;">
+                <label style="margin:0;">Cuentas por Pagar (Suplidores)</label><input type="number" step="0.01" id="ap_2101" value="0" oninput="recalcApertura()">
+                <label style="margin:0;">Préstamos por Pagar</label><input type="number" step="0.01" id="ap_2201" value="0" oninput="recalcApertura()">
+            </div>
+            <div id="ap_resumen" style="margin-top:14px; padding:10px 12px; border-radius:8px; background:rgba(8,145,178,0.08); font-size:13px;"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" onclick="cerrarApertura()">Cancelar</button>
+            <button class="btn btn-blue" onclick="guardarApertura()"><i class="ti ti-check"></i> Guardar apertura</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: GENERAR COMPRAS DESDE INFO PLUS -->
+<div id="modalAutoIPC" class="modal-backdrop">
+    <div class="modal-box" style="max-width:860px;">
+        <div class="modal-header" style="background:linear-gradient(135deg,#0891b2,#0e7490); color:#fff; border-radius:12px 12px 0 0;">
+            <h3 style="color:#fff;"><i class="ti ti-shopping-cart"></i> Generar compras desde Info Plus</h3>
+            <button class="modal-close" onclick="cerrarAutoIPC()" style="color:#fff;">✕</button>
+        </div>
+        <div class="modal-body">
+            <p style="color:var(--text-muted); font-size:12.5px; margin:0 0 12px;">
+                Crea <b>un asiento por mes</b> con lo que le compraste a proveedores (lee Info Plus en vivo). Entra a <b>Inventario</b> y sale como <b>Caja</b> (contado) o <b>Cuentas por Pagar</b> (crédito). Se marca <code>AUTO-IPC</code> y es regenerable.
+            </p>
+            <div style="background:#fef3c7; color:#92400e; font-size:12px; padding:8px 10px; border-radius:8px; margin-bottom:10px;">⚠️ Lee Info Plus en vivo. Si pones un rango muy grande puede tardar; si falla, prueba con menos meses.</div>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px;">
+                <div><label>Desde (mes)</label><input type="month" id="aipc_desde"></div>
+                <div><label>Hasta (mes)</label><input type="month" id="aipc_hasta"></div>
+            </div>
+            <div style="margin-top:12px; padding:10px 12px; border:1px solid var(--brd,#e5e7eb); border-radius:8px; background:rgba(8,145,178,0.05);">
+                <label style="display:flex; align-items:center; gap:8px; margin:0; font-weight:600;">
+                    <input type="checkbox" id="aipc_itbis" onchange="previsualizarAutoIPC()"> Los montos de compra <b>incluyen ITBIS (18%)</b> — separarlo a "ITBIS Pagado/Adelantado"
+                </label>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:12px;">
+                <button class="btn btn-light" style="font-size:12px;" onclick="previsualizarAutoIPC()"><i class="ti ti-eye"></i> Previsualizar</button>
+            </div>
+            <div id="aipc_preview" style="margin-top:12px;"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" onclick="cerrarAutoIPC()">Cancelar</button>
+            <button class="btn btn-blue" id="aipc_btnGen" onclick="generarAutoIPC()" disabled><i class="ti ti-check"></i> Generar asientos</button>
         </div>
     </div>
 </div>
@@ -5789,7 +5860,26 @@ function renderEstados(){
     const t = document.getElementById('ef_tipo')?.value;
     if(t === 'balance') renderBalanceGeneral();
     else if(t === 'flujo') renderFlujoEfectivo();
+    else if(t === 'cxc') renderCxC();
     else renderEstadoResultados();
+}
+async function renderCxC(){
+    const cont = document.getElementById('ef_contenido'); if(!cont) return;
+    cont.innerHTML = 'Calculando...';
+    try{
+        const { data, error } = await supabaseClient.rpc('infoplus_cxc_por_cliente');
+        if(error) throw error;
+        const rows = data || [];
+        if(!rows.length){ cont.innerHTML = '<p style="color:var(--text-muted);">No hay ventas a crédito.</p>'; return; }
+        let tTotal = 0;
+        const trs = rows.map(r => { tTotal += Number(r.total || 0); return `<tr><td><code>${escapeHtml(r.cliente || '')}</code></td><td style="text-align:right;">${r.facturas}</td><td style="text-align:right;">${money(Number(r.total || 0))}</td><td style="text-align:center;">${r.ultima || ''}</td></tr>`; }).join('');
+        cont.innerHTML = `<h3 style="text-align:center; margin:0;">BAYOL CELL, S.R.L.</h3>
+        <p style="text-align:center; margin:2px 0 8px; color:var(--text-muted);">Cuentas por Cobrar — Ventas a Crédito (Info Plus) · RD$</p>
+        <div style="background:#fef3c7; color:#92400e; font-size:12px; padding:8px 10px; border-radius:8px; margin-bottom:10px;">⚠️ Muestra el <b>total vendido a crédito</b> por cliente (ene-2025 a hoy). No descuenta abonos/pagos (Info Plus no sincroniza los cobros todavía), así que es el máximo, no el saldo exacto pendiente.</div>
+        <table style="width:100%; font-size:13px;"><thead><tr><th>Cliente (cuenta Info Plus)</th><th style="text-align:right;">Facturas</th><th style="text-align:right;">Total a crédito</th><th style="text-align:center;">Última compra</th></tr></thead>
+        <tbody>${trs}</tbody>
+        <tfoot><tr style="font-weight:800; background:rgba(8,145,178,0.08);"><td>TOTAL (${rows.length} clientes)</td><td style="text-align:right;">—</td><td style="text-align:right;">${money(tTotal)}</td><td></td></tr></tfoot></table>`;
+    }catch(e){ logError('Cuentas por cobrar', e); cont.innerHTML = '<p style="color:#dc2626;">Error al generar.</p>'; }
 }
 async function _datosEstados(){
     if(!_cuentasCache || !_cuentasCache.length) await cargarCatalogoCuentas();
@@ -6057,7 +6147,7 @@ const _r2 = n => Math.round((Number(n) || 0) * 100) / 100;
 function _aipCuentaNombre(cod) {
     const c = (_cuentasCache || []).find(x => x.codigo === cod);
     if(c) return c.nombre;
-    const def = { '110101':'Caja General', '110201':'Clientes', '4101':'Ventas al Contado', '4102':'Ventas a Crédito', '2102':'ITBIS por Pagar', '5101':'Costo de Mercancías Vendidas', '110301':'Inventario de Mercancías' };
+    const def = { '110101':'Caja General', '110103':'Bancos', '110201':'Clientes', '110301':'Inventario de Mercancías', '1104':'ITBIS Pagado/Adelantado', '120101':'Mobiliario y Equipos de Oficina', '120102':'Equipos de Taller y Herramientas', '2101':'Cuentas por Pagar Suplidores', '2102':'ITBIS por Pagar', '2201':'Préstamos por Pagar', '31':'Capital Social', '4101':'Ventas al Contado', '4102':'Ventas a Crédito', '5101':'Costo de Mercancías Vendidas' };
     return def[cod] || cod;
 }
 function abrirAutoIP() {
@@ -6189,6 +6279,177 @@ async function generarAutoIP() {
         const mm = document.getElementById('as_filtroMes'); if(mm) mm.value = '';
         renderLibroDiario();
     } catch(e) { logError('Generar asientos Info Plus', e); toastError(getFriendlyError(e)); }
+    finally { btn.disabled = false; btn.innerHTML = '<i class="ti ti-check"></i> Generar asientos'; }
+}
+
+// Helper común: inserta asientos automáticos con una referencia, borrando antes los del mismo rango/referencia
+async function _aipInsertarAsientos(asientos, refTag, fechaIni, fechaFin) {
+    const { data: viejos } = await supabaseClient.from('conta_asientos').select('id').eq('referencia', refTag).gte('fecha', fechaIni).lte('fecha', fechaFin);
+    if(viejos && viejos.length) {
+        const ids = viejos.map(a => a.id);
+        await supabaseClient.from('conta_asiento_lineas').delete().in('asiento_id', ids);
+        await supabaseClient.from('conta_asientos').delete().in('id', ids);
+    }
+    const { data: maxA } = await supabaseClient.from('conta_asientos').select('numero').order('numero', { ascending: false }).limit(1);
+    let numero = ((maxA && maxA[0] && maxA[0].numero) || 0);
+    const cab = asientos.map(a => { numero++; a._numero = numero; return { numero, fecha: a.fecha, sucursal: a.sucursal || 'General', referencia: refTag, descripcion: a.descripcion, creado_por: sessionUser?.id || null }; });
+    const { data: insertados, error: e1 } = await supabaseClient.from('conta_asientos').insert(cab).select('id,numero');
+    if(e1) throw e1;
+    const idPorNum = {}; (insertados || []).forEach(a => idPorNum[a.numero] = a.id);
+    const filas = [];
+    asientos.forEach(a => { const aid = idPorNum[a._numero]; a.lineas.forEach((l, i) => filas.push({ asiento_id: aid, cuenta_codigo: l.cuenta_codigo, cuenta_nombre: l.cuenta_nombre, debe: _r2(l.debe), haber: _r2(l.haber), orden: i })); });
+    if(filas.length) { const { error: e2 } = await supabaseClient.from('conta_asiento_lineas').insert(filas); if(e2) throw e2; }
+    return asientos.length;
+}
+
+// ===== CONTABILIDAD — ASIENTO DE APERTURA (saldos iniciales) =====
+const _apActivos = ['110301', '110101', '110103', '110201', '120101', '120102'];
+const _apPasivos = ['2101', '2201'];
+async function abrirApertura() {
+    if(!_cuentasCache || !_cuentasCache.length) await cargarCatalogoCuentas();
+    document.getElementById('ap_fecha').value = '2025-01-01';
+    _apActivos.concat(_apPasivos).forEach(c => { const el = document.getElementById('ap_' + c); if(el) el.value = '0'; });
+    document.getElementById('ap_invHint').textContent = '';
+    document.getElementById('modalApertura').classList.add('active');
+    recalcApertura();
+    try {
+        const { data } = await supabaseClient.rpc('infoplus_valor_inventario');
+        const v = _r2((data && data[0] && Number(data[0].total_todos)) || 0);
+        if(v > 0) { document.getElementById('ap_110301').value = v; document.getElementById('ap_invHint').textContent = '(hoy en Info Plus: ' + money(v) + ')'; recalcApertura(); }
+    } catch(_) {}
+}
+function cerrarApertura() { document.getElementById('modalApertura').classList.remove('active'); }
+function _apVal(c) { return _r2(parseFloat(document.getElementById('ap_' + c)?.value) || 0); }
+function _apCalc() {
+    let activos = 0, pasivos = 0;
+    _apActivos.forEach(c => activos += _apVal(c));
+    _apPasivos.forEach(c => pasivos += _apVal(c));
+    return { activos: _r2(activos), pasivos: _r2(pasivos), capital: _r2(activos - pasivos) };
+}
+function recalcApertura() {
+    const { activos, pasivos, capital } = _apCalc();
+    document.getElementById('ap_resumen').innerHTML = `Total Activos: <b>${money(activos)}</b> &nbsp;·&nbsp; Total Pasivos: <b>${money(pasivos)}</b> &nbsp;·&nbsp; <span style="color:#0891b2;">Capital (calculado para cuadrar): <b>${money(capital)}</b></span>`;
+}
+async function guardarApertura() {
+    const fecha = document.getElementById('ap_fecha').value;
+    if(!fecha) return toast('Indica la fecha de apertura.', 'error');
+    const { activos, pasivos, capital } = _apCalc();
+    if(activos <= 0 && pasivos <= 0) return toast('Pon al menos un saldo.', 'error');
+    const L = [];
+    const add = (cod, debe, haber) => { if(_r2(debe) > 0 || _r2(haber) > 0) L.push({ cuenta_codigo: cod, cuenta_nombre: _aipCuentaNombre(cod), debe: _r2(debe), haber: _r2(haber) }); };
+    _apActivos.forEach(c => add(c, _apVal(c), 0));
+    _apPasivos.forEach(c => add(c, 0, _apVal(c)));
+    if(capital >= 0) add('31', 0, capital); else add('31', -capital, 0);
+    if(L.length < 2) return toast('Faltan saldos para cuadrar.', 'error');
+    if(!await confirmar('Se guardará el asiento de apertura con fecha ' + fecha + '.\n\nSi ya existe una apertura, se reemplaza. ¿Continuar?')) return;
+    try {
+        await _aipInsertarAsientos([{ fecha, sucursal: 'General', descripcion: 'Asiento de apertura (saldos iniciales)', lineas: L }], 'APERTURA', '1900-01-01', '2999-12-31');
+        toast('✅ Asiento de apertura guardado.');
+        cerrarApertura();
+        const mm = document.getElementById('as_filtroMes'); if(mm) mm.value = '';
+        renderLibroDiario();
+    } catch(e) { logError('Guardar apertura', e); toastError(getFriendlyError(e)); }
+}
+
+// ===== CONTABILIDAD — GENERAR COMPRAS DESDE INFO PLUS =====
+let _aipcData = null;   // facturas crudas de infoplus-compras
+function abrirAutoIPC() {
+    _aipcData = null;
+    document.getElementById('aipc_desde').value = '';
+    document.getElementById('aipc_hasta').value = '';
+    document.getElementById('aipc_itbis').checked = false;
+    document.getElementById('aipc_preview').innerHTML = '';
+    document.getElementById('aipc_btnGen').disabled = true;
+    document.getElementById('modalAutoIPC').classList.add('active');
+    if(!_cuentasCache || !_cuentasCache.length) cargarCatalogoCuentas();
+}
+function cerrarAutoIPC() { document.getElementById('modalAutoIPC').classList.remove('active'); }
+function _ipFecha(s) { const [y, m, d] = s.split('-'); return `${parseInt(y)}-${parseInt(m)}-${parseInt(d)}`; }
+function _aipcPorMes(facturas) {
+    const map = {};
+    (facturas || []).forEach(f => {
+        if(!f.fecha) return;
+        const mes = String(f.fecha).slice(0, 7);
+        if(!map[mes]) map[mes] = { mes, contado: 0, credito: 0 };
+        const t = (f.termino || '').toLowerCase();
+        const esCred = t.indexOf('cr') === 0 || t.indexOf('réd') >= 0 || t.indexOf('red') >= 0;
+        if(esCred) map[mes].credito += Number(f.total) || 0; else map[mes].contado += Number(f.total) || 0;
+    });
+    return Object.values(map).sort((a, b) => a.mes.localeCompare(b.mes));
+}
+function _aipcLineasMes(m, incItbis) {
+    const contado = _r2(m.contado), credito = _r2(m.credito), total = _r2(contado + credito);
+    let neto = total, itbis = 0;
+    if(incItbis) { neto = _r2(total / 1.18); itbis = _r2(total - neto); }
+    const L = [];
+    const add = (cod, debe, haber) => { if(_r2(debe) > 0 || _r2(haber) > 0) L.push({ cuenta_codigo: cod, cuenta_nombre: _aipCuentaNombre(cod), debe: _r2(debe), haber: _r2(haber) }); };
+    add('110301', neto, 0);    // Inventario de Mercancías (neto)
+    add('1104', itbis, 0);     // ITBIS Pagado/Adelantado
+    add('110101', 0, contado); // Caja General (compras de contado)
+    add('2101', 0, credito);   // Cuentas por Pagar Suplidores (compras a crédito)
+    return L;
+}
+async function previsualizarAutoIPC() {
+    const cont = document.getElementById('aipc_preview'), btn = document.getElementById('aipc_btnGen');
+    const desde = document.getElementById('aipc_desde').value, hasta = document.getElementById('aipc_hasta').value;
+    if(!desde || !hasta) { cont.innerHTML = '<p style="color:#dc2626;">Elige el mes desde y hasta.</p>'; return; }
+    cont.innerHTML = '<p style="color:var(--text-muted);">Leyendo Info Plus en vivo... (puede tardar unos segundos)</p>'; btn.disabled = true;
+    try {
+        if(!_cuentasCache || !_cuentasCache.length) await cargarCatalogoCuentas();
+        const d1 = _ipFecha(desde + '-01'), d2 = _ipFecha(_aipFinDeMes(hasta));
+        const { data, error } = await supabaseClient.functions.invoke('infoplus-compras', { body: { desde: d1, hasta: d2 } });
+        if(error) throw error;
+        if(!data || !data.ok) throw new Error(data?.error || 'No se pudo leer.');
+        _aipcData = data.facturas || [];
+        const meses = _aipcPorMes(_aipcData);
+        if(!meses.length) { cont.innerHTML = '<p style="color:#dc2626;">No hay compras en ese rango.</p>'; return; }
+        const incItbis = document.getElementById('aipc_itbis').checked;
+        let tNeto = 0, tIt = 0, tCont = 0, tCred = 0;
+        const rows = meses.map(m => {
+            const L = _aipcLineasMes(m, incItbis);
+            const neto = (L.find(x => x.cuenta_codigo === '110301') || {}).debe || 0;
+            const it = (L.find(x => x.cuenta_codigo === '1104') || {}).debe || 0;
+            tNeto += neto; tIt += it; tCont += _r2(m.contado); tCred += _r2(m.credito);
+            return `<tr><td>${m.mes}</td><td style="text-align:right;">${money(_r2(m.contado))}</td><td style="text-align:right;">${money(_r2(m.credito))}</td><td style="text-align:right;">${money(it)}</td><td style="text-align:right;">${money(neto)}</td></tr>`;
+        }).join('');
+        cont.innerHTML = `
+            <div style="display:flex; gap:14px; flex-wrap:wrap; margin-bottom:10px; font-size:12.5px;">
+                <span><b>${meses.length}</b> asientos a generar</span>
+                <span>Contado: <b>${money(tCont)}</b></span>
+                <span>Crédito (a pagar): <b>${money(tCred)}</b></span>
+                ${incItbis ? `<span>ITBIS: <b>${money(tIt)}</b></span>` : ''}
+                <span>Entra a inventario: <b>${money(tNeto)}</b></span>
+            </div>
+            <div class="table-wrap" style="max-height:300px; overflow-y:auto;">
+                <table style="font-size:12.5px;">
+                    <thead><tr><th>Mes</th><th style="text-align:right;">Contado</th><th style="text-align:right;">Crédito</th><th style="text-align:right;">ITBIS</th><th style="text-align:right;">A inventario</th></tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>
+            <small style="color:var(--text-muted); font-size:11px;">1 asiento por mes, referencia <code>AUTO-IPC</code>, sucursal "General".</small>`;
+        btn.disabled = false;
+    } catch(e) { logError('Previsualizar compras Info Plus', e); cont.innerHTML = '<p style="color:#dc2626;">Error: ' + escapeHtml(getFriendlyError(e)) + '</p>'; }
+}
+async function generarAutoIPC() {
+    const btn = document.getElementById('aipc_btnGen');
+    try {
+        if(!_aipcData) { await previsualizarAutoIPC(); if(!_aipcData) return; }
+        if(!_cuentasCache || !_cuentasCache.length) await cargarCatalogoCuentas();
+        const incItbis = document.getElementById('aipc_itbis').checked;
+        const meses = _aipcPorMes(_aipcData);
+        if(!meses.length) return toast('No hay datos para generar.', 'error');
+        const fechaIni = _aipFinDeMes(meses[0].mes), fechaFin = _aipFinDeMes(meses[meses.length - 1].mes);
+        if(!await confirmar(`Se van a generar ${meses.length} asientos de compras (de ${meses[0].mes} a ${meses[meses.length - 1].mes}).\n\nSi ya existen asientos AUTO-IPC en ese rango, se reemplazan. ¿Continuar?`)) return;
+        btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Generando...';
+        const asientos = [];
+        meses.forEach(m => { const L = _aipcLineasMes(m, incItbis); const td = L.reduce((s, x) => s + x.debe, 0); if(td > 0) asientos.push({ fecha: _aipFinDeMes(m.mes), sucursal: 'General', descripcion: 'Compras Info Plus — ' + m.mes, lineas: L }); });
+        if(!asientos.length) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-check"></i> Generar asientos'; return toast('No hubo montos para generar.', 'error'); }
+        const n = await _aipInsertarAsientos(asientos, 'AUTO-IPC', fechaIni, fechaFin);
+        toast('✅ ' + n + ' asientos de compras generados.');
+        cerrarAutoIPC();
+        const mm = document.getElementById('as_filtroMes'); if(mm) mm.value = '';
+        renderLibroDiario();
+    } catch(e) { logError('Generar compras Info Plus', e); toastError(getFriendlyError(e)); }
     finally { btn.disabled = false; btn.innerHTML = '<i class="ti ti-check"></i> Generar asientos'; }
 }
 
