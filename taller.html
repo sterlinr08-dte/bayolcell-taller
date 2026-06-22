@@ -11326,7 +11326,8 @@ async function abrirPanelProceso(equipoId) {
                 ${stepperHtml}
                 
                 <h4 style="margin:18px 0 8px; font-size:13px; color:#991b1b; text-transform:uppercase;"><i class="ti ti-alert-triangle"></i> Fallas detectadas</h4>
-                <div style="margin-bottom:15px;">${fallasHtml}</div>
+                <div style="margin-bottom:8px;">${fallasHtml}</div>
+                ${(fallas.length && estado !== 'vendido' && estado !== 'listo_venta' && (isAdminUser() || sessionUser?.id === eq.tecnico_asignado_id)) ? `<button class="btn btn-light" onclick="abrirSolicitarPiezasFallas('${equipoId}')" style="margin-bottom:15px; padding:8px 14px; font-size:12px; background:#fef3c7; color:#92400e; border:1px solid #fcd34d;"><i class="ti ti-tools"></i> Solicitar piezas para estas fallas</button>` : ''}
                 
                 <h4 style="margin:18px 0 8px; font-size:13px; color:#b91c1c; text-transform:uppercase;"><i class="ti ti-tools"></i> Piezas para la reparación</h4>
                 ${piezasHtml}
@@ -11943,6 +11944,63 @@ async function agregarPiezaExtra(equipoId) {
         logError('Agregar pieza extra', e);
         toastError(getFriendlyError(e));
     }
+}
+
+// AUTOMATIZACIÓN: el técnico (o admin) solicita piezas a partir de las FALLAS del equipo.
+// Las piezas quedan 'pendiente' y aparecen automáticamente en "Piezas Solicitadas" (Reacondicionados).
+async function abrirSolicitarPiezasFallas(equipoId) {
+    const eq = (cache.refurb || []).find(r => r.id === equipoId);
+    if(!eq) return toast('Equipo no encontrado.', 'error');
+    let fallas = [];
+    try { const { data } = await supabaseClient.from('equipo_fallas').select('*').eq('equipo_id', equipoId); fallas = data || []; }
+    catch(e) { logError('Cargar fallas para solicitar piezas', e); }
+    if(!fallas.length) return toast('Este equipo no tiene fallas registradas. Usa "Agregar pieza adicional".', 'error');
+    const filas = fallas.map((f, i) => {
+        const nom = f.falla_nombre || f.falla_corto || 'Pieza';
+        return `<tr>
+            <td style="text-align:center;"><input type="checkbox" id="spf_chk_${i}" checked style="width:17px; height:17px;"></td>
+            <td><span class="badge" style="background:#fee2e2; color:#991b1b; font-size:10px;">${escapeHtml(f.falla_corto || f.falla_nombre || '')}</span></td>
+            <td><input id="spf_nom_${i}" value="${escapeHtml(nom)}" style="width:100%; padding:6px 8px; border:1px solid #cbd5e1; border-radius:6px;"></td>
+            <td><input id="spf_cant_${i}" type="number" min="1" value="1" style="width:62px; text-align:center; padding:6px; border:1px solid #cbd5e1; border-radius:6px;"></td>
+        </tr>`;
+    }).join('');
+    const html = `<div class="modal-box" style="max-width:640px; width:95%;">
+        <div class="modal-header" style="background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; border-radius:12px 12px 0 0;">
+            <h3 style="color:#fff;"><i class="ti ti-tools"></i> Solicitar piezas para las fallas</h3>
+            <button class="modal-close" onclick="cerrarSolPiezas()" style="color:#fff;">✕</button>
+        </div>
+        <div class="modal-body">
+            <p style="color:var(--text-muted); font-size:12.5px; margin:0 0 10px;">Marca las fallas que necesitan pieza, ajusta el nombre si quieres y solicítalas. Aparecerán automáticamente en <b>Piezas Solicitadas</b> (Reacondicionados) para que las entreguen.</p>
+            <table style="width:100%; font-size:13px;"><thead><tr><th style="width:30px;">✓</th><th>Falla</th><th>Pieza a solicitar</th><th style="width:70px;">Cant.</th></tr></thead><tbody>${filas}</tbody></table>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" onclick="cerrarSolPiezas()">Cancelar</button>
+            <button class="btn btn-success" onclick="guardarSolicitudPiezasFallas('${equipoId}', ${fallas.length})"><i class="ti ti-check"></i> Solicitar piezas</button>
+        </div>
+    </div>`;
+    let modal = document.getElementById('modalSolPiezas');
+    if(!modal) { modal = document.createElement('div'); modal.id = 'modalSolPiezas'; modal.className = 'modal-backdrop'; document.body.appendChild(modal); }
+    modal.innerHTML = html; modal.classList.add('active');
+}
+function cerrarSolPiezas() { const m = document.getElementById('modalSolPiezas'); if(m) m.classList.remove('active'); }
+async function guardarSolicitudPiezasFallas(equipoId, n) {
+    const inserts = [];
+    for(let i = 0; i < n; i++) {
+        if(!document.getElementById('spf_chk_' + i)?.checked) continue;
+        const nom = (document.getElementById('spf_nom_' + i)?.value || '').trim();
+        if(!nom) continue;
+        const cant = parseInt(document.getElementById('spf_cant_' + i)?.value) || 1;
+        inserts.push({ equipo_id: equipoId, tecnico_id: sessionUser?.id || null, pieza_nombre: nom, cantidad: cant, estado: 'pendiente', agregada_por_tecnico: true });
+    }
+    if(!inserts.length) return toast('Marca al menos una falla.', 'error');
+    try {
+        const { error } = await supabaseClient.from('equipo_piezas_pedidas').insert(inserts);
+        if(error) throw error;
+        toast('✅ ' + inserts.length + ' pieza(s) solicitada(s). Aparecen en Piezas Solicitadas.');
+        cerrarSolPiezas();
+        await loadAll();
+        if(_panelProcesoEquipoId) abrirPanelProceso(_panelProcesoEquipoId);
+    } catch(e) { logError('Solicitar piezas de fallas', e); toastError(getFriendlyError(e)); }
 }
 
 // Envía un equipo reacondicionado a REPARACIÓN EXTERNA (otro taller), guardando a dónde.
@@ -14089,10 +14147,10 @@ function etiquetaEstadoPiezaReacond(estado) {
 
 // Construye el HTML del panel de pedidos de piezas. Si tecnicoId se pasa, filtra solo ese técnico.
 // Junta TODAS las piezas que pidió un técnico (de órdenes de cliente + reacondicionados)
-function construirMisPiezasTodas(miId) {
+function construirMisPiezasTodas(miId, kind) {
     const items = [];
     // Piezas de órdenes de cliente asignadas a este técnico
-    (cache.ordenPiezas || []).forEach(p => {
+    if(kind !== 'reacond') (cache.ordenPiezas || []).forEach(p => {
         const o = (cache.ordenes || []).find(x => x.id === p.orden_id);
         const tecId = p.tecnico_id || (o && o.tecnico_asignado_id) || null;
         if(tecId !== miId) return;
@@ -14102,7 +14160,7 @@ function construirMisPiezasTodas(miId) {
         });
     });
     // Piezas de reacondicionados de este técnico
-    (cache.piezasReacond || []).forEach(p => {
+    if(kind !== 'orden') (cache.piezasReacond || []).forEach(p => {
         const eq = (cache.refurb || []).find(e => e.id === p.equipo_id);
         if(!eq || eq.tecnico_asignado_id !== miId) return;
         items.push({
@@ -14729,76 +14787,92 @@ function renderMiTrabajo() {
     resumen.innerHTML = `
         <div class="kpi-box" style="border-top-color:#ef4444;"><small>Disponibles</small><strong>${disponibles.length}</strong><i class="ti ti-inbox"></i></div>
         <div class="kpi-box" style="border-top-color:#0891b2;"><small>Mis órdenes</small><strong>${misOrdenes.length}</strong><i class="ti ti-tool"></i></div>
-        <div class="kpi-box" style="border-top-color:#f59e0b;"><small>Mis reacond.</small><strong>${misReacond.length}</strong><i class="ti ti-refresh"></i></div>
+        <div class="kpi-box" style="border-top-color:#f59e0b; cursor:pointer;" onclick="miTrabajoTab('reacond')" title="Ver mis reacondicionados"><small>Mis reacond.</small><strong>${misReacond.length}</strong><i class="ti ti-refresh"></i></div>
         <div class="kpi-box" style="border-top-color:#dc2626;"><small>Fallas pend.</small><strong>${misFallasPend}</strong><i class="ti ti-alert-triangle"></i></div>
         ${reasignadasAMi > 0 ? `<div class="kpi-box" style="border-top-color:#d97706;"><small>Reasignadas a mí</small><strong>${reasignadasAMi}</strong><i class="ti ti-arrows-exchange"></i></div>` : ''}
         ${!esAdmin ? `<div class="kpi-box" style="border-top-color:#16a34a; cursor:pointer;" onclick="abrirRegistroTickets()" title="Ver todos los tickets registrados"><small>Registro de Ticket</small><strong style="color:#16a34a; font-size:22px;"><i class="ti ti-list-details"></i></strong><i class="ti ti-coin"></i></div>` : ''}
     `;
     
-    let html = '';
-    
-    // SECCIÓN: Órdenes disponibles
-    html += `<div style="margin-bottom:18px;">
-        <h3 style="font-size:15px; margin:0 0 8px;"><i class="ti ti-inbox" style="color:#ef4444;"></i> Órdenes Disponibles (sin tomar)</h3>`;
-    if(disponibles.length) {
-        html += disponibles.map(o => construirCardOrden(o, esAdmin, miId, tecnicosActivos)).join('');
-    } else {
-        html += `<div style="color:var(--text-muted); font-size:13px; padding:8px 0;">No hay órdenes disponibles ahora.</div>`;
-    }
-    html += `</div>`;
-    
-    // SECCIÓN: Mis órdenes
-    html += `<div style="margin-bottom:18px;">
-        <h3 style="font-size:15px; margin:0 0 8px;"><i class="ti ti-tool" style="color:#0891b2;"></i> Mis Órdenes Asignadas</h3>`;
-    if(misOrdenes.length) {
-        html += misOrdenes.map(o => construirCardOrden(o, esAdmin, miId, tecnicosActivos)).join('');
-    } else {
-        html += `<div style="color:var(--text-muted); font-size:13px; padding:8px 0;">No tienes órdenes asignadas.</div>`;
-    }
-    html += `</div>`;
-    
-    // SECCIÓN: Mis reacondicionados
-    html += `<div style="margin-bottom:18px;">
-        <h3 style="font-size:15px; margin:0 0 8px;"><i class="ti ti-refresh" style="color:#f59e0b;"></i> Mis Reacondicionados</h3>`;
-    if(misReacond.length) {
-        html += misReacond.map(eq => {
-            const tareasEq = (cache.tareas || []).filter(t => t.tipo === 'equipo' && t.ref_id === eq.id);
-            const pend = tareasEq.filter(t => t.estado !== 'hecha').length;
-            const estLabel = (eq.estado_evaluacion || 'en_proceso').replace(/_/g, ' ');
-            return `<div style="background:#fff; border:1px solid var(--border-color); border-radius:8px; padding:12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-                <div>
-                    <b>${escapeHtml(eq.marca || '')} ${escapeHtml(eq.modelo || '')}</b> ${eq.capacidad ? '· ' + escapeHtml(eq.capacidad) : ''}
-                    <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">Estado: ${escapeHtml(estLabel)} ${pend > 0 ? `· ${pend} falla(s) pendiente(s)` : '· ✅ sin pendientes'}</div>
-                    ${eq.fecha_asignacion ? `<div style="font-size:11px; color:#0891b2; font-weight:600; margin-top:2px;"><i class="ti ti-stopwatch"></i> Tomado: ${tiempoDesde(eq.fecha_asignacion)}</div>` : ''}
-                </div>
-                <button class="btn btn-dark" style="padding:8px 14px;" onclick="abrirPanelProceso('${eq.id}')"><i class="ti ti-tool"></i> Trabajar</button>
+    const tab = _miTrabajoTab || 'ordenes';
+    let html = `<div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+        <button class="btn ${tab==='ordenes'?'btn-blue':'btn-light'}" style="font-size:13px;" onclick="miTrabajoTab('ordenes')"><i class="ti ti-tool"></i> Órdenes de Cliente</button>
+        <button class="btn ${tab==='reacond'?'btn-blue':'btn-light'}" style="font-size:13px;" onclick="miTrabajoTab('reacond')"><i class="ti ti-refresh"></i> Reacondicionados</button>
+    </div>`;
+
+    if(tab === 'reacond') {
+        // ===== MÓDULO REACONDICIONADOS (aparte) =====
+        html += `<div style="margin-bottom:18px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                <h3 style="font-size:15px; margin:0 0 8px;"><i class="ti ti-refresh" style="color:#f59e0b;"></i> Mis Equipos Reacondicionados</h3>
+                <button class="btn btn-light" style="font-size:12px;" onclick="solicitarPiezaReacondLibre()"><i class="ti ti-plus"></i> Solicitar pieza</button>
             </div>`;
-        }).join('');
+        if(misReacond.length) {
+            html += misReacond.map(eq => {
+                const tareasEq = (cache.tareas || []).filter(t => t.tipo === 'equipo' && t.ref_id === eq.id);
+                const pend = tareasEq.filter(t => t.estado !== 'hecha').length;
+                const estLabel = (eq.estado_evaluacion || 'en_proceso').replace(/_/g, ' ');
+                return `<div style="background:#fff; border:1px solid var(--border-color); border-radius:8px; padding:12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                    <div>
+                        <b>${escapeHtml(eq.marca || '')} ${escapeHtml(eq.modelo || '')}</b> ${eq.capacidad ? '· ' + escapeHtml(eq.capacidad) : ''}
+                        <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">Estado: ${escapeHtml(estLabel)} ${pend > 0 ? `· ${pend} falla(s) pendiente(s)` : '· ✅ sin pendientes'}</div>
+                        ${eq.fecha_asignacion ? `<div style="font-size:11px; color:#0891b2; font-weight:600; margin-top:2px;"><i class="ti ti-stopwatch"></i> Tomado: ${tiempoDesde(eq.fecha_asignacion)}</div>` : ''}
+                    </div>
+                    <button class="btn btn-dark" style="padding:8px 14px;" onclick="abrirPanelProceso('${eq.id}')"><i class="ti ti-tool"></i> Trabajar</button>
+                </div>`;
+            }).join('');
+        } else {
+            html += `<div style="color:var(--text-muted); font-size:13px; padding:8px 0;">No tienes equipos reacondicionados asignados.</div>`;
+        }
+        html += `</div>`;
+        html += `<div style="margin-bottom:18px;">
+            <h3 style="font-size:15px; margin:0 0 8px;"><i class="ti ti-packages" style="color:#f59e0b;"></i> Mis Pedidos de Piezas (Reacondicionados)</h3>
+            ${construirMisPiezasTodas(miId, 'reacond')}
+        </div>`;
+        html += `<div style="margin-bottom:18px;">
+            <h3 style="font-size:15px; margin:0 0 8px;"><i class="ti ti-history" style="color:#16a34a;"></i> Mi Historial (Reacondicionados)</h3>
+            ${construirHistorialTecnico(miId, 'reacond')}
+        </div>`;
     } else {
-        html += `<div style="color:var(--text-muted); font-size:13px; padding:8px 0;">No tienes equipos reacondicionados asignados.</div>`;
+        // ===== MÓDULO ÓRDENES DE CLIENTE =====
+        html += `<div style="margin-bottom:18px;">
+            <h3 style="font-size:15px; margin:0 0 8px;"><i class="ti ti-inbox" style="color:#ef4444;"></i> Órdenes Disponibles (sin tomar)</h3>`;
+        if(disponibles.length) {
+            html += disponibles.map(o => construirCardOrden(o, esAdmin, miId, tecnicosActivos)).join('');
+        } else {
+            html += `<div style="color:var(--text-muted); font-size:13px; padding:8px 0;">No hay órdenes disponibles ahora.</div>`;
+        }
+        html += `</div>`;
+
+        html += `<div style="margin-bottom:18px;">
+            <h3 style="font-size:15px; margin:0 0 8px;"><i class="ti ti-tool" style="color:#0891b2;"></i> Mis Órdenes Asignadas</h3>`;
+        if(misOrdenes.length) {
+            html += misOrdenes.map(o => construirCardOrden(o, esAdmin, miId, tecnicosActivos)).join('');
+        } else {
+            html += `<div style="color:var(--text-muted); font-size:13px; padding:8px 0;">No tienes órdenes asignadas.</div>`;
+        }
+        html += `</div>`;
+
+        html += `<div style="margin-bottom:18px;">
+            <h3 style="font-size:15px; margin:0 0 8px;"><i class="ti ti-packages" style="color:#0891b2;"></i> Mis Pedidos de Piezas</h3>
+            ${construirMisPiezasTodas(miId, 'orden')}
+        </div>`;
+
+        html += `<div style="margin-bottom:18px;">
+            <h3 style="font-size:15px; margin:0 0 8px;"><i class="ti ti-history" style="color:#16a34a;"></i> Mi Historial de Reparaciones</h3>
+            ${construirHistorialTecnico(miId, 'orden')}
+        </div>`;
     }
-    html += `</div>`;
-    
-    // SECCIÓN: Mis pedidos de piezas (órdenes de cliente + reacondicionados)
-    html += `<div style="margin-bottom:18px;">
-        <h3 style="font-size:15px; margin:0 0 8px;"><i class="ti ti-packages" style="color:#0891b2;"></i> Mis Pedidos de Piezas</h3>
-        ${construirMisPiezasTodas(miId)}
-    </div>`;
-    
-    // SECCIÓN: Mi historial de reparaciones (terminadas)
-    html += `<div style="margin-bottom:18px;">
-        <h3 style="font-size:15px; margin:0 0 8px;"><i class="ti ti-history" style="color:#16a34a;"></i> Mi Historial de Reparaciones</h3>
-        ${construirHistorialTecnico(miId)}
-    </div>`;
-    
+
     cont.innerHTML = html;
 }
+let _miTrabajoTab = 'ordenes';
+function miTrabajoTab(t) { _miTrabajoTab = t; renderMiTrabajo(); }
 
 // Construye el historial de reparaciones terminadas de un técnico (órdenes entregadas/finalizadas + reacond vendidos)
-function construirHistorialTecnico(tecnicoId) {
+function construirHistorialTecnico(tecnicoId, kind) {
     const items = [];
     // Órdenes finalizadas o entregadas (dentro del rango de fechas)
-    (cache.ordenes || []).forEach(o => {
+    if(kind !== 'reacond') (cache.ordenes || []).forEach(o => {
         if(o.tecnico_asignado_id !== tecnicoId) return;
         const est = normalizarEstadoOrden(o.estado);
         if(est === 'finalizado' || est === 'entregado') {
@@ -14815,7 +14889,7 @@ function construirHistorialTecnico(tecnicoId) {
         }
     });
     // Reacondicionados vendidos/terminados (dentro del rango)
-    (cache.refurb || []).forEach(eq => {
+    if(kind !== 'orden') (cache.refurb || []).forEach(eq => {
         if(eq.tecnico_asignado_id !== tecnicoId) return;
         if(['listo_venta', 'vendido'].includes(eq.estado_evaluacion)) {
             const fecha = eq.fecha_despacho || eq.fecha_asignacion;
