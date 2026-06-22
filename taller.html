@@ -1169,7 +1169,7 @@ body{
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:14px;">
                     <h2 style="margin:0;"><i class="ti ti-refresh" style="color:#f59e0b;"></i> Mis Reacondicionados</h2>
                     <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                        <button class="btn btn-light" onclick="solicitarPiezaReacondLibre()" style="font-size:12px;"><i class="ti ti-plus"></i> Solicitar pieza</button>
+                        <button class="btn btn-blue" onclick="irPiezasSolicitadasReacond()" style="font-size:12px;"><i class="ti ti-clipboard-list"></i> Piezas Solicitadas (Reacond)</button>
                         <button class="btn btn-light" onclick="nav('miTrabajo')" style="font-size:12px;"><i class="ti ti-arrow-left"></i> Volver a Mi Trabajo</button>
                     </div>
                 </div>
@@ -11189,8 +11189,25 @@ async function abrirPanelProceso(equipoId) {
         </div>
     `;
     
-    // ====== FALLAS ======
-    const fallasHtml = fallas.length > 0 ? fallas.map(f => `<span class="badge" style="background:#fee2e2; color:#991b1b; font-size:10px; margin:2px;">${escapeHtml(f.falla_corto || f.falla_nombre)}</span>`).join('') : '<span style="color:var(--text-muted); font-size:12px;">Sin fallas registradas</span>';
+    // ====== FALLAS (con botón "Solicitar pieza" por falla + estado de la solicitud) ======
+    const puedePedirPiezaFalla = estado !== 'vendido' && estado !== 'listo_venta' && (isAdminUser() || sessionUser?.id === eq.tecnico_asignado_id);
+    const _normNom = s => (s || '').trim().toLowerCase();
+    const fallasHtml = fallas.length > 0 ? fallas.map(f => {
+        const nombre = f.falla_nombre || f.falla_corto || '';
+        const pz = piezas.find(p => p.estado !== 'rechazada' && p.estado !== 'devuelta' && _normNom(p.pieza_nombre) === _normNom(nombre));
+        let der = '';
+        if(pz) {
+            const mp = { pendiente:['🟡 Solicitada','#d97706'], solicitada:['🟡 Solicitada','#d97706'], extra_pendiente:['🟡 Solicitada','#d97706'], entregada:['📦 Entregada','#0891b2'], aprobada:['📦 Entregada','#0891b2'], recibida:['✅ Recibida','#16a34a'] };
+            const [t, c] = mp[pz.estado] || [pz.estado, '#64748b'];
+            der = `<span style="background:${c}22; color:${c}; font-size:10px; font-weight:700; padding:3px 9px; border-radius:10px; white-space:nowrap;">${t}</span>`;
+        } else if(puedePedirPiezaFalla) {
+            der = `<button class="btn btn-light" style="font-size:11px; padding:4px 10px; background:#fef3c7; color:#92400e; border:1px solid #fcd34d; white-space:nowrap;" onclick="solicitarPiezaDeFalla('${equipoId}','${encodeURIComponent(nombre)}')"><i class="ti ti-plus"></i> Solicitar pieza</button>`;
+        }
+        return `<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:6px 10px; background:#fff5f5; border:1px solid #fecaca; border-radius:8px; margin-bottom:6px;">
+            <span style="color:#991b1b; font-weight:600; font-size:12.5px;">⚠️ ${escapeHtml(f.falla_corto || nombre)}</span>
+            ${der}
+        </div>`;
+    }).join('') : '<span style="color:var(--text-muted); font-size:12px;">Sin fallas registradas</span>';
     
     // ====== PIEZAS CON DOBLE CONFIRMACIÓN ======
     const piezasHtml = piezas.length > 0 ? piezas.map(p => {
@@ -11339,8 +11356,7 @@ async function abrirPanelProceso(equipoId) {
                 ${stepperHtml}
                 
                 <h4 style="margin:18px 0 8px; font-size:13px; color:#991b1b; text-transform:uppercase;"><i class="ti ti-alert-triangle"></i> Fallas detectadas</h4>
-                <div style="margin-bottom:8px;">${fallasHtml}</div>
-                ${(fallas.length && estado !== 'vendido' && estado !== 'listo_venta' && (isAdminUser() || sessionUser?.id === eq.tecnico_asignado_id)) ? `<button class="btn btn-light" onclick="abrirSolicitarPiezasFallas('${equipoId}')" style="margin-bottom:15px; padding:8px 14px; font-size:12px; background:#fef3c7; color:#92400e; border:1px solid #fcd34d;"><i class="ti ti-tools"></i> Solicitar piezas para estas fallas</button>` : ''}
+                <div style="margin-bottom:15px;">${fallasHtml}</div>
                 
                 <h4 style="margin:18px 0 8px; font-size:13px; color:#b91c1c; text-transform:uppercase;"><i class="ti ti-tools"></i> Piezas para la reparación</h4>
                 ${piezasHtml}
@@ -11959,62 +11975,25 @@ async function agregarPiezaExtra(equipoId) {
     }
 }
 
-// AUTOMATIZACIÓN: el técnico (o admin) solicita piezas a partir de las FALLAS del equipo.
-// Las piezas quedan 'pendiente' y aparecen automáticamente en "Piezas Solicitadas" (Reacondicionados).
-async function abrirSolicitarPiezasFallas(equipoId) {
-    const eq = (cache.refurb || []).find(r => r.id === equipoId);
-    if(!eq) return toast('Equipo no encontrado.', 'error');
-    let fallas = [];
-    try { const { data } = await supabaseClient.from('equipo_fallas').select('*').eq('equipo_id', equipoId); fallas = data || []; }
-    catch(e) { logError('Cargar fallas para solicitar piezas', e); }
-    if(!fallas.length) return toast('Este equipo no tiene fallas registradas. Usa "Agregar pieza adicional".', 'error');
-    const filas = fallas.map((f, i) => {
-        const nom = f.falla_nombre || f.falla_corto || 'Pieza';
-        return `<tr>
-            <td style="text-align:center;"><input type="checkbox" id="spf_chk_${i}" checked style="width:17px; height:17px;"></td>
-            <td><span class="badge" style="background:#fee2e2; color:#991b1b; font-size:10px;">${escapeHtml(f.falla_corto || f.falla_nombre || '')}</span></td>
-            <td><input id="spf_nom_${i}" value="${escapeHtml(nom)}" style="width:100%; padding:6px 8px; border:1px solid #cbd5e1; border-radius:6px;"></td>
-            <td><input id="spf_cant_${i}" type="number" min="1" value="1" style="width:62px; text-align:center; padding:6px; border:1px solid #cbd5e1; border-radius:6px;"></td>
-        </tr>`;
-    }).join('');
-    const html = `<div class="modal-box" style="max-width:640px; width:95%;">
-        <div class="modal-header" style="background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; border-radius:12px 12px 0 0;">
-            <h3 style="color:#fff;"><i class="ti ti-tools"></i> Solicitar piezas para las fallas</h3>
-            <button class="modal-close" onclick="cerrarSolPiezas()" style="color:#fff;">✕</button>
-        </div>
-        <div class="modal-body">
-            <p style="color:var(--text-muted); font-size:12.5px; margin:0 0 10px;">Marca las fallas que necesitan pieza, ajusta el nombre si quieres y solicítalas. Aparecerán automáticamente en <b>Piezas Solicitadas</b> (Reacondicionados) para que las entreguen.</p>
-            <table style="width:100%; font-size:13px;"><thead><tr><th style="width:30px;">✓</th><th>Falla</th><th>Pieza a solicitar</th><th style="width:70px;">Cant.</th></tr></thead><tbody>${filas}</tbody></table>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-light" onclick="cerrarSolPiezas()">Cancelar</button>
-            <button class="btn btn-success" onclick="guardarSolicitudPiezasFallas('${equipoId}', ${fallas.length})"><i class="ti ti-check"></i> Solicitar piezas</button>
-        </div>
-    </div>`;
-    let modal = document.getElementById('modalSolPiezas');
-    if(!modal) { modal = document.createElement('div'); modal.id = 'modalSolPiezas'; modal.className = 'modal-backdrop'; document.body.appendChild(modal); }
-    modal.innerHTML = html; modal.classList.add('active');
-}
-function cerrarSolPiezas() { const m = document.getElementById('modalSolPiezas'); if(m) m.classList.remove('active'); }
-async function guardarSolicitudPiezasFallas(equipoId, n) {
-    const inserts = [];
-    for(let i = 0; i < n; i++) {
-        if(!document.getElementById('spf_chk_' + i)?.checked) continue;
-        const nom = (document.getElementById('spf_nom_' + i)?.value || '').trim();
-        if(!nom) continue;
-        const cant = parseInt(document.getElementById('spf_cant_' + i)?.value) || 1;
-        inserts.push({ equipo_id: equipoId, tecnico_id: sessionUser?.id || null, pieza_nombre: nom, cantidad: cant, estado: 'pendiente', agregada_por_tecnico: true });
-    }
-    if(!inserts.length) return toast('Marca al menos una falla.', 'error');
+// AUTOMATIZACIÓN: el técnico (o admin) solicita la pieza de UNA falla específica.
+// Queda 'pendiente' y aparece automáticamente en "Piezas Solicitadas" (Reacondicionados).
+async function solicitarPiezaDeFalla(equipoId, nombreEnc) {
+    const nombre = decodeURIComponent(nombreEnc || '').trim();
+    if(!nombre) return;
+    if(!await confirmar(`¿Solicitar la pieza "${nombre}" para este equipo?\n\nAparecerá en Piezas Solicitadas (Reacondicionados).`)) return;
     try {
-        const { error } = await supabaseClient.from('equipo_piezas_pedidas').insert(inserts);
+        const { error } = await supabaseClient.from('equipo_piezas_pedidas').insert([{
+            equipo_id: equipoId, tecnico_id: sessionUser?.id || null,
+            pieza_nombre: nombre, cantidad: 1, estado: 'pendiente', agregada_por_tecnico: true
+        }]);
         if(error) throw error;
-        toast('✅ ' + inserts.length + ' pieza(s) solicitada(s). Aparecen en Piezas Solicitadas.');
-        cerrarSolPiezas();
+        toast('✅ Pieza solicitada: ' + nombre + '. Aparece en Piezas Solicitadas.');
         await loadAll();
         if(_panelProcesoEquipoId) abrirPanelProceso(_panelProcesoEquipoId);
-    } catch(e) { logError('Solicitar piezas de fallas', e); toastError(getFriendlyError(e)); }
+    } catch(e) { logError('Solicitar pieza de falla', e); toastError(getFriendlyError(e)); }
 }
+// Acceso rápido: ir a Piezas Solicitadas en la pestaña de Reacondicionados
+function irPiezasSolicitadasReacond() { nav('piezasSolicitadas'); setTimeout(() => { if(typeof setPsTab === 'function') setPsTab('reacond'); }, 80); }
 
 // Envía un equipo reacondicionado a REPARACIÓN EXTERNA (otro taller), guardando a dónde.
 async function enviarRefurbExterno(equipoId) {
