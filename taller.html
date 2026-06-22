@@ -9234,6 +9234,10 @@ function renderDetalleLoteReacond() {
     if(todos) todos.checked = disp.length > 0 && disp.every(e => _reacondSel.has(e.id));
 }
 
+// ¿El equipo ya tiene piezas asignadas desde Info Plus? (las pone el admin, solo para costo)
+function _tienePiezasInfoPlus(equipoId) {
+    return (cache.piezasReacond || []).some(p => p.equipo_id === equipoId && !p.agregada_por_tecnico && !p.pieza_id && !!p.pieza_codigo && p.estado !== 'rechazada' && p.estado !== 'devuelta');
+}
 function renderEquipoReacondCard(eq, num) {
     const estado = eq.estado_evaluacion || 'pendiente';
     const tecnico = eq.tecnico_asignado_id ? (cache.tecnicos || []).find(t => t.id === eq.tecnico_asignado_id) : null;
@@ -9300,6 +9304,7 @@ function renderEquipoReacondCard(eq, num) {
                     ${estado === 'evaluado' ? `<button onclick="event.stopPropagation(); continuarEvaluacion('${eq.id}')" title="Editar evaluación" style="background:#d1fae5; color:#065f46; border:1px solid #6ee7b7; border-radius:6px; padding:2px 7px; cursor:pointer; font-size:12px;"><i class="ti ti-pencil"></i></button>` : ''}
                     ${eq.veces_devuelto > 0 ? `<span class="badge" style="background:#fee2e2; color:#991b1b; font-size:10px; font-weight:700;">DEVUELTO ${eq.veces_devuelto}×</span>` : ''}
                     ${tecnico ? `<span class="badge" style="background:#e0e7ff; color:#3730a3; font-size:11px;"><i class="ti ti-user"></i> ${escapeHtml(tecnico.nombre)}</span>` : ''}
+                    ${_tienePiezasInfoPlus(eq.id) ? `<span class="badge" style="background:#bae6fd; color:#075985; font-size:11px;" title="Ya tiene piezas de Info Plus asignadas"><i class="ti ti-shopping-cart"></i> Info Plus ✓</span>` : ''}
                 </div>
                 <div style="font-size:12px; color:var(--text-muted); margin-top:6px;">
                     <i class="ti ti-barcode"></i> IMEI: ${escapeHtml(eq.imei || '—')}
