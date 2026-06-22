@@ -11942,6 +11942,12 @@ async function rechazarPiezaExtra(piezaId) {
 }
 
 // Recalcula el costo de repuestos del equipo = suma de todas sus piezas (cantidad × costo)
+// Reabre la vista correcta del equipo tras tocar piezas: ficha de despacho si ya está vendido, si no el panel
+function _refrescarVistaEquipo(equipoId) {
+    const eq = (cache.refurb || []).find(r => r.id === equipoId);
+    if(eq && eq.estado_evaluacion === 'vendido') { verFichaDespacho(equipoId); }
+    else { abrirPanelProceso(equipoId); }
+}
 async function _recalcularCostoRepuestos(equipoId) {
     try {
         const { data } = await supabaseClient.from('equipo_piezas_pedidas').select('cantidad,costo_unitario').eq('equipo_id', equipoId);
@@ -12003,7 +12009,7 @@ async function _agregarPiezaInfoPlusConfirm(equipoId, a) {
         await _recalcularCostoRepuestos(equipoId);
         toast('✅ Pieza agregada al costo: ' + (a.descripcion || a.codigo));
         await loadAll();
-        abrirPanelProceso(equipoId);
+        _refrescarVistaEquipo(equipoId);
     } catch(e) { logError('agregarPiezaInfoPlus', e); toastError(getFriendlyError(e)); }
 }
 // Editar la cantidad/costo de una pieza agregada desde Info Plus (solo admin)
@@ -12023,7 +12029,7 @@ async function editarPiezaInfoPlus(piezaId) {
         await _recalcularCostoRepuestos(pz.equipo_id);
         toast('✅ Pieza actualizada.');
         await loadAll();
-        abrirPanelProceso(pz.equipo_id);
+        _refrescarVistaEquipo(pz.equipo_id);
     } catch(e) { logError('editarPiezaInfoPlus', e); toastError(getFriendlyError(e)); }
 }
 // Quitar una pieza agregada desde Info Plus (solo admin)
@@ -12038,7 +12044,7 @@ async function eliminarPiezaInfoPlus(piezaId) {
         await _recalcularCostoRepuestos(pz.equipo_id);
         toast('✅ Pieza quitada del costo.');
         await loadAll();
-        abrirPanelProceso(pz.equipo_id);
+        _refrescarVistaEquipo(pz.equipo_id);
     } catch(e) { logError('eliminarPiezaInfoPlus', e); toastError(getFriendlyError(e)); }
 }
 async function agregarPiezaExtra(equipoId) {
@@ -12242,7 +12248,18 @@ async function verFichaDespacho(equipoId) {
         const sumP = usadas.reduce((s, p) => s + (Number(p.cantidad) || 1) * (Number(p.costo_unitario) || 0), 0);
         const repuestos = Number(eq.costo_repuestos) || sumP;
         const final = compra + flete + repuestos;
-        const piezasLineas = usadas.length ? usadas.map(p => `<div style="display:flex; justify-content:space-between; font-size:12px;"><span>${escapeHtml(p.pieza_nombre || 'Pieza')} ×${p.cantidad || 1}</span><b>${money((p.cantidad || 1) * (p.costo_unitario || 0))}</b></div>`).join('') : '';
+        const esAdminPiezas = tienePermiso('piezas_aprobar_extra');
+        const piezasLineas = usadas.length ? usadas.map(p => {
+            const esIP = !p.agregada_por_tecnico && !p.pieza_id && !!p.pieza_codigo;
+            const acc = (esIP && esAdminPiezas) ? `<span style="margin-left:8px; white-space:nowrap;">
+                <a onclick="editarPiezaInfoPlus('${p.id}')" title="Editar" style="cursor:pointer; color:#0369a1; font-size:13px;"><i class="ti ti-edit"></i></a>
+                <a onclick="eliminarPiezaInfoPlus('${p.id}')" title="Quitar" style="cursor:pointer; color:#b91c1c; font-size:13px; margin-left:8px;"><i class="ti ti-trash"></i></a>
+            </span>` : '';
+            return `<div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; gap:8px; margin-top:2px;">
+                <span style="flex:1; min-width:0;">${escapeHtml(p.pieza_nombre || 'Pieza')} ×${p.cantidad || 1}${esIP ? ' <span class="badge" style="background:#bae6fd; color:#075985; font-size:9px;">INFO PLUS</span>' : ''}</span>
+                <b>${money((p.cantidad || 1) * (p.costo_unitario || 0))}</b>${acc}
+            </div>`;
+        }).join('') : '';
         costoHtml = `<div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:12px; margin-top:14px;">
             <b style="color:#166534; font-size:13px;"><i class="ti ti-cash"></i> Costo del equipo</b>
             <div style="display:flex; justify-content:space-between; font-size:13px; margin-top:8px;"><span>Costo de compra:</span><b>${money(compra)}</b></div>
@@ -12250,6 +12267,7 @@ async function verFichaDespacho(equipoId) {
             ${piezasLineas ? `<div style="margin-top:6px; padding-top:6px; border-top:1px dashed #bbf7d0;">${piezasLineas}</div>` : ''}
             <div style="display:flex; justify-content:space-between; font-size:13px; margin-top:4px;"><span>Piezas usadas (${usadas.length}):</span><b>${money(repuestos)}</b></div>
             <div style="display:flex; justify-content:space-between; font-size:16px; margin-top:8px; padding-top:8px; border-top:1px dashed #86efac; font-weight:800; color:#166534;"><span>COSTO FINAL:</span><span>${money(final)}</span></div>
+            ${esAdminPiezas ? `<button class="btn btn-light" onclick="agregarPiezaInfoPlus('${equipoId}')" style="margin-top:10px; padding:8px 12px; font-size:12px; color:#0369a1; border-color:#7dd3fc;"><i class="ti ti-search"></i> Agregar pieza del inventario (Info Plus)</button>` : ''}
         </div>`;
     }
     const fechaDesp = eq.fecha_despacho ? new Date(eq.fecha_despacho).toLocaleDateString('es-DO') : '';
