@@ -9293,6 +9293,7 @@ function renderEquipoReacondCard(eq, num) {
                     <b style="font-size:14px;">${escapeHtml(eq.modelo || 'Sin modelo')}</b>
                     <span class="badge" style="${badgeColor} font-size:11px;">${badgeText}</span>
                     <button onclick="event.stopPropagation(); verHistorialEquipo('${eq.id}')" title="Ver historial completo (trabajo, técnicos y costos)" style="background:#cffafe; color:#0e7490; border:1px solid #67e8f9; border-radius:6px; padding:2px 7px; cursor:pointer; font-size:12px;"><i class="ti ti-eye"></i></button>
+                    ${estado === 'vendido' ? `<button onclick="event.stopPropagation(); imprimirLabelEquipo('${eq.id}')" title="Imprimir label (Impresión de Labels)" style="background:#fef3c7; color:#92400e; border:1px solid #fcd34d; border-radius:6px; padding:2px 7px; cursor:pointer; font-size:12px;"><i class="ti ti-printer"></i></button>` : ''}
                     ${estado === 'evaluado' ? `<button onclick="event.stopPropagation(); continuarEvaluacion('${eq.id}')" title="Editar evaluación" style="background:#d1fae5; color:#065f46; border:1px solid #6ee7b7; border-radius:6px; padding:2px 7px; cursor:pointer; font-size:12px;"><i class="ti ti-pencil"></i></button>` : ''}
                     ${eq.veces_devuelto > 0 ? `<span class="badge" style="background:#fee2e2; color:#991b1b; font-size:10px; font-weight:700;">DEVUELTO ${eq.veces_devuelto}×</span>` : ''}
                     ${tecnico ? `<span class="badge" style="background:#e0e7ff; color:#3730a3; font-size:11px;"><i class="ti ti-user"></i> ${escapeHtml(tecnico.nombre)}</span>` : ''}
@@ -12160,6 +12161,23 @@ async function marcarDespachado(equipoId) {
         logError('Marcar despachado', e);
         toastError(getFriendlyError(e));
     }
+}
+
+// Abre "Impresión de Labels" con los datos del equipo ya cargados (mismo módulo y configuración)
+function imprimirLabelEquipo(equipoId) {
+    const eq = (cache.refurb || []).find(r => r.id === equipoId);
+    if(!eq) return toast('Equipo no encontrado.', 'error');
+    nav('etiquetas');
+    setTimeout(() => {
+        const set = (id, v) => { const el = document.getElementById(id); if(el) el.value = v || ''; };
+        set('lbl_marca', eq.marca || 'Apple');
+        set('lbl_modelo', [eq.modelo, eq.color].filter(Boolean).join(' '));
+        set('lbl_gb', eq.capacidad || '');
+        set('lbl_imei', eq.imei || '');
+        set('lbl_estado_texto', '');
+        if(typeof actualizarLabelLive === 'function') actualizarLabelLive();
+        toast('🏷️ Datos cargados en Impresión de Labels. Revisa y dale Imprimir.');
+    }, 130);
 }
 
 /* ============================================================
