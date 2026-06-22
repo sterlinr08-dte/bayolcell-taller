@@ -11259,6 +11259,8 @@ async function abrirPanelProceso(equipoId) {
         const estaPendienteAdmin = p.estado === 'pendiente' || p.estado === 'extra_pendiente';
         const devolucionPendiente = p.estado === 'devolucion_pendiente';
         const estaDevuelta = p.estado === 'devuelta';
+        // Pieza agregada por el ADMIN desde Info Plus (solo para sumar al costo; no es del flujo del técnico)
+        const esInfoPlus = !p.agregada_por_tecnico && !p.pieza_id && !!p.pieza_codigo;
         
         // === COLUMNA ADMIN (entregó pieza) ===
         let adminCol = '';
@@ -11294,10 +11296,24 @@ async function abrirPanelProceso(equipoId) {
             tecCol = `<div class="pieza-status-col pendiente">Pendiente admin</div>`;
         }
         
+        // Las piezas de Info Plus son SOLO costo (las pone el admin): no van por el flujo del técnico.
+        if(esInfoPlus) {
+            adminCol = `<div class="pieza-status-col" style="background:#e0f2fe; color:#075985;"><i class="ti ti-shopping-cart"></i> Pieza de Info Plus (suma al costo)</div>`;
+            tecCol = '';
+        }
+
         // === BOTONES DE ACCIÓN (lógica inteligente: admin vs técnico) ===
         const esAdmin = tienePermiso('piezas_aprobar_extra'); // admin aprueba/entrega
         const botones = [];
-        if(esExtraNoAprobado) {
+        if(esInfoPlus) {
+            // Solo el admin puede editar el costo/cantidad o quitar la pieza
+            if(esAdmin) {
+                botones.push(`<div style="display:flex; gap:6px; margin-top:6px;">
+                    <button class="pieza-action-btn" onclick="editarPiezaInfoPlus('${p.id}')" style="flex:1; background:#fff; color:#0369a1; border:1px solid #7dd3fc;"><i class="ti ti-edit"></i> Editar</button>
+                    <button class="pieza-action-btn" onclick="eliminarPiezaInfoPlus('${p.id}')" style="flex:1; background:#fee2e2; color:#991b1b;"><i class="ti ti-trash"></i> Quitar</button>
+                </div>`);
+            }
+        } else if(esExtraNoAprobado) {
             // Solo el admin aprueba/rechaza piezas extra
             if(esAdmin) {
                 botones.push(`<button class="pieza-action-btn" onclick="aprobarPiezaExtra('${p.id}')" style="background:linear-gradient(180deg,#10b981,#059669); color:#fff; border-color:#047857; box-shadow:0 3px 8px rgba(15,23,42,0.12);"><i class="ti ti-check"></i> Aprobar pieza extra</button>`);
@@ -11334,6 +11350,8 @@ async function abrirPanelProceso(equipoId) {
                 <div style="flex:1; min-width:0;">
                     <b style="font-size:14px; ${estaDevuelta ? 'text-decoration:line-through; color:#94a3b8;' : ''}">${escapeHtml(p.pieza_nombre || 'Pieza')} ×${p.cantidad || 1}</b>
                     ${esExtra ? '<span class="badge" style="background:#fbbf24; color:#78350f; margin-left:6px; font-size:10px;">EXTRA</span>' : ''}
+                    ${esInfoPlus ? '<span class="badge" style="background:#bae6fd; color:#075985; margin-left:6px; font-size:10px;">INFO PLUS</span>' : ''}
+                    ${esInfoPlus && p.pieza_codigo ? `<span style="font-size:10px; color:#94a3b8; margin-left:4px;">cód. ${escapeHtml(p.pieza_codigo)}</span>` : ''}
                     <div style="font-size:11px; color:#64748b; margin-top:2px;">${money((p.cantidad||1)*(p.costo_unitario||0))}</div>
                 </div>
             </div>
@@ -11987,6 +12005,41 @@ async function _agregarPiezaInfoPlusConfirm(equipoId, a) {
         await loadAll();
         abrirPanelProceso(equipoId);
     } catch(e) { logError('agregarPiezaInfoPlus', e); toastError(getFriendlyError(e)); }
+}
+// Editar la cantidad/costo de una pieza agregada desde Info Plus (solo admin)
+async function editarPiezaInfoPlus(piezaId) {
+    if(!tienePermiso('piezas_aprobar_extra')) return toast('Solo el administrador puede editar el costo.', 'error');
+    try {
+        const { data: pz, error: e0 } = await supabaseClient.from('equipo_piezas_pedidas').select('*').eq('id', piezaId).single();
+        if(e0 || !pz) throw (e0 || new Error('Pieza no encontrada'));
+        const cantStr = await pedirTexto(`Pieza: ${pz.pieza_nombre || ''}\n\nCantidad:`, { valor: String(pz.cantidad || 1), tipo: 'number' });
+        if(cantStr === null) return;
+        const cantidad = parseInt(cantStr) || 1;
+        const costoStr = await pedirTexto('Costo unitario (RD$):', { valor: String(pz.costo_unitario || 0), tipo: 'number' });
+        if(costoStr === null) return;
+        const costo = parseFloat(String(costoStr).replace(/[^0-9.]/g, '')) || 0;
+        const { error } = await supabaseClient.from('equipo_piezas_pedidas').update({ cantidad, costo_unitario: costo }).eq('id', piezaId);
+        if(error) throw error;
+        await _recalcularCostoRepuestos(pz.equipo_id);
+        toast('✅ Pieza actualizada.');
+        await loadAll();
+        abrirPanelProceso(pz.equipo_id);
+    } catch(e) { logError('editarPiezaInfoPlus', e); toastError(getFriendlyError(e)); }
+}
+// Quitar una pieza agregada desde Info Plus (solo admin)
+async function eliminarPiezaInfoPlus(piezaId) {
+    if(!tienePermiso('piezas_aprobar_extra')) return toast('Solo el administrador puede quitar la pieza.', 'error');
+    try {
+        const { data: pz, error: e0 } = await supabaseClient.from('equipo_piezas_pedidas').select('*').eq('id', piezaId).single();
+        if(e0 || !pz) throw (e0 || new Error('Pieza no encontrada'));
+        if(!await confirmar(`¿Quitar la pieza "${pz.pieza_nombre || 'pieza'}" del costo del equipo?`)) return;
+        const { error } = await supabaseClient.from('equipo_piezas_pedidas').delete().eq('id', piezaId);
+        if(error) throw error;
+        await _recalcularCostoRepuestos(pz.equipo_id);
+        toast('✅ Pieza quitada del costo.');
+        await loadAll();
+        abrirPanelProceso(pz.equipo_id);
+    } catch(e) { logError('eliminarPiezaInfoPlus', e); toastError(getFriendlyError(e)); }
 }
 async function agregarPiezaExtra(equipoId) {
     const nombre = await pedirTexto('Nombre de la pieza extra que apareció durante la reparación:');
