@@ -3271,9 +3271,10 @@ body{
             </div>
             <div class="form-row" id="asignlote_cantidadRow">
                 <label>Cantidad de equipos a asignar</label>
-                <input id="asignlote_cantidad" type="number" min="1" value="1" style="font-weight:700;">
+                <input id="asignlote_cantidad" type="number" min="1" value="1" style="font-weight:700;" oninput="_asignloteRefrescar()">
             </div>
-            <div id="asignlote_disp" style="font-size:12px; color:#64748b; margin:-4px 0 12px;"></div>
+            <div id="asignlote_disp" style="font-size:12px; color:#64748b; margin:-4px 0 8px;"></div>
+            <div id="asignlote_modelos"></div>
             <div class="form-row">
                 <label>Nota (opcional)</label>
                 <textarea id="asignlote_nota" rows="2" placeholder="Instrucciones..." style="resize:vertical;"></textarea>
@@ -10790,23 +10791,48 @@ function _equiposEvaluadosDisponibles() {
         .filter(r => r.lote_id === reacondLoteAbiertoId && r.estado_evaluacion === 'evaluado' && !r.tecnico_asignado_id)
         .sort((a, b) => (a.creado_en || '').localeCompare(b.creado_en || ''));
 }
+// Lista (agrupada y contada) de los modelos que se van a asignar — para confirmar
+function _asignloteModelosHtml(elegidos) {
+    if(!elegidos.length) return '';
+    const g = {};
+    elegidos.forEach(e => { const m = (e.modelo || 'Sin modelo').toString().trim() || 'Sin modelo'; g[m] = (g[m] || 0) + 1; });
+    const filas = Object.keys(g).sort().map(m => `<div style="display:flex; justify-content:space-between; align-items:center; padding:5px 9px; border-bottom:1px solid #f1f5f9; font-size:12.5px;"><span>${escapeHtml(m)}</span><b style="color:#9a3412;">×${g[m]}</b></div>`).join('');
+    return `<div style="border:1px solid #fed7aa; border-radius:8px; margin:4px 0 12px; max-height:180px; overflow-y:auto;">
+        <div style="background:#fff7ed; color:#9a3412; font-weight:700; font-size:11px; padding:6px 9px; border-bottom:1px solid #fed7aa;">📋 Modelos a asignar (${elegidos.length})</div>
+        ${filas}
+    </div>`;
+}
+// Recalcula qué equipos se asignan (marcados con casilla o los primeros N) y muestra cantidad + modelos
+function _asignloteRefrescar() {
+    const disp = _equiposEvaluadosDisponibles();
+    const marcados = disp.filter(e => _reacondSel.has(e.id));
+    const cantRow = document.getElementById('asignlote_cantidadRow');
+    let elegidos, dispText;
+    if(marcados.length) {
+        if(cantRow) cantRow.style.display = 'none';
+        elegidos = marcados;
+        dispText = `Se asignarán los ${marcados.length} equipo(s) que marcaste.`;
+    } else {
+        if(cantRow) cantRow.style.display = '';
+        const inp = document.getElementById('asignlote_cantidad');
+        let cant = parseInt(inp.value) || 0;
+        if(cant < 0) cant = 0;
+        if(cant > disp.length) { cant = disp.length; inp.value = cant; }
+        elegidos = disp.slice(0, cant);
+        dispText = `Hay ${disp.length} equipo(s) evaluado(s) disponibles. (O marca con casilla los que quieras.)`;
+    }
+    const d = document.getElementById('asignlote_disp'); if(d) d.textContent = dispText;
+    const m = document.getElementById('asignlote_modelos'); if(m) m.innerHTML = _asignloteModelosHtml(elegidos);
+}
 function abrirModalAsignarLote() {
     if(!reacondLoteAbiertoId) return toast('Abre un lote primero.', 'error');
     const disp = _equiposEvaluadosDisponibles();
     if(!disp.length) return toast('No hay equipos evaluados sin asignar en este lote.', 'error');
     const sel = disp.filter(e => _reacondSel.has(e.id));
-    const cantRow = document.getElementById('asignlote_cantidadRow');
-    if(sel.length) {
-        // Hay equipos marcados con casilla → se asignan esos
-        if(cantRow) cantRow.style.display = 'none';
-        document.getElementById('asignlote_disp').textContent = `Se asignarán los ${sel.length} equipo(s) que marcaste.`;
-    } else {
-        if(cantRow) cantRow.style.display = '';
-        document.getElementById('asignlote_cantidad').max = disp.length;
-        document.getElementById('asignlote_cantidad').value = disp.length; // por defecto, todos
-        document.getElementById('asignlote_disp').textContent = `Hay ${disp.length} equipo(s) evaluado(s) disponibles. (O marca con casilla los que quieras.)`;
-    }
+    document.getElementById('asignlote_cantidad').max = disp.length;
+    if(!sel.length) document.getElementById('asignlote_cantidad').value = disp.length; // por defecto, todos
     document.getElementById('asignlote_nota').value = '';
+    _asignloteRefrescar();
     const tecnicosActivos = (cache.tecnicos || []).filter(t => t.activo);
     smartSelectInit({
         containerId: 'ss-asignlote-tecnico',
