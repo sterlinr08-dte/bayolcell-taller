@@ -12243,12 +12243,13 @@ function imprimirLabelEquipo(equipoId) {
             <button class="modal-close" onclick="cerrarLabelRapido()" style="color:#fff;">✕</button>
         </div>
         <div class="modal-body">
-            <div class="form-row"><label>Marca</label><input id="lr_marca" value="${escapeHtml(marca)}"></div>
-            <div class="form-row"><label>Modelo</label><input id="lr_modelo" value="${escapeHtml(parsed.modelo)}"></div>
-            <div class="form-row"><label>Capacidad (GB / RAM)</label><input id="lr_gb" value="${escapeHtml(capac)}"></div>
-            <div class="form-row"><label>IMEI / Serial</label><input id="lr_imei" value="${escapeHtml(eq.imei || '')}"></div>
-            <div class="form-row"><label>Texto de estado (opcional)</label><input id="lr_estado" placeholder="Ej. CLASE A"></div>
+            <div class="form-row"><label>Marca</label><input id="lr_marca" value="${escapeHtml(marca)}" oninput="_lrPreview()"></div>
+            <div class="form-row"><label>Modelo</label><input id="lr_modelo" value="${escapeHtml(parsed.modelo)}" oninput="_lrPreview()"></div>
+            <div class="form-row"><label>Capacidad (GB / RAM)</label><input id="lr_gb" value="${escapeHtml(capac)}" oninput="_lrPreview()"></div>
+            <div class="form-row"><label>IMEI / Serial</label><input id="lr_imei" value="${escapeHtml(eq.imei || '')}" oninput="_lrPreview()"></div>
+            <div class="form-row"><label>Texto de estado (opcional)</label><input id="lr_estado" placeholder="Ej. CLASE A" oninput="_lrPreview()"></div>
             <div class="form-row"><label>Copias</label><input id="lr_copias" type="number" min="1" value="1" style="font-weight:700;"></div>
+            <div style="margin-top:6px;"><div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; margin-bottom:6px;"><i class="ti ti-photo"></i> Vista previa</div><div style="display:flex; justify-content:center; background:#f8fafc; border-radius:8px; padding:14px;"><div id="lr_preview"></div></div></div>
             <p style="font-size:11px; color:var(--text-muted); margin:8px 0 0;">Usa la misma impresora y calibración de "Impresión de Labels".</p>
         </div>
         <div class="modal-footer">
@@ -12259,6 +12260,22 @@ function imprimirLabelEquipo(equipoId) {
     let modal = document.getElementById('modalLabelRapido');
     if(!modal) { modal = document.createElement('div'); modal.id = 'modalLabelRapido'; modal.className = 'modal-backdrop'; document.body.appendChild(modal); }
     modal.innerHTML = html; modal.classList.add('active');
+    _lrPreview();
+}
+// Vista previa en vivo del label en el popup (misma plantilla y calibración que Impresión de Labels)
+function _lrPreview() {
+    const v = id => (document.getElementById(id)?.value || '');
+    const set = (id, val) => { const el = document.getElementById(id); if(el) el.value = val; };
+    set('lbl_marca', v('lr_marca')); set('lbl_modelo', v('lr_modelo')); set('lbl_gb', v('lr_gb')); set('lbl_imei', v('lr_imei')); set('lbl_estado_texto', v('lr_estado'));
+    const w = parseInt(document.getElementById('cfg_width')?.value) || 58;
+    const h = parseInt(document.getElementById('cfg_height')?.value) || 28;
+    const f = parseInt(document.getElementById('cfg_font')?.value) || 13;
+    const bh = parseInt(document.getElementById('cfg_barcode_h')?.value) || 25;
+    const card = document.getElementById('lr_preview');
+    if(card && typeof generarHtmlLabelEquipo === 'function') {
+        card.style.cssText = estiloLabelEquipo(w, h, f) + 'outline:2px dashed #94a3b8; outline-offset:3px;';
+        card.innerHTML = generarHtmlLabelEquipo(f, bh);
+    }
 }
 function cerrarLabelRapido() { const m = document.getElementById('modalLabelRapido'); if(m) m.classList.remove('active'); }
 async function imprimirLabelRapido() {
