@@ -8170,10 +8170,11 @@ function _smartSelectIconClick(containerId) {
 // Ventana flotante con TODOS los artículos de Info Plus + barra de búsqueda (para elegir)
 let _artBuscTarget = 'ss-eq-articulo';
 let _artBuscOnPick = null; // si se pasa, se llama con el artículo elegido (en vez de un smart-select)
-async function abrirBuscadorArticulos(targetSS, onPick) {
+async function abrirBuscadorArticulos(targetSS, onPick, refHtml) {
     _artBuscTarget = (typeof targetSS === 'string' && targetSS) ? targetSS : 'ss-eq-articulo';
     _artBuscOnPick = (typeof onPick === 'function') ? onPick : null;
     abrirModalGenerico('🔍 Artículos (Info Plus)', `
+        ${refHtml || ''}
         <input id="artBuscModal" placeholder="Buscar por código, descripción, marca o referencia…" autocomplete="off" oninput="renderBuscadorArticulos()" style="width:100%; padding:10px 12px; font-size:14px; border:1px solid #cbd5e1; border-radius:8px; margin-bottom:10px;">
         <div id="artBuscModalLista"><div style="text-align:center; color:#64748b; padding:20px;">⏳ Cargando artículos (Info Plus)…</div></div>
     `);
@@ -11955,8 +11956,18 @@ async function editarGastosEnvioLote() {
     } catch(e) { logError('Editar gastos envío', e); toastError(getFriendlyError(e)); }
 }
 // Agregar una pieza desde el inventario de Info Plus (con su costo) al equipo Listo, para sumar al costo final
-function agregarPiezaInfoPlus(equipoId) {
-    abrirBuscadorArticulos(null, (a) => _agregarPiezaInfoPlusConfirm(equipoId, a));
+async function agregarPiezaInfoPlus(equipoId) {
+    // Mostrar las fallas del equipo como referencia mientras se eligen las piezas
+    let refHtml = '';
+    try {
+        const { data } = await supabaseClient.from('equipo_fallas').select('*').eq('equipo_id', equipoId);
+        const fallas = data || [];
+        if(fallas.length) {
+            const chips = fallas.map(f => `<span style="display:inline-block; background:#fee2e2; color:#991b1b; font-size:11px; font-weight:600; padding:3px 9px; border-radius:10px; margin:2px;">⚠️ ${escapeHtml(f.falla_corto || f.falla_nombre || '')}${f.adicional ? ' (adic.)' : ''}</span>`).join('');
+            refHtml = `<div style="background:#fff7ed; border:1px solid #fed7aa; border-radius:8px; padding:8px 10px; margin-bottom:10px;"><div style="font-size:11px; font-weight:700; color:#9a3412; margin-bottom:4px;">FALLAS DEL EQUIPO (referencia)</div>${chips}</div>`;
+        }
+    } catch(e) { logError('Fallas referencia Info Plus', e); }
+    abrirBuscadorArticulos(null, (a) => _agregarPiezaInfoPlusConfirm(equipoId, a), refHtml);
 }
 async function _agregarPiezaInfoPlusConfirm(equipoId, a) {
     try {
