@@ -12237,13 +12237,13 @@ function imprimirLabelEquipo(equipoId) {
     // Los GB/RAM a veces vienen en modelo y a veces en el campo "color" → analizar ambos juntos
     const parsed = _parseModeloCapacidad([eq.modelo, eq.color].filter(Boolean).join(' '));
     const marca = eq.marca || 'Apple';
-    // No repetir la marca en el modelo (ya va en su campo y en el logo): "SAMSUNG S23 ULTRA" → "S23 ULTRA"
+    // Modelo: si es iPhone -> "iP 14 PLUS"; si es otra marca -> solo el modelo (ej. Samsung -> "S23 ULTRA")
     let modeloLimpio = parsed.modelo;
-    if(marca && marca.trim()) {
-        const rx = new RegExp('\\b' + marca.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'ig');
-        const r = modeloLimpio.replace(rx, ' ').replace(/\s{2,}/g, ' ').trim();
-        if(r) modeloLimpio = r;
-    }
+    const esApple = /iphone|apple/i.test((marca || '') + ' ' + (eq.modelo || ''));
+    const quitar = esApple ? ['iphone', 'apple'] : [(marca || '').trim()];
+    quitar.forEach(w => { if(w) modeloLimpio = modeloLimpio.replace(new RegExp('\\b' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'ig'), ' '); });
+    modeloLimpio = modeloLimpio.replace(/\s{2,}/g, ' ').trim() || parsed.modelo;
+    if(esApple) modeloLimpio = ('iP ' + modeloLimpio).trim();
     const capac = (eq.capacidad && String(eq.capacidad).trim()) ? String(eq.capacidad).trim() : parsed.capacidad;
     const html = `<div class="modal-box" style="max-width:460px; width:95%;">
         <div class="modal-header" style="background:linear-gradient(135deg,#0891b2,#0e7490); color:#fff; border-radius:12px 12px 0 0;">
@@ -16664,7 +16664,7 @@ function _datosLabelEquipo() {
 }
 
 function estiloLabelEquipo(w, h, f) {
-    return `width:${w}mm;height:${h}mm;padding:1.5mm;box-sizing:border-box;overflow:hidden;background:#fff;color:#000;text-align:center;font-family:${LABEL_FONT_STACK};font-weight:900;font-size:${f}px;line-height:1.2;display:flex;flex-direction:column;justify-content:center;`;
+    return `width:${w}mm;height:${h}mm;padding:0.5mm 1.5mm 1.5mm;box-sizing:border-box;overflow:hidden;background:#fff;color:#000;text-align:center;font-family:${LABEL_FONT_STACK};font-weight:900;font-size:${f}px;line-height:1.2;display:flex;flex-direction:column;justify-content:flex-start;`;
 }
 
 function generarHtmlLabelEquipo(f, bh) {
