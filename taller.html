@@ -3214,7 +3214,7 @@ body{
                 <select id="rex_estado">
                     <option value="en_proceso">🔧 En Proceso</option>
                     <option value="espera_pieza">⏳ Espera pieza</option>
-                    <option value="listo_revision">👁️ Revisión final</option>
+                    <option value="listo_revision">👁️ Listo (por recibir)</option>
                     <option value="listo_venta">🛒 Listo para venta</option>
                     <option value="pendiente">🟡 Pendiente (sin empezar)</option>
                 </select>
@@ -9269,7 +9269,7 @@ function renderEquipoReacondCard(eq, num) {
         accionPrincipal = `abrirPanelProceso('${eq.id}')`;
     } else if(estado === 'listo_revision') {
         badgeColor = 'background:#e9d5ff; color:#6b21a8;';
-        badgeText = '👁️ Revisión final';
+        badgeText = '👁️ Listo (por recibir)';
         accionPrincipal = `abrirPanelProceso('${eq.id}')`;
     } else if(estado === 'listo_venta') {
         badgeColor = 'background:#ddd6fe; color:#5b21b6;';
@@ -11054,12 +11054,12 @@ async function completarTarea(tareaId, tipo, refId) {
         
         if(todasHechas) {
             const msg = tipo === 'equipo'
-                ? '✅ ¡Todas las tareas completadas!\n\n¿Pasar el equipo a REVISIÓN FINAL para que el administrador lo apruebe?'
+                ? '✅ ¡Todas las tareas completadas!\n\n¿Marcar el equipo como LISTO para que la administración lo reciba?'
                 : '✅ ¡Todas las tareas completadas!\n\n¿Marcar la orden como FINALIZADA (lista para entregar)?';
             if(await confirmar(msg, {peligro:false, ok:'Sí, continuar'})) {
                 if(tipo === 'equipo') {
                     await supabaseClient.from('equipos_refurbish').update({ estado_evaluacion: 'listo_revision' }).eq('id', refId);
-                    toast('👁️ Equipo en revisión final.');
+                    toast('✅ Equipo marcado como listo.');
                 } else {
                     await supabaseClient.from('ordenes_reparacion').update({ estado: 'finalizado', fecha_finalizado: new Date().toISOString() }).eq('id', refId);
                     toast('✅ Orden finalizada.');
@@ -11196,7 +11196,7 @@ async function abrirPanelProceso(equipoId) {
         { id: 'en_proceso', label: 'Asignado', icono: '📋' },
         { id: 'tecnico_recibio', label: 'Recibido', icono: '📦' },
         { id: 'espera_pieza', label: 'Espera pieza', icono: '⏳' },
-        { id: 'listo_revision', label: 'Revisión final', icono: '👁️' }
+        { id: 'listo_revision', label: 'Listo', icono: '🏁' }
     ];
     // Determinar índice del estado actual
     const ordenEstados = ['en_proceso', 'tecnico_recibio', 'espera_pieza', 'listo_revision'];
@@ -11457,16 +11457,16 @@ async function abrirPanelProceso(equipoId) {
                 ${estado === 'listo_revision' ? (
                     puedeRecibirReasignado || tienePermiso('piezas_aprobar_extra') ? `
                     <div style="background:linear-gradient(135deg, #fef3c7, #fde68a); border:2px solid #f59e0b; padding:16px; border-radius:12px; margin-top:18px; box-shadow:0 4px 12px rgba(245, 158, 11, 0.2);">
-                        <b style="color:#78350f;"><i class="ti ti-shield-check"></i> Aprobación del Administrador</b>
-                        <p style="font-size:12px; color:#92400e; margin:8px 0;">El técnico marcó este equipo en revisión final. Revísalo y aprueba para que pase a Listo Venta.</p>
+                        <b style="color:#78350f;"><i class="ti ti-shield-check"></i> Recibir como Listo (Administración)</b>
+                        <p style="font-size:12px; color:#92400e; margin:8px 0;">El técnico marcó este equipo como <b>LISTO</b>. Revísalo y recíbelo como listo (pasa a Listo para Venta).</p>
                         <button onclick="aprobarTerminado('${equipoId}')" style="background:linear-gradient(180deg,#10b981,#059669); color:#fff; border:0; padding:14px 20px; border-radius:10px; cursor:pointer; font-weight:700; width:100%; box-shadow:0 3px 8px rgba(15,23,42,0.12); font-size:14px;">
-                            <i class="ti ti-check"></i> APROBAR → Listo para Venta
+                            <i class="ti ti-check"></i> RECIBIR COMO LISTO
                         </button>
                     </div>
                     ` : `
                     <div style="background:#f1f5f9; border:1px solid #cbd5e1; padding:14px; border-radius:12px; margin-top:18px; text-align:center;">
-                        <b style="color:#475569;"><i class="ti ti-clock"></i> En revisión final</b>
-                        <p style="font-size:12px; color:#64748b; margin:6px 0 0;">Este equipo está esperando que el <b>administrador</b> lo apruebe.</p>
+                        <b style="color:#475569;"><i class="ti ti-clock"></i> Marcado como listo</b>
+                        <p style="font-size:12px; color:#64748b; margin:6px 0 0;">Este equipo está esperando que la <b>administración</b> lo reciba como listo.</p>
                     </div>
                     `
                 ) : ''}
@@ -12116,7 +12116,7 @@ async function aprobarTerminado(equipoId) {
     if(!isAdminUser() && !tienePermiso('piezas_aprobar_extra')) {
         return toast('Solo el administrador puede aprobar equipos. El técnico no puede aprobar su propio trabajo.', 'error');
     }
-    if(!await confirmar('¿Aprobar este equipo como TERMINADO y pasarlo a LISTO PARA VENTA?')) return;
+    if(!await confirmar('¿Recibir este equipo como LISTO? (pasa a Listo para Venta)')) return;
     try {
         const { error } = await supabaseClient.from('equipos_refurbish').update({ 
             estado_evaluacion: 'listo_venta',
@@ -12128,7 +12128,7 @@ async function aprobarTerminado(equipoId) {
             accion: 'Aprobado por admin → Listo para venta',
             usuario: sessionUser?.nombre || 'Admin'
         }]);
-        toast('Equipo aprobado y listo para venta.');
+        toast('✅ Equipo recibido como listo (Listo para Venta).');
         cerrarPanelProceso();
         await loadAll();
         if(reacondLoteAbiertoId) renderDetalleLoteReacond();
@@ -12649,7 +12649,7 @@ function obtenerEtiquetaEstado(estado) {
         'en_proceso': { text: '🔧 En Proceso', bg:'#fed7aa', color:'#9a3412' },
         'tecnico_recibio': { text: '📦 Recibido', bg:'#bfdbfe', color:'#b91c1c' },
         'espera_pieza': { text: '⏳ Espera pieza', bg:'#fde68a', color:'#92400e' },
-        'listo_revision': { text: '👁️ Revisión final', bg:'#e9d5ff', color:'#6b21a8' },
+        'listo_revision': { text: '👁️ Listo (por recibir)', bg:'#e9d5ff', color:'#6b21a8' },
         'listo_venta': { text: '🛒 Listo Venta', bg:'#ddd6fe', color:'#5b21b6' },
         'vendido': { text: '✅ Despachado', bg:'#d1fae5', color:'#065f46' },
         'reasignado': { text: '👥 Reasignado', bg:'#fef3c7', color:'#92400e' },
