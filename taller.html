@@ -14795,39 +14795,35 @@ function renderMiTrabajo() {
     
     let html = '';
 
-    // ===== MÓDULO ÓRDENES DE CLIENTE (reparaciones recibidas) =====
-    html += `<div style="margin-bottom:18px;">
-        <h3 style="font-size:15px; margin:0 0 8px;"><i class="ti ti-inbox" style="color:#ef4444;"></i> Órdenes Disponibles (sin tomar)</h3>`;
+    // ===== MÓDULO 1: ÓRDENES DE CLIENTE (reparaciones recibidas) — su propia caja =====
+    html += `<div style="margin-bottom:18px; background:#f0f9ff; border:1px solid #bae6fd; border-radius:12px; padding:14px;">
+        <h3 style="font-size:16px; margin:0 0 12px; color:#075985;"><i class="ti ti-tool"></i> Órdenes de Cliente (Reparaciones)</h3>`;
+
+    html += `<h4 style="font-size:13px; margin:6px 0 6px; color:#075985;"><i class="ti ti-inbox" style="color:#ef4444;"></i> Órdenes Disponibles (sin tomar)</h4>`;
     if(disponibles.length) {
         html += disponibles.map(o => construirCardOrden(o, esAdmin, miId, tecnicosActivos)).join('');
     } else {
         html += `<div style="color:var(--text-muted); font-size:13px; padding:8px 0;">No hay órdenes disponibles ahora.</div>`;
     }
-    html += `</div>`;
 
-    html += `<div style="margin-bottom:18px;">
-        <h3 style="font-size:15px; margin:0 0 8px;"><i class="ti ti-tool" style="color:#0891b2;"></i> Mis Órdenes Asignadas</h3>`;
+    html += `<h4 style="font-size:13px; margin:14px 0 6px; color:#075985;"><i class="ti ti-tool" style="color:#0891b2;"></i> Mis Órdenes Asignadas</h4>`;
     if(misOrdenes.length) {
         html += misOrdenes.map(o => construirCardOrden(o, esAdmin, miId, tecnicosActivos)).join('');
     } else {
         html += `<div style="color:var(--text-muted); font-size:13px; padding:8px 0;">No tienes órdenes asignadas.</div>`;
     }
+
+    html += `<h4 style="font-size:13px; margin:14px 0 6px; color:#075985;"><i class="ti ti-packages"></i> Mis Pedidos de Piezas (Órdenes)</h4>
+        ${construirMisPiezasTodas(miId, 'orden')}`;
+
+    html += `<h4 style="font-size:13px; margin:14px 0 6px; color:#075985;"><i class="ti ti-history"></i> Mi Historial de Reparaciones</h4>
+        ${construirHistorialTecnico(miId, 'orden')}`;
     html += `</div>`;
 
-    html += `<div style="margin-bottom:18px;">
-        <h3 style="font-size:15px; margin:0 0 8px;"><i class="ti ti-packages" style="color:#0891b2;"></i> Mis Pedidos de Piezas (Órdenes)</h3>
-        ${construirMisPiezasTodas(miId, 'orden')}
-    </div>`;
-
-    html += `<div style="margin-bottom:18px;">
-        <h3 style="font-size:15px; margin:0 0 8px;"><i class="ti ti-history" style="color:#16a34a;"></i> Mi Historial de Reparaciones</h3>
-        ${construirHistorialTecnico(miId, 'orden')}
-    </div>`;
-
-    // ===== MÓDULO REACONDICIONADOS (aparte, bloque resaltado) =====
+    // ===== MÓDULO 2: REACONDICIONADOS — su propia caja (aparte) =====
     html += `<div id="miReacondModulo" style="margin-bottom:18px; background:#fffbeb; border:1px solid #fde68a; border-radius:12px; padding:14px;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:6px;">
-            <h3 style="font-size:15px; margin:0; color:#92400e;"><i class="ti ti-refresh"></i> Reacondicionados</h3>
+            <h3 style="font-size:16px; margin:0; color:#92400e;"><i class="ti ti-refresh"></i> Reacondicionados</h3>
             <button class="btn btn-light" style="font-size:12px;" onclick="solicitarPiezaReacondLibre()"><i class="ti ti-plus"></i> Solicitar pieza</button>
         </div>
         <h4 style="font-size:13px; margin:10px 0 6px; color:#92400e;">Mis Equipos Reacondicionados</h4>`;
