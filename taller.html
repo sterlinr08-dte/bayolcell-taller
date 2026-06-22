@@ -14787,7 +14787,7 @@ function renderMiTrabajo() {
     resumen.innerHTML = `
         <div class="kpi-box" style="border-top-color:#ef4444;"><small>Disponibles</small><strong>${disponibles.length}</strong><i class="ti ti-inbox"></i></div>
         <div class="kpi-box" style="border-top-color:#0891b2;"><small>Mis órdenes</small><strong>${misOrdenes.length}</strong><i class="ti ti-tool"></i></div>
-        <div class="kpi-box" style="border-top-color:#f59e0b; cursor:pointer;" onclick="document.getElementById('miReacondModulo')?.scrollIntoView({behavior:'smooth'})" title="Ir a mis reacondicionados"><small>Mis reacond.</small><strong>${misReacond.length}</strong><i class="ti ti-refresh"></i></div>
+        <div class="kpi-box" style="border-top-color:#f59e0b; cursor:pointer;" onclick="abrirMisReacondicionados()" title="Abrir mis reacondicionados"><small>Mis reacond.</small><strong>${misReacond.length}</strong><i class="ti ti-refresh"></i></div>
         <div class="kpi-box" style="border-top-color:#dc2626;"><small>Fallas pend.</small><strong>${misFallasPend}</strong><i class="ti ti-alert-triangle"></i></div>
         ${reasignadasAMi > 0 ? `<div class="kpi-box" style="border-top-color:#d97706;"><small>Reasignadas a mí</small><strong>${reasignadasAMi}</strong><i class="ti ti-arrows-exchange"></i></div>` : ''}
         ${!esAdmin ? `<div class="kpi-box" style="border-top-color:#16a34a; cursor:pointer;" onclick="abrirRegistroTickets()" title="Ver todos los tickets registrados"><small>Registro de Ticket</small><strong style="color:#16a34a; font-size:22px;"><i class="ti ti-list-details"></i></strong><i class="ti ti-coin"></i></div>` : ''}
@@ -14820,15 +14820,25 @@ function renderMiTrabajo() {
         ${construirHistorialTecnico(miId, 'orden')}`;
     html += `</div>`;
 
-    // ===== MÓDULO 2: REACONDICIONADOS — su propia caja (aparte) =====
-    html += `<div id="miReacondModulo" style="margin-bottom:18px; background:#fffbeb; border:1px solid #fde68a; border-radius:12px; padding:14px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:6px;">
-            <h3 style="font-size:16px; margin:0; color:#92400e;"><i class="ti ti-refresh"></i> Reacondicionados</h3>
-            <button class="btn btn-light" style="font-size:12px;" onclick="solicitarPiezaReacondLibre()"><i class="ti ti-plus"></i> Solicitar pieza</button>
+    // ===== MÓDULO 2: REACONDICIONADOS — tarjeta que abre la ventana del sistema =====
+    const pzReacondPend = (cache.piezasReacond || []).filter(p => { const eq = (cache.refurb||[]).find(e=>e.id===p.equipo_id); return eq && eq.tecnico_asignado_id===miId && ['solicitada','pendiente','extra_pendiente','aprobada','entregada'].includes(p.estado); }).length;
+    html += `<div id="miReacondModulo" onclick="abrirMisReacondicionados()" style="cursor:pointer; margin-bottom:18px; background:#fffbeb; border:1px solid #fde68a; border-radius:12px; padding:16px; display:flex; justify-content:space-between; align-items:center; gap:10px;">
+        <div>
+            <h3 style="font-size:16px; margin:0; color:#92400e;"><i class="ti ti-refresh"></i> Mis Reacondicionados</h3>
+            <div style="font-size:13px; color:#92400e; margin-top:4px;">${misReacond.length} equipo(s) asignado(s)${pzReacondPend ? ` · ${pzReacondPend} pieza(s) en proceso` : ''} · <b>toca para abrir</b></div>
         </div>
-        <h4 style="font-size:13px; margin:10px 0 6px; color:#92400e;">Mis Equipos Reacondicionados</h4>`;
+        <i class="ti ti-chevron-right" style="font-size:26px; color:#92400e;"></i>
+    </div>`;
+
+    cont.innerHTML = html;
+}
+// Ventana (modal) del sistema con los reacondicionados del técnico
+function abrirMisReacondicionados() {
+    const miId = sessionUser?.id;
+    const misReacond = (cache.refurb || []).filter(e => e.tecnico_asignado_id === miId && !['vendido'].includes(e.estado_evaluacion));
+    let cards;
     if(misReacond.length) {
-        html += misReacond.map(eq => {
+        cards = misReacond.map(eq => {
             const tareasEq = (cache.tareas || []).filter(t => t.tipo === 'equipo' && t.ref_id === eq.id);
             const pend = tareasEq.filter(t => t.estado !== 'hecha').length;
             const estLabel = (eq.estado_evaluacion || 'en_proceso').replace(/_/g, ' ');
@@ -14838,20 +14848,34 @@ function renderMiTrabajo() {
                     <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">Estado: ${escapeHtml(estLabel)} ${pend > 0 ? `· ${pend} falla(s) pendiente(s)` : '· ✅ sin pendientes'}</div>
                     ${eq.fecha_asignacion ? `<div style="font-size:11px; color:#0891b2; font-weight:600; margin-top:2px;"><i class="ti ti-stopwatch"></i> Tomado: ${tiempoDesde(eq.fecha_asignacion)}</div>` : ''}
                 </div>
-                <button class="btn btn-dark" style="padding:8px 14px;" onclick="abrirPanelProceso('${eq.id}')"><i class="ti ti-tool"></i> Trabajar</button>
+                <button class="btn btn-dark" style="padding:8px 14px;" onclick="cerrarMisReacond(); abrirPanelProceso('${eq.id}')"><i class="ti ti-tool"></i> Trabajar</button>
             </div>`;
         }).join('');
     } else {
-        html += `<div style="color:var(--text-muted); font-size:13px; padding:8px 0;">No tienes equipos reacondicionados asignados.</div>`;
+        cards = `<div style="color:var(--text-muted); font-size:13px; padding:8px 0;">No tienes equipos reacondicionados asignados.</div>`;
     }
-    html += `<h4 style="font-size:13px; margin:14px 0 6px; color:#92400e;">Mis Pedidos de Piezas (Reacondicionados)</h4>
-        ${construirMisPiezasTodas(miId, 'reacond')}`;
-    html += `<h4 style="font-size:13px; margin:14px 0 6px; color:#92400e;">Mi Historial (Reacondicionados)</h4>
-        ${construirHistorialTecnico(miId, 'reacond')}`;
-    html += `</div>`;
-
-    cont.innerHTML = html;
+    const html = `<div class="modal-box" style="max-width:780px; width:95%;">
+        <div class="modal-header" style="background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; border-radius:12px 12px 0 0;">
+            <h3 style="color:#fff;"><i class="ti ti-refresh"></i> Mis Reacondicionados</h3>
+            <button class="modal-close" onclick="cerrarMisReacond()" style="color:#fff;">✕</button>
+        </div>
+        <div class="modal-body" style="max-height:75vh; overflow-y:auto;">
+            <div style="display:flex; justify-content:flex-end; margin-bottom:10px;"><button class="btn btn-light" style="font-size:12px;" onclick="solicitarPiezaReacondLibre()"><i class="ti ti-plus"></i> Solicitar pieza</button></div>
+            <h4 style="font-size:13px; margin:0 0 8px; color:#92400e; text-transform:uppercase;"><i class="ti ti-device-mobile"></i> Mis Equipos</h4>
+            ${cards}
+            <h4 style="font-size:13px; margin:18px 0 8px; color:#92400e; text-transform:uppercase;"><i class="ti ti-packages"></i> Mis Pedidos de Piezas</h4>
+            ${construirMisPiezasTodas(miId, 'reacond')}
+            <h4 style="font-size:13px; margin:18px 0 8px; color:#92400e; text-transform:uppercase;"><i class="ti ti-history"></i> Mi Historial</h4>
+            ${construirHistorialTecnico(miId, 'reacond')}
+        </div>
+        <div class="modal-footer"><button class="btn btn-light" onclick="cerrarMisReacond()">Cerrar</button></div>
+    </div>`;
+    let modal = document.getElementById('modalMisReacond');
+    if(!modal) { modal = document.createElement('div'); modal.id = 'modalMisReacond'; modal.className = 'modal-backdrop'; document.body.appendChild(modal); }
+    modal.innerHTML = html; modal.classList.add('active');
+    if(typeof inyectarBotonesVolver === 'function') inyectarBotonesVolver();
 }
+function cerrarMisReacond() { const m = document.getElementById('modalMisReacond'); if(m) m.classList.remove('active'); }
 
 // Construye el historial de reparaciones terminadas de un técnico (órdenes entregadas/finalizadas + reacond vendidos)
 function construirHistorialTecnico(tecnicoId, kind) {
