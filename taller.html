@@ -12234,7 +12234,8 @@ function _parseModeloCapacidad(modeloRaw) {
 function imprimirLabelEquipo(equipoId) {
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return toast('Equipo no encontrado.', 'error');
-    const parsed = _parseModeloCapacidad(eq.modelo);
+    // Los GB/RAM a veces vienen en modelo y a veces en el campo "color" → analizar ambos juntos
+    const parsed = _parseModeloCapacidad([eq.modelo, eq.color].filter(Boolean).join(' '));
     const marca = eq.marca || 'Apple';
     const capac = (eq.capacidad && String(eq.capacidad).trim()) ? String(eq.capacidad).trim() : parsed.capacidad;
     const html = `<div class="modal-box" style="max-width:460px; width:95%;">
