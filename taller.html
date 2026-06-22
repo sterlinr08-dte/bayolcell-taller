@@ -8963,11 +8963,14 @@ function renderEquiposEstadoReacond(estadoEq, lotesConEstado, cont) {
         const prov = (cache.proveedores || []).find(p => p.id === g.lote.proveedor_id);
         const filasEq = g.equipos.map(e => {
             const tec = e.tecnico_asignado_id ? (cache.tecnicos || []).find(t => t.id === e.tecnico_asignado_id) : null;
+            const btnLabel = `<button class="btn btn-light" style="padding:6px 9px; font-size:12px; background:#fef3c7; color:#92400e; border:1px solid #fcd34d;" onclick="imprimirLabelEquipo('${e.id}')" title="Imprimir label"><i class="ti ti-printer"></i></button>`;
             const acciones = estadoEq === 'listo_venta'
                 ? `${permBtn('estado_despachar', `<button class="btn btn-dark" style="padding:6px 11px; font-size:12px; background:linear-gradient(180deg,#10b981,#059669);" onclick="marcarDespachado('${e.id}')"><i class="ti ti-truck-delivery"></i> Despachar al almacén</button>`)}
+                   ${btnLabel}
                    <button class="btn btn-light" style="padding:6px 9px; font-size:12px;" onclick="abrirPanelProceso('${e.id}')" title="Ver"><i class="ti ti-eye"></i></button>`
                 : `${e.fecha_despacho ? `<span style="font-size:11px; color:#15803d;"><i class="ti ti-calendar"></i> ${new Date(e.fecha_despacho).toLocaleDateString('es-DO')}</span>` : ''}
-                   <button class="btn btn-light" style="padding:6px 9px; font-size:12px;" onclick="abrirPanelProceso('${e.id}')" title="Ver"><i class="ti ti-eye"></i></button>`;
+                   ${btnLabel}
+                   <button class="btn btn-light" style="padding:6px 9px; font-size:12px;" onclick="verFichaDespacho('${e.id}')" title="Ver ficha del despacho"><i class="ti ti-eye"></i></button>`;
             return `<div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; padding:8px 10px; border:1px solid #eef2f7; border-radius:8px; margin-bottom:6px;">
                 <div style="min-width:180px;">
                     <div style="font-weight:700; font-size:13.5px;">${escapeHtml(e.modelo || 'Equipo')}</div>
@@ -9276,7 +9279,7 @@ function renderEquipoReacondCard(eq, num) {
     } else if(estado === 'vendido') {
         badgeColor = 'background:#d1fae5; color:#065f46;';
         badgeText = '✅ Despachado';
-        accionPrincipal = `abrirPanelProceso('${eq.id}')`;
+        accionPrincipal = `verFichaDespacho('${eq.id}')`;
     } else {
         badgeColor = 'background:#f1f5f9; color:#64748b;';
         badgeText = estado;
@@ -9292,7 +9295,7 @@ function renderEquipoReacondCard(eq, num) {
                     ${eq.veces_devuelto > 0 ? `<span title="Equipo devuelto ${eq.veces_devuelto} vez(es)" style="font-size:16px;">🔄</span>` : ''}
                     <b style="font-size:14px;">${escapeHtml(eq.modelo || 'Sin modelo')}</b>
                     <span class="badge" style="${badgeColor} font-size:11px;">${badgeText}</span>
-                    <button onclick="event.stopPropagation(); verHistorialEquipo('${eq.id}')" title="Ver historial completo (trabajo, técnicos y costos)" style="background:#cffafe; color:#0e7490; border:1px solid #67e8f9; border-radius:6px; padding:2px 7px; cursor:pointer; font-size:12px;"><i class="ti ti-eye"></i></button>
+                    <button onclick="event.stopPropagation(); ${estado === 'vendido' ? `verFichaDespacho('${eq.id}')` : `verHistorialEquipo('${eq.id}')`}" title="${estado === 'vendido' ? 'Ver ficha del equipo despachado' : 'Ver historial completo (trabajo, técnicos y costos)'}" style="background:#cffafe; color:#0e7490; border:1px solid #67e8f9; border-radius:6px; padding:2px 7px; cursor:pointer; font-size:12px;"><i class="ti ti-eye"></i></button>
                     ${(estado === 'vendido' || estado === 'listo_venta') ? `<button onclick="event.stopPropagation(); imprimirLabelEquipo('${eq.id}')" title="Imprimir label (Impresión de Labels)" style="background:#fef3c7; color:#92400e; border:1px solid #fcd34d; border-radius:6px; padding:2px 7px; cursor:pointer; font-size:12px;"><i class="ti ti-printer"></i></button>` : ''}
                     ${estado === 'evaluado' ? `<button onclick="event.stopPropagation(); continuarEvaluacion('${eq.id}')" title="Editar evaluación" style="background:#d1fae5; color:#065f46; border:1px solid #6ee7b7; border-radius:6px; padding:2px 7px; cursor:pointer; font-size:12px;"><i class="ti ti-pencil"></i></button>` : ''}
                     ${eq.veces_devuelto > 0 ? `<span class="badge" style="background:#fee2e2; color:#991b1b; font-size:10px; font-weight:700;">DEVUELTO ${eq.veces_devuelto}×</span>` : ''}
@@ -12163,10 +12166,55 @@ async function marcarDespachado(equipoId) {
     }
 }
 
+// Ficha limpia para un equipo DESPACHADO (sin proceso de reparación): fallas, costo e imprimir label
+async function verFichaDespacho(equipoId) {
+    const eq = (cache.refurb || []).find(r => r.id === equipoId);
+    if(!eq) return toast('Equipo no encontrado.', 'error');
+    let fallas = [], piezas = [];
+    try {
+        const [rf, rp] = await Promise.all([
+            supabaseClient.from('equipo_fallas').select('*').eq('equipo_id', equipoId),
+            supabaseClient.from('equipo_piezas_pedidas').select('*').eq('equipo_id', equipoId)
+        ]);
+        fallas = rf.data || []; piezas = rp.data || [];
+    } catch(e) { logError('Ficha despacho', e); }
+    const fallasHtml = fallas.length
+        ? fallas.map(f => `<span style="display:inline-block; background:#fee2e2; color:#991b1b; font-size:11.5px; font-weight:600; padding:4px 10px; border-radius:10px; margin:3px;">⚠️ ${escapeHtml(f.falla_corto || f.falla_nombre || '')}${f.adicional ? ' (adic.)' : ''}</span>`).join('')
+        : '<span style="color:var(--text-muted); font-size:12.5px;">Sin fallas registradas.</span>';
+    let costoHtml = '';
+    if(isAdminUser()) {
+        const compra = Number(eq.costo_compra) || 0;
+        const flete = (typeof calcularFleteEquipo === 'function') ? (calcularFleteEquipo(eq) || 0) : 0;
+        const usadas = piezas.filter(p => ['recibida', 'entregada', 'aprobada'].includes(p.estado));
+        const sumP = usadas.reduce((s, p) => s + (Number(p.cantidad) || 1) * (Number(p.costo_unitario) || 0), 0);
+        const repuestos = Number(eq.costo_repuestos) || sumP;
+        const final = compra + flete + repuestos;
+        const piezasLineas = usadas.length ? usadas.map(p => `<div style="display:flex; justify-content:space-between; font-size:12px;"><span>${escapeHtml(p.pieza_nombre || 'Pieza')} ×${p.cantidad || 1}</span><b>${money((p.cantidad || 1) * (p.costo_unitario || 0))}</b></div>`).join('') : '';
+        costoHtml = `<div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:12px; margin-top:14px;">
+            <b style="color:#166534; font-size:13px;"><i class="ti ti-cash"></i> Costo del equipo</b>
+            <div style="display:flex; justify-content:space-between; font-size:13px; margin-top:8px;"><span>Costo de compra:</span><b>${money(compra)}</b></div>
+            ${flete > 0 ? `<div style="display:flex; justify-content:space-between; font-size:13px; margin-top:4px;"><span>Envío (proporcional):</span><b>${money(flete)}</b></div>` : ''}
+            ${piezasLineas ? `<div style="margin-top:6px; padding-top:6px; border-top:1px dashed #bbf7d0;">${piezasLineas}</div>` : ''}
+            <div style="display:flex; justify-content:space-between; font-size:13px; margin-top:4px;"><span>Piezas usadas (${usadas.length}):</span><b>${money(repuestos)}</b></div>
+            <div style="display:flex; justify-content:space-between; font-size:16px; margin-top:8px; padding-top:8px; border-top:1px dashed #86efac; font-weight:800; color:#166534;"><span>COSTO FINAL:</span><span>${money(final)}</span></div>
+        </div>`;
+    }
+    const fechaDesp = eq.fecha_despacho ? new Date(eq.fecha_despacho).toLocaleDateString('es-DO') : '';
+    const html = `<div style="max-height:72vh; overflow-y:auto;">
+        <h3 style="margin:0 0 2px;"><i class="ti ti-device-mobile"></i> ${escapeHtml((eq.marca || '') + ' ' + (eq.modelo || ''))}</h3>
+        <div style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">IMEI: ${escapeHtml(eq.imei || '—')}${eq.capacidad ? ' · ' + escapeHtml(eq.capacidad) : ''}${fechaDesp ? ` · <span style="color:#15803d; font-weight:700;">🚚 Despachado ${fechaDesp}</span>` : ''}</div>
+        <button class="btn btn-blue" onclick="imprimirLabelEquipo('${equipoId}')" style="font-size:13px; margin-bottom:14px;"><i class="ti ti-printer"></i> Imprimir label</button>
+        <h4 style="margin:6px 0 4px; font-size:13px; color:#991b1b; text-transform:uppercase;"><i class="ti ti-alert-triangle"></i> Fallas que tenía el equipo</h4>
+        <div>${fallasHtml}</div>
+        ${costoHtml}
+    </div>`;
+    abrirModalGenerico('Ficha del equipo despachado', html);
+}
 // Abre "Impresión de Labels" con los datos del equipo ya cargados (mismo módulo y configuración)
 function imprimirLabelEquipo(equipoId) {
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return toast('Equipo no encontrado.', 'error');
+    const mg = document.getElementById('modalGenerico'); if(mg) mg.remove(); // cerrar ficha si está abierta
     nav('etiquetas');
     setTimeout(() => {
         const set = (id, v) => { const el = document.getElementById(id); if(el) el.value = v || ''; };
