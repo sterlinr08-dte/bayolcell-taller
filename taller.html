@@ -12210,22 +12210,69 @@ async function verFichaDespacho(equipoId) {
     </div>`;
     abrirModalGenerico('Ficha del equipo despachado', html);
 }
-// Abre "Impresión de Labels" con los datos del equipo ya cargados (mismo módulo y configuración)
+// Separa el almacenamiento/RAM (van a "Capacidad") del nombre del modelo (limpio)
+function _parseModeloCapacidad(modeloRaw) {
+    let modelo = (modeloRaw || '').toString().trim();
+    const caps = [];
+    // RAM primero (ej. "12GB RAM")
+    modelo = modelo.replace(/(\d+)\s*GB\s*RAM/ig, (_m, g) => { caps.push({ t: 'ram', v: g + 'GB RAM' }); return ' '; });
+    // Almacenamiento (ej. "256GB", "1TB", "512 GB")
+    modelo = modelo.replace(/(\d+)\s*(GB|TB)\b/ig, (_m, n, u) => { caps.push({ t: 'sto', v: n + u.toUpperCase() }); return ' '; });
+    // Limpiar ruido y conectores sueltos
+    modelo = modelo.replace(/\bCELULAR\b/ig, ' ')
+                   .replace(/\s*[\+\/]\s*/g, ' ')
+                   .replace(/\s{2,}/g, ' ')
+                   .trim();
+    // Quitar palabras duplicadas consecutivas (ej. "SAMSUNG SAMSUNG")
+    modelo = modelo.replace(/\b([A-Za-zÁÉÍÓÚÑáéíóúñ0-9]+)(\s+\1\b)+/ig, '$1').trim();
+    const sto = caps.filter(c => c.t === 'sto').map(c => c.v);
+    const ram = caps.filter(c => c.t === 'ram').map(c => c.v);
+    const capacidad = [sto.join(' '), ram.join(' ')].filter(Boolean).join(' + ');
+    return { modelo, capacidad };
+}
+// Abre un POPUP para imprimir el label desde Reacondicionado (sin redirigir), con la misma config de impresora
 function imprimirLabelEquipo(equipoId) {
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return toast('Equipo no encontrado.', 'error');
-    const mg = document.getElementById('modalGenerico'); if(mg) mg.remove(); // cerrar ficha si está abierta
-    nav('etiquetas');
-    setTimeout(() => {
-        const set = (id, v) => { const el = document.getElementById(id); if(el) el.value = v || ''; };
-        set('lbl_marca', eq.marca || 'Apple');
-        set('lbl_modelo', [eq.modelo, eq.color].filter(Boolean).join(' '));
-        set('lbl_gb', eq.capacidad || '');
-        set('lbl_imei', eq.imei || '');
-        set('lbl_estado_texto', '');
-        if(typeof actualizarLabelLive === 'function') actualizarLabelLive();
-        toast('🏷️ Datos cargados en Impresión de Labels. Revisa y dale Imprimir.');
-    }, 130);
+    const parsed = _parseModeloCapacidad(eq.modelo);
+    const marca = eq.marca || 'Apple';
+    const capac = (eq.capacidad && String(eq.capacidad).trim()) ? String(eq.capacidad).trim() : parsed.capacidad;
+    const html = `<div class="modal-box" style="max-width:460px; width:95%;">
+        <div class="modal-header" style="background:linear-gradient(135deg,#0891b2,#0e7490); color:#fff; border-radius:12px 12px 0 0;">
+            <h3 style="color:#fff;"><i class="ti ti-printer"></i> Imprimir label</h3>
+            <button class="modal-close" onclick="cerrarLabelRapido()" style="color:#fff;">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-row"><label>Marca</label><input id="lr_marca" value="${escapeHtml(marca)}"></div>
+            <div class="form-row"><label>Modelo</label><input id="lr_modelo" value="${escapeHtml(parsed.modelo)}"></div>
+            <div class="form-row"><label>Capacidad (GB / RAM)</label><input id="lr_gb" value="${escapeHtml(capac)}"></div>
+            <div class="form-row"><label>IMEI / Serial</label><input id="lr_imei" value="${escapeHtml(eq.imei || '')}"></div>
+            <div class="form-row"><label>Texto de estado (opcional)</label><input id="lr_estado" placeholder="Ej. CLASE A"></div>
+            <div class="form-row"><label>Copias</label><input id="lr_copias" type="number" min="1" value="1" style="font-weight:700;"></div>
+            <p style="font-size:11px; color:var(--text-muted); margin:8px 0 0;">Usa la misma impresora y calibración de "Impresión de Labels".</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" onclick="cerrarLabelRapido()">Cancelar</button>
+            <button class="btn btn-blue" onclick="imprimirLabelRapido()"><i class="ti ti-printer"></i> Imprimir</button>
+        </div>
+    </div>`;
+    let modal = document.getElementById('modalLabelRapido');
+    if(!modal) { modal = document.createElement('div'); modal.id = 'modalLabelRapido'; modal.className = 'modal-backdrop'; document.body.appendChild(modal); }
+    modal.innerHTML = html; modal.classList.add('active');
+}
+function cerrarLabelRapido() { const m = document.getElementById('modalLabelRapido'); if(m) m.classList.remove('active'); }
+async function imprimirLabelRapido() {
+    const v = id => (document.getElementById(id)?.value || '');
+    const set = (id, val) => { const el = document.getElementById(id); if(el) el.value = val; };
+    // Pasar los datos a los campos del módulo de etiquetas (existen siempre en el DOM) y usar su impresión
+    set('lbl_marca', v('lr_marca'));
+    set('lbl_modelo', v('lr_modelo'));
+    set('lbl_gb', v('lr_gb'));
+    set('lbl_imei', v('lr_imei'));
+    set('lbl_estado_texto', v('lr_estado'));
+    set('lbl_copias', v('lr_copias') || 1);
+    try { await imprimirLabelAdhesivo(); } catch(e) { logError('Imprimir label rápido', e); toastError(getFriendlyError(e)); return; }
+    cerrarLabelRapido();
 }
 
 /* ============================================================
