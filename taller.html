@@ -10911,6 +10911,7 @@ function construirSeccionTareas(tipo, refId, tareas, cerrada, soloAgregar) {
             <div style="flex:1; min-width:0;">
                 <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                     <span style="font-weight:600; font-size:12px; ${hecha ? 'text-decoration:line-through; color:#16a34a;' : ''}">${escapeHtml(t.descripcion)}</span>
+                    ${t.adicional ? `<span style="background:#fde68a; color:#92400e; font-size:9px; font-weight:800; padding:1px 7px; border-radius:10px;">ADICIONAL</span>` : ''}
                     ${hecha ? `<span style="background:#16a34a; color:#fff; font-size:9px; font-weight:700; padding:1px 7px; border-radius:10px;">✓ LISTO</span>` : ''}
                 </div>
                 <div style="font-size:10px; color:var(--text-muted); margin-top:1px;"><i class="ti ti-user"></i> ${escapeHtml(tecNombre)}</div>
@@ -11204,7 +11205,7 @@ async function abrirPanelProceso(equipoId) {
             der = `<button class="btn btn-light" style="font-size:11px; padding:4px 10px; background:#fef3c7; color:#92400e; border:1px solid #fcd34d; white-space:nowrap;" onclick="solicitarPiezaDeFalla('${equipoId}','${encodeURIComponent(nombre)}')"><i class="ti ti-plus"></i> Solicitar pieza</button>`;
         }
         return `<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:6px 10px; background:#fff5f5; border:1px solid #fecaca; border-radius:8px; margin-bottom:6px;">
-            <span style="color:#991b1b; font-weight:600; font-size:12.5px;">⚠️ ${escapeHtml(f.falla_corto || nombre)}</span>
+            <span style="color:#991b1b; font-weight:600; font-size:12.5px;">⚠️ ${escapeHtml(f.falla_corto || nombre)}${f.adicional ? ' <span style="background:#fde68a; color:#92400e; font-size:9px; font-weight:800; padding:1px 6px; border-radius:8px; vertical-align:middle;">ADICIONAL</span>' : ''}</span>
             ${der}
         </div>`;
     }).join('') : '<span style="color:var(--text-muted); font-size:12px;">Sin fallas registradas</span>';
@@ -11356,7 +11357,8 @@ async function abrirPanelProceso(equipoId) {
                 ${stepperHtml}
                 
                 <h4 style="margin:18px 0 8px; font-size:13px; color:#991b1b; text-transform:uppercase;"><i class="ti ti-alert-triangle"></i> Fallas detectadas</h4>
-                <div style="margin-bottom:15px;">${fallasHtml}</div>
+                <div style="margin-bottom:10px;">${fallasHtml}</div>
+                ${puedePedirPiezaFalla ? `<button class="btn btn-light" onclick="agregarFallaAdicional('${equipoId}')" style="margin-bottom:15px; padding:7px 12px; font-size:12px; background:#fff7ed; color:#9a3412; border:1px solid #fdba74;"><i class="ti ti-plus"></i> Agregar falla adicional</button>` : ''}
                 
                 <h4 style="margin:18px 0 8px; font-size:13px; color:#b91c1c; text-transform:uppercase;"><i class="ti ti-tools"></i> Piezas para la reparación</h4>
                 ${piezasHtml}
@@ -11994,6 +11996,25 @@ async function solicitarPiezaDeFalla(equipoId, nombreEnc) {
 }
 // Acceso rápido: ir a Piezas Solicitadas en la pestaña de Reacondicionados
 function irPiezasSolicitadasReacond() { nav('piezasSolicitadas'); setTimeout(() => { if(typeof setPsTab === 'function') setPsTab('reacond'); }, 80); }
+// El técnico agrega una FALLA ADICIONAL (descubierta durante la reparación, no estaba en la evaluación).
+// Queda marcada como "adicional" y aparece tanto en "Fallas detectadas" como en "Fallas y Tareas del Equipo".
+async function agregarFallaAdicional(equipoId) {
+    const eq = (cache.refurb || []).find(r => r.id === equipoId);
+    if(!eq) return toast('Equipo no encontrado.', 'error');
+    const nombre = await pedirTexto('➕ FALLA ADICIONAL\n\n¿Qué falla nueva encontraste (que NO estaba en la evaluación)?\n\nEjemplo: "Cámara trasera dañada", "No carga", "Face ID no funciona"');
+    if(nombre === null) return;
+    if(!nombre.trim()) return toast('Escribe la falla.', 'error');
+    const fNom = nombre.trim();
+    try {
+        const { error: e1 } = await supabaseClient.from('equipo_fallas').insert([{ equipo_id: equipoId, falla_nombre: fNom, falla_corto: fNom, adicional: true }]);
+        if(e1) throw e1;
+        const { error: e2 } = await supabaseClient.from('tareas_trabajo').insert([{ tipo: 'equipo', ref_id: equipoId, descripcion: fNom, tecnico_id: eq.tecnico_asignado_id || null, estado: 'pendiente', adicional: true, creado_por: sessionUser?.id || null }]);
+        if(e2) throw e2;
+        toast('✅ Falla adicional agregada (marcada como ADICIONAL).');
+        await loadAll();
+        if(_panelProcesoEquipoId) abrirPanelProceso(_panelProcesoEquipoId);
+    } catch(e) { logError('Agregar falla adicional', e); toastError(getFriendlyError(e)); }
+}
 
 // Envía un equipo reacondicionado a REPARACIÓN EXTERNA (otro taller), guardando a dónde.
 async function enviarRefurbExterno(equipoId) {
