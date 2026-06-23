@@ -8767,27 +8767,40 @@ function _reporteCostosExcelDL({ titulo, infoLineas, equipos, filename }) {
     const cfg = cache.configTaller || {};
     const tienda = cfg.nombre || 'BAYOL CELL';
     const n2 = (v) => (Number(v) || 0).toFixed(2);
-    let tCompra = 0, tFlete = 0, tPiezas = 0, tFinal = 0;
+    let tCompra = 0, tFlete = 0, tSub = 0, tPiezas = 0, tFinal = 0;
     const filas = equipos.map((e, i) => {
         const { compra, flete, piezas, fin } = _costoEquipoRep(e);
-        tCompra += compra; tFlete += flete; tPiezas += piezas; tFinal += fin;
+        const sub = compra + flete; // Subcosto = compra del artículo + envío
+        tCompra += compra; tFlete += flete; tSub += sub; tPiezas += piezas; tFinal += fin;
         const estLbl = obtenerEtiquetaEstado(e.estado_evaluacion || 'pendiente').text;
         const tec = e.tecnico_asignado_id ? nombreEmpleado(e.tecnico_asignado_id) : '';
         const pzs = _piezasDeEquipoRep(e.id);
-        const pzTxt = pzs.length ? pzs.map(p => `${(p.pieza_nombre || p.pieza_codigo || 'Pieza')} (${Number(p.cantidad) || 1}x${n2(p.costo_unitario)})`).join(' | ') : '';
-        return `<tr><td>${i+1}</td><td>${escapeHtml(e.modelo || '')}</td><td>${escapeHtml(e.imei || '-')}</td><td>${escapeHtml(estLbl)}</td><td>${escapeHtml(tec)}</td>
-            <td>${n2(compra)}</td><td>${n2(flete)}</td><td>${n2(piezas)}</td><td>${n2(fin)}</td><td>${escapeHtml(pzTxt)}</td></tr>`;
+        // Fila del equipo (resumen): compra, envío, SUBCOSTO, total piezas y costo final
+        let rows = `<tr style="background:#e8eefc;"><td>${i+1}</td><td><b>${escapeHtml(e.modelo || '')}</b></td><td>${escapeHtml(e.imei || '-')}</td><td>${escapeHtml(estLbl)}</td><td>${escapeHtml(tec)}</td>
+            <td>${n2(compra)}</td><td>${n2(flete)}</td><td><b>${n2(sub)}</b></td><td></td><td></td><td>${n2(piezas)}</td><td><b>${n2(fin)}</b></td></tr>`;
+        // Desglose de piezas adicionadas (con código Info Plus y costo)
+        if(pzs.length) {
+            rows += pzs.map(p => {
+                const cant = Number(p.cantidad) || 1, cu = Number(p.costo_unitario) || 0;
+                const nom = p.pieza_nombre || p.pieza_codigo || 'Pieza';
+                return `<tr><td></td><td>&nbsp;&nbsp;&nbsp;↳ ${escapeHtml(nom)}</td><td>${escapeHtml(p.pieza_codigo || '')}</td><td>Pieza Info Plus</td><td></td>
+                    <td></td><td></td><td></td><td>${cant}</td><td>${n2(cu)}</td><td>${n2(cant*cu)}</td><td></td></tr>`;
+            }).join('');
+        } else {
+            rows += `<tr><td></td><td colspan="11" style="color:#999;">Sin piezas agregadas</td></tr>`;
+        }
+        return rows;
     }).join('');
     const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head><meta charset="utf-8"></head><body>
         <table border="1">
-            <tr><th colspan="10" style="font-size:16px;">${escapeHtml(tienda)} — ${escapeHtml(titulo)}</th></tr>
-            <tr><td colspan="10">Fecha: ${new Date().toLocaleString('es-DO')}</td></tr>
-            ${(infoLineas || []).map(l => `<tr><td colspan="10">${escapeHtml(l)}</td></tr>`).join('')}
-            <tr><td colspan="10"></td></tr>
-            <tr><th>#</th><th>Modelo</th><th>IMEI</th><th>Estado</th><th>Técnico</th><th>Compra</th><th>Envío</th><th>Piezas</th><th>Costo final</th><th>Detalle piezas</th></tr>
+            <tr><th colspan="12" style="font-size:16px;">${escapeHtml(tienda)} — ${escapeHtml(titulo)}</th></tr>
+            <tr><td colspan="12">Fecha: ${new Date().toLocaleString('es-DO')}</td></tr>
+            ${(infoLineas || []).map(l => `<tr><td colspan="12">${escapeHtml(l)}</td></tr>`).join('')}
+            <tr><td colspan="12"></td></tr>
+            <tr style="background:#0f172a; color:#fff;"><th>#</th><th>Modelo / Pieza</th><th>IMEI / Código</th><th>Estado / Tipo</th><th>Técnico</th><th>Compra</th><th>Envío</th><th>Subcosto</th><th>Cant.</th><th>Costo unit.</th><th>Piezas</th><th>Costo final</th></tr>
             ${filas}
-            <tr><td colspan="5"><b>TOTALES</b></td><td><b>${n2(tCompra)}</b></td><td><b>${n2(tFlete)}</b></td><td><b>${n2(tPiezas)}</b></td><td><b>${n2(tFinal)}</b></td><td></td></tr>
+            <tr style="background:#eef2ff;"><td colspan="5"><b>TOTALES</b></td><td><b>${n2(tCompra)}</b></td><td><b>${n2(tFlete)}</b></td><td><b>${n2(tSub)}</b></td><td></td><td></td><td><b>${n2(tPiezas)}</b></td><td><b>${n2(tFinal)}</b></td></tr>
         </table>
         </body></html>`;
     const blob = new Blob(['﻿' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
