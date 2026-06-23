@@ -2088,6 +2088,10 @@ body{
                                 <div style="font-size:24px; font-weight:bold; color:#15803d;" id="kpiDespachado">0</div>
                                 <div style="font-size:11px; color:#15803d;">DESPACHADO</div>
                             </div>
+                            <div id="kpiCardCompletado" onclick="_reacondFiltrarPorEstado('completado')" title="Equipos despachados ya completados (editables por garantía)" style="background:#e2e8f0; padding:12px; border-radius:8px; text-align:center; cursor:pointer; border:2px solid transparent;">
+                                <div style="font-size:24px; font-weight:bold; color:#334155;" id="kpiCompletado">0</div>
+                                <div style="font-size:11px; color:#334155;">COMPLETADO</div>
+                            </div>
                         </div>
                         
                         <!-- Lista de equipos -->
@@ -2103,6 +2107,8 @@ body{
                                 <button id="btnSelTodosCosto" class="btn btn-light" style="padding:8px 14px; color:#5b21b6; border-color:#c4b5fd; display:none;" onclick="_reacondMarcarTodosCosto()" title="Marcar/desmarcar todos los Listo y Despachado visibles"><i class="ti ti-checkbox"></i> Marcar Listo/Desp.</button>
                                 <button id="btnImprimirSelCosto" class="btn btn-light" style="padding:8px 14px; color:#0369a1; border-color:#7dd3fc; display:none;" onclick="imprimirCostosSeleccionados()"><i class="ti ti-printer"></i> Imprimir costos (0)</button>
                                 <button id="btnExcelSelCosto" class="btn btn-light" style="padding:8px 14px; color:#15803d; border-color:#86efac; display:none;" onclick="exportarCostosSeleccionadosExcel()"><i class="ti ti-file-spreadsheet"></i> Excel (0)</button>
+                                <button id="btnCompletarSel" class="btn btn-dark" style="padding:8px 14px; background:#334155; display:none;" onclick="_reacondMarcarCompletado()" title="Quitar de Despachado y marcar como Completado"><i class="ti ti-flag-check"></i> Marcar completado (0)</button>
+                                <button id="btnDescompletarSel" class="btn btn-light" style="padding:8px 14px; color:#15803d; border-color:#86efac; display:none;" onclick="_reacondRegresarDespachado()" title="Regresar a Despachado"><i class="ti ti-arrow-back-up"></i> Regresar a Despachado (0)</button>
                             </div>
                         </div>
                         <div id="reacondTecnicosRow" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;"></div>
@@ -2117,6 +2123,7 @@ body{
                                 <option value="reasignado">↪️ Reasignado</option>
                                 <option value="listo_venta">🛒 Listo para venta</option>
                                 <option value="vendido">✅ Despachado</option>
+                                <option value="completado">🏁 Completado</option>
                             </select>
                         </div>
                         <div id="reacondEquiposLista"></div>
@@ -8788,6 +8795,41 @@ function _reacondActualizarSelCostoUI() {
     if(btn) { btn.style.display = show; btn.innerHTML = `<i class="ti ti-printer"></i> Imprimir costos (${n})`; }
     const bx = document.getElementById('btnExcelSelCosto');
     if(bx) { bx.style.display = show; bx.innerHTML = `<i class="ti ti-file-spreadsheet"></i> Excel (${n})`; }
+    // Botones Completar / Regresar según los seleccionados (solo despachados)
+    const selEq = (cache.refurb || []).filter(r => _reacondSelCosto.has(r.id) && r.estado_evaluacion === 'vendido');
+    const paraCompletar = selEq.filter(r => !r.completado).length;
+    const paraRegresar = selEq.filter(r => r.completado).length;
+    const bc = document.getElementById('btnCompletarSel');
+    if(bc) { bc.style.display = (isAdminUser() && paraCompletar > 0) ? '' : 'none'; bc.innerHTML = `<i class="ti ti-flag-check"></i> Marcar completado (${paraCompletar})`; }
+    const bd = document.getElementById('btnDescompletarSel');
+    if(bd) { bd.style.display = (isAdminUser() && paraRegresar > 0) ? '' : 'none'; bd.innerHTML = `<i class="ti ti-arrow-back-up"></i> Regresar a Despachado (${paraRegresar})`; }
+}
+// Quita de "Despachado" y marca como COMPLETADO los seleccionados (siguen editables)
+async function _reacondMarcarCompletado() {
+    if(!isAdminUser()) return toast('Solo el administrador.', 'error');
+    const ids = (cache.refurb || []).filter(r => _reacondSelCosto.has(r.id) && r.estado_evaluacion === 'vendido' && !r.completado).map(r => r.id);
+    if(!ids.length) return toast('Marca primero equipos despachados.', 'error');
+    if(!await confirmar(`¿Marcar ${ids.length} equipo(s) como COMPLETADO? Saldrán de "Despachado" pero seguirán editables (por si hay garantía).`)) return;
+    try {
+        const { error } = await supabaseClient.from('equipos_refurbish').update({ completado: true, fecha_completado: new Date().toISOString() }).in('id', ids);
+        if(error) throw error;
+        ids.forEach(id => { const r = (cache.refurb || []).find(x => x.id === id); if(r) { r.completado = true; r.fecha_completado = new Date().toISOString(); } _reacondSelCosto.delete(id); });
+        toast(`🏁 ${ids.length} equipo(s) marcado(s) como completado.`);
+        renderDetalleLoteReacond();
+    } catch(e) { logError('Marcar completado', e); toastError(getFriendlyError(e)); }
+}
+// Regresa a "Despachado" los completados seleccionados
+async function _reacondRegresarDespachado() {
+    if(!isAdminUser()) return toast('Solo el administrador.', 'error');
+    const ids = (cache.refurb || []).filter(r => _reacondSelCosto.has(r.id) && r.estado_evaluacion === 'vendido' && r.completado).map(r => r.id);
+    if(!ids.length) return toast('Marca primero equipos completados.', 'error');
+    try {
+        const { error } = await supabaseClient.from('equipos_refurbish').update({ completado: false, fecha_completado: null }).in('id', ids);
+        if(error) throw error;
+        ids.forEach(id => { const r = (cache.refurb || []).find(x => x.id === id); if(r) { r.completado = false; r.fecha_completado = null; } _reacondSelCosto.delete(id); });
+        toast(`↩️ ${ids.length} equipo(s) regresado(s) a Despachado.`);
+        renderDetalleLoteReacond();
+    } catch(e) { logError('Regresar a despachado', e); toastError(getFriendlyError(e)); }
 }
 // Marca/desmarca todos los equipos Listo/Despachado que están visibles ahora
 function _reacondMarcarTodosCosto() {
@@ -9925,7 +9967,8 @@ function renderDetalleLoteReacond() {
     const evaluados = equipos.filter(e => e.estado_evaluacion === 'evaluado').length;
     const enProceso = equipos.filter(e => _REACOND_ESTADOS_TRABAJO.includes(e.estado_evaluacion)).length;
     const listoV = equipos.filter(e => e.estado_evaluacion === 'listo_venta').length;
-    const despachados = equipos.filter(e => e.estado_evaluacion === 'vendido').length;
+    const despachados = equipos.filter(e => e.estado_evaluacion === 'vendido' && !e.completado).length;
+    const completados = equipos.filter(e => e.estado_evaluacion === 'vendido' && e.completado).length;
 
     document.getElementById('kpiPendientes').textContent = pendientes;
     document.getElementById('kpiEnEval').textContent = enEval;
@@ -9934,6 +9977,7 @@ function renderDetalleLoteReacond() {
     _setKpi('kpiProceso', enProceso);
     _setKpi('kpiListoV', listoV);
     _setKpi('kpiDespachado', despachados);
+    _setKpi('kpiCompletado', completados);
     // Lote concluido = todos los equipos en Listo o Despachado
     const concluido = equipos.length > 0 && (listoV + despachados) === equipos.length;
     const _br = document.getElementById('btnReporteCostosLote');
@@ -9993,12 +10037,16 @@ function renderDetalleLoteReacond() {
     const q = (document.getElementById('reacondBusq')?.value || '').toLowerCase().trim();
     const fEstado = document.getElementById('reacondFiltroEstado')?.value || '';
     // Resaltar la tarjeta de estado activa
-    const cardMap = { pendiente: 'kpiCardPendiente', en_evaluacion: 'kpiCardEnEval', evaluado: 'kpiCardEvaluado', en_proceso: 'kpiCardProceso', listo_venta: 'kpiCardListoV', vendido: 'kpiCardDespachado' };
-    ['kpiCardPendiente','kpiCardEnEval','kpiCardEvaluado','kpiCardProceso','kpiCardListoV','kpiCardDespachado'].forEach(id => { const c = document.getElementById(id); if(c) c.style.border = '2px solid transparent'; });
+    const cardMap = { pendiente: 'kpiCardPendiente', en_evaluacion: 'kpiCardEnEval', evaluado: 'kpiCardEvaluado', en_proceso: 'kpiCardProceso', listo_venta: 'kpiCardListoV', vendido: 'kpiCardDespachado', completado: 'kpiCardCompletado' };
+    ['kpiCardPendiente','kpiCardEnEval','kpiCardEvaluado','kpiCardProceso','kpiCardListoV','kpiCardDespachado','kpiCardCompletado'].forEach(id => { const c = document.getElementById(id); if(c) c.style.border = '2px solid transparent'; });
     if(cardMap[fEstado]) { const c = document.getElementById(cardMap[fEstado]); if(c) c.style.border = '2px solid #0f172a'; }
     let filtrados = equipos.map((eq, i) => ({ eq, num: i + 1 }));
     if(_reacondFiltroTec) filtrados = filtrados.filter(x => x.eq.tecnico_asignado_id === _reacondFiltroTec);
-    if(fEstado) filtrados = filtrados.filter(x => (x.eq.estado_evaluacion || 'pendiente') === fEstado);
+    // "Completado" = despachados ya completados; el resto de vistas (incluido "Todos") los ocultan
+    if(fEstado === 'completado') filtrados = filtrados.filter(x => x.eq.estado_evaluacion === 'vendido' && x.eq.completado);
+    else if(fEstado === 'vendido') filtrados = filtrados.filter(x => x.eq.estado_evaluacion === 'vendido' && !x.eq.completado);
+    else if(fEstado) filtrados = filtrados.filter(x => (x.eq.estado_evaluacion || 'pendiente') === fEstado);
+    else filtrados = filtrados.filter(x => !(x.eq.estado_evaluacion === 'vendido' && x.eq.completado));
     if(q) {
         const palabras = q.split(/\s+/).filter(Boolean);
         filtrados = filtrados.filter(x => {
@@ -10073,8 +10121,8 @@ function renderEquipoReacondCard(eq, num) {
         accionPrincipal = `abrirPanelProceso('${eq.id}')`;
         botones = `${permBtn('estado_despachar', `<button class="btn btn-dark" style="padding:8px 14px; background:linear-gradient(180deg,#10b981,#059669); box-shadow:0 3px 8px rgba(15,23,42,0.12);" onclick="event.stopPropagation(); marcarDespachado('${eq.id}')"><i class="ti ti-truck-delivery"></i> Despachar al almacén</button>`)}`;
     } else if(estado === 'vendido') {
-        badgeColor = 'background:#d1fae5; color:#065f46;';
-        badgeText = '✅ Despachado';
+        if(eq.completado) { badgeColor = 'background:#e2e8f0; color:#334155;'; badgeText = '🏁 Completado'; }
+        else { badgeColor = 'background:#d1fae5; color:#065f46;'; badgeText = '✅ Despachado'; }
         accionPrincipal = `verFichaDespacho('${eq.id}')`;
     } else {
         badgeColor = 'background:#f1f5f9; color:#64748b;';
