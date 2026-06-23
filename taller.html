@@ -8811,7 +8811,8 @@ function _reporteCostosPrintHTML({ titulo, subtitulo, infoChips, equipos }) {
             }).join(' · ') + `</div>`;
         } else { pzHtml = `<div style="margin-top:3px; color:#94a3b8;">Sin piezas agregadas</div>`; }
         const par = i % 2 ? 'background:#f7fafc;' : 'background:#fff;';
-        return `<tr style="${par}"><td class="c">${i+1}</td><td><b>${escapeHtml(e.modelo || '')}</b></td><td class="mono">${escapeHtml(e.imei || '-')}</td><td>${escapeHtml(estLbl)}</td>
+        const codIP = e.articulo_codigo ? `<div style="font-size:10px; color:#1d4ed8; font-weight:700;">Cód. IP: ${escapeHtml(e.articulo_codigo)}</div>` : '';
+        return `<tr style="${par}"><td class="c">${i+1}</td><td><b>${escapeHtml(e.modelo || '')}</b>${codIP}</td><td class="mono">${escapeHtml(e.imei || '-')}</td><td>${escapeHtml(estLbl)}</td>
             <td class="num">${money(compra)}</td><td class="num">${money(flete)}</td><td class="num">${money(piezas)}</td><td class="num" style="font-weight:bold;">${money(fin)}</td></tr>
             <tr class="det" style="${par}"><td></td><td colspan="7" class="detd">${extra.length ? `<div>${extra.join(' &nbsp;·&nbsp; ')}</div>` : ''}${pzHtml}</td></tr>`;
     }).join('');
@@ -8877,7 +8878,8 @@ function _reporteCostosExcelDL({ titulo, infoLineas, equipos, filename }) {
         const tec = e.tecnico_asignado_id ? nombreEmpleado(e.tecnico_asignado_id) : '';
         const pzs = _piezasDeEquipoRep(e.id);
         // Fila del equipo (resumen): compra, envío, SUBCOSTO, total piezas y costo final
-        let rows = `<tr style="background:#e8eefc;"><td>${i+1}</td><td><b>${escapeHtml(e.modelo || '')}</b></td><td>${escapeHtml(e.imei || '-')}</td><td>${escapeHtml(estLbl)}</td><td>${escapeHtml(tec)}</td>
+        const codIPx = e.articulo_codigo ? ` · Cód. IP ${escapeHtml(e.articulo_codigo)}` : '';
+        let rows = `<tr style="background:#e8eefc;"><td>${i+1}</td><td><b>${escapeHtml(e.modelo || '')}</b>${codIPx}</td><td>${escapeHtml(e.imei || '-')}</td><td>${escapeHtml(estLbl)}</td><td>${escapeHtml(tec)}</td>
             <td>${n2(compra)}</td><td>${n2(flete)}</td><td><b>${n2(sub)}</b></td><td></td><td></td><td>${n2(piezas)}</td><td><b>${n2(fin)}</b></td></tr>`;
         // Desglose de piezas adicionadas (con código Info Plus y costo)
         if(pzs.length) {
