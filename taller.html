@@ -8755,7 +8755,17 @@ function _reacondToggleSel(id, checked) {
     _reacondActualizarSelUI();
 }
 function _reacondSelTodos(checked) {
-    _equiposEvaluadosDisponibles().forEach(e => { if(checked) _reacondSel.add(e.id); else _reacondSel.delete(e.id); });
+    // Marca/desmarca TODAS las casillas visibles, según el tipo de cada tarjeta:
+    // - 'evaluado' sin técnico → selección para asignar
+    // - 'listo_venta' / 'vendido' (admin) → selección para costos
+    (_reacondVisibleEquipos || []).forEach(e => {
+        const est = e.estado_evaluacion;
+        if(est === 'evaluado' && !e.tecnico_asignado_id) {
+            if(checked) _reacondSel.add(e.id); else _reacondSel.delete(e.id);
+        } else if(isAdminUser() && (est === 'listo_venta' || est === 'vendido')) {
+            if(checked) _reacondSelCosto.add(e.id); else _reacondSelCosto.delete(e.id);
+        }
+    });
     if(reacondLoteAbiertoId) renderDetalleLoteReacond();
 }
 function _reacondActualizarSelUI() {
@@ -10006,9 +10016,14 @@ function renderDetalleLoteReacond() {
     // Estado de la selección (casillas) y del "Marcar todos"
     _reacondActualizarSelUI();
     _reacondActualizarSelCostoUI();
-    const disp = _equiposEvaluadosDisponibles();
     const todos = document.getElementById('reacondSelTodos');
-    if(todos) todos.checked = disp.length > 0 && disp.every(e => _reacondSel.has(e.id));
+    if(todos) {
+        const seleccionables = (_reacondVisibleEquipos || []).filter(e =>
+            (e.estado_evaluacion === 'evaluado' && !e.tecnico_asignado_id) ||
+            (isAdminUser() && ['listo_venta', 'vendido'].includes(e.estado_evaluacion)));
+        todos.checked = seleccionables.length > 0 && seleccionables.every(e => _reacondSel.has(e.id) || _reacondSelCosto.has(e.id));
+        if(todos.parentElement) todos.parentElement.style.display = seleccionables.length ? '' : 'none';
+    }
 }
 
 // ¿El equipo ya tiene piezas asignadas desde Info Plus? (las pone el admin, solo para costo)
