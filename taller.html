@@ -2101,14 +2101,18 @@ body{
                                 <label style="display:inline-flex; align-items:center; gap:6px; font-size:12px; color:#475569; cursor:pointer;"><input type="checkbox" id="reacondSelTodos" onclick="_reacondSelTodos(this.checked)" style="width:16px; height:16px; cursor:pointer; accent-color:#f59e0b;"> Marcar todos</label>
                                 <span id="reacondSelCount" style="font-size:12px; color:#b45309; font-weight:700;"></span>
                                 <button class="btn btn-dark" style="padding:8px 14px; background:#f59e0b;" onclick="abrirModalAsignarLote()"><i class="ti ti-users"></i> Asignar a técnico</button>
-                                <button class="btn btn-dark" style="padding:8px 14px; background:#5b21b6;" onclick="pasarSeleccionListoVenta()"><i class="ti ti-shopping-cart"></i> Pasar a Listo</button>
-                                <button id="btnReporteCostosLote" class="btn btn-light" style="padding:8px 14px; color:#166534; border-color:#86efac; display:none;" onclick="imprimirReporteCostosLote()"><i class="ti ti-file-invoice"></i> Reporte de costos</button>
-                                <button id="btnExcelCostosLote" class="btn btn-light" style="padding:8px 14px; color:#15803d; border-color:#86efac; display:none;" onclick="exportarReporteCostosLoteExcel()"><i class="ti ti-file-spreadsheet"></i> Exportar Excel</button>
-                                <button id="btnSelTodosCosto" class="btn btn-light" style="padding:8px 14px; color:#5b21b6; border-color:#c4b5fd; display:none;" onclick="_reacondMarcarTodosCosto()" title="Marcar/desmarcar todos los Listo y Despachado visibles"><i class="ti ti-checkbox"></i> Marcar Listo/Desp.</button>
-                                <button id="btnImprimirSelCosto" class="btn btn-light" style="padding:8px 14px; color:#0369a1; border-color:#7dd3fc; display:none;" onclick="imprimirCostosSeleccionados()"><i class="ti ti-printer"></i> Imprimir costos (0)</button>
-                                <button id="btnExcelSelCosto" class="btn btn-light" style="padding:8px 14px; color:#15803d; border-color:#86efac; display:none;" onclick="exportarCostosSeleccionadosExcel()"><i class="ti ti-file-spreadsheet"></i> Excel (0)</button>
-                                <button id="btnCompletarSel" class="btn btn-dark" style="padding:8px 14px; background:#334155; display:none;" onclick="_reacondMarcarCompletado()" title="Quitar de Despachado y marcar como Completado"><i class="ti ti-flag-check"></i> Marcar completado (0)</button>
-                                <button id="btnDescompletarSel" class="btn btn-light" style="padding:8px 14px; color:#15803d; border-color:#86efac; display:none;" onclick="_reacondRegresarDespachado()" title="Regresar a Despachado"><i class="ti ti-arrow-back-up"></i> Regresar a Despachado (0)</button>
+                                <div style="position:relative; display:inline-block;">
+                                    <button class="btn btn-dark" style="padding:8px 14px; background:#5b21b6;" onclick="_reacondTogglePasarMenu(event)"><i class="ti ti-arrows-exchange"></i> Pasar a ▾</button>
+                                    <div id="reacondPasarMenu" style="display:none; position:absolute; top:calc(100% + 4px); right:0; background:#fff; border:1px solid #e2e8f0; border-radius:8px; box-shadow:0 8px 20px rgba(15,23,42,0.18); z-index:50; min-width:200px; overflow:hidden;">
+                                        <div style="font-size:10px; color:#94a3b8; text-transform:uppercase; padding:8px 14px 4px;">Pasar seleccionados a:</div>
+                                        <button onclick="_reacondPasarA('pendiente')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'">🟡 Pendiente</button>
+                                        <button onclick="_reacondPasarA('evaluado')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'">✅ Evaluado</button>
+                                        <button onclick="_reacondPasarA('en_proceso')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'">🔧 En proceso</button>
+                                        <button onclick="_reacondPasarA('listo_venta')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'">🛒 Listo</button>
+                                        <button onclick="_reacondPasarA('vendido')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'">🚚 Despachado</button>
+                                        <button onclick="_reacondPasarA('completado')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; border-top:1px solid #f1f5f9; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'">🏁 Completado</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div id="reacondTecnicosRow" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;"></div>
@@ -8762,23 +8766,59 @@ function _reacondToggleSel(id, checked) {
     _reacondActualizarSelUI();
 }
 function _reacondSelTodos(checked) {
-    // Marca/desmarca TODAS las casillas visibles, según el tipo de cada tarjeta:
-    // - 'evaluado' sin técnico → selección para asignar
-    // - 'listo_venta' / 'vendido' (admin) → selección para costos
-    (_reacondVisibleEquipos || []).forEach(e => {
-        const est = e.estado_evaluacion;
-        if(est === 'evaluado' && !e.tecnico_asignado_id) {
-            if(checked) _reacondSel.add(e.id); else _reacondSel.delete(e.id);
-        } else if(isAdminUser() && (est === 'listo_venta' || est === 'vendido')) {
-            if(checked) _reacondSelCosto.add(e.id); else _reacondSelCosto.delete(e.id);
-        }
-    });
+    // Marca/desmarca TODAS las casillas visibles (selección única para asignar o "Pasar a")
+    (_reacondVisibleEquipos || []).forEach(e => { if(checked) _reacondSel.add(e.id); else _reacondSel.delete(e.id); });
     if(reacondLoteAbiertoId) renderDetalleLoteReacond();
 }
 function _reacondActualizarSelUI() {
-    const n = _equiposEvaluadosDisponibles().filter(e => _reacondSel.has(e.id)).length;
+    const n = _reacondSel.size;
     const el = document.getElementById('reacondSelCount');
     if(el) el.textContent = n ? `${n} seleccionado(s)` : '';
+}
+// Menú "Pasar a ▾"
+function _reacondTogglePasarMenu(e) {
+    if(e) e.stopPropagation();
+    const m = document.getElementById('reacondPasarMenu');
+    if(!m) return;
+    const abrir = m.style.display === 'none' || !m.style.display;
+    m.style.display = abrir ? 'block' : 'none';
+    if(abrir) setTimeout(() => document.addEventListener('click', _reacondCerrarPasarMenu), 0);
+}
+function _reacondCerrarPasarMenu(ev) {
+    const m = document.getElementById('reacondPasarMenu');
+    if(m && !m.contains(ev.target)) { m.style.display = 'none'; document.removeEventListener('click', _reacondCerrarPasarMenu); }
+}
+// Mueve los equipos seleccionados al estado elegido (incluye "completado" como distintivo)
+async function _reacondPasarA(destino) {
+    const m = document.getElementById('reacondPasarMenu'); if(m) m.style.display = 'none';
+    document.removeEventListener('click', _reacondCerrarPasarMenu);
+    const ids = [..._reacondSel];
+    if(!ids.length) return toast('Marca primero los equipos que quieres mover.', 'error');
+    const labels = { pendiente:'Pendiente', evaluado:'Evaluado', en_proceso:'En proceso', listo_venta:'Listo', vendido:'Despachado', completado:'Completado' };
+    if(!await confirmar(`¿Pasar ${ids.length} equipo(s) a "${labels[destino] || destino}"?`)) return;
+    // Construir el cambio según el destino
+    const patch = {};
+    if(destino === 'completado') { patch.estado_evaluacion = 'vendido'; patch.completado = true; patch.fecha_completado = new Date().toISOString(); }
+    else {
+        patch.estado_evaluacion = destino;
+        patch.completado = false; patch.fecha_completado = null;
+        if(destino === 'vendido') patch.fecha_despacho = new Date().toISOString();
+    }
+    try {
+        const equiposCache = (cache.refurb || []).filter(r => _reacondSel.has(r.id));
+        const { error } = await supabaseClient.from('equipos_refurbish').update(patch).in('id', ids);
+        if(error) throw error;
+        // Historial (best-effort)
+        try {
+            const filas = equiposCache.map(r => ({ equipo_id: r.id, estado_anterior: r.estado_evaluacion, estado_nuevo: patch.estado_evaluacion, accion: 'pasar_a_' + destino, notas: 'Cambio masivo a ' + (labels[destino] || destino), usuario: (sessionUser && sessionUser.nombre) || '', fecha: new Date().toISOString() }));
+            if(filas.length) await supabaseClient.from('equipo_historial').insert(filas);
+        } catch(_) {}
+        // Actualizar cache local
+        equiposCache.forEach(r => { Object.assign(r, patch); });
+        _reacondSel = new Set();
+        toast(`✅ ${ids.length} equipo(s) pasado(s) a "${labels[destino] || destino}".`);
+        renderDetalleLoteReacond();
+    } catch(e) { logError('Pasar a estado', e); toastError(getFriendlyError(e)); }
 }
 
 /* ===== Selección de equipos LISTO/DESPACHADO para imprimir su costo (solo admin) ===== */
@@ -9980,13 +10020,7 @@ function renderDetalleLoteReacond() {
     _setKpi('kpiCompletado', completados);
     // Lote concluido = todos los equipos en Listo o Despachado
     const concluido = equipos.length > 0 && (listoV + despachados) === equipos.length;
-    const _br = document.getElementById('btnReporteCostosLote');
-    if(_br) { _br.style.display = isAdminUser() ? '' : 'none'; _br.innerHTML = concluido ? '<i class="ti ti-clipboard-check"></i> Informe general' : '<i class="ti ti-file-invoice"></i> Reporte de costos'; _br.style.color = concluido ? '#5b21b6' : '#166534'; _br.style.borderColor = concluido ? '#c4b5fd' : '#86efac'; }
-    const _bx = document.getElementById('btnExcelCostosLote');
-    if(_bx) { _bx.style.display = isAdminUser() ? '' : 'none'; _bx.innerHTML = concluido ? '<i class="ti ti-file-spreadsheet"></i> Informe (Excel)' : '<i class="ti ti-file-spreadsheet"></i> Exportar Excel'; }
-    // Botón "Marcar Listo/Desp." visible solo si hay equipos Listo o Despachado (admin)
-    const _bsel = document.getElementById('btnSelTodosCosto'); if(_bsel) _bsel.style.display = (isAdminUser() && (listoV + despachados) > 0) ? '' : 'none';
-    
+
     // Badge de estado
     const badge = document.getElementById('reacondLoteEstadoBadge');
     if(equipos.length > 0 && (listoV + despachados) === equipos.length) {
@@ -10063,14 +10097,11 @@ function renderDetalleLoteReacond() {
     cont.innerHTML = filtrados.map(x => renderEquipoReacondCard(x.eq, x.num)).join('');
     // Estado de la selección (casillas) y del "Marcar todos"
     _reacondActualizarSelUI();
-    _reacondActualizarSelCostoUI();
     const todos = document.getElementById('reacondSelTodos');
     if(todos) {
-        const seleccionables = (_reacondVisibleEquipos || []).filter(e =>
-            (e.estado_evaluacion === 'evaluado' && !e.tecnico_asignado_id) ||
-            (isAdminUser() && ['listo_venta', 'vendido'].includes(e.estado_evaluacion)));
-        todos.checked = seleccionables.length > 0 && seleccionables.every(e => _reacondSel.has(e.id) || _reacondSelCosto.has(e.id));
-        if(todos.parentElement) todos.parentElement.style.display = seleccionables.length ? '' : 'none';
+        const vis = _reacondVisibleEquipos || [];
+        todos.checked = vis.length > 0 && vis.every(e => _reacondSel.has(e.id));
+        if(todos.parentElement) todos.parentElement.style.display = vis.length ? '' : 'none';
     }
 }
 
@@ -10134,8 +10165,7 @@ function renderEquipoReacondCard(eq, num) {
         <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
             <div style="flex:1; min-width:200px;">
                 <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                    ${(estado === 'evaluado' && !eq.tecnico_asignado_id) ? `<input type="checkbox" onclick="event.stopPropagation(); _reacondToggleSel('${eq.id}', this.checked)" ${_reacondSel.has(eq.id) ? 'checked' : ''} title="Seleccionar para asignar" style="width:18px; height:18px; cursor:pointer; accent-color:#f59e0b;">` : ''}
-                    ${(isAdminUser() && (estado === 'listo_venta' || estado === 'vendido')) ? `<input type="checkbox" onclick="event.stopPropagation(); _reacondToggleSelCosto('${eq.id}', this.checked)" ${_reacondSelCosto.has(eq.id) ? 'checked' : ''} title="Seleccionar para imprimir costos" style="width:18px; height:18px; cursor:pointer; accent-color:#0ea5e9;">` : ''}
+                    <input type="checkbox" onclick="event.stopPropagation(); _reacondToggleSel('${eq.id}', this.checked)" ${_reacondSel.has(eq.id) ? 'checked' : ''} title="Seleccionar (para asignar o 'Pasar a')" style="width:18px; height:18px; cursor:pointer; accent-color:#5b21b6;">
                     <span style="background:var(--blue-btn); color:#fff; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700;">#${num}</span>
                     ${eq.veces_devuelto > 0 ? `<span title="Equipo devuelto ${eq.veces_devuelto} vez(es)" style="font-size:16px;">🔄</span>` : ''}
                     <b style="font-size:14px;">${escapeHtml(eq.modelo || 'Sin modelo')}</b>
