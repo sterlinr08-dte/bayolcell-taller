@@ -2099,6 +2099,8 @@ body{
                                 <button class="btn btn-dark" style="padding:8px 14px; background:#5b21b6;" onclick="pasarSeleccionListoVenta()"><i class="ti ti-shopping-cart"></i> Pasar a Listo</button>
                                 <button id="btnReporteCostosLote" class="btn btn-light" style="padding:8px 14px; color:#166534; border-color:#86efac; display:none;" onclick="imprimirReporteCostosLote()"><i class="ti ti-file-invoice"></i> Reporte de costos</button>
                                 <button id="btnExcelCostosLote" class="btn btn-light" style="padding:8px 14px; color:#15803d; border-color:#86efac; display:none;" onclick="exportarReporteCostosLoteExcel()"><i class="ti ti-file-spreadsheet"></i> Exportar Excel</button>
+                                <button id="btnSelTodosCosto" class="btn btn-light" style="padding:8px 14px; color:#5b21b6; border-color:#c4b5fd; display:none;" onclick="_reacondMarcarTodosCosto()" title="Marcar/desmarcar todos los Listo y Despachado visibles"><i class="ti ti-checkbox"></i> Marcar Listo/Desp.</button>
+                                <button id="btnImprimirSelCosto" class="btn btn-light" style="padding:8px 14px; color:#0369a1; border-color:#7dd3fc; display:none;" onclick="imprimirCostosSeleccionados()"><i class="ti ti-printer"></i> Imprimir costos (0)</button>
                             </div>
                         </div>
                         <div id="reacondTecnicosRow" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;"></div>
@@ -8641,6 +8643,72 @@ function _reacondActualizarSelUI() {
     if(el) el.textContent = n ? `${n} seleccionado(s)` : '';
 }
 
+/* ===== Selección de equipos LISTO/DESPACHADO para imprimir su costo (solo admin) ===== */
+let _reacondSelCosto = new Set();   // ids de equipos marcados para el reporte de costos
+let _reacondVisibleEquipos = [];    // equipos actualmente mostrados en la lista (respeta filtros)
+function _reacondToggleSelCosto(id, checked) {
+    if(checked) _reacondSelCosto.add(id); else _reacondSelCosto.delete(id);
+    _reacondActualizarSelCostoUI();
+}
+function _reacondActualizarSelCostoUI() {
+    const n = _reacondSelCosto.size;
+    const btn = document.getElementById('btnImprimirSelCosto');
+    if(btn) { btn.style.display = (isAdminUser() && n > 0) ? '' : 'none'; btn.innerHTML = `<i class="ti ti-printer"></i> Imprimir costos (${n})`; }
+}
+// Marca/desmarca todos los equipos Listo/Despachado que están visibles ahora
+function _reacondMarcarTodosCosto() {
+    const vis = (_reacondVisibleEquipos || []).filter(e => ['listo_venta','vendido'].includes(e.estado_evaluacion));
+    const todos = vis.length > 0 && vis.every(e => _reacondSelCosto.has(e.id));
+    vis.forEach(e => { if(todos) _reacondSelCosto.delete(e.id); else _reacondSelCosto.add(e.id); });
+    renderDetalleLoteReacond();
+}
+// Imprime un reporte con el costo (compra + envío + piezas = final) de los equipos seleccionados
+function imprimirCostosSeleccionados() {
+    if(!isAdminUser()) return toast('Solo el administrador puede ver costos.', 'error');
+    const equipos = (cache.refurb || []).filter(r => _reacondSelCosto.has(r.id));
+    if(!equipos.length) return toast('Marca primero los equipos (Listo/Despachado) que quieres imprimir.', 'error');
+    const cfg = cache.configTaller || {};
+    const tienda = cfg.nombre || 'BAYOL CELL';
+    let tCompra = 0, tFlete = 0, tPiezas = 0, tFinal = 0;
+    const filas = equipos.map((e, i) => {
+        const compra = Number(e.costo_compra) || 0;
+        const flete = calcularFleteEquipo(e);
+        const piezas = Number(e.costo_repuestos) || 0;
+        const fin = compra + flete + piezas;
+        tCompra += compra; tFlete += flete; tPiezas += piezas; tFinal += fin;
+        const estLbl = obtenerEtiquetaEstado(e.estado_evaluacion || 'pendiente').text;
+        return `<tr><td>${i+1}</td><td>${escapeHtml(e.modelo || '')}</td><td>${escapeHtml(e.imei || '-')}</td><td>${escapeHtml(estLbl)}</td>
+            <td style="text-align:right;">${money(compra)}</td><td style="text-align:right;">${money(flete)}</td><td style="text-align:right;">${money(piezas)}</td>
+            <td style="text-align:right; font-weight:bold;">${money(fin)}</td></tr>`;
+    }).join('');
+    const w = window.open('', '_blank');
+    if(!w) { toast('Permite las ventanas emergentes para imprimir.', 'error'); return; }
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Costos equipos seleccionados</title>
+        <style>
+            body{font-family:Arial,Helvetica,sans-serif; color:#0f172a; padding:24px; max-width:800px; margin:0 auto;}
+            h1{font-size:20px; margin:0;} h2{font-size:15px; margin:2px 0 0; color:#475569;}
+            .muted{color:#64748b; font-size:12px;}
+            table{width:100%; border-collapse:collapse; margin-top:12px; font-size:12.5px;}
+            th,td{border:1px solid #cbd5e1; padding:6px 8px; text-align:left;}
+            th{background:#f1f5f9;}
+            tfoot td{font-weight:bold; background:#f8fafc;}
+            hr{border:0; border-top:1px solid #e2e8f0; margin:12px 0;}
+        </style></head><body>
+        <h1>${escapeHtml(tienda)}</h1>
+        <h2>Reporte de costos — Equipos seleccionados</h2>
+        <div class="muted">${new Date().toLocaleString('es-DO')}</div>
+        <hr>
+        <div><b>Equipos seleccionados:</b> ${equipos.length}</div>
+        <table><thead><tr><th>#</th><th>Modelo</th><th>IMEI</th><th>Estado</th><th style="text-align:right;">Compra</th><th style="text-align:right;">Envío</th><th style="text-align:right;">Piezas</th><th style="text-align:right;">Costo final</th></tr></thead>
+        <tbody>${filas}</tbody>
+        <tfoot><tr><td colspan="4" style="text-align:right;">TOTALES:</td><td style="text-align:right;">${money(tCompra)}</td><td style="text-align:right;">${money(tFlete)}</td><td style="text-align:right;">${money(tPiezas)}</td><td style="text-align:right;">${money(tFinal)}</td></tr></tfoot>
+        </table>
+        <p class="muted" style="text-align:center; margin-top:24px;">Documento de control interno · No es una factura de venta</p>
+        <script>window.onload=function(){window.print();}<\/script>
+        </body></html>`);
+    w.document.close();
+}
+
 /* ============================================================
    REGISTRAR EQUIPO EXISTENTE (equipos que ya estaban antes del sistema)
    Cae directo en su estado real y asignado a su técnico, en el lote HISTÓRICO.
@@ -9110,6 +9178,7 @@ function cambiarTabReacond(tab) {
 function abrirLoteReacond(loteId) {
     reacondLoteAbiertoId = loteId;
     _reacondSel = new Set(); // limpiar selección al abrir un lote
+    _reacondSelCosto = new Set(); // limpiar selección de costos
     _reacondFiltroTec = '';
     document.getElementById('reacondListaLotes').style.display = 'none';
     document.getElementById('reacondDetalleLote').style.display = 'block';
@@ -9160,6 +9229,8 @@ function renderDetalleLoteReacond() {
     _setKpi('kpiDespachado', despachados);
     const _br = document.getElementById('btnReporteCostosLote'); if(_br) _br.style.display = isAdminUser() ? '' : 'none';
     const _bx = document.getElementById('btnExcelCostosLote'); if(_bx) _bx.style.display = isAdminUser() ? '' : 'none';
+    // Botón "Marcar Listo/Desp." visible solo si hay equipos Listo o Despachado (admin)
+    const _bsel = document.getElementById('btnSelTodosCosto'); if(_bsel) _bsel.style.display = (isAdminUser() && (listoV + despachados) > 0) ? '' : 'none';
     
     // Badge de estado
     const badge = document.getElementById('reacondLoteEstadoBadge');
@@ -9226,9 +9297,11 @@ function renderDetalleLoteReacond() {
         cont.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:20px;">Ningún equipo coincide con la búsqueda/filtro.</p>';
         return;
     }
+    _reacondVisibleEquipos = filtrados.map(x => x.eq); // para "Marcar Listo/Desp." (respeta filtros)
     cont.innerHTML = filtrados.map(x => renderEquipoReacondCard(x.eq, x.num)).join('');
     // Estado de la selección (casillas) y del "Marcar todos"
     _reacondActualizarSelUI();
+    _reacondActualizarSelCostoUI();
     const disp = _equiposEvaluadosDisponibles();
     const todos = document.getElementById('reacondSelTodos');
     if(todos) todos.checked = disp.length > 0 && disp.every(e => _reacondSel.has(e.id));
@@ -9295,11 +9368,12 @@ function renderEquipoReacondCard(eq, num) {
             <div style="flex:1; min-width:200px;">
                 <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                     ${(estado === 'evaluado' && !eq.tecnico_asignado_id) ? `<input type="checkbox" onclick="event.stopPropagation(); _reacondToggleSel('${eq.id}', this.checked)" ${_reacondSel.has(eq.id) ? 'checked' : ''} title="Seleccionar para asignar" style="width:18px; height:18px; cursor:pointer; accent-color:#f59e0b;">` : ''}
+                    ${(isAdminUser() && (estado === 'listo_venta' || estado === 'vendido')) ? `<input type="checkbox" onclick="event.stopPropagation(); _reacondToggleSelCosto('${eq.id}', this.checked)" ${_reacondSelCosto.has(eq.id) ? 'checked' : ''} title="Seleccionar para imprimir costos" style="width:18px; height:18px; cursor:pointer; accent-color:#0ea5e9;">` : ''}
                     <span style="background:var(--blue-btn); color:#fff; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700;">#${num}</span>
                     ${eq.veces_devuelto > 0 ? `<span title="Equipo devuelto ${eq.veces_devuelto} vez(es)" style="font-size:16px;">🔄</span>` : ''}
                     <b style="font-size:14px;">${escapeHtml(eq.modelo || 'Sin modelo')}</b>
                     <span class="badge" style="${badgeColor} font-size:11px;">${badgeText}</span>
-                    <button onclick="event.stopPropagation(); ${estado === 'vendido' ? `verFichaDespacho('${eq.id}')` : `verHistorialEquipo('${eq.id}')`}" title="${estado === 'vendido' ? 'Ver ficha del equipo despachado' : 'Ver historial completo (trabajo, técnicos y costos)'}" style="background:#cffafe; color:#0e7490; border:1px solid #67e8f9; border-radius:6px; padding:2px 7px; cursor:pointer; font-size:12px;"><i class="ti ti-eye"></i></button>
+                    <button onclick="event.stopPropagation(); ${(estado === 'vendido' || estado === 'listo_venta') ? `verFichaDespacho('${eq.id}')` : `verHistorialEquipo('${eq.id}')`}" title="${(estado === 'vendido' || estado === 'listo_venta') ? 'Ver ficha (costos y piezas Info Plus)' : 'Ver historial completo (trabajo, técnicos y costos)'}" style="background:#cffafe; color:#0e7490; border:1px solid #67e8f9; border-radius:6px; padding:2px 7px; cursor:pointer; font-size:12px;"><i class="ti ti-eye"></i></button>
                     ${(estado === 'vendido' || estado === 'listo_venta') ? `<button onclick="event.stopPropagation(); imprimirLabelEquipo('${eq.id}')" title="Imprimir label (Impresión de Labels)" style="background:#fef3c7; color:#92400e; border:1px solid #fcd34d; border-radius:6px; padding:2px 7px; cursor:pointer; font-size:12px;"><i class="ti ti-printer"></i></button>` : ''}
                     ${estado === 'evaluado' ? `<button onclick="event.stopPropagation(); continuarEvaluacion('${eq.id}')" title="Editar evaluación" style="background:#d1fae5; color:#065f46; border:1px solid #6ee7b7; border-radius:6px; padding:2px 7px; cursor:pointer; font-size:12px;"><i class="ti ti-pencil"></i></button>` : ''}
                     ${eq.veces_devuelto > 0 ? `<span class="badge" style="background:#fee2e2; color:#991b1b; font-size:10px; font-weight:700;">DEVUELTO ${eq.veces_devuelto}×</span>` : ''}
@@ -10922,6 +10996,7 @@ async function confirmarAsignarLote(btn) {
    PANEL DE EQUIPO EN PROCESO (estados del técnico + piezas)
    ============================================================ */
 let _panelProcesoEquipoId = null;
+let _vistaEquipoActual = 'panel'; // 'panel' (abrirPanelProceso) | 'ficha' (verFichaDespacho) — para refrescar la vista correcta
 let _tareasEquipoActual = [];
 
 // ============================================================
@@ -11161,6 +11236,7 @@ async function reasignarTarea(tareaId, tipo, refId) {
 
 async function abrirPanelProceso(equipoId) {
     _panelProcesoEquipoId = equipoId;
+    _vistaEquipoActual = 'panel';
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return toast('Equipo no encontrado.', 'error');
     
@@ -11947,10 +12023,9 @@ async function rechazarPiezaExtra(piezaId) {
 }
 
 // Recalcula el costo de repuestos del equipo = suma de todas sus piezas (cantidad × costo)
-// Reabre la vista correcta del equipo tras tocar piezas: ficha de despacho si ya está vendido, si no el panel
+// Reabre la vista que el usuario tenía abierta (ficha o panel) tras tocar piezas
 function _refrescarVistaEquipo(equipoId) {
-    const eq = (cache.refurb || []).find(r => r.id === equipoId);
-    if(eq && eq.estado_evaluacion === 'vendido') { verFichaDespacho(equipoId); }
+    if(_vistaEquipoActual === 'ficha') { verFichaDespacho(equipoId); }
     else { abrirPanelProceso(equipoId); }
 }
 async function _recalcularCostoRepuestos(equipoId) {
@@ -12232,6 +12307,7 @@ async function marcarDespachado(equipoId) {
 
 // Ficha limpia para un equipo DESPACHADO (sin proceso de reparación): fallas, costo e imprimir label
 async function verFichaDespacho(equipoId) {
+    _vistaEquipoActual = 'ficha';
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return toast('Equipo no encontrado.', 'error');
     let fallas = [], piezas = [];
@@ -12275,16 +12351,20 @@ async function verFichaDespacho(equipoId) {
             ${esAdminPiezas ? `<button class="btn btn-light" onclick="agregarPiezaInfoPlus('${equipoId}')" style="margin-top:10px; padding:8px 12px; font-size:12px; color:#0369a1; border-color:#7dd3fc;"><i class="ti ti-search"></i> Agregar pieza del inventario (Info Plus)</button>` : ''}
         </div>`;
     }
+    const esVendido = (eq.estado_evaluacion === 'vendido');
     const fechaDesp = eq.fecha_despacho ? new Date(eq.fecha_despacho).toLocaleDateString('es-DO') : '';
+    const estadoLinea = esVendido
+        ? (fechaDesp ? ` · <span style="color:#15803d; font-weight:700;">🚚 Despachado ${fechaDesp}</span>` : '')
+        : ` · <span style="color:#5b21b6; font-weight:700;">🛒 Listo para venta</span>`;
     const html = `<div style="max-height:72vh; overflow-y:auto;">
         <h3 style="margin:0 0 2px;"><i class="ti ti-device-mobile"></i> ${escapeHtml((eq.marca || '') + ' ' + (eq.modelo || ''))}</h3>
-        <div style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">IMEI: ${escapeHtml(eq.imei || '—')}${eq.capacidad ? ' · ' + escapeHtml(eq.capacidad) : ''}${fechaDesp ? ` · <span style="color:#15803d; font-weight:700;">🚚 Despachado ${fechaDesp}</span>` : ''}</div>
+        <div style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">IMEI: ${escapeHtml(eq.imei || '—')}${eq.capacidad ? ' · ' + escapeHtml(eq.capacidad) : ''}${estadoLinea}</div>
         <button class="btn btn-blue" onclick="imprimirLabelEquipo('${equipoId}')" style="font-size:13px; margin-bottom:14px;"><i class="ti ti-printer"></i> Imprimir label</button>
         <h4 style="margin:6px 0 4px; font-size:13px; color:#991b1b; text-transform:uppercase;"><i class="ti ti-alert-triangle"></i> Fallas que tenía el equipo</h4>
         <div>${fallasHtml}</div>
         ${costoHtml}
     </div>`;
-    abrirModalGenerico('Ficha del equipo despachado', html);
+    abrirModalGenerico(esVendido ? 'Ficha del equipo despachado' : 'Ficha del equipo (Listo)', html);
 }
 // Separa el almacenamiento/RAM (van a "Capacidad") del nombre del modelo (limpio)
 function _parseModeloCapacidad(modeloRaw) {
