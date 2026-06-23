@@ -2113,6 +2113,8 @@ body{
                                         <button onclick="_reacondPasarA('completado')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; border-top:1px solid #f1f5f9; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'">🏁 Completado</button>
                                     </div>
                                 </div>
+                                <button id="btnReporteCostosLote" class="btn btn-light" style="padding:8px 14px; color:#166534; border-color:#86efac; display:none;" onclick="imprimirReporteCostosLote()"><i class="ti ti-printer"></i> Imprimir</button>
+                                <button id="btnExcelCostosLote" class="btn btn-light" style="padding:8px 14px; color:#15803d; border-color:#86efac; display:none;" onclick="exportarReporteCostosLoteExcel()"><i class="ti ti-file-spreadsheet"></i> Exportar Excel</button>
                             </div>
                         </div>
                         <div id="reacondTecnicosRow" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;"></div>
@@ -9903,10 +9905,18 @@ function _datosReporteCostosLote() {
     const q = (document.getElementById('reacondBusq')?.value || '').toLowerCase().trim();
     const filtrosTxt = [];
     if(_reacondFiltroTec) { const t = (cache.tecnicos||[]).find(x => x.id === _reacondFiltroTec); equipos = equipos.filter(e => e.tecnico_asignado_id === _reacondFiltroTec); filtrosTxt.push('Técnico: ' + (t?.nombre || '')); }
-    if(fEstado) {
-        const lbl = { pendiente:'Pendiente', en_evaluacion:'En evaluación', evaluado:'Evaluado', en_proceso:'En proceso', reasignado:'Reasignado', listo_venta:'Listo', vendido:'Despachado' }[fEstado] || fEstado;
+    if(fEstado === 'completado') {
+        equipos = equipos.filter(e => e.estado_evaluacion === 'vendido' && e.completado);
+        filtrosTxt.push('Estado: Completado');
+    } else if(fEstado === 'vendido') {
+        equipos = equipos.filter(e => e.estado_evaluacion === 'vendido' && !e.completado);
+        filtrosTxt.push('Estado: Despachado');
+    } else if(fEstado) {
+        const lbl = { pendiente:'Pendiente', en_evaluacion:'En evaluación', evaluado:'Evaluado', en_proceso:'En proceso', reasignado:'Reasignado', listo_venta:'Listo' }[fEstado] || fEstado;
         equipos = equipos.filter(e => (e.estado_evaluacion||'pendiente') === fEstado);
         filtrosTxt.push('Estado: ' + lbl);
+    } else {
+        equipos = equipos.filter(e => !(e.estado_evaluacion === 'vendido' && e.completado));
     }
     if(q) { equipos = equipos.filter(e => [e.imei, e.articulo_codigo, e.modelo, e.marca].filter(Boolean).join(' ').toLowerCase().includes(q)); filtrosTxt.push('Búsqueda: "' + q + '"'); }
     if(!equipos.length) { toast('No hay equipos para el reporte (revisa los filtros).', 'error'); return null; }
@@ -10020,6 +10030,8 @@ function renderDetalleLoteReacond() {
     _setKpi('kpiCompletado', completados);
     // Lote concluido = todos los equipos en Listo o Despachado
     const concluido = equipos.length > 0 && (listoV + despachados) === equipos.length;
+    const _br = document.getElementById('btnReporteCostosLote'); if(_br) _br.style.display = isAdminUser() ? '' : 'none';
+    const _bx = document.getElementById('btnExcelCostosLote'); if(_bx) _bx.style.display = isAdminUser() ? '' : 'none';
 
     // Badge de estado
     const badge = document.getElementById('reacondLoteEstadoBadge');
