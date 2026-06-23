@@ -2101,6 +2101,7 @@ body{
                                 <button id="btnExcelCostosLote" class="btn btn-light" style="padding:8px 14px; color:#15803d; border-color:#86efac; display:none;" onclick="exportarReporteCostosLoteExcel()"><i class="ti ti-file-spreadsheet"></i> Exportar Excel</button>
                                 <button id="btnSelTodosCosto" class="btn btn-light" style="padding:8px 14px; color:#5b21b6; border-color:#c4b5fd; display:none;" onclick="_reacondMarcarTodosCosto()" title="Marcar/desmarcar todos los Listo y Despachado visibles"><i class="ti ti-checkbox"></i> Marcar Listo/Desp.</button>
                                 <button id="btnImprimirSelCosto" class="btn btn-light" style="padding:8px 14px; color:#0369a1; border-color:#7dd3fc; display:none;" onclick="imprimirCostosSeleccionados()"><i class="ti ti-printer"></i> Imprimir costos (0)</button>
+                                <button id="btnExcelSelCosto" class="btn btn-light" style="padding:8px 14px; color:#15803d; border-color:#86efac; display:none;" onclick="exportarCostosSeleccionadosExcel()"><i class="ti ti-file-spreadsheet"></i> Excel (0)</button>
                             </div>
                         </div>
                         <div id="reacondTecnicosRow" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;"></div>
@@ -8652,8 +8653,11 @@ function _reacondToggleSelCosto(id, checked) {
 }
 function _reacondActualizarSelCostoUI() {
     const n = _reacondSelCosto.size;
+    const show = (isAdminUser() && n > 0) ? '' : 'none';
     const btn = document.getElementById('btnImprimirSelCosto');
-    if(btn) { btn.style.display = (isAdminUser() && n > 0) ? '' : 'none'; btn.innerHTML = `<i class="ti ti-printer"></i> Imprimir costos (${n})`; }
+    if(btn) { btn.style.display = show; btn.innerHTML = `<i class="ti ti-printer"></i> Imprimir costos (${n})`; }
+    const bx = document.getElementById('btnExcelSelCosto');
+    if(bx) { bx.style.display = show; bx.innerHTML = `<i class="ti ti-file-spreadsheet"></i> Excel (${n})`; }
 }
 // Marca/desmarca todos los equipos Listo/Despachado que están visibles ahora
 function _reacondMarcarTodosCosto() {
@@ -8663,65 +8667,150 @@ function _reacondMarcarTodosCosto() {
     renderDetalleLoteReacond();
 }
 // Imprime un reporte con el costo (compra + envío + piezas = final) de los equipos seleccionados
+/* ============================================================
+   HELPERS COMPARTIDOS — Reportes de costos de Reacondicionados
+   Usados por: Imprimir/Excel de seleccionados e Informe del lote.
+   ============================================================ */
+function _costoEquipoRep(e) {
+    const compra = Number(e.costo_compra) || 0;
+    const flete = calcularFleteEquipo(e);
+    const piezas = Number(e.costo_repuestos) || 0;
+    return { compra, flete, piezas, fin: compra + flete + piezas };
+}
+function _piezasDeEquipoRep(equipoId) { return (cache.piezasReacond || []).filter(p => p.equipo_id === equipoId); }
+function _fechaCortaRep(f) { return f ? new Date(f).toLocaleDateString('es-DO') : ''; }
+// ¿Todos los equipos del lote están Listo o Despachado? (lote concluido)
+function _loteConcluido(loteId) {
+    const eq = (cache.refurb || []).filter(r => r.lote_id === loteId);
+    return eq.length > 0 && eq.every(e => ['listo_venta','vendido'].includes(e.estado_evaluacion));
+}
+// Construye e imprime un reporte de costos organizado para una lista de equipos
+function _reporteCostosPrintHTML({ titulo, subtitulo, infoChips, equipos }) {
+    const cfg = cache.configTaller || {};
+    const tienda = cfg.nombre || 'BAYOL CELL';
+    const subTienda = [cfg.direccion, cfg.telefono].filter(Boolean).join(' · ');
+    let tCompra = 0, tFlete = 0, tPiezas = 0, tFinal = 0;
+    const filas = equipos.map((e, i) => {
+        const { compra, flete, piezas, fin } = _costoEquipoRep(e);
+        tCompra += compra; tFlete += flete; tPiezas += piezas; tFinal += fin;
+        const estLbl = obtenerEtiquetaEstado(e.estado_evaluacion || 'pendiente').text;
+        const extra = [];
+        if(e.tecnico_asignado_id) extra.push(`👷 ${escapeHtml(nombreEmpleado(e.tecnico_asignado_id))}`);
+        if(e.capacidad) extra.push(`💾 ${escapeHtml(e.capacidad)}`);
+        if(e.color) extra.push(`🎨 ${escapeHtml(e.color)}`);
+        if(e.fecha_terminado) extra.push(`🏁 Terminado ${_fechaCortaRep(e.fecha_terminado)}`);
+        if(e.fecha_despacho) extra.push(`🚚 Despachado ${_fechaCortaRep(e.fecha_despacho)}`);
+        const pzs = _piezasDeEquipoRep(e.id);
+        let pzHtml;
+        if(pzs.length) {
+            pzHtml = `<div style="margin-top:3px;"><b>🧩 Piezas (${pzs.length}):</b> ` + pzs.map(p => {
+                const cant = Number(p.cantidad) || 1, cu = Number(p.costo_unitario) || 0;
+                const nom = p.pieza_nombre || p.pieza_codigo || 'Pieza';
+                return `${escapeHtml(nom)} (${cant}×${money(cu)} = ${money(cant*cu)})`;
+            }).join(' · ') + `</div>`;
+        } else { pzHtml = `<div style="margin-top:3px; color:#94a3b8;">Sin piezas agregadas</div>`; }
+        const par = i % 2 ? 'background:#f7fafc;' : 'background:#fff;';
+        return `<tr style="${par}"><td class="c">${i+1}</td><td><b>${escapeHtml(e.modelo || '')}</b></td><td class="mono">${escapeHtml(e.imei || '-')}</td><td>${escapeHtml(estLbl)}</td>
+            <td class="num">${money(compra)}</td><td class="num">${money(flete)}</td><td class="num">${money(piezas)}</td><td class="num" style="font-weight:bold;">${money(fin)}</td></tr>
+            <tr class="det" style="${par}"><td></td><td colspan="7" class="detd">${extra.length ? `<div>${extra.join(' &nbsp;·&nbsp; ')}</div>` : ''}${pzHtml}</td></tr>`;
+    }).join('');
+    const w = window.open('', '_blank');
+    if(!w) { toast('Permite las ventanas emergentes para imprimir.', 'error'); return; }
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escapeHtml(titulo)}</title>
+        <style>
+            *{box-sizing:border-box;}
+            body{font-family:Arial,Helvetica,sans-serif; color:#0f172a; padding:24px; max-width:860px; margin:0 auto;}
+            .head{display:flex; justify-content:space-between; align-items:flex-start; gap:12px; border-bottom:3px solid #0f172a; padding-bottom:10px;}
+            .head h1{font-size:22px; margin:0;} .head .st{font-size:11px; color:#64748b; margin-top:2px;}
+            .head h2{font-size:14px; margin:6px 0 0; color:#1d4ed8; font-weight:700;}
+            .head .meta{font-size:11px; color:#64748b; text-align:right; white-space:nowrap;}
+            .chips{display:flex; flex-wrap:wrap; gap:5px 18px; font-size:12.5px; margin:12px 0;}
+            .cards{display:flex; gap:10px; flex-wrap:wrap; margin:14px 0;}
+            .card{flex:1; min-width:115px; border:1px solid #e2e8f0; border-left:4px solid #94a3b8; border-radius:8px; padding:7px 11px; background:#f8fafc;}
+            .card.total{border-left-color:#16a34a; background:#f0fdf4;}
+            .card .l{font-size:10px; color:#64748b; text-transform:uppercase; letter-spacing:.3px;}
+            .card .v{font-size:15px; font-weight:800; margin-top:2px;}
+            table{width:100%; border-collapse:collapse; margin-top:6px; font-size:12px;}
+            th,td{border:1px solid #cbd5e1; padding:6px 8px; text-align:left; vertical-align:top;}
+            th{background:#0f172a; color:#fff; font-size:10.5px; text-transform:uppercase; letter-spacing:.3px;}
+            th.num,td.num{text-align:right;} th.c,td.c{text-align:center; width:26px;}
+            .mono{font-family:'Courier New',monospace; font-size:11.5px;}
+            .det td{border-top:0;} .detd{font-size:10.5px; color:#475569; padding-top:0;}
+            tfoot td{font-weight:bold; background:#eef2ff; font-size:12.5px;}
+            .foot{margin-top:22px; text-align:center; color:#94a3b8; font-size:11px;}
+            @media print{ th,.card,.card.total{ -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
+        </style></head><body>
+        <div class="head">
+            <div><h1>${escapeHtml(tienda)}</h1>${subTienda ? `<div class="st">${escapeHtml(subTienda)}</div>` : ''}<h2>${escapeHtml(subtitulo)}</h2></div>
+            <div class="meta">${new Date().toLocaleString('es-DO')}</div>
+        </div>
+        ${(infoChips && infoChips.length) ? `<div class="chips">${infoChips.map(c => `<span>${c}</span>`).join('')}</div>` : ''}
+        <div class="cards">
+            <div class="card"><div class="l">Equipos</div><div class="v">${equipos.length}</div></div>
+            <div class="card"><div class="l">Compra</div><div class="v">${money(tCompra)}</div></div>
+            <div class="card"><div class="l">Envío</div><div class="v">${money(tFlete)}</div></div>
+            <div class="card"><div class="l">Piezas</div><div class="v">${money(tPiezas)}</div></div>
+            <div class="card total"><div class="l">Costo final total</div><div class="v">${money(tFinal)}</div></div>
+        </div>
+        <table>
+            <thead><tr><th class="c">#</th><th>Modelo</th><th>IMEI</th><th>Estado</th><th class="num">Compra</th><th class="num">Envío</th><th class="num">Piezas</th><th class="num">Costo final</th></tr></thead>
+            <tbody>${filas}</tbody>
+            <tfoot><tr><td colspan="4" class="num">TOTALES:</td><td class="num">${money(tCompra)}</td><td class="num">${money(tFlete)}</td><td class="num">${money(tPiezas)}</td><td class="num">${money(tFinal)}</td></tr></tfoot>
+        </table>
+        <p class="foot">Documento de control interno · No es una factura de venta</p>
+        <script>window.onload=function(){window.print();}<\/script>
+        </body></html>`);
+    w.document.close();
+}
+// Genera y descarga un Excel (.xls) con los mismos datos del reporte
+function _reporteCostosExcelDL({ titulo, infoLineas, equipos, filename }) {
+    const cfg = cache.configTaller || {};
+    const tienda = cfg.nombre || 'BAYOL CELL';
+    const n2 = (v) => (Number(v) || 0).toFixed(2);
+    let tCompra = 0, tFlete = 0, tPiezas = 0, tFinal = 0;
+    const filas = equipos.map((e, i) => {
+        const { compra, flete, piezas, fin } = _costoEquipoRep(e);
+        tCompra += compra; tFlete += flete; tPiezas += piezas; tFinal += fin;
+        const estLbl = obtenerEtiquetaEstado(e.estado_evaluacion || 'pendiente').text;
+        const tec = e.tecnico_asignado_id ? nombreEmpleado(e.tecnico_asignado_id) : '';
+        const pzs = _piezasDeEquipoRep(e.id);
+        const pzTxt = pzs.length ? pzs.map(p => `${(p.pieza_nombre || p.pieza_codigo || 'Pieza')} (${Number(p.cantidad) || 1}x${n2(p.costo_unitario)})`).join(' | ') : '';
+        return `<tr><td>${i+1}</td><td>${escapeHtml(e.modelo || '')}</td><td>${escapeHtml(e.imei || '-')}</td><td>${escapeHtml(estLbl)}</td><td>${escapeHtml(tec)}</td>
+            <td>${n2(compra)}</td><td>${n2(flete)}</td><td>${n2(piezas)}</td><td>${n2(fin)}</td><td>${escapeHtml(pzTxt)}</td></tr>`;
+    }).join('');
+    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head><meta charset="utf-8"></head><body>
+        <table border="1">
+            <tr><th colspan="10" style="font-size:16px;">${escapeHtml(tienda)} — ${escapeHtml(titulo)}</th></tr>
+            <tr><td colspan="10">Fecha: ${new Date().toLocaleString('es-DO')}</td></tr>
+            ${(infoLineas || []).map(l => `<tr><td colspan="10">${escapeHtml(l)}</td></tr>`).join('')}
+            <tr><td colspan="10"></td></tr>
+            <tr><th>#</th><th>Modelo</th><th>IMEI</th><th>Estado</th><th>Técnico</th><th>Compra</th><th>Envío</th><th>Piezas</th><th>Costo final</th><th>Detalle piezas</th></tr>
+            ${filas}
+            <tr><td colspan="5"><b>TOTALES</b></td><td><b>${n2(tCompra)}</b></td><td><b>${n2(tFlete)}</b></td><td><b>${n2(tPiezas)}</b></td><td><b>${n2(tFinal)}</b></td><td></td></tr>
+        </table>
+        </body></html>`;
+    const blob = new Blob(['﻿' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+    toast('✅ Excel descargado.');
+}
+
+// ---- Reporte de los equipos SELECCIONADOS (Listo/Despachado) ----
 function imprimirCostosSeleccionados() {
     if(!isAdminUser()) return toast('Solo el administrador puede ver costos.', 'error');
     const equipos = (cache.refurb || []).filter(r => _reacondSelCosto.has(r.id));
     if(!equipos.length) return toast('Marca primero los equipos (Listo/Despachado) que quieres imprimir.', 'error');
-    const cfg = cache.configTaller || {};
-    const tienda = cfg.nombre || 'BAYOL CELL';
-    let tCompra = 0, tFlete = 0, tPiezas = 0, tFinal = 0;
-    const filas = equipos.map((e, i) => {
-        const compra = Number(e.costo_compra) || 0;
-        const flete = calcularFleteEquipo(e);
-        const piezas = Number(e.costo_repuestos) || 0;
-        const fin = compra + flete + piezas;
-        tCompra += compra; tFlete += flete; tPiezas += piezas; tFinal += fin;
-        const estLbl = obtenerEtiquetaEstado(e.estado_evaluacion || 'pendiente').text;
-        // Detalle de piezas agregadas a este equipo (mismas que suman el costo de piezas)
-        const pzs = (cache.piezasReacond || []).filter(p => p.equipo_id === e.id);
-        let detalle = '';
-        if(pzs.length) {
-            const items = pzs.map(p => {
-                const cant = Number(p.cantidad) || 1;
-                const cu = Number(p.costo_unitario) || 0;
-                const nom = p.pieza_nombre || p.pieza_codigo || 'Pieza';
-                const cod = (p.pieza_codigo && p.pieza_nombre) ? ` <span style="color:#94a3b8;">(${escapeHtml(p.pieza_codigo)})</span>` : '';
-                return `<div>• ${escapeHtml(nom)}${cod} — ${cant} × ${money(cu)} = <b>${money(cant*cu)}</b></div>`;
-            }).join('');
-            detalle = `<tr class="det"><td></td><td colspan="7" style="background:#f8fafc; font-size:11px; color:#475569; padding:5px 8px 9px;"><b>🧩 Piezas agregadas (${pzs.length}):</b>${items}</td></tr>`;
-        } else {
-            detalle = `<tr class="det"><td></td><td colspan="7" style="background:#f8fafc; font-size:11px; color:#94a3b8; padding:5px 8px 9px;">Sin piezas agregadas</td></tr>`;
-        }
-        return `<tr><td>${i+1}</td><td>${escapeHtml(e.modelo || '')}</td><td>${escapeHtml(e.imei || '-')}</td><td>${escapeHtml(estLbl)}</td>
-            <td style="text-align:right;">${money(compra)}</td><td style="text-align:right;">${money(flete)}</td><td style="text-align:right;">${money(piezas)}</td>
-            <td style="text-align:right; font-weight:bold;">${money(fin)}</td></tr>${detalle}`;
-    }).join('');
-    const w = window.open('', '_blank');
-    if(!w) { toast('Permite las ventanas emergentes para imprimir.', 'error'); return; }
-    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Costos equipos seleccionados</title>
-        <style>
-            body{font-family:Arial,Helvetica,sans-serif; color:#0f172a; padding:24px; max-width:800px; margin:0 auto;}
-            h1{font-size:20px; margin:0;} h2{font-size:15px; margin:2px 0 0; color:#475569;}
-            .muted{color:#64748b; font-size:12px;}
-            table{width:100%; border-collapse:collapse; margin-top:12px; font-size:12.5px;}
-            th,td{border:1px solid #cbd5e1; padding:6px 8px; text-align:left;}
-            th{background:#f1f5f9;}
-            tfoot td{font-weight:bold; background:#f8fafc;}
-            hr{border:0; border-top:1px solid #e2e8f0; margin:12px 0;}
-        </style></head><body>
-        <h1>${escapeHtml(tienda)}</h1>
-        <h2>Reporte de costos — Equipos seleccionados</h2>
-        <div class="muted">${new Date().toLocaleString('es-DO')}</div>
-        <hr>
-        <div><b>Equipos seleccionados:</b> ${equipos.length}</div>
-        <table><thead><tr><th>#</th><th>Modelo</th><th>IMEI</th><th>Estado</th><th style="text-align:right;">Compra</th><th style="text-align:right;">Envío</th><th style="text-align:right;">Piezas</th><th style="text-align:right;">Costo final</th></tr></thead>
-        <tbody>${filas}</tbody>
-        <tfoot><tr><td colspan="4" style="text-align:right;">TOTALES:</td><td style="text-align:right;">${money(tCompra)}</td><td style="text-align:right;">${money(tFlete)}</td><td style="text-align:right;">${money(tPiezas)}</td><td style="text-align:right;">${money(tFinal)}</td></tr></tfoot>
-        </table>
-        <p class="muted" style="text-align:center; margin-top:24px;">Documento de control interno · No es una factura de venta</p>
-        <script>window.onload=function(){window.print();}<\/script>
-        </body></html>`);
-    w.document.close();
+    _reporteCostosPrintHTML({ titulo: 'Costos equipos seleccionados', subtitulo: 'Reporte de costos — Equipos seleccionados', infoChips: [`<b>Equipos seleccionados:</b> ${equipos.length}`], equipos });
+}
+function exportarCostosSeleccionadosExcel() {
+    if(!isAdminUser()) return toast('Solo el administrador puede ver costos.', 'error');
+    const equipos = (cache.refurb || []).filter(r => _reacondSelCosto.has(r.id));
+    if(!equipos.length) return toast('Marca primero los equipos que quieres exportar.', 'error');
+    _reporteCostosExcelDL({ titulo: 'Costos · Equipos seleccionados', infoLineas: [`Equipos seleccionados: ${equipos.length}`], equipos, filename: `Costos_seleccionados_${new Date().toISOString().slice(0,10)}.xls` });
 }
 
 /* ============================================================
@@ -9094,93 +9183,47 @@ function _datosReporteCostosLote() {
     return { lote, equipos, prov, filtrosTxt };
 }
 
+// Informe de costos del lote (respeta filtros activos). Cuando el lote está concluido es el "Informe general".
 function imprimirReporteCostosLote() {
     const datos = _datosReporteCostosLote();
     if(!datos) return;
     const { lote, equipos, prov, filtrosTxt } = datos;
-    const cfg = cache.configTaller || {};
-    const tienda = cfg.nombre || 'BAYOL CELL';
-    let tCompra = 0, tFlete = 0, tPiezas = 0, tFinal = 0;
-    const filas = equipos.map((e, i) => {
-        const compra = Number(e.costo_compra) || 0;
-        const flete = calcularFleteEquipo(e);
-        const piezas = Number(e.costo_repuestos) || 0;
-        const fin = compra + flete + piezas;
-        tCompra += compra; tFlete += flete; tPiezas += piezas; tFinal += fin;
-        return `<tr><td>${i+1}</td><td>${escapeHtml(e.modelo || '')}</td><td>${escapeHtml(e.imei || '-')}</td>
-            <td style="text-align:right;">${money(compra)}</td><td style="text-align:right;">${money(flete)}</td><td style="text-align:right;">${money(piezas)}</td>
-            <td style="text-align:right; font-weight:bold;">${money(fin)}</td></tr>`;
-    }).join('');
-    const w = window.open('', '_blank');
-    if(!w) { toast('Permite las ventanas emergentes para imprimir.', 'error'); return; }
-    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Costos lote ${escapeHtml(lote.codigo_lote||'')}</title>
-        <style>
-            body{font-family:Arial,Helvetica,sans-serif; color:#0f172a; padding:24px; max-width:760px; margin:0 auto;}
-            h1{font-size:20px; margin:0;} h2{font-size:15px; margin:2px 0 0; color:#475569;}
-            .muted{color:#64748b; font-size:12px;}
-            table{width:100%; border-collapse:collapse; margin-top:12px; font-size:12.5px;}
-            th,td{border:1px solid #cbd5e1; padding:6px 8px; text-align:left;}
-            th{background:#f1f5f9;}
-            tfoot td{font-weight:bold; background:#f8fafc;}
-            hr{border:0; border-top:1px solid #e2e8f0; margin:12px 0;}
-        </style></head><body>
-        <h1>${escapeHtml(tienda)}</h1>
-        <h2>Reporte de costos — Lote ${escapeHtml(lote.codigo_lote || '')}</h2>
-        <div class="muted">${new Date().toLocaleString('es-DO')}</div>
-        <hr>
-        <div><b>Proveedor:</b> ${escapeHtml(prov ? prov.nombre : 'Sin proveedor')} &nbsp;·&nbsp; <b>Equipos:</b> ${equipos.length} &nbsp;·&nbsp; <b>Envío total del lote:</b> ${money(Number(lote.gastos_envio)||0)}</div>
-        ${filtrosTxt.length ? `<div class="muted" style="margin-top:3px;"><b>Filtro:</b> ${filtrosTxt.join(' · ')}</div>` : ''}
-        <table><thead><tr><th>#</th><th>Modelo</th><th>IMEI</th><th style="text-align:right;">Compra</th><th style="text-align:right;">Envío</th><th style="text-align:right;">Piezas</th><th style="text-align:right;">Costo final</th></tr></thead>
-        <tbody>${filas}</tbody>
-        <tfoot><tr><td colspan="3" style="text-align:right;">TOTALES:</td><td style="text-align:right;">${money(tCompra)}</td><td style="text-align:right;">${money(tFlete)}</td><td style="text-align:right;">${money(tPiezas)}</td><td style="text-align:right;">${money(tFinal)}</td></tr></tfoot>
-        </table>
-        <p class="muted" style="text-align:center; margin-top:24px;">Documento de control interno · No es una factura de venta</p>
-        <script>window.onload=function(){window.print();}<\/script>
-        </body></html>`);
-    w.document.close();
+    const concl = _loteConcluido(lote.id);
+    const chips = [
+        `<b>Proveedor:</b> ${escapeHtml(prov ? prov.nombre : 'Sin proveedor')}`,
+        `<b>Lote:</b> ${escapeHtml(lote.codigo_lote || '—')}`,
+        `<b>Compra:</b> ${lote.fecha_compra ? new Date(lote.fecha_compra).toLocaleDateString('es-DO') : '—'}`,
+        `<b>Envío total:</b> ${money(Number(lote.gastos_envio) || 0)}`
+    ];
+    if(concl) chips.push(`<b>Estado:</b> ✅ Lote concluido`);
+    if(filtrosTxt.length) chips.push(`<b>Filtro:</b> ${escapeHtml(filtrosTxt.join(' · '))}`);
+    _reporteCostosPrintHTML({
+        titulo: `Costos lote ${lote.codigo_lote || ''}`,
+        subtitulo: `${concl ? '📋 Informe general' : 'Reporte de costos'} — Lote ${lote.codigo_lote || ''}`,
+        infoChips: chips,
+        equipos
+    });
 }
 
-// Exporta el reporte de costos del lote a Excel (.xls que abre directo en Excel). Respeta los filtros activos.
+// Exporta el informe de costos del lote a Excel. Respeta los filtros activos.
 function exportarReporteCostosLoteExcel() {
     const datos = _datosReporteCostosLote();
     if(!datos) return;
     const { lote, equipos, prov, filtrosTxt } = datos;
-    const cfg = cache.configTaller || {};
-    const tienda = cfg.nombre || 'BAYOL CELL';
-    let tCompra = 0, tFlete = 0, tPiezas = 0, tFinal = 0;
-    const n2 = (v) => (Number(v) || 0).toFixed(2);
-    const filas = equipos.map((e, i) => {
-        const compra = Number(e.costo_compra) || 0;
-        const flete = calcularFleteEquipo(e);
-        const piezas = Number(e.costo_repuestos) || 0;
-        const fin = compra + flete + piezas;
-        tCompra += compra; tFlete += flete; tPiezas += piezas; tFinal += fin;
-        const estLbl = obtenerEtiquetaEstado(e.estado_evaluacion || 'pendiente').text;
-        return `<tr><td>${i+1}</td><td>${escapeHtml(e.modelo || '')}</td><td>${escapeHtml(e.imei || '-')}</td><td>${escapeHtml(estLbl)}</td>
-            <td>${n2(compra)}</td><td>${n2(flete)}</td><td>${n2(piezas)}</td><td>${n2(fin)}</td></tr>`;
-    }).join('');
-    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-        <head><meta charset="utf-8"></head><body>
-        <table border="1">
-            <tr><th colspan="8" style="font-size:16px;">${escapeHtml(tienda)} — Reporte de costos · Lote ${escapeHtml(lote.codigo_lote || '')}</th></tr>
-            <tr><td colspan="8">Fecha: ${new Date().toLocaleString('es-DO')}</td></tr>
-            <tr><td colspan="4">Proveedor: ${escapeHtml(prov ? prov.nombre : 'Sin proveedor')}</td><td colspan="2">Equipos: ${equipos.length}</td><td colspan="2">Envío total lote: ${n2(lote.gastos_envio)}</td></tr>
-            ${filtrosTxt.length ? `<tr><td colspan="8">Filtro: ${escapeHtml(filtrosTxt.join(' · '))}</td></tr>` : ''}
-            <tr><td colspan="8"></td></tr>
-            <tr><th>#</th><th>Modelo</th><th>IMEI</th><th>Estado</th><th>Compra</th><th>Envío</th><th>Piezas</th><th>Costo final</th></tr>
-            ${filas}
-            <tr><td colspan="4"><b>TOTALES</b></td><td><b>${n2(tCompra)}</b></td><td><b>${n2(tFlete)}</b></td><td><b>${n2(tPiezas)}</b></td><td><b>${n2(tFinal)}</b></td></tr>
-        </table>
-        </body></html>`;
-    const blob = new Blob(['﻿' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Costos_${(lote.codigo_lote || 'lote').replace(/[^A-Za-z0-9_-]/g, '')}_${new Date().toISOString().slice(0,10)}.xls`;
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
-    toast('✅ Excel descargado.');
+    const concl = _loteConcluido(lote.id);
+    const info = [
+        `Proveedor: ${prov ? prov.nombre : 'Sin proveedor'}`,
+        `Lote: ${lote.codigo_lote || '—'}`,
+        `Envío total lote: ${(Number(lote.gastos_envio) || 0).toFixed(2)}`
+    ];
+    if(concl) info.push('Estado: Lote concluido');
+    if(filtrosTxt.length) info.push('Filtro: ' + filtrosTxt.join(' · '));
+    _reporteCostosExcelDL({
+        titulo: `${concl ? 'Informe general' : 'Reporte de costos'} · Lote ${lote.codigo_lote || ''}`,
+        infoLineas: info,
+        equipos,
+        filename: `Costos_${(lote.codigo_lote || 'lote').replace(/[^A-Za-z0-9_-]/g, '')}_${new Date().toISOString().slice(0,10)}.xls`
+    });
 }
 function cambiarTabReacond(tab) {
     reacondTabActual = tab;
@@ -9242,14 +9285,21 @@ function renderDetalleLoteReacond() {
     _setKpi('kpiProceso', enProceso);
     _setKpi('kpiListoV', listoV);
     _setKpi('kpiDespachado', despachados);
-    const _br = document.getElementById('btnReporteCostosLote'); if(_br) _br.style.display = isAdminUser() ? '' : 'none';
-    const _bx = document.getElementById('btnExcelCostosLote'); if(_bx) _bx.style.display = isAdminUser() ? '' : 'none';
+    // Lote concluido = todos los equipos en Listo o Despachado
+    const concluido = equipos.length > 0 && (listoV + despachados) === equipos.length;
+    const _br = document.getElementById('btnReporteCostosLote');
+    if(_br) { _br.style.display = isAdminUser() ? '' : 'none'; _br.innerHTML = concluido ? '<i class="ti ti-clipboard-check"></i> Informe general' : '<i class="ti ti-file-invoice"></i> Reporte de costos'; _br.style.color = concluido ? '#5b21b6' : '#166534'; _br.style.borderColor = concluido ? '#c4b5fd' : '#86efac'; }
+    const _bx = document.getElementById('btnExcelCostosLote');
+    if(_bx) { _bx.style.display = isAdminUser() ? '' : 'none'; _bx.innerHTML = concluido ? '<i class="ti ti-file-spreadsheet"></i> Informe (Excel)' : '<i class="ti ti-file-spreadsheet"></i> Exportar Excel'; }
     // Botón "Marcar Listo/Desp." visible solo si hay equipos Listo o Despachado (admin)
     const _bsel = document.getElementById('btnSelTodosCosto'); if(_bsel) _bsel.style.display = (isAdminUser() && (listoV + despachados) > 0) ? '' : 'none';
     
     // Badge de estado
     const badge = document.getElementById('reacondLoteEstadoBadge');
-    if(evaluados === equipos.length && equipos.length > 0) {
+    if(equipos.length > 0 && (listoV + despachados) === equipos.length) {
+        badge.textContent = '✅ Lote concluido';
+        badge.style.cssText = 'background:#ede9fe; color:#5b21b6;';
+    } else if(evaluados === equipos.length && equipos.length > 0) {
         badge.textContent = '✅ Terminado';
         badge.style.cssText = 'background:#d1fae5; color:#065f46;';
     } else if(enEval > 0 || evaluados > 0) {

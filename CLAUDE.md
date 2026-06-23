@@ -194,8 +194,18 @@ Extras: `reasignado`, `reparacion_externa`.
 - Recuadro de costo: dentro de `abrirPanelProceso` (gated `isAdminUser()`).
 
 ### Reportes y vistas (añadidos esta sesión)
-- **`imprimirReporteCostosLote()`** — reporte imprimible del lote: columnas #, Modelo, IMEI, Compra, Envío, Piezas, Costo final + totales. Encabezado muestra envío total del lote. **Respeta los filtros activos** (técnico/estado/búsqueda) de la pantalla. Botón "📄 Reporte de costos" en el detalle del lote (solo admin).
-- **`verHistorialEquipo(equipoId)`** / `cerrarHistorialEquipo()` — el **ojito 👁️** (en TODAS las tarjetas). Vista de **solo lectura**: encabezado, 💰 costos (admin), 👨‍🔧 trabajo por técnico (tareas agrupadas), 🧩 piezas con costos, ⚠️ fallas, 🕓 línea de tiempo (historial). En `evaluado` además hay un lápiz ✏️ que abre `continuarEvaluacion` (editar evaluación).
+- **`verHistorialEquipo(equipoId)`** / `cerrarHistorialEquipo()` — el **ojito 👁️** en tarjetas que NO están Listo/Despachado. Vista de **solo lectura**: encabezado, 💰 costos (admin), 👨‍🔧 trabajo por técnico (tareas agrupadas), 🧩 piezas con costos, ⚠️ fallas, 🕓 línea de tiempo (historial). En `evaluado` además hay un lápiz ✏️ que abre `continuarEvaluacion`.
+- **`verFichaDespacho(equipoId)`** — el **ojito 👁️** en tarjetas **Listo (`listo_venta`) y Despachado (`vendido`)**. Ficha con costos (admin) y **agregar/editar/quitar piezas de Info Plus** (`agregarPiezaInfoPlus`). El título y la línea de estado se adaptan (Listo vs Despachado). `_vistaEquipoActual` (`'panel'|'ficha'`) + `_refrescarVistaEquipo()` reabren la vista correcta tras tocar piezas.
+
+#### Reportes de costos (todos solo admin) — refactor con helpers compartidos
+Helpers en `taller.html` (cerca de `imprimirCostosSeleccionados`):
+- **`_costoEquipoRep(e)`** → `{compra, flete, piezas, fin}`. **`_piezasDeEquipoRep(id)`** → piezas del equipo (de `cache.piezasReacond`). **`_loteConcluido(loteId)`** → true si TODOS los equipos del lote están Listo o Despachado.
+- **`_reporteCostosPrintHTML({titulo, subtitulo, infoChips, equipos})`** — impresión **organizada**: encabezado con tienda (nombre/dirección/teléfono de `configTaller`), tarjetas de resumen (Equipos/Compra/Envío/Piezas/**Costo final total**), tabla con cabecera oscura y **sub-fila por equipo** con 👷 técnico, 💾 capacidad, 🎨 color, 🏁/🚚 fechas y **🧩 piezas con detalle** (nombre, cantidad×costo=subtotal).
+- **`_reporteCostosExcelDL({titulo, infoLineas, equipos, filename})`** — descarga `.xls` con columna extra **Técnico** y **Detalle piezas**.
+
+Usos:
+- **Seleccionados (Listo/Despachado):** casillas azules en las tarjetas (`_reacondSelCosto`, `_reacondToggleSelCosto`). Botones en la barra del lote: **"Marcar Listo/Desp."** (`_reacondMarcarTodosCosto`, respeta filtros vía `_reacondVisibleEquipos`), **"Imprimir costos (N)"** (`imprimirCostosSeleccionados`) y **"Excel (N)"** (`exportarCostosSeleccionadosExcel`).
+- **Lote / Informe general:** `imprimirReporteCostosLote()` y `exportarReporteCostosLoteExcel()` (usan `_datosReporteCostosLote()`, **respetan filtros activos**). Cuando `_loteConcluido()` es true, los botones del lote se renombran a **"📋 Informe general"** / **"Informe (Excel)"** y el badge del lote muestra **"✅ Lote concluido"**. El informe completo del lote sale sin filtros activos.
 
 ## Otros módulos en taller.html (referencia rápida)
 - **Órdenes de cliente** (reparaciones de clientes): flujo `ORDEN_FLUJO = recibido → en_proceso → espera_repuesto → pendiente_cliente → finalizado → entregado`. Etiquetas: `obtenerEtiquetaOrden`.
