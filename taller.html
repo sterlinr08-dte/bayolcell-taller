@@ -3252,12 +3252,13 @@ body{
                 <button class="btn btn-light" style="padding:6px 12px; color:#b91c1c;" onclick="_aduanaLimpiar()"><i class="ti ti-trash"></i> Limpiar todo</button>
             </div>
             <div style="overflow-x:auto;">
-                <table id="aduanaTabla" style="width:100%; border-collapse:collapse; font-size:13px; min-width:720px;">
+                <table id="aduanaTabla" style="width:100%; border-collapse:collapse; font-size:13px; min-width:800px;">
                     <thead><tr style="background:#f1f5f9;">
                         <th style="padding:6px; text-align:left; border:1px solid #e2e8f0;">Descripción</th>
                         <th style="padding:6px; width:60px; border:1px solid #e2e8f0;">Cant.</th>
                         <th style="padding:6px; width:95px; border:1px solid #e2e8f0;">P. unit US$</th>
                         <th style="padding:6px; width:100px; border:1px solid #e2e8f0;">Importe US$</th>
+                        <th style="padding:6px; width:70px; border:1px solid #e2e8f0;" title="% que representa este artículo en la compra">% compra</th>
                         <th style="padding:6px; width:100px; border:1px solid #e2e8f0;">Aduana RD$</th>
                         <th style="padding:6px; width:120px; border:1px solid #e2e8f0;">Final RD$</th>
                         <th style="padding:6px; width:34px; border:1px solid #e2e8f0;"></th>
@@ -8962,7 +8963,8 @@ function _aduanaRenderTabla() {
             <td style="border:1px solid #e2e8f0; padding:3px;"><input class="adu-desc" value="${escapeHtml(it.desc || '')}" placeholder="Producto / modelo" oninput="_aduanaRecalcular()" style="width:100%; border:none; padding:4px; background:transparent;"></td>
             <td style="border:1px solid #e2e8f0; padding:3px;"><input class="adu-cant" type="number" step="1" min="0" value="${it.cant}" oninput="_aduanaRecalcular()" style="width:100%; border:none; padding:4px; text-align:right; background:transparent;"></td>
             <td style="border:1px solid #e2e8f0; padding:3px;"><input class="adu-costo" type="number" step="0.01" min="0" value="${it.costo}" oninput="_aduanaRecalcular()" style="width:100%; border:none; padding:4px; text-align:right; background:transparent;"></td>
-            <td class="adu-importe" style="border:1px solid #e2e8f0; padding:4px; text-align:right; background:#f8fafc;">RD$ 0.00</td>
+            <td class="adu-importe" style="border:1px solid #e2e8f0; padding:4px; text-align:right; background:#f8fafc;">$0.00</td>
+            <td class="adu-pct" style="border:1px solid #e2e8f0; padding:4px; text-align:right; color:#0369a1; background:#f0f9ff;">0%</td>
             <td class="adu-aduana" style="border:1px solid #e2e8f0; padding:4px; text-align:right; color:#6d28d9;">RD$ 0.00</td>
             <td class="adu-final" style="border:1px solid #e2e8f0; padding:4px; text-align:right; font-weight:700;">RD$ 0.00</td>
             <td style="border:1px solid #e2e8f0; padding:4px; text-align:center;"><button onclick="_aduanaEliminarFila(${i})" title="Quitar" style="background:none; border:none; color:#ef4444; cursor:pointer;"><i class="ti ti-x"></i></button></td>
@@ -8987,9 +8989,10 @@ function _aduanaCalcular() {
     const items = _aduanaItems.map(it => {
         const importeUSD = it.cant * it.costo;
         const importeRD = importeUSD * tasaEf;
+        const pctCompra = subtotalRD > 0 ? (importeRD / subtotalRD * 100) : (_aduanaItems.length ? 100 / _aduanaItems.length : 0);
         const aduana = subtotalRD > 0 ? totalGastos * (importeRD / subtotalRD) : (totalGastos / (_aduanaItems.length || 1));
         const finalRD = importeRD + aduana;
-        return { ...it, importeUSD, importeRD, aduana, finalRD, finalUnitRD: it.cant > 0 ? finalRD / it.cant : finalRD };
+        return { ...it, importeUSD, importeRD, pctCompra, aduana, finalRD, finalUnitRD: it.cant > 0 ? finalRD / it.cant : finalRD };
     });
     return { items, tasa, tasaEf, subtotalUSD, subtotalRD, transporte, impuesto, otros, totalGastos, granTotalRD, pct: subtotalRD > 0 ? (totalGastos / subtotalRD * 100) : 0 };
 }
@@ -8999,6 +9002,7 @@ function _aduanaRecalcular() {
     r.items.forEach((it, i) => {
         const tr = rows[i]; if(!tr) return;
         tr.querySelector('.adu-importe').textContent = _usd(it.importeUSD);
+        tr.querySelector('.adu-pct').textContent = it.pctCompra.toFixed(1) + '%';
         tr.querySelector('.adu-aduana').textContent = money(it.aduana);
         tr.querySelector('.adu-final').textContent = money(it.finalRD);
     });
@@ -9010,8 +9014,7 @@ function _aduanaRecalcular() {
         <div style="display:flex; justify-content:space-between;"><span>Transporte:</span><span>${money(r.transporte)}</span></div>
         <div style="display:flex; justify-content:space-between;"><span>Impuesto:</span><span>${money(r.impuesto)}</span></div>
         <div style="display:flex; justify-content:space-between;"><span>Otros gastos:</span><span>${money(r.otros)}</span></div>
-        <div style="display:flex; justify-content:space-between; border-top:1px solid #e2e8f0; margin-top:4px; padding-top:4px;"><span>Total gastos aduana:</span><b style="color:#6d28d9;">${money(r.totalGastos)}</b></div>
-        <div style="display:flex; justify-content:space-between;"><span>Recargo sobre factura:</span><span>${r.pct.toFixed(1)}%</span></div>
+        <div style="display:flex; justify-content:space-between; border-top:1px solid #e2e8f0; margin-top:4px; padding-top:4px;"><span>Total gastos a repartir:</span><b style="color:#6d28d9;">${money(r.totalGastos)}</b></div>
         <div style="display:flex; justify-content:space-between; font-size:16px; border-top:2px solid #0f172a; margin-top:6px; padding-top:6px;"><span><b>TOTAL a pagar (RD$):</b></span><b style="color:#16a34a;">${money(r.granTotalRD)}</b></div>`;
 }
 function _aduanaInfoCab() {
@@ -9031,7 +9034,7 @@ function imprimirLiquidacionAduana() {
     const cab = _aduanaInfoCab();
     const filas = r.items.map((it, i) => `<tr style="${i % 2 ? 'background:#f7fafc;' : ''}">
         <td class="c">${i+1}</td><td>${escapeHtml(it.desc || '')}</td><td class="num">${it.cant}</td><td class="num">${_usd(it.costo)}</td>
-        <td class="num">${_usd(it.importeUSD)}</td><td class="num">${money(it.importeRD)}</td><td class="num" style="color:#6d28d9;">${money(it.aduana)}</td>
+        <td class="num">${_usd(it.importeUSD)}</td><td class="num">${money(it.importeRD)}</td><td class="num" style="color:#0369a1;">${it.pctCompra.toFixed(1)}%</td><td class="num" style="color:#6d28d9;">${money(it.aduana)}</td>
         <td class="num">${money(it.finalUnitRD)}</td><td class="num" style="font-weight:bold;">${money(it.finalRD)}</td></tr>`).join('');
     const w = window.open('', '_blank');
     if(!w) return toast('Permite las ventanas emergentes para imprimir.', 'error');
@@ -9059,7 +9062,7 @@ function imprimirLiquidacionAduana() {
             <div><h1>${escapeHtml(tienda)}</h1>${subTienda ? `<div class="st">${escapeHtml(subTienda)}</div>` : ''}<h2>📋 Liquidación de Aduana</h2></div>
             <div class="meta">${new Date().toLocaleString('es-DO')}</div>
         </div>
-        <div class="chips"><span><b>Proveedor:</b> ${escapeHtml(cab.prov)}</span><span><b>Factura:</b> ${escapeHtml(cab.factura)}</span><span><b>Fecha:</b> ${escapeHtml(cab.fecha)}</span><span><b>Tasa US$→RD$:</b> ${r.tasa.toFixed(2)}</span><span><b>Recargo:</b> ${r.pct.toFixed(1)}%</span></div>
+        <div class="chips"><span><b>Proveedor:</b> ${escapeHtml(cab.prov)}</span><span><b>Factura:</b> ${escapeHtml(cab.factura)}</span><span><b>Fecha:</b> ${escapeHtml(cab.fecha)}</span><span><b>Tasa US$→RD$:</b> ${r.tasa.toFixed(2)}</span></div>
         <div class="cards">
             <div class="card"><div class="l">Subtotal US$</div><div class="v">${_usd(r.subtotalUSD)}</div></div>
             <div class="card"><div class="l">Subtotal RD$</div><div class="v">${money(r.subtotalRD)}</div></div>
@@ -9069,9 +9072,9 @@ function imprimirLiquidacionAduana() {
             <div class="card total"><div class="l">Total a pagar RD$</div><div class="v">${money(r.granTotalRD)}</div></div>
         </div>
         <table>
-            <thead><tr><th class="c">#</th><th>Descripción</th><th class="num">Cant.</th><th class="num">P.U US$</th><th class="num">Importe US$</th><th class="num">Importe RD$</th><th class="num">Aduana RD$</th><th class="num">Final unit RD$</th><th class="num">Costo final RD$</th></tr></thead>
+            <thead><tr><th class="c">#</th><th>Descripción</th><th class="num">Cant.</th><th class="num">P.U US$</th><th class="num">Importe US$</th><th class="num">Importe RD$</th><th class="num">% compra</th><th class="num">Aduana RD$</th><th class="num">Final unit RD$</th><th class="num">Costo final RD$</th></tr></thead>
             <tbody>${filas}</tbody>
-            <tfoot><tr><td colspan="4" class="num">TOTALES:</td><td class="num">${_usd(r.subtotalUSD)}</td><td class="num">${money(r.subtotalRD)}</td><td class="num">${money(r.totalGastos)}</td><td></td><td class="num">${money(r.granTotalRD)}</td></tr></tfoot>
+            <tfoot><tr><td colspan="4" class="num">TOTALES:</td><td class="num">${_usd(r.subtotalUSD)}</td><td class="num">${money(r.subtotalRD)}</td><td class="num">100%</td><td class="num">${money(r.totalGastos)}</td><td></td><td class="num">${money(r.granTotalRD)}</td></tr></tfoot>
         </table>
         <p class="foot">Documento de control interno · Cálculo de liquidación de aduana</p>
         <script>window.onload=function(){window.print();}<\/script>
@@ -9087,20 +9090,20 @@ function exportarLiquidacionAduanaExcel() {
     const cab = _aduanaInfoCab();
     const n2 = (v) => (Number(v) || 0).toFixed(2);
     const filas = r.items.map((it, i) => `<tr><td>${i+1}</td><td>${escapeHtml(it.desc || '')}</td><td>${it.cant}</td><td>${n2(it.costo)}</td>
-        <td>${n2(it.importeUSD)}</td><td>${n2(it.importeRD)}</td><td>${n2(it.aduana)}</td><td>${n2(it.finalUnitRD)}</td><td>${n2(it.finalRD)}</td></tr>`).join('');
+        <td>${n2(it.importeUSD)}</td><td>${n2(it.importeRD)}</td><td>${it.pctCompra.toFixed(1)}</td><td>${n2(it.aduana)}</td><td>${n2(it.finalUnitRD)}</td><td>${n2(it.finalRD)}</td></tr>`).join('');
     const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head><meta charset="utf-8"></head><body>
         <table border="1">
-            <tr><th colspan="9" style="font-size:16px;">${escapeHtml(tienda)} — Liquidación de Aduana</th></tr>
-            <tr><td colspan="9">Fecha: ${new Date().toLocaleString('es-DO')}</td></tr>
-            <tr><td colspan="3">Proveedor: ${escapeHtml(cab.prov)}</td><td colspan="3">Factura: ${escapeHtml(cab.factura)}</td><td colspan="3">Fecha factura: ${escapeHtml(cab.fecha)}</td></tr>
-            <tr><td colspan="3">Tasa US$→RD$: ${n2(r.tasa)}</td><td colspan="3">Subtotal US$: ${n2(r.subtotalUSD)}</td><td colspan="3">Subtotal RD$: ${n2(r.subtotalRD)}</td></tr>
-            <tr><td colspan="9"></td></tr>
-            <tr style="background:#0f172a; color:#fff;"><th>#</th><th>Descripción</th><th>Cant.</th><th>P.U US$</th><th>Importe US$</th><th>Importe RD$</th><th>Aduana RD$</th><th>Final unit RD$</th><th>Costo final RD$</th></tr>
+            <tr><th colspan="10" style="font-size:16px;">${escapeHtml(tienda)} — Liquidación de Aduana</th></tr>
+            <tr><td colspan="10">Fecha: ${new Date().toLocaleString('es-DO')}</td></tr>
+            <tr><td colspan="4">Proveedor: ${escapeHtml(cab.prov)}</td><td colspan="3">Factura: ${escapeHtml(cab.factura)}</td><td colspan="3">Fecha factura: ${escapeHtml(cab.fecha)}</td></tr>
+            <tr><td colspan="4">Tasa US$→RD$: ${n2(r.tasa)}</td><td colspan="3">Subtotal US$: ${n2(r.subtotalUSD)}</td><td colspan="3">Subtotal RD$: ${n2(r.subtotalRD)}</td></tr>
+            <tr><td colspan="10"></td></tr>
+            <tr style="background:#0f172a; color:#fff;"><th>#</th><th>Descripción</th><th>Cant.</th><th>P.U US$</th><th>Importe US$</th><th>Importe RD$</th><th>% compra</th><th>Aduana RD$</th><th>Final unit RD$</th><th>Costo final RD$</th></tr>
             ${filas}
-            <tr style="background:#eef2ff;"><td colspan="4"><b>TOTALES</b></td><td><b>${n2(r.subtotalUSD)}</b></td><td><b>${n2(r.subtotalRD)}</b></td><td><b>${n2(r.totalGastos)}</b></td><td></td><td><b>${n2(r.granTotalRD)}</b></td></tr>
-            <tr><td colspan="9"></td></tr>
-            <tr><td colspan="3">Transporte: ${n2(r.transporte)}</td><td colspan="3">Impuesto: ${n2(r.impuesto)}</td><td colspan="3">Otros: ${n2(r.otros)}</td></tr>
+            <tr style="background:#eef2ff;"><td colspan="4"><b>TOTALES</b></td><td><b>${n2(r.subtotalUSD)}</b></td><td><b>${n2(r.subtotalRD)}</b></td><td><b>100</b></td><td><b>${n2(r.totalGastos)}</b></td><td></td><td><b>${n2(r.granTotalRD)}</b></td></tr>
+            <tr><td colspan="10"></td></tr>
+            <tr><td colspan="4">Transporte: ${n2(r.transporte)}</td><td colspan="3">Impuesto: ${n2(r.impuesto)}</td><td colspan="3">Otros: ${n2(r.otros)}</td></tr>
         </table>
         </body></html>`;
     const blob = new Blob(['﻿' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
