@@ -13127,6 +13127,7 @@ function imprimirLabelEquipo(equipoId) {
     </div>`;
     let modal = document.getElementById('modalLabelRapido');
     if(!modal) { modal = document.createElement('div'); modal.id = 'modalLabelRapido'; modal.className = 'modal-backdrop'; document.body.appendChild(modal); }
+    modal.style.zIndex = '600'; // por encima del modal genérico (ficha, z-index 500) para no quedar detrás
     modal.innerHTML = html; modal.classList.add('active');
     _lrPreview();
 }
