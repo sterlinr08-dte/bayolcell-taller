@@ -8677,9 +8677,24 @@ function imprimirCostosSeleccionados() {
         const fin = compra + flete + piezas;
         tCompra += compra; tFlete += flete; tPiezas += piezas; tFinal += fin;
         const estLbl = obtenerEtiquetaEstado(e.estado_evaluacion || 'pendiente').text;
+        // Detalle de piezas agregadas a este equipo (mismas que suman el costo de piezas)
+        const pzs = (cache.piezasReacond || []).filter(p => p.equipo_id === e.id);
+        let detalle = '';
+        if(pzs.length) {
+            const items = pzs.map(p => {
+                const cant = Number(p.cantidad) || 1;
+                const cu = Number(p.costo_unitario) || 0;
+                const nom = p.pieza_nombre || p.pieza_codigo || 'Pieza';
+                const cod = (p.pieza_codigo && p.pieza_nombre) ? ` <span style="color:#94a3b8;">(${escapeHtml(p.pieza_codigo)})</span>` : '';
+                return `<div>• ${escapeHtml(nom)}${cod} — ${cant} × ${money(cu)} = <b>${money(cant*cu)}</b></div>`;
+            }).join('');
+            detalle = `<tr class="det"><td></td><td colspan="7" style="background:#f8fafc; font-size:11px; color:#475569; padding:5px 8px 9px;"><b>🧩 Piezas agregadas (${pzs.length}):</b>${items}</td></tr>`;
+        } else {
+            detalle = `<tr class="det"><td></td><td colspan="7" style="background:#f8fafc; font-size:11px; color:#94a3b8; padding:5px 8px 9px;">Sin piezas agregadas</td></tr>`;
+        }
         return `<tr><td>${i+1}</td><td>${escapeHtml(e.modelo || '')}</td><td>${escapeHtml(e.imei || '-')}</td><td>${escapeHtml(estLbl)}</td>
             <td style="text-align:right;">${money(compra)}</td><td style="text-align:right;">${money(flete)}</td><td style="text-align:right;">${money(piezas)}</td>
-            <td style="text-align:right; font-weight:bold;">${money(fin)}</td></tr>`;
+            <td style="text-align:right; font-weight:bold;">${money(fin)}</td></tr>${detalle}`;
     }).join('');
     const w = window.open('', '_blank');
     if(!w) { toast('Permite las ventanas emergentes para imprimir.', 'error'); return; }
