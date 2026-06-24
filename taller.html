@@ -8910,20 +8910,19 @@ function _reporteCostosPrintHTML({ titulo, subtitulo, infoChips, equipos }) {
         tCompra += compra; tFlete += flete; tSub += sub; tPiezas += piezas; tFinal += fin;
         const estLbl = obtenerEtiquetaEstado(e.estado_evaluacion || 'pendiente').text;
         const tec = e.tecnico_asignado_id ? escapeHtml(nombreEmpleado(e.tecnico_asignado_id)) : '';
-        const codIPx = e.articulo_codigo ? ` · <span style="color:#1d4ed8; font-weight:700;">Cód. IP ${escapeHtml(e.articulo_codigo)}</span>` : '';
         const pzs = _piezasDeEquipoRep(e.id);
-        // Fila resumen del equipo (igual que el Excel)
-        let rows = `<tr style="background:#eef3fc;"><td class="c">${i+1}</td><td><b>${escapeHtml(e.modelo || '')}</b>${codIPx}</td><td class="mono">${escapeHtml(e.imei || '-')}</td><td>${escapeHtml(estLbl)}</td><td>${tec}</td>
+        // Fila resumen del equipo (igual que el Excel) — Código en su propia columna
+        let rows = `<tr style="background:#eef3fc;"><td class="c">${i+1}</td><td><b>${escapeHtml(e.modelo || '')}</b></td><td class="c" style="color:#1d4ed8; font-weight:700;">${escapeHtml(e.articulo_codigo || '')}</td><td class="mono">${escapeHtml(e.imei || '-')}</td><td>${escapeHtml(estLbl)}</td><td>${tec}</td>
             <td class="num">${money(compra)}</td><td class="num">${money(flete)}</td><td class="num"><b>${money(sub)}</b></td><td class="num"></td><td class="num"></td><td class="num">${money(piezas)}</td><td class="num" style="font-weight:bold;">${money(fin)}</td></tr>`;
         // Desglose de piezas (con código Info Plus y costo) — igual que el Excel
         if(pzs.length) {
             rows += pzs.map(p => {
                 const cant = Number(p.cantidad) || 1, cu = Number(p.costo_unitario) || 0;
                 const nom = p.pieza_nombre || p.pieza_codigo || 'Pieza';
-                return `<tr><td></td><td style="padding-left:18px;">↳ ${escapeHtml(nom)}</td><td class="mono">${escapeHtml(p.pieza_codigo || '')}</td><td>Pieza Info Plus</td><td></td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num">${cant}</td><td class="num">${money(cu)}</td><td class="num">${money(cant*cu)}</td><td class="num"></td></tr>`;
+                return `<tr><td></td><td style="padding-left:18px;">↳ ${escapeHtml(nom)}</td><td class="c">${escapeHtml(p.pieza_codigo || '')}</td><td></td><td>Pieza Info Plus</td><td></td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num">${cant}</td><td class="num">${money(cu)}</td><td class="num">${money(cant*cu)}</td><td class="num"></td></tr>`;
             }).join('');
         } else {
-            rows += `<tr><td></td><td colspan="11" style="color:#94a3b8;">Sin piezas agregadas</td></tr>`;
+            rows += `<tr><td></td><td colspan="12" style="color:#94a3b8;">Sin piezas agregadas</td></tr>`;
         }
         return rows;
     }).join('');
@@ -8966,9 +8965,9 @@ function _reporteCostosPrintHTML({ titulo, subtitulo, infoChips, equipos }) {
             <div class="card total"><div class="l">Costo final total</div><div class="v">${money(tFinal)}</div></div>
         </div>
         <table>
-            <thead><tr><th class="c">#</th><th>Modelo / Pieza</th><th>IMEI / Código</th><th>Estado / Tipo</th><th>Técnico</th><th class="num">Compra</th><th class="num">Envío</th><th class="num">Subcosto</th><th class="num">Cant.</th><th class="num">Costo unit.</th><th class="num">Piezas</th><th class="num">Costo final</th></tr></thead>
+            <thead><tr><th class="c">#</th><th>Modelo / Pieza</th><th class="c">Código</th><th>IMEI</th><th>Estado / Tipo</th><th>Técnico</th><th class="num">Compra</th><th class="num">Envío</th><th class="num">Subcosto</th><th class="num">Cant.</th><th class="num">Costo unit.</th><th class="num">Piezas</th><th class="num">Costo final</th></tr></thead>
             <tbody>${filas}</tbody>
-            <tfoot><tr><td colspan="5" class="num">TOTALES:</td><td class="num">${money(tCompra)}</td><td class="num">${money(tFlete)}</td><td class="num">${money(tSub)}</td><td></td><td></td><td class="num">${money(tPiezas)}</td><td class="num">${money(tFinal)}</td></tr></tfoot>
+            <tfoot><tr><td colspan="6" class="num">TOTALES:</td><td class="num">${money(tCompra)}</td><td class="num">${money(tFlete)}</td><td class="num">${money(tSub)}</td><td></td><td></td><td class="num">${money(tPiezas)}</td><td class="num">${money(tFinal)}</td></tr></tfoot>
         </table>
         <p class="foot">Documento de control interno · No es una factura de venta</p>
         <script>window.onload=function(){window.print();}<\/script>
@@ -8979,7 +8978,7 @@ function _reporteCostosPrintHTML({ titulo, subtitulo, infoChips, equipos }) {
 function _reporteCostosExcelDL({ titulo, infoLineas, equipos, filename }) {
     const cfg = cache.configTaller || {};
     const tienda = cfg.nombre || 'BAYOL CELL';
-    const n2 = (v) => (Number(v) || 0).toFixed(2);
+    const mny = (v) => money(v); // formato monetario (RD$)
     let tCompra = 0, tFlete = 0, tSub = 0, tPiezas = 0, tFinal = 0;
     const filas = equipos.map((e, i) => {
         const { compra, flete, piezas, fin } = _costoEquipoRep(e);
@@ -8988,33 +8987,32 @@ function _reporteCostosExcelDL({ titulo, infoLineas, equipos, filename }) {
         const estLbl = obtenerEtiquetaEstado(e.estado_evaluacion || 'pendiente').text;
         const tec = e.tecnico_asignado_id ? nombreEmpleado(e.tecnico_asignado_id) : '';
         const pzs = _piezasDeEquipoRep(e.id);
-        // Fila del equipo (resumen): compra, envío, SUBCOSTO, total piezas y costo final
-        const codIPx = e.articulo_codigo ? ` · Cód. IP ${escapeHtml(e.articulo_codigo)}` : '';
-        let rows = `<tr style="background:#e8eefc;"><td>${i+1}</td><td><b>${escapeHtml(e.modelo || '')}</b>${codIPx}</td><td>${escapeHtml(e.imei || '-')}</td><td>${escapeHtml(estLbl)}</td><td>${escapeHtml(tec)}</td>
-            <td>${n2(compra)}</td><td>${n2(flete)}</td><td><b>${n2(sub)}</b></td><td></td><td></td><td>${n2(piezas)}</td><td><b>${n2(fin)}</b></td></tr>`;
+        // Fila del equipo: Código en su propia columna (solo el número), montos en RD$
+        let rows = `<tr style="background:#e8eefc;"><td>${i+1}</td><td><b>${escapeHtml(e.modelo || '')}</b></td><td>${escapeHtml(e.articulo_codigo || '')}</td><td>${escapeHtml(e.imei || '-')}</td><td>${escapeHtml(estLbl)}</td><td>${escapeHtml(tec)}</td>
+            <td>${mny(compra)}</td><td>${mny(flete)}</td><td><b>${mny(sub)}</b></td><td></td><td></td><td>${mny(piezas)}</td><td><b>${mny(fin)}</b></td></tr>`;
         // Desglose de piezas adicionadas (con código Info Plus y costo)
         if(pzs.length) {
             rows += pzs.map(p => {
                 const cant = Number(p.cantidad) || 1, cu = Number(p.costo_unitario) || 0;
                 const nom = p.pieza_nombre || p.pieza_codigo || 'Pieza';
-                return `<tr><td></td><td>&nbsp;&nbsp;&nbsp;↳ ${escapeHtml(nom)}</td><td>${escapeHtml(p.pieza_codigo || '')}</td><td>Pieza Info Plus</td><td></td>
-                    <td></td><td></td><td></td><td>${cant}</td><td>${n2(cu)}</td><td>${n2(cant*cu)}</td><td></td></tr>`;
+                return `<tr><td></td><td>&nbsp;&nbsp;&nbsp;↳ ${escapeHtml(nom)}</td><td>${escapeHtml(p.pieza_codigo || '')}</td><td></td><td>Pieza Info Plus</td><td></td>
+                    <td></td><td></td><td></td><td>${cant}</td><td>${mny(cu)}</td><td>${mny(cant*cu)}</td><td></td></tr>`;
             }).join('');
         } else {
-            rows += `<tr><td></td><td colspan="11" style="color:#999;">Sin piezas agregadas</td></tr>`;
+            rows += `<tr><td></td><td colspan="12" style="color:#999;">Sin piezas agregadas</td></tr>`;
         }
         return rows;
     }).join('');
     const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head><meta charset="utf-8"></head><body>
         <table border="1">
-            <tr><th colspan="12" style="font-size:16px;">${escapeHtml(tienda)} — ${escapeHtml(titulo)}</th></tr>
-            <tr><td colspan="12">Fecha: ${new Date().toLocaleString('es-DO')}</td></tr>
-            ${(infoLineas || []).map(l => `<tr><td colspan="12">${escapeHtml(l)}</td></tr>`).join('')}
-            <tr><td colspan="12"></td></tr>
-            <tr style="background:#0f172a; color:#fff;"><th>#</th><th>Modelo / Pieza</th><th>IMEI / Código</th><th>Estado / Tipo</th><th>Técnico</th><th>Compra</th><th>Envío</th><th>Subcosto</th><th>Cant.</th><th>Costo unit.</th><th>Piezas</th><th>Costo final</th></tr>
+            <tr><th colspan="13" style="font-size:16px;">${escapeHtml(tienda)} — ${escapeHtml(titulo)}</th></tr>
+            <tr><td colspan="13">Fecha: ${new Date().toLocaleString('es-DO')}</td></tr>
+            ${(infoLineas || []).map(l => `<tr><td colspan="13">${escapeHtml(l)}</td></tr>`).join('')}
+            <tr><td colspan="13"></td></tr>
+            <tr style="background:#0f172a; color:#fff;"><th>#</th><th>Modelo / Pieza</th><th>Código</th><th>IMEI</th><th>Estado / Tipo</th><th>Técnico</th><th>Compra</th><th>Envío</th><th>Subcosto</th><th>Cant.</th><th>Costo unit.</th><th>Piezas</th><th>Costo final</th></tr>
             ${filas}
-            <tr style="background:#eef2ff;"><td colspan="5"><b>TOTALES</b></td><td><b>${n2(tCompra)}</b></td><td><b>${n2(tFlete)}</b></td><td><b>${n2(tSub)}</b></td><td></td><td></td><td><b>${n2(tPiezas)}</b></td><td><b>${n2(tFinal)}</b></td></tr>
+            <tr style="background:#eef2ff;"><td colspan="6"><b>TOTALES</b></td><td><b>${mny(tCompra)}</b></td><td><b>${mny(tFlete)}</b></td><td><b>${mny(tSub)}</b></td><td></td><td></td><td><b>${mny(tPiezas)}</b></td><td><b>${mny(tFinal)}</b></td></tr>
         </table>
         </body></html>`;
     const blob = new Blob(['﻿' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
