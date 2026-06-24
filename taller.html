@@ -8903,38 +8903,36 @@ function _reporteCostosPrintHTML({ titulo, subtitulo, infoChips, equipos }) {
     const cfg = cache.configTaller || {};
     const tienda = cfg.nombre || 'BAYOL CELL';
     const subTienda = [cfg.direccion, cfg.telefono].filter(Boolean).join(' · ');
-    let tCompra = 0, tFlete = 0, tPiezas = 0, tFinal = 0;
+    let tCompra = 0, tFlete = 0, tSub = 0, tPiezas = 0, tFinal = 0;
     const filas = equipos.map((e, i) => {
         const { compra, flete, piezas, fin } = _costoEquipoRep(e);
-        tCompra += compra; tFlete += flete; tPiezas += piezas; tFinal += fin;
+        const sub = compra + flete; // Subcosto = compra + envío
+        tCompra += compra; tFlete += flete; tSub += sub; tPiezas += piezas; tFinal += fin;
         const estLbl = obtenerEtiquetaEstado(e.estado_evaluacion || 'pendiente').text;
-        const extra = [];
-        if(e.tecnico_asignado_id) extra.push(`👷 ${escapeHtml(nombreEmpleado(e.tecnico_asignado_id))}`);
-        if(e.capacidad) extra.push(`💾 ${escapeHtml(e.capacidad)}`);
-        if(e.color) extra.push(`🎨 ${escapeHtml(e.color)}`);
-        if(e.fecha_terminado) extra.push(`🏁 Terminado ${_fechaCortaRep(e.fecha_terminado)}`);
-        if(e.fecha_despacho) extra.push(`🚚 Despachado ${_fechaCortaRep(e.fecha_despacho)}`);
+        const tec = e.tecnico_asignado_id ? escapeHtml(nombreEmpleado(e.tecnico_asignado_id)) : '';
+        const codIPx = e.articulo_codigo ? ` · <span style="color:#1d4ed8; font-weight:700;">Cód. IP ${escapeHtml(e.articulo_codigo)}</span>` : '';
         const pzs = _piezasDeEquipoRep(e.id);
-        let pzHtml;
+        // Fila resumen del equipo (igual que el Excel)
+        let rows = `<tr style="background:#eef3fc;"><td class="c">${i+1}</td><td><b>${escapeHtml(e.modelo || '')}</b>${codIPx}</td><td class="mono">${escapeHtml(e.imei || '-')}</td><td>${escapeHtml(estLbl)}</td><td>${tec}</td>
+            <td class="num">${money(compra)}</td><td class="num">${money(flete)}</td><td class="num"><b>${money(sub)}</b></td><td class="num"></td><td class="num"></td><td class="num">${money(piezas)}</td><td class="num" style="font-weight:bold;">${money(fin)}</td></tr>`;
+        // Desglose de piezas (con código Info Plus y costo) — igual que el Excel
         if(pzs.length) {
-            pzHtml = `<div style="margin-top:3px;"><b>🧩 Piezas (${pzs.length}):</b> ` + pzs.map(p => {
+            rows += pzs.map(p => {
                 const cant = Number(p.cantidad) || 1, cu = Number(p.costo_unitario) || 0;
                 const nom = p.pieza_nombre || p.pieza_codigo || 'Pieza';
-                return `${escapeHtml(nom)} (${cant}×${money(cu)} = ${money(cant*cu)})`;
-            }).join(' · ') + `</div>`;
-        } else { pzHtml = `<div style="margin-top:3px; color:#94a3b8;">Sin piezas agregadas</div>`; }
-        const par = i % 2 ? 'background:#f7fafc;' : 'background:#fff;';
-        const codIP = e.articulo_codigo ? `<div style="font-size:10px; color:#1d4ed8; font-weight:700;">Cód. IP: ${escapeHtml(e.articulo_codigo)}</div>` : '';
-        return `<tr style="${par}"><td class="c">${i+1}</td><td><b>${escapeHtml(e.modelo || '')}</b>${codIP}</td><td class="mono">${escapeHtml(e.imei || '-')}</td><td>${escapeHtml(estLbl)}</td>
-            <td class="num">${money(compra)}</td><td class="num">${money(flete)}</td><td class="num">${money(piezas)}</td><td class="num" style="font-weight:bold;">${money(fin)}</td></tr>
-            <tr class="det" style="${par}"><td></td><td colspan="7" class="detd">${extra.length ? `<div>${extra.join(' &nbsp;·&nbsp; ')}</div>` : ''}${pzHtml}</td></tr>`;
+                return `<tr><td></td><td style="padding-left:18px;">↳ ${escapeHtml(nom)}</td><td class="mono">${escapeHtml(p.pieza_codigo || '')}</td><td>Pieza Info Plus</td><td></td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num">${cant}</td><td class="num">${money(cu)}</td><td class="num">${money(cant*cu)}</td><td class="num"></td></tr>`;
+            }).join('');
+        } else {
+            rows += `<tr><td></td><td colspan="11" style="color:#94a3b8;">Sin piezas agregadas</td></tr>`;
+        }
+        return rows;
     }).join('');
     const w = window.open('', '_blank');
     if(!w) { toast('Permite las ventanas emergentes para imprimir.', 'error'); return; }
     w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escapeHtml(titulo)}</title>
         <style>
             *{box-sizing:border-box;}
-            body{font-family:Arial,Helvetica,sans-serif; color:#0f172a; padding:24px; max-width:860px; margin:0 auto;}
+            body{font-family:Arial,Helvetica,sans-serif; color:#0f172a; padding:18px; max-width:1060px; margin:0 auto;}
             .head{display:flex; justify-content:space-between; align-items:flex-start; gap:12px; border-bottom:3px solid #0f172a; padding-bottom:10px;}
             .head h1{font-size:22px; margin:0;} .head .st{font-size:11px; color:#64748b; margin-top:2px;}
             .head h2{font-size:14px; margin:6px 0 0; color:#1d4ed8; font-weight:700;}
@@ -8945,9 +8943,9 @@ function _reporteCostosPrintHTML({ titulo, subtitulo, infoChips, equipos }) {
             .card.total{border-left-color:#16a34a; background:#f0fdf4;}
             .card .l{font-size:10px; color:#64748b; text-transform:uppercase; letter-spacing:.3px;}
             .card .v{font-size:15px; font-weight:800; margin-top:2px;}
-            table{width:100%; border-collapse:collapse; margin-top:6px; font-size:12px;}
-            th,td{border:1px solid #cbd5e1; padding:6px 8px; text-align:left; vertical-align:top;}
-            th{background:#0f172a; color:#fff; font-size:10.5px; text-transform:uppercase; letter-spacing:.3px;}
+            table{width:100%; border-collapse:collapse; margin-top:6px; font-size:10.5px;}
+            th,td{border:1px solid #cbd5e1; padding:5px 6px; text-align:left; vertical-align:top;}
+            th{background:#0f172a; color:#fff; font-size:9.5px; text-transform:uppercase; letter-spacing:.3px;}
             th.num,td.num{text-align:right;} th.c,td.c{text-align:center; width:26px;}
             .mono{font-family:'Courier New',monospace; font-size:11.5px;}
             .det td{border-top:0;} .detd{font-size:10.5px; color:#475569; padding-top:0;}
@@ -8968,9 +8966,9 @@ function _reporteCostosPrintHTML({ titulo, subtitulo, infoChips, equipos }) {
             <div class="card total"><div class="l">Costo final total</div><div class="v">${money(tFinal)}</div></div>
         </div>
         <table>
-            <thead><tr><th class="c">#</th><th>Modelo</th><th>IMEI</th><th>Estado</th><th class="num">Compra</th><th class="num">Envío</th><th class="num">Piezas</th><th class="num">Costo final</th></tr></thead>
+            <thead><tr><th class="c">#</th><th>Modelo / Pieza</th><th>IMEI / Código</th><th>Estado / Tipo</th><th>Técnico</th><th class="num">Compra</th><th class="num">Envío</th><th class="num">Subcosto</th><th class="num">Cant.</th><th class="num">Costo unit.</th><th class="num">Piezas</th><th class="num">Costo final</th></tr></thead>
             <tbody>${filas}</tbody>
-            <tfoot><tr><td colspan="4" class="num">TOTALES:</td><td class="num">${money(tCompra)}</td><td class="num">${money(tFlete)}</td><td class="num">${money(tPiezas)}</td><td class="num">${money(tFinal)}</td></tr></tfoot>
+            <tfoot><tr><td colspan="5" class="num">TOTALES:</td><td class="num">${money(tCompra)}</td><td class="num">${money(tFlete)}</td><td class="num">${money(tSub)}</td><td></td><td></td><td class="num">${money(tPiezas)}</td><td class="num">${money(tFinal)}</td></tr></tfoot>
         </table>
         <p class="foot">Documento de control interno · No es una factura de venta</p>
         <script>window.onload=function(){window.print();}<\/script>
