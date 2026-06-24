@@ -9791,15 +9791,13 @@ function renderLotesReacondTab(lotesConEstado) {
     const cont = document.getElementById('lotesReacondContainer');
     if(!cont) return;
 
-    // Las pestañas Listo Venta y Despachado muestran los EQUIPOS (de todos los lotes), no lotes completos
-    if(reacondTabActual === 'listo_venta' || reacondTabActual === 'terminados') {
-        const estadoEq = reacondTabActual === 'listo_venta' ? 'listo_venta' : 'vendido';
-        renderEquiposEstadoReacond(estadoEq, lotesConEstado, cont);
-        return;
-    }
+    // Todas las pestañas (incluidas Listo y Despachado) muestran la CARPETA por lote.
+    // Listo = lotes con equipos listos; Despachado = lotes con equipos despachados.
+    let filtrados;
+    if(reacondTabActual === 'listo_venta') filtrados = lotesConEstado.filter(d => d.listoVenta > 0);
+    else if(reacondTabActual === 'terminados') filtrados = lotesConEstado.filter(d => d.vendidos > 0);
+    else filtrados = lotesConEstado.filter(d => d.estadoLote === reacondTabActual);
 
-    const filtrados = lotesConEstado.filter(d => d.estadoLote === reacondTabActual);
-    
     if(filtrados.length === 0) {
         const msg = reacondTabActual === 'pendientes' 
             ? 'No hay lotes pendientes. Envía un lote desde el módulo Compras.'
@@ -9978,6 +9976,13 @@ function abrirLoteReacond(loteId) {
     document.getElementById('reacondListaLotes').style.display = 'none';
     document.getElementById('reacondDetalleLote').style.display = 'block';
     renderDetalleLoteReacond();
+    // Si vino desde la pestaña Listo o Despachado, entrar con ese filtro puesto
+    const fsel = document.getElementById('reacondFiltroEstado');
+    if(fsel) {
+        const ini = reacondTabActual === 'listo_venta' ? 'listo_venta' : (reacondTabActual === 'terminados' ? 'vendido' : '');
+        fsel.value = ini;
+        renderDetalleLoteReacond();
+    }
 }
 
 function volverListaLotesReacond() {
