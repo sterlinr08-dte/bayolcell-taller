@@ -10353,6 +10353,7 @@ function imprimirFormatoInfoPlus() {
     const cfg = cache.configTaller || {};
     const tienda = cfg.nombre || 'BAYOL CELL';
     const subTienda = [cfg.direccion, cfg.telefono].filter(Boolean).join(' · ');
+    const cpNum = (v) => `data-c="${(Number(v) || 0).toFixed(2)}"`;
     let totGen = 0, totUds = 0, totCompra = 0, totFlete = 0, totPiezas = 0;
     const bloques = lista.map((g, gi) => {
         totGen += g.total; totUds += g.cantidad;
@@ -10361,27 +10362,38 @@ function imprimirFormatoInfoPlus() {
             totCompra += c.compra; totFlete += c.flete; totPiezas += c.piezas;
             const tec = e.tecnico_asignado_id ? escapeHtml(nombreEmpleado(e.tecnico_asignado_id)) : '<span class="muted">—</span>';
             const fch = (e.fecha_completado || e.fecha_despacho) ? new Date(e.fecha_completado || e.fecha_despacho).toLocaleDateString('es-DO') : '';
-            return `<tr>
+            const pzs = _piezasDeEquipoRep(e.id);
+            let fila = `<tr>
                 <td class="c">${i + 1}</td>
-                <td class="mono">${escapeHtml(e.imei || '—')}</td>
+                <td class="mono copy" ${e.imei ? `data-c="${escapeHtml(e.imei)}" onclick="cp(this)" title="Clic para copiar IMEI"` : ''}>${escapeHtml(e.imei || '—')}</td>
                 <td class="num">${money(c.compra)}</td>
                 <td class="num">${money(c.flete)}</td>
                 <td class="num">${money(c.piezas)}</td>
-                <td class="num fin">${money(c.fin)}</td>
-                <td>${tec}</td>
+                <td class="num fin copy" ${cpNum(c.fin)} onclick="cp(this)" title="Clic para copiar">${money(c.fin)}</td>
+                <td class="tec">${tec}</td>
                 <td class="c">${fch}</td>
             </tr>`;
+            if(pzs.length) {
+                const lis = pzs.map(p => {
+                    const ip = !!(p.pieza_codigo && String(p.pieza_codigo).trim());
+                    const cant = Number(p.cantidad) || 1, cu = Number(p.costo_unitario) || 0;
+                    return `<span class="pz">↳ ${escapeHtml(p.pieza_nombre || p.pieza_codigo || 'Pieza')} <span class="pztag ${ip ? 'tip' : 'tex'}">${ip ? 'Info Plus' : 'Externa'}</span> ${money(cant * cu)}</span>`;
+                }).join('');
+                fila += `<tr class="pzrow"><td></td><td colspan="7">${lis}</td></tr>`;
+            }
+            return fila;
         }).join('');
         return `<div class="grupo">
             <div class="ghead">
-                <div class="gmodwrap"><span class="gnum">${gi + 1}</span><span class="gmod">${escapeHtml(g.modelo || 'Sin modelo')}</span> ${g.codigo ? `<span class="gcod">Cód. IP: ${escapeHtml(g.codigo)}</span>` : '<span class="gcod nocod">sin código IP</span>'}</div>
+                <div class="gmodwrap"><span class="gnum">${gi + 1}</span><span class="gmod">${escapeHtml(g.modelo || 'Sin modelo')}</span> ${g.codigo ? `<span class="gcod copy" data-c="${escapeHtml(g.codigo)}" onclick="cp(this)" title="Clic para copiar el código">Cód. IP: ${escapeHtml(g.codigo)}</span>` : '<span class="gcod nocod">sin código IP</span>'}</div>
                 <div class="gnums">
                     <span class="pill">Cant. <b>${g.cantidad}</b></span>
-                    <span class="pill pill-prom">Promedio <b>${money(g.promedio)}</b></span>
-                    <span class="pill pill-tot">Total <b>${money(g.total)}</b></span>
+                    <span class="pill pill-prom">Promedio <b class="copy" ${cpNum(g.promedio)} onclick="cp(this)" title="Clic para copiar el costo promedio">${money(g.promedio)}</b></span>
+                    <span class="pill pill-tot">Total <b class="copy" ${cpNum(g.total)} onclick="cp(this)" title="Clic para copiar">${money(g.total)}</b></span>
                 </div>
             </div>
             <table class="dtl">
+                <colgroup><col style="width:24px"><col><col style="width:74px"><col style="width:62px"><col style="width:62px"><col style="width:84px"><col style="width:110px"><col style="width:72px"></colgroup>
                 <thead><tr><th class="c">#</th><th>IMEI / Serial</th><th class="num">Compra</th><th class="num">Flete</th><th class="num">Piezas</th><th class="num">Costo final</th><th>Técnico</th><th class="c">Fecha</th></tr></thead>
                 <tbody>${filasEq}</tbody>
             </table>
@@ -10399,38 +10411,49 @@ function imprimirFormatoInfoPlus() {
     w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Formato Info Plus ${escapeHtml(lote.codigo_lote || '')}</title>
         <style>
             *{font-family:Arial,Helvetica,sans-serif;box-sizing:border-box;}
-            body{margin:18px;color:#0f172a;}
-            .top{background:linear-gradient(135deg,#0891b2,#06b6d4);color:#fff;border-radius:12px;padding:14px 16px;margin-bottom:12px;}
-            .top h1{font-size:19px;margin:0;font-weight:800;}
-            .top .sub{color:#e0f7fb;font-size:12px;margin-top:3px;}
-            .chips{font-size:12px;background:#ecfeff;border:1px solid #a5f3fc;border-radius:8px;padding:8px 12px;margin-bottom:6px;line-height:1.8;color:#155e75;}
-            .chips span{margin-right:16px;} .chips b{color:#0e7490;}
-            .nota{color:#64748b;font-size:11.5px;margin:6px 0 14px;}
-            .grupo{border:1px solid #a5f3fc;border-radius:10px;margin-bottom:14px;overflow:hidden;page-break-inside:avoid;box-shadow:0 1px 3px rgba(8,145,178,.08);}
-            .ghead{background:linear-gradient(135deg,#0e7490,#0891b2);color:#fff;padding:9px 12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;align-items:center;}
-            .gmodwrap{display:flex;align-items:center;gap:8px;}
-            .gnum{background:rgba(255,255,255,.25);width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;}
-            .gmod{font-weight:800;font-size:14.5px;} .gcod{font-size:11px;color:#cffafe;background:rgba(255,255,255,.15);padding:2px 7px;border-radius:6px;} .nocod{color:#fecaca;}
-            .gnums{display:flex;gap:6px;flex-wrap:wrap;}
-            .pill{background:rgba(255,255,255,.18);border-radius:20px;padding:3px 10px;font-size:11.5px;} .pill b{font-size:13px;}
+            body{margin:14px;color:#0f172a;font-size:11px;}
+            .top{background:linear-gradient(135deg,#0891b2,#06b6d4);color:#fff;border-radius:10px;padding:10px 14px;margin-bottom:10px;}
+            .top h1{font-size:16px;margin:0;font-weight:800;}
+            .top .sub{color:#e0f7fb;font-size:11px;margin-top:2px;}
+            .chips{font-size:11px;background:#ecfeff;border:1px solid #a5f3fc;border-radius:8px;padding:6px 10px;margin-bottom:5px;line-height:1.7;color:#155e75;}
+            .chips span{margin-right:14px;} .chips b{color:#0e7490;}
+            .nota{color:#64748b;font-size:10.5px;margin:5px 0 10px;}
+            .nota b.tip{color:#0e7490;}
+            .grupo{border:1px solid #a5f3fc;border-radius:9px;margin-bottom:10px;overflow:hidden;page-break-inside:avoid;}
+            .ghead{background:linear-gradient(135deg,#0e7490,#0891b2);color:#fff;padding:6px 10px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;align-items:center;}
+            .gmodwrap{display:flex;align-items:center;gap:7px;}
+            .gnum{background:rgba(255,255,255,.25);width:19px;height:19px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;}
+            .gmod{font-weight:800;font-size:13px;} .gcod{font-size:10.5px;color:#cffafe;background:rgba(255,255,255,.15);padding:2px 7px;border-radius:6px;} .nocod{color:#fecaca;}
+            .gnums{display:flex;gap:5px;flex-wrap:wrap;}
+            .pill{background:rgba(255,255,255,.18);border-radius:20px;padding:2px 9px;font-size:11px;} .pill b{font-size:12px;}
             .pill-prom{background:#fde68a;color:#78350f;} .pill-prom b{color:#78350f;}
             .pill-tot{background:#fff;color:#0e7490;} .pill-tot b{color:#0e7490;}
-            table.dtl{width:100%;border-collapse:collapse;font-size:11.5px;}
-            table.dtl th{background:#cffafe;color:#155e75;text-align:left;padding:5px 8px;border-bottom:1px solid #a5f3fc;}
-            table.dtl td{padding:5px 8px;border-bottom:1px solid #ecfeff;}
-            table.dtl tbody tr:nth-child(even){background:#f0fdff;}
+            table.dtl{width:100%;border-collapse:collapse;font-size:10.5px;table-layout:fixed;}
+            table.dtl th{background:#cffafe;color:#155e75;text-align:left;padding:4px 6px;border-bottom:1px solid #a5f3fc;white-space:nowrap;}
+            table.dtl td{padding:3px 6px;border-bottom:1px solid #ecfeff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+            table.dtl tbody tr:nth-child(even of :not(.pzrow)){background:#f0fdff;}
             .num{text-align:right;} .c{text-align:center;} .mono{font-family:'Courier New',monospace;font-weight:700;}
-            .fin{font-weight:800;color:#0e7490;} .muted{color:#94a3b8;}
-            .tot{margin-top:10px;font-size:15px;font-weight:800;text-align:right;color:#0e7490;background:#ecfeff;border:1px solid #a5f3fc;border-radius:8px;padding:10px 14px;}
-            .totdesg{font-size:12px;color:#64748b;font-weight:600;margin-right:14px;}
-            @media print{button{display:none;} .top{-webkit-print-color-adjust:exact;print-color-adjust:exact;} .ghead,table.dtl th,.pill-prom,.pill-tot{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
+            .fin{font-weight:800;color:#0e7490;} .muted{color:#94a3b8;} .tec{overflow:hidden;text-overflow:ellipsis;}
+            .copy{cursor:pointer;} .copy:hover{background:#fef9c3 !important;outline:1px dashed #eab308;}
+            .pzrow td{background:#fafefe;white-space:normal;padding-top:1px;padding-bottom:4px;}
+            .pz{display:inline-block;font-size:10px;color:#475569;margin-right:12px;}
+            .pztag{font-size:8.5px;font-weight:700;padding:1px 5px;border-radius:8px;}
+            .tip{background:#bae6fd;color:#075985;} .tex{background:#ede9fe;color:#6d28d9;}
+            .tot{margin-top:8px;font-size:13px;font-weight:800;text-align:right;color:#0e7490;background:#ecfeff;border:1px solid #a5f3fc;border-radius:8px;padding:8px 12px;}
+            .totdesg{font-size:11px;color:#64748b;font-weight:600;margin-right:12px;}
+            @media print{button{display:none;} .top,.ghead,table.dtl th,.pill-prom,.pill-tot{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
         </style></head><body>
         <div class="top"><h1>${escapeHtml(tienda)} — Formato para Info Plus</h1><div class="sub">${escapeHtml(subTienda)}</div></div>
         <div class="chips">${chips.map(c => `<span>${c}</span>`).join('')}</div>
-        <div class="nota">Cada modelo = 1 artículo en Info Plus, con sus IMEIs y el <b>costo promedio</b> como costo unitario (Total ÷ Cantidad). El detalle muestra el costo real de cada equipo.</div>
+        <div class="nota">Cada modelo = 1 artículo en Info Plus, con sus IMEIs y el <b class="tip">costo promedio</b> como costo unitario. 👉 Haz <b>clic</b> sobre un IMEI, código o precio para copiarlo.</div>
         ${bloques}
         <div class="tot"><span class="totdesg">Compra: ${money(totCompra)}</span><span class="totdesg">Flete: ${money(totFlete)}</span><span class="totdesg">Piezas: ${money(totPiezas)}</span> TOTAL GENERAL: ${money(totGen)} · ${totUds} unidad(es)</div>
-        <button onclick="window.print()" style="margin-top:14px;padding:9px 18px;background:#0891b2;color:#fff;border:0;border-radius:8px;cursor:pointer;font-size:14px;">🖨️ Imprimir</button>
+        <button onclick="window.print()" style="margin-top:12px;padding:7px 16px;background:#0891b2;color:#fff;border:0;border-radius:8px;cursor:pointer;font-size:13px;">🖨️ Imprimir</button>
+        <script>
+        function cp(el){var t=(el.getAttribute('data-c')||el.innerText||'').trim();if(!t)return;
+            try{navigator.clipboard.writeText(t);}catch(e){var ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch(_){}document.body.removeChild(ta);}
+            var b=el.style.background;el.style.background='#86efac';setTimeout(function(){el.style.background=b;},450);}
+        <\/script>
         </body></html>`);
     w.document.close();
 }
