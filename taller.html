@@ -846,6 +846,7 @@ body{
             <button id="menu-misIncentivos" onclick="nav('misIncentivos',this)" style="display:none;"><i class="ti ti-coin"></i> <span>Mis Incentivos</span></button>
             <button id="menu-atencion" onclick="nav('atencion',this)"><i class="ti ti-headset"></i> <span>Atención al Cliente</span></button>
             <button id="menu-financiamientos" onclick="nav('financiamientos',this)"><i class="ti ti-cash"></i> <span>Financiamientos</span></button>
+            <button id="menu-rifas" onclick="abrirRifas()" title="Abrir el módulo de Rifas (Nexus Pro) ya logueado"><i class="ti ti-ticket"></i> <span>Rifas</span> <i class="ti ti-external-link" style="font-size:12px; opacity:.6;"></i></button>
             <button id="menu-contabilidad" onclick="nav('contabilidad',this)"><i class="ti ti-calculator"></i> <span>Contabilidad</span></button>
             <button id="menu-diagnostico" onclick="nav('diagnostico',this)"><i class="ti ti-stethoscope"></i> <span>Diagnóstico IA</span></button>
             <button id="menu-recepcion" onclick="nav('recepcion',this)"><i class="ti ti-clipboard-plus"></i> <span>Recepción de Equipos</span></button>
@@ -4378,6 +4379,29 @@ async function doLogin() {
 }
 
 async function logout() { try { await supabaseClient.auth.signOut(); } catch(e) {} localStorage.removeItem("bayol_session"); location.reload(); }
+
+// Abre el módulo de RIFAS (Nexus Pro) con la sesión del taller (SSO vía Edge Function puente-rifa)
+async function abrirRifas() {
+    try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if(!session) { toast('Inicia sesión primero.', 'error'); return; }
+        toast('Abriendo Rifas…');
+        const res = await fetch(CONFIG_URL + '/functions/v1/puente-rifa', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY, 'Content-Type': 'application/json' }
+        });
+        const j = await res.json();
+        if(j && j.access_token) {
+            const h = '#access_token=' + encodeURIComponent(j.access_token)
+                + '&refresh_token=' + encodeURIComponent(j.refresh_token || '')
+                + '&expires_in=' + (j.expires_in || 3600)
+                + '&token_type=bearer&type=magiclink';
+            window.open('https://nexusprord.com/' + h, '_blank');
+        } else {
+            toastError((j && j.error) ? j.error : 'No se pudo abrir Rifas.');
+        }
+    } catch(e) { logError('Abrir Rifas', e); toastError(getFriendlyError(e)); }
+}
 
 function isAdminUser() {
     // Si es del tipo usuario, usar la lógica vieja
