@@ -10399,7 +10399,6 @@ function imprimirFormatoInfoPlus() {
                 </div>
             </div>
             <table class="dtl">
-                <colgroup><col style="width:24px"><col><col style="width:74px"><col style="width:62px"><col style="width:62px"><col style="width:84px"><col style="width:110px"><col style="width:72px"></colgroup>
                 <thead><tr><th class="c">#</th><th>IMEI / Serial</th><th class="num">Compra</th><th class="num">Flete</th><th class="num">Piezas</th><th class="num">Costo final</th><th>Técnico</th><th class="c">Fecha</th></tr></thead>
                 <tbody>${filasEq}</tbody>
             </table>
@@ -10434,12 +10433,12 @@ function imprimirFormatoInfoPlus() {
             .pill{background:rgba(255,255,255,.18);border-radius:20px;padding:2px 9px;font-size:11px;} .pill b{font-size:12px;}
             .pill-prom{background:#fde68a;color:#78350f;} .pill-prom b{color:#78350f;}
             .pill-tot{background:#fff;color:#0e7490;} .pill-tot b{color:#0e7490;}
-            table.dtl{width:100%;border-collapse:collapse;font-size:10.5px;table-layout:fixed;}
-            table.dtl th{background:#cffafe;color:#155e75;text-align:left;padding:4px 6px;border-bottom:1px solid #a5f3fc;white-space:nowrap;}
-            table.dtl td{padding:3px 6px;border-bottom:1px solid #ecfeff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+            table.dtl{width:auto;border-collapse:collapse;font-size:10.5px;}
+            table.dtl th{background:#cffafe;color:#155e75;text-align:left;padding:4px 10px;border-bottom:1px solid #a5f3fc;white-space:nowrap;}
+            table.dtl td{padding:3px 10px;border-bottom:1px solid #ecfeff;white-space:nowrap;}
             table.dtl tbody tr:nth-child(even of :not(.pzrow)){background:#f0fdff;}
             .num{text-align:right;} .c{text-align:center;} .mono{font-family:'Courier New',monospace;font-weight:700;}
-            .fin{font-weight:800;color:#0e7490;} .muted{color:#94a3b8;} .tec{overflow:hidden;text-overflow:ellipsis;}
+            .fin{font-weight:800;color:#0e7490;} .muted{color:#94a3b8;}
             .copy{cursor:pointer;} .copy:hover{background:#fef9c3 !important;outline:1px dashed #eab308;}
             .copied{background:#86efac !important;}
             .cptip{position:absolute;background:#16a34a;color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:7px;z-index:99999;pointer-events:none;box-shadow:0 2px 6px rgba(0,0,0,.25);animation:cpop .85s ease forwards;}
