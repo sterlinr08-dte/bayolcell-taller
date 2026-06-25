@@ -2146,6 +2146,8 @@ body{
                                 </div>
                                 <button id="btnReporteCostosLote" class="btn btn-light" style="padding:8px 14px; color:#166534; border-color:#86efac; display:none;" onclick="imprimirReporteCostosLote()"><i class="ti ti-printer"></i> Imprimir</button>
                                 <button id="btnExcelCostosLote" class="btn btn-light" style="padding:8px 14px; color:#15803d; border-color:#86efac; display:none;" onclick="exportarReporteCostosLoteExcel()"><i class="ti ti-file-spreadsheet"></i> Exportar Excel</button>
+                                <button id="btnFormatoIP" class="btn btn-light" style="padding:8px 14px; color:#075985; border-color:#7dd3fc; display:none;" onclick="imprimirFormatoInfoPlus()"><i class="ti ti-building-warehouse"></i> Formato Info Plus</button>
+                                <button id="btnFormatoIPExcel" class="btn btn-light" style="padding:8px 14px; color:#075985; border-color:#7dd3fc; display:none;" onclick="exportarFormatoInfoPlusExcel()"><i class="ti ti-file-spreadsheet"></i> Info Plus (Excel)</button>
                             </div>
                         </div>
                         <div id="reacondTecnicosRow" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;"></div>
@@ -10312,6 +10314,111 @@ function exportarReporteCostosLoteExcel() {
         filename: `Costos_${(lote.codigo_lote || 'lote').replace(/[^A-Za-z0-9_-]/g, '')}_${new Date().toISOString().slice(0,10)}.xls`
     });
 }
+// ===== FORMATO INFO PLUS: agrupa por modelo/artículo con TODOS los IMEIs y el costo PROMEDIO =====
+// Para meter a Info Plus: 1 artículo + N seriales + costo unitario = promedio (total = suma).
+function _datosFormatoInfoPlus() {
+    const datos = _datosReporteCostosLote(); // respeta filtros (estado, fecha, técnico, búsqueda)
+    if(!datos) return null;
+    const { lote, equipos, prov, filtrosTxt } = datos;
+    const grupos = {};
+    equipos.forEach(e => {
+        const cod = (e.articulo_codigo != null && String(e.articulo_codigo).trim()) ? String(e.articulo_codigo).trim() : '';
+        const key = cod || ('MOD:' + (e.modelo || 'SIN MODELO').toUpperCase());
+        if(!grupos[key]) grupos[key] = { codigo: cod, modelo: e.modelo || '', equipos: [], imeis: [], total: 0 };
+        grupos[key].equipos.push(e);
+        if(e.imei) grupos[key].imeis.push(e.imei);
+        grupos[key].total += _costoEquipoRep(e).fin;
+    });
+    const lista = Object.values(grupos).map(g => {
+        const cant = g.equipos.length;
+        return { codigo: g.codigo, modelo: g.modelo, cantidad: cant, imeis: g.imeis, total: g.total, promedio: cant ? g.total / cant : 0 };
+    }).sort((a, b) => (a.modelo || '').localeCompare(b.modelo || ''));
+    return { lote, prov, filtrosTxt, lista };
+}
+function imprimirFormatoInfoPlus() {
+    const datos = _datosFormatoInfoPlus();
+    if(!datos) return;
+    const { lote, prov, filtrosTxt, lista } = datos;
+    const cfg = cache.configTaller || {};
+    const tienda = cfg.nombre || 'BAYOL CELL';
+    const subTienda = [cfg.direccion, cfg.telefono].filter(Boolean).join(' · ');
+    let totGen = 0, totUds = 0;
+    const bloques = lista.map(g => {
+        totGen += g.total; totUds += g.cantidad;
+        const imeisHtml = g.imeis.length ? g.imeis.map(im => `<span class="imei">${escapeHtml(im)}</span>`).join('') : '<span style="color:#94a3b8;">(sin IMEI registrado)</span>';
+        return `<div class="grupo">
+            <div class="ghead">
+                <div><span class="gmod">${escapeHtml(g.modelo || 'Sin modelo')}</span> ${g.codigo ? `<span class="gcod">Cód. Info Plus: ${escapeHtml(g.codigo)}</span>` : '<span class="gcod" style="color:#b91c1c;">sin código IP</span>'}</div>
+                <div class="gnums">
+                    <span>Cant.: <b>${g.cantidad}</b></span>
+                    <span>Costo promedio (unit.): <b>${money(g.promedio)}</b></span>
+                    <span>Total: <b>${money(g.total)}</b></span>
+                </div>
+            </div>
+            <div class="gimeis"><b>IMEIs (${g.imeis.length}):</b> ${imeisHtml}</div>
+        </div>`;
+    }).join('');
+    const chips = [
+        `<b>Lote:</b> ${escapeHtml(lote.codigo_lote || '—')}`,
+        `<b>Proveedor:</b> ${escapeHtml(prov ? prov.nombre : '—')}`,
+        `<b>Modelos:</b> ${lista.length}`,
+        `<b>Unidades:</b> ${totUds}`,
+        `<b>Total general:</b> ${money(totGen)}`
+    ];
+    if(filtrosTxt.length) chips.push(`<b>Filtro:</b> ${escapeHtml(filtrosTxt.join(' · '))}`);
+    const w = window.open('', '_blank');
+    if(!w) { toast('Permite las ventanas emergentes para imprimir.', 'error'); return; }
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Formato Info Plus ${escapeHtml(lote.codigo_lote || '')}</title>
+        <style>
+            *{font-family:Arial,Helvetica,sans-serif;box-sizing:border-box;}
+            body{margin:18px;color:#0f172a;}
+            h1{font-size:18px;margin:0;} .sub{color:#64748b;font-size:12px;margin:2px 0 10px;}
+            .chips{font-size:12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;margin-bottom:12px;line-height:1.7;}
+            .chips span{margin-right:14px;}
+            .grupo{border:1px solid #cbd5e1;border-radius:8px;margin-bottom:10px;overflow:hidden;page-break-inside:avoid;}
+            .ghead{background:#0f172a;color:#fff;padding:8px 10px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;align-items:center;}
+            .gmod{font-weight:800;font-size:14px;} .gcod{font-size:11px;color:#bae6fd;margin-left:8px;}
+            .gnums{font-size:12px;display:flex;gap:14px;flex-wrap:wrap;} .gnums b{color:#fff;}
+            .gimeis{padding:8px 10px;font-size:12px;}
+            .imei{display:inline-block;font-family:'Courier New',monospace;background:#eef2ff;border:1px solid #c7d2fe;border-radius:5px;padding:2px 7px;margin:2px;font-size:12px;}
+            .tot{margin-top:10px;font-size:14px;font-weight:800;text-align:right;}
+            @media print{button{display:none;}}
+        </style></head><body>
+        <h1>${escapeHtml(tienda)} — Formato para Info Plus</h1>
+        <div class="sub">${escapeHtml(subTienda)}</div>
+        <div class="chips">${chips.map(c => `<span>${c}</span>`).join('')}</div>
+        <div class="sub">Cada modelo = 1 artículo en Info Plus, con sus IMEIs y el <b>costo promedio</b> como costo unitario.</div>
+        ${bloques}
+        <div class="tot">TOTAL GENERAL: ${money(totGen)} · ${totUds} unidad(es)</div>
+        <button onclick="window.print()" style="margin-top:14px;padding:8px 16px;">🖨️ Imprimir</button>
+        </body></html>`);
+    w.document.close();
+}
+function exportarFormatoInfoPlusExcel() {
+    const datos = _datosFormatoInfoPlus();
+    if(!datos) return;
+    const { lote, lista } = datos;
+    // Una fila por IMEI, repitiendo el costo promedio del modelo (formato para cargar a Info Plus)
+    let filas = '';
+    lista.forEach(g => {
+        if(g.imeis.length === 0) {
+            filas += `<tr><td>${escapeHtml(g.codigo)}</td><td>${escapeHtml(g.modelo)}</td><td></td><td>${g.cantidad}</td><td>${g.promedio.toFixed(2)}</td><td>${g.total.toFixed(2)}</td></tr>`;
+        } else {
+            g.imeis.forEach((im, idx) => {
+                filas += `<tr><td>${escapeHtml(g.codigo)}</td><td>${escapeHtml(g.modelo)}</td><td>${escapeHtml(im)}</td><td>${idx === 0 ? g.cantidad : ''}</td><td>${g.promedio.toFixed(2)}</td><td>${idx === 0 ? g.total.toFixed(2) : ''}</td></tr>`;
+            });
+        }
+    });
+    const html = `<html><head><meta charset="utf-8"></head><body><table border="1">
+        <tr><th>Código Info Plus</th><th>Modelo (artículo)</th><th>IMEI / Serial</th><th>Cantidad</th><th>Costo prom. unit.</th><th>Total modelo</th></tr>
+        ${filas}</table></body></html>`;
+    const blob = new Blob(['﻿' + html], { type: 'application/vnd.ms-excel' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `InfoPlus_${(lote.codigo_lote || 'lote').replace(/[^A-Za-z0-9_-]/g, '')}_${new Date().toISOString().slice(0,10)}.xls`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
 function cambiarTabReacond(tab) {
     reacondTabActual = tab;
     document.querySelectorAll('#reacondListaLotes .tab-btn').forEach(b => {
@@ -10423,6 +10530,8 @@ function renderDetalleLoteReacond() {
     const concluido = equipos.length > 0 && (listoV + despachados) === equipos.length;
     const _br = document.getElementById('btnReporteCostosLote'); if(_br) _br.style.display = isAdminUser() ? '' : 'none';
     const _bx = document.getElementById('btnExcelCostosLote'); if(_bx) _bx.style.display = isAdminUser() ? '' : 'none';
+    const _bf = document.getElementById('btnFormatoIP'); if(_bf) _bf.style.display = isAdminUser() ? '' : 'none';
+    const _bfx = document.getElementById('btnFormatoIPExcel'); if(_bfx) _bfx.style.display = isAdminUser() ? '' : 'none';
 
     // Badge de estado
     const badge = document.getElementById('reacondLoteEstadoBadge');
