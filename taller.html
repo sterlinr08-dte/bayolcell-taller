@@ -2046,6 +2046,12 @@ body{
                                 </div>
                             </div>
                         
+                        <!-- Buscador global: a qué lote pertenece un equipo -->
+                        <div style="margin-bottom:14px;">
+                            <input id="reacondBuscadorGlobal" type="text" placeholder="🔎 Buscar equipo por IMEI, código o modelo en TODOS los lotes…" oninput="buscarEquipoGlobalReacond()" autocomplete="off" style="width:100%; padding:10px 12px; font-size:14px; border:1px solid #cbd5e1; border-radius:8px;">
+                            <div id="reacondBuscadorGlobalResultados"></div>
+                        </div>
+
                         <!-- Tabs -->
                         <div class="tabs reacond-tabs-scroll" style="display:flex; gap:4px; margin-bottom:15px; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; padding:4px 2px 6px;">
                             <button class="tab-btn active" data-tab="pendientes" onclick="cambiarTabReacond('pendientes')" style="padding:11px 14px; cursor:pointer; font-weight:700; white-space:nowrap; font-size:13px;">
@@ -10283,6 +10289,44 @@ function cambiarTabReacond(tab) {
     cargarLotesReacond();
 }
 
+// Buscador global: encuentra un equipo en CUALQUIER lote (por IMEI, código o modelo) y dice a qué lote pertenece.
+function buscarEquipoGlobalReacond() {
+    const q = (document.getElementById('reacondBuscadorGlobal')?.value || '').toLowerCase().trim();
+    const cont = document.getElementById('reacondBuscadorGlobalResultados');
+    if(!cont) return;
+    if(q.length < 2) { cont.innerHTML = ''; return; }
+    const palabras = q.split(/\s+/).filter(Boolean);
+    const matches = (cache.refurb || []).filter(e => {
+        const hay = [e.imei, e.articulo_codigo, e.modelo, e.marca, e.capacidad, e.color].filter(Boolean).join(' ').toLowerCase();
+        return palabras.every(p => hay.includes(p));
+    }).slice(0, 40);
+    if(!matches.length) { cont.innerHTML = `<div style="padding:10px; color:#94a3b8; font-size:13px;">Ningún equipo coincide con "${escapeHtml(q)}".</div>`; return; }
+    cont.innerHTML = `<div style="border:1px solid #e2e8f0; border-radius:8px; margin-top:6px; overflow:hidden;">` + matches.map(e => {
+        const lote = (cache.lotes || []).find(l => l.id === e.lote_id);
+        const loteName = lote ? (lote.codigo_lote || (lote.id || '').slice(0, 8)) : 'Sin lote';
+        let et = (typeof obtenerEtiquetaEstado === 'function') ? obtenerEtiquetaEstado(e.estado_evaluacion) : { text: e.estado_evaluacion, bg: '#eee', color: '#333' };
+        if(e.estado_evaluacion === 'vendido' && e.completado) et = { text: '🏁 Completado', bg: '#e2e8f0', color: '#334155' };
+        const qArg = (e.imei || e.articulo_codigo || e.modelo || '').toString().replace(/'/g, '');
+        return `<div onclick="_irAEquipoReacond('${e.id}','${e.lote_id}','${escapeHtml(qArg)}')" style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding:9px 11px; border-bottom:1px solid #f1f5f9; cursor:pointer;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">
+            <div style="min-width:0;">
+                <div style="font-weight:700; font-size:13px;">${escapeHtml(e.modelo || 'Equipo')}</div>
+                <div style="font-size:11.5px; color:#64748b;">IMEI: ${escapeHtml(e.imei || '—')}${e.articulo_codigo ? ' · cód ' + escapeHtml(String(e.articulo_codigo)) : ''}</div>
+            </div>
+            <div style="text-align:right; white-space:nowrap;">
+                <span class="badge" style="background:${et.bg}; color:${et.color}; font-size:10px; font-weight:700;">${et.text}</span>
+                <div style="font-size:12px; font-weight:800; color:var(--blue-btn); margin-top:3px;">📦 ${escapeHtml(loteName)}</div>
+            </div>
+        </div>`;
+    }).join('') + `</div>`;
+}
+function _irAEquipoReacond(equipoId, loteId, q) {
+    const gb = document.getElementById('reacondBuscadorGlobal'); if(gb) gb.value = '';
+    const gr = document.getElementById('reacondBuscadorGlobalResultados'); if(gr) gr.innerHTML = '';
+    abrirLoteReacond(loteId);
+    const fsel = document.getElementById('reacondFiltroEstado'); if(fsel) fsel.value = '';
+    const b = document.getElementById('reacondBusq'); if(b) b.value = q || '';
+    renderDetalleLoteReacond();
+}
 function abrirLoteReacond(loteId) {
     reacondLoteAbiertoId = loteId;
     _reacondSel = new Set(); // limpiar selección al abrir un lote
@@ -19180,7 +19224,7 @@ function generarHtmlLabelDiag(equipo) {
             </div>
             <div class="diag-section" style="margin-bottom:0.5mm;">
                 <div class="diag-line" style="font-weight:900; -webkit-text-stroke:0.4px #000; font-family:Arial,Helvetica,sans-serif;">IMEI: <span class="diag-imei" style="font-weight:900; -webkit-text-stroke:0.4px #000; font-family:Arial,Helvetica,sans-serif; letter-spacing:0.3px;">${escapeHtml(imei)}</span></div>
-                <div class="diag-line" style="font-weight:900; -webkit-text-stroke:0.4px #000; font-family:Arial,Helvetica,sans-serif;">FECHA: ${escapeHtml(fecha)}</div>
+                <div class="diag-line" style="font-weight:900; -webkit-text-stroke:0.4px #000; font-family:Arial,Helvetica,sans-serif;">FECHA: ${escapeHtml(fecha)}${codigoLote ? '  ·  LOTE: ' + escapeHtml(codigoLote) : ''}</div>
             </div>
             ${notas ? `<div class="diag-notas-area" style="border-top:2px dashed #000; padding-top:0.5mm; font-size:${f}px; font-weight:900; -webkit-text-stroke:0.4px #000; font-family:Arial,Helvetica,sans-serif;">NOTAS: ${escapeHtml(notas)}</div>` : ''}
             ${fallasHtml}
