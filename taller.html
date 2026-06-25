@@ -1007,15 +1007,35 @@ body{
             <div id="v-contabilidad" class="view">
                 <h2 style="margin:0 0 12px;"><i class="ti ti-calculator" style="color:#0891b2;"></i> Contabilidad</h2>
                 <div style="display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;">
-                    <button id="contaTabCat" class="btn btn-blue" style="font-size:12px;" onclick="contaTab('catalogo')"><i class="ti ti-book"></i> Catálogo de Cuentas</button>
+                    <button id="contaTabMensual" class="btn btn-blue" style="font-size:12px;" onclick="contaTab('mensual')"><i class="ti ti-report-money"></i> Estado Mensual</button>
+                    <button id="contaTabCat" class="btn btn-light" style="font-size:12px;" onclick="contaTab('catalogo')"><i class="ti ti-book"></i> Catálogo de Cuentas</button>
                     <button id="contaTabAs" class="btn btn-light" style="font-size:12px;" onclick="contaTab('asientos')"><i class="ti ti-notebook"></i> Asientos / Libro Diario</button>
                     <button id="contaTabMay" class="btn btn-light" style="font-size:12px;" onclick="contaTab('mayor')"><i class="ti ti-list-details"></i> Libro Mayor</button>
                     <button id="contaTabBal" class="btn btn-light" style="font-size:12px;" onclick="contaTab('balanza')"><i class="ti ti-scale"></i> Balanza de Comprobación</button>
                     <button id="contaTabEF" class="btn btn-light" style="font-size:12px;" onclick="contaTab('estados')"><i class="ti ti-report-money"></i> Estados Financieros</button>
                 </div>
 
+                <!-- TAB: ESTADO MENSUAL (simple, para la contadora) -->
+                <div id="conta-mensual">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:4px;">
+                        <h3 style="margin:0;"><i class="ti ti-report-money" style="color:#16a34a;"></i> Estado de Resultados Mensual</h3>
+                        <button class="btn btn-success" onclick="abrirGastoSimple()" style="font-size:13px;"><i class="ti ti-plus"></i> Registrar gasto</button>
+                    </div>
+                    <p style="color:var(--text-muted); font-size:12.5px; margin:4px 0 12px;">Las <b>ventas y el costo salen solos de Info Plus</b>; tú solo registras los <b>gastos</b> del mes. Da la <b>utilidad neta real</b>.</p>
+                    <div class="card">
+                        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
+                            <input type="month" id="em_mes" onchange="renderEstadoMensual()">
+                            <select id="em_sucursal" onchange="renderEstadoMensual()"><option value="">Combinado (Santiago + Moca)</option><option value="Santiago">Santiago</option><option value="Moca">Moca</option></select>
+                            <button class="btn btn-light" style="font-size:12px;" onclick="renderEstadoMensual()"><i class="ti ti-refresh"></i> Actualizar</button>
+                            <button class="btn btn-light" style="font-size:12px;" onclick="imprimirEstadoMensual()"><i class="ti ti-printer"></i> Imprimir</button>
+                            <button class="btn btn-light" style="font-size:12px; color:#15803d; border-color:#86efac;" onclick="exportarEstadoMensualExcel()"><i class="ti ti-file-spreadsheet"></i> Excel</button>
+                        </div>
+                        <div id="em_contenido"><p style="color:var(--text-muted); text-align:center; padding:20px;">Selecciona el mes.</p></div>
+                    </div>
+                </div>
+
                 <!-- TAB: CATÁLOGO -->
-                <div id="conta-catalogo">
+                <div id="conta-catalogo" style="display:none;">
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:4px;">
                         <h3 style="margin:0;">Catálogo de Cuentas (NIIF)</h3>
                         <button class="btn btn-blue" onclick="abrirModalCuenta()" style="font-size:12px;"><i class="ti ti-plus"></i> Nueva cuenta</button>
@@ -2848,6 +2868,33 @@ body{
         <div class="modal-footer">
             <button class="btn btn-light" onclick="cerrarRegGasto()">Cancelar</button>
             <button class="btn btn-success" onclick="guardarRegGasto()"><i class="ti ti-check"></i> Registrar gasto</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: GASTO SIMPLE (para Estado Mensual — fácil, sin contabilidad) -->
+<div id="modalGastoSimple" class="modal-backdrop">
+    <div class="modal-box" style="max-width:520px;">
+        <div class="modal-header" style="background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; border-radius:12px 12px 0 0;">
+            <h3 style="color:#fff;"><i class="ti ti-receipt"></i> Registrar gasto</h3>
+            <button class="modal-close" onclick="cerrarGastoSimple()" style="color:#fff;">✕</button>
+        </div>
+        <div class="modal-body">
+            <p style="color:var(--text-muted); font-size:12.5px; margin:0 0 12px;">Fácil: elige la <b>categoría</b>, el <b>monto</b> y listo. No necesitas saber de contabilidad.</p>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div class="form-row"><label>Fecha *</label><input type="date" id="gs_fecha"></div>
+                <div class="form-row"><label>Tienda *</label><select id="gs_sucursal"><option value="General">General (ambas)</option><option value="Santiago">Santiago</option><option value="Moca">Moca</option></select></div>
+            </div>
+            <div class="form-row" style="margin-top:8px;"><label>Categoría del gasto *</label><select id="gs_categoria"></select></div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px;">
+                <div class="form-row"><label>Monto (RD$) *</label><input type="number" step="0.01" min="0" id="gs_monto" placeholder="0.00"></div>
+                <div class="form-row"><label>Pagado con</label><select id="gs_metodo"><option value="Efectivo">Efectivo</option><option value="Banco">Banco / Transferencia</option><option value="Tarjeta">Tarjeta</option><option value="Crédito">Crédito (por pagar)</option></select></div>
+            </div>
+            <div class="form-row" style="margin-top:8px;"><label>Descripción / concepto</label><input id="gs_desc" placeholder="Ej. Alquiler local Santiago - junio"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" onclick="cerrarGastoSimple()">Cancelar</button>
+            <button class="btn btn-success" onclick="guardarGastoSimple(this)"><i class="ti ti-check"></i> Guardar gasto</button>
         </div>
     </div>
 </div>
@@ -5425,7 +5472,7 @@ function nav(v, btn) {
     if(v === 'atencion') { setTimeout(() => { renderAtencionCliente(); }, 50); }
     if(v === 'financiamientos') { setTimeout(() => { renderFinanciamientos(); }, 50); }
     if(v === 'articulos') { setTimeout(() => { actualizarInfoplusCount(); renderInfoplusBusqueda(); }, 50); }
-    if(v === 'contabilidad') { setTimeout(() => { cargarCatalogoCuentas(); }, 50); }
+    if(v === 'contabilidad') { setTimeout(() => { cargarCatalogoCuentas(); contaTab('mensual'); }, 50); }
     if(v === 'diagnostico') { setTimeout(() => { cargarConocimiento(); }, 50); }
     if(v === 'recepcion') { setTimeout(async () => {
         if(typeof renderRecepcionesRealizadas === 'function') renderRecepcionesRealizadas();
@@ -6065,14 +6112,182 @@ async function eliminarCuenta(id) {
 
 // ===== CONTABILIDAD — ASIENTOS (partida doble) + LIBRO DIARIO =====
 function contaTab(name) {
-    const tabs = { catalogo:'conta-catalogo', asientos:'conta-asientos', mayor:'conta-mayor', balanza:'conta-balanza', estados:'conta-estados' };
-    const btns = { catalogo:'contaTabCat', asientos:'contaTabAs', mayor:'contaTabMay', balanza:'contaTabBal', estados:'contaTabEF' };
+    const tabs = { mensual:'conta-mensual', catalogo:'conta-catalogo', asientos:'conta-asientos', mayor:'conta-mayor', balanza:'conta-balanza', estados:'conta-estados' };
+    const btns = { mensual:'contaTabMensual', catalogo:'contaTabCat', asientos:'contaTabAs', mayor:'contaTabMay', balanza:'contaTabBal', estados:'contaTabEF' };
     Object.keys(tabs).forEach(k => { const el = document.getElementById(tabs[k]); if(el) el.style.display = (k === name ? '' : 'none'); const b = document.getElementById(btns[k]); if(b) b.className = 'btn ' + (k === name ? 'btn-blue' : 'btn-light'); });
     const hoyMes = new Date().toISOString().slice(0,7);
+    if(name === 'mensual') { const mm = document.getElementById('em_mes'); if(mm && !mm.value) mm.value = hoyMes; renderEstadoMensual(); }
     if(name === 'asientos') { const mm = document.getElementById('as_filtroMes'); if(mm && !mm.value) mm.value = hoyMes; renderLibroDiario(); }
     if(name === 'mayor') { const mm = document.getElementById('lm_mes'); if(mm && !mm.value) mm.value = hoyMes; cargarSelectCuentasLM(); renderLibroMayor(); }
     if(name === 'balanza') { const mm = document.getElementById('bal_mes'); if(mm && !mm.value) mm.value = hoyMes; renderBalanza(); }
     if(name === 'estados') { const mm = document.getElementById('ef_mes'); if(mm && !mm.value) mm.value = hoyMes; const me = document.getElementById('ef_metodo'); if(me) me.value = _metodoCosteo(); renderEstados(); }
+}
+/* ============================================================
+   ESTADO DE RESULTADOS MENSUAL (simple, para no-contadora)
+   Ingresos+Costo automáticos de Info Plus (ventas) + Gastos que registra
+   la contadora en conta_movimientos. Da la utilidad neta real del mes.
+   ============================================================ */
+let _emData = null; // datos del último estado mensual (para imprimir/Excel)
+async function _ensureContaCategorias() {
+    if(cache.contaCategorias && cache.contaCategorias.length) return cache.contaCategorias;
+    try { const { data } = await supabaseClient.from('conta_categorias').select('id,nombre,tipo,orden,activa').eq('activa', true).order('orden'); cache.contaCategorias = data || []; }
+    catch(e) { logError('Cargar categorías conta', e); cache.contaCategorias = []; }
+    return cache.contaCategorias;
+}
+async function abrirGastoSimple() {
+    document.getElementById('gs_fecha').value = new Date().toISOString().slice(0,10);
+    document.getElementById('gs_monto').value = '';
+    document.getElementById('gs_desc').value = '';
+    const sucFiltro = document.getElementById('em_sucursal')?.value || '';
+    document.getElementById('gs_sucursal').value = sucFiltro || 'General';
+    const cats = await _ensureContaCategorias();
+    const sel = document.getElementById('gs_categoria');
+    sel.innerHTML = cats.filter(c => c.tipo === 'gasto').map(c => `<option value="${escapeHtml(c.nombre)}">${escapeHtml(c.nombre)}</option>`).join('');
+    document.getElementById('modalGastoSimple').classList.add('active');
+}
+function cerrarGastoSimple() { document.getElementById('modalGastoSimple').classList.remove('active'); }
+async function guardarGastoSimple(btn) {
+    const fecha = document.getElementById('gs_fecha').value;
+    const categoria = document.getElementById('gs_categoria').value;
+    const sucursal = document.getElementById('gs_sucursal').value || 'General';
+    const monto = Number(document.getElementById('gs_monto').value) || 0;
+    const metodo = document.getElementById('gs_metodo').value;
+    const desc = (document.getElementById('gs_desc').value || '').trim();
+    if(!fecha) return toast('Pon la fecha.', 'error');
+    if(!categoria) return toast('Elige la categoría.', 'error');
+    if(monto <= 0) return toast('Pon el monto.', 'error');
+    const orig = btn ? btn.innerHTML : ''; if(btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Guardando…'; }
+    try {
+        const { error } = await supabaseClient.from('conta_movimientos').insert([{ fecha, tipo: 'gasto', categoria, sucursal, monto, metodo_pago: metodo, descripcion: desc || null }]);
+        if(error) throw error;
+        toast('✅ Gasto registrado.');
+        cerrarGastoSimple();
+        renderEstadoMensual();
+    } catch(e) { logError('Guardar gasto simple', e); toastError(getFriendlyError(e)); }
+    finally { if(btn) { btn.disabled = false; btn.innerHTML = orig; } }
+}
+async function eliminarGastoSimple(id) {
+    if(!await confirmar('¿Borrar este gasto?')) return;
+    try { const { error } = await supabaseClient.from('conta_movimientos').delete().eq('id', id); if(error) throw error; toast('Gasto borrado.'); renderEstadoMensual(); }
+    catch(e) { logError('Borrar gasto', e); toastError(getFriendlyError(e)); }
+}
+async function _datosEstadoMensual() {
+    const mes = document.getElementById('em_mes').value || new Date().toISOString().slice(0,7);
+    const suc = document.getElementById('em_sucursal').value || '';
+    const { ini, fin } = _periodoMes(mes);
+    // Ventas + costo (Info Plus) — siempre combinadas (Info Plus no separa por tienda)
+    let ventasCat = [];
+    try { const { data } = await supabaseClient.rpc('estado_mensual_cat', { p_ini: ini, p_fin: fin }); ventasCat = data || []; }
+    catch(e) { logError('Estado mensual ventas', e); }
+    const ingresos = ventasCat.reduce((s, r) => s + (Number(r.venta) || 0), 0);
+    const costoVentas = ventasCat.reduce((s, r) => s + (Number(r.costo) || 0), 0);
+    // Gastos (conta_movimientos) del mes
+    let q = supabaseClient.from('conta_movimientos').select('id,fecha,categoria,sucursal,monto,metodo_pago,descripcion').eq('tipo', 'gasto').gte('fecha', ini).lt('fecha', fin).order('fecha');
+    if(suc) q = q.eq('sucursal', suc);
+    let gastos = [];
+    try { const { data } = await q; gastos = data || []; } catch(e) { logError('Estado mensual gastos', e); }
+    const gastosPorCat = {};
+    gastos.forEach(g => { const c = g.categoria || '(sin categoría)'; gastosPorCat[c] = (gastosPorCat[c] || 0) + (Number(g.monto) || 0); });
+    const totalGastos = gastos.reduce((s, g) => s + (Number(g.monto) || 0), 0);
+    const bruta = ingresos - costoVentas;
+    const neta = bruta - totalGastos;
+    return { mes, suc, ini, fin, ventasCat, ingresos, costoVentas, bruta, gastos, gastosPorCat, totalGastos, neta };
+}
+async function renderEstadoMensual() {
+    const cont = document.getElementById('em_contenido'); if(!cont) return;
+    cont.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:20px;">Calculando…</p>';
+    try {
+        const d = await _datosEstadoMensual(); _emData = d;
+        const tiendaLbl = d.suc ? d.suc : 'Combinado (Santiago + Moca)';
+        const catsG = Object.keys(d.gastosPorCat).sort((a, b) => d.gastosPorCat[b] - d.gastosPorCat[a]);
+        const filasGastos = catsG.length ? catsG.map(c => `<tr><td style="padding-left:20px;">${escapeHtml(c)}</td><td style="text-align:right;">${money(d.gastosPorCat[c])}</td></tr>`).join('') : `<tr><td colspan="2" style="padding-left:20px; color:#94a3b8;">Sin gastos registrados este mes.</td></tr>`;
+        const avisoSuc = d.suc ? `<div style="background:#fef3c7; color:#92400e; font-size:11.5px; padding:7px 10px; border-radius:6px; margin:6px 0 10px;">⚠️ Las <b>ventas no se separan por tienda</b> todavía (Info Plus no las marca). Lo que ves de ventas/costo es <b>combinado</b>; solo los <b>gastos</b> son de <b>${escapeHtml(d.suc)}</b>. Para una utilidad por tienda real, falta que Info Plus marque la sucursal en las ventas.</div>` : '';
+        const estado = `
+        <h3 style="text-align:center; margin:0;">BAYOL CELL, S.R.L.</h3>
+        <p style="text-align:center; margin:2px 0 10px; color:var(--text-muted);">Estado de Resultados · ${escapeHtml(d.mes)} · ${escapeHtml(tiendaLbl)} · RD$</p>
+        ${avisoSuc}
+        <table style="width:100%; font-size:13.5px; max-width:520px; margin:0 auto;">
+          <tr><td style="font-weight:800; color:#0891b2;">INGRESOS (ventas del mes)</td><td style="text-align:right; font-weight:800;">${money(d.ingresos)}</td></tr>
+          <tr><td style="font-weight:800; color:#0891b2;">(−) Costo de ventas</td><td style="text-align:right;">${money(d.costoVentas)}</td></tr>
+          <tr style="font-weight:800; background:rgba(8,145,178,0.08); border-top:1px solid #e5e7eb;"><td>= UTILIDAD BRUTA</td><td style="text-align:right;">${money(d.bruta)}</td></tr>
+          <tr><td colspan="2" style="font-weight:800; color:#0891b2; padding-top:8px;">GASTOS${d.suc ? ' (' + escapeHtml(d.suc) + ')' : ''}</td></tr>
+          ${filasGastos}
+          <tr style="font-weight:800; border-top:1px solid #e5e7eb;"><td>Total Gastos</td><td style="text-align:right;">${money(d.totalGastos)}</td></tr>
+          <tr style="font-weight:900; background:${d.neta >= 0 ? 'rgba(22,163,74,0.16)' : 'rgba(220,38,38,0.16)'}; font-size:15px;"><td>${d.neta >= 0 ? '= UTILIDAD NETA' : '= PÉRDIDA NETA'}${d.suc ? ' *' : ''}</td><td style="text-align:right;">${money(d.neta)}</td></tr>
+        </table>`;
+        // Lista de gastos del mes (editar/borrar)
+        const lista = d.gastos.length ? `
+        <h4 style="margin:18px 0 6px;">Gastos registrados (${d.gastos.length})</h4>
+        <div class="table-wrap" style="max-height:320px; overflow-y:auto;">
+          <table style="width:100%; font-size:12.5px;">
+            <thead><tr><th>Fecha</th><th>Categoría</th><th>Tienda</th><th>Pagado con</th><th>Descripción</th><th style="text-align:right;">Monto</th><th></th></tr></thead>
+            <tbody>${d.gastos.map(g => `<tr>
+              <td>${g.fecha ? new Date(g.fecha + 'T00:00:00').toLocaleDateString('es-DO') : ''}</td>
+              <td>${escapeHtml(g.categoria || '')}</td>
+              <td>${escapeHtml(g.sucursal || '')}</td>
+              <td>${escapeHtml(g.metodo_pago || '')}</td>
+              <td>${escapeHtml(g.descripcion || '')}</td>
+              <td style="text-align:right; font-weight:700;">${money(g.monto)}</td>
+              <td style="text-align:center;"><button onclick="eliminarGastoSimple('${g.id}')" title="Borrar" style="background:none; border:none; color:#ef4444; cursor:pointer;"><i class="ti ti-trash"></i></button></td>
+            </tr>`).join('')}</tbody>
+          </table>
+        </div>` : '';
+        cont.innerHTML = estado + lista;
+    } catch(e) { logError('Render estado mensual', e); cont.innerHTML = '<p style="color:#dc2626;">Error al generar.</p>'; }
+}
+function imprimirEstadoMensual() {
+    if(!_emData) return toast('Genera primero el estado.', 'error');
+    const d = _emData; const cfg = cache.configTaller || {};
+    const tienda = cfg.nombre || 'BAYOL CELL, S.R.L.';
+    const tiendaLbl = d.suc ? d.suc : 'Combinado (Santiago + Moca)';
+    const catsG = Object.keys(d.gastosPorCat).sort((a, b) => d.gastosPorCat[b] - d.gastosPorCat[a]);
+    const filasG = catsG.length ? catsG.map(c => `<tr><td style="padding-left:18px;">${escapeHtml(c)}</td><td class="num">${money(d.gastosPorCat[c])}</td></tr>`).join('') : `<tr><td colspan="2" style="padding-left:18px; color:#94a3b8;">Sin gastos.</td></tr>`;
+    const w = window.open('', '_blank'); if(!w) return toast('Permite las ventanas emergentes.', 'error');
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Estado de Resultados ${escapeHtml(d.mes)}</title>
+      <style>*{box-sizing:border-box;} body{font-family:Arial,Helvetica,sans-serif; color:#0f172a; padding:24px; max-width:620px; margin:0 auto;}
+      h1{font-size:20px; text-align:center; margin:0;} .sub{text-align:center; color:#64748b; font-size:12px; margin:2px 0 14px;}
+      table{width:100%; border-collapse:collapse; font-size:13px;} td{padding:5px 6px;} .num{text-align:right;}
+      .sec{font-weight:800; color:#0891b2;} .tot{font-weight:800; border-top:1px solid #cbd5e1;} .bruta{font-weight:800; background:#e0f2fe;}
+      .neta{font-weight:900; font-size:15px; background:${d.neta>=0?'#dcfce7':'#fee2e2'};}
+      .foot{margin-top:22px; text-align:center; color:#94a3b8; font-size:11px;}
+      @media print{ .bruta,.neta{ -webkit-print-color-adjust:exact; print-color-adjust:exact; } }</style></head><body>
+      <h1>${escapeHtml(tienda)}</h1><div class="sub">Estado de Resultados · ${escapeHtml(d.mes)} · ${escapeHtml(tiendaLbl)} · RD$</div>
+      ${d.suc ? `<div style="background:#fef3c7; color:#92400e; font-size:11px; padding:6px 9px; border-radius:6px; margin-bottom:8px;">Ventas/costo combinados (Info Plus no separa por tienda); gastos de ${escapeHtml(d.suc)}.</div>` : ''}
+      <table>
+        <tr class="sec"><td>INGRESOS (ventas del mes)</td><td class="num">${money(d.ingresos)}</td></tr>
+        <tr><td>(−) Costo de ventas</td><td class="num">${money(d.costoVentas)}</td></tr>
+        <tr class="bruta"><td>= UTILIDAD BRUTA</td><td class="num">${money(d.bruta)}</td></tr>
+        <tr class="sec"><td colspan="2" style="padding-top:8px;">GASTOS</td></tr>
+        ${filasG}
+        <tr class="tot"><td>Total Gastos</td><td class="num">${money(d.totalGastos)}</td></tr>
+        <tr class="neta"><td>${d.neta>=0?'= UTILIDAD NETA':'= PÉRDIDA NETA'}</td><td class="num">${money(d.neta)}</td></tr>
+      </table>
+      <p class="foot">Documento de control interno · Generado ${new Date().toLocaleString('es-DO')}</p>
+      <script>window.onload=function(){window.print();}<\/script></body></html>`);
+    w.document.close();
+}
+function exportarEstadoMensualExcel() {
+    if(!_emData) return toast('Genera primero el estado.', 'error');
+    const d = _emData; const n2 = (v) => (Number(v) || 0).toFixed(2);
+    const catsG = Object.keys(d.gastosPorCat).sort((a, b) => d.gastosPorCat[b] - d.gastosPorCat[a]);
+    const filasG = catsG.map(c => `<tr><td>${escapeHtml(c)}</td><td>${n2(d.gastosPorCat[c])}</td></tr>`).join('');
+    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"></head><body>
+      <table border="1">
+        <tr><th colspan="2" style="font-size:15px;">BAYOL CELL — Estado de Resultados ${escapeHtml(d.mes)} (${escapeHtml(d.suc || 'Combinado')})</th></tr>
+        <tr><td>INGRESOS (ventas)</td><td>${n2(d.ingresos)}</td></tr>
+        <tr><td>(-) Costo de ventas</td><td>${n2(d.costoVentas)}</td></tr>
+        <tr><td><b>= UTILIDAD BRUTA</b></td><td><b>${n2(d.bruta)}</b></td></tr>
+        <tr><td colspan="2"><b>GASTOS</b></td></tr>
+        ${filasG}
+        <tr><td><b>Total Gastos</b></td><td><b>${n2(d.totalGastos)}</b></td></tr>
+        <tr><td><b>= UTILIDAD NETA</b></td><td><b>${n2(d.neta)}</b></td></tr>
+      </table></body></html>`;
+    const blob = new Blob(['﻿' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+    const url = URL.createObjectURL(blob); const a = document.createElement('a');
+    a.href = url; a.download = `Estado_Resultados_${d.mes}_${(d.suc || 'Combinado')}.xls`;
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+    toast('✅ Excel descargado.');
 }
 // ===== ESTADOS FINANCIEROS (Fase D) =====
 function _periodoMes(mes){ if(!mes) return {ini:null,fin:null}; const ini=mes+'-01'; const d=new Date(mes+'-01T00:00:00'); d.setMonth(d.getMonth()+1); return {ini, fin:d.toISOString().slice(0,10)}; }
