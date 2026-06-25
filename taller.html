@@ -2163,12 +2163,12 @@ body{
                                 <option value="completado">🚚 Despachado</option>
                             </select>
                         </div>
-                        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
-                            <span style="font-size:12px; color:#64748b; font-weight:700;">📅 Filtrar por fecha (Despachado):</span>
-                            <input id="reacondFechaDesde" type="date" onchange="renderDetalleLoteReacond()" style="padding:8px 10px; font-size:13px; border:1px solid #cbd5e1; border-radius:8px;">
-                            <span style="font-size:12px; color:#64748b;">a</span>
-                            <input id="reacondFechaHasta" type="date" onchange="renderDetalleLoteReacond()" style="padding:8px 10px; font-size:13px; border:1px solid #cbd5e1; border-radius:8px;">
-                            <button class="btn btn-light" onclick="_reacondLimpiarFecha()" style="padding:6px 10px; font-size:12px;"><i class="ti ti-x"></i> Limpiar fecha</button>
+                        <div style="display:flex; gap:5px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
+                            <span style="font-size:11px; color:#94a3b8;">📅</span>
+                            <input id="reacondFechaDesde" type="date" title="Desde" onchange="renderDetalleLoteReacond()" style="padding:3px 6px; font-size:11px; border:1px solid #cbd5e1; border-radius:6px;">
+                            <span style="font-size:11px; color:#94a3b8;">–</span>
+                            <input id="reacondFechaHasta" type="date" title="Hasta" onchange="renderDetalleLoteReacond()" style="padding:3px 6px; font-size:11px; border:1px solid #cbd5e1; border-radius:6px;">
+                            <button onclick="_reacondLimpiarFecha()" title="Limpiar fecha" style="border:1px solid #e2e8f0; background:#f8fafc; color:#b91c1c; border-radius:6px; padding:3px 6px; cursor:pointer; font-size:11px;"><i class="ti ti-x"></i></button>
                         </div>
                         <div id="reacondEquiposLista"></div>
                     </div>
