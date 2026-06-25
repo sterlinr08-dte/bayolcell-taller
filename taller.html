@@ -2061,6 +2061,9 @@ body{
                             <button class="tab-btn" data-tab="terminados" onclick="cambiarTabReacond('terminados')" style="padding:11px 14px; cursor:pointer; font-weight:700; white-space:nowrap; font-size:13px;">
                                 ✅ Despachado <span id="cntTerminados" class="badge" style="background:#d1fae5; color:#065f46; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
                             </button>
+                            <button class="tab-btn" data-tab="completado" onclick="cambiarTabReacond('completado')" style="padding:11px 14px; cursor:pointer; font-weight:700; white-space:nowrap; font-size:13px;">
+                                🏁 Completado <span id="cntCompletado" class="badge" style="background:#e2e8f0; color:#334155; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
+                            </button>
                         </div>
                         
                         <!-- Container de la lista filtrada -->
@@ -9968,6 +9971,8 @@ function cargarLotesReacond() {
         const enProceso = equipos.filter(e => ['en_proceso','tecnico_recibio','espera_pieza','listo_revision','reasignado','reparacion_externa'].includes(e.estado_evaluacion)).length;
         const listoVenta = equipos.filter(e => e.estado_evaluacion === 'listo_venta').length;
         const vendidos = equipos.filter(e => e.estado_evaluacion === 'vendido').length;
+        const completados = equipos.filter(e => e.estado_evaluacion === 'vendido' && e.completado).length;
+        const despachadosNC = vendidos - completados; // despachados que aún NO están completados
         const total = equipos.length;
         
         // Decidir estado predominante del lote
@@ -9986,18 +9991,20 @@ function cargarLotesReacond() {
         else if(estadoLote === 'listo_venta') contListo++;
         else contTerm++;
         
-        return { lote, equipos, pendientes, enEval, evaluados, enProceso, listoVenta, vendidos, total, estadoLote };
+        return { lote, equipos, pendientes, enEval, evaluados, enProceso, listoVenta, vendidos, completados, despachadosNC, total, estadoLote };
     });
-    
-    // Actualizar contadores en pestañas (Listo/Despachado cuentan EQUIPOS, no lotes)
+
+    // Actualizar contadores en pestañas (Listo/Despachado/Completado cuentan EQUIPOS, no lotes)
     const setBadge = (id, n) => { const el = document.getElementById(id); if(el) el.textContent = n; };
     const eqListo = lotesConEstado.reduce((s, d) => s + d.listoVenta, 0);
-    const eqDesp = lotesConEstado.reduce((s, d) => s + d.vendidos, 0);
+    const eqDesp = lotesConEstado.reduce((s, d) => s + d.despachadosNC, 0);
+    const eqComp = lotesConEstado.reduce((s, d) => s + d.completados, 0);
     setBadge('cntPendientes', contPend);
     setBadge('cntEvaluacion', contEval);
     setBadge('cntProceso', contProc);
     setBadge('cntListoVenta', eqListo);
     setBadge('cntTerminados', eqDesp);
+    setBadge('cntCompletado', eqComp);
 
     renderLotesReacondTab(lotesConEstado);
 }
@@ -10010,11 +10017,12 @@ function renderLotesReacondTab(lotesConEstado) {
     // Listo = lotes con equipos listos; Despachado = lotes con equipos despachados.
     let filtrados;
     if(reacondTabActual === 'listo_venta') filtrados = lotesConEstado.filter(d => d.listoVenta > 0);
-    else if(reacondTabActual === 'terminados') filtrados = lotesConEstado.filter(d => d.vendidos > 0);
+    else if(reacondTabActual === 'terminados') filtrados = lotesConEstado.filter(d => d.despachadosNC > 0);
+    else if(reacondTabActual === 'completado') filtrados = lotesConEstado.filter(d => d.completados > 0);
     else filtrados = lotesConEstado.filter(d => d.estadoLote === reacondTabActual);
 
     if(filtrados.length === 0) {
-        const msg = reacondTabActual === 'pendientes' 
+        const msg = reacondTabActual === 'pendientes'
             ? 'No hay lotes pendientes. Envía un lote desde el módulo Compras.'
             : reacondTabActual === 'evaluacion'
             ? 'No hay lotes en evaluación.'
@@ -10022,6 +10030,8 @@ function renderLotesReacondTab(lotesConEstado) {
             ? 'No hay lotes en proceso de reparación.'
             : reacondTabActual === 'listo_venta'
             ? 'No hay lotes con equipos listos para venta.'
+            : reacondTabActual === 'completado'
+            ? 'No hay lotes con equipos completados.'
             : 'No hay lotes con equipos despachados.';
         cont.innerHTML = `<p style="color:var(--text-muted); text-align:center; padding:30px; font-size:13px;">${msg}</p>`;
         return;
@@ -10052,7 +10062,8 @@ function renderLotesReacondTab(lotesConEstado) {
                 <div style="background:#d1fae5; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#065f46;">${d.evaluados}</b><br>Evaluados</div>
                 <div style="background:#fed7aa; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#9a3412;">${d.enProceso}</b><br>En Proceso</div>
                 <div style="background:#ddd6fe; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#5b21b6;">${d.listoVenta}</b><br>Listo Venta</div>
-                <div style="background:#dcfce7; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#15803d;">${d.vendidos}</b><br>Despachado</div>
+                <div style="background:#dcfce7; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#15803d;">${d.despachadosNC}</b><br>Despachado</div>
+                <div style="background:#e2e8f0; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#334155;">${d.completados}</b><br>Completado</div>
                 <div style="background:#f1f5f9; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px;">${d.total}</b><br>Total</div>
             </div>
             <div style="background:#e5e7eb; height:6px; border-radius:3px; margin-top:10px; overflow:hidden;">
@@ -10194,8 +10205,8 @@ function abrirLoteReacond(loteId) {
     // Si vino desde la pestaña Listo o Despachado, entrar con ese filtro puesto
     const fsel = document.getElementById('reacondFiltroEstado');
     if(fsel) {
-        const ini = reacondTabActual === 'listo_venta' ? 'listo_venta' : (reacondTabActual === 'terminados' ? 'vendido' : '');
-        fsel.value = ini;
+        const mapaFiltro = { listo_venta: 'listo_venta', terminados: 'vendido', completado: 'completado' };
+        fsel.value = mapaFiltro[reacondTabActual] || '';
         renderDetalleLoteReacond();
     }
 }
