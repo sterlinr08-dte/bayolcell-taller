@@ -8581,12 +8581,14 @@ function _smartSelectIconClick(containerId) {
 // Ventana flotante con TODOS los artículos de Info Plus + barra de búsqueda (para elegir)
 let _artBuscTarget = 'ss-eq-articulo';
 let _artBuscOnPick = null; // si se pasa, se llama con el artículo elegido (en vez de un smart-select)
-async function abrirBuscadorArticulos(targetSS, onPick, refHtml) {
+async function abrirBuscadorArticulos(targetSS, onPick, refHtml, seed) {
     _artBuscTarget = (typeof targetSS === 'string' && targetSS) ? targetSS : 'ss-eq-articulo';
     _artBuscOnPick = (typeof onPick === 'function') ? onPick : null;
+    const seedVal = (seed || '').toString();
     abrirModalGenerico('🔍 Artículos (Info Plus)', `
         ${refHtml || ''}
-        <input id="artBuscModal" placeholder="Buscar por código, descripción, marca o referencia…" autocomplete="off" oninput="renderBuscadorArticulos()" style="width:100%; padding:10px 12px; font-size:14px; border:1px solid #cbd5e1; border-radius:8px; margin-bottom:10px;">
+        <input id="artBuscModal" placeholder="Buscar por código, descripción, marca o referencia…" autocomplete="off" value="${escapeHtml(seedVal)}" oninput="renderBuscadorArticulos()" style="width:100%; padding:10px 12px; font-size:14px; border:1px solid #cbd5e1; border-radius:8px; margin-bottom:10px;">
+        ${seedVal ? `<div style="font-size:11px; color:#64748b; margin:-4px 0 10px;">Filtrado por el modelo del equipo. Borra palabras si quieres ver más.</div>` : ''}
         <div id="artBuscModalLista"><div style="text-align:center; color:#64748b; padding:20px;">⏳ Cargando artículos (Info Plus)…</div></div>
     `);
     // Si ya hay artículos en memoria, mostrarlos al instante; si no, cargarlos (sin re-descargar destructivamente)
@@ -13482,7 +13484,22 @@ async function agregarPiezaInfoPlus(equipoId) {
             refHtml = `<div style="background:#fff7ed; border:1px solid #fed7aa; border-radius:8px; padding:8px 10px; margin-bottom:10px;"><div style="font-size:11px; font-weight:700; color:#9a3412; margin-bottom:4px;">FALLAS DEL EQUIPO (referencia)</div>${chips}</div>`;
         }
     } catch(e) { logError('Fallas referencia Info Plus', e); }
-    abrirBuscadorArticulos(null, (a) => _agregarPiezaInfoPlusConfirm(equipoId, a), refHtml);
+    const seed = _seedBuscadorPieza((cache.refurb || []).find(e => e.id === equipoId));
+    abrirBuscadorArticulos(null, (a) => _agregarPiezaInfoPlusConfirm(equipoId, a), refHtml, seed);
+}
+// Genera el texto de filtro inicial del buscador a partir del modelo del equipo (para ver solo piezas de ese modelo)
+function _seedBuscadorPieza(eq) {
+    if(!eq) return '';
+    let s = (eq.modelo || '').toString().toUpperCase();
+    s = s.replace(/\bCELULAR\b/g, ' ')
+         .replace(/\bAPPLE\b/g, ' ')
+         .replace(/\b(\d+)\s*(GB|TB)\b/g, ' ')
+         .replace(/\bRAM\b/g, ' ')
+         .replace(/[\+\/]/g, ' ')
+         .replace(/\b([A-Z0-9]+)(\s+\1\b)+/g, '$1') // quitar palabras duplicadas consecutivas
+         .replace(/\s{2,}/g, ' ')
+         .trim();
+    return s;
 }
 // Modal para decidir qué hacer cuando la pieza no tiene existencia en el Taller.
 // Devuelve una promesa: {accion:'descontar', almacen:N} | {accion:'solocosto'} | {accion:'cancelar'}
@@ -13840,12 +13857,16 @@ async function verFichaDespacho(equipoId) {
         const conCosto = usadas.filter(p => (Number(p.cantidad) || 1) * (Number(p.costo_unitario) || 0) > 0);
         const piezasLineas = conCosto.length ? conCosto.map(p => {
             const esIP = !p.agregada_por_tecnico && !p.pieza_id && !!p.pieza_codigo;
-            const acc = (esIP && esAdminPiezas) ? `<span style="margin-left:8px; white-space:nowrap;">
+            const esExterna = !p.pieza_codigo && !p.pieza_id && !p.agregada_por_tecnico;
+            // Editar/borrar disponible para piezas manejadas por admin (Info Plus y externas)
+            const acc = esAdminPiezas ? `<span style="margin-left:8px; white-space:nowrap;">
                 <a onclick="editarPiezaInfoPlus('${p.id}')" title="Editar" style="cursor:pointer; color:#0369a1; font-size:13px;"><i class="ti ti-edit"></i></a>
                 <a onclick="eliminarPiezaInfoPlus('${p.id}')" title="Quitar" style="cursor:pointer; color:#b91c1c; font-size:13px; margin-left:8px;"><i class="ti ti-trash"></i></a>
             </span>` : '';
+            const etiqueta = esIP ? ' <span class="badge" style="background:#bae6fd; color:#075985; font-size:9px;">INFO PLUS</span>'
+                : (esExterna ? ' <span class="badge" style="background:#ede9fe; color:#6d28d9; font-size:9px;">EXTERNA</span>' : '');
             return `<div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; gap:8px; margin-top:2px;">
-                <span style="flex:1; min-width:0;">${escapeHtml(p.pieza_nombre || 'Pieza')} ×${p.cantidad || 1}${esIP ? ' <span class="badge" style="background:#bae6fd; color:#075985; font-size:9px;">INFO PLUS</span>' : ''}</span>
+                <span style="flex:1; min-width:0;">${escapeHtml(p.pieza_nombre || 'Pieza')} ×${p.cantidad || 1}${etiqueta}</span>
                 <b>${money((p.cantidad || 1) * (p.costo_unitario || 0))}</b>${acc}
             </div>`;
         }).join('') : '';
