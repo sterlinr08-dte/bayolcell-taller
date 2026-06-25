@@ -10391,10 +10391,13 @@ function imprimirFormatoInfoPlus() {
         }).join('');
         return `<div class="grupo">
             <div class="ghead">
-                <div class="gmodwrap"><span class="gnum">${gi + 1}</span><span class="gmod">${escapeHtml(g.modelo || 'Sin modelo')}</span> ${g.codigo ? `<span class="gcod copy" data-c="${escapeHtml(g.codigo)}" onclick="cp(this)" title="Clic para copiar el código">Cód. IP: ${escapeHtml(g.codigo)}</span>` : '<span class="gcod nocod">sin código IP</span>'}</div>
-                <div class="gnums">
+                <div class="gmodwrap">
+                    <span class="gnum">${gi + 1}</span><span class="gmod">${escapeHtml(g.modelo || 'Sin modelo')}</span>
+                    ${g.codigo ? `<span class="gcod copy" data-c="${escapeHtml(g.codigo)}" onclick="cp(this)" title="Clic para copiar el código">Cód. IP: ${escapeHtml(g.codigo)}</span>` : '<span class="gcod nocod">sin código IP</span>'}
                     <span class="pill">Cant. <b>${g.cantidad}</b></span>
                     <span class="pill pill-prom">Promedio <b class="copy" ${cpNum(g.promedio)} onclick="cp(this)" title="Clic para copiar el costo promedio">${money(g.promedio)}</b></span>
+                </div>
+                <div class="gnums">
                     <span class="pill pill-tot">Total <b class="copy" ${cpNum(g.total)} onclick="cp(this)" title="Clic para copiar">${money(g.total)}</b></span>
                 </div>
             </div>
@@ -10426,7 +10429,7 @@ function imprimirFormatoInfoPlus() {
             .nota b.tip{color:#0e7490;}
             .grupo{border:1px solid #a5f3fc;border-radius:9px;margin-bottom:10px;overflow:hidden;page-break-inside:avoid;}
             .ghead{background:linear-gradient(135deg,#0e7490,#0891b2);color:#fff;padding:6px 10px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;align-items:center;}
-            .gmodwrap{display:flex;align-items:center;gap:7px;}
+            .gmodwrap{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
             .gnum{background:rgba(255,255,255,.25);width:19px;height:19px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;}
             .gmod{font-weight:800;font-size:13px;} .gcod{font-size:10.5px;color:#cffafe;background:rgba(255,255,255,.15);padding:2px 7px;border-radius:6px;} .nocod{color:#fecaca;}
             .gnums{display:flex;gap:5px;flex-wrap:wrap;}
