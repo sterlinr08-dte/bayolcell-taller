@@ -2067,10 +2067,10 @@ body{
                                 🛒 Listo <span id="cntListoVenta" class="badge" style="background:#ddd6fe; color:#5b21b6; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
                             </button>
                             <button class="tab-btn" data-tab="terminados" onclick="cambiarTabReacond('terminados')" style="padding:11px 14px; cursor:pointer; font-weight:700; white-space:nowrap; font-size:13px;">
-                                ✅ Despachado <span id="cntTerminados" class="badge" style="background:#d1fae5; color:#065f46; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
+                                ✅ Completado <span id="cntTerminados" class="badge" style="background:#d1fae5; color:#065f46; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
                             </button>
                             <button class="tab-btn" data-tab="completado" onclick="cambiarTabReacond('completado')" style="padding:11px 14px; cursor:pointer; font-weight:700; white-space:nowrap; font-size:13px;">
-                                🏁 Completado <span id="cntCompletado" class="badge" style="background:#e2e8f0; color:#334155; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
+                                🚚 Despachado <span id="cntCompletado" class="badge" style="background:#e2e8f0; color:#334155; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
                             </button>
                         </div>
                         
@@ -2117,11 +2117,11 @@ body{
                             </div>
                             <div id="kpiCardDespachado" onclick="_reacondFiltrarPorEstado('vendido')" title="Clic para filtrar" style="background:#dcfce7; padding:12px; border-radius:8px; text-align:center; cursor:pointer; border:2px solid transparent;">
                                 <div style="font-size:24px; font-weight:bold; color:#15803d;" id="kpiDespachado">0</div>
-                                <div style="font-size:11px; color:#15803d;">DESPACHADO</div>
+                                <div style="font-size:11px; color:#15803d;">COMPLETADO</div>
                             </div>
                             <div id="kpiCardCompletado" onclick="_reacondFiltrarPorEstado('completado')" title="Equipos despachados ya completados (editables por garantía)" style="background:#e2e8f0; padding:12px; border-radius:8px; text-align:center; cursor:pointer; border:2px solid transparent;">
                                 <div style="font-size:24px; font-weight:bold; color:#334155;" id="kpiCompletado">0</div>
-                                <div style="font-size:11px; color:#334155;">COMPLETADO</div>
+                                <div style="font-size:11px; color:#334155;">DESPACHADO</div>
                             </div>
                         </div>
                         
@@ -2140,8 +2140,8 @@ body{
                                         <button onclick="_reacondPasarA('evaluado')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'">✅ Evaluado</button>
                                         <button onclick="_reacondPasarA('en_proceso')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'">🔧 En proceso</button>
                                         <button onclick="_reacondPasarA('listo_venta')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'">🛒 Listo</button>
-                                        <button onclick="_reacondPasarA('vendido')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'">🚚 Despachado</button>
-                                        <button onclick="_reacondPasarA('completado')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; border-top:1px solid #f1f5f9; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'">🏁 Completado</button>
+                                        <button onclick="_reacondPasarA('vendido')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'">✅ Completado</button>
+                                        <button onclick="_reacondPasarA('completado')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; border-top:1px solid #f1f5f9; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'">🚚 Despachado</button>
                                     </div>
                                 </div>
                                 <button id="btnReporteCostosLote" class="btn btn-light" style="padding:8px 14px; color:#166534; border-color:#86efac; display:none;" onclick="imprimirReporteCostosLote()"><i class="ti ti-printer"></i> Imprimir</button>
@@ -2159,8 +2159,8 @@ body{
                                 <option value="en_proceso">🔧 En proceso</option>
                                 <option value="reasignado">↪️ Reasignado</option>
                                 <option value="listo_venta">🛒 Listo para venta</option>
-                                <option value="vendido">✅ Despachado</option>
-                                <option value="completado">🏁 Completado</option>
+                                <option value="vendido">✅ Completado</option>
+                                <option value="completado">🚚 Despachado</option>
                             </select>
                         </div>
                         <div id="reacondEquiposLista"></div>
@@ -9047,6 +9047,8 @@ const _REACOND_ESTADOS_TRABAJO = ['en_proceso','tecnico_recibio','espera_pieza',
 function _reacondEquipoPasaEstado(e, fEstado) {
     if(fEstado === 'completado') return e.estado_evaluacion === 'vendido' && e.completado;
     if(fEstado === 'vendido') return e.estado_evaluacion === 'vendido' && !e.completado;
+    // "En proceso" agrupa TODOS los sub-estados de trabajo (igual que la tarjeta KPI)
+    if(fEstado === 'en_proceso') return _REACOND_ESTADOS_TRABAJO.includes(e.estado_evaluacion);
     if(fEstado) return (e.estado_evaluacion || 'pendiente') === fEstado;
     return !(e.estado_evaluacion === 'vendido' && e.completado); // "Todos" oculta los completados
 }
@@ -9111,7 +9113,7 @@ async function _reacondPasarA(destino) {
     document.removeEventListener('click', _reacondCerrarPasarMenu);
     const ids = [..._reacondSel];
     if(!ids.length) return toast('Marca primero los equipos que quieres mover.', 'error');
-    const labels = { pendiente:'Pendiente', evaluado:'Evaluado', en_proceso:'En proceso', listo_venta:'Listo', vendido:'Despachado', completado:'Completado' };
+    const labels = { pendiente:'Pendiente', evaluado:'Evaluado', en_proceso:'En proceso', listo_venta:'Listo', vendido:'Completado', completado:'Despachado' };
     if(!await confirmar(`¿Pasar ${ids.length} equipo(s) a "${labels[destino] || destino}"?`)) return;
     // Construir el cambio según el destino
     const patch = {};
@@ -9157,21 +9159,21 @@ function _reacondActualizarSelCostoUI() {
     const paraCompletar = selEq.filter(r => !r.completado).length;
     const paraRegresar = selEq.filter(r => r.completado).length;
     const bc = document.getElementById('btnCompletarSel');
-    if(bc) { bc.style.display = (isAdminUser() && paraCompletar > 0) ? '' : 'none'; bc.innerHTML = `<i class="ti ti-flag-check"></i> Marcar completado (${paraCompletar})`; }
+    if(bc) { bc.style.display = (isAdminUser() && paraCompletar > 0) ? '' : 'none'; bc.innerHTML = `<i class="ti ti-truck-delivery"></i> Marcar Despachado (${paraCompletar})`; }
     const bd = document.getElementById('btnDescompletarSel');
-    if(bd) { bd.style.display = (isAdminUser() && paraRegresar > 0) ? '' : 'none'; bd.innerHTML = `<i class="ti ti-arrow-back-up"></i> Regresar a Despachado (${paraRegresar})`; }
+    if(bd) { bd.style.display = (isAdminUser() && paraRegresar > 0) ? '' : 'none'; bd.innerHTML = `<i class="ti ti-arrow-back-up"></i> Regresar a Completado (${paraRegresar})`; }
 }
 // Quita de "Despachado" y marca como COMPLETADO los seleccionados (siguen editables)
 async function _reacondMarcarCompletado() {
     if(!isAdminUser()) return toast('Solo el administrador.', 'error');
     const ids = (cache.refurb || []).filter(r => _reacondSelCosto.has(r.id) && r.estado_evaluacion === 'vendido' && !r.completado).map(r => r.id);
-    if(!ids.length) return toast('Marca primero equipos despachados.', 'error');
-    if(!await confirmar(`¿Marcar ${ids.length} equipo(s) como COMPLETADO? Saldrán de "Despachado" pero seguirán editables (por si hay garantía).`)) return;
+    if(!ids.length) return toast('Marca primero equipos completados.', 'error');
+    if(!await confirmar(`¿Marcar ${ids.length} equipo(s) como DESPACHADO? Saldrán de "Completado" pero seguirán editables (por si hay garantía).`)) return;
     try {
         const { error } = await supabaseClient.from('equipos_refurbish').update({ completado: true, fecha_completado: new Date().toISOString() }).in('id', ids);
         if(error) throw error;
         ids.forEach(id => { const r = (cache.refurb || []).find(x => x.id === id); if(r) { r.completado = true; r.fecha_completado = new Date().toISOString(); } _reacondSelCosto.delete(id); });
-        toast(`🏁 ${ids.length} equipo(s) marcado(s) como completado.`);
+        toast(`🚚 ${ids.length} equipo(s) marcado(s) como despachado.`);
         renderDetalleLoteReacond();
     } catch(e) { logError('Marcar completado', e); toastError(getFriendlyError(e)); }
 }
@@ -9179,12 +9181,12 @@ async function _reacondMarcarCompletado() {
 async function _reacondRegresarDespachado() {
     if(!isAdminUser()) return toast('Solo el administrador.', 'error');
     const ids = (cache.refurb || []).filter(r => _reacondSelCosto.has(r.id) && r.estado_evaluacion === 'vendido' && r.completado).map(r => r.id);
-    if(!ids.length) return toast('Marca primero equipos completados.', 'error');
+    if(!ids.length) return toast('Marca primero equipos despachados.', 'error');
     try {
         const { error } = await supabaseClient.from('equipos_refurbish').update({ completado: false, fecha_completado: null }).in('id', ids);
         if(error) throw error;
         ids.forEach(id => { const r = (cache.refurb || []).find(x => x.id === id); if(r) { r.completado = false; r.fecha_completado = null; } _reacondSelCosto.delete(id); });
-        toast(`↩️ ${ids.length} equipo(s) regresado(s) a Despachado.`);
+        toast(`↩️ ${ids.length} equipo(s) regresado(s) a Completado.`);
         renderDetalleLoteReacond();
     } catch(e) { logError('Regresar a despachado', e); toastError(getFriendlyError(e)); }
 }
@@ -10159,8 +10161,8 @@ function renderLotesReacondTab(lotesConEstado) {
                 <div style="background:#d1fae5; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#065f46;">${d.evaluados}</b><br>Evaluados</div>
                 <div style="background:#fed7aa; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#9a3412;">${d.enProceso}</b><br>En Proceso</div>
                 <div style="background:#ddd6fe; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#5b21b6;">${d.listoVenta}</b><br>Listo Venta</div>
-                <div style="background:#dcfce7; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#15803d;">${d.despachadosNC}</b><br>Despachado</div>
-                <div style="background:#e2e8f0; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#334155;">${d.completados}</b><br>Completado</div>
+                <div style="background:#dcfce7; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#15803d;">${d.despachadosNC}</b><br>Completado</div>
+                <div style="background:#e2e8f0; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#334155;">${d.completados}</b><br>Despachado</div>
                 <div style="background:#f1f5f9; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px;">${d.total}</b><br>Total</div>
             </div>
             <div style="background:#e5e7eb; height:6px; border-radius:3px; margin-top:10px; overflow:hidden;">
@@ -10187,7 +10189,7 @@ function renderEquiposEstadoReacond(estadoEq, lotesConEstado, cont) {
             const tec = e.tecnico_asignado_id ? (cache.tecnicos || []).find(t => t.id === e.tecnico_asignado_id) : null;
             const btnLabel = `<button class="btn btn-light" style="padding:6px 9px; font-size:12px; background:#fef3c7; color:#92400e; border:1px solid #fcd34d;" onclick="imprimirLabelEquipo('${e.id}')" title="Imprimir label"><i class="ti ti-printer"></i></button>`;
             const acciones = estadoEq === 'listo_venta'
-                ? `${permBtn('estado_despachar', `<button class="btn btn-dark" style="padding:6px 11px; font-size:12px; background:linear-gradient(180deg,#10b981,#059669);" onclick="marcarDespachado('${e.id}')"><i class="ti ti-truck-delivery"></i> Despachar al almacén</button>`)}
+                ? `${permBtn('estado_despachar', `<button class="btn btn-dark" style="padding:6px 11px; font-size:12px; background:linear-gradient(180deg,#10b981,#059669);" onclick="marcarDespachado('${e.id}')"><i class="ti ti-flag-check"></i> Marcar Completado</button>`)}
                    ${btnLabel}
                    <button class="btn btn-light" style="padding:6px 9px; font-size:12px;" onclick="abrirPanelProceso('${e.id}')" title="Ver"><i class="ti ti-eye"></i></button>`
                 : `${e.fecha_despacho ? `<span style="font-size:11px; color:#15803d;"><i class="ti ti-calendar"></i> ${new Date(e.fecha_despacho).toLocaleDateString('es-DO')}</span>` : ''}
@@ -10204,7 +10206,7 @@ function renderEquiposEstadoReacond(estadoEq, lotesConEstado, cont) {
         return `<div style="background:#fff; border:1px solid var(--border-color); border-radius:10px; padding:12px; margin-bottom:10px;">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
                 <div style="font-weight:700; font-size:14px; color:var(--blue-btn);">📦 Lote ${escapeHtml(g.lote.codigo_lote || (g.lote.id || '').slice(0,8))} <span style="color:#94a3b8; font-weight:600; font-size:12px;">· ${escapeHtml(prov ? prov.nombre : 'Sin proveedor')}</span></div>
-                <span class="badge" style="${estadoEq === 'listo_venta' ? 'background:#ddd6fe; color:#5b21b6;' : 'background:#dcfce7; color:#15803d;'} font-size:11px; font-weight:700;">${estadoEq === 'listo_venta' ? '🛒 Listos: ' + g.equipos.length : '🚚 Despachados: ' + g.equipos.length}</span>
+                <span class="badge" style="${estadoEq === 'listo_venta' ? 'background:#ddd6fe; color:#5b21b6;' : 'background:#dcfce7; color:#15803d;'} font-size:11px; font-weight:700;">${estadoEq === 'listo_venta' ? '🛒 Listos: ' + g.equipos.length : '✅ Completados: ' + g.equipos.length}</span>
             </div>
             ${filasEq}
         </div>`;
@@ -10224,13 +10226,13 @@ function _datosReporteCostosLote() {
     if(_reacondFiltroTec) { const t = (cache.tecnicos||[]).find(x => x.id === _reacondFiltroTec); equipos = equipos.filter(e => e.tecnico_asignado_id === _reacondFiltroTec); filtrosTxt.push('Técnico: ' + (t?.nombre || '')); }
     if(fEstado === 'completado') {
         equipos = equipos.filter(e => e.estado_evaluacion === 'vendido' && e.completado);
-        filtrosTxt.push('Estado: Completado');
+        filtrosTxt.push('Estado: Despachado');
     } else if(fEstado === 'vendido') {
         equipos = equipos.filter(e => e.estado_evaluacion === 'vendido' && !e.completado);
-        filtrosTxt.push('Estado: Despachado');
+        filtrosTxt.push('Estado: Completado');
     } else if(fEstado) {
         const lbl = { pendiente:'Pendiente', en_evaluacion:'En evaluación', evaluado:'Evaluado', en_proceso:'En proceso', reasignado:'Reasignado', listo_venta:'Listo' }[fEstado] || fEstado;
-        equipos = equipos.filter(e => (e.estado_evaluacion||'pendiente') === fEstado);
+        equipos = equipos.filter(e => _reacondEquipoPasaEstado(e, fEstado));
         filtrosTxt.push('Estado: ' + lbl);
     } else {
         equipos = equipos.filter(e => !(e.estado_evaluacion === 'vendido' && e.completado));
@@ -10307,7 +10309,7 @@ function buscarEquipoGlobalReacond() {
         const lote = (cache.lotes || []).find(l => l.id === e.lote_id);
         const loteName = lote ? (lote.codigo_lote || (lote.id || '').slice(0, 8)) : 'Sin lote';
         let et = (typeof obtenerEtiquetaEstado === 'function') ? obtenerEtiquetaEstado(e.estado_evaluacion) : { text: e.estado_evaluacion, bg: '#eee', color: '#333' };
-        if(e.estado_evaluacion === 'vendido' && e.completado) et = { text: '🏁 Completado', bg: '#e2e8f0', color: '#334155' };
+        if(e.estado_evaluacion === 'vendido' && e.completado) et = { text: '🚚 Despachado', bg: '#e2e8f0', color: '#334155' };
         const qArg = (e.imei || e.articulo_codigo || e.modelo || '').toString().replace(/'/g, '');
         return `<div onclick="_irAEquipoReacond('${e.id}','${e.lote_id}','${escapeHtml(qArg)}')" style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding:9px 11px; border-bottom:1px solid #f1f5f9; cursor:pointer;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">
             <div style="min-width:0;">
@@ -10455,10 +10457,7 @@ function renderDetalleLoteReacond() {
     let filtrados = equipos.map((eq, i) => ({ eq, num: i + 1 }));
     if(_reacondFiltroTec) filtrados = filtrados.filter(x => x.eq.tecnico_asignado_id === _reacondFiltroTec);
     // "Completado" = despachados ya completados; el resto de vistas (incluido "Todos") los ocultan
-    if(fEstado === 'completado') filtrados = filtrados.filter(x => x.eq.estado_evaluacion === 'vendido' && x.eq.completado);
-    else if(fEstado === 'vendido') filtrados = filtrados.filter(x => x.eq.estado_evaluacion === 'vendido' && !x.eq.completado);
-    else if(fEstado) filtrados = filtrados.filter(x => (x.eq.estado_evaluacion || 'pendiente') === fEstado);
-    else filtrados = filtrados.filter(x => !(x.eq.estado_evaluacion === 'vendido' && x.eq.completado));
+    filtrados = filtrados.filter(x => _reacondEquipoPasaEstado(x.eq, fEstado));
     if(q) {
         const palabras = q.split(/\s+/).filter(Boolean);
         filtrados = filtrados.filter(x => {
@@ -10528,10 +10527,10 @@ function renderEquipoReacondCard(eq, num) {
         badgeColor = 'background:#ddd6fe; color:#5b21b6;';
         badgeText = '🛒 Listo';
         accionPrincipal = `verFichaDespacho('${eq.id}')`;
-        botones = `${permBtn('estado_despachar', `<button class="btn btn-dark" style="padding:8px 14px; background:linear-gradient(180deg,#10b981,#059669); box-shadow:0 3px 8px rgba(15,23,42,0.12);" onclick="event.stopPropagation(); marcarDespachado('${eq.id}')"><i class="ti ti-truck-delivery"></i> Despachar al almacén</button>`)}`;
+        botones = `${permBtn('estado_despachar', `<button class="btn btn-dark" style="padding:8px 14px; background:linear-gradient(180deg,#10b981,#059669); box-shadow:0 3px 8px rgba(15,23,42,0.12);" onclick="event.stopPropagation(); marcarDespachado('${eq.id}')"><i class="ti ti-flag-check"></i> Marcar Completado</button>`)}`;
     } else if(estado === 'vendido') {
-        if(eq.completado) { badgeColor = 'background:#e2e8f0; color:#334155;'; badgeText = '🏁 Completado'; }
-        else { badgeColor = 'background:#d1fae5; color:#065f46;'; badgeText = '✅ Despachado'; }
+        if(eq.completado) { badgeColor = 'background:#e2e8f0; color:#334155;'; badgeText = '🚚 Despachado'; }
+        else { badgeColor = 'background:#d1fae5; color:#065f46;'; badgeText = '✅ Completado'; }
         accionPrincipal = `verFichaDespacho('${eq.id}')`;
     } else {
         badgeColor = 'background:#f1f5f9; color:#64748b;';
@@ -10560,7 +10559,7 @@ function renderEquipoReacondCard(eq, num) {
                     ${eq.color ? ' · ' + escapeHtml(eq.color) : ''}
                     ${eq.capacidad ? ' · ' + escapeHtml(eq.capacidad) : ''}
                 </div>
-                ${estado === 'vendido' && eq.fecha_despacho ? `<div style="font-size:11px; font-weight:700; margin-top:5px; color:#15803d;"><i class="ti ti-truck-delivery"></i> Despachado al almacén: ${new Date(eq.fecha_despacho).toLocaleDateString('es-DO')}</div>` : ''}
+                ${estado === 'vendido' && eq.fecha_despacho ? `<div style="font-size:11px; font-weight:700; margin-top:5px; color:#15803d;"><i class="ti ti-truck-delivery"></i> Despachado: ${new Date(eq.fecha_despacho).toLocaleDateString('es-DO')}</div>` : ''}
                 ${tecnico && eq.fecha_asignacion ? `<div style="font-size:11px; color:#0891b2; font-weight:600; margin-top:4px;"><i class="ti ti-stopwatch"></i> Tomado: ${tiempoDesde(eq.fecha_asignacion)}</div>` : ''}
                 ${eq.notas_diagnostico ? `<div style="background:#f1f5f9; padding:6px 10px; border-radius:6px; margin-top:6px; font-size:12px;"><b>Notas:</b> ${escapeHtml(eq.notas_diagnostico)}</div>` : ''}
             </div>
@@ -12681,7 +12680,7 @@ async function abrirPanelProceso(equipoId) {
                         ${estado === 'listo_venta' ? `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;">
                             <button class="btn btn-light" onclick="agregarPiezaInfoPlus('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#0369a1; border-color:#7dd3fc;"><i class="ti ti-search"></i> Pieza inventario (Info Plus)</button>
                             <button class="btn btn-light" onclick="agregarPiezaExterna('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#7c3aed; border-color:#c4b5fd;"><i class="ti ti-plus"></i> Pieza externa</button>
-                            <button class="btn btn-light" onclick="marcarEquipoCompletado('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#0f766e; border-color:#5eead4;"><i class="ti ti-flag-check"></i> Completado</button>
+                            <button class="btn btn-light" onclick="marcarEquipoCompletado('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#0f766e; border-color:#5eead4;"><i class="ti ti-truck-delivery"></i> Despachado</button>
                         </div>` : ''}
                     </div>`;
                 })() : ''}
@@ -13785,15 +13784,15 @@ async function marcarEquipoCompletado(equipoId) {
     }
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return;
-    if(eq.completado) return toast('Este equipo ya está Completado.');
-    if(!await confirmar(`🏁 ¿Marcar "${eq.modelo || 'equipo'}" como COMPLETADO?\n\nSale de Despachado pero sigue editable por garantía.`)) return;
+    if(eq.completado) return toast('Este equipo ya está Despachado.');
+    if(!await confirmar(`🚚 ¿Marcar "${eq.modelo || 'equipo'}" como DESPACHADO?\n\nSale de Completado pero sigue editable por garantía.`)) return;
     try {
         const { error } = await supabaseClient.from('equipos_refurbish').update({
             estado_evaluacion: 'vendido', completado: true, fecha_completado: new Date().toISOString()
         }).eq('id', equipoId);
         if(error) throw error;
         try { await supabaseClient.from('equipo_historial').insert([{ equipo_id: equipoId, estado_nuevo: 'completado', accion: '🏁 Marcado como Completado', usuario: sessionUser?.nombre || 'Admin' }]); } catch(_e) {}
-        toast('🏁 Equipo marcado como Completado.');
+        toast('🚚 Equipo marcado como Despachado.');
         cerrarPanelProceso();
         const mg = document.getElementById('modalGenerico'); if(mg) mg.remove();
         await loadAll();
@@ -13807,7 +13806,7 @@ async function marcarDespachado(equipoId) {
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return;
     // El taller es para CONTROL: "despachar" = entregar al almacén principal (no es una venta, no se pide precio)
-    if(!await confirmar(`🚚 ¿Despachar "${eq.modelo}" al almacén principal?\n\nQuedará registrado como Despachado.`)) return;
+    if(!await confirmar(`✅ ¿Marcar "${eq.modelo}" como COMPLETADO?\n\nQuedará registrado como Completado.`)) return;
     try {
         const { error } = await supabaseClient.from('equipos_refurbish').update({
             estado_evaluacion: 'vendido',
@@ -13819,7 +13818,7 @@ async function marcarDespachado(equipoId) {
             accion: '🚚 Despachado al almacén principal',
             usuario: sessionUser?.nombre || 'Admin'
         }]);
-        toast('🚚 Despachado al almacén principal.');
+        toast('✅ Equipo marcado como Completado.');
         await loadAll();
         if(reacondLoteAbiertoId) renderDetalleLoteReacond();
     } catch(e) {
@@ -13880,7 +13879,7 @@ async function verFichaDespacho(equipoId) {
             ${esAdminPiezas ? `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;">
                 <button class="btn btn-light" onclick="agregarPiezaInfoPlus('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#0369a1; border-color:#7dd3fc;"><i class="ti ti-search"></i> Pieza inventario (Info Plus)</button>
                 <button class="btn btn-light" onclick="agregarPiezaExterna('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#7c3aed; border-color:#c4b5fd;"><i class="ti ti-plus"></i> Pieza externa</button>
-                <button class="btn btn-light" onclick="marcarEquipoCompletado('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#0f766e; border-color:#5eead4;"><i class="ti ti-flag-check"></i> Completado</button>
+                <button class="btn btn-light" onclick="marcarEquipoCompletado('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#0f766e; border-color:#5eead4;"><i class="ti ti-truck-delivery"></i> Despachado</button>
             </div>` : ''}
         </div>`;
     }
@@ -14341,7 +14340,7 @@ function obtenerEtiquetaEstado(estado) {
         'espera_pieza': { text: '⏳ Espera pieza', bg:'#fde68a', color:'#92400e' },
         'listo_revision': { text: '👁️ Listo (por recibir)', bg:'#e9d5ff', color:'#6b21a8' },
         'listo_venta': { text: '🛒 Listo Venta', bg:'#ddd6fe', color:'#5b21b6' },
-        'vendido': { text: '✅ Despachado', bg:'#d1fae5', color:'#065f46' },
+        'vendido': { text: '✅ Completado', bg:'#d1fae5', color:'#065f46' },
         'reasignado': { text: '👥 Reasignado', bg:'#fef3c7', color:'#92400e' },
         'reparacion_externa': { text: '🔧 Reparación externa', bg:'#e0e7ff', color:'#3730a3' }
     };
