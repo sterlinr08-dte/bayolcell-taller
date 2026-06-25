@@ -10481,7 +10481,7 @@ function renderEquipoReacondCard(eq, num) {
     } else if(estado === 'listo_venta') {
         badgeColor = 'background:#ddd6fe; color:#5b21b6;';
         badgeText = '🛒 Listo';
-        accionPrincipal = `abrirPanelProceso('${eq.id}')`;
+        accionPrincipal = `verFichaDespacho('${eq.id}')`;
         botones = `${permBtn('estado_despachar', `<button class="btn btn-dark" style="padding:8px 14px; background:linear-gradient(180deg,#10b981,#059669); box-shadow:0 3px 8px rgba(15,23,42,0.12);" onclick="event.stopPropagation(); marcarDespachado('${eq.id}')"><i class="ti ti-truck-delivery"></i> Despachar al almacén</button>`)}`;
     } else if(estado === 'vendido') {
         if(eq.completado) { badgeColor = 'background:#e2e8f0; color:#334155;'; badgeText = '🏁 Completado'; }
