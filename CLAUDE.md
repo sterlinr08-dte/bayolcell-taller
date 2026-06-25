@@ -220,3 +220,39 @@ Usos:
 - Imprimir el historial individual del equipo (mini-reporte por equipo).
 - Adaptar pestaña "Rentabilidad" a inversión por lote/equipo (sin ventas).
 - Casos especiales por probar en vivo: equipo devuelto, reasignar técnico, reparación externa.
+
+## ACTUALIZACIÓN sesión 24-25 jun 2026 (Info Plus API escritura, Contabilidad simple, Reacond)
+
+### Info Plus API — estado con la LLAVE NUEVA (la que pasó Dagoberto)
+- **LECTURA: funciona todo** con la clave actual (secret `INFOPLUS_CLAVE`): `listaarticulos`, `factura` (ventas), `compra` (lectura), y ahora también **`inventario`, `proveedor`, `cliente`** (antes daban "Error en las credenciales"). `almacen`/`moneda`/`vendedor` existen pero sin permiso (400). `empleado`/`localidad`/`catalogo`/`serie`/`serial` → 404 (no existen).
+- **ESCRITURA: NO persiste (bloqueo de Dagoberto).** `compra` (POST) y `ajuste` (POST) responden **"Se ha creado correctamente"** pero **NO guardan**: el código devuelto **no avanza** (compra siempre `C00001923`, ajuste siempre `AI00000636`) y el **stock no cambia** (verificado leyendo `listaarticulos` antes/después: art. 1843 quedó igual). Probado con artículo real, `movimiento` 1 y 2, `codlocalidad` 1/3/6 — mismo resultado. **Conclusión: la llave del API NO tiene permiso de escritura/commit en bayol** (el usuario web SÍ guarda; la llave no). Pendiente: Dagoberto habilite escritura. Falta también que dé los códigos reales de bayol: `codminventario` (= "Salida Mercancía"), `codlocalidad` (= "TALLER BAYOL"), `codcatalogo` (el del ejemplo 1110194 es de su base de prueba; el art. 4552 no existe en bayol).
+- **Seriales/IMEI: NO hay forma por API** (`inventario` no los trae; `serie`/`serial` 404). Sigue a mano.
+- **Ventas por sucursal (Santiago/Moca): NO se puede** — el `factura` no trae empleado ni sucursal (solo producto, precio, costo, categoría, cuenta de cliente, direcciones). Pedirle a Dagoberto agregar el **empleado** o la **localidad** a la venta.
+- **Modelos POST confirmados por Dagoberto:** `CompraModel` (POST `/api/compra?basedatos&clave`) y `AjusteModel` (POST `/api/ajuste`). AjusteModel: header `codminventario`, `codlocalidad`, `codcatalogo` + `detallesajuste[]` (codarticulo, precio, cantidad, codunidad:1, `movimiento`, fvencimiento) + `seriales[]`.
+
+### Edge Functions nuevas (deployadas, verify_jwt:true)
+- `infoplus-compra-crear` — POST compra a Info Plus (lista; espera permiso de escritura).
+- `infoplus-ajuste-crear` — POST ajuste de inventario (lista; espera permiso de escritura).
+- `infoplus-existencia` — lee existencia de un artículo por almacén (`listaarticulos`), sin exponer la clave. Útil para verificar stock antes/después.
+- `infoplus-compras-sync` — lee `compra` de un rango y llena `infoplus_art_prov` (mapeo artículo→proveedor, sumado). Llamar con `{desde,hasta,reset:true}` (rango completo en una sola llamada para que sume bien).
+- `infoplus-probe` — diagnóstico de lectura (DESACTIVADA tras la auditoría; redacta la clave).
+- Para invocarlas en pruebas: `select net.http_post(url, body, headers jsonb_build_object('apikey',<anon legacy JWT>,'Authorization','Bearer '<anon>...))` y leer `net._http_response`. (El anon legacy JWT se obtiene con el MCP `get_publishable_keys`.)
+
+### Contabilidad — "Estado Mensual" (capa simple para no-contadora) — HECHO
+- Nueva pestaña **"Estado Mensual"** (1ª en Contabilidad; `contaTab('mensual')`, es la default al entrar). Estado de Resultados del mes: **Ingresos + Costo automáticos de Info Plus** (RPC `estado_mensual_cat(p_ini,p_fin)` sobre `infoplus_ventas`, que SÍ trae `monto_venta` y `monto_costo`) → Utilidad Bruta − Gastos = **Utilidad Neta**.
+- **Registro de gasto simple** (`modalGastoSimple` / `abrirGastoSimple` / `guardarGastoSimple`) → guarda en **`conta_movimientos`** (fecha, tipo='gasto', categoría de `conta_categorias` tipo=gasto, sucursal Santiago/Moca/General, monto, metodo_pago, descripcion). **Sin débito/crédito.** Lista de gastos del mes con borrar (`eliminarGastoSimple`). Imprimir/Excel (`imprimirEstadoMensual`/`exportarEstadoMensualExcel`). Estado en `_emData`.
+- Selector de tienda: **Combinado = completo**; por tienda muestra gastos de esa tienda pero **ventas combinadas** (Info Plus no separa por sucursal — pendiente). La contabilidad formal (asientos/balance) quedó intacta.
+- `conta_movimientos` RLS: política `conta_mov_acc` (authenticated + `app_puede_contabilidad()`). `conta_categorias`: 52 gasto, 6 ingreso, 3 compra.
+
+### Reacondicionados — cambios
+- **Liquidación de Aduana / Comparar / Formato compra:** ver sección "Otros módulos". El reporte de costos (impreso y Excel) ahora tiene **columna "Código" (IP) aparte** (solo número) y montos en **RD$**; Imprimir = misma info que Excel (Técnico, Subcosto, Cant., Costo unit., desglose de piezas).
+- **Barra del lote simplificada:** quitados los botones de costos por selección; **"Pasar a ▾"** (menú multiselección) mueve los equipos seleccionados a Pendiente/Evaluado/En proceso/Listo/Despachado/**Completado**. Casilla única por tarjeta. "Asignar a técnico" igual. "Imprimir"/"Exportar Excel" del lote se mantienen.
+- **Estado COMPLETADO:** columna `equipos_refurbish.completado` (bool) + `fecha_completado`. Los despachados ya manejados se pasan a Completado (salen de Despachado, siguen editables por garantía). Badge "🏁 Completado". `_aduanaCalcular` etc. sin cambios.
+- **Overview por lotes:** las pestañas **Listo, Despachado, Completado** muestran **carpeta por lote** (como En Proceso); al **Abrir Lote** desde una pestaña entra **filtrado a ese estado**. Despachado ya NO cuenta los completados (`despachadosNC` vs `completados`). Pestaña "🏁 Completado" nueva.
+- **Bugs arreglados:** buscador de Info Plus que salía vacío (cargaba 1 vez, no clobberea); modal "Imprimir label" quedaba detrás de la ficha (z-index 600); "MARCAR TODOS".
+
+### Tablas nuevas / cambios de datos
+- **`infoplus_art_prov`** (codproducto, codproveedor, proveedor, cantidad, monto, ultima_fecha) — mapeo artículo→proveedor desde compras. Para el análisis de **rentabilidad por proveedor** (cruzar con `infoplus_ventas`). Resultado: **ENTERPRISE SUPPLY** es el proveedor más rentable (ganancia ~RD$8.1M, margen 52%). *(Análisis hecho por SQL; aún NO hay reporte fijo en la app — idea pendiente.)*
+- `equipos_refurbish.completado` (bool) + `fecha_completado`.
+- RPC `estado_mensual_cat(date,date)` (security definer, grant a authenticated/anon).
+- `infoplus_articulos` ya tenía política `infoplus_articulos_auth_all` (authenticated). No requirió cambios.
