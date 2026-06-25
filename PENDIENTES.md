@@ -1,6 +1,6 @@
 # 📋 PENDIENTES — BAYOL CELL
 
-> Lista de tareas pendientes para retomar cuando estés listo. Última actualización: 16 jun 2026.
+> Lista de tareas pendientes para retomar cuando estés listo. Última actualización: 25 jun 2026.
 
 > ✅ **Plan Hexnode PRO comprado (anual)** — ya no se vence la prueba. Tienes bloqueo, ubicación, kiosk, FRP, wipe y notificaciones.
 
@@ -48,6 +48,18 @@ Probadas en vivo contra el equipo real (Smooth 6.5, Android 11, ID Hexnode 1):
 - ✅ Bloquear / Desbloquear (orden aceptada por Hexnode).
 - ⏳ Ubicar: responde "rastreo APAGADO" → falta activar la política (pendiente #2).
 - Falta: hacer una **entrega real completa** con un cliente (verificar → entregar → cobrar → liberar).
+
+## ⭐ 7. Margen por teléfono / lote (módulo "Ventas de Lotes" en Estadísticas) — NUEVO (25 jun 2026)
+**Idea (Sterling):** en Estadísticas, ver por cada teléfono de un lote: **costo final** (compra+flete+piezas, ya lo tenemos) vs **precio de venta** vs **margen RD$ y %**, y totales por lote. Para saber la ganancia real por teléfono reacondicionado.
+- **Bloqueo:** el **precio de venta NO se captura** (de 18 despachados, solo 2 tienen `precio_venta_real`). Y **no se puede sacar automático** de Info Plus porque el endpoint `factura` **no trae el IMEI/serial** por venta, y además mezcla stock normal con reacondicionado del mismo modelo → no se puede saber a qué precio se vendió ESE teléfono.
+- **Pendiente clave (Dagoberto, posiblemente mañana):** agregar el **IMEI/serial a cada línea de venta** del endpoint `factura`. Con eso se cruza la venta ↔ el equipo reacondicionado (por IMEI) y el margen sale **automático**.
+- **Plan B (si no llega el IMEI):** capturar el `precio_venta_real` a mano (campo en la ficha del equipo) y armar el reporte igual. Campos ya existen en `equipos_refurbish`: `precio_venta_real`, `precio_venta_estimado`.
+- Nota: la pestaña **Rentabilidad** de Reacond se alimentaba de `precio_venta_real` (hoy casi vacío) — este módulo la revive.
+
+## ⏳ 8. Info Plus API — lo que falta de Dagoberto (25 jun 2026)
+- 🔴 **ESCRITURA no guarda:** `compra` y `ajuste` (POST) responden "creado correctamente" pero **no hacen commit** (el código no avanza, el stock no baja). La **llave del API no tiene permiso de escritura** en bayol (el usuario web sí). → Pedir habilitar escritura + dar los códigos reales de bayol (`codminventario`="Salida Mercancía", `codlocalidad`="TALLER BAYOL", `codcatalogo`). Sin esto NO se puede: descontar piezas, registrar compras automáticas.
+- 🔴 **IMEI en ventas:** pedir agregar el **IMEI/serial** (y/o el **empleado/sucursal**) a `factura` → habilita margen por teléfono (#7) y separar ventas Santiago vs Moca.
+- ✅ **Lectura YA funciona** con la llave nueva: inventario, proveedor, cliente, listaarticulos, factura, compra.
 
 ---
 
