@@ -12632,8 +12632,11 @@ async function abrirPanelProceso(equipoId) {
                         ${flete > 0 ? `<div style="display:flex; justify-content:space-between; font-size:13px; margin-top:4px;"><span>Envío (proporcional):</span><b>${money(flete)}</b></div>` : ''}
                         <div style="display:flex; justify-content:space-between; font-size:13px; margin-top:4px;"><span>Piezas usadas (${piezas.length}):</span><b>${money(sumPiezas)}</b></div>
                         <div style="display:flex; justify-content:space-between; font-size:16px; margin-top:8px; padding-top:8px; border-top:1px dashed #86efac; font-weight:800; color:#166534;"><span>COSTO FINAL:</span><span>${money(final)}</span></div>
-                        ${estado === 'listo_venta' ? `<button class="btn btn-light" onclick="agregarPiezaInfoPlus('${equipoId}')" style="margin-top:10px; padding:8px 12px; font-size:12px; color:#0369a1; border-color:#7dd3fc;"><i class="ti ti-search"></i> Agregar pieza del inventario (Info Plus)</button>
-                    <button class="btn btn-light" onclick="agregarPiezaExterna('${equipoId}')" style="margin-top:10px; margin-left:6px; padding:8px 12px; font-size:12px; color:#7c3aed; border-color:#c4b5fd;"><i class="ti ti-plus"></i> Agregar pieza externa (no es de Info Plus)</button>` : ''}
+                        ${estado === 'listo_venta' ? `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;">
+                            <button class="btn btn-light" onclick="agregarPiezaInfoPlus('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#0369a1; border-color:#7dd3fc;"><i class="ti ti-search"></i> Pieza inventario (Info Plus)</button>
+                            <button class="btn btn-light" onclick="agregarPiezaExterna('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#7c3aed; border-color:#c4b5fd;"><i class="ti ti-plus"></i> Pieza externa</button>
+                            <button class="btn btn-light" onclick="abrirDespachoRapido()" style="padding:6px 10px; font-size:11px; color:#0891b2; border-color:#67e8f9;"><i class="ti ti-truck-delivery"></i> Despacho</button>
+                        </div>` : ''}
                     </div>`;
                 })() : ''}
                 ${estado === 'reparacion_externa' ? `
@@ -13234,6 +13237,86 @@ function _despachoMostrarArt() {
         <div style="font-size:11px; color:#94a3b8; margin-top:4px;">Existencias según última sincronización.</div>
     </div>`;
 }
+// Núcleo compartido: hace salida del origen + entrada al destino y guarda el historial. Devuelve {estado, detalle}.
+async function _ejecutarDespacho({ art, origen, destino, cantidad, nota }) {
+    const codNum = parseInt(String(art.codigo).replace(/[^0-9]/g, ''), 10);
+    const precio = Number(art.costo) || 0;
+    const com = `Despacho ${_nombreAlmacen(origen)}→${_nombreAlmacen(destino)}${nota ? ': ' + nota : ''}`;
+    const rOut = await _infoplusAjustePieza(codNum, cantidad, precio, false, com, origen);
+    let rIn = { ok: false, error: 'no se ejecutó (falló la salida)' };
+    if(rOut.ok) rIn = await _infoplusAjustePieza(codNum, cantidad, precio, true, com, destino);
+    const estado = (rOut.ok && rIn.ok) ? 'ok' : (rOut.ok ? 'parcial' : 'error');
+    const detalle = `Salida: ${rOut.ok ? 'OK' : ('ERROR ' + (rOut.error || ''))} · Entrada: ${rIn.ok ? 'OK' : ('ERROR ' + (rIn.error || ''))}`;
+    try {
+        await supabaseClient.from('despachos_almacen').insert([{
+            codarticulo: codNum, articulo_nombre: (art.descripcion || String(codNum)),
+            cantidad: cantidad, almacen_origen: origen, almacen_destino: destino,
+            usuario: sessionUser?.nombre || 'Admin', nota: nota || null, estado, detalle
+        }]);
+    } catch(e) { logError('Guardar despacho', e); }
+    return { estado, detalle };
+}
+// ----- DESPACHO RÁPIDO (modal que abre encima del panel de reparación, sin cerrarlo) -----
+let _despRapArt = null;
+function abrirDespachoRapido() {
+    if(!tienePermiso('despacho_ver')) return toast('🔒 No tienes permiso de Despacho.', 'error');
+    _despRapArt = null;
+    const opts = ALMACENES_IP.map(a => `<option value="${a.c}">${a.n} (${a.c})</option>`).join('');
+    const prev = document.getElementById('modalDespachoRapido'); if(prev) prev.remove();
+    const box = document.createElement('div');
+    box.className = 'modal-backdrop active';
+    box.id = 'modalDespachoRapido';
+    box.style.zIndex = '250'; // encima del panel (100), debajo del buscador (500) y de confirmar (300)
+    box.innerHTML = `<div class="modal-box" style="max-width:480px;">
+        <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-truck-delivery"></i> Despacho rápido</h3></div>
+        <div class="modal-body">
+          <button class="btn btn-light" onclick="_despRapBuscar()" style="margin-bottom:10px;"><i class="ti ti-search"></i> Buscar artículo</button>
+          <div id="despRapArtInfo" style="margin-bottom:10px; color:#94a3b8; font-size:13px;">Ningún artículo seleccionado.</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div><label style="font-size:12px; font-weight:700; color:#475569;">Desde</label><select id="despRapOrigen" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:8px;">${opts}</select></div>
+            <div><label style="font-size:12px; font-weight:700; color:#475569;">Hacia</label><select id="despRapDestino" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:8px;">${opts}</select></div>
+          </div>
+          <div style="margin-top:10px;"><label style="font-size:12px; font-weight:700; color:#475569;">Cantidad</label><input id="despRapCant" type="number" min="1" value="1" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:8px;"></div>
+          <div style="margin-top:10px;"><label style="font-size:12px; font-weight:700; color:#475569;">Nota (opcional)</label><input id="despRapNota" type="text" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:8px;"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-light" onclick="document.getElementById('modalDespachoRapido').remove()">Cancelar</button>
+          <button class="btn btn-blue" onclick="hacerDespachoRapido()"><i class="ti ti-truck-delivery"></i> Hacer despacho</button>
+        </div>
+    </div>`;
+    document.body.appendChild(box);
+    const o = document.getElementById('despRapOrigen'); if(o) o.value = '1';
+    const d = document.getElementById('despRapDestino'); if(d) d.value = '6';
+    _ensureInfoplusArticulos();
+}
+function _despRapBuscar() {
+    abrirBuscadorArticulos(null, (a) => { _despRapArt = a; _despRapMostrar(); });
+}
+function _despRapMostrar() {
+    const info = document.getElementById('despRapArtInfo');
+    if(!info || !_despRapArt) return;
+    const full = _findInfoplusArt(_despRapArt.codigo) || {};
+    const ex = full.existencias || {};
+    const chips = ALMACENES_IP.map(a => { const v = Number(ex[String(a.c)] || 0); return `<span style="display:inline-block; background:${v>0?'#dcfce7':'#f1f5f9'}; color:${v>0?'#166534':'#94a3b8'}; font-size:11px; font-weight:700; padding:3px 8px; border-radius:9px; margin:2px;">${a.n}: ${v}</span>`; }).join('');
+    info.innerHTML = `<div style="color:#0f172a; font-weight:700; font-size:13px;">${escapeHtml(_despRapArt.descripcion || String(_despRapArt.codigo))} <span style="color:#94a3b8; font-weight:600;">· ${escapeHtml(String(_despRapArt.codigo))}</span></div><div style="margin-top:4px;">${chips}</div>`;
+}
+async function hacerDespachoRapido() {
+    if(!_despRapArt) return toast('Busca un artículo primero.', 'error');
+    const origen = parseInt(document.getElementById('despRapOrigen')?.value, 10);
+    const destino = parseInt(document.getElementById('despRapDestino')?.value, 10);
+    const cant = parseInt(document.getElementById('despRapCant')?.value, 10) || 0;
+    const nota = (document.getElementById('despRapNota')?.value || '').trim();
+    if(origen === destino) return toast('El origen y el destino no pueden ser el mismo almacén.', 'error');
+    if(cant <= 0) return toast('La cantidad debe ser mayor que 0.', 'error');
+    if(!await confirmar(`¿Mover ${cant} u. de "${_despRapArt.descripcion || _despRapArt.codigo}"\nde ${_nombreAlmacen(origen)} → ${_nombreAlmacen(destino)}?`)) return;
+    const { estado, detalle } = await _ejecutarDespacho({ art: _despRapArt, origen, destino, cantidad: cant, nota });
+    if(estado === 'ok') {
+        toast(`✅ Despacho: ${cant} u. ${_nombreAlmacen(origen)} → ${_nombreAlmacen(destino)}`);
+        const m = document.getElementById('modalDespachoRapido'); if(m) m.remove();
+    } else if(estado === 'parcial') toast(`⚠️ Salió del origen pero NO entró al destino. Revisa Info Plus.\n${detalle}`, 'error');
+    else toast(`❌ No se pudo hacer el despacho.\n${detalle}`, 'error');
+    if(document.getElementById('v-despachos')?.classList.contains('active')) _despachoCargarHistorial();
+}
 async function hacerDespachoAlmacen() {
     if(!tienePermiso('despacho_ver')) return toast('🔒 No tienes permiso.', 'error');
     if(!_despachoArt) return toast('Primero busca y selecciona un artículo.', 'error');
@@ -13254,22 +13337,7 @@ async function hacerDespachoAlmacen() {
     let msg = `¿Mover ${cant} unidad(es) de "${_despachoArt.descripcion || codNum}"\nde ${_nombreAlmacen(origen)} → ${_nombreAlmacen(destino)}?`;
     if(exOrigen !== null) msg += `\n\nExistencia actual en ${_nombreAlmacen(origen)}: ${exOrigen}` + (exOrigen < cant ? ' ⚠️ (quedaría en negativo)' : '');
     if(!await confirmar(msg)) return;
-    const precio = Number(_despachoArt.costo) || 0;
-    const com = `Despacho ${_nombreAlmacen(origen)}→${_nombreAlmacen(destino)}${nota ? ': ' + nota : ''}`;
-    // Salida del origen
-    const rOut = await _infoplusAjustePieza(codNum, cant, precio, false, com, origen);
-    // Entrada al destino (solo si la salida funcionó)
-    let rIn = { ok: false, error: 'no se ejecutó (falló la salida)' };
-    if(rOut.ok) rIn = await _infoplusAjustePieza(codNum, cant, precio, true, com, destino);
-    const estado = (rOut.ok && rIn.ok) ? 'ok' : (rOut.ok ? 'parcial' : 'error');
-    const detalle = `Salida: ${rOut.ok ? 'OK' : ('ERROR ' + (rOut.error || ''))} · Entrada: ${rIn.ok ? 'OK' : ('ERROR ' + (rIn.error || ''))}`;
-    try {
-        await supabaseClient.from('despachos_almacen').insert([{
-            codarticulo: codNum, articulo_nombre: (_despachoArt.descripcion || String(codNum)),
-            cantidad: cant, almacen_origen: origen, almacen_destino: destino,
-            usuario: sessionUser?.nombre || 'Admin', nota: nota || null, estado, detalle
-        }]);
-    } catch(e) { logError('Guardar despacho', e); }
+    const { estado, detalle } = await _ejecutarDespacho({ art: _despachoArt, origen, destino, cantidad: cant, nota });
     if(estado === 'ok') toast(`✅ Despacho hecho: ${cant} u. ${_nombreAlmacen(origen)} → ${_nombreAlmacen(destino)}`);
     else if(estado === 'parcial') toast(`⚠️ Salió del origen pero NO entró al destino. Revisa Info Plus.\n${detalle}`, 'error');
     else toast(`❌ No se pudo hacer el despacho.\n${detalle}`, 'error');
@@ -13720,8 +13788,11 @@ async function verFichaDespacho(equipoId) {
             ${piezasLineas ? `<div style="margin-top:6px; padding-top:6px; border-top:1px dashed #bbf7d0;">${piezasLineas}</div>` : ''}
             <div style="display:flex; justify-content:space-between; font-size:13px; margin-top:4px;"><span>Piezas usadas (${usadas.length}):</span><b>${money(repuestos)}</b></div>
             <div style="display:flex; justify-content:space-between; font-size:16px; margin-top:8px; padding-top:8px; border-top:1px dashed #86efac; font-weight:800; color:#166534;"><span>COSTO FINAL:</span><span>${money(final)}</span></div>
-            ${esAdminPiezas ? `<button class="btn btn-light" onclick="agregarPiezaInfoPlus('${equipoId}')" style="margin-top:10px; padding:8px 12px; font-size:12px; color:#0369a1; border-color:#7dd3fc;"><i class="ti ti-search"></i> Agregar pieza del inventario (Info Plus)</button>
-            <button class="btn btn-light" onclick="agregarPiezaExterna('${equipoId}')" style="margin-top:10px; margin-left:6px; padding:8px 12px; font-size:12px; color:#7c3aed; border-color:#c4b5fd;"><i class="ti ti-plus"></i> Agregar pieza externa (no es de Info Plus)</button>` : ''}
+            ${esAdminPiezas ? `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;">
+                <button class="btn btn-light" onclick="agregarPiezaInfoPlus('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#0369a1; border-color:#7dd3fc;"><i class="ti ti-search"></i> Pieza inventario (Info Plus)</button>
+                <button class="btn btn-light" onclick="agregarPiezaExterna('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#7c3aed; border-color:#c4b5fd;"><i class="ti ti-plus"></i> Pieza externa</button>
+                <button class="btn btn-light" onclick="abrirDespachoRapido()" style="padding:6px 10px; font-size:11px; color:#0891b2; border-color:#67e8f9;"><i class="ti ti-truck-delivery"></i> Despacho</button>
+            </div>` : ''}
         </div>`;
     }
     const esVendido = (eq.estado_evaluacion === 'vendido');
