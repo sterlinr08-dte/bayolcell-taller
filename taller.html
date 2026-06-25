@@ -12635,7 +12635,7 @@ async function abrirPanelProceso(equipoId) {
                         ${estado === 'listo_venta' ? `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;">
                             <button class="btn btn-light" onclick="agregarPiezaInfoPlus('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#0369a1; border-color:#7dd3fc;"><i class="ti ti-search"></i> Pieza inventario (Info Plus)</button>
                             <button class="btn btn-light" onclick="agregarPiezaExterna('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#7c3aed; border-color:#c4b5fd;"><i class="ti ti-plus"></i> Pieza externa</button>
-                            <button class="btn btn-light" onclick="abrirDespachoRapido()" style="padding:6px 10px; font-size:11px; color:#0891b2; border-color:#67e8f9;"><i class="ti ti-truck-delivery"></i> Despacho</button>
+                            <button class="btn btn-light" onclick="marcarEquipoCompletado('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#0f766e; border-color:#5eead4;"><i class="ti ti-flag-check"></i> Completado</button>
                         </div>` : ''}
                     </div>`;
                 })() : ''}
@@ -13717,6 +13717,28 @@ async function aprobarTerminado(equipoId) {
     }
 }
 
+// Marca el equipo como COMPLETADO (estado vendido + completado=true). Sale de Despachado pero sigue editable por garantía.
+async function marcarEquipoCompletado(equipoId) {
+    if(!isAdminUser() && !tienePermiso('estado_despachar')) {
+        return toast('No tienes permiso para completar equipos.', 'error');
+    }
+    const eq = (cache.refurb || []).find(r => r.id === equipoId);
+    if(!eq) return;
+    if(eq.completado) return toast('Este equipo ya está Completado.');
+    if(!await confirmar(`🏁 ¿Marcar "${eq.modelo || 'equipo'}" como COMPLETADO?\n\nSale de Despachado pero sigue editable por garantía.`)) return;
+    try {
+        const { error } = await supabaseClient.from('equipos_refurbish').update({
+            estado_evaluacion: 'vendido', completado: true, fecha_completado: new Date().toISOString()
+        }).eq('id', equipoId);
+        if(error) throw error;
+        try { await supabaseClient.from('equipo_historial').insert([{ equipo_id: equipoId, estado_nuevo: 'completado', accion: '🏁 Marcado como Completado', usuario: sessionUser?.nombre || 'Admin' }]); } catch(_e) {}
+        toast('🏁 Equipo marcado como Completado.');
+        cerrarPanelProceso();
+        const mg = document.getElementById('modalGenerico'); if(mg) mg.remove();
+        await loadAll();
+        if(reacondLoteAbiertoId) renderDetalleLoteReacond();
+    } catch(e) { logError('marcarEquipoCompletado', e); toastError(getFriendlyError(e)); }
+}
 async function marcarDespachado(equipoId) {
     if(!isAdminUser() && !tienePermiso('estado_despachar')) {
         return toast('No tienes permiso para despachar equipos.', 'error');
@@ -13791,7 +13813,7 @@ async function verFichaDespacho(equipoId) {
             ${esAdminPiezas ? `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;">
                 <button class="btn btn-light" onclick="agregarPiezaInfoPlus('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#0369a1; border-color:#7dd3fc;"><i class="ti ti-search"></i> Pieza inventario (Info Plus)</button>
                 <button class="btn btn-light" onclick="agregarPiezaExterna('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#7c3aed; border-color:#c4b5fd;"><i class="ti ti-plus"></i> Pieza externa</button>
-                <button class="btn btn-light" onclick="abrirDespachoRapido()" style="padding:6px 10px; font-size:11px; color:#0891b2; border-color:#67e8f9;"><i class="ti ti-truck-delivery"></i> Despacho</button>
+                <button class="btn btn-light" onclick="marcarEquipoCompletado('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#0f766e; border-color:#5eead4;"><i class="ti ti-flag-check"></i> Completado</button>
             </div>` : ''}
         </div>`;
     }
