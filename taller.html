@@ -9290,6 +9290,7 @@ function _reporteCostosPrintHTML({ titulo, subtitulo, infoChips, equipos }) {
             .cards{display:flex; gap:10px; flex-wrap:wrap; margin:14px 0;}
             .card{flex:1; min-width:115px; border:1px solid #e2e8f0; border-left:4px solid #94a3b8; border-radius:8px; padding:7px 11px; background:#f8fafc;}
             .card.total{border-left-color:#16a34a; background:#f0fdf4;}
+            .card.prom{border-left-color:#d97706; background:#fffbeb;}
             .card .l{font-size:10px; color:#64748b; text-transform:uppercase; letter-spacing:.3px;}
             .card .v{font-size:15px; font-weight:800; margin-top:2px;}
             table{width:100%; border-collapse:collapse; margin-top:6px; font-size:10.5px;}
@@ -9312,6 +9313,7 @@ function _reporteCostosPrintHTML({ titulo, subtitulo, infoChips, equipos }) {
             <div class="card"><div class="l">Compra</div><div class="v">${money(tCompra)}</div></div>
             <div class="card"><div class="l">Envío</div><div class="v">${money(tFlete)}</div></div>
             <div class="card"><div class="l">Piezas</div><div class="v">${money(tPiezas)}</div></div>
+            <div class="card prom"><div class="l">Costo promedio (unit.)</div><div class="v">${money(equipos.length ? tFinal / equipos.length : 0)}</div></div>
             <div class="card total"><div class="l">Costo final total</div><div class="v">${money(tFinal)}</div></div>
         </div>
         <table>
@@ -9363,6 +9365,7 @@ function _reporteCostosExcelDL({ titulo, infoLineas, equipos, filename }) {
             <tr style="background:#0f172a; color:#fff;"><th>#</th><th>Modelo / Pieza</th><th>Código</th><th>IMEI</th><th>Estado / Tipo</th><th>Técnico</th><th>Compra</th><th>Envío</th><th>Subcosto</th><th>Cant.</th><th>Costo unit.</th><th>Piezas</th><th>Costo final</th></tr>
             ${filas}
             <tr style="background:#eef2ff;"><td colspan="6"><b>TOTALES</b></td><td><b>${mny(tCompra)}</b></td><td><b>${mny(tFlete)}</b></td><td><b>${mny(tSub)}</b></td><td></td><td></td><td><b>${mny(tPiezas)}</b></td><td><b>${mny(tFinal)}</b></td></tr>
+            <tr style="background:#fffbeb;"><td colspan="6"><b>COSTO PROMEDIO (unit.) = Total ÷ ${equipos.length} equipo(s)</b></td><td colspan="6"></td><td><b>${mny(equipos.length ? tFinal / equipos.length : 0)}</b></td></tr>
         </table>
         </body></html>`;
     const blob = new Blob(['﻿' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
