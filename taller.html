@@ -10362,7 +10362,8 @@ function imprimirFormatoInfoPlus() {
             totCompra += c.compra; totFlete += c.flete; totPiezas += c.piezas;
             const tec = e.tecnico_asignado_id ? escapeHtml(nombreEmpleado(e.tecnico_asignado_id)) : '<span class="muted">—</span>';
             const fch = (e.fecha_completado || e.fecha_despacho) ? new Date(e.fecha_completado || e.fecha_despacho).toLocaleDateString('es-DO') : '';
-            const pzs = _piezasDeEquipoRep(e.id);
+            // Solo piezas de Info Plus (con código); las de falla / sin código no van al reporte
+            const pzs = _piezasDeEquipoRep(e.id).filter(p => p.pieza_codigo && String(p.pieza_codigo).trim());
             let fila = `<tr>
                 <td class="c">${i + 1}</td>
                 <td class="mono copy" ${e.imei ? `data-c="${escapeHtml(e.imei)}" onclick="cp(this)" title="Clic para copiar IMEI"` : ''}>${escapeHtml(e.imei || '—')}</td>
@@ -10375,9 +10376,8 @@ function imprimirFormatoInfoPlus() {
             </tr>`;
             if(pzs.length) {
                 const lis = pzs.map(p => {
-                    const ip = !!(p.pieza_codigo && String(p.pieza_codigo).trim());
                     const cant = Number(p.cantidad) || 1, cu = Number(p.costo_unitario) || 0;
-                    return `<span class="pz">↳ ${escapeHtml(p.pieza_nombre || p.pieza_codigo || 'Pieza')} <span class="pztag ${ip ? 'tip' : 'tex'}">${ip ? 'Info Plus' : 'Externa'}</span> ${money(cant * cu)}</span>`;
+                    return `<span class="pz">↳ ${escapeHtml(p.pieza_nombre || p.pieza_codigo || 'Pieza')} <span class="pzcod">${escapeHtml(String(p.pieza_codigo))}</span> ${money(cant * cu)}</span>`;
                 }).join('');
                 fila += `<tr class="pzrow"><td></td><td colspan="7">${lis}</td></tr>`;
             }
@@ -10435,10 +10435,12 @@ function imprimirFormatoInfoPlus() {
             .num{text-align:right;} .c{text-align:center;} .mono{font-family:'Courier New',monospace;font-weight:700;}
             .fin{font-weight:800;color:#0e7490;} .muted{color:#94a3b8;} .tec{overflow:hidden;text-overflow:ellipsis;}
             .copy{cursor:pointer;} .copy:hover{background:#fef9c3 !important;outline:1px dashed #eab308;}
-            .pzrow td{background:#fafefe;white-space:normal;padding-top:1px;padding-bottom:4px;}
-            .pz{display:inline-block;font-size:10px;color:#475569;margin-right:12px;}
-            .pztag{font-size:8.5px;font-weight:700;padding:1px 5px;border-radius:8px;}
-            .tip{background:#bae6fd;color:#075985;} .tex{background:#ede9fe;color:#6d28d9;}
+            .copied{background:#86efac !important;}
+            .cptip{position:absolute;background:#16a34a;color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:7px;z-index:99999;pointer-events:none;box-shadow:0 2px 6px rgba(0,0,0,.25);animation:cpop .85s ease forwards;}
+            @keyframes cpop{0%{opacity:0;transform:translateY(5px) scale(.85);}18%{opacity:1;transform:translateY(0) scale(1);}75%{opacity:1;}100%{opacity:0;transform:translateY(-8px);}}
+            .pzrow td{background:#fafefe;white-space:normal;padding-top:1px;padding-bottom:3px;}
+            .pz{display:inline-block;font-size:9.5px;color:#475569;margin-right:10px;}
+            .pzcod{font-size:8.5px;font-weight:700;padding:1px 5px;border-radius:8px;background:#bae6fd;color:#075985;}
             .tot{margin-top:8px;font-size:13px;font-weight:800;text-align:right;color:#0e7490;background:#ecfeff;border:1px solid #a5f3fc;border-radius:8px;padding:8px 12px;}
             .totdesg{font-size:11px;color:#64748b;font-weight:600;margin-right:12px;}
             @media print{button{display:none;} .top,.ghead,table.dtl th,.pill-prom,.pill-tot{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
@@ -10452,7 +10454,11 @@ function imprimirFormatoInfoPlus() {
         <script>
         function cp(el){var t=(el.getAttribute('data-c')||el.innerText||'').trim();if(!t)return;
             try{navigator.clipboard.writeText(t);}catch(e){var ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch(_){}document.body.removeChild(ta);}
-            var b=el.style.background;el.style.background='#86efac';setTimeout(function(){el.style.background=b;},450);}
+            el.classList.add('copied');
+            var tip=document.createElement('div');tip.className='cptip';tip.textContent='✓ Copiado';document.body.appendChild(tip);
+            var r=el.getBoundingClientRect();
+            tip.style.left=(r.left+window.pageXOffset)+'px';tip.style.top=(r.top+window.pageYOffset-20)+'px';
+            setTimeout(function(){el.classList.remove('copied');if(tip&&tip.parentNode)tip.parentNode.removeChild(tip);},850);}
         <\/script>
         </body></html>`);
     w.document.close();
