@@ -7445,6 +7445,7 @@ async function sincronizarInfoplus(btn){
         if(!data || !data.ok){ if(msg){ msg.style.color = '#dc2626'; msg.textContent = '⚠️ ' + ((data && data.error) || 'No se pudo sincronizar.'); } }
         else {
             if(msg){ msg.style.color = '#16a34a'; msg.textContent = '✅ Taller sincronizado: ' + (data.total||0).toLocaleString('es-DO') + ' artículos · ' + (data.unidades||0).toLocaleString('es-DO') + ' unidades en existencia (Info Plus, almacén Taller).'; }
+            _invalidarCacheInfoplus(); await _ensureInfoplusArticulos(true); // refrescar catálogo y su caché tras sincronizar
             actualizarInfoplusCount(); renderInfoplusBusqueda();
         }
     }catch(e){ logError('Sincronizar Info Plus', e); if(msg){ msg.style.color = '#dc2626'; msg.textContent = '⚠️ Error: ' + getFriendlyError(e); } }
@@ -8522,8 +8523,32 @@ async function crearLoteDesdeCompraInfoPlus(idx) {
 
 // Carga los artículos de Info Plus (mismos del sistema Info Plus) para usarlos en compras
 let _infoplusCargando = false;
+// ===== CACHÉ del catálogo Info Plus en el navegador (localStorage) =====
+// Solo se cachea este catálogo: es pesado (~2,000), de solo lectura y casi no cambia (solo al sincronizar).
+const _IP_CACHE_KEY = 'bayol_ip_articulos_v1';
+const _IP_CACHE_TS = 'bayol_ip_articulos_ts';
+const _IP_CACHE_TTL = 12 * 60 * 60 * 1000; // 12 horas
+function _ipCacheLeer() {
+    try {
+        const ts = parseInt(localStorage.getItem(_IP_CACHE_TS) || '0', 10);
+        if(!ts || (Date.now() - ts) > _IP_CACHE_TTL) return null; // vencido
+        const arr = JSON.parse(localStorage.getItem(_IP_CACHE_KEY) || 'null');
+        return (Array.isArray(arr) && arr.length) ? arr : null;
+    } catch(e) { return null; }
+}
+function _ipCacheGuardar(arr) {
+    try { localStorage.setItem(_IP_CACHE_KEY, JSON.stringify(arr)); localStorage.setItem(_IP_CACHE_TS, String(Date.now())); } catch(e) { /* sin espacio: se ignora */ }
+}
+function _invalidarCacheInfoplus() {
+    try { localStorage.removeItem(_IP_CACHE_KEY); localStorage.removeItem(_IP_CACHE_TS); } catch(e) {}
+}
 async function _ensureInfoplusArticulos(force) {
     if(!force && cache.infoplusArticulos && cache.infoplusArticulos.length) return cache.infoplusArticulos;
+    // 1) Caché local: si está fresco (< 12h) y no es recarga forzada, úsalo (instantáneo, sin red)
+    if(!force) {
+        const cached = _ipCacheLeer();
+        if(cached) { cache.infoplusArticulos = cached; return cache.infoplusArticulos; }
+    }
     const all = [];
     const pageSize = 1000;
     let huboError = false;
@@ -8540,6 +8565,7 @@ async function _ensureInfoplusArticulos(force) {
     finally { _infoplusCargando = false; }
     // No borrar una lista buena ya cargada si esta recarga falló o vino vacía (evita dejar el buscador en blanco)
     if(all.length || !(cache.infoplusArticulos && cache.infoplusArticulos.length)) cache.infoplusArticulos = all;
+    if(all.length) _ipCacheGuardar(all); // refrescar caché del navegador
     return cache.infoplusArticulos;
 }
 function _findInfoplusArt(codigo) { return (cache.infoplusArticulos || []).find(a => String(a.codigo) === String(codigo)) || null; }
