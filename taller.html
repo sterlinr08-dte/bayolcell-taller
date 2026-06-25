@@ -13613,20 +13613,42 @@ async function _despachoCargarHistorial() {
     const cont = document.getElementById('despachosHistorial');
     if(!cont) return;
     try {
-        const { data, error } = await supabaseClient.from('despachos_almacen').select('*').order('fecha', { ascending: false }).limit(100);
+        const { data, error } = await supabaseClient.from('despachos_almacen').select('*').order('fecha', { ascending: false }).limit(150);
         if(error) throw error;
-        const rows = data || [];
-        if(!rows.length) { cont.innerHTML = '<p style="color:#94a3b8; font-size:13px; text-align:center; padding:14px;">Aún no hay despachos registrados.</p>'; return; }
+        // 1) Traspasos entre almacenes (módulo)
+        const filas = (data || []).map(r => ({
+            tipo: 'almacen', fecha: r.fecha,
+            art: (r.articulo_nombre || '') + (r.codarticulo ? ` (${r.codarticulo})` : ''),
+            cant: r.cantidad, ruta: _nombreAlmacen(r.almacen_origen) + ' → ' + _nombreAlmacen(r.almacen_destino),
+            usuario: r.usuario || '', estado: r.estado || 'ok', nota: r.nota || ''
+        }));
+        // 2) Equipos de reacondicionado marcados como Despachado (estado vendido + completado)
+        (cache.refurb || []).filter(e => e.estado_evaluacion === 'vendido' && e.completado && (e.fecha_completado || e.fecha_despacho)).forEach(e => {
+            const lote = (cache.lotes || []).find(l => l.id === e.lote_id);
+            filas.push({
+                tipo: 'reacond', fecha: e.fecha_completado || e.fecha_despacho,
+                art: _modeloRep(e) + (e.articulo_codigo ? ` (${e.articulo_codigo})` : ''),
+                cant: 1, ruta: 'Reacondicionado' + (lote ? ' · ' + (lote.codigo_lote || '') : ''),
+                usuario: e.tecnico_asignado_id ? nombreEmpleado(e.tecnico_asignado_id) : '', estado: 'ok',
+                nota: e.imei ? ('IMEI: ' + e.imei) : ''
+            });
+        });
+        if(!filas.length) { cont.innerHTML = '<p style="color:#94a3b8; font-size:13px; text-align:center; padding:14px;">Aún no hay despachos registrados.</p>'; return; }
+        filas.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
         const badge = (e) => e === 'ok' ? '<span style="color:#166534; font-weight:700;">✅ OK</span>' : (e === 'parcial' ? '<span style="color:#b45309; font-weight:700;">⚠️ Parcial</span>' : '<span style="color:#b91c1c; font-weight:700;">❌ Error</span>');
-        cont.innerHTML = `<table><thead><tr><th>Fecha</th><th>Artículo</th><th>Cant.</th><th>De → A</th><th>Usuario</th><th>Estado</th><th>Nota</th></tr></thead><tbody>` +
-            rows.map(r => `<tr>
+        const tipoTag = (t) => t === 'reacond'
+            ? '<span style="background:#ede9fe; color:#6d28d9; font-size:10px; font-weight:700; padding:1px 7px; border-radius:8px;">📱 Reacond</span>'
+            : '<span style="background:#cffafe; color:#155e75; font-size:10px; font-weight:700; padding:1px 7px; border-radius:8px;">📦 Almacén</span>';
+        cont.innerHTML = `<table><thead><tr><th>Fecha</th><th>Tipo</th><th>Artículo</th><th>Cant.</th><th>Origen / Destino</th><th>Usuario</th><th>Estado</th><th>Nota</th></tr></thead><tbody>` +
+            filas.map(r => `<tr>
                 <td style="white-space:nowrap;">${new Date(r.fecha).toLocaleString('es-DO')}</td>
-                <td>${escapeHtml(r.articulo_nombre || '')} <span style="color:#94a3b8;">(${r.codarticulo || ''})</span></td>
-                <td style="text-align:center; font-weight:700;">${r.cantidad}</td>
-                <td style="white-space:nowrap;">${_nombreAlmacen(r.almacen_origen)} → ${_nombreAlmacen(r.almacen_destino)}</td>
-                <td>${escapeHtml(r.usuario || '')}</td>
+                <td>${tipoTag(r.tipo)}</td>
+                <td>${escapeHtml(r.art)}</td>
+                <td style="text-align:center; font-weight:700;">${r.cant}</td>
+                <td style="white-space:nowrap;">${escapeHtml(r.ruta)}</td>
+                <td>${escapeHtml(r.usuario)}</td>
                 <td>${badge(r.estado)}</td>
-                <td>${escapeHtml(r.nota || '')}</td>
+                <td>${escapeHtml(r.nota)}</td>
             </tr>`).join('') + `</tbody></table>`;
     } catch(e) { logError('Historial despachos', e); cont.innerHTML = '<p style="color:#b91c1c; font-size:13px;">No se pudo cargar el historial.</p>'; }
 }
