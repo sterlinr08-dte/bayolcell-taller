@@ -13792,7 +13792,9 @@ async function verFichaDespacho(equipoId) {
         const repuestos = Number(eq.costo_repuestos) || sumP;
         const final = compra + flete + repuestos;
         const esAdminPiezas = tienePermiso('piezas_aprobar_extra');
-        const piezasLineas = usadas.length ? usadas.map(p => {
+        // En el cuadro de costo solo se listan las piezas CON costo (las de las fallas, en RD$0.00, ya se ven arriba)
+        const conCosto = usadas.filter(p => (Number(p.cantidad) || 1) * (Number(p.costo_unitario) || 0) > 0);
+        const piezasLineas = conCosto.length ? conCosto.map(p => {
             const esIP = !p.agregada_por_tecnico && !p.pieza_id && !!p.pieza_codigo;
             const acc = (esIP && esAdminPiezas) ? `<span style="margin-left:8px; white-space:nowrap;">
                 <a onclick="editarPiezaInfoPlus('${p.id}')" title="Editar" style="cursor:pointer; color:#0369a1; font-size:13px;"><i class="ti ti-edit"></i></a>
@@ -13808,7 +13810,7 @@ async function verFichaDespacho(equipoId) {
             <div style="display:flex; justify-content:space-between; font-size:13px; margin-top:8px;"><span>Costo de compra:</span><b>${money(compra)}</b></div>
             ${flete > 0 ? `<div style="display:flex; justify-content:space-between; font-size:13px; margin-top:4px;"><span>Envío (proporcional):</span><b>${money(flete)}</b></div>` : ''}
             ${piezasLineas ? `<div style="margin-top:6px; padding-top:6px; border-top:1px dashed #bbf7d0;">${piezasLineas}</div>` : ''}
-            <div style="display:flex; justify-content:space-between; font-size:13px; margin-top:4px;"><span>Piezas usadas (${usadas.length}):</span><b>${money(repuestos)}</b></div>
+            <div style="display:flex; justify-content:space-between; font-size:13px; margin-top:4px;"><span>Piezas con costo (${conCosto.length}):</span><b>${money(repuestos)}</b></div>
             <div style="display:flex; justify-content:space-between; font-size:16px; margin-top:8px; padding-top:8px; border-top:1px dashed #86efac; font-weight:800; color:#166534;"><span>COSTO FINAL:</span><span>${money(final)}</span></div>
             ${esAdminPiezas ? `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;">
                 <button class="btn btn-light" onclick="agregarPiezaInfoPlus('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#0369a1; border-color:#7dd3fc;"><i class="ti ti-search"></i> Pieza inventario (Info Plus)</button>
