@@ -13224,21 +13224,40 @@ async function agregarPiezaInfoPlus(equipoId) {
 }
 async function _agregarPiezaInfoPlusConfirm(equipoId, a) {
     try {
+        const nombrePz = (a.descripcion || a.codigo || '').trim();
+        // 1) Revisar existencia en el Taller (almacén 6) ANTES de descontar.
+        let descontar = true;
+        let existenciaTaller = null;
+        try {
+            const { data: ex } = await supabaseClient.functions.invoke('infoplus-existencia', { body: { codarticulo: a.codigo, codalmacen: 6 } });
+            if(ex && ex.ok) existenciaTaller = Number(ex.cantidad);
+        } catch(_e) { /* si no se puede leer, se procede normal */ }
+        // 2) Si no hay existencia, avisar y preguntar qué hacer.
+        if(existenciaTaller !== null && existenciaTaller <= 0) {
+            const seguir = await confirmar(`⚠️ "${nombrePz}" no tiene existencia en el Taller (almacén 6).\nExistencia actual: ${existenciaTaller}.\n\n¿Agregarla igual al COSTO del equipo?`);
+            if(!seguir) return;
+            descontar = await confirmar(`¿También DESCONTAR esta pieza del inventario de Info Plus?\n\n• Aceptar = descontar igual (quedará en negativo, para recordar reponerla)\n• Cancelar = solo sumar el costo (no toca el inventario)`);
+        }
+        // 3) Insertar la pieza (siempre suma el costo).
         const { data: ins, error } = await supabaseClient.from('equipo_piezas_pedidas').insert([{
             equipo_id: equipoId, pieza_id: null, pieza_codigo: a.codigo,
-            pieza_nombre: (a.descripcion || a.codigo || '').trim(),
+            pieza_nombre: nombrePz,
             cantidad: 1, costo_unitario: Number(a.costo) || 0,
             estado: 'aprobada', agregada_por_tecnico: false
         }]).select('id').single();
         if(error) throw error;
         await _recalcularCostoRepuestos(equipoId);
-        // Descontar 1 unidad del inventario de Info Plus (almacén 6 - Taller).
-        const r = await _infoplusAjustePieza(a.codigo, 1, a.costo, false, `Salida pieza reparación equipo ${equipoId}`);
-        if(r.ok && ins) {
-            await supabaseClient.from('equipo_piezas_pedidas').update({ infoplus_desc_cant: 1 }).eq('id', ins.id);
-            toast('✅ Pieza agregada al costo y descontada de Info Plus (Taller): ' + (a.descripcion || a.codigo));
+        // 4) Descontar del Taller solo si corresponde.
+        if(descontar) {
+            const r = await _infoplusAjustePieza(a.codigo, 1, a.costo, false, `Salida pieza reparación equipo ${equipoId}`);
+            if(r.ok && ins) {
+                await supabaseClient.from('equipo_piezas_pedidas').update({ infoplus_desc_cant: 1 }).eq('id', ins.id);
+                toast('✅ Pieza agregada al costo y descontada de Info Plus (Taller): ' + nombrePz);
+            } else {
+                toast('✅ Pieza agregada al costo: ' + nombrePz + '\n⚠️ No se pudo descontar de Info Plus: ' + (r.error || '') + ' (descuéntala a mano)', 'error');
+            }
         } else {
-            toast('✅ Pieza agregada al costo: ' + (a.descripcion || a.codigo) + '\n⚠️ No se pudo descontar de Info Plus: ' + (r.error || '') + ' (descuéntala a mano)', 'error');
+            toast('✅ Pieza agregada al costo (sin descontar del inventario): ' + nombrePz);
         }
         await loadAll();
         _refrescarVistaEquipo(equipoId);
