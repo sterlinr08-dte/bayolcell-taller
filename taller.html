@@ -1216,7 +1216,7 @@ body{
                     <div class="kpi-box clickable" style="border-top-color:#ef4444;" onclick="nav('refurb')"><small>⚠️ Evaluación</small><strong id="kdEval">0</strong><i class="ti ti-clipboard-list"></i></div>
                     <div class="kpi-box clickable" style="border-top-color:#9a3412;" onclick="nav('refurb')"><small>🔧 En Proceso</small><strong id="kdProc">0</strong><i class="ti ti-tool"></i></div>
                     <div class="kpi-box clickable" style="border-top-color:#5b21b6;" onclick="nav('refurb')"><small>🛒 Listo Venta</small><strong id="kdListoV">0</strong><i class="ti ti-shopping-cart"></i></div>
-                    <div class="kpi-box clickable" style="border-top-color:#10b981;" onclick="nav('refurb')"><small>✅ Despachados</small><strong id="kdDesp">0</strong><i class="ti ti-truck-delivery"></i></div>
+                    <div class="kpi-box clickable" style="border-top-color:#10b981;" onclick="nav('refurb')"><small>✅ Terminados</small><strong id="kdDesp">0</strong><i class="ti ti-truck-delivery"></i></div>
                     <div class="kpi-box clickable" style="border-top-color:#dc2626;" onclick="nav('refurb')"><small>🔄 Devoluciones</small><strong id="kdDev">0</strong><i class="ti ti-rotate-2"></i></div>
                 </div>
 
@@ -2162,6 +2162,13 @@ body{
                                 <option value="vendido">✅ Completado</option>
                                 <option value="completado">🚚 Despachado</option>
                             </select>
+                        </div>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
+                            <span style="font-size:12px; color:#64748b; font-weight:700;">📅 Filtrar por fecha (Despachado):</span>
+                            <input id="reacondFechaDesde" type="date" onchange="renderDetalleLoteReacond()" style="padding:8px 10px; font-size:13px; border:1px solid #cbd5e1; border-radius:8px;">
+                            <span style="font-size:12px; color:#64748b;">a</span>
+                            <input id="reacondFechaHasta" type="date" onchange="renderDetalleLoteReacond()" style="padding:8px 10px; font-size:13px; border:1px solid #cbd5e1; border-radius:8px;">
+                            <button class="btn btn-light" onclick="_reacondLimpiarFecha()" style="padding:6px 10px; font-size:12px;"><i class="ti ti-x"></i> Limpiar fecha</button>
                         </div>
                         <div id="reacondEquiposLista"></div>
                     </div>
@@ -9052,6 +9059,23 @@ function _reacondEquipoPasaEstado(e, fEstado) {
     if(fEstado) return (e.estado_evaluacion || 'pendiente') === fEstado;
     return !(e.estado_evaluacion === 'vendido' && e.completado); // "Todos" oculta los completados
 }
+// ¿El equipo pasa el filtro de fecha (por fecha_completado = fecha en que se marcó Despachado)?
+function _reacondPasaFecha(eq) {
+    const d1 = document.getElementById('reacondFechaDesde')?.value || '';
+    const d2 = document.getElementById('reacondFechaHasta')?.value || '';
+    if(!d1 && !d2) return true;
+    const f = eq.fecha_completado || eq.fecha_despacho;
+    if(!f) return false;
+    const fecha = new Date(f).toLocaleDateString('en-CA'); // YYYY-MM-DD en hora LOCAL (evita corrimiento de día)
+    if(d1 && fecha < d1) return false;
+    if(d2 && fecha > d2) return false;
+    return true;
+}
+function _reacondLimpiarFecha() {
+    const a = document.getElementById('reacondFechaDesde'); if(a) a.value = '';
+    const b = document.getElementById('reacondFechaHasta'); if(b) b.value = '';
+    renderDetalleLoteReacond();
+}
 function _reacondTecnicosResumen() {
     // Técnicos con equipos asignados en el lote abierto, RESPETANDO el filtro de estado y la búsqueda.
     // Así, en "Listo" solo salen los técnicos con listos, y al hacer clic se filtran sus listos.
@@ -9345,7 +9369,7 @@ function _reporteCostosExcelDL({ titulo, infoLineas, equipos, filename }) {
 function imprimirCostosSeleccionados() {
     if(!isAdminUser()) return toast('Solo el administrador puede ver costos.', 'error');
     const equipos = (cache.refurb || []).filter(r => _reacondSelCosto.has(r.id));
-    if(!equipos.length) return toast('Marca primero los equipos (Listo/Despachado) que quieres imprimir.', 'error');
+    if(!equipos.length) return toast('Marca primero los equipos (Listo/Completado/Despachado) que quieres imprimir.', 'error');
     _reporteCostosPrintHTML({ titulo: 'Costos equipos seleccionados', subtitulo: 'Reporte de costos — Equipos seleccionados', infoChips: [`<b>Equipos seleccionados:</b> ${equipos.length}`], equipos });
 }
 function exportarCostosSeleccionadosExcel() {
@@ -10238,6 +10262,9 @@ function _datosReporteCostosLote() {
         equipos = equipos.filter(e => !(e.estado_evaluacion === 'vendido' && e.completado));
     }
     if(q) { equipos = equipos.filter(e => [e.imei, e.articulo_codigo, e.modelo, e.marca].filter(Boolean).join(' ').toLowerCase().includes(q)); filtrosTxt.push('Búsqueda: "' + q + '"'); }
+    const _fd = document.getElementById('reacondFechaDesde')?.value || '';
+    const _fh = document.getElementById('reacondFechaHasta')?.value || '';
+    if(_fd || _fh) { equipos = equipos.filter(e => _reacondPasaFecha(e)); filtrosTxt.push('Fecha: ' + (_fd || '…') + ' a ' + (_fh || '…')); }
     if(!equipos.length) { toast('No hay equipos para el reporte (revisa los filtros).', 'error'); return null; }
     const prov = (cache.proveedores || []).find(p => p.id === lote.proveedor_id);
     return { lote, equipos, prov, filtrosTxt };
@@ -10458,6 +10485,7 @@ function renderDetalleLoteReacond() {
     if(_reacondFiltroTec) filtrados = filtrados.filter(x => x.eq.tecnico_asignado_id === _reacondFiltroTec);
     // "Completado" = despachados ya completados; el resto de vistas (incluido "Todos") los ocultan
     filtrados = filtrados.filter(x => _reacondEquipoPasaEstado(x.eq, fEstado));
+    filtrados = filtrados.filter(x => _reacondPasaFecha(x.eq));
     if(q) {
         const palabras = q.split(/\s+/).filter(Boolean);
         filtrados = filtrados.filter(x => {
@@ -10559,7 +10587,7 @@ function renderEquipoReacondCard(eq, num) {
                     ${eq.color ? ' · ' + escapeHtml(eq.color) : ''}
                     ${eq.capacidad ? ' · ' + escapeHtml(eq.capacidad) : ''}
                 </div>
-                ${estado === 'vendido' && eq.fecha_despacho ? `<div style="font-size:11px; font-weight:700; margin-top:5px; color:#15803d;"><i class="ti ti-truck-delivery"></i> Despachado: ${new Date(eq.fecha_despacho).toLocaleDateString('es-DO')}</div>` : ''}
+                ${estado === 'vendido' && eq.fecha_despacho ? `<div style="font-size:11px; font-weight:700; margin-top:5px; color:#15803d;"><i class="ti ti-flag-check"></i> ${eq.completado ? 'Despachado' : 'Completado'}: ${new Date(eq.fecha_despacho).toLocaleDateString('es-DO')}</div>` : ''}
                 ${tecnico && eq.fecha_asignacion ? `<div style="font-size:11px; color:#0891b2; font-weight:600; margin-top:4px;"><i class="ti ti-stopwatch"></i> Tomado: ${tiempoDesde(eq.fecha_asignacion)}</div>` : ''}
                 ${eq.notas_diagnostico ? `<div style="background:#f1f5f9; padding:6px 10px; border-radius:6px; margin-top:6px; font-size:12px;"><b>Notas:</b> ${escapeHtml(eq.notas_diagnostico)}</div>` : ''}
             </div>
@@ -13791,7 +13819,7 @@ async function marcarEquipoCompletado(equipoId) {
             estado_evaluacion: 'vendido', completado: true, fecha_completado: new Date().toISOString()
         }).eq('id', equipoId);
         if(error) throw error;
-        try { await supabaseClient.from('equipo_historial').insert([{ equipo_id: equipoId, estado_nuevo: 'completado', accion: '🏁 Marcado como Completado', usuario: sessionUser?.nombre || 'Admin' }]); } catch(_e) {}
+        try { await supabaseClient.from('equipo_historial').insert([{ equipo_id: equipoId, estado_nuevo: 'completado', accion: '🚚 Marcado como Despachado', usuario: sessionUser?.nombre || 'Admin' }]); } catch(_e) {}
         toast('🚚 Equipo marcado como Despachado.');
         cerrarPanelProceso();
         const mg = document.getElementById('modalGenerico'); if(mg) mg.remove();
@@ -13815,7 +13843,7 @@ async function marcarDespachado(equipoId) {
         if(error) throw error;
         await supabaseClient.from('equipo_historial').insert([{
             equipo_id: equipoId, estado_anterior: 'listo_venta', estado_nuevo: 'vendido',
-            accion: '🚚 Despachado al almacén principal',
+            accion: '✅ Marcado como Completado',
             usuario: sessionUser?.nombre || 'Admin'
         }]);
         toast('✅ Equipo marcado como Completado.');
@@ -13885,8 +13913,9 @@ async function verFichaDespacho(equipoId) {
     }
     const esVendido = (eq.estado_evaluacion === 'vendido');
     const fechaDesp = eq.fecha_despacho ? new Date(eq.fecha_despacho).toLocaleDateString('es-DO') : '';
+    const _nombreVend = eq.completado ? 'Despachado' : 'Completado';
     const estadoLinea = esVendido
-        ? (fechaDesp ? ` · <span style="color:#15803d; font-weight:700;">🚚 Despachado ${fechaDesp}</span>` : '')
+        ? (fechaDesp ? ` · <span style="color:#15803d; font-weight:700;">🏁 ${_nombreVend} ${fechaDesp}</span>` : ` · <span style="color:#15803d; font-weight:700;">🏁 ${_nombreVend}</span>`)
         : ` · <span style="color:#5b21b6; font-weight:700;">🛒 Listo para venta</span>`;
     const html = `<div style="max-height:72vh; overflow-y:auto;">
         <h3 style="margin:0 0 2px;"><i class="ti ti-device-mobile"></i> ${escapeHtml((eq.marca || '') + ' ' + (eq.modelo || ''))}</h3>
@@ -13896,7 +13925,7 @@ async function verFichaDespacho(equipoId) {
         <div>${fallasHtml}</div>
         ${costoHtml}
     </div>`;
-    abrirModalGenerico(esVendido ? 'Ficha del equipo despachado' : 'Ficha del equipo (Listo)', html);
+    abrirModalGenerico(esVendido ? ('Ficha del equipo (' + _nombreVend + ')') : 'Ficha del equipo (Listo)', html);
 }
 // Separa el almacenamiento/RAM (van a "Capacidad") del nombre del modelo (limpio)
 function _parseModeloCapacidad(modeloRaw) {
@@ -17386,7 +17415,7 @@ async function abrirModalNuevaDevolucion() {
     const despachados = (cache.refurb || []).filter(r => r.estado_evaluacion === 'vendido');
     
     if(despachados.length === 0) {
-        toast('No hay equipos despachados aún. Primero debes tener equipos en estado "Despachado" para poder registrar devoluciones.', 'error');
+        toast('No hay equipos terminados aún. Primero debes tener equipos en estado "Completado" o "Despachado" para poder registrar devoluciones.', 'error');
         return;
     }
     
@@ -17545,7 +17574,7 @@ async function guardarDevolucion() {
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return toast('Equipo no encontrado.', 'error');
     if(eq.estado_evaluacion !== 'vendido') {
-        return toast('Este equipo no está en estado "Despachado". Solo se pueden devolver equipos despachados.', 'error');
+        return toast('Este equipo no está terminado. Solo se pueden devolver equipos en estado "Completado" o "Despachado".', 'error');
     }
     
     // Capturar checklist de problemas
