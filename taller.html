@@ -4574,7 +4574,8 @@ function applyAccessControls() {
         'menu-configuracion': 'config_ver',
         'menu-financiamientos': 'financiamientos_ver',
         'menu-contabilidad': 'contabilidad_ver',
-        'menu-diagnostico': 'diagnostico_ver'
+        'menu-diagnostico': 'diagnostico_ver',
+        'menu-rifas': 'rifas_ver'
     };
 
     Object.keys(menuPermisos).forEach(menuId => {
@@ -17445,6 +17446,12 @@ const PERMISOS_DEF = [
         items: [
             { id: 'contabilidad_ver', label: 'Ver módulo de Contabilidad (catálogo, asientos, reportes)' },
             { id: 'solo_contabilidad', label: 'SOLO ver Contabilidad (oculta todo lo demás) — ideal para la contadora' }
+        ]
+    },
+    {
+        grupo: '🎟️ Rifas (Nexus Pro)', color: '#7c3aed',
+        items: [
+            { id: 'rifas_ver', label: 'Ver el botón Rifas (abre Nexus Pro logueado)' }
         ]
     },
     {
