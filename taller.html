@@ -10444,6 +10444,7 @@ function imprimirFormatoInfoPlus() {
             .fin{font-weight:800;color:#0e7490;} .muted{color:#94a3b8;}
             .copy{cursor:pointer;} .copy:hover{background:#fef9c3 !important;outline:1px dashed #eab308;}
             .copied{background:#86efac !important;}
+            .done{background:#dcfce7 !important;} .done::after{content:' ✓';color:#16a34a;font-weight:900;}
             .cptip{position:absolute;background:#16a34a;color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:7px;z-index:99999;pointer-events:none;box-shadow:0 2px 6px rgba(0,0,0,.25);animation:cpop .85s ease forwards;}
             @keyframes cpop{0%{opacity:0;transform:translateY(5px) scale(.85);}18%{opacity:1;transform:translateY(0) scale(1);}75%{opacity:1;}100%{opacity:0;transform:translateY(-8px);}}
             .pzrow td{background:#fafefe;white-space:normal;padding-top:1px;padding-bottom:3px;}
@@ -10463,7 +10464,7 @@ function imprimirFormatoInfoPlus() {
         <script>
         function cp(el){var t=(el.getAttribute('data-c')||el.innerText||'').trim();if(!t)return;
             try{navigator.clipboard.writeText(t);}catch(e){var ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch(_){}document.body.removeChild(ta);}
-            el.classList.add('copied');
+            el.classList.add('copied');el.classList.add('done');
             var tip=document.createElement('div');tip.className='cptip';tip.textContent='✓ Copiado';document.body.appendChild(tip);
             var r=el.getBoundingClientRect();
             tip.style.left=(r.left+window.pageXOffset)+'px';tip.style.top=(r.top+window.pageYOffset-20)+'px';
