@@ -10339,7 +10339,7 @@ function _datosFormatoInfoPlus() {
     });
     const lista = Object.values(grupos).map(g => {
         const cant = g.equipos.length;
-        return { codigo: g.codigo, modelo: g.modelo, cantidad: cant, imeis: g.imeis, total: g.total, promedio: cant ? g.total / cant : 0 };
+        return { codigo: g.codigo, modelo: g.modelo, cantidad: cant, imeis: g.imeis, equipos: g.equipos, total: g.total, promedio: cant ? g.total / cant : 0 };
     }).sort((a, b) => (a.modelo || '').localeCompare(b.modelo || ''));
     return { lote, prov, filtrosTxt, lista };
 }
@@ -10350,28 +10350,45 @@ function imprimirFormatoInfoPlus() {
     const cfg = cache.configTaller || {};
     const tienda = cfg.nombre || 'BAYOL CELL';
     const subTienda = [cfg.direccion, cfg.telefono].filter(Boolean).join(' · ');
-    let totGen = 0, totUds = 0;
-    const bloques = lista.map(g => {
+    let totGen = 0, totUds = 0, totCompra = 0, totFlete = 0, totPiezas = 0;
+    const bloques = lista.map((g, gi) => {
         totGen += g.total; totUds += g.cantidad;
-        const imeisHtml = g.imeis.length ? g.imeis.map(im => `<span class="imei">${escapeHtml(im)}</span>`).join('') : '<span style="color:#94a3b8;">(sin IMEI registrado)</span>';
+        const filasEq = g.equipos.map((e, i) => {
+            const c = _costoEquipoRep(e);
+            totCompra += c.compra; totFlete += c.flete; totPiezas += c.piezas;
+            const tec = e.tecnico_asignado_id ? escapeHtml(nombreEmpleado(e.tecnico_asignado_id)) : '<span class="muted">—</span>';
+            const fch = (e.fecha_completado || e.fecha_despacho) ? new Date(e.fecha_completado || e.fecha_despacho).toLocaleDateString('es-DO') : '';
+            return `<tr>
+                <td class="c">${i + 1}</td>
+                <td class="mono">${escapeHtml(e.imei || '—')}</td>
+                <td class="num">${money(c.compra)}</td>
+                <td class="num">${money(c.flete)}</td>
+                <td class="num">${money(c.piezas)}</td>
+                <td class="num fin">${money(c.fin)}</td>
+                <td>${tec}</td>
+                <td class="c">${fch}</td>
+            </tr>`;
+        }).join('');
         return `<div class="grupo">
             <div class="ghead">
-                <div><span class="gmod">${escapeHtml(g.modelo || 'Sin modelo')}</span> ${g.codigo ? `<span class="gcod">Cód. Info Plus: ${escapeHtml(g.codigo)}</span>` : '<span class="gcod" style="color:#b91c1c;">sin código IP</span>'}</div>
+                <div class="gmodwrap"><span class="gnum">${gi + 1}</span><span class="gmod">${escapeHtml(g.modelo || 'Sin modelo')}</span> ${g.codigo ? `<span class="gcod">Cód. IP: ${escapeHtml(g.codigo)}</span>` : '<span class="gcod nocod">sin código IP</span>'}</div>
                 <div class="gnums">
-                    <span>Cant.: <b>${g.cantidad}</b></span>
-                    <span>Costo promedio (unit.): <b>${money(g.promedio)}</b></span>
-                    <span>Total: <b>${money(g.total)}</b></span>
+                    <span class="pill">Cant. <b>${g.cantidad}</b></span>
+                    <span class="pill pill-prom">Promedio <b>${money(g.promedio)}</b></span>
+                    <span class="pill pill-tot">Total <b>${money(g.total)}</b></span>
                 </div>
             </div>
-            <div class="gimeis"><b>IMEIs (${g.imeis.length}):</b> ${imeisHtml}</div>
+            <table class="dtl">
+                <thead><tr><th class="c">#</th><th>IMEI / Serial</th><th class="num">Compra</th><th class="num">Flete</th><th class="num">Piezas</th><th class="num">Costo final</th><th>Técnico</th><th class="c">Fecha</th></tr></thead>
+                <tbody>${filasEq}</tbody>
+            </table>
         </div>`;
     }).join('');
     const chips = [
         `<b>Lote:</b> ${escapeHtml(lote.codigo_lote || '—')}`,
         `<b>Proveedor:</b> ${escapeHtml(prov ? prov.nombre : '—')}`,
         `<b>Modelos:</b> ${lista.length}`,
-        `<b>Unidades:</b> ${totUds}`,
-        `<b>Total general:</b> ${money(totGen)}`
+        `<b>Unidades:</b> ${totUds}`
     ];
     if(filtrosTxt.length) chips.push(`<b>Filtro:</b> ${escapeHtml(filtrosTxt.join(' · '))}`);
     const w = window.open('', '_blank');
@@ -10380,25 +10397,37 @@ function imprimirFormatoInfoPlus() {
         <style>
             *{font-family:Arial,Helvetica,sans-serif;box-sizing:border-box;}
             body{margin:18px;color:#0f172a;}
-            h1{font-size:18px;margin:0;} .sub{color:#64748b;font-size:12px;margin:2px 0 10px;}
-            .chips{font-size:12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;margin-bottom:12px;line-height:1.7;}
-            .chips span{margin-right:14px;}
-            .grupo{border:1px solid #cbd5e1;border-radius:8px;margin-bottom:10px;overflow:hidden;page-break-inside:avoid;}
-            .ghead{background:#0f172a;color:#fff;padding:8px 10px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;align-items:center;}
-            .gmod{font-weight:800;font-size:14px;} .gcod{font-size:11px;color:#bae6fd;margin-left:8px;}
-            .gnums{font-size:12px;display:flex;gap:14px;flex-wrap:wrap;} .gnums b{color:#fff;}
-            .gimeis{padding:8px 10px;font-size:12px;}
-            .imei{display:inline-block;font-family:'Courier New',monospace;background:#eef2ff;border:1px solid #c7d2fe;border-radius:5px;padding:2px 7px;margin:2px;font-size:12px;}
-            .tot{margin-top:10px;font-size:14px;font-weight:800;text-align:right;}
-            @media print{button{display:none;}}
+            .top{background:linear-gradient(135deg,#0891b2,#06b6d4);color:#fff;border-radius:12px;padding:14px 16px;margin-bottom:12px;}
+            .top h1{font-size:19px;margin:0;font-weight:800;}
+            .top .sub{color:#e0f7fb;font-size:12px;margin-top:3px;}
+            .chips{font-size:12px;background:#ecfeff;border:1px solid #a5f3fc;border-radius:8px;padding:8px 12px;margin-bottom:6px;line-height:1.8;color:#155e75;}
+            .chips span{margin-right:16px;} .chips b{color:#0e7490;}
+            .nota{color:#64748b;font-size:11.5px;margin:6px 0 14px;}
+            .grupo{border:1px solid #a5f3fc;border-radius:10px;margin-bottom:14px;overflow:hidden;page-break-inside:avoid;box-shadow:0 1px 3px rgba(8,145,178,.08);}
+            .ghead{background:linear-gradient(135deg,#0e7490,#0891b2);color:#fff;padding:9px 12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;align-items:center;}
+            .gmodwrap{display:flex;align-items:center;gap:8px;}
+            .gnum{background:rgba(255,255,255,.25);width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;}
+            .gmod{font-weight:800;font-size:14.5px;} .gcod{font-size:11px;color:#cffafe;background:rgba(255,255,255,.15);padding:2px 7px;border-radius:6px;} .nocod{color:#fecaca;}
+            .gnums{display:flex;gap:6px;flex-wrap:wrap;}
+            .pill{background:rgba(255,255,255,.18);border-radius:20px;padding:3px 10px;font-size:11.5px;} .pill b{font-size:13px;}
+            .pill-prom{background:#fde68a;color:#78350f;} .pill-prom b{color:#78350f;}
+            .pill-tot{background:#fff;color:#0e7490;} .pill-tot b{color:#0e7490;}
+            table.dtl{width:100%;border-collapse:collapse;font-size:11.5px;}
+            table.dtl th{background:#cffafe;color:#155e75;text-align:left;padding:5px 8px;border-bottom:1px solid #a5f3fc;}
+            table.dtl td{padding:5px 8px;border-bottom:1px solid #ecfeff;}
+            table.dtl tbody tr:nth-child(even){background:#f0fdff;}
+            .num{text-align:right;} .c{text-align:center;} .mono{font-family:'Courier New',monospace;font-weight:700;}
+            .fin{font-weight:800;color:#0e7490;} .muted{color:#94a3b8;}
+            .tot{margin-top:10px;font-size:15px;font-weight:800;text-align:right;color:#0e7490;background:#ecfeff;border:1px solid #a5f3fc;border-radius:8px;padding:10px 14px;}
+            .totdesg{font-size:12px;color:#64748b;font-weight:600;margin-right:14px;}
+            @media print{button{display:none;} .top{-webkit-print-color-adjust:exact;print-color-adjust:exact;} .ghead,table.dtl th,.pill-prom,.pill-tot{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
         </style></head><body>
-        <h1>${escapeHtml(tienda)} — Formato para Info Plus</h1>
-        <div class="sub">${escapeHtml(subTienda)}</div>
+        <div class="top"><h1>${escapeHtml(tienda)} — Formato para Info Plus</h1><div class="sub">${escapeHtml(subTienda)}</div></div>
         <div class="chips">${chips.map(c => `<span>${c}</span>`).join('')}</div>
-        <div class="sub">Cada modelo = 1 artículo en Info Plus, con sus IMEIs y el <b>costo promedio</b> como costo unitario.</div>
+        <div class="nota">Cada modelo = 1 artículo en Info Plus, con sus IMEIs y el <b>costo promedio</b> como costo unitario (Total ÷ Cantidad). El detalle muestra el costo real de cada equipo.</div>
         ${bloques}
-        <div class="tot">TOTAL GENERAL: ${money(totGen)} · ${totUds} unidad(es)</div>
-        <button onclick="window.print()" style="margin-top:14px;padding:8px 16px;">🖨️ Imprimir</button>
+        <div class="tot"><span class="totdesg">Compra: ${money(totCompra)}</span><span class="totdesg">Flete: ${money(totFlete)}</span><span class="totdesg">Piezas: ${money(totPiezas)}</span> TOTAL GENERAL: ${money(totGen)} · ${totUds} unidad(es)</div>
+        <button onclick="window.print()" style="margin-top:14px;padding:9px 18px;background:#0891b2;color:#fff;border:0;border-radius:8px;cursor:pointer;font-size:14px;">🖨️ Imprimir</button>
         </body></html>`);
     w.document.close();
 }
@@ -10406,19 +10435,23 @@ function exportarFormatoInfoPlusExcel() {
     const datos = _datosFormatoInfoPlus();
     if(!datos) return;
     const { lote, lista } = datos;
-    // Una fila por IMEI, repitiendo el costo promedio del modelo (formato para cargar a Info Plus)
+    // Una fila por IMEI con su costo real (compra/flete/piezas/final) + promedio y total del modelo
     let filas = '';
     lista.forEach(g => {
-        if(g.imeis.length === 0) {
-            filas += `<tr><td>${escapeHtml(g.codigo)}</td><td>${escapeHtml(g.modelo)}</td><td></td><td>${g.cantidad}</td><td>${g.promedio.toFixed(2)}</td><td>${g.total.toFixed(2)}</td></tr>`;
+        const eqs = (g.equipos && g.equipos.length) ? g.equipos : null;
+        if(!eqs) {
+            filas += `<tr><td>${escapeHtml(g.codigo)}</td><td>${escapeHtml(g.modelo)}</td><td></td><td></td><td></td><td></td><td></td><td></td><td>${g.cantidad}</td><td>${g.promedio.toFixed(2)}</td><td>${g.total.toFixed(2)}</td></tr>`;
         } else {
-            g.imeis.forEach((im, idx) => {
-                filas += `<tr><td>${escapeHtml(g.codigo)}</td><td>${escapeHtml(g.modelo)}</td><td>${escapeHtml(im)}</td><td>${idx === 0 ? g.cantidad : ''}</td><td>${g.promedio.toFixed(2)}</td><td>${idx === 0 ? g.total.toFixed(2) : ''}</td></tr>`;
+            eqs.forEach((e, idx) => {
+                const c = _costoEquipoRep(e);
+                const tec = e.tecnico_asignado_id ? nombreEmpleado(e.tecnico_asignado_id) : '';
+                const fch = (e.fecha_completado || e.fecha_despacho) ? new Date(e.fecha_completado || e.fecha_despacho).toLocaleDateString('es-DO') : '';
+                filas += `<tr><td>${escapeHtml(g.codigo)}</td><td>${escapeHtml(g.modelo)}</td><td>${escapeHtml(e.imei || '')}</td><td>${c.compra.toFixed(2)}</td><td>${c.flete.toFixed(2)}</td><td>${c.piezas.toFixed(2)}</td><td>${c.fin.toFixed(2)}</td><td>${escapeHtml(tec)}</td><td>${escapeHtml(fch)}</td><td>${idx === 0 ? g.cantidad : ''}</td><td>${idx === 0 ? g.promedio.toFixed(2) : ''}</td><td>${idx === 0 ? g.total.toFixed(2) : ''}</td></tr>`;
             });
         }
     });
     const html = `<html><head><meta charset="utf-8"></head><body><table border="1">
-        <tr><th>Código Info Plus</th><th>Modelo (artículo)</th><th>IMEI / Serial</th><th>Cantidad</th><th>Costo prom. unit.</th><th>Total modelo</th></tr>
+        <tr><th>Código Info Plus</th><th>Modelo (artículo)</th><th>IMEI / Serial</th><th>Compra</th><th>Flete</th><th>Piezas</th><th>Costo final</th><th>Técnico</th><th>Fecha</th><th>Cantidad</th><th>Costo prom. unit.</th><th>Total modelo</th></tr>
         ${filas}</table></body></html>`;
     const blob = new Blob(['﻿' + html], { type: 'application/vnd.ms-excel' });
     const a = document.createElement('a');
