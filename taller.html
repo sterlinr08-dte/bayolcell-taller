@@ -3919,7 +3919,7 @@ function confirmar(mensaje, opciones) {
         if(prev) prev.remove();
         const bg = document.createElement('div');
         bg.id = 'modalConfirm';
-        bg.style.cssText = 'position:fixed; inset:0; background:rgba(15,23,42,0.6); z-index:300; display:flex; align-items:center; justify-content:center; padding:20px;';
+        bg.style.cssText = 'position:fixed; inset:0; background:rgba(15,23,42,0.6); z-index:2000; display:flex; align-items:center; justify-content:center; padding:20px;';
         bg.innerHTML = `
             <div style="background:#fff; border-radius:18px; max-width:400px; width:100%; box-shadow:0 25px 60px -12px rgba(15,23,42,0.4); overflow:hidden;">
                 <div style="padding:22px 22px 8px; text-align:center;">
@@ -3953,7 +3953,7 @@ function pedirTexto(mensaje, opciones) {
         if(prev) prev.remove();
         const bg = document.createElement('div');
         bg.id = 'modalPrompt';
-        bg.style.cssText = 'position:fixed; inset:0; background:rgba(15,23,42,0.6); z-index:300; display:flex; align-items:center; justify-content:center; padding:20px;';
+        bg.style.cssText = 'position:fixed; inset:0; background:rgba(15,23,42,0.6); z-index:2000; display:flex; align-items:center; justify-content:center; padding:20px;';
         const campo = multilinea
             ? `<textarea id="promptInput" rows="3" placeholder="${escapeHtml(placeholder)}" style="width:100%;">${escapeHtml(valorInicial)}</textarea>`
             : `<input id="promptInput" type="${tipo}" value="${escapeHtml(valorInicial)}" placeholder="${escapeHtml(placeholder)}" style="width:100%;">`;
