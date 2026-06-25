@@ -13089,6 +13089,35 @@ function _refrescarVistaEquipo(equipoId) {
     if(_vistaEquipoActual === 'ficha') { verFichaDespacho(equipoId); }
     else { abrirPanelProceso(equipoId); }
 }
+// Descuenta (o devuelve) una pieza del inventario de Info Plus — almacén 6 (TALLER).
+// entrada=false => SALIDA (resta, codminventario 2); entrada=true => ENTRADA (suma, codminventario 1).
+// Devuelve {ok:true} o {ok:false, error}. NO lanza: es "best effort" (no debe romper el guardado de la pieza).
+async function _infoplusAjustePieza(codarticulo, cantidad, precio, entrada, comentario) {
+    const codNum = parseInt(String(codarticulo == null ? '' : codarticulo).replace(/[^0-9]/g, ''), 10);
+    const cant = parseInt(cantidad, 10) || 0;
+    if(!codNum || cant <= 0) return { ok: false, error: 'Sin código de Info Plus o cantidad inválida' };
+    const d = new Date();
+    const fecha = `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+    const hora = d.toTimeString().slice(0, 8);
+    const pu = Number(precio) || 0;
+    const ajuste = {
+        codajuste: "", fecha, hora, total: pu * cant, cancelado: false,
+        codempleado: "6", comentario: comentario || "Ajuste taller",
+        codminventario: entrada ? 1 : 2, codlocalidad: 6, codcatalogo: "62809",
+        subsidio: false, esmaterialgastable: false, codcentrocosto: null, codactivofijo: null, codotrascompras: null,
+        detallesajuste: [{ codarticulo: codNum, precio: pu, cantidad: cant, codunidad: 1, movimiento: 1, fvencimiento: fecha, caracteristicas: "" }],
+        detallesajuste2: [], seriales: []
+    };
+    try {
+        const { data, error } = await supabaseClient.functions.invoke('infoplus-ajuste-crear', { body: ajuste });
+        if(error) throw error;
+        if(data && data.ok) return { ok: true };
+        return { ok: false, error: (data && (data.respuesta?.message || JSON.stringify(data.respuesta))) || 'Info Plus rechazó el ajuste' };
+    } catch(e) {
+        logError('Info Plus ajuste pieza', e);
+        return { ok: false, error: getFriendlyError(e) };
+    }
+}
 async function _recalcularCostoRepuestos(equipoId) {
     try {
         const { data } = await supabaseClient.from('equipo_piezas_pedidas').select('cantidad,costo_unitario').eq('equipo_id', equipoId);
@@ -13140,15 +13169,22 @@ async function agregarPiezaInfoPlus(equipoId) {
 }
 async function _agregarPiezaInfoPlusConfirm(equipoId, a) {
     try {
-        const { error } = await supabaseClient.from('equipo_piezas_pedidas').insert([{
+        const { data: ins, error } = await supabaseClient.from('equipo_piezas_pedidas').insert([{
             equipo_id: equipoId, pieza_id: null, pieza_codigo: a.codigo,
             pieza_nombre: (a.descripcion || a.codigo || '').trim(),
             cantidad: 1, costo_unitario: Number(a.costo) || 0,
             estado: 'aprobada', agregada_por_tecnico: false
-        }]);
+        }]).select('id').single();
         if(error) throw error;
         await _recalcularCostoRepuestos(equipoId);
-        toast('✅ Pieza agregada al costo: ' + (a.descripcion || a.codigo));
+        // Descontar 1 unidad del inventario de Info Plus (almacén 6 - Taller).
+        const r = await _infoplusAjustePieza(a.codigo, 1, a.costo, false, `Salida pieza reparación equipo ${equipoId}`);
+        if(r.ok && ins) {
+            await supabaseClient.from('equipo_piezas_pedidas').update({ infoplus_desc_cant: 1 }).eq('id', ins.id);
+            toast('✅ Pieza agregada al costo y descontada de Info Plus (Taller): ' + (a.descripcion || a.codigo));
+        } else {
+            toast('✅ Pieza agregada al costo: ' + (a.descripcion || a.codigo) + '\n⚠️ No se pudo descontar de Info Plus: ' + (r.error || '') + ' (descuéntala a mano)', 'error');
+        }
         await loadAll();
         _refrescarVistaEquipo(equipoId);
     } catch(e) { logError('agregarPiezaInfoPlus', e); toastError(getFriendlyError(e)); }
@@ -13168,7 +13204,18 @@ async function editarPiezaInfoPlus(piezaId) {
         const { error } = await supabaseClient.from('equipo_piezas_pedidas').update({ cantidad, costo_unitario: costo }).eq('id', piezaId);
         if(error) throw error;
         await _recalcularCostoRepuestos(pz.equipo_id);
-        toast('✅ Pieza actualizada.');
+        let aviso = '';
+        // Ajustar Info Plus solo si esta pieza ya se había descontado al agregarla.
+        const yaDesc = Number(pz.infoplus_desc_cant) || 0;
+        if(yaDesc > 0 && pz.pieza_codigo) {
+            const delta = cantidad - yaDesc; // >0 sacar más; <0 devolver
+            if(delta !== 0) {
+                const r = await _infoplusAjustePieza(pz.pieza_codigo, Math.abs(delta), costo, delta < 0, `Ajuste pieza reparación equipo ${pz.equipo_id}`);
+                if(r.ok) await supabaseClient.from('equipo_piezas_pedidas').update({ infoplus_desc_cant: cantidad }).eq('id', piezaId);
+                else aviso = '\n⚠️ No se pudo ajustar Info Plus: ' + (r.error || '') + ' (ajústalo a mano)';
+            }
+        }
+        toast('✅ Pieza actualizada.' + aviso, aviso ? 'error' : undefined);
         await loadAll();
         _refrescarVistaEquipo(pz.equipo_id);
     } catch(e) { logError('editarPiezaInfoPlus', e); toastError(getFriendlyError(e)); }
@@ -13180,10 +13227,17 @@ async function eliminarPiezaInfoPlus(piezaId) {
         const { data: pz, error: e0 } = await supabaseClient.from('equipo_piezas_pedidas').select('*').eq('id', piezaId).single();
         if(e0 || !pz) throw (e0 || new Error('Pieza no encontrada'));
         if(!await confirmar(`¿Quitar la pieza "${pz.pieza_nombre || 'pieza'}" del costo del equipo?`)) return;
+        let aviso = '';
+        // Devolver al inventario de Info Plus lo que se había descontado.
+        const yaDesc = Number(pz.infoplus_desc_cant) || 0;
+        if(yaDesc > 0 && pz.pieza_codigo) {
+            const r = await _infoplusAjustePieza(pz.pieza_codigo, yaDesc, pz.costo_unitario, true, `Devolución pieza reparación equipo ${pz.equipo_id}`);
+            if(!r.ok) aviso = '\n⚠️ No se pudo devolver a Info Plus: ' + (r.error || '') + ' (devuélvela a mano)';
+        }
         const { error } = await supabaseClient.from('equipo_piezas_pedidas').delete().eq('id', piezaId);
         if(error) throw error;
         await _recalcularCostoRepuestos(pz.equipo_id);
-        toast('✅ Pieza quitada del costo.');
+        toast('✅ Pieza quitada del costo.' + aviso, aviso ? 'error' : undefined);
         await loadAll();
         _refrescarVistaEquipo(pz.equipo_id);
     } catch(e) { logError('eliminarPiezaInfoPlus', e); toastError(getFriendlyError(e)); }
