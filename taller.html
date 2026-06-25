@@ -9234,6 +9234,13 @@ function _costoEquipoRep(e) {
     const piezas = Number(e.costo_repuestos) || 0;
     return { compra, flete, piezas, fin: compra + flete + piezas };
 }
+// Nombre de modelo para reportes, incluyendo la capacidad (GB) si no está ya en el nombre. Ej: "IPHONE 13 MINI 128GB"
+function _modeloRep(e) {
+    let m = (e.modelo || '').toString().trim();
+    const cap = (e.capacidad || '').toString().trim();
+    if(cap && !m.toUpperCase().includes(cap.toUpperCase())) m = (m + ' ' + cap).trim();
+    return m;
+}
 function _piezasDeEquipoRep(equipoId) { return (cache.piezasReacond || []).filter(p => p.equipo_id === equipoId); }
 function _fechaCortaRep(f) { return f ? new Date(f).toLocaleDateString('es-DO') : ''; }
 // ¿Todos los equipos del lote están Listo o Despachado? (lote concluido)
@@ -9255,7 +9262,7 @@ function _reporteCostosPrintHTML({ titulo, subtitulo, infoChips, equipos }) {
         const tec = e.tecnico_asignado_id ? escapeHtml(nombreEmpleado(e.tecnico_asignado_id)) : '';
         const pzs = _piezasDeEquipoRep(e.id);
         // Fila resumen del equipo (igual que el Excel) — Código en su propia columna
-        let rows = `<tr style="background:#eef3fc;"><td class="c">${i+1}</td><td><b>${escapeHtml(e.modelo || '')}</b></td><td class="c" style="color:#1d4ed8; font-weight:700;">${escapeHtml(e.articulo_codigo || '')}</td><td class="mono">${escapeHtml(e.imei || '-')}</td><td>${escapeHtml(estLbl)}</td><td>${tec}</td>
+        let rows = `<tr style="background:#eef3fc;"><td class="c">${i+1}</td><td><b>${escapeHtml(_modeloRep(e))}</b></td><td class="c" style="color:#1d4ed8; font-weight:700;">${escapeHtml(e.articulo_codigo || '')}</td><td class="mono">${escapeHtml(e.imei || '-')}</td><td>${escapeHtml(estLbl)}</td><td>${tec}</td>
             <td class="num">${money(compra)}</td><td class="num">${money(flete)}</td><td class="num"><b>${money(sub)}</b></td><td class="num"></td><td class="num"></td><td class="num">${money(piezas)}</td><td class="num" style="font-weight:bold;">${money(fin)}</td></tr>`;
         // Desglose de piezas (con código Info Plus y costo) — igual que el Excel
         if(pzs.length) {
@@ -9331,7 +9338,7 @@ function _reporteCostosExcelDL({ titulo, infoLineas, equipos, filename }) {
         const tec = e.tecnico_asignado_id ? nombreEmpleado(e.tecnico_asignado_id) : '';
         const pzs = _piezasDeEquipoRep(e.id);
         // Fila del equipo: Código en su propia columna (solo el número), montos en RD$
-        let rows = `<tr style="background:#e8eefc;"><td>${i+1}</td><td><b>${escapeHtml(e.modelo || '')}</b></td><td>${escapeHtml(e.articulo_codigo || '')}</td><td>${escapeHtml(e.imei || '-')}</td><td>${escapeHtml(estLbl)}</td><td>${escapeHtml(tec)}</td>
+        let rows = `<tr style="background:#e8eefc;"><td>${i+1}</td><td><b>${escapeHtml(_modeloRep(e))}</b></td><td>${escapeHtml(e.articulo_codigo || '')}</td><td>${escapeHtml(e.imei || '-')}</td><td>${escapeHtml(estLbl)}</td><td>${escapeHtml(tec)}</td>
             <td>${mny(compra)}</td><td>${mny(flete)}</td><td><b>${mny(sub)}</b></td><td></td><td></td><td>${mny(piezas)}</td><td><b>${mny(fin)}</b></td></tr>`;
         // Desglose de piezas adicionadas (con código Info Plus y costo)
         if(pzs.length) {
@@ -10323,8 +10330,9 @@ function _datosFormatoInfoPlus() {
     const grupos = {};
     equipos.forEach(e => {
         const cod = (e.articulo_codigo != null && String(e.articulo_codigo).trim()) ? String(e.articulo_codigo).trim() : '';
-        const key = cod || ('MOD:' + (e.modelo || 'SIN MODELO').toUpperCase());
-        if(!grupos[key]) grupos[key] = { codigo: cod, modelo: e.modelo || '', equipos: [], imeis: [], total: 0 };
+        const modeloCap = _modeloRep(e);
+        const key = cod || ('MOD:' + (modeloCap || 'SIN MODELO').toUpperCase());
+        if(!grupos[key]) grupos[key] = { codigo: cod, modelo: modeloCap, equipos: [], imeis: [], total: 0 };
         grupos[key].equipos.push(e);
         if(e.imei) grupos[key].imeis.push(e.imei);
         grupos[key].total += _costoEquipoRep(e).fin;
