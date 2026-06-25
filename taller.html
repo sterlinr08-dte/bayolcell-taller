@@ -859,7 +859,8 @@ body{
             <button id="menu-articulos" onclick="nav('articulos',this)"><i class="ti ti-database"></i> <span>Catálogo de Artículos</span></button>
             <button id="menu-proveedores" onclick="nav('proveedores',this)"><i class="ti ti-shopping-cart"></i> <span>Compras</span></button>
             <button id="menu-refurb" onclick="nav('refurb',this)"><i class="ti ti-refresh"></i> <span>Reacondicionados</span></button>
-            
+            <button id="menu-despachos" onclick="nav('despachos',this)"><i class="ti ti-truck-delivery"></i> <span>Despacho de Almacén</span></button>
+
             <div class="nav-section">SISTEMA</div>
             <button id="menu-etiquetas" onclick="nav('etiquetas',this)"><i class="ti ti-barcode"></i> <span>Impresión de Labels</span></button>
             <button id="menu-configImpresora" onclick="nav('configImpresora',this)"><i class="ti ti-printer"></i> <span>Config. Impresora</span></button>
@@ -2233,6 +2234,42 @@ body{
                     </div>
                 </div>
                 <!-- /CONTENIDO PESTAÑA RENTABILIDAD -->
+            </div>
+
+            <!-- ============= DESPACHO DE ALMACÉN ============= -->
+            <div id="v-despachos" class="view">
+                <div class="card" style="margin-bottom:15px;">
+                    <h2 style="margin:0 0 4px 0; font-size:18px;"><i class="ti ti-truck-delivery" style="color:#0891b2;"></i> Despacho de Almacén</h2>
+                    <p style="color:var(--text-muted); font-size:13px; margin:0;">Mueve unidades de un artículo de un almacén a otro en Info Plus (sale de uno, entra al otro). Queda guardado con fecha e historial.</p>
+                </div>
+                <div class="card" style="margin-bottom:15px;">
+                    <h3 style="margin:0 0 12px 0; font-size:15px;"><i class="ti ti-arrows-exchange"></i> Nuevo despacho</h3>
+                    <button class="btn btn-light" onclick="_despachoBuscarArt()" style="margin-bottom:10px;"><i class="ti ti-search"></i> Buscar artículo (Info Plus)</button>
+                    <div id="despachoArtInfo" style="margin-bottom:12px;"></div>
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:12px; align-items:end;">
+                        <div>
+                            <label style="font-size:12px; font-weight:700; color:#475569; display:block; margin-bottom:4px;">Desde (origen)</label>
+                            <select id="despachoOrigen" style="width:100%; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;"></select>
+                        </div>
+                        <div>
+                            <label style="font-size:12px; font-weight:700; color:#475569; display:block; margin-bottom:4px;">Hacia (destino)</label>
+                            <select id="despachoDestino" style="width:100%; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;"></select>
+                        </div>
+                        <div>
+                            <label style="font-size:12px; font-weight:700; color:#475569; display:block; margin-bottom:4px;">Cantidad</label>
+                            <input id="despachoCant" type="number" min="1" value="1" style="width:100%; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
+                        </div>
+                    </div>
+                    <div style="margin-top:12px;">
+                        <label style="font-size:12px; font-weight:700; color:#475569; display:block; margin-bottom:4px;">Nota (opcional)</label>
+                        <input id="despachoNota" type="text" placeholder="Ej: reposición de piezas al taller" style="width:100%; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
+                    </div>
+                    <button class="btn btn-blue" onclick="hacerDespachoAlmacen()" style="margin-top:14px;"><i class="ti ti-truck-delivery"></i> Hacer despacho</button>
+                </div>
+                <div class="card">
+                    <h3 style="margin:0 0 12px 0; font-size:15px;"><i class="ti ti-history"></i> Historial de despachos</h3>
+                    <div class="table-wrap" id="despachosHistorial"></div>
+                </div>
             </div>
 
             <!-- ============= REPORTES ============= -->
@@ -4570,6 +4607,7 @@ function applyAccessControls() {
         'menu-articulos': 'catalogo_articulos',
         'menu-proveedores': 'compras_ver',
         'menu-refurb': 'reacond_ver',
+        'menu-despachos': 'despacho_ver',
         'menu-reportes': 'reportes_ver',
         'menu-configuracion': 'config_ver',
         'menu-financiamientos': 'financiamientos_ver',
@@ -5454,6 +5492,7 @@ const NAV_PERMISOS = {
     'articulos': 'catalogo_articulos',
     'proveedores': 'compras_ver',
     'refurb': 'reacond_ver',
+    'despachos': 'despacho_ver',
     'reportes': 'reportes_ver',
     'configuracion': 'config_ver',
     'financiamientos': 'financiamientos_ver',
@@ -5495,6 +5534,7 @@ function nav(v, btn) {
     if(v === 'refurb') { setTimeout(() => { volverListaLotesReacond(); const st = localStorage.getItem('bayol_subtab_reacond') || 'lotes'; if(typeof cambiarMainTabReacond === 'function') cambiarMainTabReacond(st); }, 50); }
     if(v === 'configuracion') { setTimeout(() => { cambiarMainTabConfig(localStorage.getItem('bayol_subtab_config') || 'tecnicos'); }, 50); }
     if(v === 'reportes') { setTimeout(() => { inicializarReportes(); }, 50); }
+    if(v === 'despachos') { setTimeout(() => { renderDespachos(); }, 50); }
     if(v === 'estadisticas') { setTimeout(() => { renderEstadisticas(); }, 50); }
     if(v === 'miTrabajo') { setTimeout(() => { renderMiTrabajo(); const _wrap = document.getElementById('miTrabajoIncentivosWrap'); if(_wrap){ if(!isAdminUser() && typeof renderMisIncentivos === 'function') { _wrap.style.display = ''; renderMisIncentivos('miTrabajoIncentivos'); } else { _wrap.style.display = 'none'; } } }, 50); }
     if(v === 'atencion') { setTimeout(() => { renderAtencionCliente(); }, 50); }
@@ -13121,10 +13161,11 @@ function _refrescarVistaEquipo(equipoId) {
 // Descuenta (o devuelve) una pieza del inventario de Info Plus — almacén 6 (TALLER).
 // entrada=false => SALIDA (resta, codminventario 2); entrada=true => ENTRADA (suma, codminventario 1).
 // Devuelve {ok:true} o {ok:false, error}. NO lanza: es "best effort" (no debe romper el guardado de la pieza).
-async function _infoplusAjustePieza(codarticulo, cantidad, precio, entrada, comentario) {
+async function _infoplusAjustePieza(codarticulo, cantidad, precio, entrada, comentario, almacen) {
     const codNum = parseInt(String(codarticulo == null ? '' : codarticulo).replace(/[^0-9]/g, ''), 10);
     const cant = parseInt(cantidad, 10) || 0;
     if(!codNum || cant <= 0) return { ok: false, error: 'Sin código de Info Plus o cantidad inválida' };
+    const codloc = parseInt(almacen, 10) || 6; // almacén destino del movimiento (default 6 = Taller)
     const d = new Date();
     const fecha = `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
     const hora = d.toTimeString().slice(0, 8);
@@ -13132,7 +13173,7 @@ async function _infoplusAjustePieza(codarticulo, cantidad, precio, entrada, come
     const ajuste = {
         codajuste: "", fecha, hora, total: pu * cant, cancelado: false,
         codempleado: "6", comentario: comentario || "Ajuste taller",
-        codminventario: entrada ? 1 : 2, codlocalidad: 6, codcatalogo: "62809",
+        codminventario: entrada ? 1 : 2, codlocalidad: codloc, codcatalogo: "62809",
         subsidio: false, esmaterialgastable: false, codcentrocosto: null, codactivofijo: null, codotrascompras: null,
         detallesajuste: [{ codarticulo: codNum, precio: pu, cantidad: cant, codunidad: 1, movimiento: 1, fvencimiento: fecha, caracteristicas: "" }],
         detallesajuste2: [], seriales: []
@@ -13146,6 +13187,115 @@ async function _infoplusAjustePieza(codarticulo, cantidad, precio, entrada, come
         logError('Info Plus ajuste pieza', e);
         return { ok: false, error: getFriendlyError(e) };
     }
+}
+// ===== DESPACHO DE ALMACÉN (traspaso de stock entre almacenes de Info Plus) =====
+const ALMACENES_IP = [
+    { c: 1, n: 'Principal' },
+    { c: 3, n: 'Almacén 3' },
+    { c: 4, n: 'Almacén 4' },
+    { c: 5, n: 'Almacén 5' },
+    { c: 6, n: 'Taller' }
+];
+function _nombreAlmacen(c) { const a = ALMACENES_IP.find(x => x.c === Number(c)); return a ? `${a.n} (${a.c})` : ('Almacén ' + c); }
+let _despachoArt = null;
+function _despachoLlenarSelects() {
+    const o = document.getElementById('despachoOrigen'), d = document.getElementById('despachoDestino');
+    if(!o || !d) return;
+    const opts = ALMACENES_IP.map(a => `<option value="${a.c}">${a.n} (${a.c})</option>`).join('');
+    o.innerHTML = opts; d.innerHTML = opts;
+    o.value = '1'; d.value = '6';
+}
+async function renderDespachos() {
+    if(!tienePermiso('despacho_ver')) { toast('🔒 No tienes permiso.', 'error'); return; }
+    _despachoLlenarSelects();
+    _despachoArt = null;
+    const info = document.getElementById('despachoArtInfo');
+    if(info) info.innerHTML = '<div style="color:#94a3b8; font-size:13px;">Ningún artículo seleccionado. Usa "Buscar artículo".</div>';
+    const cant = document.getElementById('despachoCant'); if(cant) cant.value = '1';
+    const nota = document.getElementById('despachoNota'); if(nota) nota.value = '';
+    _ensureInfoplusArticulos();
+    await _despachoCargarHistorial();
+}
+function _despachoBuscarArt() {
+    abrirBuscadorArticulos(null, (a) => { _despachoArt = a; _despachoMostrarArt(); });
+}
+function _despachoMostrarArt() {
+    const info = document.getElementById('despachoArtInfo');
+    if(!info || !_despachoArt) return;
+    const full = _findInfoplusArt(_despachoArt.codigo) || {};
+    const ex = full.existencias || {};
+    const chips = ALMACENES_IP.map(a => {
+        const v = Number(ex[String(a.c)] || 0);
+        return `<span style="display:inline-block; background:${v>0?'#dcfce7':'#f1f5f9'}; color:${v>0?'#166534':'#94a3b8'}; font-size:12px; font-weight:700; padding:4px 10px; border-radius:10px; margin:2px;">${a.n}: ${v}</span>`;
+    }).join('');
+    info.innerHTML = `<div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px;">
+        <div style="font-weight:700; font-size:14px;">${escapeHtml(_despachoArt.descripcion || String(_despachoArt.codigo))} <span style="color:#94a3b8; font-weight:600; font-size:12px;">· cód ${escapeHtml(String(_despachoArt.codigo))}</span></div>
+        <div style="margin-top:6px;">${chips}</div>
+        <div style="font-size:11px; color:#94a3b8; margin-top:4px;">Existencias según última sincronización.</div>
+    </div>`;
+}
+async function hacerDespachoAlmacen() {
+    if(!tienePermiso('despacho_ver')) return toast('🔒 No tienes permiso.', 'error');
+    if(!_despachoArt) return toast('Primero busca y selecciona un artículo.', 'error');
+    const origen = parseInt(document.getElementById('despachoOrigen')?.value, 10);
+    const destino = parseInt(document.getElementById('despachoDestino')?.value, 10);
+    const cant = parseInt(document.getElementById('despachoCant')?.value, 10) || 0;
+    const nota = (document.getElementById('despachoNota')?.value || '').trim();
+    if(!origen || !destino) return toast('Elige almacén origen y destino.', 'error');
+    if(origen === destino) return toast('El origen y el destino no pueden ser el mismo almacén.', 'error');
+    if(cant <= 0) return toast('La cantidad debe ser mayor que 0.', 'error');
+    const codNum = parseInt(String(_despachoArt.codigo).replace(/[^0-9]/g, ''), 10);
+    // Revisar existencia real del origen
+    let exOrigen = null;
+    try {
+        const { data: ex } = await supabaseClient.functions.invoke('infoplus-existencia', { body: { codarticulo: codNum, codalmacen: origen } });
+        if(ex && ex.ok) exOrigen = Number(ex.cantidad);
+    } catch(_e) {}
+    let msg = `¿Mover ${cant} unidad(es) de "${_despachoArt.descripcion || codNum}"\nde ${_nombreAlmacen(origen)} → ${_nombreAlmacen(destino)}?`;
+    if(exOrigen !== null) msg += `\n\nExistencia actual en ${_nombreAlmacen(origen)}: ${exOrigen}` + (exOrigen < cant ? ' ⚠️ (quedaría en negativo)' : '');
+    if(!await confirmar(msg)) return;
+    const precio = Number(_despachoArt.costo) || 0;
+    const com = `Despacho ${_nombreAlmacen(origen)}→${_nombreAlmacen(destino)}${nota ? ': ' + nota : ''}`;
+    // Salida del origen
+    const rOut = await _infoplusAjustePieza(codNum, cant, precio, false, com, origen);
+    // Entrada al destino (solo si la salida funcionó)
+    let rIn = { ok: false, error: 'no se ejecutó (falló la salida)' };
+    if(rOut.ok) rIn = await _infoplusAjustePieza(codNum, cant, precio, true, com, destino);
+    const estado = (rOut.ok && rIn.ok) ? 'ok' : (rOut.ok ? 'parcial' : 'error');
+    const detalle = `Salida: ${rOut.ok ? 'OK' : ('ERROR ' + (rOut.error || ''))} · Entrada: ${rIn.ok ? 'OK' : ('ERROR ' + (rIn.error || ''))}`;
+    try {
+        await supabaseClient.from('despachos_almacen').insert([{
+            codarticulo: codNum, articulo_nombre: (_despachoArt.descripcion || String(codNum)),
+            cantidad: cant, almacen_origen: origen, almacen_destino: destino,
+            usuario: sessionUser?.nombre || 'Admin', nota: nota || null, estado, detalle
+        }]);
+    } catch(e) { logError('Guardar despacho', e); }
+    if(estado === 'ok') toast(`✅ Despacho hecho: ${cant} u. ${_nombreAlmacen(origen)} → ${_nombreAlmacen(destino)}`);
+    else if(estado === 'parcial') toast(`⚠️ Salió del origen pero NO entró al destino. Revisa Info Plus.\n${detalle}`, 'error');
+    else toast(`❌ No se pudo hacer el despacho.\n${detalle}`, 'error');
+    _despachoMostrarArt();
+    await _despachoCargarHistorial();
+}
+async function _despachoCargarHistorial() {
+    const cont = document.getElementById('despachosHistorial');
+    if(!cont) return;
+    try {
+        const { data, error } = await supabaseClient.from('despachos_almacen').select('*').order('fecha', { ascending: false }).limit(100);
+        if(error) throw error;
+        const rows = data || [];
+        if(!rows.length) { cont.innerHTML = '<p style="color:#94a3b8; font-size:13px; text-align:center; padding:14px;">Aún no hay despachos registrados.</p>'; return; }
+        const badge = (e) => e === 'ok' ? '<span style="color:#166534; font-weight:700;">✅ OK</span>' : (e === 'parcial' ? '<span style="color:#b45309; font-weight:700;">⚠️ Parcial</span>' : '<span style="color:#b91c1c; font-weight:700;">❌ Error</span>');
+        cont.innerHTML = `<table><thead><tr><th>Fecha</th><th>Artículo</th><th>Cant.</th><th>De → A</th><th>Usuario</th><th>Estado</th><th>Nota</th></tr></thead><tbody>` +
+            rows.map(r => `<tr>
+                <td style="white-space:nowrap;">${new Date(r.fecha).toLocaleString('es-DO')}</td>
+                <td>${escapeHtml(r.articulo_nombre || '')} <span style="color:#94a3b8;">(${r.codarticulo || ''})</span></td>
+                <td style="text-align:center; font-weight:700;">${r.cantidad}</td>
+                <td style="white-space:nowrap;">${_nombreAlmacen(r.almacen_origen)} → ${_nombreAlmacen(r.almacen_destino)}</td>
+                <td>${escapeHtml(r.usuario || '')}</td>
+                <td>${badge(r.estado)}</td>
+                <td>${escapeHtml(r.nota || '')}</td>
+            </tr>`).join('') + `</tbody></table>`;
+    } catch(e) { logError('Historial despachos', e); cont.innerHTML = '<p style="color:#b91c1c; font-size:13px;">No se pudo cargar el historial.</p>'; }
 }
 async function _recalcularCostoRepuestos(equipoId) {
     try {
@@ -13222,21 +13372,54 @@ async function agregarPiezaInfoPlus(equipoId) {
     } catch(e) { logError('Fallas referencia Info Plus', e); }
     abrirBuscadorArticulos(null, (a) => _agregarPiezaInfoPlusConfirm(equipoId, a), refHtml);
 }
+// Modal para decidir qué hacer cuando la pieza no tiene existencia en el Taller.
+// Devuelve una promesa: {accion:'descontar', almacen:N} | {accion:'solocosto'} | {accion:'cancelar'}
+function _piezaSinStockElegir(art, ex) {
+    return new Promise((resolve) => {
+        const conStock = ALMACENES_IP.filter(a => a.c !== 6 && Number(ex[String(a.c)] || 0) > 0);
+        const btnsAlm = conStock.map(a => `<button class="btn btn-light" style="display:block; width:100%; text-align:left; margin-bottom:6px;" onclick="_piezaSinStockResolver({accion:'descontar', almacen:${a.c}})"><i class="ti ti-arrow-down-circle"></i> Descontar de ${a.n} <span style="color:#166534; font-weight:700;">(hay ${Number(ex[String(a.c)] || 0)})</span></button>`).join('');
+        const box = document.createElement('div');
+        box.className = 'modal-backdrop active';
+        box.id = 'modalPiezaSinStock';
+        box.style.zIndex = '700';
+        box.innerHTML = `<div class="modal-box" style="max-width:460px;">
+            <div class="modal-header"><h3 style="margin:0;">⚠️ Sin existencia en el Taller</h3></div>
+            <div class="modal-body">
+              <p style="font-size:14px; margin-top:0;">"<b>${escapeHtml(art.descripcion || String(art.codigo))}</b>" no tiene existencia en el <b>Taller</b> (almacén 6).</p>
+              ${conStock.length ? `<p style="font-size:13px; color:#475569; margin-bottom:6px; font-weight:700;">Descontar de otro almacén:</p>${btnsAlm}` : `<p style="font-size:13px; color:#94a3b8;">Tampoco hay existencia en otros almacenes.</p>`}
+              <hr style="border:0; border-top:1px solid #e2e8f0; margin:10px 0;">
+              <button class="btn btn-light" style="display:block; width:100%; margin-bottom:6px;" onclick="_piezaSinStockResolver({accion:'solocosto'})"><i class="ti ti-cash"></i> Solo sumar el costo (no descontar)</button>
+              <button class="btn btn-light" style="display:block; width:100%; color:#b45309;" onclick="_piezaSinStockResolver({accion:'descontar', almacen:6})"><i class="ti ti-alert-triangle"></i> Descontar igual del Taller (queda negativo)</button>
+            </div>
+            <div class="modal-footer"><button class="btn btn-light" onclick="_piezaSinStockResolver({accion:'cancelar'})">Cancelar</button></div>
+        </div>`;
+        document.body.appendChild(box);
+        window._piezaSinStockResolver = (res) => {
+            const m = document.getElementById('modalPiezaSinStock');
+            if(m) m.remove();
+            window._piezaSinStockResolver = null;
+            resolve(res || { accion: 'cancelar' });
+        };
+    });
+}
 async function _agregarPiezaInfoPlusConfirm(equipoId, a) {
     try {
         const nombrePz = (a.descripcion || a.codigo || '').trim();
         // 1) Revisar existencia en el Taller (almacén 6) ANTES de descontar.
         let descontar = true;
+        let almDesc = 6; // de cuál almacén se descuenta (default Taller)
         let existenciaTaller = null;
         try {
             const { data: ex } = await supabaseClient.functions.invoke('infoplus-existencia', { body: { codarticulo: a.codigo, codalmacen: 6 } });
             if(ex && ex.ok) existenciaTaller = Number(ex.cantidad);
         } catch(_e) { /* si no se puede leer, se procede normal */ }
-        // 2) Si no hay existencia, avisar y preguntar qué hacer.
+        // 2) Si no hay existencia en el Taller, mostrar opciones (otro almacén / solo costo / negativo).
         if(existenciaTaller !== null && existenciaTaller <= 0) {
-            const seguir = await confirmar(`⚠️ "${nombrePz}" no tiene existencia en el Taller (almacén 6).\nExistencia actual: ${existenciaTaller}.\n\n¿Agregarla igual al COSTO del equipo?`);
-            if(!seguir) return;
-            descontar = await confirmar(`¿También DESCONTAR esta pieza del inventario de Info Plus?\n\n• Aceptar = descontar igual (quedará en negativo, para recordar reponerla)\n• Cancelar = solo sumar el costo (no toca el inventario)`);
+            const full = _findInfoplusArt(a.codigo) || {};
+            const elec = await _piezaSinStockElegir(a, full.existencias || {});
+            if(elec.accion === 'cancelar') return;
+            if(elec.accion === 'solocosto') { descontar = false; }
+            else { descontar = true; almDesc = elec.almacen || 6; }
         }
         // 3) Insertar la pieza (siempre suma el costo).
         const { data: ins, error } = await supabaseClient.from('equipo_piezas_pedidas').insert([{
@@ -13247,12 +13430,12 @@ async function _agregarPiezaInfoPlusConfirm(equipoId, a) {
         }]).select('id').single();
         if(error) throw error;
         await _recalcularCostoRepuestos(equipoId);
-        // 4) Descontar del Taller solo si corresponde.
+        // 4) Descontar (del almacén elegido) solo si corresponde.
         if(descontar) {
-            const r = await _infoplusAjustePieza(a.codigo, 1, a.costo, false, `Salida pieza reparación equipo ${equipoId}`);
+            const r = await _infoplusAjustePieza(a.codigo, 1, a.costo, false, `Salida pieza reparación equipo ${equipoId}`, almDesc);
             if(r.ok && ins) {
-                await supabaseClient.from('equipo_piezas_pedidas').update({ infoplus_desc_cant: 1 }).eq('id', ins.id);
-                toast('✅ Pieza agregada al costo y descontada de Info Plus (Taller): ' + nombrePz);
+                await supabaseClient.from('equipo_piezas_pedidas').update({ infoplus_desc_cant: 1, infoplus_desc_almacen: almDesc }).eq('id', ins.id);
+                toast('✅ Pieza agregada al costo y descontada de Info Plus (' + _nombreAlmacen(almDesc) + '): ' + nombrePz);
             } else {
                 toast('✅ Pieza agregada al costo: ' + nombrePz + '\n⚠️ No se pudo descontar de Info Plus: ' + (r.error || '') + ' (descuéntala a mano)', 'error');
             }
@@ -13284,7 +13467,7 @@ async function editarPiezaInfoPlus(piezaId) {
         if(yaDesc > 0 && pz.pieza_codigo) {
             const delta = cantidad - yaDesc; // >0 sacar más; <0 devolver
             if(delta !== 0) {
-                const r = await _infoplusAjustePieza(pz.pieza_codigo, Math.abs(delta), costo, delta < 0, `Ajuste pieza reparación equipo ${pz.equipo_id}`);
+                const r = await _infoplusAjustePieza(pz.pieza_codigo, Math.abs(delta), costo, delta < 0, `Ajuste pieza reparación equipo ${pz.equipo_id}`, pz.infoplus_desc_almacen || 6);
                 if(r.ok) await supabaseClient.from('equipo_piezas_pedidas').update({ infoplus_desc_cant: cantidad }).eq('id', piezaId);
                 else aviso = '\n⚠️ No se pudo ajustar Info Plus: ' + (r.error || '') + ' (ajústalo a mano)';
             }
@@ -13305,7 +13488,7 @@ async function eliminarPiezaInfoPlus(piezaId) {
         // Devolver al inventario de Info Plus lo que se había descontado.
         const yaDesc = Number(pz.infoplus_desc_cant) || 0;
         if(yaDesc > 0 && pz.pieza_codigo) {
-            const r = await _infoplusAjustePieza(pz.pieza_codigo, yaDesc, pz.costo_unitario, true, `Devolución pieza reparación equipo ${pz.equipo_id}`);
+            const r = await _infoplusAjustePieza(pz.pieza_codigo, yaDesc, pz.costo_unitario, true, `Devolución pieza reparación equipo ${pz.equipo_id}`, pz.infoplus_desc_almacen || 6);
             if(!r.ok) aviso = '\n⚠️ No se pudo devolver a Info Plus: ' + (r.error || '') + ' (devuélvela a mano)';
         }
         const { error } = await supabaseClient.from('equipo_piezas_pedidas').delete().eq('id', piezaId);
@@ -17544,6 +17727,12 @@ const PERMISOS_DEF = [
             { id: 'piezas_agregar_extra', label: 'Agregar piezas adicionales' },
             { id: 'estado_cambiar', label: 'Cambiar estado del equipo' },
             { id: 'estado_despachar', label: 'Marcar como Despachado' }
+        ]
+    },
+    {
+        grupo: '🚚 Despacho de Almacén', color: '#0891b2',
+        items: [
+            { id: 'despacho_ver', label: 'Ver y usar Despacho de Almacén (traspasos entre almacenes)' }
         ]
     },
     {
