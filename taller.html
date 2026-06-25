@@ -8995,12 +8995,29 @@ let reacondLoteAbiertoId = null;
 let _reacondSel = new Set(); // equipos marcados con casilla para asignar en bloque
 let _reacondFiltroTec = ''; // filtrar la lista por técnico (clic en su chip)
 const _REACOND_ESTADOS_TRABAJO = ['en_proceso','tecnico_recibio','espera_pieza','listo_revision','reasignado','reparacion_externa'];
+// ¿El equipo pasa el filtro de estado seleccionado? (mismo criterio que usa la lista)
+function _reacondEquipoPasaEstado(e, fEstado) {
+    if(fEstado === 'completado') return e.estado_evaluacion === 'vendido' && e.completado;
+    if(fEstado === 'vendido') return e.estado_evaluacion === 'vendido' && !e.completado;
+    if(fEstado) return (e.estado_evaluacion || 'pendiente') === fEstado;
+    return !(e.estado_evaluacion === 'vendido' && e.completado); // "Todos" oculta los completados
+}
 function _reacondTecnicosResumen() {
-    // Técnicos con equipos asignados en el lote abierto (todos los estados, para poder filtrar).
-    // Por cada técnico: { total, term } donde term = equipos ya terminados (Listo/Despachado/Completado).
+    // Técnicos con equipos asignados en el lote abierto, RESPETANDO el filtro de estado y la búsqueda.
+    // Así, en "Listo" solo salen los técnicos con listos, y al hacer clic se filtran sus listos.
+    // Por cada técnico: { total, term } (term = de esos, cuántos ya están Listo/Despachado/Completado).
     const res = {};
     const TERM = ['listo_venta', 'vendido', 'completado'];
+    const fEstado = document.getElementById('reacondFiltroEstado')?.value || '';
+    const q = (document.getElementById('reacondBusq')?.value || '').toLowerCase().trim();
+    const palabras = q ? q.split(/\s+/).filter(Boolean) : [];
     (cache.refurb || []).filter(r => r.lote_id === reacondLoteAbiertoId && r.tecnico_asignado_id)
+        .filter(r => _reacondEquipoPasaEstado(r, fEstado))
+        .filter(r => {
+            if(!palabras.length) return true;
+            const hay = [r.imei, r.articulo_codigo, r.modelo, r.marca, r.capacidad, r.color].filter(Boolean).join(' ').toLowerCase();
+            return palabras.every(p => hay.includes(p));
+        })
         .forEach(r => {
             const k = r.tecnico_asignado_id;
             if(!res[k]) res[k] = { total: 0, term: 0 };
@@ -10325,11 +10342,13 @@ function renderDetalleLoteReacond() {
         const keys = Object.keys(resTec);
         if(!keys.length) { rowTec.innerHTML = ''; }
         else {
+            const fEstadoChip = document.getElementById('reacondFiltroEstado')?.value || '';
             rowTec.innerHTML = `<span style="font-size:12px; color:#64748b; align-self:center;">👷 Técnicos:</span>` + keys.map(tid => {
                 const t = (cache.tecnicos || []).find(x => x.id === tid);
                 const activo = _reacondFiltroTec === tid;
                 const r = resTec[tid];
-                const sub = (r.term > 0) ? ` <span style="font-weight:600; opacity:.85;">(${r.term} listo${r.term > 1 ? 's' : ''})</span>` : '';
+                // El desglose "(N listos)" solo en "Todos"; con un estado filtrado el total ya es de ese estado.
+                const sub = (!fEstadoChip && r.term > 0) ? ` <span style="font-weight:600; opacity:.85;">(${r.term} listo${r.term > 1 ? 's' : ''})</span>` : '';
                 return `<button onclick="_reacondFiltrarTec('${tid}')" style="border:1px solid ${activo ? '#0f172a' : '#c7d2fe'}; background:${activo ? '#0f172a' : '#e0e7ff'}; color:${activo ? '#fff' : '#3730a3'}; padding:5px 11px; border-radius:999px; cursor:pointer; font-size:12px; font-weight:700;"><i class="ti ti-user"></i> ${escapeHtml(t?.nombre || 'Técnico')} · ${r.total}${sub}</button>`;
             }).join('') + (_reacondFiltroTec ? `<button onclick="_reacondFiltrarTec('${_reacondFiltroTec}')" style="border:0; background:transparent; color:#b91c1c; cursor:pointer; font-size:12px;">✕ quitar filtro</button>` : '');
         }
