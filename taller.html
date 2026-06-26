@@ -4496,7 +4496,8 @@ async function generarBoletoRifa() {
             if(elN) elN.value = ''; if(elT) elT.value = '';
             try { toast('🎟️ Boleto #' + j.numero + ' generado.'); } catch(_e) {}
         } else {
-            if(msg) msg.innerHTML = `<span style="color:#dc2626; font-size:13px;">⚠️ ${escapeHtml((j && j.error) || 'No se pudo generar el boleto. Verifica que haya una rifa activa.')}</span>`;
+            const detalle = (j && (j.msg || j.error)) || 'No se pudo generar el boleto. Verifica que haya una rifa activa.';
+            if(msg) msg.innerHTML = `<span style="color:#dc2626; font-size:13px;">⚠️ ${escapeHtml(detalle)}</span>`;
         }
     } catch(e) {
         logError('Generar boleto rifa', e);
