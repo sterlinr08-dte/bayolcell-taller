@@ -846,7 +846,7 @@ body{
             <button id="menu-misIncentivos" onclick="nav('misIncentivos',this)" style="display:none;"><i class="ti ti-coin"></i> <span>Mis Incentivos</span></button>
             <button id="menu-atencion" onclick="nav('atencion',this)"><i class="ti ti-headset"></i> <span>Atención al Cliente</span></button>
             <button id="menu-financiamientos" onclick="nav('financiamientos',this)"><i class="ti ti-cash"></i> <span>Financiamientos</span></button>
-            <button id="menu-rifas" onclick="abrirRifas()" title="Abrir el módulo de Rifas (Nexus Pro) ya logueado"><i class="ti ti-ticket"></i> <span>Rifas</span> <i class="ti ti-external-link" style="font-size:12px; opacity:.6;"></i></button>
+            <button id="menu-rifas" onclick="abrirRifas()" title="Abrir el panel administrativo de la Rifa (Nexus Pro) ya logueado"><i class="ti ti-ticket"></i> <span>🎟️ Rifa (admin)</span> <i class="ti ti-external-link" style="font-size:12px; opacity:.6;"></i></button>
             <button id="menu-contabilidad" onclick="nav('contabilidad',this)"><i class="ti ti-calculator"></i> <span>Contabilidad</span></button>
             <button id="menu-diagnostico" onclick="nav('diagnostico',this)"><i class="ti ti-stethoscope"></i> <span>Diagnóstico IA</span></button>
             <button id="menu-recepcion" onclick="nav('recepcion',this)"><i class="ti ti-clipboard-plus"></i> <span>Recepción de Equipos</span></button>
@@ -1310,6 +1310,16 @@ body{
                         <button class="btn" style="background:#f59e0b; color:#fff; font-size:13px; padding:9px 14px;" onclick="enviarResenaWhatsapp()"><i class="ti ti-brand-whatsapp"></i> Enviar reseña</button>
                     </div>
                     <div id="resenaWaMsg" style="font-size:12px; margin-top:6px;"></div>
+                </div>
+                <div class="card" style="margin-bottom:15px; max-width:560px; border-top:3px solid #7c3aed;">
+                    <h3 style="margin:0 0 4px; font-size:15px;"><i class="ti ti-ticket" style="color:#7c3aed;"></i> Generar boleto de rifa</h3>
+                    <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px;">Rifa presencial: pon el nombre y teléfono del cliente. El sistema asigna el número al azar y el boleto queda <b>confirmado</b>. Requiere una rifa activa.</p>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <input id="rifaNombre" placeholder="Nombre del cliente" style="flex:1; min-width:160px; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px;">
+                        <input id="rifaTelefono" placeholder="Teléfono (809-...)" onkeydown="if(event.key==='Enter')generarBoletoRifa()" style="flex:1; min-width:150px; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px;">
+                        <button id="btnBoletoRifa" class="btn" style="background:#7c3aed; color:#fff; font-size:13px; padding:9px 14px;" onclick="generarBoletoRifa()"><i class="ti ti-ticket"></i> Generar boleto</button>
+                    </div>
+                    <div id="rifaBoletoMsg" style="margin-top:10px;"></div>
                 </div>
                 <div class="block-grid">
                     <div class="block-card">
@@ -4453,6 +4463,43 @@ async function abrirRifas() {
             toastError((j && j.error) ? j.error : 'No se pudo abrir Rifas.');
         }
     } catch(e) { logError('Abrir Rifas', e); toastError(getFriendlyError(e)); }
+}
+// Genera un boleto de rifa presencial (Edge Function recepcion-boleto). Devuelve {ok, numero}.
+async function generarBoletoRifa() {
+    const elN = document.getElementById('rifaNombre'), elT = document.getElementById('rifaTelefono');
+    const msg = document.getElementById('rifaBoletoMsg');
+    const btn = document.getElementById('btnBoletoRifa');
+    const nombre = (elN?.value || '').trim();
+    const telefono = (elT?.value || '').trim();
+    if(!nombre) { if(msg) msg.innerHTML = '<span style="color:#dc2626; font-size:13px;">Escribe el nombre del cliente.</span>'; return; }
+    if(!telefono) { if(msg) msg.innerHTML = '<span style="color:#dc2626; font-size:13px;">Escribe el teléfono del cliente.</span>'; return; }
+    if(msg) msg.innerHTML = '<span style="color:#64748b; font-size:13px;">⏳ Generando boleto…</span>';
+    if(btn) btn.disabled = true;
+    try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if(!session) { if(msg) msg.innerHTML = '<span style="color:#dc2626; font-size:13px;">Inicia sesión primero.</span>'; return; }
+        const res = await fetch(CONFIG_URL + '/functions/v1/recepcion-boleto', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nombre, telefono })
+        });
+        const j = await res.json();
+        if(j && j.ok && j.numero != null) {
+            if(msg) msg.innerHTML = `<div style="background:#f5f3ff; border:2px solid #7c3aed; border-radius:12px; padding:14px; text-align:center;">
+                <div style="font-size:12px; color:#6d28d9; font-weight:700; text-transform:uppercase; letter-spacing:.5px;">Número de boleto</div>
+                <div style="font-size:54px; font-weight:900; color:#5b21b6; line-height:1.05; letter-spacing:1px;">${escapeHtml(String(j.numero))}</div>
+                <div style="font-size:13px; color:#475569; margin-top:4px;">${escapeHtml(nombre)} · ${escapeHtml(telefono)}</div>
+                <div style="font-size:11px; color:#16a34a; font-weight:700; margin-top:6px;">✅ Boleto confirmado — dáselo al cliente</div>
+            </div>`;
+            if(elN) elN.value = ''; if(elT) elT.value = '';
+            try { toast('🎟️ Boleto #' + j.numero + ' generado.'); } catch(_e) {}
+        } else {
+            if(msg) msg.innerHTML = `<span style="color:#dc2626; font-size:13px;">⚠️ ${escapeHtml((j && j.error) || 'No se pudo generar el boleto. Verifica que haya una rifa activa.')}</span>`;
+        }
+    } catch(e) {
+        logError('Generar boleto rifa', e);
+        if(msg) msg.innerHTML = '<span style="color:#dc2626; font-size:13px;">⚠️ ' + escapeHtml(getFriendlyError(e)) + '</span>';
+    } finally { if(btn) btn.disabled = false; }
 }
 
 function isAdminUser() {
