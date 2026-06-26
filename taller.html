@@ -4485,11 +4485,13 @@ async function generarBoletoRifa() {
         });
         const j = await res.json();
         if(j && j.ok && j.numero != null) {
+            window._ultimoBoleto = { telefono, numero: j.numero, nombre };
             if(msg) msg.innerHTML = `<div style="background:#f5f3ff; border:2px solid #7c3aed; border-radius:12px; padding:14px; text-align:center;">
                 <div style="font-size:12px; color:#6d28d9; font-weight:700; text-transform:uppercase; letter-spacing:.5px;">Número de boleto</div>
                 <div style="font-size:54px; font-weight:900; color:#5b21b6; line-height:1.05; letter-spacing:1px;">${escapeHtml(String(j.numero))}</div>
                 <div style="font-size:13px; color:#475569; margin-top:4px;">${escapeHtml(nombre)} · ${escapeHtml(telefono)}</div>
                 <div style="font-size:11px; color:#16a34a; font-weight:700; margin-top:6px;">✅ Boleto confirmado — dáselo al cliente</div>
+                <button onclick="_boletoWhatsapp()" style="margin-top:10px; background:#22c55e; color:#fff; border:0; border-radius:8px; padding:9px 16px; font-size:13px; font-weight:700; cursor:pointer;"><i class="ti ti-brand-whatsapp"></i> Enviar por WhatsApp al cliente</button>
             </div>`;
             if(elN) elN.value = ''; if(elT) elT.value = '';
             try { toast('🎟️ Boleto #' + j.numero + ' generado.'); } catch(_e) {}
@@ -4500,6 +4502,17 @@ async function generarBoletoRifa() {
         logError('Generar boleto rifa', e);
         if(msg) msg.innerHTML = '<span style="color:#dc2626; font-size:13px;">⚠️ ' + escapeHtml(getFriendlyError(e)) + '</span>';
     } finally { if(btn) btn.disabled = false; }
+}
+// Abre WhatsApp con el número del cliente y su boleto de rifa (último generado)
+function _boletoWhatsapp() {
+    const b = window._ultimoBoleto;
+    if(!b || !b.telefono) { toast('Genera un boleto primero.', 'error'); return; }
+    const raw = String(b.telefono).replace(/\D/g, '');
+    if(raw.length < 10) { toast('El teléfono no es válido para WhatsApp.', 'error'); return; }
+    const num = raw.length === 10 ? '1' + raw : raw; // Rep. Dom.: +1
+    const tienda = (cache.configTaller && cache.configTaller.nombre) || 'BAYOL CELL';
+    const texto = encodeURIComponent(`🎟️ ¡Gracias por tu compra en ${tienda}!\n\nTu número de rifa es: *${b.numero}*\n\n¡Mucha suerte! 🍀`);
+    window.open(`https://wa.me/${num}?text=${texto}`, '_blank');
 }
 
 function isAdminUser() {
