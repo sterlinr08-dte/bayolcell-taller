@@ -4472,7 +4472,6 @@ async function generarBoletoRifa() {
     const nombre = (elN?.value || '').trim();
     const telefono = (elT?.value || '').trim();
     if(!nombre) { if(msg) msg.innerHTML = '<span style="color:#dc2626; font-size:13px;">Escribe el nombre del cliente.</span>'; return; }
-    if(!telefono) { if(msg) msg.innerHTML = '<span style="color:#dc2626; font-size:13px;">Escribe el teléfono del cliente.</span>'; return; }
     if(msg) msg.innerHTML = '<span style="color:#64748b; font-size:13px;">⏳ Generando boleto…</span>';
     if(btn) btn.disabled = true;
     try {
@@ -4481,7 +4480,7 @@ async function generarBoletoRifa() {
         const res = await fetch(CONFIG_URL + '/functions/v1/recepcion-boleto', {
             method: 'POST',
             headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nombre, telefono })
+            body: JSON.stringify({ nombre, telefono: telefono || null })
         });
         const j = await res.json();
         if(j && j.ok && j.numero != null) {
@@ -4489,9 +4488,9 @@ async function generarBoletoRifa() {
             if(msg) msg.innerHTML = `<div style="background:#f5f3ff; border:2px solid #7c3aed; border-radius:12px; padding:14px; text-align:center;">
                 <div style="font-size:12px; color:#6d28d9; font-weight:700; text-transform:uppercase; letter-spacing:.5px;">Número de boleto</div>
                 <div style="font-size:54px; font-weight:900; color:#5b21b6; line-height:1.05; letter-spacing:1px;">${escapeHtml(String(j.numero))}</div>
-                <div style="font-size:13px; color:#475569; margin-top:4px;">${escapeHtml(nombre)} · ${escapeHtml(telefono)}</div>
+                <div style="font-size:13px; color:#475569; margin-top:4px;">${escapeHtml(nombre)}${telefono ? ' · ' + escapeHtml(telefono) : ''}</div>
                 <div style="font-size:11px; color:#16a34a; font-weight:700; margin-top:6px;">✅ Boleto confirmado — dáselo al cliente</div>
-                <button onclick="_boletoWhatsapp()" style="margin-top:10px; background:#22c55e; color:#fff; border:0; border-radius:8px; padding:9px 16px; font-size:13px; font-weight:700; cursor:pointer;"><i class="ti ti-brand-whatsapp"></i> Enviar por WhatsApp al cliente</button>
+                ${telefono ? `<button onclick="_boletoWhatsapp()" style="margin-top:10px; background:#22c55e; color:#fff; border:0; border-radius:8px; padding:9px 16px; font-size:13px; font-weight:700; cursor:pointer;"><i class="ti ti-brand-whatsapp"></i> Enviar por WhatsApp al cliente</button>` : ''}
             </div>`;
             if(elN) elN.value = ''; if(elT) elT.value = '';
             try { toast('🎟️ Boleto #' + j.numero + ' generado.'); } catch(_e) {}
