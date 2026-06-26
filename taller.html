@@ -4464,6 +4464,8 @@ async function abrirRifas() {
         }
     } catch(e) { logError('Abrir Rifas', e); toastError(getFriendlyError(e)); }
 }
+// Alias: ambos nombres abren el panel admin de la rifa (compatibilidad con la doc de Nexus)
+function abrirRifaAdmin() { return abrirRifas(); }
 // Genera un boleto de rifa presencial (Edge Function recepcion-boleto). Devuelve {ok, numero}.
 async function generarBoletoRifa() {
     const elN = document.getElementById('rifaNombre'), elT = document.getElementById('rifaTelefono');
