@@ -3375,6 +3375,8 @@ body{
             <div style="display:flex; gap:8px; margin:4px 0 8px; flex-wrap:wrap;">
                 <button class="btn btn-light" style="padding:6px 12px;" onclick="_aduanaAgregarFila()"><i class="ti ti-plus"></i> Producto</button>
                 <button class="btn btn-light" style="padding:6px 12px;" onclick="_aduanaPegar()"><i class="ti ti-clipboard"></i> Pegar desde Excel</button>
+                <button class="btn btn-light" style="padding:6px 12px; color:#7c3aed;" onclick="document.getElementById('aduanaPdfInput').click()"><i class="ti ti-file-text"></i> Subir PDF</button>
+                <input id="aduanaPdfInput" type="file" accept="application/pdf,.pdf" style="display:none;" onchange="_aduanaSubirPdf(this.files[0]); this.value='';">
                 <button class="btn btn-light" style="padding:6px 12px; color:#b91c1c;" onclick="_aduanaLimpiar()"><i class="ti ti-trash"></i> Limpiar todo</button>
             </div>
             <div style="overflow-x:auto;">
@@ -9516,19 +9518,23 @@ function _aduanaLimpiar() { _aduanaItems = [{ desc:'', cant:1, costo:0 }]; _adua
 async function _aduanaPegar() {
     const txt = await pedirTexto('Pega las filas desde el Excel de la factura (cada línea: Descripción · Cantidad · Precio US$):', { multilinea: true });
     if(!txt) return;
+    _aduanaAgregarLineas(txt.split(/\r?\n/));
+}
+// Parser compartido: toma líneas de texto (de Excel o de un PDF) y las agrega a la tabla de aduana.
+function _aduanaAgregarLineas(lineas) {
     _aduanaLeerInputs();
     if(_aduanaItems.length === 1 && !_aduanaItems[0].desc && !_aduanaItems[0].costo) _aduanaItems = [];
     let agregados = 0;
-    txt.split(/\r?\n/).forEach(linea => {
-        if(!linea.trim()) return;
+    (lineas || []).forEach(linea => {
+        if(!linea || !linea.trim()) return;
         // Saltar encabezados y filas de totales de la factura
-        if(/(^|\t|\s)(subtotal|tax|total|qty|unit\s*price|sku|item)(\t|\s|$)/i.test(linea) && !/\d/.test(linea.replace(/\b(sku|item|qty)\b/gi, ''))) return;
-        if(/^\s*(subtotal|tax|total)\b/i.test(linea)) return;
+        if(/(^|\t|\s)(subtotal|tax|total|qty|unit\s*price|sku|item|amount|description|cantidad|precio)(\t|\s|$)/i.test(linea) && !/\d/.test(linea.replace(/\b(sku|item|qty)\b/gi, ''))) return;
+        if(/^\s*(subtotal|sub-total|tax|impuesto|total|grand\s*total|shipping|flete)\b/i.test(linea)) return;
         // Separar por TAB (Excel); si no hay tabs, por 2+ espacios
         let partes = (linea.includes('\t') ? linea.split('\t') : linea.split(/\s{2,}/)).map(s => s.trim()).filter(x => x !== '');
         // Quitar un SKU al inicio si lo trae (ej. SET-001)
         if(partes.length >= 3 && /^[A-Za-z]{2,4}[-_]?\d+$/.test(partes[0])) partes = partes.slice(1);
-        // Si pegaron la columna "Total" (cant × precio ≈ última), quitarla
+        // Si trae la columna "Total" (cant × precio ≈ última), quitarla
         if(partes.length >= 4) {
             const a = _aduanaNum(partes[partes.length-3]), b = _aduanaNum(partes[partes.length-2]), c = _aduanaNum(partes[partes.length-1]);
             if(a && b && c && Math.abs(a*b - c) <= Math.max(0.5, c*0.02)) partes = partes.slice(0, partes.length-1);
@@ -9543,7 +9549,48 @@ async function _aduanaPegar() {
     });
     if(!_aduanaItems.length) _aduanaItems.push({ desc:'', cant:1, costo:0 });
     _aduanaRenderTabla();
-    toast(`✅ ${agregados} producto(s) agregado(s).`);
+    toast(`✅ ${agregados} producto(s) agregado(s). Revisa y corrige antes de calcular.`);
+}
+// Carga pdf.js (solo cuando se usa) desde CDN
+let _pdfjsListo = false;
+function _cargarPdfJs() {
+    return new Promise((resolve, reject) => {
+        if(_pdfjsListo && window.pdfjsLib) return resolve();
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+        s.onload = () => { try { window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; _pdfjsListo = true; resolve(); } catch(e) { reject(e); } };
+        s.onerror = () => reject(new Error('No se pudo cargar el lector de PDF'));
+        document.head.appendChild(s);
+    });
+}
+// Lee un PDF de factura, extrae las líneas (texto) y las pasa al parser de aduana
+async function _aduanaSubirPdf(file) {
+    if(!file) return;
+    if(!/pdf/i.test(file.type || '') && !/\.pdf$/i.test(file.name || '')) { toast('Sube un archivo PDF.', 'error'); return; }
+    toast('⏳ Leyendo el PDF…');
+    try {
+        await _cargarPdfJs();
+        const buf = await file.arrayBuffer();
+        const pdf = await window.pdfjsLib.getDocument({ data: buf }).promise;
+        const lineas = [];
+        for(let p = 1; p <= pdf.numPages; p++) {
+            const page = await pdf.getPage(p);
+            const tc = await page.getTextContent();
+            // Agrupar los pedazos de texto por su posición vertical (Y) = una línea
+            const filas = {};
+            tc.items.forEach(it => {
+                if(!it.str || !it.str.trim()) return;
+                const y = Math.round(it.transform[5]);
+                (filas[y] = filas[y] || []).push({ x: it.transform[4], s: it.str });
+            });
+            Object.keys(filas).map(Number).sort((a, b) => b - a).forEach(y => {
+                const linea = filas[y].sort((a, b) => a.x - b.x).map(o => o.s).join('  ').replace(/\s{3,}/g, '  ').trim();
+                if(linea) lineas.push(linea);
+            });
+        }
+        if(!lineas.length) { toast('No se pudo leer texto del PDF (¿es una imagen escaneada?). Usa "Pegar desde Excel".', 'error'); return; }
+        _aduanaAgregarLineas(lineas);
+    } catch(e) { logError('Subir PDF aduana', e); toastError('No se pudo leer el PDF: ' + getFriendlyError(e)); }
 }
 function _aduanaRenderTabla() {
     const tb = document.getElementById('aduanaTbody');
