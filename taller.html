@@ -3407,7 +3407,10 @@ body{
                             <input id="aduana_imp_valor" type="number" step="0.01" min="0" placeholder="0" value="0" oninput="_aduanaRecalcular()" style="flex:1;">
                         </div>
                     </div>
-                    <div class="form-row"><label>Otros gastos (RD$)</label><input id="aduana_otros" type="number" step="0.01" min="0" placeholder="0.00" value="0" oninput="_aduanaRecalcular()"></div>
+                    <div class="form-row"><label>Otros gastos (RD$)</label>
+                        <div id="aduanaOtrosLista"></div>
+                        <button class="btn btn-light" style="padding:5px 10px; font-size:12px; margin-top:4px; color:#7c3aed; border-color:#c4b5fd;" onclick="_aduanaOtrosAgregar()"><i class="ti ti-plus"></i> Agregar gasto</button>
+                    </div>
                 </div>
                 <div style="border:1px solid #e2e8f0; border-radius:10px; padding:12px;">
                     <div style="font-weight:700; margin-bottom:8px;"><i class="ti ti-calculator"></i> Resumen</div>
@@ -9470,7 +9473,8 @@ function abrirLiquidacionAduana() {
     document.getElementById('aduana_transporte').value = '0';
     document.getElementById('aduana_imp_modo').value = 'monto';
     document.getElementById('aduana_imp_valor').value = '0';
-    document.getElementById('aduana_otros').value = '0';
+    _aduanaOtrosGastos = [{ concepto: 'Shipping', monto: 0 }];
+    _aduanaOtrosRender();
     _aduanaRenderTabla();
     document.getElementById('modalLiquidacionAduana').classList.add('active');
 }
@@ -9602,12 +9606,31 @@ function _aduanaRenderTabla() {
 }
 // Devuelve el cálculo completo. Productos en US$ → se convierten a RD$ con la tasa;
 // transporte/impuesto/otros (RD$) se reparten proporcional al importe.
+// ===== Otros gastos: lista dinámica (cada uno con concepto + monto) =====
+let _aduanaOtrosGastos = [];
+function _aduanaOtrosRender() {
+    const c = document.getElementById('aduanaOtrosLista'); if(!c) return;
+    if(!_aduanaOtrosGastos.length) _aduanaOtrosGastos = [{ concepto: '', monto: 0 }];
+    c.innerHTML = _aduanaOtrosGastos.map((g, i) => `<div class="adu-og-row" style="display:flex; gap:6px; margin-bottom:5px;">
+        <input class="adu-og-con" placeholder="Concepto (ej. Shipping)" value="${escapeHtml(g.concepto || '')}" oninput="_aduanaOtrosLeer(); _aduanaRecalcular();" style="flex:1; padding:7px 9px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
+        <input class="adu-og-mon" type="number" step="0.01" min="0" placeholder="0.00" value="${Number(g.monto) || 0}" oninput="_aduanaOtrosLeer(); _aduanaRecalcular();" style="width:110px; padding:7px 9px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
+        <button onclick="_aduanaOtrosEliminar(${i})" title="Quitar" style="border:1px solid #fecaca; background:#fef2f2; color:#b91c1c; border-radius:8px; padding:0 10px; cursor:pointer;">✕</button>
+    </div>`).join('');
+}
+function _aduanaOtrosLeer() {
+    const rows = document.querySelectorAll('#aduanaOtrosLista .adu-og-row');
+    _aduanaOtrosGastos = Array.from(rows).map(r => ({ concepto: r.querySelector('.adu-og-con')?.value || '', monto: Number(r.querySelector('.adu-og-mon')?.value) || 0 }));
+}
+function _aduanaOtrosAgregar() { _aduanaOtrosLeer(); _aduanaOtrosGastos.push({ concepto: '', monto: 0 }); _aduanaOtrosRender(); }
+function _aduanaOtrosEliminar(i) { _aduanaOtrosLeer(); _aduanaOtrosGastos.splice(i, 1); if(!_aduanaOtrosGastos.length) _aduanaOtrosGastos.push({ concepto: '', monto: 0 }); _aduanaOtrosRender(); _aduanaRecalcular(); }
 function _aduanaCalcular() {
     _aduanaLeerInputs();
+    _aduanaOtrosLeer();
     const tasa = Number(document.getElementById('aduana_tasa').value) || 0;
     const tasaEf = tasa > 0 ? tasa : 1; // si no hay tasa, RD$ = US$ (1:1) hasta que la pongan
     const transporte = Number(document.getElementById('aduana_transporte').value) || 0;
-    const otros = Number(document.getElementById('aduana_otros').value) || 0;
+    const otrosLista = _aduanaOtrosGastos.filter(g => (Number(g.monto) || 0) > 0 || (g.concepto || '').trim());
+    const otros = otrosLista.reduce((s, g) => s + (Number(g.monto) || 0), 0);
     const modo = document.getElementById('aduana_imp_modo').value;
     const impVal = Number(document.getElementById('aduana_imp_valor').value) || 0;
     const subtotalUSD = _aduanaItems.reduce((s, it) => s + (it.cant * it.costo), 0);
@@ -9623,7 +9646,7 @@ function _aduanaCalcular() {
         const finalRD = importeRD + aduana;
         return { ...it, importeUSD, importeRD, pctCompra, aduana, finalRD, finalUnitRD: it.cant > 0 ? finalRD / it.cant : finalRD };
     });
-    return { items, tasa, tasaEf, subtotalUSD, subtotalRD, transporte, impuesto, otros, totalGastos, granTotalRD, pct: subtotalRD > 0 ? (totalGastos / subtotalRD * 100) : 0 };
+    return { items, tasa, tasaEf, subtotalUSD, subtotalRD, transporte, impuesto, otros, otrosLista, totalGastos, granTotalRD, pct: subtotalRD > 0 ? (totalGastos / subtotalRD * 100) : 0 };
 }
 function _aduanaRecalcular() {
     const r = _aduanaCalcular();
@@ -9640,9 +9663,9 @@ function _aduanaRecalcular() {
         <div style="display:flex; justify-content:space-between;"><span>Subtotal factura (US$):</span><b>${_usd(r.subtotalUSD)}</b></div>
         <div style="display:flex; justify-content:space-between;"><span>Tasa US$→RD$:</span><span>${r.tasa > 0 ? r.tasa.toFixed(2) : '—'}</span></div>
         <div style="display:flex; justify-content:space-between;"><span>Subtotal factura (RD$):</span><b>${money(r.subtotalRD)}</b></div>
-        <div style="display:flex; justify-content:space-between;"><span>Transporte:</span><span>${money(r.transporte)}</span></div>
+        <div style="display:flex; justify-content:space-between;"><span>Transporte / Flete:</span><span>${money(r.transporte)}</span></div>
         <div style="display:flex; justify-content:space-between;"><span>Impuesto:</span><span>${money(r.impuesto)}</span></div>
-        <div style="display:flex; justify-content:space-between;"><span>Otros gastos:</span><span>${money(r.otros)}</span></div>
+        ${(r.otrosLista && r.otrosLista.length) ? r.otrosLista.map(g => `<div style="display:flex; justify-content:space-between;"><span>${escapeHtml((g.concepto || 'Otro gasto').trim() || 'Otro gasto')}:</span><span>${money(g.monto)}</span></div>`).join('') : `<div style="display:flex; justify-content:space-between;"><span>Otros gastos:</span><span>${money(0)}</span></div>`}
         <div style="display:flex; justify-content:space-between; border-top:1px solid #e2e8f0; margin-top:4px; padding-top:4px;"><span>Total gastos a repartir:</span><b style="color:#6d28d9;">${money(r.totalGastos)}</b></div>
         <div style="display:flex; justify-content:space-between; font-size:16px; border-top:2px solid #0f172a; margin-top:6px; padding-top:6px;"><span><b>TOTAL a pagar (RD$):</b></span><b style="color:#16a34a;">${money(r.granTotalRD)}</b></div>`;
 }
