@@ -9520,6 +9520,21 @@ async function _aduanaPegar() {
     if(!txt) return;
     _aduanaAgregarLineas(txt.split(/\r?\n/));
 }
+// Parser específico de facturas tipo Screen Enterprise: líneas "SET-### Descripción ... Qty $Unit $Total"
+// (tolera datos pegados). Devuelve {desc,cant,costo} o null si la línea no es un producto SET.
+function _aduanaParseFacturaScreen(linea) {
+    const s0 = linea.replace(/^\s*SET[-_]?\d+\s*/i, '');
+    if(s0 === linea) return null; // no empieza con SET-###
+    const montos = s0.match(/\$\s?[\d.,]+/g);
+    if(!montos || !montos.length) return null;
+    const unit = _aduanaNum(montos[montos.length >= 2 ? montos.length - 2 : 0]); // penúltimo $ = precio unitario
+    const antes = s0.slice(0, s0.indexOf('$'));      // todo lo que va antes del primer $
+    const mQty = antes.match(/(\d+)\s*$/);            // el entero pegado al final = cantidad
+    const cant = mQty ? Number(mQty[1]) : 1;
+    let desc = (mQty ? antes.slice(0, mQty.index) : antes).replace(/\s+/g, ' ').trim();
+    if(!desc) return null;
+    return { desc, cant, costo: unit };
+}
 // Parser compartido: toma líneas de texto (de Excel o de un PDF) y las agrega a la tabla de aduana.
 function _aduanaAgregarLineas(lineas) {
     _aduanaLeerInputs();
@@ -9527,9 +9542,13 @@ function _aduanaAgregarLineas(lineas) {
     let agregados = 0;
     (lineas || []).forEach(linea => {
         if(!linea || !linea.trim()) return;
-        // Saltar encabezados y filas de totales de la factura
+        // Saltar encabezados / cabeceras / totales de la factura
+        if(/^\s*(sku\b|invoice|screen enterprise|invoice for|payment status|bill to|ship to|subtotal|sub-total|tax|impuesto|total|grand\s*total|shipping|flete|amount due)/i.test(linea)) return;
         if(/(^|\t|\s)(subtotal|tax|total|qty|unit\s*price|sku|item|amount|description|cantidad|precio)(\t|\s|$)/i.test(linea) && !/\d/.test(linea.replace(/\b(sku|item|qty)\b/gi, ''))) return;
-        if(/^\s*(subtotal|sub-total|tax|impuesto|total|grand\s*total|shipping|flete)\b/i.test(linea)) return;
+        // 1) Intentar el formato de factura Screen (SET-###); saltar los de cantidad 0
+        const sc = _aduanaParseFacturaScreen(linea);
+        if(sc) { if(sc.cant <= 0) return; _aduanaItems.push(sc); agregados++; return; }
+        // 2) Parser genérico (Excel / otras facturas)
         // Separar por TAB (Excel); si no hay tabs, por 2+ espacios
         let partes = (linea.includes('\t') ? linea.split('\t') : linea.split(/\s{2,}/)).map(s => s.trim()).filter(x => x !== '');
         // Quitar un SKU al inicio si lo trae (ej. SET-001)
