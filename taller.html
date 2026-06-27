@@ -9524,55 +9524,43 @@ async function _aduanaPegar() {
     if(!txt) return;
     _aduanaAgregarLineas(txt.split(/\r?\n/));
 }
-// Parser específico de facturas tipo Screen Enterprise: líneas "SET-### Descripción ... Qty $Unit $Total"
-// (tolera datos pegados). Devuelve {desc,cant,costo} o null si la línea no es un producto SET.
-function _aduanaParseFacturaScreen(linea) {
-    const s0 = linea.replace(/^\s*SET[-_]?\d+\s*/i, '');
-    if(s0 === linea) return null; // no empieza con SET-###
-    const montos = s0.match(/\$\s?[\d.,]+/g);
-    if(!montos || !montos.length) return null;
-    const unit = _aduanaNum(montos[montos.length >= 2 ? montos.length - 2 : 0]); // penúltimo $ = precio unitario
-    const antes = s0.slice(0, s0.indexOf('$'));      // todo lo que va antes del primer $
-    const mQty = antes.match(/(\d+)\s*$/);            // el entero pegado al final = cantidad
-    const cant = mQty ? Number(mQty[1]) : 1;
-    let desc = (mQty ? antes.slice(0, mQty.index) : antes).replace(/\s+/g, ' ').trim();
-    if(!desc) return null;
+// DETECCIÓN INTELIGENTE de artículo: una línea es artículo SOLO si tiene
+// cantidad + precio unitario + precio total (y el total ≈ cantidad × unitario).
+// Así se descartan encabezados, nombres, direcciones y totales de la factura.
+// Devuelve {desc, cant, costo} o null si la línea NO es un artículo.
+function _aduanaParseArticulo(linea) {
+    let s = String(linea || '').replace(/^\s*SET[-_]?\d+\s*/i, '').replace(/^\s*[A-Za-z]{2,5}[-_]?\d{1,6}\s+/, ''); // quitar SKU al inicio si lo trae
+    const rePrecio = /\$?\s?\d[\d,]*\.\d{2}(?!\d)/g;     // montos con 2 decimales (precio unit. y total)
+    const precios = s.match(rePrecio);
+    if(!precios || precios.length < 2) return null;       // necesita precio unitario Y precio total
+    const unit = _aduanaNum(precios[precios.length - 2]); // penúltimo = unitario
+    const total = _aduanaNum(precios[precios.length - 1]);// último = total
+    const idx = s.search(rePrecio);                       // dónde empieza el primer precio
+    if(idx <= 0) return null;
+    const antes = s.slice(0, idx);                        // descripción + cantidad
+    const mQty = antes.match(/(\d+)\s*$/);                // cantidad = entero pegado antes del precio
+    if(!mQty) return null;
+    const cant = Number(mQty[1]);
+    let desc = antes.slice(0, mQty.index).replace(/\s+/g, ' ').trim();
+    if(!desc || cant <= 0) return null;
+    // Confirmar que es un artículo real: total ≈ cantidad × precio unitario (tolerancia 10%)
+    if(unit > 0 && total > 0 && Math.abs(cant * unit - total) > Math.max(1, total * 0.10)) return null;
     return { desc, cant, costo: unit };
 }
-// Parser compartido: toma líneas de texto (de Excel o de un PDF) y las agrega a la tabla de aduana.
+// Toma líneas de texto (de un PDF o de Excel) y agrega SOLO las que son artículos reales.
 function _aduanaAgregarLineas(lineas) {
     _aduanaLeerInputs();
     if(_aduanaItems.length === 1 && !_aduanaItems[0].desc && !_aduanaItems[0].costo) _aduanaItems = [];
-    let agregados = 0;
+    let agregados = 0, descartados = 0;
     (lineas || []).forEach(linea => {
         if(!linea || !linea.trim()) return;
-        // Saltar encabezados / cabeceras / totales de la factura
-        if(/^\s*(sku\b|invoice|screen enterprise|invoice for|payment status|bill to|ship to|subtotal|sub-total|tax|impuesto|total|grand\s*total|shipping|flete|amount due)/i.test(linea)) return;
-        if(/(^|\t|\s)(subtotal|tax|total|qty|unit\s*price|sku|item|amount|description|cantidad|precio)(\t|\s|$)/i.test(linea) && !/\d/.test(linea.replace(/\b(sku|item|qty)\b/gi, ''))) return;
-        // 1) Intentar el formato de factura Screen (SET-###); saltar los de cantidad 0
-        const sc = _aduanaParseFacturaScreen(linea);
-        if(sc) { if(sc.cant <= 0) return; _aduanaItems.push(sc); agregados++; return; }
-        // 2) Parser genérico (Excel / otras facturas)
-        // Separar por TAB (Excel); si no hay tabs, por 2+ espacios
-        let partes = (linea.includes('\t') ? linea.split('\t') : linea.split(/\s{2,}/)).map(s => s.trim()).filter(x => x !== '');
-        // Quitar un SKU al inicio si lo trae (ej. SET-001)
-        if(partes.length >= 3 && /^[A-Za-z]{2,4}[-_]?\d+$/.test(partes[0])) partes = partes.slice(1);
-        // Si trae la columna "Total" (cant × precio ≈ última), quitarla
-        if(partes.length >= 4) {
-            const a = _aduanaNum(partes[partes.length-3]), b = _aduanaNum(partes[partes.length-2]), c = _aduanaNum(partes[partes.length-1]);
-            if(a && b && c && Math.abs(a*b - c) <= Math.max(0.5, c*0.02)) partes = partes.slice(0, partes.length-1);
-        }
-        let costo = 0, cant = 1, desc = '';
-        if(partes.length >= 3) { costo = _aduanaNum(partes[partes.length-1]); cant = _aduanaNum(partes[partes.length-2]) || 1; desc = partes.slice(0, partes.length-2).join(' '); }
-        else if(partes.length === 2) { costo = _aduanaNum(partes[1]); desc = partes[0]; }
-        else { desc = partes[0]; }
-        if(!desc && !costo) return;
-        _aduanaItems.push({ desc, cant, costo });
-        agregados++;
+        const it = _aduanaParseArticulo(linea);
+        if(it) { _aduanaItems.push(it); agregados++; }
+        else descartados++;
     });
     if(!_aduanaItems.length) _aduanaItems.push({ desc:'', cant:1, costo:0 });
     _aduanaRenderTabla();
-    toast(`✅ ${agregados} producto(s) agregado(s). Revisa y corrige antes de calcular.`);
+    toast(`✅ ${agregados} artículo(s) detectado(s). (Se ignoraron ${descartados} líneas que no eran artículos.) Revisa antes de calcular.`);
 }
 // Carga pdf.js (solo cuando se usa) desde CDN
 let _pdfjsListo = false;
