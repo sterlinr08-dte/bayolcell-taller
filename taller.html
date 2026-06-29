@@ -2166,6 +2166,7 @@ body{
                                 <button id="btnFormatoIP" class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#075985; border-color:#7dd3fc; display:none;" onclick="imprimirFormatoInfoPlus()"><i class="ti ti-building-warehouse"></i> Formato Info Plus</button>
                                 <button id="btnFormatoIPExcel" class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#075985; border-color:#7dd3fc; display:none;" onclick="exportarFormatoInfoPlusExcel()"><i class="ti ti-file-spreadsheet"></i> Info Plus (Excel)</button>
                                 <button id="btnRegistrarCompraIP" class="btn btn-dark" style="padding:5px 10px; font-size:12px; background:#0891b2; display:none;" onclick="registrarCompraLoteInfoPlus()" title="Registrar en Info Plus los equipos listos como una compra (1 artículo por modelo + sus IMEI + costo promedio)"><i class="ti ti-cloud-upload"></i> Registrar compra en Info Plus</button>
+                                <button id="btnRegManualIP" class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#0e7490; border-color:#67e8f9; display:none;" onclick="abrirRegistroManualIP()" title="Ver/marcar los equipos listos para registrarlos a mano en Info Plus, con el promedio actualizado"><i class="ti ti-clipboard-check"></i> Registro manual IP</button>
                             </div>
                         </div>
                         <div id="reacondTecnicosRow" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;"></div>
@@ -10954,6 +10955,77 @@ async function _ejecutarRegistroCompraIP() {
         renderDetalleLoteReacond();
     } catch(e) { logError('registrar compra IP', e); toastError(getFriendlyError(e)); }
 }
+// ===== Registro MANUAL en Info Plus: documento al día (qué falta agregar + promedio actualizado) =====
+function abrirRegistroManualIP() {
+    if(!isAdminUser()) return toast('Solo el administrador.', 'error');
+    if(!reacondLoteAbiertoId) return toast('Abre un lote primero.', 'error');
+    _renderRegistroManualIP();
+}
+function _renderRegistroManualIP() {
+    const lote = (cache.lotes || []).find(l => l.id === reacondLoteAbiertoId);
+    if(!lote) return;
+    const listos = (cache.refurb || []).filter(r => r.lote_id === reacondLoteAbiertoId && ['listo_venta', 'vendido', 'completado'].includes(r.estado_evaluacion));
+    const grupos = {};
+    listos.forEach(e => {
+        const cod = (e.articulo_codigo != null && String(e.articulo_codigo).trim()) ? String(e.articulo_codigo).trim() : '';
+        const key = cod || ('MOD:' + (_modeloRep(e) || '').toUpperCase());
+        if(!grupos[key]) grupos[key] = { codigo: cod, modelo: _modeloRep(e), eqs: [] };
+        grupos[key].eqs.push(e);
+    });
+    const secciones = Object.values(grupos).map(g => {
+        const total = g.eqs.length;
+        const nuevos = g.eqs.filter(e => !e.infoplus_compra_pedido);
+        const reg = total - nuevos.length;
+        const promTodos = total ? g.eqs.reduce((s, e) => s + _costoEquipoRep(e).fin, 0) / total : 0;
+        const promNuevos = nuevos.length ? nuevos.reduce((s, e) => s + _costoEquipoRep(e).fin, 0) / nuevos.length : 0;
+        const filas = g.eqs.map(e => {
+            const fin = _costoEquipoRep(e).fin;
+            const yreg = !!e.infoplus_compra_pedido;
+            const imei = (e.imei || '').replace(/'/g, '');
+            return `<tr style="${yreg ? '' : 'background:#fef9c3;'}">
+                <td style="padding:5px 7px; border-bottom:1px solid #eef2f7; text-align:center;"><input type="checkbox" ${yreg ? 'checked' : ''} onchange="_marcarEquipoRegIP('${e.id}', this.checked)" style="width:16px; height:16px; cursor:pointer;"></td>
+                <td class="mono" onclick="_regipCopy('${imei}')" title="Clic para copiar" style="padding:5px 7px; border-bottom:1px solid #eef2f7; cursor:copy;">${escapeHtml(e.imei || '— sin IMEI —')}</td>
+                <td style="padding:5px 7px; border-bottom:1px solid #eef2f7; text-align:right;">${money(fin)}</td>
+                <td style="padding:5px 7px; border-bottom:1px solid #eef2f7; text-align:center;">${yreg ? '<span style="color:#166534; font-weight:700;">✅</span>' : '<span style="color:#a16207; font-weight:800;">NUEVO</span>'}</td>
+            </tr>`;
+        }).join('');
+        return `<div style="border:1px solid #e2e8f0; border-radius:10px; margin-bottom:12px; overflow:hidden;">
+            <div style="background:#ecfeff; padding:8px 12px;">
+                <div style="font-weight:800; color:#0e7490;">${escapeHtml(g.modelo)} ${g.codigo ? `<span style="font-size:11px; background:#cffafe; color:#155e75; padding:1px 7px; border-radius:7px;">Cód IP ${escapeHtml(g.codigo)}</span>` : '<span style="font-size:11px; color:#b91c1c;">⚠️ sin código IP</span>'}</div>
+                <div style="font-size:12px; color:#475569; margin-top:3px;">Listos: <b>${total}</b> · Registrados: <b style="color:#166534;">${reg}</b> · Nuevos por agregar: <b style="color:#a16207;">${nuevos.length}</b></div>
+                <div style="font-size:13px; margin-top:5px;">📌 Costo promedio (de los ${total} listos): <b onclick="_regipCopy('${Math.round(promTodos * 100) / 100}')" style="cursor:copy; color:#0e7490; font-size:14px;" title="Clic para copiar — este es el costo que pones en la compra de Info Plus">${money(promTodos)}</b>${(nuevos.length && nuevos.length < total) ? ` <span style="color:#94a3b8; font-size:11.5px;">(promedio solo de los nuevos: ${money(promNuevos)})</span>` : ''}</div>
+            </div>
+            <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
+                <thead><tr style="background:#f8fafc;"><th style="padding:5px;">✅</th><th style="padding:5px; text-align:left;">IMEI</th><th style="padding:5px; text-align:right;">Costo final</th><th style="padding:5px;">Estado</th></tr></thead>
+                <tbody>${filas}</tbody>
+            </table>
+        </div>`;
+    }).join('');
+    const prev = document.getElementById('modalRegManualIP'); if(prev) prev.remove();
+    const box = document.createElement('div');
+    box.className = 'modal-backdrop active'; box.id = 'modalRegManualIP'; box.style.zIndex = '770';
+    box.innerHTML = `<div class="modal-box" style="max-width:720px;">
+        <div class="modal-header" style="background:linear-gradient(135deg,#0e7490,#0891b2); color:#fff; border-radius:12px 12px 0 0;"><h3 style="margin:0; color:#fff;"><i class="ti ti-clipboard-check"></i> Registro manual en Info Plus — Lote ${escapeHtml(lote.codigo_lote || '')}</h3><button class="modal-close" style="color:#fff;" onclick="document.getElementById('modalRegManualIP').remove()">✕</button></div>
+        <div class="modal-body" style="max-height:72vh; overflow:auto;">
+          <p style="font-size:12.5px; color:#475569; margin-top:0;">Agrega a mano en Info Plus los equipos <b>NUEVOS</b> (en amarillo) y pon el <b>costo promedio actualizado</b> del modelo. Marca el ✅ cuando ya lo registraste. Clic en un IMEI o en el promedio para copiarlo.</p>
+          ${secciones || '<p style="color:#94a3b8; text-align:center; padding:18px;">No hay equipos listos en este lote.</p>'}
+        </div>
+        <div class="modal-footer"><button class="btn btn-light" onclick="document.getElementById('modalRegManualIP').remove()">Cerrar</button></div>
+    </div>`;
+    document.body.appendChild(box);
+}
+async function _marcarEquipoRegIP(id, on) {
+    try {
+        await supabaseClient.from('equipos_refurbish').update({ infoplus_compra_pedido: on ? 'MANUAL' : null }).eq('id', id);
+        const e = (cache.refurb || []).find(x => x.id === id); if(e) e.infoplus_compra_pedido = on ? 'MANUAL' : null;
+        _renderRegistroManualIP();
+    } catch(e) { logError('marcar registrado IP', e); toastError(getFriendlyError(e)); }
+}
+function _regipCopy(txt) {
+    if(!txt) return;
+    try { navigator.clipboard.writeText(String(txt)); } catch(e) { const ta = document.createElement('textarea'); ta.value = String(txt); document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch(_) {} document.body.removeChild(ta); }
+    toast('✓ Copiado: ' + txt);
+}
 function imprimirFormatoInfoPlus() {
     const datos = _datosFormatoInfoPlus();
     if(!datos) return;
@@ -11226,6 +11298,7 @@ function renderDetalleLoteReacond() {
     const _bf = document.getElementById('btnFormatoIP'); if(_bf) _bf.style.display = isAdminUser() ? '' : 'none';
     const _bfx = document.getElementById('btnFormatoIPExcel'); if(_bfx) _bfx.style.display = isAdminUser() ? '' : 'none';
     const _brc = document.getElementById('btnRegistrarCompraIP'); if(_brc) _brc.style.display = isAdminUser() ? '' : 'none';
+    const _brm = document.getElementById('btnRegManualIP'); if(_brm) _brm.style.display = isAdminUser() ? '' : 'none';
 
     // Badge de estado
     const badge = document.getElementById('reacondLoteEstadoBadge');
