@@ -8522,7 +8522,7 @@ function verLineasImportCompra(idx) {
         return `
       <tr style="${sosp ? 'background:#fffbeb;' : ''}">
         <td style="text-align:center;"><input type="checkbox" id="impchk_${j}" style="width:17px; height:17px;"></td>
-        <td>${escapeHtml(l.producto)} ${sosp ? '<span title="El costo parece traer el 18% rebajado (ITBIS). Revísalo." style="cursor:help;">⚠️</span>' : ''}</td>
+        <td>${escapeHtml(l.producto)} ${sosp ? '<span title="El costo parece traer el 18% rebajado (ITBIS). Revísalo." style="cursor:help;">⚠️</span>' : ''}${(l.seriales && l.seriales.length) ? ` <span style="font-size:10px; font-weight:700; background:#dcfce7; color:#166534; padding:1px 7px; border-radius:8px;" title="Estos IMEI se pondrán solos en cada equipo">🔖 ${l.seriales.length} IMEI</span>` : ''}</td>
         <td style="text-align:center; color:#64748b;">${escapeHtml(String(l.codproducto ?? ''))}</td>
         <td style="text-align:center;">${l.cantidad}</td>
         <td style="text-align:right; white-space:nowrap;">
@@ -8580,6 +8580,7 @@ async function crearLoteDesdeCompraInfoPlus(idx) {
                 lote_id: lote.id,
                 modelo: (x.l.producto || '').trim(),
                 articulo_codigo: x.l.codproducto != null ? String(x.l.codproducto) : null,
+                imei: (Array.isArray(x.l.seriales) && x.l.seriales[k]) ? String(x.l.seriales[k]).trim() : null, // IMEI real desde Info Plus (compra)
                 costo_compra: Number(x.costo) || 0,
                 costo_repuestos: 0,
                 estado_evaluacion: 'pendiente',
