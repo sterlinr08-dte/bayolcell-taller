@@ -2475,8 +2475,9 @@ body{
                             <button class="btn btn-light" style="padding:6px 10px; font-size:12px;" onclick="_aduanaMostrarColumnas()" title="Volver a mostrar columnas ocultas"><i class="ti ti-eye"></i> Mostrar columnas</button>
                             <span style="font-size:11px; color:#94a3b8;">💡 Clic en el título de una columna para ocultarla.</span>
                         </div>
-                        <div style="overflow-x:auto;">
-                            <table id="aduanaTabla" style="width:100%; border-collapse:collapse; font-size:13px; min-width:1080px;">
+                        <div id="aduanaScrollTop" style="overflow-x:auto; overflow-y:hidden;"><div id="aduanaScrollTopInner" style="height:12px;"></div></div>
+                        <div id="aduanaScrollWrap" style="overflow-x:auto;">
+                            <table id="aduanaTabla" style="width:100%; border-collapse:collapse; font-size:13px; min-width:760px;">
                                 <thead><tr style="background:#f1f5f9;">
                                     <th class="aducol-desc" onclick="_aduanaToggleCol('desc')" style="padding:6px; text-align:left; border:1px solid #e2e8f0; cursor:pointer;" title="Clic para ocultar esta columna">Descripción</th>
                                     <th class="aducol-cant" onclick="_aduanaToggleCol('cant')" style="padding:6px; width:60px; border:1px solid #e2e8f0; cursor:pointer;" title="Clic para ocultar">Cant.</th>
@@ -9709,6 +9710,7 @@ function _aduanaRenderTabla() {
     _aduanaRecalcular();
     _aduanaAplicarColumnas();
     _aduanaFiltrar();
+    _aduanaSyncScroll();
 }
 // Devuelve el cálculo completo. Productos en US$ → se convierten a RD$ con la tasa;
 // transporte/impuesto/otros (RD$) se reparten proporcional al importe.
@@ -9897,6 +9899,7 @@ function _aduanaAplicarColumnas() {
         const hide = _aduanaColsOcultas.has(k);
         document.querySelectorAll('#aduanaTabla .aducol-' + k).forEach(el => { el.style.display = hide ? 'none' : ''; });
     });
+    _aduanaSyncScroll();
 }
 function _aduanaFiltrar() {
     const q = (document.getElementById('aduanaFiltro')?.value || '').toLowerCase().trim();
@@ -9905,13 +9908,32 @@ function _aduanaFiltrar() {
         tr.style.display = (!q || d.includes(q)) ? '' : 'none';
     });
 }
+// Barra de scroll horizontal también ARRIBA de la tabla (sincronizada con la de abajo)
+function _aduanaSyncScroll() {
+    const top = document.getElementById('aduanaScrollTop');
+    const inner = document.getElementById('aduanaScrollTopInner');
+    const wrap = document.getElementById('aduanaScrollWrap');
+    const tabla = document.getElementById('aduanaTabla');
+    if(!top || !inner || !wrap || !tabla) return;
+    inner.style.width = tabla.scrollWidth + 'px';
+    if(!top._synced) {
+        top.addEventListener('scroll', () => { wrap.scrollLeft = top.scrollLeft; });
+        wrap.addEventListener('scroll', () => { top.scrollLeft = wrap.scrollLeft; });
+        top._synced = true;
+    }
+}
 function _aduanaCopiarCelda(el) {
-    const v = el.getAttribute('data-c') || (el.textContent || '').replace(/[^0-9.]/g, '');
-    if(v) { try { navigator.clipboard.writeText(v); } catch(e) { const ta = document.createElement('textarea'); ta.value = v; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch(_) {} document.body.removeChild(ta); } }
     const rows = Array.from(document.querySelectorAll('#aduanaTbody tr'));
     const idx = rows.indexOf(el.closest('tr'));
-    if(idx >= 0) _aduanaCopiados.add(idx);
-    toast('✓ Copiado: RD$ ' + v);
+    if(idx >= 0 && _aduanaCopiados.has(idx)) {
+        // Segundo clic: quitar el check (no copia)
+        _aduanaCopiados.delete(idx);
+    } else {
+        const v = el.getAttribute('data-c') || (el.textContent || '').replace(/[^0-9.]/g, '');
+        if(v) { try { navigator.clipboard.writeText(v); } catch(e) { const ta = document.createElement('textarea'); ta.value = v; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch(_) {} document.body.removeChild(ta); } }
+        if(idx >= 0) _aduanaCopiados.add(idx);
+        toast('✓ Copiado: RD$ ' + v);
+    }
     _aduanaRecalcular();
 }
 // ===== Guardar / Historial de liquidaciones (solo admin) =====
