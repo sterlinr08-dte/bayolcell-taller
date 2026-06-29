@@ -3377,6 +3377,8 @@ body{
                 <button class="btn btn-light" style="padding:6px 12px;" onclick="_aduanaPegar()"><i class="ti ti-clipboard"></i> Pegar desde Excel</button>
                 <button class="btn btn-light" style="padding:6px 12px; color:#7c3aed;" onclick="document.getElementById('aduanaPdfInput').click()"><i class="ti ti-file-text"></i> Subir PDF</button>
                 <input id="aduanaPdfInput" type="file" accept="application/pdf,.pdf" style="display:none;" onchange="_aduanaSubirPdf(this.files[0]); this.value='';">
+                <button class="btn btn-light" style="padding:6px 12px; color:#16a34a;" onclick="document.getElementById('aduanaExcelInput').click()"><i class="ti ti-file-spreadsheet"></i> Subir Excel</button>
+                <input id="aduanaExcelInput" type="file" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" style="display:none;" onchange="_aduanaSubirExcel(this.files[0]); this.value='';">
                 <button class="btn btn-light" style="padding:6px 12px; color:#b91c1c;" onclick="_aduanaLimpiar()"><i class="ti ti-trash"></i> Limpiar todo</button>
             </div>
             <div style="overflow-x:auto;">
@@ -9577,6 +9579,69 @@ async function _aduanaSubirPdf(file) {
         _aduanaAgregarLineas(lineas);
     } catch(e) { logError('Subir PDF aduana', e); toastError('No se pudo leer el PDF: ' + getFriendlyError(e)); }
 }
+// Carga SheetJS (lector de Excel) solo cuando se usa, desde CDN
+let _xlsxListo = false;
+function _cargarXlsx() {
+    return new Promise((resolve, reject) => {
+        if(_xlsxListo && window.XLSX) return resolve();
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+        s.onload = () => { _xlsxListo = true; resolve(); };
+        s.onerror = () => reject(new Error('No se pudo cargar el lector de Excel'));
+        document.head.appendChild(s);
+    });
+}
+// Detecta un artículo a partir de una FILA de Excel (celdas sueltas).
+// Igual lógica que el parser de texto: necesita cantidad + precio unitario (+ total opcional);
+// el total (si viene) debe cuadrar ≈ cantidad × unitario. Devuelve {desc, cant, costo} o null.
+function _aduanaParseFilaExcel(cells) {
+    const nums = [], textos = [];
+    (cells || []).forEach(c => {
+        if(c == null || c === '') return;
+        const s = String(c).trim();
+        const limpio = s.replace(/[$,\s]/g, '');
+        if(limpio !== '' && /^\d+(\.\d+)?$/.test(limpio)) nums.push(Number(limpio));
+        else textos.push(s);
+    });
+    if(nums.length < 2) return null;
+    const desc = textos.join(' ').replace(/^\s*SET[-_]?\d+\s*/i, '').replace(/\s+/g, ' ').trim();
+    if(!desc) return null;
+    const total = nums[nums.length - 1];
+    const unit = nums[nums.length - 2];
+    // cantidad = el entero más cercano antes del precio unitario
+    let cant = null;
+    for(let k = nums.length - 3; k >= 0; k--) { if(Number.isInteger(nums[k])) { cant = nums[k]; break; } }
+    // Caso simple: solo vienen [cantidad, precio] (sin total)
+    if(cant == null && Number.isInteger(nums[0]) && nums.length === 2) return { desc, cant: nums[0], costo: nums[1] };
+    if(cant == null && unit > 0) cant = Math.round(total / unit);
+    if(!cant || cant <= 0) return null;
+    if(unit > 0 && total > 0 && Math.abs(cant * unit - total) > Math.max(1, total * 0.10)) return null;
+    return { desc, cant, costo: unit };
+}
+// Lee un archivo Excel/CSV de factura y agrega SOLO las filas que son artículos reales.
+async function _aduanaSubirExcel(file) {
+    if(!file) return;
+    if(!/\.(xlsx?|csv)$/i.test(file.name || '')) { toast('Sube un archivo Excel (.xlsx, .xls) o CSV.', 'error'); return; }
+    toast('⏳ Leyendo el Excel…');
+    try {
+        await _cargarXlsx();
+        const buf = await file.arrayBuffer();
+        const wb = window.XLSX.read(buf, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const filas = window.XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' });
+        _aduanaLeerInputs();
+        if(_aduanaItems.length === 1 && !_aduanaItems[0].desc && !_aduanaItems[0].costo) _aduanaItems = [];
+        let agregados = 0, descartados = 0;
+        (filas || []).forEach(row => {
+            if(!Array.isArray(row) || !row.length) return;
+            const it = _aduanaParseFilaExcel(row);
+            if(it) { _aduanaItems.push(it); agregados++; } else descartados++;
+        });
+        if(!_aduanaItems.length) _aduanaItems.push({ desc: '', cant: 1, costo: 0 });
+        _aduanaRenderTabla();
+        toast(`✅ ${agregados} artículo(s) detectado(s) del Excel. (Se ignoraron ${descartados} filas que no eran artículos.) Revisa antes de calcular.`);
+    } catch(e) { logError('Subir Excel aduana', e); toastError('No se pudo leer el Excel: ' + getFriendlyError(e)); }
+}
 function _aduanaRenderTabla() {
     const tb = document.getElementById('aduanaTbody');
     tb.innerHTML = _aduanaItems.map((it, i) => `
@@ -9675,7 +9740,7 @@ function imprimirLiquidacionAduana() {
     const filas = r.items.map((it, i) => `<tr style="${i % 2 ? 'background:#f7fafc;' : ''}">
         <td class="c">${i+1}</td><td>${escapeHtml(it.desc || '')}</td><td class="num">${it.cant}</td><td class="num">${_usd(it.costo)}</td>
         <td class="num">${_usd(it.importeUSD)}</td><td class="num">${money(it.importeRD)}</td><td class="num" style="color:#0369a1;">${it.pctCompra.toFixed(1)}%</td><td class="num" style="color:#6d28d9;">${money(it.aduana)}</td>
-        <td class="num">${money(it.finalUnitRD)}</td><td class="num" style="font-weight:bold;">${money(it.finalRD)}</td></tr>`).join('');
+        <td class="num">${money(it.finalUnitRD)}</td><td class="num" style="font-weight:bold;">${money(it.finalRD)}</td><td class="blank"></td><td class="blank"></td></tr>`).join('');
     const w = window.open('', '_blank');
     if(!w) return toast('Permite las ventanas emergentes para imprimir.', 'error');
     w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Liquidación de aduana</title>
@@ -9694,9 +9759,10 @@ function imprimirLiquidacionAduana() {
             th,td{border:1px solid #cbd5e1; padding:6px 8px; text-align:left;}
             th{background:#0f172a; color:#fff; font-size:10.5px; text-transform:uppercase; letter-spacing:.3px;}
             th.num,td.num{text-align:right;} th.c,td.c{text-align:center; width:26px;}
+            th.blank,td.blank{background:#fffbeb; min-width:120px;}
             tfoot td{font-weight:bold; background:#eef2ff; font-size:12.5px;}
             .foot{margin-top:22px; text-align:center; color:#94a3b8; font-size:11px;}
-            @media print{ th,.card{ -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
+            @media print{ @page{ size: landscape; } th,.card,.blank{ -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
         </style></head><body>
         <div class="head">
             <div><h1>${escapeHtml(tienda)}</h1>${subTienda ? `<div class="st">${escapeHtml(subTienda)}</div>` : ''}<h2>📋 Liquidación de Aduana</h2></div>
@@ -9712,9 +9778,9 @@ function imprimirLiquidacionAduana() {
             <div class="card total"><div class="l">Total a pagar RD$</div><div class="v">${money(r.granTotalRD)}</div></div>
         </div>
         <table>
-            <thead><tr><th class="c">#</th><th>Descripción</th><th class="num">Cant.</th><th class="num">P.U US$</th><th class="num">Importe US$</th><th class="num">Importe RD$</th><th class="num">% compra</th><th class="num">Aduana RD$</th><th class="num">Final unit RD$</th><th class="num">Costo final RD$</th></tr></thead>
+            <thead><tr><th class="c">#</th><th>Descripción</th><th class="num">Cant.</th><th class="num">P.U US$</th><th class="num">Importe US$</th><th class="num">Importe RD$</th><th class="num">% compra</th><th class="num">Aduana RD$</th><th class="num">Final unit RD$</th><th class="num">Costo final RD$</th><th class="blank">Nombre corregido</th><th class="blank">Código IP</th></tr></thead>
             <tbody>${filas}</tbody>
-            <tfoot><tr><td colspan="4" class="num">TOTALES:</td><td class="num">${_usd(r.subtotalUSD)}</td><td class="num">${money(r.subtotalRD)}</td><td class="num">100%</td><td class="num">${money(r.totalGastos)}</td><td></td><td class="num">${money(r.granTotalRD)}</td></tr></tfoot>
+            <tfoot><tr><td colspan="4" class="num">TOTALES:</td><td class="num">${_usd(r.subtotalUSD)}</td><td class="num">${money(r.subtotalRD)}</td><td class="num">100%</td><td class="num">${money(r.totalGastos)}</td><td></td><td class="num">${money(r.granTotalRD)}</td><td class="blank"></td><td class="blank"></td></tr></tfoot>
         </table>
         <p class="foot">Documento de control interno · Cálculo de liquidación de aduana</p>
         <script>window.onload=function(){window.print();}<\/script>
@@ -9730,20 +9796,20 @@ function exportarLiquidacionAduanaExcel() {
     const cab = _aduanaInfoCab();
     const n2 = (v) => (Number(v) || 0).toFixed(2);
     const filas = r.items.map((it, i) => `<tr><td>${i+1}</td><td>${escapeHtml(it.desc || '')}</td><td>${it.cant}</td><td>${n2(it.costo)}</td>
-        <td>${n2(it.importeUSD)}</td><td>${n2(it.importeRD)}</td><td>${it.pctCompra.toFixed(1)}</td><td>${n2(it.aduana)}</td><td>${n2(it.finalUnitRD)}</td><td>${n2(it.finalRD)}</td></tr>`).join('');
+        <td>${n2(it.importeUSD)}</td><td>${n2(it.importeRD)}</td><td>${it.pctCompra.toFixed(1)}</td><td>${n2(it.aduana)}</td><td>${n2(it.finalUnitRD)}</td><td>${n2(it.finalRD)}</td><td></td><td></td></tr>`).join('');
     const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head><meta charset="utf-8"></head><body>
         <table border="1">
-            <tr><th colspan="10" style="font-size:16px;">${escapeHtml(tienda)} — Liquidación de Aduana</th></tr>
-            <tr><td colspan="10">Fecha: ${new Date().toLocaleString('es-DO')}</td></tr>
-            <tr><td colspan="4">Proveedor: ${escapeHtml(cab.prov)}</td><td colspan="3">Factura: ${escapeHtml(cab.factura)}</td><td colspan="3">Fecha factura: ${escapeHtml(cab.fecha)}</td></tr>
-            <tr><td colspan="4">Tasa US$→RD$: ${n2(r.tasa)}</td><td colspan="3">Subtotal US$: ${n2(r.subtotalUSD)}</td><td colspan="3">Subtotal RD$: ${n2(r.subtotalRD)}</td></tr>
-            <tr><td colspan="10"></td></tr>
-            <tr style="background:#0f172a; color:#fff;"><th>#</th><th>Descripción</th><th>Cant.</th><th>P.U US$</th><th>Importe US$</th><th>Importe RD$</th><th>% compra</th><th>Aduana RD$</th><th>Final unit RD$</th><th>Costo final RD$</th></tr>
+            <tr><th colspan="12" style="font-size:16px;">${escapeHtml(tienda)} — Liquidación de Aduana</th></tr>
+            <tr><td colspan="12">Fecha: ${new Date().toLocaleString('es-DO')}</td></tr>
+            <tr><td colspan="4">Proveedor: ${escapeHtml(cab.prov)}</td><td colspan="4">Factura: ${escapeHtml(cab.factura)}</td><td colspan="4">Fecha factura: ${escapeHtml(cab.fecha)}</td></tr>
+            <tr><td colspan="4">Tasa US$→RD$: ${n2(r.tasa)}</td><td colspan="4">Subtotal US$: ${n2(r.subtotalUSD)}</td><td colspan="4">Subtotal RD$: ${n2(r.subtotalRD)}</td></tr>
+            <tr><td colspan="12"></td></tr>
+            <tr style="background:#0f172a; color:#fff;"><th>#</th><th>Descripción</th><th>Cant.</th><th>P.U US$</th><th>Importe US$</th><th>Importe RD$</th><th>% compra</th><th>Aduana RD$</th><th>Final unit RD$</th><th>Costo final RD$</th><th>Nombre corregido</th><th>Código IP</th></tr>
             ${filas}
-            <tr style="background:#eef2ff;"><td colspan="4"><b>TOTALES</b></td><td><b>${n2(r.subtotalUSD)}</b></td><td><b>${n2(r.subtotalRD)}</b></td><td><b>100</b></td><td><b>${n2(r.totalGastos)}</b></td><td></td><td><b>${n2(r.granTotalRD)}</b></td></tr>
-            <tr><td colspan="10"></td></tr>
-            <tr><td colspan="4">Transporte: ${n2(r.transporte)}</td><td colspan="3">Impuesto: ${n2(r.impuesto)}</td><td colspan="3">Otros: ${n2(r.otros)}</td></tr>
+            <tr style="background:#eef2ff;"><td colspan="4"><b>TOTALES</b></td><td><b>${n2(r.subtotalUSD)}</b></td><td><b>${n2(r.subtotalRD)}</b></td><td><b>100</b></td><td><b>${n2(r.totalGastos)}</b></td><td></td><td><b>${n2(r.granTotalRD)}</b></td><td></td><td></td></tr>
+            <tr><td colspan="12"></td></tr>
+            <tr><td colspan="4">Transporte: ${n2(r.transporte)}</td><td colspan="4">Impuesto: ${n2(r.impuesto)}</td><td colspan="4">Otros: ${n2(r.otros)}</td></tr>
         </table>
         </body></html>`;
     const blob = new Blob(['﻿' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
