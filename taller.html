@@ -3374,26 +3374,33 @@ body{
             </div>
             <div style="display:flex; gap:8px; margin:4px 0 8px; flex-wrap:wrap;">
                 <button class="btn btn-light" style="padding:6px 12px;" onclick="_aduanaAgregarFila()"><i class="ti ti-plus"></i> Producto</button>
-                <button class="btn btn-light" style="padding:6px 12px;" onclick="_aduanaPegar()"><i class="ti ti-clipboard"></i> Pegar desde Excel</button>
-                <button class="btn btn-light" style="padding:6px 12px; color:#7c3aed;" onclick="document.getElementById('aduanaPdfInput').click()"><i class="ti ti-file-text"></i> Subir PDF</button>
-                <input id="aduanaPdfInput" type="file" accept="application/pdf,.pdf" style="display:none;" onchange="_aduanaSubirPdf(this.files[0]); this.value='';">
-                <button class="btn btn-light" style="padding:6px 12px; color:#16a34a;" onclick="document.getElementById('aduanaExcelInput').click()"><i class="ti ti-file-spreadsheet"></i> Subir Excel</button>
-                <input id="aduanaExcelInput" type="file" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" style="display:none;" onchange="_aduanaSubirExcel(this.files[0]); this.value='';">
+                <button class="btn btn-light" style="padding:6px 12px; color:#7c3aed;" onclick="document.getElementById('aduanaArchivoInput').click()"><i class="ti ti-upload"></i> Subir PDF/Excel</button>
+                <input id="aduanaArchivoInput" type="file" accept="application/pdf,.pdf,.xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" style="display:none;" onchange="_aduanaSubirArchivo(this.files[0]); this.value='';">
+                <button class="btn btn-light" style="padding:6px 12px; color:#0891b2;" onclick="guardarLiquidacionAduana()"><i class="ti ti-device-floppy"></i> Guardar</button>
+                <button class="btn btn-light" style="padding:6px 12px; color:#6d28d9;" onclick="abrirHistorialLiquidaciones()"><i class="ti ti-history"></i> Historial</button>
                 <button class="btn btn-light" style="padding:6px 12px; color:#b91c1c;" onclick="_aduanaLimpiar()"><i class="ti ti-trash"></i> Limpiar todo</button>
+            </div>
+            <div style="display:flex; gap:10px; margin:0 0 8px; flex-wrap:wrap; align-items:center;">
+                <input id="aduanaFiltro" placeholder="🔎 Filtrar por descripción…" oninput="_aduanaFiltrar()" style="flex:1; min-width:180px; padding:7px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
+                <label style="font-size:12px; color:#475569; font-weight:700;">% Ganancia (ref.):</label>
+                <input id="aduana_ganancia" type="number" step="1" min="0" value="0" placeholder="0" oninput="_aduanaRecalcular()" style="width:80px; padding:7px 9px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; text-align:right;">
+                <button class="btn btn-light" style="padding:6px 10px; font-size:12px;" onclick="_aduanaMostrarColumnas()" title="Volver a mostrar columnas ocultas"><i class="ti ti-eye"></i> Mostrar columnas</button>
+                <span style="font-size:11px; color:#94a3b8;">💡 Clic en el título de una columna para ocultarla.</span>
             </div>
             <div style="overflow-x:auto;">
                 <table id="aduanaTabla" style="width:100%; border-collapse:collapse; font-size:13px; min-width:1080px;">
                     <thead><tr style="background:#f1f5f9;">
-                        <th style="padding:6px; text-align:left; border:1px solid #e2e8f0;">Descripción</th>
-                        <th style="padding:6px; width:60px; border:1px solid #e2e8f0;">Cant.</th>
-                        <th style="padding:6px; width:95px; border:1px solid #e2e8f0;">P. unit US$</th>
-                        <th style="padding:6px; width:100px; border:1px solid #e2e8f0;">Importe US$</th>
-                        <th style="padding:6px; width:70px; border:1px solid #e2e8f0;" title="% que representa este artículo en la compra">% compra</th>
-                        <th style="padding:6px; width:105px; border:1px solid #e2e8f0;" title="Costo del producto por unidad en RD$ (P.unit US$ × tasa)">Costo unit RD$</th>
-                        <th style="padding:6px; width:105px; border:1px solid #e2e8f0;" title="Gastos de aduana repartidos, por unidad">Gastos/unid RD$</th>
-                        <th style="padding:6px; width:115px; border:1px solid #e2e8f0;" title="Costo unitario + gastos por unidad">Costo unit FINAL RD$</th>
-                        <th style="padding:6px; width:120px; border:1px solid #e2e8f0;" title="Cantidad × costo unitario final">Total FINAL RD$</th>
-                        <th style="padding:6px; width:34px; border:1px solid #e2e8f0;"></th>
+                        <th class="aducol-desc" onclick="_aduanaToggleCol('desc')" style="padding:6px; text-align:left; border:1px solid #e2e8f0; cursor:pointer;" title="Clic para ocultar esta columna">Descripción</th>
+                        <th class="aducol-cant" onclick="_aduanaToggleCol('cant')" style="padding:6px; width:60px; border:1px solid #e2e8f0; cursor:pointer;" title="Clic para ocultar">Cant.</th>
+                        <th class="aducol-punit" onclick="_aduanaToggleCol('punit')" style="padding:6px; width:95px; border:1px solid #e2e8f0; cursor:pointer;" title="Clic para ocultar">P. unit US$</th>
+                        <th class="aducol-importe" onclick="_aduanaToggleCol('importe')" style="padding:6px; width:100px; border:1px solid #e2e8f0; cursor:pointer;" title="Clic para ocultar">Importe US$</th>
+                        <th class="aducol-pct" onclick="_aduanaToggleCol('pct')" style="padding:6px; width:70px; border:1px solid #e2e8f0; cursor:pointer;" title="% que representa este artículo en la compra · Clic para ocultar">% compra</th>
+                        <th class="aducol-counit" onclick="_aduanaToggleCol('counit')" style="padding:6px; width:105px; border:1px solid #e2e8f0; cursor:pointer;" title="Costo del producto por unidad en RD$ (P.unit US$ × tasa) · Clic para ocultar">Costo unit RD$</th>
+                        <th class="aducol-gastounit" onclick="_aduanaToggleCol('gastounit')" style="padding:6px; width:105px; border:1px solid #e2e8f0; cursor:pointer;" title="Gastos de aduana repartidos, por unidad · Clic para ocultar">Gastos/unid RD$</th>
+                        <th class="aducol-finalunit" onclick="_aduanaToggleCol('finalunit')" style="padding:6px; width:115px; border:1px solid #e2e8f0; cursor:pointer;" title="Costo unitario + gastos por unidad · Clic para ocultar">Costo unit FINAL RD$</th>
+                        <th class="aducol-total" onclick="_aduanaToggleCol('total')" style="padding:6px; width:120px; border:1px solid #e2e8f0; cursor:pointer;" title="Cantidad × costo unitario final · Clic para ocultar">Total FINAL RD$</th>
+                        <th class="aducol-venta" onclick="_aduanaToggleCol('venta')" style="padding:6px; width:120px; border:1px solid #e2e8f0; cursor:pointer; background:#fef9c3;" title="Precio de venta REFERENCIAL (costo final + %) · Clic para ocultar">Precio venta ref.</th>
+                        <th class="aducol-x" style="padding:6px; width:34px; border:1px solid #e2e8f0;"></th>
                     </tr></thead>
                     <tbody id="aduanaTbody"></tbody>
                 </table>
@@ -9468,7 +9475,13 @@ function exportarCostosSeleccionadosExcel() {
    (proporcional al importe) y da el costo final por producto/unidad.
    ============================================================ */
 let _aduanaItems = [];
+let _aduanaLiqId = null;            // id de la liquidación guardada que está abierta (null = nueva)
+let _aduanaColsOcultas = new Set(); // claves de columnas ocultas en la tabla
+let _aduanaCopiados = new Set();    // índices de filas cuyo costo final ya se copió (✓)
 function abrirLiquidacionAduana() {
+    _aduanaLiqId = null;
+    _aduanaColsOcultas.clear();
+    _aduanaCopiados.clear();
     _aduanaItems = [{ desc:'', cant:1, costo:0 }];
     document.getElementById('aduana_prov').value = '';
     document.getElementById('aduana_factura').value = '';
@@ -9477,6 +9490,8 @@ function abrirLiquidacionAduana() {
     document.getElementById('aduana_transporte').value = '0';
     document.getElementById('aduana_imp_modo').value = 'monto';
     document.getElementById('aduana_imp_valor').value = '0';
+    const _g = document.getElementById('aduana_ganancia'); if(_g) _g.value = '0';
+    const _f = document.getElementById('aduanaFiltro'); if(_f) _f.value = '';
     _aduanaOtrosGastos = [{ concepto: 'Shipping', monto: 0 }];
     _aduanaOtrosRender();
     _aduanaRenderTabla();
@@ -9496,7 +9511,7 @@ function _aduanaLeerInputs() {
 }
 function _aduanaAgregarFila() { _aduanaLeerInputs(); _aduanaItems.push({ desc:'', cant:1, costo:0 }); _aduanaRenderTabla(); }
 function _aduanaEliminarFila(i) { _aduanaLeerInputs(); _aduanaItems.splice(i, 1); if(!_aduanaItems.length) _aduanaItems.push({ desc:'', cant:1, costo:0 }); _aduanaRenderTabla(); }
-function _aduanaLimpiar() { _aduanaItems = [{ desc:'', cant:1, costo:0 }]; _aduanaRenderTabla(); }
+function _aduanaLimpiar() { _aduanaLiqId = null; _aduanaItems = [{ desc:'', cant:1, costo:0 }]; const _f = document.getElementById('aduanaFiltro'); if(_f) _f.value = ''; _aduanaColsOcultas.clear(); _aduanaCopiados.clear(); _aduanaRenderTabla(); }
 async function _aduanaPegar() {
     const txt = await pedirTexto('Pega las filas desde el Excel de la factura (cada línea: Descripción · Cantidad · Precio US$):', { multilinea: true });
     if(!txt) return;
@@ -9644,22 +9659,31 @@ async function _aduanaSubirExcel(file) {
         toast(`✅ ${agregados} artículo(s) detectado(s) del Excel. (Se ignoraron ${descartados} filas que no eran artículos.) Revisa antes de calcular.`);
     } catch(e) { logError('Subir Excel aduana', e); toastError('No se pudo leer el Excel: ' + getFriendlyError(e)); }
 }
+// Botón unificado: detecta si el archivo es PDF o Excel/CSV y usa el lector que toca.
+function _aduanaSubirArchivo(file) {
+    if(!file) return;
+    if(/\.pdf$/i.test(file.name || '') || /pdf/i.test(file.type || '')) return _aduanaSubirPdf(file);
+    return _aduanaSubirExcel(file);
+}
 function _aduanaRenderTabla() {
     const tb = document.getElementById('aduanaTbody');
     tb.innerHTML = _aduanaItems.map((it, i) => `
         <tr>
-            <td style="border:1px solid #e2e8f0; padding:3px;"><input class="adu-desc" value="${escapeHtml(it.desc || '')}" placeholder="Producto / modelo" oninput="_aduanaRecalcular()" style="width:100%; border:none; padding:4px; background:transparent;"></td>
-            <td style="border:1px solid #e2e8f0; padding:3px;"><input class="adu-cant" type="number" step="1" min="0" value="${it.cant}" oninput="_aduanaRecalcular()" style="width:100%; border:none; padding:4px; text-align:right; background:transparent;"></td>
-            <td style="border:1px solid #e2e8f0; padding:3px;"><input class="adu-costo" type="number" step="0.01" min="0" value="${it.costo}" oninput="_aduanaRecalcular()" style="width:100%; border:none; padding:4px; text-align:right; background:transparent;"></td>
-            <td class="adu-importe" style="border:1px solid #e2e8f0; padding:4px; text-align:right; background:#f8fafc;">$0.00</td>
-            <td class="adu-pct" style="border:1px solid #e2e8f0; padding:4px; text-align:right; color:#0369a1; background:#f0f9ff;">0%</td>
-            <td class="adu-counit" style="border:1px solid #e2e8f0; padding:4px; text-align:right;">RD$ 0.00</td>
-            <td class="adu-gastounit" style="border:1px solid #e2e8f0; padding:4px; text-align:right; color:#6d28d9;">RD$ 0.00</td>
-            <td class="adu-final-unit" style="border:1px solid #e2e8f0; padding:4px; text-align:right; font-weight:700; background:#f0fdf4;">RD$ 0.00</td>
-            <td class="adu-final" style="border:1px solid #e2e8f0; padding:4px; text-align:right; font-weight:700;">RD$ 0.00</td>
-            <td style="border:1px solid #e2e8f0; padding:4px; text-align:center;"><button onclick="_aduanaEliminarFila(${i})" title="Quitar" style="background:none; border:none; color:#ef4444; cursor:pointer;"><i class="ti ti-x"></i></button></td>
+            <td class="aducol-desc" style="border:1px solid #e2e8f0; padding:3px;"><input class="adu-desc" value="${escapeHtml(it.desc || '')}" placeholder="Producto / modelo" oninput="_aduanaRecalcular()" style="width:100%; border:none; padding:4px; background:transparent;"></td>
+            <td class="aducol-cant" style="border:1px solid #e2e8f0; padding:3px;"><input class="adu-cant" type="number" step="1" min="0" value="${it.cant}" oninput="_aduanaRecalcular()" style="width:100%; border:none; padding:4px; text-align:right; background:transparent;"></td>
+            <td class="aducol-punit" style="border:1px solid #e2e8f0; padding:3px;"><input class="adu-costo" type="number" step="0.01" min="0" value="${it.costo}" oninput="_aduanaRecalcular()" style="width:100%; border:none; padding:4px; text-align:right; background:transparent;"></td>
+            <td class="adu-importe aducol-importe" style="border:1px solid #e2e8f0; padding:4px; text-align:right; background:#f8fafc;">$0.00</td>
+            <td class="adu-pct aducol-pct" style="border:1px solid #e2e8f0; padding:4px; text-align:right; color:#0369a1; background:#f0f9ff;">0%</td>
+            <td class="adu-counit aducol-counit" style="border:1px solid #e2e8f0; padding:4px; text-align:right;">RD$ 0.00</td>
+            <td class="adu-gastounit aducol-gastounit" style="border:1px solid #e2e8f0; padding:4px; text-align:right; color:#6d28d9;">RD$ 0.00</td>
+            <td class="adu-final-unit aducol-finalunit" onclick="_aduanaCopiarCelda(this)" title="Clic para copiar el costo unitario final" style="border:1px solid #e2e8f0; padding:4px; text-align:right; font-weight:700; background:#f0fdf4; cursor:copy;">RD$ 0.00</td>
+            <td class="adu-final aducol-total" style="border:1px solid #e2e8f0; padding:4px; text-align:right; font-weight:700;">RD$ 0.00</td>
+            <td class="adu-venta aducol-venta" style="border:1px solid #e2e8f0; padding:4px; text-align:right; font-weight:700; color:#a16207; background:#fef9c3;">RD$ 0.00</td>
+            <td class="aducol-x" style="border:1px solid #e2e8f0; padding:4px; text-align:center;"><button onclick="_aduanaEliminarFila(${i})" title="Quitar" style="background:none; border:none; color:#ef4444; cursor:pointer;"><i class="ti ti-x"></i></button></td>
         </tr>`).join('');
     _aduanaRecalcular();
+    _aduanaAplicarColumnas();
+    _aduanaFiltrar();
 }
 // Devuelve el cálculo completo. Productos en US$ → se convierten a RD$ con la tasa;
 // transporte/impuesto/otros (RD$) se reparten proporcional al importe.
@@ -9685,6 +9709,7 @@ function _aduanaCalcular() {
     _aduanaOtrosLeer();
     const tasa = Number(document.getElementById('aduana_tasa').value) || 0;
     const tasaEf = tasa > 0 ? tasa : 1; // si no hay tasa, RD$ = US$ (1:1) hasta que la pongan
+    const gananciaPct = Number(document.getElementById('aduana_ganancia')?.value) || 0; // % de ganancia para el precio de venta REFERENCIAL
     const transporte = Number(document.getElementById('aduana_transporte').value) || 0;
     const otrosLista = _aduanaOtrosGastos.filter(g => (Number(g.monto) || 0) > 0 || (g.concepto || '').trim());
     const otros = otrosLista.reduce((s, g) => s + (Number(g.monto) || 0), 0);
@@ -9704,9 +9729,10 @@ function _aduanaCalcular() {
         const finalUnitRD = it.cant > 0 ? finalRD / it.cant : finalRD;
         const costoUnitRD = it.costo * tasaEf;                       // costo del producto por unidad en RD$ (P.unit US$ × tasa)
         const gastoUnitRD = it.cant > 0 ? aduana / it.cant : aduana; // gastos de aduana repartidos, por unidad
-        return { ...it, importeUSD, importeRD, pctCompra, aduana, finalRD, finalUnitRD, costoUnitRD, gastoUnitRD };
+        const precioVentaRef = finalUnitRD * (1 + gananciaPct / 100); // precio de venta REFERENCIAL (no es el precio real)
+        return { ...it, importeUSD, importeRD, pctCompra, aduana, finalRD, finalUnitRD, costoUnitRD, gastoUnitRD, precioVentaRef };
     });
-    return { items, tasa, tasaEf, subtotalUSD, subtotalRD, transporte, impuesto, otros, otrosLista, totalGastos, granTotalRD, pct: subtotalRD > 0 ? (totalGastos / subtotalRD * 100) : 0 };
+    return { items, tasa, tasaEf, gananciaPct, subtotalUSD, subtotalRD, transporte, impuesto, otros, otrosLista, totalGastos, granTotalRD, pct: subtotalRD > 0 ? (totalGastos / subtotalRD * 100) : 0 };
 }
 function _aduanaRecalcular() {
     const r = _aduanaCalcular();
@@ -9717,8 +9743,13 @@ function _aduanaRecalcular() {
         tr.querySelector('.adu-pct').textContent = it.pctCompra.toFixed(1) + '%';
         tr.querySelector('.adu-counit').textContent = money(it.costoUnitRD);
         tr.querySelector('.adu-gastounit').textContent = money(it.gastoUnitRD);
-        tr.querySelector('.adu-final-unit').textContent = money(it.finalUnitRD);
+        const _fu = tr.querySelector('.adu-final-unit');
+        _fu.setAttribute('data-c', (Number(it.finalUnitRD) || 0).toFixed(2));
+        const _done = _aduanaCopiados.has(i);
+        _fu.textContent = money(it.finalUnitRD) + (_done ? '  ✓' : '');
+        _fu.style.background = _done ? '#bbf7d0' : '#f0fdf4';
         tr.querySelector('.adu-final').textContent = money(it.finalRD);
+        tr.querySelector('.adu-venta').textContent = money(it.precioVentaRef);
     });
     const avisoTasa = r.tasa > 0 ? '' : `<div style="color:#b91c1c; font-size:12px; margin-bottom:6px;">⚠️ Pon la <b>tasa US$→RD$</b> arriba para convertir a pesos (ahora va 1:1).</div>`;
     document.getElementById('aduanaResumen').innerHTML = avisoTasa + `
@@ -9749,7 +9780,7 @@ function imprimirLiquidacionAduana() {
     const filas = r.items.map((it, i) => `<tr style="${i % 2 ? 'background:#f7fafc;' : ''}">
         <td class="c">${i+1}</td><td>${escapeHtml(it.desc || '')}</td><td class="num">${it.cant}</td><td class="num">${_usd(it.costo)}</td>
         <td class="num">${_usd(it.importeUSD)}</td><td class="num" style="color:#0369a1;">${it.pctCompra.toFixed(1)}%</td><td class="num">${money(it.costoUnitRD)}</td><td class="num" style="color:#6d28d9;">${money(it.gastoUnitRD)}</td>
-        <td class="num" style="font-weight:bold;">${money(it.finalUnitRD)}</td><td class="num" style="font-weight:bold;">${money(it.finalRD)}</td><td class="blank"></td><td class="blank"></td></tr>`).join('');
+        <td class="num" style="font-weight:bold;">${money(it.finalUnitRD)}</td><td class="num" style="font-weight:bold;">${money(it.finalRD)}</td><td class="num" style="font-weight:bold; color:#a16207; background:#fffbeb;">${money(it.precioVentaRef)}</td><td class="blank"></td><td class="blank"></td></tr>`).join('');
     const w = window.open('', '_blank');
     if(!w) return toast('Permite las ventanas emergentes para imprimir.', 'error');
     w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Liquidación de aduana</title>
@@ -9787,11 +9818,11 @@ function imprimirLiquidacionAduana() {
             <div class="card total"><div class="l">Total a pagar RD$</div><div class="v">${money(r.granTotalRD)}</div></div>
         </div>
         <table>
-            <thead><tr><th class="c">#</th><th>Descripción</th><th class="num">Cant.</th><th class="num">P.U US$</th><th class="num">Importe US$</th><th class="num">% compra</th><th class="num">Costo unit RD$</th><th class="num">Gastos/unid RD$</th><th class="num">Costo unit FINAL RD$</th><th class="num">Total FINAL RD$</th><th class="blank">Nombre corregido</th><th class="blank">Código IP</th></tr></thead>
+            <thead><tr><th class="c">#</th><th>Descripción</th><th class="num">Cant.</th><th class="num">P.U US$</th><th class="num">Importe US$</th><th class="num">% compra</th><th class="num">Costo unit RD$</th><th class="num">Gastos/unid RD$</th><th class="num">Costo unit FINAL RD$</th><th class="num">Total FINAL RD$</th><th class="num" style="background:#a16207;">Precio venta ref.</th><th class="blank">Nombre corregido</th><th class="blank">Código IP</th></tr></thead>
             <tbody>${filas}</tbody>
-            <tfoot><tr><td colspan="4" class="num">TOTALES:</td><td class="num">${_usd(r.subtotalUSD)}</td><td class="num">100%</td><td></td><td class="num">${money(r.totalGastos)}</td><td></td><td class="num">${money(r.granTotalRD)}</td><td class="blank"></td><td class="blank"></td></tr></tfoot>
+            <tfoot><tr><td colspan="4" class="num">TOTALES:</td><td class="num">${_usd(r.subtotalUSD)}</td><td class="num">100%</td><td></td><td class="num">${money(r.totalGastos)}</td><td></td><td class="num">${money(r.granTotalRD)}</td><td></td><td class="blank"></td><td class="blank"></td></tr></tfoot>
         </table>
-        <p class="foot">Documento de control interno · Cálculo de liquidación de aduana</p>
+        <p class="foot">Documento de control interno · Cálculo de liquidación de aduana${r.gananciaPct > 0 ? ` · "Precio venta ref." = REFERENCIAL (costo final +${r.gananciaPct}%), NO es el precio de venta final` : ''}</p>
         <script>window.onload=function(){window.print();}<\/script>
         </body></html>`);
     w.document.close();
@@ -9805,20 +9836,21 @@ function exportarLiquidacionAduanaExcel() {
     const cab = _aduanaInfoCab();
     const n2 = (v) => (Number(v) || 0).toFixed(2);
     const filas = r.items.map((it, i) => `<tr><td>${i+1}</td><td>${escapeHtml(it.desc || '')}</td><td>${it.cant}</td><td>${n2(it.costo)}</td>
-        <td>${n2(it.importeUSD)}</td><td>${it.pctCompra.toFixed(1)}</td><td>${n2(it.costoUnitRD)}</td><td>${n2(it.gastoUnitRD)}</td><td>${n2(it.finalUnitRD)}</td><td>${n2(it.finalRD)}</td><td></td><td></td></tr>`).join('');
+        <td>${n2(it.importeUSD)}</td><td>${it.pctCompra.toFixed(1)}</td><td>${n2(it.costoUnitRD)}</td><td>${n2(it.gastoUnitRD)}</td><td>${n2(it.finalUnitRD)}</td><td>${n2(it.finalRD)}</td><td>${n2(it.precioVentaRef)}</td><td></td><td></td></tr>`).join('');
     const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head><meta charset="utf-8"></head><body>
         <table border="1">
-            <tr><th colspan="12" style="font-size:16px;">${escapeHtml(tienda)} — Liquidación de Aduana</th></tr>
-            <tr><td colspan="12">Fecha: ${new Date().toLocaleString('es-DO')}</td></tr>
-            <tr><td colspan="4">Proveedor: ${escapeHtml(cab.prov)}</td><td colspan="4">Factura: ${escapeHtml(cab.factura)}</td><td colspan="4">Fecha factura: ${escapeHtml(cab.fecha)}</td></tr>
-            <tr><td colspan="4">Tasa US$→RD$: ${n2(r.tasa)}</td><td colspan="4">Subtotal US$: ${n2(r.subtotalUSD)}</td><td colspan="4">Subtotal RD$: ${n2(r.subtotalRD)}</td></tr>
-            <tr><td colspan="12"></td></tr>
-            <tr style="background:#0f172a; color:#fff;"><th>#</th><th>Descripción</th><th>Cant.</th><th>P.U US$</th><th>Importe US$</th><th>% compra</th><th>Costo unit RD$</th><th>Gastos/unid RD$</th><th>Costo unit FINAL RD$</th><th>Total FINAL RD$</th><th>Nombre corregido</th><th>Código IP</th></tr>
+            <tr><th colspan="13" style="font-size:16px;">${escapeHtml(tienda)} — Liquidación de Aduana</th></tr>
+            <tr><td colspan="13">Fecha: ${new Date().toLocaleString('es-DO')}</td></tr>
+            <tr><td colspan="5">Proveedor: ${escapeHtml(cab.prov)}</td><td colspan="4">Factura: ${escapeHtml(cab.factura)}</td><td colspan="4">Fecha factura: ${escapeHtml(cab.fecha)}</td></tr>
+            <tr><td colspan="5">Tasa US$→RD$: ${n2(r.tasa)}</td><td colspan="4">Subtotal US$: ${n2(r.subtotalUSD)}</td><td colspan="4">Subtotal RD$: ${n2(r.subtotalRD)}</td></tr>
+            <tr><td colspan="13"></td></tr>
+            <tr style="background:#0f172a; color:#fff;"><th>#</th><th>Descripción</th><th>Cant.</th><th>P.U US$</th><th>Importe US$</th><th>% compra</th><th>Costo unit RD$</th><th>Gastos/unid RD$</th><th>Costo unit FINAL RD$</th><th>Total FINAL RD$</th><th>Precio venta ref.</th><th>Nombre corregido</th><th>Código IP</th></tr>
             ${filas}
-            <tr style="background:#eef2ff;"><td colspan="4"><b>TOTALES</b></td><td><b>${n2(r.subtotalUSD)}</b></td><td><b>100</b></td><td></td><td><b>${n2(r.totalGastos)}</b></td><td></td><td><b>${n2(r.granTotalRD)}</b></td><td></td><td></td></tr>
-            <tr><td colspan="12"></td></tr>
-            <tr><td colspan="4">Transporte: ${n2(r.transporte)}</td><td colspan="4">Impuesto: ${n2(r.impuesto)}</td><td colspan="4">Otros: ${n2(r.otros)}</td></tr>
+            <tr style="background:#eef2ff;"><td colspan="4"><b>TOTALES</b></td><td><b>${n2(r.subtotalUSD)}</b></td><td><b>100</b></td><td></td><td><b>${n2(r.totalGastos)}</b></td><td></td><td><b>${n2(r.granTotalRD)}</b></td><td></td><td></td><td></td></tr>
+            <tr><td colspan="13"></td></tr>
+            <tr><td colspan="5">Transporte: ${n2(r.transporte)}</td><td colspan="4">Impuesto: ${n2(r.impuesto)}</td><td colspan="4">Otros: ${n2(r.otros)}</td></tr>
+            <tr><td colspan="13">Precio venta ref. = REFERENCIAL (costo final + ${n2(r.gananciaPct)}%). NO es el precio de venta final.</td></tr>
         </table>
         </body></html>`;
     const blob = new Blob(['﻿' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
@@ -9828,6 +9860,136 @@ function exportarLiquidacionAduanaExcel() {
     document.body.appendChild(a); a.click();
     setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
     toast('✅ Excel descargado.');
+}
+// ===== Ocultar columnas / filtro / copiar costo final =====
+function _aduanaToggleCol(key) {
+    if(_aduanaColsOcultas.has(key)) _aduanaColsOcultas.delete(key); else _aduanaColsOcultas.add(key);
+    _aduanaAplicarColumnas();
+}
+function _aduanaMostrarColumnas() { _aduanaColsOcultas.clear(); _aduanaAplicarColumnas(); }
+function _aduanaAplicarColumnas() {
+    ['desc','cant','punit','importe','pct','counit','gastounit','finalunit','total','venta','x'].forEach(k => {
+        const hide = _aduanaColsOcultas.has(k);
+        document.querySelectorAll('#aduanaTabla .aducol-' + k).forEach(el => { el.style.display = hide ? 'none' : ''; });
+    });
+}
+function _aduanaFiltrar() {
+    const q = (document.getElementById('aduanaFiltro')?.value || '').toLowerCase().trim();
+    document.querySelectorAll('#aduanaTbody tr').forEach(tr => {
+        const d = (tr.querySelector('.adu-desc')?.value || '').toLowerCase();
+        tr.style.display = (!q || d.includes(q)) ? '' : 'none';
+    });
+}
+function _aduanaCopiarCelda(el) {
+    const v = el.getAttribute('data-c') || (el.textContent || '').replace(/[^0-9.]/g, '');
+    if(v) { try { navigator.clipboard.writeText(v); } catch(e) { const ta = document.createElement('textarea'); ta.value = v; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch(_) {} document.body.removeChild(ta); } }
+    const rows = Array.from(document.querySelectorAll('#aduanaTbody tr'));
+    const idx = rows.indexOf(el.closest('tr'));
+    if(idx >= 0) _aduanaCopiados.add(idx);
+    toast('✓ Copiado: RD$ ' + v);
+    _aduanaRecalcular();
+}
+// ===== Guardar / Historial de liquidaciones (solo admin) =====
+async function guardarLiquidacionAduana() {
+    if(!isAdminUser()) return toast('Solo el administrador puede guardar liquidaciones.', 'error');
+    _aduanaLeerInputs();
+    _aduanaOtrosLeer();
+    const r = _aduanaCalcular();
+    const items = _aduanaItems.filter(it => (it.desc || '').trim() || Number(it.costo) > 0);
+    if(!items.length) return toast('Agrega al menos un artículo antes de guardar.', 'error');
+    const fila = {
+        proveedor: document.getElementById('aduana_prov').value || null,
+        factura: document.getElementById('aduana_factura').value || null,
+        fecha: document.getElementById('aduana_fecha').value || null,
+        tasa: Number(document.getElementById('aduana_tasa').value) || 0,
+        transporte: Number(document.getElementById('aduana_transporte').value) || 0,
+        impuesto_modo: document.getElementById('aduana_imp_modo').value || 'monto',
+        impuesto_valor: Number(document.getElementById('aduana_imp_valor').value) || 0,
+        otros: _aduanaOtrosGastos || [],
+        ganancia_pct: Number(document.getElementById('aduana_ganancia')?.value) || 0,
+        items: items,
+        subtotal_usd: r.subtotalUSD,
+        gran_total_rd: r.granTotalRD,
+        creado_por: (typeof sessionUser !== 'undefined' && sessionUser) ? (sessionUser.nombre || sessionUser.id || null) : null,
+        actualizado_en: new Date().toISOString()
+    };
+    try {
+        let res;
+        if(_aduanaLiqId) res = await supabaseClient.from('aduana_liquidaciones').update(fila).eq('id', _aduanaLiqId).select('id').single();
+        else res = await supabaseClient.from('aduana_liquidaciones').insert([fila]).select('id').single();
+        if(res.error) throw res.error;
+        _aduanaLiqId = res.data.id;
+        toast('✅ Liquidación guardada.');
+    } catch(e) { logError('guardarLiquidacionAduana', e); toastError(getFriendlyError(e)); }
+}
+async function abrirHistorialLiquidaciones() {
+    if(!isAdminUser()) return toast('Solo el administrador.', 'error');
+    let rows = [];
+    try {
+        const { data, error } = await supabaseClient.from('aduana_liquidaciones').select('id,proveedor,factura,fecha,gran_total_rd,creado_en').order('creado_en', { ascending: false });
+        if(error) throw error;
+        rows = data || [];
+    } catch(e) { logError('historial liquidaciones', e); return toastError(getFriendlyError(e)); }
+    const filas = rows.length ? rows.map(x => `<tr>
+        <td style="padding:7px; border-bottom:1px solid #eef2f7;">${escapeHtml(x.proveedor || '—')}</td>
+        <td style="padding:7px; border-bottom:1px solid #eef2f7;">${escapeHtml(x.factura || '—')}</td>
+        <td style="padding:7px; border-bottom:1px solid #eef2f7;">${x.fecha ? new Date(x.fecha + 'T00:00:00').toLocaleDateString('es-DO') : (x.creado_en ? new Date(x.creado_en).toLocaleDateString('es-DO') : '—')}</td>
+        <td style="padding:7px; border-bottom:1px solid #eef2f7; text-align:right; font-weight:700;">${money(x.gran_total_rd)}</td>
+        <td style="padding:7px; border-bottom:1px solid #eef2f7; text-align:center; white-space:nowrap;">
+            <button class="btn btn-light" style="padding:4px 9px; font-size:11px; color:#0891b2;" onclick="cargarLiquidacionGuardada('${x.id}')"><i class="ti ti-folder-open"></i> Abrir</button>
+            <button class="btn btn-light" style="padding:4px 9px; font-size:11px; color:#b91c1c;" onclick="eliminarLiquidacionGuardada('${x.id}')"><i class="ti ti-trash"></i></button>
+        </td></tr>`).join('') : `<tr><td colspan="5" style="padding:18px; text-align:center; color:#94a3b8;">No hay liquidaciones guardadas todavía.</td></tr>`;
+    const prev = document.getElementById('modalHistLiq'); if(prev) prev.remove();
+    const box = document.createElement('div');
+    box.className = 'modal-backdrop active'; box.id = 'modalHistLiq'; box.style.zIndex = '760';
+    box.innerHTML = `<div class="modal-box" style="max-width:660px;">
+        <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-history"></i> Historial de liquidaciones</h3></div>
+        <div class="modal-body" style="max-height:62vh; overflow:auto;">
+          <table style="width:100%; border-collapse:collapse; font-size:13px;">
+            <thead><tr style="background:#f1f5f9;"><th style="padding:7px; text-align:left;">Proveedor</th><th style="padding:7px; text-align:left;">Factura</th><th style="padding:7px; text-align:left;">Fecha</th><th style="padding:7px; text-align:right;">Total RD$</th><th style="padding:7px; text-align:center;">Acciones</th></tr></thead>
+            <tbody>${filas}</tbody>
+          </table>
+        </div>
+        <div class="modal-footer"><button class="btn btn-light" onclick="document.getElementById('modalHistLiq').remove()">Cerrar</button></div>
+    </div>`;
+    document.body.appendChild(box);
+}
+async function cargarLiquidacionGuardada(id) {
+    if(!isAdminUser()) return toast('Solo el administrador.', 'error');
+    try {
+        const { data: x, error } = await supabaseClient.from('aduana_liquidaciones').select('*').eq('id', id).single();
+        if(error || !x) throw (error || new Error('No encontrada'));
+        _aduanaLiqId = x.id;
+        _aduanaCopiados.clear(); _aduanaColsOcultas.clear();
+        document.getElementById('aduana_prov').value = x.proveedor || '';
+        document.getElementById('aduana_factura').value = x.factura || '';
+        document.getElementById('aduana_fecha').value = x.fecha || '';
+        document.getElementById('aduana_tasa').value = x.tasa || '';
+        document.getElementById('aduana_transporte').value = x.transporte || 0;
+        document.getElementById('aduana_imp_modo').value = x.impuesto_modo || 'monto';
+        document.getElementById('aduana_imp_valor').value = x.impuesto_valor || 0;
+        const _g = document.getElementById('aduana_ganancia'); if(_g) _g.value = x.ganancia_pct || 0;
+        const _f = document.getElementById('aduanaFiltro'); if(_f) _f.value = '';
+        _aduanaOtrosGastos = (Array.isArray(x.otros) && x.otros.length) ? x.otros : [{ concepto: '', monto: 0 }];
+        _aduanaItems = (Array.isArray(x.items) && x.items.length) ? x.items.map(it => ({ desc: it.desc || '', cant: Number(it.cant) || 0, costo: Number(it.costo) || 0 })) : [{ desc: '', cant: 1, costo: 0 }];
+        _aduanaOtrosRender();
+        _aduanaRenderTabla();
+        const m = document.getElementById('modalHistLiq'); if(m) m.remove();
+        const modal = document.getElementById('modalLiquidacionAduana');
+        if(modal && !modal.classList.contains('active')) modal.classList.add('active');
+        toast('✅ Liquidación cargada. Puedes editarla y volver a Guardar.');
+    } catch(e) { logError('cargarLiquidacionGuardada', e); toastError(getFriendlyError(e)); }
+}
+async function eliminarLiquidacionGuardada(id) {
+    if(!isAdminUser()) return toast('Solo el administrador.', 'error');
+    if(!await confirmar('¿Borrar esta liquidación guardada? No se puede deshacer.')) return;
+    try {
+        const { error } = await supabaseClient.from('aduana_liquidaciones').delete().eq('id', id);
+        if(error) throw error;
+        if(_aduanaLiqId === id) _aduanaLiqId = null;
+        toast('✅ Liquidación borrada.');
+        abrirHistorialLiquidaciones();
+    } catch(e) { logError('eliminarLiquidacionGuardada', e); toastError(getFriendlyError(e)); }
 }
 
 /* ============================================================
