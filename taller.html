@@ -4092,7 +4092,7 @@ function actualizarBotonNotif() {
 document.addEventListener('click', activarAudioNotif, { once: true });
 document.addEventListener('touchstart', activarAudioNotif, { once: true });
 
-function money(n) { return "RD$ " + Number(n || 0).toLocaleString("es-DO", { minimumFractionDigits: 2 }); }
+function money(n) { return "RD$ " + Number(n || 0).toLocaleString("es-DO", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function getChecked(id) { return [...document.querySelectorAll("#" + id + " input:checked")].map(x => x.value).join(", "); }
 function val(id) { return document.getElementById(id)?.value?.trim() || ""; }
 
