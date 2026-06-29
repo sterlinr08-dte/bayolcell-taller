@@ -2165,6 +2165,7 @@ body{
                                 <button id="btnExcelCostosLote" class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#15803d; border-color:#86efac; display:none;" onclick="exportarReporteCostosLoteExcel()"><i class="ti ti-file-spreadsheet"></i> Exportar Excel</button>
                                 <button id="btnFormatoIP" class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#075985; border-color:#7dd3fc; display:none;" onclick="imprimirFormatoInfoPlus()"><i class="ti ti-building-warehouse"></i> Formato Info Plus</button>
                                 <button id="btnFormatoIPExcel" class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#075985; border-color:#7dd3fc; display:none;" onclick="exportarFormatoInfoPlusExcel()"><i class="ti ti-file-spreadsheet"></i> Info Plus (Excel)</button>
+                                <button id="btnRegistrarCompraIP" class="btn btn-dark" style="padding:5px 10px; font-size:12px; background:#0891b2; display:none;" onclick="registrarCompraLoteInfoPlus()" title="Registrar en Info Plus los equipos listos como una compra (1 artículo por modelo + sus IMEI + costo promedio)"><i class="ti ti-cloud-upload"></i> Registrar compra en Info Plus</button>
                             </div>
                         </div>
                         <div id="reacondTecnicosRow" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;"></div>
@@ -10816,6 +10817,117 @@ function _datosFormatoInfoPlus() {
     }).sort((a, b) => (a.modelo || '').localeCompare(b.modelo || ''));
     return { lote, prov, filtrosTxt, lista };
 }
+// ===== Registrar la COMPRA del lote en Info Plus (1 artículo por modelo + N IMEI + costo promedio) =====
+let _regipCtx = null;
+function registrarCompraLoteInfoPlus() {
+    if(!isAdminUser()) return toast('Solo el administrador.', 'error');
+    if(!reacondLoteAbiertoId) return toast('Abre un lote primero.', 'error');
+    const lote = (cache.lotes || []).find(l => l.id === reacondLoteAbiertoId);
+    if(!lote) return toast('Lote no encontrado.', 'error');
+    // Equipos LISTOS y que aún NO se han registrado en Info Plus
+    const listos = (cache.refurb || []).filter(r => r.lote_id === reacondLoteAbiertoId && r.estado_evaluacion === 'listo_venta' && !r.infoplus_compra_pedido);
+    if(!listos.length) return toast('No hay equipos en "Listo" pendientes de registrar.', 'error');
+    // Agrupar por código de artículo de Info Plus
+    const grupos = {};
+    let sinCodigo = 0;
+    listos.forEach(e => {
+        const cod = (e.articulo_codigo != null && String(e.articulo_codigo).trim()) ? String(e.articulo_codigo).trim() : '';
+        if(!cod) { sinCodigo++; return; }
+        if(!grupos[cod]) grupos[cod] = { codigo: cod, modelo: _modeloRep(e), equipos: [], imeis: [], total: 0 };
+        grupos[cod].equipos.push(e);
+        if(e.imei) grupos[cod].imeis.push(String(e.imei).trim());
+        grupos[cod].total += _costoEquipoRep(e).fin;
+    });
+    const lista = Object.values(grupos);
+    if(!lista.length) return toast('Los equipos listos no tienen código de Info Plus (articulo_codigo). No se pueden registrar.', 'error');
+    const prov = (cache.proveedores || []).find(p => p.id === lote.proveedor_id);
+    const codProvDefault = prov ? (prov.codigo_infoplus || prov.infoplus_cod || prov.codproveedor || '') : '';
+    const filas = lista.map(g => {
+        const cant = g.equipos.length, prom = cant ? g.total / cant : 0, faltan = cant - g.imeis.length;
+        return `<tr>
+            <td style="padding:6px; border-bottom:1px solid #eef2f7;">${escapeHtml(g.modelo)}</td>
+            <td style="padding:6px; border-bottom:1px solid #eef2f7; text-align:center; color:#1d4ed8; font-weight:700;">${escapeHtml(g.codigo)}</td>
+            <td style="padding:6px; border-bottom:1px solid #eef2f7; text-align:center;">${cant}</td>
+            <td style="padding:6px; border-bottom:1px solid #eef2f7; text-align:right;">${money(prom)}</td>
+            <td style="padding:6px; border-bottom:1px solid #eef2f7; text-align:right; font-weight:700;">${money(g.total)}</td>
+            <td style="padding:6px; border-bottom:1px solid #eef2f7; text-align:center;">${g.imeis.length}${faltan > 0 ? ` <span style="color:#b91c1c;" title="Faltan IMEI">⚠️ faltan ${faltan}</span>` : ''}</td>
+        </tr>`;
+    }).join('');
+    const almOpts = ALMACENES_IP.map(a => `<option value="${a.c}"${a.c === 1 ? ' selected' : ''}>${a.n} (${a.c})</option>`).join('');
+    const totU = lista.reduce((s, g) => s + g.equipos.length, 0);
+    const totRD = lista.reduce((s, g) => s + g.total, 0);
+    const prev = document.getElementById('modalRegCompraIP'); if(prev) prev.remove();
+    const box = document.createElement('div');
+    box.className = 'modal-backdrop active'; box.id = 'modalRegCompraIP'; box.style.zIndex = '770';
+    box.innerHTML = `<div class="modal-box" style="max-width:720px;">
+        <div class="modal-header" style="background:linear-gradient(135deg,#0e7490,#0891b2); color:#fff; border-radius:12px 12px 0 0;"><h3 style="margin:0; color:#fff;"><i class="ti ti-cloud-upload"></i> Registrar compra en Info Plus</h3><button class="modal-close" style="color:#fff;" onclick="document.getElementById('modalRegCompraIP').remove()">✕</button></div>
+        <div class="modal-body" style="max-height:70vh; overflow:auto;">
+          <p style="font-size:12.5px; color:#475569; margin-top:0;">Se registran los equipos <b>Listos</b> del lote <b>${escapeHtml(lote.codigo_lote || '')}</b> como <b>1 artículo por modelo + sus IMEI</b>, con el <b>costo promedio</b> (total = suma). El detalle por IMEI queda en el taller.</p>
+          ${sinCodigo > 0 ? `<div style="background:#fef3c7; color:#92400e; font-size:12px; padding:6px 10px; border-radius:8px; margin-bottom:8px;">⚠️ ${sinCodigo} equipo(s) listo(s) sin código de Info Plus — esos NO se enviarán.</div>` : ''}
+          <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
+            <thead><tr style="background:#f1f5f9;"><th style="padding:6px; text-align:left;">Modelo</th><th>Cód IP</th><th>Cant.</th><th style="padding:6px; text-align:right;">Promedio</th><th style="padding:6px; text-align:right;">Total</th><th>IMEI</th></tr></thead>
+            <tbody>${filas}</tbody>
+          </table>
+          <div style="margin-top:12px; display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div class="form-row"><label>Almacén destino</label><select id="regipAlmacen">${almOpts}</select></div>
+            <div class="form-row"><label>Código proveedor (Info Plus)</label><input id="regipProv" value="${escapeHtml(String(codProvDefault))}" placeholder="ej. 7"></div>
+          </div>
+          <div style="font-size:11.5px; color:#64748b; margin-top:4px;">Proveedor del lote: <b>${escapeHtml(prov?.nombre || '—')}</b> · NCF: vacío · <b>${totU}</b> unidad(es) · Total <b>${money(totRD)}</b></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-light" onclick="document.getElementById('modalRegCompraIP').remove()">Cancelar</button>
+          <button class="btn btn-blue" onclick="_ejecutarRegistroCompraIP()"><i class="ti ti-cloud-upload"></i> Registrar en Info Plus</button>
+        </div>
+    </div>`;
+    document.body.appendChild(box);
+    _regipCtx = { lista, loteCod: lote.codigo_lote || '', fecha: lote.fecha_compra || null };
+}
+async function _ejecutarRegistroCompraIP() {
+    if(!_regipCtx) return;
+    const almacen = parseInt(document.getElementById('regipAlmacen')?.value, 10) || 1;
+    const codproveedor = (document.getElementById('regipProv')?.value || '').trim();
+    if(!codproveedor) return toast('Pon el código de proveedor de Info Plus.', 'error');
+    const { lista, loteCod } = _regipCtx;
+    const d = new Date();
+    const f = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+    const hora = d.toTimeString().slice(0, 8);
+    const detallescompra = [], seriales = [];
+    let total = 0; const idsTodos = [];
+    lista.forEach(g => {
+        const cant = g.equipos.length, prom = cant ? g.total / cant : 0;
+        total += g.total;
+        const codNum = parseInt(String(g.codigo).replace(/[^0-9]/g, ''), 10);
+        if(!codNum) return;
+        detallescompra.push({ codarticulo: codNum, precio: Math.round(prom * 100) / 100, cantidad: cant, codunidad: 1, descripcion: g.modelo, descuentoarticulo: 0, despachado: 0, devuelto: 0, porcentaje2: 0, fvencimiento: f, costoanterior: Math.round(prom * 100) / 100 });
+        g.imeis.forEach(im => seriales.push({ numero: String(im), codarticulo: codNum }));
+        g.equipos.forEach(e => idsTodos.push(e.id));
+    });
+    if(!detallescompra.length) return toast('No hay artículos válidos para registrar.', 'error');
+    const compra = {
+        codpedido: "", fecha: f, hora, orden: "", factura: "", vencimiento: f, total: Math.round(total * 100) / 100,
+        descuentototal: 0, descuento: 0, impuesto: 0, abono: 0, cancelado: false, credito: false,
+        codproveedor: String(codproveedor), codempleado: "6", comentario: `Reacondicionado lote ${loteCod}`,
+        codlocalidad: almacen, codciudad: "", codliquidacion: "", codmonedas: 1, codmonedap: 1, tasacambio: 1,
+        ncf: "", generarncf: false, codcentrocosto: "", totalcreditos: 0, neto: false, factura2: "", esmaterialgastable: false, fechaoriginal: f, codotrascompras: null,
+        detallescompra, detallescompra2: [], detallescompra3: [], seriales
+    };
+    try {
+        toast('⏳ Registrando en Info Plus…');
+        const { data, error } = await supabaseClient.functions.invoke('infoplus-compra-crear', { body: { compra } });
+        if(error) throw error;
+        const msg = (data && data.respuesta && data.respuesta.message) || '';
+        const okFinal = data && data.ok && /correctamente/i.test(msg);
+        if(!okFinal) return toast('⚠️ No se registró: ' + (msg || 'Info Plus rechazó la compra'), 'error');
+        const codpedido = (data.respuesta && data.respuesta.data && data.respuesta.data[0] && data.respuesta.data[0].codpedido) || 'OK';
+        for(let i = 0; i < idsTodos.length; i += 200) {
+            await supabaseClient.from('equipos_refurbish').update({ infoplus_compra_pedido: codpedido }).in('id', idsTodos.slice(i, i + 200));
+        }
+        toast(`✅ Compra registrada en Info Plus (${codpedido}). ${idsTodos.length} equipo(s).`);
+        const m = document.getElementById('modalRegCompraIP'); if(m) m.remove();
+        await loadAll();
+        renderDetalleLoteReacond();
+    } catch(e) { logError('registrar compra IP', e); toastError(getFriendlyError(e)); }
+}
 function imprimirFormatoInfoPlus() {
     const datos = _datosFormatoInfoPlus();
     if(!datos) return;
@@ -11087,6 +11199,7 @@ function renderDetalleLoteReacond() {
     const _bx = document.getElementById('btnExcelCostosLote'); if(_bx) _bx.style.display = isAdminUser() ? '' : 'none';
     const _bf = document.getElementById('btnFormatoIP'); if(_bf) _bf.style.display = isAdminUser() ? '' : 'none';
     const _bfx = document.getElementById('btnFormatoIPExcel'); if(_bfx) _bfx.style.display = isAdminUser() ? '' : 'none';
+    const _brc = document.getElementById('btnRegistrarCompraIP'); if(_brc) _brc.style.display = isAdminUser() ? '' : 'none';
 
     // Badge de estado
     const badge = document.getElementById('reacondLoteEstadoBadge');
