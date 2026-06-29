@@ -13596,6 +13596,14 @@ function _refrescarVistaEquipo(equipoId) {
 // Descuenta (o devuelve) una pieza del inventario de Info Plus — almacén 6 (TALLER).
 // entrada=false => SALIDA (resta, codminventario 2); entrada=true => ENTRADA (suma, codminventario 1).
 // Devuelve {ok:true} o {ok:false, error}. NO lanza: es "best effort" (no debe romper el guardado de la pieza).
+// Texto legible del equipo para el comentario del ajuste en Info Plus (modelo + IMEI en vez del ID largo).
+function _equipoComentarioRef(equipoId) {
+    const e = (cache.refurb || []).find(x => x.id === equipoId);
+    if(!e) return 'equipo ' + equipoId;
+    const modelo = (e.modelo || 'equipo').toString().trim();
+    const imei = (e.imei || '').toString().trim();
+    return imei ? `${modelo} IMEI ${imei}` : modelo;
+}
 async function _infoplusAjustePieza(codarticulo, cantidad, precio, entrada, comentario, almacen) {
     const codNum = parseInt(String(codarticulo == null ? '' : codarticulo).replace(/[^0-9]/g, ''), 10);
     const cant = parseInt(cantidad, 10) || 0;
@@ -13966,7 +13974,7 @@ async function _agregarPiezaInfoPlusConfirm(equipoId, a) {
         await _recalcularCostoRepuestos(equipoId);
         // 4) Descontar (del almacén elegido) solo si corresponde.
         if(descontar) {
-            const r = await _infoplusAjustePieza(a.codigo, 1, a.costo, false, `Salida pieza reparación equipo ${equipoId}`, almDesc);
+            const r = await _infoplusAjustePieza(a.codigo, 1, a.costo, false, `Salida pieza reparación: ${_equipoComentarioRef(equipoId)}`, almDesc);
             if(r.ok && ins) {
                 await supabaseClient.from('equipo_piezas_pedidas').update({ infoplus_desc_cant: 1, infoplus_desc_almacen: almDesc }).eq('id', ins.id);
                 toast('✅ Pieza agregada al costo y descontada de Info Plus (' + _nombreAlmacen(almDesc) + '): ' + nombrePz);
@@ -14001,7 +14009,7 @@ async function editarPiezaInfoPlus(piezaId) {
         if(yaDesc > 0 && pz.pieza_codigo) {
             const delta = cantidad - yaDesc; // >0 sacar más; <0 devolver
             if(delta !== 0) {
-                const r = await _infoplusAjustePieza(pz.pieza_codigo, Math.abs(delta), costo, delta < 0, `Ajuste pieza reparación equipo ${pz.equipo_id}`, pz.infoplus_desc_almacen || 6);
+                const r = await _infoplusAjustePieza(pz.pieza_codigo, Math.abs(delta), costo, delta < 0, `Ajuste pieza reparación: ${_equipoComentarioRef(pz.equipo_id)}`, pz.infoplus_desc_almacen || 6);
                 if(r.ok) await supabaseClient.from('equipo_piezas_pedidas').update({ infoplus_desc_cant: cantidad }).eq('id', piezaId);
                 else aviso = '\n⚠️ No se pudo ajustar Info Plus: ' + (r.error || '') + ' (ajústalo a mano)';
             }
@@ -14022,7 +14030,7 @@ async function eliminarPiezaInfoPlus(piezaId) {
         // Devolver al inventario de Info Plus lo que se había descontado.
         const yaDesc = Number(pz.infoplus_desc_cant) || 0;
         if(yaDesc > 0 && pz.pieza_codigo) {
-            const r = await _infoplusAjustePieza(pz.pieza_codigo, yaDesc, pz.costo_unitario, true, `Devolución pieza reparación equipo ${pz.equipo_id}`, pz.infoplus_desc_almacen || 6);
+            const r = await _infoplusAjustePieza(pz.pieza_codigo, yaDesc, pz.costo_unitario, true, `Devolución pieza reparación: ${_equipoComentarioRef(pz.equipo_id)}`, pz.infoplus_desc_almacen || 6);
             if(!r.ok) aviso = '\n⚠️ No se pudo devolver a Info Plus: ' + (r.error || '') + ' (devuélvela a mano)';
         }
         const { error } = await supabaseClient.from('equipo_piezas_pedidas').delete().eq('id', piezaId);
