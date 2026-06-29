@@ -11461,7 +11461,9 @@ async function abrirModalEvaluacion(equipoId) {
             pieza_nombre: p.pieza_nombre,
             cantidad: p.cantidad || 1,
             costo_unitario: p.costo_unitario || 0,
-            estado: p.estado || 'pendiente'
+            estado: p.estado || 'pendiente',
+            infoplus_desc_cant: Number(p.infoplus_desc_cant) || 0,
+            infoplus_desc_almacen: p.infoplus_desc_almacen || 6
         }));
     } catch(e) {
         logError('Cargar evaluación previa', e);
@@ -11719,25 +11721,37 @@ function renderPiezasEvaluacion() {
         return;
     }
     
+    const verCosto = isAdminUser();
     let total = 0;
     cont.innerHTML = _evalState.piezasSeleccionadas.map((p, idx) => {
         const subtotal = (p.cantidad || 1) * (p.costo_unitario || 0);
         total += subtotal;
+        const esIP = !!p.pieza_codigo;
+        const descontada = (Number(p.infoplus_desc_cant) || 0) > 0;
+        const estadoBadge = !esIP ? '' : (descontada
+            ? ` <span style="font-size:10px; font-weight:800; background:#dcfce7; color:#166534; padding:2px 8px; border-radius:8px;">✓ descontada (Alm. ${p.infoplus_desc_almacen || 6})</span>`
+            : ` <span style="font-size:10px; font-weight:800; background:#fef9c3; color:#854d0e; padding:2px 8px; border-radius:8px;">⏳ por descontar</span>`);
+        const costoLinea = verCosto
+            ? `<div style="font-size:11px; color:var(--text-muted);">Costo unitario: ${money(p.costo_unitario || 0)} · Subtotal: <b style="color:var(--blue-btn);">${money(subtotal)}</b></div>`
+            : '';
+        const btnQuitar = descontada
+            ? `<span title="Ya descontada de Info Plus — no se puede quitar aquí" style="background:#f1f5f9; color:#94a3b8; padding:8px 10px; border-radius:6px;"><i class="ti ti-lock"></i></span>`
+            : `<button onclick="evalQuitarPieza(${idx})" style="background:#fee2e2; color:#991b1b; border:0; padding:8px 10px; border-radius:6px; cursor:pointer;" title="Quitar"><i class="ti ti-trash"></i></button>`;
         return `
             <div style="display:flex; gap:10px; align-items:center; padding:10px 12px; background:#fff; border:1px solid var(--border-color); border-radius:8px; margin-bottom:6px;">
                 <div style="flex:1; min-width:0;">
-                    <div style="font-weight:600; font-size:13px;">${escapeHtml(p.pieza_nombre || 'Pieza')}</div>
-                    <div style="font-size:11px; color:var(--text-muted);">Costo unitario: ${money(p.costo_unitario || 0)} · Subtotal: <b style="color:var(--blue-btn);">${money(subtotal)}</b></div>
+                    <div style="font-weight:600; font-size:13px;">${escapeHtml(p.pieza_nombre || 'Pieza')}${estadoBadge}</div>
+                    ${costoLinea}
                 </div>
-                <input type="number" value="${p.cantidad || 1}" min="1" max="50" onchange="evalCambiarCantidadPieza(${idx}, this.value)" style="width:65px; font-weight:700; padding:6px;">
-                <button onclick="evalQuitarPieza(${idx})" style="background:#fee2e2; color:#991b1b; border:0; padding:8px 10px; border-radius:6px; cursor:pointer;" title="Quitar"><i class="ti ti-trash"></i></button>
+                <input type="number" value="${p.cantidad || 1}" min="1" max="50" ${descontada ? 'disabled' : ''} onchange="evalCambiarCantidadPieza(${idx}, this.value)" style="width:65px; font-weight:700; padding:6px;">
+                ${btnQuitar}
             </div>
         `;
-    }).join('') + `
+    }).join('') + (verCosto ? `
         <div style="margin-top:12px; padding:12px; background:#dbeafe; border-radius:8px; text-align:right; font-weight:700; color:#b91c1c;">
             TOTAL PIEZAS: ${money(total)}
         </div>
-    `;
+    ` : '');
 }
 
 function evalAgregarPieza() {
@@ -11814,6 +11828,7 @@ function renderResumenEvaluacion() {
     const piezasEl = document.getElementById('evalResumenPiezas');
     const costoEl = document.getElementById('evalCostoTotal');
     if(piezasEl) {
+        const verCosto = isAdminUser();
         if(_evalState.piezasSeleccionadas.length === 0) {
             piezasEl.innerHTML = '<p style="color:var(--text-muted); font-size:12px;">No has agregado piezas todavía.</p>';
             if(costoEl) costoEl.innerHTML = '';
@@ -11824,10 +11839,10 @@ function renderResumenEvaluacion() {
                 total += sub;
                 return `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dashed #e5e7eb;">
                     <span>${escapeHtml(p.pieza_nombre)} ×${p.cantidad}</span>
-                    <span style="font-weight:600;">${money(sub)}</span>
+                    ${verCosto ? `<span style="font-weight:600;">${money(sub)}</span>` : ''}
                 </div>`;
             }).join('');
-            if(costoEl) costoEl.innerHTML = `<div style="display:flex; justify-content:space-between;"><span>TOTAL PIEZAS:</span><span>${money(total)}</span></div>`;
+            if(costoEl) costoEl.innerHTML = verCosto ? `<div style="display:flex; justify-content:space-between;"><span>TOTAL PIEZAS:</span><span>${money(total)}</span></div>` : '';
         }
     }
 }
@@ -11860,11 +11875,14 @@ async function guardarEvaluacion(marcarEvaluado = false) {
             if(e1) throw e1;
         }
         
-        // 2. Borrar piezas previas y guardar nuevas
-        await supabaseClient.from('equipo_piezas_pedidas').delete().eq('equipo_id', equipoId);
-        
-        if(_evalState.piezasSeleccionadas.length > 0) {
-            const insertsPz = _evalState.piezasSeleccionadas.map(p => ({
+        // 2. Guardar piezas: PRESERVAR las que ya se descontaron de Info Plus (infoplus_desc_cant>0).
+        //    Solo se borran/reescriben las que están "por descontar"; las descontadas quedan intactas
+        //    para que el descuento nunca se repita.
+        await supabaseClient.from('equipo_piezas_pedidas').delete().eq('equipo_id', equipoId).or('infoplus_desc_cant.is.null,infoplus_desc_cant.eq.0');
+
+        const piezasPorGuardar = _evalState.piezasSeleccionadas.filter(p => (Number(p.infoplus_desc_cant) || 0) === 0);
+        if(piezasPorGuardar.length > 0) {
+            const insertsPz = piezasPorGuardar.map(p => ({
                 equipo_id: equipoId,
                 pieza_id: p.pieza_id || null,
                 pieza_codigo: p.pieza_codigo || null,
@@ -13038,6 +13056,7 @@ async function abrirPanelProceso(equipoId) {
                         ${flete > 0 ? `<div style="display:flex; justify-content:space-between; font-size:13px; margin-top:4px;"><span>Envío (proporcional):</span><b>${money(flete)}</b></div>` : ''}
                         <div style="display:flex; justify-content:space-between; font-size:13px; margin-top:4px;"><span>Piezas usadas (${piezas.length}):</span><b>${money(sumPiezas)}</b></div>
                         <div style="display:flex; justify-content:space-between; font-size:16px; margin-top:8px; padding-top:8px; border-top:1px dashed #86efac; font-weight:800; color:#166534;"><span>COSTO FINAL:</span><span>${money(final)}</span></div>
+                        ${_piezasDescuentoHTML(piezas)}
                         ${estado === 'listo_venta' ? `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;">
                             <button class="btn btn-light" onclick="agregarPiezaInfoPlus('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#0369a1; border-color:#7dd3fc;"><i class="ti ti-search"></i> Pieza inventario (Info Plus)</button>
                             <button class="btn btn-light" onclick="agregarPiezaExterna('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#7c3aed; border-color:#c4b5fd;"><i class="ti ti-plus"></i> Pieza externa</button>
@@ -14015,6 +14034,68 @@ async function eliminarPiezaInfoPlus(piezaId) {
         _refrescarVistaEquipo(pz.equipo_id);
     } catch(e) { logError('eliminarPiezaInfoPlus', e); toastError(getFriendlyError(e)); }
 }
+// ===== CONFIRMAR DESCUENTO de piezas elegidas en la evaluación ("por descontar") =====
+// Descuenta de Info Plus una pieza que quedó pendiente; pregunta el almacén (la misma ventana).
+async function _descontarPiezaPendiente(piezaId, skipRefresh) {
+    if(!tienePermiso('piezas_aprobar_extra')) { toast('Solo el administrador puede descontar piezas.', 'error'); return false; }
+    try {
+        const { data: pz, error: e0 } = await supabaseClient.from('equipo_piezas_pedidas').select('*').eq('id', piezaId).single();
+        if(e0 || !pz) throw (e0 || new Error('Pieza no encontrada'));
+        if(!pz.pieza_codigo) { toast('Esta pieza no es de Info Plus (no se descuenta).', 'error'); return false; }
+        if((Number(pz.infoplus_desc_cant) || 0) > 0) { toast('Esta pieza ya fue descontada.', 'error'); return false; }
+        const full = _findInfoplusArt(pz.pieza_codigo) || {};
+        const elec = await _piezaElegirAlmacen({ descripcion: pz.pieza_nombre, codigo: pz.pieza_codigo }, full.existencias || {});
+        if(elec.accion === 'cancelar') return false;
+        if(elec.accion === 'solocosto') { toast('Quedó solo como costo (no se descontó del inventario): ' + (pz.pieza_nombre || '')); return false; }
+        const almDesc = elec.almacen || 6;
+        const cant = Number(pz.cantidad) || 1;
+        const r = await _infoplusAjustePieza(pz.pieza_codigo, cant, pz.costo_unitario, false, `Salida pieza reparación: ${_equipoComentarioRef(pz.equipo_id)}`, almDesc);
+        let ok = false;
+        if(r.ok) {
+            await supabaseClient.from('equipo_piezas_pedidas').update({ infoplus_desc_cant: cant, infoplus_desc_almacen: almDesc, estado: 'aprobada' }).eq('id', piezaId);
+            toast('✅ Pieza descontada de Info Plus (' + _nombreAlmacen(almDesc) + '): ' + (pz.pieza_nombre || ''));
+            ok = true;
+        } else {
+            toast('⚠️ No se pudo descontar de Info Plus: ' + (r.error || '') + ' (descuéntala a mano)', 'error');
+        }
+        if(!skipRefresh) { await loadAll(); _refrescarVistaEquipo(pz.equipo_id); }
+        return ok;
+    } catch(e) { logError('_descontarPiezaPendiente', e); toastError(getFriendlyError(e)); return false; }
+}
+// Descontar TODAS las pendientes de un equipo (una por una, preguntando el almacén de cada una).
+async function descontarPiezasPendientesEquipo(equipoId) {
+    if(!tienePermiso('piezas_aprobar_extra')) return toast('Solo el administrador puede descontar piezas.', 'error');
+    const { data } = await supabaseClient.from('equipo_piezas_pedidas').select('id')
+        .eq('equipo_id', equipoId).not('pieza_codigo', 'is', null).or('infoplus_desc_cant.is.null,infoplus_desc_cant.eq.0');
+    const ids = (data || []).map(r => r.id);
+    if(!ids.length) return toast('No hay piezas por descontar.');
+    let n = 0;
+    for(const id of ids) { if(await _descontarPiezaPendiente(id, true)) n++; }
+    await loadAll();
+    _refrescarVistaEquipo(equipoId);
+    toast(`Listo: ${n} de ${ids.length} pieza(s) descontada(s).`);
+}
+// HTML de la sección "Piezas de Info Plus" (descontadas / por descontar) para la caja de costo (solo admin).
+function _piezasDescuentoHTML(piezas) {
+    const ip = (piezas || []).filter(p => p.pieza_codigo);
+    if(!ip.length) return '';
+    const pendientes = ip.filter(p => (Number(p.infoplus_desc_cant) || 0) === 0);
+    const filas = ip.map(p => {
+        const desc = (Number(p.infoplus_desc_cant) || 0) > 0;
+        const right = desc
+            ? `<span style="font-size:11px; font-weight:700; color:#166534; white-space:nowrap;">✓ descontada (Alm. ${p.infoplus_desc_almacen || 6})</span>`
+            : `<button class="btn btn-light" style="padding:3px 9px; font-size:11px; color:#0369a1; border-color:#7dd3fc; white-space:nowrap;" onclick="_descontarPiezaPendiente('${p.id}')"><i class="ti ti-arrow-down-circle"></i> Descontar</button>`;
+        const tag = desc ? '' : ' <span style="font-size:9px; font-weight:800; background:#fef9c3; color:#854d0e; padding:1px 6px; border-radius:7px;">⏳</span>';
+        return `<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:4px 0; border-bottom:1px dashed #e5e7eb;">
+            <span style="font-size:11.5px; flex:1; min-width:0;">${escapeHtml(p.pieza_nombre || 'Pieza')}${tag}</span>${right}</div>`;
+    }).join('');
+    const todas = pendientes.length > 1
+        ? `<button class="btn btn-light" style="margin-top:6px; padding:5px 10px; font-size:11px; color:#0369a1; border-color:#7dd3fc; width:100%;" onclick="descontarPiezasPendientesEquipo('${ip[0].equipo_id}')"><i class="ti ti-arrow-down-circle"></i> Confirmar y descontar todas (${pendientes.length})</button>`
+        : '';
+    return `<div style="margin-top:10px; padding-top:8px; border-top:1px dashed #86efac;">
+        <div style="font-size:11px; font-weight:800; color:#475569; margin-bottom:4px;">🧩 PIEZAS DE INFO PLUS</div>
+        ${filas}${todas}</div>`;
+}
 async function agregarPiezaExtra(equipoId) {
     const nombre = await pedirTexto('Nombre de la pieza extra que apareció durante la reparación:');
     if(!nombre || !nombre.trim()) return;
@@ -14264,6 +14345,7 @@ async function verFichaDespacho(equipoId) {
             ${piezasLineas ? `<div style="margin-top:6px; padding-top:6px; border-top:1px dashed #bbf7d0;">${piezasLineas}</div>` : ''}
             <div style="display:flex; justify-content:space-between; font-size:13px; margin-top:4px;"><span>Piezas con costo (${conCosto.length}):</span><b>${money(repuestos)}</b></div>
             <div style="display:flex; justify-content:space-between; font-size:16px; margin-top:8px; padding-top:8px; border-top:1px dashed #86efac; font-weight:800; color:#166534;"><span>COSTO FINAL:</span><span>${money(final)}</span></div>
+            ${esAdminPiezas ? _piezasDescuentoHTML(piezas) : ''}
             ${esAdminPiezas ? `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;">
                 <button class="btn btn-light" onclick="agregarPiezaInfoPlus('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#0369a1; border-color:#7dd3fc;"><i class="ti ti-search"></i> Pieza inventario (Info Plus)</button>
                 <button class="btn btn-light" onclick="agregarPiezaExterna('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#7c3aed; border-color:#c4b5fd;"><i class="ti ti-plus"></i> Pieza externa</button>
