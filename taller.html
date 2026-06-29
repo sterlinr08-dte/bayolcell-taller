@@ -2446,6 +2446,84 @@ body{
                     </div>
                 </div>
             </div>
+            <div id="v-liquidacion" class="view">
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+                        <h3 style="margin:0;"><i class="ti ti-building-bank" style="color:#7c3aed;"></i> Liquidación de Aduana</h3>
+                        <button class="btn btn-light" onclick="nav('proveedores')"><i class="ti ti-arrow-left"></i> Volver a Compras</button>
+                    </div>
+                    <div>
+                        <p style="color:var(--text-muted); font-size:12px; margin:0 0 12px;">Los productos van en <b>US$</b>; con la <b>tasa</b> se convierten a RD$. Agrega <b>transporte + impuesto + otros gastos</b> (en RD$): el sistema los reparte y te da el <b>costo final por producto en RD$</b>. Puedes <b>Guardar</b> y ver el <b>Historial</b> (solo admin).</p>
+                        <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px;">
+                            <div class="form-row"><label>Proveedor</label><input id="aduana_prov" placeholder="Nombre del proveedor"></div>
+                            <div class="form-row"><label>Factura No.</label><input id="aduana_factura" placeholder="Ej. 1485"></div>
+                            <div class="form-row"><label>Fecha</label><input id="aduana_fecha" type="date"></div>
+                            <div class="form-row"><label>Tasa US$ → RD$</label><input id="aduana_tasa" type="number" step="0.01" min="0" placeholder="Ej. 60.00" oninput="_aduanaRecalcular()"></div>
+                        </div>
+                        <div style="display:flex; gap:8px; margin:4px 0 8px; flex-wrap:wrap;">
+                            <button class="btn btn-light" style="padding:6px 12px;" onclick="_aduanaAgregarFila()"><i class="ti ti-plus"></i> Producto</button>
+                            <button class="btn btn-light" style="padding:6px 12px; color:#7c3aed;" onclick="document.getElementById('aduanaArchivoInput').click()"><i class="ti ti-upload"></i> Subir PDF/Excel</button>
+                            <input id="aduanaArchivoInput" type="file" accept="application/pdf,.pdf,.xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" style="display:none;" onchange="_aduanaSubirArchivo(this.files[0]); this.value='';">
+                            <button class="btn btn-light" style="padding:6px 12px; color:#0891b2;" onclick="guardarLiquidacionAduana()"><i class="ti ti-device-floppy"></i> Guardar</button>
+                            <button class="btn btn-light" style="padding:6px 12px; color:#6d28d9;" onclick="abrirHistorialLiquidaciones()"><i class="ti ti-history"></i> Historial</button>
+                            <button class="btn btn-light" style="padding:6px 12px; color:#b91c1c;" onclick="_aduanaLimpiar()"><i class="ti ti-trash"></i> Limpiar todo</button>
+                        </div>
+                        <div style="display:flex; gap:10px; margin:0 0 8px; flex-wrap:wrap; align-items:center;">
+                            <input id="aduanaFiltro" placeholder="🔎 Filtrar por descripción…" oninput="_aduanaFiltrar()" style="flex:1; min-width:180px; padding:7px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
+                            <label style="font-size:12px; color:#475569; font-weight:700;">% Ganancia (ref.):</label>
+                            <input id="aduana_ganancia" type="number" step="1" min="0" value="0" placeholder="0" oninput="_aduanaRecalcular()" style="width:80px; padding:7px 9px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; text-align:right;">
+                            <button class="btn btn-light" style="padding:6px 10px; font-size:12px;" onclick="_aduanaMostrarColumnas()" title="Volver a mostrar columnas ocultas"><i class="ti ti-eye"></i> Mostrar columnas</button>
+                            <span style="font-size:11px; color:#94a3b8;">💡 Clic en el título de una columna para ocultarla.</span>
+                        </div>
+                        <div style="overflow-x:auto;">
+                            <table id="aduanaTabla" style="width:100%; border-collapse:collapse; font-size:13px; min-width:1080px;">
+                                <thead><tr style="background:#f1f5f9;">
+                                    <th class="aducol-desc" onclick="_aduanaToggleCol('desc')" style="padding:6px; text-align:left; border:1px solid #e2e8f0; cursor:pointer;" title="Clic para ocultar esta columna">Descripción</th>
+                                    <th class="aducol-cant" onclick="_aduanaToggleCol('cant')" style="padding:6px; width:60px; border:1px solid #e2e8f0; cursor:pointer;" title="Clic para ocultar">Cant.</th>
+                                    <th class="aducol-punit" onclick="_aduanaToggleCol('punit')" style="padding:6px; width:95px; border:1px solid #e2e8f0; cursor:pointer;" title="Clic para ocultar">P. unit US$</th>
+                                    <th class="aducol-importe" onclick="_aduanaToggleCol('importe')" style="padding:6px; width:100px; border:1px solid #e2e8f0; cursor:pointer;" title="Clic para ocultar">Importe US$</th>
+                                    <th class="aducol-pct" onclick="_aduanaToggleCol('pct')" style="padding:6px; width:70px; border:1px solid #e2e8f0; cursor:pointer;" title="% que representa este artículo en la compra · Clic para ocultar">% compra</th>
+                                    <th class="aducol-counit" onclick="_aduanaToggleCol('counit')" style="padding:6px; width:105px; border:1px solid #e2e8f0; cursor:pointer;" title="Costo del producto por unidad en RD$ (P.unit US$ × tasa) · Clic para ocultar">Costo unit RD$</th>
+                                    <th class="aducol-gastounit" onclick="_aduanaToggleCol('gastounit')" style="padding:6px; width:105px; border:1px solid #e2e8f0; cursor:pointer;" title="Gastos de aduana repartidos, por unidad · Clic para ocultar">Gastos/unid RD$</th>
+                                    <th class="aducol-finalunit" onclick="_aduanaToggleCol('finalunit')" style="padding:6px; width:115px; border:1px solid #e2e8f0; cursor:pointer;" title="Costo unitario + gastos por unidad · Clic para ocultar">Costo unit FINAL RD$</th>
+                                    <th class="aducol-total" onclick="_aduanaToggleCol('total')" style="padding:6px; width:120px; border:1px solid #e2e8f0; cursor:pointer;" title="Cantidad × costo unitario final · Clic para ocultar">Total FINAL RD$</th>
+                                    <th class="aducol-venta" onclick="_aduanaToggleCol('venta')" style="padding:6px; width:120px; border:1px solid #e2e8f0; cursor:pointer; background:#fef9c3;" title="Precio de venta REFERENCIAL (costo final + %) · Clic para ocultar">Precio venta ref.</th>
+                                    <th class="aducol-x" style="padding:6px; width:34px; border:1px solid #e2e8f0;"></th>
+                                </tr></thead>
+                                <tbody id="aduanaTbody"></tbody>
+                            </table>
+                        </div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px;">
+                            <div style="border:1px solid #e2e8f0; border-radius:10px; padding:12px; background:#faf5ff;">
+                                <div style="font-weight:700; color:#6d28d9; margin-bottom:8px;"><i class="ti ti-receipt-tax"></i> Gastos de aduana (en RD$)</div>
+                                <div class="form-row"><label>Transporte / Flete (RD$)</label><input id="aduana_transporte" type="number" step="0.01" min="0" placeholder="0.00" value="0" oninput="_aduanaRecalcular()"></div>
+                                <div class="form-row"><label>Impuesto</label>
+                                    <div style="display:flex; gap:6px; align-items:center;">
+                                        <select id="aduana_imp_modo" onchange="_aduanaRecalcular()" style="width:140px;">
+                                            <option value="monto">Monto RD$</option>
+                                            <option value="pct">% sobre factura RD$</option>
+                                        </select>
+                                        <input id="aduana_imp_valor" type="number" step="0.01" min="0" placeholder="0" value="0" oninput="_aduanaRecalcular()" style="flex:1;">
+                                    </div>
+                                </div>
+                                <div class="form-row"><label>Otros gastos (RD$)</label>
+                                    <div id="aduanaOtrosLista"></div>
+                                    <button class="btn btn-light" style="padding:5px 10px; font-size:12px; margin-top:4px; color:#7c3aed; border-color:#c4b5fd;" onclick="_aduanaOtrosAgregar()"><i class="ti ti-plus"></i> Agregar gasto</button>
+                                </div>
+                            </div>
+                            <div style="border:1px solid #e2e8f0; border-radius:10px; padding:12px;">
+                                <div style="font-weight:700; margin-bottom:8px;"><i class="ti ti-calculator"></i> Resumen</div>
+                                <div id="aduanaResumen" style="font-size:13.5px; line-height:1.9;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:14px; flex-wrap:wrap;">
+                        <button class="btn btn-light" style="color:#15803d; border-color:#86efac;" onclick="exportarLiquidacionAduanaExcel()"><i class="ti ti-file-spreadsheet"></i> Excel</button>
+                        <button class="btn btn-blue" onclick="imprimirLiquidacionAduana()"><i class="ti ti-printer"></i> Imprimir</button>
+                        <button class="btn btn-dark" style="background:#0369a1;" onclick="abrirComparacionInfoPlus()"><i class="ti ti-git-compare"></i> Comparar con Info Plus →</button>
+                    </div>
+                </div>
+            </div>
         </section>
     </main>
 </div>
@@ -3354,86 +3432,6 @@ body{
         <div class="modal-footer">
             <button class="btn btn-light" onclick="cerrarModalRegistrarExistente()">Cancelar</button>
             <button class="btn btn-blue" onclick="guardarEquipoExistente(this)"><i class="ti ti-device-floppy"></i> Registrar equipo</button>
-        </div>
-    </div>
-</div>
-
-<div id="modalLiquidacionAduana" class="modal-backdrop">
-    <div class="modal-box" style="max-width:920px;">
-        <div class="modal-header" style="background:linear-gradient(135deg,#6d28d9,#7c3aed); color:#fff; border-radius:12px 12px 0 0;">
-            <h3 style="color:#fff;"><i class="ti ti-building-bank"></i> Liquidación de Aduana</h3>
-            <button class="modal-close" onclick="cerrarLiquidacionAduana()" style="color:#fff;">✕</button>
-        </div>
-        <div class="modal-body">
-            <p style="color:var(--text-muted); font-size:12px; margin:0 0 12px;">Calculadora <b>independiente</b> (no se guarda ni se conecta a nada). Los productos van en <b>US$</b>; con la <b>tasa</b> se convierten a RD$. Agrega <b>transporte + impuesto + otros gastos</b> (en RD$): el sistema los reparte y te da el <b>costo final por producto en RD$</b>.</p>
-            <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px;">
-                <div class="form-row"><label>Proveedor</label><input id="aduana_prov" placeholder="Nombre del proveedor"></div>
-                <div class="form-row"><label>Factura No.</label><input id="aduana_factura" placeholder="Ej. 1485"></div>
-                <div class="form-row"><label>Fecha</label><input id="aduana_fecha" type="date"></div>
-                <div class="form-row"><label>Tasa US$ → RD$</label><input id="aduana_tasa" type="number" step="0.01" min="0" placeholder="Ej. 60.00" oninput="_aduanaRecalcular()"></div>
-            </div>
-            <div style="display:flex; gap:8px; margin:4px 0 8px; flex-wrap:wrap;">
-                <button class="btn btn-light" style="padding:6px 12px;" onclick="_aduanaAgregarFila()"><i class="ti ti-plus"></i> Producto</button>
-                <button class="btn btn-light" style="padding:6px 12px; color:#7c3aed;" onclick="document.getElementById('aduanaArchivoInput').click()"><i class="ti ti-upload"></i> Subir PDF/Excel</button>
-                <input id="aduanaArchivoInput" type="file" accept="application/pdf,.pdf,.xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" style="display:none;" onchange="_aduanaSubirArchivo(this.files[0]); this.value='';">
-                <button class="btn btn-light" style="padding:6px 12px; color:#0891b2;" onclick="guardarLiquidacionAduana()"><i class="ti ti-device-floppy"></i> Guardar</button>
-                <button class="btn btn-light" style="padding:6px 12px; color:#6d28d9;" onclick="abrirHistorialLiquidaciones()"><i class="ti ti-history"></i> Historial</button>
-                <button class="btn btn-light" style="padding:6px 12px; color:#b91c1c;" onclick="_aduanaLimpiar()"><i class="ti ti-trash"></i> Limpiar todo</button>
-            </div>
-            <div style="display:flex; gap:10px; margin:0 0 8px; flex-wrap:wrap; align-items:center;">
-                <input id="aduanaFiltro" placeholder="🔎 Filtrar por descripción…" oninput="_aduanaFiltrar()" style="flex:1; min-width:180px; padding:7px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
-                <label style="font-size:12px; color:#475569; font-weight:700;">% Ganancia (ref.):</label>
-                <input id="aduana_ganancia" type="number" step="1" min="0" value="0" placeholder="0" oninput="_aduanaRecalcular()" style="width:80px; padding:7px 9px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; text-align:right;">
-                <button class="btn btn-light" style="padding:6px 10px; font-size:12px;" onclick="_aduanaMostrarColumnas()" title="Volver a mostrar columnas ocultas"><i class="ti ti-eye"></i> Mostrar columnas</button>
-                <span style="font-size:11px; color:#94a3b8;">💡 Clic en el título de una columna para ocultarla.</span>
-            </div>
-            <div style="overflow-x:auto;">
-                <table id="aduanaTabla" style="width:100%; border-collapse:collapse; font-size:13px; min-width:1080px;">
-                    <thead><tr style="background:#f1f5f9;">
-                        <th class="aducol-desc" onclick="_aduanaToggleCol('desc')" style="padding:6px; text-align:left; border:1px solid #e2e8f0; cursor:pointer;" title="Clic para ocultar esta columna">Descripción</th>
-                        <th class="aducol-cant" onclick="_aduanaToggleCol('cant')" style="padding:6px; width:60px; border:1px solid #e2e8f0; cursor:pointer;" title="Clic para ocultar">Cant.</th>
-                        <th class="aducol-punit" onclick="_aduanaToggleCol('punit')" style="padding:6px; width:95px; border:1px solid #e2e8f0; cursor:pointer;" title="Clic para ocultar">P. unit US$</th>
-                        <th class="aducol-importe" onclick="_aduanaToggleCol('importe')" style="padding:6px; width:100px; border:1px solid #e2e8f0; cursor:pointer;" title="Clic para ocultar">Importe US$</th>
-                        <th class="aducol-pct" onclick="_aduanaToggleCol('pct')" style="padding:6px; width:70px; border:1px solid #e2e8f0; cursor:pointer;" title="% que representa este artículo en la compra · Clic para ocultar">% compra</th>
-                        <th class="aducol-counit" onclick="_aduanaToggleCol('counit')" style="padding:6px; width:105px; border:1px solid #e2e8f0; cursor:pointer;" title="Costo del producto por unidad en RD$ (P.unit US$ × tasa) · Clic para ocultar">Costo unit RD$</th>
-                        <th class="aducol-gastounit" onclick="_aduanaToggleCol('gastounit')" style="padding:6px; width:105px; border:1px solid #e2e8f0; cursor:pointer;" title="Gastos de aduana repartidos, por unidad · Clic para ocultar">Gastos/unid RD$</th>
-                        <th class="aducol-finalunit" onclick="_aduanaToggleCol('finalunit')" style="padding:6px; width:115px; border:1px solid #e2e8f0; cursor:pointer;" title="Costo unitario + gastos por unidad · Clic para ocultar">Costo unit FINAL RD$</th>
-                        <th class="aducol-total" onclick="_aduanaToggleCol('total')" style="padding:6px; width:120px; border:1px solid #e2e8f0; cursor:pointer;" title="Cantidad × costo unitario final · Clic para ocultar">Total FINAL RD$</th>
-                        <th class="aducol-venta" onclick="_aduanaToggleCol('venta')" style="padding:6px; width:120px; border:1px solid #e2e8f0; cursor:pointer; background:#fef9c3;" title="Precio de venta REFERENCIAL (costo final + %) · Clic para ocultar">Precio venta ref.</th>
-                        <th class="aducol-x" style="padding:6px; width:34px; border:1px solid #e2e8f0;"></th>
-                    </tr></thead>
-                    <tbody id="aduanaTbody"></tbody>
-                </table>
-            </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px;">
-                <div style="border:1px solid #e2e8f0; border-radius:10px; padding:12px; background:#faf5ff;">
-                    <div style="font-weight:700; color:#6d28d9; margin-bottom:8px;"><i class="ti ti-receipt-tax"></i> Gastos de aduana (en RD$)</div>
-                    <div class="form-row"><label>Transporte / Flete (RD$)</label><input id="aduana_transporte" type="number" step="0.01" min="0" placeholder="0.00" value="0" oninput="_aduanaRecalcular()"></div>
-                    <div class="form-row"><label>Impuesto</label>
-                        <div style="display:flex; gap:6px; align-items:center;">
-                            <select id="aduana_imp_modo" onchange="_aduanaRecalcular()" style="width:140px;">
-                                <option value="monto">Monto RD$</option>
-                                <option value="pct">% sobre factura RD$</option>
-                            </select>
-                            <input id="aduana_imp_valor" type="number" step="0.01" min="0" placeholder="0" value="0" oninput="_aduanaRecalcular()" style="flex:1;">
-                        </div>
-                    </div>
-                    <div class="form-row"><label>Otros gastos (RD$)</label>
-                        <div id="aduanaOtrosLista"></div>
-                        <button class="btn btn-light" style="padding:5px 10px; font-size:12px; margin-top:4px; color:#7c3aed; border-color:#c4b5fd;" onclick="_aduanaOtrosAgregar()"><i class="ti ti-plus"></i> Agregar gasto</button>
-                    </div>
-                </div>
-                <div style="border:1px solid #e2e8f0; border-radius:10px; padding:12px;">
-                    <div style="font-weight:700; margin-bottom:8px;"><i class="ti ti-calculator"></i> Resumen</div>
-                    <div id="aduanaResumen" style="font-size:13.5px; line-height:1.9;"></div>
-                </div>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-light" onclick="cerrarLiquidacionAduana()">Cerrar</button>
-            <button class="btn btn-light" style="color:#15803d; border-color:#86efac;" onclick="exportarLiquidacionAduanaExcel()"><i class="ti ti-file-spreadsheet"></i> Excel</button>
-            <button class="btn btn-blue" onclick="imprimirLiquidacionAduana()"><i class="ti ti-printer"></i> Imprimir</button>
-            <button class="btn btn-dark" style="background:#0369a1;" onclick="abrirComparacionInfoPlus()"><i class="ti ti-git-compare"></i> Comparar con Info Plus →</button>
         </div>
     </div>
 </div>
@@ -9521,9 +9519,10 @@ function abrirLiquidacionAduana() {
     _aduanaOtrosGastos = [{ concepto: 'Shipping', monto: 0 }];
     _aduanaOtrosRender();
     _aduanaRenderTabla();
-    document.getElementById('modalLiquidacionAduana').classList.add('active');
+    nav('liquidacion');
+    const _pt = document.getElementById('pageTitle'); if(_pt) _pt.textContent = 'Liquidación de Aduana';
 }
-function cerrarLiquidacionAduana() { document.getElementById('modalLiquidacionAduana').classList.remove('active'); }
+function cerrarLiquidacionAduana() { nav('proveedores'); }
 function _aduanaNum(s) { return Number(String(s).replace(/[^0-9.\-]/g, '')) || 0; }
 function _usd(v) { return '$' + (Number(v) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 // Lee los inputs de la tabla hacia _aduanaItems (para no perder el foco al recalcular)
@@ -10001,8 +10000,8 @@ async function cargarLiquidacionGuardada(id) {
         _aduanaOtrosRender();
         _aduanaRenderTabla();
         const m = document.getElementById('modalHistLiq'); if(m) m.remove();
-        const modal = document.getElementById('modalLiquidacionAduana');
-        if(modal && !modal.classList.contains('active')) modal.classList.add('active');
+        nav('liquidacion');
+        const _pt = document.getElementById('pageTitle'); if(_pt) _pt.textContent = 'Liquidación de Aduana';
         toast('✅ Liquidación cargada. Puedes editarla y volver a Guardar.');
     } catch(e) { logError('cargarLiquidacionGuardada', e); toastError(getFriendlyError(e)); }
 }
