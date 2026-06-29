@@ -3590,6 +3590,7 @@ body{
             <div class="form-row"><label>Contacto (Persona)</label><input id="mod_prov_contacto" placeholder="Persona de contacto"></div>
             <div class="form-row"><label>WhatsApp / Teléfono</label><input id="mod_prov_whatsapp" placeholder="809-000-0000"></div>
             <div class="form-row"><label>Ciudad / Ubicación</label><input id="mod_prov_ciudad" placeholder="Santo Domingo"></div>
+            <div class="form-row"><label>Proveedor en Info Plus <span style="color:#94a3b8; font-weight:400;">(para registrar compras)</span></label><select id="mod_prov_codip"><option value="">— elige —</option></select></div>
             <div class="form-row">
                 <label>Tipo de Proveedor</label>
                 <select id="mod_prov_tipo">
@@ -8277,8 +8278,29 @@ function renderProveedores() {
     }).join('');
 }
 
+// ===== Proveedores de Info Plus (para mapear / registrar compras) =====
+async function _cargarProveedoresIP() {
+    if(cache.infoplusProveedores && cache.infoplusProveedores.length) return cache.infoplusProveedores;
+    try {
+        const { data } = await supabaseClient.from('infoplus_art_prov').select('codproveedor, proveedor');
+        const map = new Map();
+        (data || []).forEach(r => { const c = String(r.codproveedor || '').trim(); if(c && !map.has(c)) map.set(c, (r.proveedor || '').trim()); });
+        cache.infoplusProveedores = Array.from(map, ([codigo, nombre]) => ({ codigo, nombre })).sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+    } catch(e) { cache.infoplusProveedores = []; }
+    return cache.infoplusProveedores;
+}
+function _opcionesProveedoresIP(valorSel) {
+    const arr = cache.infoplusProveedores || [];
+    return `<option value="">— elige proveedor de Info Plus —</option>` + arr.map(p => `<option value="${escapeHtml(p.codigo)}"${String(valorSel || '') === String(p.codigo) ? ' selected' : ''}>${escapeHtml(p.nombre)} (${escapeHtml(p.codigo)})</option>`).join('');
+}
+async function _llenarProvIPSelect(valor) {
+    const sel = document.getElementById('mod_prov_codip'); if(!sel) return;
+    await _cargarProveedoresIP();
+    sel.innerHTML = _opcionesProveedoresIP(valor);
+}
 function abrirModalProveedor() {
     document.getElementById('mod_prov_id').value = '';
+    _llenarProvIPSelect('');
     ['mod_prov_nombre','mod_prov_contacto','mod_prov_whatsapp','mod_prov_ciudad','mod_prov_notas'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('mod_prov_tipo').value = 'Particular';
     document.getElementById('mod_prov_confiabilidad').value = 'Por evaluar';
@@ -8301,6 +8323,7 @@ function editarProveedor(id) {
     document.getElementById('mod_prov_tipo').value = p.tipo || 'Particular';
     document.getElementById('mod_prov_confiabilidad').value = p.confiabilidad || 'Por evaluar';
     document.getElementById('mod_prov_notas').value = p.notas || '';
+    _llenarProvIPSelect(p.codigo_infoplus || '');
     document.getElementById('modalProvTitulo').textContent = 'Editar Proveedor';
     document.getElementById('modalProveedor').classList.add('active');
 }
@@ -8317,7 +8340,8 @@ async function guardarProveedorModal() {
             ciudad: val('mod_prov_ciudad') || null,
             tipo: document.getElementById('mod_prov_tipo').value,
             confiabilidad: document.getElementById('mod_prov_confiabilidad').value,
-            notas: val('mod_prov_notas') || null
+            notas: val('mod_prov_notas') || null,
+            codigo_infoplus: (document.getElementById('mod_prov_codip')?.value || '').trim() || null
         };
         let nuevoId = id;
         if(id) {
@@ -10820,9 +10844,10 @@ function _datosFormatoInfoPlus() {
 }
 // ===== Registrar la COMPRA del lote en Info Plus (1 artículo por modelo + N IMEI + costo promedio) =====
 let _regipCtx = null;
-function registrarCompraLoteInfoPlus() {
+async function registrarCompraLoteInfoPlus() {
     if(!isAdminUser()) return toast('Solo el administrador.', 'error');
     if(!reacondLoteAbiertoId) return toast('Abre un lote primero.', 'error');
+    await _cargarProveedoresIP();
     const lote = (cache.lotes || []).find(l => l.id === reacondLoteAbiertoId);
     if(!lote) return toast('Lote no encontrado.', 'error');
     // Equipos LISTOS y que aún NO se han registrado en Info Plus
@@ -10871,7 +10896,7 @@ function registrarCompraLoteInfoPlus() {
           </table>
           <div style="margin-top:12px; display:grid; grid-template-columns:1fr 1fr; gap:10px;">
             <div class="form-row"><label>Almacén destino</label><select id="regipAlmacen">${almOpts}</select></div>
-            <div class="form-row"><label>Código proveedor (Info Plus)</label><input id="regipProv" value="${escapeHtml(String(codProvDefault))}" placeholder="ej. 7"></div>
+            <div class="form-row"><label>Proveedor (Info Plus)</label><select id="regipProv">${_opcionesProveedoresIP(codProvDefault)}</select></div>
           </div>
           <div style="font-size:11.5px; color:#64748b; margin-top:4px;">Proveedor del lote: <b>${escapeHtml(prov?.nombre || '—')}</b> · NCF: vacío · <b>${totU}</b> unidad(es) · Total <b>${money(totRD)}</b></div>
         </div>
