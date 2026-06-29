@@ -13883,32 +13883,39 @@ function _seedBuscadorPieza(eq) {
          .trim();
     return s;
 }
-// Modal para decidir qué hacer cuando la pieza no tiene existencia en el Taller.
+// Modal que SIEMPRE pregunta de cuál almacén descontar la pieza (o solo sumar el costo).
+// Muestra todos los almacenes con su existencia (verde = hay; ámbar = quedaría negativo).
 // Devuelve una promesa: {accion:'descontar', almacen:N} | {accion:'solocosto'} | {accion:'cancelar'}
-function _piezaSinStockElegir(art, ex) {
+function _piezaElegirAlmacen(art, ex) {
     return new Promise((resolve) => {
-        const conStock = ALMACENES_IP.filter(a => a.c !== 6 && Number(ex[String(a.c)] || 0) > 0);
-        const btnsAlm = conStock.map(a => `<button class="btn btn-light" style="display:block; width:100%; text-align:left; margin-bottom:6px;" onclick="_piezaSinStockResolver({accion:'descontar', almacen:${a.c}})"><i class="ti ti-arrow-down-circle"></i> Descontar de ${a.n} <span style="color:#166534; font-weight:700;">(hay ${Number(ex[String(a.c)] || 0)})</span></button>`).join('');
+        ex = ex || {};
+        const btnsAlm = ALMACENES_IP.map(a => {
+            const hay = Number(ex[String(a.c)] || 0);
+            const color = hay > 0 ? '#166534' : '#b45309';
+            const txt = hay > 0 ? `(hay ${hay})` : '(sin existencia — quedaría negativo)';
+            const icon = hay > 0 ? 'ti-arrow-down-circle' : 'ti-alert-triangle';
+            return `<button class="btn btn-light" style="display:block; width:100%; text-align:left; margin-bottom:6px;" onclick="_piezaElegirAlmacenResolver({accion:'descontar', almacen:${a.c}})"><i class="ti ${icon}"></i> Descontar de <b>${a.n}</b> <span style="color:${color}; font-weight:700;">${txt}</span></button>`;
+        }).join('');
         const box = document.createElement('div');
         box.className = 'modal-backdrop active';
-        box.id = 'modalPiezaSinStock';
+        box.id = 'modalPiezaAlmacen';
         box.style.zIndex = '700';
         box.innerHTML = `<div class="modal-box" style="max-width:460px;">
-            <div class="modal-header"><h3 style="margin:0;">⚠️ Sin existencia en el Taller</h3></div>
+            <div class="modal-header"><h3 style="margin:0;">📦 ¿De cuál almacén se descuenta?</h3></div>
             <div class="modal-body">
-              <p style="font-size:14px; margin-top:0;">"<b>${escapeHtml(art.descripcion || String(art.codigo))}</b>" no tiene existencia en el <b>Taller</b> (almacén 6).</p>
-              ${conStock.length ? `<p style="font-size:13px; color:#475569; margin-bottom:6px; font-weight:700;">Descontar de otro almacén:</p>${btnsAlm}` : `<p style="font-size:13px; color:#94a3b8;">Tampoco hay existencia en otros almacenes.</p>`}
+              <p style="font-size:14px; margin-top:0;">"<b>${escapeHtml(art.descripcion || String(art.codigo))}</b>"</p>
+              <p style="font-size:13px; color:#475569; margin-bottom:6px; font-weight:700;">Elige el almacén:</p>
+              ${btnsAlm}
               <hr style="border:0; border-top:1px solid #e2e8f0; margin:10px 0;">
-              <button class="btn btn-light" style="display:block; width:100%; margin-bottom:6px;" onclick="_piezaSinStockResolver({accion:'solocosto'})"><i class="ti ti-cash"></i> Solo sumar el costo (no descontar)</button>
-              <button class="btn btn-light" style="display:block; width:100%; color:#b45309;" onclick="_piezaSinStockResolver({accion:'descontar', almacen:6})"><i class="ti ti-alert-triangle"></i> Descontar igual del Taller (queda negativo)</button>
+              <button class="btn btn-light" style="display:block; width:100%;" onclick="_piezaElegirAlmacenResolver({accion:'solocosto'})"><i class="ti ti-cash"></i> Solo sumar el costo (no descontar)</button>
             </div>
-            <div class="modal-footer"><button class="btn btn-light" onclick="_piezaSinStockResolver({accion:'cancelar'})">Cancelar</button></div>
+            <div class="modal-footer"><button class="btn btn-light" onclick="_piezaElegirAlmacenResolver({accion:'cancelar'})">Cancelar</button></div>
         </div>`;
         document.body.appendChild(box);
-        window._piezaSinStockResolver = (res) => {
-            const m = document.getElementById('modalPiezaSinStock');
+        window._piezaElegirAlmacenResolver = (res) => {
+            const m = document.getElementById('modalPiezaAlmacen');
             if(m) m.remove();
-            window._piezaSinStockResolver = null;
+            window._piezaElegirAlmacenResolver = null;
             resolve(res || { accion: 'cancelar' });
         };
     });
@@ -13916,22 +13923,12 @@ function _piezaSinStockElegir(art, ex) {
 async function _agregarPiezaInfoPlusConfirm(equipoId, a) {
     try {
         const nombrePz = (a.descripcion || a.codigo || '').trim();
-        // 1) Revisar existencia en el Taller (almacén 6) ANTES de descontar.
-        let descontar = true;
-        let almDesc = 6; // de cuál almacén se descuenta (default Taller)
-        let existenciaTaller = null;
-        try {
-            const { data: ex } = await supabaseClient.functions.invoke('infoplus-existencia', { body: { codarticulo: a.codigo, codalmacen: 6 } });
-            if(ex && ex.ok) existenciaTaller = Number(ex.cantidad);
-        } catch(_e) { /* si no se puede leer, se procede normal */ }
-        // 2) Si no hay existencia en el Taller, mostrar opciones (otro almacén / solo costo / negativo).
-        if(existenciaTaller !== null && existenciaTaller <= 0) {
-            const full = _findInfoplusArt(a.codigo) || {};
-            const elec = await _piezaSinStockElegir(a, full.existencias || {});
-            if(elec.accion === 'cancelar') return;
-            if(elec.accion === 'solocosto') { descontar = false; }
-            else { descontar = true; almDesc = elec.almacen || 6; }
-        }
+        // 1) Preguntar SIEMPRE de cuál almacén descontar (muestra existencia por almacén) o solo sumar el costo.
+        const full = _findInfoplusArt(a.codigo) || {};
+        const elec = await _piezaElegirAlmacen(a, full.existencias || {});
+        if(elec.accion === 'cancelar') return;
+        const descontar = elec.accion === 'descontar';
+        const almDesc = elec.almacen || 6; // de cuál almacén se descuenta
         // 3) Insertar la pieza (siempre suma el costo).
         const { data: ins, error } = await supabaseClient.from('equipo_piezas_pedidas').insert([{
             equipo_id: equipoId, pieza_id: null, pieza_codigo: a.codigo,
