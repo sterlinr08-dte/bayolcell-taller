@@ -2475,6 +2475,7 @@ body{
                             <button class="btn btn-light" style="padding:6px 10px; font-size:12px;" onclick="_aduanaMostrarColumnas()" title="Volver a mostrar columnas ocultas"><i class="ti ti-eye"></i> Mostrar columnas</button>
                             <span style="font-size:11px; color:#94a3b8;">💡 Clic en el título de una columna para ocultarla.</span>
                         </div>
+                        <div id="aduanaProgreso" style="margin:0 0 8px;"></div>
                         <div id="aduanaScrollTop" style="overflow-x:auto; overflow-y:hidden;"><div id="aduanaScrollTopInner" style="height:12px;"></div></div>
                         <div id="aduanaScrollWrap" style="overflow-x:auto;">
                             <table id="aduanaTabla" style="width:100%; border-collapse:collapse; font-size:13px; min-width:760px;">
@@ -2489,6 +2490,7 @@ body{
                                     <th class="aducol-finalunit" onclick="_aduanaToggleCol('finalunit')" style="padding:6px; width:115px; border:1px solid #e2e8f0; cursor:pointer;" title="Costo unitario + gastos por unidad · Clic para ocultar">Costo unit FINAL RD$</th>
                                     <th class="aducol-total" onclick="_aduanaToggleCol('total')" style="padding:6px; width:120px; border:1px solid #e2e8f0; cursor:pointer;" title="Cantidad × costo unitario final · Clic para ocultar">Total FINAL RD$</th>
                                     <th class="aducol-venta" onclick="_aduanaToggleCol('venta')" style="padding:6px; width:120px; border:1px solid #e2e8f0; cursor:pointer; background:#fef9c3;" title="Precio de venta REFERENCIAL (costo final + %) · Clic para ocultar">Precio venta ref.</th>
+                                    <th style="padding:6px; width:60px; border:1px solid #e2e8f0; background:#dcfce7;" title="Marca cuando ya registraste el artículo en Info Plus (se guarda)">✅ Reg. IP</th>
                                     <th class="aducol-x" style="padding:6px; width:34px; border:1px solid #e2e8f0;"></th>
                                 </tr></thead>
                                 <tbody id="aduanaTbody"></tbody>
@@ -9477,7 +9479,17 @@ let _aduanaItems = [];
 let _aduanaLiqId = null;            // id de la liquidación guardada que está abierta (null = nueva)
 let _aduanaColsOcultas = new Set(); // claves de columnas ocultas en la tabla
 let _aduanaCopiados = new Set();    // índices de filas cuyo costo final ya se copió (✓)
-function abrirLiquidacionAduana() {
+async function abrirLiquidacionAduana() {
+    let _borr = null;
+    try { _borr = JSON.parse(localStorage.getItem(_ADU_BORRADOR_KEY) || 'null'); } catch(e) {}
+    const _hayBorr = _borr && Array.isArray(_borr.items) && _borr.items.some(it => (it.desc || '').trim() || Number(it.costo) > 0);
+    if(_hayBorr && await confirmar('Tienes una liquidación sin terminar. ¿Quieres retomarla?')) {
+        _aduanaAplicarEstado(_borr);
+        nav('liquidacion');
+        const _pt0 = document.getElementById('pageTitle'); if(_pt0) _pt0.textContent = 'Liquidación de Aduana';
+        return;
+    }
+    if(_hayBorr) _aduanaBorrarBorrador();
     _aduanaLiqId = null;
     _aduanaColsOcultas.clear();
     _aduanaCopiados.clear();
@@ -9506,12 +9518,54 @@ function _aduanaLeerInputs() {
     _aduanaItems = Array.from(rows).map(tr => ({
         desc: tr.querySelector('.adu-desc')?.value || '',
         cant: Number(tr.querySelector('.adu-cant')?.value) || 0,
-        costo: Number(tr.querySelector('.adu-costo')?.value) || 0
+        costo: Number(tr.querySelector('.adu-costo')?.value) || 0,
+        registrado: !!tr.querySelector('.adu-reg')?.checked
     }));
 }
 function _aduanaAgregarFila() { _aduanaLeerInputs(); _aduanaItems.push({ desc:'', cant:1, costo:0 }); _aduanaRenderTabla(); }
 function _aduanaEliminarFila(i) { _aduanaLeerInputs(); _aduanaItems.splice(i, 1); if(!_aduanaItems.length) _aduanaItems.push({ desc:'', cant:1, costo:0 }); _aduanaRenderTabla(); }
-function _aduanaLimpiar() { _aduanaLiqId = null; _aduanaItems = [{ desc:'', cant:1, costo:0 }]; const _f = document.getElementById('aduanaFiltro'); if(_f) _f.value = ''; _aduanaColsOcultas.clear(); _aduanaCopiados.clear(); _aduanaRenderTabla(); }
+function _aduanaLimpiar() { _aduanaLiqId = null; _aduanaItems = [{ desc:'', cant:1, costo:0 }]; const _f = document.getElementById('aduanaFiltro'); if(_f) _f.value = ''; _aduanaColsOcultas.clear(); _aduanaCopiados.clear(); _aduanaBorrarBorrador(); _aduanaRenderTabla(); }
+// ===== Auto-guardado de borrador (para no perder el trabajo a medias) =====
+const _ADU_BORRADOR_KEY = 'bayol_aduana_borrador';
+function _aduanaGuardarBorrador() {
+    try {
+        const items = _aduanaItems || [];
+        const hayAlgo = items.some(it => (it.desc || '').trim() || Number(it.costo) > 0) || (document.getElementById('aduana_prov')?.value || '').trim() || (document.getElementById('aduana_factura')?.value || '').trim();
+        if(!hayAlgo) return;
+        const st = {
+            liqId: _aduanaLiqId,
+            prov: document.getElementById('aduana_prov')?.value || '',
+            factura: document.getElementById('aduana_factura')?.value || '',
+            fecha: document.getElementById('aduana_fecha')?.value || '',
+            tasa: document.getElementById('aduana_tasa')?.value || '',
+            transporte: document.getElementById('aduana_transporte')?.value || '0',
+            imp_modo: document.getElementById('aduana_imp_modo')?.value || 'monto',
+            imp_valor: document.getElementById('aduana_imp_valor')?.value || '0',
+            ganancia: document.getElementById('aduana_ganancia')?.value || '0',
+            otros: _aduanaOtrosGastos,
+            items: items
+        };
+        localStorage.setItem(_ADU_BORRADOR_KEY, JSON.stringify(st));
+    } catch(e) { /* localStorage lleno o no disponible: ignorar */ }
+}
+function _aduanaBorrarBorrador() { try { localStorage.removeItem(_ADU_BORRADOR_KEY); } catch(e) {} }
+function _aduanaAplicarEstado(st) {
+    _aduanaLiqId = st.liqId || null;
+    _aduanaColsOcultas.clear(); _aduanaCopiados.clear();
+    document.getElementById('aduana_prov').value = st.prov || '';
+    document.getElementById('aduana_factura').value = st.factura || '';
+    document.getElementById('aduana_fecha').value = st.fecha || '';
+    document.getElementById('aduana_tasa').value = st.tasa || '';
+    document.getElementById('aduana_transporte').value = st.transporte || '0';
+    document.getElementById('aduana_imp_modo').value = st.imp_modo || 'monto';
+    document.getElementById('aduana_imp_valor').value = st.imp_valor || '0';
+    const _g = document.getElementById('aduana_ganancia'); if(_g) _g.value = st.ganancia || '0';
+    const _f = document.getElementById('aduanaFiltro'); if(_f) _f.value = '';
+    _aduanaOtrosGastos = (Array.isArray(st.otros) && st.otros.length) ? st.otros : [{ concepto: '', monto: 0 }];
+    _aduanaItems = (Array.isArray(st.items) && st.items.length) ? st.items.map(it => ({ desc: it.desc || '', cant: Number(it.cant) || 0, costo: Number(it.costo) || 0, registrado: !!it.registrado })) : [{ desc: '', cant: 1, costo: 0 }];
+    _aduanaOtrosRender();
+    _aduanaRenderTabla();
+}
 async function _aduanaPegar() {
     const txt = await pedirTexto('Pega las filas desde el Excel de la factura (cada línea: Descripción · Cantidad · Precio US$):', { multilinea: true });
     if(!txt) return;
@@ -9679,6 +9733,7 @@ function _aduanaRenderTabla() {
             <td class="adu-final-unit aducol-finalunit" onclick="_aduanaCopiarCelda(this)" title="Clic para copiar el costo unitario final" style="border:1px solid #e2e8f0; padding:4px; text-align:right; font-weight:700; background:#f0fdf4; cursor:copy;">RD$ 0.00</td>
             <td class="adu-final aducol-total" style="border:1px solid #e2e8f0; padding:4px; text-align:right; font-weight:700;">RD$ 0.00</td>
             <td class="adu-venta aducol-venta" style="border:1px solid #e2e8f0; padding:4px; text-align:right; font-weight:700; color:#a16207; background:#fef9c3;">RD$ 0.00</td>
+            <td style="border:1px solid #e2e8f0; padding:4px; text-align:center;"><input type="checkbox" class="adu-reg" ${it.registrado ? 'checked' : ''} onchange="_aduanaRecalcular()" title="Marca cuando ya registraste este artículo en Info Plus (se guarda)" style="width:16px; height:16px; cursor:pointer;"></td>
             <td class="aducol-x" style="border:1px solid #e2e8f0; padding:4px; text-align:center;"><button onclick="_aduanaEliminarFila(${i})" title="Quitar" style="background:none; border:none; color:#ef4444; cursor:pointer;"><i class="ti ti-x"></i></button></td>
         </tr>`).join('');
     _aduanaRecalcular();
@@ -9753,7 +9808,12 @@ function _aduanaRecalcular() {
         tr.querySelector('.adu-venta').textContent = money(it.precioVentaRef);
     });
     const avisoTasa = r.tasa > 0 ? '' : `<div style="color:#b91c1c; font-size:12px; margin-bottom:6px;">⚠️ Pon la <b>tasa US$→RD$</b> arriba para convertir a pesos (ahora va 1:1).</div>`;
+    const _unidades = r.items.reduce((s, it) => s + (Number(it.cant) || 0), 0);
+    const _articulos = r.items.filter(it => (it.desc || '').trim() || Number(it.costo) > 0).length;
+    const _totalVentaRef = r.items.reduce((s, it) => s + (Number(it.precioVentaRef) || 0) * (Number(it.cant) || 0), 0);
+    const _gananciaEst = _totalVentaRef - r.granTotalRD;
     document.getElementById('aduanaResumen').innerHTML = avisoTasa + `
+        <div style="display:flex; justify-content:space-between;"><span>Artículos / Unidades:</span><b>${_articulos} / ${_unidades}</b></div>
         <div style="display:flex; justify-content:space-between;"><span>Subtotal factura (US$):</span><b>${_usd(r.subtotalUSD)}</b></div>
         <div style="display:flex; justify-content:space-between;"><span>Tasa US$→RD$:</span><span>${r.tasa > 0 ? r.tasa.toFixed(2) : '—'}</span></div>
         <div style="display:flex; justify-content:space-between;"><span>Subtotal factura (RD$):</span><b>${money(r.subtotalRD)}</b></div>
@@ -9761,7 +9821,18 @@ function _aduanaRecalcular() {
         <div style="display:flex; justify-content:space-between;"><span>Impuesto:</span><span>${money(r.impuesto)}</span></div>
         ${(r.otrosLista && r.otrosLista.length) ? r.otrosLista.map(g => `<div style="display:flex; justify-content:space-between;"><span>${escapeHtml((g.concepto || 'Otro gasto').trim() || 'Otro gasto')}:</span><span>${money(g.monto)}</span></div>`).join('') : `<div style="display:flex; justify-content:space-between;"><span>Otros gastos:</span><span>${money(0)}</span></div>`}
         <div style="display:flex; justify-content:space-between; border-top:1px solid #e2e8f0; margin-top:4px; padding-top:4px;"><span>Total gastos a repartir:</span><b style="color:#6d28d9;">${money(r.totalGastos)}</b></div>
-        <div style="display:flex; justify-content:space-between; font-size:16px; border-top:2px solid #0f172a; margin-top:6px; padding-top:6px;"><span><b>TOTAL a pagar (RD$):</b></span><b style="color:#16a34a;">${money(r.granTotalRD)}</b></div>`;
+        <div style="display:flex; justify-content:space-between;"><span>Gastos sobre la compra:</span><b style="color:#6d28d9;">${r.pct.toFixed(1)}%</b></div>
+        <div style="display:flex; justify-content:space-between; font-size:16px; border-top:2px solid #0f172a; margin-top:6px; padding-top:6px;"><span><b>TOTAL a pagar (RD$):</b></span><b style="color:#16a34a;">${money(r.granTotalRD)}</b></div>
+        ${r.gananciaPct > 0 ? `<div style="display:flex; justify-content:space-between; margin-top:4px;"><span>Venta ref. total (+${r.gananciaPct}%):</span><b style="color:#a16207;">${money(_totalVentaRef)}</b></div><div style="display:flex; justify-content:space-between;"><span><b>Ganancia estimada:</b></span><b style="color:#16a34a;">${money(_gananciaEst)}</b></div>` : ''}`;
+    const _prog = document.getElementById('aduanaProgreso');
+    if(_prog) {
+        const _tot = r.items.length;
+        const _reg = r.items.filter(it => it.registrado).length;
+        const _pctReg = _tot > 0 ? Math.round(_reg / _tot * 100) : 0;
+        _prog.innerHTML = `<div style="display:flex; justify-content:space-between; font-size:12px; font-weight:700; color:#166534; margin-bottom:3px;"><span>✅ Registrados en Info Plus</span><span>${_reg} de ${_tot} (${_pctReg}%)</span></div>
+            <div style="height:8px; background:#e2e8f0; border-radius:6px; overflow:hidden;"><div style="height:100%; width:${_pctReg}%; background:#22c55e; transition:width .2s;"></div></div>`;
+    }
+    _aduanaGuardarBorrador();
 }
 function _aduanaInfoCab() {
     return {
@@ -9940,6 +10011,7 @@ async function guardarLiquidacionAduana() {
         else res = await supabaseClient.from('aduana_liquidaciones').insert([fila]).select('id').single();
         if(res.error) throw res.error;
         _aduanaLiqId = res.data.id;
+        _aduanaBorrarBorrador();
         toast('✅ Liquidación guardada.');
     } catch(e) { logError('guardarLiquidacionAduana', e); toastError(getFriendlyError(e)); }
 }
@@ -9992,7 +10064,7 @@ async function cargarLiquidacionGuardada(id) {
         const _g = document.getElementById('aduana_ganancia'); if(_g) _g.value = x.ganancia_pct || 0;
         const _f = document.getElementById('aduanaFiltro'); if(_f) _f.value = '';
         _aduanaOtrosGastos = (Array.isArray(x.otros) && x.otros.length) ? x.otros : [{ concepto: '', monto: 0 }];
-        _aduanaItems = (Array.isArray(x.items) && x.items.length) ? x.items.map(it => ({ desc: it.desc || '', cant: Number(it.cant) || 0, costo: Number(it.costo) || 0 })) : [{ desc: '', cant: 1, costo: 0 }];
+        _aduanaItems = (Array.isArray(x.items) && x.items.length) ? x.items.map(it => ({ desc: it.desc || '', cant: Number(it.cant) || 0, costo: Number(it.costo) || 0, registrado: !!it.registrado })) : [{ desc: '', cant: 1, costo: 0 }];
         _aduanaOtrosRender();
         _aduanaRenderTabla();
         const m = document.getElementById('modalHistLiq'); if(m) m.remove();
