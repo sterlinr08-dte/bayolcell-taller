@@ -11204,13 +11204,41 @@ async function _nominaGuardarEmpleado() {
         await _loadNomina(); _renderNominaEmpleados();
     } catch(e) { logError('guardar empleado nomina', e); toastError(getFriendlyError(e)); }
 }
+const NOM_MESES = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+// Calcula y fija las fechas/título del período (quincena) sobre _nominaGen
+function _nominaCalcPeriodo(mesStr, quincena) {
+    if(!_nominaGen) return;
+    const [y, m] = mesStr.split('-').map(Number);
+    const ultimo = new Date(y, m, 0).getDate();
+    const dd = n => String(n).padStart(2, '0');
+    const inicio = quincena === 1 ? `${mesStr}-01` : `${mesStr}-16`;
+    const finDia = quincena === 1 ? 15 : ultimo;
+    const fin = `${mesStr}-${dd(finDia)}`;
+    const titulo = `${quincena === 1 ? '1RA' : '2DA'} QUINCENA ${NOM_MESES[m - 1]} ${y}`;
+    Object.assign(_nominaGen, { mes: mesStr, quincena, inicio, fin, pago: fin, finDia, ultimo, titulo });
+}
+// Detecta la quincena actual según la fecha de hoy (día ≤15 → 1ra; si no → 2da)
+function _nominaAplicarPeriodoAuto() {
+    const hoy = new Date();
+    const mesStr = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+    _nominaCalcPeriodo(mesStr, hoy.getDate() <= 15 ? 1 : 2);
+}
+function _nominaCambiarQuincena(q) { if(!_nominaGen) return; _nominaRecalc(); _nominaCalcPeriodo(_nominaGen.mes, q); _renderNominaGenerar(); }
+function _nominaMesShift(delta) {
+    if(!_nominaGen) return; _nominaRecalc();
+    const [y, m] = _nominaGen.mes.split('-').map(Number);
+    const d = new Date(y, m - 1 + delta, 1);
+    _nominaCalcPeriodo(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`, _nominaGen.quincena);
+    _renderNominaGenerar();
+}
 function _nominaNuevaQuincena(rerender) {
     const emps = (cache.nominaEmpleados || []).filter(e => e.activo !== false);
-    _nominaGen = { titulo: '', inicio: '', fin: '', pago: '', lineas: emps.map(e => {
+    _nominaGen = { titulo: '', mes: '', quincena: 1, inicio: '', fin: '', pago: '', diasBase: 23.83, lineas: emps.map(e => {
         const q = Math.round((Number(e.salario_mensual) || 0) / 2 * 100) / 100;
         const ley = e.deduce_ley !== false;
         return { empleado_id: e.id, nombre: e.nombre, cedula: e.cedula, cuenta_bhd: e.cuenta_bhd, puesto: e.puesto, salario_mensual: Number(e.salario_mensual) || 0, salario_quincenal: q, deduce_ley: ley, ars: ley ? Math.round(q * NOM_ARS * 100) / 100 : 0, afp: ley ? Math.round(q * NOM_AFP * 100) / 100 : 0, incentivos: 0, cuentas_por_cobrar: 0, dias_descontado: 0, dias_trabajados: null, total: 0 };
     }) };
+    _nominaAplicarPeriodoAuto();
     if(rerender) _renderNominaGenerar();
 }
 function _renderNominaGenerar() {
@@ -11230,15 +11258,35 @@ function _renderNominaGenerar() {
         <td style="padding:2px; border:1px solid #e2e8f0;"><input class="nq-dd" type="number" step="0.01" value="${l.dias_descontado}" oninput="_nominaRecalc()" style="width:80px; text-align:right; border:none; background:transparent;"></td>
         <td class="nq-total" style="padding:4px 6px; border:1px solid #e2e8f0; text-align:right; font-weight:800; color:#166534; background:#f0fdf4;">${money(l.total)}</td>
     </tr>`).join('');
+    const _fmtLargo = s => { try { return new Date(s + 'T00:00:00').toLocaleDateString('es-DO', { day: 'numeric', month: 'long' }); } catch(_) { return s; } };
+    const _fmtPago = s => { try { return new Date(s + 'T00:00:00').toLocaleDateString('es-DO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); } catch(_) { return s; } };
+    const _mY = (() => { const [y, m] = (g.mes || '').split('-').map(Number); return m ? `${NOM_MESES[m - 1].charAt(0) + NOM_MESES[m - 1].slice(1).toLowerCase()} ${y}` : ''; })();
     cont.innerHTML = `
-      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-bottom:12px;">
-        <div class="form-row"><label>Título de la quincena</label><input id="nom_titulo" value="${escapeHtml(g.titulo)}" placeholder="Ej. JUNIO 30 2026"></div>
-        <div class="form-row"><label>Desde</label><input id="nom_inicio" type="date" value="${g.inicio || ''}"></div>
-        <div class="form-row"><label>Hasta</label><input id="nom_fin" type="date" value="${g.fin || ''}"></div>
-        <div class="form-row"><label>Fecha de pago</label><input id="nom_pago" type="date" value="${g.pago || ''}"></div>
-        <div class="form-row"><label>Días base/mes <span style="color:#94a3b8;">(p/ días trab.)</span></label><input id="nom_diasbase" type="number" step="0.01" value="${g.diasBase || 23.83}" oninput="_nominaRecalc()"></div>
+      <div style="border:1px solid #e2e8f0; border-radius:14px; margin-bottom:14px; overflow:hidden; box-shadow:0 1px 3px rgba(15,23,42,.07);">
+        <div style="background:linear-gradient(135deg,#0e7490,#0891b2); color:#fff; padding:13px 18px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+          <div>
+            <div style="font-size:10.5px; letter-spacing:.7px; text-transform:uppercase; opacity:.85;">Período de pago · Nómina quincenal</div>
+            <div style="font-size:19px; font-weight:800; line-height:1.15;">${escapeHtml(g.titulo || '')}</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <button class="btn" style="background:rgba(255,255,255,.18); color:#fff; border:none; padding:6px 11px;" onclick="_nominaMesShift(-1)" title="Mes anterior"><i class="ti ti-chevron-left"></i></button>
+            <span style="font-weight:700; min-width:120px; text-align:center;">${escapeHtml(_mY)}</span>
+            <button class="btn" style="background:rgba(255,255,255,.18); color:#fff; border:none; padding:6px 11px;" onclick="_nominaMesShift(1)" title="Mes siguiente"><i class="ti ti-chevron-right"></i></button>
+          </div>
+        </div>
+        <div style="padding:11px 18px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+          <div style="font-size:13px; color:#334155;"><i class="ti ti-calendar-event" style="color:#0891b2;"></i> Del <b>${_fmtLargo(g.inicio)}</b> al <b>${_fmtLargo(g.fin)}</b> &nbsp;·&nbsp; <i class="ti ti-cash" style="color:#16a34a;"></i> Pago: <b style="text-transform:capitalize;">${_fmtPago(g.pago)}</b> &nbsp;·&nbsp; <i class="ti ti-users" style="color:#64748b;"></i> ${g.lineas.length} empleados</div>
+          <div style="display:inline-flex; border:1px solid #cbd5e1; border-radius:10px; overflow:hidden;">
+            <button onclick="_nominaCambiarQuincena(1)" style="border:none; cursor:pointer; padding:7px 14px; font-weight:700; font-size:12.5px; ${g.quincena === 1 ? 'background:#0891b2; color:#fff;' : 'background:#fff; color:#475569;'}">1ra quincena</button>
+            <button onclick="_nominaCambiarQuincena(2)" style="border:none; cursor:pointer; padding:7px 14px; font-weight:700; font-size:12.5px; ${g.quincena === 2 ? 'background:#0891b2; color:#fff;' : 'background:#fff; color:#475569;'}">2da quincena</button>
+          </div>
+        </div>
       </div>
-      <p style="font-size:11.5px; color:#64748b; margin:0 0 6px;">ARS (3.04%) y AFP (2.87%) se calculan solos sobre el quincenal. Si pones <b>Días trab.</b>, el quincenal se calcula por día (salario ÷ días base × días). Si lo dejas vacío, va el quincenal completo (editable).</p>
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:0 0 6px;">
+        <span style="font-size:11.5px; color:#64748b;"><i class="ti ti-calendar-stats"></i> Días laborables del mes (para pago por día):</span>
+        <input id="nom_diasbase" type="number" step="0.01" value="${g.diasBase || 23.83}" oninput="_nominaRecalc()" style="width:72px; padding:4px 7px; border:1px solid #cbd5e1; border-radius:6px; text-align:right;">
+      </div>
+      <p style="font-size:11.5px; color:#64748b; margin:0 0 8px;">El <b>SFS/ARS (3.04%)</b> y la <b>AFP (2.87%)</b> se descuentan solos sobre el sueldo quincenal cotizable. Si registras <b>Días trab.</b>, el quincenal se prorratea por día (sueldo ÷ días laborables × días); si lo dejas vacío, va el quincenal completo (editable).</p>
       <div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12px; min-width:980px;">
         <thead><tr style="background:#0f172a; color:#fff;">
           <th style="padding:6px; text-align:left;">Nombre</th><th style="padding:6px;">Puesto</th><th style="padding:6px; text-align:right;">Salario/mes</th><th style="padding:6px;">Días trab.</th><th style="padding:6px; text-align:right;">Quincenal</th><th style="padding:6px;">ARS</th><th style="padding:6px;">AFP</th><th style="padding:6px;">Incentivos</th><th style="padding:6px;">Ctas. cobrar</th><th style="padding:6px;">Días desc.</th><th style="padding:6px;">TOTAL</th>
@@ -11314,10 +11362,13 @@ async function _nominaGuardarPeriodo() {
     if(!isAdminUser()) return toast('Solo el administrador.', 'error');
     _nominaRecalc();
     const g = _nominaGen; if(!g || !g.lineas.length) return toast('No hay empleados en la quincena.', 'error');
-    const titulo = (document.getElementById('nom_titulo')?.value || '').trim();
-    if(!titulo) return toast('Pon el título de la quincena (ej. JUNIO 30 2026).', 'error');
+    const titulo = (g.titulo || '').trim();
+    if(!titulo) return toast('No se pudo determinar el período. Reinicia la quincena.', 'error');
+    const dup = (cache.nominaPeriodos || []).find(p => p.fecha_inicio === g.inicio && p.fecha_fin === g.fin);
+    const avisoDup = dup ? '⚠️ YA EXISTE una nómina guardada para este mismo período.\n\n' : '';
+    if(!await confirmar(`${avisoDup}¿Guardar la nómina de "${titulo}"?\n\nDel ${g.inicio} al ${g.fin} · Pago: ${g.pago}\n${g.lineas.length} empleados.`)) return;
     try {
-        const per = { titulo, fecha_inicio: document.getElementById('nom_inicio')?.value || null, fecha_fin: document.getElementById('nom_fin')?.value || null, fecha_pago: document.getElementById('nom_pago')?.value || null, estado: 'guardada', creado_por: (typeof sessionUser !== 'undefined' && sessionUser) ? (sessionUser.nombre || sessionUser.id || null) : null };
+        const per = { titulo, fecha_inicio: g.inicio || null, fecha_fin: g.fin || null, fecha_pago: g.pago || null, estado: 'guardada', creado_por: (typeof sessionUser !== 'undefined' && sessionUser) ? (sessionUser.nombre || sessionUser.id || null) : null };
         const { data: p, error: e1 } = await supabaseClient.from('nomina_periodos').insert([per]).select('id').single();
         if(e1) throw e1;
         const lineas = g.lineas.map((l, idx) => ({ periodo_id: p.id, empleado_id: l.empleado_id, nombre: l.nombre, cedula: l.cedula, cuenta_bhd: l.cuenta_bhd, puesto: l.puesto, salario_mensual: l.salario_mensual, salario_quincenal: l.salario_quincenal, ars: l.ars, afp: l.afp, incentivos: l.incentivos, cuentas_por_cobrar: l.cuentas_por_cobrar, dias_descontado: l.dias_descontado, dias_trabajados: l.dias_trabajados, total: l.total, orden: idx }));
@@ -11354,7 +11405,7 @@ async function _nominaImprimir(periodoId) {
     } else {
         if(!_nominaGen) return toast('Genera una quincena primero.', 'error');
         _nominaRecalc();
-        titulo = (document.getElementById('nom_titulo')?.value || '').trim(); pago = document.getElementById('nom_pago')?.value || null; lineas = _nominaGen.lineas;
+        titulo = (_nominaGen.titulo || '').trim(); pago = _nominaGen.pago || null; lineas = _nominaGen.lineas;
     }
     if(!lineas.length) return toast('No hay datos para imprimir.', 'error');
     const cfg = cache.configTaller || {};
@@ -11386,7 +11437,7 @@ async function _nominaGetLineas(periodoId) {
     }
     if(!_nominaGen) return null;
     _nominaRecalc();
-    return { titulo: (document.getElementById('nom_titulo')?.value || '').trim(), pago: document.getElementById('nom_pago')?.value || null, lineas: _nominaGen.lineas };
+    return { titulo: (_nominaGen.titulo || '').trim(), pago: _nominaGen.pago || null, lineas: _nominaGen.lineas };
 }
 function _descargarXls(html, filename) {
     const blob = new Blob(['﻿' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
