@@ -6365,9 +6365,10 @@ async function _datosEstadoMensual() {
     const mes = document.getElementById('em_mes').value || new Date().toISOString().slice(0,7);
     const suc = document.getElementById('em_sucursal').value || '';
     const { ini, fin } = _periodoMes(mes);
-    // Ventas + costo (Info Plus) — siempre combinadas (Info Plus no separa por tienda)
+    // Ventas + costo (Info Plus) — ya se separan por tienda (Santiago=1, Moca=4)
+    const localidad = suc === 'Santiago' ? 1 : (suc === 'Moca' ? 4 : null);
     let ventasCat = [];
-    try { const { data } = await supabaseClient.rpc('estado_mensual_cat', { p_ini: ini, p_fin: fin }); ventasCat = data || []; }
+    try { const { data } = await supabaseClient.rpc('estado_mensual_cat', { p_ini: ini, p_fin: fin, p_localidad: localidad }); ventasCat = data || []; }
     catch(e) { logError('Estado mensual ventas', e); }
     const ingresos = ventasCat.reduce((s, r) => s + (Number(r.venta) || 0), 0);
     const costoVentas = ventasCat.reduce((s, r) => s + (Number(r.costo) || 0), 0);
@@ -6391,7 +6392,7 @@ async function renderEstadoMensual() {
         const tiendaLbl = d.suc ? d.suc : 'Combinado (Santiago + Moca)';
         const catsG = Object.keys(d.gastosPorCat).sort((a, b) => d.gastosPorCat[b] - d.gastosPorCat[a]);
         const filasGastos = catsG.length ? catsG.map(c => `<tr><td style="padding-left:20px;">${escapeHtml(c)}</td><td style="text-align:right;">${money(d.gastosPorCat[c])}</td></tr>`).join('') : `<tr><td colspan="2" style="padding-left:20px; color:#94a3b8;">Sin gastos registrados este mes.</td></tr>`;
-        const avisoSuc = d.suc ? `<div style="background:#fef3c7; color:#92400e; font-size:11.5px; padding:7px 10px; border-radius:6px; margin:6px 0 10px;">⚠️ Las <b>ventas no se separan por tienda</b> todavía (Info Plus no las marca). Lo que ves de ventas/costo es <b>combinado</b>; solo los <b>gastos</b> son de <b>${escapeHtml(d.suc)}</b>. Para una utilidad por tienda real, falta que Info Plus marque la sucursal en las ventas.</div>` : '';
+        const avisoSuc = d.suc ? `<div style="background:#ecfdf5; color:#065f46; font-size:11.5px; padding:7px 10px; border-radius:6px; margin:6px 0 10px;">✅ Mostrando ventas, costo y gastos <b>solo de ${escapeHtml(d.suc)}</b>.</div>` : '';
         const estado = `
         <h3 style="text-align:center; margin:0;">BAYOL CELL, S.R.L.</h3>
         <p style="text-align:center; margin:2px 0 10px; color:var(--text-muted);">Estado de Resultados · ${escapeHtml(d.mes)} · ${escapeHtml(tiendaLbl)} · RD$</p>
@@ -6403,7 +6404,7 @@ async function renderEstadoMensual() {
           <tr><td colspan="2" style="font-weight:800; color:#0891b2; padding-top:8px;">GASTOS${d.suc ? ' (' + escapeHtml(d.suc) + ')' : ''}</td></tr>
           ${filasGastos}
           <tr style="font-weight:800; border-top:1px solid #e5e7eb;"><td>Total Gastos</td><td style="text-align:right;">${money(d.totalGastos)}</td></tr>
-          <tr style="font-weight:900; background:${d.neta >= 0 ? 'rgba(22,163,74,0.16)' : 'rgba(220,38,38,0.16)'}; font-size:15px;"><td>${d.neta >= 0 ? '= UTILIDAD NETA' : '= PÉRDIDA NETA'}${d.suc ? ' *' : ''}</td><td style="text-align:right;">${money(d.neta)}</td></tr>
+          <tr style="font-weight:900; background:${d.neta >= 0 ? 'rgba(22,163,74,0.16)' : 'rgba(220,38,38,0.16)'}; font-size:15px;"><td>${d.neta >= 0 ? '= UTILIDAD NETA' : '= PÉRDIDA NETA'}</td><td style="text-align:right;">${money(d.neta)}</td></tr>
         </table>`;
         // Lista de gastos del mes (editar/borrar)
         const lista = d.gastos.length ? `
@@ -6442,7 +6443,7 @@ function imprimirEstadoMensual() {
       .foot{margin-top:22px; text-align:center; color:#94a3b8; font-size:11px;}
       @media print{ .bruta,.neta{ -webkit-print-color-adjust:exact; print-color-adjust:exact; } }</style></head><body>
       <h1>${escapeHtml(tienda)}</h1><div class="sub">Estado de Resultados · ${escapeHtml(d.mes)} · ${escapeHtml(tiendaLbl)} · RD$</div>
-      ${d.suc ? `<div style="background:#fef3c7; color:#92400e; font-size:11px; padding:6px 9px; border-radius:6px; margin-bottom:8px;">Ventas/costo combinados (Info Plus no separa por tienda); gastos de ${escapeHtml(d.suc)}.</div>` : ''}
+      ${d.suc ? `<div style="background:#ecfdf5; color:#065f46; font-size:11px; padding:6px 9px; border-radius:6px; margin-bottom:8px;">Ventas, costo y gastos solo de ${escapeHtml(d.suc)}.</div>` : ''}
       <table>
         <tr class="sec"><td>INGRESOS (ventas del mes)</td><td class="num">${money(d.ingresos)}</td></tr>
         <tr><td>(−) Costo de ventas</td><td class="num">${money(d.costoVentas)}</td></tr>
