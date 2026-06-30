@@ -11165,7 +11165,7 @@ function _renderNominaEmpleados() {
         <td style="padding:6px; border-bottom:1px solid #eef2f7; text-align:center;">${e.fecha_ingreso ? new Date(e.fecha_ingreso + 'T00:00:00').toLocaleDateString('es-DO') : '—'}</td>
         <td style="padding:6px; border-bottom:1px solid #eef2f7; text-align:right;">${money(e.salario_mensual)}</td>
         <td style="padding:6px; border-bottom:1px solid #eef2f7; text-align:center;">${e.deduce_ley === false ? 'No' : 'Sí'}</td>
-        <td style="padding:6px; border-bottom:1px solid #eef2f7; text-align:center;"><a onclick="_nominaEditarEmpleado('${e.id}')" style="cursor:pointer; color:#0369a1;"><i class="ti ti-edit"></i></a></td>
+        <td style="padding:6px; border-bottom:1px solid #eef2f7; text-align:center; white-space:nowrap;"><a onclick="_nominaEditarEmpleado('${e.id}')" style="cursor:pointer; color:#0369a1;" title="Editar"><i class="ti ti-edit"></i></a>&nbsp;&nbsp;<a onclick="_nominaEliminarEmpleado('${e.id}')" style="cursor:pointer; color:#dc2626;" title="Quitar empleado"><i class="ti ti-trash"></i></a></td>
     </tr>`).join('');
     cont.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
         <div style="font-size:13px; color:#475569;">${emps.length} empleado(s)</div>
@@ -11191,9 +11191,31 @@ function _nominaEditarEmpleado(id) {
         <div class="form-row"><label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="nomemp_ley" ${e.deduce_ley !== false ? 'checked' : ''} style="width:16px; height:16px;"> Aplica descuentos de ley (ARS/AFP)</label></div>
         <div class="form-row"><label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="nomemp_activo" ${e.activo !== false ? 'checked' : ''} style="width:16px; height:16px;"> Activo</label></div>
       </div>
-      <div class="modal-footer"><button class="btn btn-light" onclick="document.getElementById('modalNomEmp').remove()">Cancelar</button><button class="btn btn-blue" onclick="_nominaGuardarEmpleado()">Guardar</button></div>
+      <div class="modal-footer">${id ? `<button class="btn" style="background:#fee2e2; color:#b91c1c; margin-right:auto;" onclick="_nominaEliminarEmpleado('${id}')"><i class="ti ti-trash"></i> Eliminar</button>` : ''}<button class="btn btn-light" onclick="document.getElementById('modalNomEmp').remove()">Cancelar</button><button class="btn btn-blue" onclick="_nominaGuardarEmpleado()">Guardar</button></div>
     </div>`;
     document.body.appendChild(box);
+}
+async function _nominaEliminarEmpleado(id) {
+    const e = (cache.nominaEmpleados || []).find(x => x.id === id); if(!e) return;
+    if(!await confirmar(`¿Quitar a "${e.nombre}" de la nómina?\n\nYa no aparecerá al generar las quincenas.`)) return;
+    try {
+        const { error } = await supabaseClient.from('nomina_empleados').delete().eq('id', id);
+        if(error) throw error;
+        toast('✅ Empleado eliminado.');
+        const m = document.getElementById('modalNomEmp'); if(m) m.remove();
+        await _loadNomina(); _renderNominaEmpleados();
+    } catch(err) {
+        // Si ya tiene nóminas guardadas, no se puede borrar: lo dejamos inactivo
+        if(/foreign key|violates|23503/i.test(String(err.message || err.code || ''))) {
+            try {
+                const { error: e2 } = await supabaseClient.from('nomina_empleados').update({ activo: false }).eq('id', id);
+                if(e2) throw e2;
+                toast('Tiene nóminas guardadas, así que lo marqué como inactivo (sale de la lista de pago).');
+                const m = document.getElementById('modalNomEmp'); if(m) m.remove();
+                await _loadNomina(); _renderNominaEmpleados();
+            } catch(e3) { logError('desactivar empleado nomina', e3); toastError(getFriendlyError(e3)); }
+        } else { logError('eliminar empleado nomina', err); toastError(getFriendlyError(err)); }
+    }
 }
 async function _nominaGuardarEmpleado() {
     const id = document.getElementById('nomemp_id').value;
