@@ -11212,7 +11212,7 @@ function _nominaNuevaQuincena(rerender) {
     _nominaGen = { titulo: '', inicio: '', fin: '', pago: '', lineas: emps.map(e => {
         const q = Math.round((Number(e.salario_mensual) || 0) / 2 * 100) / 100;
         const ley = e.deduce_ley !== false;
-        return { empleado_id: e.id, nombre: e.nombre, cedula: e.cedula, cuenta_bhd: e.cuenta_bhd, puesto: e.puesto, salario_mensual: Number(e.salario_mensual) || 0, salario_quincenal: q, deduce_ley: ley, ars: ley ? Math.round(q * NOM_ARS * 100) / 100 : 0, afp: ley ? Math.round(q * NOM_AFP * 100) / 100 : 0, incentivos: 0, cuentas_por_cobrar: 0, dias_descontado: 0, total: 0 };
+        return { empleado_id: e.id, nombre: e.nombre, cedula: e.cedula, cuenta_bhd: e.cuenta_bhd, puesto: e.puesto, salario_mensual: Number(e.salario_mensual) || 0, salario_quincenal: q, deduce_ley: ley, ars: ley ? Math.round(q * NOM_ARS * 100) / 100 : 0, afp: ley ? Math.round(q * NOM_AFP * 100) / 100 : 0, incentivos: 0, cuentas_por_cobrar: 0, dias_descontado: 0, dias_trabajados: null, total: 0 };
     }) };
     if(rerender) _renderNominaGenerar();
 }
@@ -11224,6 +11224,7 @@ function _renderNominaGenerar() {
         <td style="padding:4px 6px; border:1px solid #e2e8f0; white-space:nowrap;">${escapeHtml(l.nombre)}${l.deduce_ley ? '' : ' <span style="font-size:9px; color:#94a3b8;">(sin ley)</span>'}</td>
         <td style="padding:4px 6px; border:1px solid #e2e8f0;">${escapeHtml(l.puesto || '')}</td>
         <td style="padding:4px 6px; border:1px solid #e2e8f0; text-align:right;">${money(l.salario_mensual)}</td>
+        <td style="padding:2px; border:1px solid #e2e8f0;"><input class="nq-dt" type="number" step="1" min="0" value="${l.dias_trabajados || ''}" placeholder="—" oninput="_nominaRecalc()" style="width:52px; text-align:right; border:none; background:transparent;"></td>
         <td style="padding:2px; border:1px solid #e2e8f0;"><input class="nq-quin" type="number" step="0.01" value="${l.salario_quincenal}" oninput="_nominaRecalc()" style="width:95px; text-align:right; border:none; background:transparent;"></td>
         <td class="nq-ars" style="padding:4px 6px; border:1px solid #e2e8f0; text-align:right; color:#b45309;">${money(l.ars)}</td>
         <td class="nq-afp" style="padding:4px 6px; border:1px solid #e2e8f0; text-align:right; color:#b45309;">${money(l.afp)}</td>
@@ -11238,15 +11239,17 @@ function _renderNominaGenerar() {
         <div class="form-row"><label>Desde</label><input id="nom_inicio" type="date" value="${g.inicio || ''}"></div>
         <div class="form-row"><label>Hasta</label><input id="nom_fin" type="date" value="${g.fin || ''}"></div>
         <div class="form-row"><label>Fecha de pago</label><input id="nom_pago" type="date" value="${g.pago || ''}"></div>
+        <div class="form-row"><label>Días base/mes <span style="color:#94a3b8;">(p/ días trab.)</span></label><input id="nom_diasbase" type="number" step="0.01" value="${g.diasBase || 23.83}" oninput="_nominaRecalc()"></div>
       </div>
-      <p style="font-size:11.5px; color:#64748b; margin:0 0 6px;">ARS (3.04%) y AFP (2.87%) se calculan solos sobre el quincenal. Tú llenas incentivos, cuentas por cobrar y días descontado. El quincenal es editable (para los que trabajaron menos días).</p>
+      <p style="font-size:11.5px; color:#64748b; margin:0 0 6px;">ARS (3.04%) y AFP (2.87%) se calculan solos sobre el quincenal. Si pones <b>Días trab.</b>, el quincenal se calcula por día (salario ÷ días base × días). Si lo dejas vacío, va el quincenal completo (editable).</p>
       <div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12px; min-width:980px;">
         <thead><tr style="background:#0f172a; color:#fff;">
-          <th style="padding:6px; text-align:left;">Nombre</th><th style="padding:6px;">Puesto</th><th style="padding:6px; text-align:right;">Salario/mes</th><th style="padding:6px; text-align:right;">Quincenal</th><th style="padding:6px;">ARS</th><th style="padding:6px;">AFP</th><th style="padding:6px;">Incentivos</th><th style="padding:6px;">Ctas. cobrar</th><th style="padding:6px;">Días desc.</th><th style="padding:6px;">TOTAL</th>
+          <th style="padding:6px; text-align:left;">Nombre</th><th style="padding:6px;">Puesto</th><th style="padding:6px; text-align:right;">Salario/mes</th><th style="padding:6px;">Días trab.</th><th style="padding:6px; text-align:right;">Quincenal</th><th style="padding:6px;">ARS</th><th style="padding:6px;">AFP</th><th style="padding:6px;">Incentivos</th><th style="padding:6px;">Ctas. cobrar</th><th style="padding:6px;">Días desc.</th><th style="padding:6px;">TOTAL</th>
         </tr></thead>
         <tbody>${filas}</tbody>
-        <tfoot><tr style="background:#eef2ff; font-weight:800;"><td colspan="3" style="padding:6px; text-align:right;">TOTALES:</td><td id="nomTotQuin" style="padding:6px; text-align:right;"></td><td id="nomTotArs" style="padding:6px; text-align:right;"></td><td id="nomTotAfp" style="padding:6px; text-align:right;"></td><td id="nomTotInc" style="padding:6px; text-align:right;"></td><td id="nomTotCxc" style="padding:6px; text-align:right;"></td><td id="nomTotDd" style="padding:6px; text-align:right;"></td><td id="nomTotNeto" style="padding:6px; text-align:right; color:#166534;"></td></tr></tfoot>
+        <tfoot><tr style="background:#eef2ff; font-weight:800;"><td colspan="4" style="padding:6px; text-align:right;">TOTALES:</td><td id="nomTotQuin" style="padding:6px; text-align:right;"></td><td id="nomTotArs" style="padding:6px; text-align:right;"></td><td id="nomTotAfp" style="padding:6px; text-align:right;"></td><td id="nomTotInc" style="padding:6px; text-align:right;"></td><td id="nomTotCxc" style="padding:6px; text-align:right;"></td><td id="nomTotDd" style="padding:6px; text-align:right;"></td><td id="nomTotNeto" style="padding:6px; text-align:right; color:#166534;"></td></tr></tfoot>
       </table></div>
+      <div id="nomTSS"></div>
       <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px; flex-wrap:wrap;">
         <button class="btn btn-light" onclick="_nominaNuevaQuincena(true)"><i class="ti ti-refresh"></i> Reiniciar</button>
         <button class="btn btn-light" onclick="_nominaImprimir(null)"><i class="ti ti-printer"></i> Imprimir</button>
@@ -11259,25 +11262,56 @@ function _renderNominaGenerar() {
 }
 function _nominaRecalc() {
     const g = _nominaGen; if(!g) return;
+    const diasBase = Number(document.getElementById('nom_diasbase')?.value) || 23.83;
+    g.diasBase = diasBase;
     const rows = document.querySelectorAll('#nominaContent tbody tr');
-    let tQ = 0, tA = 0, tF = 0, tI = 0, tC = 0, tD = 0, tN = 0;
+    let tQ = 0, tA = 0, tF = 0, tI = 0, tC = 0, tD = 0, tN = 0, cotiz = 0;
     g.lineas.forEach((l, i) => {
         const tr = rows[i]; if(!tr) return;
-        const quin = Number(tr.querySelector('.nq-quin')?.value) || 0;
+        const dt = Number(tr.querySelector('.nq-dt')?.value) || 0;
+        const quinInput = tr.querySelector('.nq-quin');
+        let quin;
+        if(dt > 0) { quin = Math.round((l.salario_mensual / diasBase) * dt * 100) / 100; if(quinInput) quinInput.value = quin; }
+        else { quin = Number(quinInput?.value) || 0; }
         const inc = Number(tr.querySelector('.nq-inc')?.value) || 0;
         const cxc = Number(tr.querySelector('.nq-cxc')?.value) || 0;
         const dd = Number(tr.querySelector('.nq-dd')?.value) || 0;
         const ars = l.deduce_ley ? Math.round(quin * NOM_ARS * 100) / 100 : 0;
         const afp = l.deduce_ley ? Math.round(quin * NOM_AFP * 100) / 100 : 0;
         const total = Math.round((quin + inc - ars - afp - cxc - dd) * 100) / 100;
-        l.salario_quincenal = quin; l.incentivos = inc; l.cuentas_por_cobrar = cxc; l.dias_descontado = dd; l.ars = ars; l.afp = afp; l.total = total;
+        l.salario_quincenal = quin; l.dias_trabajados = dt || null; l.incentivos = inc; l.cuentas_por_cobrar = cxc; l.dias_descontado = dd; l.ars = ars; l.afp = afp; l.total = total;
         tr.querySelector('.nq-ars').textContent = money(ars);
         tr.querySelector('.nq-afp').textContent = money(afp);
         tr.querySelector('.nq-total').textContent = money(total);
         tQ += quin; tA += ars; tF += afp; tI += inc; tC += cxc; tD += dd; tN += total;
+        if(l.deduce_ley) cotiz += quin;
     });
     const set = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = money(v); };
     set('nomTotQuin', tQ); set('nomTotArs', tA); set('nomTotAfp', tF); set('nomTotInc', tI); set('nomTotCxc', tC); set('nomTotDd', tD); set('nomTotNeto', tN);
+    _nominaTSSBox(cotiz, tA, tF);
+}
+function _nominaTSSBox(cotiz, sfsEmp, afpEmp) {
+    const el = document.getElementById('nomTSS'); if(!el) return;
+    const sfsPat = Math.round(cotiz * 0.0709 * 100) / 100;
+    const afpPat = Math.round(cotiz * 0.0710 * 100) / 100;
+    const srl = Math.round(cotiz * 0.0110 * 100) / 100;
+    const infotep = Math.round(cotiz * 0.01 * 100) / 100;
+    const aporteEmpleado = sfsEmp + afpEmp;
+    const aportePatronal = sfsPat + afpPat + srl;
+    el.innerHTML = `<div style="margin-top:14px; border:1px solid #bae6fd; border-radius:10px; padding:12px; background:#f0f9ff; max-width:500px;">
+      <div style="font-weight:800; color:#075985; margin-bottom:6px;"><i class="ti ti-building-bank"></i> Resumen TSS / Costo patronal (esta quincena)</div>
+      <div style="font-size:12.5px; line-height:1.85;">
+        <div style="display:flex; justify-content:space-between;"><span>Salario cotizable:</span><b>${money(cotiz)}</b></div>
+        <div style="display:flex; justify-content:space-between;"><span>Aporte EMPLEADO (SFS+AFP, ya descontado):</span><b>${money(aporteEmpleado)}</b></div>
+        <div style="display:flex; justify-content:space-between; border-top:1px solid #bae6fd; margin-top:4px; padding-top:4px;"><span>SFS patronal (7.09%):</span><span>${money(sfsPat)}</span></div>
+        <div style="display:flex; justify-content:space-between;"><span>AFP patronal (7.10%):</span><span>${money(afpPat)}</span></div>
+        <div style="display:flex; justify-content:space-between;"><span>Riesgo laboral SRL (1.10%):</span><span>${money(srl)}</span></div>
+        <div style="display:flex; justify-content:space-between;"><span><b>Aporte PATRONAL (lo pagas tú):</b></span><b style="color:#b45309;">${money(aportePatronal)}</b></div>
+        <div style="display:flex; justify-content:space-between;"><span>INFOTEP (1%, aparte):</span><span>${money(infotep)}</span></div>
+        <div style="display:flex; justify-content:space-between; font-size:14px; border-top:2px solid #075985; margin-top:5px; padding-top:5px;"><span><b>TOTAL a TSS (empleado + patronal):</b></span><b style="color:#0e7490;">${money(aporteEmpleado + aportePatronal)}</b></div>
+      </div>
+      <div style="font-size:10.5px; color:#64748b; margin-top:6px;">Referencial. El INFOTEP (1%) se paga aparte. El SRL puede variar según tu clasificación de riesgo.</div>
+    </div>`;
 }
 async function _nominaGuardarPeriodo() {
     if(!isAdminUser()) return toast('Solo el administrador.', 'error');
@@ -11289,7 +11323,7 @@ async function _nominaGuardarPeriodo() {
         const per = { titulo, fecha_inicio: document.getElementById('nom_inicio')?.value || null, fecha_fin: document.getElementById('nom_fin')?.value || null, fecha_pago: document.getElementById('nom_pago')?.value || null, estado: 'guardada', creado_por: (typeof sessionUser !== 'undefined' && sessionUser) ? (sessionUser.nombre || sessionUser.id || null) : null };
         const { data: p, error: e1 } = await supabaseClient.from('nomina_periodos').insert([per]).select('id').single();
         if(e1) throw e1;
-        const lineas = g.lineas.map((l, idx) => ({ periodo_id: p.id, empleado_id: l.empleado_id, nombre: l.nombre, cedula: l.cedula, cuenta_bhd: l.cuenta_bhd, puesto: l.puesto, salario_mensual: l.salario_mensual, salario_quincenal: l.salario_quincenal, ars: l.ars, afp: l.afp, incentivos: l.incentivos, cuentas_por_cobrar: l.cuentas_por_cobrar, dias_descontado: l.dias_descontado, total: l.total, orden: idx }));
+        const lineas = g.lineas.map((l, idx) => ({ periodo_id: p.id, empleado_id: l.empleado_id, nombre: l.nombre, cedula: l.cedula, cuenta_bhd: l.cuenta_bhd, puesto: l.puesto, salario_mensual: l.salario_mensual, salario_quincenal: l.salario_quincenal, ars: l.ars, afp: l.afp, incentivos: l.incentivos, cuentas_por_cobrar: l.cuentas_por_cobrar, dias_descontado: l.dias_descontado, dias_trabajados: l.dias_trabajados, total: l.total, orden: idx }));
         for(let i = 0; i < lineas.length; i += 200) { const { error: e2 } = await supabaseClient.from('nomina_lineas').insert(lineas.slice(i, i + 200)); if(e2) throw e2; }
         toast('✅ Quincena guardada.');
         _nominaGen = null;
