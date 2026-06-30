@@ -867,6 +867,7 @@ body{
             <button id="menu-reportes" onclick="nav('reportes',this)"><i class="ti ti-chart-bar"></i> <span>Reportes</span></button>
             <button id="menu-estadisticas" onclick="nav('estadisticas',this)" style="display:none;"><i class="ti ti-chart-pie-2"></i> <span>Estadísticas</span> <span class="nav-badge-admin" style="background:#7c3aed;">PRIVADO</span></button>
             <button id="menu-configuracion" onclick="nav('configuracion',this)"><i class="ti ti-adjustments"></i> <span>Configuración</span> <span class="nav-badge-admin">ADMIN</span></button>
+            <button id="menu-nomina" onclick="nav('nomina',this)" style="display:none;"><i class="ti ti-cash"></i> <span>Nómina</span> <span class="nav-badge-admin">ADMIN</span></button>
         </div>
         
         <!-- Tarjeta de usuario estilo NEXUS -->
@@ -2528,6 +2529,19 @@ body{
                         <button class="btn btn-blue" onclick="imprimirLiquidacionAduana()"><i class="ti ti-printer"></i> Imprimir</button>
                         <button class="btn btn-dark" style="background:#0369a1;" onclick="abrirComparacionInfoPlus()"><i class="ti ti-git-compare"></i> Comparar con Info Plus →</button>
                     </div>
+                </div>
+            </div>
+            <div id="v-nomina" class="view">
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
+                        <h3 style="margin:0;"><i class="ti ti-cash" style="color:#16a34a;"></i> Nómina</h3>
+                        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                            <button class="btn btn-light" id="nomTabEmp" onclick="nominaTab('empleados')"><i class="ti ti-users"></i> Empleados</button>
+                            <button class="btn btn-light" id="nomTabGen" onclick="nominaTab('generar')"><i class="ti ti-calculator"></i> Generar quincena</button>
+                            <button class="btn btn-light" id="nomTabHist" onclick="nominaTab('historial')"><i class="ti ti-history"></i> Historial</button>
+                        </div>
+                    </div>
+                    <div id="nominaContent"></div>
                 </div>
             </div>
         </section>
@@ -4749,6 +4763,10 @@ function applyAccessControls() {
     const btnInc = document.getElementById('menu-incentivos');
     if(btnInc) btnInc.style.display = isAdminUser() ? '' : 'none';
 
+    // Nómina: solo administradores (datos sensibles de salarios)
+    const btnNom = document.getElementById('menu-nomina');
+    if(btnNom) btnNom.style.display = isAdminUser() ? '' : 'none';
+
     // Registrar equipo existente (carga de equipos previos al sistema): solo admin
     const btnRegEx = document.getElementById('btnRegistrarExistente');
     if(btnRegEx) btnRegEx.style.display = isAdminUser() ? '' : 'none';
@@ -5609,6 +5627,11 @@ function nav(v, btn) {
         toast('🔒 Módulo solo para administradores.');
         return;
     }
+    // Nómina: solo administradores
+    if(v === 'nomina' && !isAdminUser()) {
+        toast('🔒 Módulo solo para administradores.');
+        return;
+    }
     // PORTERO CENTRAL: verifica permiso antes de entrar (sin importar de dónde venga el clic)
     const permisoReq = NAV_PERMISOS[v];
     if(permisoReq && !tienePermiso(permisoReq)) {
@@ -5633,6 +5656,7 @@ function nav(v, btn) {
     if(v === 'configuracion') { setTimeout(() => { cambiarMainTabConfig(localStorage.getItem('bayol_subtab_config') || 'tecnicos'); }, 50); }
     if(v === 'reportes') { setTimeout(() => { inicializarReportes(); }, 50); }
     if(v === 'despachos') { setTimeout(() => { renderDespachos(); }, 50); }
+    if(v === 'nomina') { setTimeout(() => { renderNomina(); }, 50); }
     if(v === 'estadisticas') { setTimeout(() => { renderEstadisticas(); }, 50); }
     if(v === 'miTrabajo') { setTimeout(() => { renderMiTrabajo(); const _wrap = document.getElementById('miTrabajoIncentivosWrap'); if(_wrap){ if(!isAdminUser() && typeof renderMisIncentivos === 'function') { _wrap.style.display = ''; renderMisIncentivos('miTrabajoIncentivos'); } else { _wrap.style.display = 'none'; } } }, 50); }
     if(v === 'atencion') { setTimeout(() => { renderAtencionCliente(); }, 50); }
@@ -11100,6 +11124,224 @@ function _regipCopy(txt) {
     if(!txt) return;
     try { navigator.clipboard.writeText(String(txt)); } catch(e) { const ta = document.createElement('textarea'); ta.value = String(txt); document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch(_) {} document.body.removeChild(ta); }
     toast('✓ Copiado: ' + txt);
+}
+// ===================== MÓDULO NÓMINA =====================
+const NOM_ARS = 0.0304, NOM_AFP = 0.0287; // descuentos de ley (empleado): ARS 3.04% + AFP 2.87%
+let _nominaTab = 'empleados';
+let _nominaGen = null;
+async function _loadNomina() {
+    try {
+        const [{ data: emp }, { data: per }] = await Promise.all([
+            supabaseClient.from('nomina_empleados').select('*').order('nombre'),
+            supabaseClient.from('nomina_periodos').select('*').order('creado_en', { ascending: false })
+        ]);
+        cache.nominaEmpleados = emp || [];
+        cache.nominaPeriodos = per || [];
+    } catch(e) { logError('cargar nomina', e); }
+}
+async function renderNomina() {
+    if(!isAdminUser()) return;
+    await _loadNomina();
+    nominaTab(_nominaTab || 'empleados');
+}
+function nominaTab(t) {
+    _nominaTab = t;
+    ['Emp', 'Gen', 'Hist'].forEach(s => { const b = document.getElementById('nomTab' + s); if(b) { b.classList.remove('btn-blue'); b.classList.add('btn-light'); } });
+    const map = { empleados: 'Emp', generar: 'Gen', historial: 'Hist' };
+    const b = document.getElementById('nomTab' + (map[t] || 'Emp')); if(b) { b.classList.add('btn-blue'); b.classList.remove('btn-light'); }
+    if(t === 'empleados') _renderNominaEmpleados();
+    else if(t === 'generar') _renderNominaGenerar();
+    else _renderNominaHistorial();
+}
+function _renderNominaEmpleados() {
+    const cont = document.getElementById('nominaContent'); if(!cont) return;
+    const emps = cache.nominaEmpleados || [];
+    const filas = emps.map(e => `<tr>
+        <td style="padding:6px; border-bottom:1px solid #eef2f7;">${escapeHtml(e.nombre)}${e.activo === false ? ' <span style="color:#b91c1c; font-size:10px;">(inactivo)</span>' : ''}</td>
+        <td style="padding:6px; border-bottom:1px solid #eef2f7;">${escapeHtml(e.cedula || '—')}</td>
+        <td style="padding:6px; border-bottom:1px solid #eef2f7;">${escapeHtml(e.cuenta_bhd || '—')}</td>
+        <td style="padding:6px; border-bottom:1px solid #eef2f7;">${escapeHtml(e.puesto || '—')}</td>
+        <td style="padding:6px; border-bottom:1px solid #eef2f7; text-align:center;">${e.fecha_ingreso ? new Date(e.fecha_ingreso + 'T00:00:00').toLocaleDateString('es-DO') : '—'}</td>
+        <td style="padding:6px; border-bottom:1px solid #eef2f7; text-align:right;">${money(e.salario_mensual)}</td>
+        <td style="padding:6px; border-bottom:1px solid #eef2f7; text-align:center;">${e.deduce_ley === false ? 'No' : 'Sí'}</td>
+        <td style="padding:6px; border-bottom:1px solid #eef2f7; text-align:center;"><a onclick="_nominaEditarEmpleado('${e.id}')" style="cursor:pointer; color:#0369a1;"><i class="ti ti-edit"></i></a></td>
+    </tr>`).join('');
+    cont.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <div style="font-size:13px; color:#475569;">${emps.length} empleado(s)</div>
+        <button class="btn btn-blue" onclick="_nominaEditarEmpleado('')"><i class="ti ti-plus"></i> Empleado</button></div>
+      <div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12.5px; min-width:780px;">
+        <thead><tr style="background:#f1f5f9;"><th style="padding:6px; text-align:left;">Nombre</th><th style="padding:6px; text-align:left;">Cédula</th><th style="padding:6px; text-align:left;">Cuenta BHD</th><th style="padding:6px; text-align:left;">Puesto</th><th style="padding:6px;">Ingreso</th><th style="padding:6px; text-align:right;">Salario/mes</th><th style="padding:6px;">Ley</th><th></th></tr></thead>
+        <tbody>${filas}</tbody></table></div>`;
+}
+function _nominaEditarEmpleado(id) {
+    const e = id ? (cache.nominaEmpleados || []).find(x => x.id === id) || {} : {};
+    const prev = document.getElementById('modalNomEmp'); if(prev) prev.remove();
+    const box = document.createElement('div'); box.className = 'modal-backdrop active'; box.id = 'modalNomEmp'; box.style.zIndex = '760';
+    box.innerHTML = `<div class="modal-box" style="max-width:520px;">
+      <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-user"></i> ${id ? 'Editar' : 'Nuevo'} empleado</h3><button class="modal-close" onclick="document.getElementById('modalNomEmp').remove()">✕</button></div>
+      <div class="modal-body">
+        <input type="hidden" id="nomemp_id" value="${id || ''}">
+        <div class="form-row"><label>Nombre *</label><input id="nomemp_nombre" value="${escapeHtml(e.nombre || '')}"></div>
+        <div class="form-row"><label>Cédula</label><input id="nomemp_cedula" value="${escapeHtml(e.cedula || '')}"></div>
+        <div class="form-row"><label>Cuenta BHD</label><input id="nomemp_cuenta" value="${escapeHtml(e.cuenta_bhd || '')}"></div>
+        <div class="form-row"><label>Puesto</label><input id="nomemp_puesto" value="${escapeHtml(e.puesto || '')}"></div>
+        <div class="form-row"><label>Fecha de ingreso</label><input id="nomemp_ingreso" type="date" value="${e.fecha_ingreso || ''}"></div>
+        <div class="form-row"><label>Salario mensual (RD$)</label><input id="nomemp_salario" type="number" step="0.01" value="${e.salario_mensual || 0}"></div>
+        <div class="form-row"><label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="nomemp_ley" ${e.deduce_ley !== false ? 'checked' : ''} style="width:16px; height:16px;"> Aplica descuentos de ley (ARS/AFP)</label></div>
+        <div class="form-row"><label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="nomemp_activo" ${e.activo !== false ? 'checked' : ''} style="width:16px; height:16px;"> Activo</label></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-light" onclick="document.getElementById('modalNomEmp').remove()">Cancelar</button><button class="btn btn-blue" onclick="_nominaGuardarEmpleado()">Guardar</button></div>
+    </div>`;
+    document.body.appendChild(box);
+}
+async function _nominaGuardarEmpleado() {
+    const id = document.getElementById('nomemp_id').value;
+    const nombre = (document.getElementById('nomemp_nombre').value || '').trim();
+    if(!nombre) return toast('Nombre obligatorio.', 'error');
+    const data = { nombre, cedula: (document.getElementById('nomemp_cedula').value || '').trim() || null, cuenta_bhd: (document.getElementById('nomemp_cuenta').value || '').trim() || null, puesto: (document.getElementById('nomemp_puesto').value || '').trim() || null, fecha_ingreso: document.getElementById('nomemp_ingreso').value || null, salario_mensual: Number(document.getElementById('nomemp_salario').value) || 0, deduce_ley: document.getElementById('nomemp_ley').checked, activo: document.getElementById('nomemp_activo').checked };
+    try {
+        if(id) await supabaseClient.from('nomina_empleados').update(data).eq('id', id);
+        else await supabaseClient.from('nomina_empleados').insert([data]);
+        toast('✅ Empleado guardado.');
+        const m = document.getElementById('modalNomEmp'); if(m) m.remove();
+        await _loadNomina(); _renderNominaEmpleados();
+    } catch(e) { logError('guardar empleado nomina', e); toastError(getFriendlyError(e)); }
+}
+function _nominaNuevaQuincena(rerender) {
+    const emps = (cache.nominaEmpleados || []).filter(e => e.activo !== false);
+    _nominaGen = { titulo: '', inicio: '', fin: '', pago: '', lineas: emps.map(e => {
+        const q = Math.round((Number(e.salario_mensual) || 0) / 2 * 100) / 100;
+        const ley = e.deduce_ley !== false;
+        return { empleado_id: e.id, nombre: e.nombre, cedula: e.cedula, cuenta_bhd: e.cuenta_bhd, puesto: e.puesto, salario_mensual: Number(e.salario_mensual) || 0, salario_quincenal: q, deduce_ley: ley, ars: ley ? Math.round(q * NOM_ARS * 100) / 100 : 0, afp: ley ? Math.round(q * NOM_AFP * 100) / 100 : 0, incentivos: 0, cuentas_por_cobrar: 0, dias_descontado: 0, total: 0 };
+    }) };
+    if(rerender) _renderNominaGenerar();
+}
+function _renderNominaGenerar() {
+    const cont = document.getElementById('nominaContent'); if(!cont) return;
+    if(!_nominaGen) _nominaNuevaQuincena(false);
+    const g = _nominaGen;
+    const filas = g.lineas.map((l, i) => `<tr>
+        <td style="padding:4px 6px; border:1px solid #e2e8f0; white-space:nowrap;">${escapeHtml(l.nombre)}${l.deduce_ley ? '' : ' <span style="font-size:9px; color:#94a3b8;">(sin ley)</span>'}</td>
+        <td style="padding:4px 6px; border:1px solid #e2e8f0;">${escapeHtml(l.puesto || '')}</td>
+        <td style="padding:4px 6px; border:1px solid #e2e8f0; text-align:right;">${money(l.salario_mensual)}</td>
+        <td style="padding:2px; border:1px solid #e2e8f0;"><input class="nq-quin" type="number" step="0.01" value="${l.salario_quincenal}" oninput="_nominaRecalc()" style="width:95px; text-align:right; border:none; background:transparent;"></td>
+        <td class="nq-ars" style="padding:4px 6px; border:1px solid #e2e8f0; text-align:right; color:#b45309;">${money(l.ars)}</td>
+        <td class="nq-afp" style="padding:4px 6px; border:1px solid #e2e8f0; text-align:right; color:#b45309;">${money(l.afp)}</td>
+        <td style="padding:2px; border:1px solid #e2e8f0;"><input class="nq-inc" type="number" step="0.01" value="${l.incentivos}" oninput="_nominaRecalc()" style="width:85px; text-align:right; border:none; background:transparent;"></td>
+        <td style="padding:2px; border:1px solid #e2e8f0;"><input class="nq-cxc" type="number" step="0.01" value="${l.cuentas_por_cobrar}" oninput="_nominaRecalc()" style="width:85px; text-align:right; border:none; background:transparent;"></td>
+        <td style="padding:2px; border:1px solid #e2e8f0;"><input class="nq-dd" type="number" step="0.01" value="${l.dias_descontado}" oninput="_nominaRecalc()" style="width:80px; text-align:right; border:none; background:transparent;"></td>
+        <td class="nq-total" style="padding:4px 6px; border:1px solid #e2e8f0; text-align:right; font-weight:800; color:#166534; background:#f0fdf4;">${money(l.total)}</td>
+    </tr>`).join('');
+    cont.innerHTML = `
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-bottom:12px;">
+        <div class="form-row"><label>Título de la quincena</label><input id="nom_titulo" value="${escapeHtml(g.titulo)}" placeholder="Ej. JUNIO 30 2026"></div>
+        <div class="form-row"><label>Desde</label><input id="nom_inicio" type="date" value="${g.inicio || ''}"></div>
+        <div class="form-row"><label>Hasta</label><input id="nom_fin" type="date" value="${g.fin || ''}"></div>
+        <div class="form-row"><label>Fecha de pago</label><input id="nom_pago" type="date" value="${g.pago || ''}"></div>
+      </div>
+      <p style="font-size:11.5px; color:#64748b; margin:0 0 6px;">ARS (3.04%) y AFP (2.87%) se calculan solos sobre el quincenal. Tú llenas incentivos, cuentas por cobrar y días descontado. El quincenal es editable (para los que trabajaron menos días).</p>
+      <div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12px; min-width:980px;">
+        <thead><tr style="background:#0f172a; color:#fff;">
+          <th style="padding:6px; text-align:left;">Nombre</th><th style="padding:6px;">Puesto</th><th style="padding:6px; text-align:right;">Salario/mes</th><th style="padding:6px; text-align:right;">Quincenal</th><th style="padding:6px;">ARS</th><th style="padding:6px;">AFP</th><th style="padding:6px;">Incentivos</th><th style="padding:6px;">Ctas. cobrar</th><th style="padding:6px;">Días desc.</th><th style="padding:6px;">TOTAL</th>
+        </tr></thead>
+        <tbody>${filas}</tbody>
+        <tfoot><tr style="background:#eef2ff; font-weight:800;"><td colspan="3" style="padding:6px; text-align:right;">TOTALES:</td><td id="nomTotQuin" style="padding:6px; text-align:right;"></td><td id="nomTotArs" style="padding:6px; text-align:right;"></td><td id="nomTotAfp" style="padding:6px; text-align:right;"></td><td id="nomTotInc" style="padding:6px; text-align:right;"></td><td id="nomTotCxc" style="padding:6px; text-align:right;"></td><td id="nomTotDd" style="padding:6px; text-align:right;"></td><td id="nomTotNeto" style="padding:6px; text-align:right; color:#166534;"></td></tr></tfoot>
+      </table></div>
+      <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px; flex-wrap:wrap;">
+        <button class="btn btn-light" onclick="_nominaNuevaQuincena(true)"><i class="ti ti-refresh"></i> Reiniciar</button>
+        <button class="btn btn-light" style="color:#15803d; border-color:#86efac;" onclick="_nominaImprimir(null)"><i class="ti ti-printer"></i> Imprimir</button>
+        <button class="btn btn-blue" onclick="_nominaGuardarPeriodo()"><i class="ti ti-device-floppy"></i> Guardar quincena</button>
+      </div>`;
+    _nominaRecalc();
+}
+function _nominaRecalc() {
+    const g = _nominaGen; if(!g) return;
+    const rows = document.querySelectorAll('#nominaContent tbody tr');
+    let tQ = 0, tA = 0, tF = 0, tI = 0, tC = 0, tD = 0, tN = 0;
+    g.lineas.forEach((l, i) => {
+        const tr = rows[i]; if(!tr) return;
+        const quin = Number(tr.querySelector('.nq-quin')?.value) || 0;
+        const inc = Number(tr.querySelector('.nq-inc')?.value) || 0;
+        const cxc = Number(tr.querySelector('.nq-cxc')?.value) || 0;
+        const dd = Number(tr.querySelector('.nq-dd')?.value) || 0;
+        const ars = l.deduce_ley ? Math.round(quin * NOM_ARS * 100) / 100 : 0;
+        const afp = l.deduce_ley ? Math.round(quin * NOM_AFP * 100) / 100 : 0;
+        const total = Math.round((quin + inc - ars - afp - cxc - dd) * 100) / 100;
+        l.salario_quincenal = quin; l.incentivos = inc; l.cuentas_por_cobrar = cxc; l.dias_descontado = dd; l.ars = ars; l.afp = afp; l.total = total;
+        tr.querySelector('.nq-ars').textContent = money(ars);
+        tr.querySelector('.nq-afp').textContent = money(afp);
+        tr.querySelector('.nq-total').textContent = money(total);
+        tQ += quin; tA += ars; tF += afp; tI += inc; tC += cxc; tD += dd; tN += total;
+    });
+    const set = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = money(v); };
+    set('nomTotQuin', tQ); set('nomTotArs', tA); set('nomTotAfp', tF); set('nomTotInc', tI); set('nomTotCxc', tC); set('nomTotDd', tD); set('nomTotNeto', tN);
+}
+async function _nominaGuardarPeriodo() {
+    if(!isAdminUser()) return toast('Solo el administrador.', 'error');
+    _nominaRecalc();
+    const g = _nominaGen; if(!g || !g.lineas.length) return toast('No hay empleados en la quincena.', 'error');
+    const titulo = (document.getElementById('nom_titulo')?.value || '').trim();
+    if(!titulo) return toast('Pon el título de la quincena (ej. JUNIO 30 2026).', 'error');
+    try {
+        const per = { titulo, fecha_inicio: document.getElementById('nom_inicio')?.value || null, fecha_fin: document.getElementById('nom_fin')?.value || null, fecha_pago: document.getElementById('nom_pago')?.value || null, estado: 'guardada', creado_por: (typeof sessionUser !== 'undefined' && sessionUser) ? (sessionUser.nombre || sessionUser.id || null) : null };
+        const { data: p, error: e1 } = await supabaseClient.from('nomina_periodos').insert([per]).select('id').single();
+        if(e1) throw e1;
+        const lineas = g.lineas.map((l, idx) => ({ periodo_id: p.id, empleado_id: l.empleado_id, nombre: l.nombre, cedula: l.cedula, cuenta_bhd: l.cuenta_bhd, puesto: l.puesto, salario_mensual: l.salario_mensual, salario_quincenal: l.salario_quincenal, ars: l.ars, afp: l.afp, incentivos: l.incentivos, cuentas_por_cobrar: l.cuentas_por_cobrar, dias_descontado: l.dias_descontado, total: l.total, orden: idx }));
+        for(let i = 0; i < lineas.length; i += 200) { const { error: e2 } = await supabaseClient.from('nomina_lineas').insert(lineas.slice(i, i + 200)); if(e2) throw e2; }
+        toast('✅ Quincena guardada.');
+        _nominaGen = null;
+        await _loadNomina(); nominaTab('historial');
+    } catch(e) { logError('guardar periodo nomina', e); toastError(getFriendlyError(e)); }
+}
+function _renderNominaHistorial() {
+    const cont = document.getElementById('nominaContent'); if(!cont) return;
+    const pers = cache.nominaPeriodos || [];
+    if(!pers.length) { cont.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:18px;">No hay quincenas guardadas todavía. Genera una en "Generar quincena".</p>'; return; }
+    cont.innerHTML = `<table style="width:100%; border-collapse:collapse; font-size:13px;">
+      <thead><tr style="background:#f1f5f9;"><th style="padding:7px; text-align:left;">Quincena</th><th style="padding:7px;">Pago</th><th style="padding:7px;">Hecha</th><th></th></tr></thead>
+      <tbody>${pers.map(p => `<tr>
+        <td style="padding:7px; border-bottom:1px solid #eef2f7;">${escapeHtml(p.titulo || '—')}</td>
+        <td style="padding:7px; border-bottom:1px solid #eef2f7; text-align:center;">${p.fecha_pago ? new Date(p.fecha_pago + 'T00:00:00').toLocaleDateString('es-DO') : '—'}</td>
+        <td style="padding:7px; border-bottom:1px solid #eef2f7; text-align:center; color:#94a3b8; font-size:11px;">${p.creado_en ? new Date(p.creado_en).toLocaleDateString('es-DO') : ''}</td>
+        <td style="padding:7px; border-bottom:1px solid #eef2f7; text-align:center; white-space:nowrap;"><button class="btn btn-light" style="padding:4px 9px; font-size:11px; color:#0369a1;" onclick="_nominaImprimir('${p.id}')"><i class="ti ti-printer"></i> Imprimir</button> <button class="btn btn-light" style="padding:4px 9px; font-size:11px; color:#b91c1c;" onclick="_nominaEliminarPeriodo('${p.id}')"><i class="ti ti-trash"></i></button></td>
+      </tr>`).join('')}</tbody></table>`;
+}
+async function _nominaEliminarPeriodo(id) {
+    if(!await confirmar('¿Borrar esta quincena guardada? No se puede deshacer.')) return;
+    try { await supabaseClient.from('nomina_periodos').delete().eq('id', id); toast('🗑️ Quincena borrada.'); await _loadNomina(); _renderNominaHistorial(); }
+    catch(e) { logError('borrar periodo nomina', e); toastError(getFriendlyError(e)); }
+}
+async function _nominaImprimir(periodoId) {
+    let titulo = '', lineas = [], pago = null;
+    if(periodoId) {
+        const p = (cache.nominaPeriodos || []).find(x => x.id === periodoId);
+        const { data } = await supabaseClient.from('nomina_lineas').select('*').eq('periodo_id', periodoId).order('orden');
+        titulo = p ? (p.titulo || '') : ''; pago = p ? p.fecha_pago : null; lineas = data || [];
+    } else {
+        if(!_nominaGen) return toast('Genera una quincena primero.', 'error');
+        _nominaRecalc();
+        titulo = (document.getElementById('nom_titulo')?.value || '').trim(); pago = document.getElementById('nom_pago')?.value || null; lineas = _nominaGen.lineas;
+    }
+    if(!lineas.length) return toast('No hay datos para imprimir.', 'error');
+    const cfg = cache.configTaller || {};
+    const filas = lineas.map((l, i) => `<tr><td>${i + 1}</td><td>${escapeHtml(l.nombre)}</td><td>${escapeHtml(l.cedula || '')}</td><td>${escapeHtml(l.cuenta_bhd || '')}</td><td>${escapeHtml(l.puesto || '')}</td><td class="n">${money(l.salario_mensual)}</td><td class="n">${money(l.salario_quincenal)}</td><td class="n">${money(l.ars)}</td><td class="n">${money(l.afp)}</td><td class="n">${money(l.incentivos)}</td><td class="n">${money(l.cuentas_por_cobrar)}</td><td class="n">${money(l.dias_descontado)}</td><td class="n b">${money(l.total)}</td></tr>`).join('');
+    const sum = (k) => lineas.reduce((s, l) => s + (Number(l[k]) || 0), 0);
+    const w = window.open('', '_blank'); if(!w) return toast('Permite las ventanas emergentes para imprimir.', 'error');
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Nomina ${escapeHtml(titulo)}</title><style>
+      *{font-family:Arial,Helvetica,sans-serif;box-sizing:border-box;} body{margin:14px; color:#0f172a; font-size:11px;}
+      .h{text-align:center; margin-bottom:6px;} .h h1{font-size:17px; margin:0;} .h div{font-size:11px; color:#475569;}
+      table{width:100%; border-collapse:collapse; font-size:10px; margin-top:8px;}
+      th,td{border:1px solid #cbd5e1; padding:3px 5px; white-space:nowrap;}
+      th{background:#0f172a; color:#fff; font-size:9.5px;} td.n{text-align:right;} td.b{font-weight:800; color:#166534;}
+      tfoot td{font-weight:800; background:#eef2ff;}
+      @media print{ @page{ size: landscape; } th{ -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
+    </style></head><body>
+      <div class="h"><h1>${escapeHtml(cfg.nombre || 'BAYOL CELL')}</h1><div>${escapeHtml(cfg.direccion || '')}</div><div>${cfg.rnc ? ('RNC: ' + escapeHtml(cfg.rnc) + ' · ') : ''}${escapeHtml(cfg.telefono || cfg.email || '')}</div><h2 style="font-size:13px; margin:6px 0 0;">N&Oacute;MINA &mdash; ${escapeHtml(titulo)}${pago ? (' &middot; Pago: ' + new Date(pago + 'T00:00:00').toLocaleDateString('es-DO')) : ''}</h2></div>
+      <table><thead><tr><th>#</th><th>Nombre</th><th>C&eacute;dula</th><th>Cuenta BHD</th><th>Puesto</th><th>Sal/mes</th><th>Quincenal</th><th>ARS</th><th>AFP</th><th>Incent.</th><th>Ctas cobrar</th><th>D&iacute;as desc.</th><th>NETO</th></tr></thead>
+      <tbody>${filas}</tbody>
+      <tfoot><tr><td colspan="6" class="n">TOTALES:</td><td class="n">${money(sum('salario_quincenal'))}</td><td class="n">${money(sum('ars'))}</td><td class="n">${money(sum('afp'))}</td><td class="n">${money(sum('incentivos'))}</td><td class="n">${money(sum('cuentas_por_cobrar'))}</td><td class="n">${money(sum('dias_descontado'))}</td><td class="n">${money(sum('total'))}</td></tr></tfoot></table>
+      <script>window.onload=function(){window.print();}<\/script></body></html>`);
+    w.document.close();
 }
 function imprimirFormatoInfoPlus() {
     const datos = _datosFormatoInfoPlus();
