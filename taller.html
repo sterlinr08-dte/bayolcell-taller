@@ -2539,6 +2539,7 @@ body{
                             <button class="btn btn-light" id="nomTabEmp" onclick="nominaTab('empleados')"><i class="ti ti-users"></i> Empleados</button>
                             <button class="btn btn-light" id="nomTabGen" onclick="nominaTab('generar')"><i class="ti ti-calculator"></i> Generar quincena</button>
                             <button class="btn btn-light" id="nomTabHist" onclick="nominaTab('historial')"><i class="ti ti-history"></i> Historial</button>
+                            <button class="btn" style="background:#fef9c3; color:#854d0e; border:1px solid #fde68a;" onclick="_nominaGuia()"><i class="ti ti-help-circle"></i> ¿Cómo hago la nómina?</button>
                         </div>
                     </div>
                     <div id="nominaContent"></div>
@@ -11153,6 +11154,51 @@ function nominaTab(t) {
     if(t === 'empleados') _renderNominaEmpleados();
     else if(t === 'generar') _renderNominaGenerar();
     else _renderNominaHistorial();
+}
+// Guía sencilla para el personal (no contadora): pasos para hacer la nómina
+const _NOM_GUIA_PASOS = [
+    { n: '1', t: 'Revisa los empleados', ic: 'ti-users', c: '#0891b2', d: 'Entra a <b>Empleados</b>. Si entró alguien nuevo, dale <b>+ Empleado</b> y llena nombre, cédula, cuenta BHD, puesto y salario. Si alguien ya no trabaja, usa el <b>🗑️ rojo</b> para quitarlo. <i>Esto solo se hace cuando hay cambios.</i>' },
+    { n: '2', t: 'Genera la quincena', ic: 'ti-calculator', c: '#2563eb', d: 'Entra a <b>Generar nómina</b>. El período (1ra o 2da quincena) y las fechas <b>salen solos</b> según el día. No tienes que escribir fechas. Verás a todos los empleados con su sueldo quincenal ya calculado.' },
+    { n: '3', t: 'Ajusta lo del mes', ic: 'ti-pencil', c: '#7c3aed', d: 'Escribe solo lo que cambie este mes: <b>Incentivos</b>, <b>Cuentas por cobrar</b> (lo que el empleado debe) y <b>Días descontado</b>. A los de <b>por día</b> (Julio Ángel, Manuel Felipe) ponles los <b>días trabajados</b>. El <b>ARS, AFP y el NETO se calculan solos</b>.' },
+    { n: '4', t: 'Guarda y paga', ic: 'ti-building-bank', c: '#16a34a', d: 'Revisa el <b>NETO A PAGAR</b> de cada uno. Dale <b>Guardar quincena</b> (queda en el Historial). Luego <b>Exportar BHD</b> para subir el archivo al banco, o <b>Volantes</b> para entregar el comprobante a cada empleado.' }
+];
+function _nominaGuia() {
+    const prev = document.getElementById('modalNomGuia'); if(prev) prev.remove();
+    const pasos = _NOM_GUIA_PASOS.map(p => `<div style="display:flex; gap:12px; align-items:flex-start; padding:12px 0; border-bottom:1px solid #f1f5f9;">
+        <div style="flex:none; width:34px; height:34px; border-radius:50%; background:${p.c}; color:#fff; font-weight:800; display:flex; align-items:center; justify-content:center; font-size:16px;">${p.n}</div>
+        <div><div style="font-weight:800; font-size:14.5px; color:#0f172a;"><i class="ti ${p.ic}" style="color:${p.c};"></i> ${p.t}</div>
+        <div style="font-size:13px; color:#475569; line-height:1.55; margin-top:3px;">${p.d}</div></div>
+    </div>`).join('');
+    const box = document.createElement('div'); box.className = 'modal-backdrop active'; box.id = 'modalNomGuia'; box.style.zIndex = '770';
+    box.innerHTML = `<div class="modal-box" style="max-width:600px;">
+      <div class="modal-header" style="background:linear-gradient(135deg,#0e7490,#0891b2); color:#fff;"><h3 style="margin:0; color:#fff;"><i class="ti ti-clipboard-check"></i> Cómo hacer la nómina — 4 pasos</h3><button class="modal-close" style="color:#fff;" onclick="document.getElementById('modalNomGuia').remove()">✕</button></div>
+      <div class="modal-body">
+        <p style="font-size:13px; color:#475569; margin:0 0 6px;">La nómina se hace <b>2 veces al mes</b>: el <b>15</b> (1ra quincena) y a <b>fin de mes</b> (2da quincena). Sigue estos pasos:</p>
+        ${pasos}
+        <div style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:9px; padding:10px 12px; margin-top:12px; font-size:12.5px; color:#075985;"><b>💡 Tip:</b> el cuadro azul de <b>TSS</b> abajo te dice cuánto tienes que pagar a la Tesorería (SFS + AFP del empleado + lo patronal). Es solo informativo.</div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-light" onclick="_nominaGuiaImprimir()"><i class="ti ti-printer"></i> Imprimir guía</button><button class="btn btn-blue" onclick="document.getElementById('modalNomGuia').remove()">Entendido</button></div>
+    </div>`;
+    document.body.appendChild(box);
+}
+function _nominaGuiaImprimir() {
+    const cfg = cache.configTaller || {};
+    const pasos = _NOM_GUIA_PASOS.map(p => `<div class="paso"><div class="num">${p.n}</div><div><div class="t">${p.t}</div><div class="d">${p.d}</div></div></div>`).join('');
+    const w = window.open('', '_blank'); if(!w) return toast('Permite las ventanas emergentes.', 'error');
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Guía Nómina</title><style>
+      *{font-family:Arial,Helvetica,sans-serif; box-sizing:border-box;} body{margin:26px; color:#0f172a; max-width:680px; margin-left:auto; margin-right:auto;}
+      h1{font-size:21px; margin:0; text-align:center;} .sub{text-align:center; color:#64748b; font-size:13px; margin:4px 0 18px;}
+      .paso{display:flex; gap:13px; align-items:flex-start; padding:13px 0; border-bottom:1px solid #e5e7eb;}
+      .num{flex:none; width:32px; height:32px; border-radius:50%; background:#0891b2; color:#fff; font-weight:800; display:flex; align-items:center; justify-content:center;}
+      .t{font-weight:800; font-size:15px;} .d{font-size:13.5px; color:#334155; line-height:1.55; margin-top:3px;}
+      .foot{margin-top:20px; text-align:center; color:#94a3b8; font-size:11px;}
+    </style></head><body>
+      <h1>${escapeHtml(cfg.nombre || 'BAYOL CELL')} — Cómo hacer la nómina</h1>
+      <div class="sub">Se hace 2 veces al mes: el 15 (1ra quincena) y a fin de mes (2da quincena)</div>
+      ${pasos}
+      <p class="foot">Guía interna · Pégala cerca de la computadora</p>
+      <script>window.onload=function(){window.print();}<\/script></body></html>`);
+    w.document.close();
 }
 function _renderNominaEmpleados() {
     const cont = document.getElementById('nominaContent'); if(!cont) return;
