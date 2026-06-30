@@ -1847,6 +1847,7 @@ body{
                                 <button class="btn btn-blue" onclick="abrirModalNuevaCompra()"><i class="ti ti-shopping-cart-plus"></i> Nueva Compra</button>
                                 <button class="btn btn-dark" style="background:#0891b2;" onclick="abrirImportarCompraInfoPlus()" title="Jalar una compra de Info Plus y crear el lote de reacondicionados"><i class="ti ti-download"></i> Importar de Info Plus</button>
                                 <button class="btn btn-dark" style="background:#7c3aed;" onclick="abrirLiquidacionAduana()" title="Calcular la liquidación de aduana (transporte + impuesto + gastos)"><i class="ti ti-building-bank"></i> Liquidación Aduana</button>
+                                <button class="btn btn-light" onclick="abrirBuscarSerialIP()" title="Buscar de qué proveedor vino un IMEI"><i class="ti ti-search"></i> IMEI → Proveedor</button>
                             </div>
                         </div>
                         
@@ -8297,6 +8298,55 @@ async function _llenarProvIPSelect(valor) {
     const sel = document.getElementById('mod_prov_codip'); if(!sel) return;
     await _cargarProveedoresIP();
     sel.innerHTML = _opcionesProveedoresIP(valor);
+}
+// ===== Buscar IMEI → de qué proveedor vino (índice infoplus_seriales) =====
+function abrirBuscarSerialIP() {
+    const prev = document.getElementById('modalSerialIP'); if(prev) prev.remove();
+    const box = document.createElement('div');
+    box.className = 'modal-backdrop active'; box.id = 'modalSerialIP'; box.style.zIndex = '760';
+    box.innerHTML = `<div class="modal-box" style="max-width:560px;">
+        <div class="modal-header" style="background:linear-gradient(135deg,#0e7490,#0891b2); color:#fff; border-radius:12px 12px 0 0;"><h3 style="margin:0; color:#fff;"><i class="ti ti-search"></i> IMEI → Proveedor</h3><button class="modal-close" style="color:#fff;" onclick="document.getElementById('modalSerialIP').remove()">✕</button></div>
+        <div class="modal-body">
+          <div style="display:flex; gap:8px;">
+            <input id="serialIPInput" placeholder="Escribe o escanea el IMEI…" style="flex:1; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px;" onkeydown="if(event.key==='Enter')buscarSerialIP()">
+            <button class="btn btn-blue" onclick="buscarSerialIP()"><i class="ti ti-search"></i> Buscar</button>
+          </div>
+          <div id="serialIPResultado" style="margin-top:12px;"></div>
+          ${isAdminUser() ? `<div style="margin-top:14px; border-top:1px solid #eef2f7; padding-top:10px; font-size:12px; color:#64748b;">¿No aparece un IMEI reciente? <button class="btn btn-light" style="padding:4px 10px; font-size:12px;" onclick="sincronizarSerialesIP()"><i class="ti ti-refresh"></i> Sincronizar seriales</button> (lee las compras de Info Plus).</div>` : ''}
+        </div>
+    </div>`;
+    document.body.appendChild(box);
+    setTimeout(() => { const i = document.getElementById('serialIPInput'); if(i) i.focus(); }, 100);
+}
+async function buscarSerialIP() {
+    const q = (document.getElementById('serialIPInput')?.value || '').replace(/\D/g, '').trim();
+    const cont = document.getElementById('serialIPResultado');
+    if(!cont) return;
+    if(!q || q.length < 5) { cont.innerHTML = '<p style="color:#b91c1c; font-size:13px;">Escribe un IMEI (al menos 5 dígitos).</p>'; return; }
+    cont.innerHTML = '<p style="color:#64748b; font-size:13px;">Buscando…</p>';
+    try {
+        const { data } = await supabaseClient.from('infoplus_seriales').select('*').ilike('imei', '%' + q + '%').limit(6);
+        if(!data || !data.length) { cont.innerHTML = `<div style="background:#fef3c7; color:#92400e; padding:10px; border-radius:8px; font-size:13px;">No se encontró ese IMEI en las compras.${isAdminUser() ? ' Prueba "Sincronizar seriales", o quizá es una compra muy vieja.' : ''}</div>`; return; }
+        cont.innerHTML = data.map(s => `<div style="border:1px solid #e2e8f0; border-radius:10px; padding:12px; margin-bottom:8px;">
+            <div style="font-weight:800; color:#0f172a;">${escapeHtml(s.producto || '—')}</div>
+            <div style="font-size:13px; margin-top:6px;">🏷️ IMEI: <b class="mono">${escapeHtml(s.imei)}</b></div>
+            <div style="font-size:13px; margin-top:3px;">🏢 Proveedor: <b style="color:#0e7490;">${escapeHtml(s.proveedor || '—')}</b>${s.codproveedor ? ` <span style="color:#94a3b8;">(${escapeHtml(s.codproveedor)})</span>` : ''}</div>
+            <div style="font-size:13px; margin-top:3px;">🧾 Factura: ${escapeHtml(s.factura || '—')} · 📅 ${s.fecha ? new Date(s.fecha + 'T00:00:00').toLocaleDateString('es-DO') : '—'}</div>
+            ${isAdminUser() ? `<div style="font-size:13px; margin-top:3px;">💰 Costo: <b>${money(s.costo)}</b></div>` : ''}
+        </div>`).join('');
+    } catch(e) { logError('buscar serial IP', e); cont.innerHTML = `<p style="color:#b91c1c;">Error: ${escapeHtml(getFriendlyError(e))}</p>`; }
+}
+async function sincronizarSerialesIP() {
+    if(!isAdminUser()) return toast('Solo el administrador.', 'error');
+    const hoy = new Date();
+    const hasta = `${hoy.getFullYear()}-${hoy.getMonth() + 1}-${hoy.getDate()}`;
+    toast('⏳ Sincronizando seriales de Info Plus…');
+    try {
+        const { data, error } = await supabaseClient.functions.invoke('infoplus-seriales-sync', { body: { desde: '2025-1-1', hasta } });
+        if(error) throw error;
+        if(data && data.ok) toast(`✅ ${data.seriales} IMEI sincronizados.`);
+        else toast('⚠️ ' + ((data && data.error) || 'No se pudo sincronizar'), 'error');
+    } catch(e) { logError('sync seriales', e); toastError(getFriendlyError(e)); }
 }
 function abrirModalProveedor() {
     document.getElementById('mod_prov_id').value = '';
