@@ -11249,7 +11249,10 @@ function _renderNominaGenerar() {
       </table></div>
       <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px; flex-wrap:wrap;">
         <button class="btn btn-light" onclick="_nominaNuevaQuincena(true)"><i class="ti ti-refresh"></i> Reiniciar</button>
-        <button class="btn btn-light" style="color:#15803d; border-color:#86efac;" onclick="_nominaImprimir(null)"><i class="ti ti-printer"></i> Imprimir</button>
+        <button class="btn btn-light" onclick="_nominaImprimir(null)"><i class="ti ti-printer"></i> Imprimir</button>
+        <button class="btn btn-light" onclick="_nominaVolantes(null)"><i class="ti ti-receipt"></i> Volantes</button>
+        <button class="btn btn-light" style="color:#15803d; border-color:#86efac;" onclick="_nominaExcel(null)"><i class="ti ti-file-spreadsheet"></i> Excel</button>
+        <button class="btn btn-dark" style="background:#0e7490;" onclick="_nominaExportarBHD(null)"><i class="ti ti-building-bank"></i> Exportar BHD</button>
         <button class="btn btn-blue" onclick="_nominaGuardarPeriodo()"><i class="ti ti-device-floppy"></i> Guardar quincena</button>
       </div>`;
     _nominaRecalc();
@@ -11303,7 +11306,7 @@ function _renderNominaHistorial() {
         <td style="padding:7px; border-bottom:1px solid #eef2f7;">${escapeHtml(p.titulo || '—')}</td>
         <td style="padding:7px; border-bottom:1px solid #eef2f7; text-align:center;">${p.fecha_pago ? new Date(p.fecha_pago + 'T00:00:00').toLocaleDateString('es-DO') : '—'}</td>
         <td style="padding:7px; border-bottom:1px solid #eef2f7; text-align:center; color:#94a3b8; font-size:11px;">${p.creado_en ? new Date(p.creado_en).toLocaleDateString('es-DO') : ''}</td>
-        <td style="padding:7px; border-bottom:1px solid #eef2f7; text-align:center; white-space:nowrap;"><button class="btn btn-light" style="padding:4px 9px; font-size:11px; color:#0369a1;" onclick="_nominaImprimir('${p.id}')"><i class="ti ti-printer"></i> Imprimir</button> <button class="btn btn-light" style="padding:4px 9px; font-size:11px; color:#b91c1c;" onclick="_nominaEliminarPeriodo('${p.id}')"><i class="ti ti-trash"></i></button></td>
+        <td style="padding:7px; border-bottom:1px solid #eef2f7; text-align:center; white-space:nowrap;"><button class="btn btn-light" style="padding:4px 8px; font-size:11px; color:#0369a1;" onclick="_nominaImprimir('${p.id}')"><i class="ti ti-printer"></i> Imprimir</button> <button class="btn btn-light" style="padding:4px 8px; font-size:11px;" onclick="_nominaVolantes('${p.id}')"><i class="ti ti-receipt"></i> Volantes</button> <button class="btn btn-light" style="padding:4px 8px; font-size:11px; color:#15803d;" onclick="_nominaExcel('${p.id}')">Excel</button> <button class="btn btn-light" style="padding:4px 8px; font-size:11px; color:#0e7490;" onclick="_nominaExportarBHD('${p.id}')">BHD</button> <button class="btn btn-light" style="padding:4px 8px; font-size:11px; color:#b91c1c;" onclick="_nominaEliminarPeriodo('${p.id}')"><i class="ti ti-trash"></i></button></td>
       </tr>`).join('')}</tbody></table>`;
 }
 async function _nominaEliminarPeriodo(id) {
@@ -11341,6 +11344,86 @@ async function _nominaImprimir(periodoId) {
       <tbody>${filas}</tbody>
       <tfoot><tr><td colspan="6" class="n">TOTALES:</td><td class="n">${money(sum('salario_quincenal'))}</td><td class="n">${money(sum('ars'))}</td><td class="n">${money(sum('afp'))}</td><td class="n">${money(sum('incentivos'))}</td><td class="n">${money(sum('cuentas_por_cobrar'))}</td><td class="n">${money(sum('dias_descontado'))}</td><td class="n">${money(sum('total'))}</td></tr></tfoot></table>
       <script>window.onload=function(){window.print();}<\/script></body></html>`);
+    w.document.close();
+}
+// Devuelve {titulo, pago, lineas} de un período guardado, o de la quincena en pantalla
+async function _nominaGetLineas(periodoId) {
+    if(periodoId) {
+        const p = (cache.nominaPeriodos || []).find(x => x.id === periodoId);
+        const { data } = await supabaseClient.from('nomina_lineas').select('*').eq('periodo_id', periodoId).order('orden');
+        return { titulo: p ? (p.titulo || '') : '', pago: p ? p.fecha_pago : null, lineas: data || [] };
+    }
+    if(!_nominaGen) return null;
+    _nominaRecalc();
+    return { titulo: (document.getElementById('nom_titulo')?.value || '').trim(), pago: document.getElementById('nom_pago')?.value || null, lineas: _nominaGen.lineas };
+}
+function _descargarXls(html, filename) {
+    const blob = new Blob(['﻿' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click();
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+}
+// Exporta el archivo que pide BHD para la carga de nómina (Cuenta · Nombre · Referencia · Monto · Concepto · Correo)
+async function _nominaExportarBHD(periodoId) {
+    const d = await _nominaGetLineas(periodoId);
+    if(!d || !d.lineas.length) return toast('No hay datos para exportar.', 'error');
+    let ref = '';
+    if(d.pago) { const p = new Date(d.pago + 'T00:00:00'); ref = String(p.getDate()).padStart(2, '0') + String(p.getMonth() + 1).padStart(2, '0') + p.getFullYear(); }
+    const n2 = v => (Number(v) || 0).toFixed(2);
+    const filas = d.lineas.filter(l => (Number(l.total) || 0) > 0).map(l => `<tr><td>${escapeHtml(l.cuenta_bhd || '')}</td><td>${escapeHtml(l.nombre || '')}</td><td>${ref}</td><td>${n2(l.total)}</td><td>PAGO NOMINA</td><td></td></tr>`).join('');
+    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"></head><body><table border="1">
+      <tr><th>Número de la cuenta</th><th>Nombre del empleado</th><th>Número de referencia</th><th>Monto de pago</th><th>Concepto</th><th>Correo electrónico</th></tr>
+      ${filas}</table></body></html>`;
+    _descargarXls(html, `BHD_nomina_${(d.titulo || '').replace(/[^a-z0-9]+/gi, '_') || 'quincena'}.xls`);
+    toast('✅ Archivo BHD descargado (listo para subir al banco).');
+}
+async function _nominaExcel(periodoId) {
+    const d = await _nominaGetLineas(periodoId);
+    if(!d || !d.lineas.length) return toast('No hay datos para exportar.', 'error');
+    const cfg = cache.configTaller || {};
+    const n2 = v => (Number(v) || 0).toFixed(2);
+    const filas = d.lineas.map((l, i) => `<tr><td>${i + 1}</td><td>${escapeHtml(l.nombre || '')}</td><td>${escapeHtml(l.cedula || '')}</td><td>${escapeHtml(l.cuenta_bhd || '')}</td><td>${escapeHtml(l.puesto || '')}</td><td>${n2(l.salario_mensual)}</td><td>${n2(l.salario_quincenal)}</td><td>${n2(l.ars)}</td><td>${n2(l.afp)}</td><td>${n2(l.incentivos)}</td><td>${n2(l.cuentas_por_cobrar)}</td><td>${n2(l.dias_descontado)}</td><td>${n2(l.total)}</td></tr>`).join('');
+    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"></head><body><table border="1">
+      <tr><th colspan="13" style="font-size:15px;">${escapeHtml(cfg.nombre || 'BAYOL CELL')} — NÓMINA ${escapeHtml(d.titulo || '')}</th></tr>
+      <tr style="background:#0f172a; color:#fff;"><th>#</th><th>Nombre</th><th>Cédula</th><th>Cuenta BHD</th><th>Puesto</th><th>Salario/mes</th><th>Quincenal</th><th>ARS</th><th>AFP</th><th>Incentivos</th><th>Ctas cobrar</th><th>Días desc.</th><th>NETO</th></tr>
+      ${filas}</table></body></html>`;
+    _descargarXls(html, `Nomina_${(d.titulo || '').replace(/[^a-z0-9]+/gi, '_') || 'quincena'}.xls`);
+    toast('✅ Excel descargado.');
+}
+// Imprime un VOLANTE DE PAGO por cada empleado (uno por página)
+async function _nominaVolantes(periodoId) {
+    const d = await _nominaGetLineas(periodoId);
+    if(!d || !d.lineas.length) return toast('No hay datos.', 'error');
+    const cfg = cache.configTaller || {};
+    const fecha = d.pago ? new Date(d.pago + 'T00:00:00').toLocaleDateString('es-DO') : '';
+    const volantes = d.lineas.map(l => `<div class="vol">
+        <div class="vh"><div class="emp">${escapeHtml(cfg.nombre || 'BAYOL CELL')}</div><div class="sub">${escapeHtml(cfg.direccion || '')}${cfg.rnc ? ' · RNC ' + escapeHtml(cfg.rnc) : ''}</div><div class="tit">VOLANTE DE PAGO — ${escapeHtml(d.titulo || '')}${fecha ? ' · ' + fecha : ''}</div></div>
+        <div class="datos"><b>${escapeHtml(l.nombre || '')}</b> · Cédula ${escapeHtml(l.cedula || '—')} · ${escapeHtml(l.puesto || '')}<br>Cuenta BHD: ${escapeHtml(l.cuenta_bhd || '—')}</div>
+        <table class="vt">
+          <tr><th colspan="2" class="ig">INGRESOS</th></tr>
+          <tr><td>Salario quincenal</td><td class="n">${money(l.salario_quincenal)}</td></tr>
+          ${Number(l.incentivos) ? `<tr><td>Incentivos</td><td class="n">${money(l.incentivos)}</td></tr>` : ''}
+          <tr><th colspan="2" class="de">DESCUENTOS</th></tr>
+          <tr><td>ARS (salud 3.04%)</td><td class="n">${money(l.ars)}</td></tr>
+          <tr><td>AFP (pensión 2.87%)</td><td class="n">${money(l.afp)}</td></tr>
+          ${Number(l.cuentas_por_cobrar) ? `<tr><td>Cuentas por cobrar</td><td class="n">${money(l.cuentas_por_cobrar)}</td></tr>` : ''}
+          ${Number(l.dias_descontado) ? `<tr><td>Días descontado</td><td class="n">${money(l.dias_descontado)}</td></tr>` : ''}
+          <tr class="neto"><td><b>NETO A PAGAR</b></td><td class="n"><b>${money(l.total)}</b></td></tr>
+        </table>
+        <div class="firma">_______________________<br>Recibí conforme</div>
+      </div>`).join('');
+    const w = window.open('', '_blank'); if(!w) return toast('Permite las ventanas emergentes.', 'error');
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Volantes ${escapeHtml(d.titulo || '')}</title><style>
+      *{font-family:Arial,Helvetica,sans-serif;box-sizing:border-box;} body{margin:0; color:#0f172a;}
+      .vol{padding:22px; page-break-after:always; max-width:560px; margin:0 auto;}
+      .vh{text-align:center; border-bottom:2px solid #0e7490; padding-bottom:6px;} .vh .emp{font-size:18px; font-weight:800;} .vh .sub{font-size:11px; color:#475569;} .vh .tit{font-size:13px; font-weight:700; color:#0e7490; margin-top:4px;}
+      .datos{font-size:13px; margin:12px 0;}
+      table.vt{width:100%; border-collapse:collapse; font-size:13px;} table.vt td,table.vt th{border:1px solid #cbd5e1; padding:6px 9px;} td.n{text-align:right;}
+      .ig{background:#dcfce7; color:#166534; text-align:left;} .de{background:#fef3c7; color:#92400e; text-align:left;}
+      tr.neto td{background:#ecfeff; font-size:15px; color:#0e7490;}
+      .firma{margin-top:34px; text-align:center; font-size:12px; color:#475569;}
+      @media print{ .vh,.ig,.de,tr.neto td{ -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
+    </style></head><body>${volantes}<script>window.onload=function(){window.print();}<\/script></body></html>`);
     w.document.close();
 }
 function imprimirFormatoInfoPlus() {
