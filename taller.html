@@ -4809,7 +4809,7 @@ function _incFilaRegistro(r) {
         <td>${_incTipoTxt(r.tipo)}</td>
         <td style="text-align:right;">${r.monto_factura ? money(r.monto_factura) : '-'}</td>
         <td style="text-align:right; font-weight:700;">${money(r.monto_incentivo)}</td>
-        <td>${_incEstadoBadge(est)}${(est === 'validado' || est === 'pagado') && r.aprobado_por ? `<div style="font-size:10px; color:#16a34a; margin-top:2px;">✓ ${escapeHtml(r.aprobado_por)}</div>` : ''}</td>
+        <td>${_incEstadoBadge(est, r.sellado)}${(est === 'validado' || est === 'pagado') && r.aprobado_por ? `<div style="font-size:10px; color:#16a34a; margin-top:2px;">✓ ${escapeHtml(r.aprobado_por)}</div>` : ''}</td>
         <td style="white-space:nowrap; text-align:right;">
             ${est === 'pendiente' ? `<button class="btn btn-light btn-sm" onclick="setEstadoIncentivo('${r.id}','validado')" title="Validar (firmado y sellado)" style="color:#1d4ed8;"><i class="ti ti-rosette-discount-check"></i></button>` : ''}
             ${est === 'validado' ? `<button class="btn btn-light btn-sm" onclick="setEstadoIncentivo('${r.id}','pendiente')" title="Quitar validación">↩</button>` : ''}
@@ -4825,7 +4825,7 @@ function _incFilaServicioAgrupada(r) {
     return `<tr>
         <td>${_incTipoTxt(r.tipo)}${r.nota ? ` <span style="color:#94a3b8; font-size:11px;">· ${escapeHtml(r.nota)}</span>` : ''}</td>
         <td style="text-align:right; font-weight:700;">${money(r.monto_incentivo)}</td>
-        <td>${_incEstadoBadge(est)}${(est === 'validado' || est === 'pagado') && r.aprobado_por ? `<div style="font-size:10px; color:#16a34a; margin-top:2px;">✓ ${escapeHtml(r.aprobado_por)}</div>` : ''}</td>
+        <td>${_incEstadoBadge(est, r.sellado)}${(est === 'validado' || est === 'pagado') && r.aprobado_por ? `<div style="font-size:10px; color:#16a34a; margin-top:2px;">✓ ${escapeHtml(r.aprobado_por)}</div>` : ''}</td>
         <td style="white-space:nowrap; text-align:right;">
             ${est === 'pendiente' ? `<button class="btn btn-light btn-sm" onclick="setEstadoIncentivo('${r.id}','validado')" title="Validar (firmado y sellado)" style="color:#1d4ed8;"><i class="ti ti-rosette-discount-check"></i></button>` : ''}
             ${est === 'validado' ? `<button class="btn btn-light btn-sm" onclick="setEstadoIncentivo('${r.id}','pendiente')" title="Quitar validación">↩</button>` : ''}
@@ -4850,11 +4850,14 @@ function _incQuincena(offset) {
 }
 function _incFmtFecha(f) { try { return new Date((f || '').slice(0,10) + 'T00:00:00').toLocaleDateString('es-DO', { day:'2-digit', month:'2-digit', year:'numeric' }); } catch(e) { return f || ''; } }
 function _incTipoTxt(t) { return t === 'pulido' ? '✨ Pulido pantalla' : (t === 'manual' ? '✏️ Manual' : '🔧 Reparación'); }
-function _incEstadoBadge(e) {
-    if(e === 'pagado') return '<span style="background:#dcfce7; color:#16a34a; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px;">Pagado</span>';
-    if(e === 'validado') return '<span style="background:#dbeafe; color:#1d4ed8; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px;">Validado</span>';
-    if(e === 'rechazado') return '<span style="background:#fee2e2; color:#b91c1c; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px;">⚠️ Devuelto</span>';
-    return '<span style="background:#fef3c7; color:#b45309; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px;">Pendiente</span>';
+function _incEstadoBadge(e, sellado) {
+    const chip = (bg, col, txt) => `<span style="background:${bg}; color:${col}; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; white-space:nowrap;">${txt}</span>`;
+    if(e === 'pagado') return chip('#dcfce7', '#16a34a', '✔✔ Pagado');
+    if(e === 'validado') return sellado
+        ? chip('#2563eb', '#ffffff', '✔✔ Validado y sellado')
+        : chip('#dbeafe', '#1d4ed8', '✔ Validado');
+    if(e === 'rechazado') return chip('#fee2e2', '#b91c1c', '⚠️ Devuelto');
+    return chip('#fef3c7', '#b45309', '⏳ Pendiente');
 }
 function _incRefrescar() {
     if(document.getElementById('v-registroTickets')?.classList.contains('active')) { cargarRegistroTickets(); return; }
@@ -5106,6 +5109,7 @@ async function setEstadoIncentivo(id, estado) {
         const quien = (typeof sessionUser !== 'undefined' && sessionUser) ? (sessionUser.nombre || sessionUser.usuario || null) : null;
         const upd = { estado, pagado_en: estado === 'pagado' ? new Date().toISOString() : null };
         if(estado === 'validado') { upd.aprobado_por = quien; upd.aprobado_en = new Date().toISOString(); }
+        if(estado === 'pendiente' || estado === 'rechazado') { upd.sellado = false; upd.sellado_por = null; upd.sellado_en = null; }
         const { error } = await supabaseClient.from('taller_incentivos').update(upd).eq('id', id);
         if(error) throw error;
         renderIncentivos();
@@ -5144,6 +5148,8 @@ function _valFiltrar() {
     return (_incCache || []).filter(r => {
         if(_valTecId && (r.tecnico_id || '_') !== _valTecId) return false;
         if(_valEstado === 'pendiente' && r.estado !== 'pendiente') return false;
+        if(_valEstado === 'validado' && r.estado !== 'validado') return false;
+        if(_valEstado === 'porsellar' && !(r.estado === 'validado' && !r.sellado)) return false;
         if(_valEstado === 'rechazado' && r.estado !== 'rechazado') return false;
         if(!q) return true;
         return (r.ticket || '').toLowerCase().includes(q) || (r.tecnico_nombre || '').toLowerCase().includes(q) || (r.nota || '').toLowerCase().includes(q);
@@ -5161,6 +5167,8 @@ function _valRenderShell() {
           <input id="valBusq" placeholder="🔎 Buscar por # ticket, técnico o nota…" value="${escapeHtml(_valBusq)}" oninput="_valBusq=this.value; _valRenderLista()" style="flex:1; min-width:200px; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px;">
           <select id="valEstado" onchange="_valEstado=this.value; _valRenderLista()" style="padding:8px 10px; border:1px solid #cbd5e1; border-radius:8px;">
             <option value="pendiente">Por validar</option>
+            <option value="porsellar">Validados (por sellar)</option>
+            <option value="validado">Validados</option>
             <option value="rechazado">Devueltos</option>
             <option value="todos">Todos</option>
           </select>
@@ -5178,11 +5186,17 @@ function _valRenderLista() {
     if(!lista.length) { cont.innerHTML = `<div style="text-align:center; color:#64748b; padding:24px;">No hay tickets que coincidan.</div>`; return; }
     const filas = lista.map(r => `<tr>
         <td>${escapeHtml(r.tecnico_nombre || '-')}</td>
-        <td>🎫 ${escapeHtml(r.ticket || 'Sin #')}<div style="font-size:11px; color:#94a3b8;">${_incFmtFecha(r.fecha)} · ${_incTipoTxt(r.tipo)}</div>${r.estado === 'rechazado' && r.rechazo_motivo ? `<div style="font-size:11px; color:#b91c1c;">⚠️ ${escapeHtml(r.rechazo_motivo)}</div>` : ''}${(r.estado === 'validado' || r.estado === 'pagado') && r.aprobado_por ? `<div style="font-size:11px; color:#16a34a;">✓ Validado por ${escapeHtml(r.aprobado_por)}</div>` : ''}</td>
+        <td>🎫 ${escapeHtml(r.ticket || 'Sin #')}<div style="font-size:11px; color:#94a3b8;">${_incFmtFecha(r.fecha)} · ${_incTipoTxt(r.tipo)}</div>${r.estado === 'rechazado' && r.rechazo_motivo ? `<div style="font-size:11px; color:#b91c1c;">⚠️ ${escapeHtml(r.rechazo_motivo)}</div>` : ''}${(r.estado === 'validado' || r.estado === 'pagado') && r.aprobado_por ? `<div style="font-size:11px; color:#16a34a;">✔ Validado por ${escapeHtml(r.aprobado_por)}</div>` : ''}${r.sellado && r.sellado_por ? `<div style="font-size:11px; color:#2563eb;">✔✔ Sellado por ${escapeHtml(r.sellado_por)}</div>` : ''}</td>
         <td style="text-align:right;">${money(r.monto_factura || 0)}</td>
         <td style="text-align:right; font-weight:700;">${money(r.monto_incentivo)}</td>
-        <td style="text-align:center;">${_incEstadoBadge(r.estado)}</td>
-        <td style="white-space:nowrap; text-align:right;">${(r.estado === 'pendiente' || r.estado === 'rechazado') ? `<button class="btn btn-sm" style="background:#16a34a; color:#fff;" onclick="_valValidar('${r.id}')" title="Validar"><i class="ti ti-check"></i></button> <button class="btn btn-sm" style="background:#fee2e2; color:#b91c1c;" onclick="_valDevolver('${r.id}')" title="Devolver al técnico"><i class="ti ti-arrow-back-up"></i></button>` : '<span style="font-size:11px; color:#94a3b8;">—</span>'}</td>
+        <td style="text-align:center;">${_incEstadoBadge(r.estado, r.sellado)}</td>
+        <td style="white-space:nowrap; text-align:right;">${(r.estado === 'pendiente' || r.estado === 'rechazado')
+            ? `<button class="btn btn-sm" style="background:#16a34a; color:#fff;" onclick="_valValidar('${r.id}')" title="Validar"><i class="ti ti-check"></i></button> <button class="btn btn-sm" style="background:#fee2e2; color:#b91c1c;" onclick="_valDevolver('${r.id}')" title="Devolver al técnico"><i class="ti ti-arrow-back-up"></i></button>`
+            : (r.estado === 'validado'
+                ? (r.sellado
+                    ? `<button class="btn btn-sm" style="background:#e0e7ff; color:#3730a3;" onclick="_valSellar('${r.id}', false)" title="Quitar sello"><i class="ti ti-x"></i> Sello</button>`
+                    : `<button class="btn btn-sm" style="background:#2563eb; color:#fff;" onclick="_valSellar('${r.id}', true)" title="Marcar firmado y sellado (2º check)"><i class="ti ti-writing-sign"></i> Sellar</button>`)
+                : '<span style="font-size:11px; color:#94a3b8;">—</span>')}</td>
       </tr>`).join('');
     const totalInc = lista.filter(r => r.estado === 'pendiente' || r.estado === 'rechazado').reduce((s, r) => s + Number(r.monto_incentivo || 0), 0);
     cont.innerHTML = `<div style="font-size:12px; color:#64748b; margin-bottom:4px;">${lista.length} ticket(s)${totalInc ? ` · incentivo por validar: <b>${money(totalInc)}</b>` : ''}</div>
@@ -5194,11 +5208,23 @@ async function _valValidar(id) {
     if(!puedeValidarTickets()) { toast('No tienes permiso.', 'error'); return; }
     const r = (_incCache || []).find(x => x.id === id); if(!r) return;
     try {
-        const upd = { estado: 'validado', rechazo_motivo: null, aprobado_por: (sessionUser?.nombre || sessionUser?.usuario || null), aprobado_en: new Date().toISOString() };
+        const upd = { estado: 'validado', rechazo_motivo: null, sellado: false, sellado_por: null, sellado_en: null, aprobado_por: (sessionUser?.nombre || sessionUser?.usuario || null), aprobado_en: new Date().toISOString() };
         const { error } = await supabaseClient.from('taller_incentivos').update(upd).eq('id', id);
         if(error) throw error;
-        Object.assign(r, upd); toast('✅ Ticket validado.'); _valRenderLista();
+        Object.assign(r, upd); toast('✔ Ticket validado.'); _valRenderLista();
     } catch(e) { console.error('_valValidar', e); toast('No se pudo validar.', 'error'); }
+}
+async function _valSellar(id, sellar) {
+    if(!puedeValidarTickets()) { toast('No tienes permiso.', 'error'); return; }
+    const r = (_incCache || []).find(x => x.id === id); if(!r) return;
+    if(sellar && r.estado !== 'validado') { toast('Primero valida el ticket.', 'error'); return; }
+    try {
+        const quien = (sessionUser?.nombre || sessionUser?.usuario || null);
+        const upd = sellar ? { sellado: true, sellado_por: quien, sellado_en: new Date().toISOString() } : { sellado: false, sellado_por: null, sellado_en: null };
+        const { error } = await supabaseClient.from('taller_incentivos').update(upd).eq('id', id);
+        if(error) throw error;
+        Object.assign(r, upd); toast(sellar ? '✔✔ Ticket firmado y sellado.' : 'Sello quitado.'); _valRenderLista();
+    } catch(e) { console.error('_valSellar', e); toast('No se pudo.', 'error'); }
 }
 async function _valDevolver(id) {
     if(!puedeValidarTickets()) { toast('No tienes permiso.', 'error'); return; }
@@ -5207,9 +5233,10 @@ async function _valDevolver(id) {
     if(motivo === null) return;
     if(!(motivo || '').trim()) { toast('Escribe el motivo para que el técnico sepa qué corregir.', 'error'); return; }
     try {
-        const { error } = await supabaseClient.from('taller_incentivos').update({ estado: 'rechazado', rechazo_motivo: motivo.trim() }).eq('id', id);
+        const upd = { estado: 'rechazado', rechazo_motivo: motivo.trim(), sellado: false, sellado_por: null, sellado_en: null };
+        const { error } = await supabaseClient.from('taller_incentivos').update(upd).eq('id', id);
         if(error) throw error;
-        r.estado = 'rechazado'; r.rechazo_motivo = motivo.trim(); toast('↩️ Ticket devuelto al técnico.'); _valRenderLista();
+        Object.assign(r, upd); toast('↩️ Ticket devuelto al técnico.'); _valRenderLista();
     } catch(e) { console.error('_valDevolver', e); toast('No se pudo devolver.', 'error'); }
 }
 function _valRevisarSecuencial() {
@@ -5318,9 +5345,10 @@ async function _revRechazar() {
     if(motivo === null) return;
     if(!(motivo || '').trim()) { toast('Escribe el motivo para que el técnico sepa qué corregir.', 'error'); return; }
     try {
-        const { error } = await supabaseClient.from('taller_incentivos').update({ estado: 'rechazado', rechazo_motivo: motivo.trim() }).eq('id', r.id);
+        const upd = { estado: 'rechazado', rechazo_motivo: motivo.trim(), sellado: false, sellado_por: null, sellado_en: null };
+        const { error } = await supabaseClient.from('taller_incentivos').update(upd).eq('id', r.id);
         if(error) throw error;
-        r.estado = 'rechazado'; r.rechazo_motivo = motivo.trim();
+        Object.assign(r, upd);
         _revData.devueltos++; _revData.idx++; _revRender();
     } catch(e) { console.error('_revRechazar', e); toast('No se pudo devolver.', 'error'); }
 }
@@ -5688,7 +5716,7 @@ function renderRegistroTickets() {
         const filas = g.items.map(it => `<tr>
             <td>${_incTipoTxt(it.tipo)}${it.nota ? ` <span style="color:#94a3b8; font-size:11px;">· ${escapeHtml(it.nota)}</span>` : ''}${it.estado === 'rechazado' && it.rechazo_motivo ? `<div style="color:#b91c1c; font-size:11px; margin-top:3px;">⚠️ Devuelto: ${escapeHtml(it.rechazo_motivo)} <span style="color:#64748b;">— corrígelo y guarda para reenviarlo.</span></div>` : ''}</td>
             <td style="text-align:right; font-weight:700;">${money(it.monto_incentivo)}</td>
-            <td style="text-align:center;">${_incEstadoBadge(it.estado)}</td>
+            <td style="text-align:center;">${_incEstadoBadge(it.estado, it.sellado)}</td>
             <td style="text-align:right; white-space:nowrap;">${(it.estado === 'pendiente' || it.estado === 'rechazado') ? `<button class="btn btn-light btn-sm" onclick="editarIncentivo('${it.id}')" title="Editar"><i class="ti ti-pencil"></i></button> <button class="btn btn-light btn-sm" onclick="borrarIncentivo('${it.id}')" title="Borrar" style="color:#b91c1c;"><i class="ti ti-trash"></i></button>` : '<span style="font-size:11px; color:#94a3b8;">—</span>'}</td>
         </tr>`).join('');
         return `<div style="border:1px solid #e2e8f0; border-radius:12px; margin-bottom:10px; padding:10px 12px;">
