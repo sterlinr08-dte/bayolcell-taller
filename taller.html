@@ -5234,11 +5234,13 @@ function _valRenderLista() {
 async function _valValidar(id) {
     if(!puedeValidarTickets()) { toast('No tienes permiso.', 'error'); return; }
     const r = (_incCache || []).find(x => x.id === id); if(!r) return;
+    if(!r.sellado) { toast('🔒 Marca primero "Firmado y sellado" para poder validar este ticket.', 'error'); return; }
     try {
-        const upd = { estado: 'validado', rechazo_motivo: null, sellado: false, sellado_por: null, sellado_en: null, aprobado_por: (sessionUser?.nombre || sessionUser?.usuario || null), aprobado_en: new Date().toISOString() };
+        const quien = (sessionUser?.nombre || sessionUser?.usuario || null);
+        const upd = { estado: 'validado', rechazo_motivo: null, sellado: true, sellado_por: r.sellado_por || quien, sellado_en: r.sellado_en || new Date().toISOString(), aprobado_por: quien, aprobado_en: new Date().toISOString() };
         const { error } = await supabaseClient.from('taller_incentivos').update(upd).eq('id', id);
         if(error) throw error;
-        Object.assign(r, upd); toast('✔ Ticket validado.'); _valRenderLista();
+        Object.assign(r, upd); toast('✔✔ Ticket validado (firmado y sellado).'); _valRenderLista();
     } catch(e) { console.error('_valValidar', e); toast('No se pudo validar.', 'error'); }
 }
 async function _valBorrar(id) {
@@ -5252,7 +5254,7 @@ async function _valBorrar(id) {
         toast('Registro borrado.'); _valRenderLista();
     } catch(e) { console.error('_valBorrar', e); toast('No se pudo borrar.', 'error'); }
 }
-// Check "Firmado y sellado" de la lista: un clic marca (valida+sella si estaba pendiente); otro clic lo quita.
+// Check "Firmado y sellado" de la lista: SOLO marca/desmarca el sello (se pone azul). No valida — para validar se usa el ✔.
 async function _valToggleSello(id) {
     if(!puedeValidarTickets()) { toast('No tienes permiso.', 'error'); return; }
     const r = (_incCache || []).find(x => x.id === id); if(!r) return;
@@ -5260,7 +5262,7 @@ async function _valToggleSello(id) {
     const quien = (sessionUser?.nombre || sessionUser?.usuario || null);
     const ahora = new Date().toISOString();
     const upd = !r.sellado
-        ? { estado: 'validado', rechazo_motivo: null, aprobado_por: r.aprobado_por || quien, aprobado_en: r.aprobado_en || ahora, sellado: true, sellado_por: quien, sellado_en: ahora }
+        ? { sellado: true, sellado_por: quien, sellado_en: ahora }
         : { sellado: false, sellado_por: null, sellado_en: null };
     try {
         const { error } = await supabaseClient.from('taller_incentivos').update(upd).eq('id', id);
@@ -5381,6 +5383,7 @@ async function _revCorrecto() {
     if(inc <= 0) { toast('El incentivo debe ser mayor que 0.', 'error'); return; }
     if(fac <= 0) { toast('El monto de la factura es obligatorio.', 'error'); return; }
     const sellada = !!document.getElementById('rv_sellada')?.checked;
+    if(!sellada) { toast('🔒 Marca "Firmada y sellada" para poder validar este ticket.', 'error'); return; }
     const quien = (sessionUser?.nombre || sessionUser?.usuario || null);
     const upd = {
         tipo: document.getElementById('rv_tipo')?.value || r.tipo,
