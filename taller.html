@@ -4988,7 +4988,7 @@ async function renderIncentivos() {
                 <td style="text-align:right; color:#1d4ed8; font-weight:700;">${money(r.porPagar)}</td>
                 <td style="text-align:right; color:#16a34a;">${money(r.pagado)}</td>
                 <td style="text-align:right; white-space:nowrap;">
-                    ${r.porValidar > 0 ? `<button class="btn btn-light btn-sm" onclick="event.stopPropagation(); abrirRevisionTickets('${k}')" title="Revisar y validar los tickets uno por uno" style="color:#1d4ed8;"><i class="ti ti-checklist"></i> Validar</button>` : ''}
+                    ${r.porValidar > 0 ? `<button class="btn btn-light btn-sm" onclick="event.stopPropagation(); abrirValidadorGlobal('${k}')" title="Ver y validar los tickets de este técnico" style="color:#1d4ed8;"><i class="ti ti-checklist"></i> Validar</button>` : ''}
                     ${r.porPagar > 0 ? `<button class="btn btn-blue btn-sm" onclick="event.stopPropagation(); guardarReporteIncentivos('${k}')" title="Pagar validados y guardar reporte"><i class="ti ti-cash"></i> Pagar</button>` : ''}
                     <button class="btn btn-light btn-sm" onclick="event.stopPropagation(); imprimirIncentivosTecnico('${k}')" title="Imprimir resumen"><i class="ti ti-printer"></i></button>
                 </td>
@@ -5122,19 +5122,22 @@ async function validarTodoTecnico(tecnicoId) {
     } catch(e) { console.error('validarTodoTecnico', e); toast('No se pudo validar.', 'error'); }
 }
 // ===== VALIDADOR GLOBAL: todos los tickets de todos los técnicos + buscador =====
-let _valBusq = '', _valEstado = 'pendiente';
-function abrirValidadorGlobal() {
+let _valBusq = '', _valEstado = 'pendiente', _valTecId = '';
+function abrirValidadorGlobal(tecId) {
     if(!isAdminUser()) { toast('Solo administradores.', 'error'); return; }
-    _valBusq = ''; _valEstado = 'pendiente';
+    _valBusq = ''; _valEstado = 'pendiente'; _valTecId = tecId || '';
     let modal = document.getElementById('modalValTickets');
     if(!modal) { modal = document.createElement('div'); modal.id = 'modalValTickets'; modal.className = 'modal-backdrop'; document.body.appendChild(modal); }
     modal.style.zIndex = '770'; modal.classList.add('active');
     _valRenderShell(); _valRenderLista();
 }
 function _valCerrar() { const m = document.getElementById('modalValTickets'); if(m) m.classList.remove('active'); renderIncentivos(); }
+function _valQuitarTec() { _valTecId = ''; _valRenderShell(); _valRenderLista(); }
+function _valTecNombre() { if(!_valTecId) return ''; const r = (_incCache || []).find(x => (x.tecnico_id || '_') === _valTecId); return r ? (r.tecnico_nombre || 'Técnico') : ''; }
 function _valFiltrar() {
     const q = (_valBusq || '').toLowerCase().trim();
     return (_incCache || []).filter(r => {
+        if(_valTecId && (r.tecnico_id || '_') !== _valTecId) return false;
         if(_valEstado === 'pendiente' && r.estado !== 'pendiente') return false;
         if(_valEstado === 'rechazado' && r.estado !== 'rechazado') return false;
         if(!q) return true;
@@ -5158,6 +5161,7 @@ function _valRenderShell() {
           </select>
           <button class="btn" style="background:#16a34a; color:#fff;" onclick="_valRevisarSecuencial()"><i class="ti ti-player-play"></i> Revisar uno por uno</button>
         </div>
+        ${_valTecId ? `<div style="margin-bottom:8px;"><span style="display:inline-flex; align-items:center; gap:6px; background:#dbeafe; color:#1d4ed8; font-size:12.5px; font-weight:700; padding:4px 10px; border-radius:999px;">👨‍🔧 Solo: ${escapeHtml(_valTecNombre())} <span onclick="_valQuitarTec()" style="cursor:pointer; font-weight:900;" title="Ver todos">✕</span></span></div>` : ''}
         <div id="valLista"></div>
       </div>
     </div>`;
