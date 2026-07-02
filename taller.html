@@ -4849,6 +4849,30 @@ function _incQuincena(offset) {
 }
 function _incFmtFecha(f) { try { return new Date((f || '').slice(0,10) + 'T00:00:00').toLocaleDateString('es-DO', { day:'2-digit', month:'2-digit', year:'numeric' }); } catch(e) { return f || ''; } }
 function _incTipoTxt(t) { return t === 'pulido' ? '✨ Pulido pantalla' : (t === 'manual' ? '✏️ Manual' : '🔧 Reparación'); }
+function _incTipoCorto(t) { return t === 'pulido' ? 'Pulido' : (t === 'manual' ? 'Manual' : 'Reparación'); }
+// ¿Ya existe este ticket + tipo + técnico? (bloquea duplicados exactos; 'manual' no se bloquea). Devuelve id o null.
+function _incDupExactoId(ticket, tecnicoId, tipo, excluirId) {
+    if(!ticket || tipo === 'manual') return null;
+    const tk = String(ticket).trim().toLowerCase();
+    const hit = (_incCache || []).find(r => r.id !== excluirId && (r.ticket || '').trim().toLowerCase() === tk && (r.tecnico_id || '') === (tecnicoId || '') && (r.tipo || '') === tipo);
+    return hit ? hit.id : null;
+}
+// Revisa una lista de servicios contra la BD y entre sí. Devuelve mensaje de error (string) o null si todo OK.
+function _incChequearDuplicados(ticket, tecnicoId, tecnicoNombre, servicios) {
+    if(!ticket) return null;
+    const vistos = new Set();
+    for(const s of servicios) {
+        if(s.tipo === 'manual') continue;
+        if(_incDupExactoId(ticket, tecnicoId, s.tipo)) {
+            return `🚫 DUPLICADO: ${tecnicoNombre || 'el técnico'} ya tiene "${_incTipoCorto(s.tipo)}" en el ticket ${ticket}. No se puede registrar dos veces la misma factura.`;
+        }
+        if(vistos.has(s.tipo)) {
+            return `🚫 Pusiste dos "${_incTipoCorto(s.tipo)}" en el mismo ticket ${ticket}. Déjalo una sola vez.`;
+        }
+        vistos.add(s.tipo);
+    }
+    return null;
+}
 function _incEstadoBadge(e, sellado) {
     const chip = (bg, col, txt) => `<span style="background:${bg}; color:${col}; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; white-space:nowrap;">${txt}</span>`;
     if(e === 'pagado') return chip('#dcfce7', '#16a34a', '✔✔ Pagado');
@@ -5078,6 +5102,9 @@ async function guardarIncentivo() {
     const fecha = document.getElementById('incFecha')?.value || new Date().toISOString().slice(0,10);
     const servicios = _srvLeer('inc').filter(s => Number(s.incentivo) > 0);
     if(!servicios.length) { toast('Agrega al menos un servicio con incentivo.', 'error'); return; }
+    // BLOQUEO de duplicados exactos: mismo ticket + mismo tipo + mismo técnico (reparación/pulido)
+    const _bloq = _incChequearDuplicados(ticket, tecnico_id, tecnico_nombre, servicios);
+    if(_bloq) { toast(_bloq, 'error'); return; }
     // El mismo ticket puede tener varios servicios; avisar si ya existe para no duplicar por error
     if(ticket) {
         const dup = _incCache.filter(r => (r.ticket || '').trim().toLowerCase() === ticket.toLowerCase());
@@ -5150,6 +5177,7 @@ function _valFiltrar() {
         if(_valEstado === 'validado' && r.estado !== 'validado') return false;
         if(_valEstado === 'porsellar' && !(r.estado === 'validado' && !r.sellado)) return false;
         if(_valEstado === 'rechazado' && r.estado !== 'rechazado') return false;
+        if(_valEstado === 'duplicados' && !_incDupExactoId(r.ticket, r.tecnico_id, r.tipo, r.id)) return false;
         if(!q) return true;
         return (r.ticket || '').toLowerCase().includes(q) || (r.tecnico_nombre || '').toLowerCase().includes(q) || (r.nota || '').toLowerCase().includes(q);
     }).sort((a, b) => (a.tecnico_nombre || '').localeCompare(b.tecnico_nombre || '') || (a.ticket || '').localeCompare(b.ticket || ''));
@@ -5169,6 +5197,7 @@ function _valRenderShell() {
             <option value="porsellar">Validados (por sellar)</option>
             <option value="validado">Validados</option>
             <option value="rechazado">Devueltos</option>
+            <option value="duplicados">⚠️ Duplicados</option>
             <option value="todos">Todos</option>
           </select>
           <button class="btn" style="background:#16a34a; color:#fff;" onclick="_valRevisarSecuencial()"><i class="ti ti-player-play"></i> Revisar uno por uno</button>
@@ -5185,7 +5214,7 @@ function _valRenderLista() {
     if(!lista.length) { cont.innerHTML = `<div style="text-align:center; color:#64748b; padding:24px;">No hay tickets que coincidan.</div>`; return; }
     const filas = lista.map(r => `<tr>
         <td>${escapeHtml(r.tecnico_nombre || '-')}</td>
-        <td>🎫 ${escapeHtml(r.ticket || 'Sin #')}<div style="font-size:11px; color:#94a3b8;">${_incFmtFecha(r.fecha)} · ${_incTipoTxt(r.tipo)}</div>${r.estado === 'rechazado' && r.rechazo_motivo ? `<div style="font-size:11px; color:#b91c1c;">⚠️ ${escapeHtml(r.rechazo_motivo)}</div>` : ''}${(r.estado === 'validado' || r.estado === 'pagado') && r.aprobado_por ? `<div style="font-size:11px; color:#16a34a;">✔ Validado por ${escapeHtml(r.aprobado_por)}</div>` : ''}${r.sellado && r.sellado_por ? `<div style="font-size:11px; color:#2563eb;">✔✔ Sellado por ${escapeHtml(r.sellado_por)}</div>` : ''}</td>
+        <td>🎫 ${escapeHtml(r.ticket || 'Sin #')}${_incDupExactoId(r.ticket, r.tecnico_id, r.tipo, r.id) ? ' <span style="background:#fee2e2; color:#b91c1c; font-size:9.5px; font-weight:800; padding:1px 6px; border-radius:6px;">⚠️ DUPLICADO</span>' : ''}<div style="font-size:11px; color:#94a3b8;">${_incFmtFecha(r.fecha)} · ${_incTipoTxt(r.tipo)}</div>${r.estado === 'rechazado' && r.rechazo_motivo ? `<div style="font-size:11px; color:#b91c1c;">⚠️ ${escapeHtml(r.rechazo_motivo)}</div>` : ''}${(r.estado === 'validado' || r.estado === 'pagado') && r.aprobado_por ? `<div style="font-size:11px; color:#16a34a;">✔ Validado por ${escapeHtml(r.aprobado_por)}</div>` : ''}${r.sellado && r.sellado_por ? `<div style="font-size:11px; color:#2563eb;">✔✔ Sellado por ${escapeHtml(r.sellado_por)}</div>` : ''}</td>
         <td style="text-align:right;">${money(r.monto_factura || 0)}</td>
         <td style="text-align:right; font-weight:700;">${money(r.monto_incentivo)}</td>
         <td style="text-align:center;">${_incEstadoBadge(r.estado, r.sellado)}</td>
@@ -5195,10 +5224,12 @@ function _valRenderLista() {
                 ? (r.sellado
                     ? `<button class="btn btn-sm" style="background:#e0e7ff; color:#3730a3;" onclick="_valSellar('${r.id}', false)" title="Quitar sello"><i class="ti ti-x"></i> Sello</button>`
                     : `<button class="btn btn-sm" style="background:#2563eb; color:#fff;" onclick="_valSellar('${r.id}', true)" title="Marcar firmado y sellado (2º check)"><i class="ti ti-writing-sign"></i> Sellar</button>`)
-                : '<span style="font-size:11px; color:#94a3b8;">—</span>')}</td>
+                : '<span style="font-size:11px; color:#94a3b8;">—</span>')}${isAdminUser() ? ` <button class="btn btn-sm" style="background:#fff; color:#b91c1c; border:1px solid #fecaca;" onclick="_valBorrar('${r.id}')" title="Borrar este registro"><i class="ti ti-trash"></i></button>` : ''}</td>
       </tr>`).join('');
     const totalInc = lista.filter(r => r.estado === 'pendiente' || r.estado === 'rechazado').reduce((s, r) => s + Number(r.monto_incentivo || 0), 0);
-    cont.innerHTML = `<div style="font-size:12px; color:#64748b; margin-bottom:4px;">${lista.length} ticket(s)${totalInc ? ` · incentivo por validar: <b>${money(totalInc)}</b>` : ''}</div>
+    const nDup = (_incCache || []).filter(r => _incDupExactoId(r.ticket, r.tecnico_id, r.tipo, r.id)).length;
+    const avisoDup = (nDup > 0 && _valEstado !== 'duplicados') ? `<div style="background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; font-size:12px; padding:6px 10px; border-radius:8px; margin-bottom:6px; cursor:pointer;" onclick="_valEstado='duplicados'; _valRenderShell(); _valRenderLista();">⚠️ Hay <b>${nDup}</b> registro(s) que parecen <b>facturas duplicadas</b>. Clic aquí para verlos y devolver/borrar el sobrante.</div>` : '';
+    cont.innerHTML = `${avisoDup}<div style="font-size:12px; color:#64748b; margin-bottom:4px;">${lista.length} ticket(s)${totalInc ? ` · incentivo por validar: <b>${money(totalInc)}</b>` : ''}</div>
       <div class="table-wrap" style="max-height:52vh; overflow-y:auto;"><table style="width:100%; font-size:12.5px;">
         <thead><tr style="background:#f1f5f9;"><th style="text-align:left;">Técnico</th><th style="text-align:left;">Ticket</th><th style="text-align:right;">Factura</th><th style="text-align:right;">Incentivo</th><th style="text-align:center;">Estado</th><th></th></tr></thead>
         <tbody>${filas}</tbody></table></div>`;
@@ -5212,6 +5243,17 @@ async function _valValidar(id) {
         if(error) throw error;
         Object.assign(r, upd); toast('✔ Ticket validado.'); _valRenderLista();
     } catch(e) { console.error('_valValidar', e); toast('No se pudo validar.', 'error'); }
+}
+async function _valBorrar(id) {
+    if(!isAdminUser()) { toast('Solo administradores pueden borrar.', 'error'); return; }
+    const r = (_incCache || []).find(x => x.id === id); if(!r) return;
+    if(!await confirmar(`¿Borrar este registro?\n\nTicket ${r.ticket || '-'} · ${_incTipoCorto(r.tipo)} · ${r.tecnico_nombre || ''} · ${money(r.monto_incentivo)}`)) return;
+    try {
+        const { error } = await supabaseClient.from('taller_incentivos').delete().eq('id', id);
+        if(error) throw error;
+        const i = _incCache.findIndex(x => x.id === id); if(i >= 0) _incCache.splice(i, 1);
+        toast('Registro borrado.'); _valRenderLista();
+    } catch(e) { console.error('_valBorrar', e); toast('No se pudo borrar.', 'error'); }
 }
 async function _valSellar(id, sellar) {
     if(!puedeValidarTickets()) { toast('No tienes permiso.', 'error'); return; }
@@ -5739,6 +5781,9 @@ async function guardarMiIncentivo() {
     const servicios = _srvLeer('mi').filter(s => Number(s.incentivo) > 0);
     if(!servicios.length) { toast('Agrega al menos un servicio con incentivo.', 'error'); return; }
     const nombre = sessionUser?.nombre || sessionUser?.usuario || 'Técnico';
+    // BLOQUEO de duplicados exactos: mismo ticket + mismo tipo + mismo técnico
+    const _bloq = _incChequearDuplicados(ticket, yo, nombre, servicios);
+    if(_bloq) { toast(_bloq, 'error'); return; }
     // Si el ticket ya existe de un registro anterior, avisar (evita duplicar por error)
     if(ticket) {
         const dup = _incCache.filter(r => (r.ticket || '').trim().toLowerCase() === ticket.toLowerCase());
