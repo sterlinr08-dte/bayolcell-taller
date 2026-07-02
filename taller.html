@@ -5223,8 +5223,8 @@ function _valRenderLista() {
             ? `<button class="btn btn-sm" style="background:#16a34a; color:#fff;" onclick="_valValidar('${r.id}')" title="Validar"><i class="ti ti-check"></i></button> <button class="btn btn-sm" style="background:#fee2e2; color:#b91c1c;" onclick="_valDevolver('${r.id}')" title="Devolver al técnico"><i class="ti ti-arrow-back-up"></i></button>`
             : (r.estado === 'validado'
                 ? (r.sellado
-                    ? `<button class="btn btn-sm" style="background:#e0e7ff; color:#3730a3;" onclick="_valSellar('${r.id}', false)" title="Quitar sello"><i class="ti ti-x"></i> Sello</button>`
-                    : `<button class="btn btn-sm" style="background:#2563eb; color:#fff;" onclick="_valSellar('${r.id}', true)" title="Marcar firmado y sellado (2º check)"><i class="ti ti-writing-sign"></i> Sellar</button>`)
+                    ? `<button class="btn btn-sm" style="background:#e0e7ff; color:#3730a3;" onclick="_valSellar('${r.id}', false)" title="Quitar firma y sello"><i class="ti ti-x"></i> Quitar sello</button>`
+                    : `<button class="btn btn-sm" style="background:#2563eb; color:#fff;" onclick="_valSellar('${r.id}', true)" title="Marcar firmada y sellada (2º check)"><i class="ti ti-writing-sign"></i> Firmada y sellada</button>`)
                 : '<span style="font-size:11px; color:#94a3b8;">—</span>')}${isAdminUser() ? ` <button class="btn btn-sm" style="background:#fff; color:#b91c1c; border:1px solid #fecaca;" onclick="_valBorrar('${r.id}')" title="Borrar este registro"><i class="ti ti-trash"></i></button>` : ''}</td>
       </tr>`).join('');
     const totalInc = lista.filter(r => r.estado === 'pendiente' || r.estado === 'rechazado').reduce((s, r) => s + Number(r.monto_incentivo || 0), 0);
@@ -5347,7 +5347,8 @@ function _revRender() {
           <div class="form-row" style="flex:1; min-width:120px;"><label>Monto factura (RD$)</label><input type="number" id="rv_fac" value="${r.monto_factura || 0}" ${ci}></div>
         </div>
         <div class="form-row"><label>Nota</label><input type="text" id="rv_nota" value="${escapeHtml(r.nota || '')}" ${ci}></div>
-        <p style="font-size:11.5px; color:#64748b; margin:2px 0 0;">Si algo está mal, corrígelo aquí y dale <b>Correcto</b>. Si está mal de verdad, dale <b>Devolver</b> y explícale al técnico por qué.</p>
+        <label style="display:flex; align-items:center; gap:8px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:9px; padding:9px 12px; margin-top:8px; cursor:pointer; font-size:13.5px; font-weight:700; color:#1d4ed8;"><input type="checkbox" id="rv_sellada" checked style="width:18px; height:18px;"> ✔✔ Firmada y sellada <span style="font-weight:400; color:#64748b; font-size:12px;">(déjalo marcado si el papel ya está firmado y sellado)</span></label>
+        <p style="font-size:11.5px; color:#64748b; margin:6px 0 0;">Si algo está mal, corrígelo aquí y dale <b>Correcto</b>. Si está mal de verdad, dale <b>Devolver</b> y explícale al técnico por qué.</p>
       </div>
       <div class="modal-footer" style="flex-wrap:wrap; gap:8px;">
         <button class="btn" style="background:#fee2e2; color:#b91c1c; margin-right:auto;" onclick="_revRechazar()"><i class="ti ti-arrow-back-up"></i> Devolver</button>
@@ -5365,12 +5366,15 @@ async function _revCorrecto() {
     const fac = parseFloat(document.getElementById('rv_fac')?.value) || 0;
     if(inc <= 0) { toast('El incentivo debe ser mayor que 0.', 'error'); return; }
     if(fac <= 0) { toast('El monto de la factura es obligatorio.', 'error'); return; }
+    const sellada = !!document.getElementById('rv_sellada')?.checked;
+    const quien = (sessionUser?.nombre || sessionUser?.usuario || null);
     const upd = {
         tipo: document.getElementById('rv_tipo')?.value || r.tipo,
         monto_incentivo: inc, monto_factura: fac,
         nota: (document.getElementById('rv_nota')?.value || '').trim() || null,
         estado: 'validado', rechazo_motivo: null,
-        aprobado_por: (sessionUser?.nombre || sessionUser?.usuario || null), aprobado_en: new Date().toISOString()
+        aprobado_por: quien, aprobado_en: new Date().toISOString(),
+        sellado: sellada, sellado_por: sellada ? quien : null, sellado_en: sellada ? new Date().toISOString() : null
     };
     try {
         const { error } = await supabaseClient.from('taller_incentivos').update(upd).eq('id', r.id);
