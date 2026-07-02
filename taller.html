@@ -4853,6 +4853,7 @@ function _incTipoTxt(t) { return t === 'pulido' ? '✨ Pulido pantalla' : (t ===
 function _incEstadoBadge(e) {
     if(e === 'pagado') return '<span style="background:#dcfce7; color:#16a34a; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px;">Pagado</span>';
     if(e === 'validado') return '<span style="background:#dbeafe; color:#1d4ed8; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px;">Validado</span>';
+    if(e === 'rechazado') return '<span style="background:#fee2e2; color:#b91c1c; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px;">⚠️ Devuelto</span>';
     return '<span style="background:#fef3c7; color:#b45309; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px;">Pendiente</span>';
 }
 function _incRefrescar() {
@@ -4932,7 +4933,7 @@ async function renderIncentivos() {
     html += `<div class="card" style="margin-bottom:10px; padding:10px;">
         <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:flex-end;">
             <div style="flex:1; min-width:120px;"><label style="font-size:10px; color:#64748b;">Técnico</label><select id="incFTec" onchange="_incAplicarFiltros()" ${cf}><option value="">Todos</option>${optsFTec}</select></div>
-            <div style="width:140px;"><label style="font-size:10px; color:#64748b;">Estado</label><select id="incFEstado" onchange="_incAplicarFiltros()" ${cf}><option value="" ${_incFiltroEstado===''?'selected':''}>Todos</option><option value="pendiente" ${_incFiltroEstado==='pendiente'?'selected':''}>Por validar</option><option value="validado" ${_incFiltroEstado==='validado'?'selected':''}>Validado</option><option value="pagado" ${_incFiltroEstado==='pagado'?'selected':''}>Pagado</option></select></div>
+            <div style="width:140px;"><label style="font-size:10px; color:#64748b;">Estado</label><select id="incFEstado" onchange="_incAplicarFiltros()" ${cf}><option value="" ${_incFiltroEstado===''?'selected':''}>Todos</option><option value="pendiente" ${_incFiltroEstado==='pendiente'?'selected':''}>Por validar</option><option value="validado" ${_incFiltroEstado==='validado'?'selected':''}>Validado</option><option value="rechazado" ${_incFiltroEstado==='rechazado'?'selected':''}>Devuelto</option><option value="pagado" ${_incFiltroEstado==='pagado'?'selected':''}>Pagado</option></select></div>
             <div style="width:120px;"><label style="font-size:10px; color:#64748b;">Desde</label><input type="date" id="incFDesde" value="${_incDesde}" onchange="_incAplicarFiltros()" ${cf}></div>
             <div style="width:120px;"><label style="font-size:10px; color:#64748b;">Hasta</label><input type="date" id="incFHasta" value="${_incHasta}" onchange="_incAplicarFiltros()" ${cf}></div>
             <button class="btn btn-sm" onclick="_incQuincena(0)" style="height:30px; ${_incQuincenaSel === 0 ? 'background:linear-gradient(180deg,#16a34a,#15803d); color:#fff; border:0; box-shadow:0 2px 6px rgba(22,163,74,0.35);' : 'background:#fff; color:#0f172a; border:1px solid #cbd5e1;'}">${_incQuincenaSel === 0 ? '✅ ' : ''}Quincena actual</button>
@@ -4962,7 +4963,7 @@ async function renderIncentivos() {
             resumen[k].generado += factura; // sin # de ticket: contar cada uno
         }
         const m = Number(r.monto_incentivo||0);
-        if(r.estado === 'pagado') resumen[k].pagado += m; else if(r.estado === 'validado') resumen[k].porPagar += m; else resumen[k].porValidar += m;
+        if(r.estado === 'pagado') resumen[k].pagado += m; else if(r.estado === 'validado') resumen[k].porPagar += m; else if(r.estado === 'rechazado') { /* devuelto: no cuenta hasta que el técnico lo corrija */ } else resumen[k].porValidar += m;
     });
     const resKeys = Object.keys(resumen);
     const gtValidar = resKeys.reduce((s,k) => s + resumen[k].porValidar, 0);
@@ -4986,7 +4987,7 @@ async function renderIncentivos() {
                 <td style="text-align:right; color:#1d4ed8; font-weight:700;">${money(r.porPagar)}</td>
                 <td style="text-align:right; color:#16a34a;">${money(r.pagado)}</td>
                 <td style="text-align:right; white-space:nowrap;">
-                    ${r.porValidar > 0 ? `<button class="btn btn-light btn-sm" onclick="event.stopPropagation(); validarTodoTecnico('${k}')" title="Validar todos los pendientes" style="color:#1d4ed8;"><i class="ti ti-rosette-discount-check"></i> Validar</button>` : ''}
+                    ${r.porValidar > 0 ? `<button class="btn btn-light btn-sm" onclick="event.stopPropagation(); abrirRevisionTickets('${k}')" title="Revisar y validar los tickets uno por uno" style="color:#1d4ed8;"><i class="ti ti-checklist"></i> Validar</button>` : ''}
                     ${r.porPagar > 0 ? `<button class="btn btn-blue btn-sm" onclick="event.stopPropagation(); guardarReporteIncentivos('${k}')" title="Pagar validados y guardar reporte"><i class="ti ti-cash"></i> Pagar</button>` : ''}
                     <button class="btn btn-light btn-sm" onclick="event.stopPropagation(); imprimirIncentivosTecnico('${k}')" title="Imprimir resumen"><i class="ti ti-printer"></i></button>
                 </td>
@@ -5119,9 +5120,110 @@ async function validarTodoTecnico(tecnicoId) {
         renderIncentivos();
     } catch(e) { console.error('validarTodoTecnico', e); toast('No se pudo validar.', 'error'); }
 }
+// ===== Revisión de tickets UNO POR UNO (el admin valida, corrige o devuelve al técnico) =====
+let _revData = null;
+function abrirRevisionTickets(tecnicoId) {
+    if(!isAdminUser()) { toast('Solo administradores.', 'error'); return; }
+    const lista = (_incCache || []).filter(r => (r.tecnico_id || '_') === tecnicoId && _incEnRango(r) && r.estado === 'pendiente')
+        .sort((a, b) => (a.ticket || '').localeCompare(b.ticket || '') || (a.fecha || '').localeCompare(b.fecha || ''));
+    if(!lista.length) { toast('No hay tickets por validar de ese técnico en el rango.', 'error'); return; }
+    _revData = { tecnicoId, lista, idx: 0, nombre: lista[0].tecnico_nombre || 'Técnico', validados: 0, devueltos: 0 };
+    let modal = document.getElementById('modalRevTickets');
+    if(!modal) { modal = document.createElement('div'); modal.id = 'modalRevTickets'; modal.className = 'modal-backdrop'; document.body.appendChild(modal); }
+    modal.style.zIndex = '780'; modal.classList.add('active');
+    _revRender();
+}
+function _revCerrar() { const m = document.getElementById('modalRevTickets'); if(m) m.classList.remove('active'); _revData = null; renderIncentivos(); }
+function _revTipoCambio() {
+    const tipo = document.getElementById('rv_tipo')?.value; const inp = document.getElementById('rv_inc'); if(!inp) return;
+    if(tipo === 'reparacion') { inp.value = INC_REPARACION; inp.readOnly = true; }
+    else if(tipo === 'pulido') { inp.value = INC_PULIDO; inp.readOnly = true; }
+    else { inp.readOnly = false; }
+}
+function _revRender() {
+    const modal = document.getElementById('modalRevTickets'); if(!modal || !_revData) return;
+    const { lista, idx } = _revData;
+    if(idx >= lista.length) {
+        modal.innerHTML = `<div class="modal-box" style="max-width:460px;">
+          <div class="modal-header" style="background:#16a34a; color:#fff;"><h3 style="color:#fff; margin:0;">✅ Revisión terminada</h3></div>
+          <div class="modal-body" style="text-align:center; padding:24px;"><div style="font-size:46px;">🎉</div>
+            <p style="font-size:15px; margin:8px 0 0;">Revisaste los tickets de <b>${escapeHtml(_revData.nombre)}</b>.</p>
+            <p style="font-size:13px; color:#475569;">✅ Validados: <b>${_revData.validados}</b> &nbsp;·&nbsp; ⚠️ Devueltos: <b>${_revData.devueltos}</b></p>
+          </div>
+          <div class="modal-footer"><button class="btn btn-blue" onclick="_revCerrar()">Listo</button></div>
+        </div>`;
+        return;
+    }
+    const r = lista[idx];
+    const ci = 'style="padding:8px 10px; font-size:14px; width:100%;"';
+    modal.innerHTML = `<div class="modal-box" style="max-width:520px;">
+      <div class="modal-header" style="background:linear-gradient(135deg,#1d4ed8,#2563eb); color:#fff;">
+        <h3 style="color:#fff; margin:0;"><i class="ti ti-checklist"></i> Validar tickets — ${escapeHtml(_revData.nombre)}</h3>
+        <button class="modal-close" style="color:#fff;" onclick="_revCerrar()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <span style="font-size:13px; color:#64748b;">Ticket <b>${idx + 1}</b> de <b>${lista.length}</b></span>
+          <span style="font-size:13px;">🎫 <b>${escapeHtml(r.ticket || 'Sin #')}</b> · ${_incFmtFecha(r.fecha)}</span>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <div class="form-row" style="flex:1; min-width:150px;"><label>Tipo de trabajo</label>
+            <select id="rv_tipo" onchange="_revTipoCambio()" ${ci}>
+              <option value="reparacion" ${r.tipo === 'reparacion' ? 'selected' : ''}>🔧 Reparación (+${INC_REPARACION})</option>
+              <option value="pulido" ${r.tipo === 'pulido' ? 'selected' : ''}>✨ Pulido (+${INC_PULIDO})</option>
+              <option value="manual" ${r.tipo === 'manual' ? 'selected' : ''}>✏️ Manual</option>
+            </select></div>
+          <div class="form-row" style="flex:1; min-width:120px;"><label>Incentivo (RD$)</label><input type="number" id="rv_inc" value="${r.monto_incentivo}" ${r.tipo === 'manual' ? '' : 'readonly'} ${ci}></div>
+          <div class="form-row" style="flex:1; min-width:120px;"><label>Monto factura (RD$)</label><input type="number" id="rv_fac" value="${r.monto_factura || 0}" ${ci}></div>
+        </div>
+        <div class="form-row"><label>Nota</label><input type="text" id="rv_nota" value="${escapeHtml(r.nota || '')}" ${ci}></div>
+        <p style="font-size:11.5px; color:#64748b; margin:2px 0 0;">Si algo está mal, corrígelo aquí y dale <b>Correcto</b>. Si está mal de verdad, dale <b>Devolver</b> y explícale al técnico por qué.</p>
+      </div>
+      <div class="modal-footer" style="flex-wrap:wrap; gap:8px;">
+        <button class="btn" style="background:#fee2e2; color:#b91c1c; margin-right:auto;" onclick="_revRechazar()"><i class="ti ti-arrow-back-up"></i> Devolver</button>
+        <button class="btn btn-light" onclick="_revSaltar()"><i class="ti ti-player-skip-forward"></i> Saltar</button>
+        <button class="btn" style="background:#16a34a; color:#fff;" onclick="_revCorrecto()"><i class="ti ti-check"></i> Correcto</button>
+      </div>
+    </div>`;
+}
+function _revSaltar() { if(!_revData) return; _revData.idx++; _revRender(); }
+async function _revCorrecto() {
+    if(!_revData) return;
+    const r = _revData.lista[_revData.idx]; if(!r) return;
+    const inc = parseFloat(document.getElementById('rv_inc')?.value) || 0;
+    const fac = parseFloat(document.getElementById('rv_fac')?.value) || 0;
+    if(inc <= 0) { toast('El incentivo debe ser mayor que 0.', 'error'); return; }
+    if(fac <= 0) { toast('El monto de la factura es obligatorio.', 'error'); return; }
+    const upd = {
+        tipo: document.getElementById('rv_tipo')?.value || r.tipo,
+        monto_incentivo: inc, monto_factura: fac,
+        nota: (document.getElementById('rv_nota')?.value || '').trim() || null,
+        estado: 'validado', rechazo_motivo: null,
+        aprobado_por: (sessionUser?.nombre || sessionUser?.usuario || null), aprobado_en: new Date().toISOString()
+    };
+    try {
+        const { error } = await supabaseClient.from('taller_incentivos').update(upd).eq('id', r.id);
+        if(error) throw error;
+        Object.assign(r, upd);
+        _revData.validados++; _revData.idx++; _revRender();
+    } catch(e) { console.error('_revCorrecto', e); toast('No se pudo validar.', 'error'); }
+}
+async function _revRechazar() {
+    if(!_revData) return;
+    const r = _revData.lista[_revData.idx]; if(!r) return;
+    const motivo = await pedirTexto('¿Por qué devuelves este ticket al técnico?', { multilinea: true });
+    if(motivo === null) return;
+    if(!(motivo || '').trim()) { toast('Escribe el motivo para que el técnico sepa qué corregir.', 'error'); return; }
+    try {
+        const { error } = await supabaseClient.from('taller_incentivos').update({ estado: 'rechazado', rechazo_motivo: motivo.trim() }).eq('id', r.id);
+        if(error) throw error;
+        r.estado = 'rechazado'; r.rechazo_motivo = motivo.trim();
+        _revData.devueltos++; _revData.idx++; _revRender();
+    } catch(e) { console.error('_revRechazar', e); toast('No se pudo devolver.', 'error'); }
+}
 async function borrarIncentivo(id) {
     const r = _incCache.find(x => x.id === id);
-    const puede = isAdminUser() || (r && r.tecnico_id === sessionUser?.id && r.estado === 'pendiente');
+    const puede = isAdminUser() || (r && r.tecnico_id === sessionUser?.id && (r.estado === 'pendiente' || r.estado === 'rechazado'));
     if(!puede) { toast('No puedes borrar este registro.', 'error'); return; }
     if(!confirm('¿Borrar este registro de incentivo?')) return;
     try {
@@ -5142,7 +5244,7 @@ function _incEditTipoCambio() {
 function editarIncentivo(id) {
     const r = _incCache.find(x => x.id === id);
     if(!r) { toast('Registro no encontrado.', 'error'); return; }
-    const puede = isAdminUser() || (r.tecnico_id === sessionUser?.id && r.estado === 'pendiente');
+    const puede = isAdminUser() || (r.tecnico_id === sessionUser?.id && (r.estado === 'pendiente' || r.estado === 'rechazado'));
     if(!puede) { toast('No puedes editar este registro.', 'error'); return; }
     const tecs = (cache.tecnicos || []).filter(t => t.activo !== false).sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''));
     const opts = tecs.map(t => `<option value="${t.id}" ${t.id===r.tecnico_id?'selected':''}>${escapeHtml(t.nombre || t.usuario || 'Técnico')}</option>`).join('');
@@ -5171,7 +5273,7 @@ function editarIncentivo(id) {
 }
 async function guardarEdicionIncentivo(id) {
     const _r = _incCache.find(x => x.id === id);
-    const puede = isAdminUser() || (_r && _r.tecnico_id === sessionUser?.id && _r.estado === 'pendiente');
+    const puede = isAdminUser() || (_r && _r.tecnico_id === sessionUser?.id && (_r.estado === 'pendiente' || _r.estado === 'rechazado'));
     if(!puede) { toast('No puedes editar este registro.', 'error'); return; }
     const tecSel = document.getElementById('edTecnico');
     const monto_incentivo = parseFloat(document.getElementById('edIncentivo')?.value) || 0;
@@ -5188,6 +5290,8 @@ async function guardarEdicionIncentivo(id) {
         monto_factura: parseFloat(document.getElementById('edFactura')?.value) || 0,
         nota: (document.getElementById('edNota')?.value || '').trim() || null
     };
+    // Si el ticket estaba DEVUELTO y se corrige, vuelve a la cola de validación (limpia el motivo)
+    if(_r && _r.estado === 'rechazado') { upd.estado = 'pendiente'; upd.rechazo_motivo = null; }
     if(upd.ticket) {
         const dup = _incCache.filter(r => r.id !== id && (r.ticket || '').trim().toLowerCase() === upd.ticket.toLowerCase());
         if(dup.length) {
@@ -5479,10 +5583,10 @@ function renderRegistroTickets() {
         const g = grupos[k];
         const totalInc = g.items.reduce((s,it) => s + Number(it.monto_incentivo||0), 0);
         const filas = g.items.map(it => `<tr>
-            <td>${_incTipoTxt(it.tipo)}${it.nota ? ` <span style="color:#94a3b8; font-size:11px;">· ${escapeHtml(it.nota)}</span>` : ''}</td>
+            <td>${_incTipoTxt(it.tipo)}${it.nota ? ` <span style="color:#94a3b8; font-size:11px;">· ${escapeHtml(it.nota)}</span>` : ''}${it.estado === 'rechazado' && it.rechazo_motivo ? `<div style="color:#b91c1c; font-size:11px; margin-top:3px;">⚠️ Devuelto: ${escapeHtml(it.rechazo_motivo)} <span style="color:#64748b;">— corrígelo y guarda para reenviarlo.</span></div>` : ''}</td>
             <td style="text-align:right; font-weight:700;">${money(it.monto_incentivo)}</td>
             <td style="text-align:center;">${_incEstadoBadge(it.estado)}</td>
-            <td style="text-align:right; white-space:nowrap;">${it.estado === 'pendiente' ? `<button class="btn btn-light btn-sm" onclick="editarIncentivo('${it.id}')" title="Editar"><i class="ti ti-pencil"></i></button> <button class="btn btn-light btn-sm" onclick="borrarIncentivo('${it.id}')" title="Borrar" style="color:#b91c1c;"><i class="ti ti-trash"></i></button>` : '<span style="font-size:11px; color:#94a3b8;">—</span>'}</td>
+            <td style="text-align:right; white-space:nowrap;">${(it.estado === 'pendiente' || it.estado === 'rechazado') ? `<button class="btn btn-light btn-sm" onclick="editarIncentivo('${it.id}')" title="Editar"><i class="ti ti-pencil"></i></button> <button class="btn btn-light btn-sm" onclick="borrarIncentivo('${it.id}')" title="Borrar" style="color:#b91c1c;"><i class="ti ti-trash"></i></button>` : '<span style="font-size:11px; color:#94a3b8;">—</span>'}</td>
         </tr>`).join('');
         return `<div style="border:1px solid #e2e8f0; border-radius:12px; margin-bottom:10px; padding:10px 12px;">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
