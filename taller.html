@@ -5218,10 +5218,12 @@ function _valRenderLista() {
         <td style="text-align:right;">${money(r.monto_factura || 0)}</td>
         <td style="text-align:right; font-weight:700;">${money(r.monto_incentivo)}</td>
         <td style="text-align:center;">${_incEstadoBadge(r.estado, r.sellado)}</td>
-        <td><div style="display:flex; align-items:center; gap:6px; justify-content:flex-end; flex-wrap:nowrap;">
+        <td><div style="display:flex; flex-direction:column; align-items:flex-end; gap:5px;">
+            <div style="display:flex; gap:6px; align-items:center;">
+              ${(r.estado === 'pendiente' || r.estado === 'rechazado') ? `<button class="btn btn-sm" style="background:#16a34a; color:#fff;" onclick="_valValidar('${r.id}')" title="Validar"><i class="ti ti-check"></i></button> <button class="btn btn-sm" style="background:#fee2e2; color:#b91c1c;" onclick="_valDevolver('${r.id}')" title="Devolver al técnico"><i class="ti ti-arrow-back-up"></i></button>` : ''}
+              ${isAdminUser() ? `<button class="btn btn-sm" style="background:#fff; color:#b91c1c; border:1px solid #fecaca;" onclick="_valBorrar('${r.id}')" title="Borrar este registro"><i class="ti ti-trash"></i></button>` : ''}
+            </div>
             ${(r.estado === 'pendiente' || r.estado === 'validado') ? `<span onclick="_valToggleSello('${r.id}')" style="cursor:pointer; display:inline-block; font-size:11px; font-weight:700; padding:5px 9px; border-radius:8px; white-space:nowrap; ${r.sellado ? 'background:#2563eb; color:#fff;' : 'background:#e2e8f0; color:#475569;'}" title="${r.sellado ? 'Quitar firmado y sellado' : 'Marcar firmado y sellado'}">${r.sellado ? '✔✔ Firmado y sellado' : '☐ Firmado y sellado'}</span>` : ''}
-            ${(r.estado === 'pendiente' || r.estado === 'rechazado') ? `<button class="btn btn-sm" style="background:#16a34a; color:#fff;" onclick="_valValidar('${r.id}')" title="Validar"><i class="ti ti-check"></i></button> <button class="btn btn-sm" style="background:#fee2e2; color:#b91c1c;" onclick="_valDevolver('${r.id}')" title="Devolver al técnico"><i class="ti ti-arrow-back-up"></i></button>` : ''}
-            ${isAdminUser() ? `<button class="btn btn-sm" style="background:#fff; color:#b91c1c; border:1px solid #fecaca;" onclick="_valBorrar('${r.id}')" title="Borrar este registro"><i class="ti ti-trash"></i></button>` : ''}
         </div></td>
       </tr>`).join('');
     const totalInc = lista.filter(r => r.estado === 'pendiente' || r.estado === 'rechazado').reduce((s, r) => s + Number(r.monto_incentivo || 0), 0);
@@ -5242,6 +5244,8 @@ async function _valValidar(id) {
         const { error } = await supabaseClient.from('taller_incentivos').update(upd).eq('id', id);
         if(error) throw error;
         Object.assign(r, upd); toast('✔✔ Ticket validado (firmado y sellado).'); _valRenderLista();
+        // El cursor vuelve al buscador y selecciona lo escrito, para buscar el siguiente ticket rápido
+        setTimeout(() => { const b = document.getElementById('valBusq'); if(b) { b.focus(); b.select(); } }, 40);
     } catch(e) { console.error('_valValidar', e); toast('No se pudo validar.', 'error'); }
 }
 async function _valBorrar(id) {
