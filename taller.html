@@ -9676,7 +9676,10 @@ async function _reacondPasarA(destino) {
         // Actualizar cache local
         equiposCache.forEach(r => { Object.assign(r, patch); });
         _reacondSel = new Set();
-        toast(`✅ ${ids.length} equipo(s) pasado(s) a "${labels[destino] || destino}".`);
+        // Al pasar a "Completado" (destino 'vendido'), descontar automáticamente las piezas por descontar
+        let _totDesc = 0;
+        if(destino === 'vendido') { for(const id of ids) { const rr = await _descontarPiezasAlCompletar(id); _totDesc += rr.n; } }
+        toast(`✅ ${ids.length} equipo(s) pasado(s) a "${labels[destino] || destino}".${_totDesc ? ' 🧩 ' + _totDesc + ' pieza(s) descontada(s).' : ''}`);
         renderDetalleLoteReacond();
     } catch(e) { logError('Pasar a estado', e); toastError(getFriendlyError(e)); }
 }
@@ -15479,6 +15482,32 @@ async function descontarPiezasPendientesEquipo(equipoId) {
     _refrescarVistaEquipo(equipoId);
     toast(`Listo: ${n} de ${ids.length} pieza(s) descontada(s).`);
 }
+// Al pasar un equipo a COMPLETADO: descuenta automáticamente sus piezas "por descontar" del Taller
+// (almacén 6). Si no hay stock suficiente en el Taller, PREGUNTA de cuál almacén descontar.
+async function _descontarPiezasAlCompletar(equipoId) {
+    try {
+        const { data } = await supabaseClient.from('equipo_piezas_pedidas').select('*')
+            .eq('equipo_id', equipoId).not('pieza_codigo', 'is', null).or('infoplus_desc_cant.is.null,infoplus_desc_cant.eq.0');
+        const pend = data || [];
+        if(!pend.length) return { n: 0, total: 0 };
+        let n = 0;
+        for(const pz of pend) {
+            const cant = Number(pz.cantidad) || 1;
+            const full = _findInfoplusArt(pz.pieza_codigo) || {};
+            const ex6 = Number((full.existencias || {})['6']) || 0;
+            let almDesc = 6; // Taller por defecto
+            if(ex6 < cant) {
+                // No hay suficiente en el Taller -> preguntar de cuál almacén
+                const elec = await _piezaElegirAlmacen({ descripcion: pz.pieza_nombre, codigo: pz.pieza_codigo }, full.existencias || {});
+                if(elec.accion === 'cancelar' || elec.accion === 'solocosto') continue;
+                almDesc = elec.almacen || 6;
+            }
+            const r = await _infoplusAjustePieza(pz.pieza_codigo, cant, pz.costo_unitario, false, `Salida pieza reparación: ${_equipoComentarioRef(equipoId)}`, almDesc);
+            if(r.ok) { await supabaseClient.from('equipo_piezas_pedidas').update({ infoplus_desc_cant: cant, infoplus_desc_almacen: almDesc, estado: 'aprobada' }).eq('id', pz.id); n++; }
+        }
+        return { n, total: pend.length };
+    } catch(e) { logError('_descontarPiezasAlCompletar', e); return { n: 0, total: 0 }; }
+}
 // HTML de la sección "Piezas de Info Plus" (descontadas / por descontar) para la caja de costo (solo admin).
 function _piezasDescuentoHTML(piezas) {
     const ip = (piezas || []).filter(p => p.pieza_codigo);
@@ -15691,7 +15720,9 @@ async function marcarDespachado(equipoId) {
             accion: '✅ Marcado como Completado',
             usuario: sessionUser?.nombre || 'Admin'
         }]);
-        toast('✅ Equipo marcado como Completado.');
+        // Descontar automáticamente las piezas "por descontar" (del Taller; si no hay, pregunta)
+        const _rd = await _descontarPiezasAlCompletar(equipoId);
+        toast(_rd.n ? `✅ Completado. ${_rd.n} pieza(s) descontada(s) de Info Plus.` : '✅ Equipo marcado como Completado.');
         await loadAll();
         if(reacondLoteAbiertoId) renderDetalleLoteReacond();
     } catch(e) {
