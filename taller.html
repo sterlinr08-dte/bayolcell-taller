@@ -4760,9 +4760,9 @@ function applyAccessControls() {
     const btnStats = document.getElementById('menu-estadisticas');
     if(btnStats) btnStats.style.display = esDueno() ? '' : 'none';
 
-    // Incentivos Técnicos: solo administradores
+    // Incentivos Técnicos: administradores o quien tenga permiso de validar tickets
     const btnInc = document.getElementById('menu-incentivos');
-    if(btnInc) btnInc.style.display = isAdminUser() ? '' : 'none';
+    if(btnInc) btnInc.style.display = (isAdminUser() || tienePermiso('validar_tickets')) ? '' : 'none';
 
     // Nómina: solo administradores (datos sensibles de salarios)
     const btnNom = document.getElementById('menu-nomina');
@@ -4809,7 +4809,7 @@ function _incFilaRegistro(r) {
         <td>${_incTipoTxt(r.tipo)}</td>
         <td style="text-align:right;">${r.monto_factura ? money(r.monto_factura) : '-'}</td>
         <td style="text-align:right; font-weight:700;">${money(r.monto_incentivo)}</td>
-        <td>${_incEstadoBadge(est)}</td>
+        <td>${_incEstadoBadge(est)}${(est === 'validado' || est === 'pagado') && r.aprobado_por ? `<div style="font-size:10px; color:#16a34a; margin-top:2px;">✓ ${escapeHtml(r.aprobado_por)}</div>` : ''}</td>
         <td style="white-space:nowrap; text-align:right;">
             ${est === 'pendiente' ? `<button class="btn btn-light btn-sm" onclick="setEstadoIncentivo('${r.id}','validado')" title="Validar (firmado y sellado)" style="color:#1d4ed8;"><i class="ti ti-rosette-discount-check"></i></button>` : ''}
             ${est === 'validado' ? `<button class="btn btn-light btn-sm" onclick="setEstadoIncentivo('${r.id}','pendiente')" title="Quitar validación">↩</button>` : ''}
@@ -4825,7 +4825,7 @@ function _incFilaServicioAgrupada(r) {
     return `<tr>
         <td>${_incTipoTxt(r.tipo)}${r.nota ? ` <span style="color:#94a3b8; font-size:11px;">· ${escapeHtml(r.nota)}</span>` : ''}</td>
         <td style="text-align:right; font-weight:700;">${money(r.monto_incentivo)}</td>
-        <td>${_incEstadoBadge(est)}</td>
+        <td>${_incEstadoBadge(est)}${(est === 'validado' || est === 'pagado') && r.aprobado_por ? `<div style="font-size:10px; color:#16a34a; margin-top:2px;">✓ ${escapeHtml(r.aprobado_por)}</div>` : ''}</td>
         <td style="white-space:nowrap; text-align:right;">
             ${est === 'pendiente' ? `<button class="btn btn-light btn-sm" onclick="setEstadoIncentivo('${r.id}','validado')" title="Validar (firmado y sellado)" style="color:#1d4ed8;"><i class="ti ti-rosette-discount-check"></i></button>` : ''}
             ${est === 'validado' ? `<button class="btn btn-light btn-sm" onclick="setEstadoIncentivo('${r.id}','pendiente')" title="Quitar validación">↩</button>` : ''}
@@ -5100,9 +5100,12 @@ async function guardarIncentivo() {
     } catch(e) { console.error('guardarIncentivo', e); toast('No se pudo registrar.', 'error'); }
 }
 async function setEstadoIncentivo(id, estado) {
-    if(!isAdminUser()) { toast('Solo administradores.', 'error'); return; }
+    // Pagar/revertir pago = solo admin. Validar/quitar validación = admin o permiso.
+    if(estado === 'pagado' || !puedeValidarTickets()) { if(!isAdminUser()) { toast(estado === 'pagado' ? 'Solo administradores pueden pagar.' : 'No tienes permiso.', 'error'); return; } }
     try {
+        const quien = (typeof sessionUser !== 'undefined' && sessionUser) ? (sessionUser.nombre || sessionUser.usuario || null) : null;
         const upd = { estado, pagado_en: estado === 'pagado' ? new Date().toISOString() : null };
+        if(estado === 'validado') { upd.aprobado_por = quien; upd.aprobado_en = new Date().toISOString(); }
         const { error } = await supabaseClient.from('taller_incentivos').update(upd).eq('id', id);
         if(error) throw error;
         renderIncentivos();
@@ -5122,9 +5125,11 @@ async function validarTodoTecnico(tecnicoId) {
     } catch(e) { console.error('validarTodoTecnico', e); toast('No se pudo validar.', 'error'); }
 }
 // ===== VALIDADOR GLOBAL: todos los tickets de todos los técnicos + buscador =====
+// Puede validar/devolver tickets: admin o quien tenga el permiso "validar_tickets"
+function puedeValidarTickets() { return isAdminUser() || tienePermiso('validar_tickets'); }
 let _valBusq = '', _valEstado = 'pendiente', _valTecId = '';
 function abrirValidadorGlobal(tecId) {
-    if(!isAdminUser()) { toast('Solo administradores.', 'error'); return; }
+    if(!puedeValidarTickets()) { toast('No tienes permiso para validar tickets.', 'error'); return; }
     _valBusq = ''; _valEstado = 'pendiente'; _valTecId = tecId || '';
     let modal = document.getElementById('modalValTickets');
     if(!modal) { modal = document.createElement('div'); modal.id = 'modalValTickets'; modal.className = 'modal-backdrop'; document.body.appendChild(modal); }
@@ -5173,7 +5178,7 @@ function _valRenderLista() {
     if(!lista.length) { cont.innerHTML = `<div style="text-align:center; color:#64748b; padding:24px;">No hay tickets que coincidan.</div>`; return; }
     const filas = lista.map(r => `<tr>
         <td>${escapeHtml(r.tecnico_nombre || '-')}</td>
-        <td>🎫 ${escapeHtml(r.ticket || 'Sin #')}<div style="font-size:11px; color:#94a3b8;">${_incFmtFecha(r.fecha)} · ${_incTipoTxt(r.tipo)}</div>${r.estado === 'rechazado' && r.rechazo_motivo ? `<div style="font-size:11px; color:#b91c1c;">⚠️ ${escapeHtml(r.rechazo_motivo)}</div>` : ''}</td>
+        <td>🎫 ${escapeHtml(r.ticket || 'Sin #')}<div style="font-size:11px; color:#94a3b8;">${_incFmtFecha(r.fecha)} · ${_incTipoTxt(r.tipo)}</div>${r.estado === 'rechazado' && r.rechazo_motivo ? `<div style="font-size:11px; color:#b91c1c;">⚠️ ${escapeHtml(r.rechazo_motivo)}</div>` : ''}${(r.estado === 'validado' || r.estado === 'pagado') && r.aprobado_por ? `<div style="font-size:11px; color:#16a34a;">✓ Validado por ${escapeHtml(r.aprobado_por)}</div>` : ''}</td>
         <td style="text-align:right;">${money(r.monto_factura || 0)}</td>
         <td style="text-align:right; font-weight:700;">${money(r.monto_incentivo)}</td>
         <td style="text-align:center;">${_incEstadoBadge(r.estado)}</td>
@@ -5186,6 +5191,7 @@ function _valRenderLista() {
         <tbody>${filas}</tbody></table></div>`;
 }
 async function _valValidar(id) {
+    if(!puedeValidarTickets()) { toast('No tienes permiso.', 'error'); return; }
     const r = (_incCache || []).find(x => x.id === id); if(!r) return;
     try {
         const upd = { estado: 'validado', rechazo_motivo: null, aprobado_por: (sessionUser?.nombre || sessionUser?.usuario || null), aprobado_en: new Date().toISOString() };
@@ -5195,6 +5201,7 @@ async function _valValidar(id) {
     } catch(e) { console.error('_valValidar', e); toast('No se pudo validar.', 'error'); }
 }
 async function _valDevolver(id) {
+    if(!puedeValidarTickets()) { toast('No tienes permiso.', 'error'); return; }
     const r = (_incCache || []).find(x => x.id === id); if(!r) return;
     const motivo = await pedirTexto('¿Por qué devuelves este ticket al técnico?', { multilinea: true });
     if(motivo === null) return;
@@ -5282,6 +5289,7 @@ function _revRender() {
 }
 function _revSaltar() { if(!_revData) return; _revData.idx++; _revRender(); }
 async function _revCorrecto() {
+    if(!puedeValidarTickets()) { toast('No tienes permiso.', 'error'); return; }
     if(!_revData) return;
     const r = _revData.lista[_revData.idx]; if(!r) return;
     const inc = parseFloat(document.getElementById('rv_inc')?.value) || 0;
@@ -5303,6 +5311,7 @@ async function _revCorrecto() {
     } catch(e) { console.error('_revCorrecto', e); toast('No se pudo validar.', 'error'); }
 }
 async function _revRechazar() {
+    if(!puedeValidarTickets()) { toast('No tienes permiso.', 'error'); return; }
     if(!_revData) return;
     const r = _revData.lista[_revData.idx]; if(!r) return;
     const motivo = await pedirTexto('¿Por qué devuelves este ticket al técnico?', { multilinea: true });
@@ -5821,8 +5830,8 @@ function nav(v, btn) {
         toast('🔒 Módulo privado.');
         return;
     }
-    // Incentivos Técnicos: solo administradores
-    if(v === 'incentivos' && !isAdminUser()) {
+    // Incentivos Técnicos: administradores o quien tenga permiso de validar tickets
+    if(v === 'incentivos' && !isAdminUser() && !tienePermiso('validar_tickets')) {
         toast('🔒 Módulo solo para administradores.');
         return;
     }
@@ -19672,6 +19681,12 @@ const PERMISOS_DEF = [
         grupo: '📊 Reportes', color: '#0891b2',
         items: [
             { id: 'reportes_ver', label: 'Ver módulo de Reportes de rendimiento' }
+        ]
+    },
+    {
+        grupo: '🎁 Incentivos / Tickets', color: '#16a34a',
+        items: [
+            { id: 'validar_tickets', label: 'Validar y devolver tickets de los técnicos (sin ser administrador)' }
         ]
     },
     {
