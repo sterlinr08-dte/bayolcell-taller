@@ -14462,7 +14462,7 @@ async function abrirPanelProceso(equipoId) {
                         <div style="display:flex; justify-content:space-between; font-size:16px; margin-top:8px; padding-top:8px; border-top:1px dashed #86efac; font-weight:800; color:#166534;"><span>COSTO FINAL:</span><span>${money(final)}</span></div>
                         ${_piezasDescuentoHTML(piezas)}
                         ${estado === 'listo_venta' ? `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;">
-                            <button class="btn btn-light" onclick="agregarPiezaInfoPlus('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#0369a1; border-color:#7dd3fc;"><i class="ti ti-search"></i> Pieza inventario (Info Plus)</button>
+                            <button class="btn btn-light" onclick="agregarPiezaInfoPlus('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#0369a1; border-color:#7dd3fc;"><i class="ti ti-search"></i> Agregar piezas (Info Plus)</button>
                             <button class="btn btn-light" onclick="agregarPiezaExterna('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#7c3aed; border-color:#c4b5fd;"><i class="ti ti-plus"></i> Pieza externa</button>
                             <button class="btn btn-light" onclick="marcarEquipoCompletado('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#0f766e; border-color:#5eead4;"><i class="ti ti-truck-delivery"></i> Despachado</button>
                         </div>` : ''}
@@ -15751,7 +15751,7 @@ async function verFichaDespacho(equipoId) {
             <div style="display:flex; justify-content:space-between; font-size:16px; margin-top:8px; padding-top:8px; border-top:1px dashed #86efac; font-weight:800; color:#166534;"><span>COSTO FINAL:</span><span>${money(final)}</span></div>
             ${esAdminPiezas ? _piezasDescuentoHTML(piezas) : ''}
             ${esAdminPiezas ? `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;">
-                <button class="btn btn-light" onclick="agregarPiezaInfoPlus('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#0369a1; border-color:#7dd3fc;"><i class="ti ti-search"></i> Pieza inventario (Info Plus)</button>
+                <button class="btn btn-light" onclick="agregarPiezaInfoPlus('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#0369a1; border-color:#7dd3fc;"><i class="ti ti-search"></i> Agregar piezas (Info Plus)</button>
                 <button class="btn btn-light" onclick="agregarPiezaExterna('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#7c3aed; border-color:#c4b5fd;"><i class="ti ti-plus"></i> Pieza externa</button>
                 <button class="btn btn-light" onclick="marcarEquipoCompletado('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#0f766e; border-color:#5eead4;"><i class="ti ti-truck-delivery"></i> Despachado</button>
             </div>` : ''}
