@@ -295,3 +295,40 @@ Usos:
 ### Reacondicionados — descuento de piezas (29 jun 2026)
 - Al agregar pieza de Info Plus a un equipo: **siempre pregunta de cuál almacén descontar** (`_piezaElegirAlmacen`, muestra existencia por almacén). Comentario del ajuste legible: "Salida/Ajuste/Devolución pieza reparación: <modelo> IMEI <imei>" (`_equipoComentarioRef`).
 - En la evaluación se eligen piezas de Info Plus **sin descontar** y **sin que el técnico vea el costo**; quedan "⏳ por descontar". El admin confirma el descuento por pieza desde la caja de costo (panel/ficha) con `_descontarPiezaPendiente`/`descontarPiezasPendientesEquipo`. `guardarEvaluacion` preserva las ya descontadas (no re-descuenta).
+
+## ACTUALIZACIÓN sesión 2-3 jul 2026 (Ventas por tienda, Nómina, Comisiones, Validación de Tickets, descuento de piezas al Completar)
+
+### Info Plus — la venta ya trae tienda y vendedor
+- El endpoint `factura` ahora devuelve **`codlocalidad`** (1=Santiago, 4=Moca) y **`codempleado`** (vendedor). Se agregaron columnas `infoplus_ventas.codlocalidad` y `infoplus_ventas.codempleado` (edge `infoplus-ventas-sync` v4 las captura). Se **backfilleó** todo 2025-2026 con `infoplus-probe` (la sync por cron devuelve 0 por rate-limit; el probe no).
+- **Ventas por tienda:** 1=Santiago, 4=Moca. **Comisiones por vendedor:** `codempleado`. Ojo: Info Plus calcula la comisión sobre el **neto SIN ITBIS** (nuestro `monto_venta` es CON itbis), por eso da un poco más alto; para cuadrar exacto habría que sincronizar el neto.
+
+### Estado Mensual (Contabilidad) — ventas separadas por tienda
+- RPC `estado_mensual_cat(p_ini date, p_fin date, p_localidad int default null)` filtra `infoplus_ventas` por `codlocalidad`. `_datosEstadoMensual` mapea el selector (Santiago→1, Moca→4) y lo pasa. Se quitó el aviso de "ventas combinadas".
+
+### NÓMINA (módulo nuevo, vista `v-nomina`, solo admin) — quincenal formato BHD
+- Tablas: `nomina_empleados` (nombre, cedula, cuenta_bhd, puesto, fecha_ingreso, salario_mensual, deduce_ley, activo), `nomina_periodos`, `nomina_lineas`. Constantes `NOM_ARS=0.0304, NOM_AFP=0.0287`. TSS patronal: SFS 7.09%, AFP 7.10%, SRL 1.10%, INFOTEP 1%.
+- 19 empleados reales cargados (17 fijos + 2 "por día": Julio Ángel, Manuel Felipe). Funciones: `renderNomina`, `nominaTab`, `_renderNominaEmpleados`, `_nominaEditarEmpleado`/`_nominaGuardarEmpleado`, **`_nominaEliminarEmpleado`** (borra; si tiene FK lo deja inactivo).
+- **Generar quincena AUTOMÁTICA:** al entrar detecta la quincena por la fecha (día ≤15 → 1ra 1-15 paga 15; si no → 2da 16-fin de mes paga fin). Encabezado profesional con `_nominaCalcPeriodo/_nominaAplicarPeriodoAuto/_nominaCambiarQuincena/_nominaMesShift`. Ya no se piden fechas a mano.
+- **Exportar BHD** (`_nominaExportarBHD`) = formato exacto del banco (Cuenta · Nombre · Referencia ddmmaaaa · Monto · "PAGO NOMINA" · Correo). También volante individual, Excel, imprimir, historial, resumen TSS. Días base 23.83 para pago por día. **Guía "¿Cómo hago la nómina?"** (`_nominaGuia`, imprimible) — commit en dev, NO subido a main (el usuario dijo que no por ahora).
+
+### INCENTIVOS / TICKETS — sistema de validación (el más trabajado esta sesión)
+- Tabla `taller_incentivos` (ticket=nº factura, tipo reparacion/pulido/manual, monto_factura, monto_incentivo, estado). Estados: **pendiente → validado → pagado**; extra **rechazado** (devuelto). Columnas nuevas: **`rechazo_motivo`**, **`sellado`/`sellado_por`/`sellado_en`**, y ya existían `aprobado_por/aprobado_en`.
+- **Validador global** (`abrirValidadorGlobal`, botón "Validar Tickets" en Incentivos): lista TODOS los tickets de todos los técnicos + **buscador** (nº/técnico/nota) + filtro (Por validar / Validados (por sellar) / Validados / Devueltos / ⚠️ Duplicados / Todos). Validar/Devolver/Borrar por fila. El botón "Validar" por técnico abre el mismo validador filtrado a él (chip "Solo: X").
+- **Revisar uno por uno** (`_revRender`/`_revCorrecto`/`_revRechazar`): un ticket a la vez, editable, con check **"Firmada y sellada"**.
+- **Estados con checks de color** (`_incEstadoBadge(estado, sellado)`): ⏳ Pendiente → ✔ Validado (azul claro) → ✔✔ Validado y sellado (azul fuerte) → ✔✔ Pagado (verde) → ⚠️ Devuelto (rojo).
+- **"Firmado y sellado" = REQUISITO para validar.** En la lista, en la columna de acciones (debajo de los botones ✔/↩/🗑) hay un check **"☐ Firmado y sellado"** (`_valToggleSello`, se pone azul al marcar, solo marca el sello, no valida). El ✔ **no deja validar** si no está marcado. Al validar, el cursor salta al buscador y selecciona lo escrito (para el siguiente rápido).
+- **Devolución con nota:** al Devolver se pide motivo (`rechazo_motivo`); el técnico lo ve en su "Registro de Ticket" en rojo ("⚠️ Devuelto: …") y al corregir+guardar vuelve a la cola.
+- **Permiso `validar_tickets`** (grupo "🎁 Incentivos / Tickets" en Config→Roles): un no-admin puede ver Incentivos y validar/devolver (pero NO pagar). Helper `puedeValidarTickets()`. Se muestra **"Validado por [nombre]"**.
+- **Facturas DUPLICADAS:** (1) BLOQUEO al registrar (admin y técnico) el duplicado exacto (mismo nº ticket + mismo tipo reparación/pulido + mismo técnico); "manual" no se bloquea (`_incChequearDuplicados`/`_incDupExactoId`). (2) En el validador: etiqueta "⚠️ DUPLICADO", filtro "Duplicados", aviso con conteo, y borrar (admin). Quedaron 7 duplicados viejos (2 ya pagados: tickets 112188, 112322 — sin tocar).
+
+### Reacondicionados — descuento de piezas AL COMPLETAR (cambio de política)
+- Antes: el admin confirmaba el descuento pieza por pieza. **Ahora: se descuenta AUTOMÁTICO al pasar el equipo a "Completado"** (`marcarDespachado` y `_reacondPasarA('vendido')`), con `_descontarPiezasAlCompletar(equipoId)`: baja del **Taller (almacén 6)** por defecto; **si no hay stock en el 6, pregunta** el almacén (`_piezaElegirAlmacen`). Las piezas por descontar (infoplus_desc_cant=0) se descuentan solas; las ya descontadas no se repiten.
+- Botón renombrado: **"Pieza inventario (Info Plus)" → "Agregar piezas (Info Plus)"** (ficha `verFichaDespacho` y panel; ese botón `agregarPiezaInfoPlus`/`_agregarPiezaInfoPlusConfirm` ya descontaba al instante preguntando el almacén).
+
+### Fix UI
+- **Toast/notificaciones** subidas a `z-index: 99999` (antes 99, quedaban DETRÁS de los modales que llegan a ~790).
+
+### Pendientes / infra
+- **🚚 Despacho de Almacén REAL de Info Plus:** sigue **pendiente de Dagoberto** (endpoint + modelo/JSON + códigos de Departamento/Tipo + ejemplo que grabe). El módulo del taller lo hace con 2 ajustes mientras tanto.
+- **Hosting/dominio:** la app corre en **GitHub Pages (gratis) + Supabase**, NO en el hosting "Stellar" ($55.88/año) que llegó a vencer — ese es el **dominio/DNS** de bayolcell.com (y el correo Zoho). **Plan: migrar el DNS a Cloudflare (gratis)** y solo pagar el dominio (~US$10-12/año), manteniendo la web en GitHub Pages. Pendiente: confirmar dónde está registrado el dominio. ⚠️ Ojo con correos de "renueva ya" (posible phishing) — entrar directo al registrador, no al link del correo.
+- Idea pendiente: dejar **Comisiones** (1% por vendedor/tienda) y **Reporte de celulares vendidos** (por modelo, costo/venta/ganancia desde `infoplus_ventas`) como botones fijos.
