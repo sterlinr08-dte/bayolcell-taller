@@ -6691,6 +6691,40 @@ async function _datosEstadoMensual() {
     const neta = bruta - totalGastos;
     return { mes, suc, ini, fin, ventasCat, ingresos, costoVentas, bruta, gastos, gastosPorCat, totalGastos, neta };
 }
+// Panel de PUNTO DE EQUILIBRIO — solo lo ve el dueño (esDueno). Usa las ventas/costo/gastos del mes.
+function _emPuntoEquilibrioHTML(d) {
+    if(!esDueno()) return '';
+    const ventas = Number(d.ingresos) || 0, bruta = Number(d.bruta) || 0, gastos = Number(d.totalGastos) || 0;
+    const margen = ventas > 0 ? bruta / ventas : 0;
+    if(margen <= 0) return `<div style="max-width:520px; margin:16px auto; background:#fef2f2; border:1px solid #fecaca; border-radius:10px; padding:12px; font-size:12.5px; color:#b91c1c;">🔒 Punto de equilibrio: no se puede calcular este mes (sin ventas o margen en cero).</div>`;
+    const pe = gastos / margen;
+    const dif = ventas - pe;
+    return `<div style="max-width:520px; margin:16px auto; background:linear-gradient(135deg,#0e7490,#0891b2); color:#fff; border-radius:12px; padding:14px 16px; box-shadow:0 6px 18px rgba(14,116,144,0.3);">
+      <div style="font-size:11px; opacity:.85; text-transform:uppercase; letter-spacing:.5px;">🔒 Solo el dueño · Punto de equilibrio</div>
+      <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:8px;">
+        <div style="flex:1; min-width:110px;"><div style="font-size:11px; opacity:.85;">Tu margen</div><div style="font-size:21px; font-weight:800;">${(margen * 100).toFixed(1)}%</div></div>
+        <div style="flex:1; min-width:150px;"><div style="font-size:11px; opacity:.85;">Vender para NO perder</div><div style="font-size:21px; font-weight:800;">${money(pe)}</div></div>
+      </div>
+      <div style="font-size:12.5px; margin-top:8px; background:rgba(255,255,255,.14); border-radius:8px; padding:8px 11px;">
+        ${dif >= 0 ? `✅ Este mes vendiste <b>${money(dif)}</b> por ENCIMA del equilibrio.` : `📉 Este mes te faltaron <b>${money(-dif)}</b> en ventas para no perder.`}
+      </div>
+      <div style="margin-top:11px; border-top:1px solid rgba(255,255,255,.25); padding-top:10px;">
+        <div style="font-size:12px; opacity:.9; margin-bottom:5px;">🎯 ¿Cuánto quieres GANAR al mes (tú + socio)?</div>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <input id="pe_meta" type="number" min="0" step="1000" placeholder="Ej. 200000" oninput="_emCalcMeta()" style="padding:8px 10px; border-radius:8px; border:0; font-size:14px; width:150px; color:#0f172a;">
+          <span style="font-size:13px;">→ debes vender <b id="pe_result" style="font-size:17px;">—</b></span>
+        </div>
+      </div>
+    </div>`;
+}
+function _emCalcMeta() {
+    const out = document.getElementById('pe_result'); if(!out || !_emData) return;
+    const ventas = Number(_emData.ingresos) || 0, bruta = Number(_emData.bruta) || 0, gastos = Number(_emData.totalGastos) || 0;
+    const margen = ventas > 0 ? bruta / ventas : 0;
+    if(margen <= 0) { out.textContent = '—'; return; }
+    const meta = parseFloat(document.getElementById('pe_meta')?.value) || 0;
+    out.textContent = money((gastos + meta) / margen);
+}
 async function renderEstadoMensual() {
     const cont = document.getElementById('em_contenido'); if(!cont) return;
     cont.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:20px;">Calculando…</p>';
@@ -6730,7 +6764,7 @@ async function renderEstadoMensual() {
             </tr>`).join('')}</tbody>
           </table>
         </div>` : '';
-        cont.innerHTML = estado + lista;
+        cont.innerHTML = estado + _emPuntoEquilibrioHTML(d) + lista;
     } catch(e) { logError('Render estado mensual', e); cont.innerHTML = '<p style="color:#dc2626;">Error al generar.</p>'; }
 }
 function imprimirEstadoMensual() {
