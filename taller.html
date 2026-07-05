@@ -6715,7 +6715,63 @@ function _emPuntoEquilibrioHTML(d) {
           <span style="font-size:13px;">→ debes vender <b id="pe_result" style="font-size:17px;">—</b></span>
         </div>
       </div>
+      <div style="margin-top:11px; border-top:1px solid rgba(255,255,255,.25); padding-top:10px;">
+        <div style="font-size:12px; opacity:.9; margin-bottom:6px;">📦 Faltante de inventario (merma) — dónde se te va la ganancia</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button onclick="_emGuardarSnapshot()" style="background:#fff; color:#0e7490; border:0; border-radius:8px; padding:7px 11px; font-weight:700; font-size:12.5px; cursor:pointer;"><i class="ti ti-camera"></i> Guardar inventario de hoy</button>
+          <button onclick="_emMedirFaltante()" style="background:#f59e0b; color:#fff; border:0; border-radius:8px; padding:7px 11px; font-weight:700; font-size:12.5px; cursor:pointer;"><i class="ti ti-search"></i> Medir faltante del mes</button>
+        </div>
+        <div id="faltante_out" style="margin-top:8px; font-size:12.5px;"></div>
+      </div>
     </div>`;
+}
+async function _emGuardarSnapshot() {
+    if(!esDueno()) return;
+    try {
+        toast('Calculando el valor del inventario…');
+        const { data, error } = await supabaseClient.rpc('inventario_valor_total');
+        if(error) throw error;
+        const valor = Number(data?.valor) || 0, unidades = Number(data?.unidades) || 0;
+        const { error: e2 } = await supabaseClient.from('inventario_snapshots').insert([{ valor, unidades, nota: 'foto manual', creado_por: sessionUser?.nombre || sessionUser?.usuario || null }]);
+        if(e2) throw e2;
+        toast(`📸 Inventario guardado: ${money(valor)} (${Math.round(unidades)} uds).`);
+    } catch(e) { logError('snapshot inventario', e); toastError(getFriendlyError(e)); }
+}
+async function _emMedirFaltante() {
+    if(!esDueno() || !_emData) return;
+    const out = document.getElementById('faltante_out'); if(!out) return;
+    out.innerHTML = '<span style="opacity:.85;">Midiendo… (buscando las compras del mes en Info Plus, aguanta unos segundos)</span>';
+    try {
+        const ini = _emData.ini, fin = _emData.fin; // fin = 1er día del mes siguiente
+        const { data: snaps } = await supabaseClient.from('inventario_snapshots').select('fecha,valor').order('fecha');
+        const arr = snaps || [];
+        const invIni = arr.filter(s => s.fecha <= ini).slice(-1)[0];
+        const invFin = arr.filter(s => s.fecha > ini && s.fecha < fin).slice(-1)[0];
+        if(!invIni || !invFin) {
+            out.innerHTML = `<div style="background:rgba(255,255,255,.14); border-radius:8px; padding:9px 11px;">⚠️ Necesito <b>2 fotos</b> del inventario para este mes: una al <b>inicio</b> y otra al <b>fin</b>. Guarda una hoy con "📸 Guardar inventario de hoy" y otra a fin de mes — de ahí en adelante se calcula solo cada mes.</div>`;
+            return;
+        }
+        const noPad = d => d.split('-').map(x => String(parseInt(x, 10))).join('-');
+        const finReal = new Date(new Date(fin + 'T00:00:00').getTime() - 86400000).toISOString().slice(0, 10);
+        let compras = 0;
+        try {
+            const { data: cj } = await supabaseClient.functions.invoke('infoplus-compras', { body: { desde: noPad(ini), hasta: noPad(finReal) } });
+            compras = (cj?.facturas || []).reduce((s, f) => s + (Number(f.total) || 0), 0);
+        } catch(_) {}
+        const costoIP = Number(_emData.costoVentas) || 0;
+        const salidaReal = compras - (Number(invFin.valor) - Number(invIni.valor)); // compras − Δinventario
+        const faltante = salidaReal - costoIP;
+        const row = (a, b) => `<div style="display:flex; justify-content:space-between;"><span>${a}</span><b>${b}</b></div>`;
+        out.innerHTML = `<div style="background:rgba(255,255,255,.16); border-radius:8px; padding:10px 12px;">
+          ${row('Inventario inicial (' + invIni.fecha + ')', money(invIni.valor))}
+          ${row('(+) Compras del mes', money(compras))}
+          ${row('(−) Inventario final (' + invFin.fecha + ')', money(invFin.valor))}
+          <div style="border-top:1px solid rgba(255,255,255,.3); margin-top:4px; padding-top:4px;">${row('= Mercancía que SALIÓ', money(salidaReal))}</div>
+          ${row('(−) Costo de ventas (Info Plus)', money(costoIP))}
+          <div style="font-size:15px; margin-top:4px;">${row('🔴 FALTANTE del mes', money(faltante))}</div>
+          <div style="font-size:11px; opacity:.85; margin-top:5px;">Ese faltante = piezas de reparación (legítimo) + merma sin explicar. Compáralo con los ajustes "REACOND" del mes para ver cuánto es merma pura.</div>
+        </div>`;
+    } catch(e) { logError('medir faltante', e); out.innerHTML = '<span style="color:#fecaca;">No se pudo medir. Intenta de nuevo.</span>'; }
 }
 function _emCalcMeta() {
     const out = document.getElementById('pe_result'); if(!out || !_emData) return;
