@@ -1032,6 +1032,7 @@ body{
                             <button class="btn btn-light" style="font-size:12px;" onclick="renderEstadoMensual()"><i class="ti ti-refresh"></i> Actualizar</button>
                             <button class="btn btn-light" style="font-size:12px;" onclick="imprimirEstadoMensual()"><i class="ti ti-printer"></i> Imprimir</button>
                             <button class="btn btn-light" style="font-size:12px; color:#15803d; border-color:#86efac;" onclick="exportarEstadoMensualExcel()"><i class="ti ti-file-spreadsheet"></i> Excel</button>
+                            <button class="btn btn-light" style="font-size:12px; color:#7c3aed; border-color:#c4b5fd;" onclick="abrirReporteCelularesModelo()"><i class="ti ti-device-mobile"></i> Celulares por modelo (margen)</button>
                         </div>
                         <div id="em_contenido"><p style="color:var(--text-muted); text-align:center; padding:20px;">Selecciona el mes.</p></div>
                     </div>
@@ -6772,6 +6773,93 @@ async function _emMedirFaltante() {
           <div style="font-size:11px; opacity:.85; margin-top:5px;">Ese faltante = piezas de reparación (legítimo) + merma sin explicar. Compáralo con los ajustes "REACOND" del mes para ver cuánto es merma pura.</div>
         </div>`;
     } catch(e) { logError('medir faltante', e); out.innerHTML = '<span style="color:#fecaca;">No se pudo medir. Intenta de nuevo.</span>'; }
+}
+// ===== Reporte: celulares vendidos por modelo con margen (usa el mes/tienda del Estado Mensual) =====
+let _celModeloData = null;
+async function abrirReporteCelularesModelo() {
+    if(!isAdminUser()) return toast('Solo administradores.', 'error');
+    const mes = document.getElementById('em_mes')?.value || new Date().toISOString().slice(0, 7);
+    const suc = document.getElementById('em_sucursal')?.value || '';
+    const { ini, fin } = _periodoMes(mes);
+    const loc = suc === 'Santiago' ? 1 : (suc === 'Moca' ? 4 : null);
+    let modal = document.getElementById('modalCelModelo');
+    if(!modal) { modal = document.createElement('div'); modal.id = 'modalCelModelo'; modal.className = 'modal-backdrop'; document.body.appendChild(modal); }
+    modal.style.zIndex = '700'; modal.classList.add('active');
+    modal.innerHTML = `<div class="modal-box" style="max-width:780px; width:96%;"><div class="modal-body" style="text-align:center; padding:34px; color:#64748b;">Cargando ventas por modelo…</div></div>`;
+    try {
+        let q = supabaseClient.from('infoplus_ventas').select('producto_id,cantidad,monto_venta,monto_costo').eq('categoria', 'MOBILES').gte('fecha', ini).lt('fecha', fin);
+        if(loc) q = q.eq('codlocalidad', loc);
+        const { data } = await q;
+        const rows = data || [];
+        if(typeof _ensureInfoplusArticulos === 'function') { try { await _ensureInfoplusArticulos(); } catch(_) {} }
+        const g = {};
+        rows.forEach(r => { const k = r.producto_id || '?'; if(!g[k]) g[k] = { cant: 0, venta: 0, costo: 0 }; g[k].cant += Number(r.cantidad) || 0; g[k].venta += Number(r.monto_venta) || 0; g[k].costo += Number(r.monto_costo) || 0; });
+        const lista = Object.keys(g).map(k => { const a = (typeof _findInfoplusArt === 'function' ? _findInfoplusArt(k) : null) || {}; const d = g[k]; const gan = d.venta - d.costo; return { cod: k, desc: (a.descripcion || ('cód. ' + k)).toString().trim(), cant: d.cant, venta: d.venta, costo: d.costo, gan, margen: d.venta > 0 ? gan / d.venta * 100 : 0 }; }).sort((a, b) => b.gan - a.gan);
+        _celModeloData = { mes, suc, lista };
+        _celModeloRender();
+    } catch(e) { logError('reporte celulares modelo', e); const m = document.getElementById('modalCelModelo'); if(m) m.innerHTML = `<div class="modal-box"><div class="modal-body" style="padding:20px;">Error al generar. <button class="btn btn-light" onclick="document.getElementById('modalCelModelo').remove()">Cerrar</button></div></div>`; }
+}
+function _celModeloRender() {
+    const modal = document.getElementById('modalCelModelo'); if(!modal || !_celModeloData) return;
+    const { mes, suc, lista } = _celModeloData;
+    const tVenta = lista.reduce((s, r) => s + r.venta, 0), tCosto = lista.reduce((s, r) => s + r.costo, 0), tGan = tVenta - tCosto, tCant = lista.reduce((s, r) => s + r.cant, 0);
+    const tMargen = tVenta > 0 ? tGan / tVenta * 100 : 0;
+    const filas = lista.map(r => `<tr>
+      <td>${escapeHtml(r.desc)}</td>
+      <td style="text-align:center;">${Math.round(r.cant)}</td>
+      <td style="text-align:right;">${money(r.costo)}</td>
+      <td style="text-align:right;">${money(r.venta)}</td>
+      <td style="text-align:right; font-weight:700; color:${r.gan < 0 ? '#b91c1c' : '#166534'};">${money(r.gan)}</td>
+      <td style="text-align:center; font-weight:700; color:${r.margen < 15 ? '#b45309' : '#166534'};">${r.margen.toFixed(1)}%</td>
+    </tr>`).join('');
+    modal.innerHTML = `<div class="modal-box" style="max-width:780px; width:96%;">
+      <div class="modal-header" style="background:linear-gradient(135deg,#6d28d9,#7c3aed); color:#fff;">
+        <h3 style="color:#fff; margin:0;"><i class="ti ti-device-mobile"></i> Celulares por modelo — ${escapeHtml(mes)}${suc ? ' · ' + escapeHtml(suc) : ' · Combinado'}</h3>
+        <button class="modal-close" style="color:#fff;" onclick="document.getElementById('modalCelModelo').remove()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+          <div style="flex:1; min-width:80px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:7px 10px;"><small style="color:#64748b;">Unidades</small><div style="font-weight:800;">${Math.round(tCant)}</div></div>
+          <div style="flex:1; min-width:110px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:7px 10px;"><small style="color:#64748b;">Venta</small><div style="font-weight:800;">${money(tVenta)}</div></div>
+          <div style="flex:1; min-width:110px; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:8px; padding:7px 10px;"><small style="color:#64748b;">Ganancia</small><div style="font-weight:800; color:#047857;">${money(tGan)}</div></div>
+          <div style="flex:1; min-width:70px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:7px 10px;"><small style="color:#64748b;">Margen</small><div style="font-weight:800; color:#1d4ed8;">${tMargen.toFixed(1)}%</div></div>
+        </div>
+        <div class="table-wrap" style="max-height:52vh; overflow-y:auto;"><table style="width:100%; font-size:12.5px;">
+          <thead><tr style="background:#0f172a; color:#fff;"><th style="text-align:left;">Modelo</th><th>Cant.</th><th style="text-align:right;">Costo</th><th style="text-align:right;">Venta</th><th style="text-align:right;">Ganancia</th><th>Margen</th></tr></thead>
+          <tbody>${filas || '<tr><td colspan="6" style="text-align:center; color:#94a3b8; padding:16px;">Sin ventas de celulares este mes.</td></tr>'}</tbody>
+        </table></div>
+        <p style="font-size:11px; color:#64748b; margin:8px 0 0;">Ordenado por ganancia. El margen en <b style="color:#b45309;">ámbar</b> (menos de 15%) es donde ganas poco — súbele el precio o compra más barato. Incluye lo que Info Plus pone en "MOBILES".</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-light" onclick="_celModeloExcel()"><i class="ti ti-file-spreadsheet"></i> Excel</button>
+        <button class="btn btn-blue" onclick="_celModeloImprimir()"><i class="ti ti-printer"></i> Imprimir</button>
+      </div>
+    </div>`;
+}
+function _celModeloImprimir() {
+    if(!_celModeloData) return;
+    const { mes, suc, lista } = _celModeloData;
+    const tVenta = lista.reduce((s, r) => s + r.venta, 0), tCosto = lista.reduce((s, r) => s + r.costo, 0), tGan = tVenta - tCosto, tCant = lista.reduce((s, r) => s + r.cant, 0);
+    const cfg = cache.configTaller || {};
+    const filas = lista.map(r => `<tr><td>${escapeHtml(r.desc)}</td><td class=c>${Math.round(r.cant)}</td><td class=n>${money(r.costo)}</td><td class=n>${money(r.venta)}</td><td class=n>${money(r.gan)}</td><td class=c>${r.margen.toFixed(1)}%</td></tr>`).join('');
+    const w = window.open('', '_blank'); if(!w) return toast('Permite las ventanas emergentes.', 'error');
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Celulares por modelo ${escapeHtml(mes)}</title><style>*{font-family:Arial,sans-serif;}body{margin:22px;color:#0f172a;}h2{margin:0;font-size:17px;}table{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px;}th,td{border:1px solid #cbd5e1;padding:5px 7px;}th{background:#0f172a;color:#fff;}td.n{text-align:right;}td.c{text-align:center;}tfoot td{font-weight:800;background:#eef2ff;}</style></head><body>
+      <h2>${escapeHtml(cfg.nombre || 'BAYOL CELL')} — Celulares vendidos por modelo</h2>
+      <div style="color:#64748b;font-size:12px;">${escapeHtml(mes)} · ${suc ? escapeHtml(suc) : 'Combinado (Santiago + Moca)'} · RD$</div>
+      <table><thead><tr><th style="text-align:left;">Modelo</th><th>Cant.</th><th>Costo</th><th>Venta</th><th>Ganancia</th><th>Margen</th></tr></thead>
+      <tbody>${filas}</tbody>
+      <tfoot><tr><td class=c>${Math.round(tCant)}</td><td></td><td class=n>${money(tCosto)}</td><td class=n>${money(tVenta)}</td><td class=n>${money(tGan)}</td><td class=c>${tVenta > 0 ? (tGan / tVenta * 100).toFixed(1) : '0'}%</td></tr></tfoot>
+      </table><script>window.onload=function(){window.print();}<\/script></body></html>`);
+    w.document.close();
+}
+function _celModeloExcel() {
+    if(!_celModeloData) return;
+    const { mes, suc, lista } = _celModeloData;
+    let html = `<table><tr><th>Modelo</th><th>Cantidad</th><th>Costo</th><th>Venta</th><th>Ganancia</th><th>Margen %</th></tr>`;
+    lista.forEach(r => { html += `<tr><td>${escapeHtml(r.desc)}</td><td>${Math.round(r.cant)}</td><td>${r.costo.toFixed(2)}</td><td>${r.venta.toFixed(2)}</td><td>${r.gan.toFixed(2)}</td><td>${r.margen.toFixed(1)}</td></tr>`; });
+    html += `</table>`;
+    const blob = new Blob(['﻿<html><head><meta charset="utf-8"></head><body>' + html + '</body></html>'], { type: 'application/vnd.ms-excel' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `celulares_modelo_${mes}${suc ? '_' + suc : ''}.xls`; a.click();
 }
 function _emCalcMeta() {
     const out = document.getElementById('pe_result'); if(!out || !_emData) return;
