@@ -11530,11 +11530,71 @@ async function _ejecutarRegistroCompraIP() {
         for(let i = 0; i < idsTodos.length; i += 200) {
             await supabaseClient.from('equipos_refurbish').update({ infoplus_compra_pedido: codpedido }).in('id', idsTodos.slice(i, i + 200));
         }
+        // Guardar comprobante local de la compra (para imprimir/entregar)
+        const compraItems = lista.map(g => { const cant = g.equipos.length; return { codigo: g.codigo, modelo: g.modelo, cantidad: cant, promedio: cant ? g.total / cant : 0, total: g.total, imeis: g.imeis }; });
+        const provSel = document.getElementById('regipProv');
+        const provNombre = provSel ? ((provSel.options[provSel.selectedIndex] && provSel.options[provSel.selectedIndex].text) || codproveedor) : codproveedor;
+        let savedCompra = null;
+        try {
+            const { data: sc } = await supabaseClient.from('compras_infoplus').insert([{
+                pedido: codpedido, lote_codigo: loteCod, proveedor: provNombre, codproveedor: String(codproveedor),
+                almacen, cantidad: idsTodos.length, total: Math.round(total * 100) / 100, items: compraItems,
+                usuario: sessionUser?.nombre || 'Admin'
+            }]).select().single();
+            savedCompra = sc;
+        } catch(e) { logError('guardar compra IP', e); }
         toast(`✅ Compra registrada en Info Plus (${codpedido}). ${idsTodos.length} equipo(s).`);
         const m = document.getElementById('modalRegCompraIP'); if(m) m.remove();
         await loadAll();
         renderDetalleLoteReacond();
+        if(savedCompra && await confirmar(`Compra ${codpedido} registrada ✅\n\n¿Imprimir el comprobante?`)) imprimirCompraIP(savedCompra);
     } catch(e) { logError('registrar compra IP', e); toastError(getFriendlyError(e)); }
+}
+// Imprime el comprobante de una compra registrada en Info Plus (para entregar/firmar).
+function imprimirCompraIP(rec) {
+    if(!rec) return;
+    const conf = (cache.configTaller) || {};
+    const items = Array.isArray(rec.items) ? rec.items : [];
+    const totU = items.reduce((s, x) => s + (Number(x.cantidad) || 0), 0);
+    const totalRD = items.reduce((s, x) => s + (Number(x.total) || 0), 0);
+    const filas = items.map((it, i) => `<tr>
+        <td style="text-align:center;">${i + 1}</td>
+        <td style="text-align:center;">${escapeHtml(String(it.codigo || ''))}</td>
+        <td>${escapeHtml(it.modelo || '')}${(it.imeis && it.imeis.length) ? `<div style="font-size:10px; color:#64748b;">IMEIs: ${it.imeis.map(x => escapeHtml(String(x))).join(', ')}</div>` : ''}</td>
+        <td style="text-align:center; font-weight:700;">${it.cantidad}</td>
+        <td style="text-align:right;">${money(it.promedio || 0)}</td>
+        <td style="text-align:right;">${money(it.total || 0)}</td>
+    </tr>`).join('');
+    const w = window.open('', '_blank');
+    w.document.write(`<html><head><meta charset="utf-8"><title>Compra ${escapeHtml(rec.pedido || '')}</title>
+    <style>body{font-family:-apple-system,Segoe UI,Arial,sans-serif;margin:26px;color:#0f172a;}
+    .hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #0891b2;padding-bottom:10px;}
+    .hd h1{font-size:17px;margin:0;} .hd .st{font-size:12px;color:#64748b;margin-top:2px;}
+    .doc{text-align:right;} .doc .t{font-size:13px;color:#0891b2;font-weight:800;text-transform:uppercase;letter-spacing:.5px;} .doc .n{font-size:22px;font-weight:800;}
+    .meta{display:flex;gap:24px;flex-wrap:wrap;margin:14px 0;font-size:13px;} .meta b{display:block;color:#64748b;font-size:11px;text-transform:uppercase;font-weight:700;}
+    table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px;} th,td{border:1px solid #e2e8f0;padding:7px 9px;} th{background:#0f172a;color:#fff;font-size:11px;}
+    tfoot td{font-weight:800;background:#f8fafc;}
+    .firmas{display:flex;gap:40px;margin-top:50px;} .firmas div{flex:1;border-top:1px solid #0f172a;padding-top:6px;font-size:12px;text-align:center;color:#475569;}
+    @media print{th,tfoot td,.doc .t{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style></head><body>
+    <div class="hd">
+      <div><h1>${escapeHtml(conf.nombre || 'BAYOL CELL, S.R.L.')}</h1>
+        <div class="st">${escapeHtml(conf.direccion || '')}${conf.telefono ? ' · Tel: ' + escapeHtml(conf.telefono) : ''}</div></div>
+      <div class="doc"><div class="t">Compra · Info Plus</div><div class="n">${escapeHtml(rec.pedido || '—')}</div></div>
+    </div>
+    <div class="meta">
+      <div><b>Fecha</b>${new Date(rec.fecha).toLocaleString('es-DO')}</div>
+      <div><b>Lote</b>${escapeHtml(rec.lote_codigo || '—')}</div>
+      <div><b>Proveedor</b>${escapeHtml(rec.proveedor || '—')}</div>
+      <div><b>Almacén</b>${escapeHtml(_nombreAlmacen(rec.almacen))}</div>
+      <div><b>Registró</b>${escapeHtml(rec.usuario || '')}</div>
+    </div>
+    <table><thead><tr><th>#</th><th>Código</th><th style="text-align:left;">Modelo / IMEIs</th><th>Cant.</th><th style="text-align:right;">Costo prom.</th><th style="text-align:right;">Total</th></tr></thead>
+    <tbody>${filas}</tbody>
+    <tfoot><tr><td colspan="3" style="text-align:right;">TOTALES</td><td style="text-align:center;">${totU}</td><td></td><td style="text-align:right;">${money(totalRD)}</td></tr></tfoot></table>
+    <div class="firmas"><div>Registrado por</div><div>Recibido por</div></div>
+    <p style="font-size:10px;color:#94a3b8;margin-top:20px;">Comprobante de compra registrada en Info Plus · BAYOL CELL. Documento de control interno.</p>
+    </body></html>`);
+    w.document.close(); setTimeout(() => w.print(), 300);
 }
 // ===== Registro MANUAL en Info Plus: documento al día (qué falta agregar + promedio actualizado) =====
 function abrirRegistroManualIP() {
