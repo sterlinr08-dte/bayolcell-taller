@@ -860,6 +860,7 @@ body{
             <button id="menu-proveedores" onclick="nav('proveedores',this)"><i class="ti ti-shopping-cart"></i> <span>Compras</span></button>
             <button id="menu-refurb" onclick="nav('refurb',this)"><i class="ti ti-refresh"></i> <span>Reacondicionados</span></button>
             <button id="menu-despachos" onclick="nav('despachos',this)"><i class="ti ti-truck-delivery"></i> <span>Despacho de Almacén</span></button>
+            <button id="menu-invfisico" onclick="nav('invfisico',this)" style="display:none;"><i class="ti ti-clipboard-check"></i> <span>Inventario Físico</span> <span class="nav-badge-admin">ADMIN</span></button>
 
             <div class="nav-section">SISTEMA</div>
             <button id="menu-etiquetas" onclick="nav('etiquetas',this)"><i class="ti ti-barcode"></i> <span>Impresión de Labels</span></button>
@@ -2300,6 +2301,15 @@ body{
                     <h3 style="margin:0 0 12px 0; font-size:15px;"><i class="ti ti-history"></i> Historial de despachos</h3>
                     <div class="table-wrap" id="despachosHistorial"></div>
                 </div>
+            </div>
+
+            <!-- ============= INVENTARIO FÍSICO ============= -->
+            <div id="v-invfisico" class="view">
+                <div class="card" style="margin-bottom:15px; border-left:4px solid #16a34a;">
+                    <h2 style="margin:0 0 4px 0; font-size:18px;"><i class="ti ti-clipboard-check" style="color:#16a34a;"></i> Inventario Físico <span class="nav-badge-admin">ADMIN</span></h2>
+                    <p style="color:var(--text-muted); font-size:13px; margin:0;">Cuenta la mercancía real y cuádrala con Info Plus. Puedes contar por almacén y por categoría, sin parar la venta: el sistema ajusta por <b>diferencia</b>, así que aunque se venda mientras cuentas, el faltante real no cambia. Puedes dejarlo a medias y seguir otro día.</p>
+                </div>
+                <div id="invFisicoCont"></div>
             </div>
 
             <!-- ============= REPORTES ============= -->
@@ -4768,6 +4778,10 @@ function applyAccessControls() {
     const btnNom = document.getElementById('menu-nomina');
     if(btnNom) btnNom.style.display = isAdminUser() ? '' : 'none';
 
+    // Inventario Físico: solo administradores (ajusta inventario real en Info Plus)
+    const btnInvF = document.getElementById('menu-invfisico');
+    if(btnInvF) btnInvF.style.display = isAdminUser() ? '' : 'none';
+
     // Registrar equipo existente (carga de equipos previos al sistema): solo admin
     const btnRegEx = document.getElementById('btnRegistrarExistente');
     if(btnRegEx) btnRegEx.style.display = isAdminUser() ? '' : 'none';
@@ -5940,6 +5954,11 @@ function nav(v, btn) {
         toast('🔒 Módulo solo para administradores.');
         return;
     }
+    // Inventario Físico: solo administradores (escribe ajustes reales en Info Plus)
+    if(v === 'invfisico' && !isAdminUser()) {
+        toast('🔒 Módulo solo para administradores.');
+        return;
+    }
     // PORTERO CENTRAL: verifica permiso antes de entrar (sin importar de dónde venga el clic)
     const permisoReq = NAV_PERMISOS[v];
     if(permisoReq && !tienePermiso(permisoReq)) {
@@ -5964,6 +5983,7 @@ function nav(v, btn) {
     if(v === 'configuracion') { setTimeout(() => { cambiarMainTabConfig(localStorage.getItem('bayol_subtab_config') || 'tecnicos'); }, 50); }
     if(v === 'reportes') { setTimeout(() => { inicializarReportes(); }, 50); }
     if(v === 'despachos') { setTimeout(() => { renderDespachos(); }, 50); }
+    if(v === 'invfisico') { setTimeout(() => { renderInvFisico(); }, 50); }
     if(v === 'nomina') { setTimeout(() => { renderNomina(); }, 50); }
     if(v === 'estadisticas') { setTimeout(() => { renderEstadisticas(); }, 50); }
     if(v === 'miTrabajo') { setTimeout(() => { renderMiTrabajo(); const _wrap = document.getElementById('miTrabajoIncentivosWrap'); if(_wrap){ if(!isAdminUser() && typeof renderMisIncentivos === 'function') { _wrap.style.display = ''; renderMisIncentivos('miTrabajoIncentivos'); } else { _wrap.style.display = 'none'; } } }, 50); }
@@ -15338,6 +15358,361 @@ async function _despachoCargarHistorial() {
             </tr>`).join('') + `</tbody></table>`;
     } catch(e) { logError('Historial despachos', e); cont.innerHTML = '<p style="color:#b91c1c; font-size:13px;">No se pudo cargar el historial.</p>'; }
 }
+
+// ===================================================================
+// INVENTARIO FÍSICO — contar mercancía real y cuadrarla con Info Plus
+// Lógica clave: se guarda el "sistema" en el momento exacto de contar y
+// se ajusta por DIFERENCIA (delta = contado − sistema). Así la venta puede
+// seguir mientras cuentas: tanto lo físico como el sistema bajan igual y
+// el faltante real no cambia.
+// ===================================================================
+const INV_ALM = [ { c: 1, n: 'Santiago (Principal)' }, { c: 4, n: 'Moca' }, { c: 6, n: 'Taller' } ];
+const INV_CATS = [
+    { k: 'PANTALLAS', lbl: '📱 Pantallas', re: /(PANTALLA|DISPLAY|\bLCD\b|TOUCH|TACTIL|TÁCTIL)/i },
+    { k: 'BATERIAS', lbl: '🔋 Baterías', re: /(BATERIA|BATERÍA|\bPILA\b)/i },
+    { k: 'CELULARES', lbl: '📲 Celulares', re: /^\s*(CELULAR|CELU\b|TELEFONO|TELÉFONO|SMARTPHONE)/i },
+    { k: 'FLEX', lbl: '🔌 Flex / Conector', re: /(\bFLEX\b|CONECTOR|PIN DE CARGA|PUERTO|\bDOCK\b)/i },
+    { k: 'CARGA', lbl: '⚡ Carga / Cables', re: /(CARGADOR|\bCABLE\b|\bUSB\b|ADAPTADOR)/i },
+    { k: 'CRISTAL', lbl: '🛡️ Cristal / Protector', re: /(CRISTAL|GLASS|\bMICA\b|TEMPLADO|PROTECTOR)/i },
+    { k: 'CAMARA', lbl: '📷 Cámaras', re: /(CAMARA|CÁMARA|\bLENTE\b)/i },
+    { k: 'AUDIO', lbl: '🔊 Audio', re: /(BOCINA|SPEAKER|ALTAVOZ|AURICULAR|AUDIFONO|AUDÍFONO|MICROFONO|MICRÓFONO)/i },
+    { k: 'PIEZAS', lbl: '🔧 Otras piezas', re: /(TAPA|TRASERA|CARCASA|\bMARCO\b|BANDEJA|\bSIM\b|BOTON|BOTÓN|VIBRADOR|ANTENA|SENSOR)/i }
+];
+let _invSesion = null;   // { id, almacen, estado }
+let _invLineas = [];     // filas ya contadas de esta sesión
+let _invCatSel = 'TODOS';
+let _invBusq = '';
+
+function _invAlmNombre(c) { const a = INV_ALM.find(x => x.c === Number(c)); return a ? a.n : ('Almacén ' + c); }
+function _invCatDe(desc) {
+    const s = (desc || '').toString();
+    for(const cat of INV_CATS) { if(cat.re.test(s)) return cat.k; }
+    return 'OTROS';
+}
+function _invCatLbl(k) { if(k === 'OTROS') return '📦 Otros'; const c = INV_CATS.find(x => x.k === k); return c ? c.lbl : k; }
+function _invStockAlm(art) { return Number((art && art.existencias || {})[String(_invSesion.almacen)] || 0); }
+function _invLineaDe(cod) { return _invLineas.find(l => String(l.codarticulo) === String(cod)) || null; }
+
+async function renderInvFisico() {
+    if(!isAdminUser()) { toast('🔒 Solo el administrador.', 'error'); return; }
+    const cont = document.getElementById('invFisicoCont');
+    if(!cont) return;
+    cont.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:24px;">Cargando artículos de Info Plus…</p>';
+    _invSesion = null; _invLineas = []; _invCatSel = 'TODOS'; _invBusq = '';
+    await _ensureInfoplusArticulos();
+    let abiertas = [];
+    try {
+        const { data } = await supabaseClient.from('inv_fisico_sesiones').select('*').eq('estado', 'en_progreso').order('creado_en', { ascending: false });
+        abiertas = data || [];
+    } catch(e) { logError('inv sesiones', e); }
+    const opts = INV_ALM.map(a => `<option value="${a.c}">${a.n}</option>`).join('');
+    let contHtml = '';
+    if(abiertas.length) {
+        const rows = await Promise.all(abiertas.map(async s => {
+            let n = 0;
+            try { const { count } = await supabaseClient.from('inv_fisico_lineas').select('id', { count: 'exact', head: true }).eq('sesion_id', s.id); n = count || 0; } catch(_e) {}
+            return `<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; border:1px solid #e2e8f0; border-radius:10px; padding:10px 12px; margin-top:8px;">
+                <div><b>${escapeHtml(_invAlmNombre(s.almacen))}</b> <span style="color:#94a3b8; font-size:12px;">· ${n} artículo(s) contados · iniciado ${new Date(s.creado_en).toLocaleDateString('es-DO')}</span></div>
+                <button class="btn btn-blue" style="font-size:13px;" onclick="_invContinuar('${s.id}')"><i class="ti ti-player-play"></i> Continuar</button>
+            </div>`;
+        }));
+        contHtml = `<div class="card" style="margin-bottom:15px;">
+            <h3 style="margin:0 0 6px 0; font-size:15px;"><i class="ti ti-player-play"></i> Conteos en progreso</h3>
+            <p style="color:#94a3b8; font-size:12px; margin:0 0 4px;">Retoma un conteo que dejaste a medias.</p>
+            ${rows.join('')}
+        </div>`;
+    }
+    cont.innerHTML = contHtml + `<div class="card">
+        <h3 style="margin:0 0 12px 0; font-size:15px;"><i class="ti ti-plus"></i> Iniciar un conteo nuevo</h3>
+        <div style="display:flex; gap:12px; align-items:end; flex-wrap:wrap;">
+            <div>
+                <label style="font-size:12px; font-weight:700; color:#475569; display:block; margin-bottom:4px;">¿Cuál almacén vas a contar?</label>
+                <select id="invAlmSel" style="padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; min-width:220px;">${opts}</select>
+            </div>
+            <button class="btn btn-green" onclick="_invIniciar()"><i class="ti ti-clipboard-check"></i> Empezar a contar</button>
+        </div>
+        <p style="color:#94a3b8; font-size:12px; margin:12px 0 0;">💡 Cuenta primero lo más caro (celulares, pantallas) en horas de poca venta. Los celulares se manejan por IMEI, así que se cuentan para tu reporte pero no se ajustan por aquí.</p>
+    </div>`;
+}
+
+async function _invIniciar() {
+    const almacen = parseInt(document.getElementById('invAlmSel')?.value, 10) || 1;
+    try {
+        // ¿ya hay una abierta para ese almacén? reutilizar
+        const { data: ya } = await supabaseClient.from('inv_fisico_sesiones').select('*').eq('estado', 'en_progreso').eq('almacen', almacen).limit(1);
+        let ses = (ya && ya[0]) || null;
+        if(!ses) {
+            const { data, error } = await supabaseClient.from('inv_fisico_sesiones').insert([{ almacen, creado_por: sessionUser?.nombre || 'Admin' }]).select().single();
+            if(error) throw error;
+            ses = data;
+        }
+        _invSesion = ses;
+        await _invCargarLineas();
+        _invCatSel = 'TODOS'; _invBusq = '';
+        _invRenderConteo();
+    } catch(e) { logError('inv iniciar', e); toastError(getFriendlyError(e)); }
+}
+async function _invContinuar(id) {
+    try {
+        const { data, error } = await supabaseClient.from('inv_fisico_sesiones').select('*').eq('id', id).single();
+        if(error) throw error;
+        _invSesion = data;
+        await _invCargarLineas();
+        _invCatSel = 'TODOS'; _invBusq = '';
+        _invRenderConteo();
+    } catch(e) { logError('inv continuar', e); toastError(getFriendlyError(e)); }
+}
+async function _invCargarLineas() {
+    try {
+        const { data } = await supabaseClient.from('inv_fisico_lineas').select('*').eq('sesion_id', _invSesion.id).order('contado_en');
+        _invLineas = data || [];
+    } catch(e) { logError('inv lineas', e); _invLineas = []; }
+}
+function _invStats() {
+    let cuadrados = 0, faltRD = 0, sobrRD = 0, faltU = 0, sobrU = 0, difs = 0;
+    _invLineas.forEach(l => {
+        if(l.estado === 'cuadrado') cuadrados++;
+        const d = Number(l.delta) || 0, c = Number(l.costo) || 0;
+        if(d < 0) { faltU += -d; faltRD += -d * c; difs++; }
+        else if(d > 0) { sobrU += d; sobrRD += d * c; difs++; }
+    });
+    return { contados: _invLineas.length, cuadrados, faltRD, sobrRD, faltU, sobrU, difs };
+}
+// Artículos visibles según categoría + búsqueda (con stock en el almacén O ya contados)
+function _invArtsVisibles() {
+    const alm = String(_invSesion.almacen);
+    const q = _invBusq.trim().toLowerCase();
+    return (cache.infoplusArticulos || []).filter(a => {
+        const stock = Number((a.existencias || {})[alm] || 0);
+        const tieneLinea = !!_invLineaDe(a.codigo);
+        if(stock <= 0 && !tieneLinea) return false;
+        if(_invCatSel !== 'TODOS' && _invCatDe(a.descripcion) !== _invCatSel) return false;
+        if(q) { const hay = [a.codigo, a.descripcion, a.marca, a.referencia].filter(x => x).join(' ').toLowerCase(); if(!hay.includes(q)) return false; }
+        return true;
+    }).sort((a, b) => (a.descripcion || '').localeCompare(b.descripcion || ''));
+}
+function _invRenderConteo() {
+    const cont = document.getElementById('invFisicoCont');
+    if(!cont || !_invSesion) return;
+    const st = _invStats();
+    // Chips de categoría con conteo de artículos con stock
+    const alm = String(_invSesion.almacen);
+    const catCount = {};
+    (cache.infoplusArticulos || []).forEach(a => {
+        const stock = Number((a.existencias || {})[alm] || 0);
+        if(stock <= 0 && !_invLineaDe(a.codigo)) return;
+        const k = _invCatDe(a.descripcion);
+        catCount[k] = (catCount[k] || 0) + 1;
+    });
+    const cats = [{ k: 'TODOS', lbl: '📋 Todas' }].concat(INV_CATS.map(c => ({ k: c.k, lbl: c.lbl }))).concat([{ k: 'OTROS', lbl: '📦 Otros' }]);
+    const chips = cats.filter(c => c.k === 'TODOS' || (catCount[c.k] || 0) > 0).map(c => {
+        const n = c.k === 'TODOS' ? Object.values(catCount).reduce((s, v) => s + v, 0) : (catCount[c.k] || 0);
+        const on = _invCatSel === c.k;
+        return `<button onclick="_invSetCat('${c.k}')" style="background:${on ? '#16a34a' : '#f1f5f9'}; color:${on ? '#fff' : '#334155'}; border:1px solid ${on ? '#16a34a' : '#e2e8f0'}; border-radius:20px; padding:6px 13px; font-size:12.5px; font-weight:700; cursor:pointer; margin:3px;">${c.lbl} <span style="opacity:.75;">${n}</span></button>`;
+    }).join('');
+
+    const arts = _invArtsVisibles();
+    const filas = arts.map(a => {
+        const linea = _invLineaDe(a.codigo);
+        const sistemaRef = _invStockAlm(a);
+        const esCel = _invCatDe(a.descripcion) === 'CELULARES';
+        return `<tr id="invrow-${escapeHtml(String(a.codigo))}">
+            <td style="font-size:12.5px;">${escapeHtml(a.descripcion || String(a.codigo))}${esCel ? ' <span style="background:#fef3c7; color:#92400e; font-size:10px; font-weight:700; padding:1px 6px; border-radius:8px;">IMEI</span>' : ''}<div style="color:#94a3b8; font-size:11px;">cód ${escapeHtml(String(a.codigo))} · costo ${money(a.costo || 0)}</div></td>
+            <td style="text-align:center; color:#64748b; font-size:12px;">${sistemaRef}</td>
+            <td style="text-align:center;"><input id="invc-${escapeHtml(String(a.codigo))}" type="number" min="0" inputmode="numeric" value="${linea && linea.contado != null ? linea.contado : ''}" placeholder="—" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" onblur="_invGuardarLinea('${escapeHtml(String(a.codigo))}', this.value)" style="width:80px; padding:7px; border:1px solid #cbd5e1; border-radius:7px; text-align:center; font-size:14px; font-weight:700;"></td>
+            <td id="invd-${escapeHtml(String(a.codigo))}" style="text-align:center; white-space:nowrap;">${_invBadgeDelta(linea)}</td>
+        </tr>`;
+    }).join('');
+
+    cont.innerHTML = `
+    <div class="card" style="margin-bottom:14px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <div>
+                <h3 style="margin:0; font-size:16px;"><i class="ti ti-building-warehouse" style="color:#16a34a;"></i> Contando: ${escapeHtml(_invAlmNombre(_invSesion.almacen))}</h3>
+                <div style="color:#94a3b8; font-size:12px; margin-top:2px;">Escribe lo que cuentas de cada artículo. Se guarda solo.</div>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button class="btn btn-light" style="font-size:12.5px;" onclick="_invImprimir()"><i class="ti ti-printer"></i> Diferencias</button>
+                <button class="btn btn-light" style="font-size:12.5px;" onclick="renderInvFisico()"><i class="ti ti-arrow-left"></i> Cambiar almacén</button>
+            </div>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
+            <div style="flex:1; min-width:120px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:9px 12px;"><div style="font-size:11px; color:#64748b; text-transform:uppercase;">Contados</div><div style="font-size:18px; font-weight:800;">${st.contados}</div></div>
+            <div style="flex:1; min-width:120px; background:#fef2f2; border:1px solid #fecaca; border-radius:10px; padding:9px 12px;"><div style="font-size:11px; color:#b91c1c; text-transform:uppercase;">Faltante</div><div style="font-size:18px; font-weight:800; color:#b91c1c;">${money(st.faltRD)}</div><div style="font-size:11px; color:#94a3b8;">${st.faltU} u.</div></div>
+            <div style="flex:1; min-width:120px; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:10px; padding:9px 12px;"><div style="font-size:11px; color:#047857; text-transform:uppercase;">Sobrante</div><div style="font-size:18px; font-weight:800; color:#047857;">${money(st.sobrRD)}</div><div style="font-size:11px; color:#94a3b8;">${st.sobrU} u.</div></div>
+            <div style="flex:1; min-width:120px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:9px 12px;"><div style="font-size:11px; color:#1d4ed8; text-transform:uppercase;">Cuadrados</div><div style="font-size:18px; font-weight:800; color:#1d4ed8;">${st.cuadrados}</div></div>
+        </div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px;">
+        <div style="font-size:12px; font-weight:700; color:#475569; margin-bottom:6px;">¿Qué vas a contar? Elige una categoría (puedes ir por partes):</div>
+        <div>${chips}</div>
+        <input type="text" value="${escapeHtml(_invBusq)}" oninput="_invBuscar(this.value)" placeholder="🔍 Buscar artículo por nombre o código…" style="width:100%; margin-top:10px; padding:9px 11px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
+    </div>
+
+    <div class="card">
+        <div class="table-wrap" style="max-height:60vh; overflow:auto;">
+        ${arts.length ? `<table><thead><tr><th style="text-align:left;">Artículo</th><th style="text-align:center;">Sistema</th><th style="text-align:center;">Conté</th><th style="text-align:center;">Diferencia</th></tr></thead><tbody>${filas}</tbody></table>`
+            : '<p style="color:#94a3b8; text-align:center; padding:20px;">No hay artículos con existencia en esta categoría. Usa el buscador para agregar uno que tengas físicamente (sobrante).</p>'}
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-top:14px; border-top:1px solid #f1f5f9; padding-top:12px;">
+            <div style="color:#64748b; font-size:12px;">Al cuadrar, se mandan a Info Plus solo las diferencias (entradas y salidas). Los celulares (IMEI) no se ajustan por aquí.</div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button class="btn btn-blue" style="font-size:13px;" onclick="_invCuadrar()"><i class="ti ti-check"></i> Cuadrar en Info Plus (${st.difs})</button>
+                <button class="btn btn-light" style="font-size:13px;" onclick="_invCerrar()"><i class="ti ti-lock"></i> Cerrar conteo</button>
+            </div>
+        </div>
+    </div>`;
+}
+function _invBadgeDelta(linea) {
+    if(!linea || linea.contado == null) return '<span style="color:#cbd5e1;">—</span>';
+    const d = Number(linea.delta) || 0;
+    const cuad = linea.estado === 'cuadrado';
+    let inner;
+    if(d === 0) inner = '<span style="color:#16a34a; font-weight:700;">✔ Cuadra</span>';
+    else if(d < 0) inner = `<span style="color:#b91c1c; font-weight:800;">▼ Faltan ${-d}</span>`;
+    else inner = `<span style="color:#047857; font-weight:800;">▲ Sobran ${d}</span>`;
+    if(cuad) inner += ' <span style="background:#dbeafe; color:#1d4ed8; font-size:10px; font-weight:700; padding:1px 6px; border-radius:8px;">ajustado</span>';
+    return inner;
+}
+function _invSetCat(k) { _invCatSel = k; _invRenderConteo(); }
+let _invBuscarTimer = null;
+function _invBuscar(v) {
+    _invBusq = v;
+    clearTimeout(_invBuscarTimer);
+    _invBuscarTimer = setTimeout(() => { const foco = document.activeElement && document.activeElement.tagName === 'INPUT'; _invRenderConteo(); if(foco) { const inp = document.querySelector('#invFisicoCont input[type=text]'); if(inp) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); } } }, 350);
+}
+// Guardar el conteo de un artículo: lee el SISTEMA en vivo (ancla), calcula delta, guarda.
+async function _invGuardarLinea(cod, valor) {
+    if(!_invSesion) return;
+    const art = _findInfoplusArt(cod);
+    if(!art) return;
+    const linea = _invLineaDe(cod);
+    const txt = (valor == null ? '' : String(valor)).trim();
+    if(txt === '') {
+        // vació el campo → borrar la línea si existía
+        if(linea) {
+            try { await supabaseClient.from('inv_fisico_lineas').delete().eq('id', linea.id); } catch(e) { logError('inv borrar linea', e); }
+            _invLineas = _invLineas.filter(l => l.id !== linea.id);
+            const cell = document.getElementById('invd-' + cod); if(cell) cell.innerHTML = _invBadgeDelta(null);
+            _invActualizarStats();
+        }
+        return;
+    }
+    const contado = Math.max(0, parseInt(txt.replace(/[^0-9]/g, ''), 10) || 0);
+    const codNum = parseInt(String(cod).replace(/[^0-9]/g, ''), 10);
+    // Sistema en vivo (ancla). Si falla, cae al valor sincronizado.
+    let sistema = _invStockAlm(art);
+    try {
+        const { data: ex } = await supabaseClient.functions.invoke('infoplus-existencia', { body: { codarticulo: codNum, codalmacen: _invSesion.almacen } });
+        if(ex && ex.ok && ex.cantidad != null) sistema = Number(ex.cantidad);
+    } catch(_e) {}
+    const delta = contado - sistema;
+    const esCel = _invCatDe(art.descripcion) === 'CELULARES';
+    const fila = {
+        sesion_id: _invSesion.id, codarticulo: codNum,
+        descripcion: art.descripcion || String(codNum), categoria: _invCatDe(art.descripcion),
+        sistema, contado, delta, costo: Number(art.costo) || 0, serial: esCel,
+        estado: 'contado', ajuste_estado: null, ajuste_detalle: null,
+        contado_por: sessionUser?.nombre || 'Admin', contado_en: new Date().toISOString(), cuadrado_en: null
+    };
+    try {
+        const { data, error } = await supabaseClient.from('inv_fisico_lineas').upsert([fila], { onConflict: 'sesion_id,codarticulo' }).select().single();
+        if(error) throw error;
+        const idx = _invLineas.findIndex(l => String(l.codarticulo) === String(codNum));
+        if(idx >= 0) _invLineas[idx] = data; else _invLineas.push(data);
+        const cell = document.getElementById('invd-' + cod); if(cell) cell.innerHTML = _invBadgeDelta(data);
+        _invActualizarStats();
+    } catch(e) { logError('inv guardar linea', e); toastError(getFriendlyError(e)); }
+}
+function _invActualizarStats() {
+    const st = _invStats();
+    const cont = document.getElementById('invFisicoCont');
+    if(!cont) return;
+    const cajas = cont.querySelectorAll('.card:first-child [style*="font-size:18px"]');
+    // Re-render ligero de los 4 números y el contador del botón cuadrar
+    const setBox = (i, v) => { if(cajas[i]) cajas[i].firstChild ? (cajas[i].childNodes[0].nodeValue = v) : (cajas[i].textContent = v); };
+    if(cajas[0]) cajas[0].textContent = st.contados;
+    if(cajas[1]) cajas[1].textContent = money(st.faltRD);
+    if(cajas[2]) cajas[2].textContent = money(st.sobrRD);
+    if(cajas[3]) cajas[3].textContent = st.cuadrados;
+    const btn = cont.querySelector('button[onclick="_invCuadrar()"]');
+    if(btn) btn.innerHTML = `<i class="ti ti-check"></i> Cuadrar en Info Plus (${st.difs})`;
+}
+// Cuadrar: manda a Info Plus solo las diferencias (delta ≠ 0) de artículos sin IMEI.
+async function _invCuadrar() {
+    if(!_invSesion) return;
+    const pendientes = _invLineas.filter(l => l.estado !== 'cuadrado' && (Number(l.delta) || 0) !== 0 && !l.serial);
+    const cero = _invLineas.filter(l => l.estado !== 'cuadrado' && (Number(l.delta) || 0) === 0);
+    const celPend = _invLineas.filter(l => l.estado !== 'cuadrado' && (Number(l.delta) || 0) !== 0 && l.serial);
+    if(!pendientes.length && !cero.length) {
+        if(celPend.length) return toast('Solo quedan celulares (IMEI): esos se ajustan por IMEI, no por aquí.', 'error');
+        return toast('No hay diferencias nuevas que cuadrar.', 'error');
+    }
+    let ent = 0, sal = 0, faltRD = 0, sobrRD = 0;
+    pendientes.forEach(l => { const d = Number(l.delta) || 0, c = Number(l.costo) || 0; if(d > 0) { ent++; sobrRD += d * c; } else { sal++; faltRD += -d * c; } });
+    let msg = `¿Cuadrar en Info Plus (almacén ${_invAlmNombre(_invSesion.almacen)})?\n\n`;
+    msg += `• ${sal} salida(s) por faltante = ${money(faltRD)}\n`;
+    msg += `• ${ent} entrada(s) por sobrante = ${money(sobrRD)}\n`;
+    if(cero.length) msg += `• ${cero.length} artículo(s) que cuadran (sin cambio)\n`;
+    if(celPend.length) msg += `\n⚠️ ${celPend.length} celular(es) con diferencia NO se ajustan (son por IMEI); quedan en el reporte.`;
+    msg += `\n\nEsto modifica el inventario real en Info Plus.`;
+    if(!await confirmar(msg)) return;
+    toast('Cuadrando en Info Plus…');
+    let okN = 0, errN = 0;
+    // Los que cuadran (delta 0): marcar cuadrado sin mandar nada
+    for(const l of cero) {
+        try { await supabaseClient.from('inv_fisico_lineas').update({ estado: 'cuadrado', ajuste_estado: 'ok', ajuste_detalle: 'Cuadra (sin cambio)', cuadrado_en: new Date().toISOString() }).eq('id', l.id); l.estado = 'cuadrado'; l.ajuste_estado = 'ok'; } catch(_e) {}
+    }
+    for(const l of pendientes) {
+        const d = Number(l.delta) || 0;
+        const entrada = d > 0;
+        const com = `Inventario físico ${new Date().toLocaleDateString('es-DO')} · ${(l.descripcion || '').slice(0, 40)}`;
+        const r = await _infoplusAjustePieza(l.codarticulo, Math.abs(d), Number(l.costo) || 0, entrada, com, _invSesion.almacen);
+        const nuevo = { estado: r.ok ? 'cuadrado' : 'contado', ajuste_estado: r.ok ? 'ok' : 'error', ajuste_detalle: r.ok ? (entrada ? 'Entrada ' + d : 'Salida ' + (-d)) : (r.error || 'Error'), cuadrado_en: r.ok ? new Date().toISOString() : null };
+        try { await supabaseClient.from('inv_fisico_lineas').update(nuevo).eq('id', l.id); } catch(_e) {}
+        Object.assign(l, nuevo);
+        if(r.ok) okN++; else errN++;
+    }
+    await _ensureInfoplusArticulos(true); // refrescar existencias
+    _invRenderConteo();
+    if(errN) toast(`Cuadrado: ${okN} OK, ${errN} con error. Revisa las filas en rojo.`, 'error');
+    else toast(`✅ Cuadrado en Info Plus: ${okN} ajuste(s).`);
+}
+async function _invCerrar() {
+    if(!_invSesion) return;
+    const st = _invStats();
+    const sinCuadrar = _invLineas.filter(l => l.estado !== 'cuadrado' && (Number(l.delta) || 0) !== 0 && !l.serial).length;
+    let msg = '¿Cerrar este conteo?';
+    if(sinCuadrar) msg += `\n\n⚠️ Tienes ${sinCuadrar} diferencia(s) sin cuadrar en Info Plus. Si cierras, quedan solo en el reporte (no se ajustan).`;
+    if(!await confirmar(msg)) return;
+    try {
+        await supabaseClient.from('inv_fisico_sesiones').update({ estado: 'cerrada', cerrado_en: new Date().toISOString() }).eq('id', _invSesion.id);
+        toast('✅ Conteo cerrado. Queda guardado en el historial.');
+        renderInvFisico();
+    } catch(e) { logError('inv cerrar', e); toastError(getFriendlyError(e)); }
+}
+function _invImprimir() {
+    if(!_invSesion || !_invLineas.length) return toast('No hay artículos contados todavía.', 'error');
+    const conf = (cache.configTaller) || {};
+    const st = _invStats();
+    const dif = _invLineas.filter(l => (Number(l.delta) || 0) !== 0).sort((a, b) => (Number(a.delta) * (Number(a.costo) || 0)) - (Number(b.delta) * (Number(b.costo) || 0)));
+    const rows = dif.map(l => {
+        const d = Number(l.delta) || 0, c = Number(l.costo) || 0;
+        return `<tr><td>${escapeHtml(l.descripcion || '')}</td><td style="text-align:center;">${l.codarticulo}</td><td style="text-align:center;">${l.sistema}</td><td style="text-align:center;">${l.contado}</td><td style="text-align:center; color:${d < 0 ? '#b91c1c' : '#047857'}; font-weight:700;">${d > 0 ? '+' : ''}${d}</td><td style="text-align:right; color:${d < 0 ? '#b91c1c' : '#047857'};">${money(d * c)}</td><td style="text-align:center;">${l.estado === 'cuadrado' ? '✔' : ''}</td></tr>`;
+    }).join('');
+    const w = window.open('', '_blank');
+    w.document.write(`<html><head><meta charset="utf-8"><title>Inventario Físico — Diferencias</title>
+    <style>body{font-family:-apple-system,Segoe UI,Arial,sans-serif;margin:24px;color:#0f172a;}h1{font-size:19px;margin:0;}.sub{color:#64748b;font-size:13px;}table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:12px;}th,td{border:1px solid #e2e8f0;padding:6px 8px;}th{background:#0f172a;color:#fff;font-size:11px;}.chips{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0;}.chip{border:1px solid #e2e8f0;border-radius:9px;padding:8px 12px;}@media print{th{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style></head><body>
+    <h1>📋 Inventario Físico — Hoja de Diferencias</h1>
+    <div class="sub">${escapeHtml(conf.nombre || 'BAYOL CELL')} · Almacén: ${escapeHtml(_invAlmNombre(_invSesion.almacen))} · ${new Date().toLocaleString('es-DO')}</div>
+    <div class="chips"><div class="chip">Artículos contados: <b>${st.contados}</b></div><div class="chip" style="color:#b91c1c;">Faltante: <b>${money(st.faltRD)}</b> (${st.faltU} u.)</div><div class="chip" style="color:#047857;">Sobrante: <b>${money(st.sobrRD)}</b> (${st.sobrU} u.)</div><div class="chip">Diferencia neta: <b>${money(st.sobrRD - st.faltRD)}</b></div></div>
+    <table><thead><tr><th style="text-align:left;">Artículo</th><th>Código</th><th>Sistema</th><th>Conté</th><th>Diferencia</th><th>Valor RD$</th><th>Ajustado</th></tr></thead><tbody>${rows || '<tr><td colspan="7" style="text-align:center;color:#94a3b8;">Sin diferencias.</td></tr>'}</tbody></table>
+    <p style="font-size:11px;color:#94a3b8;margin-top:14px;">Solo se listan los artículos con diferencia. "Ajustado ✔" = ya se envió el ajuste a Info Plus.</p>
+    </body></html>`);
+    w.document.close(); setTimeout(() => w.print(), 300);
+}
+
 async function _recalcularCostoRepuestos(equipoId) {
     try {
         const { data } = await supabaseClient.from('equipo_piezas_pedidas').select('cantidad,costo_unitario').eq('equipo_id', equipoId);
