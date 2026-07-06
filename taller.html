@@ -2171,6 +2171,7 @@ body{
                                 <button id="btnFormatoIPExcel" class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#075985; border-color:#7dd3fc; display:none;" onclick="exportarFormatoInfoPlusExcel()"><i class="ti ti-file-spreadsheet"></i> Info Plus (Excel)</button>
                                 <button id="btnRegistrarCompraIP" class="btn btn-dark" style="padding:5px 10px; font-size:12px; background:#0891b2; display:none;" onclick="registrarCompraLoteInfoPlus()" title="Registrar en Info Plus los equipos listos como una compra (1 artículo por modelo + sus IMEI + costo promedio)"><i class="ti ti-cloud-upload"></i> Registrar compra en Info Plus</button>
                                 <button id="btnRegManualIP" class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#0e7490; border-color:#67e8f9; display:none;" onclick="abrirRegistroManualIP()" title="Ver/marcar los equipos listos para registrarlos a mano en Info Plus, con el promedio actualizado"><i class="ti ti-clipboard-check"></i> Registro manual IP</button>
+                                <button id="btnDespacharTel" class="btn btn-dark" style="padding:5px 10px; font-size:12px; background:#0e7490; display:none;" onclick="despacharTelefonosSeleccionados()" title="Despachar a otra localidad los teléfonos seleccionados (agrupados por modelo, costo promedio, con sus IMEI)"><i class="ti ti-truck-delivery"></i> Despachar teléfonos</button>
                             </div>
                         </div>
                         <div id="reacondTecnicosRow" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;"></div>
@@ -12287,6 +12288,7 @@ function renderDetalleLoteReacond() {
     const _bfx = document.getElementById('btnFormatoIPExcel'); if(_bfx) _bfx.style.display = isAdminUser() ? '' : 'none';
     const _brc = document.getElementById('btnRegistrarCompraIP'); if(_brc) _brc.style.display = isAdminUser() ? '' : 'none';
     const _brm = document.getElementById('btnRegManualIP'); if(_brm) _brm.style.display = isAdminUser() ? '' : 'none';
+    const _bdt = document.getElementById('btnDespacharTel'); if(_bdt) _bdt.style.display = isAdminUser() ? '' : 'none';
 
     // Badge de estado
     const badge = document.getElementById('reacondLoteEstadoBadge');
@@ -15240,7 +15242,8 @@ function _despActualizarTotales() {
     if(el) el.innerHTML = `<b>${_despItems.length}</b> artículo(s) · <b>${u}</b> unidad(es) · Total <b>${money(rd)}</b>`;
 }
 // Construye el DespachoModel y lo manda a Info Plus como documento único. Devuelve {ok, numero, error}.
-async function _ejecutarDespachoReal({ origen, destino, items, nota }) {
+// seriales (opcional): [{numero, codarticulo}] para teléfonos con IMEI.
+async function _ejecutarDespachoReal({ origen, destino, items, nota, seriales }) {
     const d = new Date();
     const fecha = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
     const hora = d.toTimeString().slice(0, 8);
@@ -15257,7 +15260,7 @@ async function _ejecutarDespachoReal({ origen, destino, items, nota }) {
         codlocalidado: origen, codlocalidadd: destino,
         codrequisicion: "", codcotizacion: "", codtaller: "", codpedido: "", despacho: "", codfactura: "",
         esmaterialgastable: false, tipodespacho: 0, codordenproduccion: "",
-        detallesdespacho: dets, seriales: []
+        detallesdespacho: dets, seriales: Array.isArray(seriales) ? seriales : []
     };
     try {
         const { data, error } = await supabaseClient.functions.invoke('infoplus-despacho-crear', { body: modelo });
@@ -15512,6 +15515,87 @@ async function _despachoCargarHistorial() {
                 <td>${escapeHtml(r.nota)}</td>
             </tr>`).join('') + `</tbody></table>`;
     } catch(e) { logError('Historial despachos', e); cont.innerHTML = '<p style="color:#b91c1c; font-size:13px;">No se pudo cargar el historial.</p>'; }
+}
+
+// ===== DESPACHAR TELÉFONOS REACONDICIONADOS SELECCIONADOS (agrupa por modelo, costo promedio, con IMEI) =====
+let _despTelCtx = null;
+function despacharTelefonosSeleccionados() {
+    if(!isAdminUser()) return toast('Solo el administrador.', 'error');
+    if(!_reacondSel.size) return toast('Marca primero los teléfonos con la casilla de cada tarjeta.', 'error');
+    const eqs = (cache.refurb || []).filter(r => _reacondSel.has(r.id));
+    const grupos = {};
+    let sinCodigo = 0;
+    eqs.forEach(e => {
+        const cod = (e.articulo_codigo != null && String(e.articulo_codigo).trim()) ? String(e.articulo_codigo).trim() : '';
+        if(!cod) { sinCodigo++; return; }
+        if(!grupos[cod]) grupos[cod] = { codigo: cod, modelo: _modeloRep(e), imeis: [], equipos: [], total: 0 };
+        grupos[cod].equipos.push(e);
+        if(e.imei) grupos[cod].imeis.push(String(e.imei).trim());
+        grupos[cod].total += _costoEquipoRep(e).fin;
+    });
+    const lista = Object.values(grupos);
+    if(!lista.length) return toast('Los teléfonos seleccionados no tienen código de Info Plus (articulo_codigo).', 'error');
+    _despTelCtx = { lista, sinCodigo };
+    const almOpts = ALMACENES_IP.map(a => `<option value="${a.c}">${a.n}</option>`).join('');
+    const filas = lista.map(g => {
+        const cant = g.equipos.length, prom = cant ? g.total / cant : 0, faltan = cant - g.imeis.length;
+        return `<tr>
+            <td style="padding:6px; border-bottom:1px solid #eef2f7;">${escapeHtml(g.modelo)}<div style="font-size:10px; color:#94a3b8;">${g.imeis.map(x => escapeHtml(x)).join(', ')}</div></td>
+            <td style="padding:6px; border-bottom:1px solid #eef2f7; text-align:center; color:#1d4ed8; font-weight:700;">${escapeHtml(g.codigo)}</td>
+            <td style="padding:6px; border-bottom:1px solid #eef2f7; text-align:center;">${cant}</td>
+            <td style="padding:6px; border-bottom:1px solid #eef2f7; text-align:right;">${money(prom)}</td>
+            <td style="padding:6px; border-bottom:1px solid #eef2f7; text-align:center;">${g.imeis.length}${faltan > 0 ? ` <span style="color:#b91c1c;">⚠️ ${faltan}</span>` : ''}</td>
+        </tr>`;
+    }).join('');
+    const totU = lista.reduce((s, g) => s + g.equipos.length, 0);
+    const totRD = lista.reduce((s, g) => s + g.total, 0);
+    const prev = document.getElementById('modalDespTel'); if(prev) prev.remove();
+    const box = document.createElement('div');
+    box.className = 'modal-backdrop active'; box.id = 'modalDespTel'; box.style.zIndex = '600';
+    box.innerHTML = `<div class="modal-box" style="max-width:660px;">
+      <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-truck-delivery"></i> Despachar teléfonos (${totU})</h3></div>
+      <div class="modal-body">
+        <div style="display:grid; grid-template-columns:1fr auto 1fr; gap:10px; align-items:end; margin-bottom:12px;">
+          <div><label style="font-size:12px; font-weight:700; color:#475569;">Desde</label><select id="despTelOrigen" style="width:100%; padding:9px; border:1px solid #cbd5e1; border-radius:8px; font-weight:600;">${almOpts}</select></div>
+          <div style="font-size:20px; color:#0891b2; padding-bottom:6px;">→</div>
+          <div><label style="font-size:12px; font-weight:700; color:#475569;">Hacia</label><select id="despTelDestino" style="width:100%; padding:9px; border:1px solid #cbd5e1; border-radius:8px; font-weight:600;">${almOpts}</select></div>
+        </div>
+        <div class="table-wrap"><table style="width:100%; border-collapse:collapse; font-size:12.5px;"><thead><tr style="background:#0f172a; color:#fff;"><th style="padding:6px; text-align:left;">Modelo / IMEIs</th><th>Cód IP</th><th>Cant.</th><th style="text-align:right;">Prom.</th><th>IMEI</th></tr></thead><tbody>${filas}</tbody></table></div>
+        <div style="text-align:right; margin-top:8px; font-size:13px;"><b>${totU}</b> teléfono(s) · Total <b>${money(totRD)}</b></div>
+        ${sinCodigo ? `<div style="margin-top:8px; background:#fef2f2; color:#b91c1c; font-size:12px; padding:8px; border-radius:8px;">⚠️ ${sinCodigo} teléfono(s) sin código Info Plus quedaron fuera.</div>` : ''}
+        <div style="margin-top:10px; background:#fffbeb; border:1px solid #fde68a; font-size:11.5px; padding:8px 10px; border-radius:8px; color:#92400e;">Info Plus agrupa por modelo con <b>costo promedio</b>. ⚠️ El despacho de teléfonos (con IMEI) puede dar <b>"error"</b> hasta que Dagoberto habilite el despacho serializado; las piezas sin IMEI sí funcionan.</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-light" onclick="document.getElementById('modalDespTel').remove()">Cancelar</button>
+        <button class="btn btn-blue" onclick="_despTelConfirmar()"><i class="ti ti-truck-delivery"></i> Despachar</button>
+      </div>
+    </div>`;
+    document.body.appendChild(box);
+    const o = document.getElementById('despTelOrigen'); if(o) o.value = '6';
+    const d = document.getElementById('despTelDestino'); if(d) d.value = '1';
+}
+async function _despTelConfirmar() {
+    if(!_despTelCtx) return;
+    const origen = parseInt(document.getElementById('despTelOrigen')?.value, 10);
+    const destino = parseInt(document.getElementById('despTelDestino')?.value, 10);
+    if(origen === destino) return toast('El origen y el destino no pueden ser el mismo.', 'error');
+    const { lista } = _despTelCtx;
+    const items = lista.map(g => ({ codigo: g.codigo, descripcion: g.modelo, cantidad: g.equipos.length, costo: g.equipos.length ? g.total / g.equipos.length : 0 }));
+    const seriales = [];
+    lista.forEach(g => { const c = parseInt(String(g.codigo).replace(/[^0-9]/g, ''), 10); g.imeis.forEach(im => seriales.push({ numero: im, codarticulo: c })); });
+    const totU = items.reduce((s, x) => s + x.cantidad, 0);
+    if(!await confirmar(`¿Despachar ${totU} teléfono(s)\nde ${_nombreAlmacen(origen)} → ${_nombreAlmacen(destino)}?\n\nSe registra como un documento en Info Plus (por modelo, costo promedio, con sus IMEI).`)) return;
+    toast('Despachando teléfonos en Info Plus…');
+    const r = await _ejecutarDespachoReal({ origen, destino, items, seriales, nota: 'Despacho teléfonos reacondicionados' });
+    const saved = await _despGuardarHistorial({ origen, destino, items, nota: 'Teléfonos reacondicionados', r });
+    if(r.ok) {
+        toast(`✅ Despacho #${r.numero} de teléfonos hecho: ${totU} u.`);
+        document.getElementById('modalDespTel')?.remove();
+        await _ensureInfoplusArticulos(true);
+        if(saved && await confirmar(`Despacho #${r.numero} creado ✅\n\n¿Imprimir el documento?`)) imprimirDespacho(saved.id);
+    } else {
+        toast(`❌ No se pudo despachar: ${r.error}\n(Si dice "error", el despacho de teléfonos con IMEI está pendiente de Dagoberto.)`, 'error');
+    }
 }
 
 // ===================================================================
