@@ -15563,7 +15563,7 @@ function despacharTelefonosSeleccionados() {
         <div class="table-wrap"><table style="width:100%; border-collapse:collapse; font-size:12.5px;"><thead><tr style="background:#0f172a; color:#fff;"><th style="padding:6px; text-align:left;">Modelo / IMEIs</th><th>Cód IP</th><th>Cant.</th><th style="text-align:right;">Prom.</th><th>IMEI</th></tr></thead><tbody>${filas}</tbody></table></div>
         <div style="text-align:right; margin-top:8px; font-size:13px;"><b>${totU}</b> teléfono(s) · Total <b>${money(totRD)}</b></div>
         ${sinCodigo ? `<div style="margin-top:8px; background:#fef2f2; color:#b91c1c; font-size:12px; padding:8px; border-radius:8px;">⚠️ ${sinCodigo} teléfono(s) sin código Info Plus quedaron fuera.</div>` : ''}
-        <div style="margin-top:10px; background:#fffbeb; border:1px solid #fde68a; font-size:11.5px; padding:8px 10px; border-radius:8px; color:#92400e;">Info Plus agrupa por modelo con <b>costo promedio</b>. ⚠️ El despacho de teléfonos (con IMEI) puede dar <b>"error"</b> hasta que Dagoberto habilite el despacho serializado; las piezas sin IMEI sí funcionan.</div>
+        <div style="margin-top:10px; background:#ecfdf5; border:1px solid #a7f3d0; font-size:11.5px; padding:8px 10px; border-radius:8px; color:#065f46;">Info Plus agrupa por modelo con <b>costo promedio</b> y se despacha como <b>un documento único</b> con todos sus IMEI. Cada teléfono debe estar en la localidad de origen.</div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-light" onclick="document.getElementById('modalDespTel').remove()">Cancelar</button>
@@ -15594,7 +15594,7 @@ async function _despTelConfirmar() {
         await _ensureInfoplusArticulos(true);
         if(saved && await confirmar(`Despacho #${r.numero} creado ✅\n\n¿Imprimir el documento?`)) imprimirDespacho(saved.id);
     } else {
-        toast(`❌ No se pudo despachar: ${r.error}\n(Si dice "error", el despacho de teléfonos con IMEI está pendiente de Dagoberto.)`, 'error');
+        toast(`❌ No se pudo despachar: ${r.error}\n(Revisa que cada teléfono esté en la localidad de origen.)`, 'error');
     }
 }
 
