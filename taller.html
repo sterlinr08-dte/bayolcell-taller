@@ -15532,6 +15532,7 @@ function _invRenderConteo() {
                 <div style="color:#94a3b8; font-size:12px; margin-top:2px;">Escribe lo que cuentas de cada artículo. Se guarda solo.</div>
             </div>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button class="btn btn-light" style="font-size:12.5px;" onclick="_invImprimirHojaBlanco()"><i class="ti ti-clipboard-list"></i> Hoja para contar</button>
                 <button class="btn btn-light" style="font-size:12.5px;" onclick="_invImprimir()"><i class="ti ti-printer"></i> Diferencias</button>
                 <button class="btn btn-light" style="font-size:12.5px;" onclick="renderInvFisico()"><i class="ti ti-arrow-left"></i> Cambiar almacén</button>
             </div>
@@ -15691,6 +15692,34 @@ async function _invCerrar() {
         toast('✅ Conteo cerrado. Queda guardado en el historial.');
         renderInvFisico();
     } catch(e) { logError('inv cerrar', e); toastError(getFriendlyError(e)); }
+}
+// Hoja EN BLANCO para contar en papel (conteo a ciegas: NO muestra el número del
+// sistema, para que se cuente de verdad y salga la merma real). Luego se digita en el módulo.
+function _invImprimirHojaBlanco() {
+    if(!_invSesion) return;
+    const arts = _invArtsVisibles();
+    if(!arts.length) return toast('No hay artículos en esta categoría para imprimir.', 'error');
+    const conf = (cache.configTaller) || {};
+    const catTxt = _invCatSel === 'TODOS' ? 'Todas las categorías' : _invCatLbl(_invCatSel);
+    const rows = arts.map(a => `<tr>
+        <td style="font-size:12px;">${escapeHtml(a.descripcion || String(a.codigo))}</td>
+        <td style="text-align:center; font-size:11px; color:#475569;">${escapeHtml(String(a.codigo))}</td>
+        <td style="width:120px; border:1.5px solid #94a3b8;">&nbsp;</td>
+    </tr>`).join('');
+    const w = window.open('', '_blank');
+    w.document.write(`<html><head><meta charset="utf-8"><title>Hoja para contar — Inventario Físico</title>
+    <style>body{font-family:-apple-system,Segoe UI,Arial,sans-serif;margin:22px;color:#0f172a;}h1{font-size:18px;margin:0;}.sub{color:#64748b;font-size:12.5px;margin:2px 0 0;}
+    .meta{display:flex;gap:16px;flex-wrap:wrap;margin:12px 0;font-size:12.5px;}.meta div{border-bottom:1px solid #cbd5e1;padding-bottom:2px;min-width:180px;}
+    table{width:100%;border-collapse:collapse;margin-top:8px;}th,td{border:1px solid #cbd5e1;padding:7px 9px;}th{background:#0f172a;color:#fff;font-size:11px;text-align:left;}
+    tr:nth-child(even) td:not([style*=border]){background:#f8fafc;}
+    @media print{th{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style></head><body>
+    <h1>📋 Hoja para contar — Inventario Físico</h1>
+    <div class="sub">${escapeHtml(conf.nombre || 'BAYOL CELL')} · Almacén: <b>${escapeHtml(_invAlmNombre(_invSesion.almacen))}</b> · Categoría: <b>${escapeHtml(catTxt)}</b> · ${arts.length} artículo(s)</div>
+    <div class="meta"><div>Contó: ______________________</div><div>Fecha: ______________________</div><div>Revisó: ______________________</div></div>
+    <table><thead><tr><th>Artículo</th><th style="text-align:center;">Código</th><th style="text-align:center; width:120px;">Cantidad contada</th></tr></thead><tbody>${rows}</tbody></table>
+    <p style="font-size:11px;color:#64748b;margin-top:12px;">Cuenta las unidades reales de cada artículo y escribe la cantidad en la casilla. No se muestra lo que dice el sistema a propósito (conteo a ciegas), para que el conteo sea real. Luego se digita en el módulo <b>Inventario Físico</b> y el sistema calcula el faltante/sobrante.</p>
+    </body></html>`);
+    w.document.close(); setTimeout(() => w.print(), 300);
 }
 function _invImprimir() {
     if(!_invSesion || !_invLineas.length) return toast('No hay artículos contados todavía.', 'error');
