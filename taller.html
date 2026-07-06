@@ -15513,13 +15513,22 @@ function _invRenderConteo() {
 
     const arts = _invArtsVisibles();
     const filas = arts.map(a => {
+        const cod = escapeHtml(String(a.codigo));
         const linea = _invLineaDe(a.codigo);
         const sistemaRef = _invStockAlm(a);
-        return `<tr id="invrow-${escapeHtml(String(a.codigo))}">
-            <td style="font-size:12.5px;">${escapeHtml(a.descripcion || String(a.codigo))}<div style="color:#94a3b8; font-size:11px;">cód ${escapeHtml(String(a.codigo))} · costo ${money(a.costo || 0)}</div></td>
+        const esCel = _invEsCelular(a);
+        let celda;
+        if(esCel) {
+            const n = linea ? (Array.isArray(linea.imeis) ? linea.imeis.length : (linea.contado || 0)) : 0;
+            celda = `<button id="invcel-${cod}" onclick="_invAbrirImeis('${cod}')" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; border-radius:8px; padding:7px 12px; font-size:12.5px; font-weight:700; cursor:pointer; white-space:nowrap;"><i class="ti ti-barcode"></i> 📱 ${n} IMEI</button>`;
+        } else {
+            celda = `<input id="invc-${cod}" type="number" min="0" inputmode="numeric" value="${linea && linea.contado != null ? linea.contado : ''}" placeholder="—" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" onblur="_invGuardarLinea('${cod}', this.value)" style="width:80px; padding:7px; border:1px solid #cbd5e1; border-radius:7px; text-align:center; font-size:14px; font-weight:700;">`;
+        }
+        return `<tr id="invrow-${cod}">
+            <td style="font-size:12.5px;">${escapeHtml(a.descripcion || String(a.codigo))}${esCel ? ' <span style="background:#dbeafe; color:#1d4ed8; font-size:10px; font-weight:700; padding:1px 6px; border-radius:8px;">por IMEI</span>' : ''}<div style="color:#94a3b8; font-size:11px;">cód ${cod} · costo ${money(a.costo || 0)}</div></td>
             <td style="text-align:center; color:#64748b; font-size:12px;">${sistemaRef}</td>
-            <td style="text-align:center;"><input id="invc-${escapeHtml(String(a.codigo))}" type="number" min="0" inputmode="numeric" value="${linea && linea.contado != null ? linea.contado : ''}" placeholder="—" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" onblur="_invGuardarLinea('${escapeHtml(String(a.codigo))}', this.value)" style="width:80px; padding:7px; border:1px solid #cbd5e1; border-radius:7px; text-align:center; font-size:14px; font-weight:700;"></td>
-            <td id="invd-${escapeHtml(String(a.codigo))}" style="text-align:center; white-space:nowrap;">${_invBadgeDelta(linea)}</td>
+            <td style="text-align:center;">${celda}</td>
+            <td id="invd-${cod}" style="text-align:center; white-space:nowrap;">${_invBadgeDelta(linea)}</td>
         </tr>`;
     }).join('');
 
@@ -15582,7 +15591,8 @@ function _invBuscar(v) {
     clearTimeout(_invBuscarTimer);
     _invBuscarTimer = setTimeout(() => { const foco = document.activeElement && document.activeElement.tagName === 'INPUT'; _invRenderConteo(); if(foco) { const inp = document.querySelector('#invFisicoCont input[type=text]'); if(inp) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); } } }, 350);
 }
-// Guardar el conteo de un artículo: lee el SISTEMA en vivo (ancla), calcula delta, guarda.
+function _invEsCelular(art) { return _invCatDe(art && art.descripcion) === 'CELULARES'; }
+// Guardar el conteo de un artículo POR CANTIDAD (piezas): lee sistema en vivo, calcula delta.
 async function _invGuardarLinea(cod, valor) {
     if(!_invSesion) return;
     const art = _findInfoplusArt(cod);
@@ -15590,18 +15600,22 @@ async function _invGuardarLinea(cod, valor) {
     const linea = _invLineaDe(cod);
     const txt = (valor == null ? '' : String(valor)).trim();
     if(txt === '') {
-        // vació el campo → borrar la línea si existía
-        if(linea) {
-            try { await supabaseClient.from('inv_fisico_lineas').delete().eq('id', linea.id); } catch(e) { logError('inv borrar linea', e); }
-            _invLineas = _invLineas.filter(l => l.id !== linea.id);
-            const cell = document.getElementById('invd-' + cod); if(cell) cell.innerHTML = _invBadgeDelta(null);
-            _invActualizarStats();
-        }
+        if(linea) await _invBorrarLinea(cod, linea);
         return;
     }
     const contado = Math.max(0, parseInt(txt.replace(/[^0-9]/g, ''), 10) || 0);
-    const codNum = parseInt(String(cod).replace(/[^0-9]/g, ''), 10);
-    // Sistema en vivo (ancla). Si falla, cae al valor sincronizado.
+    await _invUpsertLinea(art, contado, []);
+}
+async function _invBorrarLinea(cod, linea) {
+    try { await supabaseClient.from('inv_fisico_lineas').delete().eq('id', linea.id); } catch(e) { logError('inv borrar linea', e); }
+    _invLineas = _invLineas.filter(l => l.id !== linea.id);
+    const cell = document.getElementById('invd-' + cod); if(cell) cell.innerHTML = _invBadgeDelta(null);
+    _invActualizarStats();
+}
+// Núcleo: guarda una línea con su conteo (y, para celulares, la lista de IMEI). Ancla el sistema en vivo.
+async function _invUpsertLinea(art, contado, imeis) {
+    const cod = String(art.codigo);
+    const codNum = parseInt(cod.replace(/[^0-9]/g, ''), 10);
     let sistema = _invStockAlm(art);
     try {
         const { data: ex } = await supabaseClient.functions.invoke('infoplus-existencia', { body: { codarticulo: codNum, codalmacen: _invSesion.almacen } });
@@ -15612,6 +15626,7 @@ async function _invGuardarLinea(cod, valor) {
         sesion_id: _invSesion.id, codarticulo: codNum,
         descripcion: art.descripcion || String(codNum), categoria: _invCatDe(art.descripcion),
         sistema, contado, delta, costo: Number(art.costo) || 0, serial: false,
+        imeis: Array.isArray(imeis) ? imeis : [],
         estado: 'contado', ajuste_estado: null, ajuste_detalle: null,
         contado_por: sessionUser?.nombre || 'Admin', contado_en: new Date().toISOString(), cuadrado_en: null
     };
@@ -15621,8 +15636,71 @@ async function _invGuardarLinea(cod, valor) {
         const idx = _invLineas.findIndex(l => String(l.codarticulo) === String(codNum));
         if(idx >= 0) _invLineas[idx] = data; else _invLineas.push(data);
         const cell = document.getElementById('invd-' + cod); if(cell) cell.innerHTML = _invBadgeDelta(data);
+        const btn = document.getElementById('invcel-' + cod); if(btn) btn.innerHTML = `📱 ${(data.imeis || []).length} IMEI`;
         _invActualizarStats();
     } catch(e) { logError('inv guardar linea', e); toastError(getFriendlyError(e)); }
+}
+// ---- Conteo de CELULARES por IMEI (escanear uno por uno) ----
+let _invImeisTmp = { cod: null, list: [] };
+function _invAbrirImeis(cod) {
+    const art = _findInfoplusArt(cod);
+    if(!art) return;
+    const linea = _invLineaDe(cod);
+    _invImeisTmp = { cod: String(cod), list: (linea && Array.isArray(linea.imeis)) ? linea.imeis.slice() : [] };
+    const prev = document.getElementById('modalInvImeis'); if(prev) prev.remove();
+    const box = document.createElement('div');
+    box.className = 'modal-backdrop active';
+    box.id = 'modalInvImeis';
+    box.style.zIndex = '600';
+    box.innerHTML = `<div class="modal-box" style="max-width:460px;">
+        <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-barcode"></i> IMEIs · ${escapeHtml(art.descripcion || String(cod))}</h3></div>
+        <div class="modal-body">
+          <div style="font-size:12px; color:#64748b; margin-bottom:8px;">Escanea o escribe el IMEI de cada teléfono y presiona Enter. El conteo será cuántos IMEI anotes.</div>
+          <input id="invImeiInput" type="text" inputmode="numeric" placeholder="Escanea/escribe el IMEI y Enter…" onkeydown="if(event.key==='Enter'){event.preventDefault();_invImeiScan(this.value);this.value='';}" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:15px;">
+          <div id="invImeiLista" style="margin-top:10px; max-height:40vh; overflow:auto;"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-light" onclick="document.getElementById('modalInvImeis').remove()">Cancelar</button>
+          <button class="btn btn-green" onclick="_invImeiGuardar()"><i class="ti ti-check"></i> Guardar conteo</button>
+        </div>
+    </div>`;
+    document.body.appendChild(box);
+    _invImeiRenderLista();
+    setTimeout(() => { const i = document.getElementById('invImeiInput'); if(i) i.focus(); }, 50);
+}
+function _invImeiRenderLista() {
+    const cont = document.getElementById('invImeiLista');
+    if(!cont) return;
+    const list = _invImeisTmp.list;
+    const art = _findInfoplusArt(_invImeisTmp.cod) || {};
+    const sistema = _invStockAlm(art);
+    const dif = list.length - sistema;
+    const difTxt = dif === 0 ? '<span style="color:#16a34a; font-weight:700;">✔ cuadra</span>' : (dif < 0 ? `<span style="color:#b91c1c; font-weight:700;">▼ faltan ${-dif}</span>` : `<span style="color:#047857; font-weight:700;">▲ sobran ${dif}</span>`);
+    cont.innerHTML = `<div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px;"><b>Contados: ${list.length}</b><span>Sistema: ${sistema} · ${difTxt}</span></div>` +
+        (list.length ? list.map((im, i) => `<div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #f1f5f9; padding:5px 2px;">
+            <span style="font-family:monospace; font-size:13px;">${i + 1}. ${escapeHtml(im)}</span>
+            <button onclick="_invImeiDel(${i})" style="background:none; border:none; color:#b91c1c; cursor:pointer; font-size:15px;">✕</button>
+        </div>`).join('') : '<div style="color:#94a3b8; font-size:12px; text-align:center; padding:10px;">Aún no has escaneado ningún IMEI.</div>');
+}
+function _invImeiScan(val) {
+    const im = (val == null ? '' : String(val)).trim();
+    if(!im) return;
+    if(_invImeisTmp.list.includes(im)) { toast('Ese IMEI ya está en la lista.', 'error'); return; }
+    _invImeisTmp.list.push(im);
+    _invImeiRenderLista();
+}
+function _invImeiDel(i) {
+    _invImeisTmp.list.splice(i, 1);
+    _invImeiRenderLista();
+}
+async function _invImeiGuardar() {
+    const cod = _invImeisTmp.cod;
+    const art = _findInfoplusArt(cod);
+    const linea = _invLineaDe(cod);
+    const m = document.getElementById('modalInvImeis'); if(m) m.remove();
+    if(!art) return;
+    if(!_invImeisTmp.list.length) { if(linea) await _invBorrarLinea(cod, linea); return; }
+    await _invUpsertLinea(art, _invImeisTmp.list.length, _invImeisTmp.list);
 }
 function _invActualizarStats() {
     const st = _invStats();
@@ -15723,7 +15801,9 @@ function _invImprimir() {
     const dif = _invLineas.filter(l => (Number(l.delta) || 0) !== 0).sort((a, b) => (Number(a.delta) * (Number(a.costo) || 0)) - (Number(b.delta) * (Number(b.costo) || 0)));
     const rows = dif.map(l => {
         const d = Number(l.delta) || 0, c = Number(l.costo) || 0;
-        return `<tr><td>${escapeHtml(l.descripcion || '')}</td><td style="text-align:center;">${l.codarticulo}</td><td style="text-align:center;">${l.sistema}</td><td style="text-align:center;">${l.contado}</td><td style="text-align:center; color:${d < 0 ? '#b91c1c' : '#047857'}; font-weight:700;">${d > 0 ? '+' : ''}${d}</td><td style="text-align:right; color:${d < 0 ? '#b91c1c' : '#047857'};">${money(d * c)}</td><td style="text-align:center;">${l.estado === 'cuadrado' ? '✔' : ''}</td></tr>`;
+        const ims = Array.isArray(l.imeis) ? l.imeis : [];
+        const imeiLine = ims.length ? `<div style="font-size:10px; color:#64748b; margin-top:2px;">IMEIs: ${ims.map(x => escapeHtml(x)).join(', ')}</div>` : '';
+        return `<tr><td>${escapeHtml(l.descripcion || '')}${imeiLine}</td><td style="text-align:center;">${l.codarticulo}</td><td style="text-align:center;">${l.sistema}</td><td style="text-align:center;">${l.contado}</td><td style="text-align:center; color:${d < 0 ? '#b91c1c' : '#047857'}; font-weight:700;">${d > 0 ? '+' : ''}${d}</td><td style="text-align:right; color:${d < 0 ? '#b91c1c' : '#047857'};">${money(d * c)}</td><td style="text-align:center;">${l.estado === 'cuadrado' ? '✔' : ''}</td></tr>`;
     }).join('');
     const w = window.open('', '_blank');
     w.document.write(`<html><head><meta charset="utf-8"><title>Inventario Físico — Diferencias</title>
