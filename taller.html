@@ -2269,33 +2269,31 @@ body{
 
             <!-- ============= DESPACHO DE ALMACÉN ============= -->
             <div id="v-despachos" class="view">
-                <div class="card" style="margin-bottom:15px;">
+                <div class="card" style="margin-bottom:15px; border-left:4px solid #0891b2;">
                     <h2 style="margin:0 0 4px 0; font-size:18px;"><i class="ti ti-truck-delivery" style="color:#0891b2;"></i> Despacho de Almacén</h2>
-                    <p style="color:var(--text-muted); font-size:13px; margin:0;">Mueve unidades de un artículo de un almacén a otro en Info Plus (sale de uno, entra al otro). Queda guardado con fecha e historial.</p>
+                    <p style="color:var(--text-muted); font-size:13px; margin:0;">Traspasa mercancía de una localidad a otra en Info Plus como un <b>documento único de despacho</b> (Nº DA...). Agrega varios artículos, hazlo de un solo golpe e imprime el conduce.</p>
                 </div>
                 <div class="card" style="margin-bottom:15px;">
                     <h3 style="margin:0 0 12px 0; font-size:15px;"><i class="ti ti-arrows-exchange"></i> Nuevo despacho</h3>
-                    <button class="btn btn-light" onclick="_despachoBuscarArt()" style="margin-bottom:10px;"><i class="ti ti-search"></i> Buscar artículo (Info Plus)</button>
-                    <div id="despachoArtInfo" style="margin-bottom:12px;"></div>
-                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:12px; align-items:end;">
+                    <div style="display:grid; grid-template-columns:1fr auto 1fr; gap:12px; align-items:end; margin-bottom:14px;">
                         <div>
                             <label style="font-size:12px; font-weight:700; color:#475569; display:block; margin-bottom:4px;">Desde (origen)</label>
-                            <select id="despachoOrigen" style="width:100%; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;"></select>
+                            <select id="despachoOrigen" onchange="_despRenderCart()" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px; font-weight:600;"></select>
                         </div>
+                        <div style="font-size:22px; color:#0891b2; padding-bottom:6px;">→</div>
                         <div>
                             <label style="font-size:12px; font-weight:700; color:#475569; display:block; margin-bottom:4px;">Hacia (destino)</label>
-                            <select id="despachoDestino" style="width:100%; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;"></select>
-                        </div>
-                        <div>
-                            <label style="font-size:12px; font-weight:700; color:#475569; display:block; margin-bottom:4px;">Cantidad</label>
-                            <input id="despachoCant" type="number" min="1" value="1" style="width:100%; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
+                            <select id="despachoDestino" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px; font-weight:600;"></select>
                         </div>
                     </div>
-                    <div style="margin-top:12px;">
+                    <button class="btn btn-light" onclick="_despachoBuscarArt()" style="margin-bottom:10px;"><i class="ti ti-plus"></i> Buscar / agregar artículo</button>
+                    <div class="table-wrap" id="despachoCart" style="border:1px solid #e2e8f0; border-radius:10px; overflow:hidden; margin-bottom:10px;"></div>
+                    <div id="despachoTotales" style="text-align:right; font-size:13px; color:#0f172a; margin-bottom:12px;"></div>
+                    <div style="margin-bottom:12px;">
                         <label style="font-size:12px; font-weight:700; color:#475569; display:block; margin-bottom:4px;">Nota (opcional)</label>
                         <input id="despachoNota" type="text" placeholder="Ej: reposición de piezas al taller" style="width:100%; padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
                     </div>
-                    <button class="btn btn-blue" onclick="hacerDespachoAlmacen()" style="margin-top:14px;"><i class="ti ti-truck-delivery"></i> Hacer despacho</button>
+                    <button class="btn btn-blue" onclick="hacerDespachoAlmacen()" style="font-size:14px;"><i class="ti ti-truck-delivery"></i> Hacer despacho</button>
                 </div>
                 <div class="card">
                     <h3 style="margin:0 0 12px 0; font-size:15px;"><i class="ti ti-history"></i> Historial de despachos</h3>
@@ -15162,70 +15160,114 @@ async function _infoplusAjustePieza(codarticulo, cantidad, precio, entrada, come
         return { ok: false, error: getFriendlyError(e) };
     }
 }
-// ===== DESPACHO DE ALMACÉN (traspaso de stock entre almacenes de Info Plus) =====
+// ===== DESPACHO DE ALMACÉN (traspaso REAL entre localidades de Info Plus, documento único DA...) =====
 const ALMACENES_IP = [
-    { c: 1, n: 'Principal' },
-    { c: 3, n: 'Almacén 3' },
-    { c: 4, n: 'Almacén 4' },
-    { c: 5, n: 'Almacén 5' },
+    { c: 1, n: 'Oficina Santiago' },
+    { c: 3, n: 'Garantía China' },
+    { c: 4, n: 'Localidad Moca' },
+    { c: 5, n: 'Almacén 2do Nivel' },
     { c: 6, n: 'Taller' }
 ];
-function _nombreAlmacen(c) { const a = ALMACENES_IP.find(x => x.c === Number(c)); return a ? `${a.n} (${a.c})` : ('Almacén ' + c); }
-let _despachoArt = null;
+function _nombreAlmacen(c) { const a = ALMACENES_IP.find(x => x.c === Number(c)); return a ? a.n : ('Almacén ' + c); }
+let _despItems = []; // carrito del despacho: [{codigo, descripcion, cantidad, costo}]
+let _despHistRows = []; // filas del historial (para reimprimir)
 function _despachoLlenarSelects() {
     const o = document.getElementById('despachoOrigen'), d = document.getElementById('despachoDestino');
     if(!o || !d) return;
-    const opts = ALMACENES_IP.map(a => `<option value="${a.c}">${a.n} (${a.c})</option>`).join('');
+    const opts = ALMACENES_IP.map(a => `<option value="${a.c}">${a.n}</option>`).join('');
     o.innerHTML = opts; d.innerHTML = opts;
     o.value = '1'; d.value = '6';
 }
 async function renderDespachos() {
     if(!tienePermiso('despacho_ver')) { toast('🔒 No tienes permiso.', 'error'); return; }
     _despachoLlenarSelects();
-    _despachoArt = null;
-    const info = document.getElementById('despachoArtInfo');
-    if(info) info.innerHTML = '<div style="color:#94a3b8; font-size:13px;">Ningún artículo seleccionado. Usa "Buscar artículo".</div>';
-    const cant = document.getElementById('despachoCant'); if(cant) cant.value = '1';
+    _despItems = [];
     const nota = document.getElementById('despachoNota'); if(nota) nota.value = '';
+    _despRenderCart();
     _ensureInfoplusArticulos();
     await _despachoCargarHistorial();
 }
 function _despachoBuscarArt() {
-    abrirBuscadorArticulos(null, (a) => { _despachoArt = a; _despachoMostrarArt(); });
+    abrirBuscadorArticulos(null, (a) => { _despAgregarItem(a); });
 }
-function _despachoMostrarArt() {
-    const info = document.getElementById('despachoArtInfo');
-    if(!info || !_despachoArt) return;
-    const full = _findInfoplusArt(_despachoArt.codigo) || {};
-    const ex = full.existencias || {};
-    const chips = ALMACENES_IP.map(a => {
-        const v = Number(ex[String(a.c)] || 0);
-        return `<span style="display:inline-block; background:${v>0?'#dcfce7':'#f1f5f9'}; color:${v>0?'#166534':'#94a3b8'}; font-size:12px; font-weight:700; padding:4px 10px; border-radius:10px; margin:2px;">${a.n}: ${v}</span>`;
-    }).join('');
-    info.innerHTML = `<div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px;">
-        <div style="font-weight:700; font-size:14px;">${escapeHtml(_despachoArt.descripcion || String(_despachoArt.codigo))} <span style="color:#94a3b8; font-weight:600; font-size:12px;">· cód ${escapeHtml(String(_despachoArt.codigo))}</span></div>
-        <div style="margin-top:6px;">${chips}</div>
-        <div style="font-size:11px; color:#94a3b8; margin-top:4px;">Existencias según última sincronización.</div>
-    </div>`;
+function _despAgregarItem(a) {
+    if(!a) return;
+    const cod = String(a.codigo);
+    if(_despItems.find(x => String(x.codigo) === cod)) { toast('Ese artículo ya está en la lista.', 'error'); return; }
+    _despItems.push({ codigo: cod, descripcion: a.descripcion || cod, cantidad: 1, costo: Number(a.costo) || 0 });
+    _despRenderCart();
 }
-// Núcleo compartido: hace salida del origen + entrada al destino y guarda el historial. Devuelve {estado, detalle}.
-async function _ejecutarDespacho({ art, origen, destino, cantidad, nota }) {
-    const codNum = parseInt(String(art.codigo).replace(/[^0-9]/g, ''), 10);
-    const precio = Number(art.costo) || 0;
-    const com = `Despacho ${_nombreAlmacen(origen)}→${_nombreAlmacen(destino)}${nota ? ': ' + nota : ''}`;
-    const rOut = await _infoplusAjustePieza(codNum, cantidad, precio, false, com, origen);
-    let rIn = { ok: false, error: 'no se ejecutó (falló la salida)' };
-    if(rOut.ok) rIn = await _infoplusAjustePieza(codNum, cantidad, precio, true, com, destino);
-    const estado = (rOut.ok && rIn.ok) ? 'ok' : (rOut.ok ? 'parcial' : 'error');
-    const detalle = `Salida: ${rOut.ok ? 'OK' : ('ERROR ' + (rOut.error || ''))} · Entrada: ${rIn.ok ? 'OK' : ('ERROR ' + (rIn.error || ''))}`;
+function _despSetCant(i, v) {
+    const n = Math.max(1, parseInt(String(v).replace(/[^0-9]/g, ''), 10) || 1);
+    if(_despItems[i]) { _despItems[i].cantidad = n; _despRenderCart(); }
+}
+function _despQuitar(i) { _despItems.splice(i, 1); _despRenderCart(); }
+function _despExOrigen(cod) {
+    const origen = String(document.getElementById('despachoOrigen')?.value || '1');
+    const full = _findInfoplusArt(cod) || {};
+    return Number((full.existencias || {})[origen] || 0);
+}
+function _despRenderCart() {
+    const cont = document.getElementById('despachoCart');
+    if(!cont) { _despActualizarTotales(); return; }
+    if(!_despItems.length) { cont.innerHTML = '<p style="color:#94a3b8; font-size:13px; text-align:center; padding:16px;">Aún no hay artículos. Usa "Buscar artículo" para agregarlos.</p>'; _despActualizarTotales(); return; }
+    cont.innerHTML = `<table style="width:100%; border-collapse:collapse;"><thead><tr style="background:#0f172a; color:#fff;">
+        <th style="text-align:left; padding:8px; font-size:11px;">Artículo</th>
+        <th style="text-align:center; font-size:11px;">En origen</th>
+        <th style="text-align:center; font-size:11px; width:90px;">Cantidad</th>
+        <th style="text-align:right; font-size:11px;">Costo u.</th>
+        <th style="text-align:right; font-size:11px;">Subtotal</th>
+        <th></th></tr></thead><tbody>` +
+        _despItems.map((it, i) => {
+            const ex = _despExOrigen(it.codigo);
+            const sub = (Number(it.costo) || 0) * (Number(it.cantidad) || 0);
+            const falta = ex < it.cantidad;
+            return `<tr style="border-bottom:1px solid #f1f5f9;">
+                <td style="padding:8px; font-size:12.5px;">${escapeHtml(it.descripcion)}<div style="color:#94a3b8; font-size:11px;">cód ${escapeHtml(it.codigo)}</div></td>
+                <td style="text-align:center; font-size:12px; color:${falta ? '#b91c1c' : '#166534'}; font-weight:700;">${ex}${falta ? ' ⚠️' : ''}</td>
+                <td style="text-align:center;"><input type="number" min="1" value="${it.cantidad}" onchange="_despSetCant(${i}, this.value)" style="width:70px; padding:6px; border:1px solid #cbd5e1; border-radius:7px; text-align:center; font-weight:700;"></td>
+                <td style="text-align:right; font-size:12px;">${money(it.costo)}</td>
+                <td style="text-align:right; font-size:12.5px; font-weight:700;">${money(sub)}</td>
+                <td style="text-align:center;"><button onclick="_despQuitar(${i})" title="Quitar" style="background:none; border:none; color:#b91c1c; cursor:pointer; font-size:16px;">✕</button></td>
+            </tr>`;
+        }).join('') + `</tbody></table>`;
+    _despActualizarTotales();
+}
+function _despActualizarTotales() {
+    const u = _despItems.reduce((s, x) => s + (Number(x.cantidad) || 0), 0);
+    const rd = _despItems.reduce((s, x) => s + (Number(x.costo) || 0) * (Number(x.cantidad) || 0), 0);
+    const el = document.getElementById('despachoTotales');
+    if(el) el.innerHTML = `<b>${_despItems.length}</b> artículo(s) · <b>${u}</b> unidad(es) · Total <b>${money(rd)}</b>`;
+}
+// Construye el DespachoModel y lo manda a Info Plus como documento único. Devuelve {ok, numero, error}.
+async function _ejecutarDespachoReal({ origen, destino, items, nota }) {
+    const d = new Date();
+    const fecha = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+    const hora = d.toTimeString().slice(0, 8);
+    const dets = items.map(it => ({
+        codarticulo: parseInt(String(it.codigo).replace(/[^0-9]/g, ''), 10),
+        precio: Number(it.costo) || 0, cantidad: Number(it.cantidad) || 1, codunidad: 1,
+        descripcion: it.descripcion || String(it.codigo), comentario: ''
+    }));
+    const total = dets.reduce((s, x) => s + x.precio * x.cantidad, 0);
+    const modelo = {
+        codalmacen: "", fecha, hora, total, cancelado: false,
+        codempleado: "6", codempleado2: "6", coddepartamento: "1",
+        comentario: nota || `Despacho ${_nombreAlmacen(origen)} -> ${_nombreAlmacen(destino)}`,
+        codlocalidado: origen, codlocalidadd: destino,
+        codrequisicion: "", codcotizacion: "", codtaller: "", codpedido: "", despacho: "", codfactura: "",
+        esmaterialgastable: false, tipodespacho: 0, codordenproduccion: "",
+        detallesdespacho: dets, seriales: []
+    };
     try {
-        await supabaseClient.from('despachos_almacen').insert([{
-            codarticulo: codNum, articulo_nombre: (art.descripcion || String(codNum)),
-            cantidad: cantidad, almacen_origen: origen, almacen_destino: destino,
-            usuario: sessionUser?.nombre || 'Admin', nota: nota || null, estado, detalle
-        }]);
-    } catch(e) { logError('Guardar despacho', e); }
-    return { estado, detalle };
+        const { data, error } = await supabaseClient.functions.invoke('infoplus-despacho-crear', { body: modelo });
+        if(error) throw error;
+        const resp = data && data.respuesta;
+        const ok = !!(resp && Number(resp.status) === 200);
+        const numero = (ok && resp.data && resp.data[0]) ? (resp.data[0].codalmacen || null) : null;
+        const err = ok ? null : ((resp && resp.message) || (data && data.error) || 'Info Plus rechazó el despacho');
+        return { ok, numero, error: err };
+    } catch(e) { logError('despacho real', e); return { ok: false, numero: null, error: getFriendlyError(e) }; }
 }
 // ----- DESPACHO RÁPIDO (modal que abre encima del panel de reparación, sin cerrarlo) -----
 let _despRapArt = null;
@@ -15280,40 +15322,153 @@ async function hacerDespachoRapido() {
     if(origen === destino) return toast('El origen y el destino no pueden ser el mismo almacén.', 'error');
     if(cant <= 0) return toast('La cantidad debe ser mayor que 0.', 'error');
     if(!await confirmar(`¿Mover ${cant} u. de "${_despRapArt.descripcion || _despRapArt.codigo}"\nde ${_nombreAlmacen(origen)} → ${_nombreAlmacen(destino)}?`)) return;
-    const { estado, detalle } = await _ejecutarDespacho({ art: _despRapArt, origen, destino, cantidad: cant, nota });
-    if(estado === 'ok') {
-        toast(`✅ Despacho: ${cant} u. ${_nombreAlmacen(origen)} → ${_nombreAlmacen(destino)}`);
+    const items = [{ codigo: String(_despRapArt.codigo), descripcion: _despRapArt.descripcion || String(_despRapArt.codigo), cantidad: cant, costo: Number(_despRapArt.costo) || 0 }];
+    const r = await _ejecutarDespachoReal({ origen, destino, items, nota });
+    await _despGuardarHistorial({ origen, destino, items, nota, r });
+    if(r.ok) {
+        toast(`✅ Despacho #${r.numero}: ${cant} u. ${_nombreAlmacen(origen)} → ${_nombreAlmacen(destino)}`);
         const m = document.getElementById('modalDespachoRapido'); if(m) m.remove();
-    } else if(estado === 'parcial') toast(`⚠️ Salió del origen pero NO entró al destino. Revisa Info Plus.\n${detalle}`, 'error');
-    else toast(`❌ No se pudo hacer el despacho.\n${detalle}`, 'error');
+        _ensureInfoplusArticulos(true);
+    } else toast(`❌ No se pudo hacer el despacho.\n${r.error}`, 'error');
     if(document.getElementById('v-despachos')?.classList.contains('active')) _despachoCargarHistorial();
+}
+// Guarda una fila en el historial. Devuelve la fila guardada (para imprimir).
+async function _despGuardarHistorial({ origen, destino, items, nota, r }) {
+    const u = items.reduce((s, x) => s + (Number(x.cantidad) || 0), 0);
+    const estado = r.ok ? 'ok' : 'error';
+    const detalle = r.ok ? ('Despacho ' + (r.numero || '')) : (r.error || 'Error');
+    try {
+        const { data } = await supabaseClient.from('despachos_almacen').insert([{
+            codarticulo: items.length === 1 ? parseInt(String(items[0].codigo).replace(/[^0-9]/g, ''), 10) : null,
+            articulo_nombre: items.length === 1 ? items[0].descripcion : (items.length + ' artículos'),
+            cantidad: u, almacen_origen: origen, almacen_destino: destino,
+            usuario: sessionUser?.nombre || 'Admin', nota: nota || null, estado, detalle,
+            despacho_numero: r.numero, items: items
+        }]).select().single();
+        return data;
+    } catch(e) { logError('Guardar despacho', e); return null; }
 }
 async function hacerDespachoAlmacen() {
     if(!tienePermiso('despacho_ver')) return toast('🔒 No tienes permiso.', 'error');
-    if(!_despachoArt) return toast('Primero busca y selecciona un artículo.', 'error');
+    if(!_despItems.length) return toast('Agrega al menos un artículo con "Buscar artículo".', 'error');
     const origen = parseInt(document.getElementById('despachoOrigen')?.value, 10);
     const destino = parseInt(document.getElementById('despachoDestino')?.value, 10);
-    const cant = parseInt(document.getElementById('despachoCant')?.value, 10) || 0;
     const nota = (document.getElementById('despachoNota')?.value || '').trim();
-    if(!origen || !destino) return toast('Elige almacén origen y destino.', 'error');
-    if(origen === destino) return toast('El origen y el destino no pueden ser el mismo almacén.', 'error');
-    if(cant <= 0) return toast('La cantidad debe ser mayor que 0.', 'error');
-    const codNum = parseInt(String(_despachoArt.codigo).replace(/[^0-9]/g, ''), 10);
-    // Revisar existencia real del origen
-    let exOrigen = null;
+    if(!origen || !destino) return toast('Elige origen y destino.', 'error');
+    if(origen === destino) return toast('El origen y el destino no pueden ser el mismo.', 'error');
+    const u = _despItems.reduce((s, x) => s + (Number(x.cantidad) || 0), 0);
+    if(!await confirmar(`¿Hacer el despacho de ${_despItems.length} artículo(s) (${u} u.)\nde ${_nombreAlmacen(origen)} → ${_nombreAlmacen(destino)}?\n\nSe registra como un documento en Info Plus.`)) return;
+    toast('Haciendo despacho en Info Plus…');
+    const items = _despItems.map(x => ({ ...x }));
+    const r = await _ejecutarDespachoReal({ origen, destino, items, nota });
+    const saved = await _despGuardarHistorial({ origen, destino, items, nota, r });
+    if(r.ok) {
+        toast(`✅ Despacho #${r.numero} hecho: ${u} u. ${_nombreAlmacen(origen)} → ${_nombreAlmacen(destino)}`);
+        _despItems = [];
+        _despRenderCart();
+        await _ensureInfoplusArticulos(true);
+        await _despachoCargarHistorial();
+        if(saved && await confirmar(`Despacho #${r.numero} creado ✅\n\n¿Imprimir el documento?`)) imprimirDespacho(saved.id);
+    } else {
+        toast(`❌ No se pudo hacer el despacho.\n${r.error}`, 'error');
+        await _despachoCargarHistorial();
+    }
+}
+// Imprime el documento formal del despacho (conduce).
+function imprimirDespacho(id) {
+    const r = _despHistRows.find(x => x.id === id);
+    if(!r) return toast('No se encontró el despacho para imprimir.', 'error');
+    const conf = (cache.configTaller) || {};
+    const items = Array.isArray(r.items) && r.items.length ? r.items
+        : [{ codigo: r.codarticulo || '', descripcion: r.articulo_nombre || '', cantidad: r.cantidad || 0, costo: 0 }];
+    const u = items.reduce((s, x) => s + (Number(x.cantidad) || 0), 0);
+    const totalRD = items.reduce((s, x) => s + (Number(x.costo) || 0) * (Number(x.cantidad) || 0), 0);
+    const filas = items.map((it, i) => `<tr>
+        <td style="text-align:center;">${i + 1}</td>
+        <td style="text-align:center;">${escapeHtml(String(it.codigo || ''))}</td>
+        <td>${escapeHtml(it.descripcion || '')}</td>
+        <td style="text-align:center; font-weight:700;">${it.cantidad}</td>
+        <td style="text-align:right;">${money(it.costo || 0)}</td>
+        <td style="text-align:right;">${money((Number(it.costo) || 0) * (Number(it.cantidad) || 0))}</td>
+    </tr>`).join('');
+    const w = window.open('', '_blank');
+    w.document.write(`<html><head><meta charset="utf-8"><title>Despacho ${escapeHtml(r.despacho_numero || '')}</title>
+    <style>body{font-family:-apple-system,Segoe UI,Arial,sans-serif;margin:26px;color:#0f172a;}
+    .hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #0891b2;padding-bottom:10px;}
+    .hd h1{font-size:17px;margin:0;} .hd .st{font-size:12px;color:#64748b;margin-top:2px;}
+    .doc{text-align:right;} .doc .t{font-size:13px;color:#0891b2;font-weight:800;text-transform:uppercase;letter-spacing:.5px;} .doc .n{font-size:22px;font-weight:800;}
+    .meta{display:flex;gap:24px;flex-wrap:wrap;margin:14px 0;font-size:13px;}
+    .meta b{display:block;color:#64748b;font-size:11px;text-transform:uppercase;font-weight:700;}
+    .ruta{background:#ecfeff;border:1px solid #a5f3fc;border-radius:10px;padding:10px 14px;font-size:14px;font-weight:700;margin:10px 0;}
+    table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px;}
+    th,td{border:1px solid #e2e8f0;padding:7px 9px;} th{background:#0f172a;color:#fff;font-size:11px;}
+    tfoot td{font-weight:800;background:#f8fafc;}
+    .firmas{display:flex;gap:40px;margin-top:50px;} .firmas div{flex:1;border-top:1px solid #0f172a;padding-top:6px;font-size:12px;text-align:center;color:#475569;}
+    @media print{th,tfoot td,.doc .t,.ruta{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style></head><body>
+    <div class="hd">
+      <div><h1>${escapeHtml(conf.nombre || 'BAYOL CELL, S.R.L.')}</h1>
+        <div class="st">${escapeHtml(conf.direccion || '')}${conf.telefono ? ' · Tel: ' + escapeHtml(conf.telefono) : ''}</div></div>
+      <div class="doc"><div class="t">Despacho de Inventario</div><div class="n">${escapeHtml(r.despacho_numero || '—')}</div></div>
+    </div>
+    <div class="meta">
+      <div><b>Fecha</b>${new Date(r.fecha).toLocaleString('es-DO')}</div>
+      <div><b>Despachado por</b>${escapeHtml(r.usuario || '')}</div>
+      <div><b>Estado</b>${r.estado === 'ok' ? 'Confirmado' : 'Con error'}</div>
+    </div>
+    <div class="ruta">📦 ${escapeHtml(_nombreAlmacen(r.almacen_origen))} &nbsp;→&nbsp; ${escapeHtml(_nombreAlmacen(r.almacen_destino))}</div>
+    ${r.nota ? `<div style="font-size:12.5px;color:#475569;margin-bottom:8px;">Nota: ${escapeHtml(r.nota)}</div>` : ''}
+    <table><thead><tr><th>#</th><th>Código</th><th style="text-align:left;">Descripción</th><th>Cant.</th><th style="text-align:right;">Costo u.</th><th style="text-align:right;">Subtotal</th></tr></thead>
+    <tbody>${filas}</tbody>
+    <tfoot><tr><td colspan="3" style="text-align:right;">TOTALES</td><td style="text-align:center;">${u}</td><td></td><td style="text-align:right;">${money(totalRD)}</td></tr></tfoot></table>
+    <div class="firmas"><div>Despachado por</div><div>Recibido por</div></div>
+    <p style="font-size:10px;color:#94a3b8;margin-top:20px;">Documento de control interno · BAYOL CELL. Generado desde el sistema del taller.</p>
+    </body></html>`);
+    w.document.close(); setTimeout(() => w.print(), 300);
+}
+async function _despachoCargarHistorial() {
+    const cont = document.getElementById('despachosHistorial');
+    if(!cont) return;
     try {
-        const { data: ex } = await supabaseClient.functions.invoke('infoplus-existencia', { body: { codarticulo: codNum, codalmacen: origen } });
-        if(ex && ex.ok) exOrigen = Number(ex.cantidad);
-    } catch(_e) {}
-    let msg = `¿Mover ${cant} unidad(es) de "${_despachoArt.descripcion || codNum}"\nde ${_nombreAlmacen(origen)} → ${_nombreAlmacen(destino)}?`;
-    if(exOrigen !== null) msg += `\n\nExistencia actual en ${_nombreAlmacen(origen)}: ${exOrigen}` + (exOrigen < cant ? ' ⚠️ (quedaría en negativo)' : '');
-    if(!await confirmar(msg)) return;
-    const { estado, detalle } = await _ejecutarDespacho({ art: _despachoArt, origen, destino, cantidad: cant, nota });
-    if(estado === 'ok') toast(`✅ Despacho hecho: ${cant} u. ${_nombreAlmacen(origen)} → ${_nombreAlmacen(destino)}`);
-    else if(estado === 'parcial') toast(`⚠️ Salió del origen pero NO entró al destino. Revisa Info Plus.\n${detalle}`, 'error');
-    else toast(`❌ No se pudo hacer el despacho.\n${detalle}`, 'error');
-    _despachoMostrarArt();
-    await _despachoCargarHistorial();
+        const { data, error } = await supabaseClient.from('despachos_almacen').select('*').order('fecha', { ascending: false }).limit(150);
+        if(error) throw error;
+        _despHistRows = data || [];
+        // 1) Traspasos entre almacenes (módulo)
+        const filas = (data || []).map(r => ({
+            tipo: 'almacen', id: r.id, num: r.despacho_numero || '', fecha: r.fecha,
+            art: (r.articulo_nombre || '') + (r.codarticulo ? ` (${r.codarticulo})` : ''),
+            cant: r.cantidad, ruta: _nombreAlmacen(r.almacen_origen) + ' → ' + _nombreAlmacen(r.almacen_destino),
+            usuario: r.usuario || '', estado: r.estado || 'ok', nota: r.nota || ''
+        }));
+        // 2) Equipos de reacondicionado marcados como Despachado (estado vendido + completado)
+        (cache.refurb || []).filter(e => e.estado_evaluacion === 'vendido' && e.completado && (e.fecha_completado || e.fecha_despacho)).forEach(e => {
+            const lote = (cache.lotes || []).find(l => l.id === e.lote_id);
+            filas.push({
+                tipo: 'reacond', id: null, num: '', fecha: e.fecha_completado || e.fecha_despacho,
+                art: _modeloRep(e) + (e.articulo_codigo ? ` (${e.articulo_codigo})` : ''),
+                cant: 1, ruta: 'Reacondicionado' + (lote ? ' · ' + (lote.codigo_lote || '') : ''),
+                usuario: e.tecnico_asignado_id ? nombreEmpleado(e.tecnico_asignado_id) : '', estado: 'ok',
+                nota: e.imei ? ('IMEI: ' + e.imei) : ''
+            });
+        });
+        if(!filas.length) { cont.innerHTML = '<p style="color:#94a3b8; font-size:13px; text-align:center; padding:14px;">Aún no hay despachos registrados.</p>'; return; }
+        filas.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+        const badge = (e) => e === 'ok' ? '<span style="color:#166534; font-weight:700;">✅ OK</span>' : (e === 'parcial' ? '<span style="color:#b45309; font-weight:700;">⚠️ Parcial</span>' : '<span style="color:#b91c1c; font-weight:700;">❌ Error</span>');
+        const tipoTag = (t) => t === 'reacond'
+            ? '<span style="background:#ede9fe; color:#6d28d9; font-size:10px; font-weight:700; padding:1px 7px; border-radius:8px;">📱 Reacond</span>'
+            : '<span style="background:#cffafe; color:#155e75; font-size:10px; font-weight:700; padding:1px 7px; border-radius:8px;">📦 Almacén</span>';
+        cont.innerHTML = `<table><thead><tr><th>Fecha</th><th>Nº</th><th>Tipo</th><th>Artículo</th><th>Cant.</th><th>Origen / Destino</th><th>Usuario</th><th>Estado</th><th></th></tr></thead><tbody>` +
+            filas.map(r => `<tr>
+                <td style="white-space:nowrap;">${new Date(r.fecha).toLocaleString('es-DO')}</td>
+                <td style="white-space:nowrap; font-weight:700; color:#0891b2;">${escapeHtml(r.num)}</td>
+                <td>${tipoTag(r.tipo)}</td>
+                <td>${escapeHtml(r.art)}</td>
+                <td style="text-align:center; font-weight:700;">${r.cant}</td>
+                <td style="white-space:nowrap;">${escapeHtml(r.ruta)}</td>
+                <td>${escapeHtml(r.usuario)}</td>
+                <td>${badge(r.estado)}</td>
+                <td style="text-align:center;">${(r.tipo === 'almacen' && r.id && r.estado === 'ok') ? `<button class="btn btn-light" style="padding:3px 9px; font-size:12px;" onclick="imprimirDespacho('${r.id}')"><i class="ti ti-printer"></i></button>` : ''}</td>
+            </tr>`).join('') + `</tbody></table>`;
+    } catch(e) { logError('Historial despachos', e); cont.innerHTML = '<p style="color:#b91c1c; font-size:13px;">No se pudo cargar el historial.</p>'; }
 }
 async function _despachoCargarHistorial() {
     const cont = document.getElementById('despachosHistorial');
