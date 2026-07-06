@@ -15431,7 +15431,7 @@ async function renderInvFisico() {
             </div>
             <button class="btn btn-green" onclick="_invIniciar()"><i class="ti ti-clipboard-check"></i> Empezar a contar</button>
         </div>
-        <p style="color:#94a3b8; font-size:12px; margin:12px 0 0;">💡 Cuenta primero lo más caro (celulares, pantallas) en horas de poca venta. Los celulares se manejan por IMEI, así que se cuentan para tu reporte pero no se ajustan por aquí.</p>
+        <p style="color:#94a3b8; font-size:12px; margin:12px 0 0;">💡 Cuenta primero lo más caro (celulares, pantallas) en horas de poca venta. Todo se cuenta y se cuadra por cantidad.</p>
     </div>`;
 }
 
@@ -15515,9 +15515,8 @@ function _invRenderConteo() {
     const filas = arts.map(a => {
         const linea = _invLineaDe(a.codigo);
         const sistemaRef = _invStockAlm(a);
-        const esCel = _invCatDe(a.descripcion) === 'CELULARES';
         return `<tr id="invrow-${escapeHtml(String(a.codigo))}">
-            <td style="font-size:12.5px;">${escapeHtml(a.descripcion || String(a.codigo))}${esCel ? ' <span style="background:#fef3c7; color:#92400e; font-size:10px; font-weight:700; padding:1px 6px; border-radius:8px;">IMEI</span>' : ''}<div style="color:#94a3b8; font-size:11px;">cód ${escapeHtml(String(a.codigo))} · costo ${money(a.costo || 0)}</div></td>
+            <td style="font-size:12.5px;">${escapeHtml(a.descripcion || String(a.codigo))}<div style="color:#94a3b8; font-size:11px;">cód ${escapeHtml(String(a.codigo))} · costo ${money(a.costo || 0)}</div></td>
             <td style="text-align:center; color:#64748b; font-size:12px;">${sistemaRef}</td>
             <td style="text-align:center;"><input id="invc-${escapeHtml(String(a.codigo))}" type="number" min="0" inputmode="numeric" value="${linea && linea.contado != null ? linea.contado : ''}" placeholder="—" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" onblur="_invGuardarLinea('${escapeHtml(String(a.codigo))}', this.value)" style="width:80px; padding:7px; border:1px solid #cbd5e1; border-radius:7px; text-align:center; font-size:14px; font-weight:700;"></td>
             <td id="invd-${escapeHtml(String(a.codigo))}" style="text-align:center; white-space:nowrap;">${_invBadgeDelta(linea)}</td>
@@ -15557,7 +15556,7 @@ function _invRenderConteo() {
             : '<p style="color:#94a3b8; text-align:center; padding:20px;">No hay artículos con existencia en esta categoría. Usa el buscador para agregar uno que tengas físicamente (sobrante).</p>'}
         </div>
         <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-top:14px; border-top:1px solid #f1f5f9; padding-top:12px;">
-            <div style="color:#64748b; font-size:12px;">Al cuadrar, se mandan a Info Plus solo las diferencias (entradas y salidas). Los celulares (IMEI) no se ajustan por aquí.</div>
+            <div style="color:#64748b; font-size:12px;">Al cuadrar, se mandan a Info Plus solo las diferencias (entradas y salidas).</div>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
                 <button class="btn btn-blue" style="font-size:13px;" onclick="_invCuadrar()"><i class="ti ti-check"></i> Cuadrar en Info Plus (${st.difs})</button>
                 <button class="btn btn-light" style="font-size:13px;" onclick="_invCerrar()"><i class="ti ti-lock"></i> Cerrar conteo</button>
@@ -15609,11 +15608,10 @@ async function _invGuardarLinea(cod, valor) {
         if(ex && ex.ok && ex.cantidad != null) sistema = Number(ex.cantidad);
     } catch(_e) {}
     const delta = contado - sistema;
-    const esCel = _invCatDe(art.descripcion) === 'CELULARES';
     const fila = {
         sesion_id: _invSesion.id, codarticulo: codNum,
         descripcion: art.descripcion || String(codNum), categoria: _invCatDe(art.descripcion),
-        sistema, contado, delta, costo: Number(art.costo) || 0, serial: esCel,
+        sistema, contado, delta, costo: Number(art.costo) || 0, serial: false,
         estado: 'contado', ajuste_estado: null, ajuste_detalle: null,
         contado_por: sessionUser?.nombre || 'Admin', contado_en: new Date().toISOString(), cuadrado_en: null
     };
@@ -15640,14 +15638,12 @@ function _invActualizarStats() {
     const btn = cont.querySelector('button[onclick="_invCuadrar()"]');
     if(btn) btn.innerHTML = `<i class="ti ti-check"></i> Cuadrar en Info Plus (${st.difs})`;
 }
-// Cuadrar: manda a Info Plus solo las diferencias (delta ≠ 0) de artículos sin IMEI.
+// Cuadrar: manda a Info Plus solo las diferencias (delta ≠ 0) por ajuste (entrada/salida).
 async function _invCuadrar() {
     if(!_invSesion) return;
-    const pendientes = _invLineas.filter(l => l.estado !== 'cuadrado' && (Number(l.delta) || 0) !== 0 && !l.serial);
+    const pendientes = _invLineas.filter(l => l.estado !== 'cuadrado' && (Number(l.delta) || 0) !== 0);
     const cero = _invLineas.filter(l => l.estado !== 'cuadrado' && (Number(l.delta) || 0) === 0);
-    const celPend = _invLineas.filter(l => l.estado !== 'cuadrado' && (Number(l.delta) || 0) !== 0 && l.serial);
     if(!pendientes.length && !cero.length) {
-        if(celPend.length) return toast('Solo quedan celulares (IMEI): esos se ajustan por IMEI, no por aquí.', 'error');
         return toast('No hay diferencias nuevas que cuadrar.', 'error');
     }
     let ent = 0, sal = 0, faltRD = 0, sobrRD = 0;
@@ -15656,7 +15652,6 @@ async function _invCuadrar() {
     msg += `• ${sal} salida(s) por faltante = ${money(faltRD)}\n`;
     msg += `• ${ent} entrada(s) por sobrante = ${money(sobrRD)}\n`;
     if(cero.length) msg += `• ${cero.length} artículo(s) que cuadran (sin cambio)\n`;
-    if(celPend.length) msg += `\n⚠️ ${celPend.length} celular(es) con diferencia NO se ajustan (son por IMEI); quedan en el reporte.`;
     msg += `\n\nEsto modifica el inventario real en Info Plus.`;
     if(!await confirmar(msg)) return;
     toast('Cuadrando en Info Plus…');
