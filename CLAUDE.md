@@ -332,3 +332,42 @@ Usos:
 - **🚚 Despacho de Almacén REAL de Info Plus:** sigue **pendiente de Dagoberto** (endpoint + modelo/JSON + códigos de Departamento/Tipo + ejemplo que grabe). El módulo del taller lo hace con 2 ajustes mientras tanto.
 - **Hosting/dominio:** la app corre en **GitHub Pages (gratis) + Supabase**, NO en el hosting "Stellar" ($55.88/año) que llegó a vencer — ese es el **dominio/DNS** de bayolcell.com (y el correo Zoho). **Plan: migrar el DNS a Cloudflare (gratis)** y solo pagar el dominio (~US$10-12/año), manteniendo la web en GitHub Pages. Pendiente: confirmar dónde está registrado el dominio. ⚠️ Ojo con correos de "renueva ya" (posible phishing) — entrar directo al registrador, no al link del correo.
 - Idea pendiente: dejar **Comisiones** (1% por vendedor/tienda) y **Reporte de celulares vendidos** (por modelo, costo/venta/ganancia desde `infoplus_ventas`) como botones fijos.
+
+## ACTUALIZACIÓN 9 jul 2026 — Info Plus ESCRITURA completa (despacho, compra, IMEI), Inventario Físico, Importar manifiesto, Ayuda de módulos
+
+### 🎯 EL BUG que bloqueaba el DESPACHO: salto de línea en `basedatos` (RESUELTO)
+- El secret **`INFOPLUS_BASE` trae `"bayol\n"`** (con salto de línea). La función de `ajuste` ya hacía `.trim()`, pero la de **`despacho` NO** → por eso ajuste/compra grababan y **despacho daba 400**. Dagoberto lo detectó ("después de bayol hay cambio de línea"). **Fix: `.trim()` al basedatos** en `infoplus-despacho-crear` (ahora v9+). **Regla: SIEMPRE `.trim()` a `INFOPLUS_BASE` y `INFOPLUS_CLAVE`** en toda Edge Function (idealmente arreglar el secret para que no traiga el `\n`).
+- Diagnóstico largo (por si reaparece): el despacho devuelve **HTTP 200** con cuerpo `{status:400, message:null, data:[modelo]}` = rechazo sin motivo. Descartamos endpoint, clave (probada la de Dagoberto), IP, headers y JSON — todo idéntico. El motivo real solo estaba en el **log del servidor de Info Plus** (Dagoberto puso un mensaje `"dblogin vacio"` que al final era el efecto del `\n`).
+
+### DESPACHO REAL de Info Plus — FUNCIONA (piezas Y teléfonos con IMEI)
+- **Endpoint:** `POST /api/despacho?basedatos=bayol&clave=...` (Edge `infoplus-despacho-crear`, pasa el DespachoModel directo).
+- **DespachoModel** (campos clave): `codlocalidado` (origen, termina en **o**), `codlocalidadd` (destino, **doble d**), `coddepartamento:"1"`, `codempleado:"6"`, `codempleado2:"6"`, `tipodespacho:0`, `detallesdespacho:[{codarticulo, precio, cantidad, codunidad:1, descripcion, comentario}]`, `seriales:[{numero, codarticulo}]`. **NO mandar `detallesdespacho2`.** Éxito = respuesta `status:200`, `message:"Se ha creado correctamente"`, `data[0].codalmacen` = **Nº de despacho (DA000...)**.
+- **Con IMEI SÍ graba** (probado: art 1170, IMEI `...1830`, Santiago 1→Garantía 3, stock 7→6/1→2). ⚠️ La serie **`355617283201152` quedó dañada** de tantas pruebas (da "error"); pedir a Dagoberto que la limpie. No afecta a las demás.
+- **Localidades/almacenes (codlocalidado/d = codalmacen):** **1 Oficina Santiago · 3 Garantía China · 4 Localidad Moca · 5 Almacén 2do Nivel · 6 Taller.** Cada serie debe estar en la localidad de **origen**.
+- **Módulo "🚚 Despacho de Almacén"** reescrito (`v-despachos`): carrito de **varios artículos**, origen→destino, **documento único**, **conduce imprimible** (`imprimirDespacho(id)`) e **historial con reimprimir**. Funciones: `renderDespachos`, `_despAgregarItem`, `_despRenderCart`, `_ejecutarDespachoReal({origen,destino,items,nota,seriales})`, `hacerDespachoAlmacen`, `_despGuardarHistorial`, `_despachoCargarHistorial`. Tabla `despachos_almacen` (+ `despacho_numero`, `items` jsonb, `nota`).
+- **Despacho rápido** (panel reparación) también usa `_ejecutarDespachoReal`.
+
+### DESPACHAR TELÉFONOS desde Reacondicionados
+- Botón **"Despachar teléfonos"** (barra del lote, admin): marca teléfonos → agrupa por modelo (`articulo_codigo`), **costo PROMEDIO**, manda **todos sus IMEI**, un documento. `despacharTelefonosSeleccionados()` / `_despTelConfirmar()`. Usa `_reacondSel`, `_costoEquipoRep(e).fin`, `_modeloRep(e)`. Default Taller(6)→Santiago(1).
+
+### INVENTARIO FÍSICO (módulo nuevo `v-invfisico`, solo admin)
+- Cuenta la mercancía real y la **cuadra con Info Plus por DIFERENCIA** (delta = contado − sistema en vivo), sin parar la venta. Por **almacén** + **categoría** (deducida de la descripción: PANTALLAS, BATERÍAS, CELULARES…). Guarda avance (sigue otro día).
+- **Piezas:** casilla de número. **Celulares:** botón que abre escáner de **IMEI** (uno por uno); conteo = nº de IMEI; se guarda la lista. Tablas **`inv_fisico_sesiones`** y **`inv_fisico_lineas`** (con `imeis` jsonb). Cuadrar manda **ajustes** (`_infoplusAjustePieza`). Imprime **hoja de diferencias** y **hoja en blanco** (conteo a ciegas). Funciones `renderInvFisico`, `_invUpsertLinea`, `_invAbrirImeis`, `_invCuadrar`, `_invImprimir`, `_invImprimirHojaBlanco`.
+
+### IMPORTAR MANIFIESTO (Excel del proveedor) → lote con IMEI individual
+- Botón **"Importar manifiesto (Excel)"** en Compras (morado). Lee el Excel (cada fila = 1 teléfono con IMEI), **detecta la tasa US$→RD$ sola** (mediana rd/usd), **enlaza cada modelo con Info Plus por nombre** (`_matchArticuloPorNombre`, editable/verificable; marca en rojo los **sin código IP**), y crea el lote con **un `equipos_refurbish` por teléfono** (modelo, imei, `costo_compra`=RD$, capacidad, color, marca, `articulo_codigo`, `costo_origen='manifiesto'`). Sin código IP = se crea igual en el taller, se enlaza después para despachar. Usa **SheetJS** (`window.XLSX`, se carga por CDN). Funciones `abrirImportarManifiesto`, `_manifSubirArchivo`, `_manifRender`, `crearLoteDesdeManifiesto`. Columnas manifiesto Yves: Item Description·Unit Price(US$)·(RD$)·Quantity·IMEI·Brand·Model·Carrier·Memory·Color.
+
+### COMPRA Info Plus — Guardar + Imprimir
+- Al **"Registrar compra en Info Plus"** ahora guarda un comprobante en **`compras_infoplus`** (pedido, lote, proveedor, almacén, items con modelo/promedio/IMEIs, total) y ofrece **imprimir** (`imprimirCompraIP(rec)`): encabezado tienda, Nº pedido, tabla con promedio e IMEIs, firmas.
+
+### AYUDA DE MÓDULOS (convención NUEVA — seguir SIEMPRE)
+- Cada módulo lleva **un ícono discreto** `<i class="ti ti-info-circle">` (gris `#94a3b8`, **NO emoji**, uno solo, junto al título) que abre su explicación. Motor: `abrirAyuda(titulo, html)` + registro **`AYUDAS`** + `ayudaModulo('clave')`. **Regla: cada módulo nuevo agrega su texto a `AYUDAS` y el botón ℹ️ (ícono, no emoji) en su encabezado.** Ya tienen: `invfisico`, `despachos`.
+
+### Estados de resultados
+- **Mayo 2026** (contadora): ventas netas 3,594,629 · costo 2,380,861 · **utilidad +3,183** (Santiago +6,086, Moca −2,903) — casi en cero. El costo de la contadora quedó **131,504 MÁS BAJO** que Info Plus → inventario final probablemente **inflado** (piezas no descontadas). Pendiente: confirmar con la contadora el **inventario final de mayo** (ella 10,252,130 vs Sterling 10,735,925 — cambia si ganó o perdió).
+
+### Pendientes
+- 🔒 **ROTAR la clave de Info Plus** (`24324...` se filtró en chat) y migrar Edge Functions a leer solo del secret con `.trim()`.
+- Serie `355617283201152` dañada (Dagoberto).
+- Cloudflare Pages (Fase 1 lista para montar, riesgo cero) para deploy instantáneo.
+- Poner el ícono de ayuda a los módulos viejos (Reacond, Compras, Contabilidad, Nómina, Incentivos…).
