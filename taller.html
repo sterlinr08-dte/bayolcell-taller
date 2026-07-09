@@ -2272,7 +2272,7 @@ body{
             <!-- ============= DESPACHO DE ALMACÉN ============= -->
             <div id="v-despachos" class="view">
                 <div class="card" style="margin-bottom:15px; border-left:4px solid #0891b2;">
-                    <h2 style="margin:0 0 4px 0; font-size:18px;"><i class="ti ti-truck-delivery" style="color:#0891b2;"></i> Despacho de Almacén</h2>
+                    <h2 style="margin:0 0 4px 0; font-size:18px;"><i class="ti ti-truck-delivery" style="color:#0891b2;"></i> Despacho de Almacén <button onclick="ayudaModulo('despachos')" title="¿Qué es esto?" style="background:none; border:none; cursor:pointer; font-size:17px; vertical-align:middle;">ℹ️</button></h2>
                     <p style="color:var(--text-muted); font-size:13px; margin:0;">Traspasa mercancía de una localidad a otra en Info Plus como un <b>documento único de despacho</b> (Nº DA...). Agrega varios artículos, hazlo de un solo golpe e imprime el conduce.</p>
                 </div>
                 <div class="card" style="margin-bottom:15px;">
@@ -2306,7 +2306,7 @@ body{
             <!-- ============= INVENTARIO FÍSICO ============= -->
             <div id="v-invfisico" class="view">
                 <div class="card" style="margin-bottom:15px; border-left:4px solid #16a34a;">
-                    <h2 style="margin:0 0 4px 0; font-size:18px;"><i class="ti ti-clipboard-check" style="color:#16a34a;"></i> Inventario Físico <span class="nav-badge-admin">ADMIN</span></h2>
+                    <h2 style="margin:0 0 4px 0; font-size:18px;"><i class="ti ti-clipboard-check" style="color:#16a34a;"></i> Inventario Físico <span class="nav-badge-admin">ADMIN</span> <button onclick="ayudaModulo('invfisico')" title="¿Qué es esto?" style="background:none; border:none; cursor:pointer; font-size:17px; vertical-align:middle;">ℹ️</button></h2>
                     <p style="color:var(--text-muted); font-size:13px; margin:0;">Cuenta la mercancía real y cuádrala con Info Plus. Puedes contar por almacén y por categoría, sin parar la venta: el sistema ajusta por <b>diferencia</b>, así que aunque se venda mientras cuentas, el faltante real no cambia. Puedes dejarlo a medias y seguir otro día.</p>
                 </div>
                 <div id="invFisicoCont"></div>
@@ -15374,6 +15374,40 @@ async function _infoplusAjustePieza(codarticulo, cantidad, precio, entrada, come
         return { ok: false, error: getFriendlyError(e) };
     }
 }
+// ===== AYUDA DE MÓDULOS (ícono ℹ️ que abre la explicación) =====
+// Convención: cada módulo nuevo agrega su explicación aquí y un botón en su encabezado:
+//   <button class="btn-ayuda" onclick="ayudaModulo('clave')" title="¿Qué es esto?">ℹ️</button>
+const AYUDAS = {
+    invfisico: { titulo: 'Inventario Físico', html: `
+        <p><b>¿Para qué sirve?</b> Contar la mercancía real y cuadrarla con Info Plus, sin parar la venta.</p>
+        <ul style="padding-left:18px; margin:6px 0;">
+          <li>Eliges un <b>almacén</b> y una <b>categoría</b> (pantallas, baterías, celulares…). Puedes contar por partes y <b>seguir otro día</b>.</li>
+          <li><b>Piezas:</b> escribes cuántas contaste. <b>Celulares:</b> escaneas/anotas cada <b>IMEI</b>.</li>
+          <li>Ajusta por <b>diferencia</b>: aunque se venda mientras cuentas, el faltante real no cambia.</li>
+          <li>Al final, <b>"Cuadrar en Info Plus"</b> manda las diferencias (entradas/salidas). Puedes imprimir la <b>hoja de diferencias</b> y una <b>hoja en blanco</b> para contar en papel.</li>
+        </ul>` },
+    despachos: { titulo: 'Despacho de Almacén', html: `
+        <p><b>¿Para qué sirve?</b> Mover mercancía de una localidad a otra en Info Plus como un <b>documento único</b> (Nº DA...).</p>
+        <ul style="padding-left:18px; margin:6px 0;">
+          <li>Eliges <b>origen → destino</b>, agregas los artículos con su cantidad y das <b>"Hacer despacho"</b>.</li>
+          <li>Funciona para <b>piezas</b> y para <b>teléfonos con IMEI</b>.</li>
+          <li>Cada artículo debe estar en la <b>localidad de origen</b>.</li>
+          <li><b>Imprime el conduce</b> para entregarlo firmado. Puedes <b>reimprimir</b> cualquiera desde el historial (botón 🖨️).</li>
+        </ul>` }
+};
+function ayudaModulo(clave) { const a = AYUDAS[clave]; if(a) abrirAyuda(a.titulo, a.html); }
+function abrirAyuda(titulo, html) {
+    const prev = document.getElementById('modalAyuda'); if(prev) prev.remove();
+    const box = document.createElement('div');
+    box.className = 'modal-backdrop active'; box.id = 'modalAyuda'; box.style.zIndex = '820';
+    box.innerHTML = `<div class="modal-box" style="max-width:560px;">
+        <div class="modal-header" style="background:linear-gradient(135deg,#0369a1,#0891b2); color:#fff; border-radius:12px 12px 0 0;"><h3 style="margin:0; color:#fff;"><i class="ti ti-info-circle"></i> ${escapeHtml(titulo)}</h3><button class="modal-close" style="color:#fff;" onclick="document.getElementById('modalAyuda').remove()">✕</button></div>
+        <div class="modal-body" style="max-height:70vh; overflow:auto; font-size:13.5px; line-height:1.55; color:#334155;">${html}</div>
+        <div class="modal-footer"><button class="btn btn-blue" onclick="document.getElementById('modalAyuda').remove()">Entendido 👍</button></div>
+    </div>`;
+    document.body.appendChild(box);
+}
+
 // ===== DESPACHO DE ALMACÉN (traspaso REAL entre localidades de Info Plus, documento único DA...) =====
 const ALMACENES_IP = [
     { c: 1, n: 'Oficina Santiago' },
