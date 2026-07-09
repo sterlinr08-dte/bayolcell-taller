@@ -1849,6 +1849,7 @@ body{
                                 <button class="btn btn-light" onclick="abrirModalProveedor()" title="Crear nuevo proveedor"><i class="ti ti-plus"></i> Proveedor</button>
                                 <button class="btn btn-blue" onclick="abrirModalNuevaCompra()"><i class="ti ti-shopping-cart-plus"></i> Nueva Compra</button>
                                 <button class="btn btn-dark" style="background:#0891b2;" onclick="abrirImportarCompraInfoPlus()" title="Jalar una compra de Info Plus y crear el lote de reacondicionados"><i class="ti ti-download"></i> Importar de Info Plus</button>
+                                <button class="btn btn-dark" style="background:#7c3aed;" onclick="abrirImportarManifiesto()" title="Subir el Excel del manifiesto del proveedor (cada fila = 1 teléfono con IMEI) y crear el lote"><i class="ti ti-file-spreadsheet"></i> Importar manifiesto (Excel)</button>
                                 <button class="btn btn-dark" style="background:#7c3aed;" onclick="abrirLiquidacionAduana()" title="Calcular la liquidación de aduana (transporte + impuesto + gastos)"><i class="ti ti-building-bank"></i> Liquidación Aduana</button>
                                 <button class="btn btn-light" onclick="abrirBuscarSerialIP()" title="Buscar de qué proveedor vino un IMEI"><i class="ti ti-search"></i> IMEI → Proveedor</button>
                             </div>
@@ -9203,6 +9204,157 @@ async function crearLoteDesdeCompraInfoPlus(idx) {
         if(typeof nav === 'function') nav('refurb', document.getElementById('menu-refurb'));
         if(typeof abrirLoteReacond === 'function') abrirLoteReacond(lote.id);
     } catch(e) { logError('Crear lote desde compra Info Plus', e); toastError(getFriendlyError(e)); }
+}
+
+// ===== IMPORTAR MANIFIESTO (Excel del proveedor: cada fila = 1 teléfono con IMEI) =====
+let _manifData = null;
+function abrirImportarManifiesto() {
+    if(!isAdminUser()) return toast('Solo el administrador.', 'error');
+    if(!window.XLSX) { const s = document.createElement('script'); s.src = 'https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js'; document.head.appendChild(s); }
+    _manifData = null;
+    const prev = document.getElementById('modalManif'); if(prev) prev.remove();
+    const box = document.createElement('div');
+    box.className = 'modal-backdrop active'; box.id = 'modalManif'; box.style.zIndex = '770';
+    box.innerHTML = `<div class="modal-box" style="max-width:840px;">
+        <div class="modal-header" style="background:linear-gradient(135deg,#6d28d9,#a855f7); color:#fff; border-radius:12px 12px 0 0;"><h3 style="margin:0; color:#fff;"><i class="ti ti-file-spreadsheet"></i> Importar manifiesto (Excel)</h3><button class="modal-close" style="color:#fff;" onclick="document.getElementById('modalManif').remove()">✕</button></div>
+        <div class="modal-body" style="max-height:76vh; overflow:auto;">
+          <p style="font-size:12.5px; color:#475569; margin-top:0;">Sube el Excel del proveedor (manifiesto). Cada fila = <b>1 teléfono con su IMEI</b>. El sistema <b>detecta la tasa</b>, <b>enlaza cada modelo con Info Plus</b> y crea el lote con cada equipo individual.</p>
+          <input type="file" accept=".xlsx,.xls" onchange="_manifSubirArchivo(this.files[0])" style="margin-bottom:12px;">
+          <div id="manifCont"></div>
+        </div>
+    </div>`;
+    document.body.appendChild(box);
+    _ensureInfoplusArticulos();
+}
+async function _manifSubirArchivo(file) {
+    if(!file) return;
+    if(!window.XLSX) return toast('Aún carga el lector de Excel, intenta de nuevo en 2 segundos.', 'error');
+    try {
+        const buf = await file.arrayBuffer();
+        const wb = window.XLSX.read(buf, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const filas = window.XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' });
+        let hi = filas.findIndex(r => Array.isArray(r) && r.some(c => /imei/i.test(String(c))) && r.some(c => /model/i.test(String(c))));
+        if(hi < 0) hi = 0;
+        const hdr = (filas[hi] || []).map(c => String(c).toLowerCase().trim());
+        const col = (names) => { for(const n of names) { const i = hdr.findIndex(h => h.includes(n)); if(i >= 0) return i; } return -1; };
+        const ci = { usd: col(['unit price', 'price', 'precio']), imei: col(['imei', 'serial']), marca: col(['brand', 'marca']), modelo: col(['model', 'modelo']), mem: col(['memory', 'memoria', 'capac']), color: col(['color']) };
+        let rdi = col(['amount', 'total', 'importe', 'dop']);
+        if(rdi < 0 && ci.usd >= 0) rdi = ci.usd + 1; // la columna de al lado del precio US$ (RD$)
+        ci.rd = rdi;
+        if(ci.imei < 0 || ci.modelo < 0) return toast('No encontré las columnas IMEI y Model en el Excel.', 'error');
+        const phones = [];
+        for(let i = hi + 1; i < filas.length; i++) {
+            const r = filas[i]; if(!Array.isArray(r)) continue;
+            const imei = String(r[ci.imei] || '').trim();
+            if(!/^\d{8,}$/.test(imei)) continue;
+            const usd = parseFloat(r[ci.usd]) || 0;
+            let rd = ci.rd >= 0 ? (parseFloat(r[ci.rd]) || 0) : 0;
+            phones.push({ modelo: String(r[ci.modelo] || '').trim(), imei, memoria: ci.mem >= 0 ? String(r[ci.mem] || '').trim() : '', color: ci.color >= 0 ? String(r[ci.color] || '').trim() : '', marca: ci.marca >= 0 ? String(r[ci.marca] || '').trim() : '', usd, rd });
+        }
+        if(!phones.length) return toast('No encontré teléfonos con IMEI en el Excel.', 'error');
+        const tasas = phones.filter(p => p.usd > 0 && p.rd > 0).map(p => p.rd / p.usd).sort((a, b) => a - b);
+        const tasa = tasas.length ? Math.round(tasas[Math.floor(tasas.length / 2)] * 100) / 100 : 60;
+        phones.forEach(p => { if(!p.rd && p.usd) p.rd = Math.round(p.usd * tasa * 100) / 100; });
+        await _ensureInfoplusArticulos();
+        const modelos = {};
+        phones.forEach(p => {
+            const key = (p.modelo || '?').toUpperCase();
+            if(!modelos[key]) {
+                const clean = (p.modelo || '').replace(/\(.*?\)/g, '').trim();
+                const m = _matchArticuloPorNombre('CELULAR ' + clean) || _matchArticuloPorNombre(clean);
+                modelos[key] = { modelo: p.modelo, count: 0, costoTotal: 0, imeis: [], codigo: m ? String(m.codigo) : '', nombreIP: m ? (m.descripcion || '') : '' };
+            }
+            modelos[key].count++; modelos[key].costoTotal += p.rd; modelos[key].imeis.push(p.imei);
+        });
+        const prov = (cache.proveedores || []).find(p => /yves|bayol/i.test(p.nombre || ''));
+        _manifData = { phones, modelos, tasa, provId: prov ? prov.id : null };
+        _manifRender();
+    } catch(e) { logError('manif excel', e); toastError('No se pudo leer el Excel: ' + getFriendlyError(e)); }
+}
+function _manifRender() {
+    const cont = document.getElementById('manifCont'); if(!cont || !_manifData) return;
+    const { phones, modelos, tasa } = _manifData;
+    const provOpts = (cache.proveedores || []).map(p => `<option value="${p.id}"${p.id === _manifData.provId ? ' selected' : ''}>${escapeHtml(p.nombre || '')}</option>`).join('');
+    const modelRows = Object.entries(modelos).map(([k, m]) => {
+        const prom = m.count ? m.costoTotal / m.count : 0;
+        const ok = !!m.codigo;
+        return `<tr>
+            <td style="padding:6px;">${escapeHtml(m.modelo)}<div style="font-size:10px; color:#94a3b8;">${m.imeis.length} IMEI</div></td>
+            <td style="text-align:center;">${m.count}</td>
+            <td style="text-align:right;">${money(prom)}</td>
+            <td style="padding:6px;">${ok ? `<span style="color:#1d4ed8; font-weight:700;">${escapeHtml(m.codigo)}</span> <span style="color:#64748b; font-size:11px;">${escapeHtml((m.nombreIP || '').slice(0, 26))}</span>` : `<span style="color:#b91c1c; font-weight:700;">⚠️ Sin código IP</span>`}</td>
+            <td style="text-align:center;"><button class="btn btn-light" style="padding:2px 9px; font-size:11px;" onclick="_manifCambiarCodigo('${encodeURIComponent(k)}')">${ok ? 'Cambiar' : 'Enlazar'}</button></td>
+        </tr>`;
+    }).join('');
+    const sinCod = Object.values(modelos).filter(m => !m.codigo).length;
+    const totRD = phones.reduce((s, p) => s + p.rd, 0);
+    const hoy = new Date().toISOString().slice(0, 10);
+    cont.innerHTML = `
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:10px;">
+      <div class="form-row"><label>Proveedor</label><select id="manifProv">${provOpts}</select></div>
+      <div class="form-row"><label>Nº lote / factura</label><input id="manifLote" value="MANIF-${hoy.slice(2).replace(/-/g, '')}"></div>
+      <div class="form-row"><label>Tasa detectada (US$→RD$)</label><input id="manifTasa" type="number" value="${tasa}" onchange="_manifRecalcularTasa(this.value)"></div>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+      <div class="form-row"><label>Fecha compra</label><input id="manifFecha" type="date" value="${hoy}"></div>
+      <div class="form-row"><label>Flete / Aduana (RD$, opcional)</label><input id="manifFlete" type="number" value="0"></div>
+    </div>
+    <div style="font-weight:700; font-size:13px; margin:10px 0 4px;">Modelos → Info Plus <span style="color:#64748b; font-weight:500; font-size:12px;">(verifica/corrige cada enlace)</span></div>
+    <div class="table-wrap"><table style="width:100%; border-collapse:collapse; font-size:12.5px;"><thead><tr style="background:#0f172a; color:#fff;"><th style="text-align:left; padding:6px;">Modelo</th><th>Cant.</th><th style="text-align:right;">Prom. RD$</th><th style="text-align:left; padding:6px;">Código Info Plus</th><th></th></tr></thead><tbody>${modelRows}</tbody></table></div>
+    ${sinCod ? `<div style="margin-top:8px; background:#fef2f2; color:#b91c1c; font-size:12px; padding:8px 10px; border-radius:8px;">⚠️ <b>${sinCod} modelo(s) sin código de Info Plus.</b> Se crean en el taller igual (con IMEI y costo), pero para <b>despacharlos/registrarlos en Info Plus</b> primero hay que <b>crear ese artículo en Info Plus</b> y enlazarlo con "Enlazar". Puedes dejarlo y asignarlo después.</div>` : ''}
+    <div style="text-align:right; margin-top:10px; font-size:13px;"><b>${phones.length}</b> teléfono(s) · Total <b>${money(totRD)}</b></div>
+    <div style="text-align:right; margin-top:12px;"><button class="btn btn-blue" onclick="crearLoteDesdeManifiesto()"><i class="ti ti-plus"></i> Crear lote (${phones.length} equipos)</button></div>`;
+}
+function _manifRecalcularTasa(v) {
+    if(!_manifData) return;
+    const t = parseFloat(v) || _manifData.tasa; _manifData.tasa = t;
+    _manifData.phones.forEach(p => { if(p.usd) p.rd = Math.round(p.usd * t * 100) / 100; });
+    Object.values(_manifData.modelos).forEach(m => { m.costoTotal = 0; });
+    _manifData.phones.forEach(p => { const m = _manifData.modelos[(p.modelo || '?').toUpperCase()]; if(m) m.costoTotal += p.rd; });
+    _manifRender();
+}
+function _manifCambiarCodigo(kEnc) {
+    if(!_manifData) return;
+    const k = decodeURIComponent(kEnc); const m = _manifData.modelos[k]; if(!m) return;
+    abrirBuscadorArticulos(null, (a) => { m.codigo = String(a.codigo); m.nombreIP = a.descripcion || ''; _manifRender(); });
+}
+async function crearLoteDesdeManifiesto() {
+    if(!_manifData) return;
+    const provId = document.getElementById('manifProv')?.value || null;
+    const codigoLote = (document.getElementById('manifLote')?.value || '').trim() || ('MANIF-' + new Date().toISOString().slice(2, 10).replace(/-/g, ''));
+    const fecha = document.getElementById('manifFecha')?.value || new Date().toISOString().slice(0, 10);
+    const flete = parseFloat(document.getElementById('manifFlete')?.value) || 0;
+    const { phones, modelos } = _manifData;
+    const costoTotal = phones.reduce((s, p) => s + p.rd, 0);
+    if(!await confirmar(`Se creará el lote "${codigoLote}" con ${phones.length} teléfono(s) individuales (cada uno con su IMEI). ¿Continuar?`)) return;
+    try {
+        const { data: lote, error: eLote } = await supabaseClient.from('refurb_lotes').insert([{
+            codigo_lote: codigoLote, proveedor_id: provId || null, fecha_compra: fecha,
+            costo_total_lote: Math.round(costoTotal * 100) / 100, cantidad_equipos: phones.length,
+            gastos_envio: flete, estado: 'Abierto',
+            notas: `Importado de manifiesto (Excel) · tasa ${_manifData.tasa}`, creado_por: sessionUser?.id || null
+        }]).select().single();
+        if(eLote) throw eLote;
+        const equipos = phones.map(p => {
+            const m = modelos[(p.modelo || '?').toUpperCase()];
+            return {
+                lote_id: lote.id, modelo: (p.modelo || '').trim(),
+                articulo_codigo: (m && m.codigo) ? String(m.codigo) : null,
+                imei: p.imei || null, marca: p.marca || null, capacidad: p.memoria || null, color: p.color || null,
+                costo_compra: Number(p.rd) || 0, costo_repuestos: 0, estado_evaluacion: 'pendiente', costo_origen: 'manifiesto', fecha_compra: fecha
+            };
+        });
+        for(let i = 0; i < equipos.length; i += 200) {
+            const { error: eEq } = await supabaseClient.from('equipos_refurbish').insert(equipos.slice(i, i + 200));
+            if(eEq) throw eEq;
+        }
+        toast(`✅ Lote ${codigoLote} creado con ${phones.length} equipo(s).`);
+        document.getElementById('modalManif')?.remove();
+        await loadAll();
+        if(typeof nav === 'function') nav('refurb', document.getElementById('menu-refurb'));
+        if(typeof abrirLoteReacond === 'function') abrirLoteReacond(lote.id);
+    } catch(e) { logError('crear lote manifiesto', e); toastError(getFriendlyError(e)); }
 }
 
 // Carga los artículos de Info Plus (mismos del sistema Info Plus) para usarlos en compras
