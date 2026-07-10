@@ -1142,7 +1142,8 @@ body{
                 <div id="conta-estados" style="display:none;">
                     <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
                         <select id="ef_tipo" onchange="renderEstados()" style="font-weight:700;">
-                            <option value="resultados">Estado de Resultados</option>
+                            <option value="cpa">Estado de Resultados (formato contadora)</option>
+                            <option value="resultados">Estado de Resultados (libros)</option>
                             <option value="balance">Balance General</option>
                             <option value="flujo">Flujo de Efectivo</option>
                             <option value="cxc">Cuentas por Cobrar (Info Plus)</option>
@@ -7161,7 +7162,199 @@ function renderEstados(){
     else if(t === 'flujo') renderFlujoEfectivo();
     else if(t === 'cxc') renderCxC();
     else if(t === 'verif') renderCostoVerif();
-    else renderEstadoResultados();
+    else if(t === 'resultados') renderEstadoResultados();
+    else renderEstadoResultadosCPA();
+}
+
+/* ============================================================
+   ESTADO DE RESULTADOS — FORMATO CONTADORA (CPA)
+   Igual al que entrega la contadora: ventas contado/crédito − devoluciones,
+   costo por MÉTODO INVENTARIO (inv. inicial + compras − inv. final),
+   gastos detallados y utilidad neta. Ventas/costo salen SOLOS de Info Plus;
+   devoluciones e inventarios son editables y se guardan por mes (conta_er_params).
+   ============================================================ */
+let _erCpa = null; // datos del último render (para imprimir/Excel)
+async function _erCpaDatos() {
+    const mes = document.getElementById('ef_mes')?.value || new Date().toISOString().slice(0, 7);
+    const suc = document.getElementById('ef_sucursal')?.value || '';
+    const { ini, fin } = _periodoMes(mes);
+    const localidad = suc === 'Santiago' ? 1 : (suc === 'Moca' ? 4 : null);
+    // 1) Ventas de Info Plus: contado (CO) / crédito (CR) y costo perpetuo de referencia
+    let vRows = [];
+    try {
+        let q = supabaseClient.from('infoplus_ventas').select('factura_id,monto_venta,monto_costo,codlocalidad').gte('fecha', ini).lt('fecha', fin);
+        if(localidad) q = q.eq('codlocalidad', localidad);
+        const { data } = await q; vRows = data || [];
+    } catch(e) { logError('ER CPA ventas', e); }
+    let contado = 0, credito = 0, otras = 0, costoPerp = 0;
+    vRows.forEach(r => {
+        const v = Number(r.monto_venta) || 0;
+        costoPerp += Number(r.monto_costo) || 0;
+        if((r.factura_id || '').startsWith('CO')) contado += v;
+        else if((r.factura_id || '').startsWith('CR')) credito += v;
+        else otras += v;
+    });
+    const brutas = contado + credito + otras;
+    // 2) Parámetros guardados del mes (devoluciones, inventarios, compras)
+    let p = null;
+    try { const { data } = await supabaseClient.from('conta_er_params').select('*').eq('mes', mes).eq('sucursal', suc).maybeSingle(); p = data || null; } catch(_e) {}
+    // 3) Precargas automáticas si no hay guardado (solo Combinado; por tienda se escriben a mano)
+    let invIni = p?.inv_inicial, invFin = p?.inv_final, compras = p?.compras;
+    if(!suc) {
+        try {
+            if(invIni == null) {
+                const { data } = await supabaseClient.from('inventario_snapshots').select('fecha,valor').lte('fecha', ini).order('fecha', { ascending: false }).limit(1);
+                if(data && data[0]) invIni = Number(data[0].valor);
+            }
+            if(invFin == null) {
+                const finReal = new Date(new Date(fin + 'T00:00:00').getTime() - 86400000).toISOString().slice(0, 10);
+                const { data } = await supabaseClient.from('inventario_snapshots').select('fecha,valor').gte('fecha', finReal).order('fecha').limit(1);
+                if(data && data[0]) invFin = Number(data[0].valor);
+                else if(mes === new Date().toISOString().slice(0, 7)) {
+                    const { data: liv } = await supabaseClient.rpc('infoplus_valor_inventario');
+                    if(liv && liv[0]) invFin = Number(liv[0].total_todos) || null;
+                }
+            }
+            if(compras == null) {
+                const noPad = (s) => { const [y, m, d] = s.split('-'); return `${parseInt(y)}-${parseInt(m)}-${parseInt(d)}`; };
+                const finReal = new Date(new Date(fin + 'T00:00:00').getTime() - 86400000).toISOString().slice(0, 10);
+                const { data: cj } = await supabaseClient.functions.invoke('infoplus-compras', { body: { desde: noPad(ini), hasta: noPad(finReal) } });
+                const t = (cj?.facturas || []).reduce((s, f) => s + (Number(f.total) || 0), 0);
+                if(t > 0) compras = t;
+            }
+        } catch(_e) {}
+    }
+    // 4) Gastos por categoría (conta_movimientos)
+    let gastos = [];
+    try {
+        let q = supabaseClient.from('conta_movimientos').select('categoria,sucursal,monto').eq('tipo', 'gasto').gte('fecha', ini).lt('fecha', fin);
+        if(suc) q = q.eq('sucursal', suc);
+        const { data } = await q; gastos = data || [];
+    } catch(e) { logError('ER CPA gastos', e); }
+    const gastosCat = {};
+    gastos.forEach(g => { const c = g.categoria || '(sin categoría)'; gastosCat[c] = (gastosCat[c] || 0) + (Number(g.monto) || 0); });
+    const totalGastos = Object.values(gastosCat).reduce((s, v) => s + v, 0);
+    return { mes, suc, ini, fin, contado, credito, otras, brutas, costoPerp,
+        devoluciones: Number(p?.devoluciones) || 0, invIni: invIni != null ? Number(invIni) : null,
+        invFin: invFin != null ? Number(invFin) : null, compras: compras != null ? Number(compras) : null,
+        gastosCat, totalGastos };
+}
+function _erCpaCalc(d) {
+    const netas = d.brutas - d.devoluciones;
+    const tieneInv = d.invIni != null && d.invFin != null && d.compras != null;
+    const costo = tieneInv ? (d.invIni + d.compras - d.invFin) : d.costoPerp;
+    const margen = netas - costo;
+    const neta = margen - d.totalGastos;
+    return { netas, tieneInv, costo, margen, neta, difPerp: tieneInv ? (costo - d.costoPerp) : 0 };
+}
+async function renderEstadoResultadosCPA(preloaded) {
+    const cont = document.getElementById('ef_contenido'); if(!cont) return;
+    if(!preloaded) cont.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:16px;">Calculando (ventas, inventarios y compras)…</p>';
+    const d = preloaded || await _erCpaDatos(); _erCpa = d;
+    const c = _erCpaCalc(d);
+    const inp = (id, val) => `<input id="${id}" type="number" step="0.01" value="${val != null ? val : ''}" placeholder="—" onchange="_erCpaRefrescar()" style="width:130px; padding:4px 7px; border:1px solid #cbd5e1; border-radius:6px; text-align:right; font-size:13px;">`;
+    const fila = (t, v, opts) => `<tr style="${opts?.b ? 'font-weight:800;' : ''} ${opts?.bg ? 'background:' + opts.bg + ';' : ''}"><td style="${opts?.ind ? 'padding-left:22px;' : ''} padding-top:4px; padding-bottom:4px;">${t}</td><td style="text-align:right; white-space:nowrap;">${v}</td></tr>`;
+    const gastosHtml = Object.entries(d.gastosCat).sort((a, b) => b[1] - a[1]).map(([k, v]) => fila(escapeHtml(k), money(v), { ind: 1 })).join('');
+    cont.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+      <div style="font-size:12px; color:#64748b;">Ventas y costo: <b>automáticos de Info Plus</b>. Devoluciones e inventarios: <b>editables</b> (se guardan por mes).</div>
+      <div style="display:flex; gap:6px;">
+        <button class="btn btn-light" style="font-size:12px;" onclick="_erCpaGuardar()"><i class="ti ti-device-floppy"></i> Guardar</button>
+        <button class="btn btn-light" style="font-size:12px;" onclick="imprimirErCpa()"><i class="ti ti-printer"></i> Imprimir</button>
+        <button class="btn btn-light" style="font-size:12px; color:#15803d; border-color:#86efac;" onclick="exportarErCpaExcel()"><i class="ti ti-file-spreadsheet"></i> Excel</button>
+      </div>
+    </div>
+    <h3 style="text-align:center; margin:0;">BAYOL CELL, S.R.L.</h3>
+    <p style="text-align:center; margin:2px 0 14px; color:var(--text-muted);">Estado de Resultados · ${escapeHtml(d.mes)} · ${escapeHtml(d.suc || 'Santiago + Moca')} · RD$</p>
+    <table style="width:100%; font-size:13.5px; max-width:720px; margin:0 auto;">
+      <tr><td colspan="2" style="font-weight:800; color:#0891b2;">INGRESOS</td></tr>
+      ${fila('Ventas al contado', money(d.contado), { ind: 1 })}
+      ${fila('Ventas a crédito', money(d.credito), { ind: 1 })}
+      ${d.otras ? fila('Otras ventas / ajustes', money(d.otras), { ind: 1 }) : ''}
+      ${fila('Ventas brutas', money(d.brutas), { b: 1 })}
+      ${fila('Menos: Devoluciones sobre ventas', inp('ercpa_dev', d.devoluciones || ''), { ind: 1 })}
+      ${fila('VENTAS NETAS', money(c.netas), { b: 1, bg: 'rgba(8,145,178,0.08)' })}
+      <tr><td colspan="2" style="font-weight:800; color:#0891b2; padding-top:10px;">COSTO DE VENTAS ${c.tieneInv ? '(método inventario)' : '(según Info Plus — pon los inventarios para el método de la contadora)'}</td></tr>
+      ${fila('Inventario inicial', inp('ercpa_invini', d.invIni), { ind: 1 })}
+      ${fila('Más: Compras del período', inp('ercpa_compras', d.compras), { ind: 1 })}
+      ${fila('Menos: Inventario final', inp('ercpa_invfin', d.invFin), { ind: 1 })}
+      ${fila('Costo de ventas', money(c.costo), { b: 1 })}
+      ${c.tieneInv ? fila(`<span style="font-size:11.5px; color:${Math.abs(c.difPerp) > 20000 ? '#b45309' : '#94a3b8'};">Referencia: costo según Info Plus ${money(d.costoPerp)} · diferencia ${money(c.difPerp)} ${Math.abs(c.difPerp) > 20000 ? '⚠️ (posible faltante/piezas sin descontar)' : ''}</span>`, '', { ind: 1 }) : ''}
+      ${fila('MARGEN BRUTO', money(c.margen), { b: 1, bg: 'rgba(8,145,178,0.08)' })}
+      <tr><td colspan="2" style="font-weight:800; color:#0891b2; padding-top:10px;">GASTOS GENERALES Y ADMINISTRATIVOS</td></tr>
+      ${gastosHtml || fila('<span style="color:#94a3b8;">Sin gastos registrados este mes</span>', '', { ind: 1 })}
+      ${fila('Total gastos', money(d.totalGastos), { b: 1 })}
+      ${fila(c.neta >= 0 ? 'GANANCIA NETA DEL PERÍODO' : 'PÉRDIDA NETA DEL PERÍODO', money(c.neta), { b: 1, bg: c.neta >= 0 ? 'rgba(22,163,74,0.14)' : 'rgba(220,38,38,0.14)' })}
+    </table>
+    ${_notaNIIF()}`;
+}
+// Lee los inputs, recalcula en vivo y re-renderiza (sin volver a consultar)
+function _erCpaRefrescar() {
+    if(!_erCpa) return;
+    const num = (id) => { const v = document.getElementById(id)?.value; return v === '' || v == null ? null : (Number(v) || 0); };
+    _erCpa.devoluciones = num('ercpa_dev') || 0;
+    _erCpa.invIni = num('ercpa_invini');
+    _erCpa.invFin = num('ercpa_invfin');
+    _erCpa.compras = num('ercpa_compras');
+    renderEstadoResultadosCPA(_erCpa);
+}
+async function _erCpaGuardar() {
+    if(!_erCpa) return;
+    const num = (id) => { const v = document.getElementById(id)?.value; return v === '' || v == null ? null : (Number(v) || 0); };
+    const fila = { mes: _erCpa.mes, sucursal: _erCpa.suc || '', devoluciones: num('ercpa_dev') || 0,
+        inv_inicial: num('ercpa_invini'), inv_final: num('ercpa_invfin'), compras: num('ercpa_compras'),
+        actualizado_en: new Date().toISOString(), actualizado_por: sessionUser?.nombre || 'Admin' };
+    try {
+        const { error } = await supabaseClient.from('conta_er_params').upsert([fila], { onConflict: 'mes,sucursal' });
+        if(error) throw error;
+        toast('✅ Guardado. Estos valores se recordarán para ' + _erCpa.mes + '.');
+        renderEstadoResultadosCPA();
+    } catch(e) { logError('guardar ER CPA', e); toastError(getFriendlyError(e)); }
+}
+function _erCpaDocHTML() {
+    const d = _erCpa; if(!d) return '';
+    const num = (id) => { const v = document.getElementById(id)?.value; return v === '' || v == null ? null : (Number(v) || 0); };
+    d.devoluciones = num('ercpa_dev') ?? d.devoluciones ?? 0;
+    d.invIni = num('ercpa_invini') ?? d.invIni; d.invFin = num('ercpa_invfin') ?? d.invFin; d.compras = num('ercpa_compras') ?? d.compras;
+    const c = _erCpaCalc(d);
+    const r = (t, v, b, bg, ind) => `<tr style="${b ? 'font-weight:800;' : ''}${bg ? 'background:' + bg + ';' : ''}"><td style="padding:5px 8px;${ind ? 'padding-left:24px;' : ''}">${t}</td><td style="padding:5px 8px; text-align:right;">${v}</td></tr>`;
+    const gastos = Object.entries(d.gastosCat).sort((a, b) => b[1] - a[1]).map(([k, v]) => r(escapeHtml(k), money(v), 0, '', 1)).join('');
+    return `<h2 style="text-align:center; margin:0; font-size:17px;">BAYOL CELL, S.R.L.</h2>
+    <p style="text-align:center; margin:2px 0 2px; font-size:13px; font-weight:700;">ESTADO DE RESULTADOS — ${escapeHtml((d.suc || 'SANTIAGO + MOCA').toUpperCase())}</p>
+    <p style="text-align:center; margin:0 0 14px; font-size:12px; color:#64748b;">Período ${escapeHtml(d.mes)} · Valores expresados en RD$</p>
+    <table style="width:100%; border-collapse:collapse; font-size:13px;">
+      <tr><td colspan="2" style="font-weight:800; padding:5px 8px;">INGRESOS</td></tr>
+      ${r('Ventas al contado', money(d.contado), 0, '', 1)}
+      ${r('Ventas a crédito', money(d.credito), 0, '', 1)}
+      ${d.otras ? r('Otras ventas / ajustes', money(d.otras), 0, '', 1) : ''}
+      ${r('Ventas brutas', money(d.brutas), 1)}
+      ${r('Menos: Devoluciones sobre ventas', '(' + money(d.devoluciones) + ')', 0, '', 1)}
+      ${r('VENTAS NETAS', money(c.netas), 1, '#f1f5f9')}
+      <tr><td colspan="2" style="font-weight:800; padding:10px 8px 5px;">COSTO DE VENTAS</td></tr>
+      ${c.tieneInv ? r('Inventario inicial', money(d.invIni), 0, '', 1) + r('Más: Compras del período', money(d.compras), 0, '', 1) + r('Menos: Inventario final', '(' + money(d.invFin) + ')', 0, '', 1) : r('Costo de la mercancía vendida (Info Plus)', money(d.costoPerp), 0, '', 1)}
+      ${r('Costo de ventas', money(c.costo), 1)}
+      ${r('MARGEN BRUTO', money(c.margen), 1, '#f1f5f9')}
+      <tr><td colspan="2" style="font-weight:800; padding:10px 8px 5px;">GASTOS GENERALES Y ADMINISTRATIVOS</td></tr>
+      ${gastos}
+      ${r('Total gastos', money(d.totalGastos), 1)}
+      ${r(c.neta >= 0 ? 'GANANCIA NETA DEL PERÍODO' : 'PÉRDIDA NETA DEL PERÍODO', money(c.neta), 1, c.neta >= 0 ? '#dcfce7' : '#fee2e2')}
+    </table>
+    <p style="font-size:10.5px; color:#94a3b8; margin-top:14px;">Ventas y costo de Info Plus · Inventarios/devoluciones según registro del período. Preparado conforme a NIIF para PYMES. Sujeto a validación del CPA. Generado ${new Date().toLocaleString('es-DO')}.</p>`;
+}
+function imprimirErCpa() {
+    if(!_erCpa) return toast('Genera el estado primero.', 'error');
+    const w = window.open('', '_blank');
+    w.document.write(`<html><head><meta charset="utf-8"><title>Estado de Resultados ${escapeHtml(_erCpa.mes)}</title>
+    <style>body{font-family:-apple-system,Segoe UI,Arial,sans-serif;margin:30px;color:#0f172a;max-width:760px;margin-left:auto;margin-right:auto;}@media print{td{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style></head><body>${_erCpaDocHTML()}</body></html>`);
+    w.document.close(); setTimeout(() => w.print(), 300);
+}
+function exportarErCpaExcel() {
+    if(!_erCpa) return toast('Genera el estado primero.', 'error');
+    const blob = new Blob(['﻿<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"></head><body>' + _erCpaDocHTML() + '</body></html>'], { type: 'application/vnd.ms-excel' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = `EstadoResultados_${_erCpa.mes}_${(_erCpa.suc || 'Combinado')}.xls`; a.click();
+    URL.revokeObjectURL(a.href);
+    toast('✅ Excel descargado.');
 }
 // Método de costeo declarado (etiqueta para la nota). Se guarda en el navegador.
 function _metodoCosteo(){ return localStorage.getItem('bayol_metodo_costeo') || 'promedio'; }
