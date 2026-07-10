@@ -1017,6 +1017,7 @@ body{
                     <button id="contaTabMay" class="btn btn-light" style="font-size:12px;" onclick="contaTab('mayor')"><i class="ti ti-list-details"></i> Libro Mayor</button>
                     <button id="contaTabBal" class="btn btn-light" style="font-size:12px;" onclick="contaTab('balanza')"><i class="ti ti-scale"></i> Balanza de Comprobación</button>
                     <button id="contaTabEF" class="btn btn-light" style="font-size:12px;" onclick="contaTab('estados')"><i class="ti ti-report-money"></i> Estados Financieros</button>
+                    <button id="contaTab606" class="btn btn-light" style="font-size:12px;" onclick="contaTab('r606')"><i class="ti ti-file-export"></i> Reporte 606 (DGII)</button>
                 </div>
 
                 <!-- TAB: ESTADO MENSUAL (simple, para la contadora) -->
@@ -1101,6 +1102,21 @@ body{
                                 <tbody id="libroMayorTable"><tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Selecciona una cuenta.</td></tr></tbody>
                             </table>
                         </div>
+                    </div>
+                </div>
+
+                <!-- TAB: REPORTE 606 DGII -->
+                <div id="conta-r606" style="display:none;">
+                    <h3 style="margin:0 0 4px;">Reporte 606 — Compras y Gastos (DGII) <button onclick="ayudaModulo('r606')" title="Ayuda: ¿qué es esto?" style="background:none; border:none; cursor:pointer; color:#94a3b8; font-size:15px; vertical-align:middle; padding:0 3px;"><i class="ti ti-info-circle"></i></button></h3>
+                    <p style="color:var(--text-muted); font-size:12.5px; margin:4px 0 12px;">Los gastos registrados <b>con NCF</b> salen aquí en el <b>formato oficial de la DGII</b>, listos para exportar. La contadora ya no re-digita.</p>
+                    <div class="card">
+                        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
+                            <input type="month" id="r606_mes" onchange="render606()">
+                            <button class="btn btn-light" style="font-size:12px;" onclick="render606()"><i class="ti ti-refresh"></i> Actualizar</button>
+                            <button class="btn btn-light" style="font-size:12px; color:#15803d; border-color:#86efac;" onclick="exportar606Excel()"><i class="ti ti-file-spreadsheet"></i> Exportar Excel (formato DGII)</button>
+                            <button class="btn btn-light" style="font-size:12px;" onclick="imprimir606()"><i class="ti ti-printer"></i> Imprimir</button>
+                        </div>
+                        <div id="r606_contenido"><p style="color:var(--text-muted); text-align:center; padding:20px;">Selecciona el mes.</p></div>
                     </div>
                 </div>
 
@@ -3066,6 +3082,34 @@ body{
                 <div class="form-row"><label>Pagado con</label><select id="gs_metodo"><option value="Efectivo">Efectivo</option><option value="Banco">Banco / Transferencia</option><option value="Tarjeta">Tarjeta</option><option value="Crédito">Crédito (por pagar)</option></select></div>
             </div>
             <div class="form-row" style="margin-top:8px;"><label>Descripción / concepto</label><input id="gs_desc" placeholder="Ej. Alquiler local Santiago - junio"></div>
+            <!-- Comprobante fiscal (opcional) — alimenta el Reporte 606 de la DGII -->
+            <div style="margin-top:12px; border:1px solid #e2e8f0; border-radius:10px; overflow:hidden;">
+                <button type="button" onclick="const b=document.getElementById('gs_fiscalBody'); const f=b.style.display==='none'; b.style.display=f?'':'none'; this.querySelector('span').textContent=f?'▴':'▾';" style="width:100%; text-align:left; background:#f8fafc; border:0; padding:9px 12px; cursor:pointer; font-size:12.5px; font-weight:700; color:#334155;">🧾 Comprobante fiscal (NCF) — para el Reporte 606 <span style="float:right; color:#94a3b8;">▾</span></button>
+                <div id="gs_fiscalBody" style="display:none; padding:10px 12px;">
+                    <p style="color:var(--text-muted); font-size:11.5px; margin:0 0 8px;">Si el gasto tiene <b>factura con NCF</b>, llénalo aquí y saldrá solo en el <b>606 de la DGII</b>. Si no tiene, deja todo en blanco.</p>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                        <div class="form-row"><label>NCF</label><input id="gs_ncf" placeholder="B0100000123" style="text-transform:uppercase;"></div>
+                        <div class="form-row"><label>RNC / Cédula proveedor</label><input id="gs_rnc" inputmode="numeric" placeholder="101000000"></div>
+                    </div>
+                    <div class="form-row" style="margin-top:8px;"><label>Nombre del proveedor</label><input id="gs_provnom" list="gs_provlist" placeholder="Ej. EDENORTE"><datalist id="gs_provlist"></datalist></div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px;">
+                        <div class="form-row"><label>ITBIS de la factura (RD$) <button type="button" onclick="const m=Number(document.getElementById('gs_monto').value)||0; document.getElementById('gs_itbis').value=(m-m/1.18).toFixed(2);" style="border:1px solid #cbd5e1; background:#f8fafc; border-radius:6px; font-size:10px; padding:1px 6px; cursor:pointer;" title="Calcula el ITBIS asumiendo que el monto lo incluye (18%)">calc 18%</button></label><input type="number" step="0.01" min="0" id="gs_itbis" placeholder="0.00"></div>
+                        <div class="form-row"><label>Tipo de gasto (DGII)</label><select id="gs_tipodgii">
+                            <option value="02">02 · Trabajos, suministros y servicios</option>
+                            <option value="01">01 · Gastos de personal</option>
+                            <option value="03">03 · Arrendamientos</option>
+                            <option value="04">04 · Gastos de activos fijos</option>
+                            <option value="05">05 · Gastos de representación</option>
+                            <option value="06">06 · Otras deducciones admitidas</option>
+                            <option value="07">07 · Gastos financieros</option>
+                            <option value="08">08 · Gastos extraordinarios</option>
+                            <option value="09">09 · Parte del costo de venta</option>
+                            <option value="10">10 · Adquisiciones de activos</option>
+                            <option value="11">11 · Gastos de seguros</option>
+                        </select></div>
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="modal-footer">
             <button class="btn btn-light" onclick="cerrarGastoSimple()">Cancelar</button>
@@ -6630,8 +6674,8 @@ async function eliminarCuenta(id) {
 
 // ===== CONTABILIDAD — ASIENTOS (partida doble) + LIBRO DIARIO =====
 function contaTab(name) {
-    const tabs = { mensual:'conta-mensual', catalogo:'conta-catalogo', asientos:'conta-asientos', mayor:'conta-mayor', balanza:'conta-balanza', estados:'conta-estados' };
-    const btns = { mensual:'contaTabMensual', catalogo:'contaTabCat', asientos:'contaTabAs', mayor:'contaTabMay', balanza:'contaTabBal', estados:'contaTabEF' };
+    const tabs = { mensual:'conta-mensual', catalogo:'conta-catalogo', asientos:'conta-asientos', mayor:'conta-mayor', balanza:'conta-balanza', estados:'conta-estados', r606:'conta-r606' };
+    const btns = { mensual:'contaTabMensual', catalogo:'contaTabCat', asientos:'contaTabAs', mayor:'contaTabMay', balanza:'contaTabBal', estados:'contaTabEF', r606:'contaTab606' };
     Object.keys(tabs).forEach(k => { const el = document.getElementById(tabs[k]); if(el) el.style.display = (k === name ? '' : 'none'); const b = document.getElementById(btns[k]); if(b) b.className = 'btn ' + (k === name ? 'btn-blue' : 'btn-light'); });
     const hoyMes = new Date().toISOString().slice(0,7);
     if(name === 'mensual') { const mm = document.getElementById('em_mes'); if(mm && !mm.value) mm.value = hoyMes; renderEstadoMensual(); }
@@ -6639,6 +6683,102 @@ function contaTab(name) {
     if(name === 'mayor') { const mm = document.getElementById('lm_mes'); if(mm && !mm.value) mm.value = hoyMes; cargarSelectCuentasLM(); renderLibroMayor(); }
     if(name === 'balanza') { const mm = document.getElementById('bal_mes'); if(mm && !mm.value) mm.value = hoyMes; renderBalanza(); }
     if(name === 'estados') { const mm = document.getElementById('ef_mes'); if(mm && !mm.value) mm.value = hoyMes; const me = document.getElementById('ef_metodo'); if(me) me.value = _metodoCosteo(); renderEstados(); }
+    if(name === 'r606') { const mm = document.getElementById('r606_mes'); if(mm && !mm.value) mm.value = hoyMes; render606(); }
+}
+
+/* ============================================================
+   REPORTE 606 (DGII) — Compras y gastos con NCF, formato oficial.
+   Los gastos con NCF de conta_movimientos salen aquí listos para la DGII.
+   ============================================================ */
+const _R606_TIPOS = { '01':'Gastos de personal','02':'Trabajos, suministros y servicios','03':'Arrendamientos','04':'Gastos de activos fijos','05':'Gastos de representación','06':'Otras deducciones admitidas','07':'Gastos financieros','08':'Gastos extraordinarios','09':'Parte del costo de venta','10':'Adquisiciones de activos','11':'Gastos de seguros' };
+// Forma de pago DGII: 01 efectivo, 02 cheque/transferencia/depósito, 03 tarjeta, 04 crédito, 07 mixto
+function _r606FormaPago(metodo) { const m = (metodo || '').toLowerCase(); if(m.includes('efect')) return '01'; if(m.includes('banco') || m.includes('transf') || m.includes('cheque')) return '02'; if(m.includes('tarj')) return '03'; if(m.includes('créd') || m.includes('cred')) return '04'; return '01'; }
+let _r606Data = null;
+async function _datos606() {
+    const mes = document.getElementById('r606_mes')?.value || new Date().toISOString().slice(0, 7);
+    const { ini, fin } = _periodoMes(mes);
+    let rows = [], sinNcf = 0;
+    try {
+        const { data } = await supabaseClient.from('conta_movimientos').select('*').eq('tipo', 'gasto').gte('fecha', ini).lt('fecha', fin).order('fecha');
+        (data || []).forEach(g => { if(g.ncf) rows.push(g); else sinNcf++; });
+    } catch(e) { logError('datos 606', e); }
+    return { mes, periodo: mes.replace('-', ''), rows, sinNcf };
+}
+async function render606() {
+    const cont = document.getElementById('r606_contenido'); if(!cont) return;
+    cont.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:16px;">Cargando…</p>';
+    const d = await _datos606(); _r606Data = d;
+    if(!d.rows.length) {
+        cont.innerHTML = `<div style="text-align:center; padding:24px; color:#64748b; font-size:13px;">No hay gastos <b>con NCF</b> en ${d.mes}.${d.sinNcf ? `<br><span style="color:#b45309;">⚠️ Hay ${d.sinNcf} gasto(s) registrados SIN NCF ese mes (no van al 606).</span>` : ''}<br><br>💡 Al registrar un gasto, abre la sección <b>"🧾 Comprobante fiscal (NCF)"</b> y llena NCF, RNC e ITBIS.</div>`;
+        return;
+    }
+    const totM = d.rows.reduce((s, g) => s + (Number(g.monto) || 0), 0);
+    const totI = d.rows.reduce((s, g) => s + (Number(g.itbis) || 0), 0);
+    cont.innerHTML = `
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+        <div style="flex:1; min-width:130px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:9px 12px;"><div style="font-size:11px; color:#64748b; text-transform:uppercase;">Comprobantes</div><div style="font-size:18px; font-weight:800;">${d.rows.length}</div></div>
+        <div style="flex:1; min-width:150px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:9px 12px;"><div style="font-size:11px; color:#64748b; text-transform:uppercase;">Monto facturado</div><div style="font-size:18px; font-weight:800;">${money(totM)}</div></div>
+        <div style="flex:1; min-width:130px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:9px 12px;"><div style="font-size:11px; color:#1d4ed8; text-transform:uppercase;">ITBIS</div><div style="font-size:18px; font-weight:800; color:#1d4ed8;">${money(totI)}</div></div>
+        ${d.sinNcf ? `<div style="flex:1; min-width:150px; background:#fffbeb; border:1px solid #fde68a; border-radius:10px; padding:9px 12px;"><div style="font-size:11px; color:#b45309; text-transform:uppercase;">Sin NCF (no van)</div><div style="font-size:18px; font-weight:800; color:#b45309;">${d.sinNcf}</div></div>` : ''}
+    </div>
+    <div class="table-wrap" style="max-height:55vh; overflow:auto;">
+    <table><thead><tr><th>Fecha</th><th>RNC/Cédula</th><th>Proveedor</th><th>NCF</th><th>Tipo</th><th style="text-align:right;">Monto</th><th style="text-align:right;">ITBIS</th><th>Pago</th></tr></thead><tbody>
+    ${d.rows.map(g => `<tr>
+        <td style="white-space:nowrap;">${escapeHtml(g.fecha || '')}</td>
+        <td>${escapeHtml(g.rnc_proveedor || '—')}</td>
+        <td>${escapeHtml(g.proveedor_nombre || g.descripcion || '—')}</td>
+        <td style="font-family:monospace;">${escapeHtml(g.ncf || '')}</td>
+        <td title="${escapeHtml(_R606_TIPOS[g.tipo_gasto_dgii] || '')}">${escapeHtml(g.tipo_gasto_dgii || '02')}</td>
+        <td style="text-align:right;">${money(g.monto)}</td>
+        <td style="text-align:right;">${money(g.itbis || 0)}</td>
+        <td>${escapeHtml(_r606FormaPago(g.metodo_pago))}</td>
+    </tr>`).join('')}</tbody></table></div>
+    <p style="font-size:11.5px; color:#94a3b8; margin-top:10px;">Formato oficial DGII (23 columnas) al exportar a Excel. Los gastos sin RNC salen con el campo vacío — la contadora puede completarlos en el Excel.</p>`;
+}
+// Excel en el layout oficial del 606 (23 columnas)
+function exportar606Excel() {
+    const d = _r606Data;
+    if(!d || !d.rows.length) return toast('No hay comprobantes que exportar. Actualiza primero.', 'error');
+    const f8 = (s) => (s || '').replace(/-/g, ''); // AAAAMMDD
+    const head = ['RNC o Cédula','Tipo Id','Tipo Bienes y Servicios Comprados','NCF','NCF o Documento Modificado','Fecha Comprobante','Fecha Pago','Monto Facturado en Servicios','Monto Facturado en Bienes','Total Monto Facturado','ITBIS Facturado','ITBIS Retenido','ITBIS sujeto a Proporcionalidad','ITBIS llevado al Costo','ITBIS por Adelantar','ITBIS percibido en compras','Tipo de Retención en ISR','Monto Retención Renta','ISR Percibido en compras','Impuesto Selectivo al Consumo','Otros Impuestos/Tasas','Monto Propina Legal','Forma de Pago'];
+    const filas = d.rows.map(g => {
+        const rnc = g.rnc_proveedor || '';
+        const tipoId = rnc.length === 11 ? '2' : '1'; // 9 dígitos = RNC (1), 11 = cédula (2)
+        const monto = Number(g.monto) || 0, itbis = Number(g.itbis) || 0;
+        const esServicio = !['09', '10'].includes(g.tipo_gasto_dgii || '02');
+        return [rnc, tipoId, g.tipo_gasto_dgii || '02', g.ncf || '', '', f8(g.fecha), f8(g.fecha),
+            esServicio ? (monto - itbis).toFixed(2) : '0.00', esServicio ? '0.00' : (monto - itbis).toFixed(2), (monto - itbis).toFixed(2),
+            itbis.toFixed(2), '0.00', '0.00', '0.00', itbis.toFixed(2), '0.00', '', '0.00', '0.00', '0.00', '0.00', '0.00', _r606FormaPago(g.metodo_pago)];
+    });
+    const esc = (v) => `<td>${escapeHtml(String(v))}</td>`;
+    const html = `<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"></head><body>
+    <table><tr><td colspan="4"><b>FORMATO 606 — COMPRAS DE BIENES Y SERVICIOS · Período ${escapeHtml(d.periodo)} · BAYOL CELL SRL</b></td></tr>
+    <tr>${head.map(h => `<td><b>${escapeHtml(h)}</b></td>`).join('')}</tr>
+    ${filas.map(r => `<tr>${r.map(esc).join('')}</tr>`).join('')}</table></body></html>`;
+    const blob = new Blob(['﻿' + html], { type: 'application/vnd.ms-excel' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = `606_${d.periodo}_BayolCell.xls`; a.click();
+    URL.revokeObjectURL(a.href);
+    toast('✅ Excel del 606 descargado (' + d.rows.length + ' comprobantes).');
+}
+function imprimir606() {
+    const d = _r606Data;
+    if(!d || !d.rows.length) return toast('No hay comprobantes que imprimir.', 'error');
+    const conf = (cache.configTaller) || {};
+    const totM = d.rows.reduce((s, g) => s + (Number(g.monto) || 0), 0);
+    const totI = d.rows.reduce((s, g) => s + (Number(g.itbis) || 0), 0);
+    const rows = d.rows.map((g, i) => `<tr><td style="text-align:center;">${i + 1}</td><td>${escapeHtml(g.fecha || '')}</td><td>${escapeHtml(g.rnc_proveedor || '')}</td><td>${escapeHtml(g.proveedor_nombre || g.descripcion || '')}</td><td style="font-family:monospace;">${escapeHtml(g.ncf || '')}</td><td style="text-align:center;">${escapeHtml(g.tipo_gasto_dgii || '02')}</td><td style="text-align:right;">${money(g.monto)}</td><td style="text-align:right;">${money(g.itbis || 0)}</td></tr>`).join('');
+    const w = window.open('', '_blank');
+    w.document.write(`<html><head><meta charset="utf-8"><title>Reporte 606 · ${escapeHtml(d.periodo)}</title>
+    <style>body{font-family:-apple-system,Segoe UI,Arial,sans-serif;margin:24px;color:#0f172a;}h1{font-size:18px;margin:0;}.sub{color:#64748b;font-size:12.5px;}table{width:100%;border-collapse:collapse;font-size:12px;margin-top:12px;}th,td{border:1px solid #e2e8f0;padding:6px 8px;}th{background:#0f172a;color:#fff;font-size:11px;}tfoot td{font-weight:800;background:#f8fafc;}@media print{th,tfoot td{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style></head><body>
+    <h1>Reporte 606 — Compras y Gastos con NCF</h1>
+    <div class="sub">${escapeHtml(conf.nombre || 'BAYOL CELL, S.R.L.')} · Período ${escapeHtml(d.periodo)} · ${d.rows.length} comprobante(s) · Generado ${new Date().toLocaleString('es-DO')}</div>
+    <table><thead><tr><th>#</th><th>Fecha</th><th>RNC/Cédula</th><th>Proveedor</th><th>NCF</th><th>Tipo</th><th>Monto</th><th>ITBIS</th></tr></thead>
+    <tbody>${rows}</tbody>
+    <tfoot><tr><td colspan="6" style="text-align:right;">TOTALES</td><td style="text-align:right;">${money(totM)}</td><td style="text-align:right;">${money(totI)}</td></tr></tfoot></table>
+    <p style="font-size:10px;color:#94a3b8;margin-top:14px;">Resumen para revisión interna. El archivo para la DGII se genera con "Exportar Excel (formato DGII)".</p>
+    </body></html>`);
+    w.document.close(); setTimeout(() => w.print(), 300);
 }
 /* ============================================================
    ESTADO DE RESULTADOS MENSUAL (simple, para no-contadora)
@@ -6656,12 +6796,30 @@ async function abrirGastoSimple() {
     document.getElementById('gs_fecha').value = new Date().toISOString().slice(0,10);
     document.getElementById('gs_monto').value = '';
     document.getElementById('gs_desc').value = '';
+    // Campos fiscales (606): limpiar y cerrar la sección
+    ['gs_ncf','gs_rnc','gs_provnom','gs_itbis'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+    const tip = document.getElementById('gs_tipodgii'); if(tip) tip.value = '02';
+    const fb = document.getElementById('gs_fiscalBody'); if(fb) fb.style.display = 'none';
     const sucFiltro = document.getElementById('em_sucursal')?.value || '';
     document.getElementById('gs_sucursal').value = sucFiltro || 'General';
     const cats = await _ensureContaCategorias();
     const sel = document.getElementById('gs_categoria');
     sel.innerHTML = cats.filter(c => c.tipo === 'gasto').map(c => `<option value="${escapeHtml(c.nombre)}">${escapeHtml(c.nombre)}</option>`).join('');
     document.getElementById('modalGastoSimple').classList.add('active');
+    _gsCargarProveedores();
+}
+// Autocompletar de proveedores ya usados (nombre → al elegirlo rellena el RNC)
+let _gsProvMap = {};
+async function _gsCargarProveedores() {
+    try {
+        const { data } = await supabaseClient.from('conta_movimientos').select('proveedor_nombre,rnc_proveedor').not('proveedor_nombre', 'is', null).order('creado_en', { ascending: false }).limit(400);
+        _gsProvMap = {};
+        (data || []).forEach(r => { const n = (r.proveedor_nombre || '').trim(); if(n && !_gsProvMap[n]) _gsProvMap[n] = r.rnc_proveedor || ''; });
+        const dl = document.getElementById('gs_provlist');
+        if(dl) dl.innerHTML = Object.keys(_gsProvMap).map(n => `<option value="${escapeHtml(n)}"></option>`).join('');
+        const inp = document.getElementById('gs_provnom');
+        if(inp && !inp._gsHook) { inp._gsHook = true; inp.addEventListener('change', () => { const rnc = _gsProvMap[(inp.value || '').trim()]; const r = document.getElementById('gs_rnc'); if(rnc && r && !r.value) r.value = rnc; }); }
+    } catch(e) { logError('gs proveedores', e); }
 }
 function cerrarGastoSimple() { document.getElementById('modalGastoSimple').classList.remove('active'); }
 async function guardarGastoSimple(btn) {
@@ -6675,10 +6833,19 @@ async function guardarGastoSimple(btn) {
     if(!categoria) return toast('Elige la categoría.', 'error');
     if(monto <= 0) return toast('Pon el monto.', 'error');
     const orig = btn ? btn.innerHTML : ''; if(btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Guardando…'; }
+    // Campos fiscales (606) — opcionales
+    const ncf = (document.getElementById('gs_ncf')?.value || '').trim().toUpperCase();
+    const rnc = (document.getElementById('gs_rnc')?.value || '').replace(/[^0-9]/g, '');
+    const provNom = (document.getElementById('gs_provnom')?.value || '').trim();
+    const itbis = Number(document.getElementById('gs_itbis')?.value) || 0;
+    const tipoDgii = document.getElementById('gs_tipodgii')?.value || '02';
+    if(ncf && !/^[BE]\d{10,12}$/.test(ncf)) return toast('El NCF no parece válido (ej. B0100000123). Revísalo o déjalo vacío.', 'error');
+    if(itbis > monto) return toast('El ITBIS no puede ser mayor que el monto.', 'error');
     try {
-        const { error } = await supabaseClient.from('conta_movimientos').insert([{ fecha, tipo: 'gasto', categoria, sucursal, monto, metodo_pago: metodo, descripcion: desc || null }]);
+        const { error } = await supabaseClient.from('conta_movimientos').insert([{ fecha, tipo: 'gasto', categoria, sucursal, monto, metodo_pago: metodo, descripcion: desc || null,
+            ncf: ncf || null, rnc_proveedor: rnc || null, proveedor_nombre: provNom || null, itbis, tipo_gasto_dgii: ncf ? tipoDgii : null }]);
         if(error) throw error;
-        toast('✅ Gasto registrado.');
+        toast('✅ Gasto registrado.' + (ncf ? ' 🧾 Saldrá en el 606.' : ''));
         cerrarGastoSimple();
         renderEstadoMensual();
     } catch(e) { logError('Guardar gasto simple', e); toastError(getFriendlyError(e)); }
@@ -15385,6 +15552,15 @@ const AYUDAS = {
           <li><b>Piezas:</b> escribes cuántas contaste. <b>Celulares:</b> escaneas/anotas cada <b>IMEI</b>.</li>
           <li>Ajusta por <b>diferencia</b>: aunque se venda mientras cuentas, el faltante real no cambia.</li>
           <li>Al final, <b>"Cuadrar en Info Plus"</b> manda las diferencias (entradas/salidas). Puedes imprimir la <b>hoja de diferencias</b> y una <b>hoja en blanco</b> para contar en papel.</li>
+        </ul>` },
+    r606: { titulo: 'Reporte 606 (DGII)', html: `
+        <p><b>¿Para qué sirve?</b> Armar solo, cada mes, el reporte de <b>compras y gastos (606)</b> que la contadora envía a la DGII — sin re-digitar facturas.</p>
+        <ul style="padding-left:18px; margin:6px 0;">
+          <li>Al <b>registrar un gasto</b>, abre la sección <b>"🧾 Comprobante fiscal (NCF)"</b> y pon el NCF, el RNC del proveedor y el ITBIS (botón "calc 18%" si el monto lo incluye).</li>
+          <li>Esos gastos salen aquí en el <b>formato oficial de 23 columnas</b> de la DGII.</li>
+          <li><b>"Exportar Excel"</b> genera el archivo listo para la contadora / DGII. También se puede imprimir un resumen.</li>
+          <li>Los gastos <b>sin NCF</b> (propinas, gastos informales) no van al 606 — el sistema te dice cuántos quedaron fuera.</li>
+          <li>El <b>607 (ventas)</b> sale de Info Plus, que es quien emite los NCF de venta.</li>
         </ul>` },
     despachos: { titulo: 'Despacho de Almacén', html: `
         <p><b>¿Para qué sirve?</b> Mover mercancía de una localidad a otra en Info Plus como un <b>documento único</b> (Nº DA...).</p>
