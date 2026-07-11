@@ -371,6 +371,11 @@ Usos:
 - **Cron corregido:** `infoplus-sync-cada-min` corría **CADA MINUTO** (1,440 llamadas/día); se bajó a `*/30 * * * *` (cron.alter_job id 1). Ventas sigue a las :07 de cada hora.
 - Julio 1-11 re-sincronizado (494 facturas, RD$1.11M). El probe volvió a stub 403.
 
+### 🎯 METAS POR VENDEDOR (acordadas 11 jul 2026 — se manejan POR CHAT, Sterling NO quiso panel en la app)
+- Vendedores (por `infoplus_ventas.codempleado`): **697** = mayorista Santiago (~28% crédito, margen ~35%) · **748** = Michelle, detalle/contado Santiago (margen ~38%) · **1020** = vendedora Moca (margen ~26%, el más bajo).
+- **Metas mensuales** (equilibrio / ganancia 200k): 697 → **2,100,000 / 2,400,000** · 748 → **1,100,000 / 1,300,000** · 1020 → **550,000 / 650,000** · otros/taller ~150,000. Total 3.9M / 4.5M (gastos ~1.21M, margen real ~31%).
+- Cuando Sterling pida **"proyección"** (lo hace semanal): sacar ventas del mes por `codempleado` de `infoplus_ventas`, comparar contra estas metas (ritmo diario y % del ritmo necesario), y contra el mismo período del mes anterior. Referencias: junio cerró 3,370,172; mayo 3,796,579 (contadora: utilidad mayo +3,183). Julio 1-11: 1,112,480 (697: 602k · 748: 297k · 1020: 119k).
+
 ### Pendientes
 - 🔒 **ROTAR la clave de Info Plus** (`24324...` se filtró en chat) y migrar Edge Functions a leer solo del secret con `.trim()`.
 - Serie `355617283201152` dañada (Dagoberto).
