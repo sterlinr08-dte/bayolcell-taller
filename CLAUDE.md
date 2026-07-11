@@ -366,6 +366,11 @@ Usos:
 ### Estados de resultados
 - **Mayo 2026** (contadora): ventas netas 3,594,629 · costo 2,380,861 · **utilidad +3,183** (Santiago +6,086, Moca −2,903) — casi en cero. El costo de la contadora quedó **131,504 MÁS BAJO** que Info Plus → inventario final probablemente **inflado** (piezas no descontadas). Pendiente: confirmar con la contadora el **inventario final de mayo** (ella 10,252,130 vs Sterling 10,735,925 — cambia si ganó o perdió).
 
+### Fix 11 jul 2026 — sync de ventas rota desde el 1 jul (MISMO bug del `\n`)
+- `infoplus-ventas-sync` devolvía `ok:true, facturas:0` desde el 1 de julio: **le faltaba `.trim()` a `INFOPLUS_BASE`** (mandaba `bayol\n`; el endpoint `factura` responde vacío en vez de error). Arreglado en **v5** (trim a base y clave). Diagnóstico: los artículos sí sincronizaban (esa función tiene la base hardcodeada) y el probe con `.trim()` traía datos → era el código de la sync, no rate-limit.
+- **Cron corregido:** `infoplus-sync-cada-min` corría **CADA MINUTO** (1,440 llamadas/día); se bajó a `*/30 * * * *` (cron.alter_job id 1). Ventas sigue a las :07 de cada hora.
+- Julio 1-11 re-sincronizado (494 facturas, RD$1.11M). El probe volvió a stub 403.
+
 ### Pendientes
 - 🔒 **ROTAR la clave de Info Plus** (`24324...` se filtró en chat) y migrar Edge Functions a leer solo del secret con `.trim()`.
 - Serie `355617283201152` dañada (Dagoberto).
