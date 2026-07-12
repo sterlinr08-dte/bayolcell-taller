@@ -24240,16 +24240,31 @@ function _pintarDetalleSol() {
 function abrirModalNuevaSolicitud() {
     if(!(isAdminUser() || tienePermiso('financiamientos_crear'))) { toast('No tienes permiso para crear solicitudes.', 'error'); return; }
     const clientes = (_finCache.clientes || []).slice().sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
-    const opciones = clientes.map(c => `<option value="${c.id}">${escapeHtml(`${c.nombre || ''} ${c.apellido || ''}`.trim())}${c.cedula ? ' — ' + escapeHtml(c.cedula) : ''}</option>`).join('');
     const hoyISO = new Date().toISOString().slice(0, 10);
     const mcfg = _finCache.config || {};
     const moraTipoDef = mcfg.mora_tipo_def || 'ninguna';
     const moraValorDef = mcfg.mora_valor_def || 0;
     const moraSel = t => moraTipoDef === t ? ' selected' : '';
     const html = `
-        ${clientes.length ? `<div class="form-row"><label>Cliente existente (opcional)</label>
-            <select id="solClienteExistente" onchange="_solPrefillCliente()"><option value="">— Cliente nuevo —</option>${opciones}</select>
-        </div>` : ''}
+        <div class="form-row">
+            <label>Cliente existente (opcional)</label>
+            <input type="hidden" id="solClienteExistente" value="">
+            <div id="solCliChip" style="display:none; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border:1px solid var(--fin-info-brd); background:var(--fin-info-bg); border-radius:11px;">
+                <div style="min-width:0; display:flex; align-items:center; gap:10px;">
+                    <div style="width:34px; height:34px; border-radius:50%; background:#fff; border:1px solid var(--fin-info-brd); display:flex; align-items:center; justify-content:center; flex:none;"><i class="ti ti-user" style="color:var(--fin-info);"></i></div>
+                    <div style="min-width:0;"><div id="solCliChipNom" style="font-weight:700; font-size:13.5px; color:var(--fin-ink);"></div><div id="solCliChipSub" style="font-size:12px; color:var(--text-muted);"></div></div>
+                </div>
+                <button type="button" class="btn btn-light" onclick="_solCliLimpiar()" style="font-size:11px; padding:5px 10px; flex:none;"><i class="ti ti-x"></i> Quitar</button>
+            </div>
+            <div id="solCliPicker">
+                <div style="position:relative;">
+                    <i class="ti ti-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--fin-muted); font-size:16px; pointer-events:none;"></i>
+                    <input type="text" id="solCliBuscar" placeholder="Buscar cliente por nombre o cédula…" oninput="_solCliFiltrar()" autocomplete="off" style="padding-left:34px;">
+                </div>
+                <div id="solCliResultados" style="display:none; margin-top:6px; max-height:210px; overflow-y:auto; border:1px solid var(--border-color); border-radius:11px;"></div>
+            </div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:5px;"><i class="ti ti-info-circle"></i> Deja vacío para registrar un cliente nuevo.${clientes.length ? ` ${clientes.length} cliente(s) guardado(s).` : ''}</div>
+        </div>
         <h4 style="margin:6px 0; font-size:13px; color:#0891b2;"><i class="ti ti-user"></i> Datos del cliente</h4>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
             <div class="form-row" style="flex:1; min-width:130px;"><label>Nombre *</label><input type="text" id="solNombre"></div>
@@ -24330,6 +24345,41 @@ function abrirModalNuevaSolicitud() {
         </div>`;
     abrirModalGenerico('Nueva solicitud de financiamiento', html);
     setTimeout(() => { _solRecalcCuota(); _solMoraLabel(); }, 30);
+}
+// ---- Buscador moderno de cliente existente (reemplaza el desplegable nativo) ----
+function _solCliFiltrar() {
+    const cont = document.getElementById('solCliResultados'); if(!cont) return;
+    const q = (document.getElementById('solCliBuscar')?.value || '').trim().toLowerCase();
+    if(!q) { cont.style.display = 'none'; cont.innerHTML = ''; return; }
+    const lista = (_finCache.clientes || []).filter(c => (`${c.nombre || ''} ${c.apellido || ''} ${c.cedula || ''} ${c.telefono || ''}`).toLowerCase().includes(q))
+        .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '')).slice(0, 30);
+    cont.style.display = 'block';
+    if(!lista.length) { cont.innerHTML = `<div style="padding:12px; color:var(--text-muted); font-size:12.5px; text-align:center;">Sin resultados. Se registrará como cliente nuevo.</div>`; return; }
+    cont.innerHTML = lista.map(c => {
+        const nom = `${c.nombre || ''} ${c.apellido || ''}`.trim();
+        return `<div onclick="_solCliElegir('${c.id}')" style="padding:10px 12px; border-bottom:1px solid var(--border-color); cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">
+            <div style="font-weight:700; color:var(--fin-ink);">${escapeHtml(nom || 'Cliente')}</div>
+            <div style="font-size:12px; color:var(--text-muted);">${c.cedula ? '<i class="ti ti-id"></i> ' + escapeHtml(c.cedula) : ''}${c.telefono ? ' · <i class="ti ti-phone"></i> ' + escapeHtml(c.telefono) : ''}</div>
+        </div>`;
+    }).join('');
+}
+function _solCliElegir(id) {
+    const c = finClienteDe(id) || {};
+    const hid = document.getElementById('solClienteExistente'); if(hid) hid.value = id;
+    const nom = `${c.nombre || ''} ${c.apellido || ''}`.trim();
+    const elNom = document.getElementById('solCliChipNom'); if(elNom) elNom.textContent = nom || 'Cliente';
+    const elSub = document.getElementById('solCliChipSub'); if(elSub) elSub.textContent = [c.cedula, c.telefono].filter(Boolean).join(' · ');
+    const chip = document.getElementById('solCliChip'); if(chip) chip.style.display = 'flex';
+    const picker = document.getElementById('solCliPicker'); if(picker) picker.style.display = 'none';
+    _solPrefillCliente();
+}
+function _solCliLimpiar() {
+    const hid = document.getElementById('solClienteExistente'); if(hid) hid.value = '';
+    const chip = document.getElementById('solCliChip'); if(chip) chip.style.display = 'none';
+    const picker = document.getElementById('solCliPicker'); if(picker) picker.style.display = 'block';
+    const b = document.getElementById('solCliBuscar'); if(b) b.value = '';
+    const r = document.getElementById('solCliResultados'); if(r) { r.style.display = 'none'; r.innerHTML = ''; }
+    _solPrefillCliente();
 }
 function _solPrefillCliente() {
     const id = document.getElementById('solClienteExistente')?.value;
