@@ -107,6 +107,17 @@ Hay **dos tipos de cuenta** que entran a la app:
 **Conexión a Supabase (en `taller.html`, ~línea 3367):**
 - `CONFIG_URL = "https://vkhwdvjtowrhkhqavnvk.supabase.co"` y `CONFIG_KEY = "sb_publishable_..."` → con eso se crea `supabaseClient` (`createClient`).
 - La `CONFIG_KEY` es la **clave publicable (pública)**: es segura para el navegador y ya está en el HTML desplegado. La seguridad real la dan las **RLS policies** de cada tabla.
+
+### 🔑 ¿CUÁL LLAVE USAR? (guía para cualquier chat — leer antes de preguntar)
+| Llave | Valor / dónde está | ¿Se puede escribir en código/repo? |
+|---|---|---|
+| **Publicable (browser)** | `sb_publishable_PynS5ZjKoQ36HCpguVzxaw_KZOlagtz` (está en `taller.html` ~línea 3367 e `index.html`) | ✅ SÍ — es pública por diseño. Es la única que va en el cliente. |
+| **Anon legacy JWT** (para probar Edge Functions vía `net.http_post`) | Se obtiene con el MCP de Supabase: `get_publishable_keys` | ✅ Sí (es equivalente a la publicable) |
+| **service_role** | Secret de Supabase (panel) | 🚫 JAMÁS — solo dentro de Edge Functions vía `Deno.env` |
+| **INFOPLUS_CLAVE / INFOPLUS_BASE** | Secrets de Edge Functions | 🚫 JAMÁS — siempre `Deno.env.get(...).trim()` |
+| **Token Hexnode / API key IA** | Secrets de Edge Functions | 🚫 JAMÁS |
+
+Regla: el **cliente (browser)** SOLO usa la publicable + login (rol `authenticated`); las tablas se protegen con **RLS**. Todo lo que necesite un secreto va en una **Edge Function**. Si un flujo "necesita" la service_role en el cliente, el diseño está mal — se hace una Edge Function o una policy/RPC.
 - 🔒 **Secretos (NUNCA en el repo):** el `service_role`, el token de Hexnode, la clave de Info Plus y la API key de IA viven como **secrets de las Edge Functions en Supabase**, no en el código. No los pidas ni los pegues en archivos.
 - Hay un wrapper de `fetch` que auto-refresca la sesión (token 401) — no romperlo.
 
