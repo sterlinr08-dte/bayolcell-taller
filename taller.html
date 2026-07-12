@@ -24576,6 +24576,40 @@ function _finModalPagoExito(finId, pagoId) {
         <button class="btn btn-blue" onclick="cerrarModalPago()" style="width:100%; margin-top:10px; padding:12px; font-size:15px; font-weight:700;">Listo</button>`;
     _finModalPago(saldado ? '¡Financiamiento saldado!' : 'Pago registrado', cont);
 }
+// ---- Cobro rápido: buscar financiamiento y abrir el modal de pago (estilo "Add Payment") ----
+function abrirCobroRapido() {
+    if(!(isAdminUser() || tienePermiso('financiamientos_cobrar'))) { toast('No tienes permiso para cobrar.', 'error'); return; }
+    const cont = `
+        <input id="cobroRapidoBuscar" type="text" placeholder="Buscar por cliente, contrato o cédula…" oninput="_cobroRapidoFiltrar()" style="width:100%; padding:11px 12px; border:1px solid #cbd5e1; border-radius:10px; font-size:14px; box-sizing:border-box;">
+        <div id="cobroRapidoLista" style="margin-top:12px; max-height:340px; overflow-y:auto;"></div>`;
+    _finModalPago('Registrar pago', cont);
+    _cobroRapidoFiltrar();
+    setTimeout(() => { const el = document.getElementById('cobroRapidoBuscar'); if(el) el.focus(); }, 60);
+}
+function _cobroRapidoFiltrar() {
+    const cont = document.getElementById('cobroRapidoLista'); if(!cont) return;
+    const q = (document.getElementById('cobroRapidoBuscar')?.value || '').trim().toLowerCase();
+    let fins = (_finCache.financiamientos || []).filter(f => { const e = finEstado(f); return e !== 'saldado' && e !== 'cancelado'; });
+    if(q) fins = fins.filter(f => (`${f.cliente_nombre || ''} ${f.codigo || ''} ${f.cliente_cedula || ''} ${f.concepto || ''}`).toLowerCase().includes(q));
+    // Prioriza atrasados y por saldo mayor
+    fins.sort((a, b) => { const ea = finEstado(a) === 'atrasado' ? 0 : 1, eb = finEstado(b) === 'atrasado' ? 0 : 1; return ea - eb || finSaldo(b) - finSaldo(a); });
+    if(!fins.length) { cont.innerHTML = `<div style="color:var(--text-muted); font-size:13px; padding:14px 4px; text-align:center;">Sin financiamientos activos${q ? ' para «' + escapeHtml(q) + '»' : ''}.</div>`; return; }
+    cont.innerHTML = fins.slice(0, 40).map(f => {
+        const est = finEstado(f);
+        const atras = est === 'atrasado';
+        const mora = finMoraPendiente(f);
+        return `<div onclick="abrirModalPago('${f.id}')" style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding:11px 12px; border:1px solid ${atras ? '#fecaca' : '#e2e8f0'}; border-radius:11px; margin-bottom:8px; cursor:pointer; background:${atras ? '#fef2f2' : '#fff'};" onmouseover="this.style.background='${atras ? '#fee2e2' : '#f8fafc'}'" onmouseout="this.style.background='${atras ? '#fef2f2' : '#fff'}'">
+            <div style="min-width:0;">
+                <div style="font-weight:700; font-size:13.5px;">${escapeHtml(f.cliente_nombre || 'Cliente')} <span style="color:#94a3b8; font-weight:600;">#${escapeHtml(String(f.codigo || ''))}</span></div>
+                <div style="font-size:12px; color:var(--text-muted);">${escapeHtml(f.concepto || '')}${atras ? ` · <b style="color:#b91c1c;">Atrasado</b>` : ''}${mora > 0 ? ` · Mora ${money(mora)}` : ''}</div>
+            </div>
+            <div style="text-align:right; flex:none;">
+                <div style="font-size:14px; font-weight:800; color:#0f172a;">${money(finSaldo(f))}</div>
+                <div style="font-size:10.5px; color:var(--text-muted);">Saldo</div>
+            </div>
+        </div>`;
+    }).join('') + (fins.length > 40 ? `<div style="text-align:center; font-size:11.5px; color:var(--text-muted); padding:4px;">Mostrando 40 de ${fins.length}. Refina la búsqueda.</div>` : '');
+}
 // ---- Registrar abono ----
 async function registrarAbonoFin(finId) {
     if(!(isAdminUser() || tienePermiso('financiamientos_cobrar'))) { toast('No tienes permiso para cobrar.', 'error'); return; }
@@ -25291,7 +25325,21 @@ function _pintarDashboardFin() {
         </div>`;
     };
 
+    const puedeCobrarDash = isAdminUser() || tienePermiso('financiamientos_cobrar');
+    const nVenc = gVenc.n + gHoy.n;
     cont.innerHTML = `
+        ${puedeCobrarDash ? `<div class="card" style="margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; background:linear-gradient(180deg,#f0fdf4 0%,#ffffff 70%); border:1px solid #bbf7d0;">
+            <div onclick="finCambiarTab('cobros')" style="cursor:pointer; display:flex; align-items:center; gap:12px;">
+                <div style="width:46px; height:46px; border-radius:13px; background:${nVenc > 0 ? '#fee2e2' : '#dcfce7'}; display:flex; align-items:center; justify-content:center; flex:none;">
+                    <i class="ti ${nVenc > 0 ? 'ti-alarm' : 'ti-checks'}" style="font-size:24px; color:${nVenc > 0 ? '#b91c1c' : '#16a34a'};"></i>
+                </div>
+                <div>
+                    <div style="font-size:22px; font-weight:800; color:${nVenc > 0 ? '#b91c1c' : '#15803d'}; line-height:1;">${nVenc}</div>
+                    <div style="font-size:12px; color:var(--text-muted);">cuota${nVenc === 1 ? '' : 's'} vencida${nVenc === 1 ? '' : 's'} / vence${nVenc === 1 ? '' : 'n'} hoy</div>
+                </div>
+            </div>
+            <button class="btn btn-blue" onclick="abrirCobroRapido()" style="padding:13px 24px; font-size:15px; font-weight:700;"><i class="ti ti-cash-register"></i> Registrar pago</button>
+        </div>` : ''}
         <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px; margin-bottom:14px;">
             <div class="card">
                 <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-chart-donut" style="color:#0891b2;"></i> Resumen de cartera</h3>
