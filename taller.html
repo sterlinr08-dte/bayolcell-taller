@@ -28,7 +28,25 @@
     --text-muted: #64748b;
     --border-color: #e2e8f0;
     --card-bg: #ffffff;
+    /* ===== Financiamiento — capa de diseño NEXUS (semántica de estados) ===== */
+    --fin-ok: #059669; --fin-ok-bg: #ecfdf5; --fin-ok-brd: #a7f3d0;
+    --fin-warn: #b45309; --fin-warn-bg: #fffbeb; --fin-warn-brd: #fde68a;
+    --fin-danger: #b91c1c; --fin-danger-bg: #fef2f2; --fin-danger-brd: #fecaca;
+    --fin-info: #1d4ed8; --fin-info-bg: #eff6ff; --fin-info-brd: #bfdbfe;
+    --fin-ink: #0f172a; --fin-muted: #64748b;
 }
+/* Insignias, chips y ayudas visuales del módulo Financiamiento (sin emojis, marca coherente) */
+.fin-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; line-height: 1.5; white-space: nowrap; }
+.fin-badge.ok { background: var(--fin-ok-bg); color: var(--fin-ok); }
+.fin-badge.warn { background: var(--fin-warn-bg); color: var(--fin-warn); }
+.fin-badge.danger { background: var(--fin-danger-bg); color: var(--fin-danger); }
+.fin-badge.info { background: var(--fin-info-bg); color: var(--fin-info); }
+.fin-badge.muted { background: #f1f5f9; color: var(--fin-muted); }
+.fin-chip { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--border-color); background: #fff; color: var(--fin-muted); font-weight: 600; border-radius: 999px; padding: 7px 13px; cursor: pointer; font-size: 12.5px; transition: all .15s; }
+.fin-chip:hover { border-color: #cbd5e1; }
+.fin-chip.on { border-color: var(--fin-ok); background: var(--fin-ok-bg); color: var(--fin-ok); font-weight: 700; }
+.fin-chip.on-danger { border-color: var(--fin-danger); background: var(--fin-danger-bg); color: var(--fin-danger); font-weight: 700; }
+.fin-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex: none; }
 
 * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; transition: background 0.2s, transform 0.1s; }
 body { margin: 0; background-color: var(--bg-main); color: var(--text-dark); overflow: hidden; height: 100vh; }
@@ -25301,50 +25319,50 @@ function _pintarDashboardFin() {
     // KPIs
     const kpi = (label, val, color, icon) => `<div class="kpi-box" style="border-top-color:${color};"><small>${label}</small><strong>${val}</strong><i class="ti ${icon}"></i></div>`;
     if(kpisEl) kpisEl.innerHTML =
-        kpi('Activos', activos.length, '#16a34a', 'ti-cash') +
-        kpi('Capital pendiente', money(capitalPendiente), '#0891b2', 'ti-wallet') +
-        kpi('Cobrado este mes', money(cobradoMes), '#7c3aed', 'ti-trending-up') +
-        kpi('Mora actual', money(moraActual), '#f59e0b', 'ti-alert-triangle') +
-        kpi('Clientes en mora', clientesEnMora, '#b91c1c', 'ti-user-x') +
-        kpi('% Morosidad', pctMorosidad + '%', pctMorosidad > 15 ? '#b91c1c' : '#16a34a', 'ti-percentage');
+        kpi('Activos', activos.length, 'var(--fin-ok)', 'ti-cash') +
+        kpi('Capital pendiente', money(capitalPendiente), 'var(--fin-info)', 'ti-wallet') +
+        kpi('Cobrado este mes', money(cobradoMes), 'var(--fin-ok)', 'ti-trending-up') +
+        kpi('Mora actual', money(moraActual), 'var(--fin-warn)', 'ti-alert-triangle') +
+        kpi('Clientes en mora', clientesEnMora, 'var(--fin-danger)', 'ti-user-x') +
+        kpi('% Morosidad', pctMorosidad + '%', pctMorosidad > 15 ? 'var(--fin-danger)' : 'var(--fin-ok)', 'ti-percentage');
 
     // Cartera por antigüedad (saldo)
     const b = { aldia: 0, d1: 0, d2: 0, d3: 0 };
     activos.forEach(f => { const d = _finBucketDias(f); const s = finSaldo(f); if(d <= 0) b.aldia += s; else if(d <= 30) b.d1 += s; else if(d <= 60) b.d2 += s; else b.d3 += s; });
     const totalCartera = b.aldia + b.d1 + b.d2 + b.d3;
     const pct = v => totalCartera > 0 ? Math.round(v / totalCartera * 100) : 0;
-    const legItem = (c, txt, v) => `<div style="display:flex; align-items:center; justify-content:space-between; font-size:12.5px; margin:3px 0;"><span style="display:flex; align-items:center; gap:6px;"><i style="width:10px; height:10px; border-radius:3px; background:${c}; display:inline-block;"></i>${txt}</span><b>${pct(v)}%</b></div>`;
+    const legItem = (c, txt, v) => `<div style="display:flex; align-items:center; justify-content:space-between; font-size:12.5px; margin:3px 0;"><span style="display:flex; align-items:center; gap:7px;"><i class="fin-dot" style="border-radius:3px; background:${c};"></i>${txt}</span><b>${pct(v)}%</b></div>`;
 
     // Próximos vencimientos
     const pend = finCuotasPendientes();
     const grupo = (fil) => { const a = pend.filter(fil); return { n: a.length, monto: a.reduce((s, x) => s + x.cuota.pendiente, 0) }; };
     const gVenc = grupo(x => x.dias > 0), gHoy = grupo(x => x.dias === 0), gMan = grupo(x => x.dias === -1), gSem = grupo(x => x.dias <= -2 && x.dias >= -7);
-    const rowVenc = (lbl, g, color) => `<div style="display:flex; justify-content:space-between; align-items:center; padding:7px 0; border-bottom:1px solid #f1f5f9; font-size:13px;"><span style="color:${color}; font-weight:600;">${lbl}</span><span>${g.n} cuota${g.n === 1 ? '' : 's'} · <b>${money(g.monto)}</b></span></div>`;
+    const rowVenc = (lbl, g, color) => `<div style="display:flex; justify-content:space-between; align-items:center; padding:7px 0; border-bottom:1px solid #f1f5f9; font-size:13px;"><span style="display:flex; align-items:center; gap:7px; color:${color}; font-weight:600;"><i class="fin-dot" style="background:${color};"></i>${lbl}</span><span>${g.n} cuota${g.n === 1 ? '' : 's'} · <b>${money(g.monto)}</b></span></div>`;
 
     // Alertas
     const solPend = (_finCache.solicitudes || []).filter(s => s.estado === 'pendiente').length;
     const cli30 = new Set(fins.filter(f => _finBucketDias(f) > 30).map(f => f.fin_cliente_id || f.id)).size;
     const listosBloq = finListosParaBloqueo().length;
     const sinContrato = activos.filter(f => !f.contrato_en).length;
-    const alerta = (icon, txt, n, color, accion) => n > 0 ? `<div onclick="${accion}" style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border:1px solid #fde68a; background:#fffbeb; border-radius:9px; margin-bottom:6px; cursor:pointer; font-size:13px;"><span><i class="ti ${icon}" style="color:${color};"></i> ${txt}</span><b style="color:${color};">${n} ›</b></div>` : '';
+    const alerta = (icon, txt, n, color, accion) => n > 0 ? `<div onclick="${accion}" style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border:1px solid var(--fin-warn-brd); background:var(--fin-warn-bg); border-radius:9px; margin-bottom:6px; cursor:pointer; font-size:13px;"><span><i class="ti ${icon}" style="color:${color};"></i> ${txt}</span><b style="color:${color};">${n} ›</b></div>` : '';
     const alertasHtml = [
-        alerta('ti-file-text', 'Solicitudes por aprobar', solPend, '#b45309', "finCambiarTab('solicitudes')"),
-        alerta('ti-user-x', 'Clientes con +30 días de mora', cli30, '#b91c1c', "finCambiarTab('cobros')"),
-        alerta('ti-lock', 'Equipos listos para bloquear', listosBloq, '#b91c1c', "abrirListosBloqueo()"),
-        alerta('ti-file-off', 'Financiamientos sin contrato firmado', sinContrato, '#7c3aed', "finCambiarTab('financiamientos')")
-    ].join('') || `<div style="color:var(--text-muted); font-size:13px;">Sin alertas 🎉</div>`;
+        alerta('ti-file-text', 'Solicitudes por aprobar', solPend, 'var(--fin-warn)', "finCambiarTab('solicitudes')"),
+        alerta('ti-user-x', 'Clientes con +30 días de mora', cli30, 'var(--fin-danger)', "finCambiarTab('cobros')"),
+        alerta('ti-lock', 'Equipos listos para bloquear', listosBloq, 'var(--fin-danger)', "abrirListosBloqueo()"),
+        alerta('ti-file-off', 'Financiamientos sin contrato firmado', sinContrato, 'var(--fin-info)', "finCambiarTab('financiamientos')")
+    ].join('') || `<div style="color:var(--text-muted); font-size:13px; display:flex; align-items:center; gap:6px;"><i class="ti ti-circle-check" style="color:var(--fin-ok);"></i> Sin alertas pendientes.</div>`;
 
     // Clientes / financiamientos recientes
     const recientes = fins.slice(0, 6);
     const cardCli = f => {
         const est = finEstado(f); const d = _finBucketDias(f); const prox = finProximaCuota(f);
-        const badge = d > 0 ? `<span style="background:#fee2e2; color:#b91c1c; font-size:10px; font-weight:700; padding:2px 7px; border-radius:999px;">${d} DÍAS ATRASO</span>` : `<span style="background:#dcfce7; color:#15803d; font-size:10px; font-weight:700; padding:2px 7px; border-radius:999px;">AL DÍA</span>`;
-        return `<div onclick="verFinanciamiento('${f.id}')" style="border:1px solid #e2e8f0; border-radius:12px; padding:12px; cursor:pointer; min-width:180px; flex:1;">
+        const badge = d > 0 ? `<span class="fin-badge danger">${d} día${d === 1 ? '' : 's'} atraso</span>` : `<span class="fin-badge ok">Al día</span>`;
+        return `<div onclick="verFinanciamiento('${f.id}')" style="border:1px solid var(--border-color); border-radius:12px; padding:12px; cursor:pointer; min-width:180px; flex:1;">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:6px;"><b style="font-size:13px;">${escapeHtml(f.cliente_nombre || '')}</b>${badge}</div>
             <div style="font-size:11.5px; color:var(--text-muted); margin:2px 0 8px;">${escapeHtml(f.concepto || '')}</div>
-            <div style="font-size:15px; font-weight:800;">${money(finSaldo(f))}</div>
+            <div style="font-size:15px; font-weight:800; color:var(--fin-ink);">${money(finSaldo(f))}</div>
             <div style="font-size:11px; color:var(--text-muted);">Saldo pendiente</div>
-            ${prox ? `<div style="font-size:11.5px; margin-top:6px; color:#475569;"><i class="ti ti-calendar"></i> Próx. ${_finFmtFecha(prox.vence)}</div>` : ''}
+            ${prox ? `<div style="font-size:11.5px; margin-top:6px; color:var(--text-muted);"><i class="ti ti-calendar"></i> Próx. ${_finFmtFecha(prox.vence)}</div>` : ''}
         </div>`;
     };
 
@@ -25352,28 +25370,28 @@ function _pintarDashboardFin() {
     const nVenc = gVenc.n + gHoy.n;
     const nReco = finRecordatoriosHoy().filter(x => !x.enviado).length;
     cont.innerHTML = `
-        ${puedeCobrarDash ? `<div class="card" style="margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; background:linear-gradient(180deg,#f0fdf4 0%,#ffffff 70%); border:1px solid #bbf7d0;">
+        ${puedeCobrarDash ? `<div class="card" style="margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; background:linear-gradient(180deg, var(--fin-ok-bg) 0%, #ffffff 70%); border:1px solid var(--fin-ok-brd);">
             <div onclick="finCambiarTab('cobros')" style="cursor:pointer; display:flex; align-items:center; gap:12px;">
-                <div style="width:46px; height:46px; border-radius:13px; background:${nVenc > 0 ? '#fee2e2' : '#dcfce7'}; display:flex; align-items:center; justify-content:center; flex:none;">
-                    <i class="ti ${nVenc > 0 ? 'ti-alarm' : 'ti-checks'}" style="font-size:24px; color:${nVenc > 0 ? '#b91c1c' : '#16a34a'};"></i>
+                <div style="width:46px; height:46px; border-radius:13px; background:${nVenc > 0 ? 'var(--fin-danger-bg)' : 'var(--fin-ok-bg)'}; display:flex; align-items:center; justify-content:center; flex:none;">
+                    <i class="ti ${nVenc > 0 ? 'ti-alarm' : 'ti-checks'}" style="font-size:24px; color:${nVenc > 0 ? 'var(--fin-danger)' : 'var(--fin-ok)'};"></i>
                 </div>
                 <div>
-                    <div style="font-size:22px; font-weight:800; color:${nVenc > 0 ? '#b91c1c' : '#15803d'}; line-height:1;">${nVenc}</div>
+                    <div style="font-size:22px; font-weight:800; color:${nVenc > 0 ? 'var(--fin-danger)' : 'var(--fin-ok)'}; line-height:1;">${nVenc}</div>
                     <div style="font-size:12px; color:var(--text-muted);">cuota${nVenc === 1 ? '' : 's'} vencida${nVenc === 1 ? '' : 's'} / vence${nVenc === 1 ? '' : 'n'} hoy</div>
                 </div>
             </div>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                <button class="btn btn-light" onclick="abrirRecordatoriosHoy()" style="padding:13px 16px; font-size:14px; font-weight:700; color:#0891b2; border-color:#7dd3fc; position:relative;"><i class="ti ti-brand-whatsapp"></i> Recordatorios${nReco > 0 ? ` <span style="background:#0891b2; color:#fff; font-size:11px; padding:1px 7px; border-radius:999px; margin-left:2px;">${nReco}</span>` : ''}</button>
+                <button class="btn btn-light" onclick="abrirRecordatoriosHoy()" style="padding:13px 16px; font-size:14px; font-weight:700;"><i class="ti ti-brand-whatsapp"></i> Recordatorios${nReco > 0 ? ` <span class="fin-badge info" style="margin-left:2px;">${nReco}</span>` : ''}</button>
                 <button class="btn btn-blue" onclick="abrirCobroRapido()" style="padding:13px 24px; font-size:15px; font-weight:700;"><i class="ti ti-cash-register"></i> Registrar pago</button>
             </div>
         </div>` : ''}
         <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px; margin-bottom:14px;">
             <div class="card">
-                <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-chart-donut" style="color:#0891b2;"></i> Resumen de cartera</h3>
+                <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-chart-donut" style="color:var(--fin-info);"></i> Resumen de cartera</h3>
                 <div style="display:flex; align-items:center; gap:14px;">
                     <div style="width:130px; height:130px; position:relative; flex:none;"><canvas id="finDonutCartera"></canvas></div>
                     <div style="flex:1;">
-                        ${legItem('#16a34a', 'Al día', b.aldia)}
+                        ${legItem('#059669', 'Al día', b.aldia)}
                         ${legItem('#f59e0b', 'Mora 1-30 días', b.d1)}
                         ${legItem('#f97316', 'Mora 31-60 días', b.d2)}
                         ${legItem('#b91c1c', 'Mora +60 días', b.d3)}
@@ -25382,20 +25400,20 @@ function _pintarDashboardFin() {
                 <div style="border-top:1px solid #f1f5f9; margin-top:8px; padding-top:8px; font-size:13px;">Total cartera: <b>${money(totalCartera)}</b></div>
             </div>
             <div class="card">
-                <h3 style="margin:0 0 8px; font-size:15px;"><i class="ti ti-calendar-due" style="color:#b45309;"></i> Próximos vencimientos</h3>
-                ${rowVenc('🔴 Vencidas', gVenc, '#b91c1c')}
-                ${rowVenc('Hoy', gHoy, '#b45309')}
-                ${rowVenc('Mañana', gMan, '#0891b2')}
-                ${rowVenc('Esta semana (7 días)', gSem, '#475569')}
+                <h3 style="margin:0 0 8px; font-size:15px;"><i class="ti ti-calendar-due" style="color:var(--fin-warn);"></i> Próximos vencimientos</h3>
+                ${rowVenc('Vencidas', gVenc, 'var(--fin-danger)')}
+                ${rowVenc('Hoy', gHoy, 'var(--fin-warn)')}
+                ${rowVenc('Mañana', gMan, 'var(--fin-info)')}
+                ${rowVenc('Esta semana (7 días)', gSem, 'var(--fin-muted)')}
                 <div style="text-align:right; margin-top:8px;"><button class="btn btn-light" onclick="finCambiarTab('cobros')" style="font-size:12px;">Ver cobros ›</button></div>
             </div>
             <div class="card">
-                <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-bell" style="color:#f59e0b;"></i> Alertas importantes</h3>
+                <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-bell" style="color:var(--fin-warn);"></i> Alertas importantes</h3>
                 ${alertasHtml}
             </div>
         </div>
         <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;"><h3 style="margin:0; font-size:15px;"><i class="ti ti-users" style="color:#0891b2;"></i> Financiamientos recientes</h3><button class="btn btn-light" onclick="finCambiarTab('clientes')" style="font-size:12px;">Ver clientes ›</button></div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;"><h3 style="margin:0; font-size:15px;"><i class="ti ti-users" style="color:var(--fin-info);"></i> Financiamientos recientes</h3><button class="btn btn-light" onclick="finCambiarTab('clientes')" style="font-size:12px;">Ver clientes ›</button></div>
             ${recientes.length ? `<div style="display:flex; gap:12px; flex-wrap:wrap;">${recientes.map(cardCli).join('')}</div>` : `<div style="color:var(--text-muted); font-size:13px;">Aún no hay financiamientos.</div>`}
         </div>`;
 
