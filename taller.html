@@ -23723,6 +23723,11 @@ async function cargarFinanciamientos() {
         _finCache.config = (rcfg && rcfg.data) || _finCache.config || {};
         _finCache.documentos = (rdoc && rdoc.data) || [];
         _finCache.planes = (rplan && rplan.data) || [];
+        // Buckets PRIVADOS: firmar las rutas guardadas para poder mostrar imágenes/videos (enlace temporal)
+        await Promise.all([
+            ...(_finCache.documentos || []).map(async d => { d.url = await _finSignUrl('fin-documentos', d.url); }),
+            ...(_finCache.financiamientos || []).filter(f => f.video_url).map(async f => { f.video_url = await _finSignUrl('fin-evidencias', f.video_url); })
+        ]);
     } catch(e) {
         console.error('cargarFinanciamientos', e);
         toast('Error cargando financiamientos.', 'error');
@@ -23737,6 +23742,13 @@ async function cargarFinanciamientos() {
 function finClienteDe(id) { return (_finCache.clientes || []).find(c => c.id === id) || null; }
 function finReferenciasDe(clienteId) { return (_finCache.referencias || []).filter(r => r.cliente_id === clienteId); }
 function finDocsDe(filtro) { return (_finCache.documentos || []).filter(filtro); }
+// Firma una ruta de bucket privado -> enlace temporal (1h). Si ya es URL http (registro viejo) la deja igual.
+async function _finSignUrl(bucket, val) {
+    if(!val) return val;
+    if(/^https?:\/\//i.test(val)) return val;
+    try { const { data } = await supabaseClient.storage.from(bucket).createSignedUrl(val, 3600); return (data && data.signedUrl) || val; }
+    catch(e) { return val; }
+}
 
 // ---- Render principal ----
 async function renderFinanciamientos() {
@@ -25675,8 +25687,8 @@ async function _finVideoSubir(finId) {
         const path = `fin/${finId}_${Date.now()}.${ext}`;
         const { error } = await supabaseClient.storage.from('fin-evidencias').upload(path, _finBlob, { contentType: _finBlob.type || 'video/webm', upsert: true });
         if(error) throw error;
-        const { data: pub } = supabaseClient.storage.from('fin-evidencias').getPublicUrl(path);
-        await supabaseClient.from('financiamientos').update({ video_url: pub.publicUrl, video_en: new Date().toISOString() }).eq('id', finId);
+        // Bucket privado: se guarda la RUTA; el enlace firmado se genera al cargar
+        await supabaseClient.from('financiamientos').update({ video_url: path, video_en: new Date().toISOString() }).eq('id', finId);
         toast('✅ Video de evidencia guardado.');
         _finBlob = null;
         await cargarFinanciamientos();
@@ -25705,8 +25717,8 @@ async function _finSubirDoc(input, tipo, clienteId, finId, refId) {
         const path = `doc/${(finId || clienteId || 'x')}_${tipo}_${Date.now()}.${ext}`;
         const { error } = await supabaseClient.storage.from('fin-documentos').upload(path, file, { contentType: file.type || 'image/jpeg', upsert: true });
         if(error) throw error;
-        const { data: pub } = supabaseClient.storage.from('fin-documentos').getPublicUrl(path);
-        await supabaseClient.from('fin_documentos').insert([{ cliente_id: clienteId || null, financiamiento_id: finId || null, referencia_id: refId || null, tipo, url: pub.publicUrl, creado_por: sessionUser?.nombre || sessionUser?.usuario || 'Sistema' }]);
+        // Bucket privado: se guarda la RUTA; el enlace firmado se genera al cargar
+        await supabaseClient.from('fin_documentos').insert([{ cliente_id: clienteId || null, financiamiento_id: finId || null, referencia_id: refId || null, tipo, url: path, creado_por: sessionUser?.nombre || sessionUser?.usuario || 'Sistema' }]);
         toast('✅ Imagen guardada.');
         await cargarFinanciamientos();
         if(finId) abrirContratoFin(finId);
