@@ -1176,6 +1176,8 @@ body{
                     <button id="finTabFinanciamientos" onclick="finCambiarTab('financiamientos')" style="white-space:nowrap;"><i class="ti ti-cash"></i> Financiamientos</button>
                     <button id="finTabClientes" onclick="finCambiarTab('clientes')" style="white-space:nowrap;"><i class="ti ti-users"></i> Clientes</button>
                     <button id="finTabCobros" onclick="finCambiarTab('cobros')" style="white-space:nowrap;"><i class="ti ti-calendar-due"></i> Cobros</button>
+                    <button id="finTabMora" onclick="finCambiarTab('mora')" style="white-space:nowrap;"><i class="ti ti-alert-triangle"></i> Mora</button>
+                    <button id="finTabMdm" onclick="finCambiarTab('mdm')" style="white-space:nowrap;"><i class="ti ti-device-mobile"></i> MDM</button>
                     <button id="finTabReportes" onclick="finCambiarTab('reportes')" style="white-space:nowrap;"><i class="ti ti-chart-bar"></i> Reportes</button>
                     <button id="finTabConfig" onclick="finCambiarTab('config')" style="white-space:nowrap;"><i class="ti ti-settings"></i> Configuración</button>
                 </div>
@@ -23744,7 +23746,7 @@ function finCambiarTab(tab) {
     _pintarTabFin();
 }
 function _pintarTabFin() {
-    const tabs = { dashboard: 'finTabDashboard', consulta: 'finTabConsulta', solicitudes: 'finTabSolicitudes', financiamientos: 'finTabFinanciamientos', clientes: 'finTabClientes', cobros: 'finTabCobros', reportes: 'finTabReportes', config: 'finTabConfig' };
+    const tabs = { dashboard: 'finTabDashboard', consulta: 'finTabConsulta', solicitudes: 'finTabSolicitudes', financiamientos: 'finTabFinanciamientos', clientes: 'finTabClientes', cobros: 'finTabCobros', mora: 'finTabMora', mdm: 'finTabMdm', reportes: 'finTabReportes', config: 'finTabConfig' };
     const act = 'background:#16a34a; color:#fff; font-weight:700;';
     const ina = 'background:#f1f5f9; color:#475569;';
     Object.keys(tabs).forEach(k => {
@@ -23761,6 +23763,8 @@ function _pintarTabFin() {
     else if(_finTab === 'solicitudes') _pintarSolicitudes();
     else if(_finTab === 'clientes') _pintarClientes();
     else if(_finTab === 'cobros') _pintarCobros();
+    else if(_finTab === 'mora') _pintarMora();
+    else if(_finTab === 'mdm') _pintarMDMTab();
     else if(_finTab === 'reportes') _pintarReportes();
     else if(_finTab === 'config') _pintarConfigFin();
     else _pintarFinanciamientos();
@@ -24895,6 +24899,104 @@ function _pintarCobros() {
             </div>
         </div>`;
     }).join('');
+}
+
+// ============================================================
+//   PESTAÑA MORA (gestión por rangos de días)
+// ============================================================
+let _moraFiltro = 'todos';   // todos | 1-15 | 16-30 | 31-60 | +60
+function _finMoraInfo(f) {
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    let dias = 0, cuotas = 0, pend = 0;
+    finCronograma(f).forEach(c => { if(!c.cubierta && c.vence < hoy) { cuotas++; pend += c.pendiente; const d = Math.floor((hoy - c.vence) / 86400000); if(d > dias) dias = d; } });
+    pend = Math.round((pend + finMoraPendiente(f)) * 100) / 100;
+    return { dias, cuotas, pend };
+}
+function _pintarMora() {
+    const kpisEl = document.getElementById('finKpis');
+    const cont = document.getElementById('finContenido');
+    if(!cont) return;
+    const atrasados = (_finCache.financiamientos || []).filter(f => finEstado(f) === 'atrasado').map(f => ({ f, ...(_finMoraInfo(f)) })).sort((a, b) => b.dias - a.dias);
+    const totalMonto = atrasados.reduce((s, x) => s + x.pend, 0);
+    if(kpisEl) {
+        const kpi = (l, v, c, i) => `<div class="kpi-box" style="border-top-color:${c};"><small>${l}</small><strong>${v}</strong><i class="ti ${i}"></i></div>`;
+        kpisEl.innerHTML = kpi('En mora', atrasados.length, '#b91c1c', 'ti-user-x') + kpi('Monto en mora', money(totalMonto), '#dc2626', 'ti-cash') +
+            kpi('+30 días', atrasados.filter(x => x.dias > 30).length, '#7f1d1d', 'ti-alert-octagon') + kpi('+60 días', atrasados.filter(x => x.dias > 60).length, '#450a0a', 'ti-flame');
+    }
+    const rangos = { todos: 'Todos', '1-15': '1-15 días', '16-30': '16-30 días', '31-60': '31-60 días', '+60': '+60 días' };
+    const enRango = x => _moraFiltro === 'todos' || (_moraFiltro === '1-15' && x.dias <= 15) || (_moraFiltro === '16-30' && x.dias > 15 && x.dias <= 30) || (_moraFiltro === '31-60' && x.dias > 30 && x.dias <= 60) || (_moraFiltro === '+60' && x.dias > 60);
+    const lista = atrasados.filter(enRango);
+    let html = `<div class="card">
+        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px;">
+            ${Object.keys(rangos).map(k => `<button class="btn btn-light" onclick="_moraFiltro='${k}'; _pintarMora()" style="font-size:12px; ${_moraFiltro === k ? 'background:#fee2e2; color:#b91c1c; font-weight:700;' : ''}">${rangos[k]}</button>`).join('')}
+        </div>`;
+    if(!lista.length) { html += `<div style="color:var(--text-muted); font-size:13px;">Sin clientes en mora en este rango. 🎉</div></div>`; cont.innerHTML = html; return; }
+    html += `<div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Contrato</th><th style="text-align:right;">Días</th><th style="text-align:right;">Cuotas venc.</th><th style="text-align:right;">Pendiente</th><th>Acciones</th></tr></thead><tbody>`;
+    html += lista.map(x => {
+        const f = x.f;
+        const colorD = x.dias > 60 ? '#7f1d1d' : (x.dias > 30 ? '#b91c1c' : '#f59e0b');
+        const puedeBloq = (isAdminUser() || tienePermiso('financiamientos_aprobar')) && f.mdm_enrolado && f.mdm_estado !== 'bloqueado';
+        return `<tr>
+            <td><b>${escapeHtml(f.cliente_nombre || '')}</b></td>
+            <td>#${f.codigo}</td>
+            <td style="text-align:right; color:${colorD}; font-weight:700;">${x.dias}</td>
+            <td style="text-align:right;">${x.cuotas}</td>
+            <td style="text-align:right; font-weight:600;">${money(x.pend)}</td>
+            <td style="white-space:nowrap;">
+                ${f.cliente_telefono ? `<button class="btn btn-light" onclick="whatsappRecordatorioFin('${f.id}')" style="font-size:11px; padding:3px 7px; color:#16a34a;" title="WhatsApp"><i class="ti ti-brand-whatsapp"></i></button>
+                <a class="btn btn-light" href="tel:${escapeHtml(f.cliente_telefono)}" style="font-size:11px; padding:3px 7px; color:#0891b2;" title="Llamar"><i class="ti ti-phone"></i></a>` : ''}
+                ${puedeBloq ? `<button class="btn btn-light" onclick="mdmAccionReal('${f.id}','bloquear')" style="font-size:11px; padding:3px 7px; color:#b91c1c;" title="Bloquear equipo"><i class="ti ti-lock"></i></button>` : ''}
+                <button class="btn btn-blue" onclick="verFinanciamiento('${f.id}')" style="font-size:11px; padding:3px 7px;" title="Cobrar/Ver"><i class="ti ti-cash"></i></button>
+            </td>
+        </tr>`;
+    }).join('');
+    html += `</tbody></table></div></div>`;
+    cont.innerHTML = html;
+}
+
+// ============================================================
+//   PESTAÑA MDM (panel de dispositivos)
+// ============================================================
+let _mdmFiltro = 'todos';   // todos | activo | bloqueado | liberado | ninguno
+function _pintarMDMTab() {
+    const kpisEl = document.getElementById('finKpis');
+    const cont = document.getElementById('finContenido');
+    if(!cont) return;
+    const fins = (_finCache.financiamientos || []).filter(f => finEstado(f) !== 'cancelado');
+    const cnt = (e) => fins.filter(f => (f.mdm_estado || 'ninguno') === e).length;
+    if(kpisEl) {
+        const kpi = (l, v, c, i) => `<div class="kpi-box" style="border-top-color:${c};"><small>${l}</small><strong>${v}</strong><i class="ti ${i}"></i></div>`;
+        kpisEl.innerHTML = kpi('Enrolados', fins.filter(f => f.mdm_enrolado).length, '#16a34a', 'ti-device-mobile-check') +
+            kpi('Activos', cnt('activo'), '#15803d', 'ti-lock-open') + kpi('Bloqueados', cnt('bloqueado'), '#b91c1c', 'ti-lock') + kpi('Sin MDM', cnt('ninguno'), '#64748b', 'ti-device-mobile-off');
+    }
+    const puedeMDM = isAdminUser() || tienePermiso('financiamientos_aprobar');
+    const filtros = { todos: 'Todos', activo: 'Activos', bloqueado: 'Bloqueados', liberado: 'Liberados', ninguno: 'Sin MDM' };
+    const lista = fins.filter(f => _mdmFiltro === 'todos' || (f.mdm_estado || 'ninguno') === _mdmFiltro);
+    let html = `<div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">${Object.keys(filtros).map(k => `<button class="btn btn-light" onclick="_mdmFiltro='${k}'; _pintarMDMTab()" style="font-size:12px; ${_mdmFiltro === k ? 'background:#e2e8f0; color:#0f172a; font-weight:700;' : ''}">${filtros[k]}</button>`).join('')}</div>
+            <button class="btn btn-light" onclick="renderFinanciamientos()" style="font-size:12px;"><i class="ti ti-refresh"></i> Sincronizar</button>
+        </div>`;
+    if(!lista.length) { html += `<div style="color:var(--text-muted); font-size:13px;">No hay equipos en esta vista.</div></div>`; cont.innerHTML = html; return; }
+    html += `<div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Equipo</th><th>IMEI</th><th>Estado</th><th>Últ. acción</th><th>Acciones</th></tr></thead><tbody>`;
+    html += lista.map(f => {
+        const est = f.mdm_estado || 'ninguno';
+        const ei = { ninguno: ['Sin MDM', '#64748b', '#e2e8f0'], activo: ['Activo', '#15803d', '#dcfce7'], bloqueado: ['Bloqueado', '#b91c1c', '#fee2e2'], liberado: ['Liberado', '#1d4ed8', '#dbeafe'] }[est] || ['?', '#64748b', '#e2e8f0'];
+        return `<tr>
+            <td><b>${escapeHtml(f.cliente_nombre || '')}</b> <span style="color:#94a3b8;">#${f.codigo}</span></td>
+            <td>${escapeHtml(f.concepto || '')}</td>
+            <td style="font-size:12px;">${escapeHtml(f.mdm_serial || f.equipo_imei || '—')}</td>
+            <td><span style="background:${ei[2]}; color:${ei[1]}; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:700;">${ei[0]}</span></td>
+            <td style="font-size:11.5px; color:var(--text-muted);">${f.mdm_accion_en ? new Date(f.mdm_accion_en).toLocaleDateString('es-DO') : '—'}</td>
+            <td style="white-space:nowrap;">
+                ${puedeMDM && est !== 'bloqueado' ? `<button class="btn btn-light" onclick="mdmAccionReal('${f.id}','bloquear')" style="font-size:11px; padding:3px 7px; color:#b91c1c;" title="Bloquear"><i class="ti ti-lock"></i></button>` : ''}
+                ${puedeMDM && est === 'bloqueado' ? `<button class="btn btn-light" onclick="mdmAccionReal('${f.id}','desbloquear')" style="font-size:11px; padding:3px 7px; color:#15803d;" title="Desbloquear"><i class="ti ti-lock-open"></i></button>` : ''}
+                <button class="btn btn-blue" onclick="verFinanciamiento('${f.id}')" style="font-size:11px; padding:3px 7px;" title="Gestionar"><i class="ti ti-device-mobile-cog"></i></button>
+            </td>
+        </tr>`;
+    }).join('');
+    html += `</tbody></table></div></div>`;
+    cont.innerHTML = html;
 }
 
 // ============================================================
