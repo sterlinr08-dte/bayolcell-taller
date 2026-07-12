@@ -23516,7 +23516,7 @@ document.getElementById('modalNuevoPerfil')?.addEventListener('click', e => {
 //   Carga sus propios datos (NO toca loadAll) para evitar
 //   conflictos con el desarrollo del módulo de taller.
 // ============================================================
-let _finCache = { financiamientos: [], pagos: [], solicitudes: [], clientes: [], referencias: [], config: {}, documentos: [], planes: [] };
+let _finCache = { financiamientos: [], pagos: [], solicitudes: [], clientes: [], referencias: [], config: {}, documentos: [], planes: [], recordatorios: [] };
 let _finTab = 'dashboard';       // dashboard | consulta | solicitudes | financiamientos | clientes | cobros | reportes | config
 let _finDashChart = null;        // instancia del donut de cartera
 let _finFiltro = 'activos';      // activos | atrasados | saldados | todos
@@ -23727,6 +23727,12 @@ async function cargarFinanciamientos() {
         console.error('cargarFinanciamientos', e);
         toast('Error cargando financiamientos.', 'error');
     }
+    // Recordatorios enviados HOY (para no repetir). No bloquea la carga si falla.
+    try {
+        const hoyISO = new Date().toISOString().slice(0, 10);
+        const rrec = await supabaseClient.from('fin_recordatorios').select('*').eq('fecha', hoyISO);
+        _finCache.recordatorios = (rrec && rrec.data) || [];
+    } catch(e) { _finCache.recordatorios = []; }
 }
 function finClienteDe(id) { return (_finCache.clientes || []).find(c => c.id === id) || null; }
 function finReferenciasDe(clienteId) { return (_finCache.referencias || []).filter(r => r.cliente_id === clienteId); }
@@ -23946,45 +23952,16 @@ function _pintarDetalleFin() {
         </div>`;
     }
 
-    // Registrar abono (pago) — versión moderna
+    // Cobros — botón que abre el modal flotante de pago
     const moraPend = finMoraPendiente(f);
     if(puedeCobrar && est !== 'saldado' && est !== 'cancelado') {
-        const prox = finProximaCuota(f);
-        const initMonto = Math.min(Number(f.valor_cuota) || 0, saldo);
-        const initTotal = Math.round((initMonto + moraPend) * 100) / 100;
-        const initResta = Math.max(0, Math.round((saldo - initMonto) * 100) / 100);
-        const chipMonto = (lbl, val) => `<button type="button" onclick="_finSetAbono('${f.id}', ${val})" style="border:1px solid #e2e8f0; background:#fff; color:#334155; border-radius:999px; padding:6px 13px; cursor:pointer; font-size:12.5px; font-weight:600;">${lbl}</button>`;
-        const chipMet = (m, lbl, on) => `<button type="button" data-m="${m}" onclick="_finSetMetodo('${m}')" style="${_finChipCss(on)}">${lbl}</button>`;
-        html += `<div class="card" style="margin-bottom:14px; border:1px solid #bbf7d0; background:linear-gradient(180deg,#f0fdf4 0%,#ffffff 55%);">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
-                <h3 style="margin:0; font-size:16px;"><i class="ti ti-cash" style="color:#16a34a;"></i> Registrar pago</h3>
-                <div style="display:flex; gap:14px; font-size:12px; color:var(--text-muted); flex-wrap:wrap;">
-                    <span>Saldo <b style="color:#0f172a;">${money(saldo)}</b></span>
-                    ${moraPend > 0 ? `<span>Mora <b style="color:#b91c1c;">${money(moraPend)}</b></span>` : ''}
-                    ${prox ? `<span>Próx. ${_finFmtFecha(prox.vence)} <b style="color:#0f172a;">${money(prox.valor)}</b></span>` : ''}
+        html += `<div class="card" style="margin-bottom:14px; border:1px solid #bbf7d0; background:linear-gradient(180deg,#f0fdf4 0%,#ffffff 60%);">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                <div>
+                    <h3 style="margin:0; font-size:16px;"><i class="ti ti-cash" style="color:#16a34a;"></i> Cobros</h3>
+                    <div style="font-size:12.5px; color:var(--text-muted); margin-top:3px;">Saldo <b style="color:#0f172a;">${money(saldo)}</b>${moraPend > 0 ? ` · Mora <b style="color:#b91c1c;">${money(moraPend)}</b>` : ''}</div>
                 </div>
-            </div>
-            <label style="font-size:11px;">Monto rápido</label>
-            <div style="display:flex; gap:6px; flex-wrap:wrap; margin:4px 0 12px;">
-                ${chipMonto('Cuota ' + money(f.valor_cuota), Number(f.valor_cuota) || 0)}
-                ${chipMonto('½ cuota', Math.round((Number(f.valor_cuota) || 0) / 2 * 100) / 100)}
-                ${chipMonto('Saldo total ' + money(saldo), saldo)}
-            </div>
-            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
-                <div style="flex:1; min-width:150px;"><label>Abono a capital (RD$)</label><input type="number" id="finAbonoMonto" min="0" step="0.01" placeholder="0.00" value="${initMonto}" oninput="_finAbonoPreview('${f.id}')" style="font-size:16px; font-weight:700;"></div>
-                ${moraPend > 0 ? `<div style="flex:1; min-width:120px;"><label>Mora a cobrar (RD$)</label><input type="number" id="finAbonoMora" min="0" step="0.01" value="${moraPend}" oninput="_finAbonoPreview('${f.id}')"></div>` : ''}
-            </div>
-            <label style="font-size:11px; margin-top:10px; display:block;">Método de pago</label>
-            <input type="hidden" id="finAbonoMetodo" value="efectivo">
-            <div id="finMetodoChips" style="display:flex; gap:6px; flex-wrap:wrap; margin:4px 0 10px;">
-                ${chipMet('efectivo', '<i class="ti ti-cash"></i> Efectivo', true)}
-                ${chipMet('transferencia', '<i class="ti ti-building-bank"></i> Transferencia', false)}
-                ${chipMet('tarjeta', '<i class="ti ti-credit-card"></i> Tarjeta', false)}
-            </div>
-            <div class="form-row" style="margin-bottom:12px;"><label>Nota (opcional)</label><input type="text" id="finAbonoNota" placeholder="Referencia / observación"></div>
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; border-top:1px solid #e2e8f0; padding-top:12px;">
-                <div style="font-size:13px;">Total a recibir: <b id="finAbonoTotal" style="font-size:18px; color:#16a34a;">${money(initTotal)}</b> <span style="color:var(--text-muted);">· Queda pendiente:</span> <b id="finAbonoResta">${money(initResta)}</b></div>
-                <button class="btn btn-blue" onclick="registrarAbonoFin('${f.id}')" style="padding:11px 22px; font-size:14px;"><i class="ti ti-circle-check"></i> Registrar pago</button>
+                <button class="btn btn-blue" onclick="abrirModalPago('${f.id}')" style="padding:11px 22px; font-size:14px;"><i class="ti ti-plus"></i> Registrar pago</button>
             </div>
         </div>`;
     }
@@ -24506,6 +24483,139 @@ function _finAbonoPreview(finId) {
     const t = document.getElementById('finAbonoTotal'); if(t) t.textContent = money(Math.round((monto + mora) * 100) / 100);
     const r = document.getElementById('finAbonoResta'); if(r) r.textContent = money(Math.max(0, Math.round((finSaldo(f) - monto) * 100) / 100));
 }
+// ---- Modal flotante de pago ----
+function _finModalPago(titulo, contenido) {
+    cerrarModalPago();
+    const ov = document.createElement('div');
+    ov.id = 'modalPago';
+    ov.style.cssText = 'position:fixed; inset:0; z-index:8000; background:rgba(15,23,42,.55); display:flex; align-items:flex-start; justify-content:center; padding:28px 14px; overflow-y:auto; backdrop-filter:blur(2px);';
+    ov.onclick = (e) => { if(e.target === ov) cerrarModalPago(); };
+    ov.innerHTML = `<div style="background:#fff; border-radius:18px; width:100%; max-width:460px; box-shadow:0 24px 60px rgba(0,0,0,.35); overflow:hidden; animation:finPop .18s ease;">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:15px 18px; background:linear-gradient(135deg,#16a34a 0%,#15803d 100%); color:#fff;">
+            <div style="font-size:16px; font-weight:800; display:flex; align-items:center; gap:8px;"><i class="ti ti-cash"></i> ${escapeHtml(titulo)}</div>
+            <button onclick="cerrarModalPago()" style="background:rgba(255,255,255,.18); border:0; color:#fff; width:30px; height:30px; border-radius:9px; cursor:pointer; font-size:17px; line-height:1;">&times;</button>
+        </div>
+        <div style="padding:18px;">${contenido}</div>
+    </div>`;
+    document.body.appendChild(ov);
+    if(!document.getElementById('finPopKf')) {
+        const st = document.createElement('style'); st.id = 'finPopKf';
+        st.textContent = '@keyframes finPop{from{transform:translateY(-12px) scale(.98);opacity:0}to{transform:none;opacity:1}}';
+        document.head.appendChild(st);
+    }
+}
+function cerrarModalPago() { const m = document.getElementById('modalPago'); if(m) m.remove(); }
+function abrirModalPago(finId) {
+    if(!(isAdminUser() || tienePermiso('financiamientos_cobrar'))) { toast('No tienes permiso para cobrar.', 'error'); return; }
+    const f = (_finCache.financiamientos || []).find(x => x.id === finId);
+    if(!f) { toast('Financiamiento no encontrado.', 'error'); return; }
+    const saldo = finSaldo(f);
+    const moraPend = finMoraPendiente(f);
+    const cuota = finValorCuotaCalc(f);
+    const sugerido = Math.min(cuota, saldo);
+    const chips = [];
+    if(sugerido > 0) chips.push({ lbl: 'Cuota ' + money(sugerido), val: sugerido });
+    if(saldo > 0 && Math.abs(saldo - sugerido) > 0.01) chips.push({ lbl: 'Saldo ' + money(saldo), val: saldo });
+    const metodos = [['efectivo', 'Efectivo'], ['transferencia', 'Transferencia'], ['tarjeta', 'Tarjeta']];
+    const cont = `
+        <div style="display:flex; gap:10px; margin-bottom:14px;">
+            <div style="flex:1; background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:10px 12px;">
+                <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.3px;">Saldo pendiente</div>
+                <div style="font-size:18px; font-weight:800; color:#0f172a;">${money(saldo)}</div>
+            </div>
+            ${moraPend > 0 ? `<div style="flex:1; background:#fef2f2; border:1px solid #fecaca; border-radius:12px; padding:10px 12px;">
+                <div style="font-size:11px; color:#b91c1c; text-transform:uppercase; letter-spacing:.3px;">Mora pendiente</div>
+                <div style="font-size:18px; font-weight:800; color:#b91c1c;">${money(moraPend)}</div>
+            </div>` : ''}
+        </div>
+        ${chips.length ? `<div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+            ${chips.map(c => `<button type="button" onclick="_finSetAbono('${finId}', ${c.val})" style="${_finChipCss(false)}">${c.lbl}</button>`).join('')}
+        </div>` : ''}
+        <label style="display:block; font-size:12.5px; font-weight:700; color:#334155; margin-bottom:5px;">Monto del abono (RD$)</label>
+        <input id="finAbonoMonto" type="number" step="0.01" min="0" value="${sugerido > 0 ? sugerido : ''}" placeholder="0.00" oninput="_finAbonoPreview('${finId}')" style="width:100%; padding:11px 12px; border:1px solid #cbd5e1; border-radius:10px; font-size:16px; font-weight:700; box-sizing:border-box;">
+        ${moraPend > 0 ? `<label style="display:block; font-size:12.5px; font-weight:700; color:#334155; margin:12px 0 5px;">Cobrar mora (RD$)</label>
+        <input id="finAbonoMora" type="number" step="0.01" min="0" value="0" placeholder="0.00" oninput="_finAbonoPreview('${finId}')" style="width:100%; padding:11px 12px; border:1px solid #fecaca; border-radius:10px; font-size:15px; box-sizing:border-box;">` : `<input id="finAbonoMora" type="hidden" value="0">`}
+        <div style="font-size:12.5px; font-weight:700; color:#334155; margin:14px 0 6px;">Método de pago</div>
+        <input id="finAbonoMetodo" type="hidden" value="efectivo">
+        <div id="finMetodoChips" style="display:flex; flex-wrap:wrap; gap:8px;">
+            ${metodos.map(m => `<button type="button" data-m="${m[0]}" onclick="_finSetMetodo('${m[0]}')" style="${_finChipCss(m[0] === 'efectivo')}">${m[1]}</button>`).join('')}
+        </div>
+        <label style="display:block; font-size:12.5px; font-weight:700; color:#334155; margin:14px 0 5px;">Nota (opcional)</label>
+        <input id="finAbonoNota" type="text" placeholder="Referencia, observación…" style="width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:10px; font-size:13.5px; box-sizing:border-box;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin:16px 0 4px; padding:12px 14px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px;">
+            <div>
+                <div style="font-size:11px; color:#15803d; text-transform:uppercase; letter-spacing:.3px;">Total a cobrar</div>
+                <div id="finAbonoTotal" style="font-size:22px; font-weight:800; color:#15803d;">${money(sugerido)}</div>
+            </div>
+            <div style="text-align:right;">
+                <div style="font-size:11px; color:var(--text-muted);">Saldo tras el pago</div>
+                <div id="finAbonoResta" style="font-size:15px; font-weight:700; color:#0f172a;">${money(Math.max(0, saldo - sugerido))}</div>
+            </div>
+        </div>
+        <div style="display:flex; gap:10px; margin-top:14px;">
+            <button class="btn btn-light" onclick="cerrarModalPago()" style="flex:0 0 auto;">Cancelar</button>
+            <button class="btn btn-blue" onclick="registrarAbonoFin('${finId}')" style="flex:1; padding:12px; font-size:15px; font-weight:700;"><i class="ti ti-check"></i> Registrar pago</button>
+        </div>`;
+    _finModalPago('Registrar pago', cont);
+    setTimeout(() => { const el = document.getElementById('finAbonoMonto'); if(el) { el.focus(); el.select(); } }, 60);
+}
+function _finModalPagoExito(finId, pagoId) {
+    const f = (_finCache.financiamientos || []).find(x => x.id === finId) || {};
+    const p = (_finCache.pagos || []).find(x => x.id === pagoId) || {};
+    const total = Number(p.monto || 0) + Number(p.mora || 0);
+    const saldoRest = finSaldo(f);
+    const saldado = saldoRest <= 0.001;
+    const cont = `
+        <div style="text-align:center; padding:6px 4px 4px;">
+            <div style="width:64px; height:64px; border-radius:50%; background:#dcfce7; display:flex; align-items:center; justify-content:center; margin:0 auto 12px;">
+                <i class="ti ti-check" style="font-size:34px; color:#16a34a;"></i>
+            </div>
+            <div style="font-size:19px; font-weight:800; color:#0f172a;">Pago registrado</div>
+            <div style="font-size:26px; font-weight:800; color:#15803d; margin:6px 0;">${money(total)}</div>
+            <div style="font-size:13px; color:var(--text-muted);">Recibo #${escapeHtml(String(pagoId).slice(0, 8))} · Saldo restante <b style="color:#0f172a;">${money(saldoRest)}</b></div>
+            ${saldado ? `<div style="margin-top:10px; display:inline-block; background:#dcfce7; color:#15803d; font-weight:700; font-size:12.5px; padding:5px 12px; border-radius:999px;"><i class="ti ti-rosette-discount-check"></i> Financiamiento saldado</div>` : ''}
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:18px;">
+            <button class="btn btn-light" onclick="imprimirReciboFin('${pagoId}')" style="padding:11px; font-size:13.5px;"><i class="ti ti-printer"></i> Imprimir ticket</button>
+            <button class="btn btn-light" onclick="enviarReciboWhatsApp('${pagoId}')" style="padding:11px; font-size:13.5px; color:#15803d; border-color:#86efac;"><i class="ti ti-brand-whatsapp"></i> WhatsApp</button>
+        </div>
+        <button class="btn btn-blue" onclick="cerrarModalPago()" style="width:100%; margin-top:10px; padding:12px; font-size:15px; font-weight:700;">Listo</button>`;
+    _finModalPago(saldado ? '¡Financiamiento saldado!' : 'Pago registrado', cont);
+}
+// ---- Cobro rápido: buscar financiamiento y abrir el modal de pago (estilo "Add Payment") ----
+function abrirCobroRapido() {
+    if(!(isAdminUser() || tienePermiso('financiamientos_cobrar'))) { toast('No tienes permiso para cobrar.', 'error'); return; }
+    const cont = `
+        <input id="cobroRapidoBuscar" type="text" placeholder="Buscar por cliente, contrato o cédula…" oninput="_cobroRapidoFiltrar()" style="width:100%; padding:11px 12px; border:1px solid #cbd5e1; border-radius:10px; font-size:14px; box-sizing:border-box;">
+        <div id="cobroRapidoLista" style="margin-top:12px; max-height:340px; overflow-y:auto;"></div>`;
+    _finModalPago('Registrar pago', cont);
+    _cobroRapidoFiltrar();
+    setTimeout(() => { const el = document.getElementById('cobroRapidoBuscar'); if(el) el.focus(); }, 60);
+}
+function _cobroRapidoFiltrar() {
+    const cont = document.getElementById('cobroRapidoLista'); if(!cont) return;
+    const q = (document.getElementById('cobroRapidoBuscar')?.value || '').trim().toLowerCase();
+    let fins = (_finCache.financiamientos || []).filter(f => { const e = finEstado(f); return e !== 'saldado' && e !== 'cancelado'; });
+    if(q) fins = fins.filter(f => (`${f.cliente_nombre || ''} ${f.codigo || ''} ${f.cliente_cedula || ''} ${f.concepto || ''}`).toLowerCase().includes(q));
+    // Prioriza atrasados y por saldo mayor
+    fins.sort((a, b) => { const ea = finEstado(a) === 'atrasado' ? 0 : 1, eb = finEstado(b) === 'atrasado' ? 0 : 1; return ea - eb || finSaldo(b) - finSaldo(a); });
+    if(!fins.length) { cont.innerHTML = `<div style="color:var(--text-muted); font-size:13px; padding:14px 4px; text-align:center;">Sin financiamientos activos${q ? ' para «' + escapeHtml(q) + '»' : ''}.</div>`; return; }
+    cont.innerHTML = fins.slice(0, 40).map(f => {
+        const est = finEstado(f);
+        const atras = est === 'atrasado';
+        const mora = finMoraPendiente(f);
+        return `<div onclick="abrirModalPago('${f.id}')" style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding:11px 12px; border:1px solid ${atras ? '#fecaca' : '#e2e8f0'}; border-radius:11px; margin-bottom:8px; cursor:pointer; background:${atras ? '#fef2f2' : '#fff'};" onmouseover="this.style.background='${atras ? '#fee2e2' : '#f8fafc'}'" onmouseout="this.style.background='${atras ? '#fef2f2' : '#fff'}'">
+            <div style="min-width:0;">
+                <div style="font-weight:700; font-size:13.5px;">${escapeHtml(f.cliente_nombre || 'Cliente')} <span style="color:#94a3b8; font-weight:600;">#${escapeHtml(String(f.codigo || ''))}</span></div>
+                <div style="font-size:12px; color:var(--text-muted);">${escapeHtml(f.concepto || '')}${atras ? ` · <b style="color:#b91c1c;">Atrasado</b>` : ''}${mora > 0 ? ` · Mora ${money(mora)}` : ''}</div>
+            </div>
+            <div style="text-align:right; flex:none;">
+                <div style="font-size:14px; font-weight:800; color:#0f172a;">${money(finSaldo(f))}</div>
+                <div style="font-size:10.5px; color:var(--text-muted);">Saldo</div>
+            </div>
+        </div>`;
+    }).join('') + (fins.length > 40 ? `<div style="text-align:center; font-size:11.5px; color:var(--text-muted); padding:4px;">Mostrando 40 de ${fins.length}. Refina la búsqueda.</div>` : '');
+}
 // ---- Registrar abono ----
 async function registrarAbonoFin(finId) {
     if(!(isAdminUser() || tienePermiso('financiamientos_cobrar'))) { toast('No tienes permiso para cobrar.', 'error'); return; }
@@ -24536,10 +24646,10 @@ async function registrarAbonoFin(finId) {
             fAct.estado = 'saldado';
         }
         toast('✅ Abono registrado.');
-        // Ofrecer imprimir el recibo recién creado
+        // Actualizar la vista de detalle detrás del modal y mostrar el éxito dentro del mismo modal flotante (sin abrir otra ventana)
         const nuevo = finPagosDe(finId).slice(-1)[0];
         _pintarFinanciamientos();
-        if(nuevo) setTimeout(() => imprimirReciboFin(nuevo.id), 250);
+        if(nuevo) _finModalPagoExito(finId, nuevo.id); else cerrarModalPago();
     } catch(e) {
         console.error('registrarAbonoFin', e);
         toast('No se pudo registrar el abono.', 'error');
@@ -25016,9 +25126,11 @@ function _pintarCobros() {
         kpis.innerHTML = kpi('Vencen hoy', hoyC.length, '#b45309', 'ti-calendar-due') + kpi('Atrasadas', atrasadas.length, '#b91c1c', 'ti-alert-triangle') + kpi('Monto en atraso', money(totalAtraso), '#dc2626', 'ti-cash');
     }
     const filtros = { atrasados: '⚠️ Atrasados', hoy: '📅 Vencen hoy', semana: '7 días', mes: '30 días' };
+    const nRecoCobros = finRecordatoriosHoy().filter(x => !x.enviado).length;
     let html = `<div class="card" style="margin-bottom:14px;">
-        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
+        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; align-items:center;">
             ${Object.keys(filtros).map(k => `<button class="btn btn-light" onclick="_cobrosFiltro='${k}'; _pintarCobros()" style="font-size:12px; ${_cobrosFiltro === k ? 'background:#dcfce7; color:#15803d; font-weight:700;' : ''}">${filtros[k]}</button>`).join('')}
+            <button class="btn btn-light" onclick="abrirRecordatoriosHoy()" style="font-size:12px; color:#0891b2; border-color:#7dd3fc; margin-left:auto;"><i class="ti ti-brand-whatsapp"></i> Recordatorios de hoy${nRecoCobros > 0 ? ` (${nRecoCobros})` : ''}</button>
         </div>
         <div id="cobrosLista"></div>
     </div>`;
@@ -25120,7 +25232,10 @@ function _pintarMDMTab() {
     let html = `<div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
             <div style="display:flex; gap:6px; flex-wrap:wrap;">${Object.keys(filtros).map(k => `<button class="btn btn-light" onclick="_mdmFiltro='${k}'; _pintarMDMTab()" style="font-size:12px; ${_mdmFiltro === k ? 'background:#e2e8f0; color:#0f172a; font-weight:700;' : ''}">${filtros[k]}</button>`).join('')}</div>
-            <button class="btn btn-light" onclick="renderFinanciamientos()" style="font-size:12px;"><i class="ti ti-refresh"></i> Sincronizar</button>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                ${puedeMDM && finListosParaBloqueo().length ? `<button class="btn" onclick="abrirListosBloqueo()" style="font-size:12px; background:#b91c1c; color:#fff;"><i class="ti ti-lock"></i> Listos para bloquear (${finListosParaBloqueo().length})</button>` : ''}
+                <button class="btn btn-light" onclick="renderFinanciamientos()" style="font-size:12px;"><i class="ti ti-refresh"></i> Sincronizar</button>
+            </div>
         </div>`;
     if(!lista.length) { html += `<div style="color:var(--text-muted); font-size:13px;">No hay equipos en esta vista.</div></div>`; cont.innerHTML = html; return; }
     html += `<div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Equipo</th><th>IMEI</th><th>Estado</th><th>Últ. acción</th><th>Acciones</th></tr></thead><tbody>`;
@@ -25197,14 +25312,14 @@ function _pintarDashboardFin() {
     // Alertas
     const solPend = (_finCache.solicitudes || []).filter(s => s.estado === 'pendiente').length;
     const cli30 = new Set(fins.filter(f => _finBucketDias(f) > 30).map(f => f.fin_cliente_id || f.id)).size;
-    const listosBloq = activos.filter(f => finEstado(f) === 'atrasado' && f.mdm_enrolado && f.mdm_estado !== 'bloqueado').length;
+    const listosBloq = finListosParaBloqueo().length;
     const sinContrato = activos.filter(f => !f.contrato_en).length;
-    const alerta = (icon, txt, n, color, tab) => n > 0 ? `<div onclick="finCambiarTab('${tab}')" style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border:1px solid #fde68a; background:#fffbeb; border-radius:9px; margin-bottom:6px; cursor:pointer; font-size:13px;"><span><i class="ti ${icon}" style="color:${color};"></i> ${txt}</span><b style="color:${color};">${n} ›</b></div>` : '';
+    const alerta = (icon, txt, n, color, accion) => n > 0 ? `<div onclick="${accion}" style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border:1px solid #fde68a; background:#fffbeb; border-radius:9px; margin-bottom:6px; cursor:pointer; font-size:13px;"><span><i class="ti ${icon}" style="color:${color};"></i> ${txt}</span><b style="color:${color};">${n} ›</b></div>` : '';
     const alertasHtml = [
-        alerta('ti-file-text', 'Solicitudes por aprobar', solPend, '#b45309', 'solicitudes'),
-        alerta('ti-user-x', 'Clientes con +30 días de mora', cli30, '#b91c1c', 'cobros'),
-        alerta('ti-lock', 'Equipos listos para bloquear', listosBloq, '#b91c1c', 'financiamientos'),
-        alerta('ti-file-off', 'Financiamientos sin contrato firmado', sinContrato, '#7c3aed', 'financiamientos')
+        alerta('ti-file-text', 'Solicitudes por aprobar', solPend, '#b45309', "finCambiarTab('solicitudes')"),
+        alerta('ti-user-x', 'Clientes con +30 días de mora', cli30, '#b91c1c', "finCambiarTab('cobros')"),
+        alerta('ti-lock', 'Equipos listos para bloquear', listosBloq, '#b91c1c', "abrirListosBloqueo()"),
+        alerta('ti-file-off', 'Financiamientos sin contrato firmado', sinContrato, '#7c3aed', "finCambiarTab('financiamientos')")
     ].join('') || `<div style="color:var(--text-muted); font-size:13px;">Sin alertas 🎉</div>`;
 
     // Clientes / financiamientos recientes
@@ -25221,7 +25336,25 @@ function _pintarDashboardFin() {
         </div>`;
     };
 
+    const puedeCobrarDash = isAdminUser() || tienePermiso('financiamientos_cobrar');
+    const nVenc = gVenc.n + gHoy.n;
+    const nReco = finRecordatoriosHoy().filter(x => !x.enviado).length;
     cont.innerHTML = `
+        ${puedeCobrarDash ? `<div class="card" style="margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; background:linear-gradient(180deg,#f0fdf4 0%,#ffffff 70%); border:1px solid #bbf7d0;">
+            <div onclick="finCambiarTab('cobros')" style="cursor:pointer; display:flex; align-items:center; gap:12px;">
+                <div style="width:46px; height:46px; border-radius:13px; background:${nVenc > 0 ? '#fee2e2' : '#dcfce7'}; display:flex; align-items:center; justify-content:center; flex:none;">
+                    <i class="ti ${nVenc > 0 ? 'ti-alarm' : 'ti-checks'}" style="font-size:24px; color:${nVenc > 0 ? '#b91c1c' : '#16a34a'};"></i>
+                </div>
+                <div>
+                    <div style="font-size:22px; font-weight:800; color:${nVenc > 0 ? '#b91c1c' : '#15803d'}; line-height:1;">${nVenc}</div>
+                    <div style="font-size:12px; color:var(--text-muted);">cuota${nVenc === 1 ? '' : 's'} vencida${nVenc === 1 ? '' : 's'} / vence${nVenc === 1 ? '' : 'n'} hoy</div>
+                </div>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button class="btn btn-light" onclick="abrirRecordatoriosHoy()" style="padding:13px 16px; font-size:14px; font-weight:700; color:#0891b2; border-color:#7dd3fc; position:relative;"><i class="ti ti-brand-whatsapp"></i> Recordatorios${nReco > 0 ? ` <span style="background:#0891b2; color:#fff; font-size:11px; padding:1px 7px; border-radius:999px; margin-left:2px;">${nReco}</span>` : ''}</button>
+                <button class="btn btn-blue" onclick="abrirCobroRapido()" style="padding:13px 24px; font-size:15px; font-weight:700;"><i class="ti ti-cash-register"></i> Registrar pago</button>
+            </div>
+        </div>` : ''}
         <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px; margin-bottom:14px;">
             <div class="card">
                 <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-chart-donut" style="color:#0891b2;"></i> Resumen de cartera</h3>
@@ -26004,6 +26137,210 @@ function whatsappRecordatorioFin(finId) {
     if(moraP > 0) msg += `Mora acumulada: ${money(moraP)}. `;
     msg += `Saldo pendiente: ${money(saldo)}. ¡Gracias por su pago!`;
     window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+// ============================================================
+//   RECORDATORIOS AUTOMÁTICOS (lista "Recordatorios de hoy")
+//   El sistema decide solo a quién recordarle; se envía por WhatsApp con un toque.
+// ============================================================
+function _finDiasPrevios() { const d = Number((_finCache.config || {}).recordatorio_dias_previos); return d > 0 ? d : 2; }
+function _finRecordatorioYaEnviado(finId, tipo) {
+    return (_finCache.recordatorios || []).some(r => r.financiamiento_id === finId && r.tipo === tipo);
+}
+const _FIN_RECO_INFO = {
+    previo: { t: 'Por vencer', c: '#0891b2', bg: '#e0f2fe', ic: 'ti-calendar' },
+    vence:  { t: 'Vence hoy',  c: '#b45309', bg: '#fef3c7', ic: 'ti-calendar-due' },
+    atraso: { t: 'Atrasado',   c: '#b91c1c', bg: '#fee2e2', ic: 'ti-alert-triangle' }
+};
+// Devuelve UN recordatorio por financiamiento activo con teléfono (el más urgente para hoy)
+function finRecordatoriosHoy() {
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const dp = _finDiasPrevios();
+    const res = [];
+    (_finCache.financiamientos || []).forEach(f => {
+        const est = finEstado(f);
+        if(est === 'saldado' || est === 'cancelado') return;
+        if(!(f.cliente_telefono || '').replace(/\D/g, '')) return; // sin teléfono no hay a quién recordar
+        const crono = finCronograma(f);
+        const vencidas = crono.filter(c => !c.cubierta && c.vence < hoy);
+        let tipo = null, cuota = null, dias = 0;
+        if(vencidas.length) { cuota = vencidas[0]; dias = Math.round((hoy - cuota.vence) / 86400000); tipo = 'atraso'; }
+        else {
+            const prox = crono.find(c => !c.cubierta);
+            if(prox) {
+                const d = Math.round((prox.vence - hoy) / 86400000);
+                if(d === 0) { tipo = 'vence'; cuota = prox; dias = 0; }
+                else if(d > 0 && d <= dp) { tipo = 'previo'; cuota = prox; dias = d; }
+            }
+        }
+        if(tipo) res.push({ f, cuota, tipo, dias, enviado: _finRecordatorioYaEnviado(f.id, tipo) });
+    });
+    const rank = { atraso: 0, vence: 1, previo: 2 };
+    res.sort((a, b) => rank[a.tipo] - rank[b.tipo] || b.dias - a.dias);
+    return res;
+}
+function _finRecordatorioMsg(rec) {
+    const f = rec.f, cuota = rec.cuota;
+    const nombre = (f.cliente_nombre || '').trim().split(/\s+/)[0] || 'cliente';
+    const saldo = finSaldo(f);
+    const moraP = finMoraPendiente(f);
+    let m = `Hola ${nombre}, le saluda ${_finTienda()}. `;
+    if(rec.tipo === 'previo') m += `Le recordamos que su cuota de ${money(cuota.valor)} vence el ${_finFmtFecha(cuota.vence)}. Puede pasar a pagar o transferir. `;
+    else if(rec.tipo === 'vence') m += `Le recordamos que HOY (${_finFmtFecha(cuota.vence)}) vence su cuota de ${money(cuota.valor)}. Puede pasar a pagar o transferir. `;
+    else { m += `Su cuota de ${money(cuota.valor)} venció el ${_finFmtFecha(cuota.vence)} (${rec.dias} día${rec.dias === 1 ? '' : 's'} de atraso). `; if(moraP > 0) m += `Mora acumulada: ${money(moraP)}. `; m += `Le pedimos ponerse al día para evitar el bloqueo del equipo. `; }
+    m += `Saldo pendiente: ${money(saldo)}. ¡Gracias!`;
+    return m;
+}
+function _finWaNum(tel) { const t = (tel || '').replace(/\D/g, ''); return t.length === 10 ? '1' + t : t; }
+function abrirRecordatoriosHoy() {
+    if(!(isAdminUser() || tienePermiso('financiamientos_cobrar') || tienePermiso('financiamientos_ver'))) { toast('No tienes permiso.', 'error'); return; }
+    const cont = `<div style="font-size:12.5px; color:var(--text-muted); margin-bottom:12px;">El sistema arma solo a quién recordarle <b>hoy</b>. Toca <b>WhatsApp</b> para enviar el mensaje (ya viene escrito) y queda marcado como enviado para no repetir.</div><div id="finRecoLista"></div>`;
+    _finModalPago('Recordatorios de hoy', cont);
+    _finRecordatoriosRender();
+}
+function _finRecordatoriosRender() {
+    const cont = document.getElementById('finRecoLista'); if(!cont) return;
+    const lista = finRecordatoriosHoy();
+    if(!lista.length) { cont.innerHTML = `<div style="text-align:center; padding:22px 4px; color:var(--text-muted);"><i class="ti ti-checks" style="font-size:32px; color:#16a34a;"></i><div style="margin-top:6px;">No hay recordatorios para hoy. 🎉</div></div>`; return; }
+    const pend = lista.filter(x => !x.enviado).length;
+    cont.innerHTML = `<div style="display:flex; gap:8px; margin-bottom:10px;">
+        <div style="flex:1; background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:8px 10px; text-align:center;"><div style="font-size:18px; font-weight:800; color:#1d4ed8;">${pend}</div><div style="font-size:11px; color:var(--text-muted);">por enviar</div></div>
+        <div style="flex:1; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:8px 10px; text-align:center;"><div style="font-size:18px; font-weight:800; color:#15803d;">${lista.length - pend}</div><div style="font-size:11px; color:var(--text-muted);">enviados hoy</div></div>
+    </div>
+    <div style="max-height:360px; overflow-y:auto;">` + lista.map(x => {
+        const i = _FIN_RECO_INFO[x.tipo];
+        const detalle = x.tipo === 'atraso' ? `${x.dias} día${x.dias === 1 ? '' : 's'} de atraso` : (x.tipo === 'vence' ? `Vence hoy` : `Vence en ${x.dias} día${x.dias === 1 ? '' : 's'}`);
+        return `<div style="border:1px solid ${x.enviado ? '#e2e8f0' : i.bg}; background:${x.enviado ? '#f8fafc' : '#fff'}; border-radius:11px; padding:10px 12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; gap:10px;">
+            <div style="min-width:0;">
+                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                    <b style="font-size:13.5px;">${escapeHtml(x.f.cliente_nombre || 'Cliente')}</b>
+                    <span style="background:${i.bg}; color:${i.c}; font-size:10px; font-weight:700; padding:2px 8px; border-radius:999px;"><i class="ti ${i.ic}"></i> ${i.t}</span>
+                </div>
+                <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">${escapeHtml(x.f.concepto || '')} · Cuota ${x.cuota.num} · ${money(x.cuota.valor)} · ${detalle}</div>
+            </div>
+            <div style="flex:none;">
+                ${x.enviado
+                    ? `<div style="text-align:right;"><span style="color:#15803d; font-weight:700; font-size:12px;"><i class="ti ti-check"></i> Enviado</span><br><a onclick="_finEnviarRecordatorio('${x.f.id}','${x.tipo}')" style="font-size:11px; color:#0891b2; cursor:pointer;">Reenviar</a></div>`
+                    : `<button class="btn" onclick="_finEnviarRecordatorio('${x.f.id}','${x.tipo}')" style="background:#16a34a; color:#fff; font-size:12.5px; padding:8px 14px;"><i class="ti ti-brand-whatsapp"></i> WhatsApp</button>`}
+            </div>
+        </div>`;
+    }).join('') + `</div>`;
+}
+async function _finEnviarRecordatorio(finId, tipo) {
+    const lista = finRecordatoriosHoy();
+    const rec = lista.find(x => x.f.id === finId && x.tipo === tipo);
+    if(!rec) { toast('Ese recordatorio ya no aplica.', 'error'); _finRecordatoriosRender(); return; }
+    // Abrir WhatsApp con el mensaje listo
+    window.open(`https://wa.me/${_finWaNum(rec.f.cliente_telefono)}?text=${encodeURIComponent(_finRecordatorioMsg(rec))}`, '_blank');
+    // Registrar el envío (si no estaba ya marcado hoy)
+    if(!_finRecordatorioYaEnviado(finId, tipo)) {
+        try {
+            const fila = { financiamiento_id: finId, cuota_num: rec.cuota.num, tipo, canal: 'whatsapp', enviado_por: sessionUser?.nombre || sessionUser?.usuario || 'Sistema' };
+            const { data, error } = await supabaseClient.from('fin_recordatorios').insert([fila]).select().maybeSingle();
+            if(error) throw error;
+            _finCache.recordatorios.push(data || { ...fila, fecha: new Date().toISOString().slice(0, 10) });
+        } catch(e) { console.error('_finEnviarRecordatorio', e); }
+    }
+    _finRecordatoriosRender();
+}
+
+// ============================================================
+//   AUTO-MARCADO PARA BLOQUEO (cola "Listos para bloquear")
+//   El sistema marca solo los que pasan los días de gracia; se bloquea con un toque.
+// ============================================================
+function _finDiasGracia() { const d = Number((_finCache.config || {}).bloqueo_dias_gracia); return d >= 0 ? d : 3; }
+// Máximo de días de atraso de un financiamiento (0 si no hay cuota vencida)
+function _finMaxAtraso(f) {
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    let max = 0;
+    finCronograma(f).forEach(c => { if(!c.cubierta && c.vence < hoy) { const d = Math.round((hoy - c.vence) / 86400000); if(d > max) max = d; } });
+    return max;
+}
+// Financiamientos que YA pasaron la gracia y no están bloqueados/liberados
+function finListosParaBloqueo() {
+    const gr = _finDiasGracia();
+    const res = [];
+    (_finCache.financiamientos || []).forEach(f => {
+        const est = finEstado(f);
+        if(est !== 'atrasado') return;
+        const mdm = f.mdm_estado || 'ninguno';
+        if(mdm === 'bloqueado' || mdm === 'liberado' || mdm === 'borrado') return;
+        const dias = _finMaxAtraso(f);
+        if(dias < gr) return;
+        const info = _finMoraInfo(f);
+        res.push({ f, dias, cuotas: info.cuotas, pend: info.pend, enrolado: !!f.mdm_enrolado });
+    });
+    res.sort((a, b) => b.dias - a.dias);
+    return res;
+}
+async function _finGuardarConfigBloqueo(campo, valor) {
+    try {
+        const upd = {}; upd[campo] = valor;
+        await supabaseClient.from('fin_config').update(upd).eq('id', 1);
+        _finCache.config = { ..._finCache.config, ...upd };
+    } catch(e) { console.error('_finGuardarConfigBloqueo', e); }
+}
+function abrirListosBloqueo() {
+    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso para bloquear equipos.', 'error'); return; }
+    const gr = _finDiasGracia();
+    const cont = `
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:12px; font-size:12.5px; color:var(--text-muted);">
+            <span>Marcar para bloqueo tras</span>
+            <input id="finGraciaInput" type="number" min="0" max="60" value="${gr}" onchange="_finGuardarConfigBloqueo('bloqueo_dias_gracia', Math.max(0, parseInt(this.value)||0)); _finListosBloqueoRender();" style="width:64px; padding:6px 8px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
+            <span>día(s) de atraso.</span>
+        </div>
+        <div id="finBloqLista"></div>`;
+    _finModalPago('Listos para bloquear', cont);
+    _finListosBloqueoRender();
+}
+function _finListosBloqueoRender() {
+    const cont = document.getElementById('finBloqLista'); if(!cont) return;
+    const lista = finListosParaBloqueo();
+    if(!lista.length) { cont.innerHTML = `<div style="text-align:center; padding:22px 4px; color:var(--text-muted);"><i class="ti ti-shield-check" style="font-size:32px; color:#16a34a;"></i><div style="margin-top:6px;">Ningún equipo pasó los días de gracia. 👍</div></div>`; return; }
+    const enrolados = lista.filter(x => x.enrolado).length;
+    cont.innerHTML = `<div style="font-size:12.5px; margin-bottom:10px;"><b>${lista.length}</b> equipo(s) pasaron la gracia${enrolados ? ` · <b>${enrolados}</b> enrolado(s) se pueden bloquear` : ''}.</div>
+    ${enrolados > 1 ? `<button class="btn" onclick="_finBloquearTodosEnrolados()" style="background:#b91c1c; color:#fff; font-size:12.5px; width:100%; margin-bottom:10px; padding:9px;"><i class="ti ti-lock"></i> Bloquear todos los enrolados (${enrolados})</button>` : ''}
+    <div style="max-height:360px; overflow-y:auto;">` + lista.map(x => {
+        const f = x.f;
+        return `<div style="border:1px solid #fecaca; background:#fef2f2; border-radius:11px; padding:10px 12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; gap:10px;">
+            <div style="min-width:0;">
+                <div style="font-weight:700; font-size:13.5px;">${escapeHtml(f.cliente_nombre || 'Cliente')} <span style="color:#94a3b8; font-weight:600;">#${escapeHtml(String(f.codigo || ''))}</span></div>
+                <div style="font-size:12px; color:#b91c1c; margin-top:2px;"><b>${x.dias} días de atraso</b> · ${x.cuotas} cuota(s) venc. · ${money(x.pend)}</div>
+                <div style="font-size:11px; color:var(--text-muted);">${x.enrolado ? '<i class="ti ti-device-mobile-check" style="color:#16a34a;"></i> Enrolado en MDM' : '<i class="ti ti-device-mobile-off" style="color:#b45309;"></i> No enrolado (no se puede bloquear a distancia)'}</div>
+            </div>
+            <div style="flex:none; display:flex; flex-direction:column; gap:5px;">
+                ${f.cliente_telefono ? `<button class="btn btn-light" onclick="_finAvisarAntesBloqueo('${f.id}')" style="font-size:11.5px; padding:6px 10px; color:#16a34a;"><i class="ti ti-brand-whatsapp"></i> Avisar</button>` : ''}
+                ${x.enrolado ? `<button class="btn" onclick="_finBloquearDesdeCola('${f.id}')" style="background:#b91c1c; color:#fff; font-size:11.5px; padding:6px 10px;"><i class="ti ti-lock"></i> Bloquear</button>` : `<button class="btn btn-light" onclick="verFinanciamiento('${f.id}'); cerrarModalPago();" style="font-size:11.5px; padding:6px 10px;">Ver</button>`}
+            </div>
+        </div>`;
+    }).join('') + `</div>`;
+}
+// Aviso de WhatsApp de "última oportunidad" antes de bloquear
+function _finAvisarAntesBloqueo(finId) {
+    const f = (_finCache.financiamientos || []).find(x => x.id === finId); if(!f) return;
+    const rec = { f, cuota: (finCronograma(f).find(c => !c.cubierta) || { valor: 0, num: 0, vence: new Date() }), tipo: 'atraso', dias: _finMaxAtraso(f) };
+    window.open(`https://wa.me/${_finWaNum(f.cliente_telefono)}?text=${encodeURIComponent(_finRecordatorioMsg(rec))}`, '_blank');
+}
+async function _finBloquearDesdeCola(finId) {
+    await mdmAccionReal(finId, 'bloquear');
+    // mdmAccionReal actualiza _finCache; refrescar la cola si el modal sigue abierto
+    if(document.getElementById('finBloqLista')) _finListosBloqueoRender();
+}
+async function _finBloquearTodosEnrolados() {
+    const lista = finListosParaBloqueo().filter(x => x.enrolado);
+    if(!lista.length) return;
+    if(!confirm(`¿Bloquear ${lista.length} equipo(s) enrolado(s) que pasaron los días de gracia?\n\nSe enviará la orden a Hexnode uno por uno. Los que tengan internet se bloquean en segundos; los demás quedan en espera.`)) return;
+    let ok = 0;
+    for(const x of lista) {
+        try {
+            const { data, error } = await supabaseClient.functions.invoke('mdm-accion', { body: { financiamiento_id: x.f.id, accion: 'bloquear' } });
+            if(error || (data && data.error)) continue;
+            await _mdmAplicarEstadoAuto(x.f.id, 'bloqueado', true);
+            ok++;
+        } catch(e) { console.error('bloqueo masivo', e); }
+    }
+    toast(`✅ ${ok} de ${lista.length} orden(es) de bloqueo enviada(s) a Hexnode.`);
+    if(document.getElementById('finBloqLista')) _finListosBloqueoRender();
 }
 
 // ---- Control MDM ----
