@@ -23516,7 +23516,7 @@ document.getElementById('modalNuevoPerfil')?.addEventListener('click', e => {
 //   Carga sus propios datos (NO toca loadAll) para evitar
 //   conflictos con el desarrollo del módulo de taller.
 // ============================================================
-let _finCache = { financiamientos: [], pagos: [], solicitudes: [], clientes: [], referencias: [], config: {}, documentos: [], planes: [] };
+let _finCache = { financiamientos: [], pagos: [], solicitudes: [], clientes: [], referencias: [], config: {}, documentos: [], planes: [], recordatorios: [] };
 let _finTab = 'dashboard';       // dashboard | consulta | solicitudes | financiamientos | clientes | cobros | reportes | config
 let _finDashChart = null;        // instancia del donut de cartera
 let _finFiltro = 'activos';      // activos | atrasados | saldados | todos
@@ -23727,6 +23727,12 @@ async function cargarFinanciamientos() {
         console.error('cargarFinanciamientos', e);
         toast('Error cargando financiamientos.', 'error');
     }
+    // Recordatorios enviados HOY (para no repetir). No bloquea la carga si falla.
+    try {
+        const hoyISO = new Date().toISOString().slice(0, 10);
+        const rrec = await supabaseClient.from('fin_recordatorios').select('*').eq('fecha', hoyISO);
+        _finCache.recordatorios = (rrec && rrec.data) || [];
+    } catch(e) { _finCache.recordatorios = []; }
 }
 function finClienteDe(id) { return (_finCache.clientes || []).find(c => c.id === id) || null; }
 function finReferenciasDe(clienteId) { return (_finCache.referencias || []).filter(r => r.cliente_id === clienteId); }
@@ -25120,9 +25126,11 @@ function _pintarCobros() {
         kpis.innerHTML = kpi('Vencen hoy', hoyC.length, '#b45309', 'ti-calendar-due') + kpi('Atrasadas', atrasadas.length, '#b91c1c', 'ti-alert-triangle') + kpi('Monto en atraso', money(totalAtraso), '#dc2626', 'ti-cash');
     }
     const filtros = { atrasados: '⚠️ Atrasados', hoy: '📅 Vencen hoy', semana: '7 días', mes: '30 días' };
+    const nRecoCobros = finRecordatoriosHoy().filter(x => !x.enviado).length;
     let html = `<div class="card" style="margin-bottom:14px;">
-        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
+        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; align-items:center;">
             ${Object.keys(filtros).map(k => `<button class="btn btn-light" onclick="_cobrosFiltro='${k}'; _pintarCobros()" style="font-size:12px; ${_cobrosFiltro === k ? 'background:#dcfce7; color:#15803d; font-weight:700;' : ''}">${filtros[k]}</button>`).join('')}
+            <button class="btn btn-light" onclick="abrirRecordatoriosHoy()" style="font-size:12px; color:#0891b2; border-color:#7dd3fc; margin-left:auto;"><i class="ti ti-brand-whatsapp"></i> Recordatorios de hoy${nRecoCobros > 0 ? ` (${nRecoCobros})` : ''}</button>
         </div>
         <div id="cobrosLista"></div>
     </div>`;
@@ -25327,6 +25335,7 @@ function _pintarDashboardFin() {
 
     const puedeCobrarDash = isAdminUser() || tienePermiso('financiamientos_cobrar');
     const nVenc = gVenc.n + gHoy.n;
+    const nReco = finRecordatoriosHoy().filter(x => !x.enviado).length;
     cont.innerHTML = `
         ${puedeCobrarDash ? `<div class="card" style="margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; background:linear-gradient(180deg,#f0fdf4 0%,#ffffff 70%); border:1px solid #bbf7d0;">
             <div onclick="finCambiarTab('cobros')" style="cursor:pointer; display:flex; align-items:center; gap:12px;">
@@ -25338,7 +25347,10 @@ function _pintarDashboardFin() {
                     <div style="font-size:12px; color:var(--text-muted);">cuota${nVenc === 1 ? '' : 's'} vencida${nVenc === 1 ? '' : 's'} / vence${nVenc === 1 ? '' : 'n'} hoy</div>
                 </div>
             </div>
-            <button class="btn btn-blue" onclick="abrirCobroRapido()" style="padding:13px 24px; font-size:15px; font-weight:700;"><i class="ti ti-cash-register"></i> Registrar pago</button>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button class="btn btn-light" onclick="abrirRecordatoriosHoy()" style="padding:13px 16px; font-size:14px; font-weight:700; color:#0891b2; border-color:#7dd3fc; position:relative;"><i class="ti ti-brand-whatsapp"></i> Recordatorios${nReco > 0 ? ` <span style="background:#0891b2; color:#fff; font-size:11px; padding:1px 7px; border-radius:999px; margin-left:2px;">${nReco}</span>` : ''}</button>
+                <button class="btn btn-blue" onclick="abrirCobroRapido()" style="padding:13px 24px; font-size:15px; font-weight:700;"><i class="ti ti-cash-register"></i> Registrar pago</button>
+            </div>
         </div>` : ''}
         <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px; margin-bottom:14px;">
             <div class="card">
@@ -26122,6 +26134,111 @@ function whatsappRecordatorioFin(finId) {
     if(moraP > 0) msg += `Mora acumulada: ${money(moraP)}. `;
     msg += `Saldo pendiente: ${money(saldo)}. ¡Gracias por su pago!`;
     window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+// ============================================================
+//   RECORDATORIOS AUTOMÁTICOS (lista "Recordatorios de hoy")
+//   El sistema decide solo a quién recordarle; se envía por WhatsApp con un toque.
+// ============================================================
+function _finDiasPrevios() { const d = Number((_finCache.config || {}).recordatorio_dias_previos); return d > 0 ? d : 2; }
+function _finRecordatorioYaEnviado(finId, tipo) {
+    return (_finCache.recordatorios || []).some(r => r.financiamiento_id === finId && r.tipo === tipo);
+}
+const _FIN_RECO_INFO = {
+    previo: { t: 'Por vencer', c: '#0891b2', bg: '#e0f2fe', ic: 'ti-calendar' },
+    vence:  { t: 'Vence hoy',  c: '#b45309', bg: '#fef3c7', ic: 'ti-calendar-due' },
+    atraso: { t: 'Atrasado',   c: '#b91c1c', bg: '#fee2e2', ic: 'ti-alert-triangle' }
+};
+// Devuelve UN recordatorio por financiamiento activo con teléfono (el más urgente para hoy)
+function finRecordatoriosHoy() {
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const dp = _finDiasPrevios();
+    const res = [];
+    (_finCache.financiamientos || []).forEach(f => {
+        const est = finEstado(f);
+        if(est === 'saldado' || est === 'cancelado') return;
+        if(!(f.cliente_telefono || '').replace(/\D/g, '')) return; // sin teléfono no hay a quién recordar
+        const crono = finCronograma(f);
+        const vencidas = crono.filter(c => !c.cubierta && c.vence < hoy);
+        let tipo = null, cuota = null, dias = 0;
+        if(vencidas.length) { cuota = vencidas[0]; dias = Math.round((hoy - cuota.vence) / 86400000); tipo = 'atraso'; }
+        else {
+            const prox = crono.find(c => !c.cubierta);
+            if(prox) {
+                const d = Math.round((prox.vence - hoy) / 86400000);
+                if(d === 0) { tipo = 'vence'; cuota = prox; dias = 0; }
+                else if(d > 0 && d <= dp) { tipo = 'previo'; cuota = prox; dias = d; }
+            }
+        }
+        if(tipo) res.push({ f, cuota, tipo, dias, enviado: _finRecordatorioYaEnviado(f.id, tipo) });
+    });
+    const rank = { atraso: 0, vence: 1, previo: 2 };
+    res.sort((a, b) => rank[a.tipo] - rank[b.tipo] || b.dias - a.dias);
+    return res;
+}
+function _finRecordatorioMsg(rec) {
+    const f = rec.f, cuota = rec.cuota;
+    const nombre = (f.cliente_nombre || '').trim().split(/\s+/)[0] || 'cliente';
+    const saldo = finSaldo(f);
+    const moraP = finMoraPendiente(f);
+    let m = `Hola ${nombre}, le saluda ${_finTienda()}. `;
+    if(rec.tipo === 'previo') m += `Le recordamos que su cuota de ${money(cuota.valor)} vence el ${_finFmtFecha(cuota.vence)}. Puede pasar a pagar o transferir. `;
+    else if(rec.tipo === 'vence') m += `Le recordamos que HOY (${_finFmtFecha(cuota.vence)}) vence su cuota de ${money(cuota.valor)}. Puede pasar a pagar o transferir. `;
+    else { m += `Su cuota de ${money(cuota.valor)} venció el ${_finFmtFecha(cuota.vence)} (${rec.dias} día${rec.dias === 1 ? '' : 's'} de atraso). `; if(moraP > 0) m += `Mora acumulada: ${money(moraP)}. `; m += `Le pedimos ponerse al día para evitar el bloqueo del equipo. `; }
+    m += `Saldo pendiente: ${money(saldo)}. ¡Gracias!`;
+    return m;
+}
+function _finWaNum(tel) { const t = (tel || '').replace(/\D/g, ''); return t.length === 10 ? '1' + t : t; }
+function abrirRecordatoriosHoy() {
+    if(!(isAdminUser() || tienePermiso('financiamientos_cobrar') || tienePermiso('financiamientos_ver'))) { toast('No tienes permiso.', 'error'); return; }
+    const cont = `<div style="font-size:12.5px; color:var(--text-muted); margin-bottom:12px;">El sistema arma solo a quién recordarle <b>hoy</b>. Toca <b>WhatsApp</b> para enviar el mensaje (ya viene escrito) y queda marcado como enviado para no repetir.</div><div id="finRecoLista"></div>`;
+    _finModalPago('Recordatorios de hoy', cont);
+    _finRecordatoriosRender();
+}
+function _finRecordatoriosRender() {
+    const cont = document.getElementById('finRecoLista'); if(!cont) return;
+    const lista = finRecordatoriosHoy();
+    if(!lista.length) { cont.innerHTML = `<div style="text-align:center; padding:22px 4px; color:var(--text-muted);"><i class="ti ti-checks" style="font-size:32px; color:#16a34a;"></i><div style="margin-top:6px;">No hay recordatorios para hoy. 🎉</div></div>`; return; }
+    const pend = lista.filter(x => !x.enviado).length;
+    cont.innerHTML = `<div style="display:flex; gap:8px; margin-bottom:10px;">
+        <div style="flex:1; background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:8px 10px; text-align:center;"><div style="font-size:18px; font-weight:800; color:#1d4ed8;">${pend}</div><div style="font-size:11px; color:var(--text-muted);">por enviar</div></div>
+        <div style="flex:1; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:8px 10px; text-align:center;"><div style="font-size:18px; font-weight:800; color:#15803d;">${lista.length - pend}</div><div style="font-size:11px; color:var(--text-muted);">enviados hoy</div></div>
+    </div>
+    <div style="max-height:360px; overflow-y:auto;">` + lista.map(x => {
+        const i = _FIN_RECO_INFO[x.tipo];
+        const detalle = x.tipo === 'atraso' ? `${x.dias} día${x.dias === 1 ? '' : 's'} de atraso` : (x.tipo === 'vence' ? `Vence hoy` : `Vence en ${x.dias} día${x.dias === 1 ? '' : 's'}`);
+        return `<div style="border:1px solid ${x.enviado ? '#e2e8f0' : i.bg}; background:${x.enviado ? '#f8fafc' : '#fff'}; border-radius:11px; padding:10px 12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; gap:10px;">
+            <div style="min-width:0;">
+                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                    <b style="font-size:13.5px;">${escapeHtml(x.f.cliente_nombre || 'Cliente')}</b>
+                    <span style="background:${i.bg}; color:${i.c}; font-size:10px; font-weight:700; padding:2px 8px; border-radius:999px;"><i class="ti ${i.ic}"></i> ${i.t}</span>
+                </div>
+                <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">${escapeHtml(x.f.concepto || '')} · Cuota ${x.cuota.num} · ${money(x.cuota.valor)} · ${detalle}</div>
+            </div>
+            <div style="flex:none;">
+                ${x.enviado
+                    ? `<div style="text-align:right;"><span style="color:#15803d; font-weight:700; font-size:12px;"><i class="ti ti-check"></i> Enviado</span><br><a onclick="_finEnviarRecordatorio('${x.f.id}','${x.tipo}')" style="font-size:11px; color:#0891b2; cursor:pointer;">Reenviar</a></div>`
+                    : `<button class="btn" onclick="_finEnviarRecordatorio('${x.f.id}','${x.tipo}')" style="background:#16a34a; color:#fff; font-size:12.5px; padding:8px 14px;"><i class="ti ti-brand-whatsapp"></i> WhatsApp</button>`}
+            </div>
+        </div>`;
+    }).join('') + `</div>`;
+}
+async function _finEnviarRecordatorio(finId, tipo) {
+    const lista = finRecordatoriosHoy();
+    const rec = lista.find(x => x.f.id === finId && x.tipo === tipo);
+    if(!rec) { toast('Ese recordatorio ya no aplica.', 'error'); _finRecordatoriosRender(); return; }
+    // Abrir WhatsApp con el mensaje listo
+    window.open(`https://wa.me/${_finWaNum(rec.f.cliente_telefono)}?text=${encodeURIComponent(_finRecordatorioMsg(rec))}`, '_blank');
+    // Registrar el envío (si no estaba ya marcado hoy)
+    if(!_finRecordatorioYaEnviado(finId, tipo)) {
+        try {
+            const fila = { financiamiento_id: finId, cuota_num: rec.cuota.num, tipo, canal: 'whatsapp', enviado_por: sessionUser?.nombre || sessionUser?.usuario || 'Sistema' };
+            const { data, error } = await supabaseClient.from('fin_recordatorios').insert([fila]).select().maybeSingle();
+            if(error) throw error;
+            _finCache.recordatorios.push(data || { ...fila, fecha: new Date().toISOString().slice(0, 10) });
+        } catch(e) { console.error('_finEnviarRecordatorio', e); }
+    }
+    _finRecordatoriosRender();
 }
 
 // ---- Control MDM ----
