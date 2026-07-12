@@ -23946,20 +23946,46 @@ function _pintarDetalleFin() {
         </div>`;
     }
 
-    // Registrar abono
+    // Registrar abono (pago) — versión moderna
     const moraPend = finMoraPendiente(f);
     if(puedeCobrar && est !== 'saldado' && est !== 'cancelado') {
-        html += `<div class="card" style="margin-bottom:14px;">
-            <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-cash" style="color:#16a34a;"></i> Registrar abono</h3>
-            ${moraPend > 0 ? `<div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:8px 12px; border-radius:8px; margin-bottom:10px; font-size:12.5px;">⚠️ Mora acumulada por atraso: <b>${money(moraPend)}</b> (${finMoraTxt(f)})</div>` : ''}
-            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
-                <div style="flex:1; min-width:120px;"><label>Abono a capital (RD$)</label><input type="number" id="finAbonoMonto" min="0" step="0.01" placeholder="0.00" value="${f.valor_cuota}"></div>
-                ${moraPend > 0 ? `<div style="flex:1; min-width:110px;"><label>Mora a cobrar (RD$)</label><input type="number" id="finAbonoMora" min="0" step="0.01" value="${moraPend}"></div>` : ''}
-                <div style="flex:1; min-width:120px;"><label>Método</label><select id="finAbonoMetodo"><option value="efectivo">Efectivo</option><option value="transferencia">Transferencia</option><option value="tarjeta">Tarjeta</option></select></div>
-                <div style="flex:2; min-width:150px;"><label>Nota (opcional)</label><input type="text" id="finAbonoNota" placeholder="Ref. / observación"></div>
-                <button class="btn btn-blue" onclick="registrarAbonoFin('${f.id}')" style="height:40px;"><i class="ti ti-plus"></i> Cobrar</button>
+        const prox = finProximaCuota(f);
+        const initMonto = Math.min(Number(f.valor_cuota) || 0, saldo);
+        const initTotal = Math.round((initMonto + moraPend) * 100) / 100;
+        const initResta = Math.max(0, Math.round((saldo - initMonto) * 100) / 100);
+        const chipMonto = (lbl, val) => `<button type="button" onclick="_finSetAbono('${f.id}', ${val})" style="border:1px solid #e2e8f0; background:#fff; color:#334155; border-radius:999px; padding:6px 13px; cursor:pointer; font-size:12.5px; font-weight:600;">${lbl}</button>`;
+        const chipMet = (m, lbl, on) => `<button type="button" data-m="${m}" onclick="_finSetMetodo('${m}')" style="${_finChipCss(on)}">${lbl}</button>`;
+        html += `<div class="card" style="margin-bottom:14px; border:1px solid #bbf7d0; background:linear-gradient(180deg,#f0fdf4 0%,#ffffff 55%);">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+                <h3 style="margin:0; font-size:16px;"><i class="ti ti-cash" style="color:#16a34a;"></i> Registrar pago</h3>
+                <div style="display:flex; gap:14px; font-size:12px; color:var(--text-muted); flex-wrap:wrap;">
+                    <span>Saldo <b style="color:#0f172a;">${money(saldo)}</b></span>
+                    ${moraPend > 0 ? `<span>Mora <b style="color:#b91c1c;">${money(moraPend)}</b></span>` : ''}
+                    ${prox ? `<span>Próx. ${_finFmtFecha(prox.vence)} <b style="color:#0f172a;">${money(prox.valor)}</b></span>` : ''}
+                </div>
             </div>
-            <small style="color:var(--text-muted);">Saldo de capital: <b>${money(saldo)}</b>${moraPend > 0 ? ' · Mora pendiente: <b>' + money(moraPend) + '</b>' : ''}</small>
+            <label style="font-size:11px;">Monto rápido</label>
+            <div style="display:flex; gap:6px; flex-wrap:wrap; margin:4px 0 12px;">
+                ${chipMonto('Cuota ' + money(f.valor_cuota), Number(f.valor_cuota) || 0)}
+                ${chipMonto('½ cuota', Math.round((Number(f.valor_cuota) || 0) / 2 * 100) / 100)}
+                ${chipMonto('Saldo total ' + money(saldo), saldo)}
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+                <div style="flex:1; min-width:150px;"><label>Abono a capital (RD$)</label><input type="number" id="finAbonoMonto" min="0" step="0.01" placeholder="0.00" value="${initMonto}" oninput="_finAbonoPreview('${f.id}')" style="font-size:16px; font-weight:700;"></div>
+                ${moraPend > 0 ? `<div style="flex:1; min-width:120px;"><label>Mora a cobrar (RD$)</label><input type="number" id="finAbonoMora" min="0" step="0.01" value="${moraPend}" oninput="_finAbonoPreview('${f.id}')"></div>` : ''}
+            </div>
+            <label style="font-size:11px; margin-top:10px; display:block;">Método de pago</label>
+            <input type="hidden" id="finAbonoMetodo" value="efectivo">
+            <div id="finMetodoChips" style="display:flex; gap:6px; flex-wrap:wrap; margin:4px 0 10px;">
+                ${chipMet('efectivo', '<i class="ti ti-cash"></i> Efectivo', true)}
+                ${chipMet('transferencia', '<i class="ti ti-building-bank"></i> Transferencia', false)}
+                ${chipMet('tarjeta', '<i class="ti ti-credit-card"></i> Tarjeta', false)}
+            </div>
+            <div class="form-row" style="margin-bottom:12px;"><label>Nota (opcional)</label><input type="text" id="finAbonoNota" placeholder="Referencia / observación"></div>
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; border-top:1px solid #e2e8f0; padding-top:12px;">
+                <div style="font-size:13px;">Total a recibir: <b id="finAbonoTotal" style="font-size:18px; color:#16a34a;">${money(initTotal)}</b> <span style="color:var(--text-muted);">· Queda pendiente:</span> <b id="finAbonoResta">${money(initResta)}</b></div>
+                <button class="btn btn-blue" onclick="registrarAbonoFin('${f.id}')" style="padding:11px 22px; font-size:14px;"><i class="ti ti-circle-check"></i> Registrar pago</button>
+            </div>
         </div>`;
     }
 
@@ -24466,6 +24492,20 @@ async function rechazarSolicitud(solId) {
     }
 }
 
+// ---- Registrar abono (helpers UI moderna) ----
+function _finChipCss(on) { return 'border:1px solid ' + (on ? '#16a34a' : '#e2e8f0') + '; background:' + (on ? '#dcfce7' : '#fff') + '; color:' + (on ? '#15803d' : '#475569') + '; font-weight:' + (on ? '700' : '600') + '; border-radius:999px; padding:7px 14px; cursor:pointer; font-size:12.5px;'; }
+function _finSetAbono(finId, val) { const el = document.getElementById('finAbonoMonto'); if(el) { el.value = Math.round((Number(val) || 0) * 100) / 100; _finAbonoPreview(finId); } }
+function _finSetMetodo(metodo) {
+    const h = document.getElementById('finAbonoMetodo'); if(h) h.value = metodo;
+    document.querySelectorAll('#finMetodoChips [data-m]').forEach(b => { b.style.cssText = _finChipCss(b.dataset.m === metodo); });
+}
+function _finAbonoPreview(finId) {
+    const f = (_finCache.financiamientos || []).find(x => x.id === finId); if(!f) return;
+    const monto = parseFloat(document.getElementById('finAbonoMonto')?.value) || 0;
+    const mora = parseFloat(document.getElementById('finAbonoMora')?.value) || 0;
+    const t = document.getElementById('finAbonoTotal'); if(t) t.textContent = money(Math.round((monto + mora) * 100) / 100);
+    const r = document.getElementById('finAbonoResta'); if(r) r.textContent = money(Math.max(0, Math.round((finSaldo(f) - monto) * 100) / 100));
+}
 // ---- Registrar abono ----
 async function registrarAbonoFin(finId) {
     if(!(isAdminUser() || tienePermiso('financiamientos_cobrar'))) { toast('No tienes permiso para cobrar.', 'error'); return; }
@@ -24559,23 +24599,28 @@ function imprimirReciboFin(pagoId) {
     const pagosOrden = finPagosDe(f.id);
     let acum = 0; for(const pg of pagosOrden) { acum += Number(pg.monto || 0); if(pg.id === pagoId) break; }
     const saldoTras = Math.max(0, Math.round((finMontoCuotas(f) - acum) * 100) / 100);
+    const totalRec = Number(p.monto || 0) + Number(p.mora || 0);
     const cuerpo = `${_finCabeceraImpresion()}
-        <h3 style="text-align:center;">RECIBO DE PAGO</h3>
-        <div class="muted" style="text-align:center;">Recibo #${p.recibo || '—'} · ${new Date(p.creado_en).toLocaleString('es-DO')}</div>
-        <hr>
-        <table>
-            <tr><td>Cliente</td><td style="text-align:right;">${escapeHtml(f.cliente_nombre || '')}</td></tr>
-            <tr><td>Financiamiento</td><td style="text-align:right;">#${f.codigo || '—'}</td></tr>
-            <tr><td>Concepto</td><td style="text-align:right;">${escapeHtml(f.concepto || '')}</td></tr>
-            <tr><td>Método</td><td style="text-align:right; text-transform:capitalize;">${escapeHtml(p.metodo || '')}</td></tr>
-            ${p.nota ? `<tr><td>Nota</td><td style="text-align:right;">${escapeHtml(p.nota)}</td></tr>` : ''}
+        <div style="text-align:center; margin:6px 0 10px;">
+            <span style="display:inline-block; background:#16a34a; color:#fff; font-size:11px; font-weight:800; letter-spacing:1px; padding:4px 14px; border-radius:999px;">✓ PAGO RECIBIDO</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:11px; color:#666; border-bottom:1px dashed #cbd5e1; padding-bottom:6px; margin-bottom:8px;">
+            <span>Recibo <b style="color:#111;">#${p.recibo || '—'}</b></span>
+            <span>${new Date(p.creado_en).toLocaleString('es-DO', { dateStyle: 'medium', timeStyle: 'short' })}</span>
+        </div>
+        <table style="margin-bottom:6px;">
+            <tr><td style="color:#666;">Cliente</td><td style="text-align:right; font-weight:600;">${escapeHtml(f.cliente_nombre || '')}</td></tr>
+            <tr><td style="color:#666;">Financiamiento</td><td style="text-align:right;">#${f.codigo || '—'} · ${escapeHtml(f.concepto || '')}</td></tr>
+            <tr><td style="color:#666;">Método</td><td style="text-align:right; text-transform:capitalize;">${escapeHtml(p.metodo || '')}</td></tr>
+            ${p.nota ? `<tr><td style="color:#666;">Nota</td><td style="text-align:right;">${escapeHtml(p.nota)}</td></tr>` : ''}
         </table>
-        <hr>
+        <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:12px; text-align:center; margin:8px 0;">
+            <div style="font-size:11px; color:#15803d; font-weight:700; letter-spacing:1px;">TOTAL RECIBIDO</div>
+            <div style="font-size:26px; font-weight:800; color:#166534;">${money(totalRec)}</div>
+            <div style="font-size:11px; color:#666;">Capital ${money(p.monto)}${Number(p.mora) > 0 ? ' · Mora ' + money(p.mora) : ''}</div>
+        </div>
         <table>
-            <tr><td>Abono a capital</td><td style="text-align:right;">${money(p.monto)}</td></tr>
-            ${Number(p.mora) > 0 ? `<tr><td>Mora por atraso</td><td style="text-align:right;">${money(p.mora)}</td></tr>` : ''}
-            <tr class="tot"><td>TOTAL RECIBIDO</td><td style="text-align:right;">${money(Number(p.monto || 0) + Number(p.mora || 0))}</td></tr>
-            <tr><td>Saldo restante</td><td style="text-align:right;">${money(saldoTras)}</td></tr>
+            <tr class="tot"><td>Saldo restante</td><td style="text-align:right;">${money(saldoTras)}</td></tr>
         </table>
         <div class="muted" style="margin-top:8px;">Recibido por: ${escapeHtml(p.recibido_por || '')}</div>`;
     _finAbrirImpresion('Recibo #' + (p.recibo || ''), cuerpo);
