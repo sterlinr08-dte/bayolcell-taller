@@ -25232,7 +25232,10 @@ function _pintarMDMTab() {
     let html = `<div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
             <div style="display:flex; gap:6px; flex-wrap:wrap;">${Object.keys(filtros).map(k => `<button class="btn btn-light" onclick="_mdmFiltro='${k}'; _pintarMDMTab()" style="font-size:12px; ${_mdmFiltro === k ? 'background:#e2e8f0; color:#0f172a; font-weight:700;' : ''}">${filtros[k]}</button>`).join('')}</div>
-            <button class="btn btn-light" onclick="renderFinanciamientos()" style="font-size:12px;"><i class="ti ti-refresh"></i> Sincronizar</button>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                ${puedeMDM && finListosParaBloqueo().length ? `<button class="btn" onclick="abrirListosBloqueo()" style="font-size:12px; background:#b91c1c; color:#fff;"><i class="ti ti-lock"></i> Listos para bloquear (${finListosParaBloqueo().length})</button>` : ''}
+                <button class="btn btn-light" onclick="renderFinanciamientos()" style="font-size:12px;"><i class="ti ti-refresh"></i> Sincronizar</button>
+            </div>
         </div>`;
     if(!lista.length) { html += `<div style="color:var(--text-muted); font-size:13px;">No hay equipos en esta vista.</div></div>`; cont.innerHTML = html; return; }
     html += `<div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Equipo</th><th>IMEI</th><th>Estado</th><th>Últ. acción</th><th>Acciones</th></tr></thead><tbody>`;
@@ -25309,14 +25312,14 @@ function _pintarDashboardFin() {
     // Alertas
     const solPend = (_finCache.solicitudes || []).filter(s => s.estado === 'pendiente').length;
     const cli30 = new Set(fins.filter(f => _finBucketDias(f) > 30).map(f => f.fin_cliente_id || f.id)).size;
-    const listosBloq = activos.filter(f => finEstado(f) === 'atrasado' && f.mdm_enrolado && f.mdm_estado !== 'bloqueado').length;
+    const listosBloq = finListosParaBloqueo().length;
     const sinContrato = activos.filter(f => !f.contrato_en).length;
-    const alerta = (icon, txt, n, color, tab) => n > 0 ? `<div onclick="finCambiarTab('${tab}')" style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border:1px solid #fde68a; background:#fffbeb; border-radius:9px; margin-bottom:6px; cursor:pointer; font-size:13px;"><span><i class="ti ${icon}" style="color:${color};"></i> ${txt}</span><b style="color:${color};">${n} ›</b></div>` : '';
+    const alerta = (icon, txt, n, color, accion) => n > 0 ? `<div onclick="${accion}" style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border:1px solid #fde68a; background:#fffbeb; border-radius:9px; margin-bottom:6px; cursor:pointer; font-size:13px;"><span><i class="ti ${icon}" style="color:${color};"></i> ${txt}</span><b style="color:${color};">${n} ›</b></div>` : '';
     const alertasHtml = [
-        alerta('ti-file-text', 'Solicitudes por aprobar', solPend, '#b45309', 'solicitudes'),
-        alerta('ti-user-x', 'Clientes con +30 días de mora', cli30, '#b91c1c', 'cobros'),
-        alerta('ti-lock', 'Equipos listos para bloquear', listosBloq, '#b91c1c', 'financiamientos'),
-        alerta('ti-file-off', 'Financiamientos sin contrato firmado', sinContrato, '#7c3aed', 'financiamientos')
+        alerta('ti-file-text', 'Solicitudes por aprobar', solPend, '#b45309', "finCambiarTab('solicitudes')"),
+        alerta('ti-user-x', 'Clientes con +30 días de mora', cli30, '#b91c1c', "finCambiarTab('cobros')"),
+        alerta('ti-lock', 'Equipos listos para bloquear', listosBloq, '#b91c1c', "abrirListosBloqueo()"),
+        alerta('ti-file-off', 'Financiamientos sin contrato firmado', sinContrato, '#7c3aed', "finCambiarTab('financiamientos')")
     ].join('') || `<div style="color:var(--text-muted); font-size:13px;">Sin alertas 🎉</div>`;
 
     // Clientes / financiamientos recientes
@@ -26239,6 +26242,105 @@ async function _finEnviarRecordatorio(finId, tipo) {
         } catch(e) { console.error('_finEnviarRecordatorio', e); }
     }
     _finRecordatoriosRender();
+}
+
+// ============================================================
+//   AUTO-MARCADO PARA BLOQUEO (cola "Listos para bloquear")
+//   El sistema marca solo los que pasan los días de gracia; se bloquea con un toque.
+// ============================================================
+function _finDiasGracia() { const d = Number((_finCache.config || {}).bloqueo_dias_gracia); return d >= 0 ? d : 3; }
+// Máximo de días de atraso de un financiamiento (0 si no hay cuota vencida)
+function _finMaxAtraso(f) {
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    let max = 0;
+    finCronograma(f).forEach(c => { if(!c.cubierta && c.vence < hoy) { const d = Math.round((hoy - c.vence) / 86400000); if(d > max) max = d; } });
+    return max;
+}
+// Financiamientos que YA pasaron la gracia y no están bloqueados/liberados
+function finListosParaBloqueo() {
+    const gr = _finDiasGracia();
+    const res = [];
+    (_finCache.financiamientos || []).forEach(f => {
+        const est = finEstado(f);
+        if(est !== 'atrasado') return;
+        const mdm = f.mdm_estado || 'ninguno';
+        if(mdm === 'bloqueado' || mdm === 'liberado' || mdm === 'borrado') return;
+        const dias = _finMaxAtraso(f);
+        if(dias < gr) return;
+        const info = _finMoraInfo(f);
+        res.push({ f, dias, cuotas: info.cuotas, pend: info.pend, enrolado: !!f.mdm_enrolado });
+    });
+    res.sort((a, b) => b.dias - a.dias);
+    return res;
+}
+async function _finGuardarConfigBloqueo(campo, valor) {
+    try {
+        const upd = {}; upd[campo] = valor;
+        await supabaseClient.from('fin_config').update(upd).eq('id', 1);
+        _finCache.config = { ..._finCache.config, ...upd };
+    } catch(e) { console.error('_finGuardarConfigBloqueo', e); }
+}
+function abrirListosBloqueo() {
+    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso para bloquear equipos.', 'error'); return; }
+    const gr = _finDiasGracia();
+    const cont = `
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:12px; font-size:12.5px; color:var(--text-muted);">
+            <span>Marcar para bloqueo tras</span>
+            <input id="finGraciaInput" type="number" min="0" max="60" value="${gr}" onchange="_finGuardarConfigBloqueo('bloqueo_dias_gracia', Math.max(0, parseInt(this.value)||0)); _finListosBloqueoRender();" style="width:64px; padding:6px 8px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
+            <span>día(s) de atraso.</span>
+        </div>
+        <div id="finBloqLista"></div>`;
+    _finModalPago('Listos para bloquear', cont);
+    _finListosBloqueoRender();
+}
+function _finListosBloqueoRender() {
+    const cont = document.getElementById('finBloqLista'); if(!cont) return;
+    const lista = finListosParaBloqueo();
+    if(!lista.length) { cont.innerHTML = `<div style="text-align:center; padding:22px 4px; color:var(--text-muted);"><i class="ti ti-shield-check" style="font-size:32px; color:#16a34a;"></i><div style="margin-top:6px;">Ningún equipo pasó los días de gracia. 👍</div></div>`; return; }
+    const enrolados = lista.filter(x => x.enrolado).length;
+    cont.innerHTML = `<div style="font-size:12.5px; margin-bottom:10px;"><b>${lista.length}</b> equipo(s) pasaron la gracia${enrolados ? ` · <b>${enrolados}</b> enrolado(s) se pueden bloquear` : ''}.</div>
+    ${enrolados > 1 ? `<button class="btn" onclick="_finBloquearTodosEnrolados()" style="background:#b91c1c; color:#fff; font-size:12.5px; width:100%; margin-bottom:10px; padding:9px;"><i class="ti ti-lock"></i> Bloquear todos los enrolados (${enrolados})</button>` : ''}
+    <div style="max-height:360px; overflow-y:auto;">` + lista.map(x => {
+        const f = x.f;
+        return `<div style="border:1px solid #fecaca; background:#fef2f2; border-radius:11px; padding:10px 12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; gap:10px;">
+            <div style="min-width:0;">
+                <div style="font-weight:700; font-size:13.5px;">${escapeHtml(f.cliente_nombre || 'Cliente')} <span style="color:#94a3b8; font-weight:600;">#${escapeHtml(String(f.codigo || ''))}</span></div>
+                <div style="font-size:12px; color:#b91c1c; margin-top:2px;"><b>${x.dias} días de atraso</b> · ${x.cuotas} cuota(s) venc. · ${money(x.pend)}</div>
+                <div style="font-size:11px; color:var(--text-muted);">${x.enrolado ? '<i class="ti ti-device-mobile-check" style="color:#16a34a;"></i> Enrolado en MDM' : '<i class="ti ti-device-mobile-off" style="color:#b45309;"></i> No enrolado (no se puede bloquear a distancia)'}</div>
+            </div>
+            <div style="flex:none; display:flex; flex-direction:column; gap:5px;">
+                ${f.cliente_telefono ? `<button class="btn btn-light" onclick="_finAvisarAntesBloqueo('${f.id}')" style="font-size:11.5px; padding:6px 10px; color:#16a34a;"><i class="ti ti-brand-whatsapp"></i> Avisar</button>` : ''}
+                ${x.enrolado ? `<button class="btn" onclick="_finBloquearDesdeCola('${f.id}')" style="background:#b91c1c; color:#fff; font-size:11.5px; padding:6px 10px;"><i class="ti ti-lock"></i> Bloquear</button>` : `<button class="btn btn-light" onclick="verFinanciamiento('${f.id}'); cerrarModalPago();" style="font-size:11.5px; padding:6px 10px;">Ver</button>`}
+            </div>
+        </div>`;
+    }).join('') + `</div>`;
+}
+// Aviso de WhatsApp de "última oportunidad" antes de bloquear
+function _finAvisarAntesBloqueo(finId) {
+    const f = (_finCache.financiamientos || []).find(x => x.id === finId); if(!f) return;
+    const rec = { f, cuota: (finCronograma(f).find(c => !c.cubierta) || { valor: 0, num: 0, vence: new Date() }), tipo: 'atraso', dias: _finMaxAtraso(f) };
+    window.open(`https://wa.me/${_finWaNum(f.cliente_telefono)}?text=${encodeURIComponent(_finRecordatorioMsg(rec))}`, '_blank');
+}
+async function _finBloquearDesdeCola(finId) {
+    await mdmAccionReal(finId, 'bloquear');
+    // mdmAccionReal actualiza _finCache; refrescar la cola si el modal sigue abierto
+    if(document.getElementById('finBloqLista')) _finListosBloqueoRender();
+}
+async function _finBloquearTodosEnrolados() {
+    const lista = finListosParaBloqueo().filter(x => x.enrolado);
+    if(!lista.length) return;
+    if(!confirm(`¿Bloquear ${lista.length} equipo(s) enrolado(s) que pasaron los días de gracia?\n\nSe enviará la orden a Hexnode uno por uno. Los que tengan internet se bloquean en segundos; los demás quedan en espera.`)) return;
+    let ok = 0;
+    for(const x of lista) {
+        try {
+            const { data, error } = await supabaseClient.functions.invoke('mdm-accion', { body: { financiamiento_id: x.f.id, accion: 'bloquear' } });
+            if(error || (data && data.error)) continue;
+            await _mdmAplicarEstadoAuto(x.f.id, 'bloqueado', true);
+            ok++;
+        } catch(e) { console.error('bloqueo masivo', e); }
+    }
+    toast(`✅ ${ok} de ${lista.length} orden(es) de bloqueo enviada(s) a Hexnode.`);
+    if(document.getElementById('finBloqLista')) _finListosBloqueoRender();
 }
 
 // ---- Control MDM ----
