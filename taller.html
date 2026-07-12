@@ -24642,8 +24642,30 @@ function imprimirCalendarioPagos(finId) {
 // ============================================================
 let _cliDetalleId = null;
 let _cliBusqueda = '';
+let _cliTab = 'resumen';   // resumen | info | financiamientos | pagos | mdm | documentos
 function finFinanciamientosDeCliente(clienteId) {
     return (_finCache.financiamientos || []).filter(f => f.fin_cliente_id === clienteId);
+}
+function finPagosDeCliente(clienteId) {
+    const ids = new Set(finFinanciamientosDeCliente(clienteId).map(f => f.id));
+    return (_finCache.pagos || []).filter(p => ids.has(p.financiamiento_id)).sort((a, b) => new Date(b.creado_en) - new Date(a.creado_en));
+}
+// Nivel de riesgo / probabilidad de mora del cliente
+function _finRiesgoCliente(cId, fins) {
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    let maxDias = 0, bloqueados = 0, pagosPuntuales = 0;
+    fins.forEach(f => { const d = _finBucketDias(f); if(d > maxDias) maxDias = d; if(f.mdm_estado === 'bloqueado') bloqueados++; });
+    finPagosDeCliente(cId).forEach(() => pagosPuntuales++); // nº de pagos hechos
+    const c = finClienteDe(cId) || {};
+    const meses = c.creado_en ? Math.max(0, Math.floor((Date.now() - new Date(c.creado_en).getTime()) / (30 * 86400000))) : 0;
+    let score = 12;
+    if(maxDias > 60) score += 55; else if(maxDias > 30) score += 35; else if(maxDias > 0) score += 18;
+    score += Math.min(20, bloqueados * 12);
+    score -= Math.min(15, meses * 2);      // antigüedad reduce riesgo
+    score -= Math.min(12, pagosPuntuales); // historial de pagos reduce riesgo
+    score = Math.max(5, Math.min(95, Math.round(score)));
+    const nivel = score < 25 ? { t: 'Bajo', c: '#16a34a' } : (score < 55 ? { t: 'Medio', c: '#f59e0b' } : { t: 'Alto', c: '#b91c1c' });
+    return { score, nivel, maxDias, bloqueados, pagosPuntuales, meses };
 }
 function _pintarClientes() {
     if(_cliDetalleId) { _pintarFichaCliente(); return; }
@@ -24684,8 +24706,25 @@ function _pintarListaCli() {
         </div>`;
     }).join('');
 }
-function verFinCliente(id) { _cliDetalleId = id; _finTab = 'clientes'; _pintarTabFin(); }
+function verFinCliente(id) { _cliDetalleId = id; _cliTab = 'resumen'; _finTab = 'clientes'; _pintarTabFin(); }
 function volverListaCli() { _cliDetalleId = null; _pintarClientes(); }
+function finCliTab(t) { _cliTab = t; _pintarFichaCliente(); }
+function _finTimelineCliente(cId, fins) {
+    const ev = [];
+    (_finCache.solicitudes || []).filter(s => s.cliente_id === cId).forEach(s => {
+        if(s.creado_en) ev.push({ d: s.creado_en, t: 'Solicitud creada', c: '#64748b', i: 'ti-file-text' });
+        if(s.estado === 'aprobada' && s.decidido_en) ev.push({ d: s.decidido_en, t: 'Crédito aprobado', c: '#16a34a', i: 'ti-circle-check' });
+        if(s.estado === 'rechazada' && s.decidido_en) ev.push({ d: s.decidido_en, t: 'Solicitud rechazada', c: '#b91c1c', i: 'ti-circle-x' });
+    });
+    fins.forEach(f => {
+        if(f.creado_en) ev.push({ d: f.creado_en, t: 'Financiamiento activo', c: '#0891b2', i: 'ti-cash' });
+        if(f.contrato_en) ev.push({ d: f.contrato_en, t: 'Contrato firmado', c: '#7c3aed', i: 'ti-file-certificate' });
+        if(f.video_en) ev.push({ d: f.video_en, t: 'Video de evidencia', c: '#dc2626', i: 'ti-video' });
+        if(f.mdm_estado && f.mdm_estado !== 'ninguno' && f.mdm_accion_en) ev.push({ d: f.mdm_accion_en, t: 'MDM: ' + f.mdm_estado, c: '#0f172a', i: 'ti-device-mobile' });
+    });
+    finPagosDeCliente(cId).forEach(p => ev.push({ d: p.creado_en, t: 'Pago recibido ' + money(p.monto), c: '#16a34a', i: 'ti-coin' }));
+    return ev.sort((a, b) => new Date(b.d) - new Date(a.d)).slice(0, 15);
+}
 function _pintarFichaCliente() {
     const cont = document.getElementById('finContenido');
     const kpis = document.getElementById('finKpis');
@@ -24694,33 +24733,106 @@ function _pintarFichaCliente() {
     if(!c) { volverListaCli(); return; }
     const refs = finReferenciasDe(c.id);
     const fins = finFinanciamientosDeCliente(c.id);
-    const dato = (label, val) => `<div style="font-size:12.5px;"><span style="color:var(--text-muted);">${label}:</span> <b>${escapeHtml(val || '—')}</b></div>`;
+    const pagos = finPagosDeCliente(c.id);
     const puedeEditarC = isAdminUser() || tienePermiso('financiamientos_crear');
     const puedeBorrarC = isAdminUser() || tienePermiso('financiamientos_eliminar');
-    let html = `<div style="display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
-        <button class="btn btn-light" onclick="volverListaCli()" style="font-size:12px;"><i class="ti ti-arrow-left"></i> Volver a clientes</button>
-        <div style="display:flex; gap:6px;">
-            ${puedeEditarC ? `<button class="btn btn-light" onclick="editarCliente('${c.id}')" style="font-size:12px;"><i class="ti ti-edit"></i> Editar</button>` : ''}
-            ${puedeBorrarC ? `<button class="btn btn-light" onclick="eliminarCliente('${c.id}')" style="font-size:12px; color:#b91c1c;"><i class="ti ti-trash"></i> Eliminar</button>` : ''}
+    const nombre = `${c.nombre || ''} ${c.apellido || ''}`.trim();
+    const inicial = (c.nombre || '?').charAt(0).toUpperCase();
+    const estadoWorst = fins.some(f => finEstado(f) === 'atrasado') ? 'atrasado' : (fins.some(f => ['activo'].includes(finEstado(f))) ? 'activo' : 'saldado');
+    const estInfo = { atrasado: { t: 'Atrasado', c: '#b91c1c', b: '#fee2e2' }, activo: { t: 'Al día', c: '#15803d', b: '#dcfce7' }, saldado: { t: 'Sin deuda', c: '#1d4ed8', b: '#dbeafe' } }[estadoWorst];
+    const totalFinanciado = fins.reduce((s, f) => s + finFinanciado(f), 0);
+    const saldoTotal = fins.reduce((s, f) => s + finSaldo(f), 0);
+    const pagadoTotal = fins.reduce((s, f) => s + finAbonado(f), 0);
+    const tel = (c.telefono || '').replace(/\D/g, '');
+    const waNum = tel.length === 10 ? '1' + tel : tel;
+
+    // Cabecera pro
+    let html = `<button class="btn btn-light" onclick="volverListaCli()" style="font-size:12px; margin-bottom:12px;"><i class="ti ti-arrow-left"></i> Volver a clientes</button>
+    <div class="card" style="margin-bottom:14px;">
+        <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+            <div style="width:60px; height:60px; border-radius:50%; background:linear-gradient(135deg,#0891b2,#0e7490); color:#fff; display:flex; align-items:center; justify-content:center; font-size:26px; font-weight:800; flex:none;">${escapeHtml(inicial)}</div>
+            <div style="flex:1; min-width:180px;">
+                <div style="font-size:18px; font-weight:800;">${escapeHtml(nombre)} <span style="background:${estInfo.b}; color:${estInfo.c}; font-size:11px; font-weight:700; padding:2px 9px; border-radius:999px; vertical-align:middle;">${estInfo.t}</span></div>
+                <div style="font-size:12.5px; color:var(--text-muted);">${c.cedula ? '🪪 ' + escapeHtml(c.cedula) + ' · ' : ''}${c.telefono ? '📞 ' + escapeHtml(c.telefono) : ''}</div>
+                <div style="font-size:12px; color:var(--text-muted);">${fins.length} financiamiento(s) · Cliente desde ${c.creado_en ? new Date(c.creado_en).toLocaleDateString('es-DO', { month: 'short', year: 'numeric' }) : '—'}</div>
+            </div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                ${tel ? `<a class="btn btn-light" href="https://wa.me/${waNum}" target="_blank" style="font-size:12px; color:#16a34a;"><i class="ti ti-brand-whatsapp"></i> WhatsApp</a>
+                <a class="btn btn-light" href="tel:${escapeHtml(c.telefono)}" style="font-size:12px; color:#0891b2;"><i class="ti ti-phone"></i> Llamar</a>` : ''}
+                ${puedeEditarC ? `<button class="btn btn-light" onclick="editarCliente('${c.id}')" style="font-size:12px;"><i class="ti ti-edit"></i> Editar</button>` : ''}
+                ${puedeBorrarC ? `<button class="btn btn-light" onclick="eliminarCliente('${c.id}')" style="font-size:12px; color:#b91c1c;"><i class="ti ti-trash"></i></button>` : ''}
+            </div>
         </div>
     </div>`;
-    html += `<div class="card" style="margin-bottom:14px;">
-        <h3 style="margin:0 0 10px; font-size:16px;"><i class="ti ti-user" style="color:#0891b2;"></i> ${escapeHtml(`${c.nombre || ''} ${c.apellido || ''}`.trim())}</h3>
-        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:8px;">
-            ${dato('Cédula', c.cedula)}${dato('Teléfono', c.telefono)}${dato('Correo', c.email)}${dato('Dirección', c.direccion)}
-            ${dato('Lugar de trabajo', c.lugar_trabajo)}${dato('Ocupación', c.ocupacion)}${dato('Tiempo laborando', c.tiempo_laborando)}
-            ${dato('Ingreso mensual', c.ingreso_mensual ? money(c.ingreso_mensual) : '—')}
-        </div>
-        ${refs.length ? '<div style="margin-top:10px;"><b style="font-size:12.5px;">Referencias:</b>' + refs.map(r => `<div style="font-size:12.5px; color:var(--text-muted);">• ${escapeHtml(r.nombre)}${r.parentesco ? ' (' + escapeHtml(r.parentesco) + ')' : ''}${r.telefono ? ' · ' + escapeHtml(r.telefono) : ''}</div>`).join('') + '</div>' : ''}
-    </div>`;
-    html += `<div class="card" style="margin-bottom:14px;"><h3 style="margin:0 0 10px; font-size:14px;"><i class="ti ti-cash" style="color:#16a34a;"></i> Financiamientos (${fins.length})</h3>`;
-    if(fins.length) {
-        html += fins.map(f => `<div style="border:1px solid #e2e8f0; border-radius:10px; padding:10px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+
+    // Sub-pestañas
+    const tabs = [['resumen', 'Resumen', 'ti-layout-dashboard'], ['info', 'Información', 'ti-user'], ['financiamientos', 'Financiamientos', 'ti-cash'], ['pagos', 'Pagos', 'ti-coins'], ['mdm', 'MDM', 'ti-device-mobile'], ['documentos', 'Documentos', 'ti-photo']];
+    html += `<div style="display:flex; gap:6px; margin-bottom:14px; overflow-x:auto; padding-bottom:4px;">${tabs.map(([k, lbl, ic]) => `<button onclick="finCliTab('${k}')" style="border:0; border-radius:8px; padding:7px 13px; cursor:pointer; font-size:12.5px; white-space:nowrap; ${_cliTab === k ? 'background:#0891b2; color:#fff; font-weight:700;' : 'background:#f1f5f9; color:#475569;'}"><i class="ti ${ic}"></i> ${lbl}</button>`).join('')}</div>`;
+
+    const dato = (label, val) => `<div style="font-size:12.5px;"><span style="color:var(--text-muted);">${label}:</span> <b>${escapeHtml(val || '—')}</b></div>`;
+
+    if(_cliTab === 'resumen') {
+        const r = _finRiesgoCliente(c.id, fins);
+        const timeline = _finTimelineCliente(c.id, fins);
+        const met = (lbl, val) => `<div style="display:flex; justify-content:space-between; font-size:12.5px; padding:4px 0; border-bottom:1px solid #f1f5f9;"><span style="color:var(--text-muted);">${lbl}</span><b>${val}</b></div>`;
+        html += `<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px;">
+            <div class="card">
+                <h3 style="margin:0 0 12px; font-size:15px;"><i class="ti ti-timeline" style="color:#0891b2;"></i> Línea de tiempo</h3>
+                ${timeline.length ? timeline.map(e => `<div style="display:flex; gap:10px; align-items:flex-start; margin-bottom:10px;">
+                    <div style="width:26px; height:26px; border-radius:50%; background:${e.c}1a; color:${e.c}; display:flex; align-items:center; justify-content:center; flex:none;"><i class="ti ${e.i}" style="font-size:14px;"></i></div>
+                    <div><div style="font-size:13px; font-weight:600;">${escapeHtml(e.t)}</div><div style="font-size:11px; color:var(--text-muted);">${new Date(e.d).toLocaleDateString('es-DO', { day: '2-digit', month: 'short', year: 'numeric' })}</div></div>
+                </div>`).join('') : `<div style="color:var(--text-muted); font-size:13px;">Sin eventos.</div>`}
+            </div>
+            <div class="card">
+                <h3 style="margin:0 0 12px; font-size:15px;"><i class="ti ti-shield" style="color:${r.nivel.c};"></i> Nivel de riesgo</h3>
+                <div style="display:flex; align-items:center; gap:14px; margin-bottom:12px;">
+                    <div style="width:110px; height:110px; border-radius:50%; background:conic-gradient(${r.nivel.c} ${r.score}%, #e2e8f0 ${r.score}%); display:flex; align-items:center; justify-content:center; flex:none;">
+                        <div style="width:84px; height:84px; border-radius:50%; background:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center;"><b style="font-size:22px; color:${r.nivel.c};">${r.score}%</b><small style="color:var(--text-muted);">${r.nivel.t}</small></div>
+                    </div>
+                    <div style="font-size:12px; color:var(--text-muted);">Probabilidad de mora estimada según su historial.</div>
+                </div>
+                ${met('Pagos realizados', r.pagosPuntuales)}
+                ${met('Días de atraso actuales', r.maxDias)}
+                ${met('Equipos bloqueados', r.bloqueados)}
+                ${met('Antigüedad del cliente', r.meses + ' mes(es)')}
+            </div>
+            <div class="card">
+                <h3 style="margin:0 0 12px; font-size:15px;"><i class="ti ti-wallet" style="color:#16a34a;"></i> Resumen financiero</h3>
+                ${met('Total financiado', money(totalFinanciado))}
+                ${met('Pagado', money(pagadoTotal))}
+                ${met('Saldo pendiente', money(saldoTotal))}
+                ${met('Financiamientos activos', fins.filter(f => ['activo', 'atrasado'].includes(finEstado(f))).length)}
+            </div>
+        </div>`;
+    } else if(_cliTab === 'info') {
+        html += `<div class="card">
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:8px;">
+                ${dato('Cédula', c.cedula)}${dato('Teléfono', c.telefono)}${dato('Dirección', c.direccion)}
+                ${dato('Lugar de trabajo', c.lugar_trabajo)}${dato('Ocupación', c.ocupacion)}${dato('Tiempo laborando', c.tiempo_laborando)}
+                ${dato('Ingreso mensual', c.ingreso_mensual ? money(c.ingreso_mensual) : '—')}
+            </div>
+            ${refs.length ? '<div style="margin-top:12px; border-top:1px solid #f1f5f9; padding-top:10px;"><b style="font-size:13px;">Referencias</b>' + refs.map(r => `<div style="font-size:12.5px; color:var(--text-muted); margin-top:4px;">• ${escapeHtml(r.nombre)}${r.parentesco ? ' (' + escapeHtml(r.parentesco) + ')' : ''}${r.telefono ? ' · 📞 ' + escapeHtml(r.telefono) : ''}</div>`).join('') + '</div>' : ''}
+        </div>`;
+    } else if(_cliTab === 'financiamientos') {
+        html += `<div class="card">${fins.length ? fins.map(f => `<div style="border:1px solid #e2e8f0; border-radius:10px; padding:10px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
             <div><div style="font-weight:600; font-size:13px;">#${f.codigo} · ${escapeHtml(f.concepto || '')}</div><div style="font-size:12px; color:var(--text-muted);">Saldo ${money(finSaldo(f))} · ${finBadge(finEstado(f))}</div></div>
-            <button class="btn btn-light" onclick="verFinanciamiento('${f.id}')" style="font-size:12px;"><i class="ti ti-eye"></i> Ver</button>
-        </div>`).join('');
-    } else { html += `<div style="color:var(--text-muted); font-size:13px;">Sin financiamientos.</div>`; }
-    html += `</div>`;
+            <button class="btn btn-blue" onclick="verFinanciamiento('${f.id}')" style="font-size:12px;"><i class="ti ti-eye"></i> Ver</button>
+        </div>`).join('') : `<div style="color:var(--text-muted); font-size:13px;">Sin financiamientos.</div>`}</div>`;
+    } else if(_cliTab === 'pagos') {
+        html += `<div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Pagos (${pagos.length})</h3>${pagos.length ? `<div class="table-wrap"><table><thead><tr><th>Recibo</th><th>Fecha</th><th style="text-align:right;">Monto</th><th style="text-align:right;">Mora</th><th>Método</th></tr></thead><tbody>${pagos.map(p => `<tr><td>#${p.recibo || '—'}</td><td>${new Date(p.creado_en).toLocaleDateString('es-DO')}</td><td style="text-align:right;">${money(p.monto)}</td><td style="text-align:right;">${Number(p.mora) > 0 ? money(p.mora) : '—'}</td><td style="text-transform:capitalize;">${escapeHtml(p.metodo || '')}</td></tr>`).join('')}</tbody></table></div>` : `<div style="color:var(--text-muted); font-size:13px;">Sin pagos.</div>`}</div>`;
+    } else if(_cliTab === 'mdm') {
+        html += `<div class="card"><h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-device-mobile" style="color:#0f172a;"></i> Equipos / MDM</h3>${fins.length ? fins.map(f => {
+            const est = f.mdm_estado || 'ninguno';
+            const ei = { ninguno: ['Sin MDM', '#64748b', '#e2e8f0'], activo: ['Activo', '#15803d', '#dcfce7'], bloqueado: ['Bloqueado', '#b91c1c', '#fee2e2'], liberado: ['Liberado', '#1d4ed8', '#dbeafe'] }[est] || ['?', '#64748b', '#e2e8f0'];
+            return `<div style="border:1px solid #e2e8f0; border-radius:10px; padding:10px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+                <div><div style="font-weight:600; font-size:13px;">${escapeHtml(f.concepto || '')} <span style="color:#94a3b8;">#${f.codigo}</span></div><div style="font-size:12px; color:var(--text-muted);">${f.equipo_imei ? 'IMEI ' + escapeHtml(f.equipo_imei) : 'Sin IMEI'} · <span style="background:${ei[2]}; color:${ei[1]}; padding:1px 7px; border-radius:999px; font-weight:700;">${ei[0]}</span></div></div>
+                <button class="btn btn-light" onclick="verFinanciamiento('${f.id}')" style="font-size:12px;"><i class="ti ti-device-mobile-cog"></i> Gestionar</button>
+            </div>`;
+        }).join('') : `<div style="color:var(--text-muted); font-size:13px;">Sin equipos.</div>`}</div>`;
+    } else if(_cliTab === 'documentos') {
+        const docsCli = (_finCache.documentos || []).filter(d => d.cliente_id === c.id);
+        html += `<div class="card"><h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-photo" style="color:#0891b2;"></i> Documentos</h3>${docsCli.length ? `<div style="display:flex; gap:10px; flex-wrap:wrap;">${docsCli.map(d => `<a href="${d.url}" target="_blank" style="text-align:center;"><img src="${d.url}" style="width:120px; height:90px; object-fit:cover; border-radius:8px; border:1px solid #e2e8f0;"><div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${escapeHtml(d.tipo || '')}</div></a>`).join('')}</div>` : `<div style="color:var(--text-muted); font-size:13px;">Sin documentos. Se suben desde el Contrato de cada financiamiento.</div>`}</div>`;
+    }
     cont.innerHTML = html;
 }
 
