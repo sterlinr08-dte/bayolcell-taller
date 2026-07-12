@@ -1170,6 +1170,7 @@ body{
                     </div>
                 </div>
                 <div style="display:flex; gap:8px; margin-bottom:14px; overflow-x:auto; padding-bottom:4px;">
+                    <button id="finTabDashboard" onclick="finCambiarTab('dashboard')" style="white-space:nowrap;"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
                     <button id="finTabConsulta" onclick="finCambiarTab('consulta')" style="white-space:nowrap;"><i class="ti ti-calculator"></i> Consulta</button>
                     <button id="finTabSolicitudes" onclick="finCambiarTab('solicitudes')" style="white-space:nowrap;"><i class="ti ti-file-text"></i> Solicitudes</button>
                     <button id="finTabFinanciamientos" onclick="finCambiarTab('financiamientos')" style="white-space:nowrap;"><i class="ti ti-cash"></i> Financiamientos</button>
@@ -23514,7 +23515,8 @@ document.getElementById('modalNuevoPerfil')?.addEventListener('click', e => {
 //   conflictos con el desarrollo del módulo de taller.
 // ============================================================
 let _finCache = { financiamientos: [], pagos: [], solicitudes: [], clientes: [], referencias: [], config: {}, documentos: [], planes: [] };
-let _finTab = 'solicitudes';     // solicitudes | financiamientos
+let _finTab = 'dashboard';       // dashboard | consulta | solicitudes | financiamientos | clientes | cobros | reportes | config
+let _finDashChart = null;        // instancia del donut de cartera
 let _finFiltro = 'activos';      // activos | atrasados | saldados | todos
 let _solFiltro = 'pendientes';   // pendientes | aprobadas | rechazadas | todas
 let _finBusqueda = '';
@@ -23742,7 +23744,7 @@ function finCambiarTab(tab) {
     _pintarTabFin();
 }
 function _pintarTabFin() {
-    const tabs = { consulta: 'finTabConsulta', solicitudes: 'finTabSolicitudes', financiamientos: 'finTabFinanciamientos', clientes: 'finTabClientes', cobros: 'finTabCobros', reportes: 'finTabReportes', config: 'finTabConfig' };
+    const tabs = { dashboard: 'finTabDashboard', consulta: 'finTabConsulta', solicitudes: 'finTabSolicitudes', financiamientos: 'finTabFinanciamientos', clientes: 'finTabClientes', cobros: 'finTabCobros', reportes: 'finTabReportes', config: 'finTabConfig' };
     const act = 'background:#16a34a; color:#fff; font-weight:700;';
     const ina = 'background:#f1f5f9; color:#475569;';
     Object.keys(tabs).forEach(k => {
@@ -23754,7 +23756,8 @@ function _pintarTabFin() {
     if(cfgTab) cfgTab.style.display = (isAdminUser() || tienePermiso('config_ver') || tienePermiso('financiamientos_aprobar')) ? '' : 'none';
     const btnNuevo = document.getElementById('btnNuevaSolicitud');
     if(btnNuevo) btnNuevo.style.display = (_finTab === 'solicitudes' && (isAdminUser() || tienePermiso('financiamientos_crear'))) ? '' : 'none';
-    if(_finTab === 'consulta') _pintarConsulta();
+    if(_finTab === 'dashboard') _pintarDashboardFin();
+    else if(_finTab === 'consulta') _pintarConsulta();
     else if(_finTab === 'solicitudes') _pintarSolicitudes();
     else if(_finTab === 'clientes') _pintarClientes();
     else if(_finTab === 'cobros') _pintarCobros();
@@ -24780,6 +24783,129 @@ function _pintarCobros() {
             </div>
         </div>`;
     }).join('');
+}
+
+// ============================================================
+//   PESTAÑA DASHBOARD (vista ejecutiva)
+// ============================================================
+// Días de atraso máximos de un financiamiento (0 = al día)
+function _finBucketDias(f) {
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    let max = 0;
+    finCronograma(f).forEach(c => { if(!c.cubierta && c.vence < hoy) { const d = Math.floor((hoy - c.vence) / 86400000); if(d > max) max = d; } });
+    return max;
+}
+function _pintarDashboardFin() {
+    const kpisEl = document.getElementById('finKpis');
+    const cont = document.getElementById('finContenido');
+    if(!cont) return;
+    const fins = _finCache.financiamientos || [];
+    const pagos = _finCache.pagos || [];
+    const ahora = new Date();
+    const hoy0 = new Date(); hoy0.setHours(0, 0, 0, 0);
+    const activos = fins.filter(f => ['activo', 'atrasado'].includes(finEstado(f)));
+    const atrasados = fins.filter(f => finEstado(f) === 'atrasado');
+    const capitalPendiente = activos.reduce((s, f) => s + finSaldo(f), 0);
+    const cobradoMes = pagos.filter(p => { const d = new Date(p.creado_en); return d.getMonth() === ahora.getMonth() && d.getFullYear() === ahora.getFullYear(); }).reduce((s, p) => s + Number(p.monto || 0) + Number(p.mora || 0), 0);
+    let moraActual = 0;
+    activos.forEach(f => { moraActual += finMoraPendiente(f); finCronograma(f).forEach(c => { if(!c.cubierta && c.vence < hoy0) moraActual += c.pendiente; }); });
+    const clientesEnMora = new Set(atrasados.map(f => f.fin_cliente_id || f.id)).size;
+    const pctMorosidad = activos.length ? Math.round(atrasados.length / activos.length * 1000) / 10 : 0;
+
+    // KPIs
+    const kpi = (label, val, color, icon) => `<div class="kpi-box" style="border-top-color:${color};"><small>${label}</small><strong>${val}</strong><i class="ti ${icon}"></i></div>`;
+    if(kpisEl) kpisEl.innerHTML =
+        kpi('Activos', activos.length, '#16a34a', 'ti-cash') +
+        kpi('Capital pendiente', money(capitalPendiente), '#0891b2', 'ti-wallet') +
+        kpi('Cobrado este mes', money(cobradoMes), '#7c3aed', 'ti-trending-up') +
+        kpi('Mora actual', money(moraActual), '#f59e0b', 'ti-alert-triangle') +
+        kpi('Clientes en mora', clientesEnMora, '#b91c1c', 'ti-user-x') +
+        kpi('% Morosidad', pctMorosidad + '%', pctMorosidad > 15 ? '#b91c1c' : '#16a34a', 'ti-percentage');
+
+    // Cartera por antigüedad (saldo)
+    const b = { aldia: 0, d1: 0, d2: 0, d3: 0 };
+    activos.forEach(f => { const d = _finBucketDias(f); const s = finSaldo(f); if(d <= 0) b.aldia += s; else if(d <= 30) b.d1 += s; else if(d <= 60) b.d2 += s; else b.d3 += s; });
+    const totalCartera = b.aldia + b.d1 + b.d2 + b.d3;
+    const pct = v => totalCartera > 0 ? Math.round(v / totalCartera * 100) : 0;
+    const legItem = (c, txt, v) => `<div style="display:flex; align-items:center; justify-content:space-between; font-size:12.5px; margin:3px 0;"><span style="display:flex; align-items:center; gap:6px;"><i style="width:10px; height:10px; border-radius:3px; background:${c}; display:inline-block;"></i>${txt}</span><b>${pct(v)}%</b></div>`;
+
+    // Próximos vencimientos
+    const pend = finCuotasPendientes();
+    const grupo = (fil) => { const a = pend.filter(fil); return { n: a.length, monto: a.reduce((s, x) => s + x.cuota.pendiente, 0) }; };
+    const gVenc = grupo(x => x.dias > 0), gHoy = grupo(x => x.dias === 0), gMan = grupo(x => x.dias === -1), gSem = grupo(x => x.dias <= -2 && x.dias >= -7);
+    const rowVenc = (lbl, g, color) => `<div style="display:flex; justify-content:space-between; align-items:center; padding:7px 0; border-bottom:1px solid #f1f5f9; font-size:13px;"><span style="color:${color}; font-weight:600;">${lbl}</span><span>${g.n} cuota${g.n === 1 ? '' : 's'} · <b>${money(g.monto)}</b></span></div>`;
+
+    // Alertas
+    const solPend = (_finCache.solicitudes || []).filter(s => s.estado === 'pendiente').length;
+    const cli30 = new Set(fins.filter(f => _finBucketDias(f) > 30).map(f => f.fin_cliente_id || f.id)).size;
+    const listosBloq = activos.filter(f => finEstado(f) === 'atrasado' && f.mdm_enrolado && f.mdm_estado !== 'bloqueado').length;
+    const sinContrato = activos.filter(f => !f.contrato_en).length;
+    const alerta = (icon, txt, n, color, tab) => n > 0 ? `<div onclick="finCambiarTab('${tab}')" style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border:1px solid #fde68a; background:#fffbeb; border-radius:9px; margin-bottom:6px; cursor:pointer; font-size:13px;"><span><i class="ti ${icon}" style="color:${color};"></i> ${txt}</span><b style="color:${color};">${n} ›</b></div>` : '';
+    const alertasHtml = [
+        alerta('ti-file-text', 'Solicitudes por aprobar', solPend, '#b45309', 'solicitudes'),
+        alerta('ti-user-x', 'Clientes con +30 días de mora', cli30, '#b91c1c', 'cobros'),
+        alerta('ti-lock', 'Equipos listos para bloquear', listosBloq, '#b91c1c', 'financiamientos'),
+        alerta('ti-file-off', 'Financiamientos sin contrato firmado', sinContrato, '#7c3aed', 'financiamientos')
+    ].join('') || `<div style="color:var(--text-muted); font-size:13px;">Sin alertas 🎉</div>`;
+
+    // Clientes / financiamientos recientes
+    const recientes = fins.slice(0, 6);
+    const cardCli = f => {
+        const est = finEstado(f); const d = _finBucketDias(f); const prox = finProximaCuota(f);
+        const badge = d > 0 ? `<span style="background:#fee2e2; color:#b91c1c; font-size:10px; font-weight:700; padding:2px 7px; border-radius:999px;">${d} DÍAS ATRASO</span>` : `<span style="background:#dcfce7; color:#15803d; font-size:10px; font-weight:700; padding:2px 7px; border-radius:999px;">AL DÍA</span>`;
+        return `<div onclick="verFinanciamiento('${f.id}')" style="border:1px solid #e2e8f0; border-radius:12px; padding:12px; cursor:pointer; min-width:180px; flex:1;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:6px;"><b style="font-size:13px;">${escapeHtml(f.cliente_nombre || '')}</b>${badge}</div>
+            <div style="font-size:11.5px; color:var(--text-muted); margin:2px 0 8px;">${escapeHtml(f.concepto || '')}</div>
+            <div style="font-size:15px; font-weight:800;">${money(finSaldo(f))}</div>
+            <div style="font-size:11px; color:var(--text-muted);">Saldo pendiente</div>
+            ${prox ? `<div style="font-size:11.5px; margin-top:6px; color:#475569;"><i class="ti ti-calendar"></i> Próx. ${_finFmtFecha(prox.vence)}</div>` : ''}
+        </div>`;
+    };
+
+    cont.innerHTML = `
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px; margin-bottom:14px;">
+            <div class="card">
+                <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-chart-donut" style="color:#0891b2;"></i> Resumen de cartera</h3>
+                <div style="display:flex; align-items:center; gap:14px;">
+                    <div style="width:130px; height:130px; position:relative; flex:none;"><canvas id="finDonutCartera"></canvas></div>
+                    <div style="flex:1;">
+                        ${legItem('#16a34a', 'Al día', b.aldia)}
+                        ${legItem('#f59e0b', 'Mora 1-30 días', b.d1)}
+                        ${legItem('#f97316', 'Mora 31-60 días', b.d2)}
+                        ${legItem('#b91c1c', 'Mora +60 días', b.d3)}
+                    </div>
+                </div>
+                <div style="border-top:1px solid #f1f5f9; margin-top:8px; padding-top:8px; font-size:13px;">Total cartera: <b>${money(totalCartera)}</b></div>
+            </div>
+            <div class="card">
+                <h3 style="margin:0 0 8px; font-size:15px;"><i class="ti ti-calendar-due" style="color:#b45309;"></i> Próximos vencimientos</h3>
+                ${rowVenc('🔴 Vencidas', gVenc, '#b91c1c')}
+                ${rowVenc('Hoy', gHoy, '#b45309')}
+                ${rowVenc('Mañana', gMan, '#0891b2')}
+                ${rowVenc('Esta semana (7 días)', gSem, '#475569')}
+                <div style="text-align:right; margin-top:8px;"><button class="btn btn-light" onclick="finCambiarTab('cobros')" style="font-size:12px;">Ver cobros ›</button></div>
+            </div>
+            <div class="card">
+                <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-bell" style="color:#f59e0b;"></i> Alertas importantes</h3>
+                ${alertasHtml}
+            </div>
+        </div>
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;"><h3 style="margin:0; font-size:15px;"><i class="ti ti-users" style="color:#0891b2;"></i> Financiamientos recientes</h3><button class="btn btn-light" onclick="finCambiarTab('clientes')" style="font-size:12px;">Ver clientes ›</button></div>
+            ${recientes.length ? `<div style="display:flex; gap:12px; flex-wrap:wrap;">${recientes.map(cardCli).join('')}</div>` : `<div style="color:var(--text-muted); font-size:13px;">Aún no hay financiamientos.</div>`}
+        </div>`;
+
+    // Donut (Chart.js)
+    setTimeout(() => {
+        const cvs = document.getElementById('finDonutCartera');
+        if(!cvs || !window.Chart) return;
+        if(_finDashChart) { try { _finDashChart.destroy(); } catch(e) {} }
+        _finDashChart = new Chart(cvs, {
+            type: 'doughnut',
+            data: { labels: ['Al día', 'Mora 1-30', 'Mora 31-60', 'Mora +60'], datasets: [{ data: [b.aldia, b.d1, b.d2, b.d3], backgroundColor: ['#16a34a', '#f59e0b', '#f97316', '#b91c1c'], borderWidth: 0 }] },
+            options: { cutout: '68%', plugins: { legend: { display: false } }, responsive: true, maintainAspectRatio: false }
+        });
+    }, 60);
 }
 
 // ============================================================
