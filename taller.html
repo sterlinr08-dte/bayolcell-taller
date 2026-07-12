@@ -25043,9 +25043,13 @@ function _pintarClientes() {
         const kpi = (label, val, color, icon) => `<div class="kpi-box" style="border-top-color:${color};"><small>${label}</small><strong>${val}</strong><i class="ti ${icon}"></i></div>`;
         kpis.innerHTML = kpi('Clientes', clientes.length, '#0891b2', 'ti-users') + kpi('Con financiamiento activo', conActivo.length, '#16a34a', 'ti-user-check');
     }
+    const puedeCrearCli = isAdminUser() || tienePermiso('financiamientos_crear');
     let html = `<div class="card" style="margin-bottom:14px;">
-        <input id="cliBuscador" oninput="_cliBusqueda=this.value; _pintarListaCli()" value="${escapeHtml(_cliBusqueda)}" placeholder="Buscar por nombre, cédula o teléfono..." style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
-        <div id="cliLista" style="margin-top:12px;"></div>
+        <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap;">
+            <input id="cliBuscador" oninput="_cliBusqueda=this.value; _pintarListaCli()" value="${escapeHtml(_cliBusqueda)}" placeholder="Buscar por nombre, cédula o teléfono..." style="flex:1; min-width:180px; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
+            ${puedeCrearCli ? `<button class="btn btn-blue" onclick="nuevoClienteFin()" style="font-size:13px; white-space:nowrap;"><i class="ti ti-user-plus"></i> Nuevo cliente</button>` : ''}
+        </div>
+        <div id="cliLista"></div>
     </div>`;
     cont.innerHTML = html;
     _pintarListaCli();
@@ -26116,13 +26120,11 @@ async function guardarEdicionSolicitud(id) {
         await renderFinanciamientos();
     } catch(e) { console.error('guardarEdicionSolicitud', e); toast('No se pudo actualizar.', 'error'); }
 }
-function editarCliente(id) {
-    if(!(isAdminUser() || tienePermiso('financiamientos_crear'))) { toast('No tienes permiso.', 'error'); return; }
-    const c = finClienteDe(id);
-    if(!c) return;
-    const refs = finReferenciasDe(id);
+// Campos del formulario de cliente (compartido por crear y editar)
+function _finClienteFormFields(c, refs) {
+    c = c || {}; refs = refs || [];
     const v = x => escapeHtml(x || '');
-    const html = `
+    return `
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
             <div class="form-row" style="flex:1; min-width:130px;"><label>Nombre *</label><input type="text" id="ecNombre" value="${v(c.nombre)}"></div>
             <div class="form-row" style="flex:1; min-width:130px;"><label>Apellido</label><input type="text" id="ecApellido" value="${v(c.apellido)}"></div>
@@ -26143,7 +26145,7 @@ function editarCliente(id) {
             <div class="form-row" style="flex:1; min-width:130px;"><label>Tiempo laborando</label><input type="text" id="ecTiempo" value="${v(c.tiempo_laborando)}"></div>
             <div class="form-row" style="flex:1; min-width:130px;"><label>Ingreso mensual</label><input type="number" id="ecIngreso" min="0" step="0.01" value="${c.ingreso_mensual || 0}"></div>
         </div>
-        <h4 style="margin:6px 0; font-size:13px; color:#16a34a;">Referencias</h4>
+        <h4 style="margin:6px 0; font-size:13px; color:var(--fin-ok);">Referencias</h4>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
             <div class="form-row" style="flex:2; min-width:110px;"><label>Ref 1 Nombre</label><input type="text" id="ecR1N" value="${v(refs[0]?.nombre)}"></div>
             <div class="form-row" style="flex:1; min-width:80px;"><label>Tel</label><input type="text" id="ecR1T" value="${v(refs[0]?.telefono)}"></div>
@@ -26153,7 +26155,54 @@ function editarCliente(id) {
             <div class="form-row" style="flex:2; min-width:110px;"><label>Ref 2 Nombre</label><input type="text" id="ecR2N" value="${v(refs[1]?.nombre)}"></div>
             <div class="form-row" style="flex:1; min-width:80px;"><label>Tel</label><input type="text" id="ecR2T" value="${v(refs[1]?.telefono)}"></div>
             <div class="form-row" style="flex:1; min-width:80px;"><label>Parent.</label><input type="text" id="ecR2P" value="${v(refs[1]?.parentesco)}"></div>
-        </div>
+        </div>`;
+}
+// Lee los campos ec* del formulario -> objeto cliente + referencias
+function _finLeerClienteForm() {
+    const val = x => (document.getElementById(x)?.value || '').trim();
+    const cliente = {
+        nombre: val('ecNombre'), apellido: val('ecApellido') || null, cedula: val('ecCedula') || null,
+        telefono: val('ecTelefono') || null, email: val('ecEmail') || null, direccion: val('ecDireccion') || null,
+        lugar_trabajo: val('ecLugar') || null, ocupacion: val('ecOcupacion') || null,
+        tiempo_laborando: val('ecTiempo') || null, ingreso_mensual: parseFloat(document.getElementById('ecIngreso')?.value) || 0
+    };
+    const refs = [];
+    if(val('ecR1N')) refs.push({ nombre: val('ecR1N'), telefono: val('ecR1T') || null, parentesco: val('ecR1P') || null });
+    if(val('ecR2N')) refs.push({ nombre: val('ecR2N'), telefono: val('ecR2T') || null, parentesco: val('ecR2P') || null });
+    return { cliente, refs };
+}
+function nuevoClienteFin() {
+    if(!(isAdminUser() || tienePermiso('financiamientos_crear'))) { toast('No tienes permiso.', 'error'); return; }
+    const html = _finClienteFormFields({}, []) + `
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button class="btn btn-light" onclick="document.getElementById('modalGenerico').remove()">Cancelar</button>
+            <button class="btn btn-blue" onclick="guardarNuevoCliente()"><i class="ti ti-user-plus"></i> Registrar cliente</button>
+        </div>`;
+    abrirModalGenerico('Nuevo cliente', html);
+    setTimeout(() => document.getElementById('ecNombre')?.focus(), 60);
+}
+async function guardarNuevoCliente() {
+    if(!(isAdminUser() || tienePermiso('financiamientos_crear'))) { toast('No tienes permiso.', 'error'); return; }
+    const { cliente, refs } = _finLeerClienteForm();
+    if(!cliente.nombre) { toast('El nombre es obligatorio.', 'error'); return; }
+    try {
+        const usuario = sessionUser?.nombre || sessionUser?.usuario || 'Sistema';
+        const { data, error } = await supabaseClient.from('fin_clientes').insert([{ ...cliente, creado_por: usuario }]).select('id').single();
+        if(error) throw error;
+        if(refs.length) await supabaseClient.from('fin_referencias').insert(refs.map(r => ({ ...r, cliente_id: data.id })));
+        document.getElementById('modalGenerico')?.remove();
+        toast('Cliente registrado.');
+        await cargarFinanciamientos();
+        _cliBusqueda = cliente.nombre;
+        _pintarClientes();
+    } catch(e) { console.error('guardarNuevoCliente', e); toast('No se pudo registrar el cliente.', 'error'); }
+}
+function editarCliente(id) {
+    if(!(isAdminUser() || tienePermiso('financiamientos_crear'))) { toast('No tienes permiso.', 'error'); return; }
+    const c = finClienteDe(id);
+    if(!c) return;
+    const refs = finReferenciasDe(id);
+    const html = _finClienteFormFields(c, refs) + `
         <div style="display:flex; gap:8px; justify-content:flex-end;">
             <button class="btn btn-light" onclick="document.getElementById('modalGenerico').remove()">Cancelar</button>
             <button class="btn btn-blue" onclick="guardarEdicionCliente('${id}')"><i class="ti ti-device-floppy"></i> Guardar</button>
