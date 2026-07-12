@@ -25348,24 +25348,38 @@ function _pintarMDMTab() {
             </div>
         </div>`;
     if(!lista.length) { html += `<div style="color:var(--text-muted); font-size:13px;">No hay equipos en esta vista.</div></div>`; cont.innerHTML = html; return; }
-    html += `<div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Equipo</th><th>IMEI</th><th>Estado</th><th>Últ. acción</th><th>Acciones</th></tr></thead><tbody>`;
+    html += `<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:10px;">`;
     html += lista.map(f => {
         const est = f.mdm_estado || 'ninguno';
         const ei = { ninguno: ['Sin MDM', 'muted'], activo: ['Activo', 'ok'], bloqueado: ['Bloqueado', 'danger'], liberado: ['Liberado', 'info'] }[est] || ['?', 'muted'];
-        return `<tr>
-            <td><b>${escapeHtml(f.cliente_nombre || '')}</b> <span style="color:var(--fin-muted);">#${f.codigo}</span></td>
-            <td>${escapeHtml(f.concepto || '')}</td>
-            <td style="font-size:12px;">${escapeHtml(f.mdm_serial || f.equipo_imei || '—')}</td>
-            <td><span class="fin-badge ${ei[1]}">${ei[0]}</span></td>
-            <td style="font-size:11.5px; color:var(--text-muted);">${f.mdm_accion_en ? new Date(f.mdm_accion_en).toLocaleDateString('es-DO') : '—'}</td>
-            <td style="white-space:nowrap;">
-                ${puedeMDM && est !== 'bloqueado' ? `<button class="btn btn-light" onclick="mdmAccionReal('${f.id}','bloquear')" style="font-size:11px; padding:3px 7px; color:var(--fin-danger);" title="Bloquear"><i class="ti ti-lock"></i></button>` : ''}
-                ${puedeMDM && est === 'bloqueado' ? `<button class="btn btn-light" onclick="mdmAccionReal('${f.id}','desbloquear')" style="font-size:11px; padding:3px 7px; color:var(--fin-ok);" title="Desbloquear"><i class="ti ti-lock-open"></i></button>` : ''}
-                <button class="btn btn-blue" onclick="verFinanciamiento('${f.id}')" style="font-size:11px; padding:3px 7px;" title="Gestionar"><i class="ti ti-device-mobile-cog"></i></button>
-            </td>
-        </tr>`;
+        const bloqueado = est === 'bloqueado';
+        const iconoBg = bloqueado ? 'var(--fin-danger-bg)' : (f.mdm_enrolado ? 'var(--fin-ok-bg)' : '#f1f5f9');
+        const iconoCol = bloqueado ? 'var(--fin-danger)' : (f.mdm_enrolado ? 'var(--fin-ok)' : 'var(--fin-muted)');
+        const serial = f.mdm_serial || f.equipo_imei || '—';
+        return `<div style="border:1px solid var(--border-color); border-radius:13px; padding:13px; background:#fff;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+                <div style="display:flex; gap:10px; min-width:0;">
+                    <div style="width:40px; height:40px; border-radius:11px; flex:none; display:flex; align-items:center; justify-content:center; background:${iconoBg};"><i class="ti ${bloqueado ? 'ti-lock' : 'ti-device-mobile'}" style="font-size:21px; color:${iconoCol};"></i></div>
+                    <div style="min-width:0;">
+                        <div style="font-weight:700; font-size:14px;">${escapeHtml(f.cliente_nombre || 'Cliente')} <span style="color:var(--fin-muted); font-weight:600;">#${escapeHtml(String(f.codigo || ''))}</span></div>
+                        <div style="font-size:12.5px; color:var(--text-muted);">${escapeHtml(f.concepto || 'Equipo')}</div>
+                    </div>
+                </div>
+                <span class="fin-badge ${ei[1]}" style="flex:none;">${ei[0]}</span>
+            </div>
+            <div style="font-size:12px; color:var(--text-muted); margin-top:9px; display:flex; flex-wrap:wrap; gap:3px 12px;">
+                <span><i class="ti ti-fingerprint"></i> ${escapeHtml(serial)}</span>
+                ${f.mdm_enrolado ? '<span style="color:var(--fin-ok); font-weight:700;"><i class="ti ti-circle-check"></i> Enrolado</span>' : '<span style="color:var(--fin-warn); font-weight:700;"><i class="ti ti-alert-circle"></i> No enrolado</span>'}
+                ${f.mdm_accion_en ? `<span><i class="ti ti-clock"></i> ${new Date(f.mdm_accion_en).toLocaleDateString('es-DO')}</span>` : ''}
+            </div>
+            <div style="display:flex; gap:6px; margin-top:11px; flex-wrap:wrap;">
+                ${puedeMDM && est !== 'bloqueado' ? `<button class="btn btn-light" onclick="mdmAccionReal('${f.id}','bloquear')" style="font-size:12px; color:var(--fin-danger);"><i class="ti ti-lock"></i> Bloquear</button>` : ''}
+                ${puedeMDM && est === 'bloqueado' ? `<button class="btn btn-light" onclick="mdmAccionReal('${f.id}','desbloquear')" style="font-size:12px; color:var(--fin-ok);"><i class="ti ti-lock-open"></i> Desbloquear</button>` : ''}
+                <button class="btn btn-blue" onclick="verFinanciamiento('${f.id}')" style="font-size:12px; margin-left:auto;"><i class="ti ti-device-mobile-cog"></i> Gestionar</button>
+            </div>
+        </div>`;
     }).join('');
-    html += `</tbody></table></div></div>`;
+    html += `</div></div>`;
     cont.innerHTML = html;
 }
 
