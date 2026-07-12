@@ -23835,9 +23835,9 @@ function _pintarFinanciamientos() {
 
     // Filtro + buscador
     let html = `<div class="card" style="margin-bottom:14px;">
-        <input id="finBuscador" oninput="_finBusqueda=this.value; _pintarListaFin()" value="${escapeHtml(_finBusqueda)}" placeholder="🔍 Buscar por cliente, concepto o # código..." style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; margin-bottom:10px;">
+        <input id="finBuscador" oninput="_finBusqueda=this.value; _pintarListaFin()" value="${escapeHtml(_finBusqueda)}" placeholder="Buscar por cliente, concepto o # código..." style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; margin-bottom:10px;">
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
-            ${['activos', 'atrasados', 'saldados', 'todos'].map(ff => `<button class="btn btn-light" onclick="_finFiltro='${ff}'; _pintarFinanciamientos()" style="font-size:12px; ${_finFiltro === ff ? 'background:#dcfce7; color:#15803d; font-weight:700;' : ''}">${({ activos: '⚙️ Activos', atrasados: '⚠️ Atrasados', saldados: '✅ Saldados', todos: 'Todos' })[ff]}</button>`).join('')}
+            ${['activos', 'atrasados', 'saldados', 'todos'].map(ff => `<button class="btn btn-light" onclick="_finFiltro='${ff}'; _pintarFinanciamientos()" style="font-size:12px; ${_finFiltro === ff ? 'background:#dcfce7; color:#15803d; font-weight:700;' : ''}">${({ activos: 'Activos', atrasados: 'Atrasados', saldados: 'Saldados', todos: 'Todos' })[ff]}</button>`).join('')}
         </div>
         <div id="finLista" style="margin-top:12px;"></div>
     </div>`;
@@ -23920,11 +23920,11 @@ function _pintarDetalleFin() {
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap;">
             <div>
                 <h3 style="margin:0 0 2px; font-size:16px;">${escapeHtml(f.cliente_nombre || 'Sin cliente')} <span style="color:#94a3b8; font-size:13px;">#${f.codigo || '—'}</span></h3>
-                <div style="font-size:13px; color:var(--text-muted);">📱 ${escapeHtml(f.concepto || '')}${f.equipo_capacidad ? ' · ' + escapeHtml(f.equipo_capacidad) : ''}${f.equipo_imei ? ' · IMEI: ' + escapeHtml(f.equipo_imei) : ''}</div>
+                <div style="font-size:13px; color:var(--text-muted);"><i class="ti ti-device-mobile"></i> ${escapeHtml(f.concepto || '')}${f.equipo_capacidad ? ' · ' + escapeHtml(f.equipo_capacidad) : ''}${f.equipo_imei ? ' · IMEI: ' + escapeHtml(f.equipo_imei) : ''}</div>
                 ${f.cliente_telefono ? `<div style="font-size:12px; color:var(--text-muted);"><i class="ti ti-phone"></i> ${escapeHtml(f.cliente_telefono)}</div>` : ''}
                 ${(finClienteDe(f.fin_cliente_id) || {}).email ? `<div style="font-size:12px; color:var(--text-muted);"><i class="ti ti-mail"></i> ${escapeHtml((finClienteDe(f.fin_cliente_id) || {}).email)}</div>` : ''}
             </div>
-            <div style="text-align:right;">${finBadge(est)}<div style="margin-top:6px; display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end;"><button class="btn btn-light" onclick="abrirContratoFin('${f.id}')" style="font-size:11px;"><i class="ti ti-file-certificate"></i> Contrato${f.contrato_en ? ' ✓' : ''}</button><button class="btn btn-light" onclick="imprimirCalendarioPagos('${f.id}')" style="font-size:11px;"><i class="ti ti-calendar"></i> Calendario de pagos</button><button class="btn btn-light" onclick="imprimirEstadoCuentaFin('${f.id}')" style="font-size:11px;"><i class="ti ti-printer"></i> Estado de cuenta</button>${est === 'saldado' ? `<button class="btn btn-light" onclick="imprimirCartaSaldo('${f.id}')" style="font-size:11px; color:#15803d;"><i class="ti ti-award"></i> Carta de saldo</button>` : ''}</div></div>
+            <div style="text-align:right;">${finBadge(est)}<div style="margin-top:6px; display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end;"><button class="btn btn-light" onclick="abrirContratoFin('${f.id}')" style="font-size:11px;"><i class="ti ti-file-certificate"></i> Contrato${f.contrato_en ? ' <i class="ti ti-check" style="color:var(--fin-ok);"></i>' : ''}</button><button class="btn btn-light" onclick="imprimirCalendarioPagos('${f.id}')" style="font-size:11px;"><i class="ti ti-calendar"></i> Calendario de pagos</button><button class="btn btn-light" onclick="imprimirEstadoCuentaFin('${f.id}')" style="font-size:11px;"><i class="ti ti-printer"></i> Estado de cuenta</button>${est === 'saldado' ? `<button class="btn btn-light" onclick="imprimirCartaSaldo('${f.id}')" style="font-size:11px; color:#15803d;"><i class="ti ti-award"></i> Carta de saldo</button>` : ''}</div></div>
         </div>
         <div class="kpi-row" style="margin-top:12px;">
             <div class="kpi-box" style="border-top-color:#1e293b;"><small>Precio total</small><strong>${money(f.monto_total)}</strong></div>
@@ -23934,8 +23934,8 @@ function _pintarDetalleFin() {
         </div>
         <div style="font-size:12px; color:var(--text-muted); margin-top:8px;">
             ${f.num_cuotas} cuota${f.num_cuotas == 1 ? '' : 's'} de ${money(f.valor_cuota)} · ${FIN_FREC_TXT[f.frecuencia] || f.frecuencia} · Inicio ${_finFmtFecha(_finAddPeriodo(f.fecha_inicio, f.frecuencia, 0))}
-            ${finInteresTotal(f) > 0 ? `<br>💵 A financiar ${money(finFinanciado(f))} + interés ${money(finInteresTotal(f))} = total ${money(finMontoCuotas(f))} · ${escapeHtml(finInteresTxt(f))}` : ''}
-            ${f.notas ? '<br>📝 ' + escapeHtml(f.notas) : ''}
+            ${finInteresTotal(f) > 0 ? `<br>A financiar ${money(finFinanciado(f))} + interés ${money(finInteresTotal(f))} = total ${money(finMontoCuotas(f))} · ${escapeHtml(finInteresTxt(f))}` : ''}
+            ${f.notas ? '<br><i class="ti ti-note"></i> ' + escapeHtml(f.notas) : ''}
         </div>
     </div>`;
 
@@ -23949,7 +23949,7 @@ function _pintarDetalleFin() {
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
                 <h3 style="margin:0; font-size:15px;"><i class="ti ti-device-mobile-cog" style="color:#0f172a;"></i> Control MDM <span id="mdmBadge_${f.id}" style="background:${estInfo.b}; color:${estInfo.c}; font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px;">${estInfo.t}</span></h3>
             </div>
-            ${enMora && f.mdm_enrolado && est === 'activo' ? `<div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:8px 12px; border-radius:8px; margin-top:10px; font-size:12.5px;">⚠️ Cliente en atraso y equipo enrolado — candidato a bloqueo desde Hexnode.</div>` : ''}
+            ${enMora && f.mdm_enrolado && est === 'activo' ? `<div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:8px 12px; border-radius:8px; margin-top:10px; font-size:12.5px;"><i class="ti ti-alert-triangle"></i> Cliente en atraso y equipo enrolado — candidato a bloqueo desde Hexnode.</div>` : ''}
             <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin-top:10px;">
                 <label style="display:flex; align-items:center; gap:6px; font-size:13px; text-transform:none; color:var(--text-dark);"><input type="checkbox" id="mdmEnrolado" ${f.mdm_enrolado ? 'checked' : ''} style="width:auto;"> Equipo enrolado en MDM</label>
                 <div style="flex:1; min-width:130px;"><label>Estado</label><select id="mdmEstado"><option value="ninguno" ${est === 'ninguno' ? 'selected' : ''}>Sin MDM</option><option value="activo" ${est === 'activo' ? 'selected' : ''}>Activo</option><option value="bloqueado" ${est === 'bloqueado' ? 'selected' : ''}>Bloqueado</option><option value="liberado" ${est === 'liberado' ? 'selected' : ''}>Liberado</option></select></div>
@@ -24003,10 +24003,10 @@ function _pintarDetalleFin() {
         <div class="table-wrap"><table><thead><tr><th>#</th><th>Vence</th><th style="text-align:right;">Cuota</th><th style="text-align:right;">Saldo</th><th>Estado</th></tr></thead><tbody>`;
     html += crono.map(c => {
         let badge, color;
-        if(c.cubierta) { badge = '✅ Pagada'; color = '#16a34a'; }
-        else if(c.pagado > 0) { badge = `🟡 Parcial (${money(c.pagado)})`; color = '#b45309'; }
-        else if(c.vence < hoy) { badge = '🔴 Vencida'; color = '#b91c1c'; }
-        else { badge = '⚪ Pendiente'; color = '#64748b'; }
+        if(c.cubierta) { badge = 'Pagada'; color = 'var(--fin-ok)'; }
+        else if(c.pagado > 0) { badge = `Parcial (${money(c.pagado)})`; color = 'var(--fin-warn)'; }
+        else if(c.vence < hoy) { badge = 'Vencida'; color = 'var(--fin-danger)'; }
+        else { badge = 'Pendiente'; color = 'var(--fin-muted)'; }
         _saldoAmort = Math.round((_saldoAmort - c.valor) * 100) / 100; if(_saldoAmort < 0) _saldoAmort = 0;
         return `<tr><td>${c.num}</td><td>${_finFmtFecha(c.vence)}</td><td style="text-align:right;">${money(c.valor)}</td><td style="text-align:right;">${money(_saldoAmort)}</td><td style="color:${color}; font-weight:600;">${badge}</td></tr>`;
     }).join('');
@@ -24072,9 +24072,9 @@ function _pintarSolicitudes() {
             kpi('Total', lista.length, '#0891b2', 'ti-file-text');
     }
     let html = `<div class="card" style="margin-bottom:14px;">
-        <input id="solBuscador" oninput="_solBusqueda=this.value; _pintarListaSol()" value="${escapeHtml(_solBusqueda)}" placeholder="🔍 Buscar por cliente, concepto o # código..." style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; margin-bottom:10px;">
+        <input id="solBuscador" oninput="_solBusqueda=this.value; _pintarListaSol()" value="${escapeHtml(_solBusqueda)}" placeholder="Buscar por cliente, concepto o # código..." style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; margin-bottom:10px;">
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
-            ${['pendientes', 'aprobadas', 'rechazadas', 'todas'].map(ff => `<button class="btn btn-light" onclick="_solFiltro='${ff}'; _pintarSolicitudes()" style="font-size:12px; ${_solFiltro === ff ? 'background:#dcfce7; color:#15803d; font-weight:700;' : ''}">${({ pendientes: '⏳ Pendientes', aprobadas: '✅ Aprobadas', rechazadas: '❌ Rechazadas', todas: 'Todas' })[ff]}</button>`).join('')}
+            ${['pendientes', 'aprobadas', 'rechazadas', 'todas'].map(ff => `<button class="btn btn-light" onclick="_solFiltro='${ff}'; _pintarSolicitudes()" style="font-size:12px; ${_solFiltro === ff ? 'background:#dcfce7; color:#15803d; font-weight:700;' : ''}">${({ pendientes: 'Pendientes', aprobadas: 'Aprobadas', rechazadas: 'Rechazadas', todas: 'Todas' })[ff]}</button>`).join('')}
         </div>
         <div id="solLista" style="margin-top:12px;"></div>
     </div>`;
@@ -24136,8 +24136,8 @@ function _pintarDetalleSol() {
             <h3 style="margin:0; font-size:16px;">Solicitud #${s.codigo || '—'} ${solBadge(s.estado)}</h3>
             <small style="color:var(--text-muted);">${s.creado_en ? new Date(s.creado_en).toLocaleString('es-DO') : ''}</small>
         </div>
-        ${s.estado === 'rechazada' && s.motivo_rechazo ? `<div style="background:#fee2e2; color:#991b1b; padding:8px 12px; border-radius:8px; margin-top:10px; font-size:13px;">❌ Motivo de rechazo: ${escapeHtml(s.motivo_rechazo)}</div>` : ''}
-        ${s.estado === 'aprobada' ? `<div style="background:#dcfce7; color:#15803d; padding:8px 12px; border-radius:8px; margin-top:10px; font-size:13px;">✅ Aprobada${s.decidido_por ? ' por ' + escapeHtml(s.decidido_por) : ''}. ${s.financiamiento_id ? '<a href="javascript:void(0)" onclick="_finTab=\'financiamientos\'; verFinanciamiento(\'' + s.financiamiento_id + '\')" style="color:#15803d; font-weight:700;">Ver financiamiento →</a>' : ''}</div>` : ''}
+        ${s.estado === 'rechazada' && s.motivo_rechazo ? `<div style="background:#fee2e2; color:#991b1b; padding:8px 12px; border-radius:8px; margin-top:10px; font-size:13px;"><i class="ti ti-x"></i> Motivo de rechazo: ${escapeHtml(s.motivo_rechazo)}</div>` : ''}
+        ${s.estado === 'aprobada' ? `<div style="background:#dcfce7; color:#15803d; padding:8px 12px; border-radius:8px; margin-top:10px; font-size:13px;"><i class="ti ti-circle-check"></i> Aprobada${s.decidido_por ? ' por ' + escapeHtml(s.decidido_por) : ''}. ${s.financiamiento_id ? '<a href="javascript:void(0)" onclick="_finTab=\'financiamientos\'; verFinanciamiento(\'' + s.financiamiento_id + '\')" style="color:#15803d; font-weight:700;">Ver financiamiento →</a>' : ''}</div>` : ''}
     </div>`;
 
     // Datos del cliente
@@ -24166,7 +24166,7 @@ function _pintarDetalleSol() {
     html += `<div class="card" style="margin-bottom:14px;">
         <h3 style="margin:0 0 10px; font-size:14px;"><i class="ti ti-users" style="color:#16a34a;"></i> Referencias (${refs.length})</h3>`;
     if(refs.length) {
-        html += refs.map(r => `<div style="border-bottom:1px solid #f1f5f9; padding:6px 0; font-size:13px;"><b>${escapeHtml(r.nombre)}</b>${r.parentesco ? ' · ' + escapeHtml(r.parentesco) : ''}${r.telefono ? ' · 📞 ' + escapeHtml(r.telefono) : ''}</div>`).join('');
+        html += refs.map(r => `<div style="border-bottom:1px solid #f1f5f9; padding:6px 0; font-size:13px;"><b>${escapeHtml(r.nombre)}</b>${r.parentesco ? ' · ' + escapeHtml(r.parentesco) : ''}${r.telefono ? ' · ' + escapeHtml(r.telefono) : ''}</div>`).join('');
     } else {
         html += `<div style="color:var(--text-muted); font-size:13px;">Sin referencias registradas.</div>`;
     }
@@ -24185,7 +24185,7 @@ function _pintarDetalleSol() {
             ${dato('Cuotas', `${s.num_cuotas} x ${money(s.valor_cuota)} (${FIN_FREC_TXT[s.frecuencia] || s.frecuencia})`)}
             ${dato('Inicio', _finFmtFecha(_finAddPeriodo(s.fecha_inicio, s.frecuencia, 0)))}
         </div>
-        ${s.notas ? `<div style="margin-top:8px; font-size:12.5px; color:var(--text-muted);">📝 ${escapeHtml(s.notas)}</div>` : ''}
+        ${s.notas ? `<div style="margin-top:8px; font-size:12.5px; color:var(--text-muted);"><i class="ti ti-note"></i> ${escapeHtml(s.notas)}</div>` : ''}
     </div>`;
 
     // Tabla de amortización
@@ -24278,7 +24278,7 @@ function abrirModalNuevaSolicitud() {
             <div class="form-row" style="flex:1; min-width:120px;"><label>Frecuencia</label><select id="solFrecuencia"><option value="semanal">Semanal</option><option value="quincenal">Quincenal</option><option value="mensual" selected>Mensual</option></select></div>
         </div>
         <div class="form-row"><label>Fecha de inicio (al aprobar)</label><input type="date" id="solFechaInicio" value="${hoyISO}"></div>
-        <div class="form-row"><label>⚡ Plan Smart (opcional)</label><select id="solPlan" onchange="_aplicarPlanSol()"><option value="">— Manual —</option>${_finPlanesOptions()}</select></div>
+        <div class="form-row"><label>Plan Smart (opcional)</label><select id="solPlan" onchange="_aplicarPlanSol()"><option value="">— Manual —</option>${_finPlanesOptions()}</select></div>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
             <div class="form-row" style="flex:1; min-width:150px;"><label>Interés</label><select id="solInteresMetodo" onchange="_solRecalcCuota()"><option value="plano">Plano (sobre el monto)</option><option value="saldo">Sobre saldo (francés)</option></select></div>
             <div class="form-row" style="flex:1; min-width:110px;"><label>Tasa % por cuota</label><input type="number" id="solInteresTasa" min="0" step="0.01" value="0" oninput="_solRecalcCuota()"></div>
@@ -24429,7 +24429,7 @@ async function guardarSolicitud() {
         }]);
         if(errS) throw errS;
         document.getElementById('modalGenerico')?.remove();
-        toast('✅ Solicitud registrada (pendiente de aprobación).');
+        toast('Solicitud registrada (pendiente de aprobación).');
         _finTab = 'solicitudes'; _solFiltro = 'pendientes';
         await renderFinanciamientos();
     } catch(e) {
@@ -24471,7 +24471,7 @@ async function aprobarSolicitud(solId) {
         }]).select('id').single();
         if(error) throw error;
         await supabaseClient.from('fin_solicitudes').update({ estado: 'aprobada', decidido_por: usuario, decidido_en: new Date().toISOString(), financiamiento_id: fin.id }).eq('id', solId);
-        toast('✅ Solicitud aprobada. Financiamiento creado.');
+        toast('Solicitud aprobada. Financiamiento creado.');
         _solDetalleId = null;
         _finTab = 'financiamientos';
         await cargarFinanciamientos();
@@ -24675,7 +24675,7 @@ async function registrarAbonoFin(finId) {
             await supabaseClient.from('financiamientos').update({ estado: 'saldado' }).eq('id', finId);
             fAct.estado = 'saldado';
         }
-        toast('✅ Abono registrado.');
+        toast('Abono registrado.');
         // Actualizar la vista de detalle detrás del modal y mostrar el éxito dentro del mismo modal flotante (sin abrir otra ventana)
         const nuevo = finPagosDe(finId).slice(-1)[0];
         _pintarFinanciamientos();
@@ -24727,7 +24727,7 @@ function _finAbrirImpresion(titulo, cuerpo) {
         ${cuerpo}
         <hr>
         <div class="muted" style="text-align:center;">${escapeHtml((_finCache.config && _finCache.config.recibo_pie) || (cache.configTaller || {}).pie || 'Gracias por su pago')}</div>
-        <div style="text-align:center; margin-top:14px;"><button onclick="window.print()" style="padding:8px 16px; font-size:14px; cursor:pointer;">🖨️ Imprimir</button></div>
+        <div style="text-align:center; margin-top:14px;"><button onclick="window.print()" style="padding:8px 16px; font-size:14px; cursor:pointer;">Imprimir</button></div>
         </body></html>`);
     w.document.close();
 }
@@ -24808,8 +24808,8 @@ function imprimirReciboFin(pagoId) {
         <div class="c muted">${escapeHtml((_finCache.config && _finCache.config.recibo_pie) || c.pie || '¡Gracias por su pago!')}</div>
         <div class="c muted" style="margin-top:4px;">Recibido por: ${escapeHtml(p.recibido_por || '')}</div>
         <div class="btns">
-            <button onclick="window.print()" style="background:#0f172a; color:#fff;">🖨️ Imprimir</button>
-            ${wa && wa.hasNum ? `<a href="${wa.url}" target="_blank" style="background:#16a34a; color:#fff;">📲 WhatsApp</a>` : ''}
+            <button onclick="window.print()" style="background:#0f172a; color:#fff;">Imprimir</button>
+            ${wa && wa.hasNum ? `<a href="${wa.url}" target="_blank" style="background:#16a34a; color:#fff;"><i class="ti ti-brand-whatsapp"></i> WhatsApp</a>` : ''}
         </div>
         </body></html>`);
     w.document.close();
@@ -24852,7 +24852,7 @@ function imprimirCartaSaldo(finId) {
         ${parrafos}
         <div class="firma"><div style="border-top:1px solid #333; padding-top:6px;">Por ${escapeHtml(c.nombre || 'la empresa')}</div></div>
         <p class="muted" style="text-align:center; margin-top:26px;">Documento generado el ${new Date().toLocaleString('es-DO')}</p>
-        <div style="text-align:center; margin-top:18px;"><button onclick="window.print()" style="padding:9px 18px; font-size:14px; cursor:pointer;">🖨️ Imprimir</button></div>
+        <div style="text-align:center; margin-top:18px;"><button onclick="window.print()" style="padding:9px 18px; font-size:14px; cursor:pointer;">Imprimir</button></div>
         </body></html>`);
     w.document.close();
     // Ofrecer liberar el equipo del MDM (el cliente pagó en su totalidad)
@@ -24968,7 +24968,7 @@ function _pintarClientes() {
         kpis.innerHTML = kpi('Clientes', clientes.length, '#0891b2', 'ti-users') + kpi('Con financiamiento activo', conActivo.length, '#16a34a', 'ti-user-check');
     }
     let html = `<div class="card" style="margin-bottom:14px;">
-        <input id="cliBuscador" oninput="_cliBusqueda=this.value; _pintarListaCli()" value="${escapeHtml(_cliBusqueda)}" placeholder="🔍 Buscar por nombre, cédula o teléfono..." style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
+        <input id="cliBuscador" oninput="_cliBusqueda=this.value; _pintarListaCli()" value="${escapeHtml(_cliBusqueda)}" placeholder="Buscar por nombre, cédula o teléfono..." style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
         <div id="cliLista" style="margin-top:12px;"></div>
     </div>`;
     cont.innerHTML = html;
@@ -24988,7 +24988,7 @@ function _pintarListaCli() {
         return `<div style="border:1px solid #e2e8f0; border-radius:12px; padding:12px; margin-bottom:10px; background:#fff; display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
             <div style="min-width:0;">
                 <div style="font-weight:700; font-size:14px;">${escapeHtml(`${c.nombre || ''} ${c.apellido || ''}`.trim())}</div>
-                <div style="font-size:12px; color:var(--text-muted);">${c.cedula ? '🪪 ' + escapeHtml(c.cedula) + ' · ' : ''}${c.telefono ? '📞 ' + escapeHtml(c.telefono) : ''}</div>
+                <div style="font-size:12px; color:var(--text-muted);">${c.cedula ? escapeHtml(c.cedula) + ' · ' : ''}${c.telefono ? '<i class="ti ti-phone"></i> ' + escapeHtml(c.telefono) : ''}</div>
                 <div style="font-size:12px; color:var(--text-muted);">${fins.length} financiamiento(s)${activos ? ' · ' + activos + ' activo(s)' : ''}${saldo > 0 ? ' · Saldo ' + money(saldo) : ''}</div>
             </div>
             <button class="btn btn-blue" onclick="verFinCliente('${c.id}')" style="font-size:12px;"><i class="ti ti-id"></i> Ficha</button>
@@ -25042,7 +25042,7 @@ function _pintarFichaCliente() {
             <div style="width:60px; height:60px; border-radius:50%; background:linear-gradient(135deg,#0891b2,#0e7490); color:#fff; display:flex; align-items:center; justify-content:center; font-size:26px; font-weight:800; flex:none;">${escapeHtml(inicial)}</div>
             <div style="flex:1; min-width:180px;">
                 <div style="font-size:18px; font-weight:800;">${escapeHtml(nombre)} <span style="background:${estInfo.b}; color:${estInfo.c}; font-size:11px; font-weight:700; padding:2px 9px; border-radius:999px; vertical-align:middle;">${estInfo.t}</span></div>
-                <div style="font-size:12.5px; color:var(--text-muted);">${c.cedula ? '🪪 ' + escapeHtml(c.cedula) + ' · ' : ''}${c.telefono ? '📞 ' + escapeHtml(c.telefono) : ''}</div>
+                <div style="font-size:12.5px; color:var(--text-muted);">${c.cedula ? escapeHtml(c.cedula) + ' · ' : ''}${c.telefono ? '<i class="ti ti-phone"></i> ' + escapeHtml(c.telefono) : ''}</div>
                 <div style="font-size:12px; color:var(--text-muted);">${fins.length} financiamiento(s) · Cliente desde ${c.creado_en ? new Date(c.creado_en).toLocaleDateString('es-DO', { month: 'short', year: 'numeric' }) : '—'}</div>
             </div>
             <div style="display:flex; gap:6px; flex-wrap:wrap;">
@@ -25100,7 +25100,7 @@ function _pintarFichaCliente() {
                 ${dato('Lugar de trabajo', c.lugar_trabajo)}${dato('Ocupación', c.ocupacion)}${dato('Tiempo laborando', c.tiempo_laborando)}
                 ${dato('Ingreso mensual', c.ingreso_mensual ? money(c.ingreso_mensual) : '—')}
             </div>
-            ${refs.length ? '<div style="margin-top:12px; border-top:1px solid #f1f5f9; padding-top:10px;"><b style="font-size:13px;">Referencias</b>' + refs.map(r => `<div style="font-size:12.5px; color:var(--text-muted); margin-top:4px;">• ${escapeHtml(r.nombre)}${r.parentesco ? ' (' + escapeHtml(r.parentesco) + ')' : ''}${r.telefono ? ' · 📞 ' + escapeHtml(r.telefono) : ''}</div>`).join('') + '</div>' : ''}
+            ${refs.length ? '<div style="margin-top:12px; border-top:1px solid #f1f5f9; padding-top:10px;"><b style="font-size:13px;">Referencias</b>' + refs.map(r => `<div style="font-size:12.5px; color:var(--text-muted); margin-top:4px;">• ${escapeHtml(r.nombre)}${r.parentesco ? ' (' + escapeHtml(r.parentesco) + ')' : ''}${r.telefono ? ' · ' + escapeHtml(r.telefono) : ''}</div>`).join('') + '</div>' : ''}
         </div>`;
     } else if(_cliTab === 'financiamientos') {
         html += `<div class="card">${fins.length ? fins.map(f => `<div style="border:1px solid #e2e8f0; border-radius:10px; padding:10px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
@@ -25155,7 +25155,7 @@ function _pintarCobros() {
         const kpi = (label, val, color, icon) => `<div class="kpi-box" style="border-top-color:${color};"><small>${label}</small><strong>${val}</strong><i class="ti ${icon}"></i></div>`;
         kpis.innerHTML = kpi('Vencen hoy', hoyC.length, '#b45309', 'ti-calendar-due') + kpi('Atrasadas', atrasadas.length, '#b91c1c', 'ti-alert-triangle') + kpi('Monto en atraso', money(totalAtraso), '#dc2626', 'ti-cash');
     }
-    const filtros = { atrasados: '⚠️ Atrasados', hoy: '📅 Vencen hoy', semana: '7 días', mes: '30 días' };
+    const filtros = { atrasados: 'Atrasados', hoy: 'Vencen hoy', semana: '7 días', mes: '30 días' };
     const nRecoCobros = finRecordatoriosHoy().filter(x => !x.enviado).length;
     let html = `<div class="card" style="margin-bottom:14px;">
         <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; align-items:center;">
@@ -25171,9 +25171,9 @@ function _pintarCobros() {
     else if(_cobrosFiltro === 'semana') lista = todas.filter(x => x.dias >= -7);
     else lista = todas.filter(x => x.dias >= -30);
     const cont2 = document.getElementById('cobrosLista');
-    if(!lista.length) { cont2.innerHTML = `<div style="color:var(--text-muted); font-size:13px;">Nada por cobrar en esta vista. 🎉</div>`; return; }
+    if(!lista.length) { cont2.innerHTML = `<div style="color:var(--text-muted); font-size:13px;">Nada por cobrar en esta vista.</div>`; return; }
     cont2.innerHTML = lista.map(x => {
-        const etiqueta = x.dias > 0 ? `<span style="color:#b91c1c; font-weight:700;">🔴 ${x.dias} día(s) de atraso</span>` : (x.dias === 0 ? `<span style="color:#b45309; font-weight:700;">📅 Vence hoy</span>` : `<span style="color:#64748b;">Faltan ${Math.abs(x.dias)} día(s)</span>`);
+        const etiqueta = x.dias > 0 ? `<span style="color:#b91c1c; font-weight:700;">${x.dias} día(s) de atraso</span>` : (x.dias === 0 ? `<span style="color:#b45309; font-weight:700;">Vence hoy</span>` : `<span style="color:#64748b;">Faltan ${Math.abs(x.dias)} día(s)</span>`);
         return `<div style="border:1px solid #e2e8f0; border-radius:10px; padding:10px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
             <div style="min-width:0;">
                 <div style="font-weight:700; font-size:13px;">${escapeHtml(x.f.cliente_nombre || '')} <span style="color:#94a3b8;">#${x.f.codigo}</span></div>
@@ -25217,7 +25217,7 @@ function _pintarMora() {
         <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px;">
             ${Object.keys(rangos).map(k => `<button class="btn btn-light" onclick="_moraFiltro='${k}'; _pintarMora()" style="font-size:12px; ${_moraFiltro === k ? 'background:#fee2e2; color:#b91c1c; font-weight:700;' : ''}">${rangos[k]}</button>`).join('')}
         </div>`;
-    if(!lista.length) { html += `<div style="color:var(--text-muted); font-size:13px;">Sin clientes en mora en este rango. 🎉</div></div>`; cont.innerHTML = html; return; }
+    if(!lista.length) { html += `<div style="color:var(--text-muted); font-size:13px;">Sin clientes en mora en este rango.</div></div>`; cont.innerHTML = html; return; }
     html += `<div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Contrato</th><th style="text-align:right;">Días</th><th style="text-align:right;">Cuotas venc.</th><th style="text-align:right;">Pendiente</th><th>Acciones</th></tr></thead><tbody>`;
     html += lista.map(x => {
         const f = x.f;
@@ -25467,9 +25467,9 @@ function _pintarReportes() {
                 <div class="kpi-box" style="border-top-color:#7c3aed;"><small>Este mes</small><strong>${money(cobradoMes)}</strong></div>
             </div>
             <div class="table-wrap" style="margin-top:8px;"><table><tbody>
-                ${fila('💵 Efectivo (mes)', money(porMetodo.efectivo))}
-                ${fila('🏦 Transferencia (mes)', money(porMetodo.transferencia))}
-                ${fila('💳 Tarjeta (mes)', money(porMetodo.tarjeta))}
+                ${fila('Efectivo (mes)', money(porMetodo.efectivo))}
+                ${fila('Transferencia (mes)', money(porMetodo.transferencia))}
+                ${fila('Tarjeta (mes)', money(porMetodo.tarjeta))}
             </tbody></table></div>
         </div>
         <div class="card" style="margin-bottom:14px;">
@@ -25529,7 +25529,7 @@ function abrirContratoFin(finId) {
     modal.innerHTML = `<div style="background:#fff; border-radius:16px; padding:18px; max-width:560px; width:100%; box-shadow:0 25px 60px -12px rgba(15,23,42,0.35); margin:auto;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
             <b style="font-size:16px; color:#16a34a;"><i class="ti ti-file-certificate"></i> Contrato #${f.codigo || '—'}</b>
-            <button onclick="cerrarModalContrato()" style="background:#fee2e2; color:#991b1b; border:0; width:32px; height:32px; border-radius:10px; cursor:pointer; font-size:16px;">✕</button>
+            <button onclick="cerrarModalContrato()" style="background:#fee2e2; color:#991b1b; border:0; width:32px; height:32px; border-radius:10px; cursor:pointer; font-size:16px;"><i class="ti ti-x"></i></button>
         </div>
         <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px; font-size:12.5px; line-height:1.5; max-height:180px; overflow-y:auto; margin-bottom:12px;">
             <div style="text-align:center; font-weight:800; margin-bottom:6px;">${escapeHtml(_finTienda())} — CONTRATO DE FINANCIAMIENTO</div>
@@ -25542,7 +25542,7 @@ function abrirContratoFin(finId) {
 
         <!-- Video de evidencia -->
         <div style="border:1px solid #e2e8f0; border-radius:10px; padding:12px; margin-bottom:12px;">
-            <b style="font-size:13px;"><i class="ti ti-video" style="color:#dc2626;"></i> Video de evidencia ${f.video_url ? '✓' : ''}</b>
+            <b style="font-size:13px;"><i class="ti ti-video" style="color:#dc2626;"></i> Video de evidencia ${f.video_url ? '<i class="ti ti-check" style="color:var(--fin-ok);"></i>' : ''}</b>
             <p style="font-size:11.5px; color:var(--text-muted); margin:6px 0;">El cliente debe leer el siguiente texto frente a la cámara:</p>
             <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:8px; font-size:12px; line-height:1.5; max-height:110px; overflow-y:auto;">${escapeHtml(_finTextoEvidencia(f))}</div>
             <video id="finVideoPreview" playsinline controls style="width:100%; border-radius:8px; background:#000; margin-top:8px; max-height:220px;" ${f.video_url ? `src="${f.video_url}"` : ''}></video>
@@ -25603,7 +25603,7 @@ async function guardarContratoFin(finId) {
     if(!firmaCli && !firmaTienda) { toast('Falta al menos una firma.', 'error'); return; }
     try {
         await supabaseClient.from('financiamientos').update({ firma_cliente: firmaCli, firma_tienda: firmaTienda, contrato_en: new Date().toISOString() }).eq('id', finId);
-        toast('✅ Firmas guardadas.');
+        toast('Firmas guardadas.');
         await cargarFinanciamientos();
     } catch(e) { console.error('guardarContratoFin', e); toast('No se pudo guardar.', 'error'); }
 }
@@ -25654,7 +25654,7 @@ function imprimirContratoFin(finId) {
         </div>
         ${bloqueAbogado}
         <p class="muted" style="text-align:center; margin-top:24px;">Documento generado el ${new Date().toLocaleString('es-DO')}</p>
-        <div style="text-align:center; margin-top:18px;"><button onclick="window.print()" style="padding:8px 18px; font-size:14px; cursor:pointer;">🖨️ Imprimir</button></div>
+        <div style="text-align:center; margin-top:18px;"><button onclick="window.print()" style="padding:8px 18px; font-size:14px; cursor:pointer;">Imprimir</button></div>
         </body></html>`);
     w.document.close();
 }
@@ -25707,7 +25707,7 @@ async function _finVideoSubir(finId) {
         if(error) throw error;
         // Bucket privado: se guarda la RUTA; el enlace firmado se genera al cargar
         await supabaseClient.from('financiamientos').update({ video_url: path, video_en: new Date().toISOString() }).eq('id', finId);
-        toast('✅ Video de evidencia guardado.');
+        toast('Video de evidencia guardado.');
         _finBlob = null;
         await cargarFinanciamientos();
         abrirContratoFin(finId);
@@ -25721,7 +25721,7 @@ function _finDocSlot(label, tipo, clienteId, finId, refId) {
     const existing = (_finCache.documentos || []).filter(d => d.tipo === tipo && (refId ? d.referencia_id === refId : (tipo === 'contrato' ? d.financiamiento_id === finId : d.cliente_id === clienteId))).slice(-1)[0];
     const inputId = `finDoc_${tipo}_${refId || clienteId || finId}`;
     return `<div style="border:1px solid #e2e8f0; border-radius:8px; padding:8px; flex:1; min-width:130px;">
-        <div style="font-size:11px; font-weight:600; margin-bottom:4px;">${escapeHtml(label)} ${existing ? '✓' : ''}</div>
+        <div style="font-size:11px; font-weight:600; margin-bottom:4px;">${escapeHtml(label)} ${existing ? '<i class="ti ti-check" style="color:var(--fin-ok);"></i>' : ''}</div>
         ${existing ? `<a href="${existing.url}" target="_blank"><img src="${existing.url}" style="width:100%; max-height:80px; object-fit:cover; border-radius:6px;"></a>` : ''}
         <input type="file" accept="image/*" capture="environment" id="${inputId}" onchange="_finSubirDoc(this,'${tipo}','${clienteId || ''}','${finId || ''}','${refId || ''}')" style="font-size:11px; margin-top:4px; width:100%;">
     </div>`;
@@ -25737,7 +25737,7 @@ async function _finSubirDoc(input, tipo, clienteId, finId, refId) {
         if(error) throw error;
         // Bucket privado: se guarda la RUTA; el enlace firmado se genera al cargar
         await supabaseClient.from('fin_documentos').insert([{ cliente_id: clienteId || null, financiamiento_id: finId || null, referencia_id: refId || null, tipo, url: path, creado_por: sessionUser?.nombre || sessionUser?.usuario || 'Sistema' }]);
-        toast('✅ Imagen guardada.');
+        toast('Imagen guardada.');
         await cargarFinanciamientos();
         if(finId) abrirContratoFin(finId);
     } catch(e) { console.error('_finSubirDoc', e); toast('No se pudo subir la imagen.', 'error'); }
@@ -25904,7 +25904,7 @@ async function guardarPlanSmart() {
     try {
         const { error } = await supabaseClient.from('fin_planes').insert([fila]);
         if(error) throw error;
-        toast('✅ Plan agregado.');
+        toast('Plan agregado.');
         await cargarFinanciamientos();
         _pintarConfigFin();
     } catch(e) { console.error('guardarPlanSmart', e); toast('No se pudo guardar el plan.', 'error'); }
@@ -25950,7 +25950,7 @@ async function guardarConfigFin() {
         const { error } = await supabaseClient.from('fin_config').upsert(datos);
         if(error) throw error;
         _finCache.config = datos;
-        toast('✅ Configuración guardada.');
+        toast('Configuración guardada.');
     } catch(e) { console.error('guardarConfigFin', e); toast('No se pudo guardar.', 'error'); }
 }
 
@@ -26036,7 +26036,7 @@ async function guardarEdicionSolicitud(id) {
         }).eq('id', id);
         if(error) throw error;
         document.getElementById('modalGenerico')?.remove();
-        toast('✅ Solicitud actualizada.');
+        toast('Solicitud actualizada.');
         await renderFinanciamientos();
     } catch(e) { console.error('guardarEdicionSolicitud', e); toast('No se pudo actualizar.', 'error'); }
 }
@@ -26101,7 +26101,7 @@ async function guardarEdicionCliente(id) {
         if(val('ecR2N')) refs.push({ cliente_id: id, nombre: val('ecR2N'), telefono: val('ecR2T') || null, parentesco: val('ecR2P') || null });
         if(refs.length) await supabaseClient.from('fin_referencias').insert(refs);
         document.getElementById('modalGenerico')?.remove();
-        toast('✅ Cliente actualizado.');
+        toast('Cliente actualizado.');
         await renderFinanciamientos();
     } catch(e) { console.error('guardarEdicionCliente', e); toast('No se pudo actualizar.', 'error'); }
 }
@@ -26386,7 +26386,7 @@ async function guardarMDM(finId) {
     try {
         const { error } = await supabaseClient.from('financiamientos').update(datos).eq('id', finId);
         if(error) throw error;
-        toast('✅ Control MDM guardado.');
+        toast('Control MDM guardado.');
         await renderFinanciamientos();
     } catch(e) { console.error('guardarMDM', e); toast('No se pudo guardar.', 'error'); }
 }
@@ -26397,7 +26397,7 @@ async function desvincularEquipoMDM(finId) {
     try {
         const { error } = await supabaseClient.from('financiamientos').update({ mdm_device_id: null, mdm_serial: null, mdm_estado: 'ninguno', mdm_enrolado: false }).eq('id', finId);
         if(error) throw error;
-        toast('✅ Equipo desvinculado. Ya queda disponible para otro cliente.');
+        toast('Equipo desvinculado. Ya queda disponible para otro cliente.');
         await renderFinanciamientos();
     } catch(e) { console.error('desvincularEquipoMDM', e); toast('No se pudo desvincular.', 'error'); }
 }
@@ -26429,7 +26429,7 @@ function _mdmDispOcupadoPor(d, lm) {
 async function abrirBuscadorEquipos(finId) {
     if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso.', 'error'); return; }
     _mdmDispFinId = finId; _mdmDispBusq = '';
-    abrirModalGenerico('🔍 Equipos enrolados disponibles', `
+    abrirModalGenerico('Equipos enrolados disponibles', `
         <div style="font-size:12.5px; color:#475569; margin-bottom:8px;">Equipos enrolados en Hexnode que <b>aún no están enlazados</b> a ningún cliente. Búscalos por IMEI, serie, modelo o nombre (puedes poner solo los <b>últimos 4 dígitos</b>).</div>
         <input id="mdmDispBusq" placeholder="Buscar… (ej. 7678, modelo, serie)" oninput="_mdmDispFiltrar(this.value)" autocomplete="off" style="width:100%; padding:10px 12px; font-size:14px; border:1px solid #cbd5e1; border-radius:8px; margin-bottom:10px;">
         <div id="mdmDispLista"><div style="text-align:center; color:#64748b; padding:24px;">⏳ Cargando equipos de Hexnode…</div></div>
@@ -26441,7 +26441,7 @@ async function abrirBuscadorEquipos(finId) {
         _mdmDispCache = (data && data.devices) || [];
     } catch(e) {
         const l = document.getElementById('mdmDispLista');
-        if(l) l.innerHTML = `<div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:10px 12px; border-radius:8px;">⚠️ No se pudo cargar la lista de Hexnode: ${escapeHtml(e.message || String(e))}</div>`;
+        if(l) l.innerHTML = `<div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:10px 12px; border-radius:8px;"><i class="ti ti-alert-triangle"></i> No se pudo cargar la lista de Hexnode: ${escapeHtml(e.message || String(e))}</div>`;
         return;
     }
     _mdmDispRender();
@@ -26472,7 +26472,7 @@ function _mdmDispRender() {
             <button class="btn btn-blue btn-sm" style="font-size:12px; white-space:nowrap;" onclick="_mdmDispUsar(${d.id})"><i class="ti ti-link"></i> Usar este</button>
         </div>`;
     };
-    html += `<div style="font-size:12px; font-weight:700; color:#166534; margin:2px 0 6px;">✅ Disponibles para enlazar (${disponibles.length})</div>`;
+    html += `<div style="font-size:12px; font-weight:700; color:#166534; margin:2px 0 6px;">Disponibles para enlazar (${disponibles.length})</div>`;
     html += disponibles.length ? disponibles.map(d => fila(d)).join('') : `<div style="color:#64748b; font-size:12.5px; padding:6px 0 10px;">${q ? 'Ninguno coincide con la búsqueda.' : 'No hay equipos disponibles (todos están enlazados).'}</div>`;
     cont.innerHTML = html;
 }
@@ -26484,7 +26484,7 @@ function _mdmDispUsar(deviceId) {
     const did = document.getElementById('mdmDeviceId'); if(did) did.value = String(d.id);
     const chk = document.getElementById('mdmEnrolado'); if(chk) chk.checked = true;
     const m = document.getElementById('modalGenerico'); if(m) m.remove();
-    toast('✅ Equipo seleccionado. Verificando en Hexnode…');
+    toast('Equipo seleccionado. Verificando en Hexnode…');
     const g = document.getElementById('mdmSerial'); if(g){ g.scrollIntoView({ behavior:'smooth', block:'center' }); g.style.transition='background .3s'; g.style.background='#fef9c3'; setTimeout(()=>{ g.style.background=''; }, 1200); }
     // Verificar automáticamente en Hexnode que sigue enrolado y conectado (esto también guarda el enlace)
     setTimeout(() => { if(typeof mdmVerificar === 'function' && finId) mdmVerificar(finId); }, 200);
@@ -26495,14 +26495,14 @@ function mdmMostrarResultado(finId, titulo, detalle, tipo){
     const cont = document.getElementById('mdmRes_' + finId);
     if(!cont) return;
     const estilos = {
-        ok:    { bg:'#f0fdf4', bd:'#bbf7d0', col:'#166534', ico:'✅' },
-        info:  { bg:'#eff6ff', bd:'#bfdbfe', col:'#1e40af', ico:'ℹ️' },
-        warn:  { bg:'#fffbeb', bd:'#fde68a', col:'#92400e', ico:'⏳' },
-        error: { bg:'#fef2f2', bd:'#fecaca', col:'#991b1b', ico:'⚠️' }
+        ok:    { bg:'#f0fdf4', bd:'#bbf7d0', col:'#166534', ico:'<i class="ti ti-circle-check"></i>' },
+        info:  { bg:'#eff6ff', bd:'#bfdbfe', col:'#1e40af', ico:'<i class="ti ti-info-circle"></i>' },
+        warn:  { bg:'#fffbeb', bd:'#fde68a', col:'#92400e', ico:'<i class="ti ti-clock"></i>' },
+        error: { bg:'#fef2f2', bd:'#fecaca', col:'#991b1b', ico:'<i class="ti ti-alert-triangle"></i>' }
     };
     const s = estilos[tipo] || estilos.info;
     const hora = new Date().toLocaleString('es-DO');
-    cont.innerHTML = `<div style="background:${s.bg}; border:1px solid ${s.bd}; color:${s.col}; padding:9px 12px; border-radius:8px;"><b>${s.ico} ${escapeHtml(titulo)}</b>${detalle ? '<br>' + detalle : ''}<br><span style="font-size:11px; opacity:.85;">🕐 ${escapeHtml(hora)}</span></div>`;
+    cont.innerHTML = `<div style="background:${s.bg}; border:1px solid ${s.bd}; color:${s.col}; padding:9px 12px; border-radius:8px;"><b>${s.ico} ${escapeHtml(titulo)}</b>${detalle ? '<br>' + detalle : ''}<br><span style="font-size:11px; opacity:.85;"><i class="ti ti-clock"></i> ${escapeHtml(hora)}</span></div>`;
 }
 // Lee el IMEI/serial y el ID Hexnode escritos en el panel, para que los comandos encuentren el equipo solos (sin verificar/guardar antes)
 function _mdmExtra(){
@@ -26522,11 +26522,11 @@ async function mdmConfirmarAplicado(finId, accionTxt){
             if(d.ultima_conexion){
                 const mins = (Date.now() - new Date(d.ultima_conexion).getTime()) / 60000;
                 if(mins < 60){
-                    mdmMostrarResultado(finId, `${accionTxt} — APLICADO en el equipo`, `📶 El equipo está 🟢 conectado a internet, así que la orden ya le llegó.`, 'ok');
+                    mdmMostrarResultado(finId, `${accionTxt} — APLICADO en el equipo`, `El equipo está conectado a internet, así que la orden ya le llegó.`, 'ok');
                     return;
                 }
                 let hace = mins < 1440 ? ('hace ' + Math.round(mins/60) + ' h') : ('hace ' + Math.round(mins/1440) + ' días');
-                mdmMostrarResultado(finId, `${accionTxt} — EN ESPERA`, `📶 El equipo está 🔴 sin internet (última conexión ${hace}). La orden queda guardada y se aplica sola cuando el cliente conecte.`, 'warn');
+                mdmMostrarResultado(finId, `${accionTxt} — EN ESPERA`, `El equipo está sin internet (última conexión ${hace}). La orden queda guardada y se aplica sola cuando el cliente conecte.`, 'warn');
                 return;
             }
         }
@@ -26539,8 +26539,8 @@ async function mdmAccionReal(finId, accion) {
     if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso.', 'error'); return; }
     const txt = accion === 'bloquear' ? 'BLOQUEAR el equipo en Hexnode' : 'DESBLOQUEAR el equipo en Hexnode';
     const aviso = accion === 'bloquear'
-        ? `¿Confirmas ${txt}?\n\n📶 IMPORTANTE: si el equipo tiene internet AHORA, se bloquea en segundos.\nSi está apagado o sin internet, la orden queda EN ESPERA y se aplica sola en cuanto el cliente conecte (no se pierde).`
-        : `¿Confirmas ${txt}?\n\n📶 Si el equipo tiene internet AHORA, se desbloquea en segundos. Si no, se aplica cuando conecte.`;
+        ? `¿Confirmas ${txt}?\n\nIMPORTANTE: si el equipo tiene internet AHORA, se bloquea en segundos.\nSi está apagado o sin internet, la orden queda EN ESPERA y se aplica sola en cuanto el cliente conecte (no se pierde).`
+        : `¿Confirmas ${txt}?\n\nSi el equipo tiene internet AHORA, se desbloquea en segundos. Si no, se aplica cuando conecte.`;
     if(!confirm(aviso)) return;
     toast('Enviando orden a Hexnode...');
     try {
@@ -26551,8 +26551,8 @@ async function mdmAccionReal(finId, accion) {
             throw new Error(det || error.message);
         }
         if(data && data.error) throw new Error(data.error + (data.detalle ? ' — ' + data.detalle : ''));
-        const accionTxt = accion === 'bloquear' ? '🔒 Bloqueo' : '🔓 Desbloqueo';
-        toast('✅ Orden enviada a Hexnode.');
+        const accionTxt = accion === 'bloquear' ? 'Bloqueo' : 'Desbloqueo';
+        toast('Orden enviada a Hexnode.');
         // ✨ Poner el estado automáticamente según la acción
         await _mdmAplicarEstadoAuto(finId, accion === 'bloquear' ? 'bloqueado' : 'activo', true);
         mdmMostrarResultado(finId, `${accionTxt} — comprobando…`, 'Confirmando con el equipo si ya se aplicó…', 'info');
@@ -26600,9 +26600,9 @@ async function mdmVerificar(finId, btn) {
                 const t = new Date(d.ultima_conexion);
                 const mins = (Date.now() - t.getTime()) / 60000;
                 let ico, txt, col;
-                if(mins < 60){ ico = '🟢'; txt = 'Conectado (en línea)'; col = '#166534'; }
-                else if(mins < 60*24){ ico = '🟡'; txt = 'Conectado hace poco'; col = '#92400e'; }
-                else { ico = '🔴'; txt = 'Sin conexión reciente'; col = '#991b1b'; }
+                if(mins < 60){ ico = '<i class="fin-dot" style="background:var(--fin-ok);"></i>'; txt = 'Conectado (en línea)'; col = 'var(--fin-ok)'; }
+                else if(mins < 60*24){ ico = '<i class="fin-dot" style="background:var(--fin-warn);"></i>'; txt = 'Conectado hace poco'; col = 'var(--fin-warn)'; }
+                else { ico = '<i class="fin-dot" style="background:var(--fin-danger);"></i>'; txt = 'Sin conexión reciente'; col = 'var(--fin-danger)'; }
                 let hace;
                 if(mins < 1) hace = 'hace segundos';
                 else if(mins < 60) hace = 'hace ' + Math.round(mins) + ' min';
@@ -26610,25 +26610,25 @@ async function mdmVerificar(finId, btn) {
                 else hace = 'hace ' + Math.round(mins/1440) + ' días';
                 conexHtml = `<br><span style="color:${col}; font-weight:700;">${ico} ${txt}</span> · última conexión ${escapeHtml(t.toLocaleString('es-DO'))} (${hace})`;
             } else if(d.agente_activo){
-                conexHtml = `<br><span style="color:#166534; font-weight:700;">🟢 Agente activo (conectado)</span>`;
+                conexHtml = `<br><span style="color:#166534; font-weight:700;"><i class="ti ti-circle-check"></i> Agente activo (conectado)</span>`;
             } else {
-                conexHtml = `<br><span style="color:#92400e;">🟡 No se pudo leer la última conexión (el equipo se reportará al abrir internet).</span>`;
+                conexHtml = `<br><span style="color:#92400e;">No se pudo leer la última conexión (el equipo se reportará al abrir internet).</span>`;
             }
             // Estado actual del equipo: bloqueado o activo
             const lockHtml = d.bloqueado
-                ? `<br><span style="color:#b91c1c; font-weight:700;">🔒 Actualmente BLOQUEADO</span>`
-                : `<br><span style="color:#166534; font-weight:700;">🔓 Activo (no bloqueado)</span>`;
+                ? `<br><span style="color:#b91c1c; font-weight:700;"><i class="ti ti-lock"></i> Actualmente BLOQUEADO</span>`
+                : `<br><span style="color:#166534; font-weight:700;"><i class="ti ti-lock-open"></i> Activo (no bloqueado)</span>`;
             // ✨ Poner el ESTADO automáticamente según Hexnode (bloqueado / activo) y guardarlo
             const estadoReal = d.bloqueado ? 'bloqueado' : 'activo';
             await _mdmAplicarEstadoAuto(finId, estadoReal, true, d.device_id || d.id);
-            const autoTxt = `<br><span style="color:#1e40af; font-weight:700;">🔄 Estado actualizado automáticamente a "${estadoReal === 'bloqueado' ? 'Bloqueado' : 'Activo'}".</span>`;
-            if(cont) cont.innerHTML = `<div style="background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; padding:8px 12px; border-radius:8px;"><b>✅ Equipo enrolado en Hexnode.</b>${d.name ? '<br>📱 ' + escapeHtml(d.name) : ''}<br>Estado: ${escapeHtml(d.estado || 'enrolled')}${detalle ? ' · ' + escapeHtml(detalle) : ''}${conexHtml}${lockHtml}${autoTxt}<br><b>✅ LISTO para entregar al cliente.</b></div>`;
+            const autoTxt = `<br><span style="color:#1e40af; font-weight:700;"><i class="ti ti-refresh"></i> Estado actualizado automáticamente a "${estadoReal === 'bloqueado' ? 'Bloqueado' : 'Activo'}".</span>`;
+            if(cont) cont.innerHTML = `<div style="background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; padding:8px 12px; border-radius:8px;"><b><i class="ti ti-circle-check"></i> Equipo enrolado en Hexnode.</b>${d.name ? '<br><i class="ti ti-device-mobile"></i> ' + escapeHtml(d.name) : ''}<br>Estado: ${escapeHtml(d.estado || 'enrolled')}${detalle ? ' · ' + escapeHtml(detalle) : ''}${conexHtml}${lockHtml}${autoTxt}<br><b><i class="ti ti-circle-check"></i> LISTO para entregar al cliente.</b></div>`;
         } else {
             const msg = (data && data.error) || 'El equipo NO aparece enrolado en Hexnode.';
-            if(cont) cont.innerHTML = `<div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:8px 12px; border-radius:8px;"><b>❌ NO verificado.</b><br>${escapeHtml(msg)}<br><b>⚠️ NO entregues el equipo todavía.</b></div>`;
+            if(cont) cont.innerHTML = `<div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:8px 12px; border-radius:8px;"><b><i class="ti ti-x"></i> NO verificado.</b><br>${escapeHtml(msg)}<br><b><i class="ti ti-alert-triangle"></i> NO entregues el equipo todavía.</b></div>`;
         }
     } catch(e){
-        if(cont) cont.innerHTML = `<div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:8px 12px; border-radius:8px;">⚠️ Error al verificar: ${escapeHtml(e.message || String(e))}</div>`;
+        if(cont) cont.innerHTML = `<div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:8px 12px; border-radius:8px;"><i class="ti ti-alert-triangle"></i> Error al verificar: ${escapeHtml(e.message || String(e))}</div>`;
     } finally { if(btn){ btn.disabled = false; btn.innerHTML = orig; } }
 }
 // ===== Notificaciones al equipo (modal con plantillas) =====
@@ -26649,13 +26649,13 @@ async function enviarNotifMdm(texto){
         const { data, error } = await supabaseClient.functions.invoke('mdm-accion', { body: { financiamiento_id: _notifMdmFinId, accion: 'mensaje', mensaje: texto, ..._mdmExtra() } });
         if(error){ let det=''; try{ det=(await error.context.json()).error||''; }catch(_){} throw new Error(det||error.message); }
         if(data && data.error) throw new Error(data.error + (data.detalle ? ' — ' + data.detalle : ''));
-        if(m){ m.style.color = '#16a34a'; m.textContent = '✅ Notificación enviada al equipo.'; }
-        toast('✅ Notificación enviada.');
+        if(m){ m.style.color = '#16a34a'; m.textContent = 'Notificación enviada al equipo.'; }
+        toast('Notificación enviada.');
         const fid = _notifMdmFinId;
         setTimeout(cerrarNotifMdm, 1000);
-        mdmMostrarResultado(fid, '💬 Notificación — comprobando…', 'El mensaje: "' + escapeHtml(texto) + '"', 'info');
-        mdmConfirmarAplicado(fid, '💬 Notificación');
-    } catch(e){ if(m){ m.style.color = '#dc2626'; m.textContent = '⚠️ ' + (e.message || e); } }
+        mdmMostrarResultado(fid, 'Notificación — comprobando…', 'El mensaje: "' + escapeHtml(texto) + '"', 'info');
+        mdmConfirmarAplicado(fid, 'Notificación');
+    } catch(e){ if(m){ m.style.color = '#dc2626'; m.textContent = (e.message || e); } }
 }
 function enviarNotifMdmCustom(){
     const t = (document.getElementById('notifMdmTexto')?.value || '').trim();
@@ -26674,31 +26674,31 @@ async function mdmUbicar(finId, btn){
         if(error){ let det=''; try{ det=(await error.context.json()).error||''; }catch(_){} throw new Error(det||error.message); }
         if(data && data.ok && data.lat != null){
             const f = data.fecha ? (' · ' + new Date(data.fecha).toLocaleString('es-DO')) : '';
-            if(cont) cont.innerHTML = `<div style="background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; padding:8px 12px; border-radius:8px;"><b>📍 Última ubicación del equipo</b>${escapeHtml(f)}<br><a href="${data.maps}" target="_blank" rel="noopener" style="color:#0369a1; font-weight:700;"><i class="ti ti-external-link"></i> Ver en Google Maps</a></div>`;
+            if(cont) cont.innerHTML = `<div style="background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; padding:8px 12px; border-radius:8px;"><b><i class="ti ti-map-pin"></i> Última ubicación del equipo</b>${escapeHtml(f)}<br><a href="${data.maps}" target="_blank" rel="noopener" style="color:#0369a1; font-weight:700;"><i class="ti ti-external-link"></i> Ver en Google Maps</a></div>`;
         } else {
             const msg = (data && data.error) || 'No hay ubicación disponible aún.';
             if(cont) cont.innerHTML = `<div style="background:#fffbeb; border:1px solid #fde68a; color:#92400e; padding:8px 12px; border-radius:8px;">⏳ ${escapeHtml(msg)}</div>`;
         }
-    } catch(e){ if(cont) cont.innerHTML = `<div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:8px 12px; border-radius:8px;">⚠️ ${escapeHtml(e.message || String(e))}</div>`; }
+    } catch(e){ if(cont) cont.innerHTML = `<div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:8px 12px; border-radius:8px;"><i class="ti ti-alert-triangle"></i> ${escapeHtml(e.message || String(e))}</div>`; }
     finally { if(btn){ btn.disabled = false; btn.innerHTML = orig; } }
 }
 // Enviar una notificación/mensaje a la pantalla del equipo del cliente (vía Hexnode)
 async function mdmEnviarMensaje(finId) {
     if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso.', 'error'); return; }
-    const mensaje = await pedirTexto('📢 Mensaje para enviar al equipo del cliente:', { valor: 'Le recordamos que su cuota está próxima a vencer. Gracias — BAYOL CELL' });
+    const mensaje = await pedirTexto('Mensaje para enviar al equipo del cliente:', { valor: 'Le recordamos que su cuota está próxima a vencer. Gracias — BAYOL CELL' });
     if(!mensaje || !mensaje.trim()) return;
     toast('Enviando notificación...');
     try {
         const { data, error } = await supabaseClient.functions.invoke('mdm-accion', { body: { financiamiento_id: finId, accion: 'mensaje', mensaje: mensaje.trim() } });
         if(error){ let det=''; try{ det=(await error.context.json()).error||''; }catch(_){} throw new Error(det||error.message); }
         if(data && data.error) throw new Error(data.error + (data.detalle ? ' — ' + data.detalle : ''));
-        toast('✅ Notificación enviada al equipo.');
+        toast('Notificación enviada al equipo.');
     } catch(e){ console.error('mdmEnviarMensaje', e); toast('No se pudo enviar: ' + (e.message || e), 'error'); }
 }
 // Borrar (wipe) un equipo recuperado: lo deja limpio, sin la cuenta del cliente, listo para revender.
 async function mdmBorrarEquipo(finId) {
     if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso.', 'error'); return; }
-    if(!confirm('⚠️ BORRADO TOTAL del equipo recuperado.\n\nEsto BORRA TODO: la cuenta del cliente, sus datos y su clave. El equipo queda LIMPIO para revender (sin candado de cuenta).\n\nSolo hazlo si YA recuperaste el equipo físicamente.\n\n¿Continuar?')) return;
+    if(!confirm('BORRADO TOTAL del equipo recuperado.\n\nEsto BORRA TODO: la cuenta del cliente, sus datos y su clave. El equipo queda LIMPIO para revender (sin candado de cuenta).\n\nSolo hazlo si YA recuperaste el equipo físicamente.\n\n¿Continuar?')) return;
     const conf = await pedirTexto('Para confirmar el borrado total, escribe la palabra: BORRAR');
     if(!conf || conf.trim().toUpperCase() !== 'BORRAR') { toast('Borrado cancelado.', 'error'); return; }
     toast('Enviando orden de borrado a Hexnode...');
@@ -26706,20 +26706,20 @@ async function mdmBorrarEquipo(finId) {
         const { data, error } = await supabaseClient.functions.invoke('mdm-accion', { body: { financiamiento_id: finId, accion: 'borrar', ..._mdmExtra() } });
         if(error){ let det=''; try{ det=(await error.context.json()).error||''; }catch(_){} throw new Error(det||error.message); }
         if(data && data.error) throw new Error(data.error + (data.detalle ? ' — ' + data.detalle : ''));
-        toast('✅ Orden de borrado enviada. El equipo se reseteará limpio (sin la cuenta del cliente).');
+        toast('Orden de borrado enviada. El equipo se reseteará limpio (sin la cuenta del cliente).');
         await renderFinanciamientos();
     } catch(e){ console.error('mdmBorrarEquipo', e); toast('No se pudo borrar en Hexnode: ' + (e.message || e), 'error'); }
 }
 // Liberar el equipo cuando el cliente SALDA: quita el MDM (disenroll), sin borrar sus datos. Queda 100% del cliente.
 async function mdmLiberarEquipo(finId) {
     if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso.', 'error'); return; }
-    if(!confirm('🎓 LIBERAR equipo (financiamiento saldado).\n\nEsto QUITA el MDM del equipo (se va el "administrado por BAYOL CELL"). El equipo queda 100% del cliente. NO se borran sus datos.\n\nHazlo solo si el cliente YA pagó todo.\n\n¿Continuar?')) return;
+    if(!confirm('LIBERAR equipo (financiamiento saldado).\n\nEsto QUITA el MDM del equipo (se va el "administrado por BAYOL CELL"). El equipo queda 100% del cliente. NO se borran sus datos.\n\nHazlo solo si el cliente YA pagó todo.\n\n¿Continuar?')) return;
     toast('Liberando equipo en Hexnode...');
     try {
         const { data, error } = await supabaseClient.functions.invoke('mdm-accion', { body: { financiamiento_id: finId, accion: 'liberar', ..._mdmExtra() } });
         if(error){ let det=''; try{ det=(await error.context.json()).error||''; }catch(_){} throw new Error(det||error.message); }
         if(data && data.error) throw new Error(data.error + (data.detalle ? ' — ' + data.detalle : ''));
-        toast('✅ Equipo liberado. El MDM se quitará del equipo (queda libre para el cliente).');
+        toast('Equipo liberado. El MDM se quitará del equipo (queda libre para el cliente).');
         await renderFinanciamientos();
     } catch(e){ console.error('mdmLiberarEquipo', e); toast('No se pudo liberar en Hexnode: ' + (e.message || e), 'error'); }
 }
@@ -26746,7 +26746,7 @@ function _pintarConsulta() {
                 </div>
             </div>
             <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:8px 10px; font-size:13px; margin-bottom:12px;">Monto a financiar: <b id="cqFinanciadoPrev">RD$ 0.00</b> <span style="color:var(--text-muted);">(precio − inicial)</span></div>
-            <div class="form-row"><label>⚡ Plan Smart (opcional)</label><select id="cqPlan" onchange="_aplicarPlanConsulta()"><option value="">— Manual —</option>${_finPlanesOptions()}</select></div>
+            <div class="form-row"><label>Plan Smart (opcional)</label><select id="cqPlan" onchange="_aplicarPlanConsulta()"><option value="">— Manual —</option>${_finPlanesOptions()}</select></div>
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
                 <div class="form-row" style="flex:1; min-width:110px;"><label>Tasa % por cuota</label><input type="number" id="cqTasa" min="0" step="0.01" value="0" oninput="_consultaCalcular()"></div>
                 <div class="form-row" style="flex:1; min-width:140px;"><label>Tipo de préstamo</label><select id="cqMetodo" onchange="_consultaCalcular()"><option value="plano">Plano (sobre el monto)</option><option value="saldo">Sobre saldo (francés)</option></select></div>
@@ -26847,7 +26847,7 @@ function _consultaImprimir() {
         <table><thead><tr><th>#</th><th>Vence</th>${conInteres ? '<th style="text-align:right;">Cap.</th><th style="text-align:right;">Int.</th>' : ''}<th style="text-align:right;">Cuota</th><th style="text-align:right;">Saldo</th></tr></thead>
         <tbody>${rows.map(r => `<tr><td>${r.num}</td><td>${_finFmtFecha(r.vence)}</td>${conInteres ? `<td style="text-align:right;">${money(r.capital)}</td><td style="text-align:right;">${money(r.interes)}</td>` : ''}<td style="text-align:right;">${money(r.cuota)}</td><td style="text-align:right;">${money(r.saldo)}</td></tr>`).join('')}</tbody></table>
         <p class="muted" style="text-align:center; margin-top:14px;">Estimado generado el ${new Date().toLocaleString('es-DO')}. Sujeto a aprobación.</p>
-        <div style="text-align:center; margin-top:14px;"><button onclick="window.print()" style="padding:8px 16px; font-size:14px; cursor:pointer;">🖨️ Imprimir</button></div>
+        <div style="text-align:center; margin-top:14px;"><button onclick="window.print()" style="padding:8px 16px; font-size:14px; cursor:pointer;">Imprimir</button></div>
         </body></html>`);
     w.document.close();
 }
