@@ -23946,45 +23946,16 @@ function _pintarDetalleFin() {
         </div>`;
     }
 
-    // Registrar abono (pago) — versión moderna
+    // Cobros — botón que abre el modal flotante de pago
     const moraPend = finMoraPendiente(f);
     if(puedeCobrar && est !== 'saldado' && est !== 'cancelado') {
-        const prox = finProximaCuota(f);
-        const initMonto = Math.min(Number(f.valor_cuota) || 0, saldo);
-        const initTotal = Math.round((initMonto + moraPend) * 100) / 100;
-        const initResta = Math.max(0, Math.round((saldo - initMonto) * 100) / 100);
-        const chipMonto = (lbl, val) => `<button type="button" onclick="_finSetAbono('${f.id}', ${val})" style="border:1px solid #e2e8f0; background:#fff; color:#334155; border-radius:999px; padding:6px 13px; cursor:pointer; font-size:12.5px; font-weight:600;">${lbl}</button>`;
-        const chipMet = (m, lbl, on) => `<button type="button" data-m="${m}" onclick="_finSetMetodo('${m}')" style="${_finChipCss(on)}">${lbl}</button>`;
-        html += `<div class="card" style="margin-bottom:14px; border:1px solid #bbf7d0; background:linear-gradient(180deg,#f0fdf4 0%,#ffffff 55%);">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
-                <h3 style="margin:0; font-size:16px;"><i class="ti ti-cash" style="color:#16a34a;"></i> Registrar pago</h3>
-                <div style="display:flex; gap:14px; font-size:12px; color:var(--text-muted); flex-wrap:wrap;">
-                    <span>Saldo <b style="color:#0f172a;">${money(saldo)}</b></span>
-                    ${moraPend > 0 ? `<span>Mora <b style="color:#b91c1c;">${money(moraPend)}</b></span>` : ''}
-                    ${prox ? `<span>Próx. ${_finFmtFecha(prox.vence)} <b style="color:#0f172a;">${money(prox.valor)}</b></span>` : ''}
+        html += `<div class="card" style="margin-bottom:14px; border:1px solid #bbf7d0; background:linear-gradient(180deg,#f0fdf4 0%,#ffffff 60%);">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                <div>
+                    <h3 style="margin:0; font-size:16px;"><i class="ti ti-cash" style="color:#16a34a;"></i> Cobros</h3>
+                    <div style="font-size:12.5px; color:var(--text-muted); margin-top:3px;">Saldo <b style="color:#0f172a;">${money(saldo)}</b>${moraPend > 0 ? ` · Mora <b style="color:#b91c1c;">${money(moraPend)}</b>` : ''}</div>
                 </div>
-            </div>
-            <label style="font-size:11px;">Monto rápido</label>
-            <div style="display:flex; gap:6px; flex-wrap:wrap; margin:4px 0 12px;">
-                ${chipMonto('Cuota ' + money(f.valor_cuota), Number(f.valor_cuota) || 0)}
-                ${chipMonto('½ cuota', Math.round((Number(f.valor_cuota) || 0) / 2 * 100) / 100)}
-                ${chipMonto('Saldo total ' + money(saldo), saldo)}
-            </div>
-            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
-                <div style="flex:1; min-width:150px;"><label>Abono a capital (RD$)</label><input type="number" id="finAbonoMonto" min="0" step="0.01" placeholder="0.00" value="${initMonto}" oninput="_finAbonoPreview('${f.id}')" style="font-size:16px; font-weight:700;"></div>
-                ${moraPend > 0 ? `<div style="flex:1; min-width:120px;"><label>Mora a cobrar (RD$)</label><input type="number" id="finAbonoMora" min="0" step="0.01" value="${moraPend}" oninput="_finAbonoPreview('${f.id}')"></div>` : ''}
-            </div>
-            <label style="font-size:11px; margin-top:10px; display:block;">Método de pago</label>
-            <input type="hidden" id="finAbonoMetodo" value="efectivo">
-            <div id="finMetodoChips" style="display:flex; gap:6px; flex-wrap:wrap; margin:4px 0 10px;">
-                ${chipMet('efectivo', '<i class="ti ti-cash"></i> Efectivo', true)}
-                ${chipMet('transferencia', '<i class="ti ti-building-bank"></i> Transferencia', false)}
-                ${chipMet('tarjeta', '<i class="ti ti-credit-card"></i> Tarjeta', false)}
-            </div>
-            <div class="form-row" style="margin-bottom:12px;"><label>Nota (opcional)</label><input type="text" id="finAbonoNota" placeholder="Referencia / observación"></div>
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; border-top:1px solid #e2e8f0; padding-top:12px;">
-                <div style="font-size:13px;">Total a recibir: <b id="finAbonoTotal" style="font-size:18px; color:#16a34a;">${money(initTotal)}</b> <span style="color:var(--text-muted);">· Queda pendiente:</span> <b id="finAbonoResta">${money(initResta)}</b></div>
-                <button class="btn btn-blue" onclick="registrarAbonoFin('${f.id}')" style="padding:11px 22px; font-size:14px;"><i class="ti ti-circle-check"></i> Registrar pago</button>
+                <button class="btn btn-blue" onclick="abrirModalPago('${f.id}')" style="padding:11px 22px; font-size:14px;"><i class="ti ti-plus"></i> Registrar pago</button>
             </div>
         </div>`;
     }
@@ -24506,6 +24477,105 @@ function _finAbonoPreview(finId) {
     const t = document.getElementById('finAbonoTotal'); if(t) t.textContent = money(Math.round((monto + mora) * 100) / 100);
     const r = document.getElementById('finAbonoResta'); if(r) r.textContent = money(Math.max(0, Math.round((finSaldo(f) - monto) * 100) / 100));
 }
+// ---- Modal flotante de pago ----
+function _finModalPago(titulo, contenido) {
+    cerrarModalPago();
+    const ov = document.createElement('div');
+    ov.id = 'modalPago';
+    ov.style.cssText = 'position:fixed; inset:0; z-index:8000; background:rgba(15,23,42,.55); display:flex; align-items:flex-start; justify-content:center; padding:28px 14px; overflow-y:auto; backdrop-filter:blur(2px);';
+    ov.onclick = (e) => { if(e.target === ov) cerrarModalPago(); };
+    ov.innerHTML = `<div style="background:#fff; border-radius:18px; width:100%; max-width:460px; box-shadow:0 24px 60px rgba(0,0,0,.35); overflow:hidden; animation:finPop .18s ease;">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:15px 18px; background:linear-gradient(135deg,#16a34a 0%,#15803d 100%); color:#fff;">
+            <div style="font-size:16px; font-weight:800; display:flex; align-items:center; gap:8px;"><i class="ti ti-cash"></i> ${escapeHtml(titulo)}</div>
+            <button onclick="cerrarModalPago()" style="background:rgba(255,255,255,.18); border:0; color:#fff; width:30px; height:30px; border-radius:9px; cursor:pointer; font-size:17px; line-height:1;">&times;</button>
+        </div>
+        <div style="padding:18px;">${contenido}</div>
+    </div>`;
+    document.body.appendChild(ov);
+    if(!document.getElementById('finPopKf')) {
+        const st = document.createElement('style'); st.id = 'finPopKf';
+        st.textContent = '@keyframes finPop{from{transform:translateY(-12px) scale(.98);opacity:0}to{transform:none;opacity:1}}';
+        document.head.appendChild(st);
+    }
+}
+function cerrarModalPago() { const m = document.getElementById('modalPago'); if(m) m.remove(); }
+function abrirModalPago(finId) {
+    if(!(isAdminUser() || tienePermiso('financiamientos_cobrar'))) { toast('No tienes permiso para cobrar.', 'error'); return; }
+    const f = (_finCache.financiamientos || []).find(x => x.id === finId);
+    if(!f) { toast('Financiamiento no encontrado.', 'error'); return; }
+    const saldo = finSaldo(f);
+    const moraPend = finMoraPendiente(f);
+    const cuota = finValorCuotaCalc(f);
+    const sugerido = Math.min(cuota, saldo);
+    const chips = [];
+    if(sugerido > 0) chips.push({ lbl: 'Cuota ' + money(sugerido), val: sugerido });
+    if(saldo > 0 && Math.abs(saldo - sugerido) > 0.01) chips.push({ lbl: 'Saldo ' + money(saldo), val: saldo });
+    const metodos = [['efectivo', 'Efectivo'], ['transferencia', 'Transferencia'], ['tarjeta', 'Tarjeta']];
+    const cont = `
+        <div style="display:flex; gap:10px; margin-bottom:14px;">
+            <div style="flex:1; background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:10px 12px;">
+                <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.3px;">Saldo pendiente</div>
+                <div style="font-size:18px; font-weight:800; color:#0f172a;">${money(saldo)}</div>
+            </div>
+            ${moraPend > 0 ? `<div style="flex:1; background:#fef2f2; border:1px solid #fecaca; border-radius:12px; padding:10px 12px;">
+                <div style="font-size:11px; color:#b91c1c; text-transform:uppercase; letter-spacing:.3px;">Mora pendiente</div>
+                <div style="font-size:18px; font-weight:800; color:#b91c1c;">${money(moraPend)}</div>
+            </div>` : ''}
+        </div>
+        ${chips.length ? `<div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+            ${chips.map(c => `<button type="button" onclick="_finSetAbono('${finId}', ${c.val})" style="${_finChipCss(false)}">${c.lbl}</button>`).join('')}
+        </div>` : ''}
+        <label style="display:block; font-size:12.5px; font-weight:700; color:#334155; margin-bottom:5px;">Monto del abono (RD$)</label>
+        <input id="finAbonoMonto" type="number" step="0.01" min="0" value="${sugerido > 0 ? sugerido : ''}" placeholder="0.00" oninput="_finAbonoPreview('${finId}')" style="width:100%; padding:11px 12px; border:1px solid #cbd5e1; border-radius:10px; font-size:16px; font-weight:700; box-sizing:border-box;">
+        ${moraPend > 0 ? `<label style="display:block; font-size:12.5px; font-weight:700; color:#334155; margin:12px 0 5px;">Cobrar mora (RD$)</label>
+        <input id="finAbonoMora" type="number" step="0.01" min="0" value="0" placeholder="0.00" oninput="_finAbonoPreview('${finId}')" style="width:100%; padding:11px 12px; border:1px solid #fecaca; border-radius:10px; font-size:15px; box-sizing:border-box;">` : `<input id="finAbonoMora" type="hidden" value="0">`}
+        <div style="font-size:12.5px; font-weight:700; color:#334155; margin:14px 0 6px;">Método de pago</div>
+        <input id="finAbonoMetodo" type="hidden" value="efectivo">
+        <div id="finMetodoChips" style="display:flex; flex-wrap:wrap; gap:8px;">
+            ${metodos.map(m => `<button type="button" data-m="${m[0]}" onclick="_finSetMetodo('${m[0]}')" style="${_finChipCss(m[0] === 'efectivo')}">${m[1]}</button>`).join('')}
+        </div>
+        <label style="display:block; font-size:12.5px; font-weight:700; color:#334155; margin:14px 0 5px;">Nota (opcional)</label>
+        <input id="finAbonoNota" type="text" placeholder="Referencia, observación…" style="width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:10px; font-size:13.5px; box-sizing:border-box;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin:16px 0 4px; padding:12px 14px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px;">
+            <div>
+                <div style="font-size:11px; color:#15803d; text-transform:uppercase; letter-spacing:.3px;">Total a cobrar</div>
+                <div id="finAbonoTotal" style="font-size:22px; font-weight:800; color:#15803d;">${money(sugerido)}</div>
+            </div>
+            <div style="text-align:right;">
+                <div style="font-size:11px; color:var(--text-muted);">Saldo tras el pago</div>
+                <div id="finAbonoResta" style="font-size:15px; font-weight:700; color:#0f172a;">${money(Math.max(0, saldo - sugerido))}</div>
+            </div>
+        </div>
+        <div style="display:flex; gap:10px; margin-top:14px;">
+            <button class="btn btn-light" onclick="cerrarModalPago()" style="flex:0 0 auto;">Cancelar</button>
+            <button class="btn btn-blue" onclick="registrarAbonoFin('${finId}')" style="flex:1; padding:12px; font-size:15px; font-weight:700;"><i class="ti ti-check"></i> Registrar pago</button>
+        </div>`;
+    _finModalPago('Registrar pago', cont);
+    setTimeout(() => { const el = document.getElementById('finAbonoMonto'); if(el) { el.focus(); el.select(); } }, 60);
+}
+function _finModalPagoExito(finId, pagoId) {
+    const f = (_finCache.financiamientos || []).find(x => x.id === finId) || {};
+    const p = (_finCache.pagos || []).find(x => x.id === pagoId) || {};
+    const total = Number(p.monto || 0) + Number(p.mora || 0);
+    const saldoRest = finSaldo(f);
+    const saldado = saldoRest <= 0.001;
+    const cont = `
+        <div style="text-align:center; padding:6px 4px 4px;">
+            <div style="width:64px; height:64px; border-radius:50%; background:#dcfce7; display:flex; align-items:center; justify-content:center; margin:0 auto 12px;">
+                <i class="ti ti-check" style="font-size:34px; color:#16a34a;"></i>
+            </div>
+            <div style="font-size:19px; font-weight:800; color:#0f172a;">Pago registrado</div>
+            <div style="font-size:26px; font-weight:800; color:#15803d; margin:6px 0;">${money(total)}</div>
+            <div style="font-size:13px; color:var(--text-muted);">Recibo #${escapeHtml(String(pagoId).slice(0, 8))} · Saldo restante <b style="color:#0f172a;">${money(saldoRest)}</b></div>
+            ${saldado ? `<div style="margin-top:10px; display:inline-block; background:#dcfce7; color:#15803d; font-weight:700; font-size:12.5px; padding:5px 12px; border-radius:999px;"><i class="ti ti-rosette-discount-check"></i> Financiamiento saldado</div>` : ''}
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:18px;">
+            <button class="btn btn-light" onclick="imprimirReciboFin('${pagoId}')" style="padding:11px; font-size:13.5px;"><i class="ti ti-printer"></i> Imprimir ticket</button>
+            <button class="btn btn-light" onclick="enviarReciboWhatsApp('${pagoId}')" style="padding:11px; font-size:13.5px; color:#15803d; border-color:#86efac;"><i class="ti ti-brand-whatsapp"></i> WhatsApp</button>
+        </div>
+        <button class="btn btn-blue" onclick="cerrarModalPago()" style="width:100%; margin-top:10px; padding:12px; font-size:15px; font-weight:700;">Listo</button>`;
+    _finModalPago(saldado ? '¡Financiamiento saldado!' : 'Pago registrado', cont);
+}
 // ---- Registrar abono ----
 async function registrarAbonoFin(finId) {
     if(!(isAdminUser() || tienePermiso('financiamientos_cobrar'))) { toast('No tienes permiso para cobrar.', 'error'); return; }
@@ -24536,10 +24606,10 @@ async function registrarAbonoFin(finId) {
             fAct.estado = 'saldado';
         }
         toast('✅ Abono registrado.');
-        // Ofrecer imprimir el recibo recién creado
+        // Actualizar la vista de detalle detrás del modal y mostrar el éxito dentro del mismo modal flotante (sin abrir otra ventana)
         const nuevo = finPagosDe(finId).slice(-1)[0];
         _pintarFinanciamientos();
-        if(nuevo) setTimeout(() => imprimirReciboFin(nuevo.id), 250);
+        if(nuevo) _finModalPagoExito(finId, nuevo.id); else cerrarModalPago();
     } catch(e) {
         console.error('registrarAbonoFin', e);
         toast('No se pudo registrar el abono.', 'error');
