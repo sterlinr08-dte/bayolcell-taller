@@ -47,6 +47,15 @@
 .fin-chip.on { border-color: var(--fin-ok); background: var(--fin-ok-bg); color: var(--fin-ok); font-weight: 700; }
 .fin-chip.on-danger { border-color: var(--fin-danger); background: var(--fin-danger-bg); color: var(--fin-danger); font-weight: 700; }
 .fin-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex: none; }
+/* Tiles de acción del control MDM (estilo Device Detail moderno) */
+.mdm-action { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 13px 8px; border: 1px solid var(--border-color); border-radius: 13px; background: #fff; cursor: pointer; font-size: 12px; font-weight: 600; text-align: center; color: var(--fin-ink); transition: all .15s; line-height: 1.25; }
+.mdm-action:hover { border-color: #cbd5e1; box-shadow: 0 4px 12px rgba(15,23,42,.07); transform: translateY(-1px); }
+.mdm-action:active { transform: translateY(0); }
+.mdm-action i { font-size: 22px; }
+.mdm-action.danger { color: var(--fin-danger); } .mdm-action.danger:hover { background: var(--fin-danger-bg); border-color: var(--fin-danger-brd); }
+.mdm-action.ok { color: var(--fin-ok); } .mdm-action.ok:hover { background: var(--fin-ok-bg); border-color: var(--fin-ok-brd); }
+.mdm-action.info { color: var(--fin-info); } .mdm-action.info:hover { background: var(--fin-info-bg); border-color: var(--fin-info-brd); }
+.mdm-action.muted { color: var(--fin-muted); } .mdm-action.muted:hover { background: #f8fafc; }
 
 * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; transition: background 0.2s, transform 0.1s; }
 body { margin: 0; background-color: var(--bg-main); color: var(--text-dark); overflow: hidden; height: 100vh; }
@@ -23943,42 +23952,59 @@ function _pintarDetalleFin() {
     const puedeMDM = isAdminUser() || tienePermiso('financiamientos_aprobar');
     if(puedeMDM) {
         const est = f.mdm_estado || 'ninguno';
-        const estInfo = { ninguno: { t: 'Sin MDM', c: '#64748b', b: '#e2e8f0' }, activo: { t: 'Activo', c: '#15803d', b: '#dcfce7' }, bloqueado: { t: 'Bloqueado', c: '#b91c1c', b: '#fee2e2' }, liberado: { t: 'Liberado', c: '#1d4ed8', b: '#dbeafe' } }[est] || { t: est, c: '#64748b', b: '#e2e8f0' };
+        const estCls = { ninguno: 'muted', activo: 'ok', bloqueado: 'danger', liberado: 'info' }[est] || 'muted';
+        const estTxt = { ninguno: 'Sin MDM', activo: 'Activo', bloqueado: 'Bloqueado', liberado: 'Liberado' }[est] || est;
         const enMora = finEstado(f) === 'atrasado';
+        const bloqueado = est === 'bloqueado';
+        const serialTxt = f.mdm_serial || f.equipo_imei || '';
         html += `<div class="card" style="margin-bottom:14px;">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-                <h3 style="margin:0; font-size:15px;"><i class="ti ti-device-mobile-cog" style="color:#0f172a;"></i> Control MDM <span id="mdmBadge_${f.id}" style="background:${estInfo.b}; color:${estInfo.c}; font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px;">${estInfo.t}</span></h3>
+                <h3 style="margin:0; font-size:15px;"><i class="ti ti-device-mobile-cog" style="color:var(--fin-ink);"></i> Control del equipo (MDM)</h3>
+                <span id="mdmBadge_${f.id}" class="fin-badge ${estCls}">${estTxt}</span>
             </div>
-            ${enMora && f.mdm_enrolado && est === 'activo' ? `<div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:8px 12px; border-radius:8px; margin-top:10px; font-size:12.5px;"><i class="ti ti-alert-triangle"></i> Cliente en atraso y equipo enrolado — candidato a bloqueo desde Hexnode.</div>` : ''}
-            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin-top:10px;">
-                <label style="display:flex; align-items:center; gap:6px; font-size:13px; text-transform:none; color:var(--text-dark);"><input type="checkbox" id="mdmEnrolado" ${f.mdm_enrolado ? 'checked' : ''} style="width:auto;"> Equipo enrolado en MDM</label>
-                <div style="flex:1; min-width:130px;"><label>Estado</label><select id="mdmEstado"><option value="ninguno" ${est === 'ninguno' ? 'selected' : ''}>Sin MDM</option><option value="activo" ${est === 'activo' ? 'selected' : ''}>Activo</option><option value="bloqueado" ${est === 'bloqueado' ? 'selected' : ''}>Bloqueado</option><option value="liberado" ${est === 'liberado' ? 'selected' : ''}>Liberado</option></select></div>
-                <div style="flex:1; min-width:130px;"><label>Serial / IMEI enrolado</label><input type="text" id="mdmSerial" value="${escapeHtml(f.mdm_serial || f.equipo_imei || '')}"></div>
-                <div style="flex:1; min-width:120px;"><label>ID Hexnode (opcional)</label><input type="text" id="mdmDeviceId" value="${escapeHtml(f.mdm_device_id || '')}" placeholder="auto si vacío"></div>
-            </div>
-            <div style="margin-top:8px;"><label>Notas MDM</label><input type="text" id="mdmNotas" value="${escapeHtml(f.mdm_notas || '')}" placeholder="Proveedor: ${escapeHtml(f.mdm_proveedor || 'Hexnode')}"></div>
-            <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;">
-                <button class="btn btn-blue" onclick="guardarMDM('${f.id}')" style="font-size:12px;"><i class="ti ti-device-floppy"></i> Guardar datos</button>
-                <button class="btn btn-light" onclick="abrirBuscadorEquipos('${f.id}')" style="font-size:12px; color:#0369a1; border-color:#7dd3fc;"><i class="ti ti-search"></i> Buscar equipos disponibles</button>
-                ${(f.mdm_serial || f.mdm_device_id) ? `<button class="btn btn-light" onclick="desvincularEquipoMDM('${f.id}')" style="font-size:12px; color:#b45309; border-color:#fcd34d;"><i class="ti ti-unlink"></i> Quitar equipo de este cliente</button>` : ''}
-            </div>
-            <div style="border-top:1px dashed #e2e8f0; margin-top:10px; padding-top:10px;">
-                <div style="font-size:12px; font-weight:700; color:#0f172a; margin-bottom:6px;"><i class="ti ti-bolt" style="color:#f59e0b;"></i> Acción real en Hexnode</div>
-                <button class="btn btn-blue" onclick="mdmVerificar('${f.id}', this)" style="font-size:12px; width:100%; margin-bottom:6px;"><i class="ti ti-rosette-discount-check"></i> Verificar enrolamiento (antes de entregar)</button>
-                <div id="mdmVerif_${f.id}" style="font-size:12.5px; margin-bottom:8px;"></div>
-                <div id="mdmLoc_${f.id}" style="font-size:12.5px; margin-bottom:8px;"></div>
-                <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                    <button class="btn btn-light" onclick="mdmAccionReal('${f.id}','bloquear')" style="font-size:12px; color:#b91c1c;"><i class="ti ti-lock"></i> Bloquear equipo</button>
-                    <button class="btn btn-light" onclick="mdmAccionReal('${f.id}','desbloquear')" style="font-size:12px; color:#15803d;"><i class="ti ti-lock-open"></i> Desbloquear equipo</button>
-                    <button class="btn btn-light" onclick="abrirNotifMdm('${f.id}')" style="font-size:12px; color:#7c3aed;"><i class="ti ti-message-2"></i> Enviar notificación</button>
-                    <button class="btn btn-light" onclick="mdmUbicar('${f.id}', this)" style="font-size:12px; color:#0369a1;"><i class="ti ti-map-pin"></i> Ubicar equipo</button>
-                    <button class="btn btn-light" onclick="window.open('https://bayolcell.uem.hexnode.com','_blank')" style="font-size:12px; color:#0369a1;"><i class="ti ti-history"></i> Ver historial de ubicaciones</button>
-                    <button class="btn btn-light" onclick="mdmBorrarEquipo('${f.id}')" style="font-size:12px; color:#dc2626; border-color:#fca5a5;"><i class="ti ti-eraser"></i> Borrar equipo recuperado</button>
-                    <button class="btn btn-light" onclick="mdmLiberarEquipo('${f.id}')" style="font-size:12px; color:#0369a1; border-color:#7dd3fc;"><i class="ti ti-lock-open-2"></i> Liberar equipo (saldado)</button>
+            <!-- Tira de estado del equipo -->
+            <div style="display:flex; gap:12px; align-items:center; padding:12px; background:#f8fafc; border:1px solid var(--border-color); border-radius:13px; margin:11px 0;">
+                <div style="width:46px; height:46px; border-radius:13px; flex:none; display:flex; align-items:center; justify-content:center; background:${bloqueado ? 'var(--fin-danger-bg)' : (f.mdm_enrolado ? 'var(--fin-ok-bg)' : 'var(--fin-warn-bg)')};">
+                    <i class="ti ${bloqueado ? 'ti-lock' : 'ti-device-mobile'}" style="font-size:24px; color:${bloqueado ? 'var(--fin-danger)' : (f.mdm_enrolado ? 'var(--fin-ok)' : 'var(--fin-warn)')};"></i>
                 </div>
-                <div id="mdmRes_${f.id}" style="font-size:12.5px; margin-top:10px;"></div>
-                <div style="font-size:11px; color:var(--text-muted); margin-top:6px;">Estos botones envían la orden directo a Hexnode (requiere equipo enrolado/supervisado y la API configurada). El historial de ubicaciones se ve en la consola de Hexnode.</div>
+                <div style="min-width:0; flex:1;">
+                    <div style="font-weight:700; font-size:13.5px;">${escapeHtml(f.concepto || 'Equipo')}${f.equipo_capacidad ? ' · ' + escapeHtml(f.equipo_capacidad) : ''}</div>
+                    <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">IMEI/Serial: ${serialTxt ? escapeHtml(serialTxt) : '—'} · ${f.mdm_enrolado ? '<span style="color:var(--fin-ok); font-weight:700;"><i class="ti ti-circle-check"></i> Enrolado</span>' : '<span style="color:var(--fin-warn); font-weight:700;"><i class="ti ti-alert-circle"></i> No enrolado</span>'}</div>
+                </div>
             </div>
+            ${enMora && f.mdm_enrolado && est === 'activo' ? `<div style="background:var(--fin-danger-bg); border:1px solid var(--fin-danger-brd); color:var(--fin-danger); padding:8px 12px; border-radius:8px; margin-bottom:11px; font-size:12.5px;"><i class="ti ti-alert-triangle"></i> Cliente en atraso y equipo enrolado — candidato a bloqueo desde Hexnode.</div>` : ''}
+            <!-- Acción principal: verificar -->
+            <button class="btn btn-blue" onclick="mdmVerificar('${f.id}', this)" style="font-size:13px; width:100%; margin-bottom:6px; padding:11px;"><i class="ti ti-rosette-discount-check"></i> Verificar enrolamiento (antes de entregar)</button>
+            <div id="mdmVerif_${f.id}" style="font-size:12.5px; margin-bottom:6px;"></div>
+            <div id="mdmLoc_${f.id}" style="font-size:12.5px; margin-bottom:6px;"></div>
+            <!-- Cuadrícula de acciones reales en Hexnode -->
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(94px,1fr)); gap:8px; margin-top:8px;">
+                <div class="mdm-action danger" onclick="mdmAccionReal('${f.id}','bloquear')"><i class="ti ti-lock"></i>Bloquear</div>
+                <div class="mdm-action ok" onclick="mdmAccionReal('${f.id}','desbloquear')"><i class="ti ti-lock-open"></i>Desbloquear</div>
+                <div class="mdm-action info" onclick="abrirNotifMdm('${f.id}')"><i class="ti ti-message-2"></i>Notificar</div>
+                <div class="mdm-action info" onclick="mdmUbicar('${f.id}', this)"><i class="ti ti-map-pin"></i>Ubicar</div>
+                <div class="mdm-action muted" onclick="window.open('https://bayolcell.uem.hexnode.com','_blank')"><i class="ti ti-history"></i>Historial</div>
+                <div class="mdm-action danger" onclick="mdmBorrarEquipo('${f.id}')"><i class="ti ti-eraser"></i>Borrar equipo</div>
+                <div class="mdm-action info" onclick="mdmLiberarEquipo('${f.id}')"><i class="ti ti-lock-open-2"></i>Liberar</div>
+            </div>
+            <div id="mdmRes_${f.id}" style="font-size:12.5px; margin-top:10px;"></div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:8px;">Las acciones envían la orden directo a Hexnode (requiere equipo enrolado/supervisado y la API configurada).</div>
+            <!-- Datos técnicos y vínculo del equipo (plegable) -->
+            <details style="margin-top:12px; border-top:1px dashed var(--border-color); padding-top:10px;">
+                <summary style="cursor:pointer; font-size:12.5px; font-weight:700; color:var(--fin-muted);"><i class="ti ti-settings"></i> Datos técnicos y vínculo del equipo</summary>
+                <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin-top:10px;">
+                    <label style="display:flex; align-items:center; gap:6px; font-size:13px; text-transform:none; color:var(--text-dark);"><input type="checkbox" id="mdmEnrolado" ${f.mdm_enrolado ? 'checked' : ''} style="width:auto;"> Equipo enrolado en MDM</label>
+                    <div style="flex:1; min-width:130px;"><label>Estado</label><select id="mdmEstado"><option value="ninguno" ${est === 'ninguno' ? 'selected' : ''}>Sin MDM</option><option value="activo" ${est === 'activo' ? 'selected' : ''}>Activo</option><option value="bloqueado" ${est === 'bloqueado' ? 'selected' : ''}>Bloqueado</option><option value="liberado" ${est === 'liberado' ? 'selected' : ''}>Liberado</option></select></div>
+                    <div style="flex:1; min-width:130px;"><label>Serial / IMEI enrolado</label><input type="text" id="mdmSerial" value="${escapeHtml(serialTxt)}"></div>
+                    <div style="flex:1; min-width:120px;"><label>ID Hexnode (opcional)</label><input type="text" id="mdmDeviceId" value="${escapeHtml(f.mdm_device_id || '')}" placeholder="auto si vacío"></div>
+                </div>
+                <div style="margin-top:8px;"><label>Notas MDM</label><input type="text" id="mdmNotas" value="${escapeHtml(f.mdm_notas || '')}" placeholder="Proveedor: ${escapeHtml(f.mdm_proveedor || 'Hexnode')}"></div>
+                <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;">
+                    <button class="btn btn-blue" onclick="guardarMDM('${f.id}')" style="font-size:12px;"><i class="ti ti-device-floppy"></i> Guardar datos</button>
+                    <button class="btn btn-light" onclick="abrirBuscadorEquipos('${f.id}')" style="font-size:12px; color:var(--fin-info); border-color:var(--fin-info-brd);"><i class="ti ti-search"></i> Buscar equipos disponibles</button>
+                    ${(f.mdm_serial || f.mdm_device_id) ? `<button class="btn btn-light" onclick="desvincularEquipoMDM('${f.id}')" style="font-size:12px; color:var(--fin-warn); border-color:var(--fin-warn-brd);"><i class="ti ti-unlink"></i> Quitar equipo de este cliente</button>` : ''}
+                </div>
+            </details>
         </div>`;
     }
 
