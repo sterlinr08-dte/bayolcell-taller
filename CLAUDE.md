@@ -376,6 +376,11 @@ Usos:
 - **Metas mensuales** (equilibrio / ganancia 200k): 697 → **2,100,000 / 2,400,000** · 748 → **1,100,000 / 1,300,000** · 1020 → **550,000 / 650,000** · otros/taller ~150,000. Total 3.9M / 4.5M (gastos ~1.21M, margen real ~31%).
 - Cuando Sterling pida **"proyección"** (lo hace semanal): sacar ventas del mes por `codempleado` de `infoplus_ventas`, comparar contra estas metas (ritmo diario y % del ritmo necesario), y contra el mismo período del mes anterior. Referencias: junio cerró 3,370,172; mayo 3,796,579 (contadora: utilidad mayo +3,183). Julio 1-11: 1,112,480 (697: 602k · 748: 297k · 1020: 119k).
 
+### Auditoría 12 jul 2026 (aplicada)
+- **FIX:** `infoplus_ventas` tenía RLS sin política → los reportes que la leen directo del navegador ("Celulares por modelo" y "Estado de Resultados formato contadora") recibían VACÍO. Se creó `infoplus_ventas_auth_read` (select para authenticated). Regla: toda tabla nueva que lea el cliente necesita su política.
+- **FIX:** se revocó el EXECUTE **anon/public** de 16 funciones de negocio (stats_*, infoplus_valor_inventario, estado_mensual_cat, set_taller_existencia, etc.) — quedaban llamables SIN login con la clave publicable. Solo `web_visitas_por_dia`/`web_visitas_resumen` conservan anon (las usa la landing).
+- **Preventivo pendiente:** buckets `fin-documentos`/`fin-evidencias` son PÚBLICOS (hoy vacíos) — volverlos privados antes de subir documentos de clientes. 2 IMEI duplicados (garantías) y 2 lotes con contador descuadrado (cosmético).
+
 ### Pendientes
 - 🔒 **ROTAR la clave de Info Plus** (`24324...` se filtró en chat) y migrar Edge Functions a leer solo del secret con `.trim()`.
 - Serie `355617283201152` dañada (Dagoberto).
