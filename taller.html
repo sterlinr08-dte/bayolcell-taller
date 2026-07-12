@@ -23888,7 +23888,7 @@ function _pintarDetalleFin() {
                 ${f.cliente_telefono ? `<div style="font-size:12px; color:var(--text-muted);"><i class="ti ti-phone"></i> ${escapeHtml(f.cliente_telefono)}</div>` : ''}
                 ${(finClienteDe(f.fin_cliente_id) || {}).email ? `<div style="font-size:12px; color:var(--text-muted);"><i class="ti ti-mail"></i> ${escapeHtml((finClienteDe(f.fin_cliente_id) || {}).email)}</div>` : ''}
             </div>
-            <div style="text-align:right;">${finBadge(est)}<div style="margin-top:6px; display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end;"><button class="btn btn-light" onclick="abrirContratoFin('${f.id}')" style="font-size:11px;"><i class="ti ti-file-certificate"></i> Contrato${f.contrato_en ? ' ✓' : ''}</button><button class="btn btn-light" onclick="imprimirCalendarioPagos('${f.id}')" style="font-size:11px;"><i class="ti ti-calendar"></i> Calendario de pagos</button><button class="btn btn-light" onclick="imprimirEstadoCuentaFin('${f.id}')" style="font-size:11px;"><i class="ti ti-printer"></i> Estado de cuenta</button></div></div>
+            <div style="text-align:right;">${finBadge(est)}<div style="margin-top:6px; display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end;"><button class="btn btn-light" onclick="abrirContratoFin('${f.id}')" style="font-size:11px;"><i class="ti ti-file-certificate"></i> Contrato${f.contrato_en ? ' ✓' : ''}</button><button class="btn btn-light" onclick="imprimirCalendarioPagos('${f.id}')" style="font-size:11px;"><i class="ti ti-calendar"></i> Calendario de pagos</button><button class="btn btn-light" onclick="imprimirEstadoCuentaFin('${f.id}')" style="font-size:11px;"><i class="ti ti-printer"></i> Estado de cuenta</button>${est === 'saldado' ? `<button class="btn btn-light" onclick="imprimirCartaSaldo('${f.id}')" style="font-size:11px; color:#15803d;"><i class="ti ti-award"></i> Carta de saldo</button>` : ''}</div></div>
         </div>
         <div class="kpi-row" style="margin-top:12px;">
             <div class="kpi-box" style="border-top-color:#1e293b;"><small>Precio total</small><strong>${money(f.monto_total)}</strong></div>
@@ -24674,6 +24674,57 @@ function imprimirReciboFin(pagoId) {
         </body></html>`);
     w.document.close();
 }
+
+// ---- Carta de saldo (constancia de pago total) ----
+const FIN_CARTA_TITULO_DEF = 'CARTA DE SALDO — CONSTANCIA DE PAGO TOTAL';
+const FIN_CARTA_CUERPO_DEF = `Por medio de la presente, {{tienda}} hace constar que el/la Sr(a). {{cliente}}, portador(a) de la cédula de identidad No. {{cedula}}, ha pagado en su totalidad el financiamiento No. {{codigo}}, correspondiente a {{equipo}}, IMEI {{imei}}, por un monto total de {{total_pagado}}.
+En consecuencia, dicho financiamiento queda SALDADO y sin deuda pendiente a la fecha, liberándose cualquier gravamen o garantía sobre el equipo financiado.
+Se expide la presente constancia a solicitud de la parte interesada, para los fines que estime convenientes.`;
+const FIN_CARTA_VARS = ['tienda', 'cliente', 'cedula', 'codigo', 'equipo', 'imei', 'total_pagado', 'municipio', 'fecha'];
+function _finRellenarCarta(tpl, f) {
+    const c = cache.configTaller || {}; const cfg = _finCache.config || {};
+    const map = {
+        tienda: c.nombre || 'BAYOL CELL', cliente: f.cliente_nombre || '', cedula: f.cliente_cedula || '__________',
+        codigo: f.codigo || '', equipo: f.concepto || '', imei: f.equipo_imei || '—', total_pagado: money(f.monto_total),
+        municipio: cfg.abogado_municipio || (c.direccion || '').split(',').pop().trim() || '__________',
+        fecha: new Date().toLocaleDateString('es-DO', { day: '2-digit', month: 'long', year: 'numeric' })
+    };
+    return escapeHtml(tpl).replace(/\{\{(\w+)\}\}/g, (m, k) => (k in map) ? escapeHtml(String(map[k])) : m);
+}
+function imprimirCartaSaldo(finId) {
+    const f = (_finCache.financiamientos || []).find(x => x.id === finId);
+    if(!f) return;
+    const c = cache.configTaller || {}; const cfg = _finCache.config || {};
+    const titulo = cfg.carta_saldo_titulo || FIN_CARTA_TITULO_DEF;
+    const parrafos = _finRellenarCarta(cfg.carta_saldo_cuerpo || FIN_CARTA_CUERPO_DEF, f).split(/\n+/).filter(l => l.trim()).map(l => `<p style="text-align:justify; margin:12px 0; line-height:1.7;">${l}</p>`).join('');
+    const w = window.open('', '_blank', 'width=800,height=900');
+    if(!w) { toast('Permite las ventanas emergentes para imprimir.', 'error'); return; }
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Carta de saldo #${f.codigo || ''}</title>
+        <style>body{font-family:'Segoe UI',Arial,sans-serif;color:#111;padding:40px;max-width:720px;margin:0 auto;font-size:14px;}
+        h1{font-size:20px;text-align:center;margin:0;} h2{font-size:15px;text-align:center;margin:20px 0;letter-spacing:1px;}
+        .muted{color:#666;font-size:12px;} .firma{margin-top:70px;text-align:center;width:60%;}
+        @media print{button{display:none;}}</style></head><body>
+        <div style="text-align:center;">
+            <h1>${escapeHtml(c.nombre || 'BAYOL CELL')}</h1>
+            ${c.direccion ? `<div class="muted">${escapeHtml(c.direccion)}</div>` : ''}${c.telefono ? `<div class="muted">Tel: ${escapeHtml(c.telefono)}</div>` : ''}
+        </div>
+        <h2>${escapeHtml(titulo)}</h2>
+        ${parrafos}
+        <div class="firma"><div style="border-top:1px solid #333; padding-top:6px;">Por ${escapeHtml(c.nombre || 'la empresa')}</div></div>
+        <p class="muted" style="text-align:center; margin-top:26px;">Documento generado el ${new Date().toLocaleString('es-DO')}</p>
+        <div style="text-align:center; margin-top:18px;"><button onclick="window.print()" style="padding:9px 18px; font-size:14px; cursor:pointer;">🖨️ Imprimir</button></div>
+        </body></html>`);
+    w.document.close();
+    // Ofrecer liberar el equipo del MDM (el cliente pagó en su totalidad)
+    if(f.mdm_enrolado && f.mdm_estado !== 'liberado' && (isAdminUser() || tienePermiso('financiamientos_aprobar'))) {
+        setTimeout(() => {
+            if(confirm('El cliente saldó su deuda. ¿Liberar el equipo del MDM ahora (Hexnode)?')) {
+                if(typeof mdmLiberarEquipo === 'function') mdmLiberarEquipo(finId);
+                else supabaseClient.from('financiamientos').update({ mdm_estado: 'liberado' }).eq('id', finId).then(() => { toast('Equipo marcado como liberado.'); renderFinanciamientos(); });
+            }
+        }, 500);
+    }
+}
 function imprimirEstadoCuentaFin(finId) {
     const f = (_finCache.financiamientos || []).find(x => x.id === finId);
     if(!f) return;
@@ -24914,7 +24965,7 @@ function _pintarFichaCliente() {
     } else if(_cliTab === 'financiamientos') {
         html += `<div class="card">${fins.length ? fins.map(f => `<div style="border:1px solid #e2e8f0; border-radius:10px; padding:10px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
             <div><div style="font-weight:600; font-size:13px;">#${f.codigo} · ${escapeHtml(f.concepto || '')}</div><div style="font-size:12px; color:var(--text-muted);">Saldo ${money(finSaldo(f))} · ${finBadge(finEstado(f))}</div></div>
-            <button class="btn btn-blue" onclick="verFinanciamiento('${f.id}')" style="font-size:12px;"><i class="ti ti-eye"></i> Ver</button>
+            <div style="display:flex; gap:5px;">${finEstado(f) === 'saldado' ? `<button class="btn btn-light" onclick="imprimirCartaSaldo('${f.id}')" style="font-size:12px; color:#15803d;" title="Carta de saldo"><i class="ti ti-award"></i></button>` : ''}<button class="btn btn-blue" onclick="verFinanciamiento('${f.id}')" style="font-size:12px;"><i class="ti ti-eye"></i> Ver</button></div>
         </div>`).join('') : `<div style="color:var(--text-muted); font-size:13px;">Sin financiamientos.</div>`}</div>`;
     } else if(_cliTab === 'pagos') {
         html += `<div class="card"><h3 style="margin:0 0 10px; font-size:15px;">Pagos (${pagos.length})</h3>${pagos.length ? `<div class="table-wrap"><table><thead><tr><th>Recibo</th><th>Fecha</th><th style="text-align:right;">Monto</th><th style="text-align:right;">Mora</th><th>Método</th></tr></thead><tbody>${pagos.map(p => `<tr><td>#${p.recibo || '—'}</td><td>${new Date(p.creado_en).toLocaleDateString('es-DO')}</td><td style="text-align:right;">${money(p.monto)}</td><td style="text-align:right;">${Number(p.mora) > 0 ? money(p.mora) : '—'}</td><td style="text-transform:capitalize;">${escapeHtml(p.metodo || '')}</td></tr>`).join('')}</tbody></table></div>` : `<div style="color:var(--text-muted); font-size:13px;">Sin pagos.</div>`}</div>`;
@@ -25620,6 +25671,16 @@ function _pintarConfigFin() {
         </div>
 
         <div class="card" style="margin-bottom:14px;">
+            <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-award" style="color:#15803d;"></i> Carta de saldo (constancia de pago total)</h3>
+            <div class="form-row"><label>Título</label><input type="text" id="cfgCartaTitulo" value="${escapeHtml(cfg.carta_saldo_titulo || FIN_CARTA_TITULO_DEF)}"></div>
+            <div class="form-row"><label>Cuerpo (una idea por línea)</label><textarea id="cfgCartaCuerpo" rows="7" style="font-family:inherit; line-height:1.5;">${escapeHtml(cfg.carta_saldo_cuerpo || FIN_CARTA_CUERPO_DEF)}</textarea></div>
+            <div style="background:#f1f5f9; border-radius:8px; padding:8px 10px; font-size:11.5px; color:#475569; margin-bottom:8px;">
+                <b>Variables</b>: ${FIN_CARTA_VARS.map(v => `<code style="background:#fff; border:1px solid #e2e8f0; border-radius:4px; padding:1px 4px; margin:1px; display:inline-block;">{{${v}}}</code>`).join(' ')}
+            </div>
+            <button class="btn btn-light" onclick="_finRestaurarCarta()" style="font-size:12px;"><i class="ti ti-rotate"></i> Restaurar texto por defecto</button>
+        </div>
+
+        <div class="card" style="margin-bottom:14px;">
             <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-adjustments" style="color:#16a34a;"></i> Otras opciones</h3>
             <div class="form-row"><label>Pie del recibo de pago</label><input type="text" id="cfgReciboPie" value="${escapeHtml(cfg.recibo_pie || '')}" placeholder="Ej: Gracias por su pago"></div>
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
@@ -25700,6 +25761,11 @@ function _finRestaurarContrato() {
     const t = document.getElementById('cfgContratoTitulo'); if(t) t.value = FIN_CONTRATO_TITULO_DEF;
     const b = document.getElementById('cfgContratoCuerpo'); if(b) b.value = FIN_CONTRATO_CUERPO_DEF;
 }
+function _finRestaurarCarta() {
+    if(!confirm('¿Restaurar el texto de la carta de saldo a su versión por defecto?')) return;
+    const t = document.getElementById('cfgCartaTitulo'); if(t) t.value = FIN_CARTA_TITULO_DEF;
+    const b = document.getElementById('cfgCartaCuerpo'); if(b) b.value = FIN_CARTA_CUERPO_DEF;
+}
 async function guardarConfigFin() {
     const datos = {
         id: 1,
@@ -25709,6 +25775,8 @@ async function guardarConfigFin() {
         abogado_municipio: (document.getElementById('cfgAbgMunicipio')?.value || '').trim() || null,
         contrato_titulo: (document.getElementById('cfgContratoTitulo')?.value || '').trim() || null,
         contrato_cuerpo: (document.getElementById('cfgContratoCuerpo')?.value || '').trim() || null,
+        carta_saldo_titulo: (document.getElementById('cfgCartaTitulo')?.value || '').trim() || null,
+        carta_saldo_cuerpo: (document.getElementById('cfgCartaCuerpo')?.value || '').trim() || null,
         clausulas_extra: (document.getElementById('cfgClausulas')?.value || '').trim() || null,
         recibo_pie: (document.getElementById('cfgReciboPie')?.value || '').trim() || null,
         mora_tipo_def: document.getElementById('cfgMoraTipoDef')?.value || 'ninguna',
