@@ -26201,7 +26201,7 @@ function abrirRecordatoriosHoy() {
 function _finRecordatoriosRender() {
     const cont = document.getElementById('finRecoLista'); if(!cont) return;
     const lista = finRecordatoriosHoy();
-    if(!lista.length) { cont.innerHTML = `<div style="text-align:center; padding:22px 4px; color:var(--text-muted);"><i class="ti ti-checks" style="font-size:32px; color:#16a34a;"></i><div style="margin-top:6px;">No hay recordatorios para hoy. 🎉</div></div>`; return; }
+    if(!lista.length) { cont.innerHTML = `<div style="text-align:center; padding:22px 4px; color:var(--text-muted);"><i class="ti ti-checks" style="font-size:32px; color:#16a34a;"></i><div style="margin-top:6px;">No hay recordatorios para hoy.</div></div>`; return; }
     const pend = lista.filter(x => !x.enviado).length;
     cont.innerHTML = `<div style="display:flex; gap:8px; margin-bottom:10px;">
         <div style="flex:1; background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:8px 10px; text-align:center;"><div style="font-size:18px; font-weight:800; color:#1d4ed8;">${pend}</div><div style="font-size:11px; color:var(--text-muted);">por enviar</div></div>
@@ -26296,7 +26296,7 @@ function abrirListosBloqueo() {
 function _finListosBloqueoRender() {
     const cont = document.getElementById('finBloqLista'); if(!cont) return;
     const lista = finListosParaBloqueo();
-    if(!lista.length) { cont.innerHTML = `<div style="text-align:center; padding:22px 4px; color:var(--text-muted);"><i class="ti ti-shield-check" style="font-size:32px; color:#16a34a;"></i><div style="margin-top:6px;">Ningún equipo pasó los días de gracia. 👍</div></div>`; return; }
+    if(!lista.length) { cont.innerHTML = `<div style="text-align:center; padding:22px 4px; color:var(--text-muted);"><i class="ti ti-shield-check" style="font-size:32px; color:#16a34a;"></i><div style="margin-top:6px;">Ningún equipo pasó los días de gracia.</div></div>`; return; }
     const enrolados = lista.filter(x => x.enrolado).length;
     cont.innerHTML = `<div style="font-size:12.5px; margin-bottom:10px;"><b>${lista.length}</b> equipo(s) pasaron la gracia${enrolados ? ` · <b>${enrolados}</b> enrolado(s) se pueden bloquear` : ''}.</div>
     ${enrolados > 1 ? `<button class="btn" onclick="_finBloquearTodosEnrolados()" style="background:#b91c1c; color:#fff; font-size:12.5px; width:100%; margin-bottom:10px; padding:9px;"><i class="ti ti-lock"></i> Bloquear todos los enrolados (${enrolados})</button>` : ''}
@@ -26339,7 +26339,7 @@ async function _finBloquearTodosEnrolados() {
             ok++;
         } catch(e) { console.error('bloqueo masivo', e); }
     }
-    toast(`✅ ${ok} de ${lista.length} orden(es) de bloqueo enviada(s) a Hexnode.`);
+    toast(`${ok} de ${lista.length} orden(es) de bloqueo enviada(s) a Hexnode.`);
     if(document.getElementById('finBloqLista')) _finListosBloqueoRender();
 }
 
