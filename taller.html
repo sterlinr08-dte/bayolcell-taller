@@ -25153,14 +25153,14 @@ function _pintarCobros() {
     const totalAtraso = atrasadas.reduce((s, x) => s + x.cuota.pendiente, 0);
     if(kpis) {
         const kpi = (label, val, color, icon) => `<div class="kpi-box" style="border-top-color:${color};"><small>${label}</small><strong>${val}</strong><i class="ti ${icon}"></i></div>`;
-        kpis.innerHTML = kpi('Vencen hoy', hoyC.length, '#b45309', 'ti-calendar-due') + kpi('Atrasadas', atrasadas.length, '#b91c1c', 'ti-alert-triangle') + kpi('Monto en atraso', money(totalAtraso), '#dc2626', 'ti-cash');
+        kpis.innerHTML = kpi('Vencen hoy', hoyC.length, 'var(--fin-warn)', 'ti-calendar-due') + kpi('Atrasadas', atrasadas.length, 'var(--fin-danger)', 'ti-alert-triangle') + kpi('Monto en atraso', money(totalAtraso), 'var(--fin-danger)', 'ti-cash');
     }
     const filtros = { atrasados: 'Atrasados', hoy: 'Vencen hoy', semana: '7 días', mes: '30 días' };
     const nRecoCobros = finRecordatoriosHoy().filter(x => !x.enviado).length;
     let html = `<div class="card" style="margin-bottom:14px;">
         <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; align-items:center;">
-            ${Object.keys(filtros).map(k => `<button class="btn btn-light" onclick="_cobrosFiltro='${k}'; _pintarCobros()" style="font-size:12px; ${_cobrosFiltro === k ? 'background:#dcfce7; color:#15803d; font-weight:700;' : ''}">${filtros[k]}</button>`).join('')}
-            <button class="btn btn-light" onclick="abrirRecordatoriosHoy()" style="font-size:12px; color:#0891b2; border-color:#7dd3fc; margin-left:auto;"><i class="ti ti-brand-whatsapp"></i> Recordatorios de hoy${nRecoCobros > 0 ? ` (${nRecoCobros})` : ''}</button>
+            ${Object.keys(filtros).map(k => `<button class="btn btn-light" onclick="_cobrosFiltro='${k}'; _pintarCobros()" style="font-size:12px; ${_cobrosFiltro === k ? 'background:var(--fin-ok-bg); color:var(--fin-ok); font-weight:700;' : ''}">${filtros[k]}</button>`).join('')}
+            <button class="btn btn-light" onclick="abrirRecordatoriosHoy()" style="font-size:12px; color:var(--fin-info); border-color:var(--fin-info-brd); margin-left:auto;"><i class="ti ti-brand-whatsapp"></i> Recordatorios de hoy${nRecoCobros > 0 ? ` (${nRecoCobros})` : ''}</button>
         </div>
         <div id="cobrosLista"></div>
     </div>`;
@@ -25173,15 +25173,15 @@ function _pintarCobros() {
     const cont2 = document.getElementById('cobrosLista');
     if(!lista.length) { cont2.innerHTML = `<div style="color:var(--text-muted); font-size:13px;">Nada por cobrar en esta vista.</div>`; return; }
     cont2.innerHTML = lista.map(x => {
-        const etiqueta = x.dias > 0 ? `<span style="color:#b91c1c; font-weight:700;">${x.dias} día(s) de atraso</span>` : (x.dias === 0 ? `<span style="color:#b45309; font-weight:700;">Vence hoy</span>` : `<span style="color:#64748b;">Faltan ${Math.abs(x.dias)} día(s)</span>`);
-        return `<div style="border:1px solid #e2e8f0; border-radius:10px; padding:10px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+        const etiqueta = x.dias > 0 ? `<span style="color:var(--fin-danger); font-weight:700;">${x.dias} día(s) de atraso</span>` : (x.dias === 0 ? `<span style="color:var(--fin-warn); font-weight:700;">Vence hoy</span>` : `<span style="color:var(--fin-muted);">Faltan ${Math.abs(x.dias)} día(s)</span>`);
+        return `<div style="border:1px solid var(--border-color); border-radius:10px; padding:10px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
             <div style="min-width:0;">
-                <div style="font-weight:700; font-size:13px;">${escapeHtml(x.f.cliente_nombre || '')} <span style="color:#94a3b8;">#${x.f.codigo}</span></div>
+                <div style="font-weight:700; font-size:13px;">${escapeHtml(x.f.cliente_nombre || '')} <span style="color:var(--fin-muted);">#${x.f.codigo}</span></div>
                 <div style="font-size:12px; color:var(--text-muted);">${escapeHtml(x.f.concepto || '')} · Cuota ${x.cuota.num}/${x.f.num_cuotas} · Vence ${_finFmtFecha(x.cuota.vence)}</div>
                 <div style="font-size:12px;">${etiqueta} · Pendiente: <b>${money(x.cuota.pendiente)}</b></div>
             </div>
             <div style="display:flex; gap:5px;">
-                ${x.f.cliente_telefono ? `<button class="btn btn-light" onclick="whatsappRecordatorioFin('${x.f.id}')" style="font-size:12px; color:#16a34a;" title="WhatsApp"><i class="ti ti-brand-whatsapp"></i></button>` : ''}
+                ${x.f.cliente_telefono ? `<button class="btn btn-light" onclick="whatsappRecordatorioFin('${x.f.id}')" style="font-size:12px; color:var(--fin-ok);" title="WhatsApp"><i class="ti ti-brand-whatsapp"></i></button>` : ''}
                 <button class="btn btn-blue" onclick="verFinanciamiento('${x.f.id}')" style="font-size:12px;"><i class="ti ti-cash"></i> Cobrar</button>
             </div>
         </div>`;
@@ -25207,21 +25207,21 @@ function _pintarMora() {
     const totalMonto = atrasados.reduce((s, x) => s + x.pend, 0);
     if(kpisEl) {
         const kpi = (l, v, c, i) => `<div class="kpi-box" style="border-top-color:${c};"><small>${l}</small><strong>${v}</strong><i class="ti ${i}"></i></div>`;
-        kpisEl.innerHTML = kpi('En mora', atrasados.length, '#b91c1c', 'ti-user-x') + kpi('Monto en mora', money(totalMonto), '#dc2626', 'ti-cash') +
-            kpi('+30 días', atrasados.filter(x => x.dias > 30).length, '#7f1d1d', 'ti-alert-octagon') + kpi('+60 días', atrasados.filter(x => x.dias > 60).length, '#450a0a', 'ti-flame');
+        kpisEl.innerHTML = kpi('En mora', atrasados.length, 'var(--fin-danger)', 'ti-user-x') + kpi('Monto en mora', money(totalMonto), 'var(--fin-danger)', 'ti-cash') +
+            kpi('+30 días', atrasados.filter(x => x.dias > 30).length, 'var(--fin-danger)', 'ti-alert-octagon') + kpi('+60 días', atrasados.filter(x => x.dias > 60).length, 'var(--fin-danger)', 'ti-flame');
     }
     const rangos = { todos: 'Todos', '1-15': '1-15 días', '16-30': '16-30 días', '31-60': '31-60 días', '+60': '+60 días' };
     const enRango = x => _moraFiltro === 'todos' || (_moraFiltro === '1-15' && x.dias <= 15) || (_moraFiltro === '16-30' && x.dias > 15 && x.dias <= 30) || (_moraFiltro === '31-60' && x.dias > 30 && x.dias <= 60) || (_moraFiltro === '+60' && x.dias > 60);
     const lista = atrasados.filter(enRango);
     let html = `<div class="card">
         <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px;">
-            ${Object.keys(rangos).map(k => `<button class="btn btn-light" onclick="_moraFiltro='${k}'; _pintarMora()" style="font-size:12px; ${_moraFiltro === k ? 'background:#fee2e2; color:#b91c1c; font-weight:700;' : ''}">${rangos[k]}</button>`).join('')}
+            ${Object.keys(rangos).map(k => `<button class="btn btn-light" onclick="_moraFiltro='${k}'; _pintarMora()" style="font-size:12px; ${_moraFiltro === k ? 'background:var(--fin-danger-bg); color:var(--fin-danger); font-weight:700;' : ''}">${rangos[k]}</button>`).join('')}
         </div>`;
     if(!lista.length) { html += `<div style="color:var(--text-muted); font-size:13px;">Sin clientes en mora en este rango.</div></div>`; cont.innerHTML = html; return; }
     html += `<div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Contrato</th><th style="text-align:right;">Días</th><th style="text-align:right;">Cuotas venc.</th><th style="text-align:right;">Pendiente</th><th>Acciones</th></tr></thead><tbody>`;
     html += lista.map(x => {
         const f = x.f;
-        const colorD = x.dias > 60 ? '#7f1d1d' : (x.dias > 30 ? '#b91c1c' : '#f59e0b');
+        const colorD = x.dias > 30 ? 'var(--fin-danger)' : 'var(--fin-warn)';
         const puedeBloq = (isAdminUser() || tienePermiso('financiamientos_aprobar')) && f.mdm_enrolado && f.mdm_estado !== 'bloqueado';
         return `<tr>
             <td><b>${escapeHtml(f.cliente_nombre || '')}</b></td>
@@ -25230,9 +25230,9 @@ function _pintarMora() {
             <td style="text-align:right;">${x.cuotas}</td>
             <td style="text-align:right; font-weight:600;">${money(x.pend)}</td>
             <td style="white-space:nowrap;">
-                ${f.cliente_telefono ? `<button class="btn btn-light" onclick="whatsappRecordatorioFin('${f.id}')" style="font-size:11px; padding:3px 7px; color:#16a34a;" title="WhatsApp"><i class="ti ti-brand-whatsapp"></i></button>
-                <a class="btn btn-light" href="tel:${escapeHtml(f.cliente_telefono)}" style="font-size:11px; padding:3px 7px; color:#0891b2;" title="Llamar"><i class="ti ti-phone"></i></a>` : ''}
-                ${puedeBloq ? `<button class="btn btn-light" onclick="mdmAccionReal('${f.id}','bloquear')" style="font-size:11px; padding:3px 7px; color:#b91c1c;" title="Bloquear equipo"><i class="ti ti-lock"></i></button>` : ''}
+                ${f.cliente_telefono ? `<button class="btn btn-light" onclick="whatsappRecordatorioFin('${f.id}')" style="font-size:11px; padding:3px 7px; color:var(--fin-ok);" title="WhatsApp"><i class="ti ti-brand-whatsapp"></i></button>
+                <a class="btn btn-light" href="tel:${escapeHtml(f.cliente_telefono)}" style="font-size:11px; padding:3px 7px; color:var(--fin-info);" title="Llamar"><i class="ti ti-phone"></i></a>` : ''}
+                ${puedeBloq ? `<button class="btn btn-light" onclick="mdmAccionReal('${f.id}','bloquear')" style="font-size:11px; padding:3px 7px; color:var(--fin-danger);" title="Bloquear equipo"><i class="ti ti-lock"></i></button>` : ''}
                 <button class="btn btn-blue" onclick="verFinanciamiento('${f.id}')" style="font-size:11px; padding:3px 7px;" title="Cobrar/Ver"><i class="ti ti-cash"></i></button>
             </td>
         </tr>`;
@@ -25253,17 +25253,17 @@ function _pintarMDMTab() {
     const cnt = (e) => fins.filter(f => (f.mdm_estado || 'ninguno') === e).length;
     if(kpisEl) {
         const kpi = (l, v, c, i) => `<div class="kpi-box" style="border-top-color:${c};"><small>${l}</small><strong>${v}</strong><i class="ti ${i}"></i></div>`;
-        kpisEl.innerHTML = kpi('Enrolados', fins.filter(f => f.mdm_enrolado).length, '#16a34a', 'ti-device-mobile-check') +
-            kpi('Activos', cnt('activo'), '#15803d', 'ti-lock-open') + kpi('Bloqueados', cnt('bloqueado'), '#b91c1c', 'ti-lock') + kpi('Sin MDM', cnt('ninguno'), '#64748b', 'ti-device-mobile-off');
+        kpisEl.innerHTML = kpi('Enrolados', fins.filter(f => f.mdm_enrolado).length, 'var(--fin-ok)', 'ti-device-mobile-check') +
+            kpi('Activos', cnt('activo'), 'var(--fin-ok)', 'ti-lock-open') + kpi('Bloqueados', cnt('bloqueado'), 'var(--fin-danger)', 'ti-lock') + kpi('Sin MDM', cnt('ninguno'), 'var(--fin-muted)', 'ti-device-mobile-off');
     }
     const puedeMDM = isAdminUser() || tienePermiso('financiamientos_aprobar');
     const filtros = { todos: 'Todos', activo: 'Activos', bloqueado: 'Bloqueados', liberado: 'Liberados', ninguno: 'Sin MDM' };
     const lista = fins.filter(f => _mdmFiltro === 'todos' || (f.mdm_estado || 'ninguno') === _mdmFiltro);
     let html = `<div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
-            <div style="display:flex; gap:6px; flex-wrap:wrap;">${Object.keys(filtros).map(k => `<button class="btn btn-light" onclick="_mdmFiltro='${k}'; _pintarMDMTab()" style="font-size:12px; ${_mdmFiltro === k ? 'background:#e2e8f0; color:#0f172a; font-weight:700;' : ''}">${filtros[k]}</button>`).join('')}</div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">${Object.keys(filtros).map(k => `<button class="btn btn-light" onclick="_mdmFiltro='${k}'; _pintarMDMTab()" style="font-size:12px; ${_mdmFiltro === k ? 'background:var(--border-color); color:var(--fin-ink); font-weight:700;' : ''}">${filtros[k]}</button>`).join('')}</div>
             <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                ${puedeMDM && finListosParaBloqueo().length ? `<button class="btn" onclick="abrirListosBloqueo()" style="font-size:12px; background:#b91c1c; color:#fff;"><i class="ti ti-lock"></i> Listos para bloquear (${finListosParaBloqueo().length})</button>` : ''}
+                ${puedeMDM && finListosParaBloqueo().length ? `<button class="btn" onclick="abrirListosBloqueo()" style="font-size:12px; background:var(--fin-danger); color:#fff;"><i class="ti ti-lock"></i> Listos para bloquear (${finListosParaBloqueo().length})</button>` : ''}
                 <button class="btn btn-light" onclick="renderFinanciamientos()" style="font-size:12px;"><i class="ti ti-refresh"></i> Sincronizar</button>
             </div>
         </div>`;
@@ -25271,16 +25271,16 @@ function _pintarMDMTab() {
     html += `<div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Equipo</th><th>IMEI</th><th>Estado</th><th>Últ. acción</th><th>Acciones</th></tr></thead><tbody>`;
     html += lista.map(f => {
         const est = f.mdm_estado || 'ninguno';
-        const ei = { ninguno: ['Sin MDM', '#64748b', '#e2e8f0'], activo: ['Activo', '#15803d', '#dcfce7'], bloqueado: ['Bloqueado', '#b91c1c', '#fee2e2'], liberado: ['Liberado', '#1d4ed8', '#dbeafe'] }[est] || ['?', '#64748b', '#e2e8f0'];
+        const ei = { ninguno: ['Sin MDM', 'muted'], activo: ['Activo', 'ok'], bloqueado: ['Bloqueado', 'danger'], liberado: ['Liberado', 'info'] }[est] || ['?', 'muted'];
         return `<tr>
-            <td><b>${escapeHtml(f.cliente_nombre || '')}</b> <span style="color:#94a3b8;">#${f.codigo}</span></td>
+            <td><b>${escapeHtml(f.cliente_nombre || '')}</b> <span style="color:var(--fin-muted);">#${f.codigo}</span></td>
             <td>${escapeHtml(f.concepto || '')}</td>
             <td style="font-size:12px;">${escapeHtml(f.mdm_serial || f.equipo_imei || '—')}</td>
-            <td><span style="background:${ei[2]}; color:${ei[1]}; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:700;">${ei[0]}</span></td>
+            <td><span class="fin-badge ${ei[1]}">${ei[0]}</span></td>
             <td style="font-size:11.5px; color:var(--text-muted);">${f.mdm_accion_en ? new Date(f.mdm_accion_en).toLocaleDateString('es-DO') : '—'}</td>
             <td style="white-space:nowrap;">
-                ${puedeMDM && est !== 'bloqueado' ? `<button class="btn btn-light" onclick="mdmAccionReal('${f.id}','bloquear')" style="font-size:11px; padding:3px 7px; color:#b91c1c;" title="Bloquear"><i class="ti ti-lock"></i></button>` : ''}
-                ${puedeMDM && est === 'bloqueado' ? `<button class="btn btn-light" onclick="mdmAccionReal('${f.id}','desbloquear')" style="font-size:11px; padding:3px 7px; color:#15803d;" title="Desbloquear"><i class="ti ti-lock-open"></i></button>` : ''}
+                ${puedeMDM && est !== 'bloqueado' ? `<button class="btn btn-light" onclick="mdmAccionReal('${f.id}','bloquear')" style="font-size:11px; padding:3px 7px; color:var(--fin-danger);" title="Bloquear"><i class="ti ti-lock"></i></button>` : ''}
+                ${puedeMDM && est === 'bloqueado' ? `<button class="btn btn-light" onclick="mdmAccionReal('${f.id}','desbloquear')" style="font-size:11px; padding:3px 7px; color:var(--fin-ok);" title="Desbloquear"><i class="ti ti-lock-open"></i></button>` : ''}
                 <button class="btn btn-blue" onclick="verFinanciamiento('${f.id}')" style="font-size:11px; padding:3px 7px;" title="Gestionar"><i class="ti ti-device-mobile-cog"></i></button>
             </td>
         </tr>`;
