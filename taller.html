@@ -815,6 +815,7 @@ body{
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 
@@ -25343,6 +25344,8 @@ function _pintarMDMTab() {
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
             <div style="display:flex; gap:6px; flex-wrap:wrap;">${Object.keys(filtros).map(k => `<button class="btn btn-light" onclick="_mdmFiltro='${k}'; _pintarMDMTab()" style="font-size:12px; ${_mdmFiltro === k ? 'background:var(--border-color); color:var(--fin-ink); font-weight:700;' : ''}">${filtros[k]}</button>`).join('')}</div>
             <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                ${puedeMDM ? `<button class="btn btn-light" onclick="abrirEquiposDisponibles()" style="font-size:12px; color:var(--fin-ok); border-color:var(--fin-ok-brd);"><i class="ti ti-device-mobile-check"></i> Equipos disponibles</button>` : ''}
+                ${puedeMDM ? `<button class="btn btn-light" onclick="abrirQrEnrolarAndroid()" style="font-size:12px; color:var(--fin-info); border-color:var(--fin-info-brd);"><i class="ti ti-qrcode"></i> QR enrolar Android</button>` : ''}
                 ${puedeMDM && finListosParaBloqueo().length ? `<button class="btn" onclick="abrirListosBloqueo()" style="font-size:12px; background:var(--fin-danger); color:#fff;"><i class="ti ti-lock"></i> Listos para bloquear (${finListosParaBloqueo().length})</button>` : ''}
                 <button class="btn btn-light" onclick="renderFinanciamientos()" style="font-size:12px;"><i class="ti ti-refresh"></i> Sincronizar</button>
             </div>
@@ -26627,6 +26630,143 @@ function _mdmDispUsar(deviceId) {
     const g = document.getElementById('mdmSerial'); if(g){ g.scrollIntoView({ behavior:'smooth', block:'center' }); g.style.transition='background .3s'; g.style.background='#fef9c3'; setTimeout(()=>{ g.style.background=''; }, 1200); }
     // Verificar automáticamente en Hexnode que sigue enrolado y conectado (esto también guarda el enlace)
     setTimeout(() => { if(typeof mdmVerificar === 'function' && finId) mdmVerificar(finId); }, 200);
+}
+// ============================================================
+//   EQUIPOS ENROLADOS DISPONIBLES (listos para financiar)
+// ============================================================
+async function abrirEquiposDisponibles() {
+    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso.', 'error'); return; }
+    _mdmDispFinId = null; _mdmDispBusq = '';
+    abrirModalGenerico('Equipos enrolados', `
+        <div style="font-size:12.5px; color:var(--text-muted); margin-bottom:8px;">Equipos enrolados en Hexnode. Los <b>disponibles</b> están listos para financiar (aún sin cliente asignado).</div>
+        <input id="edBusq" placeholder="Buscar por IMEI, serie, modelo o nombre…" oninput="_edFiltrar(this.value)" autocomplete="off" style="width:100%; padding:10px 12px; font-size:14px; border:1px solid #cbd5e1; border-radius:8px; margin-bottom:10px;">
+        <div id="edLista"><div style="text-align:center; color:var(--fin-muted); padding:24px;"><i class="ti ti-loader"></i> Cargando equipos de Hexnode…</div></div>
+    `);
+    try {
+        const { data, error } = await supabaseClient.functions.invoke('mdm-accion', { body: { accion: 'listar' } });
+        if(error){ let det = ''; try { det = (await error.context.json()).error || ''; } catch(_) {} throw new Error(det || error.message); }
+        if(data && data.error) throw new Error(data.error);
+        _mdmDispCache = (data && data.devices) || [];
+    } catch(e) {
+        const l = document.getElementById('edLista');
+        if(l) l.innerHTML = `<div style="background:var(--fin-danger-bg); border:1px solid var(--fin-danger-brd); color:var(--fin-danger); padding:10px 12px; border-radius:8px;"><i class="ti ti-alert-triangle"></i> No se pudo cargar la lista de Hexnode: ${escapeHtml(e.message || String(e))}</div>`;
+        return;
+    }
+    _edRender();
+    setTimeout(() => { const b = document.getElementById('edBusq'); if(b) b.focus(); }, 60);
+}
+function _edFiltrar(v) { _mdmDispBusq = (v || '').toLowerCase().trim(); _edRender(); }
+function _edRender() {
+    const cont = document.getElementById('edLista'); if(!cont) return;
+    if(!_mdmDispCache.length) { cont.innerHTML = `<div style="color:var(--fin-muted); padding:16px; text-align:center;">No hay equipos enrolados en Hexnode todavía.</div>`; return; }
+    const lm = _mdmLinkMap();
+    const q = _mdmDispBusq;
+    const coincide = d => !q || [d.name, d.serial, d.imei, d.model, d.platform].some(x => String(x || '').toLowerCase().includes(q));
+    const disp = [], ocup = [];
+    _mdmDispCache.filter(coincide).forEach(d => { const dueno = _mdmDispOcupadoPor(d, lm); if(dueno) ocup.push({ d, dueno }); else disp.push(d); });
+    const card = (d, dueno) => {
+        const sub = [d.model, d.platform ? (d.platform + (d.os ? ' ' + d.os : '')) : '', d.imei ? 'IMEI ' + escapeHtml(d.imei) : '', d.serial ? 'Serie ' + escapeHtml(d.serial) : ''].filter(Boolean).join(' · ');
+        return `<div style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px; border:1px solid ${dueno ? 'var(--border-color)' : 'var(--fin-ok-brd)'}; background:${dueno ? '#fff' : 'var(--fin-ok-bg)'}; border-radius:11px; margin-bottom:6px;">
+            <div style="min-width:0;">
+                <div style="font-weight:700; font-size:13.5px;">${escapeHtml(d.name || d.model || ('Equipo ' + d.id))} <span style="color:var(--fin-muted); font-weight:600; font-size:11px;">Hexnode #${d.id}</span></div>
+                <div style="font-size:11.5px; color:var(--fin-muted); word-break:break-all;">${sub}</div>
+                ${dueno ? `<div style="font-size:11.5px; color:var(--fin-info); font-weight:700; margin-top:2px;"><i class="ti ti-user"></i> ${escapeHtml(dueno)}</div>` : ''}
+            </div>
+            ${dueno ? `<span class="fin-badge info" style="flex:none;">Asignado</span>` : `<span class="fin-badge ok" style="flex:none;">Disponible</span>`}
+        </div>`;
+    };
+    let html = `<div style="font-size:12.5px; font-weight:700; color:var(--fin-ok); margin:2px 0 6px;">Disponibles para financiar (${disp.length})</div>`;
+    html += disp.length ? disp.map(d => card(d, null)).join('') : `<div style="color:var(--fin-muted); font-size:12.5px; padding:6px 0 10px;">${q ? 'Ninguno coincide con la búsqueda.' : 'No hay equipos disponibles (todos están asignados).'}</div>`;
+    if(ocup.length) { html += `<div style="font-size:12.5px; font-weight:700; color:var(--fin-muted); margin:10px 0 6px;">Ya asignados a un cliente (${ocup.length})</div>` + ocup.map(o => card(o.d, o.dueno)).join(''); }
+    cont.innerHTML = html;
+}
+// ============================================================
+//   QR PARA ENROLAR ANDROID (Device Owner / Hexnode)
+// ============================================================
+function _finQrRender(text, elId, size) {
+    const el = document.getElementById(elId); if(!el) return;
+    el.innerHTML = '';
+    if(!window.QRCode) { el.innerHTML = '<div style="color:var(--fin-danger); font-size:12px;">No se pudo cargar el generador de QR (revisa tu internet).</div>'; return; }
+    try { new QRCode(el, { text: text, width: size || 220, height: size || 220, correctLevel: QRCode.CorrectLevel.L }); }
+    catch(e) { el.innerHTML = '<div style="color:var(--fin-danger); font-size:12px;">No se pudo generar el QR.</div>'; }
+}
+function abrirQrEnrolarAndroid() {
+    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso.', 'error'); return; }
+    const data = (_finCache.config || {}).enroll_android || '';
+    if(!data) { _editarEnrollAndroid(true); return; }
+    abrirModalGenerico('QR para enrolar Android', `
+        <div style="text-align:center;">
+            <div id="qrEnroll" style="display:inline-block; padding:14px; background:#fff; border:1px solid var(--border-color); border-radius:14px;"></div>
+            <div style="font-size:12.5px; color:var(--text-muted); margin-top:12px; text-align:left; background:#f8fafc; border:1px solid var(--border-color); border-radius:11px; padding:11px 13px;">
+                <b>Cómo enrolar un Android:</b>
+                <ol style="margin:6px 0 0; padding-left:18px; line-height:1.6;">
+                    <li>Usa un equipo <b>nuevo o reseteado de fábrica</b>.</li>
+                    <li>En la pantalla de bienvenida, toca <b>6 veces seguidas</b> el mismo punto.</li>
+                    <li>Se abre el lector de QR: <b>escanea este código</b>.</li>
+                    <li>Sigue los pasos; el equipo queda enrolado en Hexnode (administrado por BAYOL CELL).</li>
+                </ol>
+            </div>
+            <div style="display:flex; gap:8px; justify-content:center; margin-top:12px; flex-wrap:wrap;">
+                <button class="btn btn-blue" onclick="imprimirQrEnrolarAndroid()"><i class="ti ti-printer"></i> Imprimir QR</button>
+                <button class="btn btn-light" onclick="_editarEnrollAndroid(false)" style="color:var(--fin-muted);"><i class="ti ti-edit"></i> Cambiar dato</button>
+            </div>
+        </div>`);
+    setTimeout(() => _finQrRender(data, 'qrEnroll', 230), 80);
+}
+function _editarEnrollAndroid(primera) {
+    const data = (_finCache.config || {}).enroll_android || '';
+    abrirModalGenerico('Dato de enrolamiento Android', `
+        <div style="font-size:12.5px; color:var(--text-muted); margin-bottom:8px;">
+            ${primera ? 'Aún no hay un QR de enrolamiento configurado. ' : ''}Pega el <b>dato del QR de enrolamiento Android</b> que te da <b>Hexnode</b> (en Hexnode: <i>Enroll → Android → Device Owner / QR</i>). Con eso generamos el QR grande e imprimible.
+        </div>
+        <textarea id="enrollAndroidTxt" rows="5" placeholder="Pega aquí el texto/JSON del QR de Hexnode…" style="width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:12px; font-family:monospace;">${escapeHtml(data)}</textarea>
+        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:10px;">
+            <button class="btn btn-light" onclick="document.getElementById('modalGenerico').remove()">Cancelar</button>
+            <button class="btn btn-blue" onclick="_guardarEnrollAndroid()"><i class="ti ti-device-floppy"></i> Guardar y ver QR</button>
+        </div>`);
+}
+async function _guardarEnrollAndroid() {
+    const txt = (document.getElementById('enrollAndroidTxt')?.value || '').trim();
+    if(!txt) { toast('Pega el dato de enrolamiento de Hexnode.', 'error'); return; }
+    try {
+        await supabaseClient.from('fin_config').update({ enroll_android: txt }).eq('id', 1);
+        _finCache.config = { ..._finCache.config, enroll_android: txt };
+        document.getElementById('modalGenerico')?.remove();
+        toast('Dato guardado.');
+        abrirQrEnrolarAndroid();
+    } catch(e) { console.error('_guardarEnrollAndroid', e); toast('No se pudo guardar.', 'error'); }
+}
+function imprimirQrEnrolarAndroid() {
+    const data = (_finCache.config || {}).enroll_android || '';
+    if(!data) { toast('No hay dato de enrolamiento.', 'error'); return; }
+    if(!window.QRCode) { toast('No se pudo cargar el generador de QR.', 'error'); return; }
+    const tmp = document.createElement('div'); tmp.style.display = 'none'; document.body.appendChild(tmp);
+    try { new QRCode(tmp, { text: data, width: 300, height: 300, correctLevel: QRCode.CorrectLevel.L }); } catch(e) { tmp.remove(); toast('No se pudo generar el QR.', 'error'); return; }
+    setTimeout(() => {
+        const cv = tmp.querySelector('canvas');
+        const img = tmp.querySelector('img');
+        const src = cv ? cv.toDataURL('image/png') : (img ? img.src : '');
+        tmp.remove();
+        if(!src) { toast('No se pudo generar el QR.', 'error'); return; }
+        const c = cache.configTaller || {};
+        const w = window.open('', '_blank', 'width=460,height=680');
+        if(!w) { toast('Permite las ventanas emergentes para imprimir.', 'error'); return; }
+        w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>QR Enrolamiento Android</title>
+            <style>body{font-family:'Segoe UI',Arial,sans-serif;text-align:center;padding:24px;color:#111;} h2{margin:4px 0;} img{width:300px;height:300px;margin:12px 0;} ol{text-align:left;font-size:14px;max-width:340px;margin:8px auto;line-height:1.6;}</style>
+            </head><body>
+            <h2>${escapeHtml(c.nombre || 'BAYOL CELL')}</h2>
+            <div style="font-size:15px;font-weight:700;">Enrolamiento de equipo Android</div>
+            <img src="${src}" alt="QR">
+            <ol>
+                <li>Equipo nuevo o reseteado de fábrica.</li>
+                <li>En la bienvenida, toca 6 veces la pantalla.</li>
+                <li>Se abre el lector de QR: escanea este código.</li>
+                <li>Sigue los pasos hasta terminar.</li>
+            </ol>
+            <script>setTimeout(function(){window.print();},400);<\/script>
+            </body></html>`);
+        w.document.close();
+    }, 250);
 }
 // Acción real contra Hexnode vía Edge Function
 // Banner persistente que confirma qué acción se aplicó al equipo (queda visible, no desaparece como el toast)
