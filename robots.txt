@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /taller.html
+
+Sitemap: https://bayolcell.com/sitemap.xml
