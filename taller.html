@@ -12375,7 +12375,7 @@ function _nominaNuevaQuincena(rerender) {
     _nominaGen = { titulo: '', mes: '', quincena: 1, inicio: '', fin: '', pago: '', diasBase: 23.83, lineas: emps.map(e => {
         const q = Math.round((Number(e.salario_mensual) || 0) / 2 * 100) / 100;
         const ley = e.deduce_ley !== false;
-        return { empleado_id: e.id, nombre: e.nombre, cedula: e.cedula, cuenta_bhd: e.cuenta_bhd, puesto: e.puesto, salario_mensual: Number(e.salario_mensual) || 0, salario_quincenal: q, deduce_ley: ley, ars: ley ? Math.round(q * NOM_ARS * 100) / 100 : 0, afp: ley ? Math.round(q * NOM_AFP * 100) / 100 : 0, incentivos: 0, cuentas_por_cobrar: 0, dias_descontado: 0, dias_trabajados: null, total: 0, revisado: false };
+        return { empleado_id: e.id, nombre: e.nombre, cedula: e.cedula, cuenta_bhd: e.cuenta_bhd, puesto: e.puesto, salario_mensual: Number(e.salario_mensual) || 0, salario_quincenal: q, deduce_ley: ley, ars: ley ? Math.round(q * NOM_ARS * 100) / 100 : 0, afp: ley ? Math.round(q * NOM_AFP * 100) / 100 : 0, incentivos: 0, cuentas_por_cobrar: 0, dias_descontado: 0, dias_trabajados: null, total: 0, revisado: false, comentario: '' };
     }) };
     _nominaAplicarPeriodoAuto();
     if(rerender) _renderNominaGenerar();
@@ -12398,6 +12398,7 @@ function _renderNominaGenerar() {
         <td style="padding:2px; border:1px solid #e2e8f0;"><input class="nq-cxc" type="number" step="0.01" value="${l.cuentas_por_cobrar}" oninput="_nominaRecalc()" style="width:85px; text-align:right; border:none; background:transparent;"></td>
         <td style="padding:2px; border:1px solid #e2e8f0;"><input class="nq-dd" type="number" step="0.01" value="${l.dias_descontado}" oninput="_nominaRecalc()" style="width:80px; text-align:right; border:none; background:transparent;"></td>
         <td class="nq-total" style="padding:4px 6px; border:1px solid #e2e8f0; text-align:right; font-weight:800; color:#166534; background:#f0fdf4;">${money(l.total)}</td>
+        <td style="padding:4px 6px; border:1px solid #e2e8f0; text-align:center;"><a class="nq-com" onclick="_nominaComentario(${i}, this)" title="${escapeHtml(l.comentario || 'Agregar comentario')}" style="cursor:pointer; font-size:16px; color:${l.comentario ? '#0369a1' : '#cbd5e1'};"><i class="ti ${l.comentario ? 'ti-message-circle-filled' : 'ti-message-plus'}"></i></a></td>
         <td style="padding:4px 6px; border:1px solid #e2e8f0; text-align:center;" title="Marcar cuando verifiques que esta línea está correcta"><input type="checkbox" class="nq-ok" ${l.revisado ? 'checked' : ''} onchange="_nominaToggleOk(this, ${i})" style="width:17px; height:17px; cursor:pointer; accent-color:#16a34a;"></td>
     </tr>`).join('');
     const _fmtLargo = s => { try { return new Date(s + 'T00:00:00').toLocaleDateString('es-DO', { day: 'numeric', month: 'long' }); } catch(_) { return s; } };
@@ -12432,10 +12433,10 @@ function _renderNominaGenerar() {
       <p style="font-size:11.5px; color:#64748b; margin:0 0 8px;">El <b>SFS/ARS (3.04%)</b> y la <b>AFP (2.87%)</b> se descuentan solos sobre el sueldo quincenal cotizable. Si registras <b>Días trab.</b>, el quincenal se prorratea por día (sueldo ÷ días laborables × días); si lo dejas vacío, va el quincenal completo (editable).</p>
       <div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12px; min-width:980px;">
         <thead><tr style="background:#0f172a; color:#fff;">
-          <th style="padding:6px; text-align:left;">Nombre</th><th style="padding:6px;">Puesto</th><th style="padding:6px; text-align:right;">Salario/mes</th><th style="padding:6px;">Días trab.</th><th style="padding:6px; text-align:right;">Quincenal</th><th style="padding:6px;">ARS</th><th style="padding:6px;">AFP</th><th style="padding:6px;">Incentivos</th><th style="padding:6px;">Ctas. cobrar</th><th style="padding:6px;">Días desc.</th><th style="padding:6px;">TOTAL</th><th style="padding:6px;" title="Verificado">OK</th>
+          <th style="padding:6px; text-align:left;">Nombre</th><th style="padding:6px;">Puesto</th><th style="padding:6px; text-align:right;">Salario/mes</th><th style="padding:6px;">Días trab.</th><th style="padding:6px; text-align:right;">Quincenal</th><th style="padding:6px;">ARS</th><th style="padding:6px;">AFP</th><th style="padding:6px;">Incentivos</th><th style="padding:6px;">Ctas. cobrar</th><th style="padding:6px;">Días desc.</th><th style="padding:6px;">TOTAL</th><th style="padding:6px;" title="Comentarios"><i class="ti ti-message"></i></th><th style="padding:6px;" title="Verificado">OK</th>
         </tr></thead>
         <tbody>${filas}</tbody>
-        <tfoot><tr style="background:#eef2ff; font-weight:800;"><td colspan="4" style="padding:6px; text-align:right;">TOTALES:</td><td id="nomTotQuin" style="padding:6px; text-align:right;"></td><td id="nomTotArs" style="padding:6px; text-align:right;"></td><td id="nomTotAfp" style="padding:6px; text-align:right;"></td><td id="nomTotInc" style="padding:6px; text-align:right;"></td><td id="nomTotCxc" style="padding:6px; text-align:right;"></td><td id="nomTotDd" style="padding:6px; text-align:right;"></td><td id="nomTotNeto" style="padding:6px; text-align:right; color:#166534;"></td><td id="nomOkFoot" style="padding:6px; text-align:center; font-size:11px; color:#16a34a;"></td></tr></tfoot>
+        <tfoot><tr style="background:#eef2ff; font-weight:800;"><td colspan="4" style="padding:6px; text-align:right;">TOTALES:</td><td id="nomTotQuin" style="padding:6px; text-align:right;"></td><td id="nomTotArs" style="padding:6px; text-align:right;"></td><td id="nomTotAfp" style="padding:6px; text-align:right;"></td><td id="nomTotInc" style="padding:6px; text-align:right;"></td><td id="nomTotCxc" style="padding:6px; text-align:right;"></td><td id="nomTotDd" style="padding:6px; text-align:right;"></td><td id="nomTotNeto" style="padding:6px; text-align:right; color:#166534;"></td><td style="padding:6px;"></td><td id="nomOkFoot" style="padding:6px; text-align:center; font-size:11px; color:#16a34a;"></td></tr></tfoot>
       </table></div>
       <div id="nomTSS"></div>
       <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px; flex-wrap:wrap;">
@@ -12447,6 +12448,20 @@ function _renderNominaGenerar() {
         <button class="btn btn-blue" onclick="_nominaGuardarPeriodo()"><i class="ti ti-device-floppy"></i> Guardar quincena</button>
       </div>`;
     _nominaRecalc();
+}
+// Comentario por línea de la quincena (clic en el globito: ver/escribir; se guarda con la quincena)
+async function _nominaComentario(i, el) {
+    const g = _nominaGen; if(!g || !g.lineas[i]) return;
+    const l = g.lineas[i];
+    const r = await pedirTexto(`Comentario para ${l.nombre}:\n\n(Se guarda con la quincena. Déjalo vacío para quitarlo.)`, { valor: l.comentario || '', multilinea: true });
+    if(r === null) return;
+    l.comentario = (r || '').trim();
+    if(el) {
+        el.title = l.comentario || 'Agregar comentario';
+        el.style.color = l.comentario ? '#0369a1' : '#cbd5e1';
+        el.innerHTML = `<i class="ti ${l.comentario ? 'ti-message-circle-filled' : 'ti-message-plus'}"></i>`;
+    }
+    toast(l.comentario ? '💬 Comentario guardado en la línea.' : 'Comentario quitado.');
 }
 // Check de revisión por línea (uso personal del dueño): marca la fila en verde y lleva el conteo
 function _nominaToggleOk(el, i) {
@@ -12535,7 +12550,7 @@ async function _nominaGuardarPeriodo() {
             if(eU) throw eU;
             const { error: eD } = await supabaseClient.from('nomina_lineas').delete().eq('periodo_id', g.editandoId);
             if(eD) throw eD;
-            const lineasU = g.lineas.map((l, idx) => ({ periodo_id: g.editandoId, empleado_id: l.empleado_id, nombre: l.nombre, cedula: l.cedula, cuenta_bhd: l.cuenta_bhd, puesto: l.puesto, salario_mensual: l.salario_mensual, salario_quincenal: l.salario_quincenal, ars: l.ars, afp: l.afp, incentivos: l.incentivos, cuentas_por_cobrar: l.cuentas_por_cobrar, dias_descontado: l.dias_descontado, dias_trabajados: l.dias_trabajados, total: l.total, orden: idx }));
+            const lineasU = g.lineas.map((l, idx) => ({ periodo_id: g.editandoId, empleado_id: l.empleado_id, nombre: l.nombre, cedula: l.cedula, cuenta_bhd: l.cuenta_bhd, puesto: l.puesto, salario_mensual: l.salario_mensual, salario_quincenal: l.salario_quincenal, ars: l.ars, afp: l.afp, incentivos: l.incentivos, cuentas_por_cobrar: l.cuentas_por_cobrar, dias_descontado: l.dias_descontado, dias_trabajados: l.dias_trabajados, total: l.total, comentario: (l.comentario || '').trim() || null, orden: idx }));
             for(let i = 0; i < lineasU.length; i += 200) { const { error: e2 } = await supabaseClient.from('nomina_lineas').insert(lineasU.slice(i, i + 200)); if(e2) throw e2; }
             toast('✅ Quincena corregida y registrada.');
             _nominaGen = null;
@@ -12550,7 +12565,7 @@ async function _nominaGuardarPeriodo() {
         const per = { titulo, fecha_inicio: g.inicio || null, fecha_fin: g.fin || null, fecha_pago: g.pago || null, estado: 'guardada', creado_por: (typeof sessionUser !== 'undefined' && sessionUser) ? (sessionUser.nombre || sessionUser.id || null) : null };
         const { data: p, error: e1 } = await supabaseClient.from('nomina_periodos').insert([per]).select('id').single();
         if(e1) throw e1;
-        const lineas = g.lineas.map((l, idx) => ({ periodo_id: p.id, empleado_id: l.empleado_id, nombre: l.nombre, cedula: l.cedula, cuenta_bhd: l.cuenta_bhd, puesto: l.puesto, salario_mensual: l.salario_mensual, salario_quincenal: l.salario_quincenal, ars: l.ars, afp: l.afp, incentivos: l.incentivos, cuentas_por_cobrar: l.cuentas_por_cobrar, dias_descontado: l.dias_descontado, dias_trabajados: l.dias_trabajados, total: l.total, orden: idx }));
+        const lineas = g.lineas.map((l, idx) => ({ periodo_id: p.id, empleado_id: l.empleado_id, nombre: l.nombre, cedula: l.cedula, cuenta_bhd: l.cuenta_bhd, puesto: l.puesto, salario_mensual: l.salario_mensual, salario_quincenal: l.salario_quincenal, ars: l.ars, afp: l.afp, incentivos: l.incentivos, cuentas_por_cobrar: l.cuentas_por_cobrar, dias_descontado: l.dias_descontado, dias_trabajados: l.dias_trabajados, total: l.total, comentario: (l.comentario || '').trim() || null, orden: idx }));
         for(let i = 0; i < lineas.length; i += 200) { const { error: e2 } = await supabaseClient.from('nomina_lineas').insert(lineas.slice(i, i + 200)); if(e2) throw e2; }
         toast('✅ Quincena guardada.');
         _nominaGen = null;
@@ -12592,7 +12607,7 @@ async function _nominaEditarPeriodo(id) {
                 deduce_ley: (Number(l.ars) || 0) > 0 || (Number(l.afp) || 0) > 0,
                 ars: Number(l.ars) || 0, afp: Number(l.afp) || 0, incentivos: Number(l.incentivos) || 0,
                 cuentas_por_cobrar: Number(l.cuentas_por_cobrar) || 0, dias_descontado: Number(l.dias_descontado) || 0,
-                dias_trabajados: l.dias_trabajados, total: Number(l.total) || 0, revisado: false }))
+                dias_trabajados: l.dias_trabajados, total: Number(l.total) || 0, revisado: false, comentario: l.comentario || '' }))
         };
         nominaTab('generar');
         toast('✏️ Corrigiendo la quincena guardada. Al guardar te pedirá el motivo.');
