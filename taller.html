@@ -6091,7 +6091,7 @@ function nav(v, btn) {
     if(v === 'atencion') { setTimeout(() => { renderAtencionCliente(); }, 50); }
     if(v === 'financiamientos') { setTimeout(() => { renderFinanciamientos(); }, 50); }
     if(v === 'articulos') { setTimeout(() => { actualizarInfoplusCount(); renderInfoplusBusqueda(); }, 50); }
-    if(v === 'contabilidad') { setTimeout(() => { cargarCatalogoCuentas(); contaTab('mensual'); }, 50); }
+    if(v === 'contabilidad') { setTimeout(() => { cargarCatalogoCuentas(); contaTab(localStorage.getItem('bayol_subtab_conta') || 'mensual'); }, 50); }
     if(v === 'diagnostico') { setTimeout(() => { cargarConocimiento(); }, 50); }
     if(v === 'recepcion') { setTimeout(async () => {
         if(typeof renderRecepcionesRealizadas === 'function') renderRecepcionesRealizadas();
@@ -6733,6 +6733,7 @@ async function eliminarCuenta(id) {
 
 // ===== CONTABILIDAD — ASIENTOS (partida doble) + LIBRO DIARIO =====
 function contaTab(name) {
+    try { localStorage.setItem('bayol_subtab_conta', name); } catch(e){} // recordar sub-pestaña de Contabilidad
     const tabs = { mensual:'conta-mensual', catalogo:'conta-catalogo', asientos:'conta-asientos', mayor:'conta-mayor', balanza:'conta-balanza', estados:'conta-estados', r606:'conta-r606' };
     const btns = { mensual:'contaTabMensual', catalogo:'contaTabCat', asientos:'contaTabAs', mayor:'contaTabMay', balanza:'contaTabBal', estados:'contaTabEF', r606:'contaTab606' };
     Object.keys(tabs).forEach(k => { const el = document.getElementById(tabs[k]); if(el) el.style.display = (k === name ? '' : 'none'); const b = document.getElementById(btns[k]); if(b) b.className = 'btn ' + (k === name ? 'btn-blue' : 'btn-light'); });
@@ -24836,10 +24837,13 @@ async function renderFinanciamientos() {
     const btnNuevo = document.getElementById('btnNuevaSolicitud');
     if(btnNuevo) btnNuevo.style.display = (isAdminUser() || tienePermiso('financiamientos_crear')) ? '' : 'none';
     await cargarFinanciamientos();
+    // Recordar la sub-pestaña donde estaba (sobrevive a recargar)
+    try { const t = localStorage.getItem('bayol_subtab_fin'); if(t) _finTab = t; } catch(e){}
     _pintarTabFin();
 }
 function finCambiarTab(tab) {
     _finTab = tab;
+    try { localStorage.setItem('bayol_subtab_fin', tab); } catch(e){} // recordar sub-pestaña de Financiamientos
     _finDetalleId = null;
     _solDetalleId = null;
     _pintarTabFin();
