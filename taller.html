@@ -897,7 +897,7 @@ body{
             <button id="menu-reportes" onclick="nav('reportes',this)"><i class="ti ti-chart-bar"></i> <span>Reportes</span></button>
             <button id="menu-estadisticas" onclick="nav('estadisticas',this)" style="display:none;"><i class="ti ti-chart-pie-2"></i> <span>Estadísticas</span> <span class="nav-badge-admin" style="background:#7c3aed;">PRIVADO</span></button>
             <button id="menu-configuracion" onclick="nav('configuracion',this)"><i class="ti ti-adjustments"></i> <span>Configuración</span> <span class="nav-badge-admin">ADMIN</span></button>
-            <button id="menu-nomina" onclick="nav('nomina',this)" style="display:none;"><i class="ti ti-cash"></i> <span>Nómina</span> <span class="nav-badge-admin">ADMIN</span></button>
+            <button id="menu-nomina" onclick="nav('nomina',this)" style="display:none;"><i class="ti ti-users-group"></i> <span>Recursos Humanos</span> <span class="nav-badge-admin">ADMIN</span></button>
         </div>
         
         <!-- Tarjeta de usuario estilo NEXUS -->
@@ -2594,11 +2594,11 @@ body{
             <div id="v-nomina" class="view">
                 <div class="card">
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
-                        <h3 style="margin:0;"><i class="ti ti-cash" style="color:#16a34a;"></i> Nómina</h3>
+                        <h3 style="margin:0;"><i class="ti ti-users-group" style="color:#0e7490;"></i> Recursos Humanos <span style="font-weight:600; color:#94a3b8; font-size:13px;">(RRHH)</span> <i class="ti ti-info-circle" onclick="ayudaModulo('rrhh')" style="color:#94a3b8; cursor:pointer; font-size:16px;" title="¿Qué es este módulo?"></i></h3>
                         <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                            <button class="btn btn-light" id="nomTabEmp" onclick="nominaTab('empleados')"><i class="ti ti-users"></i> Empleados</button>
-                            <button class="btn btn-light" id="nomTabGen" onclick="nominaTab('generar')"><i class="ti ti-calculator"></i> Generar quincena</button>
-                            <button class="btn btn-light" id="nomTabHist" onclick="nominaTab('historial')"><i class="ti ti-history"></i> Historial</button>
+                            <button class="btn btn-light" id="nomTabEmp" onclick="nominaTab('empleados')"><i class="ti ti-id-badge-2"></i> Empleados</button>
+                            <button class="btn btn-light" id="nomTabNom" onclick="nominaTab('nomina')"><i class="ti ti-cash"></i> Nómina</button>
+                            <button class="btn btn-light" id="nomTabAcum" onclick="nominaTab('acumulados')"><i class="ti ti-calendar-plus"></i> Acumulados</button>
                         </div>
                     </div>
                     <div id="nominaContent"></div>
@@ -6036,7 +6036,7 @@ const NAV_PERMISOS = {
 function nav(v, btn) {
     // Aviso: si sales de una quincena que estás armando/corrigiendo con cambios sin guardar
     if(typeof _nominaGen !== 'undefined' && _nominaGen && _nominaGen._dirty && v !== 'nomina') {
-        _nominaConfirmarSalida(v);
+        _nominaConfirmarSalida(() => nav(v, btn));
         return;
     }
     // Candado especial: Estadísticas es privado del dueño (por ID), no por rol admin
@@ -12240,14 +12240,17 @@ function _regipCopy(txt) {
 const NOM_ARS = 0.0304, NOM_AFP = 0.0287; // descuentos de ley (empleado): ARS 3.04% + AFP 2.87%
 let _nominaTab = 'empleados';
 let _nominaGen = null;
+let _nomSub = 'generar'; // sub-pestaña dentro de "Nómina"
 async function _loadNomina() {
     try {
-        const [{ data: emp }, { data: per }] = await Promise.all([
+        const [{ data: emp }, { data: per }, { data: ben }] = await Promise.all([
             supabaseClient.from('nomina_empleados').select('*').order('nombre'),
-            supabaseClient.from('nomina_periodos').select('*').order('creado_en', { ascending: false })
+            supabaseClient.from('nomina_periodos').select('*').order('creado_en', { ascending: false }),
+            supabaseClient.from('rrhh_beneficios_pagos').select('*').order('creado_en', { ascending: false })
         ]);
         cache.nominaEmpleados = emp || [];
         cache.nominaPeriodos = per || [];
+        cache.rrhhBeneficios = ben || [];
     } catch(e) { logError('cargar nomina', e); }
 }
 async function renderNomina() {
@@ -12256,34 +12259,64 @@ async function renderNomina() {
     nominaTab(_nominaTab || 'empleados');
 }
 function nominaTab(t) {
-    _nominaTab = t;
-    ['Emp', 'Gen', 'Hist'].forEach(s => { const b = document.getElementById('nomTab' + s); if(b) { b.classList.remove('btn-blue'); b.classList.add('btn-light'); } });
-    const map = { empleados: 'Emp', generar: 'Gen', historial: 'Hist' };
-    const b = document.getElementById('nomTab' + (map[t] || 'Emp')); if(b) { b.classList.add('btn-blue'); b.classList.remove('btn-light'); }
-    if(t === 'empleados') _renderNominaEmpleados();
-    else if(t === 'generar') _renderNominaGenerar();
-    else _renderNominaHistorial();
+    // Aviso de cambios sin guardar al salir de la quincena (Generar) hacia otra pestaña de RRHH
+    if(_nominaGen && _nominaGen._dirty && _nominaTab === 'nomina' && _nomSub === 'generar' && ['empleados', 'acumulados', 'historial'].includes(t)) {
+        _nominaConfirmarSalida(() => nominaTab(t));
+        return;
+    }
+    // 'generar' e 'historial' son sub-pestañas de "Nómina": entran a la sección Nómina
+    const seccion = (t === 'generar' || t === 'historial') ? 'nomina' : t;
+    if(t === 'generar' || t === 'historial') _nomSub = t;
+    _nominaTab = seccion;
+    ['Emp', 'Nom', 'Acum'].forEach(s => { const b = document.getElementById('nomTab' + s); if(b) { b.classList.remove('btn-blue'); b.classList.add('btn-light'); } });
+    const map = { empleados: 'Emp', nomina: 'Nom', acumulados: 'Acum' };
+    const b = document.getElementById('nomTab' + (map[seccion] || 'Emp')); if(b) { b.classList.add('btn-blue'); b.classList.remove('btn-light'); }
+    if(seccion === 'empleados') _renderNominaEmpleados();
+    else if(seccion === 'acumulados') _renderRRHHAcumulados();
+    else _renderNominaNomina(_nomSub);
 }
+// Container donde escriben Generar/Historial (dentro de la sub-sección Nómina si existe)
+function _nomCont() { return document.getElementById('nominaSubContent') || document.getElementById('nominaContent'); }
+// Sección "Nómina" con sus dos sub-pestañas (Generar quincena / Historial)
+function _renderNominaNomina(sub) {
+    _nomSub = sub || _nomSub || 'generar';
+    const cont = document.getElementById('nominaContent'); if(!cont) return;
+    cont.innerHTML = `<div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; border-bottom:1px solid #e2e8f0; padding-bottom:10px;">
+        <button id="nomSubGen" class="btn btn-light" onclick="_nominaSub('generar')"><i class="ti ti-calculator"></i> Generar quincena</button>
+        <button id="nomSubHist" class="btn btn-light" onclick="_nominaSub('historial')"><i class="ti ti-history"></i> Historial</button>
+      </div><div id="nominaSubContent"></div>`;
+    const gb = document.getElementById('nomSubGen'), hb = document.getElementById('nomSubHist');
+    const on = x => { x.classList.add('btn-blue'); x.classList.remove('btn-light'); }, off = x => { x.classList.remove('btn-blue'); x.classList.add('btn-light'); };
+    if(_nomSub === 'historial') { on(hb); off(gb); _renderNominaHistorial(); }
+    else { on(gb); off(hb); _renderNominaGenerar(); }
+}
+function _nominaSub(s) { _nomSub = s; _renderNominaNomina(s); }
+let _rrhhEmpBusq = '';
 function _renderNominaEmpleados() {
     const cont = document.getElementById('nominaContent'); if(!cont) return;
-    const emps = cache.nominaEmpleados || [];
-    const filas = emps.map(e => `<tr>
-        <td style="padding:6px; border-bottom:1px solid #eef2f7;">${escapeHtml(e.nombre)}${e.activo === false ? ' <span style="color:#b91c1c; font-size:10px;">(inactivo)</span>' : ''}</td>
-        <td style="padding:6px; border-bottom:1px solid #eef2f7;">${escapeHtml(e.cedula || '—')}</td>
-        <td style="padding:6px; border-bottom:1px solid #eef2f7;">${escapeHtml(e.cuenta_bhd || '—')}</td>
-        <td style="padding:6px; border-bottom:1px solid #eef2f7;">${escapeHtml(e.puesto || '—')}</td>
-        <td style="padding:6px; border-bottom:1px solid #eef2f7; text-align:center;">${e.fecha_ingreso ? new Date(e.fecha_ingreso + 'T00:00:00').toLocaleDateString('es-DO') : '—'}</td>
-        <td style="padding:6px; border-bottom:1px solid #eef2f7; text-align:right;">${money(e.salario_mensual)}</td>
-        <td style="padding:6px; border-bottom:1px solid #eef2f7; text-align:center;">${e.deduce_ley === false ? 'No' : 'Sí'}</td>
-        <td style="padding:6px; border-bottom:1px solid #eef2f7; text-align:center; white-space:nowrap;"><a onclick="_nominaEditarEmpleado('${e.id}')" style="cursor:pointer; color:#0369a1;" title="Editar"><i class="ti ti-edit"></i></a>&nbsp;&nbsp;<a onclick="_nominaEliminarEmpleado('${e.id}')" style="cursor:pointer; color:#dc2626;" title="Quitar empleado"><i class="ti ti-trash"></i></a></td>
+    const q = (_rrhhEmpBusq || '').trim().toLowerCase();
+    let emps = cache.nominaEmpleados || [];
+    if(q) emps = emps.filter(e => (`${e.nombre} ${e.cedula || ''} ${e.puesto || ''} ${e.departamento || ''} ${e.telefono || ''}`).toLowerCase().includes(q));
+    const activos = (cache.nominaEmpleados || []).filter(e => e.activo !== false).length;
+    const filas = emps.map(e => `<tr style="${e.activo === false ? 'opacity:.6;' : ''}">
+        <td style="padding:7px 6px; border-bottom:1px solid #eef2f7;"><a onclick="_rrhhVerExpediente('${e.id}')" style="cursor:pointer; color:#0f172a; font-weight:700;">${escapeHtml(e.nombre)}</a>${e.activo === false ? ' <span style="color:#b91c1c; font-size:10px;">(inactivo)</span>' : ''}<div style="font-size:11px; color:#94a3b8;">${escapeHtml(e.cedula || 'sin cédula')}</div></td>
+        <td style="padding:7px 6px; border-bottom:1px solid #eef2f7;">${escapeHtml(e.puesto || '—')}${e.departamento ? `<div style="font-size:11px; color:#94a3b8;">${escapeHtml(e.departamento)}</div>` : ''}</td>
+        <td style="padding:7px 6px; border-bottom:1px solid #eef2f7;">${escapeHtml(e.telefono || '—')}</td>
+        <td style="padding:7px 6px; border-bottom:1px solid #eef2f7; text-align:center;">${e.fecha_ingreso ? new Date(e.fecha_ingreso + 'T00:00:00').toLocaleDateString('es-DO') : '—'}<div style="font-size:11px; color:#94a3b8;">${_rrhhAntiguedadTxt(e)}</div></td>
+        <td style="padding:7px 6px; border-bottom:1px solid #eef2f7; text-align:right;">${money(e.salario_mensual)}<div style="font-size:11px; color:#94a3b8;">${e.deduce_ley === false ? 'sin ley' : 'con ley'}</div></td>
+        <td style="padding:7px 6px; border-bottom:1px solid #eef2f7; text-align:center; white-space:nowrap;"><a onclick="_rrhhVerExpediente('${e.id}')" style="cursor:pointer; color:#0369a1;" title="Ver expediente"><i class="ti ti-file-text"></i></a>&nbsp;&nbsp;<a onclick="_nominaEditarEmpleado('${e.id}')" style="cursor:pointer; color:#0369a1;" title="Editar"><i class="ti ti-edit"></i></a>&nbsp;&nbsp;<a onclick="_nominaEliminarEmpleado('${e.id}')" style="cursor:pointer; color:#dc2626;" title="Quitar empleado"><i class="ti ti-trash"></i></a></td>
     </tr>`).join('');
-    cont.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-        <div style="font-size:13px; color:#475569;">${emps.length} empleado(s)</div>
-        <button class="btn btn-blue" onclick="_nominaEditarEmpleado('')"><i class="ti ti-plus"></i> Empleado</button></div>
-      <div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12.5px; min-width:780px;">
-        <thead><tr style="background:#f1f5f9;"><th style="padding:6px; text-align:left;">Nombre</th><th style="padding:6px; text-align:left;">Cédula</th><th style="padding:6px; text-align:left;">Cuenta BHD</th><th style="padding:6px; text-align:left;">Puesto</th><th style="padding:6px;">Ingreso</th><th style="padding:6px; text-align:right;">Salario/mes</th><th style="padding:6px;">Ley</th><th></th></tr></thead>
-        <tbody>${filas}</tbody></table></div>`;
+    cont.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+        <div style="font-size:13px; color:#475569;"><b>${activos}</b> activo(s) · ${(cache.nominaEmpleados || []).length} en total</div>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <input value="${escapeHtml(_rrhhEmpBusq)}" oninput="_rrhhEmpBusq=this.value; _renderNominaEmpleados(); const el=document.getElementById('rrhhEmpBusq'); if(el){el.focus(); el.setSelectionRange(el.value.length,el.value.length);}" id="rrhhEmpBusq" placeholder="Buscar empleado…" style="padding:7px 10px; border:1px solid #cbd5e1; border-radius:8px; min-width:180px;">
+          <button class="btn btn-blue" onclick="_nominaEditarEmpleado('')"><i class="ti ti-plus"></i> Nuevo empleado</button>
+        </div></div>
+      <div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12.5px; min-width:760px;">
+        <thead><tr style="background:#f1f5f9;"><th style="padding:7px 6px; text-align:left;">Empleado</th><th style="padding:7px 6px; text-align:left;">Puesto</th><th style="padding:7px 6px; text-align:left;">Teléfono</th><th style="padding:7px 6px;">Ingreso</th><th style="padding:7px 6px; text-align:right;">Salario/mes</th><th style="padding:7px 6px;"></th></tr></thead>
+        <tbody>${filas || '<tr><td colspan="6" style="padding:16px; text-align:center; color:#94a3b8;">Sin resultados.</td></tr>'}</tbody></table></div>`;
 }
+let _rrhhEmpTmp = { cuentas: [], referencias: [] };
 async function _nominaEditarEmpleado(id) {
     let e = {};
     if(id) {
@@ -12294,25 +12327,92 @@ async function _nominaEditarEmpleado(id) {
             catch(err) { logError('cargar empleado nomina', err); e = {}; }
         }
     }
+    _rrhhEmpTmp = {
+        cuentas: Array.isArray(e.cuentas) ? e.cuentas.map(c => ({ ...c })) : [],
+        referencias: Array.isArray(e.referencias) ? e.referencias.map(r => ({ ...r })) : []
+    };
+    const sel = (opts, val) => opts.map(o => `<option value="${escapeHtml(o)}" ${(val || '') === o ? 'selected' : ''}>${escapeHtml(o || '—')}</option>`).join('');
     const prev = document.getElementById('modalNomEmp'); if(prev) prev.remove();
     const box = document.createElement('div'); box.className = 'modal-backdrop active'; box.id = 'modalNomEmp'; box.style.zIndex = '760';
-    box.innerHTML = `<div class="modal-box" style="max-width:520px;">
-      <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-user"></i> ${id ? 'Editar' : 'Nuevo'} empleado</h3><button class="modal-close" onclick="document.getElementById('modalNomEmp').remove()">✕</button></div>
-      <div class="modal-body">
+    const sec = t => `<div style="font-weight:800; color:#0e7490; font-size:12.5px; text-transform:uppercase; letter-spacing:.4px; margin:16px 0 8px; padding-bottom:4px; border-bottom:1px solid #e2e8f0;">${t}</div>`;
+    box.innerHTML = `<div class="modal-box" style="max-width:660px; width:96%;">
+      <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-id-badge-2"></i> ${id ? 'Editar' : 'Nuevo'} empleado</h3><button class="modal-close" onclick="document.getElementById('modalNomEmp').remove()">✕</button></div>
+      <div class="modal-body" style="max-height:76vh; overflow-y:auto;">
         <input type="hidden" id="nomemp_id" value="${id || ''}">
-        <div class="form-row"><label>Nombre *</label><input id="nomemp_nombre" value="${escapeHtml(e.nombre || '')}"></div>
-        <div class="form-row"><label>Cédula</label><input id="nomemp_cedula" value="${escapeHtml(e.cedula || '')}"></div>
-        <div class="form-row"><label>Cuenta BHD</label><input id="nomemp_cuenta" value="${escapeHtml(e.cuenta_bhd || '')}"></div>
-        <div class="form-row"><label>Puesto</label><input id="nomemp_puesto" value="${escapeHtml(e.puesto || '')}"></div>
-        <div class="form-row"><label>Fecha de ingreso</label><input id="nomemp_ingreso" type="date" value="${e.fecha_ingreso || ''}"></div>
-        <div class="form-row"><label>Salario mensual (RD$)</label><input id="nomemp_salario" type="number" step="0.01" value="${e.salario_mensual || 0}"></div>
-        <div class="form-row"><label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="nomemp_ley" ${e.deduce_ley !== false ? 'checked' : ''} style="width:16px; height:16px;"> Aplica descuentos de ley (ARS/AFP)</label></div>
-        <div class="form-row"><label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="nomemp_activo" ${e.activo !== false ? 'checked' : ''} style="width:16px; height:16px;"> Activo</label></div>
+        ${sec('<i class="ti ti-user"></i> Datos personales')}
+        <div class="form-row"><label>Nombre completo *</label><input id="nomemp_nombre" value="${escapeHtml(e.nombre || '')}"></div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <div class="form-row"><label>Cédula</label><input id="nomemp_cedula" placeholder="000-0000000-0" value="${escapeHtml(e.cedula || '')}"></div>
+          <div class="form-row"><label>Fecha de nacimiento</label><input id="nomemp_nacimiento" type="date" value="${e.fecha_nacimiento || ''}"></div>
+          <div class="form-row"><label>Sexo</label><select id="nomemp_sexo">${sel(['', 'Masculino', 'Femenino'], e.sexo)}</select></div>
+          <div class="form-row"><label>Estado civil</label><select id="nomemp_civil">${sel(['', 'Soltero(a)', 'Casado(a)', 'Unión libre', 'Divorciado(a)', 'Viudo(a)'], e.estado_civil)}</select></div>
+          <div class="form-row"><label>Nacionalidad</label><input id="nomemp_nacionalidad" value="${escapeHtml(e.nacionalidad || 'Dominicana')}"></div>
+          <div class="form-row"><label>Lugar de nacimiento</label><input id="nomemp_lugarnac" value="${escapeHtml(e.lugar_nacimiento || '')}"></div>
+        </div>
+        ${sec('<i class="ti ti-phone"></i> Contacto')}
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <div class="form-row"><label>Teléfono</label><input id="nomemp_tel" value="${escapeHtml(e.telefono || '')}"></div>
+          <div class="form-row"><label>Teléfono 2 / otro</label><input id="nomemp_tel2" value="${escapeHtml(e.telefono2 || '')}"></div>
+          <div class="form-row"><label>Correo</label><input id="nomemp_email" value="${escapeHtml(e.email || '')}"></div>
+          <div class="form-row"><label>Ciudad / sector</label><input id="nomemp_ciudad" value="${escapeHtml(e.ciudad || '')}"></div>
+        </div>
+        <div class="form-row"><label>Dirección</label><input id="nomemp_direccion" value="${escapeHtml(e.direccion || '')}"></div>
+        ${sec('<i class="ti ti-briefcase"></i> Datos laborales')}
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <div class="form-row"><label>Puesto</label><input id="nomemp_puesto" value="${escapeHtml(e.puesto || '')}"></div>
+          <div class="form-row"><label>Departamento / área</label><input id="nomemp_depto" value="${escapeHtml(e.departamento || '')}"></div>
+          <div class="form-row"><label>Tipo de contrato</label><select id="nomemp_contrato">${sel(['', 'Fijo (indefinido)', 'Por día', 'Temporal', 'Por contrato'], e.tipo_contrato)}</select></div>
+          <div class="form-row"><label>Salario mensual (RD$)</label><input id="nomemp_salario" type="number" step="0.01" value="${e.salario_mensual || 0}"></div>
+          <div class="form-row"><label>Fecha de ingreso</label><input id="nomemp_ingreso" type="date" value="${e.fecha_ingreso || ''}"></div>
+          <div class="form-row"><label>Fecha de salida <span style="color:#94a3b8; font-weight:400;">(si aplica)</span></label><input id="nomemp_salida" type="date" value="${e.fecha_salida || ''}"></div>
+        </div>
+        <div style="display:flex; gap:18px; flex-wrap:wrap; margin-top:4px;">
+          <label style="display:flex; align-items:center; gap:8px; font-size:13px;"><input type="checkbox" id="nomemp_ley" ${e.deduce_ley !== false ? 'checked' : ''} style="width:16px; height:16px;"> Aplica descuentos de ley (ARS/AFP)</label>
+          <label style="display:flex; align-items:center; gap:8px; font-size:13px;"><input type="checkbox" id="nomemp_activo" ${e.activo !== false ? 'checked' : ''} style="width:16px; height:16px;"> Empleado activo</label>
+        </div>
+        ${sec('<i class="ti ti-building-bank"></i> Cuentas bancarias')}
+        <div class="form-row"><label>Cuenta principal (la que se usa para pagar por BHD)</label>
+          <div style="display:grid; grid-template-columns:150px 1fr; gap:8px;">
+            <input id="nomemp_bancoprin" placeholder="Banco (ej. BHD)" value="${escapeHtml(e.banco_principal || 'BHD')}">
+            <input id="nomemp_cuenta" placeholder="Número de cuenta" value="${escapeHtml(e.cuenta_bhd || '')}">
+          </div></div>
+        <div style="font-size:11.5px; color:#64748b; margin:2px 0 6px;">Otras cuentas del empleado (opcional):</div>
+        <div id="nomempCuentas"></div>
+        <button class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#0369a1; border-color:#7dd3fc;" onclick="_rrhhAddCuenta()"><i class="ti ti-plus"></i> Agregar cuenta</button>
+        ${sec('<i class="ti ti-users"></i> Referencias personales')}
+        <div style="font-size:11.5px; color:#64748b; margin:0 0 6px;">Personas que responden por el empleado (familiares, amigos). Escribe en "Relación": Amigo, Hermano, Vecino, etc.</div>
+        <div id="nomempRefs"></div>
+        <button class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#0369a1; border-color:#7dd3fc;" onclick="_rrhhAddRef()"><i class="ti ti-plus"></i> Agregar referencia</button>
+        ${sec('<i class="ti ti-note"></i> Notas')}
+        <div class="form-row"><textarea id="nomemp_notas" rows="2" style="width:100%;" placeholder="Observaciones internas…">${escapeHtml(e.notas || '')}</textarea></div>
       </div>
-      <div class="modal-footer">${id ? `<button class="btn" style="background:#fee2e2; color:#b91c1c; margin-right:auto;" onclick="_nominaEliminarEmpleado('${id}')"><i class="ti ti-trash"></i> Eliminar</button>` : ''}<button class="btn btn-light" onclick="document.getElementById('modalNomEmp').remove()">Cancelar</button><button class="btn btn-blue" onclick="_nominaGuardarEmpleado()">Guardar</button></div>
+      <div class="modal-footer">${id ? `<button class="btn" style="background:#fee2e2; color:#b91c1c; margin-right:auto;" onclick="_nominaEliminarEmpleado('${id}')"><i class="ti ti-trash"></i> Eliminar</button>` : ''}<button class="btn btn-light" onclick="document.getElementById('modalNomEmp').remove()">Cancelar</button><button class="btn btn-blue" onclick="_nominaGuardarEmpleado()"><i class="ti ti-device-floppy"></i> Guardar</button></div>
     </div>`;
     document.body.appendChild(box);
+    _rrhhRenderCuentas(); _rrhhRenderRefs();
 }
+function _rrhhRenderCuentas() {
+    const c = document.getElementById('nomempCuentas'); if(!c) return;
+    c.innerHTML = (_rrhhEmpTmp.cuentas || []).map((x, i) => `<div style="display:grid; grid-template-columns:140px 1fr 120px 30px; gap:6px; margin-bottom:6px; align-items:center;">
+        <input placeholder="Banco" value="${escapeHtml(x.banco || '')}" oninput="_rrhhEmpTmp.cuentas[${i}].banco=this.value" style="padding:6px 8px; border:1px solid #cbd5e1; border-radius:7px;">
+        <input placeholder="Número de cuenta" value="${escapeHtml(x.numero || '')}" oninput="_rrhhEmpTmp.cuentas[${i}].numero=this.value" style="padding:6px 8px; border:1px solid #cbd5e1; border-radius:7px;">
+        <input placeholder="Tipo (ahorro…)" value="${escapeHtml(x.tipo || '')}" oninput="_rrhhEmpTmp.cuentas[${i}].tipo=this.value" style="padding:6px 8px; border:1px solid #cbd5e1; border-radius:7px;">
+        <a onclick="_rrhhDelCuenta(${i})" style="cursor:pointer; color:#dc2626; text-align:center;" title="Quitar"><i class="ti ti-x"></i></a>
+      </div>`).join('') || '<div style="font-size:11.5px; color:#cbd5e1; margin-bottom:4px;">— sin cuentas adicionales —</div>';
+}
+function _rrhhAddCuenta() { _rrhhEmpTmp.cuentas.push({ banco: '', numero: '', tipo: '' }); _rrhhRenderCuentas(); }
+function _rrhhDelCuenta(i) { _rrhhEmpTmp.cuentas.splice(i, 1); _rrhhRenderCuentas(); }
+function _rrhhRenderRefs() {
+    const c = document.getElementById('nomempRefs'); if(!c) return;
+    c.innerHTML = (_rrhhEmpTmp.referencias || []).map((x, i) => `<div style="display:grid; grid-template-columns:1fr 140px 130px 30px; gap:6px; margin-bottom:6px; align-items:center;">
+        <input placeholder="Nombre" value="${escapeHtml(x.nombre || '')}" oninput="_rrhhEmpTmp.referencias[${i}].nombre=this.value" style="padding:6px 8px; border:1px solid #cbd5e1; border-radius:7px;">
+        <input placeholder="Teléfono" value="${escapeHtml(x.telefono || '')}" oninput="_rrhhEmpTmp.referencias[${i}].telefono=this.value" style="padding:6px 8px; border:1px solid #cbd5e1; border-radius:7px;">
+        <input placeholder="Relación (Amigo…)" value="${escapeHtml(x.relacion || '')}" oninput="_rrhhEmpTmp.referencias[${i}].relacion=this.value" style="padding:6px 8px; border:1px solid #cbd5e1; border-radius:7px;">
+        <a onclick="_rrhhDelRef(${i})" style="cursor:pointer; color:#dc2626; text-align:center;" title="Quitar"><i class="ti ti-x"></i></a>
+      </div>`).join('') || '<div style="font-size:11.5px; color:#cbd5e1; margin-bottom:4px;">— sin referencias —</div>';
+}
+function _rrhhAddRef() { _rrhhEmpTmp.referencias.push({ nombre: '', telefono: '', relacion: '' }); _rrhhRenderRefs(); }
+function _rrhhDelRef(i) { _rrhhEmpTmp.referencias.splice(i, 1); _rrhhRenderRefs(); }
 async function _nominaEliminarEmpleado(id) {
     const e = (cache.nominaEmpleados || []).find(x => x.id === id); if(!e) return;
     if(!await confirmar(`¿Quitar a "${e.nombre}" de la nómina?\n\nYa no aparecerá al generar las quincenas.`)) return;
@@ -12337,9 +12437,22 @@ async function _nominaEliminarEmpleado(id) {
 }
 async function _nominaGuardarEmpleado() {
     const id = document.getElementById('nomemp_id').value;
+    const V = idc => (document.getElementById(idc)?.value || '').trim() || null;
     const nombre = (document.getElementById('nomemp_nombre').value || '').trim();
     if(!nombre) return toast('Nombre obligatorio.', 'error');
-    const data = { nombre, cedula: (document.getElementById('nomemp_cedula').value || '').trim() || null, cuenta_bhd: (document.getElementById('nomemp_cuenta').value || '').trim() || null, puesto: (document.getElementById('nomemp_puesto').value || '').trim() || null, fecha_ingreso: document.getElementById('nomemp_ingreso').value || null, salario_mensual: Number(document.getElementById('nomemp_salario').value) || 0, deduce_ley: document.getElementById('nomemp_ley').checked, activo: document.getElementById('nomemp_activo').checked };
+    const cuentas = (_rrhhEmpTmp.cuentas || []).filter(c => (c.banco || c.numero || '').trim());
+    const referencias = (_rrhhEmpTmp.referencias || []).filter(r => (r.nombre || r.telefono || '').trim());
+    const data = {
+        nombre, cedula: V('nomemp_cedula'), cuenta_bhd: V('nomemp_cuenta'), banco_principal: V('nomemp_bancoprin'),
+        puesto: V('nomemp_puesto'), departamento: V('nomemp_depto'), tipo_contrato: V('nomemp_contrato'),
+        fecha_ingreso: document.getElementById('nomemp_ingreso').value || null, fecha_salida: document.getElementById('nomemp_salida').value || null,
+        salario_mensual: Number(document.getElementById('nomemp_salario').value) || 0,
+        deduce_ley: document.getElementById('nomemp_ley').checked, activo: document.getElementById('nomemp_activo').checked,
+        telefono: V('nomemp_tel'), telefono2: V('nomemp_tel2'), email: V('nomemp_email'), direccion: V('nomemp_direccion'), ciudad: V('nomemp_ciudad'),
+        fecha_nacimiento: document.getElementById('nomemp_nacimiento').value || null, sexo: V('nomemp_sexo'), estado_civil: V('nomemp_civil'),
+        nacionalidad: V('nomemp_nacionalidad'), lugar_nacimiento: V('nomemp_lugarnac'),
+        cuentas, referencias, notas: V('nomemp_notas')
+    };
     try {
         if(id) await supabaseClient.from('nomina_empleados').update(data).eq('id', id);
         else await supabaseClient.from('nomina_empleados').insert([data]);
@@ -12347,6 +12460,256 @@ async function _nominaGuardarEmpleado() {
         const m = document.getElementById('modalNomEmp'); if(m) m.remove();
         await _loadNomina(); _renderNominaEmpleados();
     } catch(e) { logError('guardar empleado nomina', e); toastError(getFriendlyError(e)); }
+}
+// ===================== RRHH: ANTIGÜEDAD Y ACUMULADOS =====================
+function _rrhhAntiguedad(e) {
+    if(!e || !e.fecha_ingreso) return null;
+    const ing = new Date(e.fecha_ingreso + 'T00:00:00');
+    if(isNaN(ing)) return null;
+    const fin = (e.fecha_salida ? new Date(e.fecha_salida + 'T00:00:00') : new Date());
+    let anios = fin.getFullYear() - ing.getFullYear();
+    let meses = fin.getMonth() - ing.getMonth();
+    if(fin.getDate() < ing.getDate()) meses--;
+    if(meses < 0) { anios--; meses += 12; }
+    const totalDias = Math.max(0, (fin - ing) / 86400000);
+    return { anios: Math.max(0, anios), meses: Math.max(0, meses), totalDias, totalMeses: totalDias / 30.4375, totalAnios: totalDias / 365.25 };
+}
+function _rrhhAntiguedadTxt(e) {
+    const a = _rrhhAntiguedad(e); if(!a) return '—';
+    if(a.anios <= 0 && a.meses <= 0) return 'menos de 1 mes';
+    const p = [];
+    if(a.anios > 0) p.push(a.anios + (a.anios === 1 ? ' año' : ' años'));
+    if(a.meses > 0) p.push(a.meses + (a.meses === 1 ? ' mes' : ' meses'));
+    return p.join(' y ');
+}
+// Regalía pascual (salario 13) acumulada del AÑO ACTUAL: 1/12 de lo devengado del 1 ene al 31 dic
+function _rrhhRegaliaAcum(e) {
+    const sal = Number(e.salario_mensual) || 0; if(sal <= 0) return 0;
+    const hoy = new Date(), anio = hoy.getFullYear();
+    const inicioAnio = new Date(anio, 0, 1);
+    const ing = e.fecha_ingreso ? new Date(e.fecha_ingreso + 'T00:00:00') : inicioAnio;
+    const start = (ing > inicioAnio ? ing : inicioAnio);
+    const finCorte = (e.fecha_salida ? new Date(e.fecha_salida + 'T00:00:00') : hoy);
+    if(finCorte <= start) return 0;
+    const meses = Math.min(12, (finCorte - start) / 86400000 / 30.4375);
+    return Math.round(sal * meses / 12 * 100) / 100;
+}
+// Días de vacaciones por ley (Código de Trabajo RD): 14 días al año; 18 días desde los 5 años
+function _rrhhVacacionesDias(e) {
+    const a = _rrhhAntiguedad(e); if(!a) return 0;
+    if(a.totalAnios >= 5) return 18;
+    if(a.totalAnios >= 1) return 14;
+    return Math.round(14 * Math.min(1, a.totalMeses / 12) * 10) / 10; // <1 año: proporcional (referencial)
+}
+function _rrhhVacacionesMonto(e) {
+    const sal = Number(e.salario_mensual) || 0;
+    return Math.round(sal / 23.83 * _rrhhVacacionesDias(e) * 100) / 100;
+}
+function _rrhhPagadoBeneficio(empId, tipo, anio) {
+    return (cache.rrhhBeneficios || []).filter(b => b.empleado_id === empId && b.tipo === tipo && (anio == null || b.anio === anio))
+        .reduce((s, b) => s + (Number(b.monto) || 0), 0);
+}
+// ---- Expediente (solo lectura) ----
+function _rrhhVerExpediente(id) {
+    const e = (cache.nominaEmpleados || []).find(x => x.id === id); if(!e) return toast('No se encontró el empleado.', 'error');
+    const anio = new Date().getFullYear();
+    const reg = _rrhhRegaliaAcum(e), regP = _rrhhPagadoBeneficio(e.id, 'regalia', anio);
+    const vd = _rrhhVacacionesDias(e), vm = _rrhhVacacionesMonto(e), vacP = _rrhhPagadoBeneficio(e.id, 'vacaciones', anio);
+    const row = (lbl, val) => val ? `<div style="display:flex; gap:8px; padding:3px 0;"><span style="min-width:150px; color:#64748b; font-size:12.5px;">${lbl}</span><span style="font-weight:600; color:#0f172a; font-size:13px;">${escapeHtml(String(val))}</span></div>` : '';
+    const fdate = d => d ? new Date(d + 'T00:00:00').toLocaleDateString('es-DO', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+    const sec = t => `<div style="font-weight:800; color:#0e7490; font-size:11.5px; text-transform:uppercase; letter-spacing:.4px; margin:14px 0 4px;">${t}</div>`;
+    const cuentas = (Array.isArray(e.cuentas) ? e.cuentas : []).filter(c => c.banco || c.numero);
+    const refs = (Array.isArray(e.referencias) ? e.referencias : []).filter(r => r.nombre || r.telefono);
+    const pagos = (cache.rrhhBeneficios || []).filter(b => b.empleado_id === e.id);
+    const prev = document.getElementById('modalRrhhExp'); if(prev) prev.remove();
+    const box = document.createElement('div'); box.className = 'modal-backdrop active'; box.id = 'modalRrhhExp'; box.style.zIndex = '760';
+    box.innerHTML = `<div class="modal-box" style="max-width:680px; width:96%;">
+      <div class="modal-header" style="background:linear-gradient(135deg,#0e7490,#0891b2); color:#fff; border-radius:12px 12px 0 0;"><h3 style="margin:0; color:#fff;"><i class="ti ti-id-badge-2"></i> ${escapeHtml(e.nombre)}${e.activo === false ? ' (inactivo)' : ''}</h3><button class="modal-close" style="color:#fff;" onclick="document.getElementById('modalRrhhExp').remove()">✕</button></div>
+      <div class="modal-body" style="max-height:76vh; overflow-y:auto;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0 20px;">
+          <div>
+            ${sec('Datos personales')}
+            ${row('Cédula', e.cedula)}${row('Nacimiento', fdate(e.fecha_nacimiento))}${row('Sexo', e.sexo)}${row('Estado civil', e.estado_civil)}${row('Nacionalidad', e.nacionalidad)}${row('Lugar de nacim.', e.lugar_nacimiento)}
+            ${sec('Contacto')}
+            ${row('Teléfono', e.telefono)}${row('Teléfono 2', e.telefono2)}${row('Correo', e.email)}${row('Ciudad/sector', e.ciudad)}${row('Dirección', e.direccion)}
+          </div>
+          <div>
+            ${sec('Datos laborales')}
+            ${row('Puesto', e.puesto)}${row('Departamento', e.departamento)}${row('Contrato', e.tipo_contrato)}${row('Ingreso', fdate(e.fecha_ingreso))}${row('Antigüedad', _rrhhAntiguedadTxt(e))}${e.fecha_salida ? row('Salida', fdate(e.fecha_salida)) : ''}${row('Salario/mes', money(e.salario_mensual))}${row('Descuentos ley', e.deduce_ley === false ? 'No' : 'Sí (ARS/AFP)')}
+            ${sec('Cuentas bancarias')}
+            ${row((e.banco_principal || 'Banco') + ' (pago)', e.cuenta_bhd)}
+            ${cuentas.map(c => row(c.banco || 'Cuenta', (c.numero || '') + (c.tipo ? ' · ' + c.tipo : ''))).join('') || (e.cuenta_bhd ? '' : '<div style="color:#cbd5e1; font-size:12px;">—</div>')}
+          </div>
+        </div>
+        ${refs.length ? sec('Referencias personales') + refs.map(r => `<div style="display:flex; gap:8px; padding:3px 0; font-size:13px;"><i class="ti ti-user" style="color:#94a3b8;"></i> <b>${escapeHtml(r.nombre || '')}</b> ${r.relacion ? `<span style="color:#64748b;">(${escapeHtml(r.relacion)})</span>` : ''} ${r.telefono ? `· ${escapeHtml(r.telefono)}` : ''}</div>`).join('') : ''}
+        ${sec('Acumulados ' + anio)}
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <div style="border:1px solid #bbf7d0; background:#f0fdf4; border-radius:10px; padding:11px;">
+            <div style="font-weight:700; color:#15803d; font-size:12.5px;"><i class="ti ti-gift"></i> Regalía navideña</div>
+            <div style="font-size:19px; font-weight:800; color:#166534;">${money(reg)}</div>
+            <div style="font-size:11.5px; color:#64748b;">Acumulado al día de hoy${regP > 0 ? ` · pagado ${money(regP)}` : ''}</div>
+          </div>
+          <div style="border:1px solid #bae6fd; background:#f0f9ff; border-radius:10px; padding:11px;">
+            <div style="font-weight:700; color:#0369a1; font-size:12.5px;"><i class="ti ti-beach"></i> Vacaciones</div>
+            <div style="font-size:19px; font-weight:800; color:#075985;">${vd} días · ${money(vm)}</div>
+            <div style="font-size:11.5px; color:#64748b;">Según antigüedad${vacP > 0 ? ` · pagado ${money(vacP)}` : ''}</div>
+          </div>
+        </div>
+        ${pagos.length ? `<div style="margin-top:10px;"><div style="font-size:11.5px; color:#64748b; margin-bottom:4px;">Pagos registrados:</div>${pagos.map(b => `<div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; padding:4px 0; border-bottom:1px solid #f1f5f9;"><span>${b.tipo === 'regalia' ? '🎁 Regalía' : b.tipo === 'vacaciones' ? '🏖️ Vacaciones' : 'Otro'} ${b.anio || ''}${b.fecha_pago ? ' · ' + new Date(b.fecha_pago + 'T00:00:00').toLocaleDateString('es-DO') : ''}${b.nota ? ' · ' + escapeHtml(b.nota) : ''}</span><span style="display:flex; gap:8px; align-items:center;"><b>${money(b.monto)}</b> <a onclick="_rrhhEliminarBeneficio('${b.id}')" style="cursor:pointer; color:#dc2626;" title="Borrar pago"><i class="ti ti-trash"></i></a></span></div>`).join('')}</div>` : ''}
+        ${e.notas ? sec('Notas') + `<div style="font-size:12.5px; color:#334155; white-space:pre-wrap;">${escapeHtml(e.notas)}</div>` : ''}
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-light" style="margin-right:auto;" onclick="_rrhhImprimirExpediente('${e.id}')"><i class="ti ti-printer"></i> Imprimir</button>
+        <button class="btn btn-light" onclick="document.getElementById('modalRrhhExp').remove()">Cerrar</button>
+        <button class="btn btn-blue" onclick="document.getElementById('modalRrhhExp').remove(); _nominaEditarEmpleado('${e.id}')"><i class="ti ti-edit"></i> Editar</button>
+      </div>
+    </div>`;
+    document.body.appendChild(box);
+}
+function _rrhhImprimirExpediente(id) {
+    const e = (cache.nominaEmpleados || []).find(x => x.id === id); if(!e) return;
+    const cfg = cache.configTaller || {};
+    const fdate = d => d ? new Date(d + 'T00:00:00').toLocaleDateString('es-DO', { day: 'numeric', month: 'long', year: 'numeric' }) : '—';
+    const r = (l, v) => `<tr><td class="l">${l}</td><td>${escapeHtml(v == null || v === '' ? '—' : String(v))}</td></tr>`;
+    const cuentas = (Array.isArray(e.cuentas) ? e.cuentas : []).filter(c => c.banco || c.numero);
+    const refs = (Array.isArray(e.referencias) ? e.referencias : []).filter(x => x.nombre || x.telefono);
+    const w = window.open('', '_blank'); if(!w) return toast('Permite las ventanas emergentes para imprimir.', 'error');
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Expediente ${escapeHtml(e.nombre)}</title><style>
+      *{font-family:Arial,Helvetica,sans-serif; box-sizing:border-box;} body{margin:22px; color:#0f172a; font-size:12.5px;}
+      h1{font-size:17px; margin:0;} .sub{color:#475569; font-size:12px;} h2{font-size:13px; color:#0e7490; margin:16px 0 5px; border-bottom:1px solid #cbd5e1; padding-bottom:3px;}
+      table{width:100%; border-collapse:collapse; margin-bottom:4px;} td{padding:4px 6px; vertical-align:top;} td.l{color:#64748b; width:180px;}
+      .box{border:1px solid #cbd5e1; border-radius:8px; padding:10px; display:inline-block; width:48%; margin-right:2%;}
+    </style></head><body>
+      <div style="text-align:center; margin-bottom:8px;"><h1>${escapeHtml(cfg.nombre || 'BAYOL CELL')}</h1><div class="sub">${escapeHtml(cfg.direccion || '')} ${cfg.telefono ? '· ' + escapeHtml(cfg.telefono) : ''}</div><h2 style="border:0; color:#0f172a; font-size:15px; margin-top:8px;">Expediente del empleado</h2></div>
+      <h2>Datos personales</h2><table>${r('Nombre', e.nombre)}${r('Cédula', e.cedula)}${r('Nacimiento', fdate(e.fecha_nacimiento))}${r('Sexo', e.sexo)}${r('Estado civil', e.estado_civil)}${r('Nacionalidad', e.nacionalidad)}${r('Lugar de nacimiento', e.lugar_nacimiento)}</table>
+      <h2>Contacto</h2><table>${r('Teléfono', e.telefono)}${r('Teléfono 2', e.telefono2)}${r('Correo', e.email)}${r('Ciudad / sector', e.ciudad)}${r('Dirección', e.direccion)}</table>
+      <h2>Datos laborales</h2><table>${r('Puesto', e.puesto)}${r('Departamento', e.departamento)}${r('Tipo de contrato', e.tipo_contrato)}${r('Fecha de ingreso', fdate(e.fecha_ingreso))}${r('Antigüedad', _rrhhAntiguedadTxt(e))}${r('Salario mensual', money(e.salario_mensual))}${r('Descuentos de ley', e.deduce_ley === false ? 'No' : 'Sí (ARS/AFP)')}</table>
+      <h2>Cuentas bancarias</h2><table>${r((e.banco_principal || 'Banco') + ' (pago nómina)', e.cuenta_bhd)}${cuentas.map(c => r(c.banco || 'Cuenta', (c.numero || '') + (c.tipo ? ' · ' + c.tipo : ''))).join('')}</table>
+      ${refs.length ? `<h2>Referencias personales</h2><table>${refs.map(x => r(x.relacion || 'Referencia', (x.nombre || '') + (x.telefono ? ' · ' + x.telefono : ''))).join('')}</table>` : ''}
+      <h2>Acumulados ${new Date().getFullYear()}</h2><table>${r('Regalía navideña (acum.)', money(_rrhhRegaliaAcum(e)))}${r('Vacaciones', _rrhhVacacionesDias(e) + ' días · ' + money(_rrhhVacacionesMonto(e)))}</table>
+      ${e.notas ? `<h2>Notas</h2><div>${escapeHtml(e.notas)}</div>` : ''}
+      <div style="margin-top:26px; color:#94a3b8; font-size:10.5px;">Generado el ${new Date().toLocaleDateString('es-DO')} · Documento interno RRHH</div>
+      <script>window.onload=function(){window.print();}<\/script></body></html>`);
+    w.document.close();
+}
+// ---- Vista de ACUMULADOS (regalía + vacaciones) ----
+let _rrhhAcumInactivos = false;
+function _renderRRHHAcumulados() {
+    const cont = document.getElementById('nominaContent'); if(!cont) return;
+    const anio = new Date().getFullYear();
+    let emps = (cache.nominaEmpleados || []).slice().sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+    if(!_rrhhAcumInactivos) emps = emps.filter(e => e.activo !== false);
+    let tReg = 0, tRegPend = 0, tVac = 0;
+    const filas = emps.map(e => {
+        const reg = _rrhhRegaliaAcum(e), regP = _rrhhPagadoBeneficio(e.id, 'regalia', anio);
+        const regPend = Math.max(0, Math.round((reg - regP) * 100) / 100);
+        const vd = _rrhhVacacionesDias(e), vm = _rrhhVacacionesMonto(e), vacP = _rrhhPagadoBeneficio(e.id, 'vacaciones', anio);
+        tReg += reg; tRegPend += regPend; tVac += vm;
+        return `<tr>
+            <td style="padding:7px 6px; border-bottom:1px solid #eef2f7;"><a onclick="_rrhhVerExpediente('${e.id}')" style="cursor:pointer; color:#0f172a; font-weight:700;">${escapeHtml(e.nombre)}</a><div style="font-size:11px; color:#94a3b8;">${_rrhhAntiguedadTxt(e)}</div></td>
+            <td style="padding:7px 6px; border-bottom:1px solid #eef2f7; text-align:right;">${money(e.salario_mensual)}</td>
+            <td style="padding:7px 6px; border-bottom:1px solid #eef2f7; text-align:right; color:#166534; font-weight:700;">${money(reg)}</td>
+            <td style="padding:7px 6px; border-bottom:1px solid #eef2f7; text-align:right; color:#64748b;">${regP > 0 ? money(regP) : '—'}</td>
+            <td style="padding:7px 6px; border-bottom:1px solid #eef2f7; text-align:right; font-weight:700;">${money(regPend)}</td>
+            <td style="padding:7px 6px; border-bottom:1px solid #eef2f7; text-align:center;">${vd} días<div style="font-size:11px; color:#075985; font-weight:700;">${money(vm)}</div>${vacP > 0 ? `<div style="font-size:10px; color:#94a3b8;">pagado ${money(vacP)}</div>` : ''}</td>
+            <td style="padding:7px 6px; border-bottom:1px solid #eef2f7; text-align:center; white-space:nowrap;">
+              <button class="btn btn-light" style="padding:3px 7px; font-size:11px; color:#166534; border-color:#86efac;" onclick="_rrhhRegistrarBeneficio('${e.id}','regalia')" title="Registrar pago de regalía"><i class="ti ti-gift"></i> Regalía</button>
+              <button class="btn btn-light" style="padding:3px 7px; font-size:11px; color:#0369a1; border-color:#7dd3fc;" onclick="_rrhhRegistrarBeneficio('${e.id}','vacaciones')" title="Registrar pago de vacaciones"><i class="ti ti-beach"></i> Vacac.</button>
+            </td>
+        </tr>`;
+    }).join('');
+    cont.innerHTML = `
+      <div style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:10px; padding:11px 14px; margin-bottom:12px; font-size:12.5px; color:#334155;">
+        <b style="color:#0369a1;"><i class="ti ti-info-circle"></i> ¿Qué muestra esto?</b> Lo que cada empleado va <b>acumulando</b> a la fecha:
+        <b>Regalía navideña</b> = 1/12 de lo que gana en el año (a fin de año ≈ un mes de sueldo).
+        <b>Vacaciones</b> = 14 días de sueldo al año (18 días a partir de los 5 años). Los montos son <b>referenciales</b>; al pagar, registra el pago con su botón.
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+        <div style="display:flex; gap:16px; flex-wrap:wrap; font-size:13px;">
+          <span>Regalía acum.: <b style="color:#166534;">${money(tReg)}</b></span>
+          <span>Regalía pendiente: <b>${money(tRegPend)}</b></span>
+          <span>Vacaciones (monto): <b style="color:#075985;">${money(tVac)}</b></span>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <label style="font-size:12px; color:#64748b; display:flex; gap:5px; align-items:center;"><input type="checkbox" ${_rrhhAcumInactivos ? 'checked' : ''} onchange="_rrhhAcumInactivos=this.checked; _renderRRHHAcumulados();"> ver inactivos</label>
+          <button class="btn btn-light" onclick="_rrhhImprimirAcumulados()"><i class="ti ti-printer"></i> Imprimir</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12.5px; min-width:820px;">
+        <thead><tr style="background:#f1f5f9;"><th style="padding:7px 6px; text-align:left;">Empleado</th><th style="padding:7px 6px; text-align:right;">Salario/mes</th><th style="padding:7px 6px; text-align:right;">Regalía acum.</th><th style="padding:7px 6px; text-align:right;">Reg. pagado</th><th style="padding:7px 6px; text-align:right;">Reg. pendiente</th><th style="padding:7px 6px; text-align:center;">Vacaciones</th><th style="padding:7px 6px;"></th></tr></thead>
+        <tbody>${filas || '<tr><td colspan="7" style="padding:16px; text-align:center; color:#94a3b8;">Sin empleados.</td></tr>'}</tbody></table></div>`;
+}
+function _rrhhImprimirAcumulados() {
+    const cfg = cache.configTaller || {}, anio = new Date().getFullYear();
+    let emps = (cache.nominaEmpleados || []).slice().sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+    if(!_rrhhAcumInactivos) emps = emps.filter(e => e.activo !== false);
+    let tReg = 0, tVac = 0;
+    const filas = emps.map(e => {
+        const reg = _rrhhRegaliaAcum(e), vd = _rrhhVacacionesDias(e), vm = _rrhhVacacionesMonto(e);
+        tReg += reg; tVac += vm;
+        return `<tr><td>${escapeHtml(e.nombre)}</td><td>${_rrhhAntiguedadTxt(e)}</td><td class="n">${money(e.salario_mensual)}</td><td class="n">${money(reg)}</td><td class="c">${vd} días</td><td class="n">${money(vm)}</td></tr>`;
+    }).join('');
+    const w = window.open('', '_blank'); if(!w) return toast('Permite las ventanas emergentes para imprimir.', 'error');
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Acumulados ${anio}</title><style>
+      *{font-family:Arial,Helvetica,sans-serif;} body{margin:18px; color:#0f172a; font-size:12px;} h1{font-size:16px; margin:0; text-align:center;} .sub{text-align:center; color:#475569; font-size:11px; margin-bottom:8px;}
+      table{width:100%; border-collapse:collapse; margin-top:8px;} th,td{border:1px solid #cbd5e1; padding:4px 6px;} th{background:#0f172a; color:#fff; font-size:10.5px;} td.n{text-align:right;} td.c{text-align:center;} tfoot td{font-weight:800; background:#eef2ff;}
+    </style></head><body>
+      <h1>${escapeHtml(cfg.nombre || 'BAYOL CELL')}</h1><div class="sub">Acumulados de RRHH · Regalía navideña y Vacaciones · ${anio}</div>
+      <table><thead><tr><th>Empleado</th><th>Antigüedad</th><th>Salario/mes</th><th>Regalía acum.</th><th>Vacaciones</th><th>Vacac. monto</th></tr></thead>
+      <tbody>${filas}</tbody>
+      <tfoot><tr><td colspan="3">TOTALES</td><td class="n">${money(tReg)}</td><td></td><td class="n">${money(tVac)}</td></tr></tfoot></table>
+      <div style="margin-top:14px; font-size:10px; color:#94a3b8;">Montos referenciales · Regalía = 1/12 de lo devengado en el año · Vacaciones: 14 días (18 desde los 5 años) · Generado ${new Date().toLocaleDateString('es-DO')}</div>
+      <script>window.onload=function(){window.print();}<\/script></body></html>`);
+    w.document.close();
+}
+function _rrhhRegistrarBeneficio(empId, tipo) {
+    const e = (cache.nominaEmpleados || []).find(x => x.id === empId); if(!e) return;
+    const anio = new Date().getFullYear();
+    const esReg = tipo === 'regalia';
+    const sugerido = esReg ? Math.max(0, _rrhhRegaliaAcum(e) - _rrhhPagadoBeneficio(e.id, 'regalia', anio)) : _rrhhVacacionesMonto(e);
+    const dias = esReg ? '' : _rrhhVacacionesDias(e);
+    const hoy = new Date().toISOString().slice(0, 10);
+    const prev = document.getElementById('modalRrhhBenef'); if(prev) prev.remove();
+    const box = document.createElement('div'); box.className = 'modal-backdrop active'; box.id = 'modalRrhhBenef'; box.style.zIndex = '780';
+    box.innerHTML = `<div class="modal-box" style="max-width:420px;">
+      <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-${esReg ? 'gift' : 'beach'}"></i> Pagar ${esReg ? 'regalía navideña' : 'vacaciones'}</h3><button class="modal-close" onclick="document.getElementById('modalRrhhBenef').remove()">✕</button></div>
+      <div class="modal-body">
+        <div style="font-size:13px; color:#475569; margin-bottom:8px;">${escapeHtml(e.nombre)} · Año ${anio}</div>
+        <input type="hidden" id="benef_emp" value="${empId}"><input type="hidden" id="benef_tipo" value="${tipo}">
+        <div class="form-row"><label>Monto a pagar (RD$)</label><input id="benef_monto" type="number" step="0.01" value="${(sugerido || 0).toFixed(2)}"></div>
+        ${esReg ? '' : `<div class="form-row"><label>Días de vacaciones</label><input id="benef_dias" type="number" step="0.5" value="${dias}"></div>`}
+        <div class="form-row"><label>Fecha de pago</label><input id="benef_fecha" type="date" value="${hoy}"></div>
+        <div class="form-row"><label>Nota (opcional)</label><input id="benef_nota" placeholder="Ej. efectivo, transferencia…"></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-light" onclick="document.getElementById('modalRrhhBenef').remove()">Cancelar</button><button class="btn btn-blue" onclick="_rrhhGuardarBeneficio()"><i class="ti ti-device-floppy"></i> Registrar pago</button></div>
+    </div>`;
+    document.body.appendChild(box);
+}
+async function _rrhhGuardarBeneficio() {
+    const empId = document.getElementById('benef_emp').value;
+    const tipo = document.getElementById('benef_tipo').value;
+    const monto = Number(document.getElementById('benef_monto').value) || 0;
+    if(monto <= 0) return toast('Escribe un monto.', 'error');
+    const diasEl = document.getElementById('benef_dias');
+    const data = { empleado_id: empId, tipo, anio: new Date().getFullYear(), monto, dias: diasEl ? (Number(diasEl.value) || null) : null, fecha_pago: document.getElementById('benef_fecha').value || null, nota: (document.getElementById('benef_nota').value || '').trim() || null, creado_por: (typeof sessionUser !== 'undefined' && sessionUser) ? (sessionUser.nombre || 'Admin') : 'Admin' };
+    try {
+        const { error } = await supabaseClient.from('rrhh_beneficios_pagos').insert([data]);
+        if(error) throw error;
+        toast('✅ Pago registrado.');
+        document.getElementById('modalRrhhBenef')?.remove();
+        await _loadNomina(); if(_nominaTab === 'acumulados') _renderRRHHAcumulados();
+    } catch(e) { logError('guardar beneficio rrhh', e); toastError(getFriendlyError(e)); }
+}
+async function _rrhhEliminarBeneficio(id) {
+    if(!await confirmar('¿Borrar este pago registrado?')) return;
+    try {
+        const { error } = await supabaseClient.from('rrhh_beneficios_pagos').delete().eq('id', id);
+        if(error) throw error;
+        toast('🗑️ Pago borrado.');
+        await _loadNomina();
+        document.getElementById('modalRrhhExp')?.remove();
+        if(_nominaTab === 'acumulados') _renderRRHHAcumulados();
+    } catch(e) { logError('borrar beneficio rrhh', e); toastError(getFriendlyError(e)); }
 }
 const NOM_MESES = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
 // Calcula y fija las fechas/título del período (quincena) sobre _nominaGen
@@ -12437,7 +12800,9 @@ function _nominaAgregarAplicar(id) {
 }
 function _nominaCerrarAgregar() { document.getElementById('nomAddEmpModal')?.remove(); }
 // Aviso de cambios sin guardar al salir de la quincena que se está armando/corrigiendo
-function _nominaConfirmarSalida(destino) {
+let _nominaSalidaAccion = null; // qué hacer al confirmar salir (navegar a otro módulo o a otra pestaña de RRHH)
+function _nominaConfirmarSalida(accion) {
+    _nominaSalidaAccion = (typeof accion === 'function') ? accion : null;
     let m = document.getElementById('nomSalirModal'); if(m) m.remove();
     m = document.createElement('div');
     m.id = 'nomSalirModal';
@@ -12446,26 +12811,26 @@ function _nominaConfirmarSalida(destino) {
         <div style="font-size:17px; font-weight:800; color:#0f172a; margin-bottom:6px;"><i class="ti ti-alert-triangle" style="color:#f59e0b;"></i> Tienes cambios sin guardar</div>
         <p style="font-size:13.5px; color:#475569; margin:0 0 18px;">Estás saliendo de la quincena que estás armando. ¿Qué quieres hacer con los cambios?</p>
         <div style="display:flex; flex-direction:column; gap:9px;">
-          <button class="btn btn-blue" onclick="_nominaSalirGuardar('${destino}')" style="width:100%;"><i class="ti ti-device-floppy"></i> Guardar y salir</button>
-          <button class="btn btn-light" onclick="_nominaSalirDescartar('${destino}')" style="width:100%; color:#b91c1c; border-color:#fecaca;"><i class="ti ti-logout"></i> Salir sin guardar</button>
+          <button class="btn btn-blue" onclick="_nominaSalirGuardar()" style="width:100%;"><i class="ti ti-device-floppy"></i> Guardar y salir</button>
+          <button class="btn btn-light" onclick="_nominaSalirDescartar()" style="width:100%; color:#b91c1c; border-color:#fecaca;"><i class="ti ti-logout"></i> Salir sin guardar</button>
           <button class="btn btn-light" onclick="_nominaSalirCancelar()" style="width:100%;">Cancelar (quedarme aquí)</button>
         </div>
       </div>`;
     document.body.appendChild(m);
 }
-async function _nominaSalirGuardar(destino) {
+async function _nominaSalirGuardar() {
     document.getElementById('nomSalirModal')?.remove();
     await _nominaGuardarPeriodo();
-    if(!_nominaGen) nav(destino); // solo salir si de verdad se guardó (queda en null)
+    if(!_nominaGen) { const a = _nominaSalidaAccion; _nominaSalidaAccion = null; if(a) a(); } // solo salir si de verdad se guardó
 }
-function _nominaSalirDescartar(destino) {
+function _nominaSalirDescartar() {
     document.getElementById('nomSalirModal')?.remove();
     if(_nominaGen) _nominaGen._dirty = false;
-    nav(destino);
+    const a = _nominaSalidaAccion; _nominaSalidaAccion = null; if(a) a();
 }
-function _nominaSalirCancelar() { document.getElementById('nomSalirModal')?.remove(); }
+function _nominaSalirCancelar() { document.getElementById('nomSalirModal')?.remove(); _nominaSalidaAccion = null; }
 function _renderNominaGenerar() {
-    const cont = document.getElementById('nominaContent'); if(!cont) return;
+    const cont = _nomCont(); if(!cont) return;
     // Reconstruir si no existe O si quedó pegada vacía (p. ej. se armó cuando el cache estaba sin cargar)
     const hayEmpleados = (cache.nominaEmpleados || []).some(e => e.activo !== false);
     if(!_nominaGen || (!(_nominaGen.lineas || []).length && hayEmpleados)) _nominaNuevaQuincena(false);
@@ -12672,7 +13037,7 @@ async function _nominaGuardarPeriodo() {
     } catch(e) { logError('guardar periodo nomina', e); toastError(getFriendlyError(e)); }
 }
 function _renderNominaHistorial() {
-    const cont = document.getElementById('nominaContent'); if(!cont) return;
+    const cont = _nomCont(); if(!cont) return;
     const pers = cache.nominaPeriodos || [];
     if(!pers.length) { cont.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:18px;">No hay quincenas guardadas todavía. Genera una en "Generar quincena".</p>'; return; }
     cont.innerHTML = `<table style="width:100%; border-collapse:collapse; font-size:13px;">
@@ -15980,6 +16345,14 @@ async function _infoplusAjustePieza(codarticulo, cantidad, precio, entrada, come
 // Convención: cada módulo nuevo agrega su explicación aquí y un botón en su encabezado:
 //   <button class="btn-ayuda" onclick="ayudaModulo('clave')" title="¿Qué es esto?">ℹ️</button>
 const AYUDAS = {
+    rrhh: { titulo: 'Recursos Humanos (RRHH)', html: `
+        <p><b>¿Para qué sirve?</b> Es el expediente completo de tu personal y el pago de la nómina, todo en un solo lugar.</p>
+        <ul style="padding-left:18px; margin:6px 0;">
+          <li><b>Empleados:</b> ficha completa de cada uno — datos personales, contacto, referencias (familiares/amigos), cuentas bancarias, fecha de ingreso y salario. Da clic en el nombre para ver el <b>expediente</b> (se puede imprimir).</li>
+          <li><b>Nómina:</b> la quincena automática de siempre (Generar quincena / Historial), igual de orgánica y con exportación a BHD.</li>
+          <li><b>Acumulados:</b> lo que cada empleado va juntando de <b>regalía navideña</b> (1/12 de lo que gana en el año) y <b>vacaciones</b> (14 días al año, 18 desde los 5 años). Puedes registrar cuándo pagas cada uno.</li>
+        </ul>
+        <p style="font-size:12px; color:#64748b;">Los montos de acumulados son referenciales para orientarte; el pago formal lo confirma tu contadora.</p>` },
     invfisico: { titulo: 'Inventario Físico', html: `
         <p><b>¿Para qué sirve?</b> Contar la mercancía real y cuadrarla con Info Plus, sin parar la venta.</p>
         <ul style="padding-left:18px; margin:6px 0;">
