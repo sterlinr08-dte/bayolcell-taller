@@ -12364,7 +12364,9 @@ function _nominaNuevaQuincena(rerender) {
 }
 function _renderNominaGenerar() {
     const cont = document.getElementById('nominaContent'); if(!cont) return;
-    if(!_nominaGen) _nominaNuevaQuincena(false);
+    // Reconstruir si no existe O si quedó pegada vacía (p. ej. se armó cuando el cache estaba sin cargar)
+    const hayEmpleados = (cache.nominaEmpleados || []).some(e => e.activo !== false);
+    if(!_nominaGen || (!(_nominaGen.lineas || []).length && hayEmpleados)) _nominaNuevaQuincena(false);
     const g = _nominaGen;
     const filas = g.lineas.map((l, i) => `<tr>
         <td style="padding:4px 6px; border:1px solid #e2e8f0; white-space:nowrap;">${escapeHtml(l.nombre)}${l.deduce_ley ? '' : ' <span style="font-size:9px; color:#94a3b8;">(sin ley)</span>'}</td>
