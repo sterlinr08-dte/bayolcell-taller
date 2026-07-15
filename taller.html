@@ -6159,7 +6159,9 @@ async function loadAll() {
         }
         _notifYaInicializado = true;
         
-        cache = nuevoCache;
+        // Conservar las claves cargadas por otros módulos (nominaEmpleados, infoplusArticulos,
+        // contaCategorias, etc.) — antes se borraban en cada refresco y dejaban ventanas vacías.
+        cache = Object.assign({}, cache, nuevoCache);
         renderAll();
         // Si el chat de notas está abierto, refrescarlo en vivo con los mensajes nuevos
         if(typeof refrescarNotasModalAbierto === 'function') refrescarNotasModalAbierto();
@@ -12259,8 +12261,16 @@ function _renderNominaEmpleados() {
         <thead><tr style="background:#f1f5f9;"><th style="padding:6px; text-align:left;">Nombre</th><th style="padding:6px; text-align:left;">Cédula</th><th style="padding:6px; text-align:left;">Cuenta BHD</th><th style="padding:6px; text-align:left;">Puesto</th><th style="padding:6px;">Ingreso</th><th style="padding:6px; text-align:right;">Salario/mes</th><th style="padding:6px;">Ley</th><th></th></tr></thead>
         <tbody>${filas}</tbody></table></div>`;
 }
-function _nominaEditarEmpleado(id) {
-    const e = id ? (cache.nominaEmpleados || []).find(x => x.id === id) || {} : {};
+async function _nominaEditarEmpleado(id) {
+    let e = {};
+    if(id) {
+        e = (cache.nominaEmpleados || []).find(x => x.id === id) || null;
+        if(!e) {
+            // Respaldo: si el cache se refrescó y perdió la lista, buscar directo en la base
+            try { const { data } = await supabaseClient.from('nomina_empleados').select('*').eq('id', id).single(); e = data || {}; }
+            catch(err) { logError('cargar empleado nomina', err); e = {}; }
+        }
+    }
     const prev = document.getElementById('modalNomEmp'); if(prev) prev.remove();
     const box = document.createElement('div'); box.className = 'modal-backdrop active'; box.id = 'modalNomEmp'; box.style.zIndex = '760';
     box.innerHTML = `<div class="modal-box" style="max-width:520px;">
