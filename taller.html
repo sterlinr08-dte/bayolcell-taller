@@ -12512,6 +12512,7 @@ function _rrhhPagadoBeneficio(empId, tipo, anio) {
 // ---- Expediente (solo lectura) ----
 function _rrhhVerExpediente(id) {
     const e = (cache.nominaEmpleados || []).find(x => x.id === id); if(!e) return toast('No se encontró el empleado.', 'error');
+    const dueno = esDueno(); // las VACACIONES solo las ve el dueño
     const anio = new Date().getFullYear();
     const reg = _rrhhRegaliaAcum(e), regP = _rrhhPagadoBeneficio(e.id, 'regalia', anio);
     const vd = _rrhhVacacionesDias(e), vm = _rrhhVacacionesMonto(e), vacP = _rrhhPagadoBeneficio(e.id, 'vacaciones', anio);
@@ -12543,19 +12544,19 @@ function _rrhhVerExpediente(id) {
         </div>
         ${refs.length ? sec('Referencias personales') + refs.map(r => `<div style="display:flex; gap:8px; padding:3px 0; font-size:13px;"><i class="ti ti-user" style="color:#94a3b8;"></i> <b>${escapeHtml(r.nombre || '')}</b> ${r.relacion ? `<span style="color:#64748b;">(${escapeHtml(r.relacion)})</span>` : ''} ${r.telefono ? `· ${escapeHtml(r.telefono)}` : ''}</div>`).join('') : ''}
         ${sec('Acumulados ' + anio)}
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div style="display:grid; grid-template-columns:${dueno ? '1fr 1fr' : '1fr'}; gap:10px;">
           <div style="border:1px solid #bbf7d0; background:#f0fdf4; border-radius:10px; padding:11px;">
             <div style="font-weight:700; color:#15803d; font-size:12.5px;"><i class="ti ti-gift"></i> Regalía navideña</div>
             <div style="font-size:19px; font-weight:800; color:#166534;">${money(reg)}</div>
             <div style="font-size:11.5px; color:#64748b;">Acumulado al día de hoy${regP > 0 ? ` · pagado ${money(regP)}` : ''}</div>
           </div>
-          <div style="border:1px solid #bae6fd; background:#f0f9ff; border-radius:10px; padding:11px;">
+          ${dueno ? `<div style="border:1px solid #bae6fd; background:#f0f9ff; border-radius:10px; padding:11px;">
             <div style="font-weight:700; color:#0369a1; font-size:12.5px;"><i class="ti ti-beach"></i> Vacaciones</div>
             <div style="font-size:19px; font-weight:800; color:#075985;">${vd} días · ${money(vm)}</div>
             <div style="font-size:11.5px; color:#64748b;">Según antigüedad${vacP > 0 ? ` · pagado ${money(vacP)}` : ''}</div>
-          </div>
+          </div>` : ''}
         </div>
-        ${pagos.length ? `<div style="margin-top:10px;"><div style="font-size:11.5px; color:#64748b; margin-bottom:4px;">Pagos registrados:</div>${pagos.map(b => `<div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; padding:4px 0; border-bottom:1px solid #f1f5f9;"><span>${b.tipo === 'regalia' ? '🎁 Regalía' : b.tipo === 'vacaciones' ? '🏖️ Vacaciones' : 'Otro'} ${b.anio || ''}${b.fecha_pago ? ' · ' + new Date(b.fecha_pago + 'T00:00:00').toLocaleDateString('es-DO') : ''}${b.nota ? ' · ' + escapeHtml(b.nota) : ''}</span><span style="display:flex; gap:8px; align-items:center;"><b>${money(b.monto)}</b> <a onclick="_rrhhEliminarBeneficio('${b.id}')" style="cursor:pointer; color:#dc2626;" title="Borrar pago"><i class="ti ti-trash"></i></a></span></div>`).join('')}</div>` : ''}
+        ${(dueno ? pagos : pagos.filter(b => b.tipo !== 'vacaciones')).length ? `<div style="margin-top:10px;"><div style="font-size:11.5px; color:#64748b; margin-bottom:4px;">Pagos registrados:</div>${(dueno ? pagos : pagos.filter(b => b.tipo !== 'vacaciones')).map(b => `<div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; padding:4px 0; border-bottom:1px solid #f1f5f9;"><span>${b.tipo === 'regalia' ? '🎁 Regalía' : b.tipo === 'vacaciones' ? '🏖️ Vacaciones' : 'Otro'} ${b.anio || ''}${b.fecha_pago ? ' · ' + new Date(b.fecha_pago + 'T00:00:00').toLocaleDateString('es-DO') : ''}${b.nota ? ' · ' + escapeHtml(b.nota) : ''}</span><span style="display:flex; gap:8px; align-items:center;"><b>${money(b.monto)}</b> <a onclick="_rrhhEliminarBeneficio('${b.id}')" style="cursor:pointer; color:#dc2626;" title="Borrar pago"><i class="ti ti-trash"></i></a></span></div>`).join('')}</div>` : ''}
         ${e.notas ? sec('Notas') + `<div style="font-size:12.5px; color:#334155; white-space:pre-wrap;">${escapeHtml(e.notas)}</div>` : ''}
       </div>
       <div class="modal-footer">
@@ -12586,7 +12587,7 @@ function _rrhhImprimirExpediente(id) {
       <h2>Datos laborales</h2><table>${r('Puesto', e.puesto)}${r('Departamento', e.departamento)}${r('Tipo de contrato', e.tipo_contrato)}${r('Fecha de ingreso', fdate(e.fecha_ingreso))}${r('Antigüedad', _rrhhAntiguedadTxt(e))}${r('Salario mensual', money(e.salario_mensual))}${r('Descuentos de ley', e.deduce_ley === false ? 'No' : 'Sí (ARS/AFP)')}</table>
       <h2>Cuentas bancarias</h2><table>${r((e.banco_principal || 'Banco') + ' (pago nómina)', e.cuenta_bhd)}${cuentas.map(c => r(c.banco || 'Cuenta', (c.numero || '') + (c.tipo ? ' · ' + c.tipo : ''))).join('')}</table>
       ${refs.length ? `<h2>Referencias personales</h2><table>${refs.map(x => r(x.relacion || 'Referencia', (x.nombre || '') + (x.telefono ? ' · ' + x.telefono : ''))).join('')}</table>` : ''}
-      <h2>Acumulados ${new Date().getFullYear()}</h2><table>${r('Regalía navideña (acum.)', money(_rrhhRegaliaAcum(e)))}${r('Vacaciones', _rrhhVacacionesDias(e) + ' días · ' + money(_rrhhVacacionesMonto(e)))}</table>
+      <h2>Acumulados ${new Date().getFullYear()}</h2><table>${r('Regalía navideña (acum.)', money(_rrhhRegaliaAcum(e)))}${esDueno() ? r('Vacaciones', _rrhhVacacionesDias(e) + ' días · ' + money(_rrhhVacacionesMonto(e))) : ''}</table>
       ${e.notas ? `<h2>Notas</h2><div>${escapeHtml(e.notas)}</div>` : ''}
       <div style="margin-top:26px; color:#94a3b8; font-size:10.5px;">Generado el ${new Date().toLocaleDateString('es-DO')} · Documento interno RRHH</div>
       <script>window.onload=function(){window.print();}<\/script></body></html>`);
@@ -12596,6 +12597,7 @@ function _rrhhImprimirExpediente(id) {
 let _rrhhAcumInactivos = false;
 function _renderRRHHAcumulados() {
     const cont = document.getElementById('nominaContent'); if(!cont) return;
+    const dueno = esDueno(); // las VACACIONES solo las ve el dueño
     const anio = new Date().getFullYear();
     let emps = (cache.nominaEmpleados || []).slice().sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
     if(!_rrhhAcumInactivos) emps = emps.filter(e => e.activo !== false);
@@ -12611,35 +12613,37 @@ function _renderRRHHAcumulados() {
             <td style="padding:7px 6px; border-bottom:1px solid #eef2f7; text-align:right; color:#166534; font-weight:700;">${money(reg)}</td>
             <td style="padding:7px 6px; border-bottom:1px solid #eef2f7; text-align:right; color:#64748b;">${regP > 0 ? money(regP) : '—'}</td>
             <td style="padding:7px 6px; border-bottom:1px solid #eef2f7; text-align:right; font-weight:700;">${money(regPend)}</td>
-            <td style="padding:7px 6px; border-bottom:1px solid #eef2f7; text-align:center;">${vd} días<div style="font-size:11px; color:#075985; font-weight:700;">${money(vm)}</div>${vacP > 0 ? `<div style="font-size:10px; color:#94a3b8;">pagado ${money(vacP)}</div>` : ''}</td>
+            ${dueno ? `<td style="padding:7px 6px; border-bottom:1px solid #eef2f7; text-align:center;">${vd} días<div style="font-size:11px; color:#075985; font-weight:700;">${money(vm)}</div>${vacP > 0 ? `<div style="font-size:10px; color:#94a3b8;">pagado ${money(vacP)}</div>` : ''}</td>` : ''}
             <td style="padding:7px 6px; border-bottom:1px solid #eef2f7; text-align:center; white-space:nowrap;">
               <button class="btn btn-light" style="padding:3px 7px; font-size:11px; color:#166534; border-color:#86efac;" onclick="_rrhhRegistrarBeneficio('${e.id}','regalia')" title="Registrar pago de regalía"><i class="ti ti-gift"></i> Regalía</button>
-              <button class="btn btn-light" style="padding:3px 7px; font-size:11px; color:#0369a1; border-color:#7dd3fc;" onclick="_rrhhRegistrarBeneficio('${e.id}','vacaciones')" title="Registrar pago de vacaciones"><i class="ti ti-beach"></i> Vacac.</button>
+              ${dueno ? `<button class="btn btn-light" style="padding:3px 7px; font-size:11px; color:#0369a1; border-color:#7dd3fc;" onclick="_rrhhRegistrarBeneficio('${e.id}','vacaciones')" title="Registrar pago de vacaciones"><i class="ti ti-beach"></i> Vacac.</button>` : ''}
             </td>
         </tr>`;
     }).join('');
+    const colspan = dueno ? 7 : 6;
     cont.innerHTML = `
       <div style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:10px; padding:11px 14px; margin-bottom:12px; font-size:12.5px; color:#334155;">
         <b style="color:#0369a1;"><i class="ti ti-info-circle"></i> ¿Qué muestra esto?</b> Lo que cada empleado va <b>acumulando</b> a la fecha:
-        <b>Regalía navideña</b> = 1/12 de lo que gana en el año (a fin de año ≈ un mes de sueldo).
-        <b>Vacaciones</b> = 14 días de sueldo al año (18 días a partir de los 5 años). Los montos son <b>referenciales</b>; al pagar, registra el pago con su botón.
+        <b>Regalía navideña</b> = 1/12 de lo que gana en el año (a fin de año ≈ un mes de sueldo).${dueno ? `
+        <b>Vacaciones</b> = 14 días de sueldo al año (18 días a partir de los 5 años). Los montos son <b>referenciales</b>; al pagar, registra el pago con su botón.` : ''}
       </div>
       <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
         <div style="display:flex; gap:16px; flex-wrap:wrap; font-size:13px;">
           <span>Regalía acum.: <b style="color:#166534;">${money(tReg)}</b></span>
           <span>Regalía pendiente: <b>${money(tRegPend)}</b></span>
-          <span>Vacaciones (monto): <b style="color:#075985;">${money(tVac)}</b></span>
+          ${dueno ? `<span>Vacaciones (monto): <b style="color:#075985;">${money(tVac)}</b></span>` : ''}
         </div>
         <div style="display:flex; gap:8px; align-items:center;">
           <label style="font-size:12px; color:#64748b; display:flex; gap:5px; align-items:center;"><input type="checkbox" ${_rrhhAcumInactivos ? 'checked' : ''} onchange="_rrhhAcumInactivos=this.checked; _renderRRHHAcumulados();"> ver inactivos</label>
           <button class="btn btn-light" onclick="_rrhhImprimirAcumulados()"><i class="ti ti-printer"></i> Imprimir</button>
         </div>
       </div>
-      <div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12.5px; min-width:820px;">
-        <thead><tr style="background:#f1f5f9;"><th style="padding:7px 6px; text-align:left;">Empleado</th><th style="padding:7px 6px; text-align:right;">Salario/mes</th><th style="padding:7px 6px; text-align:right;">Regalía acum.</th><th style="padding:7px 6px; text-align:right;">Reg. pagado</th><th style="padding:7px 6px; text-align:right;">Reg. pendiente</th><th style="padding:7px 6px; text-align:center;">Vacaciones</th><th style="padding:7px 6px;"></th></tr></thead>
-        <tbody>${filas || '<tr><td colspan="7" style="padding:16px; text-align:center; color:#94a3b8;">Sin empleados.</td></tr>'}</tbody></table></div>`;
+      <div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12.5px; min-width:${dueno ? 820 : 700}px;">
+        <thead><tr style="background:#f1f5f9;"><th style="padding:7px 6px; text-align:left;">Empleado</th><th style="padding:7px 6px; text-align:right;">Salario/mes</th><th style="padding:7px 6px; text-align:right;">Regalía acum.</th><th style="padding:7px 6px; text-align:right;">Reg. pagado</th><th style="padding:7px 6px; text-align:right;">Reg. pendiente</th>${dueno ? '<th style="padding:7px 6px; text-align:center;">Vacaciones</th>' : ''}<th style="padding:7px 6px;"></th></tr></thead>
+        <tbody>${filas || `<tr><td colspan="${colspan}" style="padding:16px; text-align:center; color:#94a3b8;">Sin empleados.</td></tr>`}</tbody></table></div>`;
 }
 function _rrhhImprimirAcumulados() {
+    const dueno = esDueno(); // las VACACIONES solo las ve/imprime el dueño
     const cfg = cache.configTaller || {}, anio = new Date().getFullYear();
     let emps = (cache.nominaEmpleados || []).slice().sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
     if(!_rrhhAcumInactivos) emps = emps.filter(e => e.activo !== false);
@@ -12647,22 +12651,23 @@ function _rrhhImprimirAcumulados() {
     const filas = emps.map(e => {
         const reg = _rrhhRegaliaAcum(e), vd = _rrhhVacacionesDias(e), vm = _rrhhVacacionesMonto(e);
         tReg += reg; tVac += vm;
-        return `<tr><td>${escapeHtml(e.nombre)}</td><td>${_rrhhAntiguedadTxt(e)}</td><td class="n">${money(e.salario_mensual)}</td><td class="n">${money(reg)}</td><td class="c">${vd} días</td><td class="n">${money(vm)}</td></tr>`;
+        return `<tr><td>${escapeHtml(e.nombre)}</td><td>${_rrhhAntiguedadTxt(e)}</td><td class="n">${money(e.salario_mensual)}</td><td class="n">${money(reg)}</td>${dueno ? `<td class="c">${vd} días</td><td class="n">${money(vm)}</td>` : ''}</tr>`;
     }).join('');
     const w = window.open('', '_blank'); if(!w) return toast('Permite las ventanas emergentes para imprimir.', 'error');
     w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Acumulados ${anio}</title><style>
       *{font-family:Arial,Helvetica,sans-serif;} body{margin:18px; color:#0f172a; font-size:12px;} h1{font-size:16px; margin:0; text-align:center;} .sub{text-align:center; color:#475569; font-size:11px; margin-bottom:8px;}
       table{width:100%; border-collapse:collapse; margin-top:8px;} th,td{border:1px solid #cbd5e1; padding:4px 6px;} th{background:#0f172a; color:#fff; font-size:10.5px;} td.n{text-align:right;} td.c{text-align:center;} tfoot td{font-weight:800; background:#eef2ff;}
     </style></head><body>
-      <h1>${escapeHtml(cfg.nombre || 'BAYOL CELL')}</h1><div class="sub">Acumulados de RRHH · Regalía navideña y Vacaciones · ${anio}</div>
-      <table><thead><tr><th>Empleado</th><th>Antigüedad</th><th>Salario/mes</th><th>Regalía acum.</th><th>Vacaciones</th><th>Vacac. monto</th></tr></thead>
+      <h1>${escapeHtml(cfg.nombre || 'BAYOL CELL')}</h1><div class="sub">Acumulados de RRHH · Regalía navideña${dueno ? ' y Vacaciones' : ''} · ${anio}</div>
+      <table><thead><tr><th>Empleado</th><th>Antigüedad</th><th>Salario/mes</th><th>Regalía acum.</th>${dueno ? '<th>Vacaciones</th><th>Vacac. monto</th>' : ''}</tr></thead>
       <tbody>${filas}</tbody>
-      <tfoot><tr><td colspan="3">TOTALES</td><td class="n">${money(tReg)}</td><td></td><td class="n">${money(tVac)}</td></tr></tfoot></table>
-      <div style="margin-top:14px; font-size:10px; color:#94a3b8;">Montos referenciales · Regalía = 1/12 de lo devengado en el año · Vacaciones: 14 días (18 desde los 5 años) · Generado ${new Date().toLocaleDateString('es-DO')}</div>
+      <tfoot><tr><td colspan="3">TOTALES</td><td class="n">${money(tReg)}</td>${dueno ? `<td></td><td class="n">${money(tVac)}</td>` : ''}</tr></tfoot></table>
+      <div style="margin-top:14px; font-size:10px; color:#94a3b8;">Montos referenciales · Regalía = 1/12 de lo devengado en el año${dueno ? ' · Vacaciones: 14 días (18 desde los 5 años)' : ''} · Generado ${new Date().toLocaleDateString('es-DO')}</div>
       <script>window.onload=function(){window.print();}<\/script></body></html>`);
     w.document.close();
 }
 function _rrhhRegistrarBeneficio(empId, tipo) {
+    if(tipo === 'vacaciones' && !esDueno()) return toast('🔒 Solo el dueño maneja las vacaciones.');
     const e = (cache.nominaEmpleados || []).find(x => x.id === empId); if(!e) return;
     const anio = new Date().getFullYear();
     const esReg = tipo === 'regalia';
