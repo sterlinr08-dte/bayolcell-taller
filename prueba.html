@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Evaluación — Bayol Cell</title>
+<style>
+  :root { --azul:#0e7490; --azul2:#0891b2; --ink:#0f172a; --muted:#64748b; --border:#cbd5e1; }
+  * { box-sizing:border-box; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; }
+  body { margin:0; background:#f1f5f9; color:var(--ink); }
+  .wrap { max-width:680px; margin:0 auto; padding:16px 14px 60px; }
+  .card { background:#fff; border-radius:16px; box-shadow:0 1px 4px rgba(15,23,42,.08); padding:18px 16px; margin-bottom:14px; }
+  .hero { background:linear-gradient(135deg,var(--azul),var(--azul2)); color:#fff; border-radius:16px; padding:22px 18px; margin-bottom:14px; }
+  .hero h1 { margin:0 0 4px; font-size:21px; }
+  .hero p { margin:0; opacity:.92; font-size:13.5px; }
+  h2 { font-size:16px; color:var(--azul); margin:4px 0 2px; }
+  .sub { color:var(--muted); font-size:12.5px; margin-bottom:10px; }
+  .q { padding:12px 0; border-bottom:1px solid #f1f5f9; }
+  .q:last-child { border-bottom:0; }
+  .q-txt { font-size:14.5px; margin-bottom:9px; line-height:1.35; }
+  .q-txt b { color:var(--azul); margin-right:4px; }
+  .opts { display:flex; gap:6px; flex-wrap:wrap; }
+  .opts.lik label { flex:1; min-width:60px; }
+  label.opt { display:block; text-align:center; border:1.5px solid var(--border); border-radius:10px; padding:9px 6px; cursor:pointer; font-size:12.5px; color:#475569; background:#fff; transition:.12s; user-select:none; }
+  label.opt.full { text-align:left; padding:11px 14px; font-size:14px; }
+  label.opt input { display:none; }
+  label.opt.sel { border-color:var(--azul2); background:#ecfeff; color:var(--azul); font-weight:700; }
+  .btn { display:block; width:100%; border:0; border-radius:12px; padding:15px; font-size:16px; font-weight:700; cursor:pointer; }
+  .btn-main { background:var(--azul); color:#fff; }
+  .btn-main:disabled { opacity:.5; }
+  .note { background:#eff6ff; border:1px solid #bfdbfe; color:#1e3a8a; border-radius:12px; padding:11px 14px; font-size:13px; margin-bottom:14px; }
+  .center { text-align:center; }
+  .big-ico { font-size:52px; line-height:1; }
+  #prog { position:sticky; top:0; z-index:5; height:5px; background:#e2e8f0; border-radius:6px; overflow:hidden; margin-bottom:12px; }
+  #progbar { height:100%; width:0; background:var(--azul2); transition:width .2s; }
+  .foot { text-align:center; color:#94a3b8; font-size:11px; margin-top:8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="app"><div class="card center" style="padding:40px 16px;"><div class="big-ico">⏳</div><p>Cargando…</p></div></div>
+  <div class="foot">Bayol Cell · Evaluación de personal</div>
+</div>
+<script>
+const FUNC = 'https://vkhwdvjtowrhkhqavnvk.supabase.co/functions/v1/rrhh-prueba';
+const APIKEY = 'sb_publishable_PynS5ZjKoQ36HCpguVzxaw_KZOlagtz';
+const LIK = ['Nada','Poco','Neutral','De acuerdo','Totalmente'];
+const AREAS = [
+  { k:'disc', ic:'🧭', t:'1. Sobre ti', sub:'Marca qué tan de acuerdo estás con cada frase. No hay respuestas buenas ni malas.' },
+  { k:'aptitud', ic:'🔢', t:'2. Lógica y números', sub:'Elige la respuesta correcta.' },
+  { k:'integridad', ic:'🛡️', t:'3. Tu forma de trabajar', sub:'Marca qué tan de acuerdo estás con cada frase.' },
+  { k:'servicio', ic:'😊', t:'4. Trato al cliente', sub:'Marca qué tan de acuerdo estás con cada frase.' }
+];
+let TOKEN = new URLSearchParams(location.search).get('t') || '';
+let PREG = [], RESP = {};
+const app = document.getElementById('app');
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+async function api(action, extra){
+  const r = await fetch(FUNC, { method:'POST', headers:{ 'Content-Type':'application/json', 'apikey':APIKEY, 'Authorization':'Bearer '+APIKEY }, body: JSON.stringify(Object.assign({ action, token:TOKEN }, extra||{})) });
+  return r.json();
+}
+function pantalla(html){ app.innerHTML = html; window.scrollTo(0,0); }
+function msg(ico, titulo, txt){ pantalla(`<div class="card center" style="padding:40px 18px;"><div class="big-ico">${ico}</div><h2 style="color:#0f172a;">${esc(titulo)}</h2><p style="color:#64748b;">${esc(txt)}</p></div>`); }
+
+async function iniciar(){
+  if(!TOKEN){ return msg('🔗','Enlace incompleto','Pídele al encargado que te reenvíe el enlace completo.'); }
+  let d;
+  try { d = await api('get'); } catch(e){ return msg('⚠️','Sin conexión','Revisa tu internet e intenta de nuevo.'); }
+  if(!d || !d.ok){ return msg('🔗','Enlace no válido', (d && d.error) || 'Este enlace no funciona.'); }
+  if(d.estado === 'completada'){ return msg('✅','Ya contestaste','Gracias, '+ (d.candidato||'') +'. Tu evaluación ya fue recibida.'); }
+  PREG = d.preguntas || [];
+  render(d.candidato, d.puesto);
+}
+
+function render(cand, puesto){
+  let html = `<div class="hero"><h1>Evaluación de personal</h1><p>${esc(cand||'')}${puesto?' · '+esc(puesto):''}</p></div>
+    <div id="prog"><div id="progbar"></div></div>
+    <div class="note">Responde con sinceridad. Toma unos 5–10 minutos. Marca <b>una opción por pregunta</b>.</div>`;
+  AREAS.forEach(a => {
+    const qs = PREG.filter(p => p.area === a.k);
+    if(!qs.length) return;
+    html += `<div class="card"><h2>${a.ic} ${esc(a.t)}</h2><div class="sub">${esc(a.sub)}</div>`;
+    qs.forEach((q, i) => {
+      html += `<div class="q"><div class="q-txt"><b>${i+1}.</b>${esc(q.texto)}</div>`;
+      if(a.k === 'aptitud'){
+        const ops = Array.isArray(q.opciones) ? q.opciones : [];
+        html += `<div class="opts">` + ops.map((o,k)=>`<label class="opt full" data-q="${q.id}" data-v="${k}"><input type="radio" name="q_${q.id}">${esc(o)}</label>`).join('') + `</div>`;
+      } else {
+        html += `<div class="opts lik">` + [1,2,3,4,5].map(v=>`<label class="opt" data-q="${q.id}" data-v="${v}"><input type="radio" name="q_${q.id}">${LIK[v-1]}</label>`).join('') + `</div>`;
+      }
+      html += `</div>`;
+    });
+    html += `</div>`;
+  });
+  html += `<button id="enviar" class="btn btn-main" onclick="enviar()">Enviar evaluación</button>`;
+  pantalla(html);
+  app.querySelectorAll('label.opt').forEach(l => l.addEventListener('click', () => {
+    const q = l.getAttribute('data-q');
+    app.querySelectorAll(`label.opt[data-q="${q}"]`).forEach(x => x.classList.remove('sel'));
+    l.classList.add('sel');
+    RESP[q] = Number(l.getAttribute('data-v'));
+    prog();
+  }));
+  prog();
+}
+function prog(){
+  const bar = document.getElementById('progbar'); if(!bar) return;
+  const pct = PREG.length ? Math.round(Object.keys(RESP).length / PREG.length * 100) : 0;
+  bar.style.width = pct + '%';
+}
+async function enviar(){
+  const faltan = PREG.length - Object.keys(RESP).length;
+  if(faltan > 0){ alert('Te faltan '+faltan+' pregunta(s) por responder.'); return; }
+  const b = document.getElementById('enviar'); if(b){ b.disabled = true; b.textContent = 'Enviando…'; }
+  let d;
+  try { d = await api('submit', { respuestas: RESP }); } catch(e){ if(b){ b.disabled=false; b.textContent='Enviar evaluación'; } return alert('Sin conexión. Intenta de nuevo.'); }
+  if(d && d.ok){ msg('🎉','¡Gracias!','Tu evaluación fue enviada correctamente. Ya puedes cerrar esta página.'); }
+  else { if(b){ b.disabled=false; b.textContent='Enviar evaluación'; } alert((d && d.error) || 'No se pudo enviar. Intenta de nuevo.'); }
+}
+iniciar();
+</script>
+</body>
+</html>
