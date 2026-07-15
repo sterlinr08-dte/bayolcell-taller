@@ -392,6 +392,12 @@ Usos:
 - **FIX:** se revocó el EXECUTE **anon/public** de 16 funciones de negocio (stats_*, infoplus_valor_inventario, estado_mensual_cat, set_taller_existencia, etc.) — quedaban llamables SIN login con la clave publicable. Solo `web_visitas_por_dia`/`web_visitas_resumen` conservan anon (las usa la landing).
 - **Preventivo pendiente:** buckets `fin-documentos`/`fin-evidencias` son PÚBLICOS (hoy vacíos) — volverlos privados antes de subir documentos de clientes. 2 IMEI duplicados (garantías) y 2 lotes con contador descuadrado (cosmético).
 
+### Nómina — mejoras 15 jul 2026 (todo en producción)
+- **Fix raíz cache:** `loadAll()` reasignaba `cache` y BORRABA claves de otros módulos (nominaEmpleados, infoplusArticulos, contaCategorias…) → ventanas vacías intermitentes. Ahora `cache = Object.assign({}, cache, nuevoCache)`. `_nominaEditarEmpleado` además busca en la base si no está en cache; `_renderNominaGenerar` reconstruye si quedó pegada vacía.
+- **UX global:** listener `focusin` que auto-selecciona el valor de TODO input numérico (type=number o inputmode numeric/decimal) — lo escrito reemplaza el 0 (evita "05000"). Segundo clic posiciona cursor.
+- **Quincena:** columna **OK** (check de revisión por línea, fila verde + contador "X/17 revisados" en `nomOkCount`) y columna **💬 comentario** por empleado (`_nominaComentario`, guarda en `nomina_lineas.comentario`, azul si tiene, tooltip lo muestra).
+- **Corregir quincena guardada:** botón "Editar" en Historial (`_nominaEditarPeriodo`) reabre en Generar con banner ámbar; al guardar exige MOTIVO (insiste), registra en `nomina_periodos.ediciones` (jsonb: fecha/por/motivo) y el historial muestra insignia "corregida ×N" con tooltip de motivos.
+
 ### Pendientes
 - 🔒 **ROTAR la clave de Info Plus** (`24324...` se filtró en chat) y migrar Edge Functions a leer solo del secret con `.trim()`.
 - Serie `355617283201152` dañada (Dagoberto).
