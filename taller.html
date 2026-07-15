@@ -13003,7 +13003,7 @@ function _rrhhVerPrueba(id) {
         ${bar('Servicio al cliente', r.servicio ? r.servicio.pct : 0, _rrhhBanda(r.servicio ? r.servicio.pct : 0))}
         <div style="font-size:11px; color:#94a3b8; margin-top:10px;">Herramienta de apoyo. Combínala con la entrevista y las referencias; no decide sola.</div>
       </div>
-      <div class="modal-footer"><button class="btn btn-light" style="margin-right:auto;" onclick="_rrhhImprimirPrueba('${p.id}')"><i class="ti ti-printer"></i> Imprimir</button><button class="btn btn-light" onclick="document.getElementById('modalVerPrueba').remove()">Cerrar</button></div>
+      <div class="modal-footer"><button class="btn btn-light" style="margin-right:auto;" onclick="_rrhhImprimirPrueba('${p.id}')"><i class="ti ti-printer"></i> Imprimir</button><button class="btn" style="background:#fee2e2; color:#b91c1c;" onclick="_rrhhEliminarPrueba('${p.id}')"><i class="ti ti-trash"></i> Eliminar</button><button class="btn btn-light" onclick="document.getElementById('modalVerPrueba').remove()">Cerrar</button></div>
     </div>`;
     document.body.appendChild(box);
 }
@@ -13168,6 +13168,7 @@ async function _rrhhEliminarPrueba(id) {
         const { error } = await supabaseClient.from('rrhh_pruebas').delete().eq('id', id);
         if(error) throw error;
         toast('🗑️ Prueba borrada.');
+        document.getElementById('modalVerPrueba')?.remove();
         await _loadNomina(); if(_nominaTab === 'pruebas') _renderRRHHPruebas();
     } catch(e) { logError('borrar prueba rrhh', e); toastError(getFriendlyError(e)); }
 }
