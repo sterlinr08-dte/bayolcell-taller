@@ -6034,6 +6034,11 @@ const NAV_PERMISOS = {
 };
 
 function nav(v, btn) {
+    // Aviso: si sales de una quincena que estás armando/corrigiendo con cambios sin guardar
+    if(typeof _nominaGen !== 'undefined' && _nominaGen && _nominaGen._dirty && v !== 'nomina') {
+        _nominaConfirmarSalida(v);
+        return;
+    }
     // Candado especial: Estadísticas es privado del dueño (por ID), no por rol admin
     if(v === 'estadisticas' && !esDueno()) {
         toast('🔒 Módulo privado.');
@@ -12370,16 +12375,95 @@ function _nominaMesShift(delta) {
     _nominaCalcPeriodo(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`, _nominaGen.quincena);
     _renderNominaGenerar();
 }
+// Construye una línea de quincena a partir de un empleado (se reutiliza al armar y al agregar uno)
+function _nominaLineaEmp(e) {
+    const q = Math.round((Number(e.salario_mensual) || 0) / 2 * 100) / 100;
+    const ley = e.deduce_ley !== false;
+    return { empleado_id: e.id, nombre: e.nombre, cedula: e.cedula, cuenta_bhd: e.cuenta_bhd, puesto: e.puesto, salario_mensual: Number(e.salario_mensual) || 0, salario_quincenal: q, deduce_ley: ley, ars: ley ? Math.round(q * NOM_ARS * 100) / 100 : 0, afp: ley ? Math.round(q * NOM_AFP * 100) / 100 : 0, incentivos: 0, cuentas_por_cobrar: 0, dias_descontado: 0, dias_trabajados: null, total: 0, revisado: false, comentario: '' };
+}
 function _nominaNuevaQuincena(rerender) {
     const emps = (cache.nominaEmpleados || []).filter(e => e.activo !== false);
-    _nominaGen = { titulo: '', mes: '', quincena: 1, inicio: '', fin: '', pago: '', diasBase: 23.83, lineas: emps.map(e => {
-        const q = Math.round((Number(e.salario_mensual) || 0) / 2 * 100) / 100;
-        const ley = e.deduce_ley !== false;
-        return { empleado_id: e.id, nombre: e.nombre, cedula: e.cedula, cuenta_bhd: e.cuenta_bhd, puesto: e.puesto, salario_mensual: Number(e.salario_mensual) || 0, salario_quincenal: q, deduce_ley: ley, ars: ley ? Math.round(q * NOM_ARS * 100) / 100 : 0, afp: ley ? Math.round(q * NOM_AFP * 100) / 100 : 0, incentivos: 0, cuentas_por_cobrar: 0, dias_descontado: 0, dias_trabajados: null, total: 0, revisado: false, comentario: '' };
-    }) };
+    _nominaGen = { titulo: '', mes: '', quincena: 1, inicio: '', fin: '', pago: '', diasBase: 23.83, _dirty: false, lineas: emps.map(e => _nominaLineaEmp(e)) };
     _nominaAplicarPeriodoAuto();
     if(rerender) _renderNominaGenerar();
 }
+// Marca la quincena como "con cambios sin guardar" (para avisar al salir) y recalcula
+function _nominaEdit() { if(_nominaGen) _nominaGen._dirty = true; _nominaRecalc(); }
+// Agregar un empleado a la quincena actual (sirve también mientras se corrige una guardada)
+function _nominaAgregarEmpleado() {
+    const g = _nominaGen; if(!g) return toast('Genera una quincena primero.', 'error');
+    _nominaRecalc(); // conservar lo editado antes de abrir
+    let m = document.getElementById('nomAddEmpModal'); if(m) m.remove();
+    m = document.createElement('div');
+    m.id = 'nomAddEmpModal';
+    m.style.cssText = 'position:fixed; inset:0; background:rgba(15,23,42,.5); z-index:99990; display:flex; align-items:flex-start; justify-content:center; padding:40px 12px; overflow:auto;';
+    m.innerHTML = `<div style="background:#fff; border-radius:14px; max-width:480px; width:100%; box-shadow:0 20px 50px rgba(0,0,0,.3); overflow:hidden;">
+        <div style="background:linear-gradient(135deg,#0e7490,#0891b2); color:#fff; padding:13px 18px; display:flex; align-items:center; justify-content:space-between;">
+          <span style="font-weight:800;"><i class="ti ti-user-plus"></i> Agregar empleado a la quincena</span>
+          <span onclick="_nominaCerrarAgregar()" style="cursor:pointer; font-size:22px; line-height:1;">&times;</span>
+        </div>
+        <div style="padding:16px 18px;">
+          <input id="nomAddEmpBusq" placeholder="Buscar por nombre o puesto…" oninput="_nominaAgregarRender()" style="width:100%; padding:8px 10px; border:1px solid #cbd5e1; border-radius:8px; margin-bottom:12px;">
+          <div id="nomAddEmpLista" style="max-height:52vh; overflow:auto;"></div>
+        </div>
+      </div>`;
+    document.body.appendChild(m);
+    _nominaAgregarRender();
+    setTimeout(() => document.getElementById('nomAddEmpBusq')?.focus(), 60);
+}
+function _nominaAgregarRender() {
+    const g = _nominaGen; if(!g) return;
+    const cont = document.getElementById('nomAddEmpLista'); if(!cont) return;
+    const q = (document.getElementById('nomAddEmpBusq')?.value || '').trim().toLowerCase();
+    const yaIds = new Set(g.lineas.map(l => String(l.empleado_id)));
+    let disp = (cache.nominaEmpleados || []).filter(e => e.activo !== false && !yaIds.has(String(e.id)));
+    if(q) disp = disp.filter(e => (`${e.nombre} ${e.puesto || ''}`).toLowerCase().includes(q));
+    if(!disp.length) { cont.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:16px;">Todos los empleados activos ya están en esta quincena.</p>'; return; }
+    cont.innerHTML = disp.map(e => `<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:9px 4px; border-bottom:1px solid #eef2f7;">
+        <div style="min-width:0;"><div style="font-weight:700; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(e.nombre)}</div><div style="font-size:11.5px; color:#64748b;">${escapeHtml(e.puesto || 'Sin puesto')} · ${money(Number(e.salario_mensual) || 0)}/mes</div></div>
+        <button class="btn btn-blue" style="padding:5px 11px; font-size:12px; white-space:nowrap;" onclick="_nominaAgregarAplicar('${String(e.id).replace(/'/g, "\\'")}')"><i class="ti ti-plus"></i> Agregar</button>
+      </div>`).join('');
+}
+function _nominaAgregarAplicar(id) {
+    const g = _nominaGen; if(!g) return;
+    const e = (cache.nominaEmpleados || []).find(x => String(x.id) === String(id));
+    if(!e) return toast('No se encontró el empleado.', 'error');
+    _nominaRecalc(); // conservar lo editado antes de redibujar
+    g.lineas.push(_nominaLineaEmp(e));
+    g._dirty = true;
+    _renderNominaGenerar();
+    _nominaAgregarRender(); // refresca la lista del modal (quita el recién agregado)
+    toast(`➕ ${e.nombre} agregado a la quincena.`);
+}
+function _nominaCerrarAgregar() { document.getElementById('nomAddEmpModal')?.remove(); }
+// Aviso de cambios sin guardar al salir de la quincena que se está armando/corrigiendo
+function _nominaConfirmarSalida(destino) {
+    let m = document.getElementById('nomSalirModal'); if(m) m.remove();
+    m = document.createElement('div');
+    m.id = 'nomSalirModal';
+    m.style.cssText = 'position:fixed; inset:0; background:rgba(15,23,42,.5); z-index:99992; display:flex; align-items:center; justify-content:center; padding:12px;';
+    m.innerHTML = `<div style="background:#fff; border-radius:14px; max-width:430px; width:100%; padding:22px; box-shadow:0 20px 50px rgba(0,0,0,.3);">
+        <div style="font-size:17px; font-weight:800; color:#0f172a; margin-bottom:6px;"><i class="ti ti-alert-triangle" style="color:#f59e0b;"></i> Tienes cambios sin guardar</div>
+        <p style="font-size:13.5px; color:#475569; margin:0 0 18px;">Estás saliendo de la quincena que estás armando. ¿Qué quieres hacer con los cambios?</p>
+        <div style="display:flex; flex-direction:column; gap:9px;">
+          <button class="btn btn-blue" onclick="_nominaSalirGuardar('${destino}')" style="width:100%;"><i class="ti ti-device-floppy"></i> Guardar y salir</button>
+          <button class="btn btn-light" onclick="_nominaSalirDescartar('${destino}')" style="width:100%; color:#b91c1c; border-color:#fecaca;"><i class="ti ti-logout"></i> Salir sin guardar</button>
+          <button class="btn btn-light" onclick="_nominaSalirCancelar()" style="width:100%;">Cancelar (quedarme aquí)</button>
+        </div>
+      </div>`;
+    document.body.appendChild(m);
+}
+async function _nominaSalirGuardar(destino) {
+    document.getElementById('nomSalirModal')?.remove();
+    await _nominaGuardarPeriodo();
+    if(!_nominaGen) nav(destino); // solo salir si de verdad se guardó (queda en null)
+}
+function _nominaSalirDescartar(destino) {
+    document.getElementById('nomSalirModal')?.remove();
+    if(_nominaGen) _nominaGen._dirty = false;
+    nav(destino);
+}
+function _nominaSalirCancelar() { document.getElementById('nomSalirModal')?.remove(); }
 function _renderNominaGenerar() {
     const cont = document.getElementById('nominaContent'); if(!cont) return;
     // Reconstruir si no existe O si quedó pegada vacía (p. ej. se armó cuando el cache estaba sin cargar)
@@ -12390,13 +12474,13 @@ function _renderNominaGenerar() {
         <td style="padding:4px 6px; border:1px solid #e2e8f0; white-space:nowrap;">${escapeHtml(l.nombre)}${l.deduce_ley ? '' : ' <span style="font-size:9px; color:#94a3b8;">(sin ley)</span>'}</td>
         <td style="padding:4px 6px; border:1px solid #e2e8f0;">${escapeHtml(l.puesto || '')}</td>
         <td style="padding:4px 6px; border:1px solid #e2e8f0; text-align:right;">${money(l.salario_mensual)}</td>
-        <td style="padding:2px; border:1px solid #e2e8f0;"><input class="nq-dt" type="number" step="1" min="0" value="${l.dias_trabajados || ''}" placeholder="—" oninput="_nominaRecalc()" style="width:52px; text-align:right; border:none; background:transparent;"></td>
-        <td style="padding:2px; border:1px solid #e2e8f0;"><input class="nq-quin" type="number" step="0.01" value="${l.salario_quincenal}" oninput="_nominaRecalc()" style="width:95px; text-align:right; border:none; background:transparent;"></td>
+        <td style="padding:2px; border:1px solid #e2e8f0;"><input class="nq-dt" type="number" step="1" min="0" value="${l.dias_trabajados || ''}" placeholder="—" oninput="_nominaEdit()" style="width:52px; text-align:right; border:none; background:transparent;"></td>
+        <td style="padding:2px; border:1px solid #e2e8f0;"><input class="nq-quin" type="number" step="0.01" value="${l.salario_quincenal}" oninput="_nominaEdit()" style="width:95px; text-align:right; border:none; background:transparent;"></td>
         <td class="nq-ars" style="padding:4px 6px; border:1px solid #e2e8f0; text-align:right; color:#b45309;">${money(l.ars)}</td>
         <td class="nq-afp" style="padding:4px 6px; border:1px solid #e2e8f0; text-align:right; color:#b45309;">${money(l.afp)}</td>
-        <td style="padding:2px; border:1px solid #e2e8f0;"><input class="nq-inc" type="number" step="0.01" value="${l.incentivos}" oninput="_nominaRecalc()" style="width:85px; text-align:right; border:none; background:transparent;"></td>
-        <td style="padding:2px; border:1px solid #e2e8f0;"><input class="nq-cxc" type="number" step="0.01" value="${l.cuentas_por_cobrar}" oninput="_nominaRecalc()" style="width:85px; text-align:right; border:none; background:transparent;"></td>
-        <td style="padding:2px; border:1px solid #e2e8f0;"><input class="nq-dd" type="number" step="0.01" value="${l.dias_descontado}" oninput="_nominaRecalc()" style="width:80px; text-align:right; border:none; background:transparent;"></td>
+        <td style="padding:2px; border:1px solid #e2e8f0;"><input class="nq-inc" type="number" step="0.01" value="${l.incentivos}" oninput="_nominaEdit()" style="width:85px; text-align:right; border:none; background:transparent;"></td>
+        <td style="padding:2px; border:1px solid #e2e8f0;"><input class="nq-cxc" type="number" step="0.01" value="${l.cuentas_por_cobrar}" oninput="_nominaEdit()" style="width:85px; text-align:right; border:none; background:transparent;"></td>
+        <td style="padding:2px; border:1px solid #e2e8f0;"><input class="nq-dd" type="number" step="0.01" value="${l.dias_descontado}" oninput="_nominaEdit()" style="width:80px; text-align:right; border:none; background:transparent;"></td>
         <td class="nq-total" style="padding:4px 6px; border:1px solid #e2e8f0; text-align:right; font-weight:800; color:#166534; background:#f0fdf4;">${money(l.total)}</td>
         <td style="padding:4px 6px; border:1px solid #e2e8f0; text-align:center;"><a class="nq-com" onclick="_nominaComentario(${i}, this)" title="${escapeHtml(l.comentario || 'Agregar comentario')}" style="cursor:pointer; font-size:16px; color:${l.comentario ? '#0369a1' : '#cbd5e1'};"><i class="ti ${l.comentario ? 'ti-message-circle-filled' : 'ti-message-plus'}"></i></a></td>
         <td style="padding:4px 6px; border:1px solid #e2e8f0; text-align:center;" title="Marcar cuando verifiques que esta línea está correcta"><input type="checkbox" class="nq-ok" ${l.revisado ? 'checked' : ''} onchange="_nominaToggleOk(this, ${i})" style="width:17px; height:17px; cursor:pointer; accent-color:#16a34a;"></td>
@@ -12429,7 +12513,7 @@ function _renderNominaGenerar() {
       ${g.editandoId ? `<div style="background:#fffbeb; border:1px solid #fde68a; color:#92400e; border-radius:10px; padding:9px 13px; margin:0 0 10px; font-size:12.5px;"><i class="ti ti-pencil"></i> <b>Estás corrigiendo una quincena YA GUARDADA.</b> Al guardar se te pedirá el motivo de la corrección (queda registrado). Si no quieres corregirla, dale a "Reiniciar".</div>` : ''}
       <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:0 0 6px;">
         <span style="font-size:11.5px; color:#64748b;"><i class="ti ti-calendar-stats"></i> Días laborables del mes (para pago por día):</span>
-        <input id="nom_diasbase" type="number" step="0.01" value="${g.diasBase || 23.83}" oninput="_nominaRecalc()" style="width:72px; padding:4px 7px; border:1px solid #cbd5e1; border-radius:6px; text-align:right;">
+        <input id="nom_diasbase" type="number" step="0.01" value="${g.diasBase || 23.83}" oninput="_nominaEdit()" style="width:72px; padding:4px 7px; border:1px solid #cbd5e1; border-radius:6px; text-align:right;">
       </div>
       <p style="font-size:11.5px; color:#64748b; margin:0 0 8px;">El <b>SFS/ARS (3.04%)</b> y la <b>AFP (2.87%)</b> se descuentan solos sobre el sueldo quincenal cotizable. Si registras <b>Días trab.</b>, el quincenal se prorratea por día (sueldo ÷ días laborables × días); si lo dejas vacío, va el quincenal completo (editable).</p>
       <div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12px; min-width:980px;">
@@ -12441,6 +12525,7 @@ function _renderNominaGenerar() {
       </table></div>
       <div id="nomTSS"></div>
       <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px; flex-wrap:wrap;">
+        <button class="btn btn-light" style="color:#0369a1; border-color:#7dd3fc; margin-right:auto;" onclick="_nominaAgregarEmpleado()"><i class="ti ti-user-plus"></i> Agregar empleado</button>
         <button class="btn btn-light" onclick="_nominaNuevaQuincena(true)"><i class="ti ti-refresh"></i> Reiniciar</button>
         <button class="btn btn-light" onclick="_nominaImprimir(null)"><i class="ti ti-printer"></i> Imprimir</button>
         <button class="btn btn-light" onclick="_nominaVolantes(null)"><i class="ti ti-receipt"></i> Volantes</button>
@@ -12457,6 +12542,7 @@ async function _nominaQuitarLinea(i) {
     if(!await confirmar(`¿Quitar a "${l.nombre}" de ESTA quincena?\n\nNo se borra de la nómina — solo sale de este pago. (Para volver a incluirlo, dale a "Reiniciar".)`)) return;
     _nominaRecalc(); // guardar lo editado antes de re-dibujar
     g.lineas.splice(i, 1);
+    g._dirty = true;
     _renderNominaGenerar();
     toast(`Se quitó a ${l.nombre} de esta quincena.`);
 }
@@ -12467,6 +12553,7 @@ async function _nominaComentario(i, el) {
     const r = await pedirTexto(`Comentario para ${l.nombre}:\n\n(Se guarda con la quincena. Déjalo vacío para quitarlo.)`, { valor: l.comentario || '', multilinea: true });
     if(r === null) return;
     l.comentario = (r || '').trim();
+    g._dirty = true;
     if(el) {
         el.title = l.comentario || 'Agregar comentario';
         el.style.color = l.comentario ? '#0369a1' : '#cbd5e1';
@@ -12478,6 +12565,7 @@ async function _nominaComentario(i, el) {
 function _nominaToggleOk(el, i) {
     const g = _nominaGen; if(!g || !g.lineas[i]) return;
     g.lineas[i].revisado = !!el.checked;
+    g._dirty = true;
     const tr = el.closest('tr'); if(tr) tr.style.background = el.checked ? '#f0fdf4' : '';
     const n = g.lineas.filter(x => x.revisado).length, tot = g.lineas.length;
     const c = document.getElementById('nomOkCount');
