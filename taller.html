@@ -12400,6 +12400,7 @@ function _renderNominaGenerar() {
         <td class="nq-total" style="padding:4px 6px; border:1px solid #e2e8f0; text-align:right; font-weight:800; color:#166534; background:#f0fdf4;">${money(l.total)}</td>
         <td style="padding:4px 6px; border:1px solid #e2e8f0; text-align:center;"><a class="nq-com" onclick="_nominaComentario(${i}, this)" title="${escapeHtml(l.comentario || 'Agregar comentario')}" style="cursor:pointer; font-size:16px; color:${l.comentario ? '#0369a1' : '#cbd5e1'};"><i class="ti ${l.comentario ? 'ti-message-circle-filled' : 'ti-message-plus'}"></i></a></td>
         <td style="padding:4px 6px; border:1px solid #e2e8f0; text-align:center;" title="Marcar cuando verifiques que esta línea está correcta"><input type="checkbox" class="nq-ok" ${l.revisado ? 'checked' : ''} onchange="_nominaToggleOk(this, ${i})" style="width:17px; height:17px; cursor:pointer; accent-color:#16a34a;"></td>
+        <td style="padding:4px 6px; border:1px solid #e2e8f0; text-align:center;"><a onclick="_nominaQuitarLinea(${i})" title="Quitar a ${escapeHtml(l.nombre)} de ESTA quincena (no borra al empleado)" style="cursor:pointer; color:#fca5a5; font-size:15px;"><i class="ti ti-x"></i></a></td>
     </tr>`).join('');
     const _fmtLargo = s => { try { return new Date(s + 'T00:00:00').toLocaleDateString('es-DO', { day: 'numeric', month: 'long' }); } catch(_) { return s; } };
     const _fmtPago = s => { try { return new Date(s + 'T00:00:00').toLocaleDateString('es-DO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); } catch(_) { return s; } };
@@ -12433,10 +12434,10 @@ function _renderNominaGenerar() {
       <p style="font-size:11.5px; color:#64748b; margin:0 0 8px;">El <b>SFS/ARS (3.04%)</b> y la <b>AFP (2.87%)</b> se descuentan solos sobre el sueldo quincenal cotizable. Si registras <b>Días trab.</b>, el quincenal se prorratea por día (sueldo ÷ días laborables × días); si lo dejas vacío, va el quincenal completo (editable).</p>
       <div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12px; min-width:980px;">
         <thead><tr style="background:#0f172a; color:#fff;">
-          <th style="padding:6px; text-align:left;">Nombre</th><th style="padding:6px;">Puesto</th><th style="padding:6px; text-align:right;">Salario/mes</th><th style="padding:6px;">Días trab.</th><th style="padding:6px; text-align:right;">Quincenal</th><th style="padding:6px;">ARS</th><th style="padding:6px;">AFP</th><th style="padding:6px;">Incentivos</th><th style="padding:6px;">Ctas. cobrar</th><th style="padding:6px;">Días desc.</th><th style="padding:6px;">TOTAL</th><th style="padding:6px;" title="Comentarios"><i class="ti ti-message"></i></th><th style="padding:6px;" title="Verificado">OK</th>
+          <th style="padding:6px; text-align:left;">Nombre</th><th style="padding:6px;">Puesto</th><th style="padding:6px; text-align:right;">Salario/mes</th><th style="padding:6px;">Días trab.</th><th style="padding:6px; text-align:right;">Quincenal</th><th style="padding:6px;">ARS</th><th style="padding:6px;">AFP</th><th style="padding:6px;">Incentivos</th><th style="padding:6px;">Ctas. cobrar</th><th style="padding:6px;">Días desc.</th><th style="padding:6px;">TOTAL</th><th style="padding:6px;" title="Comentarios"><i class="ti ti-message"></i></th><th style="padding:6px;" title="Verificado">OK</th><th style="padding:6px;"></th>
         </tr></thead>
         <tbody>${filas}</tbody>
-        <tfoot><tr style="background:#eef2ff; font-weight:800;"><td colspan="4" style="padding:6px; text-align:right;">TOTALES:</td><td id="nomTotQuin" style="padding:6px; text-align:right;"></td><td id="nomTotArs" style="padding:6px; text-align:right;"></td><td id="nomTotAfp" style="padding:6px; text-align:right;"></td><td id="nomTotInc" style="padding:6px; text-align:right;"></td><td id="nomTotCxc" style="padding:6px; text-align:right;"></td><td id="nomTotDd" style="padding:6px; text-align:right;"></td><td id="nomTotNeto" style="padding:6px; text-align:right; color:#166534;"></td><td style="padding:6px;"></td><td id="nomOkFoot" style="padding:6px; text-align:center; font-size:11px; color:#16a34a;"></td></tr></tfoot>
+        <tfoot><tr style="background:#eef2ff; font-weight:800;"><td colspan="4" style="padding:6px; text-align:right;">TOTALES:</td><td id="nomTotQuin" style="padding:6px; text-align:right;"></td><td id="nomTotArs" style="padding:6px; text-align:right;"></td><td id="nomTotAfp" style="padding:6px; text-align:right;"></td><td id="nomTotInc" style="padding:6px; text-align:right;"></td><td id="nomTotCxc" style="padding:6px; text-align:right;"></td><td id="nomTotDd" style="padding:6px; text-align:right;"></td><td id="nomTotNeto" style="padding:6px; text-align:right; color:#166534;"></td><td style="padding:6px;"></td><td id="nomOkFoot" style="padding:6px; text-align:center; font-size:11px; color:#16a34a;"></td><td style="padding:6px;"></td></tr></tfoot>
       </table></div>
       <div id="nomTSS"></div>
       <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px; flex-wrap:wrap;">
@@ -12448,6 +12449,16 @@ function _renderNominaGenerar() {
         <button class="btn btn-blue" onclick="_nominaGuardarPeriodo()"><i class="ti ti-device-floppy"></i> Guardar quincena</button>
       </div>`;
     _nominaRecalc();
+}
+// Quitar un empleado de ESTA quincena (no borra al empleado de la nómina)
+async function _nominaQuitarLinea(i) {
+    const g = _nominaGen; if(!g || !g.lineas[i]) return;
+    const l = g.lineas[i];
+    if(!await confirmar(`¿Quitar a "${l.nombre}" de ESTA quincena?\n\nNo se borra de la nómina — solo sale de este pago. (Para volver a incluirlo, dale a "Reiniciar".)`)) return;
+    _nominaRecalc(); // guardar lo editado antes de re-dibujar
+    g.lineas.splice(i, 1);
+    _renderNominaGenerar();
+    toast(`Se quitó a ${l.nombre} de esta quincena.`);
 }
 // Comentario por línea de la quincena (clic en el globito: ver/escribir; se guarda con la quincena)
 async function _nominaComentario(i, el) {
