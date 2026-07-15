@@ -12261,6 +12261,12 @@ async function _loadNomina() {
 async function renderNomina() {
     if(!isAdminUser()) return;
     await _loadNomina();
+    // Recordar en qué pestaña de RRHH estaba (sobrevive a recargar la página)
+    try {
+        const sub = localStorage.getItem('bayol_subtab_rrhh_sub'); if(sub) _nomSub = sub;
+        const t = localStorage.getItem('bayol_subtab_rrhh');
+        nominaTab(t || _nominaTab || 'empleados'); return;
+    } catch(e) {}
     nominaTab(_nominaTab || 'empleados');
 }
 function nominaTab(t) {
@@ -12273,6 +12279,7 @@ function nominaTab(t) {
     const seccion = (t === 'generar' || t === 'historial') ? 'nomina' : t;
     if(t === 'generar' || t === 'historial') _nomSub = t;
     _nominaTab = seccion;
+    try { localStorage.setItem('bayol_subtab_rrhh', seccion); localStorage.setItem('bayol_subtab_rrhh_sub', _nomSub); } catch(e) {}
     ['Emp', 'Nom', 'Acum', 'Pru'].forEach(s => { const b = document.getElementById('nomTab' + s); if(b) { b.classList.remove('btn-blue'); b.classList.add('btn-light'); } });
     const map = { empleados: 'Emp', nomina: 'Nom', acumulados: 'Acum', pruebas: 'Pru' };
     const b = document.getElementById('nomTab' + (map[seccion] || 'Emp')); if(b) { b.classList.add('btn-blue'); b.classList.remove('btn-light'); }
