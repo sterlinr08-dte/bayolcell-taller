@@ -4012,6 +4012,24 @@ let refreshTimer = null;
 
 function logError(context, error) { console.error(`[BAYOL CELL] ${context}:`, error); }
 
+// ===== AUTO-SELECCIONAR NÚMEROS AL ENFOCAR (todo el sistema) =====
+// Al hacer clic o entrar con Tab a CUALQUIER campo numérico, el valor queda
+// sombreado para que lo que escribas lo REEMPLACE (evita el "0" pegado: 0 → 05000).
+// El segundo clic dentro del campo funciona normal (para poner el cursor donde quieras).
+document.addEventListener('focusin', function(e) {
+    var t = e.target;
+    if(!t || t.tagName !== 'INPUT') return;
+    var im = (t.getAttribute('inputmode') || '').toLowerCase();
+    if(t.type === 'number' || im === 'numeric' || im === 'decimal') {
+        t._bcSelNum = true;
+        try { t.select(); } catch(_e) {}
+    }
+});
+document.addEventListener('mouseup', function(e) {
+    var t = e.target;
+    if(t && t._bcSelNum) { t._bcSelNum = false; e.preventDefault(); }
+}, true);
+
 // ===== CAZADOR GLOBAL DE ERRORES (depuración) =====
 // Captura errores inesperados que pasan FUERA de los try/catch, para que no fallen
 // en silencio. Quedan guardados (últimos 30) y se pueden revisar.
