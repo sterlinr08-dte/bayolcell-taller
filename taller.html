@@ -12844,13 +12844,18 @@ function _renderRRHHPruebas() {
     }).join('');
     const pend = pendientes.length ? `<div style="border:1px solid #fde68a; background:#fffbeb; border-radius:10px; padding:11px 13px; margin-bottom:12px;">
         <div style="font-weight:700; color:#92400e; font-size:12.5px; margin-bottom:6px;"><i class="ti ti-clock-hour-4"></i> Enlaces enviados, esperando respuesta (${pendientes.length})</div>
-        ${pendientes.map(p => `<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:5px 0; border-top:1px solid #fef3c7; font-size:12.5px;">
-            <div><b>${escapeHtml(p.candidato || '')}</b> <span style="color:#94a3b8;">${escapeHtml(p.puesto || '')}</span></div>
-            <div style="display:flex; gap:10px; align-items:center; white-space:nowrap;">
-              <a onclick="_rrhhMostrarEnlace('${escapeHtml(p.token || '')}', '${escapeHtml((p.candidato || '').replace(/'/g, ""))}')" style="cursor:pointer; color:#0369a1;" title="Ver / reenviar enlace"><i class="ti ti-link"></i> enlace</a>
+        ${pendientes.map(p => {
+            const num = _rrhhWaNum(p.telefono);
+            const msg = `Hola ${p.candidato || ''}, para tu proceso en Bayol Cell, por favor completa esta breve evaluación (5-10 min) desde tu celular:\n${RRHH_PRUEBA_URL}${p.token || ''}`;
+            const waHref = (num ? `https://wa.me/${num}` : 'https://wa.me/') + `?text=${encodeURIComponent(msg)}`;
+            return `<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:5px 0; border-top:1px solid #fef3c7; font-size:12.5px;">
+            <div><b>${escapeHtml(p.candidato || '')}</b> <span style="color:#94a3b8;">${escapeHtml(p.puesto || '')}${p.telefono ? ' · ' + escapeHtml(p.telefono) : ''}</span></div>
+            <div style="display:flex; gap:12px; align-items:center; white-space:nowrap;">
+              <a href="${waHref}" target="_blank" rel="noopener" style="color:#16a34a; font-weight:600; text-decoration:none;" title="${num ? 'Enviar a su WhatsApp' : 'Enviar por WhatsApp (elige el contacto)'}"><i class="ti ti-brand-whatsapp"></i> WhatsApp</a>
+              <a onclick="_rrhhMostrarEnlace('${escapeHtml(p.token || '')}', '${escapeHtml((p.candidato || '').replace(/'/g, ''))}', '${escapeHtml((p.telefono || '').replace(/'/g, ''))}')" style="cursor:pointer; color:#0369a1;" title="Ver enlace / copiar"><i class="ti ti-link"></i></a>
               <a onclick="_rrhhEliminarPrueba('${p.id}')" style="cursor:pointer; color:#dc2626;" title="Cancelar"><i class="ti ti-trash"></i></a>
             </div>
-          </div>`).join('')}
+          </div>`; }).join('')}
       </div>` : '';
     cont.innerHTML = `
       <div style="background:#faf5ff; border:1px solid #e9d5ff; border-radius:10px; padding:11px 14px; margin-bottom:12px; font-size:12.5px; color:#334155;">
@@ -12877,9 +12882,10 @@ function _rrhhNuevaPrueba() {
       <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-clipboard-plus"></i> Nueva prueba</h3><button class="modal-close" onclick="document.getElementById('modalNuevaPrueba').remove()">✕</button></div>
       <div class="modal-body">
         <div class="form-row"><label>¿Es un empleado actual? (opcional)</label>
-          <select id="prueba_emp" onchange="_pruebaPrefill()"><option value="">— Candidato nuevo —</option>${emps.map(e => `<option value="${e.id}" data-nombre="${escapeHtml(e.nombre)}" data-cedula="${escapeHtml(e.cedula || '')}" data-puesto="${escapeHtml(e.puesto || '')}">${escapeHtml(e.nombre)}</option>`).join('')}</select></div>
+          <select id="prueba_emp" onchange="_pruebaPrefill()"><option value="">— Candidato nuevo —</option>${emps.map(e => `<option value="${e.id}" data-nombre="${escapeHtml(e.nombre)}" data-cedula="${escapeHtml(e.cedula || '')}" data-puesto="${escapeHtml(e.puesto || '')}" data-tel="${escapeHtml(e.telefono || '')}">${escapeHtml(e.nombre)}</option>`).join('')}</select></div>
         <div class="form-row"><label>Nombre completo *</label><input id="prueba_nombre" placeholder="Nombre de la persona"></div>
         <div class="form-row"><label>Cédula</label><input id="prueba_cedula"></div>
+        <div class="form-row"><label>WhatsApp / Teléfono <span style="color:#94a3b8; font-weight:400;">(para enviar el enlace)</span></label><input id="prueba_tel" placeholder="809-000-0000"></div>
         <div class="form-row"><label>Puesto al que aplica / que ocupa</label><input id="prueba_puesto" placeholder="Ej. Cajera, Técnico, Vendedor"></div>
         <div style="font-size:12px; color:#64748b; margin-top:4px;"><i class="ti ti-info-circle"></i> Puedes hacer la prueba aquí mismo, o <b>enviar un enlace</b> para que la persona la conteste desde su celular.</div>
       </div>
@@ -12895,7 +12901,10 @@ function _pruebaPrefill() {
     document.getElementById('prueba_nombre').value = o.getAttribute('data-nombre') || '';
     document.getElementById('prueba_cedula').value = o.getAttribute('data-cedula') || '';
     document.getElementById('prueba_puesto').value = o.getAttribute('data-puesto') || '';
+    document.getElementById('prueba_tel').value = o.getAttribute('data-tel') || '';
 }
+// Formatea un teléfono RD para wa.me (10 dígitos → +1)
+function _rrhhWaNum(tel) { const d = (tel || '').replace(/\D/g, ''); return d ? (d.length === 10 ? '1' + d : d) : ''; }
 function _rrhhComenzarPrueba() {
     const nombre = (document.getElementById('prueba_nombre').value || '').trim();
     if(!nombre) return toast('Escribe el nombre de la persona.', 'error');
@@ -13031,6 +13040,7 @@ async function _rrhhGenerarEnlace() {
     const data = {
         empleado_id: document.getElementById('prueba_emp').value || null,
         candidato: nombre, cedula: (document.getElementById('prueba_cedula').value || '').trim() || null,
+        telefono: (document.getElementById('prueba_tel').value || '').trim() || null,
         puesto: (document.getElementById('prueba_puesto').value || '').trim() || null,
         estado: 'pendiente', token, creado_por: (typeof sessionUser !== 'undefined' && sessionUser) ? (sessionUser.nombre || 'Admin') : 'Admin'
     };
@@ -13039,22 +13049,25 @@ async function _rrhhGenerarEnlace() {
         if(error) throw error;
         document.getElementById('modalNuevaPrueba')?.remove();
         await _loadNomina(); if(_nominaTab === 'pruebas') _renderRRHHPruebas();
-        _rrhhMostrarEnlace(token, nombre);
+        _rrhhMostrarEnlace(token, nombre, data.telefono);
     } catch(e) { logError('generar enlace prueba', e); toastError(getFriendlyError(e)); }
 }
-function _rrhhMostrarEnlace(token, nombre) {
+function _rrhhMostrarEnlace(token, nombre, telefono) {
     const url = RRHH_PRUEBA_URL + token;
     const msg = `Hola ${nombre}, para tu proceso en Bayol Cell, por favor completa esta breve evaluación (5-10 min) desde tu celular:\n${url}`;
+    const num = _rrhhWaNum(telefono);
+    const waHref = num ? `https://wa.me/${num}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
     const prev = document.getElementById('modalEnlacePrueba'); if(prev) prev.remove();
     const box = document.createElement('div'); box.className = 'modal-backdrop active'; box.id = 'modalEnlacePrueba'; box.style.zIndex = '800';
     box.innerHTML = `<div class="modal-box" style="max-width:480px;">
       <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-link"></i> Enlace de la prueba</h3><button class="modal-close" onclick="document.getElementById('modalEnlacePrueba').remove()">✕</button></div>
       <div class="modal-body">
-        <div style="font-size:13px; color:#475569; margin-bottom:8px;">Comparte este enlace con <b>${escapeHtml(nombre)}</b>. Al abrirlo desde su celular contesta la prueba y a ti te llega el resultado solo.</div>
+        <div style="font-size:13px; color:#475569; margin-bottom:8px;">Comparte este enlace con <b>${escapeHtml(nombre)}</b>${num ? ` (${escapeHtml(telefono)})` : ''}. Al abrirlo desde su celular contesta la prueba y a ti te llega el resultado solo.</div>
         <div style="display:flex; gap:6px;"><input id="enlacePruebaTxt" value="${escapeHtml(url)}" readonly style="flex:1; padding:8px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:12px;"><button class="btn btn-light" onclick="_rrhhCopiarEnlace()"><i class="ti ti-copy"></i></button></div>
         <div style="display:flex; gap:8px; margin-top:12px;">
-          <a class="btn" style="background:#25d366; color:#fff; flex:1; text-align:center;" href="https://wa.me/?text=${encodeURIComponent(msg)}" target="_blank"><i class="ti ti-brand-whatsapp"></i> Enviar por WhatsApp</a>
+          <a class="btn" style="background:#25d366; color:#fff; flex:1; text-align:center;" href="${waHref}" target="_blank"><i class="ti ti-brand-whatsapp"></i> ${num ? 'Enviar a su WhatsApp' : 'Enviar por WhatsApp'}</a>
         </div>
+        ${num ? '' : '<div style="font-size:11.5px; color:#b45309; margin-top:8px;"><i class="ti ti-info-circle"></i> No pusiste teléfono: WhatsApp te dejará elegir el contacto.</div>'}
         <div style="font-size:11.5px; color:#94a3b8; margin-top:10px;">El enlace sirve una sola vez; cuando la persona termina, queda registrado y no se puede volver a contestar.</div>
       </div>
       <div class="modal-footer"><button class="btn btn-blue" onclick="document.getElementById('modalEnlacePrueba').remove()">Listo</button></div>
