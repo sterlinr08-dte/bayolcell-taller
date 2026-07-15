@@ -12424,6 +12424,7 @@ function _renderNominaGenerar() {
           </div>
         </div>
       </div>
+      ${g.editandoId ? `<div style="background:#fffbeb; border:1px solid #fde68a; color:#92400e; border-radius:10px; padding:9px 13px; margin:0 0 10px; font-size:12.5px;"><i class="ti ti-pencil"></i> <b>Estás corrigiendo una quincena YA GUARDADA.</b> Al guardar se te pedirá el motivo de la corrección (queda registrado). Si no quieres corregirla, dale a "Reiniciar".</div>` : ''}
       <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:0 0 6px;">
         <span style="font-size:11.5px; color:#64748b;"><i class="ti ti-calendar-stats"></i> Días laborables del mes (para pago por día):</span>
         <input id="nom_diasbase" type="number" step="0.01" value="${g.diasBase || 23.83}" oninput="_nominaRecalc()" style="width:72px; padding:4px 7px; border:1px solid #cbd5e1; border-radius:6px; text-align:right;">
@@ -12517,6 +12518,31 @@ async function _nominaGuardarPeriodo() {
     const g = _nominaGen; if(!g || !g.lineas.length) return toast('No hay empleados en la quincena.', 'error');
     const titulo = (g.titulo || '').trim();
     if(!titulo) return toast('No se pudo determinar el período. Reinicia la quincena.', 'error');
+    // ¿Es una CORRECCIÓN de una quincena ya guardada? → motivo obligatorio (queda registrado)
+    if(g.editandoId) {
+        let motivo = '';
+        while(!motivo) {
+            const r = await pedirTexto('Esta quincena YA estaba guardada.\n\nEscribe el MOTIVO de la corrección (obligatorio, quedará registrado):', { multilinea: true });
+            if(r === null) return; // canceló
+            motivo = (r || '').trim();
+            if(!motivo) toast('El motivo es obligatorio para corregir una quincena guardada.', 'error');
+        }
+        try {
+            const pOld = (cache.nominaPeriodos || []).find(x => x.id === g.editandoId);
+            const ediciones = Array.isArray(pOld?.ediciones) ? pOld.ediciones.slice() : [];
+            ediciones.push({ fecha: new Date().toISOString(), por: (typeof sessionUser !== 'undefined' && sessionUser) ? (sessionUser.nombre || 'Admin') : 'Admin', motivo });
+            const { error: eU } = await supabaseClient.from('nomina_periodos').update({ titulo, fecha_inicio: g.inicio || null, fecha_fin: g.fin || null, fecha_pago: g.pago || null, ediciones }).eq('id', g.editandoId);
+            if(eU) throw eU;
+            const { error: eD } = await supabaseClient.from('nomina_lineas').delete().eq('periodo_id', g.editandoId);
+            if(eD) throw eD;
+            const lineasU = g.lineas.map((l, idx) => ({ periodo_id: g.editandoId, empleado_id: l.empleado_id, nombre: l.nombre, cedula: l.cedula, cuenta_bhd: l.cuenta_bhd, puesto: l.puesto, salario_mensual: l.salario_mensual, salario_quincenal: l.salario_quincenal, ars: l.ars, afp: l.afp, incentivos: l.incentivos, cuentas_por_cobrar: l.cuentas_por_cobrar, dias_descontado: l.dias_descontado, dias_trabajados: l.dias_trabajados, total: l.total, orden: idx }));
+            for(let i = 0; i < lineasU.length; i += 200) { const { error: e2 } = await supabaseClient.from('nomina_lineas').insert(lineasU.slice(i, i + 200)); if(e2) throw e2; }
+            toast('✅ Quincena corregida y registrada.');
+            _nominaGen = null;
+            await _loadNomina(); nominaTab('historial');
+        } catch(e) { logError('corregir periodo nomina', e); toastError(getFriendlyError(e)); }
+        return;
+    }
     const dup = (cache.nominaPeriodos || []).find(p => p.fecha_inicio === g.inicio && p.fecha_fin === g.fin);
     const avisoDup = dup ? '⚠️ YA EXISTE una nómina guardada para este mismo período.\n\n' : '';
     if(!await confirmar(`${avisoDup}¿Guardar la nómina de "${titulo}"?\n\nDel ${g.inicio} al ${g.fin} · Pago: ${g.pago}\n${g.lineas.length} empleados.`)) return;
@@ -12537,12 +12563,40 @@ function _renderNominaHistorial() {
     if(!pers.length) { cont.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:18px;">No hay quincenas guardadas todavía. Genera una en "Generar quincena".</p>'; return; }
     cont.innerHTML = `<table style="width:100%; border-collapse:collapse; font-size:13px;">
       <thead><tr style="background:#f1f5f9;"><th style="padding:7px; text-align:left;">Quincena</th><th style="padding:7px;">Pago</th><th style="padding:7px;">Hecha</th><th></th></tr></thead>
-      <tbody>${pers.map(p => `<tr>
-        <td style="padding:7px; border-bottom:1px solid #eef2f7;">${escapeHtml(p.titulo || '—')}</td>
+      <tbody>${pers.map(p => {
+        const eds = Array.isArray(p.ediciones) ? p.ediciones : [];
+        const badge = eds.length ? ` <span title="${escapeHtml(eds.map(e => `${(e.fecha || '').slice(0, 10)} · ${e.por || ''}: ${e.motivo || ''}`).join('\n'))}" style="background:#fef3c7; color:#92400e; font-size:10px; font-weight:700; padding:2px 8px; border-radius:9px; cursor:help;"><i class="ti ti-pencil"></i> corregida ×${eds.length}</span>` : '';
+        return `<tr>
+        <td style="padding:7px; border-bottom:1px solid #eef2f7;">${escapeHtml(p.titulo || '—')}${badge}</td>
         <td style="padding:7px; border-bottom:1px solid #eef2f7; text-align:center;">${p.fecha_pago ? new Date(p.fecha_pago + 'T00:00:00').toLocaleDateString('es-DO') : '—'}</td>
         <td style="padding:7px; border-bottom:1px solid #eef2f7; text-align:center; color:#94a3b8; font-size:11px;">${p.creado_en ? new Date(p.creado_en).toLocaleDateString('es-DO') : ''}</td>
-        <td style="padding:7px; border-bottom:1px solid #eef2f7; text-align:center; white-space:nowrap;"><button class="btn btn-light" style="padding:4px 8px; font-size:11px; color:#0369a1;" onclick="_nominaImprimir('${p.id}')"><i class="ti ti-printer"></i> Imprimir</button> <button class="btn btn-light" style="padding:4px 8px; font-size:11px;" onclick="_nominaVolantes('${p.id}')"><i class="ti ti-receipt"></i> Volantes</button> <button class="btn btn-light" style="padding:4px 8px; font-size:11px; color:#15803d;" onclick="_nominaExcel('${p.id}')">Excel</button> <button class="btn btn-light" style="padding:4px 8px; font-size:11px; color:#0e7490;" onclick="_nominaExportarBHD('${p.id}')">BHD</button> <button class="btn btn-light" style="padding:4px 8px; font-size:11px; color:#b91c1c;" onclick="_nominaEliminarPeriodo('${p.id}')"><i class="ti ti-trash"></i></button></td>
-      </tr>`).join('')}</tbody></table>`;
+        <td style="padding:7px; border-bottom:1px solid #eef2f7; text-align:center; white-space:nowrap;"><button class="btn btn-light" style="padding:4px 8px; font-size:11px; color:#b45309; border-color:#fcd34d;" onclick="_nominaEditarPeriodo('${p.id}')" title="Reabrir para corregir (pedirá el motivo)"><i class="ti ti-pencil"></i> Editar</button> <button class="btn btn-light" style="padding:4px 8px; font-size:11px; color:#0369a1;" onclick="_nominaImprimir('${p.id}')"><i class="ti ti-printer"></i> Imprimir</button> <button class="btn btn-light" style="padding:4px 8px; font-size:11px;" onclick="_nominaVolantes('${p.id}')"><i class="ti ti-receipt"></i> Volantes</button> <button class="btn btn-light" style="padding:4px 8px; font-size:11px; color:#15803d;" onclick="_nominaExcel('${p.id}')">Excel</button> <button class="btn btn-light" style="padding:4px 8px; font-size:11px; color:#0e7490;" onclick="_nominaExportarBHD('${p.id}')">BHD</button> <button class="btn btn-light" style="padding:4px 8px; font-size:11px; color:#b91c1c;" onclick="_nominaEliminarPeriodo('${p.id}')"><i class="ti ti-trash"></i></button></td>
+      </tr>`; }).join('')}</tbody></table>`;
+}
+// Reabrir una quincena GUARDADA para corregirla (al guardar pedirá el motivo)
+async function _nominaEditarPeriodo(id) {
+    if(!isAdminUser()) return toast('Solo el administrador.', 'error');
+    const p = (cache.nominaPeriodos || []).find(x => x.id === id);
+    if(!p) return toast('No se encontró la quincena.', 'error');
+    try {
+        const { data, error } = await supabaseClient.from('nomina_lineas').select('*').eq('periodo_id', id).order('orden');
+        if(error) throw error;
+        if(!data || !data.length) return toast('Esta quincena no tiene líneas guardadas.', 'error');
+        const inicio = p.fecha_inicio || '';
+        _nominaGen = {
+            editandoId: id,
+            titulo: p.titulo || '', mes: inicio.slice(0, 7), quincena: (parseInt(inicio.slice(8, 10), 10) || 1) <= 15 ? 1 : 2,
+            inicio, fin: p.fecha_fin || '', pago: p.fecha_pago || '', diasBase: 23.83,
+            lineas: data.map(l => ({ empleado_id: l.empleado_id, nombre: l.nombre, cedula: l.cedula, cuenta_bhd: l.cuenta_bhd, puesto: l.puesto,
+                salario_mensual: Number(l.salario_mensual) || 0, salario_quincenal: Number(l.salario_quincenal) || 0,
+                deduce_ley: (Number(l.ars) || 0) > 0 || (Number(l.afp) || 0) > 0,
+                ars: Number(l.ars) || 0, afp: Number(l.afp) || 0, incentivos: Number(l.incentivos) || 0,
+                cuentas_por_cobrar: Number(l.cuentas_por_cobrar) || 0, dias_descontado: Number(l.dias_descontado) || 0,
+                dias_trabajados: l.dias_trabajados, total: Number(l.total) || 0, revisado: false }))
+        };
+        nominaTab('generar');
+        toast('✏️ Corrigiendo la quincena guardada. Al guardar te pedirá el motivo.');
+    } catch(e) { logError('editar periodo nomina', e); toastError(getFriendlyError(e)); }
 }
 async function _nominaEliminarPeriodo(id) {
     if(!await confirmar('¿Borrar esta quincena guardada? No se puede deshacer.')) return;
