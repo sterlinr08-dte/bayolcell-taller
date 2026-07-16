@@ -13019,68 +13019,122 @@ function _rrhhComenzarPrueba() {
     document.getElementById('modalNuevaPrueba')?.remove();
     _rrhhRenderTest();
 }
-function _pruebaLikertRow(id, num, texto) {
-    return `<div style="padding:9px 0; border-bottom:1px solid #f1f5f9;">
-        <div style="font-size:13px; color:#0f172a; margin-bottom:6px;"><b>${num}.</b> ${escapeHtml(texto)}</div>
-        <div style="display:flex; gap:5px; flex-wrap:wrap;">${[1, 2, 3, 4, 5].map(v => `<label style="flex:1; min-width:66px; text-align:center; border:1px solid #cbd5e1; border-radius:8px; padding:6px 3px; cursor:pointer; font-size:11px; color:#475569;"><input type="radio" name="qp_${id}" value="${v}" onchange="_pruebaProg()" style="display:block; margin:0 auto 3px;">${RRHH_LIKERT[v - 1]}</label>`).join('')}</div>
-      </div>`;
-}
+// ===== Prueba en pantalla: asistente moderno (una pregunta por tarjeta) =====
+const _PRU_DISC_COLOR = { D: '#e31e24', I: '#facc15', S: '#22c55e', C: '#3b82f6' };
+const _PRU_AREA_META = {
+    disc: { lbl: 'PERSONALIDAD', color: '#7c3aed', ic: 'ti-user-heart' },
+    aptitud: { lbl: 'LÓGICA Y NÚMEROS', color: '#0891b2', ic: 'ti-calculator' },
+    integridad: { lbl: 'INTEGRIDAD', color: '#16a34a', ic: 'ti-shield-check' },
+    servicio: { lbl: 'SERVICIO AL CLIENTE', color: '#f59e0b', ic: 'ti-mood-smile' }
+};
+const _PRU_CARITAS = [
+    { emoji: '😠', lbl: 'Nada de acuerdo', color: '#e31e24', bg: '#fef2f2' },
+    { emoji: '🙁', lbl: 'Poco de acuerdo', color: '#fb923c', bg: '#fff7ed' },
+    { emoji: '😐', lbl: 'Más o menos', color: '#eab308', bg: '#fefce8' },
+    { emoji: '🙂', lbl: 'De acuerdo', color: '#22c55e', bg: '#f0fdf4' },
+    { emoji: '😀', lbl: 'Totalmente de acuerdo', color: '#16a34a', bg: '#f0fdf4' }
+];
+let _pruebaWiz = null;
 function _rrhhRenderTest() {
     const cont = document.getElementById('nominaContent'); if(!cont) return;
     const c = _pruebaCtx || {};
     const banco = _pruebaBanco(c.perfil);
     if(!banco.length) { toast('Este puesto no tiene preguntas asignadas. Ve a "Editar preguntas" y asígnale algunas.', 'error'); _renderRRHHPruebas(); return; }
-    const secTit = (ic, t, sub) => `<div style="margin:18px 0 8px;"><div style="font-weight:800; color:#0e7490; font-size:15px;"><i class="ti ${ic}"></i> ${t}</div><div style="font-size:12px; color:#94a3b8;">${sub}</div></div>`;
-    let cuerpo = '';
-    _PRU_AREAS.forEach(a => {
-        const qs = _shuffle(banco.filter(q => q.area === a.k)); // orden distinto cada vez
-        if(!qs.length) return;
-        cuerpo += secTit(a.ic, a.t, a.sub);
-        qs.forEach((q, i) => {
-            if(a.k === 'aptitud') {
-                const ops = _shuffle((Array.isArray(q.opciones) ? q.opciones : []).map((o, k) => ({ o, k }))); // mezcla opciones
-                cuerpo += `<div style="padding:9px 0; border-bottom:1px solid #f1f5f9;">
-                    <div style="font-size:13px; color:#0f172a; margin-bottom:6px;"><b>${i + 1}.</b> ${escapeHtml(q.texto)}</div>
-                    <div style="display:flex; gap:6px; flex-wrap:wrap;">${ops.map(x => `<label style="border:1px solid #cbd5e1; border-radius:8px; padding:6px 12px; cursor:pointer; font-size:12.5px;"><input type="radio" name="qp_${q.id}" value="${x.k}" onchange="_pruebaProg()" style="margin-right:5px;">${escapeHtml(x.o)}</label>`).join('')}</div>
-                  </div>`;
-            } else {
-                cuerpo += _pruebaLikertRow(q.id, i + 1, q.texto);
-            }
-        });
-    });
-    cont.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:6px;">
-        <button class="btn btn-light" onclick="_rrhhCancelarTest()"><i class="ti ti-arrow-left"></i> Volver</button>
-        <div style="text-align:right;"><div style="font-weight:800; font-size:16px; color:#0f172a;">${escapeHtml(c.candidato || '')}</div><div style="font-size:12px; color:#64748b;">${escapeHtml(c.puesto || 'Sin puesto')}${c.empleado_id ? ' · empleado actual' : ' · candidato'} · <span id="pruebaProg" data-total="${banco.length}" style="font-weight:700; color:#b45309;">0/${banco.length} respondidas</span></div></div>
-      </div>
-      <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:10px 14px; font-size:12.5px; color:#1e3a8a; margin-bottom:6px;"><i class="ti ti-info-circle"></i> Tranquilo, no es un examen de pasar o quedar. Contesta con sinceridad lo primero que pienses. En "Personalidad" no hay respuestas buenas ni malas. Marca <b>una opción por pregunta</b>.</div>
-      <div style="max-width:820px;">${cuerpo}</div>
-      <div style="display:flex; gap:8px; justify-content:flex-end; margin:18px 0; position:sticky; bottom:0; background:#fff; padding:10px 0; border-top:1px solid #e2e8f0;">
-        <button class="btn btn-light" onclick="_rrhhCancelarTest()">Cancelar</button>
-        <button class="btn btn-blue" onclick="_rrhhCalificarPrueba()"><i class="ti ti-checks"></i> Calificar y guardar</button>
-      </div>`;
+    // Aplanar por área (mezclado) y precalcular opciones mezcladas
+    const preg = [];
+    _PRU_AREAS.forEach(a => { _shuffle(banco.filter(q => q.area === a.k)).forEach(q => {
+        const it = { id: q.id, area: q.area, texto: q.texto, tipo: a.k === 'aptitud' ? 'apt' : 'likert' };
+        if(a.k === 'aptitud') it.ops = _shuffle((Array.isArray(q.opciones) ? q.opciones : []).map((o, k) => ({ o, k })));
+        preg.push(it);
+    }); });
+    const key = 'bayol_prueba_wip';
+    let resp = {}, idx = 0, t0 = Date.now();
+    try { const raw = JSON.parse(localStorage.getItem(key) || 'null'); if(raw && raw.candidato === c.candidato && raw.perfil === c.perfil) { resp = raw.resp || {}; idx = Math.min(raw.idx || 0, preg.length - 1); t0 = raw.t0 || Date.now(); } } catch(e) {}
+    const totalMin = Math.max(10, Math.round(preg.length * 0.5));
+    _pruebaWiz = { preg, idx, resp, t0, key, totalSeg: totalMin * 60, timer: null };
+    _pruebaWizShell();
+    _pruebaWizRender();
+    _pruebaWizTimerStart();
     window.scrollTo(0, 0);
 }
-function _rrhhCancelarTest() { _pruebaCtx = null; _renderRRHHPruebas(); }
-function _rrhhLeerRespuestas(preg) {
-    const ans = {};
-    preg.forEach(q => { const el = document.querySelector('input[name="qp_' + q.id + '"]:checked'); if(el) ans[q.id] = Number(el.value); });
-    return ans;
+function _pruebaWizShell() {
+    const cont = document.getElementById('nominaContent'); const c = _pruebaCtx || {}; const w = _pruebaWiz;
+    cont.innerHTML = `<div style="max-width:760px; margin:0 auto;">
+      <div style="background:#fff; border:1px solid #e5e7eb; border-radius:16px; padding:16px 18px; box-shadow:0 1px 3px rgba(15,23,42,.06); margin-bottom:14px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+          <div style="flex:1; min-width:200px;">
+            <div style="display:flex; justify-content:space-between; font-size:12.5px; color:#64748b; margin-bottom:6px;"><span>Progreso de la evaluación</span><b id="pruebaPct" style="color:#0f172a;">0%</b></div>
+            <div style="height:9px; background:#eef2f7; border-radius:6px; overflow:hidden;"><div id="pruebaBar" style="height:100%; width:0; background:linear-gradient(90deg,#e31e24,#fb7185); transition:width .25s;"></div></div>
+            <div id="pruebaPaso" style="font-size:12px; color:#64748b; margin-top:6px;">Pregunta 1 de ${w.preg.length}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:11px; color:#94a3b8; display:flex; align-items:center; gap:5px; justify-content:flex-end;"><i class="ti ti-clock"></i> Tiempo <b id="pruebaTimer" style="color:#0f172a;">--:--</b></div>
+            <div style="display:flex; gap:6px; margin-top:6px; justify-content:flex-end;">${['D', 'I', 'S', 'C'].map(k => `<span title="${RRHH_DISC_INFO[k].nombre}" style="width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;background:${_PRU_DISC_COLOR[k]};">${k}</span>`).join('')}</div>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:12px; color:#64748b; margin:0 0 8px 2px;"><b style="color:#0f172a;">${escapeHtml(c.candidato || '')}</b> · ${escapeHtml(c.puesto || 'Sin puesto')}</div>
+      <div id="pruebaCard" style="background:#fff; border:1px solid #e5e7eb; border-radius:16px; padding:22px; box-shadow:0 1px 3px rgba(15,23,42,.06);"></div>
+      <div style="text-align:center; font-size:11px; color:#94a3b8; margin:10px 0;"><i class="ti ti-device-floppy"></i> Guardado automático · <span id="pruebaGuardado">se guarda solo</span></div>
+      <div style="display:flex; justify-content:space-between; gap:8px; margin-bottom:24px;">
+        <button id="pruebaPrev" class="btn btn-light" onclick="_pruebaWizPrev()"><i class="ti ti-arrow-left"></i> Anterior</button>
+        <button class="btn btn-light" style="color:#b91c1c; border-color:#fecaca;" onclick="_rrhhCancelarTest()">Salir</button>
+        <button id="pruebaNext" class="btn btn-blue" onclick="_pruebaWizNext()">Siguiente <i class="ti ti-arrow-right"></i></button>
+      </div>
+    </div>`;
 }
+function _pruebaWizRender() {
+    const w = _pruebaWiz; if(!w) return;
+    const q = w.preg[w.idx]; const meta = _PRU_AREA_META[q.area] || { lbl: q.area, color: '#64748b', ic: 'ti-help' };
+    const card = document.getElementById('pruebaCard'); if(!card) return;
+    let opts;
+    if(q.tipo === 'apt') {
+        opts = `<div style="display:grid; gap:10px; max-width:520px; margin:0 auto;">${q.ops.map(x => { const sel = w.resp[q.id] === x.k; return `<button onclick="_pruebaWizAns('${q.id}',${x.k})" style="text-align:left; border:2px solid ${sel ? meta.color : '#e5e7eb'}; background:${sel ? meta.color + '14' : '#fff'}; border-radius:12px; padding:14px 16px; cursor:pointer; font-size:15px; display:flex; align-items:center; justify-content:space-between; gap:10px; color:#0f172a;"><span>${escapeHtml(x.o)}</span>${sel ? `<i class="ti ti-circle-check-filled" style="color:${meta.color}; font-size:20px;"></i>` : `<span style="width:18px;height:18px;border:2px solid #cbd5e1;border-radius:50%;flex:none;"></span>`}</button>`; }).join('')}</div>`;
+    } else {
+        opts = `<div style="display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px;">${_PRU_CARITAS.map((f, i) => { const v = i + 1; const sel = w.resp[q.id] === v; return `<button onclick="_pruebaWizAns('${q.id}',${v})" style="border:2px solid ${sel ? f.color : '#e5e7eb'}; background:${sel ? f.bg : '#fff'}; border-radius:14px; padding:14px 4px 10px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:6px;"><span style="font-size:30px; line-height:1;">${f.emoji}</span><span style="font-size:11px; font-weight:700; color:${sel ? f.color : '#475569'}; text-align:center; line-height:1.2;">${f.lbl}</span>${sel ? `<i class="ti ti-circle-check-filled" style="color:${f.color}; font-size:17px;"></i>` : '<span style="width:16px;height:16px;border:2px solid #cbd5e1;border-radius:50%;"></span>'}</button>`; }).join('')}</div>`;
+    }
+    card.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <span style="background:${meta.color}; color:#fff; font-weight:800; font-size:12px; letter-spacing:.4px; padding:5px 13px; border-radius:20px;"><i class="ti ${meta.ic}"></i> ${meta.lbl}</span>
+        <span style="font-size:12px; color:#94a3b8; background:#f1f5f9; padding:3px 10px; border-radius:12px;">Pregunta ${w.idx + 1}</span>
+      </div>
+      <div style="font-size:20px; font-weight:800; color:#0f172a; text-align:center; line-height:1.35; margin:14px 0 4px;">${escapeHtml(q.texto)}</div>
+      <div style="width:44px; height:3px; background:${meta.color}; border-radius:2px; margin:12px auto 20px;"></div>
+      ${opts}
+      ${q.tipo !== 'apt' ? `<div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:9px 12px; font-size:12px; color:#1e3a8a; margin-top:18px; text-align:center;"><i class="ti ti-info-circle"></i> No hay respuestas buenas ni malas. Sé sincero, tu evaluación es confidencial.</div>` : ''}`;
+    const answered = Object.keys(w.resp).length, pct = Math.round(answered / w.preg.length * 100);
+    document.getElementById('pruebaPct').textContent = pct + '%';
+    document.getElementById('pruebaBar').style.width = pct + '%';
+    document.getElementById('pruebaPaso').textContent = `Pregunta ${w.idx + 1} de ${w.preg.length}`;
+    const prev = document.getElementById('pruebaPrev'); if(prev) prev.style.visibility = w.idx > 0 ? 'visible' : 'hidden';
+    const next = document.getElementById('pruebaNext');
+    if(next) { const ok = w.resp[q.id] != null; next.innerHTML = (w.idx === w.preg.length - 1) ? '<i class="ti ti-checks"></i> Finalizar' : 'Siguiente <i class="ti ti-arrow-right"></i>'; next.disabled = !ok; next.style.opacity = ok ? '1' : '.5'; }
+}
+function _pruebaWizAns(id, val) { const w = _pruebaWiz; if(!w) return; w.resp[id] = val; _pruebaWizGuardar(); _pruebaWizRender(); }
+function _pruebaWizNext() { const w = _pruebaWiz; if(!w) return; const q = w.preg[w.idx]; if(w.resp[q.id] == null) return toast('Elige una opción.'); if(w.idx < w.preg.length - 1) { w.idx++; _pruebaWizGuardar(); _pruebaWizRender(); window.scrollTo(0, 0); } else { _rrhhCalificarPrueba(); } }
+function _pruebaWizPrev() { const w = _pruebaWiz; if(!w || w.idx <= 0) return; w.idx--; _pruebaWizRender(); window.scrollTo(0, 0); }
+function _pruebaWizGuardar() { const w = _pruebaWiz, c = _pruebaCtx; if(!w || !c) return; try { localStorage.setItem(w.key, JSON.stringify({ candidato: c.candidato, perfil: c.perfil, resp: w.resp, idx: w.idx, t0: w.t0 })); } catch(e) {} const g = document.getElementById('pruebaGuardado'); if(g) g.textContent = 'guardado hace un momento'; }
+function _pruebaWizTimerStart() {
+    const w = _pruebaWiz; if(!w) return; if(w.timer) clearInterval(w.timer);
+    const tick = () => { const el = document.getElementById('pruebaTimer'); if(!el) { clearInterval(w.timer); return; } const left = Math.max(0, w.totalSeg - Math.floor((Date.now() - w.t0) / 1000)); el.textContent = `${String(Math.floor(left / 60)).padStart(2, '0')}:${String(left % 60).padStart(2, '0')}`; el.style.color = left < 60 ? '#b91c1c' : '#0f172a'; };
+    tick(); w.timer = setInterval(tick, 1000);
+}
+function _rrhhCancelarTest() { if(_pruebaWiz && _pruebaWiz.timer) clearInterval(_pruebaWiz.timer); try { localStorage.removeItem((_pruebaWiz && _pruebaWiz.key) || 'bayol_prueba_wip'); } catch(e) {} _pruebaWiz = null; _pruebaCtx = null; _renderRRHHPruebas(); }
 async function _rrhhCalificarPrueba() {
-    if(!_pruebaCtx) return;
+    if(!_pruebaCtx || !_pruebaWiz) return;
+    const w = _pruebaWiz;
+    const faltan = w.preg.filter(q => w.resp[q.id] == null);
+    if(faltan.length) { const first = w.preg.findIndex(q => w.resp[q.id] == null); w.idx = first < 0 ? 0 : first; _pruebaWizRender(); window.scrollTo(0, 0); return toast(`Faltan ${faltan.length} pregunta(s) por responder.`, 'error'); }
     const preg = _pruebaBanco(_pruebaCtx.perfil);
-    const ans = _rrhhLeerRespuestas(preg);
-    const faltan = preg.filter(q => ans[q.id] == null).length;
-    if(faltan > 0) return toast(`Faltan ${faltan} pregunta(s) por responder.`, 'error');
-    const resp = ans;
-    const resultados = _rrhhPruebaCalcular(preg, ans);
-    const data = { empleado_id: _pruebaCtx.empleado_id, candidato: _pruebaCtx.candidato, cedula: _pruebaCtx.cedula, puesto: _pruebaCtx.puesto, perfil: _pruebaCtx.perfil || 'general', estado: 'completada', respuestas: resp, resultados, creado_por: (typeof sessionUser !== 'undefined' && sessionUser) ? (sessionUser.nombre || 'Admin') : 'Admin' };
+    const resultados = _rrhhPruebaCalcular(preg, w.resp);
+    const data = { empleado_id: _pruebaCtx.empleado_id, candidato: _pruebaCtx.candidato, cedula: _pruebaCtx.cedula, puesto: _pruebaCtx.puesto, perfil: _pruebaCtx.perfil || 'general', estado: 'completada', respuestas: w.resp, resultados, creado_por: (typeof sessionUser !== 'undefined' && sessionUser) ? (sessionUser.nombre || 'Admin') : 'Admin' };
     try {
         const { data: ins, error } = await supabaseClient.from('rrhh_pruebas').insert([data]).select('id').single();
         if(error) throw error;
         toast('✅ Prueba calificada y guardada.');
-        _pruebaCtx = null;
+        if(w.timer) clearInterval(w.timer);
+        try { localStorage.removeItem(w.key); } catch(e) {}
+        _pruebaWiz = null; _pruebaCtx = null;
         await _loadNomina();
         _rrhhVerPrueba(ins.id);
     } catch(e) { logError('guardar prueba rrhh', e); toastError(getFriendlyError(e)); }

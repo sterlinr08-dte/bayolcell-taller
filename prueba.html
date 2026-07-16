@@ -6,63 +6,72 @@
 <meta name="robots" content="noindex, nofollow">
 <title>Evaluación — Bayol Cell</title>
 <style>
-  :root { --azul:#0e7490; --azul2:#0891b2; --ink:#0f172a; --muted:#64748b; --border:#cbd5e1; }
-  * { box-sizing:border-box; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; }
-  body { margin:0; background:#f1f5f9; color:var(--ink); }
-  .wrap { max-width:680px; margin:0 auto; padding:16px 14px 60px; }
-  .card { background:#fff; border-radius:16px; box-shadow:0 1px 4px rgba(15,23,42,.08); padding:18px 16px; margin-bottom:14px; }
-  .hero { background:linear-gradient(135deg,var(--azul),var(--azul2)); color:#fff; border-radius:16px; padding:22px 18px; margin-bottom:14px; }
-  .hero h1 { margin:0 0 4px; font-size:21px; }
-  .hero p { margin:0; opacity:.92; font-size:13.5px; }
-  h2 { font-size:16px; color:var(--azul); margin:4px 0 2px; }
-  .sub { color:var(--muted); font-size:12.5px; margin-bottom:10px; }
-  .q { padding:12px 0; border-bottom:1px solid #f1f5f9; }
-  .q:last-child { border-bottom:0; }
-  .q-txt { font-size:14.5px; margin-bottom:9px; line-height:1.35; }
-  .q-txt b { color:var(--azul); margin-right:4px; }
-  .opts { display:flex; gap:6px; flex-wrap:wrap; }
-  .opts.lik label { flex:1; min-width:60px; }
-  label.opt { display:block; text-align:center; border:1.5px solid var(--border); border-radius:10px; padding:9px 6px; cursor:pointer; font-size:12.5px; color:#475569; background:#fff; transition:.12s; user-select:none; }
-  label.opt.full { text-align:left; padding:11px 14px; font-size:14px; }
-  label.opt input { display:none; }
-  label.opt.sel { border-color:var(--azul2); background:#ecfeff; color:var(--azul); font-weight:700; }
-  .btn { display:block; width:100%; border:0; border-radius:12px; padding:15px; font-size:16px; font-weight:700; cursor:pointer; }
-  .btn-main { background:var(--azul); color:#fff; }
-  .btn-main:disabled { opacity:.5; }
-  .note { background:#eff6ff; border:1px solid #bfdbfe; color:#1e3a8a; border-radius:12px; padding:11px 14px; font-size:13px; margin-bottom:14px; }
-  .center { text-align:center; }
-  .big-ico { font-size:52px; line-height:1; }
-  #prog { position:sticky; top:0; z-index:5; height:5px; background:#e2e8f0; border-radius:6px; overflow:hidden; margin-bottom:12px; }
-  #progbar { height:100%; width:0; background:var(--azul2); transition:width .2s; }
-  .foot { text-align:center; color:#94a3b8; font-size:11px; margin-top:8px; }
+  :root { --rojo:#e31e24; --rojo2:#b70d12; --ink:#0f172a; --muted:#64748b; --border:#e5e7eb; }
+  * { box-sizing:border-box; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; -webkit-tap-highlight-color:transparent; }
+  body { margin:0; background:#f4f5f7; color:var(--ink); }
+  .wrap { max-width:560px; margin:0 auto; padding:14px 13px 40px; }
+  .card { background:#fff; border:1px solid var(--border); border-radius:16px; box-shadow:0 1px 4px rgba(15,23,42,.06); padding:18px 16px; margin-bottom:13px; }
+  .brand { text-align:center; font-weight:900; letter-spacing:.5px; margin:6px 0 12px; }
+  .brand .r { color:var(--rojo); } .brand .k { color:#0f172a; }
+  .brand small { display:block; font-weight:600; color:#94a3b8; font-size:10px; letter-spacing:2px; }
+  .top { display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--muted); margin-bottom:8px; }
+  .bar { height:9px; background:#eef2f7; border-radius:6px; overflow:hidden; }
+  .bar > div { height:100%; width:0; background:linear-gradient(90deg,var(--rojo),#fb7185); transition:width .25s; border-radius:6px; }
+  .pill { display:inline-flex; align-items:center; gap:5px; color:#fff; font-weight:800; font-size:11.5px; letter-spacing:.4px; padding:5px 12px; border-radius:20px; }
+  .qnum { font-size:12px; color:#94a3b8; background:#f1f5f9; padding:3px 10px; border-radius:12px; }
+  .qtxt { font-size:19px; font-weight:800; text-align:center; line-height:1.35; margin:16px 6px 4px; }
+  .rule { width:44px; height:3px; border-radius:2px; margin:12px auto 18px; }
+  .opt { display:flex; align-items:center; gap:12px; width:100%; text-align:left; border:2px solid var(--border); background:#fff; border-radius:14px; padding:13px 14px; margin-bottom:10px; cursor:pointer; font-size:15.5px; color:#0f172a; transition:.12s; }
+  .opt .emoji { font-size:28px; line-height:1; }
+  .opt .lbl { flex:1; font-weight:600; }
+  .opt .chk { width:20px; height:20px; border:2px solid #cbd5e1; border-radius:50%; flex:none; }
+  .opt.sel .chk { border:0; }
+  .note { background:#eff6ff; border:1px solid #bfdbfe; color:#1e3a8a; border-radius:12px; padding:10px 13px; font-size:12.5px; margin-top:14px; text-align:center; }
+  .nav { display:flex; gap:10px; margin-top:4px; }
+  .btn { flex:1; border:0; border-radius:13px; padding:15px; font-size:15.5px; font-weight:800; cursor:pointer; }
+  .btn-main { background:var(--rojo); color:#fff; } .btn-main:disabled { opacity:.45; }
+  .btn-light { background:#fff; border:1.5px solid var(--border); color:#475569; }
+  .center { text-align:center; } .big-ico { font-size:52px; line-height:1; }
+  .save { text-align:center; color:#94a3b8; font-size:11px; margin:4px 0 12px; }
+  .foot { text-align:center; color:#94a3b8; font-size:11px; margin-top:10px; }
 </style>
 </head>
 <body>
 <div class="wrap">
+  <div class="brand"><span class="r">BAYOL</span> <span class="k">CELL</span><small>EVALUACIÓN DE PERSONAL</small></div>
   <div id="app"><div class="card center" style="padding:40px 16px;"><div class="big-ico">⏳</div><p>Cargando…</p></div></div>
-  <div class="foot">Bayol Cell · Evaluación de personal</div>
+  <div class="foot">Bayol Cell · Tus respuestas son confidenciales</div>
 </div>
 <script>
 const FUNC = 'https://vkhwdvjtowrhkhqavnvk.supabase.co/functions/v1/rrhh-prueba';
 const APIKEY = 'sb_publishable_PynS5ZjKoQ36HCpguVzxaw_KZOlagtz';
-const LIK = ['Nada de acuerdo','Poco','Más o menos','De acuerdo','Totalmente'];
-const AREAS = [
-  { k:'disc', ic:'🧭', t:'1. Sobre ti', sub:'Marca qué tan de acuerdo estás con cada frase. No hay respuestas buenas ni malas.' },
-  { k:'aptitud', ic:'🔢', t:'2. Lógica y números', sub:'Elige la respuesta correcta.' },
-  { k:'integridad', ic:'🛡️', t:'3. Tu forma de trabajar', sub:'Marca qué tan de acuerdo estás con cada frase.' },
-  { k:'servicio', ic:'😊', t:'4. Trato al cliente', sub:'Marca qué tan de acuerdo estás con cada frase.' }
+const CARITAS = [
+  { e:'😠', l:'Nada de acuerdo', c:'#e31e24', bg:'#fef2f2' },
+  { e:'🙁', l:'Poco de acuerdo', c:'#fb923c', bg:'#fff7ed' },
+  { e:'😐', l:'Más o menos', c:'#eab308', bg:'#fefce8' },
+  { e:'🙂', l:'De acuerdo', c:'#22c55e', bg:'#f0fdf4' },
+  { e:'😀', l:'Totalmente de acuerdo', c:'#16a34a', bg:'#f0fdf4' }
 ];
+const AREA_META = {
+  disc:       { lbl:'PERSONALIDAD',       c:'#7c3aed', ic:'🧭' },
+  aptitud:    { lbl:'LÓGICA Y NÚMEROS',   c:'#0891b2', ic:'🔢' },
+  integridad: { lbl:'TU FORMA DE TRABAJAR', c:'#16a34a', ic:'🛡️' },
+  servicio:   { lbl:'TRATO AL CLIENTE',   c:'#f59e0b', ic:'😊' }
+};
+const AREA_ORDER = ['disc','aptitud','integridad','servicio'];
 let TOKEN = new URLSearchParams(location.search).get('t') || '';
-let PREG = [], RESP = {};
+let PREG = [], IDX = 0, RESP = {}, CAND = '', PUESTO = '';
 const app = document.getElementById('app');
 function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function sh(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
+const KEY = () => 'bayol_prueba_' + TOKEN;
 
 async function api(action, extra){
   const r = await fetch(FUNC, { method:'POST', headers:{ 'Content-Type':'application/json', 'apikey':APIKEY, 'Authorization':'Bearer '+APIKEY }, body: JSON.stringify(Object.assign({ action, token:TOKEN }, extra||{})) });
   return r.json();
 }
 function pantalla(html){ app.innerHTML = html; window.scrollTo(0,0); }
-function msg(ico, titulo, txt){ pantalla(`<div class="card center" style="padding:40px 18px;"><div class="big-ico">${ico}</div><h2 style="color:#0f172a;">${esc(titulo)}</h2><p style="color:#64748b;">${esc(txt)}</p></div>`); }
+function msg(ico, titulo, txt){ pantalla(`<div class="card center" style="padding:40px 18px;"><div class="big-ico">${ico}</div><h2 style="color:#0f172a; margin:8px 0;">${esc(titulo)}</h2><p style="color:#64748b;">${esc(txt)}</p></div>`); }
 
 async function iniciar(){
   if(!TOKEN){ return msg('🔗','Enlace incompleto','Pídele al encargado que te reenvíe el enlace completo.'); }
@@ -70,55 +79,81 @@ async function iniciar(){
   try { d = await api('get'); } catch(e){ return msg('⚠️','Sin conexión','Revisa tu internet e intenta de nuevo.'); }
   if(!d || !d.ok){ return msg('🔗','Enlace no válido', (d && d.error) || 'Este enlace no funciona.'); }
   if(d.estado === 'completada'){ return msg('✅','Ya contestaste','Gracias, '+ (d.candidato||'') +'. Tu evaluación ya fue recibida.'); }
-  PREG = d.preguntas || [];
-  render(d.candidato, d.puesto);
+  CAND = d.candidato || ''; PUESTO = d.puesto || '';
+  // Aplanar por área (mezclado) + opciones mezcladas
+  const raw = d.preguntas || [];
+  PREG = [];
+  AREA_ORDER.forEach(k => { sh(raw.filter(p => p.area === k)).forEach(q => {
+    const it = { id:q.id, area:q.area, texto:q.texto, tipo: k==='aptitud'?'apt':'lik' };
+    if(k==='aptitud') it.ops = sh((Array.isArray(q.opciones)?q.opciones:[]).map((o,i)=>({o,i})));
+    PREG.push(it);
+  }); });
+  // Restaurar borrador
+  try { const b = JSON.parse(localStorage.getItem(KEY())||'null'); if(b){ RESP = b.resp||{}; IDX = Math.min(b.idx||0, PREG.length-1); } } catch(e){}
+  intro();
 }
 
-function sh(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
-function render(cand, puesto){
-  let html = `<div class="hero"><h1>Evaluación de personal</h1><p>${esc(cand||'')}${puesto?' · '+esc(puesto):''}</p></div>
-    <div id="prog"><div id="progbar"></div></div>
-    <div class="note">Tranquilo, no es un examen de pasar o quedar 🙂. Contesta con sinceridad lo primero que pienses. Toma unos 5–10 minutos y son <b>una opción por pregunta</b>.</div>`;
-  AREAS.forEach(a => {
-    const qs = sh(PREG.filter(p => p.area === a.k));
-    if(!qs.length) return;
-    html += `<div class="card"><h2>${a.ic} ${esc(a.t)}</h2><div class="sub">${esc(a.sub)}</div>`;
-    qs.forEach((q, i) => {
-      html += `<div class="q"><div class="q-txt"><b>${i+1}.</b>${esc(q.texto)}</div>`;
-      if(a.k === 'aptitud'){
-        const ops = sh((Array.isArray(q.opciones) ? q.opciones : []).map((o,k)=>({o,k})));
-        html += `<div class="opts">` + ops.map(x=>`<label class="opt full" data-q="${q.id}" data-v="${x.k}"><input type="radio" name="q_${q.id}">${esc(x.o)}</label>`).join('') + `</div>`;
-      } else {
-        html += `<div class="opts lik">` + [1,2,3,4,5].map(v=>`<label class="opt" data-q="${q.id}" data-v="${v}"><input type="radio" name="q_${q.id}">${LIK[v-1]}</label>`).join('') + `</div>`;
-      }
-      html += `</div>`;
-    });
-    html += `</div>`;
-  });
-  html += `<button id="enviar" class="btn btn-main" onclick="enviar()">Enviar evaluación</button>`;
-  pantalla(html);
-  app.querySelectorAll('label.opt').forEach(l => l.addEventListener('click', () => {
-    const q = l.getAttribute('data-q');
-    app.querySelectorAll(`label.opt[data-q="${q}"]`).forEach(x => x.classList.remove('sel'));
-    l.classList.add('sel');
-    RESP[q] = Number(l.getAttribute('data-v'));
-    prog();
-  }));
-  prog();
+function intro(){
+  pantalla(`<div class="card">
+    <div class="center"><div class="big-ico">📝</div>
+      <h2 style="margin:8px 0 2px;">Hola${CAND?', '+esc(CAND.split(' ')[0]):''} 👋</h2>
+      <p style="color:#64748b; font-size:14px; margin:4px 0 0;">${PUESTO?('Puesto: <b>'+esc(PUESTO)+'</b><br>'):''}Vas a hacer una evaluación corta.</p>
+    </div>
+    <div class="note" style="text-align:left; margin-top:16px;">✔ Toma unos <b>5–10 minutos</b>.<br>✔ <b>No es un examen</b> de pasar o quedar.<br>✔ Contesta con <b>sinceridad</b> lo primero que pienses.<br>✔ Se guarda solo: si se cierra, puedes seguir donde ibas.</div>
+    <button class="btn btn-main" style="width:100%; margin-top:14px;" onclick="render()">Comenzar ${Object.keys(RESP).length? '(seguir)':''} →</button>
+  </div>`);
 }
-function prog(){
-  const bar = document.getElementById('progbar'); if(!bar) return;
-  const pct = PREG.length ? Math.round(Object.keys(RESP).length / PREG.length * 100) : 0;
-  bar.style.width = pct + '%';
+
+function render(){
+  const q = PREG[IDX]; const m = AREA_META[q.area] || {lbl:q.area,c:'#64748b',ic:''};
+  const answered = Object.keys(RESP).length, pct = PREG.length? Math.round(answered/PREG.length*100):0;
+  let opts = '';
+  if(q.tipo === 'apt'){
+    opts = q.ops.map(x => { const s = RESP[q.id]===x.i;
+      return `<button class="opt${s?' sel':''}" style="${s?`border-color:${m.c}; background:${m.c}12;`:''}" onclick="ans('${q.id}',${x.i})"><span class="lbl">${esc(x.o)}</span><span class="chk" style="${s?`background:${m.c};`:''}">${s?'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M5 12l5 5L20 6"/></svg>':''}</span></button>`;
+    }).join('');
+  } else {
+    opts = CARITAS.map((f,i) => { const v=i+1, s=RESP[q.id]===v;
+      return `<button class="opt${s?' sel':''}" style="${s?`border-color:${f.c}; background:${f.bg};`:''}" onclick="ans('${q.id}',${v})"><span class="emoji">${f.e}</span><span class="lbl" style="${s?`color:${f.c};`:''}">${f.l}</span><span class="chk" style="${s?`background:${f.c};`:''}">${s?'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M5 12l5 5L20 6"/></svg>':''}</span></button>`;
+    }).join('');
+  }
+  const ok = RESP[q.id]!=null;
+  const ultima = IDX === PREG.length-1;
+  pantalla(`
+    <div class="card" style="padding:14px 16px;">
+      <div class="top"><span>Progreso</span><b style="color:#0f172a;">${pct}%</b></div>
+      <div class="bar"><div style="width:${pct}%"></div></div>
+      <div style="font-size:12px; color:#64748b; margin-top:6px;">Pregunta ${IDX+1} de ${PREG.length}</div>
+    </div>
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <span class="pill" style="background:${m.c}">${m.ic} ${m.lbl}</span>
+        <span class="qnum">${IDX+1}</span>
+      </div>
+      <div class="qtxt">${esc(q.texto)}</div>
+      <div class="rule" style="background:${m.c}"></div>
+      ${opts}
+      ${q.tipo!=='apt' ? `<div class="note">No hay respuestas buenas ni malas. Sé sincero 🙂</div>` : ''}
+    </div>
+    <div class="save">💾 Guardado automático</div>
+    <div class="nav">
+      ${IDX>0? `<button class="btn btn-light" onclick="prev()">← Anterior</button>`:''}
+      <button class="btn btn-main" ${ok?'':'disabled'} onclick="next()">${ultima?'Enviar ✓':'Siguiente →'}</button>
+    </div>`);
 }
+function ans(id, v){ RESP[id] = v; guardar(); render(); }
+function guardar(){ try{ localStorage.setItem(KEY(), JSON.stringify({ resp:RESP, idx:IDX })); }catch(e){} }
+function next(){ const q=PREG[IDX]; if(RESP[q.id]==null) return; if(IDX < PREG.length-1){ IDX++; guardar(); render(); } else { enviar(); } }
+function prev(){ if(IDX>0){ IDX--; guardar(); render(); } }
+
 async function enviar(){
-  const faltan = PREG.length - Object.keys(RESP).length;
-  if(faltan > 0){ alert('Te faltan '+faltan+' pregunta(s) por responder.'); return; }
-  const b = document.getElementById('enviar'); if(b){ b.disabled = true; b.textContent = 'Enviando…'; }
+  const faltan = PREG.filter(q => RESP[q.id]==null);
+  if(faltan.length){ const i = PREG.findIndex(q=>RESP[q.id]==null); IDX = i<0?0:i; render(); return alert('Te falta responder '+faltan.length+' pregunta(s).'); }
+  pantalla(`<div class="card center" style="padding:40px 18px;"><div class="big-ico">⏳</div><p>Enviando tu evaluación…</p></div>`);
   let d;
-  try { d = await api('submit', { respuestas: RESP }); } catch(e){ if(b){ b.disabled=false; b.textContent='Enviar evaluación'; } return alert('Sin conexión. Intenta de nuevo.'); }
-  if(d && d.ok){ msg('🎉','¡Gracias!','Tu evaluación fue enviada correctamente. Ya puedes cerrar esta página.'); }
-  else { if(b){ b.disabled=false; b.textContent='Enviar evaluación'; } alert((d && d.error) || 'No se pudo enviar. Intenta de nuevo.'); }
+  try { d = await api('submit', { respuestas: RESP }); } catch(e){ render(); return alert('Sin conexión. Intenta de nuevo.'); }
+  if(d && d.ok){ try{ localStorage.removeItem(KEY()); }catch(e){} msg('🎉','¡Gracias!','Terminaste tu evaluación. Ya puedes cerrar esta página.'); }
+  else { render(); alert((d && d.error) || 'No se pudo enviar. Intenta de nuevo.'); }
 }
 iniciar();
 </script>
