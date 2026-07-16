@@ -24344,7 +24344,7 @@ async function enviarLoteAReacond(loteId) {
     if(equiposLote.length === 0) {
         return toast('Este lote no tiene equipos registrados. Agrega equipos primero antes de enviarlo a Reacondicionado.', 'error');
     }
-    if(!await confirmar(`¿Enviar lote "${lote.nombre || lote.id.slice(0,8)}" a Reacondicionado?\n\n${equiposLote.length} equipos quedarán pendientes de evaluación.`)) return;
+    if(!await confirmar(`¿Enviar lote "${lote.codigo_lote || lote.nombre || lote.id.slice(0,8)}" a Reacondicionado?\n\n${equiposLote.length} equipos quedarán pendientes de evaluación.`)) return;
     try {
         const { error } = await supabaseClient
             .from('refurb_lotes')
