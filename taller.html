@@ -9898,7 +9898,7 @@ async function abrirBuscadorArticulos(targetSS, onPick, refHtml, seed) {
     if(cache.infoplusArticulos && cache.infoplusArticulos.length) renderBuscadorArticulos();
     await _ensureInfoplusArticulos();
     renderBuscadorArticulos();
-    setTimeout(() => { const b = document.getElementById('artBuscModal'); if(b) b.focus(); }, 60);
+    setTimeout(() => { const b = document.getElementById('artBuscModal'); if(b) { b.focus(); const n = b.value.length; try { b.setSelectionRange(n, n); } catch(_e) {} } }, 60);
 }
 function _reintentarBuscadorArticulos() {
     const cont = document.getElementById('artBuscModalLista');
