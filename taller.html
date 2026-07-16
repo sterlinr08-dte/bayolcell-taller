@@ -4354,9 +4354,17 @@ function smartSelectInit(options) {
             smartSelectRenderDropdown(options.containerId);
         } else if(e.key === 'Enter') {
             e.preventDefault();
-            // Enter elige el resaltado; si no hay ninguno, elige el PRIMER resultado
-            const idx = state.highlightIdx >= 0 ? state.highlightIdx : 0;
-            if(filtered[idx]) smartSelectPick(options.containerId, filtered[idx].id);
+            if(state.highlightIdx >= 0 && filtered[state.highlightIdx]) {
+                // Si bajaste con la flecha a un resultado, ese se elige
+                smartSelectPick(options.containerId, filtered[state.highlightIdx].id);
+            } else if(state.onIconClick) {
+                // Enter abre la ventana grande del buscador YA FILTRADA con lo escrito
+                ss.classList.remove('open');
+                state.onIconClick((input.value || '').trim());
+            } else if(filtered[0]) {
+                // Buscadores sin ventana: elige el primer resultado
+                smartSelectPick(options.containerId, filtered[0].id);
+            }
         } else if(e.key === 'Escape') {
             ss.classList.remove('open');
             input.blur();
@@ -9848,7 +9856,7 @@ function _initLoteArticuloSelect() {
             const c = document.getElementById('eq_costo');
             if(c && item && item._ip && (!c.value || Number(c.value) === 0) && Number(item._ip.costo) > 0) c.value = Number(item._ip.costo);
         },
-        onIconClick: abrirBuscadorArticulos
+        onIconClick: (seed) => abrirBuscadorArticulos('ss-eq-articulo', null, '', seed)
     });
 }
 // Selector de piezas en la evaluación (inventario de Info Plus)
@@ -9865,13 +9873,13 @@ function _initEvalPiezaSelect() {
         })),
         value: '',
         onChange: () => {},
-        onIconClick: () => abrirBuscadorArticulos('ss-eval-pieza')
+        onIconClick: (seed) => abrirBuscadorArticulos('ss-eval-pieza', null, '', seed)
     });
 }
 // Cuando se da clic en la lupita de un smart-select que tiene buscador completo
-function _smartSelectIconClick(containerId) {
+function _smartSelectIconClick(containerId, seed) {
     const st = _smartSelects[containerId];
-    if(st && typeof st.onIconClick === 'function') st.onIconClick();
+    if(st && typeof st.onIconClick === 'function') st.onIconClick(seed);
 }
 // Ventana flotante con TODOS los artículos de Info Plus + barra de búsqueda (para elegir)
 let _artBuscTarget = 'ss-eq-articulo';
@@ -11671,7 +11679,7 @@ function _initRexModeloSelect() {
             const c = document.getElementById('rex_costo');
             if(c && item && item._ip && (!c.value || Number(c.value) === 0) && Number(item._ip.costo) > 0) c.value = Number(item._ip.costo);
         },
-        onIconClick: () => abrirBuscadorArticulos('ss-rex-modelo')
+        onIconClick: (seed) => abrirBuscadorArticulos('ss-rex-modelo', null, '', seed)
     });
 }
 function cerrarModalRegistrarExistente() {
