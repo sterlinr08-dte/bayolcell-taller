@@ -15466,16 +15466,17 @@ async function abrirModalEvaluacion(equipoId) {
     // Cargar fallas y piezas ya guardadas del equipo
     _evalState.equipoId = equipoId;
     _evalState.fallasSeleccionadas = new Set();
+    _evalState.fallasNotas = {};
     _evalState.piezasSeleccionadas = [];
     _evalState.categoriasContraidas = new Set();
     _evalState.tabActiva = 'fallas';
-    
+
     try {
         const [{ data: fallasEq }, { data: piezasEq }] = await Promise.all([
-            supabaseClient.from('equipo_fallas').select('falla_id').eq('equipo_id', equipoId),
+            supabaseClient.from('equipo_fallas').select('falla_id, nota').eq('equipo_id', equipoId),
             supabaseClient.from('equipo_piezas_pedidas').select('*').eq('equipo_id', equipoId)
         ]);
-        (fallasEq || []).forEach(f => f.falla_id && _evalState.fallasSeleccionadas.add(f.falla_id));
+        (fallasEq || []).forEach(f => { if(f.falla_id) { _evalState.fallasSeleccionadas.add(f.falla_id); if(f.nota) _evalState.fallasNotas[f.falla_id] = f.nota; } });
         _evalState.piezasSeleccionadas = (piezasEq || []).map(p => ({
             id: p.id,
             pieza_id: p.pieza_id,
@@ -15583,12 +15584,27 @@ function renderFallasEnTabPiezas() {
         return;
     }
     const fallas = cache.fallas || [];
+    const notas = _evalState.fallasNotas || {};
     wrap.style.display = 'block';
     cont.innerHTML = idsSeleccionados.map(fid => {
         const f = fallas.find(x => x.id === fid);
         if(!f) return '';
-        return `<span class="badge" style="background:#fff; color:#92400e; border:1px solid #f59e0b; font-size:11px;">${escapeHtml(f.nombre_corto || f.nombre)}</span>`;
+        const nota = (notas[fid] || '').trim();
+        return `<span class="badge" style="background:#fff; color:#92400e; border:1px solid #f59e0b; font-size:11px; display:inline-flex; align-items:center; gap:5px;">${escapeHtml(f.nombre_corto || f.nombre)}<i class="ti ${nota ? 'ti-message-circle-filled' : 'ti-message-plus'}" onclick="event.stopPropagation(); _evalFallaNota('${fid}')" title="${nota ? escapeHtml(nota) : 'Agregar nota a esta falla'}" style="cursor:pointer; color:${nota ? '#0369a1' : '#b45309'}; font-size:14px;"></i></span>`;
     }).join('');
+}
+// Agregar/editar una nota para una falla específica del equipo (en la evaluación)
+async function _evalFallaNota(fallaId) {
+    const f = (cache.fallas || []).find(x => x.id === fallaId);
+    const nombre = f ? (f.nombre_corto || f.nombre) : 'la falla';
+    const actual = (_evalState.fallasNotas && _evalState.fallasNotas[fallaId]) || '';
+    const r = await pedirTexto(`Nota para "${nombre}":\n\n(Se guarda con la evaluación. Déjala vacía para quitarla.)`, { valor: actual, multilinea: true });
+    if(r === null) return;
+    if(!_evalState.fallasNotas) _evalState.fallasNotas = {};
+    const txt = (r || '').trim();
+    if(txt) _evalState.fallasNotas[fallaId] = txt; else delete _evalState.fallasNotas[fallaId];
+    renderFallasEnTabPiezas();
+    toast(txt ? '💬 Nota guardada en la falla.' : 'Nota quitada.');
 }
 
 // Imprimir label de diagnóstico desde el resumen de evaluación
@@ -15893,7 +15909,8 @@ async function guardarEvaluacion(marcarEvaluado = false) {
                     falla_id: f.id,
                     falla_nombre: f.nombre,
                     falla_corto: f.nombre_corto,
-                    falla_categoria: cat?.nombre || null
+                    falla_categoria: cat?.nombre || null,
+                    nota: (_evalState.fallasNotas && _evalState.fallasNotas[f.id]) || null
                 };
             });
             const { error: e1 } = await supabaseClient.from('equipo_fallas').insert(inserts);
