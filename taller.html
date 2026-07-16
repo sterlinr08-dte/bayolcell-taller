@@ -2053,9 +2053,9 @@ body{
                                     <div id="eqStats" class="eq-stats"></div>
                                     <h4 style="margin:16px 0 10px 0; font-size:15px; font-weight:800;">Equipos del Lote (<span id="eq_count" style="color:#e31e24;">0</span>)</h4>
                                     <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">
-                                        <input id="eqLoteBusq" placeholder="🔍 Buscar / escanear por IMEI, código o modelo…" oninput="renderEquiposLote()" onkeydown="if(event.key==='Enter'){event.preventDefault();renderEquiposLote();}" autocomplete="off" style="flex:1; min-width:200px; padding:10px 13px; font-size:13.5px; border:1px solid #cbd5e1; border-radius:11px;">
-                                        <select id="eqLoteFiltro" onchange="renderEquiposLote()" style="padding:10px 12px; font-size:13px; border:1px solid #cbd5e1; border-radius:11px;"><option value="">Todos los artículos</option></select>
-                                        <select id="eqLoteFiltroGar" onchange="renderEquiposLote()" style="padding:10px 12px; font-size:13px; border:1px solid #cbd5e1; border-radius:11px;"><option value="">Todos</option><option value="garantia">🛡️ Solo garantía</option><option value="normal">Sin garantía</option></select>
+                                        <input id="eqLoteBusq" placeholder="🔍 Buscar / escanear por IMEI, código o modelo…" oninput="renderEquiposLote()" onkeydown="if(event.key==='Enter'){event.preventDefault();renderEquiposLote();}" autocomplete="off" style="flex:1; min-width:180px; padding:10px 13px; font-size:13.5px; border:1px solid #cbd5e1; border-radius:11px;">
+                                        <select id="eqLoteFiltro" onchange="renderEquiposLote()" style="flex:none; width:210px; padding:10px 12px; font-size:13px; border:1px solid #cbd5e1; border-radius:11px;"><option value="">Todos los artículos</option></select>
+                                        <select id="eqLoteFiltroGar" onchange="renderEquiposLote()" style="flex:none; width:160px; padding:10px 12px; font-size:13px; border:1px solid #cbd5e1; border-radius:11px;"><option value="">Todos</option><option value="garantia">🛡️ Solo garantía</option><option value="normal">Sin garantía</option></select>
                                     </div>
                                     <div id="eqChips" class="eq-chips"></div>
                                     <div id="equiposLoteTable"><div style="text-align:center; color:var(--text-muted); padding:20px;">Sin equipos agregados aún.</div></div>
@@ -10364,7 +10364,7 @@ async function agregarEquipoAlLote() {
     } catch(e) { logError('Agregar equipo al lote', e); toastError(getFriendlyError(e)); }
 }
 
-let _eqLote = { chip: '', page: 1, size: 20 };
+let _eqLote = { chip: '', page: 1, size: 10 };
 function _eqStyles() {
     if(document.getElementById('eqStyles')) return;
     const s = document.createElement('style'); s.id = 'eqStyles'; s.textContent = `
@@ -10505,17 +10505,18 @@ function renderEquiposLote() {
     if(!equiposAll.length) cont.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:22px;">Sin equipos agregados aún.</div>`;
     else if(!total) cont.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:22px;">Ningún equipo coincide con la búsqueda/filtro.</div>`;
     else cont.innerHTML = `<div class="eq-head"><div>Artículo</div><div>IMEI / Serial</div><div>Notas</div><div style="text-align:right;">${esAdmin ? 'Costo (RD$)' : ''}</div><div style="text-align:right;">Acciones</div></div>` + items.map(e => _eqCardRow(e, esAdmin)).join('');
-    // Footer paginación
+    // Footer paginación (siempre visible cuando hay equipos; botones de página solo si hay más de una)
     const pg = document.getElementById('eqPag');
     if(pg) {
-        if(total <= size && _eqLote.size === 20 && total <= 20) pg.innerHTML = '';
+        if(!total) pg.innerHTML = '';
         else {
             const p = _eqLote.page;
             const btn = (lbl, pgn, dis, on) => `<button ${dis ? 'disabled' : ''} class="${on ? 'on' : ''}" onclick="_eqPage(${pgn})">${lbl}</button>`;
             const nums = _abPageNums(p, pages).map(n => n === '...' ? `<button disabled>…</button>` : btn(n, n, false, n === p)).join('');
+            const pgbtns = pages > 1 ? `<div class="eq-pgbtns">${btn('«', 1, p <= 1) + btn('‹', p - 1, p <= 1) + nums + btn('›', p + 1, p >= pages) + btn('»', pages, p >= pages)}</div>` : '<div></div>';
             pg.innerHTML = `<div class="info">Mostrando ${items.length} de ${total.toLocaleString('es-DO')} equipos</div>
-              <div class="eq-pgbtns">${btn('«', 1, p <= 1) + btn('‹', p - 1, p <= 1) + nums + btn('›', p + 1, p >= pages) + btn('»', pages, p >= pages)}</div>
-              <div style="font-size:12px; color:#475569; font-weight:600;">Mostrar <select onchange="_eqSize(this.value)" style="border:1px solid #e2e8f0; border-radius:9px; padding:6px 10px; font-weight:700;">${[20, 50, 100, 200].map(s => `<option value="${s}" ${s === _eqLote.size ? 'selected' : ''}>${s}</option>`).join('')}</select></div>`;
+              ${pgbtns}
+              <div style="font-size:12px; color:#475569; font-weight:600;">Mostrar <select onchange="_eqSize(this.value)" style="border:1px solid #e2e8f0; border-radius:9px; padding:6px 10px; font-weight:700;">${[10, 20, 50, 100, 200].map(s => `<option value="${s}" ${s === _eqLote.size ? 'selected' : ''}>${s}</option>`).join('')}</select></div>`;
         }
     }
     // Totales
