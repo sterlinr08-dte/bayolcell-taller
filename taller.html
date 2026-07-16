@@ -9906,6 +9906,7 @@ async function abrirBuscadorArticulos(targetSS, onPick, refHtml, seed) {
     await _ensureInfoplusArticulos();
     renderBuscadorArticulos();
     setTimeout(() => { const b = document.getElementById('artBuscModal'); if(b) { b.focus(); const n = b.value.length; try { b.setSelectionRange(n, n); } catch(_e) {} } }, 60);
+    _buscadorAutoSyncSiToca(); // actualiza solo en segundo plano al abrir (no traba)
 }
 async function _buscadorSincronizarIP(btn) {
     const msg = document.getElementById('artBuscSyncMsg');
@@ -9919,6 +9920,21 @@ async function _buscadorSincronizarIP(btn) {
         if(msg) { msg.style.color = '#16a34a'; msg.textContent = '✅ Actualizado: ' + ((data && data.total) || 0).toLocaleString('es-DO') + ' artículos. Busca de nuevo.'; }
     } catch(e) { logError('sincronizar buscador IP', e); if(msg) { msg.style.color = '#dc2626'; msg.textContent = '⚠️ ' + getFriendlyError(e); } }
     finally { btn.disabled = false; btn.innerHTML = orig; }
+}
+// Al ABRIR el buscador, actualiza solo en segundo plano (sin trabar), si no se ha sincronizado hace poco
+let _ipLastAutoSync = 0;
+async function _buscadorAutoSyncSiToca() {
+    if(Date.now() - _ipLastAutoSync < 120000) return; // no repetir si sincronizó hace < 2 min
+    _ipLastAutoSync = Date.now();
+    const msg = document.getElementById('artBuscSyncMsg');
+    if(msg) { msg.style.color = '#475569'; msg.textContent = '🔄 Buscando cambios recientes en Info Plus…'; }
+    try {
+        const { data, error } = await supabaseClient.functions.invoke('infoplus-sync', { body: {} });
+        if(error) throw error;
+        await _ensureInfoplusArticulos(true);
+        if(document.getElementById('artBuscModalLista')) renderBuscadorArticulos();
+        if(msg && document.getElementById('artBuscSyncMsg')) { msg.style.color = '#16a34a'; msg.textContent = '✅ Catálogo al día (' + ((data && data.total) || 0).toLocaleString('es-DO') + ' artículos).'; }
+    } catch(e) { _ipLastAutoSync = 0; /* permitir reintento al reabrir */ const m2 = document.getElementById('artBuscSyncMsg'); if(m2) m2.textContent = ''; }
 }
 function _reintentarBuscadorArticulos() {
     const cont = document.getElementById('artBuscModalLista');
