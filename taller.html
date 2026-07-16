@@ -10270,6 +10270,7 @@ function renderEquiposLote() {
                 <td data-label="Notas">${notas}</td>
                 ${costoCell}
                 <td data-label="Acciones">
+                    <button class="btn btn-light" style="padding:3px 6px; font-size:10px; color:#0369a1;" onclick="_editarEquipoLote('${e.id}')" title="Corregir (artículo, IMEI, costo, notas)"><i class="ti ti-edit"></i></button>
                     <button class="btn btn-light" style="padding:3px 6px; font-size:10px;" onclick="abrirPreviewLabelDiagIndividual('${e.id}')" title="Imprimir label"><i class="ti ti-printer"></i></button>
                     <button class="btn btn-light" style="padding:3px 6px; font-size:10px;" onclick="eliminarEquipoLote('${e.id}')" title="Eliminar"><i class="ti ti-trash"></i></button>
                 </td>
@@ -10293,6 +10294,60 @@ async function eliminarEquipoLote(equipoId) {
         toast('Equipo eliminado.');
         await loadAll();
     } catch(e) { logError('Eliminar equipo', e); toastError(getFriendlyError(e)); }
+}
+// Corregir un equipo YA agregado al lote (artículo, IMEI, costo, notas) sin borrarlo y re-agregarlo
+let _editEqArt = null;
+function _editarEquipoLote(id) {
+    const e = (cache.refurb || []).find(r => r.id === id); if(!e) return;
+    _editEqArt = { codigo: e.articulo_codigo, modelo: e.modelo, marca: e.marca, color: e.color };
+    const esAdmin = isAdminUser();
+    const esGar = !!e.es_garantia;
+    const notas = (e.notas_diagnostico || '').replace(/^GARANT[IÍ]A(\s*·\s*)?/i, '').trim();
+    const artTxt = `${e.articulo_codigo ? 'Cód. ' + e.articulo_codigo + ' · ' : ''}${e.modelo || ''}`;
+    const prev = document.getElementById('modalEditEq'); if(prev) prev.remove();
+    const box = document.createElement('div'); box.className = 'modal-backdrop active'; box.id = 'modalEditEq'; box.style.zIndex = '780';
+    box.innerHTML = `<div class="modal-box" style="max-width:460px;">
+      <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-edit"></i> Corregir equipo</h3><button class="modal-close" onclick="document.getElementById('modalEditEq').remove()">✕</button></div>
+      <div class="modal-body">
+        <div class="form-row"><label>Artículo</label>
+          <div style="display:flex; gap:8px; align-items:center;"><span id="editEqArt" style="flex:1; font-size:13px; font-weight:600; color:#0f172a;">${escapeHtml(artTxt)}</span><button class="btn btn-light" style="padding:5px 10px; font-size:12px;" onclick="_editEqCambiarArt()"><i class="ti ti-search"></i> Cambiar</button></div></div>
+        <div class="form-row"><label>IMEI / Serial *</label><input id="editEq_imei" value="${escapeHtml(e.imei || '')}"></div>
+        ${esAdmin ? `<div class="form-row"><label>Costo unidad (RD$) *</label><input id="editEq_costo" type="number" step="0.01" value="${e.costo_compra || 0}"></div>` : ''}
+        <div class="form-row"><label>Notas</label><input id="editEq_notas" value="${escapeHtml(notas)}" placeholder="Opcional"></div>
+        <div class="form-row"><label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="editEq_garantia" ${esGar ? 'checked' : ''} style="width:16px; height:16px;"> 🛡️ Es por garantía (permite repetir el mismo IMEI)</label></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-light" onclick="document.getElementById('modalEditEq').remove()">Cancelar</button><button class="btn btn-blue" onclick="_guardarEdicionEquipoLote('${id}')"><i class="ti ti-device-floppy"></i> Guardar cambios</button></div>
+    </div>`;
+    document.body.appendChild(box);
+}
+function _editEqCambiarArt() {
+    abrirBuscadorArticulos(null, (a) => {
+        _editEqArt = { codigo: a.codigo, modelo: [a.marca, a.descripcion].filter(x => x).join(' ').trim() || a.codigo, marca: a.marca || null, color: a.referencia || null };
+        const el = document.getElementById('editEqArt'); if(el) el.textContent = `Cód. ${a.codigo} · ${(a.descripcion || '').trim()}`;
+    });
+}
+async function _guardarEdicionEquipoLote(id) {
+    const e = (cache.refurb || []).find(r => r.id === id); if(!e) return;
+    const imei = (document.getElementById('editEq_imei').value || '').trim();
+    if(!imei) return toast('El IMEI / Serial es obligatorio.', 'error');
+    const esGar = !!document.getElementById('editEq_garantia').checked;
+    if(!esGar) {
+        const norm = imei.toLowerCase().trim();
+        const rep = (cache.refurb || []).find(r => r.id !== id && (r.imei || '').toLowerCase().trim() === norm);
+        if(rep) { const loteRep = (cache.lotes || []).find(l => l.id === rep.lote_id); const donde = loteRep ? ('lote ' + (loteRep.codigo_lote || '')) : 'otro lote'; return toast(`⚠️ Ese IMEI (${imei}) ya está registrado en ${donde}. Si el equipo volvió por garantía, marca la casilla.`, 'error'); }
+    }
+    const upd = { imei, es_garantia: esGar };
+    if(_editEqArt && _editEqArt.codigo) { upd.articulo_codigo = _editEqArt.codigo; upd.modelo = _editEqArt.modelo; upd.marca = _editEqArt.marca; upd.color = _editEqArt.color; }
+    if(isAdminUser()) { const c = parseFloat(document.getElementById('editEq_costo').value) || 0; if(c <= 0) return toast('El costo debe ser mayor a 0.', 'error'); upd.costo_compra = c; }
+    const notas = (document.getElementById('editEq_notas').value || '').trim();
+    upd.notas_diagnostico = esGar ? ('GARANTÍA' + (notas ? ' · ' + notas : '')) : (notas || null);
+    try {
+        const { error } = await supabaseClient.from('equipos_refurbish').update(upd).eq('id', id);
+        if(error) throw error;
+        toast('✏️ Equipo corregido.');
+        document.getElementById('modalEditEq')?.remove();
+        await loadAll();
+    } catch(err) { logError('editar equipo lote', err); toastError(getFriendlyError(err)); }
 }
 
 async function eliminarLote(loteId) {
