@@ -12832,10 +12832,12 @@ const _PRU_AREAS = [
     { k: 'integridad', ic: 'ti-shield-check', t: '3. Integridad y honestidad', sub: 'Qué tan de acuerdo estás con cada frase.' },
     { k: 'servicio', ic: 'ti-mood-smile', t: '4. Servicio al cliente', sub: 'Qué tan de acuerdo estás con cada frase.' }
 ];
-// Banco de preguntas: de la base (editable) o, si está vacío, del banco por defecto
-function _pruebaBanco() {
-    const db = (cache.rrhhPreguntas || []).filter(q => q.activa !== false);
-    if(db.length) return db.map(q => ({ id: q.id, area: q.area, texto: q.texto, rasgo: q.rasgo, opciones: q.opciones, correcta: q.correcta, reverse: q.reverse }));
+// Banco de preguntas para un puesto: de la base (editable) o, si está vacía, del banco por defecto
+function _pruebaBanco(perfil) {
+    const key = (perfil && perfil !== 'general') ? perfil : null;
+    const aplica = q => { const ps = Array.isArray(q.perfiles) ? q.perfiles : ['todos']; return ps.includes('todos') || (key && ps.includes(key)); };
+    const cacheQ = (cache.rrhhPreguntas || []).filter(q => q.activa !== false);
+    if(cacheQ.length) return cacheQ.filter(aplica).map(q => ({ id: q.id, area: q.area, texto: q.texto, rasgo: q.rasgo, opciones: q.opciones, correcta: q.correcta, reverse: q.reverse }));
     const out = [];
     RRHH_PRUEBA.disc.forEach((it, i) => out.push({ id: 'd' + i, area: 'disc', texto: it.q, rasgo: it.t }));
     RRHH_PRUEBA.aptitud.forEach((it, i) => out.push({ id: 'a' + i, area: 'aptitud', texto: it.q, opciones: it.op, correcta: it.c }));
@@ -12998,7 +13000,8 @@ function _pruebaLikertRow(id, num, texto) {
 function _rrhhRenderTest() {
     const cont = document.getElementById('nominaContent'); if(!cont) return;
     const c = _pruebaCtx || {};
-    const banco = _pruebaBanco();
+    const banco = _pruebaBanco(c.perfil);
+    if(!banco.length) { toast('Este puesto no tiene preguntas asignadas. Ve a "Editar preguntas" y asígnale algunas.', 'error'); _renderRRHHPruebas(); return; }
     const secTit = (ic, t, sub) => `<div style="margin:18px 0 8px;"><div style="font-weight:800; color:#0e7490; font-size:15px;"><i class="ti ${ic}"></i> ${t}</div><div style="font-size:12px; color:#94a3b8;">${sub}</div></div>`;
     let cuerpo = '';
     _PRU_AREAS.forEach(a => {
@@ -13038,7 +13041,7 @@ function _rrhhLeerRespuestas(preg) {
 }
 async function _rrhhCalificarPrueba() {
     if(!_pruebaCtx) return;
-    const preg = _pruebaBanco();
+    const preg = _pruebaBanco(_pruebaCtx.perfil);
     const ans = _rrhhLeerRespuestas(preg);
     const faltan = preg.filter(q => ans[q.id] == null).length;
     if(faltan > 0) return toast(`Faltan ${faltan} pregunta(s) por responder.`, 'error');
@@ -13182,11 +13185,11 @@ function _rrhhRenderPreguntasEditor() {
     const banco = (cache.rrhhPreguntas || []);
     body.innerHTML = _PRU_AREAS.map(a => {
         const qs = banco.filter(q => q.area === a.k);
-        const rows = qs.map(q => `<div style="display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid #f1f5f9;">
-            <div style="flex:1; font-size:12.5px; color:#0f172a;">${escapeHtml(q.texto)}${q.rasgo ? ` <span style="color:#7c3aed; font-weight:700;">[${escapeHtml(q.rasgo)}]</span>` : ''}${q.reverse ? ' <span style="color:#b45309; font-size:10px;">(invertida)</span>' : ''}${q.area === 'aptitud' && Array.isArray(q.opciones) ? `<div style="font-size:11px; color:#94a3b8;">Correcta: ${escapeHtml(q.opciones[q.correcta] || '')}</div>` : ''}${q.activa === false ? ' <span style="color:#b91c1c; font-size:10px;">(oculta)</span>' : ''}</div>
+        const rows = qs.map(q => { const ps = Array.isArray(q.perfiles) ? q.perfiles : ['todos']; const pLbl = ps.includes('todos') ? '' : ` <span title="${escapeHtml(ps.map(k => _rrhhPerfil(k)?.nombre || k).join(', '))}" style="color:#0d9488; font-size:10px; font-weight:700; background:#f0fdfa; padding:1px 6px; border-radius:7px; cursor:help;">solo ${ps.length} puesto${ps.length > 1 ? 's' : ''}</span>`; return `<div style="display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid #f1f5f9;">
+            <div style="flex:1; font-size:12.5px; color:#0f172a;">${escapeHtml(q.texto)}${q.rasgo ? ` <span style="color:#7c3aed; font-weight:700;">[${escapeHtml(q.rasgo)}]</span>` : ''}${q.reverse ? ' <span style="color:#b45309; font-size:10px;">(invertida)</span>' : ''}${pLbl}${q.area === 'aptitud' && Array.isArray(q.opciones) ? `<div style="font-size:11px; color:#94a3b8;">Correcta: ${escapeHtml(q.opciones[q.correcta] || '')}</div>` : ''}${q.activa === false ? ' <span style="color:#b91c1c; font-size:10px;">(oculta)</span>' : ''}</div>
             <a onclick="_rrhhFormPregunta('${q.id}')" style="cursor:pointer; color:#0369a1;" title="Editar"><i class="ti ti-edit"></i></a>
             <a onclick="_rrhhBorrarPregunta('${q.id}')" style="cursor:pointer; color:#dc2626;" title="Borrar"><i class="ti ti-trash"></i></a>
-          </div>`).join('') || '<div style="font-size:12px; color:#cbd5e1; padding:6px 0;">— sin preguntas —</div>';
+          </div>`; }).join('') || '<div style="font-size:12px; color:#cbd5e1; padding:6px 0;">— sin preguntas —</div>';
         return `<div style="margin-bottom:14px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;"><div style="font-weight:800; color:#0e7490;"><i class="ti ${a.ic}"></i> ${a.t.replace(/^\d+\.\s*/, '')} <span style="color:#94a3b8; font-weight:500; font-size:12px;">(${qs.length})</span></div><button class="btn btn-light" style="padding:3px 8px; font-size:11.5px; color:#0369a1; border-color:#7dd3fc;" onclick="_rrhhFormPregunta('', '${a.k}')"><i class="ti ti-plus"></i> Agregar</button></div>
             ${rows}
@@ -13204,6 +13207,13 @@ function _rrhhFormPregunta(id, areaNueva) {
     if(area === 'disc') extra = `<div class="form-row"><label>Rasgo DISC</label><select id="preg_rasgo">${['D', 'I', 'S', 'C'].map(r => `<option value="${r}" ${q.rasgo === r ? 'selected' : ''}>${r} — ${({ D: 'Dominante', I: 'Influyente', S: 'Estable', C: 'Concienzudo' })[r]}</option>`).join('')}</select></div>`;
     else if(area === 'aptitud') extra = `<div class="form-row"><label>Opciones de respuesta</label>${opciones.map((o, k) => `<input id="preg_op${k}" value="${escapeHtml(o)}" placeholder="Opción ${k + 1}" style="margin-bottom:5px;">`).join('')}</div><div class="form-row"><label>¿Cuál es la correcta?</label><select id="preg_correcta">${[0, 1, 2, 3].map(k => `<option value="${k}" ${q.correcta === k ? 'selected' : ''}>Opción ${k + 1}</option>`).join('')}</select></div>`;
     else if(area === 'integridad') extra = `<div class="form-row"><label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="preg_reverse" ${q.reverse ? 'checked' : ''} style="width:16px; height:16px;"> Pregunta "invertida" (estar de acuerdo es señal NEGATIVA)</label></div>`;
+    const perfSel = Array.isArray(q.perfiles) ? q.perfiles : ['todos'];
+    const esTodos = perfSel.includes('todos');
+    extra += `<div class="form-row"><label>¿En qué puestos aparece esta pregunta?</label>
+        <label style="display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:6px;"><input type="checkbox" id="preg_perf_todos" ${esTodos ? 'checked' : ''} onchange="_rrhhPerfTodos(this)"> <b>Todos los puestos</b></label>
+        <div id="preg_perf_lista" style="display:${esTodos ? 'none' : 'grid'}; grid-template-columns:1fr 1fr; gap:5px 12px; padding-left:4px;">
+          ${RRHH_PERFILES.map(P => `<label style="display:flex; align-items:center; gap:6px; font-size:12.5px;"><input type="checkbox" class="preg_perf_one" value="${P.key}" ${perfSel.includes(P.key) ? 'checked' : ''}> ${escapeHtml(P.nombre)}</label>`).join('')}
+        </div></div>`;
     box.innerHTML = `<div class="modal-box" style="max-width:480px;">
       <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-help-circle"></i> ${id ? 'Editar' : 'Nueva'} pregunta</h3><button class="modal-close" onclick="document.getElementById('modalFormPreg').remove()">✕</button></div>
       <div class="modal-body">
@@ -13218,12 +13228,16 @@ function _rrhhFormPregunta(id, areaNueva) {
     </div>`;
     document.body.appendChild(box);
 }
+function _rrhhPerfTodos(el) { const l = document.getElementById('preg_perf_lista'); if(l) l.style.display = el.checked ? 'none' : 'grid'; }
 async function _rrhhGuardarPregunta() {
     const id = document.getElementById('preg_id').value;
     const area = document.getElementById('preg_area').value;
     const texto = (document.getElementById('preg_texto').value || '').trim();
     if(!texto) return toast('Escribe la pregunta.', 'error');
-    const data = { area, texto, orden: Number(document.getElementById('preg_orden').value) || 0, activa: document.getElementById('preg_activa').checked };
+    let perfiles;
+    if(document.getElementById('preg_perf_todos').checked) perfiles = ['todos'];
+    else { perfiles = [...document.querySelectorAll('.preg_perf_one:checked')].map(x => x.value); if(!perfiles.length) perfiles = ['todos']; }
+    const data = { area, texto, perfiles, orden: Number(document.getElementById('preg_orden').value) || 0, activa: document.getElementById('preg_activa').checked };
     if(area === 'disc') data.rasgo = document.getElementById('preg_rasgo').value;
     if(area === 'aptitud') {
         const ops = [0, 1, 2, 3].map(k => (document.getElementById('preg_op' + k).value || '').trim()).filter(x => x);
