@@ -12788,6 +12788,34 @@ const RRHH_DISC_INFO = {
     S: { nombre: 'Estable (S)', desc: 'Paciente, confiable y colaborador. Muy bueno para servicio y trabajo constante; puede resistirse a los cambios.' },
     C: { nombre: 'Concienzudo (C)', desc: 'Detallista, ordenado y cumple las reglas. Ideal para caja, inventario y procesos; puede ser perfeccionista.' }
 };
+// Perfil ideal por puesto: estilo DISC que encaja, el que hay que evitar, y mínimos por área
+const RRHH_PERFILES = [
+    { key: 'servicio', nombre: 'Servicio al cliente / Atención', discIdeal: ['S', 'I'], discEvitar: ['D'], min: { servicio: 75, integridad: 65, aptitud: 35 }, ideal: 'Paciente, amable y sociable; mantiene la calma con clientes molestos.', opuesto: 'Muy dominante o cortante (impaciente), poca calidez.' },
+    { key: 'vendedor_mostrador', nombre: 'Vendedor de mostrador (detalle)', discIdeal: ['I', 'S'], discEvitar: ['C'], min: { servicio: 70, integridad: 65, aptitud: 45 }, ideal: 'Sociable y persuasivo pero cálido; conecta y cierra sin presionar.', opuesto: 'Muy callado/reservado o frío; no toma iniciativa con el cliente.' },
+    { key: 'vendedor_mayor', nombre: 'Vendedor mayorista / negociador', discIdeal: ['D', 'I'], discEvitar: ['S'], min: { aptitud: 55, integridad: 70, servicio: 55 }, ideal: 'Empuje para cerrar, negocia y persigue metas; bueno con números/márgenes.', opuesto: 'Muy pasivo o conforme; no presiona el cierre ni maneja bien los números.' },
+    { key: 'tecnico', nombre: 'Técnico de reparación', discIdeal: ['C', 'S'], discEvitar: ['I'], min: { aptitud: 65, integridad: 70, servicio: 40 }, ideal: 'Detallista, metódico y paciente; buena lógica para diagnosticar. Honesto con los equipos.', opuesto: 'Apresurado o descuidado, poca atención al detalle o baja lógica.' },
+    { key: 'almacenista', nombre: 'Almacén / inventario', discIdeal: ['C', 'S'], discEvitar: ['I'], min: { integridad: 75, aptitud: 50, servicio: 30 }, ideal: 'Ordenado, exacto y confiable; sigue el proceso. Muy honesto (controla el inventario).', opuesto: 'Desorganizado o impulsivo; baja honestidad = riesgo de faltantes.' },
+    { key: 'cajera', nombre: 'Caja / cobros', discIdeal: ['C', 'S'], discEvitar: ['D'], min: { integridad: 80, aptitud: 60, servicio: 60 }, ideal: 'Exacto con el dinero, tranquilo y muy honesto; buenos números.', opuesto: 'Descuidado con el detalle, impulsivo o baja honestidad.' },
+    { key: 'mensajero', nombre: 'Mensajero / delivery', discIdeal: ['S', 'I'], discEvitar: [], min: { integridad: 80, servicio: 60, aptitud: 35 }, ideal: 'Responsable y confiable; amable en la puerta. Muy honesto (anda solo con dinero/equipos).', opuesto: 'Poco confiable o baja honestidad; descuidado.' },
+    { key: 'supervisor', nombre: 'Encargado / supervisor', discIdeal: ['D', 'C'], discEvitar: [], min: { integridad: 75, aptitud: 60, servicio: 55 }, ideal: 'Toma decisiones y organiza; combina liderazgo con orden. Íntegro.', opuesto: 'Ni empuja ni organiza; evita decidir.' }
+];
+function _rrhhPerfil(key) { return RRHH_PERFILES.find(p => p.key === key) || null; }
+// Calcula qué tanto encaja un resultado con el perfil del puesto
+function _rrhhEncaje(res, perfilKey) {
+    const P = _rrhhPerfil(perfilKey); if(!P || !res) return null;
+    const disc = res.disc || {};
+    const estiloEncaja = P.discIdeal.includes(res.estilo);
+    const estiloOpuesto = P.discEvitar.includes(res.estilo);
+    const areasMap = { integridad: (res.integridad || {}).pct || 0, servicio: (res.servicio || {}).pct || 0, aptitud: (res.aptitud || {}).pct || 0 };
+    const areas = Object.keys(P.min).map(a => ({ area: a, val: areasMap[a], min: P.min[a], ok: areasMap[a] >= P.min[a] }));
+    // Puntaje 0-100: estilo (peso 1) + cada área (peso 1)
+    let pts = 0, tot = 0;
+    tot += 1; pts += estiloEncaja ? 1 : (estiloOpuesto ? 0 : 0.45);
+    areas.forEach(x => { tot += 1; pts += x.ok ? 1 : Math.max(0, x.val / x.min) * 0.6; });
+    const pct = Math.round(pts / tot * 100);
+    const banda = pct >= 75 ? { txt: 'Encaja bien', color: '#16a34a' } : pct >= 50 ? { txt: 'Encaja a medias', color: '#b45309' } : { txt: 'Encaja poco', color: '#b91c1c' };
+    return { perfil: P, pct, banda, estiloEncaja, estiloOpuesto, areas };
+}
 function _rrhhBanda(pct) {
     if(pct >= 80) return { txt: 'Alto', color: '#16a34a', bg: '#f0fdf4', bd: '#bbf7d0' };
     if(pct >= 60) return { txt: 'Medio', color: '#b45309', bg: '#fffbeb', bd: '#fde68a' };
@@ -12840,8 +12868,10 @@ function _renderRRHHPruebas() {
     const filas = pruebas.map(p => {
         const r = p.resultados || {};
         const est = r.estilo ? (RRHH_DISC_INFO[r.estilo]?.nombre || r.estilo) : '—';
+        const enc = _rrhhEncaje(r, p.perfil);
+        const encBadge = enc ? ` <span style="font-size:10px; font-weight:700; color:${enc.banda.color}; background:${enc.banda.color}18; padding:1px 6px; border-radius:8px;">${enc.pct}% ${enc.banda.txt}</span>` : '';
         return `<tr>
-            <td style="padding:7px 6px; border-bottom:1px solid #eef2f7;"><a onclick="_rrhhVerPrueba('${p.id}')" style="cursor:pointer; color:#0f172a; font-weight:700;">${escapeHtml(p.candidato || '—')}</a><div style="font-size:11px; color:#94a3b8;">${escapeHtml(p.puesto || '')}${p.empleado_id ? ' · empleado' : ' · candidato'}</div></td>
+            <td style="padding:7px 6px; border-bottom:1px solid #eef2f7;"><a onclick="_rrhhVerPrueba('${p.id}')" style="cursor:pointer; color:#0f172a; font-weight:700;">${escapeHtml(p.candidato || '—')}</a><div style="font-size:11px; color:#94a3b8;">${escapeHtml(p.puesto || '')}${p.empleado_id ? ' · empleado' : ' · candidato'}${encBadge}</div></td>
             <td style="padding:7px 6px; border-bottom:1px solid #eef2f7; text-align:center;">${fdate(p.fecha)}</td>
             <td style="padding:7px 6px; border-bottom:1px solid #eef2f7;">${escapeHtml(est)}</td>
             <td style="padding:7px 6px; border-bottom:1px solid #eef2f7; text-align:center;">${r.aptitud ? r.aptitud.pct + '%' : '—'}</td>
@@ -12894,7 +12924,10 @@ function _rrhhNuevaPrueba() {
         <div class="form-row"><label>Nombre completo *</label><input id="prueba_nombre" placeholder="Nombre de la persona"></div>
         <div class="form-row"><label>Cédula</label><input id="prueba_cedula"></div>
         <div class="form-row"><label>WhatsApp / Teléfono <span style="color:#94a3b8; font-weight:400;">(para enviar el enlace)</span></label><input id="prueba_tel" placeholder="809-000-0000"></div>
-        <div class="form-row"><label>Puesto al que aplica / que ocupa</label><input id="prueba_puesto" placeholder="Ej. Cajera, Técnico, Vendedor"></div>
+        <div class="form-row"><label>Perfil que buscas <a onclick="_rrhhVerPerfiles()" style="color:#7c3aed; cursor:pointer; font-size:12px; font-weight:400;">(ver perfiles ideales)</a></label>
+          <select id="prueba_perfil" onchange="_pruebaPerfilChange()"><option value="general">General / otro (sin perfil específico)</option>${RRHH_PERFILES.map(p => `<option value="${p.key}">${escapeHtml(p.nombre)}</option>`).join('')}</select>
+          <div style="font-size:11.5px; color:#64748b; margin-top:3px;">Al elegir un perfil, el resultado te dirá si la persona <b>encaja</b> con ese puesto.</div></div>
+        <div class="form-row"><label>Puesto (nombre)</label><input id="prueba_puesto" placeholder="Ej. Cajera, Técnico, Vendedor"></div>
         <div style="font-size:12px; color:#64748b; margin-top:4px;"><i class="ti ti-info-circle"></i> Puedes hacer la prueba aquí mismo, o <b>enviar un enlace</b> para que la persona la conteste desde su celular.</div>
       </div>
       <div class="modal-footer"><button class="btn btn-light" onclick="document.getElementById('modalNuevaPrueba').remove()">Cancelar</button><button class="btn" style="background:#0d9488; color:#fff;" onclick="_rrhhGenerarEnlace()"><i class="ti ti-link"></i> Enviar por enlace</button><button class="btn btn-blue" onclick="_rrhhComenzarPrueba()"><i class="ti ti-player-play"></i> Contestar aquí</button></div>
@@ -12913,6 +12946,36 @@ function _pruebaPrefill() {
 }
 // Formatea un teléfono RD para wa.me (10 dígitos → +1)
 function _rrhhWaNum(tel) { const d = (tel || '').replace(/\D/g, ''); return d ? (d.length === 10 ? '1' + d : d) : ''; }
+// Al elegir un perfil, sugiere el nombre del puesto (editable)
+function _pruebaPerfilChange() {
+    const k = document.getElementById('prueba_perfil')?.value;
+    const P = _rrhhPerfil(k);
+    const pu = document.getElementById('prueba_puesto');
+    if(P && pu && !pu.value.trim()) pu.value = P.nombre;
+}
+// Referencia: perfil psicológico ideal (y lo opuesto) por puesto
+function _rrhhVerPerfiles() {
+    const prev = document.getElementById('modalPerfiles'); if(prev) prev.remove();
+    const box = document.createElement('div'); box.className = 'modal-backdrop active'; box.id = 'modalPerfiles'; box.style.zIndex = '815';
+    const disc = k => RRHH_DISC_INFO[k].nombre;
+    const cards = RRHH_PERFILES.map(P => `<div style="border:1px solid #e2e8f0; border-radius:10px; padding:12px; margin-bottom:10px;">
+        <div style="font-weight:800; color:#0e7490; margin-bottom:4px;">${escapeHtml(P.nombre)}</div>
+        <div style="font-size:12.5px; color:#334155; margin-bottom:3px;"><b style="color:#16a34a;">Ideal:</b> ${escapeHtml(P.ideal)}</div>
+        <div style="font-size:12.5px; color:#334155; margin-bottom:6px;"><b style="color:#b91c1c;">Lo opuesto (alerta):</b> ${escapeHtml(P.opuesto)}</div>
+        <div style="font-size:11.5px; color:#64748b;">Estilo que encaja: <b>${P.discIdeal.map(disc).join(', ')}</b>${P.discEvitar.length ? ` · evitar: ${P.discEvitar.map(disc).join(', ')}` : ''}</div>
+        <div style="font-size:11.5px; color:#64748b;">Mínimos sugeridos: ${Object.keys(P.min).map(a => `${a} ${P.min[a]}%`).join(' · ')}</div>
+      </div>`).join('');
+    box.innerHTML = `<div class="modal-box" style="max-width:620px; width:96%;">
+      <div class="modal-header" style="background:linear-gradient(135deg,#7c3aed,#a855f7); color:#fff; border-radius:12px 12px 0 0;"><h3 style="margin:0; color:#fff;"><i class="ti ti-users"></i> Perfiles ideales por puesto</h3><button class="modal-close" style="color:#fff;" onclick="document.getElementById('modalPerfiles').remove()">✕</button></div>
+      <div class="modal-body" style="max-height:78vh; overflow-y:auto;">
+        <div style="font-size:12.5px; color:#475569; margin-bottom:10px;">Guía para elegir el perfil al crear una prueba. El sistema compara el resultado del candidato con esto y te dice si <b>encaja</b>. Recuerda: es apoyo, no una regla absoluta.</div>
+        <div style="font-size:11.5px; color:#7c3aed; background:#faf5ff; border:1px solid #e9d5ff; border-radius:8px; padding:8px 10px; margin-bottom:12px;"><b>Estilos DISC:</b> D = Dominante (empuje/decisión) · I = Influyente (social/persuasivo) · S = Estable (paciente/confiable) · C = Concienzudo (detalle/orden).</div>
+        ${cards}
+      </div>
+      <div class="modal-footer"><button class="btn btn-blue" onclick="document.getElementById('modalPerfiles').remove()">Entendido</button></div>
+    </div>`;
+    document.body.appendChild(box);
+}
 function _rrhhComenzarPrueba() {
     const nombre = (document.getElementById('prueba_nombre').value || '').trim();
     if(!nombre) return toast('Escribe el nombre de la persona.', 'error');
@@ -12920,7 +12983,8 @@ function _rrhhComenzarPrueba() {
         empleado_id: document.getElementById('prueba_emp').value || null,
         candidato: nombre,
         cedula: (document.getElementById('prueba_cedula').value || '').trim() || null,
-        puesto: (document.getElementById('prueba_puesto').value || '').trim() || null
+        puesto: (document.getElementById('prueba_puesto').value || '').trim() || null,
+        perfil: document.getElementById('prueba_perfil').value || 'general'
     };
     document.getElementById('modalNuevaPrueba')?.remove();
     _rrhhRenderTest();
@@ -12980,7 +13044,7 @@ async function _rrhhCalificarPrueba() {
     if(faltan > 0) return toast(`Faltan ${faltan} pregunta(s) por responder.`, 'error');
     const resp = ans;
     const resultados = _rrhhPruebaCalcular(preg, ans);
-    const data = { empleado_id: _pruebaCtx.empleado_id, candidato: _pruebaCtx.candidato, cedula: _pruebaCtx.cedula, puesto: _pruebaCtx.puesto, estado: 'completada', respuestas: resp, resultados, creado_por: (typeof sessionUser !== 'undefined' && sessionUser) ? (sessionUser.nombre || 'Admin') : 'Admin' };
+    const data = { empleado_id: _pruebaCtx.empleado_id, candidato: _pruebaCtx.candidato, cedula: _pruebaCtx.cedula, puesto: _pruebaCtx.puesto, perfil: _pruebaCtx.perfil || 'general', estado: 'completada', respuestas: resp, resultados, creado_por: (typeof sessionUser !== 'undefined' && sessionUser) ? (sessionUser.nombre || 'Admin') : 'Admin' };
     try {
         const { data: ins, error } = await supabaseClient.from('rrhh_pruebas').insert([data]).select('id').single();
         if(error) throw error;
@@ -13009,6 +13073,18 @@ function _rrhhVerPrueba(id) {
         ${bar('Aptitud (lógica y números) — ' + (r.aptitud ? r.aptitud.correctas + '/' + r.aptitud.total : ''), r.aptitud ? r.aptitud.pct : 0, _rrhhBandaApt(r.aptitud ? r.aptitud.pct : 0))}
         ${bar('Integridad / honestidad', r.integridad ? r.integridad.pct : 0, _rrhhBanda(r.integridad ? r.integridad.pct : 0))}
         ${bar('Servicio al cliente', r.servicio ? r.servicio.pct : 0, _rrhhBanda(r.servicio ? r.servicio.pct : 0))}
+        ${(() => {
+            const enc = _rrhhEncaje(r, p.perfil);
+            if(!enc) return '';
+            const chk = enc.areas.map(x => `<span style="display:inline-block; margin:2px 6px 2px 0; font-size:11.5px;">${x.ok ? '<span style="color:#16a34a;">✓</span>' : '<span style="color:#b91c1c;">✗</span>'} ${x.area} ${x.val}%<span style="color:#94a3b8;">/${x.min}%</span></span>`).join('');
+            const estiloTxt = enc.estiloEncaja ? `<span style="color:#16a34a;">✓ su estilo (${enc.perfil.discIdeal.join('/')}) encaja</span>` : enc.estiloOpuesto ? `<span style="color:#b91c1c;">⚠ su estilo es el opuesto a lo ideal</span>` : `<span style="color:#b45309;">~ estilo aceptable, no el ideal</span>`;
+            return `<div style="border:1.5px solid ${enc.banda.color}33; background:${enc.banda.color}11; border-radius:10px; padding:12px; margin-top:14px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;"><b style="color:#0f172a;"><i class="ti ti-target"></i> Encaje con: ${escapeHtml(enc.perfil.nombre)}</b><b style="color:${enc.banda.color}; font-size:15px;">${enc.pct}% · ${enc.banda.txt}</b></div>
+                <div style="font-size:12.5px; margin-bottom:4px;">Personalidad: ${estiloTxt}</div>
+                <div style="font-size:12.5px;">Requisitos del puesto: ${chk}</div>
+                <div style="font-size:11.5px; color:#64748b; margin-top:6px;"><b>Ideal:</b> ${escapeHtml(enc.perfil.ideal)}</div>
+              </div>`;
+        })()}
         <div style="font-size:11px; color:#94a3b8; margin-top:10px;">Herramienta de apoyo. Combínala con la entrevista y las referencias; no decide sola.</div>
       </div>
       <div class="modal-footer"><button class="btn btn-light" style="margin-right:auto;" onclick="_rrhhImprimirPrueba('${p.id}')"><i class="ti ti-printer"></i> Imprimir</button><button class="btn" style="background:#fee2e2; color:#b91c1c;" onclick="_rrhhEliminarPrueba('${p.id}')"><i class="ti ti-trash"></i> Eliminar</button><button class="btn btn-light" onclick="document.getElementById('modalVerPrueba').remove()">Cerrar</button></div>
@@ -13034,6 +13110,7 @@ function _rrhhImprimirPrueba(id) {
         ${barP('Integridad / honestidad', r.integridad ? r.integridad.pct : 0, _rrhhBanda(r.integridad ? r.integridad.pct : 0))}
         ${barP('Servicio al cliente', r.servicio ? r.servicio.pct : 0, _rrhhBanda(r.servicio ? r.servicio.pct : 0))}
       </table>
+      ${(() => { const enc = _rrhhEncaje(r, p.perfil); if(!enc) return ''; return `<h2>Encaje con el puesto</h2><p style="margin:4px 0;"><b>${escapeHtml(enc.perfil.nombre)}: ${enc.pct}% — ${enc.banda.txt}.</b> Personalidad ${enc.estiloEncaja ? 'encaja con lo ideal' : enc.estiloOpuesto ? 'opuesta a lo ideal' : 'aceptable'}. ${enc.areas.map(x => `${x.area} ${x.val}% (mín ${x.min}%) ${x.ok ? 'OK' : 'bajo'}`).join(' · ')}.</p>`; })()}
       <p style="margin-top:16px; font-size:10.5px; color:#94a3b8;">Herramienta de apoyo a la selección; combínese con entrevista y referencias. Generado el ${new Date().toLocaleDateString('es-DO')}.</p>
       <script>window.onload=function(){window.print();}<\/script></body></html>`);
     w.document.close();
@@ -13050,6 +13127,7 @@ async function _rrhhGenerarEnlace() {
         candidato: nombre, cedula: (document.getElementById('prueba_cedula').value || '').trim() || null,
         telefono: (document.getElementById('prueba_tel').value || '').trim() || null,
         puesto: (document.getElementById('prueba_puesto').value || '').trim() || null,
+        perfil: document.getElementById('prueba_perfil').value || 'general',
         estado: 'pendiente', token, creado_por: (typeof sessionUser !== 'undefined' && sessionUser) ? (sessionUser.nombre || 'Admin') : 'Admin'
     };
     try {
