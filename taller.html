@@ -1969,6 +1969,9 @@ body{
                                     <div><label>Fecha de Compra</label><input id="lt_fecha" type="date"></div>
                                     <div><label>Total del Lote (RD$) — Calculado</label><input id="lt_costo_total_display" disabled style="font-weight:800; color:#065f46;"></div>
                                     <div><label>Cantidad de Equipos — Calculado</label><input id="lt_cantidad_display" disabled style="font-weight:800; color:var(--blue-btn);"></div>
+                                    <div><label>Gasto de envío / flete (courier)</label>
+                                        <div style="display:flex; align-items:center; gap:8px; padding:6px 0;"><span id="lt_envio_display" style="font-weight:800; color:#0369a1; font-size:15px;">RD$ 0.00</span><button class="btn btn-light" style="padding:5px 11px; font-size:12px; color:#0369a1; border-color:#7dd3fc;" onclick="_editarEnvioLote()"><i class="ti ti-plane-departure"></i> Editar</button></div>
+                                        <div style="font-size:10.5px; color:#64748b;">Se reparte entre los equipos según su costo.</div></div>
                                     <div><label>Notas / Comentario</label><textarea id="lt_notas" rows="2" placeholder="Ej: 53 dispositivos incluyendo apple watch"></textarea></div>
                                     <div><label>Estado</label><select id="lt_estado">
                                         <option value="Abierto">Abierto</option>
@@ -10127,6 +10130,7 @@ async function abrirLote(loteId) {
     document.getElementById('lt_fecha').value = lote.fecha_compra || '';
     document.getElementById('lt_notas').value = lote.notas || '';
     document.getElementById('lt_estado').value = lote.estado || 'Abierto';
+    const _de = document.getElementById('lt_envio_display'); if(_de) _de.textContent = money(Number(lote.gastos_envio) || 0);
     const lbl = document.getElementById('lbl_eq_imei'); if(lbl) lbl.textContent = 'IMEI / Serial *';
 
     // Smart-select de artículos (mismos de Info Plus, para que sean compatibles)
@@ -10278,6 +10282,24 @@ function onArticuloChange() {
     inp.focus();
 }
 
+// Agregar/editar el gasto de envío (flete) del lote desde la pantalla de Compras
+async function _editarEnvioLote() {
+    if(!isAdminUser()) return toast('Solo el administrador.', 'error');
+    if(!loteActualId) return;
+    const lote = (cache.lotes || []).find(l => l.id === loteActualId);
+    const actual = Number(lote?.gastos_envio) || 0;
+    const val = await pedirTexto(`Gasto de envío / flete del lote (courier).\n\nSe reparte proporcional al costo de cada equipo.\n\nMonto total (RD$):`, { valor: String(actual), tipo: 'number' });
+    if(val === null) return;
+    const monto = parseFloat(String(val).replace(/[^0-9.]/g, '')) || 0;
+    try {
+        const { error } = await supabaseClient.from('refurb_lotes').update({ gastos_envio: monto }).eq('id', loteActualId);
+        if(error) throw error;
+        toast('✅ Gasto de envío guardado: ' + money(monto));
+        await loadAll();
+        const d = document.getElementById('lt_envio_display'); if(d) d.textContent = money(monto);
+        renderEquiposLote();
+    } catch(e) { logError('editar envio lote compras', e); toastError(getFriendlyError(e)); }
+}
 async function guardarDatosLote() {
     if(!loteActualId) return;
     const codigo = (document.getElementById('lt_codigo').value || '').trim();
