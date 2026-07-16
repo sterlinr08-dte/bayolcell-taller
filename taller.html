@@ -4031,6 +4031,35 @@ document.addEventListener('mouseup', function(e) {
     var t = e.target;
     if(t && t._bcSelNum) { t._bcSelNum = false; e.preventDefault(); }
 }, true);
+// ===== GLOBAL: ESC cierra la ventana/modal que esté abierta (en todo el sistema) =====
+function _cerrarVentanaTop() {
+    // Si estás dentro de un buscador desplegable abierto, deja que él maneje el ESC primero
+    var ae = document.activeElement;
+    if(ae && ae.closest && ae.closest('.smart-select.open')) return false;
+    var set = new Set();
+    document.querySelectorAll('.modal-backdrop.active, #modalGenerico').forEach(function(el) { set.add(el); });
+    // Overlays creados al vuelo (position:fixed que cubren la pantalla)
+    document.querySelectorAll('body > div').forEach(function(el) {
+        var cs = getComputedStyle(el);
+        if(cs.position === 'fixed' && cs.display !== 'none' && cs.visibility !== 'hidden') {
+            var r = el.getBoundingClientRect();
+            if(r.width >= window.innerWidth * 0.9 && r.height >= window.innerHeight * 0.9) set.add(el);
+        }
+    });
+    var cands = [...set].filter(function(el) { return !(el.classList.contains('modal-backdrop') && !el.classList.contains('active')); });
+    if(!cands.length) return false;
+    cands.sort(function(a, b) { return (parseInt(getComputedStyle(a).zIndex) || 0) - (parseInt(getComputedStyle(b).zIndex) || 0); });
+    var top = cands[cands.length - 1];
+    var btn = top.querySelector('.modal-close');
+    if(!btn && top.id) btn = top.querySelector('[onclick*="' + top.id + '"]');
+    if(btn) btn.click();
+    else if(top.classList.contains('modal-backdrop')) top.classList.remove('active');
+    else top.remove();
+    return true;
+}
+document.addEventListener('keydown', function(e) {
+    if(e.key === 'Escape' || e.keyCode === 27) { if(_cerrarVentanaTop()) e.preventDefault(); }
+});
 
 // ===== CAZADOR GLOBAL DE ERRORES (depuración) =====
 // Captura errores inesperados que pasan FUERA de los try/catch, para que no fallen
@@ -4325,9 +4354,9 @@ function smartSelectInit(options) {
             smartSelectRenderDropdown(options.containerId);
         } else if(e.key === 'Enter') {
             e.preventDefault();
-            if(state.highlightIdx >= 0 && filtered[state.highlightIdx]) {
-                smartSelectPick(options.containerId, filtered[state.highlightIdx].id);
-            }
+            // Enter elige el resaltado; si no hay ninguno, elige el PRIMER resultado
+            const idx = state.highlightIdx >= 0 ? state.highlightIdx : 0;
+            if(filtered[idx]) smartSelectPick(options.containerId, filtered[idx].id);
         } else if(e.key === 'Escape') {
             ss.classList.remove('open');
             input.blur();
@@ -9853,7 +9882,7 @@ async function abrirBuscadorArticulos(targetSS, onPick, refHtml, seed) {
     const seedVal = (seed || '').toString();
     abrirModalGenerico('🔍 Artículos (Info Plus)', `
         ${refHtml || ''}
-        <input id="artBuscModal" placeholder="Buscar por código, descripción, marca o referencia…" autocomplete="off" value="${escapeHtml(seedVal)}" oninput="renderBuscadorArticulos()" style="width:100%; padding:10px 12px; font-size:14px; border:1px solid #cbd5e1; border-radius:8px; margin-bottom:10px;">
+        <input id="artBuscModal" placeholder="Buscar por código, descripción, marca o referencia…" autocomplete="off" value="${escapeHtml(seedVal)}" oninput="renderBuscadorArticulos()" onkeydown="if(event.key==='Enter'){event.preventDefault(); const r=document.querySelector('#artBuscModalLista div[onclick*=&quot;_artBuscElegir&quot;]'); if(r) r.click();}" style="width:100%; padding:10px 12px; font-size:14px; border:1px solid #cbd5e1; border-radius:8px; margin-bottom:10px;">
         ${seedVal ? `<div style="font-size:11px; color:#64748b; margin:-4px 0 10px;">Filtrado por el modelo del equipo. Borra palabras si quieres ver más.</div>` : ''}
         <div id="artBuscModalLista"><div style="text-align:center; color:#64748b; padding:20px;">⏳ Cargando artículos (Info Plus)…</div></div>
     `);
