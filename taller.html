@@ -1965,7 +1965,7 @@ body{
                             <div class="block-card">
                                 <div class="block-header header-blue-dark">Datos del Lote</div>
                                 <div class="block-body">
-                                    <div><label>Código Lote</label><input id="lt_codigo" disabled></div>
+                                    <div><label>Código Lote <span style="color:#94a3b8; font-weight:400; font-size:11px;">(editable)</span></label><input id="lt_codigo" placeholder="Ej. C00001913"></div>
                                     <div><label>Fecha de Compra</label><input id="lt_fecha" type="date"></div>
                                     <div><label>Total del Lote (RD$) — Calculado</label><input id="lt_costo_total_display" disabled style="font-weight:800; color:#065f46;"></div>
                                     <div><label>Cantidad de Equipos — Calculado</label><input id="lt_cantidad_display" disabled style="font-weight:800; color:var(--blue-btn);"></div>
@@ -1975,7 +1975,7 @@ body{
                                         <option value="En Proceso">En Proceso</option>
                                         <option value="Cerrado">Cerrado</option>
                                     </select></div>
-                                    <button class="btn btn-blue" style="width:100%; margin-top:10px;" onclick="guardarDatosLote()"><i class="ti ti-device-floppy"></i> Guardar Notas y Estado</button>
+                                    <button class="btn btn-blue" style="width:100%; margin-top:10px;" onclick="guardarDatosLote()"><i class="ti ti-device-floppy"></i> Guardar datos del lote</button>
                                     
                                     <details style="margin-top:15px; background:#f8fafc; border:1px solid var(--border-color); border-radius:8px; padding:10px;">
                                         <summary style="cursor:pointer; font-weight:700; font-size:12px; color:var(--blue-btn); text-transform:uppercase;"><i class="ti ti-adjustments"></i> Calibración de Labels de Diagnóstico</summary>
@@ -10132,14 +10132,20 @@ function onArticuloChange() {
 
 async function guardarDatosLote() {
     if(!loteActualId) return;
+    const codigo = (document.getElementById('lt_codigo').value || '').trim();
+    if(!codigo) return toast('El código del lote no puede quedar vacío.', 'error');
     try {
         const { error } = await supabaseClient.from('refurb_lotes').update({
+            codigo_lote: codigo,
             fecha_compra: document.getElementById('lt_fecha').value || null,
             notas: val('lt_notas') || null,
             estado: document.getElementById('lt_estado').value
         }).eq('id', loteActualId);
         if(error) throw error;
         toast('Datos del lote guardados.');
+        const lote = (cache.lotes || []).find(l => l.id === loteActualId);
+        const t = document.getElementById('loteDetTitulo');
+        if(t) t.textContent = `${codigo} · ${findProveedor(lote ? lote.proveedor_id : null).nombre || 'Sin proveedor'}`;
         await loadAll();
     } catch(e) { logError('Guardar lote', e); toastError(getFriendlyError(e)); }
 }
