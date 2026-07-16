@@ -8515,7 +8515,9 @@ async function sincronizarInfoplus(btn){
         if(!data || !data.ok){ if(msg){ msg.style.color = '#dc2626'; msg.textContent = '⚠️ ' + ((data && data.error) || 'No se pudo sincronizar.'); } }
         else {
             if(msg){ msg.style.color = '#16a34a'; msg.textContent = '✅ Taller sincronizado: ' + (data.total||0).toLocaleString('es-DO') + ' artículos · ' + (data.unidades||0).toLocaleString('es-DO') + ' unidades en existencia (Info Plus, almacén Taller).'; }
+            await _ensureInfoplusArticulos(true); // refrescar la memoria para que los cambios se vean YA (sin recargar)
             actualizarInfoplusCount(); renderInfoplusBusqueda();
+            if(document.getElementById('artBuscModalLista')) renderBuscadorArticulos();
         }
     }catch(e){ logError('Sincronizar Info Plus', e); if(msg){ msg.style.color = '#dc2626'; msg.textContent = '⚠️ Error: ' + getFriendlyError(e); } }
     finally{ btn.disabled = false; btn.innerHTML = orig; }
@@ -9890,8 +9892,13 @@ async function abrirBuscadorArticulos(targetSS, onPick, refHtml, seed) {
     const seedVal = (seed || '').toString();
     abrirModalGenerico('🔍 Artículos (Info Plus)', `
         ${refHtml || ''}
-        <input id="artBuscModal" placeholder="Buscar por código, descripción, marca o referencia…" autocomplete="off" value="${escapeHtml(seedVal)}" oninput="renderBuscadorArticulos()" onkeydown="if(event.key==='Enter'){event.preventDefault(); const r=document.querySelector('#artBuscModalLista div[onclick*=&quot;_artBuscElegir&quot;]'); if(r) r.click();}" style="width:100%; padding:10px 12px; font-size:14px; border:1px solid #cbd5e1; border-radius:8px; margin-bottom:10px;">
-        ${seedVal ? `<div style="font-size:11px; color:#475569; margin:-4px 0 10px;">Filtrado por el modelo del equipo. Borra palabras si quieres ver más.</div>` : ''}
+        <input id="artBuscModal" placeholder="Buscar por código, descripción, marca o referencia…" autocomplete="off" value="${escapeHtml(seedVal)}" oninput="renderBuscadorArticulos()" onkeydown="if(event.key==='Enter'){event.preventDefault(); const r=document.querySelector('#artBuscModalLista div[onclick*=&quot;_artBuscElegir&quot;]'); if(r) r.click();}" style="width:100%; padding:10px 12px; font-size:14px; border:1px solid #cbd5e1; border-radius:8px; margin-bottom:8px;">
+        ${seedVal ? `<div style="font-size:11px; color:#475569; margin:-2px 0 8px;">Filtrado por el modelo del equipo. Borra palabras si quieres ver más.</div>` : ''}
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+            <span style="font-size:11.5px; color:#475569;">¿Creaste o cambiaste un artículo en Info Plus y no aparece?</span>
+            <button class="btn btn-light" id="artBuscSyncBtn" style="padding:5px 11px; font-size:12px; color:#15803d; border-color:#86efac;" onclick="_buscadorSincronizarIP(this)"><i class="ti ti-refresh"></i> Sincronizar Info Plus</button>
+        </div>
+        <div id="artBuscSyncMsg" style="font-size:11.5px; margin:-4px 0 8px;"></div>
         <div id="artBuscModalLista"><div style="text-align:center; color:#475569; padding:20px;">⏳ Cargando artículos (Info Plus)…</div></div>
     `);
     // Si ya hay artículos en memoria, mostrarlos al instante; si no, cargarlos (sin re-descargar destructivamente)
@@ -9899,6 +9906,19 @@ async function abrirBuscadorArticulos(targetSS, onPick, refHtml, seed) {
     await _ensureInfoplusArticulos();
     renderBuscadorArticulos();
     setTimeout(() => { const b = document.getElementById('artBuscModal'); if(b) { b.focus(); const n = b.value.length; try { b.setSelectionRange(n, n); } catch(_e) {} } }, 60);
+}
+async function _buscadorSincronizarIP(btn) {
+    const msg = document.getElementById('artBuscSyncMsg');
+    const orig = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Sincronizando…';
+    if(msg) { msg.style.color = '#475569'; msg.textContent = '⏳ Trayendo lo último de Info Plus…'; }
+    try {
+        const { data, error } = await supabaseClient.functions.invoke('infoplus-sync', { body: {} });
+        if(error) throw error;
+        await _ensureInfoplusArticulos(true); // refrescar memoria
+        renderBuscadorArticulos();
+        if(msg) { msg.style.color = '#16a34a'; msg.textContent = '✅ Actualizado: ' + ((data && data.total) || 0).toLocaleString('es-DO') + ' artículos. Busca de nuevo.'; }
+    } catch(e) { logError('sincronizar buscador IP', e); if(msg) { msg.style.color = '#dc2626'; msg.textContent = '⚠️ ' + getFriendlyError(e); } }
+    finally { btn.disabled = false; btn.innerHTML = orig; }
 }
 function _reintentarBuscadorArticulos() {
     const cont = document.getElementById('artBuscModalLista');
