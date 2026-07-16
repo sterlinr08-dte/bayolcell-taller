@@ -2237,7 +2237,7 @@ body{
                                 <button id="btnExcelCostosLote" class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#15803d; border-color:#86efac; display:none;" onclick="exportarReporteCostosLoteExcel()"><i class="ti ti-file-spreadsheet"></i> Exportar Excel</button>
                                 <button id="btnFormatoIP" class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#075985; border-color:#7dd3fc; display:none;" onclick="imprimirFormatoInfoPlus()"><i class="ti ti-building-warehouse"></i> Formato Info Plus</button>
                                 <button id="btnFormatoIPExcel" class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#075985; border-color:#7dd3fc; display:none;" onclick="exportarFormatoInfoPlusExcel()"><i class="ti ti-file-spreadsheet"></i> Info Plus (Excel)</button>
-                                <button id="btnRegistrarCompraIP" class="btn btn-dark" style="padding:5px 10px; font-size:12px; background:#0891b2; display:none;" onclick="registrarCompraLoteInfoPlus()" title="Registrar en Info Plus los equipos listos como una compra (1 artículo por modelo + sus IMEI + costo promedio)"><i class="ti ti-cloud-upload"></i> Registrar compra en Info Plus</button>
+                                <button id="btnRegistrarCompraIP" class="btn btn-dark" style="padding:5px 10px; font-size:12px; background:#0891b2; display:none;" onclick="registrarCompraLoteInfoPlus()" title="Registrar en Info Plus los equipos Listos o Despachados como una compra (1 artículo por modelo + sus IMEI + costo promedio). Cada registro crea una compra nueva; los ya registrados no se repiten."><i class="ti ti-cloud-upload"></i> Registrar compra en Info Plus</button>
                                 <button id="btnRegManualIP" class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#0e7490; border-color:#67e8f9; display:none;" onclick="abrirRegistroManualIP()" title="Ver/marcar los equipos listos para registrarlos a mano en Info Plus, con el promedio actualizado"><i class="ti ti-clipboard-check"></i> Registro manual IP</button>
                                 <button id="btnDespacharTel" class="btn btn-dark" style="padding:5px 10px; font-size:12px; background:#0e7490; display:none;" onclick="despacharTelefonosSeleccionados()" title="Despachar a otra localidad los teléfonos seleccionados (agrupados por modelo, costo promedio, con sus IMEI)"><i class="ti ti-truck-delivery"></i> Despachar teléfonos</button>
                             </div>
@@ -12392,9 +12392,10 @@ async function registrarCompraLoteInfoPlus() {
     await _cargarProveedoresIP();
     const lote = (cache.lotes || []).find(l => l.id === reacondLoteAbiertoId);
     if(!lote) return toast('Lote no encontrado.', 'error');
-    // Equipos LISTOS y que aún NO se han registrado en Info Plus
-    const listos = (cache.refurb || []).filter(r => r.lote_id === reacondLoteAbiertoId && r.estado_evaluacion === 'listo_venta' && !r.infoplus_compra_pedido);
-    if(!listos.length) return toast('No hay equipos en "Listo" pendientes de registrar.', 'error');
+    // Equipos LISTOS o DESPACHADOS/COMPLETADOS que aún NO se han registrado en Info Plus
+    const _estadosRegistrables = ['listo_venta', 'vendido', 'completado'];
+    const listos = (cache.refurb || []).filter(r => r.lote_id === reacondLoteAbiertoId && _estadosRegistrables.includes(r.estado_evaluacion) && !r.infoplus_compra_pedido);
+    if(!listos.length) return toast('No hay equipos Listos o Despachados pendientes de registrar en Info Plus.', 'error');
     // Agrupar por código de artículo de Info Plus
     const grupos = {};
     let sinCodigo = 0;
@@ -12430,7 +12431,7 @@ async function registrarCompraLoteInfoPlus() {
     box.innerHTML = `<div class="modal-box" style="max-width:720px;">
         <div class="modal-header" style="background:linear-gradient(135deg,#0e7490,#0891b2); color:#fff; border-radius:12px 12px 0 0;"><h3 style="margin:0; color:#fff;"><i class="ti ti-cloud-upload"></i> Registrar compra en Info Plus</h3><button class="modal-close" style="color:#fff;" onclick="document.getElementById('modalRegCompraIP').remove()">✕</button></div>
         <div class="modal-body" style="max-height:70vh; overflow:auto;">
-          <p style="font-size:12.5px; color:#475569; margin-top:0;">Se registran los equipos <b>Listos</b> del lote <b>${escapeHtml(lote.codigo_lote || '')}</b> como <b>1 artículo por modelo + sus IMEI</b>, con el <b>costo promedio</b> (total = suma). El detalle por IMEI queda en el taller.</p>
+          <p style="font-size:12.5px; color:#475569; margin-top:0;">Se registran los equipos <b>Listos o Despachados</b> del lote <b>${escapeHtml(lote.codigo_lote || '')}</b> (que aún no se hayan registrado) como <b>1 artículo por modelo + sus IMEI</b>, con el <b>costo promedio</b> (total = suma). El detalle por IMEI queda en el taller. Cada registro crea <b>una compra nueva</b> en Info Plus (los ya registrados no se repiten).</p>
           ${sinCodigo > 0 ? `<div style="background:#fef3c7; color:#92400e; font-size:12px; padding:6px 10px; border-radius:8px; margin-bottom:8px;">⚠️ ${sinCodigo} equipo(s) listo(s) sin código de Info Plus — esos NO se enviarán.</div>` : ''}
           <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
             <thead><tr style="background:#f1f5f9;"><th style="padding:6px; text-align:left;">Modelo</th><th>Cód IP</th><th>Cant.</th><th style="padding:6px; text-align:right;">Promedio</th><th style="padding:6px; text-align:right;">Total</th><th>IMEI</th></tr></thead>
