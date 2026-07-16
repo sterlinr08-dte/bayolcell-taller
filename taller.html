@@ -2682,7 +2682,10 @@ body{
                     </div>
                     <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; margin-bottom:15px;">
                         <div style="flex:1; min-width:200px;">
-                            <label style="font-size:12px;">Buscar pieza del inventario</label>
+                            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+                                <label style="font-size:12px; margin:0;">Buscar pieza del inventario</label>
+                                <label style="font-size:11.5px; font-weight:600; color:#0369a1; display:flex; align-items:center; gap:5px; cursor:pointer; text-transform:none;"><input type="checkbox" id="evalPiezaSoloModelo" checked onchange="_evalToggleSoloModelo()" style="width:auto;"> Solo piezas de <b id="evalPiezaModeloTxt">este modelo</b></label>
+                            </div>
                             <div id="ss-eval-pieza"></div>
                         </div>
                         <div style="width:90px;">
@@ -9879,12 +9882,31 @@ function _initLoteArticuloSelect() {
         onIconClick: (seed) => abrirBuscadorArticulos('ss-eq-articulo', null, '', seed)
     });
 }
-// Selector de piezas en la evaluación (inventario de Info Plus)
-function _initEvalPiezaSelect() {
+// Extrae la "familia de modelo" para filtrar piezas (ej. "CELULAR IPHONE 11 NORMAL" → "IPHONE 11")
+function _modeloPiezaKey(modelo) {
+    let s = (modelo || '').toUpperCase().replace(/\b(CELULAR|TELEFONO|TEL[ÉE]FONO|SMARTPHONE|MOBILE|EQUIPO|ORIGINAL|USADO|REACOND\w*)\b/g, ' ').replace(/\s+/g, ' ').trim();
+    let m = s.match(/IPHONE\s*(SE|X[SR]?|\d{1,2}E?)\s*(PRO\s*MAX|PRO|PLUS|MINI|MAX)?/);
+    if(m) { let k = 'IPHONE ' + m[1]; if(m[2]) k += ' ' + m[2].replace(/\s+/g, ' '); return k.trim(); }
+    m = s.match(/(?:SAMSUNG\s*)?(GALAXY\s*[A-Z]?\s*\d{1,3}\s*(?:ULTRA|PLUS|FE)?)/);
+    if(m) return m[1].replace(/\s+/g, ' ').trim();
+    m = s.match(/(REDMI(?:\s*NOTE)?\s*\d{1,3}\s*[A-Z]*|POCO\s*[A-Z]?\d*|XIAOMI\s*\d*[A-Z]*)/);
+    if(m) return m[1].replace(/\s+/g, ' ').trim();
+    const toks = s.split(' ').filter(t => t.length > 1);
+    return toks.slice(0, 2).join(' ');
+}
+let _evalPiezaModeloKey = '';
+// Selector de piezas en la evaluación (inventario de Info Plus), filtrado al modelo evaluado
+function _initEvalPiezaSelect(modelo) {
+    if(modelo != null) _evalPiezaModeloKey = _modeloPiezaKey(modelo);
+    const key = _evalPiezaModeloKey || '';
+    const solo = (document.getElementById('evalPiezaSoloModelo')?.checked !== false) && !!key;
+    const toks = solo ? key.toLowerCase().split(' ').filter(Boolean) : [];
+    let arts = (cache.infoplusArticulos || []);
+    if(toks.length) arts = arts.filter(a => { const hay = (a.descripcion || '').toLowerCase(); return toks.every(t => hay.includes(t)); });
     smartSelectInit({
         containerId: 'ss-eval-pieza',
-        placeholder: '🔍 Buscar pieza del inventario (Info Plus)...',
-        items: (cache.infoplusArticulos || []).map(a => ({
+        placeholder: solo ? `🔍 Piezas de ${key}… (o desmarca para ver todo)` : '🔍 Buscar pieza del inventario (Info Plus)...',
+        items: arts.map(a => ({
             id: a.codigo,
             label: `${a.codigo} · ${(a.descripcion || '').trim()}`,
             sub: [a.marca, Number(a.existencia) > 0 ? ('Stock ' + a.existencia) : 'Sin stock', Number(a.costo) > 0 ? ('Costo ' + money(a.costo)) : ''].filter(x => x).join(' · '),
@@ -9893,9 +9915,10 @@ function _initEvalPiezaSelect() {
         })),
         value: '',
         onChange: () => {},
-        onIconClick: (seed) => abrirBuscadorArticulos('ss-eval-pieza', null, '', seed)
+        onIconClick: (seed) => abrirBuscadorArticulos('ss-eval-pieza', null, '', seed || (solo ? key : ''))
     });
 }
+function _evalToggleSoloModelo() { _initEvalPiezaSelect(); }
 // Cuando se da clic en la lupita de un smart-select que tiene buscador completo
 function _smartSelectIconClick(containerId, seed) {
     const st = _smartSelects[containerId];
@@ -15484,9 +15507,12 @@ async function abrirModalEvaluacion(equipoId) {
     document.getElementById('evalBuscarFalla').value = '';
     document.getElementById('eval_pieza_cantidad').value = 1;
     
-    // Inicializar smart-select de piezas (inventario de Info Plus)
+    // Inicializar smart-select de piezas, filtrado al MODELO que se está evaluando
     await _ensureInfoplusArticulos();
-    _initEvalPiezaSelect();
+    _evalPiezaModeloKey = _modeloPiezaKey(eq.modelo || eq.marca || '');
+    const _spm = document.getElementById('evalPiezaSoloModelo'); if(_spm) _spm.checked = true;
+    const _mt = document.getElementById('evalPiezaModeloTxt'); if(_mt) _mt.textContent = _evalPiezaModeloKey || 'este modelo';
+    _initEvalPiezaSelect(eq.modelo || eq.marca || '');
     
     renderFallasEvaluacion();
     renderPiezasEvaluacion();
