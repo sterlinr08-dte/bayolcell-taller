@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Autoevaluación — Bayol Cell</title>
+<style>
+  :root { --rojo:#e31e24; --ink:#0f172a; --muted:#64748b; --border:#e5e7eb; }
+  * { box-sizing:border-box; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; -webkit-tap-highlight-color:transparent; }
+  body { margin:0; background:#f4f5f7; color:var(--ink); }
+  .wrap { max-width:560px; margin:0 auto; padding:14px 13px 40px; }
+  .card { background:#fff; border:1px solid var(--border); border-radius:16px; box-shadow:0 1px 4px rgba(15,23,42,.06); padding:18px 16px; margin-bottom:13px; }
+  .brand { text-align:center; font-weight:900; letter-spacing:.5px; margin:6px 0 12px; }
+  .brand .r { color:var(--rojo); } .brand small { display:block; font-weight:600; color:#94a3b8; font-size:10px; letter-spacing:2px; }
+  h2 { margin:6px 0; }
+  .crit { padding:12px 2px; border-bottom:1px solid #f1f5f9; }
+  .clbl { font-size:15px; font-weight:600; margin-bottom:7px; }
+  .stars i { font-size:32px; cursor:pointer; color:#d1d5db; margin-right:2px; transition:.1s; }
+  .stars i.on { color:#f59e0b; }
+  .cval { font-size:12px; color:var(--muted); margin-top:3px; height:14px; }
+  .note { background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; border-radius:12px; padding:11px 14px; font-size:13px; margin-bottom:14px; }
+  textarea { width:100%; border:1.5px solid var(--border); border-radius:12px; padding:11px; font-size:15px; resize:vertical; }
+  .btn { display:block; width:100%; border:0; border-radius:13px; padding:15px; font-size:16px; font-weight:800; cursor:pointer; background:var(--rojo); color:#fff; }
+  .btn:disabled { opacity:.5; }
+  .center { text-align:center; } .big-ico { font-size:52px; }
+  .foot { text-align:center; color:#94a3b8; font-size:11px; margin-top:10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand"><span class="r">BAYOL</span> CELL<small>AUTOEVALUACIÓN</small></div>
+  <div id="app"><div class="card center" style="padding:40px 16px;"><div class="big-ico">⏳</div><p>Cargando…</p></div></div>
+  <div class="foot">Bayol Cell · Recursos Humanos</div>
+</div>
+<script>
+const FUNC = 'https://vkhwdvjtowrhkhqavnvk.supabase.co/functions/v1/rrhh-autoeval';
+const APIKEY = 'sb_publishable_PynS5ZjKoQ36HCpguVzxaw_KZOlagtz';
+const LBL = ['Malo','Regular','Aceptable','Bueno','Excelente'];
+let TOKEN = new URLSearchParams(location.search).get('t') || '';
+let CRIT = [], RESP = {}, EMP = '';
+const app = document.getElementById('app');
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+async function api(action, extra){
+  const r = await fetch(FUNC, { method:'POST', headers:{ 'Content-Type':'application/json', 'apikey':APIKEY, 'Authorization':'Bearer '+APIKEY }, body: JSON.stringify(Object.assign({ action, token:TOKEN }, extra||{})) });
+  return r.json();
+}
+function msg(ico, t, x){ app.innerHTML = `<div class="card center" style="padding:40px 18px;"><div class="big-ico">${ico}</div><h2>${esc(t)}</h2><p style="color:#64748b;">${esc(x)}</p></div>`; window.scrollTo(0,0); }
+
+async function iniciar(){
+  if(!TOKEN) return msg('🔗','Enlace incompleto','Pídele al encargado que te reenvíe el enlace.');
+  let d; try { d = await api('get'); } catch(e){ return msg('⚠️','Sin conexión','Revisa tu internet e intenta de nuevo.'); }
+  if(!d || !d.ok) return msg('🔗','Enlace no válido', (d && d.error)||'Este enlace no funciona.');
+  if(d.estado === 'completada') return msg('✅','Ya la enviaste','Gracias, '+(d.empleado||'')+'. Tu autoevaluación ya fue recibida.');
+  CRIT = d.criterios || []; EMP = d.empleado || '';
+  try { const b = JSON.parse(localStorage.getItem('bayol_autoeval_'+TOKEN)||'null'); if(b) RESP = b; } catch(e){}
+  render(d.periodo);
+}
+function render(periodo){
+  app.innerHTML = `
+    <div class="card">
+      <div class="center"><div class="big-ico">⭐</div>
+        <h2 style="margin:6px 0 2px;">Hola${EMP?', '+esc(EMP.split(' ')[0]):''} 👋</h2>
+        <p style="color:#64748b; margin:2px 0;">Cuéntanos cómo evalúas tu trabajo${periodo?(' ('+esc(periodo)+')'):''}.</p>
+      </div>
+      <div class="note" style="margin-top:14px;">Sé sincero. Esto es para ayudarte a mejorar y crecer. Toca las estrellas: <b>1 = Malo · 5 = Excelente</b>.</div>
+      <div id="crits"></div>
+      <div class="clbl" style="margin-top:14px;">¿Algo que quieras comentar? (opcional)</div>
+      <textarea id="coment" rows="3" placeholder="Ej. en qué siento que soy bueno, qué me gustaría mejorar…">${esc(RESP._c||'')}</textarea>
+    </div>
+    <button id="enviar" class="btn" onclick="enviar()">Enviar mi autoevaluación</button>`;
+  pintarCrits();
+}
+function pintarCrits(){
+  const cont = document.getElementById('crits'); if(!cont) return;
+  cont.innerHTML = CRIT.map(c => { const v = RESP[c.k]||0;
+    return `<div class="crit"><div class="clbl">${esc(c.lbl)}</div>
+      <div class="stars" data-k="${c.k}">${[1,2,3,4,5].map(n=>`<i class="ti ${v>=n?'on':''}" onclick="setStar('${c.k}',${n})">${v>=n?'★':'☆'}</i>`).join('')}</div>
+      <div class="cval">${v?LBL[v-1]:'&nbsp;'}</div></div>`;
+  }).join('');
+}
+function setStar(k,v){ RESP[k]=v; guardar(); pintarCrits(); }
+function guardar(){ const t=document.getElementById('coment'); if(t) RESP._c=t.value; try{ localStorage.setItem('bayol_autoeval_'+TOKEN, JSON.stringify(RESP)); }catch(e){} }
+async function enviar(){
+  guardar();
+  const faltan = CRIT.filter(c => !RESP[c.k]).length;
+  if(faltan) return alert('Te faltan '+faltan+' punto(s) por calificar con estrellas.');
+  const b = document.getElementById('enviar'); if(b){ b.disabled=true; b.textContent='Enviando…'; }
+  const crit = {}; CRIT.forEach(c => crit[c.k]=RESP[c.k]);
+  let d; try { d = await api('submit', { criterios: crit, comentario: RESP._c||'' }); } catch(e){ if(b){b.disabled=false;b.textContent='Enviar mi autoevaluación';} return alert('Sin conexión. Intenta de nuevo.'); }
+  if(d && d.ok){ try{ localStorage.removeItem('bayol_autoeval_'+TOKEN); }catch(e){} msg('🎉','¡Gracias!','Tu autoevaluación fue enviada. Ya puedes cerrar esta página.'); }
+  else { if(b){b.disabled=false;b.textContent='Enviar mi autoevaluación';} alert((d&&d.error)||'No se pudo enviar.'); }
+}
+iniciar();
+</script>
+</body>
+</html>

@@ -12579,9 +12579,11 @@ function _rrhhVerExpediente(id) {
           const evs = (cache.rrhhEvals || []).filter(x => x.empleado_id === e.id);
           const prom = _rrhhEvalPromEmp(e.id);
           const pb = prom != null ? _rrhhEvalBanda(prom) : null;
+          const evsDone = evs.filter(x => x.estado !== 'pendiente');
+          const haySup = evsDone.some(x => x.tipo !== 'auto'), hayAuto = evsDone.some(x => x.tipo === 'auto');
           return sec(`Desempeño ${pb ? `<span style="color:${pb.color}; font-weight:800;">· ${prom.toFixed(1)}/5 ${pb.txt}</span>` : ''}`) +
-            `<div style="margin-bottom:6px;"><button class="btn btn-light" style="padding:4px 10px; font-size:11.5px; color:#c2410c; border-color:#fed7aa;" onclick="document.getElementById('modalRrhhExp').remove(); _rrhhNuevaEval('${e.id}')"><i class="ti ti-star"></i> Evaluar</button></div>` +
-            (evs.length ? evs.map(ev => { const b = _rrhhEvalBanda(Number(ev.nota_general) || 0); return `<div style="display:flex; justify-content:space-between; align-items:center; font-size:12.5px; padding:5px 0; border-bottom:1px solid #f1f5f9;"><span>${escapeHtml(ev.periodo || '')} · <b style="color:${b.color};">${Number(ev.nota_general).toFixed(1)}/5 ${b.txt}</b></span><a onclick="_rrhhVerEval('${ev.id}')" style="cursor:pointer; color:#0369a1;"><i class="ti ti-eye"></i> ver</a></div>`; }).join('') : '<div style="font-size:12px; color:#cbd5e1;">— sin evaluaciones —</div>');
+            `<div style="margin-bottom:6px; display:flex; gap:6px; flex-wrap:wrap;"><button class="btn btn-light" style="padding:4px 10px; font-size:11.5px; color:#c2410c; border-color:#fed7aa;" onclick="document.getElementById('modalRrhhExp').remove(); _rrhhNuevaEval('${e.id}')"><i class="ti ti-star"></i> Evaluar</button>${haySup && hayAuto ? `<button class="btn btn-light" style="padding:4px 10px; font-size:11.5px; color:#7c3aed; border-color:#e9d5ff;" onclick="_rrhhCompararDesempeno('${e.id}')"><i class="ti ti-git-compare"></i> Comparar (tú vs. él/ella)</button>` : ''}</div>` +
+            (evsDone.length ? evsDone.map(ev => { const b = _rrhhEvalBanda(Number(ev.nota_general) || 0); return `<div style="display:flex; justify-content:space-between; align-items:center; font-size:12.5px; padding:5px 0; border-bottom:1px solid #f1f5f9;"><span>${escapeHtml(ev.periodo || '')} · <b style="color:${b.color};">${Number(ev.nota_general).toFixed(1)}/5 ${b.txt}</b> ${ev.tipo === 'auto' ? '<span style="font-size:9.5px; color:#7c3aed;">(auto)</span>' : ''}</span><a onclick="_rrhhVerEval('${ev.id}')" style="cursor:pointer; color:#0369a1;"><i class="ti ti-eye"></i> ver</a></div>`; }).join('') : '<div style="font-size:12px; color:#cbd5e1;">— sin evaluaciones —</div>');
         })()}
         ${(() => {
           const pr = (cache.rrhhPruebas || []).filter(x => x.empleado_id === e.id && x.estado === 'completada');
@@ -13407,28 +13409,120 @@ let _rrhhEvalBusq = '';
 function _renderRRHHDesempeno() {
     const cont = document.getElementById('nominaContent'); if(!cont) return;
     const q = (_rrhhEvalBusq || '').trim().toLowerCase();
-    let evs = (cache.rrhhEvals || []).slice();
     const nom = id => { const e = (cache.nominaEmpleados || []).find(x => x.id === id); return e ? e.nombre : '—'; };
+    const all = (cache.rrhhEvals || []);
+    const pendientes = all.filter(e => e.estado === 'pendiente' && e.token);
+    let evs = all.filter(e => e.estado !== 'pendiente');
     if(q) evs = evs.filter(e => (`${nom(e.empleado_id)} ${e.periodo || ''}`).toLowerCase().includes(q));
     const fdate = d => d ? new Date(d + 'T00:00:00').toLocaleDateString('es-DO') : '—';
+    const tipoBadge = t => t === 'auto' ? '<span style="font-size:9.5px; font-weight:700; color:#7c3aed; background:#faf5ff; border:1px solid #e9d5ff; padding:1px 6px; border-radius:7px;">autoevaluación</span>' : '<span style="font-size:9.5px; font-weight:700; color:#0891b2; background:#ecfeff; border:1px solid #a5f3fc; padding:1px 6px; border-radius:7px;">del supervisor</span>';
     const filas = evs.map(e => { const b = _rrhhEvalBanda(Number(e.nota_general) || 0); return `<tr>
-        <td style="padding:7px 6px; border-bottom:1px solid #eef2f7;"><a onclick="_rrhhVerEval('${e.id}')" style="cursor:pointer; color:#0f172a; font-weight:700;">${escapeHtml(nom(e.empleado_id))}</a><div style="font-size:11px; color:#94a3b8;">${escapeHtml(e.puesto || '')}</div></td>
+        <td style="padding:7px 6px; border-bottom:1px solid #eef2f7;"><a onclick="_rrhhVerEval('${e.id}')" style="cursor:pointer; color:#0f172a; font-weight:700;">${escapeHtml(nom(e.empleado_id))}</a><div style="font-size:11px; color:#94a3b8;">${escapeHtml(e.puesto || '')} · ${tipoBadge(e.tipo)}</div></td>
         <td style="padding:7px 6px; border-bottom:1px solid #eef2f7;">${escapeHtml(e.periodo || '—')}</td>
         <td style="padding:7px 6px; border-bottom:1px solid #eef2f7; text-align:center;">${fdate(e.fecha)}</td>
         <td style="padding:7px 6px; border-bottom:1px solid #eef2f7; text-align:center;"><span style="font-weight:800; color:${b.color};">${Number(e.nota_general).toFixed(1)}/5</span> <span style="font-size:10px; font-weight:700; color:${b.color}; background:${b.bg}; border:1px solid ${b.bd}; padding:1px 7px; border-radius:8px;">${b.txt}</span></td>
         <td style="padding:7px 6px; border-bottom:1px solid #eef2f7; text-align:center; white-space:nowrap;"><a onclick="_rrhhVerEval('${e.id}')" style="cursor:pointer; color:#0369a1;" title="Ver"><i class="ti ti-eye"></i></a>&nbsp;&nbsp;<a onclick="_rrhhEliminarEval('${e.id}')" style="cursor:pointer; color:#dc2626;" title="Borrar"><i class="ti ti-trash"></i></a></td>
       </tr>`; }).join('');
+    const pend = pendientes.length ? `<div style="border:1px solid #fde68a; background:#fffbeb; border-radius:10px; padding:11px 13px; margin-bottom:12px;">
+        <div style="font-weight:700; color:#92400e; font-size:12.5px; margin-bottom:6px;"><i class="ti ti-clock-hour-4"></i> Autoevaluaciones enviadas, esperando respuesta (${pendientes.length})</div>
+        ${pendientes.map(e => { const emp = (cache.nominaEmpleados || []).find(x => x.id === e.empleado_id); const tel = emp ? emp.telefono : ''; const num = _rrhhWaNum(tel); const msg = `Hola ${nom(e.empleado_id)}, por favor completa tu autoevaluación de Bayol Cell desde tu celular:\n${RRHH_AUTOEVAL_URL}${e.token}`; const waHref = (num ? `https://wa.me/${num}` : 'https://wa.me/') + `?text=${encodeURIComponent(msg)}`; return `<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:5px 0; border-top:1px solid #fef3c7; font-size:12.5px;">
+            <div><b>${escapeHtml(nom(e.empleado_id))}</b> <span style="color:#94a3b8;">${escapeHtml(e.periodo || '')}</span></div>
+            <div style="display:flex; gap:12px; align-items:center; white-space:nowrap;">
+              <a href="${waHref}" target="_blank" rel="noopener" style="color:#16a34a; font-weight:600; text-decoration:none;"><i class="ti ti-brand-whatsapp"></i> WhatsApp</a>
+              <a onclick="_rrhhMostrarAutoEnlace('${e.token}', '${escapeHtml(nom(e.empleado_id).replace(/'/g, ''))}', '${escapeHtml((tel || '').replace(/'/g, ''))}')" style="cursor:pointer; color:#0369a1;" title="Ver enlace"><i class="ti ti-link"></i></a>
+              <a onclick="_rrhhEliminarEval('${e.id}')" style="cursor:pointer; color:#dc2626;" title="Cancelar"><i class="ti ti-trash"></i></a>
+            </div>
+          </div>`; }).join('')}
+      </div>` : '';
     cont.innerHTML = `
       <div style="background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:11px 14px; margin-bottom:12px; font-size:12.5px; color:#334155;">
-        <b style="color:#c2410c;"><i class="ti ti-star"></i> Evaluación de desempeño</b> — califica a cada empleado (del 1 al 5, con estrellas) en puntualidad, actitud, calidad, atención al cliente, honestidad, etc. Da una nota general y queda en su expediente para ver cómo evoluciona. Sirve para aumentos, bonos y conversaciones de mejora.
+        <b style="color:#c2410c;"><i class="ti ti-star"></i> Evaluación de desempeño</b> — califica a cada empleado (1 a 5 con estrellas) en puntualidad, actitud, calidad, atención al cliente, honestidad, etc. También puedes pedirle al empleado que se <b>autoevalúe</b> por enlace y luego <b>comparar</b> su nota con la tuya. Todo queda en su expediente.
       </div>
+      ${pend}
       <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
-        <input value="${escapeHtml(_rrhhEvalBusq)}" oninput="_rrhhEvalBusq=this.value; _renderRRHHDesempeno(); const el=document.getElementById('rrhhEvalBusq'); if(el){el.focus(); el.setSelectionRange(el.value.length,el.value.length);}" id="rrhhEvalBusq" placeholder="Buscar por empleado o período…" style="padding:7px 10px; border:1px solid #cbd5e1; border-radius:8px; min-width:200px;">
-        <button class="btn btn-blue" onclick="_rrhhNuevaEval()"><i class="ti ti-plus"></i> Nueva evaluación</button>
+        <input value="${escapeHtml(_rrhhEvalBusq)}" oninput="_rrhhEvalBusq=this.value; _renderRRHHDesempeno(); const el=document.getElementById('rrhhEvalBusq'); if(el){el.focus(); el.setSelectionRange(el.value.length,el.value.length);}" id="rrhhEvalBusq" placeholder="Buscar por empleado o período…" style="padding:7px 10px; border:1px solid #cbd5e1; border-radius:8px; min-width:180px;">
+        <div style="display:flex; gap:8px;">
+          <button class="btn" style="background:#7c3aed; color:#fff;" onclick="_rrhhNuevaAutoEnlace()"><i class="ti ti-user-check"></i> Autoevaluación (enlace)</button>
+          <button class="btn btn-blue" onclick="_rrhhNuevaEval()"><i class="ti ti-plus"></i> Nueva evaluación</button>
+        </div>
       </div>
       <div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12.5px; min-width:640px;">
         <thead><tr style="background:#f1f5f9;"><th style="padding:7px 6px; text-align:left;">Empleado</th><th style="padding:7px 6px; text-align:left;">Período</th><th style="padding:7px 6px;">Fecha</th><th style="padding:7px 6px;">Nota</th><th style="padding:7px 6px;"></th></tr></thead>
         <tbody>${filas || '<tr><td colspan="5" style="padding:16px; text-align:center; color:#94a3b8;">Aún no hay evaluaciones. Dale a "Nueva evaluación".</td></tr>'}</tbody></table></div>`;
+}
+const RRHH_AUTOEVAL_URL = 'https://bayolcell.com/autoeval.html?t=';
+function _rrhhNuevaAutoEnlace() {
+    const emps = (cache.nominaEmpleados || []).filter(e => e.activo !== false).sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+    const now = new Date(); const mesN = NOM_MESES[now.getMonth()]; const periodo = mesN.charAt(0) + mesN.slice(1).toLowerCase() + ' ' + now.getFullYear();
+    const prev = document.getElementById('modalAutoEnlace'); if(prev) prev.remove();
+    const box = document.createElement('div'); box.className = 'modal-backdrop active'; box.id = 'modalAutoEnlace'; box.style.zIndex = '785';
+    box.innerHTML = `<div class="modal-box" style="max-width:440px;">
+      <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-user-check"></i> Autoevaluación por enlace</h3><button class="modal-close" onclick="document.getElementById('modalAutoEnlace').remove()">✕</button></div>
+      <div class="modal-body">
+        <div class="form-row"><label>Empleado *</label><select id="auto_emp"><option value="">— Elegir —</option>${emps.map(e => `<option value="${e.id}" data-tel="${escapeHtml(e.telefono || '')}">${escapeHtml(e.nombre)}</option>`).join('')}</select></div>
+        <div class="form-row"><label>Período</label><input id="auto_periodo" value="${escapeHtml(periodo)}"></div>
+        <div style="font-size:12px; color:#64748b;"><i class="ti ti-info-circle"></i> Se genera un enlace para que el empleado se califique desde su celular. Cuando lo envíe, podrás comparar su nota con la tuya.</div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-light" onclick="document.getElementById('modalAutoEnlace').remove()">Cancelar</button><button class="btn btn-blue" onclick="_rrhhGenerarAutoEnlace()"><i class="ti ti-link"></i> Generar enlace</button></div>
+    </div>`;
+    document.body.appendChild(box);
+}
+async function _rrhhGenerarAutoEnlace() {
+    const empId = document.getElementById('auto_emp').value; if(!empId) return toast('Elige el empleado.', 'error');
+    const emp = (cache.nominaEmpleados || []).find(e => e.id === empId);
+    let token = 'a'; try { token += (crypto.randomUUID ? crypto.randomUUID() : (Date.now() + '' + Math.random())).replace(/[^a-z0-9]/gi, ''); } catch(_) { token += Date.now(); }
+    const data = { empleado_id: empId, periodo: (document.getElementById('auto_periodo').value || '').trim() || null, puesto: emp ? emp.puesto : null, tipo: 'auto', estado: 'pendiente', token, evaluador: emp ? emp.nombre : null, creado_por: (typeof sessionUser !== 'undefined' && sessionUser) ? (sessionUser.nombre || 'Admin') : 'Admin' };
+    try {
+        const { error } = await supabaseClient.from('rrhh_evaluaciones').insert([data]);
+        if(error) throw error;
+        document.getElementById('modalAutoEnlace')?.remove();
+        await _loadNomina(); if(_nominaTab === 'desempeno') _renderRRHHDesempeno();
+        _rrhhMostrarAutoEnlace(token, emp ? emp.nombre : '', emp ? emp.telefono : '');
+    } catch(e) { logError('generar autoeval enlace', e); toastError(getFriendlyError(e)); }
+}
+function _rrhhMostrarAutoEnlace(token, nombre, telefono) {
+    const url = RRHH_AUTOEVAL_URL + token;
+    const msg = `Hola ${nombre}, por favor completa tu autoevaluación de Bayol Cell desde tu celular:\n${url}`;
+    const num = _rrhhWaNum(telefono);
+    const waHref = (num ? `https://wa.me/${num}` : 'https://wa.me/') + `?text=${encodeURIComponent(msg)}`;
+    const prev = document.getElementById('modalEnlaceAuto'); if(prev) prev.remove();
+    const box = document.createElement('div'); box.className = 'modal-backdrop active'; box.id = 'modalEnlaceAuto'; box.style.zIndex = '800';
+    box.innerHTML = `<div class="modal-box" style="max-width:480px;">
+      <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-link"></i> Enlace de autoevaluación</h3><button class="modal-close" onclick="document.getElementById('modalEnlaceAuto').remove()">✕</button></div>
+      <div class="modal-body">
+        <div style="font-size:13px; color:#475569; margin-bottom:8px;">Compártelo con <b>${escapeHtml(nombre)}</b>. Al abrirlo se califica solo y a ti te llega la nota para comparar.</div>
+        <div style="display:flex; gap:6px;"><input id="enlaceAutoTxt" value="${escapeHtml(url)}" readonly style="flex:1; padding:8px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:12px;"><button class="btn btn-light" onclick="(function(){const el=document.getElementById('enlaceAutoTxt'); el.select(); try{navigator.clipboard.writeText(el.value);}catch(_){document.execCommand('copy');} toast('✓ Enlace copiado.');})()"><i class="ti ti-copy"></i></button></div>
+        <div style="margin-top:12px;"><a class="btn" style="background:#25d366; color:#fff; text-align:center; display:block;" href="${waHref}" target="_blank"><i class="ti ti-brand-whatsapp"></i> ${num ? 'Enviar a su WhatsApp' : 'Enviar por WhatsApp'}</a></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-blue" onclick="document.getElementById('modalEnlaceAuto').remove()">Listo</button></div>
+    </div>`;
+    document.body.appendChild(box);
+}
+// Comparación: mi evaluación (supervisor) vs autoevaluación del empleado
+function _rrhhCompararDesempeno(empId) {
+    const evs = (cache.rrhhEvals || []).filter(e => e.empleado_id === empId && e.estado !== 'pendiente');
+    const sup = evs.filter(e => e.tipo !== 'auto').sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))[0];
+    const auto = evs.filter(e => e.tipo === 'auto').sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))[0];
+    const emp = (cache.nominaEmpleados || []).find(x => x.id === empId);
+    if(!sup || !auto) return toast('Necesitas una evaluación tuya Y una autoevaluación del empleado para comparar.');
+    const estrellas = (v, col) => [1, 2, 3, 4, 5].map(x => `<i class="ti ${v >= x ? 'ti-star-filled' : 'ti-star'}" style="font-size:14px; color:${v >= x ? col : '#e2e8f0'};"></i>`).join('');
+    const rows = RRHH_EVAL_CRITERIOS.map(c => { const s = (sup.criterios || {})[c.k] || 0, a = (auto.criterios || {})[c.k] || 0; const dif = a - s; const alerta = Math.abs(dif) >= 2; return `<div style="padding:7px 0; border-bottom:1px solid #f1f5f9;"><div style="font-size:12.5px; color:#0f172a; margin-bottom:3px;">${escapeHtml(c.lbl)}${alerta ? ' <span style="color:#b91c1c; font-size:10px; font-weight:700;">⚠ difieren</span>' : ''}</div><div style="display:flex; justify-content:space-between; font-size:11px;"><span style="color:#0891b2;">Tú: ${estrellas(s, '#0891b2')}</span><span style="color:#7c3aed;">Él/ella: ${estrellas(a, '#7c3aed')}</span></div></div>`; }).join('');
+    const bs = _rrhhEvalBanda(Number(sup.nota_general) || 0), ba = _rrhhEvalBanda(Number(auto.nota_general) || 0);
+    const prev = document.getElementById('modalComparaEval'); if(prev) prev.remove();
+    const box = document.createElement('div'); box.className = 'modal-backdrop active'; box.id = 'modalComparaEval'; box.style.zIndex = '795';
+    box.innerHTML = `<div class="modal-box" style="max-width:520px; width:96%;">
+      <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-git-compare"></i> Comparar — ${escapeHtml(emp ? emp.nombre : '')}</h3><button class="modal-close" onclick="document.getElementById('modalComparaEval').remove()">✕</button></div>
+      <div class="modal-body" style="max-height:78vh; overflow-y:auto;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
+          <div style="border:1px solid #a5f3fc; background:#ecfeff; border-radius:12px; padding:11px; text-align:center;"><div style="font-size:11px; color:#0891b2; font-weight:700;">TU EVALUACIÓN</div><div style="font-size:22px; font-weight:900; color:${bs.color};">${Number(sup.nota_general).toFixed(1)}/5</div><div style="font-size:11px; color:${bs.color};">${bs.txt}</div></div>
+          <div style="border:1px solid #e9d5ff; background:#faf5ff; border-radius:12px; padding:11px; text-align:center;"><div style="font-size:11px; color:#7c3aed; font-weight:700;">SU AUTOEVALUACIÓN</div><div style="font-size:22px; font-weight:900; color:${ba.color};">${Number(auto.nota_general).toFixed(1)}/5</div><div style="font-size:11px; color:${ba.color};">${ba.txt}</div></div>
+        </div>
+        <div style="font-size:11.5px; color:#64748b; margin-bottom:6px;">Diferencia de nota: <b>${(Number(auto.nota_general) - Number(sup.nota_general)).toFixed(1)}</b> ${Number(auto.nota_general) > Number(sup.nota_general) ? '(él/ella se ve mejor de lo que tú lo ves)' : Number(auto.nota_general) < Number(sup.nota_general) ? '(él/ella se ve más bajo que tú)' : '(coinciden)'}. Los puntos con ⚠ son donde más se separan — buenos temas de conversación.</div>
+        ${rows}
+      </div>
+      <div class="modal-footer"><button class="btn btn-blue" onclick="document.getElementById('modalComparaEval').remove()">Cerrar</button></div>
+    </div>`;
+    document.body.appendChild(box);
 }
 let _rrhhEvalTmp = { criterios: {} };
 function _rrhhNuevaEval(empId) {
@@ -13444,6 +13538,7 @@ function _rrhhNuevaEval(empId) {
           <div class="form-row"><label>Empleado *</label><select id="eval_emp">${empId ? '' : '<option value="">— Elegir —</option>'}${emps.map(e => `<option value="${e.id}" ${empId === e.id ? 'selected' : ''}>${escapeHtml(e.nombre)}</option>`).join('')}</select></div>
           <div class="form-row"><label>Período</label><input id="eval_periodo" value="${escapeHtml(periodo)}"></div>
         </div>
+        <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; color:#475569; margin:2px 0 6px;"><input type="checkbox" id="eval_auto" style="width:15px; height:15px;"> Es <b>autoevaluación</b> (la contesta el empleado aquí mismo)</label>
         <div style="font-size:11.5px; color:#64748b; margin:2px 0 4px;">Toca las estrellas: 1 = Malo · 5 = Excelente</div>
         <div id="evalCriterios"></div>
         <div id="evalProm" style="text-align:right; font-weight:800; margin:8px 0; font-size:14px;"></div>
@@ -13474,7 +13569,8 @@ async function _rrhhGuardarEval() {
     const nota = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 100) / 100;
     const emp = (cache.nominaEmpleados || []).find(e => e.id === empId);
     const nombreAdmin = (typeof sessionUser !== 'undefined' && sessionUser) ? (sessionUser.nombre || 'Admin') : 'Admin';
-    const data = { empleado_id: empId, periodo: (document.getElementById('eval_periodo').value || '').trim() || null, puesto: emp ? emp.puesto : null, criterios: crit, nota_general: nota, comentario: (document.getElementById('eval_coment').value || '').trim() || null, evaluador: nombreAdmin, creado_por: nombreAdmin };
+    const esAuto = document.getElementById('eval_auto') && document.getElementById('eval_auto').checked;
+    const data = { empleado_id: empId, periodo: (document.getElementById('eval_periodo').value || '').trim() || null, puesto: emp ? emp.puesto : null, tipo: esAuto ? 'auto' : 'supervisor', estado: 'completada', criterios: crit, nota_general: nota, comentario: (document.getElementById('eval_coment').value || '').trim() || null, evaluador: esAuto ? (emp ? emp.nombre : 'Empleado') : nombreAdmin, creado_por: nombreAdmin };
     try {
         const { data: ins, error } = await supabaseClient.from('rrhh_evaluaciones').insert([data]).select('id').single();
         if(error) throw error;
@@ -13495,7 +13591,7 @@ function _rrhhVerEval(id) {
     box.innerHTML = `<div class="modal-box" style="max-width:520px; width:96%;">
       <div class="modal-header" style="background:linear-gradient(135deg,#ea580c,#f59e0b); color:#fff; border-radius:12px 12px 0 0;"><h3 style="margin:0; color:#fff;"><i class="ti ti-star"></i> ${escapeHtml(emp ? emp.nombre : 'Empleado')}</h3><button class="modal-close" style="color:#fff;" onclick="document.getElementById('modalVerEval').remove()">✕</button></div>
       <div class="modal-body" style="max-height:78vh; overflow-y:auto;">
-        <div style="font-size:12.5px; color:#64748b; margin-bottom:10px;">${escapeHtml(e.periodo || '')} · ${e.fecha ? new Date(e.fecha + 'T00:00:00').toLocaleDateString('es-DO') : ''}${e.evaluador ? ' · por ' + escapeHtml(e.evaluador) : ''}</div>
+        <div style="font-size:12.5px; color:#64748b; margin-bottom:10px;">${e.tipo === 'auto' ? '<span style="color:#7c3aed; font-weight:700;">Autoevaluación</span> · ' : ''}${escapeHtml(e.periodo || '')} · ${e.fecha ? new Date(e.fecha + 'T00:00:00').toLocaleDateString('es-DO') : ''}${e.evaluador ? ' · por ' + escapeHtml(e.evaluador) : ''}</div>
         <div style="display:flex; align-items:center; gap:12px; background:${b.bg}; border:1.5px solid ${b.bd}; border-radius:14px; padding:14px 16px; margin-bottom:14px;">
           <div style="font-size:30px; font-weight:900; color:${b.color};">${Number(e.nota_general).toFixed(1)}<span style="font-size:15px; color:#94a3b8;">/5</span></div>
           <div style="font-weight:800; font-size:16px; color:${b.color};">${b.txt}</div>
