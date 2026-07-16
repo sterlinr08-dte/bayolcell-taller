@@ -1724,8 +1724,27 @@ body{
                             </div>
                         </div>
                     </div>
+
+                    <!-- ¿QZ Tray pide permiso cada vez? -->
+                    <div style="margin-top:15px; border-top:1px solid var(--border-color); padding-top:14px;">
+                        <div style="font-weight:800; font-size:14px; color:#0f172a; margin-bottom:6px;"><i class="ti ti-shield-lock" style="color:#f59e0b;"></i> ¿QZ Tray te pide permiso cada vez que imprimes?</div>
+                        <div style="font-size:13px; color:#334155; line-height:1.55;">
+                            <p style="margin:0 0 10px;">Es el aviso de seguridad de QZ Tray. Para que <b>deje de preguntar</b> en esta computadora, instala el certificado de BAYOL CELL como "de confianza" (una sola vez por computadora):</p>
+                            <button class="btn btn-blue" onclick="_qzDescargarCertificado()"><i class="ti ti-download"></i> Descargar certificado (bayol-cell.crt)</button>
+                            <ol style="margin:12px 0 0 18px; padding:0; font-size:12.5px;">
+                                <li>Descarga el archivo con el botón de arriba (se guarda como <b>bayol-cell.crt</b>).</li>
+                                <li>Abajo a la derecha (al lado del reloj) haz <b>clic derecho</b> en el ícono de <b>QZ Tray</b> (la <b>Q</b>). Si no lo ves, dale a la flechita ▲.</li>
+                                <li><b>Advanced → Site Manager</b>.</li>
+                                <li>Pestaña <b>"Allowed"</b> → botón <b>"+"</b> (o Import) → elige el archivo <b>bayol-cell.crt</b>.</li>
+                                <li>Cierra; en QZ Tray dale <b>clic derecho → Exit</b> y vuelve a abrirlo.</li>
+                                <li>Recarga la app (Ctrl + Shift + R) e imprime una prueba. Ya no pregunta.</li>
+                            </ol>
+                            <p style="font-size:11.5px; color:#64748b; margin:10px 0 0;">Alterna (necesita administrador): renombra el archivo a <b>override.crt</b> y pégalo en <code>C:\Program Files\QZ Tray\</code>. Reinicia QZ Tray.</p>
+                            <p style="font-size:11.5px; color:#b45309; margin:6px 0 0;"><i class="ti ti-info-circle"></i> Hay que hacerlo una vez en cada computadora donde imprimas.</p>
+                        </div>
+                    </div>
                 </div>
-                
+
                 <div class="layout-dashboard">
                     <!-- Lado izquierdo: controles -->
                     <div class="card">
@@ -24788,6 +24807,17 @@ function qzConfigurarFirma() {
 
 function qzDisponible() {
     return typeof qz !== 'undefined';
+}
+// Descargar el certificado público de BAYOL CELL para instalarlo como confiable en QZ Tray
+function _qzDescargarCertificado() {
+    try {
+        const blob = new Blob([QZ_CERTIFICADO + '\n'], { type: 'application/x-x509-ca-cert' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = 'bayol-cell.crt';
+        document.body.appendChild(a); a.click();
+        setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+        toast('✅ Certificado descargado: bayol-cell.crt');
+    } catch(e) { logError('descargar cert qz', e); toastError(getFriendlyError(e)); }
 }
 
 async function qzVerificarConexion() {
