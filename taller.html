@@ -12810,6 +12810,13 @@ const RRHH_PERFILES = [
     { key: 'supervisor', nombre: 'Encargado / supervisor', discIdeal: ['D', 'C'], discEvitar: [], min: { integridad: 75, aptitud: 60, servicio: 55 }, ideal: 'Toma decisiones y organiza; combina liderazgo con orden. Íntegro.', opuesto: 'Ni empuja ni organiza; evita decidir.' }
 ];
 function _rrhhPerfil(key) { return RRHH_PERFILES.find(p => p.key === key) || null; }
+// Veredicto claro apto/no apto a partir del encaje con el puesto
+function _rrhhVeredicto(enc) {
+    if(!enc) return null;
+    if(enc.pct >= 75) return { txt: 'APTO PARA EL PUESTO', corto: 'APTO', color: '#16a34a', bg: '#f0fdf4', bd: '#bbf7d0', ic: 'ti-circle-check-filled' };
+    if(enc.pct >= 50) return { txt: 'APTO CON RESERVAS', corto: 'CON RESERVAS', color: '#b45309', bg: '#fffbeb', bd: '#fde68a', ic: 'ti-alert-triangle-filled' };
+    return { txt: 'NO APTO PARA EL PUESTO', corto: 'NO APTO', color: '#b91c1c', bg: '#fef2f2', bd: '#fecaca', ic: 'ti-circle-x-filled' };
+}
 // Traduce el resultado a una frase corta en español simple
 function _rrhhResumenFrase(r, perfilKey) {
     if(!r) return '';
@@ -12898,8 +12905,8 @@ function _renderRRHHPruebas() {
     const filas = pruebas.map(p => {
         const r = p.resultados || {};
         const est = r.estilo ? (RRHH_DISC_INFO[r.estilo]?.nombre || r.estilo) : '—';
-        const enc = _rrhhEncaje(r, p.perfil);
-        const encBadge = enc ? ` <span style="font-size:10px; font-weight:700; color:${enc.banda.color}; background:${enc.banda.color}18; padding:1px 6px; border-radius:8px;">${enc.pct}% ${enc.banda.txt}</span>` : '';
+        const enc = _rrhhEncaje(r, p.perfil); const v = _rrhhVeredicto(enc);
+        const encBadge = v ? ` <span style="font-size:10px; font-weight:800; color:${v.color}; background:${v.bg}; border:1px solid ${v.bd}; padding:1px 7px; border-radius:8px;">${v.corto} · ${enc.pct}%</span>` : '';
         return `<tr>
             <td style="padding:7px 6px; border-bottom:1px solid #eef2f7;"><a onclick="_rrhhVerPrueba('${p.id}')" style="cursor:pointer; color:#0f172a; font-weight:700;">${escapeHtml(p.candidato || '—')}</a><div style="font-size:11px; color:#94a3b8;">${escapeHtml(p.puesto || '')}${p.empleado_id ? ' · empleado' : ' · candidato'}${encBadge}</div></td>
             <td style="padding:7px 6px; border-bottom:1px solid #eef2f7; text-align:center;">${fdate(p.fecha)}</td>
@@ -13151,6 +13158,10 @@ function _rrhhVerPrueba(id) {
       <div class="modal-header" style="background:linear-gradient(135deg,#7c3aed,#a855f7); color:#fff; border-radius:12px 12px 0 0;"><h3 style="margin:0; color:#fff;"><i class="ti ti-clipboard-check"></i> Resultado — ${escapeHtml(p.candidato || '')}</h3><button class="modal-close" style="color:#fff;" onclick="document.getElementById('modalVerPrueba').remove()">✕</button></div>
       <div class="modal-body" style="max-height:78vh; overflow-y:auto;">
         <div style="font-size:12.5px; color:#64748b; margin-bottom:12px;">${escapeHtml(p.puesto || 'Sin puesto')}${p.empleado_id ? ' · empleado actual' : ' · candidato'} · ${p.fecha ? new Date(p.fecha + 'T00:00:00').toLocaleDateString('es-DO') : ''}</div>
+        ${(() => { const enc = _rrhhEncaje(r, p.perfil); const v = _rrhhVeredicto(enc); if(!v) return `<div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:12px 14px; margin-bottom:12px; font-size:12.5px; color:#64748b;"><i class="ti ti-info-circle"></i> Sin un puesto específico elegido, no se calcula "apto/no apto". Para eso, crea la prueba eligiendo el perfil del puesto.</div>`; return `<div style="display:flex; align-items:center; gap:13px; background:${v.bg}; border:1.5px solid ${v.bd}; border-radius:14px; padding:15px 16px; margin-bottom:12px;">
+            <i class="ti ${v.ic}" style="color:${v.color}; font-size:36px;"></i>
+            <div style="flex:1;"><div style="font-weight:900; font-size:18px; color:${v.color}; line-height:1.15;">${v.txt}</div><div style="font-size:12.5px; color:#475569; margin-top:2px;">Para <b>${escapeHtml(enc.perfil.nombre)}</b> · Encaje ${enc.pct}%</div></div>
+          </div>`; })()}
         ${(() => { const rf = _rrhhResumenFrase(r, p.perfil); return rf ? `<div style="background:#fffbeb; border:1px solid #fde68a; border-left:4px solid #f59e0b; border-radius:10px; padding:11px 13px; margin-bottom:14px; font-size:13.5px; color:#334155; line-height:1.45;"><b style="color:#b45309;"><i class="ti ti-bulb"></i> En resumen:</b> ${escapeHtml(rf)}</div>` : ''; })()}
         <div style="font-weight:800; color:#0e7490; font-size:12px; text-transform:uppercase; letter-spacing:.4px; margin-bottom:6px;">Personalidad (DISC)</div>
         ${discRows}
@@ -13188,6 +13199,7 @@ function _rrhhImprimirPrueba(id) {
       table{width:100%; border-collapse:collapse;} td{border:1px solid #e2e8f0; padding:5px 7px;} td.n{text-align:right;} .disc td{border:0; padding:2px 0;}
     </style></head><body>
       <h1>${escapeHtml(cfg.nombre || 'BAYOL CELL')}</h1><div class="sub">Prueba psicométrica · Documento interno RRHH</div>
+      ${(() => { const enc = _rrhhEncaje(r, p.perfil); const v = _rrhhVeredicto(enc); return v ? `<p style="border:2px solid ${v.color}; color:${v.color}; text-align:center; font-weight:800; font-size:15px; padding:9px; border-radius:8px; margin:10px 0;">${v.txt} — ${escapeHtml(enc.perfil.nombre)} (${enc.pct}%)</p>` : ''; })()}
       ${(() => { const rf = _rrhhResumenFrase(r, p.perfil); return rf ? `<p style="background:#fffbeb; border:1px solid #fde68a; border-left:4px solid #f59e0b; padding:8px 10px; margin:10px 0; font-size:12.5px;"><b>En resumen:</b> ${escapeHtml(rf)}</p>` : ''; })()}
       <h2>Datos</h2><table><tr><td>Persona</td><td>${escapeHtml(p.candidato || '')}</td></tr><tr><td>Cédula</td><td>${escapeHtml(p.cedula || '—')}</td></tr><tr><td>Puesto</td><td>${escapeHtml(p.puesto || '—')} (${p.empleado_id ? 'empleado' : 'candidato'})</td></tr><tr><td>Fecha</td><td>${p.fecha ? new Date(p.fecha + 'T00:00:00').toLocaleDateString('es-DO') : ''}</td></tr></table>
       <h2>Personalidad (DISC)</h2><table class="disc">${['D', 'I', 'S', 'C'].map(k => `<tr><td>${RRHH_DISC_INFO[k].nombre}</td><td class="n">${(r.disc || {})[k] || 0}%</td></tr>`).join('')}</table>
