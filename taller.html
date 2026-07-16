@@ -14759,7 +14759,7 @@ function renderDetalleLoteReacond() {
             <div><b><i class="ti ti-truck"></i> Proveedor:</b><br>${escapeHtml(prov ? prov.nombre : 'Sin proveedor')}</div>
             <div><b><i class="ti ti-calendar"></i> Compra:</b><br>${lote.fecha_compra ? new Date(lote.fecha_compra).toLocaleDateString('es-DO') : '—'}</div>
             <div><b><i class="ti ti-package"></i> Total equipos:</b><br>${equipos.length}</div>
-            ${isAdminUser() ? `<div><b><i class="ti ti-plane-departure"></i> Envío (courier):</b><br><span>${money(Number(lote.gastos_envio)||0)}</span> <button onclick="editarGastosEnvioLote()" title="Editar gastos de envío" style="background:#e0f2fe; color:#0369a1; border:1px solid #7dd3fc; border-radius:6px; padding:1px 6px; cursor:pointer; font-size:12px; margin-left:4px;"><i class="ti ti-pencil"></i></button></div>` : ''}
+            ${isAdminUser() ? `<div><b><i class="ti ti-plane-departure"></i> Envío (courier):</b><br><span>${money(Number(lote.gastos_envio)||0)}</span> <span style="font-size:10.5px; color:#64748b;" title="Se edita en Compras → abrir el lote → Datos del Lote">(se edita en Compras)</span></div>` : ''}
         </div>
     `;
     
