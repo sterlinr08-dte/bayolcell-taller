@@ -45,7 +45,7 @@
 <script>
 const FUNC = 'https://vkhwdvjtowrhkhqavnvk.supabase.co/functions/v1/rrhh-prueba';
 const APIKEY = 'sb_publishable_PynS5ZjKoQ36HCpguVzxaw_KZOlagtz';
-const LIK = ['Nada','Poco','Neutral','De acuerdo','Totalmente'];
+const LIK = ['Nada de acuerdo','Poco','Más o menos','De acuerdo','Totalmente'];
 const AREAS = [
   { k:'disc', ic:'🧭', t:'1. Sobre ti', sub:'Marca qué tan de acuerdo estás con cada frase. No hay respuestas buenas ni malas.' },
   { k:'aptitud', ic:'🔢', t:'2. Lógica y números', sub:'Elige la respuesta correcta.' },
@@ -74,19 +74,20 @@ async function iniciar(){
   render(d.candidato, d.puesto);
 }
 
+function sh(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
 function render(cand, puesto){
   let html = `<div class="hero"><h1>Evaluación de personal</h1><p>${esc(cand||'')}${puesto?' · '+esc(puesto):''}</p></div>
     <div id="prog"><div id="progbar"></div></div>
-    <div class="note">Responde con sinceridad. Toma unos 5–10 minutos. Marca <b>una opción por pregunta</b>.</div>`;
+    <div class="note">Tranquilo, no es un examen de pasar o quedar 🙂. Contesta con sinceridad lo primero que pienses. Toma unos 5–10 minutos y son <b>una opción por pregunta</b>.</div>`;
   AREAS.forEach(a => {
-    const qs = PREG.filter(p => p.area === a.k);
+    const qs = sh(PREG.filter(p => p.area === a.k));
     if(!qs.length) return;
     html += `<div class="card"><h2>${a.ic} ${esc(a.t)}</h2><div class="sub">${esc(a.sub)}</div>`;
     qs.forEach((q, i) => {
       html += `<div class="q"><div class="q-txt"><b>${i+1}.</b>${esc(q.texto)}</div>`;
       if(a.k === 'aptitud'){
-        const ops = Array.isArray(q.opciones) ? q.opciones : [];
-        html += `<div class="opts">` + ops.map((o,k)=>`<label class="opt full" data-q="${q.id}" data-v="${k}"><input type="radio" name="q_${q.id}">${esc(o)}</label>`).join('') + `</div>`;
+        const ops = sh((Array.isArray(q.opciones) ? q.opciones : []).map((o,k)=>({o,k})));
+        html += `<div class="opts">` + ops.map(x=>`<label class="opt full" data-q="${q.id}" data-v="${x.k}"><input type="radio" name="q_${q.id}">${esc(x.o)}</label>`).join('') + `</div>`;
       } else {
         html += `<div class="opts lik">` + [1,2,3,4,5].map(v=>`<label class="opt" data-q="${q.id}" data-v="${v}"><input type="radio" name="q_${q.id}">${LIK[v-1]}</label>`).join('') + `</div>`;
       }
