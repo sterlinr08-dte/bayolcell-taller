@@ -2600,6 +2600,7 @@ body{
                             <button class="btn btn-light" id="nomTabNom" onclick="nominaTab('nomina')"><i class="ti ti-cash"></i> Nómina</button>
                             <button class="btn btn-light" id="nomTabAcum" onclick="nominaTab('acumulados')"><i class="ti ti-calendar-plus"></i> Acumulados</button>
                             <button class="btn btn-light" id="nomTabPru" onclick="nominaTab('pruebas')"><i class="ti ti-clipboard-check"></i> Pruebas</button>
+                            <button class="btn btn-light" id="nomTabDesemp" onclick="nominaTab('desempeno')"><i class="ti ti-star"></i> Desempeño</button>
                         </div>
                     </div>
                     <div id="nominaContent"></div>
@@ -12245,18 +12246,20 @@ let _nominaGen = null;
 let _nomSub = 'generar'; // sub-pestaña dentro de "Nómina"
 async function _loadNomina() {
     try {
-        const [{ data: emp }, { data: per }, { data: ben }, { data: pru }, { data: preg }] = await Promise.all([
+        const [{ data: emp }, { data: per }, { data: ben }, { data: pru }, { data: preg }, { data: evs }] = await Promise.all([
             supabaseClient.from('nomina_empleados').select('*').order('nombre'),
             supabaseClient.from('nomina_periodos').select('*').order('creado_en', { ascending: false }),
             supabaseClient.from('rrhh_beneficios_pagos').select('*').order('creado_en', { ascending: false }),
             supabaseClient.from('rrhh_pruebas').select('*').order('creado_en', { ascending: false }),
-            supabaseClient.from('rrhh_prueba_preguntas').select('*').order('area', { ascending: true }).order('orden', { ascending: true })
+            supabaseClient.from('rrhh_prueba_preguntas').select('*').order('area', { ascending: true }).order('orden', { ascending: true }),
+            supabaseClient.from('rrhh_evaluaciones').select('*').order('fecha', { ascending: false })
         ]);
         cache.nominaEmpleados = emp || [];
         cache.nominaPeriodos = per || [];
         cache.rrhhBeneficios = ben || [];
         cache.rrhhPruebas = pru || [];
         cache.rrhhPreguntas = preg || [];
+        cache.rrhhEvals = evs || [];
     } catch(e) { logError('cargar nomina', e); }
 }
 async function renderNomina() {
@@ -12281,12 +12284,13 @@ function nominaTab(t) {
     if(t === 'generar' || t === 'historial') _nomSub = t;
     _nominaTab = seccion;
     try { localStorage.setItem('bayol_subtab_rrhh', seccion); localStorage.setItem('bayol_subtab_rrhh_sub', _nomSub); } catch(e) {}
-    ['Emp', 'Nom', 'Acum', 'Pru'].forEach(s => { const b = document.getElementById('nomTab' + s); if(b) { b.classList.remove('btn-blue'); b.classList.add('btn-light'); } });
-    const map = { empleados: 'Emp', nomina: 'Nom', acumulados: 'Acum', pruebas: 'Pru' };
+    ['Emp', 'Nom', 'Acum', 'Pru', 'Desemp'].forEach(s => { const b = document.getElementById('nomTab' + s); if(b) { b.classList.remove('btn-blue'); b.classList.add('btn-light'); } });
+    const map = { empleados: 'Emp', nomina: 'Nom', acumulados: 'Acum', pruebas: 'Pru', desempeno: 'Desemp' };
     const b = document.getElementById('nomTab' + (map[seccion] || 'Emp')); if(b) { b.classList.add('btn-blue'); b.classList.remove('btn-light'); }
     if(seccion === 'empleados') _renderNominaEmpleados();
     else if(seccion === 'acumulados') _renderRRHHAcumulados();
     else if(seccion === 'pruebas') _renderRRHHPruebas();
+    else if(seccion === 'desempeno') _renderRRHHDesempeno();
     else _renderNominaNomina(_nomSub);
 }
 // Container donde escriben Generar/Historial (dentro de la sub-sección Nómina si existe)
@@ -12571,6 +12575,14 @@ function _rrhhVerExpediente(id) {
           </div>` : ''}
         </div>
         ${(dueno ? pagos : pagos.filter(b => b.tipo !== 'vacaciones')).length ? `<div style="margin-top:10px;"><div style="font-size:11.5px; color:#64748b; margin-bottom:4px;">Pagos registrados:</div>${(dueno ? pagos : pagos.filter(b => b.tipo !== 'vacaciones')).map(b => `<div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; padding:4px 0; border-bottom:1px solid #f1f5f9;"><span>${b.tipo === 'regalia' ? '🎁 Regalía' : b.tipo === 'vacaciones' ? '🏖️ Vacaciones' : 'Otro'} ${b.anio || ''}${b.fecha_pago ? ' · ' + new Date(b.fecha_pago + 'T00:00:00').toLocaleDateString('es-DO') : ''}${b.nota ? ' · ' + escapeHtml(b.nota) : ''}</span><span style="display:flex; gap:8px; align-items:center;"><b>${money(b.monto)}</b> <a onclick="_rrhhEliminarBeneficio('${b.id}')" style="cursor:pointer; color:#dc2626;" title="Borrar pago"><i class="ti ti-trash"></i></a></span></div>`).join('')}</div>` : ''}
+        ${(() => {
+          const evs = (cache.rrhhEvals || []).filter(x => x.empleado_id === e.id);
+          const prom = _rrhhEvalPromEmp(e.id);
+          const pb = prom != null ? _rrhhEvalBanda(prom) : null;
+          return sec(`Desempeño ${pb ? `<span style="color:${pb.color}; font-weight:800;">· ${prom.toFixed(1)}/5 ${pb.txt}</span>` : ''}`) +
+            `<div style="margin-bottom:6px;"><button class="btn btn-light" style="padding:4px 10px; font-size:11.5px; color:#c2410c; border-color:#fed7aa;" onclick="document.getElementById('modalRrhhExp').remove(); _rrhhNuevaEval('${e.id}')"><i class="ti ti-star"></i> Evaluar</button></div>` +
+            (evs.length ? evs.map(ev => { const b = _rrhhEvalBanda(Number(ev.nota_general) || 0); return `<div style="display:flex; justify-content:space-between; align-items:center; font-size:12.5px; padding:5px 0; border-bottom:1px solid #f1f5f9;"><span>${escapeHtml(ev.periodo || '')} · <b style="color:${b.color};">${Number(ev.nota_general).toFixed(1)}/5 ${b.txt}</b></span><a onclick="_rrhhVerEval('${ev.id}')" style="cursor:pointer; color:#0369a1;"><i class="ti ti-eye"></i> ver</a></div>`; }).join('') : '<div style="font-size:12px; color:#cbd5e1;">— sin evaluaciones —</div>');
+        })()}
         ${(() => {
           const pr = (cache.rrhhPruebas || []).filter(x => x.empleado_id === e.id && x.estado === 'completada');
           if(!pr.length) return '';
@@ -13367,6 +13379,163 @@ async function _rrhhEliminarPrueba(id) {
         document.getElementById('modalVerPrueba')?.remove();
         await _loadNomina(); if(_nominaTab === 'pruebas') _renderRRHHPruebas();
     } catch(e) { logError('borrar prueba rrhh', e); toastError(getFriendlyError(e)); }
+}
+// ===================== RRHH: EVALUACIÓN DE DESEMPEÑO =====================
+const RRHH_EVAL_CRITERIOS = [
+    { k: 'puntualidad', lbl: 'Puntualidad y asistencia' },
+    { k: 'responsabilidad', lbl: 'Responsabilidad y compromiso' },
+    { k: 'actitud', lbl: 'Actitud y trabajo en equipo' },
+    { k: 'calidad', lbl: 'Calidad del trabajo' },
+    { k: 'cliente', lbl: 'Atención al cliente' },
+    { k: 'productividad', lbl: 'Productividad / cumple metas' },
+    { k: 'honestidad', lbl: 'Honestidad y confianza' },
+    { k: 'presentacion', lbl: 'Presentación e imagen' }
+];
+const RRHH_EVAL_LBL = ['Malo', 'Regular', 'Aceptable', 'Bueno', 'Excelente'];
+function _rrhhEvalBanda(n) {
+    if(n >= 4.5) return { txt: 'Excelente', color: '#16a34a', bg: '#f0fdf4', bd: '#bbf7d0' };
+    if(n >= 3.5) return { txt: 'Bueno', color: '#0891b2', bg: '#ecfeff', bd: '#a5f3fc' };
+    if(n >= 2.5) return { txt: 'Regular', color: '#b45309', bg: '#fffbeb', bd: '#fde68a' };
+    return { txt: 'Necesita mejorar', color: '#b91c1c', bg: '#fef2f2', bd: '#fecaca' };
+}
+function _rrhhEvalPromEmp(empId) {
+    const evs = (cache.rrhhEvals || []).filter(e => e.empleado_id === empId && e.nota_general != null);
+    if(!evs.length) return null;
+    return Math.round(evs.reduce((s, e) => s + Number(e.nota_general), 0) / evs.length * 100) / 100;
+}
+let _rrhhEvalBusq = '';
+function _renderRRHHDesempeno() {
+    const cont = document.getElementById('nominaContent'); if(!cont) return;
+    const q = (_rrhhEvalBusq || '').trim().toLowerCase();
+    let evs = (cache.rrhhEvals || []).slice();
+    const nom = id => { const e = (cache.nominaEmpleados || []).find(x => x.id === id); return e ? e.nombre : '—'; };
+    if(q) evs = evs.filter(e => (`${nom(e.empleado_id)} ${e.periodo || ''}`).toLowerCase().includes(q));
+    const fdate = d => d ? new Date(d + 'T00:00:00').toLocaleDateString('es-DO') : '—';
+    const filas = evs.map(e => { const b = _rrhhEvalBanda(Number(e.nota_general) || 0); return `<tr>
+        <td style="padding:7px 6px; border-bottom:1px solid #eef2f7;"><a onclick="_rrhhVerEval('${e.id}')" style="cursor:pointer; color:#0f172a; font-weight:700;">${escapeHtml(nom(e.empleado_id))}</a><div style="font-size:11px; color:#94a3b8;">${escapeHtml(e.puesto || '')}</div></td>
+        <td style="padding:7px 6px; border-bottom:1px solid #eef2f7;">${escapeHtml(e.periodo || '—')}</td>
+        <td style="padding:7px 6px; border-bottom:1px solid #eef2f7; text-align:center;">${fdate(e.fecha)}</td>
+        <td style="padding:7px 6px; border-bottom:1px solid #eef2f7; text-align:center;"><span style="font-weight:800; color:${b.color};">${Number(e.nota_general).toFixed(1)}/5</span> <span style="font-size:10px; font-weight:700; color:${b.color}; background:${b.bg}; border:1px solid ${b.bd}; padding:1px 7px; border-radius:8px;">${b.txt}</span></td>
+        <td style="padding:7px 6px; border-bottom:1px solid #eef2f7; text-align:center; white-space:nowrap;"><a onclick="_rrhhVerEval('${e.id}')" style="cursor:pointer; color:#0369a1;" title="Ver"><i class="ti ti-eye"></i></a>&nbsp;&nbsp;<a onclick="_rrhhEliminarEval('${e.id}')" style="cursor:pointer; color:#dc2626;" title="Borrar"><i class="ti ti-trash"></i></a></td>
+      </tr>`; }).join('');
+    cont.innerHTML = `
+      <div style="background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:11px 14px; margin-bottom:12px; font-size:12.5px; color:#334155;">
+        <b style="color:#c2410c;"><i class="ti ti-star"></i> Evaluación de desempeño</b> — califica a cada empleado (del 1 al 5, con estrellas) en puntualidad, actitud, calidad, atención al cliente, honestidad, etc. Da una nota general y queda en su expediente para ver cómo evoluciona. Sirve para aumentos, bonos y conversaciones de mejora.
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+        <input value="${escapeHtml(_rrhhEvalBusq)}" oninput="_rrhhEvalBusq=this.value; _renderRRHHDesempeno(); const el=document.getElementById('rrhhEvalBusq'); if(el){el.focus(); el.setSelectionRange(el.value.length,el.value.length);}" id="rrhhEvalBusq" placeholder="Buscar por empleado o período…" style="padding:7px 10px; border:1px solid #cbd5e1; border-radius:8px; min-width:200px;">
+        <button class="btn btn-blue" onclick="_rrhhNuevaEval()"><i class="ti ti-plus"></i> Nueva evaluación</button>
+      </div>
+      <div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12.5px; min-width:640px;">
+        <thead><tr style="background:#f1f5f9;"><th style="padding:7px 6px; text-align:left;">Empleado</th><th style="padding:7px 6px; text-align:left;">Período</th><th style="padding:7px 6px;">Fecha</th><th style="padding:7px 6px;">Nota</th><th style="padding:7px 6px;"></th></tr></thead>
+        <tbody>${filas || '<tr><td colspan="5" style="padding:16px; text-align:center; color:#94a3b8;">Aún no hay evaluaciones. Dale a "Nueva evaluación".</td></tr>'}</tbody></table></div>`;
+}
+let _rrhhEvalTmp = { criterios: {} };
+function _rrhhNuevaEval(empId) {
+    const emps = (cache.nominaEmpleados || []).filter(e => e.activo !== false).sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+    const now = new Date(); const mesN = NOM_MESES[now.getMonth()]; const periodo = mesN.charAt(0) + mesN.slice(1).toLowerCase() + ' ' + now.getFullYear();
+    _rrhhEvalTmp = { criterios: {} };
+    const prev = document.getElementById('modalEval'); if(prev) prev.remove();
+    const box = document.createElement('div'); box.className = 'modal-backdrop active'; box.id = 'modalEval'; box.style.zIndex = '785';
+    box.innerHTML = `<div class="modal-box" style="max-width:520px; width:96%;">
+      <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-star"></i> Nueva evaluación de desempeño</h3><button class="modal-close" onclick="document.getElementById('modalEval').remove()">✕</button></div>
+      <div class="modal-body" style="max-height:78vh; overflow-y:auto;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <div class="form-row"><label>Empleado *</label><select id="eval_emp">${empId ? '' : '<option value="">— Elegir —</option>'}${emps.map(e => `<option value="${e.id}" ${empId === e.id ? 'selected' : ''}>${escapeHtml(e.nombre)}</option>`).join('')}</select></div>
+          <div class="form-row"><label>Período</label><input id="eval_periodo" value="${escapeHtml(periodo)}"></div>
+        </div>
+        <div style="font-size:11.5px; color:#64748b; margin:2px 0 4px;">Toca las estrellas: 1 = Malo · 5 = Excelente</div>
+        <div id="evalCriterios"></div>
+        <div id="evalProm" style="text-align:right; font-weight:800; margin:8px 0; font-size:14px;"></div>
+        <div class="form-row"><label>Comentario / observaciones</label><textarea id="eval_coment" rows="2" style="width:100%;" placeholder="Ej. mejoró la puntualidad; debe cuidar el trato al cliente…"></textarea></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-light" onclick="document.getElementById('modalEval').remove()">Cancelar</button><button class="btn btn-blue" onclick="_rrhhGuardarEval()"><i class="ti ti-device-floppy"></i> Guardar evaluación</button></div>
+    </div>`;
+    document.body.appendChild(box);
+    _rrhhEvalRenderCriterios();
+}
+function _rrhhEvalRenderCriterios() {
+    const cont = document.getElementById('evalCriterios'); if(!cont) return;
+    cont.innerHTML = RRHH_EVAL_CRITERIOS.map(c => { const val = _rrhhEvalTmp.criterios[c.k] || 0; return `<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 0; border-bottom:1px solid #f1f5f9;">
+        <div style="font-size:13px; color:#0f172a; flex:1;">${escapeHtml(c.lbl)}</div>
+        <div style="white-space:nowrap;">${[1, 2, 3, 4, 5].map(v => `<i class="ti ${val >= v ? 'ti-star-filled' : 'ti-star'}" onclick="_rrhhEvalStar('${c.k}',${v})" style="cursor:pointer; font-size:21px; color:${val >= v ? '#f59e0b' : '#cbd5e1'};"></i>`).join('')}<span style="font-size:11px; color:#64748b; margin-left:7px; min-width:60px; display:inline-block; text-align:right;">${val ? RRHH_EVAL_LBL[val - 1] : '—'}</span></div>
+      </div>`; }).join('');
+    const vals = RRHH_EVAL_CRITERIOS.map(c => _rrhhEvalTmp.criterios[c.k]).filter(Boolean);
+    const prom = document.getElementById('evalProm');
+    if(prom) { if(vals.length) { const n = vals.reduce((a, b) => a + b, 0) / vals.length; const b = _rrhhEvalBanda(n); prom.innerHTML = `Nota general: <span style="color:${b.color};">${n.toFixed(1)}/5 · ${b.txt}</span>`; } else prom.innerHTML = ''; }
+}
+function _rrhhEvalStar(k, v) { _rrhhEvalTmp.criterios[k] = v; _rrhhEvalRenderCriterios(); }
+async function _rrhhGuardarEval() {
+    const empId = document.getElementById('eval_emp').value; if(!empId) return toast('Elige el empleado.', 'error');
+    const crit = _rrhhEvalTmp.criterios;
+    const faltan = RRHH_EVAL_CRITERIOS.filter(c => !crit[c.k]).length;
+    if(faltan) return toast(`Faltan ${faltan} criterio(s) por calificar.`, 'error');
+    const vals = RRHH_EVAL_CRITERIOS.map(c => crit[c.k]);
+    const nota = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 100) / 100;
+    const emp = (cache.nominaEmpleados || []).find(e => e.id === empId);
+    const nombreAdmin = (typeof sessionUser !== 'undefined' && sessionUser) ? (sessionUser.nombre || 'Admin') : 'Admin';
+    const data = { empleado_id: empId, periodo: (document.getElementById('eval_periodo').value || '').trim() || null, puesto: emp ? emp.puesto : null, criterios: crit, nota_general: nota, comentario: (document.getElementById('eval_coment').value || '').trim() || null, evaluador: nombreAdmin, creado_por: nombreAdmin };
+    try {
+        const { data: ins, error } = await supabaseClient.from('rrhh_evaluaciones').insert([data]).select('id').single();
+        if(error) throw error;
+        toast('✅ Evaluación guardada.');
+        document.getElementById('modalEval')?.remove();
+        await _loadNomina();
+        _rrhhVerEval(ins.id);
+    } catch(e) { logError('guardar evaluacion rrhh', e); toastError(getFriendlyError(e)); }
+}
+function _rrhhVerEval(id) {
+    const e = (cache.rrhhEvals || []).find(x => x.id === id); if(!e) return toast('No se encontró la evaluación.', 'error');
+    const emp = (cache.nominaEmpleados || []).find(x => x.id === e.empleado_id);
+    const b = _rrhhEvalBanda(Number(e.nota_general) || 0);
+    const crit = e.criterios || {};
+    const rows = RRHH_EVAL_CRITERIOS.map(c => { const v = crit[c.k] || 0; return `<div style="display:flex; align-items:center; justify-content:space-between; padding:6px 0; border-bottom:1px solid #f1f5f9; font-size:13px;"><span>${escapeHtml(c.lbl)}</span><span style="white-space:nowrap;">${[1, 2, 3, 4, 5].map(x => `<i class="ti ${v >= x ? 'ti-star-filled' : 'ti-star'}" style="font-size:16px; color:${v >= x ? '#f59e0b' : '#e2e8f0'};"></i>`).join('')} <b style="color:#64748b; font-size:11px;">${v ? RRHH_EVAL_LBL[v - 1] : '—'}</b></span></div>`; }).join('');
+    const prev = document.getElementById('modalVerEval'); if(prev) prev.remove();
+    const box = document.createElement('div'); box.className = 'modal-backdrop active'; box.id = 'modalVerEval'; box.style.zIndex = '790';
+    box.innerHTML = `<div class="modal-box" style="max-width:520px; width:96%;">
+      <div class="modal-header" style="background:linear-gradient(135deg,#ea580c,#f59e0b); color:#fff; border-radius:12px 12px 0 0;"><h3 style="margin:0; color:#fff;"><i class="ti ti-star"></i> ${escapeHtml(emp ? emp.nombre : 'Empleado')}</h3><button class="modal-close" style="color:#fff;" onclick="document.getElementById('modalVerEval').remove()">✕</button></div>
+      <div class="modal-body" style="max-height:78vh; overflow-y:auto;">
+        <div style="font-size:12.5px; color:#64748b; margin-bottom:10px;">${escapeHtml(e.periodo || '')} · ${e.fecha ? new Date(e.fecha + 'T00:00:00').toLocaleDateString('es-DO') : ''}${e.evaluador ? ' · por ' + escapeHtml(e.evaluador) : ''}</div>
+        <div style="display:flex; align-items:center; gap:12px; background:${b.bg}; border:1.5px solid ${b.bd}; border-radius:14px; padding:14px 16px; margin-bottom:14px;">
+          <div style="font-size:30px; font-weight:900; color:${b.color};">${Number(e.nota_general).toFixed(1)}<span style="font-size:15px; color:#94a3b8;">/5</span></div>
+          <div style="font-weight:800; font-size:16px; color:${b.color};">${b.txt}</div>
+        </div>
+        ${rows}
+        ${e.comentario ? `<div style="margin-top:12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:10px 12px; font-size:13px; color:#334155;"><b>Comentario:</b> ${escapeHtml(e.comentario)}</div>` : ''}
+      </div>
+      <div class="modal-footer"><button class="btn btn-light" style="margin-right:auto;" onclick="_rrhhImprimirEval('${e.id}')"><i class="ti ti-printer"></i> Imprimir</button><button class="btn" style="background:#fee2e2; color:#b91c1c;" onclick="_rrhhEliminarEval('${e.id}')"><i class="ti ti-trash"></i> Eliminar</button><button class="btn btn-light" onclick="document.getElementById('modalVerEval').remove()">Cerrar</button></div>
+    </div>`;
+    document.body.appendChild(box);
+}
+function _rrhhImprimirEval(id) {
+    const e = (cache.rrhhEvals || []).find(x => x.id === id); if(!e) return;
+    const emp = (cache.nominaEmpleados || []).find(x => x.id === e.empleado_id); const cfg = cache.configTaller || {};
+    const b = _rrhhEvalBanda(Number(e.nota_general) || 0); const crit = e.criterios || {};
+    const rows = RRHH_EVAL_CRITERIOS.map(c => { const v = crit[c.k] || 0; return `<tr><td>${escapeHtml(c.lbl)}</td><td class="c">${'★'.repeat(v)}${'☆'.repeat(5 - v)}</td><td class="c">${v}/5 ${v ? RRHH_EVAL_LBL[v - 1] : ''}</td></tr>`; }).join('');
+    const w = window.open('', '_blank'); if(!w) return toast('Permite las ventanas emergentes para imprimir.', 'error');
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Evaluación ${escapeHtml(emp ? emp.nombre : '')}</title><style>
+      *{font-family:Arial,Helvetica,sans-serif;} body{margin:22px; color:#0f172a; font-size:12.5px;} h1{font-size:16px; margin:0; text-align:center;} .sub{text-align:center; color:#475569; font-size:11px;} h2{font-size:14px; color:#c2410c; margin:14px 0 6px;}
+      table{width:100%; border-collapse:collapse;} td{border:1px solid #e2e8f0; padding:6px 8px;} td.c{text-align:center;} .big{font-size:22px; font-weight:800; color:${b.color};}
+    </style></head><body>
+      <h1>${escapeHtml(cfg.nombre || 'BAYOL CELL')}</h1><div class="sub">Evaluación de desempeño · Documento interno RRHH</div>
+      <h2>${escapeHtml(emp ? emp.nombre : 'Empleado')}</h2>
+      <table><tr><td>Puesto</td><td>${escapeHtml(e.puesto || '—')}</td></tr><tr><td>Período</td><td>${escapeHtml(e.periodo || '—')}</td></tr><tr><td>Fecha</td><td>${e.fecha ? new Date(e.fecha + 'T00:00:00').toLocaleDateString('es-DO') : ''}</td></tr><tr><td>Evaluador</td><td>${escapeHtml(e.evaluador || '')}</td></tr><tr><td>Nota general</td><td><span class="big">${Number(e.nota_general).toFixed(1)}/5</span> — ${b.txt}</td></tr></table>
+      <h2>Criterios</h2><table><thead><tr><td><b>Criterio</b></td><td class="c"><b>Estrellas</b></td><td class="c"><b>Nota</b></td></tr></thead><tbody>${rows}</tbody></table>
+      ${e.comentario ? `<h2>Comentario</h2><div>${escapeHtml(e.comentario)}</div>` : ''}
+      <div style="margin-top:40px; display:flex; justify-content:space-between;"><div style="border-top:1px solid #0f172a; padding-top:4px; width:45%; text-align:center; font-size:11px;">Firma evaluador</div><div style="border-top:1px solid #0f172a; padding-top:4px; width:45%; text-align:center; font-size:11px;">Firma empleado</div></div>
+      <div style="margin-top:14px; font-size:10px; color:#94a3b8;">Generado el ${new Date().toLocaleDateString('es-DO')}.</div>
+      <script>window.onload=function(){window.print();}<\/script></body></html>`);
+    w.document.close();
+}
+async function _rrhhEliminarEval(id) {
+    if(!await confirmar('¿Borrar esta evaluación? No se puede deshacer.')) return;
+    try {
+        const { error } = await supabaseClient.from('rrhh_evaluaciones').delete().eq('id', id);
+        if(error) throw error;
+        toast('🗑️ Evaluación borrada.');
+        document.getElementById('modalVerEval')?.remove();
+        await _loadNomina(); if(_nominaTab === 'desempeno') _renderRRHHDesempeno();
+    } catch(e) { logError('borrar evaluacion rrhh', e); toastError(getFriendlyError(e)); }
 }
 const NOM_MESES = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
 // Calcula y fija las fechas/título del período (quincena) sobre _nominaGen
@@ -17009,6 +17178,7 @@ const AYUDAS = {
           <li><b>Nómina:</b> la quincena automática de siempre (Generar quincena / Historial), igual de orgánica y con exportación a BHD.</li>
           <li><b>Acumulados:</b> lo que cada empleado va juntando de <b>regalía navideña</b> (1/12 de lo que gana en el año) y <b>vacaciones</b> (14 días al año, 18 desde los 5 años). Puedes registrar cuándo pagas cada uno.</li>
           <li><b>Pruebas:</b> prueba psicométrica para candidatos o empleados — mide Personalidad (DISC), Aptitud (lógica y números), Integridad y Servicio al cliente. La persona responde en pantalla y el sistema la califica sola.</li>
+          <li><b>Desempeño:</b> tú calificas (con estrellas del 1 al 5) a cada empleado en puntualidad, actitud, calidad, atención al cliente, honestidad, etc. Da una nota general, queda en su expediente con historial y se puede imprimir.</li>
         </ul>
         <p style="font-size:12px; color:#64748b;">Los montos de acumulados son referenciales para orientarte; el pago formal lo confirma tu contadora.</p>` },
     invfisico: { titulo: 'Inventario Físico', html: `
