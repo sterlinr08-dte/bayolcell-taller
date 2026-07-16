@@ -24495,7 +24495,7 @@ function generarHtmlLabelDiag(equipo) {
     }
     
     return `
-        <div class="diag-label" style="width:${w}mm; min-height:${h}mm; font-size:${f}px; font-weight:900; -webkit-text-stroke:0.4px #000; line-height:1.25; padding:1mm ${mr}mm 1mm ${ml}mm; box-sizing:border-box; overflow:hidden; font-family:Arial,Helvetica,sans-serif; color:#000; page-break-after:always;">
+        <div class="diag-label" style="width:${w}mm; min-height:${h}mm; font-size:${f}px; font-weight:900; -webkit-text-stroke:0.4px #000; line-height:1.25; padding:1mm ${mr}mm 1mm ${ml}mm; box-sizing:border-box; overflow:hidden; font-family:Arial,Helvetica,sans-serif; color:#000;">
             <div class="diag-header" style="font-size:${f}px; font-weight:900; -webkit-text-stroke:0.4px #000; text-align:center; border-bottom:2px solid #000; padding-bottom:0.5mm; margin-bottom:0.5mm; font-family:Arial,Helvetica,sans-serif;">
                 DIAGNÓSTICO
             </div>
@@ -24650,7 +24650,7 @@ async function confirmarImprimirLabelDiag() {
         }
         // Respaldo HTML normal
         const { html: cf, anchoFinal: af, altoFinal: alf } = aplicarRotacionImpresion(_labelDiagHtmlActual, w, h, rot);
-        imprimirContenido(`<style>@page{size:${af}mm ${alf}mm;margin:0;}@media print{body{margin:0;padding:0;}}</style>${cf}`, copias, af, alf);
+        imprimirContenido(`<style>@page{size:${af}mm ${alf}mm;margin:0;}@media print{body{margin:0;padding:0;}.diag-label{page-break-after:always;}.diag-label:last-child{page-break-after:auto;}}</style>${cf}`, copias, af, alf);
         return;
     }
     
@@ -24702,6 +24702,8 @@ async function confirmarImprimirLabelDiag() {
             @media print {
                 body { margin: 0; padding: 0; }
                 .print-area { margin: 0 !important; padding: 0 !important; }
+                .diag-label { page-break-after: always; }
+                .diag-label:last-child { page-break-after: auto; }
             }
         </style>
         ${contenidoFinal}
