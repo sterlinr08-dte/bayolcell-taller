@@ -2036,37 +2036,33 @@ body{
                                         <div><label>Artículo *</label>
                                             <div id="ss-eq-articulo"></div>
                                         </div>
-                                        <div><label id="lbl_eq_imei">IMEI / Serial *</label><input id="eq_imei" placeholder="358921..." style="text-transform:uppercase;"></div>
+                                        <div><label id="lbl_eq_imei">IMEI / Serial *</label>
+                                            <div style="position:relative;"><input id="eq_imei" placeholder="358921..." oninput="_eqImeiValidar()" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('eq_costo').focus();}" style="text-transform:uppercase; padding-right:34px;"><i class="ti ti-barcode" title="Escanear con lector" style="position:absolute; right:11px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:17px;"></i></div>
+                                            <div id="eq_imei_status" style="font-size:10.5px; margin-top:3px; height:13px; font-weight:700;"></div></div>
                                         <div id="costo_admin_wrap"><label>Costo Unidad (RD$) *</label><input id="eq_costo" type="number" step="0.01" placeholder="6374.00"></div>
-                                        <div><label>Notas rápidas</label><input id="eq_notas" placeholder="OPCIONAL: PANTALLA ROTA..." style="text-transform:uppercase;"></div>
-                                        <button class="btn btn-blue" onclick="agregarEquipoAlLote()" style="height:42px;"><i class="ti ti-plus"></i> Agregar</button>
+                                        <div><label>Notas rápidas</label><input id="eq_notas" placeholder="Ej: pantalla rota, no carga…" style="text-transform:uppercase;"></div>
+                                        <button class="btn" onclick="agregarEquipoAlLote()" style="height:42px; background:#e31e24; color:#fff; border:0; font-weight:700;"><i class="ti ti-plus"></i> Agregar equipo</button>
                                     </div>
                                     <div style="margin-top:8px;">
                                         <label style="display:inline-flex; align-items:center; gap:6px; font-size:13px; text-transform:none; color:var(--text-dark); cursor:pointer;"><input type="checkbox" id="eq_garantia" style="width:auto;"> 🛡️ Es por garantía (permite repetir el mismo IMEI)</label>
                                     </div>
-                                    <div style="background:#f8fafc; border:1px dashed var(--border-color); padding:8px 12px; border-radius:6px; margin-top:8px; font-size:12px; color:var(--text-muted);">
-                                        💡 Los artículos son los mismos de <b>Info Plus</b>. ¿No aparece uno? Créalo en Info Plus y dale <b>"Sincronizar"</b> en Catálogo de Artículos.
+                                    <div style="background:#eff6ff; border:1px solid #bfdbfe; border-left:4px solid #3b82f6; padding:10px 14px; border-radius:10px; margin-top:8px; font-size:12.5px; color:#1e3a8a;">
+                                        <i class="ti ti-bulb" style="color:#3b82f6;"></i> Los artículos son los mismos de <b>Info Plus</b>. ¿No aparece uno? Créalo en Info Plus y dale <b>"Sincronizar"</b> en el buscador o en Catálogo de Artículos.
                                     </div>
 
-                                    <h4 style="margin:20px 0 10px 0; font-size:13px;">Equipos del Lote (<span id="eq_count">0</span>)</h4>
+                                    <div id="eqStats" class="eq-stats"></div>
+                                    <h4 style="margin:16px 0 10px 0; font-size:15px; font-weight:800;">Equipos del Lote (<span id="eq_count" style="color:#e31e24;">0</span>)</h4>
                                     <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">
-                                        <input id="eqLoteBusq" placeholder="🔍 Buscar / escanear por IMEI, código o modelo…" oninput="renderEquiposLote()" onkeydown="if(event.key==='Enter'){event.preventDefault();renderEquiposLote();}" autocomplete="off" style="flex:1; min-width:200px; padding:8px 11px; font-size:13px; border:1px solid #cbd5e1; border-radius:8px;">
-                                        <select id="eqLoteFiltro" onchange="renderEquiposLote()" style="padding:8px 11px; font-size:13px; border:1px solid #cbd5e1; border-radius:8px;"><option value="">Todos los artículos</option></select>
-                                        <select id="eqLoteFiltroGar" onchange="renderEquiposLote()" style="padding:8px 11px; font-size:13px; border:1px solid #cbd5e1; border-radius:8px;"><option value="">Todos</option><option value="garantia">🛡️ Solo garantía</option><option value="normal">Sin garantía</option></select>
+                                        <input id="eqLoteBusq" placeholder="🔍 Buscar / escanear por IMEI, código o modelo…" oninput="renderEquiposLote()" onkeydown="if(event.key==='Enter'){event.preventDefault();renderEquiposLote();}" autocomplete="off" style="flex:1; min-width:200px; padding:10px 13px; font-size:13.5px; border:1px solid #cbd5e1; border-radius:11px;">
+                                        <select id="eqLoteFiltro" onchange="renderEquiposLote()" style="padding:10px 12px; font-size:13px; border:1px solid #cbd5e1; border-radius:11px;"><option value="">Todos los artículos</option></select>
+                                        <select id="eqLoteFiltroGar" onchange="renderEquiposLote()" style="padding:10px 12px; font-size:13px; border:1px solid #cbd5e1; border-radius:11px;"><option value="">Todos</option><option value="garantia">🛡️ Solo garantía</option><option value="normal">Sin garantía</option></select>
                                     </div>
-                                    <div class="table-wrap" style="max-height:340px; overflow-y:auto;">
-                                        <table>
-                                            <thead>
-                                                <tr><th>Artículo</th><th>IMEI</th><th>Notas</th><th id="th_costo">Costo</th><th>Acciones</th></tr>
-                                            </thead>
-                                            <tbody id="equiposLoteTable">
-                                                <tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:15px;">Sin equipos agregados aún.</td></tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                    <div style="background:#dbeafe; padding:10px 14px; border-radius:6px; margin-top:10px; display:flex; justify-content:space-between; align-items:center;" id="totalAcumuladoWrap">
-                                        <span style="font-size:13px; font-weight:700; color:#991b1b;">TOTAL ACUMULADO:</span>
-                                        <strong id="eq_total" style="font-size:18px; color:#991b1b;">RD$ 0.00</strong>
+                                    <div id="eqChips" class="eq-chips"></div>
+                                    <div id="equiposLoteTable"><div style="text-align:center; color:var(--text-muted); padding:20px;">Sin equipos agregados aún.</div></div>
+                                    <div id="eqPag" class="eq-pag"></div>
+                                    <div style="background:#f0fdf4; border:1px solid #bbf7d0; padding:11px 16px; border-radius:12px; margin-top:12px; display:flex; justify-content:space-between; align-items:center;" id="totalAcumuladoWrap">
+                                        <span style="font-size:13px; font-weight:800; color:#166534;"><i class="ti ti-cash"></i> TOTAL ACUMULADO:</span>
+                                        <strong id="eq_total" style="font-size:20px; color:#166534;">RD$ 0.00</strong>
                                     </div>
                                 </div>
                             </div>
@@ -10368,27 +10364,111 @@ async function agregarEquipoAlLote() {
     } catch(e) { logError('Agregar equipo al lote', e); toastError(getFriendlyError(e)); }
 }
 
+let _eqLote = { chip: '', page: 1, size: 20 };
+function _eqStyles() {
+    if(document.getElementById('eqStyles')) return;
+    const s = document.createElement('style'); s.id = 'eqStyles'; s.textContent = `
+      #lote-detalle .eq-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:10px;margin:6px 0 2px;}
+      .eq-stat{background:#fff;border:1px solid #eef2f7;border-radius:13px;padding:11px 13px;box-shadow:0 1px 2px rgba(15,23,42,.04);}
+      .eq-stat .l{font-size:10px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.3px;display:flex;align-items:center;gap:5px;}
+      .eq-stat .v{font-size:18px;font-weight:800;color:#0f172a;margin-top:3px;}
+      .eq-chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px;}
+      .eq-chip{border:1.5px solid #e2e8f0;background:#fff;color:#475569;border-radius:999px;padding:5px 13px;font-size:12px;font-weight:700;cursor:pointer;transition:.12s;}
+      .eq-chip:hover{background:#f8fafc;} .eq-chip.on{background:#e31e24;border-color:#e31e24;color:#fff;}
+      .eq-head,.eq-row{display:grid;grid-template-columns:2.3fr 1.5fr 1fr .8fr auto;gap:12px;align-items:center;}
+      .eq-head{padding:4px 14px 8px;font-size:10.5px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.3px;}
+      .eq-row{background:#fff;border:1px solid #eef2f7;border-radius:14px;padding:11px 14px;margin-bottom:9px;transition:transform .12s,box-shadow .12s;animation:eqFade .2s ease;}
+      .eq-row:hover{transform:translateY(-2px);box-shadow:0 10px 22px -12px rgba(15,23,42,.2);}
+      @keyframes eqFade{from{opacity:0;transform:translateY(4px)}to{opacity:1}}
+      .eq-art{display:flex;gap:12px;align-items:center;min-width:0;}
+      .eq-thumb{width:52px;height:52px;border-radius:12px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:25px;flex:none;}
+      .eq-cod{font-size:12px;font-weight:800;color:#e31e24;} .eq-mk{color:#64748b;font-weight:700;margin-left:4px;text-transform:uppercase;}
+      .eq-name{font-size:14.5px;font-weight:800;color:#0f172a;text-transform:uppercase;line-height:1.15;}
+      .eq-meta{font-size:11.5px;color:#475569;margin-top:1px;}
+      .eq-imei code{font-size:12.5px;color:#0f172a;font-weight:600;} .eq-copy{cursor:pointer;color:#94a3b8;margin-left:6px;} .eq-copy:hover{color:#0369a1;}
+      .eq-vb{display:inline-block;font-size:10px;font-weight:800;padding:1px 8px;border-radius:999px;margin-top:4px;}
+      .eq-vb.ok{background:#dcfce7;color:#166534;} .eq-vb.serial{background:#f1f5f9;color:#475569;} .eq-vb.no{background:#fee2e2;color:#b91c1c;} .eq-vb.gar{background:#fef3c7;color:#92400e;}
+      .eq-notas{font-size:11.5px;color:#475569;text-transform:uppercase;} .eq-costo{font-size:15px;font-weight:800;color:#0f172a;text-align:right;}
+      .eq-acc{display:flex;gap:4px;justify-content:flex-end;}
+      .eq-acc button{width:32px;height:32px;border:1px solid #eef2f7;background:#fff;border-radius:9px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:.12s;} .eq-acc button:hover{background:#f8fafc;transform:translateY(-1px);}
+      .eq-pag{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:8px;}
+      .eq-pag .info{font-size:12px;color:#475569;font-weight:600;} .eq-pgbtns{display:flex;gap:4px;flex-wrap:wrap;}
+      .eq-pgbtns button{min-width:32px;height:32px;border:1px solid #e2e8f0;background:#fff;border-radius:8px;font-size:12.5px;font-weight:700;color:#334155;cursor:pointer;} .eq-pgbtns button.on{background:#e31e24;border-color:#e31e24;color:#fff;} .eq-pgbtns button:disabled{opacity:.4;}
+      @media(max-width:820px){.eq-head{display:none;} .eq-row{grid-template-columns:1fr;} .eq-costo,.eq-acc{text-align:left;justify-content:flex-start;}}
+    `;
+    document.head.appendChild(s);
+}
+function _eqImeiOk(imei) { return /^\d{15}$/.test((imei || '').trim()); }
+function _eqCopy(imei) { try { navigator.clipboard.writeText(imei); } catch(_) {} toast('✓ IMEI copiado.'); }
+function _eqChip(k) { _eqLote.chip = (_eqLote.chip === k ? '' : k); _eqLote.page = 1; renderEquiposLote(); }
+function _eqPage(p) { _eqLote.page = p; renderEquiposLote(); const c = document.getElementById('equiposLoteTable'); if(c) c.scrollIntoView({ block: 'nearest' }); }
+function _eqSize(s) { _eqLote.size = Number(s) || 20; _eqLote.page = 1; renderEquiposLote(); }
+function _eqImeiValidar() {
+    const el = document.getElementById('eq_imei'), st = document.getElementById('eq_imei_status'); if(!el || !st) return;
+    const v = (el.value || '').trim();
+    if(!v) { st.textContent = ''; return; }
+    if(/^\d{15}$/.test(v)) { st.style.color = '#16a34a'; st.textContent = '✓ IMEI válido'; }
+    else if(/^\d+$/.test(v)) { st.style.color = '#b45309'; st.textContent = v.length + '/15 dígitos'; }
+    else { st.style.color = '#64748b'; st.textContent = 'Serial (no es IMEI)'; }
+}
+const _EQ_CHIPS = [
+    { k: 'iphone', lbl: 'iPhone', re: /IPHONE|APPLE/i, no: /WATCH/i },
+    { k: 'samsung', lbl: 'Samsung', re: /SAMSUNG|GALAXY/i },
+    { k: 'xiaomi', lbl: 'Xiaomi', re: /XIAOMI|REDMI|POCO/i },
+    { k: 'watch', lbl: 'Apple Watch', re: /WATCH/i },
+    { k: 'garantia', lbl: 'Garantía', gar: true },
+    { k: 'refurbish', lbl: 'Refurbish', gar: false }
+];
+function _eqChipMatch(e, k) {
+    const c = _EQ_CHIPS.find(x => x.k === k); if(!c) return true;
+    if(typeof c.gar === 'boolean') return !!e.es_garantia === c.gar;
+    const hay = [e.modelo, e.marca].filter(x => x).join(' ');
+    return c.re.test(hay) && !(c.no && c.no.test(hay));
+}
+function _eqCardRow(e, esAdmin) {
+    const ip = e.articulo_codigo ? _findInfoplusArt(e.articulo_codigo) : null;
+    const codigo = e.articulo_codigo || '';
+    const desc = (ip && ip.descripcion) || e.modelo || '';
+    const marca = (ip && ip.marca) || e.marca || '';
+    const cap = (ip && ip.referencia) || e.color || '';
+    const precio = ip && Number(ip.precio) > 0 ? Number(ip.precio) : 0;
+    const imei = e.imei || '';
+    const imeiBadge = imei ? (_eqImeiOk(imei) ? `<span class="eq-vb ok"><i class="ti ti-circle-check"></i> Válido</span>` : `<span class="eq-vb serial">Serial</span>`) : `<span class="eq-vb no">Sin IMEI</span>`;
+    const gar = e.es_garantia ? ` <span class="eq-vb gar">🛡️ Garantía</span>` : '';
+    return `<div class="eq-row">
+      <div class="eq-art">
+        <div class="eq-thumb">${_abEmoji(_abCat(desc))}</div>
+        <div style="min-width:0;">
+          <div class="eq-cod">Cód. ${escapeHtml(codigo || '—')} <span class="eq-mk">${escapeHtml(marca || '')}</span></div>
+          <div class="eq-name">${escapeHtml(desc || '(sin descripción)')}</div>
+          <div class="eq-meta">${cap ? `<i class="ti ti-device-mobile"></i> ${escapeHtml(cap)}` : ''}${precio > 0 ? `  ·  <b style="color:#16a34a;">${money(precio)}</b>` : ''}${gar}</div>
+        </div>
+      </div>
+      <div class="eq-imei"><div><code>${escapeHtml(imei || '—')}</code>${imei ? ` <i class="ti ti-copy eq-copy" title="Copiar" onclick="_eqCopy('${escapeHtml(imei).replace(/'/g, '')}')"></i>` : ''}</div>${imeiBadge}</div>
+      <div class="eq-notas">${e.notas_diagnostico ? escapeHtml(e.notas_diagnostico) : '<span style="color:#cbd5e1;">—</span>'}</div>
+      ${esAdmin ? `<div class="eq-costo">${money(e.costo_compra)}</div>` : '<div></div>'}
+      <div class="eq-acc">
+        <button title="Corregir" onclick="_editarEquipoLote('${e.id}')"><i class="ti ti-edit" style="color:#0369a1;"></i></button>
+        <button title="Imprimir label" onclick="abrirPreviewLabelDiagIndividual('${e.id}')"><i class="ti ti-printer" style="color:#475569;"></i></button>
+        <button title="Eliminar" onclick="eliminarEquipoLote('${e.id}')"><i class="ti ti-trash" style="color:#dc2626;"></i></button>
+      </div>
+    </div>`;
+}
 function renderEquiposLote() {
     if(!loteActualId) return;
-    const tbody = document.getElementById('equiposLoteTable');
-    if(!tbody) return;
-
+    _eqStyles();
+    const cont = document.getElementById('equiposLoteTable'); if(!cont) return;
     const equiposAll = cache.refurb.filter(r => r.lote_id === loteActualId);
     const esAdmin = isAdminUser();
-    const colspan = esAdmin ? 5 : 4;
-
-    // Poblar el filtro de artículos con los distintos del lote (conservando la selección)
+    // Poblar filtro de artículos (conservando selección)
     const selFiltro = document.getElementById('eqLoteFiltro');
     if(selFiltro) {
-        const prev = selFiltro.value;
-        const arts = {};
+        const prev = selFiltro.value; const arts = {};
         equiposAll.forEach(e => { const c = e.articulo_codigo || ''; if(c && !arts[c]) arts[c] = (e.modelo || c); });
-        selFiltro.innerHTML = `<option value="">Todos los artículos (${Object.keys(arts).length})</option>` +
-            Object.keys(arts).sort().map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c + ' · ' + arts[c])}</option>`).join('');
+        selFiltro.innerHTML = `<option value="">Todos los artículos (${Object.keys(arts).length})</option>` + Object.keys(arts).sort().map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c + ' · ' + arts[c])}</option>`).join('');
         if(prev && arts[prev]) selFiltro.value = prev;
     }
-
-    // Aplicar buscador + filtros
+    // Filtros
     const q = (document.getElementById('eqLoteBusq')?.value || '').toLowerCase().trim();
     const fArt = document.getElementById('eqLoteFiltro')?.value || '';
     const fGar = document.getElementById('eqLoteFiltroGar')?.value || '';
@@ -10396,52 +10476,53 @@ function renderEquiposLote() {
     if(fArt) equipos = equipos.filter(e => (e.articulo_codigo || '') === fArt);
     if(fGar === 'garantia') equipos = equipos.filter(e => e.es_garantia);
     else if(fGar === 'normal') equipos = equipos.filter(e => !e.es_garantia);
-    if(q) {
-        const palabras = q.split(/\s+/).filter(Boolean);
-        equipos = equipos.filter(e => {
-            const hay = [e.imei, e.articulo_codigo, e.modelo, e.marca, e.color].filter(x => x).join(' ').toLowerCase();
-            return palabras.every(p => hay.includes(p));
-        });
-    }
-
-    if(!equiposAll.length) {
-        tbody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center; color:var(--text-muted); padding:15px;">Sin equipos agregados aún.</td></tr>`;
-    } else if(!equipos.length) {
-        tbody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center; color:var(--text-muted); padding:15px;">Ningún equipo coincide con la búsqueda/filtro.</td></tr>`;
-    } else {
-        tbody.innerHTML = equipos.map(e => {
-            // Info completa del artículo (de Info Plus por código; respaldo: lo guardado en el equipo)
-            const ip = e.articulo_codigo ? _findInfoplusArt(e.articulo_codigo) : null;
-            const codigo = e.articulo_codigo || '';
-            const desc = (ip && ip.descripcion) || e.modelo || '';
-            const marca = (ip && ip.marca) || e.marca || '';
-            const ref = (ip && ip.referencia) || e.color || '';
-            const precio = ip && Number(ip.precio) > 0 ? Number(ip.precio) : 0;
-            const detalle = [marca ? escapeHtml(marca) : '', ref ? '🔖 ' + escapeHtml(ref) : '', precio ? '💲 ' + money(precio) : ''].filter(x => x).join(' · ');
-            const garantiaBadge = e.es_garantia ? ` <span class="badge" style="background:#fef3c7; color:#92400e;">🛡️ GARANTÍA</span>` : '';
-            const modeloMostrar = `${codigo ? `<b style="color:var(--blue-btn);">Cód. ${escapeHtml(codigo)}</b> · ` : ''}<span style="text-transform:uppercase; font-weight:600;">${escapeHtml(desc)}</span>${garantiaBadge}${detalle ? `<div style="font-size:11px; color:#475569; text-transform:none;">${detalle}</div>` : ''}`;
-            const costoCell = esAdmin ? `<td data-label="Costo"><b>${money(e.costo_compra)}</b></td>` : '';
-            const notas = e.notas_diagnostico ? `<small style="color:var(--text-muted); text-transform:uppercase;">${escapeHtml(e.notas_diagnostico)}</small>` : '<span style="color:#cbd5e1;">-</span>';
-            return `<tr>
-                <td data-label="Artículo">${modeloMostrar}</td>
-                <td data-label="IMEI"><code>${escapeHtml(e.imei || 'SIN IMEI')}</code></td>
-                <td data-label="Notas">${notas}</td>
-                ${costoCell}
-                <td data-label="Acciones">
-                    <button class="btn btn-light" style="padding:3px 6px; font-size:10px; color:#0369a1;" onclick="_editarEquipoLote('${e.id}')" title="Corregir (artículo, IMEI, costo, notas)"><i class="ti ti-edit"></i></button>
-                    <button class="btn btn-light" style="padding:3px 6px; font-size:10px;" onclick="abrirPreviewLabelDiagIndividual('${e.id}')" title="Imprimir label"><i class="ti ti-printer"></i></button>
-                    <button class="btn btn-light" style="padding:3px 6px; font-size:10px;" onclick="eliminarEquipoLote('${e.id}')" title="Eliminar"><i class="ti ti-trash"></i></button>
-                </td>
-            </tr>`;
-        }).join('');
-    }
-    
+    if(_eqLote.chip) equipos = equipos.filter(e => _eqChipMatch(e, _eqLote.chip));
+    if(q) { const pal = q.split(/\s+/).filter(Boolean); equipos = equipos.filter(e => { const hay = [e.imei, e.articulo_codigo, e.modelo, e.marca, e.color].filter(x => x).join(' ').toLowerCase(); return pal.every(p => hay.includes(p)); }); }
+    // Estadísticas (sobre todo el lote)
     const totalLote = equiposAll.reduce((s, e) => s + (parseFloat(e.costo_compra) || 0), 0);
-    const filtrando = equipos.length !== equiposAll.length;
-    document.getElementById('eq_count').textContent = filtrando ? `${equipos.length} de ${equiposAll.length}` : equiposAll.length;
+    const valorEst = equiposAll.reduce((s, e) => { const ip = _findInfoplusArt(e.articulo_codigo); return s + (ip && Number(ip.precio) > 0 ? Number(ip.precio) : 0); }, 0);
+    const prom = equiposAll.length ? totalLote / equiposAll.length : 0;
+    const st = document.getElementById('eqStats');
+    if(st) {
+        const card = (l, v, ic, col) => `<div class="eq-stat"><div class="l"><i class="ti ${ic}" style="color:${col};"></i> ${l}</div><div class="v" style="color:${col};">${v}</div></div>`;
+        st.innerHTML = card('Equipos', equiposAll.length, 'ti-devices', '#0f172a')
+            + (esAdmin ? card('Costo total', money(totalLote), 'ti-cash', '#0f172a')
+                + card('Costo promedio', money(prom), 'ti-calculator', '#475569')
+                + card('Valor estimado', money(valorEst), 'ti-tag', '#16a34a')
+                + card('Ganancia est.', money(valorEst - totalLote), 'ti-trending-up', valorEst - totalLote >= 0 ? '#16a34a' : '#b91c1c') : '');
+    }
+    // Chips (con conteo)
+    const ch = document.getElementById('eqChips');
+    if(ch) {
+        const cnt = k => equiposAll.filter(e => _eqChipMatch(e, k)).length;
+        ch.innerHTML = `<div class="eq-chip ${_eqLote.chip === '' ? 'on' : ''}" onclick="_eqChip('')">Todos (${equiposAll.length})</div>` +
+            _EQ_CHIPS.map(c => { const n = cnt(c.k); return n ? `<div class="eq-chip ${_eqLote.chip === c.k ? 'on' : ''}" onclick="_eqChip('${c.k}')">${c.lbl} (${n})</div>` : ''; }).join('');
+    }
+    // Paginación
+    const total = equipos.length, size = _eqLote.size, pages = Math.max(1, Math.ceil(total / size));
+    if(_eqLote.page > pages) _eqLote.page = pages;
+    const start = (_eqLote.page - 1) * size, items = equipos.slice(start, start + size);
+    if(!equiposAll.length) cont.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:22px;">Sin equipos agregados aún.</div>`;
+    else if(!total) cont.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:22px;">Ningún equipo coincide con la búsqueda/filtro.</div>`;
+    else cont.innerHTML = `<div class="eq-head"><div>Artículo</div><div>IMEI / Serial</div><div>Notas</div><div style="text-align:right;">${esAdmin ? 'Costo (RD$)' : ''}</div><div style="text-align:right;">Acciones</div></div>` + items.map(e => _eqCardRow(e, esAdmin)).join('');
+    // Footer paginación
+    const pg = document.getElementById('eqPag');
+    if(pg) {
+        if(total <= size && _eqLote.size === 20 && total <= 20) pg.innerHTML = '';
+        else {
+            const p = _eqLote.page;
+            const btn = (lbl, pgn, dis, on) => `<button ${dis ? 'disabled' : ''} class="${on ? 'on' : ''}" onclick="_eqPage(${pgn})">${lbl}</button>`;
+            const nums = _abPageNums(p, pages).map(n => n === '...' ? `<button disabled>…</button>` : btn(n, n, false, n === p)).join('');
+            pg.innerHTML = `<div class="info">Mostrando ${items.length} de ${total.toLocaleString('es-DO')} equipos</div>
+              <div class="eq-pgbtns">${btn('«', 1, p <= 1) + btn('‹', p - 1, p <= 1) + nums + btn('›', p + 1, p >= pages) + btn('»', pages, p >= pages)}</div>
+              <div style="font-size:12px; color:#475569; font-weight:600;">Mostrar <select onchange="_eqSize(this.value)" style="border:1px solid #e2e8f0; border-radius:9px; padding:6px 10px; font-weight:700;">${[20, 50, 100, 200].map(s => `<option value="${s}" ${s === _eqLote.size ? 'selected' : ''}>${s}</option>`).join('')}</select></div>`;
+        }
+    }
+    // Totales
+    document.getElementById('eq_count').textContent = total !== equiposAll.length ? `${total} de ${equiposAll.length}` : equiposAll.length;
     document.getElementById('eq_total').textContent = money(totalLote);
-    document.getElementById('lt_costo_total_display').value = esAdmin ? money(totalLote) : 'Solo Admin';
-    document.getElementById('lt_cantidad_display').value = `${equiposAll.length} equipo${equiposAll.length === 1 ? '' : 's'}`;
+    const ltd = document.getElementById('lt_costo_total_display'); if(ltd) ltd.value = esAdmin ? money(totalLote) : 'Solo Admin';
+    const ltc = document.getElementById('lt_cantidad_display'); if(ltc) ltc.value = `${equiposAll.length} equipo${equiposAll.length === 1 ? '' : 's'}`;
 }
 
 async function eliminarEquipoLote(equipoId) {
