@@ -9883,31 +9883,120 @@ function _smartSelectIconClick(containerId, seed) {
     const st = _smartSelects[containerId];
     if(st && typeof st.onIconClick === 'function') st.onIconClick(seed);
 }
-// Ventana flotante con TODOS los artículos de Info Plus + barra de búsqueda (para elegir)
+// ===== Buscador de artículos (Info Plus) — rediseño premium tipo tarjetas =====
 let _artBuscTarget = 'ss-eq-articulo';
 let _artBuscOnPick = null; // si se pasa, se llama con el artículo elegido (en vez de un smart-select)
+let _artBusc = { q: '', cat: '', page: 1, size: 200, hl: -1 };
+const _AB_CATS = [
+    { k: '', lbl: 'Todos' }, { k: 'celular', lbl: 'Celulares' }, { k: 'pantalla', lbl: 'Pantallas' },
+    { k: 'bateria', lbl: 'Baterías' }, { k: 'flex', lbl: 'Flex' }, { k: 'camara', lbl: 'Cámaras' },
+    { k: 'ic', lbl: 'IC' }, { k: 'herramienta', lbl: 'Herramientas' }, { k: 'accesorio', lbl: 'Accesorios' }
+];
+const _AB_INVCOL = { '6': { bg: '#fee2e2', c: '#b91c1c' }, '1': { bg: '#e0f2fe', c: '#0369a1' }, '4': { bg: '#f3e8ff', c: '#7c3aed' }, '3': { bg: '#dcfce7', c: '#166534' }, '5': { bg: '#fef3c7', c: '#b45309' } };
+function _abCat(desc) {
+    const d = (desc || '').toUpperCase();
+    if(/PANTALLA|DISPLAY|\bLCD\b|TOUCH|MODULO|MÓDULO/.test(d)) return 'pantalla';
+    if(/BATERIA|BATERÍA|\bPILA\b/.test(d)) return 'bateria';
+    if(/\bFLEX\b/.test(d)) return 'flex';
+    if(/CAMARA|CÁMARA|\bCAM\b/.test(d)) return 'camara';
+    if(/\bIC\b|\bCHIP\b|INTEGRAD/.test(d)) return 'ic';
+    if(/HERRAMIENT|DESTORNILLAD|PINZA|MICROSCOP|SOLDAD|PISTOLA|SEPARAD|VENTOSA/.test(d)) return 'herramienta';
+    if(/(CELULAR|TELEFONO|TELÉFONO|SMARTPHONE|MOBILE|IPHONE|REDMI|GALAXY|OUKITEL|XIAOMI|SAMSUNG|TECNO|INFINIX)/.test(d) && !/BATERIA|PANTALLA|FLEX|CAMARA|CABLE|\bPIN\b|CARGADOR|FUNDA|PROTECTO|VIDRIO|GLASS|ADHESIV/.test(d)) return 'celular';
+    if(/CABLE|CARGADOR|FUNDA|PROTECTOR|ADHESIV|PEGATINA|AUDIFONO|AUDÍFONO|GLASS|VIDRIO|ACCESORIO|\bMICA\b|CRISTAL|TEMPLADO/.test(d)) return 'accesorio';
+    return '';
+}
+function _abEmoji(cat) { return ({ celular: '📱', pantalla: '🖥️', bateria: '🔋', flex: '🧬', camara: '📷', ic: '🔲', herramienta: '🛠️', accesorio: '🎧' })[cat] || '📦'; }
+function _abInv(a) {
+    const ex = (a.existencias && typeof a.existencias === 'object') ? a.existencias : {};
+    const bd = (k, v) => { const col = _AB_INVCOL[k] || { bg: '#f1f5f9', c: '#475569' }; return `<span class="ab-bdg" style="background:${col.bg}; color:${col.c};">${(INFOPLUS_ALMACENES[k] || '').toUpperCase()}: ${v}</span>`; };
+    const taller = Number(a.existencia) || Number(ex['6']) || 0;
+    let out = [bd('6', taller)];
+    ['1', '4', '3', '5'].forEach(k => { const v = Number(ex[k]) || 0; if(v > 0) out.push(bd(k, v)); });
+    return out.join('');
+}
+function _abStyles() {
+    if(document.getElementById('abStyles')) return;
+    if(!document.getElementById('abFont')) { const l = document.createElement('link'); l.id = 'abFont'; l.rel = 'stylesheet'; l.href = 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap'; document.head.appendChild(l); }
+    const s = document.createElement('style'); s.id = 'abStyles'; s.textContent = `
+      @keyframes abIn{from{opacity:0}to{opacity:1}} @keyframes abPop{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
+      .ab-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);z-index:900;display:flex;align-items:center;justify-content:center;padding:24px;animation:abIn .15s ease;font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;}
+      .ab-modal{background:#fff;width:85%;max-width:1120px;max-height:88vh;border-radius:20px;box-shadow:0 30px 80px -20px rgba(15,23,42,.5);display:flex;flex-direction:column;overflow:hidden;animation:abPop .18s cubic-bezier(.2,.8,.2,1);}
+      .ab-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px 10px;}
+      .ab-head h3{margin:0;font-size:19px;font-weight:800;color:#0f172a;} .ab-head h3 .r{color:#e31e24;}
+      .ab-count{font-size:12.5px;color:#475569;margin-top:2px;font-weight:600;}
+      .ab-x{width:38px;height:38px;border-radius:11px;border:0;background:#f1f5f9;color:#475569;font-size:22px;cursor:pointer;line-height:1;} .ab-x:hover{background:#e2e8f0;color:#0f172a;}
+      .ab-search{display:flex;gap:10px;padding:4px 22px 10px;}
+      .ab-inp{flex:1;display:flex;align-items:center;gap:10px;border:2px solid #e31e24;border-radius:13px;padding:11px 15px;box-shadow:0 1px 3px rgba(15,23,42,.05);}
+      .ab-inp>i{color:#e31e24;font-size:19px;} .ab-inp input{flex:1;border:0;outline:0;font-size:15px;background:transparent;color:#0f172a;font-family:inherit;}
+      .ab-kbd{font-size:11px;color:#64748b;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:7px;padding:3px 8px;font-weight:700;white-space:nowrap;}
+      .ab-fbtn{display:flex;align-items:center;gap:7px;border:1.5px solid #e2e8f0;background:#fff;border-radius:13px;padding:0 15px;font-size:14px;font-weight:700;color:#334155;cursor:pointer;font-family:inherit;} .ab-fbtn:hover{background:#f8fafc;}
+      .ab-chips{display:flex;gap:8px;padding:0 22px 10px;flex-wrap:wrap;}
+      .ab-chip{border:1.5px solid #e2e8f0;background:#fff;color:#475569;border-radius:999px;padding:6px 14px;font-size:12.5px;font-weight:700;cursor:pointer;transition:.12s;white-space:nowrap;} .ab-chip:hover{background:#f8fafc;border-color:#cbd5e1;} .ab-chip.on{background:#e31e24;border-color:#e31e24;color:#fff;}
+      .ab-results{flex:1;overflow-y:auto;padding:6px 22px 12px;background:#f8fafc;}
+      .ab-card{display:flex;align-items:center;gap:16px;background:#fff;border:1px solid #eef2f7;border-radius:16px;padding:13px 16px;margin-bottom:11px;cursor:pointer;transition:transform .12s,box-shadow .12s,border-color .12s;}
+      .ab-card:hover{transform:translateY(-2px);box-shadow:0 12px 26px -12px rgba(15,23,42,.22);border-color:#e2e8f0;} .ab-card.hl{border-color:#e31e24;box-shadow:0 0 0 3px rgba(227,30,36,.12);}
+      .ab-thumb{width:62px;height:62px;border-radius:14px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:29px;flex:none;}
+      .ab-info{flex:1;min-width:0;} .ab-cod{font-size:12.5px;font-weight:800;color:#e31e24;} .ab-cod .mk{color:#64748b;font-weight:700;}
+      .ab-name{font-size:16px;font-weight:800;color:#0f172a;margin:1px 0 2px;line-height:1.2;}
+      .ab-ref{font-size:12.5px;color:#475569;} .ab-pl{font-size:12.5px;color:#475569;margin-top:3px;}
+      .ab-badges{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;} .ab-bdg{font-size:11px;font-weight:800;padding:2px 9px;border-radius:999px;}
+      .ab-right{flex:none;width:152px;display:flex;flex-direction:column;gap:8px;}
+      .ab-pbox{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:8px 12px;text-align:center;} .ab-pbox b{font-size:15px;color:#16a34a;font-weight:800;display:block;} .ab-pbox small{font-size:10px;color:#15803d;font-weight:600;}
+      .ab-sel{border:1.5px solid #e2e8f0;background:#fff;border-radius:11px;padding:9px;font-size:13px;font-weight:800;color:#334155;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;} .ab-sel:hover{background:#e31e24;border-color:#e31e24;color:#fff;}
+      .ab-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 22px;border-top:1px solid #eef2f7;background:#fff;flex-wrap:wrap;}
+      .ab-foot .info{font-size:12.5px;color:#475569;font-weight:600;} .ab-pg{display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
+      .ab-pg button{min-width:34px;height:34px;border:1px solid #e2e8f0;background:#fff;border-radius:9px;font-size:13px;font-weight:700;color:#334155;cursor:pointer;font-family:inherit;} .ab-pg button:hover:not(:disabled){background:#f8fafc;} .ab-pg button.on{background:#e31e24;border-color:#e31e24;color:#fff;} .ab-pg button:disabled{opacity:.4;cursor:default;}
+      .ab-size{border:1px solid #e2e8f0;border-radius:10px;padding:8px 12px;font-size:13px;font-weight:700;color:#334155;font-family:inherit;}
+      @media(max-width:640px){.ab-modal{width:100%;max-height:94vh;} .ab-card{flex-wrap:wrap;} .ab-right{width:100%;flex-direction:row;} .ab-right>*{flex:1;} .ab-search{flex-wrap:wrap;} .ab-kbd{display:none;}}
+    `;
+    document.head.appendChild(s);
+}
 async function abrirBuscadorArticulos(targetSS, onPick, refHtml, seed) {
     _artBuscTarget = (typeof targetSS === 'string' && targetSS) ? targetSS : 'ss-eq-articulo';
     _artBuscOnPick = (typeof onPick === 'function') ? onPick : null;
-    const seedVal = (seed || '').toString();
-    abrirModalGenerico('🔍 Artículos (Info Plus)', `
-        ${refHtml || ''}
-        <input id="artBuscModal" placeholder="Buscar por código, descripción, marca o referencia…" autocomplete="off" value="${escapeHtml(seedVal)}" oninput="renderBuscadorArticulos()" onkeydown="if(event.key==='Enter'){event.preventDefault(); const r=document.querySelector('#artBuscModalLista div[onclick*=&quot;_artBuscElegir&quot;]'); if(r) r.click();}" style="width:100%; padding:10px 12px; font-size:14px; border:1px solid #cbd5e1; border-radius:8px; margin-bottom:8px;">
-        ${seedVal ? `<div style="font-size:11px; color:#475569; margin:-2px 0 8px;">Filtrado por el modelo del equipo. Borra palabras si quieres ver más.</div>` : ''}
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
-            <span style="font-size:11.5px; color:#475569;">¿Creaste o cambiaste un artículo en Info Plus y no aparece?</span>
-            <button class="btn btn-light" id="artBuscSyncBtn" style="padding:5px 11px; font-size:12px; color:#15803d; border-color:#86efac;" onclick="_buscadorSincronizarIP(this)"><i class="ti ti-refresh"></i> Sincronizar Info Plus</button>
-        </div>
-        <div id="artBuscSyncMsg" style="font-size:11.5px; margin:-4px 0 8px;"></div>
-        <div id="artBuscModalLista"><div style="text-align:center; color:#475569; padding:20px;">⏳ Cargando artículos (Info Plus)…</div></div>
-    `);
-    // Si ya hay artículos en memoria, mostrarlos al instante; si no, cargarlos (sin re-descargar destructivamente)
+    _artBusc = { q: (seed || '').toString(), cat: '', page: 1, size: 200, hl: -1 };
+    _abStyles();
+    let m = document.getElementById('modalBuscadorArt'); if(m) m.remove();
+    m = document.createElement('div'); m.id = 'modalBuscadorArt'; m.className = 'ab-backdrop';
+    m.onclick = (e) => { if(e.target === m) _artBuscCerrar(); };
+    const chips = _AB_CATS.map(c => `<div class="ab-chip ${c.k === '' ? 'on' : ''}" data-cat="${c.k}" onclick="_artBuscCat('${c.k}')">${c.lbl}</div>`).join('');
+    m.innerHTML = `<div class="ab-modal">
+      <div class="ab-head">
+        <div><h3><i class="ti ti-search" style="color:#0891b2;"></i> Artículos <span class="r">(Info Plus)</span></h3><div class="ab-count" id="abCount">Cargando…</div></div>
+        <button class="ab-x modal-close" onclick="_artBuscCerrar()" title="Cerrar (ESC)">&times;</button>
+      </div>
+      ${refHtml || ''}
+      <div class="ab-search">
+        <div class="ab-inp"><i class="ti ti-search"></i><input id="artBuscModal" autocomplete="off" placeholder="Buscar por código, descripción, marca, referencia o modelo…" value="${escapeHtml(_artBusc.q)}" oninput="_artBuscOnInput(this.value)" onkeydown="_artBuscKey(event)"><span class="ab-kbd">Ctrl + K</span></div>
+        <button class="ab-fbtn" onclick="_artBuscToggleFiltros()"><i class="ti ti-adjustments-horizontal"></i> Filtros</button>
+        <button class="ab-fbtn" style="color:#15803d; padding:0 13px;" onclick="_buscadorSincronizarIP(this)" title="Traer lo último de Info Plus"><i class="ti ti-refresh"></i></button>
+      </div>
+      <div class="ab-chips" id="abChips">${chips}</div>
+      <div id="artBuscSyncMsg" style="font-size:11.5px; padding:0 22px 6px; font-family:inherit;"></div>
+      <div class="ab-results" id="artBuscModalLista"><div style="text-align:center; color:#475569; padding:30px;">⏳ Cargando artículos (Info Plus)…</div></div>
+      <div class="ab-foot" id="abFoot"></div>
+    </div>`;
+    document.body.appendChild(m);
     if(cache.infoplusArticulos && cache.infoplusArticulos.length) renderBuscadorArticulos();
     await _ensureInfoplusArticulos();
     renderBuscadorArticulos();
     setTimeout(() => { const b = document.getElementById('artBuscModal'); if(b) { b.focus(); const n = b.value.length; try { b.setSelectionRange(n, n); } catch(_e) {} } }, 60);
-    _buscadorAutoSyncSiToca(); // actualiza solo en segundo plano al abrir (no traba)
+    _buscadorAutoSyncSiToca();
 }
+function _artBuscCerrar() { const m = document.getElementById('modalBuscadorArt'); if(m) m.remove(); }
+function _artBuscOnInput(v) { _artBusc.q = v; _artBusc.page = 1; _artBusc.hl = -1; renderBuscadorArticulos(); }
+function _artBuscCat(k) { _artBusc.cat = k; _artBusc.page = 1; _artBusc.hl = -1; document.querySelectorAll('#abChips .ab-chip').forEach(c => c.classList.toggle('on', (c.getAttribute('data-cat') || '') === k)); renderBuscadorArticulos(); }
+function _artBuscToggleFiltros() { const c = document.getElementById('abChips'); if(c) c.style.display = (c.style.display === 'none' ? 'flex' : 'none'); }
+function _artBuscPage(p) { _artBusc.page = p; _artBusc.hl = -1; renderBuscadorArticulos(); const r = document.getElementById('artBuscModalLista'); if(r) r.scrollTop = 0; }
+function _artBuscSize(s) { _artBusc.size = Number(s) || 200; _artBusc.page = 1; renderBuscadorArticulos(); }
+function _artBuscKey(e) {
+    if((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); document.getElementById('artBuscModal')?.select(); return; }
+    const cards = document.querySelectorAll('#artBuscModalLista .ab-card');
+    if(e.key === 'ArrowDown') { e.preventDefault(); _artBusc.hl = Math.min((_artBusc.hl < 0 ? -1 : _artBusc.hl) + 1, cards.length - 1); _abHl(cards); }
+    else if(e.key === 'ArrowUp') { e.preventDefault(); _artBusc.hl = Math.max(_artBusc.hl - 1, 0); _abHl(cards); }
+    else if(e.key === 'Enter') { e.preventDefault(); const idx = _artBusc.hl >= 0 ? _artBusc.hl : 0; const card = cards[idx]; if(card) { const cod = card.getAttribute('data-cod'); if(cod) _artBuscElegir(cod); } }
+}
+function _abHl(cards) { cards.forEach((c, i) => c.classList.toggle('hl', i === _artBusc.hl)); const el = cards[_artBusc.hl]; if(el) el.scrollIntoView({ block: 'nearest' }); }
 async function _buscadorSincronizarIP(btn) {
     const msg = document.getElementById('artBuscSyncMsg');
     const orig = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Sincronizando…';
@@ -9942,55 +10031,74 @@ function _reintentarBuscadorArticulos() {
     _ensureInfoplusArticulos(true).then(renderBuscadorArticulos);
 }
 function renderBuscadorArticulos() {
-    const cont = document.getElementById('artBuscModalLista');
-    if(!cont) return;
-    const q = (document.getElementById('artBuscModal')?.value || '').toLowerCase().trim();
-    let lista = cache.infoplusArticulos || [];
-    if(q) {
-        const palabras = q.split(/\s+/).filter(Boolean);
-        lista = lista.filter(a => {
-            const hay = [a.codigo, a.descripcion, a.marca, a.referencia, a.referencia_fabrica].filter(x => x).join(' ').toLowerCase();
-            return palabras.every(p => hay.includes(p));
-        });
-    }
-    // Si NO hay artículos cargados en memoria, distinguir "cargando" de "falló la carga"
+    const cont = document.getElementById('artBuscModalLista'); if(!cont) return;
+    const cEl = document.getElementById('abCount'), fEl = document.getElementById('abFoot');
+    // Si NO hay artículos cargados: cargando / falló
     if(!(cache.infoplusArticulos && cache.infoplusArticulos.length)) {
         cont.innerHTML = _infoplusCargando
-            ? `<div style="text-align:center; color:#475569; padding:20px;">⏳ Cargando artículos (Info Plus)…</div>`
-            : `<div style="color:#475569; text-align:center; padding:18px;">No se pudieron cargar los artículos.<br><button class="btn btn-light" style="margin-top:8px;" onclick="_reintentarBuscadorArticulos()"><i class="ti ti-refresh"></i> Reintentar</button></div>`;
+            ? `<div style="text-align:center; color:#475569; padding:30px;">⏳ Cargando artículos (Info Plus)…</div>`
+            : `<div style="color:#475569; text-align:center; padding:24px;">No se pudieron cargar los artículos.<br><button class="btn btn-light" style="margin-top:8px;" onclick="_reintentarBuscadorArticulos()"><i class="ti ti-refresh"></i> Reintentar</button></div>`;
+        if(cEl) cEl.textContent = ''; if(fEl) fEl.innerHTML = '';
         return;
     }
-    if(!lista.length) {
-        cont.innerHTML = `<div style="color:#475569; text-align:center; padding:18px;">No hay artículos que coincidan con "${escapeHtml(q)}".</div>`;
-        return;
-    }
+    const q = (_artBusc.q || '').toLowerCase().trim();
+    let lista = cache.infoplusArticulos;
+    if(q) { const pal = q.split(/\s+/).filter(Boolean); lista = lista.filter(a => { const hay = [a.codigo, a.descripcion, a.marca, a.referencia, a.referencia_fabrica].filter(x => x).join(' ').toLowerCase(); return pal.every(p => hay.includes(p)); }); }
+    if(_artBusc.cat) lista = lista.filter(a => _abCat(a.descripcion) === _artBusc.cat);
     const total = lista.length;
-    lista = lista.slice(0, 200);
-    cont.innerHTML = `<div style="font-size:11px; color:#475569; margin-bottom:6px;">${total} artículo${total!==1?'s':''}${total>200?' (mostrando 200, refina la búsqueda)':''}</div>` +
-        lista.map(a => {
-            const exist = Number(a.existencia) || 0;
-            const existHtml = exist > 0 ? `<span class="badge" style="background:#dcfce7; color:#166534;">Taller: <b>${exist}</b></span>` : `<span class="badge" style="background:#fee2e2; color:#991b1b;">Taller: 0</span>`;
-            const otros = _htmlExistenciasOtros(a.existencias);
-            const refLinea = a.referencia ? `<div style="font-size:12px; color:#0f172a; margin-top:1px;">🔖 Referencia: <b>${escapeHtml(a.referencia)}</b></div>` : '';
-            const refFab = a.referencia_fabrica ? `<div style="font-size:11px; color:#475569;">Ref. fábrica: ${escapeHtml(a.referencia_fabrica)}</div>` : '';
-            const precio = Number(a.precio) > 0 ? `💲 Precio: <b style="color:#0f172a;">${money(a.precio)}</b>` : '';
-            const precioEsp = Number(a.precio_especial) > 0 ? ` · Precio especial: <b>${money(a.precio_especial)}</b>` : '';
-            const costo = Number(a.costo) > 0 ? ` · Costo: ${money(a.costo)}` : '';
-            return `<div onclick="_artBuscElegir('${String(a.codigo).replace(/'/g,"\\'")}')" style="border:1px solid #e2e8f0; border-radius:10px; padding:10px 12px; margin-bottom:7px; cursor:pointer;" onmouseover="this.style.background='#f0f9ff'" onmouseout="this.style.background=''">
-                <div style="font-weight:700; font-size:13.5px;">Código ${escapeHtml(a.codigo)} <span style="color:#475569; font-weight:600; font-size:11px;">· ${escapeHtml(a.marca || '')}</span></div>
-                <div style="font-size:12.5px; color:#334155; font-weight:600;">${escapeHtml(a.descripcion || '(sin descripción)')}</div>
-                ${refLinea}${refFab}
-                <div style="font-size:11.5px; color:#475569; margin-top:3px;">${precio}${precioEsp}${costo}</div>
-                <div style="margin-top:4px;">${existHtml} ${otros}</div>
-            </div>`;
-        }).join('');
+    const size = _artBusc.size, pages = Math.max(1, Math.ceil(total / size));
+    if(_artBusc.page > pages) _artBusc.page = pages;
+    const start = (_artBusc.page - 1) * size;
+    const items = lista.slice(start, start + size);
+    if(cEl) cEl.textContent = `${total.toLocaleString('es-DO')} artículos encontrados${total > size ? ` (mostrando ${items.length})` : ''}`;
+    if(!total) { cont.innerHTML = `<div style="text-align:center; color:#475569; padding:30px;">No hay artículos que coincidan${q ? ` con "${escapeHtml(q)}"` : ''}.</div>`; if(fEl) fEl.innerHTML = ''; return; }
+    cont.innerHTML = items.map((a, i) => _abCard(a, i)).join('');
+    _abRenderFoot(total, pages, items.length);
+}
+function _abCard(a, i) {
+    const cod = String(a.codigo).replace(/'/g, "\\'");
+    const precio = Number(a.precio) || 0, costo = Number(a.costo) || 0;
+    const pventa = Number(a.precio_especial) > 0 ? Number(a.precio_especial) : precio;
+    return `<div class="ab-card ${i === _artBusc.hl ? 'hl' : ''}" data-cod="${escapeHtml(String(a.codigo))}" onclick="_artBuscElegir('${cod}')" ondblclick="_artBuscElegir('${cod}')">
+      <div class="ab-thumb">${_abEmoji(_abCat(a.descripcion))}</div>
+      <div class="ab-info">
+        <div class="ab-cod">Código ${escapeHtml(a.codigo)} <span class="mk">· ${escapeHtml(a.marca || '—')}</span></div>
+        <div class="ab-name">${escapeHtml(a.descripcion || '(sin descripción)')}</div>
+        ${a.referencia ? `<div class="ab-ref"><i class="ti ti-tag"></i> Referencia: <b>${escapeHtml(a.referencia)}</b></div>` : ''}
+        <div class="ab-pl">${precio > 0 ? `<i class="ti ti-cash" style="color:#16a34a;"></i> Precio: <b style="color:#0f172a;">${money(precio)}</b>` : ''}${costo > 0 ? `&nbsp; · &nbsp;<i class="ti ti-receipt" style="color:#64748b;"></i> Costo: ${money(costo)}` : ''}</div>
+        <div class="ab-badges">${_abInv(a)}</div>
+      </div>
+      <div class="ab-right">
+        <div class="ab-pbox"><b>${pventa > 0 ? money(pventa) : '—'}</b><small>Precio de venta</small></div>
+        <button class="ab-sel" onclick="event.stopPropagation(); _artBuscElegir('${cod}')"><i class="ti ti-check"></i> Seleccionar</button>
+      </div>
+    </div>`;
+}
+function _abPageNums(p, pages) {
+    if(pages <= 7) return Array.from({ length: pages }, (_, i) => i + 1);
+    const out = [1], lo = Math.max(2, p - 1), hi = Math.min(pages - 1, p + 1);
+    if(lo > 2) out.push('...');
+    for(let i = lo; i <= hi; i++) out.push(i);
+    if(hi < pages - 1) out.push('...');
+    out.push(pages);
+    return out;
+}
+function _abRenderFoot(total, pages, shown) {
+    const f = document.getElementById('abFoot'); if(!f) return;
+    const p = _artBusc.page;
+    const btn = (lbl, pg, dis, on) => `<button ${dis ? 'disabled' : ''} class="${on ? 'on' : ''}" onclick="_artBuscPage(${pg})">${lbl}</button>`;
+    const nums = _abPageNums(p, pages).map(n => n === '...' ? `<button disabled>…</button>` : btn(n, n, false, n === p)).join('');
+    const pg = btn('«', 1, p <= 1) + btn('‹', p - 1, p <= 1) + nums + btn('›', p + 1, p >= pages) + btn('»', pages, p >= pages);
+    f.innerHTML = `<div class="info">Mostrando ${shown} de ${total.toLocaleString('es-DO')} artículos</div>
+      <div class="ab-pg">${pg}</div>
+      <div style="font-size:13px; color:#475569; font-weight:600;">Mostrar <select class="ab-size" onchange="_artBuscSize(this.value)">${[50, 100, 200, 500].map(s => `<option value="${s}" ${s === _artBusc.size ? 'selected' : ''}>${s}</option>`).join('')}</select></div>`;
 }
 function _artBuscElegir(codigo) {
     const a = _findInfoplusArt(codigo);
     // Si hay un callback (ej. llenar campos de texto), usarlo
     if(_artBuscOnPick && a) {
         try { _artBuscOnPick(a); } catch(e) { logError('artBuscOnPick', e); }
-        const m0 = document.getElementById('modalGenerico'); if(m0) m0.remove();
+        _artBuscCerrar();
         return;
     }
     const target = _artBuscTarget || 'ss-eq-articulo';
@@ -10000,7 +10108,7 @@ function _artBuscElegir(codigo) {
         st.items.push({ id: a.codigo, label: `${a.codigo} · ${(a.descripcion||'').trim()}`, sub: a.marca||'', search: [a.codigo,a.descripcion,a.marca,a.referencia].filter(x=>x).join(' ').toLowerCase(), _ip: a });
     }
     smartSelectPick(target, codigo);
-    const m = document.getElementById('modalGenerico'); if(m) m.remove();
+    _artBuscCerrar();
 }
 // Llenar los campos del modal "Registrar equipo existente" desde un artículo de Info Plus
 function _rexElegirArticulo(a) {
