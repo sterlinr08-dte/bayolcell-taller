@@ -6149,6 +6149,7 @@ function nav(v, btn) {
     if(v === 'miTrabajo') { setTimeout(() => { renderMiTrabajo(); const _wrap = document.getElementById('miTrabajoIncentivosWrap'); if(_wrap){ if(!isAdminUser() && typeof renderMisIncentivos === 'function') { _wrap.style.display = ''; renderMisIncentivos('miTrabajoIncentivos'); } else { _wrap.style.display = 'none'; } } }, 50); }
     if(v === 'atencion') { setTimeout(() => { renderAtencionCliente(); }, 50); }
     if(v === 'financiamientos') { setTimeout(() => { renderFinanciamientos(); }, 50); }
+    if(v === 'ordenes') { setTimeout(() => { if(typeof renderOrders === 'function') renderOrders(); if(typeof renderTallerOrdenes === 'function') renderTallerOrdenes(); }, 50); }
     if(v === 'articulos') { setTimeout(() => { actualizarInfoplusCount(); renderInfoplusBusqueda(); }, 50); }
     if(v === 'contabilidad') { setTimeout(() => { cargarCatalogoCuentas(); contaTab(localStorage.getItem('bayol_subtab_conta') || 'mensual'); }, 50); }
     if(v === 'diagnostico') { setTimeout(() => { cargarConocimiento(); }, 50); }
@@ -6188,7 +6189,7 @@ function closeSidebar() {
     document.getElementById('sidebarBackdrop')?.classList.remove('active');
 }
 
-async function loadAll() {
+async function _loadAllImpl() {
     try {
         const [rOrd, rCli, rEq, rPz, rAct, rRef, rProv, rLot, rArt, rTec, rUsr, rOpz, rTk, rPzR, rFC, rCT, rNotas] = await Promise.all([
             supabaseClient.from('ordenes_reparacion').select('*').order('creado_en', { ascending: false }),
@@ -6249,6 +6250,14 @@ async function loadAll() {
         // Si el chat de notas está abierto, refrescarlo en vivo con los mensajes nuevos
         if(typeof refrescarNotasModalAbierto === 'function') refrescarNotasModalAbierto();
     } catch(e) { logError('loadAll', e); toast(getFriendlyError(e, "Error cargando base de datos.")); }
+}
+// Contador de cargas en curso. Las acciones del usuario (guardar, etc.) SIEMPRE cargan fresco;
+// el poller de fondo se salta si ya hay una carga en curso (así no se solapan 17 consultas + renderAll).
+let _loadAllInFlight = 0;
+async function loadAll() {
+    _loadAllInFlight++;
+    try { return await _loadAllImpl(); }
+    finally { _loadAllInFlight--; }
 }
 
 function findCliente(id) { return cache.clientes.find(x => x.id === id) || {}; }
@@ -6408,7 +6417,11 @@ function findEquipo(id) { return cache.equipos.find(x => x.id === id) || {}; }
 function findArticulo(id) { return cache.articulos.find(x => x.id === id) || {}; }
 function findProveedor(id) { return cache.proveedores.find(x => x.id === id) || {}; }
 
+// ¿El contenedor está dentro de una vista visible? (si no está dentro de ninguna .view, siempre true)
+function _verVisible(elId){ const el = document.getElementById(elId); if(!el) return false; const v = el.closest('.view'); return !v || v.classList.contains('active'); }
+let _renderAllListo = false;
 function renderAll() {
+    const _primera = !_renderAllListo; // la 1ª vez (al entrar) se pinta TODO; luego solo la vista visible
     const today = new Date().toISOString().slice(0, 10);
     document.getElementById("kHoy").textContent = cache.ordenes.filter(o => (o.creado_en || "").slice(0, 10) === today).length;
     document.getElementById("kDiag").textContent = cache.ordenes.filter(o => normalizarEstadoOrden(o.estado) === "recibido").length;
@@ -6432,11 +6445,11 @@ function renderAll() {
         return `<tr><td data-label="Orden"><b>${formatoOrden(o.numero_orden)}</b></td><td data-label="Cliente">${escapeHtml(c.nombre)}</td><td data-label="Equipo">${escapeHtml(e.modelo)}</td><td data-label="Falla">${escapeHtml(o.falla_reportada)}</td><td data-label="Estado"><span class="badge" style="background:#d1fae5;">${o.estado}</span></td></tr>`;
     }).join("");
     
-    renderOrders();
+    if(_primera || _verVisible('ordersTable')) renderOrders();
     document.getElementById("partsTable").innerHTML = cache.piezas.map(p => `<tr><td data-label="Código"><code>${escapeHtml(p.codigo||'')}</code></td><td data-label="Descripción"><b>${escapeHtml(p.nombre||'')}</b></td><td data-label="Marca">${escapeHtml(p.marca||'')}</td><td data-label="Referencia">${escapeHtml(p.referencia||'')}</td><td data-label="Existencia">${p.cantidad} uds</td><td data-label="Costo">${money(p.costo)}</td></tr>`).join("");
     if(isAdminUser()) renderActivosTaller();
-    renderProveedores();
-    renderComprasTab();
+    if(_primera || _verVisible('proveedoresContainer')) renderProveedores();
+    if(_primera || _verVisible('comprasContainer')) renderComprasTab();
     renderArticulos();
     // Refrescar vista Reacond si está activa
     if(document.getElementById('v-refurb')?.classList.contains('active')) {
@@ -6446,7 +6459,7 @@ function renderAll() {
     if(proveedorActualId) renderDetalleProveedor(proveedorActualId);
     if(loteActualId) renderEquiposLote();
     renderProductividadEmpleados();
-    renderTallerOrdenes();
+    if(_primera || _verVisible('tallerOrdenesLista')) renderTallerOrdenes();
     if(typeof renderCargaTecnicos === 'function') renderCargaTecnicos();
     if(document.getElementById('v-miTrabajo')?.classList.contains('active')) renderMiTrabajo();
     if(document.getElementById('v-atencion')?.classList.contains('active')) renderAtencionCliente();
@@ -6461,6 +6474,7 @@ function renderAll() {
     // Marcar el filtro activo del tablero (visual)
     const btnAct = document.getElementById('fltOrdActivas');
     if(btnAct && !btnAct.style.background) { btnAct.style.background = 'var(--blue-btn)'; btnAct.style.color = '#fff'; }
+    _renderAllListo = true;
 }
 
 // Reporte: cuántos clientes/órdenes atendió cada empleado
@@ -24253,8 +24267,9 @@ function startAppRefurbPoller() {
     // RESPALDO: poller cada 30s (funciona aunque Realtime no esté activo).
     // Solo recarga si NO hay un modal abierto (para no interrumpir formularios).
     refreshTimer = setInterval(() => {
-        if(sessionUser && !hayModalAbierto()) loadAll();
-    }, 30000);
+        if(document.hidden) return; // no recargar si la pestaña del navegador está en segundo plano
+        if(sessionUser && !hayModalAbierto() && _loadAllInFlight === 0) loadAll();
+    }, 60000);
     // Intentar activar Supabase Realtime (tiempo real de verdad)
     iniciarRealtime();
 }
