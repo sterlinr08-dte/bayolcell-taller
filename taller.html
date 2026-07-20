@@ -21130,6 +21130,132 @@ function enviarResenaWhatsapp(){
     if(el) el.value = '';
 }
 
+/* ============================================================
+   PREFACTURA en Info Plus (desde la orden de servicio)
+   Carrito de artículos (precio del artículo de Info Plus) -> POST /prefactura
+   ============================================================ */
+let _pref = null, _prefUltima = null;
+function abrirPrefacturaOrden(ordenId) {
+    const esServ = sessionUser?.tipo_empleado === 'servicio' || tienePermiso('solo_atencion') || tienePermiso('recepcion_ver');
+    if(!isAdminUser() && !esServ) { return toast('Solo el administrador o servicio al cliente pueden crear prefacturas.', 'error'); }
+    const o = (cache.ordenes || []).find(x => x.id === ordenId) || {};
+    const c = findCliente(o.cliente_id) || {};
+    _pref = { ordenId, localidad: '1', codcliente: '1', nombre: (c.nombre || 'CONTADO'), codempleado: '6', items: [] };
+    _prefRender();
+}
+function _prefItemsHTML() {
+    if(!_pref.items.length) return `<div style="color:var(--text-muted); font-size:13px; padding:12px; text-align:center; border:1px dashed #cbd5e1; border-radius:10px;">Agrega los artículos con el botón de arriba. El precio sale del artículo de Info Plus (lo puedes ajustar).</div>`;
+    return `<div class="table-wrap"><table style="width:100%; font-size:13px;"><thead><tr><th>Artículo</th><th style="width:66px;">Cant.</th><th style="width:110px;">Precio</th><th style="text-align:right;">Importe</th><th></th></tr></thead><tbody>
+      ${_pref.items.map((it, i) => `<tr>
+        <td style="font-size:12px;"><b style="color:#e31e24;">${escapeHtml(String(it.cod))}</b> ${escapeHtml(it.desc)}</td>
+        <td><input type="number" min="1" step="1" value="${it.cant}" onchange="_prefCant(${i}, this.value)" style="width:58px; padding:5px; border:1px solid #cbd5e1; border-radius:6px;"></td>
+        <td><input type="number" min="0" step="0.01" value="${it.precio}" onchange="_prefPrecio(${i}, this.value)" style="width:100px; padding:5px; border:1px solid #cbd5e1; border-radius:6px;"></td>
+        <td style="text-align:right; font-weight:700; white-space:nowrap;">${money(Number(it.precio) * Number(it.cant))}</td>
+        <td style="text-align:right;"><button class="btn btn-light btn-sm" onclick="_prefQuitar(${i})" title="Quitar" style="color:#b91c1c;"><i class="ti ti-trash"></i></button></td>
+      </tr>`).join('')}
+    </tbody></table></div>`;
+}
+function _prefRender() {
+    let m = document.getElementById('modalPrefactura'); if(m) m.remove();
+    const total = _pref.items.reduce((s, it) => s + (Number(it.precio) * Number(it.cant)), 0);
+    m = document.createElement('div'); m.id = 'modalPrefactura'; m.className = 'modal-backdrop active'; m.style.zIndex = '800';
+    m.innerHTML = `<div class="modal-box" style="max-width:660px; width:96%;">
+      <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-file-invoice" style="color:#0e7490;"></i> Crear prefactura (Info Plus)</h3><button class="modal-close" onclick="document.getElementById('modalPrefactura').remove()">✕</button></div>
+      <div class="modal-body">
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+          <div style="flex:1; min-width:150px;"><label style="font-size:11px; font-weight:700; color:#475569;">Local</label><select id="prefLocal" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;"><option value="1" ${_pref.localidad === '1' ? 'selected' : ''}>Santiago</option><option value="4" ${_pref.localidad === '4' ? 'selected' : ''}>Moca</option></select></div>
+          <div style="flex:2; min-width:180px;"><label style="font-size:11px; font-weight:700; color:#475569;">Cliente</label><input id="prefNombre" value="${escapeHtml(_pref.nombre)}" placeholder="CONTADO" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;"></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <b style="font-size:13px;">Artículos</b>
+          <button class="btn btn-blue btn-sm" onclick="_prefAgregar()"><i class="ti ti-plus"></i> Agregar artículo</button>
+        </div>
+        <div id="prefItems">${_prefItemsHTML()}</div>
+        <div style="text-align:right; font-size:17px; font-weight:800; margin-top:12px;">Total: <span id="prefTotal">${money(total)}</span></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-light" onclick="document.getElementById('modalPrefactura').remove()">Cancelar</button>
+        <button class="btn btn-success" id="prefBtnCrear" onclick="_prefCrear()" ${_pref.items.length ? '' : 'disabled'}><i class="ti ti-file-invoice"></i> Crear prefactura</button>
+      </div>
+    </div>`;
+    document.body.appendChild(m);
+}
+function _prefRefrescarItems() {
+    const c = document.getElementById('prefItems'); if(c) c.innerHTML = _prefItemsHTML();
+    const total = _pref.items.reduce((s, it) => s + (Number(it.precio) * Number(it.cant)), 0);
+    const t = document.getElementById('prefTotal'); if(t) t.textContent = money(total);
+    const b = document.getElementById('prefBtnCrear'); if(b) b.disabled = !_pref.items.length;
+}
+function _prefSync() { const l = document.getElementById('prefLocal'); if(l) _pref.localidad = l.value; const n = document.getElementById('prefNombre'); if(n) _pref.nombre = n.value; }
+function _prefAgregar() {
+    _prefSync();
+    abrirBuscadorArticulos(null, (a) => {
+        const precio = Number(a.precio_especial) > 0 ? Number(a.precio_especial) : Number(a.precio || 0);
+        _pref.items.push({ cod: a.codigo, desc: (a.descripcion || '').trim(), precio: precio, cant: 1 });
+        _prefRender();
+    });
+}
+function _prefCant(i, v) { _pref.items[i].cant = Math.max(1, parseInt(v) || 1); _prefRefrescarItems(); }
+function _prefPrecio(i, v) { _pref.items[i].precio = Math.max(0, parseFloat(v) || 0); _prefRefrescarItems(); }
+function _prefQuitar(i) { _pref.items.splice(i, 1); _prefRefrescarItems(); }
+async function _prefCrear() {
+    _prefSync();
+    if(!_pref.items.length) return toast('Agrega al menos un artículo.', 'error');
+    const total = _pref.items.reduce((s, it) => s + (Number(it.precio) * Number(it.cant)), 0);
+    const now = new Date();
+    const fecha = now.toISOString().slice(0, 10);
+    const hora = now.toTimeString().slice(0, 8);
+    const model = {
+        codprefactura: '', total, codcliente: _pref.codcliente || '1', impuesto: 0, descuento: 0, descuentototal: 0,
+        nombre: (_pref.nombre || 'CONTADO').trim() || 'CONTADO', codempleado: _pref.codempleado || '6', codnivelprecio: 1,
+        codlocalidad: String(_pref.localidad || '1'), credito: false, fecha, hora, contrato: '', ordencompra: '', centro: '',
+        seriales: [], detallesPreFactura: _pref.items.map(it => ({ descripcion: it.desc, precio: Number(it.precio), cantidad: Number(it.cant), codarticulo: Number(it.cod), codunidad: 1, porcentaje: 0, despachado: 0, descripcionunidad: null }))
+    };
+    const btn = document.getElementById('prefBtnCrear'); const orig = btn ? btn.innerHTML : '';
+    if(btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Enviando…'; }
+    try {
+        const { data, error } = await supabaseClient.functions.invoke('infoplus-prefactura-crear', { body: model });
+        if(error) throw error;
+        const d = data && data.data;
+        const num = (d && d.data && d.data[0] && d.data[0].codprefactura) || '';
+        const ok = data && data.ok && d && (d.message === 'Se ha creado correctamente' || (d.data && d.data[0]));
+        if(!ok) throw new Error((d && d.message) || 'Info Plus no aceptó la prefactura.');
+        _prefUltima = { num, total, model };
+        _prefExito(num, total);
+    } catch(e) {
+        logError('crear prefactura', e); toastError(getFriendlyError(e, 'No se pudo crear la prefactura.'));
+        if(btn) { btn.disabled = false; btn.innerHTML = orig; }
+    }
+}
+function _prefExito(num, total) {
+    const m = document.getElementById('modalPrefactura'); if(!m) return;
+    const body = m.querySelector('.modal-body'); const foot = m.querySelector('.modal-footer');
+    if(body) body.innerHTML = `<div style="text-align:center; padding:22px 10px;">
+        <div style="width:60px; height:60px; margin:0 auto 10px; border-radius:50%; background:#dcfce7; display:flex; align-items:center; justify-content:center;"><i class="ti ti-check" style="font-size:34px; color:#16a34a;"></i></div>
+        <h3 style="margin:6px 0;">Prefactura creada</h3>
+        <div style="font-size:14px; color:#475569;">Nº <b style="font-size:19px; color:#0f172a;">${escapeHtml(num || '—')}</b> · Total <b>${money(total)}</b></div>
+        <div style="font-size:12px; color:#94a3b8; margin-top:8px;">Ya quedó en Info Plus. La cajera la convierte en factura y cobra.</div>
+    </div>`;
+    if(foot) foot.innerHTML = `<button class="btn btn-light" onclick="imprimirPrefactura()"><i class="ti ti-printer"></i> Imprimir</button><button class="btn btn-blue" onclick="document.getElementById('modalPrefactura').remove()">Listo</button>`;
+}
+function imprimirPrefactura() {
+    const p = _prefUltima; if(!p) return;
+    const ct = cache.configTaller || {};
+    const loc = p.model.codlocalidad === '4' ? 'Moca' : 'Santiago';
+    const filas = p.model.detallesPreFactura.map(d => `<tr><td>${escapeHtml(String(d.codarticulo))}</td><td>${escapeHtml(d.descripcion)}</td><td style="text-align:center;">${d.cantidad}</td><td style="text-align:right;">${money(d.precio)}</td><td style="text-align:right;">${money(d.precio * d.cantidad)}</td></tr>`).join('');
+    const w = window.open('', '_blank'); if(!w) return toast('Permite las ventanas emergentes para imprimir.', 'error');
+    w.document.write(`<html><head><title>Prefactura ${escapeHtml(p.num || '')}</title><style>body{font-family:Arial,sans-serif;padding:22px;color:#111;} table{width:100%;border-collapse:collapse;margin-top:12px;} th,td{border:1px solid #ccc;padding:6px 8px;font-size:13px;} th{background:#f1f5f9;text-align:left;} h2{margin:0;}</style></head><body>
+      <h2>${escapeHtml(ct.nombre || 'BAYOL CELL')}</h2>
+      <div style="font-size:12px;color:#555;">${escapeHtml(ct.direccion || '')} ${ct.telefono ? ('· ' + escapeHtml(ct.telefono)) : ''}</div>
+      <hr>
+      <div style="font-size:15px;"><b>PREFACTURA Nº ${escapeHtml(p.num || '')}</b> &nbsp;·&nbsp; ${loc}</div>
+      <div style="font-size:12px;color:#555;margin-top:2px;">Cliente: ${escapeHtml(p.model.nombre)} · Fecha: ${escapeHtml(p.model.fecha)} ${escapeHtml(p.model.hora)}</div>
+      <table><thead><tr><th>Código</th><th>Descripción</th><th style="text-align:center;">Cant.</th><th style="text-align:right;">Precio</th><th style="text-align:right;">Importe</th></tr></thead><tbody>${filas}</tbody></table>
+      <div style="text-align:right;font-size:17px;font-weight:800;margin-top:12px;">Total: ${money(p.total)}</div>
+      <div style="font-size:11px;color:#888;margin-top:16px;">Documento preliminar (prefactura). La cajera lo convierte en factura fiscal al momento de cobrar.</div>
+      <script>window.onload=function(){window.print();}<\/script></body></html>`);
+    w.document.close(); w.focus();
+}
 function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
         const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
         const estado = normalizarEstadoOrden(o.estado);
@@ -21236,6 +21362,7 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
         if(esAdmin || esServicio) {
             acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px;" onclick="cargarEnLabel('${o.id}')"><i class="ti ti-clipboard-list"></i> Label</button>`;
             acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px;" onclick="reimprimirRecibo('${o.id}')"><i class="ti ti-receipt"></i> Recibo</button>`;
+            acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#0e7490;" onclick="abrirPrefacturaOrden('${o.id}')"><i class="ti ti-file-invoice"></i> Prefactura</button>`;
         }
         // Notas de la orden (técnico escribe, servicio lee) — con badge de sin leer
         const sinLeerNota = (cache.ordenNotas || []).filter(n => n.orden_id === o.id && n.autor_rol === 'tecnico' && !n.leida_servicio).length;
