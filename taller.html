@@ -1539,6 +1539,11 @@ body{
                 </div>
             </div>
 
+            <!-- PREFACTURA (vista propia, no flotante) -->
+            <div id="v-prefactura" class="view">
+                <div id="prefacturaContenido"></div>
+            </div>
+
             <!-- ORDENES -->
             <div id="v-ordenes" class="view">
                 <div class="card">
@@ -21189,60 +21194,86 @@ function _prefVendCambio() {
     if(w) w.style.display = otro ? 'block' : 'none';
     if(!otro) { _pref.codempleado = s.value; } else { const o = document.getElementById('prefVendOtro'); if(o) { o.focus(); if(o.value.trim()) _pref.codempleado = o.value.trim(); } }
 }
+// Nivel de precio según el tipo de cliente: tienda/mayorista -> 2 (por mayor); resto -> 1 (contado).
+function _prefNivelPorCliente(tipo) { return tipo === 'tienda' ? 2 : 1; }
+function _prefNivelNombre(n) { return Number(n) === 2 ? 'Por mayor' : 'Contado'; }
+function _prefPrecioItem(it) { return Number(_pref.nivel) === 2 ? Number(it.precio2) : Number(it.precio1); }
 function abrirPrefacturaOrden(ordenId) {
     const esServ = sessionUser?.tipo_empleado === 'servicio' || tienePermiso('solo_atencion') || tienePermiso('recepcion_ver');
     if(!isAdminUser() && !esServ) { return toast('Solo el administrador o servicio al cliente pueden crear prefacturas.', 'error'); }
     const o = (cache.ordenes || []).find(x => x.id === ordenId) || {};
     const c = findCliente(o.cliente_id) || {};
-    _pref = { ordenId, localidad: '1', codcliente: '1', nombre: (c.nombre || 'CONTADO'), codempleado: '6', items: [] };
-    _prefRender();
+    const origen = document.querySelector('.view.active')?.id?.replace('v-', '') || 'ordenes';
+    _pref = { ordenId, origen, localidad: '1', codcliente: '1', nombre: (c.nombre || 'CONTADO'), codempleado: '6', nivel: _prefNivelPorCliente(c.tipo_cliente), items: [] };
+    _prefMostrarVista(); _prefRender();
 }
-// Prefactura nueva desde la recepción (sin orden aún). Prefila el nombre del cliente que se esté escribiendo.
+// Prefactura nueva desde la recepción (sin orden aún). Prefila cliente y nivel según el formulario.
 function abrirPrefacturaNueva() {
     const esServ = sessionUser?.tipo_empleado === 'servicio' || tienePermiso('solo_atencion') || tienePermiso('recepcion_ver');
     if(!isAdminUser() && !esServ) { return toast('Solo el administrador o servicio al cliente pueden crear prefacturas.', 'error'); }
     const nom = (document.getElementById('c_nombre')?.value || '').trim();
-    _pref = { ordenId: null, localidad: '1', codcliente: '1', nombre: nom || 'CONTADO', codempleado: '6', items: [] };
-    _prefRender();
+    const tipo = (document.getElementById('c_tipo')?.value || 'final');
+    const origen = document.querySelector('.view.active')?.id?.replace('v-', '') || 'recepcion';
+    _pref = { ordenId: null, origen, localidad: '1', codcliente: '1', nombre: nom || 'CONTADO', codempleado: '6', nivel: _prefNivelPorCliente(tipo), items: [] };
+    _prefMostrarVista(); _prefRender();
 }
+function _prefMostrarVista() {
+    document.querySelectorAll('.view').forEach(x => x.classList.remove('active'));
+    const v = document.getElementById('v-prefactura'); if(v) v.classList.add('active');
+    const pt = document.getElementById('pageTitle'); if(pt) pt.textContent = 'Crear prefactura';
+    if(typeof closeSidebar === 'function') closeSidebar();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function _prefVolver() { nav(_pref && _pref.origen ? _pref.origen : 'recepcion'); }
 function _prefItemsHTML() {
-    if(!_pref.items.length) return `<div style="color:var(--text-muted); font-size:13px; padding:12px; text-align:center; border:1px dashed #cbd5e1; border-radius:10px;">Agrega los artículos con el botón de arriba. El precio sale del artículo de Info Plus (lo puedes ajustar).</div>`;
-    return `<div class="table-wrap"><table style="width:100%; font-size:13px;"><thead><tr><th>Artículo</th><th style="width:66px;">Cant.</th><th style="width:110px;">Precio</th><th style="text-align:right;">Importe</th><th></th></tr></thead><tbody>
-      ${_pref.items.map((it, i) => `<tr>
-        <td style="font-size:12px;"><b style="color:#e31e24;">${escapeHtml(String(it.cod))}</b> ${escapeHtml(it.desc)}</td>
-        <td><input type="number" min="1" step="1" value="${it.cant}" onchange="_prefCant(${i}, this.value)" style="width:58px; padding:5px; border:1px solid #cbd5e1; border-radius:6px;"></td>
-        <td><input type="number" min="0" step="0.01" value="${it.precio}" onchange="_prefPrecio(${i}, this.value)" style="width:100px; padding:5px; border:1px solid #cbd5e1; border-radius:6px;"></td>
-        <td style="text-align:right; font-weight:700; white-space:nowrap;">${money(Number(it.precio) * Number(it.cant))}</td>
-        <td style="text-align:right;"><button class="btn btn-light btn-sm" onclick="_prefQuitar(${i})" title="Quitar" style="color:#b91c1c;"><i class="ti ti-trash"></i></button></td>
-      </tr>`).join('')}
+    if(!_pref.items.length) return `<div style="color:var(--text-muted); font-size:13px; padding:16px; text-align:center; border:1px dashed #cbd5e1; border-radius:10px;">Agrega los artículos con el botón de arriba. El precio se toma del <b>nivel</b> elegido (${_prefNivelNombre(_pref.nivel)}).</div>`;
+    return `<div style="overflow-x:auto;"><table style="width:100%; font-size:13px; border-collapse:collapse;"><thead><tr>
+        <th style="text-align:left; padding:7px 8px; border-bottom:1px solid #eef2f7; font-size:11px; color:#64748b;">Artículo</th>
+        <th style="width:66px; padding:7px 8px; border-bottom:1px solid #eef2f7; font-size:11px; color:#64748b;">Cant.</th>
+        <th style="width:120px; padding:7px 8px; border-bottom:1px solid #eef2f7; font-size:11px; color:#64748b;">Precio (${_prefNivelNombre(_pref.nivel)})</th>
+        <th style="text-align:right; padding:7px 8px; border-bottom:1px solid #eef2f7; font-size:11px; color:#64748b;">Importe</th><th></th></tr></thead><tbody>
+      ${_pref.items.map((it, i) => { const precio = Number(it.precio); return `<tr>
+        <td style="padding:7px 8px; border-bottom:1px solid #f1f5f9; font-size:12px;"><b style="color:#e31e24;">${escapeHtml(String(it.cod))}</b> ${escapeHtml(it.desc)}<div style="font-size:11px; color:#94a3b8; margin-top:2px;">Contado ${money(it.precio1)} · Por mayor ${money(it.precio2)}</div></td>
+        <td style="padding:7px 8px; border-bottom:1px solid #f1f5f9;"><input type="number" min="1" step="1" value="${it.cant}" onchange="_prefCant(${i}, this.value)" style="width:58px; padding:5px; border:1px solid #cbd5e1; border-radius:6px;"></td>
+        <td style="padding:7px 8px; border-bottom:1px solid #f1f5f9;"><input type="number" min="0" step="0.01" value="${precio}" onchange="_prefPrecio(${i}, this.value)" style="width:100px; padding:5px; border:1px solid #cbd5e1; border-radius:6px;"></td>
+        <td style="padding:7px 8px; border-bottom:1px solid #f1f5f9; text-align:right; font-weight:700; white-space:nowrap;">${money(precio * it.cant)}</td>
+        <td style="padding:7px 8px; border-bottom:1px solid #f1f5f9; text-align:right;"><button class="btn btn-light btn-sm" onclick="_prefQuitar(${i})" title="Quitar" style="color:#b91c1c;"><i class="ti ti-trash"></i></button></td>
+      </tr>`; }).join('')}
     </tbody></table></div>`;
 }
 function _prefRender() {
-    let m = document.getElementById('modalPrefactura'); if(m) m.remove();
+    const cont = document.getElementById('prefacturaContenido'); if(!cont) return;
     const total = _pref.items.reduce((s, it) => s + (Number(it.precio) * Number(it.cant)), 0);
-    m = document.createElement('div'); m.id = 'modalPrefactura'; m.className = 'modal-backdrop active'; m.style.zIndex = '800';
-    m.innerHTML = `<div class="modal-box" style="max-width:660px; width:96%;">
-      <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-file-invoice" style="color:#0e7490;"></i> Crear prefactura (Info Plus)</h3><button class="modal-close" onclick="document.getElementById('modalPrefactura').remove()">✕</button></div>
-      <div class="modal-body">
-        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
-          <div style="flex:1; min-width:150px;"><label style="font-size:11px; font-weight:700; color:#475569;">Almacén</label><select id="prefLocal" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">${PREF_ALMACENES.map(a => `<option value="${a.cod}" ${_pref.localidad === a.cod ? 'selected' : ''}>${a.nom}</option>`).join('')}</select></div>
-          <div style="flex:1; min-width:150px;"><label style="font-size:11px; font-weight:700; color:#475569;">Vendedor</label><select id="prefVend" onchange="_prefVendCambio()" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">${PREF_VENDEDORES.map(v => `<option value="${v.cod}" ${String(_pref.codempleado) === v.cod ? 'selected' : ''}>${v.nom}</option>`).join('')}<option value="otro" ${_prefVendEsOtro() ? 'selected' : ''}>Otro (código)…</option></select></div>
+    cont.innerHTML = `
+      <style>
+        #prefacturaContenido label{display:block; font-size:11px; font-weight:700; color:#64748b; margin-bottom:3px;}
+        #prefacturaContenido .pf-in{height:38px; padding:0 10px; border:1px solid #d8dee9; border-radius:10px; font-size:13.5px; width:100%; box-sizing:border-box; color:#0f172a; background:#fff;}
+        #prefacturaContenido .card{border-radius:14px; box-shadow:0 1px 3px rgba(15,23,42,.06); border:1px solid #eef2f7;}
+      </style>
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
+        <button class="btn btn-light" onclick="_prefVolver()"><i class="ti ti-arrow-left"></i> Volver</button>
+        <h2 style="margin:0; font-size:18px;"><i class="ti ti-file-invoice" style="color:#0e7490;"></i> Crear prefactura</h2>
+      </div>
+      <div class="card" style="max-width:920px; margin-bottom:14px;">
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <div style="flex:1; min-width:150px;"><label>Almacén</label><select id="prefLocal" class="pf-in">${PREF_ALMACENES.map(a => `<option value="${a.cod}" ${_pref.localidad === a.cod ? 'selected' : ''}>${a.nom}</option>`).join('')}</select></div>
+          <div style="flex:1; min-width:150px;"><label>Vendedor</label><select id="prefVend" class="pf-in" onchange="_prefVendCambio()">${PREF_VENDEDORES.map(v => `<option value="${v.cod}" ${String(_pref.codempleado) === v.cod ? 'selected' : ''}>${v.nom}</option>`).join('')}<option value="otro" ${_prefVendEsOtro() ? 'selected' : ''}>Otro (código)…</option></select></div>
+          <div style="flex:1; min-width:150px;"><label>Nivel de precio</label><select id="prefNivel" class="pf-in" onchange="_prefNivelCambio()"><option value="1" ${Number(_pref.nivel) === 1 ? 'selected' : ''}>Contado</option><option value="2" ${Number(_pref.nivel) === 2 ? 'selected' : ''}>Por mayor</option></select></div>
         </div>
-        <div id="prefVendOtroWrap" style="display:${_prefVendEsOtro() ? 'block' : 'none'}; margin-bottom:10px;"><label style="font-size:11px; font-weight:700; color:#475569;">Código de vendedor</label><input id="prefVendOtro" value="${_prefVendEsOtro() ? escapeHtml(String(_pref.codempleado)) : ''}" placeholder="Ej. 6" onchange="_pref.codempleado=this.value.trim()||'6'" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;"></div>
-        <div style="margin-bottom:12px;"><label style="font-size:11px; font-weight:700; color:#475569;">Cliente</label><input id="prefNombre" value="${escapeHtml(_pref.nombre)}" placeholder="CONTADO" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;"></div>
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <b style="font-size:13px;">Artículos</b>
-          <button class="btn btn-blue btn-sm" onclick="_prefAgregar()"><i class="ti ti-plus"></i> Agregar artículo</button>
+        <div id="prefVendOtroWrap" style="display:${_prefVendEsOtro() ? 'block' : 'none'}; margin-top:10px;"><label>Código de vendedor</label><input id="prefVendOtro" class="pf-in" value="${_prefVendEsOtro() ? escapeHtml(String(_pref.codempleado)) : ''}" placeholder="Ej. 6" onchange="_pref.codempleado=this.value.trim()||'6'"></div>
+        <div style="margin-top:10px;"><label>Cliente</label><input id="prefNombre" class="pf-in" value="${escapeHtml(_pref.nombre)}" placeholder="CONTADO"></div>
+      </div>
+      <div class="card" style="max-width:920px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
+          <b style="font-size:14px;">Artículos</b>
+          <button class="btn btn-blue" onclick="_prefAgregar()"><i class="ti ti-plus"></i> Agregar artículo</button>
         </div>
         <div id="prefItems">${_prefItemsHTML()}</div>
-        <div style="text-align:right; font-size:17px; font-weight:800; margin-top:12px;">Total: <span id="prefTotal">${money(total)}</span></div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-light" onclick="document.getElementById('modalPrefactura').remove()">Cancelar</button>
-        <button class="btn btn-success" id="prefBtnCrear" onclick="_prefCrear()" ${_pref.items.length ? '' : 'disabled'}><i class="ti ti-file-invoice"></i> Crear prefactura</button>
-      </div>
-    </div>`;
-    document.body.appendChild(m);
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-top:14px;">
+          <div style="font-size:18px; font-weight:800;">Total: <span id="prefTotal">${money(total)}</span></div>
+          <button class="btn btn-success" id="prefBtnCrear" onclick="_prefCrear()" ${_pref.items.length ? '' : 'disabled'} style="padding:11px 18px;"><i class="ti ti-file-invoice"></i> Crear prefactura</button>
+        </div>
+      </div>`;
 }
 function _prefRefrescarItems() {
     const c = document.getElementById('prefItems'); if(c) c.innerHTML = _prefItemsHTML();
@@ -21253,14 +21284,24 @@ function _prefRefrescarItems() {
 function _prefSync() {
     const l = document.getElementById('prefLocal'); if(l) _pref.localidad = l.value;
     const n = document.getElementById('prefNombre'); if(n) _pref.nombre = n.value;
+    const nv = document.getElementById('prefNivel'); if(nv) _pref.nivel = Number(nv.value) || 1;
     const v = document.getElementById('prefVend');
     if(v) { if(v.value === 'otro') { const o = document.getElementById('prefVendOtro'); _pref.codempleado = (o && o.value.trim()) || '6'; } else _pref.codempleado = v.value; }
+}
+function _prefNivelCambio() {
+    const s = document.getElementById('prefNivel'); if(s) _pref.nivel = Number(s.value) || 1;
+    _pref.items.forEach(it => { it.precio = _prefPrecioItem(it); });
+    _prefRefrescarItems();
 }
 function _prefAgregar() {
     _prefSync();
     abrirBuscadorArticulos(null, (a) => {
-        const precio = Number(a.precio_especial) > 0 ? Number(a.precio_especial) : Number(a.precio || 0);
-        _pref.items.push({ cod: a.codigo, desc: (a.descripcion || '').trim(), precio: precio, cant: 1 });
+        const p1 = Number(a.precio || 0);
+        const pe = Number(a.precio_especial || 0);
+        const p2 = pe > 0 ? pe : p1;
+        const it = { cod: a.codigo, desc: (a.descripcion || '').trim(), precio1: p1, precio2: p2, cant: 1 };
+        it.precio = _prefPrecioItem(it);
+        _pref.items.push(it);
         _prefRender();
     });
 }
@@ -21276,7 +21317,7 @@ async function _prefCrear() {
     const hora = now.toTimeString().slice(0, 8);
     const model = {
         codprefactura: '', total, codcliente: _pref.codcliente || '1', impuesto: 0, descuento: 0, descuentototal: 0,
-        nombre: (_pref.nombre || 'CONTADO').trim() || 'CONTADO', codempleado: _pref.codempleado || '6', codnivelprecio: 1,
+        nombre: (_pref.nombre || 'CONTADO').trim() || 'CONTADO', codempleado: _pref.codempleado || '6', codnivelprecio: Number(_pref.nivel) || 1,
         codlocalidad: String(_pref.localidad || '1'), credito: false, fecha, hora, contrato: '', ordencompra: '', centro: '',
         seriales: [], detallesPreFactura: _pref.items.map(it => ({ descripcion: it.desc, precio: Number(it.precio), cantidad: Number(it.cant), codarticulo: Number(it.cod), codunidad: 1, porcentaje: 0, despachado: 0, descripcionunidad: null }))
     };
@@ -21297,15 +21338,18 @@ async function _prefCrear() {
     }
 }
 function _prefExito(num, total) {
-    const m = document.getElementById('modalPrefactura'); if(!m) return;
-    const body = m.querySelector('.modal-body'); const foot = m.querySelector('.modal-footer');
-    if(body) body.innerHTML = `<div style="text-align:center; padding:22px 10px;">
-        <div style="width:60px; height:60px; margin:0 auto 10px; border-radius:50%; background:#dcfce7; display:flex; align-items:center; justify-content:center;"><i class="ti ti-check" style="font-size:34px; color:#16a34a;"></i></div>
-        <h3 style="margin:6px 0;">Prefactura creada</h3>
-        <div style="font-size:14px; color:#475569;">Nº <b style="font-size:19px; color:#0f172a;">${escapeHtml(num || '—')}</b> · Total <b>${money(total)}</b></div>
+    const cont = document.getElementById('prefacturaContenido'); if(!cont) return;
+    cont.innerHTML = `<div class="card" style="max-width:520px; margin:20px auto; text-align:center; padding:26px 20px; border-radius:14px; box-shadow:0 1px 3px rgba(15,23,42,.06);">
+        <div style="width:64px; height:64px; margin:0 auto 12px; border-radius:50%; background:#dcfce7; display:flex; align-items:center; justify-content:center;"><i class="ti ti-check" style="font-size:36px; color:#16a34a;"></i></div>
+        <h2 style="margin:6px 0;">Prefactura creada</h2>
+        <div style="font-size:15px; color:#475569;">Nº <b style="font-size:20px; color:#0f172a;">${escapeHtml(num || '—')}</b> · Total <b>${money(total)}</b></div>
         <div style="font-size:12px; color:#94a3b8; margin-top:8px;">Ya quedó en Info Plus. La cajera la convierte en factura y cobra.</div>
+        <div style="display:flex; gap:8px; justify-content:center; margin-top:18px; flex-wrap:wrap;">
+          <button class="btn btn-light" onclick="imprimirPrefactura()"><i class="ti ti-printer"></i> Imprimir</button>
+          <button class="btn btn-blue" onclick="abrirPrefacturaNueva()"><i class="ti ti-plus"></i> Otra prefactura</button>
+          <button class="btn btn-success" onclick="_prefVolver()"><i class="ti ti-check"></i> Listo</button>
+        </div>
     </div>`;
-    if(foot) foot.innerHTML = `<button class="btn btn-light" onclick="imprimirPrefactura()"><i class="ti ti-printer"></i> Imprimir</button><button class="btn btn-blue" onclick="document.getElementById('modalPrefactura').remove()">Listo</button>`;
 }
 function imprimirPrefactura() {
     const p = _prefUltima; if(!p) return;
