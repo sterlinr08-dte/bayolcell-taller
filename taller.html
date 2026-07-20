@@ -1355,34 +1355,44 @@ body{
             <!-- RECEPCION -->
             <div id="v-recepcion" class="view">
                 <style>
-                  #v-recepcion .card{border-radius:14px;box-shadow:0 1px 3px rgba(15,23,42,.06);border:1px solid #eef2f7;}
-                  #v-recepcion .rcp-tools{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
-                  @media(max-width:640px){#v-recepcion .rcp-tools{grid-template-columns:1fr;}}
-                  #v-recepcion .rcp-tools .card{margin:0;}
-                  #v-recepcion .rcp-tools h3{font-size:14px;}
-                  #v-recepcion .block-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-items:start;}
-                  @media(max-width:1100px){#v-recepcion .block-grid{grid-template-columns:1fr 1fr;}}
-                  @media(max-width:720px){#v-recepcion .block-grid{grid-template-columns:1fr;}}
-                  #v-recepcion .block-card{background:#fff;border:1px solid #eef2f7;border-radius:14px;box-shadow:0 1px 3px rgba(15,23,42,.06);overflow:hidden;}
-                  #v-recepcion .block-header{font-size:12.5px;font-weight:800;letter-spacing:.2px;padding:11px 14px;background:#f8fafc;border-bottom:1px solid #eef2f7;color:#0f172a;}
-                  #v-recepcion .block-header.header-blue-dark{border-top:3px solid #e31e24;}
-                  #v-recepcion .block-header.header-blue-light{border-top:3px solid #0891b2;}
-                  #v-recepcion .block-header.header-blue-sec{border-top:3px solid #7c3aed;}
-                  #v-recepcion .block-body{padding:12px 14px;}
-                  #v-recepcion .block-body > div{margin-bottom:9px;}
-                  #v-recepcion .block-body label{display:block;font-size:10.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px;}
-                  #v-recepcion .block-body input:not([type=checkbox]),#v-recepcion .block-body select,#v-recepcion .block-body textarea{width:100%;box-sizing:border-box;padding:9px 11px;font-size:13.5px;border:1px solid #d8dee9;border-radius:10px;background:#fff;color:#0f172a;transition:border-color .15s,box-shadow .15s;}
-                  #v-recepcion .block-body input:not([type=checkbox]):focus,#v-recepcion .block-body select:focus,#v-recepcion .block-body textarea:focus{outline:none;border-color:#e31e24;box-shadow:0 0 0 3px rgba(227,30,36,.12);}
-                  #v-recepcion .checks-layout{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
-                  #v-recepcion .checks-layout label{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:500;text-transform:none;letter-spacing:0;color:#334155;background:#f8fafc;border:1px solid #eef2f7;border-radius:9px;padding:7px 9px;cursor:pointer;margin:0;}
-                  #v-recepcion .checks-layout label:hover{border-color:#cbd5e1;}
+                  #v-recepcion .rx-tools{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+                  @media(max-width:640px){#v-recepcion .rx-tools{grid-template-columns:1fr;}}
+                  #v-recepcion .rx-tools .card{margin:0;border-radius:14px;box-shadow:0 1px 3px rgba(15,23,42,.06);border:1px solid #eef2f7;}
+                  #v-recepcion .rx-tools h3{font-size:14px;}
+                  #v-recepcion .rx-layout{display:grid;grid-template-columns:1fr 340px;gap:14px;align-items:start;}
+                  @media(max-width:1080px){#v-recepcion .rx-layout{grid-template-columns:1fr;}}
+                  #v-recepcion .rx-cols{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;align-items:start;}
+                  @media(max-width:700px){#v-recepcion .rx-cols{grid-template-columns:1fr;}}
+                  #v-recepcion .rx-card{background:#fff;border:1px solid #eef2f7;border-radius:14px;box-shadow:0 1px 3px rgba(15,23,42,.06);overflow:hidden;}
+                  #v-recepcion .rx-head{font-size:12.5px;font-weight:800;letter-spacing:.2px;padding:11px 14px;background:#f8fafc;border-bottom:1px solid #eef2f7;color:#0f172a;border-top:3px solid #e31e24;}
+                  #v-recepcion .rx-head.c2{border-top-color:#0891b2;} #v-recepcion .rx-head.c3{border-top-color:#7c3aed;} #v-recepcion .rx-head.c4{border-top-color:#16a34a;}
+                  #v-recepcion .rx-body{padding:12px 14px;}
+                  #v-recepcion .rx-body > div{margin-bottom:9px;}
+                  #v-recepcion .rx-body label{display:block;font-size:10.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px;}
+                  #v-recepcion .rx-body input:not([type=checkbox]),#v-recepcion .rx-body select,#v-recepcion .rx-body textarea{width:100%;box-sizing:border-box;padding:9px 11px;font-size:13.5px;border:1px solid #d8dee9;border-radius:10px;background:#fff;color:#0f172a;transition:border-color .15s,box-shadow .15s;}
+                  #v-recepcion .rx-body input:not([type=checkbox]):focus,#v-recepcion .rx-body select:focus,#v-recepcion .rx-body textarea:focus{outline:none;border-color:#e31e24;box-shadow:0 0 0 3px rgba(227,30,36,.12);}
+                  #v-recepcion .rx-side{position:sticky;top:8px;}
+                  #v-recepcion .rx-side .rx-card{border-top:3px solid #e31e24;}
+                  #v-recepcion .rx-sum-row{display:flex;justify-content:space-between;font-size:12.5px;padding:3px 0;color:#334155;}
+                  #v-recepcion .rx-sum-row b{color:#0f172a;}
+                  #v-recepcion .rx-btn{width:100%;border:0;border-radius:11px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .15s;}
+                  #v-recepcion .rx-btn-red{background:#e31e24;color:#fff;} #v-recepcion .rx-btn-red:hover{background:#c8181d;}
+                  #v-recepcion .rx-btn-dark{background:#0f172a;color:#fff;} #v-recepcion .rx-btn-light{background:#fff;color:#0f172a;border:1px solid #d8dee9;}
+                  #v-recepcion .rx-chip-cli{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:9px 11px;font-size:12.5px;}
+                  #v-recepcion .rx-art-search{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;}
+                  #v-recepcion table.rx-table{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px;min-width:560px;}
+                  #v-recepcion .rx-table th{font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:#64748b;text-align:left;padding:7px 8px;border-bottom:1px solid #eef2f7;font-weight:700;}
+                  #v-recepcion .rx-table td{padding:7px 8px;border-bottom:1px solid #f1f5f9;vertical-align:middle;}
+                  #v-recepcion .checks-layout{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;}
+                  #v-recepcion .checks-layout label{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:500;color:#334155;background:#f8fafc;border:1px solid #eef2f7;border-radius:9px;padding:7px 9px;cursor:pointer;margin:0;}
                   #v-recepcion .checks-layout input{width:17px;height:17px;accent-color:#e31e24;}
-                  #v-recepcion .password-field{display:flex;gap:6px;}
-                  #v-recepcion .password-field input{flex:1;}
-                  #v-recepcion .block-body .btn-blue{background:#e31e24;border-color:#e31e24;border-radius:10px;}
-                  #v-recepcion .block-body .btn-dark{border-radius:10px;}
+                  #v-recepcion .password-field{display:flex;gap:6px;} #v-recepcion .password-field input{flex:1;}
+                  #v-recepcion .card{border-radius:14px;box-shadow:0 1px 3px rgba(15,23,42,.06);border:1px solid #eef2f7;}
+                  #v-recepcion .rx-seg label{display:block;font-size:10.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px;}
+                  #v-recepcion .rx-seg input:not([type=checkbox]),#v-recepcion .rx-seg select{box-sizing:border-box;padding:9px 11px;font-size:13.5px;border:1px solid #d8dee9;border-radius:10px;}
+                  #v-recepcion .rx-seg > div{margin-bottom:9px;}
                 </style>
-                <div class="rcp-tools">
+                <div class="rx-tools">
                 <div class="card" style="margin-bottom:0; border-top:3px solid #f59e0b;">
                     <h3 style="margin:0 0 4px; font-size:15px;"><i class="ti ti-star" style="color:#f59e0b;"></i> Pedir reseña a un cliente (sin orden)</h3>
                     <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px;">Para clientes que <b>solo vinieron a comprar</b> (no se registra orden). Pon su WhatsApp y mándale el enlace de reseña de Google.</p>
@@ -1403,54 +1413,101 @@ body{
                     <div id="rifaBoletoMsg" style="margin-top:10px;"></div>
                 </div>
                 </div>
-                <div class="block-grid">
-                    <div class="block-card">
-                        <div class="block-header header-blue-dark">Datos del Cliente y Equipo</div>
-                        <div class="block-body">
-                            <div><label>Nombre Cliente *</label><input id="c_nombre" placeholder="Ej. Juan Pérez"></div>
-                            <div><label>WhatsApp *</label><input id="c_whatsapp" placeholder="809-123-4567" onblur="chequearClienteExistente()"></div>
-                            <div><label>Cédula</label><input id="c_cedula" placeholder="001-0000000-0" onblur="chequearClienteExistente()"></div>
-                            <div style="display:flex; gap:10px;">
-                                <div style="flex:1;"><label>Tipo de cliente</label>
-                                    <select id="c_tipo" style="width:100%;" onchange="toggleRncRecepcion()">
-                                        <option value="final">🧍 Cliente final</option>
-                                        <option value="tienda">🏪 Tienda / Mayorista</option>
-                                    </select>
-                                </div>
-                                <div style="flex:1; display:none;" id="rowRnc"><label>RNC (tienda)</label><input id="c_rnc" placeholder="1-01-00000-0"></div>
+
+                <div class="rx-layout">
+                  <div class="rx-main">
+                    <div class="rx-cols">
+                      <div class="rx-card">
+                        <div class="rx-head">1. Datos del Cliente <span style="font-weight:600;color:#94a3b8;">(Info Plus)</span></div>
+                        <div class="rx-body">
+                          <div><label>Buscar cliente en Info Plus</label>
+                            <div style="display:flex; gap:6px;">
+                              <input id="rxClienteBuscar" placeholder="Nombre, teléfono, cédula o código…" onkeydown="if(event.key==='Enter'){event.preventDefault();_rpBuscarCliente();}">
+                              <button class="btn btn-light" style="white-space:nowrap; border-radius:10px;" onclick="_rpBuscarCliente()"><i class="ti ti-search"></i> Buscar</button>
                             </div>
-                            <div id="avisoClienteExiste" style="display:none; font-size:12px; background:#dbeafe; color:#1e40af; border:1px solid #93c5fd; border-radius:8px; padding:6px 10px; margin-bottom:6px;"></div>
-                            <div><label>Marca *</label><input id="e_marca" placeholder="Apple, Samsung, etc."></div>
-                            <div><label>Modelo Exacto *</label><input id="e_modelo" placeholder="iPhone 13 Pro Max"></div>
-                            <div><label>Capacidad (GB) *</label><input id="e_capacidad" placeholder="128GB"></div>
-                            <div><label>IMEI / Serial *</label><input id="e_imei" placeholder="356789..." onblur="chequearEquipoExistente()"></div>
-                            <div id="avisoEquipoExiste" style="display:none; font-size:12px; background:#fef3c7; color:#92400e; border:1px solid #fcd34d; border-radius:8px; padding:6px 10px; margin-bottom:6px;"></div>
-                            <div><label>Estado Físico del Equipo (cómo llega)</label><textarea id="o_estado_fisico" rows="2" placeholder="Rayones en la tapa, esquina golpeada, sin marcas..."></textarea></div>
-                            <div style="display:flex; gap:10px;">
-                                <div style="flex:1;"><label>Prioridad</label>
-                                    <select id="o_prioridad" style="width:100%;">
-                                        <option value="normal">🟢 Normal</option>
-                                        <option value="urgente">🔴 Urgente</option>
-                                    </select>
-                                </div>
-                                <div style="flex:1;"><label>Entrega estimada</label><input id="o_fecha_estimada" type="date"></div>
-                            </div>
+                          </div>
+                          <div id="rxClienteChip" class="rx-chip-cli"><b>CLIENTE DE CONTADO</b> <span style="color:#94a3b8;">· cód. 1 (genérico)</span></div>
+                          <div><label>Nombre visible (va en la prefactura) *</label><input id="c_nombre" placeholder="Ej. Juan Pérez" oninput="_rpRenderResumen()"></div>
+                          <div><label>WhatsApp *</label><input id="c_whatsapp" placeholder="809-123-4567" onblur="chequearClienteExistente()" oninput="_rpRenderResumen()"></div>
+                          <div style="display:flex; gap:10px;">
+                            <div style="flex:1;"><label>Cédula</label><input id="c_cedula" placeholder="001-0000000-0" onblur="chequearClienteExistente()" oninput="_rpRenderResumen()"></div>
+                            <div style="flex:1; display:none;" id="rowRnc"><label>RNC</label><input id="c_rnc" placeholder="1-01-00000-0" oninput="_rpRenderResumen()"></div>
+                          </div>
+                          <div><label>Tipo de cliente</label>
+                            <select id="c_tipo" onchange="toggleRncRecepcion()">
+                              <option value="final">Cliente final</option>
+                              <option value="tienda">Tienda / Mayorista</option>
+                            </select>
+                          </div>
+                          <div id="avisoClienteExiste" style="display:none; font-size:12px; background:#dbeafe; color:#1e40af; border:1px solid #93c5fd; border-radius:8px; padding:6px 10px;"></div>
                         </div>
+                      </div>
+
+                      <div class="rx-card">
+                        <div class="rx-head c2">2. Equipo</div>
+                        <div class="rx-body">
+                          <div style="display:flex; gap:10px;">
+                            <div style="flex:1;"><label>Marca *</label><input id="e_marca" placeholder="Apple, Samsung…" oninput="_rpRenderResumen()"></div>
+                            <div style="flex:1;"><label>Modelo *</label><input id="e_modelo" placeholder="iPhone 13 Pro" oninput="_rpRenderResumen()"></div>
+                          </div>
+                          <div style="display:flex; gap:10px;">
+                            <div style="flex:1;"><label>Capacidad</label><input id="e_capacidad" placeholder="128GB" oninput="_rpRenderResumen()"></div>
+                            <div style="flex:1;"><label>IMEI / Serial *</label><input id="e_imei" placeholder="356789…" onblur="chequearEquipoExistente()" oninput="_rpRenderResumen()"></div>
+                          </div>
+                          <div id="avisoEquipoExiste" style="display:none; font-size:12px; background:#fef3c7; color:#92400e; border:1px solid #fcd34d; border-radius:8px; padding:6px 10px;"></div>
+                          <div><label>Condición física</label><textarea id="o_estado_fisico" rows="2" placeholder="Rayones, esquina golpeada, sin marcas…"></textarea></div>
+                          <div><label>Accesorios recibidos</label><input id="o_accesorios" placeholder="Cargador, Cable, Nada"></div>
+                        </div>
+                      </div>
+
+                      <div class="rx-card">
+                        <div class="rx-head c3">3. Datos adicionales</div>
+                        <div class="rx-body">
+                          <div><label>Técnico</label><select id="rxTecnico"><option value="">— Sin asignar —</option></select></div>
+                          <div style="display:flex; gap:10px;">
+                            <div style="flex:1;"><label>Prioridad</label><select id="o_prioridad"><option value="normal">Normal</option><option value="urgente">Urgente</option></select></div>
+                            <div style="flex:1;"><label>Entrega estimada</label><input id="o_fecha_estimada" type="date"></div>
+                          </div>
+                          <div><label>Almacén (Info Plus)</label><select id="rxAlmacen" onchange="_rpRenderResumen()"></select></div>
+                          <div><label>Vendedor (Info Plus)</label><select id="rxVendedor" onchange="_rpRenderResumen()"></select></div>
+                        </div>
+                      </div>
+
+                      <div class="rx-card">
+                        <div class="rx-head c4">4. Diagnóstico</div>
+                        <div class="rx-body">
+                          <div><label>Falla reportada</label><textarea id="o_falla" rows="3" placeholder="No enciende, cliente indica que el equipo cayó al agua…" oninput="_rpRenderResumen()"></textarea></div>
+                          <div><label>Observaciones (van como comentario a la prefactura)</label><textarea id="o_observaciones" rows="3" placeholder="Se revisará placa base y se limpiará por dentro…" oninput="_rpRenderResumen()"></textarea></div>
+                        </div>
+                      </div>
                     </div>
 
-                    <div class="block-card">
-                        <div class="block-header header-blue-light">Prefactura</div>
-                        <div class="block-body">
-                            <div style="font-size:12.5px; color:var(--text-muted); margin-bottom:14px; text-transform:none; letter-spacing:0;">Crea la <b>prefactura</b> de la venta o servicio en Info Plus. Es un documento preliminar; la cajera lo convierte en factura y cobra.</div>
-                            <button class="btn" style="width:100%; background:#0e7490; color:#fff; border-radius:10px; padding:13px; font-size:14px; font-weight:700;" onclick="abrirPrefacturaNueva()"><i class="ti ti-file-invoice"></i> Crear prefactura</button>
-                            <div style="font-size:11px; color:#94a3b8; margin-top:10px;">Eliges almacén, vendedor y los artículos (el precio sale de Info Plus). También puedes crearla luego desde "Recepciones Realizadas".</div>
+                    <div class="rx-card" style="margin-top:14px;">
+                      <div class="rx-head c2">5. Artículos y Servicios <span style="font-weight:600;color:#94a3b8;">(Info Plus)</span></div>
+                      <div class="rx-body">
+                        <div class="rx-art-search">
+                          <button class="btn" style="background:#e31e24; color:#fff; border-radius:10px;" onclick="_rpAgregar()"><i class="ti ti-plus"></i> Agregar artículo</button>
+                          <span style="font-size:12px; color:#94a3b8;">Busca el artículo/servicio en Info Plus y se agrega a la prefactura.</span>
                         </div>
+                        <div style="overflow-x:auto;"><div id="rxArticulos"></div></div>
+                      </div>
                     </div>
+                  </div>
 
-                    <div class="block-card">
-                        <div class="block-header header-blue-sec">Seguridad del Dispositivo</div>
-                        <div class="block-body">
-                            <div class="access-note">Las claves quedan ocultas por defecto. Solo se muestran cuando se pulsa el botón Mostrar.</div>
+                  <div class="rx-side">
+                    <div class="rx-card">
+                      <div class="rx-head">Vista previa de prefactura</div>
+                      <div class="rx-body"><div id="rxResumen"></div></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Seguridad del dispositivo (plegable) -->
+                <div class="card rx-seg" style="margin-top:16px; border-left:3px solid #7c3aed; padding:14px;">
+                    <details>
+                        <summary style="cursor:pointer; font-weight:700; font-size:14px; color:#475569;"><i class="ti ti-lock" style="color:#7c3aed;"></i> Seguridad del dispositivo <span style="font-weight:400; color:#94a3b8; font-size:12px;">(claves, patrón — toca para abrir)</span></summary>
+                        <div style="margin-top:12px; max-width:560px;">
+                            <div class="access-note" style="font-size:12px;color:#64748b;margin-bottom:8px;">Las claves quedan ocultas por defecto. Solo se muestran cuando se pulsa Mostrar.</div>
                             <div><label>Tipo de Bloqueo</label><select id="o_acceso" onchange="togglePatternPanel()"><option>PIN</option><option>Patrón</option><option>Password</option><option>Sin Clave</option></select></div>
                             <div>
                                 <label>PIN / Patrón / Contraseña del Equipo</label>
@@ -1491,16 +1548,12 @@ body{
                                 <label>Contraseña Samsung</label>
                                 <div class="password-field"><input id="o_samsung_password" type="password" autocomplete="off" placeholder="Opcional"><button type="button" class="btn btn-light" onclick="togglePasswordField('o_samsung_password', this)"><i class="ti ti-eye"></i> Mostrar</button></div>
                             </div>
-                            <div style="margin-top:15px;">
-                                <button class="btn btn-dark" style="width:100%; margin-bottom:10px;" onclick="guardarRecepcion(false)"><i class="ti ti-device-floppy"></i> Guardar Base Datos</button>
-                                <button class="btn btn-blue" style="width:100%" onclick="guardarRecepcion(true)"><i class="ti ti-printer"></i> Registrar + Ticket</button>
-                            </div>
                         </div>
-                    </div>
+                    </details>
                 </div>
-                
-                <!-- Fallas del equipo (segundo plano, plegable) -->
-                <div class="card" style="margin-top:16px; border-left:3px solid #cbd5e1;">
+
+                <!-- Fallas del equipo (plegable) -->
+                <div class="card" style="margin-top:16px; border-left:3px solid #cbd5e1; padding:14px;">
                     <details>
                         <summary style="cursor:pointer; font-weight:700; font-size:14px; color:#475569;"><i class="ti ti-list-check" style="color:#0891b2;"></i> Fallas del equipo <span style="font-weight:400; color:#94a3b8; font-size:12px;">(opcional — toca para abrir)</span></summary>
                         <div style="margin-top:12px;">
@@ -1508,7 +1561,7 @@ body{
                                 <div style="font-size:12px; color:var(--text-muted);">Marca los problemas que reporta el cliente. Se crearán como tareas para los técnicos.</div>
                                 <button id="btnEditarFallasComunes" onclick="abrirEditorFallasComunes()" class="btn btn-light" style="font-size:11px; padding:4px 9px; display:none;"><i class="ti ti-settings"></i> Editar</button>
                             </div>
-                            <div class="checks-layout" id="checksFisico" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));">
+                            <div class="checks-layout" id="checksFisico">
                                 <label><input type="checkbox" value="Pantalla rota"> Pantalla rota</label>
                                 <label><input type="checkbox" value="Mojado"> Mojado</label>
                                 <label><input type="checkbox" value="Tapa rota"> Tapa rota</label>
@@ -1518,16 +1571,14 @@ body{
                                 <label><input type="checkbox" value="Cámara rota"> Cámara rota</label>
                                 <label><input type="checkbox" value="Puerto malo"> Puerto malo</label>
                             </div>
-                            <div style="margin-top:12px; max-width:520px;"><label style="font-size:11px; font-weight:700; color:#64748b; display:block; margin-bottom:3px;">Falla del Equipo (otros problemas)</label><textarea id="o_falla" rows="2" placeholder="No enciende / Pantalla rota" style="width:100%; box-sizing:border-box; padding:9px 11px; border:1px solid #d8dee9; border-radius:10px; font-size:13.5px;"></textarea></div>
-                            <div style="margin-top:8px; max-width:520px;"><label style="font-size:11px; font-weight:700; color:#64748b; display:block; margin-bottom:3px;">Accesorios que deja</label><input id="o_accesorios" placeholder="Cover, Cable, Nada" style="width:100%; box-sizing:border-box; padding:9px 11px; border:1px solid #d8dee9; border-radius:10px; font-size:13.5px;"></div>
                         </div>
                     </details>
                 </div>
 
-                <!-- Recepciones realizadas (ver y editar) -->
-                <div class="card" style="margin-top:16px;">
+                <!-- Recepciones realizadas -->
+                <div class="card" style="margin-top:16px; padding:14px;">
                     <h3 style="font-size:16px; margin:0 0 10px;"><i class="ti ti-history" style="color:#0891b2;"></i> Recepciones Realizadas</h3>
-                    <input id="recepBuscador" oninput="renderRecepcionesRealizadas()" placeholder="🔍 Buscar por número o cliente..." style="width:100%; padding:8px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; margin-bottom:10px;">
+                    <input id="recepBuscador" oninput="renderRecepcionesRealizadas()" placeholder="Buscar por número o cliente..." style="width:100%; padding:8px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; margin-bottom:10px;">
                     <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; align-items:center;">
                         <span style="font-size:11px; font-weight:700; color:var(--text-muted);"><i class="ti ti-calendar"></i> Fecha:</span>
                         <button class="btn btn-light" onclick="_recepFechaFiltro=0; renderRecepcionesRealizadas()" style="font-size:11px; padding:4px 9px;">Todas</button>
@@ -6248,6 +6299,7 @@ function nav(v, btn) {
     if(v === 'contabilidad') { setTimeout(() => { cargarCatalogoCuentas(); contaTab(localStorage.getItem('bayol_subtab_conta') || 'mensual'); }, 50); }
     if(v === 'diagnostico') { setTimeout(() => { cargarConocimiento(); }, 50); }
     if(v === 'recepcion') { setTimeout(async () => {
+        if(typeof _rpInit === 'function') _rpInit();
         if(typeof renderRecepcionesRealizadas === 'function') renderRecepcionesRealizadas();
         // Recargar fallas comunes desde la BD para reflejar cambios hechos en Config
         try {
@@ -21460,6 +21512,166 @@ function _prefCliElegir(cod) {
     document.getElementById('modalPrefCli')?.remove();
     _prefRender();
 }
+// ============================================================
+//   RECEPCIÓN INTEGRADA CON PREFACTURA (documento maestro)
+//   La recepción arma la prefactura de Info Plus en la misma pantalla.
+// ============================================================
+let _rpState = null;
+function _rpInit() {
+    _rpState = { items: [], codcliente: '1', infoNombre: 'CLIENTE DE CONTADO', codprefactura: null, localId: null, estado: 'pendiente' };
+    const alm = document.getElementById('rxAlmacen');
+    if(alm) alm.innerHTML = PREF_ALMACENES.map(a => `<option value="${a.cod}">${escapeHtml(a.nom)}</option>`).join('');
+    const ven = document.getElementById('rxVendedor');
+    if(ven) ven.innerHTML = PREF_VENDEDORES.map(v => `<option value="${v.cod}">${escapeHtml(v.nom)}</option>`).join('');
+    const tec = document.getElementById('rxTecnico');
+    if(tec) tec.innerHTML = '<option value="">— Sin asignar —</option>' + (cache.tecnicos || []).filter(t => t.activo !== false).map(t => `<option value="${t.id}">${escapeHtml(t.nombre || t.usuario || 'Técnico')}</option>`).join('');
+    const chip = document.getElementById('rxClienteChip');
+    if(chip) chip.innerHTML = `<b>CLIENTE DE CONTADO</b> <span style="color:#94a3b8;">· cód. 1 (genérico)</span>`;
+    _rpRenderCart(); _rpRenderResumen();
+}
+async function _rpBuscarCliente() {
+    const q0 = (document.getElementById('rxClienteBuscar')?.value || '').trim();
+    let m = document.getElementById('modalRpCli'); if(m) m.remove();
+    m = document.createElement('div'); m.id = 'modalRpCli'; m.className = 'modal-backdrop active'; m.style.zIndex = '820';
+    m.innerHTML = `<div class="modal-box" style="max-width:560px; width:96%;">
+      <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-user-search" style="color:#0e7490;"></i> Buscar cliente <span style="font-size:12px;color:#94a3b8;font-weight:400;">(Info Plus)</span></h3><button class="modal-close" onclick="document.getElementById('modalRpCli').remove()">✕</button></div>
+      <div class="modal-body">
+        <input id="rpCliQ" value="${escapeHtml(q0)}" oninput="_rpCliBuscar(this.value)" placeholder="Nombre, cédula, RNC, teléfono o código…" style="width:100%;padding:9px 11px;border:1px solid #cbd5e1;border-radius:10px;font-size:14px;margin-bottom:10px;box-sizing:border-box;">
+        <div id="rpCliLista" style="max-height:52vh;overflow-y:auto;"><div style="text-align:center;color:#94a3b8;padding:16px;">Cargando clientes…</div></div>
+      </div>
+    </div>`;
+    document.body.appendChild(m);
+    _prefCliQ = q0;
+    setTimeout(() => document.getElementById('rpCliQ')?.focus(), 50);
+    await _ensureInfoplusClientes();
+    const el = document.getElementById('rpCliLista'); if(el) el.innerHTML = _rpCliListaHTML();
+}
+function _rpCliListaHTML() {
+    const q = (_prefCliQ || '').trim().toLowerCase();
+    let lista = cache.infoplusClientes || [];
+    if(q) lista = lista.filter(c => [c.codcliente, c.nombre, c.cedula, c.rnc, c.telefono].join(' ').toLowerCase().includes(q));
+    const top = lista.slice(0, 60);
+    const contado = `<div onclick="_rpCliElegir('1')" style="padding:9px 10px;border:1px solid #e2e8f0;border-radius:9px;margin-bottom:5px;cursor:pointer;"><b>CLIENTE DE CONTADO</b> <span style="color:#94a3b8;font-size:12px;">(genérico · cód. 1)</span></div>`;
+    const filas = top.map(c => `<div onclick="_rpCliElegir('${escapeHtml(c.codcliente)}')" style="padding:9px 10px;border:1px solid #e2e8f0;border-radius:9px;margin-bottom:5px;cursor:pointer;"><div style="font-weight:600;font-size:13px;">${escapeHtml(c.nombre || '(sin nombre)')}</div><div style="font-size:11px;color:#64748b;">cód. ${escapeHtml(c.codcliente)}${c.cedula ? (' · céd. ' + escapeHtml(c.cedula)) : ''}${c.telefono ? (' · ' + escapeHtml(c.telefono)) : ''}</div></div>`).join('');
+    return (q ? '' : contado) + filas + (lista.length > 60 ? `<div style="text-align:center;color:#94a3b8;font-size:12px;padding:6px;">Mostrando 60 de ${lista.length}. Escribe para filtrar.</div>` : (!lista.length ? '<div style="text-align:center;color:#94a3b8;padding:14px;">Sin clientes que coincidan.</div>' : ''));
+}
+function _rpCliBuscar(v) { _prefCliQ = v; const el = document.getElementById('rpCliLista'); if(el) el.innerHTML = _rpCliListaHTML(); }
+function _rpCliElegir(cod) {
+    if(!_rpState) _rpInit();
+    if(String(cod) === '1') {
+        _rpState.codcliente = '1'; _rpState.infoNombre = 'CLIENTE DE CONTADO';
+        const chip = document.getElementById('rxClienteChip'); if(chip) chip.innerHTML = `<b>CLIENTE DE CONTADO</b> <span style="color:#94a3b8;">· cód. 1 (genérico)</span>`;
+    } else {
+        const c = (cache.infoplusClientes || []).find(x => String(x.codcliente) === String(cod));
+        if(c) {
+            _rpState.codcliente = String(c.codcliente); _rpState.infoNombre = c.nombre || '';
+            const chip = document.getElementById('rxClienteChip'); if(chip) chip.innerHTML = `<b>${escapeHtml(c.nombre || '')}</b> <span style="color:#94a3b8;">· cód. ${escapeHtml(c.codcliente)} (Info Plus)</span>`;
+            const n = document.getElementById('c_nombre'); if(n && !n.value.trim()) n.value = c.nombre || '';
+            const tel = document.getElementById('c_whatsapp'); if(tel && !tel.value.trim() && c.telefono) tel.value = c.telefono;
+            const ced = document.getElementById('c_cedula'); if(ced && !ced.value.trim() && c.cedula) ced.value = c.cedula;
+        }
+    }
+    document.getElementById('modalRpCli')?.remove();
+    _rpRenderResumen();
+}
+function _rpAgregar() {
+    if(!_rpState) _rpInit();
+    abrirBuscadorArticulos(null, (a) => {
+        _rpState.items.push({ cod: a.codigo, desc: (a.descripcion || '').trim(), precio: Number(a.precio || 0), cant: 1 });
+        _rpRenderCart(); _rpRenderResumen();
+    });
+}
+function _rpRenderCart() {
+    const c = document.getElementById('rxArticulos'); if(!c) return;
+    if(!_rpState || !_rpState.items.length) { c.innerHTML = `<div style="color:#94a3b8;font-size:13px;padding:16px;text-align:center;border:1px dashed #cbd5e1;border-radius:10px;">Agrega artículos o servicios de Info Plus con el botón de arriba.</div>`; return; }
+    c.innerHTML = `<table class="rx-table"><thead><tr><th>Código</th><th>Descripción</th><th style="width:58px;">Cant.</th><th style="width:96px;">Precio</th><th style="text-align:right;">Subtotal</th><th></th></tr></thead><tbody>${_rpState.items.map((it, i) => `<tr>
+        <td style="font-weight:800;color:#e31e24;white-space:nowrap;">${escapeHtml(String(it.cod))}</td>
+        <td>${escapeHtml(it.desc)}</td>
+        <td><input type="number" min="1" step="1" value="${it.cant}" onchange="_rpCant(${i},this.value)" style="width:52px;padding:5px;border:1px solid #cbd5e1;border-radius:6px;"></td>
+        <td><input type="number" min="0" step="0.01" value="${it.precio}" onchange="_rpPrecio(${i},this.value)" style="width:90px;padding:5px;border:1px solid #cbd5e1;border-radius:6px;"></td>
+        <td style="text-align:right;font-weight:700;white-space:nowrap;">${money(it.precio * it.cant)}</td>
+        <td style="text-align:right;"><button class="btn btn-light btn-sm" onclick="_rpQuitar(${i})" style="color:#b91c1c;"><i class="ti ti-trash"></i></button></td>
+      </tr>`).join('')}</tbody></table>`;
+}
+function _rpCant(i, v) { _rpState.items[i].cant = Math.max(1, parseInt(v) || 1); _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen(); }
+function _rpPrecio(i, v) { _rpState.items[i].precio = Math.max(0, parseFloat(v) || 0); _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen(); }
+function _rpQuitar(i) { _rpState.items.splice(i, 1); _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen(); }
+function _rpMarcarCambio() { if(_rpState && _rpState.codprefactura && _rpState.estado === 'sincronizada') _rpState.estado = 'cambios'; }
+function _rpRenderResumen() {
+    const cont = document.getElementById('rxResumen'); if(!cont) return;
+    if(!_rpState) _rpState = { items: [], codcliente: '1', infoNombre: 'CLIENTE DE CONTADO', codprefactura: null, estado: 'pendiente' };
+    const g = id => (document.getElementById(id)?.value || '').trim();
+    const nombre = g('c_nombre') || 'CLIENTE DE CONTADO';
+    const tel = g('c_whatsapp'), ced = g('c_cedula') || g('c_rnc');
+    const equipo = [g('e_marca'), g('e_modelo'), g('e_capacidad')].filter(Boolean).join(' ');
+    const imei = g('e_imei');
+    const total = _rpState.items.reduce((s, it) => s + Number(it.precio) * Number(it.cant), 0);
+    const facturada = _rpState.estado === 'facturada';
+    cont.innerHTML = `
+      <div style="margin-bottom:8px;">${_rpEstadoBadge(_rpState.estado, _rpState.codprefactura)}</div>
+      <div class="rx-sum-row"><span>Cliente</span><b>${escapeHtml(nombre)}</b></div>
+      <div class="rx-sum-row"><span>Info Plus</span><b>${_rpState.codcliente !== '1' ? escapeHtml(_rpState.infoNombre) + ' (' + escapeHtml(_rpState.codcliente) + ')' : 'CONTADO (1)'}</b></div>
+      ${tel ? `<div class="rx-sum-row"><span>Teléfono</span><b>${escapeHtml(tel)}</b></div>` : ''}
+      ${ced ? `<div class="rx-sum-row"><span>Documento</span><b>${escapeHtml(ced)}</b></div>` : ''}
+      ${equipo ? `<div class="rx-sum-row"><span>Equipo</span><b>${escapeHtml(equipo)}</b></div>` : ''}
+      ${imei ? `<div class="rx-sum-row"><span>IMEI</span><b>${escapeHtml(imei)}</b></div>` : ''}
+      <div style="border-top:1px solid #eef2f7;margin:8px 0;"></div>
+      ${_rpState.items.length ? _rpState.items.map(it => `<div class="rx-sum-row"><span style="max-width:62%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(it.desc)} ×${it.cant}</span><b>${money(it.precio * it.cant)}</b></div>`).join('') : '<div style="font-size:12px;color:#94a3b8;padding:4px 0;">Sin artículos aún.</div>'}
+      <div style="border-top:1px solid #eef2f7;margin:8px 0;"></div>
+      <div class="rx-sum-row" style="font-size:16px;"><span><b>Total</b></span><b style="color:#e31e24;">${money(total)}</b></div>
+      ${facturada ? `<div style="margin-top:12px;font-size:12px;color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:9px;">Esta prefactura ya fue convertida en factura y no puede modificarse desde Recepción.</div>` : `
+      <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px;">
+        <button class="rx-btn rx-btn-red" onclick="_rpCrearPrefactura()"><i class="ti ti-file-invoice"></i> ${_rpState.codprefactura ? 'Actualizar prefactura' : 'Crear prefactura en Info Plus'}</button>
+        <button class="rx-btn rx-btn-dark" onclick="guardarRecepcion(true)"><i class="ti ti-printer"></i> Registrar + Ticket</button>
+        <button class="rx-btn rx-btn-light" onclick="guardarRecepcion(false)"><i class="ti ti-device-floppy"></i> Guardar Base Datos</button>
+      </div>`}
+      ${_rpState.codprefactura ? `<div style="font-size:11px;color:#16a34a;margin-top:8px;text-align:center;">Prefactura Nº <b>${escapeHtml(_rpState.codprefactura)}</b> en Info Plus <button class="btn btn-light btn-sm" onclick="_rpImprimir()" style="margin-left:4px;"><i class="ti ti-printer"></i></button></div>` : ''}`;
+}
+function _rpEstadoBadge(estado, cod) {
+    const map = { pendiente: ['#fef3c7', '#b45309', 'Pendiente de crear'], cambios: ['#fef9c3', '#a16207', 'Cambios pendientes de sincronizar'], sincronizada: ['#dcfce7', '#16a34a', 'Sincronizada con Info Plus'], actualizando: ['#dbeafe', '#1d4ed8', 'Actualizando prefactura…'], error: ['#fee2e2', '#b91c1c', 'Error de sincronización'], facturada: ['#e0e7ff', '#3730a3', 'Convertida en factura'] };
+    const [bg, col, txt] = map[estado] || map.pendiente;
+    return `<span style="background:${bg};color:${col};font-weight:700;padding:3px 10px;border-radius:999px;font-size:11px;">${txt}${cod && estado !== 'pendiente' ? ' · Nº ' + escapeHtml(cod) : ''}</span>`;
+}
+async function _rpCrearPrefactura() {
+    if(!_rpState || !_rpState.items.length) return toast('Agrega al menos un artículo o servicio.', 'error');
+    if(_rpState.estado === 'facturada') return toast('Ya fue facturada; no se puede modificar.', 'error');
+    const g = id => (document.getElementById(id)?.value || '').trim();
+    const nombre = g('c_nombre') || 'CONTADO';
+    const almacen = document.getElementById('rxAlmacen')?.value || '1';
+    let vend = document.getElementById('rxVendedor')?.value || '6'; if(vend === 'otro') vend = '6';
+    const nivel = g('c_tipo') === 'tienda' ? 2 : 1;
+    const obs = g('o_observaciones') || g('o_falla');
+    const total = _rpState.items.reduce((s, it) => s + Number(it.precio) * Number(it.cant), 0);
+    const now = new Date();
+    const model = {
+        codprefactura: _rpState.codprefactura || '', total, codcliente: _rpState.codcliente || '1', impuesto: 0, descuento: 0, descuentototal: 0,
+        nombre, codempleado: vend, codnivelprecio: nivel, codlocalidad: String(almacen), credito: false,
+        fecha: now.toISOString().slice(0, 10), hora: now.toTimeString().slice(0, 8),
+        contrato: obs ? obs.slice(0, 200) : '', ordencompra: '', centro: '',
+        seriales: [], detallesPreFactura: _rpState.items.map(it => ({ descripcion: it.desc, precio: Number(it.precio), cantidad: Number(it.cant), codarticulo: Number(it.cod), codunidad: 1, porcentaje: 0, despachado: 0, descripcionunidad: null }))
+    };
+    _rpState.estado = 'actualizando'; _rpRenderResumen();
+    try {
+        const { data, error } = await supabaseClient.functions.invoke('infoplus-prefactura-crear', { body: model });
+        if(error) throw error;
+        const d = data && data.data;
+        const num = (d && d.data && d.data[0] && d.data[0].codprefactura) || _rpState.codprefactura || '';
+        const ok = data && data.ok && d && (d.message === 'Se ha creado correctamente' || (d.data && d.data[0]));
+        if(!ok) throw new Error((d && d.message) || 'Info Plus no aceptó la prefactura.');
+        const eraUpdate = !!_rpState.codprefactura;
+        _rpState.codprefactura = num; _rpState.estado = 'sincronizada';
+        _rpUltima = { num, total, model, ref: { equipo: [g('e_marca'), g('e_modelo'), g('e_capacidad')].filter(Boolean).join(' '), imei: g('e_imei'), falla: obs, cedula: g('c_cedula') || g('c_rnc'), telefono: g('c_whatsapp') } };
+        try {
+            const row = { codprefactura: num, infoplus_codcliente: _rpState.codcliente, infoplus_nombre: _rpState.infoNombre, nombre_visible: nombre, telefono_visible: g('c_whatsapp'), documento_visible: g('c_cedula') || g('c_rnc'), equipo: [g('e_marca'), g('e_modelo'), g('e_capacidad')].filter(Boolean).join(' '), imei: g('e_imei'), items: _rpState.items, subtotal: total, total: total, observaciones: obs, estado: 'sincronizada', codlocalidad: String(almacen), codempleado: vend, codnivelprecio: nivel, actualizado_por: (typeof sessionUser !== 'undefined' && sessionUser ? sessionUser.nombre : 'Sistema'), actualizado_en: new Date().toISOString() };
+            if(_rpState.localId) { await supabaseClient.from('recepcion_prefacturas').update(row).eq('id', _rpState.localId); }
+            else { row.creado_por = (typeof sessionUser !== 'undefined' && sessionUser ? sessionUser.nombre : 'Sistema'); const { data: ins } = await supabaseClient.from('recepcion_prefacturas').insert([row]).select('id').maybeSingle(); if(ins) _rpState.localId = ins.id; }
+        } catch(e) { logError('guardar recepcion_prefactura', e); }
+        _rpRenderResumen();
+        toast('✅ Prefactura ' + (eraUpdate ? 'actualizada' : 'creada') + ' en Info Plus: Nº ' + num);
+    } catch(e) { logError('crear prefactura recepcion', e); _rpState.estado = 'error'; _rpRenderResumen(); toastError(getFriendlyError(e, 'No se pudo crear la prefactura.')); }
+}
+let _rpUltima = null;
+function _rpImprimir() { if(_rpUltima) { _prefUltima = _rpUltima; imprimirPrefactura(); } }
 function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
         const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
         const estado = normalizarEstadoOrden(o.estado);
