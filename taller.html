@@ -21203,19 +21203,55 @@ function abrirPrefacturaOrden(ordenId) {
     if(!isAdminUser() && !esServ) { return toast('Solo el administrador o servicio al cliente pueden crear prefacturas.', 'error'); }
     const o = (cache.ordenes || []).find(x => x.id === ordenId) || {};
     const c = findCliente(o.cliente_id) || {};
+    const e = findEquipo(o.equipo_id) || {};
+    const equipo = [e.marca, e.modelo, e.capacidad].filter(Boolean).join(' ');
     const origen = document.querySelector('.view.active')?.id?.replace('v-', '') || 'ordenes';
-    _pref = { ordenId, origen, localidad: '1', codcliente: '1', nombre: (c.nombre || 'CONTADO'), codempleado: '6', nivel: 1, items: [] };
+    _pref = { ordenId, origen, localidad: '1', codcliente: '1', nombre: (c.nombre || 'CONTADO'), codempleado: '6', nivel: 1, items: [],
+        ref: { equipo, imei: e.imei || '', falla: o.falla_reportada || '', cedula: c.cedula || '', rnc: c.rnc || '', telefono: c.whatsapp || c.telefono || '' } };
     _prefMostrarVista(); _prefRender();
+    _prefAutoMatchCliente(c.cedula, c.rnc);
 }
-// Prefactura nueva desde la recepción (sin orden aún). Prefila cliente y nivel según el formulario.
+// Prefactura nueva desde la recepción (sin orden aún). Toma los datos del formulario de recepción.
 function abrirPrefacturaNueva() {
     const esServ = sessionUser?.tipo_empleado === 'servicio' || tienePermiso('solo_atencion') || tienePermiso('recepcion_ver');
     if(!isAdminUser() && !esServ) { return toast('Solo el administrador o servicio al cliente pueden crear prefacturas.', 'error'); }
-    const nom = (document.getElementById('c_nombre')?.value || '').trim();
-    const tipo = (document.getElementById('c_tipo')?.value || 'final');
+    const g = id => (document.getElementById(id)?.value || '').trim();
+    const nom = g('c_nombre'), cedula = g('c_cedula'), rnc = g('c_rnc'), tel = g('c_whatsapp');
+    const equipo = [g('e_marca'), g('e_modelo'), g('e_capacidad')].filter(Boolean).join(' ');
+    const fallaChecks = _recepFallasMarcadas();
+    const falla = [g('o_falla'), fallaChecks].filter(Boolean).join(' · ');
     const origen = document.querySelector('.view.active')?.id?.replace('v-', '') || 'recepcion';
-    _pref = { ordenId: null, origen, localidad: '1', codcliente: '1', nombre: nom || 'CONTADO', codempleado: '6', nivel: 1, items: [] };
+    _pref = { ordenId: null, origen, localidad: '1', codcliente: '1', nombre: nom || 'CONTADO', codempleado: '6', nivel: 1, items: [],
+        ref: { equipo, imei: g('e_imei'), falla, cedula, rnc, telefono: tel } };
     _prefMostrarVista(); _prefRender();
+    _prefAutoMatchCliente(cedula, rnc);
+}
+// Fallas marcadas en el checklist de recepción (texto).
+function _recepFallasMarcadas() { try { return Array.from(document.querySelectorAll('#checksFisico input:checked')).map(c => c.value).join(', '); } catch(e) { return ''; } }
+// Busca el cliente en Info Plus por cédula/RNC y lo enlaza automático si existe.
+async function _prefAutoMatchCliente(cedula, rnc) {
+    const norm = s => (s || '').replace(/[^0-9]/g, '');
+    const ced = norm(cedula), r = norm(rnc);
+    if(!ced && !r) return;
+    try {
+        await _ensureInfoplusClientes();
+        const hit = (cache.infoplusClientes || []).find(c => (ced && norm(c.cedula) === ced) || (r && norm(c.rnc) === r));
+        if(hit && _pref) { _pref.codcliente = String(hit.codcliente); _pref.nombre = hit.nombre || _pref.nombre; if(document.getElementById('prefacturaContenido')) { _prefRender(); toast('✓ Cliente enlazado con Info Plus: ' + (hit.nombre || '')); } }
+    } catch(e) { /* silencioso */ }
+}
+// Caja de referencia (equipo/falla/cédula/teléfono) — es SOLO para nosotros, NO se manda a Info Plus.
+function _prefRefHTML() {
+    const r = _pref.ref || {};
+    const parts = [];
+    if(r.equipo || r.imei) parts.push(`<b>Equipo:</b> ${escapeHtml(r.equipo || '')}${r.imei ? (' · IMEI ' + escapeHtml(r.imei)) : ''}`);
+    if(r.falla) parts.push(`<b>Falla:</b> ${escapeHtml(r.falla)}`);
+    const cli = [r.cedula ? ('Céd. ' + escapeHtml(r.cedula)) : '', r.rnc ? ('RNC ' + escapeHtml(r.rnc)) : '', r.telefono ? escapeHtml(r.telefono) : ''].filter(Boolean).join(' · ');
+    if(cli) parts.push(`<b>Contacto:</b> ${cli}`);
+    if(!parts.length) return '';
+    return `<div style="margin-top:12px; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:10px; padding:10px 12px; font-size:12px; color:#475569;">
+        <div style="font-weight:700; color:#334155; margin-bottom:4px;"><i class="ti ti-info-circle" style="color:#0891b2;"></i> Referencia del taller <span style="font-weight:400; color:#94a3b8;">(NO se manda a Info Plus)</span></div>
+        ${parts.map(p => `<div style="margin-top:2px;">${p}</div>`).join('')}
+    </div>`;
 }
 function _prefMostrarVista() {
     document.querySelectorAll('.view').forEach(x => x.classList.remove('active'));
@@ -21266,6 +21302,7 @@ function _prefRender() {
             <button class="btn btn-light" onclick="_prefBuscarCliente()" style="white-space:nowrap;"><i class="ti ti-user-search"></i> Elegir</button>
           </div>
         </div>
+        ${_prefRefHTML()}
       </div>
       <div class="card" style="max-width:920px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
@@ -21334,7 +21371,7 @@ async function _prefCrear() {
         const num = (d && d.data && d.data[0] && d.data[0].codprefactura) || '';
         const ok = data && data.ok && d && (d.message === 'Se ha creado correctamente' || (d.data && d.data[0]));
         if(!ok) throw new Error((d && d.message) || 'Info Plus no aceptó la prefactura.');
-        _prefUltima = { num, total, model };
+        _prefUltima = { num, total, model, ref: _pref.ref || {} };
         _prefExito(num, total);
     } catch(e) {
         logError('crear prefactura', e); toastError(getFriendlyError(e, 'No se pudo crear la prefactura.'));
@@ -21367,6 +21404,7 @@ function imprimirPrefactura() {
       <hr>
       <div style="font-size:15px;"><b>PREFACTURA Nº ${escapeHtml(p.num || '')}</b> &nbsp;·&nbsp; ${loc}</div>
       <div style="font-size:12px;color:#555;margin-top:2px;">Cliente: ${escapeHtml(p.model.nombre)} · Fecha: ${escapeHtml(p.model.fecha)} ${escapeHtml(p.model.hora)}</div>
+      ${(() => { const r = p.ref || {}; const L = []; if(r.equipo || r.imei) L.push('Equipo: ' + escapeHtml(r.equipo || '') + (r.imei ? (' · IMEI ' + escapeHtml(r.imei)) : '')); if(r.falla) L.push('Falla: ' + escapeHtml(r.falla)); const cli = [r.cedula ? ('Céd. ' + escapeHtml(r.cedula)) : '', r.telefono ? escapeHtml(r.telefono) : ''].filter(Boolean).join(' · '); if(cli) L.push('Contacto: ' + cli); return L.length ? `<div style="font-size:11px;color:#666;margin-top:6px;border:1px dashed #ccc;padding:6px 8px;">${L.join('<br>')}</div>` : ''; })()}
       <table><thead><tr><th>Código</th><th>Descripción</th><th style="text-align:center;">Cant.</th><th style="text-align:right;">Precio</th><th style="text-align:right;">Importe</th></tr></thead><tbody>${filas}</tbody></table>
       <div style="text-align:right;font-size:17px;font-weight:800;margin-top:12px;">Total: ${money(p.total)}</div>
       <div style="font-size:11px;color:#888;margin-top:16px;">Documento preliminar (prefactura). La cajera lo convierte en factura fiscal al momento de cobrar.</div>
