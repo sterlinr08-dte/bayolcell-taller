@@ -1439,24 +1439,11 @@ body{
                     </div>
 
                     <div class="block-card">
-                        <div class="block-header header-blue-light">Fallas del Equipo (problemas a reparar)</div>
+                        <div class="block-header header-blue-light">Prefactura</div>
                         <div class="block-body">
-                            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px;">
-                                <div style="font-size:12px; color:var(--text-muted);">Marca los problemas que reporta el cliente. Se crearán como tareas para los técnicos.</div>
-                                <button id="btnEditarFallasComunes" onclick="abrirEditorFallasComunes()" class="btn btn-light" style="font-size:11px; padding:4px 9px; display:none;"><i class="ti ti-settings"></i> Editar</button>
-                            </div>
-                            <div class="checks-layout" id="checksFisico">
-                                <label><input type="checkbox" value="Pantalla rota"> Pantalla rota</label>
-                                <label><input type="checkbox" value="Mojado"> Mojado</label>
-                                <label><input type="checkbox" value="Tapa rota"> Tapa rota</label>
-                                <label><input type="checkbox" value="No enciende"> No enciende</label>
-                                <label><input type="checkbox" value="Sin señal"> Sin señal</label>
-                                <label><input type="checkbox" value="Batería mala"> Batería mala</label>
-                                <label><input type="checkbox" value="Cámara rota"> Cámara rota</label>
-                                <label><input type="checkbox" value="Puerto malo"> Puerto malo</label>
-                            </div>
-                            <div style="margin-top:8px;"><label>Falla del Equipo (otros problemas)</label><textarea id="o_falla" rows="2" placeholder="No enciende / Pantalla rota"></textarea></div>
-                            <div style="margin-top:5px;"><label>Accesorios que deja</label><input id="o_accesorios" placeholder="Cover, Cable, Nada"></div>
+                            <div style="font-size:12.5px; color:var(--text-muted); margin-bottom:14px; text-transform:none; letter-spacing:0;">Crea la <b>prefactura</b> de la venta o servicio en Info Plus. Es un documento preliminar; la cajera lo convierte en factura y cobra.</div>
+                            <button class="btn" style="width:100%; background:#0e7490; color:#fff; border-radius:10px; padding:13px; font-size:14px; font-weight:700;" onclick="abrirPrefacturaNueva()"><i class="ti ti-file-invoice"></i> Crear prefactura</button>
+                            <div style="font-size:11px; color:#94a3b8; margin-top:10px;">Eliges almacén, vendedor y los artículos (el precio sale de Info Plus). También puedes crearla luego desde "Recepciones Realizadas".</div>
                         </div>
                     </div>
 
@@ -1512,6 +1499,31 @@ body{
                     </div>
                 </div>
                 
+                <!-- Fallas del equipo (segundo plano, plegable) -->
+                <div class="card" style="margin-top:16px; border-left:3px solid #cbd5e1;">
+                    <details>
+                        <summary style="cursor:pointer; font-weight:700; font-size:14px; color:#475569;"><i class="ti ti-list-check" style="color:#0891b2;"></i> Fallas del equipo <span style="font-weight:400; color:#94a3b8; font-size:12px;">(opcional — toca para abrir)</span></summary>
+                        <div style="margin-top:12px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px;">
+                                <div style="font-size:12px; color:var(--text-muted);">Marca los problemas que reporta el cliente. Se crearán como tareas para los técnicos.</div>
+                                <button id="btnEditarFallasComunes" onclick="abrirEditorFallasComunes()" class="btn btn-light" style="font-size:11px; padding:4px 9px; display:none;"><i class="ti ti-settings"></i> Editar</button>
+                            </div>
+                            <div class="checks-layout" id="checksFisico" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));">
+                                <label><input type="checkbox" value="Pantalla rota"> Pantalla rota</label>
+                                <label><input type="checkbox" value="Mojado"> Mojado</label>
+                                <label><input type="checkbox" value="Tapa rota"> Tapa rota</label>
+                                <label><input type="checkbox" value="No enciende"> No enciende</label>
+                                <label><input type="checkbox" value="Sin señal"> Sin señal</label>
+                                <label><input type="checkbox" value="Batería mala"> Batería mala</label>
+                                <label><input type="checkbox" value="Cámara rota"> Cámara rota</label>
+                                <label><input type="checkbox" value="Puerto malo"> Puerto malo</label>
+                            </div>
+                            <div style="margin-top:12px; max-width:520px;"><label style="font-size:11px; font-weight:700; color:#64748b; display:block; margin-bottom:3px;">Falla del Equipo (otros problemas)</label><textarea id="o_falla" rows="2" placeholder="No enciende / Pantalla rota" style="width:100%; box-sizing:border-box; padding:9px 11px; border:1px solid #d8dee9; border-radius:10px; font-size:13.5px;"></textarea></div>
+                            <div style="margin-top:8px; max-width:520px;"><label style="font-size:11px; font-weight:700; color:#64748b; display:block; margin-bottom:3px;">Accesorios que deja</label><input id="o_accesorios" placeholder="Cover, Cable, Nada" style="width:100%; box-sizing:border-box; padding:9px 11px; border:1px solid #d8dee9; border-radius:10px; font-size:13.5px;"></div>
+                        </div>
+                    </details>
+                </div>
+
                 <!-- Recepciones realizadas (ver y editar) -->
                 <div class="card" style="margin-top:16px;">
                     <h3 style="font-size:16px; margin:0 0 10px;"><i class="ti ti-history" style="color:#0891b2;"></i> Recepciones Realizadas</h3>
@@ -21183,6 +21195,14 @@ function abrirPrefacturaOrden(ordenId) {
     const o = (cache.ordenes || []).find(x => x.id === ordenId) || {};
     const c = findCliente(o.cliente_id) || {};
     _pref = { ordenId, localidad: '1', codcliente: '1', nombre: (c.nombre || 'CONTADO'), codempleado: '6', items: [] };
+    _prefRender();
+}
+// Prefactura nueva desde la recepción (sin orden aún). Prefila el nombre del cliente que se esté escribiendo.
+function abrirPrefacturaNueva() {
+    const esServ = sessionUser?.tipo_empleado === 'servicio' || tienePermiso('solo_atencion') || tienePermiso('recepcion_ver');
+    if(!isAdminUser() && !esServ) { return toast('Solo el administrador o servicio al cliente pueden crear prefacturas.', 'error'); }
+    const nom = (document.getElementById('c_nombre')?.value || '').trim();
+    _pref = { ordenId: null, localidad: '1', codcliente: '1', nombre: nom || 'CONTADO', codempleado: '6', items: [] };
     _prefRender();
 }
 function _prefItemsHTML() {
