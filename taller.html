@@ -21135,6 +21135,16 @@ function enviarResenaWhatsapp(){
    Carrito de artículos (precio del artículo de Info Plus) -> POST /prefactura
    ============================================================ */
 let _pref = null, _prefUltima = null;
+// Almacenes/localidades de Info Plus (codlocalidad) y vendedores conocidos (codempleado).
+const PREF_ALMACENES = [{ cod: '1', nom: 'Oficina Santiago' }, { cod: '4', nom: 'Localidad Moca' }, { cod: '6', nom: 'Taller' }, { cod: '3', nom: 'Garantía China' }, { cod: '5', nom: 'Almacén 2do Nivel' }];
+const PREF_VENDEDORES = [{ cod: '6', nom: 'Esterlin' }, { cod: '697', nom: 'Mayorista (Santiago)' }, { cod: '748', nom: 'Michelle (Santiago)' }, { cod: '1020', nom: 'Vendedora (Moca)' }];
+function _prefVendEsOtro() { return !PREF_VENDEDORES.some(v => v.cod === String(_pref.codempleado)); }
+function _prefVendCambio() {
+    const s = document.getElementById('prefVend'); const w = document.getElementById('prefVendOtroWrap'); if(!s) return;
+    const otro = s.value === 'otro';
+    if(w) w.style.display = otro ? 'block' : 'none';
+    if(!otro) { _pref.codempleado = s.value; } else { const o = document.getElementById('prefVendOtro'); if(o) { o.focus(); if(o.value.trim()) _pref.codempleado = o.value.trim(); } }
+}
 function abrirPrefacturaOrden(ordenId) {
     const esServ = sessionUser?.tipo_empleado === 'servicio' || tienePermiso('solo_atencion') || tienePermiso('recepcion_ver');
     if(!isAdminUser() && !esServ) { return toast('Solo el administrador o servicio al cliente pueden crear prefacturas.', 'error'); }
@@ -21162,10 +21172,12 @@ function _prefRender() {
     m.innerHTML = `<div class="modal-box" style="max-width:660px; width:96%;">
       <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-file-invoice" style="color:#0e7490;"></i> Crear prefactura (Info Plus)</h3><button class="modal-close" onclick="document.getElementById('modalPrefactura').remove()">✕</button></div>
       <div class="modal-body">
-        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
-          <div style="flex:1; min-width:150px;"><label style="font-size:11px; font-weight:700; color:#475569;">Local</label><select id="prefLocal" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;"><option value="1" ${_pref.localidad === '1' ? 'selected' : ''}>Santiago</option><option value="4" ${_pref.localidad === '4' ? 'selected' : ''}>Moca</option></select></div>
-          <div style="flex:2; min-width:180px;"><label style="font-size:11px; font-weight:700; color:#475569;">Cliente</label><input id="prefNombre" value="${escapeHtml(_pref.nombre)}" placeholder="CONTADO" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;"></div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+          <div style="flex:1; min-width:150px;"><label style="font-size:11px; font-weight:700; color:#475569;">Almacén</label><select id="prefLocal" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">${PREF_ALMACENES.map(a => `<option value="${a.cod}" ${_pref.localidad === a.cod ? 'selected' : ''}>${a.nom}</option>`).join('')}</select></div>
+          <div style="flex:1; min-width:150px;"><label style="font-size:11px; font-weight:700; color:#475569;">Vendedor</label><select id="prefVend" onchange="_prefVendCambio()" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">${PREF_VENDEDORES.map(v => `<option value="${v.cod}" ${String(_pref.codempleado) === v.cod ? 'selected' : ''}>${v.nom}</option>`).join('')}<option value="otro" ${_prefVendEsOtro() ? 'selected' : ''}>Otro (código)…</option></select></div>
         </div>
+        <div id="prefVendOtroWrap" style="display:${_prefVendEsOtro() ? 'block' : 'none'}; margin-bottom:10px;"><label style="font-size:11px; font-weight:700; color:#475569;">Código de vendedor</label><input id="prefVendOtro" value="${_prefVendEsOtro() ? escapeHtml(String(_pref.codempleado)) : ''}" placeholder="Ej. 6" onchange="_pref.codempleado=this.value.trim()||'6'" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;"></div>
+        <div style="margin-bottom:12px;"><label style="font-size:11px; font-weight:700; color:#475569;">Cliente</label><input id="prefNombre" value="${escapeHtml(_pref.nombre)}" placeholder="CONTADO" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;"></div>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
           <b style="font-size:13px;">Artículos</b>
           <button class="btn btn-blue btn-sm" onclick="_prefAgregar()"><i class="ti ti-plus"></i> Agregar artículo</button>
@@ -21186,7 +21198,12 @@ function _prefRefrescarItems() {
     const t = document.getElementById('prefTotal'); if(t) t.textContent = money(total);
     const b = document.getElementById('prefBtnCrear'); if(b) b.disabled = !_pref.items.length;
 }
-function _prefSync() { const l = document.getElementById('prefLocal'); if(l) _pref.localidad = l.value; const n = document.getElementById('prefNombre'); if(n) _pref.nombre = n.value; }
+function _prefSync() {
+    const l = document.getElementById('prefLocal'); if(l) _pref.localidad = l.value;
+    const n = document.getElementById('prefNombre'); if(n) _pref.nombre = n.value;
+    const v = document.getElementById('prefVend');
+    if(v) { if(v.value === 'otro') { const o = document.getElementById('prefVendOtro'); _pref.codempleado = (o && o.value.trim()) || '6'; } else _pref.codempleado = v.value; }
+}
 function _prefAgregar() {
     _prefSync();
     abrirBuscadorArticulos(null, (a) => {
