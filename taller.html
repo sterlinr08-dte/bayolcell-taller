@@ -20742,7 +20742,8 @@ async function borrarPiezaSolicitada(id, kind){
 }
 
 // Lista de recepciones realizadas (con buscador y filtro de fecha) en el módulo Recepción
-let _recepFechaFiltro = 0;
+let _recepFechaFiltro = 0, _recepPage = 1, _recepLastKey = '';
+function _recepGoPage(n) { _recepPage = n; renderRecepcionesRealizadas(); const c = document.getElementById('recepcionesLista'); if(c) c.scrollIntoView({ block: 'nearest' }); }
 function renderRecepcionesRealizadas() {
     const cont = document.getElementById('recepcionesLista');
     if(!cont) return;
@@ -20760,10 +20761,19 @@ function renderRecepcionesRealizadas() {
     // Ordenar por fecha de recepción (más reciente primero)
     ordenes.sort((a,b) => new Date(b.creado_en||0) - new Date(a.creado_en||0));
     if(!ordenes.length) { cont.innerHTML = `<div style="color:var(--text-muted); font-size:13px;">No hay recepciones en este filtro.</div>`; return; }
-    
+    // Paginación de 10 en 10 (reinicia a la página 1 si cambió el filtro/búsqueda)
+    const _key = txt + '|' + _recepFechaFiltro;
+    if(_key !== _recepLastKey) { _recepPage = 1; _recepLastKey = _key; }
+    const _SIZE = 10;
+    const _pages = Math.max(1, Math.ceil(ordenes.length / _SIZE));
+    if(_recepPage > _pages) _recepPage = _pages;
+    if(_recepPage < 1) _recepPage = 1;
+    const _desde = (_recepPage - 1) * _SIZE;
+    const _pageItems = ordenes.slice(_desde, _desde + _SIZE);
+
     cont.innerHTML = `<div style="overflow-x:auto;"><table class="data-table" style="width:100%; font-size:13px;">
         <thead><tr><th>Orden</th><th>Fecha</th><th>Cliente</th><th>Equipo</th><th>Estado</th><th>Acción</th></tr></thead>
-        <tbody>${ordenes.slice(0, 100).map(o => {
+        <tbody>${_pageItems.map(o => {
             const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
             const fecha = o.creado_en ? new Date(o.creado_en).toLocaleDateString('es-DO',{day:'2-digit',month:'2-digit',year:'numeric'}) : '—';
             const est = etiquetaEstadoTexto(o.estado);
@@ -20789,7 +20799,14 @@ function renderRecepcionesRealizadas() {
             </tr>`;
         }).join('')}</tbody>
     </table></div>
-    <div style="font-size:11px; color:var(--text-muted); margin-top:6px;">${ordenes.length} recepción(es)${ordenes.length > 100 ? ' (mostrando 100)' : ''}</div>`;
+    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-top:8px;">
+      <div style="font-size:11px; color:var(--text-muted);">${ordenes.length} recepción(es) · mostrando ${_desde + 1}–${Math.min(_desde + _SIZE, ordenes.length)}</div>
+      <div style="display:flex; align-items:center; gap:2px;">${_pages > 1 ? `
+        <button onclick="_recepGoPage(${_recepPage - 1})" ${_recepPage <= 1 ? 'disabled' : ''} style="min-width:30px; padding:5px 8px; border-radius:7px; border:1px solid #e2e8f0; background:#fff; color:#334155; cursor:${_recepPage <= 1 ? 'default' : 'pointer'}; opacity:${_recepPage <= 1 ? '.4' : '1'}; font-size:12px;">‹</button>
+        ${_abPageNums(_recepPage, _pages).map(n => n === '...' ? `<span style="padding:0 4px; color:#94a3b8;">…</span>` : `<button onclick="_recepGoPage(${n})" style="min-width:30px; padding:5px 8px; border-radius:7px; border:1px solid ${n === _recepPage ? '#0ea5e9' : '#e2e8f0'}; background:${n === _recepPage ? '#0ea5e9' : '#fff'}; color:${n === _recepPage ? '#fff' : '#334155'}; font-weight:${n === _recepPage ? '700' : '500'}; cursor:pointer; font-size:12px;">${n}</button>`).join('')}
+        <button onclick="_recepGoPage(${_recepPage + 1})" ${_recepPage >= _pages ? 'disabled' : ''} style="min-width:30px; padding:5px 8px; border-radius:7px; border:1px solid #e2e8f0; background:#fff; color:#334155; cursor:${_recepPage >= _pages ? 'default' : 'pointer'}; opacity:${_recepPage >= _pages ? '.4' : '1'}; font-size:12px;">›</button>` : ''}
+      </div>
+    </div>`;
 }
 
 // Editar datos de recepción de una orden (corrige errores de captura)
