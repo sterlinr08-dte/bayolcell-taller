@@ -21261,7 +21261,12 @@ function _prefRender() {
           <div style="flex:1; min-width:150px;"><label>Nivel de precio</label><select id="prefNivel" class="pf-in" onchange="_prefNivelCambio()"><option value="1" ${Number(_pref.nivel) === 1 ? 'selected' : ''}>Contado</option><option value="2" ${Number(_pref.nivel) === 2 ? 'selected' : ''}>Por mayor</option></select></div>
         </div>
         <div id="prefVendOtroWrap" style="display:${_prefVendEsOtro() ? 'block' : 'none'}; margin-top:10px;"><label>Código de vendedor</label><input id="prefVendOtro" class="pf-in" value="${_prefVendEsOtro() ? escapeHtml(String(_pref.codempleado)) : ''}" placeholder="Ej. 6" onchange="_pref.codempleado=this.value.trim()||'6'"></div>
-        <div style="margin-top:10px;"><label>Cliente</label><input id="prefNombre" class="pf-in" value="${escapeHtml(_pref.nombre)}" placeholder="CONTADO"></div>
+        <div style="margin-top:10px;"><label>Cliente <span style="color:#94a3b8; font-weight:400;">(Info Plus)</span></label>
+          <div style="display:flex; gap:6px;">
+            <div class="pf-in" style="display:flex; align-items:center; flex:1; background:#f8fafc; overflow:hidden;"><span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(_pref.nombre || 'CONTADO')}</span><span style="color:#94a3b8; font-size:11px; margin-left:8px; white-space:nowrap;">cód. ${escapeHtml(_pref.codcliente || '1')}</span></div>
+            <button class="btn btn-light" onclick="_prefBuscarCliente()" style="white-space:nowrap;"><i class="ti ti-user-search"></i> Elegir</button>
+          </div>
+        </div>
       </div>
       <div class="card" style="max-width:920px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
@@ -21368,6 +21373,55 @@ function imprimirPrefactura() {
       <div style="font-size:11px;color:#888;margin-top:16px;">Documento preliminar (prefactura). La cajera lo convierte en factura fiscal al momento de cobrar.</div>
       <script>window.onload=function(){window.print();}<\/script></body></html>`);
     w.document.close(); w.focus();
+}
+// ===== Clientes de Info Plus (para la prefactura) =====
+let _prefCliQ = '';
+async function _ensureInfoplusClientes(force) {
+    if(!force && cache.infoplusClientes && cache.infoplusClientes.length) return cache.infoplusClientes;
+    try {
+        const { data, error } = await supabaseClient.functions.invoke('infoplus-clientes', { body: {} });
+        if(error) throw error;
+        if(data && data.ok && Array.isArray(data.clientes)) cache.infoplusClientes = data.clientes;
+        else if(data && data.error) toast('Clientes Info Plus: ' + data.error, 'error');
+    } catch(e) { logError('cargar clientes Info Plus', e); }
+    return cache.infoplusClientes || [];
+}
+async function _prefBuscarCliente() {
+    _prefSync();
+    _prefCliQ = '';
+    let m = document.getElementById('modalPrefCli'); if(m) m.remove();
+    m = document.createElement('div'); m.id = 'modalPrefCli'; m.className = 'modal-backdrop active'; m.style.zIndex = '820';
+    m.innerHTML = `<div class="modal-box" style="max-width:560px; width:96%;">
+      <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-user-search" style="color:#0e7490;"></i> Buscar cliente <span style="font-size:12px; color:#94a3b8; font-weight:400;">(Info Plus)</span></h3><button class="modal-close" onclick="document.getElementById('modalPrefCli').remove()">✕</button></div>
+      <div class="modal-body">
+        <input id="prefCliQ" oninput="_prefCliBuscar(this.value)" placeholder="Buscar por nombre, cédula, RNC, teléfono o código..." style="width:100%; padding:9px 11px; border:1px solid #cbd5e1; border-radius:10px; font-size:14px; margin-bottom:10px; box-sizing:border-box;">
+        <div id="prefCliLista" style="max-height:52vh; overflow-y:auto;"><div style="text-align:center; color:#94a3b8; padding:16px;">Cargando clientes…</div></div>
+      </div>
+    </div>`;
+    document.body.appendChild(m);
+    setTimeout(() => document.getElementById('prefCliQ')?.focus(), 50);
+    await _ensureInfoplusClientes();
+    const el = document.getElementById('prefCliLista'); if(el) el.innerHTML = _prefCliListaHTML();
+}
+function _prefCliListaHTML() {
+    const q = (_prefCliQ || '').trim().toLowerCase();
+    let lista = cache.infoplusClientes || [];
+    if(q) lista = lista.filter(c => [c.codcliente, c.nombre, c.cedula, c.rnc, c.telefono].join(' ').toLowerCase().includes(q));
+    const top = lista.slice(0, 60);
+    const contado = `<div onclick="_prefCliElegir('1')" style="padding:9px 10px; border:1px solid #e2e8f0; border-radius:9px; margin-bottom:5px; cursor:pointer;"><b>CONTADO</b> <span style="color:#94a3b8; font-size:12px;">(genérico · cód. 1)</span></div>`;
+    const filas = top.map(c => `<div onclick="_prefCliElegir('${escapeHtml(c.codcliente)}')" style="padding:9px 10px; border:1px solid #e2e8f0; border-radius:9px; margin-bottom:5px; cursor:pointer;">
+        <div style="font-weight:600; font-size:13px;">${escapeHtml(c.nombre || '(sin nombre)')}</div>
+        <div style="font-size:11px; color:#64748b;">cód. ${escapeHtml(c.codcliente)}${c.cedula ? (' · céd. ' + escapeHtml(c.cedula)) : ''}${c.rnc ? (' · RNC ' + escapeHtml(c.rnc)) : ''}${c.telefono ? (' · ' + escapeHtml(c.telefono)) : ''}</div>
+    </div>`).join('');
+    const pie = lista.length > 60 ? `<div style="text-align:center; color:#94a3b8; font-size:12px; padding:6px;">Mostrando 60 de ${lista.length}. Escribe para filtrar.</div>` : (!lista.length ? `<div style="text-align:center; color:#94a3b8; padding:14px;">Sin clientes que coincidan.</div>` : '');
+    return (q ? '' : contado) + filas + pie;
+}
+function _prefCliBuscar(v) { _prefCliQ = v; const el = document.getElementById('prefCliLista'); if(el) el.innerHTML = _prefCliListaHTML(); }
+function _prefCliElegir(cod) {
+    if(String(cod) === '1') { _pref.codcliente = '1'; _pref.nombre = 'CONTADO'; }
+    else { const c = (cache.infoplusClientes || []).find(x => String(x.codcliente) === String(cod)); if(c) { _pref.codcliente = String(c.codcliente); _pref.nombre = c.nombre || 'CONTADO'; } }
+    document.getElementById('modalPrefCli')?.remove();
+    _prefRender();
 }
 function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
         const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
