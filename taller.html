@@ -1354,7 +1354,36 @@ body{
 
             <!-- RECEPCION -->
             <div id="v-recepcion" class="view">
-                <div class="card" style="margin-bottom:15px; max-width:560px; border-top:3px solid #f59e0b;">
+                <style>
+                  #v-recepcion .card{border-radius:14px;box-shadow:0 1px 3px rgba(15,23,42,.06);border:1px solid #eef2f7;}
+                  #v-recepcion .rcp-tools{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+                  @media(max-width:640px){#v-recepcion .rcp-tools{grid-template-columns:1fr;}}
+                  #v-recepcion .rcp-tools .card{margin:0;}
+                  #v-recepcion .rcp-tools h3{font-size:14px;}
+                  #v-recepcion .block-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-items:start;}
+                  @media(max-width:1100px){#v-recepcion .block-grid{grid-template-columns:1fr 1fr;}}
+                  @media(max-width:720px){#v-recepcion .block-grid{grid-template-columns:1fr;}}
+                  #v-recepcion .block-card{background:#fff;border:1px solid #eef2f7;border-radius:14px;box-shadow:0 1px 3px rgba(15,23,42,.06);overflow:hidden;}
+                  #v-recepcion .block-header{font-size:12.5px;font-weight:800;letter-spacing:.2px;padding:11px 14px;background:#f8fafc;border-bottom:1px solid #eef2f7;color:#0f172a;}
+                  #v-recepcion .block-header.header-blue-dark{border-top:3px solid #e31e24;}
+                  #v-recepcion .block-header.header-blue-light{border-top:3px solid #0891b2;}
+                  #v-recepcion .block-header.header-blue-sec{border-top:3px solid #7c3aed;}
+                  #v-recepcion .block-body{padding:12px 14px;}
+                  #v-recepcion .block-body > div{margin-bottom:9px;}
+                  #v-recepcion .block-body label{display:block;font-size:10.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px;}
+                  #v-recepcion .block-body input:not([type=checkbox]),#v-recepcion .block-body select,#v-recepcion .block-body textarea{width:100%;box-sizing:border-box;padding:9px 11px;font-size:13.5px;border:1px solid #d8dee9;border-radius:10px;background:#fff;color:#0f172a;transition:border-color .15s,box-shadow .15s;}
+                  #v-recepcion .block-body input:not([type=checkbox]):focus,#v-recepcion .block-body select:focus,#v-recepcion .block-body textarea:focus{outline:none;border-color:#e31e24;box-shadow:0 0 0 3px rgba(227,30,36,.12);}
+                  #v-recepcion .checks-layout{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+                  #v-recepcion .checks-layout label{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:500;text-transform:none;letter-spacing:0;color:#334155;background:#f8fafc;border:1px solid #eef2f7;border-radius:9px;padding:7px 9px;cursor:pointer;margin:0;}
+                  #v-recepcion .checks-layout label:hover{border-color:#cbd5e1;}
+                  #v-recepcion .checks-layout input{width:17px;height:17px;accent-color:#e31e24;}
+                  #v-recepcion .password-field{display:flex;gap:6px;}
+                  #v-recepcion .password-field input{flex:1;}
+                  #v-recepcion .block-body .btn-blue{background:#e31e24;border-color:#e31e24;border-radius:10px;}
+                  #v-recepcion .block-body .btn-dark{border-radius:10px;}
+                </style>
+                <div class="rcp-tools">
+                <div class="card" style="margin-bottom:0; border-top:3px solid #f59e0b;">
                     <h3 style="margin:0 0 4px; font-size:15px;"><i class="ti ti-star" style="color:#f59e0b;"></i> Pedir reseña a un cliente (sin orden)</h3>
                     <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px;">Para clientes que <b>solo vinieron a comprar</b> (no se registra orden). Pon su WhatsApp y mándale el enlace de reseña de Google.</p>
                     <div style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -1363,7 +1392,7 @@ body{
                     </div>
                     <div id="resenaWaMsg" style="font-size:12px; margin-top:6px;"></div>
                 </div>
-                <div class="card" style="margin-bottom:15px; max-width:560px; border-top:3px solid #7c3aed;">
+                <div class="card" style="margin-bottom:0; border-top:3px solid #7c3aed;">
                     <h3 style="margin:0 0 4px; font-size:15px;"><i class="ti ti-ticket" style="color:#7c3aed;"></i> Generar boleto de rifa</h3>
                     <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px;">Rifa presencial: pon el nombre y teléfono del cliente. El sistema asigna el número al azar y el boleto queda <b>confirmado</b>. Requiere una rifa activa.</p>
                     <div style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -1372,6 +1401,7 @@ body{
                         <button id="btnBoletoRifa" class="btn" style="background:#7c3aed; color:#fff; font-size:13px; padding:9px 14px;" onclick="generarBoletoRifa()"><i class="ti ti-ticket"></i> Generar boleto</button>
                     </div>
                     <div id="rifaBoletoMsg" style="margin-top:10px;"></div>
+                </div>
                 </div>
                 <div class="block-grid">
                     <div class="block-card">
