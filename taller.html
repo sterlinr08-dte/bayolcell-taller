@@ -21167,6 +21167,16 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
                 acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-rotate"></i> VOLVIÓ · CONTINUAR AQUÍ</button>`;
             }
         }
+        // Servicio al cliente puede FINALIZAR (cerrar la reparación) y resolver esperas, aunque no sea el técnico.
+        // No se le dan acciones de técnico (tomar/derivar/no reparado). Se evita duplicar si ya opera (admin/técnico).
+        if(esServicio && !puedeOperar && !['entregado','cancelado','finalizado','no_reparado','reparacion_externa'].includes(estado)) {
+            if(estado === 'pendiente_cliente') {
+                acciones += `<button class="btn btn-blue" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-check"></i> AUTORIZACIÓN RESUELTA</button>`;
+            } else if(estado === 'espera_repuesto') {
+                acciones += `<button class="btn btn-blue" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','en_proceso')"><i class="ti ti-check"></i> REPUESTO LLEGÓ</button>`;
+            }
+            acciones += `<button class="btn btn-success" style="font-size:11px; padding:5px 9px;" onclick="cambiarEstadoOrdenUI('${o.id}','finalizado')"><i class="ti ti-circle-check"></i> FINALIZAR</button>`;
+        }
         // Cancelar: SOLO servicio al cliente y admin (técnico NO puede cancelar)
         if((esAdmin || esServicio) && !['entregado','cancelado','finalizado','no_reparado','reparacion_externa'].includes(estado)) {
             acciones += `<button class="btn btn-light" style="font-size:11px; padding:5px 9px; color:#991b1b;" onclick="cambiarEstadoOrdenUI('${o.id}','cancelado')"><i class="ti ti-x"></i> Cancelar</button>`;
@@ -22148,8 +22158,10 @@ async function cambiarEstadoOrdenUI(ordenId, nuevoEstado) {
     if(nuevoEstado === 'finalizado') {
         const pend = fallasPendientesDe('orden', ordenId);
         if(pend > 0) {
-            if(isAdminUser()) {
-                if(!await confirmar(`⚠️ Esta orden tiene ${pend} falla(s) SIN resolver.\n\nComo administrador puedes finalizarla de todos modos.\n\n¿Forzar finalización?`)) return;
+            const esServicioUser = sessionUser?.tipo_empleado === 'servicio' || tienePermiso('solo_atencion') || tienePermiso('recepcion_ver');
+            if(isAdminUser() || esServicioUser) {
+                const rol = isAdminUser() ? 'administrador' : 'servicio al cliente';
+                if(!await confirmar(`⚠️ Esta orden tiene ${pend} falla(s) SIN resolver.\n\nComo ${rol} puedes finalizarla de todos modos.\n\n¿Forzar finalización?`)) return;
             } else {
                 return toast(`⚠️ No puedes finalizar todavía.\n\nQuedan ${pend} falla(s) pendiente(s). Marca todas las fallas como resueltas (✓) antes de finalizar.`, 'error');
             }
