@@ -4965,6 +4965,7 @@ let _incQuincenaSel = null; // 0 = quincena actual, -1 = pasada, null = ninguna 
 let _incUltimoTecnico = '', _incUltimoTipo = 'reparacion';
 let _incVer = {}; // cuántos registros mostrar por técnico (de 10 en 10)
 let _incExpandido = ''; // técnico cuyos tickets están desplegados ('' = ninguno)
+let _incBuscar = '', _incPage = 1, _incUltimoTotal = 0; // buscador + paginación de la lista plana
 let _miVer = 10;
 function incToggleTec(k) { _incExpandido = (_incExpandido === k) ? '' : k; renderIncentivos(); }
 function incVerMas(k) { _incVer[k] = (_incVer[k] || 10) + 10; renderIncentivos(); }
@@ -5004,7 +5005,52 @@ function _incFilaServicioAgrupada(r) {
         </td>
     </tr>`;
 }
+// Fila plana de un servicio (lista nueva compacta). Mismos handlers que antes (no cambia la lógica).
+function _incFilaPlana(r) {
+    const est = r.estado;
+    const serv = r.tipo === 'pulido' ? 'Pulido de pantalla' : (r.tipo === 'manual' ? 'Manual' : 'Reparación');
+    let acc = '';
+    if(est === 'pendiente') acc += `<button class="inc-ib" title="Validar (firmado y sellado)" onclick="setEstadoIncentivo('${r.id}','validado')" style="color:#1d4ed8;"><i class="ti ti-rosette-discount-check"></i></button>`;
+    if(est === 'validado') acc += `<button class="inc-ib" title="Quitar validación" onclick="setEstadoIncentivo('${r.id}','pendiente')"><i class="ti ti-arrow-back-up"></i></button>`;
+    if(est === 'pagado') acc += `<button class="inc-ib" title="Revertir pago" onclick="setEstadoIncentivo('${r.id}','validado')"><i class="ti ti-arrow-back-up"></i></button>`;
+    if(est !== 'pagado') acc += `<button class="inc-ib" title="Editar" onclick="editarIncentivo('${r.id}')" style="color:#0369a1;"><i class="ti ti-pencil"></i></button>`;
+    acc += `<button class="inc-ib" title="Borrar" onclick="borrarIncentivo('${r.id}')" style="color:#b91c1c;"><i class="ti ti-trash"></i></button>`;
+    return `<tr class="inc-row">
+        <td class="inc-c-tk">${escapeHtml(r.ticket || '—')}</td>
+        <td><div class="inc-serv">${serv}</div>${r.nota ? `<div class="inc-sub">${escapeHtml(r.nota)}</div>` : ''}<div class="inc-sub">${escapeHtml(r.tecnico_nombre || '')}</div></td>
+        <td class="inc-c-fecha">${_incFmtFecha(r.fecha)}</td>
+        <td class="inc-c-inc">${money(r.monto_incentivo)}</td>
+        <td>${_incEstadoBadge(est, r.sellado)}</td>
+        <td class="inc-c-acc">${acc}</td>
+    </tr>`;
+}
+// Genera el HTML de la lista plana (rango + técnico + estado + búsqueda), paginada de 10 en 10.
+function _incListaHTML() {
+    const q = (_incBuscar || '').trim().toLowerCase();
+    const enRango = _incCache.filter(r => _incEnRango(r) && (!_incFiltroTec || r.tecnico_id === _incFiltroTec));
+    let lista = enRango.filter(r => !_incFiltroEstado || r.estado === _incFiltroEstado);
+    if(q) lista = lista.filter(r => {
+        const serv = r.tipo === 'pulido' ? 'pulido' : (r.tipo === 'manual' ? 'manual' : 'reparacion');
+        return [r.ticket, r.tecnico_nombre, serv, r.nota, r.monto_factura, r.monto_incentivo, _incFmtFecha(r.fecha)].join(' ').toLowerCase().includes(q);
+    });
+    const total = lista.length; _incUltimoTotal = total;
+    const pages = Math.max(1, Math.ceil(total / 10));
+    if(_incPage > pages) _incPage = pages;
+    if(_incPage < 1) _incPage = 1;
+    const show = lista.slice((_incPage - 1) * 10, _incPage * 10);
+    if(!total) return `<div class="inc-empty"><i class="ti ti-inbox" style="font-size:26px;display:block;margin-bottom:6px;"></i>No hay tickets con estos filtros.</div>`;
+    let h = `<table class="inc-table"><thead><tr><th>#</th><th>Servicio</th><th>Fecha</th><th style="text-align:right;">Incentivo</th><th>Estado</th><th style="text-align:right;">Acciones</th></tr></thead><tbody>${show.map(_incFilaPlana).join('')}</tbody></table>`;
+    if(pages > 1) {
+        const nums = _abPageNums(_incPage, pages);
+        h += `<div class="inc-pag"><button onclick="_incListaPage(${_incPage - 1})" ${_incPage <= 1 ? 'disabled style="opacity:.4;"' : ''}>‹</button>${nums.map(n => n === '...' ? `<span style="padding:0 4px;color:#94a3b8;">…</span>` : `<button class="${n === _incPage ? 'on' : ''}" onclick="_incListaPage(${n})">${n}</button>`).join('')}<button onclick="_incListaPage(${_incPage + 1})" ${_incPage >= pages ? 'disabled style="opacity:.4;"' : ''}>›</button></div>`;
+    }
+    h += `<div class="inc-pag-info">Mostrando ${(_incPage - 1) * 10 + 1}–${Math.min(_incPage * 10, total)} de ${total} servicio${total !== 1 ? 's' : ''}</div>`;
+    return h;
+}
+function _incBuscarInput(v) { _incBuscar = v; _incPage = 1; const el = document.getElementById('incLista'); if(el) { el.innerHTML = _incListaHTML(); const ce = document.getElementById('incListaCount'); if(ce) ce.textContent = '(' + _incUltimoTotal + ')'; } }
+function _incListaPage(n) { _incPage = n; const el = document.getElementById('incLista'); if(el) { el.innerHTML = _incListaHTML(); const ce = document.getElementById('incListaCount'); if(ce) ce.textContent = '(' + _incUltimoTotal + ')'; el.scrollIntoView({ block: 'nearest' }); } }
 function _incQuincena(offset) {
+    _incPage = 1;
     _incQuincenaSel = offset; // recordar cuál quincena está activa (para resaltar)
     // offset 0 = quincena actual, -1 = quincena pasada
     const hoy = new Date(); hoy.setHours(0,0,0,0);
@@ -5081,6 +5127,7 @@ function _incTipoCambio() {
     else { inp.readOnly = false; inp.value = inp.value || ''; inp.focus(); }
 }
 function _incAplicarFiltros() {
+    _incPage = 1;
     _incFiltroTec = document.getElementById('incFTec')?.value || '';
     _incFiltroEstado = document.getElementById('incFEstado')?.value || '';
     const dNuevo = document.getElementById('incFDesde')?.value || '';
@@ -5107,159 +5154,159 @@ async function renderIncentivos() {
     const selTipo = t => _incUltimoTipo===t ? 'selected' : '';
     const hoy = new Date().toISOString().slice(0,10);
 
-    // Formulario de registro (compacto, multi-servicio por ticket)
-    const ci = 'style="padding:6px 9px; font-size:12px; border-radius:8px;" onkeydown="if(event.key===\'Enter\')guardarIncentivo()"';
+    // ===== Estilos compactos del módulo (scoped a #incentivosContenido) =====
+    const _incCSS = `<style>
+      #incentivosContenido .inc-wrap{max-width:1180px;}
+      #incentivosContenido .inc-card{background:#fff;border:1px solid #eef2f7;border-radius:14px;box-shadow:0 1px 3px rgba(15,23,42,.06);}
+      #incentivosContenido .inc-lbl{display:block;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;}
+      #incentivosContenido .inc-in{height:36px;padding:0 10px;font-size:13px;border:1px solid #d8dee9;border-radius:10px;background:#fff;width:100%;color:#0f172a;box-sizing:border-box;}
+      #incentivosContenido select.inc-in{cursor:pointer;}
+      #incentivosContenido .inc-fg{display:flex;flex-direction:column;}
+      #incentivosContenido .inc-row-f{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;}
+      #incentivosContenido .inc-btn{height:36px;display:inline-flex;align-items:center;gap:6px;padding:0 13px;border-radius:10px;border:1px solid #d8dee9;background:#fff;color:#0f172a;font-size:12.5px;font-weight:600;cursor:pointer;transition:all .15s ease;box-shadow:0 1px 2px rgba(15,23,42,.05);white-space:nowrap;}
+      #incentivosContenido .inc-btn:hover{box-shadow:0 3px 8px rgba(15,23,42,.12);transform:translateY(-1px);}
+      #incentivosContenido .inc-btn-red{background:#e31e24;border-color:#e31e24;color:#fff;}
+      #incentivosContenido .inc-btn-red:hover{background:#c8181d;}
+      #incentivosContenido .inc-btn-blue{background:#1d4ed8;border-color:#1d4ed8;color:#fff;}
+      #incentivosContenido .inc-btn-on{background:#16a34a;border-color:#16a34a;color:#fff;}
+      #incentivosContenido .inc-kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin:10px 0;}
+      #incentivosContenido .inc-kpi{background:#fff;border:1px solid #eef2f7;border-radius:14px;box-shadow:0 1px 3px rgba(15,23,42,.06);padding:12px 13px;}
+      #incentivosContenido .inc-kpi-ic{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:8px;}
+      #incentivosContenido .inc-kpi-val{font-size:19px;font-weight:800;color:#0f172a;line-height:1.1;overflow-wrap:anywhere;}
+      #incentivosContenido .inc-kpi-lbl{font-size:11px;color:#64748b;font-weight:600;margin-top:2px;}
+      #incentivosContenido .inc-title{font-size:14px;font-weight:800;color:#0f172a;}
+      #incentivosContenido .inc-search{display:flex;align-items:center;gap:8px;height:40px;padding:0 12px;border:1px solid #d8dee9;border-radius:12px;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.06);}
+      #incentivosContenido .inc-search input{border:0;outline:0;flex:1;font-size:14px;background:transparent;color:#0f172a;}
+      #incentivosContenido .inc-search i{color:#94a3b8;font-size:18px;}
+      #incentivosContenido .inc-sticky{position:sticky;top:0;z-index:6;background:#fff;padding-top:2px;}
+      #incentivosContenido table.inc-table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;min-width:560px;}
+      #incentivosContenido .inc-table th{font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:#64748b;text-align:left;padding:8px 10px;border-bottom:1px solid #eef2f7;font-weight:700;}
+      #incentivosContenido .inc-row td{padding:8px 10px;border-bottom:1px solid #f1f5f9;vertical-align:middle;}
+      #incentivosContenido .inc-row:hover{background:#f8fafc;}
+      #incentivosContenido .inc-c-tk{font-weight:800;color:#e31e24;white-space:nowrap;}
+      #incentivosContenido .inc-serv{font-weight:600;color:#0f172a;}
+      #incentivosContenido .inc-sub{font-size:11px;color:#64748b;}
+      #incentivosContenido .inc-c-fecha{white-space:nowrap;color:#475569;font-size:12px;}
+      #incentivosContenido .inc-c-inc{text-align:right;font-weight:700;color:#0f172a;white-space:nowrap;}
+      #incentivosContenido .inc-c-acc{text-align:right;white-space:nowrap;}
+      #incentivosContenido .inc-ib{height:30px;width:30px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #e2e8f0;background:#fff;border-radius:8px;cursor:pointer;margin-left:3px;transition:all .15s;color:#334155;}
+      #incentivosContenido .inc-ib:hover{box-shadow:0 2px 6px rgba(15,23,42,.12);}
+      #incentivosContenido .inc-empty{padding:26px;text-align:center;color:#94a3b8;font-size:13px;}
+      #incentivosContenido .inc-pag{display:flex;gap:3px;align-items:center;justify-content:center;margin-top:10px;flex-wrap:wrap;}
+      #incentivosContenido .inc-pag button{min-width:32px;height:32px;padding:0 8px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;color:#334155;cursor:pointer;font-size:12px;}
+      #incentivosContenido .inc-pag button.on{background:#e31e24;border-color:#e31e24;color:#fff;font-weight:700;}
+      #incentivosContenido .inc-pag-info{text-align:center;font-size:11px;color:#94a3b8;margin-top:6px;}
+      @media(max-width:900px){#incentivosContenido .inc-kpis{grid-template-columns:repeat(3,1fr);}}
+      @media(max-width:520px){#incentivosContenido .inc-kpis{grid-template-columns:repeat(2,1fr);}}
+    </style>`;
+
     const srvIniAdmin = [{ tipo: _incUltimoTipo || 'reparacion', incentivo: (_incUltimoTipo === 'pulido' ? INC_PULIDO : INC_REPARACION), nota: '' }];
-    let html = `<div class="card" style="margin-bottom:10px; padding:12px;">
-        <div style="font-size:13px; font-weight:700; margin-bottom:8px;"><i class="ti ti-plus" style="color:#16a34a;"></i> Registrar Ticket</div>
-        <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:flex-end; margin-bottom:8px;">
-            <div style="flex:1; min-width:150px;"><label style="font-size:10px; color:#475569;">Técnico *</label><select id="incTecnico" ${ci}><option value="">— Elige —</option>${opts}</select></div>
-            <div style="width:120px;"><label style="font-size:10px; color:#475569;">Fecha</label><input type="date" id="incFecha" value="${hoy}" ${ci}></div>
-            <div style="width:120px;"><label style="font-size:10px; color:#475569;"># Ticket</label><input type="text" id="incTicket" placeholder="CO000..." ${ci}></div>
-            <div style="width:120px;"><label style="font-size:10px; color:#475569;">Monto factura *</label><input type="number" id="incMontoFactura" min="0" step="0.01" placeholder="0" ${ci}></div>
-        </div>
-        <div style="font-size:10px; color:#475569; margin-bottom:4px; font-weight:700;">Servicios de este ticket <span style="font-weight:400;">(usa el ＋ para agregar otra reparación al mismo ticket)</span></div>
-        <div id="incServicios">${_srvServiciosHtml('inc', srvIniAdmin)}</div>
-        <div style="margin-top:10px;"><button class="btn btn-blue btn-sm" onclick="guardarIncentivo()" style="height:32px;"><i class="ti ti-device-floppy"></i> Registrar Ticket</button></div>
-    </div>`;
+    const optsF = tecs.map(t => `<option value="${t.id}" ${_incFiltroTec === t.id ? 'selected' : ''}>${escapeHtml(t.nombre || t.usuario || 'Técnico')}</option>`).join('');
 
-    // Filtros
-    const optsFTec = tecs.map(t => `<option value="${t.id}" ${_incFiltroTec===t.id?'selected':''}>${escapeHtml(t.nombre || t.usuario || 'Técnico')}</option>`).join('');
-    const cf = 'style="padding:6px 9px; font-size:12px; border-radius:8px;"';
-    html += `<div class="card" style="margin-bottom:10px; padding:10px;">
-        <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:flex-end;">
-            <div style="flex:1; min-width:120px;"><label style="font-size:10px; color:#475569;">Técnico</label><select id="incFTec" onchange="_incAplicarFiltros()" ${cf}><option value="">Todos</option>${optsFTec}</select></div>
-            <div style="width:140px;"><label style="font-size:10px; color:#475569;">Estado</label><select id="incFEstado" onchange="_incAplicarFiltros()" ${cf}><option value="" ${_incFiltroEstado===''?'selected':''}>Todos</option><option value="pendiente" ${_incFiltroEstado==='pendiente'?'selected':''}>Por validar</option><option value="validado" ${_incFiltroEstado==='validado'?'selected':''}>Validado</option><option value="rechazado" ${_incFiltroEstado==='rechazado'?'selected':''}>Devuelto</option><option value="pagado" ${_incFiltroEstado==='pagado'?'selected':''}>Pagado</option></select></div>
-            <div style="width:120px;"><label style="font-size:10px; color:#475569;">Desde</label><input type="date" id="incFDesde" value="${_incDesde}" onchange="_incAplicarFiltros()" ${cf}></div>
-            <div style="width:120px;"><label style="font-size:10px; color:#475569;">Hasta</label><input type="date" id="incFHasta" value="${_incHasta}" onchange="_incAplicarFiltros()" ${cf}></div>
-            <button class="btn btn-sm" onclick="_incQuincena(0)" style="height:30px; ${_incQuincenaSel === 0 ? 'background:linear-gradient(180deg,#16a34a,#15803d); color:#fff; border:0; box-shadow:0 2px 6px rgba(22,163,74,0.35);' : 'background:#fff; color:#0f172a; border:1px solid #cbd5e1;'}">${_incQuincenaSel === 0 ? '✅ ' : ''}Quincena actual</button>
-            <button class="btn btn-sm" onclick="_incQuincena(-1)" style="height:30px; ${_incQuincenaSel === -1 ? 'background:linear-gradient(180deg,#16a34a,#15803d); color:#fff; border:0; box-shadow:0 2px 6px rgba(22,163,74,0.35);' : 'background:#fff; color:#0f172a; border:1px solid #cbd5e1;'}">${_incQuincenaSel === -1 ? '✅ ' : ''}Quincena pasada</button>
-            <button class="btn btn-light btn-sm" onclick="_incLimpiarFiltros()" style="height:30px;"><i class="ti ti-x"></i></button>
-            <button class="btn btn-blue btn-sm" onclick="abrirValidadorGlobal()" style="height:30px;" title="Ver todos los tickets, buscar y validar"><i class="ti ti-checklist"></i> Validar Tickets</button>
-        </div>
-    </div>`;
-
-    // Datos filtrados
+    // ===== Totales (KPIs) sobre el rango + técnico (ignora estado y búsqueda) =====
     const enRango = _incCache.filter(r => _incEnRango(r) && (!_incFiltroTec || r.tecnico_id === _incFiltroTec));
-    const lista = enRango.filter(r => !_incFiltroEstado || r.estado === _incFiltroEstado);
-
-    // Resumen por técnico (sobre el rango + técnico, ignorando estado)
-    const resumen = {};
-    const _facturaVista = {}; // para contar la factura UNA sola vez por ticket (no por servicio)
+    let kRep = 0, kPul = 0, kFact = 0, kVal = 0, kPag = 0, kPagado = 0; const _fv = {};
     enRango.forEach(r => {
-        const k = r.tecnico_id || '_';
-        if(!resumen[k]) resumen[k] = { nombre: r.tecnico_nombre || 'Técnico', rep:0, pul:0, otros:0, generado:0, porValidar:0, porPagar:0, pagado:0 };
-        if(r.tipo === 'pulido') resumen[k].pul++; else if(r.tipo === 'manual') resumen[k].otros++; else resumen[k].rep++;
-        // Generado = total de facturas: si el ticket tiene varios servicios, su monto cuenta una sola vez
-        const factura = Number(r.monto_factura||0);
-        const tkey = (r.ticket || '').trim() ? (k + '|' + (r.ticket || '').trim().toLowerCase()) : null;
-        if(tkey) {
-            const prev = _facturaVista[tkey] || 0;
-            if(factura > prev) { resumen[k].generado += (factura - prev); _facturaVista[tkey] = factura; }
-        } else {
-            resumen[k].generado += factura; // sin # de ticket: contar cada uno
-        }
-        const m = Number(r.monto_incentivo||0);
-        if(r.estado === 'pagado') resumen[k].pagado += m; else if(r.estado === 'validado') resumen[k].porPagar += m; else if(r.estado === 'rechazado') { /* devuelto: no cuenta hasta que el técnico lo corrija */ } else resumen[k].porValidar += m;
+        if(r.tipo === 'pulido') kPul++; else if(r.tipo !== 'manual') kRep++;
+        const factura = Number(r.monto_factura || 0);
+        const tk = (r.ticket || '').trim() ? ((r.tecnico_id || '') + '|' + (r.ticket || '').trim().toLowerCase()) : null;
+        if(tk) { const prev = _fv[tk] || 0; if(factura > prev) { kFact += (factura - prev); _fv[tk] = factura; } } else kFact += factura;
+        const m = Number(r.monto_incentivo || 0);
+        if(r.estado === 'pagado') kPagado += m; else if(r.estado === 'validado') kPag += m; else if(r.estado === 'rechazado') { /* devuelto: no cuenta */ } else kVal += m;
     });
-    const resKeys = Object.keys(resumen);
-    const gtValidar = resKeys.reduce((s,k) => s + resumen[k].porValidar, 0);
-    const gtPagar = resKeys.reduce((s,k) => s + resumen[k].porPagar, 0);
-    const gtPag = resKeys.reduce((s,k) => s + resumen[k].pagado, 0);
-    const gtGenerado = resKeys.reduce((s,k) => s + resumen[k].generado, 0);
-    const periodoTxt = (_incDesde || _incHasta) ? `${_incDesde ? _incFmtFecha(_incDesde) : '...'} al ${_incHasta ? _incFmtFecha(_incHasta) : '...'}` : 'Todos los registros';
-    if(resKeys.length) {
-        html += `<div class="card" style="margin-bottom:10px; padding:12px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
-                <div style="font-size:13px; font-weight:700;"><i class="ti ti-users" style="color:#7c3aed;"></i> Resumen por técnico <span style="font-size:11px; color:#475569; font-weight:400;">(${escapeHtml(periodoTxt)})</span></div>
-                <div style="font-size:12.5px;">🧾 Generado: <b style="color:#0f172a;">${money(gtGenerado)}</b> · ⏳ Por validar: <b style="color:#b45309;">${money(gtValidar)}</b> · 💰 Por pagar: <b style="color:#1d4ed8; font-size:15px;">${money(gtPagar)}</b>${gtPag>0?` · <span style="color:#16a34a;">Pagado ${money(gtPag)}</span>`:''}</div>
+    const kpi = (bg, col, ic, val, lbl) => `<div class="inc-kpi"><div class="inc-kpi-ic" style="background:${bg};color:${col};"><i class="ti ${ic}"></i></div><div class="inc-kpi-val">${val}</div><div class="inc-kpi-lbl">${lbl}</div></div>`;
+
+    let html = _incCSS + `<div class="inc-wrap">`;
+
+    // ---- Registrar ticket (compacto) ----
+    html += `<div class="inc-card" style="padding:11px 13px;margin-bottom:10px;">
+        <div class="inc-title" style="margin-bottom:8px;"><i class="ti ti-plus" style="color:#16a34a;"></i> Registrar ticket</div>
+        <div class="inc-row-f" style="margin-bottom:8px;">
+            <div class="inc-fg" style="flex:1;min-width:150px;"><label class="inc-lbl">Técnico *</label><select id="incTecnico" class="inc-in"><option value="">— Elige —</option>${opts}</select></div>
+            <div class="inc-fg" style="width:130px;"><label class="inc-lbl">Fecha</label><input type="date" id="incFecha" class="inc-in" value="${hoy}"></div>
+            <div class="inc-fg" style="width:130px;"><label class="inc-lbl"># Ticket</label><input type="text" id="incTicket" class="inc-in" placeholder="CO000..." onkeydown="if(event.key==='Enter')guardarIncentivo()"></div>
+            <div class="inc-fg" style="width:130px;"><label class="inc-lbl">Monto factura *</label><input type="number" id="incMontoFactura" class="inc-in" min="0" step="0.01" placeholder="0" onkeydown="if(event.key==='Enter')guardarIncentivo()"></div>
+        </div>
+        <label class="inc-lbl" style="margin-bottom:4px;">Servicios de este ticket <span style="text-transform:none;font-weight:400;color:#94a3b8;">(usa ＋ para agregar otra reparación al mismo ticket)</span></label>
+        <div id="incServicios">${_srvServiciosHtml('inc', srvIniAdmin)}</div>
+        <div style="margin-top:9px;"><button class="inc-btn inc-btn-red" onclick="guardarIncentivo()"><i class="ti ti-device-floppy"></i> Registrar ticket</button></div>
+    </div>`;
+
+    // ---- KPIs ----
+    html += `<div class="inc-kpis">
+        ${kpi('#eff6ff', '#2563eb', 'ti-tool', kRep, 'Reparaciones')}
+        ${kpi('#f5f3ff', '#7c3aed', 'ti-sparkles', kPul, 'Pulidos')}
+        ${kpi('#ecfdf5', '#059669', 'ti-cash', money(kFact), 'Facturado')}
+        ${kpi('#fff7ed', '#ea580c', 'ti-clock', money(kVal), 'Por validar')}
+        ${kpi('#fef2f2', '#dc2626', 'ti-alert-triangle', money(kPag), 'Pendiente')}
+        ${kpi('#f0fdfa', '#0d9488', 'ti-circle-check', money(kPagado), 'Pagado')}
+    </div>`;
+
+    // ---- Filtros ----
+    const qActiva = _incQuincenaSel === 0, qPasada = _incQuincenaSel === -1;
+    html += `<div class="inc-card" style="padding:10px 12px;margin-bottom:10px;">
+        <div class="inc-row-f">
+            <div class="inc-fg" style="flex:1;min-width:130px;"><label class="inc-lbl">Técnico</label><select id="incFTec" class="inc-in" onchange="_incAplicarFiltros()"><option value="">Todos</option>${optsF}</select></div>
+            <div class="inc-fg" style="width:150px;"><label class="inc-lbl">Estado</label><select id="incFEstado" class="inc-in" onchange="_incAplicarFiltros()"><option value="" ${_incFiltroEstado === '' ? 'selected' : ''}>Todos</option><option value="pendiente" ${_incFiltroEstado === 'pendiente' ? 'selected' : ''}>Por validar</option><option value="validado" ${_incFiltroEstado === 'validado' ? 'selected' : ''}>Validado</option><option value="rechazado" ${_incFiltroEstado === 'rechazado' ? 'selected' : ''}>Devuelto</option><option value="pagado" ${_incFiltroEstado === 'pagado' ? 'selected' : ''}>Pagado</option></select></div>
+            <div class="inc-fg" style="width:140px;"><label class="inc-lbl">Desde</label><input type="date" id="incFDesde" class="inc-in" value="${_incDesde}" onchange="_incAplicarFiltros()"></div>
+            <div class="inc-fg" style="width:140px;"><label class="inc-lbl">Hasta</label><input type="date" id="incFHasta" class="inc-in" value="${_incHasta}" onchange="_incAplicarFiltros()"></div>
+            <button class="inc-btn ${qActiva ? 'inc-btn-on' : ''}" onclick="_incQuincena(0)">Quincena actual</button>
+            <button class="inc-btn ${qPasada ? 'inc-btn-on' : ''}" onclick="_incQuincena(-1)">Quincena pasada</button>
+            <button class="inc-btn" onclick="_incLimpiarFiltros()" title="Limpiar filtros"><i class="ti ti-refresh"></i> Limpiar</button>
+        </div>
+    </div>`;
+
+    // ---- Barra del técnico seleccionado (pago por técnico, se conserva la lógica) ----
+    if(_incFiltroTec) {
+        const nombreTec = (tecs.find(t => t.id === _incFiltroTec) || {}).nombre || 'Técnico';
+        html += `<div class="inc-card" style="padding:10px 13px;margin-bottom:10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;">
+            <div style="font-size:13px;"><b>${escapeHtml(nombreTec)}</b> <span style="color:#64748b;">· Por validar <b style="color:#ea580c;">${money(kVal)}</b> · Por pagar <b style="color:#1d4ed8;">${money(kPag)}</b></span></div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                ${kVal > 0 ? `<button class="inc-btn inc-btn-blue" onclick="abrirValidadorGlobal('${_incFiltroTec}')"><i class="ti ti-checklist"></i> Validar</button>` : ''}
+                ${kPag > 0 ? `<button class="inc-btn inc-btn-red" onclick="guardarReporteIncentivos('${_incFiltroTec}')"><i class="ti ti-cash"></i> Pagar (${money(kPag)})</button>` : ''}
+                <button class="inc-btn" onclick="imprimirIncentivosTecnico('${_incFiltroTec}')"><i class="ti ti-printer"></i> Imprimir</button>
             </div>
-            <div class="table-wrap"><table><thead><tr><th>Técnico</th><th style="text-align:center;">Rep.</th><th style="text-align:center;">Pul.</th><th style="text-align:right;">Generado (facturas)</th><th style="text-align:right;">Por validar</th><th style="text-align:right;">Por pagar</th><th style="text-align:right;">Pagado</th><th></th></tr></thead><tbody>
-            ${resKeys.map(k => { const r = resumen[k]; const ab = _incExpandido === k; return `<tr style="cursor:pointer; ${ab?'background:#f8fafc;':''}" onclick="incToggleTec('${k}')" title="Toca para ver/ocultar sus tickets">
-                <td><i class="ti ti-chevron-${ab?'down':'right'}" style="color:#475569;"></i> <b>${escapeHtml(r.nombre)}</b></td>
-                <td style="text-align:center;">${r.rep}${r.otros?` <span style="color:#475569;">(+${r.otros})</span>`:''}</td>
-                <td style="text-align:center;">${r.pul}</td>
-                <td style="text-align:right; font-weight:700; color:#0f172a;">${money(r.generado)}</td>
-                <td style="text-align:right; color:#b45309;">${money(r.porValidar)}</td>
-                <td style="text-align:right; color:#1d4ed8; font-weight:700;">${money(r.porPagar)}</td>
-                <td style="text-align:right; color:#16a34a;">${money(r.pagado)}</td>
-                <td style="text-align:right; white-space:nowrap;">
-                    ${r.porValidar > 0 ? `<button class="btn btn-light btn-sm" onclick="event.stopPropagation(); abrirValidadorGlobal('${k}')" title="Ver y validar los tickets de este técnico" style="color:#1d4ed8;"><i class="ti ti-checklist"></i> Validar</button>` : ''}
-                    ${r.porPagar > 0 ? `<button class="btn btn-blue btn-sm" onclick="event.stopPropagation(); guardarReporteIncentivos('${k}')" title="Pagar validados y guardar reporte"><i class="ti ti-cash"></i> Pagar</button>` : ''}
-                    <button class="btn btn-light btn-sm" onclick="event.stopPropagation(); imprimirIncentivosTecnico('${k}')" title="Imprimir resumen"><i class="ti ti-printer"></i></button>
-                </td>
-            </tr>`; }).join('')}
-            </tbody></table></div>
         </div>`;
     }
 
-    // Detalle: tickets del técnico seleccionado (acordeón, de 10 en 10)
-    if(resKeys.length) {
-        html += `<div class="card">`;
-        if(!_incExpandido || !resumen[_incExpandido]) {
-            html += `<div style="color:var(--text-muted); font-size:13px;"><i class="ti ti-hand-click"></i> Toca un técnico en el resumen de arriba para ver sus tickets.</div>`;
-        } else {
-            const k = _incExpandido;
-            const items = lista.filter(r => (r.tecnico_id || '_') === k);
-            // Agrupar por # de ticket
-            const grupos = {}, orden = [];
-            items.forEach(r => {
-                const key = (r.ticket || '').trim() ? ('t:' + (r.ticket || '').trim().toLowerCase()) : ('id:' + r.id);
-                if(!grupos[key]) { grupos[key] = { ticket: r.ticket || '', fecha: r.fecha, factura: Number(r.monto_factura||0), items: [] }; orden.push(key); }
-                grupos[key].items.push(r);
-                if(Number(r.monto_factura||0) > grupos[key].factura) grupos[key].factura = Number(r.monto_factura||0);
-            });
-            const verN = _incVer[k] || 10;
-            const keysShow = orden.slice(0, verN);
-            html += `<div style="font-weight:700; font-size:13px; margin-bottom:8px;"><i class="ti ti-list" style="color:#0891b2;"></i> Tickets de ${escapeHtml(resumen[k].nombre)} <span style="color:#475569; font-weight:400;">(${orden.length} ticket${orden.length!==1?'s':''} · ${items.length} servicio${items.length!==1?'s':''})</span></div>`;
-            if(!items.length) {
-                html += `<div style="color:var(--text-muted); font-size:13px;">Sin tickets con esos filtros.</div>`;
-            } else {
-                html += keysShow.map(key => {
-                    const g = grupos[key];
-                    const totalInc = g.items.reduce((s,it) => s + Number(it.monto_incentivo||0), 0);
-                    return `<div style="border:1px solid #e2e8f0; border-radius:12px; margin-bottom:10px; padding:10px 12px;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
-                            <div style="font-weight:700; font-size:14px;">🎫 ${escapeHtml(g.ticket || 'Sin #')} <span style="color:#475569; font-weight:600; font-size:12px;">· ${_incFmtFecha(g.fecha)}</span></div>
-                            <div style="font-size:12px; color:#475569;">🧾 Factura: <b>${money(g.factura)}</b> · ${g.items.length} servicio${g.items.length>1?'s':''} · Incentivo: <b style="color:#16a34a;">${money(totalInc)}</b></div>
-                        </div>
-                        <div class="table-wrap"><table><thead><tr><th>Servicio</th><th style="text-align:right;">Incentivo</th><th>Estado</th><th></th></tr></thead><tbody>${g.items.map(_incFilaServicioAgrupada).join('')}</tbody></table></div>
-                    </div>`;
-                }).join('');
-                if(orden.length > verN) {
-                    html += `<div style="text-align:center; margin:6px 0;"><button class="btn btn-light btn-sm" onclick="incVerMas('${k}')"><i class="ti ti-chevron-down"></i> Ver 10 tickets más (${orden.length - verN} restantes)</button></div>`;
-                } else if(verN > 10 && orden.length > 10) {
-                    html += `<div style="text-align:center; margin:6px 0;"><button class="btn btn-light btn-sm" onclick="incVerMenos('${k}')"><i class="ti ti-chevron-up"></i> Mostrar menos</button></div>`;
-                }
-            }
-        }
-        html += `</div>`;
-    }
+    // ---- Lista de tickets (buscador fijo + tabla compacta) ----
+    html += `<div class="inc-card" style="padding:12px 13px;">
+        <div class="inc-sticky">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+                <div class="inc-title"><i class="ti ti-ticket" style="color:#0891b2;"></i> Tickets <span id="incListaCount" style="color:#64748b;font-weight:600;"></span></div>
+                <button class="inc-btn" onclick="abrirValidadorGlobal(${_incFiltroTec ? `'${_incFiltroTec}'` : ''})"><i class="ti ti-checklist"></i> Validar tickets</button>
+            </div>
+            <div class="inc-search"><i class="ti ti-search"></i><input id="incBuscar" value="${escapeHtml(_incBuscar)}" oninput="_incBuscarInput(this.value)" placeholder="Buscar ticket, técnico, servicio, factura, motivo..."></div>
+        </div>
+        <div style="overflow-x:auto;margin-top:10px;"><div id="incLista">${_incListaHTML()}</div></div>
+    </div>`;
 
-    // Reportes de pago guardados (historial)
+    // ---- Reportes de pago guardados ----
     if(_incReportes.length) {
-        html += `<div class="card" style="margin-top:10px; padding:12px;">
-            <div style="font-size:13px; font-weight:700; margin-bottom:8px;"><i class="ti ti-folder" style="color:#0891b2;"></i> Reportes de pago guardados (${_incReportes.length})</div>
-            <div class="table-wrap"><table><thead><tr><th>Guardado</th><th>Técnico</th><th>Período</th><th style="text-align:center;">Trabajos</th><th style="text-align:right;">Total</th><th></th></tr></thead><tbody>
-            ${_incReportes.map(rp => `<tr>
-                <td>${_incFmtFecha((rp.creado_en||'').slice(0,10))}</td>
-                <td><b>${escapeHtml(rp.tecnico_nombre||'')}</b></td>
-                <td>${rp.desde?_incFmtFecha(rp.desde):'...'} al ${rp.hasta?_incFmtFecha(rp.hasta):'...'}</td>
-                <td style="text-align:center;">${rp.cantidad||0}</td>
-                <td style="text-align:right; font-weight:700;">${money(rp.total)}</td>
-                <td style="white-space:nowrap; text-align:right;">
-                    <button class="btn btn-light btn-sm" onclick="imprimirReporteGuardado('${rp.id}')" title="Imprimir"><i class="ti ti-printer"></i></button>
-                    <button class="btn btn-light btn-sm" onclick="editarReporteGuardado('${rp.id}')" title="Editar nota" style="color:#0369a1;"><i class="ti ti-pencil"></i></button>
-                    <button class="btn btn-light btn-sm" onclick="borrarReporteGuardado('${rp.id}')" title="Borrar" style="color:#b91c1c;"><i class="ti ti-trash"></i></button>
+        html += `<div class="inc-card" style="padding:12px 13px;margin-top:10px;">
+            <div class="inc-title" style="margin-bottom:8px;"><i class="ti ti-folder" style="color:#0891b2;"></i> Reportes de pago guardados (${_incReportes.length})</div>
+            <div style="overflow-x:auto;"><table class="inc-table"><thead><tr><th>Guardado</th><th>Técnico</th><th>Período</th><th style="text-align:center;">Trabajos</th><th style="text-align:right;">Total</th><th></th></tr></thead><tbody>
+            ${_incReportes.map(rp => `<tr class="inc-row">
+                <td class="inc-c-fecha">${_incFmtFecha((rp.creado_en || '').slice(0, 10))}</td>
+                <td><b>${escapeHtml(rp.tecnico_nombre || '')}</b></td>
+                <td class="inc-c-fecha">${rp.desde ? _incFmtFecha(rp.desde) : '...'} al ${rp.hasta ? _incFmtFecha(rp.hasta) : '...'}</td>
+                <td style="text-align:center;">${rp.cantidad || 0}</td>
+                <td class="inc-c-inc">${money(rp.total)}</td>
+                <td class="inc-c-acc">
+                    <button class="inc-ib" onclick="imprimirReporteGuardado('${rp.id}')" title="Imprimir"><i class="ti ti-printer"></i></button>
+                    <button class="inc-ib" onclick="editarReporteGuardado('${rp.id}')" title="Editar nota" style="color:#0369a1;"><i class="ti ti-pencil"></i></button>
+                    <button class="inc-ib" onclick="borrarReporteGuardado('${rp.id}')" title="Borrar" style="color:#b91c1c;"><i class="ti ti-trash"></i></button>
                 </td>
             </tr>`).join('')}
             </tbody></table></div>
         </div>`;
     }
 
+    html += `</div>`;
     cont.innerHTML = html;
+    { const _ce = document.getElementById('incListaCount'); if(_ce) _ce.textContent = '(' + _incUltimoTotal + ')'; }
 }
-function _incLimpiarFiltros() { _incFiltroTec=''; _incFiltroEstado=''; _incDesde=''; _incHasta=''; _incQuincenaSel=null; renderIncentivos(); }
+function _incLimpiarFiltros() { _incFiltroTec=''; _incFiltroEstado=''; _incDesde=''; _incHasta=''; _incQuincenaSel=null; _incBuscar=''; _incPage=1; renderIncentivos(); }
 async function guardarIncentivo() {
     if(!isAdminUser()) { toast('Solo administradores.', 'error'); return; }
     const tecSel = document.getElementById('incTecnico');
