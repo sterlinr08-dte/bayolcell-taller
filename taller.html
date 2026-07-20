@@ -20836,6 +20836,8 @@ function renderRecepcionesRealizadas() {
                 // Activa: editar
                 accionHtml = `<button class="btn btn-light" style="font-size:11px; padding:4px 9px; color:#6b21a8;" onclick="abrirEditarRecepcion('${o.id}')"><i class="ti ti-edit"></i> Editar</button>`;
             }
+            // Crear prefactura en Info Plus (menos si está cancelada)
+            if(estadoN !== 'cancelado') accionHtml += ` <button class="btn btn-light" style="font-size:11px; padding:4px 9px; color:#0e7490;" onclick="abrirPrefacturaOrden('${o.id}')"><i class="ti ti-file-invoice"></i> Prefactura</button>`;
             return `<tr>
                 <td style="font-weight:700;">${formatoOrden(o.numero_orden)}</td>
                 <td style="white-space:nowrap; font-size:12px;">${fecha}</td>
