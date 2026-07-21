@@ -2892,6 +2892,11 @@ body{
                 <label>Especialidad</label>
                 <input id="mod_tec_especialidad" placeholder="Ej. iPhone, Samsung, Microsoldadura...">
             </div>
+            <div class="form-row">
+                <label>Código vendedor Info Plus (para prefacturas)</label>
+                <input id="mod_tec_infoplus" placeholder="Ej. 748" inputmode="numeric">
+                <small style="color:var(--text-muted); font-size:11px;">El código de este empleado como vendedor en Info Plus. Al crear prefacturas, el vendedor sale con este código.</small>
+            </div>
             <!-- Rol del sistema: OCULTO (se define automático según el tipo). Se mantiene para compatibilidad. -->
             <div class="form-row" style="display:none;">
                 <label>Rol del sistema (automático)</label>
@@ -16401,6 +16406,7 @@ function abrirModalTecnico() {
     document.getElementById('mod_tec_nombre').value = '';
     document.getElementById('mod_tec_telefono').value = '';
     document.getElementById('mod_tec_especialidad').value = '';
+    const _mti = document.getElementById('mod_tec_infoplus'); if(_mti) _mti.value = '';
     document.getElementById('mod_tec_rol').value = 'tecnico';
     document.getElementById('mod_tec_notas').value = '';
     document.getElementById('mod_tec_usuario').value = '';
@@ -16463,6 +16469,7 @@ function editarTecnico(id) {
     document.getElementById('mod_tec_nombre').value = t.nombre || '';
     document.getElementById('mod_tec_telefono').value = t.telefono || '';
     document.getElementById('mod_tec_especialidad').value = t.especialidad || '';
+    const _mti2 = document.getElementById('mod_tec_infoplus'); if(_mti2) _mti2.value = t.infoplus_codempleado || '';
     document.getElementById('mod_tec_rol').value = t.rol || 'tecnico';
     document.getElementById('mod_tec_notas').value = t.notas || '';
     document.getElementById('mod_tec_usuario').value = t.usuario || '';
@@ -16496,6 +16503,7 @@ async function guardarTecnico() {
         tipo_empleado: tipoEmp,
         telefono: document.getElementById('mod_tec_telefono').value.trim() || null,
         especialidad: document.getElementById('mod_tec_especialidad').value.trim() || null,
+        infoplus_codempleado: (document.getElementById('mod_tec_infoplus')?.value || '').trim() || null,
         rol: (tipoEmp === 'admin') ? 'admin' : 'tecnico',
         rol_id: document.getElementById('mod_tec_rol_id').value || null,
         notas: document.getElementById('mod_tec_notas').value.trim() || null,
@@ -21538,7 +21546,16 @@ function _rpInit() {
     const alm = document.getElementById('rxAlmacen');
     if(alm) alm.innerHTML = PREF_ALMACENES.map(a => `<option value="${a.cod}">${escapeHtml(a.nom)}</option>`).join('');
     const ven = document.getElementById('rxVendedor');
-    if(ven) ven.innerHTML = PREF_VENDEDORES.map(v => `<option value="${v.cod}">${escapeHtml(v.nom)}</option>`).join('');
+    if(ven) {
+        const meTec = (cache.tecnicos || []).find(t => t.id === (sessionUser && sessionUser.id));
+        const miCod = (meTec && meTec.infoplus_codempleado) ? String(meTec.infoplus_codempleado).trim() : '';
+        const miNom = (sessionUser && sessionUser.nombre) || 'Usuario';
+        let opts = '';
+        if(miCod && !PREF_VENDEDORES.some(v => v.cod === miCod)) opts += `<option value="${escapeHtml(miCod)}">${escapeHtml(miNom)} (yo)</option>`;
+        opts += PREF_VENDEDORES.map(v => `<option value="${v.cod}">${escapeHtml(v.nom)}${v.cod === miCod ? ' (yo)' : ''}</option>`).join('');
+        ven.innerHTML = opts;
+        ven.value = miCod || '6';
+    }
     const tec = document.getElementById('rxTecnico');
     if(tec) tec.innerHTML = '<option value="">— Sin asignar —</option>' + (cache.tecnicos || []).filter(t => t.activo !== false).map(t => `<option value="${t.id}">${escapeHtml(t.nombre || t.usuario || 'Técnico')}</option>`).join('');
     const chip = document.getElementById('rxClienteChip');
