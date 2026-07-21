@@ -21674,9 +21674,8 @@ function _rpRenderResumen() {
       <div class="rx-sum-row" style="font-size:16px;"><span><b>Total</b></span><b style="color:#e31e24;">${money(total)}</b></div>
       ${facturada ? `<div style="margin-top:12px;font-size:12px;color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:9px;">Esta prefactura ya fue convertida en factura y no puede modificarse desde Recepción.</div>` : `
       <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px;">
-        ${_rpState.soloPrefactura
-          ? `<button class="rx-btn rx-btn-red" onclick="_rpCrearPrefactura()"><i class="ti ti-file-invoice"></i> ${_rpState.codprefactura ? 'Actualizar prefactura' : 'Crear prefactura'}</button>`
-          : `<button class="rx-btn rx-btn-red" onclick="_rpRegistrarTodo()"><i class="ti ti-file-invoice"></i> ${_rpState.codprefactura ? 'Actualizar y registrar' : 'Registrar y crear prefactura'}</button>`}
+        <button class="rx-btn rx-btn-red" onclick="_rpGuardar(false)"><i class="ti ti-device-floppy"></i> Guardar</button>
+        <button class="rx-btn rx-btn-dark" onclick="_rpGuardar(true)"><i class="ti ti-printer"></i> Guardar e imprimir</button>
       </div>`}
       ${_rpState.codprefactura ? `<div style="font-size:11px;color:#16a34a;margin-top:8px;text-align:center;">Prefactura Nº <b>${escapeHtml(_rpState.codprefactura)}</b> en Info Plus <button class="btn btn-light btn-sm" onclick="_rpImprimir()" style="margin-left:4px;"><i class="ti ti-printer"></i></button></div>` : ''}`;
 }
@@ -21726,13 +21725,21 @@ async function _rpCrearPrefactura() {
 }
 let _rpUltima = null;
 function _rpImprimir() { if(_rpUltima) { _prefUltima = _rpUltima; imprimirPrefactura(); } }
-// Botón único: crea/actualiza la prefactura en Info Plus Y registra la recepción (orden + ticket).
-async function _rpRegistrarTodo() {
-    if(_rpState && _rpState.items.length) {
+// Guardar (imprimir=false) / Guardar e imprimir (imprimir=true) — se refieren a la PREFACTURA.
+// Crea/actualiza la prefactura en Info Plus; si imprimir, imprime el comprobante; y registra la recepción (orden) en el flujo nuevo.
+async function _rpGuardar(imprimir) {
+    const hayItems = _rpState && _rpState.items.length;
+    if((_rpState && _rpState.soloPrefactura) && !hayItems) return toast('Agrega al menos un artículo o servicio.', 'error');
+    if(hayItems) {
         await _rpCrearPrefactura();
-        if(_rpState.estado === 'error') { if(!await confirmar('La prefactura dio error en Info Plus.\n\n¿Registrar la recepción de todos modos (sin prefactura)?')) return; }
+        if(_rpState.estado === 'error') {
+            if(!await confirmar('La prefactura dio error en Info Plus.\n\n¿Registrar la recepción de todos modos (sin prefactura)?')) return;
+        } else if(imprimir) {
+            _rpImprimir();
+        }
     }
-    if(typeof guardarRecepcion === 'function') guardarRecepcion(true);
+    if(_rpState && _rpState.soloPrefactura) return; // editar desde la lista: solo la prefactura, no crea orden
+    if(typeof guardarRecepcion === 'function') guardarRecepcion(false);
 }
 // ---- Fase 2: cargar prefacturas guardadas, enlazar y editar desde la lista ----
 let _rpPendingLoad = null;
