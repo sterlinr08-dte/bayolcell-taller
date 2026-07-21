@@ -16429,6 +16429,9 @@ function actualizarCamposPorTipoEmpleado() {
     const espRow = document.getElementById('mod_tec_especialidad')?.closest('.form-row');
     // La especialidad solo aplica a técnicos
     if(espRow) espRow.style.display = (tipo === 'tecnico') ? '' : 'none';
+    // El código de vendedor Info Plus solo aplica a administradores y servicio (vendedores), NO técnicos
+    const ipRow = document.getElementById('mod_tec_infoplus')?.closest('.form-row');
+    if(ipRow) ipRow.style.display = (tipo === 'tecnico') ? 'none' : '';
     // El "rol del sistema" (oculto) se ajusta automático: admin si el tipo es admin
     const rolEl = document.getElementById('mod_tec_rol');
     if(rolEl) rolEl.value = (tipo === 'admin') ? 'admin' : 'tecnico';
@@ -16503,7 +16506,7 @@ async function guardarTecnico() {
         tipo_empleado: tipoEmp,
         telefono: document.getElementById('mod_tec_telefono').value.trim() || null,
         especialidad: document.getElementById('mod_tec_especialidad').value.trim() || null,
-        infoplus_codempleado: (document.getElementById('mod_tec_infoplus')?.value || '').trim() || null,
+        infoplus_codempleado: (tipoEmp === 'tecnico') ? null : ((document.getElementById('mod_tec_infoplus')?.value || '').trim() || null),
         rol: (tipoEmp === 'admin') ? 'admin' : 'tecnico',
         rol_id: document.getElementById('mod_tec_rol_id').value || null,
         notas: document.getElementById('mod_tec_notas').value.trim() || null,
