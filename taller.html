@@ -1587,7 +1587,10 @@ body{
 
                 <!-- Recepciones realizadas -->
                 <div class="card" style="margin-top:16px; padding:14px;">
-                    <h3 style="font-size:16px; margin:0 0 10px;"><i class="ti ti-history" style="color:#0891b2;"></i> Recepciones Realizadas</h3>
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+                        <h3 style="font-size:16px; margin:0;"><i class="ti ti-history" style="color:#0891b2;"></i> Recepciones Realizadas</h3>
+                        <button class="btn btn-light" onclick="_rpHistorial()" style="font-size:12px; border-radius:9px;"><i class="ti ti-file-invoice" style="color:#0e7490;"></i> Historial de prefacturas</button>
+                    </div>
                     <input id="recepBuscador" oninput="renderRecepcionesRealizadas()" placeholder="Buscar por número o cliente..." style="width:100%; padding:8px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; margin-bottom:10px;">
                     <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; align-items:center;">
                         <span style="font-size:11px; font-weight:700; color:var(--text-muted);"><i class="ti ti-calendar"></i> Fecha:</span>
@@ -21725,6 +21728,42 @@ async function _rpCrearPrefactura() {
 }
 let _rpUltima = null;
 function _rpImprimir() { if(_rpUltima) { _prefUltima = _rpUltima; imprimirPrefactura(); } }
+// ---- Historial buscable de prefacturas (para editar cualquiera) ----
+let _rpHistQ = '';
+async function _rpHistorial() {
+    await _rpCargarPrefacturas();
+    _rpHistQ = '';
+    let m = document.getElementById('modalRpHist'); if(m) m.remove();
+    m = document.createElement('div'); m.id = 'modalRpHist'; m.className = 'modal-backdrop active'; m.style.zIndex = '810';
+    m.innerHTML = `<div class="modal-box" style="max-width:680px; width:96%;">
+      <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-file-invoice" style="color:#0e7490;"></i> Historial de prefacturas</h3><button class="modal-close" onclick="document.getElementById('modalRpHist').remove()">✕</button></div>
+      <div class="modal-body">
+        <input id="rpHistQ" oninput="_rpHistBuscar(this.value)" placeholder="Buscar por Nº, cliente, cédula, teléfono, equipo, IMEI…" style="width:100%;padding:9px 11px;border:1px solid #cbd5e1;border-radius:10px;font-size:14px;margin-bottom:10px;box-sizing:border-box;">
+        <div id="rpHistLista" style="max-height:56vh;overflow-y:auto;">${_rpHistListaHTML()}</div>
+      </div>
+    </div>`;
+    document.body.appendChild(m);
+    setTimeout(() => document.getElementById('rpHistQ')?.focus(), 50);
+}
+function _rpHistListaHTML() {
+    const q = (_rpHistQ || '').trim().toLowerCase();
+    let lista = (cache.recepcionPrefacturas || []).slice();
+    if(q) lista = lista.filter(p => [p.codprefactura, p.nombre_visible, p.infoplus_nombre, p.documento_visible, p.telefono_visible, p.equipo, p.imei, p.total].map(x => String(x == null ? '' : x)).join(' ').toLowerCase().includes(q));
+    lista = lista.slice(0, 100);
+    if(!lista.length) return `<div style="text-align:center;color:#94a3b8;padding:16px;">Sin prefacturas${q ? ' que coincidan' : ' aún'}.</div>`;
+    return lista.map(p => {
+        const fecha = p.creado_en ? new Date(p.creado_en).toLocaleDateString('es-DO') : '';
+        return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 10px;border:1px solid #e2e8f0;border-radius:9px;margin-bottom:6px;">
+          <div style="min-width:0;">
+            <div style="font-weight:700;font-size:13px;">Nº ${escapeHtml(p.codprefactura || '—')} <span style="font-weight:400;color:#64748b;">· ${escapeHtml(p.nombre_visible || p.infoplus_nombre || 'CONTADO')}</span></div>
+            <div style="font-size:11px;color:#64748b;">${money(p.total || 0)}${p.equipo ? (' · ' + escapeHtml(p.equipo)) : ''}${fecha ? (' · ' + fecha) : ''}</div>
+            <div style="margin-top:3px;">${_rpEstadoBadge(p.estado || 'sincronizada', p.codprefactura)}</div>
+          </div>
+          <button class="btn btn-blue btn-sm" style="white-space:nowrap;" onclick="document.getElementById('modalRpHist').remove(); _rpCargarDesdeLista('${p.id}')"><i class="ti ti-edit"></i> Editar</button>
+        </div>`;
+    }).join('');
+}
+function _rpHistBuscar(v) { _rpHistQ = v; const el = document.getElementById('rpHistLista'); if(el) el.innerHTML = _rpHistListaHTML(); }
 // Guardar (imprimir=false) / Guardar e imprimir (imprimir=true) — se refieren a la PREFACTURA.
 // Crea/actualiza la prefactura en Info Plus; si imprimir, imprime el comprobante; y registra la recepción (orden) en el flujo nuevo.
 async function _rpGuardar(imprimir) {
