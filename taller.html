@@ -1434,7 +1434,7 @@ body{
                             <div style="flex:1; display:none;" id="rowRnc"><label>RNC</label><input id="c_rnc" placeholder="1-01-00000-0" oninput="_rpRenderResumen()"></div>
                           </div>
                           <div><label>Tipo de cliente</label>
-                            <select id="c_tipo" onchange="toggleRncRecepcion()">
+                            <select id="c_tipo" onchange="toggleRncRecepcion(); if(typeof _rpTipoNivel==='function')_rpTipoNivel();">
                               <option value="final">Cliente final</option>
                               <option value="tienda">Tienda / Mayorista</option>
                             </select>
@@ -1485,6 +1485,15 @@ body{
                     <div class="rx-card" style="margin-top:14px;">
                       <div class="rx-head c2">5. Artículos y Servicios <span style="font-weight:600;color:#94a3b8;">(Info Plus)</span></div>
                       <div class="rx-body">
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
+                          <label style="font-size:11px; font-weight:700; color:#64748b;">Precio según el cliente:</label>
+                          <select id="rxNivel" onchange="_rpNivelCambio()" style="height:34px; padding:0 10px; border:1px solid #d8dee9; border-radius:9px; font-size:13px;">
+                            <option value="1">Cliente final (Contado)</option>
+                            <option value="2">Por mayor</option>
+                            <option value="3">Extremo</option>
+                          </select>
+                          <span style="font-size:11px; color:#94a3b8;">se aplica a todos los artículos</span>
+                        </div>
                         <div class="rx-art-search">
                           <button class="btn" style="background:#e31e24; color:#fff; border-radius:10px;" onclick="_rpAgregar()"><i class="ti ti-plus"></i> Agregar artículo</button>
                           <button class="btn" style="background:#0f172a; color:#fff; border-radius:10px;" onclick="_rpAgregarServicio()"><i class="ti ti-tool"></i> Agregar servicio/falla</button>
@@ -10009,7 +10018,7 @@ async function _ensureInfoplusArticulos(force) {
     _infoplusCargando = true;
     try {
         for(let from = 0; ; from += pageSize) {
-            const { data, error } = await supabaseClient.from('infoplus_articulos').select('codigo,descripcion,marca,referencia,referencia_fabrica,costo,precio,precio_especial,existencia,existencias').order('codigo').range(from, from + pageSize - 1);
+            const { data, error } = await supabaseClient.from('infoplus_articulos').select('codigo,descripcion,marca,referencia,referencia_fabrica,costo,precio,precio_especial,existencia,existencias,niveles').order('codigo').range(from, from + pageSize - 1);
             if(error) { huboError = true; logError('Cargar artículos Info Plus', error); break; }
             if(!data || !data.length) break;
             all.push(...data);
@@ -21524,7 +21533,8 @@ function _prefCliElegir(cod) {
 // ============================================================
 let _rpState = null;
 function _rpInit() {
-    _rpState = { items: [], codcliente: '1', infoNombre: 'CLIENTE DE CONTADO', codprefactura: null, localId: null, estado: 'pendiente' };
+    _rpState = { items: [], codcliente: '1', infoNombre: 'CLIENTE DE CONTADO', codprefactura: null, localId: null, estado: 'pendiente', nivel: (document.getElementById('c_tipo')?.value === 'tienda' ? 2 : 1) };
+    const nvSel = document.getElementById('rxNivel'); if(nvSel) nvSel.value = String(_rpState.nivel);
     const alm = document.getElementById('rxAlmacen');
     if(alm) alm.innerHTML = PREF_ALMACENES.map(a => `<option value="${a.cod}">${escapeHtml(a.nom)}</option>`).join('');
     const ven = document.getElementById('rxVendedor');
@@ -21581,11 +21591,16 @@ function _rpCliElegir(cod) {
     document.getElementById('modalRpCli')?.remove();
     _rpRenderResumen();
 }
+function _rpNivelPrecio(it) { const nv = String((_rpState && _rpState.nivel) || 1); if(it.niveles && it.niveles[nv] != null) return Number(it.niveles[nv]); if(it.niveles && it.niveles['1'] != null) return Number(it.niveles['1']); return Number(it.precio || 0); }
+function _rpNivelCambio() { const s = document.getElementById('rxNivel'); if(s && _rpState) _rpState.nivel = Number(s.value) || 1; if(_rpState) _rpState.items.forEach(it => { if(it.niveles) it.precio = _rpNivelPrecio(it); }); _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen(); }
+function _rpTipoNivel() { if(!_rpState) return; const nv = (document.getElementById('c_tipo')?.value === 'tienda') ? 2 : 1; _rpState.nivel = nv; const s = document.getElementById('rxNivel'); if(s) s.value = String(nv); _rpState.items.forEach(it => { if(it.niveles) it.precio = _rpNivelPrecio(it); }); _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen(); }
 function _rpAgregar() {
     if(!_rpState) _rpInit();
     abrirBuscadorArticulos(null, (a) => {
-        _rpState.items.push({ cod: a.codigo, desc: (a.descripcion || '').trim(), precio: Number(a.precio || 0), cant: 1 });
-        _rpRenderCart(); _rpRenderResumen();
+        const it = { cod: a.codigo, desc: (a.descripcion || '').trim(), niveles: a.niveles || null, precio: Number(a.precio || 0), cant: 1 };
+        it.precio = _rpNivelPrecio(it);
+        _rpState.items.push(it);
+        _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen();
     });
 }
 function _rpRenderCart() {
@@ -21593,7 +21608,7 @@ function _rpRenderCart() {
     if(!_rpState || !_rpState.items.length) { c.innerHTML = `<div style="color:#94a3b8;font-size:13px;padding:16px;text-align:center;border:1px dashed #cbd5e1;border-radius:10px;">Agrega artículos o servicios de Info Plus con el botón de arriba.</div>`; return; }
     c.innerHTML = `<table class="rx-table"><thead><tr><th>Código</th><th>Descripción</th><th style="width:58px;">Cant.</th><th style="width:96px;">Precio</th><th style="text-align:right;">Subtotal</th><th></th></tr></thead><tbody>${_rpState.items.map((it, i) => `<tr>
         <td style="font-weight:800;color:#e31e24;white-space:nowrap;">${escapeHtml(String(it.cod))}</td>
-        <td><input value="${escapeHtml(it.desc)}" onchange="_rpDesc(${i},this.value)" title="Descripción editable (no cambia el artículo maestro)" style="width:100%;min-width:150px;padding:5px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;"></td>
+        <td><input value="${escapeHtml(it.desc)}" onchange="_rpDesc(${i},this.value)" title="Descripción editable (no cambia el artículo maestro)" style="width:100%;min-width:150px;padding:5px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;">${it.niveles ? `<div style="font-size:10px;color:#94a3b8;margin-top:2px;">Contado ${money(it.niveles['1'] || 0)}${it.niveles['2'] != null ? (' · Mayor ' + money(it.niveles['2'])) : ''}${it.niveles['3'] != null ? (' · Extremo ' + money(it.niveles['3'])) : ''}</div>` : ''}</td>
         <td><input type="number" min="1" step="1" value="${it.cant}" onchange="_rpCant(${i},this.value)" style="width:52px;padding:5px;border:1px solid #cbd5e1;border-radius:6px;"></td>
         <td><input type="number" min="0" step="0.01" value="${it.precio}" onchange="_rpPrecio(${i},this.value)" style="width:90px;padding:5px;border:1px solid #cbd5e1;border-radius:6px;"></td>
         <td style="text-align:right;font-weight:700;white-space:nowrap;">${money(it.precio * it.cant)}</td>
@@ -21657,7 +21672,7 @@ async function _rpCrearPrefactura() {
     const nombre = g('c_nombre') || 'CONTADO';
     const almacen = document.getElementById('rxAlmacen')?.value || '1';
     let vend = document.getElementById('rxVendedor')?.value || '6'; if(vend === 'otro') vend = '6';
-    const nivel = g('c_tipo') === 'tienda' ? 2 : 1;
+    const nivel = (_rpState && _rpState.nivel) || 1;
     const obs = g('o_observaciones') || g('o_falla');
     const total = _rpState.items.reduce((s, it) => s + Number(it.precio) * Number(it.cant), 0);
     const now = new Date();
@@ -21706,7 +21721,8 @@ function _rpPrefDeOrden(ordenId) { return (cache.recepcionPrefacturas || []).fin
 function _rpCargarDesdeLista(prefId) { const p = (cache.recepcionPrefacturas || []).find(x => x.id === prefId); if(!p) { toast('Prefactura no encontrada.', 'error'); return; } _rpPendingLoad = { pref: p }; nav('recepcion'); }
 function _rpCrearDesdeOrden(ordenId) { const o = (cache.ordenes || []).find(x => x.id === ordenId) || {}; const c = findCliente(o.cliente_id) || {}; const e = findEquipo(o.equipo_id) || {}; _rpPendingLoad = { orden: o, cliente: c, equipo: e }; nav('recepcion'); }
 function _rpAplicarCargaPref(p) {
-    _rpState = { items: (p.items || []).map(it => ({ cod: it.cod, desc: it.desc, precio: Number(it.precio || 0), cant: Number(it.cant || 1) })), codcliente: p.infoplus_codcliente || '1', infoNombre: p.infoplus_nombre || 'CLIENTE DE CONTADO', codprefactura: p.codprefactura, localId: p.id, ordenId: p.orden_id, soloPrefactura: true, estado: p.estado || 'sincronizada' };
+    _rpState = { items: (p.items || []).map(it => ({ cod: it.cod, desc: it.desc, niveles: it.niveles || null, precio: Number(it.precio || 0), cant: Number(it.cant || 1) })), codcliente: p.infoplus_codcliente || '1', infoNombre: p.infoplus_nombre || 'CLIENTE DE CONTADO', codprefactura: p.codprefactura, localId: p.id, ordenId: p.orden_id, soloPrefactura: true, estado: p.estado || 'sincronizada', nivel: Number(p.codnivelprecio) || 1 };
+    const _nvS = document.getElementById('rxNivel'); if(_nvS) _nvS.value = String(_rpState.nivel);
     const set = (id, v) => { const el = document.getElementById(id); if(el && v != null && v !== '') el.value = v; };
     set('c_nombre', p.nombre_visible); set('c_whatsapp', p.telefono_visible); set('c_cedula', p.documento_visible); set('o_observaciones', p.observaciones); set('e_imei', p.imei);
     if(p.equipo) { const em = document.getElementById('e_modelo'); if(em && !em.value) em.value = p.equipo; }
