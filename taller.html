@@ -21633,9 +21633,7 @@ function _rpRenderResumen() {
       <div class="rx-sum-row" style="font-size:16px;"><span><b>Total</b></span><b style="color:#e31e24;">${money(total)}</b></div>
       ${facturada ? `<div style="margin-top:12px;font-size:12px;color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:9px;">Esta prefactura ya fue convertida en factura y no puede modificarse desde Recepción.</div>` : `
       <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px;">
-        <button class="rx-btn rx-btn-red" onclick="_rpCrearPrefactura()"><i class="ti ti-file-invoice"></i> ${_rpState.codprefactura ? 'Actualizar prefactura' : 'Crear prefactura en Info Plus'}</button>
-        <button class="rx-btn rx-btn-dark" onclick="guardarRecepcion(true)"><i class="ti ti-printer"></i> Registrar + Ticket</button>
-        <button class="rx-btn rx-btn-light" onclick="guardarRecepcion(false)"><i class="ti ti-device-floppy"></i> Guardar Base Datos</button>
+        <button class="rx-btn rx-btn-red" onclick="_rpRegistrarTodo()"><i class="ti ti-file-invoice"></i> ${_rpState.codprefactura ? 'Actualizar y registrar' : 'Registrar y crear prefactura'}</button>
       </div>`}
       ${_rpState.codprefactura ? `<div style="font-size:11px;color:#16a34a;margin-top:8px;text-align:center;">Prefactura Nº <b>${escapeHtml(_rpState.codprefactura)}</b> en Info Plus <button class="btn btn-light btn-sm" onclick="_rpImprimir()" style="margin-left:4px;"><i class="ti ti-printer"></i></button></div>` : ''}`;
 }
@@ -21684,6 +21682,14 @@ async function _rpCrearPrefactura() {
 }
 let _rpUltima = null;
 function _rpImprimir() { if(_rpUltima) { _prefUltima = _rpUltima; imprimirPrefactura(); } }
+// Botón único: crea/actualiza la prefactura en Info Plus Y registra la recepción (orden + ticket).
+async function _rpRegistrarTodo() {
+    if(_rpState && _rpState.items.length) {
+        await _rpCrearPrefactura();
+        if(_rpState.estado === 'error') { if(!await confirmar('La prefactura dio error en Info Plus.\n\n¿Registrar la recepción de todos modos (sin prefactura)?')) return; }
+    }
+    if(typeof guardarRecepcion === 'function') guardarRecepcion(true);
+}
 function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
         const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
         const estado = normalizarEstadoOrden(o.estado);
