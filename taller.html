@@ -6300,6 +6300,7 @@ function nav(v, btn) {
     if(v === 'contabilidad') { setTimeout(() => { cargarCatalogoCuentas(); contaTab(localStorage.getItem('bayol_subtab_conta') || 'mensual'); }, 50); }
     if(v === 'diagnostico') { setTimeout(() => { cargarConocimiento(); }, 50); }
     if(v === 'recepcion') { setTimeout(async () => {
+        if(typeof _rpCargarPrefacturas === 'function') await _rpCargarPrefacturas();
         if(typeof _rpInit === 'function') _rpInit();
         if(typeof renderRecepcionesRealizadas === 'function') renderRecepcionesRealizadas();
         // Recargar fallas comunes desde la BD para reflejar cambios hechos en Config
@@ -20936,8 +20937,12 @@ function renderRecepcionesRealizadas() {
                 // Activa: editar
                 accionHtml = `<button class="btn btn-light" style="font-size:11px; padding:4px 9px; color:#6b21a8;" onclick="abrirEditarRecepcion('${o.id}')"><i class="ti ti-edit"></i> Editar</button>`;
             }
-            // Crear prefactura en Info Plus (menos si está cancelada)
-            if(estadoN !== 'cancelado') accionHtml += ` <button class="btn btn-light" style="font-size:11px; padding:4px 9px; color:#0e7490;" onclick="abrirPrefacturaOrden('${o.id}')"><i class="ti ti-file-invoice"></i> Prefactura</button>`;
+            // Prefactura vinculada a la orden: Nº + estado + editar; si no hay, botón crear (flujo maestro)
+            if(estadoN !== 'cancelado') {
+                const _pf = (typeof _rpPrefDeOrden === 'function') ? _rpPrefDeOrden(o.id) : null;
+                if(_pf) accionHtml += ` <span style="display:inline-block; font-size:10px; font-weight:700; background:#dcfce7; color:#16a34a; padding:2px 7px; border-radius:8px; white-space:nowrap;">Prefactura Nº ${escapeHtml(_pf.codprefactura || '')}</span> <button class="btn btn-light" style="font-size:11px; padding:4px 9px; color:#0e7490;" onclick="_rpCargarDesdeLista('${_pf.id}')"><i class="ti ti-edit"></i> Editar prefactura</button>`;
+                else accionHtml += ` <button class="btn btn-light" style="font-size:11px; padding:4px 9px; color:#0e7490;" onclick="_rpCrearDesdeOrden('${o.id}')"><i class="ti ti-file-invoice"></i> Prefactura</button>`;
+            }
             return `<tr>
                 <td style="font-weight:700;">${formatoOrden(o.numero_orden)}</td>
                 <td style="white-space:nowrap; font-size:12px;">${fecha}</td>
@@ -21528,6 +21533,7 @@ function _rpInit() {
     if(tec) tec.innerHTML = '<option value="">— Sin asignar —</option>' + (cache.tecnicos || []).filter(t => t.activo !== false).map(t => `<option value="${t.id}">${escapeHtml(t.nombre || t.usuario || 'Técnico')}</option>`).join('');
     const chip = document.getElementById('rxClienteChip');
     if(chip) chip.innerHTML = `<b>CLIENTE DE CONTADO</b> <span style="color:#94a3b8;">· cód. 1 (genérico)</span>`;
+    if(_rpPendingLoad) { const pl = _rpPendingLoad; _rpPendingLoad = null; if(pl.pref) return _rpAplicarCargaPref(pl.pref); if(pl.orden) return _rpAplicarCargaOrden(pl.orden, pl.cliente, pl.equipo); }
     _rpRenderCart(); _rpRenderResumen();
 }
 async function _rpBuscarCliente() {
@@ -21633,7 +21639,9 @@ function _rpRenderResumen() {
       <div class="rx-sum-row" style="font-size:16px;"><span><b>Total</b></span><b style="color:#e31e24;">${money(total)}</b></div>
       ${facturada ? `<div style="margin-top:12px;font-size:12px;color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:9px;">Esta prefactura ya fue convertida en factura y no puede modificarse desde Recepción.</div>` : `
       <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px;">
-        <button class="rx-btn rx-btn-red" onclick="_rpRegistrarTodo()"><i class="ti ti-file-invoice"></i> ${_rpState.codprefactura ? 'Actualizar y registrar' : 'Registrar y crear prefactura'}</button>
+        ${_rpState.soloPrefactura
+          ? `<button class="rx-btn rx-btn-red" onclick="_rpCrearPrefactura()"><i class="ti ti-file-invoice"></i> ${_rpState.codprefactura ? 'Actualizar prefactura' : 'Crear prefactura'}</button>`
+          : `<button class="rx-btn rx-btn-red" onclick="_rpRegistrarTodo()"><i class="ti ti-file-invoice"></i> ${_rpState.codprefactura ? 'Actualizar y registrar' : 'Registrar y crear prefactura'}</button>`}
       </div>`}
       ${_rpState.codprefactura ? `<div style="font-size:11px;color:#16a34a;margin-top:8px;text-align:center;">Prefactura Nº <b>${escapeHtml(_rpState.codprefactura)}</b> en Info Plus <button class="btn btn-light btn-sm" onclick="_rpImprimir()" style="margin-left:4px;"><i class="ti ti-printer"></i></button></div>` : ''}`;
 }
@@ -21672,9 +21680,10 @@ async function _rpCrearPrefactura() {
         _rpState.codprefactura = num; _rpState.estado = 'sincronizada';
         _rpUltima = { num, total, model, ref: { equipo: [g('e_marca'), g('e_modelo'), g('e_capacidad')].filter(Boolean).join(' '), imei: g('e_imei'), falla: obs, cedula: g('c_cedula') || g('c_rnc'), telefono: g('c_whatsapp') } };
         try {
-            const row = { codprefactura: num, infoplus_codcliente: _rpState.codcliente, infoplus_nombre: _rpState.infoNombre, nombre_visible: nombre, telefono_visible: g('c_whatsapp'), documento_visible: g('c_cedula') || g('c_rnc'), equipo: [g('e_marca'), g('e_modelo'), g('e_capacidad')].filter(Boolean).join(' '), imei: g('e_imei'), items: _rpState.items, subtotal: total, total: total, observaciones: obs, estado: 'sincronizada', codlocalidad: String(almacen), codempleado: vend, codnivelprecio: nivel, actualizado_por: (typeof sessionUser !== 'undefined' && sessionUser ? sessionUser.nombre : 'Sistema'), actualizado_en: new Date().toISOString() };
+            const row = { orden_id: _rpState.ordenId || null, codprefactura: num, infoplus_codcliente: _rpState.codcliente, infoplus_nombre: _rpState.infoNombre, nombre_visible: nombre, telefono_visible: g('c_whatsapp'), documento_visible: g('c_cedula') || g('c_rnc'), equipo: [g('e_marca'), g('e_modelo'), g('e_capacidad')].filter(Boolean).join(' '), imei: g('e_imei'), items: _rpState.items, subtotal: total, total: total, observaciones: obs, estado: 'sincronizada', codlocalidad: String(almacen), codempleado: vend, codnivelprecio: nivel, actualizado_por: (typeof sessionUser !== 'undefined' && sessionUser ? sessionUser.nombre : 'Sistema'), actualizado_en: new Date().toISOString() };
             if(_rpState.localId) { await supabaseClient.from('recepcion_prefacturas').update(row).eq('id', _rpState.localId); }
             else { row.creado_por = (typeof sessionUser !== 'undefined' && sessionUser ? sessionUser.nombre : 'Sistema'); const { data: ins } = await supabaseClient.from('recepcion_prefacturas').insert([row]).select('id').maybeSingle(); if(ins) _rpState.localId = ins.id; }
+            if(typeof _rpCargarPrefacturas === 'function') await _rpCargarPrefacturas();
         } catch(e) { logError('guardar recepcion_prefactura', e); }
         _rpRenderResumen();
         toast('✅ Prefactura ' + (eraUpdate ? 'actualizada' : 'creada') + ' en Info Plus: Nº ' + num);
@@ -21689,6 +21698,30 @@ async function _rpRegistrarTodo() {
         if(_rpState.estado === 'error') { if(!await confirmar('La prefactura dio error en Info Plus.\n\n¿Registrar la recepción de todos modos (sin prefactura)?')) return; }
     }
     if(typeof guardarRecepcion === 'function') guardarRecepcion(true);
+}
+// ---- Fase 2: cargar prefacturas guardadas, enlazar y editar desde la lista ----
+let _rpPendingLoad = null;
+async function _rpCargarPrefacturas() { try { const { data } = await supabaseClient.from('recepcion_prefacturas').select('*').order('creado_en', { ascending: false }); cache.recepcionPrefacturas = data || []; } catch(e) { if(!cache.recepcionPrefacturas) cache.recepcionPrefacturas = []; } }
+function _rpPrefDeOrden(ordenId) { return (cache.recepcionPrefacturas || []).find(p => p.orden_id === ordenId) || null; }
+function _rpCargarDesdeLista(prefId) { const p = (cache.recepcionPrefacturas || []).find(x => x.id === prefId); if(!p) { toast('Prefactura no encontrada.', 'error'); return; } _rpPendingLoad = { pref: p }; nav('recepcion'); }
+function _rpCrearDesdeOrden(ordenId) { const o = (cache.ordenes || []).find(x => x.id === ordenId) || {}; const c = findCliente(o.cliente_id) || {}; const e = findEquipo(o.equipo_id) || {}; _rpPendingLoad = { orden: o, cliente: c, equipo: e }; nav('recepcion'); }
+function _rpAplicarCargaPref(p) {
+    _rpState = { items: (p.items || []).map(it => ({ cod: it.cod, desc: it.desc, precio: Number(it.precio || 0), cant: Number(it.cant || 1) })), codcliente: p.infoplus_codcliente || '1', infoNombre: p.infoplus_nombre || 'CLIENTE DE CONTADO', codprefactura: p.codprefactura, localId: p.id, ordenId: p.orden_id, soloPrefactura: true, estado: p.estado || 'sincronizada' };
+    const set = (id, v) => { const el = document.getElementById(id); if(el && v != null && v !== '') el.value = v; };
+    set('c_nombre', p.nombre_visible); set('c_whatsapp', p.telefono_visible); set('c_cedula', p.documento_visible); set('o_observaciones', p.observaciones); set('e_imei', p.imei);
+    if(p.equipo) { const em = document.getElementById('e_modelo'); if(em && !em.value) em.value = p.equipo; }
+    const chip = document.getElementById('rxClienteChip'); if(chip) chip.innerHTML = (p.infoplus_codcliente && p.infoplus_codcliente !== '1') ? `<b>${escapeHtml(p.infoplus_nombre || '')}</b> <span style="color:#94a3b8;">· cód. ${escapeHtml(p.infoplus_codcliente)} (Info Plus)</span>` : `<b>CLIENTE DE CONTADO</b> <span style="color:#94a3b8;">· cód. 1</span>`;
+    const alm = document.getElementById('rxAlmacen'); if(alm && p.codlocalidad) alm.value = String(p.codlocalidad);
+    const ven = document.getElementById('rxVendedor'); if(ven && p.codempleado) ven.value = String(p.codempleado);
+    _rpRenderCart(); _rpRenderResumen();
+    toast('Prefactura Nº ' + (p.codprefactura || '') + ' cargada. Edita y dale "Actualizar prefactura".');
+}
+function _rpAplicarCargaOrden(o, c, e) {
+    _rpState = { items: [], codcliente: '1', infoNombre: 'CLIENTE DE CONTADO', codprefactura: null, localId: null, ordenId: o.id, soloPrefactura: true, estado: 'pendiente' };
+    const set = (id, v) => { const el = document.getElementById(id); if(el && v != null && v !== '') el.value = v; };
+    set('c_nombre', c.nombre); set('c_whatsapp', c.whatsapp || c.telefono); set('c_cedula', c.cedula); set('e_marca', e.marca); set('e_modelo', e.modelo); set('e_capacidad', e.capacidad); set('e_imei', e.imei); set('o_falla', o.falla_reportada);
+    _rpRenderCart(); _rpRenderResumen();
+    toast('Crea la prefactura para esta orden.');
 }
 function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
         const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
@@ -24790,6 +24823,10 @@ async function guardarRecepcion(imprimir) {
             prioridad: val("o_prioridad") || 'normal', fecha_estimada_entrega: val("o_fecha_estimada") || null
         }]).select().single();
         requireSupabaseOk(insO, 'Crear orden');
+        // Enlazar la prefactura recién creada (si existe) con esta orden
+        if(typeof _rpState !== 'undefined' && _rpState && _rpState.localId) {
+            try { await supabaseClient.from('recepcion_prefacturas').update({ orden_id: insO.data.id }).eq('id', _rpState.localId); if(typeof _rpCargarPrefacturas === 'function') await _rpCargarPrefacturas(); } catch(_e) {}
+        }
         toast("Equipo registrado.");
         // Crear tareas automáticas desde: falla escrita + fallas marcadas en el checklist
         const fallasDesdeTexto = (val("o_falla") || '').split(/[\/,;\n]+/).map(s => s.trim()).filter(Boolean);
