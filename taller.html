@@ -10334,13 +10334,12 @@ function abrirEditarPreciosArticulo(codigo) {
         if(k === 2) return Number(a.precio_especial) || 0;
         return 0;
     };
-    const costo = Number(a.costo) || 0;
     const filas = _NIVELES_PRECIO.map(nv => {
         const c = contadoDe(nv.k);
         return `<tr>
             <td style="padding:8px 6px; font-weight:700; color:#0f172a;">${nv.n}<div style="font-size:11px; color:#64748b; font-weight:400;">Nivel ${nv.k}</div></td>
             <td style="padding:6px 4px;"><input id="pc_${nv.k}_precio" type="number" inputmode="decimal" value="${c || ''}" placeholder="0" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:8px; text-align:right;"></td>
-            <td style="padding:6px 4px;"><input id="pc_${nv.k}_minimo" type="number" inputmode="decimal" value="${costo || ''}" placeholder="pon el mínimo" style="width:100%; padding:8px; border:1px solid #fca5a5; border-radius:8px; text-align:right; background:#fff7ed;"></td>
+            <td style="padding:6px 4px;"><input id="pc_${nv.k}_minimo" type="number" inputmode="decimal" value="" placeholder="(no cambiar)" style="width:100%; padding:8px; border:1px solid #e2e8f0; border-radius:8px; text-align:right;"></td>
         </tr>`;
     }).join('');
     const prev = document.getElementById('modalEditarPrecios'); if(prev) prev.remove();
@@ -10351,11 +10350,11 @@ function abrirEditarPreciosArticulo(codigo) {
         <div class="modal-body">
           <p style="margin:0 0 4px; font-weight:700; color:#0f172a;">${escapeHtml(a.descripcion || String(a.codigo))}</p>
           <p style="margin:0 0 12px; font-size:12px; color:#64748b;">Código ${escapeHtml(String(a.codigo))}</p>
-          <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:10px; padding:10px 12px; font-size:12.5px; color:#92400e; margin-bottom:12px;">
-            El <b>Precio</b> se guarda igual en <b>Contado y Crédito</b> (como los manejas tú). El <b>Mínimo</b> va aparte y <b>no lo puedo leer de Info Plus</b> — te lo dejo con el <b>costo</b> como referencia, pero <b>ponlo tú</b> antes de guardar (el de la caja naranja). Este cambio va <b>directo a Info Plus</b>.
+          <div style="background:#ecfdf5; border:1px solid #a7f3d0; border-radius:10px; padding:10px 12px; font-size:12.5px; color:#065f46; margin-bottom:12px;">
+            El <b>Precio</b> se guarda igual en <b>Contado y Crédito</b> (como los manejas tú). El <b>Mínimo</b> es <b>opcional</b>: si lo dejas <b>vacío, no se cambia</b> (se queda como está en Info Plus). Solo escríbelo si quieres cambiarlo. El cambio va <b>directo a Info Plus</b>.
           </div>
           <table style="width:100%; border-collapse:collapse; font-size:13px;">
-            <thead><tr style="background:#f1f5f9;"><th style="padding:8px 6px; text-align:left;">Nivel</th><th style="padding:8px 4px;">Precio (Contado/Crédito)</th><th style="padding:8px 4px;">Mínimo</th></tr></thead>
+            <thead><tr style="background:#f1f5f9;"><th style="padding:8px 6px; text-align:left;">Nivel</th><th style="padding:8px 4px;">Precio (Contado/Crédito)</th><th style="padding:8px 4px;">Mínimo <span style="font-weight:400; color:#94a3b8;">(opcional)</span></th></tr></thead>
             <tbody>${filas}</tbody>
           </table>
         </div>
@@ -10368,18 +10367,20 @@ function abrirEditarPreciosArticulo(codigo) {
 }
 async function _guardarPreciosArticulo(codigo) {
     if(!isAdminUser()) return;
-    const num = (id) => { const el = document.getElementById(id); return el ? (Number(el.value) || 0) : 0; };
-    // Precio = Contado = Crédito (regla del negocio). El Mínimo va aparte.
+    const raw = (id) => { const el = document.getElementById(id); return el ? String(el.value).trim() : ''; };
+    // Precio = Contado = Crédito (regla del negocio). El Mínimo es opcional (vacío = no cambiar).
     let precios = _NIVELES_PRECIO.map(nv => {
-        const precio = num('pc_' + nv.k + '_precio');
-        return { codnivelprecio: nv.k, contado: precio, credito: precio, minimo: num('pc_' + nv.k + '_minimo') };
+        const precioStr = raw('pc_' + nv.k + '_precio');
+        const minStr = raw('pc_' + nv.k + '_minimo');
+        const precio = Number(precioStr) || 0;
+        const p = { codnivelprecio: nv.k, contado: precio, credito: precio };
+        if(minStr !== '') p.minimo = Number(minStr) || 0; // solo se manda si lo llenó
+        return p;
     });
     // Solo mandar los niveles que tengan precio (no pisar niveles vacíos con 0).
     precios = precios.filter(p => p.contado > 0);
     if(!precios.length) return toast('Pon al menos un precio.', 'error');
-    const conMinCero = precios.filter(p => p.minimo === 0);
-    if(conMinCero.length) { const seguir = await confirmar('Hay ' + conMinCero.length + ' nivel(es) con Mínimo en 0. ¿Guardar así de todos modos?'); if(!seguir) return; }
-    const resumen = precios.map(p => { const nv = _NIVELES_PRECIO.find(x => x.k === p.codnivelprecio); return `${nv.n}: Precio ${money(p.contado)} · Mínimo ${money(p.minimo)}`; }).join('\n');
+    const resumen = precios.map(p => { const nv = _NIVELES_PRECIO.find(x => x.k === p.codnivelprecio); return `${nv.n}: Precio ${money(p.contado)}` + (p.minimo !== undefined ? ` · Mínimo ${money(p.minimo)}` : ' · Mínimo (sin cambio)'); }).join('\n');
     const ok = await confirmar('Se van a guardar estos precios en Info Plus (Contado y Crédito iguales):\n\n' + resumen + '\n\n¿Confirmas?');
     if(!ok) return;
     const btn = document.getElementById('btnGuardarPrecios'); if(btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Guardando…'; }
