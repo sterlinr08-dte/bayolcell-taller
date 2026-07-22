@@ -10316,8 +10316,93 @@ function _abCard(a, i) {
       <div class="ab-right">
         <div class="ab-pbox"><b>${pventa > 0 ? money(pventa) : '—'}</b><small>Precio de venta</small></div>
         <button class="ab-sel" onclick="event.stopPropagation(); _artBuscElegir('${cod}')"><i class="ti ti-check"></i> Seleccionar</button>
+        ${isAdminUser() ? `<button class="ab-sel" style="background:#fff; color:#0369a1; border:1px solid #bae6fd; margin-top:6px;" onclick="event.stopPropagation(); abrirEditarPreciosArticulo('${cod}')"><i class="ti ti-edit"></i> Editar precios</button>` : ''}
       </div>
     </div>`;
+}
+// ===== Editar precios de un artículo en Info Plus (POST /api/articulo) — SOLO ADMIN =====
+const _NIVELES_PRECIO = [{ k: 1, n: 'Cliente Final' }, { k: 2, n: 'Por Mayor' }, { k: 3, n: 'Extremo' }];
+function abrirEditarPreciosArticulo(codigo) {
+    if(!isAdminUser()) return toast('Solo el administrador puede cambiar precios.', 'error');
+    const a = _findInfoplusArt(codigo);
+    if(!a) return toast('No encuentro ese artículo en el catálogo.', 'error');
+    const niv = (a.niveles && typeof a.niveles === 'object') ? a.niveles : {};
+    // Contado por nivel: del jsonb niveles; si no hay, cae a precio (nivel1) / precio_especial (nivel2).
+    const contadoDe = (k) => {
+        if(niv[String(k)] != null) return Number(niv[String(k)]) || 0;
+        if(k === 1) return Number(a.precio) || 0;
+        if(k === 2) return Number(a.precio_especial) || 0;
+        return 0;
+    };
+    const filas = _NIVELES_PRECIO.map(nv => {
+        const c = contadoDe(nv.k);
+        return `<tr>
+            <td style="padding:8px 6px; font-weight:700; color:#0f172a;">${nv.n}<div style="font-size:11px; color:#64748b; font-weight:400;">Nivel ${nv.k}</div></td>
+            <td style="padding:6px 4px;"><input id="pc_${nv.k}_contado" type="number" inputmode="decimal" value="${c || ''}" placeholder="0" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:8px; text-align:right;"></td>
+            <td style="padding:6px 4px;"><input id="pc_${nv.k}_credito" type="number" inputmode="decimal" value="${c || ''}" placeholder="0" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:8px; text-align:right;"></td>
+            <td style="padding:6px 4px;"><input id="pc_${nv.k}_minimo" type="number" inputmode="decimal" value="${c || ''}" placeholder="0" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:8px; text-align:right;"></td>
+        </tr>`;
+    }).join('');
+    const prev = document.getElementById('modalEditarPrecios'); if(prev) prev.remove();
+    const box = document.createElement('div');
+    box.className = 'modal-backdrop active'; box.id = 'modalEditarPrecios'; box.style.zIndex = '910';
+    box.innerHTML = `<div class="modal-box" style="max-width:600px;">
+        <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-cash"></i> Editar precios en Info Plus</h3><button class="modal-close" onclick="document.getElementById('modalEditarPrecios').remove()">✕</button></div>
+        <div class="modal-body">
+          <p style="margin:0 0 4px; font-weight:700; color:#0f172a;">${escapeHtml(a.descripcion || String(a.codigo))}</p>
+          <p style="margin:0 0 12px; font-size:12px; color:#64748b;">Código ${escapeHtml(String(a.codigo))}</p>
+          <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:10px; padding:10px 12px; font-size:12.5px; color:#92400e; margin-bottom:12px;">
+            <b>Ojo:</b> se guardan <b>los 3 valores</b> (Contado, Crédito y Mínimo) de cada nivel. El sistema solo pudo leer el <b>Contado</b>; revisa el <b>Crédito</b> y el <b>Mínimo</b> antes de guardar para no cambiarlos por error. Este cambio va <b>directo a Info Plus</b>.
+          </div>
+          <table style="width:100%; border-collapse:collapse; font-size:13px;">
+            <thead><tr style="background:#f1f5f9;"><th style="padding:8px 6px; text-align:left;">Nivel</th><th style="padding:8px 4px;">Contado</th><th style="padding:8px 4px;">Crédito</th><th style="padding:8px 4px;">Mínimo</th></tr></thead>
+            <tbody>${filas}</tbody>
+          </table>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-light" onclick="document.getElementById('modalEditarPrecios').remove()">Cancelar</button>
+          <button class="btn btn-blue" id="btnGuardarPrecios" onclick="_guardarPreciosArticulo('${String(codigo).replace(/'/g,"\\'")}')"><i class="ti ti-device-floppy"></i> Guardar en Info Plus</button>
+        </div>
+    </div>`;
+    document.body.appendChild(box);
+}
+async function _guardarPreciosArticulo(codigo) {
+    if(!isAdminUser()) return;
+    const num = (id) => { const el = document.getElementById(id); return el ? (Number(el.value) || 0) : 0; };
+    const precios = _NIVELES_PRECIO.map(nv => ({
+        codnivelprecio: nv.k,
+        contado: num('pc_' + nv.k + '_contado'),
+        credito: num('pc_' + nv.k + '_credito'),
+        minimo: num('pc_' + nv.k + '_minimo')
+    }));
+    if(precios.every(p => p.contado === 0 && p.credito === 0 && p.minimo === 0)) return toast('Pon al menos un precio.', 'error');
+    const resumen = precios.map(p => { const nv = _NIVELES_PRECIO.find(x => x.k === p.codnivelprecio); return `${nv.n}: Contado ${money(p.contado)} · Crédito ${money(p.credito)} · Mínimo ${money(p.minimo)}`; }).join('\n');
+    const ok = await confirmar('Se van a guardar estos precios en Info Plus:\n\n' + resumen + '\n\n¿Confirmas?');
+    if(!ok) return;
+    const btn = document.getElementById('btnGuardarPrecios'); if(btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Guardando…'; }
+    try {
+        const { data, error } = await supabaseClient.functions.invoke('infoplus-precio-actualizar', { body: { codarticulo: codigo, precios } });
+        if(error) throw error;
+        if(data && data.ok) {
+            // Actualizar el caché al instante (Contado de cada nivel).
+            const a = _findInfoplusArt(codigo);
+            if(a) {
+                const nv = {}; precios.forEach(p => { nv[String(p.codnivelprecio)] = p.contado; });
+                a.niveles = nv;
+                a.precio = precios.find(p => p.codnivelprecio === 1)?.contado ?? a.precio;
+            }
+            toast('✅ Precios actualizados en Info Plus.');
+            const m = document.getElementById('modalEditarPrecios'); if(m) m.remove();
+            if(typeof renderBuscadorArticulos === 'function' && document.getElementById('modalBuscadorArt')) renderBuscadorArticulos();
+        } else {
+            const msg = (data && (data.respuesta?.message || JSON.stringify(data.respuesta))) || 'Info Plus rechazó el cambio';
+            toast('⚠️ No se pudo guardar en Info Plus: ' + msg, 'error');
+            if(btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-device-floppy"></i> Guardar en Info Plus'; }
+        }
+    } catch(e) {
+        logError('guardarPreciosArticulo', e); toastError(getFriendlyError(e));
+        if(btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-device-floppy"></i> Guardar en Info Plus'; }
+    }
 }
 function _abPageNums(p, pages) {
     if(pages <= 7) return Array.from({ length: pages }, (_, i) => i + 1);
