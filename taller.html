@@ -17858,12 +17858,22 @@ async function _infoplusAjustePieza(codarticulo, cantidad, precio, entrada, come
     try {
         const { data, error } = await supabaseClient.functions.invoke('infoplus-ajuste-crear', { body: ajuste });
         if(error) throw error;
-        if(data && data.ok) return { ok: true };
+        if(data && data.ok) { _refrescarExistenciaLive(codNum); return { ok: true }; }
         return { ok: false, error: (data && (data.respuesta?.message || JSON.stringify(data.respuesta))) || 'Info Plus rechazó el ajuste' };
     } catch(e) {
         logError('Info Plus ajuste pieza', e);
         return { ok: false, error: getFriendlyError(e) };
     }
+}
+// Refresca EN VIVO la existencia de un artículo en el caché (para que el taller quede sincronizado con Info Plus al instante).
+async function _refrescarExistenciaLive(codarticulo) {
+    try {
+        const { data } = await supabaseClient.functions.invoke('infoplus-existencia-art', { body: { codarticulo: codarticulo } });
+        if(data && data.ok && data.existencias) {
+            const art = (typeof _findInfoplusArt === 'function') ? _findInfoplusArt(codarticulo) : null;
+            if(art) { art.existencias = data.existencias; art.existencia = Number(data.existencias['6'] || 0); }
+        }
+    } catch(_e) {}
 }
 // ===== AYUDA DE MÓDULOS (ícono ℹ️ que abre la explicación) =====
 // Convención: cada módulo nuevo agrega su explicación aquí y un botón en su encabezado:
