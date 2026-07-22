@@ -10047,6 +10047,23 @@ async function _ensureInfoplusArticulos(force) {
     return cache.infoplusArticulos;
 }
 function _findInfoplusArt(codigo) { return (cache.infoplusArticulos || []).find(a => String(a.codigo) === String(codigo)) || null; }
+// Stock TOTAL de un artículo sumando TODOS los almacenes (no solo el Taller).
+function _existTotalIP(a) {
+    const ex = (a && a.existencias && typeof a.existencias === 'object') ? a.existencias : {};
+    let t = 0; Object.values(ex).forEach(v => { const n = Number(v) || 0; if(n > 0) t += n; });
+    if(!t) t = Number(a && a.existencia) || 0;
+    return t;
+}
+// Resumen corto de dónde está el stock, ej. "Santiago 93 · Taller 2 · Moca 1".
+function _existResumenIP(a) {
+    const ex = (a && a.existencias && typeof a.existencias === 'object') ? a.existencias : {};
+    const partes = [];
+    ['1', '6', '4', '3', '5'].forEach(k => { const v = Number(ex[k]) || 0; if(v > 0) partes.push((INFOPLUS_ALMACENES[k] || ('Alm ' + k)) + ' ' + v); });
+    if(!partes.length && (Number(a && a.existencia) || 0) > 0) partes.push('Taller ' + a.existencia);
+    return partes.join(' · ');
+}
+// Etiqueta de stock para los desplegables: total + dónde está (o "Sin stock" si es 0 en todo Info Plus).
+function _existLabelIP(a) { const t = _existTotalIP(a); return t > 0 ? ('Stock ' + t + (_existResumenIP(a) ? ' (' + _existResumenIP(a) + ')' : '')) : 'Sin stock'; }
 function _initLoteArticuloSelect() {
     smartSelectInit({
         containerId: 'ss-eq-articulo',
@@ -10054,7 +10071,7 @@ function _initLoteArticuloSelect() {
         items: (cache.infoplusArticulos || []).map(a => ({
             id: a.codigo,
             label: `${a.codigo} · ${(a.descripcion || '').trim()}`,
-            sub: [a.marca, a.referencia ? ('Ref: ' + a.referencia) : '', Number(a.precio) > 0 ? ('Precio ' + money(a.precio)) : '', Number(a.existencia) > 0 ? (a.existencia + ' en taller') : ''].filter(x => x).join(' · '),
+            sub: [a.marca, a.referencia ? ('Ref: ' + a.referencia) : '', Number(a.precio) > 0 ? ('Precio ' + money(a.precio)) : '', _existLabelIP(a)].filter(x => x).join(' · '),
             search: [a.codigo, a.descripcion, a.marca, a.referencia, a.referencia_fabrica].filter(x => x).join(' ').toLowerCase(),
             _ip: a
         })),
@@ -10096,7 +10113,7 @@ function _initEvalPiezaSelect(modelo) {
         items: arts.map(a => ({
             id: a.codigo,
             label: `${a.codigo} · ${(a.descripcion || '').trim()}`,
-            sub: [a.marca, Number(a.existencia) > 0 ? ('Stock ' + a.existencia) : 'Sin stock', Number(a.costo) > 0 ? ('Costo ' + money(a.costo)) : ''].filter(x => x).join(' · '),
+            sub: [a.marca, _existLabelIP(a), Number(a.costo) > 0 ? ('Costo ' + money(a.costo)) : ''].filter(x => x).join(' · '),
             search: [a.codigo, a.descripcion, a.marca, a.referencia].filter(x => x).join(' ').toLowerCase(),
             _ip: a
         })),
@@ -12147,7 +12164,7 @@ function _initRexModeloSelect() {
         items: (cache.infoplusArticulos || []).map(a => ({
             id: a.codigo,
             label: `${a.codigo} · ${(a.descripcion || '').trim()}`,
-            sub: [a.marca, a.referencia ? ('Ref: ' + a.referencia) : '', Number(a.existencia) > 0 ? (a.existencia + ' en taller') : ''].filter(x => x).join(' · '),
+            sub: [a.marca, a.referencia ? ('Ref: ' + a.referencia) : '', _existLabelIP(a)].filter(x => x).join(' · '),
             search: [a.codigo, a.descripcion, a.marca, a.referencia, a.referencia_fabrica].filter(x => x).join(' ').toLowerCase(),
             _ip: a
         })),
