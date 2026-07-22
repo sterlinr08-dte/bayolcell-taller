@@ -4104,6 +4104,10 @@ function _bcRefreshSession(){ try{ supabaseClient.auth.refreshSession(); }catch(
 document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='visible') _bcRefreshSession(); });
 window.addEventListener('focus', _bcRefreshSession);
 setInterval(_bcRefreshSession, 10 * 60 * 1000);
+// Aviso del navegador si hay cambios sin guardar en la prefactura (recargar/cerrar pestaña)
+window.addEventListener('beforeunload', function(e) {
+    if(typeof _rpState !== 'undefined' && _rpState && _rpState.estado === 'cambios') { e.preventDefault(); e.returnValue = ''; return ''; }
+});
 
 /* ============================================================
    AUTO-INYECTAR BOTÓN "VOLVER" EN TODOS LOS MODALES
@@ -6261,6 +6265,10 @@ function nav(v, btn) {
     if(typeof _nominaGen !== 'undefined' && _nominaGen && _nominaGen._dirty && v !== 'nomina') {
         _nominaConfirmarSalida(() => nav(v, btn));
         return;
+    }
+    // Aviso: cambios sin guardar en la prefactura (cargada del historial y editada)
+    if(typeof _rpState !== 'undefined' && _rpState && _rpState.estado === 'cambios' && v !== 'recepcion' && document.getElementById('v-recepcion')?.classList.contains('active')) {
+        if(!confirm('Tienes cambios sin guardar en la prefactura.\n\nSi sales sin guardar, los cambios NO surtirán efecto (no se guardaron).\n\n¿Salir sin guardar?')) return;
     }
     // Candado especial: Estadísticas es privado del dueño (por ID), no por rol admin
     if(v === 'estadisticas' && !esDueno()) {
