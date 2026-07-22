@@ -18908,8 +18908,8 @@ function _seedBuscadorPieza(eq) {
 function _piezaElegirAlmacen(art, ex) {
     return new Promise((resolve) => {
         ex = ex || {};
-        const btnsAlm = ALMACENES_IP.map(a => {
-            const hay = Number(ex[String(a.c)] || 0);
+        const btnsHTML = (exData) => ALMACENES_IP.map(a => {
+            const hay = Number((exData || {})[String(a.c)] || 0);
             const color = hay > 0 ? '#166534' : '#b45309';
             const txt = hay > 0 ? `(hay ${hay})` : '(sin existencia — quedaría negativo)';
             const icon = hay > 0 ? 'ti-arrow-down-circle' : 'ti-alert-triangle';
@@ -18923,8 +18923,8 @@ function _piezaElegirAlmacen(art, ex) {
             <div class="modal-header"><h3 style="margin:0;">📦 ¿De cuál almacén se descuenta?</h3></div>
             <div class="modal-body">
               <p style="font-size:14px; margin-top:0;">"<b>${escapeHtml(art.descripcion || String(art.codigo))}</b>"</p>
-              <p style="font-size:13px; color:#475569; margin-bottom:6px; font-weight:700;">Elige el almacén:</p>
-              ${btnsAlm}
+              <p style="font-size:13px; color:#475569; margin-bottom:6px; font-weight:700;">Elige el almacén: <span id="piezaAlmCarga" style="font-weight:400; color:#0891b2;"><i class="ti ti-loader"></i> actualizando existencia…</span></p>
+              <div id="piezaAlmBtns">${btnsHTML(ex)}</div>
               <hr style="border:0; border-top:1px solid #e2e8f0; margin:10px 0;">
               <button class="btn btn-light" style="display:block; width:100%;" onclick="_piezaElegirAlmacenResolver({accion:'solocosto'})"><i class="ti ti-cash"></i> Solo sumar el costo (no descontar)</button>
             </div>
@@ -18937,6 +18937,17 @@ function _piezaElegirAlmacen(art, ex) {
             window._piezaElegirAlmacenResolver = null;
             resolve(res || { accion: 'cancelar' });
         };
+        // Consultar la existencia EN VIVO en Info Plus y refrescar los botones (el caché puede estar viejo)
+        (async () => {
+            try {
+                const { data } = await supabaseClient.functions.invoke('infoplus-existencia-art', { body: { codarticulo: art.codigo } });
+                if(data && data.ok && data.existencias) {
+                    const cont = document.getElementById('piezaAlmBtns'); if(cont) cont.innerHTML = btnsHTML(data.existencias);
+                    const cacheArt = (typeof _findInfoplusArt === 'function') ? _findInfoplusArt(art.codigo) : null; if(cacheArt) cacheArt.existencias = data.existencias;
+                }
+            } catch(_e) {}
+            const carga = document.getElementById('piezaAlmCarga'); if(carga) carga.remove();
+        })();
     });
 }
 async function _agregarPiezaInfoPlusConfirm(equipoId, a) {
