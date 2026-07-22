@@ -10336,10 +10336,11 @@ function abrirEditarPreciosArticulo(codigo) {
     };
     const filas = _NIVELES_PRECIO.map(nv => {
         const c = contadoDe(nv.k);
+        const ref = c > 0 ? ('actual ' + money(c)) : 'sin precio';
         return `<tr>
             <td style="padding:8px 6px; font-weight:700; color:#0f172a;">${nv.n}<div style="font-size:11px; color:#64748b; font-weight:400;">Nivel ${nv.k}</div></td>
-            <td style="padding:6px 4px;"><input id="pc_${nv.k}_precio" type="number" inputmode="decimal" value="${c || ''}" placeholder="0" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:8px; text-align:right;"></td>
-            <td style="padding:6px 4px;"><input id="pc_${nv.k}_minimo" type="number" inputmode="decimal" value="" placeholder="(no cambiar)" style="width:100%; padding:8px; border:1px solid #e2e8f0; border-radius:8px; text-align:right;"></td>
+            <td style="padding:6px 4px;"><input id="pc_${nv.k}_precio" type="number" inputmode="decimal" value="" placeholder="${ref}" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:8px; text-align:right;"></td>
+            <td style="padding:6px 4px;"><input id="pc_${nv.k}_minimo" type="number" inputmode="decimal" value="" placeholder="mínimo" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:8px; text-align:right;"></td>
         </tr>`;
     }).join('');
     const prev = document.getElementById('modalEditarPrecios'); if(prev) prev.remove();
@@ -10350,11 +10351,11 @@ function abrirEditarPreciosArticulo(codigo) {
         <div class="modal-body">
           <p style="margin:0 0 4px; font-weight:700; color:#0f172a;">${escapeHtml(a.descripcion || String(a.codigo))}</p>
           <p style="margin:0 0 12px; font-size:12px; color:#64748b;">Código ${escapeHtml(String(a.codigo))}</p>
-          <div style="background:#ecfdf5; border:1px solid #a7f3d0; border-radius:10px; padding:10px 12px; font-size:12.5px; color:#065f46; margin-bottom:12px;">
-            El <b>Precio</b> se guarda igual en <b>Contado y Crédito</b> (como los manejas tú). El <b>Mínimo</b> es <b>opcional</b>: si lo dejas <b>vacío, no se cambia</b> (se queda como está en Info Plus). Solo escríbelo si quieres cambiarlo. El cambio va <b>directo a Info Plus</b>.
+          <div style="background:#fef2f2; border:1px solid #fca5a5; border-radius:10px; padding:10px 12px; font-size:12.5px; color:#991b1b; margin-bottom:12px;">
+            <b>Importante:</b> Info Plus guarda el <b>Precio y el Mínimo JUNTOS</b> en cada nivel. Para cambiar un nivel, <b>pon SU Precio y SU Mínimo</b> (los dos). El nivel que dejes con el <b>Mínimo en blanco NO se toca</b>. El Precio se guarda igual en Contado y Crédito. Va <b>directo a Info Plus</b>.
           </div>
           <table style="width:100%; border-collapse:collapse; font-size:13px;">
-            <thead><tr style="background:#f1f5f9;"><th style="padding:8px 6px; text-align:left;">Nivel</th><th style="padding:8px 4px;">Precio (Contado/Crédito)</th><th style="padding:8px 4px;">Mínimo <span style="font-weight:400; color:#94a3b8;">(opcional)</span></th></tr></thead>
+            <thead><tr style="background:#f1f5f9;"><th style="padding:8px 6px; text-align:left;">Nivel</th><th style="padding:8px 4px;">Precio (Contado/Crédito)</th><th style="padding:8px 4px;">Mínimo</th></tr></thead>
             <tbody>${filas}</tbody>
           </table>
         </div>
@@ -10368,20 +10369,27 @@ function abrirEditarPreciosArticulo(codigo) {
 async function _guardarPreciosArticulo(codigo) {
     if(!isAdminUser()) return;
     const raw = (id) => { const el = document.getElementById(id); return el ? String(el.value).trim() : ''; };
-    // Precio = Contado = Crédito (regla del negocio). El Mínimo es opcional (vacío = no cambiar).
-    let precios = _NIVELES_PRECIO.map(nv => {
+    // OJO: Info Plus reescribe Precio Y Mínimo JUNTOS por nivel. Si se manda uno solo, el otro queda en 0.
+    // Por eso un nivel se guarda SOLO si tiene AMBOS (Precio y Mínimo). Precio = Contado = Crédito.
+    const precios = [];
+    const incompletos = [];
+    for(const nv of _NIVELES_PRECIO) {
         const precioStr = raw('pc_' + nv.k + '_precio');
         const minStr = raw('pc_' + nv.k + '_minimo');
-        const precio = Number(precioStr) || 0;
-        const p = { codnivelprecio: nv.k, contado: precio, credito: precio };
-        if(minStr !== '') p.minimo = Number(minStr) || 0; // solo se manda si lo llenó
-        return p;
-    });
-    // Solo mandar los niveles que tengan precio (no pisar niveles vacíos con 0).
-    precios = precios.filter(p => p.contado > 0);
-    if(!precios.length) return toast('Pon al menos un precio.', 'error');
-    const resumen = precios.map(p => { const nv = _NIVELES_PRECIO.find(x => x.k === p.codnivelprecio); return `${nv.n}: Precio ${money(p.contado)}` + (p.minimo !== undefined ? ` · Mínimo ${money(p.minimo)}` : ' · Mínimo (sin cambio)'); }).join('\n');
-    const ok = await confirmar('Se van a guardar estos precios en Info Plus (Contado y Crédito iguales):\n\n' + resumen + '\n\n¿Confirmas?');
+        const tienePrecio = precioStr !== '' && Number(precioStr) > 0;
+        const tieneMin = minStr !== '' && Number(minStr) > 0;
+        if(!tienePrecio && !tieneMin) continue; // nivel vacío = no se toca
+        if(tienePrecio && tieneMin) {
+            const precio = Number(precioStr);
+            precios.push({ codnivelprecio: nv.k, contado: precio, credito: precio, minimo: Number(minStr) });
+        } else {
+            incompletos.push(nv.n); // le falta uno de los dos → NO se manda (evita poner 0)
+        }
+    }
+    if(incompletos.length) return toast('Para guardar un nivel debes poner SU Precio y SU Mínimo (los dos). Falta completar: ' + incompletos.join(', ') + '. Déjalo en blanco (los dos) si no quieres tocarlo.', 'error');
+    if(!precios.length) return toast('Pon el Precio y el Mínimo del nivel que quieras cambiar.', 'error');
+    const resumen = precios.map(p => { const nv = _NIVELES_PRECIO.find(x => x.k === p.codnivelprecio); return `${nv.n}: Precio ${money(p.contado)} · Mínimo ${money(p.minimo)}`; }).join('\n');
+    const ok = await confirmar('Se van a guardar estos niveles en Info Plus (Contado y Crédito iguales; los demás niveles no se tocan):\n\n' + resumen + '\n\n¿Confirmas?');
     if(!ok) return;
     const btn = document.getElementById('btnGuardarPrecios'); if(btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Guardando…'; }
     try {
