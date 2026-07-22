@@ -18975,7 +18975,7 @@ async function _agregarPiezaInfoPlusConfirm(equipoId, a) {
                 await supabaseClient.from('equipo_piezas_pedidas').update({ infoplus_desc_cant: 1, infoplus_desc_almacen: almDesc }).eq('id', ins.id);
                 toast('✅ Pieza agregada al costo y descontada de Info Plus (' + _nombreAlmacen(almDesc) + '): ' + nombrePz);
             } else {
-                toast('✅ Pieza agregada al costo: ' + nombrePz + '\n⚠️ No se pudo descontar de Info Plus: ' + (r.error || '') + ' (descuéntala a mano)', 'error');
+                toast('✅ Pieza agregada al costo: ' + nombrePz + '\n⚠️ Info Plus no dejó descontarla: ' + (r.error || 'rechazado') + '.\nSuele ser porque ese artículo no tiene existencia en Info Plus (no se puede dejar en negativo). El costo SÍ quedó sumado; corrige el inventario o descuéntala a mano.', 'error');
             }
         } else {
             toast('✅ Pieza agregada al costo (sin descontar del inventario): ' + nombrePz);
@@ -19059,7 +19059,7 @@ async function _descontarPiezaPendiente(piezaId, skipRefresh) {
             toast('✅ Pieza descontada de Info Plus (' + _nombreAlmacen(almDesc) + '): ' + (pz.pieza_nombre || ''));
             ok = true;
         } else {
-            toast('⚠️ No se pudo descontar de Info Plus: ' + (r.error || '') + ' (descuéntala a mano)', 'error');
+            toast('⚠️ Info Plus no dejó descontar «' + (pz.pieza_nombre || '') + '»: ' + (r.error || 'rechazado') + '.\nSuele ser porque ese artículo no tiene existencia en Info Plus (no se puede dejar en negativo). Corrige el inventario o descuéntala a mano.', 'error');
         }
         if(!skipRefresh) { await loadAll(); _refrescarVistaEquipo(pz.equipo_id); }
         return ok;
