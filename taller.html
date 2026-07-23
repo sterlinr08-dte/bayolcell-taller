@@ -10406,6 +10406,7 @@ async function _guardarPreciosArticulo(codigo) {
             toast('✅ Precios actualizados en Info Plus.');
             const m = document.getElementById('modalEditarPrecios'); if(m) m.remove();
             if(typeof renderBuscadorArticulos === 'function' && document.getElementById('modalBuscadorArt')) renderBuscadorArticulos();
+            if(typeof _compIPRender === 'function' && document.getElementById('compIPTbody')) _compIPRender();
         } else {
             const msg = (data && (data.respuesta?.message || JSON.stringify(data.respuesta))) || 'Info Plus rechazó el cambio';
             toast('⚠️ No se pudo guardar en Info Plus: ' + msg, 'error');
@@ -12048,6 +12049,7 @@ function _compIPRender() {
             <td style="border:1px solid #e2e8f0; padding:4px;"><input class="comp-precio" type="number" step="0.01" min="0" value="${row.nuevoPrecio}" placeholder="${row.mayorActual > 0 ? row.mayorActual : ''}" style="width:100%; padding:5px; border:1px solid #cbd5e1; border-radius:6px; text-align:right;"></td>
             <td style="border:1px solid #e2e8f0; padding:4px; text-align:center; white-space:nowrap;">
                 <button class="btn btn-light" style="padding:4px 8px; font-size:11px;" onclick="_compIPCambiarArticulo(${i})">${row.codigo ? 'Cambiar' : 'Enlazar'}</button>
+                ${(row.codigo && isAdminUser()) ? `<button class="btn btn-light" style="padding:4px 8px; font-size:11px; margin-left:4px; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe;" onclick="abrirEditarPreciosArticulo('${String(row.codigo).replace(/'/g,"\\'")}')" title="Editar los 3 niveles de precio en Info Plus"><i class="ti ti-cash"></i> Editar precios</button>` : ''}
             </td>
         </tr>`;
     }).join('');
