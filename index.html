@@ -220,6 +220,15 @@ footer img{height:40px;margin-bottom:14px;border-radius:8px}
 .fab:hover{transform:scale(1.08);animation:none}
 @keyframes fabPulse{0%,100%{box-shadow:0 14px 30px -8px rgba(18,140,75,.8),0 0 0 0 rgba(37,211,102,.5)}50%{box-shadow:0 14px 30px -8px rgba(18,140,75,.8),0 0 0 12px rgba(37,211,102,0)}}
 @media (prefers-reduced-motion:reduce){.fab{animation:none}}
+/* Estado Abierto/Cerrado flotante (encima del WhatsApp) */
+.open-fab{position:fixed;right:18px;bottom:86px;z-index:60;display:none;align-items:center;gap:7px;
+  padding:8px 13px;border-radius:999px;font-weight:800;font-size:13px;white-space:nowrap;
+  background:rgba(8,12,22,.82);backdrop-filter:blur(8px);box-shadow:0 10px 24px -8px rgba(0,0,0,.6);
+  border:1px solid rgba(255,255,255,.12);transition:transform .2s}
+.open-fab:hover{transform:translateY(-1px)}
+.open-fab .dot{width:9px;height:9px;border-radius:50%;background:currentColor;flex:none}
+.open-fab.abierto{color:#4ade80}.open-fab.abierto .dot{animation:obpulse 1.7s infinite}
+.open-fab.cerrado{color:#f87171}
 @keyframes obpulse{0%{box-shadow:0 0 0 0 rgba(74,222,128,.6)}70%{box-shadow:0 0 0 7px rgba(74,222,128,0)}100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}}
 
 @media (max-width:560px){
@@ -763,6 +772,9 @@ footer::before{ content:''; position:absolute; top:-1px; left:0; right:0; height
   </div>
 </footer>
 
+<!-- Estado Abierto/Cerrado flotante (encima del WhatsApp) -->
+<a class="open-fab" id="openFab" href="#sucursales" aria-label="Horario de las tiendas"></a>
+
 <!-- WhatsApp flotante -->
 <a class="fab" href="https://wa.me/18495644791" target="_blank" rel="noopener" aria-label="WhatsApp"><i class="ti ti-brand-whatsapp"></i></a>
 
@@ -907,15 +919,29 @@ footer::before{ content:''; position:absolute; top:-1px; left:0; right:0; height
       return { abierto:false, txt:'Cerrado' };
     }
     function pinta(){
+      var est = {};
       ['santiago','moca'].forEach(function(k){
+        est[k] = estado(k);
         var el=document.getElementById('open-'+k); if(!el) return;
-        var e=estado(k);
+        var e=est[k];
         var col = e.abierto ? 'background:rgba(34,197,94,.14);color:#4ade80;border:1px solid rgba(34,197,94,.4);'
                             : 'background:rgba(239,68,68,.14);color:#f87171;border:1px solid rgba(239,68,68,.4);';
         var dot = 'width:8px;height:8px;border-radius:50%;background:currentColor;'+(e.abierto?'animation:obpulse 1.7s infinite;':'');
         el.innerHTML='<span style="display:inline-flex;align-items:center;gap:7px;font-weight:800;font-size:12.5px;padding:5px 12px;border-radius:999px;'+col+'">'
           +'<span style="'+dot+'"></span>'+e.txt+'</span>';
       });
+      // Letrero flotante (estado combinado de las 2 tiendas)
+      var fab=document.getElementById('openFab');
+      if(fab){
+        var abiertas=['santiago','moca'].filter(function(k){return est[k].abierto;});
+        var txt, abierto=abiertas.length>0;
+        if(abiertas.length===2) txt='Abierto ahora';
+        else if(abiertas.length===1) txt='Abierto · '+(abiertas[0]==='santiago'?'Santiago':'Moca');
+        else txt='Cerrado ahora';
+        fab.className='open-fab '+(abierto?'abierto':'cerrado');
+        fab.innerHTML='<span class="dot"></span>'+txt;
+        fab.style.display='inline-flex';
+      }
     }
     pinta(); setInterval(pinta, 60000);
   })();
