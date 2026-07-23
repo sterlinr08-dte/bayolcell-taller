@@ -19458,13 +19458,14 @@ async function verFichaDespacho(equipoId) {
     _vistaEquipoActual = 'ficha';
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return toast('Equipo no encontrado.', 'error');
-    let fallas = [], piezas = [];
+    let fallas = [], piezas = [], hist = [];
     try {
-        const [rf, rp] = await Promise.all([
+        const [rf, rp, rh] = await Promise.all([
             supabaseClient.from('equipo_fallas').select('*').eq('equipo_id', equipoId),
-            supabaseClient.from('equipo_piezas_pedidas').select('*').eq('equipo_id', equipoId)
+            supabaseClient.from('equipo_piezas_pedidas').select('*').eq('equipo_id', equipoId),
+            supabaseClient.from('equipo_historial').select('*').eq('equipo_id', equipoId).order('fecha', { ascending: true })
         ]);
-        fallas = rf.data || []; piezas = rp.data || [];
+        fallas = rf.data || []; piezas = rp.data || []; hist = rh.data || [];
     } catch(e) { logError('Ficha despacho', e); }
     const fallasHtml = fallas.length
         ? fallas.map(f => `<span style="display:inline-block; background:#fee2e2; color:#991b1b; font-size:11.5px; font-weight:600; padding:4px 10px; border-radius:10px; margin:3px;">⚠️ ${escapeHtml(f.falla_corto || f.falla_nombre || '')}${f.adicional ? ' (adic.)' : ''}</span>`).join('')
@@ -19511,20 +19512,194 @@ async function verFichaDespacho(equipoId) {
         </div>`;
     }
     const esVendido = (eq.estado_evaluacion === 'vendido');
-    const fechaDesp = eq.fecha_despacho ? new Date(eq.fecha_despacho).toLocaleDateString('es-DO') : '';
-    const _nombreVend = eq.completado ? 'Despachado' : 'Completado';
-    const estadoLinea = esVendido
-        ? (fechaDesp ? ` · <span style="color:#15803d; font-weight:700;">🏁 ${_nombreVend} ${fechaDesp}</span>` : ` · <span style="color:#15803d; font-weight:700;">🏁 ${_nombreVend}</span>`)
-        : ` · <span style="color:#5b21b6; font-weight:700;">🛒 Listo para venta</span>`;
-    const html = `<div style="max-height:72vh; overflow-y:auto;">
-        <h3 style="margin:0 0 2px;"><i class="ti ti-device-mobile"></i> ${escapeHtml((eq.marca || '') + ' ' + (eq.modelo || ''))}</h3>
-        <div style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">IMEI: ${escapeHtml(eq.imei || '—')}${eq.capacidad ? ' · ' + escapeHtml(eq.capacidad) : ''}${estadoLinea}</div>
-        <button class="btn btn-blue" onclick="imprimirLabelEquipo('${equipoId}')" style="font-size:13px; margin-bottom:14px;"><i class="ti ti-printer"></i> Imprimir label</button>
-        <h4 style="margin:6px 0 4px; font-size:13px; color:#991b1b; text-transform:uppercase;"><i class="ti ti-alert-triangle"></i> Fallas que tenía el equipo</h4>
-        <div>${fallasHtml}</div>
-        ${costoHtml}
+    const _fmtFecha = (d) => d ? new Date(d).toLocaleString('es-DO', { day:'numeric', month:'numeric', year:'numeric', hour:'numeric', minute:'2-digit' }) : '';
+    let estBadge;
+    if(eq.completado) estBadge = { t:'COMPLETADO', bg:'#dcfce7', c:'#166534' };
+    else if(esVendido) estBadge = { t:'DESPACHADO', bg:'#e2e8f0', c:'#334155' };
+    else estBadge = { t:'LISTO', bg:'#ede9fe', c:'#5b21b6' };
+    // KPI del lote
+    const delLote = (cache.refurb || []).filter(r => r.lote_id === eq.lote_id);
+    const nc = (fn) => delLote.filter(fn).length;
+    const kpis = [
+        { n: nc(r => r.estado_evaluacion==='pendiente'), t:'Pendientes', ic:'ti-clipboard-list', bg:'#fffbeb', c:'#b45309' },
+        { n: nc(r => ['en_evaluacion','evaluado','en_proceso','tecnico_recibio','espera_pieza','listo_revision','reasignado','reparacion_externa'].includes(r.estado_evaluacion)), t:'En evaluación', ic:'ti-alert-triangle', bg:'#fef2f2', c:'#b91c1c' },
+        { n: nc(r => r.estado_evaluacion==='listo_venta' && !r.completado), t:'Listo', ic:'ti-list-check', bg:'#f5f3ff', c:'#6d28d9' },
+        { n: nc(r => r.completado), t:'Completado', ic:'ti-circle-check', bg:'#ecfdf5', c:'#047857' },
+        { n: nc(r => r.estado_evaluacion==='vendido' && !r.completado), t:'Despachado', ic:'ti-truck-delivery', bg:'#f1f5f9', c:'#475569' }
+    ];
+    const kpiHtml = kpis.map(k => `<div class="fe-kpi" style="background:${k.bg};"><div class="fe-kpi-ic" style="color:${k.c};"><i class="ti ${k.ic}"></i></div><div class="fe-kpi-n" style="color:${k.c};">${k.n}</div><div class="fe-kpi-t">${k.t}</div></div>`).join('');
+    // Lote / envío / proveedor
+    const lote = (cache.lotes || []).find(l => l.id === eq.lote_id) || {};
+    const envio = Number(lote.gastos_envio) || 0;
+    const prov = (cache.proveedores || []).find(p => p.id === (eq.proveedor_id || lote.proveedor_id));
+    const provNombre = prov ? (prov.nombre || prov.empresa || prov.razon_social || '—') : '—';
+    const envioHtml = `<div class="fe-envio" ${isAdminUser() ? 'onclick="editarGastosEnvioLote()" style="cursor:pointer;"' : ''}>
+        <div style="display:flex;align-items:center;gap:12px;"><div class="fe-envio-ic"><i class="ti ti-truck"></i></div>
+          <div><div style="font-weight:800;color:#0f172a;">ENVÍO (COURIER)</div><div style="font-size:12px;color:#64748b;">Se edita en Compras</div></div></div>
+        <div style="display:flex;align-items:center;gap:8px;"><b style="font-size:18px;color:#0f172a;">${money(envio)}</b>${isAdminUser() ? '<i class="ti ti-chevron-right" style="color:#94a3b8;"></i>' : ''}</div>
     </div>`;
-    abrirModalGenerico(esVendido ? ('Ficha del equipo (' + _nombreVend + ')') : 'Ficha del equipo (Listo)', html);
+    // Técnico
+    const tec = (cache.tecnicos || []).find(t => t.id === eq.tecnico_asignado_id);
+    const tecNombre = eq.tecnico_asignado_id ? nombreEmpleado(eq.tecnico_asignado_id) : 'Sin asignar';
+    const tecTel = tec ? (tec.telefono || tec.celular || tec.tel || '') : '';
+    const iniciales = (tecNombre === 'Sin asignar' ? '' : tecNombre.split(' ').filter(Boolean).slice(0,2).map(s => s[0]).join('').toUpperCase());
+    // Estado físico
+    let estFisico = '—';
+    if(eq.score) { const s = eq.score; estFisico = (s>=9?'Excelente':s>=7?'Bueno':s>=5?'Regular':'Malo') + ' (' + s + '/10)'; }
+    else if(eq.clasificacion_final || eq.clasificacion) estFisico = (eq.clasificacion_final || eq.clasificacion);
+    const infoRows = [
+        ['Modelo', escapeHtml(eq.modelo || '—')],
+        ['Color', escapeHtml(eq.color || '—')],
+        ['Capacidad', escapeHtml(eq.capacidad || '—')],
+        ['Estado físico', estFisico !== '—' ? `<span class="fe-chip-ok">${escapeHtml(estFisico)}</span>` : '—'],
+        ['Proveedor', escapeHtml(provNombre)],
+        ['Lote', escapeHtml(lote.codigo_lote || '—')]
+    ];
+    const infoHtml = infoRows.map(r => `<div class="fe-row"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('');
+    const notas = escapeHtml((eq.notas_diagnostico || eq.diagnostico_inicial || '').trim());
+    // Timeline
+    const idxMap = { pendiente:0, en_evaluacion:1, evaluado:1, en_proceso:2, tecnico_recibio:2, espera_pieza:2, reasignado:2, reparacion_externa:2, listo_revision:3, listo_venta:4, vendido:5 };
+    let cur = idxMap[eq.estado_evaluacion]; if(cur === undefined) cur = 0; if(eq.completado) cur = 5;
+    const histFecha = (re) => { const h = hist.find(x => re.test((x.estado_nuevo || '') + ' ' + (x.accion || ''))); return h ? h.fecha : null; };
+    const pasos = [
+        { t:'Recibido', f: eq.creado_en },
+        { t:'Evaluado', f: eq.fecha_asignacion || histFecha(/evalu/i) },
+        { t:'Reparado', f: histFecha(/proceso|repar|recibio/i) },
+        { t:'Probado', f: histFecha(/revision|prob/i) },
+        { t:'Listo para venta', f: eq.fecha_terminado || histFecha(/listo_venta|listo para/i) },
+        { t:'Despachado', f: eq.fecha_despacho || eq.fecha_completado }
+    ];
+    const tlHtml = pasos.map((p, i) => {
+        const done = i < cur, isCur = i === cur;
+        const cls = done ? 'done' : (isCur ? 'cur' : 'pend');
+        const ic = done ? 'ti-check' : (isCur ? 'ti-tag' : (i === 5 ? 'ti-truck-delivery' : 'ti-circle'));
+        const fecha = p.f ? _fmtFecha(p.f) : (isCur ? '' : 'Pendiente');
+        return `<div class="fe-step ${cls}"><div class="fe-step-dot"><i class="ti ${ic}"></i></div><div class="fe-step-t">${p.t}</div><div class="fe-step-f">${fecha}</div></div>`;
+    }).join('<div class="fe-step-line"></div>');
+    const emoji = (typeof _abEmoji === 'function' && typeof _abCat === 'function') ? _abEmoji(_abCat(eq.modelo)) : '📱';
+    const titulo = escapeHtml((_parseModeloCapacidad([eq.marca, eq.modelo].filter(Boolean).join(' ')).modelo) || eq.modelo || 'Equipo');
+    const nEnLote = (delLote.findIndex(r => r.id === eq.id) + 1) || '-';
+
+    _feStyles();
+    const prevF = document.getElementById('modalFichaEquipo'); if(prevF) prevF.remove();
+    const ov = document.createElement('div'); ov.id = 'modalFichaEquipo'; ov.className = 'fe-back';
+    ov.onclick = function(e) { if(e.target === ov) _feCerrar(); };
+    ov.innerHTML = `<div class="fe-panel">
+      <div class="fe-head">
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+          <button class="fe-volver" onclick="_feCerrar()"><i class="ti ti-arrow-left"></i> Volver</button>
+          <h2>Ficha del Equipo</h2>
+          <span class="fe-badge" style="background:${estBadge.bg};color:${estBadge.c};">${estBadge.t}</span>
+        </div>
+        <div class="fe-head-actions">
+          <button class="fe-btn red" onclick="imprimirLabelEquipo('${equipoId}')"><i class="ti ti-printer"></i> Imprimir Label</button>
+          <button class="fe-btn" onclick="exportarFormatoInfoPlusExcel()"><i class="ti ti-file-spreadsheet"></i> Info Plus (Excel)</button>
+          <button class="fe-btn" onclick="imprimirFormatoInfoPlus()"><i class="ti ti-file-text"></i> Formato Info Plus</button>
+          <div class="fe-menuwrap">
+            <button class="fe-btn" onclick="var m=this.nextElementSibling;m.style.display=(m.style.display==='block'?'none':'block');event.stopPropagation();"><i class="ti ti-dots"></i> Más acciones <i class="ti ti-chevron-down"></i></button>
+            <div class="fe-menu">
+              <a onclick="_feCerrar();verHistorialEquipo('${equipoId}')"><i class="ti ti-history"></i> Ver historial</a>
+              ${isAdminUser() ? `<a onclick="marcarEquipoCompletado('${equipoId}')"><i class="ti ti-circle-check"></i> Marcar Completado</a>` : ''}
+            </div>
+          </div>
+          <button class="fe-x modal-close" onclick="_feCerrar()">✕</button>
+        </div>
+      </div>
+      <div class="fe-body">
+        <div class="fe-hero">
+          <div class="fe-photo">${emoji}</div>
+          <div>
+            <h1 class="fe-title">${titulo}</h1>
+            <div class="fe-sub">${escapeHtml(((eq.marca || '') + ' ' + (eq.modelo || '')).trim())}</div>
+            <div style="margin:10px 0;"><span class="fe-num">#${nEnLote}</span> <span class="fe-badge" style="background:${estBadge.bg};color:${estBadge.c};"><i class="ti ti-circle-check"></i> ${esVendido ? (eq.completado ? 'COMPLETADO' : 'DESPACHADO') : 'LISTO PARA VENTA'}</span></div>
+            <div class="fe-idline"><i class="ti ti-device-mobile"></i> IMEI: <b>${escapeHtml(eq.imei || '—')}</b> <a onclick="navigator.clipboard&&navigator.clipboard.writeText('${escapeHtml(eq.imei || '')}');if(typeof toast==='function')toast('IMEI copiado');" style="cursor:pointer;color:#64748b;"><i class="ti ti-copy"></i></a></div>
+            ${eq.serial ? `<div class="fe-idline2">Serial: ${escapeHtml(eq.serial)}</div>` : ''}
+            <div class="fe-idline2">Tomado: ${_fmtFecha(eq.creado_en)}${(tecNombre && tecNombre !== 'Sin asignar') ? `<br><span style="color:#e11d48;font-weight:700;">por ${escapeHtml(tecNombre)}</span>` : ''}</div>
+          </div>
+        </div>
+        <div class="fe-kpis">${kpiHtml}</div>
+        ${envioHtml}
+        <div class="fe-grid">
+          <div class="fe-col">
+            <div class="fe-card"><div class="fe-card-h"><i class="ti ti-device-mobile" style="color:#e11d48;"></i> INFORMACIÓN DEL EQUIPO</div>${infoHtml}</div>
+            <div class="fe-card"><div class="fe-card-h"><i class="ti ti-user" style="color:#e11d48;"></i> TÉCNICO ASIGNADO</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:4px;">
+                <div style="display:flex;align-items:center;gap:10px;"><span class="fe-avatar">${iniciales || '—'}</span><b>${escapeHtml(tecNombre)}</b></div>
+                ${tecTel ? `<a href="tel:${escapeHtml(tecTel)}" style="color:#e11d48;font-weight:700;white-space:nowrap;"><i class="ti ti-phone"></i> ${escapeHtml(tecTel)}</a>` : ''}
+              </div>
+            </div>
+          </div>
+          <div class="fe-col">
+            <div class="fe-card"><div class="fe-card-h"><i class="ti ti-alert-triangle" style="color:#d97706;"></i> FALLAS QUE TENÍA EL EQUIPO</div><div style="margin-top:6px;">${fallasHtml}</div></div>
+            <div class="fe-card"><div class="fe-card-h"><i class="ti ti-message" style="color:#64748b;"></i> NOTAS INTERNAS</div><div class="fe-notas">${notas || '<span style="color:#94a3b8;">Sin notas.</span>'}</div></div>
+          </div>
+          <div class="fe-col">
+            ${costoHtml || '<div class="fe-card" style="color:#94a3b8;">Costo visible solo para el administrador.</div>'}
+          </div>
+        </div>
+        <div class="fe-card fe-timeline">
+          <div class="fe-tl-title">PROCESO DEL EQUIPO</div>
+          <div class="fe-steps">${tlHtml}</div>
+        </div>
+        <div class="fe-foot">Creado: ${_fmtFecha(eq.creado_en)} &nbsp;|&nbsp; Última actualización: ${_fmtFecha(eq.actualizado_en || eq.creado_en)}</div>
+      </div>
+    </div>`;
+    document.body.appendChild(ov);
+}
+// Cierra la ficha del equipo (overlay a pantalla completa)
+function _feCerrar() { const m = document.getElementById('modalFichaEquipo'); if(m) m.remove(); }
+// Estilos de la Ficha del Equipo (se inyectan una sola vez)
+function _feStyles() {
+    if(document.getElementById('feStyles')) return;
+    const s = document.createElement('style'); s.id = 'feStyles'; s.textContent = `
+    .fe-back{position:fixed;inset:0;z-index:900;background:rgba(15,23,42,.5);backdrop-filter:blur(3px);overflow-y:auto;padding:18px;}
+    .fe-panel{background:#f8fafc;max-width:1240px;margin:0 auto;border-radius:18px;box-shadow:0 30px 80px -20px rgba(15,23,42,.5);overflow:hidden;}
+    .fe-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 20px;background:#fff;border-bottom:1px solid #eef2f7;position:sticky;top:0;z-index:5;}
+    .fe-head h2{margin:0;font-size:20px;font-weight:800;color:#0f172a;}
+    .fe-volver{background:none;border:none;cursor:pointer;color:#334155;font-weight:700;font-size:14px;display:inline-flex;align-items:center;gap:6px;}
+    .fe-badge{font-size:11px;font-weight:800;padding:4px 10px;border-radius:999px;display:inline-flex;align-items:center;gap:5px;letter-spacing:.3px;}
+    .fe-head-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+    .fe-btn{border:1px solid #e2e8f0;background:#fff;color:#334155;font-weight:700;font-size:13px;padding:9px 13px;border-radius:11px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;white-space:nowrap;}
+    .fe-btn:hover{background:#f8fafc;} .fe-btn.red{background:#e11d48;border-color:#e11d48;color:#fff;} .fe-btn.red:hover{background:#be123c;}
+    .fe-x{border:none;background:none;font-size:20px;color:#94a3b8;cursor:pointer;padding:4px 8px;}
+    .fe-menuwrap{position:relative;}
+    .fe-menu{display:none;position:absolute;right:0;top:110%;background:#fff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 20px 40px -12px rgba(15,23,42,.35);min-width:200px;padding:6px;z-index:10;}
+    .fe-menu a{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:8px;cursor:pointer;color:#334155;font-size:13.5px;font-weight:600;} .fe-menu a:hover{background:#f1f5f9;}
+    .fe-body{padding:18px 20px 22px;}
+    .fe-hero{display:grid;grid-template-columns:200px 1fr;gap:20px;background:#fff;border:1px solid #eef2f7;border-radius:16px;padding:18px;}
+    .fe-photo{background:linear-gradient(160deg,#f1f5f9,#e2e8f0);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:72px;min-height:180px;}
+    .fe-title{margin:0;font-size:30px;font-weight:900;color:#0f172a;line-height:1.05;}
+    .fe-sub{color:#64748b;font-weight:700;font-size:14px;margin-top:2px;}
+    .fe-num{background:#e11d48;color:#fff;font-weight:800;font-size:12px;padding:3px 10px;border-radius:999px;}
+    .fe-idline{margin-top:10px;color:#334155;font-size:14px;} .fe-idline2{color:#64748b;font-size:13px;margin-top:5px;}
+    .fe-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:16px 0;}
+    .fe-kpi{border-radius:14px;padding:14px 16px;border:1px solid rgba(15,23,42,.05);}
+    .fe-kpi-ic{font-size:18px;} .fe-kpi-n{font-size:30px;font-weight:900;line-height:1;margin:6px 0 2px;} .fe-kpi-t{font-size:11px;font-weight:800;letter-spacing:.5px;color:#64748b;text-transform:uppercase;}
+    .fe-envio{display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid #eef2f7;border-radius:14px;padding:16px 18px;margin-bottom:16px;}
+    .fe-envio-ic{width:42px;height:42px;border-radius:12px;background:#eff6ff;color:#2563eb;display:flex;align-items:center;justify-content:center;font-size:20px;}
+    .fe-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;align-items:start;}
+    .fe-col{display:flex;flex-direction:column;gap:14px;}
+    .fe-card{background:#fff;border:1px solid #eef2f7;border-radius:14px;padding:15px 16px;}
+    .fe-card-h{font-size:12.5px;font-weight:800;color:#0f172a;letter-spacing:.4px;display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+    .fe-row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid #f1f5f9;font-size:13.5px;color:#475569;}
+    .fe-row:last-child{border-bottom:none;} .fe-row b{color:#0f172a;}
+    .fe-chip-ok{background:#dcfce7;color:#166534;font-weight:700;font-size:12px;padding:2px 9px;border-radius:999px;}
+    .fe-avatar{width:34px;height:34px;border-radius:50%;background:#ede9fe;color:#6d28d9;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex:none;}
+    .fe-notas{background:#f8fafc;border-radius:10px;padding:11px 12px;font-size:13px;color:#475569;line-height:1.5;margin-top:4px;}
+    .fe-timeline{margin-top:16px;} .fe-tl-title{font-size:12.5px;font-weight:800;color:#0f172a;letter-spacing:.4px;margin-bottom:16px;}
+    .fe-steps{display:flex;align-items:flex-start;justify-content:space-between;gap:0;}
+    .fe-step{display:flex;flex-direction:column;align-items:center;text-align:center;flex:0 0 auto;width:120px;}
+    .fe-step-line{flex:1;height:2px;background:#e2e8f0;margin-top:17px;min-width:20px;}
+    .fe-step-dot{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;border:2px solid #e2e8f0;background:#fff;color:#cbd5e1;}
+    .fe-step.done .fe-step-dot{background:#dcfce7;border-color:#22c55e;color:#16a34a;}
+    .fe-step.cur .fe-step-dot{background:#e11d48;border-color:#e11d48;color:#fff;}
+    .fe-step-t{font-size:12.5px;font-weight:700;color:#334155;margin-top:8px;} .fe-step.cur .fe-step-t{color:#e11d48;}
+    .fe-step-f{font-size:11px;color:#94a3b8;margin-top:3px;line-height:1.3;}
+    .fe-foot{margin-top:16px;color:#94a3b8;font-size:12px;text-align:left;}
+    @media(max-width:1050px){ .fe-grid{grid-template-columns:1fr;} .fe-kpis{grid-template-columns:repeat(3,1fr);} .fe-hero{grid-template-columns:1fr;} .fe-photo{min-height:120px;font-size:56px;} .fe-steps{overflow-x:auto;} }
+    @media(max-width:560px){ .fe-kpis{grid-template-columns:repeat(2,1fr);} .fe-title{font-size:24px;} .fe-head-actions .fe-btn span{display:none;} }
+    `;
+    document.head.appendChild(s);
 }
 // Separa el almacenamiento/RAM (van a "Capacidad") del nombre del modelo (limpio)
 function _parseModeloCapacidad(modeloRaw) {
