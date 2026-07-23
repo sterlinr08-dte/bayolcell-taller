@@ -2353,7 +2353,7 @@ body{
                                 <button id="btnExcelCostosLote" class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#15803d; border-color:#86efac; display:none;" onclick="exportarReporteCostosLoteExcel()"><i class="ti ti-file-spreadsheet"></i> Exportar Excel</button>
                                 <button id="btnFormatoIP" class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#075985; border-color:#7dd3fc; display:none;" onclick="imprimirFormatoInfoPlus()"><i class="ti ti-building-warehouse"></i> Formato Info Plus</button>
                                 <button id="btnFormatoIPExcel" class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#075985; border-color:#7dd3fc; display:none;" onclick="exportarFormatoInfoPlusExcel()"><i class="ti ti-file-spreadsheet"></i> Info Plus (Excel)</button>
-                                <button id="btnRegistrarCompraIP" class="btn btn-dark" style="padding:5px 10px; font-size:12px; background:#0891b2; display:none;" onclick="registrarCompraLoteInfoPlus()" title="Registrar en Info Plus los equipos Listos o Despachados como una compra (1 artículo por modelo + sus IMEI + costo promedio). Cada registro crea una compra nueva; los ya registrados no se repiten."><i class="ti ti-cloud-upload"></i> Registrar compra en Info Plus</button>
+                                <button id="btnRegistrarCompraIP" class="btn btn-dark" style="padding:5px 10px; font-size:12px; background:#0891b2; display:none;" onclick="registrarCompraLoteInfoPlus()" title="Registrar en Info Plus los equipos Listos o Despachados como una compra (1 artículo por modelo + sus IMEI + costo promedio). La primera vez crea la compra del lote; después AGREGA los equipos nuevos a esa misma compra. Los ya registrados no se repiten."><i class="ti ti-cloud-upload"></i> Registrar compra en Info Plus</button>
                                 <button id="btnRegManualIP" class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#0e7490; border-color:#67e8f9; display:none;" onclick="abrirRegistroManualIP()" title="Ver/marcar los equipos listos para registrarlos a mano en Info Plus, con el promedio actualizado"><i class="ti ti-clipboard-check"></i> Registro manual IP</button>
                                 <button id="btnDespacharTel" class="btn btn-dark" style="padding:5px 10px; font-size:12px; background:#0e7490; display:none;" onclick="despacharTelefonosSeleccionados()" title="Despachar a otra localidad los teléfonos seleccionados (agrupados por modelo, costo promedio, con sus IMEI)"><i class="ti ti-truck-delivery"></i> Despachar teléfonos</button>
                             </div>
@@ -12731,6 +12731,8 @@ async function registrarCompraLoteInfoPlus() {
     const _estadosRegistrables = ['listo_venta', 'vendido', 'completado'];
     const listos = (cache.refurb || []).filter(r => r.lote_id === reacondLoteAbiertoId && _estadosRegistrables.includes(r.estado_evaluacion) && !r.infoplus_compra_pedido);
     if(!listos.length) return toast('No hay equipos Listos o Despachados pendientes de registrar en Info Plus.', 'error');
+    // ¿El lote ya tiene una compra en Info Plus? Entonces AGREGAMOS a ella (no se crea otra).
+    const _pedidoLote = ((cache.refurb || []).filter(r => r.lote_id === reacondLoteAbiertoId).map(e => e.infoplus_compra_pedido).find(p => p && p !== 'MANUAL' && p !== 'OK' && /\d/.test(String(p)))) || '';
     // Agrupar por código de artículo de Info Plus
     const grupos = {};
     let sinCodigo = 0;
@@ -12766,7 +12768,10 @@ async function registrarCompraLoteInfoPlus() {
     box.innerHTML = `<div class="modal-box" style="max-width:720px;">
         <div class="modal-header" style="background:linear-gradient(135deg,#0e7490,#0891b2); color:#fff; border-radius:12px 12px 0 0;"><h3 style="margin:0; color:#fff;"><i class="ti ti-cloud-upload"></i> Registrar compra en Info Plus</h3><button class="modal-close" style="color:#fff;" onclick="document.getElementById('modalRegCompraIP').remove()">✕</button></div>
         <div class="modal-body" style="max-height:70vh; overflow:auto;">
-          <p style="font-size:12.5px; color:#475569; margin-top:0;">Se registran los equipos <b>Listos o Despachados</b> del lote <b>${escapeHtml(lote.codigo_lote || '')}</b> (que aún no se hayan registrado) como <b>1 artículo por modelo + sus IMEI</b>, con el <b>costo promedio</b> (total = suma). El detalle por IMEI queda en el taller. Cada registro crea <b>una compra nueva</b> en Info Plus (los ya registrados no se repiten).</p>
+          <p style="font-size:12.5px; color:#475569; margin-top:0;">Se registran los equipos <b>Listos o Despachados</b> del lote <b>${escapeHtml(lote.codigo_lote || '')}</b> (que aún no se hayan registrado) como <b>1 artículo por modelo + sus IMEI</b>, con el <b>costo promedio</b> (total = suma). El detalle por IMEI queda en el taller.</p>
+          ${_pedidoLote
+            ? `<div style="background:#ecfdf5; border:1px solid #a7f3d0; color:#065f46; font-size:12.5px; padding:8px 12px; border-radius:8px; margin-bottom:8px;"><b>➕ Se AGREGARÁN a la compra Nº ${escapeHtml(String(_pedidoLote))}</b> que ya tiene este lote en Info Plus (no se crea otra). Solo se envían los equipos nuevos.</div>`
+            : `<div style="background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; font-size:12.5px; padding:8px 12px; border-radius:8px; margin-bottom:8px;"><b>🆕 Se creará una compra nueva</b> en Info Plus. Los siguientes equipos que termines se irán agregando a ESA misma compra.</div>`}
           ${sinCodigo > 0 ? `<div style="background:#fef3c7; color:#92400e; font-size:12px; padding:6px 10px; border-radius:8px; margin-bottom:8px;">⚠️ ${sinCodigo} equipo(s) listo(s) sin código de Info Plus — esos NO se enviarán.</div>` : ''}
           <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
             <thead><tr style="background:#f1f5f9;"><th style="padding:6px; text-align:left;">Modelo</th><th>Cód IP</th><th>Cant.</th><th style="padding:6px; text-align:right;">Promedio</th><th style="padding:6px; text-align:right;">Total</th><th>IMEI</th></tr></thead>
@@ -12792,6 +12797,9 @@ async function _ejecutarRegistroCompraIP() {
     const codproveedor = (document.getElementById('regipProv')?.value || '').trim();
     if(!codproveedor) return toast('Pon el código de proveedor de Info Plus.', 'error');
     const { lista, loteCod } = _regipCtx;
+    // Si el lote YA tiene una compra en Info Plus, AGREGAMOS a ella (Dagoberto: mismo JSON con codpedido = nº de compra; las líneas se agregan, no reemplazan).
+    const equiposLote = (cache.refurb || []).filter(r => r.lote_id === reacondLoteAbiertoId);
+    const pedidoExistente = (equiposLote.map(e => e.infoplus_compra_pedido).find(p => p && p !== 'MANUAL' && p !== 'OK' && /\d/.test(String(p)))) || '';
     const d = new Date();
     const f = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
     const hora = d.toTimeString().slice(0, 8);
@@ -12808,7 +12816,7 @@ async function _ejecutarRegistroCompraIP() {
     });
     if(!detallescompra.length) return toast('No hay artículos válidos para registrar.', 'error');
     const compra = {
-        codpedido: "", fecha: f, hora, orden: "", factura: "", vencimiento: f, total: Math.round(total * 100) / 100,
+        codpedido: pedidoExistente, fecha: f, hora, orden: "", factura: "", vencimiento: f, total: Math.round(total * 100) / 100,
         descuentototal: 0, descuento: 0, impuesto: 0, abono: 0, cancelado: false, credito: false,
         codproveedor: String(codproveedor), codempleado: "6", comentario: `Reacondicionado lote ${loteCod}`,
         codlocalidad: almacen, codciudad: "", codliquidacion: "", codmonedas: 1, codmonedap: 1, tasacambio: 1,
@@ -12816,13 +12824,13 @@ async function _ejecutarRegistroCompraIP() {
         detallescompra, detallescompra2: [], detallescompra3: [], seriales
     };
     try {
-        toast('⏳ Registrando en Info Plus…');
+        toast(pedidoExistente ? ('⏳ Agregando a la compra ' + pedidoExistente + '…') : '⏳ Registrando compra en Info Plus…');
         const { data, error } = await supabaseClient.functions.invoke('infoplus-compra-crear', { body: { compra } });
         if(error) throw error;
         const msg = (data && data.respuesta && data.respuesta.message) || '';
         const okFinal = data && data.ok && /correctamente/i.test(msg);
         if(!okFinal) return toast('⚠️ No se registró: ' + (msg || 'Info Plus rechazó la compra'), 'error');
-        const codpedido = (data.respuesta && data.respuesta.data && data.respuesta.data[0] && data.respuesta.data[0].codpedido) || 'OK';
+        const codpedido = (data.respuesta && data.respuesta.data && data.respuesta.data[0] && data.respuesta.data[0].codpedido) || pedidoExistente || 'OK';
         for(let i = 0; i < idsTodos.length; i += 200) {
             await supabaseClient.from('equipos_refurbish').update({ infoplus_compra_pedido: codpedido }).in('id', idsTodos.slice(i, i + 200));
         }
@@ -12839,11 +12847,13 @@ async function _ejecutarRegistroCompraIP() {
             }]).select().single();
             savedCompra = sc;
         } catch(e) { logError('guardar compra IP', e); }
-        toast(`✅ Compra registrada en Info Plus (${codpedido}). ${idsTodos.length} equipo(s).`);
+        toast(pedidoExistente
+            ? `✅ ${idsTodos.length} equipo(s) AGREGADO(S) a la compra ${codpedido} en Info Plus.`
+            : `✅ Compra registrada en Info Plus (${codpedido}). ${idsTodos.length} equipo(s).`);
         const m = document.getElementById('modalRegCompraIP'); if(m) m.remove();
         await loadAll();
         renderDetalleLoteReacond();
-        if(savedCompra && await confirmar(`Compra ${codpedido} registrada ✅\n\n¿Imprimir el comprobante?`)) imprimirCompraIP(savedCompra);
+        if(savedCompra && await confirmar(`${pedidoExistente ? 'Equipos agregados a la compra' : 'Compra'} ${codpedido} ✅\n\n¿Imprimir el comprobante?`)) imprimirCompraIP(savedCompra);
     } catch(e) { logError('registrar compra IP', e); toastError(getFriendlyError(e)); }
 }
 // Imprime el comprobante de una compra registrada en Info Plus (para entregar/firmar).
