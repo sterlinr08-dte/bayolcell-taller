@@ -78,8 +78,13 @@ input:focus, select:focus, textarea:focus { border-color: #fca5a5; box-shadow: 0
 input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed; }
 
 .btn { border: 0; border-radius: 10px; padding: 8px 15px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 7px; font-size: 12.5px; transition: all 0.16s ease; transform: translateY(0); line-height: 1.2; }
-.btn:active { transform: translateY(1px); }
+.btn:active { transform: translateY(1px) scale(0.97); }
+.btn:hover:not(:disabled) { filter: brightness(1.06); }
 .btn:disabled, .btn[disabled] { opacity: 0.5; cursor: not-allowed; box-shadow: none !important; transform: none !important; }
+/* Spinner que GIRA en todos los botones de carga (ti-loader) */
+@keyframes bcSpin { to { transform: rotate(360deg); } }
+.ti-loader, .ti-loader-2 { display: inline-block; animation: bcSpin 0.8s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .ti-loader, .ti-loader-2 { animation: none; } }
 /* PRINCIPAL (rojo) */
 .btn-blue { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: #fff; box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), 0 3px 10px rgba(220,38,38,0.25); }
 .btn-blue:hover { background: linear-gradient(135deg, #f05252 0%, #e02424 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), 0 5px 14px rgba(220,38,38,0.32); }
@@ -4064,7 +4069,7 @@ body{
                 <input type="number" id="diag_copias" value="1" min="1" max="50" style="width:70px; font-weight:700; min-height:auto; padding:8px;">
             </div>
             <button class="btn btn-light" onclick="cerrarModalLabelDiag()">Cancelar</button>
-            <button class="btn btn-blue" onclick="confirmarImprimirLabelDiag()"><i class="ti ti-printer"></i> Imprimir Ahora</button>
+            <button class="btn btn-blue" onclick="_imprimirLabelDiagAnim(this)"><i class="ti ti-printer"></i> Imprimir Ahora</button>
         </div>
     </div>
 </div>
@@ -19785,7 +19790,7 @@ function imprimirLabelEquipo(equipoId) {
         </div>
         <div class="modal-footer">
             <button class="btn btn-light" onclick="cerrarLabelRapido()">Cancelar</button>
-            <button class="btn btn-blue" onclick="imprimirLabelRapido()"><i class="ti ti-printer"></i> Imprimir</button>
+            <button class="btn btn-blue" onclick="_imprimirLabelRapidoAnim(this)"><i class="ti ti-printer"></i> Imprimir</button>
         </div>
     </div>`;
     let modal = document.getElementById('modalLabelRapido');
@@ -19810,6 +19815,14 @@ function _lrPreview() {
     }
 }
 function cerrarLabelRapido() { const m = document.getElementById('modalLabelRapido'); if(m) m.classList.remove('active'); }
+// Feedback inmediato al imprimir el label rápido (de la ficha del equipo).
+function _imprimirLabelRapidoAnim(btn) {
+    try {
+        if(btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Imprimiendo…'; }
+        if(typeof toast === 'function') toast('🖨️ Enviando a la impresora…');
+    } catch(e) {}
+    setTimeout(() => { try { imprimirLabelRapido(); } catch(e) { if(typeof toastError === 'function') toastError('No se pudo imprimir.'); } }, 50);
+}
 async function imprimirLabelRapido() {
     const v = id => (document.getElementById(id)?.value || '');
     const set = (id, val) => { const el = document.getElementById(id); if(el) el.value = val; };
@@ -25790,6 +25803,15 @@ function _recalibrarLabelDiag() {
     if(document.getElementById('dlbl_font') && typeof cargarCalibracionLabelDiag === 'function') cargarCalibracionLabelDiag();
 }
 
+// Muestra feedback inmediato ("Imprimiendo…") ANTES del trabajo pesado (renderizar el label para la impresora).
+function _imprimirLabelDiagAnim(btn) {
+    try {
+        if(btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Imprimiendo…'; }
+        if(typeof toast === 'function') toast('🖨️ Enviando a la impresora…');
+    } catch(e) {}
+    // setTimeout para que el navegador pinte el estado de carga antes de bloquearse con la impresión.
+    setTimeout(() => { try { confirmarImprimirLabelDiag(); } catch(e) { if(typeof logError === 'function') logError('imprimir label', e); if(typeof toastError === 'function') toastError('No se pudo imprimir.'); } }, 50);
+}
 async function confirmarImprimirLabelDiag() {
     const copias = parseInt(document.getElementById('diag_copias')?.value || 1);
     const w = parseInt(localStorage.getItem('bayol_dlbl_w') || '51');

@@ -592,3 +592,9 @@ Sterling: mantener la MISMA ventana de compra, pero (1) más ágil para meter va
 - **Dato importante:** antes `color` guardaba la **referencia/capacidad** del artículo (ej. "128GB"). Ahora la **capacidad** se guarda en `capacidad` (= `art.referencia`) y el **color real** en `color`. La lista (`_eqCardRow`) muestra la capacidad de `ip.referencia` (Info Plus) como siempre + un **chip de color** (`_eqColorReal` ignora registros viejos con GB en color; `_eqColorHex` da el color del puntito). Los labels usan `eq.capacidad` (o parsean) → capacidad sigue saliendo.
 - **Corregir (✏️, `_editarEquipoLote`):** nuevo campo **Color** (editable, texto). Se corrigió el bug donde al cambiar el artículo se pisaba el color con la referencia: ahora `_editEqArt.referencia`→`capacidad` y el color va aparte.
 - Pendiente (opcional, dicho): "Pegar lista de IMEI" (varios de golpe) y no recargar todo (`loadAll`) por cada equipo.
+
+## ACTUALIZACIÓN 23 jul 2026 — Impresión de labels: feedback inmediato + animación de botones
+Sterling: "dura mucho para imprimir" y pidió animación en el botón imprimir y demás.
+- **Spinner que gira global:** `.ti-loader`/`.ti-loader-2` ahora giran (`@keyframes bcSpin`) en TODOS los botones de carga de la app (antes el ícono se quedaba quieto). Respeta `prefers-reduced-motion`.
+- **Animación de botón:** `.btn:active` ahora hace `translateY(1px) scale(.97)` (efecto de presión) y `.btn:hover` un leve `brightness(1.06)`.
+- **Feedback inmediato al imprimir:** el botón "Imprimir Ahora" del preview de label diagnóstico (`modalLabelDiag`) y el "Imprimir" del label rápido (`modalLabelRapido`) ahora llaman a `_imprimirLabelDiagAnim`/`_imprimirLabelRapidoAnim`: ponen el botón en "🔄 Imprimiendo…" (deshabilitado) + toast "🖨️ Enviando a la impresora…" ANTES de correr el trabajo pesado (html2canvas/impresión), con `setTimeout(...,50)` para que el navegador pinte el estado antes de bloquearse. Así ya no se siente "pegado".
