@@ -19652,7 +19652,7 @@ function _feCerrar() { const m = document.getElementById('modalFichaEquipo'); if
 function _feStyles() {
     if(document.getElementById('feStyles')) return;
     const s = document.createElement('style'); s.id = 'feStyles'; s.textContent = `
-    .fe-back{position:fixed;inset:0;z-index:900;background:rgba(15,23,42,.5);backdrop-filter:blur(3px);overflow-y:auto;padding:18px;}
+    .fe-back{position:fixed;inset:0;z-index:500;background:rgba(15,23,42,.5);backdrop-filter:blur(3px);overflow-y:auto;padding:18px;}
     .fe-panel{background:#f8fafc;max-width:1240px;margin:0 auto;border-radius:18px;box-shadow:0 30px 80px -20px rgba(15,23,42,.5);overflow:hidden;}
     .fe-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 20px;background:#fff;border-bottom:1px solid #eef2f7;position:sticky;top:0;z-index:5;}
     .fe-head h2{margin:0;font-size:20px;font-weight:800;color:#0f172a;}
@@ -19758,7 +19758,7 @@ function imprimirLabelEquipo(equipoId) {
     </div>`;
     let modal = document.getElementById('modalLabelRapido');
     if(!modal) { modal = document.createElement('div'); modal.id = 'modalLabelRapido'; modal.className = 'modal-backdrop'; document.body.appendChild(modal); }
-    modal.style.zIndex = '600'; // por encima del modal genérico (ficha, z-index 500) para no quedar detrás
+    modal.style.zIndex = '600'; // por encima de la Ficha del Equipo (.fe-back, z-index 500) y del modal genérico
     modal.innerHTML = html; modal.classList.add('active');
     _lrPreview();
 }
