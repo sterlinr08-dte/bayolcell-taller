@@ -221,14 +221,22 @@ footer img{height:40px;margin-bottom:14px;border-radius:8px}
 @keyframes fabPulse{0%,100%{box-shadow:0 14px 30px -8px rgba(18,140,75,.8),0 0 0 0 rgba(37,211,102,.5)}50%{box-shadow:0 14px 30px -8px rgba(18,140,75,.8),0 0 0 12px rgba(37,211,102,0)}}
 @media (prefers-reduced-motion:reduce){.fab{animation:none}}
 /* Estado Abierto/Cerrado flotante (encima del WhatsApp) */
-.open-fab{position:fixed;right:18px;bottom:86px;z-index:60;display:none;align-items:center;gap:7px;
-  padding:8px 13px;border-radius:999px;font-weight:800;font-size:13px;white-space:nowrap;
+.open-fab{position:fixed;right:18px;bottom:86px;z-index:60;display:none;align-items:center;gap:8px;
+  padding:9px 14px;border-radius:999px;font-weight:800;font-size:13px;white-space:nowrap;overflow:hidden;
   background:rgba(8,12,22,.82);backdrop-filter:blur(8px);box-shadow:0 10px 24px -8px rgba(0,0,0,.6);
-  border:1px solid rgba(255,255,255,.12);transition:transform .2s}
-.open-fab:hover{transform:translateY(-1px)}
-.open-fab .dot{width:9px;height:9px;border-radius:50%;background:currentColor;flex:none}
+  border:1px solid rgba(255,255,255,.12);opacity:0;transition:opacity .5s ease;
+  animation:offFloat 4.5s ease-in-out infinite}
+.open-fab::before{content:'';position:absolute;top:0;left:-60%;width:45%;height:100%;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.13),transparent);
+  transform:skewX(-18deg);animation:offShine 5s ease-in-out infinite}
+.open-fab:hover{filter:brightness(1.12)}
+.open-fab .dot{width:9px;height:9px;border-radius:50%;background:currentColor;flex:none;position:relative;z-index:1}
+.open-fab .oft{position:relative;z-index:1;transition:opacity .25s ease}
 .open-fab.abierto{color:#4ade80}.open-fab.abierto .dot{animation:obpulse 1.7s infinite}
 .open-fab.cerrado{color:#f87171}
+@keyframes offFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes offShine{0%,72%{left:-60%}86%,100%{left:130%}}
+@media (prefers-reduced-motion:reduce){.open-fab{animation:none}.open-fab::before{display:none}}
 @keyframes obpulse{0%{box-shadow:0 0 0 0 rgba(74,222,128,.6)}70%{box-shadow:0 0 0 7px rgba(74,222,128,0)}100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}}
 
 @media (max-width:560px){
@@ -911,13 +919,14 @@ footer::before{ content:''; position:absolute; top:-1px; left:0; right:0; height
       var d = new Date(new Date().toLocaleString('en-US',{timeZone:'America/Santo_Domingo'}));
       var day = d.getDay(), min = d.getHours()*60 + d.getMinutes();
       var hoy = HOR[key][day];
-      if(hoy && min>=hoy[0] && min<hoy[1]) return { abierto:true, txt:'Abierto ahora · cierra '+fmt(hoy[1]) };
+      if(hoy && min>=hoy[0] && min<hoy[1]) return { abierto:true, label:'Abierto ahora', detail:'Cierra '+fmt(hoy[1]) };
       for(var i=0;i<=7;i++){ var dd=(day+i)%7, s=HOR[key][dd]; if(!s) continue;
-        if(i===0){ if(min<s[0]) return { abierto:false, txt:'Cerrado · abre hoy '+fmt(s[0]) }; continue; }
-        return { abierto:false, txt:'Cerrado · abre '+DIAS[dd]+' '+fmt(s[0]) };
+        if(i===0){ if(min<s[0]) return { abierto:false, label:'Cerrado', detail:'Abre hoy '+fmt(s[0]) }; continue; }
+        return { abierto:false, label:'Cerrado', detail:'Abre '+DIAS[dd]+' '+fmt(s[0]) };
       }
-      return { abierto:false, txt:'Cerrado' };
+      return { abierto:false, label:'Cerrado', detail:'' };
     }
+    var fabMsgs=['Abierto ahora'], fabIdx=0;
     function pinta(){
       var est = {};
       ['santiago','moca'].forEach(function(k){
@@ -928,22 +937,31 @@ footer::before{ content:''; position:absolute; top:-1px; left:0; right:0; height
                             : 'background:rgba(239,68,68,.14);color:#f87171;border:1px solid rgba(239,68,68,.4);';
         var dot = 'width:8px;height:8px;border-radius:50%;background:currentColor;'+(e.abierto?'animation:obpulse 1.7s infinite;':'');
         el.innerHTML='<span style="display:inline-flex;align-items:center;gap:7px;font-weight:800;font-size:12.5px;padding:5px 12px;border-radius:999px;'+col+'">'
-          +'<span style="'+dot+'"></span>'+e.txt+'</span>';
+          +'<span style="'+dot+'"></span>'+e.label+(e.detail?(' · '+e.detail.toLowerCase()):'')+'</span>';
       });
       // Letrero flotante (estado combinado de las 2 tiendas)
       var fab=document.getElementById('openFab');
       if(fab){
         var abiertas=['santiago','moca'].filter(function(k){return est[k].abierto;});
-        var txt, abierto=abiertas.length>0;
-        if(abiertas.length===2) txt='Abierto ahora';
-        else if(abiertas.length===1) txt='Abierto · '+(abiertas[0]==='santiago'?'Santiago':'Moca');
-        else txt='Cerrado ahora';
+        var abierto=abiertas.length>0, label;
+        if(abiertas.length===2) label='Abierto ahora';
+        else if(abiertas.length===1) label='Abierto · '+(abiertas[0]==='santiago'?'Santiago':'Moca');
+        else label='Cerrado ahora';
+        var detalle = abierto ? est[abiertas[0]].detail : est.santiago.detail;
+        fabMsgs = (detalle && detalle!==label) ? [label, detalle] : [label];
+        if(fabIdx>=fabMsgs.length) fabIdx=0;
         fab.className='open-fab '+(abierto?'abierto':'cerrado');
-        fab.innerHTML='<span class="dot"></span>'+txt;
-        fab.style.display='inline-flex';
+        if(!fab.getAttribute('data-init')){ fab.innerHTML='<span class="dot"></span><span class="oft"></span>'; fab.style.display='inline-flex'; fab.setAttribute('data-init','1'); requestAnimationFrame(function(){ fab.style.opacity='1'; }); }
+        var t=fab.querySelector('.oft'); if(t) t.textContent=fabMsgs[fabIdx];
       }
     }
-    pinta(); setInterval(pinta, 60000);
+    function rotaFab(){
+      if(fabMsgs.length<2) return;
+      var fab=document.getElementById('openFab'); var t=fab&&fab.querySelector('.oft'); if(!t) return;
+      t.style.opacity='0';
+      setTimeout(function(){ fabIdx=(fabIdx+1)%fabMsgs.length; t.textContent=fabMsgs[fabIdx]; t.style.opacity='1'; }, 250);
+    }
+    pinta(); setInterval(pinta, 60000); setInterval(rotaFab, 3800);
   })();
 </script>
 </body>
