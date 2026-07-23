@@ -2172,9 +2172,14 @@ body{
                                         <div><label id="lbl_eq_imei">IMEI / Serial *</label>
                                             <div style="position:relative;"><input id="eq_imei" placeholder="358921..." oninput="_eqImeiValidar()" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('eq_costo').focus();}" style="text-transform:uppercase; padding-right:34px;"><i class="ti ti-barcode" title="Escanear con lector" style="position:absolute; right:11px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:17px;"></i></div>
                                             <div id="eq_imei_status" style="font-size:10.5px; margin-top:3px; height:13px; font-weight:700;"></div></div>
-                                        <div id="costo_admin_wrap"><label>Costo Unidad (RD$) *</label><input id="eq_costo" type="number" step="0.01" placeholder="6374.00"></div>
+                                        <div id="costo_admin_wrap"><label>Costo Unidad (RD$) *</label><input id="eq_costo" type="number" step="0.01" placeholder="6374.00" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarEquipoAlLote();}"><div style="font-size:10px; color:#94a3b8; margin-top:2px;">Se mantiene; cámbialo si este IMEI vale distinto</div></div>
                                         <div><label>Notas rápidas</label><input id="eq_notas" placeholder="Ej: pantalla rota, no carga…" style="text-transform:uppercase;"></div>
                                         <button class="btn" onclick="agregarEquipoAlLote()" style="height:42px; background:#e31e24; color:#fff; border:0; font-weight:700;"><i class="ti ti-plus"></i> Agregar equipo</button>
+                                    </div>
+                                    <div style="margin-top:10px; display:flex; align-items:center; gap:9px; flex-wrap:wrap;">
+                                        <span style="font-size:12px; font-weight:800; color:var(--text-muted); text-transform:uppercase;">Color:</span>
+                                        <span id="eqColorChips"></span>
+                                        <input type="hidden" id="eq_color" value="">
                                     </div>
                                     <div style="margin-top:8px;">
                                         <label style="display:inline-flex; align-items:center; gap:6px; font-size:13px; text-transform:none; color:var(--text-dark); cursor:pointer;"><input type="checkbox" id="eq_garantia" style="width:auto;"> 🛡️ Es por garantía (permite repetir el mismo IMEI)</label>
@@ -10664,6 +10669,28 @@ async function guardarDatosLote() {
     } catch(e) { logError('Guardar lote', e); toastError(getFriendlyError(e)); }
 }
 
+// ===== Chips de color para "Agregar equipo al lote" (color por IMEI) =====
+const _EQ_COLORES = [['Negro','#111827'],['Blanco','#f1f5f9'],['Azul','#3b82f6'],['Rojo','#ef4444'],['Verde','#22c55e'],['Rosa','#ec4899'],['Morado','#a855f7'],['Dorado','#eab308'],['Gris','#6b7280']];
+function _eqRenderColorChips() {
+    const c = document.getElementById('eqColorChips'); if(!c || c.dataset.done) return;
+    c.innerHTML = _EQ_COLORES.map(([n, hex]) => `<button type="button" class="eqc" data-color="${n}" onclick="_eqSetColor(this)" style="border:1.5px solid #e2e8f0;background:#fff;border-radius:999px;padding:6px 12px;font-weight:700;font-size:12.5px;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:7px;margin:2px;"><span style="width:12px;height:12px;border-radius:50%;background:${hex};border:1px solid rgba(0,0,0,.18);display:inline-block;"></span>${n}</button>`).join('')
+        + `<button type="button" class="eqc" onclick="_eqSetColorOtro()" style="border:1.5px dashed #cbd5e1;background:#fff;border-radius:999px;padding:6px 12px;font-weight:700;font-size:12.5px;color:#64748b;cursor:pointer;margin:2px;">+ Otro</button>`;
+    c.dataset.done = '1';
+}
+function _eqSetColor(btn) {
+    document.querySelectorAll('#eqColorChips .eqc').forEach(b => { b.style.borderColor = '#e2e8f0'; b.style.background = '#fff'; b.style.color = '#334155'; b.style.boxShadow = 'none'; });
+    if(btn) { btn.style.borderColor = '#e31e24'; btn.style.background = '#fef2f6'; btn.style.color = '#be123c'; btn.style.boxShadow = '0 0 0 3px rgba(227,30,36,.12)'; }
+    const el = document.getElementById('eq_color'); if(el) el.value = (btn ? btn.getAttribute('data-color') : '') || '';
+}
+async function _eqSetColorOtro() {
+    const v = await pedirTexto('Color del equipo:'); if(v == null) return;
+    const el = document.getElementById('eq_color'); if(el) el.value = (v || '').trim();
+    document.querySelectorAll('#eqColorChips .eqc').forEach(b => { b.style.borderColor = '#e2e8f0'; b.style.background = '#fff'; b.style.color = '#334155'; b.style.boxShadow = 'none'; });
+    toast('Color: ' + ((v || '').trim() || '—'));
+}
+// Color "real" del equipo (ignora los registros viejos que guardaban la capacidad en color)
+function _eqColorReal(e) { const c = (e && e.color || '').trim(); return (c && !/\d+\s*(gb|tb)|ram/i.test(c)) ? c : ''; }
+function _eqColorHex(nombre) { const f = _EQ_COLORES.find(x => x[0].toLowerCase() === (nombre || '').toLowerCase()); return f ? f[1] : '#94a3b8'; }
 async function agregarEquipoAlLote() {
     if(!loteActualId) return toast('Sin lote activo.', 'error');
     const artId = smartSelectGetValue('ss-eq-articulo');
@@ -10701,6 +10728,7 @@ async function agregarEquipoAlLote() {
 
     const desc = (art.descripcion || '').trim();
     const modeloCompleto = [art.marca, desc].filter(x => x).join(' ').trim() || art.codigo;
+    const colorSel = (val('eq_color') || '').trim();
 
     try {
         const { error } = await supabaseClient.from('equipos_refurbish').insert([{
@@ -10709,8 +10737,8 @@ async function agregarEquipoAlLote() {
             lote_id: loteActualId,
             modelo: modeloCompleto,
             marca: art.marca || null,
-            capacidad: null,
-            color: art.referencia || null,
+            capacidad: art.referencia || null,
+            color: colorSel || null,
             imei: imei || null,
             costo_compra: costo,
             costo_repuestos: 0,
@@ -10719,13 +10747,14 @@ async function agregarEquipoAlLote() {
             notas_diagnostico: (esGarantia ? 'GARANTÍA' + (notas ? ' · ' + notas : '') : (notas || null))
         }]);
         if(error) throw error;
-        toast(esGarantia ? `🛡️ Equipo por garantía agregado: ${modeloCompleto}` : `Equipo agregado: ${modeloCompleto}`);
+        toast(esGarantia ? `🛡️ Equipo por garantía agregado: ${modeloCompleto}${colorSel ? ' · ' + colorSel : ''}` : `Equipo agregado: ${modeloCompleto}${colorSel ? ' · ' + colorSel : ''}`);
         const _g = document.getElementById('eq_garantia'); if(_g) _g.checked = false;
+        // Modo rápido: se MANTIENEN el artículo, el costo y el color (solo se limpia el IMEI y las notas).
+        // El costo queda de sugerencia; cámbialo si el próximo IMEI vale distinto. El cursor vuelve al IMEI para escanear el siguiente.
         document.getElementById('eq_imei').value = '';
-        document.getElementById('eq_costo').value = '';
         document.getElementById('eq_notas').value = '';
-        smartSelectSetValue('ss-eq-articulo', '');
-        document.getElementById(`ss-eq-articulo-input`)?.focus();
+        if(typeof _eqImeiValidar === 'function') _eqImeiValidar();
+        document.getElementById('eq_imei')?.focus();
         await loadAll();
     } catch(e) { logError('Agregar equipo al lote', e); toastError(getFriendlyError(e)); }
 }
@@ -10807,7 +10836,7 @@ function _eqCardRow(e, esAdmin) {
         <div style="min-width:0;">
           <div class="eq-cod">Cód. ${escapeHtml(codigo || '—')} <span class="eq-mk">${escapeHtml(marca || '')}</span></div>
           <div class="eq-name">${escapeHtml(desc || '(sin descripción)')}</div>
-          <div class="eq-meta">${cap ? `<i class="ti ti-device-mobile"></i> ${escapeHtml(cap)}` : ''}${precio > 0 ? `  ·  <b style="color:#16a34a;">${money(precio)}</b>` : ''}${gar}</div>
+          <div class="eq-meta">${cap ? `<i class="ti ti-device-mobile"></i> ${escapeHtml(cap)}` : ''}${_eqColorReal(e) ? `  ·  <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:50%;background:${_eqColorHex(_eqColorReal(e))};border:1px solid rgba(0,0,0,.2);display:inline-block;"></span>${escapeHtml(_eqColorReal(e))}</span>` : ''}${precio > 0 ? `  ·  <b style="color:#16a34a;">${money(precio)}</b>` : ''}${gar}</div>
         </div>
       </div>
       <div class="eq-imei"><div><code>${escapeHtml(imei || '—')}</code>${imei ? ` <i class="ti ti-copy eq-copy" title="Copiar" onclick="_eqCopy('${escapeHtml(imei).replace(/'/g, '')}')"></i>` : ''}</div>${imeiBadge}</div>
@@ -10823,6 +10852,7 @@ function _eqCardRow(e, esAdmin) {
 function renderEquiposLote() {
     if(!loteActualId) return;
     _eqStyles();
+    if(typeof _eqRenderColorChips === 'function') _eqRenderColorChips();
     const cont = document.getElementById('equiposLoteTable'); if(!cont) return;
     const equiposAll = cache.refurb.filter(r => r.lote_id === loteActualId);
     const esAdmin = isAdminUser();
@@ -10905,7 +10935,7 @@ async function eliminarEquipoLote(equipoId) {
 let _editEqArt = null;
 function _editarEquipoLote(id) {
     const e = (cache.refurb || []).find(r => r.id === id); if(!e) return;
-    _editEqArt = { codigo: e.articulo_codigo, modelo: e.modelo, marca: e.marca, color: e.color };
+    _editEqArt = { codigo: e.articulo_codigo, modelo: e.modelo, marca: e.marca, referencia: e.capacidad || null };
     const esAdmin = isAdminUser();
     const esGar = !!e.es_garantia;
     const notas = (e.notas_diagnostico || '').replace(/^GARANT[IÍ]A(\s*·\s*)?/i, '').trim();
@@ -10918,6 +10948,7 @@ function _editarEquipoLote(id) {
         <div class="form-row"><label>Artículo</label>
           <div style="display:flex; gap:8px; align-items:center;"><span id="editEqArt" style="flex:1; font-size:13px; font-weight:600; color:#0f172a;">${escapeHtml(artTxt)}</span><button class="btn btn-light" style="padding:5px 10px; font-size:12px;" onclick="_editEqCambiarArt()"><i class="ti ti-search"></i> Cambiar</button></div></div>
         <div class="form-row"><label>IMEI / Serial *</label><input id="editEq_imei" value="${escapeHtml(e.imei || '')}"></div>
+        <div class="form-row"><label>Color</label><input id="editEq_color" value="${escapeHtml(_eqColorReal(e))}" placeholder="Ej. Negro, Azul, Dorado…"></div>
         ${esAdmin ? `<div class="form-row"><label>Costo unidad (RD$) *</label><input id="editEq_costo" type="number" step="0.01" value="${e.costo_compra || 0}"></div>` : ''}
         <div class="form-row"><label>Notas</label><input id="editEq_notas" value="${escapeHtml(notas)}" placeholder="Opcional"></div>
         <div class="form-row"><label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="editEq_garantia" ${esGar ? 'checked' : ''} style="width:16px; height:16px;"> 🛡️ Es por garantía (permite repetir el mismo IMEI)</label></div>
@@ -10928,7 +10959,7 @@ function _editarEquipoLote(id) {
 }
 function _editEqCambiarArt() {
     abrirBuscadorArticulos(null, (a) => {
-        _editEqArt = { codigo: a.codigo, modelo: [a.marca, a.descripcion].filter(x => x).join(' ').trim() || a.codigo, marca: a.marca || null, color: a.referencia || null };
+        _editEqArt = { codigo: a.codigo, modelo: [a.marca, a.descripcion].filter(x => x).join(' ').trim() || a.codigo, marca: a.marca || null, referencia: a.referencia || null };
         const el = document.getElementById('editEqArt'); if(el) el.textContent = `Cód. ${a.codigo} · ${(a.descripcion || '').trim()}`;
     });
 }
@@ -10943,7 +10974,8 @@ async function _guardarEdicionEquipoLote(id) {
         if(rep) { const loteRep = (cache.lotes || []).find(l => l.id === rep.lote_id); const donde = loteRep ? ('lote ' + (loteRep.codigo_lote || '')) : 'otro lote'; return toast(`⚠️ Ese IMEI (${imei}) ya está registrado en ${donde}. Si el equipo volvió por garantía, marca la casilla.`, 'error'); }
     }
     const upd = { imei, es_garantia: esGar };
-    if(_editEqArt && _editEqArt.codigo) { upd.articulo_codigo = _editEqArt.codigo; upd.modelo = _editEqArt.modelo; upd.marca = _editEqArt.marca; upd.color = _editEqArt.color; }
+    upd.color = ((document.getElementById('editEq_color') || {}).value || '').trim() || null;
+    if(_editEqArt && _editEqArt.codigo) { upd.articulo_codigo = _editEqArt.codigo; upd.modelo = _editEqArt.modelo; upd.marca = _editEqArt.marca; upd.capacidad = _editEqArt.referencia; }
     if(isAdminUser()) { const c = parseFloat(document.getElementById('editEq_costo').value) || 0; if(c <= 0) return toast('El costo debe ser mayor a 0.', 'error'); upd.costo_compra = c; }
     const notas = (document.getElementById('editEq_notas').value || '').trim();
     upd.notas_diagnostico = esGar ? ('GARANTÍA' + (notas ? ' · ' + notas : '')) : (notas || null);
