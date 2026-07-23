@@ -26210,9 +26210,10 @@ async function qzImprimirHtmlComoImagen(elementoHtml, anchoMm, altoMm, copias, t
     copias = parseInt(copias) || 1;
     
     try {
-        // 203 dpi: 8 dots/mm. Renderizamos a MAYOR densidad para texto grueso y nítido.
+        // 203 dpi: 8 dots/mm. Renderizamos a la resolución NATIVA de la impresora (203dpi):
+        // más rápido (4x menos pixeles) y sin pérdida — la térmica no reproduce más densidad que su dpi.
         const dpi = 203;
-        const escala = (dpi / 96) * 2; // x2 extra para que la negrita se marque fuerte
+        const escala = dpi / 96; // nativo 203dpi (antes x2 = 4x más lento sin ganancia real)
         
         // Tamaño físico exacto en px @96dpi (1mm = 3.7795px) para que la imagen
         // NO sea más alta que la etiqueta (evita que avance un label en blanco extra)
