@@ -565,3 +565,10 @@ Dagoberto pasó el endpoint y el modelo para **actualizar precios** (lo que falt
 
 ## ACTUALIZACIÓN 23 jul 2026 — Botón "Editar precios" también en Comparar con Info Plus
 En la vista **Comparar con Info Plus** (liquidación de aduana, `_compIPRender`), cada fila enlazada a un artículo ahora tiene un botón **"Editar precios"** (solo admin, junto a Cambiar/Enlazar) que abre `abrirEditarPreciosArticulo(codigo)` (el editor de los 3 niveles Contado/Crédito=Precio + Mínimo). Al guardar, el editor re-renderiza la comparación si está abierta (`_compIPRender`). Mismo editor que el del buscador premium.
+
+## ACTUALIZACIÓN 23 jul 2026 — index.html (web pública): Abierto/Cerrado en vivo + velocidad/SEO
+Mejoras a la landing `index.html` (bayolcell.com), pedidas por Sterling:
+- **Abierto ahora / Cerrado (en vivo)** por sucursal en la sección "Nuestras sucursales": pastilla verde (con puntito que pulsa) o roja según el horario real y la hora de RD (`America/Santo_Domingo`). IDs `#open-santiago`/`#open-moca`; IIFE con `HOR` (Santiago Lun–Vie 8:30–18:00, Sáb 9:00–16:00; Moca Lun–Sáb 8:30–18:00; domingos cerrado), calcula "cierra X" / "abre hoy/lun X"; refresca cada 60s.
+- **WhatsApp flotante** (`.fab`, ya existía) → animación `fabPulse` (respeta prefers-reduced-motion).
+- **"Cómo llegar"** por sucursal ya existía (Google Maps).
+- **Velocidad/SEO:** `loading="lazy" decoding="async"` en imágenes bajo el pliegue (moto, moto-specs, bici, financiamiento, canje, logo del footer); `<script @supabase defer>` + el registro de `web_visitas` movido a `window load` (para que el defer no lo rompa); `<link rel=preload as=image logo fetchpriority=high>`; `<meta robots index,follow,max-image-preview:large>`. El diseño no cambió.
