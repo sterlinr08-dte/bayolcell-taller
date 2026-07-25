@@ -18353,6 +18353,101 @@ function imprimirDespacho(id) {
     </body></html>`);
     w.document.close(); setTimeout(() => w.print(), 300);
 }
+// Carga jsPDF bajo demanda (solo cuando se descarga un PDF), desde CDN
+let _jspdfListo = false;
+function _cargarJsPDF() {
+    return new Promise((resolve, reject) => {
+        if(_jspdfListo && window.jspdf && window.jspdf.jsPDF) return resolve();
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        s.onload = () => { _jspdfListo = true; resolve(); };
+        s.onerror = () => reject(new Error('No se pudo cargar el generador de PDF'));
+        document.head.appendChild(s);
+    });
+}
+// Descarga el conduce de un despacho como PDF real (mismo diseño del conduce impreso).
+async function descargarDespachoPDF(id) {
+    const r = _despHistRows.find(x => x.id === id);
+    if(!r) return toast('No se encontró el despacho.', 'error');
+    toast('Generando PDF…');
+    try {
+        await _cargarJsPDF();
+        if(typeof html2canvas !== 'function') throw new Error('Falta html2canvas');
+        const conf = (cache.configTaller) || {};
+        const items = Array.isArray(r.items) && r.items.length ? r.items
+            : [{ codigo: r.codarticulo || '', descripcion: r.articulo_nombre || '', cantidad: r.cantidad || 0, costo: 0 }];
+        const u = items.reduce((s, x) => s + (Number(x.cantidad) || 0), 0);
+        const totalRD = items.reduce((s, x) => s + (Number(x.costo) || 0) * (Number(x.cantidad) || 0), 0);
+        const seriales = items.flatMap(x => {
+            const arr = Array.isArray(x.seriales) ? x.seriales : (Array.isArray(x.imeis) ? x.imeis : []);
+            return arr.map(s => (s && typeof s === 'object') ? (s.numero || s.imei || '') : s).filter(Boolean);
+        });
+        const filasHTML = items.map((it, i) => `<tr>
+            <td style="padding:9px 11px;border-bottom:1px solid #eef2f7;text-align:center;">${i + 1}</td>
+            <td style="padding:9px 11px;border-bottom:1px solid #eef2f7;text-align:center;">${escapeHtml(String(it.codigo || ''))}</td>
+            <td style="padding:9px 11px;border-bottom:1px solid #eef2f7;">${escapeHtml(it.descripcion || '')}</td>
+            <td style="padding:9px 11px;border-bottom:1px solid #eef2f7;text-align:center;font-weight:700;">${Number(it.cantidad) || 0}</td>
+            <td style="padding:9px 11px;border-bottom:1px solid #eef2f7;text-align:right;">${money(it.costo || 0)}</td>
+            <td style="padding:9px 11px;border-bottom:1px solid #eef2f7;text-align:right;">${money((Number(it.costo) || 0) * (Number(it.cantidad) || 0))}</td>
+        </tr>`).join('');
+        const serHTML = seriales.length ? `<div style="margin:10px 0 4px;font-size:12.5px;"><div style="font-weight:800;color:#475569;margin-bottom:5px;">Series / IMEI (${seriales.length}):</div>${seriales.map(s => `<span style="display:inline-block;font-family:ui-monospace,Menlo,monospace;font-weight:700;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:7px;padding:5px 10px;margin:0 6px 6px 0;">${escapeHtml(String(s))}</span>`).join('')}</div>` : '';
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'position:fixed;left:-99999px;top:0;width:760px;background:#fff;padding:34px 38px;font-family:-apple-system,Segoe UI,Arial,sans-serif;color:#0f172a;';
+        wrap.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #e31e24;padding-bottom:14px;margin-bottom:18px;">
+          <div><div style="font-size:26px;font-weight:900;letter-spacing:.5px;">${escapeHtml(conf.nombre || 'BAYOL CELL')}</div>
+            <div style="font-size:12px;color:#475569;margin-top:2px;">Conduce de Despacho de Almacén${conf.direccion ? ' · ' + escapeHtml(conf.direccion) : ''}${conf.telefono ? ' · Tel: ' + escapeHtml(conf.telefono) : ''}</div></div>
+          <div style="text-align:right;"><div style="font-size:12px;font-weight:800;letter-spacing:.5px;color:#475569;text-transform:uppercase;">Despacho No.</div>
+            <div style="font-size:22px;font-weight:900;color:#e31e24;">${escapeHtml(r.despacho_numero || '—')}</div>
+            <div style="font-size:12px;color:#475569;margin-top:3px;">${new Date(r.fecha).toLocaleString('es-DO')}</div></div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center;justify-content:center;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px;margin-bottom:16px;">
+          <div style="text-align:center;flex:1;"><div style="font-size:10px;font-weight:800;letter-spacing:.5px;color:#64748b;text-transform:uppercase;">Origen</div><div style="font-size:16px;font-weight:800;margin-top:3px;">${escapeHtml(_nombreAlmacen(r.almacen_origen))}</div></div>
+          <div style="font-size:26px;color:#e31e24;font-weight:900;">&rarr;</div>
+          <div style="text-align:center;flex:1;"><div style="font-size:10px;font-weight:800;letter-spacing:.5px;color:#64748b;text-transform:uppercase;">Destino</div><div style="font-size:16px;font-weight:800;margin-top:3px;">${escapeHtml(_nombreAlmacen(r.almacen_destino))}</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;font-size:13px;margin-bottom:14px;">
+          <div><b style="color:#475569;">Despachado por:</b> ${escapeHtml(r.usuario || '')}</div>
+          <div><b style="color:#475569;">Recibido por:</b> _______________________</div>
+          ${r.nota ? `<div style="grid-column:1/-1;"><b style="color:#475569;">Nota:</b> ${escapeHtml(r.nota)}</div>` : ''}
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead><tr>
+            <th style="background:#0f172a;color:#fff;text-align:center;padding:9px 11px;font-size:11px;">#</th>
+            <th style="background:#0f172a;color:#fff;text-align:center;padding:9px 11px;font-size:11px;">C&oacute;d.</th>
+            <th style="background:#0f172a;color:#fff;text-align:left;padding:9px 11px;font-size:11px;">Art&iacute;culo</th>
+            <th style="background:#0f172a;color:#fff;text-align:center;padding:9px 11px;font-size:11px;">Cant.</th>
+            <th style="background:#0f172a;color:#fff;text-align:right;padding:9px 11px;font-size:11px;">Costo u.</th>
+            <th style="background:#0f172a;color:#fff;text-align:right;padding:9px 11px;font-size:11px;">Monto</th>
+          </tr></thead><tbody>${filasHTML}</tbody>
+        </table>
+        ${serHTML}
+        <div style="text-align:right;font-size:15px;font-weight:900;margin:10px 0 26px;"><span style="color:#475569;font-size:12px;font-weight:700;">Total RD$ </span>${money(totalRD)} <span style="color:#475569;font-size:12px;font-weight:700;">&middot; ${u} und.</span></div>
+        <div style="display:flex;gap:40px;margin-top:40px;">
+          <div style="flex:1;text-align:center;"><div style="border-top:1.5px solid #0f172a;margin-bottom:6px;"></div><div style="font-size:11px;color:#475569;font-weight:700;">ENTREGADO POR</div></div>
+          <div style="flex:1;text-align:center;"><div style="border-top:1.5px solid #0f172a;margin-bottom:6px;"></div><div style="font-size:11px;color:#475569;font-weight:700;">RECIBIDO POR</div></div>
+        </div>
+        <div style="text-align:center;font-size:11px;color:#94a3b8;margin-top:22px;border-top:1px dashed #e2e8f0;padding-top:12px;">Documento de control interno &middot; ${escapeHtml(conf.nombre || 'BAYOL CELL')} &middot; Traslado entre almacenes (no es factura fiscal)</div>`;
+        document.body.appendChild(wrap);
+        const canvas = await html2canvas(wrap, { scale: 2, backgroundColor: '#ffffff', logging: false });
+        document.body.removeChild(wrap);
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({ unit: 'pt', format: 'letter' });
+        const pw = pdf.internal.pageSize.getWidth(), ph = pdf.internal.pageSize.getHeight();
+        const margin = 28, iw = pw - margin * 2, ih = canvas.height * (iw / canvas.width);
+        const img = canvas.toDataURL('image/png');
+        if(ih <= ph - margin * 2) {
+            pdf.addImage(img, 'PNG', margin, margin, iw, ih);
+        } else {
+            let hLeft = ih, pos = margin;
+            pdf.addImage(img, 'PNG', margin, pos, iw, ih);
+            hLeft -= (ph - margin * 2);
+            while(hLeft > 0) { pdf.addPage(); pos = margin - (ih - hLeft); pdf.addImage(img, 'PNG', margin, pos, iw, ih); hLeft -= (ph - margin * 2); }
+        }
+        pdf.save(`Despacho_${(r.despacho_numero || 'SN')}.pdf`);
+        toast('📄 PDF descargado.');
+    } catch(e) { logError('PDF despacho', e); toastError('No se pudo generar el PDF: ' + getFriendlyError(e)); }
+}
 async function _despachoCargarHistorial() {
     const cont = document.getElementById('despachosHistorial');
     if(!cont) return;
@@ -18404,9 +18499,10 @@ async function _despachoCargarHistorial() {
     try {
         const { data, error } = await supabaseClient.from('despachos_almacen').select('*').order('fecha', { ascending: false }).limit(150);
         if(error) throw error;
+        _despHistRows = data || [];
         // 1) Traspasos entre almacenes (módulo)
         const filas = (data || []).map(r => ({
-            tipo: 'almacen', fecha: r.fecha,
+            tipo: 'almacen', id: r.id, num: r.despacho_numero || '', fecha: r.fecha,
             art: (r.articulo_nombre || '') + (r.codarticulo ? ` (${r.codarticulo})` : ''),
             cant: r.cantidad, ruta: _nombreAlmacen(r.almacen_origen) + ' → ' + _nombreAlmacen(r.almacen_destino),
             usuario: r.usuario || '', estado: r.estado || 'ok', nota: r.nota || ''
@@ -18428,9 +18524,10 @@ async function _despachoCargarHistorial() {
         const tipoTag = (t) => t === 'reacond'
             ? '<span style="background:#ede9fe; color:#6d28d9; font-size:10px; font-weight:700; padding:1px 7px; border-radius:8px;">📱 Reacond</span>'
             : '<span style="background:#cffafe; color:#155e75; font-size:10px; font-weight:700; padding:1px 7px; border-radius:8px;">📦 Almacén</span>';
-        cont.innerHTML = `<table><thead><tr><th>Fecha</th><th>Tipo</th><th>Artículo</th><th>Cant.</th><th>Origen / Destino</th><th>Usuario</th><th>Estado</th><th>Nota</th></tr></thead><tbody>` +
+        cont.innerHTML = `<table><thead><tr><th>Fecha</th><th>Nº</th><th>Tipo</th><th>Artículo</th><th>Cant.</th><th>Origen / Destino</th><th>Usuario</th><th>Estado</th><th>Nota</th><th></th></tr></thead><tbody>` +
             filas.map(r => `<tr>
                 <td style="white-space:nowrap;">${new Date(r.fecha).toLocaleString('es-DO')}</td>
+                <td style="white-space:nowrap; font-weight:700; color:#0891b2;">${escapeHtml(r.num || '')}</td>
                 <td>${tipoTag(r.tipo)}</td>
                 <td>${escapeHtml(r.art)}</td>
                 <td style="text-align:center; font-weight:700;">${r.cant}</td>
@@ -18438,6 +18535,7 @@ async function _despachoCargarHistorial() {
                 <td>${escapeHtml(r.usuario)}</td>
                 <td>${badge(r.estado)}</td>
                 <td>${escapeHtml(r.nota)}</td>
+                <td style="white-space:nowrap; text-align:center;">${(r.tipo === 'almacen' && r.id && r.estado === 'ok') ? `<button class="btn btn-light" style="padding:3px 8px; font-size:12px;" title="Imprimir conduce" onclick="imprimirDespacho('${r.id}')"><i class="ti ti-printer"></i></button> <button class="btn btn-light" style="padding:3px 8px; font-size:12px;" title="Descargar PDF" onclick="descargarDespachoPDF('${r.id}')"><i class="ti ti-file-type-pdf"></i></button>` : ''}</td>
             </tr>`).join('') + `</tbody></table>`;
     } catch(e) { logError('Historial despachos', e); cont.innerHTML = '<p style="color:#b91c1c; font-size:13px;">No se pudo cargar el historial.</p>'; }
 }
