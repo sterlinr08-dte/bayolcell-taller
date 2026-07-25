@@ -2350,6 +2350,7 @@ body{
                                     </div>
                                 </div>
                                 <button id="btnReporteCostosLote" class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#166534; border-color:#86efac; display:none;" onclick="imprimirReporteCostosLote()"><i class="ti ti-printer"></i> Imprimir</button>
+                                <button id="btnPdfCostosLote" class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#b91c1c; border-color:#fca5a5; display:none;" onclick="imprimirReporteCostosLote('pdf')"><i class="ti ti-file-type-pdf"></i> PDF</button>
                                 <button id="btnExcelCostosLote" class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#15803d; border-color:#86efac; display:none;" onclick="exportarReporteCostosLoteExcel()"><i class="ti ti-file-spreadsheet"></i> Exportar Excel</button>
                                 <button id="btnFormatoIP" class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#075985; border-color:#7dd3fc; display:none;" onclick="imprimirFormatoInfoPlus()"><i class="ti ti-building-warehouse"></i> Formato Info Plus</button>
                                 <button id="btnFormatoIPExcel" class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#075985; border-color:#7dd3fc; display:none;" onclick="exportarFormatoInfoPlusExcel()"><i class="ti ti-file-spreadsheet"></i> Info Plus (Excel)</button>
@@ -5390,6 +5391,7 @@ async function renderIncentivos() {
                 ${kVal > 0 ? `<button class="inc-btn inc-btn-blue" onclick="abrirValidadorGlobal('${_incFiltroTec}')"><i class="ti ti-checklist"></i> Validar</button>` : ''}
                 ${kPag > 0 ? `<button class="inc-btn inc-btn-red" onclick="guardarReporteIncentivos('${_incFiltroTec}')"><i class="ti ti-cash"></i> Pagar (${money(kPag)})</button>` : ''}
                 <button class="inc-btn" onclick="imprimirIncentivosTecnico('${_incFiltroTec}')"><i class="ti ti-printer"></i> Imprimir</button>
+                <button class="inc-btn" onclick="imprimirIncentivosTecnico('${_incFiltroTec}','pdf')"><i class="ti ti-file-type-pdf"></i> PDF</button>
             </div>
         </div>`;
     }
@@ -5848,7 +5850,7 @@ async function guardarEdicionIncentivo(id) {
         _incRefrescar();
     } catch(e) { console.error('guardarEdicionIncentivo', e); toast('No se pudo guardar.', 'error'); }
 }
-function imprimirIncentivosTecnico(tecnicoId) {
+function imprimirIncentivosTecnico(tecnicoId, _modo) {
     const regs = _incCache.filter(r => (r.tecnico_id || '_') === tecnicoId && _incEnRango(r)).sort((a,b) => (a.fecha||'').localeCompare(b.fecha||''));
     if(!regs.length) { toast('No hay registros de ese técnico en el rango.', 'error'); return; }
     const nombre = regs[0].tecnico_nombre || 'Técnico';
@@ -5861,9 +5863,7 @@ function imprimirIncentivosTecnico(tecnicoId) {
     const pul = regs.filter(r => r.tipo === 'pulido').length;
     const periodo = (_incDesde || _incHasta) ? `Período: ${_incDesde ? _incFmtFecha(_incDesde) : '...'} al ${_incHasta ? _incFmtFecha(_incHasta) : '...'}` : 'Todos los registros';
     const filas = regs.map(r => `<tr><td>${_incFmtFecha(r.fecha)}</td><td>${escapeHtml(r.ticket||'-')}</td><td>${_incTipoTxt(r.tipo).replace(/[^\x20-\x7EñÑáéíóúÁÉÍÓÚ ]/g,'').trim()}</td><td style="text-align:right;">${money(r.monto_incentivo)}</td><td>${r.estado==='pagado'?'Pagado':'Pendiente'}</td></tr>`).join('');
-    const w = window.open('', '_blank');
-    if(!w) { toast('Permite las ventanas emergentes para imprimir.', 'error'); return; }
-    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Incentivos ${escapeHtml(nombre)}</title>
+    const _html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Incentivos ${escapeHtml(nombre)}</title>
         <style>
             body{font-family:Arial,Helvetica,sans-serif; color:#0f172a; padding:24px; max-width:680px; margin:0 auto;}
             h1{font-size:20px; margin:0;} h2{font-size:15px; margin:2px 0 0; color:#475569;}
@@ -5888,7 +5888,11 @@ function imprimirIncentivosTecnico(tecnicoId) {
         <div class="tot">Pendiente de pago: ${money(totalPend)}</div>
         <div class="muted" style="text-align:right;">Total general (todos): ${money(totalGeneral)}</div>
         <div class="firma"><div>Entregado por</div><div>Recibido por (${escapeHtml(nombre)})</div></div>
-        </body></html>`);
+        </body></html>`;
+    if(_modo === 'pdf') return _htmlAPdf(_html, 'Incentivos_' + String(nombre || 'tecnico').replace(/\s+/g, '_'), { ancho: 720 });
+    const w = window.open('', '_blank');
+    if(!w) { toast('Permite las ventanas emergentes para imprimir.', 'error'); return; }
+    w.document.write(_html);
     w.document.close(); w.focus();
     setTimeout(() => { try { w.print(); } catch(e) {} }, 400);
 }
@@ -11231,7 +11235,7 @@ function _loteConcluido(loteId) {
     return eq.length > 0 && eq.every(e => ['listo_venta','vendido'].includes(e.estado_evaluacion));
 }
 // Construye e imprime un reporte de costos organizado para una lista de equipos
-function _reporteCostosPrintHTML({ titulo, subtitulo, infoChips, equipos }) {
+function _reporteCostosPrintHTML({ titulo, subtitulo, infoChips, equipos, pdf, filename }) {
     const cfg = cache.configTaller || {};
     const tienda = cfg.nombre || 'BAYOL CELL';
     const subTienda = [cfg.direccion, cfg.telefono].filter(Boolean).join(' · ');
@@ -11258,9 +11262,7 @@ function _reporteCostosPrintHTML({ titulo, subtitulo, infoChips, equipos }) {
         }
         return rows;
     }).join('');
-    const w = window.open('', '_blank');
-    if(!w) { toast('Permite las ventanas emergentes para imprimir.', 'error'); return; }
-    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escapeHtml(titulo)}</title>
+    const _html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escapeHtml(titulo)}</title>
         <style>
             *{box-sizing:border-box;}
             body{font-family:Arial,Helvetica,sans-serif; color:#0f172a; padding:18px; max-width:1060px; margin:0 auto;}
@@ -11305,7 +11307,11 @@ function _reporteCostosPrintHTML({ titulo, subtitulo, infoChips, equipos }) {
         </table>
         <p class="foot">Documento de control interno · No es una factura de venta</p>
         <script>window.onload=function(){window.print();}<\/script>
-        </body></html>`);
+        </body></html>`;
+    if(pdf) return _htmlAPdf(_html, filename || titulo, { ancho: 1040 });
+    const w = window.open('', '_blank');
+    if(!w) { toast('Permite las ventanas emergentes para imprimir.', 'error'); return; }
+    w.document.write(_html);
     w.document.close();
 }
 // Genera y descarga un Excel (.xls) con los mismos datos del reporte
@@ -11360,11 +11366,11 @@ function _reporteCostosExcelDL({ titulo, infoLineas, equipos, filename }) {
 }
 
 // ---- Reporte de los equipos SELECCIONADOS (Listo/Despachado) ----
-function imprimirCostosSeleccionados() {
+function imprimirCostosSeleccionados(_modo) {
     if(!isAdminUser()) return toast('Solo el administrador puede ver costos.', 'error');
     const equipos = (cache.refurb || []).filter(r => _reacondSelCosto.has(r.id));
     if(!equipos.length) return toast('Marca primero los equipos (Listo/Completado/Despachado) que quieres imprimir.', 'error');
-    _reporteCostosPrintHTML({ titulo: 'Costos equipos seleccionados', subtitulo: 'Reporte de costos — Equipos seleccionados', infoChips: [`<b>Equipos seleccionados:</b> ${equipos.length}`], equipos });
+    _reporteCostosPrintHTML({ titulo: 'Costos equipos seleccionados', subtitulo: 'Reporte de costos — Equipos seleccionados', infoChips: [`<b>Equipos seleccionados:</b> ${equipos.length}`], equipos, pdf: _modo === 'pdf', filename: 'Costos_seleccionados_' + new Date().toISOString().slice(0,10) });
 }
 function exportarCostosSeleccionadosExcel() {
     if(!isAdminUser()) return toast('Solo el administrador puede ver costos.', 'error');
@@ -12656,7 +12662,7 @@ function _datosReporteCostosLote() {
 }
 
 // Informe de costos del lote (respeta filtros activos). Cuando el lote está concluido es el "Informe general".
-function imprimirReporteCostosLote() {
+function imprimirReporteCostosLote(_modo) {
     const datos = _datosReporteCostosLote();
     if(!datos) return;
     const { lote, equipos, prov, filtrosTxt } = datos;
@@ -12673,7 +12679,9 @@ function imprimirReporteCostosLote() {
         titulo: `Costos lote ${lote.codigo_lote || ''}`,
         subtitulo: `${concl ? '📋 Informe general' : 'Reporte de costos'} — Lote ${lote.codigo_lote || ''}`,
         infoChips: chips,
-        equipos
+        equipos,
+        pdf: _modo === 'pdf',
+        filename: 'Costos_lote_' + (lote.codigo_lote || 'SN')
     });
 }
 
@@ -15119,6 +15127,7 @@ function renderDetalleLoteReacond() {
     // Lote concluido = todos los equipos en Listo o Despachado
     const concluido = equipos.length > 0 && (listoV + despachados) === equipos.length;
     const _br = document.getElementById('btnReporteCostosLote'); if(_br) _br.style.display = isAdminUser() ? '' : 'none';
+    const _bp = document.getElementById('btnPdfCostosLote'); if(_bp) _bp.style.display = isAdminUser() ? '' : 'none';
     const _bx = document.getElementById('btnExcelCostosLote'); if(_bx) _bx.style.display = isAdminUser() ? '' : 'none';
     const _bf = document.getElementById('btnFormatoIP'); if(_bf) _bf.style.display = isAdminUser() ? '' : 'none';
     const _bfx = document.getElementById('btnFormatoIPExcel'); if(_bfx) _bfx.style.display = isAdminUser() ? '' : 'none';
@@ -18364,6 +18373,55 @@ function _cargarJsPDF() {
         s.onerror = () => reject(new Error('No se pudo cargar el generador de PDF'));
         document.head.appendChild(s);
     });
+}
+// Motor GENÉRICO: convierte un documento HTML COMPLETO (el mismo que se imprime) en un PDF descargable.
+// Usa un iframe aislado (no ensucia los estilos de la app) + html2canvas + jsPDF. Reutilizable en todo el sistema.
+async function _htmlAPdf(fullHtml, filename, opts) {
+    opts = opts || {};
+    const ancho = opts.ancho || 800;      // ancho de render en px
+    const ajustar = !!opts.ajustar;       // true = página del tamaño del contenido (recibos/labels)
+    toast('Generando PDF…');
+    try {
+        await _cargarJsPDF();
+        if(typeof html2canvas !== 'function') throw new Error('Falta html2canvas');
+        const ifr = document.createElement('iframe');
+        ifr.style.cssText = `position:fixed; left:-99999px; top:0; width:${ancho}px; height:100px; border:0; background:#fff;`;
+        document.body.appendChild(ifr);
+        const doc = ifr.contentDocument || ifr.contentWindow.document;
+        doc.open(); doc.write(fullHtml); doc.close();
+        try { doc.querySelectorAll('button, .btns, .btnbar, .no-pdf, script').forEach(el => el.remove()); } catch(_e) {}
+        await new Promise(res => {
+            const imgs = Array.from(doc.images || []);
+            const pend = imgs.filter(im => !im.complete);
+            if(!pend.length) return setTimeout(res, 150);
+            let n = pend.length; const done = () => { if(--n <= 0) res(); };
+            pend.forEach(im => { im.addEventListener('load', done); im.addEventListener('error', done); });
+            setTimeout(res, 2500);
+        });
+        try { ifr.style.height = (doc.body.scrollHeight + 20) + 'px'; } catch(_e) {}
+        const canvas = await html2canvas(doc.body, { scale: 2, backgroundColor: '#ffffff', logging: false, width: ancho, windowWidth: ancho });
+        document.body.removeChild(ifr);
+        const { jsPDF } = window.jspdf;
+        const img = canvas.toDataURL('image/png');
+        let pdf;
+        if(ajustar) {
+            const wpt = canvas.width / 2, hpt = canvas.height / 2;
+            pdf = new jsPDF({ unit: 'pt', format: [wpt, hpt], orientation: wpt > hpt ? 'l' : 'p' });
+            pdf.addImage(img, 'PNG', 0, 0, wpt, hpt);
+        } else {
+            pdf = new jsPDF({ unit: 'pt', format: 'letter' });
+            const pw = pdf.internal.pageSize.getWidth(), ph = pdf.internal.pageSize.getHeight();
+            const margin = 24, iw = pw - margin * 2, ih = canvas.height * (iw / canvas.width);
+            if(ih <= ph - margin * 2) { pdf.addImage(img, 'PNG', margin, margin, iw, ih); }
+            else {
+                let hLeft = ih, pos = margin;
+                pdf.addImage(img, 'PNG', margin, pos, iw, ih); hLeft -= (ph - margin * 2);
+                while(hLeft > 0) { pdf.addPage(); pos = margin - (ih - hLeft); pdf.addImage(img, 'PNG', margin, pos, iw, ih); hLeft -= (ph - margin * 2); }
+            }
+        }
+        pdf.save(filename.endsWith('.pdf') ? filename : filename + '.pdf');
+        toast('📄 PDF descargado.');
+    } catch(e) { logError('_htmlAPdf', e); toastError('No se pudo generar el PDF: ' + getFriendlyError(e)); }
 }
 // Descarga el conduce de un despacho como PDF real (mismo diseño del conduce impreso).
 async function descargarDespachoPDF(id) {
@@ -21929,18 +21987,18 @@ function _prefExito(num, total) {
         <div style="font-size:12px; color:#94a3b8; margin-top:8px;">Ya quedó en Info Plus. La cajera la convierte en factura y cobra.</div>
         <div style="display:flex; gap:8px; justify-content:center; margin-top:18px; flex-wrap:wrap;">
           <button class="btn btn-light" onclick="imprimirPrefactura()"><i class="ti ti-printer"></i> Imprimir</button>
+          <button class="btn btn-light" onclick="imprimirPrefactura('pdf')" style="color:#b91c1c;"><i class="ti ti-file-type-pdf"></i> PDF</button>
           <button class="btn btn-blue" onclick="abrirPrefacturaNueva()"><i class="ti ti-plus"></i> Otra prefactura</button>
           <button class="btn btn-success" onclick="_prefVolver()"><i class="ti ti-check"></i> Listo</button>
         </div>
     </div>`;
 }
-function imprimirPrefactura() {
+function imprimirPrefactura(_modo) {
     const p = _prefUltima; if(!p) return;
     const ct = cache.configTaller || {};
     const loc = p.model.codlocalidad === '4' ? 'Moca' : 'Santiago';
     const filas = p.model.detallesPreFactura.map(d => `<tr><td>${escapeHtml(String(d.codarticulo))}</td><td>${escapeHtml(d.descripcion)}</td><td style="text-align:center;">${d.cantidad}</td><td style="text-align:right;">${money(d.precio)}</td><td style="text-align:right;">${money(d.precio * d.cantidad)}</td></tr>`).join('');
-    const w = window.open('', '_blank'); if(!w) return toast('Permite las ventanas emergentes para imprimir.', 'error');
-    w.document.write(`<html><head><title>Prefactura ${escapeHtml(p.num || '')}</title><style>body{font-family:Arial,sans-serif;padding:22px;color:#111;} table{width:100%;border-collapse:collapse;margin-top:12px;} th,td{border:1px solid #ccc;padding:6px 8px;font-size:13px;} th{background:#f1f5f9;text-align:left;} h2{margin:0;}</style></head><body>
+    const _html = `<html><head><title>Prefactura ${escapeHtml(p.num || '')}</title><style>body{font-family:Arial,sans-serif;padding:22px;color:#111;} table{width:100%;border-collapse:collapse;margin-top:12px;} th,td{border:1px solid #ccc;padding:6px 8px;font-size:13px;} th{background:#f1f5f9;text-align:left;} h2{margin:0;}</style></head><body>
       <h2>${escapeHtml(ct.nombre || 'BAYOL CELL')}</h2>
       <div style="font-size:12px;color:#555;">${escapeHtml(ct.direccion || '')} ${ct.telefono ? ('· ' + escapeHtml(ct.telefono)) : ''}</div>
       <hr>
@@ -21950,8 +22008,10 @@ function imprimirPrefactura() {
       <table><thead><tr><th>Código</th><th>Descripción</th><th style="text-align:center;">Cant.</th><th style="text-align:right;">Precio</th><th style="text-align:right;">Importe</th></tr></thead><tbody>${filas}</tbody></table>
       <div style="text-align:right;font-size:17px;font-weight:800;margin-top:12px;">Total: ${money(p.total)}</div>
       <div style="font-size:11px;color:#888;margin-top:16px;">Documento preliminar (prefactura). La cajera lo convierte en factura fiscal al momento de cobrar.</div>
-      <script>window.onload=function(){window.print();}<\/script></body></html>`);
-    w.document.close(); w.focus();
+      <script>window.onload=function(){window.print();}<\/script></body></html>`;
+    if(_modo === 'pdf') return _htmlAPdf(_html, 'Prefactura_' + (p.num || 'SN'), { ancho: 760 });
+    const w = window.open('', '_blank'); if(!w) return toast('Permite las ventanas emergentes para imprimir.', 'error');
+    w.document.write(_html); w.document.close(); w.focus();
 }
 // ===== Clientes de Info Plus (para la prefactura) =====
 let _prefCliQ = '';
@@ -22141,7 +22201,7 @@ function _rpRenderResumen() {
         <button class="rx-btn rx-btn-red" onclick="_rpGuardar(false)"><i class="ti ti-device-floppy"></i> Guardar</button>
         <button class="rx-btn rx-btn-dark" onclick="_rpGuardar(true)"><i class="ti ti-printer"></i> Guardar e imprimir</button>
       </div>`}
-      ${_rpState.codprefactura ? `<div style="font-size:11px;color:#16a34a;margin-top:8px;text-align:center;">Prefactura Nº <b>${escapeHtml(_rpState.codprefactura)}</b> en Info Plus <button class="btn btn-light btn-sm" onclick="_rpImprimir()" style="margin-left:4px;"><i class="ti ti-printer"></i></button></div>` : ''}`;
+      ${_rpState.codprefactura ? `<div style="font-size:11px;color:#16a34a;margin-top:8px;text-align:center;">Prefactura Nº <b>${escapeHtml(_rpState.codprefactura)}</b> en Info Plus <button class="btn btn-light btn-sm" onclick="_rpImprimir()" style="margin-left:4px;"><i class="ti ti-printer"></i></button><button class="btn btn-light btn-sm" onclick="_rpImprimir('pdf')" style="margin-left:4px; color:#b91c1c;" title="Descargar PDF"><i class="ti ti-file-type-pdf"></i></button></div>` : ''}`;
 }
 function _rpEstadoBadge(estado, cod) {
     const map = { pendiente: ['#fef3c7', '#b45309', 'Pendiente de crear'], cambios: ['#fef9c3', '#a16207', 'Cambios pendientes de sincronizar'], sincronizada: ['#dcfce7', '#16a34a', 'Sincronizada con Info Plus'], actualizando: ['#dbeafe', '#1d4ed8', 'Actualizando prefactura…'], error: ['#fee2e2', '#b91c1c', 'Error de sincronización'], facturada: ['#e0e7ff', '#3730a3', 'Convertida en factura'] };
@@ -22188,7 +22248,7 @@ async function _rpCrearPrefactura() {
     } catch(e) { logError('crear prefactura recepcion', e); _rpState.estado = 'error'; _rpRenderResumen(); toastError(getFriendlyError(e, 'No se pudo crear la prefactura.')); }
 }
 let _rpUltima = null;
-function _rpImprimir() { if(_rpUltima) { _prefUltima = _rpUltima; imprimirPrefactura(); } }
+function _rpImprimir(_modo) { if(_rpUltima) { _prefUltima = _rpUltima; imprimirPrefactura(_modo); } }
 // ---- Historial buscable de prefacturas (para editar cualquiera) ----
 let _rpHistQ = '';
 async function _rpHistorial() {
@@ -27215,7 +27275,7 @@ function _pintarDetalleFin() {
             <td>${new Date(p.creado_en).toLocaleString('es-DO', { dateStyle: 'short', timeStyle: 'short' })}</td>
             <td>${money(p.monto)}</td>
             <td style="text-transform:capitalize;">${escapeHtml(p.metodo || '')}</td>
-            <td style="white-space:nowrap;"><button class="btn btn-light" onclick="imprimirReciboFin('${p.id}')" style="font-size:11px; padding:3px 8px;" title="Imprimir ticket"><i class="ti ti-printer"></i></button><button class="btn btn-light" onclick="enviarReciboWhatsApp('${p.id}')" style="font-size:11px; padding:3px 8px; color:#16a34a;" title="Enviar por WhatsApp"><i class="ti ti-brand-whatsapp"></i></button>${puedeEliminar ? `<button class="btn btn-light" onclick="anularAbono('${p.id}')" style="font-size:11px; padding:3px 8px; color:#b91c1c;" title="Anular abono"><i class="ti ti-trash"></i></button>` : ''}</td>
+            <td style="white-space:nowrap;"><button class="btn btn-light" onclick="imprimirReciboFin('${p.id}')" style="font-size:11px; padding:3px 8px;" title="Imprimir ticket"><i class="ti ti-printer"></i></button><button class="btn btn-light" onclick="imprimirReciboFin('${p.id}','pdf')" style="font-size:11px; padding:3px 8px; color:#b91c1c;" title="Descargar PDF"><i class="ti ti-file-type-pdf"></i></button><button class="btn btn-light" onclick="enviarReciboWhatsApp('${p.id}')" style="font-size:11px; padding:3px 8px; color:#16a34a;" title="Enviar por WhatsApp"><i class="ti ti-brand-whatsapp"></i></button>${puedeEliminar ? `<button class="btn btn-light" onclick="anularAbono('${p.id}')" style="font-size:11px; padding:3px 8px; color:#b91c1c;" title="Anular abono"><i class="ti ti-trash"></i></button>` : ''}</td>
         </tr>`).join('');
         html += `</tbody></table></div>`;
     } else {
@@ -27850,6 +27910,7 @@ function _finModalPagoExito(finId, pagoId) {
         </div>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:18px;">
             <button class="btn btn-light" onclick="imprimirReciboFin('${pagoId}')" style="padding:11px; font-size:13.5px;"><i class="ti ti-printer"></i> Imprimir ticket</button>
+            <button class="btn btn-light" onclick="imprimirReciboFin('${pagoId}','pdf')" style="padding:11px; font-size:13.5px; color:#b91c1c;"><i class="ti ti-file-type-pdf"></i> PDF</button>
             <button class="btn btn-light" onclick="enviarReciboWhatsApp('${pagoId}')" style="padding:11px; font-size:13.5px; color:#15803d; border-color:#86efac;"><i class="ti ti-brand-whatsapp"></i> WhatsApp</button>
         </div>
         <button class="btn btn-blue" onclick="cerrarModalPago()" style="width:100%; margin-top:10px; padding:12px; font-size:15px; font-weight:700;">Listo</button>`;
@@ -28001,7 +28062,7 @@ function enviarReciboWhatsApp(pagoId) {
     window.open(r.url, '_blank');
 }
 // Recibo en formato TICKET TÉRMICO (rollo 80mm) + botón WhatsApp
-function imprimirReciboFin(pagoId) {
+function imprimirReciboFin(pagoId, _modo) {
     const p = (_finCache.pagos || []).find(x => x.id === pagoId);
     if(!p) { toast('Recibo no encontrado.', 'error'); return; }
     const f = (_finCache.financiamientos || []).find(x => x.id === p.financiamiento_id) || {};
@@ -28011,9 +28072,7 @@ function imprimirReciboFin(pagoId) {
     const c = cache.configTaller || {};
     const tienda = c.nombre || 'BAYOL CELL';
     const wa = _finReciboWaUrl(pagoId);
-    const w = window.open('', '_blank', 'width=340,height=680');
-    if(!w) { toast('Permite las ventanas emergentes para imprimir.', 'error'); return; }
-    w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Recibo #${p.recibo || ''}</title>
+    const _html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Recibo #${p.recibo || ''}</title>
         <style>
             @page { size: 80mm auto; margin: 0; }
             * { box-sizing:border-box; }
@@ -28054,7 +28113,11 @@ function imprimirReciboFin(pagoId) {
             <button onclick="window.print()" style="background:#0f172a; color:#fff;">Imprimir</button>
             ${wa && wa.hasNum ? `<a href="${wa.url}" target="_blank" style="background:#16a34a; color:#fff;"><i class="ti ti-brand-whatsapp"></i> WhatsApp</a>` : ''}
         </div>
-        </body></html>`);
+        </body></html>`;
+    if(_modo === 'pdf') return _htmlAPdf(_html, 'Recibo_' + (p.recibo || 'SN'), { ancho: 300, ajustar: true });
+    const w = window.open('', '_blank', 'width=340,height=680');
+    if(!w) { toast('Permite las ventanas emergentes para imprimir.', 'error'); return; }
+    w.document.write(_html);
     w.document.close();
 }
 
