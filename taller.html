@@ -1359,21 +1359,26 @@ body{
                   @media(max-width:640px){#v-recepcion .rx-tools{grid-template-columns:1fr;}}
                   #v-recepcion .rx-tools .card{margin:0;border-radius:14px;box-shadow:0 1px 3px rgba(15,23,42,.06);border:1px solid #eef2f7;}
                   #v-recepcion .rx-tools h3{font-size:14px;}
-                  #v-recepcion .rx-layout{display:grid;grid-template-columns:1fr 340px;gap:14px;align-items:start;}
+                  #v-recepcion .rx-layout{display:grid;grid-template-columns:1fr 320px;gap:12px;align-items:start;}
                   @media(max-width:1080px){#v-recepcion .rx-layout{grid-template-columns:1fr;}}
-                  #v-recepcion .rx-cols{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;align-items:start;}
+                  #v-recepcion .rx-cols{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;align-items:start;}
                   @media(max-width:700px){#v-recepcion .rx-cols{grid-template-columns:1fr;}}
                   #v-recepcion .rx-card{background:#fff;border:1px solid #eef2f7;border-radius:14px;box-shadow:0 1px 3px rgba(15,23,42,.06);overflow:hidden;}
-                  #v-recepcion .rx-head{font-size:12.5px;font-weight:800;letter-spacing:.2px;padding:11px 14px;background:#f8fafc;border-bottom:1px solid #eef2f7;color:#0f172a;border-top:3px solid #e31e24;}
-                  #v-recepcion .rx-head.c2{border-top-color:#0891b2;} #v-recepcion .rx-head.c3{border-top-color:#7c3aed;} #v-recepcion .rx-head.c4{border-top-color:#16a34a;}
-                  #v-recepcion .rx-body{padding:12px 14px;}
-                  #v-recepcion .rx-body > div{margin-bottom:9px;}
+                  #v-recepcion .rx-head{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:800;letter-spacing:.2px;padding:9px 12px;background:linear-gradient(180deg,#fbfcfe,#f4f7fb);border-bottom:1px solid #eef2f7;color:#0f172a;border-top:3px solid #e31e24;}
+                  #v-recepcion .rx-head i{font-size:15px;color:#e31e24;}
+                  #v-recepcion .rx-head.c2{border-top-color:#0891b2;} #v-recepcion .rx-head.c2 i{color:#0891b2;}
+                  #v-recepcion .rx-head.c3{border-top-color:#7c3aed;} #v-recepcion .rx-head.c3 i{color:#7c3aed;}
+                  #v-recepcion .rx-head.c4{border-top-color:#16a34a;} #v-recepcion .rx-head.c4 i{color:#16a34a;}
+                  #v-recepcion .rx-head .rx-num{margin-left:auto;font-size:10px;font-weight:800;color:#94a3b8;background:#eef2f7;border-radius:20px;padding:2px 8px;letter-spacing:0;}
+                  #v-recepcion .rx-body{padding:10px 12px;}
+                  #v-recepcion .rx-body > div{margin-bottom:7px;}
                   #v-recepcion .rx-body label{display:block;font-size:10.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px;}
-                  #v-recepcion .rx-body input:not([type=checkbox]),#v-recepcion .rx-body select,#v-recepcion .rx-body textarea{width:100%;box-sizing:border-box;padding:9px 11px;font-size:13.5px;border:1px solid #d8dee9;border-radius:10px;background:#fff;color:#0f172a;transition:border-color .15s,box-shadow .15s;}
+                  #v-recepcion .rx-body input:not([type=checkbox]),#v-recepcion .rx-body select,#v-recepcion .rx-body textarea{width:100%;box-sizing:border-box;padding:7px 10px;font-size:13px;border:1px solid #d8dee9;border-radius:9px;background:#fff;color:#0f172a;transition:border-color .15s,box-shadow .15s;}
+                  #v-recepcion .rx-body label{margin-bottom:2px;}
                   #v-recepcion .rx-body input:not([type=checkbox]):focus,#v-recepcion .rx-body select:focus,#v-recepcion .rx-body textarea:focus{outline:none;border-color:#e31e24;box-shadow:0 0 0 3px rgba(227,30,36,.12);}
                   #v-recepcion .rx-side{position:sticky;top:8px;}
                   #v-recepcion .rx-side .rx-card{border-top:3px solid #e31e24;}
-                  #v-recepcion .rx-sum-row{display:flex;justify-content:space-between;font-size:12.5px;padding:3px 0;color:#334155;}
+                  #v-recepcion .rx-sum-row{display:flex;justify-content:space-between;font-size:12px;padding:2px 0;color:#334155;}
                   #v-recepcion .rx-sum-row b{color:#0f172a;}
                   #v-recepcion .rx-btn{width:100%;border:0;border-radius:11px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .15s;}
                   #v-recepcion .rx-btn-red{background:#e31e24;color:#fff;} #v-recepcion .rx-btn-red:hover{background:#c8181d;}
@@ -1391,8 +1396,14 @@ body{
                   #v-recepcion .rx-seg label{display:block;font-size:10.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px;}
                   #v-recepcion .rx-seg input:not([type=checkbox]),#v-recepcion .rx-seg select{box-sizing:border-box;padding:9px 11px;font-size:13.5px;border:1px solid #d8dee9;border-radius:10px;}
                   #v-recepcion .rx-seg > div{margin-bottom:9px;}
+                  #v-recepcion .rx-toolsbox summary{list-style:none;}
+                  #v-recepcion .rx-toolsbox summary::-webkit-details-marker{display:none;}
+                  #v-recepcion .rx-toolsbox[open] summary i.ti-chevron-down{transform:rotate(180deg);}
+                  #v-recepcion .rx-toolsbox summary i.ti-chevron-down{transition:transform .18s;}
                 </style>
-                <div class="rx-tools">
+                <details class="rx-toolsbox" style="margin-bottom:14px;">
+                <summary style="cursor:pointer; display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:700; color:#475569; background:#fff; border:1px solid #eef2f7; border-radius:12px; padding:9px 13px; box-shadow:0 1px 3px rgba(15,23,42,.06);"><i class="ti ti-tools" style="color:#f59e0b;"></i> Herramientas rápidas <span style="font-weight:500; color:#94a3b8; font-size:11.5px;">— pedir reseña / boleto de rifa (toca para abrir)</span><i class="ti ti-chevron-down" style="margin-left:auto; color:#94a3b8;"></i></summary>
+                <div class="rx-tools" style="margin:12px 0 0;">
                 <div class="card" style="margin-bottom:0; border-top:3px solid #f59e0b;">
                     <h3 style="margin:0 0 4px; font-size:15px;"><i class="ti ti-star" style="color:#f59e0b;"></i> Pedir reseña a un cliente (sin orden)</h3>
                     <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px;">Para clientes que <b>solo vinieron a comprar</b> (no se registra orden). Pon su WhatsApp y mándale el enlace de reseña de Google.</p>
@@ -1413,12 +1424,13 @@ body{
                     <div id="rifaBoletoMsg" style="margin-top:10px;"></div>
                 </div>
                 </div>
+                </details>
 
                 <div class="rx-layout">
                   <div class="rx-main">
                     <div class="rx-cols">
                       <div class="rx-card">
-                        <div class="rx-head">1. Datos del Cliente <span style="font-weight:600;color:#94a3b8;">(Info Plus)</span></div>
+                        <div class="rx-head"><i class="ti ti-user"></i> Datos del Cliente <span style="font-weight:600;color:#94a3b8;">(Info Plus)</span><span class="rx-num">1</span></div>
                         <div class="rx-body">
                           <div><label>Buscar cliente en Info Plus</label>
                             <div style="display:flex; gap:6px;">
@@ -1444,7 +1456,7 @@ body{
                       </div>
 
                       <div class="rx-card">
-                        <div class="rx-head c2">2. Equipo</div>
+                        <div class="rx-head c2"><i class="ti ti-device-mobile"></i> Equipo<span class="rx-num">2</span></div>
                         <div class="rx-body">
                           <div style="display:flex; gap:10px;">
                             <div style="flex:1;"><label>Marca *</label><input id="e_marca" placeholder="Apple, Samsung…" oninput="_rpRenderResumen()"></div>
@@ -1461,7 +1473,7 @@ body{
                       </div>
 
                       <div class="rx-card">
-                        <div class="rx-head c3">3. Datos adicionales</div>
+                        <div class="rx-head c3"><i class="ti ti-adjustments"></i> Datos adicionales<span class="rx-num">3</span></div>
                         <div class="rx-body">
                           <div><label>Técnico</label><select id="rxTecnico"><option value="">— Sin asignar —</option></select></div>
                           <div style="display:flex; gap:10px;">
@@ -1474,7 +1486,7 @@ body{
                       </div>
 
                       <div class="rx-card">
-                        <div class="rx-head c4">4. Diagnóstico</div>
+                        <div class="rx-head c4"><i class="ti ti-stethoscope"></i> Diagnóstico<span class="rx-num">4</span></div>
                         <div class="rx-body">
                           <div><label>Falla reportada</label><textarea id="o_falla" rows="3" placeholder="No enciende, cliente indica que el equipo cayó al agua…" oninput="_rpRenderResumen()"></textarea></div>
                           <div><label>Observaciones (van como comentario a la prefactura)</label><textarea id="o_observaciones" rows="3" placeholder="Se revisará placa base y se limpiará por dentro…" oninput="_rpRenderResumen()"></textarea></div>
@@ -1483,7 +1495,7 @@ body{
                     </div>
 
                     <div class="rx-card" style="margin-top:14px;">
-                      <div class="rx-head c2">5. Artículos y Servicios <span style="font-weight:600;color:#94a3b8;">(Info Plus)</span></div>
+                      <div class="rx-head c2"><i class="ti ti-shopping-cart"></i> Artículos y Servicios <span style="font-weight:600;color:#94a3b8;">(Info Plus)</span><span class="rx-num">5</span></div>
                       <div class="rx-body">
                         <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
                           <label style="font-size:11px; font-weight:700; color:#64748b;">Precio según el cliente:</label>
@@ -1506,7 +1518,7 @@ body{
 
                   <div class="rx-side">
                     <div class="rx-card">
-                      <div class="rx-head">Vista previa de prefactura</div>
+                      <div class="rx-head"><i class="ti ti-file-invoice"></i> Vista previa de prefactura</div>
                       <div class="rx-body"><div id="rxResumen"></div></div>
                     </div>
                   </div>
