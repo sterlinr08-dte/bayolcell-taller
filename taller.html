@@ -12828,10 +12828,13 @@ async function _ejecutarRegistroCompraIP() {
     let total = 0; const idsTodos = [];
     lista.forEach(g => {
         const cant = g.equipos.length, prom = cant ? g.total / cant : 0;
-        total += g.total;
         const codNum = parseInt(String(g.codigo).replace(/[^0-9]/g, ''), 10);
         if(!codNum) return;
-        detallescompra.push({ codarticulo: codNum, precio: Math.round(prom * 100) / 100, cantidad: cant, codunidad: 1, descripcion: g.modelo, descuentoarticulo: 0, despachado: 0, devuelto: 0, porcentaje2: 0, fvencimiento: f, costoanterior: Math.round(prom * 100) / 100 });
+        const precio = Math.round(prom * 100) / 100;
+        // Dagoberto: el 'total' de la compra debe ser la SUMA de (precio × cantidad) de los detalles (sin ITBIS),
+        // no la suma cruda de costos. Así el Total del encabezado cuadra con el Subtotal al actualizar.
+        total += precio * cant;
+        detallescompra.push({ codarticulo: codNum, precio, cantidad: cant, codunidad: 1, descripcion: g.modelo, descuentoarticulo: 0, despachado: 0, devuelto: 0, porcentaje2: 0, fvencimiento: f, costoanterior: precio });
         g.imeis.forEach(im => seriales.push({ numero: String(im), codarticulo: codNum }));
         g.equipos.forEach(e => idsTodos.push(e.id));
     });
