@@ -887,6 +887,7 @@ body{
             <button id="menu-piezasSolicitadas" onclick="nav('piezasSolicitadas',this)"><i class="ti ti-packages"></i> <span>Piezas Solicitadas</span></button>
             <button id="menu-articulos" onclick="nav('articulos',this)"><i class="ti ti-database"></i> <span>Catálogo de Artículos</span></button>
             <button id="menu-proveedores" onclick="nav('proveedores',this)"><i class="ti ti-shopping-cart"></i> <span>Compras</span></button>
+            <button id="menu-cuentasPorPagar" onclick="nav('cuentasPorPagar',this)" style="display:none;"><i class="ti ti-report-money"></i> <span>Cuentas por Pagar</span> <span class="nav-badge-admin">ADMIN</span></button>
             <button id="menu-refurb" onclick="nav('refurb',this)"><i class="ti ti-refresh"></i> <span>Reacondicionados</span></button>
             <button id="menu-despachos" onclick="nav('despachos',this)"><i class="ti ti-truck-delivery"></i> <span>Despacho de Almacén</span></button>
             <button id="menu-invfisico" onclick="nav('invfisico',this)" style="display:none;"><i class="ti ti-clipboard-check"></i> <span>Inventario Físico</span> <span class="nav-badge-admin">ADMIN</span></button>
@@ -1034,6 +1035,12 @@ body{
                         </table>
                     </div>
                 </div>
+            </div>
+
+            <!-- CUENTAS POR PAGAR (deudas a proveedores por compras a crédito) -->
+            <div id="v-cuentasPorPagar" class="view">
+                <h2 style="margin:0 0 12px; display:flex; align-items:center; gap:8px;"><i class="ti ti-report-money" style="color:#b91c1c;"></i> Cuentas por Pagar <button onclick="ayudaModulo('cuentasPorPagar')" title="¿Qué es esto?" style="background:none; border:none; cursor:pointer; color:#94a3b8; font-size:16px; padding:0;"><i class="ti ti-info-circle"></i></button></h2>
+                <div id="cxpContenido"></div>
             </div>
 
             <!-- CONTABILIDAD (solo admin + contadora) -->
@@ -5075,6 +5082,10 @@ function applyAccessControls() {
     const btnInvF = document.getElementById('menu-invfisico');
     if(btnInvF) btnInvF.style.display = isAdminUser() ? '' : 'none';
 
+    // Cuentas por Pagar: solo administradores (deudas a proveedores)
+    const btnCxp = document.getElementById('menu-cuentasPorPagar');
+    if(btnCxp) btnCxp.style.display = isAdminUser() ? '' : 'none';
+
     // Registrar equipo existente (carga de equipos previos al sistema): solo admin
     const btnRegEx = document.getElementById('btnRegistrarExistente');
     if(btnRegEx) btnRegEx.style.display = isAdminUser() ? '' : 'none';
@@ -6311,6 +6322,11 @@ function nav(v, btn) {
         toast('🔒 Módulo solo para administradores.');
         return;
     }
+    // Cuentas por Pagar: solo administradores
+    if(v === 'cuentasPorPagar' && !isAdminUser()) {
+        toast('🔒 Módulo solo para administradores.');
+        return;
+    }
     // PORTERO CENTRAL: verifica permiso antes de entrar (sin importar de dónde venga el clic)
     const permisoReq = NAV_PERMISOS[v];
     if(permisoReq && !tienePermiso(permisoReq)) {
@@ -6336,6 +6352,7 @@ function nav(v, btn) {
     if(v === 'reportes') { setTimeout(() => { inicializarReportes(); }, 50); }
     if(v === 'despachos') { setTimeout(() => { renderDespachos(); }, 50); }
     if(v === 'invfisico') { setTimeout(() => { renderInvFisico(); }, 50); }
+    if(v === 'cuentasPorPagar') { setTimeout(() => { renderCuentasPorPagar(); }, 50); }
     if(v === 'nomina') { setTimeout(() => { renderNomina(); }, 50); }
     if(v === 'estadisticas') { setTimeout(() => { renderEstadisticas(); }, 50); }
     if(v === 'miTrabajo') { setTimeout(() => { renderMiTrabajo(); const _wrap = document.getElementById('miTrabajoIncentivosWrap'); if(_wrap){ if(!isAdminUser() && typeof renderMisIncentivos === 'function') { _wrap.style.display = ''; renderMisIncentivos('miTrabajoIncentivos'); } else { _wrap.style.display = 'none'; } } }, 50); }
@@ -18062,6 +18079,15 @@ async function _refrescarExistenciaLive(codarticulo) {
 // Convención: cada módulo nuevo agrega su explicación aquí y un botón en su encabezado:
 //   <button class="btn-ayuda" onclick="ayudaModulo('clave')" title="¿Qué es esto?">ℹ️</button>
 const AYUDAS = {
+    cuentasPorPagar: { titulo: 'Cuentas por Pagar', html: `
+        <p><b>¿Para qué sirve?</b> Es el control de lo que <b>tú le debes a tus proveedores</b> por las compras a <b>crédito</b>. Info Plus sabe cuáles compras son a crédito, pero no lleva la cuenta de los abonos ni el saldo — eso lo haces aquí.</p>
+        <ul style="padding-left:18px; margin:6px 0;">
+          <li><b>Jalar compras a crédito de Info Plus:</b> pones un rango de fechas y el sistema trae solas las compras a crédito (proveedor, factura, monto). Las que ya estén no se duplican.</li>
+          <li><b>Deuda manual:</b> por si quieres registrar una deuda que no está en Info Plus.</li>
+          <li><b>Abonos:</b> cada pago que le haces al proveedor. El sistema baja el <b>saldo</b> solo y marca la deuda como Parcial o Pagada.</li>
+          <li><b>Arriba</b> ves el total que debes, lo vencido y lo que vence en 7 días.</li>
+        </ul>
+        <p style="font-size:12px; color:#475569;">Ponle la fecha de <b>vencimiento</b> a cada deuda (en el ojito 👁️) para que te avise cuándo se vence.</p>` },
     rrhh: { titulo: 'Recursos Humanos (RRHH)', html: `
         <p><b>¿Para qué sirve?</b> Es el expediente completo de tu personal y el pago de la nómina, todo en un solo lugar.</p>
         <ul style="padding-left:18px; margin:6px 0;">
@@ -18128,6 +18154,284 @@ function _despachoLlenarSelects() {
     const opts = ALMACENES_IP.map(a => `<option value="${a.c}">${a.n}</option>`).join('');
     o.innerHTML = opts; d.innerHTML = opts;
     o.value = '1'; d.value = '6';
+}
+// ===================== CUENTAS POR PAGAR (deudas a proveedores por compras a crédito) =====================
+let _cxpData = { deudas: [], abonos: {} };
+let _cxpFiltro = { prov: '', estado: '' };
+function _cxpSaldo(d) {
+    const ab = (_cxpData.abonos[d.id] || []).reduce((s, a) => s + (Number(a.monto) || 0), 0);
+    return { pagado: ab, saldo: Math.max(0, Math.round(((Number(d.monto_total) || 0) - ab) * 100) / 100) };
+}
+function _cxpEstado(d) {
+    const { pagado, saldo } = _cxpSaldo(d);
+    if(saldo <= 0.009) return 'pagada';
+    if(pagado > 0) return 'parcial';
+    return 'pendiente';
+}
+function _cxpDiasVenc(d) {
+    if(!d.vencimiento) return null;
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const v = new Date(d.vencimiento + 'T00:00:00');
+    return Math.round((v - hoy) / 86400000);
+}
+async function renderCuentasPorPagar() {
+    const cont = document.getElementById('cxpContenido');
+    if(!cont) return;
+    cont.innerHTML = '<p style="text-align:center;color:#64748b;padding:20px;">Cargando…</p>';
+    await _cxpCargar();
+    _cxpRender();
+}
+async function _cxpCargar() {
+    try {
+        const [rd, ra] = await Promise.all([
+            supabaseClient.from('cuentas_por_pagar').select('*').order('fecha', { ascending: false }),
+            supabaseClient.from('cxp_abonos').select('*').order('fecha', { ascending: true })
+        ]);
+        _cxpData.deudas = rd.data || [];
+        _cxpData.abonos = {};
+        (ra.data || []).forEach(a => { (_cxpData.abonos[a.cxp_id] = _cxpData.abonos[a.cxp_id] || []).push(a); });
+    } catch(e) { logError('cargar CxP', e); }
+}
+function _cxpRender() {
+    const cont = document.getElementById('cxpContenido');
+    if(!cont) return;
+    let deudas = _cxpData.deudas.slice();
+    let totalDeuda = 0, totalVencido = 0, totalPorVencer = 0, nPend = 0;
+    _cxpData.deudas.forEach(d => {
+        const { saldo } = _cxpSaldo(d);
+        if(saldo <= 0.009) return;
+        nPend++; totalDeuda += saldo;
+        const dv = _cxpDiasVenc(d);
+        if(dv !== null && dv < 0) totalVencido += saldo;
+        else if(dv !== null && dv <= 7) totalPorVencer += saldo;
+    });
+    if(_cxpFiltro.prov) deudas = deudas.filter(d => (d.codproveedor || '') === _cxpFiltro.prov);
+    if(_cxpFiltro.estado) deudas = deudas.filter(d => _cxpEstado(d) === _cxpFiltro.estado);
+    const provs = {};
+    _cxpData.deudas.forEach(d => { if(d.codproveedor) provs[d.codproveedor] = d.proveedor || d.codproveedor; });
+    const provOpts = ['<option value="">Todos los proveedores</option>'].concat(Object.keys(provs).map(c => `<option value="${escapeHtml(c)}"${_cxpFiltro.prov === c ? ' selected' : ''}>${escapeHtml(provs[c])}</option>`)).join('');
+    const filas = deudas.map(d => {
+        const { pagado, saldo } = _cxpSaldo(d);
+        const est = _cxpEstado(d);
+        const dv = _cxpDiasVenc(d);
+        const badge = est === 'pagada' ? '<span style="color:#166534;font-weight:700;">✓ Pagada</span>'
+            : est === 'parcial' ? '<span style="color:#b45309;font-weight:700;">Parcial</span>'
+                : '<span style="color:#475569;font-weight:700;">Pendiente</span>';
+        const venc = d.vencimiento
+            ? (dv < 0 ? `<span style="color:#b91c1c;font-weight:700;">Vencida (${Math.abs(dv)}d)</span>` : (dv <= 7 ? `<span style="color:#b45309;">Vence en ${dv}d</span>` : `${new Date(d.vencimiento + 'T00:00:00').toLocaleDateString('es-DO')}`))
+            : '<span style="color:#94a3b8;">—</span>';
+        return `<tr>
+            <td style="padding:7px 8px;border-bottom:1px solid #f1f5f9;">${d.fecha ? new Date(d.fecha + 'T00:00:00').toLocaleDateString('es-DO') : '—'}</td>
+            <td style="padding:7px 8px;border-bottom:1px solid #f1f5f9;font-weight:700;color:#0891b2;">${escapeHtml(d.factura || '—')}</td>
+            <td style="padding:7px 8px;border-bottom:1px solid #f1f5f9;">${escapeHtml(d.proveedor || '—')}${d.origen === 'manual' ? ' <span style="font-size:9px;background:#ede9fe;color:#6d28d9;padding:1px 6px;border-radius:7px;">manual</span>' : ''}</td>
+            <td style="padding:7px 8px;border-bottom:1px solid #f1f5f9;text-align:right;">${money(d.monto_total)}</td>
+            <td style="padding:7px 8px;border-bottom:1px solid #f1f5f9;text-align:right;color:#166534;">${money(pagado)}</td>
+            <td style="padding:7px 8px;border-bottom:1px solid #f1f5f9;text-align:right;font-weight:800;">${money(saldo)}</td>
+            <td style="padding:7px 8px;border-bottom:1px solid #f1f5f9;">${venc}</td>
+            <td style="padding:7px 8px;border-bottom:1px solid #f1f5f9;">${badge}</td>
+            <td style="padding:7px 8px;border-bottom:1px solid #f1f5f9;text-align:right;white-space:nowrap;">
+                <button class="btn btn-light" style="padding:3px 8px;font-size:12px;" onclick="_cxpVerDeuda('${d.id}')" title="Ver / abonos"><i class="ti ti-eye"></i></button>
+                ${est !== 'pagada' ? `<button class="btn btn-blue" style="padding:3px 8px;font-size:12px;" onclick="_cxpAbrirAbono('${d.id}')" title="Registrar abono"><i class="ti ti-cash"></i></button>` : ''}
+                <button class="btn btn-light" style="padding:3px 8px;font-size:12px;color:#b91c1c;" onclick="_cxpEliminarDeuda('${d.id}')" title="Eliminar"><i class="ti ti-trash"></i></button>
+            </td></tr>`;
+    }).join('');
+    cont.innerHTML = `
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+          <div class="card" style="flex:1;min-width:150px;border-left:4px solid #b91c1c;padding:10px 14px;"><div style="font-size:11px;color:#64748b;text-transform:uppercase;">Total que debes</div><div style="font-size:20px;font-weight:800;">${money(totalDeuda)}</div><div style="font-size:11px;color:#94a3b8;">${nPend} deuda(s) pendiente(s)</div></div>
+          <div class="card" style="flex:1;min-width:150px;border-left:4px solid #dc2626;padding:10px 14px;"><div style="font-size:11px;color:#64748b;text-transform:uppercase;">Vencido</div><div style="font-size:20px;font-weight:800;color:#b91c1c;">${money(totalVencido)}</div></div>
+          <div class="card" style="flex:1;min-width:150px;border-left:4px solid #f59e0b;padding:10px 14px;"><div style="font-size:11px;color:#64748b;text-transform:uppercase;">Vence en ≤ 7 días</div><div style="font-size:20px;font-weight:800;color:#b45309;">${money(totalPorVencer)}</div></div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">
+          <button class="btn btn-blue" onclick="_cxpAbrirJalar()"><i class="ti ti-cloud-download"></i> Jalar compras a crédito de Info Plus</button>
+          <button class="btn btn-light" onclick="_cxpAbrirManual()"><i class="ti ti-plus"></i> Deuda manual</button>
+          <span style="flex:1;"></span>
+          <select onchange="_cxpFiltro.prov=this.value;_cxpRender();" style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:9px;font-size:13px;">${provOpts}</select>
+          <select onchange="_cxpFiltro.estado=this.value;_cxpRender();" style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:9px;font-size:13px;">
+            <option value="">Todos los estados</option>
+            <option value="pendiente"${_cxpFiltro.estado === 'pendiente' ? ' selected' : ''}>Pendientes</option>
+            <option value="parcial"${_cxpFiltro.estado === 'parcial' ? ' selected' : ''}>Parciales</option>
+            <option value="pagada"${_cxpFiltro.estado === 'pagada' ? ' selected' : ''}>Pagadas</option>
+          </select>
+        </div>
+        <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;min-width:820px;">
+          <thead><tr style="background:#0f172a;color:#fff;font-size:11px;text-transform:uppercase;">
+            <th style="padding:8px;text-align:left;">Fecha</th><th style="padding:8px;text-align:left;">Factura</th><th style="padding:8px;text-align:left;">Proveedor</th>
+            <th style="padding:8px;text-align:right;">Monto</th><th style="padding:8px;text-align:right;">Pagado</th><th style="padding:8px;text-align:right;">Saldo</th>
+            <th style="padding:8px;text-align:left;">Vencimiento</th><th style="padding:8px;text-align:left;">Estado</th><th></th>
+          </tr></thead>
+          <tbody>${filas || '<tr><td colspan="9" style="text-align:center;color:#64748b;padding:16px;">No hay deudas. Usa "Jalar compras a crédito de Info Plus" para importarlas.</td></tr>'}</tbody>
+        </table></div>`;
+}
+function _cxpAbrirJalar() {
+    const hoy = new Date().toISOString().slice(0, 10);
+    const hace = new Date(Date.now() - 120 * 86400000).toISOString().slice(0, 10);
+    const prev = document.getElementById('modalCxpJalar'); if(prev) prev.remove();
+    const box = document.createElement('div');
+    box.className = 'modal-backdrop active'; box.id = 'modalCxpJalar'; box.style.zIndex = '780';
+    box.innerHTML = `<div class="modal-box" style="max-width:440px;">
+        <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-cloud-download"></i> Jalar compras a crédito</h3><button class="modal-close" onclick="document.getElementById('modalCxpJalar').remove()">✕</button></div>
+        <div class="modal-body">
+          <p style="font-size:12.5px;color:#475569;margin-top:0;">Trae de Info Plus las compras <b>a crédito</b> del rango y las registra como deudas (las que ya estén, no se duplican).</p>
+          <div style="display:flex;gap:10px;">
+            <div style="flex:1;"><label style="font-size:11px;font-weight:700;color:#64748b;">Desde</label><input type="date" id="cxpDesde" value="${hace}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:9px;"></div>
+            <div style="flex:1;"><label style="font-size:11px;font-weight:700;color:#64748b;">Hasta</label><input type="date" id="cxpHasta" value="${hoy}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:9px;"></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-light" onclick="document.getElementById('modalCxpJalar').remove()">Cancelar</button>
+          <button class="btn btn-blue" onclick="_cxpJalar()"><i class="ti ti-cloud-download"></i> Jalar</button>
+        </div></div>`;
+    document.body.appendChild(box);
+}
+async function _cxpJalar() {
+    const desde = document.getElementById('cxpDesde')?.value, hasta = document.getElementById('cxpHasta')?.value;
+    if(!desde || !hasta) return toast('Pon las dos fechas.', 'error');
+    const fmt = s => { const p = s.split('-'); return `${+p[0]}-${+p[1]}-${+p[2]}`; };
+    toast('Consultando Info Plus…');
+    try {
+        const { data, error } = await supabaseClient.functions.invoke('infoplus-compras', { body: { desde: fmt(desde), hasta: fmt(hasta) } });
+        if(error) throw error;
+        if(!data || !data.ok) return toast('Info Plus: ' + ((data && data.error) || 'sin respuesta'), 'error');
+        const credito = (data.facturas || []).filter(f => String(f.termino || '').toLowerCase().startsWith('cred'));
+        if(!credito.length) return toast('No hay compras a crédito en ese rango.');
+        const existentes = new Set(_cxpData.deudas.map(d => d.factura).filter(Boolean));
+        const nuevas = credito.filter(f => f.factura && !existentes.has(f.factura));
+        if(!nuevas.length) { toast('Todas esas compras a crédito ya están registradas.'); document.getElementById('modalCxpJalar')?.remove(); return; }
+        const rows = nuevas.map(f => ({
+            factura: f.factura, proveedor: f.proveedor || '', codproveedor: String(f.codproveedor || ''),
+            fecha: f.fecha ? String(f.fecha).slice(0, 10) : null,
+            vencimiento: f.vencimiento ? String(f.vencimiento).slice(0, 10) : null,
+            termino: 'Credito', monto_total: Math.round((Number(f.total) || 0) * 100) / 100,
+            origen: 'infoplus', creado_por: sessionUser?.nombre || 'Admin'
+        }));
+        const { error: e2 } = await supabaseClient.from('cuentas_por_pagar').insert(rows);
+        if(e2) throw e2;
+        document.getElementById('modalCxpJalar')?.remove();
+        toast(`✓ ${nuevas.length} compra(s) a crédito importada(s).`);
+        await renderCuentasPorPagar();
+    } catch(e) { logError('CxP jalar', e); toastError(getFriendlyError(e)); }
+}
+function _cxpAbrirManual() {
+    const hoy = new Date().toISOString().slice(0, 10);
+    const prev = document.getElementById('modalCxpManual'); if(prev) prev.remove();
+    const box = document.createElement('div');
+    box.className = 'modal-backdrop active'; box.id = 'modalCxpManual'; box.style.zIndex = '780';
+    box.innerHTML = `<div class="modal-box" style="max-width:460px;">
+        <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-plus"></i> Deuda manual</h3><button class="modal-close" onclick="document.getElementById('modalCxpManual').remove()">✕</button></div>
+        <div class="modal-body" style="display:grid;gap:9px;">
+          <div><label style="font-size:11px;font-weight:700;color:#64748b;">Proveedor *</label><input id="cxpmProv" placeholder="Nombre del proveedor" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:9px;"></div>
+          <div style="display:flex;gap:9px;"><div style="flex:1;"><label style="font-size:11px;font-weight:700;color:#64748b;">Factura / Ref.</label><input id="cxpmFactura" placeholder="Opcional" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:9px;"></div>
+          <div style="flex:1;"><label style="font-size:11px;font-weight:700;color:#64748b;">Monto *</label><input id="cxpmMonto" type="number" inputmode="decimal" placeholder="0.00" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:9px;"></div></div>
+          <div style="display:flex;gap:9px;"><div style="flex:1;"><label style="font-size:11px;font-weight:700;color:#64748b;">Fecha</label><input id="cxpmFecha" type="date" value="${hoy}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:9px;"></div>
+          <div style="flex:1;"><label style="font-size:11px;font-weight:700;color:#64748b;">Vencimiento</label><input id="cxpmVenc" type="date" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:9px;"></div></div>
+          <div><label style="font-size:11px;font-weight:700;color:#64748b;">Nota</label><input id="cxpmNota" placeholder="Opcional" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:9px;"></div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-light" onclick="document.getElementById('modalCxpManual').remove()">Cancelar</button><button class="btn btn-blue" onclick="_cxpGuardarManual()">Guardar deuda</button></div></div>`;
+    document.body.appendChild(box);
+    setTimeout(() => document.getElementById('cxpmProv')?.focus(), 50);
+}
+async function _cxpGuardarManual() {
+    const prov = (document.getElementById('cxpmProv')?.value || '').trim();
+    const monto = parseFloat(document.getElementById('cxpmMonto')?.value) || 0;
+    if(!prov) return toast('Pon el proveedor.', 'error');
+    if(monto <= 0) return toast('Pon un monto válido.', 'error');
+    try {
+        const { error } = await supabaseClient.from('cuentas_por_pagar').insert([{
+            proveedor: prov, factura: (document.getElementById('cxpmFactura')?.value || '').trim() || null,
+            monto_total: Math.round(monto * 100) / 100,
+            fecha: document.getElementById('cxpmFecha')?.value || null,
+            vencimiento: document.getElementById('cxpmVenc')?.value || null,
+            termino: 'Credito', origen: 'manual', notas: (document.getElementById('cxpmNota')?.value || '').trim() || null,
+            creado_por: sessionUser?.nombre || 'Admin'
+        }]);
+        if(error) throw error;
+        document.getElementById('modalCxpManual')?.remove();
+        toast('✓ Deuda registrada.');
+        await renderCuentasPorPagar();
+    } catch(e) { logError('CxP manual', e); toastError(getFriendlyError(e)); }
+}
+function _cxpAbrirAbono(id) {
+    const d = _cxpData.deudas.find(x => x.id === id); if(!d) return;
+    const { saldo } = _cxpSaldo(d);
+    const hoy = new Date().toISOString().slice(0, 10);
+    const prev = document.getElementById('modalCxpAbono'); if(prev) prev.remove();
+    const box = document.createElement('div');
+    box.className = 'modal-backdrop active'; box.id = 'modalCxpAbono'; box.style.zIndex = '790';
+    box.innerHTML = `<div class="modal-box" style="max-width:420px;">
+        <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-cash"></i> Registrar abono</h3><button class="modal-close" onclick="document.getElementById('modalCxpAbono').remove()">✕</button></div>
+        <div class="modal-body" style="display:grid;gap:9px;">
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:9px;padding:8px 11px;font-size:12.5px;">${escapeHtml(d.proveedor || '')} · ${escapeHtml(d.factura || 's/f')}<br><b>Saldo actual: ${money(saldo)}</b></div>
+          <div style="display:flex;gap:9px;"><div style="flex:1;"><label style="font-size:11px;font-weight:700;color:#64748b;">Monto del abono *</label><input id="cxpAbMonto" type="number" inputmode="decimal" value="${saldo}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:9px;"></div>
+          <div style="flex:1;"><label style="font-size:11px;font-weight:700;color:#64748b;">Fecha</label><input id="cxpAbFecha" type="date" value="${hoy}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:9px;"></div></div>
+          <div><label style="font-size:11px;font-weight:700;color:#64748b;">Método</label><select id="cxpAbMetodo" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:9px;"><option>Efectivo</option><option>Transferencia</option><option>Cheque</option><option>Tarjeta</option><option>Otro</option></select></div>
+          <div><label style="font-size:11px;font-weight:700;color:#64748b;">Nota</label><input id="cxpAbNota" placeholder="Opcional" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:9px;"></div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-light" onclick="document.getElementById('modalCxpAbono').remove()">Cancelar</button><button class="btn btn-blue" onclick="_cxpGuardarAbono('${id}')">Guardar abono</button></div></div>`;
+    document.body.appendChild(box);
+    setTimeout(() => { const el = document.getElementById('cxpAbMonto'); if(el) { el.focus(); el.select(); } }, 50);
+}
+async function _cxpGuardarAbono(id) {
+    const monto = parseFloat(document.getElementById('cxpAbMonto')?.value) || 0;
+    if(monto <= 0) return toast('Pon un monto válido.', 'error');
+    try {
+        const { error } = await supabaseClient.from('cxp_abonos').insert([{
+            cxp_id: id, monto: Math.round(monto * 100) / 100,
+            fecha: document.getElementById('cxpAbFecha')?.value || new Date().toISOString().slice(0, 10),
+            metodo: document.getElementById('cxpAbMetodo')?.value || 'Efectivo',
+            nota: (document.getElementById('cxpAbNota')?.value || '').trim() || null,
+            creado_por: sessionUser?.nombre || 'Admin'
+        }]);
+        if(error) throw error;
+        // sincronizar el estado guardado de la deuda
+        await _cxpCargar();
+        const d = _cxpData.deudas.find(x => x.id === id);
+        if(d) { try { await supabaseClient.from('cuentas_por_pagar').update({ estado: _cxpEstado(d) }).eq('id', id); } catch(_e) {} }
+        document.getElementById('modalCxpAbono')?.remove();
+        toast('✓ Abono registrado.');
+        _cxpRender();
+        if(document.getElementById('modalCxpVer')) _cxpVerDeuda(id);
+    } catch(e) { logError('CxP abono', e); toastError(getFriendlyError(e)); }
+}
+function _cxpVerDeuda(id) {
+    const d = _cxpData.deudas.find(x => x.id === id); if(!d) return;
+    const abonos = (_cxpData.abonos[id] || []);
+    const { pagado, saldo } = _cxpSaldo(d);
+    const filas = abonos.map(a => `<tr>
+        <td style="padding:6px 8px;border-bottom:1px solid #f1f5f9;">${a.fecha ? new Date(a.fecha + 'T00:00:00').toLocaleDateString('es-DO') : ''}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #f1f5f9;">${escapeHtml(a.metodo || '')}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #f1f5f9;color:#64748b;">${escapeHtml(a.nota || '')}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #f1f5f9;text-align:right;font-weight:700;">${money(a.monto)}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #f1f5f9;text-align:right;"><button class="btn btn-light" style="padding:2px 7px;font-size:11px;color:#b91c1c;" onclick="_cxpEliminarAbono('${a.id}','${id}')"><i class="ti ti-trash"></i></button></td></tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:#64748b;padding:10px;">Sin abonos aún.</td></tr>';
+    const prev = document.getElementById('modalCxpVer'); if(prev) prev.remove();
+    const box = document.createElement('div');
+    box.className = 'modal-backdrop active'; box.id = 'modalCxpVer'; box.style.zIndex = '785';
+    box.innerHTML = `<div class="modal-box" style="max-width:600px;">
+        <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-report-money"></i> Deuda a ${escapeHtml(d.proveedor || 'proveedor')}</h3><button class="modal-close" onclick="document.getElementById('modalCxpVer').remove()">✕</button></div>
+        <div class="modal-body">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+            <div style="flex:1;min-width:110px;"><div style="font-size:10px;color:#64748b;text-transform:uppercase;">Monto</div><div style="font-size:16px;font-weight:800;">${money(d.monto_total)}</div></div>
+            <div style="flex:1;min-width:110px;"><div style="font-size:10px;color:#64748b;text-transform:uppercase;">Pagado</div><div style="font-size:16px;font-weight:800;color:#166534;">${money(pagado)}</div></div>
+            <div style="flex:1;min-width:110px;"><div style="font-size:10px;color:#64748b;text-transform:uppercase;">Saldo</div><div style="font-size:16px;font-weight:800;color:#b91c1c;">${money(saldo)}</div></div>
+          </div>
+          <div style="font-size:12.5px;color:#475569;margin-bottom:10px;">Factura: <b>${escapeHtml(d.factura || 's/f')}</b> · Fecha: ${d.fecha ? new Date(d.fecha + 'T00:00:00').toLocaleDateString('es-DO') : '—'}
+            · Vencimiento: <input type="date" value="${d.vencimiento || ''}" onchange="_cxpSetVenc('${id}', this.value)" style="padding:3px 6px;border:1px solid #cbd5e1;border-radius:7px;font-size:12px;"></div>
+          <div style="font-weight:700;font-size:13px;margin-bottom:6px;">Abonos</div>
+          <table style="width:100%;border-collapse:collapse;font-size:12.5px;"><thead><tr style="color:#64748b;font-size:11px;text-transform:uppercase;"><th style="padding:6px 8px;text-align:left;">Fecha</th><th style="padding:6px 8px;text-align:left;">Método</th><th style="padding:6px 8px;text-align:left;">Nota</th><th style="padding:6px 8px;text-align:right;">Monto</th><th></th></tr></thead><tbody>${filas}</tbody></table>
+        </div>
+        <div class="modal-footer">${saldo > 0.009 ? `<button class="btn btn-blue" onclick="_cxpAbrirAbono('${id}')"><i class="ti ti-cash"></i> Registrar abono</button>` : '<span style="color:#166534;font-weight:700;">✓ Deuda saldada</span>'}<button class="btn btn-light" onclick="document.getElementById('modalCxpVer').remove()">Cerrar</button></div></div>`;
+    document.body.appendChild(box);
+}
+async function _cxpSetVenc(id, val) {
+    try { await supabaseClient.from('cuentas_por_pagar').update({ vencimiento: val || null }).eq('id', id); const d = _cxpData.deudas.find(x => x.id === id); if(d) d.vencimiento = val || null; _cxpRender(); } catch(e) { toastError(getFriendlyError(e)); }
+}
+async function _cxpEliminarAbono(aid, did) {
+    if(!await confirmar('¿Borrar este abono?')) return;
+    try { await supabaseClient.from('cxp_abonos').delete().eq('id', aid); await _cxpCargar(); const d = _cxpData.deudas.find(x => x.id === did); if(d) { try { await supabaseClient.from('cuentas_por_pagar').update({ estado: _cxpEstado(d) }).eq('id', did); } catch(_e) {} } toast('Abono borrado.'); _cxpRender(); if(document.getElementById('modalCxpVer')) _cxpVerDeuda(did); } catch(e) { toastError(getFriendlyError(e)); }
+}
+async function _cxpEliminarDeuda(id) {
+    const d = _cxpData.deudas.find(x => x.id === id);
+    if(!await confirmar(`¿Borrar la deuda${d ? ' de ' + (d.proveedor || '') : ''} y todos sus abonos?`)) return;
+    try { await supabaseClient.from('cuentas_por_pagar').delete().eq('id', id); toast('Deuda borrada.'); await renderCuentasPorPagar(); } catch(e) { toastError(getFriendlyError(e)); }
 }
 async function renderDespachos() {
     if(!tienePermiso('despacho_ver')) { toast('🔒 No tienes permiso.', 'error'); return; }
