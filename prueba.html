@@ -60,7 +60,7 @@ const AREA_META = {
 };
 const AREA_ORDER = ['disc','aptitud','integridad','servicio'];
 let TOKEN = new URLSearchParams(location.search).get('t') || '';
-let PREG = [], IDX = 0, RESP = {}, CAND = '', PUESTO = '';
+let PREG = [], IDX = 0, RESP = {}, CAND = '', PUESTO = '', START = 0;
 const app = document.getElementById('app');
 function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function sh(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
@@ -89,7 +89,7 @@ async function iniciar(){
     PREG.push(it);
   }); });
   // Restaurar borrador
-  try { const b = JSON.parse(localStorage.getItem(KEY())||'null'); if(b){ RESP = b.resp||{}; IDX = Math.min(b.idx||0, PREG.length-1); } } catch(e){}
+  try { const b = JSON.parse(localStorage.getItem(KEY())||'null'); if(b){ RESP = b.resp||{}; IDX = Math.min(b.idx||0, PREG.length-1); START = b.t0 || 0; } } catch(e){}
   intro();
 }
 
@@ -100,7 +100,7 @@ function intro(){
       <p style="color:#64748b; font-size:14px; margin:4px 0 0;">${PUESTO?('Puesto: <b>'+esc(PUESTO)+'</b><br>'):''}Vas a hacer una evaluación corta.</p>
     </div>
     <div class="note" style="text-align:left; margin-top:16px;">✔ Toma unos <b>5–10 minutos</b>.<br>✔ <b>No es un examen</b> de pasar o quedar.<br>✔ Contesta con <b>sinceridad</b> lo primero que pienses.<br>✔ Se guarda solo: si se cierra, puedes seguir donde ibas.</div>
-    <button class="btn btn-main" style="width:100%; margin-top:14px;" onclick="render()">Comenzar ${Object.keys(RESP).length? '(seguir)':''} →</button>
+    <button class="btn btn-main" style="width:100%; margin-top:14px;" onclick="comenzar()">Comenzar ${Object.keys(RESP).length? '(seguir)':''} →</button>
   </div>`);
 }
 
@@ -141,8 +141,9 @@ function render(){
       <button class="btn btn-main" ${ok?'':'disabled'} onclick="next()">${ultima?'Enviar ✓':'Siguiente →'}</button>
     </div>`);
 }
+function comenzar(){ if(!START) START = Date.now(); guardar(); render(); }
 function ans(id, v){ RESP[id] = v; guardar(); render(); }
-function guardar(){ try{ localStorage.setItem(KEY(), JSON.stringify({ resp:RESP, idx:IDX })); }catch(e){} }
+function guardar(){ try{ localStorage.setItem(KEY(), JSON.stringify({ resp:RESP, idx:IDX, t0:START })); }catch(e){} }
 function next(){ const q=PREG[IDX]; if(RESP[q.id]==null) return; if(IDX < PREG.length-1){ IDX++; guardar(); render(); } else { enviar(); } }
 function prev(){ if(IDX>0){ IDX--; guardar(); render(); } }
 
@@ -151,7 +152,7 @@ async function enviar(){
   if(faltan.length){ const i = PREG.findIndex(q=>RESP[q.id]==null); IDX = i<0?0:i; render(); return alert('Te falta responder '+faltan.length+' pregunta(s).'); }
   pantalla(`<div class="card center" style="padding:40px 18px;"><div class="big-ico">⏳</div><p>Enviando tu evaluación…</p></div>`);
   let d;
-  try { d = await api('submit', { respuestas: RESP }); } catch(e){ render(); return alert('Sin conexión. Intenta de nuevo.'); }
+  try { d = await api('submit', { respuestas: RESP, tiempo_seg: Math.max(0, Math.round((Date.now() - (START||Date.now()))/1000)) }); } catch(e){ render(); return alert('Sin conexión. Intenta de nuevo.'); }
   if(d && d.ok){ try{ localStorage.removeItem(KEY()); }catch(e){} msg('🎉','¡Gracias!','Terminaste tu evaluación. Ya puedes cerrar esta página.'); }
   else { render(); alert((d && d.error) || 'No se pudo enviar. Intenta de nuevo.'); }
 }

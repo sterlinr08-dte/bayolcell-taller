@@ -13850,7 +13850,6 @@ function _rrhhRenderTest() {
     _pruebaWiz = { preg, idx, resp, t0, key, totalSeg: totalMin * 60, timer: null };
     _pruebaWizShell();
     _pruebaWizRender();
-    _pruebaWizTimerStart();
     window.scrollTo(0, 0);
 }
 function _pruebaWizShell() {
@@ -13864,8 +13863,7 @@ function _pruebaWizShell() {
             <div id="pruebaPaso" style="font-size:12px; color:#475569; margin-top:6px;">Pregunta 1 de ${w.preg.length}</div>
           </div>
           <div style="text-align:right;">
-            <div style="font-size:11px; color:#475569; display:flex; align-items:center; gap:5px; justify-content:flex-end;"><i class="ti ti-clock"></i> Tiempo <b id="pruebaTimer" style="color:#0f172a;">--:--</b></div>
-            <div style="display:flex; gap:6px; margin-top:6px; justify-content:flex-end;">${['D', 'I', 'S', 'C'].map(k => `<span title="${RRHH_DISC_INFO[k].nombre}" style="width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;background:${_PRU_DISC_COLOR[k]};">${k}</span>`).join('')}</div>
+            <div style="display:flex; gap:6px; justify-content:flex-end;">${['D', 'I', 'S', 'C'].map(k => `<span title="${RRHH_DISC_INFO[k].nombre}" style="width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;background:${_PRU_DISC_COLOR[k]};">${k}</span>`).join('')}</div>
           </div>
         </div>
       </div>
@@ -13923,6 +13921,8 @@ async function _rrhhCalificarPrueba() {
     if(faltan.length) { const first = w.preg.findIndex(q => w.resp[q.id] == null); w.idx = first < 0 ? 0 : first; _pruebaWizRender(); window.scrollTo(0, 0); return toast(`Faltan ${faltan.length} pregunta(s) por responder.`, 'error'); }
     const preg = _pruebaBanco(_pruebaCtx.perfil);
     const resultados = _rrhhPruebaCalcular(preg, w.resp);
+    // Tiempo de llenado (segundos) — se mide en silencio; solo lo ve quien revisa
+    resultados.tiempo_seg = Math.max(0, Math.round((Date.now() - (w.t0 || Date.now())) / 1000));
     const data = { empleado_id: _pruebaCtx.empleado_id, candidato: _pruebaCtx.candidato, cedula: _pruebaCtx.cedula, puesto: _pruebaCtx.puesto, perfil: _pruebaCtx.perfil || 'general', estado: 'completada', respuestas: w.resp, resultados, creado_por: (typeof sessionUser !== 'undefined' && sessionUser) ? (sessionUser.nombre || 'Admin') : 'Admin' };
     try {
         const { data: ins, error } = await supabaseClient.from('rrhh_pruebas').insert([data]).select('id').single();
@@ -13935,6 +13935,11 @@ async function _rrhhCalificarPrueba() {
         _rrhhVerPrueba(ins.id);
     } catch(e) { logError('guardar prueba rrhh', e); toastError(getFriendlyError(e)); }
 }
+function _rrhhFmtTiempo(seg) {
+    seg = Math.max(0, Math.round(Number(seg) || 0));
+    const m = Math.floor(seg / 60), s = seg % 60;
+    return m > 0 ? `${m} min ${s} seg` : `${s} seg`;
+}
 function _rrhhVerPrueba(id) {
     const p = (cache.rrhhPruebas || []).find(x => x.id === id); if(!p) return toast('No se encontró la prueba.', 'error');
     const r = p.resultados || {};
@@ -13946,7 +13951,7 @@ function _rrhhVerPrueba(id) {
     box.innerHTML = `<div class="modal-box" style="max-width:600px; width:96%;">
       <div class="modal-header" style="background:linear-gradient(135deg,#7c3aed,#a855f7); color:#fff; border-radius:12px 12px 0 0;"><h3 style="margin:0; color:#fff;"><i class="ti ti-clipboard-check"></i> Resultado — ${escapeHtml(p.candidato || '')}</h3><button class="modal-close" style="color:#fff;" onclick="document.getElementById('modalVerPrueba').remove()">✕</button></div>
       <div class="modal-body" style="max-height:78vh; overflow-y:auto;">
-        <div style="font-size:12.5px; color:#475569; margin-bottom:12px;">${escapeHtml(p.puesto || 'Sin puesto')}${p.empleado_id ? ' · empleado actual' : ' · candidato'} · ${p.fecha ? new Date(p.fecha + 'T00:00:00').toLocaleDateString('es-DO') : ''}</div>
+        <div style="font-size:12.5px; color:#475569; margin-bottom:12px;">${escapeHtml(p.puesto || 'Sin puesto')}${p.empleado_id ? ' · empleado actual' : ' · candidato'} · ${p.fecha ? new Date(p.fecha + 'T00:00:00').toLocaleDateString('es-DO') : ''}${(r.tiempo_seg != null) ? ` · <span style="color:#0e7490; font-weight:700;"><i class="ti ti-clock"></i> Tiempo de llenado: ${_rrhhFmtTiempo(r.tiempo_seg)}</span>` : ''}</div>
         ${(() => { const enc = _rrhhEncaje(r, p.perfil); const v = _rrhhVeredicto(enc); if(!v) return `<div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:12px 14px; margin-bottom:12px; font-size:12.5px; color:#475569;"><i class="ti ti-info-circle"></i> Sin un puesto específico elegido, no se calcula "apto/no apto". Para eso, crea la prueba eligiendo el perfil del puesto.</div>`; return `<div style="display:flex; align-items:center; gap:13px; background:${v.bg}; border:1.5px solid ${v.bd}; border-radius:14px; padding:15px 16px; margin-bottom:12px;">
             <i class="ti ${v.ic}" style="color:${v.color}; font-size:36px;"></i>
             <div style="flex:1;"><div style="font-weight:900; font-size:18px; color:${v.color}; line-height:1.15;">${v.txt}</div><div style="font-size:12.5px; color:#475569; margin-top:2px;">Para <b>${escapeHtml(enc.perfil.nombre)}</b> · Encaje ${enc.pct}%</div></div>
@@ -13988,6 +13993,7 @@ function _rrhhImprimirPrueba(id) {
       table{width:100%; border-collapse:collapse;} td{border:1px solid #e2e8f0; padding:5px 7px;} td.n{text-align:right;} .disc td{border:0; padding:2px 0;}
     </style></head><body>
       <h1>${escapeHtml(cfg.nombre || 'BAYOL CELL')}</h1><div class="sub">Prueba psicométrica · Documento interno RRHH</div>
+      ${(r.tiempo_seg != null) ? `<div class="sub" style="font-weight:700; color:#0e7490;">Tiempo de llenado: ${_rrhhFmtTiempo(r.tiempo_seg)}</div>` : ''}
       ${(() => { const enc = _rrhhEncaje(r, p.perfil); const v = _rrhhVeredicto(enc); return v ? `<p style="border:2px solid ${v.color}; color:${v.color}; text-align:center; font-weight:800; font-size:15px; padding:9px; border-radius:8px; margin:10px 0;">${v.txt} — ${escapeHtml(enc.perfil.nombre)} (${enc.pct}%)</p>` : ''; })()}
       ${(() => { const rf = _rrhhResumenFrase(r, p.perfil); return rf ? `<p style="background:#fffbeb; border:1px solid #fde68a; border-left:4px solid #f59e0b; padding:8px 10px; margin:10px 0; font-size:12.5px;"><b>En resumen:</b> ${escapeHtml(rf)}</p>` : ''; })()}
       <h2>Datos</h2><table><tr><td>Persona</td><td>${escapeHtml(p.candidato || '')}</td></tr><tr><td>Cédula</td><td>${escapeHtml(p.cedula || '—')}</td></tr><tr><td>Puesto</td><td>${escapeHtml(p.puesto || '—')} (${p.empleado_id ? 'empleado' : 'candidato'})</td></tr><tr><td>Fecha</td><td>${p.fecha ? new Date(p.fecha + 'T00:00:00').toLocaleDateString('es-DO') : ''}</td></tr></table>
