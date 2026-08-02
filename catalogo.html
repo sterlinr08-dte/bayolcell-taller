@@ -114,7 +114,16 @@
       const r = await fetch(URL,{method:'POST',headers:{'Content-Type':'application/json','apikey':APIKEY,'Authorization':'Bearer '+APIKEY},body:JSON.stringify({categoria:'celular'})});
       const d = await r.json();
       if(!d || !d.ok){ document.getElementById('estado').textContent='No se pudo cargar el catálogo.'; return; }
-      ITEMS = d.items||[]; TIENDA = d.tienda||TIENDA;
+      TIENDA = d.tienda||TIENDA;
+      if(d.publicado === false){
+        document.querySelector('.search').style.display='none';
+        document.getElementById('chips').style.display='none';
+        const e=document.getElementById('estado'); e.style.display='block';
+        e.innerHTML='📵 El catálogo no está disponible en este momento.<br>Escríbenos para consultar disponibilidad.';
+        document.getElementById('foot').textContent=(TIENDA.nombre||'BAYOL CELL');
+        return;
+      }
+      ITEMS = d.items||[];
       // limpiar del carrito lo que ya no existe / se agotó
       for(const k in CART){ const it=itemDe(k); if(!it || !it.disponible){ delete CART[k]; } } guardarCart();
       document.getElementById('estado').style.display='none';

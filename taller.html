@@ -18468,6 +18468,7 @@ async function _cxpEliminarDeuda(id) {
 }
 // ===================== CATÁLOGO WEB (público) de celulares =====================
 let _catData = [];
+let _catPublicado = false;
 const CAT_URL_PUBLICA = 'https://bayolcell.com/catalogo.html';
 function _catPrecioN1(codigo) {
     const a = (typeof _findInfoplusArt === 'function') ? _findInfoplusArt(codigo) : null;
@@ -18491,6 +18492,18 @@ async function renderCatalogo() {
 async function _catCargar() {
     try { const { data } = await supabaseClient.from('catalogo_items').select('*').eq('categoria', 'celular').order('destacado', { ascending: false }).order('orden', { ascending: true }); _catData = data || []; }
     catch(e) { logError('cargar catalogo', e); _catData = []; }
+    try { const { data: ct } = await supabaseClient.from('config_taller').select('catalogo_publicado').limit(1).maybeSingle(); _catPublicado = !!(ct && ct.catalogo_publicado); } catch(e) {}
+}
+async function _catTogglePublicado(val) {
+    try {
+        const cid = (cache.configTaller && cache.configTaller.id) || 1;
+        const { error } = await supabaseClient.from('config_taller').update({ catalogo_publicado: !!val }).eq('id', cid);
+        if(error) throw error;
+        _catPublicado = !!val;
+        if(cache.configTaller) cache.configTaller.catalogo_publicado = !!val;
+        toast(val ? '✅ Catálogo PUBLICADO en la web.' : 'Catálogo ocultado de la web.');
+        _catRender();
+    } catch(e) { logError('cat publicar', e); toastError(getFriendlyError(e)); }
 }
 function _catRender() {
     const cont = document.getElementById('catalogoContenido'); if(!cont) return;
@@ -18510,7 +18523,10 @@ function _catRender() {
             </td></tr>`;
     }).join('');
     const waTienda = ((cache.configTaller || {}).telefono || '').replace(/[^0-9]/g, '');
-    cont.innerHTML = `
+    const pubBanner = _catPublicado
+        ? `<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;"><span style="font-weight:800;color:#166534;font-size:14px;"><i class="ti ti-circle-check-filled"></i> Catálogo PUBLICADO en la web</span><span style="flex:1;min-width:120px;font-size:12px;color:#475569;">Los clientes lo ven en el enlace.</span><button class="btn" style="background:#b91c1c;color:#fff;" onclick="_catTogglePublicado(false)"><i class="ti ti-eye-off"></i> Ocultar de la web</button></div>`
+        : `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;"><span style="font-weight:800;color:#b91c1c;font-size:14px;"><i class="ti ti-eye-off"></i> Catálogo OCULTO (no se ve en la web)</span><span style="flex:1;min-width:120px;font-size:12px;color:#475569;">Actívalo para que los clientes lo vean.</span><button class="btn btn-blue" onclick="_catTogglePublicado(true)"><i class="ti ti-world"></i> Publicar en la web</button></div>`;
+    cont.innerHTML = pubBanner + `
         <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:12.5px;color:#1e40af;">
           <i class="ti ti-info-circle"></i> Los <b>precios salen solos de Info Plus (nivel 1 · cliente final)</b> y se actualizan solos. Aquí eliges cuáles celulares se muestran y les subes la <b>foto</b>.
         </div>
