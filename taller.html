@@ -886,6 +886,7 @@ body{
             <button id="menu-inventario" onclick="nav('inventario',this)"><i class="ti ti-package"></i> <span>Inventario Taller</span></button>
             <button id="menu-piezasSolicitadas" onclick="nav('piezasSolicitadas',this)"><i class="ti ti-packages"></i> <span>Piezas Solicitadas</span></button>
             <button id="menu-articulos" onclick="nav('articulos',this)"><i class="ti ti-database"></i> <span>Catálogo de Artículos</span></button>
+            <button id="menu-catalogoWeb" onclick="nav('catalogoWeb',this)" style="display:none;"><i class="ti ti-device-mobile-share"></i> <span>Catálogo Web (celulares)</span> <span class="nav-badge-admin">ADMIN</span></button>
             <button id="menu-proveedores" onclick="nav('proveedores',this)"><i class="ti ti-shopping-cart"></i> <span>Compras</span></button>
             <button id="menu-cuentasPorPagar" onclick="nav('cuentasPorPagar',this)" style="display:none;"><i class="ti ti-report-money"></i> <span>Cuentas por Pagar</span> <span class="nav-badge-admin">ADMIN</span></button>
             <button id="menu-refurb" onclick="nav('refurb',this)"><i class="ti ti-refresh"></i> <span>Reacondicionados</span></button>
@@ -1035,6 +1036,12 @@ body{
                         </table>
                     </div>
                 </div>
+            </div>
+
+            <!-- CATÁLOGO WEB (público) de celulares con precio de Info Plus nivel 1 -->
+            <div id="v-catalogoWeb" class="view">
+                <h2 style="margin:0 0 12px; display:flex; align-items:center; gap:8px;"><i class="ti ti-device-mobile-share" style="color:#e31e24;"></i> Catálogo Web — Celulares <button onclick="ayudaModulo('catalogoWeb')" title="¿Qué es esto?" style="background:none; border:none; cursor:pointer; color:#94a3b8; font-size:16px; padding:0;"><i class="ti ti-info-circle"></i></button></h2>
+                <div id="catalogoContenido"></div>
             </div>
 
             <!-- CUENTAS POR PAGAR (deudas a proveedores por compras a crédito) -->
@@ -5086,6 +5093,10 @@ function applyAccessControls() {
     const btnCxp = document.getElementById('menu-cuentasPorPagar');
     if(btnCxp) btnCxp.style.display = isAdminUser() ? '' : 'none';
 
+    // Catálogo Web: solo administradores
+    const btnCat = document.getElementById('menu-catalogoWeb');
+    if(btnCat) btnCat.style.display = isAdminUser() ? '' : 'none';
+
     // Registrar equipo existente (carga de equipos previos al sistema): solo admin
     const btnRegEx = document.getElementById('btnRegistrarExistente');
     if(btnRegEx) btnRegEx.style.display = isAdminUser() ? '' : 'none';
@@ -6327,6 +6338,11 @@ function nav(v, btn) {
         toast('🔒 Módulo solo para administradores.');
         return;
     }
+    // Catálogo Web: solo administradores
+    if(v === 'catalogoWeb' && !isAdminUser()) {
+        toast('🔒 Módulo solo para administradores.');
+        return;
+    }
     // PORTERO CENTRAL: verifica permiso antes de entrar (sin importar de dónde venga el clic)
     const permisoReq = NAV_PERMISOS[v];
     if(permisoReq && !tienePermiso(permisoReq)) {
@@ -6353,6 +6369,7 @@ function nav(v, btn) {
     if(v === 'despachos') { setTimeout(() => { renderDespachos(); }, 50); }
     if(v === 'invfisico') { setTimeout(() => { renderInvFisico(); }, 50); }
     if(v === 'cuentasPorPagar') { setTimeout(() => { renderCuentasPorPagar(); }, 50); }
+    if(v === 'catalogoWeb') { setTimeout(() => { renderCatalogo(); }, 50); }
     if(v === 'nomina') { setTimeout(() => { renderNomina(); }, 50); }
     if(v === 'estadisticas') { setTimeout(() => { renderEstadisticas(); }, 50); }
     if(v === 'miTrabajo') { setTimeout(() => { renderMiTrabajo(); const _wrap = document.getElementById('miTrabajoIncentivosWrap'); if(_wrap){ if(!isAdminUser() && typeof renderMisIncentivos === 'function') { _wrap.style.display = ''; renderMisIncentivos('miTrabajoIncentivos'); } else { _wrap.style.display = 'none'; } } }, 50); }
@@ -18085,6 +18102,16 @@ async function _refrescarExistenciaLive(codarticulo) {
 // Convención: cada módulo nuevo agrega su explicación aquí y un botón en su encabezado:
 //   <button class="btn-ayuda" onclick="ayudaModulo('clave')" title="¿Qué es esto?">ℹ️</button>
 const AYUDAS = {
+    catalogoWeb: { titulo: 'Catálogo Web (celulares)', html: `
+        <p><b>¿Para qué sirve?</b> Es un <b>catálogo público</b> de celulares que puedes mandar a tus clientes por WhatsApp o redes. El cliente ve la foto, el modelo, el precio y si está disponible.</p>
+        <ul style="padding-left:18px; margin:6px 0;">
+          <li><b>El precio es automático</b> de Info Plus (<b>nivel 1 · cliente final</b>). Si lo cambias en Info Plus, cambia solo en el catálogo — no tocas nada.</li>
+          <li><b>Agregar celular:</b> lo buscas en Info Plus y lo agregas; luego le <b>subes la foto</b> (Info Plus no trae fotos).</li>
+          <li><b>Mostrar / ocultar:</b> tú decides cuáles salen. "Destacado" (★) lo pone de primero.</li>
+          <li><b>Disponible/Agotado</b> sale solo según la existencia en Info Plus.</li>
+          <li><b>Ver catálogo público / Copiar enlace / Compartir:</b> el enlace es <b>${escapeHtml('https://bayolcell.com/catalogo.html')}</b>.</li>
+        </ul>
+        <p style="font-size:12px; color:#475569;">El público solo ve nombre, foto, precio y disponibilidad — nunca tus costos ni los otros precios.</p>` },
     cuentasPorPagar: { titulo: 'Cuentas por Pagar', html: `
         <p><b>¿Para qué sirve?</b> Es el control de lo que <b>tú le debes a tus proveedores</b> por las compras a <b>crédito</b>. Info Plus sabe cuáles compras son a crédito, pero no lleva la cuenta de los abonos ni el saldo — eso lo haces aquí.</p>
         <ul style="padding-left:18px; margin:6px 0;">
@@ -18438,6 +18465,164 @@ async function _cxpEliminarDeuda(id) {
     const d = _cxpData.deudas.find(x => x.id === id);
     if(!await confirmar(`¿Borrar la deuda${d ? ' de ' + (d.proveedor || '') : ''} y todos sus abonos?`)) return;
     try { await supabaseClient.from('cuentas_por_pagar').delete().eq('id', id); toast('Deuda borrada.'); await renderCuentasPorPagar(); } catch(e) { toastError(getFriendlyError(e)); }
+}
+// ===================== CATÁLOGO WEB (público) de celulares =====================
+let _catData = [];
+const CAT_URL_PUBLICA = 'https://bayolcell.com/catalogo.html';
+function _catPrecioN1(codigo) {
+    const a = (typeof _findInfoplusArt === 'function') ? _findInfoplusArt(codigo) : null;
+    if(!a) return 0;
+    if(a.niveles && a.niveles['1'] != null && a.niveles['1'] !== '') return Number(a.niveles['1']) || 0;
+    return Number(a.precio) || 0;
+}
+function _catStock(codigo) {
+    const a = (typeof _findInfoplusArt === 'function') ? _findInfoplusArt(codigo) : null;
+    if(!a) return 0;
+    if(a.existencias && typeof a.existencias === 'object') { let s = 0; for(const k in a.existencias) s += Number(a.existencias[k]) || 0; return s; }
+    return Number(a.existencia) || 0;
+}
+async function renderCatalogo() {
+    const cont = document.getElementById('catalogoContenido'); if(!cont) return;
+    cont.innerHTML = '<p style="text-align:center;color:#64748b;padding:20px;">Cargando…</p>';
+    try { if(typeof _ensureInfoplusArticulos === 'function') await _ensureInfoplusArticulos(); } catch(e) {}
+    await _catCargar();
+    _catRender();
+}
+async function _catCargar() {
+    try { const { data } = await supabaseClient.from('catalogo_items').select('*').eq('categoria', 'celular').order('destacado', { ascending: false }).order('orden', { ascending: true }); _catData = data || []; }
+    catch(e) { logError('cargar catalogo', e); _catData = []; }
+}
+function _catRender() {
+    const cont = document.getElementById('catalogoContenido'); if(!cont) return;
+    const visibles = _catData.filter(i => i.visible).length;
+    const filas = _catData.map(i => {
+        const precio = _catPrecioN1(i.codigo), stock = _catStock(i.codigo);
+        const foto = i.foto_url ? `<img src="${escapeHtml(i.foto_url)}" style="width:52px;height:52px;object-fit:contain;border-radius:8px;background:#f8fafc;border:1px solid #eef2f7;">` : '<div style="width:52px;height:52px;border-radius:8px;background:#f8fafc;border:1px dashed #cbd5e1;display:flex;align-items:center;justify-content:center;font-size:22px;">📱</div>';
+        return `<tr>
+            <td style="padding:8px;border-bottom:1px solid #f1f5f9;">${foto}</td>
+            <td style="padding:8px;border-bottom:1px solid #f1f5f9;"><b>${escapeHtml(i.nombre_publico || i.codigo)}</b>${i.destacado ? ' <span title="Destacado" style="color:#f59e0b;">★</span>' : ''}<div style="font-size:11px;color:#94a3b8;">Cód ${escapeHtml(i.codigo)}${i.capacidad ? ' · ' + escapeHtml(i.capacidad) : ''}${i.color ? ' · ' + escapeHtml(i.color) : ''}</div></td>
+            <td style="padding:8px;border-bottom:1px solid #f1f5f9;text-align:right;font-weight:800;">${precio > 0 ? money(precio) : '<span style="color:#b91c1c;">sin precio</span>'}<div style="font-size:10px;color:#94a3b8;font-weight:400;">nivel 1</div></td>
+            <td style="padding:8px;border-bottom:1px solid #f1f5f9;text-align:center;">${stock > 0 ? `<span style="color:#166534;font-weight:700;">Sí (${stock})</span>` : '<span style="color:#b91c1c;">Agotado</span>'}</td>
+            <td style="padding:8px;border-bottom:1px solid #f1f5f9;text-align:center;"><label style="cursor:pointer;font-size:12px;"><input type="checkbox" ${i.visible ? 'checked' : ''} onchange="_catToggleVisible('${i.id}',this.checked)"> visible</label></td>
+            <td style="padding:8px;border-bottom:1px solid #f1f5f9;text-align:right;white-space:nowrap;">
+                <button class="btn btn-light" style="padding:3px 8px;font-size:12px;" onclick="_catEditar('${i.id}')"><i class="ti ti-photo"></i> Editar/Foto</button>
+                <button class="btn btn-light" style="padding:3px 8px;font-size:12px;color:#b91c1c;" onclick="_catEliminar('${i.id}')"><i class="ti ti-trash"></i></button>
+            </td></tr>`;
+    }).join('');
+    const waTienda = ((cache.configTaller || {}).telefono || '').replace(/[^0-9]/g, '');
+    cont.innerHTML = `
+        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:12.5px;color:#1e40af;">
+          <i class="ti ti-info-circle"></i> Los <b>precios salen solos de Info Plus (nivel 1 · cliente final)</b> y se actualizan solos. Aquí eliges cuáles celulares se muestran y les subes la <b>foto</b>.
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
+          <button class="btn btn-blue" onclick="_catAgregar()"><i class="ti ti-plus"></i> Agregar celular</button>
+          <a class="btn btn-light" href="${CAT_URL_PUBLICA}" target="_blank" rel="noopener"><i class="ti ti-external-link"></i> Ver catálogo público</a>
+          <button class="btn btn-light" onclick="_catCopiarEnlace()"><i class="ti ti-copy"></i> Copiar enlace</button>
+          ${waTienda ? `<a class="btn btn-light" style="color:#16a34a;" href="https://wa.me/?text=${encodeURIComponent('Mira nuestro catálogo de celulares: ' + CAT_URL_PUBLICA)}" target="_blank" rel="noopener"><i class="ti ti-brand-whatsapp"></i> Compartir</a>` : ''}
+          <span style="flex:1;"></span>
+          <span style="font-size:12px;color:#64748b;">${_catData.length} en catálogo · ${visibles} visibles</span>
+        </div>
+        <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;min-width:640px;">
+          <thead><tr style="background:#0f172a;color:#fff;font-size:11px;text-transform:uppercase;">
+            <th style="padding:8px;text-align:left;">Foto</th><th style="padding:8px;text-align:left;">Modelo</th><th style="padding:8px;text-align:right;">Precio</th><th style="padding:8px;text-align:center;">Disponible</th><th style="padding:8px;text-align:center;">Mostrar</th><th></th>
+          </tr></thead>
+          <tbody>${filas || '<tr><td colspan="6" style="text-align:center;color:#64748b;padding:16px;">Aún no hay celulares. Dale a "Agregar celular".</td></tr>'}</tbody>
+        </table></div>`;
+}
+function _catCopiarEnlace() {
+    try { navigator.clipboard.writeText(CAT_URL_PUBLICA); toast('✓ Enlace copiado: ' + CAT_URL_PUBLICA); }
+    catch(e) { toast(CAT_URL_PUBLICA); }
+}
+function _catAgregar() {
+    if(typeof abrirBuscadorArticulos !== 'function') return toast('Buscador no disponible.', 'error');
+    abrirBuscadorArticulos(null, (art) => { if(art) _catNuevo(art); });
+}
+async function _catNuevo(art) {
+    const codigo = String(art.codigo || '').trim(); if(!codigo) return;
+    if(_catData.some(i => String(i.codigo) === codigo)) { toast('Ese celular ya está en el catálogo.'); return; }
+    try {
+        const { error } = await supabaseClient.from('catalogo_items').insert([{
+            codigo, categoria: 'celular', nombre_publico: art.descripcion || '', capacidad: art.referencia || '',
+            visible: true, orden: _catData.length, creado_por: sessionUser?.nombre || 'Admin'
+        }]);
+        if(error) throw error;
+        toast('✓ Agregado. Ahora súbele la foto.');
+        await _catCargar(); _catRender();
+        const nuevo = _catData.find(i => String(i.codigo) === codigo);
+        if(nuevo) _catEditar(nuevo.id);
+    } catch(e) { logError('cat nuevo', e); toastError(getFriendlyError(e)); }
+}
+function _catEditar(id) {
+    const i = _catData.find(x => x.id === id); if(!i) return;
+    const precio = _catPrecioN1(i.codigo);
+    const prev = document.getElementById('modalCatEdit'); if(prev) prev.remove();
+    const box = document.createElement('div');
+    box.className = 'modal-backdrop active'; box.id = 'modalCatEdit'; box.style.zIndex = '790';
+    box.innerHTML = `<div class="modal-box" style="max-width:460px;">
+        <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-device-mobile"></i> ${escapeHtml(i.nombre_publico || i.codigo)}</h3><button class="modal-close" onclick="document.getElementById('modalCatEdit').remove()">✕</button></div>
+        <div class="modal-body" style="display:grid;gap:10px;">
+          <div style="text-align:center;">
+            <div id="catFotoPrev" style="width:130px;height:130px;margin:0 auto;border-radius:12px;background:#f8fafc;border:1px solid #eef2f7;display:flex;align-items:center;justify-content:center;overflow:hidden;">${i.foto_url ? `<img src="${escapeHtml(i.foto_url)}" style="width:100%;height:100%;object-fit:contain;">` : '<span style="font-size:44px;opacity:.4;">📱</span>'}</div>
+            <input type="file" id="catFotoFile" accept="image/*" style="display:none;" onchange="_catSubirFoto('${i.id}')">
+            <button class="btn btn-light" style="margin-top:8px;" onclick="document.getElementById('catFotoFile').click()"><i class="ti ti-upload"></i> ${i.foto_url ? 'Cambiar foto' : 'Subir foto'}</button>
+            <div id="catFotoMsg" style="font-size:11px;color:#64748b;margin-top:4px;"></div>
+          </div>
+          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:9px;padding:8px 11px;font-size:12.5px;">Precio (Info Plus nivel 1): <b>${precio > 0 ? money(precio) : 'sin precio'}</b> · <span style="color:#64748b;">se actualiza solo</span></div>
+          <div><label style="font-size:11px;font-weight:700;color:#64748b;">Nombre que ve el cliente</label><input id="catNombre" value="${escapeHtml(i.nombre_publico || '')}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:9px;"></div>
+          <div style="display:flex;gap:9px;">
+            <div style="flex:1;"><label style="font-size:11px;font-weight:700;color:#64748b;">Capacidad</label><input id="catCap" value="${escapeHtml(i.capacidad || '')}" placeholder="128GB" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:9px;"></div>
+            <div style="flex:1;"><label style="font-size:11px;font-weight:700;color:#64748b;">Color</label><input id="catColor" value="${escapeHtml(i.color || '')}" placeholder="Azul" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:9px;"></div>
+          </div>
+          <div style="display:flex;gap:16px;align-items:center;font-size:13px;">
+            <label style="cursor:pointer;"><input type="checkbox" id="catVisible" ${i.visible ? 'checked' : ''}> Mostrar en el catálogo</label>
+            <label style="cursor:pointer;"><input type="checkbox" id="catDestacado" ${i.destacado ? 'checked' : ''}> ★ Destacado</label>
+          </div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-light" onclick="document.getElementById('modalCatEdit').remove()">Cancelar</button><button class="btn btn-blue" onclick="_catGuardar('${i.id}')">Guardar</button></div></div>`;
+    document.body.appendChild(box);
+}
+async function _catSubirFoto(id) {
+    const input = document.getElementById('catFotoFile'); const msg = document.getElementById('catFotoMsg');
+    const file = input && input.files && input.files[0]; if(!file) return;
+    if(file.size > 6 * 1024 * 1024) { if(msg) msg.textContent = 'La foto es muy pesada (máx 6MB).'; return; }
+    if(msg) msg.textContent = 'Subiendo…';
+    try {
+        const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const path = `celular/${id}_${Date.now()}.${ext}`;
+        const { error } = await supabaseClient.storage.from('catalogo').upload(path, file, { upsert: true, contentType: file.type });
+        if(error) throw error;
+        const { data } = supabaseClient.storage.from('catalogo').getPublicUrl(path);
+        const url = data.publicUrl;
+        await supabaseClient.from('catalogo_items').update({ foto_url: url }).eq('id', id);
+        const it = _catData.find(x => x.id === id); if(it) it.foto_url = url;
+        const prev = document.getElementById('catFotoPrev'); if(prev) prev.innerHTML = `<img src="${escapeHtml(url)}" style="width:100%;height:100%;object-fit:contain;">`;
+        if(msg) msg.textContent = '✓ Foto subida.';
+        _catRender();
+    } catch(e) { logError('cat foto', e); if(msg) msg.textContent = 'No se pudo subir: ' + getFriendlyError(e); }
+}
+async function _catGuardar(id) {
+    try {
+        const upd = {
+            nombre_publico: (document.getElementById('catNombre')?.value || '').trim() || null,
+            capacidad: (document.getElementById('catCap')?.value || '').trim() || null,
+            color: (document.getElementById('catColor')?.value || '').trim() || null,
+            visible: !!document.getElementById('catVisible')?.checked,
+            destacado: !!document.getElementById('catDestacado')?.checked
+        };
+        const { error } = await supabaseClient.from('catalogo_items').update(upd).eq('id', id);
+        if(error) throw error;
+        document.getElementById('modalCatEdit')?.remove();
+        toast('✓ Guardado.');
+        await _catCargar(); _catRender();
+    } catch(e) { logError('cat guardar', e); toastError(getFriendlyError(e)); }
+}
+async function _catToggleVisible(id, val) {
+    try { await supabaseClient.from('catalogo_items').update({ visible: !!val }).eq('id', id); const it = _catData.find(x => x.id === id); if(it) it.visible = !!val; } catch(e) { toastError(getFriendlyError(e)); }
+}
+async function _catEliminar(id) {
+    const i = _catData.find(x => x.id === id);
+    if(!await confirmar(`¿Quitar "${i ? (i.nombre_publico || i.codigo) : ''}" del catálogo?`)) return;
+    try { await supabaseClient.from('catalogo_items').delete().eq('id', id); toast('Quitado del catálogo.'); await _catCargar(); _catRender(); } catch(e) { toastError(getFriendlyError(e)); }
 }
 async function renderDespachos() {
     if(!tienePermiso('despacho_ver')) { toast('🔒 No tienes permiso.', 'error'); return; }
