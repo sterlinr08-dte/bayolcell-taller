@@ -13,37 +13,65 @@
   .top .marca{font-size:24px;font-weight:900;letter-spacing:.5px;}
   .top .marca span{color:var(--rojo);}
   .top .sub{font-size:13px;color:#cbd5e1;margin-top:2px;}
-  .wrap{max-width:1100px;margin:0 auto;padding:16px 14px 40px;}
+  .wrap{max-width:1100px;margin:0 auto;padding:16px 14px 110px;}
   .search{display:flex;gap:8px;margin:14px 0;flex-wrap:wrap;}
   .search input{flex:1;min-width:180px;padding:12px 14px;border:1px solid #cbd5e1;border-radius:12px;font-size:15px;background:#fff;}
   .chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px;}
   .chip{padding:7px 13px;border:1px solid #cbd5e1;background:#fff;border-radius:999px;font-size:13px;font-weight:600;color:#334155;cursor:pointer;}
   .chip.on{background:var(--rojo);color:#fff;border-color:var(--rojo);}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;}
-  .card{background:#fff;border:1px solid #e8edf3;border-radius:16px;overflow:hidden;box-shadow:0 6px 18px -12px rgba(15,23,42,.35);display:flex;flex-direction:column;transition:transform .15s,box-shadow .15s;}
-  .card:hover{transform:translateY(-2px);box-shadow:0 14px 28px -16px rgba(15,23,42,.45);}
+  .card{background:#fff;border:1px solid #e8edf3;border-radius:16px;overflow:hidden;box-shadow:0 6px 18px -12px rgba(15,23,42,.35);display:flex;flex-direction:column;}
   .ph{position:relative;aspect-ratio:1/1;background:#f8fafc;display:flex;align-items:center;justify-content:center;overflow:hidden;}
   .ph img{width:100%;height:100%;object-fit:contain;}
   .ph .noimg{font-size:44px;opacity:.35;}
   .badge{position:absolute;top:8px;left:8px;font-size:10px;font-weight:800;padding:3px 9px;border-radius:999px;letter-spacing:.3px;}
   .badge.ok{background:#dcfce7;color:#166534;}
   .badge.no{background:#fee2e2;color:#991b1b;}
-  .badge.dest{position:absolute;top:8px;right:8px;background:#fef3c7;color:#92400e;}
+  .badge.dest{position:absolute;top:8px;right:8px;left:auto;background:#fef3c7;color:#92400e;}
   .info{padding:11px 12px 13px;display:flex;flex-direction:column;flex:1;}
   .nom{font-size:14px;font-weight:700;line-height:1.25;color:var(--ink);}
   .cap{font-size:12px;color:var(--muted);margin-top:2px;}
   .precio{font-size:19px;font-weight:900;color:var(--ink);margin-top:8px;}
   .precio small{font-size:11px;color:var(--muted);font-weight:600;}
-  .wa{margin-top:10px;display:flex;align-items:center;justify-content:center;gap:6px;background:#16a34a;color:#fff;text-decoration:none;font-weight:700;font-size:13px;padding:9px;border-radius:10px;}
-  .wa.dis{background:#e2e8f0;color:#94a3b8;pointer-events:none;}
+  .add{margin-top:10px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--rojo);color:#fff;border:none;font-weight:700;font-size:13px;padding:10px;border-radius:10px;cursor:pointer;}
+  .add.dis{background:#e2e8f0;color:#94a3b8;pointer-events:none;}
+  .stepper{margin-top:10px;display:flex;align-items:center;justify-content:space-between;background:#f1f5f9;border-radius:10px;padding:4px;}
+  .stepper button{width:34px;height:34px;border:none;background:#fff;border-radius:8px;font-size:19px;font-weight:800;color:var(--rojo);cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.08);}
+  .stepper b{font-size:15px;}
   .estado{text-align:center;color:var(--muted);padding:40px 10px;font-size:15px;}
   .foot{text-align:center;color:var(--muted);font-size:12px;margin-top:30px;}
+  /* Barra de carrito */
+  .cartbar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:#fff;border-top:1px solid #e2e8f0;box-shadow:0 -6px 20px -10px rgba(15,23,42,.35);padding:11px 14px;display:none;align-items:center;gap:12px;}
+  .cartbar.show{display:flex;}
+  .cartbar .cnt{background:var(--rojo);color:#fff;font-weight:800;border-radius:999px;min-width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;font-size:13px;padding:0 6px;}
+  .cartbar .tt{flex:1;font-size:13px;color:var(--muted);}
+  .cartbar .tt b{color:var(--ink);font-size:16px;display:block;}
+  .cartbar .go{background:#16a34a;color:#fff;border:none;font-weight:800;font-size:14px;padding:12px 16px;border-radius:12px;cursor:pointer;display:flex;align-items:center;gap:7px;}
+  /* Panel carrito */
+  .sheet-bg{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:40;display:none;}
+  .sheet-bg.show{display:block;}
+  .sheet{position:fixed;left:0;right:0;bottom:0;z-index:41;background:#fff;border-radius:18px 18px 0 0;max-height:85vh;display:none;flex-direction:column;max-width:560px;margin:0 auto;}
+  .sheet.show{display:flex;}
+  .sheet .sh{padding:16px 18px;border-bottom:1px solid #eef2f7;display:flex;justify-content:space-between;align-items:center;}
+  .sheet .sh h3{font-size:17px;}
+  .sheet .sh .x{background:none;border:none;font-size:22px;color:#94a3b8;cursor:pointer;}
+  .sheet .body{padding:8px 18px;overflow-y:auto;flex:1;}
+  .crow{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid #f1f5f9;}
+  .crow img{width:46px;height:46px;object-fit:contain;background:#f8fafc;border-radius:8px;border:1px solid #eef2f7;}
+  .crow .cn{flex:1;min-width:0;}
+  .crow .cn .n{font-size:13.5px;font-weight:700;}
+  .crow .cn .p{font-size:12px;color:var(--muted);}
+  .crow .st{display:flex;align-items:center;gap:8px;}
+  .crow .st button{width:28px;height:28px;border:1px solid #e2e8f0;background:#fff;border-radius:7px;font-size:16px;font-weight:800;color:var(--rojo);cursor:pointer;}
+  .sheet .ft{padding:14px 18px;border-top:1px solid #eef2f7;}
+  .sheet .ft .tot{display:flex;justify-content:space-between;font-size:16px;font-weight:900;margin-bottom:10px;}
+  .sheet .ft .go{width:100%;background:#16a34a;color:#fff;border:none;font-weight:800;font-size:16px;padding:14px;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;}
 </style>
 </head>
 <body>
   <div class="top">
     <div class="marca">BAYOL <span>CELL</span></div>
-    <div class="sub" id="subTitulo">Catálogo de Celulares</div>
+    <div class="sub">Catálogo de Celulares</div>
   </div>
   <div class="wrap">
     <div class="search"><input id="q" placeholder="Buscar modelo… (iPhone, Samsung, 13 Pro Max…)" oninput="pintar()"></div>
@@ -52,14 +80,34 @@
     <div id="estado" class="estado">Cargando catálogo…</div>
     <div class="foot" id="foot"></div>
   </div>
+
+  <div class="cartbar" id="cartbar" onclick="abrirCarrito()">
+    <span class="cnt" id="cartCnt">0</span>
+    <span class="tt">Tu pedido<b id="cartTot">RD$ 0</b></span>
+    <button class="go" onclick="event.stopPropagation();abrirCarrito()"><svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M7 18a2 2 0 102 2 2 2 0 00-2-2zm10 0a2 2 0 102 2 2 2 0 00-2-2zM7.2 14h9.5l3-9H6.2L5.5 3H2v2h2l2.6 8-1 1.8A1.5 1.5 0 007 17h12v-2H7.4z"/></svg> Ver pedido</button>
+  </div>
+
+  <div class="sheet-bg" id="sheetBg" onclick="cerrarCarrito()"></div>
+  <div class="sheet" id="sheet">
+    <div class="sh"><h3>🛒 Tu pedido</h3><button class="x" onclick="cerrarCarrito()">✕</button></div>
+    <div class="body" id="cartBody"></div>
+    <div class="ft">
+      <div class="tot"><span>Total</span><span id="cartTot2">RD$ 0</span></div>
+      <button class="go" onclick="pedirWhatsApp()"><svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><path d="M12 2a10 10 0 00-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1012 2z"/></svg> Pedir por WhatsApp</button>
+    </div>
+  </div>
+
 <script>
   const URL = 'https://vkhwdvjtowrhkhqavnvk.supabase.co/functions/v1/catalogo-publico';
   const APIKEY = 'sb_publishable_PynS5ZjKoQ36HCpguVzxaw_KZOlagtz';
   let ITEMS = [], TIENDA = { nombre:'BAYOL CELL', telefono:'' }, MARCA = '';
+  let CART = {}; try { CART = JSON.parse(localStorage.getItem('bayol_cat_cart')||'{}') || {}; } catch(e){ CART = {}; }
   const esc = s => (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const money = n => 'RD$ ' + (Number(n)||0).toLocaleString('es-DO',{minimumFractionDigits:0,maximumFractionDigits:0});
   const soloNum = t => (t||'').replace(/[^0-9]/g,'');
   const marcaDe = nom => { const s=(nom||'').toUpperCase(); if(s.includes('IPHONE')||s.includes('APPLE'))return'iPhone'; if(s.includes('SAMSUNG')||s.includes('GALAXY'))return'Samsung'; if(s.includes('XIAOMI')||s.includes('REDMI')||s.includes('POCO'))return'Xiaomi'; if(s.includes('TECNO'))return'Tecno'; if(s.includes('INFINIX'))return'Infinix'; return'Otros'; };
+  const itemDe = cod => ITEMS.find(i=>String(i.codigo)===String(cod));
+  const guardarCart = () => { try{ localStorage.setItem('bayol_cat_cart', JSON.stringify(CART)); }catch(e){} };
 
   async function cargar(){
     try{
@@ -67,8 +115,10 @@
       const d = await r.json();
       if(!d || !d.ok){ document.getElementById('estado').textContent='No se pudo cargar el catálogo.'; return; }
       ITEMS = d.items||[]; TIENDA = d.tienda||TIENDA;
+      // limpiar del carrito lo que ya no existe / se agotó
+      for(const k in CART){ const it=itemDe(k); if(!it || !it.disponible){ delete CART[k]; } } guardarCart();
       document.getElementById('estado').style.display='none';
-      pintarChips(); pintar();
+      pintarChips(); pintar(); pintarCart();
       document.getElementById('foot').textContent = (TIENDA.nombre||'BAYOL CELL') + (TIENDA.direccion? ' · '+TIENDA.direccion : '') + (TIENDA.telefono? ' · '+TIENDA.telefono : '');
     }catch(e){ document.getElementById('estado').textContent='Sin conexión. Intenta de nuevo.'; }
   }
@@ -83,12 +133,14 @@
     if(MARCA) list = list.filter(i=>marcaDe(i.nombre)===MARCA);
     if(q) list = list.filter(i=>((i.nombre||'')+' '+(i.capacidad||'')+' '+(i.color||'')).toLowerCase().includes(q));
     const g = document.getElementById('grid');
-    if(!list.length){ g.innerHTML=''; document.getElementById('estado').style.display='block'; document.getElementById('estado').textContent = ITEMS.length? 'No hay resultados para tu búsqueda.' : 'Aún no hay celulares en el catálogo.'; return; }
+    if(!list.length){ g.innerHTML=''; const e=document.getElementById('estado'); e.style.display='block'; e.textContent = ITEMS.length? 'No hay resultados para tu búsqueda.' : 'Aún no hay celulares en el catálogo.'; return; }
     document.getElementById('estado').style.display='none';
     g.innerHTML = list.map(i=>{
-      const tel = soloNum(TIENDA.telefono);
-      const msg = encodeURIComponent('Hola, me interesa el '+(i.nombre||'')+(i.capacidad?(' '+i.capacidad):'')+' que vi en el catálogo. ¿Está disponible?');
-      const wa = tel ? `<a class="wa" href="https://wa.me/${tel.length===10?('1'+tel):tel}?text=${msg}" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" fill="#fff"><path d="M12 2a10 10 0 00-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1012 2zm0 2a8 8 0 11-4.1 14.9l-.3-.2-2.8.8.8-2.7-.2-.3A8 8 0 0112 4zm4.5 9.7c-.2-.1-1.4-.7-1.6-.8-.2-.1-.4-.1-.5.1l-.7.9c-.1.1-.2.2-.4.1a6.5 6.5 0 01-3.2-2.8c-.1-.2 0-.3.1-.4l.4-.5.1-.4v-.4l-.7-1.6c-.2-.4-.4-.4-.5-.4h-.5c-.2 0-.4.1-.6.3-.7.7-.9 1.6-.6 2.6.4 1.3 1.3 2.5 2.5 3.4 1.6 1.2 3 1.6 4.3 1.4.7-.1 1.4-.6 1.6-1.2.1-.3.1-.6 0-.7z"/></svg> Pedir por WhatsApp</a>` : '<span class="wa dis">Consultar en tienda</span>';
+      const cod = String(i.codigo), qty = CART[cod]? CART[cod].qty : 0;
+      let accion;
+      if(!i.disponible){ accion = '<span class="add dis">Agotado</span>'; }
+      else if(qty>0){ accion = `<div class="stepper"><button onclick="menos('${cod}')">−</button><b>${qty}</b><button onclick="mas('${cod}')">+</button></div>`; }
+      else { accion = `<button class="add" onclick="mas('${cod}')">＋ Agregar</button>`; }
       return `<div class="card">
         <div class="ph">
           ${i.foto_url? `<img src="${esc(i.foto_url)}" alt="${esc(i.nombre)}" loading="lazy">` : '<span class="noimg">📱</span>'}
@@ -99,10 +151,41 @@
           <div class="nom">${esc(i.nombre)}</div>
           ${i.capacidad? `<div class="cap">${esc(i.capacidad)}${i.color? (' · '+esc(i.color)) : ''}</div>`:''}
           <div class="precio">${i.precio>0? money(i.precio) : '<small>Consultar precio</small>'}</div>
-          ${wa}
+          ${accion}
         </div>
       </div>`;
     }).join('');
+  }
+  function mas(cod){ const it=itemDe(cod); if(!it||!it.disponible)return; if(!CART[cod])CART[cod]={qty:0}; CART[cod].qty++; guardarCart(); pintar(); pintarCart(); }
+  function menos(cod){ if(!CART[cod])return; CART[cod].qty--; if(CART[cod].qty<=0)delete CART[cod]; guardarCart(); pintar(); pintarCart(); }
+  function cartLista(){ return Object.keys(CART).map(cod=>({it:itemDe(cod), qty:CART[cod].qty})).filter(x=>x.it); }
+  function cartTotales(){ let n=0,t=0; cartLista().forEach(x=>{ n+=x.qty; t+=(Number(x.it.precio)||0)*x.qty; }); return {n,t}; }
+  function pintarCart(){
+    const {n,t} = cartTotales();
+    document.getElementById('cartbar').classList.toggle('show', n>0);
+    document.getElementById('cartCnt').textContent = n;
+    document.getElementById('cartTot').textContent = money(t);
+    document.getElementById('cartTot2').textContent = money(t);
+    const body = document.getElementById('cartBody');
+    const l = cartLista();
+    body.innerHTML = l.length? l.map(x=>`<div class="crow">
+      ${x.it.foto_url? `<img src="${esc(x.it.foto_url)}">` : '<div style="width:46px;height:46px;background:#f8fafc;border-radius:8px;border:1px solid #eef2f7;display:flex;align-items:center;justify-content:center;">📱</div>'}
+      <div class="cn"><div class="n">${esc(x.it.nombre)}</div><div class="p">${x.it.capacidad?esc(x.it.capacidad)+' · ':''}${money(x.it.precio)} c/u</div></div>
+      <div class="st"><button onclick="menos('${x.it.codigo}')">−</button><b>${x.qty}</b><button onclick="mas('${x.it.codigo}')">+</button></div>
+    </div>`).join('') : '<p style="text-align:center;color:#64748b;padding:20px;">Tu pedido está vacío.</p>';
+  }
+  function abrirCarrito(){ if(cartTotales().n===0)return; document.getElementById('sheetBg').classList.add('show'); document.getElementById('sheet').classList.add('show'); }
+  function cerrarCarrito(){ document.getElementById('sheetBg').classList.remove('show'); document.getElementById('sheet').classList.remove('show'); }
+  function pedirWhatsApp(){
+    const l = cartLista(); if(!l.length)return;
+    const {t} = cartTotales();
+    let msg = 'Hola ' + (TIENDA.nombre||'BAYOL CELL') + ', quiero pedir:\n\n';
+    l.forEach(x=>{ msg += '• ' + x.it.nombre + (x.it.capacidad?(' ('+x.it.capacidad+(x.it.color?(' · '+x.it.color):'')+')'):'') + ' x' + x.qty + ' — ' + money((Number(x.it.precio)||0)*x.qty) + '\n'; });
+    msg += '\nTotal: ' + money(t);
+    const tel = soloNum(TIENDA.telefono);
+    if(!tel){ alert('Para pedir escríbenos por WhatsApp. (La tienda aún no configuró su número.)'); return; }
+    const num = tel.length===10 ? ('1'+tel) : tel;
+    window.open('https://wa.me/'+num+'?text='+encodeURIComponent(msg), '_blank');
   }
   cargar();
 </script>
