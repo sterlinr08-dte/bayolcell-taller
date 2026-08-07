@@ -28056,7 +28056,13 @@ function abrirModalNuevaSolicitud() {
             <div class="form-row" style="flex:2; min-width:140px;"><label>Nombre del equipo *</label><input type="text" id="solConcepto" placeholder="Ej: iPhone 11" maxlength="120"></div>
             <div class="form-row" style="flex:1; min-width:100px;"><label>Capacidad (GB)</label><input type="text" id="solCapacidad" placeholder="Ej: 128 GB"></div>
         </div>
-        <div class="form-row"><label>IMEI / Serie (opcional)</label><input type="text" id="solImei"></div>
+        <div class="form-row"><label>IMEI / Serie (opcional)</label>
+            <div style="display:flex; gap:6px;">
+                <input type="text" id="solImei" oninput="document.getElementById('solImeiVerif').innerHTML=''" style="flex:1;">
+                <button type="button" class="btn btn-light" onclick="verificarImeiSolicitud(this)" style="font-size:12px; white-space:nowrap; color:var(--fin-info); border-color:var(--fin-info-brd);"><i class="ti ti-shield-search"></i> Verificar en Hexnode</button>
+            </div>
+            <div id="solImeiVerif" style="margin-top:6px;"></div>
+        </div>
         <h4 style="margin:6px 0; font-size:13px; color:#16a34a;"><i class="ti ti-cash"></i> Financiamiento solicitado</h4>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
             <div class="form-row" style="flex:1; min-width:120px;"><label>Precio total (RD$) *</label><input type="number" id="solMontoTotal" min="0" step="0.01" oninput="_solRecalcCuota()" placeholder="0.00"></div>
@@ -28201,6 +28207,39 @@ function _solRecalcCuota() {
     if(wrap) wrap.style.display = interes > 0 ? '' : 'none';
     set('solInteresPrev', money(interes));
     set('solTotalPrev', money(totalPagar));
+}
+// Verifica un IMEI/serie contra Hexnode ANTES de crear la solicitud: ¿está enrolado? ¿ya está asignado a otro cliente?
+async function verificarImeiSolicitud(btn) {
+    const val = (document.getElementById('solImei')?.value || '').trim();
+    const cont = document.getElementById('solImeiVerif');
+    if(!cont) return;
+    if(!val) { cont.innerHTML = `<div style="background:var(--fin-warn-bg); border:1px solid var(--fin-warn-brd); color:var(--fin-warn); padding:7px 10px; border-radius:8px; font-size:12.5px;"><i class="ti ti-alert-triangle"></i> Escribe el IMEI o serie primero.</div>`; return; }
+    const orig = btn ? btn.innerHTML : '';
+    if(btn){ btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Verificando…'; }
+    cont.innerHTML = '';
+    try {
+        const { data, error } = await supabaseClient.functions.invoke('mdm-accion', { body: { accion: 'listar' } });
+        if(error){ let det=''; try{ det=(await error.context.json()).error||''; }catch(_){} throw new Error(det||error.message); }
+        if(data && data.error) throw new Error(data.error);
+        const devices = (data && data.devices) || [];
+        const q = val.toLowerCase();
+        const d = devices.find(x => String(x.imei || '').toLowerCase().trim() === q || String(x.serial || '').toLowerCase().trim() === q);
+        if(!d) {
+            cont.innerHTML = `<div style="background:var(--fin-warn-bg); border:1px solid var(--fin-warn-brd); color:var(--fin-warn); padding:8px 10px; border-radius:8px; font-size:12.5px;"><b><i class="ti ti-alert-triangle"></i> No aparece enrolado en Hexnode.</b><br>Puedes seguir con la solicitud, pero el equipo debe enrolarse antes de entregarlo al cliente.</div>`;
+            return;
+        }
+        _mdmDispFinId = null; // esta verificación es para una solicitud nueva: ningún financiamiento existente debe excluirse
+        const lm = _mdmLinkMap();
+        const dueno = _mdmDispOcupadoPor(d, lm);
+        const detalle = [d.model, d.platform ? (d.platform + (d.os ? ' ' + d.os : '')) : '', d.imei ? ('IMEI ' + d.imei) : '', d.serial ? ('Serie ' + d.serial) : ''].filter(Boolean).join(' · ');
+        if(dueno) {
+            cont.innerHTML = `<div style="background:var(--fin-danger-bg); border:1px solid var(--fin-danger-brd); color:var(--fin-danger); padding:8px 10px; border-radius:8px; font-size:12.5px;"><b><i class="ti ti-x"></i> Este equipo YA está asignado a otro cliente.</b><br>${escapeHtml(dueno)}<br>${escapeHtml(detalle)}<br>Elige otro equipo o libera primero ese financiamiento.</div>`;
+        } else {
+            cont.innerHTML = `<div style="background:var(--fin-ok-bg); border:1px solid var(--fin-ok-brd); color:var(--fin-ok); padding:8px 10px; border-radius:8px; font-size:12.5px;"><b><i class="ti ti-circle-check"></i> Enrolado en Hexnode y DISPONIBLE.</b><br>${escapeHtml(detalle)}</div>`;
+        }
+    } catch(e) {
+        cont.innerHTML = `<div style="background:var(--fin-danger-bg); border:1px solid var(--fin-danger-brd); color:var(--fin-danger); padding:8px 10px; border-radius:8px; font-size:12.5px;"><i class="ti ti-alert-triangle"></i> Error al verificar: ${escapeHtml(e.message || String(e))}</div>`;
+    } finally { if(btn){ btn.disabled = false; btn.innerHTML = orig; } }
 }
 async function guardarSolicitud() {
     if(!(isAdminUser() || tienePermiso('financiamientos_crear'))) { toast('No tienes permiso.', 'error'); return; }
