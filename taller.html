@@ -26340,35 +26340,44 @@ function generarHtmlLabelDiag(equipo) {
     
     // Fallas del equipo (checklist para que el técnico marque)
     const fallasEq = _fallasPorEquipo[equipo.id] || [];
-    const fmenor = Math.max(7, parseInt(f) - 1); // texto fallas un pelín menor
+    const userF = Math.max(6, Math.min(parseInt(f) || 9, 40));
+    // ===== AUTO-FIT: calcula una letra que QUEPA en el alto del label (para que no se corte) =====
+    const cols = fallasEq.length >= 4 ? 2 : 1;
+    const notasLineas = notas ? Math.max(1, Math.ceil(notas.length / 26)) : 0;
+    const fallasRows = fallasEq.length ? (1 + Math.ceil(fallasEq.length / cols)) : 0;
+    const fechaLoteLineas = codigoLote ? 2 : 1; // FECHA + LOTE suele ocupar 2 líneas
+    const totalLineas = 1 /*DIAGNÓSTICO*/ + 1 /*modelo*/ + 1 /*IMEI*/ + fechaLoteLineas + notasLineas + fallasRows;
+    const availPx = Math.max(24, (parseFloat(h) * 3.7795) - 8); // alto útil en px (menos padding/bordes)
+    const fitF = Math.floor(availPx / (totalLineas * 1.16));
+    const F = Math.max(6, Math.min(userF, fitF)); // usa la del usuario, pero baja si no cabe
+    const STK = F <= 9 ? '0.1px' : '0.15px';       // grosor fino = más nítido en térmica
+    const fmenor = Math.max(6, F - 1); // texto fallas un pelín menor
     let fallasHtml = '';
     if(fallasEq.length > 0) {
-        // 1 columna si son pocas (≤4), 2 columnas si son muchas (5+)
-        const columnas = fallasEq.length >= 5 ? 2 : 1;
         const itemsHtml = fallasEq.map(fa => {
             const txt = (fa.falla_corto || fa.falla_nombre || '').toUpperCase();
-            return `<div style="font-size:${fmenor}px; font-weight:900; -webkit-text-stroke:0.3px #000; line-height:1.35; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">☐ ${escapeHtml(txt)}</div>`;
+            return `<div style="font-size:${fmenor}px; font-weight:800; -webkit-text-stroke:${STK} #000; line-height:1.15; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">☐ ${escapeHtml(txt)}</div>`;
         }).join('');
         fallasHtml = `
-            <div class="diag-fallas-area" style="border-top:2px dashed #000; padding-top:0.5mm; margin-top:0.5mm;">
-                <div style="font-size:${fmenor}px; font-weight:900; -webkit-text-stroke:0.3px #000; margin-bottom:1px;">REVISAR / REPARAR:</div>
-                <div style="display:grid; grid-template-columns:repeat(${columnas}, 1fr); gap:0 6px;">${itemsHtml}</div>
+            <div class="diag-fallas-area" style="border-top:2px dashed #000; padding-top:0.4mm; margin-top:0.4mm;">
+                <div style="font-size:${fmenor}px; font-weight:800; -webkit-text-stroke:${STK} #000; margin-bottom:0.5px;">REVISAR:</div>
+                <div style="display:grid; grid-template-columns:repeat(${cols}, 1fr); gap:0 6px;">${itemsHtml}</div>
             </div>`;
     }
-    
+
     return `
-        <div class="diag-label" style="width:${w}mm; min-height:${h}mm; font-size:${f}px; font-weight:900; -webkit-text-stroke:0.4px #000; line-height:1.25; padding:1mm ${mr}mm 1mm ${ml}mm; box-sizing:border-box; overflow:hidden; font-family:Arial,Helvetica,sans-serif; color:#000;">
-            <div class="diag-header" style="font-size:${f}px; font-weight:900; -webkit-text-stroke:0.4px #000; text-align:center; border-bottom:2px solid #000; padding-bottom:0.5mm; margin-bottom:0.5mm; font-family:Arial,Helvetica,sans-serif;">
+        <div class="diag-label" style="width:${w}mm; min-height:${h}mm; font-size:${F}px; font-weight:800; -webkit-text-stroke:${STK} #000; line-height:1.15; padding:0.8mm ${mr}mm 0.8mm ${ml}mm; box-sizing:border-box; overflow:hidden; font-family:Arial,Helvetica,sans-serif; color:#000;">
+            <div class="diag-header" style="font-size:${F}px; font-weight:800; -webkit-text-stroke:${STK} #000; text-align:center; border-bottom:2px solid #000; padding-bottom:0.4mm; margin-bottom:0.4mm; font-family:Arial,Helvetica,sans-serif;">
                 DIAGNÓSTICO
             </div>
-            <div class="diag-section" style="margin-bottom:0.5mm;">
-                <div class="diag-line diag-modelo" style="font-weight:900; -webkit-text-stroke:0.4px #000; font-family:Arial,Helvetica,sans-serif;">${escapeHtml(modeloCorto)}</div>
+            <div class="diag-section" style="margin-bottom:0.4mm;">
+                <div class="diag-line diag-modelo" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:Arial,Helvetica,sans-serif;">${escapeHtml(modeloCorto)}</div>
             </div>
-            <div class="diag-section" style="margin-bottom:0.5mm;">
-                <div class="diag-line" style="font-weight:900; -webkit-text-stroke:0.4px #000; font-family:Arial,Helvetica,sans-serif;">IMEI: <span class="diag-imei" style="font-weight:900; -webkit-text-stroke:0.4px #000; font-family:Arial,Helvetica,sans-serif; letter-spacing:0.3px;">${escapeHtml(imei)}</span></div>
-                <div class="diag-line" style="font-weight:900; -webkit-text-stroke:0.4px #000; font-family:Arial,Helvetica,sans-serif;">FECHA: ${escapeHtml(fecha)}${codigoLote ? '  ·  LOTE: ' + escapeHtml(codigoLote) : ''}</div>
+            <div class="diag-section" style="margin-bottom:0.4mm;">
+                <div class="diag-line" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:Arial,Helvetica,sans-serif;">IMEI: <span class="diag-imei" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:Arial,Helvetica,sans-serif; letter-spacing:0.3px;">${escapeHtml(imei)}</span></div>
+                <div class="diag-line" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:Arial,Helvetica,sans-serif;">FECHA: ${escapeHtml(fecha)}${codigoLote ? '  ·  LOTE: ' + escapeHtml(codigoLote) : ''}</div>
             </div>
-            ${notas ? `<div class="diag-notas-area" style="border-top:2px dashed #000; padding-top:0.5mm; font-size:${f}px; font-weight:900; -webkit-text-stroke:0.4px #000; font-family:Arial,Helvetica,sans-serif;">NOTAS: ${escapeHtml(notas)}</div>` : ''}
+            ${notas ? `<div class="diag-notas-area" style="border-top:2px dashed #000; padding-top:0.4mm; font-size:${fmenor}px; font-weight:800; -webkit-text-stroke:${STK} #000; font-family:Arial,Helvetica,sans-serif;">NOTAS: ${escapeHtml(notas)}</div>` : ''}
             ${fallasHtml}
         </div>
     `;
