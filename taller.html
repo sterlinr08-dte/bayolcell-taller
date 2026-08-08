@@ -26350,7 +26350,7 @@ function generarHtmlLabelDiag(equipo) {
     const availPx = Math.max(24, (parseFloat(h) * 3.7795) - 8); // alto útil en px (menos padding/bordes)
     const fitF = Math.floor(availPx / (totalLineas * 1.16));
     const F = Math.max(6, Math.min(userF, fitF)); // usa la del usuario, pero baja si no cabe
-    const STK = F <= 9 ? '0.1px' : '0.15px';       // grosor fino = más nítido en térmica
+    const STK = '0px';       // sin engrosar: el supersampling x2 ya da nitidez; el text-stroke blobbeaba en térmica
     const fmenor = Math.max(6, F - 1); // texto fallas un pelín menor
     let fallasHtml = '';
     if(fallasEq.length > 0) {
@@ -26892,10 +26892,12 @@ async function qzImprimirHtmlComoImagen(elementoHtml, anchoMm, altoMm, copias, t
     copias = parseInt(copias) || 1;
     
     try {
-        // 203 dpi: 8 dots/mm. Renderizamos a la resolución NATIVA de la impresora (203dpi):
-        // más rápido (4x menos pixeles) y sin pérdida — la térmica no reproduce más densidad que su dpi.
+        // 203 dpi: 8 dots/mm. Renderizamos con SUPERSAMPLING x2 sobre el nativo (203dpi):
+        // el texto chico bold sale mucho más nítido en la térmica (menos "escalonado")
+        // porque le da más detalle al driver al pasar a 1-bit. Un poco más lento, pero
+        // la calidad se nota (Sterling reportó labels pixelados con render nativo puro).
         const dpi = 203;
-        const escala = dpi / 96; // nativo 203dpi (antes x2 = 4x más lento sin ganancia real)
+        const escala = (dpi / 96) * 2; // supersample x2 = texto más nítido
         
         // Tamaño físico exacto en px @96dpi (1mm = 3.7795px) para que la imagen
         // NO sea más alta que la etiqueta (evita que avance un label en blanco extra)
