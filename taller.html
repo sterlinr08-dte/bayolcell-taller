@@ -29170,6 +29170,7 @@ function _pintarMDMTab() {
             <div style="display:flex; gap:6px; flex-wrap:wrap;">
                 ${puedeMDM ? `<button class="btn btn-light" onclick="abrirEquiposDisponibles()" style="font-size:12px; color:var(--fin-ok); border-color:var(--fin-ok-brd);"><i class="ti ti-device-mobile-check"></i> Equipos disponibles</button>` : ''}
                 ${puedeMDM ? `<button class="btn btn-light" onclick="abrirQrEnrolarAndroid()" style="font-size:12px; color:var(--fin-info); border-color:var(--fin-info-brd);"><i class="ti ti-qrcode"></i> QR enrolar Android</button>` : ''}
+                ${puedeMDM ? `<button class="btn btn-light" onclick="abrirAuditoriaSeguridadMdm()" style="font-size:12px; color:var(--fin-danger); border-color:var(--fin-danger-brd);"><i class="ti ti-shield-exclamation"></i> Seguridad MDM</button>` : ''}
                 ${puedeMDM && finListosParaBloqueo().length ? `<button class="btn" onclick="abrirListosBloqueo()" style="font-size:12px; background:var(--fin-danger); color:#fff;"><i class="ti ti-lock"></i> Listos para bloquear (${finListosParaBloqueo().length})</button>` : ''}
                 <button class="btn btn-light" onclick="renderFinanciamientos()" style="font-size:12px;"><i class="ti ti-refresh"></i> Sincronizar</button>
             </div>
@@ -30275,6 +30276,57 @@ async function _finGuardarConfigBloqueo(campo, valor) {
         await supabaseClient.from('fin_config').update(upd).eq('id', 1);
         _finCache.config = { ..._finCache.config, ...upd };
     } catch(e) { console.error('_finGuardarConfigBloqueo', e); }
+}
+// ===== Seguridad MDM: eventos de auditoria de Apple Business Manager cruzados con financiamientos activos =====
+// Detecta si un equipo financiado (aun no liberado por pago completo) fue borrado, desasignado
+// del servidor MDM, o saco de la organizacion sin pasar por el flujo normal del taller -- posible
+// senal de fraude/intento de escapar del control remoto.
+const _AUDIT_TIPO_TXT = { DEVICE_IS_ERASED: 'Equipo borrado', DEVICE_UNASSIGNED_FROM_SERVER: 'Desasignado del servidor MDM', DEVICE_REMOVED_FROM_ORG: 'Sacado de la organizacion' };
+async function abrirAuditoriaSeguridadMdm() {
+    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso.', 'error'); return; }
+    abrirModalGenerico('Seguridad MDM — Apple Business Manager', `
+        <div style="font-size:12.5px; color:var(--text-muted); margin-bottom:10px;">Revisa los últimos 30 días en busca de equipos <b>borrados</b>, <b>desasignados de Hexnode</b> o <b>sacados de la organización</b> sin pasar por "Liberar" — posible señal de fraude en un financiamiento activo.</div>
+        <div id="auditMdmCont"><div style="text-align:center; color:var(--text-muted); padding:24px;"><i class="ti ti-loader"></i> Consultando Apple Business Manager…</div></div>
+    `);
+    try {
+        const { data, error } = await supabaseClient.functions.invoke('abm-accion', { body: { accion: 'auditoria', dias: 30 } });
+        if(error){ let det=''; try{ det=(await error.context.json()).error||''; }catch(_){} throw new Error(det||error.message); }
+        if(!data || !data.ok) throw new Error((data && data.error) || 'No se pudo consultar.');
+        _auditMdmRender(data.eventos || []);
+    } catch(e) {
+        const c = document.getElementById('auditMdmCont');
+        if(c) c.innerHTML = `<div style="background:var(--fin-danger-bg); border:1px solid var(--fin-danger-brd); color:var(--fin-danger); padding:10px 12px; border-radius:8px; font-size:12.5px;"><i class="ti ti-alert-triangle"></i> ${escapeHtml(e.message || String(e))}</div>`;
+    }
+}
+function _auditMdmRender(eventos) {
+    const cont = document.getElementById('auditMdmCont');
+    if(!cont) return;
+    if(!eventos.length) { cont.innerHTML = `<div style="color:var(--fin-ok); font-size:13px; display:flex; align-items:center; gap:6px;"><i class="ti ti-shield-check"></i> Sin eventos sospechosos en los últimos 30 días.</div>`; return; }
+    // Cruza cada evento con financiamientos activos (no liberados/borrados) por serial o IMEI
+    const activos = (_finCache.financiamientos || []).filter(f => f.mdm_estado !== 'liberado' && f.mdm_estado !== 'borrado');
+    const fila = (ev) => {
+        const dispId = String(ev.dispositivo_id || '').toLowerCase();
+        const fin = activos.find(f => String(f.mdm_serial || '').toLowerCase() === dispId || String(f.equipo_imei || '').toLowerCase() === dispId);
+        const fecha = ev.fecha ? new Date(ev.fecha).toLocaleString('es-DO') : '';
+        const tipoTxt = _AUDIT_TIPO_TXT[ev.tipo] || ev.tipo;
+        if(fin) {
+            return `<div onclick="verFinanciamiento('${fin.id}')" style="cursor:pointer; border:1px solid var(--fin-danger-brd); background:var(--fin-danger-bg); border-radius:10px; padding:10px 12px; margin-bottom:8px;">
+                <div style="font-weight:800; color:var(--fin-danger); font-size:13px;"><i class="ti ti-alert-triangle"></i> ${escapeHtml(tipoTxt)} — financiamiento ACTIVO</div>
+                <div style="font-size:12.5px; margin-top:2px;"><b>${escapeHtml(fin.cliente_nombre || '')}</b> · ${escapeHtml(fin.concepto || '')}</div>
+                <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">Equipo ${escapeHtml(ev.dispositivo_id || '')} · ${escapeHtml(fecha)}${ev.actor ? ' · por ' + escapeHtml(ev.actor) : ''}</div>
+            </div>`;
+        }
+        return `<div style="border:1px solid var(--border-color); border-radius:10px; padding:9px 12px; margin-bottom:6px;">
+            <div style="font-weight:700; font-size:12.5px;"><i class="ti ti-info-circle" style="color:var(--fin-muted);"></i> ${escapeHtml(tipoTxt)}</div>
+            <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">Equipo ${escapeHtml(ev.dispositivo_id || '')} · ${escapeHtml(fecha)}${ev.actor ? ' · por ' + escapeHtml(ev.actor) : ''} · no está en un financiamiento activo</div>
+        </div>`;
+    };
+    const conFin = eventos.filter(ev => { const d = String(ev.dispositivo_id||'').toLowerCase(); return activos.some(f => String(f.mdm_serial||'').toLowerCase()===d || String(f.equipo_imei||'').toLowerCase()===d); });
+    let html = '';
+    if(conFin.length) html += `<div style="font-weight:700; color:var(--fin-danger); font-size:12.5px; margin-bottom:6px;">⚠️ Con financiamiento activo (${conFin.length})</div>` + eventos.filter(ev => conFin.includes(ev)).map(fila).join('');
+    const sinFin = eventos.filter(ev => !conFin.includes(ev));
+    if(sinFin.length) html += `<div style="font-weight:700; color:var(--text-muted); font-size:12.5px; margin:10px 0 6px;">Otros eventos (${sinFin.length})</div>` + sinFin.map(fila).join('');
+    cont.innerHTML = html;
 }
 function abrirListosBloqueo() {
     if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso para bloquear equipos.', 'error'); return; }
