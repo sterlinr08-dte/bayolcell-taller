@@ -10235,14 +10235,14 @@ function _abStyles() {
       .ab-results{flex:1;overflow-y:auto;padding:6px 22px 12px;background:#f8fafc;}
       .ab-card{display:flex;align-items:center;gap:16px;background:#fff;border:1px solid #eef2f7;border-radius:16px;padding:13px 16px;margin-bottom:11px;cursor:pointer;transition:transform .12s,box-shadow .12s,border-color .12s;}
       .ab-card:hover{transform:translateY(-2px);box-shadow:0 12px 26px -12px rgba(15,23,42,.22);border-color:#e2e8f0;} .ab-card.hl{border-color:#e31e24;box-shadow:0 0 0 3px rgba(227,30,36,.12);}
-      .ab-thumb{width:62px;height:62px;border-radius:14px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:29px;flex:none;}
+      .ab-thumb{width:66px;height:66px;border-radius:14px;background:linear-gradient(135deg,#eef2ff,#e0e7ff);display:flex;align-items:center;justify-content:center;font-size:30px;flex:none;}
       .ab-info{flex:1;min-width:0;} .ab-cod{font-size:12.5px;font-weight:800;color:#e31e24;} .ab-cod .mk{color:#64748b;font-weight:700;}
       .ab-name{font-size:16px;font-weight:800;color:#0f172a;margin:1px 0 2px;line-height:1.2;}
       .ab-ref{font-size:12.5px;color:#475569;} .ab-pl{font-size:12.5px;color:#475569;margin-top:3px;}
       .ab-badges{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;} .ab-bdg{font-size:11px;font-weight:800;padding:2px 9px;border-radius:999px;}
       .ab-right{flex:none;width:152px;display:flex;flex-direction:column;gap:8px;}
-      .ab-pbox{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:8px 12px;text-align:center;} .ab-pbox b{font-size:15px;color:#16a34a;font-weight:800;display:block;} .ab-pbox small{font-size:10px;color:#15803d;font-weight:600;}
-      .ab-sel{border:1.5px solid #e2e8f0;background:#fff;border-radius:11px;padding:9px;font-size:13px;font-weight:800;color:#334155;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;} .ab-sel:hover{background:#e31e24;border-color:#e31e24;color:#fff;}
+      .ab-pbox{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:9px 12px;text-align:center;} .ab-pbox b{font-size:19px;color:#0b7a44;font-weight:900;display:block;} .ab-pbox small{font-size:10px;color:#16a34a;font-weight:700;}
+      .ab-sel{border:1.5px solid #e31e24;background:#e31e24;border-radius:11px;padding:10px;font-size:13px;font-weight:800;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;} .ab-sel:hover{background:#c8181d;border-color:#c8181d;}
       .ab-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 22px;border-top:1px solid #eef2f7;background:#fff;flex-wrap:wrap;}
       .ab-foot .info{font-size:12.5px;color:#475569;font-weight:600;} .ab-pg{display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
       .ab-pg button{min-width:34px;height:34px;border:1px solid #e2e8f0;background:#fff;border-radius:9px;font-size:13px;font-weight:700;color:#334155;cursor:pointer;font-family:inherit;} .ab-pg button:hover:not(:disabled){background:#f8fafc;} .ab-pg button.on{background:#e31e24;border-color:#e31e24;color:#fff;} .ab-pg button:disabled{opacity:.4;cursor:default;}
@@ -20148,6 +20148,29 @@ async function marcarEquipoCompletado(equipoId) {
         if(reacondLoteAbiertoId) renderDetalleLoteReacond();
     } catch(e) { logError('marcarEquipoCompletado', e); toastError(getFriendlyError(e)); }
 }
+// Marca el equipo como LISTO para venta (estado listo_venta). Si estaba completado/despachado, lo revierte.
+async function marcarEquipoListo(equipoId) {
+    if(!isAdminUser() && !tienePermiso('piezas_aprobar_extra') && !tienePermiso('estado_despachar')) {
+        return toast('Solo el administrador puede cambiar el estado.', 'error');
+    }
+    const eq = (cache.refurb || []).find(r => r.id === equipoId);
+    if(!eq) return;
+    if(eq.estado_evaluacion === 'listo_venta' && !eq.completado) return toast('Este equipo ya está en Listo.');
+    if(!await confirmar(`¿Pasar "${eq.modelo || 'equipo'}" al estado LISTO para venta?`)) return;
+    try {
+        const antes = eq.completado ? 'completado' : (eq.estado_evaluacion || '');
+        const { error } = await supabaseClient.from('equipos_refurbish').update({
+            estado_evaluacion: 'listo_venta', completado: false, fecha_terminado: eq.fecha_terminado || new Date().toISOString()
+        }).eq('id', equipoId);
+        if(error) throw error;
+        try { await supabaseClient.from('equipo_historial').insert([{ equipo_id: equipoId, estado_anterior: antes, estado_nuevo: 'listo_venta', accion: 'Marcado como Listo para venta', usuario: sessionUser?.nombre || 'Admin' }]); } catch(_e) {}
+        toast('Equipo marcado como Listo para venta.');
+        const mf = document.getElementById('modalFichaEquipo'); if(mf) mf.remove();
+        const mg = document.getElementById('modalGenerico'); if(mg) mg.remove();
+        await loadAll();
+        if(reacondLoteAbiertoId) renderDetalleLoteReacond();
+    } catch(e) { logError('marcarEquipoListo', e); toastError(getFriendlyError(e)); }
+}
 async function marcarDespachado(equipoId) {
     if(!isAdminUser() && !tienePermiso('estado_despachar')) {
         return toast('No tienes permiso para despachar equipos.', 'error');
@@ -20221,19 +20244,32 @@ async function verFichaDespacho(equipoId) {
                 <b>${money((p.cantidad || 1) * (p.costo_unitario || 0))}</b>${acc}
             </div>`;
         }).join('') : '';
-        costoHtml = `<div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:12px; margin-top:14px;">
-            <b style="color:#166534; font-size:13px;"><i class="ti ti-cash"></i> Costo del equipo</b>
-            <div style="display:flex; justify-content:space-between; font-size:13px; margin-top:8px;"><span>Costo de compra:</span><b>${money(compra)}</b></div>
-            ${flete > 0 ? `<div style="display:flex; justify-content:space-between; font-size:13px; margin-top:4px;"><span>Envío (proporcional):</span><b>${money(flete)}</b></div>` : ''}
-            ${piezasLineas ? `<div style="margin-top:6px; padding-top:6px; border-top:1px dashed #bbf7d0;">${piezasLineas}</div>` : ''}
-            <div style="display:flex; justify-content:space-between; font-size:13px; margin-top:4px;"><span>Piezas con costo (${conCosto.length}):</span><b>${money(repuestos)}</b></div>
-            <div style="display:flex; justify-content:space-between; font-size:16px; margin-top:8px; padding-top:8px; border-top:1px dashed #86efac; font-weight:800; color:#166534;"><span>COSTO FINAL:</span><span>${money(final)}</span></div>
-            ${esAdminPiezas ? _piezasDescuentoHTML(piezas) : ''}
-            ${esAdminPiezas ? `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;">
-                <button class="btn btn-light" onclick="agregarPiezaInfoPlus('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#0369a1; border-color:#7dd3fc;"><i class="ti ti-search"></i> Agregar piezas (Info Plus)</button>
-                <button class="btn btn-light" onclick="agregarPiezaExterna('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#7c3aed; border-color:#c4b5fd;"><i class="ti ti-plus"></i> Pieza externa</button>
-                <button class="btn btn-light" onclick="marcarEquipoCompletado('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#0f766e; border-color:#5eead4;"><i class="ti ti-circle-check"></i> Completado</button>
-            </div>` : ''}
+        const _estLab = eq.completado ? 'COMPLETADO' : (eq.estado_evaluacion === 'vendido' ? 'DESPACHADO' : 'LISTO');
+        const _cpct = (x) => (final > 0 ? (x / final * 100) : 0);
+        costoHtml = `<div class="cbx">
+            <div class="cbx-hero">
+                <span class="cbx-badge">${_estLab}</span>
+                <div class="cbx-top"><i class="ti ti-cash"></i> COSTO DEL EQUIPO</div>
+                <div class="cbx-lab">Costo final</div>
+                <div class="cbx-num">${money(final)}</div>
+                <div class="cbx-bar">
+                    <span style="width:${_cpct(compra)}%;background:#0f9d58;"></span>
+                    ${flete > 0 ? `<span style="width:${_cpct(flete)}%;background:#a7f3d0;"></span>` : ''}
+                    ${repuestos > 0 ? `<span style="width:${_cpct(repuestos)}%;background:#fbbf24;"></span>` : ''}
+                </div>
+            </div>
+            <div class="cbx-body">
+                <div class="cbx-row"><span class="l"><span class="dot" style="background:#0f9d58;"></span>Costo de compra</span><b>${money(compra)}</b></div>
+                ${flete > 0 ? `<div class="cbx-row"><span class="l"><span class="dot" style="background:#a7f3d0;"></span>Envío <small>(proporcional)</small></span><b>${money(flete)}</b></div>` : ''}
+                <div class="cbx-row"><span class="l"><span class="dot" style="background:${repuestos > 0 ? '#fbbf24' : '#e2e8f0'};"></span>Piezas con costo <small>(${conCosto.length})</small></span><b>${money(repuestos)}</b></div>
+                ${piezasLineas ? `<div class="cbx-pzs">${piezasLineas}</div>` : '<div class="cbx-empty">Sin piezas agregadas todavía</div>'}
+                ${esAdminPiezas ? _piezasDescuentoHTML(piezas) : ''}
+                ${esAdminPiezas ? `<div class="cbx-acts">
+                    <button class="cbx-act blue" onclick="agregarPiezaInfoPlus('${equipoId}')"><span class="ci"><i class="ti ti-search"></i></span>Agregar piezas<br>(Info Plus)</button>
+                    <button class="cbx-act violet" onclick="agregarPiezaExterna('${equipoId}')"><span class="ci"><i class="ti ti-plus"></i></span>Pieza<br>externa</button>
+                    <button class="cbx-act green" onclick="marcarEquipoListo('${equipoId}')"><span class="ci"><i class="ti ti-checkbox"></i></span>Marcar<br>Listo</button>
+                </div>` : ''}
+            </div>
         </div>`;
     }
     const esVendido = (eq.estado_evaluacion === 'vendido');
@@ -20374,7 +20410,38 @@ async function verFichaDespacho(equipoId) {
 // Cierra la ficha del equipo (overlay a pantalla completa)
 function _feCerrar() { const m = document.getElementById('modalFichaEquipo'); if(m) m.remove(); }
 // Estilos de la Ficha del Equipo (se inyectan una sola vez)
+function _cbxStyles() {
+    if(document.getElementById('cbxStyles')) return;
+    const s = document.createElement('style'); s.id = 'cbxStyles'; s.textContent = `
+    .cbx{background:#fff;border-radius:18px;box-shadow:0 16px 40px -24px rgba(15,23,42,.45);overflow:hidden;border:1px solid #eef2f7;}
+    .cbx-hero{background:linear-gradient(135deg,#0b7a44,#0f9d58);color:#fff;padding:16px 18px 18px;position:relative;}
+    .cbx-top{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:800;letter-spacing:.04em;opacity:.95;}
+    .cbx-lab{font-size:11px;opacity:.85;margin-top:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;}
+    .cbx-num{font-size:30px;font-weight:900;letter-spacing:-.02em;line-height:1;margin-top:3px;}
+    .cbx-badge{position:absolute;top:14px;right:16px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);padding:3px 10px;border-radius:999px;font-size:10.5px;font-weight:800;letter-spacing:.04em;}
+    .cbx-bar{display:flex;height:7px;border-radius:5px;overflow:hidden;margin-top:14px;background:rgba(255,255,255,.28);}
+    .cbx-bar span{display:block;height:100%;}
+    .cbx-body{padding:14px 16px 16px;}
+    .cbx-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;font-size:13.5px;border-bottom:1px solid #f1f5f9;}
+    .cbx-row:last-of-type{border-bottom:none;}
+    .cbx-row .l{display:flex;align-items:center;gap:8px;color:#475569;font-weight:600;}
+    .cbx-row .l small{color:#94a3b8;font-weight:600;}
+    .cbx-row .l .dot{width:10px;height:10px;border-radius:3px;flex:none;}
+    .cbx-row b{font-weight:800;font-variant-numeric:tabular-nums;color:#0f172a;}
+    .cbx-pzs{margin:6px 0 2px;padding:8px 10px;background:#f8fafc;border-radius:10px;border:1px solid #eef2f7;}
+    .cbx-empty{font-size:12px;color:#94a3b8;padding:8px 10px;background:#f8fafc;border-radius:10px;border:1px dashed #e2e8f0;text-align:center;margin:4px 0 2px;}
+    .cbx-acts{display:flex;gap:8px;margin-top:12px;}
+    .cbx-act{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;padding:11px 4px;border-radius:13px;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;font-size:11px;font-weight:800;color:#334155;transition:.15s;text-align:center;line-height:1.2;font-family:inherit;}
+    .cbx-act:hover{transform:translateY(-2px);}
+    .cbx-act.blue{border-color:#bae6fd;color:#0369a1;background:#f0f9ff;}
+    .cbx-act.violet{border-color:#ddd6fe;color:#7c3aed;background:#faf5ff;}
+    .cbx-act.green{border-color:#bbf7d0;color:#0b7a44;background:#f0fdf4;}
+    .cbx-act .ci{width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:#fff;box-shadow:0 2px 6px -3px rgba(0,0,0,.3);font-size:15px;}
+    `;
+    document.head.appendChild(s);
+}
 function _feStyles() {
+    _cbxStyles();
     if(document.getElementById('feStyles')) return;
     const s = document.createElement('style'); s.id = 'feStyles'; s.textContent = `
     .fe-back{position:fixed;inset:0;z-index:500;background:rgba(15,23,42,.5);backdrop-filter:blur(3px);overflow-y:auto;padding:18px;}
