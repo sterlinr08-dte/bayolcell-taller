@@ -12781,13 +12781,15 @@ async function registrarCompraLoteInfoPlus() {
     await _cargarProveedoresIP();
     const lote = (cache.lotes || []).find(l => l.id === reacondLoteAbiertoId);
     if(!lote) return toast('Lote no encontrado.', 'error');
-    // Equipos LISTOS o DESPACHADOS/COMPLETADOS del lote. OJO: el API de compra REEMPLAZA (no agrega),
-    // así que se envían TODOS los del lote (no solo los nuevos) para que la compra quede completa.
-    const _estadosRegistrables = ['listo_venta', 'vendido', 'completado'];
-    const listos = (cache.refurb || []).filter(r => r.lote_id === reacondLoteAbiertoId && _estadosRegistrables.includes(r.estado_evaluacion));
-    if(!listos.length) return toast('No hay equipos Listos o Despachados en este lote para registrar en Info Plus.', 'error');
-    // ¿El lote ya tiene una compra en Info Plus? Entonces la ACTUALIZAMOS (mismo codpedido; se reemplaza con todos los equipos).
+    // ¿El lote ya tiene una compra en Info Plus? Entonces la ACTUALIZAMOS (mismo codpedido; el API REEMPLAZA la compra).
     const _pedidoLote = ((cache.refurb || []).filter(r => r.lote_id === reacondLoteAbiertoId).map(e => e.infoplus_compra_pedido).find(p => p && p !== 'MANUAL' && p !== 'OK' && /\d/.test(String(p)))) || '';
+    const _estadosRegistrables = ['listo_venta', 'vendido', 'completado'];
+    const _equiposLote = (cache.refurb || []).filter(r => r.lote_id === reacondLoteAbiertoId);
+    // Actualizar por partes SIN perder equipos: como el API REEMPLAZA la compra, si el lote YA tiene compra
+    // mandamos TODOS los del lote (terminados + en proceso). Los en proceso van con su costo ACTUAL y se
+    // refrescan al volver a registrar cuando terminen. Si es compra NUEVA, solo los Listos/Despachados/Completados.
+    const listos = _pedidoLote ? _equiposLote : _equiposLote.filter(r => _estadosRegistrables.includes(r.estado_evaluacion));
+    if(!listos.length) return toast(_pedidoLote ? 'Este lote no tiene equipos para registrar.' : 'No hay equipos Listos o Despachados en este lote para registrar en Info Plus.', 'error');
     // Agrupar por código de artículo de Info Plus
     const grupos = {};
     let sinCodigo = 0;
@@ -12823,11 +12825,13 @@ async function registrarCompraLoteInfoPlus() {
     box.innerHTML = `<div class="modal-box" style="max-width:720px;">
         <div class="modal-header" style="background:linear-gradient(135deg,#0e7490,#0891b2); color:#fff; border-radius:12px 12px 0 0;"><h3 style="margin:0; color:#fff;"><i class="ti ti-cloud-upload"></i> Registrar compra en Info Plus</h3><button class="modal-close" style="color:#fff;" onclick="document.getElementById('modalRegCompraIP').remove()">✕</button></div>
         <div class="modal-body" style="max-height:70vh; overflow:auto;">
-          <p style="font-size:12.5px; color:#475569; margin-top:0;">Se envían <b>TODOS</b> los equipos <b>Listos o Despachados</b> del lote <b>${escapeHtml(lote.codigo_lote || '')}</b> como <b>1 artículo por modelo + sus IMEI</b>, con el <b>costo promedio</b> (total = suma). El detalle por IMEI queda en el taller.</p>
+          <p style="font-size:12.5px; color:#475569; margin-top:0;">${_pedidoLote
+            ? `Se actualiza la compra con <b>TODOS los equipos del lote ${escapeHtml(lote.codigo_lote || '')}</b> (terminados <b>y en proceso</b>), como <b>1 artículo por modelo + sus IMEI</b>, con el <b>costo promedio</b>. Los <b>en proceso</b> van con su <b>costo actual</b>; cuando los termines, vuelve a registrar y el costo se refresca. El detalle por IMEI queda en el taller.`
+            : `Se envían los equipos <b>Listos o Despachados</b> del lote <b>${escapeHtml(lote.codigo_lote || '')}</b> como <b>1 artículo por modelo + sus IMEI</b>, con el <b>costo promedio</b>. El detalle por IMEI queda en el taller.`}</p>
           ${_pedidoLote
-            ? `<div style="background:#ecfdf5; border:1px solid #a7f3d0; color:#065f46; font-size:12.5px; padding:8px 12px; border-radius:8px; margin-bottom:8px;"><b>🔄 Se ACTUALIZARÁ la compra Nº ${escapeHtml(String(_pedidoLote))}</b> de este lote. El API <b>reemplaza</b> la compra con lo que se envía, por eso van <b>todos</b> los equipos (los de antes + los nuevos + costos al día). No se duplica.</div>`
-            : `<div style="background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; font-size:12.5px; padding:8px 12px; border-radius:8px; margin-bottom:8px;"><b>🆕 Se creará la compra del lote</b> en Info Plus. Cuando termines más equipos, dale otra vez a este botón y la compra se <b>actualiza con todos</b> (misma compra).</div>`}
-          ${sinCodigo > 0 ? `<div style="background:#fef3c7; color:#92400e; font-size:12px; padding:6px 10px; border-radius:8px; margin-bottom:8px;">⚠️ ${sinCodigo} equipo(s) listo(s) sin código de Info Plus — esos NO se enviarán.</div>` : ''}
+            ? `<div style="background:#ecfdf5; border:1px solid #a7f3d0; color:#065f46; font-size:12.5px; padding:8px 12px; border-radius:8px; margin-bottom:8px;"><b>🔄 Se ACTUALIZARÁ la compra Nº ${escapeHtml(String(_pedidoLote))}</b> con <b>todos</b> los equipos del lote. Como el API <b>reemplaza</b> la compra, se mandan todos para <b>no perder ninguno</b> (los terminados con su costo final y los que faltan con su costo actual). No se duplica.</div>`
+            : `<div style="background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; font-size:12.5px; padding:8px 12px; border-radius:8px; margin-bottom:8px;"><b>🆕 Se creará la compra del lote</b> en Info Plus. Cuando termines más equipos, dale otra vez a este botón y la compra se <b>actualiza con todos</b> (misma compra, sin perder ninguno).</div>`}
+          ${sinCodigo > 0 ? `<div style="background:#fef3c7; color:#92400e; font-size:12px; padding:6px 10px; border-radius:8px; margin-bottom:8px;">⚠️ ${sinCodigo} equipo(s) sin código de Info Plus — esos NO se enviarán.</div>` : ''}
           <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
             <thead><tr style="background:#f1f5f9;"><th style="padding:6px; text-align:left;">Modelo</th><th>Cód IP</th><th>Cant.</th><th style="padding:6px; text-align:right;">Promedio</th><th style="padding:6px; text-align:right;">Total</th><th>IMEI</th></tr></thead>
             <tbody>${filas}</tbody>
