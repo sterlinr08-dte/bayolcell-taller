@@ -26451,7 +26451,7 @@ function generarHtmlLabelDiag(equipo) {
                 <div class="diag-line diag-modelo" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:Arial,Helvetica,sans-serif;">${escapeHtml(modeloCorto)}</div>
             </div>
             <div class="diag-section" style="margin-bottom:0.4mm;">
-                <div class="diag-line" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:Arial,Helvetica,sans-serif;">IMEI: <span class="diag-imei" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:Arial,Helvetica,sans-serif; letter-spacing:0.3px;">${escapeHtml(imei)}</span></div>
+                <div class="diag-line" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:Arial,Helvetica,sans-serif;">IMEI: <span class="diag-imei" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:'Courier New',Courier,monospace; letter-spacing:0.3px;">${escapeHtml(imei)}</span></div>
                 <div class="diag-line" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:Arial,Helvetica,sans-serif;">FECHA: ${escapeHtml(fecha)}${codigoLote ? '  ·  LOTE: ' + escapeHtml(codigoLote) : ''}</div>
             </div>
             ${notas ? `<div class="diag-notas-area" style="border-top:2px dashed #000; padding-top:0.4mm; font-size:${fmenor}px; font-weight:800; -webkit-text-stroke:${STK} #000; font-family:Arial,Helvetica,sans-serif;">NOTAS: ${escapeHtml(notas)}</div>` : ''}
