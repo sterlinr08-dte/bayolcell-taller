@@ -9886,6 +9886,7 @@ async function crearLoteDesdeCompraInfoPlus(idx) {
     if(seleccion.some(x => isNaN(x.costo) || x.costo < 0)) return toast('Hay un costo inválido. Revísalo.', 'error');
     const totalEquipos = seleccion.reduce((s, x) => s + (parseInt(x.l.cantidad) || 0), 0);
     if(totalEquipos <= 0) return toast('Las líneas marcadas no tienen cantidad.', 'error');
+    await _ensureInfoplusArticulos();
     if(!await confirmar(`Se creará un lote con ${totalEquipos} equipo(s) individual(es) de la compra ${f.factura}. ¿Continuar?`)) return;
     try {
         const costoTotal = seleccion.reduce((s, x) => s + (Number(x.costo) || 0) * (parseInt(x.l.cantidad) || 0), 0);
@@ -9904,11 +9905,13 @@ async function crearLoteDesdeCompraInfoPlus(idx) {
         const equipos = [];
         seleccion.forEach(x => {
             const n = parseInt(x.l.cantidad) || 0;
+            const art = x.l.codproducto != null ? _findInfoplusArt(x.l.codproducto) : null;
             for(let k = 0; k < n; k++) equipos.push({
                 lote_id: lote.id,
                 modelo: (x.l.producto || '').trim(),
                 articulo_codigo: x.l.codproducto != null ? String(x.l.codproducto) : null,
                 imei: (Array.isArray(x.l.seriales) && x.l.seriales[k]) ? String(x.l.seriales[k]).trim() : null, // IMEI real desde Info Plus (compra)
+                capacidad: art?.referencia || null, // GB del artículo en Info Plus (ej. "128GB")
                 costo_compra: Number(x.costo) || 0,
                 costo_repuestos: 0,
                 estado_evaluacion: 'pendiente',
