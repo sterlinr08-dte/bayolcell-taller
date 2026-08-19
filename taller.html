@@ -26443,18 +26443,18 @@ function generarHtmlLabelDiag(equipo) {
     }
 
     return `
-        <div class="diag-label" style="width:${w}mm; min-height:${h}mm; font-size:${F}px; font-weight:800; -webkit-text-stroke:${STK} #000; line-height:1.15; padding:0.8mm ${mr}mm 0.8mm ${ml}mm; box-sizing:border-box; overflow:hidden; font-family:Arial,Helvetica,sans-serif; color:#000;">
-            <div class="diag-header" style="font-size:${F}px; font-weight:800; -webkit-text-stroke:${STK} #000; text-align:center; border-bottom:2px solid #000; padding-bottom:0.4mm; margin-bottom:0.4mm; font-family:Arial,Helvetica,sans-serif;">
+        <div class="diag-label" style="width:${w}mm; min-height:${h}mm; font-size:${F}px; font-weight:800; -webkit-text-stroke:${STK} #000; line-height:1.15; padding:0.8mm ${mr}mm 0.8mm ${ml}mm; box-sizing:border-box; overflow:hidden; font-family:'Arial Black',Arial,Helvetica,sans-serif; color:#000;">
+            <div class="diag-header" style="font-size:${F}px; font-weight:800; -webkit-text-stroke:${STK} #000; text-align:center; border-bottom:2px solid #000; padding-bottom:0.4mm; margin-bottom:0.4mm; font-family:'Arial Black',Arial,Helvetica,sans-serif;">
                 DIAGNÓSTICO
             </div>
             <div class="diag-section" style="margin-bottom:0.4mm;">
-                <div class="diag-line diag-modelo" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:Arial,Helvetica,sans-serif;">${escapeHtml(modeloCorto)}</div>
+                <div class="diag-line diag-modelo" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:'Arial Black',Arial,Helvetica,sans-serif;">${escapeHtml(modeloCorto)}</div>
             </div>
             <div class="diag-section" style="margin-bottom:0.4mm;">
-                <div class="diag-line" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:Arial,Helvetica,sans-serif;">IMEI: <span class="diag-imei" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:'Courier New',Courier,monospace; letter-spacing:0.3px;">${escapeHtml(imei)}</span></div>
-                <div class="diag-line" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:Arial,Helvetica,sans-serif;">FECHA: ${escapeHtml(fecha)}${codigoLote ? '  ·  LOTE: ' + escapeHtml(codigoLote) : ''}</div>
+                <div class="diag-line" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:'Arial Black',Arial,Helvetica,sans-serif;">IMEI: <span class="diag-imei" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:'Courier New',Courier,monospace; letter-spacing:0.3px;">${escapeHtml(imei)}</span></div>
+                <div class="diag-line" style="font-weight:800; -webkit-text-stroke:${STK} #000; font-family:'Arial Black',Arial,Helvetica,sans-serif;">FECHA: ${escapeHtml(fecha)}${codigoLote ? '  ·  LOTE: ' + escapeHtml(codigoLote) : ''}</div>
             </div>
-            ${notas ? `<div class="diag-notas-area" style="border-top:2px dashed #000; padding-top:0.4mm; font-size:${fmenor}px; font-weight:800; -webkit-text-stroke:${STK} #000; font-family:Arial,Helvetica,sans-serif;">NOTAS: ${escapeHtml(notas)}</div>` : ''}
+            ${notas ? `<div class="diag-notas-area" style="border-top:2px dashed #000; padding-top:0.4mm; font-size:${fmenor}px; font-weight:800; -webkit-text-stroke:${STK} #000; font-family:'Arial Black',Arial,Helvetica,sans-serif;">NOTAS: ${escapeHtml(notas)}</div>` : ''}
             ${fallasHtml}
         </div>
     `;
