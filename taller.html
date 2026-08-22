@@ -100,6 +100,10 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
 .btn-success { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; box-shadow: 0 3px 10px rgba(5,150,105,0.25); }
 .btn-success:hover { background: linear-gradient(135deg, #34d399 0%, #10b981 100%); box-shadow: 0 5px 14px rgba(5,150,105,0.32); }
 .btn-success:active { box-shadow: 0 2px 6px rgba(5,150,105,0.28); }
+/* RIFA POR FACTURA (verde azulado) */
+.btn-teal { background: linear-gradient(135deg, #14b8a6 0%, #0f766e 100%); color: #fff; box-shadow: 0 3px 10px rgba(15,118,110,0.28); }
+.btn-teal:hover { background: linear-gradient(135deg, #2dd4bf 0%, #0f766e 100%); box-shadow: 0 5px 14px rgba(15,118,110,0.35); transform: translateY(-2px); }
+.btn-teal:active { box-shadow: 0 2px 6px rgba(15,118,110,0.3); transform: scale(0.94); }
 /* Tamaños */
 .btn-sm { padding: 5px 10px; font-size: 11.5px; border-radius: 7px; box-shadow: 0 2px 0 rgba(0,0,0,0.12); }
 .btn-sm:active { box-shadow: 0 1px 0 rgba(0,0,0,0.12); }
@@ -876,6 +880,7 @@ body{
             <button id="menu-atencion" onclick="nav('atencion',this)"><i class="ti ti-headset"></i> <span>Atención al Cliente</span></button>
             <button id="menu-financiamientos" onclick="nav('financiamientos',this)"><i class="ti ti-cash"></i> <span>Financiamientos</span></button>
             <button id="menu-rifas" onclick="abrirRifas()" title="Abrir el panel administrativo de la Rifa (Nexus Pro) ya logueado"><i class="ti ti-ticket"></i> <span>🎟️ Rifa (admin)</span> <i class="ti ti-external-link" style="font-size:12px; opacity:.6;"></i></button>
+            <button id="menu-rifaFactura" onclick="abrirRifaFactura()" title="Registrar boleto de la Rifa por Factura (Info Plus) e imprimir 2 copias — independiente de la Rifa de Nexus Pro"><i class="ti ti-receipt" style="color:#0f766e;"></i> <span>🧾 Rifa por Factura</span></button>
             <button id="menu-contabilidad" onclick="nav('contabilidad',this)"><i class="ti ti-calculator"></i> <span>Contabilidad</span></button>
             <button id="menu-diagnostico" onclick="nav('diagnostico',this)"><i class="ti ti-stethoscope"></i> <span>Diagnóstico IA</span></button>
             <button id="menu-recepcion" onclick="nav('recepcion',this)"><i class="ti ti-clipboard-plus"></i> <span>Recepción de Equipos</span></button>
@@ -3679,6 +3684,53 @@ body{
     </div>
 </div>
 
+<!-- MODAL: Rifa por Factura (Info Plus) — INDEPENDIENTE de la Rifa de Nexus Pro -->
+<div id="modalRifaFactura" class="modal-backdrop">
+    <div class="modal-box" style="max-width:640px;">
+        <div class="modal-header" style="background:linear-gradient(135deg,#0f766e,#14b8a6);">
+            <h3><i class="ti ti-receipt"></i> Rifa por Factura (Info Plus)</h3>
+            <button class="modal-close" onclick="cerrarRifaFactura()">✕</button>
+        </div>
+        <div class="modal-body">
+            <p style="color:var(--text-muted); font-size:12px; margin:0 0 12px;">
+                Registro <b>independiente</b> de la Rifa administrada por Nexus Pro. Escribe los últimos
+                <b>6 dígitos</b> de la factura de Info Plus impresa. Al guardar se imprimen <b>2 boletos</b>:
+                uno para el cliente y otro para la tómbola.
+            </p>
+            <div class="form-row"><label>Nombre completo del cliente *</label><input id="rf_nombre" placeholder="Ej. Juan Pérez"></div>
+            <div class="form-row"><label>WhatsApp *</label><input id="rf_whatsapp" placeholder="809-123-4567"></div>
+            <div class="form-row"><label>Últimos 6 dígitos de la factura (Info Plus) *</label>
+                <input id="rf_factura" placeholder="000123" maxlength="6" inputmode="numeric" style="font-size:19px; font-weight:800; letter-spacing:4px; text-align:center; font-family:'Courier New',monospace;" oninput="this.value=this.value.replace(/\D/g,'').slice(0,6)">
+            </div>
+            <div id="rf_msg" style="font-size:12px; margin-top:4px;"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" onclick="cerrarRifaFactura()">Cancelar</button>
+            <button id="rf_btnGuardar" class="btn btn-teal" onclick="guardarRifaFactura(this)"><i class="ti ti-printer"></i> Registrar e imprimir</button>
+        </div>
+        <div style="border-top:1px solid var(--border-color); padding:14px 18px;">
+            <details>
+                <summary style="cursor:pointer; font-weight:700; font-size:12.5px; color:var(--text-muted); user-select:none;"><i class="ti ti-list"></i> Ver boletos registrados / reimprimir</summary>
+                <div style="margin-top:12px;">
+                    <input id="rf_buscar" placeholder="Buscar por nombre, WhatsApp o factura…" oninput="filtrarRifaFacturaLista()" style="margin-bottom:10px; font-size:12.5px; padding:9px 13px;">
+                    <div style="max-height:280px; overflow:auto; border:1px solid var(--border-color); border-radius:10px;">
+                        <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
+                            <thead><tr style="background:var(--bg-main);">
+                                <th style="text-align:left; padding:8px 10px; border-bottom:1px solid var(--border-color); color:var(--text-muted); font-size:10.5px; text-transform:uppercase; letter-spacing:.4px;">Fecha</th>
+                                <th style="text-align:left; padding:8px 10px; border-bottom:1px solid var(--border-color); color:var(--text-muted); font-size:10.5px; text-transform:uppercase; letter-spacing:.4px;">Nombre</th>
+                                <th style="text-align:left; padding:8px 10px; border-bottom:1px solid var(--border-color); color:var(--text-muted); font-size:10.5px; text-transform:uppercase; letter-spacing:.4px;">WhatsApp</th>
+                                <th style="text-align:center; padding:8px 10px; border-bottom:1px solid var(--border-color); color:var(--text-muted); font-size:10.5px; text-transform:uppercase; letter-spacing:.4px;">Factura</th>
+                                <th style="border-bottom:1px solid var(--border-color);"></th>
+                            </tr></thead>
+                            <tbody id="rf_tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </details>
+        </div>
+    </div>
+</div>
+
 <!-- MODAL: Registrar equipo EXISTENTE (previo al sistema) -->
 <div id="modalRegistrarExistente" class="modal-backdrop">
     <div class="modal-box" style="max-width:560px;">
@@ -4870,6 +4922,143 @@ function _boletoWhatsapp() {
     window.open(`https://wa.me/${num}?text=${texto}`, '_blank');
 }
 
+/* ============================================================
+   RIFA POR FACTURA (INFO PLUS) — INDEPENDIENTE DE LA RIFA DE NEXUS PRO
+   No usa recepcion-boleto, puente-rifa ni nexusprord.com. Registro 100%
+   local: nombre + WhatsApp + últimos 6 dígitos de la factura de Info
+   Plus, guardado en Supabase (factura_digitos es UNIQUE) e impreso en
+   2 copias térmicas de 76mm (cliente + tómbola) vía imprimirContenido().
+   ============================================================ */
+let _rifaFacturaCache = [];
+
+function abrirRifaFactura() {
+    ['rf_nombre', 'rf_whatsapp', 'rf_factura', 'rf_buscar'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+    const msg = document.getElementById('rf_msg'); if(msg) msg.innerHTML = '';
+    document.getElementById('modalRifaFactura').classList.add('active');
+    cargarListaRifaFactura();
+}
+function cerrarRifaFactura() {
+    document.getElementById('modalRifaFactura').classList.remove('active');
+}
+
+function _rfSoloDigitos(v) { return String(v || '').replace(/\D/g, ''); }
+
+async function guardarRifaFactura(btn) {
+    const nombre = (document.getElementById('rf_nombre')?.value || '').trim();
+    const whatsappRaw = (document.getElementById('rf_whatsapp')?.value || '').trim();
+    const factura = _rfSoloDigitos(document.getElementById('rf_factura')?.value);
+    const msg = document.getElementById('rf_msg');
+    const setMsg = (txt, ok) => { if(msg) msg.innerHTML = `<span style="color:${ok ? '#16a34a' : '#dc2626'};">${escapeHtml(txt)}</span>`; };
+
+    if(!nombre) return setMsg('Escribe el nombre completo del cliente.', false);
+    if(_rfSoloDigitos(whatsappRaw).length < 10) return setMsg('El WhatsApp no es válido (ej. 809-123-4567).', false);
+    if(factura.length !== 6) return setMsg('La factura debe tener exactamente 6 dígitos.', false);
+
+    const orig = btn ? btn.innerHTML : '';
+    if(btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Registrando…'; }
+    try {
+        const { data, error } = await supabaseClient.from('rifa_factura_boletos').insert([{
+            nombre_cliente: nombre,
+            whatsapp: whatsappRaw,
+            factura_digitos: factura,
+            creado_por: sessionUser?.id || null
+        }]).select().single();
+
+        if(error) {
+            if(error.code === '23505') { setMsg('Esta factura ya fue registrada en la rifa.', false); return; }
+            throw error;
+        }
+
+        setMsg('✅ Boleto registrado. Imprimiendo…', true);
+        await imprimirBoletosRifaFactura(data);
+        ['rf_nombre', 'rf_whatsapp', 'rf_factura'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+        cargarListaRifaFactura();
+        try { toast('🧾 Boleto de factura registrado e impreso.'); } catch(_e) {}
+    } catch(e) {
+        logError('Guardar rifa por factura', e);
+        setMsg(getFriendlyError(e), false);
+    } finally {
+        if(btn) { btn.disabled = false; btn.innerHTML = orig; }
+    }
+}
+
+function buildTicketRifaFacturaHtml(row, copia) {
+    const t = obtenerDatosTaller();
+    const fecha = row.creado_en ? new Date(row.creado_en) : new Date();
+    return `
+        <div class="ticket-box">
+            <h2>${escapeHtml(t.nombre)}</h2>
+            ${t.tel ? `<div style="text-align:center; font-size:11px;">Tel: ${escapeHtml(t.tel)}</div>` : ''}
+            <div style="text-align:center; font-weight:bold; margin-top:4px;">BOLETO RIFA POR FACTURA</div>
+            <div class="line"></div>
+            <b>Cliente:</b> ${escapeHtml(row.nombre_cliente)}<br>
+            <b>WhatsApp:</b> ${escapeHtml(row.whatsapp)}<br>
+            <b>Factura (Info Plus):</b> ****${escapeHtml(row.factura_digitos)}<br>
+            <b>Fecha:</b> ${fecha.toLocaleString('es-DO', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'})}<br>
+            <div class="line"></div>
+            <div style="text-align:center; font-weight:900; font-size:16px; margin-top:6px;">${copia === 'cliente' ? 'COPIA CLIENTE' : 'COPIA TÓMBOLA'}</div>
+            <div class="small" style="text-align:center; margin-top:4px;">Guarda tu copia. El sorteo se realiza en tienda.</div>
+        </div>
+    `;
+}
+
+// Imprime las 2 copias en llamadas separadas (imprimirContenido con copias>1
+// haría copias IDÉNTICAS). Se espera entre una y otra porque, sin QZ Tray
+// conectado, imprimirContenido libera su bandera _imprimiendo un poco DESPUÉS
+// de resolver su propia promesa.
+async function imprimirBoletosRifaFactura(row) {
+    await imprimirContenido(buildTicketRifaFacturaHtml(row, 'cliente'), 1, 76, null, 'tickets');
+    await new Promise(r => setTimeout(r, 900));
+    await imprimirContenido(buildTicketRifaFacturaHtml(row, 'tombola'), 1, 76, null, 'tickets');
+}
+
+async function cargarListaRifaFactura() {
+    const tbody = document.getElementById('rf_tbody');
+    if(tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#94a3b8; padding:12px;">Cargando…</td></tr>';
+    try {
+        const { data, error } = await supabaseClient.from('rifa_factura_boletos')
+            .select('*').order('creado_en', { ascending: false }).limit(500);
+        if(error) throw error;
+        _rifaFacturaCache = data || [];
+        _rfRenderTabla(_rifaFacturaCache);
+    } catch(e) {
+        logError('Cargar lista rifa por factura', e);
+        if(tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#dc2626; padding:12px;">Error al cargar</td></tr>';
+    }
+}
+
+function filtrarRifaFacturaLista() {
+    const q = (document.getElementById('rf_buscar')?.value || '').trim().toLowerCase();
+    if(!q) return _rfRenderTabla(_rifaFacturaCache);
+    _rfRenderTabla(_rifaFacturaCache.filter(r =>
+        (r.nombre_cliente || '').toLowerCase().includes(q) ||
+        (r.whatsapp || '').toLowerCase().includes(q) ||
+        (r.factura_digitos || '').includes(q)
+    ));
+}
+
+function _rfRenderTabla(filas) {
+    const tbody = document.getElementById('rf_tbody');
+    if(!tbody) return;
+    if(!filas.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#94a3b8; padding:12px;">Sin boletos registrados</td></tr>'; return; }
+    tbody.innerHTML = filas.map(r => `
+        <tr>
+            <td style="white-space:nowrap; padding:7px 10px; border-bottom:1px solid var(--border-color); color:var(--text-muted);">${r.creado_en ? new Date(r.creado_en).toLocaleString('es-DO', {day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit'}) : '—'}</td>
+            <td style="padding:7px 10px; border-bottom:1px solid var(--border-color); font-weight:600;">${escapeHtml(r.nombre_cliente || '')}</td>
+            <td style="padding:7px 10px; border-bottom:1px solid var(--border-color); color:var(--text-muted);">${escapeHtml(r.whatsapp || '')}</td>
+            <td style="text-align:center; font-weight:800; font-family:'Courier New',monospace; padding:7px 10px; border-bottom:1px solid var(--border-color); color:#0f766e;">${escapeHtml(r.factura_digitos || '')}</td>
+            <td style="padding:7px 10px; border-bottom:1px solid var(--border-color); text-align:right;"><button class="btn btn-light" style="padding:5px 10px; font-size:11px;" onclick="reimprimirRifaFactura('${r.id}')"><i class="ti ti-printer"></i> Reimprimir</button></td>
+        </tr>
+    `).join('');
+}
+
+async function reimprimirRifaFactura(id) {
+    const row = _rifaFacturaCache.find(r => r.id === id);
+    if(!row) return toast('No se encontró el boleto.', 'error');
+    try { await imprimirBoletosRifaFactura(row); toast('Reimprimiendo boleto…'); }
+    catch(e) { logError('Reimprimir rifa por factura', e); toastError(getFriendlyError(e)); }
+}
+
 function isAdminUser() {
     // Si es del tipo usuario, usar la lógica vieja
     if(sessionUser?._tipo === 'usuario' || !sessionUser?._tipo) {
@@ -5043,7 +5232,8 @@ function applyAccessControls() {
         'menu-financiamientos': 'financiamientos_ver',
         'menu-contabilidad': 'contabilidad_ver',
         'menu-diagnostico': 'diagnostico_ver',
-        'menu-rifas': 'rifas_ver'
+        'menu-rifas': 'rifas_ver',
+        'menu-rifaFactura': 'rifa_factura_ver'
     };
 
     Object.keys(menuPermisos).forEach(menuId => {
@@ -25120,6 +25310,12 @@ const PERMISOS_DEF = [
         grupo: '🎟️ Rifas (Nexus Pro)', color: '#7c3aed',
         items: [
             { id: 'rifas_ver', label: 'Ver el botón Rifas (abre Nexus Pro logueado)' }
+        ]
+    },
+    {
+        grupo: '🧾 Rifa por Factura (Info Plus)', color: '#0f766e',
+        items: [
+            { id: 'rifa_factura_ver', label: 'Ver y registrar boletos de la Rifa por Factura (independiente de Nexus Pro)' }
         ]
     },
     {
