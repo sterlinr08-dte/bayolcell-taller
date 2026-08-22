@@ -26699,62 +26699,33 @@ H/IOwMsfPaJug2TrK4segfFDizhlb9JPTviV9eipowF2GpiMfeafBQlG5WkqRLMH
 DnOjztecxg==
 -----END CERTIFICATE-----`;
 
-// Llave privada (firma local; riesgo mínimo, solo permite imprimir en QZ local)
-const QZ_LLAVE_PRIVADA = `-----BEGIN PRIVATE KEY-----
-MIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQDTQ6wnr4ZV0QNw
-+v3KrQDS4PxHuU2VUQ9cAceYzq293EW3K8abo1OY3ljYZdgdI8b6TIR1Xm+0pVzo
-OaqcBIS7n1nhwVxizj0ttyrq8z+y2UE+fYb4uZ5TUKj3zkC9A32pz/QMvOuh/BRD
-xHbeTRAhKr5ov9G+sj9ZyRDK6icOQJQDppREcV+QXMMh//tx4wYAxEhcPXdVQjba
-PiLZGq9MmJcTsc5vv5fKCZW4jaNo9Cq6ALKZpbRBLKveoSpPBKjYwR6Zc8RLrIhB
-gLp/Bpk7lF07uLw6wkuIj1P4PQRu0RvQLU61/R/wCTz8ZSVpb/SRMgldP4LiwyTL
-hQC7AUsrAgMBAAECggEAFEAmXl961vsEA25rqWPP8mbSh+WBRFDS0hTxlvoouUxF
-+nrdvMl5F+woRAXvI0vspM103PNCbeRz9WahrfbY6ksqCHPKcUYnoxwtpvvOHUyp
-7l2F9I2GWaIfsDE7D2MoRoDCef4Z8BsDrkNEyaZFZ4h7W/sXFdpsLCUT0P+E4t6t
-K10VktSHXDHK7n8U0/vnaAnqiEhlmnzxokXi59cpHjcSZNRtU5Jxlv4ASbS7G3hC
-FwcKSifBgw8gEQpQBSHm+gGRdUJU5vulk5AsFmBqFzkU2ZolW4eT4hcDEPqWA6hs
-hZfAMDidsA8asIafE9YvJHiXmivkPM+TvgbybKhVsQKBgQD1avWFvqviUtt/K4s5
-pvAB7teBP82b5ZtafA920BXhC6DIM2edyCFd0ICG4jEg5hnAggryHLM+4IrDv/xy
-AiVlkXe7dwTA1uZQfLtZBncNNDo5C6b7zMY2rIANxqw6lGjhBRCQDL9LsYqWMoX2
-vvIJqw16M6a5m0WPmdStO6jhpQKBgQDcX7X9ffFpUvmEgEbRJ0MTjtCN+DY9SOpr
-7RN7y/h1r483H0IIjjLXDa7nkKKRqZfDfkAxE3sSEu80+FJb5hmyIDmEHADlkpT3
-qH/0ZeBMEFnk1RJdVec9n9/K4WGO1dM8QoCtDsLYX410WnxV7n7GMjIV79UABTyF
-ZhEiCppAjwKBgQCfp/ygDKHvc63d9mr1j5e1+jZynBpboCzH2cuJpOeG5zSq6V4w
-NEEYsgrbNQ129JquNSt/xJILhrJflGdbl+/SOqdk6pHKDkP4+pw610zd5ys1b1Ir
-n1UXvnL0A1qKJYBxWwUiYViVmqOpAKdMFX6KMaBr7mw5dTz0pcPJCvXcDQKBgQDR
-Dws6+6t1W33SMU79Q93iQ+2dgQcThIS+9h0xqAKAwpd+l2yxaRTZ5uUyUIeo39ZV
-YwPKisyKDORYv+qBu/xMez2VEmvXXgNsHrGkTLFH94sQBwJxAPlqAKzxbnZ6ZmcK
-F5yyj/pQAfXTl7O0YZhqtVvGa8sJRe5wLq+6N4y2CQKBgQDn5tLIe4hYgupJl0i/
-myl8zfasybWLq7FU+QFZE9VSAvsLhcRI57gQyN9RP0hpyKtqx044f0A0Kc9DS7rH
-a266U2lEn8S9Lw69TyNcnMmWY9HAZRFGiy293s4q2fE4ZfPe9N6AFdVooNdR37wH
-WboKZRe8Qt4O/fHxWtRqlkh1Tw==
------END PRIVATE KEY-----`;
+	// Firmar contra la Edge Function de Supabase (la llave privada NO está en el navegador)
+	const QZ_FIRMA_URL = 'https://vkhwdvjtowrhkhqavnvk.supabase.co/functions/v1/qz-firmar';
+	const QZ_ANON_KEY = 'sb_publishable_PynS5ZjKoQ36HCpguVzxaw_KZOlagtz';
 
 // Configurar firma de QZ Tray para que NO pida permiso
 function qzConfigurarFirma() {
     if(!qzDisponible()) return;
-    // Certificado
+    // Certificado público
     qz.security.setCertificatePromise(function(resolve, reject) {
         resolve(QZ_CERTIFICADO);
     });
-    // Firma con la llave privada usando jsrsasign
+    // Firma en el servidor (sin exponer la llave privada)
     qz.security.setSignatureAlgorithm("SHA512");
     qz.security.setSignaturePromise(function(toSign) {
         return function(resolve, reject) {
-            try {
-                if(typeof KJUR === 'undefined') { reject('jsrsasign no cargado'); return; }
-                const sig = new KJUR.crypto.Signature({ alg: "SHA512withRSA" });
-                sig.init(QZ_LLAVE_PRIVADA);
-                sig.updateString(toSign);
-                const hex = sig.sign();
-                resolve(stob64(hextorstr(hex)));
-            } catch(e) {
-                logError('QZ firma', e);
-                reject(e);
-            }
+            fetch(QZ_FIRMA_URL + '?request=' + encodeURIComponent(toSign), {
+                headers: {
+                    apikey: QZ_ANON_KEY,
+                    Authorization: 'Bearer ' + QZ_ANON_KEY
+                }
+            })
+            .then(r => r.ok ? r.text() : Promise.reject(new Error('Firma HTTP ' + r.status)))
+            .then(firma => resolve(firma.trim()))
+            .catch(reject);
         };
     });
 }
-
 function qzDisponible() {
     return typeof qz !== 'undefined';
 }
