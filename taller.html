@@ -1058,18 +1058,20 @@ body{
             <!-- RIFA POR FACTURA (Info Plus) — INDEPENDIENTE de la Rifa de Nexus Pro -->
             <div id="v-rifaFactura" class="view">
                 <h2 style="margin:0 0 12px; display:flex; align-items:center; gap:8px;"><i class="ti ti-receipt" style="color:#0f766e;"></i> Rifa por Factura (Info Plus)</h2>
-                <div class="card" style="max-width:640px;">
+                <div class="card" style="max-width:900px;">
                     <p style="color:var(--text-muted); font-size:12px; margin:0 0 14px;">
                         Registro <b>independiente</b> de la Rifa administrada por Nexus Pro. Escribe los últimos
                         <b>6 dígitos</b> de la factura de Info Plus impresa. Al guardar se imprimen <b>2 boletos</b>:
                         uno para el cliente y otro para la tómbola.
                     </p>
-                    <div class="form-row"><label>Nombre completo del cliente *</label><input id="rf_nombre" placeholder="Ej. Juan Pérez"></div>
-                    <div class="form-row"><label>WhatsApp *</label><input id="rf_whatsapp" placeholder="809-123-4567"></div>
-                    <div class="form-row"><label>Últimos 6 dígitos de la factura (Info Plus) *</label>
-                        <input id="rf_factura" placeholder="000123" maxlength="6" inputmode="numeric" style="font-size:19px; font-weight:800; letter-spacing:4px; text-align:center; font-family:'Courier New',monospace;" oninput="this.value=this.value.replace(/\D/g,'').slice(0,6)">
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px;">
+                        <div><label>Nombre completo del cliente *</label><input id="rf_nombre" placeholder="Ej. Juan Pérez"></div>
+                        <div><label>WhatsApp *</label><input id="rf_whatsapp" placeholder="809-123-4567"></div>
+                        <div><label>Últimos 6 dígitos de la factura *</label>
+                            <input id="rf_factura" placeholder="000123" maxlength="6" inputmode="numeric" style="font-size:19px; font-weight:800; letter-spacing:4px; text-align:center; font-family:'Courier New',monospace;" oninput="this.value=this.value.replace(/\D/g,'').slice(0,6)">
+                        </div>
                     </div>
-                    <div id="rf_msg" style="font-size:12px; margin-top:4px; min-height:16px;"></div>
+                    <div id="rf_msg" style="font-size:12px; margin-top:10px; min-height:16px;"></div>
                     <div style="display:flex; justify-content:flex-end; margin-top:14px;">
                         <button id="rf_btnGuardar" class="btn btn-teal" onclick="guardarRifaFactura(this)"><i class="ti ti-printer"></i> Registrar e imprimir</button>
                     </div>
