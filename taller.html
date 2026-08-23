@@ -47,6 +47,8 @@
 .fin-chip:hover { border-color: #cbd5e1; }
 .fin-chip.on { border-color: var(--fin-ok); background: var(--fin-ok-bg); color: var(--fin-ok); font-weight: 700; }
 .fin-chip.on-danger { border-color: var(--fin-danger); background: var(--fin-danger-bg); color: var(--fin-danger); font-weight: 700; }
+.fin-click-card { transition: transform .15s, box-shadow .15s, border-color .15s; }
+.fin-click-card:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(15,23,42,.08); border-color: #cbd5e1; }
 .fin-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex: none; }
 /* Tiles de acción del control MDM (estilo Device Detail moderno) */
 .mdm-action { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 13px 8px; border: 1px solid var(--border-color); border-radius: 13px; background: #fff; cursor: pointer; font-size: 12px; font-weight: 600; text-align: center; color: var(--fin-ink); transition: all .15s; line-height: 1.25; }
@@ -27915,7 +27917,7 @@ function _pintarFinanciamientos() {
     let html = `<div class="card" style="margin-bottom:14px;">
         <input id="finBuscador" oninput="_finBusqueda=this.value; _pintarListaFin()" value="${escapeHtml(_finBusqueda)}" placeholder="Buscar por cliente, concepto o # código..." style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; margin-bottom:10px;">
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
-            ${['activos', 'atrasados', 'saldados', 'todos'].map(ff => `<button class="btn btn-light" onclick="_finFiltro='${ff}'; _pintarFinanciamientos()" style="font-size:12px; ${_finFiltro === ff ? 'background:#dcfce7; color:#15803d; font-weight:700;' : ''}">${({ activos: 'Activos', atrasados: 'Atrasados', saldados: 'Saldados', todos: 'Todos' })[ff]}</button>`).join('')}
+            ${['activos', 'atrasados', 'saldados', 'todos'].map(ff => `<button class="fin-chip${_finFiltro === ff ? (ff === 'atrasados' ? ' on-danger' : ' on') : ''}" onclick="_finFiltro='${ff}'; _pintarFinanciamientos()">${({ activos: 'Activos', atrasados: 'Atrasados', saldados: 'Saldados', todos: 'Todos' })[ff]}</button>`).join('')}
         </div>
         <div id="finLista" style="margin-top:12px;"></div>
     </div>`;
@@ -28002,7 +28004,7 @@ function _pintarDetalleFin() {
                 ${f.cliente_telefono ? `<div style="font-size:12px; color:var(--text-muted);"><i class="ti ti-phone"></i> ${escapeHtml(f.cliente_telefono)}</div>` : ''}
                 ${(finClienteDe(f.fin_cliente_id) || {}).email ? `<div style="font-size:12px; color:var(--text-muted);"><i class="ti ti-mail"></i> ${escapeHtml((finClienteDe(f.fin_cliente_id) || {}).email)}</div>` : ''}
             </div>
-            <div style="text-align:right;">${finBadge(est)}<div style="margin-top:6px; display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end;"><button class="btn btn-light" onclick="abrirContratoFin('${f.id}')" style="font-size:11px;"><i class="ti ti-file-certificate"></i> Contrato${f.contrato_en ? ' <i class="ti ti-check" style="color:var(--fin-ok);"></i>' : ''}</button><button class="btn btn-light" onclick="imprimirCalendarioPagos('${f.id}')" style="font-size:11px;"><i class="ti ti-calendar"></i> Calendario de pagos</button><button class="btn btn-light" onclick="imprimirEstadoCuentaFin('${f.id}')" style="font-size:11px;"><i class="ti ti-printer"></i> Estado de cuenta</button>${est === 'saldado' ? `<button class="btn btn-light" onclick="imprimirCartaSaldo('${f.id}')" style="font-size:11px; color:#15803d;"><i class="ti ti-award"></i> Carta de saldo</button>` : ''}</div></div>
+            <div style="text-align:right;">${finBadge(est)}<div style="margin-top:6px; display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end;"><button class="btn btn-light" onclick="abrirContratoFin('${f.id}')" style="font-size:12px;"><i class="ti ti-file-certificate"></i> Contrato${f.contrato_en ? ' <i class="ti ti-check" style="color:var(--fin-ok);"></i>' : ''}</button><button class="btn btn-light" onclick="imprimirCalendarioPagos('${f.id}')" style="font-size:12px;"><i class="ti ti-calendar"></i> Calendario de pagos</button><button class="btn btn-light" onclick="imprimirEstadoCuentaFin('${f.id}')" style="font-size:12px;"><i class="ti ti-printer"></i> Estado de cuenta</button>${est === 'saldado' ? `<button class="btn btn-light" onclick="imprimirCartaSaldo('${f.id}')" style="font-size:12px; color:#15803d;"><i class="ti ti-award"></i> Carta de saldo</button>` : ''}</div></div>
         </div>
         <div class="kpi-row" style="margin-top:12px;">
             <div class="kpi-box" style="border-top-color:#1e293b;"><small>Precio total</small><strong>${money(f.monto_total)}</strong></div>
@@ -28126,7 +28128,7 @@ function _pintarDetalleFin() {
     html += `</div>`;
 
     // Cancelar
-    html += `<div style="display:flex; gap:8px; justify-content:flex-end; margin-bottom:20px; flex-wrap:wrap;">
+    html += `<div style="display:flex; gap:8px; justify-content:flex-end; margin-top:14px; margin-bottom:20px; padding-top:14px; border-top:1px solid var(--border-color); flex-wrap:wrap;">
         ${f.cliente_telefono ? `<button class="btn btn-light" onclick="whatsappRecordatorioFin('${f.id}')" style="font-size:12px; color:#16a34a;"><i class="ti ti-brand-whatsapp"></i> Recordar por WhatsApp</button>` : ''}
         ${puedeEliminar && est !== 'cancelado' ? `<button class="btn btn-light" onclick="cancelarFinanciamiento('${f.id}')" style="font-size:12px; color:#b45309;"><i class="ti ti-ban"></i> Cancelar</button>` : ''}
         ${puedeEliminar ? `<button class="btn btn-light" onclick="eliminarFinanciamiento('${f.id}')" style="font-size:12px; color:#b91c1c;"><i class="ti ti-trash"></i> Eliminar</button>` : ''}
@@ -28169,7 +28171,7 @@ function _pintarSolicitudes() {
     let html = `<div class="card" style="margin-bottom:14px;">
         <input id="solBuscador" oninput="_solBusqueda=this.value; _pintarListaSol()" value="${escapeHtml(_solBusqueda)}" placeholder="Buscar por cliente, concepto o # código..." style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; margin-bottom:10px;">
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
-            ${['pendientes', 'aprobadas', 'rechazadas', 'todas'].map(ff => `<button class="btn btn-light" onclick="_solFiltro='${ff}'; _pintarSolicitudes()" style="font-size:12px; ${_solFiltro === ff ? 'background:#dcfce7; color:#15803d; font-weight:700;' : ''}">${({ pendientes: 'Pendientes', aprobadas: 'Aprobadas', rechazadas: 'Rechazadas', todas: 'Todas' })[ff]}</button>`).join('')}
+            ${['pendientes', 'aprobadas', 'rechazadas', 'todas'].map(ff => `<button class="fin-chip${_solFiltro === ff ? (ff === 'rechazadas' ? ' on-danger' : ' on') : ''}" onclick="_solFiltro='${ff}'; _pintarSolicitudes()">${({ pendientes: 'Pendientes', aprobadas: 'Aprobadas', rechazadas: 'Rechazadas', todas: 'Todas' })[ff]}</button>`).join('')}
         </div>
         <div id="solLista" style="margin-top:12px;"></div>
     </div>`;
@@ -28714,11 +28716,13 @@ async function rechazarSolicitud(solId) {
 }
 
 // ---- Registrar abono (helpers UI moderna) ----
-function _finChipCss(on) { return 'border:1px solid ' + (on ? '#16a34a' : '#e2e8f0') + '; background:' + (on ? '#dcfce7' : '#fff') + '; color:' + (on ? '#15803d' : '#475569') + '; font-weight:' + (on ? '700' : '600') + '; border-radius:999px; padding:7px 14px; cursor:pointer; font-size:12.5px;'; }
-function _finSetAbono(finId, val) { const el = document.getElementById('finAbonoMonto'); if(el) { el.value = Math.round((Number(val) || 0) * 100) / 100; _finAbonoPreview(finId); } }
+function _finSetAbono(finId, val) {
+    const el = document.getElementById('finAbonoMonto'); if(el) { el.value = Math.round((Number(val) || 0) * 100) / 100; _finAbonoPreview(finId); }
+    document.querySelectorAll('#finMontoChips [data-v]').forEach(b => b.classList.toggle('on', Number(b.dataset.v) === Number(val)));
+}
 function _finSetMetodo(metodo) {
     const h = document.getElementById('finAbonoMetodo'); if(h) h.value = metodo;
-    document.querySelectorAll('#finMetodoChips [data-m]').forEach(b => { b.style.cssText = _finChipCss(b.dataset.m === metodo); });
+    document.querySelectorAll('#finMetodoChips [data-m]').forEach(b => b.classList.toggle('on', b.dataset.m === metodo));
 }
 function _finAbonoPreview(finId) {
     const f = (_finCache.financiamientos || []).find(x => x.id === finId); if(!f) return;
@@ -28728,16 +28732,19 @@ function _finAbonoPreview(finId) {
     const r = document.getElementById('finAbonoResta'); if(r) r.textContent = money(Math.max(0, Math.round((finSaldo(f) - monto) * 100) / 100));
 }
 // ---- Modal flotante de pago ----
-function _finModalPago(titulo, contenido) {
+function _finModalPago(titulo, contenido, tema) {
     cerrarModalPago();
+    const esDanger = tema === 'danger';
+    const gradiente = esDanger ? 'linear-gradient(135deg,#dc2626 0%,#991b1b 100%)' : 'linear-gradient(135deg,#16a34a 0%,#15803d 100%)';
+    const icono = esDanger ? 'ti-lock' : 'ti-cash';
     const ov = document.createElement('div');
     ov.id = 'modalPago';
     ov.style.cssText = 'position:fixed; inset:0; z-index:8000; background:rgba(15,23,42,.55); display:flex; align-items:flex-start; justify-content:center; padding:28px 14px; overflow-y:auto; backdrop-filter:blur(2px);';
     ov.onclick = (e) => { if(e.target === ov) cerrarModalPago(); };
-    ov.innerHTML = `<div style="background:#fff; border-radius:18px; width:100%; max-width:460px; box-shadow:0 24px 60px rgba(0,0,0,.35); overflow:hidden; animation:finPop .18s ease;">
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:15px 18px; background:linear-gradient(135deg,#16a34a 0%,#15803d 100%); color:#fff;">
-            <div style="font-size:16px; font-weight:800; display:flex; align-items:center; gap:8px;"><i class="ti ti-cash"></i> ${escapeHtml(titulo)}</div>
-            <button onclick="cerrarModalPago()" style="background:rgba(255,255,255,.18); border:0; color:#fff; width:30px; height:30px; border-radius:9px; cursor:pointer; font-size:17px; line-height:1;">&times;</button>
+    ov.innerHTML = `<div style="background:#fff; border-radius:18px; width:100%; max-width:500px; box-shadow:0 24px 60px rgba(0,0,0,.35); overflow:hidden; animation:finPop .18s ease;">
+        <div class="modal-header" style="background:${gradiente};">
+            <h3><i class="ti ${icono}"></i> ${escapeHtml(titulo)}</h3>
+            <button class="modal-close" onclick="cerrarModalPago()">&times;</button>
         </div>
         <div style="padding:18px;">${contenido}</div>
     </div>`;
@@ -28772,8 +28779,8 @@ function abrirModalPago(finId) {
                 <div style="font-size:18px; font-weight:800; color:#b91c1c;">${money(moraPend)}</div>
             </div>` : ''}
         </div>
-        ${chips.length ? `<div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
-            ${chips.map(c => `<button type="button" onclick="_finSetAbono('${finId}', ${c.val})" style="${_finChipCss(false)}">${c.lbl}</button>`).join('')}
+        ${chips.length ? `<div id="finMontoChips" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+            ${chips.map(c => `<button type="button" class="fin-chip${Number(c.val) === Number(sugerido) ? ' on' : ''}" data-v="${c.val}" onclick="_finSetAbono('${finId}', ${c.val})">${c.lbl}</button>`).join('')}
         </div>` : ''}
         <label style="display:block; font-size:12.5px; font-weight:700; color:#334155; margin-bottom:5px;">Monto del abono (RD$)</label>
         <input id="finAbonoMonto" type="number" step="0.01" min="0" value="${sugerido > 0 ? sugerido : ''}" placeholder="0.00" oninput="_finAbonoPreview('${finId}')" style="width:100%; padding:11px 12px; border:1px solid #cbd5e1; border-radius:10px; font-size:16px; font-weight:700; box-sizing:border-box;">
@@ -28782,7 +28789,7 @@ function abrirModalPago(finId) {
         <div style="font-size:12.5px; font-weight:700; color:#334155; margin:14px 0 6px;">Método de pago</div>
         <input id="finAbonoMetodo" type="hidden" value="efectivo">
         <div id="finMetodoChips" style="display:flex; flex-wrap:wrap; gap:8px;">
-            ${metodos.map(m => `<button type="button" data-m="${m[0]}" onclick="_finSetMetodo('${m[0]}')" style="${_finChipCss(m[0] === 'efectivo')}">${m[1]}</button>`).join('')}
+            ${metodos.map(m => `<button type="button" class="fin-chip${m[0] === 'efectivo' ? ' on' : ''}" data-m="${m[0]}" onclick="_finSetMetodo('${m[0]}')">${m[1]}</button>`).join('')}
         </div>
         <label style="display:block; font-size:12.5px; font-weight:700; color:#334155; margin:14px 0 5px;">Nota (opcional)</label>
         <input id="finAbonoNota" type="text" placeholder="Referencia, observación…" style="width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:10px; font-size:13.5px; box-sizing:border-box;">
@@ -28819,7 +28826,7 @@ function _finModalPagoExito(finId, pagoId) {
             <div style="font-size:13px; color:var(--text-muted);">Recibo #${escapeHtml(String(pagoId).slice(0, 8))} · Saldo restante <b style="color:#0f172a;">${money(saldoRest)}</b></div>
             ${saldado ? `<div style="margin-top:10px; display:inline-block; background:#dcfce7; color:#15803d; font-weight:700; font-size:12.5px; padding:5px 12px; border-radius:999px;"><i class="ti ti-rosette-discount-check"></i> Financiamiento saldado</div>` : ''}
         </div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:18px;">
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:18px;">
             <button class="btn btn-light" onclick="imprimirReciboFin('${pagoId}')" style="padding:11px; font-size:13.5px;"><i class="ti ti-printer"></i> Imprimir ticket</button>
             <button class="btn btn-light" onclick="imprimirReciboFin('${pagoId}','pdf')" style="padding:11px; font-size:13.5px; color:#b91c1c;"><i class="ti ti-file-type-pdf"></i> PDF</button>
             <button class="btn btn-light" onclick="enviarReciboWhatsApp('${pagoId}')" style="padding:11px; font-size:13.5px; color:#15803d; border-color:#86efac;"><i class="ti ti-brand-whatsapp"></i> WhatsApp</button>
@@ -29281,7 +29288,7 @@ function _pintarFichaCliente() {
 
     // Sub-pestañas
     const tabs = [['resumen', 'Resumen', 'ti-layout-dashboard'], ['info', 'Información', 'ti-user'], ['financiamientos', 'Financiamientos', 'ti-cash'], ['pagos', 'Pagos', 'ti-coins'], ['mdm', 'MDM', 'ti-device-mobile'], ['documentos', 'Documentos', 'ti-photo']];
-    html += `<div style="display:flex; gap:6px; margin-bottom:14px; overflow-x:auto; padding-bottom:4px;">${tabs.map(([k, lbl, ic]) => `<button onclick="finCliTab('${k}')" style="border:0; border-radius:8px; padding:7px 13px; cursor:pointer; font-size:12.5px; white-space:nowrap; ${_cliTab === k ? 'background:#0891b2; color:#fff; font-weight:700;' : 'background:#f1f5f9; color:#475569;'}"><i class="ti ${ic}"></i> ${lbl}</button>`).join('')}</div>`;
+    html += `<div style="display:flex; gap:6px; margin-bottom:14px; overflow-x:auto; padding-bottom:4px;">${tabs.map(([k, lbl, ic]) => `<button class="fin-chip${_cliTab === k ? ' on' : ''}" onclick="finCliTab('${k}')" style="white-space:nowrap;"><i class="ti ${ic}"></i> ${lbl}</button>`).join('')}</div>`;
 
     const dato = (label, val) => `<div style="font-size:12.5px;"><span style="color:var(--text-muted);">${label}:</span> <b>${escapeHtml(val || '—')}</b></div>`;
 
@@ -29384,7 +29391,7 @@ function _pintarCobros() {
     const nRecoCobros = finRecordatoriosHoy().filter(x => !x.enviado).length;
     let html = `<div class="card" style="margin-bottom:14px;">
         <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; align-items:center;">
-            ${Object.keys(filtros).map(k => `<button class="btn btn-light" onclick="_cobrosFiltro='${k}'; _pintarCobros()" style="font-size:12px; ${_cobrosFiltro === k ? 'background:var(--fin-ok-bg); color:var(--fin-ok); font-weight:700;' : ''}">${filtros[k]}</button>`).join('')}
+            ${Object.keys(filtros).map(k => `<button class="fin-chip${_cobrosFiltro === k ? (k === 'atrasados' ? ' on-danger' : ' on') : ''}" onclick="_cobrosFiltro='${k}'; _pintarCobros()">${filtros[k]}</button>`).join('')}
             <button class="btn btn-light" onclick="abrirRecordatoriosHoy()" style="font-size:12px; color:var(--fin-info); border-color:var(--fin-info-brd); margin-left:auto;"><i class="ti ti-brand-whatsapp"></i> Recordatorios de hoy${nRecoCobros > 0 ? ` (${nRecoCobros})` : ''}</button>
         </div>
         <div id="cobrosLista"></div>
@@ -29440,7 +29447,7 @@ function _pintarMora() {
     const lista = atrasados.filter(enRango);
     let html = `<div class="card">
         <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px;">
-            ${Object.keys(rangos).map(k => `<button class="btn btn-light" onclick="_moraFiltro='${k}'; _pintarMora()" style="font-size:12px; ${_moraFiltro === k ? 'background:var(--fin-danger-bg); color:var(--fin-danger); font-weight:700;' : ''}">${rangos[k]}</button>`).join('')}
+            ${Object.keys(rangos).map(k => `<button class="fin-chip${_moraFiltro === k ? ' on-danger' : ''}" onclick="_moraFiltro='${k}'; _pintarMora()">${rangos[k]}</button>`).join('')}
         </div>`;
     if(!lista.length) { html += `<div style="color:var(--text-muted); font-size:13px;">Sin clientes en mora en este rango.</div></div>`; cont.innerHTML = html; return; }
     html += `<div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Contrato</th><th style="text-align:right;">Días</th><th style="text-align:right;">Cuotas venc.</th><th style="text-align:right;">Pendiente</th><th>Acciones</th></tr></thead><tbody>`;
@@ -29486,12 +29493,12 @@ function _pintarMDMTab() {
     const lista = fins.filter(f => _mdmFiltro === 'todos' || (f.mdm_estado || 'ninguno') === _mdmFiltro);
     let html = `<div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
-            <div style="display:flex; gap:6px; flex-wrap:wrap;">${Object.keys(filtros).map(k => `<button class="btn btn-light" onclick="_mdmFiltro='${k}'; _pintarMDMTab()" style="font-size:12px; ${_mdmFiltro === k ? 'background:var(--border-color); color:var(--fin-ink); font-weight:700;' : ''}">${filtros[k]}</button>`).join('')}</div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">${Object.keys(filtros).map(k => `<button class="fin-chip${_mdmFiltro === k ? (k === 'bloqueado' ? ' on-danger' : ' on') : ''}" onclick="_mdmFiltro='${k}'; _pintarMDMTab()">${filtros[k]}</button>`).join('')}</div>
             <div style="display:flex; gap:6px; flex-wrap:wrap;">
                 ${puedeMDM ? `<button class="btn btn-light" onclick="abrirEquiposDisponibles()" style="font-size:12px; color:var(--fin-ok); border-color:var(--fin-ok-brd);"><i class="ti ti-device-mobile-check"></i> Equipos disponibles</button>` : ''}
                 ${puedeMDM ? `<button class="btn btn-light" onclick="abrirQrEnrolarAndroid()" style="font-size:12px; color:var(--fin-info); border-color:var(--fin-info-brd);"><i class="ti ti-qrcode"></i> QR enrolar Android</button>` : ''}
                 ${puedeMDM ? `<button class="btn btn-light" onclick="abrirAuditoriaSeguridadMdm()" style="font-size:12px; color:var(--fin-danger); border-color:var(--fin-danger-brd);"><i class="ti ti-shield-exclamation"></i> Seguridad MDM</button>` : ''}
-                ${puedeMDM && finListosParaBloqueo().length ? `<button class="btn" onclick="abrirListosBloqueo()" style="font-size:12px; background:var(--fin-danger); color:#fff;"><i class="ti ti-lock"></i> Listos para bloquear (${finListosParaBloqueo().length})</button>` : ''}
+                ${puedeMDM && finListosParaBloqueo().length ? `<button class="btn btn-danger" onclick="abrirListosBloqueo()" style="font-size:12px;"><i class="ti ti-lock"></i> Listos para bloquear (${finListosParaBloqueo().length})</button>` : ''}
                 <button class="btn btn-light" onclick="renderFinanciamientos()" style="font-size:12px;"><i class="ti ti-refresh"></i> Sincronizar</button>
             </div>
         </div>`;
@@ -29573,7 +29580,7 @@ function _pintarDashboardFin() {
     activos.forEach(f => { const d = _finBucketDias(f); const s = finSaldo(f); if(d <= 0) b.aldia += s; else if(d <= 30) b.d1 += s; else if(d <= 60) b.d2 += s; else b.d3 += s; });
     const totalCartera = b.aldia + b.d1 + b.d2 + b.d3;
     const pct = v => totalCartera > 0 ? Math.round(v / totalCartera * 100) : 0;
-    const legItem = (c, txt, v) => `<div style="display:flex; align-items:center; justify-content:space-between; font-size:12.5px; margin:3px 0;"><span style="display:flex; align-items:center; gap:7px;"><i class="fin-dot" style="border-radius:3px; background:${c};"></i>${txt}</span><b>${pct(v)}%</b></div>`;
+    const legItem = (c, txt, v) => `<div style="display:flex; align-items:center; justify-content:space-between; font-size:12.5px; margin:3px 0;"><span style="display:flex; align-items:center; gap:7px;"><i class="fin-dot" style="background:${c};"></i>${txt}</span><b>${pct(v)}%</b></div>`;
 
     // Próximos vencimientos
     const pend = finCuotasPendientes();
@@ -29586,7 +29593,7 @@ function _pintarDashboardFin() {
     const cli30 = new Set(fins.filter(f => _finBucketDias(f) > 30).map(f => f.fin_cliente_id || f.id)).size;
     const listosBloq = finListosParaBloqueo().length;
     const sinContrato = activos.filter(f => !f.contrato_en).length;
-    const alerta = (icon, txt, n, color, accion) => n > 0 ? `<div onclick="${accion}" style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border:1px solid var(--fin-warn-brd); background:var(--fin-warn-bg); border-radius:9px; margin-bottom:6px; cursor:pointer; font-size:13px;"><span><i class="ti ${icon}" style="color:${color};"></i> ${txt}</span><b style="color:${color};">${n} ›</b></div>` : '';
+    const alerta = (icon, txt, n, color, accion) => n > 0 ? `<div class="fin-click-card" onclick="${accion}" style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border:1px solid var(--fin-warn-brd); background:var(--fin-warn-bg); border-radius:9px; margin-bottom:6px; cursor:pointer; font-size:13px;"><span><i class="ti ${icon}" style="color:${color};"></i> ${txt}</span><b style="color:${color};">${n} ›</b></div>` : '';
     const alertasHtml = [
         alerta('ti-file-text', 'Solicitudes por aprobar', solPend, 'var(--fin-warn)', "finCambiarTab('solicitudes')"),
         alerta('ti-user-x', 'Clientes con +30 días de mora', cli30, 'var(--fin-danger)', "finCambiarTab('cobros')"),
@@ -29599,7 +29606,7 @@ function _pintarDashboardFin() {
     const cardCli = f => {
         const est = finEstado(f); const d = _finBucketDias(f); const prox = finProximaCuota(f);
         const badge = d > 0 ? `<span class="fin-badge danger">${d} día${d === 1 ? '' : 's'} atraso</span>` : `<span class="fin-badge ok">Al día</span>`;
-        return `<div onclick="verFinanciamiento('${f.id}')" style="border:1px solid var(--border-color); border-radius:12px; padding:12px; cursor:pointer; min-width:180px; flex:1;">
+        return `<div class="fin-click-card" onclick="verFinanciamiento('${f.id}')" style="border:1px solid var(--border-color); border-radius:12px; padding:12px; cursor:pointer; min-width:180px; flex:1;">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:6px;"><b style="font-size:13px;">${escapeHtml(f.cliente_nombre || '')}</b>${badge}</div>
             <div style="font-size:11.5px; color:var(--text-muted); margin:2px 0 8px;">${escapeHtml(f.concepto || '')}</div>
             <div style="font-size:15px; font-weight:800; color:var(--fin-ink);">${money(finSaldo(f))}</div>
@@ -29613,7 +29620,7 @@ function _pintarDashboardFin() {
     const nReco = finRecordatoriosHoy().filter(x => !x.enviado).length;
     cont.innerHTML = `
         ${puedeCobrarDash ? `<div class="card" style="margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; background:linear-gradient(180deg, var(--fin-ok-bg) 0%, #ffffff 70%); border:1px solid var(--fin-ok-brd);">
-            <div onclick="finCambiarTab('cobros')" style="cursor:pointer; display:flex; align-items:center; gap:12px;">
+            <div class="fin-click-card" onclick="finCambiarTab('cobros')" style="cursor:pointer; display:flex; align-items:center; gap:12px; border-radius:12px; padding:4px;">
                 <div style="width:46px; height:46px; border-radius:13px; background:${nVenc > 0 ? 'var(--fin-danger-bg)' : 'var(--fin-ok-bg)'}; display:flex; align-items:center; justify-content:center; flex:none;">
                     <i class="ti ${nVenc > 0 ? 'ti-alarm' : 'ti-checks'}" style="font-size:24px; color:${nVenc > 0 ? 'var(--fin-danger)' : 'var(--fin-ok)'};"></i>
                 </div>
@@ -29722,7 +29729,7 @@ function _pintarReportes() {
                 ${fila('Total cobrado (abonos)', money(totalCobrado))}
                 ${fila('Por cobrar (saldo activo)', money(porCobrar))}
                 ${fila('Saldados', saldados)}
-                ${fila('En atraso', `${atrasados.length} <span style="color:#b91c1c;">(${morosidad}% morosidad)</span>`)}
+                ${fila('En atraso', `${atrasados.length} <span style="color:var(--fin-danger);">(${morosidad}% morosidad)</span>`)}
             </tbody></table></div>
         </div>`;
 }
@@ -30094,11 +30101,11 @@ function _pintarConfigFin() {
             </div>
         </div>
 
-        <div style="text-align:right; margin-bottom:20px;">
+        <div style="text-align:right; margin-bottom:14px;">
             <button class="btn btn-blue" onclick="guardarConfigFin()"><i class="ti ti-device-floppy"></i> Guardar configuración</button>
         </div>
 
-        <div class="card" style="margin-bottom:20px;">
+        <div class="card" style="margin-bottom:14px;">
             <h3 style="margin:0 0 4px; font-size:15px;"><i class="ti ti-bolt" style="color:#f59e0b;"></i> Planes Smart (tasa mixta)</h3>
             <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px;">Planes con tasa que cambia en el tiempo. Se eligen en la solicitud y la consulta.</p>
             <div id="finPlanesLista" style="margin-bottom:12px;">${_planesListaHTML()}</div>
@@ -30658,7 +30665,7 @@ function abrirListosBloqueo() {
             <span>día(s) de atraso.</span>
         </div>
         <div id="finBloqLista"></div>`;
-    _finModalPago('Listos para bloquear', cont);
+    _finModalPago('Listos para bloquear', cont, 'danger');
     _finListosBloqueoRender();
 }
 function _finListosBloqueoRender() {
@@ -30667,7 +30674,7 @@ function _finListosBloqueoRender() {
     if(!lista.length) { cont.innerHTML = `<div style="text-align:center; padding:22px 4px; color:var(--text-muted);"><i class="ti ti-shield-check" style="font-size:32px; color:#16a34a;"></i><div style="margin-top:6px;">Ningún equipo pasó los días de gracia.</div></div>`; return; }
     const enrolados = lista.filter(x => x.enrolado).length;
     cont.innerHTML = `<div style="font-size:12.5px; margin-bottom:10px;"><b>${lista.length}</b> equipo(s) pasaron la gracia${enrolados ? ` · <b>${enrolados}</b> enrolado(s) se pueden bloquear` : ''}.</div>
-    ${enrolados > 1 ? `<button class="btn" onclick="_finBloquearTodosEnrolados()" style="background:#b91c1c; color:#fff; font-size:12.5px; width:100%; margin-bottom:10px; padding:9px;"><i class="ti ti-lock"></i> Bloquear todos los enrolados (${enrolados})</button>` : ''}
+    ${enrolados > 1 ? `<button class="btn btn-danger" onclick="_finBloquearTodosEnrolados()" style="font-size:12.5px; width:100%; margin-bottom:10px; padding:9px;"><i class="ti ti-lock"></i> Bloquear todos los enrolados (${enrolados})</button>` : ''}
     <div style="max-height:360px; overflow-y:auto;">` + lista.map(x => {
         const f = x.f;
         return `<div style="border:1px solid #fecaca; background:#fef2f2; border-radius:11px; padding:10px 12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; gap:10px;">
@@ -30678,7 +30685,7 @@ function _finListosBloqueoRender() {
             </div>
             <div style="flex:none; display:flex; flex-direction:column; gap:5px;">
                 ${f.cliente_telefono ? `<button class="btn btn-light" onclick="_finAvisarAntesBloqueo('${f.id}')" style="font-size:11.5px; padding:6px 10px; color:#16a34a;"><i class="ti ti-brand-whatsapp"></i> Avisar</button>` : ''}
-                ${x.enrolado ? `<button class="btn" onclick="_finBloquearDesdeCola('${f.id}')" style="background:#b91c1c; color:#fff; font-size:11.5px; padding:6px 10px;"><i class="ti ti-lock"></i> Bloquear</button>` : `<button class="btn btn-light" onclick="verFinanciamiento('${f.id}'); cerrarModalPago();" style="font-size:11.5px; padding:6px 10px;">Ver</button>`}
+                ${x.enrolado ? `<button class="btn btn-danger" onclick="_finBloquearDesdeCola('${f.id}')" style="font-size:11.5px; padding:6px 10px;"><i class="ti ti-lock"></i> Bloquear</button>` : `<button class="btn btn-light" onclick="verFinanciamiento('${f.id}'); cerrarModalPago();" style="font-size:11.5px; padding:6px 10px;">Ver</button>`}
             </div>
         </div>`;
     }).join('') + `</div>`;
@@ -31039,7 +31046,7 @@ async function mdmAccionReal(finId, accion) {
     }
 }
 // Pone el ESTADO automáticamente según lo que diga Hexnode (sin tener que elegirlo a mano)
-const _MDM_EST_INFO = { ninguno:{t:'Sin MDM',c:'#475569',b:'#e2e8f0'}, activo:{t:'Activo',c:'#15803d',b:'#dcfce7'}, bloqueado:{t:'Bloqueado',c:'#b91c1c',b:'#fee2e2'}, liberado:{t:'Liberado',c:'#1d4ed8',b:'#dbeafe'} };
+const _MDM_EST_INFO = { ninguno:{t:'Sin MDM',c:'var(--fin-muted)',b:'#f1f5f9'}, activo:{t:'Activo',c:'var(--fin-ok)',b:'var(--fin-ok-bg)'}, bloqueado:{t:'Bloqueado',c:'var(--fin-danger)',b:'var(--fin-danger-bg)'}, liberado:{t:'Liberado',c:'var(--fin-info)',b:'var(--fin-info-bg)'} };
 async function _mdmAplicarEstadoAuto(finId, estado, enrolado, deviceId){
     // Reflejar en la pantalla al instante (selector + casilla + insignia)
     const sel = document.getElementById('mdmEstado'); if(sel) sel.value = estado;
