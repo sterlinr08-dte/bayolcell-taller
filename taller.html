@@ -768,7 +768,7 @@ body{
 .btn-blue:hover{ transform:translateY(-2px); }
 .btn-success{ box-shadow:0 12px 24px -12px rgba(5,150,105,0.65), inset 0 2px 0 rgba(255,255,255,0.35) !important; }
 .btn-success:hover{ transform:translateY(-2px); }
-.btn-dark{ background:linear-gradient(145deg,#3a4a63,#1a2638) !important; box-shadow:0 12px 24px -12px rgba(15,23,42,0.75), inset 0 2px 0 rgba(255,255,255,0.16) !important; }
+.btn-dark{ background:linear-gradient(145deg,#3a4a63,#1a2638); box-shadow:0 12px 24px -12px rgba(15,23,42,0.75), inset 0 2px 0 rgba(255,255,255,0.16) !important; }
 .btn-dark:hover{ transform:translateY(-2px); }
 .btn-danger:hover{ transform:translateY(-2px); }
 .btn-light{ background:linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0.7)) !important;
@@ -1937,7 +1937,7 @@ body{
                     <div class="card">
                         <h3 style="margin:0 0 15px 0;"><i class="ti ti-settings" style="color:var(--blue-btn);"></i> Configuración de Impresora 2C-LP427B</h3>
                         
-                        <div style="background:#dbeafe; border:1px solid #93c5fd; padding:10px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#b91c1c;">
+                        <div style="background:#dbeafe; border:1px solid #93c5fd; padding:10px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#1e40af;">
                             <b><i class="ti ti-info-circle"></i> Ajusta el tamaño y verifica con la "Vista Previa" al lado.</b> Cuando esté bien, guarda como perfil.
                         </div>
                         
@@ -2630,7 +2630,7 @@ body{
                             <h3 style="margin:0;"><i class="ti ti-users" style="color:var(--blue-btn);"></i> Técnicos del Taller</h3>
                             <button id="btnNuevoTecnico" class="btn btn-blue" onclick="abrirModalTecnico()"><i class="ti ti-plus"></i> Nuevo Empleado</button>
                         </div>
-                        <div style="background:#dbeafe; border:1px solid #93c5fd; padding:10px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#b91c1c;">
+                        <div style="background:#dbeafe; border:1px solid #93c5fd; padding:10px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#1e40af;">
                             <b><i class="ti ti-info-circle"></i> Aquí gestionas los técnicos que trabajarán los equipos.</b> Asígnales un rol para definir qué pueden hacer.
                         </div>
                         <div id="tecnicosLista"></div>
@@ -3411,7 +3411,7 @@ body{
         </div>
         <div class="modal-footer">
             <button class="btn btn-light" onclick="cerrarMovEf()">Cancelar</button>
-            <button class="btn" style="background:#0e7490; color:#fff;" onclick="guardarMovEf()"><i class="ti ti-check"></i> Registrar movimiento</button>
+            <button class="btn btn-teal" onclick="guardarMovEf()"><i class="ti ti-check"></i> Registrar movimiento</button>
         </div>
     </div>
 </div>
@@ -3697,6 +3697,9 @@ body{
                 <button class="btn btn-blue" style="margin-top:6px; width:100%;" onclick="enviarNotifMdmCustom()"><i class="ti ti-send"></i> Enviar personalizado</button>
             </div>
             <div id="notifMdmMsg" style="font-size:12px; margin-top:8px;"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" onclick="cerrarNotifMdm()">Cancelar</button>
         </div>
     </div>
 </div>
@@ -4026,7 +4029,7 @@ body{
             <button class="modal-close" onclick="cerrarModalConfigImpresora()">✕</button>
         </div>
         <div class="modal-body">
-            <div style="background:#dbeafe; border:1px solid #93c5fd; padding:12px; border-radius:8px; margin-bottom:15px; font-size:13px; color:#b91c1c;">
+            <div style="background:#dbeafe; border:1px solid #93c5fd; padding:12px; border-radius:8px; margin-bottom:15px; font-size:13px; color:#1e40af;">
                 <b><i class="ti ti-info-circle"></i> Configuración inicial (solo 1 vez)</b><br>
                 Sigue estos pasos para que los labels impriman al tamaño exacto sin márgenes.
             </div>
@@ -19469,7 +19472,7 @@ async function renderInvFisico() {
                 <label style="font-size:12px; font-weight:700; color:#475569; display:block; margin-bottom:4px;">¿Cuál almacén vas a contar?</label>
                 <select id="invAlmSel" style="padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; min-width:220px;">${opts}</select>
             </div>
-            <button class="btn btn-green" onclick="_invIniciar()"><i class="ti ti-clipboard-check"></i> Empezar a contar</button>
+            <button class="btn btn-success" onclick="_invIniciar()"><i class="ti ti-clipboard-check"></i> Empezar a contar</button>
         </div>
         <p style="color:#475569; font-size:12px; margin:12px 0 0;">💡 Cuenta primero lo más caro (celulares, pantallas) en horas de poca venta. Todo se cuenta y se cuadra por cantidad.</p>
     </div>`;
@@ -19701,7 +19704,7 @@ function _invAbrirImeis(cod) {
         </div>
         <div class="modal-footer">
           <button class="btn btn-light" onclick="document.getElementById('modalInvImeis').remove()">Cancelar</button>
-          <button class="btn btn-green" onclick="_invImeiGuardar()"><i class="ti ti-check"></i> Guardar conteo</button>
+          <button class="btn btn-success" onclick="_invImeiGuardar()"><i class="ti ti-check"></i> Guardar conteo</button>
         </div>
     </div>`;
     document.body.appendChild(box);
