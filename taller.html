@@ -1058,7 +1058,7 @@ body{
             <!-- RIFA POR FACTURA (Info Plus) — INDEPENDIENTE de la Rifa de Nexus Pro -->
             <div id="v-rifaFactura" class="view">
                 <h2 style="margin:0 0 12px; display:flex; align-items:center; gap:8px;"><i class="ti ti-receipt" style="color:#0f766e;"></i> Rifa por Factura (Info Plus)</h2>
-                <div class="card" style="max-width:900px;">
+                <div class="card" style="max-width:900px; border-left:4px solid #0f766e;">
                     <p style="color:var(--text-muted); font-size:12px; margin:0 0 14px;">
                         Registro <b>independiente</b> de la Rifa administrada por Nexus Pro. Escribe los últimos
                         <b>6 dígitos</b> de la factura de Info Plus impresa. Al guardar se imprimen <b>2 boletos</b>:
@@ -1068,7 +1068,7 @@ body{
                         <div><label>Nombre completo del cliente *</label><input id="rf_nombre" placeholder="Ej. Juan Pérez"></div>
                         <div><label>WhatsApp *</label><input id="rf_whatsapp" placeholder="809-123-4567"></div>
                         <div><label>Últimos 6 dígitos de la factura *</label>
-                            <input id="rf_factura" placeholder="000123" maxlength="6" inputmode="numeric" style="font-size:19px; font-weight:800; letter-spacing:4px; text-align:center; font-family:'Courier New',monospace;" oninput="this.value=this.value.replace(/\D/g,'').slice(0,6)">
+                            <input id="rf_factura" placeholder="000123" maxlength="6" inputmode="numeric" style="font-size:19px; font-weight:800; letter-spacing:4px; text-align:center; font-family:'Courier New',monospace;" oninput="this.value=this.value.replace(/\D/g,'').slice(0,6)" onkeydown="if(event.key==='Enter')guardarRifaFactura(document.getElementById('rf_btnGuardar'))">
                         </div>
                     </div>
                     <div id="rf_msg" style="font-size:12px; margin-top:10px; min-height:16px;"></div>
@@ -1078,8 +1078,13 @@ body{
                 </div>
 
                 <div class="card" style="max-width:900px; margin-top:16px;">
-                    <h3 style="margin:0 0 10px; display:flex; align-items:center; gap:6px;"><i class="ti ti-list"></i> Boletos registrados</h3>
-                    <input id="rf_buscar" placeholder="Buscar por nombre, WhatsApp o factura…" oninput="filtrarRifaFacturaLista()" style="margin-bottom:10px; font-size:12.5px; padding:9px 13px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+                        <h3 style="margin:0; display:flex; align-items:center; gap:6px;"><i class="ti ti-list"></i> Boletos registrados</h3>
+                        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                            <input id="rf_buscar" placeholder="Buscar por nombre, WhatsApp o factura…" oninput="filtrarRifaFacturaLista()" style="width:240px; max-width:100%; font-size:12.5px; padding:9px 13px;">
+                            <button class="btn btn-light" onclick="cargarListaRifaFactura()" title="Actualizar (por si otra computadora registró un boleto)" style="font-size:12px; flex-shrink:0;"><i class="ti ti-refresh"></i> Actualizar</button>
+                        </div>
+                    </div>
                     <div class="table-wrap" style="max-height:420px; overflow-y:auto;">
                         <table>
                             <thead><tr>
