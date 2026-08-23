@@ -5473,6 +5473,17 @@ function _incEnRango(r) {
     if(_incHasta && f > _incHasta) return false;
     return true;
 }
+// Rango de la quincena actual, independiente del filtro que tenga puesto
+// el admin en su pantalla (esa es una variable global compartida que no
+// debe usarse como fuente de verdad para el resumen propio del técnico).
+function _quincenaActualRango() {
+    const hoy = new Date(); hoy.setHours(0,0,0,0);
+    const y = hoy.getFullYear(), m = hoy.getMonth(), primera = hoy.getDate() <= 15;
+    const f = (yy, mm, dd) => `${yy}-${String(mm+1).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;
+    if(primera) return { desde: f(y, m, 1), hasta: f(y, m, 15) };
+    const ultimo = new Date(y, m+1, 0).getDate();
+    return { desde: f(y, m, 16), hasta: f(y, m, ultimo) };
+}
 function _incTipoCambio() {
     const tipo = document.getElementById('incTipo')?.value;
     const inp = document.getElementById('incMontoIncentivo');
@@ -6315,8 +6326,13 @@ async function renderMisIncentivos(targetId) {
         <div style="margin-top:10px;"><button class="btn btn-blue btn-sm" onclick="guardarMiIncentivo()" style="height:32px;"><i class="ti ti-device-floppy"></i> Guardar ticket</button></div>
         <div style="font-size:11px; color:#475569; margin-top:6px;">💡 Si el ticket tiene <b>más de una reparación</b>, dale al <b>＋</b> junto al Tipo para agregar otra línea; al final dale <b>"Guardar ticket"</b> y todas quedan en el mismo # de ticket.</div>
     </div>`;
-    const sum = (e) => _incCache.filter(r => r.estado === e).reduce((s,r) => s + Number(r.monto_incentivo||0), 0);
-    html += `<div class="card" style="margin-bottom:10px; padding:10px; font-size:13px;">⏳ Por validar: <b style="color:#b45309;">${money(sum('pendiente'))}</b> &nbsp;·&nbsp; ✅ Validado (por cobrar): <b style="color:#1d4ed8;">${money(sum('validado'))}</b> &nbsp;·&nbsp; 💵 Pagado: <b style="color:#16a34a;">${money(sum('pagado'))}</b></div>`;
+    const { desde: qDesde, hasta: qHasta } = _quincenaActualRango();
+    const enQuincena = (r) => { const f = (r.fecha || '').slice(0,10); return f >= qDesde && f <= qHasta; };
+    const sum = (e) => _incCache.filter(r => r.estado === e && enQuincena(r)).reduce((s,r) => s + Number(r.monto_incentivo||0), 0);
+    html += `<div class="card" style="margin-bottom:10px; padding:10px; font-size:13px;">
+        <div style="font-size:10px; color:#94a3b8; text-transform:uppercase; font-weight:700; margin-bottom:4px;">Quincena actual (${_incFmtFecha(qDesde)} – ${_incFmtFecha(qHasta)})</div>
+        ⏳ Por validar: <b style="color:#b45309;">${money(sum('pendiente'))}</b> &nbsp;·&nbsp; ✅ Validado (por cobrar): <b style="color:#1d4ed8;">${money(sum('validado'))}</b> &nbsp;·&nbsp; 💵 Pagado: <b style="color:#16a34a;">${money(sum('pagado'))}</b>
+    </div>`;
     html += `<div style="text-align:center; margin-top:2px;"><button class="btn btn-light btn-sm" onclick="abrirRegistroTickets()"><i class="ti ti-list-details" style="color:#0891b2;"></i> Ver Registro de Ticket (${_incCache.length})</button></div>`;
     cont.innerHTML = html;
 }
@@ -14934,7 +14950,7 @@ async function _nominaGuardarPeriodo() {
             const pOld = (cache.nominaPeriodos || []).find(x => x.id === g.editandoId);
             const ediciones = Array.isArray(pOld?.ediciones) ? pOld.ediciones.slice() : [];
             ediciones.push({ fecha: new Date().toISOString(), por: (typeof sessionUser !== 'undefined' && sessionUser) ? (sessionUser.nombre || 'Admin') : 'Admin', motivo });
-            const { error: eU } = await supabaseClient.from('nomina_periodos').update({ titulo, fecha_inicio: g.inicio || null, fecha_fin: g.fin || null, fecha_pago: g.pago || null, ediciones }).eq('id', g.editandoId);
+            const { error: eU } = await supabaseClient.from('nomina_periodos').update({ titulo, fecha_inicio: g.inicio || null, fecha_fin: g.fin || null, fecha_pago: g.pago || null, dias_base: g.diasBase, ediciones }).eq('id', g.editandoId);
             if(eU) throw eU;
             const { error: eD } = await supabaseClient.from('nomina_lineas').delete().eq('periodo_id', g.editandoId);
             if(eD) throw eD;
@@ -14950,7 +14966,7 @@ async function _nominaGuardarPeriodo() {
     const avisoDup = dup ? '⚠️ YA EXISTE una nómina guardada para este mismo período.\n\n' : '';
     if(!await confirmar(`${avisoDup}¿Guardar la nómina de "${titulo}"?\n\nDel ${g.inicio} al ${g.fin} · Pago: ${g.pago}\n${g.lineas.length} empleados.`)) return;
     try {
-        const per = { titulo, fecha_inicio: g.inicio || null, fecha_fin: g.fin || null, fecha_pago: g.pago || null, estado: 'guardada', creado_por: (typeof sessionUser !== 'undefined' && sessionUser) ? (sessionUser.nombre || sessionUser.id || null) : null };
+        const per = { titulo, fecha_inicio: g.inicio || null, fecha_fin: g.fin || null, fecha_pago: g.pago || null, dias_base: g.diasBase, estado: 'guardada', creado_por: (typeof sessionUser !== 'undefined' && sessionUser) ? (sessionUser.nombre || sessionUser.id || null) : null };
         const { data: p, error: e1 } = await supabaseClient.from('nomina_periodos').insert([per]).select('id').single();
         if(e1) throw e1;
         const lineas = g.lineas.map((l, idx) => ({ periodo_id: p.id, empleado_id: l.empleado_id, nombre: l.nombre, cedula: l.cedula, cuenta_bhd: l.cuenta_bhd, puesto: l.puesto, salario_mensual: l.salario_mensual, salario_quincenal: l.salario_quincenal, ars: l.ars, afp: l.afp, incentivos: l.incentivos, cuentas_por_cobrar: l.cuentas_por_cobrar, dias_descontado: l.dias_descontado, dias_trabajados: l.dias_trabajados, total: l.total, comentario: (l.comentario || '').trim() || null, orden: idx }));
@@ -14989,7 +15005,7 @@ async function _nominaEditarPeriodo(id) {
         _nominaGen = {
             editandoId: id,
             titulo: p.titulo || '', mes: inicio.slice(0, 7), quincena: (parseInt(inicio.slice(8, 10), 10) || 1) <= 15 ? 1 : 2,
-            inicio, fin: p.fecha_fin || '', pago: p.fecha_pago || '', diasBase: 23.83,
+            inicio, fin: p.fecha_fin || '', pago: p.fecha_pago || '', diasBase: Number(p.dias_base) || 23.83,
             lineas: data.map(l => ({ empleado_id: l.empleado_id, nombre: l.nombre, cedula: l.cedula, cuenta_bhd: l.cuenta_bhd, puesto: l.puesto,
                 salario_mensual: Number(l.salario_mensual) || 0, salario_quincenal: Number(l.salario_quincenal) || 0,
                 deduce_ley: (Number(l.ars) || 0) > 0 || (Number(l.afp) || 0) > 0,
@@ -15675,7 +15691,10 @@ function renderRentabilidadReacond() {
     }
 
     const equipos = cache.refurb || [];
-    const inv = (e) => (Number(e.costo_compra) || 0) + (Number(e.costo_repuestos) || 0);
+    // Costo real = compra + repuestos + la parte del flete/envio del lote que le toca a este equipo
+    // (misma formula "costo final" que ya usan la ficha del equipo y el despacho — antes este panel
+    // la omitia y por eso mostraba mas ganancia de la real en equipos con flete).
+    const inv = (e) => (Number(e.costo_compra) || 0) + (Number(e.costo_repuestos) || 0) + calcularFleteEquipo(e);
     const esVendido = (e) => e.estado_evaluacion === 'vendido';
     const tieneP = (e) => e.precio_venta_real != null && Number(e.precio_venta_real) > 0;
 
@@ -18613,13 +18632,14 @@ function _cxpAbrirAbono(id) {
           <div><label style="font-size:11px;font-weight:700;color:#64748b;">Método</label><select id="cxpAbMetodo" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:9px;"><option>Efectivo</option><option>Transferencia</option><option>Cheque</option><option>Tarjeta</option><option>Otro</option></select></div>
           <div><label style="font-size:11px;font-weight:700;color:#64748b;">Nota</label><input id="cxpAbNota" placeholder="Opcional" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:9px;"></div>
         </div>
-        <div class="modal-footer"><button class="btn btn-light" onclick="document.getElementById('modalCxpAbono').remove()">Cancelar</button><button class="btn btn-blue" onclick="_cxpGuardarAbono('${id}')">Guardar abono</button></div></div>`;
+        <div class="modal-footer"><button class="btn btn-light" onclick="document.getElementById('modalCxpAbono').remove()">Cancelar</button><button class="btn btn-blue" onclick="_cxpGuardarAbono('${id}', this)">Guardar abono</button></div></div>`;
     document.body.appendChild(box);
     setTimeout(() => { const el = document.getElementById('cxpAbMonto'); if(el) { el.focus(); el.select(); } }, 50);
 }
-async function _cxpGuardarAbono(id) {
+async function _cxpGuardarAbono(id, btn) {
     const monto = parseFloat(document.getElementById('cxpAbMonto')?.value) || 0;
     if(monto <= 0) return toast('Pon un monto válido.', 'error');
+    if(btn) btn.disabled = true;
     try {
         const { error } = await supabaseClient.from('cxp_abonos').insert([{
             cxp_id: id, monto: Math.round(monto * 100) / 100,
@@ -18637,7 +18657,7 @@ async function _cxpGuardarAbono(id) {
         toast('✓ Abono registrado.');
         _cxpRender();
         if(document.getElementById('modalCxpVer')) _cxpVerDeuda(id);
-    } catch(e) { logError('CxP abono', e); toastError(getFriendlyError(e)); }
+    } catch(e) { logError('CxP abono', e); toastError(getFriendlyError(e)); if(btn) btn.disabled = false; }
 }
 function _cxpVerDeuda(id) {
     const d = _cxpData.deudas.find(x => x.id === id); if(!d) return;
@@ -24881,7 +24901,7 @@ async function cargarHistorialEquipoDevolucion(equipoId) {
         // Construir info del equipo
         const fechaCompra = lote ? new Date(lote.fecha_compra || lote.creado_en).toLocaleDateString('es-DO') : '—';
         const totalPiezas = piezas.reduce((s, p) => s + ((p.cantidad||1) * (p.costo_unitario||0)), 0);
-        const costoTotal = (eq.costo_compra || 0) + totalPiezas;
+        const costoTotal = (eq.costo_compra || 0) + totalPiezas + calcularFleteEquipo(eq);
         
         document.getElementById('devInfoEquipo').style.display = 'block';
         document.getElementById('devInfoEquipo').innerHTML = `
@@ -28778,7 +28798,7 @@ function abrirModalPago(finId) {
         </div>
         <div style="display:flex; gap:10px; margin-top:14px;">
             <button class="btn btn-light" onclick="cerrarModalPago()" style="flex:0 0 auto;">Cancelar</button>
-            <button class="btn btn-blue" onclick="registrarAbonoFin('${finId}')" style="flex:1; padding:12px; font-size:15px; font-weight:700;"><i class="ti ti-check"></i> Registrar pago</button>
+            <button class="btn btn-blue" onclick="registrarAbonoFin('${finId}', this)" style="flex:1; padding:12px; font-size:15px; font-weight:700;"><i class="ti ti-check"></i> Registrar pago</button>
         </div>`;
     _finModalPago('Registrar pago', cont);
     setTimeout(() => { const el = document.getElementById('finAbonoMonto'); if(el) { el.focus(); el.select(); } }, 60);
@@ -28842,7 +28862,7 @@ function _cobroRapidoFiltrar() {
     }).join('') + (fins.length > 40 ? `<div style="text-align:center; font-size:11.5px; color:var(--text-muted); padding:4px;">Mostrando 40 de ${fins.length}. Refina la búsqueda.</div>` : '');
 }
 // ---- Registrar abono ----
-async function registrarAbonoFin(finId) {
+async function registrarAbonoFin(finId, btn) {
     if(!(isAdminUser() || tienePermiso('financiamientos_cobrar'))) { toast('No tienes permiso para cobrar.', 'error'); return; }
     const f = (_finCache.financiamientos || []).find(x => x.id === finId);
     if(!f) return;
@@ -28851,8 +28871,10 @@ async function registrarAbonoFin(finId) {
     const metodo = document.getElementById('finAbonoMetodo')?.value || 'efectivo';
     const nota = (document.getElementById('finAbonoNota')?.value || '').trim() || null;
     const saldo = finSaldo(f);
+    if(monto < 0 || mora < 0) { toast('El monto y la mora no pueden ser negativos.', 'error'); return; }
     if(monto <= 0 && mora <= 0) { toast('Ingresa un monto válido.', 'error'); return; }
     if(monto > saldo + 0.001) { toast(`El abono supera el saldo pendiente (${money(saldo)}).`, 'error'); return; }
+    if(btn) btn.disabled = true;
     try {
         const { error } = await supabaseClient.from('financiamiento_pagos').insert([{
             financiamiento_id: finId,
@@ -28878,6 +28900,8 @@ async function registrarAbonoFin(finId) {
     } catch(e) {
         console.error('registrarAbonoFin', e);
         toast('No se pudo registrar el abono.', 'error');
+    } finally {
+        if(btn) btn.disabled = false;
     }
 }
 
