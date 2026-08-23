@@ -880,7 +880,7 @@ body{
             <button id="menu-atencion" onclick="nav('atencion',this)"><i class="ti ti-headset"></i> <span>Atención al Cliente</span></button>
             <button id="menu-financiamientos" onclick="nav('financiamientos',this)"><i class="ti ti-cash"></i> <span>Financiamientos</span></button>
             <button id="menu-rifas" onclick="abrirRifas()" title="Abrir el panel administrativo de la Rifa (Nexus Pro) ya logueado"><i class="ti ti-ticket"></i> <span>🎟️ Rifa (admin)</span> <i class="ti ti-external-link" style="font-size:12px; opacity:.6;"></i></button>
-            <button id="menu-rifaFactura" onclick="abrirRifaFactura()" title="Registrar boleto de la Rifa por Factura (Info Plus) e imprimir 2 copias — independiente de la Rifa de Nexus Pro"><i class="ti ti-receipt" style="color:#0f766e;"></i> <span>🧾 Rifa por Factura</span></button>
+            <button id="menu-rifaFactura" onclick="nav('rifaFactura',this)" title="Registrar boleto de la Rifa por Factura (Info Plus) e imprimir 2 copias — independiente de la Rifa de Nexus Pro"><i class="ti ti-receipt" style="color:#0f766e;"></i> <span>🧾 Rifa por Factura</span></button>
             <button id="menu-contabilidad" onclick="nav('contabilidad',this)"><i class="ti ti-calculator"></i> <span>Contabilidad</span></button>
             <button id="menu-diagnostico" onclick="nav('diagnostico',this)"><i class="ti ti-stethoscope"></i> <span>Diagnóstico IA</span></button>
             <button id="menu-recepcion" onclick="nav('recepcion',this)"><i class="ti ti-clipboard-plus"></i> <span>Recepción de Equipos</span></button>
@@ -1053,6 +1053,44 @@ body{
             <div id="v-cuentasPorPagar" class="view">
                 <h2 style="margin:0 0 12px; display:flex; align-items:center; gap:8px;"><i class="ti ti-report-money" style="color:#b91c1c;"></i> Cuentas por Pagar <button onclick="ayudaModulo('cuentasPorPagar')" title="¿Qué es esto?" style="background:none; border:none; cursor:pointer; color:#94a3b8; font-size:16px; padding:0;"><i class="ti ti-info-circle"></i></button></h2>
                 <div id="cxpContenido"></div>
+            </div>
+
+            <!-- RIFA POR FACTURA (Info Plus) — INDEPENDIENTE de la Rifa de Nexus Pro -->
+            <div id="v-rifaFactura" class="view">
+                <h2 style="margin:0 0 12px; display:flex; align-items:center; gap:8px;"><i class="ti ti-receipt" style="color:#0f766e;"></i> Rifa por Factura (Info Plus)</h2>
+                <div class="card" style="max-width:640px;">
+                    <p style="color:var(--text-muted); font-size:12px; margin:0 0 14px;">
+                        Registro <b>independiente</b> de la Rifa administrada por Nexus Pro. Escribe los últimos
+                        <b>6 dígitos</b> de la factura de Info Plus impresa. Al guardar se imprimen <b>2 boletos</b>:
+                        uno para el cliente y otro para la tómbola.
+                    </p>
+                    <div class="form-row"><label>Nombre completo del cliente *</label><input id="rf_nombre" placeholder="Ej. Juan Pérez"></div>
+                    <div class="form-row"><label>WhatsApp *</label><input id="rf_whatsapp" placeholder="809-123-4567"></div>
+                    <div class="form-row"><label>Últimos 6 dígitos de la factura (Info Plus) *</label>
+                        <input id="rf_factura" placeholder="000123" maxlength="6" inputmode="numeric" style="font-size:19px; font-weight:800; letter-spacing:4px; text-align:center; font-family:'Courier New',monospace;" oninput="this.value=this.value.replace(/\D/g,'').slice(0,6)">
+                    </div>
+                    <div id="rf_msg" style="font-size:12px; margin-top:4px; min-height:16px;"></div>
+                    <div style="display:flex; justify-content:flex-end; margin-top:14px;">
+                        <button id="rf_btnGuardar" class="btn btn-teal" onclick="guardarRifaFactura(this)"><i class="ti ti-printer"></i> Registrar e imprimir</button>
+                    </div>
+                </div>
+
+                <div class="card" style="max-width:900px; margin-top:16px;">
+                    <h3 style="margin:0 0 10px; display:flex; align-items:center; gap:6px;"><i class="ti ti-list"></i> Boletos registrados</h3>
+                    <input id="rf_buscar" placeholder="Buscar por nombre, WhatsApp o factura…" oninput="filtrarRifaFacturaLista()" style="margin-bottom:10px; font-size:12.5px; padding:9px 13px;">
+                    <div class="table-wrap" style="max-height:420px; overflow-y:auto;">
+                        <table>
+                            <thead><tr>
+                                <th>Fecha</th>
+                                <th>Nombre</th>
+                                <th>WhatsApp</th>
+                                <th style="text-align:center;">Factura</th>
+                                <th></th>
+                            </tr></thead>
+                            <tbody id="rf_tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
 
             <!-- CONTABILIDAD (solo admin + contadora) -->
@@ -3685,52 +3723,6 @@ body{
 </div>
 
 <!-- MODAL: Rifa por Factura (Info Plus) — INDEPENDIENTE de la Rifa de Nexus Pro -->
-<div id="modalRifaFactura" class="modal-backdrop">
-    <div class="modal-box" style="max-width:640px;">
-        <div class="modal-header" style="background:linear-gradient(135deg,#0f766e,#14b8a6);">
-            <h3><i class="ti ti-receipt"></i> Rifa por Factura (Info Plus)</h3>
-            <button class="modal-close" onclick="cerrarRifaFactura()">✕</button>
-        </div>
-        <div class="modal-body">
-            <p style="color:var(--text-muted); font-size:12px; margin:0 0 12px;">
-                Registro <b>independiente</b> de la Rifa administrada por Nexus Pro. Escribe los últimos
-                <b>6 dígitos</b> de la factura de Info Plus impresa. Al guardar se imprimen <b>2 boletos</b>:
-                uno para el cliente y otro para la tómbola.
-            </p>
-            <div class="form-row"><label>Nombre completo del cliente *</label><input id="rf_nombre" placeholder="Ej. Juan Pérez"></div>
-            <div class="form-row"><label>WhatsApp *</label><input id="rf_whatsapp" placeholder="809-123-4567"></div>
-            <div class="form-row"><label>Últimos 6 dígitos de la factura (Info Plus) *</label>
-                <input id="rf_factura" placeholder="000123" maxlength="6" inputmode="numeric" style="font-size:19px; font-weight:800; letter-spacing:4px; text-align:center; font-family:'Courier New',monospace;" oninput="this.value=this.value.replace(/\D/g,'').slice(0,6)">
-            </div>
-            <div id="rf_msg" style="font-size:12px; margin-top:4px;"></div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-light" onclick="cerrarRifaFactura()">Cancelar</button>
-            <button id="rf_btnGuardar" class="btn btn-teal" onclick="guardarRifaFactura(this)"><i class="ti ti-printer"></i> Registrar e imprimir</button>
-        </div>
-        <div style="border-top:1px solid var(--border-color); padding:14px 18px;">
-            <details>
-                <summary style="cursor:pointer; font-weight:700; font-size:12.5px; color:var(--text-muted); user-select:none;"><i class="ti ti-list"></i> Ver boletos registrados / reimprimir</summary>
-                <div style="margin-top:12px;">
-                    <input id="rf_buscar" placeholder="Buscar por nombre, WhatsApp o factura…" oninput="filtrarRifaFacturaLista()" style="margin-bottom:10px; font-size:12.5px; padding:9px 13px;">
-                    <div style="max-height:280px; overflow:auto; border:1px solid var(--border-color); border-radius:10px;">
-                        <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
-                            <thead><tr style="background:var(--bg-main);">
-                                <th style="text-align:left; padding:8px 10px; border-bottom:1px solid var(--border-color); color:var(--text-muted); font-size:10.5px; text-transform:uppercase; letter-spacing:.4px;">Fecha</th>
-                                <th style="text-align:left; padding:8px 10px; border-bottom:1px solid var(--border-color); color:var(--text-muted); font-size:10.5px; text-transform:uppercase; letter-spacing:.4px;">Nombre</th>
-                                <th style="text-align:left; padding:8px 10px; border-bottom:1px solid var(--border-color); color:var(--text-muted); font-size:10.5px; text-transform:uppercase; letter-spacing:.4px;">WhatsApp</th>
-                                <th style="text-align:center; padding:8px 10px; border-bottom:1px solid var(--border-color); color:var(--text-muted); font-size:10.5px; text-transform:uppercase; letter-spacing:.4px;">Factura</th>
-                                <th style="border-bottom:1px solid var(--border-color);"></th>
-                            </tr></thead>
-                            <tbody id="rf_tbody"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </details>
-        </div>
-    </div>
-</div>
-
 <!-- MODAL: Registrar equipo EXISTENTE (previo al sistema) -->
 <div id="modalRegistrarExistente" class="modal-backdrop">
     <div class="modal-box" style="max-width:560px;">
@@ -4931,14 +4923,10 @@ function _boletoWhatsapp() {
    ============================================================ */
 let _rifaFacturaCache = [];
 
-function abrirRifaFactura() {
+function renderRifaFactura() {
     ['rf_nombre', 'rf_whatsapp', 'rf_factura', 'rf_buscar'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
     const msg = document.getElementById('rf_msg'); if(msg) msg.innerHTML = '';
-    document.getElementById('modalRifaFactura').classList.add('active');
     cargarListaRifaFactura();
-}
-function cerrarRifaFactura() {
-    document.getElementById('modalRifaFactura').classList.remove('active');
 }
 
 function _rfSoloDigitos(v) { return String(v || '').replace(/\D/g, ''); }
@@ -6490,7 +6478,8 @@ const NAV_PERMISOS = {
     'configuracion': 'config_ver',
     'financiamientos': 'financiamientos_ver',
     'contabilidad': 'contabilidad_ver',
-    'diagnostico': 'diagnostico_ver'
+    'diagnostico': 'diagnostico_ver',
+    'rifaFactura': 'rifa_factura_ver'
 };
 
 function nav(v, btn) {
@@ -6569,6 +6558,7 @@ function nav(v, btn) {
     if(v === 'articulos') { setTimeout(() => { actualizarInfoplusCount(); renderInfoplusBusqueda(); }, 50); }
     if(v === 'contabilidad') { setTimeout(() => { cargarCatalogoCuentas(); contaTab(localStorage.getItem('bayol_subtab_conta') || 'mensual'); }, 50); }
     if(v === 'diagnostico') { setTimeout(() => { cargarConocimiento(); }, 50); }
+    if(v === 'rifaFactura') { setTimeout(() => { if(typeof renderRifaFactura === 'function') renderRifaFactura(); }, 50); }
     if(v === 'recepcion') { setTimeout(async () => {
         if(typeof _rpCargarPrefacturas === 'function') await _rpCargarPrefacturas();
         if(typeof _rpInit === 'function') _rpInit();
