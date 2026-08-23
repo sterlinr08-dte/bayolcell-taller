@@ -101,6 +101,7 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
 .btn-success:hover { background: linear-gradient(135deg, #34d399 0%, #10b981 100%); box-shadow: 0 5px 14px rgba(5,150,105,0.32); }
 .btn-success:active { box-shadow: 0 2px 6px rgba(5,150,105,0.28); }
 /* RIFA POR FACTURA (verde azulado) */
+.cfg-main-tab:hover:not(.tab-active), .reacond-main-tab:hover:not(.tab-active) { background: #f1f5f9 !important; color: var(--text-dark) !important; }
 .btn-teal { background: linear-gradient(135deg, #14b8a6 0%, #0f766e 100%); color: #fff; box-shadow: 0 3px 10px rgba(15,118,110,0.28); }
 .btn-teal:hover { background: linear-gradient(135deg, #2dd4bf 0%, #0f766e 100%); box-shadow: 0 5px 14px rgba(15,118,110,0.35); transform: translateY(-2px); }
 .btn-teal:active { box-shadow: 0 2px 6px rgba(15,118,110,0.3); transform: scale(0.94); }
@@ -1263,16 +1264,16 @@ body{
                     </div>
                 </div>
                 <div style="display:flex; gap:8px; margin-bottom:14px; overflow-x:auto; padding-bottom:4px;">
-                    <button id="finTabDashboard" onclick="finCambiarTab('dashboard')" style="white-space:nowrap;"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
-                    <button id="finTabConsulta" onclick="finCambiarTab('consulta')" style="white-space:nowrap;"><i class="ti ti-calculator"></i> Consulta</button>
-                    <button id="finTabSolicitudes" onclick="finCambiarTab('solicitudes')" style="white-space:nowrap;"><i class="ti ti-file-text"></i> Solicitudes</button>
-                    <button id="finTabFinanciamientos" onclick="finCambiarTab('financiamientos')" style="white-space:nowrap;"><i class="ti ti-cash"></i> Financiamientos</button>
-                    <button id="finTabClientes" onclick="finCambiarTab('clientes')" style="white-space:nowrap;"><i class="ti ti-users"></i> Clientes</button>
-                    <button id="finTabCobros" onclick="finCambiarTab('cobros')" style="white-space:nowrap;"><i class="ti ti-calendar-due"></i> Cobros</button>
-                    <button id="finTabMora" onclick="finCambiarTab('mora')" style="white-space:nowrap;"><i class="ti ti-alert-triangle"></i> Mora</button>
-                    <button id="finTabMdm" onclick="finCambiarTab('mdm')" style="white-space:nowrap;"><i class="ti ti-device-mobile"></i> MDM</button>
-                    <button id="finTabReportes" onclick="finCambiarTab('reportes')" style="white-space:nowrap;"><i class="ti ti-chart-bar"></i> Reportes</button>
-                    <button id="finTabConfig" onclick="finCambiarTab('config')" style="white-space:nowrap;"><i class="ti ti-settings"></i> Configuración</button>
+                    <button id="finTabDashboard" class="btn btn-light" onclick="finCambiarTab('dashboard')" style="font-size:12px; white-space:nowrap;"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
+                    <button id="finTabConsulta" class="btn btn-light" onclick="finCambiarTab('consulta')" style="font-size:12px; white-space:nowrap;"><i class="ti ti-calculator"></i> Consulta</button>
+                    <button id="finTabSolicitudes" class="btn btn-light" onclick="finCambiarTab('solicitudes')" style="font-size:12px; white-space:nowrap;"><i class="ti ti-file-text"></i> Solicitudes</button>
+                    <button id="finTabFinanciamientos" class="btn btn-light" onclick="finCambiarTab('financiamientos')" style="font-size:12px; white-space:nowrap;"><i class="ti ti-cash"></i> Financiamientos</button>
+                    <button id="finTabClientes" class="btn btn-light" onclick="finCambiarTab('clientes')" style="font-size:12px; white-space:nowrap;"><i class="ti ti-users"></i> Clientes</button>
+                    <button id="finTabCobros" class="btn btn-light" onclick="finCambiarTab('cobros')" style="font-size:12px; white-space:nowrap;"><i class="ti ti-calendar-due"></i> Cobros</button>
+                    <button id="finTabMora" class="btn btn-light" onclick="finCambiarTab('mora')" style="font-size:12px; white-space:nowrap;"><i class="ti ti-alert-triangle"></i> Mora</button>
+                    <button id="finTabMdm" class="btn btn-light" onclick="finCambiarTab('mdm')" style="font-size:12px; white-space:nowrap;"><i class="ti ti-device-mobile"></i> MDM</button>
+                    <button id="finTabReportes" class="btn btn-light" onclick="finCambiarTab('reportes')" style="font-size:12px; white-space:nowrap;"><i class="ti ti-chart-bar"></i> Reportes</button>
+                    <button id="finTabConfig" class="btn btn-light" onclick="finCambiarTab('config')" style="font-size:12px; white-space:nowrap;"><i class="ti ti-settings"></i> Configuración</button>
                 </div>
                 <div id="finKpis" class="kpi-row" style="margin-bottom:16px;"></div>
                 <div id="finContenido"></div>
@@ -1686,6 +1687,7 @@ body{
 
             <!-- ORDENES -->
             <div id="v-ordenes" class="view">
+                <h2 style="margin:0 0 12px; display:flex; align-items:center; gap:8px;"><i class="ti ti-clipboard-list" style="color:var(--blue-btn);"></i> Órdenes de Servicio</h2>
                 <div class="card">
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
                         <h3 style="margin:0;"><i class="ti ti-users" style="color:#0891b2;"></i> Carga de Trabajo por Técnico</h3>
@@ -1694,7 +1696,7 @@ body{
                     <div id="cargaTecnicosPanel" style="margin-top:12px;"></div>
                 </div>
                 <div class="card">
-                    <h3>Órdenes de Servicio Activas</h3>
+                    <h3><i class="ti ti-list-check" style="color:var(--blue-btn);"></i> Órdenes de Servicio Activas</h3>
                     <div class="table-wrap">
                         <table>
                             <thead>
@@ -1709,6 +1711,7 @@ body{
 
             <!-- INVENTARIO -->
             <div id="v-inventario" class="view">
+                <h2 style="margin:0 0 12px; display:flex; align-items:center; gap:8px;"><i class="ti ti-boxes" style="color:var(--blue-btn);"></i> Inventario</h2>
                 <div class="layout-inventario">
                     <div class="card">
                         <h3 style="margin:0 0 15px 0;"><i class="ti ti-box-seam" style="color:var(--blue-btn);"></i> 1. Refacciones y Componentes (Inventario Normal)</h3>
@@ -1785,6 +1788,7 @@ body{
 
             <!-- ETIQUETAS -->
             <div id="v-etiquetas" class="view">
+                <h2 style="margin:0 0 12px; display:flex; align-items:center; gap:8px;"><i class="ti ti-tag" style="color:var(--blue-btn);"></i> Etiquetas</h2>
                 <div class="layout-dashboard">
                     <div class="card">
                         <h3>Generador de Etiquetas Adhesivas Regulable</h3>
@@ -1869,6 +1873,7 @@ body{
 
             <!-- CONFIGURACIÓN DE IMPRESORA -->
             <div id="v-configImpresora" class="view">
+                <h2 style="margin:0 0 12px; display:flex; align-items:center; gap:8px;"><i class="ti ti-printer" style="color:var(--blue-btn);"></i> Configuración de Impresora</h2>
                 <!-- PANEL DE CONEXIÓN QZ TRAY -->
                 <div class="card" id="qzPanelCard" style="border-top:4px solid #06b6d4;">
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
@@ -1953,7 +1958,7 @@ body{
                         
                         <hr style="border:0; border-top:1px solid var(--border-color); margin:15px 0;">
                         
-                        <h4 style="margin:0 0 10px 0; font-size:12px; color:var(--blue-btn); text-transform:uppercase;">📐 Calibración Manual</h4>
+                        <h4 style="margin:0 0 10px 0; font-size:12px; color:var(--blue-btn); text-transform:uppercase;"><i class="ti ti-ruler-2"></i> Calibración Manual</h4>
                         
                         <div class="form-row">
                             <div style="display:flex; justify-content:space-between;"><label>Ancho del Label (mm)</label><span id="cfgi_w_val" style="font-size:12px; font-weight:bold;">58mm</span></div>
@@ -2023,7 +2028,7 @@ body{
                     <p style="color:var(--text-muted); font-size:13px; margin-bottom:14px;">Ajusta el tamaño y elige qué líneas se imprimen en el label de orden (sin código de barras).</p>
                     <div class="layout-dashboard">
                         <div>
-                            <h4 style="margin:0 0 10px; font-size:12px; color:#dc2626; text-transform:uppercase;">📐 Tamaño</h4>
+                            <h4 style="margin:0 0 10px; font-size:12px; color:#dc2626; text-transform:uppercase;"><i class="ti ti-ruler-2"></i> Tamaño</h4>
                             <div class="form-row">
                                 <div style="display:flex; justify-content:space-between;"><label>Ancho (mm)</label><span id="lblord_w_val" style="font-size:12px; font-weight:bold;">51mm</span></div>
                                 <input type="range" id="lblord_w" min="20" max="100" value="51" oninput="guardarMedidasLabelOrden()">
@@ -2040,7 +2045,7 @@ body{
                                 <div style="display:flex; justify-content:space-between;"><label>Margen interno (mm)</label><span id="lblord_m_val" style="font-size:12px; font-weight:bold;">1mm</span></div>
                                 <input type="range" id="lblord_m" min="0" max="8" step="0.5" value="1" oninput="guardarMedidasLabelOrden()">
                             </div>
-                            <h4 style="margin:14px 0 8px; font-size:12px; color:#dc2626; text-transform:uppercase;">✓ Líneas a imprimir</h4>
+                            <h4 style="margin:14px 0 8px; font-size:12px; color:#dc2626; text-transform:uppercase;"><i class="ti ti-list-check"></i> Líneas a imprimir</h4>
                             <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
                                 <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;"><input type="checkbox" id="lblord_orden" onchange="guardarCamposLabelOrden()" style="width:auto;"> N° Orden</label>
                                 <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;"><input type="checkbox" id="lblord_cliente" onchange="guardarCamposLabelOrden()" style="width:auto;"> Cliente</label>
@@ -2051,7 +2056,7 @@ body{
                             </div>
                         </div>
                         <div>
-                            <h4 style="margin:0 0 10px; font-size:12px; color:#dc2626; text-transform:uppercase;">👁️ Vista Previa</h4>
+                            <h4 style="margin:0 0 10px; font-size:12px; color:#dc2626; text-transform:uppercase;"><i class="ti ti-eye"></i> Vista Previa</h4>
                             <div style="display:flex; justify-content:center; padding:15px; background:#cbd5e1; border-radius:8px; min-height:120px;">
                                 <div id="lblordPreview"></div>
                             </div>
@@ -2064,6 +2069,7 @@ body{
 
             <!-- CATALOGO DE ARTICULOS -->
             <div id="v-articulos" class="view">
+                <h2 style="margin:0 0 12px; display:flex; align-items:center; gap:8px;"><i class="ti ti-package" style="color:var(--blue-btn);"></i> Artículos</h2>
                 <!-- CATÁLOGO DE ARTÍCULOS (INFO PLUS) — único catálogo del sistema -->
                 <div class="card" id="infoplusCard">
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
@@ -2094,6 +2100,7 @@ body{
 
             <!-- COMPRAS (Proveedores + Compras anidados) -->
             <div id="v-proveedores" class="view">
+                <h2 style="margin:0 0 12px; display:flex; align-items:center; gap:8px;"><i class="ti ti-truck-delivery" style="color:var(--blue-btn);"></i> Proveedores</h2>
                 <!-- Vista principal con TABS -->
                 <div id="prov-lista">
                     <div class="card">
@@ -2250,7 +2257,7 @@ body{
                                             <div id="eq_imei_status" style="font-size:10.5px; margin-top:3px; height:13px; font-weight:700;"></div></div>
                                         <div id="costo_admin_wrap"><label>Costo Unidad (RD$) *</label><input id="eq_costo" type="number" step="0.01" placeholder="6374.00" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarEquipoAlLote();}"><div style="font-size:10px; color:#94a3b8; margin-top:2px;">Se mantiene; cámbialo si este IMEI vale distinto</div></div>
                                         <div><label>Notas rápidas</label><input id="eq_notas" placeholder="Ej: pantalla rota, no carga…" style="text-transform:uppercase;"></div>
-                                        <button class="btn" onclick="agregarEquipoAlLote()" style="height:42px; background:#e31e24; color:#fff; border:0; font-weight:700;"><i class="ti ti-plus"></i> Agregar equipo</button>
+                                        <button class="btn btn-blue" onclick="agregarEquipoAlLote()" style="height:42px; font-weight:700;"><i class="ti ti-plus"></i> Agregar equipo</button>
                                     </div>
                                     <div style="margin-top:10px; display:flex; align-items:center; gap:9px; flex-wrap:wrap;">
                                         <span style="font-size:12px; font-weight:800; color:var(--text-muted); text-transform:uppercase;">Color:</span>
@@ -2605,6 +2612,7 @@ body{
 
             <!-- ============= CONFIGURACIÓN ============= -->
             <div id="v-configuracion" class="view">
+                <h2 style="margin:0 0 12px; display:flex; align-items:center; gap:8px;"><i class="ti ti-settings" style="color:var(--blue-btn);"></i> Configuración</h2>
                 <div style="background:#fff; border-radius:12px; padding:6px; margin-bottom:15px; display:flex; gap:4px; box-shadow:0 1px 3px rgba(0,0,0,0.05); flex-wrap:wrap;">
                     <button id="cfgMainTabTecnicos" onclick="cambiarMainTabConfig('tecnicos')" class="cfg-main-tab" style="flex:1; min-width:120px; padding:12px; border:0; background:var(--blue-btn); color:#fff; border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">
                         <i class="ti ti-users"></i> Técnicos
@@ -3288,13 +3296,13 @@ body{
                 Registra un gasto sin preocuparte por débitos y créditos: el sistema arma el asiento contable correcto solo.
             </p>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                <div><label>Fecha *</label><input type="date" id="rgto_fecha"></div>
-                <div><label>Sucursal</label><select id="rgto_sucursal"><option value="General">General (ambas)</option><option value="Santiago">Santiago</option><option value="Moca">Moca</option></select></div>
+                <div class="form-row"><label>Fecha *</label><input type="date" id="rgto_fecha"></div>
+                <div class="form-row"><label>Sucursal</label><select id="rgto_sucursal"><option value="General">General (ambas)</option><option value="Santiago">Santiago</option><option value="Moca">Moca</option></select></div>
             </div>
             <div class="form-row" style="margin-top:8px;"><label>Tipo de gasto *</label><select id="rgto_cuenta"></select></div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px;">
-                <div><label>Monto (RD$) *</label><input type="number" step="0.01" min="0" id="rgto_monto" placeholder="0.00"></div>
-                <div><label>Pagado con *</label><select id="rgto_metodo">
+                <div class="form-row"><label>Monto (RD$) *</label><input type="number" step="0.01" min="0" id="rgto_monto" placeholder="0.00"></div>
+                <div class="form-row"><label>Pagado con *</label><select id="rgto_metodo">
                     <option value="110101">Efectivo (Caja General)</option>
                     <option value="110103">Banco (transferencia/cheque)</option>
                     <option value="2105">Tarjeta de crédito</option>
@@ -3560,7 +3568,7 @@ body{
             </div>
             
             <div class="form-row" style="margin-top:15px;">
-                <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:13px; text-transform:none; color:var(--text-dark);">
                     <input type="checkbox" id="mod_rol_activo" checked>
                     <span>Rol activo (disponible para asignar)</span>
                 </label>
@@ -3892,7 +3900,7 @@ body{
                 <textarea id="mod_falla_desc" rows="2" placeholder="Detalles adicionales..." style="resize:vertical;"></textarea>
             </div>
             <div class="form-row">
-                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; text-transform:none; color:var(--text-dark);">
                     <input type="checkbox" id="mod_falla_activa" checked>
                     <span>Falla activa (disponible para usar)</span>
                 </label>
@@ -4034,7 +4042,7 @@ body{
                 Sigue estos pasos para que los labels impriman al tamaño exacto sin márgenes.
             </div>
             
-            <h4 style="margin:15px 0 8px 0; color:var(--blue-btn); font-size:13px;">📌 Paso 1: Configuración en Windows</h4>
+            <h4 style="margin:15px 0 8px 0; color:var(--blue-btn); font-size:13px;"><i class="ti ti-list-numbers"></i> Paso 1: Configuración en Windows</h4>
             <ol style="font-size:13px; line-height:1.6; padding-left:20px; margin:0 0 15px 0;">
                 <li>Ve a <b>Panel de Control</b> → <b>Dispositivos e Impresoras</b></li>
                 <li>Clic derecho en <b>2C-LP427B</b> → <b>Preferencias de impresión</b></li>
@@ -4043,7 +4051,7 @@ body{
                 <li>Clic en <b>Aceptar</b></li>
             </ol>
             
-            <h4 style="margin:15px 0 8px 0; color:var(--blue-btn); font-size:13px;">📌 Paso 2: Configuración en Chrome (primera impresión)</h4>
+            <h4 style="margin:15px 0 8px 0; color:var(--blue-btn); font-size:13px;"><i class="ti ti-list-numbers"></i> Paso 2: Configuración en Chrome (primera impresión)</h4>
             <ol style="font-size:13px; line-height:1.6; padding-left:20px; margin:0 0 15px 0;">
                 <li>Llena los datos del label en este sistema</li>
                 <li>Ajusta el ancho con el <b>slider de calibración</b> (lo recuerda automáticamente)</li>
@@ -15601,13 +15609,14 @@ function cambiarMainTabReacond(tab) {
 
     // Reset todos
     [btnLotes, btnCat, btnDev, btnPz, btnRent].forEach(b => {
-        if(b) { b.style.background = 'transparent'; b.style.color = 'var(--text-muted)'; }
+        if(b) { b.style.background = 'transparent'; b.style.color = 'var(--text-muted)'; b.classList.remove('tab-active'); }
     });
 
     if(tab === 'rentabilidad') {
         if(btnRent) {
             btnRent.style.background = 'linear-gradient(180deg,#16a34a,#15803d)';
             btnRent.style.color = '#fff';
+            btnRent.classList.add('tab-active');
         }
         renderRentabilidadReacond();
         return;
@@ -15615,21 +15624,25 @@ function cambiarMainTabReacond(tab) {
     if(tab === 'lotes') {
         btnLotes.style.background = 'var(--blue-btn)';
         btnLotes.style.color = '#fff';
+        btnLotes.classList.add('tab-active');
         cargarLotesReacond();
     } else if(tab === 'catalogo') {
         btnCat.style.background = '#6366f1';
         btnCat.style.color = '#fff';
+        btnCat.classList.add('tab-active');
         cargarCatalogoFallas();
     } else if(tab === 'devoluciones') {
         if(btnDev) {
             btnDev.style.background = 'linear-gradient(180deg,#dc2626,#991b1b)';
             btnDev.style.color = '#fff';
+            btnDev.classList.add('tab-active');
         }
         cargarDevoluciones();
     } else if(tab === 'piezas') {
         if(btnPz) {
             btnPz.style.background = 'linear-gradient(180deg,#0891b2,#0e7490)';
             btnPz.style.color = '#fff';
+            btnPz.classList.add('tab-active');
         }
         renderPedidosPiezasReacond();
     }
@@ -16671,34 +16684,39 @@ function cambiarMainTabConfig(tab) {
     
     // Reset todos
     [btnTec, btnRoles, btnCat, btnGen, btnFallas].forEach(b => {
-        if(b) { b.style.background = 'transparent'; b.style.color = 'var(--text-muted)'; }
+        if(b) { b.style.background = 'transparent'; b.style.color = 'var(--text-muted)'; b.classList.remove('tab-active'); }
     });
-    
+
     if(tab === 'tecnicos') {
         btnTec.style.background = 'var(--blue-btn)';
         btnTec.style.color = '#fff';
+        btnTec.classList.add('tab-active');
         renderTecnicos();
     } else if(tab === 'roles') {
         if(btnRoles) {
             btnRoles.style.background = 'linear-gradient(135deg,#6366f1,#4f46e5)';
             btnRoles.style.color = '#fff';
+            btnRoles.classList.add('tab-active');
         }
         cargarRoles();
     } else if(tab === 'catalogos') {
         if(btnCat) {
             btnCat.style.background = 'linear-gradient(135deg,#0891b2,#0e7490)';
             btnCat.style.color = '#fff';
+            btnCat.classList.add('tab-active');
         }
         cargarCatalogosConfig();
     } else if(tab === 'general') {
         btnGen.style.background = 'var(--blue-btn)';
         btnGen.style.color = '#fff';
+        btnGen.classList.add('tab-active');
         cargarDatosTallerEnForm();
         renderOrganizadorMenu();
     } else if(tab === 'fallas') {
         if(btnFallas) {
             btnFallas.style.background = 'var(--blue-btn)';
             btnFallas.style.color = '#fff';
+            btnFallas.classList.add('tab-active');
         }
         renderCfgFallas();
     }
@@ -18483,11 +18501,11 @@ function _cxpRender() {
             <option value="pagada"${_cxpFiltro.estado === 'pagada' ? ' selected' : ''}>Pagadas</option>
           </select>
         </div>
-        <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;min-width:820px;">
-          <thead><tr style="background:#0f172a;color:#fff;font-size:11px;text-transform:uppercase;">
-            <th style="padding:8px;text-align:left;">Fecha</th><th style="padding:8px;text-align:left;">Factura</th><th style="padding:8px;text-align:left;">Proveedor</th>
-            <th style="padding:8px;text-align:right;">Monto</th><th style="padding:8px;text-align:right;">Pagado</th><th style="padding:8px;text-align:right;">Saldo</th>
-            <th style="padding:8px;text-align:left;">Vencimiento</th><th style="padding:8px;text-align:left;">Estado</th><th></th>
+        <div class="table-wrap" style="overflow-x:auto;"><table style="min-width:820px;">
+          <thead><tr>
+            <th>Fecha</th><th>Factura</th><th>Proveedor</th>
+            <th style="text-align:right;">Monto</th><th style="text-align:right;">Pagado</th><th style="text-align:right;">Saldo</th>
+            <th>Vencimiento</th><th>Estado</th><th></th>
           </tr></thead>
           <tbody>${filas || '<tr><td colspan="9" style="text-align:center;color:#64748b;padding:16px;">No hay deudas. Usa "Jalar compras a crédito de Info Plus" para importarlas.</td></tr>'}</tbody>
         </table></div>`;
@@ -27826,11 +27844,9 @@ function finCambiarTab(tab) {
 }
 function _pintarTabFin() {
     const tabs = { dashboard: 'finTabDashboard', consulta: 'finTabConsulta', solicitudes: 'finTabSolicitudes', financiamientos: 'finTabFinanciamientos', clientes: 'finTabClientes', cobros: 'finTabCobros', mora: 'finTabMora', mdm: 'finTabMdm', reportes: 'finTabReportes', config: 'finTabConfig' };
-    const act = 'background:#16a34a; color:#fff; font-weight:700;';
-    const ina = 'background:#f1f5f9; color:#475569;';
     Object.keys(tabs).forEach(k => {
         const el = document.getElementById(tabs[k]);
-        if(el) el.style.cssText = 'border:0; border-radius:8px; padding:8px 16px; cursor:pointer; font-size:13px; white-space:nowrap; ' + (_finTab === k ? act : ina);
+        if(el) el.className = 'btn ' + (_finTab === k ? 'btn-blue' : 'btn-light');
     });
     // La pestaña de configuración solo para admin / permiso
     const cfgTab = document.getElementById('finTabConfig');
