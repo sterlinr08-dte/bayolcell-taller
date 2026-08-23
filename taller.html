@@ -27692,19 +27692,40 @@ function finSaldo(f) {
     return Math.max(0, Math.round((finMontoCuotas(f) - finAbonado(f)) * 100) / 100);
 }
 // Mora acumulada: por cada cuota vencida no cubierta, según config del financiamiento
+// Mora acumulada (CONGELADA): una cuota genera mora si se VENCIO tarde —
+// es decir, si el capital necesario para cubrirla no estaba pagado en o antes
+// de su fecha de vencimiento. Una vez que una cuota se vencio, su mora queda
+// registrada aunque despues se pague el capital (antes desaparecia sola = bug).
 function finMoraAcumulada(f) {
     if(!f.mora_tipo || f.mora_tipo === 'ninguna' || !(Number(f.mora_valor) > 0)) return 0;
-    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-    const vencidas = finCronograma(f).filter(c => !c.cubierta && c.vence < hoy);
+    const hoy = new Date(); hoy.setHours(23, 59, 59, 999);
+    // Pagos de capital ordenados por fecha (solo cuentan los abonos de capital, no condonaciones)
+    const pagos = finPagosDe(f.id).filter(p => Number(p.monto || 0) > 0);
+    // Para cada cuota, ¿en qué fecha el capital acumulado la cubrió? (o null si aún no)
+    let acum = 0;
     let mora = 0;
-    vencidas.forEach(c => {
-        if(f.mora_tipo === 'porcentaje') mora += Number(c.valor) * Number(f.mora_valor) / 100;
-        else if(f.mora_tipo === 'fijo') mora += Number(f.mora_valor);
+    finSchedule(f).forEach(s => {
+        acum = Math.round((acum + s.cuota) * 100) / 100;
+        const vence = _finAddPeriodo(f.fecha_inicio, f.frecuencia, s.num);
+        vence.setHours(23, 59, 59, 999);
+        // Fecha en que el abonado acumulado alcanzó 'acum' (cubrió esta cuota)
+        let run = 0, fechaCubierta = null;
+        for(const p of pagos) {
+            run += Number(p.monto || 0);
+            if(run >= acum - 0.001) { fechaCubierta = new Date(p.creado_en); break; }
+        }
+        // ¿Se venció tarde? Tarde = se cubrió después de vencer, o aún no se cubre y ya venció.
+        const tarde = fechaCubierta ? (fechaCubierta > vence) : (hoy > vence);
+        if(tarde) {
+            if(f.mora_tipo === 'porcentaje') mora += Number(s.cuota) * Number(f.mora_valor) / 100;
+            else if(f.mora_tipo === 'fijo') mora += Number(f.mora_valor);
+        }
     });
     return Math.round(mora * 100) / 100;
 }
 function finMoraCobrada(f) { return finPagosDe(f.id).reduce((s, p) => s + Number(p.mora || 0), 0); }
-function finMoraPendiente(f) { return Math.max(0, Math.round((finMoraAcumulada(f) - finMoraCobrada(f)) * 100) / 100); }
+function finMoraCondonada(f) { return finPagosDe(f.id).reduce((s, p) => s + Number(p.mora_condonada || 0), 0); }
+function finMoraPendiente(f) { return Math.max(0, Math.round((finMoraAcumulada(f) - finMoraCobrada(f) - finMoraCondonada(f)) * 100) / 100); }
 function finMoraTxt(f) {
     if(!f.mora_tipo || f.mora_tipo === 'ninguna') return 'Sin mora';
     return f.mora_tipo === 'porcentaje' ? `${f.mora_valor}% por cuota vencida` : `${money(f.mora_valor)} por cuota vencida`;
@@ -28088,7 +28109,10 @@ function _pintarDetalleFin() {
                     <h3 style="margin:0; font-size:16px;"><i class="ti ti-cash" style="color:#16a34a;"></i> Cobros</h3>
                     <div style="font-size:12.5px; color:var(--text-muted); margin-top:3px;">Saldo <b style="color:#0f172a;">${money(saldo)}</b>${moraPend > 0 ? ` · Mora <b style="color:#b91c1c;">${money(moraPend)}</b>` : ''}</div>
                 </div>
-                <button class="btn btn-blue" onclick="abrirModalPago('${f.id}')" style="padding:11px 22px; font-size:14px;"><i class="ti ti-plus"></i> Registrar pago</button>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    ${moraPend > 0 && isAdminUser() ? `<button class="btn btn-light" onclick="abrirCondonarMora('${f.id}')" style="padding:11px 16px; font-size:13px; color:#b45309;"><i class="ti ti-heart-handshake"></i> Perdonar mora</button>` : ''}
+                    <button class="btn btn-blue" onclick="abrirModalPago('${f.id}')" style="padding:11px 22px; font-size:14px;"><i class="ti ti-plus"></i> Registrar pago</button>
+                </div>
             </div>
         </div>`;
     }
@@ -28114,13 +28138,24 @@ function _pintarDetalleFin() {
         <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-history" style="color:#7c3aed;"></i> Historial de abonos (${pagos.length})</h3>`;
     if(pagos.length) {
         html += `<div class="table-wrap"><table><thead><tr><th>Recibo</th><th>Fecha</th><th>Monto</th><th>Método</th><th></th></tr></thead><tbody>`;
-        html += pagos.slice().reverse().map(p => `<tr>
+        html += pagos.slice().reverse().map(p => {
+            const fecha = new Date(p.creado_en).toLocaleString('es-DO', { dateStyle: 'short', timeStyle: 'short' });
+            if(p.tipo === 'condonacion') {
+                return `<tr style="background:#fffbeb;">
+                    <td><span class="fin-badge warn"><i class="ti ti-heart-handshake"></i> Perdón</span></td>
+                    <td>${fecha}</td>
+                    <td style="color:#b45309; font-weight:700;">−${money(p.mora_condonada)} mora</td>
+                    <td colspan="2" style="font-size:12px; color:var(--text-muted);">${escapeHtml(p.nota || '')} · ${escapeHtml(p.recibido_por || '')}${puedeEliminar ? ` <button class="btn btn-light" onclick="anularAbono('${p.id}')" style="font-size:11px; padding:3px 8px; color:#b91c1c; margin-left:6px;" title="Anular perdón"><i class="ti ti-trash"></i></button>` : ''}</td>
+                </tr>`;
+            }
+            return `<tr>
             <td>#${p.recibo || '—'}</td>
-            <td>${new Date(p.creado_en).toLocaleString('es-DO', { dateStyle: 'short', timeStyle: 'short' })}</td>
-            <td>${money(p.monto)}</td>
+            <td>${fecha}</td>
+            <td>${money(p.monto)}${Number(p.mora || 0) > 0 ? `<br><span style="font-size:11px; color:#b45309;">+${money(p.mora)} mora</span>` : ''}</td>
             <td style="text-transform:capitalize;">${escapeHtml(p.metodo || '')}</td>
             <td style="white-space:nowrap;"><button class="btn btn-light" onclick="imprimirReciboFin('${p.id}')" style="font-size:11px; padding:3px 8px;" title="Imprimir ticket"><i class="ti ti-printer"></i></button><button class="btn btn-light" onclick="imprimirReciboFin('${p.id}','pdf')" style="font-size:11px; padding:3px 8px; color:#b91c1c;" title="Descargar PDF"><i class="ti ti-file-type-pdf"></i></button><button class="btn btn-light" onclick="enviarReciboWhatsApp('${p.id}')" style="font-size:11px; padding:3px 8px; color:#16a34a;" title="Enviar por WhatsApp"><i class="ti ti-brand-whatsapp"></i></button>${puedeEliminar ? `<button class="btn btn-light" onclick="anularAbono('${p.id}')" style="font-size:11px; padding:3px 8px; color:#b91c1c;" title="Anular abono"><i class="ti ti-trash"></i></button>` : ''}</td>
-        </tr>`).join('');
+        </tr>`;
+        }).join('');
         html += `</tbody></table></div>`;
     } else {
         html += `<div style="color:var(--text-muted); font-size:13px;">Aún no hay abonos registrados.</div>`;
@@ -28734,9 +28769,8 @@ function _finAbonoPreview(finId) {
 // ---- Modal flotante de pago ----
 function _finModalPago(titulo, contenido, tema) {
     cerrarModalPago();
-    const esDanger = tema === 'danger';
-    const gradiente = esDanger ? 'linear-gradient(135deg,#dc2626 0%,#991b1b 100%)' : 'linear-gradient(135deg,#16a34a 0%,#15803d 100%)';
-    const icono = esDanger ? 'ti-lock' : 'ti-cash';
+    const gradiente = tema === 'danger' ? 'linear-gradient(135deg,#dc2626 0%,#991b1b 100%)' : (tema === 'warn' ? 'linear-gradient(135deg,#f59e0b 0%,#d97706 100%)' : 'linear-gradient(135deg,#16a34a 0%,#15803d 100%)');
+    const icono = tema === 'danger' ? 'ti-lock' : (tema === 'warn' ? 'ti-heart-handshake' : 'ti-cash');
     const ov = document.createElement('div');
     ov.id = 'modalPago';
     ov.style.cssText = 'position:fixed; inset:0; z-index:8000; background:rgba(15,23,42,.55); display:flex; align-items:flex-start; justify-content:center; padding:28px 14px; overflow-y:auto; backdrop-filter:blur(2px);';
@@ -28908,6 +28942,63 @@ async function registrarAbonoFin(finId, btn) {
         console.error('registrarAbonoFin', e);
         toast('No se pudo registrar el abono.', 'error');
     } finally {
+        if(btn) btn.disabled = false;
+    }
+}
+
+// ---- Perdonar (condonar) mora — solo admin, queda registrado quién y por qué ----
+function abrirCondonarMora(finId) {
+    if(!isAdminUser()) { toast('Solo un administrador puede perdonar mora.', 'error'); return; }
+    const f = (_finCache.financiamientos || []).find(x => x.id === finId);
+    if(!f) return;
+    const pend = finMoraPendiente(f);
+    if(pend <= 0) { toast('Este financiamiento no tiene mora pendiente.', 'error'); return; }
+    const cont = `
+        <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:12px; padding:12px 14px; margin-bottom:14px;">
+            <div style="font-size:11px; color:#b45309; text-transform:uppercase; letter-spacing:.3px;">Mora pendiente</div>
+            <div style="font-size:20px; font-weight:800; color:#b45309;">${money(pend)}</div>
+            <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">${escapeHtml(f.cliente_nombre || '')} · ${escapeHtml(f.concepto || '')}</div>
+        </div>
+        <label style="display:block; font-size:12.5px; font-weight:700; color:#334155; margin-bottom:5px;">¿Cuánto perdonar? (RD$)</label>
+        <input id="condonarMonto" type="number" step="0.01" min="0" max="${pend}" value="${pend}" placeholder="0.00" style="width:100%; padding:11px 12px; border:1px solid #cbd5e1; border-radius:10px; font-size:16px; font-weight:700; box-sizing:border-box;">
+        <label style="display:block; font-size:12.5px; font-weight:700; color:#334155; margin:12px 0 5px;">Motivo (obligatorio)</label>
+        <input id="condonarMotivo" type="text" placeholder="Ej. cliente cumplidor, acuerdo especial…" style="width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:10px; font-size:13.5px; box-sizing:border-box;">
+        <div style="display:flex; gap:8px; margin-top:16px;">
+            <button class="btn btn-light" onclick="cerrarModalPago()" style="flex:1; padding:12px;">Cancelar</button>
+            <button id="condonarBtn" class="btn" style="flex:1; padding:12px; background:#d97706; color:#fff; font-weight:700;" onclick="guardarCondonarMora('${finId}', this)"><i class="ti ti-heart-handshake"></i> Perdonar mora</button>
+        </div>`;
+    _finModalPago('Perdonar mora', cont, 'warn');
+}
+async function guardarCondonarMora(finId, btn) {
+    if(!isAdminUser()) { toast('Solo un administrador puede perdonar mora.', 'error'); return; }
+    const f = (_finCache.financiamientos || []).find(x => x.id === finId);
+    if(!f) return;
+    const pend = finMoraPendiente(f);
+    const monto = parseFloat(document.getElementById('condonarMonto')?.value) || 0;
+    const motivo = (document.getElementById('condonarMotivo')?.value || '').trim();
+    if(monto <= 0) { toast('Escribe cuánto perdonar.', 'error'); return; }
+    if(monto > pend + 0.001) { toast(`No puedes perdonar más de la mora pendiente (${money(pend)}).`, 'error'); return; }
+    if(!motivo) { toast('El motivo es obligatorio.', 'error'); return; }
+    if(btn) btn.disabled = true;
+    try {
+        const { error } = await supabaseClient.from('financiamiento_pagos').insert([{
+            financiamiento_id: finId,
+            monto: 0,
+            mora: 0,
+            mora_condonada: Math.round(monto * 100) / 100,
+            tipo: 'condonacion',
+            metodo: 'condonacion',
+            nota: motivo,
+            recibido_por: sessionUser?.nombre || sessionUser?.usuario || 'Admin'
+        }]);
+        if(error) throw error;
+        await cargarFinanciamientos();
+        toast('Mora perdonada y registrada.');
+        cerrarModalPago();
+        _pintarFinanciamientos();
+    } catch(e) {
+        logError('condonar mora', e);
+        toastError(getFriendlyError(e));
         if(btn) btn.disabled = false;
     }
 }
