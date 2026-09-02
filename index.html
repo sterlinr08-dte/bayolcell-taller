@@ -9,10 +9,66 @@
 <meta property="og:title" content="Bayolcell — Tu solución móvil completa">
 <meta property="og:description" content="Financiamiento, reparación, importación y distribución de celulares. Santiago y Moca, R.D.">
 <meta property="og:type" content="website">
+<meta property="og:url" content="https://bayolcell.com/">
+<meta property="og:image" content="https://bayolcell.com/assets/logo.png">
+<meta property="og:locale" content="es_DO">
+<link rel="canonical" href="https://bayolcell.com/">
+<meta name="robots" content="index, follow, max-image-preview:large">
 <link rel="icon" href="assets/logo.png">
+<link rel="preload" as="image" href="assets/logo.png" fetchpriority="high">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "MobilePhoneStore",
+      "@id": "https://bayolcell.com/#santiago",
+      "name": "Bayol Cell — Santiago",
+      "image": "https://bayolcell.com/assets/logo.png",
+      "url": "https://bayolcell.com/",
+      "telephone": "+18097072493",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "Calle Sánchez, casi esq. Restauración #102",
+        "addressLocality": "Santiago de los Caballeros",
+        "addressCountry": "DO"
+      },
+      "openingHoursSpecification": [
+        { "@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday"], "opens": "08:30", "closes": "18:00" },
+        { "@type": "OpeningHoursSpecification", "dayOfWeek": "Saturday", "opens": "09:00", "closes": "16:00" }
+      ],
+      "priceRange": "RD$",
+      "sameAs": ["https://www.instagram.com/bayolcell"]
+    },
+    {
+      "@type": "MobilePhoneStore",
+      "@id": "https://bayolcell.com/#moca",
+      "name": "Bayol Cell — Moca",
+      "image": "https://bayolcell.com/assets/logo.png",
+      "url": "https://bayolcell.com/",
+      "telephone": "+18296709694",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "Calle Pdte. Vásquez #5, frente a Parada Villa Trina",
+        "addressLocality": "Moca",
+        "addressRegion": "Espaillat",
+        "addressCountry": "DO"
+      },
+      "openingHoursSpecification": [
+        { "@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"], "opens": "08:30", "closes": "18:00" }
+      ],
+      "priceRange": "RD$",
+      "sameAs": ["https://www.instagram.com/bayolcell"]
+    }
+  ]
+}
+</script>
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -21,9 +77,11 @@
 }
 html{scroll-behavior:smooth}
 body{
-  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
   color:var(--txt); background:var(--bg); overflow-x:hidden; line-height:1.55;
 }
+::selection{background:rgba(239,68,68,.35);color:#fff}
+html{scrollbar-color:rgba(239,68,68,.5) rgba(255,255,255,.06)}
 /* Aurora de fondo */
 body::before{content:'';position:fixed;inset:0;z-index:-2;pointer-events:none;
   background:
@@ -158,8 +216,28 @@ footer img{height:40px;margin-bottom:14px;border-radius:8px}
 /* WhatsApp flotante */
 .fab{position:fixed;right:18px;bottom:18px;z-index:60;width:58px;height:58px;border-radius:50%;
   background:linear-gradient(145deg,#25d366,#128c4b);color:#fff;display:flex;align-items:center;justify-content:center;
-  font-size:30px;box-shadow:0 14px 30px -8px rgba(18,140,75,.8);transition:transform .2s}
-.fab:hover{transform:scale(1.08)}
+  font-size:30px;box-shadow:0 14px 30px -8px rgba(18,140,75,.8);transition:transform .2s;animation:fabPulse 2.6s ease-in-out infinite}
+.fab:hover{transform:scale(1.08);animation:none}
+@keyframes fabPulse{0%,100%{box-shadow:0 14px 30px -8px rgba(18,140,75,.8),0 0 0 0 rgba(37,211,102,.5)}50%{box-shadow:0 14px 30px -8px rgba(18,140,75,.8),0 0 0 12px rgba(37,211,102,0)}}
+@media (prefers-reduced-motion:reduce){.fab{animation:none}}
+/* Estado Abierto/Cerrado flotante (encima del WhatsApp) */
+.open-fab{position:fixed;right:18px;bottom:86px;z-index:60;display:none;align-items:center;gap:8px;
+  padding:9px 14px;border-radius:999px;font-weight:800;font-size:13px;white-space:nowrap;overflow:hidden;
+  background:rgba(8,12,22,.82);backdrop-filter:blur(8px);box-shadow:0 10px 24px -8px rgba(0,0,0,.6);
+  border:1px solid rgba(255,255,255,.12);opacity:0;transition:opacity .5s ease;
+  animation:offFloat 4.5s ease-in-out infinite}
+.open-fab::before{content:'';position:absolute;top:0;left:-60%;width:45%;height:100%;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.13),transparent);
+  transform:skewX(-18deg);animation:offShine 5s ease-in-out infinite}
+.open-fab:hover{filter:brightness(1.12)}
+.open-fab .dot{width:9px;height:9px;border-radius:50%;background:currentColor;flex:none;position:relative;z-index:1}
+.open-fab .oft{position:relative;z-index:1;transition:opacity .25s ease}
+.open-fab.abierto{color:#4ade80}.open-fab.abierto .dot{animation:obpulse 1.7s infinite}
+.open-fab.cerrado{color:#f87171}
+@keyframes offFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes offShine{0%,72%{left:-60%}86%,100%{left:130%}}
+@media (prefers-reduced-motion:reduce){.open-fab{animation:none}.open-fab::before{display:none}}
+@keyframes obpulse{0%{box-shadow:0 0 0 0 rgba(74,222,128,.6)}70%{box-shadow:0 0 0 7px rgba(74,222,128,0)}100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}}
 
 @media (max-width:560px){
   .hero{padding:42px 0 28px}
@@ -421,14 +499,14 @@ footer::before{ content:''; position:absolute; top:-1px; left:0; right:0; height
 <!-- MOTONETA ELÉCTRICA -->
 <section id="motoneta" class="wrap">
   <div class="sec-title">
-    <h2>Pasola Eléctrica ⚡</h2>
+    <h2>Pasola Eléctrica</h2>
     <p>La energía del futuro — muévete diferente.</p>
   </div>
   <div class="moto reveal">
     <div class="carousel" data-carousel>
       <div class="car-track">
-      <img class="car-slide" src="assets/moto-roja.jpg" alt="Pasola eléctrica STUDIO LQ-H8">
-      <img class="car-slide" src="assets/moto-specs.jpg" alt="Ficha técnica de la pasola eléctrica">
+      <img class="car-slide" src="assets/moto-roja.jpg" alt="Pasola eléctrica STUDIO LQ-H8" loading="lazy" decoding="async">
+      <img class="car-slide" src="assets/moto-specs.jpg" alt="Ficha técnica de la pasola eléctrica" loading="lazy" decoding="async">
       </div>
       <button class="car-prev" aria-label="Anterior">‹</button>
       <button class="car-next" aria-label="Siguiente">›</button>
@@ -471,13 +549,13 @@ footer::before{ content:''; position:absolute; top:-1px; left:0; right:0; height
 <!-- BICICLETA ELÉCTRICA -->
 <section id="bicicleta" class="wrap">
   <div class="sec-title">
-    <h2>Bicicleta Eléctrica ⚡🚲</h2>
+    <h2>Bicicleta Eléctrica</h2>
     <p>Muévete fácil, rápido y económico.</p>
   </div>
   <div class="moto reveal">
     <div class="carousel" data-carousel>
       <div class="car-track">
-      <img class="car-slide" src="assets/bicicleta.jpg" alt="Bicicleta eléctrica Bayolcell">
+      <img class="car-slide" src="assets/bicicleta.jpg" alt="Bicicleta eléctrica Bayolcell" loading="lazy" decoding="async">
       </div>
       <button class="car-prev" aria-label="Anterior">‹</button>
       <button class="car-next" aria-label="Siguiente">›</button>
@@ -507,13 +585,13 @@ footer::before{ content:''; position:absolute; top:-1px; left:0; right:0; height
 <!-- FINANCIAMIENTO -->
 <section id="financiamiento" class="wrap">
   <div class="sec-title">
-    <h2>Financiamiento disponible 💳</h2>
+    <h2>Financiamiento disponible</h2>
     <p>Si tienes buen crédito, llévatelo <b style="color:#fff">hoy mismo</b>. Aprobación rápida, sin esperas.</p>
   </div>
   <div class="moto reveal">
     <div class="carousel" data-carousel>
       <div class="car-track">
-      <img class="car-slide" src="assets/financiamiento.jpg" alt="Financiamiento disponible Bayolcell">
+      <img class="car-slide" src="assets/financiamiento.jpg" alt="Financiamiento disponible Bayolcell" loading="lazy" decoding="async">
       </div>
       <button class="car-prev" aria-label="Anterior">‹</button>
       <button class="car-next" aria-label="Siguiente">›</button>
@@ -548,13 +626,13 @@ footer::before{ content:''; position:absolute; top:-1px; left:0; right:0; height
 <!-- CAMBIA TU IPHONE (PLAN CANJE) -->
 <section id="canje" class="wrap">
   <div class="sec-title">
-    <h2>Cambia tu iPhone viejo 📱</h2>
+    <h2>Cambia tu iPhone viejo</h2>
     <p>Te evaluamos tu equipo y lo recibimos como <b style="color:#fff">parte del pago</b>.</p>
   </div>
   <div class="moto reveal">
     <div class="carousel" data-carousel>
       <div class="car-track">
-      <img class="car-slide" src="assets/canje.png" alt="Recibimos tu iPhone viejo como parte de pago - Plan Canje Bayolcell">
+      <img class="car-slide" src="assets/canje.png" alt="Recibimos tu iPhone viejo como parte de pago - Plan Canje Bayolcell" loading="lazy" decoding="async">
       </div>
       <button class="car-prev" aria-label="Anterior">‹</button>
       <button class="car-next" aria-label="Siguiente">›</button>
@@ -580,9 +658,9 @@ footer::before{ content:''; position:absolute; top:-1px; left:0; right:0; height
 <!-- ÁREA DE REPARACIÓN (solo imágenes de promoción, sin texto extra) -->
 <section id="reparacion" class="wrap">
   <div class="sec-title">
-    <h2>Área de reparación 🛠️</h2>
-    <p><span style="display:inline-block; background:linear-gradient(145deg,#f87171,#b91c1c); color:#fff; font-weight:900; font-size:15px; letter-spacing:.5px; padding:7px 18px; border-radius:999px; box-shadow:0 12px 26px -10px rgba(220,38,38,.7);">🔥 OFERTAS DE JUNIO</span></p>
-    <p style="margin-top:10px;">¡Aprovecha estos precios especiales, válidos solo durante el mes de junio!</p>
+    <h2>Área de reparación</h2>
+    <p><span style="display:inline-block; background:linear-gradient(145deg,#f87171,#b91c1c); color:#fff; font-weight:900; font-size:15px; letter-spacing:.5px; padding:7px 18px; border-radius:999px; box-shadow:0 12px 26px -10px rgba(220,38,38,.7);"><i class="ti ti-flame"></i> OFERTAS DEL MES</span></p>
+    <p style="margin-top:10px;">¡Aprovecha estos precios especiales por tiempo limitado!</p>
   </div>
   <div class="reparacion-galeria reveal">
     <div class="carousel" data-carousel>
@@ -612,6 +690,7 @@ footer::before{ content:''; position:absolute; top:-1px; left:0; right:0; height
         <div class="pin"><i class="ti ti-map-pin"></i></div>
         <div><h3>Santiago</h3><small>Santiago de los Caballeros</small></div>
       </div>
+      <div style="margin:2px 0 8px;"><span id="open-santiago"></span></div>
       <div class="row"><i class="ti ti-map-pin"></i> Calle Sánchez, casi esq. Restauración #102</div>
       <div class="row"><i class="ti ti-clock-hour-9"></i> Lun–Vie 8:30 a.m.–6:00 p.m. · Sáb 9:00 a.m.–4:00 p.m.</div>
       <div class="row"><i class="ti ti-star-filled"></i> 4.3 ★ en Google (19 reseñas)</div>
@@ -626,6 +705,7 @@ footer::before{ content:''; position:absolute; top:-1px; left:0; right:0; height
         <div class="pin"><i class="ti ti-map-pin"></i></div>
         <div><h3>Moca</h3><small>Provincia Espaillat</small></div>
       </div>
+      <div style="margin:2px 0 8px;"><span id="open-moca"></span></div>
       <div class="row"><i class="ti ti-map-pin"></i> Calle Pdte. Vásquez #5, frente a Parada Villa Trina</div>
       <div class="row"><i class="ti ti-clock-hour-9"></i> Lun–Sáb 8:30 a.m.–6:00 p.m.</div>
       <div class="row"><i class="ti ti-building-store"></i> Tienda de móviles</div>
@@ -640,11 +720,11 @@ footer::before{ content:''; position:absolute; top:-1px; left:0; right:0; height
 <!-- RIFA: consulta tu boleto -->
 <section id="rifa" class="wrap">
   <div class="sec-title">
-    <h2>🎟️ Consulta tu boleto de rifa</h2>
+    <h2>Consulta tu boleto de rifa</h2>
     <p>¿Participaste en la rifa de BAYOL CELL? Escribe tu teléfono y mira tu número.</p>
   </div>
   <div class="card" style="max-width:480px; margin:0 auto; text-align:center; padding:22px 16px;">
-    <input id="rifaTel" type="tel" inputmode="tel" placeholder="Tu teléfono (ej. 809-123-4567)" onkeydown="if(event.key==='Enter')consultarBoletoWeb()" style="width:100%; padding:12px 14px; border:1px solid #d1d5db; border-radius:10px; font-size:16px; margin-bottom:10px; box-sizing:border-box;">
+    <input id="rifaTel" type="tel" inputmode="tel" placeholder="Tu teléfono (ej. 809-123-4567)" onkeydown="if(event.key==='Enter')consultarBoletoWeb()" style="width:100%; padding:13px 15px; border:1px solid rgba(255,255,255,.18); border-radius:12px; font-size:16px; margin-bottom:10px; box-sizing:border-box; background:rgba(255,255,255,.06); color:#e7ecf5; outline:none; text-align:center;">
     <button class="btn btn-red" id="rifaBtn" onclick="consultarBoletoWeb()" style="width:100%;"><i class="ti ti-ticket"></i> Ver mi boleto</button>
     <div id="rifaResultado" style="margin-top:14px;"></div>
   </div>
@@ -653,7 +733,7 @@ footer::before{ content:''; position:absolute; top:-1px; left:0; right:0; height
 <!-- INSTAGRAM (muro en vivo) -->
 <section id="resena" class="wrap">
   <div class="sec-title">
-    <h2>⭐ Califícanos en Google</h2>
+    <h2>Califícanos en Google</h2>
     <p>¿Te atendimos bien? Déjanos tu reseña — nos ayuda muchísimo y solo te toma 20 segundos.</p>
   </div>
   <div class="card" style="text-align:center; padding:24px 16px;">
@@ -690,7 +770,7 @@ footer::before{ content:''; position:absolute; top:-1px; left:0; right:0; height
 <!-- FOOTER -->
 <footer>
   <div class="wrap">
-    <img src="assets/logo.png" alt="Bayolcell">
+    <img src="assets/logo.png" alt="Bayolcell" loading="lazy" decoding="async">
     <div class="social">
       <a href="https://www.instagram.com/bayolcell" target="_blank" rel="noopener" aria-label="Instagram"><i class="ti ti-brand-instagram"></i></a>
       <a href="https://wa.me/18495644791" target="_blank" rel="noopener" aria-label="WhatsApp"><i class="ti ti-brand-whatsapp"></i></a>
@@ -699,6 +779,9 @@ footer::before{ content:''; position:absolute; top:-1px; left:0; right:0; height
     <p style="margin-top:6px"><a href="taller.html" style="color:var(--muted)"><i class="ti ti-lock"></i> Acceso empleados</a></p>
   </div>
 </footer>
+
+<!-- Estado Abierto/Cerrado flotante (encima del WhatsApp) -->
+<a class="open-fab" id="openFab" href="#sucursales" aria-label="Horario de las tiendas"></a>
 
 <!-- WhatsApp flotante -->
 <a class="fab" href="https://wa.me/18495644791" target="_blank" rel="noopener" aria-label="WhatsApp"><i class="ti ti-brand-whatsapp"></i></a>
@@ -712,20 +795,20 @@ footer::before{ content:''; position:absolute; top:-1px; left:0; right:0; height
   async function consultarBoletoWeb(){
     var inp=document.getElementById('rifaTel'); var out=document.getElementById('rifaResultado'); var btn=document.getElementById('rifaBtn');
     var tel=(inp&&inp.value||'').trim();
-    if((tel.replace(/\D/g,'')).length<7){ if(out) out.innerHTML='<div style="color:#dc2626;font-size:14px;">Escribe un teléfono válido.</div>'; return; }
-    if(out) out.innerHTML='<div style="color:#6b7280;font-size:14px;">⏳ Buscando tu boleto…</div>';
+    if((tel.replace(/\D/g,'')).length<7){ if(out) out.innerHTML='<div style="color:#fca5a5;font-size:14px;">Escribe un teléfono válido.</div>'; return; }
+    if(out) out.innerHTML='<div style="color:#9aa6bd;font-size:14px;">Buscando tu boleto…</div>';
     if(btn) btn.disabled=true;
     try{
       var res=await fetch(RIFA_URL+'/functions/v1/consultar-boleto',{method:'POST',headers:{'apikey':RIFA_KEY,'Authorization':'Bearer '+RIFA_KEY,'Content-Type':'application/json'},body:JSON.stringify({telefono:tel})});
       var j=await res.json();
       if(j&&j.ok&&j.boletos&&j.boletos.length){
-        var chips=j.boletos.map(function(b){return '<span style="display:inline-block;background:#ede9fe;color:#5b21b6;font-weight:900;font-size:30px;letter-spacing:1px;padding:8px 18px;border-radius:12px;margin:5px;">'+String(b.numero)+'</span>';}).join('');
-        out.innerHTML='<div style="background:#f5f3ff;border:2px solid #7c3aed;border-radius:12px;padding:14px;">'
-          +'<div style="font-size:13px;color:#6d28d9;font-weight:700;">'+(j.boletos.length>1?'Tus números de boleto':'Tu número de boleto')+(j.rifa?(' · '+j.rifa):'')+'</div>'
+        var chips=j.boletos.map(function(b){return '<span style="display:inline-block;background:rgba(239,68,68,.16);border:1px solid rgba(239,68,68,.4);color:#fff;font-weight:900;font-size:30px;letter-spacing:1px;padding:8px 18px;border-radius:12px;margin:5px;">'+String(b.numero)+'</span>';}).join('');
+        out.innerHTML='<div style="background:rgba(255,255,255,.05);border:1px solid rgba(239,68,68,.45);border-radius:14px;padding:14px;">'
+          +'<div style="font-size:13px;color:#fca5a5;font-weight:700;">'+(j.boletos.length>1?'Tus números de boleto':'Tu número de boleto')+(j.rifa?(' · '+j.rifa):'')+'</div>'
           +'<div style="margin-top:6px;">'+chips+'</div>'
-          +'<div style="font-size:12px;color:#16a34a;font-weight:700;margin-top:6px;">✅ Boleto(s) confirmado(s). ¡Mucha suerte! 🍀</div></div>';
+          +'<div style="font-size:12px;color:#34d399;font-weight:700;margin-top:6px;">Boleto(s) confirmado(s). ¡Mucha suerte!</div></div>';
       } else if(j&&j.ok){
-        out.innerHTML='<div style="color:#b45309;font-size:14px;">No encontramos boletos con ese teléfono'+(j.rifa?'':'. Puede que no haya una rifa activa.')+' Verifica el número o pregunta en la tienda.</div>';
+        out.innerHTML='<div style="color:#fbbf24;font-size:14px;">No encontramos boletos con ese teléfono'+(j.rifa?'':'. Puede que no haya una rifa activa.')+' Verifica el número o pregunta en la tienda.</div>';
       } else {
         out.innerHTML='<div style="color:#dc2626;font-size:14px;">'+((j&&j.msg)||'No se pudo consultar. Intenta más tarde.')+'</div>';
       }
@@ -741,7 +824,8 @@ footer::before{ content:''; position:absolute; top:-1px; left:0; right:0; height
   })();
 
   // Registro de visitas (solo cuenta; el admin las ve dentro del taller)
-  (function(){
+  // Corre al cargar la página (el cliente de Supabase se carga diferido para no frenar la web).
+  window.addEventListener('load', function(){
     try{
       if(sessionStorage.getItem('bc_visit')) return;
       if(!window.supabase) return;
@@ -754,7 +838,7 @@ footer::before{ content:''; position:absolute; top:-1px; left:0; right:0; height
       sb.from('web_visitas').insert({ path: location.pathname, referrer: document.referrer || null, ua: navigator.userAgent, visitor_id: vid, interno: interno })
         .then(function(){ try{ sessionStorage.setItem('bc_visit','1'); }catch(e){} }, function(){});
     }catch(e){}
-  })();
+  });
 
   // Hero rotativo: logo 3s, luego cambia a la pasola y rota cada 4s
   (function(){
@@ -820,6 +904,64 @@ footer::before{ content:''; position:absolute; top:-1px; left:0; right:0; height
         '<a class="btn btn-red" href="https://www.instagram.com/bayolcell" target="_blank" rel="noopener">'+
         '<i class="ti ti-brand-instagram"></i> Ver más en @bayolcell</a></div>';
     }).catch(function(){});
+  })();
+
+  // ===== Abierto ahora / Cerrado (en vivo, hora de República Dominicana) =====
+  (function(){
+    // Horario por sucursal en minutos desde medianoche. Día: 0=Dom .. 6=Sáb.
+    var HOR = {
+      santiago: { 1:[510,1080], 2:[510,1080], 3:[510,1080], 4:[510,1080], 5:[510,1080], 6:[540,960] }, // Lun–Vie 8:30–18:00, Sáb 9:00–16:00
+      moca:     { 1:[510,1080], 2:[510,1080], 3:[510,1080], 4:[510,1080], 5:[510,1080], 6:[510,1080] }  // Lun–Sáb 8:30–18:00
+    };
+    var DIAS = ['dom.','lun.','mar.','mié.','jue.','vie.','sáb.'];
+    function fmt(m){ var h=Math.floor(m/60), mm=m%60, ap=h<12?'a.m.':'p.m.', h12=h%12; if(h12===0)h12=12; return h12+':'+(mm<10?'0':'')+mm+' '+ap; }
+    function estado(key){
+      var d = new Date(new Date().toLocaleString('en-US',{timeZone:'America/Santo_Domingo'}));
+      var day = d.getDay(), min = d.getHours()*60 + d.getMinutes();
+      var hoy = HOR[key][day];
+      if(hoy && min>=hoy[0] && min<hoy[1]) return { abierto:true, label:'Abierto ahora', detail:'Cierra '+fmt(hoy[1]) };
+      for(var i=0;i<=7;i++){ var dd=(day+i)%7, s=HOR[key][dd]; if(!s) continue;
+        if(i===0){ if(min<s[0]) return { abierto:false, label:'Cerrado', detail:'Abre hoy '+fmt(s[0]) }; continue; }
+        return { abierto:false, label:'Cerrado', detail:'Abre '+DIAS[dd]+' '+fmt(s[0]) };
+      }
+      return { abierto:false, label:'Cerrado', detail:'' };
+    }
+    var fabMsgs=['Abierto ahora'], fabIdx=0;
+    function pinta(){
+      var est = {};
+      ['santiago','moca'].forEach(function(k){
+        est[k] = estado(k);
+        var el=document.getElementById('open-'+k); if(!el) return;
+        var e=est[k];
+        var col = e.abierto ? 'background:rgba(34,197,94,.14);color:#4ade80;border:1px solid rgba(34,197,94,.4);'
+                            : 'background:rgba(239,68,68,.14);color:#f87171;border:1px solid rgba(239,68,68,.4);';
+        var dot = 'width:8px;height:8px;border-radius:50%;background:currentColor;'+(e.abierto?'animation:obpulse 1.7s infinite;':'');
+        el.innerHTML='<span style="display:inline-flex;align-items:center;gap:7px;font-weight:800;font-size:12.5px;padding:5px 12px;border-radius:999px;'+col+'">'
+          +'<span style="'+dot+'"></span>'+e.label+(e.detail?(' · '+e.detail.toLowerCase()):'')+'</span>';
+      });
+      // Letrero flotante (estado combinado de las 2 tiendas)
+      var fab=document.getElementById('openFab');
+      if(fab){
+        var abiertas=['santiago','moca'].filter(function(k){return est[k].abierto;});
+        var abierto=abiertas.length>0, label;
+        if(abiertas.length===2) label='Abierto ahora';
+        else if(abiertas.length===1) label='Abierto · '+(abiertas[0]==='santiago'?'Santiago':'Moca');
+        else label='Cerrado ahora';
+        var detalle = abierto ? est[abiertas[0]].detail : est.santiago.detail;
+        fabMsgs = (detalle && detalle!==label) ? [label, detalle] : [label];
+        if(fabIdx>=fabMsgs.length) fabIdx=0;
+        fab.className='open-fab '+(abierto?'abierto':'cerrado');
+        if(!fab.getAttribute('data-init')){ fab.innerHTML='<span class="dot"></span><span class="oft"></span>'; fab.style.display='inline-flex'; fab.setAttribute('data-init','1'); requestAnimationFrame(function(){ fab.style.opacity='1'; }); }
+        var t=fab.querySelector('.oft'); if(t) t.textContent=fabMsgs[fabIdx];
+      }
+    }
+    function rotaFab(){
+      if(fabMsgs.length<2) return;
+      var fab=document.getElementById('openFab'); var t=fab&&fab.querySelector('.oft'); if(!t) return;
+      t.style.opacity='0';
+      setTimeout(function(){ fabIdx=(fabIdx+1)%fabMsgs.length; t.textContent=fabMsgs[fabIdx]; t.style.opacity='1'; }, 250);
+    }
+    pinta(); setInterval(pinta, 60000); setInterval(rotaFab, 3800);
   })();
 </script>
 </body>

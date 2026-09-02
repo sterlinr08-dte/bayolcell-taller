@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /taller.html
+Disallow: /prueba.html
+Disallow: /autoeval.html
+
+Sitemap: https://bayolcell.com/sitemap.xml
