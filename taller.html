@@ -150,6 +150,25 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
 .wa-input-bar input { flex:1; border:1px solid #d1d7db; border-radius:22px; padding:10px 16px; font-size:13.5px; }
 .wa-send-btn { width:40px; height:40px; border-radius:50%; background:#128C7E; border:none; color:#fff; font-size:16px; cursor:pointer; flex-shrink:0; }
 .wa-send-btn:disabled { opacity:.5; cursor:default; }
+
+/* Responder citando: swipe en movil, icono al hover en PC */
+@keyframes waBubbleIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+.wa-brow { display:flex; position:relative; touch-action:pan-y; }
+.wa-brow.out { justify-content:flex-end; }
+.wa-bubble-wrap { position:relative; max-width:70%; animation:waBubbleIn .18s ease-out; transition:transform .15s ease; }
+.wa-reply-icon { position:absolute; top:50%; transform:translateY(-50%); width:26px; height:26px; border-radius:50%; background:rgba(255,255,255,.95); box-shadow:0 1px 3px rgba(0,0,0,.25); display:none; align-items:center; justify-content:center; color:#54656f; cursor:pointer; font-size:14px; z-index:2; }
+.wa-brow.in .wa-reply-icon { right:-32px; }
+.wa-brow.out .wa-reply-icon { left:-32px; }
+@media (hover:hover) { .wa-brow:hover .wa-reply-icon { display:flex; } }
+.wa-quote { background:rgba(0,0,0,.05); border-left:3px solid #128C7E; border-radius:4px; padding:4px 7px; margin-bottom:4px; font-size:11.5px; cursor:pointer; }
+.wa-quote .who { font-weight:700; color:#128C7E; }
+.wa-quote .txt { color:#3b4a54; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.wa-reply-bar { display:flex; align-items:center; gap:8px; background:#f0f2f5; border-top:1px solid #e9edef; padding:7px 16px; font-size:12px; }
+.wa-reply-bar .stripe { width:3px; align-self:stretch; background:#128C7E; border-radius:2px; }
+.wa-reply-bar .info { flex:1; min-width:0; }
+.wa-reply-bar .who { font-weight:700; color:#128C7E; font-size:11.5px; }
+.wa-reply-bar .txt { color:#667781; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.wa-reply-bar .cancelar { background:none; border:none; color:#8696a0; font-size:16px; cursor:pointer; padding:2px 6px; }
 .nav button { width: 100%; background: rgba(255,255,255,0.03); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 13px 14px; margin-bottom: 7px; text-align: left; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 12px; font-size: 13.5px; }
 .nav button i { font-size: 19px; color: #475569; flex-shrink: 0; }
 .nav button span { flex: 1; }
@@ -31721,12 +31740,17 @@ function _pintarWhatsappDetalle() {
     if(!_waMensajes.length) {
         html += `<div class="wa-chat-empty">Sin mensajes todavía.</div>`;
     } else {
+        const porId = {}; _waMensajes.forEach(x => porId[x.id] = x);
         html += _waMensajes.map(m => {
             const esOut = m.direccion === 'out';
             const etiqueta = esOut ? 'Tú (BayolCell)' : nombre;
-            return `<div style="display:flex; justify-content:${esOut ? 'flex-end' : 'flex-start'};">
-                <div style="max-width:70%; background:${esOut ? '#dcf8c6' : '#fff'}; border-radius:8px; padding:6px 9px 7px; box-shadow:0 1px .5px rgba(0,0,0,.13); font-size:13.5px;">
+            const original = m.responde_a_id ? porId[m.responde_a_id] : null;
+            const citaHTML = original ? `<div class="wa-quote"><div class="who">${escapeHtml(original.direccion === 'out' ? 'Tú (BayolCell)' : nombre)}</div><div class="txt">${escapeHtml(original.cuerpo || (original.tipo_contenido !== 'text' ? '[' + original.tipo_contenido + ']' : ''))}</div></div>` : '';
+            return `<div class="wa-brow ${esOut ? 'out' : 'in'}" data-msgid="${m.id}">
+                <i class="ti ti-arrow-back-up wa-reply-icon" onclick="_waActivarRespuesta('${m.id}')" title="Responder"></i>
+                <div class="wa-bubble-wrap" style="background:${esOut ? '#dcf8c6' : '#fff'}; border-radius:8px; padding:6px 9px 7px; box-shadow:0 1px .5px rgba(0,0,0,.13); font-size:13.5px;">
                     <div style="font-size:10px; font-weight:700; color:${esOut ? '#166534' : '#128C7E'}; margin-bottom:2px;">${escapeHtml(etiqueta)}</div>
+                    ${citaHTML}
                     ${_waBurbujaMedia(m)}
                     ${m.cuerpo ? `<div style="white-space:pre-wrap; word-break:break-word;">${escapeHtml(m.cuerpo)}</div>` : ''}
                     <div style="text-align:right; font-size:10px; color:#8696a0; margin-top:2px;">
@@ -31741,7 +31765,8 @@ function _pintarWhatsappDetalle() {
 
     if(puedeResponder) {
         if(ventanaAbierta) {
-            html += `<div class="wa-input-bar">
+            html += `<div id="waReplyBar"></div>
+            <div class="wa-input-bar">
                 <input type="text" id="waTexto" placeholder="Escribe una respuesta..." onkeydown="if(event.key==='Enter') enviarMensajeWhatsapp()">
                 <button class="wa-send-btn" id="btnWaEnviar" onclick="enviarMensajeWhatsapp()"><i class="ti ti-send"></i></button>
             </div>`;
@@ -31753,6 +31778,67 @@ function _pintarWhatsappDetalle() {
     cont.innerHTML = html;
     const chat = document.getElementById('waMessagesScroll');
     if(chat) chat.scrollTop = chat.scrollHeight;
+    _waWireSwipe();
+    _waPintarReplyBar();
+}
+
+// Responder citando un mensaje: swipe (movil) o icono al hover (PC).
+let _waRespondiendoA = null; // {id, quien, texto}
+
+function _waActivarRespuesta(msgId) {
+    const m = _waMensajes.find(x => x.id === msgId);
+    if(!m) return;
+    const esOut = m.direccion === 'out';
+    const h = _waHilos.find(x => x.id === _waHiloId);
+    _waRespondiendoA = {
+        id: m.id,
+        quien: esOut ? 'Tú (BayolCell)' : (h?.nombre_perfil || 'Cliente'),
+        texto: m.cuerpo || (m.tipo_contenido !== 'text' ? `[${m.tipo_contenido}]` : '')
+    };
+    _waPintarReplyBar();
+    document.getElementById('waTexto')?.focus();
+}
+function _waCancelarRespuesta() {
+    _waRespondiendoA = null;
+    _waPintarReplyBar();
+}
+function _waPintarReplyBar() {
+    const cont = document.getElementById('waReplyBar');
+    if(!cont) return;
+    if(!_waRespondiendoA) { cont.innerHTML = ''; return; }
+    cont.innerHTML = `<div class="wa-reply-bar">
+        <div class="stripe"></div>
+        <div class="info"><div class="who">${escapeHtml(_waRespondiendoA.quien)}</div><div class="txt">${escapeHtml(_waRespondiendoA.texto)}</div></div>
+        <button class="cancelar" onclick="_waCancelarRespuesta()">✕</button>
+    </div>`;
+}
+
+// Swipe hacia la derecha en una burbuja (touch) = responder a ese mensaje.
+// Solo reacciona si el movimiento es claramente horizontal, para no robarle
+// el scroll vertical normal a la lista de mensajes.
+function _waWireSwipe() {
+    document.querySelectorAll('.wa-brow').forEach(row => {
+        const wrap = row.querySelector('.wa-bubble-wrap');
+        const msgId = row.dataset.msgid;
+        if(!wrap || !msgId) return;
+        let x0 = 0, y0 = 0, dx = 0, activo = false;
+        row.addEventListener('touchstart', e => {
+            const t = e.touches[0]; x0 = t.clientX; y0 = t.clientY; dx = 0; activo = false;
+        }, { passive: true });
+        row.addEventListener('touchmove', e => {
+            const t = e.touches[0];
+            const ddx = t.clientX - x0, ddy = t.clientY - y0;
+            if(!activo && Math.abs(ddx) > Math.abs(ddy) * 1.5 && Math.abs(ddx) > 10) activo = true;
+            if(!activo) return;
+            dx = Math.max(0, Math.min(70, ddx)); // solo deslizar hacia la derecha, tope 70px
+            wrap.style.transform = `translateX(${dx}px)`;
+        }, { passive: true });
+        row.addEventListener('touchend', () => {
+            if(activo && dx > 55) _waActivarRespuesta(msgId);
+            wrap.style.transform = 'translateX(0)';
+            activo = false; dx = 0;
+        });
+    });
 }
 
 async function enviarMensajeWhatsapp() {
@@ -31769,11 +31855,12 @@ async function enviarMensajeWhatsapp() {
         const res = await fetch(CONFIG_URL + '/functions/v1/whatsapp-enviar', {
             method: 'POST',
             headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ hilo_id: _waHiloId, mensaje })
+            body: JSON.stringify({ hilo_id: _waHiloId, mensaje, responde_a_id: _waRespondiendoA?.id || null })
         });
         const j = await res.json();
         if(j && j.ok) {
             if(input) input.value = '';
+            _waRespondiendoA = null;
             await cargarMensajesHilo(_waHiloId);
             await cargarHilosWhatsapp();
             _pintarWhatsapp();
