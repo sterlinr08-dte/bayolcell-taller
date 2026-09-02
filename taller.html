@@ -31655,7 +31655,14 @@ function _waBurbujaMedia(m) {
     if(m.tipo_contenido === 'video') return `<video controls src="${m._mediaUrl}" style="max-width:280px; width:100%; border-radius:7px; display:block; margin-bottom:4px;"></video>`;
     return `<a href="${m._mediaUrl}" target="_blank" style="font-size:12.5px; display:block; margin-bottom:4px;"><i class="ti ti-file"></i> Ver documento adjunto</a>`;
 }
-const WA_ESTADO_ICONO = { enviado: '✓', entregado: '✓✓', leido: '✓✓', fallido: '⚠️' };
+// Ticks estilo WhatsApp real: 1 gris = enviado, 2 gris = entregado, 2 AZUL = leido.
+function _waIconoEstado(estado) {
+    if(estado === 'enviado') return '<span style="color:#8696a0;">✓</span>';
+    if(estado === 'entregado') return '<span style="color:#8696a0;">✓✓</span>';
+    if(estado === 'leido') return '<span style="color:#34B7F1;">✓✓</span>';
+    if(estado === 'fallido') return '<span style="color:#ef4444;">⚠️</span>';
+    return '';
+}
 
 function _pintarWhatsappDetalle() {
     const cont = document.getElementById('waDetalle');
@@ -31702,7 +31709,7 @@ function _pintarWhatsappDetalle() {
                     ${m.cuerpo ? `<div style="white-space:pre-wrap; word-break:break-word;">${escapeHtml(m.cuerpo)}</div>` : ''}
                     <div style="text-align:right; font-size:10px; color:#8696a0; margin-top:2px;">
                         ${new Date(m.creado_en).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}
-                        ${esOut ? ' ' + (WA_ESTADO_ICONO[m.estado] || '') : ''}
+                        ${esOut ? ' ' + _waIconoEstado(m.estado) : ''}
                     </div>
                 </div>
             </div>`;
