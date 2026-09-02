@@ -134,6 +134,10 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
 .nav-section.clickable:hover { color: #94a3b8; background: rgba(255,255,255,0.03); }
 .nav-section.clickable .ti-chevron-right { font-size: 13px; transition: transform .15s ease; }
 .nav-section.clickable.open .ti-chevron-right { transform: rotate(90deg); }
+.nav button.nav-subbutton { margin-left: 18px; width: calc(100% - 18px); border-left: 2px solid rgba(255,255,255,0.1); border-radius: 0 12px 12px 0; padding-left: 14px; font-size: 12.5px; background: rgba(255,255,255,0.02); }
+.nav button.nav-subbutton i { font-size: 17px; }
+.nav button.nav-subbutton:hover { border-left-color: rgba(220,38,38,0.5); }
+.nav button.nav-subbutton.active { border-left-color: #ef4444; }
 .nav button { width: 100%; background: rgba(255,255,255,0.03); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 13px 14px; margin-bottom: 7px; text-align: left; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 12px; font-size: 13.5px; }
 .nav button i { font-size: 19px; color: #475569; flex-shrink: 0; }
 .nav button span { flex: 1; }
@@ -889,9 +893,9 @@ body{
             <button id="menu-rifas" onclick="abrirRifas()" title="Abrir el panel administrativo de la Rifa (Nexus Pro) ya logueado"><i class="ti ti-ticket"></i> <span>🎟️ Rifa (admin)</span> <i class="ti ti-external-link" style="font-size:12px; opacity:.6;"></i></button>
             <button id="menu-rifaFactura" onclick="nav('rifaFactura',this)" title="Registrar boleto de la Rifa por Factura (Info Plus) e imprimir 2 copias — independiente de la Rifa de Nexus Pro"><i class="ti ti-receipt" style="color:#0f766e;"></i> <span>🧾 Rifa por Factura</span></button>
 
-            <div class="nav-section clickable" id="navGroupHeader-whatsappCrm" onclick="toggleNavGroup('whatsappCrm')"><span>💬 WHATSAPP CRM</span> <i class="ti ti-chevron-right"></i></div>
-            <button id="menu-whatsapp" data-navgroup="whatsappCrm" onclick="nav('whatsapp',this)"><i class="ti ti-brand-whatsapp"></i> <span>WhatsApp</span></button>
-            <button id="menu-leads" data-navgroup="whatsappCrm" onclick="nav('leads',this)"><i class="ti ti-user-plus"></i> <span>Leads</span></button>
+            <div class="nav-section clickable" id="navGroupHeader-whatsappCrm" onclick="toggleNavGroup('whatsappCrm')"><span>💬 CRM</span> <i class="ti ti-chevron-right"></i></div>
+            <button class="nav-subbutton" id="menu-whatsapp" data-navgroup="whatsappCrm" onclick="nav('whatsapp',this)"><i class="ti ti-brand-whatsapp"></i> <span>WhatsApp</span></button>
+            <button class="nav-subbutton" id="menu-leads" data-navgroup="whatsappCrm" onclick="nav('leads',this)"><i class="ti ti-user-plus"></i> <span>Leads</span></button>
             <button id="menu-contabilidad" onclick="nav('contabilidad',this)"><i class="ti ti-calculator"></i> <span>Contabilidad</span></button>
             <button id="menu-diagnostico" onclick="nav('diagnostico',this)"><i class="ti ti-stethoscope"></i> <span>Diagnóstico IA</span></button>
             <button id="menu-recepcion" onclick="nav('recepcion',this)"><i class="ti ti-clipboard-plus"></i> <span>Recepción de Equipos</span></button>
