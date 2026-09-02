@@ -359,7 +359,24 @@ tr:hover td { background: #f8fafc; }
     .top-bar .btn-light { padding: 4px 8px !important; font-size: 10px !important; }
     
     .content { padding: 12px; overflow-y: visible; height: auto; flex: none; }
-    
+
+    /* CRM (WhatsApp) en movil/tablet: .content ya no es un scroller de altura fija aqui
+       (es "height:auto", la pagina entera es la que scrollea), asi que .wa-shell no puede
+       seguir calculando su alto con el mismo 100vh/220px que usa en desktop — con eso
+       quedaba una franja vacia/oscura abajo por el desfase de la barra de direcciones de
+       Safari en iOS. 100dvh (altura de viewport DINAMICA) se ajusta sola cuando esa barra
+       aparece/desaparece, a diferencia de 100vh que se queda fija. */
+    .wa-shell { height: calc(100vh - 240px); height: calc(100dvh - 240px); min-height: 420px; }
+    /* Con lista+chat mostrados uno a la vez (nunca los dos juntos aqui, ya que _waEsMovil()
+       usa el mismo 1024px de arriba), la columna de lista debe ocupar todo el ancho en vez
+       de quedarse en los 320px fijos de escritorio con espacio vacio al lado. */
+    .wa-list-col { width: 100%; }
+    /* Los <input>/<select> del CRM tenian su propio font-size mas chico que gana por
+       especificidad al font-size:16px generico de mas abajo — un input con letra menor a
+       16px hace que iOS Safari haga zoom de golpe al tocarlo. */
+    .wa-input-bar input, .wa-select { font-size: 16px !important; }
+    .wa-send-btn { width: 44px; height: 44px; }
+
     .card { padding: 13px; margin-bottom: 11px; border-radius: 12px; }
     
     .kpi-row { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-bottom: 14px; }
@@ -31536,7 +31553,10 @@ let _crmLineaActualNombre = '';
 let _crmSucursalActualNombre = '';
 
 function _waMiSucursal() { return sessionUser?.sucursal_id || null; }
-function _waEsMovil() { return window.innerWidth < 860; }
+// Mismo umbral que el media query de layout movil/tablet (@media max-width:1024px) —
+// antes decia 860 y quedaba desalineado con el CSS, causando un rango (860-1024px)
+// donde el CSS ya apilaba el layout pero el JS seguia mostrando lista+chat lado a lado.
+function _waEsMovil() { return window.innerWidth <= 1024; }
 
 // Identidad del usuario actual en el mismo formato polimórfico que asignado_tipo/asignado_id
 // ('usuario' | 'tecnico' + su id) — mismo criterio que ya usa el backend (auth.jwt() user_metadata).
