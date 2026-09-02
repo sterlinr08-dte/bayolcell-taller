@@ -130,6 +130,10 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
 .nav { padding: 14px 12px; overflow-y: auto; flex: 1; }
 .nav-section { font-size: 10px; font-weight: 800; color: #475569; letter-spacing: 1px; padding: 14px 10px 6px; }
 .nav-section:first-child { padding-top: 4px; }
+.nav-section.clickable { cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none; border-radius: 8px; }
+.nav-section.clickable:hover { color: #94a3b8; background: rgba(255,255,255,0.03); }
+.nav-section.clickable .ti-chevron-right { font-size: 13px; transition: transform .15s ease; }
+.nav-section.clickable.open .ti-chevron-right { transform: rotate(90deg); }
 .nav button { width: 100%; background: rgba(255,255,255,0.03); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 13px 14px; margin-bottom: 7px; text-align: left; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 12px; font-size: 13.5px; }
 .nav button i { font-size: 19px; color: #475569; flex-shrink: 0; }
 .nav button span { flex: 1; }
@@ -885,9 +889,9 @@ body{
             <button id="menu-rifas" onclick="abrirRifas()" title="Abrir el panel administrativo de la Rifa (Nexus Pro) ya logueado"><i class="ti ti-ticket"></i> <span>🎟️ Rifa (admin)</span> <i class="ti ti-external-link" style="font-size:12px; opacity:.6;"></i></button>
             <button id="menu-rifaFactura" onclick="nav('rifaFactura',this)" title="Registrar boleto de la Rifa por Factura (Info Plus) e imprimir 2 copias — independiente de la Rifa de Nexus Pro"><i class="ti ti-receipt" style="color:#0f766e;"></i> <span>🧾 Rifa por Factura</span></button>
 
-            <div class="nav-section">💬 WHATSAPP CRM</div>
-            <button id="menu-whatsapp" onclick="nav('whatsapp',this)"><i class="ti ti-brand-whatsapp"></i> <span>WhatsApp</span></button>
-            <button id="menu-leads" onclick="nav('leads',this)"><i class="ti ti-user-plus"></i> <span>Leads</span></button>
+            <div class="nav-section clickable" id="navGroupHeader-whatsappCrm" onclick="toggleNavGroup('whatsappCrm')"><span>💬 WHATSAPP CRM</span> <i class="ti ti-chevron-right"></i></div>
+            <button id="menu-whatsapp" data-navgroup="whatsappCrm" onclick="nav('whatsapp',this)"><i class="ti ti-brand-whatsapp"></i> <span>WhatsApp</span></button>
+            <button id="menu-leads" data-navgroup="whatsappCrm" onclick="nav('leads',this)"><i class="ti ti-user-plus"></i> <span>Leads</span></button>
             <button id="menu-contabilidad" onclick="nav('contabilidad',this)"><i class="ti ti-calculator"></i> <span>Contabilidad</span></button>
             <button id="menu-diagnostico" onclick="nav('diagnostico',this)"><i class="ti ti-stethoscope"></i> <span>Diagnóstico IA</span></button>
             <button id="menu-recepcion" onclick="nav('recepcion',this)"><i class="ti ti-clipboard-plus"></i> <span>Recepción de Equipos</span></button>
@@ -4233,6 +4237,7 @@ window.addEventListener('beforeunload', function(e) {
 document.addEventListener('DOMContentLoaded', () => {
     inyectarBotonesVolver();
     aplicarOrdenMenu();
+    inicializarNavGroups();
 });
 
 function inyectarBotonesVolver() {
@@ -6563,6 +6568,12 @@ function nav(v, btn) {
     if(v === 'incentivos' && !isAdminUser() && !tienePermiso('validar_tickets')) {
         toast('🔒 Módulo solo para administradores.');
         return;
+    }
+    // Si el botón de destino vive dentro de un grupo de menú clicqueable
+    // (ej. WhatsApp CRM) y está cerrado, lo abre para que quede visible.
+    const _navGrupoDestino = document.getElementById('menu-' + v)?.dataset.navgroup;
+    if(_navGrupoDestino && !document.getElementById('navGroupHeader-' + _navGrupoDestino)?.classList.contains('open')) {
+        toggleNavGroup(_navGrupoDestino);
     }
     // Nómina: solo administradores
     if(v === 'nomina' && !isAdminUser()) {
@@ -16647,6 +16658,30 @@ const MENU_ORDEN_KEY = 'bayol_menu_orden';
 
 function _navBotonesMenu() {
     return Array.from(document.querySelectorAll('.nav > button[id^="menu-"]'));
+}
+
+// Secciones del menú lateral clicqueables que muestran/ocultan sus botones
+// (ej. "💬 WHATSAPP CRM" con WhatsApp y Leads adentro). Los botones se quedan
+// como hijos directos de .nav (no se anidan en otro div) para no romper el
+// reordenamiento personalizado del menú, que espera esa estructura plana.
+function toggleNavGroup(id) {
+    const header = document.getElementById('navGroupHeader-' + id);
+    const botones = document.querySelectorAll('.nav button[data-navgroup="' + id + '"]');
+    if(!header || !botones.length) return;
+    const abrir = !header.classList.contains('open');
+    header.classList.toggle('open', abrir);
+    botones.forEach(b => b.style.display = abrir ? '' : 'none');
+    try { localStorage.setItem('bayol_navgroup_' + id, abrir ? '1' : '0'); } catch(e) {}
+}
+
+function inicializarNavGroups() {
+    document.querySelectorAll('.nav-section.clickable').forEach(header => {
+        const id = header.id.replace('navGroupHeader-', '');
+        let abierto = true;
+        try { const guardado = localStorage.getItem('bayol_navgroup_' + id); if(guardado !== null) abierto = guardado === '1'; } catch(e) {}
+        header.classList.toggle('open', abierto);
+        document.querySelectorAll('.nav button[data-navgroup="' + id + '"]').forEach(b => b.style.display = abierto ? '' : 'none');
+    });
 }
 
 // Aplica el orden guardado a los botones del menú lateral. Si no hay orden
