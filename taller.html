@@ -130,10 +130,8 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
 .nav { padding: 14px 12px; overflow-y: auto; flex: 1; }
 .nav-section { font-size: 10px; font-weight: 800; color: #475569; letter-spacing: 1px; padding: 14px 10px 6px; }
 .nav-section:first-child { padding-top: 4px; }
-.nav-section.clickable { cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none; border-radius: 8px; }
-.nav-section.clickable:hover { color: #94a3b8; background: rgba(255,255,255,0.03); }
-.nav-section.clickable .ti-chevron-right { font-size: 13px; transition: transform .15s ease; }
-.nav-section.clickable.open .ti-chevron-right { transform: rotate(90deg); }
+.nav button.nav-group-toggle .ti-chevron-right { margin-left: auto; font-size: 15px; transition: transform .15s ease; }
+.nav button.nav-group-toggle.open .ti-chevron-right { transform: rotate(90deg); }
 .nav button.nav-subbutton { margin-left: 18px; width: calc(100% - 18px); border-left: 2px solid rgba(255,255,255,0.1); border-radius: 0 12px 12px 0; padding-left: 14px; font-size: 12.5px; background: rgba(255,255,255,0.02); }
 .nav button.nav-subbutton i { font-size: 17px; }
 .nav button.nav-subbutton:hover { border-left-color: rgba(220,38,38,0.5); }
@@ -893,7 +891,7 @@ body{
             <button id="menu-rifas" onclick="abrirRifas()" title="Abrir el panel administrativo de la Rifa (Nexus Pro) ya logueado"><i class="ti ti-ticket"></i> <span>🎟️ Rifa (admin)</span> <i class="ti ti-external-link" style="font-size:12px; opacity:.6;"></i></button>
             <button id="menu-rifaFactura" onclick="nav('rifaFactura',this)" title="Registrar boleto de la Rifa por Factura (Info Plus) e imprimir 2 copias — independiente de la Rifa de Nexus Pro"><i class="ti ti-receipt" style="color:#0f766e;"></i> <span>🧾 Rifa por Factura</span></button>
 
-            <div class="nav-section clickable" id="navGroupHeader-whatsappCrm" onclick="toggleNavGroup('whatsappCrm')"><span>💬 CRM</span> <i class="ti ti-chevron-right"></i></div>
+            <button class="nav-group-toggle" id="navGroupHeader-whatsappCrm" onclick="toggleNavGroup('whatsappCrm')"><i class="ti ti-brand-whatsapp"></i> <span>CRM</span> <i class="ti ti-chevron-right"></i></button>
             <button class="nav-subbutton" id="menu-whatsapp" data-navgroup="whatsappCrm" onclick="nav('whatsapp',this)"><i class="ti ti-brand-whatsapp"></i> <span>WhatsApp</span></button>
             <button class="nav-subbutton" id="menu-leads" data-navgroup="whatsappCrm" onclick="nav('leads',this)"><i class="ti ti-user-plus"></i> <span>Leads</span></button>
             <button id="menu-contabilidad" onclick="nav('contabilidad',this)"><i class="ti ti-calculator"></i> <span>Contabilidad</span></button>
@@ -16679,7 +16677,7 @@ function toggleNavGroup(id) {
 }
 
 function inicializarNavGroups() {
-    document.querySelectorAll('.nav-section.clickable').forEach(header => {
+    document.querySelectorAll('.nav-group-toggle').forEach(header => {
         const id = header.id.replace('navGroupHeader-', '');
         let abierto = true;
         try { const guardado = localStorage.getItem('bayol_navgroup_' + id); if(guardado !== null) abierto = guardado === '1'; } catch(e) {}
