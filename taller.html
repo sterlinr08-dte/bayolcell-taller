@@ -160,6 +160,15 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
 .wa-brow.in .wa-reply-icon { right:-32px; }
 .wa-brow.out .wa-reply-icon { left:-32px; }
 @media (hover:hover) { .wa-brow:hover .wa-reply-icon { display:flex; } }
+/* En pantallas tactiles no hay "hover" — el icono se queda visible siempre,
+   como respaldo garantizado por si el gesto de deslizar falla en algún
+   dispositivo. En vez de -32px (se puede recortar por el scroll del chat en
+   móvil), se pone pegado adentro de la burbuja. */
+@media (hover:none) {
+    .wa-reply-icon { display:flex; opacity:.7; }
+    .wa-brow.in .wa-reply-icon { right:4px; }
+    .wa-brow.out .wa-reply-icon { left:4px; }
+}
 .wa-quote { background:rgba(0,0,0,.05); border-left:3px solid #128C7E; border-radius:4px; padding:4px 7px; margin-bottom:4px; font-size:11.5px; cursor:pointer; }
 .wa-quote .who { font-weight:700; color:#128C7E; }
 .wa-quote .txt { color:#3b4a54; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
