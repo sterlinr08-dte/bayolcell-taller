@@ -169,9 +169,16 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
     .wa-brow.in .wa-reply-icon { right:4px; }
     .wa-brow.out .wa-reply-icon { left:4px; }
 }
-.wa-quote { background:rgba(0,0,0,.05); border-left:3px solid #128C7E; border-radius:4px; padding:4px 7px; margin-bottom:4px; font-size:11.5px; cursor:pointer; }
-.wa-quote .who { font-weight:700; color:#128C7E; }
-.wa-quote .txt { color:#3b4a54; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.wa-quote { position:relative; border-radius:6px; padding:6px 10px 7px; margin-bottom:5px; font-size:12.5px; cursor:pointer; border-left:4px solid #128C7E; background:rgba(0,0,0,.05); transition:filter .12s; }
+.wa-quote:hover { filter:brightness(.96); }
+.wa-quote .who { font-weight:700; font-size:12.5px; margin-bottom:1px; line-height:1.25; color:#128C7E; }
+.wa-quote .txt { color:#667781; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.3; }
+.wa-quote-out { border-left-color:#075E54; background:rgba(7,94,84,.1); }
+.wa-quote-out .who { color:#075E54; }
+.wa-quote-in { border-left-color:#128C7E; background:rgba(18,140,126,.08); }
+.wa-quote-in .who { color:#128C7E; }
+@keyframes waFlashOriginal { 0%,100% { background:transparent; } 30% { background:rgba(37,211,102,.32); } }
+.wa-bubble-wrap.wa-flash { animation:waFlashOriginal 1s ease; }
 .wa-reply-bar { display:flex; align-items:center; gap:8px; background:#f0f2f5; border-top:1px solid #e9edef; padding:7px 16px; font-size:12px; }
 .wa-reply-bar .stripe { width:3px; align-self:stretch; background:#128C7E; border-radius:2px; }
 .wa-reply-bar .info { flex:1; min-width:0; }
@@ -31754,7 +31761,7 @@ function _pintarWhatsappDetalle() {
             const esOut = m.direccion === 'out';
             const etiqueta = esOut ? 'Tú (BayolCell)' : nombre;
             const original = m.responde_a_id ? porId[m.responde_a_id] : null;
-            const citaHTML = original ? `<div class="wa-quote"><div class="who">${escapeHtml(original.direccion === 'out' ? 'Tú (BayolCell)' : nombre)}</div><div class="txt">${escapeHtml(original.cuerpo || (original.tipo_contenido !== 'text' ? '[' + original.tipo_contenido + ']' : ''))}</div></div>` : '';
+            const citaHTML = original ? `<div class="wa-quote wa-quote-${original.direccion}" onclick="event.stopPropagation(); _waIrAMensaje('${original.id}')"><div class="who">${escapeHtml(original.direccion === 'out' ? 'Tú (BayolCell)' : nombre)}</div><div class="txt">${escapeHtml(original.cuerpo || (original.tipo_contenido !== 'text' ? '[' + original.tipo_contenido + ']' : ''))}</div></div>` : '';
             return `<div class="wa-brow ${esOut ? 'out' : 'in'}" data-msgid="${m.id}">
                 <i class="ti ti-arrow-back-up wa-reply-icon" onclick="_waActivarRespuesta('${m.id}')" title="Responder"></i>
                 <div class="wa-bubble-wrap" style="background:${esOut ? '#dcf8c6' : '#fff'}; border-radius:8px; padding:6px 9px 7px; box-shadow:0 1px .5px rgba(0,0,0,.13); font-size:13.5px;">
@@ -31789,6 +31796,17 @@ function _pintarWhatsappDetalle() {
     if(chat) chat.scrollTop = chat.scrollHeight;
     _waWireSwipe();
     _waPintarReplyBar();
+}
+
+// Tocar la cita dentro de una burbuja = saltar al mensaje original y resaltarlo.
+function _waIrAMensaje(id) {
+    const wrap = document.querySelector(`.wa-brow[data-msgid="${id}"] .wa-bubble-wrap`);
+    if(!wrap) return;
+    wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    wrap.classList.remove('wa-flash');
+    void wrap.offsetWidth; // reinicia la animación si ya se había resaltado antes
+    wrap.classList.add('wa-flash');
+    setTimeout(() => wrap.classList.remove('wa-flash'), 1000);
 }
 
 // Responder citando un mensaje: swipe (movil) o icono al hover (PC).
