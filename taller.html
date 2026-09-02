@@ -847,6 +847,10 @@ body{
             <button id="menu-atencion" onclick="nav('atencion',this)"><i class="ti ti-headset"></i> <span>Atención al Cliente</span></button>
             <button id="menu-financiamientos" onclick="nav('financiamientos',this)"><i class="ti ti-cash"></i> <span>Financiamientos</span></button>
             <button id="menu-rifas" onclick="abrirRifas()" title="Abrir el panel administrativo de la Rifa (Nexus Pro) ya logueado"><i class="ti ti-ticket"></i> <span>🎟️ Rifa (admin)</span> <i class="ti ti-external-link" style="font-size:12px; opacity:.6;"></i></button>
+
+            <div class="nav-section">💬 WHATSAPP CRM</div>
+            <button id="menu-whatsapp" onclick="nav('whatsapp',this)"><i class="ti ti-brand-whatsapp"></i> <span>WhatsApp</span></button>
+            <button id="menu-leads" onclick="nav('leads',this)"><i class="ti ti-user-plus"></i> <span>Leads</span></button>
             <button id="menu-contabilidad" onclick="nav('contabilidad',this)"><i class="ti ti-calculator"></i> <span>Contabilidad</span></button>
             <button id="menu-diagnostico" onclick="nav('diagnostico',this)"><i class="ti ti-stethoscope"></i> <span>Diagnóstico IA</span></button>
             <button id="menu-recepcion" onclick="nav('recepcion',this)"><i class="ti ti-clipboard-plus"></i> <span>Recepción de Equipos</span></button>
@@ -1163,6 +1167,25 @@ body{
                 </div>
                 <div id="finKpis" class="kpi-row" style="margin-bottom:16px;"></div>
                 <div id="finContenido"></div>
+            </div>
+
+            <!-- WHATSAPP CRM — BANDEJA -->
+            <div id="v-whatsapp" class="view">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:14px;">
+                    <h2 style="margin:0;"><i class="ti ti-brand-whatsapp" style="color:#16a34a;"></i> WhatsApp</h2>
+                    <button class="btn btn-light" onclick="renderWhatsapp()" style="font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
+                </div>
+                <div id="waWrap"></div>
+            </div>
+
+            <!-- WHATSAPP CRM — LEADS -->
+            <div id="v-leads" class="view">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:14px;">
+                    <h2 style="margin:0;"><i class="ti ti-user-plus" style="color:#16a34a;"></i> Leads</h2>
+                    <button class="btn btn-light" onclick="renderLeads()" style="font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
+                </div>
+                <div style="display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap;" id="leadsFiltros"></div>
+                <div id="leadsLista"></div>
             </div>
 
             <!-- MI TRABAJO (técnico) -->
@@ -4735,7 +4758,9 @@ function applyAccessControls() {
         'menu-financiamientos': 'financiamientos_ver',
         'menu-contabilidad': 'contabilidad_ver',
         'menu-diagnostico': 'diagnostico_ver',
-        'menu-rifas': 'rifas_ver'
+        'menu-rifas': 'rifas_ver',
+        'menu-whatsapp': 'whatsapp_ver',
+        'menu-leads': 'leads_ver'
     };
 
     Object.keys(menuPermisos).forEach(menuId => {
@@ -5934,7 +5959,9 @@ const NAV_PERMISOS = {
     'configuracion': 'config_ver',
     'financiamientos': 'financiamientos_ver',
     'contabilidad': 'contabilidad_ver',
-    'diagnostico': 'diagnostico_ver'
+    'diagnostico': 'diagnostico_ver',
+    'whatsapp': 'whatsapp_ver',
+    'leads': 'leads_ver'
 };
 
 function nav(v, btn) {
@@ -5988,6 +6015,8 @@ function nav(v, btn) {
     if(v === 'miTrabajo') { setTimeout(() => { renderMiTrabajo(); const _wrap = document.getElementById('miTrabajoIncentivosWrap'); if(_wrap){ if(!isAdminUser() && typeof renderMisIncentivos === 'function') { _wrap.style.display = ''; renderMisIncentivos('miTrabajoIncentivos'); } else { _wrap.style.display = 'none'; } } }, 50); }
     if(v === 'atencion') { setTimeout(() => { renderAtencionCliente(); }, 50); }
     if(v === 'financiamientos') { setTimeout(() => { renderFinanciamientos(); }, 50); }
+    if(v === 'whatsapp') { setTimeout(() => { renderWhatsapp(); }, 50); }
+    if(v === 'leads') { setTimeout(() => { renderLeads(); }, 50); }
     if(v === 'articulos') { setTimeout(() => { actualizarInfoplusCount(); renderInfoplusBusqueda(); }, 50); }
     if(v === 'contabilidad') { setTimeout(() => { cargarCatalogoCuentas(); contaTab('mensual'); }, 50); }
     if(v === 'diagnostico') { setTimeout(() => { cargarConocimiento(); }, 50); }
@@ -20724,6 +20753,15 @@ const PERMISOS_DEF = [
             { id: 'ventas_cobrar', label: 'Cobrar pagos' },
             { id: 'ventas_cierre_caja', label: 'Cierre de caja' }
         ]
+    },
+    {
+        grupo: '💬 WhatsApp CRM', color: '#16a34a',
+        items: [
+            { id: 'whatsapp_ver', label: 'Ver bandeja de WhatsApp' },
+            { id: 'whatsapp_responder', label: 'Responder mensajes de WhatsApp' },
+            { id: 'leads_ver', label: 'Ver módulo de Leads' },
+            { id: 'leads_gestionar', label: 'Cambiar etapa / vincular cliente en Leads' }
+        ]
     }
 ];
 
@@ -25366,6 +25404,358 @@ function _consultaImprimir() {
         <div style="text-align:center; margin-top:14px;"><button onclick="window.print()" style="padding:8px 16px; font-size:14px; cursor:pointer;">🖨️ Imprimir</button></div>
         </body></html>`);
     w.document.close();
+}
+
+/* ============================================================
+   MÓDULO WHATSAPP CRM (Navarrete, sobre Zernio)
+   Carga sus propios datos (no toca loadAll), mismo criterio que
+   el módulo de Financiamientos. Filtra por sessionUser.sucursal_id
+   cuando está definido; si no, ve todo (cuentas de Santiago/Moca).
+   ============================================================ */
+let _waHilos = [];
+let _waHiloId = null;
+let _waMensajes = [];
+let _waEnviando = false;
+
+function _waMiSucursal() { return sessionUser?.sucursal_id || null; }
+function _waEsMovil() { return window.innerWidth < 860; }
+
+async function cargarHilosWhatsapp() {
+    let q = supabaseClient.from('whatsapp_hilos').select('*').order('ultimo_mensaje_at', { ascending: false, nullsFirst: false });
+    const suc = _waMiSucursal();
+    if(suc) q = q.eq('sucursal_id', suc);
+    const { data, error } = await q;
+    if(error) { logError('cargarHilosWhatsapp', error); toastError('No se pudieron cargar las conversaciones.'); return; }
+    _waHilos = data || [];
+}
+
+async function renderWhatsapp() {
+    await cargarHilosWhatsapp();
+    _pintarWhatsapp();
+}
+
+function _waHoraRelativa(iso) {
+    if(!iso) return '';
+    const d = new Date(iso), ahora = new Date();
+    const diffMin = Math.round((ahora - d) / 60000);
+    if(diffMin < 1) return 'ahora';
+    if(diffMin < 60) return diffMin + ' min';
+    const diffHrs = Math.round(diffMin / 60);
+    if(diffHrs < 24) return diffHrs + ' h';
+    const diffDias = Math.round(diffHrs / 24);
+    if(diffDias < 7) return diffDias + ' d';
+    return d.toLocaleDateString('es-DO', { day: '2-digit', month: '2-digit' });
+}
+
+function _pintarWhatsapp() {
+    const wrap = document.getElementById('waWrap');
+    if(!wrap) return;
+    const movil = _waEsMovil();
+    const mostrarLista = !movil || !_waHiloId;
+    const mostrarDetalle = !movil || !!_waHiloId;
+    wrap.innerHTML = `<div style="display:flex; gap:14px; align-items:flex-start;">
+        ${mostrarLista ? `<div id="waListaCol" style="flex:${movil ? '1 1 100%' : '0 0 320px'}; max-width:${movil ? 'none' : '320px'};"><div id="waLista"></div></div>` : ''}
+        ${mostrarDetalle ? `<div id="waDetalleCol" style="flex:1; min-width:280px;"><div id="waDetalle"></div></div>` : ''}
+    </div>`;
+    if(mostrarLista) _pintarWhatsappLista();
+    if(mostrarDetalle) _pintarWhatsappDetalle();
+}
+
+function _pintarWhatsappLista() {
+    const cont = document.getElementById('waLista');
+    if(!cont) return;
+    if(!_waHilos.length) {
+        cont.innerHTML = `<div class="card" style="text-align:center; color:var(--text-muted); padding:24px 14px; font-size:13px;">Todavía no han llegado mensajes de WhatsApp.</div>`;
+        return;
+    }
+    cont.innerHTML = _waHilos.map(h => {
+        const noLeido = (h.no_leidos_count || 0) > 0;
+        const activo = h.id === _waHiloId;
+        return `<div onclick="abrirHiloWhatsapp('${h.id}')" style="cursor:pointer; border:1px solid ${activo ? '#16a34a' : '#e2e8f0'}; background:${activo ? '#f0fdf4' : '#fff'}; border-radius:12px; padding:10px 12px; margin-bottom:8px;">
+            <div style="display:flex; justify-content:space-between; gap:8px; align-items:flex-start;">
+                <div style="min-width:0; flex:1;">
+                    <div style="font-weight:${noLeido ? 800 : 600}; font-size:13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(h.nombre_perfil || h.telefono_e164 || 'Sin nombre')}</div>
+                    <div style="font-size:12px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(h.ultimo_mensaje_preview || '')}</div>
+                </div>
+                <div style="text-align:right; flex-shrink:0;">
+                    <div style="font-size:11px; color:var(--text-muted);">${_waHoraRelativa(h.ultimo_mensaje_at)}</div>
+                    ${noLeido ? `<span style="display:inline-block; background:#16a34a; color:#fff; border-radius:999px; font-size:10.5px; font-weight:700; padding:1px 7px; margin-top:3px;">${h.no_leidos_count}</span>` : ''}
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function abrirHiloWhatsapp(id) {
+    _waHiloId = id;
+    const h = _waHilos.find(x => x.id === id);
+    if(h && h.no_leidos_count) {
+        h.no_leidos_count = 0;
+        try { await supabaseClient.from('whatsapp_hilos').update({ no_leidos_count: 0 }).eq('id', id); } catch(e) { logError('marcar leido', e); }
+    }
+    await cargarMensajesHilo(id);
+    _pintarWhatsapp();
+}
+function volverListaWhatsapp() { _waHiloId = null; _pintarWhatsapp(); }
+
+async function cargarMensajesHilo(hiloId) {
+    const { data, error } = await supabaseClient.from('whatsapp_mensajes').select('*').eq('hilo_id', hiloId).order('creado_en', { ascending: true });
+    if(error) { logError('cargarMensajesHilo', error); toastError('No se pudieron cargar los mensajes.'); _waMensajes = []; return; }
+    _waMensajes = data || [];
+    // Resolver URLs firmadas para los adjuntos (fotos/notas de voz), 1h de vigencia.
+    for(const m of _waMensajes) {
+        if(m.media_path) {
+            try {
+                const { data: firmada } = await supabaseClient.storage.from('whatsapp-media').createSignedUrl(m.media_path, 3600);
+                m._mediaUrl = firmada?.signedUrl || null;
+            } catch(e) { m._mediaUrl = null; }
+        }
+    }
+}
+
+function _waBurbujaMedia(m) {
+    if(!m.media_path) return '';
+    if(!m._mediaUrl) return `<div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">📎 Adjunto no disponible</div>`;
+    if(m.tipo_contenido === 'imagen') return `<img src="${m._mediaUrl}" style="max-width:220px; border-radius:8px; display:block; margin-bottom:4px;">`;
+    if(m.tipo_contenido === 'audio') return `<audio controls src="${m._mediaUrl}" style="max-width:220px; display:block; margin-bottom:4px;"></audio>`;
+    if(m.tipo_contenido === 'video') return `<video controls src="${m._mediaUrl}" style="max-width:220px; border-radius:8px; display:block; margin-bottom:4px;"></video>`;
+    return `<a href="${m._mediaUrl}" target="_blank" style="font-size:12.5px; display:block; margin-bottom:4px;"><i class="ti ti-file"></i> Ver documento adjunto</a>`;
+}
+const WA_ESTADO_ICONO = { enviado: '✓', entregado: '✓✓', leido: '✓✓', fallido: '⚠️' };
+
+function _pintarWhatsappDetalle() {
+    const cont = document.getElementById('waDetalle');
+    if(!cont) return;
+    if(!_waHiloId) {
+        cont.innerHTML = `<div class="card" style="text-align:center; color:var(--text-muted); padding:40px 14px;">Selecciona una conversación de la lista.</div>`;
+        return;
+    }
+    const h = _waHilos.find(x => x.id === _waHiloId);
+    if(!h) { volverListaWhatsapp(); return; }
+
+    const puedeResponder = isAdminUser() || tienePermiso('whatsapp_responder');
+    const horasDesdeInbound = h.ultimo_inbound_at ? (Date.now() - new Date(h.ultimo_inbound_at).getTime()) / 3600000 : Infinity;
+    const ventanaAbierta = horasDesdeInbound <= 24;
+
+    let html = `<div class="card" style="margin-bottom:10px;">`;
+    if(_waEsMovil()) html += `<button class="btn btn-light" onclick="volverListaWhatsapp()" style="font-size:12px; margin-bottom:10px;"><i class="ti ti-arrow-left"></i> Volver a la lista</button>`;
+    html += `<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+        <div>
+            <div style="font-weight:700; font-size:15px;">${escapeHtml(h.nombre_perfil || 'Sin nombre')}</div>
+            <div style="font-size:12.5px; color:var(--text-muted);"><i class="ti ti-phone"></i> ${escapeHtml(h.telefono_e164 || '')}</div>
+        </div>
+        <div>${h.cliente_id
+            ? `<span style="background:#dcfce7; color:#15803d; font-size:11.5px; font-weight:700; padding:3px 9px; border-radius:999px;"><i class="ti ti-user-check"></i> Vinculado a cliente</span>`
+            : `<button class="btn btn-light" style="font-size:11.5px;" onclick="_waToggleVincular('whatsapp_hilos','${h.id}')"><i class="ti ti-user-plus"></i> Vincular cliente</button>`}
+        </div>
+    </div>
+    <div id="vincBox_whatsapp_hilos_${h.id}" style="display:none;">${_clienteVincularHTML('whatsapp_hilos', h.id, h.nombre_perfil, h.telefono_e164)}</div>
+    </div>`;
+
+    html += `<div class="card" style="min-height:320px; max-height:52vh; overflow-y:auto; display:flex; flex-direction:column; gap:8px; background:#e9edf1;">`;
+    if(!_waMensajes.length) {
+        html += `<div style="color:var(--text-muted); font-size:13px; text-align:center; margin:auto;">Sin mensajes todavía.</div>`;
+    } else {
+        html += _waMensajes.map(m => {
+            const esOut = m.direccion === 'out';
+            return `<div style="display:flex; justify-content:${esOut ? 'flex-end' : 'flex-start'};">
+                <div style="max-width:75%; background:${esOut ? '#dcf8c6' : '#fff'}; border-radius:10px; padding:8px 10px; box-shadow:0 1px 2px rgba(0,0,0,0.08);">
+                    ${_waBurbujaMedia(m)}
+                    ${m.cuerpo ? `<div style="font-size:13.5px; white-space:pre-wrap; word-break:break-word;">${escapeHtml(m.cuerpo)}</div>` : ''}
+                    <div style="text-align:right; font-size:10.5px; color:#64748b; margin-top:3px;">
+                        ${new Date(m.creado_en).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}
+                        ${esOut ? ' ' + (WA_ESTADO_ICONO[m.estado] || '') : ''}
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+    html += `</div>`;
+
+    if(puedeResponder) {
+        html += `<div class="card" style="margin-top:10px;">`;
+        if(ventanaAbierta) {
+            html += `<div style="display:flex; gap:8px;">
+                <input type="text" id="waTexto" placeholder="Escribe una respuesta..." style="flex:1; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13.5px;" onkeydown="if(event.key==='Enter') enviarMensajeWhatsapp()">
+                <button class="btn btn-blue" id="btnWaEnviar" onclick="enviarMensajeWhatsapp()"><i class="ti ti-send"></i> Enviar</button>
+            </div>`;
+        } else {
+            html += `<div style="background:#fef3c7; border:1px solid #fde68a; color:#92400e; padding:10px 12px; border-radius:8px; font-size:12.5px;"><i class="ti ti-clock-exclamation"></i> Pasaron más de 24h desde el último mensaje del cliente — hace falta una plantilla aprobada para poder escribirle (todavía no disponible desde esta pantalla).</div>`;
+        }
+        html += `</div>`;
+    }
+
+    cont.innerHTML = html;
+    const chat = cont.querySelector('.card[style*="overflow-y"]');
+    if(chat) chat.scrollTop = chat.scrollHeight;
+}
+
+async function enviarMensajeWhatsapp() {
+    if(_waEnviando) return;
+    const input = document.getElementById('waTexto');
+    const mensaje = (input?.value || '').trim();
+    if(!mensaje) return;
+    const btn = document.getElementById('btnWaEnviar');
+    _waEnviando = true;
+    if(btn) btn.disabled = true;
+    try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if(!session) { toastError('Inicia sesión de nuevo.'); return; }
+        const res = await fetch(CONFIG_URL + '/functions/v1/whatsapp-enviar', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ hilo_id: _waHiloId, mensaje })
+        });
+        const j = await res.json();
+        if(j && j.ok) {
+            if(input) input.value = '';
+            await cargarMensajesHilo(_waHiloId);
+            await cargarHilosWhatsapp();
+            _pintarWhatsapp();
+        } else if(j && j.error === 'ventana_cerrada') {
+            toastError(j.mensaje || 'Ya no se puede responder libre — hace falta plantilla.');
+            await cargarHilosWhatsapp(); _pintarWhatsapp();
+        } else {
+            toastError('No se pudo enviar el mensaje.');
+        }
+    } catch(e) { logError('enviarMensajeWhatsapp', e); toastError(getFriendlyError(e)); }
+    finally { _waEnviando = false; if(btn) btn.disabled = false; }
+}
+
+/* ---- Vincular / crear cliente (compartido entre bandeja y leads) ---- */
+function _clienteVincularHTML(tabla, id, nombreSugerido, telSugerido) {
+    return `<div style="margin-top:8px; border-top:1px dashed #e2e8f0; padding-top:8px;">
+        <input type="text" placeholder="🔍 Buscar cliente por nombre o WhatsApp..." oninput="_waFiltrarClientes('${tabla}','${id}', this.value)" style="width:100%; padding:7px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:12.5px;">
+        <div id="vincCliRes_${tabla}_${id}" style="max-height:180px; overflow-y:auto; margin-top:6px;"></div>
+        ${(nombreSugerido || telSugerido) ? `<button class="btn btn-light" style="font-size:11.5px; margin-top:6px;" onclick="_waCrearYVincular('${tabla}','${id}')"><i class="ti ti-user-plus"></i> Crear cliente nuevo (${escapeHtml(nombreSugerido || telSugerido || '')})</button>` : ''}
+    </div>`;
+}
+function _waToggleVincular(tabla, id) {
+    const box = document.getElementById(`vincBox_${tabla}_${id}`);
+    if(box) box.style.display = box.style.display === 'none' ? '' : 'none';
+}
+function _waFiltrarClientes(tabla, id, q) {
+    const cont = document.getElementById(`vincCliRes_${tabla}_${id}`);
+    if(!cont) return;
+    q = (q || '').trim().toLowerCase();
+    if(q.length < 2) { cont.innerHTML = ''; return; }
+    const res = (cache.clientes || []).filter(c =>
+        (c.nombre || '').toLowerCase().includes(q) || (c.whatsapp || '').includes(q)
+    ).slice(0, 8);
+    cont.innerHTML = res.map(c => `<div style="padding:6px 8px; border-bottom:1px solid #f1f5f9; cursor:pointer; font-size:12.5px;" onclick="_waVincularCliente('${tabla}','${id}','${c.id}')">
+        <b>${escapeHtml(c.nombre || 'Sin nombre')}</b> <span style="color:var(--text-muted);">${escapeHtml(c.whatsapp || '')}</span>
+    </div>`).join('') || `<div style="color:var(--text-muted); font-size:12px; padding:6px 0;">Sin resultados.</div>`;
+}
+async function _waVincularCliente(tabla, id, clienteId) {
+    try {
+        const { error } = await supabaseClient.from(tabla).update({ cliente_id: clienteId }).eq('id', id);
+        if(error) throw error;
+        toast('✅ Cliente vinculado.');
+        if(tabla === 'whatsapp_hilos') { await cargarHilosWhatsapp(); _pintarWhatsapp(); }
+        else { await cargarLeads(); _pintarLeads(); }
+    } catch(e) { logError('_waVincularCliente', e); toastError('No se pudo vincular el cliente.'); }
+}
+async function _waCrearYVincular(tabla, id) {
+    try {
+        let nombre, telefono;
+        if(tabla === 'whatsapp_hilos') {
+            const h = _waHilos.find(x => x.id === id);
+            nombre = h?.nombre_perfil || 'Cliente WhatsApp';
+            telefono = h?.telefono_e164 || '';
+        } else {
+            const l = _leadsCache.find(x => x.id === id);
+            nombre = l?.nombre || 'Cliente WhatsApp';
+            telefono = l?.telefono_e164 || '';
+        }
+        const ins = await supabaseClient.from('clientes').insert([{ nombre, whatsapp: telefono || null, whatsapp_e164: telefono || null, tipo_cliente: 'final' }]).select().single();
+        if(ins.error) throw ins.error;
+        if(cache.clientes) cache.clientes.push(ins.data);
+        await _waVincularCliente(tabla, id, ins.data.id);
+    } catch(e) { logError('_waCrearYVincular', e); toastError('No se pudo crear el cliente.'); }
+}
+
+/* ============================================================
+   MÓDULO LEADS (seguimiento de contactos de WhatsApp)
+   ============================================================ */
+let _leadsCache = [];
+let _leadsFiltro = 'todos';
+const LEADS_ETAPAS = ['nuevo', 'contactado', 'cotizado', 'vendido', 'perdido'];
+const LEADS_ETAPA_INFO = {
+    nuevo:       { txt: 'Nuevo',       color: '#1d4ed8', bg: '#dbeafe' },
+    contactado:  { txt: 'Contactado',  color: '#a16207', bg: '#fef9c3' },
+    cotizado:    { txt: 'Cotizado',    color: '#7c3aed', bg: '#ede9fe' },
+    vendido:     { txt: 'Vendido',     color: '#15803d', bg: '#dcfce7' },
+    perdido:     { txt: 'Perdido',     color: '#b91c1c', bg: '#fee2e2' }
+};
+
+async function cargarLeads() {
+    let q = supabaseClient.from('leads').select('*').order('creado_en', { ascending: false });
+    const suc = _waMiSucursal();
+    if(suc) q = q.eq('sucursal_id', suc);
+    const { data, error } = await q;
+    if(error) { logError('cargarLeads', error); toastError('No se pudieron cargar los leads.'); return; }
+    _leadsCache = data || [];
+}
+
+async function renderLeads() {
+    await cargarLeads();
+    _pintarLeadsFiltros();
+    _pintarLeads();
+}
+
+function _pintarLeadsFiltros() {
+    const cont = document.getElementById('leadsFiltros');
+    if(!cont) return;
+    const opciones = [{ id: 'todos', txt: 'Todos' }, ...LEADS_ETAPAS.map(e => ({ id: e, txt: LEADS_ETAPA_INFO[e].txt }))];
+    cont.innerHTML = opciones.map(o => `<button class="btn btn-light" onclick="_leadsFiltro='${o.id}'; _pintarLeads()" style="font-size:12px; ${_leadsFiltro === o.id ? 'background:#dcfce7; color:#15803d; font-weight:700;' : ''}">${escapeHtml(o.txt)}</button>`).join('');
+}
+
+function _pintarLeads() {
+    const cont = document.getElementById('leadsLista');
+    if(!cont) return;
+    let lista = _leadsCache.slice();
+    if(_leadsFiltro !== 'todos') lista = lista.filter(l => l.etapa === _leadsFiltro);
+    if(!lista.length) {
+        cont.innerHTML = `<div class="card" style="text-align:center; color:var(--text-muted); padding:24px 14px; font-size:13px;">No hay leads en esta vista.</div>`;
+        return;
+    }
+    const puedeGestionar = isAdminUser() || tienePermiso('leads_gestionar');
+    cont.innerHTML = lista.map(l => {
+        const info = LEADS_ETAPA_INFO[l.etapa] || LEADS_ETAPA_INFO.nuevo;
+        return `<div class="card" style="margin-bottom:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap;">
+                <div style="min-width:0; flex:1;">
+                    <div style="font-weight:700; font-size:14px;">${escapeHtml(l.nombre || l.telefono_e164 || 'Sin nombre')}</div>
+                    <div style="font-size:12.5px; color:var(--text-muted);"><i class="ti ti-phone"></i> ${escapeHtml(l.telefono_e164 || '')}${l.interes ? ' · ' + escapeHtml(l.interes) : ''}</div>
+                    ${l.monto_cotizado ? `<div style="font-size:12.5px; margin-top:2px;"><b>Cotizado:</b> ${money(l.monto_cotizado)}</div>` : ''}
+                </div>
+                <span style="background:${info.bg}; color:${info.color}; font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px;">${info.txt}</span>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px;">
+                ${puedeGestionar ? `<select onchange="cambiarEtapaLead('${l.id}', this.value)" style="font-size:12.5px; padding:5px 8px;">
+                    ${LEADS_ETAPAS.map(e => `<option value="${e}" ${l.etapa === e ? 'selected' : ''}>${LEADS_ETAPA_INFO[e].txt}</option>`).join('')}
+                </select>` : ''}
+                ${l.cliente_id
+                    ? `<span style="font-size:11.5px; color:#15803d;"><i class="ti ti-user-check"></i> Vinculado a cliente</span>`
+                    : (puedeGestionar ? `<button class="btn btn-light" style="font-size:11.5px;" onclick="_waToggleVincular('leads','${l.id}')"><i class="ti ti-user-plus"></i> Vincular cliente</button>` : '')}
+            </div>
+            ${puedeGestionar && !l.cliente_id ? `<div id="vincBox_leads_${l.id}" style="display:none;">${_clienteVincularHTML('leads', l.id, l.nombre, l.telefono_e164)}</div>` : ''}
+            ${l.notas ? `<div style="font-size:12px; color:var(--text-muted); margin-top:8px;">📝 ${escapeHtml(l.notas)}</div>` : ''}
+        </div>`;
+    }).join('');
+}
+
+async function cambiarEtapaLead(id, etapa) {
+    try {
+        const cerrado = ['vendido', 'perdido'].includes(etapa);
+        const { error } = await supabaseClient.from('leads').update({
+            etapa, actualizado_en: new Date().toISOString(), cerrado_en: cerrado ? new Date().toISOString() : null
+        }).eq('id', id);
+        if(error) throw error;
+        toast('✅ Etapa actualizada.');
+        await cargarLeads();
+        _pintarLeads();
+    } catch(e) { logError('cambiarEtapaLead', e); toastError('No se pudo cambiar la etapa.'); }
 }
 
 const saved = localStorage.getItem("bayol_session");

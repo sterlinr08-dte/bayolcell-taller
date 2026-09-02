@@ -61,6 +61,16 @@ Probadas en vivo contra el equipo real (Smooth 6.5, Android 11, ID Hexnode 1):
 - 🔴 **IMEI en ventas:** pedir agregar el **IMEI/serial** (y/o el **empleado/sucursal**) a `factura` → habilita margen por teléfono (#7) y separar ventas Santiago vs Moca.
 - ✅ **Lectura YA funciona** con la llave nueva: inventario, proveedor, cliente, listaarticulos, factura, compra.
 
+## 💬 9. CRM de WhatsApp (Navarrete, sobre Zernio) — Fase 1-3 HECHAS (2 sep 2026)
+Bandeja de WhatsApp + Leads ya funcionando de punta a punta, sobre **Zernio** (capa intermedia de la API de WhatsApp Business, decisión aprobada por el dueño el 1 sep 2026).
+- ✅ **Fase 1 (Recibir):** tablas nuevas + `whatsapp-webhook` reescrita para el formato real de Zernio (firma HMAC verificada) — probado con un mensaje real, llegó a la base en segundos.
+- ✅ **Fase 2 (Responder):** `whatsapp-enviar` desplegada + caja de respuesta en la pantalla "WhatsApp". Respeta la ventana de 24h (si se cierra, avisa que hace falta plantilla — la plantilla en sí todavía no está construida).
+- ✅ **Fase 3 (Leads):** pantalla "Leads" con las 5 etapas (nuevo/contactado/cotizado/vendido/perdido), creación automática al primer mensaje de un número nuevo, vincular/crear cliente desde el lead o desde el hilo.
+- ⏳ **Fase 4 (pendiente):** envíos masivos/campañas (`whatsapp-bulk-enviar` + pantallas de campaña) — necesita que las plantillas de WhatsApp estén aprobadas por Meta primero.
+- ⏳ **Pendiente aparte:** enviar fotos/notas de voz desde la bandeja (hoy solo se **reciben** y se ven bien; `whatsapp-enviar` todavía no sube adjuntos al mandar).
+- ⏳ **Pendiente:** rotar la llave de Zernio (quedó expuesta en un chat durante la configuración inicial).
+- Detalle técnico completo: `CLAUDE.md` (sección WhatsApp CRM) y el plan original en `C:\Users\BAYOCELL\.claude\plans\purring-mapping-star.md`.
+
 ---
 
 ## ✔️ YA HECHO (referencia)
@@ -74,4 +84,5 @@ Probadas en vivo contra el equipo real (Smooth 6.5, Android 11, ID Hexnode 1):
 - ✅ Estadísticas (ventas, rentabilidad, agotamiento, clientes, contado vs mayor, dinero dormido)
 - ✅ Info Plus sync (ventas + inventario, automático)
 - ✅ Reseñas Google (web + WhatsApp + recepción)
+- ✅ CRM de WhatsApp Navarrete (bandeja + leads, sobre Zernio) — Fase 1-3, ver #9
 - ✅ Correo Zoho arreglado (MX) · Visitas web con personas únicas

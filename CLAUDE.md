@@ -61,6 +61,11 @@ La barra lateral cambia de vista con **`nav('nombre', this)`**. Cada vista es un
 - `proveedores` — Compras / Proveedores. `renderProveedores()`.
 - `refurb` — **Reacondicionados** (lo más trabajado, ver abajo). `cargarLotesReacond()` / `renderDetalleLoteReacond()`.
 
+**WHATSAPP CRM (Navarrete, sobre Zernio — ver `PENDIENTES.md`)**
+- `whatsapp` — Bandeja de conversaciones (lista+detalle lado a lado, estilo chat). `renderWhatsapp()`. Responder: `enviarMensajeWhatsapp()` → Edge Function `whatsapp-enviar` (solo si hay mensaje entrante en las últimas 24h; si no, exige plantilla, no implementada aún).
+- `leads` — Seguimiento de leads (nuevo/contactado/cotizado/vendido/perdido), creados automático al primer mensaje de un número nuevo (vía `whatsapp-webhook`). `renderLeads()`.
+- Filtro por sucursal: si `sessionUser.sucursal_id` está definido (cuentas de Navarrete) se filtra a esa sucursal; si no (Santiago/Moca), se ve todo — filtrado en el navegador, no hay RLS por sucursal todavía.
+
 **SISTEMA**
 - `etiquetas` — Impresión de Labels (códigos de barra).
 - `configImpresora` — Config. Impresora.
@@ -80,6 +85,7 @@ Hay ~70 tablas; muchas están vacías (features futuras). Las **activas** que im
 - **Financiamiento/MDM:** `financiamientos`, `fin_clientes`, `fin_planes`, `fin_pagos`/`financiamiento_pagos`, `fin_solicitudes`, `fin_config`, `fin_documentos`, `fin_referencias`.
 - **Contabilidad:** `conta_cuentas`, `conta_categorias`, `conta_asientos`, `conta_asiento_lineas`, `conta_movimientos`.
 - **Config/varios:** `config_taller` (datos de la tienda, `cache.configTaller`), `proveedores`, `web_visitas`.
+- **WhatsApp CRM (Navarrete, sobre Zernio):** `sucursales` (Santiago/Moca/Navarrete; Navarrete tiene `zernio_account_id`/`whatsapp_numero`/`whatsapp_phone_number_id`/`whatsapp_waba_id` poblados), `whatsapp_hilos` (conversación por teléfono+sucursal, `ultimo_inbound_at` = clave de la ventana de 24h), `whatsapp_mensajes` (`media_path` = adjunto en el bucket de Storage `whatsapp-media`, privado), `leads` (`etapa`: nuevo/contactado/cotizado/vendido/perdido), `campanas`, `whatsapp_envios_masivos` (Fase 4, aún sin construir). `usuarios.sucursal_id`/`tecnicos.sucursal_id` y `clientes.whatsapp_e164` son columnas nuevas en tablas existentes.
 - Para ver columnas exactas usa MCP Supabase: `list_tables` (verbose) o `execute_sql` sobre `information_schema.columns`.
 
 ## Usuarios, roles y permisos
@@ -96,7 +102,7 @@ Hay **dos tipos de cuenta** que entran a la app:
 - `soloAdmin(accion)` — true si es admin (o tiene `piezas_aprobar_extra`); si no, avisa y devuelve false. **Defensa en profundidad** (no juez y parte: el técnico no aprueba/despacha su propio trabajo).
 - `esDueno()` — candado especial **solo para Sterling (el dueño)** por ID de cuenta (`OWNER_IDS`). El módulo **Estadísticas** es solo para él: ni técnicos ni otros admin (incluida la contadora) lo ven.
 
-**Claves de permiso usadas** (las pone el admin por rol en Configuración): `ver_dashboard`, `solo_mi_trabajo`, `solo_atencion`, `solo_contabilidad`, `recepcion_ver`, `ordenes_ver`, `inventario_ver`, `refurb_ver`/`reacond_ver`, `diagnostico_ver`, `config_ver`, `financiamientos_ver`/`_crear`/`_aprobar`/`_cobrar`/`_eliminar`, `piezas_aprobar_extra`, `piezas_entregar`, `estado_despachar`, `catalogo_articulos_eliminar`, `ver_panel_smart`.
+**Claves de permiso usadas** (las pone el admin por rol en Configuración): `ver_dashboard`, `solo_mi_trabajo`, `solo_atencion`, `solo_contabilidad`, `recepcion_ver`, `ordenes_ver`, `inventario_ver`, `refurb_ver`/`reacond_ver`, `diagnostico_ver`, `config_ver`, `financiamientos_ver`/`_crear`/`_aprobar`/`_cobrar`/`_eliminar`, `piezas_aprobar_extra`, `piezas_entregar`, `estado_despachar`, `catalogo_articulos_eliminar`, `ver_panel_smart`, `whatsapp_ver`/`_responder`, `leads_ver`/`_gestionar`.
 
 > ⚠️ **Contraseñas NUNCA van al repo.** No las pidas ni las escribas en archivos. El usuario las maneja él.
 
@@ -117,6 +123,8 @@ Hay **dos tipos de cuenta** que entran a la app:
 - **`bde-diagnostico`** (v8) — motor de **Diagnóstico IA** (analiza panic logs/datos del iPhone con IA).
 - **`bde-termico`** (v2) y **`bde-visual`** (v2) — análisis térmico y visual del diagnóstico.
 - Todas con `verify_jwt: true` (requieren sesión válida).
+- **`whatsapp-webhook`** (`verify_jwt:false` — Zernio la llama directo, sin sesión) — recibe eventos `message.received`/`message.delivered`/`message.read`/`message.failed` de **Zernio** (capa sobre la Cloud API de Meta), verifica la firma HMAC-SHA256 (`X-Zernio-Signature`, secret `ZERNIO_WEBHOOK_SECRET`), guarda en `whatsapp_hilos`/`whatsapp_mensajes`, sube fotos/notas de voz al bucket `whatsapp-media`, y crea el `lead` automático. No se llama desde `taller.html`.
+- **`whatsapp-enviar`** (`verify_jwt:true`) — responde un hilo desde la bandeja (`POST /v1/inbox/conversations` de Zernio con `participantId`=teléfono, no necesita `conversationId`). Verifica del lado del servidor la ventana de 24h. **Se invoca con `fetch` manual** (no `functions.invoke`), mismo patrón que `abrirRifas()`/`generarBoletoRifa()`: `fetch(CONFIG_URL + '/functions/v1/whatsapp-enviar', {headers:{Authorization:'Bearer '+session.access_token, apikey:CONFIG_KEY}, body:{hilo_id, mensaje}})`. Secrets: `ZERNIO_API_KEY`, `ZERNIO_WEBHOOK_SECRET`.
 
 **Info Plus** = ERP/punto de venta externo de la tienda (Info Plus **Platinum**). La app **lee** su inventario y ventas (sync automática) y **ya puede escribir** (probado 19 jun 2026, ver detalle abajo).
 
