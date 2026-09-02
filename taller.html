@@ -6582,6 +6582,8 @@ const NAV_PERMISOS = {
 };
 
 function nav(v, btn) {
+    // Salir del CRM: apagar la suscripcion en tiempo real de esa vista
+    if(v !== 'crmLinea' && typeof _crmDetenerRealtime === 'function') _crmDetenerRealtime();
     // Aviso: si sales de una quincena que estás armando/corrigiendo con cambios sin guardar
     if(typeof _nominaGen !== 'undefined' && _nominaGen && _nominaGen._dirty && v !== 'nomina') {
         _nominaConfirmarSalida(() => nav(v, btn));
@@ -32075,6 +32077,44 @@ function seleccionarLineaCRM(lineaId, nombreSucursal, nombreLinea) {
     if(titulo) titulo.textContent = `${nombreSucursal} — ${nombreLinea}`;
     const tabGuardada = (localStorage.getItem('bayol_subtab_crmlinea') || 'mensajes');
     crmLineaTab(tabGuardada);
+    _crmSuscribirRealtime(lineaId);
+}
+
+// Actualizacion en tiempo real del CRM: mensajes/hilos/leads nuevos aparecen
+// solos, sin tener que darle "Actualizar" a mano. El canal global
+// 'bayol-realtime' del sistema escucha 'schema: public' pero Supabase solo
+// transmite las tablas agregadas a la publicacion supabase_realtime, y
+// whatsapp_hilos/whatsapp_mensajes/leads no estaban ahi (ya se agregaron via
+// migracion) — ademas esas tablas no forman parte de loadAll()/cache, asi
+// que hace falta un canal propio que refresque especificamente esta vista.
+let _crmRealtimeChannel = null;
+function _crmSuscribirRealtime(lineaId) {
+    if(_crmRealtimeChannel) { try { supabaseClient.removeChannel(_crmRealtimeChannel); } catch(e) {} _crmRealtimeChannel = null; }
+    if(!lineaId) return;
+    let _crmRtDebounce = null;
+    const refrescarCRM = () => {
+        if(_crmRtDebounce) clearTimeout(_crmRtDebounce);
+        _crmRtDebounce = setTimeout(async () => {
+            if(_crmLineaActualId !== lineaId) return; // ya se cambio de linea, no pisar la vista actual
+            const tabActiva = localStorage.getItem('bayol_subtab_crmlinea') || 'mensajes';
+            if(tabActiva === 'mensajes') {
+                await cargarHilosWhatsapp();
+                if(_waHiloId) await cargarMensajesHilo(_waHiloId);
+                _pintarWhatsapp();
+            } else if(typeof renderLeads === 'function') {
+                renderLeads();
+            }
+        }, 400);
+    };
+    _crmRealtimeChannel = supabaseClient
+        .channel('crm-linea-' + lineaId)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_hilos', filter: `linea_id=eq.${lineaId}` }, refrescarCRM)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_mensajes' }, refrescarCRM)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'leads', filter: `linea_id=eq.${lineaId}` }, refrescarCRM)
+        .subscribe();
+}
+function _crmDetenerRealtime() {
+    if(_crmRealtimeChannel) { try { supabaseClient.removeChannel(_crmRealtimeChannel); } catch(e) {} _crmRealtimeChannel = null; }
 }
 
 function crmLineaTab(name) {
