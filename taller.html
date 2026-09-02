@@ -130,20 +130,26 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
 .nav { padding: 14px 12px; overflow-y: auto; flex: 1; }
 .nav-section { font-size: 10px; font-weight: 800; color: #475569; letter-spacing: 1px; padding: 14px 10px 6px; }
 .nav-section:first-child { padding-top: 4px; }
-.nav button.nav-group-toggle .ti-chevron-right { margin-left: auto; font-size: 15px; transition: transform .15s ease; }
-.nav button.nav-group-toggle.open .ti-chevron-right { transform: rotate(90deg); }
-.nav button.nav-subbutton { margin-left: 18px; width: calc(100% - 18px); border-left: 2px solid rgba(255,255,255,0.1); border-radius: 0 12px 12px 0; padding-left: 14px; font-size: 12.5px; background: rgba(255,255,255,0.02); }
-.nav button.nav-subbutton i { font-size: 17px; }
-.nav button.nav-subbutton:hover { border-left-color: rgba(220,38,38,0.5); }
-.nav button.nav-subbutton.active { border-left-color: #ef4444; }
-/* Nivel 2 (sucursal) y 3 (línea) del árbol CRM — más angostos/tenues mientras más profundo */
-.nav button.nav-sucursal-toggle { margin-left: 18px; width: calc(100% - 18px); border-left: 2px solid rgba(255,255,255,0.1); border-radius: 0 12px 12px 0; padding: 10px 12px 10px 14px; font-size: 12.5px; background: rgba(255,255,255,0.02); font-weight: 700; }
-.nav button.nav-sucursal-toggle i.ti-chevron-right { margin-left: auto; font-size: 13px; transition: transform .15s ease; }
-.nav button.nav-sucursal-toggle.open i.ti-chevron-right { transform: rotate(90deg); }
-.nav button.nav-linea-btn { margin-left: 34px; width: calc(100% - 34px); border-left: 2px dashed rgba(255,255,255,0.12); border-radius: 0 10px 10px 0; padding: 8px 10px 8px 12px; font-size: 11.5px; background: rgba(255,255,255,0.015); color: #94a3b8; }
-.nav button.nav-linea-btn i { font-size: 15px; }
-.nav button.nav-linea-btn:hover { border-left-color: rgba(220,38,38,0.5); color: #fff; }
-.nav button.nav-linea-btn.active { border-left-color: #ef4444; color: #fff; background: rgba(220,38,38,0.12); }
+/* CRM — look de WhatsApp real (la selección de sucursal/línea vive DENTRO de la vista, no en el sidebar) */
+.wa-topbar { display:flex; align-items:center; gap:12px; flex-wrap:wrap; background:linear-gradient(135deg,#128C7E,#075E54); color:#fff; padding:12px 18px; border-radius:14px; margin-bottom:14px; }
+.wa-topbar h2 { color:#fff; }
+.wa-select { font-size:12.5px; padding:6px 10px; border-radius:8px; border:none; background:rgba(255,255,255,.92); color:#075E54; font-weight:700; cursor:pointer; }
+.wa-tab-btn { background:rgba(255,255,255,.15); color:#fff; border:1px solid rgba(255,255,255,.25); border-radius:8px; padding:7px 12px; font-size:12.5px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:5px; }
+.wa-tab-btn.active { background:#fff; color:#075E54; }
+.wa-shell { display:flex; height:calc(100vh - 220px); min-height:420px; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; box-shadow:0 4px 16px rgba(15,23,42,.06); }
+.wa-list-col { width:320px; flex-shrink:0; background:#fff; border-right:1px solid #e9edef; display:flex; flex-direction:column; }
+.wa-list-scroll { overflow-y:auto; flex:1; }
+.wa-row { display:flex; align-items:center; gap:11px; padding:11px 14px; cursor:pointer; border-bottom:1px solid #f5f6f6; }
+.wa-row:hover { background:#f5f6f6; }
+.wa-row.active { background:#f0f2f5; }
+.wa-avatar { width:42px; height:42px; border-radius:50%; background:linear-gradient(135deg,#128C7E,#075E54); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; flex-shrink:0; }
+.wa-chat-col { flex:1; min-width:0; display:flex; flex-direction:column; background:#ECE5DD; background-image:radial-gradient(rgba(0,0,0,.02) 1px, transparent 1px); background-size:14px 14px; }
+.wa-chat-head { background:#f0f2f5; padding:11px 18px; display:flex; align-items:center; gap:12px; border-bottom:1px solid #e9edef; }
+.wa-chat-empty { margin:auto; color:#8696a0; font-size:13px; text-align:center; }
+.wa-input-bar { padding:10px 16px; background:#f0f2f5; display:flex; gap:10px; align-items:center; }
+.wa-input-bar input { flex:1; border:1px solid #d1d7db; border-radius:22px; padding:10px 16px; font-size:13.5px; }
+.wa-send-btn { width:40px; height:40px; border-radius:50%; background:#128C7E; border:none; color:#fff; font-size:16px; cursor:pointer; flex-shrink:0; }
+.wa-send-btn:disabled { opacity:.5; cursor:default; }
 .nav button { width: 100%; background: rgba(255,255,255,0.03); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 13px 14px; margin-bottom: 7px; text-align: left; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 12px; font-size: 13.5px; }
 .nav button i { font-size: 19px; color: #475569; flex-shrink: 0; }
 .nav button span { flex: 1; }
@@ -899,8 +905,7 @@ body{
             <button id="menu-rifas" onclick="abrirRifas()" title="Abrir el panel administrativo de la Rifa (Nexus Pro) ya logueado"><i class="ti ti-ticket"></i> <span>🎟️ Rifa (admin)</span> <i class="ti ti-external-link" style="font-size:12px; opacity:.6;"></i></button>
             <button id="menu-rifaFactura" onclick="nav('rifaFactura',this)" title="Registrar boleto de la Rifa por Factura (Info Plus) e imprimir 2 copias — independiente de la Rifa de Nexus Pro"><i class="ti ti-receipt" style="color:#0f766e;"></i> <span>🧾 Rifa por Factura</span></button>
 
-            <button class="nav-group-toggle" id="navGroupHeader-whatsappCrm" onclick="toggleNavGroup('whatsappCrm')"><i class="ti ti-brand-whatsapp"></i> <span>CRM</span> <i class="ti ti-chevron-right"></i></button>
-            <div id="crmSucursalesNav"></div>
+            <button id="menu-crm" onclick="nav('crmLinea',this)"><i class="ti ti-brand-whatsapp" style="color:#25D366;"></i> <span>CRM</span></button>
             <button id="menu-contabilidad" onclick="nav('contabilidad',this)"><i class="ti ti-calculator"></i> <span>Contabilidad</span></button>
             <button id="menu-diagnostico" onclick="nav('diagnostico',this)"><i class="ti ti-stethoscope"></i> <span>Diagnóstico IA</span></button>
             <button id="menu-recepcion" onclick="nav('recepcion',this)"><i class="ti ti-clipboard-plus"></i> <span>Recepción de Equipos</span></button>
@@ -1298,15 +1303,16 @@ body{
                 <div id="finContenido"></div>
             </div>
 
-            <!-- WHATSAPP CRM — BANDEJA -->
+            <!-- WHATSAPP CRM — BANDEJA (look de WhatsApp real) -->
             <div id="v-crmLinea" class="view">
-                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
-                    <h2 style="margin:0;" id="crmLineaTitulo"><i class="ti ti-brand-whatsapp" style="color:#16a34a;"></i> <span id="crmLineaTituloTxt">CRM</span></h2>
-                    <button class="btn btn-light" onclick="renderCrmLinea()" style="font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
-                </div>
-                <div style="display:flex; gap:6px; margin-bottom:14px;">
-                    <button class="btn btn-blue" id="crmLineaTabWa" onclick="crmLineaTab('mensajes')" style="font-size:12.5px;"><i class="ti ti-brand-whatsapp"></i> Mensajes</button>
-                    <button class="btn btn-light" id="crmLineaTabLeads" onclick="crmLineaTab('leads')" style="font-size:12.5px;"><i class="ti ti-user-plus"></i> Leads</button>
+                <div class="wa-topbar">
+                    <h2 style="margin:0; font-size:16px;"><i class="ti ti-brand-whatsapp"></i> <span id="crmLineaTituloTxt">CRM</span></h2>
+                    <div id="crmSelectorWrap" style="display:flex; gap:8px;"></div>
+                    <div style="margin-left:auto; display:flex; gap:6px;">
+                        <button class="wa-tab-btn active" id="crmLineaTabWa" onclick="crmLineaTab('mensajes')"><i class="ti ti-brand-whatsapp"></i> Mensajes</button>
+                        <button class="wa-tab-btn" id="crmLineaTabLeads" onclick="crmLineaTab('leads')"><i class="ti ti-user-plus"></i> Leads</button>
+                        <button class="wa-tab-btn" onclick="renderCrmLinea()" title="Actualizar"><i class="ti ti-refresh"></i></button>
+                    </div>
                 </div>
                 <div id="crmLinea-mensajes">
                     <div id="waWrap"></div>
@@ -5291,7 +5297,11 @@ function applyAccessControls() {
             btn.style.display = tienePermiso(permisoReq) ? '' : 'none';
         }
     });
-    
+
+    // CRM: visible con cualquiera de los dos permisos (no un solo permiso fijo, por eso no vive en menuPermisos)
+    const btnCRM = document.getElementById('menu-crm');
+    if(btnCRM) btnCRM.style.display = (isAdminUser() || tienePermiso('whatsapp_ver') || tienePermiso('leads_ver')) ? '' : 'none';
+
     // Ocultar botones estáticos según permiso
     const botonesEstaticos = {
         'btnNuevoTecnico': 'config_tecnicos',
@@ -6505,7 +6515,6 @@ function startApp() {
     document.getElementById("userAvatar").textContent = (sessionUser.nombre || "B").charAt(0).toUpperCase();
     document.getElementById("userRole").textContent = sessionUser.rol || sessionUser.nivel_acceso || sessionUser.nivel || "Técnico";
     applyAccessControls();
-    construirMenuCRM();
     renderWebVisitas();
     actualizarBotonNotif();
     startAppRefurbPoller();
@@ -31519,7 +31528,7 @@ let _waHiloId = null;
 let _waMensajes = [];
 let _waEnviando = false;
 
-// Árbol CRM: sucursal > línea de WhatsApp. Se arma dinámicamente (construirMenuCRM)
+// CRM: sucursal > línea de WhatsApp. El selector se arma dinámicamente (construirSelectorCRM)
 // porque el número de sucursales/líneas conectadas crece con el tiempo.
 let _crmEstructura = [];       // [{id, nombre, lineas:[{id, nombre, sucursal_id}]}]
 let _crmLineaActualId = null;
@@ -31570,36 +31579,41 @@ function _pintarWhatsapp() {
     const movil = _waEsMovil();
     const mostrarLista = !movil || !_waHiloId;
     const mostrarDetalle = !movil || !!_waHiloId;
-    wrap.innerHTML = `<div style="display:flex; gap:14px; align-items:flex-start;">
-        ${mostrarLista ? `<div id="waListaCol" style="flex:${movil ? '1 1 100%' : '0 0 320px'}; max-width:${movil ? 'none' : '320px'};"><div id="waLista"></div></div>` : ''}
-        ${mostrarDetalle ? `<div id="waDetalleCol" style="flex:1; min-width:280px;"><div id="waDetalle"></div></div>` : ''}
+    wrap.innerHTML = `<div class="wa-shell">
+        ${mostrarLista ? `<div class="wa-list-col" id="waListaCol"><div class="wa-list-scroll" id="waLista"></div></div>` : ''}
+        ${mostrarDetalle ? `<div class="wa-chat-col" id="waDetalleCol"><div id="waDetalle" style="display:flex; flex-direction:column; height:100%;"></div></div>` : ''}
     </div>`;
     if(mostrarLista) _pintarWhatsappLista();
     if(mostrarDetalle) _pintarWhatsappDetalle();
+}
+
+function _waIniciales(nombre) {
+    const partes = (nombre || '').trim().split(/\s+/).filter(Boolean);
+    if(!partes.length) return '#';
+    return (partes[0][0] + (partes[1] ? partes[1][0] : '')).toUpperCase();
 }
 
 function _pintarWhatsappLista() {
     const cont = document.getElementById('waLista');
     if(!cont) return;
     if(!_waHilos.length) {
-        cont.innerHTML = `<div class="card" style="text-align:center; color:var(--text-muted); padding:24px 14px; font-size:13px;">Todavía no han llegado mensajes de WhatsApp.</div>`;
+        cont.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:24px 14px; font-size:13px;">Todavía no han llegado mensajes de WhatsApp.</div>`;
         return;
     }
     cont.innerHTML = _waHilos.map(h => {
         const noLeido = (h.no_leidos_count || 0) > 0;
         const activo = h.id === _waHiloId;
-        const lineaNombre = h.whatsapp_lineas?.nombre;
-        const badgeLinea = (lineaNombre && lineaNombre !== 'Principal')
-            ? `<span style="display:inline-block; background:#eef2ff; color:#4338ca; border-radius:999px; font-size:10px; font-weight:700; padding:1px 7px; margin-left:6px; vertical-align:middle;">${escapeHtml(lineaNombre)}</span>` : '';
-        return `<div onclick="abrirHiloWhatsapp('${h.id}')" style="cursor:pointer; border:1px solid ${activo ? '#16a34a' : '#e2e8f0'}; background:${activo ? '#f0fdf4' : '#fff'}; border-radius:12px; padding:10px 12px; margin-bottom:8px;">
-            <div style="display:flex; justify-content:space-between; gap:8px; align-items:flex-start;">
-                <div style="min-width:0; flex:1;">
-                    <div style="font-weight:${noLeido ? 800 : 600}; font-size:13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(h.nombre_perfil || h.telefono_e164 || 'Sin nombre')}${badgeLinea}</div>
-                    <div style="font-size:12px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(h.ultimo_mensaje_preview || '')}</div>
+        const nombre = h.nombre_perfil || h.telefono_e164 || 'Sin nombre';
+        return `<div class="wa-row${activo ? ' active' : ''}" onclick="abrirHiloWhatsapp('${h.id}')">
+            <div class="wa-avatar">${_waIniciales(nombre)}</div>
+            <div style="min-width:0; flex:1;">
+                <div style="display:flex; justify-content:space-between; gap:8px;">
+                    <span style="font-weight:${noLeido ? 800 : 600}; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(nombre)}</span>
+                    <span style="font-size:11px; color:var(--text-muted); flex-shrink:0;">${_waHoraRelativa(h.ultimo_mensaje_at)}</span>
                 </div>
-                <div style="text-align:right; flex-shrink:0;">
-                    <div style="font-size:11px; color:var(--text-muted);">${_waHoraRelativa(h.ultimo_mensaje_at)}</div>
-                    ${noLeido ? `<span style="display:inline-block; background:#16a34a; color:#fff; border-radius:999px; font-size:10.5px; font-weight:700; padding:1px 7px; margin-top:3px;">${h.no_leidos_count}</span>` : ''}
+                <div style="display:flex; justify-content:space-between; gap:8px; margin-top:2px;">
+                    <span style="font-size:12.5px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(h.ultimo_mensaje_preview || '')}</span>
+                    ${noLeido ? `<span style="background:#25D366; color:#fff; border-radius:999px; font-size:10.5px; font-weight:800; min-width:19px; height:19px; display:flex; align-items:center; justify-content:center; padding:0 5px; flex-shrink:0;">${h.no_leidos_count}</span>` : ''}
                 </div>
             </div>
         </div>`;
@@ -31636,9 +31650,9 @@ async function cargarMensajesHilo(hiloId) {
 function _waBurbujaMedia(m) {
     if(!m.media_path) return '';
     if(!m._mediaUrl) return `<div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">📎 Adjunto no disponible</div>`;
-    if(m.tipo_contenido === 'imagen') return `<img src="${m._mediaUrl}" style="max-width:220px; border-radius:8px; display:block; margin-bottom:4px;">`;
-    if(m.tipo_contenido === 'audio') return `<audio controls src="${m._mediaUrl}" style="max-width:220px; display:block; margin-bottom:4px;"></audio>`;
-    if(m.tipo_contenido === 'video') return `<video controls src="${m._mediaUrl}" style="max-width:220px; border-radius:8px; display:block; margin-bottom:4px;"></video>`;
+    if(m.tipo_contenido === 'imagen') return `<img src="${m._mediaUrl}" style="max-width:280px; width:100%; border-radius:7px; display:block; margin-bottom:4px; cursor:pointer;" onclick="window.open('${m._mediaUrl}','_blank')">`;
+    if(m.tipo_contenido === 'audio') return `<audio controls src="${m._mediaUrl}" style="width:250px; max-width:100%; display:block; margin-bottom:4px; height:36px;"></audio>`;
+    if(m.tipo_contenido === 'video') return `<video controls src="${m._mediaUrl}" style="max-width:280px; width:100%; border-radius:7px; display:block; margin-bottom:4px;"></video>`;
     return `<a href="${m._mediaUrl}" target="_blank" style="font-size:12.5px; display:block; margin-bottom:4px;"><i class="ti ti-file"></i> Ver documento adjunto</a>`;
 }
 const WA_ESTADO_ICONO = { enviado: '✓', entregado: '✓✓', leido: '✓✓', fallido: '⚠️' };
@@ -31647,7 +31661,7 @@ function _pintarWhatsappDetalle() {
     const cont = document.getElementById('waDetalle');
     if(!cont) return;
     if(!_waHiloId) {
-        cont.innerHTML = `<div class="card" style="text-align:center; color:var(--text-muted); padding:40px 14px;">Selecciona una conversación de la lista.</div>`;
+        cont.innerHTML = `<div class="wa-chat-empty">Selecciona una conversación de la lista.</div>`;
         return;
     }
     const h = _waHilos.find(x => x.id === _waHiloId);
@@ -31656,37 +31670,37 @@ function _pintarWhatsappDetalle() {
     const puedeResponder = isAdminUser() || tienePermiso('whatsapp_responder');
     const horasDesdeInbound = h.ultimo_inbound_at ? (Date.now() - new Date(h.ultimo_inbound_at).getTime()) / 3600000 : Infinity;
     const ventanaAbierta = horasDesdeInbound <= 24;
+    const nombre = h.nombre_perfil || 'Sin nombre';
 
-    let html = `<div class="card" style="margin-bottom:10px;">`;
-    if(_waEsMovil()) html += `<button class="btn btn-light" onclick="volverListaWhatsapp()" style="font-size:12px; margin-bottom:10px;"><i class="ti ti-arrow-left"></i> Volver a la lista</button>`;
-    const lineaNombreDetalle = h.whatsapp_lineas?.nombre;
-    const badgeLineaDetalle = (lineaNombreDetalle && lineaNombreDetalle !== 'Principal')
-        ? `<span style="display:inline-block; background:#eef2ff; color:#4338ca; border-radius:999px; font-size:10.5px; font-weight:700; padding:2px 9px; margin-left:8px; vertical-align:middle;">${escapeHtml(lineaNombreDetalle)}</span>` : '';
-    html += `<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
-        <div>
-            <div style="font-weight:700; font-size:15px;">${escapeHtml(h.nombre_perfil || 'Sin nombre')}${badgeLineaDetalle}</div>
-            <div style="font-size:12.5px; color:var(--text-muted);"><i class="ti ti-phone"></i> ${escapeHtml(h.telefono_e164 || '')}</div>
+    let html = `<div class="wa-chat-head">`;
+    if(_waEsMovil()) html += `<button class="wa-tab-btn" style="color:#075E54; background:#fff; border-color:#d1d7db;" onclick="volverListaWhatsapp()"><i class="ti ti-arrow-left"></i></button>`;
+    html += `<div class="wa-avatar">${_waIniciales(nombre)}</div>
+        <div style="flex:1; min-width:0;">
+            <div style="font-weight:700; font-size:14.5px;">${escapeHtml(nombre)}</div>
+            <div style="font-size:11.5px; color:var(--text-muted);"><i class="ti ti-phone"></i> ${escapeHtml(h.telefono_e164 || '')}</div>
         </div>
-        <div>${h.cliente_id
-            ? `<span style="background:#dcfce7; color:#15803d; font-size:11.5px; font-weight:700; padding:3px 9px; border-radius:999px;"><i class="ti ti-user-check"></i> Vinculado a cliente</span>`
-            : `<button class="btn btn-light" style="font-size:11.5px;" onclick="_waToggleVincular('whatsapp_hilos','${h.id}')"><i class="ti ti-user-plus"></i> Vincular cliente</button>`}
-        </div>
+        ${h.cliente_id
+            ? `<span style="background:#dcfce7; color:#15803d; font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; white-space:nowrap;"><i class="ti ti-user-check"></i> Cliente vinculado</span>`
+            : `<button class="wa-tab-btn" style="color:#075E54; background:#fff; border-color:#d1d7db; font-size:11px;" onclick="_waToggleVincular('whatsapp_hilos','${h.id}')"><i class="ti ti-user-plus"></i> Vincular</button>`}
     </div>
-    <div id="vincBox_whatsapp_hilos_${h.id}" style="display:none;">${_clienteVincularHTML('whatsapp_hilos', h.id, h.nombre_perfil, h.telefono_e164)}</div>
-    <div style="margin-top:8px;">${_crmAsignarHTML('whatsapp_hilos', h)}</div>
+    <div style="padding:0 18px; background:#f0f2f5;">
+        <div id="vincBox_whatsapp_hilos_${h.id}" style="display:none; padding:8px 0;">${_clienteVincularHTML('whatsapp_hilos', h.id, h.nombre_perfil, h.telefono_e164)}</div>
+        <div style="padding:6px 0 10px;">${_crmAsignarHTML('whatsapp_hilos', h)}</div>
     </div>`;
 
-    html += `<div class="card" style="min-height:320px; max-height:52vh; overflow-y:auto; display:flex; flex-direction:column; gap:8px; background:#e9edf1;">`;
+    html += `<div id="waMessagesScroll" style="flex:1; overflow-y:auto; padding:16px 20px; display:flex; flex-direction:column; gap:6px;">`;
     if(!_waMensajes.length) {
-        html += `<div style="color:var(--text-muted); font-size:13px; text-align:center; margin:auto;">Sin mensajes todavía.</div>`;
+        html += `<div class="wa-chat-empty">Sin mensajes todavía.</div>`;
     } else {
         html += _waMensajes.map(m => {
             const esOut = m.direccion === 'out';
+            const etiqueta = esOut ? 'Tú (BayolCell)' : nombre;
             return `<div style="display:flex; justify-content:${esOut ? 'flex-end' : 'flex-start'};">
-                <div style="max-width:75%; background:${esOut ? '#dcf8c6' : '#fff'}; border-radius:10px; padding:8px 10px; box-shadow:0 1px 2px rgba(0,0,0,0.08);">
+                <div style="max-width:70%; background:${esOut ? '#dcf8c6' : '#fff'}; border-radius:8px; padding:6px 9px 7px; box-shadow:0 1px .5px rgba(0,0,0,.13); font-size:13.5px;">
+                    <div style="font-size:10px; font-weight:700; color:${esOut ? '#166534' : '#128C7E'}; margin-bottom:2px;">${escapeHtml(etiqueta)}</div>
                     ${_waBurbujaMedia(m)}
-                    ${m.cuerpo ? `<div style="font-size:13.5px; white-space:pre-wrap; word-break:break-word;">${escapeHtml(m.cuerpo)}</div>` : ''}
-                    <div style="text-align:right; font-size:10.5px; color:#64748b; margin-top:3px;">
+                    ${m.cuerpo ? `<div style="white-space:pre-wrap; word-break:break-word;">${escapeHtml(m.cuerpo)}</div>` : ''}
+                    <div style="text-align:right; font-size:10px; color:#8696a0; margin-top:2px;">
                         ${new Date(m.creado_en).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}
                         ${esOut ? ' ' + (WA_ESTADO_ICONO[m.estado] || '') : ''}
                     </div>
@@ -31697,20 +31711,18 @@ function _pintarWhatsappDetalle() {
     html += `</div>`;
 
     if(puedeResponder) {
-        html += `<div class="card" style="margin-top:10px;">`;
         if(ventanaAbierta) {
-            html += `<div style="display:flex; gap:8px;">
-                <input type="text" id="waTexto" placeholder="Escribe una respuesta..." style="flex:1; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13.5px;" onkeydown="if(event.key==='Enter') enviarMensajeWhatsapp()">
-                <button class="btn btn-blue" id="btnWaEnviar" onclick="enviarMensajeWhatsapp()"><i class="ti ti-send"></i> Enviar</button>
+            html += `<div class="wa-input-bar">
+                <input type="text" id="waTexto" placeholder="Escribe una respuesta..." onkeydown="if(event.key==='Enter') enviarMensajeWhatsapp()">
+                <button class="wa-send-btn" id="btnWaEnviar" onclick="enviarMensajeWhatsapp()"><i class="ti ti-send"></i></button>
             </div>`;
         } else {
-            html += `<div style="background:#fef3c7; border:1px solid #fde68a; color:#92400e; padding:10px 12px; border-radius:8px; font-size:12.5px;"><i class="ti ti-clock-exclamation"></i> Pasaron más de 24h desde el último mensaje del cliente — hace falta una plantilla aprobada para poder escribirle (todavía no disponible desde esta pantalla).</div>`;
+            html += `<div style="padding:10px 18px; background:#fef3c7; border-top:1px solid #fde68a; color:#92400e; font-size:12.5px;"><i class="ti ti-clock-exclamation"></i> Pasaron más de 24h desde el último mensaje del cliente — hace falta una plantilla aprobada para poder escribirle (todavía no disponible desde esta pantalla).</div>`;
         }
-        html += `</div>`;
     }
 
     cont.innerHTML = html;
-    const chat = cont.querySelector('.card[style*="overflow-y"]');
+    const chat = document.getElementById('waMessagesScroll');
     if(chat) chat.scrollTop = chat.scrollHeight;
 }
 
@@ -31957,8 +31969,11 @@ async function _crmGuardarAsignacion(tabla, id, tipo, empId) {
    ÁRBOL CRM: sucursal > línea. Se arma dinámicamente porque las
    sucursales/líneas conectadas crecen con el tiempo (whatsapp_lineas).
    ============================================================ */
-async function construirMenuCRM() {
-    const cont = document.getElementById('crmSucursalesNav');
+// Construye el selector compacto de Sucursal + Línea DENTRO de la vista del CRM
+// (ya no vive como árbol en el sidebar — el usuario lo encontró confuso). Si solo
+// hay una línea disponible para este usuario, se autoselecciona y no se muestra nada.
+async function construirSelectorCRM() {
+    const cont = document.getElementById('crmSelectorWrap');
     if(!cont) return;
     if(!isAdminUser() && !tienePermiso('whatsapp_ver') && !tienePermiso('leads_ver')) { cont.innerHTML = ''; return; }
 
@@ -31976,26 +31991,63 @@ async function construirMenuCRM() {
             lineas: (s.whatsapp_lineas || []).filter(l => l.activo !== false)
         })).filter(s => s.lineas.length);
 
-        cont.innerHTML = _crmEstructura.map(s => {
-            const gid = 'suc-' + s.id;
-            return `<button class="nav-sucursal-toggle" id="navGroupHeader-${gid}" data-navgroup="whatsappCrm" onclick="toggleNavGroup('${gid}')"><i class="ti ti-map-pin"></i> <span>${escapeHtml(s.nombre)}</span> <i class="ti ti-chevron-right"></i></button>
-            ${s.lineas.map(l => `<button class="nav-linea-btn" id="menu-linea-${l.id}" data-navgroup="${gid}" onclick="abrirLineaCRM('${l.id}','${escapeHtml(s.nombre)}','${escapeHtml(l.nombre)}', this)"><i class="ti ti-brand-whatsapp"></i> <span>${escapeHtml(l.nombre)}</span></button>`).join('')}`;
-        }).join('');
+        if(!_crmEstructura.length) {
+            cont.innerHTML = '';
+            const titulo = document.getElementById('crmLineaTituloTxt');
+            if(titulo) titulo.textContent = 'CRM';
+            return;
+        }
 
-        inicializarNavGroups();
-    } catch(e) { logError('construirMenuCRM', e); cont.innerHTML = ''; }
+        const totalLineas = _crmEstructura.reduce((n, s) => n + s.lineas.length, 0);
+        if(totalLineas === 1) {
+            cont.innerHTML = '';
+            const s = _crmEstructura[0], l = s.lineas[0];
+            seleccionarLineaCRM(l.id, s.nombre, l.nombre);
+            return;
+        }
+
+        cont.innerHTML = `
+            <select id="crmSelSucursal" onchange="_crmCambioSucursal()" class="wa-select"></select>
+            <select id="crmSelLinea" onchange="_crmCambioLinea()" class="wa-select"></select>
+        `;
+        document.getElementById('crmSelSucursal').innerHTML = _crmEstructura.map(s => `<option value="${s.id}">${escapeHtml(s.nombre)}</option>`).join('');
+        const sucActual = _crmEstructura.find(s => s.lineas.some(l => l.id === _crmLineaActualId)) || _crmEstructura[0];
+        document.getElementById('crmSelSucursal').value = sucActual.id;
+        _crmPoblarLineas(sucActual.id, true);
+    } catch(e) { logError('construirSelectorCRM', e); cont.innerHTML = ''; }
 }
 
-function abrirLineaCRM(lineaId, nombreSucursal, nombreLinea, btn) {
+function _crmPoblarLineas(sucursalId, mantenerLineaActual) {
+    const s = _crmEstructura.find(x => x.id === sucursalId);
+    const sel = document.getElementById('crmSelLinea');
+    if(!s || !sel) return;
+    sel.innerHTML = s.lineas.map(l => `<option value="${l.id}">${escapeHtml(l.nombre)}</option>`).join('');
+    const lineaId = (mantenerLineaActual && s.lineas.some(l => l.id === _crmLineaActualId)) ? _crmLineaActualId : s.lineas[0].id;
+    sel.value = lineaId;
+    const l = s.lineas.find(x => x.id === lineaId);
+    seleccionarLineaCRM(l.id, s.nombre, l.nombre);
+}
+
+function _crmCambioSucursal() {
+    _crmPoblarLineas(document.getElementById('crmSelSucursal').value, false);
+}
+
+function _crmCambioLinea() {
+    const sucId = document.getElementById('crmSelSucursal').value;
+    const s = _crmEstructura.find(x => x.id === sucId);
+    const l = s && s.lineas.find(x => x.id === document.getElementById('crmSelLinea').value);
+    if(l) seleccionarLineaCRM(l.id, s.nombre, l.nombre);
+}
+
+function seleccionarLineaCRM(lineaId, nombreSucursal, nombreLinea) {
     _crmLineaActualId = lineaId;
     _crmSucursalActualNombre = nombreSucursal;
     _crmLineaActualNombre = nombreLinea;
     _waHiloId = null;
-    nav('crmLinea', null);
-    // nav() ya corrió setActiveNav(v), que no reconoce este botón dinámico (su onclick
-    // no dice nav('crmLinea'...)) — se marca activo después, no antes.
-    document.querySelectorAll('.nav-linea-btn.active').forEach(b => b.classList.remove('active'));
-    if(btn) btn.classList.add('active');
+    const titulo = document.getElementById('crmLineaTituloTxt');
+    if(titulo) titulo.textContent = `${nombreSucursal} — ${nombreLinea}`;
+    const tabGuardada = (localStorage.getItem('bayol_subtab_crmlinea') || 'mensajes');
+    crmLineaTab(tabGuardada);
 }
 
 function crmLineaTab(name) {
@@ -32010,13 +32062,12 @@ function crmLineaTab(name) {
 }
 
 async function renderCrmLinea() {
+    if(!_crmEstructura.length) await construirSelectorCRM();
     if(!_crmLineaActualId) {
         const cont = document.getElementById('waWrap');
-        if(cont) cont.innerHTML = `<div class="card" style="text-align:center; color:var(--text-muted); padding:24px 14px;">Elige una sucursal y línea de WhatsApp en el menú lateral.</div>`;
+        if(cont) cont.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:40px 14px; font-size:13px;">No tienes ninguna línea de WhatsApp disponible.</div>`;
         return;
     }
-    const titulo = document.getElementById('crmLineaTituloTxt');
-    if(titulo) titulo.textContent = `${_crmSucursalActualNombre} — ${_crmLineaActualNombre}`;
     const tabGuardada = (localStorage.getItem('bayol_subtab_crmlinea') || 'mensajes');
     crmLineaTab(tabGuardada);
 }

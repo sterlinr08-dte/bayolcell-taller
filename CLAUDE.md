@@ -61,10 +61,12 @@ La barra lateral cambia de vista con **`nav('nombre', this)`**. Cada vista es un
 - `proveedores` — Compras / Proveedores. `renderProveedores()`.
 - `refurb` — **Reacondicionados** (lo más trabajado, ver abajo). `cargarLotesReacond()` / `renderDetalleLoteReacond()`.
 
-**WHATSAPP CRM (Navarrete, sobre Zernio — ver `PENDIENTES.md`)**
-- `whatsapp` — Bandeja de conversaciones (lista+detalle lado a lado, estilo chat). `renderWhatsapp()`. Responder: `enviarMensajeWhatsapp()` → Edge Function `whatsapp-enviar` (solo si hay mensaje entrante en las últimas 24h; si no, exige plantilla, no implementada aún).
-- `leads` — Seguimiento de leads (nuevo/contactado/cotizado/vendido/perdido), creados automático al primer mensaje de un número nuevo (vía `whatsapp-webhook`). `renderLeads()`.
-- Filtro por sucursal: si `sessionUser.sucursal_id` está definido (cuentas de Navarrete) se filtra a esa sucursal; si no (Santiago/Moca), se ve todo — filtrado en el navegador, no hay RLS por sucursal todavía.
+**CRM — WhatsApp (Santiago/Navarrete/Moca, sobre Zernio — ver `PENDIENTES.md`)**
+- Sidebar: **un solo botón "CRM"** (`menu-crm`, `nav('crmLinea',this)`) — sin árbol de sucursal/línea en el menú (se probó anidado y se rechazó por confuso). Vista única `v-crmLinea`, look de WhatsApp real (verde, lista de chats con avatares, burbujas idénticas a WhatsApp).
+- La elección de sucursal/línea vive DENTRO de la vista, en `#crmSelectorWrap` (dos `<select>` compactos en la barra verde superior) — `construirSelectorCRM()`, armado bajo demanda al entrar a la vista (no en `startApp()`), lee `sucursales`+`whatsapp_lineas` sin hardcodear cuántas hay. Si el usuario solo tiene 1 línea disponible, el selector ni se muestra — se autoselecciona.
+- Pestañas Mensajes/Leads dentro de la misma vista (`crmLineaTab()`). Mensajes: `renderWhatsapp()`, lista+detalle estilo WhatsApp Web (`_pintarWhatsappLista()`/`_pintarWhatsappDetalle()`, clases `.wa-*`). Responder: `enviarMensajeWhatsapp()` → Edge Function `whatsapp-enviar` (solo si hay mensaje entrante en las últimas 24h; si no, exige plantilla, no implementada aún). Fotos/audio/video/documentos: `_waBurbujaMedia()`, URLs firmadas del bucket `whatsapp-media`.
+- Leads: `renderLeads()`, creados automático al primer mensaje de un número nuevo (vía `whatsapp-webhook`).
+- Filtro por sucursal: si `sessionUser.sucursal_id` está definido, el selector solo muestra esa sucursal; si no, se ven las 3 — filtrado en el navegador, no hay RLS por sucursal todavía.
 
 **SISTEMA**
 - `etiquetas` — Impresión de Labels (códigos de barra).
@@ -86,7 +88,7 @@ Hay ~70 tablas; muchas están vacías (features futuras). Las **activas** que im
 - **Contabilidad:** `conta_cuentas`, `conta_categorias`, `conta_asientos`, `conta_asiento_lineas`, `conta_movimientos`.
 - **Config/varios:** `config_taller` (datos de la tienda, `cache.configTaller`), `proveedores`, `web_visitas`.
 - **WhatsApp CRM (Santiago/Navarrete/Moca, sobre Zernio):** `sucursales` (Santiago/Moca/Navarrete — el número YA NO vive aquí, se movió a `whatsapp_lineas`). `whatsapp_lineas` (una sucursal puede tener varias líneas de WhatsApp, ej. Santiago = Reparación + Servicio al Cliente, Navarrete = Principal + Al por Mayor; `zernio_account_id` único por línea, `whatsapp_numero`/`whatsapp_phone_number_id`/`whatsapp_waba_id`). `whatsapp_hilos` (conversación por teléfono+sucursal, con `linea_id`; `ultimo_inbound_at` = clave de la ventana de 24h; `asignado_tipo`/`asignado_id` = a quién se le asignó). `whatsapp_mensajes` (`media_path` = adjunto en el bucket de Storage `whatsapp-media`, privado). `leads` (`linea_id`, `etapa`: nuevo/contactado/cotizado/vendido/perdido, `asignado_tipo`/`asignado_id`). `campanas`, `whatsapp_envios_masivos` (Fase 4, aún sin construir). `usuarios.sucursal_id`/`tecnicos.sucursal_id` y `clientes.whatsapp_e164` son columnas nuevas en tablas existentes.
-  - **Menú de 3 niveles** (`construirMenuCRM()`, se arma dinámicamente al hacer login, lee `whatsapp_lineas` — no hardcodea cuántas sucursales/líneas hay): CRM > Sucursal > Línea. Cada línea abre `v-crmLinea` (una sola vista genérica, parametrizada por `_crmLineaActualId`) con pestañas Mensajes/Leads (`crmLineaTab()`).
+  - **Selector dentro de la vista, no árbol en el sidebar** (`construirSelectorCRM()`, se arma al entrar a `v-crmLinea`, lee `whatsapp_lineas` — no hardcodea cuántas sucursales/líneas hay). Elegir sucursal+línea llama a `seleccionarLineaCRM()`, que fija `_crmLineaActualId` y refresca la pestaña activa (`crmLineaTab()`).
   - **Visibilidad por fila:** administradores ven todo lo de la línea; empleados normales solo ven lo asignado a ellos + lo que todavía no tiene dueño (`cargarHilosWhatsapp()`/`cargarLeads()` filtran por `asignado_id`/`asignado_tipo` contra `sessionUser.id`/`sessionUser._tipo`). Botón "Asignarme" (cualquiera con permiso) y "Reasignar" (solo admin) — `asignarmeCRM()`/`reasignarCRM()`.
 - Para ver columnas exactas usa MCP Supabase: `list_tables` (verbose) o `execute_sql` sobre `information_schema.columns`.
 
