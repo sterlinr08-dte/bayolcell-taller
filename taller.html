@@ -409,15 +409,20 @@ tr:hover td { background: #f8fafc; }
        seguir calculando su alto con el mismo 100vh/220px que usa en desktop — con eso
        quedaba una franja vacia/oscura abajo por el desfase de la barra de direcciones de
        Safari en iOS. 100dvh (altura de viewport DINAMICA) se ajusta sola cuando esa barra
-       aparece/desaparece, a diferencia de 100vh que se queda fija.
-       Fix 2026-09-02 (franja vacia arriba del teclado): dvh NO se achica cuando aparece
-       el teclado en iOS Safari (a diferencia de la barra de direcciones) — .wa-shell se
-       quedaba con el alto de la pantalla COMPLETA aunque el teclado tapara media pantalla,
-       dejando ese hueco en blanco entre el input y el teclado. --wa-vvh la actualiza en JS
-       con window.visualViewport (que si reacciona al teclado); con var(...) como ultima
-       declaracion gana sobre dvh una vez que JS la define, y cae de vuelta a dvh mientras
-       tanto (progressive enhancement, mismo patron que vh -> dvh de arriba). */
+       aparece/desaparece, a diferencia de 100vh que se queda fija. */
     .wa-shell { height: calc(100vh - 240px); height: calc(100dvh - 240px); height: calc(var(--wa-vvh, 100dvh) - 240px); min-height: 420px; }
+    /* Fix 2026-09-02 (franja vacia arriba del teclado), intento 2: achicar el alto de
+       .wa-shell con dvh/visualViewport no alcanzo, porque el problema real es que la
+       PAGINA ENTERA se desplaza al enfocar el input (body queda "overflow:auto" arriba)
+       — y ese desplazamiento lo calcula iOS con medidas de ANTES de que el teclado
+       apareciera, dejando el hueco. La solucion es sacar .wa-shell del flujo normal
+       (position:fixed, en su misma posicion visual de siempre) mientras se ve esta
+       pantalla: al no ser parte de lo que scrollea, no hay nada que iOS necesite
+       desplazar para "revelar" el input — ya esta siempre visible. Top/left/right/height
+       los pone _waFijarShell()/_waAplicarShellFijo() en JS (con visualViewport, que si
+       reacciona al teclado). */
+    body.wa-chat-fijo { overflow: hidden; }
+    .wa-shell.wa-fijo { position: fixed; z-index: 15; margin: 0; }
     /* Con lista+chat mostrados uno a la vez (nunca los dos juntos aqui, ya que _waEsMovil()
        usa el mismo 1024px de arriba), la columna de lista debe ocupar todo el ancho en vez
        de quedarse en los 320px fijos de escritorio con espacio vacio al lado. */
@@ -31673,6 +31678,7 @@ function _pintarWhatsapp() {
     </div>`;
     if(mostrarLista) _pintarWhatsappLista();
     if(mostrarDetalle) _pintarWhatsappDetalle();
+    _waFijarShell(); // .wa-shell se recreo entero arriba (innerHTML) — hay que re-fijarlo cada vez
 }
 
 function _waIniciales(nombre) {
@@ -32348,15 +32354,55 @@ function seleccionarLineaCRM(lineaId, nombreSucursal, nombreLinea) {
     _waEscucharViewport();
 }
 
-// Sigue el alto REAL visible (window.visualViewport) para .wa-shell en movil —
-// ver el comentario junto a .wa-shell en el media query de 1024px. window.resize
-// no siempre dispara cuando aparece/desaparece el teclado en iOS Safari; el
-// evento correcto es visualViewport.resize (y .scroll, por si solo se reacomoda
-// sin cambiar de alto). Se activa solo mientras la vista del CRM esta abierta,
-// igual que el canal de tiempo real.
+// Fix del hueco con el teclado en iOS (2026-09-02, intento 2) — ver el
+// comentario junto a .wa-shell.wa-fijo en el media query de 1024px. En vez
+// de solo achicar el alto de .wa-shell y confiar en que la pagina se
+// desplace bien sola (eso no alcanzo: iOS desplaza TODA la pagina al
+// enfocar el input, con medidas de antes de que el teclado apareciera),
+// .wa-shell se saca del flujo normal (position:fixed) mientras se ve esta
+// pantalla, en su misma posicion visual de siempre — asi no hay nada que
+// desplazar. Se activa/desactiva junto con la vista del CRM.
+let _waShellTopFijo = null, _waShellLeftFijo = null, _waShellRightFijo = null;
+
 function _waActualizarAltoVisual() {
     const vv = window.visualViewport;
     document.documentElement.style.setProperty('--wa-vvh', (vv ? vv.height : window.innerHeight) + 'px');
+    _waAplicarShellFijo();
+}
+// Mide donde cae .wa-shell en su posicion normal (sin fijar todavia) y la
+// deja guardada — solo la primera vez que se ve esta línea, hasta salir de
+// la vista. Hace falta llamarla despues de CADA render de .wa-shell (se
+// recrea entero via innerHTML en _pintarWhatsapp) porque el estilo inline
+// que le pone _waAplicarShellFijo se pierde con cada re-render.
+function _waFijarShell() {
+    if(!_waEsMovil()) return;
+    const shell = document.querySelector('.wa-shell');
+    if(!shell) return;
+    if(_waShellTopFijo === null) {
+        window.scrollTo(0, 0);
+        const r = shell.getBoundingClientRect();
+        _waShellTopFijo = Math.round(r.top);
+        _waShellLeftFijo = Math.round(r.left);
+        _waShellRightFijo = Math.round(window.innerWidth - r.right);
+        document.body.classList.add('wa-chat-fijo');
+    }
+    _waAplicarShellFijo();
+}
+function _waAplicarShellFijo() {
+    if(_waShellTopFijo === null || !_waEsMovil()) return;
+    const shell = document.querySelector('.wa-shell');
+    if(!shell) return;
+    const vv = window.visualViewport;
+    const alto = vv ? vv.height : window.innerHeight;
+    shell.classList.add('wa-fijo');
+    shell.style.top = _waShellTopFijo + 'px';
+    shell.style.left = _waShellLeftFijo + 'px';
+    shell.style.right = _waShellRightFijo + 'px';
+    shell.style.height = Math.max(280, alto - _waShellTopFijo) + 'px';
+}
+function _waSoltarShell() {
+    _waShellTopFijo = _waShellLeftFijo = _waShellRightFijo = null;
+    document.body.classList.remove('wa-chat-fijo');
 }
 function _waEscucharViewport() {
     _waActualizarAltoVisual();
@@ -32375,6 +32421,7 @@ function _waDejarDeEscucharViewport() {
         window.removeEventListener('resize', _waActualizarAltoVisual);
     }
     document.documentElement.style.removeProperty('--wa-vvh');
+    _waSoltarShell();
 }
 
 // Actualizacion en tiempo real del CRM: mensajes/hilos/leads nuevos aparecen
@@ -32423,7 +32470,7 @@ function crmLineaTab(name) {
     if(le) le.style.display = name === 'leads' ? '' : 'none';
     if(btnWa) btnWa.className = 'btn ' + (name === 'mensajes' ? 'btn-blue' : 'btn-light');
     if(btnLe) btnLe.className = 'btn ' + (name === 'leads' ? 'btn-blue' : 'btn-light');
-    if(name === 'mensajes') renderWhatsapp(); else renderLeads();
+    if(name === 'mensajes') renderWhatsapp(); else { _waSoltarShell(); renderLeads(); }
 }
 
 async function renderCrmLinea() {
