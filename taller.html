@@ -156,19 +156,28 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
 .wa-brow { display:flex; position:relative; touch-action:pan-y; }
 .wa-brow.out { justify-content:flex-end; }
 .wa-bubble-wrap { position:relative; max-width:70%; animation:waBubbleIn .18s ease-out; transition:transform .15s ease; }
-.wa-reply-icon { position:absolute; top:50%; transform:translateY(-50%); width:26px; height:26px; border-radius:50%; background:rgba(255,255,255,.95); box-shadow:0 1px 3px rgba(0,0,0,.25); display:none; align-items:center; justify-content:center; color:#54656f; cursor:pointer; font-size:14px; z-index:2; }
-.wa-brow.in .wa-reply-icon { right:-32px; }
-.wa-brow.out .wa-reply-icon { left:-32px; }
-/* Responder solo por icono en PC (al pasar el mouse) — en movil el gesto de
-   deslizar (swipe) ya lo cubre, sin icono estorbando la burbuja. */
-@media (hover:hover) { .wa-brow:hover .wa-reply-icon { display:flex; } }
+.wa-reply-icon { display:none; } /* movil: solo swipe. PC: reemplazado por el menu de acciones (wa-menu-btn) */
 
-/* Reenviar: siempre visible (no tiene gesto equivalente al swipe), pegado
-   adentro del borde de la burbuja, discreto hasta que se toca/hace hover. */
-.wa-forward-icon { position:absolute; top:50%; transform:translateY(-50%); width:24px; height:24px; border-radius:50%; background:rgba(255,255,255,.9); box-shadow:0 1px 3px rgba(0,0,0,.2); display:flex; align-items:center; justify-content:center; color:#54656f; cursor:pointer; font-size:13px; z-index:2; opacity:.65; transition:opacity .12s; }
-.wa-forward-icon:hover { opacity:1; }
+/* Reenviar en movil: icono fijo pegado adentro del borde de la burbuja, con
+   animacion de "presionado" al tocarlo (no hay gesto equivalente al swipe
+   para esta accion). En PC se oculta — ahi vive dentro del menu de acciones. */
+.wa-forward-icon { position:absolute; top:50%; transform:translateY(-50%); width:24px; height:24px; border-radius:50%; background:rgba(255,255,255,.9); box-shadow:0 1px 3px rgba(0,0,0,.2); display:flex; align-items:center; justify-content:center; color:#54656f; cursor:pointer; font-size:13px; z-index:2; opacity:.7; transition:opacity .12s, transform .12s; }
+.wa-forward-icon:active { transform:translateY(-50%) scale(.8); opacity:1; }
 .wa-brow.in .wa-forward-icon { right:4px; }
 .wa-brow.out .wa-forward-icon { left:4px; }
+
+/* Menu de acciones en PC — como WhatsApp Web: una flechita (chevron) que
+   aparece al pasar el mouse sobre la burbuja y abre Responder/Reenviar. */
+.wa-menu-btn { display:none; position:absolute; top:-7px; right:-7px; width:22px; height:22px; border-radius:50%; align-items:center; justify-content:center; color:#54656f; cursor:pointer; font-size:12px; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.25); z-index:3; }
+@media (hover:hover) {
+    .wa-forward-icon { display:none; }
+    .wa-bubble-wrap:hover .wa-menu-btn, .wa-menu-btn.wa-menu-open { display:flex; }
+}
+.wa-menu-btn:hover, .wa-menu-btn.wa-menu-open { background:#e9edef; color:#111b21; }
+.wa-acciones-menu { display:none; position:fixed; flex-direction:column; background:#fff; border-radius:8px; box-shadow:0 4px 18px rgba(0,0,0,.25); padding:5px; z-index:500; min-width:150px; }
+.wa-acciones-menu button { display:flex; align-items:center; gap:9px; background:none; border:none; padding:8px 12px; font-size:13px; text-align:left; border-radius:6px; cursor:pointer; color:#111b21; width:100%; }
+.wa-acciones-menu button:hover { background:#f0f2f5; }
+.wa-acciones-menu button i { font-size:15px; color:#54656f; }
 .wa-quote { position:relative; border-radius:6px; padding:6px 10px 7px; margin-bottom:5px; font-size:12.5px; cursor:pointer; border-left:4px solid #128C7E; background:rgba(0,0,0,.05); transition:filter .12s; }
 .wa-quote:hover { filter:brightness(.96); }
 .wa-quote .who { font-weight:700; font-size:12.5px; margin-bottom:1px; line-height:1.25; color:#128C7E; }
@@ -31781,6 +31790,7 @@ function _pintarWhatsappDetalle() {
                 <i class="ti ti-arrow-back-up wa-reply-icon" onclick="_waActivarRespuesta('${m.id}')" title="Responder"></i>
                 <i class="ti ti-arrow-forward-up wa-forward-icon" onclick="_waAbrirReenviar('${m.id}')" title="Reenviar"></i>
                 <div class="wa-bubble-wrap" style="background:${esOut ? '#dcf8c6' : '#fff'}; border-radius:8px; padding:6px 9px 7px; box-shadow:0 1px .5px rgba(0,0,0,.13); font-size:13.5px;">
+                    <i class="ti ti-chevron-down wa-menu-btn" onclick="_waAbrirMenuAcciones(event, '${m.id}')" title="Más opciones"></i>
                     <div style="font-size:10px; font-weight:700; color:${esOut ? '#166534' : '#128C7E'}; margin-bottom:2px;">${escapeHtml(etiqueta)}</div>
                     ${citaHTML}
                     ${_waBurbujaMedia(m)}
@@ -31823,6 +31833,61 @@ function _waIrAMensaje(id) {
     void wrap.offsetWidth; // reinicia la animación si ya se había resaltado antes
     wrap.classList.add('wa-flash');
     setTimeout(() => wrap.classList.remove('wa-flash'), 1000);
+}
+
+// Menú de acciones en PC (Responder / Reenviar) — como el chevron de
+// WhatsApp Web: una sola flechita al hover de la burbuja que despliega las
+// opciones, en vez de dos iconos sueltos siempre encima del mensaje.
+let _waMenuAccionesMsgId = null;
+function _waAsegurarMenuAcciones() {
+    let menu = document.getElementById('waAccionesMenu');
+    if(!menu) {
+        menu = document.createElement('div');
+        menu.id = 'waAccionesMenu';
+        menu.className = 'wa-acciones-menu';
+        menu.innerHTML = `
+            <button onclick="_waMenuAccion('responder')"><i class="ti ti-arrow-back-up"></i> Responder</button>
+            <button onclick="_waMenuAccion('reenviar')"><i class="ti ti-arrow-forward-up"></i> Reenviar</button>
+        `;
+        document.body.appendChild(menu);
+        document.addEventListener('click', e => {
+            if(!menu.contains(e.target) && !e.target.closest('.wa-menu-btn')) _waCerrarMenuAcciones();
+        });
+        document.addEventListener('scroll', () => _waCerrarMenuAcciones(), true);
+    }
+    return menu;
+}
+function _waAbrirMenuAcciones(ev, msgId) {
+    ev.stopPropagation();
+    const btn = ev.currentTarget;
+    const yaAbierto = btn.classList.contains('wa-menu-open');
+    _waCerrarMenuAcciones();
+    if(yaAbierto) return; // tocar el mismo chevron otra vez = cerrar
+    const menu = _waAsegurarMenuAcciones();
+    _waMenuAccionesMsgId = msgId;
+    btn.classList.add('wa-menu-open');
+    menu.style.display = 'flex';
+    const r = btn.getBoundingClientRect();
+    const alturaMenu = 84;
+    let top = r.bottom + 4;
+    if(top + alturaMenu > window.innerHeight) top = r.top - alturaMenu - 4;
+    let left = r.right - 150;
+    if(left < 8) left = 8;
+    menu.style.top = top + 'px';
+    menu.style.left = left + 'px';
+}
+function _waCerrarMenuAcciones() {
+    const menu = document.getElementById('waAccionesMenu');
+    if(menu) menu.style.display = 'none';
+    document.querySelectorAll('.wa-menu-btn.wa-menu-open').forEach(b => b.classList.remove('wa-menu-open'));
+    _waMenuAccionesMsgId = null;
+}
+function _waMenuAccion(accion) {
+    const msgId = _waMenuAccionesMsgId;
+    _waCerrarMenuAcciones();
+    if(!msgId) return;
+    if(accion === 'responder') _waActivarRespuesta(msgId);
+    else if(accion === 'reenviar') _waAbrirReenviar(msgId);
 }
 
 // Reenviar un mensaje a otra conversación (dentro de la línea actual).
