@@ -33603,19 +33603,22 @@ function seleccionarLineaCRM(lineaId, nombreSucursal, nombreLinea) {
     _waEscucharViewport();
 }
 
-// Sigue el alto REAL visible para .wa-shell en movil. visualViewport.height y
-// offsetTop describen el area que queda sobre el teclado; getBoundingClientRect
-// usa el mismo sistema de coordenadas visible. No se suma window.scrollY ni se
-// resta la posicion absoluta del documento porque eso mezcla dos referencias
-// distintas cuando Safari desplaza la pagina al enfocar el input.
+// Sigue el alto REAL visible para .wa-shell en movil. Durante la animacion de
+// cierre del teclado Safari puede informar un offsetTop transitorio aunque
+// getBoundingClientRect() ya venga relativo al area que el usuario esta viendo.
+// Sumar ambos desplaza el composer detras del teclado. Por eso se usa solo la
+// altura visible y la posicion visible del shell; el alto tampoco puede superar
+// el propio visualViewport.
 function _waActualizarAltoVisual() {
     if(!_waEsMovil()) return;
     const vv = window.visualViewport;
     const shell = document.querySelector('.wa-shell');
     if(shell) {
-        const fondoVisible = vv ? vv.offsetTop + vv.height : window.innerHeight;
-        const arribaVisible = shell.getBoundingClientRect().top;
-        const alto = Math.max(180, Math.floor(fondoVisible - arribaVisible - 8));
+        const altoViewport = vv ? vv.height : window.innerHeight;
+        const arribaDentroViewport = Math.max(0, shell.getBoundingClientRect().top);
+        const disponible = Math.floor(altoViewport - arribaDentroViewport - 8);
+        const maximoVisible = Math.floor(altoViewport - 8);
+        const alto = Math.max(120, Math.min(disponible, maximoVisible));
         document.documentElement.style.setProperty('--wa-shell-height', alto + 'px');
     }
 }
