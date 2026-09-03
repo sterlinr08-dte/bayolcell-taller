@@ -145,49 +145,51 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
    Elevado = "tócame". Hundido = "aquí ya entró algo".
    ============================================================ */
 .pill-elevado {
-    background:linear-gradient(180deg,#eef1f4 0%,#e7eaed 16%,#dee1e5 40%,#d7dadf 58%,#dfe2e6 80%,#e7eaed 100%);
-    border:none; border-radius:9999px; cursor:pointer;
+    background:
+        linear-gradient(145deg,rgba(255,255,255,.76),rgba(226,232,240,.54)),
+        rgba(241,245,249,.58);
+    border:1px solid rgba(255,255,255,.78); border-radius:9999px; cursor:pointer;
+    backdrop-filter:blur(15px) saturate(155%); -webkit-backdrop-filter:blur(15px) saturate(155%);
     box-shadow:
-        inset 0 1px 0 rgba(255,255,255,.90),
-        inset 0 2.5px 6px rgba(15,23,42,.11),
-        inset 0 -1.5px 3.5px rgba(255,255,255,.92),
-        0 1px 1px rgba(15,23,42,.06),
-        0 3px 7px rgba(15,23,42,.09),
-        0 10px 18px -10px rgba(15,23,42,.14);
+        inset 0 1px 0 rgba(255,255,255,.96),
+        inset 0 -1px 0 rgba(148,163,184,.16),
+        0 4px 12px -7px rgba(15,23,42,.24),
+        0 12px 28px -18px rgba(15,23,42,.30);
     outline:none; -webkit-tap-highlight-color:transparent;
-    transition: box-shadow .18s ease, color .18s ease, transform .12s ease, filter .18s ease;
+    transition:box-shadow .24s cubic-bezier(.2,.8,.2,1), color .2s ease,
+        transform .2s cubic-bezier(.2,.8,.2,1), filter .2s ease,
+        background .25s ease, border-color .25s ease;
 }
 .pill-elevado:active { transform:translateY(1px); }
 /* El guard :not(.pill-hundido) es obligatorio: sin él, por especificidad, tocar
    de nuevo el elemento YA seleccionado lo haría parpadear convexo un instante. */
 .pill-elevado:active:not(.pill-hundido) {
     box-shadow:
-        inset 0 1px 0 rgba(255,255,255,.70),
-        inset 0 2.5px 6px rgba(15,23,42,.15),
-        inset 0 -1px 2.5px rgba(255,255,255,.75),
-        0 1px 2px rgba(15,23,42,.08);
+        inset 0 2px 5px rgba(15,23,42,.15),
+        inset 0 -1px 0 rgba(255,255,255,.7),
+        0 2px 7px -5px rgba(15,23,42,.26);
 }
 @media (hover:hover) and (pointer:fine) {
     .pill-elevado:hover:not(.pill-hundido) {
-        filter:brightness(1.035);
+        filter:brightness(1.025) saturate(1.06);
+        border-color:rgba(255,255,255,.96);
         box-shadow:
-            inset 0 1px 0 rgba(255,255,255,.95),
-            inset 0 2.5px 6px rgba(15,23,42,.11),
-            inset 0 -1.5px 3.5px rgba(255,255,255,.92),
-            0 1px 2px rgba(15,23,42,.07),
-            0 4px 9px rgba(15,23,42,.11),
-            0 12px 20px -10px rgba(15,23,42,.16);
+            inset 0 1px 0 rgba(255,255,255,1),
+            inset 0 -1px 0 rgba(148,163,184,.12),
+            0 7px 16px -10px rgba(15,23,42,.30),
+            0 16px 32px -21px rgba(15,23,42,.38);
     }
 }
 .pill-hundido {
+    background:
+        linear-gradient(145deg,rgba(255,255,255,.68),rgba(254,226,226,.42)),
+        rgba(248,250,252,.58);
+    border-color:rgba(255,255,255,.82);
     box-shadow:
-        inset 0 1.5px 3px rgba(15,23,42,.17),
-        inset -6px 0 10px rgba(255,255,255,.62),
-        inset 0 7px 13px rgba(15,23,42,.09),
-        inset 0 -6px 10px rgba(255,255,255,.55),
-        inset 0 3px 5px rgba(220,38,38,.08),
-        0 0 0 1px rgba(220,38,38,.05),
-        0 0 10px -3px rgba(220,38,38,.15);
+        inset 0 2px 7px rgba(15,23,42,.14),
+        inset 0 -1px 0 rgba(255,255,255,.78),
+        0 0 0 1px rgba(220,38,38,.07),
+        0 7px 20px -15px rgba(220,38,38,.40);
     border-radius:9999px;
 }
 /* Safari no puede redondear el outline nativo — se quita del todo. */
@@ -232,6 +234,8 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
 @keyframes crmBarraEntrada { from { opacity:0; transform:translateY(-5px); } to { opacity:1; transform:translateY(0); } }
 @keyframes crmBuscarEntrada { from { opacity:0; transform:scaleX(.72); } to { opacity:1; transform:scaleX(1); } }
 @keyframes crmMenuEntrada { from { opacity:0; transform:translateY(-5px) scale(.97); } to { opacity:1; transform:translateY(0) scale(1); } }
+@keyframes crmPildoraActiva { 0% { transform:scale(.965); opacity:.72; } 65% { transform:scale(1.018); } 100% { transform:scale(1); opacity:1; } }
+.crm-tab-seg.on, .crm-chip.on { animation:crmPildoraActiva .3s cubic-bezier(.2,.82,.25,1); }
 
 /* Tarjeta de resumen — mismo lenguaje "vidrio + 3D" que las KPI del Dashboard */
 .crm-stats {
@@ -266,9 +270,13 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
 /* El buscador se despliega EN EL SITIO (no abre modal) — es un filtro de lista. */
 .crm-buscar-input {
     flex:1; min-width:0; padding:11px 16px; font-size:16px; border:none; border-radius:9999px;
-    background:#e7ebef; color:#1e293b; outline:none;
-    box-shadow: inset 0 3px 6px rgba(15,23,42,.14), inset 0 -1px 2px rgba(255,255,255,.6);
+    background:linear-gradient(145deg,rgba(255,255,255,.76),rgba(226,232,240,.52)); color:#1e293b; outline:none;
+    border:1px solid rgba(255,255,255,.82);
+    backdrop-filter:blur(15px) saturate(150%); -webkit-backdrop-filter:blur(15px) saturate(150%);
+    box-shadow:inset 0 2px 5px rgba(15,23,42,.11), inset 0 -1px 0 rgba(255,255,255,.72), 0 8px 20px -16px rgba(15,23,42,.34);
+    transition:box-shadow .2s ease, border-color .2s ease, background .2s ease;
 }
+.crm-buscar-input:focus { border-color:rgba(220,38,38,.28); box-shadow:inset 0 1px 3px rgba(15,23,42,.09), 0 0 0 3px rgba(220,38,38,.08), 0 10px 24px -18px rgba(15,23,42,.36); }
 .crm-filtros-btn { display:flex; align-items:center; gap:7px; padding:11px 16px; font-size:13px; font-weight:700; color:#1e293b; white-space:nowrap; }
 .crm-filtros-btn.activo { color:#dc2626; }
 
@@ -505,6 +513,9 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
     0%,100% { transform:scale(1); box-shadow:0 1px 3px rgba(7,94,84,.35); }
     50% { transform:scale(.9); box-shadow:0 0 0 7px rgba(18,140,126,.12); }
 }
+@keyframes waEstadoEnviando { 0% { transform:rotate(-18deg); opacity:.45; } 50% { transform:rotate(10deg); opacity:1; } 100% { transform:rotate(-18deg); opacity:.45; } }
+.wa-estado-enviando { display:inline-flex; color:#667781; animation:waEstadoEnviando .72s ease-in-out infinite; transform-origin:center; }
+.wa-estado-fallido { display:inline-flex; color:#dc2626; animation:crmPildoraActiva .3s ease-out; }
 .wa-brow { display:flex; position:relative; touch-action:pan-y; }
 .wa-brow.out { justify-content:flex-end; }
 .wa-bubble-wrap { position:relative; max-width:70%; animation:waBubbleIn .18s ease-out; transition:transform .15s ease; }
@@ -801,6 +812,14 @@ tr:hover td { background: #f8fafc; }
     .top-bar .btn-light { padding: 4px 8px !important; font-size: 10px !important; }
     
     .content { padding: 12px; overflow-y: visible; height: auto; flex: none; }
+
+    /* Transición corta solo en los controles; la lista no se reanima cada vez
+       que entra un mensaje por Realtime. */
+    #v-crmLinea.active .crm-selectores { animation:crmBarraEntrada .24s ease-out both; }
+    #v-crmLinea.active .crm-tabs-row { animation:crmBarraEntrada .24s .035s ease-out both; }
+    #v-crmLinea.active .crm-stats { animation:crmBarraEntrada .24s .07s ease-out both; }
+    #v-crmLinea.active .crm-busq-row { animation:crmBarraEntrada .24s .105s ease-out both; }
+    #v-crmLinea.active .crm-chips-row { animation:crmBarraEntrada .24s .14s ease-out both; }
 
     /* CRM (WhatsApp) en movil/tablet. El alto exacto lo calcula
        _waActualizarAltoVisual() con coordenadas del visual viewport. Usar una
@@ -32115,6 +32134,10 @@ let _waHiloId = null;
 let _waMensajes = [];
 let _waEnviando = false;
 let _waMensajeAnimarId = null;
+// Mensajes dibujados antes de que termine la llamada a Zernio. Se mantienen
+// aparte para que una actualización de Realtime no haga desaparecer la
+// burbuja mientras el servidor todavía está confirmando el envío.
+const _waMensajesOptimistas = new Map();
 let _crmImportandoHistorial = false;
 
 // CRM: sucursal > línea de WhatsApp. El selector se arma dinámicamente (construirSelectorCRM)
@@ -32502,6 +32525,15 @@ async function cargarMensajesHilo(hiloId) {
         if(token !== _waCargaToken) return; // se cancelo a medio camino
     }
     if(token !== _waCargaToken) return;
+    // Sustituir el provisional cuando aparezca la fila definitiva; mientras
+    // tanto conservarlo aunque Realtime vuelva a cargar la conversación.
+    for(const [tempId, opt] of _waMensajesOptimistas) {
+        if(opt.hilo_id !== hiloId) continue;
+        const yaExiste = opt.wa_message_id && lista.some(m => m.wa_message_id === opt.wa_message_id);
+        if(yaExiste) _waMensajesOptimistas.delete(tempId);
+        else lista.push(opt);
+    }
+    lista.sort((a,b) => new Date(a.creado_en) - new Date(b.creado_en));
     _waMensajes = lista;
 }
 
@@ -32541,10 +32573,11 @@ function _waPreviewTexto(m) {
 }
 // Ticks estilo WhatsApp real: 1 gris = enviado, 2 gris = entregado, 2 AZUL = leido.
 function _waIconoEstado(estado) {
+    if(estado === 'enviando') return '<span class="wa-estado-enviando" title="Enviando"><i class="ti ti-clock"></i></span>';
     if(estado === 'enviado') return '<span style="color:#8696a0;">✓</span>';
     if(estado === 'entregado') return '<span style="color:#8696a0;">✓✓</span>';
     if(estado === 'leido') return '<span style="color:#34B7F1;">✓✓</span>';
-    if(estado === 'fallido') return '<span style="color:#ef4444;">⚠️</span>';
+    if(estado === 'fallido') return '<span class="wa-estado-fallido" title="No se pudo enviar"><i class="ti ti-alert-circle-filled"></i></span>';
     return '';
 }
 
@@ -32604,15 +32637,16 @@ function _pintarWhatsappDetalle() {
         const porId = {}; _waMensajes.forEach(x => porId[x.id] = x);
         html += _waMensajes.map(m => {
             const esOut = m.direccion === 'out';
+            const esOptimista = !!m._optimista;
             const etiqueta = esOut ? 'Tú (BayolCell)' : nombre;
             const original = m.responde_a_id ? porId[m.responde_a_id] : null;
             const animarEnvio = esOut && m.id === _waMensajeAnimarId;
             const citaHTML = original ? `<div class="wa-quote wa-quote-${original.direccion}" onclick="event.stopPropagation(); _waIrAMensaje('${original.id}')"><div class="who">${escapeHtml(original.direccion === 'out' ? 'Tú (BayolCell)' : nombre)}</div><div class="txt">${escapeHtml(_waPreviewTexto(original))}</div></div>` : '';
-            return `<div class="wa-brow ${esOut ? 'out' : 'in'}${animarEnvio ? ' wa-envio-nuevo' : ''}" data-msgid="${m.id}">
-                <i class="ti ti-arrow-back-up wa-reply-icon" onclick="_waActivarRespuesta('${m.id}')" title="Responder"></i>
+            return `<div class="wa-brow ${esOut ? 'out' : 'in'}${animarEnvio ? ' wa-envio-nuevo' : ''}"${esOptimista ? '' : ` data-msgid="${m.id}"`}>
+                ${esOptimista ? '' : `<i class="ti ti-arrow-back-up wa-reply-icon" onclick="_waActivarRespuesta('${m.id}')" title="Responder"></i>`}
                 <div class="wa-bubble-wrap" style="background:${esOut ? '#dcf8c6' : '#fff'}; border-radius:8px; padding:6px 9px 7px; box-shadow:0 1px .5px rgba(0,0,0,.13); font-size:13.5px;">
-                    <span class="wa-swipe-forward-cue"><i class="ti ti-arrow-forward-up"></i><span>Reenviar</span></span>
-                    <i class="ti ti-chevron-down wa-menu-btn" onclick="_waAbrirMenuAcciones(event, '${m.id}')" title="Más opciones"></i>
+                    ${esOptimista ? '' : `<span class="wa-swipe-forward-cue"><i class="ti ti-arrow-forward-up"></i><span>Reenviar</span></span>
+                    <i class="ti ti-chevron-down wa-menu-btn" onclick="_waAbrirMenuAcciones(event, '${m.id}')" title="Más opciones"></i>`}
                     <div style="font-size:10px; font-weight:700; color:${esOut ? '#166534' : '#128C7E'}; margin-bottom:2px;">${escapeHtml(etiqueta)}</div>
                     ${m.plantilla_nombre ? `<div style="font-size:10px; color:#8696a0; margin-bottom:3px;"><i class="ti ti-file-text"></i> Plantilla: ${escapeHtml(m.plantilla_nombre)}</div>` : ''}
                     ${citaHTML}
@@ -33537,13 +33571,54 @@ async function enviarMensajeWhatsapp() {
     const hiloDestino = _waHiloId;
     const respondeA = (_waRespondiendoA && _waRespondiendoA.hiloId === hiloDestino) ? _waRespondiendoA.id : null;
     if(!hiloDestino) return;
-    const btn = document.getElementById('btnWaEnviar');
+    const tempId = `wa-temp-${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
+    const optimista = {
+        id: tempId,
+        hilo_id: hiloDestino,
+        direccion: 'out',
+        tipo_contenido: 'text',
+        cuerpo: mensaje,
+        responde_a_id: respondeA,
+        creado_en: new Date().toISOString(),
+        estado: 'enviando',
+        _optimista: true
+    };
+
     _waEnviando = true;
     activarAudioNotif();
-    if(btn) { btn.disabled = true; btn.classList.add('wa-enviando'); }
+    // Respuesta visual inmediata: el composer se vacía y la burbuja nace en
+    // el mismo frame del toque, sin esperar la confirmación de Zernio.
+    for(const [id, opt] of _waMensajesOptimistas) {
+        if(opt.hilo_id === hiloDestino && opt.estado === 'fallido') _waMensajesOptimistas.delete(id);
+    }
+    _waMensajesOptimistas.set(tempId, optimista);
+    _waMensajes = _waMensajes.filter(m => !(m._optimista && m.estado === 'fallido'));
+    _waMensajes.push(optimista);
+    if(input) input.value = '';
+    if(_waRespondiendoA && _waRespondiendoA.hiloId === hiloDestino) _waRespondiendoA = null;
+    _waMensajeAnimarId = tempId;
+    _pintarWhatsappDetalle();
+    const bloquearBoton = (activo) => {
+        const botonActual = document.getElementById('btnWaEnviar');
+        if(!botonActual) return;
+        botonActual.disabled = activo;
+        botonActual.classList.toggle('wa-enviando', activo);
+    };
+    bloquearBoton(true);
+
+    const marcarFallo = (textoError) => {
+        const opt = _waMensajesOptimistas.get(tempId);
+        if(opt) opt.estado = 'fallido';
+        if(_waHiloId === hiloDestino) {
+            const actual = document.getElementById('waTexto');
+            if(actual && !actual.value) actual.value = mensaje;
+            _pintarWhatsappDetalle();
+        }
+        toastError(textoError || 'No se pudo enviar el mensaje.');
+    };
     try {
         const { data: { session } } = await supabaseClient.auth.getSession();
-        if(!session) { toastError('Inicia sesión de nuevo.'); return; }
+        if(!session) { marcarFallo('Inicia sesión de nuevo.'); return; }
         const res = await fetch(CONFIG_URL + '/functions/v1/whatsapp-enviar', {
             method: 'POST',
             headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY, 'Content-Type': 'application/json' },
@@ -33551,32 +33626,31 @@ async function enviarMensajeWhatsapp() {
         });
         const j = await res.json();
         if(j && j.ok) {
-            // Solo limpiar el composer/la cita si el usuario sigue viendo el
-            // mismo hilo al que se mando (si ya se movio, no tocarle lo que
-            // este escribiendo ahora en la otra conversacion).
-            if(_waHiloId === hiloDestino) {
-                if(input) input.value = '';
-                if(_waRespondiendoA && _waRespondiendoA.hiloId === hiloDestino) _waRespondiendoA = null;
+            const opt = _waMensajesOptimistas.get(tempId);
+            if(opt) {
+                opt.estado = 'enviado';
+                opt.wa_message_id = j.messageId || null;
             }
-            if(_waHiloId) await cargarMensajesHilo(_waHiloId);
             if(_waHiloId === hiloDestino) {
-                const enviados = [..._waMensajes].reverse();
-                const nuevo = (j.messageId && enviados.find(m => m.wa_message_id === j.messageId))
-                    || enviados.find(m => m.direccion === 'out' && m.cuerpo === mensaje
-                        && Date.now() - new Date(m.creado_en).getTime() < 60000);
-                _waMensajeAnimarId = nuevo?.id || null;
+                _pintarWhatsappDetalle();
+                bloquearBoton(true);
+                reproducirSonido('whatsappEnviado');
             }
-            await cargarHilosWhatsapp();
-            _pintarWhatsapp();
-            reproducirSonido('whatsappEnviado');
+            // Las consultas posteriores viajan juntas y reemplazan el mensaje
+            // provisional por la fila definitiva de Supabase.
+            await Promise.all([
+                cargarMensajesHilo(_waHiloId || hiloDestino),
+                cargarHilosWhatsapp()
+            ]);
+            if(_waHiloId === hiloDestino) _pintarWhatsapp();
         } else if(j && j.error === 'ventana_cerrada') {
-            toastError(j.mensaje || 'Ya no se puede responder libre — hace falta plantilla.');
+            marcarFallo(j.mensaje || 'Ya no se puede responder libre — hace falta plantilla.');
             await cargarHilosWhatsapp(); _pintarWhatsapp();
         } else {
-            toastError('No se pudo enviar el mensaje.');
+            marcarFallo(j?.mensaje || 'No se pudo enviar el mensaje.');
         }
-    } catch(e) { logError('enviarMensajeWhatsapp', e); toastError(getFriendlyError(e)); }
-    finally { _waEnviando = false; if(btn) { btn.disabled = false; btn.classList.remove('wa-enviando'); } }
+    } catch(e) { logError('enviarMensajeWhatsapp', e); marcarFallo(getFriendlyError(e)); }
+    finally { _waEnviando = false; bloquearBoton(false); _waActualizarBotonEnvio(); }
 }
 
 /* ---- Vincular / crear cliente (compartido entre bandeja y leads) ---- */
