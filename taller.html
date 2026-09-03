@@ -227,6 +227,8 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
 .crm-tab-seg.on i { opacity:1; }
 @media (hover:hover) and (pointer:fine) { .crm-tab-seg:not(.on):hover { color:#475569; } }
 .crm-icon-btn { width:44px; height:44px; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:#475569; font-size:18px; }
+@keyframes crm-girar { to { transform:rotate(360deg); } }
+.crm-icon-btn .crm-girando { animation:crm-girar .8s linear infinite; }
 
 /* Tarjeta de resumen — mismo lenguaje "vidrio + 3D" que las KPI del Dashboard */
 .crm-stats {
@@ -409,6 +411,45 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
 .wa-reply-bar .who { font-weight:700; color:#128C7E; font-size:11.5px; }
 .wa-reply-bar .txt { color:#667781; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .wa-reply-bar .cancelar { background:none; border:none; color:#8696a0; font-size:16px; cursor:pointer; padding:2px 6px; }
+
+/* CRM de escritorio: el encabezado ocupa solo lo necesario y el chat toma
+   todo el alto restante de .content. Asi el composer queda fijo al borde
+   inferior y solamente la lista de mensajes hace scroll. */
+@media (min-width:1025px) {
+    #v-crmLinea.active { display:flex; flex-direction:column; height:100%; min-height:0; overflow:hidden; }
+    #v-crmLinea .crm-selectores { gap:7px; margin-bottom:6px; }
+    #v-crmLinea .crm-pill-select { padding:6px 11px; font-size:11.5px; gap:6px; min-height:34px; }
+    #v-crmLinea .crm-pill-select > i { font-size:14px; }
+    #v-crmLinea .crm-pill-select .txt b { font-size:8px; }
+    #v-crmLinea .crm-pill-select .chev { font-size:12px; }
+
+    #v-crmLinea .crm-tabs-row { gap:7px; margin-bottom:6px; }
+    #v-crmLinea .crm-tab-seg { padding:8px 9px; font-size:12px; gap:6px; }
+    #v-crmLinea .crm-tab-seg i { font-size:14px; }
+    #v-crmLinea .crm-icon-btn { width:34px; height:34px; font-size:15px; }
+
+    #v-crmLinea .crm-stats { margin-bottom:6px; padding:6px 8px; border-radius:12px; min-height:42px; }
+    #v-crmLinea .crm-stat { flex-direction:row; justify-content:center; gap:6px; padding:0 6px; }
+    #v-crmLinea .crm-stat + .crm-stat::before { top:2px; bottom:2px; }
+    #v-crmLinea .crm-stat .bola { width:26px; height:26px; font-size:13px; margin:0; flex-shrink:0; }
+    #v-crmLinea .crm-stat .num { font-size:17px; letter-spacing:-.2px; }
+    #v-crmLinea .crm-stat .lbl { font-size:9px; white-space:nowrap; }
+
+    #v-crmLinea #crmLinea-mensajes { flex:1; min-height:0; display:flex; flex-direction:column; }
+    #v-crmLinea .crm-busq-row { gap:7px; margin-bottom:6px; }
+    #v-crmLinea .crm-buscar,
+    #v-crmLinea .crm-filtros-btn { padding:7px 12px; font-size:11.5px; min-height:32px; }
+    #v-crmLinea .crm-buscar-input { padding:7px 12px; font-size:13px; min-height:32px; }
+    #v-crmLinea .crm-chips-row { gap:6px; margin-bottom:6px; }
+    #v-crmLinea .crm-chip { padding:6px 11px; font-size:11px; gap:5px; }
+    #v-crmLinea .crm-chip .cuenta { font-size:9.5px; }
+
+    #v-crmLinea #waWrap { flex:1; min-height:0; display:flex; }
+    #v-crmLinea .wa-shell { flex:1; width:100%; height:auto; min-height:0; }
+    #v-crmLinea .wa-chat-head { padding:7px 12px; gap:9px; }
+    #v-crmLinea .wa-chat-head .wa-avatar { width:34px; height:34px; font-size:12px; }
+    #v-crmLinea #crmLinea-leads { flex:1; min-height:0; overflow-y:auto; }
+}
 .nav button { width: 100%; background: rgba(255,255,255,0.03); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 13px 14px; margin-bottom: 7px; text-align: left; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 12px; font-size: 13.5px; }
 .nav button i { font-size: 19px; color: #475569; flex-shrink: 0; }
 .nav button span { flex: 1; }
@@ -1598,6 +1639,7 @@ body{
                         <button class="crm-tab-seg on pill-hundido" id="crmLineaTabWa" onclick="crmLineaTab('mensajes')"><i class="ti ti-brand-whatsapp"></i> Mensajes</button>
                         <button class="crm-tab-seg" id="crmLineaTabLeads" onclick="crmLineaTab('leads')"><i class="ti ti-user-plus"></i> Leads</button>
                     </div>
+                    <button class="crm-icon-btn pill-elevado" id="crmHistorialBtn" onclick="_crmImportarHistorial()" title="Traer conversaciones anteriores"><i class="ti ti-history"></i></button>
                     <button class="crm-icon-btn pill-elevado" onclick="renderCrmLinea()" title="Actualizar"><i class="ti ti-refresh"></i></button>
                 </div>
                 <div class="crm-stats crm-ocultar-en-chat" id="crmStats"></div>
@@ -31916,6 +31958,7 @@ let _waHilos = [];
 let _waHiloId = null;
 let _waMensajes = [];
 let _waEnviando = false;
+let _crmImportandoHistorial = false;
 
 // CRM: sucursal > línea de WhatsApp. El selector se arma dinámicamente (construirSelectorCRM)
 // porque el número de sucursales/líneas conectadas crece con el tiempo.
@@ -31933,6 +31976,59 @@ function _waEsMovil() { return window.innerWidth <= 1024; }
 // Identidad del usuario actual en el mismo formato polimórfico que asignado_tipo/asignado_id
 // ('usuario' | 'tecnico' + su id) — mismo criterio que ya usa el backend (auth.jwt() user_metadata).
 function _crmMiIdentidad() { return { tipo: sessionUser?._tipo || null, id: sessionUser?.id || null }; }
+
+// Importacion manual e idempotente del historial que Zernio ya sincronizo
+// desde WhatsApp Business App. Se ejecuta por paginas para no congelar el CRM
+// y puede repetirse: wa_message_id evita duplicar mensajes existentes.
+async function _crmImportarHistorial() {
+    if(_crmImportandoHistorial) return;
+    const lineas = (_crmEstructura || []).flatMap(s => s.lineas || []);
+    if(!lineas.length) return toast('No hay líneas de WhatsApp disponibles.', 'error');
+    if(!confirm('Se traerán al CRM las conversaciones anteriores disponibles en Zernio. Puede tardar varios minutos. ¿Continuar?')) return;
+
+    const btn = document.getElementById('crmHistorialBtn');
+    _crmImportandoHistorial = true;
+    if(btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2 crm-girando"></i>'; }
+    let conversaciones = 0, mensajes = 0, conflictos = 0;
+
+    try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if(!session?.access_token) throw new Error('La sesión venció. Inicia sesión de nuevo.');
+
+        for(const linea of lineas) {
+            let cursor = null, paginas = 0;
+            do {
+                const resp = await fetch(CONFIG_URL + '/functions/v1/whatsapp-importar-historial', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + session.access_token,
+                        'apikey': CONFIG_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ linea_id: linea.id, cursor, limit: 10 })
+                });
+                const data = await resp.json().catch(() => ({}));
+                if(!resp.ok || !data.ok) throw new Error(data.error || `No se pudo importar ${linea.nombre || 'la línea'}.`);
+                conversaciones += data.conversaciones_importadas || 0;
+                mensajes += data.mensajes_insertados || 0;
+                conflictos += data.conflictos_de_linea || 0;
+                cursor = data.siguiente_cursor || null;
+                paginas++;
+            } while(cursor && paginas < 100);
+        }
+
+        await renderCrmLinea();
+        let resumen = `Historial actualizado: ${mensajes} mensajes nuevos en ${conversaciones} conversaciones.`;
+        if(conflictos) resumen += ` ${conflictos} conversaciones quedaron pendientes por coincidir en otra línea.`;
+        toast(resumen, conflictos ? 'warning' : 'success');
+    } catch(e) {
+        logError('_crmImportarHistorial', e);
+        toast(e?.message || 'No se pudo importar el historial.', 'error');
+    } finally {
+        _crmImportandoHistorial = false;
+        if(btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-history"></i>'; }
+    }
+}
 
 async function cargarHilosWhatsapp() {
     if(!_crmLineaActualId) { _waHilos = []; return; }
