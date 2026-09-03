@@ -9572,11 +9572,15 @@ function _htmlExistenciasOtros(existencias) {
 }
 async function renderInfoplusBusqueda() {
     const tb = document.getElementById('infoplusTable'); if(!tb) return;
-    const q = (document.getElementById('ip_buscar')?.value || '').replace(/[,()%]/g, ' ').trim();
+    const q = (document.getElementById('ip_buscar')?.value || '').trim();
     try {
-        let query = supabaseClient.from('infoplus_articulos').select('codigo,descripcion,marca,referencia,referencia_fabrica,costo,precio,existencia,existencias');
-        if(q) query = query.or('codigo.ilike.%' + q + '%,descripcion.ilike.%' + q + '%,marca.ilike.%' + q + '%,referencia.ilike.%' + q + '%');
-        const { data, error } = await query.order('codigo').limit(100);
+        // Con texto escrito: busqueda tolerante a errores de tecleo y coincidencias
+        // parciales (buscar_infoplus, trigram + full-text sobre Postgres — sin IA,
+        // sin costo por consulta) en vez del ILIKE literal de antes, que exigia
+        // escribir el sustring exacto. Sin texto: listado completo tal cual antes.
+        const { data, error } = q
+            ? await supabaseClient.rpc('buscar_infoplus', { p_query: q, p_limite: 100 })
+            : await supabaseClient.from('infoplus_articulos').select('codigo,descripcion,marca,referencia,referencia_fabrica,costo,precio,existencia,existencias').order('codigo').limit(100);
         if(error) throw error;
         if(!data || !data.length) { tb.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">Sin resultados.</td></tr>'; return; }
         tb.innerHTML = data.map(a => {
@@ -13140,13 +13144,13 @@ let _ctBuscarTimer = null;
 function buscarPiezaConsumo(){
     clearTimeout(_ctBuscarTimer);
     _ctBuscarTimer = setTimeout(async ()=>{
-        const q = (document.getElementById('ct_buscar')?.value || '').replace(/[,()%]/g,' ').trim();
+        const q = (document.getElementById('ct_buscar')?.value || '').trim();
         const sel = document.getElementById('ct_pieza');
         if(q.length < 2){ sel.innerHTML = '<option value="">— Escribe al menos 2 letras —</option>'; return; }
         try {
-            let query = supabaseClient.from('infoplus_articulos').select('codigo,descripcion,marca')
-                .or('codigo.ilike.%'+q+'%,descripcion.ilike.%'+q+'%,marca.ilike.%'+q+'%').order('codigo').limit(40);
-            const { data, error } = await query;
+            // Mismo buscar_infoplus tolerante a errores de tecleo que usa la
+            // pantalla de precios — misma tabla, mismo problema.
+            const { data, error } = await supabaseClient.rpc('buscar_infoplus', { p_query: q, p_limite: 40 });
             if(error) throw error;
             if(!data || !data.length){ sel.innerHTML = '<option value="">Sin resultados</option>'; return; }
             sel.innerHTML = '<option value="">— Selecciona —</option>' + data.map(a=>{
