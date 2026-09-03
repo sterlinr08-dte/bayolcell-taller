@@ -136,10 +136,197 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
 .wa-select { font-size:12.5px; padding:6px 10px; border-radius:8px; border:none; background:rgba(255,255,255,.92); color:#075E54; font-weight:700; cursor:pointer; }
 .wa-tab-btn { background:rgba(255,255,255,.15); color:#fff; border:1px solid rgba(255,255,255,.25); border-radius:8px; padding:7px 12px; font-size:12.5px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:5px; }
 .wa-tab-btn.active { background:#fff; color:#075E54; }
+
+/* ============================================================
+   CRM — cabecera de la BANDEJA (pantalla de lista). Solo esta
+   pantalla usa el rojo de marca; la conversación en sí se queda
+   con el verde/beige de WhatsApp real, a propósito.
+   Efecto "píldora premium": cápsula + gradiente + relieve.
+   Elevado = "tócame". Hundido = "aquí ya entró algo".
+   ============================================================ */
+.pill-elevado {
+    background:linear-gradient(180deg,#eef1f4 0%,#e7eaed 16%,#dee1e5 40%,#d7dadf 58%,#dfe2e6 80%,#e7eaed 100%);
+    border:none; border-radius:9999px; cursor:pointer;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.90),
+        inset 0 2.5px 6px rgba(15,23,42,.11),
+        inset 0 -1.5px 3.5px rgba(255,255,255,.92),
+        0 1px 1px rgba(15,23,42,.06),
+        0 3px 7px rgba(15,23,42,.09),
+        0 10px 18px -10px rgba(15,23,42,.14);
+    outline:none; -webkit-tap-highlight-color:transparent;
+    transition: box-shadow .18s ease, color .18s ease, transform .12s ease, filter .18s ease;
+}
+.pill-elevado:active { transform:translateY(1px); }
+/* El guard :not(.pill-hundido) es obligatorio: sin él, por especificidad, tocar
+   de nuevo el elemento YA seleccionado lo haría parpadear convexo un instante. */
+.pill-elevado:active:not(.pill-hundido) {
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.70),
+        inset 0 2.5px 6px rgba(15,23,42,.15),
+        inset 0 -1px 2.5px rgba(255,255,255,.75),
+        0 1px 2px rgba(15,23,42,.08);
+}
+@media (hover:hover) and (pointer:fine) {
+    .pill-elevado:hover:not(.pill-hundido) {
+        filter:brightness(1.035);
+        box-shadow:
+            inset 0 1px 0 rgba(255,255,255,.95),
+            inset 0 2.5px 6px rgba(15,23,42,.11),
+            inset 0 -1.5px 3.5px rgba(255,255,255,.92),
+            0 1px 2px rgba(15,23,42,.07),
+            0 4px 9px rgba(15,23,42,.11),
+            0 12px 20px -10px rgba(15,23,42,.16);
+    }
+}
+.pill-hundido {
+    box-shadow:
+        inset 0 1.5px 3px rgba(15,23,42,.17),
+        inset -6px 0 10px rgba(255,255,255,.62),
+        inset 0 7px 13px rgba(15,23,42,.09),
+        inset 0 -6px 10px rgba(255,255,255,.55),
+        inset 0 3px 5px rgba(220,38,38,.08),
+        0 0 0 1px rgba(220,38,38,.05),
+        0 0 10px -3px rgba(220,38,38,.15);
+    border-radius:9999px;
+}
+/* Safari no puede redondear el outline nativo — se quita del todo. */
+.pill-elevado:focus, .pill-elevado:focus-visible,
+.crm-tab-seg:focus, .crm-tab-seg:focus-visible,
+.crm-chip:focus, .crm-chip:focus-visible { outline:none; }
+
+.crm-selectores { display:flex; gap:10px; margin-bottom:12px; }
+.crm-pill-select { flex:1; position:relative; display:flex; align-items:center; gap:8px; padding:10px 14px; font-size:12.5px; font-weight:700; color:#1e293b; min-width:0; }
+.crm-pill-select > i { color:#dc2626; font-size:17px; flex-shrink:0; }
+.crm-pill-select .txt { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:1.25; }
+/* #94a3b8 no alcanzaba para leerse; el tamaño se queda en 9.5px a propósito
+   (subirlo haría que la etiqueta compita con el valor que está debajo). */
+.crm-pill-select .txt b { display:block; font-size:9.5px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:.4px; }
+.crm-pill-select .chev { color:#94a3b8; font-size:14px; flex-shrink:0; }
+/* <select> nativo transparente encima: conserva el selector nativo del celular
+   (mucho mejor en móvil) pero con el aspecto de la píldora. */
+.crm-pill-select select { position:absolute; inset:0; width:100%; height:100%; opacity:0; border:none; cursor:pointer; font-size:16px; }
+
+.crm-tabs-row { display:flex; gap:10px; margin-bottom:12px; }
+.crm-tabs-track { flex:1; display:flex; overflow:hidden; }
+.crm-tab-seg {
+    flex:1; display:flex; align-items:center; justify-content:center; gap:8px;
+    padding:12px 10px; font-size:13.5px; font-weight:700; letter-spacing:-.005em; line-height:1;
+    color:#64748b; background:none; border:none; cursor:pointer; position:relative;
+    -webkit-font-smoothing:antialiased; outline:none; -webkit-tap-highlight-color:transparent;
+    transition: box-shadow .18s ease, color .18s ease, filter .18s ease, letter-spacing .18s ease;
+}
+.crm-tab-seg:not(:last-child)::after {
+    content:""; position:absolute; top:22%; bottom:22%; right:0; width:1px; border-radius:1px;
+    background:rgba(15,23,42,.16); box-shadow:1px 0 0 rgba(255,255,255,.55);
+    pointer-events:none; transition:opacity .18s ease;
+}
+.crm-tab-seg.on::after { opacity:0; }
+.crm-tab-seg i { font-size:16px; opacity:.62; transition:opacity .18s ease; }
+.crm-tab-seg.on { color:#dc2626; font-weight:800; letter-spacing:-.015em; filter:drop-shadow(0 0 3px rgba(220,38,38,.30)); }
+.crm-tab-seg.on i { opacity:1; }
+@media (hover:hover) and (pointer:fine) { .crm-tab-seg:not(.on):hover { color:#475569; } }
+.crm-icon-btn { width:44px; height:44px; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:#475569; font-size:18px; }
+
+/* Tarjeta de resumen — mismo lenguaje "vidrio + 3D" que las KPI del Dashboard */
+.crm-stats {
+    display:flex; margin-bottom:12px; padding:16px 8px 14px; border-radius:18px;
+    background:linear-gradient(135deg, rgba(255,255,255,.9), rgba(255,255,255,.72));
+    backdrop-filter:blur(14px) saturate(160%); -webkit-backdrop-filter:blur(14px) saturate(160%);
+    border:1px solid rgba(255,255,255,.75);
+    box-shadow:0 14px 32px -18px rgba(15,23,42,.32), inset 0 1px 0 rgba(255,255,255,.95);
+}
+.crm-stats:empty { display:none; }
+/* gap chico + margen bajo la bola: el número y su etiqueta son UNA unidad de
+   lectura (se pegan), y el icono se despega de las dos. Con un gap parejo los
+   tres flotaban sueltos. */
+.crm-stat { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; text-align:center; padding:0 4px; position:relative; }
+.crm-stat + .crm-stat::before { content:''; position:absolute; left:0; top:6px; bottom:6px; width:1px;
+    background:linear-gradient(180deg, transparent, rgba(15,23,42,.10) 50%, transparent); }
+.crm-stat .bola { width:42px; height:42px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; position:relative; margin-bottom:8px; }
+.crm-stat .bola::after { content:''; position:absolute; inset:0; border-radius:50%;
+    background:radial-gradient(circle at 32% 26%, rgba(255,255,255,.9), transparent 58%); }
+.crm-stat .bola i { position:relative; z-index:1; }
+.crm-stat .num { font-size:22px; font-weight:800; letter-spacing:-.4px; line-height:1; }
+.crm-stat .lbl { font-size:10.5px; font-weight:700; color:#64748b; line-height:1.2; }
+.crm-stat.rojo .bola { background:linear-gradient(160deg,#fecaca,#fca5a5); color:#b91c1c; box-shadow:0 8px 16px -8px rgba(220,38,38,.45), inset 0 1px 1px rgba(255,255,255,.8); }
+.crm-stat.rojo .num { color:#dc2626; }
+.crm-stat.azul .bola { background:linear-gradient(160deg,#bfdbfe,#93c5fd); color:#1d4ed8; box-shadow:0 8px 16px -8px rgba(37,99,235,.45), inset 0 1px 1px rgba(255,255,255,.8); }
+.crm-stat.azul .num { color:#2563eb; }
+.crm-stat.morado .bola { background:linear-gradient(160deg,#ddd6fe,#c4b5fd); color:#6d28d9; box-shadow:0 8px 16px -8px rgba(124,58,237,.45), inset 0 1px 1px rgba(255,255,255,.8); }
+.crm-stat.morado .num { color:#7c3aed; }
+
+.crm-busq-row { display:flex; gap:10px; margin-bottom:10px; }
+.crm-buscar { flex:1; display:flex; align-items:center; gap:8px; padding:11px 16px; color:#64748b; font-size:13px; font-weight:600; }
+/* El buscador se despliega EN EL SITIO (no abre modal) — es un filtro de lista. */
+.crm-buscar-input {
+    flex:1; min-width:0; padding:11px 16px; font-size:16px; border:none; border-radius:9999px;
+    background:#e7ebef; color:#1e293b; outline:none;
+    box-shadow: inset 0 3px 6px rgba(15,23,42,.14), inset 0 -1px 2px rgba(255,255,255,.6);
+}
+.crm-filtros-btn { display:flex; align-items:center; gap:7px; padding:11px 16px; font-size:13px; font-weight:700; color:#1e293b; white-space:nowrap; }
+.crm-filtros-btn.activo { color:#dc2626; }
+
+.crm-chips-row { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+.crm-chip {
+    display:inline-flex; align-items:center; gap:6px; line-height:1; padding:9px 16px;
+    font-size:12.5px; font-weight:600; letter-spacing:-.003em; color:#475569;
+    background:none; border:none; cursor:pointer;
+    -webkit-font-smoothing:antialiased; outline:none; -webkit-tap-highlight-color:transparent;
+    transition: box-shadow .18s ease, color .18s ease, filter .18s ease, letter-spacing .18s ease;
+}
+.crm-chip .cuenta { font-size:11px; font-weight:800; opacity:.75; }
+.crm-chip.on { color:#dc2626; font-weight:700; letter-spacing:-.01em; filter:drop-shadow(0 0 3px rgba(220,38,38,.28)); }
+@media (hover:hover) and (pointer:fine) { .crm-chip:not(.on):hover { color:#334155; } }
+
+/* Menú de "Filtros" (por asignación) */
+.crm-filtros-menu { display:none; position:fixed; flex-direction:column; background:#fff; border-radius:12px;
+    box-shadow:0 8px 28px rgba(15,23,42,.22); padding:6px; z-index:500; min-width:190px; }
+.crm-filtros-menu button { display:flex; align-items:center; gap:9px; background:none; border:none; padding:9px 12px;
+    font-size:13px; text-align:left; border-radius:8px; cursor:pointer; color:#111b21; width:100%; }
+.crm-filtros-menu button:hover { background:#f0f2f5; }
+.crm-filtros-menu button.on { color:#dc2626; font-weight:800; }
+.crm-filtros-menu button i { font-size:15px; color:#64748b; }
+.crm-filtros-menu button.on i { color:#dc2626; }
+
+/* Fila de conversación — acabado alineado con el resto de la pantalla */
+.wa-row .wa-avatar-wrap { position:relative; flex-shrink:0; }
+.wa-row .wa-wa-badge { position:absolute; right:-2px; bottom:-2px; width:17px; height:17px; border-radius:50%;
+    background:#25D366; border:2px solid #fff; display:flex; align-items:center; justify-content:center;
+    color:#fff; font-size:10px; }
+/* La base baja a 700/#334155 a propósito: deja libre el escalón 800/#0f172a
+   para lo único que el empleado viene a buscar al abrir la bandeja (lo no
+   leído). Con todo en 800 no quedaba ningún peso disponible para marcarlo
+   —Plus Jakarta Sans no es variable, 800 es el techo. */
+.wa-row .fila-nombre { font-size:14.5px; font-weight:700; color:#334155; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.wa-row.no-leido .fila-nombre { font-weight:800; color:#0f172a; }
+/* #94a3b8 daba 2.56:1 sobre blanco (ilegible); #64748b da 4.76:1. El peso baja
+   a 500 para que la hora no pese más que el mensaje, ahora que comparten color. */
+.wa-row .fila-hora { font-size:11px; color:#64748b; font-weight:500; flex-shrink:0; }
+.wa-row.no-leido .fila-hora { color:#dc2626; font-weight:700; }
+.wa-row .fila-preview { font-size:12.5px; color:#64748b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.wa-row.no-leido .fila-preview { color:#1e293b; font-weight:600; }
+/* Rojo de marca, no verde: el verde ya significa "esto es WhatsApp" en la
+   insignia del avatar, y el contador de arriba ("No leídos") también es rojo —
+   el mismo dato no puede tener dos colores en la misma pantalla. El rango
+   #dc2626→#b91c1c pasa contraste AA; con #ef4444 no llegaba. */
+.wa-row .fila-badge { background:linear-gradient(160deg,#dc2626,#b91c1c); color:#fff; border-radius:9999px;
+    min-width:20px; height:20px; padding:0 6px; font-size:11px; font-weight:800;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    box-shadow:0 4px 9px -4px rgba(220,38,38,.55), inset 0 1px 0 rgba(255,255,255,.35); }
+/* Marca de "esperando respuesta" — el cliente escribió último y nadie contestó. */
+.wa-row.pendiente { box-shadow:inset 3px 0 0 #f59e0b; }
+.wa-row .fila-asignado { font-size:10px; font-weight:700; color:#7c3aed; background:#ede9fe; border-radius:999px;
+    padding:2px 7px; white-space:nowrap; flex-shrink:0; }
+.crm-vacio { text-align:center; color:var(--text-muted); padding:28px 14px; font-size:13px; }
 .wa-shell { display:flex; height:calc(100vh - 220px); min-height:420px; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; box-shadow:0 4px 16px rgba(15,23,42,.06); }
 .wa-list-col { width:320px; flex-shrink:0; background:#fff; border-right:1px solid #e9edef; display:flex; flex-direction:column; }
 .wa-list-scroll { overflow-y:auto; flex:1; }
-.wa-row { display:flex; align-items:center; gap:11px; padding:11px 14px; cursor:pointer; border-bottom:1px solid #f5f6f6; }
+/* El separador arranca en la columna del texto (14 de padding + 42 de avatar +
+   11 de gap = 67px), no de borde a borde: cruzando por debajo del avatar la
+   lista se leía como tabla en vez de como lista de personas. */
+.wa-row { display:flex; align-items:center; gap:11px; padding:11px 14px; cursor:pointer; position:relative; }
+.wa-row + .wa-row::before { content:''; position:absolute; left:67px; right:0; top:0; height:1px; background:rgba(15,23,42,.06); }
 .wa-row:hover { background:#f5f6f6; }
 .wa-row.active { background:#f0f2f5; }
 .wa-avatar { width:42px; height:42px; border-radius:50%; background:linear-gradient(135deg,#128C7E,#075E54); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; flex-shrink:0; }
@@ -420,6 +607,13 @@ tr:hover td { background: #f8fafc; }
        16px hace que iOS Safari haga zoom de golpe al tocarlo. */
     .wa-input-bar input, .wa-select { font-size: 16px !important; }
     .wa-send-btn { width: 44px; height: 44px; }
+    /* Con una conversacion abierta en movil se ve SOLO el chat (la lista se
+       reemplaza por el detalle), asi que toda la cabecera de la bandeja
+       —selectores, pestanas, resumen, buscador, chips— sobra y solo roba
+       altura. En PC no aplica: ahi lista y chat conviven lado a lado. */
+    #v-crmLinea.chat-abierto .crm-ocultar-en-chat { display: none !important; }
+    .crm-stat .num { font-size: 20px; }
+    .crm-stat .lbl { font-size: 10px; }
 
     .card { padding: 13px; margin-bottom: 11px; border-radius: 12px; }
     
@@ -1366,16 +1560,23 @@ body{
 
             <!-- WHATSAPP CRM — BANDEJA (look de WhatsApp real) -->
             <div id="v-crmLinea" class="view">
-                <div class="wa-topbar">
-                    <h2 style="margin:0; font-size:16px;"><i class="ti ti-brand-whatsapp"></i> <span id="crmLineaTituloTxt">CRM</span></h2>
-                    <div id="crmSelectorWrap" style="display:flex; gap:8px;"></div>
-                    <div style="margin-left:auto; display:flex; gap:6px;">
-                        <button class="wa-tab-btn active" id="crmLineaTabWa" onclick="crmLineaTab('mensajes')"><i class="ti ti-brand-whatsapp"></i> Mensajes</button>
-                        <button class="wa-tab-btn" id="crmLineaTabLeads" onclick="crmLineaTab('leads')"><i class="ti ti-user-plus"></i> Leads</button>
-                        <button class="wa-tab-btn" onclick="renderCrmLinea()" title="Actualizar"><i class="ti ti-refresh"></i></button>
+                <span id="crmLineaTituloTxt" style="display:none;">CRM</span>
+                <div id="crmSelectorWrap" class="crm-selectores crm-ocultar-en-chat"></div>
+                <div class="crm-tabs-row crm-ocultar-en-chat">
+                    <div class="crm-tabs-track pill-elevado">
+                        <button class="crm-tab-seg on pill-hundido" id="crmLineaTabWa" onclick="crmLineaTab('mensajes')"><i class="ti ti-brand-whatsapp"></i> Mensajes</button>
+                        <button class="crm-tab-seg" id="crmLineaTabLeads" onclick="crmLineaTab('leads')"><i class="ti ti-user-plus"></i> Leads</button>
                     </div>
+                    <button class="crm-icon-btn pill-elevado" onclick="renderCrmLinea()" title="Actualizar"><i class="ti ti-refresh"></i></button>
                 </div>
+                <div class="crm-stats crm-ocultar-en-chat" id="crmStats"></div>
                 <div id="crmLinea-mensajes">
+                    <div class="crm-busq-row crm-ocultar-en-chat">
+                        <button class="crm-buscar pill-elevado" id="crmBuscarBtn" onclick="_crmAbrirBusqueda()"><i class="ti ti-search"></i> <span>Buscar</span></button>
+                        <input type="text" id="crmBuscarInput" class="crm-buscar-input" placeholder="Buscar nombre o número..." style="display:none;" oninput="_crmBuscarCambio(this.value)" onblur="_crmBusquedaBlur()">
+                        <button class="crm-filtros-btn pill-elevado" id="crmFiltrosBtn" onclick="_crmToggleFiltros(event)"><i class="ti ti-adjustments-horizontal"></i> <span>Filtros</span></button>
+                    </div>
+                    <div class="crm-chips-row crm-ocultar-en-chat" id="crmChipsRow"></div>
                     <div id="waWrap"></div>
                 </div>
                 <div id="crmLinea-leads" style="display:none;">
@@ -31636,8 +31837,26 @@ async function cargarHilosWhatsapp() {
     _waHilos = lista;
 }
 
+// Leads que siguen en juego (ni vendidos ni perdidos) — es el número accionable
+// para el resumen de la bandeja. Se pide aparte y en modo "solo contar" (head)
+// para no traerse las filas completas, que aquí no se usan.
+let _crmLeadsAbiertos = 0;
+async function _crmContarLeadsAbiertos() {
+    if(!_crmLineaActualId) { _crmLeadsAbiertos = 0; return; }
+    try {
+        const { count, error } = await supabaseClient
+            .from('leads')
+            .select('id', { count: 'exact', head: true })
+            .eq('linea_id', _crmLineaActualId)
+            .in('etapa', ['nuevo', 'contactado', 'cotizado']);
+        if(error) throw error;
+        _crmLeadsAbiertos = count || 0;
+    } catch(e) { logError('_crmContarLeadsAbiertos', e); _crmLeadsAbiertos = 0; }
+}
+
 async function renderWhatsapp() {
     await cargarHilosWhatsapp();
+    await _crmContarLeadsAbiertos();
     _pintarWhatsapp();
 }
 
@@ -31660,12 +31879,17 @@ function _pintarWhatsapp() {
     const movil = _waEsMovil();
     const mostrarLista = !movil || !_waHiloId;
     const mostrarDetalle = !movil || !!_waHiloId;
+    // En movil, con el chat abierto la cabecera de la bandeja sobra (solo roba
+    // altura) — el CSS la esconde con esta clase.
+    const vista = document.getElementById('v-crmLinea');
+    if(vista) vista.classList.toggle('chat-abierto', !!_waHiloId);
     wrap.innerHTML = `<div class="wa-shell">
         ${mostrarLista ? `<div class="wa-list-col" id="waListaCol"><div class="wa-list-scroll" id="waLista"></div></div>` : ''}
         ${mostrarDetalle ? `<div class="wa-chat-col" id="waDetalleCol"><div id="waDetalle" style="display:flex; flex-direction:column; height:100%;"></div></div>` : ''}
     </div>`;
     if(mostrarLista) _pintarWhatsappLista();
     if(mostrarDetalle) _pintarWhatsappDetalle();
+    _crmPintarCabecera();
 }
 
 function _waIniciales(nombre) {
@@ -31674,31 +31898,180 @@ function _waIniciales(nombre) {
     return (partes[0][0] + (partes[1] ? partes[1][0] : '')).toUpperCase();
 }
 
+/* ============================================================
+   BANDEJA: buscador, chips y filtro por asignación.
+   Todo el filtrado es en memoria sobre _waHilos (ya viene acotado
+   por línea y por permisos desde cargarHilosWhatsapp), así que no
+   hace falta volver a consultar la base al escribir o filtrar.
+   ============================================================ */
+let _crmBusqueda = '';
+let _crmChip = 'todos';              // todos | no_leidos | pendientes
+let _crmFiltroAsignacion = 'todas';  // todas | sin_asignar | mias
+
+// "Pendiente" = el cliente escribió de último y nadie ha contestado.
+// Se deduce de datos que el hilo ya trae: ultimo_inbound_at solo se actualiza
+// cuando entra un mensaje del cliente, mientras ultimo_mensaje_at se actualiza
+// en ambos sentidos. Si el inbound es el más reciente, quedó sin responder.
+function _crmEsPendiente(h) {
+    if(!h.ultimo_inbound_at) return false;
+    if(!h.ultimo_mensaje_at) return true;
+    return new Date(h.ultimo_inbound_at).getTime() >= new Date(h.ultimo_mensaje_at).getTime();
+}
+
+function _crmHilosFiltrados() {
+    const yo = _crmMiIdentidad();
+    const q = _crmBusqueda.trim().toLowerCase();
+    return (_waHilos || []).filter(h => {
+        if(_crmChip === 'no_leidos' && !(h.no_leidos_count > 0)) return false;
+        if(_crmChip === 'pendientes' && !_crmEsPendiente(h)) return false;
+        if(_crmFiltroAsignacion === 'sin_asignar' && h.asignado_id) return false;
+        if(_crmFiltroAsignacion === 'mias' && !(h.asignado_id === yo.id && h.asignado_tipo === yo.tipo)) return false;
+        if(q) {
+            const nombre = (h.nombre_perfil || '').toLowerCase();
+            const tel = (h.telefono_e164 || '');
+            if(!nombre.includes(q) && !tel.includes(q)) return false;
+        }
+        return true;
+    });
+}
+
 function _pintarWhatsappLista() {
     const cont = document.getElementById('waLista');
     if(!cont) return;
     if(!_waHilos.length) {
-        cont.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:24px 14px; font-size:13px;">Todavía no han llegado mensajes de WhatsApp.</div>`;
+        cont.innerHTML = `<div class="crm-vacio">Todavía no han llegado mensajes de WhatsApp.</div>`;
         return;
     }
-    cont.innerHTML = _waHilos.map(h => {
+    const lista = _crmHilosFiltrados();
+    if(!lista.length) {
+        cont.innerHTML = `<div class="crm-vacio">Ninguna conversación coincide con lo que buscas.</div>`;
+        return;
+    }
+    cont.innerHTML = lista.map(h => {
         const noLeido = (h.no_leidos_count || 0) > 0;
         const activo = h.id === _waHiloId;
         const nombre = h.nombre_perfil || h.telefono_e164 || 'Sin nombre';
-        return `<div class="wa-row${activo ? ' active' : ''}" onclick="abrirHiloWhatsapp('${h.id}')">
-            <div class="wa-avatar">${_waIniciales(nombre)}</div>
+        const clases = ['wa-row'];
+        if(activo) clases.push('active');
+        if(noLeido) clases.push('no-leido');
+        if(_crmEsPendiente(h)) clases.push('pendiente');
+        return `<div class="${clases.join(' ')}" onclick="abrirHiloWhatsapp('${h.id}')">
+            <div class="wa-avatar-wrap">
+                <div class="wa-avatar">${escapeHtml(_waIniciales(nombre))}</div>
+                <span class="wa-wa-badge"><i class="ti ti-brand-whatsapp"></i></span>
+            </div>
             <div style="min-width:0; flex:1;">
-                <div style="display:flex; justify-content:space-between; gap:8px;">
-                    <span style="font-weight:${noLeido ? 800 : 600}; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(nombre)}</span>
-                    <span style="font-size:11px; color:var(--text-muted); flex-shrink:0;">${_waHoraRelativa(h.ultimo_mensaje_at)}</span>
+                <div style="display:flex; justify-content:space-between; gap:8px; align-items:baseline;">
+                    <span class="fila-nombre">${escapeHtml(nombre)}</span>
+                    <span class="fila-hora">${_waHoraRelativa(h.ultimo_mensaje_at)}</span>
                 </div>
-                <div style="display:flex; justify-content:space-between; gap:8px; margin-top:2px;">
-                    <span style="font-size:12.5px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(h.ultimo_mensaje_preview || '')}</span>
-                    ${noLeido ? `<span style="background:#25D366; color:#fff; border-radius:999px; font-size:10.5px; font-weight:800; min-width:19px; height:19px; display:flex; align-items:center; justify-content:center; padding:0 5px; flex-shrink:0;">${h.no_leidos_count}</span>` : ''}
+                <div style="display:flex; justify-content:space-between; gap:8px; margin-top:3px; align-items:center;">
+                    <span class="fila-preview">${escapeHtml(h.ultimo_mensaje_preview || '')}</span>
+                    ${noLeido ? `<span class="fila-badge">${h.no_leidos_count}</span>` : ''}
                 </div>
             </div>
         </div>`;
     }).join('');
+}
+
+// Resumen + chips. Se repinta junto con la lista para que los números y
+// los contadores de cada chip siempre reflejen lo que se está viendo.
+function _crmPintarCabecera() {
+    const stats = document.getElementById('crmStats');
+    if(stats) {
+        const noLeidos = (_waHilos || []).reduce((n, h) => n + (h.no_leidos_count || 0), 0);
+        const pendientes = (_waHilos || []).filter(_crmEsPendiente).length;
+        const leads = _crmLeadsAbiertos;
+        stats.innerHTML = `
+            <div class="crm-stat rojo">
+                <div class="bola"><i class="ti ti-message-circle"></i></div>
+                <div class="num">${noLeidos}</div><div class="lbl">No leídos</div>
+            </div>
+            <div class="crm-stat azul">
+                <div class="bola"><i class="ti ti-clock-exclamation"></i></div>
+                <div class="num">${pendientes}</div><div class="lbl">Por responder</div>
+            </div>
+            <div class="crm-stat morado">
+                <div class="bola"><i class="ti ti-users"></i></div>
+                <div class="num">${leads}</div><div class="lbl">Leads abiertos</div>
+            </div>`;
+    }
+    const chips = document.getElementById('crmChipsRow');
+    if(chips) {
+        const total = (_waHilos || []).length;
+        const nNoLeidos = (_waHilos || []).filter(h => h.no_leidos_count > 0).length;
+        const nPend = (_waHilos || []).filter(_crmEsPendiente).length;
+        const def = [
+            { id: 'todos', txt: 'Todos', n: total },
+            { id: 'no_leidos', txt: 'No leídos', n: nNoLeidos },
+            { id: 'pendientes', txt: 'Pendientes', n: nPend },
+        ];
+        chips.innerHTML = def.map(c => `<button class="crm-chip pill-elevado${_crmChip === c.id ? ' on pill-hundido' : ''}" onclick="_crmSetChip('${c.id}')">${c.txt}${c.n ? ` <span class="cuenta">${c.n}</span>` : ''}</button>`).join('');
+    }
+    const btnF = document.getElementById('crmFiltrosBtn');
+    if(btnF) btnF.classList.toggle('activo', _crmFiltroAsignacion !== 'todas');
+}
+
+function _crmSetChip(id) {
+    _crmChip = id;
+    _pintarWhatsappLista();
+    _crmPintarCabecera();
+}
+
+function _crmAbrirBusqueda() {
+    const btn = document.getElementById('crmBuscarBtn'), inp = document.getElementById('crmBuscarInput');
+    if(!btn || !inp) return;
+    btn.style.display = 'none';
+    inp.style.display = '';
+    inp.focus();
+}
+function _crmBuscarCambio(v) {
+    _crmBusqueda = v || '';
+    _pintarWhatsappLista();
+}
+// Si se sale del buscador sin haber escrito nada, vuelve a ser un botón (no
+// deja un campo vacío ocupando espacio).
+function _crmBusquedaBlur() {
+    if(_crmBusqueda.trim()) return;
+    const btn = document.getElementById('crmBuscarBtn'), inp = document.getElementById('crmBuscarInput');
+    if(btn && inp) { inp.style.display = 'none'; btn.style.display = ''; }
+}
+
+function _crmToggleFiltros(ev) {
+    ev.stopPropagation();
+    let menu = document.getElementById('crmFiltrosMenu');
+    if(menu && menu.style.display === 'flex') { menu.style.display = 'none'; return; }
+    if(!menu) {
+        menu = document.createElement('div');
+        menu.id = 'crmFiltrosMenu';
+        menu.className = 'crm-filtros-menu';
+        document.body.appendChild(menu);
+        document.addEventListener('click', e => {
+            if(!menu.contains(e.target) && !e.target.closest('#crmFiltrosBtn')) menu.style.display = 'none';
+        });
+    }
+    const ops = [
+        { id: 'todas', txt: 'Todas las conversaciones', ic: 'ti-inbox' },
+        { id: 'sin_asignar', txt: 'Sin asignar', ic: 'ti-user-question' },
+        { id: 'mias', txt: 'Asignadas a mí', ic: 'ti-user-check' },
+    ];
+    menu.innerHTML = ops.map(o => `<button class="${_crmFiltroAsignacion === o.id ? 'on' : ''}" onclick="_crmSetFiltroAsignacion('${o.id}')"><i class="ti ${o.ic}"></i> ${o.txt}</button>`).join('');
+    menu.style.display = 'flex';
+    const r = ev.currentTarget.getBoundingClientRect();
+    const alto = ops.length * 38 + 12;
+    let top = r.bottom + 6;
+    if(top + alto > window.innerHeight) top = Math.max(8, r.top - alto - 6);
+    let left = r.right - 190;
+    if(left < 8) left = 8;
+    menu.style.top = top + 'px';
+    menu.style.left = left + 'px';
+}
+function _crmSetFiltroAsignacion(id) {
+    _crmFiltroAsignacion = id;
+    const menu = document.getElementById('crmFiltrosMenu');
+    if(menu) menu.style.display = 'none';
+    _pintarWhatsappLista();
+    _crmPintarCabecera();
 }
 
 async function abrirHiloWhatsapp(id) {
@@ -32304,17 +32677,23 @@ async function construirSelectorCRM() {
             return;
         }
 
-        const totalLineas = _crmEstructura.reduce((n, s) => n + s.lineas.length, 0);
-        if(totalLineas === 1) {
-            cont.innerHTML = '';
-            const s = _crmEstructura[0], l = s.lineas[0];
-            seleccionarLineaCRM(l.id, s.nombre, l.nombre);
-            return;
-        }
-
+        // Se muestran siempre los dos selectores (aunque solo haya una linea):
+        // saber en que sucursal/area estas parado es informacion util, no ruido.
+        // El <select> nativo va transparente ENCIMA de la pildora, asi el celular
+        // sigue abriendo su selector nativo de siempre.
         cont.innerHTML = `
-            <select id="crmSelSucursal" onchange="_crmCambioSucursal()" class="wa-select"></select>
-            <select id="crmSelLinea" onchange="_crmCambioLinea()" class="wa-select"></select>
+            <label class="crm-pill-select pill-elevado">
+                <i class="ti ti-building-store"></i>
+                <span class="txt"><b>Sucursal</b><span id="crmSucTxt"></span></span>
+                <i class="ti ti-chevron-down chev"></i>
+                <select id="crmSelSucursal" onchange="_crmCambioSucursal()"></select>
+            </label>
+            <label class="crm-pill-select pill-elevado">
+                <i class="ti ti-user-plus"></i>
+                <span class="txt"><b>Área</b><span id="crmLineaTxt"></span></span>
+                <i class="ti ti-chevron-down chev"></i>
+                <select id="crmSelLinea" onchange="_crmCambioLinea()"></select>
+            </label>
         `;
         document.getElementById('crmSelSucursal').innerHTML = _crmEstructura.map(s => `<option value="${s.id}">${escapeHtml(s.nombre)}</option>`).join('');
         const sucActual = _crmEstructura.find(s => s.lineas.some(l => l.id === _crmLineaActualId)) || _crmEstructura[0];
@@ -32334,6 +32713,14 @@ function _crmPoblarLineas(sucursalId, mantenerLineaActual) {
     seleccionarLineaCRM(l.id, s.nombre, l.nombre);
 }
 
+// El <select> real esta invisible encima de la pildora — hay que reflejar su
+// valor en el texto visible cada vez que cambia.
+function _crmPintarTextoSelectores(nombreSucursal, nombreLinea) {
+    const a = document.getElementById('crmSucTxt'), b = document.getElementById('crmLineaTxt');
+    if(a) a.textContent = nombreSucursal || '';
+    if(b) b.textContent = nombreLinea || '';
+}
+
 function _crmCambioSucursal() {
     _crmPoblarLineas(document.getElementById('crmSelSucursal').value, false);
 }
@@ -32350,8 +32737,10 @@ function seleccionarLineaCRM(lineaId, nombreSucursal, nombreLinea) {
     _crmSucursalActualNombre = nombreSucursal;
     _crmLineaActualNombre = nombreLinea;
     _waHiloId = null;
+    _crmBusqueda = ''; _crmChip = 'todos'; _crmFiltroAsignacion = 'todas'; // no arrastrar filtros de otra linea
     const titulo = document.getElementById('crmLineaTituloTxt');
     if(titulo) titulo.textContent = `${nombreSucursal} — ${nombreLinea}`;
+    _crmPintarTextoSelectores(nombreSucursal, nombreLinea);
     const tabGuardada = (localStorage.getItem('bayol_subtab_crmlinea') || 'mensajes');
     crmLineaTab(tabGuardada);
     _crmSuscribirRealtime(lineaId);
@@ -32428,8 +32817,9 @@ function crmLineaTab(name) {
     const btnWa = document.getElementById('crmLineaTabWa'), btnLe = document.getElementById('crmLineaTabLeads');
     if(wa) wa.style.display = name === 'mensajes' ? '' : 'none';
     if(le) le.style.display = name === 'leads' ? '' : 'none';
-    if(btnWa) btnWa.className = 'btn ' + (name === 'mensajes' ? 'btn-blue' : 'btn-light');
-    if(btnLe) btnLe.className = 'btn ' + (name === 'leads' ? 'btn-blue' : 'btn-light');
+    // Elevado = sin elegir; hundido = elegido (ver receta "pildora premium" arriba).
+    if(btnWa) btnWa.className = 'crm-tab-seg' + (name === 'mensajes' ? ' on pill-hundido' : '');
+    if(btnLe) btnLe.className = 'crm-tab-seg' + (name === 'leads' ? ' on pill-hundido' : '');
     if(name === 'mensajes') renderWhatsapp(); else renderLeads();
 }
 
