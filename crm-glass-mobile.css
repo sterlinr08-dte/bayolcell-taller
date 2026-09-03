@@ -237,3 +237,265 @@
     scroll-behavior:auto !important;
   }
 }
+
+/* ============================================================
+   CHAT ABIERTO — Glass UI premium + microinteracciones (2026-09-03)
+   Solo CSS: no toca JS, visualViewport, Realtime, composer ni envío.
+   ============================================================ */
+@media (max-width:1024px) {
+  #v-crmLinea.chat-abierto {
+    --wa-glass:rgba(255,255,255,.79);
+    --wa-glass-strong:rgba(255,255,255,.93);
+    --wa-line:rgba(255,255,255,.88);
+    --wa-teal:#0f9688;
+    --wa-teal-dark:#08766c;
+    --wa-in:#ffffff;
+    --wa-out:#d9fdd3;
+    background:
+      radial-gradient(circle at 14% 4%,rgba(14,165,233,.055),transparent 26%),
+      radial-gradient(circle at 88% 8%,rgba(16,185,129,.055),transparent 28%),
+      #f3f6fa;
+  }
+
+  /* Marco del chat: mantiene el cálculo de alto existente; solo cambia acabado. */
+  #v-crmLinea.chat-abierto .wa-shell {
+    border-radius:26px;
+    border:1px solid rgba(255,255,255,.84);
+    background:rgba(255,255,255,.34);
+    box-shadow:0 18px 42px rgba(15,23,42,.10),inset 0 1px 0 rgba(255,255,255,.94);
+    overflow:hidden;
+  }
+
+  #v-crmLinea .wa-chat-col {
+    background-color:#f1ebe4;
+    background-image:
+      radial-gradient(circle at 15% 18%,rgba(18,140,126,.035) 0 1px,transparent 1.5px),
+      radial-gradient(circle at 77% 66%,rgba(100,116,139,.032) 0 1px,transparent 1.5px),
+      linear-gradient(180deg,rgba(255,252,248,.54),rgba(244,236,228,.46));
+    background-size:24px 24px,31px 31px,100% 100%;
+  }
+
+  /* Cabecera del contacto */
+  #v-crmLinea .wa-chat-head {
+    position:relative;
+    z-index:5;
+    padding:11px 13px;
+    gap:11px;
+    background:linear-gradient(145deg,rgba(255,255,255,.94),rgba(245,248,252,.78));
+    border-bottom:1px solid rgba(148,163,184,.12);
+    box-shadow:0 8px 24px rgba(15,23,42,.07),inset 0 1px 0 rgba(255,255,255,.98);
+    backdrop-filter:blur(22px) saturate(145%);
+    -webkit-backdrop-filter:blur(22px) saturate(145%);
+  }
+
+  #v-crmLinea .wa-chat-head .wa-avatar {
+    width:48px;
+    height:48px;
+    border:1px solid rgba(255,255,255,.5);
+    box-shadow:0 7px 18px rgba(7,94,84,.18),inset 0 1px 0 rgba(255,255,255,.20);
+    transition:transform .22s cubic-bezier(.2,.85,.24,1),box-shadow .22s ease;
+  }
+
+  #v-crmLinea .wa-chat-head .wa-icon-btn {
+    width:43px;
+    height:43px;
+    border-radius:16px;
+    background:rgba(255,255,255,.72);
+    border:1px solid rgba(255,255,255,.94);
+    box-shadow:0 5px 14px rgba(15,23,42,.065),inset 0 1px 0 #fff;
+    backdrop-filter:blur(15px) saturate(140%);
+    -webkit-backdrop-filter:blur(15px) saturate(140%);
+    transition:transform .2s cubic-bezier(.2,.85,.24,1),box-shadow .2s ease,background .2s ease;
+  }
+  #v-crmLinea .wa-chat-head .wa-icon-btn:active { transform:scale(.92); }
+
+  #v-crmLinea .wa-chat-head .wa-call-btn {
+    border-radius:50%;
+    color:var(--wa-teal) !important;
+    background:linear-gradient(145deg,rgba(238,253,250,.97),rgba(215,245,240,.78));
+    box-shadow:0 7px 18px rgba(15,150,136,.14),inset 0 1px 0 rgba(255,255,255,.96);
+  }
+
+  #v-crmLinea .wa-chat-head .wa-tab-btn {
+    min-height:42px;
+    padding:9px 14px !important;
+    border-radius:999px !important;
+    color:#08766c !important;
+    background:linear-gradient(145deg,rgba(255,255,255,.96),rgba(242,249,248,.82)) !important;
+    border:1px solid rgba(15,150,136,.14) !important;
+    box-shadow:0 6px 16px rgba(15,23,42,.06),inset 0 1px 0 #fff;
+    transition:transform .2s cubic-bezier(.2,.85,.24,1),box-shadow .2s ease;
+  }
+  #v-crmLinea .wa-chat-head .wa-tab-btn:active { transform:scale(.96); }
+
+  /* Fila Asignarme / Reasignar: el HTML actual la coloca inmediatamente debajo del header. */
+  #v-crmLinea .wa-chat-head + div {
+    position:relative;
+    z-index:4;
+    padding:8px 12px 10px !important;
+    background:rgba(249,251,253,.76) !important;
+    border-bottom:1px solid rgba(148,163,184,.10) !important;
+    box-shadow:0 5px 14px rgba(15,23,42,.035);
+    backdrop-filter:blur(18px) saturate(138%);
+    -webkit-backdrop-filter:blur(18px) saturate(138%);
+  }
+  #v-crmLinea .wa-chat-head + div > span {
+    gap:8px !important;
+    flex-wrap:wrap;
+  }
+  #v-crmLinea .wa-chat-head + div .btn.btn-light {
+    min-height:40px;
+    padding:9px 14px !important;
+    border-radius:999px !important;
+    font-size:12px !important;
+    font-weight:750;
+    color:#1e293b;
+    background:linear-gradient(145deg,rgba(255,255,255,.97),rgba(243,246,250,.80));
+    border:1px solid rgba(255,255,255,.96);
+    box-shadow:0 6px 16px rgba(15,23,42,.055),inset 0 1px 0 #fff;
+    transition:transform .18s cubic-bezier(.2,.85,.24,1),box-shadow .18s ease,background .18s ease;
+  }
+  #v-crmLinea .wa-chat-head + div .btn.btn-light:active {
+    transform:scale(.96) translateY(1px);
+    box-shadow:0 3px 9px rgba(15,23,42,.055),inset 0 1px 2px rgba(15,23,42,.035);
+  }
+
+  /* Área desplazable de mensajes */
+  #v-crmLinea #waMessagesScroll {
+    padding:14px 13px 19px;
+    scroll-behavior:smooth;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior-y:contain;
+    scrollbar-width:none;
+  }
+  #v-crmLinea #waMessagesScroll::-webkit-scrollbar { display:none; }
+
+  /* Mensajes: más aire, bordes suaves y profundidad ligera. */
+  #v-crmLinea .wa-brow {
+    margin-bottom:8px;
+  }
+  #v-crmLinea .wa-bubble-wrap {
+    max-width:78%;
+    border-radius:17px !important;
+    padding:8px 11px 7px !important;
+    border:1px solid rgba(255,255,255,.58);
+    box-shadow:0 4px 13px rgba(15,23,42,.075),inset 0 1px 0 rgba(255,255,255,.60) !important;
+    transition:transform .19s cubic-bezier(.18,.84,.24,1),filter .18s ease,box-shadow .19s ease !important;
+    will-change:transform;
+  }
+  #v-crmLinea .wa-brow.in .wa-bubble-wrap {
+    background:linear-gradient(145deg,rgba(255,255,255,.99),rgba(249,250,251,.97)) !important;
+    border-bottom-left-radius:6px !important;
+  }
+  #v-crmLinea .wa-brow.out .wa-bubble-wrap {
+    background:linear-gradient(145deg,#e2ffd9,#d4f8cc) !important;
+    border-color:rgba(134,239,172,.24);
+    border-bottom-right-radius:6px !important;
+    box-shadow:0 4px 13px rgba(22,101,52,.075),inset 0 1px 0 rgba(255,255,255,.58) !important;
+  }
+  #v-crmLinea .wa-brow:active .wa-bubble-wrap {
+    transform:scale(.987);
+    filter:brightness(.988);
+  }
+
+  /* El gesto ya existe en JS; aquí solo se hace más elástico y legible. */
+  #v-crmLinea .wa-swipe-forward-cue {
+    border-radius:999px;
+    background:linear-gradient(145deg,#16a394,#08766c);
+    box-shadow:0 7px 18px rgba(8,118,108,.23),inset 0 1px 0 rgba(255,255,255,.24);
+    transition:opacity .12s ease,transform .16s cubic-bezier(.2,.9,.24,1.18),background .14s ease;
+  }
+  #v-crmLinea .wa-reply-icon {
+    filter:drop-shadow(0 3px 7px rgba(15,23,42,.12));
+  }
+
+  /* Composer: vidrio fijo visualmente, sin tocar position ni cálculos de alto. */
+  #v-crmLinea .wa-input-bar {
+    gap:8px;
+    padding:9px 11px !important;
+    background:linear-gradient(145deg,rgba(250,252,254,.94),rgba(239,244,248,.86)) !important;
+    border-top:1px solid rgba(255,255,255,.82) !important;
+    box-shadow:0 -10px 28px rgba(15,23,42,.075),inset 0 1px 0 rgba(255,255,255,.96);
+    backdrop-filter:blur(22px) saturate(145%);
+    -webkit-backdrop-filter:blur(22px) saturate(145%);
+  }
+
+  #v-crmLinea .wa-input-bar input {
+    min-height:46px;
+    padding:10px 16px !important;
+    border-radius:999px !important;
+    background:rgba(255,255,255,.92) !important;
+    border:1px solid rgba(255,255,255,.96) !important;
+    box-shadow:0 5px 15px rgba(15,23,42,.055),inset 0 1px 0 #fff !important;
+    color:#1e293b;
+    transition:box-shadow .2s ease,background .2s ease,border-color .2s ease !important;
+  }
+  #v-crmLinea .wa-input-bar input:focus {
+    outline:none;
+    background:#fff !important;
+    border-color:rgba(15,150,136,.22) !important;
+    box-shadow:0 7px 20px rgba(15,23,42,.065),0 0 0 3px rgba(15,150,136,.075),inset 0 1px 0 #fff !important;
+  }
+
+  #v-crmLinea .wa-input-bar .wa-icon-btn {
+    width:42px;
+    height:42px;
+    border-radius:50%;
+    background:rgba(255,255,255,.66);
+    border:1px solid rgba(255,255,255,.86);
+    box-shadow:0 4px 12px rgba(15,23,42,.045),inset 0 1px 0 rgba(255,255,255,.92);
+    transition:transform .18s cubic-bezier(.2,.85,.24,1),background .18s ease;
+  }
+  #v-crmLinea .wa-input-bar .wa-icon-btn:active { transform:scale(.91); }
+
+  #v-crmLinea .wa-send-btn {
+    width:48px;
+    height:48px;
+    border-radius:50%;
+    color:#fff;
+    background:linear-gradient(145deg,#16aa99,#078579) !important;
+    border:1px solid rgba(255,255,255,.28);
+    box-shadow:0 8px 20px rgba(8,118,108,.25),inset 0 1px 0 rgba(255,255,255,.24);
+    transition:transform .18s cubic-bezier(.2,.9,.24,1.12),box-shadow .18s ease,filter .18s ease !important;
+  }
+  #v-crmLinea .wa-send-btn:hover { filter:brightness(1.02); }
+  #v-crmLinea .wa-send-btn:active {
+    transform:scale(.89) !important;
+    box-shadow:0 4px 11px rgba(8,118,108,.22),0 0 0 7px rgba(15,150,136,.08);
+  }
+  #v-crmLinea .wa-send-btn.wa-enviando {
+    animation:crmChatSendPulse .72s ease-in-out infinite !important;
+  }
+
+  /* Desktop con mouse: elevación mínima; en touch no queda hover pegado. */
+  @media (hover:hover) and (pointer:fine) {
+    #v-crmLinea .wa-chat-head .wa-icon-btn:hover,
+    #v-crmLinea .wa-chat-head .wa-tab-btn:hover,
+    #v-crmLinea .wa-chat-head + div .btn.btn-light:hover {
+      transform:translateY(-1px);
+      box-shadow:0 8px 20px rgba(15,23,42,.08),inset 0 1px 0 #fff;
+    }
+    #v-crmLinea .wa-brow:hover .wa-bubble-wrap {
+      box-shadow:0 6px 17px rgba(15,23,42,.09),inset 0 1px 0 rgba(255,255,255,.64) !important;
+    }
+  }
+}
+
+@keyframes crmChatSendPulse {
+  0%,100% { transform:scale(1); box-shadow:0 8px 20px rgba(8,118,108,.24),0 0 0 0 rgba(15,150,136,.12); }
+  50% { transform:scale(.91); box-shadow:0 5px 14px rgba(8,118,108,.20),0 0 0 8px rgba(15,150,136,0); }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  #v-crmLinea .wa-chat-head .wa-avatar,
+  #v-crmLinea .wa-chat-head .wa-icon-btn,
+  #v-crmLinea .wa-chat-head .wa-tab-btn,
+  #v-crmLinea .wa-chat-head + div .btn.btn-light,
+  #v-crmLinea .wa-input-bar input,
+  #v-crmLinea .wa-input-bar .wa-icon-btn,
+  #v-crmLinea .wa-send-btn,
+  #v-crmLinea .wa-swipe-forward-cue {
+    animation:none !important;
+    transition:none !important;
+  }
+}
