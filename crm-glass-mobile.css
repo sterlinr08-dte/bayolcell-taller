@@ -1,0 +1,239 @@
+/* BAYOL CELL — CRM móvil Glass UI
+   Capa visual aislada: no modifica lógica, alturas de teclado ni composer. */
+
+@media (max-width:1024px) {
+  #v-crmLinea {
+    --crm-glass: rgba(255,255,255,.78);
+    --crm-glass-strong: rgba(255,255,255,.91);
+    --crm-line: rgba(255,255,255,.82);
+    --crm-shadow: 0 10px 28px rgba(15,23,42,.085), inset 0 1px 0 rgba(255,255,255,.96);
+    --crm-shadow-soft: 0 5px 16px rgba(15,23,42,.065), inset 0 1px 0 rgba(255,255,255,.94);
+    --crm-red: #dc2626;
+    --crm-red-soft: rgba(220,38,38,.11);
+    background:
+      radial-gradient(circle at 8% 0%, rgba(239,68,68,.07), transparent 27%),
+      radial-gradient(circle at 94% 16%, rgba(99,102,241,.065), transparent 29%),
+      linear-gradient(180deg,#f8fafc 0%,#f4f7fb 100%);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Selectores — píldora de cristal */
+  #v-crmLinea .crm-selectores {
+    gap:10px;
+    margin-bottom:12px;
+  }
+  #v-crmLinea .crm-pill-select {
+    min-height:58px;
+    padding:10px 15px;
+    border-radius:999px;
+    background:linear-gradient(145deg,rgba(255,255,255,.94),rgba(244,247,251,.72));
+    border:1px solid var(--crm-line);
+    box-shadow:var(--crm-shadow);
+    backdrop-filter:blur(20px) saturate(145%);
+    -webkit-backdrop-filter:blur(20px) saturate(145%);
+    transition:transform .22s cubic-bezier(.2,.8,.2,1),box-shadow .22s ease,background .22s ease;
+  }
+  #v-crmLinea .crm-pill-select:active { transform:scale(.985); }
+  #v-crmLinea .crm-pill-select > i { font-size:19px; filter:drop-shadow(0 2px 5px rgba(220,38,38,.16)); }
+  #v-crmLinea .crm-pill-select .txt { line-height:1.18; }
+  #v-crmLinea .crm-pill-select .txt b { font-size:9px; letter-spacing:.55px; color:#64748b; margin-bottom:2px; }
+  #v-crmLinea .crm-pill-select .chev { font-size:15px; color:#94a3b8; transition:transform .2s ease; }
+
+  /* Mensajes / Leads */
+  #v-crmLinea .crm-tabs-row {
+    gap:10px;
+    margin-bottom:14px;
+    align-items:stretch;
+  }
+  #v-crmLinea .crm-tabs-track {
+    min-height:52px;
+    border-radius:999px;
+    padding:4px;
+    overflow:visible;
+    background:rgba(255,255,255,.67);
+    border:1px solid rgba(255,255,255,.9);
+    box-shadow:var(--crm-shadow-soft);
+    backdrop-filter:blur(20px) saturate(145%);
+    -webkit-backdrop-filter:blur(20px) saturate(145%);
+  }
+  #v-crmLinea .crm-tab-seg {
+    border-radius:999px;
+    padding:11px 10px;
+    font-size:13px;
+    transition:transform .22s cubic-bezier(.2,.8,.2,1),color .2s ease,background .22s ease,box-shadow .22s ease;
+  }
+  #v-crmLinea .crm-tab-seg:active { transform:scale(.975); }
+  #v-crmLinea .crm-tab-seg.on,
+  #v-crmLinea .crm-tab-seg.pill-hundido {
+    color:#dc2626;
+    background:linear-gradient(145deg,rgba(255,247,247,.96),rgba(254,226,226,.76));
+    border:1px solid rgba(248,113,113,.22);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 6px 16px rgba(220,38,38,.11),0 0 0 1px rgba(255,255,255,.38);
+  }
+  #v-crmLinea .crm-tab-seg.on i { filter:drop-shadow(0 2px 6px rgba(220,38,38,.2)); }
+
+  /* Acciones circulares */
+  #v-crmLinea .crm-icon-btn {
+    width:52px;
+    height:52px;
+    border-radius:50%;
+    background:linear-gradient(145deg,rgba(255,255,255,.92),rgba(244,247,251,.7));
+    border:1px solid rgba(255,255,255,.88);
+    box-shadow:var(--crm-shadow-soft);
+    backdrop-filter:blur(18px) saturate(145%);
+    -webkit-backdrop-filter:blur(18px) saturate(145%);
+    transition:transform .22s cubic-bezier(.2,.8,.2,1),box-shadow .22s ease;
+  }
+  #v-crmLinea .crm-icon-btn:active { transform:scale(.94); box-shadow:0 3px 10px rgba(15,23,42,.08),inset 0 1px 4px rgba(15,23,42,.06); }
+
+  /* KPIs */
+  #v-crmLinea .crm-stats {
+    margin-bottom:15px;
+    border-radius:24px;
+    background:linear-gradient(145deg,rgba(255,255,255,.91),rgba(248,250,252,.72));
+    border:1px solid rgba(255,255,255,.9);
+    box-shadow:0 12px 30px rgba(15,23,42,.075),inset 0 1px 0 rgba(255,255,255,.98);
+    backdrop-filter:blur(22px) saturate(145%);
+    -webkit-backdrop-filter:blur(22px) saturate(145%);
+    overflow:hidden;
+  }
+  #v-crmLinea .crm-stat { padding:16px 8px 15px; gap:8px; flex-direction:column; text-align:center; }
+  #v-crmLinea .crm-stat + .crm-stat::before { top:18%; bottom:18%; background:rgba(100,116,139,.12); }
+  #v-crmLinea .crm-stat-icon {
+    width:44px;
+    height:44px;
+    font-size:19px;
+    box-shadow:0 7px 16px rgba(15,23,42,.11),inset 0 1px 0 rgba(255,255,255,.92),0 0 18px rgba(255,255,255,.45);
+    transition:transform .24s cubic-bezier(.2,.8,.2,1);
+  }
+  #v-crmLinea .crm-stat:active .crm-stat-icon { transform:scale(.94); }
+  #v-crmLinea .crm-stat-num { font-size:21px; letter-spacing:-.5px; }
+  #v-crmLinea .crm-stat-label { font-size:10.5px; color:#64748b; }
+
+  /* Buscar / filtros */
+  #v-crmLinea .crm-lista-herramientas { gap:9px; margin-bottom:10px; }
+  #v-crmLinea .crm-search {
+    min-height:48px;
+    padding:10px 14px 10px 39px;
+    border-radius:999px;
+    background:rgba(255,255,255,.79);
+    border:1px solid rgba(255,255,255,.9);
+    box-shadow:var(--crm-shadow-soft);
+    backdrop-filter:blur(18px) saturate(140%);
+    -webkit-backdrop-filter:blur(18px) saturate(140%);
+    transition:box-shadow .22s ease,background .22s ease,transform .18s ease;
+  }
+  #v-crmLinea .crm-search:focus {
+    background:rgba(255,255,255,.96);
+    box-shadow:0 8px 24px rgba(15,23,42,.1),0 0 0 3px rgba(220,38,38,.07);
+  }
+  #v-crmLinea .crm-search-wrap i { left:14px; font-size:17px; }
+
+  #v-crmLinea .crm-filter-chips {
+    gap:8px;
+    margin-bottom:13px;
+    flex-wrap:nowrap;
+    overflow-x:auto;
+    scrollbar-width:none;
+    -webkit-overflow-scrolling:touch;
+  }
+  #v-crmLinea .crm-filter-chips::-webkit-scrollbar { display:none; }
+  #v-crmLinea .crm-chip {
+    flex:0 0 auto;
+    padding:8px 14px;
+    border-radius:999px;
+    background:rgba(255,255,255,.74);
+    border:1px solid rgba(255,255,255,.9);
+    box-shadow:0 4px 12px rgba(15,23,42,.055),inset 0 1px 0 rgba(255,255,255,.95);
+    backdrop-filter:blur(14px);
+    -webkit-backdrop-filter:blur(14px);
+    transition:transform .2s cubic-bezier(.2,.8,.2,1),box-shadow .2s ease,background .2s ease;
+  }
+  #v-crmLinea .crm-chip:active { transform:scale(.96); }
+  #v-crmLinea .crm-chip.activo {
+    background:linear-gradient(145deg,rgba(255,248,248,.96),rgba(254,226,226,.73));
+    border-color:rgba(248,113,113,.24);
+    color:#dc2626;
+    box-shadow:0 6px 16px rgba(220,38,38,.09),inset 0 1px 0 rgba(255,255,255,.95);
+  }
+
+  /* Contenedor de conversaciones */
+  #v-crmLinea .wa-shell {
+    border-radius:22px;
+    border:1px solid rgba(255,255,255,.78);
+    background:rgba(248,250,252,.42);
+    box-shadow:0 14px 34px rgba(15,23,42,.075),inset 0 1px 0 rgba(255,255,255,.85);
+    backdrop-filter:blur(16px) saturate(135%);
+    -webkit-backdrop-filter:blur(16px) saturate(135%);
+  }
+  #v-crmLinea .wa-list-col { background:transparent; border-right:0; }
+  #v-crmLinea .wa-list-scroll {
+    padding:8px 7px 12px;
+    scroll-behavior:smooth;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior-y:contain;
+  }
+
+  /* Chats: separados, más táctiles y con profundidad */
+  #v-crmLinea .wa-row {
+    min-height:72px;
+    margin:0 1px 8px;
+    padding:11px 12px;
+    border-radius:18px;
+    background:rgba(255,255,255,.87);
+    border:1px solid rgba(255,255,255,.91);
+    box-shadow:0 5px 15px rgba(15,23,42,.055),inset 0 1px 0 rgba(255,255,255,.98);
+    backdrop-filter:blur(13px) saturate(130%);
+    -webkit-backdrop-filter:blur(13px) saturate(130%);
+    transition:transform .22s cubic-bezier(.2,.8,.2,1),box-shadow .22s ease,background .18s ease;
+    animation:crmGlassChatIn .34s cubic-bezier(.2,.8,.2,1) both;
+    will-change:transform;
+  }
+  #v-crmLinea .wa-row + .wa-row::before { display:none; }
+  #v-crmLinea .wa-row:hover { background:rgba(255,255,255,.95); box-shadow:0 8px 20px rgba(15,23,42,.075),inset 0 1px 0 #fff; }
+  #v-crmLinea .wa-row:active { transform:scale(.988) translateY(1px); }
+  #v-crmLinea .wa-row.activo {
+    background:linear-gradient(145deg,rgba(255,255,255,.97),rgba(255,242,242,.78));
+    box-shadow:inset 3px 0 0 #ef4444,0 8px 20px rgba(15,23,42,.07),inset 0 1px 0 #fff;
+  }
+  #v-crmLinea .wa-row.pendiente {
+    box-shadow:inset 3px 0 0 #f59e0b,0 5px 15px rgba(15,23,42,.055),inset 0 1px 0 rgba(255,255,255,.98);
+  }
+  #v-crmLinea .wa-avatar {
+    width:48px;
+    height:48px;
+    box-shadow:0 6px 14px rgba(7,94,84,.16),inset 0 1px 0 rgba(255,255,255,.18);
+  }
+
+  /* Entrada escalonada perceptible sin volver lenta la lista */
+  #v-crmLinea .wa-row:nth-child(1) { animation-delay:0ms; }
+  #v-crmLinea .wa-row:nth-child(2) { animation-delay:24ms; }
+  #v-crmLinea .wa-row:nth-child(3) { animation-delay:48ms; }
+  #v-crmLinea .wa-row:nth-child(4) { animation-delay:72ms; }
+  #v-crmLinea .wa-row:nth-child(5) { animation-delay:96ms; }
+  #v-crmLinea .wa-row:nth-child(6) { animation-delay:120ms; }
+
+  /* Burbuja/chat abierto: solo suaviza movimiento; no toca layout/teclado */
+  #v-crmLinea .wa-bubble-wrap {
+    transition:transform .18s cubic-bezier(.2,.8,.2,1),filter .18s ease;
+  }
+  #v-crmLinea .wa-brow:active .wa-bubble-wrap { filter:brightness(.985); }
+}
+
+@keyframes crmGlassChatIn {
+  from { opacity:0; transform:translateY(9px) scale(.992); }
+  to { opacity:1; transform:translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  #v-crmLinea .wa-row,
+  #v-crmLinea .crm-pill-select,
+  #v-crmLinea .crm-tab-seg,
+  #v-crmLinea .crm-chip,
+  #v-crmLinea .crm-icon-btn,
+  #v-crmLinea .wa-bubble-wrap {
+    animation:none !important;
+    transition:none !important;
+    scroll-behavior:auto !important;
+  }
+}
