@@ -32653,9 +32653,15 @@ function _pintarWhatsappDetalle() {
             });
         }
     }
+    // El foco se restaura SIEMPRE que el empleado lo tenia antes de repintar
+    // -- no solo cuando queda un borrador. Antes estaba anidado dentro del
+    // "if(_borrador)": justo al mandar un mensaje, enviarMensajeWhatsapp()
+    // vacia el input ANTES de repintar, asi que _borrador quedaba vacio
+    // (falsy) y el foco nunca se restauraba -- el cursor se perdia de la
+    // barra de escribir despues de cada envio exitoso.
     const nuevoInput = document.getElementById('waTexto');
-    if(nuevoInput && _borrador) {
-        nuevoInput.value = _borrador;
+    if(nuevoInput) {
+        if(_borrador) nuevoInput.value = _borrador;
         if(_teniaFoco) { nuevoInput.focus(); try { nuevoInput.setSelectionRange(_caret, _caret); } catch(e) {} }
     }
     _waWireSwipe();
