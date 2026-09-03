@@ -347,6 +347,7 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
 .wa-send-btn:hover { background:#0e7c6f; }
 .wa-send-btn:active { transform:scale(.93); }
 .wa-send-btn:disabled { opacity:.5; cursor:default; transform:none; }
+.wa-send-btn.wa-enviando { opacity:.82; animation:waBotonDespachando .72s ease-in-out infinite; }
 .wa-icon-btn { background:none; border:none; color:#54656f; font-size:21px; cursor:pointer; flex-shrink:0; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; line-height:1; transition:background .12s, color .12s; }
 .wa-icon-btn:hover { color:#128C7E; background:rgba(11,20,26,.06); }
 .wa-icon-btn:active { background:rgba(11,20,26,.1); }
@@ -380,9 +381,19 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
 
 /* Gestos de mensajes: derecha = responder; izquierda = reenviar. */
 @keyframes waBubbleIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+@keyframes waMensajeSaleComposer {
+    0% { opacity:.15; transform:translate(42px,26px) scale(.72); filter:blur(1px); }
+    68% { opacity:1; transform:translate(-2px,-1px) scale(1.025); filter:blur(0); }
+    100% { opacity:1; transform:translate(0,0) scale(1); filter:blur(0); }
+}
+@keyframes waBotonDespachando {
+    0%,100% { transform:scale(1); box-shadow:0 1px 3px rgba(7,94,84,.35); }
+    50% { transform:scale(.9); box-shadow:0 0 0 7px rgba(18,140,126,.12); }
+}
 .wa-brow { display:flex; position:relative; touch-action:pan-y; }
 .wa-brow.out { justify-content:flex-end; }
 .wa-bubble-wrap { position:relative; max-width:70%; animation:waBubbleIn .18s ease-out; transition:transform .15s ease; }
+.wa-brow.wa-envio-nuevo .wa-bubble-wrap { transform-origin:bottom right; animation:waMensajeSaleComposer .36s cubic-bezier(.2,.86,.28,1.12); }
 .wa-reply-icon { display:none; } /* movil: solo swipe. PC: reemplazado por el menu de acciones (wa-menu-btn) */
 .wa-swipe-forward-cue { position:absolute; top:50%; right:-76px; height:32px; padding:0 9px; border-radius:16px; background:#128C7E; color:#fff; display:flex; align-items:center; gap:5px; font-size:10.5px; font-weight:800; white-space:nowrap; pointer-events:none; opacity:0; transform:translateY(-50%) scale(.72); transform-origin:left center; box-shadow:0 2px 7px rgba(7,94,84,.28); transition:opacity .1s ease, transform .1s ease, background .1s ease; }
 .wa-swipe-forward-cue i { font-size:14px; }
@@ -4926,7 +4937,8 @@ function reproducirSonido(tipo) {
         const sonidos = {
             orden:      [{f:880, t:0},  {f:1180, t:0.12}],            // ding-dong agudo (nueva orden)
             pieza:      [{f:660, t:0},  {f:660, t:0.15}],             // doble beep medio (pieza)
-            finalizado: [{f:523, t:0},  {f:659, t:0.1}, {f:784, t:0.2}] // acorde ascendente (éxito)
+            finalizado: [{f:523, t:0},  {f:659, t:0.1}, {f:784, t:0.2}], // acorde ascendente (éxito)
+            whatsappEnviado: [{f:740, t:0, g:.10}, {f:1040, t:.045, g:.075}] // pop corto propio al confirmar envío
         };
         const notas = sonidos[tipo] || sonidos.orden;
         notas.forEach(n => {
@@ -4935,7 +4947,7 @@ function reproducirSonido(tipo) {
             osc.type = 'sine';
             osc.frequency.value = n.f;
             gain.gain.setValueAtTime(0.0001, ctx.currentTime + n.t);
-            gain.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + n.t + 0.02);
+            gain.gain.exponentialRampToValueAtTime(n.g ?? 0.3, ctx.currentTime + n.t + 0.02);
             gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + n.t + 0.18);
             osc.connect(gain); gain.connect(ctx.destination);
             osc.start(ctx.currentTime + n.t);
@@ -31974,6 +31986,7 @@ let _waHilos = [];
 let _waHiloId = null;
 let _waMensajes = [];
 let _waEnviando = false;
+let _waMensajeAnimarId = null;
 let _crmImportandoHistorial = false;
 
 // CRM: sucursal > línea de WhatsApp. El selector se arma dinámicamente (construirSelectorCRM)
@@ -32461,8 +32474,9 @@ function _pintarWhatsappDetalle() {
             const esOut = m.direccion === 'out';
             const etiqueta = esOut ? 'Tú (BayolCell)' : nombre;
             const original = m.responde_a_id ? porId[m.responde_a_id] : null;
+            const animarEnvio = esOut && m.id === _waMensajeAnimarId;
             const citaHTML = original ? `<div class="wa-quote wa-quote-${original.direccion}" onclick="event.stopPropagation(); _waIrAMensaje('${original.id}')"><div class="who">${escapeHtml(original.direccion === 'out' ? 'Tú (BayolCell)' : nombre)}</div><div class="txt">${escapeHtml(_waPreviewTexto(original))}</div></div>` : '';
-            return `<div class="wa-brow ${esOut ? 'out' : 'in'}" data-msgid="${m.id}">
+            return `<div class="wa-brow ${esOut ? 'out' : 'in'}${animarEnvio ? ' wa-envio-nuevo' : ''}" data-msgid="${m.id}">
                 <i class="ti ti-arrow-back-up wa-reply-icon" onclick="_waActivarRespuesta('${m.id}')" title="Responder"></i>
                 <div class="wa-bubble-wrap" style="background:${esOut ? '#dcf8c6' : '#fff'}; border-radius:8px; padding:6px 9px 7px; box-shadow:0 1px .5px rgba(0,0,0,.13); font-size:13.5px;">
                     <span class="wa-swipe-forward-cue"><i class="ti ti-arrow-forward-up"></i><span>Reenviar</span></span>
@@ -32501,6 +32515,9 @@ function _pintarWhatsappDetalle() {
     }
 
     cont.innerHTML = html;
+    // La marca se consume en este render: así el sonido/animación no se
+    // repiten cuando Realtime o una actualización vuelve a pintar el chat.
+    _waMensajeAnimarId = null;
     const chat = document.getElementById('waMessagesScroll');
     if(chat) {
         // Si estaba pegado al fondo se queda pegado (incluye el caso normal de
@@ -33373,7 +33390,8 @@ async function enviarMensajeWhatsapp() {
     if(!hiloDestino) return;
     const btn = document.getElementById('btnWaEnviar');
     _waEnviando = true;
-    if(btn) btn.disabled = true;
+    activarAudioNotif();
+    if(btn) { btn.disabled = true; btn.classList.add('wa-enviando'); }
     try {
         const { data: { session } } = await supabaseClient.auth.getSession();
         if(!session) { toastError('Inicia sesión de nuevo.'); return; }
@@ -33392,8 +33410,16 @@ async function enviarMensajeWhatsapp() {
                 if(_waRespondiendoA && _waRespondiendoA.hiloId === hiloDestino) _waRespondiendoA = null;
             }
             if(_waHiloId) await cargarMensajesHilo(_waHiloId);
+            if(_waHiloId === hiloDestino) {
+                const enviados = [..._waMensajes].reverse();
+                const nuevo = (j.messageId && enviados.find(m => m.wa_message_id === j.messageId))
+                    || enviados.find(m => m.direccion === 'out' && m.cuerpo === mensaje
+                        && Date.now() - new Date(m.creado_en).getTime() < 60000);
+                _waMensajeAnimarId = nuevo?.id || null;
+            }
             await cargarHilosWhatsapp();
             _pintarWhatsapp();
+            reproducirSonido('whatsappEnviado');
         } else if(j && j.error === 'ventana_cerrada') {
             toastError(j.mensaje || 'Ya no se puede responder libre — hace falta plantilla.');
             await cargarHilosWhatsapp(); _pintarWhatsapp();
@@ -33401,7 +33427,7 @@ async function enviarMensajeWhatsapp() {
             toastError('No se pudo enviar el mensaje.');
         }
     } catch(e) { logError('enviarMensajeWhatsapp', e); toastError(getFriendlyError(e)); }
-    finally { _waEnviando = false; if(btn) btn.disabled = false; }
+    finally { _waEnviando = false; if(btn) { btn.disabled = false; btn.classList.remove('wa-enviando'); } }
 }
 
 /* ---- Vincular / crear cliente (compartido entre bandeja y leads) ---- */
