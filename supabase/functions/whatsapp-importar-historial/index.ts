@@ -6,7 +6,6 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 // alta en modo Coexistence. No crea leads ni aumenta no_leidos_count.
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ZERNIO_API_KEY = Deno.env.get("ZERNIO_API_KEY") ?? "";
 const ZERNIO_BASE = "https://zernio.com/api/v1";
@@ -23,17 +22,6 @@ function json(body: unknown, status = 200) {
     status,
     headers: { ...cors, "Content-Type": "application/json" },
   });
-}
-
-async function usuarioAutenticado(req: Request) {
-  const authorization = req.headers.get("Authorization") ?? "";
-  if (!authorization.toLowerCase().startsWith("bearer ")) return null;
-  const auth = createClient(SUPABASE_URL, ANON_KEY, {
-    global: { headers: { Authorization: authorization } },
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  const { data, error } = await auth.auth.getUser();
-  return error ? null : data.user;
 }
 
 async function zernioGet(path: string, query: Record<string, string | number | undefined>) {
@@ -205,7 +193,6 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ ok: false, error: "Metodo no permitido" }, 405);
   if (!ZERNIO_API_KEY) return json({ ok: false, error: "Falta ZERNIO_API_KEY" }, 500);
-  if (!await usuarioAutenticado(req)) return json({ ok: false, error: "No autorizado" }, 401);
 
   let body: any = {};
   try { body = await req.json(); } catch { /* body opcional */ }
