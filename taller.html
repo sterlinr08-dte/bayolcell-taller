@@ -336,6 +336,121 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
 .wa-row:hover { background:#f5f6f6; }
 .wa-row.active { background:#f0f2f5; }
 .wa-avatar { width:42px; height:42px; border-radius:50%; background:linear-gradient(135deg,#128C7E,#075E54); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; flex-shrink:0; }
+
+/* ============================================================
+   BANDEJA CRM WHATSAPP — pase de pulido (2026-09-03), sintesis de
+   un taller de diseno de 3 propuestas + juez. 0 backdrop-filter
+   nuevos (el unico sigue siendo el de .crm-stats, mas abajo). El
+   HTML de .wa-row no cambia su estructura, solo sus clases/estilo
+   inline via JS (ver _pintarWhatsappLista).
+   ============================================================ */
+
+/* Selectores Sucursal/Area: mas aire + chevron que gira al enfocar */
+.crm-pill-select { padding:11px 15px; font-size:13.5px; }
+.crm-pill-select > i { font-size:18px; }
+.crm-pill-select .chev { transition: transform .18s ease, color .18s ease; }
+.crm-pill-select:focus-within .chev { transform: rotate(180deg); color:#dc2626; }
+
+/* Tabs Mensajes/Leads: solo se afina la curva del box-shadow (resorte sutil).
+   El estado .on lo sigue resolviendo pill-hundido via JS — no se duplica. */
+.crm-tab-seg {
+    transition:
+        box-shadow .22s cubic-bezier(.34,1.56,.64,1),
+        color .18s ease, filter .18s ease, letter-spacing .18s ease;
+}
+
+/* Botones redondos de accion: "vidrio suave" SIN backdrop-filter — mismo
+   sheen radial que ya usan las bolas del KPI (.crm-stat .bola::after),
+   cero costo de composicion extra en Safari movil. */
+.crm-icon-btn.pill-elevado { position:relative; overflow:hidden; }
+.crm-icon-btn.pill-elevado::before {
+    content:''; position:absolute; inset:0; border-radius:50%;
+    background: radial-gradient(circle at 32% 26%, rgba(255,255,255,.55), transparent 60%);
+    pointer-events:none;
+}
+.crm-icon-btn.pill-elevado i { position:relative; z-index:1; }
+.crm-icon-btn.pill-elevado:active { transform: scale(.93); }
+@keyframes crm-spin-suave { to { transform: rotate(360deg); } }
+.crm-icon-btn.girando i { display:inline-block; animation: crm-spin-suave .85s linear infinite; }
+
+/* Buscador capsula: mismo lenguaje "hundido con tinte rojo" que .pill-hundido,
+   reutilizado en el estado de foco (no es un color nuevo en la pantalla). */
+.crm-buscar-input { transition: box-shadow .18s ease; }
+.crm-buscar-input:focus {
+    box-shadow:
+        inset 0 3px 6px rgba(15,23,42,.16),
+        inset 0 -1px 2px rgba(255,255,255,.6),
+        inset 0 3px 5px rgba(220,38,38,.08),
+        0 0 0 1px rgba(220,38,38,.14);
+}
+
+/* Chips de filtro: mas espaciados, badge numerico como pildora contenida */
+.crm-chips-row { gap:10px; }
+.crm-chip { padding:10px 18px; }
+.crm-chip .cuenta {
+    display:inline-flex; align-items:center; justify-content:center;
+    min-width:18px; height:18px; padding:0 5px;
+    border-radius:9999px; font-size:10.5px; font-weight:800; opacity:1;
+    background: rgba(15,23,42,.08); color:#475569;
+    transition: background .18s ease, color .18s ease;
+}
+.crm-chip.on .cuenta { background: rgba(220,38,38,.12); color:#b91c1c; }
+
+/* Tarjeta KPI: mas aire interno + glow suave en cada icono */
+.crm-stats { padding:18px 10px 16px; }
+.crm-stat.rojo .bola i   { filter: drop-shadow(0 0 5px rgba(220,38,38,.45)); }
+.crm-stat.azul .bola i   { filter: drop-shadow(0 0 5px rgba(37,99,235,.45)); }
+.crm-stat.morado .bola i { filter: drop-shadow(0 0 5px rgba(124,58,237,.45)); }
+
+/* Lista de chats — el punto clave del brief: de renglon de tabla a tarjeta
+   que respira. Canvas gris muy claro para que las tarjetas blancas tengan
+   contra que separarse. */
+.wa-list-scroll {
+    background:#f7f8fa; padding:8px 8px 12px;
+    -webkit-overflow-scrolling:touch; scroll-behavior:smooth;
+}
+.wa-row {
+    padding:13px 14px; margin:0 0 8px; border-radius:14px; background:#fff;
+    box-shadow: 0 1px 2px rgba(15,23,42,.05), 0 3px 8px -5px rgba(15,23,42,.10);
+    transition: box-shadow .16s ease, transform .12s ease, background .16s ease;
+}
+.wa-row:last-child { margin-bottom:0; }
+.wa-row + .wa-row::before { content:none; } /* la separacion ahora es margen+sombra, no hairline */
+/* Gateado a (hover:hover): un :hover plano queda "pegado" tras un tap movil
+   hasta el proximo toque — mismo patron que ya usa .pill-elevado arriba. */
+@media (hover:hover) and (pointer:fine) {
+    .wa-row:hover { background:#fff; box-shadow: 0 2px 5px rgba(15,23,42,.06), 0 8px 16px -8px rgba(15,23,42,.16); }
+}
+.wa-row.active {
+    background:#fff;
+    box-shadow: 0 0 0 1.5px rgba(220,38,38,.25), 0 4px 12px -7px rgba(220,38,38,.20), 0 1px 2px rgba(15,23,42,.05);
+}
+.wa-row:active { transform: scale(.98); }
+/* La franja naranja de "pendiente" se combina con la sombra de tarjeta en
+   vez de ser reemplazada por ella, en las 3 variantes (base/hover/active). */
+.wa-row.pendiente { box-shadow: inset 3px 0 0 #f59e0b, 0 1px 2px rgba(15,23,42,.05), 0 3px 8px -5px rgba(15,23,42,.10); }
+@media (hover:hover) and (pointer:fine) {
+    .wa-row.pendiente:hover { box-shadow: inset 3px 0 0 #f59e0b, 0 2px 5px rgba(15,23,42,.06), 0 8px 16px -8px rgba(15,23,42,.16); }
+}
+.wa-row.pendiente.active { box-shadow: inset 3px 0 0 #f59e0b, 0 0 0 1.5px rgba(220,38,38,.25), 0 4px 12px -7px rgba(220,38,38,.20), 0 1px 2px rgba(15,23,42,.05); }
+
+/* Entrada de filas: fade + translateY corto, stagger por posicion via
+   nth-child (CSS puro, sin que el JS tenga que calcular/pasar un indice). */
+@keyframes waRowFadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+.fade-in-row { animation: waRowFadeIn .3s cubic-bezier(.22,.61,.36,1) both; }
+.fade-in-row:nth-child(1) { animation-delay:0ms; }
+.fade-in-row:nth-child(2) { animation-delay:25ms; }
+.fade-in-row:nth-child(3) { animation-delay:50ms; }
+.fade-in-row:nth-child(4) { animation-delay:75ms; }
+.fade-in-row:nth-child(5) { animation-delay:100ms; }
+.fade-in-row:nth-child(6) { animation-delay:125ms; }
+.fade-in-row:nth-child(7) { animation-delay:150ms; }
+.fade-in-row:nth-child(8) { animation-delay:175ms; }
+.fade-in-row:nth-child(n+9) { animation-delay:200ms; }
+@media (prefers-reduced-motion: reduce) {
+    .fade-in-row, .crm-icon-btn.girando i { animation:none; }
+}
+
 .wa-chat-col { flex:1; min-width:0; display:flex; flex-direction:column; background:#ECE5DD; background-image:radial-gradient(rgba(0,0,0,.02) 1px, transparent 1px); background-size:14px 14px; }
 .wa-chat-head { background:#f0f2f5; padding:11px 18px; display:flex; align-items:center; gap:12px; border-bottom:1px solid #e9edef; }
 .wa-chat-empty { margin:auto; color:#8696a0; font-size:13px; text-align:center; }
@@ -1667,7 +1782,7 @@ body{
                         <button class="crm-tab-seg" id="crmLineaTabLeads" onclick="crmLineaTab('leads')"><i class="ti ti-user-plus"></i> Leads</button>
                     </div>
                     <button class="crm-icon-btn pill-elevado" id="crmHistorialBtn" onclick="_crmImportarHistorial()" title="Traer conversaciones anteriores"><i class="ti ti-history"></i></button>
-                    <button class="crm-icon-btn pill-elevado" onclick="renderCrmLinea()" title="Actualizar"><i class="ti ti-refresh"></i></button>
+                    <button class="crm-icon-btn pill-elevado" onclick="renderCrmLinea(this)" title="Actualizar"><i class="ti ti-refresh"></i></button>
                 </div>
                 <div class="crm-stats crm-ocultar-en-chat" id="crmStats"></div>
                 <div id="crmLinea-mensajes">
@@ -32200,6 +32315,10 @@ function _pintarWhatsappLista() {
         const activo = h.id === _waHiloId;
         const nombre = h.nombre_perfil || h.telefono_e164 || 'Sin nombre';
         const clases = ['wa-row'];
+        // Sin esta condicion, la lista re-animaria fade+translateY en CADA tecla
+        // tipeada en el buscador (esta funcion se repinta en cada oninput) — el
+        // tipo de "wow" que rompe la velocidad operativa, no algo que se sienta premium.
+        if(!_crmBusqueda) clases.push('fade-in-row');
         if(activo) clases.push('active');
         if(noLeido) clases.push('no-leido');
         if(_crmEsPendiente(h)) clases.push('pendiente');
@@ -33862,7 +33981,7 @@ function _crmDetenerRealtime() {
     _waDejarDeEscucharViewport();
 }
 
-function crmLineaTab(name) {
+async function crmLineaTab(name) {
     try { localStorage.setItem('bayol_subtab_crmlinea', name); } catch(e) {}
     const wa = document.getElementById('crmLinea-mensajes'), le = document.getElementById('crmLinea-leads');
     const btnWa = document.getElementById('crmLineaTabWa'), btnLe = document.getElementById('crmLineaTabLeads');
@@ -33871,27 +33990,37 @@ function crmLineaTab(name) {
     // Elevado = sin elegir; hundido = elegido (ver receta "pildora premium" arriba).
     if(btnWa) btnWa.className = 'crm-tab-seg' + (name === 'mensajes' ? ' on pill-hundido' : '');
     if(btnLe) btnLe.className = 'crm-tab-seg' + (name === 'leads' ? ' on pill-hundido' : '');
-    if(name === 'mensajes') renderWhatsapp(); else renderLeads();
+    if(name === 'mensajes') await renderWhatsapp(); else await renderLeads();
 }
 
-async function renderCrmLinea() {
-    const yaConstruido = _crmEstructura.length > 0;
-    if(!yaConstruido) await construirSelectorCRM();
-    if(!_crmLineaActualId) {
-        const cont = document.getElementById('waWrap');
-        if(cont) cont.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:40px 14px; font-size:13px;">No tienes ninguna línea de WhatsApp disponible.</div>`;
-        return;
+// btn: el boton de refrescar que disparo la llamada (opcional — tambien se
+// usa internamente sin boton, ej. al construir el selector la primera vez).
+// Se le agrega/quita la clase "girando" (animacion de icono, ver CSS junto a
+// .crm-icon-btn) durante TODO el tiempo real de carga, incluido cualquier
+// return temprano — de ahi el try/finally en vez de solo quitarla al final.
+async function renderCrmLinea(btn) {
+    if(btn) btn.classList.add('girando');
+    try {
+        const yaConstruido = _crmEstructura.length > 0;
+        if(!yaConstruido) await construirSelectorCRM();
+        if(!_crmLineaActualId) {
+            const cont = document.getElementById('waWrap');
+            if(cont) cont.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:40px 14px; font-size:13px;">No tienes ninguna línea de WhatsApp disponible.</div>`;
+            return;
+        }
+        // Re-armar lo que nav()/_crmDetenerRealtime() apagaron al SALIR del CRM.
+        // construirSelectorCRM -> seleccionarLineaCRM ya arma esto la PRIMERA vez
+        // que se entra en la sesion; a partir de la segunda _crmEstructura ya
+        // viene poblada y ese camino no se repite, asi que sin esto el tiempo
+        // real y el ajuste de alto por teclado se quedaban apagados el resto de
+        // la sesion en cuanto se salia del CRM una sola vez.
+        _waEscucharViewport();
+        if(!_crmRealtimeChannel) _crmSuscribirRealtime(_crmLineaActualId);
+        if(!yaConstruido) return; // seleccionarLineaCRM ya pinto la pestana guardada; repetirlo aqui duplicaria la consulta
+        await crmLineaTab(localStorage.getItem('bayol_subtab_crmlinea') || 'mensajes');
+    } finally {
+        if(btn) btn.classList.remove('girando');
     }
-    // Re-armar lo que nav()/_crmDetenerRealtime() apagaron al SALIR del CRM.
-    // construirSelectorCRM -> seleccionarLineaCRM ya arma esto la PRIMERA vez
-    // que se entra en la sesion; a partir de la segunda _crmEstructura ya
-    // viene poblada y ese camino no se repite, asi que sin esto el tiempo
-    // real y el ajuste de alto por teclado se quedaban apagados el resto de
-    // la sesion en cuanto se salia del CRM una sola vez.
-    _waEscucharViewport();
-    if(!_crmRealtimeChannel) _crmSuscribirRealtime(_crmLineaActualId);
-    if(!yaConstruido) return; // seleccionarLineaCRM ya pinto la pestana guardada; repetirlo aqui duplicaria la consulta
-    crmLineaTab(localStorage.getItem('bayol_subtab_crmlinea') || 'mensajes');
 }
 
 const saved = localStorage.getItem("bayol_session");
