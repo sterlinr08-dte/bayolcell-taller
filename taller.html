@@ -4043,6 +4043,23 @@ body{
     </div>
 </div>
 
+<!-- MODAL: ENVIAR PLANTILLA (ventana de 24h cerrada) -->
+<div id="modalWaPlantilla" class="modal-backdrop modal-encima">
+    <div class="modal-box" style="max-width:440px;">
+        <div class="modal-header" style="background:linear-gradient(135deg,#128C7E,#075E54); color:#fff; border-radius:12px 12px 0 0;">
+            <h3 style="color:#fff;"><i class="ti ti-file-text"></i> Enviar plantilla</h3>
+            <button class="modal-close" onclick="cerrarModalWaPlantilla()" style="color:#fff;">✕</button>
+        </div>
+        <div class="modal-body" style="padding:16px; display:flex; flex-direction:column; gap:10px;">
+            <div id="waPlantillaCont"><div style="text-align:center; padding:20px; color:#8696a0; font-size:13px;">Cargando plantillas aprobadas...</div></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" onclick="cerrarModalWaPlantilla()">Cancelar</button>
+            <button class="btn btn-blue" id="btnWaEnviarPlantilla" onclick="_waEnviarPlantilla()" style="background:linear-gradient(180deg,#128C7E,#075E54);" disabled><i class="ti ti-send"></i> Enviar</button>
+        </div>
+    </div>
+</div>
+
 <!-- Inputs ocultos para adjuntar foto/documento/camara desde el CRM de WhatsApp -->
 <input type="file" id="waFileFoto" accept="image/*" style="display:none;" onchange="_waAdjuntoSeleccionado(this,'imagen')">
 <input type="file" id="waFileDoc" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar" style="display:none;" onchange="_waAdjuntoSeleccionado(this,'documento')">
@@ -32365,6 +32382,7 @@ function _pintarWhatsappDetalle() {
                     <i class="ti ti-chevron-down wa-menu-btn" onclick="_waAbrirMenuAcciones(event, '${m.id}')" title="Más opciones"></i>
                     <i class="ti ti-arrow-forward-up wa-forward-icon" onclick="_waAbrirReenviar('${m.id}')" title="Reenviar"></i>
                     <div style="font-size:10px; font-weight:700; color:${esOut ? '#166534' : '#128C7E'}; margin-bottom:2px;">${escapeHtml(etiqueta)}</div>
+                    ${m.plantilla_nombre ? `<div style="font-size:10px; color:#8696a0; margin-bottom:3px;"><i class="ti ti-file-text"></i> Plantilla: ${escapeHtml(m.plantilla_nombre)}</div>` : ''}
                     ${citaHTML}
                     ${_waBurbujaMedia(m)}
                     ${m.cuerpo ? `<div style="white-space:pre-wrap; word-break:break-word;">${escapeHtml(m.cuerpo)}</div>` : ''}
@@ -32389,7 +32407,10 @@ function _pintarWhatsappDetalle() {
             </div>
             <div id="waGrabandoBar" class="wa-grabando-bar" style="display:none;"></div>`;
         } else {
-            html += `<div style="padding:10px 18px; background:#fef3c7; border-top:1px solid #fde68a; color:#92400e; font-size:12.5px;"><i class="ti ti-clock-exclamation"></i> Pasaron más de 24h desde el último mensaje del cliente — hace falta una plantilla aprobada para poder escribirle (todavía no disponible desde esta pantalla).</div>`;
+            html += `<div style="padding:10px 18px; background:#fef3c7; border-top:1px solid #fde68a; color:#92400e; font-size:12.5px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <span style="flex:1; min-width:200px;"><i class="ti ti-clock-exclamation"></i> Pasaron más de 24h desde el último mensaje del cliente — hace falta una plantilla aprobada para escribirle.</span>
+                <button class="wa-tab-btn" style="color:#92400e; background:#fff; border-color:#fde68a; font-size:11.5px; white-space:nowrap;" onclick="_waAbrirModalPlantilla()"><i class="ti ti-file-text"></i> Enviar plantilla</button>
+            </div>`;
         }
     }
 
@@ -32736,6 +32757,165 @@ async function _waEnviarContacto() {
             toastError('No se pudo enviar el contacto.');
         }
     } catch(e) { logError('_waEnviarContacto', e); toastError('No se pudo enviar el contacto.'); }
+    finally { btn.disabled = false; }
+}
+
+/* ---------- Plantillas: responder cuando la ventana de 24h esta cerrada ----------
+   Unica via de Meta para que el negocio escriba primero fuera de la ventana. La
+   Edge Function whatsapp-plantillas lista solo las APROBADAS de la linea del hilo
+   (la API key de Zernio nunca llega al navegador). El texto final (variables ya
+   resueltas) se manda como "mensaje" para que se guarde/muestre igual que
+   cualquier otro mensaje de texto — whatsapp-enviar arma el request real hacia
+   Zernio aparte, a partir de plantilla.nombre/idioma/variables. */
+let _waPlantillas = [];         // ultima lista cargada para la linea del hilo abierto
+let _waPlantillaElegida = null; // objeto completo de la plantilla seleccionada en el select
+
+async function _waAbrirModalPlantilla() {
+    const h = _waHilos.find(x => x.id === _waHiloId);
+    if(!h || !h.linea_id) { toastError('Este hilo no tiene una línea de WhatsApp asignada.'); return; }
+    document.getElementById('modalWaPlantilla').classList.add('active');
+    const cont = document.getElementById('waPlantillaCont');
+    cont.innerHTML = `<div style="text-align:center; padding:20px; color:#8696a0; font-size:13px;">Cargando plantillas aprobadas...</div>`;
+    document.getElementById('btnWaEnviarPlantilla').disabled = true;
+    try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if(!session) { toastError('Inicia sesión de nuevo.'); cerrarModalWaPlantilla(); return; }
+        const res = await fetch(`${CONFIG_URL}/functions/v1/whatsapp-plantillas?linea_id=${encodeURIComponent(h.linea_id)}`, {
+            headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY }
+        });
+        const j = await res.json();
+        if(!j || !j.ok) {
+            cont.innerHTML = `<div style="text-align:center; padding:20px; color:#dc2626; font-size:13px;">No se pudieron cargar las plantillas.</div>`;
+            return;
+        }
+        _waPlantillas = j.templates || [];
+        if(!_waPlantillas.length) {
+            cont.innerHTML = `<div style="text-align:center; padding:20px; color:#8696a0; font-size:13px;">No tienes plantillas aprobadas todavía — créalas y somételas a revisión desde el panel de Zernio.</div>`;
+            return;
+        }
+        cont.innerHTML = `
+            <div class="form-row">
+                <label>Plantilla</label>
+                <select id="waPlantillaSelect" onchange="_waSeleccionarPlantilla()">
+                    <option value="">Elige una plantilla...</option>
+                    ${_waPlantillas.map((t, i) => `<option value="${i}">${escapeHtml(t.name)} (${escapeHtml(t.category || '')} · ${escapeHtml(t.language || '')})</option>`).join('')}
+                </select>
+            </div>
+            <div id="waPlantillaVariables"></div>
+            <div id="waPlantillaPreview" style="display:none; background:#f0f2f5; border-radius:8px; padding:10px 12px; font-size:13px; white-space:pre-wrap; word-break:break-word; margin-top:4px;"></div>
+        `;
+    } catch(e) {
+        logError('_waAbrirModalPlantilla', e);
+        cont.innerHTML = `<div style="text-align:center; padding:20px; color:#dc2626; font-size:13px;">No se pudieron cargar las plantillas.</div>`;
+    }
+}
+function cerrarModalWaPlantilla() {
+    document.getElementById('modalWaPlantilla').classList.remove('active');
+    _waPlantillaElegida = null;
+}
+function _waComponentePlantilla(t, tipo) {
+    return (t.components || []).find(c => c.type === tipo) || null;
+}
+function _waPlaceholdersDe(texto) {
+    const out = [];
+    const re = /\{\{([^}]+)\}\}/g;
+    let m;
+    while((m = re.exec(texto || ''))) out.push(m[1].trim());
+    return out;
+}
+function _waSeleccionarPlantilla() {
+    const idx = document.getElementById('waPlantillaSelect').value;
+    const varsCont = document.getElementById('waPlantillaVariables');
+    const preview = document.getElementById('waPlantillaPreview');
+    const btn = document.getElementById('btnWaEnviarPlantilla');
+    if(idx === '') { _waPlantillaElegida = null; varsCont.innerHTML = ''; preview.style.display = 'none'; btn.disabled = true; return; }
+    const t = _waPlantillas[Number(idx)];
+    _waPlantillaElegida = t;
+    const header = _waComponentePlantilla(t, 'HEADER');
+    if(header && header.format && header.format !== 'TEXT') {
+        varsCont.innerHTML = `<div style="color:#dc2626; font-size:12.5px; padding:8px 0;">Esta plantilla tiene un encabezado multimedia — todavía no soportado desde aquí.</div>`;
+        preview.style.display = 'none';
+        btn.disabled = true;
+        return;
+    }
+    const body = _waComponentePlantilla(t, 'BODY');
+    const bodyTexto = body?.text || '';
+    const tokens = _waPlaceholdersDe(bodyTexto);
+    // Si TODOS los tokens son numeros ({{1}}, {{2}}) es posicional; si alguno
+    // tiene nombre ({{cliente}}) tratamos toda la plantilla como con-nombre.
+    const esNombrado = tokens.length > 0 && tokens.some(tk => !/^\d+$/.test(tk));
+    const slots = esNombrado
+        ? [...new Set(tokens)]
+        : [...new Set(tokens.map(Number))].sort((a, b) => a - b).map(String);
+    const ejemplos = body?.example?.body_text?.[0] || [];
+    const nombreCliente = h => (h?.nombre_perfil || '');
+    const hAbierto = _waHilos.find(x => x.id === _waHiloId);
+    varsCont.innerHTML = slots.length
+        ? slots.map((s, i) => `<div class="form-row"><label>${esNombrado ? escapeHtml(s) : 'Variable {{' + escapeHtml(s) + '}}'}</label><input class="wa-plantilla-var" data-slot="${escapeHtml(s)}" type="text" placeholder="${escapeHtml(ejemplos[i] || '')}" value="${i === 0 && !esNombrado ? escapeHtml(nombreCliente(hAbierto)) : ''}" oninput="_waActualizarPreviewPlantilla()"></div>`).join('')
+        : '';
+    btn.disabled = false;
+    _waActualizarPreviewPlantilla();
+}
+function _waActualizarPreviewPlantilla() {
+    const preview = document.getElementById('waPlantillaPreview');
+    const t = _waPlantillaElegida;
+    if(!t) { preview.style.display = 'none'; return; }
+    const body = _waComponentePlantilla(t, 'BODY');
+    let texto = body?.text || '';
+    document.querySelectorAll('.wa-plantilla-var').forEach(input => {
+        const slot = input.dataset.slot;
+        const valor = input.value || `{{${slot}}}`;
+        texto = texto.split(`{{${slot}}}`).join(valor);
+    });
+    const footer = _waComponentePlantilla(t, 'FOOTER');
+    preview.textContent = texto + (footer?.text ? '\n\n' + footer.text : '');
+    preview.style.display = 'block';
+}
+async function _waEnviarPlantilla() {
+    const t = _waPlantillaElegida;
+    if(!t) return;
+    const hiloDestino = _waHiloId;
+    if(!hiloDestino) return;
+    const body = _waComponentePlantilla(t, 'BODY');
+    const tokens = _waPlaceholdersDe(body?.text || '');
+    const esNombrado = tokens.length > 0 && tokens.some(tk => !/^\d+$/.test(tk));
+    const inputs = [...document.querySelectorAll('.wa-plantilla-var')];
+    for(const inp of inputs) {
+        if(!inp.value.trim()) { toastError('Completa todas las variables de la plantilla.'); inp.focus(); return; }
+    }
+    let plantillaPayload;
+    let texto = body?.text || '';
+    if(esNombrado) {
+        const variablesNombradas = inputs.map(inp => ({ param_name: inp.dataset.slot, text: inp.value.trim() }));
+        variablesNombradas.forEach(v => { texto = texto.split(`{{${v.param_name}}}`).join(v.text); });
+        plantillaPayload = { nombre: t.name, idioma: t.language, variablesNombradas };
+    } else {
+        const variables = inputs.map(inp => inp.value.trim());
+        inputs.forEach((inp, i) => { texto = texto.split(`{{${inp.dataset.slot}}}`).join(variables[i]); });
+        plantillaPayload = { nombre: t.name, idioma: t.language, variables };
+    }
+    const footer = _waComponentePlantilla(t, 'FOOTER');
+    const textoFinal = texto + (footer?.text ? '\n\n' + footer.text : '');
+    const btn = document.getElementById('btnWaEnviarPlantilla');
+    btn.disabled = true;
+    try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if(!session) { toastError('Inicia sesión de nuevo.'); return; }
+        const res = await fetch(CONFIG_URL + '/functions/v1/whatsapp-enviar', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ hilo_id: hiloDestino, mensaje: textoFinal, plantilla: plantillaPayload })
+        });
+        const j = await res.json();
+        if(j && j.ok) {
+            cerrarModalWaPlantilla();
+            if(_waHiloId) await cargarMensajesHilo(_waHiloId);
+            await cargarHilosWhatsapp();
+            _pintarWhatsapp();
+        } else {
+            toastError((j && j.mensaje) || 'No se pudo enviar la plantilla.');
+        }
+    } catch(e) { logError('_waEnviarPlantilla', e); toastError('No se pudo enviar la plantilla.'); }
     finally { btn.disabled = false; }
 }
 
