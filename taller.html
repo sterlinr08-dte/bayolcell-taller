@@ -639,21 +639,11 @@ tr:hover td { background: #f8fafc; }
     
     .content { padding: 12px; overflow-y: visible; height: auto; flex: none; }
 
-    /* CRM (WhatsApp) en movil/tablet: .content ya no es un scroller de altura fija aqui
-       (es "height:auto", la pagina entera es la que scrollea), asi que .wa-shell no puede
-       seguir calculando su alto con el mismo 100vh/220px que usa en desktop — con eso
-       quedaba una franja vacia/oscura abajo por el desfase de la barra de direcciones de
-       Safari en iOS. 100dvh (altura de viewport DINAMICA) se ajusta sola cuando esa barra
-       aparece/desaparece, a diferencia de 100vh que se queda fija. */
-    /* min-height:420px SIEMPRE le gana a height (es un piso), asi que con el
-       teclado abierto (--wa-vvh cae a ~420-450px en un iPhone) el shell se
-       quedaba clavado en 420px en vez de encogerse — la barra de escribir
-       quedaba por debajo del area visible, dependiendo solo del parche de
-       scroll de _waWireEnfoqueInput(). max() deja un piso mas chico (180px,
-       nunca colapsa a 0) DENTRO del propio calculo, para que --wa-vvh si
-       pueda encoger el shell de verdad; min-height:0 anula el piso fijo de
-       420px que traia por defecto. */
-    .wa-shell { height: calc(100vh - 240px); height: calc(100dvh - 240px); height: max(180px, calc(var(--wa-vvh, 100dvh) - var(--wa-offset, 240px))); min-height: 0; }
+    /* CRM (WhatsApp) en movil/tablet. El alto exacto lo calcula
+       _waActualizarAltoVisual() con coordenadas del visual viewport. Usar una
+       sola variable evita mezclar la altura visible con posiciones absolutas
+       del documento, que en Safari iOS dejaba un hueco grande sobre el teclado. */
+    .wa-shell { height: var(--wa-shell-height, max(180px, calc(100dvh - 240px))); min-height:0; }
     /* Con lista+chat mostrados uno a la vez (nunca los dos juntos aqui, ya que _waEsMovil()
        usa el mismo 1024px de arriba), la columna de lista debe ocupar todo el ancho en vez
        de quedarse en los 320px fijos de escritorio con espacio vacio al lado. flex-shrink:1
@@ -32446,20 +32436,26 @@ function _pintarWhatsappDetalle() {
     _waActualizarBotonEnvio();
 }
 
-// Fix del hueco con el teclado en iOS Safari (2026-09-02): en movil el body
-// scrollea como pagina normal, y al enfocar el input iOS desplaza la pagina
-// con medidas de ANTES de que el teclado apareciera, dejando un hueco en
-// blanco entre el input y el teclado. Forzando el scroll al fondo de la
-// pagina despues de que el teclado termina de subir (el input es lo ultimo
-// del documento en esta vista) ese hueco desaparece — sin sacar nada del
-// flujo normal, sin medir/cachear posiciones.
+// Safari termina de actualizar visualViewport al final de la animacion del
+// teclado. Recalculamos varias veces durante esa transicion, sin forzar el
+// scroll del documento: window.scrollTo(body.scrollHeight) era precisamente
+// lo que podia dejar cientos de pixeles vacios entre el composer y el teclado.
 function _waWireEnfoqueInput() {
     if(!_waEsMovil()) return;
     const input = document.getElementById('waTexto');
     if(!input) return;
-    input.addEventListener('focus', () => {
-        setTimeout(() => window.scrollTo(0, document.body.scrollHeight), 300);
-    });
+    const reajustar = () => {
+        _waActualizarAltoVisual();
+        const chat = document.getElementById('waChatMensajes');
+        if(chat) chat.scrollTop = chat.scrollHeight;
+    };
+    const alCambiarTeclado = () => {
+        requestAnimationFrame(reajustar);
+        setTimeout(reajustar, 80);
+        setTimeout(reajustar, 350);
+    };
+    input.addEventListener('focus', alCambiarTeclado);
+    input.addEventListener('blur', alCambiarTeclado);
 }
 
 /* ============================================================
@@ -33607,31 +33603,20 @@ function seleccionarLineaCRM(lineaId, nombreSucursal, nombreLinea) {
     _waEscucharViewport();
 }
 
-// Sigue el alto REAL visible (window.visualViewport) para .wa-shell en movil —
-// ver el comentario junto a .wa-shell en el media query de 1024px. Se activa
-// solo mientras la vista del CRM esta abierta, igual que el canal de tiempo real.
-//
-// Fix 2026-09-03 (hueco en blanco debajo del chat, SIN teclado abierto): el
-// calculo de .wa-shell le restaba un numero fijo (240px) asumiendo cuanto
-// mide la cabecera de arriba — pero con el rediseno de la bandeja, al abrir
-// un chat en movil se esconde casi toda esa cabecera (.crm-ocultar-en-chat),
-// asi que el espacio real que queda arriba de .wa-shell es MUCHO menor que
-// 240px estando en un chat. Restar de mas dejaba .wa-shell mas corto de lo
-// que cabia, y esa diferencia se veia como una franja en blanco debajo de
-// todo. Ahora se MIDE en vivo (shell.getBoundingClientRect().top) en vez de
-// asumir un numero fijo — funciona igual de bien viendo la lista o un chat.
+// Sigue el alto REAL visible para .wa-shell en movil. visualViewport.height y
+// offsetTop describen el area que queda sobre el teclado; getBoundingClientRect
+// usa el mismo sistema de coordenadas visible. No se suma window.scrollY ni se
+// resta la posicion absoluta del documento porque eso mezcla dos referencias
+// distintas cuando Safari desplaza la pagina al enfocar el input.
 function _waActualizarAltoVisual() {
+    if(!_waEsMovil()) return;
     const vv = window.visualViewport;
-    document.documentElement.style.setProperty('--wa-vvh', (vv ? vv.height : window.innerHeight) + 'px');
     const shell = document.querySelector('.wa-shell');
     if(shell) {
-        // + window.scrollY: la posicion de .wa-shell EN EL DOCUMENTO (no la que
-        // se ve ahora mismo en pantalla) — si se mide justo cuando la pagina
-        // esta desplazada (ej. el propio scrollTo del fix de teclado), sin esto
-        // el "espacio de arriba" saldria mas chico de lo real y el shell se
-        // pondria mas alto de lo que corresponde.
-        const arriba = Math.max(0, Math.round(shell.getBoundingClientRect().top + window.scrollY));
-        document.documentElement.style.setProperty('--wa-offset', (arriba + 12) + 'px'); // +12: un respiro abajo
+        const fondoVisible = vv ? vv.offsetTop + vv.height : window.innerHeight;
+        const arribaVisible = shell.getBoundingClientRect().top;
+        const alto = Math.max(180, Math.floor(fondoVisible - arribaVisible - 8));
+        document.documentElement.style.setProperty('--wa-shell-height', alto + 'px');
     }
 }
 // _pintarWhatsapp() decide una sola vez, al pintar, si muestra lista, chat, o
@@ -33664,8 +33649,7 @@ function _waDejarDeEscucharViewport() {
         window.removeEventListener('resize', _waActualizarAltoVisual);
     }
     _waMqMovil.removeEventListener('change', _waRepintarPorBreakpoint);
-    document.documentElement.style.removeProperty('--wa-vvh');
-    document.documentElement.style.removeProperty('--wa-offset');
+    document.documentElement.style.removeProperty('--wa-shell-height');
 }
 
 // Actualizacion en tiempo real del CRM: mensajes/hilos/leads nuevos aparecen
