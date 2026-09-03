@@ -345,13 +345,18 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
 .wa-bubble-wrap { position:relative; max-width:70%; animation:waBubbleIn .18s ease-out; transition:transform .15s ease; }
 .wa-reply-icon { display:none; } /* movil: solo swipe. PC: reemplazado por el menu de acciones (wa-menu-btn) */
 
-/* Reenviar en movil: icono fijo pegado adentro del borde de la burbuja, con
-   animacion de "presionado" al tocarlo (no hay gesto equivalente al swipe
-   para esta accion). En PC se oculta — ahi vive dentro del menu de acciones. */
+/* Reenviar en movil: icono fijo pegado JUNTO A LA BURBUJA (no a la fila
+   completa — la fila ocupa el 100% del ancho del chat, asi que anclarlo ahi
+   lo dejaba flotando lejos del mensaje en filas cortas). .wa-bubble-wrap ya
+   es position:relative, asi que ahora es su contenedor de referencia.
+   Con animacion de "presionado" al tocarlo (no hay gesto equivalente al
+   swipe para esta accion). En PC se oculta — ahi vive dentro del menu de
+   acciones — SALVO en pantallas tactiles con mouse tambien (convertibles),
+   donde no hay forma de hacer "hover" con el dedo. */
 .wa-forward-icon { position:absolute; top:50%; transform:translateY(-50%); width:24px; height:24px; border-radius:50%; background:rgba(255,255,255,.9); box-shadow:0 1px 3px rgba(0,0,0,.2); display:flex; align-items:center; justify-content:center; color:#54656f; cursor:pointer; font-size:13px; z-index:2; opacity:.7; transition:opacity .12s, transform .12s; }
 .wa-forward-icon:active { transform:translateY(-50%) scale(.8); opacity:1; }
-.wa-brow.in .wa-forward-icon { right:4px; }
-.wa-brow.out .wa-forward-icon { left:4px; }
+.wa-brow.in .wa-forward-icon { right:-30px; }
+.wa-brow.out .wa-forward-icon { left:-30px; }
 
 /* Menu de acciones en PC — como WhatsApp Web: una flechita (chevron) que
    aparece al pasar el mouse sobre la burbuja y abre Responder/Reenviar. */
@@ -359,6 +364,15 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
 @media (hover:hover) {
     .wa-forward-icon { display:none; }
     .wa-bubble-wrap:hover .wa-menu-btn, .wa-menu-btn.wa-menu-open { display:flex; }
+}
+/* Portatiles/convertibles con pantalla tactil reportan hover:hover (su
+   puntero primario es el trackpad/mouse), asi que la regla de arriba les
+   esconde el icono de reenviar igual que en un PC de escritorio puro — pero
+   ahi no hay forma de "hacer hover" con el dedo. any-pointer:coarse es
+   verdadero en CUALQUIER equipo con pantalla tactil, sin importar cual sea
+   el puntero primario, asi que le devuelve el icono sin afectar al PC. */
+@media (any-pointer:coarse) {
+    .wa-forward-icon { display:flex; }
 }
 .wa-menu-btn:hover, .wa-menu-btn.wa-menu-open { background:#e9edef; color:#111b21; }
 .wa-acciones-menu { display:none; position:fixed; flex-direction:column; background:#fff; border-radius:8px; box-shadow:0 4px 18px rgba(0,0,0,.25); padding:5px; z-index:500; min-width:150px; }
@@ -597,11 +611,23 @@ tr:hover td { background: #f8fafc; }
        quedaba una franja vacia/oscura abajo por el desfase de la barra de direcciones de
        Safari en iOS. 100dvh (altura de viewport DINAMICA) se ajusta sola cuando esa barra
        aparece/desaparece, a diferencia de 100vh que se queda fija. */
-    .wa-shell { height: calc(100vh - 240px); height: calc(100dvh - 240px); height: calc(var(--wa-vvh, 100dvh) - 240px); min-height: 420px; }
+    /* min-height:420px SIEMPRE le gana a height (es un piso), asi que con el
+       teclado abierto (--wa-vvh cae a ~420-450px en un iPhone) el shell se
+       quedaba clavado en 420px en vez de encogerse — la barra de escribir
+       quedaba por debajo del area visible, dependiendo solo del parche de
+       scroll de _waWireEnfoqueInput(). max() deja un piso mas chico (180px,
+       nunca colapsa a 0) DENTRO del propio calculo, para que --wa-vvh si
+       pueda encoger el shell de verdad; min-height:0 anula el piso fijo de
+       420px que traia por defecto. */
+    .wa-shell { height: calc(100vh - 240px); height: calc(100dvh - 240px); height: max(180px, calc(var(--wa-vvh, 100dvh) - 240px)); min-height: 0; }
     /* Con lista+chat mostrados uno a la vez (nunca los dos juntos aqui, ya que _waEsMovil()
        usa el mismo 1024px de arriba), la columna de lista debe ocupar todo el ancho en vez
-       de quedarse en los 320px fijos de escritorio con espacio vacio al lado. */
-    .wa-list-col { width: 100%; }
+       de quedarse en los 320px fijos de escritorio con espacio vacio al lado. flex-shrink:1
+       (en vez del :0 heredado de la regla de escritorio) es una red de seguridad: si por lo
+       que sea quedan las dos columnas en el DOM estando por debajo de 1024px (una ventana de
+       tiempo entre el resize y el repintado via matchMedia), la lista cede ancho en vez de
+       dejar la columna del chat en 0px. */
+    .wa-list-col { width: 100%; flex-shrink: 1; min-width: 0; }
     /* Los <input>/<select> del CRM tenian su propio font-size mas chico que gana por
        especificidad al font-size:16px generico de mas abajo — un input con letra menor a
        16px hace que iOS Safari haga zoom de golpe al tocarlo. */
@@ -31857,6 +31883,15 @@ async function _crmContarLeadsAbiertos() {
 async function renderWhatsapp() {
     await cargarHilosWhatsapp();
     await _crmContarLeadsAbiertos();
+    // Si hay un hilo abierto, sus mensajes NUNCA se recargaban solos al volver
+    // a esta vista (solo la lista) — se veia el chat congelado con lo de la
+    // ultima vez, sin los mensajes nuevos, y con las fotos/audios ya vencidos
+    // (la URL firmada dura 1h). Si el hilo ya no esta en la lista visible
+    // (se reasigno a otro empleado, por ejemplo), se suelta y vuelve a la lista.
+    if(_waHiloId) {
+        if(_waHilos.some(h => h.id === _waHiloId)) await cargarMensajesHilo(_waHiloId);
+        else _waHiloId = null;
+    }
     _pintarWhatsapp();
 }
 
@@ -32082,31 +32117,57 @@ async function abrirHiloWhatsapp(id) {
         try { await supabaseClient.from('whatsapp_hilos').update({ no_leidos_count: 0 }).eq('id', id); } catch(e) { logError('marcar leido', e); }
     }
     await cargarMensajesHilo(id);
+    if(_waHiloId !== id) return; // el usuario ya abrio otra conversacion mientras esta cargaba
     _pintarWhatsapp();
 }
 function volverListaWhatsapp() { _waHiloId = null; _pintarWhatsapp(); }
 
+// Cachea las URLs firmadas por ruta de archivo — antes se pedia una NUEVA en
+// cada carga (cada refresco de tiempo real incluido), asi que el <img>/<video>
+// cambiaba de src todo el tiempo, el navegador no podia usar cache, y con
+// fotos/notas de voz se recargaban todas por datos moviles a cada rato.
+const _waUrlCache = new Map(); // media_path -> { url, exp }
+async function _waSignedUrl(path) {
+    const hit = _waUrlCache.get(path);
+    if(hit && hit.exp > Date.now() + 120000) return hit.url; // 2 min de colchon
+    try {
+        const { data } = await supabaseClient.storage.from('whatsapp-media').createSignedUrl(path, 3600);
+        if(!data?.signedUrl) return null;
+        _waUrlCache.set(path, { url: data.signedUrl, exp: Date.now() + 3600000 });
+        return data.signedUrl;
+    } catch(e) { return null; }
+}
+
+// Token de generacion: si dos cargas quedan en vuelo (usuario toca otra
+// conversacion antes de que la primera termine, o entra un refresco de
+// tiempo real a mitad de camino), solo la carga MAS RECIENTE puede escribir
+// en _waMensajes — sin esto, la que respondiera de ultimo "ganaba" aunque
+// fuera la mas vieja, y el chat de un cliente se llenaba con los mensajes de
+// otro.
+let _waCargaToken = 0;
 async function cargarMensajesHilo(hiloId) {
+    const token = ++_waCargaToken;
     const { data, error } = await supabaseClient.from('whatsapp_mensajes').select('*').eq('hilo_id', hiloId).order('creado_en', { ascending: true });
-    if(error) { logError('cargarMensajesHilo', error); toastError('No se pudieron cargar los mensajes.'); _waMensajes = []; return; }
-    _waMensajes = data || [];
-    // Resolver URLs firmadas para los adjuntos (fotos/notas de voz), 1h de vigencia.
-    for(const m of _waMensajes) {
-        if(m.media_path) {
-            try {
-                const { data: firmada } = await supabaseClient.storage.from('whatsapp-media').createSignedUrl(m.media_path, 3600);
-                m._mediaUrl = firmada?.signedUrl || null;
-            } catch(e) { m._mediaUrl = null; }
-        }
+    if(token !== _waCargaToken) return; // ya hay una carga mas nueva en curso
+    if(error) { logError('cargarMensajesHilo', error); toastError('No se pudieron cargar los mensajes.'); if(token === _waCargaToken) _waMensajes = []; return; }
+    const lista = data || [];
+    for(const m of lista) {
+        if(m.media_path) m._mediaUrl = await _waSignedUrl(m.media_path);
+        if(token !== _waCargaToken) return; // se cancelo a medio camino
     }
+    if(token !== _waCargaToken) return;
+    _waMensajes = lista;
 }
 
 function _waBurbujaMedia(m) {
     if(!m.media_path) return '';
     if(!m._mediaUrl) return `<div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">📎 Adjunto no disponible</div>`;
-    if(m.tipo_contenido === 'imagen') return `<img src="${m._mediaUrl}" style="max-width:280px; width:100%; border-radius:7px; display:block; margin-bottom:4px; cursor:pointer;" onclick="window.open('${m._mediaUrl}','_blank')">`;
-    if(m.tipo_contenido === 'audio') return `<audio controls src="${m._mediaUrl}" style="width:250px; max-width:100%; display:block; margin-bottom:4px; height:36px;"></audio>`;
-    if(m.tipo_contenido === 'video') return `<video controls src="${m._mediaUrl}" style="max-width:280px; width:100%; border-radius:7px; display:block; margin-bottom:4px;"></video>`;
+    // aspect-ratio reserva el alto ANTES de que la imagen/video cargue (si no,
+    // mide 0px hasta terminar de descargar y el chat "salta" — el scroll al
+    // fondo se calculaba antes de que hubiera nada que medir).
+    if(m.tipo_contenido === 'imagen') return `<img src="${m._mediaUrl}" style="max-width:280px; width:100%; aspect-ratio:4/3; object-fit:cover; background:#e9edef; border-radius:7px; display:block; margin-bottom:4px; cursor:pointer;" onclick="window.open('${m._mediaUrl}','_blank')">`;
+    if(m.tipo_contenido === 'audio') return `<audio controls preload="metadata" src="${m._mediaUrl}" style="width:250px; max-width:100%; display:block; margin-bottom:4px; height:36px;"></audio>`;
+    if(m.tipo_contenido === 'video') return `<video controls preload="metadata" src="${m._mediaUrl}" style="max-width:280px; width:100%; aspect-ratio:4/3; background:#000; border-radius:7px; display:block; margin-bottom:4px;"></video>`;
     return `<a href="${m._mediaUrl}" target="_blank" style="font-size:12.5px; display:block; margin-bottom:4px;"><i class="ti ti-file"></i> Ver documento adjunto</a>`;
 }
 // Ticks estilo WhatsApp real: 1 gris = enviado, 2 gris = entregado, 2 AZUL = leido.
@@ -32128,6 +32189,18 @@ function _pintarWhatsappDetalle() {
     const h = _waHilos.find(x => x.id === _waHiloId);
     if(!h) { volverListaWhatsapp(); return; }
 
+    // Preservar lo que el empleado esta escribiendo y donde esta parado en el
+    // scroll ANTES de reconstruir todo el HTML — este render puede dispararse
+    // por un mensaje de tiempo real (de este mismo cliente) mientras esta a
+    // medio escribir una respuesta o leyendo mensajes viejos hacia arriba.
+    const _prevInput = document.getElementById('waTexto');
+    const _borrador = _prevInput ? _prevInput.value : '';
+    const _teniaFoco = document.activeElement === _prevInput;
+    const _caret = _prevInput ? _prevInput.selectionStart : null;
+    const _chatPrev = document.getElementById('waMessagesScroll');
+    const _pegadoAlFondo = !_chatPrev || (_chatPrev.scrollHeight - _chatPrev.scrollTop - _chatPrev.clientHeight) < 80;
+    const _scrollPrev = _chatPrev ? _chatPrev.scrollTop : null;
+
     const puedeResponder = isAdminUser() || tienePermiso('whatsapp_responder');
     const horasDesdeInbound = h.ultimo_inbound_at ? (Date.now() - new Date(h.ultimo_inbound_at).getTime()) / 3600000 : Infinity;
     const ventanaAbierta = horasDesdeInbound <= 24;
@@ -32135,7 +32208,7 @@ function _pintarWhatsappDetalle() {
 
     let html = `<div class="wa-chat-head">`;
     if(_waEsMovil()) html += `<button class="wa-tab-btn" style="color:#075E54; background:#fff; border-color:#d1d7db;" onclick="volverListaWhatsapp()"><i class="ti ti-arrow-left"></i></button>`;
-    html += `<div class="wa-avatar">${_waIniciales(nombre)}</div>
+    html += `<div class="wa-avatar">${escapeHtml(_waIniciales(nombre))}</div>
         <div style="flex:1; min-width:0;">
             <div style="font-weight:700; font-size:14.5px;">${escapeHtml(nombre)}</div>
             <div style="font-size:11.5px; color:var(--text-muted);"><i class="ti ti-phone"></i> ${escapeHtml(h.telefono_e164 || '')}</div>
@@ -32161,9 +32234,9 @@ function _pintarWhatsappDetalle() {
             const citaHTML = original ? `<div class="wa-quote wa-quote-${original.direccion}" onclick="event.stopPropagation(); _waIrAMensaje('${original.id}')"><div class="who">${escapeHtml(original.direccion === 'out' ? 'Tú (BayolCell)' : nombre)}</div><div class="txt">${escapeHtml(original.cuerpo || (original.tipo_contenido !== 'text' ? '[' + original.tipo_contenido + ']' : ''))}</div></div>` : '';
             return `<div class="wa-brow ${esOut ? 'out' : 'in'}" data-msgid="${m.id}">
                 <i class="ti ti-arrow-back-up wa-reply-icon" onclick="_waActivarRespuesta('${m.id}')" title="Responder"></i>
-                <i class="ti ti-arrow-forward-up wa-forward-icon" onclick="_waAbrirReenviar('${m.id}')" title="Reenviar"></i>
                 <div class="wa-bubble-wrap" style="background:${esOut ? '#dcf8c6' : '#fff'}; border-radius:8px; padding:6px 9px 7px; box-shadow:0 1px .5px rgba(0,0,0,.13); font-size:13.5px;">
                     <i class="ti ti-chevron-down wa-menu-btn" onclick="_waAbrirMenuAcciones(event, '${m.id}')" title="Más opciones"></i>
+                    <i class="ti ti-arrow-forward-up wa-forward-icon" onclick="_waAbrirReenviar('${m.id}')" title="Reenviar"></i>
                     <div style="font-size:10px; font-weight:700; color:${esOut ? '#166534' : '#128C7E'}; margin-bottom:2px;">${escapeHtml(etiqueta)}</div>
                     ${citaHTML}
                     ${_waBurbujaMedia(m)}
@@ -32192,7 +32265,26 @@ function _pintarWhatsappDetalle() {
 
     cont.innerHTML = html;
     const chat = document.getElementById('waMessagesScroll');
-    if(chat) chat.scrollTop = chat.scrollHeight;
+    if(chat) {
+        // Si estaba pegado al fondo se queda pegado (incluye el caso normal de
+        // abrir el chat); si no, se respeta donde estaba (estaba leyendo hacia
+        // arriba). Las fotos/videos no tienen alto reservado hasta que cargan,
+        // asi que se re-ancla al fondo cuando terminan de cargar — sin esto el
+        // chat "saltaba" a mitad del historial en cuanto las imagenes pesaban.
+        chat.scrollTop = _pegadoAlFondo ? chat.scrollHeight : (_scrollPrev ?? chat.scrollHeight);
+        if(_pegadoAlFondo) {
+            chat.querySelectorAll('img, video').forEach(el => {
+                const reAnclar = () => { chat.scrollTop = chat.scrollHeight; };
+                el.addEventListener('load', reAnclar, { once: true });
+                el.addEventListener('loadedmetadata', reAnclar, { once: true });
+            });
+        }
+    }
+    const nuevoInput = document.getElementById('waTexto');
+    if(nuevoInput && _borrador) {
+        nuevoInput.value = _borrador;
+        if(_teniaFoco) { nuevoInput.focus(); try { nuevoInput.setSelectionRange(_caret, _caret); } catch(e) {} }
+    }
     _waWireSwipe();
     _waPintarReplyBar();
     _waWireEnfoqueInput();
@@ -32354,6 +32446,7 @@ function _waActivarRespuesta(msgId) {
     const esOut = m.direccion === 'out';
     const h = _waHilos.find(x => x.id === _waHiloId);
     _waRespondiendoA = {
+        hiloId: _waHiloId, // ver guard en _waPintarReplyBar — sin esto la cita se colaba en el chat de otro cliente
         id: m.id,
         quien: esOut ? 'Tú (BayolCell)' : (h?.nombre_perfil || 'Cliente'),
         texto: m.cuerpo || (m.tipo_contenido !== 'text' ? `[${m.tipo_contenido}]` : '')
@@ -32366,6 +32459,13 @@ function _waCancelarRespuesta() {
     _waPintarReplyBar();
 }
 function _waPintarReplyBar() {
+    // Si la cita quedo activa en OTRO hilo (el usuario desliza para responder
+    // y despues, sin cancelar, abre otra conversacion) se descarta aqui —
+    // este chequeo corre en cada render del detalle, incluso cuando el hilo
+    // destino no tiene #waReplyBar (ventana de 24h cerrada), asi que el
+    // estado nunca queda "vivo pero invisible" esperando a colarse en el
+    // siguiente chat que si tenga barra.
+    if(_waRespondiendoA && _waRespondiendoA.hiloId !== _waHiloId) _waRespondiendoA = null;
     const cont = document.getElementById('waReplyBar');
     if(!cont) return;
     if(!_waRespondiendoA) { cont.innerHTML = ''; return; }
@@ -32409,6 +32509,13 @@ async function enviarMensajeWhatsapp() {
     const input = document.getElementById('waTexto');
     const mensaje = (input?.value || '').trim();
     if(!mensaje) return;
+    // El destino se congela AQUI, antes del await de sesion (que hace una
+    // peticion de red cuando el token esta por vencer) — si no, el usuario
+    // podia cambiar de conversacion mientras esa peticion estaba en vuelo y
+    // el mensaje redactado para el Cliente A se mandaba al Cliente B.
+    const hiloDestino = _waHiloId;
+    const respondeA = (_waRespondiendoA && _waRespondiendoA.hiloId === hiloDestino) ? _waRespondiendoA.id : null;
+    if(!hiloDestino) return;
     const btn = document.getElementById('btnWaEnviar');
     _waEnviando = true;
     if(btn) btn.disabled = true;
@@ -32418,13 +32525,18 @@ async function enviarMensajeWhatsapp() {
         const res = await fetch(CONFIG_URL + '/functions/v1/whatsapp-enviar', {
             method: 'POST',
             headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ hilo_id: _waHiloId, mensaje, responde_a_id: _waRespondiendoA?.id || null })
+            body: JSON.stringify({ hilo_id: hiloDestino, mensaje, responde_a_id: respondeA })
         });
         const j = await res.json();
         if(j && j.ok) {
-            if(input) input.value = '';
-            _waRespondiendoA = null;
-            await cargarMensajesHilo(_waHiloId);
+            // Solo limpiar el composer/la cita si el usuario sigue viendo el
+            // mismo hilo al que se mando (si ya se movio, no tocarle lo que
+            // este escribiendo ahora en la otra conversacion).
+            if(_waHiloId === hiloDestino) {
+                if(input) input.value = '';
+                if(_waRespondiendoA && _waRespondiendoA.hiloId === hiloDestino) _waRespondiendoA = null;
+            }
+            if(_waHiloId) await cargarMensajesHilo(_waHiloId);
             await cargarHilosWhatsapp();
             _pintarWhatsapp();
         } else if(j && j.error === 'ventana_cerrada') {
@@ -32754,6 +32866,18 @@ function _waActualizarAltoVisual() {
     const vv = window.visualViewport;
     document.documentElement.style.setProperty('--wa-vvh', (vv ? vv.height : window.innerHeight) + 'px');
 }
+// _pintarWhatsapp() decide una sola vez, al pintar, si muestra lista, chat, o
+// las dos columnas (segun _waEsMovil()) — pero nada volvia a llamarlo si el
+// ancho cruzaba los 1024px DESPUES de ese pintado (rotar una tablet, achicar
+// la ventana de PC). El CSS cambiaba solo y el DOM se quedaba desincronizado:
+// con un chat abierto, cruzar hacia movil dejaba la columna del chat en 0px
+// de ancho (la lista se queda al 100% con flex-shrink:0). matchMedia dispara
+// una sola vez al CRUZAR el umbral (no en cada pixel de un resize), con el
+// mismo 1024px que usa _waEsMovil()/el CSS.
+const _waMqMovil = window.matchMedia('(max-width: 1024px)');
+function _waRepintarPorBreakpoint() {
+    if(document.getElementById('waWrap')) _pintarWhatsapp();
+}
 function _waEscucharViewport() {
     _waActualizarAltoVisual();
     if(window.visualViewport) {
@@ -32762,6 +32886,7 @@ function _waEscucharViewport() {
     } else {
         window.addEventListener('resize', _waActualizarAltoVisual);
     }
+    _waMqMovil.addEventListener('change', _waRepintarPorBreakpoint);
 }
 function _waDejarDeEscucharViewport() {
     if(window.visualViewport) {
@@ -32770,6 +32895,7 @@ function _waDejarDeEscucharViewport() {
     } else {
         window.removeEventListener('resize', _waActualizarAltoVisual);
     }
+    _waMqMovil.removeEventListener('change', _waRepintarPorBreakpoint);
     document.documentElement.style.removeProperty('--wa-vvh');
 }
 
@@ -32781,19 +32907,32 @@ function _waDejarDeEscucharViewport() {
 // migracion) — ademas esas tablas no forman parte de loadAll()/cache, asi
 // que hace falta un canal propio que refresque especificamente esta vista.
 let _crmRealtimeChannel = null;
+let _crmRtDebounce = null; // fuera de _crmSuscribirRealtime: hay que poder cancelarlo desde _crmDetenerRealtime tambien
 function _crmSuscribirRealtime(lineaId) {
     if(_crmRealtimeChannel) { try { supabaseClient.removeChannel(_crmRealtimeChannel); } catch(e) {} _crmRealtimeChannel = null; }
+    if(_crmRtDebounce) { clearTimeout(_crmRtDebounce); _crmRtDebounce = null; }
     if(!lineaId) return;
-    let _crmRtDebounce = null;
-    const refrescarCRM = () => {
+    // El payload trae el hilo_id del cambio — si es de OTRA conversacion (o
+    // no viene, ej. un hilo/lead), solo se refresca la LISTA (no toca
+    // #waDetalle/#waTexto), para no borrarle a medio escribir una respuesta
+    // al empleado por un mensaje que entro en un cliente distinto.
+    const refrescarCRM = (payload) => {
         if(_crmRtDebounce) clearTimeout(_crmRtDebounce);
         _crmRtDebounce = setTimeout(async () => {
             if(_crmLineaActualId !== lineaId) return; // ya se cambio de linea, no pisar la vista actual
+            if(!document.getElementById('v-crmLinea')?.classList.contains('active')) return; // vista ya no visible
             const tabActiva = localStorage.getItem('bayol_subtab_crmlinea') || 'mensajes';
             if(tabActiva === 'mensajes') {
+                const hiloEvento = payload?.new?.hilo_id || payload?.old?.hilo_id || null;
                 await cargarHilosWhatsapp();
-                if(_waHiloId) await cargarMensajesHilo(_waHiloId);
-                _pintarWhatsapp();
+                await _crmContarLeadsAbiertos();
+                if(_waHiloId && (!hiloEvento || hiloEvento === _waHiloId)) {
+                    await cargarMensajesHilo(_waHiloId);
+                    _pintarWhatsapp();
+                } else {
+                    _pintarWhatsappLista();
+                    _crmPintarCabecera();
+                }
             } else if(typeof renderLeads === 'function') {
                 renderLeads();
             }
@@ -32808,6 +32947,7 @@ function _crmSuscribirRealtime(lineaId) {
 }
 function _crmDetenerRealtime() {
     if(_crmRealtimeChannel) { try { supabaseClient.removeChannel(_crmRealtimeChannel); } catch(e) {} _crmRealtimeChannel = null; }
+    if(_crmRtDebounce) { clearTimeout(_crmRtDebounce); _crmRtDebounce = null; }
     _waDejarDeEscucharViewport();
 }
 
@@ -32824,14 +32964,23 @@ function crmLineaTab(name) {
 }
 
 async function renderCrmLinea() {
-    if(!_crmEstructura.length) await construirSelectorCRM();
+    const yaConstruido = _crmEstructura.length > 0;
+    if(!yaConstruido) await construirSelectorCRM();
     if(!_crmLineaActualId) {
         const cont = document.getElementById('waWrap');
         if(cont) cont.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:40px 14px; font-size:13px;">No tienes ninguna línea de WhatsApp disponible.</div>`;
         return;
     }
-    const tabGuardada = (localStorage.getItem('bayol_subtab_crmlinea') || 'mensajes');
-    crmLineaTab(tabGuardada);
+    // Re-armar lo que nav()/_crmDetenerRealtime() apagaron al SALIR del CRM.
+    // construirSelectorCRM -> seleccionarLineaCRM ya arma esto la PRIMERA vez
+    // que se entra en la sesion; a partir de la segunda _crmEstructura ya
+    // viene poblada y ese camino no se repite, asi que sin esto el tiempo
+    // real y el ajuste de alto por teclado se quedaban apagados el resto de
+    // la sesion en cuanto se salia del CRM una sola vez.
+    _waEscucharViewport();
+    if(!_crmRealtimeChannel) _crmSuscribirRealtime(_crmLineaActualId);
+    if(!yaConstruido) return; // seleccionarLineaCRM ya pinto la pestana guardada; repetirlo aqui duplicaria la consulta
+    crmLineaTab(localStorage.getItem('bayol_subtab_crmlinea') || 'mensajes');
 }
 
 const saved = localStorage.getItem("bayol_session");
