@@ -9725,9 +9725,20 @@ function _htmlExistenciasOtros(existencias) {
         .map(k => `<span class="badge" style="background:#e0f2fe; color:#075985; margin:1px 2px;">${INFOPLUS_ALMACENES[k]}: <b>${Number(existencias[k])}</b></span>`);
     return partes.length ? partes.join(' ') : '<span style="color:var(--text-muted);">—</span>';
 }
-async function renderInfoplusBusqueda() {
+let _ipBuscarTimer = null;
+let _ipBuscaToken = 0;
+// Debounce (mismo patron que buscarPiezaConsumo) + token de generacion: sin
+// esto, cada tecla disparaba un RPC propio y una respuesta vieja que llegaba
+// tarde por jitter de red podia pisar los resultados de la busqueda mas
+// reciente, mostrando piezas que no corresponden a lo que hay escrito ahora.
+function renderInfoplusBusqueda() {
+    clearTimeout(_ipBuscarTimer);
+    _ipBuscarTimer = setTimeout(_renderInfoplusBusquedaAhora, 300);
+}
+async function _renderInfoplusBusquedaAhora() {
     const tb = document.getElementById('infoplusTable'); if(!tb) return;
     const q = (document.getElementById('ip_buscar')?.value || '').trim();
+    const token = ++_ipBuscaToken;
     try {
         // Con texto escrito: busqueda tolerante a errores de tecleo y coincidencias
         // parciales (buscar_infoplus, trigram + full-text sobre Postgres — sin IA,
@@ -9736,6 +9747,7 @@ async function renderInfoplusBusqueda() {
         const { data, error } = q
             ? await supabaseClient.rpc('buscar_infoplus', { p_query: q, p_limite: 100 })
             : await supabaseClient.from('infoplus_articulos').select('codigo,descripcion,marca,referencia,referencia_fabrica,costo,precio,existencia,existencias').order('codigo').limit(100);
+        if(token !== _ipBuscaToken) return; // llego una busqueda mas nueva mientras esperabamos
         if(error) throw error;
         if(!data || !data.length) { tb.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">Sin resultados.</td></tr>'; return; }
         tb.innerHTML = data.map(a => {
@@ -9748,7 +9760,7 @@ async function renderInfoplusBusqueda() {
             const precio = Number(a.precio) > 0 ? `<b>${money(a.precio)}</b>` : '<span style="color:#cbd5e1;">—</span>';
             return `<tr><td><b>${escapeHtml(a.codigo)}</b></td><td>${escapeHtml(a.descripcion || '')}</td><td>${escapeHtml(a.marca || '')}</td><td>${escapeHtml(ref)}</td><td style="text-align:right;">${costo}</td><td style="text-align:right;">${precio}</td><td>${tallerHtml}</td><td>${_htmlExistenciasOtros(a.existencias)}</td></tr>`;
         }).join('');
-    } catch(e) { tb.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#dc2626;">Error al cargar.</td></tr>'; }
+    } catch(e) { if(token === _ipBuscaToken) tb.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#dc2626;">Error al cargar.</td></tr>'; }
 }
 
 /* ============================================================
@@ -32826,7 +32838,11 @@ async function _waEnviarAdjunto() {
     try {
         const carpeta = tipo === 'imagen' ? 'imagen' : 'documento';
         const subido = await _waSubirAdjunto(file, carpeta, tipo === 'imagen' ? 'jpg' : 'bin');
-        cerrarModalWaAdjuntoPreview();
+        // El modal se cierra recien DESPUES de conocer el resultado del envio
+        // (mismo patron que _waEnviarUbicacion/_waEnviarContacto) — si se
+        // cerraba justo tras subir el archivo y luego fallaba la sesion o el
+        // fetch, el archivo ya quedaba huerfano en Storage y el usuario
+        // perdia el adjunto sin poder reintentar sin volver a elegirlo.
         const { data: { session } } = await supabaseClient.auth.getSession();
         if(!session) { toastError('Inicia sesión de nuevo.'); return; }
         const res = await fetch(CONFIG_URL + '/functions/v1/whatsapp-enviar', {
@@ -32838,6 +32854,7 @@ async function _waEnviarAdjunto() {
             })
         });
         const j = await res.json();
+        cerrarModalWaAdjuntoPreview();
         if(j && j.ok) {
             if(_waHiloId === hiloDestino && _waRespondiendoA && _waRespondiendoA.hiloId === hiloDestino) _waRespondiendoA = null;
             if(_waHiloId) await cargarMensajesHilo(_waHiloId);
@@ -33003,21 +33020,25 @@ async function _waEnviarContacto() {
    Zernio aparte, a partir de plantilla.nombre/idioma/variables. */
 let _waPlantillas = [];         // ultima lista cargada para la linea del hilo abierto
 let _waPlantillaElegida = null; // objeto completo de la plantilla seleccionada en el select
+let _waPlantillaToken = 0;      // invalida respuestas obsoletas si se reabre/cierra el modal para otro hilo
 
 async function _waAbrirModalPlantilla() {
     const h = _waHilos.find(x => x.id === _waHiloId);
     if(!h || !h.linea_id) { toastError('Este hilo no tiene una línea de WhatsApp asignada.'); return; }
+    const token = ++_waPlantillaToken;
     document.getElementById('modalWaPlantilla').classList.add('active');
     const cont = document.getElementById('waPlantillaCont');
     cont.innerHTML = `<div style="text-align:center; padding:20px; color:#8696a0; font-size:13px;">Cargando plantillas aprobadas...</div>`;
     document.getElementById('btnWaEnviarPlantilla').disabled = true;
     try {
         const { data: { session } } = await supabaseClient.auth.getSession();
+        if(token !== _waPlantillaToken) return; // se cerro/reabrio el modal mientras esperabamos la sesion
         if(!session) { toastError('Inicia sesión de nuevo.'); cerrarModalWaPlantilla(); return; }
         const res = await fetch(`${CONFIG_URL}/functions/v1/whatsapp-plantillas?linea_id=${encodeURIComponent(h.linea_id)}`, {
             headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY }
         });
         const j = await res.json();
+        if(token !== _waPlantillaToken) return; // respuesta obsoleta: ya se abrio otro hilo/modal
         if(!j || !j.ok) {
             cont.innerHTML = `<div style="text-align:center; padding:20px; color:#dc2626; font-size:13px;">No se pudieron cargar las plantillas.</div>`;
             return;
@@ -33039,6 +33060,7 @@ async function _waAbrirModalPlantilla() {
             <div id="waPlantillaPreview" style="display:none; background:#f0f2f5; border-radius:8px; padding:10px 12px; font-size:13px; white-space:pre-wrap; word-break:break-word; margin-top:4px;"></div>
         `;
     } catch(e) {
+        if(token !== _waPlantillaToken) return;
         logError('_waAbrirModalPlantilla', e);
         cont.innerHTML = `<div style="text-align:center; padding:20px; color:#dc2626; font-size:13px;">No se pudieron cargar las plantillas.</div>`;
     }
@@ -33046,6 +33068,7 @@ async function _waAbrirModalPlantilla() {
 function cerrarModalWaPlantilla() {
     document.getElementById('modalWaPlantilla').classList.remove('active');
     _waPlantillaElegida = null;
+    _waPlantillaToken++; // invalida cualquier fetch de plantillas todavia en vuelo
 }
 function _waComponentePlantilla(t, tipo) {
     return (t.components || []).find(c => c.type === tipo) || null;
