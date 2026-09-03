@@ -333,10 +333,33 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
 .wa-chat-col { flex:1; min-width:0; display:flex; flex-direction:column; background:#ECE5DD; background-image:radial-gradient(rgba(0,0,0,.02) 1px, transparent 1px); background-size:14px 14px; }
 .wa-chat-head { background:#f0f2f5; padding:11px 18px; display:flex; align-items:center; gap:12px; border-bottom:1px solid #e9edef; }
 .wa-chat-empty { margin:auto; color:#8696a0; font-size:13px; text-align:center; }
-.wa-input-bar { padding:10px 16px; background:#f0f2f5; display:flex; gap:10px; align-items:center; }
-.wa-input-bar input { flex:1; border:1px solid #d1d7db; border-radius:22px; padding:10px 16px; font-size:13.5px; }
+.wa-input-bar { padding:10px 16px; background:#f0f2f5; display:flex; gap:8px; align-items:center; }
+.wa-input-bar input { flex:1; border:1px solid #d1d7db; border-radius:22px; padding:10px 16px; font-size:13.5px; min-width:0; }
 .wa-send-btn { width:40px; height:40px; border-radius:50%; background:#128C7E; border:none; color:#fff; font-size:16px; cursor:pointer; flex-shrink:0; }
 .wa-send-btn:disabled { opacity:.5; cursor:default; }
+.wa-icon-btn { background:none; border:none; color:#54656f; font-size:22px; cursor:pointer; flex-shrink:0; padding:4px; line-height:1; }
+.wa-icon-btn:hover { color:#128C7E; }
+
+/* Barra de "grabando nota de voz" — reemplaza a .wa-input-bar mientras se graba */
+.wa-grabando-bar { padding:10px 16px; background:#f0f2f5; display:flex; align-items:center; gap:10px; }
+.wa-grabando-punto { width:10px; height:10px; border-radius:50%; background:#dc2626; flex-shrink:0; animation:waGrabandoPulso 1.1s ease-in-out infinite; }
+@keyframes waGrabandoPulso { 0%,100% { opacity:1; } 50% { opacity:.25; } }
+.wa-grabando-tiempo { flex:1; font-size:13.5px; color:#3b4a54; font-variant-numeric:tabular-nums; }
+.wa-grabando-btn { width:38px; height:38px; border-radius:50%; border:none; cursor:pointer; font-size:15px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.wa-grabando-cancelar { background:#e9edef; color:#54656f; }
+.wa-grabando-enviar { background:#128C7E; color:#fff; }
+.wa-grabando-enviar:disabled { opacity:.5; cursor:default; }
+
+/* Selector de emojis y menu de adjuntar — mismo patron position:fixed que .wa-acciones-menu */
+.wa-emoji-panel { display:none; position:fixed; grid-template-columns:repeat(8,1fr); gap:2px; background:#fff; border-radius:10px; box-shadow:0 8px 28px rgba(15,23,42,.22); padding:8px; z-index:500; width:280px; max-height:260px; overflow-y:auto; }
+.wa-emoji-panel button { background:none; border:none; font-size:19px; cursor:pointer; padding:4px; border-radius:6px; line-height:1; }
+.wa-emoji-panel button:hover { background:#f0f2f5; }
+
+/* Vista previa de adjunto antes de enviar (foto/documento/camara) */
+.wa-adjunto-preview-img { max-width:100%; max-height:220px; border-radius:8px; display:block; margin:0 auto 12px; }
+.wa-adjunto-preview-doc { display:flex; align-items:center; gap:10px; background:#f0f2f5; border-radius:8px; padding:12px; margin-bottom:12px; }
+.wa-adjunto-preview-doc i { font-size:28px; color:#54656f; }
+.wa-adjunto-preview-doc span { font-size:13px; color:#111b21; word-break:break-all; }
 
 /* Responder citando: swipe en movil, icono al hover en PC */
 @keyframes waBubbleIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
@@ -633,6 +656,7 @@ tr:hover td { background: #f8fafc; }
        16px hace que iOS Safari haga zoom de golpe al tocarlo. */
     .wa-input-bar input, .wa-select { font-size: 16px !important; }
     .wa-send-btn { width: 44px; height: 44px; }
+    .wa-icon-btn { font-size: 24px; padding: 6px; }
     /* Con una conversacion abierta en movil se ve SOLO el chat (la lista se
        reemplaza por el detalle), asi que toda la cabecera de la bandeja
        —selectores, pestanas, resumen, buscador, chips— sobra y solo roba
@@ -3954,6 +3978,64 @@ body{
         </div>
     </div>
 </div>
+
+<!-- MODAL: VISTA PREVIA DE ADJUNTO (foto/documento/camara) ANTES DE ENVIAR -->
+<div id="modalWaAdjuntoPreview" class="modal-backdrop modal-encima">
+    <div class="modal-box" style="max-width:420px;">
+        <div class="modal-header" style="background:linear-gradient(135deg,#128C7E,#075E54); color:#fff; border-radius:12px 12px 0 0;">
+            <h3 style="color:#fff;"><i class="ti ti-paperclip"></i> Enviar adjunto</h3>
+            <button class="modal-close" onclick="cerrarModalWaAdjuntoPreview()" style="color:#fff;">✕</button>
+        </div>
+        <div class="modal-body" style="padding:14px 16px;">
+            <div id="waAdjuntoPreviewCont"></div>
+            <input id="waAdjuntoCaption" type="text" placeholder="Agregar un mensaje (opcional)..." style="width:100%;">
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" onclick="cerrarModalWaAdjuntoPreview()">Cancelar</button>
+            <button class="btn btn-blue" id="btnWaEnviarAdjunto" onclick="_waEnviarAdjunto()" style="background:linear-gradient(180deg,#128C7E,#075E54);"><i class="ti ti-send"></i> Enviar</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: COMPARTIR UBICACIÓN -->
+<div id="modalWaUbicacion" class="modal-backdrop modal-encima">
+    <div class="modal-box" style="max-width:400px;">
+        <div class="modal-header" style="background:linear-gradient(135deg,#128C7E,#075E54); color:#fff; border-radius:12px 12px 0 0;">
+            <h3 style="color:#fff;"><i class="ti ti-map-pin"></i> Compartir ubicación</h3>
+            <button class="modal-close" onclick="cerrarModalWaUbicacion()" style="color:#fff;">✕</button>
+        </div>
+        <div class="modal-body" style="padding:16px;">
+            <div id="waUbicacionEstado" style="font-size:13px; color:#3b4a54; line-height:1.5;">Vas a compartir tu ubicación actual con el cliente.</div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" onclick="cerrarModalWaUbicacion()">Cancelar</button>
+            <button class="btn btn-blue" id="btnWaEnviarUbicacion" onclick="_waEnviarUbicacion()" style="background:linear-gradient(180deg,#128C7E,#075E54);"><i class="ti ti-send"></i> Enviar ubicación</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: COMPARTIR CONTACTO -->
+<div id="modalWaContacto" class="modal-backdrop modal-encima">
+    <div class="modal-box" style="max-width:400px;">
+        <div class="modal-header" style="background:linear-gradient(135deg,#128C7E,#075E54); color:#fff; border-radius:12px 12px 0 0;">
+            <h3 style="color:#fff;"><i class="ti ti-user"></i> Compartir contacto</h3>
+            <button class="modal-close" onclick="cerrarModalWaContacto()" style="color:#fff;">✕</button>
+        </div>
+        <div class="modal-body" style="padding:16px; display:flex; flex-direction:column; gap:10px;">
+            <div class="form-row"><label>Nombre *</label><input id="waContactoNombre" type="text" placeholder="Nombre completo"></div>
+            <div class="form-row"><label>Teléfono</label><input id="waContactoTelefono" type="text" placeholder="809-000-0000"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" onclick="cerrarModalWaContacto()">Cancelar</button>
+            <button class="btn btn-blue" id="btnWaEnviarContacto" onclick="_waEnviarContacto()" style="background:linear-gradient(180deg,#128C7E,#075E54);"><i class="ti ti-send"></i> Enviar contacto</button>
+        </div>
+    </div>
+</div>
+
+<!-- Inputs ocultos para adjuntar foto/documento/camara desde el CRM de WhatsApp -->
+<input type="file" id="waFileFoto" accept="image/*" style="display:none;" onchange="_waAdjuntoSeleccionado(this,'imagen')">
+<input type="file" id="waFileDoc" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar" style="display:none;" onchange="_waAdjuntoSeleccionado(this,'documento')">
+<input type="file" id="waFileCamara" accept="image/*" capture="environment" style="display:none;" onchange="_waAdjuntoSeleccionado(this,'imagen')">
 
 <!-- MODAL: REGISTRAR DEVOLUCIÓN -->
 <div id="modalDevolucion" class="modal-backdrop">
@@ -32114,6 +32196,7 @@ function _crmSetFiltroAsignacion(id) {
 }
 
 async function abrirHiloWhatsapp(id) {
+    _waCancelarGrabacionSiActiva();
     _waHiloId = id;
     const h = _waHilos.find(x => x.id === id);
     if(h && h.no_leidos_count) {
@@ -32124,7 +32207,7 @@ async function abrirHiloWhatsapp(id) {
     if(_waHiloId !== id) return; // el usuario ya abrio otra conversacion mientras esta cargaba
     _pintarWhatsapp();
 }
-function volverListaWhatsapp() { _waHiloId = null; _pintarWhatsapp(); }
+function volverListaWhatsapp() { _waCancelarGrabacionSiActiva(); _waHiloId = null; _pintarWhatsapp(); }
 
 // Cachea las URLs firmadas por ruta de archivo — antes se pedia una NUEVA en
 // cada carga (cada refresco de tiempo real incluido), asi que el <img>/<video>
@@ -32164,6 +32247,21 @@ async function cargarMensajesHilo(hiloId) {
 }
 
 function _waBurbujaMedia(m) {
+    // Ubicacion/contacto van ANTES del guard de media_path: no tienen archivo
+    // adjunto, guardan su dato como JSON dentro de "cuerpo".
+    if(m.tipo_contenido === 'ubicacion') {
+        let loc; try { loc = JSON.parse(m.cuerpo || '{}'); } catch(e) { loc = {}; }
+        if(loc.lat == null || loc.lng == null) return '';
+        const mapsUrl = `https://www.google.com/maps?q=${loc.lat},${loc.lng}`;
+        return `<a href="${mapsUrl}" target="_blank" style="display:flex; align-items:center; gap:8px; background:#e9edef; border-radius:7px; padding:8px 10px; margin-bottom:4px; font-size:12.5px; color:#075E54; text-decoration:none;"><i class="ti ti-map-pin" style="font-size:20px;"></i> Ver ubicación en el mapa</a>`;
+    }
+    if(m.tipo_contenido === 'contacto') {
+        let c; try { c = JSON.parse(m.cuerpo || '{}'); } catch(e) { c = {}; }
+        return `<div style="display:flex; align-items:center; gap:8px; background:#fff; border:1px solid #e9edef; border-radius:7px; padding:8px 10px; margin-bottom:4px;">
+            <div class="wa-avatar" style="width:34px; height:34px; font-size:13px;">${escapeHtml(_waIniciales(c.nombre || '?'))}</div>
+            <div><div style="font-weight:700; font-size:12.5px;">${escapeHtml(c.nombre || 'Contacto')}</div><div style="font-size:11.5px; color:#667781;">${escapeHtml(c.telefono || '')}</div></div>
+        </div>`;
+    }
     if(!m.media_path) return '';
     if(!m._mediaUrl) return `<div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">📎 Adjunto no disponible</div>`;
     // aspect-ratio reserva el alto ANTES de que la imagen/video cargue (si no,
@@ -32173,6 +32271,14 @@ function _waBurbujaMedia(m) {
     if(m.tipo_contenido === 'audio') return `<audio controls preload="metadata" src="${m._mediaUrl}" style="width:250px; max-width:100%; display:block; margin-bottom:4px; height:36px;"></audio>`;
     if(m.tipo_contenido === 'video') return `<video controls preload="metadata" src="${m._mediaUrl}" style="max-width:280px; width:100%; aspect-ratio:4/3; background:#000; border-radius:7px; display:block; margin-bottom:4px;"></video>`;
     return `<a href="${m._mediaUrl}" target="_blank" style="font-size:12.5px; display:block; margin-bottom:4px;"><i class="ti ti-file"></i> Ver documento adjunto</a>`;
+}
+
+// Texto corto para citas ("responder citando") — sin esto, citar un mensaje
+// de ubicacion/contacto mostraba el JSON crudo guardado en "cuerpo".
+function _waPreviewTexto(m) {
+    if(m.tipo_contenido === 'ubicacion') return '📍 Ubicación';
+    if(m.tipo_contenido === 'contacto') { try { return '👤 ' + (JSON.parse(m.cuerpo).nombre || 'Contacto'); } catch(e) { return '👤 Contacto'; } }
+    return m.cuerpo || (m.tipo_contenido !== 'text' ? `[${m.tipo_contenido}]` : '');
 }
 // Ticks estilo WhatsApp real: 1 gris = enviado, 2 gris = entregado, 2 AZUL = leido.
 function _waIconoEstado(estado) {
@@ -32186,6 +32292,11 @@ function _waIconoEstado(estado) {
 function _pintarWhatsappDetalle() {
     const cont = document.getElementById('waDetalle');
     if(!cont) return;
+    // Si hay una nota de voz grabandose para ESTE hilo, no tocar el DOM: un
+    // refresco de tiempo real a mitad de grabacion destruiria #waGrabandoBar
+    // pero el MediaRecorder/stream de microfono seguirian vivos, huerfanos,
+    // sin ningun boton para pararlos.
+    if(_waGrabando && _waGrabandoHiloId === _waHiloId) return;
     if(!_waHiloId) {
         cont.innerHTML = `<div class="wa-chat-empty">Selecciona una conversación de la lista.</div>`;
         return;
@@ -32235,7 +32346,7 @@ function _pintarWhatsappDetalle() {
             const esOut = m.direccion === 'out';
             const etiqueta = esOut ? 'Tú (BayolCell)' : nombre;
             const original = m.responde_a_id ? porId[m.responde_a_id] : null;
-            const citaHTML = original ? `<div class="wa-quote wa-quote-${original.direccion}" onclick="event.stopPropagation(); _waIrAMensaje('${original.id}')"><div class="who">${escapeHtml(original.direccion === 'out' ? 'Tú (BayolCell)' : nombre)}</div><div class="txt">${escapeHtml(original.cuerpo || (original.tipo_contenido !== 'text' ? '[' + original.tipo_contenido + ']' : ''))}</div></div>` : '';
+            const citaHTML = original ? `<div class="wa-quote wa-quote-${original.direccion}" onclick="event.stopPropagation(); _waIrAMensaje('${original.id}')"><div class="who">${escapeHtml(original.direccion === 'out' ? 'Tú (BayolCell)' : nombre)}</div><div class="txt">${escapeHtml(_waPreviewTexto(original))}</div></div>` : '';
             return `<div class="wa-brow ${esOut ? 'out' : 'in'}" data-msgid="${m.id}">
                 <i class="ti ti-arrow-back-up wa-reply-icon" onclick="_waActivarRespuesta('${m.id}')" title="Responder"></i>
                 <div class="wa-bubble-wrap" style="background:${esOut ? '#dcf8c6' : '#fff'}; border-radius:8px; padding:6px 9px 7px; box-shadow:0 1px .5px rgba(0,0,0,.13); font-size:13.5px;">
@@ -32258,10 +32369,13 @@ function _pintarWhatsappDetalle() {
     if(puedeResponder) {
         if(ventanaAbierta) {
             html += `<div id="waReplyBar"></div>
-            <div class="wa-input-bar">
-                <input type="text" id="waTexto" placeholder="Escribe una respuesta..." onkeydown="if(event.key==='Enter') enviarMensajeWhatsapp()">
-                <button class="wa-send-btn" id="btnWaEnviar" onclick="enviarMensajeWhatsapp()"><i class="ti ti-send"></i></button>
-            </div>`;
+            <div class="wa-input-bar" id="waInputBar">
+                <button class="wa-icon-btn" id="btnWaEmoji" onclick="_waAbrirEmojis(event)" title="Emoji"><i class="ti ti-mood-smile"></i></button>
+                <button class="wa-icon-btn" id="btnWaAdjuntar" onclick="_waAbrirMenuAdjuntar(event)" title="Adjuntar"><i class="ti ti-paperclip"></i></button>
+                <input type="text" id="waTexto" placeholder="Escribe una respuesta..." oninput="_waActualizarBotonEnvio()" onkeydown="if(event.key==='Enter') enviarMensajeWhatsapp()">
+                <button class="wa-send-btn" id="btnWaEnviar" onclick="_waBotonPrincipalClick()"><i class="ti ti-mic" id="iconWaEnviar"></i></button>
+            </div>
+            <div id="waGrabandoBar" class="wa-grabando-bar" style="display:none;"></div>`;
         } else {
             html += `<div style="padding:10px 18px; background:#fef3c7; border-top:1px solid #fde68a; color:#92400e; font-size:12.5px;"><i class="ti ti-clock-exclamation"></i> Pasaron más de 24h desde el último mensaje del cliente — hace falta una plantilla aprobada para poder escribirle (todavía no disponible desde esta pantalla).</div>`;
         }
@@ -32292,6 +32406,7 @@ function _pintarWhatsappDetalle() {
     _waWireSwipe();
     _waPintarReplyBar();
     _waWireEnfoqueInput();
+    _waActualizarBotonEnvio();
 }
 
 // Fix del hueco con el teclado en iOS Safari (2026-09-02): en movil el body
@@ -32308,6 +32423,438 @@ function _waWireEnfoqueInput() {
     input.addEventListener('focus', () => {
         setTimeout(() => window.scrollTo(0, document.body.scrollHeight), 300);
     });
+}
+
+/* ============================================================
+   COMPOSER: emojis, adjuntar (foto/documento/camara/ubicacion/
+   contacto) y grabar/enviar nota de voz.
+   ============================================================ */
+
+// El boton redondo verde cambia de microfono a enviar segun si hay texto
+// escrito — igual que WhatsApp real.
+function _waActualizarBotonEnvio() {
+    const icon = document.getElementById('iconWaEnviar');
+    const input = document.getElementById('waTexto');
+    if(icon && input) icon.className = input.value.trim() ? 'ti ti-send' : 'ti ti-mic';
+}
+function _waBotonPrincipalClick() {
+    const input = document.getElementById('waTexto');
+    if(input && input.value.trim()) { enviarMensajeWhatsapp(); return; }
+    if(_waGrabando) _waDetenerYEnviarNota(); else _waIniciarGrabacion();
+}
+
+// Cierra cualquier menu/panel flotante del chat que no sea el que se esta por abrir.
+function _waCerrarFlotantesDelChat() {
+    if(typeof _waCerrarMenuAcciones === 'function') _waCerrarMenuAcciones();
+    const adj = document.getElementById('waAdjuntarMenu'); if(adj) adj.style.display = 'none';
+    const emo = document.getElementById('waEmojiPanel'); if(emo) emo.style.display = 'none';
+}
+
+/* ---------- Subir adjunto a Storage (compartido por foto/documento/camara/nota de voz) ---------- */
+// Convencion de path saliente: out/{tipo}/{uuid}.{ext} — separado de las
+// carpetas que usa el webhook para adjuntos ENTRANTES (imagen/, audio/, etc.
+// sin el prefijo "out/"), la politica de Storage solo deja escribir ahi.
+function _waExtDeArchivo(file, fallback) {
+    const m = /\.([a-z0-9]+)$/i.exec(file.name || '');
+    return (m ? m[1] : fallback).toLowerCase();
+}
+async function _waSubirAdjunto(file, tipoCarpeta, extFallback) {
+    const ext = _waExtDeArchivo(file, extFallback || 'bin');
+    const path = `out/${tipoCarpeta}/${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabaseClient.storage.from('whatsapp-media').upload(path, file, { contentType: file.type || undefined, upsert: false });
+    if(error) throw error;
+    const url = await _waSignedUrl(path);
+    if(!url) throw new Error('No se pudo generar el enlace del adjunto.');
+    return { url, path };
+}
+
+/* ---------- Menu de Adjuntar (mismo patron position:fixed que _waAsegurarMenuAcciones) ---------- */
+function _waAsegurarMenuAdjuntar() {
+    let menu = document.getElementById('waAdjuntarMenu');
+    if(!menu) {
+        menu = document.createElement('div');
+        menu.id = 'waAdjuntarMenu';
+        menu.className = 'wa-acciones-menu';
+        menu.innerHTML = `
+            <button onclick="_waAdjuntarAccion('foto')"><i class="ti ti-photo" style="color:#7c3aed;"></i> Foto</button>
+            <button onclick="_waAdjuntarAccion('documento')"><i class="ti ti-file-text" style="color:#2563eb;"></i> Documento</button>
+            <button onclick="_waAdjuntarAccion('camara')"><i class="ti ti-camera" style="color:#dc2626;"></i> Cámara</button>
+            <button onclick="_waAdjuntarAccion('ubicacion')"><i class="ti ti-map-pin" style="color:#16a34a;"></i> Ubicación</button>
+            <button onclick="_waAdjuntarAccion('contacto')"><i class="ti ti-user" style="color:#ea580c;"></i> Contacto</button>`;
+        document.body.appendChild(menu);
+        document.addEventListener('click', e => {
+            if(!menu.contains(e.target) && !e.target.closest('#btnWaAdjuntar')) menu.style.display = 'none';
+        });
+    }
+    return menu;
+}
+function _waAbrirMenuAdjuntar(ev) {
+    ev.stopPropagation();
+    const menu = _waAsegurarMenuAdjuntar();
+    const yaAbierto = menu.style.display === 'flex';
+    _waCerrarFlotantesDelChat();
+    if(yaAbierto) return; // tocar el mismo boton otra vez = cerrar
+    menu.style.display = 'flex';
+    const r = ev.currentTarget.getBoundingClientRect();
+    const alturaMenu = 5 * 38 + 12;
+    let top = r.top - alturaMenu - 6; // por defecto abre HACIA ARRIBA (el composer esta al fondo)
+    if(top < 8) top = r.bottom + 6;
+    let left = r.left;
+    if(left + 170 > window.innerWidth) left = window.innerWidth - 178;
+    menu.style.top = top + 'px';
+    menu.style.left = left + 'px';
+}
+function _waAdjuntarAccion(tipo) {
+    _waCerrarFlotantesDelChat();
+    if(tipo === 'foto') document.getElementById('waFileFoto').click();
+    else if(tipo === 'documento') document.getElementById('waFileDoc').click();
+    else if(tipo === 'camara') document.getElementById('waFileCamara').click();
+    else if(tipo === 'ubicacion') _waAbrirModalUbicacion();
+    else if(tipo === 'contacto') _waAbrirModalContacto();
+}
+
+/* ---------- Vista previa de foto/documento/camara antes de enviar ---------- */
+const _WA_LIMITE_MB = { imagen: 5, documento: 20, video: 16 };
+let _waAdjuntoPendiente = null; // { file, tipo }
+function _waAdjuntoSeleccionado(input, tipo) {
+    const file = input.files && input.files[0];
+    input.value = ''; // permite elegir el mismo archivo dos veces seguidas
+    if(!file) return;
+    const limiteMb = _WA_LIMITE_MB[tipo] || 20;
+    if(file.size > limiteMb * 1024 * 1024) { toastError(`El archivo pesa más de ${limiteMb}MB.`); return; }
+    _waAdjuntoPendiente = { file, tipo };
+    _waAbrirPreviewAdjunto();
+}
+function _waAbrirPreviewAdjunto() {
+    if(!_waAdjuntoPendiente) return;
+    const { file, tipo } = _waAdjuntoPendiente;
+    const cont = document.getElementById('waAdjuntoPreviewCont');
+    if(tipo === 'imagen') {
+        const url = URL.createObjectURL(file);
+        cont.innerHTML = `<img src="${url}" class="wa-adjunto-preview-img">`;
+    } else {
+        cont.innerHTML = `<div class="wa-adjunto-preview-doc"><i class="ti ti-file-text"></i><span>${escapeHtml(file.name)}</span></div>`;
+    }
+    const caption = document.getElementById('waAdjuntoCaption');
+    const textoActual = document.getElementById('waTexto');
+    caption.value = (textoActual && textoActual.value.trim()) || '';
+    document.getElementById('modalWaAdjuntoPreview').classList.add('active');
+}
+function cerrarModalWaAdjuntoPreview() {
+    document.getElementById('modalWaAdjuntoPreview').classList.remove('active');
+    _waAdjuntoPendiente = null;
+}
+async function _waEnviarAdjunto() {
+    if(!_waAdjuntoPendiente) return;
+    const { file, tipo } = _waAdjuntoPendiente;
+    // El destino se congela ANTES de cualquier await — mismo patron que
+    // enviarMensajeWhatsapp(): si el usuario cambia de conversacion mientras
+    // esto sube, el adjunto no debe irse a la conversacion equivocada.
+    const hiloDestino = _waHiloId;
+    if(!hiloDestino) return;
+    const respondeA = (_waRespondiendoA && _waRespondiendoA.hiloId === hiloDestino) ? _waRespondiendoA.id : null;
+    const mensaje = (document.getElementById('waAdjuntoCaption').value || '').trim();
+    const btn = document.getElementById('btnWaEnviarAdjunto');
+    btn.disabled = true;
+    try {
+        const carpeta = tipo === 'imagen' ? 'imagen' : 'documento';
+        const subido = await _waSubirAdjunto(file, carpeta, tipo === 'imagen' ? 'jpg' : 'bin');
+        cerrarModalWaAdjuntoPreview();
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if(!session) { toastError('Inicia sesión de nuevo.'); return; }
+        const res = await fetch(CONFIG_URL + '/functions/v1/whatsapp-enviar', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                hilo_id: hiloDestino, mensaje: mensaje || undefined, responde_a_id: respondeA,
+                adjunto: { url: subido.url, path: subido.path, tipo, nombre: tipo === 'documento' ? file.name : undefined }
+            })
+        });
+        const j = await res.json();
+        if(j && j.ok) {
+            if(_waHiloId === hiloDestino && _waRespondiendoA && _waRespondiendoA.hiloId === hiloDestino) _waRespondiendoA = null;
+            if(_waHiloId) await cargarMensajesHilo(_waHiloId);
+            await cargarHilosWhatsapp();
+            _pintarWhatsapp();
+        } else if(j && j.error === 'ventana_cerrada') {
+            toastError(j.mensaje || 'Ya no se puede responder libre — hace falta plantilla.');
+        } else {
+            toastError('No se pudo enviar el adjunto.');
+        }
+    } catch(e) { logError('_waEnviarAdjunto', e); toastError('No se pudo enviar el adjunto.'); }
+    finally { btn.disabled = false; }
+}
+
+/* ---------- Selector de emojis: una sola grilla curada, sin categorias/buscador ---------- */
+const _WA_EMOJIS = ['😀','😁','😂','🤣','😊','😍','😘','😉','😎','🤩','😇','🙂','😐','😑','😶','🙄','😏','😣','😥','😮','🤐','😯','😪','😴','😌','😛','😜','😝','🤑','🤗','🤔','🤨','😳','😞','😟','😠','😡','🤯','😭','😢','😱','😨','😰','😓','🤒','🤕','🤢','🥳','🥺','😷','🤧','🥴','😵','😲','😬','🙃','🤤','😈',
+    '👍','👎','👏','🙌','🙏','👋','🤝','💪','✌️','🤞','👌','🤙','☝️','👆','👇','👈','👉','✋','🖐️','🤚','💅','👐','🤲',
+    '❤️','🧡','💛','💚','💙','💜','🖤','🤍','💔','❣️','💕','💞','💓','💗','💖','💘','💝','😻','😽',
+    '🔥','✨','⭐','🌟','💯','💢','💥','💫','💦','💨','🎉','🎊','🎁','🎈','✅','❌','❗','❓','⚠️','🚫','🕐','📅','📌','📍',
+    '📱','💻','⌚','🔋','🔌','📷','📸','🎥','🔧','🔨','⚙️','🛠️','📦','📄','📎','✉️','💬','📞','☎️','💰','💵','💳','🛒','🏪','🚗'];
+function _waAsegurarPanelEmojis() {
+    let panel = document.getElementById('waEmojiPanel');
+    if(!panel) {
+        panel = document.createElement('div');
+        panel.id = 'waEmojiPanel';
+        panel.className = 'wa-emoji-panel';
+        panel.innerHTML = _WA_EMOJIS.map(e => `<button onclick="_waInsertarEmoji('${e}')">${e}</button>`).join('');
+        document.body.appendChild(panel);
+        document.addEventListener('click', e => {
+            if(!panel.contains(e.target) && !e.target.closest('#btnWaEmoji')) panel.style.display = 'none';
+        });
+    }
+    return panel;
+}
+function _waAbrirEmojis(ev) {
+    ev.stopPropagation();
+    const panel = _waAsegurarPanelEmojis();
+    const yaAbierto = panel.style.display === 'grid';
+    _waCerrarFlotantesDelChat();
+    if(yaAbierto) return;
+    panel.style.display = 'grid';
+    const r = ev.currentTarget.getBoundingClientRect();
+    let top = r.top - 264;
+    if(top < 8) top = r.bottom + 6;
+    let left = r.left;
+    if(left + 280 > window.innerWidth) left = window.innerWidth - 288;
+    panel.style.top = top + 'px';
+    panel.style.left = left + 'px';
+}
+function _waInsertarEmoji(e) {
+    const input = document.getElementById('waTexto');
+    if(!input) return;
+    const start = input.selectionStart ?? input.value.length, end = input.selectionEnd ?? input.value.length;
+    input.value = input.value.slice(0, start) + e + input.value.slice(end);
+    const pos = start + e.length;
+    input.focus();
+    try { input.setSelectionRange(pos, pos); } catch(err) {}
+    _waActualizarBotonEnvio();
+}
+
+/* ---------- Ubicacion: comparte la ubicacion ACTUAL del empleado (asi lo hace WhatsApp real) ---------- */
+function _waAbrirModalUbicacion() {
+    document.getElementById('waUbicacionEstado').textContent = 'Vas a compartir tu ubicación actual con el cliente.';
+    document.getElementById('btnWaEnviarUbicacion').disabled = false;
+    document.getElementById('modalWaUbicacion').classList.add('active');
+}
+function cerrarModalWaUbicacion() {
+    document.getElementById('modalWaUbicacion').classList.remove('active');
+}
+function _waEnviarUbicacion() {
+    if(!navigator.geolocation) { toastError('Este navegador no soporta geolocalización.'); return; }
+    const hiloDestino = _waHiloId;
+    if(!hiloDestino) return;
+    const btn = document.getElementById('btnWaEnviarUbicacion');
+    const estado = document.getElementById('waUbicacionEstado');
+    btn.disabled = true;
+    estado.textContent = 'Obteniendo tu ubicación...';
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+        try {
+            const respondeA = (_waRespondiendoA && _waRespondiendoA.hiloId === hiloDestino) ? _waRespondiendoA.id : null;
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if(!session) { toastError('Inicia sesión de nuevo.'); return; }
+            const res = await fetch(CONFIG_URL + '/functions/v1/whatsapp-enviar', {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ hilo_id: hiloDestino, responde_a_id: respondeA, ubicacion: { lat: pos.coords.latitude, lng: pos.coords.longitude } })
+            });
+            const j = await res.json();
+            cerrarModalWaUbicacion();
+            if(j && j.ok) {
+                if(_waHiloId === hiloDestino && _waRespondiendoA && _waRespondiendoA.hiloId === hiloDestino) _waRespondiendoA = null;
+                if(_waHiloId) await cargarMensajesHilo(_waHiloId);
+                await cargarHilosWhatsapp();
+                _pintarWhatsapp();
+            } else if(j && j.error === 'ventana_cerrada') {
+                toastError(j.mensaje || 'Ya no se puede responder libre — hace falta plantilla.');
+            } else {
+                toastError('No se pudo enviar la ubicación.');
+            }
+        } catch(e) { logError('_waEnviarUbicacion', e); toastError('No se pudo enviar la ubicación.'); }
+        finally { btn.disabled = false; }
+    }, () => {
+        btn.disabled = false;
+        estado.textContent = 'Vas a compartir tu ubicación actual con el cliente.';
+        toastError('No se pudo obtener tu ubicación — revisa el permiso de ubicación del navegador.');
+    }, { enableHighAccuracy: true, timeout: 10000 });
+}
+
+/* ---------- Contacto: precarga desde el cliente vinculado al hilo, si hay ---------- */
+function _waAbrirModalContacto() {
+    const h = _waHilos.find(x => x.id === _waHiloId);
+    let nombre = '', telefono = '';
+    if(h && h.cliente_id && Array.isArray(cache.clientes)) {
+        const cli = cache.clientes.find(c => c.id === h.cliente_id);
+        if(cli) { nombre = cli.nombre || ''; telefono = cli.whatsapp || cli.telefono || ''; }
+    }
+    document.getElementById('waContactoNombre').value = nombre;
+    document.getElementById('waContactoTelefono').value = telefono;
+    document.getElementById('modalWaContacto').classList.add('active');
+}
+function cerrarModalWaContacto() {
+    document.getElementById('modalWaContacto').classList.remove('active');
+}
+async function _waEnviarContacto() {
+    const nombre = (document.getElementById('waContactoNombre').value || '').trim();
+    const telefono = (document.getElementById('waContactoTelefono').value || '').trim();
+    if(!nombre) { toastError('El nombre es obligatorio.'); return; }
+    const hiloDestino = _waHiloId;
+    if(!hiloDestino) return;
+    const respondeA = (_waRespondiendoA && _waRespondiendoA.hiloId === hiloDestino) ? _waRespondiendoA.id : null;
+    const btn = document.getElementById('btnWaEnviarContacto');
+    btn.disabled = true;
+    try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if(!session) { toastError('Inicia sesión de nuevo.'); return; }
+        const res = await fetch(CONFIG_URL + '/functions/v1/whatsapp-enviar', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ hilo_id: hiloDestino, responde_a_id: respondeA, contacto: { nombre, telefono: telefono || undefined } })
+        });
+        const j = await res.json();
+        cerrarModalWaContacto();
+        if(j && j.ok) {
+            if(_waHiloId === hiloDestino && _waRespondiendoA && _waRespondiendoA.hiloId === hiloDestino) _waRespondiendoA = null;
+            if(_waHiloId) await cargarMensajesHilo(_waHiloId);
+            await cargarHilosWhatsapp();
+            _pintarWhatsapp();
+        } else if(j && j.error === 'ventana_cerrada') {
+            toastError(j.mensaje || 'Ya no se puede responder libre — hace falta plantilla.');
+        } else {
+            toastError('No se pudo enviar el contacto.');
+        }
+    } catch(e) { logError('_waEnviarContacto', e); toastError('No se pudo enviar el contacto.'); }
+    finally { btn.disabled = false; }
+}
+
+/* ---------- Nota de voz: tap para iniciar/detener (no press-and-hold) ---------- */
+// Misma logica de "elegir el mejor mime soportado" que _finPickMime() (grabacion
+// de video ya existente en el modulo financiero) — aca para audio. iPhone/Safari
+// no soporta grabar en ogg/Opus nativo (solo audio/mp4); no importa: el envio de
+// notas de voz SIEMPRE pasa por la Edge Function via multipart (ver
+// whatsapp-enviar), que reenvia el archivo tal cual a Zernio y este transcodifica
+// server-side — asi que cualquier formato que el navegador pueda grabar sirve.
+function _waPickAudioMime() {
+    const opts = ['audio/ogg;codecs=opus', 'audio/webm;codecs=opus', 'audio/mp4', 'audio/webm'];
+    for(const o of opts) { if(window.MediaRecorder && MediaRecorder.isTypeSupported(o)) return o; }
+    return '';
+}
+
+let _waGrabando = false, _waGrabandoHiloId = null, _waMediaRecorder = null, _waAudioChunks = [], _waAudioStream = null, _waGrabandoInicio = 0, _waGrabandoTimer = null, _waGrabandoTope = null;
+
+async function _waIniciarGrabacion() {
+    if(_waGrabando) return;
+    const hiloActual = _waHiloId;
+    if(!hiloActual) return;
+    const mime = _waPickAudioMime();
+    if(!mime) { toastError('Este navegador no puede grabar audio.'); return; }
+    let stream;
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch(e) {
+        toastError('No se pudo acceder al micrófono — revisa los permisos del navegador.');
+        return;
+    }
+    _waAudioStream = stream;
+    _waAudioChunks = [];
+    _waGrabando = true;
+    _waGrabandoHiloId = hiloActual;
+    try {
+        _waMediaRecorder = new MediaRecorder(stream, { mimeType: mime });
+    } catch(e) {
+        _waLimpiarGrabacion();
+        toastError('No se pudo iniciar la grabación.');
+        return;
+    }
+    _waMediaRecorder.ondataavailable = (ev) => { if(ev.data && ev.data.size > 0) _waAudioChunks.push(ev.data); };
+    _waMediaRecorder.start();
+    _waGrabandoInicio = Date.now();
+    _waPintarBarraGrabando();
+    _waGrabandoTimer = setInterval(_waPintarBarraGrabando, 500);
+    _waGrabandoTope = setTimeout(() => { if(_waGrabando) _waDetenerYEnviarNota(); }, 5 * 60 * 1000); // tope duro: 5 min
+}
+
+function _waPintarBarraGrabando() {
+    const bar = document.getElementById('waGrabandoBar');
+    if(!bar) return; // el usuario ya se movio de este chat — ver guard anti-rerender en _pintarWhatsappDetalle
+    const inputBar = document.getElementById('waInputBar');
+    if(inputBar) inputBar.style.display = 'none';
+    const seg = Math.floor((Date.now() - _waGrabandoInicio) / 1000);
+    const mm = String(Math.floor(seg / 60)).padStart(2, '0'), ss = String(seg % 60).padStart(2, '0');
+    const puedeEnviar = seg >= 1;
+    bar.style.display = 'flex';
+    bar.innerHTML = `
+        <div class="wa-grabando-punto"></div>
+        <div class="wa-grabando-tiempo">Grabando... ${mm}:${ss}</div>
+        <button class="wa-grabando-btn wa-grabando-cancelar" onclick="_waCancelarGrabacion()" title="Cancelar"><i class="ti ti-trash"></i></button>
+        <button class="wa-grabando-btn wa-grabando-enviar" onclick="_waDetenerYEnviarNota()" title="Enviar" ${puedeEnviar ? '' : 'disabled'}><i class="ti ti-send"></i></button>
+    `;
+}
+
+function _waLimpiarGrabacion() {
+    if(_waGrabandoTimer) { clearInterval(_waGrabandoTimer); _waGrabandoTimer = null; }
+    if(_waGrabandoTope) { clearTimeout(_waGrabandoTope); _waGrabandoTope = null; }
+    if(_waAudioStream) { _waAudioStream.getTracks().forEach(t => t.stop()); _waAudioStream = null; }
+    _waMediaRecorder = null;
+    _waAudioChunks = [];
+    _waGrabando = false;
+    _waGrabandoHiloId = null;
+    const inputBar = document.getElementById('waInputBar');
+    const bar = document.getElementById('waGrabandoBar');
+    if(bar) { bar.style.display = 'none'; bar.innerHTML = ''; }
+    if(inputBar) inputBar.style.display = 'flex';
+}
+
+function _waCancelarGrabacion() {
+    if(_waMediaRecorder && _waMediaRecorder.state !== 'inactive') { try { _waMediaRecorder.stop(); } catch(e) {} }
+    _waLimpiarGrabacion();
+}
+
+// Si el usuario logra navegar a otra conversacion mientras graba (el guard
+// anti-rerender solo cubre quedarse EN el mismo hilo), cancelar en vez de
+// dejar el MediaRecorder/microfono huerfanos apuntando a un chat que ya no
+// se ve. Se llama desde abrirHiloWhatsapp/volverListaWhatsapp/seleccionarLineaCRM.
+function _waCancelarGrabacionSiActiva() {
+    if(_waGrabando) _waCancelarGrabacion();
+}
+
+function _waDetenerYEnviarNota() {
+    if(!_waGrabando || !_waMediaRecorder) return;
+    const hiloDestino = _waGrabandoHiloId; // congelado desde que empezo a grabar
+    const mime = _waMediaRecorder.mimeType || _waPickAudioMime();
+    _waMediaRecorder.onstop = async () => {
+        const blob = new Blob(_waAudioChunks, { type: mime });
+        _waLimpiarGrabacion();
+        if(blob.size < 500) { toastError('La nota de voz quedó muy corta.'); return; }
+        try {
+            const ext = mime.includes('ogg') ? 'ogg' : mime.includes('mp4') ? 'm4a' : 'webm';
+            const path = `out/audio/${crypto.randomUUID()}.${ext}`;
+            const { error } = await supabaseClient.storage.from('whatsapp-media').upload(path, blob, { contentType: mime, upsert: false });
+            if(error) throw error;
+            const url = await _waSignedUrl(path);
+            if(!url) throw new Error('No se pudo generar el enlace del audio.');
+            const respondeA = (_waRespondiendoA && _waRespondiendoA.hiloId === hiloDestino) ? _waRespondiendoA.id : null;
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if(!session) { toastError('Inicia sesión de nuevo.'); return; }
+            const res = await fetch(CONFIG_URL + '/functions/v1/whatsapp-enviar', {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ hilo_id: hiloDestino, responde_a_id: respondeA, adjunto: { url, path, tipo: 'audio', es_nota_voz: true } })
+            });
+            const j = await res.json();
+            if(j && j.ok) {
+                if(_waHiloId === hiloDestino && _waRespondiendoA && _waRespondiendoA.hiloId === hiloDestino) _waRespondiendoA = null;
+                if(_waHiloId) await cargarMensajesHilo(_waHiloId);
+                await cargarHilosWhatsapp();
+                _pintarWhatsapp();
+            } else if(j && j.error === 'ventana_cerrada') {
+                toastError(j.mensaje || 'Ya no se puede responder libre — hace falta plantilla.');
+            } else {
+                toastError('No se pudo enviar la nota de voz.');
+            }
+        } catch(e) { logError('_waDetenerYEnviarNota', e); toastError('No se pudo enviar la nota de voz.'); }
+    };
+    try { _waMediaRecorder.stop(); } catch(e) { _waLimpiarGrabacion(); }
 }
 
 // Tocar la cita dentro de una burbuja = saltar al mensaje original y resaltarlo.
@@ -32849,6 +33396,7 @@ function _crmCambioLinea() {
 }
 
 function seleccionarLineaCRM(lineaId, nombreSucursal, nombreLinea) {
+    _waCancelarGrabacionSiActiva();
     _crmLineaActualId = lineaId;
     _crmSucursalActualNombre = nombreSucursal;
     _crmLineaActualNombre = nombreLinea;
