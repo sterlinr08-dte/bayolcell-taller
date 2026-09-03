@@ -333,22 +333,30 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
 .wa-chat-col { flex:1; min-width:0; display:flex; flex-direction:column; background:#ECE5DD; background-image:radial-gradient(rgba(0,0,0,.02) 1px, transparent 1px); background-size:14px 14px; }
 .wa-chat-head { background:#f0f2f5; padding:11px 18px; display:flex; align-items:center; gap:12px; border-bottom:1px solid #e9edef; }
 .wa-chat-empty { margin:auto; color:#8696a0; font-size:13px; text-align:center; }
-.wa-input-bar { padding:10px 16px; background:#f0f2f5; display:flex; gap:8px; align-items:center; }
-.wa-input-bar input { flex:1; border:1px solid #d1d7db; border-radius:22px; padding:10px 16px; font-size:13.5px; min-width:0; }
-.wa-send-btn { width:40px; height:40px; border-radius:50%; background:#128C7E; border:none; color:#fff; font-size:16px; cursor:pointer; flex-shrink:0; }
-.wa-send-btn:disabled { opacity:.5; cursor:default; }
-.wa-icon-btn { background:none; border:none; color:#54656f; font-size:22px; cursor:pointer; flex-shrink:0; padding:4px; line-height:1; }
-.wa-icon-btn:hover { color:#128C7E; }
+.wa-input-bar { padding:10px 14px; background:#f0f2f5; display:flex; gap:4px; align-items:center; border-top:1px solid #e2e5e7; }
+.wa-input-bar input { flex:1; border:1px solid transparent; border-radius:22px; padding:10px 16px; font-size:13.5px; min-width:0; margin:0 6px; background:#fff; color:#111b21; box-shadow:0 1px 2px rgba(11,20,26,.08); outline:none; transition:border-color .15s, box-shadow .15s; }
+.wa-input-bar input::placeholder { color:#8696a0; }
+.wa-input-bar input:focus { border-color:#128C7E; box-shadow:0 0 0 3px rgba(18,140,126,.13); }
+.wa-send-btn { width:40px; height:40px; border-radius:50%; background:#128C7E; border:none; color:#fff; font-size:17px; cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 3px rgba(7,94,84,.35); transition:background .15s, transform .1s; }
+.wa-send-btn:hover { background:#0e7c6f; }
+.wa-send-btn:active { transform:scale(.93); }
+.wa-send-btn:disabled { opacity:.5; cursor:default; transform:none; }
+.wa-icon-btn { background:none; border:none; color:#54656f; font-size:21px; cursor:pointer; flex-shrink:0; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; line-height:1; transition:background .12s, color .12s; }
+.wa-icon-btn:hover { color:#128C7E; background:rgba(11,20,26,.06); }
+.wa-icon-btn:active { background:rgba(11,20,26,.1); }
 
 /* Barra de "grabando nota de voz" — reemplaza a .wa-input-bar mientras se graba */
-.wa-grabando-bar { padding:10px 16px; background:#f0f2f5; display:flex; align-items:center; gap:10px; }
+.wa-grabando-bar { padding:10px 16px; background:#f0f2f5; display:flex; align-items:center; gap:10px; border-top:1px solid #e2e5e7; }
 .wa-grabando-punto { width:10px; height:10px; border-radius:50%; background:#dc2626; flex-shrink:0; animation:waGrabandoPulso 1.1s ease-in-out infinite; }
 @keyframes waGrabandoPulso { 0%,100% { opacity:1; } 50% { opacity:.25; } }
 .wa-grabando-tiempo { flex:1; font-size:13.5px; color:#3b4a54; font-variant-numeric:tabular-nums; }
-.wa-grabando-btn { width:38px; height:38px; border-radius:50%; border:none; cursor:pointer; font-size:15px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.wa-grabando-btn { width:38px; height:38px; border-radius:50%; border:none; cursor:pointer; font-size:15px; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:filter .12s, transform .1s; }
+.wa-grabando-btn:active { transform:scale(.93); }
 .wa-grabando-cancelar { background:#e9edef; color:#54656f; }
-.wa-grabando-enviar { background:#128C7E; color:#fff; }
-.wa-grabando-enviar:disabled { opacity:.5; cursor:default; }
+.wa-grabando-cancelar:hover { filter:brightness(.95); }
+.wa-grabando-enviar { background:#128C7E; color:#fff; box-shadow:0 1px 3px rgba(7,94,84,.35); }
+.wa-grabando-enviar:hover { background:#0e7c6f; }
+.wa-grabando-enviar:disabled { opacity:.5; cursor:default; transform:none; }
 
 /* Selector de emojis y menu de adjuntar — mismo patron position:fixed que .wa-acciones-menu */
 .wa-emoji-panel { display:none; position:fixed; grid-template-columns:repeat(8,1fr); gap:2px; background:#fff; border-radius:10px; box-shadow:0 8px 28px rgba(15,23,42,.22); padding:8px; z-index:500; width:280px; max-height:260px; overflow-y:auto; }
@@ -655,8 +663,8 @@ tr:hover td { background: #f8fafc; }
        especificidad al font-size:16px generico de mas abajo — un input con letra menor a
        16px hace que iOS Safari haga zoom de golpe al tocarlo. */
     .wa-input-bar input, .wa-select { font-size: 16px !important; }
-    .wa-send-btn { width: 44px; height: 44px; }
-    .wa-icon-btn { font-size: 24px; padding: 6px; }
+    .wa-send-btn { width: 44px; height: 44px; font-size: 19px; }
+    .wa-icon-btn { width: 40px; height: 40px; font-size: 23px; }
     /* Con una conversacion abierta en movil se ve SOLO el chat (la lista se
        reemplaza por el detalle), asi que toda la cabecera de la bandeja
        —selectores, pestanas, resumen, buscador, chips— sobra y solo roba
@@ -32373,7 +32381,7 @@ function _pintarWhatsappDetalle() {
                 <button class="wa-icon-btn" id="btnWaEmoji" onclick="_waAbrirEmojis(event)" title="Emoji"><i class="ti ti-mood-smile"></i></button>
                 <button class="wa-icon-btn" id="btnWaAdjuntar" onclick="_waAbrirMenuAdjuntar(event)" title="Adjuntar"><i class="ti ti-paperclip"></i></button>
                 <input type="text" id="waTexto" placeholder="Escribe una respuesta..." oninput="_waActualizarBotonEnvio()" onkeydown="if(event.key==='Enter') enviarMensajeWhatsapp()">
-                <button class="wa-send-btn" id="btnWaEnviar" onclick="_waBotonPrincipalClick()"><i class="ti ti-mic" id="iconWaEnviar"></i></button>
+                <button class="wa-send-btn" id="btnWaEnviar" onclick="_waBotonPrincipalClick()"><i class="ti ti-microphone" id="iconWaEnviar"></i></button>
             </div>
             <div id="waGrabandoBar" class="wa-grabando-bar" style="display:none;"></div>`;
         } else {
@@ -32435,7 +32443,7 @@ function _waWireEnfoqueInput() {
 function _waActualizarBotonEnvio() {
     const icon = document.getElementById('iconWaEnviar');
     const input = document.getElementById('waTexto');
-    if(icon && input) icon.className = input.value.trim() ? 'ti ti-send' : 'ti ti-mic';
+    if(icon && input) icon.className = input.value.trim() ? 'ti ti-send' : 'ti ti-microphone';
 }
 function _waBotonPrincipalClick() {
     const input = document.getElementById('waTexto');
