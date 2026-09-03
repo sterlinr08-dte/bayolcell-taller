@@ -32358,9 +32358,9 @@ function _pintarWhatsappDetalle() {
     html += `<div class="wa-avatar">${escapeHtml(_waIniciales(nombre))}</div>
         <div style="flex:1; min-width:0;">
             <div style="font-weight:700; font-size:14.5px;">${escapeHtml(nombre)}</div>
-            <div style="font-size:11.5px; color:var(--text-muted);"><i class="ti ti-phone"></i> ${escapeHtml(h.telefono_e164 || '')}</div>
+            <div style="font-size:11.5px; color:var(--text-muted);">${(h.telefono_e164 || '').startsWith('bsid:') ? '<i class="ti ti-ad-2"></i> Contacto desde anuncio — Meta no revela el número' : `<i class="ti ti-phone"></i> ${escapeHtml(h.telefono_e164 || '')}`}</div>
         </div>
-        ${h.telefono_e164 ? `<a href="tel:${escapeHtml(h.telefono_e164)}" class="wa-icon-btn wa-call-btn" title="Llamar a ${escapeHtml(nombre)}"><i class="ti ti-phone-call"></i></a>` : ''}
+        ${(h.telefono_e164 && !h.telefono_e164.startsWith('bsid:')) ? `<a href="tel:${escapeHtml(h.telefono_e164)}" class="wa-icon-btn wa-call-btn" title="Llamar a ${escapeHtml(nombre)}"><i class="ti ti-phone-call"></i></a>` : ''}
         ${h.cliente_id
             ? `<span style="background:#dcfce7; color:#15803d; font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; white-space:nowrap;"><i class="ti ti-user-check"></i> Cliente vinculado</span>`
             : `<button class="wa-tab-btn" style="color:#075E54; background:#fff; border-color:#d1d7db; font-size:11px;" onclick="_waToggleVincular('whatsapp_hilos','${h.id}')"><i class="ti ti-user-plus"></i> Vincular</button>`}
