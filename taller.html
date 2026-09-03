@@ -33493,21 +33493,33 @@ function _crmSuscribirRealtime(lineaId) {
     if(_crmRealtimeChannel) { try { supabaseClient.removeChannel(_crmRealtimeChannel); } catch(e) {} _crmRealtimeChannel = null; }
     if(_crmRtDebounce) { clearTimeout(_crmRtDebounce); _crmRtDebounce = null; }
     if(!lineaId) return;
-    // El payload trae el hilo_id del cambio — si es de OTRA conversacion (o
-    // no viene, ej. un hilo/lead), solo se refresca la LISTA (no toca
-    // #waDetalle/#waTexto), para no borrarle a medio escribir una respuesta
-    // al empleado por un mensaje que entro en un cliente distinto.
-    const refrescarCRM = (payload) => {
+    // Solo un mensaje NUEVO/editado del hilo que esta ABIERTO justifica
+    // reconstruir el detalle (cargarMensajesHilo + _pintarWhatsapp hacen
+    // innerHTML completo — destruyen y recrean #waTexto). Cualquier otro
+    // caso (metadata del hilo como no_leidos_count/asignado_a, un hilo/lead
+    // de OTRA conversacion, o un mensaje de otro cliente) solo refresca la
+    // LISTA lateral. Antes esto se decidia mirando payload.hilo_id — pero
+    // whatsapp_hilos no tiene esa columna (su propio id ES el hilo), asi
+    // que un simple "marcar como leido" (pasa CADA VEZ que se abre un chat)
+    // caia siempre en el caso "sin info" y forzaba el rebuild igual: justo
+    // ~400ms despues de abrir el chat, cuando el empleado ya esta tocando
+    // el composer para escribir. Al recrear #waTexto se pierde el foco
+    // NATIVO (el que si abre el teclado en iOS); el foco que se restaura
+    // despues es programatico y iOS no reabre el teclado con eso — quedaba
+    // el alto ya encogido para un teclado que ya no estaba, o sea el hueco
+    // en blanco.
+    const refrescarCRM = (payload, tabla) => {
         if(_crmRtDebounce) clearTimeout(_crmRtDebounce);
         _crmRtDebounce = setTimeout(async () => {
             if(_crmLineaActualId !== lineaId) return; // ya se cambio de linea, no pisar la vista actual
             if(!document.getElementById('v-crmLinea')?.classList.contains('active')) return; // vista ya no visible
             const tabActiva = localStorage.getItem('bayol_subtab_crmlinea') || 'mensajes';
             if(tabActiva === 'mensajes') {
-                const hiloEvento = payload?.new?.hilo_id || payload?.old?.hilo_id || null;
                 await cargarHilosWhatsapp();
                 await _crmContarLeadsAbiertos();
-                if(_waHiloId && (!hiloEvento || hiloEvento === _waHiloId)) {
+                const esMensajeDelHiloAbierto = tabla === 'whatsapp_mensajes' && _waHiloId &&
+                    (payload?.new?.hilo_id === _waHiloId || payload?.old?.hilo_id === _waHiloId);
+                if(esMensajeDelHiloAbierto) {
                     await cargarMensajesHilo(_waHiloId);
                     _pintarWhatsapp();
                 } else {
@@ -33521,9 +33533,9 @@ function _crmSuscribirRealtime(lineaId) {
     };
     _crmRealtimeChannel = supabaseClient
         .channel('crm-linea-' + lineaId)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_hilos', filter: `linea_id=eq.${lineaId}` }, refrescarCRM)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_mensajes' }, refrescarCRM)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'leads', filter: `linea_id=eq.${lineaId}` }, refrescarCRM)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_hilos', filter: `linea_id=eq.${lineaId}` }, p => refrescarCRM(p, 'whatsapp_hilos'))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_mensajes' }, p => refrescarCRM(p, 'whatsapp_mensajes'))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'leads', filter: `linea_id=eq.${lineaId}` }, p => refrescarCRM(p, 'leads'))
         .subscribe();
 }
 function _crmDetenerRealtime() {
