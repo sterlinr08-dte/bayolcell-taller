@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#dc2626">
+<title>BAYOL CELL · CRM 2</title>
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}#crmFrame{border:0;width:100%;height:100%;display:block;background:#f1f5f9}.bc-loader{position:fixed;inset:0;z-index:10;display:grid;place-items:center;background:#f8fafc;transition:opacity .2s,visibility .2s}.bc-loader.off{opacity:0;visibility:hidden}.bc-loader-card{text-align:center;color:#475569;font-size:12px;font-weight:700}.bc-mark{width:46px;height:46px;border-radius:14px;background:linear-gradient(145deg,#ef4444,#b91c1c);color:#fff;display:grid;place-items:center;margin:0 auto 10px;font-size:19px;font-weight:900;box-shadow:0 10px 25px rgba(220,38,38,.22)}
+</style>
+</head>
+<body>
+<div class="bc-loader" id="bcLoader"><div class="bc-loader-card"><div class="bc-mark">BC</div>Cargando CRM 2…</div></div>
+<iframe id="crmFrame" title="BAYOL CELL CRM 2"></iframe>
+<script>
+(() => {
+  const frame=document.getElementById('crmFrame');
+  const loader=document.getElementById('bcLoader');
+  const target='taller.html'+location.search+location.hash;
+  frame.src=target;
+  frame.addEventListener('load',()=>{
+    try{
+      const doc=frame.contentDocument;
+      if(doc && !doc.getElementById('bcMarketingConsentScript')){
+        const s=doc.createElement('script');
+        s.id='bcMarketingConsentScript';
+        s.src='crm-marketing-consent.js?v=20260904-1';
+        doc.head.appendChild(s);
+      }
+    }catch(e){ console.error('CRM2 consent injection',e); }
+    loader.classList.add('off');
+  });
+})();
+</script>
+</body>
+</html>
