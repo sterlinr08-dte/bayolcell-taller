@@ -88,12 +88,25 @@ function idMensaje(msg: any): string {
 // (correcto para entrante Y para espejo saliente); sender solo como ultimo
 // respaldo opaco, y solo si el mensaje es entrante (en un espejo saliente
 // sender es la propia linea del negocio, nunca el cliente).
+//
+// Fix 2026-09-04 (v4 — bsid duplicado por conversacion): confirmado en
+// produccion con varios pares de hilos reales (mismo cliente, mismos
+// segundos, mismo texto) que terminaban en DOS hilos distintos. Causa: para
+// un mensaje entrante, el codigo preferia msg.sender.businessScopedUserId
+// sobre conversation.contactId -- pero businessScopedUserId es un dato del
+// REMITENTE de ESE mensaje puntual y no siempre es el mismo entre dos
+// mensajes de la misma persona, mientras que contactId es estable a nivel
+// de conversacion (el propio comentario de arriba ya lo decia, pero el
+// codigo no lo aplicaba asi). Ahora contactId siempre gana cuando esta
+// presente, sin importar la direccion; businessScopedUserId queda como
+// ultimo respaldo solo cuando no hay contactId (y el mensaje es entrante).
 function identificarContacto(payload: any): string | null {
   const conv = payload.conversation || {};
   const msg = payload.message || {};
   if (esTelefono(conv.participantId)) return normalizarTelefono(conv.participantId);
   if (esTelefono(conv.participantUsername)) return normalizarTelefono(conv.participantUsername);
-  const scoped = (msg.direction === "incoming" ? msg.sender?.businessScopedUserId : null) || conv.contactId;
+  if (conv.contactId) return `bsid:${conv.contactId}`;
+  const scoped = msg.direction === "incoming" ? msg.sender?.businessScopedUserId : null;
   if (scoped) return `bsid:${scoped}`;
   return null;
 }
