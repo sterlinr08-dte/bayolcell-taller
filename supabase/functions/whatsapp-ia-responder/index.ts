@@ -28,6 +28,14 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 // especifica basandose solo en la foto, eso sigue exigiendo el texto del
 // cliente confirmando que necesita (la guarda de precios de mas abajo
 // aplica igual, viendo la respuesta redactada).
+//
+// Fix 2026-09-04 (ventana de 24h para el saludo): el saludo automatico ya
+// no depende de si ALGUNA VEZ se le escribio al cliente (eso lo disparaba
+// una sola vez en toda la vida del hilo). Ahora se mide el tiempo desde el
+// mensaje inmediatamente anterior (en cualquier direccion): si pasaron 24
+// horas o mas sin actividad en el chat, se considera inicio de una
+// conversacion nueva y el saludo se vuelve a auto-enviar -- igual que un
+// cliente que reabre el chat despues de varios dias.
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -99,19 +107,30 @@ Deno.serve(async (req: Request) => {
   const esImagenCliente = !!(ultimo && ultimo.direccion === "in" && ultimo.tipo_contenido === "imagen" && ultimo.media_path);
   // Nota de voz del cliente (2026-09-04): antes, si el ultimo mensaje era SOLO
   // un audio (sin texto), la funcion no hacia nada -- ni siquiera el saludo
-  // de bienvenida si era su primer contacto. Claude todavia no soporta audio
-  // (solo vision), asi que no se transcribe, pero al menos ya no se ignora
-  // por completo: ver mas abajo como se maneja en el prompt.
+  // de bienvenida si era inicio de conversacion nueva. Claude todavia no
+  // soporta audio (solo vision), asi que no se transcribe, pero al menos ya
+  // no se ignora por completo: ver mas abajo como se maneja en el prompt.
   const esAudioCliente = !!(ultimo && ultimo.direccion === "in" && ultimo.tipo_contenido === "audio");
   if (!textoCliente.trim() && !esImagenCliente && !esAudioCliente) return json({ ok: true, omitido: "sin texto, imagen ni audio de cliente para responder" });
 
   // Alcance reducido a proposito (2026-09-04, pedido del dueño): por ahora
-  // el agente SOLO saluda y pregunta de que ciudad escribe el cliente en el
-  // primer contacto -- nada mas se auto-envia todavia (ni horario, ni
-  // direccion, ni disponibilidad general), aunque antes si se permitia.
-  // "Primer contacto" = todavia no hay ningun mensaje saliente del negocio
-  // en el historial reciente de este hilo.
-  const esPrimerContacto = !historial.some((m: any) => m.direccion === "out");
+  // el agente SOLO saluda y pregunta de que ciudad escribe el cliente --
+  // nada mas se auto-envia todavia (ni horario, ni direccion, ni
+  // disponibilidad general).
+  //
+  // Fix 2026-09-04 (ventana de 24h): el saludo automatico ya no depende de
+  // si ALGUNA VEZ se le escribio al cliente (eso lo disparaba una sola vez
+  // en toda la vida del hilo). Ahora se mide el tiempo desde el mensaje
+  // inmediatamente anterior (en cualquier direccion): si pasaron 24 horas o
+  // mas sin actividad en el chat, se considera inicio de una conversacion
+  // nueva y el saludo se vuelve a auto-enviar -- igual que un cliente que
+  // reabre el chat despues de varios dias.
+  const VENTANA_SALUDO_HORAS = 24;
+  const mensajeAnterior = historial.length >= 2 ? historial[historial.length - 2] : null;
+  const horasDesdeUltimoMensaje = mensajeAnterior
+    ? (new Date(ultimo!.creado_en as string).getTime() - new Date(mensajeAnterior.creado_en as string).getTime()) / (60 * 60 * 1000)
+    : Infinity;
+  const esInicioDeConversacion = !mensajeAnterior || horasDesdeUltimoMensaje >= VENTANA_SALUDO_HORAS;
 
   // Si el cliente mando una foto del celular en vez de escribir el modelo,
   // se descarga y se manda a Claude como imagen (limite de seguridad: si
@@ -177,14 +196,14 @@ ${contextoPrecios}
 
 ALCANCE ACTUAL (reducido a proposito, temporal): por ahora el UNICO caso que se auto-envia (categoria "auto") es el saludo inicial. TODO lo demas es categoria "revisar", sin excepcion -- horario, direccion, disponibilidad, precios, identificacion de modelo por foto, cualquier cosa. Esto va a cambiar mas adelante, pero por ahora la unica accion automatica permitida es la de la regla 2.
 
-Es primer contacto de este cliente (aun no hay ningun mensaje saliente del negocio en este hilo): ${esPrimerContacto ? "SI" : "NO"}
+Es inicio de una conversacion nueva (primera vez que este cliente escribe, o han pasado 24 horas o mas desde el ultimo mensaje en este chat, sea del cliente o del negocio): ${esInicioDeConversacion ? "SI" : "NO"}
 
 Reglas estrictas:
 1. NUNCA inventes un precio ni una pieza que no este en la lista de arriba, ni un horario/direccion que no este arriba.
-2. SOLO SI "Es primer contacto" es SI: responde con categoria "auto", un saludo corto y cordial dandole la bienvenida a BAYOL CELL, y pregunta de que ciudad escribe o cual sucursal le queda mas cerca (Santiago, Moca o Navarrete). NO menciones horario, direccion, ni precios en este mensaje -- solo el saludo y la pregunta de la ciudad.
-3. Si "Es primer contacto" es NO (ya se le dio la bienvenida, esta es una respuesta de seguimiento): SIEMPRE categoria "revisar", sin importar que tan simple parezca la pregunta (aunque sea solo el horario o la direccion). Redacta la mejor respuesta posible para que un empleado la revise y decida si mandarla, pero nunca la clasifiques como "auto".
-4. Si el cliente mando una NOTA DE VOZ (audio) y no escribio texto ademas: todavia no se puede transcribir ni escuchar el audio, asi que NUNCA inventes ni asumas que dijo. Si es su primer contacto, igual aplica la regla 2 normal (el saludo de bienvenida no depende del contenido del audio). Si NO es su primer contacto, redacta una respuesta breve y cordial explicando que no se pudo escuchar bien la nota de voz y pidiendole que tambien lo escriba en texto (o que ya se lo van a escuchar y le responden) -- esto siempre queda en categoria "revisar" por la regla 3, un tecnico decide si la manda.
-5. Si el cliente mando una FOTO de su celular (comun -- muchos clientes no saben donde ver el modelo del equipo): identifica marca y modelo lo mejor que puedas en la respuesta redactada, pero esto SIEMPRE es categoria "revisar" tambien (no menciones precio ni pieza especifica, y no la envies sola aunque sea el primer contacto).
+2. SOLO SI "Es inicio de una conversacion nueva" es SI: responde con categoria "auto", un saludo corto y cordial dandole la bienvenida a BAYOL CELL, y pregunta de que ciudad escribe o cual sucursal le queda mas cerca (Santiago, Moca o Navarrete). NO menciones horario, direccion, ni precios en este mensaje -- solo el saludo y la pregunta de la ciudad.
+3. Si "Es inicio de una conversacion nueva" es NO (la conversacion sigue activa, hubo actividad hace menos de 24 horas): SIEMPRE categoria "revisar", sin importar que tan simple parezca la pregunta (aunque sea solo el horario o la direccion). Redacta la mejor respuesta posible para que un empleado la revise y decida si mandarla, pero nunca la clasifiques como "auto".
+4. Si el cliente mando una NOTA DE VOZ (audio) y no escribio texto ademas: todavia no se puede transcribir ni escuchar el audio, asi que NUNCA inventes ni asumas que dijo. Si es inicio de conversacion nueva, igual aplica la regla 2 normal (el saludo de bienvenida no depende del contenido del audio). Si NO, redacta una respuesta breve y cordial explicando que no se pudo escuchar bien la nota de voz y pidiendole que tambien lo escriba en texto (o que ya se lo van a escuchar y le responden) -- esto siempre queda en categoria "revisar" por la regla 3, un tecnico decide si la manda.
+5. Si el cliente mando una FOTO de su celular (comun -- muchos clientes no saben donde ver el modelo del equipo): identifica marca y modelo lo mejor que puedas en la respuesta redactada, pero esto SIEMPRE es categoria "revisar" tambien (no menciones precio ni pieza especifica, y no la envies sola aunque sea inicio de conversacion nueva).
 6. Tono: escribe como una persona real de la sucursal texteando por WhatsApp, NO como una IA ni como un bot -- nada de sonar acartonado, corporativo ni de plantilla repetida. Dominicano, cordial, breve, natural, como lo escribiria rapido un empleado desde el celular. No uses el signo de apertura ¿ en las preguntas -- en WhatsApp real casi nadie lo usa, solo pon el signo de cierre al final (ejemplo correcto: "de que ciudad nos escribes?"; incorrecto: "¿De que ciudad nos escribes?"). Nunca prometas tiempos de entrega ni descuentos.
 7. Responde EXCLUSIVAMENTE con un JSON valido, sin texto extra antes o despues, con esta forma exacta:
 {"categoria": "auto" o "revisar", "razon": "string breve explicando por que", "respuesta": "el texto que se mandaria o sugeriria al cliente"}`;
@@ -250,11 +269,12 @@ Reglas estrictas:
   respuesta = respuesta.replace(/¿/g, "");
 
   // Guarda de codigo para el alcance reducido (2026-09-04): por ahora SOLO
-  // el saludo de primer contacto se auto-envia -- cualquier otra cosa,
-  // aunque el modelo la marque "auto", se fuerza a "revisar".
-  if (categoria === "auto" && !esPrimerContacto) {
+  // el saludo de inicio de conversacion se auto-envia (primera vez que
+  // escribe, o reabre el chat despues de 24h+ sin actividad) -- cualquier
+  // otra cosa, aunque el modelo la marque "auto", se fuerza a "revisar".
+  if (categoria === "auto" && !esInicioDeConversacion) {
     categoria = "revisar";
-    razon = "alcance reducido: solo el saludo de primer contacto se auto-envia por ahora";
+    razon = "alcance reducido: solo el saludo de inicio de conversacion se auto-envia por ahora";
   }
 
   // Guarda de codigo, no solo de instrucciones al modelo: el catalogo de
