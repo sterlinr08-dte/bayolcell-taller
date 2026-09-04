@@ -99,6 +99,14 @@ Deno.serve(async (req: Request) => {
   const esImagenCliente = !!(ultimo && ultimo.direccion === "in" && ultimo.tipo_contenido === "imagen" && ultimo.media_path);
   if (!textoCliente.trim() && !esImagenCliente) return json({ ok: true, omitido: "sin texto ni imagen de cliente para responder" });
 
+  // Alcance reducido a proposito (2026-09-04, pedido del dueño): por ahora
+  // el agente SOLO saluda y pregunta de que ciudad escribe el cliente en el
+  // primer contacto -- nada mas se auto-envia todavia (ni horario, ni
+  // direccion, ni disponibilidad general), aunque antes si se permitia.
+  // "Primer contacto" = todavia no hay ningun mensaje saliente del negocio
+  // en el historial reciente de este hilo.
+  const esPrimerContacto = !historial.some((m: any) => m.direccion === "out");
+
   // Si el cliente mando una foto del celular en vez de escribir el modelo,
   // se descarga y se manda a Claude como imagen (limite de seguridad: si
   // falla la descarga o pesa demasiado, se sigue solo con texto en vez de
@@ -153,19 +161,23 @@ Deno.serve(async (req: Request) => {
 
   const systemPrompt = `Eres el asistente de WhatsApp de BAYOL CELL (taller de reparacion de celulares y venta), para la sucursal de este chat.
 
-Datos reales de esta sucursal (usa SOLO esto para horario/direccion, nunca inventes):
-- Horario: ${config.horario || "no especificado -- si preguntan, di que un tecnico les confirma"}
-- Direccion: ${config.direccion || "no especificada -- si preguntan, di que un tecnico les confirma"}
+Datos reales de esta sucursal (referencia interna tuya -- NO los repitas todavia, ver regla 2):
+- Horario: ${config.horario || "no especificado"}
+- Direccion: ${config.direccion || "no especificada"}
 - Notas adicionales: ${config.notas_adicionales || "(ninguna)"}
 
 Precios encontrados en el catalogo para el mensaje mas reciente del cliente (el catalogo puede tener precios desactualizados -- nunca los mandes tu mismo, solo redactalos como sugerencia):
 ${contextoPrecios}
 
+ALCANCE ACTUAL (reducido a proposito, temporal): por ahora el UNICO caso que se auto-envia (categoria "auto") es el saludo inicial. TODO lo demas es categoria "revisar", sin excepcion -- horario, direccion, disponibilidad, precios, identificacion de modelo por foto, cualquier cosa. Esto va a cambiar mas adelante, pero por ahora la unica accion automatica permitida es la de la regla 2.
+
+Es primer contacto de este cliente (aun no hay ningun mensaje saliente del negocio en este hilo): ${esPrimerContacto ? "SI" : "NO"}
+
 Reglas estrictas:
-1. NUNCA inventes un precio ni una pieza que no este en la lista de arriba.
-2. Preguntas simples que SI puedes responder y ENVIAR directo (categoria "auto"): horario, direccion, si hacen tal tipo de reparacion en general (SIN mencionar ningun precio ni monto), saludos, confirmaciones simples.
-3. CUALQUIER mensaje tuyo que mencione un precio, monto, cotizacion, o que responda una pregunta de "cuanto cuesta"/"cuanto vale" -- SIEMPRE es categoria "revisar", sin excepcion, aunque tengas el precio exacto del catalogo (puede estar desactualizado, un empleado lo confirma antes de mandarlo). Lo mismo para negociacion, queja, diagnostico tecnico especifico, o algo que no tengas claro.
-4. Si el cliente mando una FOTO de su celular en vez de escribir el modelo (comun -- muchos clientes no saben donde ver el modelo del equipo): mira la imagen, identifica marca y modelo lo mejor que puedas, y responde confirmando lo que ves y preguntando que problema tiene o que necesita ("Veo que es un [modelo] -- ¿qué le pasa?"). Esto SI puede ser categoria "auto" (no menciona precio). NUNCA des un precio ni digas que pieza le hace falta basandote solo en la foto -- eso espera a que el cliente confirme por texto que necesita.
+1. NUNCA inventes un precio ni una pieza que no este en la lista de arriba, ni un horario/direccion que no este arriba.
+2. SOLO SI "Es primer contacto" es SI: responde con categoria "auto", un saludo corto y cordial dandole la bienvenida a BAYOL CELL, y pregunta de que ciudad escribe o cual sucursal le queda mas cerca (Santiago, Moca o Navarrete). NO menciones horario, direccion, ni precios en este mensaje -- solo el saludo y la pregunta de la ciudad.
+3. Si "Es primer contacto" es NO (ya se le dio la bienvenida, esta es una respuesta de seguimiento): SIEMPRE categoria "revisar", sin importar que tan simple parezca la pregunta (aunque sea solo el horario o la direccion). Redacta la mejor respuesta posible para que un empleado la revise y decida si mandarla, pero nunca la clasifiques como "auto".
+4. Si el cliente mando una FOTO de su celular (comun -- muchos clientes no saben donde ver el modelo del equipo): identifica marca y modelo lo mejor que puedas en la respuesta redactada, pero esto SIEMPRE es categoria "revisar" tambien (no menciones precio ni pieza especifica, y no la envies sola aunque sea el primer contacto).
 5. Tono: dominicano, cordial, breve (whatsapp, no correos largos). Nunca prometas tiempos de entrega ni descuentos.
 6. Responde EXCLUSIVAMENTE con un JSON valido, sin texto extra antes o despues, con esta forma exacta:
 {"categoria": "auto" o "revisar", "razon": "string breve explicando por que", "respuesta": "el texto que se mandaria o sugeriria al cliente"}`;
@@ -220,6 +232,14 @@ Reglas estrictas:
   }
 
   if (!respuesta.trim()) return json({ ok: true, omitido: "el modelo no genero respuesta util" });
+
+  // Guarda de codigo para el alcance reducido (2026-09-04): por ahora SOLO
+  // el saludo de primer contacto se auto-envia -- cualquier otra cosa,
+  // aunque el modelo la marque "auto", se fuerza a "revisar".
+  if (categoria === "auto" && !esPrimerContacto) {
+    categoria = "revisar";
+    razon = "alcance reducido: solo el saludo de primer contacto se auto-envia por ahora";
+  }
 
   // Guarda de codigo, no solo de instrucciones al modelo: el catalogo de
   // Infoplus puede tener precios desactualizados, y el modelo puede
