@@ -17,6 +17,17 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 // Kill switch: whatsapp_ia_config.activo por sucursal (default false — el
 // agente esta APAGADO hasta que un admin lo active desde el CRM con un
 // horario/direccion reales configurados).
+//
+// Fix 2026-09-04 (vision): muchos clientes no saben decir el modelo de su
+// celular (no es raro en RD) y en vez de escribirlo mandan una FOTO del
+// equipo. Antes, si el ultimo mensaje entrante no tenia texto (una imagen
+// sola), la funcion no hacia nada. Ahora, si el ultimo mensaje del cliente
+// es una imagen, se descarga desde Storage y se manda a Claude como parte
+// del mensaje (Claude Haiku soporta vision) para que identifique marca/
+// modelo y pregunte que problema tiene -- nunca da precio ni pieza
+// especifica basandose solo en la foto, eso sigue exigiendo el texto del
+// cliente confirmando que necesita (la guarda de precios de mas abajo
+// aplica igual, viendo la respuesta redactada).
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -77,7 +88,7 @@ Deno.serve(async (req: Request) => {
 
   const { data: mensajesRaw } = await db
     .from("whatsapp_mensajes")
-    .select("direccion, cuerpo, tipo_contenido, creado_en")
+    .select("direccion, cuerpo, tipo_contenido, media_path, creado_en")
     .eq("hilo_id", hiloId)
     .order("creado_en", { ascending: false })
     .limit(10);
@@ -85,11 +96,50 @@ Deno.serve(async (req: Request) => {
 
   const ultimo = historial.length ? historial[historial.length - 1] : null;
   const textoCliente = ultimo && ultimo.direccion === "in" ? (ultimo.cuerpo || "") : "";
-  if (!textoCliente.trim()) return json({ ok: true, omitido: "sin texto de cliente para responder" });
+  const esImagenCliente = !!(ultimo && ultimo.direccion === "in" && ultimo.tipo_contenido === "imagen" && ultimo.media_path);
+  if (!textoCliente.trim() && !esImagenCliente) return json({ ok: true, omitido: "sin texto ni imagen de cliente para responder" });
 
-  // Busqueda de precios siempre se intenta con el texto crudo del cliente;
-  // el modelo decide si los resultados son relevantes, nunca los inventa.
-  const { data: precios } = await db.rpc("buscar_infoplus", { p_query: textoCliente, p_limite: 5 });
+  // Si el cliente mando una foto del celular en vez de escribir el modelo,
+  // se descarga y se manda a Claude como imagen (limite de seguridad: si
+  // falla la descarga o pesa demasiado, se sigue solo con texto en vez de
+  // romper la respuesta completa). Anthropic exige que la imagen en base64
+  // pese <=10MB -- base64 infla el tamano original ~33%, asi que el limite
+  // sobre el archivo CRUDO (antes de codificar) tiene que ser mas chico,
+  // no los mismos 10MB (un archivo de 15MB crudo generaria ~20MB en base64
+  // y la API lo rechazaria).
+  const LIMITE_IMAGEN_CRUDA = 7 * 1024 * 1024; // ~9.3MB en base64, con margen bajo el limite de 10MB de Anthropic
+  let imagenBase64: string | null = null;
+  let imagenMediaType = "image/jpeg";
+  if (esImagenCliente) {
+    try {
+      const { data: archivo, error: errArchivo } = await db.storage.from("whatsapp-media").download(ultimo!.media_path as string);
+      if (errArchivo || !archivo) {
+        console.error("whatsapp-ia-responder: no se pudo descargar la imagen del cliente:", errArchivo?.message);
+      } else if (archivo.size > LIMITE_IMAGEN_CRUDA) {
+        console.error("whatsapp-ia-responder: imagen del cliente demasiado grande, se omite vision:", archivo.size);
+      } else {
+        const buf = await archivo.arrayBuffer();
+        let binario = "";
+        const bytes = new Uint8Array(buf);
+        const CHUNK = 8192;
+        for (let i = 0; i < bytes.length; i += CHUNK) {
+          binario += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+        }
+        imagenBase64 = btoa(binario);
+        if (archivo.type) imagenMediaType = archivo.type;
+      }
+    } catch (e) {
+      console.error("whatsapp-ia-responder: error procesando imagen del cliente:", e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  // Busqueda de precios siempre se intenta con el texto crudo del cliente
+  // (si mando solo una foto, no hay texto que buscar, y el catalogo queda
+  // vacio -- correcto, no se puede cotizar solo con una imagen); el modelo
+  // decide si los resultados son relevantes, nunca los inventa.
+  const { data: precios } = textoCliente.trim()
+    ? await db.rpc("buscar_infoplus", { p_query: textoCliente, p_limite: 5 })
+    : { data: null };
   const contextoPrecios =
     Array.isArray(precios) && precios.length
       ? precios
@@ -108,15 +158,16 @@ Datos reales de esta sucursal (usa SOLO esto para horario/direccion, nunca inven
 - Direccion: ${config.direccion || "no especificada -- si preguntan, di que un tecnico les confirma"}
 - Notas adicionales: ${config.notas_adicionales || "(ninguna)"}
 
-Precios encontrados en el catalogo para el mensaje mas reciente del cliente (pueden no ser relevantes -- usalos SOLO si aplican exactamente a lo que preguntan):
+Precios encontrados en el catalogo para el mensaje mas reciente del cliente (el catalogo puede tener precios desactualizados -- nunca los mandes tu mismo, solo redactalos como sugerencia):
 ${contextoPrecios}
 
 Reglas estrictas:
-1. NUNCA inventes un precio ni una pieza que no este en la lista de arriba. Si el cliente pregunta un precio y no hay una coincidencia clara y exacta, NO cotices -- marca la respuesta para revision humana.
-2. Preguntas simples que SI puedes responder directo: horario, direccion, si hacen tal tipo de reparacion en general (sin precio), saludos, confirmaciones simples.
-3. Cualquier cotizacion de precio, negociacion, queja, diagnostico tecnico especifico, o algo que no tengas claro: SIEMPRE marca para revision humana, incluso si crees saber la respuesta.
-4. Tono: dominicano, cordial, breve (whatsapp, no correos largos). Nunca prometas tiempos de entrega ni descuentos.
-5. Responde EXCLUSIVAMENTE con un JSON valido, sin texto extra antes o despues, con esta forma exacta:
+1. NUNCA inventes un precio ni una pieza que no este en la lista de arriba.
+2. Preguntas simples que SI puedes responder y ENVIAR directo (categoria "auto"): horario, direccion, si hacen tal tipo de reparacion en general (SIN mencionar ningun precio ni monto), saludos, confirmaciones simples.
+3. CUALQUIER mensaje tuyo que mencione un precio, monto, cotizacion, o que responda una pregunta de "cuanto cuesta"/"cuanto vale" -- SIEMPRE es categoria "revisar", sin excepcion, aunque tengas el precio exacto del catalogo (puede estar desactualizado, un empleado lo confirma antes de mandarlo). Lo mismo para negociacion, queja, diagnostico tecnico especifico, o algo que no tengas claro.
+4. Si el cliente mando una FOTO de su celular en vez de escribir el modelo (comun -- muchos clientes no saben donde ver el modelo del equipo): mira la imagen, identifica marca y modelo lo mejor que puedas, y responde confirmando lo que ves y preguntando que problema tiene o que necesita ("Veo que es un [modelo] -- ¿qué le pasa?"). Esto SI puede ser categoria "auto" (no menciona precio). NUNCA des un precio ni digas que pieza le hace falta basandote solo en la foto -- eso espera a que el cliente confirme por texto que necesita.
+5. Tono: dominicano, cordial, breve (whatsapp, no correos largos). Nunca prometas tiempos de entrega ni descuentos.
+6. Responde EXCLUSIVAMENTE con un JSON valido, sin texto extra antes o despues, con esta forma exacta:
 {"categoria": "auto" o "revisar", "razon": "string breve explicando por que", "respuesta": "el texto que se mandaria o sugeriria al cliente"}`;
 
   let categoria = "revisar";
@@ -124,6 +175,17 @@ Reglas estrictas:
   let respuesta = "";
 
   try {
+    const textoUsuario = esImagenCliente
+      ? `Historial reciente de la conversacion:\n${historialTexto}\n\nEl cliente acaba de mandar la foto de su celular que ves arriba (en vez de escribir el modelo)${textoCliente.trim() ? ` junto con este texto: "${textoCliente}"` : ""}. Responde con el JSON pedido.`
+      : `Historial reciente de la conversacion:\n${historialTexto}\n\nResponde con el JSON pedido.`;
+    // deno-lint-ignore no-explicit-any
+    const contenidoUsuario: any = imagenBase64
+      ? [
+          { type: "image", source: { type: "base64", media_type: imagenMediaType, data: imagenBase64 } },
+          { type: "text", text: textoUsuario },
+        ]
+      : textoUsuario;
+
     const resp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -135,7 +197,7 @@ Reglas estrictas:
         model: "claude-haiku-4-5",
         max_tokens: 500,
         system: systemPrompt,
-        messages: [{ role: "user", content: `Historial reciente de la conversacion:\n${historialTexto}\n\nResponde con el JSON pedido.` }],
+        messages: [{ role: "user", content: contenidoUsuario }],
       }),
       signal: AbortSignal.timeout(25000),
     });
@@ -158,6 +220,18 @@ Reglas estrictas:
   }
 
   if (!respuesta.trim()) return json({ ok: true, omitido: "el modelo no genero respuesta util" });
+
+  // Guarda de codigo, no solo de instrucciones al modelo: el catalogo de
+  // Infoplus puede tener precios desactualizados, y el modelo puede
+  // clasificar mal. Si el catalogo devolvio alguna coincidencia para el
+  // mensaje del cliente, o la respuesta redactada menciona un precio, NUNCA
+  // se auto-envia -- siempre pasa por un tecnico, sin excepcion.
+  const tieneCoincidenciasDePrecio = Array.isArray(precios) && precios.length > 0;
+  const pareceMencionarPrecio = /RD\$|US\$|\$\s?\d|\bprecio\b|\bcuesta\b|\bvale\b/i.test(respuesta);
+  if (categoria === "auto" && (tieneCoincidenciasDePrecio || pareceMencionarPrecio)) {
+    categoria = "revisar";
+    razon = "el mensaje o la respuesta involucra precios -- siempre requiere revision humana";
+  }
 
   if (categoria === "auto") {
     const { data: linea } = await db.from("whatsapp_lineas").select("zernio_account_id").eq("id", hilo.linea_id).maybeSingle();
