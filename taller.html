@@ -2013,7 +2013,7 @@ body{
                     <h3 style="margin:0 0 4px; font-size:15px;"><i class="ti ti-star" style="color:#f59e0b;"></i> Pedir reseña a un cliente (sin orden)</h3>
                     <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px;">Para clientes que <b>solo vinieron a comprar</b> (no se registra orden). Pon su WhatsApp y mándale el enlace de reseña de Google.</p>
                     <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                        <input id="resenaWa" placeholder="WhatsApp (ej. 809-123-4567)" onkeydown="if(event.key==='Enter')enviarResenaWhatsapp()" style="flex:1; min-width:180px; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px;">
+                        <input id="resenaWa" data-marketing-consent-phone data-marketing-consent-source="venta" placeholder="WhatsApp (ej. 809-123-4567)" onkeydown="if(event.key==='Enter')enviarResenaWhatsapp()" style="flex:1; min-width:180px; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px;">
                         <button class="btn" style="background:#f59e0b; color:#fff; font-size:13px; padding:9px 14px;" onclick="enviarResenaWhatsapp()"><i class="ti ti-brand-whatsapp"></i> Enviar reseña</button>
                     </div>
                     <div id="resenaWaMsg" style="font-size:12px; margin-top:6px;"></div>
@@ -24474,7 +24474,13 @@ function verHistorialCliente(clienteId) {
     const ords = (cache.ordenes || []).filter(o => o.cliente_id === clienteId).sort((a,b) => new Date(b.creado_en) - new Date(a.creado_en));
     let html = `<div style="max-height:70vh; overflow-y:auto;">
         <h3 style="margin:0 0 4px;"><i class="ti ti-user"></i> ${escapeHtml(c.nombre || 'Cliente')}</h3>
-        <div style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">${escapeHtml(c.telefono || 'Sin teléfono')} · ${ords.length} orden(es) en total</div>`;
+        <div style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">${escapeHtml(c.telefono || c.whatsapp || 'Sin teléfono')} · ${ords.length} orden(es) en total</div>
+        <div id="clienteMarketingConsent_${clienteId}">
+          <input type="hidden"
+            value="${escapeHtml(c.whatsapp || c.telefono || '')}"
+            data-marketing-consent-phone
+            data-marketing-consent-source="ficha_cliente">
+        </div>`;
     if(!ords.length) {
         html += `<div style="color:var(--text-muted);">Sin órdenes registradas.</div>`;
     } else {
@@ -34205,5 +34211,6 @@ if(saved) {
     }).catch(function(){ localStorage.removeItem("bayol_session"); });
 }
 </script>
+<script src="crm-marketing-consent.js?v=20260904-2"></script>
 </body>
 </html>
