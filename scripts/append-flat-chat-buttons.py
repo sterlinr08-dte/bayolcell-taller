@@ -1,0 +1,119 @@
+from pathlib import Path
+
+p = Path('crm-glass-mobile.css')
+s = p.read_text(encoding='utf-8')
+marker = '/* CHAT BUTTONS — revert glass/pill, keep glass only on chat window */'
+if marker in s:
+    raise SystemExit(0)
+
+block = r'''
+
+/* CHAT BUTTONS — revert glass/pill, keep glass only on chat window */
+@media (max-width:1024px) {
+  /* Header icons: back/call return to compact flat controls. */
+  #v-crmLinea.chat-abierto .wa-chat-head .wa-icon-btn {
+    width:36px !important;
+    height:36px !important;
+    border-radius:50% !important;
+    background:transparent !important;
+    border:0 !important;
+    box-shadow:none !important;
+    backdrop-filter:none !important;
+    -webkit-backdrop-filter:none !important;
+    transition:background .12s ease,color .12s ease,transform .12s ease !important;
+  }
+  #v-crmLinea.chat-abierto .wa-chat-head .wa-icon-btn:active {
+    transform:scale(.94) !important;
+    background:rgba(15,23,42,.06) !important;
+  }
+  #v-crmLinea.chat-abierto .wa-chat-head .wa-call-btn {
+    color:#128C7E !important;
+    background:rgba(18,140,126,.07) !important;
+    box-shadow:none !important;
+  }
+
+  /* Vincular: vuelve al botón simple original, sin píldora ni cristal. */
+  #v-crmLinea.chat-abierto .wa-chat-head .wa-tab-btn {
+    min-height:auto !important;
+    padding:7px 12px !important;
+    border-radius:8px !important;
+    color:#075E54 !important;
+    background:#fff !important;
+    border:1px solid #d1d7db !important;
+    box-shadow:none !important;
+    backdrop-filter:none !important;
+    -webkit-backdrop-filter:none !important;
+    transition:background .12s ease,color .12s ease,transform .12s ease !important;
+  }
+  #v-crmLinea.chat-abierto .wa-chat-head .wa-tab-btn:active {
+    transform:scale(.97) !important;
+    background:#f8fafc !important;
+  }
+
+  /* Asignarme / Reasignar: controles planos y compactos. */
+  #v-crmLinea.chat-abierto .wa-chat-head + div .btn.btn-light {
+    min-height:auto !important;
+    padding:8px 12px !important;
+    border-radius:10px !important;
+    font-size:11.5px !important;
+    font-weight:700 !important;
+    color:#1e293b !important;
+    background:#fff !important;
+    border:1px solid #e2e8f0 !important;
+    box-shadow:none !important;
+    backdrop-filter:none !important;
+    -webkit-backdrop-filter:none !important;
+    transition:background .12s ease,transform .12s ease !important;
+  }
+  #v-crmLinea.chat-abierto .wa-chat-head + div .btn.btn-light:active {
+    transform:scale(.97) !important;
+    background:#f8fafc !important;
+    box-shadow:none !important;
+  }
+
+  /* Composer icons: no glass/pill; preserve the glass composer container. */
+  #v-crmLinea.chat-abierto .wa-input-bar .wa-icon-btn {
+    width:36px !important;
+    height:36px !important;
+    border-radius:50% !important;
+    background:transparent !important;
+    border:0 !important;
+    box-shadow:none !important;
+    backdrop-filter:none !important;
+    -webkit-backdrop-filter:none !important;
+  }
+  #v-crmLinea.chat-abierto .wa-input-bar .wa-icon-btn:active {
+    transform:scale(.92) !important;
+    background:rgba(15,23,42,.055) !important;
+  }
+
+  /* Send/mic button: simple solid WhatsApp control, no crystal depth. */
+  #v-crmLinea.chat-abierto .wa-send-btn {
+    width:44px !important;
+    height:44px !important;
+    border-radius:50% !important;
+    color:#fff !important;
+    background:#128C7E !important;
+    border:0 !important;
+    box-shadow:0 1px 3px rgba(7,94,84,.28) !important;
+    backdrop-filter:none !important;
+    -webkit-backdrop-filter:none !important;
+  }
+  #v-crmLinea.chat-abierto .wa-send-btn:active {
+    transform:scale(.93) !important;
+    box-shadow:0 1px 3px rgba(7,94,84,.28) !important;
+  }
+
+  /* Prevent hover glass elevation from reappearing on capable tablets. */
+  @media (hover:hover) and (pointer:fine) {
+    #v-crmLinea.chat-abierto .wa-chat-head .wa-icon-btn:hover,
+    #v-crmLinea.chat-abierto .wa-chat-head .wa-tab-btn:hover,
+    #v-crmLinea.chat-abierto .wa-chat-head + div .btn.btn-light:hover {
+      transform:none !important;
+      box-shadow:none !important;
+    }
+  }
+}
+'''
+
+p.write_text(s + block, encoding='utf-8')
