@@ -97,7 +97,13 @@ Deno.serve(async (req: Request) => {
   const ultimo = historial.length ? historial[historial.length - 1] : null;
   const textoCliente = ultimo && ultimo.direccion === "in" ? (ultimo.cuerpo || "") : "";
   const esImagenCliente = !!(ultimo && ultimo.direccion === "in" && ultimo.tipo_contenido === "imagen" && ultimo.media_path);
-  if (!textoCliente.trim() && !esImagenCliente) return json({ ok: true, omitido: "sin texto ni imagen de cliente para responder" });
+  // Nota de voz del cliente (2026-09-04): antes, si el ultimo mensaje era SOLO
+  // un audio (sin texto), la funcion no hacia nada -- ni siquiera el saludo
+  // de bienvenida si era su primer contacto. Claude todavia no soporta audio
+  // (solo vision), asi que no se transcribe, pero al menos ya no se ignora
+  // por completo: ver mas abajo como se maneja en el prompt.
+  const esAudioCliente = !!(ultimo && ultimo.direccion === "in" && ultimo.tipo_contenido === "audio");
+  if (!textoCliente.trim() && !esImagenCliente && !esAudioCliente) return json({ ok: true, omitido: "sin texto, imagen ni audio de cliente para responder" });
 
   // Alcance reducido a proposito (2026-09-04, pedido del dueño): por ahora
   // el agente SOLO saluda y pregunta de que ciudad escribe el cliente en el
@@ -177,9 +183,10 @@ Reglas estrictas:
 1. NUNCA inventes un precio ni una pieza que no este en la lista de arriba, ni un horario/direccion que no este arriba.
 2. SOLO SI "Es primer contacto" es SI: responde con categoria "auto", un saludo corto y cordial dandole la bienvenida a BAYOL CELL, y pregunta de que ciudad escribe o cual sucursal le queda mas cerca (Santiago, Moca o Navarrete). NO menciones horario, direccion, ni precios en este mensaje -- solo el saludo y la pregunta de la ciudad.
 3. Si "Es primer contacto" es NO (ya se le dio la bienvenida, esta es una respuesta de seguimiento): SIEMPRE categoria "revisar", sin importar que tan simple parezca la pregunta (aunque sea solo el horario o la direccion). Redacta la mejor respuesta posible para que un empleado la revise y decida si mandarla, pero nunca la clasifiques como "auto".
-4. Si el cliente mando una FOTO de su celular (comun -- muchos clientes no saben donde ver el modelo del equipo): identifica marca y modelo lo mejor que puedas en la respuesta redactada, pero esto SIEMPRE es categoria "revisar" tambien (no menciones precio ni pieza especifica, y no la envies sola aunque sea el primer contacto).
-5. Tono: escribe como una persona real de la sucursal texteando por WhatsApp, NO como una IA ni como un bot -- nada de sonar acartonado, corporativo ni de plantilla repetida. Dominicano, cordial, breve, natural, como lo escribiria rapido un empleado desde el celular. No uses el signo de apertura ¿ en las preguntas -- en WhatsApp real casi nadie lo usa, solo pon el signo de cierre al final (ejemplo correcto: "de que ciudad nos escribes?"; incorrecto: "¿De que ciudad nos escribes?"). Nunca prometas tiempos de entrega ni descuentos.
-6. Responde EXCLUSIVAMENTE con un JSON valido, sin texto extra antes o despues, con esta forma exacta:
+4. Si el cliente mando una NOTA DE VOZ (audio) y no escribio texto ademas: todavia no se puede transcribir ni escuchar el audio, asi que NUNCA inventes ni asumas que dijo. Si es su primer contacto, igual aplica la regla 2 normal (el saludo de bienvenida no depende del contenido del audio). Si NO es su primer contacto, redacta una respuesta breve y cordial explicando que no se pudo escuchar bien la nota de voz y pidiendole que tambien lo escriba en texto (o que ya se lo van a escuchar y le responden) -- esto siempre queda en categoria "revisar" por la regla 3, un tecnico decide si la manda.
+5. Si el cliente mando una FOTO de su celular (comun -- muchos clientes no saben donde ver el modelo del equipo): identifica marca y modelo lo mejor que puedas en la respuesta redactada, pero esto SIEMPRE es categoria "revisar" tambien (no menciones precio ni pieza especifica, y no la envies sola aunque sea el primer contacto).
+6. Tono: escribe como una persona real de la sucursal texteando por WhatsApp, NO como una IA ni como un bot -- nada de sonar acartonado, corporativo ni de plantilla repetida. Dominicano, cordial, breve, natural, como lo escribiria rapido un empleado desde el celular. No uses el signo de apertura ¿ en las preguntas -- en WhatsApp real casi nadie lo usa, solo pon el signo de cierre al final (ejemplo correcto: "de que ciudad nos escribes?"; incorrecto: "¿De que ciudad nos escribes?"). Nunca prometas tiempos de entrega ni descuentos.
+7. Responde EXCLUSIVAMENTE con un JSON valido, sin texto extra antes o despues, con esta forma exacta:
 {"categoria": "auto" o "revisar", "razon": "string breve explicando por que", "respuesta": "el texto que se mandaria o sugeriria al cliente"}`;
 
   let categoria = "revisar";
@@ -189,6 +196,8 @@ Reglas estrictas:
   try {
     const textoUsuario = esImagenCliente
       ? `Historial reciente de la conversacion:\n${historialTexto}\n\nEl cliente acaba de mandar la foto de su celular que ves arriba (en vez de escribir el modelo)${textoCliente.trim() ? ` junto con este texto: "${textoCliente}"` : ""}. Responde con el JSON pedido.`
+      : esAudioCliente
+      ? `Historial reciente de la conversacion:\n${historialTexto}\n\nEl cliente acaba de mandar una NOTA DE VOZ (audio) que el sistema no puede transcribir ni escuchar todavia${textoCliente.trim() ? `, junto con este texto: "${textoCliente}"` : ""}. Responde con el JSON pedido.`
       : `Historial reciente de la conversacion:\n${historialTexto}\n\nResponde con el JSON pedido.`;
     // deno-lint-ignore no-explicit-any
     const contenidoUsuario: any = imagenBase64
