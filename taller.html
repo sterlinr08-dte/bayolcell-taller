@@ -32132,6 +32132,7 @@ function _consultaImprimir() {
 let _waHilos = [];
 let _waHiloId = null;
 let _waMensajes = [];
+let _waSugerenciasIA = []; // sugerencias pendientes del agente de IA para el hilo abierto
 let _waEnviando = false;
 let _waMensajeAnimarId = null;
 let _waChatAmpliadoDesktop = true;
@@ -32544,6 +32545,44 @@ async function cargarMensajesHilo(hiloId) {
     }
     lista.sort((a,b) => new Date(a.creado_en) - new Date(b.creado_en));
     _waMensajes = lista;
+
+    const { data: sug } = await supabaseClient.from('whatsapp_ia_sugerencias').select('id, texto_sugerido, razon, creado_en').eq('hilo_id', hiloId).eq('estado', 'pendiente').order('creado_en', { ascending: true });
+    if(token !== _waCargaToken) return;
+    _waSugerenciasIA = sug || [];
+}
+
+// El agente de IA (whatsapp-ia-responder) redacta una sugerencia en vez de
+// mandarla directo cuando la pregunta es una cotizacion de precio o algo que
+// no tiene claro — un tecnico la revisa aca antes de que le llegue al cliente.
+async function _waEnviarSugerenciaIA(sugerenciaId) {
+    const s = _waSugerenciasIA.find(x => x.id === sugerenciaId);
+    if(!s) return;
+    const hiloDestino = _waHiloId;
+    if(!hiloDestino) return;
+    try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if(!session) { toastError('Inicia sesión de nuevo.'); return; }
+        const res = await fetch(CONFIG_URL + '/functions/v1/whatsapp-enviar', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ hilo_id: hiloDestino, mensaje: s.texto_sugerido })
+        });
+        const j = await res.json();
+        if(j && j.ok) {
+            await supabaseClient.from('whatsapp_ia_sugerencias').update({ estado: 'enviada', resuelto_en: new Date().toISOString() }).eq('id', sugerenciaId);
+            _waSugerenciasIA = _waSugerenciasIA.filter(x => x.id !== sugerenciaId);
+            if(_waHiloId === hiloDestino) await cargarMensajesHilo(hiloDestino);
+            await cargarHilosWhatsapp();
+            _pintarWhatsapp();
+        } else {
+            toastError((j && j.mensaje) || 'No se pudo enviar la sugerencia.');
+        }
+    } catch(e) { logError('_waEnviarSugerenciaIA', e); toastError('No se pudo enviar la sugerencia.'); }
+}
+async function _waDescartarSugerenciaIA(sugerenciaId) {
+    await supabaseClient.from('whatsapp_ia_sugerencias').update({ estado: 'descartada', resuelto_en: new Date().toISOString() }).eq('id', sugerenciaId);
+    _waSugerenciasIA = _waSugerenciasIA.filter(x => x.id !== sugerenciaId);
+    _pintarWhatsappDetalle();
 }
 
 function _waBurbujaMedia(m) {
@@ -32659,6 +32698,7 @@ function _pintarWhatsappDetalle() {
                     <i class="ti ti-chevron-down wa-menu-btn" onclick="_waAbrirMenuAcciones(event, '${m.id}')" title="Más opciones"></i>`}
                     <div style="font-size:10px; font-weight:700; color:${esOut ? '#166534' : '#128C7E'}; margin-bottom:2px;">${escapeHtml(etiqueta)}</div>
                     ${m.plantilla_nombre ? `<div style="font-size:10px; color:#8696a0; margin-bottom:3px;"><i class="ti ti-file-text"></i> Plantilla: ${escapeHtml(m.plantilla_nombre)}</div>` : ''}
+                    ${m.es_automatico ? `<div style="font-size:10px; color:#4338ca; margin-bottom:3px;"><i class="ti ti-robot"></i> Respondido por IA</div>` : ''}
                     ${citaHTML}
                     ${_waBurbujaMedia(m)}
                     ${m.cuerpo ? `<div style="white-space:pre-wrap; word-break:break-word;">${escapeHtml(m.cuerpo)}</div>` : ''}
@@ -32671,6 +32711,19 @@ function _pintarWhatsappDetalle() {
         }).join('');
     }
     html += `</div>`;
+
+    if(puedeResponder && _waSugerenciasIA.length) {
+        html += _waSugerenciasIA.map(s => `
+            <div style="padding:10px 14px; background:#eef2ff; border-top:1px solid #c7d2fe; display:flex; flex-direction:column; gap:6px;">
+                <div style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:700; color:#4338ca;"><i class="ti ti-robot"></i> IA sugiere${s.razon ? ' — ' + escapeHtml(s.razon) : ''}</div>
+                <div style="font-size:13px; white-space:pre-wrap; word-break:break-word; background:#fff; border-radius:8px; padding:8px 10px; border:1px solid #e0e7ff;">${escapeHtml(s.texto_sugerido)}</div>
+                <div style="display:flex; gap:8px;">
+                    <button class="wa-tab-btn" style="background:#4338ca; color:#fff; border:none; font-size:11.5px;" onclick="_waEnviarSugerenciaIA('${s.id}')"><i class="ti ti-send"></i> Enviar</button>
+                    <button class="wa-tab-btn" style="background:#fff; color:#4338ca; border:1px solid #c7d2fe; font-size:11.5px;" onclick="_waDescartarSugerenciaIA('${s.id}')">Descartar</button>
+                </div>
+            </div>
+        `).join('');
+    }
 
     if(puedeResponder) {
         if(ventanaAbierta) {
