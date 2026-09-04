@@ -1,41 +1,27 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-// whatsapp-ia-responder — agente de IA (Claude Haiku 4.5) que responde
-// automaticamente preguntas simples de clientes por WhatsApp (horario,
-// direccion, disponibilidad general) y redacta sugerencias para que un
-// tecnico revise y mande cuando la pregunta involucra un precio/cotizacion
-// o cualquier cosa que el modelo no tenga clara. NUNCA inventa un precio:
-// solo cita lo que buscar_infoplus devuelve literalmente para el mensaje
-// del cliente, y si no hay coincidencia clara, escala a un tecnico en vez
-// de adivinar.
+// whatsapp-ia-responder — agente de IA (Claude Haiku 4.5) para WhatsApp.
 //
 // Invocada por whatsapp-webhook (fire-and-forget, envuelta en try/catch
 // alla) justo despues de procesar un mensaje entrante real de un cliente —
 // nunca bloquea ni puede romper el procesamiento del webhook si falla.
 //
 // Kill switch: whatsapp_ia_config.activo por sucursal (default false — el
-// agente esta APAGADO hasta que un admin lo active desde el CRM con un
-// horario/direccion reales configurados).
+// agente esta APAGADO hasta que un admin lo active desde el CRM).
 //
-// Fix 2026-09-04 (vision): muchos clientes no saben decir el modelo de su
-// celular (no es raro en RD) y en vez de escribirlo mandan una FOTO del
-// equipo. Antes, si el ultimo mensaje entrante no tenia texto (una imagen
-// sola), la funcion no hacia nada. Ahora, si el ultimo mensaje del cliente
-// es una imagen, se descarga desde Storage y se manda a Claude como parte
-// del mensaje (Claude Haiku soporta vision) para que identifique marca/
-// modelo y pregunte que problema tiene -- nunca da precio ni pieza
-// especifica basandose solo en la foto, eso sigue exigiendo el texto del
-// cliente confirmando que necesita (la guarda de precios de mas abajo
-// aplica igual, viendo la respuesta redactada).
-//
-// Fix 2026-09-04 (ventana de 24h para el saludo): el saludo automatico ya
-// no depende de si ALGUNA VEZ se le escribio al cliente (eso lo disparaba
-// una sola vez en toda la vida del hilo). Ahora se mide el tiempo desde el
-// mensaje inmediatamente anterior (en cualquier direccion): si pasaron 24
-// horas o mas sin actividad en el chat, se considera inicio de una
-// conversacion nueva y el saludo se vuelve a auto-enviar -- igual que un
-// cliente que reabre el chat despues de varios dias.
+// Fix 2026-09-04 (se retira la funcion de sugerencias): el dueño pidio
+// eliminar por completo la redaccion de borradores para seguimientos
+// (precios, fotos, notas de voz, disponibilidad, etc) -- estaban generando
+// tarjetas "IA sugiere" duplicadas/confusas en la pantalla cuando el
+// cliente mandaba varios mensajes seguidos. Ahora esta funcion SOLO hace
+// una cosa: auto-enviar el saludo de bienvenida cuando arranca una
+// conversacion nueva (primera vez que el cliente escribe, o retoma el chat
+// despues de 24 horas o mas sin actividad, en cualquier direccion). Para
+// cualquier otro mensaje (seguimientos, fotos, notas de voz, preguntas de
+// precio) la funcion no hace nada -- no llama a Anthropic, no busca en el
+// catalogo, no guarda ninguna sugerencia. El tecnico responde directo,
+// sin ayuda de IA, para todo lo que no sea ese saludo inicial.
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -59,6 +45,12 @@ async function mandarAZernio(conversationId: string, accountId: string, mensaje:
   return { ok: resp.ok && !!data?.success, data, status: resp.status };
 }
 
+// Ventana de inactividad (en cualquier direccion) despues de la cual se
+// considera que arranca una conversacion nueva y se vuelve a auto-enviar
+// el saludo -- igual que un cliente que reabre el chat despues de varios
+// dias.
+const VENTANA_SALUDO_HORAS = 24;
+
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json({ ok: false, error: "Metodo no permitido" }, 405);
   // verify_jwt:false (funcion interna, disparada solo por whatsapp-webhook)
@@ -77,7 +69,6 @@ Deno.serve(async (req: Request) => {
     return json({ ok: false, error: "Body invalido" }, 400);
   }
   const hiloId = body.hilo_id as string;
-  const mensajeClienteId = (body.mensaje_cliente_id as string) || null;
   if (!hiloId) return json({ ok: false, error: "Falta hilo_id" }, 400);
 
   const { data: hilo } = await db
@@ -89,143 +80,45 @@ Deno.serve(async (req: Request) => {
 
   const { data: config } = await db
     .from("whatsapp_ia_config")
-    .select("horario, direccion, notas_adicionales, activo")
+    .select("activo")
     .eq("sucursal_id", hilo.sucursal_id)
     .maybeSingle();
   if (!config?.activo) return json({ ok: true, omitido: "agente inactivo para esta sucursal" });
 
-  const { data: mensajesRaw } = await db
+  // Solo hacen falta los timestamps de los dos mensajes mas recientes del
+  // hilo (el que disparo esta llamada, y el que vino justo antes) para
+  // medir el hueco de inactividad -- ya no se usa el contenido del
+  // historial para nada (no hay mas sugerencias que redactar con contexto).
+  const { data: ultimosMensajes } = await db
     .from("whatsapp_mensajes")
-    .select("direccion, cuerpo, tipo_contenido, media_path, creado_en")
+    .select("creado_en")
     .eq("hilo_id", hiloId)
     .order("creado_en", { ascending: false })
-    .limit(10);
-  const historial = (mensajesRaw || []).slice().reverse();
+    .limit(2);
+  const [mensajeActual, mensajeAnterior] = ultimosMensajes || [];
+  if (!mensajeActual) return json({ ok: true, omitido: "sin mensajes en el hilo" });
 
-  const ultimo = historial.length ? historial[historial.length - 1] : null;
-  const textoCliente = ultimo && ultimo.direccion === "in" ? (ultimo.cuerpo || "") : "";
-  const esImagenCliente = !!(ultimo && ultimo.direccion === "in" && ultimo.tipo_contenido === "imagen" && ultimo.media_path);
-  // Nota de voz del cliente (2026-09-04): antes, si el ultimo mensaje era SOLO
-  // un audio (sin texto), la funcion no hacia nada -- ni siquiera el saludo
-  // de bienvenida si era inicio de conversacion nueva. Claude todavia no
-  // soporta audio (solo vision), asi que no se transcribe, pero al menos ya
-  // no se ignora por completo: ver mas abajo como se maneja en el prompt.
-  const esAudioCliente = !!(ultimo && ultimo.direccion === "in" && ultimo.tipo_contenido === "audio");
-  if (!textoCliente.trim() && !esImagenCliente && !esAudioCliente) return json({ ok: true, omitido: "sin texto, imagen ni audio de cliente para responder" });
-
-  // Alcance reducido a proposito (2026-09-04, pedido del dueño): por ahora
-  // el agente SOLO saluda y pregunta de que ciudad escribe el cliente --
-  // nada mas se auto-envia todavia (ni horario, ni direccion, ni
-  // disponibilidad general).
-  //
-  // Fix 2026-09-04 (ventana de 24h): el saludo automatico ya no depende de
-  // si ALGUNA VEZ se le escribio al cliente (eso lo disparaba una sola vez
-  // en toda la vida del hilo). Ahora se mide el tiempo desde el mensaje
-  // inmediatamente anterior (en cualquier direccion): si pasaron 24 horas o
-  // mas sin actividad en el chat, se considera inicio de una conversacion
-  // nueva y el saludo se vuelve a auto-enviar -- igual que un cliente que
-  // reabre el chat despues de varios dias.
-  const VENTANA_SALUDO_HORAS = 24;
-  const mensajeAnterior = historial.length >= 2 ? historial[historial.length - 2] : null;
   const horasDesdeUltimoMensaje = mensajeAnterior
-    ? (new Date(ultimo!.creado_en as string).getTime() - new Date(mensajeAnterior.creado_en as string).getTime()) / (60 * 60 * 1000)
+    ? (new Date(mensajeActual.creado_en).getTime() - new Date(mensajeAnterior.creado_en).getTime()) / (60 * 60 * 1000)
     : Infinity;
-  const esInicioDeConversacion = !mensajeAnterior || horasDesdeUltimoMensaje >= VENTANA_SALUDO_HORAS;
+  const esInicioDeConversacion = horasDesdeUltimoMensaje >= VENTANA_SALUDO_HORAS;
 
-  // Si el cliente mando una foto del celular en vez de escribir el modelo,
-  // se descarga y se manda a Claude como imagen (limite de seguridad: si
-  // falla la descarga o pesa demasiado, se sigue solo con texto en vez de
-  // romper la respuesta completa). Anthropic exige que la imagen en base64
-  // pese <=10MB -- base64 infla el tamano original ~33%, asi que el limite
-  // sobre el archivo CRUDO (antes de codificar) tiene que ser mas chico,
-  // no los mismos 10MB (un archivo de 15MB crudo generaria ~20MB en base64
-  // y la API lo rechazaria).
-  const LIMITE_IMAGEN_CRUDA = 7 * 1024 * 1024; // ~9.3MB en base64, con margen bajo el limite de 10MB de Anthropic
-  let imagenBase64: string | null = null;
-  let imagenMediaType = "image/jpeg";
-  if (esImagenCliente) {
-    try {
-      const { data: archivo, error: errArchivo } = await db.storage.from("whatsapp-media").download(ultimo!.media_path as string);
-      if (errArchivo || !archivo) {
-        console.error("whatsapp-ia-responder: no se pudo descargar la imagen del cliente:", errArchivo?.message);
-      } else if (archivo.size > LIMITE_IMAGEN_CRUDA) {
-        console.error("whatsapp-ia-responder: imagen del cliente demasiado grande, se omite vision:", archivo.size);
-      } else {
-        const buf = await archivo.arrayBuffer();
-        let binario = "";
-        const bytes = new Uint8Array(buf);
-        const CHUNK = 8192;
-        for (let i = 0; i < bytes.length; i += CHUNK) {
-          binario += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
-        }
-        imagenBase64 = btoa(binario);
-        if (archivo.type) imagenMediaType = archivo.type;
-      }
-    } catch (e) {
-      console.error("whatsapp-ia-responder: error procesando imagen del cliente:", e instanceof Error ? e.message : String(e));
-    }
+  if (!esInicioDeConversacion) {
+    return json({ ok: true, omitido: "fuera de alcance: solo se auto-envia el saludo de inicio de conversacion" });
   }
-
-  // Busqueda de precios siempre se intenta con el texto crudo del cliente
-  // (si mando solo una foto, no hay texto que buscar, y el catalogo queda
-  // vacio -- correcto, no se puede cotizar solo con una imagen); el modelo
-  // decide si los resultados son relevantes, nunca los inventa.
-  const { data: precios } = textoCliente.trim()
-    ? await db.rpc("buscar_infoplus", { p_query: textoCliente, p_limite: 5 })
-    : { data: null };
-  const contextoPrecios =
-    Array.isArray(precios) && precios.length
-      ? precios
-          .map((p: any) => `${p.codigo} | ${p.descripcion} | ${p.marca || ""} | precio: RD$${p.precio} | existencia taller: ${p.existencia}`)
-          .join("\n")
-      : "(sin coincidencias en el catalogo para este mensaje)";
-
-  const historialTexto = historial
-    .map((m: any) => `${m.direccion === "in" ? "Cliente" : "Negocio"}: ${m.cuerpo || `[${m.tipo_contenido}]`}`)
-    .join("\n");
 
   const systemPrompt = `Eres el asistente de WhatsApp de BAYOL CELL (taller de reparacion de celulares y venta), para la sucursal de este chat.
 
-Datos reales de esta sucursal (referencia interna tuya -- NO los repitas todavia, ver regla 2):
-- Horario: ${config.horario || "no especificado"}
-- Direccion: ${config.direccion || "no especificada"}
-- Notas adicionales: ${config.notas_adicionales || "(ninguna)"}
+Tu UNICA tarea es redactar el saludo de bienvenida para un cliente que arranca una conversacion nueva con esta sucursal (primera vez que escribe, o retoma el chat despues de 24 horas o mas sin actividad). No se te pide nada mas.
 
-Precios encontrados en el catalogo para el mensaje mas reciente del cliente (el catalogo puede tener precios desactualizados -- nunca los mandes tu mismo, solo redactalos como sugerencia):
-${contextoPrecios}
+Reglas:
+1. Saludo corto y cordial dandole la bienvenida a BAYOL CELL, y pregunta de que ciudad escribe o cual sucursal le queda mas cerca (Santiago, Moca o Navarrete). NO menciones horario, direccion, precios, ni nada que no sea el saludo y la pregunta de la ciudad.
+2. Tono: escribe como una persona real de la sucursal texteando por WhatsApp, NO como una IA ni como un bot -- nada de sonar acartonado, corporativo ni de plantilla repetida. Dominicano, cordial, breve, natural, como lo escribiria rapido un empleado desde el celular. No uses el signo de apertura ¿ en las preguntas -- en WhatsApp real casi nadie lo usa, solo pon el signo de cierre al final (ejemplo correcto: "de que ciudad nos escribes?"; incorrecto: "¿De que ciudad nos escribes?").
+3. Responde EXCLUSIVAMENTE con un JSON valido, sin texto extra antes o despues, con esta forma exacta:
+{"respuesta": "el texto del saludo"}`;
 
-ALCANCE ACTUAL (reducido a proposito, temporal): por ahora el UNICO caso que se auto-envia (categoria "auto") es el saludo inicial. TODO lo demas es categoria "revisar", sin excepcion -- horario, direccion, disponibilidad, precios, identificacion de modelo por foto, cualquier cosa. Esto va a cambiar mas adelante, pero por ahora la unica accion automatica permitida es la de la regla 2.
-
-Es inicio de una conversacion nueva (primera vez que este cliente escribe, o han pasado 24 horas o mas desde el ultimo mensaje en este chat, sea del cliente o del negocio): ${esInicioDeConversacion ? "SI" : "NO"}
-
-Reglas estrictas:
-1. NUNCA inventes un precio ni una pieza que no este en la lista de arriba, ni un horario/direccion que no este arriba.
-2. SOLO SI "Es inicio de una conversacion nueva" es SI: responde con categoria "auto", un saludo corto y cordial dandole la bienvenida a BAYOL CELL, y pregunta de que ciudad escribe o cual sucursal le queda mas cerca (Santiago, Moca o Navarrete). NO menciones horario, direccion, ni precios en este mensaje -- solo el saludo y la pregunta de la ciudad.
-3. Si "Es inicio de una conversacion nueva" es NO (la conversacion sigue activa, hubo actividad hace menos de 24 horas): SIEMPRE categoria "revisar", sin importar que tan simple parezca la pregunta (aunque sea solo el horario o la direccion). Redacta la mejor respuesta posible para que un empleado la revise y decida si mandarla, pero nunca la clasifiques como "auto".
-4. Si el cliente mando una NOTA DE VOZ (audio) y no escribio texto ademas: todavia no se puede transcribir ni escuchar el audio, asi que NUNCA inventes ni asumas que dijo. Si es inicio de conversacion nueva, igual aplica la regla 2 normal (el saludo de bienvenida no depende del contenido del audio). Si NO, redacta una respuesta breve y cordial explicando que no se pudo escuchar bien la nota de voz y pidiendole que tambien lo escriba en texto (o que ya se lo van a escuchar y le responden) -- esto siempre queda en categoria "revisar" por la regla 3, un tecnico decide si la manda.
-5. Si el cliente mando una FOTO de su celular (comun -- muchos clientes no saben donde ver el modelo del equipo): identifica marca y modelo lo mejor que puedas en la respuesta redactada, pero esto SIEMPRE es categoria "revisar" tambien (no menciones precio ni pieza especifica, y no la envies sola aunque sea inicio de conversacion nueva).
-6. Tono: escribe como una persona real de la sucursal texteando por WhatsApp, NO como una IA ni como un bot -- nada de sonar acartonado, corporativo ni de plantilla repetida. Dominicano, cordial, breve, natural, como lo escribiria rapido un empleado desde el celular. No uses el signo de apertura ¿ en las preguntas -- en WhatsApp real casi nadie lo usa, solo pon el signo de cierre al final (ejemplo correcto: "de que ciudad nos escribes?"; incorrecto: "¿De que ciudad nos escribes?"). Nunca prometas tiempos de entrega ni descuentos.
-7. Responde EXCLUSIVAMENTE con un JSON valido, sin texto extra antes o despues, con esta forma exacta:
-{"categoria": "auto" o "revisar", "razon": "string breve explicando por que", "respuesta": "el texto que se mandaria o sugeriria al cliente"}`;
-
-  let categoria = "revisar";
-  let razon = "no se pudo interpretar la respuesta del modelo";
   let respuesta = "";
-
   try {
-    const textoUsuario = esImagenCliente
-      ? `Historial reciente de la conversacion:\n${historialTexto}\n\nEl cliente acaba de mandar la foto de su celular que ves arriba (en vez de escribir el modelo)${textoCliente.trim() ? ` junto con este texto: "${textoCliente}"` : ""}. Responde con el JSON pedido.`
-      : esAudioCliente
-      ? `Historial reciente de la conversacion:\n${historialTexto}\n\nEl cliente acaba de mandar una NOTA DE VOZ (audio) que el sistema no puede transcribir ni escuchar todavia${textoCliente.trim() ? `, junto con este texto: "${textoCliente}"` : ""}. Responde con el JSON pedido.`
-      : `Historial reciente de la conversacion:\n${historialTexto}\n\nResponde con el JSON pedido.`;
-    // deno-lint-ignore no-explicit-any
-    const contenidoUsuario: any = imagenBase64
-      ? [
-          { type: "image", source: { type: "base64", media_type: imagenMediaType, data: imagenBase64 } },
-          { type: "text", text: textoUsuario },
-        ]
-      : textoUsuario;
-
     const resp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -235,9 +128,9 @@ Reglas estrictas:
       },
       body: JSON.stringify({
         model: "claude-haiku-4-5",
-        max_tokens: 500,
+        max_tokens: 200,
         system: systemPrompt,
-        messages: [{ role: "user", content: contenidoUsuario }],
+        messages: [{ role: "user", content: "Redacta el saludo de bienvenida para este cliente que recien empieza (o retoma) la conversacion. Responde con el JSON pedido." }],
       }),
       signal: AbortSignal.timeout(25000),
     });
@@ -246,11 +139,7 @@ Reglas estrictas:
     const match = textoRespuesta.match(/\{[\s\S]*\}/);
     if (match) {
       const parsed = JSON.parse(match[0]);
-      if (parsed.respuesta) {
-        categoria = parsed.categoria === "auto" ? "auto" : "revisar";
-        razon = String(parsed.razon || "").slice(0, 300);
-        respuesta = String(parsed.respuesta).slice(0, 1500);
-      }
+      if (parsed.respuesta) respuesta = String(parsed.respuesta).slice(0, 500);
     } else {
       console.error("whatsapp-ia-responder: respuesta de Anthropic sin JSON reconocible:", JSON.stringify(data).slice(0, 500));
     }
@@ -258,76 +147,49 @@ Reglas estrictas:
     console.error("whatsapp-ia-responder: fallo llamando a Anthropic:", e instanceof Error ? e.message : String(e));
     return json({ ok: false, error: "fallo_ia" }, 502);
   }
+  if (!respuesta.trim()) return json({ ok: true, omitido: "el modelo no genero un saludo util" });
 
-  if (!respuesta.trim()) return json({ ok: true, omitido: "el modelo no genero respuesta util" });
-
-  // Normalizacion de tono (2026-09-04, pedido del dueno): que no se sienta
-  // que escribe una IA -- en el texteo real de WhatsApp en RD casi nadie usa
-  // el signo de apertura ¿, solo el de cierre. Se fuerza por codigo (no solo
-  // en el prompt) para que nunca se cuele aunque el modelo lo use de todos
-  // modos.
+  // Normalizacion de tono: que no se sienta que escribe una IA -- en el
+  // texteo real de WhatsApp en RD casi nadie usa el signo de apertura ¿,
+  // solo el de cierre. Se fuerza por codigo (no solo en el prompt) para
+  // que nunca se cuele aunque el modelo lo use de todos modos.
   respuesta = respuesta.replace(/¿/g, "");
 
-  // Guarda de codigo para el alcance reducido (2026-09-04): por ahora SOLO
-  // el saludo de inicio de conversacion se auto-envia (primera vez que
-  // escribe, o reabre el chat despues de 24h+ sin actividad) -- cualquier
-  // otra cosa, aunque el modelo la marque "auto", se fuerza a "revisar".
-  if (categoria === "auto" && !esInicioDeConversacion) {
-    categoria = "revisar";
-    razon = "alcance reducido: solo el saludo de inicio de conversacion se auto-envia por ahora";
+  // Guarda de codigo: el saludo nunca deberia mencionar un precio, pero si
+  // por alguna razon el modelo se desvia, nunca se auto-envia -- se omite
+  // sin mas (ya no hay bandeja de sugerencias donde caer).
+  if (/RD\$|US\$|\$\s?\d|\bprecio\b|\bcuesta\b|\bvale\b/i.test(respuesta)) {
+    console.error("whatsapp-ia-responder: saludo generado mencionaba un precio, se omite:", respuesta);
+    return json({ ok: true, omitido: "el saludo generado mencionaba un precio, se descarta por seguridad" });
   }
 
-  // Guarda de codigo, no solo de instrucciones al modelo: el catalogo de
-  // Infoplus puede tener precios desactualizados, y el modelo puede
-  // clasificar mal. Si el catalogo devolvio alguna coincidencia para el
-  // mensaje del cliente, o la respuesta redactada menciona un precio, NUNCA
-  // se auto-envia -- siempre pasa por un tecnico, sin excepcion.
-  const tieneCoincidenciasDePrecio = Array.isArray(precios) && precios.length > 0;
-  const pareceMencionarPrecio = /RD\$|US\$|\$\s?\d|\bprecio\b|\bcuesta\b|\bvale\b/i.test(respuesta);
-  if (categoria === "auto" && (tieneCoincidenciasDePrecio || pareceMencionarPrecio)) {
-    categoria = "revisar";
-    razon = "el mensaje o la respuesta involucra precios -- siempre requiere revision humana";
+  const { data: linea } = await db.from("whatsapp_lineas").select("zernio_account_id").eq("id", hilo.linea_id).maybeSingle();
+  if (!linea?.zernio_account_id) {
+    return json({ ok: true, omitido: "sin cuenta de Zernio configurada para enviar automaticamente" });
   }
 
-  if (categoria === "auto") {
-    const { data: linea } = await db.from("whatsapp_lineas").select("zernio_account_id").eq("id", hilo.linea_id).maybeSingle();
-    if (!linea?.zernio_account_id) {
-      categoria = "revisar";
-      razon = "sin cuenta de Zernio configurada para enviar automaticamente";
-    } else {
-      const conversationId = hilo.telefono_e164.startsWith("bsid:") ? hilo.telefono_e164.slice(5) : hilo.telefono_e164;
-      const resultado = await mandarAZernio(conversationId, linea.zernio_account_id, respuesta);
-      if (resultado.ok) {
-        const ahora = new Date().toISOString();
-        await db.from("whatsapp_mensajes").insert({
-          hilo_id: hiloId,
-          direccion: "out",
-          tipo_contenido: "text",
-          cuerpo: respuesta,
-          wa_message_id: resultado.data?.data?.messageId ?? null,
-          estado: "enviado",
-          es_automatico: true,
-          enviado_por_tipo: "sistema",
-        });
-        await db
-          .from("whatsapp_hilos")
-          .update({ ultimo_mensaje_at: ahora, ultimo_mensaje_preview: respuesta.slice(0, 200), actualizado_en: ahora })
-          .eq("id", hiloId);
-        return json({ ok: true, categoria: "auto", enviado: true });
-      }
-      console.error("whatsapp-ia-responder: Zernio rechazo el envio automatico, se degrada a sugerencia:", resultado.status);
-      categoria = "revisar";
-      razon = "Zernio rechazo el envio automatico -- revisar manualmente";
-    }
+  const conversationId = hilo.telefono_e164.startsWith("bsid:") ? hilo.telefono_e164.slice(5) : hilo.telefono_e164;
+  const resultado = await mandarAZernio(conversationId, linea.zernio_account_id, respuesta);
+  if (!resultado.ok) {
+    console.error("whatsapp-ia-responder: Zernio rechazo el envio del saludo:", resultado.status);
+    return json({ ok: true, enviado: false, omitido: "Zernio rechazo el envio" });
   }
 
-  const { error: sugError } = await db.from("whatsapp_ia_sugerencias").insert({
+  const ahora = new Date().toISOString();
+  await db.from("whatsapp_mensajes").insert({
     hilo_id: hiloId,
-    mensaje_cliente_id: mensajeClienteId,
-    texto_sugerido: respuesta,
-    razon,
+    direccion: "out",
+    tipo_contenido: "text",
+    cuerpo: respuesta,
+    wa_message_id: resultado.data?.data?.messageId ?? null,
+    estado: "enviado",
+    es_automatico: true,
+    enviado_por_tipo: "sistema",
   });
-  if (sugError) console.error("whatsapp-ia-responder: error guardando sugerencia:", sugError.message);
+  await db
+    .from("whatsapp_hilos")
+    .update({ ultimo_mensaje_at: ahora, ultimo_mensaje_preview: respuesta.slice(0, 200), actualizado_en: ahora })
+    .eq("id", hiloId);
 
-  return json({ ok: true, categoria: "revisar", enviado: false });
+  return json({ ok: true, enviado: true });
 });
