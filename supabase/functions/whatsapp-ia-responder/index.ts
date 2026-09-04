@@ -178,7 +178,7 @@ Reglas estrictas:
 2. SOLO SI "Es primer contacto" es SI: responde con categoria "auto", un saludo corto y cordial dandole la bienvenida a BAYOL CELL, y pregunta de que ciudad escribe o cual sucursal le queda mas cerca (Santiago, Moca o Navarrete). NO menciones horario, direccion, ni precios en este mensaje -- solo el saludo y la pregunta de la ciudad.
 3. Si "Es primer contacto" es NO (ya se le dio la bienvenida, esta es una respuesta de seguimiento): SIEMPRE categoria "revisar", sin importar que tan simple parezca la pregunta (aunque sea solo el horario o la direccion). Redacta la mejor respuesta posible para que un empleado la revise y decida si mandarla, pero nunca la clasifiques como "auto".
 4. Si el cliente mando una FOTO de su celular (comun -- muchos clientes no saben donde ver el modelo del equipo): identifica marca y modelo lo mejor que puedas en la respuesta redactada, pero esto SIEMPRE es categoria "revisar" tambien (no menciones precio ni pieza especifica, y no la envies sola aunque sea el primer contacto).
-5. Tono: dominicano, cordial, breve (whatsapp, no correos largos). Nunca prometas tiempos de entrega ni descuentos.
+5. Tono: escribe como una persona real de la sucursal texteando por WhatsApp, NO como una IA ni como un bot -- nada de sonar acartonado, corporativo ni de plantilla repetida. Dominicano, cordial, breve, natural, como lo escribiria rapido un empleado desde el celular. No uses el signo de apertura ¿ en las preguntas -- en WhatsApp real casi nadie lo usa, solo pon el signo de cierre al final (ejemplo correcto: "de que ciudad nos escribes?"; incorrecto: "¿De que ciudad nos escribes?"). Nunca prometas tiempos de entrega ni descuentos.
 6. Responde EXCLUSIVAMENTE con un JSON valido, sin texto extra antes o despues, con esta forma exacta:
 {"categoria": "auto" o "revisar", "razon": "string breve explicando por que", "respuesta": "el texto que se mandaria o sugeriria al cliente"}`;
 
@@ -232,6 +232,13 @@ Reglas estrictas:
   }
 
   if (!respuesta.trim()) return json({ ok: true, omitido: "el modelo no genero respuesta util" });
+
+  // Normalizacion de tono (2026-09-04, pedido del dueno): que no se sienta
+  // que escribe una IA -- en el texteo real de WhatsApp en RD casi nadie usa
+  // el signo de apertura ¿, solo el de cierre. Se fuerza por codigo (no solo
+  // en el prompt) para que nunca se cuele aunque el modelo lo use de todos
+  // modos.
+  respuesta = respuesta.replace(/¿/g, "");
 
   // Guarda de codigo para el alcance reducido (2026-09-04): por ahora SOLO
   // el saludo de primer contacto se auto-envia -- cualquier otra cosa,
