@@ -1332,7 +1332,7 @@ body{
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <link rel="stylesheet" href="crm-glass-mobile.css?v=20260904a">
+    <link rel="stylesheet" href="crm-glass-mobile.css?v=20260904b">
 </head>
 <body>
 
@@ -32134,6 +32134,7 @@ let _waHiloId = null;
 let _waMensajes = [];
 let _waEnviando = false;
 let _waMensajeAnimarId = null;
+let _waChatAmpliadoDesktop = true;
 // Mensajes dibujados antes de que termine la llamada a Zernio. Se mantienen
 // aparte para que una actualización de Realtime no haga desaparecer la
 // burbuja mientras el servidor todavía está confirmando el envío.
@@ -32277,7 +32278,10 @@ function _pintarWhatsapp() {
     // En movil, con el chat abierto la cabecera de la bandeja sobra (solo roba
     // altura) — el CSS la esconde con esta clase.
     const vista = document.getElementById('v-crmLinea');
-    if(vista) vista.classList.toggle('chat-abierto', !!_waHiloId);
+    if(vista) {
+        vista.classList.toggle('chat-abierto', !!_waHiloId);
+        vista.classList.toggle('chat-ampliado', !!_waHiloId && !movil && _waChatAmpliadoDesktop);
+    }
     wrap.innerHTML = `<div class="wa-shell">
         ${mostrarLista ? `<div class="wa-list-col" id="waListaCol"><div class="wa-list-scroll" id="waLista"></div></div>` : ''}
         ${mostrarDetalle ? `<div class="wa-chat-col" id="waDetalleCol"><div id="waDetalle" style="display:flex; flex-direction:column; height:100%;"></div></div>` : ''}
@@ -32490,6 +32494,11 @@ async function abrirHiloWhatsapp(id) {
     _pintarWhatsapp();
 }
 function volverListaWhatsapp() { _waCancelarGrabacionSiActiva(); _waHiloId = null; _pintarWhatsapp(); }
+function _waToggleChatAmpliado() {
+    if(_waEsMovil()) return;
+    _waChatAmpliadoDesktop = !_waChatAmpliadoDesktop;
+    _pintarWhatsapp();
+}
 
 // Cachea las URLs firmadas por ruta de archivo — antes se pedia una NUEVA en
 // cada carga (cada refresco de tiempo real incluido), asi que el <img>/<video>
@@ -32620,6 +32629,7 @@ function _pintarWhatsappDetalle() {
             <div style="font-weight:700; font-size:14.5px;">${escapeHtml(nombre)}</div>
             <div style="font-size:11.5px; color:var(--text-muted);">${(h.telefono_e164 || '').startsWith('bsid:') ? '<i class="ti ti-ad-2"></i> Contacto desde anuncio — Meta no revela el número' : `<i class="ti ti-phone"></i> ${escapeHtml(h.telefono_e164 || '')}`}</div>
         </div>
+        ${!_waEsMovil() ? `<button class="wa-focus-btn" onclick="_waToggleChatAmpliado()" title="${_waChatAmpliadoDesktop ? 'Mostrar controles superiores' : 'Ampliar ventana del chat'}" aria-label="${_waChatAmpliadoDesktop ? 'Mostrar controles superiores' : 'Ampliar ventana del chat'}"><i class="ti ti-arrows-${_waChatAmpliadoDesktop ? 'minimize' : 'maximize'}"></i></button>` : ''}
         ${(h.telefono_e164 && !h.telefono_e164.startsWith('bsid:')) ? `<a href="tel:${escapeHtml(h.telefono_e164)}" class="wa-icon-btn wa-call-btn" title="Llamar a ${escapeHtml(nombre)}"><i class="ti ti-phone-call"></i></a>` : ''}
         ${h.cliente_id
             ? `<span style="background:#dcfce7; color:#15803d; font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; white-space:nowrap;"><i class="ti ti-user-check"></i> Cliente vinculado</span>`
