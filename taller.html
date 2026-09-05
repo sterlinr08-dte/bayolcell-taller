@@ -198,16 +198,24 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
 .crm-chip:focus, .crm-chip:focus-visible { outline:none; }
 
 .crm-selectores { display:flex; gap:10px; margin-bottom:12px; }
-.crm-pill-select { flex:1; position:relative; display:flex; align-items:center; gap:8px; padding:10px 14px; font-size:12.5px; font-weight:700; color:#1e293b; min-width:0; }
+.crm-selector { flex:1; position:relative; min-width:0; }
+.crm-pill-select { width:100%; position:relative; display:flex; align-items:center; gap:8px; padding:10px 14px; font:inherit; font-size:12.5px; font-weight:700; color:#1e293b; min-width:0; border:0; text-align:left; cursor:pointer; }
 .crm-pill-select > i { color:#dc2626; font-size:17px; flex-shrink:0; }
 .crm-pill-select .txt { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:1.25; }
 /* #94a3b8 no alcanzaba para leerse; el tamaño se queda en 9.5px a propósito
    (subirlo haría que la etiqueta compita con el valor que está debajo). */
 .crm-pill-select .txt b { display:block; font-size:9.5px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:.4px; }
-.crm-pill-select .chev { color:#94a3b8; font-size:14px; flex-shrink:0; }
-/* <select> nativo transparente encima: conserva el selector nativo del celular
-   (mucho mejor en móvil) pero con el aspecto de la píldora. */
-.crm-pill-select select { position:absolute; inset:0; width:100%; height:100%; opacity:0; border:none; cursor:pointer; font-size:16px; }
+.crm-pill-select .chev { color:#94a3b8; font-size:14px; flex-shrink:0; transition:transform .18s ease, color .18s ease; }
+.crm-pill-select.abierto .chev { transform:rotate(180deg); color:#dc2626; }
+.crm-selector-menu { display:none; position:absolute; z-index:60; top:calc(100% + 7px); left:0; width:100%; min-width:180px; overflow:hidden; padding:5px; border:1px solid #dce6f4; border-radius:14px; background:rgba(255,255,255,.98); box-shadow:0 16px 30px -16px rgba(15,23,42,.38), 0 5px 12px -8px rgba(37,99,235,.22); backdrop-filter:blur(12px); }
+.crm-selector-menu.abierto { display:block; animation:crmMenuSelector .16s ease-out both; }
+.crm-selector-option { width:100%; display:flex; align-items:center; gap:8px; border:0; border-radius:9px; padding:9px 10px; background:transparent; color:#334155; font:600 12.5px inherit; text-align:left; cursor:pointer; }
+.crm-selector-option:hover, .crm-selector-option:focus-visible { background:#eef5ff; color:#1d4ed8; outline:none; }
+.crm-selector-option.activa { background:linear-gradient(135deg,#2563eb,#3b82f6); color:#fff; box-shadow:0 4px 10px -6px rgba(37,99,235,.8); }
+.crm-selector-option i { margin-left:auto; opacity:0; font-size:14px; }
+.crm-selector-option.activa i { opacity:1; }
+@keyframes crmMenuSelector { from { opacity:0; transform:translateY(-5px) scale(.985); } to { opacity:1; transform:translateY(0) scale(1); } }
+.crm-selector select { display:none; }
 
 .crm-tabs-row { display:flex; gap:10px; margin-bottom:12px; }
 .crm-tabs-track { flex:1; display:flex; overflow:hidden; }
@@ -1462,12 +1470,13 @@ body{
 @media (min-width:1025px){
   #v-crmLinea .crm-cabecera-resumen{display:flex;align-items:center;gap:8px;margin-bottom:5px}
   #v-crmLinea .crm-cabecera-resumen .crm-selectores{margin:0;flex:0 1 520px}
-  #v-crmLinea .crm-cabecera-resumen .crm-stats{margin:0 0 0 auto;align-self:center}
-  #v-crmLinea .crm-bandeja-controles{display:flex;align-items:center;gap:7px;margin-bottom:6px;min-width:0}
+  #v-crmLinea .crm-bandeja-controles{display:flex;align-items:center;gap:7px;margin-bottom:6px;min-width:0;white-space:nowrap}
   #v-crmLinea .crm-bandeja-controles .crm-tabs-row,
   #v-crmLinea .crm-bandeja-controles .crm-busq-row,
-  #v-crmLinea .crm-bandeja-controles .crm-chips-row{margin:0;flex:none;min-width:0}
+  #v-crmLinea .crm-bandeja-controles .crm-chips-row,
+  #v-crmLinea .crm-bandeja-controles .crm-stats{margin:0;flex:none;min-width:0}
   #v-crmLinea .crm-bandeja-controles .crm-chips-row{flex:1;justify-content:flex-start;overflow:hidden;white-space:nowrap}
+  #v-crmLinea .crm-bandeja-controles .crm-stats{align-self:center}
 }
 @media (max-width:1024px){
   #v-crmLinea .crm-cabecera-resumen{display:flex;flex-wrap:wrap;gap:0}
@@ -1478,7 +1487,7 @@ body{
   #v-crmLinea .crm-bandeja-controles .crm-chips-row{margin:0;flex:1 0 100%}
   #v-crmLinea .crm-acciones-rapidas{padding:2px;border-radius:10px}
   #v-crmLinea .crm-acciones-rapidas .crm-icon-btn{width:32px!important;height:32px!important;font-size:14px!important}
-  #v-crmLinea .crm-cabecera-resumen .crm-stats{flex:1 0 100%;align-self:stretch;width:auto;height:38px!important;min-height:38px!important;margin:0 0 7px!important;padding:3px 5px!important}
+  #v-crmLinea .crm-bandeja-controles .crm-stats{flex:1 0 100%;align-self:stretch;width:auto;height:38px!important;min-height:38px!important;margin:0!important;padding:3px 5px!important}
   #v-crmLinea .crm-stat{flex:1 1 0!important;padding:0 3px!important}
   #v-crmLinea .crm-stat .bola{width:20px!important;height:20px!important;flex-basis:20px!important;font-size:10px!important}
   #v-crmLinea .crm-stat .num{font-size:14px!important}
@@ -1957,7 +1966,6 @@ body{
                 <span id="crmLineaTituloTxt" style="display:none;">CRM</span>
                 <div class="crm-cabecera-resumen crm-ocultar-en-chat">
                     <div id="crmSelectorWrap" class="crm-selectores"></div>
-                    <div class="crm-stats" id="crmStats"></div>
                 </div>
                 <div class="crm-bandeja-controles crm-ocultar-en-chat">
                     <div class="crm-tabs-row">
@@ -1976,6 +1984,7 @@ body{
                         <button class="crm-filtros-btn pill-elevado" id="crmFiltrosBtn" onclick="_crmToggleFiltros(event)"><i class="ti ti-adjustments-horizontal"></i> <span>Filtros</span></button>
                     </div>
                     <div class="crm-chips-row" id="crmChipsRow"></div>
+                    <div class="crm-stats" id="crmStats"></div>
                 </div>
                 <div id="crmLinea-mensajes">
                     <div id="waWrap"></div>
@@ -34133,21 +34142,27 @@ async function construirSelectorCRM() {
 
         // Se muestran siempre los dos selectores (aunque solo haya una linea):
         // saber en que sucursal/area estas parado es informacion util, no ruido.
-        // El <select> nativo va transparente ENCIMA de la pildora, asi el celular
-        // sigue abriendo su selector nativo de siempre.
+        // El select oculto conserva el valor real; el menú visible evita el cuadro
+        // nativo del navegador, que se veía ajeno al diseño del CRM.
         cont.innerHTML = `
-            <label class="crm-pill-select pill-elevado">
-                <i class="ti ti-building-store"></i>
-                <span class="txt"><b>Sucursal</b><span id="crmSucTxt"></span></span>
-                <i class="ti ti-chevron-down chev"></i>
-                <select id="crmSelSucursal" onchange="_crmCambioSucursal()"></select>
-            </label>
-            <label class="crm-pill-select pill-elevado">
-                <i class="ti ti-user-plus"></i>
-                <span class="txt"><b>Área</b><span id="crmLineaTxt"></span></span>
-                <i class="ti ti-chevron-down chev"></i>
-                <select id="crmSelLinea" onchange="_crmCambioLinea()"></select>
-            </label>
+            <div class="crm-selector">
+                <button type="button" class="crm-pill-select pill-elevado" id="crmSucPicker" onclick="_crmToggleSelector('sucursal', event)" aria-haspopup="listbox" aria-expanded="false">
+                    <i class="ti ti-building-store"></i>
+                    <span class="txt"><b>Sucursal</b><span id="crmSucTxt"></span></span>
+                    <i class="ti ti-chevron-down chev"></i>
+                </button>
+                <div class="crm-selector-menu" id="crmSucMenu" role="listbox" aria-label="Seleccionar sucursal"></div>
+                <select id="crmSelSucursal" onchange="_crmCambioSucursal()" tabindex="-1"></select>
+            </div>
+            <div class="crm-selector">
+                <button type="button" class="crm-pill-select pill-elevado" id="crmLineaPicker" onclick="_crmToggleSelector('linea', event)" aria-haspopup="listbox" aria-expanded="false">
+                    <i class="ti ti-user-plus"></i>
+                    <span class="txt"><b>Área</b><span id="crmLineaTxt"></span></span>
+                    <i class="ti ti-chevron-down chev"></i>
+                </button>
+                <div class="crm-selector-menu" id="crmLineaMenu" role="listbox" aria-label="Seleccionar área"></div>
+                <select id="crmSelLinea" onchange="_crmCambioLinea()" tabindex="-1"></select>
+            </div>
         `;
         document.getElementById('crmSelSucursal').innerHTML = _crmEstructura.map(s => `<option value="${s.id}">${escapeHtml(s.nombre)}</option>`).join('');
         const sucActual = _crmEstructura.find(s => s.lineas.some(l => l.id === _crmLineaActualId)) || _crmEstructura[0];
@@ -34164,7 +34179,47 @@ function _crmPoblarLineas(sucursalId, mantenerLineaActual) {
     const lineaId = (mantenerLineaActual && s.lineas.some(l => l.id === _crmLineaActualId)) ? _crmLineaActualId : s.lineas[0].id;
     sel.value = lineaId;
     const l = s.lineas.find(x => x.id === lineaId);
+    _crmPintarMenusSelectores();
     seleccionarLineaCRM(l.id, s.nombre, l.nombre);
+}
+
+function _crmPintarMenusSelectores() {
+    const sucSel = document.getElementById('crmSelSucursal');
+    const lineaSel = document.getElementById('crmSelLinea');
+    const sucMenu = document.getElementById('crmSucMenu');
+    const lineaMenu = document.getElementById('crmLineaMenu');
+    if(sucSel && sucMenu) sucMenu.innerHTML = [...sucSel.options].map(o => `<button type="button" class="crm-selector-option${o.value === sucSel.value ? ' activa' : ''}" role="option" aria-selected="${o.value === sucSel.value}" onclick="_crmElegirSucursal('${o.value}')">${escapeHtml(o.text)}<i class="ti ti-check"></i></button>`).join('');
+    if(lineaSel && lineaMenu) lineaMenu.innerHTML = [...lineaSel.options].map(o => `<button type="button" class="crm-selector-option${o.value === lineaSel.value ? ' activa' : ''}" role="option" aria-selected="${o.value === lineaSel.value}" onclick="_crmElegirLinea('${o.value}')">${escapeHtml(o.text)}<i class="ti ti-check"></i></button>`).join('');
+}
+
+function _crmCerrarSelectores() {
+    document.querySelectorAll('#v-crmLinea .crm-selector-menu.abierto').forEach(x => x.classList.remove('abierto'));
+    document.querySelectorAll('#v-crmLinea .crm-pill-select.abierto').forEach(x => { x.classList.remove('abierto'); x.setAttribute('aria-expanded', 'false'); });
+}
+
+function _crmToggleSelector(tipo, event) {
+    event?.stopPropagation();
+    const menu = document.getElementById(tipo === 'sucursal' ? 'crmSucMenu' : 'crmLineaMenu');
+    const picker = document.getElementById(tipo === 'sucursal' ? 'crmSucPicker' : 'crmLineaPicker');
+    const abrir = !menu?.classList.contains('abierto');
+    _crmCerrarSelectores();
+    if(abrir && menu && picker) { menu.classList.add('abierto'); picker.classList.add('abierto'); picker.setAttribute('aria-expanded', 'true'); }
+}
+
+function _crmElegirSucursal(id) {
+    const sel = document.getElementById('crmSelSucursal');
+    if(!sel) return;
+    sel.value = id;
+    _crmCerrarSelectores();
+    _crmCambioSucursal();
+}
+
+function _crmElegirLinea(id) {
+    const sel = document.getElementById('crmSelLinea');
+    if(!sel) return;
+    sel.value = id;
+    _crmCerrarSelectores();
+    _crmCambioLinea();
 }
 
 // El <select> real esta invisible encima de la pildora — hay que reflejar su
@@ -34183,8 +34238,11 @@ function _crmCambioLinea() {
     const sucId = document.getElementById('crmSelSucursal').value;
     const s = _crmEstructura.find(x => x.id === sucId);
     const l = s && s.lineas.find(x => x.id === document.getElementById('crmSelLinea').value);
-    if(l) seleccionarLineaCRM(l.id, s.nombre, l.nombre);
+    if(l) { _crmPintarMenusSelectores(); seleccionarLineaCRM(l.id, s.nombre, l.nombre); }
 }
+
+document.addEventListener('click', _crmCerrarSelectores);
+document.addEventListener('keydown', e => { if(e.key === 'Escape') _crmCerrarSelectores(); });
 
 function seleccionarLineaCRM(lineaId, nombreSucursal, nombreLinea) {
     _waCancelarGrabacionSiActiva();
