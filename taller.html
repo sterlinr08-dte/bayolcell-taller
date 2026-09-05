@@ -493,6 +493,77 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
 .wa-send-btn.wa-enviando { opacity:.82; animation:waBotonDespachando .72s ease-in-out infinite; }
 .wa-icon-btn { background:none; border:none; color:#54656f; font-size:21px; cursor:pointer; flex-shrink:0; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; line-height:1; transition:background .12s, color .12s; }
 .wa-icon-btn:hover { color:#128C7E; background:rgba(11,20,26,.06); }
+
+/* Resumen CRM compacto en móvil/tablet: los tres indicadores siguen visibles,
+   pero dejan de comportarse como tarjetas altas para reservar la pantalla al
+   listado y a la conversación. */
+@media (max-width:1024px) {
+    #v-crmLinea .crm-stats { margin-bottom:7px; padding:7px 6px; min-height:44px; border-radius:12px; }
+    #v-crmLinea .crm-stat { flex-direction:row; justify-content:center; gap:5px; min-width:0; padding:0 5px; }
+    #v-crmLinea .crm-stat + .crm-stat::before { top:3px; bottom:3px; }
+    #v-crmLinea .crm-stat .bola { width:25px; height:25px; margin:0; font-size:12px; flex-shrink:0; }
+    #v-crmLinea .crm-stat .num { font-size:16px; letter-spacing:-.2px; }
+    #v-crmLinea .crm-stat .lbl { max-width:64px; font-size:8.5px; line-height:1.1; text-align:left; }
+}
+@media (max-width:420px) {
+    #v-crmLinea .crm-stats { padding:6px 3px; }
+    #v-crmLinea .crm-stat { gap:4px; padding:0 3px; }
+    #v-crmLinea .crm-stat .bola { width:22px; height:22px; font-size:11px; }
+    #v-crmLinea .crm-stat .num { font-size:15px; }
+    #v-crmLinea .crm-stat .lbl { max-width:56px; font-size:8px; }
+}
+
+/* ============================================================
+   CRM WHATSAPP — rediseño de bandeja (2026-09-05)
+   Jerarquía: controles ligeros arriba, lista densa a la izquierda y la
+   conversación como foco principal. Solo CSS: no cambia IDs, permisos ni
+   handlers existentes.
+   ============================================================ */
+#v-crmLinea {
+    --crm-azul:#2563eb;
+    --crm-fondo:#f4f7fc;
+    --crm-linea:#e5ebf5;
+    --crm-texto:#172554;
+    background:linear-gradient(180deg,#f9fbff 0%,var(--crm-fondo) 100%);
+    border:1px solid #eaf0f8;
+    border-radius:18px;
+    padding:12px;
+}
+#v-crmLinea .crm-selectores { align-items:center; margin-bottom:8px; }
+#v-crmLinea .crm-pill-select { border-color:#e1e9f6; background:#fff; box-shadow:0 2px 7px rgba(37,99,235,.06); }
+#v-crmLinea .crm-tabs-row { align-items:center; margin-bottom:8px; }
+#v-crmLinea .crm-tabs-track { background:#eef3fb; box-shadow:none; border:1px solid #e2eaf6; }
+#v-crmLinea .crm-tab-seg { color:#64748b; }
+#v-crmLinea .crm-tab-seg.on { color:#fff; background:linear-gradient(135deg,#2563eb,#3b82f6); filter:none; box-shadow:0 5px 12px -7px rgba(37,99,235,.7); }
+#v-crmLinea .crm-tab-seg.on i { color:#fff; }
+#v-crmLinea .crm-icon-btn { color:#476486; background:#fff; border:1px solid #e0e8f4; box-shadow:0 2px 6px rgba(15,23,42,.04); }
+#v-crmLinea .crm-icon-btn:hover { color:var(--crm-azul); border-color:#bfdbfe; background:#f8fbff; }
+#v-crmLinea .crm-stats { background:rgba(255,255,255,.88); border-color:#e6edf7; box-shadow:0 5px 16px -14px rgba(30,64,175,.34), inset 0 1px 0 #fff; }
+#v-crmLinea .crm-busq-row { align-items:center; }
+#v-crmLinea .crm-buscar, #v-crmLinea .crm-filtros-btn { background:#fff; border:1px solid #e0e8f4; color:#526783; box-shadow:0 2px 7px rgba(15,23,42,.04); }
+#v-crmLinea .crm-buscar-input { border-color:#dce6f4; background:#fff; }
+#v-crmLinea .crm-chip { background:#fff; border:1px solid #e0e8f4; color:#526783; box-shadow:0 1px 4px rgba(15,23,42,.03); }
+#v-crmLinea .crm-chip.on { color:var(--crm-azul); border-color:#bfdbfe; background:#eff6ff; filter:none; }
+#v-crmLinea .wa-shell { border:1px solid #e0e8f4; border-radius:16px; box-shadow:0 10px 30px -20px rgba(30,64,175,.30); background:#fff; }
+#v-crmLinea .wa-list-col { background:#fff; border-right-color:#e6edf6; }
+#v-crmLinea .wa-list-scroll { background:#f8faff; }
+#v-crmLinea .wa-row { border:1px solid transparent; box-shadow:none; background:transparent; }
+#v-crmLinea .wa-row:hover { border-color:#e0eaf7; background:#fff; box-shadow:0 4px 12px -10px rgba(30,64,175,.38); }
+#v-crmLinea .wa-row.active { border-color:#bfdbfe; background:#eff6ff; box-shadow:inset 3px 0 0 var(--crm-azul); }
+#v-crmLinea .wa-avatar { background:linear-gradient(135deg,#2563eb,#60a5fa); box-shadow:0 3px 8px -5px rgba(37,99,235,.55); }
+#v-crmLinea .wa-chat-col { background-color:#f7f9fd; background-image:radial-gradient(rgba(37,99,235,.055) 1px,transparent 1px); }
+#v-crmLinea .wa-chat-head, #v-crmLinea .wa-input-bar { background:rgba(255,255,255,.94); border-color:#e6edf6; }
+#v-crmLinea .wa-input-bar input { border-color:#e0e8f4; box-shadow:none; }
+#v-crmLinea .wa-input-bar input:focus { border-color:#93c5fd; box-shadow:0 0 0 3px rgba(37,99,235,.10); }
+#v-crmLinea .wa-send-btn { background:linear-gradient(135deg,#2563eb,#3b82f6); box-shadow:0 5px 13px -6px rgba(37,99,235,.58); }
+@media (max-width:1024px) {
+    #v-crmLinea { border-radius:14px; padding:9px; }
+    #v-crmLinea .crm-selectores { gap:6px; margin-bottom:7px; }
+    #v-crmLinea .crm-tabs-row { gap:6px; margin-bottom:7px; }
+    #v-crmLinea .crm-busq-row { gap:6px; margin-bottom:7px; }
+    #v-crmLinea .crm-chips-row { gap:5px; margin-bottom:7px; }
+    #v-crmLinea .wa-shell { border-radius:13px; }
+}
 .wa-icon-btn:active { background:rgba(11,20,26,.1); }
 .wa-call-btn { color:#128C7E; background:rgba(18,140,126,.1); text-decoration:none; font-size:19px; }
 .wa-call-btn:hover { color:#0e7c6f; background:rgba(18,140,126,.18); }
