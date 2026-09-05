@@ -323,8 +323,21 @@ async function procesarMensaje(payload: any) {
     if (primero.url) mediaPath = await guardarAdjunto(primero.url, tipoContenido);
   }
   const textoCrudo = typeof msg.text === "string" ? msg.text.trim() : "";
-  // Zernio no entrega el contenido de ciertos mensajes históricos/especiales.
-  // Guardamos una etiqueta clara en vez de mostrar su marcador técnico.
+  // Zernio no entrega el contenido de ciertos mensajes historicos/especiales.
+  // Guardamos una etiqueta clara en vez de mostrar su marcador tecnico.
+  //
+  // Diagnostico 2026-09-05 (dueño reporto que un CONTACTO compartido no se
+  // ve): "[Unsupported message]" esta apareciendo mucho (20+ casos en un
+  // solo dia, de hilos distintos) y no sabemos si son todos contactos u
+  // otra cosa (stickers, encuestas, etc) -- los docs de Zernio no
+  // documentan que trae el payload en estos casos. Se loguea el payload
+  // COMPLETO la primera vez que pase, para poder ver un caso real (por
+  // ejemplo, alguien compartiendo un contacto de nuevo) y recien ahi
+  // construir el parser correcto en vez de adivinar el formato. Quitar
+  // este log una vez capturado un caso real.
+  if (textoCrudo === "[Unsupported message]") {
+    console.error("DIAGNOSTICO mensaje sin soporte -- payload completo:", JSON.stringify(payload));
+  }
   const cuerpo = textoCrudo === "[Unsupported message]"
     ? "[Contenido de WhatsApp no visible]"
     : (textoCrudo || (tipoContenido !== "text" ? `[${tipoContenido}]` : ""));
