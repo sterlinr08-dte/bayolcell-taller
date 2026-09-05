@@ -1446,6 +1446,28 @@ body{
   #v-crmLinea .fila-nombre{font-size:13px!important}
   #v-crmLinea .fila-preview{font-size:11.5px!important}
 }
+
+/* Cabecera CRM: controles agrupados y métricas densas. Historial/actualizar
+   son acciones relacionadas; se presentan como un único grupo para no gastar
+   dos píldoras grandes. Las métricas siguen visibles, pero ya no parecen tres
+   tarjetas que compiten con las conversaciones. */
+#v-crmLinea .crm-acciones-rapidas{display:flex;align-items:center;gap:1px;padding:2px;background:#fff;border:1px solid #e0e8f4;border-radius:10px;box-shadow:0 2px 6px rgba(15,23,42,.04)}
+#v-crmLinea .crm-acciones-rapidas .crm-icon-btn{width:29px;height:29px;background:transparent;border:0;box-shadow:none;border-radius:8px;font-size:14px}
+#v-crmLinea .crm-acciones-rapidas .crm-icon-btn:hover{background:#eff6ff;color:var(--crm-azul)}
+#v-crmLinea .crm-stats{align-self:flex-start;width:auto;display:inline-flex;margin-bottom:6px;padding:4px 7px;border-radius:10px;min-height:34px}
+#v-crmLinea .crm-stat{flex:none;gap:4px;padding:0 7px;cursor:default}
+#v-crmLinea .crm-stat .bola{width:21px;height:21px;font-size:11px}
+#v-crmLinea .crm-stat .num{font-size:15px}
+#v-crmLinea .crm-stat .lbl{font-size:8.5px;white-space:nowrap}
+@media (max-width:1024px){
+  #v-crmLinea .crm-acciones-rapidas{padding:2px;border-radius:10px}
+  #v-crmLinea .crm-acciones-rapidas .crm-icon-btn{width:32px!important;height:32px!important;font-size:14px!important}
+  #v-crmLinea .crm-stats{align-self:stretch;width:auto;height:38px!important;min-height:38px!important;padding:3px 5px!important}
+  #v-crmLinea .crm-stat{flex:1 1 0!important;padding:0 3px!important}
+  #v-crmLinea .crm-stat .bola{width:20px!important;height:20px!important;flex-basis:20px!important;font-size:10px!important}
+  #v-crmLinea .crm-stat .num{font-size:14px!important}
+  #v-crmLinea .crm-stat .lbl{font-size:7.5px!important;max-width:48px!important}
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.js"></script>
@@ -1923,8 +1945,10 @@ body{
                         <button class="crm-tab-seg on pill-hundido" id="crmLineaTabWa" onclick="crmLineaTab('mensajes')"><i class="ti ti-brand-whatsapp"></i> Mensajes</button>
                         <button class="crm-tab-seg" id="crmLineaTabLeads" onclick="crmLineaTab('leads')"><i class="ti ti-user-plus"></i> Leads</button>
                     </div>
-                    <button class="crm-icon-btn pill-elevado" id="crmHistorialBtn" onclick="_crmImportarHistorial()" title="Traer conversaciones anteriores"><i class="ti ti-history"></i></button>
-                    <button class="crm-icon-btn pill-elevado" onclick="renderCrmLinea(this)" title="Actualizar"><i class="ti ti-refresh"></i></button>
+                    <div class="crm-acciones-rapidas" aria-label="Acciones de conversaciones">
+                        <button class="crm-icon-btn" id="crmHistorialBtn" onclick="_crmImportarHistorial()" title="Traer conversaciones anteriores" aria-label="Traer conversaciones anteriores"><i class="ti ti-history"></i></button>
+                        <button class="crm-icon-btn" onclick="renderCrmLinea(this)" title="Actualizar" aria-label="Actualizar"><i class="ti ti-refresh"></i></button>
+                    </div>
                 </div>
                 <div class="crm-stats crm-ocultar-en-chat" id="crmStats"></div>
                 <div id="crmLinea-mensajes">
@@ -32522,15 +32546,15 @@ function _crmPintarCabecera() {
         const pendientes = (_waHilos || []).filter(_crmEsPendiente).length;
         const leads = _crmLeadsAbiertos;
         stats.innerHTML = `
-            <div class="crm-stat rojo">
+            <div class="crm-stat rojo" title="${noLeidos} mensajes sin leer">
                 <div class="bola"><i class="ti ti-message-circle"></i></div>
                 <div class="num">${noLeidos}</div><div class="lbl">No leídos</div>
             </div>
-            <div class="crm-stat azul">
+            <div class="crm-stat azul" title="${pendientes} conversaciones requieren atención humana">
                 <div class="bola"><i class="ti ti-clock-exclamation"></i></div>
                 <div class="num">${pendientes}</div><div class="lbl">Por responder</div>
             </div>
-            <div class="crm-stat morado">
+            <div class="crm-stat morado" title="${leads} leads abiertos">
                 <div class="bola"><i class="ti ti-users"></i></div>
                 <div class="num">${leads}</div><div class="lbl">Leads abiertos</div>
             </div>`;
