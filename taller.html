@@ -1459,10 +1459,14 @@ body{
 #v-crmLinea .crm-stat .bola{width:21px;height:21px;font-size:11px}
 #v-crmLinea .crm-stat .num{font-size:15px}
 #v-crmLinea .crm-stat .lbl{font-size:8.5px;white-space:nowrap}
+@media (min-width:1025px){
+  #v-crmLinea .crm-tabs-row .crm-stats{margin:0 0 0 auto;align-self:center}
+}
 @media (max-width:1024px){
+  #v-crmLinea .crm-tabs-row{flex-wrap:wrap!important}
   #v-crmLinea .crm-acciones-rapidas{padding:2px;border-radius:10px}
   #v-crmLinea .crm-acciones-rapidas .crm-icon-btn{width:32px!important;height:32px!important;font-size:14px!important}
-  #v-crmLinea .crm-stats{align-self:stretch;width:auto;height:38px!important;min-height:38px!important;padding:3px 5px!important}
+  #v-crmLinea .crm-tabs-row .crm-stats{flex:1 0 100%;align-self:stretch;width:auto;height:38px!important;min-height:38px!important;margin:0!important;padding:3px 5px!important}
   #v-crmLinea .crm-stat{flex:1 1 0!important;padding:0 3px!important}
   #v-crmLinea .crm-stat .bola{width:20px!important;height:20px!important;flex-basis:20px!important;font-size:10px!important}
   #v-crmLinea .crm-stat .num{font-size:14px!important}
@@ -1949,8 +1953,8 @@ body{
                         <button class="crm-icon-btn" id="crmHistorialBtn" onclick="_crmImportarHistorial()" title="Traer conversaciones anteriores" aria-label="Traer conversaciones anteriores"><i class="ti ti-history"></i></button>
                         <button class="crm-icon-btn" onclick="renderCrmLinea(this)" title="Actualizar" aria-label="Actualizar"><i class="ti ti-refresh"></i></button>
                     </div>
+                    <div class="crm-stats crm-ocultar-en-chat" id="crmStats"></div>
                 </div>
-                <div class="crm-stats crm-ocultar-en-chat" id="crmStats"></div>
                 <div id="crmLinea-mensajes">
                     <div class="crm-busq-row crm-ocultar-en-chat">
                         <button class="crm-buscar pill-elevado" id="crmBuscarBtn" onclick="_crmAbrirBusqueda()" title="Buscar conversaciones" aria-label="Buscar conversaciones"><i class="ti ti-search"></i> <span>Buscar</span></button>
