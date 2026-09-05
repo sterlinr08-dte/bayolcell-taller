@@ -62,7 +62,14 @@ function tipoYTexto(mensaje: any) {
     share: "text",
   };
   const tipo = tipos[tipoZernio] ?? "text";
-  if (texto) return { tipo, cuerpo: texto };
+  // Zernio usa este marcador cuando el contenido original no se expone.
+  // Nunca presentamos ese detalle técnico como si fuese un mensaje del cliente.
+  if (texto) {
+    return {
+      tipo,
+      cuerpo: texto === "[Unsupported message]" ? "[Contenido de WhatsApp no visible]" : texto,
+    };
+  }
   const nombres: Record<string, string> = {
     imagen: "[Foto del historial]",
     video: "[Video del historial]",
