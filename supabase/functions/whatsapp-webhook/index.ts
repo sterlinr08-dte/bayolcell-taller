@@ -171,7 +171,7 @@ async function buscarClientePorTelefono(telefonoE164: string) {
 
 function tipoDeAdjunto(tipo: string | undefined): string {
   const t = (tipo || "").toLowerCase();
-  if (t.includes("image")) return "imagen";
+  if (t.includes("image") || t.includes("sticker")) return "imagen";
   if (t.includes("audio") || t.includes("voice")) return "audio";
   if (t.includes("video")) return "video";
   return "documento";
@@ -309,7 +309,12 @@ async function procesarMensaje(payload: any) {
     tipoContenido = tipoDeAdjunto(primero.type || primero.originalType || primero.mimeType);
     if (primero.url) mediaPath = await guardarAdjunto(primero.url, tipoContenido);
   }
-  const cuerpo = msg.text || (tipoContenido !== "text" ? `[${tipoContenido}]` : "");
+  const textoCrudo = typeof msg.text === "string" ? msg.text.trim() : "";
+  // Zernio no entrega el contenido de ciertos mensajes históricos/especiales.
+  // Guardamos una etiqueta clara en vez de mostrar su marcador técnico.
+  const cuerpo = textoCrudo === "[Unsupported message]"
+    ? "[Contenido de WhatsApp no visible]"
+    : (textoCrudo || (tipoContenido !== "text" ? `[${tipoContenido}]` : ""));
 
   const quotedWaId: string | null = payload.metadata?.quotedMessageId || null;
   const respondeAId = quotedWaId ? await buscarMensajeLocalPorWaId(quotedWaId) : null;
