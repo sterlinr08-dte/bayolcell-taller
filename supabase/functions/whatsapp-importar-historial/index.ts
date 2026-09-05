@@ -177,9 +177,10 @@ async function importarMensajes(linea: any, conversacion: any, hiloId: string, s
   } while (cursor && paginas < 20);
 
   if (!soloContar) {
-    const [{ data: ultimo }, { data: ultimoEntrante }] = await Promise.all([
+    const [{ data: ultimo }, { data: ultimoEntrante }, { data: ultimoHumano }] = await Promise.all([
       db.from("whatsapp_mensajes").select("creado_en,cuerpo,tipo_contenido").eq("hilo_id", hiloId).order("creado_en", { ascending: false }).limit(1).maybeSingle(),
       db.from("whatsapp_mensajes").select("creado_en").eq("hilo_id", hiloId).eq("direccion", "in").order("creado_en", { ascending: false }).limit(1).maybeSingle(),
+      db.from("whatsapp_mensajes").select("creado_en").eq("hilo_id", hiloId).eq("direccion", "out").eq("es_automatico", false).order("creado_en", { ascending: false }).limit(1).maybeSingle(),
     ]);
     if (ultimo) {
       const cambiosHilo: Record<string, unknown> = {
@@ -188,6 +189,7 @@ async function importarMensajes(linea: any, conversacion: any, hiloId: string, s
         ultimo_mensaje_preview: ultimo.cuerpo || `[${ultimo.tipo_contenido}]`,
         actualizado_en: new Date().toISOString(),
       };
+      if (ultimoHumano?.creado_en) cambiosHilo.ultima_respuesta_humana_at = ultimoHumano.creado_en;
       if (conversacion?.participantName) cambiosHilo.nombre_perfil = conversacion.participantName;
       await db.from("whatsapp_hilos").update(cambiosHilo).eq("id", hiloId);
     }
