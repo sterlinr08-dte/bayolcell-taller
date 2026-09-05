@@ -34224,6 +34224,11 @@ function _waDejarDeEscucharViewport() {
 // que hace falta un canal propio que refresque especificamente esta vista.
 let _crmRealtimeChannel = null;
 let _crmRtDebounce = null; // fuera de _crmSuscribirRealtime: hay que poder cancelarlo desde _crmDetenerRealtime tambien
+// Un mensaje entrante actualiza DOS tablas casi al mismo tiempo: primero
+// whatsapp_mensajes y luego whatsapp_hilos. No se puede conservar solo el
+// ultimo evento del debounce, porque el update del hilo ocultaria el aviso
+// que sí exigía recargar el chat abierto.
+let _crmRtRecargarHiloAbierto = false;
 function _crmSuscribirRealtime(lineaId) {
     if(_crmRealtimeChannel) { try { supabaseClient.removeChannel(_crmRealtimeChannel); } catch(e) {} _crmRealtimeChannel = null; }
     if(_crmRtDebounce) { clearTimeout(_crmRtDebounce); _crmRtDebounce = null; }
@@ -34244,17 +34249,20 @@ function _crmSuscribirRealtime(lineaId) {
     // el alto ya encogido para un teclado que ya no estaba, o sea el hueco
     // en blanco.
     const refrescarCRM = (payload, tabla) => {
+        const esMensajeDelHiloAbierto = tabla === 'whatsapp_mensajes' && _waHiloId &&
+            (payload?.new?.hilo_id === _waHiloId || payload?.old?.hilo_id === _waHiloId);
+        if(esMensajeDelHiloAbierto) _crmRtRecargarHiloAbierto = true;
         if(_crmRtDebounce) clearTimeout(_crmRtDebounce);
         _crmRtDebounce = setTimeout(async () => {
+            const recargarHiloAbierto = _crmRtRecargarHiloAbierto;
+            _crmRtRecargarHiloAbierto = false;
             if(_crmLineaActualId !== lineaId) return; // ya se cambio de linea, no pisar la vista actual
             if(!document.getElementById('v-crmLinea')?.classList.contains('active')) return; // vista ya no visible
             const tabActiva = localStorage.getItem('bayol_subtab_crmlinea') || 'mensajes';
             if(tabActiva === 'mensajes') {
                 await cargarHilosWhatsapp();
                 await _crmContarLeadsAbiertos();
-                const esMensajeDelHiloAbierto = tabla === 'whatsapp_mensajes' && _waHiloId &&
-                    (payload?.new?.hilo_id === _waHiloId || payload?.old?.hilo_id === _waHiloId);
-                if(esMensajeDelHiloAbierto) {
+                if(recargarHiloAbierto && _waHiloId) {
                     await cargarMensajesHilo(_waHiloId);
                     _pintarWhatsapp();
                 } else {
@@ -34276,6 +34284,7 @@ function _crmSuscribirRealtime(lineaId) {
 function _crmDetenerRealtime() {
     if(_crmRealtimeChannel) { try { supabaseClient.removeChannel(_crmRealtimeChannel); } catch(e) {} _crmRealtimeChannel = null; }
     if(_crmRtDebounce) { clearTimeout(_crmRtDebounce); _crmRtDebounce = null; }
+    _crmRtRecargarHiloAbierto = false;
     _waDejarDeEscucharViewport();
 }
 
