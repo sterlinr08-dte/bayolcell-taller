@@ -5236,10 +5236,6 @@ function activarAudioNotif() {
     try {
         _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         _audioHabilitado = true;
-        // Pedir permiso de notificaciones del sistema
-        if('Notification' in window && Notification.permission === 'default') {
-            Notification.requestPermission();
-        }
     } catch(e) { /* silencioso */ }
 }
 
@@ -5271,18 +5267,14 @@ function reproducirSonido(tipo) {
     } catch(e) { /* silencioso */ }
 }
 
-// Notificación completa: sonido + toast + notificación del sistema
+// Notificación completa: sonido + toast (sin notificación del sistema — el
+// aviso emergente hacía "parpadear" la pestaña/taskbar cuando llegaba algo
+// nuevo con el CRM en segundo plano; el dueño pidió quitarlo y dejar solo
+// sonido+toast, que no interrumpen igual).
 function notificar(tipo, titulo, mensaje) {
     if(!_notifConfig.activadas) return;
     reproducirSonido(tipo);
     toast(mensaje || titulo);
-    // Notificación del sistema (si la pestaña no está visible y hay permiso)
-    try {
-        if('Notification' in window && Notification.permission === 'granted' && document.hidden) {
-            const iconos = { orden: '🔔', pieza: '📦', finalizado: '✅', nota: '💬' };
-            new Notification(`${iconos[tipo] || '🔔'} ${titulo}`, { body: mensaje || '', tag: 'bayol-' + tipo });
-        }
-    } catch(e) { /* silencioso */ }
 }
 
 // Activar/desactivar notificaciones
