@@ -1460,13 +1460,25 @@ body{
 #v-crmLinea .crm-stat .num{font-size:15px}
 #v-crmLinea .crm-stat .lbl{font-size:8.5px;white-space:nowrap}
 @media (min-width:1025px){
-  #v-crmLinea .crm-tabs-row .crm-stats{margin:0 0 0 auto;align-self:center}
+  #v-crmLinea .crm-cabecera-resumen{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+  #v-crmLinea .crm-cabecera-resumen .crm-selectores{margin:0;flex:0 1 520px}
+  #v-crmLinea .crm-cabecera-resumen .crm-stats{margin:0 0 0 auto;align-self:center}
+  #v-crmLinea .crm-bandeja-controles{display:flex;align-items:center;gap:7px;margin-bottom:6px;min-width:0}
+  #v-crmLinea .crm-bandeja-controles .crm-tabs-row,
+  #v-crmLinea .crm-bandeja-controles .crm-busq-row,
+  #v-crmLinea .crm-bandeja-controles .crm-chips-row{margin:0;flex:none;min-width:0}
+  #v-crmLinea .crm-bandeja-controles .crm-chips-row{flex:1;justify-content:flex-start;overflow:hidden;white-space:nowrap}
 }
 @media (max-width:1024px){
-  #v-crmLinea .crm-tabs-row{flex-wrap:wrap!important}
+  #v-crmLinea .crm-cabecera-resumen{display:flex;flex-wrap:wrap;gap:0}
+  #v-crmLinea .crm-cabecera-resumen .crm-selectores{flex:1 0 100%}
+  #v-crmLinea .crm-bandeja-controles{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:7px}
+  #v-crmLinea .crm-bandeja-controles .crm-tabs-row{margin:0;flex:1 1 auto;min-width:0}
+  #v-crmLinea .crm-bandeja-controles .crm-busq-row{margin:0;flex:1 0 100%}
+  #v-crmLinea .crm-bandeja-controles .crm-chips-row{margin:0;flex:1 0 100%}
   #v-crmLinea .crm-acciones-rapidas{padding:2px;border-radius:10px}
   #v-crmLinea .crm-acciones-rapidas .crm-icon-btn{width:32px!important;height:32px!important;font-size:14px!important}
-  #v-crmLinea .crm-tabs-row .crm-stats{flex:1 0 100%;align-self:stretch;width:auto;height:38px!important;min-height:38px!important;margin:0!important;padding:3px 5px!important}
+  #v-crmLinea .crm-cabecera-resumen .crm-stats{flex:1 0 100%;align-self:stretch;width:auto;height:38px!important;min-height:38px!important;margin:0 0 7px!important;padding:3px 5px!important}
   #v-crmLinea .crm-stat{flex:1 1 0!important;padding:0 3px!important}
   #v-crmLinea .crm-stat .bola{width:20px!important;height:20px!important;flex-basis:20px!important;font-size:10px!important}
   #v-crmLinea .crm-stat .num{font-size:14px!important}
@@ -1943,25 +1955,29 @@ body{
             <!-- WHATSAPP CRM — BANDEJA (look de WhatsApp real) -->
             <div id="v-crmLinea" class="view">
                 <span id="crmLineaTituloTxt" style="display:none;">CRM</span>
-                <div id="crmSelectorWrap" class="crm-selectores crm-ocultar-en-chat"></div>
-                <div class="crm-tabs-row crm-ocultar-en-chat">
-                    <div class="crm-tabs-track pill-elevado">
-                        <button class="crm-tab-seg on pill-hundido" id="crmLineaTabWa" onclick="crmLineaTab('mensajes')"><i class="ti ti-brand-whatsapp"></i> Mensajes</button>
-                        <button class="crm-tab-seg" id="crmLineaTabLeads" onclick="crmLineaTab('leads')"><i class="ti ti-user-plus"></i> Leads</button>
-                    </div>
-                    <div class="crm-acciones-rapidas" aria-label="Acciones de conversaciones">
-                        <button class="crm-icon-btn" id="crmHistorialBtn" onclick="_crmImportarHistorial()" title="Traer conversaciones anteriores" aria-label="Traer conversaciones anteriores"><i class="ti ti-history"></i></button>
-                        <button class="crm-icon-btn" onclick="renderCrmLinea(this)" title="Actualizar" aria-label="Actualizar"><i class="ti ti-refresh"></i></button>
-                    </div>
-                    <div class="crm-stats crm-ocultar-en-chat" id="crmStats"></div>
+                <div class="crm-cabecera-resumen crm-ocultar-en-chat">
+                    <div id="crmSelectorWrap" class="crm-selectores"></div>
+                    <div class="crm-stats" id="crmStats"></div>
                 </div>
-                <div id="crmLinea-mensajes">
-                    <div class="crm-busq-row crm-ocultar-en-chat">
+                <div class="crm-bandeja-controles crm-ocultar-en-chat">
+                    <div class="crm-tabs-row">
+                        <div class="crm-tabs-track pill-elevado">
+                            <button class="crm-tab-seg on pill-hundido" id="crmLineaTabWa" onclick="crmLineaTab('mensajes')"><i class="ti ti-brand-whatsapp"></i> Mensajes</button>
+                            <button class="crm-tab-seg" id="crmLineaTabLeads" onclick="crmLineaTab('leads')"><i class="ti ti-user-plus"></i> Leads</button>
+                        </div>
+                        <div class="crm-acciones-rapidas" aria-label="Acciones de conversaciones">
+                            <button class="crm-icon-btn" id="crmHistorialBtn" onclick="_crmImportarHistorial()" title="Traer conversaciones anteriores" aria-label="Traer conversaciones anteriores"><i class="ti ti-history"></i></button>
+                            <button class="crm-icon-btn" onclick="renderCrmLinea(this)" title="Actualizar" aria-label="Actualizar"><i class="ti ti-refresh"></i></button>
+                        </div>
+                    </div>
+                    <div class="crm-busq-row">
                         <button class="crm-buscar pill-elevado" id="crmBuscarBtn" onclick="_crmAbrirBusqueda()" title="Buscar conversaciones" aria-label="Buscar conversaciones"><i class="ti ti-search"></i> <span>Buscar</span></button>
                         <input type="text" id="crmBuscarInput" class="crm-buscar-input" placeholder="Buscar nombre o número..." style="display:none;" oninput="_crmBuscarCambio(this.value)" onblur="_crmBusquedaBlur()">
                         <button class="crm-filtros-btn pill-elevado" id="crmFiltrosBtn" onclick="_crmToggleFiltros(event)"><i class="ti ti-adjustments-horizontal"></i> <span>Filtros</span></button>
                     </div>
-                    <div class="crm-chips-row crm-ocultar-en-chat" id="crmChipsRow"></div>
+                    <div class="crm-chips-row" id="crmChipsRow"></div>
+                </div>
+                <div id="crmLinea-mensajes">
                     <div id="waWrap"></div>
                 </div>
                 <div id="crmLinea-leads" style="display:none;">
