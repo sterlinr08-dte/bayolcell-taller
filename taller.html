@@ -207,7 +207,7 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
 .crm-pill-select .txt b { display:block; font-size:9.5px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:.4px; }
 .crm-pill-select .chev { color:#94a3b8; font-size:14px; flex-shrink:0; transition:transform .18s ease, color .18s ease; }
 .crm-pill-select.abierto .chev { transform:rotate(180deg); color:#dc2626; }
-.crm-selector-menu { display:none; position:absolute; z-index:60; top:calc(100% + 7px); left:0; width:100%; min-width:180px; overflow:hidden; padding:5px; border:1px solid #dce6f4; border-radius:14px; background:rgba(255,255,255,.98); box-shadow:0 16px 30px -16px rgba(15,23,42,.38), 0 5px 12px -8px rgba(37,99,235,.22); backdrop-filter:blur(12px); }
+.crm-selector-menu { display:none; position:absolute; z-index:1000; top:calc(100% + 7px); left:0; width:100%; min-width:180px; overflow:hidden; padding:5px; border:1px solid #dce6f4; border-radius:14px; background:rgba(255,255,255,.98); box-shadow:0 16px 30px -16px rgba(15,23,42,.38), 0 5px 12px -8px rgba(37,99,235,.22); backdrop-filter:blur(12px); }
 .crm-selector-menu.abierto { display:block; animation:crmMenuSelector .16s ease-out both; }
 .crm-selector-option { width:100%; display:flex; align-items:center; gap:8px; border:0; border-radius:9px; padding:9px 10px; background:transparent; color:#334155; font:600 12.5px inherit; text-align:left; cursor:pointer; }
 .crm-selector-option:hover, .crm-selector-option:focus-visible { background:#eef5ff; color:#1d4ed8; outline:none; }
@@ -539,6 +539,11 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
     padding:12px;
 }
 #v-crmLinea .crm-selectores { align-items:center; margin-bottom:8px; }
+#v-crmLinea .crm-cabecera-resumen { position:relative; z-index:80; }
+#v-crmLinea .crm-selectores { position:relative; z-index:81; }
+/* El CRM normalmente recorta su contenido para que el chat haga scroll interno.
+   Mientras un selector está abierto se permite que su menú flote sobre la lista. */
+#v-crmLinea.active.crm-selector-abierto { overflow:visible; }
 #v-crmLinea .crm-pill-select { border-color:#e1e9f6; background:#fff; box-shadow:0 2px 7px rgba(37,99,235,.06); }
 #v-crmLinea .crm-tabs-row { align-items:center; margin-bottom:8px; }
 #v-crmLinea .crm-tabs-track { background:#eef3fb; box-shadow:none; border:1px solid #e2eaf6; }
@@ -34195,6 +34200,7 @@ function _crmPintarMenusSelectores() {
 function _crmCerrarSelectores() {
     document.querySelectorAll('#v-crmLinea .crm-selector-menu.abierto').forEach(x => x.classList.remove('abierto'));
     document.querySelectorAll('#v-crmLinea .crm-pill-select.abierto').forEach(x => { x.classList.remove('abierto'); x.setAttribute('aria-expanded', 'false'); });
+    document.getElementById('v-crmLinea')?.classList.remove('crm-selector-abierto');
 }
 
 function _crmToggleSelector(tipo, event) {
@@ -34203,7 +34209,10 @@ function _crmToggleSelector(tipo, event) {
     const picker = document.getElementById(tipo === 'sucursal' ? 'crmSucPicker' : 'crmLineaPicker');
     const abrir = !menu?.classList.contains('abierto');
     _crmCerrarSelectores();
-    if(abrir && menu && picker) { menu.classList.add('abierto'); picker.classList.add('abierto'); picker.setAttribute('aria-expanded', 'true'); }
+    if(abrir && menu && picker) {
+        document.getElementById('v-crmLinea')?.classList.add('crm-selector-abierto');
+        menu.classList.add('abierto'); picker.classList.add('abierto'); picker.setAttribute('aria-expanded', 'true');
+    }
 }
 
 function _crmElegirSucursal(id) {
