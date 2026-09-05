@@ -330,6 +330,7 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
     box-shadow:0 4px 9px -4px rgba(220,38,38,.55), inset 0 1px 0 rgba(255,255,255,.35); }
 /* Marca de "esperando respuesta" — el cliente escribió último y nadie contestó. */
 .wa-row.pendiente { box-shadow:inset 3px 0 0 #f59e0b; }
+.wa-row .fila-pendiente { color:#b45309; background:#fffbeb; border:1px solid #fde68a; border-radius:999px; padding:2px 6px; font-size:9px; font-weight:800; white-space:nowrap; }
 .wa-row .fila-asignado { font-size:10px; font-weight:700; color:#7c3aed; background:#ede9fe; border-radius:999px;
     padding:2px 7px; white-space:nowrap; flex-shrink:0; }
 .crm-vacio { text-align:center; color:var(--text-muted); padding:28px 14px; font-size:13px; }
@@ -32439,14 +32440,13 @@ let _crmBusqueda = '';
 let _crmChip = 'todos';              // todos | no_leidos | pendientes
 let _crmFiltroAsignacion = 'todas';  // todas | sin_asignar | mias
 
-// "Pendiente" = el cliente escribió de último y nadie ha contestado.
-// Se deduce de datos que el hilo ya trae: ultimo_inbound_at solo se actualiza
-// cuando entra un mensaje del cliente, mientras ultimo_mensaje_at se actualiza
-// en ambos sentidos. Si el inbound es el más reciente, quedó sin responder.
+// "Pendiente" = el cliente escribió y aún no recibió respuesta de una persona.
+// Un saludo automático nunca cierra este estado: orienta al cliente, pero no
+// sustituye el seguimiento comercial/técnico de un empleado.
 function _crmEsPendiente(h) {
     if(!h.ultimo_inbound_at) return false;
-    if(!h.ultimo_mensaje_at) return true;
-    return new Date(h.ultimo_inbound_at).getTime() >= new Date(h.ultimo_mensaje_at).getTime();
+    if(!h.ultima_respuesta_humana_at) return true;
+    return new Date(h.ultimo_inbound_at).getTime() > new Date(h.ultima_respuesta_humana_at).getTime();
 }
 
 function _crmHilosFiltrados() {
@@ -32489,7 +32489,8 @@ function _pintarWhatsappLista() {
         if(!_crmBusqueda) clases.push('fade-in-row');
         if(activo) clases.push('active');
         if(noLeido) clases.push('no-leido');
-        if(_crmEsPendiente(h)) clases.push('pendiente');
+        const pendienteHumano = _crmEsPendiente(h);
+        if(pendienteHumano) clases.push('pendiente');
         return `<div class="${clases.join(' ')}" onclick="abrirHiloWhatsapp('${h.id}')">
             <div class="wa-avatar-wrap">
                 <div class="wa-avatar">${escapeHtml(_waIniciales(nombre))}</div>
@@ -32502,7 +32503,10 @@ function _pintarWhatsappLista() {
                 </div>
                 <div style="display:flex; justify-content:space-between; gap:8px; margin-top:3px; align-items:center;">
                     <span class="fila-preview">${escapeHtml(h.ultimo_mensaje_preview || '')}</span>
-                    ${noLeido ? `<span class="fila-badge">${h.no_leidos_count}</span>` : ''}
+                    <span style="display:flex; gap:4px; align-items:center; flex-shrink:0;">
+                        ${pendienteHumano ? `<span class="fila-pendiente" title="El saludo automático no sustituye una respuesta humana"><i class="ti ti-user-exclamation"></i> Atender</span>` : ''}
+                        ${noLeido ? `<span class="fila-badge">${h.no_leidos_count}</span>` : ''}
+                    </span>
                 </div>
             </div>
         </div>`;
@@ -32749,9 +32753,9 @@ function _waPreviewTexto(m) {
 // Ticks estilo WhatsApp real: 1 gris = enviado, 2 gris = entregado, 2 AZUL = leido.
 function _waIconoEstado(estado) {
     if(estado === 'enviando') return '<span class="wa-estado-enviando" title="Enviando"><i class="ti ti-clock"></i></span>';
-    if(estado === 'enviado') return '<span style="color:#8696a0;">✓</span>';
-    if(estado === 'entregado') return '<span style="color:#8696a0;">✓✓</span>';
-    if(estado === 'leido') return '<span style="color:#34B7F1;">✓✓</span>';
+    if(estado === 'enviado') return '<span style="color:#8696a0;" title="Enviado">✓</span>';
+    if(estado === 'entregado') return '<span style="color:#8696a0;" title="Entregado al cliente">✓✓</span>';
+    if(estado === 'leido') return '<span style="color:#34B7F1;" title="Leído por el cliente">✓✓</span>';
     if(estado === 'fallido') return '<span class="wa-estado-fallido" title="No se pudo enviar"><i class="ti ti-alert-circle-filled"></i></span>';
     return '';
 }

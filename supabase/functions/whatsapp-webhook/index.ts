@@ -295,6 +295,19 @@ async function procesarMensaje(payload: any) {
     return;
   }
   const esEntrante = msg.direction === "incoming";
+  // Un saludo automático se guarda antes de que Zernio pueda reflejar su
+  // evento message.sent. Si este es ese reflejo, no puede cerrar el pendiente
+  // de atención humana del cliente.
+  const waId = idMensaje(msg);
+  let esRespuestaHumana = !esEntrante;
+  if (!esEntrante && waId) {
+    const { data: mensajeYaGuardado } = await db
+      .from("whatsapp_mensajes")
+      .select("es_automatico")
+      .eq("wa_message_id", waId)
+      .maybeSingle();
+    if (mensajeYaGuardado?.es_automatico) esRespuestaHumana = false;
+  }
   // El nombre solo es confiable cuando viene del REMITENTE en un mensaje
   // ENTRANTE (ahi sender = el cliente). En un espejo saliente sender es la
   // propia linea del negocio — no usar su nombre como si fuera el del cliente.
@@ -346,6 +359,8 @@ async function procesarMensaje(payload: any) {
     if (esEntrante) {
       actualizacion.ultimo_inbound_at = ahora;
       actualizacion.no_leidos_count = (hiloExistente.no_leidos_count ?? 0) + 1;
+    } else if (esRespuestaHumana) {
+      actualizacion.ultima_respuesta_humana_at = ahora;
     }
     await db.from("whatsapp_hilos").update(actualizacion).eq("id", hiloId);
   } else {
@@ -360,6 +375,7 @@ async function procesarMensaje(payload: any) {
         nombre_perfil: nombrePerfil,
         ultimo_mensaje_at: ahora,
         ultimo_inbound_at: esEntrante ? ahora : null,
+        ultima_respuesta_humana_at: esRespuestaHumana ? ahora : null,
         ultimo_mensaje_preview: cuerpo.slice(0, 200),
         no_leidos_count: esEntrante ? 1 : 0,
       })
