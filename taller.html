@@ -32322,6 +32322,8 @@ let _waSugerenciasIA = []; // sugerencias pendientes del agente de IA para el hi
 let _waEnviando = false;
 let _waMensajeAnimarId = null;
 let _waChatAmpliadoDesktop = true;
+let _waDetalleHiloPintadoId = null;
+let _waForzarScrollFondo = false;
 // Mensajes dibujados antes de que termine la llamada a Zernio. Se mantienen
 // aparte para que una actualización de Realtime no haga desaparecer la
 // burbuja mientras el servidor todavía está confirmando el envío.
@@ -32722,6 +32724,7 @@ function _crmSetFiltroAsignacion(id) {
 async function abrirHiloWhatsapp(id) {
     _waCancelarGrabacionSiActiva();
     _crmListaAnimarProxima = false;
+    _waForzarScrollFondo = _waHiloId !== id;
     _waHiloId = id;
     const h = _waHilos.find(x => x.id === id);
     if(h && h.no_leidos_count) {
@@ -32880,6 +32883,7 @@ function _pintarWhatsappDetalle() {
     if(_waGrabando && _waGrabandoHiloId === _waHiloId) return;
     if(!_waHiloId) {
         cont.innerHTML = `<div class="wa-chat-empty">Selecciona una conversación de la lista.</div>`;
+        _waDetalleHiloPintadoId = null;
         return;
     }
     const h = _waHilos.find(x => x.id === _waHiloId);
@@ -32894,7 +32898,8 @@ function _pintarWhatsappDetalle() {
     const _teniaFoco = document.activeElement === _prevInput;
     const _caret = _prevInput ? _prevInput.selectionStart : null;
     const _chatPrev = document.getElementById('waMessagesScroll');
-    const _pegadoAlFondo = !_chatPrev || (_chatPrev.scrollHeight - _chatPrev.scrollTop - _chatPrev.clientHeight) < 80;
+    const _esHiloNuevo = _waForzarScrollFondo || _waDetalleHiloPintadoId !== _waHiloId;
+    const _pegadoAlFondo = _esHiloNuevo || !_chatPrev || (_chatPrev.scrollHeight - _chatPrev.scrollTop - _chatPrev.clientHeight) < 80;
     const _scrollPrev = _chatPrev ? _chatPrev.scrollTop : null;
 
     const puedeResponder = isAdminUser() || tienePermiso('whatsapp_responder');
@@ -32997,13 +33002,18 @@ function _pintarWhatsappDetalle() {
         // chat "saltaba" a mitad del historial en cuanto las imagenes pesaban.
         chat.scrollTop = _pegadoAlFondo ? chat.scrollHeight : (_scrollPrev ?? chat.scrollHeight);
         if(_pegadoAlFondo) {
+            const reAnclarFondo = () => { chat.scrollTop = chat.scrollHeight; };
+            requestAnimationFrame(reAnclarFondo);
+            setTimeout(reAnclarFondo, 80);
+            setTimeout(reAnclarFondo, 280);
             chat.querySelectorAll('img, video').forEach(el => {
-                const reAnclar = () => { chat.scrollTop = chat.scrollHeight; };
-                el.addEventListener('load', reAnclar, { once: true });
-                el.addEventListener('loadedmetadata', reAnclar, { once: true });
+                el.addEventListener('load', reAnclarFondo, { once: true });
+                el.addEventListener('loadedmetadata', reAnclarFondo, { once: true });
             });
         }
     }
+    _waDetalleHiloPintadoId = _waHiloId;
+    _waForzarScrollFondo = false;
     // El foco se restaura SIEMPRE que el empleado lo tenia antes de repintar
     // -- no solo cuando queda un borrador. Antes estaba anidado dentro del
     // "if(_borrador)": justo al mandar un mensaje, enviarMensajeWhatsapp()
