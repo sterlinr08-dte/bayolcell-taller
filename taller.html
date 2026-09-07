@@ -32326,12 +32326,6 @@ let _waChatAmpliadoDesktop = true;
 // aparte para que una actualización de Realtime no haga desaparecer la
 // burbuja mientras el servidor todavía está confirmando el envío.
 const _waMensajesOptimistas = new Map();
-// Ultimo render completo del chat -- permite que _pintarWhatsappDetalle() solo agregue los
-// mensajes nuevos al final (sin recrear header/composer/burbujas viejas) cuando llega un mensaje
-// nuevo y no hay nada mas en juego (sin sugerencias de IA, sin envios optimistas pendientes) --
-// evita el parpadeo visible de reconstruir todo el chat en cada evento de Realtime.
-let _waUltimoRenderHiloId = null, _waUltimoRenderVentanaAbierta = null, _waUltimoRenderPuedeResponder = null;
-let _waUltimoRenderIds = [];
 let _crmImportandoHistorial = false;
 let _crmListaAnimarProxima = true;
 let _crmRefrescoSilencioso = false;
@@ -32374,6 +32368,18 @@ async function _crmRepintarWhatsappSilencioso() {
         _crmPintarCabecera();
         _waActualizarAltoVisual();
     });
+}
+const _crmAccionesEnCurso = new Set();
+function _crmIniciarAccion(key) {
+    if(_crmAccionesEnCurso.has(key)) return false;
+    _crmAccionesEnCurso.add(key);
+    return true;
+}
+function _crmFinalizarAccion(key) {
+    _crmAccionesEnCurso.delete(key);
+}
+function _crmTablaValida(tabla) {
+    return tabla === 'whatsapp_hilos' || tabla === 'leads';
 }
 
 // Importacion manual e idempotente del historial que Zernio ya sincronizo
@@ -32787,10 +32793,12 @@ async function cargarMensajesHilo(hiloId) {
 // mandarla directo cuando la pregunta es una cotizacion de precio o algo que
 // no tiene claro — un tecnico la revisa aca antes de que le llegue al cliente.
 async function _waEnviarSugerenciaIA(sugerenciaId) {
+    const lockKey = `wa-sugerencia:${sugerenciaId}`;
+    if(!_crmIniciarAccion(lockKey)) return;
     const s = _waSugerenciasIA.find(x => x.id === sugerenciaId);
-    if(!s) return;
+    if(!s) { _crmFinalizarAccion(lockKey); return; }
     const hiloDestino = _waHiloId;
-    if(!hiloDestino) return;
+    if(!hiloDestino) { _crmFinalizarAccion(lockKey); return; }
     try {
         const { data: { session } } = await supabaseClient.auth.getSession();
         if(!session) { toastError('Inicia sesión de nuevo.'); return; }
@@ -32810,6 +32818,7 @@ async function _waEnviarSugerenciaIA(sugerenciaId) {
             toastError((j && j.mensaje) || 'No se pudo enviar la sugerencia.');
         }
     } catch(e) { logError('_waEnviarSugerenciaIA', e); toastError('No se pudo enviar la sugerencia.'); }
+    finally { _crmFinalizarAccion(lockKey); }
 }
 async function _waDescartarSugerenciaIA(sugerenciaId) {
     await supabaseClient.from('whatsapp_ia_sugerencias').update({ estado: 'descartada', resuelto_en: new Date().toISOString() }).eq('id', sugerenciaId);
@@ -32861,34 +32870,6 @@ function _waIconoEstado(estado) {
     return '';
 }
 
-// Extraida de _pintarWhatsappDetalle() para poder reusarla tanto en el render completo (mapeando
-// todos los mensajes) como en el render incremental (una sola burbuja nueva) sin duplicar la
-// plantilla en dos lugares que se puedan desincronizar.
-function _waHtmlBurbuja(m, nombre, porId) {
-    const esOut = m.direccion === 'out';
-    const esOptimista = !!m._optimista;
-    const etiqueta = esOut ? 'Tú (BayolCell)' : nombre;
-    const original = m.responde_a_id ? porId[m.responde_a_id] : null;
-    const animarEnvio = esOut && m.id === _waMensajeAnimarId;
-    const citaHTML = original ? `<div class="wa-quote wa-quote-${original.direccion}" onclick="event.stopPropagation(); _waIrAMensaje('${original.id}')"><div class="who">${escapeHtml(original.direccion === 'out' ? 'Tú (BayolCell)' : nombre)}</div><div class="txt">${escapeHtml(_waPreviewTexto(original))}</div></div>` : '';
-    return `<div class="wa-brow ${esOut ? 'out' : 'in'}${animarEnvio ? ' wa-envio-nuevo' : ''}"${esOptimista ? '' : ` data-msgid="${m.id}"`}>
-        ${esOptimista ? '' : `<i class="ti ti-arrow-back-up wa-reply-icon" onclick="_waActivarRespuesta('${m.id}')" title="Responder"></i>`}
-        <div class="wa-bubble-wrap" style="background:${esOut ? '#dcf8c6' : '#fff'}; border-radius:8px; padding:6px 9px 7px; box-shadow:0 1px .5px rgba(0,0,0,.13); font-size:13.5px;">
-            ${esOptimista ? '' : `<span class="wa-swipe-forward-cue"><i class="ti ti-arrow-forward-up"></i><span>Reenviar</span></span>
-            <i class="ti ti-chevron-down wa-menu-btn" onclick="_waAbrirMenuAcciones(event, '${m.id}')" title="Más opciones"></i>`}
-            <div style="font-size:10px; font-weight:700; color:${esOut ? '#166534' : '#128C7E'}; margin-bottom:2px;">${escapeHtml(etiqueta)}</div>
-            ${m.plantilla_nombre ? `<div style="font-size:10px; color:#8696a0; margin-bottom:3px;"><i class="ti ti-file-text"></i> Plantilla: ${escapeHtml(m.plantilla_nombre)}</div>` : ''}
-            ${m.es_automatico ? `<div style="font-size:10px; color:#4338ca; margin-bottom:3px;"><i class="ti ti-robot"></i> Respondido por IA</div>` : ''}
-            ${citaHTML}
-            ${_waBurbujaMedia(m)}
-            ${m.cuerpo ? `<div style="white-space:pre-wrap; word-break:break-word;">${escapeHtml(m.cuerpo)}</div>` : ''}
-            <div style="text-align:right; font-size:10px; color:#8696a0; margin-top:2px;">
-                ${new Date(m.creado_en).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}
-                ${esOut ? ' ' + _waIconoEstado(m.estado) : ''}
-            </div>
-        </div>
-    </div>`;
-}
 function _pintarWhatsappDetalle() {
     const cont = document.getElementById('waDetalle');
     if(!cont) return;
@@ -32898,7 +32879,6 @@ function _pintarWhatsappDetalle() {
     // sin ningun boton para pararlos.
     if(_waGrabando && _waGrabandoHiloId === _waHiloId) return;
     if(!_waHiloId) {
-        _waUltimoRenderHiloId = null;
         cont.innerHTML = `<div class="wa-chat-empty">Selecciona una conversación de la lista.</div>`;
         return;
     }
@@ -32921,44 +32901,6 @@ function _pintarWhatsappDetalle() {
     const horasDesdeInbound = h.ultimo_inbound_at ? (Date.now() - new Date(h.ultimo_inbound_at).getTime()) / 3600000 : Infinity;
     const ventanaAbierta = horasDesdeInbound <= 24;
     const nombre = h.nombre_perfil || 'Sin nombre';
-
-    // Render incremental: mismo hilo, misma ventana de 24h, mismo permiso de responder, ya habia
-    // al menos un mensaje pintado antes (nunca se activa en la transicion de 0->N mensajes, que
-    // dejaria pegado el aviso "Sin mensajes todavia." -- ese caso SIEMPRE cae al render completo,
-    // que si lo quita), sin sugerencias de IA, y sin envios optimistas TODAVIA en vuelo (uno
-    // marcado como 'fallido' ya no puede reconciliarse mas adelante -- desaparecer o cambiar de
-    // posicion -- asi que no hace falta bloquear el camino incremental por su culpa; antes SI
-    // bloqueaba de forma indefinida, haciendo que el parpadeo volviera para ese hilo hasta el
-    // proximo intento de envio). La huella de cada mensaje ya pintado incluye su `estado`, no solo
-    // su id: un mensaje viejo cuyo tick de entregado/leido cambio del lado del servidor rompe la
-    // huella y fuerza el render completo (unico lugar que vuelve a pintar esa burbuja) en vez de
-    // quedarse congelado con el tick viejo mientras solo se agrega la burbuja nueva.
-    const _waFingerprintMsg = m => m.id + '::' + (m.estado || '');
-    const _hayOptimistasEnVuelo = Array.from(_waMensajesOptimistas.values()).some(o => o.estado !== 'fallido');
-    const _puedeIncrementar = _chatPrev
-        && _waUltimoRenderHiloId === _waHiloId
-        && _waUltimoRenderVentanaAbierta === ventanaAbierta
-        && _waUltimoRenderPuedeResponder === puedeResponder
-        && _waUltimoRenderIds.length > 0
-        && !_waSugerenciasIA.length
-        && !_hayOptimistasEnVuelo
-        && _waMensajes.length > _waUltimoRenderIds.length
-        && _waUltimoRenderIds.every((fp, i) => _waMensajes[i] && _waFingerprintMsg(_waMensajes[i]) === fp);
-    if(_puedeIncrementar) {
-        const porId = {}; _waMensajes.forEach(x => porId[x.id] = x);
-        const nuevos = _waMensajes.slice(_waUltimoRenderIds.length);
-        const frag = document.createDocumentFragment();
-        for(const m of nuevos) {
-            const wrap = document.createElement('div');
-            wrap.innerHTML = _waHtmlBurbuja(m, nombre, porId);
-            frag.appendChild(wrap.firstElementChild);
-        }
-        _chatPrev.appendChild(frag);
-        if(_pegadoAlFondo) _chatPrev.scrollTop = _chatPrev.scrollHeight;
-        _waUltimoRenderIds = _waMensajes.map(_waFingerprintMsg);
-        _waWireSwipe();
-        return;
-    }
 
     let html = `<div class="wa-chat-head">`;
     if(_waEsMovil()) html += `<button class="wa-tab-btn" style="color:#075E54; background:#fff; border-color:#d1d7db;" onclick="volverListaWhatsapp()"><i class="ti ti-arrow-left"></i></button>`;
@@ -32983,7 +32925,31 @@ function _pintarWhatsappDetalle() {
         html += `<div class="wa-chat-empty">Sin mensajes todavía.</div>`;
     } else {
         const porId = {}; _waMensajes.forEach(x => porId[x.id] = x);
-        html += _waMensajes.map(m => _waHtmlBurbuja(m, nombre, porId)).join('');
+        html += _waMensajes.map(m => {
+            const esOut = m.direccion === 'out';
+            const esOptimista = !!m._optimista;
+            const etiqueta = esOut ? 'Tú (BayolCell)' : nombre;
+            const original = m.responde_a_id ? porId[m.responde_a_id] : null;
+            const animarEnvio = esOut && m.id === _waMensajeAnimarId;
+            const citaHTML = original ? `<div class="wa-quote wa-quote-${original.direccion}" onclick="event.stopPropagation(); _waIrAMensaje('${original.id}')"><div class="who">${escapeHtml(original.direccion === 'out' ? 'Tú (BayolCell)' : nombre)}</div><div class="txt">${escapeHtml(_waPreviewTexto(original))}</div></div>` : '';
+            return `<div class="wa-brow ${esOut ? 'out' : 'in'}${animarEnvio ? ' wa-envio-nuevo' : ''}"${esOptimista ? '' : ` data-msgid="${m.id}"`}>
+                ${esOptimista ? '' : `<i class="ti ti-arrow-back-up wa-reply-icon" onclick="_waActivarRespuesta('${m.id}')" title="Responder"></i>`}
+                <div class="wa-bubble-wrap" style="background:${esOut ? '#dcf8c6' : '#fff'}; border-radius:8px; padding:6px 9px 7px; box-shadow:0 1px .5px rgba(0,0,0,.13); font-size:13.5px;">
+                    ${esOptimista ? '' : `<span class="wa-swipe-forward-cue"><i class="ti ti-arrow-forward-up"></i><span>Reenviar</span></span>
+                    <i class="ti ti-chevron-down wa-menu-btn" onclick="_waAbrirMenuAcciones(event, '${m.id}')" title="Más opciones"></i>`}
+                    <div style="font-size:10px; font-weight:700; color:${esOut ? '#166534' : '#128C7E'}; margin-bottom:2px;">${escapeHtml(etiqueta)}</div>
+                    ${m.plantilla_nombre ? `<div style="font-size:10px; color:#8696a0; margin-bottom:3px;"><i class="ti ti-file-text"></i> Plantilla: ${escapeHtml(m.plantilla_nombre)}</div>` : ''}
+                    ${m.es_automatico ? `<div style="font-size:10px; color:#4338ca; margin-bottom:3px;"><i class="ti ti-robot"></i> Respondido por IA</div>` : ''}
+                    ${citaHTML}
+                    ${_waBurbujaMedia(m)}
+                    ${m.cuerpo ? `<div style="white-space:pre-wrap; word-break:break-word;">${escapeHtml(m.cuerpo)}</div>` : ''}
+                    <div style="text-align:right; font-size:10px; color:#8696a0; margin-top:2px;">
+                        ${new Date(m.creado_en).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}
+                        ${esOut ? ' ' + _waIconoEstado(m.estado) : ''}
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
     }
     html += `</div>`;
 
@@ -33019,10 +32985,6 @@ function _pintarWhatsappDetalle() {
     }
 
     cont.innerHTML = html;
-    _waUltimoRenderHiloId = _waHiloId;
-    _waUltimoRenderVentanaAbierta = ventanaAbierta;
-    _waUltimoRenderPuedeResponder = puedeResponder;
-    _waUltimoRenderIds = _waMensajes.map(_waFingerprintMsg);
     // La marca se consume en este render: así el sonido/animación no se
     // repiten cuando Realtime o una actualización vuelve a pintar el chat.
     _waMensajeAnimarId = null;
@@ -33208,6 +33170,8 @@ async function _waEnviarAdjunto() {
     // esto sube, el adjunto no debe irse a la conversacion equivocada.
     const hiloDestino = _waHiloId;
     if(!hiloDestino) return;
+    const lockKey = `wa-adjunto:${hiloDestino}`;
+    if(!_crmIniciarAccion(lockKey)) return;
     const respondeA = (_waRespondiendoA && _waRespondiendoA.hiloId === hiloDestino) ? _waRespondiendoA.id : null;
     const mensaje = (document.getElementById('waAdjuntoCaption').value || '').trim();
     const btn = document.getElementById('btnWaEnviarAdjunto');
@@ -33243,7 +33207,7 @@ async function _waEnviarAdjunto() {
             toastError('No se pudo enviar el adjunto.');
         }
     } catch(e) { logError('_waEnviarAdjunto', e); toastError('No se pudo enviar el adjunto.'); }
-    finally { btn.disabled = false; }
+    finally { btn.disabled = false; _crmFinalizarAccion(lockKey); }
 }
 
 /* ---------- Selector de emojis: una sola grilla curada, sin categorias/buscador ---------- */
@@ -33305,6 +33269,8 @@ function _waEnviarUbicacion() {
     if(!navigator.geolocation) { toastError('Este navegador no soporta geolocalización.'); return; }
     const hiloDestino = _waHiloId;
     if(!hiloDestino) return;
+    const lockKey = `wa-ubicacion:${hiloDestino}`;
+    if(!_crmIniciarAccion(lockKey)) return;
     const btn = document.getElementById('btnWaEnviarUbicacion');
     const estado = document.getElementById('waUbicacionEstado');
     btn.disabled = true;
@@ -33332,9 +33298,10 @@ function _waEnviarUbicacion() {
                 toastError('No se pudo enviar la ubicación.');
             }
         } catch(e) { logError('_waEnviarUbicacion', e); toastError('No se pudo enviar la ubicación.'); }
-        finally { btn.disabled = false; }
+        finally { btn.disabled = false; _crmFinalizarAccion(lockKey); }
     }, () => {
         btn.disabled = false;
+        _crmFinalizarAccion(lockKey);
         estado.textContent = 'Vas a compartir tu ubicación actual con el cliente.';
         toastError('No se pudo obtener tu ubicación — revisa el permiso de ubicación del navegador.');
     }, { enableHighAccuracy: true, timeout: 10000 });
@@ -33361,6 +33328,8 @@ async function _waEnviarContacto() {
     if(!nombre) { toastError('El nombre es obligatorio.'); return; }
     const hiloDestino = _waHiloId;
     if(!hiloDestino) return;
+    const lockKey = `wa-contacto:${hiloDestino}`;
+    if(!_crmIniciarAccion(lockKey)) return;
     const respondeA = (_waRespondiendoA && _waRespondiendoA.hiloId === hiloDestino) ? _waRespondiendoA.id : null;
     const btn = document.getElementById('btnWaEnviarContacto');
     btn.disabled = true;
@@ -33385,7 +33354,7 @@ async function _waEnviarContacto() {
             toastError('No se pudo enviar el contacto.');
         }
     } catch(e) { logError('_waEnviarContacto', e); toastError('No se pudo enviar el contacto.'); }
-    finally { btn.disabled = false; }
+    finally { btn.disabled = false; _crmFinalizarAccion(lockKey); }
 }
 
 /* ---------- Plantillas: responder cuando la ventana de 24h esta cerrada ----------
@@ -33510,6 +33479,8 @@ async function _waEnviarPlantilla() {
     if(!t) return;
     const hiloDestino = _waHiloId;
     if(!hiloDestino) return;
+    const lockKey = `wa-plantilla:${hiloDestino}:${t.name || ''}`;
+    if(!_crmIniciarAccion(lockKey)) return;
     const body = _waComponentePlantilla(t, 'BODY');
     const tokens = _waPlaceholdersDe(body?.text || '');
     const esNombrado = tokens.length > 0 && tokens.some(tk => !/^\d+$/.test(tk));
@@ -33550,7 +33521,7 @@ async function _waEnviarPlantilla() {
             toastError((j && j.mensaje) || 'No se pudo enviar la plantilla.');
         }
     } catch(e) { logError('_waEnviarPlantilla', e); toastError('No se pudo enviar la plantilla.'); }
-    finally { btn.disabled = false; }
+    finally { btn.disabled = false; _crmFinalizarAccion(lockKey); }
 }
 
 /* ---------- Nota de voz: tap para iniciar/detener (no press-and-hold) ---------- */
@@ -33647,6 +33618,8 @@ function _waCancelarGrabacionSiActiva() {
 function _waDetenerYEnviarNota() {
     if(!_waGrabando || !_waMediaRecorder) return;
     const hiloDestino = _waGrabandoHiloId; // congelado desde que empezo a grabar
+    const lockKey = `wa-nota:${hiloDestino}`;
+    if(!_crmIniciarAccion(lockKey)) return;
     const mime = _waMediaRecorder.mimeType || _waPickAudioMime();
     _waMediaRecorder.onstop = async () => {
         const blob = new Blob(_waAudioChunks, { type: mime });
@@ -33679,8 +33652,9 @@ function _waDetenerYEnviarNota() {
                 toastError('No se pudo enviar la nota de voz.');
             }
         } catch(e) { logError('_waDetenerYEnviarNota', e); toastError('No se pudo enviar la nota de voz.'); }
+        finally { _crmFinalizarAccion(lockKey); }
     };
-    try { _waMediaRecorder.stop(); } catch(e) { _waLimpiarGrabacion(); }
+    try { _waMediaRecorder.stop(); } catch(e) { _waLimpiarGrabacion(); _crmFinalizarAccion(lockKey); }
 }
 
 // Tocar la cita dentro de una burbuja = saltar al mensaje original y resaltarlo.
@@ -33790,6 +33764,8 @@ function _waPintarListaReenviar(filtro) {
 }
 async function _waReenviarA(hiloDestinoId) {
     if(!_waReenviarMsg) return;
+    const lockKey = `wa-reenviar:${_waReenviarMsg.id}:${hiloDestinoId}`;
+    if(!_crmIniciarAccion(lockKey)) return;
     const mensaje = _waReenviarMsg.cuerpo;
     cerrarModalReenviarWa();
     try {
@@ -33812,6 +33788,7 @@ async function _waReenviarA(hiloDestinoId) {
             toastError('No se pudo reenviar el mensaje.');
         }
     } catch(e) { logError('_waReenviarA', e); toastError('No se pudo reenviar el mensaje.'); }
+    finally { _crmFinalizarAccion(lockKey); }
 }
 
 // Responder citando un mensaje: swipe a la derecha en movil o menu en PC.
@@ -33858,20 +33835,8 @@ function _waPintarReplyBar() {
 // recorrido, pero no queda ninguna flecha fija ocupando espacio en el chat.
 // Solo reacciona si el movimiento es claramente horizontal, para no robarle
 // el scroll vertical normal a la lista de mensajes.
-// Fix (revision de la fase 2 del fix de parpadeo): esta funcion nunca fue idempotente -- antes
-// era inofensivo porque el render completo (cont.innerHTML=html) destruia y recreaba TODAS las
-// filas en cada pintada, asi que cada burbuja recibia su unico set de listeners siempre sobre un
-// nodo nuevo. El camino incremental nuevo de _pintarWhatsappDetalle() (que agrega burbujas con
-// appendChild sin tocar las viejas) rompio esa invariante: llamar _waWireSwipe() de nuevo volvia
-// a agregar OTRO set de listeners sobre las MISMAS filas viejas que ya los tenian -- un swipe real
-// terminaba disparando _waActivarRespuesta/_waAbrirReenviar tantas veces como renders incrementales
-// hubiera sobrevivido esa fila, ademas de una fuga de listeners sin limite en un chat dejado
-// abierto durante horas. La marca dataset.swipeWired hace que cada fila se conecte una sola vez,
-// sin importar cuantas veces se re-llame esta funcion.
 function _waWireSwipe() {
     document.querySelectorAll('.wa-brow').forEach(row => {
-        if(row.dataset.swipeWired) return;
-        row.dataset.swipeWired = '1';
         const wrap = row.querySelector('.wa-bubble-wrap');
         const forwardCue = row.querySelector('.wa-swipe-forward-cue');
         const msgId = row.dataset.msgid;
@@ -34035,6 +34000,9 @@ function _waFiltrarClientes(tabla, id, q) {
     </div>`).join('') || `<div style="color:var(--text-muted); font-size:12px; padding:6px 0;">Sin resultados.</div>`;
 }
 async function _waVincularCliente(tabla, id, clienteId) {
+    if(!_crmTablaValida(tabla)) { toastError('Acción no permitida.'); return; }
+    const lockKey = `wa-vincular:${tabla}:${id}:${clienteId}`;
+    if(!_crmIniciarAccion(lockKey)) return;
     try {
         const { error } = await supabaseClient.from(tabla).update({ cliente_id: clienteId }).eq('id', id);
         if(error) throw error;
@@ -34045,8 +34013,12 @@ async function _waVincularCliente(tabla, id, clienteId) {
         }
         else { await cargarLeads(); _pintarLeads(); }
     } catch(e) { logError('_waVincularCliente', e); toastError('No se pudo vincular el cliente.'); }
+    finally { _crmFinalizarAccion(lockKey); }
 }
 async function _waCrearYVincular(tabla, id) {
+    if(!_crmTablaValida(tabla)) { toastError('Acción no permitida.'); return; }
+    const lockKey = `wa-crear-vincular:${tabla}:${id}`;
+    if(!_crmIniciarAccion(lockKey)) return;
     try {
         let nombre, telefono;
         if(tabla === 'whatsapp_hilos') {
@@ -34063,6 +34035,7 @@ async function _waCrearYVincular(tabla, id) {
         if(cache.clientes) cache.clientes.push(ins.data);
         await _waVincularCliente(tabla, id, ins.data.id);
     } catch(e) { logError('_waCrearYVincular', e); toastError('No se pudo crear el cliente.'); }
+    finally { _crmFinalizarAccion(lockKey); }
 }
 
 /* ============================================================
@@ -34142,6 +34115,9 @@ function _pintarLeads() {
 }
 
 async function cambiarEtapaLead(id, etapa) {
+    if(!LEADS_ETAPAS.includes(etapa)) { toastError('Etapa no válida.'); return; }
+    const lockKey = `lead-etapa:${id}`;
+    if(!_crmIniciarAccion(lockKey)) return;
     try {
         const cerrado = ['vendido', 'perdido'].includes(etapa);
         const { error } = await supabaseClient.from('leads').update({
@@ -34152,6 +34128,7 @@ async function cambiarEtapaLead(id, etapa) {
         await cargarLeads();
         _pintarLeads();
     } catch(e) { logError('cambiarEtapaLead', e); toastError('No se pudo cambiar la etapa.'); }
+    finally { _crmFinalizarAccion(lockKey); }
 }
 
 /* ============================================================
@@ -34203,14 +34180,19 @@ async function _crmToggleReasignar(tabla, id) {
 }
 
 async function asignarmeCRM(tabla, id) {
+    if(!_crmTablaValida(tabla)) { toastError('Acción no permitida.'); return; }
     const yo = _crmMiIdentidad();
     if(!yo.id || !yo.tipo) { toastError('No se pudo identificar tu usuario.'); return; }
     await _crmGuardarAsignacion(tabla, id, yo.tipo, yo.id);
 }
 async function reasignarCRM(tabla, id, tecnicoId) {
+    if(!_crmTablaValida(tabla)) { toastError('Acción no permitida.'); return; }
     await _crmGuardarAsignacion(tabla, id, tecnicoId ? 'tecnico' : null, tecnicoId || null);
 }
 async function _crmGuardarAsignacion(tabla, id, tipo, empId) {
+    if(!_crmTablaValida(tabla)) { toastError('Acción no permitida.'); return; }
+    const lockKey = `crm-asignar:${tabla}:${id}`;
+    if(!_crmIniciarAccion(lockKey)) return;
     try {
         const { error } = await supabaseClient.from(tabla).update({ asignado_tipo: tipo, asignado_id: empId }).eq('id', id);
         if(error) throw error;
@@ -34221,6 +34203,7 @@ async function _crmGuardarAsignacion(tabla, id, tipo, empId) {
         }
         else { await cargarLeads(); _pintarLeads(); }
     } catch(e) { logError('_crmGuardarAsignacion', e); toastError('No se pudo guardar la asignación.'); }
+    finally { _crmFinalizarAccion(lockKey); }
 }
 
 /* ============================================================
