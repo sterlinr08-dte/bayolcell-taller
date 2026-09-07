@@ -32922,21 +32922,28 @@ function _pintarWhatsappDetalle() {
     const ventanaAbierta = horasDesdeInbound <= 24;
     const nombre = h.nombre_perfil || 'Sin nombre';
 
-    // Render incremental: mismo hilo, misma ventana de 24h, mismo permiso de responder, y sin
-    // sugerencias de IA ni envios optimistas pendientes (los casos donde la lista de mensajes
-    // puede reordenarse o perder una burbuja provisional, no solo crecer al final) -- en ese
-    // caso solo se agregan las burbujas nuevas, sin tocar header/composer/burbujas ya pintadas.
-    // Evita el parpadeo de reconstruir todo el chat en cada evento de Realtime (reportado por el
-    // dueño: "cuando envio y recibe mensajes la ventana hace un parpadeo"). Los casos mas
-    // complejos siguen usando el render completo de siempre, que ya preserva borrador/foco/scroll.
+    // Render incremental: mismo hilo, misma ventana de 24h, mismo permiso de responder, ya habia
+    // al menos un mensaje pintado antes (nunca se activa en la transicion de 0->N mensajes, que
+    // dejaria pegado el aviso "Sin mensajes todavia." -- ese caso SIEMPRE cae al render completo,
+    // que si lo quita), sin sugerencias de IA, y sin envios optimistas TODAVIA en vuelo (uno
+    // marcado como 'fallido' ya no puede reconciliarse mas adelante -- desaparecer o cambiar de
+    // posicion -- asi que no hace falta bloquear el camino incremental por su culpa; antes SI
+    // bloqueaba de forma indefinida, haciendo que el parpadeo volviera para ese hilo hasta el
+    // proximo intento de envio). La huella de cada mensaje ya pintado incluye su `estado`, no solo
+    // su id: un mensaje viejo cuyo tick de entregado/leido cambio del lado del servidor rompe la
+    // huella y fuerza el render completo (unico lugar que vuelve a pintar esa burbuja) en vez de
+    // quedarse congelado con el tick viejo mientras solo se agrega la burbuja nueva.
+    const _waFingerprintMsg = m => m.id + '::' + (m.estado || '');
+    const _hayOptimistasEnVuelo = Array.from(_waMensajesOptimistas.values()).some(o => o.estado !== 'fallido');
     const _puedeIncrementar = _chatPrev
         && _waUltimoRenderHiloId === _waHiloId
         && _waUltimoRenderVentanaAbierta === ventanaAbierta
         && _waUltimoRenderPuedeResponder === puedeResponder
+        && _waUltimoRenderIds.length > 0
         && !_waSugerenciasIA.length
-        && !_waMensajesOptimistas.size
+        && !_hayOptimistasEnVuelo
         && _waMensajes.length > _waUltimoRenderIds.length
-        && _waUltimoRenderIds.every((id, i) => _waMensajes[i] && _waMensajes[i].id === id);
+        && _waUltimoRenderIds.every((fp, i) => _waMensajes[i] && _waFingerprintMsg(_waMensajes[i]) === fp);
     if(_puedeIncrementar) {
         const porId = {}; _waMensajes.forEach(x => porId[x.id] = x);
         const nuevos = _waMensajes.slice(_waUltimoRenderIds.length);
@@ -32948,7 +32955,7 @@ function _pintarWhatsappDetalle() {
         }
         _chatPrev.appendChild(frag);
         if(_pegadoAlFondo) _chatPrev.scrollTop = _chatPrev.scrollHeight;
-        _waUltimoRenderIds = _waMensajes.map(m => m.id);
+        _waUltimoRenderIds = _waMensajes.map(_waFingerprintMsg);
         _waWireSwipe();
         return;
     }
@@ -33015,7 +33022,7 @@ function _pintarWhatsappDetalle() {
     _waUltimoRenderHiloId = _waHiloId;
     _waUltimoRenderVentanaAbierta = ventanaAbierta;
     _waUltimoRenderPuedeResponder = puedeResponder;
-    _waUltimoRenderIds = _waMensajes.map(m => m.id);
+    _waUltimoRenderIds = _waMensajes.map(_waFingerprintMsg);
     // La marca se consume en este render: así el sonido/animación no se
     // repiten cuando Realtime o una actualización vuelve a pintar el chat.
     _waMensajeAnimarId = null;
@@ -33851,8 +33858,20 @@ function _waPintarReplyBar() {
 // recorrido, pero no queda ninguna flecha fija ocupando espacio en el chat.
 // Solo reacciona si el movimiento es claramente horizontal, para no robarle
 // el scroll vertical normal a la lista de mensajes.
+// Fix (revision de la fase 2 del fix de parpadeo): esta funcion nunca fue idempotente -- antes
+// era inofensivo porque el render completo (cont.innerHTML=html) destruia y recreaba TODAS las
+// filas en cada pintada, asi que cada burbuja recibia su unico set de listeners siempre sobre un
+// nodo nuevo. El camino incremental nuevo de _pintarWhatsappDetalle() (que agrega burbujas con
+// appendChild sin tocar las viejas) rompio esa invariante: llamar _waWireSwipe() de nuevo volvia
+// a agregar OTRO set de listeners sobre las MISMAS filas viejas que ya los tenian -- un swipe real
+// terminaba disparando _waActivarRespuesta/_waAbrirReenviar tantas veces como renders incrementales
+// hubiera sobrevivido esa fila, ademas de una fuga de listeners sin limite en un chat dejado
+// abierto durante horas. La marca dataset.swipeWired hace que cada fila se conecte una sola vez,
+// sin importar cuantas veces se re-llame esta funcion.
 function _waWireSwipe() {
     document.querySelectorAll('.wa-brow').forEach(row => {
+        if(row.dataset.swipeWired) return;
+        row.dataset.swipeWired = '1';
         const wrap = row.querySelector('.wa-bubble-wrap');
         const forwardCue = row.querySelector('.wa-swipe-forward-cue');
         const msgId = row.dataset.msgid;
