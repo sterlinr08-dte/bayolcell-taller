@@ -32326,6 +32326,12 @@ let _waChatAmpliadoDesktop = true;
 // aparte para que una actualización de Realtime no haga desaparecer la
 // burbuja mientras el servidor todavía está confirmando el envío.
 const _waMensajesOptimistas = new Map();
+// Ultimo render completo del chat -- permite que _pintarWhatsappDetalle() solo agregue los
+// mensajes nuevos al final (sin recrear header/composer/burbujas viejas) cuando llega un mensaje
+// nuevo y no hay nada mas en juego (sin sugerencias de IA, sin envios optimistas pendientes) --
+// evita el parpadeo visible de reconstruir todo el chat en cada evento de Realtime.
+let _waUltimoRenderHiloId = null, _waUltimoRenderVentanaAbierta = null, _waUltimoRenderPuedeResponder = null;
+let _waUltimoRenderIds = [];
 let _crmImportandoHistorial = false;
 let _crmListaAnimarProxima = true;
 let _crmRefrescoSilencioso = false;
@@ -32855,6 +32861,34 @@ function _waIconoEstado(estado) {
     return '';
 }
 
+// Extraida de _pintarWhatsappDetalle() para poder reusarla tanto en el render completo (mapeando
+// todos los mensajes) como en el render incremental (una sola burbuja nueva) sin duplicar la
+// plantilla en dos lugares que se puedan desincronizar.
+function _waHtmlBurbuja(m, nombre, porId) {
+    const esOut = m.direccion === 'out';
+    const esOptimista = !!m._optimista;
+    const etiqueta = esOut ? 'Tú (BayolCell)' : nombre;
+    const original = m.responde_a_id ? porId[m.responde_a_id] : null;
+    const animarEnvio = esOut && m.id === _waMensajeAnimarId;
+    const citaHTML = original ? `<div class="wa-quote wa-quote-${original.direccion}" onclick="event.stopPropagation(); _waIrAMensaje('${original.id}')"><div class="who">${escapeHtml(original.direccion === 'out' ? 'Tú (BayolCell)' : nombre)}</div><div class="txt">${escapeHtml(_waPreviewTexto(original))}</div></div>` : '';
+    return `<div class="wa-brow ${esOut ? 'out' : 'in'}${animarEnvio ? ' wa-envio-nuevo' : ''}"${esOptimista ? '' : ` data-msgid="${m.id}"`}>
+        ${esOptimista ? '' : `<i class="ti ti-arrow-back-up wa-reply-icon" onclick="_waActivarRespuesta('${m.id}')" title="Responder"></i>`}
+        <div class="wa-bubble-wrap" style="background:${esOut ? '#dcf8c6' : '#fff'}; border-radius:8px; padding:6px 9px 7px; box-shadow:0 1px .5px rgba(0,0,0,.13); font-size:13.5px;">
+            ${esOptimista ? '' : `<span class="wa-swipe-forward-cue"><i class="ti ti-arrow-forward-up"></i><span>Reenviar</span></span>
+            <i class="ti ti-chevron-down wa-menu-btn" onclick="_waAbrirMenuAcciones(event, '${m.id}')" title="Más opciones"></i>`}
+            <div style="font-size:10px; font-weight:700; color:${esOut ? '#166534' : '#128C7E'}; margin-bottom:2px;">${escapeHtml(etiqueta)}</div>
+            ${m.plantilla_nombre ? `<div style="font-size:10px; color:#8696a0; margin-bottom:3px;"><i class="ti ti-file-text"></i> Plantilla: ${escapeHtml(m.plantilla_nombre)}</div>` : ''}
+            ${m.es_automatico ? `<div style="font-size:10px; color:#4338ca; margin-bottom:3px;"><i class="ti ti-robot"></i> Respondido por IA</div>` : ''}
+            ${citaHTML}
+            ${_waBurbujaMedia(m)}
+            ${m.cuerpo ? `<div style="white-space:pre-wrap; word-break:break-word;">${escapeHtml(m.cuerpo)}</div>` : ''}
+            <div style="text-align:right; font-size:10px; color:#8696a0; margin-top:2px;">
+                ${new Date(m.creado_en).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}
+                ${esOut ? ' ' + _waIconoEstado(m.estado) : ''}
+            </div>
+        </div>
+    </div>`;
+}
 function _pintarWhatsappDetalle() {
     const cont = document.getElementById('waDetalle');
     if(!cont) return;
@@ -32864,6 +32898,7 @@ function _pintarWhatsappDetalle() {
     // sin ningun boton para pararlos.
     if(_waGrabando && _waGrabandoHiloId === _waHiloId) return;
     if(!_waHiloId) {
+        _waUltimoRenderHiloId = null;
         cont.innerHTML = `<div class="wa-chat-empty">Selecciona una conversación de la lista.</div>`;
         return;
     }
@@ -32886,6 +32921,37 @@ function _pintarWhatsappDetalle() {
     const horasDesdeInbound = h.ultimo_inbound_at ? (Date.now() - new Date(h.ultimo_inbound_at).getTime()) / 3600000 : Infinity;
     const ventanaAbierta = horasDesdeInbound <= 24;
     const nombre = h.nombre_perfil || 'Sin nombre';
+
+    // Render incremental: mismo hilo, misma ventana de 24h, mismo permiso de responder, y sin
+    // sugerencias de IA ni envios optimistas pendientes (los casos donde la lista de mensajes
+    // puede reordenarse o perder una burbuja provisional, no solo crecer al final) -- en ese
+    // caso solo se agregan las burbujas nuevas, sin tocar header/composer/burbujas ya pintadas.
+    // Evita el parpadeo de reconstruir todo el chat en cada evento de Realtime (reportado por el
+    // dueño: "cuando envio y recibe mensajes la ventana hace un parpadeo"). Los casos mas
+    // complejos siguen usando el render completo de siempre, que ya preserva borrador/foco/scroll.
+    const _puedeIncrementar = _chatPrev
+        && _waUltimoRenderHiloId === _waHiloId
+        && _waUltimoRenderVentanaAbierta === ventanaAbierta
+        && _waUltimoRenderPuedeResponder === puedeResponder
+        && !_waSugerenciasIA.length
+        && !_waMensajesOptimistas.size
+        && _waMensajes.length > _waUltimoRenderIds.length
+        && _waUltimoRenderIds.every((id, i) => _waMensajes[i] && _waMensajes[i].id === id);
+    if(_puedeIncrementar) {
+        const porId = {}; _waMensajes.forEach(x => porId[x.id] = x);
+        const nuevos = _waMensajes.slice(_waUltimoRenderIds.length);
+        const frag = document.createDocumentFragment();
+        for(const m of nuevos) {
+            const wrap = document.createElement('div');
+            wrap.innerHTML = _waHtmlBurbuja(m, nombre, porId);
+            frag.appendChild(wrap.firstElementChild);
+        }
+        _chatPrev.appendChild(frag);
+        if(_pegadoAlFondo) _chatPrev.scrollTop = _chatPrev.scrollHeight;
+        _waUltimoRenderIds = _waMensajes.map(m => m.id);
+        _waWireSwipe();
+        return;
+    }
 
     let html = `<div class="wa-chat-head">`;
     if(_waEsMovil()) html += `<button class="wa-tab-btn" style="color:#075E54; background:#fff; border-color:#d1d7db;" onclick="volverListaWhatsapp()"><i class="ti ti-arrow-left"></i></button>`;
@@ -32910,31 +32976,7 @@ function _pintarWhatsappDetalle() {
         html += `<div class="wa-chat-empty">Sin mensajes todavía.</div>`;
     } else {
         const porId = {}; _waMensajes.forEach(x => porId[x.id] = x);
-        html += _waMensajes.map(m => {
-            const esOut = m.direccion === 'out';
-            const esOptimista = !!m._optimista;
-            const etiqueta = esOut ? 'Tú (BayolCell)' : nombre;
-            const original = m.responde_a_id ? porId[m.responde_a_id] : null;
-            const animarEnvio = esOut && m.id === _waMensajeAnimarId;
-            const citaHTML = original ? `<div class="wa-quote wa-quote-${original.direccion}" onclick="event.stopPropagation(); _waIrAMensaje('${original.id}')"><div class="who">${escapeHtml(original.direccion === 'out' ? 'Tú (BayolCell)' : nombre)}</div><div class="txt">${escapeHtml(_waPreviewTexto(original))}</div></div>` : '';
-            return `<div class="wa-brow ${esOut ? 'out' : 'in'}${animarEnvio ? ' wa-envio-nuevo' : ''}"${esOptimista ? '' : ` data-msgid="${m.id}"`}>
-                ${esOptimista ? '' : `<i class="ti ti-arrow-back-up wa-reply-icon" onclick="_waActivarRespuesta('${m.id}')" title="Responder"></i>`}
-                <div class="wa-bubble-wrap" style="background:${esOut ? '#dcf8c6' : '#fff'}; border-radius:8px; padding:6px 9px 7px; box-shadow:0 1px .5px rgba(0,0,0,.13); font-size:13.5px;">
-                    ${esOptimista ? '' : `<span class="wa-swipe-forward-cue"><i class="ti ti-arrow-forward-up"></i><span>Reenviar</span></span>
-                    <i class="ti ti-chevron-down wa-menu-btn" onclick="_waAbrirMenuAcciones(event, '${m.id}')" title="Más opciones"></i>`}
-                    <div style="font-size:10px; font-weight:700; color:${esOut ? '#166534' : '#128C7E'}; margin-bottom:2px;">${escapeHtml(etiqueta)}</div>
-                    ${m.plantilla_nombre ? `<div style="font-size:10px; color:#8696a0; margin-bottom:3px;"><i class="ti ti-file-text"></i> Plantilla: ${escapeHtml(m.plantilla_nombre)}</div>` : ''}
-                    ${m.es_automatico ? `<div style="font-size:10px; color:#4338ca; margin-bottom:3px;"><i class="ti ti-robot"></i> Respondido por IA</div>` : ''}
-                    ${citaHTML}
-                    ${_waBurbujaMedia(m)}
-                    ${m.cuerpo ? `<div style="white-space:pre-wrap; word-break:break-word;">${escapeHtml(m.cuerpo)}</div>` : ''}
-                    <div style="text-align:right; font-size:10px; color:#8696a0; margin-top:2px;">
-                        ${new Date(m.creado_en).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}
-                        ${esOut ? ' ' + _waIconoEstado(m.estado) : ''}
-                    </div>
-                </div>
-            </div>`;
-        }).join('');
+        html += _waMensajes.map(m => _waHtmlBurbuja(m, nombre, porId)).join('');
     }
     html += `</div>`;
 
@@ -32970,6 +33012,10 @@ function _pintarWhatsappDetalle() {
     }
 
     cont.innerHTML = html;
+    _waUltimoRenderHiloId = _waHiloId;
+    _waUltimoRenderVentanaAbierta = ventanaAbierta;
+    _waUltimoRenderPuedeResponder = puedeResponder;
+    _waUltimoRenderIds = _waMensajes.map(m => m.id);
     // La marca se consume en este render: así el sonido/animación no se
     // repiten cuando Realtime o una actualización vuelve a pintar el chat.
     _waMensajeAnimarId = null;
