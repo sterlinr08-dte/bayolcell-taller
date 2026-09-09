@@ -233,7 +233,7 @@ Deno.serve(async (req: Request) => {
 
   const { data: hilo, error: hiloError } = await db
     .from("whatsapp_hilos")
-    .select("id, linea_id, telefono_e164, ultimo_inbound_at")
+    .select("id, linea_id, telefono_e164, ultimo_inbound_at, zernio_conversation_id")
     .eq("id", hiloId)
     .maybeSingle();
   if (hiloError || !hilo) return json({ ok: false, error: "Hilo no encontrado" }, 404);
@@ -263,7 +263,24 @@ Deno.serve(async (req: Request) => {
   const autorizado = await tieneAccesoALinea(tipo, refId, linea.sucursal_id);
   if (!autorizado) return json({ ok: false, error: "sin_permiso", mensaje: "No tenes acceso a esta linea/sucursal." }, 403);
 
-  const conversationId = hilo.telefono_e164.startsWith("bsid:") ? hilo.telefono_e164.slice(5) : hilo.telefono_e164;
+  // Fix 2026-09-09 (raiz del "conversation not found" de los contactos de anuncio): el
+  // conversationId REAL de Zernio ahora se guarda desde el webhook (whatsapp_hilos.
+  // zernio_conversation_id) y es lo que se usa cuando esta disponible.
+  //
+  // Por que fallaba: para un contacto con telefono, Zernio manda platformConversationId == el
+  // telefono, asi que pasar el telefono "funciona" -- pero para un contacto de ANUNCIO no hay
+  // telefono y el hilo guarda `bsid:<contactId>`. El contactId NO es el conversationId (son dos
+  // ids distintos en el mismo payload), asi que Zernio respondia 404. El reintento que se agrego
+  // el 2026-09-05 trataba el sintoma pensando que Zernio fallaba de forma intermitente; en
+  // realidad ese envio nunca podia funcionar. Medido: ningun mensaje salio del sistema hacia un
+  // contacto de anuncio entre el 2026-09-04 18:12 y este fix.
+  //
+  // El fallback se conserva para los hilos viejos que todavia no tienen el id guardado: sigue
+  // funcionando igual que hasta ahora para contactos con telefono real, y cada hilo se corrige
+  // solo en cuanto entra un mensaje nuevo del cliente.
+  const conversationId = hilo.zernio_conversation_id
+    || (hilo.telefono_e164.startsWith("bsid:") ? hilo.telefono_e164.slice(5) : hilo.telefono_e164);
+  const esAnuncioSinConversationId = !hilo.zernio_conversation_id && hilo.telefono_e164.startsWith("bsid:");
 
   let replyToWaId: string | null = null;
   if (respondeAId) {
@@ -335,6 +352,17 @@ Deno.serve(async (req: Request) => {
   if (!resultado.ok) {
     console.error("Zernio rechazo el envio:", resultado.status, JSON.stringify(resultado.data));
     if (esConversacionNoEncontrada(resultado)) {
+      // Distingue los dos casos, porque el consejo al agente es distinto: si es un contacto de
+      // anuncio del que todavia no guardamos el conversationId real, esperar y reintentar NO
+      // sirve de nada -- se destraba solo cuando el cliente vuelva a escribir.
+      if (esAnuncioSinConversationId) {
+        return json({
+          ok: false,
+          error: "zernio_error",
+          mensaje: "Este contacto llego desde un anuncio y todavia no tenemos su identificador de conversacion. Se va a poder responder en cuanto el cliente escriba de nuevo (o respondele desde el celular por ahora).",
+          detalle: resultado.data,
+        }, 502);
+      }
       return json({ ok: false, error: "zernio_error", mensaje: "Zernio todavia no reconoce esta conversacion. Espera unos segundos y vuelve a intentar.", detalle: resultado.data }, 502);
     }
     return json({ ok: false, error: "zernio_error", detalle: resultado.data }, 502);

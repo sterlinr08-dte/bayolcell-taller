@@ -164,7 +164,7 @@ Deno.serve(async (req: Request) => {
 
   const { data: hilo } = await db
     .from("whatsapp_hilos")
-    .select("id, sucursal_id, linea_id, telefono_e164")
+    .select("id, sucursal_id, linea_id, telefono_e164, zernio_conversation_id")
     .eq("id", hiloId)
     .maybeSingle();
   if (!hilo) return json({ ok: false, error: "Hilo no encontrado" }, 404);
@@ -271,7 +271,12 @@ Reglas:
     return json({ ok: true, omitido: "sin cuenta de Zernio configurada para enviar automaticamente" });
   }
 
-  const conversationId = hilo.telefono_e164.startsWith("bsid:") ? hilo.telefono_e164.slice(5) : hilo.telefono_e164;
+  // Mismo fix que whatsapp-enviar (2026-09-09): el conversationId real de Zernio, guardado por el
+  // webhook, es lo unico que sirve para los contactos de anuncio (donde el hilo se identifica por
+  // `bsid:<contactId>`, que NO es un conversationId). El fallback cubre los hilos viejos que
+  // todavia no lo tienen guardado.
+  const conversationId = hilo.zernio_conversation_id
+    || (hilo.telefono_e164.startsWith("bsid:") ? hilo.telefono_e164.slice(5) : hilo.telefono_e164);
   const resultado = await mandarAZernio(conversationId, linea.zernio_account_id, respuesta);
   if (!resultado.ok) {
     console.error("whatsapp-ia-responder: Zernio rechazo el envio del saludo:", resultado.status);

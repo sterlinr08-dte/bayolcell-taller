@@ -342,6 +342,16 @@ async function procesarMensaje(payload: any) {
     ? "[Contenido de WhatsApp no visible]"
     : (textoCrudo || (tipoContenido !== "text" ? `[${tipoContenido}]` : ""));
 
+  // conversationId REAL de Zernio -- lo unico que sirve para responder por la API. Para un
+  // contacto con telefono, pasar el telefono funciona de casualidad (Zernio manda
+  // platformConversationId == telefono); para un contacto de ANUNCIO no hay telefono, el hilo se
+  // guarda como `bsid:<contactId>` y el contactId NO es el conversationId -- de ahi el 404
+  // "Conversation not found" al intentar responderle. Mismo principio ya documentado para
+  // Instagram ("do not correlate the two by equality", ver
+  // 20260904010200_instagram_hilos_agregar_conversation_id.sql).
+  const conversationIdZernio: string | null =
+    payload.conversation?.id || payload.message?.conversationId || null;
+
   const quotedWaId: string | null = payload.metadata?.quotedMessageId || null;
   const respondeAId = quotedWaId ? await buscarMensajeLocalPorWaId(quotedWaId) : null;
 
@@ -369,6 +379,8 @@ async function procesarMensaje(payload: any) {
       cliente_id: clienteId ?? undefined,
       actualizado_en: ahora,
     };
+    // Solo se escribe cuando Zernio lo manda; nunca se pisa con null un id ya guardado.
+    if (conversationIdZernio) actualizacion.zernio_conversation_id = conversationIdZernio;
     if (esEntrante) {
       actualizacion.ultimo_inbound_at = ahora;
       actualizacion.no_leidos_count = (hiloExistente.no_leidos_count ?? 0) + 1;
@@ -391,6 +403,7 @@ async function procesarMensaje(payload: any) {
         ultima_respuesta_humana_at: esRespuestaHumana ? ahora : null,
         ultimo_mensaje_preview: cuerpo.slice(0, 200),
         no_leidos_count: esEntrante ? 1 : 0,
+        zernio_conversation_id: conversationIdZernio,
       })
       .select("id")
       .single();
