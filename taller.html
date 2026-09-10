@@ -7692,6 +7692,16 @@ function findProveedor(id) { return cache.proveedores.find(x => x.id === id) || 
 // ¿El contenedor está dentro de una vista visible? (si no está dentro de ninguna .view, siempre true)
 function _verVisible(elId){ const el = document.getElementById(elId); if(!el) return false; const v = el.closest('.view'); return !v || v.classList.contains('active'); }
 let _renderAllListo = false;
+// Evita el parpadeo del Dashboard: si el HTML nuevo es idéntico al que ya
+// está pintado, no toca el DOM (innerHTML solo se reescribe cuando el
+// contenido realmente cambió). Antes, cada recarga (poller/Realtime cada
+// pocos segundos) reescribía estas piezas aunque los datos fueran los mismos.
+function _pintarSiCambio(id, html) {
+    const el = document.getElementById(id);
+    if(!el) return;
+    if(el.innerHTML !== html) el.innerHTML = html;
+}
+
 function renderAll() {
     const _primera = !_renderAllListo; // la 1ª vez (al entrar) se pinta TODO; luego solo la vista visible
     const today = new Date().toISOString().slice(0, 10);
@@ -7712,13 +7722,13 @@ function renderAll() {
     setKpi('kdDesp', refurb.filter(e => e.estado_evaluacion === 'vendido').length);
     setKpi('kdDev', refurb.filter(e => (e.veces_devuelto || 0) > 0).length);
     
-    document.getElementById("recentOrders").innerHTML = cache.ordenes.slice(0, 5).map(o => {
+    _pintarSiCambio("recentOrders", cache.ordenes.slice(0, 5).map(o => {
         const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
         return `<tr><td data-label="Orden"><b>${formatoOrden(o.numero_orden)}</b></td><td data-label="Cliente">${escapeHtml(c.nombre)}</td><td data-label="Equipo">${escapeHtml(e.modelo)}</td><td data-label="Falla">${escapeHtml(o.falla_reportada)}</td><td data-label="Estado"><span class="badge" style="background:#d1fae5;">${o.estado}</span></td></tr>`;
-    }).join("");
-    
+    }).join(""));
+
     if(_primera || _verVisible('ordersTable')) renderOrders();
-    document.getElementById("partsTable").innerHTML = cache.piezas.map(p => `<tr><td data-label="Código"><code>${escapeHtml(p.codigo||'')}</code></td><td data-label="Descripción"><b>${escapeHtml(p.nombre||'')}</b></td><td data-label="Marca">${escapeHtml(p.marca||'')}</td><td data-label="Referencia">${escapeHtml(p.referencia||'')}</td><td data-label="Existencia">${p.cantidad} uds</td><td data-label="Costo">${money(p.costo)}</td></tr>`).join("");
+    _pintarSiCambio("partsTable", cache.piezas.map(p => `<tr><td data-label="Código"><code>${escapeHtml(p.codigo||'')}</code></td><td data-label="Descripción"><b>${escapeHtml(p.nombre||'')}</b></td><td data-label="Marca">${escapeHtml(p.marca||'')}</td><td data-label="Referencia">${escapeHtml(p.referencia||'')}</td><td data-label="Existencia">${p.cantidad} uds</td><td data-label="Costo">${money(p.costo)}</td></tr>`).join(""));
     if(isAdminUser()) renderActivosTaller();
     if(_primera || _verVisible('proveedoresContainer')) renderProveedores();
     if(_primera || _verVisible('comprasContainer')) renderComprasTab();
@@ -7738,11 +7748,9 @@ function renderAll() {
     if(document.getElementById('v-piezasSolicitadas')?.classList.contains('active') && typeof renderPiezasSolicitadas === 'function') renderPiezasSolicitadas();
     if(document.getElementById('v-recepcion')?.classList.contains('active') && typeof renderRecepcionesRealizadas === 'function') { renderRecepcionesRealizadas(); if(typeof refrescarChecklistRecepcion === 'function') refrescarChecklistRecepcion(); }
     // Alertas de equipos demorados en el dashboard
-    const demCont = document.getElementById('dashboardDemoras');
-    if(demCont && typeof construirAlertaDemoras === 'function') demCont.innerHTML = construirAlertaDemoras(true);
+    if(document.getElementById('dashboardDemoras') && typeof construirAlertaDemoras === 'function') _pintarSiCambio('dashboardDemoras', construirAlertaDemoras(true));
     // Panel inteligente (alertas + tendencias) en el dashboard
-    const smartCont = document.getElementById('dashboardSmart');
-    if(smartCont && typeof construirPanelInteligente === 'function') smartCont.innerHTML = construirPanelInteligente();
+    if(document.getElementById('dashboardSmart') && typeof construirPanelInteligente === 'function') _pintarSiCambio('dashboardSmart', construirPanelInteligente());
     // Marcar el filtro activo del tablero (visual)
     const btnAct = document.getElementById('fltOrdActivas');
     if(btnAct && !btnAct.style.background) { btnAct.style.background = 'var(--blue-btn)'; btnAct.style.color = '#fff'; }
