@@ -34473,6 +34473,18 @@ function _crmSuscribirRealtime(lineaId) {
     // el alto ya encogido para un teclado que ya no estaba, o sea el hueco
     // en blanco.
     const refrescarCRM = (payload, tabla) => {
+        if(tabla === 'whatsapp_mensajes') {
+            // whatsapp_mensajes no tiene linea_id (solo hilo_id), asi que
+            // Realtime no puede filtrar por linea en el servidor: SIN este
+            // chequeo, un mensaje de CUALQUIER sucursal/linea disparaba una
+            // recarga aqui, aunque no tuviera nada que ver con lo que se esta
+            // viendo — en un negocio con varias lineas activas a la vez eso
+            // es ruido casi constante (se sentia como parpadeo en la cabecera
+            // del CRM). Si el mensaje no es del hilo abierto ni de un hilo ya
+            // cargado en esta linea, se ignora del todo.
+            const hiloId = payload?.new?.hilo_id || payload?.old?.hilo_id;
+            if(hiloId && hiloId !== _waHiloId && !_waHilos.some(h => h.id === hiloId)) return;
+        }
         const esMensajeDelHiloAbierto = tabla === 'whatsapp_mensajes' && _waHiloId &&
             (payload?.new?.hilo_id === _waHiloId || payload?.old?.hilo_id === _waHiloId);
         if(esMensajeDelHiloAbierto) _crmRtRecargarHiloAbierto = true;
