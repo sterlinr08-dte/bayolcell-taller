@@ -27330,6 +27330,7 @@ function iniciarRealtime() {
                 if(status === 'SUBSCRIBED') {
                     console.log('✅ Realtime activo - cambios en tiempo real');
                 }
+                _rtEstadoCanal(status);
             });
     } catch(e) {
         // Si Realtime no está activo en Supabase, el poller de respaldo sigue funcionando
@@ -27338,6 +27339,18 @@ function iniciarRealtime() {
 }
 
 function onCambioRealtime(payload) {
+    // Las tablas del CRM de WhatsApp (whatsapp_*, leads) se agregaron a la
+    // publicacion de tiempo real para que el chat funcione -- pero NO forman
+    // parte de loadAll() (que carga las 17 tablas del taller). Sin este filtro,
+    // CADA mensaje de un cliente disparaba una recarga completa de esas 17
+    // tablas en TODOS los navegadores abiertos. Medido en produccion: ~150
+    // mensajes de WhatsApp por hora en hora pico = una recarga completa del
+    // taller cada ~24 segundos por pestaña, para datos que ni siquiera
+    // cambiaron. El CRM tiene su propio canal ('crm-linea-*') que si escucha
+    // esas tablas y refresca solo lo suyo.
+    const tabla = payload?.table || '';
+    if(tabla.startsWith('whatsapp_') || tabla === 'leads') return;
+
     // Debounce corto: si llegan varios cambios juntos, recargar una sola vez
     if(_realtimeDebounce) clearTimeout(_realtimeDebounce);
     _realtimeDebounce = setTimeout(() => {
@@ -27354,6 +27367,119 @@ function detenerRealtime() {
         _realtimeChannel = null;
     }
 }
+
+/* ═══════ SALUD DEL TIEMPO REAL (reconexion automatica) ═══════
+   Problema que resuelve, COMPROBADO EN VIVO el 2026-09-10: los dos canales
+   llamaban a .subscribe() sin callback de estado, asi que nadie se enteraba si
+   se caian. Se simulo una caida de conexion y 31 segundos despues el socket
+   seguia 'closed' y los 3 canales en 'errored' -- no reconecta solo NUNCA.
+   Cualquier bajon de WiFi, cambio de red o laptop que se duerme dejaba el
+   tiempo real muerto hasta recargar la pagina a mano.
+
+   Y era peor en el CRM de WhatsApp: el poller de respaldo de 60s llama a
+   loadAll(), que NO toca ninguna tabla whatsapp_* -- verificado. O sea que al
+   caerse el realtime el chat quedaba 100% congelado, sin ningun respaldo y sin
+   avisarle a nadie: parecia que simplemente no habian llegado mensajes.
+
+   Ahora: se detecta la caida, se reintenta con espera creciente, se reconecta
+   al volver a la pestaña o al recuperar internet, y al reconectar se recarga
+   lo que se perdio (el tiempo real NO reenvia los eventos del hueco). */
+let _rtCaido = false;
+let _rtIntentos = 0;
+let _rtReintentoTimer = null;
+let _rtOcultoDesde = 0;
+
+function _rtIndicador(caido) {
+    let el = document.getElementById('rtAviso');
+    if(!caido) { if(el) el.remove(); return; }
+    if(el) return;
+    el = document.createElement('div');
+    el.id = 'rtAviso';
+    el.textContent = '⚠ Sin conexión en tiempo real — reconectando…';
+    el.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:99999;background:#b45309;color:#fff;font-size:12.5px;font-weight:700;padding:8px 14px;border-radius:999px;box-shadow:0 6px 20px rgba(0,0,0,.25);pointer-events:none';
+    document.body.appendChild(el);
+}
+
+function _rtMarcarCaido() {
+    if(!_rtCaido) { _rtCaido = true; _rtIndicador(true); }
+    _rtProgramarReconexion();
+}
+
+function _rtMarcarSano() {
+    const veniaCaido = _rtCaido;
+    _rtCaido = false;
+    _rtIndicador(false);
+    _rtIntentos = 0;
+    if(_rtReintentoTimer) { clearTimeout(_rtReintentoTimer); _rtReintentoTimer = null; }
+    // Los eventos que ocurrieron mientras estuvimos desconectados NO se
+    // reenvian al reconectar -- hay que ir a buscarlos a mano.
+    if(veniaCaido) _rtRecuperarDatosPerdidos();
+}
+
+function _rtProgramarReconexion() {
+    if(_rtReintentoTimer) return;
+    const espera = Math.min(30000, 1000 * Math.pow(2, Math.min(_rtIntentos, 5)));
+    _rtIntentos++;
+    _rtReintentoTimer = setTimeout(() => { _rtReintentoTimer = null; _rtReconectarYa(); }, espera);
+}
+
+function _rtReconectarYa() {
+    if(!sessionUser) return;
+    try {
+        if(supabaseClient?.realtime && !supabaseClient.realtime.isConnected()) supabaseClient.realtime.connect();
+    } catch(e) {}
+    // Recrear los canales: un canal en 'errored' no revive solo, hay que
+    // volver a suscribirlo.
+    try { detenerRealtime(); iniciarRealtime(); } catch(e) {}
+    try { if(typeof _crmLineaActualId !== 'undefined' && _crmLineaActualId) _crmSuscribirRealtime(_crmLineaActualId); } catch(e) {}
+    // Si sigue mal, el propio callback de estado vuelve a programar otro intento.
+}
+
+async function _rtRecuperarDatosPerdidos() {
+    try { if(sessionUser && _loadAllInFlight === 0 && !hayModalAbierto()) await loadAll(); } catch(e) {}
+    try {
+        if(!document.getElementById('v-crmLinea')?.classList.contains('active')) return;
+        const tabActiva = localStorage.getItem('bayol_subtab_crmlinea') || 'mensajes';
+        if(tabActiva !== 'mensajes') { if(typeof renderLeads === 'function') renderLeads(); return; }
+        await cargarHilosWhatsapp();
+        if(typeof _crmContarLeadsAbiertos === 'function') await _crmContarLeadsAbiertos();
+        if(_waHiloId) {
+            await cargarMensajesHilo(_waHiloId);
+            await _crmRepintarWhatsappSilencioso();
+        } else {
+            await _crmSinParpadeo(async () => { _pintarWhatsappLista(); _crmPintarCabecera(); });
+        }
+    } catch(e) {}
+}
+
+// Un mismo callback para los dos canales: cualquiera que se caiga marca el
+// sistema como caido y dispara la reconexion de ambos.
+function _rtEstadoCanal(status) {
+    if(status === 'SUBSCRIBED') _rtMarcarSano();
+    else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') _rtMarcarCaido();
+}
+
+function _rtTodoVivo() {
+    try {
+        if(!supabaseClient?.realtime?.isConnected()) return false;
+        const canales = supabaseClient.getChannels() || [];
+        return canales.length > 0 && canales.every(c => c.state === 'joined');
+    } catch(e) { return false; }
+}
+
+// Recuperar internet o volver a la pestaña son los dos momentos en que mas
+// seguido se descubre que el socket murio mientras no mirabamos.
+window.addEventListener('online', () => { if(sessionUser) _rtReconectarYa(); });
+document.addEventListener('visibilitychange', () => {
+    if(document.visibilityState !== 'visible') { _rtOcultoDesde = Date.now(); return; }
+    if(!sessionUser) return;
+    const segundosOculto = _rtOcultoDesde ? (Date.now() - _rtOcultoDesde) / 1000 : 0;
+    _rtOcultoDesde = 0;
+    if(!_rtTodoVivo()) { _rtReconectarYa(); return; }
+    // Aunque el socket siga vivo, el navegador puede haber estrangulado la
+    // pestaña en segundo plano: si estuvo oculta un buen rato, refrescar.
+    if(segundosOculto > 60) _rtRecuperarDatosPerdidos();
+});
 
 // Cerrar modales con tecla Escape
 document.addEventListener('keydown', e => {
@@ -34517,7 +34643,10 @@ function _crmSuscribirRealtime(lineaId) {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_hilos', filter: `linea_id=eq.${lineaId}` }, p => refrescarCRM(p, 'whatsapp_hilos'))
         .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_mensajes' }, p => refrescarCRM(p, 'whatsapp_mensajes'))
         .on('postgres_changes', { event: '*', schema: 'public', table: 'leads', filter: `linea_id=eq.${lineaId}` }, p => refrescarCRM(p, 'leads'))
-        .subscribe();
+        // Antes: .subscribe() sin callback -- si este canal se caia, el chat
+        // quedaba congelado en silencio y para siempre (no hay poller que
+        // cubra las tablas de WhatsApp). Ver "SALUD DEL TIEMPO REAL".
+        .subscribe(_rtEstadoCanal);
 }
 function _crmDetenerRealtime() {
     if(_crmRealtimeChannel) { try { supabaseClient.removeChannel(_crmRealtimeChannel); } catch(e) {} _crmRealtimeChannel = null; }
