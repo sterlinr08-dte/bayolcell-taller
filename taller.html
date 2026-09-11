@@ -27393,10 +27393,16 @@ function _rtIndicador(caido) {
     let el = document.getElementById('rtAviso');
     if(!caido) { if(el) el.remove(); return; }
     if(el) return;
+    if(!document.getElementById('rtAvisoStyle')) {
+        const st = document.createElement('style');
+        st.id = 'rtAvisoStyle';
+        st.textContent = '@keyframes rtGirar{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}@media (prefers-reduced-motion: reduce){#rtAviso i{animation:none !important;}}';
+        document.head.appendChild(st);
+    }
     el = document.createElement('div');
     el.id = 'rtAviso';
-    el.textContent = '⚠ Sin conexión en tiempo real — reconectando…';
-    el.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:99999;background:#b45309;color:#fff;font-size:12.5px;font-weight:700;padding:8px 14px;border-radius:999px;box-shadow:0 6px 20px rgba(0,0,0,.25);pointer-events:none';
+    el.innerHTML = '<i class="ti ti-loader-2" style="display:inline-block;animation:rtGirar 1s linear infinite;"></i> Sin conexión en tiempo real — reconectando…';
+    el.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:99999;background:#b45309;color:#fff;font-size:12.5px;font-weight:700;padding:8px 14px;border-radius:999px;box-shadow:0 6px 20px rgba(0,0,0,.25);pointer-events:none;display:flex;align-items:center;gap:7px;';
     document.body.appendChild(el);
 }
 
