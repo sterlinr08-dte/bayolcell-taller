@@ -4361,7 +4361,7 @@ body{
         </div>
         <div class="modal-body" style="padding:14px 16px;">
             <div id="waAdjuntoPreviewCont"></div>
-            <input id="waAdjuntoCaption" type="text" placeholder="Agregar un mensaje (opcional)..." style="width:100%;">
+            <input id="waAdjuntoCaption" type="text" placeholder="Agregar un mensaje (opcional)..." autocapitalize="none" autocorrect="off" style="width:100%;">
         </div>
         <div class="modal-footer">
             <button class="btn btn-light" onclick="cerrarModalWaAdjuntoPreview()">Cancelar</button>
@@ -33111,7 +33111,7 @@ function _pintarWhatsappDetalle() {
             <div class="wa-input-bar" id="waInputBar">
                 <button class="wa-icon-btn" id="btnWaEmoji" onclick="_waAbrirEmojis(event)" title="Emoji"><i class="ti ti-mood-smile"></i></button>
                 <button class="wa-icon-btn" id="btnWaAdjuntar" onclick="_waAbrirMenuAdjuntar(event)" title="Adjuntar"><i class="ti ti-paperclip"></i></button>
-                <input type="text" id="waTexto" placeholder="Escribe una respuesta..." oninput="_waActualizarBotonEnvio()" onkeydown="if(event.key==='Enter') enviarMensajeWhatsapp()">
+                <input type="text" id="waTexto" placeholder="Escribe una respuesta..." autocapitalize="none" autocorrect="off" oninput="_waActualizarBotonEnvio()" onkeydown="if(event.key==='Enter') enviarMensajeWhatsapp()">
                 <button class="wa-send-btn" id="btnWaEnviar" onclick="_waBotonPrincipalClick()"><i class="ti ti-microphone" id="iconWaEnviar"></i></button>
             </div>
             <div id="waGrabandoBar" class="wa-grabando-bar" style="display:none;"></div>`;
@@ -33822,8 +33822,16 @@ function _waAsegurarMenuAcciones() {
         menu = document.createElement('div');
         menu.id = 'waAccionesMenu';
         menu.className = 'wa-acciones-menu';
+        // "Corregir" solo aparece en NUESTROS mensajes (ver _waAbrirMenuAcciones).
+        // WhatsApp no permite editar ni borrar un mensaje ya enviado desde un
+        // sistema externo -- verificado en la doc de Zernio, que es explicita:
+        // editar es "Only supported for Telegram. Returns 400 for other
+        // platforms." y borrar es "WhatsApp: Not supported (returns 400)". Lo
+        // unico posible es mandar la correccion CITANDO el mensaje equivocado,
+        // que es exactamente lo que hace este boton.
         menu.innerHTML = `
             <button onclick="_waMenuAccion('responder')"><i class="ti ti-arrow-back-up"></i> Responder</button>
+            <button onclick="_waMenuAccion('corregir')" id="waMenuCorregir"><i class="ti ti-pencil"></i> Corregir</button>
             <button onclick="_waMenuAccion('reenviar')"><i class="ti ti-arrow-forward-up"></i> Reenviar</button>
         `;
         document.body.appendChild(menu);
@@ -33843,9 +33851,21 @@ function _waAbrirMenuAcciones(ev, msgId) {
     const menu = _waAsegurarMenuAcciones();
     _waMenuAccionesMsgId = msgId;
     btn.classList.add('wa-menu-open');
+
+    // Corregir solo tiene sentido sobre un mensaje NUESTRO: es para arreglar lo
+    // que mandamos mal, no para "corregirle" el mensaje al cliente.
+    const msg = _waMensajes.find(x => x.id === msgId);
+    const btnCorregir = document.getElementById('waMenuCorregir');
+    if(btnCorregir) btnCorregir.style.display = (msg && msg.direccion === 'out' && !msg._optimista) ? '' : 'none';
+
     menu.style.display = 'flex';
     const r = btn.getBoundingClientRect();
-    const alturaMenu = 84;
+    // Se mide el menu ya renderizado en vez de asumir un alto fijo: cambia
+    // segun cuantas opciones queden visibles (Corregir se oculta en los
+    // mensajes del cliente).
+    menu.style.visibility = 'hidden';
+    const alturaMenu = menu.offsetHeight || 84;
+    menu.style.visibility = '';
     let top = r.bottom + 4;
     if(top + alturaMenu > window.innerHeight) top = r.top - alturaMenu - 4;
     let left = r.right - 150;
@@ -33864,7 +33884,28 @@ function _waMenuAccion(accion) {
     _waCerrarMenuAcciones();
     if(!msgId) return;
     if(accion === 'responder') _waActivarRespuesta(msgId);
+    else if(accion === 'corregir') _waCorregirMensaje(msgId);
     else if(accion === 'reenviar') _waAbrirReenviar(msgId);
+}
+
+// Corregir un mensaje ya enviado. WhatsApp no deja editarlo ni borrarlo desde
+// fuera de la app (ver el comentario del menu), asi que esto hace lo unico que
+// si llega al cliente: deja citado el mensaje equivocado y prepara el composer
+// con "*Corrección:*" para escribir lo correcto debajo. Asi el cliente ve las
+// dos cosas juntas y entiende cual vale, en vez de quedarse con el dato malo.
+function _waCorregirMensaje(msgId) {
+    const m = _waMensajes.find(x => x.id === msgId);
+    if(!m || m.direccion !== 'out') return;
+    _waActivarRespuesta(msgId); // deja la cita puesta y enfoca el composer
+    const input = document.getElementById('waTexto');
+    if(!input) return;
+    const PREFIJO = '*Corrección:* ';
+    // No se pisa lo que el empleado ya venia escribiendo.
+    if(!input.value.trim()) input.value = PREFIJO;
+    else if(!input.value.startsWith(PREFIJO)) input.value = PREFIJO + input.value;
+    try { input.setSelectionRange(input.value.length, input.value.length); } catch(e) {}
+    input.focus();
+    if(typeof _waActualizarBotonEnvio === 'function') _waActualizarBotonEnvio();
 }
 
 // Reenviar un mensaje a otra conversación (dentro de la línea actual).
