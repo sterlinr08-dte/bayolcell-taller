@@ -62,6 +62,22 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 // en try/catch propio) para que Claude Haiku decida si responde preguntas
 // simples directo o redacta una sugerencia para que un tecnico la revise.
 // Nunca puede romper ni retrasar el procesamiento normal del webhook.
+//
+// Fix 2026-09-09 (conversationId real — RAIZ del "conversation not found"):
+// se guarda whatsapp_hilos.zernio_conversation_id con el conversation.id que
+// Zernio manda en cada evento. Para un contacto con telefono el atajo de usar
+// el telefono como conversationId funcionaba (platformConversationId ==
+// telefono), pero para un contacto de ANUNCIO el hilo se identifica como
+// `bsid:<contactId>` y el contactId NO es un conversationId — por eso
+// whatsapp-enviar/whatsapp-ia-responder recibian 404 al responderles. Medido:
+// ningun mensaje salio del sistema hacia un contacto de anuncio entre el
+// 2026-09-04 18:12 y ese fix.
+//
+// Fix 2026-09-11 (mensajes que llegaban en blanco): ver el bloque "RESULTADO
+// DEL DIAGNOSTICO" mas abajo. Resumen: cuando WhatsApp no entrega el contenido
+// de un mensaje, ahora se guarda un texto que explica el motivo real y que
+// hacer, en vez de un "[Contenido de WhatsApp no visible]" que parecia una
+// falla del sistema.
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -326,21 +342,55 @@ async function procesarMensaje(payload: any) {
   // Zernio no entrega el contenido de ciertos mensajes historicos/especiales.
   // Guardamos una etiqueta clara en vez de mostrar su marcador tecnico.
   //
-  // Diagnostico 2026-09-05 (dueño reporto que un CONTACTO compartido no se
-  // ve): "[Unsupported message]" esta apareciendo mucho (20+ casos en un
-  // solo dia, de hilos distintos) y no sabemos si son todos contactos u
-  // otra cosa (stickers, encuestas, etc) -- los docs de Zernio no
-  // documentan que trae el payload en estos casos. Se loguea el payload
-  // COMPLETO la primera vez que pase, para poder ver un caso real (por
-  // ejemplo, alguien compartiendo un contacto de nuevo) y recien ahi
-  // construir el parser correcto en vez de adivinar el formato. Quitar
-  // este log una vez capturado un caso real.
-  if (textoCrudo === "[Unsupported message]") {
-    console.error("DIAGNOSTICO mensaje sin soporte -- payload completo:", JSON.stringify(payload));
+  // RESULTADO DEL DIAGNOSTICO (2026-09-11, 37 casos reales de 24h):
+  // cuando Zernio manda "[Unsupported message]" el payload viene VACIO de
+  // contenido -- attachments:[], sin campo "contacts", sin vCard, sin nada.
+  // Se reviso el historial completo: 0 de 37 traian algo aprovechable. O sea
+  // que el contenido NO se puede recuperar; no es que no lo parseemos, es que
+  // nunca llega. (La doc de Zernio tampoco expone "contacts" al listar los
+  // mensajes, asi que tampoco sirve ir a buscarlo despues por la API.)
+  //
+  // Lo unico que SI viene es el motivo, en metadata.unsupported.code. Antes
+  // todos estos casos se guardaban con el mismo texto vago "[Contenido de
+  // WhatsApp no visible]", que al empleado le parece una falla del sistema y
+  // no le dice que hacer. Ahora cada motivo dice que paso y como verlo.
+  const sinSoporte = payload.metadata?.unsupported || null;
+  let textoNoDisponible: string | null = null;
+  // Solo se reemplaza el cuerpo si REALMENTE no hay nada que mostrar: si el
+  // mensaje trae texto de verdad o un adjunto que si bajamos, ese contenido
+  // manda, aunque Zernio haya adjuntado ademas una marca de "sin soporte".
+  const hayContenidoReal = (!!textoCrudo && textoCrudo !== "[Unsupported message]") || adjuntos.length > 0;
+  if (!hayContenidoReal && (textoCrudo === "[Unsupported message]" || sinSoporte)) {
+    const code = Number(sinSoporte?.code) || 0;
+    if (code === 131060) {
+      // Lo mas comun (29 de 37): el cliente borro el mensaje, o es un reenvio
+      // viejo que WhatsApp ya no entrega.
+      textoNoDisponible = "⚠️ Mensaje no disponible — el cliente lo eliminó, o WhatsApp ya no lo entrega.";
+    } else if (code === 131051) {
+      // Tipo que la API de WhatsApp no reenvia a sistemas externos. Aca cae,
+      // entre otros, el contacto compartido.
+      textoNoDisponible = "📇 WhatsApp no envía este tipo de mensaje (por ejemplo un contacto compartido) a sistemas externos. Ábrelo desde el celular para verlo.";
+    } else {
+      textoNoDisponible = "⚠️ WhatsApp no entregó el contenido de este mensaje. Ábrelo desde el celular para verlo.";
+    }
   }
-  const cuerpo = textoCrudo === "[Unsupported message]"
-    ? "[Contenido de WhatsApp no visible]"
-    : (textoCrudo || (tipoContenido !== "text" ? `[${tipoContenido}]` : ""));
+
+  // Se deja de volcar el payload COMPLETO en los logs: traia datos de clientes
+  // y ya sabemos que no aporta nada (37/37 sin contenido). Solo se registra el
+  // motivo. El payload entero se guarda UNICAMENTE si algun dia llega uno que
+  // SI traiga algo aprovechable -- ese seria el unico caso que justificaria
+  // escribir un parser, y ahi si hace falta verlo entero.
+  if (textoNoDisponible) {
+    const traeAlgo = !!(msg as any).contacts || (Array.isArray(msg.attachments) && msg.attachments.length > 0);
+    if (traeAlgo) {
+      console.error("mensaje sin soporte PERO con contenido aprovechable -- payload completo:", JSON.stringify(payload));
+    } else {
+      console.error("mensaje sin soporte (sin contenido recuperable) code:", sinSoporte?.code ?? "n/d", sinSoporte?.title ?? "");
+    }
+  }
+
+  const cuerpo = textoNoDisponible
+    ?? (textoCrudo || (tipoContenido !== "text" ? `[${tipoContenido}]` : ""));
 
   // conversationId REAL de Zernio -- lo unico que sirve para responder por la API. Para un
   // contacto con telefono, pasar el telefono funciona de casualidad (Zernio manda
@@ -427,6 +477,10 @@ async function procesarMensaje(payload: any) {
         responde_a_id: respondeAId,
         estado: esEntrante ? "recibido" : "enviado",
         es_automatico: false,
+        // Guarda el motivo real (codigo de WhatsApp) de los mensajes que llegan
+        // sin contenido. Antes solo quedaba en los logs, que se borran a las
+        // 24h -- y sin esto no hay forma de medir cuantos se pierden ni por que.
+        error_detalle: sinSoporte ? `unsupported:${sinSoporte.code ?? "?"} ${sinSoporte.title ?? ""}`.trim() : null,
       },
       { onConflict: "wa_message_id", ignoreDuplicates: true }
     )
