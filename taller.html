@@ -28800,7 +28800,9 @@ function finCronograma(f) {
 }
 function finEstado(f) {
     if(f.estado === 'cancelado') return 'cancelado';
-    if(finSaldo(f) <= 0.001) return 'saldado';
+    // Con capital en 0 pero mora sin cobrar/condonar, el contrato NO está realmente cerrado
+    // (antes se marcaba "saldado" y los recordatorios lo ignoraban, perdiendo la mora).
+    if(finSaldo(f) <= 0.001) return finMoraPendiente(f) > 0.001 ? 'saldado_con_mora' : 'saldado';
     const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
     const hayVencida = finCronograma(f).some(c => !c.cubierta && c.vence < hoy);
     return hayVencida ? 'atrasado' : 'activo';
@@ -28813,6 +28815,7 @@ const FIN_ESTADO_INFO = {
     activo:    { txt: 'Al día',   color: '#16a34a', bg: '#dcfce7' },
     atrasado:  { txt: 'Atrasado', color: '#b91c1c', bg: '#fee2e2' },
     saldado:   { txt: 'Saldado',  color: '#1d4ed8', bg: '#dbeafe' },
+    saldado_con_mora: { txt: 'Capital pagado — falta mora', color: '#b45309', bg: '#fef3c7' },
     cancelado: { txt: 'Cancelado',color: '#475569', bg: '#e2e8f0' }
 };
 function finBadge(estado) {
@@ -29729,44 +29732,23 @@ async function aprobarSolicitud(solId) {
     if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso para aprobar.', 'error'); return; }
     const s = (_finCache.solicitudes || []).find(x => x.id === solId);
     if(!s || s.estado !== 'pendiente') return;
-    if(!confirm('¿Aprobar esta solicitud y crear el financiamiento?')) return;
-    const cli = finClienteDe(s.cliente_id) || {};
+    if(!await confirmar('¿Aprobar esta solicitud y crear el financiamiento?')) return;
     const usuario = sessionUser?.nombre || sessionUser?.usuario || 'Sistema';
     try {
-        const { data: fin, error } = await supabaseClient.from('financiamientos').insert([{
-            fin_cliente_id: s.cliente_id,
-            solicitud_id: s.id,
-            cliente_nombre: s.cliente_nombre || `${cli.nombre || ''} ${cli.apellido || ''}`.trim() || 'Cliente',
-            cliente_telefono: cli.telefono || null,
-            cliente_cedula: cli.cedula || null,
-            concepto: s.concepto,
-            equipo_capacidad: s.equipo_capacidad || null,
-            equipo_imei: s.equipo_imei,
-            monto_total: s.monto_total,
-            inicial: s.inicial,
-            num_cuotas: s.num_cuotas,
-            frecuencia: s.frecuencia,
-            valor_cuota: s.valor_cuota,
-            fecha_inicio: s.fecha_inicio,
-            estado: 'activo',
-            interes_metodo: s.interes_metodo || 'plano',
-            interes_tasa: s.interes_tasa || 0,
-            cuotas_fase1: s.cuotas_fase1 || 0, tasa2: s.tasa2 || 0, plan_id: s.plan_id || null,
-            mora_tipo: s.mora_tipo || 'ninguna',
-            mora_valor: s.mora_valor || 0,
-            notas: s.notas,
-            creado_por: usuario
-        }]).select('id').single();
+        // Crea el financiamiento y marca la solicitud como aprobada en UNA sola transacción del
+        // servidor (RPC fin_aprobar_solicitud) — antes eran 2 pasos sueltos desde el navegador:
+        // una doble aprobación o un fallo a medio camino podía crear contratos duplicados o dejar
+        // la solicitud pendiente con un financiamiento ya creado (F06).
+        const { data: finId, error } = await supabaseClient.rpc('fin_aprobar_solicitud', { p_solicitud_id: solId, p_usuario: usuario });
         if(error) throw error;
-        await supabaseClient.from('fin_solicitudes').update({ estado: 'aprobada', decidido_por: usuario, decidido_en: new Date().toISOString(), financiamiento_id: fin.id }).eq('id', solId);
         toast('Solicitud aprobada. Financiamiento creado.');
         _solDetalleId = null;
         _finTab = 'financiamientos';
         await cargarFinanciamientos();
-        verFinanciamiento(fin.id);
+        verFinanciamiento(finId);
     } catch(e) {
         console.error('aprobarSolicitud', e);
-        toast('No se pudo aprobar la solicitud.', 'error');
+        toastError(getFriendlyError(e, 'No se pudo aprobar la solicitud.'));
     }
 }
 async function rechazarSolicitud(solId) {
@@ -29968,7 +29950,7 @@ async function registrarAbonoFin(finId, btn) {
         // Si queda saldado, actualizar estado
         await cargarFinanciamientos();
         const fAct = (_finCache.financiamientos || []).find(x => x.id === finId);
-        if(fAct && finSaldo(fAct) <= 0.001 && fAct.estado !== 'saldado') {
+        if(fAct && finSaldo(fAct) <= 0.001 && finMoraPendiente(fAct) <= 0.001 && fAct.estado !== 'saldado') {
             await supabaseClient.from('financiamientos').update({ estado: 'saldado' }).eq('id', finId);
             fAct.estado = 'saldado';
         }
@@ -32149,15 +32131,23 @@ function _mdmExtra(){
     return e;
 }
 // Tras una acción, vuelve a leer Hexnode y dice si el equipo está conectado (si lo está, ya se aplicó)
-async function mdmConfirmarAplicado(finId, accionTxt){
+// accion: 'bloquear' | 'desbloquear' (u otra) — se usa para comparar contra el estado REAL que reporta
+// el equipo (d.bloqueado), no solo la conexión reciente. Antes decía "APLICADO" con solo ver que el
+// equipo estaba en línea, sin confirmar que el comando específico realmente se aplicó (F08).
+async function mdmConfirmarAplicado(finId, accionTxt, accion){
     try {
         const { data } = await supabaseClient.functions.invoke('mdm-accion', { body: { financiamiento_id: finId, accion: 'verificar', ..._mdmExtra() } });
         if(data && data.enrolado){
             const d = data.device || {};
+            const esperado = accion === 'bloquear' ? true : (accion === 'desbloquear' ? false : null);
+            if(esperado !== null && typeof d.bloqueado === 'boolean' && d.bloqueado === esperado){
+                mdmMostrarResultado(finId, `${accionTxt} — APLICADO en el equipo`, `El equipo confirmó el nuevo estado (${d.bloqueado ? 'bloqueado' : 'activo'}).`, 'ok');
+                return;
+            }
             if(d.ultima_conexion){
                 const mins = (Date.now() - new Date(d.ultima_conexion).getTime()) / 60000;
                 if(mins < 60){
-                    mdmMostrarResultado(finId, `${accionTxt} — APLICADO en el equipo`, `El equipo está conectado a internet, así que la orden ya le llegó.`, 'ok');
+                    mdmMostrarResultado(finId, `${accionTxt} — EN ESPERA (sin confirmar)`, `El equipo está conectado, pero todavía no refleja el nuevo estado. Puede tardar unos minutos — vuelve a verificar.`, 'warn');
                     return;
                 }
                 let hace = mins < 1440 ? ('hace ' + Math.round(mins/60) + ' h') : ('hace ' + Math.round(mins/1440) + ' días');
@@ -32165,9 +32155,9 @@ async function mdmConfirmarAplicado(finId, accionTxt){
                 return;
             }
         }
-        mdmMostrarResultado(finId, `${accionTxt} — orden enviada`, `Se mandó a Hexnode. Si el equipo tiene internet se aplica enseguida; si no, al conectarse.`, 'info');
+        mdmMostrarResultado(finId, `${accionTxt} — orden enviada (sin confirmar)`, `Se mandó a Hexnode, pero todavía no se pudo confirmar si el equipo ya lo aplicó.`, 'info');
     } catch(_e){
-        mdmMostrarResultado(finId, `${accionTxt} — orden enviada`, `Se mandó a Hexnode. Si el equipo tiene internet se aplica enseguida; si no, al conectarse.`, 'info');
+        mdmMostrarResultado(finId, `${accionTxt} — orden enviada (sin confirmar)`, `Se mandó a Hexnode, pero todavía no se pudo confirmar si el equipo ya lo aplicó.`, 'info');
     }
 }
 async function mdmAccionReal(finId, accion) {
@@ -32191,7 +32181,7 @@ async function mdmAccionReal(finId, accion) {
         // ✨ Poner el estado automáticamente según la acción
         await _mdmAplicarEstadoAuto(finId, accion === 'bloquear' ? 'bloqueado' : 'activo', true);
         mdmMostrarResultado(finId, `${accionTxt} — comprobando…`, 'Confirmando con el equipo si ya se aplicó…', 'info');
-        await mdmConfirmarAplicado(finId, accionTxt);
+        await mdmConfirmarAplicado(finId, accionTxt, accion);
     } catch(e) {
         console.error('mdmAccionReal', e);
         toast('No se pudo ejecutar en Hexnode: ' + (e.message || e), 'error');
@@ -32257,7 +32247,14 @@ async function mdmVerificar(finId, btn) {
             const estadoReal = d.bloqueado ? 'bloqueado' : 'activo';
             await _mdmAplicarEstadoAuto(finId, estadoReal, true, d.device_id || d.id);
             const autoTxt = `<br><span style="color:#1e40af; font-weight:700;"><i class="ti ti-refresh"></i> Estado actualizado automáticamente a "${estadoReal === 'bloqueado' ? 'Bloqueado' : 'Activo'}".</span>`;
-            if(cont) cont.innerHTML = `<div style="background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; padding:8px 12px; border-radius:8px;"><b><i class="ti ti-circle-check"></i> Equipo enrolado en Hexnode.</b>${d.name ? '<br><i class="ti ti-device-mobile"></i> ' + escapeHtml(d.name) : ''}<br>Estado: ${escapeHtml(d.estado || 'enrolled')}${detalle ? ' · ' + escapeHtml(detalle) : ''}${conexHtml}${lockHtml}${autoTxt}<br><b><i class="ti ti-circle-check"></i> LISTO para entregar al cliente.</b></div>`;
+            // "LISTO para entregar" ya NO se dice solo porque el equipo EXISTE en Hexnode (F09) —
+            // exige además conexión reciente (últimas 24h, o agente activo) y que no esté bloqueado.
+            const conectadoReciente = d.ultima_conexion ? ((Date.now() - new Date(d.ultima_conexion).getTime()) / 60000 < 1440) : !!d.agente_activo;
+            const listo = conectadoReciente && !d.bloqueado;
+            const listoHtml = listo
+                ? `<br><b><i class="ti ti-circle-check"></i> LISTO para entregar al cliente.</b>`
+                : `<br><b style="color:#b91c1c;"><i class="ti ti-alert-triangle"></i> AÚN NO — confirma conexión reciente y que no esté bloqueado antes de entregarlo.</b>`;
+            if(cont) cont.innerHTML = `<div style="background:${listo ? '#f0fdf4' : '#fffbeb'}; border:1px solid ${listo ? '#bbf7d0' : '#fde68a'}; color:${listo ? '#166534' : '#92400e'}; padding:8px 12px; border-radius:8px;"><b><i class="ti ti-circle-check"></i> Equipo enrolado en Hexnode.</b>${d.name ? '<br><i class="ti ti-device-mobile"></i> ' + escapeHtml(d.name) : ''}<br>Estado: ${escapeHtml(d.estado || 'enrolled')}${detalle ? ' · ' + escapeHtml(detalle) : ''}${conexHtml}${lockHtml}${autoTxt}${listoHtml}</div>`;
         } else {
             const msg = (data && data.error) || 'El equipo NO aparece enrolado en Hexnode.';
             if(cont) cont.innerHTML = `<div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:8px 12px; border-radius:8px;"><b><i class="ti ti-x"></i> NO verificado.</b><br>${escapeHtml(msg)}<br><b><i class="ti ti-alert-triangle"></i> NO entregues el equipo todavía.</b></div>`;
