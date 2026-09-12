@@ -15,7 +15,6 @@
     originalCrmLineaTab: null,
     meta: {
       whatsapp: { count: null, account: 'Mensajes', ready: true },
-      whatsapp: { count: null, account: 'Mensajes', ready: true },
       instagram: { count: null, account: '', ready: true },
       facebook: { count: null, account: 'Pendiente', ready: false },
       tiktok: { count: null, account: 'Pendiente', ready: false }
@@ -89,6 +88,7 @@
       </div>`;
 
     head.classList.add('bc-smart-ready');
+    head.setAttribute('aria-label','Redes sociales: WhatsApp, Instagram, Facebook y TikTok');
     bindHeader();
     renderInteractionNav();
     syncHeaderState();

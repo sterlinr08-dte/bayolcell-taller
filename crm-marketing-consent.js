@@ -4,7 +4,7 @@
   if(window.__bcCrmExtensionsLoader)return;
   window.__bcCrmExtensionsLoader=true;
 
-  var V='20260912g';
+  var V='20260912h';
   var legacy=document.createElement('script');
   legacy.src='crm-marketing-consent-legacy.js?v='+V;
   legacy.onload=function(){
