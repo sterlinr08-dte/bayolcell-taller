@@ -392,11 +392,36 @@
     if(wa) wa.style.display='none';
     if(leads) leads.style.display='none';
     head.style.display='';
+    syncConnectedAccounts();
     setTabs(true);
     renderInteractionNav();
     syncHeaderState();
     showCurrentContent();
     scheduleRefresh();
+  }
+
+  // Consulta los IDs reales de Zernio desde una Edge Function protegida.
+  // Nunca se expone la API key en el navegador; la función solo devuelve
+  // metadatos públicos de las cuentas y las registra en social_cuentas.
+  let accountSyncStarted = false;
+  async function syncConnectedAccounts(){
+    if(accountSyncStarted) return;
+    accountSyncStarted = true;
+    const client = window.supabaseClient || window.supabase;
+    const sucursalId = window.sessionUser?.sucursal_id || window.sessionUser?.sucursalId;
+    if(!client?.functions?.invoke || !sucursalId) return;
+    try{
+      const {data,error}=await client.functions.invoke('social-sincronizar-cuentas',{body:{sync:true,sucursalId}});
+      if(error || !data?.ok) return;
+      (data.accounts||[]).forEach(a=>{
+        const ch=a.platform;
+        if(!state.meta[ch]) return;
+        state.meta[ch].ready=!!a.isActive;
+        state.meta[ch].account=a.username || a.displayName || 'Conectado';
+      });
+      syncHeaderState();
+      if(state.visible) showCurrentContent();
+    }catch(e){ console.warn('[social] sync de cuentas no disponible',e); }
   }
 
   function hideSocial(){
