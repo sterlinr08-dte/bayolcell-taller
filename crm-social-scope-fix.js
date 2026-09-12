@@ -475,6 +475,28 @@
     scheduleRefresh();
   }
 
+  // The account list can briefly lag behind a page that was just connected.
+  // If the list endpoint is unavailable, use the already registered account
+  // in Supabase so Facebook history can still be imported without exposing
+  // the Zernio key in the browser.
+  async function importFacebookHistory(client, sucursalId, accountId){
+    if(!client?.from || !client?.functions?.invoke || !sucursalId) return null;
+    let id=accountId||null;
+    if(!id){
+      try{
+        const {data}=await withTimeout(client.from('social_cuentas').select('zernio_account_id').eq('sucursal_id',sucursalId).eq('plataforma','facebook').eq('activo',true).order('actualizado_en',{ascending:false}).limit(1).maybeSingle(),10000);
+        id=data?.zernio_account_id||null;
+      }catch(e){ console.warn('[social] no se pudo resolver la cuenta Facebook registrada',e); }
+    }
+    if(!id) return null;
+    try{
+      const result=await withTimeout(client.functions.invoke('social-importar-historial',{body:{accountId:id,sucursalId}}),25000);
+      if(result?.error) throw result.error;
+      return result?.data||null;
+    }catch(e){ console.warn('[social] importación de historial Facebook no disponible',e); return null; }
+    finally{ if(state.visible && state.channel==='facebook') loadFacebookThreads(); }
+  }
+
   // Consulta los IDs reales de Zernio desde una Edge Function protegida.
   // Nunca se expone la API key en el navegador; la función solo devuelve
   // metadatos públicos de las cuentas y las registra en social_cuentas.
@@ -495,6 +517,7 @@
         state.meta.facebook.ready=false;
         state.meta.tiktok.ready=false;
         syncHeaderState();
+        await importFacebookHistory(client,sucursalId);
         if(state.channel==='facebook') loadFacebookThreads();
         return;
       }
@@ -507,11 +530,11 @@
       syncHeaderState();
       if(state.visible) showCurrentContent();
       const fb=data.accounts?.find(a=>a.platform==='facebook');
-      if(fb && sucursalId){
-        try{
-          await withTimeout(client.functions.invoke('social-importar-historial',{body:{accountId:fb._id,sucursalId}}),25000);
-        }catch(e){ console.warn('[social] importación inicial de Facebook continúa en segundo plano',e); }
-        await loadFacebookThreads();
+      const imported=await importFacebookHistory(client,sucursalId,fb?._id);
+      // Meta replay is asynchronous. A second sweep catches conversations
+      // that were not visible during the first listing call.
+      if(imported && Number(imported.threads||0)===0){
+        setTimeout(()=>{ if(state.visible && state.channel==='facebook') importFacebookHistory(client,sucursalId,fb?._id); },10000);
       }
     }catch(e){
       accountSyncStarted=false;
@@ -519,6 +542,7 @@
       state.meta.facebook.ready=false;
       state.meta.tiktok.ready=false;
       syncHeaderState();
+      await importFacebookHistory(client,sucursalId);
       if(state.channel==='facebook') loadFacebookThreads();
     }
   }
