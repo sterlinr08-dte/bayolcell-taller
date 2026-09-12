@@ -9070,13 +9070,21 @@ async function guardarAsiento() {
     if(td <= 0) return toast('El asiento no tiene montos.', 'error');
     if(Math.abs(td - th) >= 0.005) return toast('El asiento no cuadra: Débito (' + money(td) + ') ≠ Crédito (' + money(th) + ').', 'error');
     try {
-        const { data: maxA } = await supabaseClient.from('conta_asientos').select('numero').order('numero', { ascending: false }).limit(1);
-        const numero = ((maxA && maxA[0] && maxA[0].numero) || 0) + 1;
-        const { data: asiento, error: e1 } = await supabaseClient.from('conta_asientos').insert({ numero, fecha, sucursal, referencia, descripcion, creado_por: sessionUser?.id || null }).select().single();
-        if(e1) throw e1;
-        const filas = lineas.map((l, i) => ({ asiento_id: asiento.id, cuenta_codigo: l.cuenta_codigo, cuenta_nombre: l.cuenta_nombre, debe: l.debe, haber: l.haber, orden: i }));
-        const { error: e2 } = await supabaseClient.from('conta_asiento_lineas').insert(filas);
-        if(e2) throw e2;
+        // Se registra en UNA sola operación atómica en el servidor (RPC `guardar_asiento_contable`):
+        // el número de asiento se asigna con una secuencia de Postgres (sin colisiones entre usuarios
+        // simultáneos) y se valida que Débito = Crédito ANTES de insertar; si algo falla, se revierte todo
+        // (no puede quedar una cabecera de asiento huérfana sin líneas, ni un asiento descuadrado).
+        const lineasPayload = lineas.map(l => ({ cuenta_codigo: l.cuenta_codigo, cuenta_nombre: l.cuenta_nombre, debe: l.debe, haber: l.haber }));
+        const { data, error } = await supabaseClient.rpc('guardar_asiento_contable', {
+            p_fecha: fecha,
+            p_sucursal: sucursal,
+            p_referencia: referencia,
+            p_descripcion: descripcion,
+            p_lineas: lineasPayload,
+            p_usuario: sessionUser?.id || null
+        });
+        if(error) throw error;
+        const numero = Array.isArray(data) ? data[0]?.numero : data?.numero;
         cerrarModalAsiento();
         toast('✅ Asiento #' + numero + ' registrado.');
         renderLibroDiario();
@@ -9098,11 +9106,15 @@ async function renderLibroDiario() {
         const porAs = {}; (lineas || []).forEach(l => { (porAs[l.asiento_id] = porAs[l.asiento_id] || []).push(l); });
         tb.innerHTML = asientos.map(a => {
             const ls = porAs[a.id] || [];
-            const tot = ls.reduce((s, l) => s + Number(l.debe || 0), 0);
+            // Débito y Crédito se suman POR SEPARADO (no asumir que cuadran): si un asiento quedara
+            // descuadrado, aquí se nota (no se oculta mostrando el mismo total en ambas columnas).
+            const totD = ls.reduce((s, l) => s + Number(l.debe || 0), 0);
+            const totH = ls.reduce((s, l) => s + Number(l.haber || 0), 0);
+            const noCuadra = Math.abs(totD - totH) >= 0.01;
             const detalle = ls.map(l => `<tr style="background:rgba(0,0,0,0.02); font-size:12px;"><td></td><td colspan="3" style="padding-left:18px;">${escapeHtml(l.cuenta_codigo || '')} · ${escapeHtml(l.cuenta_nombre || '')}</td><td style="text-align:right;">${l.debe > 0 ? money(l.debe) : ''}</td><td style="text-align:right;">${l.haber > 0 ? money(l.haber) : ''}</td><td></td></tr>`).join('');
             return `<tr>
                 <td><b>${a.numero || ''}</b></td><td>${a.fecha || ''}</td><td>${escapeHtml(a.descripcion || '')}${a.referencia ? ` <small style="color:var(--text-muted)">(${escapeHtml(a.referencia)})</small>` : ''}</td>
-                <td>${escapeHtml(a.sucursal || '')}</td><td style="text-align:right; font-weight:700;">${money(tot)}</td><td style="text-align:right; font-weight:700;">${money(tot)}</td>
+                <td>${escapeHtml(a.sucursal || '')}</td><td style="text-align:right; font-weight:700;${noCuadra ? 'color:#dc2626;' : ''}">${money(totD)}</td><td style="text-align:right; font-weight:700;${noCuadra ? 'color:#dc2626;' : ''}">${money(totH)}${noCuadra ? ' <i class="ti ti-alert-triangle" title="Este asiento NO cuadra"></i>' : ''}</td>
                 <td style="white-space:nowrap;">
                     <button onclick="var n=this.closest('tr').nextElementSibling; n.style.display=(n.style.display==='none'?'':'none');" style="background:#dbeafe;color:#1e40af;border:0;padding:6px 8px;border-radius:6px;cursor:pointer;" title="Ver detalle"><i class="ti ti-eye"></i></button>
                     <button onclick="eliminarAsiento('${a.id}')" style="background:#fee2e2;color:#991b1b;border:0;padding:6px 8px;border-radius:6px;cursor:pointer;" title="Eliminar"><i class="ti ti-trash"></i></button>
