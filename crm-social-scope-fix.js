@@ -1,92 +1,341 @@
-/* BAYOL CELL — alcance de Redes: Instagram + Facebook + TikTok */
+/* BAYOL CELL — Redes: navegación inteligente de 2 barras */
 (() => {
   'use strict';
   if (window.__bcSocialScopeFix) return;
   window.__bcSocialScopeFix = true;
 
-  const $ = (s,r=document) => r.querySelector(s);
-  let socialVisible = false;
-  let socialChannel = 'instagram';
-  let originalCrmLineaTab = null;
-  let refreshTimer = null;
-
-  function ensureTikTokUi(head){
-    const channels=head.querySelector('.bc-social-channels');
-    if(channels && !channels.querySelector('[data-channel="tiktok"]')){
-      const btn=document.createElement('button');
-      btn.className='bc-social-channel';
-      btn.dataset.channel='tiktok';
-      btn.dataset.ready='0';
-      btn.type='button';
-      btn.innerHTML='<span class="bc-dot"></span><i class="ti ti-brand-tiktok"></i>TikTok';
-      channels.appendChild(btn);
+  const $ = (s, r=document) => r.querySelector(s);
+  const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+  const state = {
+    visible: false,
+    channel: 'instagram',
+    view: 'all',
+    unreadOnly: false,
+    refreshTimer: null,
+    originalCrmLineaTab: null,
+    meta: {
+      instagram: { count: null, account: '', ready: true },
+      facebook: { count: null, account: 'Pendiente', ready: false },
+      tiktok: { count: null, account: 'Pendiente', ready: false }
     }
+  };
 
-    const kpis=head.querySelector('.bc-social-kpis');
-    if(kpis && !$('#bcKpiTiktok')){
-      const card=document.createElement('div');
-      card.className='bc-social-kpi';
-      card.dataset.tone='tt';
-      card.innerHTML='<div class="bc-social-kpi-icon"><i class="ti ti-brand-tiktok"></i></div><div class="bc-social-kpi-num" id="bcKpiTiktok">—</div><div class="bc-social-kpi-label">TikTok sin leer</div>';
-      const leads=$('#bcKpiLeads')?.closest('.bc-social-kpi');
-      if(leads) kpis.insertBefore(card,leads);
-      else kpis.appendChild(card);
-    }
+  const CHANNELS = {
+    instagram: { label:'Instagram', icon:'ti-brand-instagram' },
+    facebook: { label:'Facebook', icon:'ti-brand-facebook' },
+    tiktok: { label:'TikTok', icon:'ti-brand-tiktok' }
+  };
 
+  function ensureTikTokPanel(){
     const view=$('#v-crmLinea');
-    if(view && !$('#bcSocialTikTokPanel')){
-      const panel=document.createElement('section');
-      panel.id='bcSocialTikTokPanel';
-      panel.innerHTML=`
-        <div class="bc-tt-placeholder">
-          <div class="bc-tt-box">
-            <div class="bc-tt-icon"><i class="ti ti-brand-tiktok"></i></div>
-            <h3>TikTok preparado para integración</h3>
-            <p>El CRM ya reserva TikTok como tercer canal de Redes. En este repositorio todavía no existe backend conectado para cuenta, conversaciones, webhook o envío, por eso no se muestran funciones simuladas.</p>
-            <div class="bc-tt-list">
-              <div class="bc-tt-item"><b>Cuenta TikTok</b><span>Conectar la cuenta autorizada y asociarla a la sucursal correspondiente.</span></div>
-              <div class="bc-tt-item"><b>Bandeja</b><span>Crear almacenamiento real de conversaciones y mensajes con permisos por usuario/sucursal.</span></div>
-              <div class="bc-tt-item"><b>Webhook + respuesta</b><span>Agregar recepción de eventos y envío solo cuando la integración oficial disponible lo permita.</span></div>
-            </div>
-            <span class="bc-tt-state"><i class="ti ti-clock"></i> Integración backend pendiente</span>
-          </div>
-        </div>`;
-      view.appendChild(panel);
-    }
+    if(!view || $('#bcSocialTikTokPanel')) return;
+    const panel=document.createElement('section');
+    panel.id='bcSocialTikTokPanel';
+    panel.innerHTML=`
+      <div class="bc-tt-placeholder">
+        <div class="bc-tt-box">
+          <div class="bc-tt-icon"><i class="ti ti-brand-tiktok"></i></div>
+          <h3>TikTok preparado para integración</h3>
+          <p>La interfaz ya reserva TikTok dentro de Redes. Las acciones de comentarios e inbox se habilitarán únicamente cuando exista una integración oficial y autorizada para BAYOL CELL.</p>
+          <span class="bc-tt-state"><i class="ti ti-clock"></i> Integración backend pendiente</span>
+        </div>
+      </div>`;
+    view.appendChild(panel);
   }
 
-  function rewriteHeader(){
+  function ensureContextPanel(){
+    const view=$('#v-crmLinea');
+    if(!view || $('#bcSocialContextPanel')) return;
+    const panel=document.createElement('section');
+    panel.id='bcSocialContextPanel';
+    panel.innerHTML='<div class="bc-social-context-card"></div>';
+    view.appendChild(panel);
+  }
+
+  function ensureHeader(){
     const head=$('#bcSocialHubHead');
     if(!head) return false;
+    ensureTikTokPanel();
+    ensureContextPanel();
 
-    const title=head.querySelector('.bc-social-title');
-    const sub=head.querySelector('.bc-social-sub');
-    if(title) title.textContent='Instagram, Facebook y TikTok';
-    if(sub) sub.textContent='Bandeja de redes sociales separada del WhatsApp operativo.';
+    head.innerHTML=`
+      <div class="bc-smart-platforms" id="bcSmartPlatforms" role="tablist" aria-label="Red social">
+        ${Object.entries(CHANNELS).map(([key,c])=>`
+          <button type="button" class="bc-smart-platform" data-smart-channel="${key}" role="tab" aria-selected="false">
+            <span class="bc-smart-platform-icon"><i class="ti ${c.icon}"></i></span>
+            <span class="bc-smart-platform-copy">
+              <b>${c.label}</b>
+              <small id="bcSmartAccount-${key}">${key==='instagram'?'Cargando cuenta…':'Pendiente de integración'}</small>
+            </span>
+            <span class="bc-smart-count" id="bcSmartCount-${key}" hidden>—</span>
+          </button>`).join('')}
+      </div>
+      <div class="bc-smart-interactions">
+        <div class="bc-smart-interaction-track" id="bcSmartInteractionNav" role="tablist" aria-label="Tipo de interacción"></div>
+        <span class="bc-smart-divider" aria-hidden="true"></span>
+        <button type="button" class="bc-smart-filter" id="bcSmartFilterBtn" aria-expanded="false">
+          <i class="ti ti-filter"></i><span>Filtros</span><i class="ti ti-chevron-down"></i>
+        </button>
+        <div class="bc-smart-filter-pop" id="bcSmartFilterPop" hidden>
+          <label><input type="checkbox" id="bcSmartUnreadOnly"> <span>Solo sin leer</span></label>
+          <button type="button" id="bcSmartClearFilters">Limpiar filtros</button>
+          <small>Los filtros se aplican a los datos reales disponibles del canal.</small>
+        </div>
+      </div>`;
 
-    const waButton=head.querySelector('[data-channel="whatsapp"]');
-    if(waButton) waButton.remove();
-
-    const waKpi=$('#bcKpiWa')?.closest('.bc-social-kpi');
-    if(waKpi){
-      waKpi.dataset.tone='fb';
-      const icon=waKpi.querySelector('i');
-      const num=waKpi.querySelector('.bc-social-kpi-num');
-      const label=waKpi.querySelector('.bc-social-kpi-label');
-      if(icon) icon.className='ti ti-brand-facebook';
-      if(num){num.id='bcKpiFb';num.textContent='—';}
-      if(label) label.textContent='Facebook sin leer';
-    }
-
-    ensureTikTokUi(head);
-
-    const leadsLabel=$('#bcKpiLeads')?.parentElement?.querySelector('.bc-social-kpi-label');
-    if(leadsLabel) leadsLabel.textContent='Leads de redes';
-
-    const channelsLabel=$('#bcKpiChannels')?.parentElement?.querySelector('.bc-social-kpi-label');
-    if(channelsLabel) channelsLabel.textContent='Redes conectadas';
-
+    head.classList.add('bc-smart-ready');
+    bindHeader();
+    renderInteractionNav();
+    syncHeaderState();
     return true;
+  }
+
+  function interactionItems(channel){
+    const base = [
+      {key:'all', label:'Todos', sub:'Todas las interacciones', icon:'ti-layout-grid'},
+      {key:'messages', label:'Mensajes', sub: channel==='facebook' ? 'Messenger' : 'DM y respuestas', icon:'ti-send'},
+      {key:'comments', label:'Comentarios', sub:'Publicaciones y Reels', icon:'ti-message-circle'}
+    ];
+    if(channel==='instagram') base.push({key:'mentions', label:'Menciones', sub:'Historias y etiquetas', icon:'ti-at'});
+    return base;
+  }
+
+  function knownCount(channel, view){
+    if(channel==='instagram'){
+      if(view==='all' || view==='messages') return state.meta.instagram.count;
+      return null;
+    }
+    return null;
+  }
+
+  function renderInteractionNav(){
+    const host=$('#bcSmartInteractionNav');
+    if(!host) return;
+    const allowed=interactionItems(state.channel);
+    if(!allowed.some(x=>x.key===state.view)) state.view='all';
+    host.innerHTML=allowed.map(item=>{
+      const count=knownCount(state.channel,item.key);
+      const pending=(state.channel!=='instagram') || (state.channel==='instagram' && ['comments','mentions'].includes(item.key));
+      return `
+        <button type="button" class="bc-smart-interaction${state.view===item.key?' on':''}" data-smart-view="${item.key}" role="tab" aria-selected="${state.view===item.key}">
+          <span class="bc-smart-interaction-icon"><i class="ti ${item.icon}"></i></span>
+          <span class="bc-smart-interaction-copy"><b>${item.label}</b><small>${item.sub}</small></span>
+          ${count!=null ? `<span class="bc-smart-mini-count">${count}</span>` : (pending ? '<span class="bc-smart-pending-dot" title="Integración pendiente"></span>' : '')}
+        </button>`;
+    }).join('');
+  }
+
+  function syncHeaderState(){
+    $$('.bc-smart-platform').forEach(btn=>{
+      const on=btn.dataset.smartChannel===state.channel;
+      btn.classList.toggle('on',on);
+      btn.setAttribute('aria-selected',String(on));
+    });
+    Object.keys(CHANNELS).forEach(ch=>{
+      const meta=state.meta[ch];
+      const account=$(`#bcSmartAccount-${ch}`);
+      const count=$(`#bcSmartCount-${ch}`);
+      if(account) account.textContent=meta.account || (meta.ready?'Conectado':'Pendiente de integración');
+      if(count){
+        if(meta.count==null){
+          count.hidden=true;
+        }else{
+          count.hidden=false;
+          count.textContent=String(meta.count);
+        }
+      }
+    });
+  }
+
+  function bindHeader(){
+    const head=$('#bcSocialHubHead');
+    if(!head || head.dataset.smartBound==='1') return;
+    head.dataset.smartBound='1';
+
+    head.addEventListener('click',e=>{
+      const channelBtn=e.target.closest('[data-smart-channel]');
+      if(channelBtn){
+        selectChannel(channelBtn.dataset.smartChannel);
+        return;
+      }
+      const viewBtn=e.target.closest('[data-smart-view]');
+      if(viewBtn){
+        selectView(viewBtn.dataset.smartView);
+        return;
+      }
+      if(e.target.closest('#bcSmartFilterBtn')){
+        toggleFilters();
+        return;
+      }
+      if(e.target.closest('#bcSmartClearFilters')){
+        state.unreadOnly=false;
+        const input=$('#bcSmartUnreadOnly');
+        if(input) input.checked=false;
+        applyFilters();
+      }
+    });
+
+    head.addEventListener('change',e=>{
+      if(e.target?.id==='bcSmartUnreadOnly'){
+        state.unreadOnly=!!e.target.checked;
+        applyFilters();
+      }
+    });
+
+    document.addEventListener('click',e=>{
+      const pop=$('#bcSmartFilterPop');
+      const btn=$('#bcSmartFilterBtn');
+      if(!pop || pop.hidden) return;
+      if(!e.target.closest('#bcSmartFilterPop') && !e.target.closest('#bcSmartFilterBtn')){
+        pop.hidden=true;
+        btn?.setAttribute('aria-expanded','false');
+      }
+    },true);
+  }
+
+  function toggleFilters(){
+    const pop=$('#bcSmartFilterPop');
+    const btn=$('#bcSmartFilterBtn');
+    if(!pop || !btn) return;
+    pop.hidden=!pop.hidden;
+    btn.setAttribute('aria-expanded',String(!pop.hidden));
+  }
+
+  function selectChannel(channel){
+    if(!CHANNELS[channel]) return;
+    state.channel=channel;
+    state.view='all';
+    renderInteractionNav();
+    syncHeaderState();
+    showCurrentContent();
+    scheduleRefresh();
+  }
+
+  function selectView(view){
+    if(!interactionItems(state.channel).some(x=>x.key===view)) return;
+    state.view=view;
+    renderInteractionNav();
+    showCurrentContent();
+  }
+
+  function contextInfo(){
+    const ch=CHANNELS[state.channel]?.label || state.channel;
+    const configs={
+      instagram:{
+        comments:{
+          icon:'ti-message-circle',
+          title:'Comentarios de Instagram',
+          text:'Aquí se mostrarán comentarios de publicaciones y Reels, con publicación de origen, estado, tiempo sin responder, agente y acceso a conversación privada relacionada.',
+          chips:['Publicación de origen','Responder público','Enviar a DM','Convertir en lead']
+        },
+        mentions:{
+          icon:'ti-at',
+          title:'Menciones de Instagram',
+          text:'Aquí se mostrarán menciones, historias y etiquetas cuando el webhook y permisos correspondientes estén conectados.',
+          chips:['Historia / mención','Responder','Asignar agente','Convertir en lead']
+        }
+      },
+      facebook:{
+        all:{
+          icon:'ti-brand-facebook',
+          title:'Actividad de Facebook',
+          text:'Esta vista reunirá Messenger y comentarios de Facebook sin mezclar ni duplicar interacciones.',
+          chips:['Messenger','Comentarios','Private Reply','Leads']
+        },
+        messages:{
+          icon:'ti-brand-messenger',
+          title:'Facebook Messenger',
+          text:'Bandeja privada preparada para conversaciones de Messenger. Se habilitará cuando la página, webhooks y envío estén conectados.',
+          chips:['Conversaciones','No leídos','Asignación','Notas']
+        },
+        comments:{
+          icon:'ti-message-circle',
+          title:'Comentarios de Facebook',
+          text:'Comentarios públicos con contexto de publicación, respuesta pública y Private Reply cuando Meta lo permita.',
+          chips:['Publicación','Responder público','Private Reply','Lead']
+        }
+      },
+      tiktok:{
+        all:{
+          icon:'ti-brand-tiktok',
+          title:'Actividad de TikTok',
+          text:'La vista está preparada para integrar únicamente las capacidades oficiales y autorizadas disponibles para BAYOL CELL.',
+          chips:['Comentarios','Inbox cuando aplique','Asignación','Leads']
+        },
+        messages:{
+          icon:'ti-send',
+          title:'TikTok Inbox',
+          text:'Reservado para mensajes privados si la integración oficial aprobada para la cuenta permite recibirlos y responderlos.',
+          chips:['Inbox','No leídos','Asignación']
+        },
+        comments:{
+          icon:'ti-message-circle',
+          title:'Comentarios de TikTok',
+          text:'Reservado para comentarios y respuestas cuando la API autorizada permita administrar esas interacciones.',
+          chips:['Video de origen','Comentario','Respuesta','Lead']
+        }
+      }
+    };
+    return configs[state.channel]?.[state.view] || {
+      icon: CHANNELS[state.channel]?.icon || 'ti-message-circle',
+      title:`${ch} · ${state.view}`,
+      text:'Esta sección se habilitará con datos reales del canal.',
+      chips:[]
+    };
+  }
+
+  function renderContext(){
+    const panel=$('#bcSocialContextPanel');
+    const card=$('.bc-social-context-card',panel);
+    if(!panel || !card) return;
+    const info=contextInfo();
+    const meta=state.meta[state.channel];
+    card.innerHTML=`
+      <div class="bc-context-icon"><i class="ti ${info.icon}"></i></div>
+      <div class="bc-context-copy">
+        <div class="bc-context-kicker">${CHANNELS[state.channel]?.label || ''}</div>
+        <h3>${info.title}</h3>
+        <p>${info.text}</p>
+        <div class="bc-context-chips">${(info.chips||[]).map(x=>`<span>${x}</span>`).join('')}</div>
+        <div class="bc-context-status ${meta?.ready && state.channel==='instagram' ? 'partial' : 'pending'}">
+          <i class="ti ${meta?.ready && state.channel==='instagram' ? 'ti-progress-check' : 'ti-clock'}"></i>
+          ${meta?.ready && state.channel==='instagram' ? 'Canal conectado · módulo específico pendiente' : 'Integración backend pendiente'}
+        </div>
+      </div>`;
+  }
+
+  function showCurrentContent(){
+    const view=$('#v-crmLinea');
+    const ig=$('#bcSocialInstagramPanel');
+    const fb=$('#bcSocialFacebookPanel');
+    const tt=$('#bcSocialTikTokPanel');
+    const ctx=$('#bcSocialContextPanel');
+    if(!view || !ig || !fb || !tt || !ctx) return;
+
+    ig.style.display='none';
+    fb.style.display='none';
+    tt.style.display='none';
+    ctx.style.display='none';
+
+    if(state.channel==='instagram' && (state.view==='all' || state.view==='messages')){
+      ig.style.display='';
+      view.dataset.socialChannel='instagram';
+      window.BayolSocialHub?.switchChannel?.('instagram');
+      setTimeout(applyFilters,60);
+    }else{
+      ctx.style.display='';
+      renderContext();
+      view.dataset.socialChannel=state.channel;
+    }
+    view.classList.remove('bc-ig-chat-open');
+  }
+
+  function applyFilters(){
+    if(state.channel!=='instagram' || !['all','messages'].includes(state.view)) return;
+    $$('.bc-ig-thread').forEach(row=>{
+      const hasUnread=!!row.querySelector('.bc-ig-unread');
+      row.hidden=state.unreadOnly && !hasUnread;
+    });
   }
 
   function ensureRedesTab(){
@@ -99,7 +348,7 @@
       btn.className='crm-tab-seg';
       btn.type='button';
       btn.innerHTML='<i class="ti ti-brand-meta"></i> Redes';
-      btn.addEventListener('click',()=>showSocial(socialChannel));
+      btn.addEventListener('click',()=>showSocial(state.channel));
       track.appendChild(btn);
     }
     return true;
@@ -119,127 +368,111 @@
   function showSocial(channel='instagram'){
     const view=$('#v-crmLinea');
     const head=$('#bcSocialHubHead');
-    const ig=$('#bcSocialInstagramPanel');
-    const fb=$('#bcSocialFacebookPanel');
-    const tt=$('#bcSocialTikTokPanel');
-    if(!view || !head || !ig || !fb || !tt) return;
-
-    socialVisible=true;
-    socialChannel=['instagram','facebook','tiktok'].includes(channel)?channel:'instagram';
+    if(!view || !head) return;
+    state.visible=true;
+    if(CHANNELS[channel]) state.channel=channel;
     view.classList.add('bc-social-mode');
-    view.classList.remove('bc-ig-chat-open');
     const wa=$('#crmLinea-mensajes'), leads=$('#crmLinea-leads');
     if(wa) wa.style.display='none';
     if(leads) leads.style.display='none';
     head.style.display='';
-    ig.style.display=socialChannel==='instagram'?'':'none';
-    fb.style.display=socialChannel==='facebook'?'':'none';
-    tt.style.display=socialChannel==='tiktok'?'':'none';
     setTabs(true);
-
-    head.querySelectorAll('[data-channel]').forEach(b=>b.classList.toggle('on',b.dataset.channel===socialChannel));
-    if(socialChannel!=='tiktok' && window.BayolSocialHub?.switchChannel){
-      window.BayolSocialHub.switchChannel(socialChannel);
-    }else{
-      view.dataset.socialChannel='tiktok';
-    }
-    scheduleSocialKpis();
+    renderInteractionNav();
+    syncHeaderState();
+    showCurrentContent();
+    scheduleRefresh();
   }
 
   function hideSocial(){
-    socialVisible=false;
+    state.visible=false;
     const view=$('#v-crmLinea');
     if(view){
       view.classList.remove('bc-social-mode','bc-ig-chat-open');
       view.dataset.socialChannel='whatsapp';
     }
-    const head=$('#bcSocialHubHead'),ig=$('#bcSocialInstagramPanel'),fb=$('#bcSocialFacebookPanel'),tt=$('#bcSocialTikTokPanel');
+    const head=$('#bcSocialHubHead');
     if(head) head.style.display='none';
-    if(ig) ig.style.display='none';
-    if(fb) fb.style.display='none';
-    if(tt) tt.style.display='none';
+    ['#bcSocialInstagramPanel','#bcSocialFacebookPanel','#bcSocialTikTokPanel','#bcSocialContextPanel'].forEach(id=>{
+      const el=$(id); if(el) el.style.display='none';
+    });
     setTabs(false);
   }
 
   function patchTabs(){
     if(window.__bcSocialTabsPatched || typeof window.crmLineaTab!=='function') return;
-    originalCrmLineaTab=window.crmLineaTab;
-    window.crmLineaTab=async function(name){
+    state.originalCrmLineaTab=window.crmLineaTab;
+    window.crmLineaTab=async function(){
       hideSocial();
-      return originalCrmLineaTab.apply(this,arguments);
+      return state.originalCrmLineaTab.apply(this,arguments);
     };
     window.__bcSocialTabsPatched=true;
   }
 
-  function patchChannelClicks(){
-    const head=$('#bcSocialHubHead');
-    if(!head || head.dataset.scopeFixed==='1') return;
-    head.dataset.scopeFixed='1';
-    head.addEventListener('click',(e)=>{
-      const b=e.target.closest('[data-channel]');
-      if(!b) return;
-      const ch=b.dataset.channel;
-      if(!['instagram','facebook','tiktok'].includes(ch)) return;
-      socialChannel=ch;
-      if(socialVisible) setTimeout(()=>showSocial(ch),0);
-    },true);
-  }
-
-  async function refreshSocialKpis(){
-    if(!socialVisible || !window.supabaseClient) return;
+  async function refreshSmartData(){
+    if(!state.visible || !window.supabaseClient) return;
     const client=window.supabaseClient;
     try{
-      const {count}=await client.from('leads').select('id',{count:'exact',head:true})
-        .in('canal',['instagram','facebook'])
-        .in('etapa',['nuevo','contactado','cotizado']);
-      const el=$('#bcKpiLeads');
-      if(el) el.textContent=String(count??0);
+      const {data:accounts,error:aErr}=await client.from('instagram_cuentas').select('id,instagram_username,nombre').eq('activo',true).limit(10);
+      if(!aErr && accounts?.length){
+        const account=accounts[0];
+        state.meta.instagram.account=account.instagram_username ? `@${account.instagram_username}` : (account.nombre || 'Conectado');
+        const {data:threads,error:tErr}=await client.from('instagram_hilos').select('id,no_leidos_count').eq('cuenta_id',account.id).eq('estado','abierto').limit(5000);
+        if(!tErr) state.meta.instagram.count=(threads||[]).reduce((sum,h)=>sum+Number(h.no_leidos_count||0),0);
+      }else if(!aErr){
+        state.meta.instagram.account='Sin cuenta disponible';
+        state.meta.instagram.count=0;
+      }
     }catch{}
 
-    try{
-      const {count}=await client.from('instagram_cuentas').select('id',{count:'exact',head:true}).eq('activo',true);
-      const el=$('#bcKpiChannels');
-      if(el) el.textContent=`${(count||0)>0?1:0}/3`;
-    }catch{}
-
-    const fb=$('#bcKpiFb');
-    const tt=$('#bcKpiTiktok');
-    if(fb) fb.textContent='—';
-    if(tt) tt.textContent='—';
+    syncHeaderState();
+    renderInteractionNav();
+    applyFilters();
   }
 
-  function scheduleSocialKpis(){
-    clearTimeout(refreshTimer);
-    refreshTimer=setTimeout(refreshSocialKpis,120);
+  function scheduleRefresh(){
+    clearTimeout(state.refreshTimer);
+    state.refreshTimer=setTimeout(refreshSmartData,120);
+  }
+
+  function observeInbox(){
+    const host=$('#bcIgThreads');
+    if(!host || host.dataset.smartObserved==='1') return;
+    host.dataset.smartObserved='1';
+    new MutationObserver(()=>applyFilters()).observe(host,{childList:true,subtree:true});
   }
 
   function finalize(){
-    if(!rewriteHeader() || !ensureRedesTab()) return false;
+    if(!ensureHeader() || !ensureRedesTab()) return false;
     patchTabs();
-    patchChannelClicks();
     hideSocial();
+    observeInbox();
 
     const view=$('#v-crmLinea');
     if(view && !view.dataset.socialScopeObserved){
       view.dataset.socialScopeObserved='1';
       new MutationObserver(()=>{
-        if(view.classList.contains('active') && socialVisible) scheduleSocialKpis();
+        if(view.classList.contains('active') && state.visible) scheduleRefresh();
       }).observe(view,{attributes:true,attributeFilter:['class']});
     }
 
     window.BayolSocialNetworks={
       show:showSocial,
       hide:hideSocial,
-      get channel(){return socialChannel;},
-      refresh:refreshSocialKpis,
-      version:'20260912c'
+      selectChannel,
+      selectView,
+      get channel(){return state.channel;},
+      get view(){return state.view;},
+      refresh:refreshSmartData,
+      version:'20260912d'
     };
     return true;
   }
 
   function start(){
     if(finalize()) return;
-    const mo=new MutationObserver(()=>{if(finalize())mo.disconnect();});
+    const mo=new MutationObserver(()=>{
+      if(finalize()) mo.disconnect();
+    });
     mo.observe(document.documentElement,{childList:true,subtree:true});
     setTimeout(()=>mo.disconnect(),30000);
   }
