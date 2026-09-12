@@ -5,18 +5,18 @@
   window.__bcCrmExtensionsLoader=true;
 
   var legacy=document.createElement('script');
-  legacy.src='crm-marketing-consent-legacy.js?v=20260912b';
+  legacy.src='crm-marketing-consent-legacy.js?v=20260912c';
   legacy.onload=function(){
     var scopeCss=document.createElement('link');
     scopeCss.rel='stylesheet';
-    scopeCss.href='crm-social-scope-fix.css?v=20260912b';
+    scopeCss.href='crm-social-scope-fix.css?v=20260912c';
     document.head.appendChild(scopeCss);
 
     var hub=document.createElement('script');
-    hub.src='crm-social-hub.js?v=20260912b';
+    hub.src='crm-social-hub.js?v=20260912c';
     hub.onload=function(){
       var scope=document.createElement('script');
-      scope.src='crm-social-scope-fix.js?v=20260912b';
+      scope.src='crm-social-scope-fix.js?v=20260912c';
       document.head.appendChild(scope);
     };
     document.head.appendChild(hub);
