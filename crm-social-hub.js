@@ -1,0 +1,389 @@
+/* BAYOL CELL — CRM Social Hub
+   Capa aditiva para unificar visualmente WhatsApp + Instagram + Facebook.
+   - WhatsApp conserva intactos sus IDs, handlers y flujo existente.
+   - Instagram usa tablas reales + Edge Function instagram-enviar.
+   - Facebook se muestra como integración pendiente; no se simulan acciones.
+*/
+(() => {
+  'use strict';
+  if (window.BayolSocialHub) return;
+
+  const VERSION = '20260912a';
+  const state = {
+    channel: 'whatsapp',
+    mounted: false,
+    account: null,
+    threads: [],
+    selected: null,
+    messages: [],
+    search: '',
+    realtime: null,
+    refreshTimer: null,
+    busySend: false
+  };
+
+  const $ = (s, r=document) => r.querySelector(s);
+  const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const initials = (v) => String(v || 'IG').trim().split(/\s+/).slice(0,2).map(x => x[0]?.toUpperCase() || '').join('') || 'IG';
+  const fmtTime = (v) => {
+    if (!v) return '';
+    try {
+      const d = new Date(v), now = new Date();
+      const same = d.toDateString() === now.toDateString();
+      return same
+        ? d.toLocaleTimeString('es-DO',{hour:'2-digit',minute:'2-digit'})
+        : d.toLocaleDateString('es-DO',{day:'2-digit',month:'2-digit'});
+    } catch { return ''; }
+  };
+  const notify = (msg, type='info') => {
+    try {
+      if (type === 'error' && typeof window.toastError === 'function') return window.toastError(msg);
+      if (typeof window.toast === 'function') return window.toast(msg, type === 'error' ? 'error' : undefined);
+    } catch {}
+    console[type === 'error' ? 'error' : 'log'](msg);
+  };
+  const sb = () => window.supabaseClient;
+
+  function ensureCss(){
+    if ($('#bcSocialHubCss')) return;
+    const l = document.createElement('link');
+    l.id = 'bcSocialHubCss';
+    l.rel = 'stylesheet';
+    l.href = `crm-social-hub.css?v=${VERSION}`;
+    document.head.appendChild(l);
+  }
+
+  function mount(){
+    if (state.mounted) return true;
+    const view = $('#v-crmLinea');
+    if (!view) return false;
+    ensureCss();
+
+    const head = document.createElement('section');
+    head.id = 'bcSocialHubHead';
+    head.innerHTML = `
+      <div class="bc-social-title-row">
+        <div class="bc-social-title-copy">
+          <div class="bc-social-eyebrow">BAYOL CELL</div>
+          <div class="bc-social-title">CRM · Canales</div>
+          <div class="bc-social-sub">Mensajería centralizada con datos reales de cada canal conectado.</div>
+        </div>
+        <div class="bc-social-channels" role="tablist" aria-label="Canales del CRM">
+          <button class="bc-social-channel on" data-channel="whatsapp" data-ready="1" type="button"><span class="bc-dot"></span><i class="ti ti-brand-whatsapp"></i>WhatsApp</button>
+          <button class="bc-social-channel" data-channel="instagram" data-ready="1" type="button"><span class="bc-dot"></span><i class="ti ti-brand-instagram"></i>Instagram</button>
+          <button class="bc-social-channel" data-channel="facebook" data-ready="0" type="button"><span class="bc-dot"></span><i class="ti ti-brand-facebook"></i>Facebook</button>
+        </div>
+      </div>
+      <div class="bc-social-kpis">
+        <div class="bc-social-kpi" data-tone="wa"><div class="bc-social-kpi-icon"><i class="ti ti-brand-whatsapp"></i></div><div class="bc-social-kpi-num" id="bcKpiWa">—</div><div class="bc-social-kpi-label">WhatsApp pendientes</div></div>
+        <div class="bc-social-kpi" data-tone="ig"><div class="bc-social-kpi-icon"><i class="ti ti-brand-instagram"></i></div><div class="bc-social-kpi-num" id="bcKpiIg">—</div><div class="bc-social-kpi-label">Instagram sin leer</div></div>
+        <div class="bc-social-kpi" data-tone="lead"><div class="bc-social-kpi-icon"><i class="ti ti-user-plus"></i></div><div class="bc-social-kpi-num" id="bcKpiLeads">—</div><div class="bc-social-kpi-label">Leads abiertos</div></div>
+        <div class="bc-social-kpi" data-tone="all"><div class="bc-social-kpi-icon"><i class="ti ti-plug-connected"></i></div><div class="bc-social-kpi-num" id="bcKpiChannels">—</div><div class="bc-social-kpi-label">Canales conectados</div></div>
+      </div>`;
+
+    const ig = document.createElement('section');
+    ig.id = 'bcSocialInstagramPanel';
+    ig.innerHTML = `
+      <div class="bc-ig-shell">
+        <aside class="bc-ig-list">
+          <div class="bc-ig-list-head">
+            <div class="bc-ig-account">
+              <div class="bc-ig-logo"><i class="ti ti-brand-instagram"></i></div>
+              <div class="bc-ig-account-copy"><div class="bc-ig-account-name" id="bcIgAccountName">Instagram</div><div class="bc-ig-account-sub" id="bcIgAccountSub">Cargando cuenta…</div></div>
+              <span class="bc-ig-status" id="bcIgStatus">Conectado</span>
+            </div>
+            <div class="bc-ig-search"><i class="ti ti-search"></i><input id="bcIgSearch" type="search" placeholder="Buscar conversación…"></div>
+            <div class="bc-ig-capabilities">
+              <span class="bc-ig-cap on">Direct</span>
+              <span class="bc-ig-cap pending" title="No hay backend de comentarios conectado todavía">Comentarios · pendiente</span>
+              <span class="bc-ig-cap pending" title="No hay backend de menciones conectado todavía">Menciones · pendiente</span>
+            </div>
+          </div>
+          <div class="bc-ig-threads" id="bcIgThreads"><div class="bc-social-loading"><span class="bc-social-spin"></span>Cargando conversaciones…</div></div>
+        </aside>
+        <section class="bc-ig-chat" id="bcIgChat">
+          <div class="bc-ig-empty"><div><i class="ti ti-brand-instagram"></i><b>Selecciona una conversación</b><span>Los mensajes de Instagram Direct aparecerán aquí. Esta vista usa los hilos reales guardados en Supabase.</span></div></div>
+        </section>
+      </div>`;
+
+    const fb = document.createElement('section');
+    fb.id = 'bcSocialFacebookPanel';
+    fb.innerHTML = `
+      <div class="bc-fb-placeholder">
+        <div class="bc-fb-box">
+          <div class="bc-fb-icon"><i class="ti ti-brand-facebook"></i></div>
+          <h3>Facebook listo para la siguiente fase</h3>
+          <p>La interfaz ya reserva Facebook como canal del CRM, pero no voy a mostrar funciones falsas. En este proyecto todavía faltan la cuenta, los hilos/mensajes y las funciones de webhook/envío equivalentes a Instagram.</p>
+          <div class="bc-fb-list">
+            <div class="bc-fb-item"><b>Cuenta / Página</b><span>Registrar la página de Meta y su cuenta Zernio.</span></div>
+            <div class="bc-fb-item"><b>Messenger</b><span>Crear almacenamiento de hilos y mensajes con RLS.</span></div>
+            <div class="bc-fb-item"><b>Webhook + envío</b><span>Recibir y responder mensajes reales desde el CRM.</span></div>
+          </div>
+          <span class="bc-fb-state"><i class="ti ti-clock"></i> Integración backend pendiente</span>
+        </div>
+      </div>`;
+
+    const title = $('#crmLineaTituloTxt', view);
+    if (title?.nextSibling) view.insertBefore(head, title.nextSibling);
+    else view.prepend(head);
+    view.appendChild(ig);
+    view.appendChild(fb);
+    view.dataset.socialChannel = 'whatsapp';
+
+    head.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-channel]');
+      if (b) switchChannel(b.dataset.channel);
+    });
+    $('#bcIgSearch')?.addEventListener('input', (e) => {
+      state.search = String(e.target.value || '').trim().toLowerCase();
+      renderThreads();
+    });
+
+    state.mounted = true;
+    bindActivation();
+    refreshAll();
+    return true;
+  }
+
+  function bindActivation(){
+    const view = $('#v-crmLinea');
+    if (!view) return;
+    const mo = new MutationObserver(() => {
+      if (view.classList.contains('active')) scheduleRefresh();
+    });
+    mo.observe(view,{attributes:true,attributeFilter:['class']});
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('#menu-crm')) setTimeout(() => { mount(); refreshAll(); }, 80);
+    }, true);
+  }
+
+  function switchChannel(channel){
+    if (!['whatsapp','instagram','facebook'].includes(channel)) return;
+    state.channel = channel;
+    const view = $('#v-crmLinea');
+    if (!view) return;
+    view.dataset.socialChannel = channel;
+    view.classList.remove('bc-ig-chat-open');
+    document.querySelectorAll('#bcSocialHubHead .bc-social-channel').forEach(b => b.classList.toggle('on', b.dataset.channel === channel));
+    if (channel === 'instagram') {
+      loadInstagram(true);
+    } else if (channel === 'whatsapp') {
+      try {
+        const tab = localStorage.getItem('bayol_subtab_crmlinea') || 'mensajes';
+        if (typeof window.crmLineaTab === 'function') window.crmLineaTab(tab);
+      } catch {}
+      scheduleRefresh();
+    } else scheduleRefresh();
+  }
+
+  function scheduleRefresh(){
+    clearTimeout(state.refreshTimer);
+    state.refreshTimer = setTimeout(() => refreshAll(), 140);
+  }
+
+  async function refreshAll(){
+    if (!state.mounted || !sb()) return;
+    await Promise.allSettled([refreshKpis(), state.channel === 'instagram' ? loadInstagram(false) : Promise.resolve()]);
+  }
+
+  async function refreshKpis(){
+    const client = sb();
+    if (!client) return;
+    let waPending = null, igUnread = null, leads = null, channels = 0;
+    try {
+      if (Array.isArray(window._waHilos)) {
+        waPending = window._waHilos.filter(h => {
+          try { return typeof window._crmEsPendiente === 'function' ? window._crmEsPendiente(h) : (Number(h.no_leidos_count||0) > 0); }
+          catch { return Number(h.no_leidos_count||0) > 0; }
+        }).length;
+      } else {
+        const {data} = await client.from('whatsapp_hilos').select('id,no_leidos_count,ultimo_inbound_at,ultima_respuesta_humana_at').eq('estado','abierto').limit(5000);
+        waPending = (data || []).filter(h => Number(h.no_leidos_count||0) > 0).length;
+      }
+    } catch {}
+    try {
+      const {data} = await client.from('instagram_hilos').select('id,no_leidos_count').eq('estado','abierto').limit(5000);
+      igUnread = (data || []).reduce((n,h)=>n+Number(h.no_leidos_count||0),0);
+    } catch {}
+    try {
+      const {count} = await client.from('leads').select('id',{count:'exact',head:true}).in('etapa',['nuevo','contactado','cotizado']);
+      leads = count ?? 0;
+    } catch {}
+    try {
+      const [{count:waCount},{count:igCount}] = await Promise.all([
+        client.from('whatsapp_lineas').select('id',{count:'exact',head:true}).eq('activo',true),
+        client.from('instagram_cuentas').select('id',{count:'exact',head:true}).eq('activo',true)
+      ]);
+      if ((waCount||0) > 0) channels++;
+      if ((igCount||0) > 0) channels++;
+    } catch {}
+    const put=(id,v)=>{ const el=$(id); if(el) el.textContent = v == null ? '—' : String(v); };
+    put('#bcKpiWa',waPending); put('#bcKpiIg',igUnread); put('#bcKpiLeads',leads); put('#bcKpiChannels',`${channels}/3`);
+  }
+
+  async function loadInstagram(force){
+    const client = sb();
+    if (!client) return;
+    const list = $('#bcIgThreads');
+    if (!list) return;
+    if (force && !state.threads.length) list.innerHTML = '<div class="bc-social-loading"><span class="bc-social-spin"></span>Cargando conversaciones…</div>';
+    try {
+      let q = client.from('instagram_cuentas').select('*').eq('activo',true).order('creado_en',{ascending:true}).limit(10);
+      const ownBranch = window.sessionUser?.sucursal_id || null;
+      if (ownBranch) q = q.eq('sucursal_id',ownBranch);
+      const {data:accounts,error:aErr}=await q;
+      if (aErr) throw aErr;
+      state.account = (accounts || [])[0] || null;
+      const name = $('#bcIgAccountName'), sub = $('#bcIgAccountSub'), status = $('#bcIgStatus');
+      if (!state.account) {
+        if(name) name.textContent='Instagram';
+        if(sub) sub.textContent='Sin cuenta disponible para este usuario';
+        if(status){status.textContent='Sin acceso';status.style.color='#b54708';status.style.background='#fffaeb';status.style.borderColor='#fedf89';}
+        state.threads=[]; renderThreads();
+        renderIgEmpty('Sin cuenta disponible','No existe una cuenta de Instagram activa accesible para tu usuario o sucursal.');
+        return;
+      }
+      if(name) name.textContent = state.account.instagram_username ? `@${state.account.instagram_username}` : (state.account.nombre || 'Instagram');
+      if(sub) sub.textContent = state.account.login_method === 'facebook_login' ? 'Conectado mediante Facebook Login' : 'Conectado mediante Instagram Login';
+      if(status){status.textContent='Conectado';status.removeAttribute('style');}
+      const {data:threads,error:hErr}=await client.from('instagram_hilos').select('*').eq('cuenta_id',state.account.id).eq('estado','abierto').order('ultimo_mensaje_at',{ascending:false,nullsFirst:false}).limit(300);
+      if (hErr) throw hErr;
+      state.threads = threads || [];
+      if (state.selected) {
+        const fresh = state.threads.find(x => x.id === state.selected.id);
+        if (fresh) state.selected = fresh;
+      }
+      renderThreads(); setupRealtime();
+      if (state.selected) await loadMessages(state.selected.id,false);
+    } catch(e) {
+      console.error('CRM Social Instagram',e);
+      if(list) list.innerHTML = `<div class="bc-ig-empty"><div><i class="ti ti-alert-circle"></i><b>No se pudo cargar Instagram</b><span>${esc(e.message || 'Error inesperado.')}</span></div></div>`;
+    } finally { refreshKpis(); }
+  }
+
+  function renderThreads(){
+    const host = $('#bcIgThreads');
+    if (!host) return;
+    const q = state.search;
+    const items = state.threads.filter(h => !q || `${h.nombre_perfil||''} ${h.participant_username||''} ${h.ultimo_mensaje_preview||''}`.toLowerCase().includes(q));
+    if (!items.length) {
+      host.innerHTML = `<div class="bc-ig-empty"><div><i class="ti ti-messages-off"></i><b>${state.threads.length ? 'Sin coincidencias' : 'Todavía no hay conversaciones'}</b><span>${state.threads.length ? 'Prueba con otro nombre o texto.' : 'Cuando llegue un mensaje real de Instagram Direct, el webhook creará el hilo y aparecerá aquí.'}</span></div></div>`;
+      return;
+    }
+    host.innerHTML = items.map(h => {
+      const nm = h.nombre_perfil || h.participant_username || 'Cliente de Instagram';
+      const unread = Number(h.no_leidos_count||0);
+      return `<button class="bc-ig-thread ${state.selected?.id===h.id?'on':''}" data-id="${esc(h.id)}" type="button"><span class="bc-ig-avatar">${esc(initials(nm))}</span><span class="bc-ig-thread-main"><span class="bc-ig-thread-top"><span class="bc-ig-thread-name">${esc(nm)}</span><span class="bc-ig-thread-time">${esc(fmtTime(h.ultimo_mensaje_at))}</span></span><span class="bc-ig-thread-preview">${esc(h.ultimo_mensaje_preview || 'Sin vista previa')}</span></span>${unread ? `<span class="bc-ig-unread">${unread>99?'99+':unread}</span>` : ''}</button>`;
+    }).join('');
+    host.querySelectorAll('.bc-ig-thread').forEach(b => b.addEventListener('click',()=>openThread(b.dataset.id)));
+  }
+
+  async function openThread(id){
+    const h = state.threads.find(x => x.id === id);
+    if (!h) return;
+    state.selected = h; renderThreads(); $('#v-crmLinea')?.classList.add('bc-ig-chat-open'); await loadMessages(id,true);
+    try {
+      if (Number(h.no_leidos_count||0) > 0) {
+        const {error} = await sb().from('instagram_hilos').update({no_leidos_count:0}).eq('id',id);
+        if (!error) { h.no_leidos_count=0; renderThreads(); refreshKpis(); }
+      }
+    } catch {}
+  }
+
+  function renderIgEmpty(title,text){
+    const chat=$('#bcIgChat');
+    if(chat) chat.innerHTML=`<div class="bc-ig-empty"><div><i class="ti ti-brand-instagram"></i><b>${esc(title)}</b><span>${esc(text)}</span></div></div>`;
+  }
+
+  async function signedMedia(m){
+    if (!m.media_path) return null;
+    try {
+      const {data,error}=await sb().storage.from('instagram-media').createSignedUrl(m.media_path,3600);
+      if(error) return null;
+      return data?.signedUrl || null;
+    } catch { return null; }
+  }
+
+  async function loadMessages(id,showLoading){
+    const chat=$('#bcIgChat'); if(!chat) return;
+    const h=state.threads.find(x=>x.id===id) || state.selected; if(!h) return;
+    if(showLoading) chat.innerHTML='<div class="bc-social-loading"><span class="bc-social-spin"></span>Cargando mensajes…</div>';
+    try{
+      const {data,error}=await sb().from('instagram_mensajes').select('*').eq('hilo_id',id).order('creado_en',{ascending:true}).limit(500);
+      if(error) throw error;
+      state.messages=data||[];
+      const mediaUrls={};
+      await Promise.all(state.messages.filter(m=>m.media_path).slice(-40).map(async m=>{mediaUrls[m.id]=await signedMedia(m);}));
+      renderChat(h,mediaUrls);
+    }catch(e){
+      chat.innerHTML=`<div class="bc-ig-empty"><div><i class="ti ti-alert-circle"></i><b>No se pudieron cargar los mensajes</b><span>${esc(e.message||'Error inesperado.')}</span></div></div>`;
+    }
+  }
+
+  function mediaMarkup(m,url){
+    const type=String(m.tipo_contenido||'text').toLowerCase();
+    if(url && ['imagen','image'].includes(type)) return `<a href="${esc(url)}" target="_blank" rel="noopener"><img class="bc-ig-media-img" src="${esc(url)}" alt="Imagen de Instagram"></a>`;
+    if(url) return `<a class="bc-ig-media-link" href="${esc(url)}" target="_blank" rel="noopener"><i class="ti ti-paperclip"></i>Abrir ${esc(type||'archivo')}</a>`;
+    if(type!=='text' && !m.cuerpo) return `<span class="bc-ig-media-link"><i class="ti ti-paperclip"></i>${esc(type)}</span>`;
+    return '';
+  }
+
+  function renderChat(h,mediaUrls={}){
+    const chat=$('#bcIgChat'); if(!chat) return;
+    const nm=h.nombre_perfil || h.participant_username || 'Cliente de Instagram';
+    const user=h.participant_username ? `@${h.participant_username}` : 'Instagram Direct';
+    const rows=state.messages.map(m=>`<div class="bc-ig-msg-row ${m.direccion==='out'?'out':'in'}"><div class="bc-ig-msg">${mediaMarkup(m,mediaUrls[m.id])}${m.cuerpo ? `<div>${esc(m.cuerpo).replace(/\n/g,'<br>')}</div>` : ''}<span class="bc-ig-msg-time">${esc(fmtTime(m.creado_en))}${m.direccion==='out' ? ` · ${esc(m.estado||'enviado')}` : ''}</span></div></div>`).join('');
+    chat.innerHTML=`<div class="bc-ig-chat-head"><button class="bc-ig-back" id="bcIgBack" type="button" aria-label="Volver"><i class="ti ti-chevron-left"></i></button><span class="bc-ig-avatar">${esc(initials(nm))}</span><div class="bc-ig-chat-title"><b>${esc(nm)}</b><span>${esc(user)}</span></div><span class="bc-ig-chat-badge">Instagram Direct</span></div><div class="bc-ig-messages" id="bcIgMessages">${rows || '<div class="bc-ig-empty"><div><b>Sin mensajes</b><span>Este hilo todavía no tiene mensajes guardados.</span></div></div>'}</div><form class="bc-ig-composer" id="bcIgComposer"><textarea id="bcIgText" rows="1" placeholder="Escribe un mensaje…" ${h.zernio_conversation_id?'':'disabled'}></textarea><button class="bc-ig-send" id="bcIgSend" type="submit" ${h.zernio_conversation_id?'':'disabled'} aria-label="Enviar"><i class="ti ti-arrow-up"></i></button></form>`;
+    $('#bcIgBack')?.addEventListener('click',()=>$('#v-crmLinea')?.classList.remove('bc-ig-chat-open'));
+    $('#bcIgComposer')?.addEventListener('submit',sendInstagram);
+    const ta=$('#bcIgText');
+    ta?.addEventListener('input',()=>{ta.style.height='auto';ta.style.height=Math.min(ta.scrollHeight,112)+'px';});
+    ta?.addEventListener('keydown',(e)=>{if(e.key==='Enter' && !e.shiftKey && window.innerWidth>1024){e.preventDefault();sendInstagram(e);}});
+    requestAnimationFrame(()=>{const sc=$('#bcIgMessages');if(sc)sc.scrollTop=sc.scrollHeight;});
+  }
+
+  async function sendInstagram(e){
+    e?.preventDefault?.();
+    if(state.busySend || !state.selected) return;
+    const ta=$('#bcIgText'), btn=$('#bcIgSend'); const text=String(ta?.value||'').trim(); if(!text) return;
+    state.busySend=true;
+    if(btn){btn.disabled=true;btn.innerHTML='<span class="bc-social-spin"></span>';}
+    try{
+      const {data,error}=await sb().functions.invoke('instagram-enviar',{body:{hilo_id:state.selected.id,mensaje:text}});
+      if(error) throw error;
+      if(data?.ok===false) throw new Error(data.mensaje||data.error||'Instagram rechazó el envío.');
+      if(ta){ta.value='';ta.style.height='auto';}
+      await loadInstagram(false); await loadMessages(state.selected.id,false); notify('Mensaje de Instagram enviado.');
+    }catch(err){ console.error('instagram-enviar',err); notify(err.message||'No se pudo enviar el mensaje de Instagram.','error'); }
+    finally{state.busySend=false;if(btn){btn.disabled=!state.selected?.zernio_conversation_id;btn.innerHTML='<i class="ti ti-arrow-up"></i>';}ta?.focus?.();}
+  }
+
+  function setupRealtime(){
+    if(state.realtime || !sb()) return;
+    try{
+      state.realtime = sb().channel('bc-social-instagram')
+        .on('postgres_changes',{event:'*',schema:'public',table:'instagram_hilos'},()=>scheduleIgRealtime())
+        .on('postgres_changes',{event:'*',schema:'public',table:'instagram_mensajes'},payload=>{
+          if(state.selected && (payload.new?.hilo_id===state.selected.id || payload.old?.hilo_id===state.selected.id)) scheduleIgRealtime(true);
+          else scheduleIgRealtime(false);
+        }).subscribe();
+    }catch(e){console.warn('Realtime Instagram no disponible',e);}
+  }
+
+  function scheduleIgRealtime(openChat=false){
+    clearTimeout(window.__bcIgRealtimeTimer);
+    window.__bcIgRealtimeTimer=setTimeout(async()=>{await loadInstagram(false);if(openChat && state.selected) await loadMessages(state.selected.id,false);},180);
+  }
+
+  function start(){
+    ensureCss();
+    if (!mount()) {
+      const mo = new MutationObserver(() => { if (mount()) mo.disconnect(); });
+      mo.observe(document.documentElement,{childList:true,subtree:true});
+      setTimeout(()=>mo.disconnect(),30000);
+    }
+  }
+
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start,{once:true}); else start();
+  window.BayolSocialHub={switchChannel,refresh:refreshAll,state,version:VERSION};
+})();
