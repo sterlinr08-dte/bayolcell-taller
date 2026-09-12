@@ -34450,6 +34450,11 @@ function _crmAsignarHTML(tabla, fila) {
     } else {
         html += `<button class="btn btn-light" style="font-size:11.5px;" onclick="asignarmeCRM('${tabla}','${fila.id}')"><i class="ti ti-hand-stop"></i> Asignarme</button>`;
     }
+    // Quien tiene la conversación asignada a sí mismo puede pasársela directo a un compañero,
+    // sin necesitar que un admin lo haga (pedido por Sterling, 12 sep 2026).
+    if(esMio && !esAdmin) {
+        html += ` <button class="btn btn-light" style="font-size:11.5px;" onclick="_crmToggleReasignar('${tabla}','${fila.id}')"><i class="ti ti-arrow-forward-up"></i> Pasar a…</button>`;
+    }
     if(esAdmin) {
         html += ` <button class="btn btn-light" style="font-size:11.5px;" onclick="_crmToggleReasignar('${tabla}','${fila.id}')"><i class="ti ti-arrows-exchange"></i> Reasignar</button>`;
     }
