@@ -32880,6 +32880,9 @@ function _waToggleChatAmpliado() {
 // cada carga (cada refresco de tiempo real incluido), asi que el <img>/<video>
 // cambiaba de src todo el tiempo, el navegador no podia usar cache, y con
 // fotos/notas de voz se recargaban todas por datos moviles a cada rato.
+// Uso: SOLO para un archivo que el usuario actual acaba de subir el mismo
+// (su propio adjunto saliente, antes de que exista la fila en whatsapp_mensajes)
+// — nunca para leer el adjunto de un mensaje ajeno, ver _waSignedUrlMensaje.
 const _waUrlCache = new Map(); // media_path -> { url, exp }
 async function _waSignedUrl(path) {
     const hit = _waUrlCache.get(path);
@@ -32889,6 +32892,38 @@ async function _waSignedUrl(path) {
         if(!data?.signedUrl) return null;
         _waUrlCache.set(path, { url: data.signedUrl, exp: Date.now() + 3600000 });
         return data.signedUrl;
+    } catch(e) { return null; }
+}
+
+// F19 (auditoria 12 sep 2026): "whatsapp-media" es un bucket PRIVADO pero su policy de
+// lectura deja leer CUALQUIER objeto a CUALQUIER usuario authenticated (no filtra por
+// sucursal/linea/asignacion) — con 2,086 archivos reales de clientes, cualquier tecnico
+// podia armarse la URL firmada de la foto/audio/video de OTRO cliente que no le
+// corresponde. Como los nombres de archivo son planos (imagen/<uuid>.jpeg, sin sucursal
+// ni hilo en la ruta), no se puede arreglar con una policy de Storage por path sin mover
+// los archivos ya existentes. Por eso YA NO se pide la signed URL directo al Storage para
+// mostrar el adjunto de un mensaje: se pide a la Edge Function whatsapp-media-url, que
+// primero valida del lado del servidor la MISMA regla de visibilidad que ya usa el CRM
+// (admin ve todo; empleado normal solo lo asignado a el o lo que no tiene dueno) antes de
+// firmar. Cache en memoria por mensaje.id (dura la pestaña) para no llamar la Edge
+// Function de nuevo en cada refresco/repintado del mismo mensaje.
+const _waMediaUrlCache = new Map(); // mensaje.id -> { url, exp }
+async function _waSignedUrlMensaje(m) {
+    if(!m?.media_path) return null;
+    const hit = _waMediaUrlCache.get(m.id);
+    if(hit && hit.exp > Date.now() + 120000) return hit.url; // 2 min de colchon
+    try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if(!session) return null;
+        const res = await fetch(CONFIG_URL + '/functions/v1/whatsapp-media-url', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mensaje_id: m.id })
+        });
+        const j = await res.json().catch(() => null);
+        if(!j?.ok || !j.url) return null;
+        _waMediaUrlCache.set(m.id, { url: j.url, exp: Date.now() + 3600000 });
+        return j.url;
     } catch(e) { return null; }
 }
 
@@ -32906,7 +32941,7 @@ async function cargarMensajesHilo(hiloId) {
     if(error) { logError('cargarMensajesHilo', error); toastError('No se pudieron cargar los mensajes.'); if(token === _waCargaToken) _waMensajes = []; return; }
     const lista = data || [];
     for(const m of lista) {
-        if(m.media_path) m._mediaUrl = await _waSignedUrl(m.media_path);
+        if(m.media_path) m._mediaUrl = await _waSignedUrlMensaje(m);
         if(token !== _waCargaToken) return; // se cancelo a medio camino
     }
     if(token !== _waCargaToken) return;
