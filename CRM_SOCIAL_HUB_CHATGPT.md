@@ -1,42 +1,55 @@
-# CRM Social Hub — implementación ChatGPT (2026-09-12)
+# CRM Redes — Instagram + Facebook (2026-09-12)
 
 Rama: `chatgpt/crm-social-hub-20260912`
 
-## Objetivo
-Unificar visualmente el CRM de BAYOL CELL sin reescribir ni arriesgar la lógica estable de WhatsApp.
+## Alcance corregido
+La interfaz nueva solicitada es **solo para Instagram y Facebook**.
 
-## Arquitectura
-- `crm-marketing-consent.js` pasa a ser un loader pequeño.
-- La versión anterior queda intacta como `crm-marketing-consent-legacy.js`.
-- `crm-social-hub.js` agrega la capa de canales y la interfaz funcional de Instagram.
-- `crm-social-hub.css` contiene toda la nueva apariencia.
-- `taller.html` no se modifica.
+WhatsApp NO forma parte del nuevo Social Hub:
+- conserva su vista actual de Mensajes/Leads;
+- conserva sus selectores, KPIs, búsqueda, filtros, chat y lógica existentes;
+- no se mezcla visualmente con las métricas de redes sociales.
 
-## Canales
-### WhatsApp
-No se cambia su lógica. El Social Hub solo lo envuelve visualmente y usa los datos ya cargados para KPIs.
+## Integración dentro del CRM
+La extensión agrega de forma aditiva una tercera pestaña **Redes** junto a Mensajes y Leads.
+Al abrir Redes:
+- se ocultan controles específicos de WhatsApp;
+- aparece una interfaz independiente con Instagram y Facebook;
+- volver a Mensajes o Leads restaura la vista normal de WhatsApp.
 
-### Instagram
-Funcional:
-- Lee `instagram_cuentas`.
-- Lee `instagram_hilos`.
-- Lee `instagram_mensajes`.
-- Busca conversaciones.
-- Abre chat.
-- Intenta limpiar `no_leidos_count` al abrir.
-- Responde usando la Edge Function `instagram-enviar`.
-- Realtime para hilos y mensajes.
-- Media guardada en `instagram-media` se abre con URL firmada.
+`taller.html` no se modifica.
 
-Comentarios y menciones se muestran como pendientes porque no existe backend real para esos flujos.
+## Instagram
+Funcional con la infraestructura existente:
+- `instagram_cuentas`
+- `instagram_hilos`
+- `instagram_mensajes`
+- Edge Function `instagram-enviar`
+- bucket privado `instagram-media`
+- Realtime para hilos y mensajes
+- búsqueda, chat y envío desde el CRM
 
-### Facebook
-Solo se reserva visualmente el canal. No hay botones falsos.
-Falta implementar cuenta/página, hilos, mensajes, webhook y función de envío.
+Comentarios y menciones permanecen marcados como pendientes mientras no exista backend real para esos eventos.
+
+## Facebook
+La interfaz está definida y separada, pero no se simulan funciones.
+Pendiente para hacerlo funcional:
+1. cuenta/página conectada;
+2. tablas de hilos y mensajes;
+3. webhook;
+4. función de envío;
+5. Realtime y conteos reales.
+
+## KPIs de Redes
+Solo incluyen:
+- Instagram sin leer;
+- Facebook sin leer (— hasta conectar backend);
+- leads cuyo `canal` sea `instagram` o `facebook`;
+- redes conectadas sobre un total de 2.
 
 ## Seguridad
-Todas las consultas se hacen mediante `supabaseClient`, por lo que siguen sujetas a RLS.
-El envío de Instagram pasa por `instagram-enviar`, que valida JWT y acceso a sucursal.
+Las lecturas usan `supabaseClient` y siguen sujetas a RLS.
+Los envíos de Instagram continúan pasando por `instagram-enviar`, que valida JWT y acceso a sucursal.
 
 ## Publicación
-No se debe llevar a `main` sin validación visual/funcional del usuario. `main` es producción.
+No llevar a `main` sin validación visual y funcional. `main` es producción.
