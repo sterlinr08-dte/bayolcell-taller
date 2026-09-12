@@ -4,14 +4,25 @@
 // -- esas siguen separadas hasta que su fix de corrupcion de contactos
 // (2026-09-03/04) lleve un ciclo estable en produccion sin nuevos hallazgos.
 // Factoriza solo la parte que la auditoria del codebase confirmo como
-// genuinamente generica entre canales: verificacion de firma, autorizacion
-// por sucursal, el patron de llamada a Zernio, y resolucion de adjuntos.
+// genuinamente generica entre canales: verificacion de firma, autorizacion,
+// el patron de llamada a Zernio, y resolucion de adjuntos.
 //
 // IMPORTANTE al desplegar: este archivo se copia dentro del bundle de CADA
 // funcion que lo usa (instagram-webhook, instagram-enviar, ...) porque el
 // deploy de Supabase Edge Functions es un bundle aislado por funcion. La
 // fuente canonica vive aca -- si se edita, hay que re-copiar el contenido
 // al desplegar cada funcion que lo importa.
+//
+// Fix 2026-09-12 (Sterling: "en todas las redes sociales" — acceso sin
+// restriccion de sucursal): a diferencia de las lineas de WhatsApp (una por
+// sucursal), las cuentas de Instagram/Facebook son UNA SOLA cuenta
+// compartida para todo el negocio (@bayolcell sirve a Santiago/Moca/
+// Navarrete por igual) — no tiene sentido restringir por sucursal_id como
+// hacia tieneAccesoASucursal. Se reemplaza por tieneAccesoARedSocial:
+// cualquier tecnico ACTIVO (de cualquier sucursal) o el admin puede
+// atenderlas. sucursal_id en instagram_cuentas/instagram_hilos se conserva
+// solo como dato organizativo (reportes, leads), ya no como control de
+// acceso.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -49,14 +60,15 @@ export function identidadDesdeJWT(req: Request): { tipo: string | null; refId: s
   }
 }
 
+// Redes sociales (Instagram/Facebook/...): cuentas compartidas de TODO el
+// negocio, no de una sucursal — cualquier tecnico activo (o el admin) puede
+// atenderlas, sin importar su sucursal_id. Ver "Fix 2026-09-12" arriba.
 // deno-lint-ignore no-explicit-any
-export async function tieneAccesoASucursal(db: any, tipo: string | null, refId: string | null, sucursalId: string): Promise<boolean> {
+export async function tieneAccesoARedSocial(db: any, tipo: string | null, refId: string | null): Promise<boolean> {
   if (tipo === "usuario") return true;
   if (tipo === "tecnico" && refId) {
-    const { data: tecnico } = await db.from("tecnicos").select("sucursal_id, tipo_empleado, rol").eq("id", refId).maybeSingle();
-    if (!tecnico) return false;
-    if (tecnico.tipo_empleado === "admin" || tecnico.rol === "admin") return true;
-    return tecnico.sucursal_id === sucursalId;
+    const { data: tecnico } = await db.from("tecnicos").select("activo").eq("id", refId).maybeSingle();
+    return !!tecnico?.activo;
   }
   return false;
 }

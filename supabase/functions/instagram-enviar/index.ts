@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { crearClienteDB, identidadDesdeJWT, tieneAccesoASucursal, mandarAZernio, esTimeout, json, cors } from "./_shared/inbox-common.ts";
+import { crearClienteDB, identidadDesdeJWT, tieneAccesoARedSocial, mandarAZernio, esTimeout, json, cors } from "./_shared/inbox-common.ts";
 
 // instagram-enviar — responde un hilo de Instagram Direct existente.
 //
@@ -23,6 +23,11 @@ import { crearClienteDB, identidadDesdeJWT, tieneAccesoASucursal, mandarAZernio,
 //
 // Ubicacion/contacto/plantillas de WhatsApp no existen en Instagram — esos
 // campos simplemente no aplican aca.
+//
+// Acceso (fix 2026-09-12): a diferencia de WhatsApp (una linea por
+// sucursal), la cuenta de Instagram es UNA SOLA compartida por todo el
+// negocio — cualquier tecnico activo de cualquier sucursal (o el admin)
+// puede responder, ver tieneAccesoARedSocial en _shared/inbox-common.ts.
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -62,13 +67,13 @@ Deno.serve(async (req: Request) => {
 
   const { data: cuenta, error: cuentaError } = await db
     .from("instagram_cuentas")
-    .select("zernio_account_id, sucursal_id")
+    .select("zernio_account_id")
     .eq("id", hilo.cuenta_id)
     .maybeSingle();
   if (cuentaError || !cuenta?.zernio_account_id) return json({ ok: false, error: "Cuenta sin cuenta de Zernio configurada" }, 500);
 
   const { tipo, refId } = identidadDesdeJWT(req);
-  const autorizado = await tieneAccesoASucursal(db, tipo, refId, cuenta.sucursal_id);
+  const autorizado = await tieneAccesoARedSocial(db, tipo, refId);
   if (!autorizado) return json({ ok: false, error: "sin_permiso", mensaje: "No tenes acceso a esta cuenta de Instagram." }, 403);
 
   const fueraDeVentana =
