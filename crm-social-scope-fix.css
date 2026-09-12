@@ -4,12 +4,12 @@
 #v-crmLinea.bc-social-mode #crmLinea-mensajes,
 #v-crmLinea.bc-social-mode #crmLinea-leads{display:none!important}
 #v-crmLinea.bc-social-mode .crm-cabecera-resumen{display:none!important}
+#v-crmLinea.bc-social-mode .crm-bandeja-controles{display:flex!important;margin-bottom:8px!important}
 #v-crmLinea.bc-social-mode .crm-bandeja-controles .crm-busq-row,
 #v-crmLinea.bc-social-mode .crm-bandeja-controles .crm-chips-row,
 #v-crmLinea.bc-social-mode .crm-bandeja-controles .crm-stats,
 #v-crmLinea.bc-social-mode .crm-bandeja-controles .crm-acciones-rapidas{display:none!important}
-#v-crmLinea.bc-social-mode .crm-bandeja-controles{margin-bottom:8px!important}
-#v-crmLinea.bc-social-mode .crm-tabs-row{margin:0!important}
+#v-crmLinea.bc-social-mode .crm-tabs-row{display:flex!important;margin:0!important}
 #v-crmLinea.bc-social-mode #crmLineaTabSocial{color:#fff;background:linear-gradient(135deg,#dc2626,#ef4444);box-shadow:0 5px 12px -7px rgba(220,38,38,.7)}
 #v-crmLinea.bc-social-mode #bcSocialHubHead{order:2}
 #v-crmLinea.bc-social-mode #bcSocialInstagramPanel,
@@ -17,8 +17,7 @@
 #v-crmLinea.bc-social-mode .bc-social-channels .bc-social-channel{min-width:125px}
 #v-crmLinea.bc-social-mode .bc-social-kpi[data-tone=fb] .bc-social-kpi-icon{background:#eff6ff!important;color:#2563eb!important}
 @media(max-width:1024px){
-  #v-crmLinea.bc-social-mode .crm-bandeja-controles{display:flex!important}
-  #v-crmLinea.bc-social-mode .crm-bandeja-controles .crm-tabs-row{display:flex!important;flex:1 0 100%!important}
+  #v-crmLinea.bc-social-mode .crm-bandeja-controles .crm-tabs-row{flex:1 0 100%!important}
   #v-crmLinea.bc-social-mode .bc-social-channels{display:grid!important;grid-template-columns:1fr 1fr!important;width:100%}
   #v-crmLinea.bc-social-mode .bc-social-channel{min-width:0!important;justify-content:center}
 }
