@@ -746,37 +746,46 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
 .rs-hub-buscar i { color:#94a3b8; font-size:16px; }
 .rs-hub-buscar input { border:none; outline:none; flex:1; font-size:13px; background:transparent; min-width:0; }
 
-.rs-canales { display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
-.rs-canal { flex:1; min-width:170px; display:flex; align-items:center; gap:12px; background:#fff; border:1.5px solid #e2e8f0; border-radius:14px; padding:12px 16px; cursor:pointer; transition:box-shadow .15s, border-color .15s, transform .1s; position:relative; }
+.rs-canales { display:flex; gap:14px; margin-bottom:16px; flex-wrap:wrap; }
+.rs-canal { flex:1; min-width:230px; display:flex; align-items:center; gap:16px; background:#fbfbfd; border:2px solid #eef0f4; border-radius:24px; padding:16px 20px; cursor:pointer; transition:box-shadow .15s, border-color .15s, background .15s, transform .1s; }
 .rs-canal:active { transform:scale(.98); }
-.rs-canal.activo { border-color:transparent; box-shadow:0 0 0 2px #dd2a7b, 0 8px 20px -8px rgba(221,42,123,.35); }
-.rs-canal.pendiente { opacity:.65; }
-.rs-canal-icono { width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:20px; flex-shrink:0; }
+.rs-canal.activo { background:#fff; border-color:#f472b6; box-shadow:0 0 0 3px rgba(244,114,182,.22), 0 12px 26px -12px rgba(221,42,123,.4); }
+.rs-canal.pendiente { opacity:.8; }
+.rs-canal-icono { width:58px; height:58px; border-radius:17px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:27px; flex-shrink:0; box-shadow:0 5px 12px -4px rgba(15,23,42,.3); }
 .rs-canal-icono.ig { background:linear-gradient(135deg,#f58529,#dd2a7b,#8134af); }
 .rs-canal-icono.fb { background:#1877f2; }
 .rs-canal-icono.tk { background:#0f172a; }
 .rs-canal-info { min-width:0; }
-.rs-canal-info b { display:block; font-size:14px; color:#0f172a; }
-.rs-canal-info span { font-size:11.5px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block; }
-.rs-canal-badge { position:absolute; top:-7px; right:-7px; background:#dc2626; color:#fff; font-size:11px; font-weight:800; min-width:22px; height:22px; border-radius:999px; display:flex; align-items:center; justify-content:center; padding:0 5px; box-shadow:0 3px 8px rgba(220,38,38,.4); }
-.rs-canal-badge.gris { background:#94a3b8; box-shadow:none; }
+.rs-canal-titulo { display:flex; align-items:center; gap:9px; }
+.rs-canal-titulo b { font-size:18px; font-weight:800; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.rs-canal-sub { font-size:12.5px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block; margin-top:1px; }
+.rs-canal-badge { background:linear-gradient(160deg,#fb7185,#e11d48); color:#fff; font-size:12.5px; font-weight:800; min-width:25px; height:25px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; padding:0 8px; flex-shrink:0; }
+.rs-canal-badge.gris { background:#e2e8f0; color:#94a3b8; }
 
-.rs-tipos { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
-.rs-tipo { display:flex; align-items:center; gap:7px; padding:9px 15px; border-radius:999px; background:#fff; border:1px solid #e2e8f0; font-size:12.5px; font-weight:700; color:#475569; cursor:pointer; }
-.rs-tipo.on { background:linear-gradient(135deg,#fde2ef,#fbe0f5); border-color:#f9a8d4; color:#9d174d; }
-.rs-tipo .cuenta { background:rgba(15,23,42,.08); color:#475569; border-radius:999px; padding:1px 7px; font-size:10.5px; font-weight:800; }
-.rs-tipo.on .cuenta { background:#dd2a7b; color:#fff; }
+.rs-tipos { display:flex; align-items:stretch; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+.rs-tipo { display:flex; align-items:center; gap:10px; padding:10px 16px; border-radius:18px; background:#fff; border:1.5px solid #eef0f4; font-size:12.5px; cursor:pointer; text-align:left; flex:1; min-width:150px; }
+.rs-tipo.on { background:linear-gradient(135deg,#fdf1f7,#fce7f3); border-color:#fbcfe8; }
+.rs-tipo-icono { width:38px; height:38px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:18px; background:#f1f5f9; color:#334155; flex-shrink:0; }
+.rs-tipo.on .rs-tipo-icono { background:#fecdd3; color:#e11d48; }
+.rs-tipo-info { min-width:0; }
+.rs-tipo-titulo { display:flex; align-items:center; gap:6px; }
+.rs-tipo-titulo b { font-size:13.5px; font-weight:800; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.rs-tipo-sub { font-size:10.5px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block; }
+.rs-tipo-badge { background:linear-gradient(160deg,#fb7185,#e11d48); color:#fff; font-weight:800; font-size:10.5px; min-width:19px; height:19px; padding:0 5px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
+.rs-tipo-filtros { flex:0 0 auto; min-width:0; justify-content:center; gap:6px; font-weight:700; color:#475569; }
 
 .rs-proximamente { text-align:center; padding:50px 20px; color:var(--text-muted); }
 .rs-proximamente i { font-size:36px; display:block; margin-bottom:10px; opacity:.6; }
 
 @media (max-width:640px) {
     .rs-hub-buscar { max-width:none; order:3; flex-basis:100%; }
-    .rs-canal { min-width:130px; padding:10px 12px; gap:9px; }
-    .rs-canal-icono { width:36px; height:36px; font-size:16px; }
-    .rs-canal-info b { font-size:12.5px; }
-    .rs-canal-info span { font-size:10px; }
-    .rs-tipo { padding:7px 11px; font-size:11.5px; }
+    .rs-canal { min-width:150px; padding:12px 14px; gap:11px; border-radius:20px; }
+    .rs-canal-icono { width:44px; height:44px; font-size:20px; border-radius:13px; }
+    .rs-canal-titulo b { font-size:14px; }
+    .rs-canal-sub { font-size:10.5px; }
+    .rs-tipo { padding:8px 12px; min-width:120px; }
+    .rs-tipo-icono { width:32px; height:32px; font-size:15px; }
+    .rs-tipo-titulo b { font-size:12px; }
 }
 
 .nav button { width: 100%; background: rgba(255,255,255,0.03); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 13px 14px; margin-bottom: 7px; text-align: left; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 12px; font-size: 13.5px; }
@@ -34921,8 +34930,13 @@ function _rsPintarCanales() {
     const html = canales.map(c => `
         <div class="rs-canal${_igSubTab === c.id ? ' activo' : ''}${!c.real ? ' pendiente' : ''}" onclick="crmRedesSubTab('${c.id}')">
             <div class="rs-canal-icono ${c.clase}"><i class="ti ${c.icono}"></i></div>
-            <div class="rs-canal-info"><b>${escapeHtml(c.nombre)}</b><span>${escapeHtml(c.sub)}</span></div>
-            ${c.real ? `<span class="rs-canal-badge${c.badge === 0 ? ' gris' : ''}">${c.badge}</span>` : `<span class="rs-canal-badge gris">—</span>`}
+            <div class="rs-canal-info">
+                <div class="rs-canal-titulo">
+                    <b>${escapeHtml(c.nombre)}</b>
+                    ${c.real ? `<span class="rs-canal-badge${c.badge === 0 ? ' gris' : ''}">${c.badge}</span>` : `<span class="rs-canal-badge gris">—</span>`}
+                </div>
+                <span class="rs-canal-sub">${escapeHtml(c.sub)}</span>
+            </div>
         </div>`).join('');
     if(cont.innerHTML !== html) cont.innerHTML = html;
 }
@@ -34943,8 +34957,15 @@ function _rsPintarTipos() {
         { id: 'comentarios', txt: 'Comentarios', sub: 'Publicaciones y Reels', n: 0, ic: 'ti-message-circle' },
         { id: 'menciones', txt: 'Menciones', sub: 'Historias y etiquetas', n: 0, ic: 'ti-at' },
     ];
-    cont.innerHTML = tipos.map(t => `<button class="rs-tipo${_rsTipo === t.id ? ' on' : ''}" onclick="_rsSetTipo('${t.id}')" title="${escapeHtml(t.sub)}"><i class="ti ${t.ic}"></i> ${escapeHtml(t.txt)}${t.n ? ` <span class="cuenta">${t.n}</span>` : ''}</button>`).join('')
-        + `<button class="rs-tipo" id="igFiltrosBtn" onclick="_igToggleFiltros(event)"><i class="ti ti-adjustments-horizontal"></i> Filtros <i class="ti ti-chevron-down" style="font-size:11px;"></i></button>`;
+    cont.innerHTML = tipos.map(t => `
+        <button class="rs-tipo${_rsTipo === t.id ? ' on' : ''}" onclick="_rsSetTipo('${t.id}')" title="${escapeHtml(t.sub)}">
+            <div class="rs-tipo-icono"><i class="ti ${t.ic}"></i></div>
+            <div class="rs-tipo-info">
+                <div class="rs-tipo-titulo"><b>${escapeHtml(t.txt)}</b>${t.n ? `<span class="rs-tipo-badge">${t.n}</span>` : ''}</div>
+                <span class="rs-tipo-sub">${escapeHtml(t.sub)}</span>
+            </div>
+        </button>`).join('')
+        + `<button class="rs-tipo rs-tipo-filtros" id="igFiltrosBtn" onclick="_igToggleFiltros(event)"><i class="ti ti-adjustments-horizontal"></i> Filtros <i class="ti ti-chevron-down" style="font-size:11px;"></i></button>`;
 }
 
 function _rsSetTipo(tipo) {
