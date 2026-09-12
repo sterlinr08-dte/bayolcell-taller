@@ -497,6 +497,18 @@
     finally{ if(state.visible && state.channel==='facebook') loadFacebookThreads(); }
   }
 
+  async function resolveSocialSucursalId(client, actor){
+    const direct=actor?.sucursal_id||actor?.sucursalId;
+    if(direct) return direct;
+    // Owner/admin users may not carry a branch on their CRM profile. Resolve
+    // it from the already registered Facebook account so the protected import
+    // function still receives the correct tenant scope.
+    try{
+      const {data}=await withTimeout(client.from('social_cuentas').select('sucursal_id').eq('plataforma','facebook').eq('activo',true).order('actualizado_en',{ascending:false}).limit(1).maybeSingle(),8000);
+      return data?.sucursal_id||null;
+    }catch(e){ console.warn('[social] no se pudo resolver la sucursal de redes',e); return null; }
+  }
+
   // Consulta los IDs reales de Zernio desde una Edge Function protegida.
   // Nunca se expone la API key en el navegador; la función solo devuelve
   // metadatos públicos de las cuentas y las registra en social_cuentas.
@@ -505,7 +517,7 @@
     if(accountSyncStarted) return;
     const client = typeof supabaseClient !== 'undefined' ? supabaseClient : window.supabaseClient;
     const actor = typeof sessionUser !== 'undefined' ? sessionUser : window.sessionUser;
-    const sucursalId = actor?.sucursal_id || actor?.sucursalId;
+    const sucursalId = await resolveSocialSucursalId(client,actor);
     if(!client?.functions?.invoke || !sucursalId) return;
     accountSyncStarted = true;
     try{
