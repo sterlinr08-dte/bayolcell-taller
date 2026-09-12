@@ -329,6 +329,13 @@
       view.dataset.socialChannel='instagram';
       window.BayolSocialHub?.switchChannel?.('instagram');
       setTimeout(applyFilters,60);
+    }else if(state.channel==='facebook' && state.view==='all'){
+      // Use the real Facebook panel; the context panel is only for subviews.
+      fb.style.display='flex';
+      view.dataset.socialChannel='facebook';
+    }else if(state.channel==='tiktok' && state.view==='all'){
+      tt.style.display='flex';
+      view.dataset.socialChannel='tiktok';
     }else{
       ctx.style.display='flex';
       renderContext();
