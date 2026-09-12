@@ -2,6 +2,13 @@
 
 Contexto para que cualquier chat nuevo retome el trabajo sin perder tiempo.
 
+
+## Auditoría técnica pendiente de corrección — 12 septiembre 2026
+
+Leer [AUDITORIA_SISTEMA_PARA_CLAUDE.md](AUDITORIA_SISTEMA_PARA_CLAUDE.md) para retomar la auditoría solicitada por Esterlin. Incluye 26 hallazgos (4 P0, 15 P1, 7 P2), evidencia, pruebas realizadas, criterios de cierre y plan por fases.
+
+**Estado: auditoría entregada; correcciones NO implementadas.** Priorizar autorización del servidor/RLS y permisos MDM/ABM/InfoPlus (F01–F04); después pagos transaccionales, reversos, fechas/mora y confirmación real de comandos. Verificar el estado actual antes de editar. No activar bloqueos automáticos hasta validar los controles indicados. Este registro documental no autoriza por sí mismo implementar ni desplegar correcciones.
+
 ## Qué es este proyecto
 Sistema interno de **BAYOL CELL** (tienda/taller de celulares en Santiago y Moca, Rep. Dominicana).
 - **`taller.html`** → la app interna (admin/taller). Es **UN SOLO archivo HTML gigante (~19,700 líneas, ~1.3 MB)** con todo el JS embebido en `<script>`. Título: "SISTEMA TALLER BAYOL CELL". **Aquí se trabaja casi siempre.**
