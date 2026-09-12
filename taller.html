@@ -716,6 +716,21 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
 @media (prefers-reduced-motion:reduce) {
     #v-crmLinea *, .crm-filtros-menu { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
 }
+
+/* ============================================================
+   CRM REDES — Instagram (Facebook/TikTok son placeholders sin
+   backend real, ver _redesPlaceholderHTML). Reusa la estructura
+   del chat de WhatsApp (.wa-shell/.wa-list-col/.wa-chat-col/etc,
+   ya responsive) con paleta propia via .ig-theme, para no
+   confundirla visualmente con WhatsApp.
+   ============================================================ */
+.ig-theme .wa-avatar { background: linear-gradient(135deg,#f58529,#dd2a7b,#8134af); }
+.ig-theme .wa-chat-col { background:#efefef; background-image:none; }
+.ig-theme .wa-send-btn { background: linear-gradient(135deg,#f58529,#dd2a7b,#8134af); box-shadow:0 1px 3px rgba(129,52,175,.35); }
+.ig-theme .wa-send-btn:hover { filter:brightness(1.06); }
+.ig-theme .wa-row.active { background:#fff; box-shadow: 0 0 0 1.5px rgba(221,42,123,.28), 0 4px 12px -7px rgba(221,42,123,.22), 0 1px 2px rgba(15,23,42,.05); }
+.ig-theme .wa-row .fila-badge { background:linear-gradient(160deg,#dd2a7b,#8134af); box-shadow:0 4px 9px -4px rgba(221,42,123,.5), inset 0 1px 0 rgba(255,255,255,.35); }
+
 .nav button { width: 100%; background: rgba(255,255,255,0.03); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 13px 14px; margin-bottom: 7px; text-align: left; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 12px; font-size: 13.5px; }
 .nav button i { font-size: 19px; color: #475569; flex-shrink: 0; }
 .nav button span { flex: 1; }
@@ -1985,19 +2000,22 @@ body{
                         <div class="crm-tabs-track pill-elevado">
                             <button class="crm-tab-seg on pill-hundido" id="crmLineaTabWa" onclick="crmLineaTab('mensajes')"><i class="ti ti-brand-whatsapp"></i> Mensajes</button>
                             <button class="crm-tab-seg" id="crmLineaTabLeads" onclick="crmLineaTab('leads')"><i class="ti ti-user-plus"></i> Leads</button>
+                            <button class="crm-tab-seg" id="crmLineaTabRedes" onclick="crmLineaTab('redes')"><i class="ti ti-share"></i> Redes</button>
                         </div>
                         <div class="crm-acciones-rapidas" aria-label="Acciones de conversaciones">
                             <button class="crm-icon-btn" id="crmHistorialBtn" onclick="_crmImportarHistorial()" title="Traer conversaciones anteriores" aria-label="Traer conversaciones anteriores"><i class="ti ti-history"></i></button>
                             <button class="crm-icon-btn" onclick="renderCrmLinea(this)" title="Actualizar" aria-label="Actualizar"><i class="ti ti-refresh"></i></button>
                         </div>
                     </div>
-                    <div class="crm-busq-row">
-                        <button class="crm-buscar pill-elevado" id="crmBuscarBtn" onclick="_crmAbrirBusqueda()" title="Buscar conversaciones" aria-label="Buscar conversaciones"><i class="ti ti-search"></i> <span>Buscar</span></button>
-                        <input type="text" id="crmBuscarInput" class="crm-buscar-input" placeholder="Buscar nombre o número..." style="display:none;" oninput="_crmBuscarCambio(this.value)" onblur="_crmBusquedaBlur()">
-                        <button class="crm-filtros-btn pill-elevado" id="crmFiltrosBtn" onclick="_crmToggleFiltros(event)"><i class="ti ti-adjustments-horizontal"></i> <span>Filtros</span></button>
+                    <div id="crmWaControlesWrap">
+                        <div class="crm-busq-row">
+                            <button class="crm-buscar pill-elevado" id="crmBuscarBtn" onclick="_crmAbrirBusqueda()" title="Buscar conversaciones" aria-label="Buscar conversaciones"><i class="ti ti-search"></i> <span>Buscar</span></button>
+                            <input type="text" id="crmBuscarInput" class="crm-buscar-input" placeholder="Buscar nombre o número..." style="display:none;" oninput="_crmBuscarCambio(this.value)" onblur="_crmBusquedaBlur()">
+                            <button class="crm-filtros-btn pill-elevado" id="crmFiltrosBtn" onclick="_crmToggleFiltros(event)"><i class="ti ti-adjustments-horizontal"></i> <span>Filtros</span></button>
+                        </div>
+                        <div class="crm-chips-row" id="crmChipsRow"></div>
+                        <div class="crm-stats" id="crmStats"></div>
                     </div>
-                    <div class="crm-chips-row" id="crmChipsRow"></div>
-                    <div class="crm-stats" id="crmStats"></div>
                 </div>
                 <div id="crmLinea-mensajes">
                     <div id="waWrap"></div>
@@ -2005,6 +2023,19 @@ body{
                 <div id="crmLinea-leads" style="display:none;">
                     <div style="display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap;" id="leadsFiltros"></div>
                     <div id="leadsLista"></div>
+                </div>
+                <div id="crmLinea-redes" style="display:none;">
+                    <div class="crm-tabs-row crm-ocultar-en-chat" style="margin-bottom:10px;">
+                        <div class="crm-tabs-track pill-elevado">
+                            <button class="crm-tab-seg on pill-hundido" id="redesTabIg" onclick="crmRedesSubTab('instagram')"><i class="ti ti-brand-instagram"></i> Instagram</button>
+                            <button class="crm-tab-seg" id="redesTabFb" onclick="crmRedesSubTab('facebook')"><i class="ti ti-brand-facebook"></i> Facebook</button>
+                            <button class="crm-tab-seg" id="redesTabTk" onclick="crmRedesSubTab('tiktok')"><i class="ti ti-brand-tiktok"></i> TikTok</button>
+                        </div>
+                    </div>
+                    <div class="crm-stats crm-ocultar-en-chat" id="redesStats"></div>
+                    <div id="redesSubInstagram"><div id="igWrap"></div></div>
+                    <div id="redesSubFacebook" style="display:none;"></div>
+                    <div id="redesSubTiktok" style="display:none;"></div>
                 </div>
             </div>
 
@@ -7335,6 +7366,7 @@ const NAV_PERMISOS = {
 function nav(v, btn) {
     // Salir del CRM: apagar la suscripcion en tiempo real de esa vista
     if(v !== 'crmLinea' && typeof _crmDetenerRealtime === 'function') _crmDetenerRealtime();
+    if(v !== 'crmLinea' && typeof _igDetenerRealtime === 'function') _igDetenerRealtime();
     // Aviso: si sales de una quincena que estás armando/corrigiendo con cambios sin guardar
     if(typeof _nominaGen !== 'undefined' && _nominaGen && _nominaGen._dirty && v !== 'nomina') {
         _nominaConfirmarSalida(() => nav(v, btn));
@@ -32521,7 +32553,22 @@ function _crmFinalizarAccion(key) {
     _crmAccionesEnCurso.delete(key);
 }
 function _crmTablaValida(tabla) {
-    return tabla === 'whatsapp_hilos' || tabla === 'leads';
+    return tabla === 'whatsapp_hilos' || tabla === 'leads' || tabla === 'instagram_hilos';
+}
+
+// Compartido entre Mensajes (WhatsApp) y Redes (Instagram): en movil, con un
+// chat abierto, la cabecera/pestañas de la bandeja sobran (solo roban
+// altura) — el CSS las esconde via .crm-ocultar-en-chat cuando #v-crmLinea
+// tiene la clase .chat-abierto. Cada pestaña decide su propio "abierto" según
+// cuál hilo tiene seleccionado.
+function _crmActualizarClaseChatAbierto() {
+    const tab = localStorage.getItem('bayol_subtab_crmlinea') || 'mensajes';
+    const movil = _waEsMovil();
+    let abierto = false, ampliado = false;
+    if(tab === 'mensajes') { abierto = !!_waHiloId; ampliado = abierto && !movil && _waChatAmpliadoDesktop; }
+    else if(tab === 'redes' && _igSubTab === 'instagram') { abierto = !!_igHiloId; }
+    const vista = document.getElementById('v-crmLinea');
+    if(vista) { vista.classList.toggle('chat-abierto', abierto); vista.classList.toggle('chat-ampliado', ampliado); }
 }
 
 // Importacion manual e idempotente del historial que Zernio ya sincronizo
@@ -32644,11 +32691,7 @@ function _pintarWhatsapp() {
     const mostrarDetalle = !movil || !!_waHiloId;
     // En movil, con el chat abierto la cabecera de la bandeja sobra (solo roba
     // altura) — el CSS la esconde con esta clase.
-    const vista = document.getElementById('v-crmLinea');
-    if(vista) {
-        vista.classList.toggle('chat-abierto', !!_waHiloId);
-        vista.classList.toggle('chat-ampliado', !!_waHiloId && !movil && _waChatAmpliadoDesktop);
-    }
+    _crmActualizarClaseChatAbierto();
     wrap.innerHTML = `<div class="wa-shell">
         ${mostrarLista ? `<div class="wa-list-col" id="waListaCol"><div class="wa-list-scroll" id="waLista"></div></div>` : ''}
         ${mostrarDetalle ? `<div class="wa-chat-col" id="waDetalleCol"><div id="waDetalle" style="display:flex; flex-direction:column; height:100%;"></div></div>` : ''}
@@ -34392,6 +34435,11 @@ async function _crmGuardarAsignacion(tabla, id, tipo, empId) {
             await cargarHilosWhatsapp();
             await _crmRepintarWhatsappSilencioso();
         }
+        else if(tabla === 'instagram_hilos') {
+            await cargarHilosInstagram();
+            _pintarInstagramLista();
+            _crmPintarStatsRedes();
+        }
         else { await cargarLeads(); _pintarLeads(); }
     } catch(e) { logError('_crmGuardarAsignacion', e); toastError('No se pudo guardar la asignación.'); }
     finally { _crmFinalizarAccion(lockKey); }
@@ -34704,14 +34752,456 @@ function _crmDetenerRealtime() {
 
 async function crmLineaTab(name) {
     try { localStorage.setItem('bayol_subtab_crmlinea', name); } catch(e) {}
-    const wa = document.getElementById('crmLinea-mensajes'), le = document.getElementById('crmLinea-leads');
-    const btnWa = document.getElementById('crmLineaTabWa'), btnLe = document.getElementById('crmLineaTabLeads');
+    if(name !== 'redes' && typeof _igDetenerRealtime === 'function') _igDetenerRealtime();
+    const wa = document.getElementById('crmLinea-mensajes'), le = document.getElementById('crmLinea-leads'), re = document.getElementById('crmLinea-redes');
+    const btnWa = document.getElementById('crmLineaTabWa'), btnLe = document.getElementById('crmLineaTabLeads'), btnRe = document.getElementById('crmLineaTabRedes');
+    // Buscador/chips/KPI de la bandeja son de WhatsApp (operan sobre _waHilos) —
+    // no tienen efecto visible en Leads/Redes, así que se esconden ahí (antes
+    // quedaban activos pero sin ninguna acción real al tocarlos).
+    const waControles = document.getElementById('crmWaControlesWrap');
+    const btnHist = document.getElementById('crmHistorialBtn');
     if(wa) wa.style.display = name === 'mensajes' ? '' : 'none';
     if(le) le.style.display = name === 'leads' ? '' : 'none';
+    if(re) re.style.display = name === 'redes' ? '' : 'none';
+    if(waControles) waControles.style.display = name === 'mensajes' ? '' : 'none';
+    if(btnHist) btnHist.style.display = name === 'mensajes' ? '' : 'none';
     // Elevado = sin elegir; hundido = elegido (ver receta "pildora premium" arriba).
     if(btnWa) btnWa.className = 'crm-tab-seg' + (name === 'mensajes' ? ' on pill-hundido' : '');
     if(btnLe) btnLe.className = 'crm-tab-seg' + (name === 'leads' ? ' on pill-hundido' : '');
-    if(name === 'mensajes') await renderWhatsapp(); else await renderLeads();
+    if(btnRe) btnRe.className = 'crm-tab-seg' + (name === 'redes' ? ' on pill-hundido' : '');
+    if(name === 'mensajes') await renderWhatsapp();
+    else if(name === 'redes') await renderRedesSociales();
+    else await renderLeads();
+}
+
+/* ============================================================
+   CRM REDES — Instagram (Facebook y TikTok son placeholders, sin
+   backend real todavía; ver PENDIENTES: Facebook necesita su propia
+   cuenta/hilos/mensajes/webhook, y TikTok no ofrece mensajería (DM)
+   por API — solo sirve para publicar contenido y anuncios, módulo
+   aparte pendiente). Instagram SÍ es funcional: tablas
+   instagram_cuentas/instagram_hilos/instagram_mensajes y la Edge
+   Function instagram-enviar (ya en producción desde 12 sept 2026).
+   Reusa helpers genéricos de WhatsApp (_crmMiIdentidad,
+   _crmMismoAsignado, _crmAsignarHTML, _waEsMovil, _waIniciales,
+   _waHoraRelativa) y la misma estructura visual (.wa-shell/.wa-row/
+   .wa-chat-col/...) con paleta propia (.ig-theme, ver CSS). La
+   cuenta de Instagram es UNA SOLA compartida por todo el negocio
+   (no hay selector de sucursal/línea como en WhatsApp) y cualquier
+   técnico activo la puede atender (ver tieneAccesoARedSocial en el
+   backend, fix 2026-09-12).
+   ============================================================ */
+let _igSubTab = localStorage.getItem('bayol_subtab_redes') || 'instagram';
+let _igCuentaId = null;
+let _igHilos = [];
+let _igHiloId = null;
+let _igMensajes = [];
+const _igMensajesOptimistas = new Map();
+let _igEnviando = false;
+let _igBusqueda = '';
+let _igChip = 'todos';              // todos | no_leidos
+let _igFiltroAsignacion = 'todas';  // todas | sin_asignar | mias
+let _igCargaToken = 0;
+let _igRealtimeChannel = null;
+let _igRtDebounce = null;
+let _igRtRecargarHiloAbierto = false;
+
+async function crmRedesSubTab(name) {
+    _igSubTab = name;
+    try { localStorage.setItem('bayol_subtab_redes', name); } catch(e) {}
+    const subIg = document.getElementById('redesSubInstagram'), subFb = document.getElementById('redesSubFacebook'), subTk = document.getElementById('redesSubTiktok');
+    const btnIg = document.getElementById('redesTabIg'), btnFb = document.getElementById('redesTabFb'), btnTk = document.getElementById('redesTabTk');
+    if(subIg) subIg.style.display = name === 'instagram' ? '' : 'none';
+    if(subFb) subFb.style.display = name === 'facebook' ? '' : 'none';
+    if(subTk) subTk.style.display = name === 'tiktok' ? '' : 'none';
+    if(btnIg) btnIg.className = 'crm-tab-seg' + (name === 'instagram' ? ' on pill-hundido' : '');
+    if(btnFb) btnFb.className = 'crm-tab-seg' + (name === 'facebook' ? ' on pill-hundido' : '');
+    if(btnTk) btnTk.className = 'crm-tab-seg' + (name === 'tiktok' ? ' on pill-hundido' : '');
+    if(name === 'instagram') {
+        await renderInstagram();
+        if(!_igRealtimeChannel) _igSuscribirRealtime();
+    } else {
+        _igDetenerRealtime();
+        _pintarRedesPlaceholder(name);
+        _crmPintarStatsRedes();
+    }
+}
+async function renderRedesSociales() { await crmRedesSubTab(_igSubTab); }
+
+function _redesPlaceholderHTML(canal) {
+    if(canal === 'facebook') {
+        return `<div class="crm-vacio" style="padding:60px 20px;">
+            <i class="ti ti-brand-facebook" style="font-size:40px; color:#1877f2; display:block; margin-bottom:10px;"></i>
+            <b style="display:block; margin-bottom:6px; color:#1e293b;">Facebook Messenger</b>
+            Todavía no tiene backend conectado en el sistema.<br>Próximamente.
+        </div>`;
+    }
+    return `<div class="crm-vacio" style="padding:60px 20px;">
+        <i class="ti ti-brand-tiktok" style="font-size:40px; color:#1e293b; display:block; margin-bottom:10px;"></i>
+        <b style="display:block; margin-bottom:6px; color:#1e293b;">TikTok</b>
+        TikTok no ofrece mensajería (DM) por API todavía — solo se puede usar para publicar contenido y anuncios (módulo aparte, pendiente).
+    </div>`;
+}
+function _pintarRedesPlaceholder(canal) {
+    const el = document.getElementById(canal === 'facebook' ? 'redesSubFacebook' : 'redesSubTiktok');
+    if(el) el.innerHTML = _redesPlaceholderHTML(canal);
+}
+
+function _crmPintarStatsRedes() {
+    const cont = document.getElementById('redesStats');
+    if(!cont) return;
+    const noLeidosIg = (_igHilos || []).reduce((n, h) => n + (h.no_leidos_count || 0), 0);
+    const html = `
+        <div class="crm-stat rojo" title="${noLeidosIg} mensajes de Instagram sin leer">
+            <div class="bola"><i class="ti ti-brand-instagram"></i></div>
+            <div class="num">${noLeidosIg}</div><div class="lbl">IG sin leer</div>
+        </div>
+        <div class="crm-stat azul" title="Facebook: backend pendiente">
+            <div class="bola"><i class="ti ti-brand-facebook"></i></div>
+            <div class="num">—</div><div class="lbl">FB pendiente</div>
+        </div>
+        <div class="crm-stat morado" title="TikTok: sin mensajería disponible por API">
+            <div class="bola"><i class="ti ti-brand-tiktok"></i></div>
+            <div class="num">—</div><div class="lbl">TikTok pendiente</div>
+        </div>`;
+    if(cont.innerHTML !== html) cont.innerHTML = html;
+}
+
+async function _igCargarCuenta() {
+    if(_igCuentaId) return _igCuentaId;
+    try {
+        const { data, error } = await supabaseClient.from('instagram_cuentas').select('id').eq('activo', true).limit(1).maybeSingle();
+        if(error) throw error;
+        _igCuentaId = data?.id || null;
+    } catch(e) { logError('_igCargarCuenta', e); _igCuentaId = null; }
+    return _igCuentaId;
+}
+
+async function cargarHilosInstagram() {
+    const cuentaId = await _igCargarCuenta();
+    if(!cuentaId) { _igHilos = []; return; }
+    const { data, error } = await supabaseClient.from('instagram_hilos').select('*').eq('cuenta_id', cuentaId).order('ultimo_mensaje_at', { ascending: false, nullsFirst: false });
+    if(error) { logError('cargarHilosInstagram', error); toastError('No se pudieron cargar las conversaciones de Instagram.'); return; }
+    let lista = data || [];
+    if(!isAdminUser()) {
+        const yo = _crmMiIdentidad();
+        lista = lista.filter(h => !h.asignado_id || _crmMismoAsignado(h, yo));
+    }
+    _igHilos = lista;
+}
+
+async function renderInstagram() {
+    await cargarHilosInstagram();
+    if(_igHiloId) {
+        if(_igHilos.some(h => h.id === _igHiloId)) await cargarMensajesInstagramHilo(_igHiloId);
+        else _igHiloId = null;
+    }
+    _pintarInstagram();
+}
+
+function _igHilosFiltrados() {
+    const yo = _crmMiIdentidad();
+    const q = _igBusqueda.trim().toLowerCase();
+    return (_igHilos || []).filter(h => {
+        if(_igChip === 'no_leidos' && !(h.no_leidos_count > 0)) return false;
+        if(_igFiltroAsignacion === 'sin_asignar' && h.asignado_id) return false;
+        if(_igFiltroAsignacion === 'mias' && !_crmMismoAsignado(h, yo)) return false;
+        if(q) {
+            const nombre = (h.nombre_perfil || '').toLowerCase();
+            const user = (h.participant_username || '').toLowerCase();
+            if(!nombre.includes(q) && !user.includes(q)) return false;
+        }
+        return true;
+    });
+}
+
+function _igNombreHilo(h) { return h.nombre_perfil || (h.participant_username ? '@' + h.participant_username : 'Sin nombre'); }
+
+function _pintarInstagram() {
+    const wrap = document.getElementById('igWrap');
+    if(!wrap) return;
+    const movil = _waEsMovil();
+    const mostrarLista = !movil || !_igHiloId;
+    const mostrarDetalle = !movil || !!_igHiloId;
+    _crmActualizarClaseChatAbierto();
+    wrap.innerHTML = `<div class="wa-shell ig-theme">
+        ${mostrarLista ? `<div class="wa-list-col" id="igListaCol"><div class="wa-list-scroll" id="igLista"></div></div>` : ''}
+        ${mostrarDetalle ? `<div class="wa-chat-col" id="igDetalleCol"><div id="igDetalle" style="display:flex; flex-direction:column; height:100%;"></div></div>` : ''}
+    </div>`;
+    if(mostrarLista) _pintarInstagramLista();
+    if(mostrarDetalle) _pintarInstagramDetalle();
+    _crmPintarStatsRedes();
+}
+
+function _pintarInstagramLista() {
+    const cont = document.getElementById('igLista');
+    if(!cont) return;
+    if(!_igHilos.length) {
+        cont.innerHTML = `<div class="crm-vacio">Todavía no han llegado mensajes de Instagram.</div>`;
+        return;
+    }
+    const lista = _igHilosFiltrados();
+    if(!lista.length) {
+        cont.innerHTML = `<div class="crm-vacio">Ninguna conversación coincide con lo que buscas.</div>`;
+        return;
+    }
+    cont.innerHTML = lista.map(h => {
+        const noLeido = (h.no_leidos_count || 0) > 0;
+        const activo = h.id === _igHiloId;
+        const nombre = _igNombreHilo(h);
+        const clases = ['wa-row']; if(activo) clases.push('active'); if(noLeido) clases.push('no-leido');
+        return `<div class="${clases.join(' ')}" onclick="abrirHiloInstagram('${h.id}')">
+            <div class="wa-avatar">${escapeHtml(_waIniciales(nombre))}</div>
+            <div style="flex:1; min-width:0;">
+                <div style="display:flex; justify-content:space-between; gap:6px;">
+                    <span class="fila-nombre" style="font-weight:${noLeido ? '800' : '600'}; font-size:13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(nombre)}</span>
+                    <span class="fila-hora" style="font-size:11px; color:var(--text-muted); flex-shrink:0;">${_waHoraRelativa(h.ultimo_mensaje_at)}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
+                    <span class="fila-preview" style="font-size:12px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(h.ultimo_mensaje_preview || '')}</span>
+                    ${noLeido ? `<span class="fila-badge">${h.no_leidos_count}</span>` : ''}
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function abrirHiloInstagram(id) {
+    _igHiloId = id;
+    const h = _igHilos.find(x => x.id === id);
+    if(h && h.no_leidos_count) {
+        h.no_leidos_count = 0;
+        try { await supabaseClient.from('instagram_hilos').update({ no_leidos_count: 0 }).eq('id', id); } catch(e) { logError('marcar leido instagram', e); }
+    }
+    await cargarMensajesInstagramHilo(id);
+    if(_igHiloId !== id) return; // el usuario ya abrio otra conversacion mientras esta cargaba
+    _pintarInstagram();
+}
+function volverListaInstagram() { _igHiloId = null; _pintarInstagram(); }
+
+const _igUrlCache = new Map(); // media_path -> { url, exp }
+async function _igSignedUrl(path) {
+    const hit = _igUrlCache.get(path);
+    if(hit && hit.exp > Date.now() + 120000) return hit.url;
+    try {
+        const { data } = await supabaseClient.storage.from('instagram-media').createSignedUrl(path, 3600);
+        if(!data?.signedUrl) return null;
+        _igUrlCache.set(path, { url: data.signedUrl, exp: Date.now() + 3600000 });
+        return data.signedUrl;
+    } catch(e) { return null; }
+}
+
+async function cargarMensajesInstagramHilo(hiloId) {
+    const token = ++_igCargaToken;
+    const { data, error } = await supabaseClient.from('instagram_mensajes').select('*').eq('hilo_id', hiloId).order('creado_en', { ascending: true });
+    if(token !== _igCargaToken) return;
+    if(error) { logError('cargarMensajesInstagramHilo', error); toastError('No se pudieron cargar los mensajes.'); if(token === _igCargaToken) _igMensajes = []; return; }
+    const lista = data || [];
+    for(const m of lista) {
+        if(m.media_path) m._mediaUrl = await _igSignedUrl(m.media_path);
+        if(token !== _igCargaToken) return; // se cancelo a medio camino
+    }
+    if(token !== _igCargaToken) return;
+    for(const [tempId, opt] of _igMensajesOptimistas) {
+        if(opt.hilo_id !== hiloId) continue;
+        const yaExiste = opt.zernio_message_id && lista.some(m => m.zernio_message_id === opt.zernio_message_id);
+        if(yaExiste) _igMensajesOptimistas.delete(tempId);
+        else lista.push(opt);
+    }
+    lista.sort((a,b) => new Date(a.creado_en) - new Date(b.creado_en));
+    _igMensajes = lista;
+}
+
+function _igBurbujaMedia(m) {
+    if(!m.media_path) {
+        if(m.tipo_contenido === 'compartido') return `<div style="font-size:12px; color:#94a3b8;"><i class="ti ti-share"></i> Publicación compartida</div>`;
+        if(m.tipo_contenido === 'sticker') return `<div style="font-size:24px;">🙂</div>`;
+        return '';
+    }
+    const url = m._mediaUrl;
+    if(!url) return `<div style="font-size:12px; color:#94a3b8;"><i class="ti ti-photo"></i> Adjunto</div>`;
+    if(m.tipo_contenido === 'imagen') return `<img src="${url}" style="max-width:220px; border-radius:8px; display:block; margin-bottom:4px;" loading="lazy">`;
+    if(m.tipo_contenido === 'video') return `<video src="${url}" controls style="max-width:220px; border-radius:8px; display:block; margin-bottom:4px;"></video>`;
+    if(m.tipo_contenido === 'audio') return `<audio src="${url}" controls style="display:block; margin-bottom:4px;"></audio>`;
+    return `<a href="${url}" target="_blank" style="font-size:12px;"><i class="ti ti-paperclip"></i> Ver adjunto</a>`;
+}
+
+function _pintarInstagramDetalle() {
+    const cont = document.getElementById('igDetalle');
+    if(!cont) return;
+    if(!_igHiloId) {
+        cont.innerHTML = `<div class="wa-chat-empty">Selecciona una conversación de la lista.</div>`;
+        return;
+    }
+    const h = _igHilos.find(x => x.id === _igHiloId);
+    if(!h) { volverListaInstagram(); return; }
+
+    const _prevInput = document.getElementById('igTexto');
+    const _borrador = _prevInput ? _prevInput.value : '';
+    const _teniaFoco = document.activeElement === _prevInput;
+    const _caret = _prevInput ? _prevInput.selectionStart : null;
+
+    const puedeResponder = isAdminUser() || tienePermiso('whatsapp_responder');
+    const nombre = _igNombreHilo(h);
+
+    let html = `<div class="wa-chat-head">`;
+    if(_waEsMovil()) html += `<button class="wa-tab-btn" style="color:#8134af; background:#fff; border-color:#eadffb;" onclick="volverListaInstagram()"><i class="ti ti-arrow-left"></i></button>`;
+    html += `<div class="wa-avatar">${escapeHtml(_waIniciales(nombre))}</div>
+        <div style="flex:1; min-width:0;">
+            <div style="font-weight:700; font-size:14.5px;">${escapeHtml(nombre)}</div>
+            <div style="font-size:11.5px; color:var(--text-muted);">${h.participant_username ? '<i class="ti ti-brand-instagram"></i> @' + escapeHtml(h.participant_username) : ''}</div>
+        </div>
+    </div>
+    <div style="padding:6px 18px 10px; background:#f0f2f5;">${_crmAsignarHTML('instagram_hilos', h)}</div>`;
+
+    html += `<div id="igMessagesScroll" style="flex:1; overflow-y:auto; padding:16px 20px; display:flex; flex-direction:column; gap:6px;">`;
+    if(!_igMensajes.length) {
+        html += `<div class="wa-chat-empty">Sin mensajes todavía.</div>`;
+    } else {
+        html += _igMensajes.map(m => {
+            const esOut = m.direccion === 'out';
+            const etiqueta = esOut ? 'Tú (BayolCell)' : nombre;
+            return `<div class="wa-brow ${esOut ? 'out' : 'in'}">
+                <div class="wa-bubble-wrap" style="background:${esOut ? '#efe0fb' : '#fff'}; border-radius:8px; padding:6px 9px 7px; box-shadow:0 1px .5px rgba(0,0,0,.13); font-size:13.5px;">
+                    <div style="font-size:10px; font-weight:700; color:${esOut ? '#7c3aed' : '#c2185b'}; margin-bottom:2px;">${escapeHtml(etiqueta)}</div>
+                    ${_igBurbujaMedia(m)}
+                    ${m.cuerpo ? `<div style="white-space:pre-wrap; word-break:break-word;">${escapeHtml(m.cuerpo)}</div>` : ''}
+                    <div style="text-align:right; font-size:10px; color:#8696a0; margin-top:2px;">
+                        ${new Date(m.creado_en).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}
+                        ${m._optimista ? (m.estado === 'fallido' ? ' <i class="ti ti-alert-triangle" style="color:#dc2626;"></i>' : ' <i class="ti ti-clock"></i>') : ''}
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+    html += `</div>`;
+
+    if(puedeResponder) {
+        html += `<div class="wa-input-bar" id="igInputBar">
+            <input type="text" id="igTexto" placeholder="Escribe una respuesta..." autocapitalize="none" autocorrect="off" onkeydown="if(event.key==='Enter') enviarMensajeInstagram()">
+            <button class="wa-send-btn" id="btnIgEnviar" onclick="enviarMensajeInstagram()"><i class="ti ti-send"></i></button>
+        </div>`;
+    } else {
+        html += `<div class="wa-chat-empty" style="padding:10px;">No tienes permiso para responder.</div>`;
+    }
+
+    cont.innerHTML = html;
+
+    const nuevoInput = document.getElementById('igTexto');
+    if(nuevoInput && _borrador) {
+        nuevoInput.value = _borrador;
+        if(_teniaFoco) { nuevoInput.focus(); if(_caret != null) nuevoInput.setSelectionRange(_caret, _caret); }
+    }
+    const scroll = document.getElementById('igMessagesScroll');
+    if(scroll) scroll.scrollTop = scroll.scrollHeight;
+}
+
+async function enviarMensajeInstagram() {
+    if(_igEnviando) return;
+    const input = document.getElementById('igTexto');
+    const mensaje = (input?.value || '').trim();
+    if(!mensaje) return;
+    // Igual que en WhatsApp: el destino se congela ANTES del await de sesion,
+    // para que un cambio de conversacion mientras esa peticion esta en vuelo
+    // no mande el mensaje al chat equivocado.
+    const hiloDestino = _igHiloId;
+    if(!hiloDestino) return;
+    const tempId = `ig-temp-${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
+    const optimista = {
+        id: tempId, hilo_id: hiloDestino, direccion: 'out', tipo_contenido: 'text',
+        cuerpo: mensaje, creado_en: new Date().toISOString(), estado: 'enviando', _optimista: true
+    };
+    _igEnviando = true;
+    for(const [id, opt] of _igMensajesOptimistas) {
+        if(opt.hilo_id === hiloDestino && opt.estado === 'fallido') _igMensajesOptimistas.delete(id);
+    }
+    _igMensajesOptimistas.set(tempId, optimista);
+    _igMensajes = _igMensajes.filter(m => !(m._optimista && m.estado === 'fallido'));
+    _igMensajes.push(optimista);
+    if(input) input.value = '';
+    _pintarInstagramDetalle();
+    const bloquearBoton = (activo) => { const b = document.getElementById('btnIgEnviar'); if(b) b.disabled = activo; };
+    bloquearBoton(true);
+
+    const marcarFallo = (textoError) => {
+        const opt = _igMensajesOptimistas.get(tempId);
+        if(opt) opt.estado = 'fallido';
+        if(_igHiloId === hiloDestino) {
+            const actual = document.getElementById('igTexto');
+            if(actual && !actual.value) actual.value = mensaje;
+            _pintarInstagramDetalle();
+        }
+        toastError(textoError || 'No se pudo enviar el mensaje.');
+    };
+    try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if(!session) { marcarFallo('Inicia sesión de nuevo.'); return; }
+        const res = await fetch(CONFIG_URL + '/functions/v1/instagram-enviar', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ hilo_id: hiloDestino, mensaje })
+        });
+        const j = await res.json();
+        if(j && j.ok) {
+            const opt = _igMensajesOptimistas.get(tempId);
+            if(opt) { opt.estado = 'enviado'; opt.zernio_message_id = j.messageId || null; }
+            await Promise.all([
+                cargarMensajesInstagramHilo(_igHiloId || hiloDestino),
+                cargarHilosInstagram()
+            ]);
+            if(_igHiloId === hiloDestino) {
+                _pintarInstagramDetalle();
+                _pintarInstagramLista();
+                _crmPintarStatsRedes();
+            }
+        } else {
+            marcarFallo(j?.mensaje || j?.error || 'No se pudo enviar el mensaje.');
+        }
+    } catch(e) { logError('enviarMensajeInstagram', e); marcarFallo(getFriendlyError(e)); }
+    finally { _igEnviando = false; bloquearBoton(false); }
+}
+
+// Mismo patron de tiempo real que WhatsApp (_crmSuscribirRealtime): debounce
+// de 400ms, solo reconstruye el chat abierto si el evento es de ESE hilo, y
+// solo actua si la pestaña Redes/Instagram sigue siendo la que se ve.
+// instagram_hilos SI tiene cuenta_id (a diferencia de whatsapp_hilos que no
+// tiene linea_id) — se puede filtrar del lado del servidor.
+function _igSuscribirRealtime() {
+    if(_igRealtimeChannel) { try { supabaseClient.removeChannel(_igRealtimeChannel); } catch(e) {} _igRealtimeChannel = null; }
+    if(_igRtDebounce) { clearTimeout(_igRtDebounce); _igRtDebounce = null; }
+    if(!_igCuentaId) return;
+    const refrescarIg = (payload, tabla) => {
+        if(tabla === 'instagram_mensajes') {
+            const hiloId = payload?.new?.hilo_id || payload?.old?.hilo_id;
+            if(hiloId && hiloId !== _igHiloId && !_igHilos.some(h => h.id === hiloId)) return;
+        }
+        const esMensajeDelHiloAbierto = tabla === 'instagram_mensajes' && _igHiloId &&
+            (payload?.new?.hilo_id === _igHiloId || payload?.old?.hilo_id === _igHiloId);
+        if(esMensajeDelHiloAbierto) _igRtRecargarHiloAbierto = true;
+        if(_igRtDebounce) clearTimeout(_igRtDebounce);
+        _igRtDebounce = setTimeout(async () => {
+            const recargarHiloAbierto = _igRtRecargarHiloAbierto;
+            _igRtRecargarHiloAbierto = false;
+            if(!document.getElementById('v-crmLinea')?.classList.contains('active')) return;
+            const tabActiva = localStorage.getItem('bayol_subtab_crmlinea') || 'mensajes';
+            if(tabActiva !== 'redes' || _igSubTab !== 'instagram') return;
+            await cargarHilosInstagram();
+            if(recargarHiloAbierto && _igHiloId) await cargarMensajesInstagramHilo(_igHiloId);
+            _pintarInstagramLista();
+            if(recargarHiloAbierto && _igHiloId) _pintarInstagramDetalle();
+            _crmPintarStatsRedes();
+        }, 400);
+    };
+    _igRealtimeChannel = supabaseClient
+        .channel('crm-redes-instagram-' + _igCuentaId)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'instagram_hilos', filter: `cuenta_id=eq.${_igCuentaId}` }, p => refrescarIg(p, 'instagram_hilos'))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'instagram_mensajes' }, p => refrescarIg(p, 'instagram_mensajes'))
+        .subscribe(_rtEstadoCanal);
+}
+function _igDetenerRealtime() {
+    if(_igRealtimeChannel) { try { supabaseClient.removeChannel(_igRealtimeChannel); } catch(e) {} _igRealtimeChannel = null; }
+    if(_igRtDebounce) { clearTimeout(_igRtDebounce); _igRtDebounce = null; }
+    _igRtRecargarHiloAbierto = false;
 }
 
 // btn: el boton de refrescar que disparo la llamada (opcional — tambien se
