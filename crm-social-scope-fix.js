@@ -97,7 +97,10 @@
   function hideSocial(){
     socialVisible=false;
     const view=$('#v-crmLinea');
-    view?.classList.remove('bc-social-mode','bc-ig-chat-open');
+    if(view){
+      view.classList.remove('bc-social-mode','bc-ig-chat-open');
+      view.dataset.socialChannel='whatsapp';
+    }
     const head=$('#bcSocialHubHead'),ig=$('#bcSocialInstagramPanel'),fb=$('#bcSocialFacebookPanel');
     if(head) head.style.display='none';
     if(ig) ig.style.display='none';
