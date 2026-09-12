@@ -407,12 +407,20 @@
   async function syncConnectedAccounts(){
     if(accountSyncStarted) return;
     accountSyncStarted = true;
-    const client = window.supabaseClient || window.supabase;
+    const client = typeof supabaseClient !== 'undefined' ? supabaseClient : window.supabaseClient;
     const sucursalId = window.sessionUser?.sucursal_id || window.sessionUser?.sucursalId;
     if(!client?.functions?.invoke || !sucursalId) return;
     try{
       const {data,error}=await client.functions.invoke('social-sincronizar-cuentas',{body:{sync:true,sucursalId}});
-      if(error || !data?.ok) return;
+      if(error || !data?.ok){
+        console.warn('[social] Zernio rechazó la sincronización',error || data);
+        state.meta.facebook.account='Permiso pendiente';
+        state.meta.tiktok.account='Permiso pendiente';
+        state.meta.facebook.ready=false;
+        state.meta.tiktok.ready=false;
+        syncHeaderState();
+        return;
+      }
       (data.accounts||[]).forEach(a=>{
         const ch=a.platform;
         if(!state.meta[ch]) return;
