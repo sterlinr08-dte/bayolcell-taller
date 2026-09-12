@@ -58,6 +58,18 @@
     ensureTikTokPanel();
     ensureContextPanel();
 
+    const view=$('#v-crmLinea');
+    if(view && !$('#bcSocialBackRow')){
+      const row=document.createElement('div');
+      row.id='bcSocialBackRow';
+      row.innerHTML='<button type="button" class="btn btn-light" id="bcSocialBack"><i class="ti ti-arrow-left" aria-hidden="true"></i> Volver al CRM</button>';
+      view.insertBefore(row,head);
+      $('#bcSocialBack').addEventListener('click',()=>{
+        hideSocial();
+        if(window.BayolSocialHub) window.BayolSocialHub.state.channel='whatsapp';
+        window.crmLineaTab('mensajes');
+      });
+    }
     head.innerHTML=`
       <div class="bc-smart-platforms" id="bcSmartPlatforms" role="tablist" aria-label="Red social">
         ${Object.entries(CHANNELS).map(([key,c])=>`
@@ -409,8 +421,8 @@
   }
 
   async function refreshSmartData(){
-    if(!state.visible || !window.supabaseClient) return;
-    const client=window.supabaseClient;
+    const client=typeof supabaseClient !== 'undefined' ? supabaseClient : window.supabaseClient;
+    if(!state.visible || !client) return;
     try{
       const {data:accounts,error:aErr}=await client.from('instagram_cuentas').select('id,instagram_username,nombre').eq('activo',true).limit(10);
       if(!aErr && accounts?.length){

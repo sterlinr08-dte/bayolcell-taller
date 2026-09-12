@@ -295,3 +295,8 @@
   .bc-smart-platform{flex-basis:235px}
   .bc-smart-interaction{min-width:110px;flex-basis:110px}
 }
+
+/* Return stays reachable in the inbox and on a mobile conversation. */
+#bcSocialBackRow{display:none}
+#v-crmLinea.bc-social-mode #bcSocialBackRow{display:flex;order:1;flex:0 0 auto;margin:0 0 8px}
+#bcSocialBack{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;font-size:12px;border-radius:999px}

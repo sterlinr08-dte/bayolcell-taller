@@ -42,7 +42,14 @@
     } catch {}
     console[type === 'error' ? 'error' : 'log'](msg);
   };
-  const sb = () => window.supabaseClient;
+  // The host declares a global lexical const; it is not a window property.
+  const sb = () => typeof supabaseClient !== 'undefined' ? supabaseClient : window.supabaseClient;
+  async function instagramQuery(query){
+    let timer;
+    try { return await Promise.race([query, new Promise((_,reject)=>{
+      timer=setTimeout(()=>reject(new Error('La conexión tardó demasiado. Vuelve a intentarlo.')),15000);
+    })]); } finally { clearTimeout(timer); }
+  }
 
   function ensureCss(){
     if ($('#bcSocialHubCss')) return;
@@ -223,15 +230,15 @@
 
   async function loadInstagram(force){
     const client = sb();
-    if (!client) return;
     const list = $('#bcIgThreads');
     if (!list) return;
     if (force && !state.threads.length) list.innerHTML = '<div class="bc-social-loading"><span class="bc-social-spin"></span>Cargando conversaciones…</div>';
     try {
+      if(!client) throw new Error('No se pudo iniciar la conexión. Recarga el CRM.');
       let q = client.from('instagram_cuentas').select('*').eq('activo',true).order('creado_en',{ascending:true}).limit(10);
       const ownBranch = window.sessionUser?.sucursal_id || null;
       if (ownBranch) q = q.eq('sucursal_id',ownBranch);
-      const {data:accounts,error:aErr}=await q;
+      const {data:accounts,error:aErr}=await instagramQuery(q);
       if (aErr) throw aErr;
       state.account = (accounts || [])[0] || null;
       const name = $('#bcIgAccountName'), sub = $('#bcIgAccountSub'), status = $('#bcIgStatus');
@@ -246,7 +253,7 @@
       if(name) name.textContent = state.account.instagram_username ? `@${state.account.instagram_username}` : (state.account.nombre || 'Instagram');
       if(sub) sub.textContent = state.account.login_method === 'facebook_login' ? 'Conectado mediante Facebook Login' : 'Conectado mediante Instagram Login';
       if(status){status.textContent='Conectado';status.removeAttribute('style');}
-      const {data:threads,error:hErr}=await client.from('instagram_hilos').select('*').eq('cuenta_id',state.account.id).eq('estado','abierto').order('ultimo_mensaje_at',{ascending:false,nullsFirst:false}).limit(300);
+      const {data:threads,error:hErr}=await instagramQuery(client.from('instagram_hilos').select('*').eq('cuenta_id',state.account.id).eq('estado','abierto').order('ultimo_mensaje_at',{ascending:false,nullsFirst:false}).limit(300));
       if (hErr) throw hErr;
       state.threads = threads || [];
       if (state.selected) {
@@ -257,8 +264,10 @@
       if (state.selected) await loadMessages(state.selected.id,false);
     } catch(e) {
       console.error('CRM Social Instagram',e);
-      if(list) list.innerHTML = `<div class="bc-ig-empty"><div><i class="ti ti-alert-circle"></i><b>No se pudo cargar Instagram</b><span>${esc(e.message || 'Error inesperado.')}</span></div></div>`;
-    } finally { refreshKpis(); }
+      if(list) list.innerHTML = `<div class="bc-ig-empty"><div><i class="ti ti-alert-circle"></i><b>No se pudo cargar Instagram</b><span>${esc(e.message || 'Error inesperado.')}</span><button type="button" class="btn btn-light" id="bcIgRetry">Reintentar</button></div></div>`;
+      $('#bcIgRetry')?.addEventListener('click',()=>loadInstagram(true));
+      const status=$('#bcIgStatus'); if(status) status.textContent='Sin conexión';
+    } finally { if(client) refreshKpis(); }
   }
 
   function renderThreads(){
