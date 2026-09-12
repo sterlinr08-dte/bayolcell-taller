@@ -6,6 +6,16 @@
 
   const $ = (s, r=document) => r.querySelector(s);
   const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+  // Supabase and Zernio calls must never leave the inbox on an endless
+  // spinner.  A timeout only changes the UI state; it does not expose any
+  // credential or cancel a server-side import that may still be running.
+  const withTimeout = (promise, ms=12000) => {
+    let timer;
+    const timeout = new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error('La solicitud tardó demasiado')), ms);
+    });
+    return Promise.race([Promise.resolve(promise), timeout]).finally(() => clearTimeout(timer));
+  };
   const state = {
     visible: false,
     channel: 'instagram',
@@ -63,17 +73,38 @@
   async function loadFacebookThreads(){
     const client=typeof supabaseClient!=='undefined'?supabaseClient:window.supabaseClient;
     const host=$('#bcFbThreads');
-    if(!client?.from || !host) return;
+    if(!client?.from || !host || host.dataset.fbLoading==='1') return;
+    host.dataset.fbLoading='1';
     try{
-      const {data:account}=await client.from('social_cuentas').select('id,username,display_name').eq('plataforma','facebook').eq('activo',true).limit(1).maybeSingle();
-      if(!account){ host.innerHTML='<div class="bc-social-empty-state"><i class="ti ti-brand-facebook"></i><b>Facebook no está vinculado</b><span>Conecta la página BayolCell en Zernio.</span></div>'; return; }
+      host.innerHTML='<div class="bc-social-loading"><span class="bc-social-spin"></span>Comprobando Facebook…</div>';
+      const actor=typeof sessionUser!=='undefined'?sessionUser:window.sessionUser;
+      const sucursalId=actor?.sucursal_id||actor?.sucursalId;
+      let accountQuery=client.from('social_cuentas').select('id,username,display_name,estado').eq('plataforma','facebook').eq('activo',true);
+      if(sucursalId) accountQuery=accountQuery.eq('sucursal_id',sucursalId);
+      const {data:account,error:accountError}=await withTimeout(accountQuery.order('actualizado_en',{ascending:false}).limit(1).maybeSingle(),12000);
+      if(accountError) throw accountError;
+      if(!account){
+        state.meta.facebook.ready=false;
+        state.meta.facebook.account='Sin cuenta';
+        syncHeaderState();
+        host.innerHTML='<div class="bc-social-empty-state"><i class="ti ti-brand-facebook"></i><b>Facebook no está vinculado</b><span>Conecta la página BayolCell en Zernio.</span></div>';
+        return;
+      }
       const sub=$('#bcFbAccountSub'); if(sub) sub.textContent=account.display_name||account.username||'BayolCell';
       const status=$('#bcFbStatus'); if(status){status.textContent='Conectado';status.className='on';}
-      const {data:threads,error}=await client.from('social_hilos').select('id,participant_name,participant_username,ultimo_mensaje_preview,ultimo_mensaje_at,no_leidos_count,estado').eq('cuenta_id',account.id).order('actualizado_en',{ascending:false}).limit(100);
+      state.meta.facebook.ready=true;
+      state.meta.facebook.account=account.display_name||account.username||'BayolCell';
+      syncHeaderState();
+      const {data:threads,error}=await withTimeout(client.from('social_hilos').select('id,participant_name,participant_username,ultimo_mensaje_preview,ultimo_mensaje_at,no_leidos_count,estado').eq('cuenta_id',account.id).order('actualizado_en',{ascending:false}).limit(100),12000);
       if(error) throw error;
       if(!threads?.length){host.innerHTML='<div class="bc-social-empty-state"><i class="ti ti-message-circle"></i><b>Sin conversaciones todavía</b><span>La importación inicial de Zernio puede tardar unos segundos.</span></div>';return;}
       host.innerHTML=threads.map(t=>{const name=t.participant_name||t.participant_username||'Contacto de Facebook';const initials=name.split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase();return `<button type="button" class="bc-social-generic-thread${t.no_leidos_count?' unread':''}" data-fb-thread="${t.id}"><span class="bc-social-generic-avatar">${escapeHtml(initials)}</span><span class="bc-social-generic-thread-copy"><b>${escapeHtml(name)}</b><small>${escapeHtml(t.ultimo_mensaje_preview||'Sin mensajes')}</small></span>${t.no_leidos_count?`<em>${t.no_leidos_count}</em>`:''}</button>`;}).join('');
-    }catch(e){ host.innerHTML='<div class="bc-social-error"><i class="ti ti-alert-triangle"></i><b>No se pudo cargar Facebook</b><span>Revisa la autorización de la página y vuelve a intentar.</span><button type="button" id="bcFbRetry">Reintentar</button></div>'; $('#bcFbRetry')?.addEventListener('click',loadFacebookThreads); }
+    }catch(e){
+      state.meta.facebook.ready=false;
+      syncHeaderState();
+      host.innerHTML='<div class="bc-social-error"><i class="ti ti-alert-triangle"></i><b>No se pudo cargar Facebook</b><span>La conexión tardó demasiado o la sesión no tiene acceso a esta sucursal.</span><button type="button" id="bcFbRetry">Reintentar</button></div>';
+      $('#bcFbRetry')?.addEventListener('click',()=>{ accountSyncStarted=false; loadFacebookThreads(); syncConnectedAccounts(); });
+    }finally{ host.dataset.fbLoading='0'; }
   }
 
   async function openFacebookThread(id){
@@ -257,6 +288,7 @@
     renderInteractionNav();
     syncHeaderState();
     showCurrentContent();
+    if(channel==='facebook') loadFacebookThreads();
     scheduleRefresh();
   }
 
@@ -439,6 +471,7 @@
     renderInteractionNav();
     syncHeaderState();
     showCurrentContent();
+    if(state.channel==='facebook' && state.view==='all') loadFacebookThreads();
     scheduleRefresh();
   }
 
@@ -454,7 +487,7 @@
     if(!client?.functions?.invoke || !sucursalId) return;
     accountSyncStarted = true;
     try{
-      const {data,error}=await client.functions.invoke('social-sincronizar-cuentas',{body:{sync:true,sucursalId}});
+      const {data,error}=await withTimeout(client.functions.invoke('social-sincronizar-cuentas',{body:{sync:true,sucursalId}}),18000);
       if(error || !data?.ok){
         console.warn('[social] Zernio rechazó la sincronización',error || data);
         state.meta.facebook.account='Permiso pendiente';
@@ -462,6 +495,7 @@
         state.meta.facebook.ready=false;
         state.meta.tiktok.ready=false;
         syncHeaderState();
+        if(state.channel==='facebook') loadFacebookThreads();
         return;
       }
       (data.accounts||[]).forEach(a=>{
@@ -473,11 +507,20 @@
       syncHeaderState();
       if(state.visible) showCurrentContent();
       const fb=data.accounts?.find(a=>a.platform==='facebook');
-      if(fb && typeof supabaseClient!=='undefined' && sucursalId){
-        await client.functions.invoke('social-importar-historial',{body:{accountId:fb._id,sucursalId}});
+      if(fb && sucursalId){
+        try{
+          await withTimeout(client.functions.invoke('social-importar-historial',{body:{accountId:fb._id,sucursalId}}),25000);
+        }catch(e){ console.warn('[social] importación inicial de Facebook continúa en segundo plano',e); }
         await loadFacebookThreads();
       }
-    }catch(e){ console.warn('[social] sync de cuentas no disponible',e); }
+    }catch(e){
+      accountSyncStarted=false;
+      console.warn('[social] sync de cuentas no disponible',e);
+      state.meta.facebook.ready=false;
+      state.meta.tiktok.ready=false;
+      syncHeaderState();
+      if(state.channel==='facebook') loadFacebookThreads();
+    }
   }
 
   function hideSocial(){
