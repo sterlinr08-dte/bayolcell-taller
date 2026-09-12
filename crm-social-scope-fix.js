@@ -449,7 +449,8 @@
   async function syncConnectedAccounts(){
     if(accountSyncStarted) return;
     const client = typeof supabaseClient !== 'undefined' ? supabaseClient : window.supabaseClient;
-    const sucursalId = window.sessionUser?.sucursal_id || window.sessionUser?.sucursalId;
+    const actor = typeof sessionUser !== 'undefined' ? sessionUser : window.sessionUser;
+    const sucursalId = actor?.sucursal_id || actor?.sucursalId;
     if(!client?.functions?.invoke || !sucursalId) return;
     accountSyncStarted = true;
     try{
