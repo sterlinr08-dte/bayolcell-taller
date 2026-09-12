@@ -45,6 +45,47 @@
     view.appendChild(panel);
   }
 
+  function ensureFacebookPanel(){
+    const panel=$('#bcSocialFacebookPanel');
+    if(!panel || panel.dataset.fbReady==='1') return;
+    panel.innerHTML=`<div class="bc-social-generic-shell" data-social-generic="facebook">
+      <aside class="bc-social-generic-list">
+        <div class="bc-social-generic-head"><div class="bc-social-generic-account"><span class="bc-social-generic-logo fb"><i class="ti ti-brand-facebook"></i></span><span><b>Facebook Messenger</b><small id="bcFbAccountSub">Conectando cuenta…</small></span><em id="bcFbStatus">Conectando</em></div><label class="bc-social-generic-search"><i class="ti ti-search"></i><input id="bcFbSearch" type="search" placeholder="Buscar conversación…"></label></div>
+        <div class="bc-social-generic-threads" id="bcFbThreads"><div class="bc-social-loading"><span class="bc-social-spin"></span>Cargando conversaciones…</div></div>
+      </aside>
+      <section class="bc-social-generic-chat" id="bcFbChat"><div class="bc-ig-empty"><div><i class="ti ti-brand-facebook"></i><b>Selecciona una conversación</b><span>Los mensajes de Messenger aparecerán aquí.</span></div></div></section>
+    </div>`;
+    panel.dataset.fbReady='1';
+    panel.addEventListener('click',e=>{ const row=e.target.closest('[data-fb-thread]'); if(row) openFacebookThread(row.dataset.fbThread); });
+    $('#bcFbSearch')?.addEventListener('input',e=>{ const q=String(e.target.value||'').toLowerCase(); $$('#bcFbThreads [data-fb-thread]').forEach(r=>{r.hidden=q && !r.textContent.toLowerCase().includes(q);}); });
+  }
+
+  async function loadFacebookThreads(){
+    const client=typeof supabaseClient!=='undefined'?supabaseClient:window.supabaseClient;
+    const host=$('#bcFbThreads');
+    if(!client?.from || !host) return;
+    try{
+      const {data:account}=await client.from('social_cuentas').select('id,username,display_name').eq('plataforma','facebook').eq('activo',true).limit(1).maybeSingle();
+      if(!account){ host.innerHTML='<div class="bc-social-empty-state"><i class="ti ti-brand-facebook"></i><b>Facebook no está vinculado</b><span>Conecta la página BayolCell en Zernio.</span></div>'; return; }
+      const sub=$('#bcFbAccountSub'); if(sub) sub.textContent=account.display_name||account.username||'BayolCell';
+      const status=$('#bcFbStatus'); if(status){status.textContent='Conectado';status.className='on';}
+      const {data:threads,error}=await client.from('social_hilos').select('id,participant_name,participant_username,ultimo_mensaje_preview,ultimo_mensaje_at,no_leidos_count,estado').eq('cuenta_id',account.id).order('actualizado_en',{ascending:false}).limit(100);
+      if(error) throw error;
+      if(!threads?.length){host.innerHTML='<div class="bc-social-empty-state"><i class="ti ti-message-circle"></i><b>Sin conversaciones todavía</b><span>La importación inicial de Zernio puede tardar unos segundos.</span></div>';return;}
+      host.innerHTML=threads.map(t=>{const name=t.participant_name||t.participant_username||'Contacto de Facebook';const initials=name.split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase();return `<button type="button" class="bc-social-generic-thread${t.no_leidos_count?' unread':''}" data-fb-thread="${t.id}"><span class="bc-social-generic-avatar">${escapeHtml(initials)}</span><span class="bc-social-generic-thread-copy"><b>${escapeHtml(name)}</b><small>${escapeHtml(t.ultimo_mensaje_preview||'Sin mensajes')}</small></span>${t.no_leidos_count?`<em>${t.no_leidos_count}</em>`:''}</button>`;}).join('');
+    }catch(e){ host.innerHTML='<div class="bc-social-error"><i class="ti ti-alert-triangle"></i><b>No se pudo cargar Facebook</b><span>Revisa la autorización de la página y vuelve a intentar.</span><button type="button" id="bcFbRetry">Reintentar</button></div>'; $('#bcFbRetry')?.addEventListener('click',loadFacebookThreads); }
+  }
+
+  async function openFacebookThread(id){
+    const client=typeof supabaseClient!=='undefined'?supabaseClient:window.supabaseClient; const chat=$('#bcFbChat'); if(!client?.from||!chat)return;
+    const {data:thread}=await client.from('social_hilos').select('id,participant_name,participant_username').eq('id',id).maybeSingle(); if(!thread)return;
+    const {data:messages}=await client.from('social_mensajes').select('id,direccion,cuerpo,tipo_contenido,media_url,estado,creado_en').eq('hilo_id',id).order('creado_en',{ascending:true}).limit(500);
+    const name=thread.participant_name||thread.participant_username||'Contacto de Facebook';
+    chat.innerHTML=`<div class="bc-social-generic-chat-head"><span class="bc-social-generic-avatar">${escapeHtml(name.slice(0,2).toUpperCase())}</span><div><b>${escapeHtml(name)}</b><small>${escapeHtml(thread.participant_username||'Messenger')}</small></div><span class="bc-social-generic-channel">Facebook</span></div><div class="bc-social-generic-messages" id="bcFbMessages">${(messages||[]).map(m=>`<div class="bc-social-generic-message ${m.direccion==='out'?'out':'in'}"><div>${escapeHtml(m.cuerpo|| (m.media_url?'Adjunto':'Mensaje sin texto'))}</div><small>${new Date(m.creado_en).toLocaleString('es-DO',{dateStyle:'short',timeStyle:'short'})} · ${m.estado||''}</small></div>`).join('')||'<div class="bc-ig-empty"><div><b>Sin mensajes</b></div></div>'}</div><form class="bc-social-generic-composer" id="bcFbComposer"><textarea id="bcFbText" rows="1" placeholder="Escribe un mensaje…"></textarea><button type="submit" aria-label="Enviar"><i class="ti ti-send"></i></button></form>`;
+    const messagesEl=$('#bcFbMessages'); if(messagesEl)messagesEl.scrollTop=messagesEl.scrollHeight;
+    $('#bcFbComposer')?.addEventListener('submit',async e=>{e.preventDefault();const ta=$('#bcFbText'),text=String(ta?.value||'').trim();if(!text)return;const btn=e.currentTarget.querySelector('button');btn.disabled=true;try{const {error}=await client.functions.invoke('social-enviar',{body:{hiloId:id,text}});if(error)throw error;ta.value='';await openFacebookThread(id);await loadFacebookThreads();}catch(err){alert('No se pudo enviar el mensaje a Facebook.');}finally{btn.disabled=false;}});
+  }
+
   function ensureContextPanel(){
     const view=$('#v-crmLinea');
     if(!view || $('#bcSocialContextPanel')) return;
@@ -58,6 +99,7 @@
     const head=$('#bcSocialHubHead');
     if(!head) return false;
     ensureTikTokPanel();
+    ensureFacebookPanel();
     ensureContextPanel();
 
     $('#v-crmLinea')?.classList.add('bc-unified-nav');
@@ -429,6 +471,11 @@
       });
       syncHeaderState();
       if(state.visible) showCurrentContent();
+      const fb=data.accounts?.find(a=>a.platform==='facebook');
+      if(fb && typeof supabaseClient!=='undefined' && sucursalId){
+        await client.functions.invoke('social-importar-historial',{body:{accountId:fb._id,sucursalId}});
+        await loadFacebookThreads();
+      }
     }catch(e){ console.warn('[social] sync de cuentas no disponible',e); }
   }
 
