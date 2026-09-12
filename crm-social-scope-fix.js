@@ -73,7 +73,8 @@
   async function loadFacebookThreads(){
     const client=typeof supabaseClient!=='undefined'?supabaseClient:window.supabaseClient;
     const host=$('#bcFbThreads');
-    if(!client?.from || !host || host.dataset.fbLoading==='1') return;
+    if(!client?.from || !host) return;
+    if(host.dataset.fbLoading==='1'){host.dataset.fbReload='1';return;}
     host.dataset.fbLoading='1';
     try{
       host.innerHTML='<div class="bc-social-loading"><span class="bc-social-spin"></span>Comprobando Facebook…</div>';
@@ -104,7 +105,13 @@
       syncHeaderState();
       host.innerHTML='<div class="bc-social-error"><i class="ti ti-alert-triangle"></i><b>No se pudo cargar Facebook</b><span>La conexión tardó demasiado o la sesión no tiene acceso a esta sucursal.</span><button type="button" id="bcFbRetry">Reintentar</button></div>';
       $('#bcFbRetry')?.addEventListener('click',()=>{ accountSyncStarted=false; loadFacebookThreads(); syncConnectedAccounts(); });
-    }finally{ host.dataset.fbLoading='0'; }
+    }finally{
+      host.dataset.fbLoading='0';
+      if(host.dataset.fbReload==='1'){
+        delete host.dataset.fbReload;
+        if(state.visible && state.channel==='facebook') loadFacebookThreads();
+      }
+    }
   }
 
   async function openFacebookThread(id){
@@ -297,6 +304,7 @@
     state.view=view;
     renderInteractionNav();
     showCurrentContent();
+    if(state.channel==='facebook' && ['all','messages'].includes(view)) loadFacebookThreads();
   }
 
   function contextInfo(){
@@ -403,8 +411,8 @@
       view.dataset.socialChannel='instagram';
       window.BayolSocialHub?.switchChannel?.('instagram');
       setTimeout(applyFilters,60);
-    }else if(state.channel==='facebook' && state.view==='all'){
-      // Use the real Facebook panel; the context panel is only for subviews.
+    }else if(state.channel==='facebook' && ['all','messages'].includes(state.view)){
+      // Both inbox tabs share the real Messenger panel.
       fb.style.display='flex';
       view.dataset.socialChannel='facebook';
     }else if(state.channel==='tiktok' && state.view==='all'){
@@ -471,7 +479,7 @@
     renderInteractionNav();
     syncHeaderState();
     showCurrentContent();
-    if(state.channel==='facebook' && state.view==='all') loadFacebookThreads();
+    if(state.channel==='facebook' && ['all','messages'].includes(state.view)) loadFacebookThreads();
     scheduleRefresh();
   }
 
@@ -591,6 +599,7 @@
   async function refreshSmartData(){
     const client=typeof supabaseClient !== 'undefined' ? supabaseClient : window.supabaseClient;
     if(!state.visible || !client) return;
+    if(state.channel==='facebook' && ['all','messages'].includes(state.view)) await loadFacebookThreads();
     try{
       const {data:accounts,error:aErr}=await client.from('instagram_cuentas').select('id,instagram_username,nombre').eq('activo',true).limit(10);
       if(!aErr && accounts?.length){
