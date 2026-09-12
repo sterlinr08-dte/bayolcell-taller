@@ -1,5 +1,5 @@
-/* BAYOL CELL — Redes Sociales: Facebook + Instagram solamente */
-#bcSocialHubHead,#bcSocialInstagramPanel,#bcSocialFacebookPanel{display:none}
+/* BAYOL CELL — Redes Sociales: Instagram + Facebook + TikTok */
+#bcSocialHubHead,#bcSocialInstagramPanel,#bcSocialFacebookPanel,#bcSocialTikTokPanel{display:none}
 #v-crmLinea.bc-social-mode #bcSocialHubHead{display:block}
 #v-crmLinea.bc-social-mode #crmLinea-mensajes,
 #v-crmLinea.bc-social-mode #crmLinea-leads{display:none!important}
@@ -13,11 +13,33 @@
 #v-crmLinea.bc-social-mode #crmLineaTabSocial{color:#fff;background:linear-gradient(135deg,#dc2626,#ef4444);box-shadow:0 5px 12px -7px rgba(220,38,38,.7)}
 #v-crmLinea.bc-social-mode #bcSocialHubHead{order:2}
 #v-crmLinea.bc-social-mode #bcSocialInstagramPanel,
-#v-crmLinea.bc-social-mode #bcSocialFacebookPanel{order:3;flex:1;min-height:0}
-#v-crmLinea.bc-social-mode .bc-social-channels .bc-social-channel{min-width:125px}
+#v-crmLinea.bc-social-mode #bcSocialFacebookPanel,
+#v-crmLinea.bc-social-mode #bcSocialTikTokPanel{order:3;flex:1;min-height:0}
+#v-crmLinea.bc-social-mode .bc-social-channels .bc-social-channel{min-width:118px}
+#v-crmLinea.bc-social-mode .bc-social-kpis{grid-template-columns:repeat(5,minmax(0,1fr))}
 #v-crmLinea.bc-social-mode .bc-social-kpi[data-tone=fb] .bc-social-kpi-icon{background:#eff6ff!important;color:#2563eb!important}
+#v-crmLinea.bc-social-mode .bc-social-kpi[data-tone=tt] .bc-social-kpi-icon{background:#111827!important;color:#fff!important;box-shadow:inset 2px 0 0 #25f4ee,inset -2px 0 0 #fe2c55}
+#v-crmLinea.bc-social-mode .bc-social-channel.on[data-channel="tiktok"]{color:#111827;background:#fff;border-color:#cbd5e1;box-shadow:inset 2px 0 0 #25f4ee,inset -2px 0 0 #fe2c55,0 4px 10px rgba(15,23,42,.06)}
+
+#bcSocialTikTokPanel{align-items:stretch}
+.bc-tt-placeholder{flex:1;min-height:0;border:1px solid var(--bc-social-line);border-radius:16px;background:#fff;display:grid;place-items:center;padding:32px;text-align:center;box-shadow:0 12px 34px -28px rgba(15,23,42,.45)}
+.bc-tt-box{max-width:560px}
+.bc-tt-icon{width:56px;height:56px;border-radius:17px;background:#111827;color:#fff;display:grid;place-items:center;font-size:31px;margin:0 auto 12px;box-shadow:inset 3px 0 0 #25f4ee,inset -3px 0 0 #fe2c55}
+.bc-tt-box h3{margin:0;color:#253044;font-size:16px}
+.bc-tt-box p{font-size:10.5px;line-height:1.55;color:#667085;margin:7px auto 13px}
+.bc-tt-list{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;text-align:left}
+.bc-tt-item{border:1px solid #e9edf3;border-radius:11px;padding:9px;background:#fafbfc}
+.bc-tt-item b{display:block;font-size:9.5px;color:#344054;margin-bottom:3px}
+.bc-tt-item span{font-size:8.5px;color:#7b8798;line-height:1.35}
+.bc-tt-state{display:inline-flex;align-items:center;gap:5px;margin-top:12px;font-size:9px;font-weight:750;color:#b54708;background:#fffaeb;border:1px solid #fedf89;border-radius:999px;padding:5px 9px}
+
 @media(max-width:1024px){
   #v-crmLinea.bc-social-mode .crm-bandeja-controles .crm-tabs-row{flex:1 0 100%!important}
-  #v-crmLinea.bc-social-mode .bc-social-channels{display:grid!important;grid-template-columns:1fr 1fr!important;width:100%}
-  #v-crmLinea.bc-social-mode .bc-social-channel{min-width:0!important;justify-content:center}
+  #v-crmLinea.bc-social-mode .bc-social-channels{display:grid!important;grid-template-columns:repeat(3,1fr)!important;width:100%}
+  #v-crmLinea.bc-social-mode .bc-social-channel{min-width:0!important;justify-content:center;padding-left:7px;padding-right:7px}
+  #v-crmLinea.bc-social-mode .bc-social-kpis{display:flex!important;overflow-x:auto;gap:6px;scrollbar-width:none;padding-bottom:2px}
+  #v-crmLinea.bc-social-mode .bc-social-kpis::-webkit-scrollbar{display:none}
+  #v-crmLinea.bc-social-mode .bc-social-kpi{flex:0 0 145px}
+  .bc-tt-placeholder{padding:20px 14px}
+  .bc-tt-list{grid-template-columns:1fr}
 }
