@@ -17,7 +17,7 @@
       e.preventDefault();
       e.stopPropagation();
       const api = window.BayolSocialNetworks;
-      if (api?.show) api.show(api.channel || 'instagram');
+      if (api?.show) api.show(api.channel==='whatsapp'?'instagram':(api.channel || 'instagram'));
     });
     return btn;
   }
@@ -52,7 +52,7 @@
     const ig = $('#bcSmartAccount-instagram');
     const fb = $('#bcSmartAccount-facebook');
     const tt = $('#bcSmartAccount-tiktok');
-    if (fb && /pendiente/i.test(fb.textContent || '')) fb.textContent = 'Pendiente de conexión';
+    if (fb && /pendiente/i.test(fb.textContent || '') && fb.textContent !== 'Pendiente de conexión') fb.textContent = 'Pendiente de conexión';
     if (tt && /pendiente/i.test(tt.textContent || '')) tt.textContent = 'Sin mensajería por API';
     if (ig && /cargando/i.test(ig.textContent || '')) ig.textContent = '@bayolcell';
     return true;

@@ -4,7 +4,7 @@
   if(window.__bcCrmExtensionsLoader)return;
   window.__bcCrmExtensionsLoader=true;
 
-  var V='20260912f';
+  var V='20260912g';
   var legacy=document.createElement('script');
   legacy.src='crm-marketing-consent-legacy.js?v='+V;
   legacy.onload=function(){
@@ -31,6 +31,10 @@
       document.head.appendChild(scope);
     };
     document.head.appendChild(hub);
+
+    var messages=document.createElement('script');
+    messages.src='crm-message-loading.js?v='+V;
+    document.head.appendChild(messages);
   };
   document.head.appendChild(legacy);
 })();

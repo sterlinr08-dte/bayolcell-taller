@@ -14,6 +14,7 @@
     refreshTimer: null,
     originalCrmLineaTab: null,
     meta: {
+      whatsapp: { count: null, account: 'Mensajes', ready: true },
       instagram: { count: null, account: '', ready: true },
       facebook: { count: null, account: 'Pendiente', ready: false },
       tiktok: { count: null, account: 'Pendiente', ready: false }
@@ -21,6 +22,7 @@
   };
 
   const CHANNELS = {
+    whatsapp: { label:'WhatsApp', icon:'ti-brand-whatsapp' },
     instagram: { label:'Instagram', icon:'ti-brand-instagram' },
     facebook: { label:'Facebook', icon:'ti-brand-facebook' },
     tiktok: { label:'TikTok', icon:'ti-brand-tiktok' }
@@ -58,18 +60,8 @@
     ensureTikTokPanel();
     ensureContextPanel();
 
-    const view=$('#v-crmLinea');
-    if(view && !$('#bcSocialBackRow')){
-      const row=document.createElement('div');
-      row.id='bcSocialBackRow';
-      row.innerHTML='<button type="button" class="btn btn-light" id="bcSocialBack"><i class="ti ti-arrow-left" aria-hidden="true"></i> Volver al CRM</button>';
-      view.insertBefore(row,head);
-      $('#bcSocialBack').addEventListener('click',()=>{
-        hideSocial();
-        if(window.BayolSocialHub) window.BayolSocialHub.state.channel='whatsapp';
-        window.crmLineaTab('mensajes');
-      });
-    }
+    $('#v-crmLinea')?.classList.add('bc-unified-nav');
+    $('#bcSocialBackRow')?.remove();
     head.innerHTML=`
       <div class="bc-smart-platforms" id="bcSmartPlatforms" role="tablist" aria-label="Red social">
         ${Object.entries(CHANNELS).map(([key,c])=>`
@@ -215,6 +207,8 @@
 
   function selectChannel(channel){
     if(!CHANNELS[channel]) return;
+    if(channel==='whatsapp'){ window.crmLineaTab('mensajes'); return; }
+    if(!state.visible){showSocial(channel);return;}
     state.channel=channel;
     state.view='all';
     renderInteractionNav();
@@ -360,7 +354,7 @@
       btn.className='crm-tab-seg';
       btn.type='button';
       btn.innerHTML='<i class="ti ti-brand-meta"></i> Redes';
-      btn.addEventListener('click',()=>showSocial(state.channel));
+      btn.addEventListener('click',()=>showSocial(state.channel==='whatsapp'?'instagram':state.channel));
       track.appendChild(btn);
     }
     return true;
@@ -382,7 +376,9 @@
     const head=$('#bcSocialHubHead');
     if(!view || !head) return;
     state.visible=true;
+    if(channel==='whatsapp'){ window.crmLineaTab('mensajes'); return; }
     if(CHANNELS[channel]) state.channel=channel;
+    const nativeRedes=$('#crmLinea-redes'); if(nativeRedes) nativeRedes.style.display='none';
     view.classList.add('bc-social-mode');
     const wa=$('#crmLinea-mensajes'), leads=$('#crmLinea-leads');
     if(wa) wa.style.display='none';
@@ -397,23 +393,27 @@
 
   function hideSocial(){
     state.visible=false;
+    state.channel='whatsapp';
+    if(window.BayolSocialHub) window.BayolSocialHub.state.channel='whatsapp';
     const view=$('#v-crmLinea');
     if(view){
       view.classList.remove('bc-social-mode','bc-ig-chat-open');
       view.dataset.socialChannel='whatsapp';
     }
     const head=$('#bcSocialHubHead');
-    if(head) head.style.display='none';
+    if(head) head.style.display='';
     ['#bcSocialInstagramPanel','#bcSocialFacebookPanel','#bcSocialTikTokPanel','#bcSocialContextPanel'].forEach(id=>{
       const el=$(id); if(el) el.style.display='none';
     });
     setTabs(false);
+    syncHeaderState();
   }
 
   function patchTabs(){
     if(window.__bcSocialTabsPatched || typeof window.crmLineaTab!=='function') return;
     state.originalCrmLineaTab=window.crmLineaTab;
     window.crmLineaTab=async function(){
+      if(arguments[0]==='redes'){ showSocial('instagram'); return; }
       hideSocial();
       return state.originalCrmLineaTab.apply(this,arguments);
     };

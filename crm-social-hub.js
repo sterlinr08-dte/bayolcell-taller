@@ -19,6 +19,7 @@
     search: '',
     realtime: null,
     refreshTimer: null,
+    messageGeneration: 0,
     busySend: false
   };
 
@@ -307,7 +308,7 @@
   async function signedMedia(m){
     if (!m.media_path) return null;
     try {
-      const {data,error}=await sb().storage.from('instagram-media').createSignedUrl(m.media_path,3600);
+      const {data,error}=await instagramQuery(sb().storage.from('instagram-media').createSignedUrl(m.media_path,3600));
       if(error) return null;
       return data?.signedUrl || null;
     } catch { return null; }
@@ -316,20 +317,34 @@
   async function loadMessages(id,showLoading){
     const chat=$('#bcIgChat'); if(!chat) return;
     const h=state.threads.find(x=>x.id===id) || state.selected; if(!h) return;
+    const generation=++state.messageGeneration;
     if(showLoading) chat.innerHTML='<div class="bc-social-loading"><span class="bc-social-spin"></span>Cargando mensajes…</div>';
     try{
-      const {data,error}=await sb().from('instagram_mensajes').select('*').eq('hilo_id',id).order('creado_en',{ascending:true}).limit(500);
+      const {data,error}=await instagramQuery(sb().from('instagram_mensajes').select('*').eq('hilo_id',id).order('creado_en',{ascending:false}).limit(500));
       if(error) throw error;
-      state.messages=data||[];
-      const mediaUrls={};
-      await Promise.all(state.messages.filter(m=>m.media_path).slice(-40).map(async m=>{mediaUrls[m.id]=await signedMedia(m);}));
-      renderChat(h,mediaUrls);
+      if(generation!==state.messageGeneration || state.selected?.id!==id) return;
+      state.messages=(data||[]).reverse();
+      renderChat(h,{});
+      // Attachments cannot hold the conversation or composer in a loading state.
+      const pending=state.messages.filter(m=>m.media_path).slice(-40);
+      async function worker(){
+        while(pending.length){
+          const m=pending.shift(); const url=await signedMedia(m);
+          if(generation!==state.messageGeneration || state.selected?.id!==id) return;
+          const slot=document.getElementById('bcIgMedia-'+m.id);
+          if(slot) slot.innerHTML=url?mediaMarkup(m,url):'<span>Adjunto no disponible</span>';
+        }
+      }
+      Promise.all(Array.from({length:4},worker)).catch(()=>{});
     }catch(e){
-      chat.innerHTML=`<div class="bc-ig-empty"><div><i class="ti ti-alert-circle"></i><b>No se pudieron cargar los mensajes</b><span>${esc(e.message||'Error inesperado.')}</span></div></div>`;
+      if(generation!==state.messageGeneration || state.selected?.id!==id) return;
+      chat.innerHTML=`<div class="bc-ig-empty"><div><i class="ti ti-alert-circle"></i><b>No se pudieron cargar los mensajes</b><span>${esc(e.message||'Error inesperado.')}</span><button type="button" id="bcIgRetryMessages" class="btn btn-light">Reintentar</button></div></div>`;
+      $('#bcIgRetryMessages')?.addEventListener('click',()=>loadMessages(id,true));
     }
   }
 
   function mediaMarkup(m,url){
+    if(m.media_path && !url) return `<span id="bcIgMedia-${esc(m.id)}">Cargando adjunto…</span>`;
     const type=String(m.tipo_contenido||'text').toLowerCase();
     if(url && ['imagen','image'].includes(type)) return `<a href="${esc(url)}" target="_blank" rel="noopener"><img class="bc-ig-media-img" src="${esc(url)}" alt="Imagen de Instagram"></a>`;
     if(url) return `<a class="bc-ig-media-link" href="${esc(url)}" target="_blank" rel="noopener"><i class="ti ti-paperclip"></i>Abrir ${esc(type||'archivo')}</a>`;
@@ -339,6 +354,14 @@
 
   function renderChat(h,mediaUrls={}){
     const chat=$('#bcIgChat'); if(!chat) return;
+    const oldInput=$('#bcIgText'), oldScroll=$('#bcIgMessages');
+    const same=chat.dataset.hilo===h.id;
+    const draft=same?oldInput?.value||'':'';
+    const focused=same && document.activeElement===oldInput;
+    const caret=oldInput?.selectionStart;
+    const top=same?oldScroll?.scrollTop:0;
+    const bottom=!same || !oldScroll || oldScroll.scrollHeight-oldScroll.clientHeight-oldScroll.scrollTop<80;
+    chat.dataset.hilo=h.id;
     const nm=h.nombre_perfil || h.participant_username || 'Cliente de Instagram';
     const user=h.participant_username ? `@${h.participant_username}` : 'Instagram Direct';
     const rows=state.messages.map(m=>`<div class="bc-ig-msg-row ${m.direccion==='out'?'out':'in'}"><div class="bc-ig-msg">${mediaMarkup(m,mediaUrls[m.id])}${m.cuerpo ? `<div>${esc(m.cuerpo).replace(/\n/g,'<br>')}</div>` : ''}<span class="bc-ig-msg-time">${esc(fmtTime(m.creado_en))}${m.direccion==='out' ? ` · ${esc(m.estado||'enviado')}` : ''}</span></div></div>`).join('');
@@ -346,9 +369,10 @@
     $('#bcIgBack')?.addEventListener('click',()=>$('#v-crmLinea')?.classList.remove('bc-ig-chat-open'));
     $('#bcIgComposer')?.addEventListener('submit',sendInstagram);
     const ta=$('#bcIgText');
+    if(ta){ta.value=draft;if(focused){ta.focus({preventScroll:true});if(caret!=null)ta.setSelectionRange(caret,caret);}}
     ta?.addEventListener('input',()=>{ta.style.height='auto';ta.style.height=Math.min(ta.scrollHeight,112)+'px';});
     ta?.addEventListener('keydown',(e)=>{if(e.key==='Enter' && !e.shiftKey && window.innerWidth>1024){e.preventDefault();sendInstagram(e);}});
-    requestAnimationFrame(()=>{const sc=$('#bcIgMessages');if(sc)sc.scrollTop=sc.scrollHeight;});
+    requestAnimationFrame(()=>{const sc=$('#bcIgMessages');if(sc)sc.scrollTop=bottom?sc.scrollHeight:top;});
   }
 
   async function sendInstagram(e){
