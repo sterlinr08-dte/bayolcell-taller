@@ -323,7 +323,7 @@
       window.BayolSocialHub?.switchChannel?.('instagram');
       setTimeout(applyFilters,60);
     }else{
-      ctx.style.display='';
+      ctx.style.display='flex';
       renderContext();
       view.dataset.socialChannel=state.channel;
     }
