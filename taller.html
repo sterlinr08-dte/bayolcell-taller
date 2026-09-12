@@ -32979,6 +32979,16 @@ async function cargarMensajesHilo(hiloId) {
     _waSugerenciasIA = sug || [];
 }
 
+// Fix 2026-09-12 (auditoria, F17): whatsapp-enviar ahora puede responder
+// ok:true con guardado_local:false + aviso cuando el mensaje SI se envio al
+// cliente por Zernio pero no se pudo guardar en whatsapp_mensajes (el CRM
+// quedaria mostrando la conversacion desactualizada). Antes esto se perdia
+// en silencio (solo quedaba en los logs del servidor). No hace falta
+// reintentar nada — el mensaje ya salio — solo avisarle al empleado.
+function _waAvisoGuardadoLocal(j) {
+    if(j && j.guardado_local === false) toastError(j.aviso || 'El mensaje se envió, pero no se pudo guardar en el historial local. Recarga la conversación.');
+}
+
 // El agente de IA (whatsapp-ia-responder) redacta una sugerencia en vez de
 // mandarla directo cuando la pregunta es una cotizacion de precio o algo que
 // no tiene claro — un tecnico la revisa aca antes de que le llegue al cliente.
@@ -32999,6 +33009,7 @@ async function _waEnviarSugerenciaIA(sugerenciaId) {
         });
         const j = await res.json();
         if(j && j.ok) {
+            _waAvisoGuardadoLocal(j);
             await supabaseClient.from('whatsapp_ia_sugerencias').update({ estado: 'enviada', resuelto_en: new Date().toISOString() }).eq('id', sugerenciaId);
             _waSugerenciasIA = _waSugerenciasIA.filter(x => x.id !== sugerenciaId);
             if(_waHiloId === hiloDestino) await cargarMensajesHilo(hiloDestino);
@@ -33394,6 +33405,7 @@ async function _waEnviarAdjunto() {
         const j = await res.json();
         cerrarModalWaAdjuntoPreview();
         if(j && j.ok) {
+            _waAvisoGuardadoLocal(j);
             if(_waHiloId === hiloDestino && _waRespondiendoA && _waRespondiendoA.hiloId === hiloDestino) _waRespondiendoA = null;
             if(_waHiloId) await cargarMensajesHilo(_waHiloId);
             await cargarHilosWhatsapp();
@@ -33485,6 +33497,7 @@ function _waEnviarUbicacion() {
             const j = await res.json();
             cerrarModalWaUbicacion();
             if(j && j.ok) {
+                _waAvisoGuardadoLocal(j);
                 if(_waHiloId === hiloDestino && _waRespondiendoA && _waRespondiendoA.hiloId === hiloDestino) _waRespondiendoA = null;
                 if(_waHiloId) await cargarMensajesHilo(_waHiloId);
                 await cargarHilosWhatsapp();
@@ -33541,6 +33554,7 @@ async function _waEnviarContacto() {
         const j = await res.json();
         cerrarModalWaContacto();
         if(j && j.ok) {
+            _waAvisoGuardadoLocal(j);
             if(_waHiloId === hiloDestino && _waRespondiendoA && _waRespondiendoA.hiloId === hiloDestino) _waRespondiendoA = null;
             if(_waHiloId) await cargarMensajesHilo(_waHiloId);
             await cargarHilosWhatsapp();
@@ -33710,6 +33724,7 @@ async function _waEnviarPlantilla() {
         });
         const j = await res.json();
         if(j && j.ok) {
+            _waAvisoGuardadoLocal(j);
             cerrarModalWaPlantilla();
             if(_waHiloId) await cargarMensajesHilo(_waHiloId);
             await cargarHilosWhatsapp();
@@ -33839,6 +33854,7 @@ function _waDetenerYEnviarNota() {
             });
             const j = await res.json();
             if(j && j.ok) {
+                _waAvisoGuardadoLocal(j);
                 if(_waHiloId === hiloDestino && _waRespondiendoA && _waRespondiendoA.hiloId === hiloDestino) _waRespondiendoA = null;
                 if(_waHiloId) await cargarMensajesHilo(_waHiloId);
                 await cargarHilosWhatsapp();
@@ -34183,6 +34199,7 @@ async function enviarMensajeWhatsapp() {
         });
         const j = await res.json();
         if(j && j.ok) {
+            _waAvisoGuardadoLocal(j);
             const opt = _waMensajesOptimistas.get(tempId);
             if(opt) {
                 opt.estado = 'enviado';
