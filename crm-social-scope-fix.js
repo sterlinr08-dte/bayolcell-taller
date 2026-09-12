@@ -448,10 +448,10 @@
   let accountSyncStarted = false;
   async function syncConnectedAccounts(){
     if(accountSyncStarted) return;
-    accountSyncStarted = true;
     const client = typeof supabaseClient !== 'undefined' ? supabaseClient : window.supabaseClient;
     const sucursalId = window.sessionUser?.sucursal_id || window.sessionUser?.sucursalId;
     if(!client?.functions?.invoke || !sucursalId) return;
+    accountSyncStarted = true;
     try{
       const {data,error}=await client.functions.invoke('social-sincronizar-cuentas',{body:{sync:true,sucursalId}});
       if(error || !data?.ok){
