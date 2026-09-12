@@ -16416,7 +16416,7 @@ function renderEquipoReacondCard(eq, num) {
                     ${eq.veces_devuelto > 0 ? `<span title="Equipo devuelto ${eq.veces_devuelto} vez(es)" style="font-size:16px;">🔄</span>` : ''}
                     <b style="font-size:14px;">${escapeHtml(eq.modelo || 'Sin modelo')}</b>
                     <span class="badge" style="${badgeColor} font-size:11px;">${badgeText}</span>
-                    <button onclick="event.stopPropagation(); ${(estado === 'vendido' || estado === 'listo_venta') ? `verFichaDespacho('${eq.id}')` : `verHistorialEquipo('${eq.id}')`}" title="${(estado === 'vendido' || estado === 'listo_venta') ? 'Ver ficha (costos y piezas Info Plus)' : 'Ver historial completo (trabajo, técnicos y costos)'}" style="background:#cffafe; color:#0e7490; border:1px solid #67e8f9; border-radius:6px; padding:2px 7px; cursor:pointer; font-size:12px;"><i class="ti ti-eye"></i></button>
+                    <button onclick="event.stopPropagation(); ${(estado === 'vendido' || estado === 'listo_venta') ? `verFichaDespacho('${eq.id}')` : `verHistorialCostosEquipo('${eq.id}')`}" title="${(estado === 'vendido' || estado === 'listo_venta') ? 'Ver ficha (costos y piezas Info Plus)' : 'Ver historial completo (trabajo, técnicos y costos)'}" style="background:#cffafe; color:#0e7490; border:1px solid #67e8f9; border-radius:6px; padding:2px 7px; cursor:pointer; font-size:12px;"><i class="ti ti-eye"></i></button>
                     ${(estado === 'vendido' || estado === 'listo_venta') ? `<button onclick="event.stopPropagation(); imprimirLabelEquipo('${eq.id}')" title="Imprimir label (Impresión de Labels)" style="background:#fef3c7; color:#92400e; border:1px solid #fcd34d; border-radius:6px; padding:2px 7px; cursor:pointer; font-size:12px;"><i class="ti ti-printer"></i></button>` : ''}
                     ${estado === 'evaluado' ? `<button onclick="event.stopPropagation(); continuarEvaluacion('${eq.id}')" title="Editar evaluación" style="background:#d1fae5; color:#065f46; border:1px solid #6ee7b7; border-radius:6px; padding:2px 7px; cursor:pointer; font-size:12px;"><i class="ti ti-pencil"></i></button>` : ''}
                     ${eq.veces_devuelto > 0 ? `<span class="badge" style="background:#fee2e2; color:#991b1b; font-size:10px; font-weight:700;">DEVUELTO ${eq.veces_devuelto}×</span>` : ''}
@@ -18731,7 +18731,9 @@ function cerrarHistorialEquipo() {
 }
 
 // Vista de SOLO LECTURA: todo lo que se le hizo al equipo, qué hizo cada técnico y los costos
-async function verHistorialEquipo(equipoId) {
+// (Reacondicionados. Nombre distinto de la función de Recepción/Órdenes del mismo nombre viejo —
+// antes coincidían y esta quedaba pisada/inalcanzable por estar definida primero en el archivo.)
+async function verHistorialCostosEquipo(equipoId) {
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return toast('Equipo no encontrado.', 'error');
     const esAdmin = isAdminUser();
@@ -21472,7 +21474,7 @@ async function verFichaDespacho(equipoId) {
           <div class="fe-menuwrap">
             <button class="fe-btn" onclick="var m=this.nextElementSibling;m.style.display=(m.style.display==='block'?'none':'block');event.stopPropagation();"><i class="ti ti-dots"></i> Más acciones <i class="ti ti-chevron-down"></i></button>
             <div class="fe-menu">
-              <a onclick="_feCerrar();verHistorialEquipo('${equipoId}')"><i class="ti ti-history"></i> Ver historial</a>
+              <a onclick="_feCerrar();verHistorialCostosEquipo('${equipoId}')"><i class="ti ti-history"></i> Ver historial</a>
               ${isAdminUser() ? `<a onclick="marcarEquipoCompletado('${equipoId}')"><i class="ti ti-circle-check"></i> Marcar Completado</a>` : ''}
             </div>
           </div>
@@ -28672,27 +28674,37 @@ function finSchedule(f) {
     if(cap <= 0) { for(let i = 1; i <= n; i++) rows.push({ num: i, cuota: 0, interes: 0, capital: 0, saldo: 0 }); return rows; }
     let saldoCap = cap, idx = 0, periodsLeft = n;
     if(metodo === 'saldo') {
+        const capTotal = r2(cap);
+        let capAsignado = 0;
         for(const ph of phases) {
             const i = ph.rate;
             const cuota = i > 0 ? saldoCap * i / (1 - Math.pow(1 + i, -periodsLeft)) : saldoCap / periodsLeft;
             for(let k = 0; k < ph.count; k++) {
                 idx++;
                 const interes = i > 0 ? saldoCap * i : 0;
-                let capPart = (idx === n) ? saldoCap : cuota - interes;
+                // La última cuota se lleva el residuo exacto (en centavos ya redondeados) para que
+                // la suma de capital cuadre 100% con el total financiado.
+                let capPart = (idx === n) ? r2(capTotal - capAsignado) : r2(cuota - interes);
+                if(idx !== n) capAsignado = r2(capAsignado + capPart);
                 saldoCap = saldoCap - capPart; if(saldoCap < 0) saldoCap = 0;
-                rows.push({ num: idx, cuota: r2(capPart + interes), interes: r2(interes), capital: r2(capPart), saldo: 0 });
+                rows.push({ num: idx, cuota: r2(capPart + interes), interes: r2(interes), capital: capPart, saldo: 0 });
                 periodsLeft--;
             }
         }
     } else { // plano
+        const capTotal = r2(cap);
         const capPart = cap / n;
+        let capAsignado = 0;
         for(const ph of phases) {
             for(let k = 0; k < ph.count; k++) {
                 idx++;
                 const interes = cap * ph.rate;
-                let cp = (idx === n) ? saldoCap : capPart;
+                // La última cuota se lleva el residuo exacto (en centavos ya redondeados),
+                // no una fracción cruda — así la suma de capital de todas las cuotas cuadra 100% con el total.
+                let cp = (idx === n) ? r2(capTotal - capAsignado) : r2(capPart);
+                if(idx !== n) capAsignado = r2(capAsignado + cp);
                 saldoCap = saldoCap - cp; if(saldoCap < 0) saldoCap = 0;
-                rows.push({ num: idx, cuota: r2(cp + interes), interes: r2(interes), capital: r2(cp), saldo: 0 });
+                rows.push({ num: idx, cuota: r2(cp + interes), interes: r2(interes), capital: cp, saldo: 0 });
             }
         }
     }
@@ -28752,7 +28764,14 @@ function _finAddPeriodo(fechaISO, frecuencia, n) {
     const d = new Date((fechaISO || '').slice(0, 10) + 'T00:00:00');
     if(frecuencia === 'semanal') d.setDate(d.getDate() + 7 * n);
     else if(frecuencia === 'quincenal') d.setDate(d.getDate() + 15 * n);
-    else d.setMonth(d.getMonth() + n); // mensual
+    else { // mensual — si el día de inicio (29/30/31) no existe en el mes destino, cae en el ÚLTIMO día de ese mes
+        const dia = d.getDate();
+        const totalMes = d.getMonth() + n;
+        const anioDestino = d.getFullYear() + Math.floor(totalMes / 12);
+        const mesDestino = ((totalMes % 12) + 12) % 12;
+        const ultimoDiaMesDestino = new Date(anioDestino, mesDestino + 1, 0).getDate();
+        d.setFullYear(anioDestino, mesDestino, Math.min(dia, ultimoDiaMesDestino));
+    }
     return d;
 }
 function _finFmtFecha(d) {
@@ -28837,8 +28856,8 @@ function _finAmortizacionHTML(obj) {
 async function cargarFinanciamientos() {
     try {
         const [rf, rp, rs, rc, rr, rcfg, rdoc, rplan] = await Promise.all([
-            supabaseClient.from('financiamientos').select('*').order('creado_en', { ascending: false }),
-            supabaseClient.from('financiamiento_pagos').select('*').order('creado_en', { ascending: true }),
+            supabaseClient.from('financiamientos').select('*').eq('archivado', false).order('creado_en', { ascending: false }),
+            supabaseClient.from('financiamiento_pagos').select('*').eq('anulado', false).order('creado_en', { ascending: true }),
             supabaseClient.from('fin_solicitudes').select('*').order('creado_en', { ascending: false }),
             supabaseClient.from('fin_clientes').select('*').order('creado_en', { ascending: false }),
             supabaseClient.from('fin_referencias').select('*').order('creado_en', { ascending: true }),
@@ -29184,7 +29203,7 @@ function _pintarDetalleFin() {
     html += `<div style="display:flex; gap:8px; justify-content:flex-end; margin-top:14px; margin-bottom:20px; padding-top:14px; border-top:1px solid var(--border-color); flex-wrap:wrap;">
         ${f.cliente_telefono ? `<button class="btn btn-light" onclick="whatsappRecordatorioFin('${f.id}')" style="font-size:12px; color:#16a34a;"><i class="ti ti-brand-whatsapp"></i> Recordar por WhatsApp</button>` : ''}
         ${puedeEliminar && est !== 'cancelado' ? `<button class="btn btn-light" onclick="cancelarFinanciamiento('${f.id}')" style="font-size:12px; color:#b45309;"><i class="ti ti-ban"></i> Cancelar</button>` : ''}
-        ${puedeEliminar ? `<button class="btn btn-light" onclick="eliminarFinanciamiento('${f.id}')" style="font-size:12px; color:#b91c1c;"><i class="ti ti-trash"></i> Eliminar</button>` : ''}
+        ${puedeEliminar ? `<button class="btn btn-light" onclick="eliminarFinanciamiento('${f.id}')" style="font-size:12px; color:#b91c1c;" title="Lo saca de las listas, pero NO borra sus datos ni abonos"><i class="ti ti-archive"></i> Archivar</button>` : ''}
     </div>`;
 
     cont.innerHTML = html;
@@ -29933,6 +29952,8 @@ async function registrarAbonoFin(finId, btn) {
     if(monto < 0 || mora < 0) { toast('El monto y la mora no pueden ser negativos.', 'error'); return; }
     if(monto <= 0 && mora <= 0) { toast('Ingresa un monto válido.', 'error'); return; }
     if(monto > saldo + 0.001) { toast(`El abono supera el saldo pendiente (${money(saldo)}).`, 'error'); return; }
+    const moraPend = finMoraPendiente(f);
+    if(mora > moraPend + 0.001) { toast(`La mora cobrada no puede superar la mora pendiente (${money(moraPend)}).`, 'error'); return; }
     if(btn) btn.disabled = true;
     try {
         const { error } = await supabaseClient.from('financiamiento_pagos').insert([{
@@ -30959,11 +30980,21 @@ async function guardarContratoFin(finId) {
     const firmaCli = _finFirmaDataURL('finFirmaCliente');
     const firmaTienda = _finFirmaDataURL('finFirmaTienda');
     if(!firmaCli && !firmaTienda) { toast('Falta al menos una firma.', 'error'); return; }
+    const f = (_finCache.financiamientos || []).find(x => x.id === finId);
+    if(!f) { toast('No se encontró el financiamiento.', 'error'); return; }
     try {
-        await supabaseClient.from('financiamientos').update({ firma_cliente: firmaCli, firma_tienda: firmaTienda, contrato_en: new Date().toISOString() }).eq('id', finId);
+        // Se congela el texto del contrato TAL COMO ESTÁ en este momento (con la config actual) para
+        // que reimprimirlo después no cambie si alguien edita el texto en Configuración.
+        const contratoCongelado = _finContratoParrafos(f);
+        const { error } = await supabaseClient.from('financiamientos').update({
+            firma_cliente: firmaCli, firma_tienda: firmaTienda,
+            contrato_en: new Date().toISOString(),
+            contrato_texto_congelado: contratoCongelado
+        }).eq('id', finId);
+        if(error) throw error;
         toast('Firmas guardadas.');
         await cargarFinanciamientos();
-    } catch(e) { console.error('guardarContratoFin', e); toast('No se pudo guardar.', 'error'); }
+    } catch(e) { console.error('guardarContratoFin', e); toastError(getFriendlyError(e)); }
 }
 function imprimirContratoFin(finId) {
     const f = (_finCache.financiamientos || []).find(x => x.id === finId);
@@ -31000,12 +31031,12 @@ function imprimirContratoFin(finId) {
             ${c.direccion ? `<div class="muted">${escapeHtml(c.direccion)}</div>` : ''}${c.telefono ? `<div class="muted">Tel: ${escapeHtml(c.telefono)}</div>` : ''}
             <h2 style="border:0; text-align:center;">${escapeHtml(cfg.contrato_titulo || FIN_CONTRATO_TITULO_DEF)}</h2>
         </div>
-        ${_finContratoParrafos(f)}
+        ${f.contrato_texto_congelado || _finContratoParrafos(f)}
         ${cfg.clausulas_extra ? `<p class="clausula">${escapeHtml(cfg.clausulas_extra)}</p>` : ''}
         <h2>Calendario de cuotas</h2>
         <table><thead><tr><th>#</th><th>Vence</th><th style="text-align:right;">Monto</th></tr></thead><tbody>${crono}</tbody></table>
         ${(cedFrente || cedDorso) ? `<h2>Cédula del deudor</h2><div class="ced">${cedFrente ? `<img src="${cedFrente.url}">` : ''}${cedDorso ? `<img src="${cedDorso.url}">` : ''}</div>` : ''}
-        <p class="clausula" style="margin-top:14px;">Hecho y firmado de buena fe en <b>${escapeHtml(muni)}</b>, el día ${new Date().toLocaleDateString('es-DO', { day: '2-digit', month: 'long', year: 'numeric' })}.</p>
+        <p class="clausula" style="margin-top:14px;">Hecho y firmado de buena fe en <b>${escapeHtml(muni)}</b>, el día ${(f.contrato_en ? new Date(f.contrato_en) : new Date()).toLocaleDateString('es-DO', { day: '2-digit', month: 'long', year: 'numeric' })}.</p>
         <div class="firmas">
             <div class="firma">${firmaCli ? `<img src="${firmaCli}">` : '<div style="height:80px;"></div>'}<div class="linea">EL DEUDOR<br>${escapeHtml(f.cliente_nombre || '')}<br><span class="muted">Céd. ${escapeHtml(f.cliente_cedula || '—')}</span></div></div>
             <div class="firma">${firmaTienda ? `<img src="${firmaTienda}">` : '<div style="height:80px;"></div>'}<div class="linea">EL ACREEDOR<br>Por ${escapeHtml(c.nombre || 'la empresa')}</div></div>
@@ -31522,24 +31553,37 @@ async function eliminarCliente(id) {
 }
 async function eliminarFinanciamiento(finId) {
     if(!(isAdminUser() || tienePermiso('financiamientos_eliminar'))) { toast('No tienes permiso.', 'error'); return; }
-    if(!confirm('¿Eliminar PERMANENTEMENTE este financiamiento y todos sus abonos? Esta acción no se puede deshacer.')) return;
+    if(!await confirmar('¿Archivar este financiamiento? Deja de aparecer en las listas, pero sus datos y abonos quedan guardados (no se borra nada).')) return;
+    const motivo = await pedirTexto('Motivo del archivado (obligatorio):');
+    if(!motivo || !motivo.trim()) { toast('El archivado necesita un motivo.', 'error'); return; }
     try {
-        await supabaseClient.from('fin_solicitudes').update({ financiamiento_id: null }).eq('financiamiento_id', finId);
-        const { error } = await supabaseClient.from('financiamientos').delete().eq('id', finId);
+        const { error } = await supabaseClient.from('financiamientos').update({
+            archivado: true,
+            archivado_en: new Date().toISOString(),
+            archivado_por: sessionUser?.nombre || sessionUser?.usuario || 'Admin',
+            motivo_archivado: motivo.trim()
+        }).eq('id', finId);
         if(error) throw error;
         _finDetalleId = null;
-        toast('Financiamiento eliminado.');
+        toast('Financiamiento archivado (sus datos quedan guardados).');
         await renderFinanciamientos();
-    } catch(e) { console.error('eliminarFinanciamiento', e); toast('No se pudo eliminar.', 'error'); }
+    } catch(e) { console.error('eliminarFinanciamiento', e); toast('No se pudo archivar.', 'error'); }
 }
 async function anularAbono(pagoId) {
     if(!(isAdminUser() || tienePermiso('financiamientos_eliminar'))) { toast('Solo quien tiene permiso de eliminar puede anular abonos.', 'error'); return; }
     const p = (_finCache.pagos || []).find(x => x.id === pagoId);
     if(!p) return;
-    if(!confirm(`¿Anular el abono #${p.recibo || ''} de ${money(p.monto)}?`)) return;
+    if(!await confirmar(`¿Anular el abono #${p.recibo || ''} de ${money(p.monto)}? Queda guardado en el historial, no se borra.`)) return;
+    const motivo = await pedirTexto('Motivo de la anulación (obligatorio):');
+    if(!motivo || !motivo.trim()) { toast('La anulación necesita un motivo.', 'error'); return; }
     try {
         const finId = p.financiamiento_id;
-        const { error } = await supabaseClient.from('financiamiento_pagos').delete().eq('id', pagoId);
+        const { error } = await supabaseClient.from('financiamiento_pagos').update({
+            anulado: true,
+            anulado_en: new Date().toISOString(),
+            anulado_por: sessionUser?.nombre || sessionUser?.usuario || 'Admin',
+            motivo_anulacion: motivo.trim()
+        }).eq('id', pagoId);
         if(error) throw error;
         // Si estaba saldado y ahora queda saldo, reactivar
         await cargarFinanciamientos();
@@ -31547,7 +31591,7 @@ async function anularAbono(pagoId) {
         if(f && f.estado === 'saldado' && finSaldo(f) > 0.001) {
             await supabaseClient.from('financiamientos').update({ estado: 'activo' }).eq('id', finId);
         }
-        toast('Abono anulado.');
+        toast('Abono anulado (queda en el historial).');
         await renderFinanciamientos();
     } catch(e) { console.error('anularAbono', e); toast('No se pudo anular.', 'error'); }
 }
