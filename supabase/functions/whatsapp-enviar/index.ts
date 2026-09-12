@@ -8,11 +8,9 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 // falta una plantilla aprobada — ver bloque de plantilla mas abajo.
 //
 // Envio a una conversacion YA ABIERTA: POST
-// /v1/inbox/conversations/{conversationId}/messages, usando el numero de
-// telefono (E.164 sin '+') como conversationId — O el businessScopedUserId
-// (prefijo "bsid:" en telefono_e164) para contactos que escribieron desde un
-// anuncio "click to WhatsApp" y cuyo numero real Meta nunca revela (ver fix
-// 2026-09-03 abajo).
+// /v1/inbox/conversations/{conversationId}/messages. El conversationId real de
+// Zernio se guarda en whatsapp_hilos.zernio_conversation_id (lo captura el
+// webhook) — ver "Fix 2026-09-09" mas abajo.
 //
 // Responder citando (2026-09-03): body.responde_a_id (uuid de
 // whatsapp_mensajes) es opcional. Si viene, se manda replyTo a Zernio con el
@@ -50,14 +48,6 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 // body_text:[[...]] | body_text_named_params:[{param_name,example}],
 // header_handle:["url"] } } }.
 //
-// Fix 2026-09-03 (contactos de anuncios sin telefono real): un contacto que
-// escribe desde un anuncio "click to WhatsApp" de Meta no tiene numero real
-// visible — whatsapp-webhook guarda su businessScopedUserId prefijado
-// "bsid:" en telefono_e164 en vez de forzar un numero falso. Aqui, si el
-// hilo tiene ese prefijo, se manda el id tal cual (sin el prefijo) como
-// conversationId — la Cloud API de Meta acepta el businessScopedUserId como
-// destinatario igual que un numero para estas conversaciones.
-//
 // Fix 2026-09-04 (autorizacion por sucursal — auditoria): antes, cualquier
 // cuenta con sesion valida podia enviar a CUALQUIER hilo_id de cualquier
 // sucursal/linea con solo conocer el UUID — identidadDesdeJWT se leia recien
@@ -75,19 +65,33 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 //
 // Fix 2026-09-05 (reintento en "conversation not found"): el dueño reporto
 // mensajes que fallaban con "No se pudo enviar el mensaje" a un contacto de
-// anuncio (bsid) real, de forma intermitente -- el mismo hilo mandaba bien
-// segundos/minutos antes y despues del fallo. Se confirmo en los logs de la
-// funcion (function_logs, no function_edge_logs -- ahi solo esta el
-// console.error real de Zernio) que la causa es Zernio devolviendo
-// 404 {"code":"CONVERSATION_NOT_FOUND","error":"Conversation not found. Use
-// the conversation id from the list conversations endpoint."} de forma
-// intermitente para esa conversacion especifica. A diferencia de un
-// 5xx/timeout (ambiguo, el mensaje pudo haberse enviado igual), un 404
-// "conversation not found" es INEQUIVOCO: Zernio nunca proceso el envio, asi
-// que reintentar aca no arriesga mandar el mensaje dos veces al cliente
-// real. Se agrega un reintento automatico (hasta 2 veces, con una pausa
-// corta) especificamente para este codigo de error, en los 3 tipos de envio
-// (mensaje/adjunto, nota de voz, plantilla).
+// anuncio (bsid) real. Se agrego un reintento automatico para el codigo
+// CONVERSATION_NOT_FOUND, pensando que Zernio fallaba de forma intermitente.
+// OJO: eso trataba el SINTOMA -- la causa real esta en el fix de abajo.
+//
+// Fix 2026-09-09 (RAIZ del "conversation not found"): el conversationId que
+// se le pasaba a Zernio se DEDUCIA del telefono_e164 del hilo. Para un
+// contacto con telefono eso funciona (Zernio manda platformConversationId ==
+// telefono), pero un contacto que llega desde un ANUNCIO no tiene telefono:
+// el hilo se guarda como `bsid:<conversation.contactId>` y el contactId NO es
+// un conversationId (son dos ids distintos dentro del mismo payload,
+// confirmado con un evento real de produccion). Por eso Zernio respondia 404
+// y ningun reintento podia funcionar. Ahora el webhook guarda el
+// conversationId real en whatsapp_hilos.zernio_conversation_id y aca se usa
+// ese. Medido: ningun mensaje salio del sistema hacia un contacto de anuncio
+// entre el 2026-09-04 18:12 y este fix.
+//
+// Fix 2026-09-12 (auditoria, F17 — envio y registro local podian divergir):
+// antes, si el envio a Zernio tenia exito pero el INSERT local en
+// whatsapp_mensajes fallaba, la funcion solo hacia console.error y devolvia
+// `{ok:true}` igual — el mensaje se le fue de verdad al cliente pero jamas
+// quedo guardado en el CRM, y el navegador nunca se enteraba de esa
+// discrepancia. No se agrega reintento automatico (el mensaje YA salio, un
+// reintento real lo duplicaria del lado del cliente) — la respuesta ahora
+// dice honestamente `guardado_local:false` + un `aviso` legible cuando esto
+// pasa, para que la interfaz avise en vez de mostrar un envio "perfecto" que
+// no lo fue. `guardado_local` no se incluye (queda implicito `true`) en el
+// camino normal para no ensuciar la respuesta de siempre.
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -135,9 +139,9 @@ function esTimeout(e: unknown): boolean {
 
 type ResultadoZernio = { ok: boolean; data: any; status: number };
 
-// Ver "Fix 2026-09-05" arriba: Zernio a veces no reconoce todavia una
-// conversacion recien creada/actualizada. Es un 404 inequivoco (nunca llego
-// a procesar el envio), asi que reintentar es seguro.
+// Ver "Fix 2026-09-05" arriba: se conserva el reintento como red de seguridad
+// (un 404 es inequivoco, Zernio nunca proceso el envio), pero desde el fix del
+// 2026-09-09 ya no deberia dispararse por la causa original.
 function esConversacionNoEncontrada(resultado: ResultadoZernio): boolean {
   return resultado.status === 404 && resultado.data?.code === "CONVERSATION_NOT_FOUND";
 }
@@ -263,21 +267,9 @@ Deno.serve(async (req: Request) => {
   const autorizado = await tieneAccesoALinea(tipo, refId, linea.sucursal_id);
   if (!autorizado) return json({ ok: false, error: "sin_permiso", mensaje: "No tenes acceso a esta linea/sucursal." }, 403);
 
-  // Fix 2026-09-09 (raiz del "conversation not found" de los contactos de anuncio): el
-  // conversationId REAL de Zernio ahora se guarda desde el webhook (whatsapp_hilos.
-  // zernio_conversation_id) y es lo que se usa cuando esta disponible.
-  //
-  // Por que fallaba: para un contacto con telefono, Zernio manda platformConversationId == el
-  // telefono, asi que pasar el telefono "funciona" -- pero para un contacto de ANUNCIO no hay
-  // telefono y el hilo guarda `bsid:<contactId>`. El contactId NO es el conversationId (son dos
-  // ids distintos en el mismo payload), asi que Zernio respondia 404. El reintento que se agrego
-  // el 2026-09-05 trataba el sintoma pensando que Zernio fallaba de forma intermitente; en
-  // realidad ese envio nunca podia funcionar. Medido: ningun mensaje salio del sistema hacia un
-  // contacto de anuncio entre el 2026-09-04 18:12 y este fix.
-  //
-  // El fallback se conserva para los hilos viejos que todavia no tienen el id guardado: sigue
-  // funcionando igual que hasta ahora para contactos con telefono real, y cada hilo se corrige
-  // solo en cuanto entra un mensaje nuevo del cliente.
+  // Ver "Fix 2026-09-09" arriba. El fallback se conserva para los hilos viejos que todavia no
+  // tienen guardado el conversationId real: para un contacto con telefono sigue funcionando igual
+  // que hasta ahora, y cada hilo se corrige solo en cuanto entra un mensaje nuevo del cliente.
   const conversationId = hilo.zernio_conversation_id
     || (hilo.telefono_e164.startsWith("bsid:") ? hilo.telefono_e164.slice(5) : hilo.telefono_e164);
   const esAnuncioSinConversationId = !hilo.zernio_conversation_id && hilo.telefono_e164.startsWith("bsid:");
@@ -368,6 +360,9 @@ Deno.serve(async (req: Request) => {
     return json({ ok: false, error: "zernio_error", detalle: resultado.data }, 502);
   }
 
+  // A partir de aca el mensaje YA SALIO de verdad hacia el cliente por Zernio.
+  // Lo que sigue es guardarlo localmente para el CRM -- si eso falla, la
+  // respuesta debe reflejarlo (F17), nunca esconderlo detras de un ok:true liso.
   const ahora = new Date().toISOString();
 
   let tipoContenido = "text";
@@ -407,15 +402,33 @@ Deno.serve(async (req: Request) => {
     plantilla_nombre: plantilla?.nombre ?? null,
     plantilla_variables: plantilla ? JSON.stringify(plantilla.variables ?? plantilla.variablesNombradas ?? null) : null,
   });
-  if (msgError) console.error("insertar mensaje saliente error:", msgError.message);
 
-  await db.from("whatsapp_hilos").update({
-    ultimo_mensaje_at: ahora,
-    ultimo_mensaje_preview: preview,
-    // Solo los envíos iniciados por un empleado cierran el pendiente humano.
-    ultima_respuesta_humana_at: ahora,
-    actualizado_en: ahora,
-  }).eq("id", hiloId);
+  const guardadoLocal = !msgError;
+  if (msgError) {
+    // F17: el mensaje se envio de verdad al cliente pero NO quedo guardado en
+    // el historial local -- antes esto solo se logueaba y la funcion devolvia
+    // ok:true sin ninguna señal. Ya no hay reintento automatico del insert
+    // aca (el mensaje ya salio; si el problema es de datos, reintentar el
+    // mismo insert fallaria igual) -- se avisa honestamente en la respuesta.
+    console.error("insertar mensaje saliente error (el mensaje SI se envio a Zernio, no quedo guardado local):", msgError.message);
+  } else {
+    // Solo se actualiza el resumen del hilo (preview/hora) cuando el mensaje
+    // realmente quedo guardado -- si no, el preview mostraria un mensaje que
+    // no existe en la lista hasta que el reflejo de Zernio (message.sent) lo
+    // reinserte via el webhook.
+    await db.from("whatsapp_hilos").update({
+      ultimo_mensaje_at: ahora,
+      ultimo_mensaje_preview: preview,
+      // Solo los envíos iniciados por un empleado cierran el pendiente humano.
+      ultima_respuesta_humana_at: ahora,
+      actualizado_en: ahora,
+    }).eq("id", hiloId);
+  }
 
-  return json({ ok: true, messageId: resultado.data?.data?.messageId ?? null });
+  const respuesta: Record<string, unknown> = { ok: true, messageId: resultado.data?.data?.messageId ?? null };
+  if (!guardadoLocal) {
+    respuesta.guardado_local = false;
+    respuesta.aviso = "El mensaje se envió al cliente, pero no se pudo guardar en el historial local — recarga la conversación para verificarlo (puede tardar un momento en aparecer solo).";
+  }
+  return json(respuesta);
 });
