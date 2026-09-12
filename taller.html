@@ -731,6 +731,54 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
 .ig-theme .wa-row.active { background:#fff; box-shadow: 0 0 0 1.5px rgba(221,42,123,.28), 0 4px 12px -7px rgba(221,42,123,.22), 0 1px 2px rgba(15,23,42,.05); }
 .ig-theme .wa-row .fila-badge { background:linear-gradient(160deg,#dd2a7b,#8134af); box-shadow:0 4px 9px -4px rgba(221,42,123,.5), inset 0 1px 0 rgba(255,255,255,.35); }
 
+/* ============================================================
+   REDES SOCIALES — hub (mockup del dueño, 12 sept 2026). Tarjetas
+   de canal + filtro por tipo de interaccion, encima de la bandeja
+   de Instagram. Facebook/TikTok y Comentarios/Menciones quedan sin
+   datos inventados (0/"—" + panel "Proximamente", ver JS).
+   ============================================================ */
+.rs-hub-head { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:14px; }
+.rs-hub-title { display:flex; align-items:center; gap:12px; }
+.rs-hub-icon { width:42px; height:42px; border-radius:12px; background:linear-gradient(135deg,#1e293b,#0f172a); color:#fff; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
+.rs-hub-title h3 { margin:0; font-size:17px; font-weight:800; color:#0f172a; }
+.rs-hub-title p { margin:2px 0 0; font-size:11.5px; color:var(--text-muted); }
+.rs-hub-buscar { display:flex; align-items:center; gap:8px; background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:9px 14px; min-width:220px; flex:1; max-width:360px; }
+.rs-hub-buscar i { color:#94a3b8; font-size:16px; }
+.rs-hub-buscar input { border:none; outline:none; flex:1; font-size:13px; background:transparent; min-width:0; }
+
+.rs-canales { display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
+.rs-canal { flex:1; min-width:170px; display:flex; align-items:center; gap:12px; background:#fff; border:1.5px solid #e2e8f0; border-radius:14px; padding:12px 16px; cursor:pointer; transition:box-shadow .15s, border-color .15s, transform .1s; position:relative; }
+.rs-canal:active { transform:scale(.98); }
+.rs-canal.activo { border-color:transparent; box-shadow:0 0 0 2px #dd2a7b, 0 8px 20px -8px rgba(221,42,123,.35); }
+.rs-canal.pendiente { opacity:.65; }
+.rs-canal-icono { width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:20px; flex-shrink:0; }
+.rs-canal-icono.ig { background:linear-gradient(135deg,#f58529,#dd2a7b,#8134af); }
+.rs-canal-icono.fb { background:#1877f2; }
+.rs-canal-icono.tk { background:#0f172a; }
+.rs-canal-info { min-width:0; }
+.rs-canal-info b { display:block; font-size:14px; color:#0f172a; }
+.rs-canal-info span { font-size:11.5px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block; }
+.rs-canal-badge { position:absolute; top:-7px; right:-7px; background:#dc2626; color:#fff; font-size:11px; font-weight:800; min-width:22px; height:22px; border-radius:999px; display:flex; align-items:center; justify-content:center; padding:0 5px; box-shadow:0 3px 8px rgba(220,38,38,.4); }
+.rs-canal-badge.gris { background:#94a3b8; box-shadow:none; }
+
+.rs-tipos { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+.rs-tipo { display:flex; align-items:center; gap:7px; padding:9px 15px; border-radius:999px; background:#fff; border:1px solid #e2e8f0; font-size:12.5px; font-weight:700; color:#475569; cursor:pointer; }
+.rs-tipo.on { background:linear-gradient(135deg,#fde2ef,#fbe0f5); border-color:#f9a8d4; color:#9d174d; }
+.rs-tipo .cuenta { background:rgba(15,23,42,.08); color:#475569; border-radius:999px; padding:1px 7px; font-size:10.5px; font-weight:800; }
+.rs-tipo.on .cuenta { background:#dd2a7b; color:#fff; }
+
+.rs-proximamente { text-align:center; padding:50px 20px; color:var(--text-muted); }
+.rs-proximamente i { font-size:36px; display:block; margin-bottom:10px; opacity:.6; }
+
+@media (max-width:640px) {
+    .rs-hub-buscar { max-width:none; order:3; flex-basis:100%; }
+    .rs-canal { min-width:130px; padding:10px 12px; gap:9px; }
+    .rs-canal-icono { width:36px; height:36px; font-size:16px; }
+    .rs-canal-info b { font-size:12.5px; }
+    .rs-canal-info span { font-size:10px; }
+    .rs-tipo { padding:7px 11px; font-size:11.5px; }
+}
+
 .nav button { width: 100%; background: rgba(255,255,255,0.03); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 13px 14px; margin-bottom: 7px; text-align: left; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 12px; font-size: 13.5px; }
 .nav button i { font-size: 19px; color: #475569; flex-shrink: 0; }
 .nav button span { flex: 1; }
@@ -2025,14 +2073,20 @@ body{
                     <div id="leadsLista"></div>
                 </div>
                 <div id="crmLinea-redes" style="display:none;">
-                    <div class="crm-tabs-row crm-ocultar-en-chat" style="margin-bottom:10px;">
-                        <div class="crm-tabs-track pill-elevado">
-                            <button class="crm-tab-seg on pill-hundido" id="redesTabIg" onclick="crmRedesSubTab('instagram')"><i class="ti ti-brand-instagram"></i> Instagram</button>
-                            <button class="crm-tab-seg" id="redesTabFb" onclick="crmRedesSubTab('facebook')"><i class="ti ti-brand-facebook"></i> Facebook</button>
-                            <button class="crm-tab-seg" id="redesTabTk" onclick="crmRedesSubTab('tiktok')"><i class="ti ti-brand-tiktok"></i> TikTok</button>
+                    <div class="rs-hub crm-ocultar-en-chat" id="rsHub">
+                        <div class="rs-hub-head">
+                            <div class="rs-hub-title">
+                                <div class="rs-hub-icon"><i class="ti ti-affiliate"></i></div>
+                                <div><h3>Redes Sociales</h3><p>Gestiona tus mensajes desde un solo lugar</p></div>
+                            </div>
+                            <div class="rs-hub-buscar">
+                                <i class="ti ti-search"></i>
+                                <input type="text" id="rsBuscarInput" placeholder="Buscar conversaciones..." oninput="_igBuscarCambio(this.value)">
+                            </div>
                         </div>
+                        <div class="rs-canales" id="rsCanales"></div>
+                        <div class="rs-tipos" id="rsTipos"></div>
                     </div>
-                    <div class="crm-stats crm-ocultar-en-chat" id="redesStats"></div>
                     <div id="redesSubInstagram"><div id="igWrap"></div></div>
                     <div id="redesSubFacebook" style="display:none;"></div>
                     <div id="redesSubTiktok" style="display:none;"></div>
@@ -34806,39 +34860,43 @@ let _igRealtimeChannel = null;
 let _igRtDebounce = null;
 let _igRtRecargarHiloAbierto = false;
 
+// hub visual (mockup del dueño, 12 sept 2026): tarjetas de canal + filtro por
+// tipo de interaccion, encima de la bandeja Instagram ya funcional. Facebook/
+// TikTok y los tipos Comentarios/Menciones NO tienen backend real todavia —
+// se muestran con datos en 0/"—" y un panel "Proximamente", nunca numeros
+// inventados (a proposito, decision del dueño).
+let _rsTipo = localStorage.getItem('bayol_redes_tipo') || 'todos'; // todos | mensajes | comentarios | menciones
+
 async function crmRedesSubTab(name) {
     _igSubTab = name;
     try { localStorage.setItem('bayol_subtab_redes', name); } catch(e) {}
     const subIg = document.getElementById('redesSubInstagram'), subFb = document.getElementById('redesSubFacebook'), subTk = document.getElementById('redesSubTiktok');
-    const btnIg = document.getElementById('redesTabIg'), btnFb = document.getElementById('redesTabFb'), btnTk = document.getElementById('redesTabTk');
     if(subIg) subIg.style.display = name === 'instagram' ? '' : 'none';
     if(subFb) subFb.style.display = name === 'facebook' ? '' : 'none';
     if(subTk) subTk.style.display = name === 'tiktok' ? '' : 'none';
-    if(btnIg) btnIg.className = 'crm-tab-seg' + (name === 'instagram' ? ' on pill-hundido' : '');
-    if(btnFb) btnFb.className = 'crm-tab-seg' + (name === 'facebook' ? ' on pill-hundido' : '');
-    if(btnTk) btnTk.className = 'crm-tab-seg' + (name === 'tiktok' ? ' on pill-hundido' : '');
+    _rsPintarCanales();
+    _rsPintarTipos();
     if(name === 'instagram') {
         await renderInstagram();
         if(!_igRealtimeChannel) _igSuscribirRealtime();
     } else {
         _igDetenerRealtime();
         _pintarRedesPlaceholder(name);
-        _crmPintarStatsRedes();
     }
 }
 async function renderRedesSociales() { await crmRedesSubTab(_igSubTab); }
 
 function _redesPlaceholderHTML(canal) {
     if(canal === 'facebook') {
-        return `<div class="crm-vacio" style="padding:60px 20px;">
-            <i class="ti ti-brand-facebook" style="font-size:40px; color:#1877f2; display:block; margin-bottom:10px;"></i>
-            <b style="display:block; margin-bottom:6px; color:#1e293b;">Facebook Messenger</b>
-            Todavía no tiene backend conectado en el sistema.<br>Próximamente.
+        return `<div class="rs-proximamente">
+            <i class="ti ti-brand-facebook" style="color:#1877f2;"></i>
+            <b style="display:block; margin-bottom:6px; color:#1e293b;">Facebook Messenger — Próximamente</b>
+            Todavía no tiene backend conectado en el sistema.
         </div>`;
     }
-    return `<div class="crm-vacio" style="padding:60px 20px;">
-        <i class="ti ti-brand-tiktok" style="font-size:40px; color:#1e293b; display:block; margin-bottom:10px;"></i>
-        <b style="display:block; margin-bottom:6px; color:#1e293b;">TikTok</b>
+    return `<div class="rs-proximamente">
+        <i class="ti ti-brand-tiktok" style="color:#1e293b;"></i>
+        <b style="display:block; margin-bottom:6px; color:#1e293b;">TikTok — Próximamente</b>
         TikTok no ofrece mensajería (DM) por API todavía — solo se puede usar para publicar contenido y anuncios (módulo aparte, pendiente).
     </div>`;
 }
@@ -34847,25 +34905,106 @@ function _pintarRedesPlaceholder(canal) {
     if(el) el.innerHTML = _redesPlaceholderHTML(canal);
 }
 
-function _crmPintarStatsRedes() {
-    const cont = document.getElementById('redesStats');
+// Tarjetas de canal (Instagram/Facebook/TikTok). Instagram muestra el
+// contador REAL de no leídos; Facebook/TikTok muestran "—" (gris, sin dato
+// inventado) porque no tienen backend/mensajería todavía.
+function _rsPintarCanales() {
+    const cont = document.getElementById('rsCanales');
     if(!cont) return;
     const noLeidosIg = (_igHilos || []).reduce((n, h) => n + (h.no_leidos_count || 0), 0);
-    const html = `
-        <div class="crm-stat rojo" title="${noLeidosIg} mensajes de Instagram sin leer">
-            <div class="bola"><i class="ti ti-brand-instagram"></i></div>
-            <div class="num">${noLeidosIg}</div><div class="lbl">IG sin leer</div>
-        </div>
-        <div class="crm-stat azul" title="Facebook: backend pendiente">
-            <div class="bola"><i class="ti ti-brand-facebook"></i></div>
-            <div class="num">—</div><div class="lbl">FB pendiente</div>
-        </div>
-        <div class="crm-stat morado" title="TikTok: sin mensajería disponible por API">
-            <div class="bola"><i class="ti ti-brand-tiktok"></i></div>
-            <div class="num">—</div><div class="lbl">TikTok pendiente</div>
-        </div>`;
+    const canales = [
+        { id: 'instagram', icono: 'ti-brand-instagram', clase: 'ig', nombre: 'Instagram', sub: '@bayolcell', badge: noLeidosIg, real: true },
+        { id: 'facebook', icono: 'ti-brand-facebook', clase: 'fb', nombre: 'Facebook', sub: 'Pendiente de conectar', badge: null, real: false },
+        { id: 'tiktok', icono: 'ti-brand-tiktok', clase: 'tk', nombre: 'TikTok', sub: 'Sin mensajería por API', badge: null, real: false },
+    ];
+    const html = canales.map(c => `
+        <div class="rs-canal${_igSubTab === c.id ? ' activo' : ''}${!c.real ? ' pendiente' : ''}" onclick="crmRedesSubTab('${c.id}')">
+            <div class="rs-canal-icono ${c.clase}"><i class="ti ${c.icono}"></i></div>
+            <div class="rs-canal-info"><b>${escapeHtml(c.nombre)}</b><span>${escapeHtml(c.sub)}</span></div>
+            ${c.real ? `<span class="rs-canal-badge${c.badge === 0 ? ' gris' : ''}">${c.badge}</span>` : `<span class="rs-canal-badge gris">—</span>`}
+        </div>`).join('');
     if(cont.innerHTML !== html) cont.innerHTML = html;
 }
+
+// Filtro por tipo de interacción — solo aplica dentro de Instagram (Facebook/
+// TikTok todavía no tienen ningún tipo real). "Todos" y "Mensajes" muestran
+// lo mismo hoy (los DM son la única interacción real); Comentarios/Menciones
+// quedan en 0 y abren el panel "Próximamente" al tocarlos.
+function _rsPintarTipos() {
+    const cont = document.getElementById('rsTipos');
+    if(!cont) return;
+    if(_igSubTab !== 'instagram') { cont.style.display = 'none'; return; }
+    cont.style.display = '';
+    const noLeidosIg = (_igHilos || []).reduce((n, h) => n + (h.no_leidos_count || 0), 0);
+    const tipos = [
+        { id: 'todos', txt: 'Todos', sub: 'Todas las interacciones', n: noLeidosIg, ic: 'ti-apps' },
+        { id: 'mensajes', txt: 'Mensajes', sub: 'DM y respuestas', n: noLeidosIg, ic: 'ti-send' },
+        { id: 'comentarios', txt: 'Comentarios', sub: 'Publicaciones y Reels', n: 0, ic: 'ti-message-circle' },
+        { id: 'menciones', txt: 'Menciones', sub: 'Historias y etiquetas', n: 0, ic: 'ti-at' },
+    ];
+    cont.innerHTML = tipos.map(t => `<button class="rs-tipo${_rsTipo === t.id ? ' on' : ''}" onclick="_rsSetTipo('${t.id}')" title="${escapeHtml(t.sub)}"><i class="ti ${t.ic}"></i> ${escapeHtml(t.txt)}${t.n ? ` <span class="cuenta">${t.n}</span>` : ''}</button>`).join('')
+        + `<button class="rs-tipo" id="igFiltrosBtn" onclick="_igToggleFiltros(event)"><i class="ti ti-adjustments-horizontal"></i> Filtros <i class="ti ti-chevron-down" style="font-size:11px;"></i></button>`;
+}
+
+function _rsSetTipo(tipo) {
+    _rsTipo = tipo;
+    try { localStorage.setItem('bayol_redes_tipo', tipo); } catch(e) {}
+    if(tipo === 'comentarios' || tipo === 'menciones') _igHiloId = null; // no hay chat que mostrar en estos tipos
+    _rsPintarTipos();
+    _pintarInstagram();
+}
+
+function _rsProximamenteTipoHTML(tipo) {
+    const info = tipo === 'comentarios'
+        ? { ic: 'ti-message-circle', txt: 'Comentarios', detalle: 'Responder comentarios de publicaciones y Reels de Instagram todavía no está conectado.' }
+        : { ic: 'ti-at', txt: 'Menciones', detalle: 'Ver menciones en historias y etiquetas todavía no está conectado.' };
+    return `<div class="rs-proximamente"><i class="ti ${info.ic}"></i><b style="display:block; margin-bottom:6px; color:#1e293b;">${info.txt} — Próximamente</b>${info.detalle}</div>`;
+}
+
+function _igBuscarCambio(v) {
+    _igBusqueda = v || '';
+    _pintarInstagramLista();
+}
+
+function _igToggleFiltros(ev) {
+    ev.stopPropagation();
+    let menu = document.getElementById('igFiltrosMenu');
+    if(menu && menu.style.display === 'flex') { menu.style.display = 'none'; return; }
+    if(!menu) {
+        menu = document.createElement('div');
+        menu.id = 'igFiltrosMenu';
+        menu.className = 'crm-filtros-menu';
+        document.body.appendChild(menu);
+        document.addEventListener('click', e => {
+            if(!menu.contains(e.target) && !e.target.closest('#igFiltrosBtn')) menu.style.display = 'none';
+        });
+    }
+    const ops = [
+        { id: 'todas', txt: 'Todas las conversaciones', ic: 'ti-inbox' },
+        { id: 'sin_asignar', txt: 'Sin asignar', ic: 'ti-user-question' },
+        { id: 'mias', txt: 'Asignadas a mí', ic: 'ti-user-check' },
+    ];
+    menu.innerHTML = ops.map(o => `<button class="${_igFiltroAsignacion === o.id ? 'on' : ''}" onclick="_igSetFiltroAsignacion('${o.id}')"><i class="ti ${o.ic}"></i> ${o.txt}</button>`).join('');
+    menu.style.display = 'flex';
+    const r = ev.currentTarget.getBoundingClientRect();
+    const alto = ops.length * 38 + 12;
+    let top = r.bottom + 6;
+    if(top + alto > window.innerHeight) top = Math.max(8, r.top - alto - 6);
+    let left = r.right - 190;
+    if(left < 8) left = 8;
+    menu.style.top = top + 'px';
+    menu.style.left = left + 'px';
+}
+function _igSetFiltroAsignacion(id) {
+    _igFiltroAsignacion = id;
+    const menu = document.getElementById('igFiltrosMenu');
+    if(menu) menu.style.display = 'none';
+    _pintarInstagramLista();
+}
+
+// Alias — queda por compatibilidad con los call-sites existentes que
+// refrescaban los KPI de Redes; ahora ese refresco son las tarjetas de canal.
+function _crmPintarStatsRedes() { _rsPintarCanales(); }
 
 async function _igCargarCuenta() {
     if(_igCuentaId) return _igCuentaId;
@@ -34920,6 +35059,14 @@ function _igNombreHilo(h) { return h.nombre_perfil || (h.participant_username ? 
 function _pintarInstagram() {
     const wrap = document.getElementById('igWrap');
     if(!wrap) return;
+    _rsPintarCanales();
+    _rsPintarTipos();
+    // Comentarios/Menciones no tienen backend real todavia (ver hub arriba):
+    // se muestra el panel "Proximamente" en vez de la bandeja de chat.
+    if(_rsTipo === 'comentarios' || _rsTipo === 'menciones') {
+        wrap.innerHTML = _rsProximamenteTipoHTML(_rsTipo);
+        return;
+    }
     const movil = _waEsMovil();
     const mostrarLista = !movil || !_igHiloId;
     const mostrarDetalle = !movil || !!_igHiloId;
@@ -34930,7 +35077,6 @@ function _pintarInstagram() {
     </div>`;
     if(mostrarLista) _pintarInstagramLista();
     if(mostrarDetalle) _pintarInstagramDetalle();
-    _crmPintarStatsRedes();
 }
 
 function _pintarInstagramLista() {
