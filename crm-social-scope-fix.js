@@ -222,6 +222,9 @@
       .bc-fbc-post{display:flex;gap:9px;width:100%;text-align:left;border:none;background:transparent;padding:8px;border-radius:12px;cursor:pointer;margin-bottom:2px;}
       .bc-fbc-post:hover{background:rgba(59,130,246,.08);}
       .bc-fbc-post.on{background:rgba(59,130,246,.14);}
+      .bc-fbc-post.has-comments{border-left:3px solid #f59e0b;}
+      .bc-fbc-post.has-comments.on{background:rgba(245,158,11,.14);}
+      .bc-fbc-count-hot{color:#b45309;}
       .bc-fbc-post-pic{width:42px;height:42px;border-radius:9px;object-fit:cover;flex:none;background:#e2e8f0;}
       .bc-fbc-post-copy{min-width:0;}
       .bc-fbc-post-copy p{margin:0 0 3px;font-size:12.5px;line-height:1.35;color:#0f172a;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
@@ -280,7 +283,7 @@
     panel.innerHTML = `
       <div class="bc-fbc-shell">
         <aside class="bc-fbc-posts">
-          <div class="bc-fbc-posts-head"><span>Publicaciones</span><button type="button" id="bcFbcRefreshPosts" title="Actualizar"><i class="ti ti-refresh"></i></button></div>
+          <div class="bc-fbc-posts-head"><span id="bcFbcPostsHeadLabel">Publicaciones</span><button type="button" id="bcFbcRefreshPosts" title="Actualizar"><i class="ti ti-refresh"></i></button></div>
           <div class="bc-fbc-posts-list" id="bcFbcPostsList"></div>
         </aside>
         <section class="bc-fbc-comments" id="bcFbcCommentsPane">
@@ -293,24 +296,39 @@
 
   function fbcRenderPosts(){
     const host = $('#bcFbcPostsList');
+    const label = $('#bcFbcPostsHeadLabel');
     if (!host) return;
     if (fbc.postsLoading && !fbc.posts.length) { host.innerHTML = '<div class="bc-social-loading"><span class="bc-social-spin"></span>Cargando publicaciones…</div>'; return; }
     if (fbc.postsError && !fbc.posts.length) { host.innerHTML = `<div class="bc-social-error"><i class="ti ti-alert-triangle"></i><b>No se pudieron cargar</b><span>${escapeHtml(fbc.postsError)}</span><button type="button" id="bcFbcRetryPosts">Reintentar</button></div>`; return; }
     if (!fbc.posts.length) { host.innerHTML = '<div class="bc-social-empty-state"><i class="ti ti-photo"></i><b>Sin publicaciones</b><span>Todavía no hay contenido en la página.</span></div>'; return; }
-    host.innerHTML = fbc.posts.map(p => `
-      <button type="button" class="bc-fbc-post${p.id === fbc.postId ? ' on' : ''}" data-fbc-post="${escapeHtml(p.id)}">
+    // La mayoría de las publicaciones recientes no tienen comentarios (son
+    // promos sin respuesta). Sin esto, Sterling entraba y los primeros clics
+    // caían siempre en publicaciones vacías -> parecía que no hacía nada.
+    // Se muestran primero las que SÍ tienen comentarios (orden estable, el
+    // resto queda por fecha como llegó de Facebook).
+    const ordenados = fbc.posts.map((p, i) => ({ p, i }))
+      .sort((a, b) => (Number(b.p.commentCount || 0) > 0) - (Number(a.p.commentCount || 0) > 0) || a.i - b.i)
+      .map(x => x.p);
+    const conComentarios = fbc.posts.filter(p => Number(p.commentCount || 0) > 0).length;
+    if (label) label.textContent = conComentarios ? `Publicaciones (${conComentarios} con comentarios)` : 'Publicaciones';
+    host.innerHTML = ordenados.map(p => {
+      const tieneComentarios = Number(p.commentCount || 0) > 0;
+      return `
+      <button type="button" class="bc-fbc-post${p.id === fbc.postId ? ' on' : ''}${tieneComentarios ? ' has-comments' : ''}" data-fbc-post="${escapeHtml(p.id)}">
         ${p.picture ? `<img class="bc-fbc-post-pic" src="${escapeHtml(p.picture)}" alt="">` : '<span class="bc-fbc-post-pic"></span>'}
-        <span class="bc-fbc-post-copy"><p>${escapeHtml(fbcTruncate(p.content, 90))}</p><small>${fbcFecha(p.createdTime)} · ${p.commentCount || 0} coment. · ${p.likeCount || 0} likes</small></span>
-      </button>`).join('') + (fbc.postsHasMore ? '<button type="button" class="bc-fbc-loadmore" id="bcFbcMorePosts">Cargar más</button>' : '');
+        <span class="bc-fbc-post-copy"><p>${escapeHtml(fbcTruncate(p.content, 90))}</p><small>${fbcFecha(p.createdTime)} · <b class="${tieneComentarios ? 'bc-fbc-count-hot' : ''}">${p.commentCount || 0} coment.</b> · ${p.likeCount || 0} likes</small></span>
+      </button>`;
+    }).join('') + (fbc.postsHasMore ? '<button type="button" class="bc-fbc-loadmore" id="bcFbcMorePosts">Cargar más publicaciones</button>' : '');
   }
 
   async function loadFbcPosts(reset){
     if (fbc.postsLoading) return;
+    const esPrimeraCarga = !reset && !fbc.postId && !fbc.posts.length && !fbc.postsCursor;
     if (reset) { fbc.posts = []; fbc.postsCursor = null; }
     fbc.postsLoading = true; fbc.postsError = null;
     fbcRenderPosts();
     try {
-      const data = await fbcInvoke('posts', { limit: 25, cursor: fbc.postsCursor || undefined });
+      const data = await fbcInvoke('posts', { limit: 50, cursor: fbc.postsCursor || undefined });
       const nuevos = data.data || [];
       fbc.posts = fbc.postsCursor ? fbc.posts.concat(nuevos) : nuevos;
       fbc.postsHasMore = !!data.pagination?.hasMore;
@@ -320,6 +338,13 @@
     } finally {
       fbc.postsLoading = false;
       fbcRenderPosts();
+    }
+    // Primera vez que se abre el panel: si hay alguna publicación con
+    // comentarios reales, se abre sola para que se vea de inmediato que
+    // funciona (en vez de que el primer clic caiga en una vacía).
+    if (esPrimeraCarga && !fbc.postId) {
+      const conComentarios = fbc.posts.find(p => Number(p.commentCount || 0) > 0);
+      if (conComentarios) loadFbcComments(conComentarios.id);
     }
   }
 
