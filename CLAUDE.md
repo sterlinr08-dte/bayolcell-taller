@@ -673,3 +673,15 @@ Idea de Sterling: un **catálogo público de celulares** para mandar a clientes,
 - **Precio siempre al día:** el precio no se guarda en el catálogo; se lee de `infoplus_articulos.niveles['1']`, que ya se sincroniza a diario (`infoplus-precios-sync`, cron id 3) + el botón de sync del buscador. Cambias el precio en Info Plus → cambia en el catálogo.
 - **Interruptor Publicar/Ocultar (1 ago):** columna `config_taller.catalogo_publicado` (bool, default false). Botón en el admin (`_catTogglePublicado`) para publicar/ocultar TODO el catálogo de la web. El edge `catalogo-publico` (v2) devuelve `publicado:false` + items:[] si está oculto; `catalogo.html` muestra "no disponible". 
 - **Pendiente/opcional:** poner el **teléfono de la tienda** en Configuración para que salga el botón de WhatsApp; extender a **pantallas** (mismo motor, `categoria='pantalla'`); orden manual (drag) si lo pide.
+
+## Redes Sociales — referencia visual aplicada (12 septiembre 2026)
+- Pedido explícito: reproducir la imagen adjunta y subir al CRM. Se modificó la implementación ACTIVA en `taller.html` (`#rsHub`, `.rs-*`, `_rsLogo`, `_rsPintarCanales`, `_rsPintarTipos`), no los archivos `crm-social-hub.*` sin referencia en esta página.
+- Dos barras de cristal con degradado rosa/azul, logos SVG embebidos y controles nativos con foco de teclado. Escala por ancho del contenedor; bajo 700px usa desplazamiento horizontal con textos legibles.
+- Se conservan los handlers, filtros, permisos, datos y backend existentes. No se copian los números ilustrativos del mockup: Instagram usa no leídos reales; canales sin integración muestran «—». Facebook/TikTok y comentarios/menciones siguen pendientes.
+- Verificación: sintaxis de los dos bloques JS del HTML y `git diff --check`. Consultar el resultado de QA en la conversación; no atribuir pruebas de envío real a este cambio visual.
+
+## Instagram cargando y retorno al CRM — 12 septiembre 2026
+- Corrección al diagnóstico previo: `crm-marketing-consent.js` SÍ carga dinámicamente `crm-social-hub.js`, `crm-social-scope-fix.js` y polish v2. Revisar este loader para identificar la UI activa; buscar solo scripts directos en HTML no basta.
+- Causa del indicador permanente: `supabaseClient` es un `const` global léxico, no `window.supabaseClient`. Se corrigieron los accesos del hub y los contadores, sin crear otra sesión ni cambiar RLS.
+- La carga de cuenta/hilos termina con error y Reintentar tras 15 segundos si no responde. Botón «Volver al CRM» visible en Redes incluso con chat móvil abierto; vuelve a Mensajes y restablece el estado de canal WhatsApp.
+- Validado con cliente global léxico: carga, cuenta vacía, error y timeout. Supabase confirma una cuenta activa y 120 conversaciones abiertas; no se enviaron mensajes de prueba ni se cambiaron datos.

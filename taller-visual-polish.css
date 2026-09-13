@@ -1,0 +1,88 @@
+/* BAYOL CELL — capa visual común del Taller (2026) */
+:root{
+  --bc-red:#dc2626;
+  --bc-red-dark:#991b1b;
+  --bc-ink:#172033;
+  --bc-muted:#64748b;
+  --bc-line:#e5eaf2;
+  --bc-surface:rgba(255,255,255,.86);
+  --bc-shadow:0 14px 34px -24px rgba(15,23,42,.42);
+}
+#app{background:transparent;}
+#app .content{
+  background:
+    radial-gradient(700px 320px at 85% -10%,rgba(248,113,113,.08),transparent 70%),
+    radial-gradient(650px 300px at 0% 0%,rgba(96,165,250,.07),transparent 68%);
+}
+#app .content > .view.active{animation:bcViewIn .24s ease-out both;}
+@keyframes bcViewIn{from{opacity:.72;transform:translateY(4px)}to{opacity:1;transform:none}}
+#app .top-bar{height:60px;padding:0 22px;backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%);}
+#app .top-title{letter-spacing:.02em;font-weight:800;}
+#app .top-right-info{border-radius:999px;padding:7px 13px;}
+#app .card,
+#app .block-card,
+#app .prov-card,
+#app .refurb-item-card{
+  border-color:rgba(226,232,240,.9);
+  box-shadow:var(--bc-shadow),inset 0 1px 0 rgba(255,255,255,.92);
+  transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
+}
+#app .card:hover,
+#app .prov-card:hover,
+#app .refurb-item-card:hover{border-color:#cbd5e1;box-shadow:0 18px 38px -25px rgba(15,23,42,.5),inset 0 1px 0 #fff;}
+#app .block-card{border-radius:14px;overflow:hidden;}
+#app .block-header{
+  min-height:42px;display:flex;align-items:center;
+  background:linear-gradient(135deg,#b91c1c,#ef4444);
+  letter-spacing:.07em;
+}
+#app .block-body{padding:16px;}
+#app .kpi-row{gap:14px;}
+#app .kpi-box{border-top:3px solid var(--bc-red);min-height:78px;padding:13px 14px;}
+#app .kpi-box strong{letter-spacing:-.03em;}
+#app .data-table,
+#app .table-wrap{border-color:var(--bc-line);box-shadow:0 8px 24px -22px rgba(15,23,42,.55);}
+#app table{background:rgba(255,255,255,.82);}
+#app th{background:#f8fafc;color:#475569;padding:12px 13px;}
+#app td{padding:12px 13px;}
+#app tbody tr{transition:background .14s ease;}
+#app tbody tr:hover td{background:#fff7f7;}
+#app input,#app select,#app textarea{
+  border-color:#dbe3ee;transition:border-color .16s ease,box-shadow .16s ease,background .16s ease;
+}
+#app input:hover,#app select:hover,#app textarea:hover{border-color:#c5d2e2;}
+#app input:focus,#app select:focus,#app textarea:focus{
+  border-color:#f87171;box-shadow:0 0 0 3px rgba(220,38,38,.11);background:#fff;
+}
+#app .btn{min-height:34px;border-radius:9px;letter-spacing:.005em;}
+#app .btn-icon{min-height:30px;}
+#app .modal-backdrop{background:rgba(15,23,42,.52);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);}
+#app .modal-box{border:1px solid rgba(255,255,255,.75);box-shadow:0 28px 70px -28px rgba(15,23,42,.55);}
+#app .modal-header{background:linear-gradient(135deg,#991b1b,#ef4444);}
+#app .modal-footer{background:#f8fafc;}
+#app .badge{letter-spacing:.02em;}
+#app .toast{border:1px solid rgba(255,255,255,.12);border-radius:12px;box-shadow:0 16px 34px -16px rgba(15,23,42,.6);}
+#app button:focus-visible,#app a:focus-visible,#app input:focus-visible,#app select:focus-visible,#app textarea:focus-visible{
+  outline:3px solid rgba(59,130,246,.32);outline-offset:2px;
+}
+@media (max-width:1024px){
+  #app .content{padding:13px 12px 24px;}
+  #app .top-bar{height:54px;padding:0 12px;gap:9px;}
+  #app .top-title{font-size:14px;}
+  #app .top-right-info{font-size:10px;padding:6px 10px;}
+  #app .card{border-radius:15px;padding:13px;margin-bottom:11px;}
+  #app .kpi-row{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:12px;}
+  #app .kpi-box{min-height:68px;padding:10px 11px;}
+  #app .kpi-box strong{font-size:17px;}
+  #app .block-grid,.app .layout-dashboard,.app .grid-refurb{grid-template-columns:1fr;gap:11px;}
+  #app .block-body{padding:12px;}
+  #app .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  #app table{min-width:620px;}
+  #app .modal-backdrop{padding:12px;}
+  #app .modal-box{max-height:calc(100dvh - 24px);border-radius:16px;}
+}
+@media (prefers-reduced-motion:reduce){
+  #app .content > .view.active{animation:none;}
+  #app .card,#app .block-card,#app .prov-card,#app .refurb-item-card,#app tbody tr{transition:none;}
+}
+
