@@ -38,6 +38,35 @@
     tiktok: { label:'TikTok', icon:'ti-brand-tiktok' }
   };
 
+  // Comentarios de Facebook (Zernio) — reemplaza el placeholder "Integración
+  // backend pendiente" por la funcionalidad real: publicaciones, comentarios
+  // con respuestas anidadas, Responder público, Private Reply y Lead.
+  const fbc = {
+    postId: null, posts: [], postsLoading: false, postsError: null, postsCursor: null, postsHasMore: false,
+    comments: [], commentsLoading: false, commentsError: null, commentsCursor: null, commentsHasMore: false,
+    openBox: null // {commentId, mode:'reply'|'private'}
+  };
+
+  async function fbcInvoke(action, extra){
+    const client = typeof supabaseClient !== 'undefined' ? supabaseClient : window.supabaseClient;
+    if (!client?.functions?.invoke) throw new Error('Sin conexión a Supabase.');
+    const { data, error } = await withTimeout(client.functions.invoke('social-facebook-comentarios', { body: { action, ...extra } }), 18000);
+    if (error) throw error;
+    if (data?.ok !== true) throw new Error(data?.error || 'No se pudo completar la acción.');
+    return data;
+  }
+
+  function fbcToast(msg, isError){
+    if (typeof window.toastError === 'function' && isError) return window.toastError(msg);
+    if (typeof window.toast === 'function') return window.toast(msg);
+    alert(msg);
+  }
+
+  function fbcFecha(iso){
+    try { return new Date(iso).toLocaleString('es-DO', { dateStyle: 'short', timeStyle: 'short' }); }
+    catch { return ''; }
+  }
+
   function ensureTikTokPanel(){
     const view=$('#v-crmLinea');
     if(!view || $('#bcSocialTikTokPanel')) return;
@@ -178,6 +207,285 @@
     view.appendChild(panel);
   }
 
+  function ensureFbcStyles(){
+    if ($('#bcFbcStyles')) return;
+    const style = document.createElement('style');
+    style.id = 'bcFbcStyles';
+    style.textContent = `
+      #bcSocialContextPanel.bc-fbc-active{display:flex;padding:0;overflow:hidden;}
+      .bc-fbc-shell{display:flex;width:100%;height:100%;min-height:0;}
+      .bc-fbc-posts{width:300px;min-width:230px;border-right:1px solid rgba(15,23,42,.08);display:flex;flex-direction:column;background:#fbfbfe;}
+      .bc-fbc-posts-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid rgba(15,23,42,.06);font-weight:700;font-size:13px;}
+      .bc-fbc-posts-head button{border:none;background:transparent;cursor:pointer;color:#475569;padding:4px;border-radius:8px;}
+      .bc-fbc-posts-head button:hover{background:rgba(15,23,42,.06);}
+      .bc-fbc-posts-list{flex:1;overflow-y:auto;padding:6px;}
+      .bc-fbc-post{display:flex;gap:9px;width:100%;text-align:left;border:none;background:transparent;padding:8px;border-radius:12px;cursor:pointer;margin-bottom:2px;}
+      .bc-fbc-post:hover{background:rgba(59,130,246,.08);}
+      .bc-fbc-post.on{background:rgba(59,130,246,.14);}
+      .bc-fbc-post-pic{width:42px;height:42px;border-radius:9px;object-fit:cover;flex:none;background:#e2e8f0;}
+      .bc-fbc-post-copy{min-width:0;}
+      .bc-fbc-post-copy p{margin:0 0 3px;font-size:12.5px;line-height:1.35;color:#0f172a;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+      .bc-fbc-post-copy small{color:#64748b;font-size:11px;}
+      .bc-fbc-comments{flex:1;display:flex;flex-direction:column;min-width:0;}
+      .bc-fbc-comments-head{padding:12px 16px;border-bottom:1px solid rgba(15,23,42,.06);display:flex;align-items:flex-start;gap:10px;}
+      .bc-fbc-comments-head .bc-fbc-post-pic{width:52px;height:52px;border-radius:10px;}
+      .bc-fbc-comments-head p{margin:0 0 4px;font-size:12.5px;color:#0f172a;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+      .bc-fbc-comments-head a{font-size:11.5px;color:#2563eb;text-decoration:none;}
+      .bc-fbc-comments-body{flex:1;overflow-y:auto;padding:12px 16px;}
+      .bc-fbc-comment{display:flex;gap:9px;margin-bottom:16px;}
+      .bc-fbc-avatar{width:34px;height:34px;border-radius:50%;object-fit:cover;flex:none;background:#e2e8f0;}
+      .bc-fbc-body-col{flex:1;min-width:0;}
+      .bc-fbc-meta{display:flex;align-items:center;gap:7px;font-size:12px;}
+      .bc-fbc-meta b{color:#0f172a;}
+      .bc-fbc-meta small{color:#94a3b8;}
+      .bc-fbc-badge{background:#dbeafe;color:#1d4ed8;font-size:10px;font-weight:700;padding:1px 6px;border-radius:999px;}
+      .bc-fbc-comment>.bc-fbc-body-col>p{margin:2px 0 6px;font-size:13px;color:#1e293b;white-space:pre-wrap;word-break:break-word;}
+      .bc-fbc-actions{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;}
+      .bc-fbc-actions button{border:1px solid rgba(15,23,42,.12);background:#fff;color:#334155;font-size:11.5px;font-weight:600;padding:5px 9px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;transition:background .15s ease,border-color .15s ease;}
+      .bc-fbc-actions button:hover{background:#f1f5f9;border-color:rgba(15,23,42,.2);}
+      .bc-fbc-actions button[data-fbc-act="lead"].done{background:#dcfce7;border-color:#86efac;color:#15803d;pointer-events:none;}
+      .bc-fbc-replybox{margin:6px 0;display:flex;gap:6px;}
+      .bc-fbc-replybox textarea{flex:1;resize:none;border:1px solid rgba(15,23,42,.15);border-radius:10px;padding:7px 9px;font-size:12.5px;font-family:inherit;min-height:34px;}
+      .bc-fbc-replybox .bc-fbc-box-btns{display:flex;flex-direction:column;gap:4px;}
+      .bc-fbc-replybox button{border:none;border-radius:8px;padding:6px 10px;font-size:11.5px;font-weight:700;cursor:pointer;}
+      .bc-fbc-replybox .send{background:#e31e24;color:#fff;}
+      .bc-fbc-replybox .cancel{background:#e2e8f0;color:#334155;}
+      .bc-fbc-replybox.private textarea{border-color:#a855f7;}
+      .bc-fbc-replybox.private .send{background:#7c3aed;}
+      .bc-fbc-replies{margin-top:6px;padding-left:14px;border-left:2px solid rgba(15,23,42,.08);}
+      .bc-fbc-reply{display:flex;gap:8px;margin-bottom:8px;}
+      .bc-fbc-reply .bc-fbc-avatar{width:26px;height:26px;}
+      .bc-fbc-reply p{margin:1px 0;font-size:12px;color:#334155;white-space:pre-wrap;word-break:break-word;}
+      .bc-fbc-more-replies{font-size:11px;color:#94a3b8;margin-top:2px;}
+      .bc-fbc-loadmore{display:block;margin:8px auto;background:transparent;border:1px solid rgba(15,23,42,.14);border-radius:999px;padding:6px 14px;font-size:12px;cursor:pointer;color:#334155;}
+      .bc-fbc-loadmore:hover{background:#f1f5f9;}
+      @media (max-width: 760px){
+        .bc-fbc-shell{flex-direction:column;}
+        .bc-fbc-posts{width:100%;max-height:38%;border-right:none;border-bottom:1px solid rgba(15,23,42,.08);}
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function fbcTruncate(text, max){
+    const t = String(text || '').replace(/\s+/g, ' ').trim();
+    return t.length > max ? t.slice(0, max - 1) + '…' : (t || 'Publicación sin texto');
+  }
+
+  function renderFacebookCommentsPanel(){
+    ensureFbcStyles();
+    const panel = $('#bcSocialContextPanel');
+    if (!panel) return;
+    panel.classList.add('bc-fbc-active');
+    panel.innerHTML = `
+      <div class="bc-fbc-shell">
+        <aside class="bc-fbc-posts">
+          <div class="bc-fbc-posts-head"><span>Publicaciones</span><button type="button" id="bcFbcRefreshPosts" title="Actualizar"><i class="ti ti-refresh"></i></button></div>
+          <div class="bc-fbc-posts-list" id="bcFbcPostsList"></div>
+        </aside>
+        <section class="bc-fbc-comments" id="bcFbcCommentsPane">
+          <div class="bc-ig-empty"><div><i class="ti ti-message-circle"></i><b>Elige una publicación</b><span>Sus comentarios aparecerán aquí.</span></div></div>
+        </section>
+      </div>`;
+    bindFbcPanel();
+    loadFbcPosts();
+  }
+
+  function fbcRenderPosts(){
+    const host = $('#bcFbcPostsList');
+    if (!host) return;
+    if (fbc.postsLoading && !fbc.posts.length) { host.innerHTML = '<div class="bc-social-loading"><span class="bc-social-spin"></span>Cargando publicaciones…</div>'; return; }
+    if (fbc.postsError && !fbc.posts.length) { host.innerHTML = `<div class="bc-social-error"><i class="ti ti-alert-triangle"></i><b>No se pudieron cargar</b><span>${escapeHtml(fbc.postsError)}</span><button type="button" id="bcFbcRetryPosts">Reintentar</button></div>`; return; }
+    if (!fbc.posts.length) { host.innerHTML = '<div class="bc-social-empty-state"><i class="ti ti-photo"></i><b>Sin publicaciones</b><span>Todavía no hay contenido en la página.</span></div>'; return; }
+    host.innerHTML = fbc.posts.map(p => `
+      <button type="button" class="bc-fbc-post${p.id === fbc.postId ? ' on' : ''}" data-fbc-post="${escapeHtml(p.id)}">
+        ${p.picture ? `<img class="bc-fbc-post-pic" src="${escapeHtml(p.picture)}" alt="">` : '<span class="bc-fbc-post-pic"></span>'}
+        <span class="bc-fbc-post-copy"><p>${escapeHtml(fbcTruncate(p.content, 90))}</p><small>${fbcFecha(p.createdTime)} · ${p.commentCount || 0} coment. · ${p.likeCount || 0} likes</small></span>
+      </button>`).join('') + (fbc.postsHasMore ? '<button type="button" class="bc-fbc-loadmore" id="bcFbcMorePosts">Cargar más</button>' : '');
+  }
+
+  async function loadFbcPosts(reset){
+    if (fbc.postsLoading) return;
+    if (reset) { fbc.posts = []; fbc.postsCursor = null; }
+    fbc.postsLoading = true; fbc.postsError = null;
+    fbcRenderPosts();
+    try {
+      const data = await fbcInvoke('posts', { limit: 25, cursor: fbc.postsCursor || undefined });
+      const nuevos = data.data || [];
+      fbc.posts = fbc.postsCursor ? fbc.posts.concat(nuevos) : nuevos;
+      fbc.postsHasMore = !!data.pagination?.hasMore;
+      fbc.postsCursor = data.pagination?.nextCursor || null;
+    } catch (e) {
+      fbc.postsError = e?.message || 'Error de conexión con Facebook.';
+    } finally {
+      fbc.postsLoading = false;
+      fbcRenderPosts();
+    }
+  }
+
+  function fbcCommentActionsHTML(c){
+    const leadDone = c._leadDone ? ' done' : '';
+    return `<div class="bc-fbc-actions">
+      <button type="button" data-fbc-act="reply" data-fbc-comment="${escapeHtml(c.id)}"><i class="ti ti-message-reply"></i> Responder público</button>
+      <button type="button" data-fbc-act="private" data-fbc-comment="${escapeHtml(c.id)}"><i class="ti ti-send"></i> Private Reply</button>
+      <button type="button" class="${leadDone}" data-fbc-act="lead" data-fbc-comment="${escapeHtml(c.id)}"><i class="ti ${c._leadDone ? 'ti-check' : 'ti-user-plus'}"></i> ${c._leadDone ? 'Lead creado' : 'Lead'}</button>
+    </div>`;
+  }
+
+  function fbcReplyHTML(r){
+    return `<div class="bc-fbc-reply">
+      ${r.from?.picture ? `<img class="bc-fbc-avatar" src="${escapeHtml(r.from.picture)}" alt="">` : '<span class="bc-fbc-avatar"></span>'}
+      <div><div class="bc-fbc-meta"><b>${escapeHtml(r.from?.name || 'Contacto')}</b><small>${fbcFecha(r.createdTime)}</small>${r.from?.isOwner ? '<span class="bc-fbc-badge">Tú</span>' : ''}</div>
+      <p>${escapeHtml(r.message || '')}</p></div>
+    </div>`;
+  }
+
+  function fbcCommentHTML(c){
+    const replies = (c.replies || []).map(fbcReplyHTML).join('');
+    const masReplies = c.repliesHasMore ? `<div class="bc-fbc-more-replies">Hay más respuestas de las mostradas (Facebook solo entrega las primeras 10 aquí).</div>` : '';
+    return `<div class="bc-fbc-comment" data-fbc-top="${escapeHtml(c.id)}">
+      ${c.from?.picture ? `<img class="bc-fbc-avatar" src="${escapeHtml(c.from.picture)}" alt="">` : '<span class="bc-fbc-avatar"></span>'}
+      <div class="bc-fbc-body-col">
+        <div class="bc-fbc-meta"><b>${escapeHtml(c.from?.name || 'Contacto de Facebook')}</b><small>${fbcFecha(c.createdTime)}</small>${c.from?.isOwner ? '<span class="bc-fbc-badge">Tú</span>' : ''}</div>
+        <p>${escapeHtml(c.message || '')}</p>
+        ${c.from?.isOwner ? '' : fbcCommentActionsHTML(c)}
+        <div class="bc-fbc-replybox" id="bcFbcBox-${escapeHtml(c.id)}" hidden></div>
+        ${replies ? `<div class="bc-fbc-replies">${replies}${masReplies}</div>` : masReplies}
+      </div>
+    </div>`;
+  }
+
+  function fbcRenderComments(){
+    const pane = $('#bcFbcCommentsPane');
+    if (!pane) return;
+    const post = fbc.posts.find(p => p.id === fbc.postId);
+    const head = post ? `<div class="bc-fbc-comments-head">
+        ${post.picture ? `<img class="bc-fbc-post-pic" src="${escapeHtml(post.picture)}" alt="">` : ''}
+        <div><p>${escapeHtml(fbcTruncate(post.content, 160))}</p><a href="${escapeHtml(post.permalink || '#')}" target="_blank" rel="noopener"><i class="ti ti-external-link"></i> Ver publicación en Facebook</a></div>
+      </div>` : '';
+    let body;
+    if (fbc.commentsLoading && !fbc.comments.length) body = '<div class="bc-social-loading"><span class="bc-social-spin"></span>Cargando comentarios…</div>';
+    else if (fbc.commentsError) body = `<div class="bc-social-error"><i class="ti ti-alert-triangle"></i><b>No se pudieron cargar los comentarios</b><span>${escapeHtml(fbc.commentsError)}</span><button type="button" id="bcFbcRetryComments">Reintentar</button></div>`;
+    else if (!fbc.comments.length) body = '<div class="bc-social-empty-state"><i class="ti ti-message-circle"></i><b>Sin comentarios todavía</b><span>Esta publicación no tiene comentarios.</span></div>';
+    else body = fbc.comments.map(fbcCommentHTML).join('') + (fbc.commentsHasMore ? '<button type="button" class="bc-fbc-loadmore" id="bcFbcMoreComments">Cargar más comentarios</button>' : '');
+    pane.innerHTML = `${head}<div class="bc-fbc-comments-body">${body}</div>`;
+  }
+
+  async function loadFbcComments(postId, more){
+    if (!more) { fbc.postId = postId; fbc.comments = []; fbc.commentsCursor = null; }
+    fbc.commentsError = null; fbc.commentsLoading = true;
+    fbcRenderPosts();
+    fbcRenderComments();
+    try {
+      const data = await fbcInvoke('comments', { postId: fbc.postId, limit: 50, cursor: fbc.commentsCursor || undefined });
+      const nuevos = data.comments || [];
+      fbc.comments = more ? fbc.comments.concat(nuevos) : nuevos;
+      fbc.commentsHasMore = !!data.pagination?.hasMore;
+      fbc.commentsCursor = data.pagination?.cursor || null;
+    } catch (e) {
+      fbc.commentsError = e?.message || 'Error de conexión con Facebook.';
+    } finally {
+      fbc.commentsLoading = false;
+      fbcRenderComments();
+    }
+  }
+
+  function fbcOpenBox(commentId, mode){
+    if (fbc.openBox) { const prev = $(`#bcFbcBox-${CSS.escape(fbc.openBox.commentId)}`); if (prev) { prev.hidden = true; prev.innerHTML = ''; } }
+    fbc.openBox = { commentId, mode };
+    const box = $(`#bcFbcBox-${CSS.escape(commentId)}`);
+    if (!box) return;
+    box.hidden = false;
+    box.className = 'bc-fbc-replybox' + (mode === 'private' ? ' private' : '');
+    box.innerHTML = `<textarea id="bcFbcText-${escapeHtml(commentId)}" rows="2" placeholder="${mode === 'private' ? 'Mensaje privado (Private Reply)…' : 'Escribe la respuesta pública…'}"></textarea>
+      <div class="bc-fbc-box-btns"><button type="button" class="send" data-fbc-send="${escapeHtml(commentId)}">Enviar</button><button type="button" class="cancel" data-fbc-cancel="${escapeHtml(commentId)}">Cancelar</button></div>`;
+    $(`#bcFbcText-${CSS.escape(commentId)}`)?.focus();
+  }
+
+  function fbcCloseBox(commentId){
+    const box = $(`#bcFbcBox-${CSS.escape(commentId)}`);
+    if (box) { box.hidden = true; box.innerHTML = ''; }
+    if (fbc.openBox?.commentId === commentId) fbc.openBox = null;
+  }
+
+  async function fbcSend(commentId, btn){
+    const mode = fbc.openBox?.mode || 'reply';
+    const ta = $(`#bcFbcText-${CSS.escape(commentId)}`);
+    const text = String(ta?.value || '').trim();
+    if (!text || btn.disabled) return;
+    btn.disabled = true; btn.textContent = 'Enviando…';
+    try {
+      if (mode === 'private') {
+        await fbcInvoke('private_reply', { postId: fbc.postId, commentId, message: text });
+        fbcToast('Private Reply enviado.');
+      } else {
+        await fbcInvoke('reply', { postId: fbc.postId, commentId, message: text });
+        fbcToast('Respuesta publicada.');
+      }
+      fbcCloseBox(commentId);
+      await loadFbcComments(fbc.postId);
+    } catch (e) {
+      fbcToast(e?.message || 'No se pudo enviar. Es posible que ya se haya usado el único Private Reply de este comentario, o que el comentario tenga más de 7 días.', true);
+      btn.disabled = false; btn.textContent = 'Enviar';
+    }
+  }
+
+  async function fbcConvertirLead(commentId, btn){
+    const client = typeof supabaseClient !== 'undefined' ? supabaseClient : window.supabaseClient;
+    const comment = fbc.comments.find(c => c.id === commentId);
+    if (!client?.from || !comment) return;
+    btn.disabled = true;
+    try {
+      const actor = typeof sessionUser !== 'undefined' ? sessionUser : window.sessionUser;
+      const sucursalId = await resolveSocialSucursalId(client, actor);
+      if (!sucursalId) throw new Error('No se pudo determinar la sucursal para el lead.');
+      const post = fbc.posts.find(p => p.id === fbc.postId);
+      const { error } = await client.from('leads').insert({
+        sucursal_id: sucursalId,
+        canal: 'facebook',
+        nombre: comment.from?.name || 'Contacto de Facebook',
+        interes: comment.message || null,
+        notas: `Comentario en Facebook${post ? ' (' + fbcTruncate(post.content, 60) + ')' : ''}: "${comment.message || ''}"\n${comment.url || ''}`.trim(),
+        asignado_tipo: actor?._tipo === 'tecnico' ? 'tecnico' : 'usuario',
+        asignado_id: actor?.id || null,
+        etapa: 'nuevo'
+      });
+      if (error) throw error;
+      comment._leadDone = true;
+      fbcToast('Lead creado desde el comentario.');
+      fbcRenderComments();
+    } catch (e) {
+      fbcToast(e?.message || 'No se pudo crear el lead.', true);
+      btn.disabled = false;
+    }
+  }
+
+  function bindFbcPanel(){
+    const panel = $('#bcSocialContextPanel');
+    if (!panel || panel.dataset.fbcBound === '1') return;
+    panel.dataset.fbcBound = '1';
+    panel.addEventListener('click', e => {
+      const postBtn = e.target.closest('[data-fbc-post]');
+      if (postBtn) { loadFbcComments(postBtn.dataset.fbcPost); return; }
+      if (e.target.closest('#bcFbcRefreshPosts') || e.target.closest('#bcFbcRetryPosts')) { loadFbcPosts(true); return; }
+      if (e.target.closest('#bcFbcMorePosts')) { loadFbcPosts(); return; }
+      if (e.target.closest('#bcFbcRetryComments')) { loadFbcComments(fbc.postId); return; }
+      if (e.target.closest('#bcFbcMoreComments')) { loadFbcComments(fbc.postId, true); return; }
+      const act = e.target.closest('[data-fbc-act]');
+      if (act) {
+        const commentId = act.dataset.fbcComment;
+        if (act.dataset.fbcAct === 'reply') fbcOpenBox(commentId, 'reply');
+        else if (act.dataset.fbcAct === 'private') fbcOpenBox(commentId, 'private');
+        else if (act.dataset.fbcAct === 'lead') fbcConvertirLead(commentId, act);
+        return;
+      }
+      const sendBtn = e.target.closest('[data-fbc-send]');
+      if (sendBtn) { fbcSend(sendBtn.dataset.fbcSend, sendBtn); return; }
+      const cancelBtn = e.target.closest('[data-fbc-cancel]');
+      if (cancelBtn) { fbcCloseBox(cancelBtn.dataset.fbcCancel); return; }
+    });
+  }
+
   function ensureHeader(){
     const head=$('#bcSocialHubHead');
     if(!head) return false;
@@ -245,7 +553,8 @@
     if(!allowed.some(x=>x.key===state.view)) state.view='all';
     host.innerHTML=allowed.map(item=>{
       const count=knownCount(state.channel,item.key);
-      const pending=(state.channel!=='instagram') || (state.channel==='instagram' && ['comments','mentions'].includes(item.key));
+      const yaFunciona=(state.channel==='facebook' && item.key==='comments');
+      const pending=!yaFunciona && ((state.channel!=='instagram') || (state.channel==='instagram' && ['comments','mentions'].includes(item.key)));
       return `
         <button type="button" class="bc-smart-interaction${state.view===item.key?' on':''}" data-smart-view="${item.key}" role="tab" aria-selected="${state.view===item.key}">
           <span class="bc-smart-interaction-icon"><i class="ti ${item.icon}"></i></span>
@@ -381,13 +690,9 @@
           title:'Facebook Messenger',
           text:'Bandeja privada preparada para conversaciones de Messenger. Se habilitará cuando la página, webhooks y envío estén conectados.',
           chips:['Conversaciones','No leídos','Asignación','Notas']
-        },
-        comments:{
-          icon:'ti-message-circle',
-          title:'Comentarios de Facebook',
-          text:'Comentarios públicos con contexto de publicación, respuesta pública y Private Reply cuando Meta lo permita.',
-          chips:['Publicación','Responder público','Private Reply','Lead']
         }
+        // 'comments' ya no usa este placeholder: renderFacebookCommentsPanel()
+        // (mas abajo) construye la vista real con datos de Zernio.
       },
       tiktok:{
         all:{
@@ -420,8 +725,14 @@
 
   function renderContext(){
     const panel=$('#bcSocialContextPanel');
-    const card=$('.bc-social-context-card',panel);
-    if(!panel || !card) return;
+    if(!panel) return;
+    // renderFacebookCommentsPanel() reemplaza panel.innerHTML por completo;
+    // si se viene de ahi hay que reconstruir la tarjeta placeholder antes de
+    // usarla para cualquier otra vista pendiente (menciones IG, TikTok, etc.).
+    panel.classList.remove('bc-fbc-active');
+    let card=$('.bc-social-context-card',panel);
+    if(!card){ panel.innerHTML='<div class="bc-social-context-card"></div>'; card=$('.bc-social-context-card',panel); }
+    if(!card) return;
     const info=contextInfo();
     const meta=state.meta[state.channel];
     card.innerHTML=`
@@ -463,6 +774,10 @@
     }else if(state.channel==='tiktok' && state.view==='all'){
       tt.style.display='flex';
       view.dataset.socialChannel='tiktok';
+    }else if(state.channel==='facebook' && state.view==='comments'){
+      ctx.style.display='flex';
+      view.dataset.socialChannel='facebook';
+      renderFacebookCommentsPanel();
     }else{
       ctx.style.display='flex';
       renderContext();
