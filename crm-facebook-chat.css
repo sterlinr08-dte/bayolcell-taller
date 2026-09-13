@@ -1,5 +1,7 @@
 /* Match the existing WhatsApp CRM: light canvas, compact chrome, rounded composer. */
 #bcSocialFacebookPanel{min-height:0;flex:1}
+#bcSocialFacebookPanel.bc-fb-open{overflow:hidden}
+.bc-fb-lock-scroll{overflow:hidden!important}
 #bcSocialFacebookPanel .bc-social-generic-shell{min-height:0;height:100%;grid-template-columns:minmax(260px,32%) minmax(0,1fr);border-radius:16px}
 #bcSocialFacebookPanel .bc-social-generic-chat{position:relative;min-height:0;background:#f7f9fd;background-image:radial-gradient(#2563eb0e 1px,transparent 1px);background-size:14px 14px;overflow:hidden}
 #bcSocialFacebookPanel .bc-social-generic-list{max-height:none;min-height:0}
@@ -29,7 +31,7 @@
  #bcSocialFacebookPanel .bc-social-generic-shell{display:flex;flex-direction:column;min-height:0}
  #bcSocialFacebookPanel .bc-social-generic-list{flex:1;border:0;max-height:none;min-height:350px}
  #bcSocialFacebookPanel .bc-social-generic-chat{display:none}
- #bcSocialFacebookPanel.bc-fb-open{height:var(--fb-chat-height,calc(100dvh - 100px));flex:none}
+ #bcSocialFacebookPanel.bc-fb-open{position:fixed;z-index:60;top:var(--fb-chat-top,0px);left:0;right:0;width:100%;height:var(--fb-chat-height,100dvh);max-height:none;min-height:0;flex:none;margin:0;border-radius:0;background:#f7f9fd;overflow:hidden}
  #bcSocialFacebookPanel.bc-fb-open .bc-social-generic-list{display:none}
  #bcSocialFacebookPanel.bc-fb-open .bc-social-generic-chat{display:flex;flex:1}
  #v-crmLinea[data-social-channel="facebook"]:has(#bcSocialFacebookPanel.bc-fb-open) #bcSocialHubHead{display:none!important}
