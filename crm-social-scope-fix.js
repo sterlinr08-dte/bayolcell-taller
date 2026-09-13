@@ -44,7 +44,8 @@
   const fbc = {
     postId: null, posts: [], postsLoading: false, postsError: null, postsCursor: null, postsHasMore: false,
     comments: [], commentsLoading: false, commentsError: null, commentsCursor: null, commentsHasMore: false,
-    openBox: null // {commentId, mode:'reply'|'private'}
+    openBox: null, // {commentId, mode:'reply'|'private'}
+    likeBusy: new Set()
   };
 
   async function fbcInvoke(action, extra){
@@ -244,9 +245,11 @@
       .bc-fbc-badge{background:#dbeafe;color:#1d4ed8;font-size:10px;font-weight:700;padding:1px 6px;border-radius:999px;}
       .bc-fbc-comment>.bc-fbc-body-col>p{margin:2px 0 6px;font-size:13px;color:#1e293b;white-space:pre-wrap;word-break:break-word;}
       .bc-fbc-actions{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;}
-      .bc-fbc-actions button{border:1px solid rgba(15,23,42,.12);background:#fff;color:#334155;font-size:11.5px;font-weight:600;padding:5px 9px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;transition:background .15s ease,border-color .15s ease;}
-      .bc-fbc-actions button:hover{background:#f1f5f9;border-color:rgba(15,23,42,.2);}
-      .bc-fbc-actions button[data-fbc-act="lead"].done{background:#dcfce7;border-color:#86efac;color:#15803d;pointer-events:none;}
+      .bc-fbc-actions button{border:1px solid rgba(255,255,255,.88);background:linear-gradient(145deg,rgba(255,255,255,.88),rgba(255,247,243,.62));color:#14213d;font-size:11.5px;font-weight:700;padding:6px 10px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;transition:background .18s ease,border-color .18s ease,box-shadow .18s ease,transform .16s ease;box-shadow:inset 0 1px 0 rgba(255,255,255,.98),inset 0 -2px 5px rgba(20,33,61,.05),0 6px 13px -11px rgba(20,33,61,.5);backdrop-filter:blur(10px) saturate(140%);-webkit-backdrop-filter:blur(10px) saturate(140%);}
+      .bc-fbc-actions button:hover{background:linear-gradient(145deg,rgba(255,255,255,.98),rgba(255,237,230,.82));border-color:#ffc2ad;box-shadow:inset 0 1px 0 #fff,0 8px 16px -12px rgba(255,107,53,.38);transform:translateY(-1px);}
+      .bc-fbc-actions button:active{transform:translateY(1px);box-shadow:inset 0 2px 5px rgba(20,33,61,.14),0 3px 8px -7px rgba(20,33,61,.36);}
+      .bc-fbc-actions button.like.liked{background:linear-gradient(145deg,#ff9a7a,#FF6B35 54%,#D65225);border-color:rgba(255,255,255,.86);color:#14213d;box-shadow:inset 0 1px 0 rgba(255,255,255,.54),inset 0 -3px 7px rgba(125,34,12,.18),0 8px 17px -12px rgba(255,107,53,.78);}
+      .bc-fbc-actions button:disabled{opacity:.62;cursor:wait;transform:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.75);}
       .bc-fbc-replybox{margin:6px 0;display:flex;gap:6px;}
       .bc-fbc-replybox textarea{flex:1;resize:none;border:1px solid rgba(15,23,42,.15);border-radius:10px;padding:7px 9px;font-size:12.5px;font-family:inherit;min-height:34px;}
       .bc-fbc-replybox .bc-fbc-box-btns{display:flex;flex-direction:column;gap:4px;}
@@ -348,9 +351,68 @@
     }
   }
 
+  function fbcCommentIsLiked(c){
+    return typeof c?.isLiked === 'boolean' ? c.isLiked : c?.liked === true;
+  }
+
+  function fbcLikeButtonHTML(c){
+    if (c.canLike === false) return '';
+    const liked = fbcCommentIsLiked(c);
+    const busy = fbc.likeBusy.has(String(c.id));
+    const label = liked ? 'Quitar like' : 'Like';
+    return `<button type="button" class="like${liked ? ' liked' : ''}" data-fbc-act="like" data-fbc-comment="${escapeHtml(c.id)}" aria-pressed="${liked ? 'true' : 'false'}" aria-label="${label}"${busy ? ' disabled aria-busy="true"' : ''}><i class="ti ${liked ? 'ti-heart-filled' : 'ti-heart'}"></i><span>${label}</span></button>`;
+  }
+
+  function fbcSyncLikeButton(btn, liked, busy){
+    if (!btn) return;
+    const label = liked ? 'Quitar like' : 'Like';
+    btn.classList.toggle('liked', liked);
+    btn.setAttribute('aria-pressed', liked ? 'true' : 'false');
+    btn.setAttribute('aria-label', label);
+    btn.innerHTML = `<i class="ti ${liked ? 'ti-heart-filled' : 'ti-heart'}"></i><span>${label}</span>`;
+    btn.disabled = !!busy;
+    if (busy) btn.setAttribute('aria-busy', 'true');
+    else btn.removeAttribute('aria-busy');
+  }
+
+  async function fbcToggleLike(commentId, btn){
+    const comment = fbc.comments.find(c => String(c.id) === String(commentId));
+    const id = String(commentId || '');
+    if (!comment || !id || btn?.disabled || fbc.likeBusy.has(id)) return;
+    const wasLiked = fbcCommentIsLiked(comment);
+    const action = wasLiked ? 'unlike' : 'like';
+    fbc.likeBusy.add(id);
+    fbcSyncLikeButton(btn, wasLiked, true);
+    let nextLiked = wasLiked;
+    let success = false;
+    try {
+      const data = await fbcInvoke(action, {
+        postId: fbc.postId,
+        commentId,
+        ...(wasLiked && comment.likeUri ? { likeUri: String(comment.likeUri) } : {})
+      });
+      nextLiked = typeof data.liked === 'boolean' ? data.liked : !wasLiked;
+      success = true;
+      fbcToast(nextLiked ? 'Like agregado.' : 'Like retirado.');
+    } catch (e) {
+      fbcToast(e?.message || 'No se pudo actualizar el like.', true);
+    } finally {
+      fbc.likeBusy.delete(id);
+      const liveComment = fbc.comments.find(c => String(c.id) === id);
+      if (success && liveComment) {
+        liveComment.isLiked = nextLiked;
+        liveComment.liked = nextLiked;
+      }
+      const liveButton = btn?.isConnected ? btn : null;
+      if (liveButton) fbcSyncLikeButton(liveButton, success ? nextLiked : wasLiked, false);
+      else if (success && liveComment) fbcRenderComments();
+    }
+  }
+
   function fbcCommentActionsHTML(c){
     const leadDone = c._leadDone ? ' done' : '';
     return `<div class="bc-fbc-actions">
+      ${fbcLikeButtonHTML(c)}
       <button type="button" data-fbc-act="reply" data-fbc-comment="${escapeHtml(c.id)}"><i class="ti ti-message-reply"></i> Responder público</button>
       <button type="button" data-fbc-act="private" data-fbc-comment="${escapeHtml(c.id)}"><i class="ti ti-send"></i> Private Reply</button>
       <button type="button" class="${leadDone}" data-fbc-act="lead" data-fbc-comment="${escapeHtml(c.id)}"><i class="ti ${c._leadDone ? 'ti-check' : 'ti-user-plus'}"></i> ${c._leadDone ? 'Lead creado' : 'Lead'}</button>
@@ -501,6 +563,7 @@
         const commentId = act.dataset.fbcComment;
         if (act.dataset.fbcAct === 'reply') fbcOpenBox(commentId, 'reply');
         else if (act.dataset.fbcAct === 'private') fbcOpenBox(commentId, 'private');
+        else if (act.dataset.fbcAct === 'like') fbcToggleLike(commentId, act);
         else if (act.dataset.fbcAct === 'lead') fbcConvertirLead(commentId, act);
         return;
       }
