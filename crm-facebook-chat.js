@@ -38,6 +38,9 @@
     const host=$('#bcFbChat');if(!host)return;
     const same=selected===thread.id;
     const ta=$('#bcFbText');if(ta&&selected)drafts.set(selected,ta.value);
+    const previousMessages=$('#bcFbMessages');
+    const previousTop=same&&previousMessages?previousMessages.scrollTop:null;
+    const previousAtBottom=!same||!previousMessages||previousMessages.scrollHeight-previousMessages.clientHeight-previousMessages.scrollTop<80;
     selected=thread.id;callbacks=cb;messages=rows;
     if(!same)attachment=null;
     $('#bcSocialFacebookPanel')?.classList.add('bc-fb-open');
@@ -74,7 +77,13 @@
       try{const result=await action('media',{messageId:id},threadId);const url=safeUrl(result.url);if(url&&selected===threadId){el.src=url;if(el.parentElement.tagName==='A')el.parentElement.href=url;}}catch{notice('No se pudo recuperar un adjunto.');}
     }));
     paintAttachment();setBusy(busy);
-    const scroll=$('#bcFbMessages');scroll.scrollTop=scroll.scrollHeight;
+    const scroll=$('#bcFbMessages');
+    if(scroll){
+      const restore=()=>{scroll.scrollTop=previousAtBottom?scroll.scrollHeight:(previousTop??scroll.scrollHeight);};
+      restore();
+      requestAnimationFrame(restore);
+      setTimeout(restore,120);
+    }
     resize();
   }
   function paintAttachment(){const box=$('#bcFbAttachment');if(!box)return;box.hidden=!attachment;box.innerHTML=attachment?`<span>${esc(attachment.name)}</span><button type="button" id="bcFbRemoveFile" aria-label="Quitar adjunto">×</button>`:'';if(attachment)$('#bcFbRemoveFile').onclick=()=>{if(!busy){attachment=null;paintAttachment();}};}
