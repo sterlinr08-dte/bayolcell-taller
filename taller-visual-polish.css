@@ -86,3 +86,238 @@
   #app .card,#app .block-card,#app .prov-card,#app .refurb-item-card,#app tbody tr{transition:none;}
 }
 
+/* ============================================================
+   TALLER BAYOL CELL — ORGANIZACIÓN VISUAL PROFESIONAL
+   Aplicado al cascarón del taller y a sus módulos operativos.
+   El CRM social conserva sus estilos propios.
+   ============================================================ */
+:root{
+  --bc-red:#e31e24;
+  --bc-red-dark:#b91c22;
+  --bc-blue:#2563eb;
+  --bc-blue-soft:#eef4ff;
+  --bc-ink:#172033;
+  --bc-muted:#64748b;
+  --bc-line:#e5eaf2;
+  --bc-bg:#f5f8fc;
+  --bc-surface:#ffffff;
+  --bc-shadow:0 8px 24px -18px rgba(15,23,42,.34);
+}
+
+/* El taller debe sentirse claro, estable y fácil de leer. */
+#app{background:var(--bc-bg) !important;}
+#app .sidebar{
+  width:250px !important;
+  background:#fff !important;
+  color:var(--bc-ink) !important;
+  border-right:1px solid var(--bc-line) !important;
+  box-shadow:8px 0 26px -24px rgba(15,23,42,.42) !important;
+}
+#app .sidebar::before,#app .sidebar::after{display:none !important;}
+#app .side-brand{
+  padding:16px 15px !important;
+  background:#fff !important;
+  border-bottom:1px solid var(--bc-line) !important;
+}
+#app .brand-icon{
+  width:42px !important;height:42px !important;border-radius:12px !important;
+  background:var(--bc-red) !important;
+  box-shadow:0 8px 18px -8px rgba(227,30,36,.62) !important;
+}
+#app .brand-text h3{color:var(--bc-ink) !important;font-size:16px !important;}
+#app .brand-text small{color:var(--bc-muted) !important;font-size:9px !important;}
+#app .nav{padding:12px 10px !important;}
+#app .nav-section{
+  color:#94a3b8 !important;
+  font-size:9px !important;
+  letter-spacing:1.1px !important;
+  padding:15px 10px 7px !important;
+}
+#app .nav-section:first-child{padding-top:3px !important;}
+#app .nav button{
+  min-height:38px !important;
+  margin-bottom:4px !important;
+  padding:9px 11px !important;
+  background:#fff !important;
+  color:#475569 !important;
+  border:1px solid transparent !important;
+  border-radius:10px !important;
+  box-shadow:none !important;
+  font-size:12.5px !important;
+  gap:10px !important;
+}
+#app .nav button:hover{
+  transform:none !important;
+  background:#f8fbff !important;
+  color:#1d4ed8 !important;
+  border-color:#dbeafe !important;
+  box-shadow:none !important;
+}
+#app .nav button.active{
+  background:var(--bc-blue-soft) !important;
+  color:#1d4ed8 !important;
+  border:1px solid #bfdbfe !important;
+  box-shadow:inset 3px 0 0 var(--bc-blue) !important;
+  font-weight:800 !important;
+}
+#app .nav button.active::after{display:none !important;}
+#app .nav button.active i{color:var(--bc-blue) !important;}
+#app .nav button .nav-badge-admin{background:#fef2f2 !important;color:var(--bc-red-dark) !important;}
+#app .side-user{
+  margin:10px !important;padding:10px 11px !important;
+  background:#f8fbff !important;border:1px solid #e1eaf5 !important;
+  border-radius:13px !important;box-shadow:none !important;
+}
+#app .profile-info h4{color:var(--bc-ink) !important;font-size:12.5px !important;}
+#app .profile-info small{color:#16a34a !important;}
+
+/* Barra superior clara: más calma y mejor contraste. */
+#app .top-bar{
+  height:60px !important;
+  padding:0 22px !important;
+  background:#fff !important;
+  color:var(--bc-ink) !important;
+  border-bottom:1px solid var(--bc-line) !important;
+  box-shadow:0 4px 16px -14px rgba(15,23,42,.48) !important;
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+}
+#app .top-bar::after{display:none !important;}
+#app .top-title{color:var(--bc-ink) !important;font-size:16px !important;}
+#app .top-right-info{
+  background:var(--bc-blue-soft) !important;
+  color:#1d4ed8 !important;
+  border:1px solid #dbeafe !important;
+  box-shadow:none !important;
+}
+#app .top-bar .btn-light{
+  background:#f8fafc !important;
+  color:#475569 !important;
+  border:1px solid #e2e8f0 !important;
+  box-shadow:none !important;
+}
+#app .top-bar .btn-light:hover{background:var(--bc-blue-soft) !important;color:#1d4ed8 !important;}
+#app .menu-toggle{background:var(--bc-blue-soft) !important;color:#1d4ed8 !important;}
+#app .content{
+  background:var(--bc-bg) !important;
+  padding:18px 20px 24px !important;
+}
+
+/* Superficies sólidas para operación, inventario, caja y reportes. */
+#app .view:not(#v-crmLinea) .card,
+#app .view:not(#v-crmLinea) .block-card,
+#app .view:not(#v-crmLinea) .prov-card,
+#app .view:not(#v-crmLinea) .refurb-item-card,
+#app .view:not(#v-crmLinea) .kpi-box{
+  background:#fff !important;
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+  border:1px solid var(--bc-line) !important;
+  box-shadow:var(--bc-shadow) !important;
+}
+#app .view:not(#v-crmLinea) .card{border-radius:15px !important;}
+#app .view:not(#v-crmLinea) .block-card{border-radius:13px !important;}
+#app .view:not(#v-crmLinea) .kpi-box{
+  min-height:76px !important;
+  border-top:3px solid var(--bc-red) !important;
+  border-radius:12px !important;
+}
+#app .view:not(#v-crmLinea) .kpi-box i{opacity:.62 !important;color:var(--bc-blue) !important;}
+#app .view:not(#v-crmLinea) .kpi-box.clickable:hover{
+  transform:translateY(-2px) !important;
+  box-shadow:0 14px 26px -20px rgba(15,23,42,.42) !important;
+}
+#app .view:not(#v-crmLinea) table{background:#fff !important;}
+#app .view:not(#v-crmLinea) th{background:#f8fafc !important;color:#475569 !important;}
+#app .view:not(#v-crmLinea) tbody tr:hover td{background:#f8fbff !important;}
+#app .view:not(#v-crmLinea) .block-header{
+  background:#f8fafc !important;
+  color:var(--bc-ink) !important;
+  text-shadow:none !important;
+  border-bottom:1px solid var(--bc-line) !important;
+}
+#app .view:not(#v-crmLinea) .block-header i{color:var(--bc-blue) !important;}
+
+/* Sistema de pestañas: selección discreta, no bloques saturados. */
+#app .view:not(#v-crmLinea) .reacond-main-tab{
+  min-height:38px !important;
+  padding:9px 12px !important;
+  background:#fff !important;
+  color:#64748b !important;
+  border:1px solid transparent !important;
+  border-radius:9px !important;
+  box-shadow:none !important;
+}
+#app .view:not(#v-crmLinea) .reacond-main-tab.tab-active{
+  background:var(--bc-blue-soft) !important;
+  color:#1d4ed8 !important;
+  border-color:#bfdbfe !important;
+  box-shadow:none !important;
+}
+#app .view:not(#v-crmLinea) .reacond-tabs-scroll .tab-btn{
+  background:#fff !important;
+  color:#64748b !important;
+  border:1px solid var(--bc-line) !important;
+  box-shadow:none !important;
+}
+#app .view:not(#v-crmLinea) .reacond-tabs-scroll .tab-btn.active{
+  background:var(--bc-blue-soft) !important;
+  color:#1d4ed8 !important;
+  border-color:#bfdbfe !important;
+  box-shadow:none !important;
+}
+#app .view:not(#v-crmLinea) .reacond-tabs-scroll .tab-btn.active span{
+  background:#dbeafe !important;color:#1d4ed8 !important;
+}
+
+/* Acciones: rojo Bayol solo donde realmente se ejecuta una acción principal. */
+#app .view:not(#v-crmLinea) .btn-blue{
+  background:var(--bc-red) !important;
+  border-color:var(--bc-red) !important;
+  box-shadow:0 7px 16px -11px rgba(227,30,36,.68) !important;
+}
+#app .view:not(#v-crmLinea) .btn-blue:hover{background:#c91b20 !important;}
+#app .view:not(#v-crmLinea) .btn-light{box-shadow:none !important;}
+#app .view:not(#v-crmLinea) .btn-dark{
+  background:var(--bc-blue) !important;color:#fff !important;
+  box-shadow:0 7px 16px -11px rgba(37,99,235,.58) !important;
+}
+
+/* No emojis en navegación ni en pestañas operativas: la marca usa una sola iconografía. */
+#app .nav button span{font-variant-emoji:text !important;}
+
+@media (max-width:1024px){
+  #app .sidebar{width:min(86vw,300px) !important;}
+  #app .top-bar{height:54px !important;padding:0 12px !important;}
+  #app .top-title{font-size:14px !important;}
+  #app .content{padding:13px 12px 24px !important;}
+  #app .view:not(#v-crmLinea) .card{border-radius:13px !important;}
+  #app .view:not(#v-crmLinea) .btn{min-height:40px !important;}
+}
+
+@media (prefers-reduced-motion:reduce){
+  #app .nav button,#app .view:not(#v-crmLinea) .kpi-box{transition:none !important;}
+}
+
+/* Acceso al taller: misma línea clara que el sistema ya autenticado. */
+#login.login{
+  background:
+    radial-gradient(720px 420px at 12% 0%,rgba(37,99,235,.10),transparent 68%),
+    radial-gradient(680px 420px at 100% 100%,rgba(227,30,36,.08),transparent 70%),
+    var(--bc-bg) !important;
+}
+#login .login-card{
+  max-width:420px !important;
+  background:#fff !important;
+  border:1px solid var(--bc-line) !important;
+  border-radius:18px !important;
+  box-shadow:0 24px 60px -34px rgba(15,23,42,.34) !important;
+}
+#login .login-card .logo-login h1{color:var(--bc-ink) !important;}
+#login .login-card .logo-login small{color:var(--bc-muted) !important;}
+#login .login-card input{
+  background:#fff !important;color:var(--bc-ink) !important;
+  border:1px solid #dbe3ee !important;
+}
+#login .login-card input:focus{border-color:#93c5fd !important;box-shadow:0 0 0 3px rgba(37,99,235,.12) !important;}
+#login .login-card a{background:var(--bc-blue-soft) !important;color:#1d4ed8 !important;border-color:#dbeafe !important;}
