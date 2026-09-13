@@ -798,3 +798,202 @@ body{background:#f6f7f9 !important;}
 @media (prefers-reduced-motion:reduce){
   #appLoader .ldr-logo{animation:ldrGlowOrange 1.5s ease-in-out infinite !important;}
 }
+/* Iconografía BAYOL GLASS: tratamiento sobre los iconos Tabler existentes,
+   con superficie tipo Liquid Glass y morphing breve, sin lógica nueva. */
+:root{
+  --bc-glass-navy:#14213D;
+  --bc-glass-navy-deep:#0d162b;
+  --bc-glass-orange:#FF6B35;
+  --bc-glass-orange-dark:#D65225;
+}
+
+/* Glifos: proporción, peso y alineación constantes en todos los módulos. */
+#app .nav button > i[class*="ti-"],
+#app .top-bar i[class*="ti-"],
+#app .view:not(#v-crmLinea) .block-header i[class*="ti-"],
+#app .view:not(#v-crmLinea) .rx-head i[class*="ti-"],
+#app .view:not(#v-crmLinea) h4 > i[class*="ti-"],
+#app .view:not(#v-crmLinea) .kpi-box i[class*="ti-"]{
+  font-style:normal !important;
+  font-weight:400 !important;
+  font-variant-ligatures:none !important;
+  text-rendering:geometricPrecision !important;
+  -webkit-font-smoothing:antialiased;
+  vertical-align:middle !important;
+}
+
+/* Navegación: el glifo queda limpio; la profundidad vive en la superficie. */
+#app .nav button{
+  position:relative;
+  overflow:hidden;
+  transition:background .18s ease,color .18s ease,border-color .18s ease,
+             box-shadow .18s ease,transform .18s ease !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08) !important;
+}
+#app .nav button > i[class*="ti-"]{
+  flex:0 0 20px !important;
+  margin-inline-end:2px;
+  text-shadow:0 1px 0 rgba(0,0,0,.28);
+  transition:color .18s ease,transform .18s ease,filter .18s ease !important;
+}
+#app .nav button:hover{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16),
+             0 6px 14px -12px rgba(255,107,53,.72) !important;
+}
+#app .nav button:hover > i[class*="ti-"]{
+  transform:translateY(-1px) scale(1.04);
+  filter:drop-shadow(0 2px 3px rgba(255,107,53,.24));
+}
+#app .nav button.active{
+  box-shadow:inset 3px 0 0 #fff,
+             inset 0 1px 0 rgba(255,255,255,.42),
+             0 8px 18px -14px rgba(0,0,0,.58) !important;
+}
+#app .nav button.active > i[class*="ti-"]{
+  text-shadow:0 1px 0 rgba(255,255,255,.24);
+}
+
+/* Marca y controles superiores: vidrio contenido, naranja como acento. */
+#app .brand-icon{
+  background:linear-gradient(145deg,#ff8b69 0%,#FF6B35 48%,#D65225 100%) !important;
+  border:1px solid rgba(255,255,255,.78) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.62),
+             inset 0 -3px 7px rgba(125,34,12,.24),
+             0 10px 22px -12px rgba(255,107,53,.72) !important;
+}
+#app .top-bar .btn-light{
+  background:linear-gradient(145deg,rgba(255,255,255,.20),rgba(255,255,255,.08)) !important;
+  border-color:rgba(255,255,255,.34) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.20),
+             0 5px 12px -11px rgba(0,0,0,.65) !important;
+  backdrop-filter:blur(9px) saturate(135%);
+  -webkit-backdrop-filter:blur(9px) saturate(135%);
+  transition:background .18s ease,color .18s ease,border-color .18s ease,
+             box-shadow .18s ease,transform .18s ease !important;
+}
+#app .top-bar .btn-light:hover{
+  background:linear-gradient(145deg,rgba(255,255,255,.34),rgba(255,107,53,.30)) !important;
+  border-color:rgba(255,255,255,.72) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.34),
+             0 7px 14px -12px rgba(0,0,0,.68) !important;
+}
+#app .menu-toggle{
+  background:linear-gradient(145deg,#ff8b69 0%,#FF6B35 52%,#D65225 100%) !important;
+  color:#14213D !important;
+  border-color:#FF6B35 !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.42),
+             0 7px 15px -11px rgba(255,107,53,.78) !important;
+  transition:background .18s ease,color .18s ease,border-color .18s ease,
+             box-shadow .18s ease,transform .18s ease !important;
+}
+#app .menu-toggle:hover{
+  background:linear-gradient(145deg,#ffa17f 0%,#ff8256 52%,#FF6B35 100%) !important;
+  border-color:#ff8256 !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.48),
+             0 9px 18px -12px rgba(255,107,53,.84) !important;
+}
+#app .top-right-info{
+  background:linear-gradient(145deg,rgba(255,133,94,.98),rgba(214,82,37,.94)) !important;
+  border-color:rgba(255,255,255,.54) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.34),
+             0 6px 14px -12px rgba(255,107,53,.82) !important;
+}
+
+/* Superficies de iconos en módulos operativos; CRM permanece fuera de esta capa. */
+#app .view:not(#v-crmLinea) .block-header i[class*="ti-"],
+#app .view:not(#v-crmLinea) .rx-head i[class*="ti-"],
+#app .view:not(#v-crmLinea) h4 > i[class*="ti-"]{
+  width:28px !important;
+  min-width:28px !important;
+  height:28px !important;
+  padding:5px !important;
+  margin-inline-end:7px;
+  border-radius:10px !important;
+  color:#FF6B35 !important;
+  background:linear-gradient(145deg,rgba(255,255,255,.25),rgba(255,107,53,.11)) !important;
+  border:1px solid rgba(255,255,255,.32) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.25),
+             0 5px 12px -10px rgba(20,33,61,.72) !important;
+  text-shadow:none !important;
+  transition:background .18s ease,border-color .18s ease,
+             box-shadow .18s ease,transform .18s ease !important;
+}
+#app .view:not(#v-crmLinea) h4 > i[class*="ti-"]{
+  background:linear-gradient(145deg,#fffdfa,#fff1eb) !important;
+  border-color:#ffc2ad !important;
+  box-shadow:inset 0 1px 0 #fff,
+             0 5px 12px -10px rgba(214,82,37,.62) !important;
+}
+#app .view:not(#v-crmLinea) .block-header i[class*="ti-"],
+#app .view:not(#v-crmLinea) .rx-head i[class*="ti-"]{
+  font-size:17px !important;
+}
+#app .view:not(#v-crmLinea) h4 > i[class*="ti-"]{
+  font-size:17px !important;
+}
+#app .view:not(#v-crmLinea) .kpi-box i[class*="ti-"]{
+  right:12px !important;
+  bottom:10px !important;
+  width:30px !important;
+  min-width:30px !important;
+  height:30px !important;
+  padding:6px !important;
+  border-radius:10px !important;
+  color:#FF6B35 !important;
+  opacity:1 !important;
+  background:linear-gradient(145deg,#fffdfa,#fff1eb) !important;
+  border:1px solid #ffc2ad !important;
+  box-shadow:inset 0 1px 0 #fff,
+             0 6px 12px -10px rgba(214,82,37,.68) !important;
+  text-shadow:none !important;
+  transition:background .18s ease,border-color .18s ease,
+             box-shadow .18s ease,transform .18s ease !important;
+}
+#app .view:not(#v-crmLinea) .kpi-box:hover i[class*="ti-"]{
+  transform:translateY(-1px) scale(1.04);
+  border-color:#FF6B35 !important;
+  box-shadow:inset 0 1px 0 #fff,
+             0 8px 14px -10px rgba(214,82,37,.72) !important;
+}
+
+/* Morphing sutil: responde solo al control accionado, nunca a la vista completa. */
+@keyframes bcIconMorph{
+  0%{transform:scale(1) rotate(0deg);}
+  34%{transform:scale(.88) rotate(-4deg);}
+  68%{transform:scale(1.08) rotate(3deg);}
+  100%{transform:scale(1) rotate(0deg);}
+}
+#app .nav button:active > i[class*="ti-"],
+#app .top-bar button:active i[class*="ti-"],
+#app .view:not(#v-crmLinea) button:active i[class*="ti-"]{
+  animation:bcIconMorph 360ms cubic-bezier(.22,.8,.28,1);
+}
+#app .view:not(#v-crmLinea) button:hover i[class*="ti-"]{
+  filter:drop-shadow(0 2px 3px rgba(20,33,61,.14));
+}
+
+/* La vista no anima al cambiar de datos; se mantienen las transiciones locales. */
+#app .content > .view.active{animation:none !important;}
+
+@media (prefers-reduced-motion:reduce){
+  #app .nav button,
+  #app .top-bar .btn-light,
+  #app .menu-toggle,
+  #app .view:not(#v-crmLinea) .block-header i[class*="ti-"],
+  #app .view:not(#v-crmLinea) .rx-head i[class*="ti-"],
+  #app .view:not(#v-crmLinea) h4 > i[class*="ti-"],
+  #app .view:not(#v-crmLinea) .kpi-box i[class*="ti-"]{
+    transition:none !important;
+  }
+  #app .nav button:active > i[class*="ti-"],
+  #app .top-bar button:active i[class*="ti-"],
+  #app .view:not(#v-crmLinea) button:active i[class*="ti-"]{
+    animation:none !important;
+    transform:none !important;
+  }
+  #app .nav button:hover > i[class*="ti-"],
+  #app .view:not(#v-crmLinea) .kpi-box:hover i[class*="ti-"]{
+    transform:none !important;
+    filter:none !important;
+  }
+}
