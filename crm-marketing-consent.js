@@ -4,7 +4,7 @@
   if(window.__bcCrmExtensionsLoader)return;
   window.__bcCrmExtensionsLoader=true;
 
-  var V='20260913-facebook-keyboard3';
+  var V='20260913-refresh-position1';
   var legacy=document.createElement('script');
   legacy.src='crm-marketing-consent-legacy.js?v='+V;
   legacy.onload=function(){
