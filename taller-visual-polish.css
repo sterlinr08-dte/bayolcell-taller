@@ -421,3 +421,18 @@
   color:#015AA0 !important;
   border-color:#b9cbd6 !important;
 }
+
+/* Identidad del acceso: el logo y la acción principal siguen la paleta oficial. */
+#login .login-card .logo-login > div:first-child{
+  background:linear-gradient(135deg,#015AA0,#014474) !important;
+  box-shadow:0 8px 18px rgba(1,90,160,.40) !important;
+}
+#login .login-card .logo-login h1 span{color:#015AA0 !important;}
+#login .login-card .btn-blue{
+  background:linear-gradient(135deg,#015AA0,#014474) !important;
+  border-color:#015AA0 !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 3px 10px rgba(1,90,160,.25) !important;
+}
+#login .login-card .btn-blue:hover{
+  background:linear-gradient(135deg,#0b6eae,#015AA0) !important;
+}
