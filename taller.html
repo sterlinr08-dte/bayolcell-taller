@@ -15,7 +15,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Libre+Barcode+39&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="taller-visual-polish.css?v=20260913-visual16">
+  <link rel="stylesheet" href="taller-visual-polish.css?v=20260913-visual17">
 
 <style>
 :root {
@@ -2233,7 +2233,7 @@ body{
                     <div class="card">
                         <h3 style="margin:0 0 15px 0; font-size:15px; font-weight:700;">Monitoreo de Órdenes Recientes</h3>
                         <div class="table-wrap">
-                            <table>
+                            <table class="recent-orders-table">
                                 <thead>
                                     <tr><th>Orden</th><th>Cliente</th><th>Equipo</th><th>Falla</th><th>Estado</th></tr>
                                 </thead>
@@ -7925,7 +7925,11 @@ function renderAll() {
     
     _pintarSiCambio("recentOrders", cache.ordenes.slice(0, 5).map(o => {
         const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
-        return `<tr><td data-label="Orden"><b>${formatoOrden(o.numero_orden)}</b></td><td data-label="Cliente">${escapeHtml(c.nombre)}</td><td data-label="Equipo">${escapeHtml(e.modelo)}</td><td data-label="Falla">${escapeHtml(o.falla_reportada)}</td><td data-label="Estado"><span class="badge" style="background:#d1fae5;">${o.estado}</span></td></tr>`;
+        const estado = obtenerEtiquetaOrden(normalizarEstadoOrden(o.estado));
+        return `<tr><td colspan="5"><div class="recent-order-card">
+            <div class="recent-order-head"><div><span class="recent-order-label">ORDEN</span><b class="recent-order-number">${formatoOrden(o.numero_orden)}</b></div><span class="badge" style="background:${estado.bg}; color:${estado.color};">${estado.text}</span></div>
+            <div class="recent-order-grid"><div><span class="recent-order-label">CLIENTE</span><span>${escapeHtml(c.nombre || '—')}</span></div><div><span class="recent-order-label">EQUIPO</span><span>${escapeHtml(`${e.marca || ''} ${e.modelo || ''}`.trim() || '—')}</span></div>${o.falla_reportada ? `<div class="recent-order-falla"><span class="recent-order-label">FALLA</span><span>${escapeHtml(o.falla_reportada)}</span></div>` : ''}</div>
+        </div></td></tr>`;
     }).join(""));
 
     if(_primera || _verVisible('ordersTable')) renderOrders();
