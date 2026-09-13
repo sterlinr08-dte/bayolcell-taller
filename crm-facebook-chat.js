@@ -111,10 +111,13 @@
     const height=Math.round(v?.height||window.innerHeight);
     const top=Math.max(0,Math.round(v?.offsetTop||0));
     p.style.setProperty('--fb-chat-height',Math.max(200,height)+'px');
-    p.style.setProperty('--fb-chat-top',top+'px');
+    // A fixed element already follows Safari's visual viewport. Applying
+    // offsetTop again moves the panel twice and leaves the white keyboard gap.
+    p.style.setProperty('--fb-chat-top','0px');
   }
   window.visualViewport?.addEventListener('resize',resize);
   window.visualViewport?.addEventListener('scroll',resize);
   window.addEventListener('resize',resize);
+  document.addEventListener('focusin',e=>{if(e.target?.id==='bcFbText'){resize();requestAnimationFrame(resize);setTimeout(resize,180);setTimeout(resize,420);}});
   window.BayolFacebookChat={render,close};
 })();
