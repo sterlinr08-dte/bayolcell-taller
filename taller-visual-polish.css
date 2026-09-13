@@ -1360,3 +1360,291 @@ body{background:#f6f7f9 !important;}
   }
 }
 
+BAYOL CELL — REDISEÑO OPERATIVO FINAL v12
+   Capa final de consistencia para el sistema del Taller.
+   Solo presenta el cascarón y las superficies operativas; el CRM
+   mantiene sus componentes, handlers y dimensiones propias.
+   ============================================================ */
+:root{
+  --bc-ui-navy:#14213D;
+  --bc-ui-navy-deep:#0d162b;
+  --bc-ui-blue:#294878;
+  --bc-ui-orange:#FF6B35;
+  --bc-ui-orange-dark:#D65225;
+  --bc-ui-orange-soft:#fff1eb;
+  --bc-ui-silver:#D1D1D1;
+  --bc-ui-bg:#f4f6f8;
+  --bc-ui-text:#1c3045;
+  --bc-ui-muted:#6b7b89;
+  --bc-ui-line:#dfe5ea;
+}
+
+/* El ancho debe pertenecer al viewport y no a un contenedor accidental. */
+html,
+body{
+  max-width:100%;
+}
+#app{
+  min-width:0;
+  max-width:100%;
+  background:var(--bc-ui-bg) !important;
+}
+#app .main,
+#app .content,
+#app .content > .view.active{
+  min-width:0;
+  max-width:100%;
+}
+#app .content{
+  overflow-x:hidden;
+  scrollbar-color:rgba(20,33,61,.30) transparent;
+  scrollbar-width:thin;
+}
+#app .content::-webkit-scrollbar,
+#app .sidebar::-webkit-scrollbar{width:8px;height:8px;}
+#app .content::-webkit-scrollbar-track,
+#app .sidebar::-webkit-scrollbar-track{background:transparent;}
+#app .content::-webkit-scrollbar-thumb,
+#app .sidebar::-webkit-scrollbar-thumb{background:rgba(20,33,61,.24);border-radius:999px;}
+#app .content::-webkit-scrollbar-thumb:hover,
+#app .sidebar::-webkit-scrollbar-thumb:hover{background:rgba(20,33,61,.42);}
+
+/* Jerarquía de títulos: el navy informa, el naranja señala la acción. */
+#app .view:not(#v-crmLinea) h2{
+  color:var(--bc-ui-navy) !important;
+  font-weight:800 !important;
+  letter-spacing:-.025em;
+}
+#app .view:not(#v-crmLinea) h2 > i[class*="ti-"],
+#app .view:not(#v-crmLinea) h3 > i[class*="ti-"]{
+  color:var(--bc-ui-orange) !important;
+}
+#app .view:not(#v-crmLinea) h3{
+  color:var(--bc-ui-navy) !important;
+}
+#app .view:not(#v-crmLinea) p{
+  color:var(--bc-ui-muted);
+}
+
+/* Cards limpias: profundidad suficiente para separar módulos sin ruido. */
+#app .view:not(#v-crmLinea) .card,
+#app .view:not(#v-crmLinea) .block-card,
+#app .view:not(#v-crmLinea) .prov-card,
+#app .view:not(#v-crmLinea) .refurb-item-card,
+#app .view:not(#v-crmLinea) .lote-card,
+#app .view:not(#v-crmLinea) .inc-card,
+#app .view:not(#v-crmLinea) .fe-card,
+#app .view:not(#v-crmLinea) .fin-click-card{
+  max-width:100%;
+  border-radius:16px !important;
+}
+#app .view:not(#v-crmLinea) .card:hover,
+#app .view:not(#v-crmLinea) .prov-card:hover,
+#app .view:not(#v-crmLinea) .refurb-item-card:hover,
+#app .view:not(#v-crmLinea) .lote-card:hover{
+  transform:translateY(-1px);
+}
+
+/* Dashboard: seis indicadores arriba, lectura rápida y acciones claras. */
+#app #v-dashboard .kpi-row{
+  gap:10px;
+  min-width:0;
+}
+#app #v-dashboard .kpi-box{
+  min-width:0;
+  min-height:86px !important;
+  padding:14px 14px 12px !important;
+  border-radius:16px !important;
+  border-top:3px solid var(--bc-ui-orange) !important;
+}
+#app #v-dashboard .kpi-box small{
+  max-width:calc(100% - 34px);
+  color:var(--bc-ui-muted) !important;
+  font-size:9.5px !important;
+  letter-spacing:.055em;
+  line-height:1.25;
+}
+#app #v-dashboard .kpi-box strong{
+  color:var(--bc-ui-navy) !important;
+  font-size:23px !important;
+  letter-spacing:-.045em;
+}
+#app #v-dashboard .kpi-box i[class*="ti-"]{
+  right:11px !important;
+  bottom:11px !important;
+  width:29px !important;
+  min-width:29px !important;
+  height:29px !important;
+  padding:6px !important;
+  border-radius:10px !important;
+  color:var(--bc-ui-orange) !important;
+  opacity:1 !important;
+  background:linear-gradient(145deg,#fffdfa,#fff1eb) !important;
+  border:1px solid #ffc2ad !important;
+  box-shadow:inset 0 1px 0 #fff,0 7px 14px -12px rgba(214,82,37,.68) !important;
+}
+#app #v-dashboard > h3{
+  padding-left:10px;
+  border-left:3px solid var(--bc-ui-orange);
+  color:var(--bc-ui-navy) !important;
+}
+#app #v-dashboard .layout-dashboard{
+  grid-template-columns:minmax(0,1.35fr) minmax(245px,.65fr);
+  gap:14px;
+}
+#app #v-dashboard .layout-dashboard > .card{
+  min-width:0;
+}
+#app #v-dashboard .layout-dashboard .btn{
+  justify-content:flex-start;
+}
+
+/* Bloques y tablas: estructura visual consistente en todos los módulos. */
+#app .view:not(#v-crmLinea) .block-header{
+  min-height:44px;
+  padding:9px 13px !important;
+  letter-spacing:.065em;
+}
+#app .view:not(#v-crmLinea) .table-wrap,
+#app .view:not(#v-crmLinea) .data-table{
+  width:100%;
+  max-width:100%;
+  border-radius:13px !important;
+}
+#app .view:not(#v-crmLinea) th{
+  font-size:10px !important;
+  letter-spacing:.065em;
+  white-space:nowrap;
+}
+#app .view:not(#v-crmLinea) td{
+  vertical-align:middle;
+}
+
+/* Controles de tamaño normal; los botones de tabla siguen siendo compactos. */
+#app .view:not(#v-crmLinea) .btn{
+  min-height:36px !important;
+  padding:8px 13px !important;
+  border-radius:10px !important;
+}
+#app .view:not(#v-crmLinea) td .btn,
+#app .view:not(#v-crmLinea) td button:not(.btn),
+#app .view:not(#v-crmLinea) .data-table .btn{
+  min-height:32px !important;
+  padding:6px 10px !important;
+  border-radius:8px !important;
+  font-size:11.5px !important;
+}
+#app .view:not(#v-crmLinea) .btn-icon{
+  min-width:32px;
+  padding:6px 8px !important;
+}
+
+/* Campos: foco visible y densidad cómoda sin crear saltos de layout. */
+#app .view:not(#v-crmLinea) input:not([type="checkbox"]):not([type="radio"]),
+#app .view:not(#v-crmLinea) select,
+#app .view:not(#v-crmLinea) textarea{
+  min-width:0;
+  border-radius:11px !important;
+  color:var(--bc-ui-text);
+}
+#app .view:not(#v-crmLinea) input::placeholder,
+#app .view:not(#v-crmLinea) textarea::placeholder{color:#8b98a3;}
+
+/* Iconografía lineal: misma escala, mismo ritmo y profundidad muy contenida. */
+#app .view:not(#v-crmLinea) button > i[class*="ti-"],
+#app .view:not(#v-crmLinea) .block-header > i[class*="ti-"],
+#app .view:not(#v-crmLinea) h2 > i[class*="ti-"],
+#app .view:not(#v-crmLinea) h3 > i[class*="ti-"],
+#app .view:not(#v-crmLinea) h4 > i[class*="ti-"]{
+  line-height:1;
+  text-rendering:geometricPrecision;
+}
+#app .view:not(#v-crmLinea) button > i[class*="ti-"]{
+  filter:none;
+  transition:transform .18s ease,color .18s ease;
+}
+#app .view:not(#v-crmLinea) button:hover > i[class*="ti-"]{transform:translateY(-1px);}
+
+/* Login: entrada sobria y alineada con el sistema autenticado. */
+#login.login{color:var(--bc-ui-text);}
+#login .login-card{overflow:hidden;}
+#login .login-card label{color:var(--bc-ui-muted) !important;}
+#login .login-card .btn{min-height:42px;border-radius:11px;}
+#login .login-card input{min-height:44px;border-radius:11px;}
+
+/* Corrección del shell móvil: ningún módulo puede dejar una columna fantasma. */
+@media (max-width:1024px){
+  html,
+  body{
+    width:100% !important;
+    max-width:100% !important;
+    overflow-x:hidden !important;
+  }
+  body.logged-in #app{
+    width:100vw !important;
+    max-width:100vw !important;
+    min-width:100% !important;
+    overflow-x:hidden !important;
+  }
+  body.logged-in #app .main,
+  body.logged-in #app .top-bar,
+  body.logged-in #app .content,
+  body.logged-in #app .content > .view:not(#v-crmLinea){
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+  }
+  body.logged-in #app .content{overflow-x:hidden !important;}
+  body.logged-in #app .table-wrap,
+  body.logged-in #app .data-table{
+    max-width:100% !important;
+  }
+  #app #v-dashboard .layout-dashboard,
+  #app #v-dashboard .kpi-row,
+  #app .view:not(#v-crmLinea) .layout-dashboard,
+  #app .view:not(#v-crmLinea) .layout-inventario,
+  #app .view:not(#v-crmLinea) .grid-refurb{
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+  }
+  #app .view:not(#v-crmLinea) .layout-dashboard,
+  #app .view:not(#v-crmLinea) .layout-inventario,
+  #app .view:not(#v-crmLinea) .grid-refurb{
+    grid-template-columns:minmax(0,1fr) !important;
+  }
+  #app #v-dashboard .kpi-row,
+  #app .view:not(#v-crmLinea) .kpi-row{
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    gap:8px !important;
+  }
+  #app #v-dashboard .kpi-box{
+    min-height:76px !important;
+    padding:11px 11px 10px !important;
+  }
+  #app #v-dashboard .kpi-box strong{font-size:20px !important;}
+  #app .view:not(#v-crmLinea) .btn{min-height:40px !important;}
+  #app .view:not(#v-crmLinea) td .btn,
+  #app .view:not(#v-crmLinea) td button:not(.btn),
+  #app .view:not(#v-crmLinea) .data-table .btn{min-height:32px !important;}
+}
+
+@media (max-width:560px){
+  #app .top-bar{gap:6px !important;}
+  #app .top-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #app .top-right-info{padding:5px 7px !important;font-size:9px !important;}
+  #app .top-bar .btn-light{min-width:34px !important;width:34px;padding:4px !important;}
+  #app .top-bar .btn-light span{display:none;}
+  #app #v-dashboard .kpi-box small{font-size:8.5px !important;}
+  #app #v-dashboard .kpi-box i[class*="ti-"]{width:25px !important;min-width:25px !important;height:25px !important;padding:5px !important;}
+}
+
+@media (prefers-reduced-motion:reduce){
+  #app .view:not(#v-crmLinea) button:hover > i[class*="ti-"],
+  #app .view:not(#v-crmLinea) .card:hover,
+  #app .view:not(#v-crmLinea) .prov-card:hover,
+  #app .view:not(#v-crmLinea) .refurb-item-card:hover,
+  #app .view:not(#v-crmLinea) .lote-card:hover{
+    transform:none !important;
+  }
+}
