@@ -230,7 +230,7 @@ Extras: `reasignado`, `reparacion_externa`.
 - Recuadro de costo: dentro de `abrirPanelProceso` (gated `isAdminUser()`).
 
 ### Reportes y vistas (añadidos esta sesión)
-- **`verHistorialEquipo(equipoId)`** / `cerrarHistorialEquipo()` — el **ojito 👁️** en tarjetas que NO están Listo/Despachado. Vista de **solo lectura**: encabezado, 💰 costos (admin), 👨‍🔧 trabajo por técnico (tareas agrupadas), 🧩 piezas con costos, ⚠️ fallas, 🕓 línea de tiempo (historial). En `evaluado` además hay un lápiz ✏️ que abre `continuarEvaluacion`.
+- **`verHistorialEquipoReacond(equipoId)`** / `cerrarHistorialEquipo()` — el **ojito 👁️** en tarjetas que NO están Listo/Despachado. Vista de **solo lectura**: encabezado, 💰 costos (admin), 👨‍🔧 trabajo por técnico (tareas agrupadas), 🧩 piezas con costos, ⚠️ fallas, 🕓 línea de tiempo (historial). En `evaluado` además hay un lápiz ✏️ que abre `continuarEvaluacion`.
 - **`verFichaDespacho(equipoId)`** — el **ojito 👁️** en tarjetas **Listo (`listo_venta`) y Despachado (`vendido`)**. Ficha con costos (admin) y **agregar/editar/quitar piezas de Info Plus** (`agregarPiezaInfoPlus`). El título y la línea de estado se adaptan (Listo vs Despachado). `_vistaEquipoActual` (`'panel'|'ficha'`) + `_refrescarVistaEquipo()` reabren la vista correcta tras tocar piezas.
 
 #### Reportes de costos (todos solo admin) — refactor con helpers compartidos
@@ -602,7 +602,7 @@ Mejoras a la landing `index.html` (bayolcell.com), pedidas por Sterling:
 
 ## ACTUALIZACIÓN 23 jul 2026 — Reacond: Ficha del Equipo rediseñada (pantalla completa, mockup del dueño)
 `verFichaDespacho(equipoId)` reescrita: dejó de ser modal (`abrirModalGenerico`) y ahora es un **overlay a pantalla completa** (`#modalFichaEquipo`, estilos scoped `.fe-*` inyectados por `_feStyles()`; cierra con `_feCerrar()` / Volver / X / ESC). Layout tipo ERP premium:
-- **Encabezado:** Volver · "Ficha del Equipo" · badge de estado (LISTO/DESPACHADO/COMPLETADO); acciones **Imprimir Label** (`imprimirLabelEquipo`, rojo), **Info Plus (Excel)** (`exportarFormatoInfoPlusExcel`), **Formato Info Plus** (`imprimirFormatoInfoPlus`), **Más acciones** (menú: Ver historial `verHistorialEquipo`, Marcar Completado `marcarEquipoCompletado`).
+- **Encabezado:** Volver · "Ficha del Equipo" · badge de estado (LISTO/DESPACHADO/COMPLETADO); acciones **Imprimir Label** (`imprimirLabelEquipo`, rojo), **Info Plus (Excel)** (`exportarFormatoInfoPlusExcel`), **Formato Info Plus** (`imprimirFormatoInfoPlus`), **Más acciones** (menú: Ver historial `verHistorialEquipoReacond`, Marcar Completado `marcarEquipoCompletado`).
 - **Hero:** emoji del equipo (`_abEmoji/_abCat`), modelo grande, marca, #N en el lote, badge, IMEI con copiar, Serial, "Tomado: fecha por [técnico]".
 - **KPIs del lote** (5 tarjetas: Pendientes/En evaluación/Listo/Completado/Despachado) contadas sobre `cache.refurb` filtrado por `lote_id`.
 - **Envío (courier):** `lote.gastos_envio`, "Se edita en Compras" → abre `editarGastosEnvioLote()` (admin).

@@ -15,7 +15,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Libre+Barcode+39&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="taller-visual-polish.css?v=20260913-visual1">
+  <link rel="stylesheet" href="taller-visual-polish.css?v=20260913-visual2">
 
 <style>
 :root {
@@ -1656,40 +1656,49 @@ body{
         </div>
         
         <div class="nav">
-            <div class="nav-section">PRINCIPAL</div>
+            <div class="nav-section">CONTROL</div>
             <button class="active" id="menu-dashboard" onclick="nav('dashboard',this)"><i class="ti ti-layout-dashboard"></i> <span>Dashboard</span></button>
-            <button id="menu-miTrabajo" onclick="nav('miTrabajo',this)"><i class="ti ti-briefcase"></i> <span>Mi Trabajo</span></button>
-            <button id="menu-misIncentivos" onclick="nav('misIncentivos',this)" style="display:none;"><i class="ti ti-coin"></i> <span>Mis Incentivos</span></button>
-            <button id="menu-atencion" onclick="nav('atencion',this)"><i class="ti ti-headset"></i> <span>Atención al Cliente</span></button>
-            <button id="menu-financiamientos" onclick="nav('financiamientos',this)"><i class="ti ti-cash"></i> <span>Financiamientos</span></button>
-            <button id="menu-rifas" onclick="abrirRifas()" title="Abrir el panel administrativo de la Rifa (Nexus Pro) ya logueado"><i class="ti ti-ticket"></i> <span>🎟️ Rifa (admin)</span> <i class="ti ti-external-link" style="font-size:12px; opacity:.6;"></i></button>
-            <button id="menu-rifaFactura" onclick="nav('rifaFactura',this)" title="Registrar boleto de la Rifa por Factura (Info Plus) e imprimir 2 copias — independiente de la Rifa de Nexus Pro"><i class="ti ti-receipt" style="color:#0f766e;"></i> <span>🧾 Rifa por Factura</span></button>
 
-            <button id="menu-crm" onclick="nav('crmLinea',this)"><i class="ti ti-brand-whatsapp" style="color:#25D366;"></i> <span>CRM</span></button>
-            <button id="menu-contabilidad" onclick="nav('contabilidad',this)"><i class="ti ti-calculator"></i> <span>Contabilidad</span></button>
-            <button id="menu-diagnostico" onclick="nav('diagnostico',this)"><i class="ti ti-stethoscope"></i> <span>Diagnóstico IA</span></button>
+            <div class="nav-section">OPERACIÓN DEL TALLER</div>
+            <button id="menu-atencion" onclick="nav('atencion',this)"><i class="ti ti-headset"></i> <span>Atención al Cliente</span></button>
             <button id="menu-recepcion" onclick="nav('recepcion',this)"><i class="ti ti-clipboard-plus"></i> <span>Recepción de Equipos</span></button>
             <button id="menu-ordenes" onclick="nav('ordenes',this)"><i class="ti ti-tool"></i> <span>Órdenes de Servicio</span></button>
-            <button id="menu-incentivos" onclick="nav('incentivos',this)" style="display:none;"><i class="ti ti-coin"></i> <span>Incentivos Técnicos</span> <span class="nav-badge-admin">ADMIN</span></button>
-            
-            <div class="nav-section">INVENTARIO</div>
-            <button id="menu-inventario" onclick="nav('inventario',this)"><i class="ti ti-package"></i> <span>Inventario Taller</span></button>
+            <button id="menu-diagnostico" onclick="nav('diagnostico',this)"><i class="ti ti-stethoscope"></i> <span>Diagnóstico IA</span></button>
+            <button id="menu-miTrabajo" onclick="nav('miTrabajo',this)"><i class="ti ti-briefcase"></i> <span>Mi Trabajo</span></button>
+            <button id="menu-misIncentivos" onclick="nav('misIncentivos',this)" style="display:none;"><i class="ti ti-coin"></i> <span>Mis Incentivos</span></button>
+
+            <div class="nav-section">REACONDICIONADOS</div>
+            <button id="menu-refurb" onclick="nav('refurb',this)"><i class="ti ti-refresh"></i> <span>Reacondicionados</span></button>
             <button id="menu-piezasSolicitadas" onclick="nav('piezasSolicitadas',this)"><i class="ti ti-packages"></i> <span>Piezas Solicitadas</span></button>
+            <button id="menu-despachos" onclick="nav('despachos',this)"><i class="ti ti-truck-delivery"></i> <span>Despacho de Almacén</span></button>
+
+            <div class="nav-section">INVENTARIO Y COMPRAS</div>
+            <button id="menu-inventario" onclick="nav('inventario',this)"><i class="ti ti-package"></i> <span>Inventario Taller</span></button>
             <button id="menu-articulos" onclick="nav('articulos',this)"><i class="ti ti-database"></i> <span>Catálogo de Artículos</span></button>
             <button id="menu-catalogoWeb" onclick="nav('catalogoWeb',this)" style="display:none;"><i class="ti ti-device-mobile-share"></i> <span>Catálogo Web (celulares)</span> <span class="nav-badge-admin">ADMIN</span></button>
-            <button id="menu-proveedores" onclick="nav('proveedores',this)"><i class="ti ti-shopping-cart"></i> <span>Compras</span></button>
-            <button id="menu-cuentasPorPagar" onclick="nav('cuentasPorPagar',this)" style="display:none;"><i class="ti ti-report-money"></i> <span>Cuentas por Pagar</span> <span class="nav-badge-admin">ADMIN</span></button>
-            <button id="menu-refurb" onclick="nav('refurb',this)"><i class="ti ti-refresh"></i> <span>Reacondicionados</span></button>
-            <button id="menu-despachos" onclick="nav('despachos',this)"><i class="ti ti-truck-delivery"></i> <span>Despacho de Almacén</span></button>
+            <button id="menu-proveedores" onclick="nav('proveedores',this)"><i class="ti ti-shopping-cart"></i> <span>Compras y Proveedores</span></button>
             <button id="menu-invfisico" onclick="nav('invfisico',this)" style="display:none;"><i class="ti ti-clipboard-check"></i> <span>Inventario Físico</span> <span class="nav-badge-admin">ADMIN</span></button>
 
-            <div class="nav-section">SISTEMA</div>
-            <button id="menu-etiquetas" onclick="nav('etiquetas',this)"><i class="ti ti-barcode"></i> <span>Impresión de Labels</span></button>
-            <button id="menu-configImpresora" onclick="nav('configImpresora',this)"><i class="ti ti-printer"></i> <span>Config. Impresora</span></button>
+            <div class="nav-section">ADMINISTRACIÓN</div>
+            <button id="menu-financiamientos" onclick="nav('financiamientos',this)"><i class="ti ti-cash"></i> <span>Financiamientos</span></button>
+            <button id="menu-cuentasPorPagar" onclick="nav('cuentasPorPagar',this)" style="display:none;"><i class="ti ti-report-money"></i> <span>Cuentas por Pagar</span> <span class="nav-badge-admin">ADMIN</span></button>
+            <button id="menu-contabilidad" onclick="nav('contabilidad',this)"><i class="ti ti-calculator"></i> <span>Contabilidad</span></button>
+            <button id="menu-incentivos" onclick="nav('incentivos',this)" style="display:none;"><i class="ti ti-coin"></i> <span>Incentivos Técnicos</span> <span class="nav-badge-admin">ADMIN</span></button>
+            <button id="menu-nomina" onclick="nav('nomina',this)" style="display:none;"><i class="ti ti-users-group"></i> <span>Recursos Humanos</span> <span class="nav-badge-admin">ADMIN</span></button>
+
+            <div class="nav-section">REPORTES</div>
             <button id="menu-reportes" onclick="nav('reportes',this)"><i class="ti ti-chart-bar"></i> <span>Reportes</span></button>
             <button id="menu-estadisticas" onclick="nav('estadisticas',this)" style="display:none;"><i class="ti ti-chart-pie-2"></i> <span>Estadísticas</span> <span class="nav-badge-admin" style="background:#7c3aed;">PRIVADO</span></button>
+
+            <div class="nav-section">HERRAMIENTAS</div>
+            <button id="menu-etiquetas" onclick="nav('etiquetas',this)"><i class="ti ti-barcode"></i> <span>Impresión de Labels</span></button>
+            <button id="menu-configImpresora" onclick="nav('configImpresora',this)"><i class="ti ti-printer"></i> <span>Config. Impresora</span></button>
             <button id="menu-configuracion" onclick="nav('configuracion',this)"><i class="ti ti-adjustments"></i> <span>Configuración</span> <span class="nav-badge-admin">ADMIN</span></button>
-            <button id="menu-nomina" onclick="nav('nomina',this)" style="display:none;"><i class="ti ti-users-group"></i> <span>Recursos Humanos</span> <span class="nav-badge-admin">ADMIN</span></button>
+
+            <div class="nav-section">COMUNICACIÓN Y COMERCIAL</div>
+            <button id="menu-crm" onclick="nav('crmLinea',this)"><i class="ti ti-brand-whatsapp" style="color:#25D366;"></i> <span>CRM</span></button>
+            <button id="menu-rifas" onclick="abrirRifas()" title="Abrir el panel administrativo de la Rifa (Nexus Pro) ya logueado"><i class="ti ti-ticket"></i> <span>Rifa (admin)</span> <i class="ti ti-external-link" style="font-size:12px; opacity:.6;"></i></button>
+            <button id="menu-rifaFactura" onclick="nav('rifaFactura',this)" title="Registrar boleto de la Rifa por Factura (Info Plus) e imprimir 2 copias — independiente de la Rifa de Nexus Pro"><i class="ti ti-receipt" style="color:#0f766e;"></i> <span>Rifa por Factura</span></button>
         </div>
         
         <!-- Tarjeta de usuario estilo NEXUS -->
@@ -2170,12 +2179,12 @@ body{
                 <!-- KPIs de Reacondicionado -->
                 <h3 style="margin:15px 0 10px; font-size:14px; color:#06b6d4; text-transform:uppercase; display:flex; align-items:center; gap:8px;"><i class="ti ti-recycle"></i> Reacondicionados</h3>
                 <div class="kpi-row">
-                    <div class="kpi-box clickable" style="border-top-color:#f59e0b;" onclick="nav('refurb')"><small>🟡 Pendientes</small><strong id="kdPend">0</strong><i class="ti ti-clock"></i></div>
-                    <div class="kpi-box clickable" style="border-top-color:#ef4444;" onclick="nav('refurb')"><small>⚠️ Evaluación</small><strong id="kdEval">0</strong><i class="ti ti-clipboard-list"></i></div>
-                    <div class="kpi-box clickable" style="border-top-color:#9a3412;" onclick="nav('refurb')"><small>🔧 En Proceso</small><strong id="kdProc">0</strong><i class="ti ti-tool"></i></div>
-                    <div class="kpi-box clickable" style="border-top-color:#5b21b6;" onclick="nav('refurb')"><small>🛒 Listo Venta</small><strong id="kdListoV">0</strong><i class="ti ti-shopping-cart"></i></div>
-                    <div class="kpi-box clickable" style="border-top-color:#10b981;" onclick="nav('refurb')"><small>✅ Terminados</small><strong id="kdDesp">0</strong><i class="ti ti-truck-delivery"></i></div>
-                    <div class="kpi-box clickable" style="border-top-color:#dc2626;" onclick="nav('refurb')"><small>🔄 Devoluciones</small><strong id="kdDev">0</strong><i class="ti ti-rotate-2"></i></div>
+                    <div class="kpi-box clickable" style="border-top-color:#f59e0b;" onclick="nav('refurb')"><small>Pendientes</small><strong id="kdPend">0</strong><i class="ti ti-clock"></i></div>
+                    <div class="kpi-box clickable" style="border-top-color:#ef4444;" onclick="nav('refurb')"><small>Evaluación</small><strong id="kdEval">0</strong><i class="ti ti-clipboard-list"></i></div>
+                    <div class="kpi-box clickable" style="border-top-color:#9a3412;" onclick="nav('refurb')"><small>En Proceso</small><strong id="kdProc">0</strong><i class="ti ti-tool"></i></div>
+                    <div class="kpi-box clickable" style="border-top-color:#5b21b6;" onclick="nav('refurb')"><small>Listo Venta</small><strong id="kdListoV">0</strong><i class="ti ti-shopping-cart"></i></div>
+                    <div class="kpi-box clickable" style="border-top-color:#10b981;" onclick="nav('refurb')"><small>Despachados</small><strong id="kdDesp">0</strong><i class="ti ti-truck-delivery"></i></div>
+                    <div class="kpi-box clickable" style="border-top-color:#dc2626;" onclick="nav('refurb')"><small>Devoluciones</small><strong id="kdDev">0</strong><i class="ti ti-rotate-2"></i></div>
                 </div>
 
                 <!-- Visitas de la web (solo admin) -->
@@ -3136,7 +3145,7 @@ body{
             <div id="v-refurb" class="view">
                 <!-- PESTAÑAS EXTERNAS DEL MÓDULO -->
                 <div style="background:#fff; border-radius:12px; padding:6px; margin-bottom:15px; display:flex; gap:4px; box-shadow:0 1px 3px rgba(0,0,0,0.05); flex-wrap:wrap;">
-                    <button id="reacondMainTabLotes" onclick="cambiarMainTabReacond('lotes')" class="reacond-main-tab active" style="flex:1; min-width:90px; padding:12px; border:0; background:var(--blue-btn); color:#fff; border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">
+                    <button id="reacondMainTabLotes" onclick="cambiarMainTabReacond('lotes')" class="reacond-main-tab tab-active" style="flex:1; min-width:90px; padding:12px; border:0; background:var(--blue-btn); color:#fff; border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">
                         <i class="ti ti-stack"></i> Lotes
                     </button>
                     <button id="reacondMainTabCatalogo" onclick="cambiarMainTabReacond('catalogo')" class="reacond-main-tab" style="flex:1; min-width:90px; padding:12px; border:0; background:transparent; color:var(--text-muted); border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">
@@ -3176,22 +3185,22 @@ body{
                         <!-- Tabs -->
                         <div class="tabs reacond-tabs-scroll" style="display:flex; gap:4px; margin-bottom:15px; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; padding:4px 2px 6px;">
                             <button class="tab-btn active" data-tab="pendientes" onclick="cambiarTabReacond('pendientes')" style="padding:11px 14px; cursor:pointer; font-weight:700; white-space:nowrap; font-size:13px;">
-                                🟡 Pendientes <span id="cntPendientes" class="badge" style="background:#fef3c7; color:#92400e; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
+                                <i class="ti ti-clock"></i> Pendientes <span id="cntPendientes" class="badge" style="background:#fef3c7; color:#92400e; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
                             </button>
                             <button class="tab-btn" data-tab="evaluacion" onclick="cambiarTabReacond('evaluacion')" style="padding:11px 14px; cursor:pointer; font-weight:700; white-space:nowrap; font-size:13px;">
-                                ⚠️ Evaluación <span id="cntEvaluacion" class="badge" style="background:#dbeafe; color:#b91c1c; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
+                                <i class="ti ti-clipboard-list"></i> Evaluación <span id="cntEvaluacion" class="badge" style="background:#dbeafe; color:#b91c1c; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
                             </button>
                             <button class="tab-btn" data-tab="proceso" onclick="cambiarTabReacond('proceso')" style="padding:11px 14px; cursor:pointer; font-weight:700; white-space:nowrap; font-size:13px;">
-                                🔧 En Proceso <span id="cntProceso" class="badge" style="background:#fed7aa; color:#9a3412; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
+                                <i class="ti ti-tool"></i> En Proceso <span id="cntProceso" class="badge" style="background:#fed7aa; color:#9a3412; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
                             </button>
                             <button class="tab-btn" data-tab="listo_venta" onclick="cambiarTabReacond('listo_venta')" style="padding:11px 14px; cursor:pointer; font-weight:700; white-space:nowrap; font-size:13px;">
-                                🛒 Listo <span id="cntListoVenta" class="badge" style="background:#ddd6fe; color:#5b21b6; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
+                                <i class="ti ti-shopping-cart"></i> Listo para venta <span id="cntListoVenta" class="badge" style="background:#ddd6fe; color:#5b21b6; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
                             </button>
                             <button class="tab-btn" data-tab="terminados" onclick="cambiarTabReacond('terminados')" style="padding:11px 14px; cursor:pointer; font-weight:700; white-space:nowrap; font-size:13px;">
-                                ✅ Completado <span id="cntTerminados" class="badge" style="background:#d1fae5; color:#065f46; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
+                                <i class="ti ti-truck-delivery"></i> Despachados <span id="cntTerminados" class="badge" style="background:#d1fae5; color:#065f46; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
                             </button>
                             <button class="tab-btn" data-tab="completado" onclick="cambiarTabReacond('completado')" style="padding:11px 14px; cursor:pointer; font-weight:700; white-space:nowrap; font-size:13px;">
-                                🚚 Despachado <span id="cntCompletado" class="badge" style="background:#e2e8f0; color:#334155; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
+                                <i class="ti ti-circle-check"></i> Completados <span id="cntCompletado" class="badge" style="background:#e2e8f0; color:#334155; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
                             </button>
                         </div>
                         
@@ -7518,7 +7527,7 @@ function nav(v, btn) {
     if(v === 'etiquetas') { setTimeout(cargarCalibracionLabelVenta, 50); }
     if(v === 'configImpresora') { setTimeout(() => { inicializarConfigImpresora(); qzVerificarConexion(); if(typeof cargarConfigLabelOrden === 'function') cargarConfigLabelOrden(); }, 50); }
     if(v === 'proveedores') { volverListaProveedores(); setTimeout(() => { const st = localStorage.getItem('bayol_subtab_compras'); if(st && st !== 'compras' && typeof cambiarTab === 'function') cambiarTab(st); }, 60); }
-    if(v === 'refurb') { setTimeout(() => { volverListaLotesReacond(); const st = localStorage.getItem('bayol_subtab_reacond') || 'lotes'; if(typeof cambiarMainTabReacond === 'function') cambiarMainTabReacond(st); }, 50); }
+    if(v === 'refurb') { setTimeout(() => { volverListaLotesReacond(); const guardada = localStorage.getItem('bayol_subtab_reacond'); const st = ['lotes','catalogo','devoluciones','piezas','rentabilidad'].includes(guardada) ? guardada : 'lotes'; if(typeof cambiarMainTabReacond === 'function') cambiarMainTabReacond(st); }, 50); }
     if(v === 'configuracion') { setTimeout(() => { cambiarMainTabConfig(localStorage.getItem('bayol_subtab_config') || 'tecnicos'); }, 50); }
     if(v === 'reportes') { setTimeout(() => { inicializarReportes(); }, 50); }
     if(v === 'despachos') { setTimeout(() => { renderDespachos(); }, 50); }
@@ -16529,7 +16538,7 @@ function renderEquipoReacondCard(eq, num) {
                     ${eq.veces_devuelto > 0 ? `<span title="Equipo devuelto ${eq.veces_devuelto} vez(es)" style="font-size:16px;">🔄</span>` : ''}
                     <b style="font-size:14px;">${escapeHtml(eq.modelo || 'Sin modelo')}</b>
                     <span class="badge" style="${badgeColor} font-size:11px;">${badgeText}</span>
-                    <button onclick="event.stopPropagation(); ${(estado === 'vendido' || estado === 'listo_venta') ? `verFichaDespacho('${eq.id}')` : `verHistorialEquipo('${eq.id}')`}" title="${(estado === 'vendido' || estado === 'listo_venta') ? 'Ver ficha (costos y piezas Info Plus)' : 'Ver historial completo (trabajo, técnicos y costos)'}" style="background:#cffafe; color:#0e7490; border:1px solid #67e8f9; border-radius:6px; padding:2px 7px; cursor:pointer; font-size:12px;"><i class="ti ti-eye"></i></button>
+                    <button onclick="event.stopPropagation(); ${(estado === 'vendido' || estado === 'listo_venta') ? `verFichaDespacho('${eq.id}')` : `verHistorialEquipoReacond('${eq.id}')`}" title="${(estado === 'vendido' || estado === 'listo_venta') ? 'Ver ficha (costos y piezas Info Plus)' : 'Ver historial completo (trabajo, técnicos y costos)'}" style="background:#cffafe; color:#0e7490; border:1px solid #67e8f9; border-radius:6px; padding:2px 7px; cursor:pointer; font-size:12px;"><i class="ti ti-eye"></i></button>
                     ${(estado === 'vendido' || estado === 'listo_venta') ? `<button onclick="event.stopPropagation(); imprimirLabelEquipo('${eq.id}')" title="Imprimir label (Impresión de Labels)" style="background:#fef3c7; color:#92400e; border:1px solid #fcd34d; border-radius:6px; padding:2px 7px; cursor:pointer; font-size:12px;"><i class="ti ti-printer"></i></button>` : ''}
                     ${estado === 'evaluado' ? `<button onclick="event.stopPropagation(); continuarEvaluacion('${eq.id}')" title="Editar evaluación" style="background:#d1fae5; color:#065f46; border:1px solid #6ee7b7; border-radius:6px; padding:2px 7px; cursor:pointer; font-size:12px;"><i class="ti ti-pencil"></i></button>` : ''}
                     ${eq.veces_devuelto > 0 ? `<span class="badge" style="background:#fee2e2; color:#991b1b; font-size:10px; font-weight:700;">DEVUELTO ${eq.veces_devuelto}×</span>` : ''}
@@ -16574,6 +16583,8 @@ async function marcarEvaluado(equipoId) {
    REACONDICIONADOS - PESTAÑAS PRINCIPALES (Lotes / Catálogo)
    ============================================================ */
 function cambiarMainTabReacond(tab) {
+    const tabsValidas = ['lotes', 'catalogo', 'devoluciones', 'piezas', 'rentabilidad'];
+    if(!tabsValidas.includes(tab)) tab = 'lotes';
     try { localStorage.setItem('bayol_subtab_reacond', tab); } catch(e){} // recordar sub-pestaña
     document.getElementById('reacondMainContentLotes').style.display = tab === 'lotes' ? 'block' : 'none';
     document.getElementById('reacondMainContentCatalogo').style.display = tab === 'catalogo' ? 'block' : 'none';
@@ -18844,7 +18855,7 @@ function cerrarHistorialEquipo() {
 }
 
 // Vista de SOLO LECTURA: todo lo que se le hizo al equipo, qué hizo cada técnico y los costos
-async function verHistorialEquipo(equipoId) {
+async function verHistorialEquipoReacond(equipoId) {
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return toast('Equipo no encontrado.', 'error');
     const esAdmin = isAdminUser();
@@ -20276,51 +20287,6 @@ async function _despachoCargarHistorial() {
         (cache.refurb || []).filter(e => e.estado_evaluacion === 'vendido' && e.completado && (e.fecha_completado || e.fecha_despacho)).forEach(e => {
             const lote = (cache.lotes || []).find(l => l.id === e.lote_id);
             filas.push({
-                tipo: 'reacond', id: null, num: '', fecha: e.fecha_completado || e.fecha_despacho,
-                art: _modeloRep(e) + (e.articulo_codigo ? ` (${e.articulo_codigo})` : ''),
-                cant: 1, ruta: 'Reacondicionado' + (lote ? ' · ' + (lote.codigo_lote || '') : ''),
-                usuario: e.tecnico_asignado_id ? nombreEmpleado(e.tecnico_asignado_id) : '', estado: 'ok',
-                nota: e.imei ? ('IMEI: ' + e.imei) : ''
-            });
-        });
-        if(!filas.length) { cont.innerHTML = '<p style="color:#475569; font-size:13px; text-align:center; padding:14px;">Aún no hay despachos registrados.</p>'; return; }
-        filas.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-        const badge = (e) => e === 'ok' ? '<span style="color:#166534; font-weight:700;">✅ OK</span>' : (e === 'parcial' ? '<span style="color:#b45309; font-weight:700;">⚠️ Parcial</span>' : '<span style="color:#b91c1c; font-weight:700;">❌ Error</span>');
-        const tipoTag = (t) => t === 'reacond'
-            ? '<span style="background:#ede9fe; color:#6d28d9; font-size:10px; font-weight:700; padding:1px 7px; border-radius:8px;">📱 Reacond</span>'
-            : '<span style="background:#cffafe; color:#155e75; font-size:10px; font-weight:700; padding:1px 7px; border-radius:8px;">📦 Almacén</span>';
-        cont.innerHTML = `<table><thead><tr><th>Fecha</th><th>Nº</th><th>Tipo</th><th>Artículo</th><th>Cant.</th><th>Origen / Destino</th><th>Usuario</th><th>Estado</th><th></th></tr></thead><tbody>` +
-            filas.map(r => `<tr>
-                <td style="white-space:nowrap;">${new Date(r.fecha).toLocaleString('es-DO')}</td>
-                <td style="white-space:nowrap; font-weight:700; color:#0891b2;">${escapeHtml(r.num)}</td>
-                <td>${tipoTag(r.tipo)}</td>
-                <td>${escapeHtml(r.art)}</td>
-                <td style="text-align:center; font-weight:700;">${r.cant}</td>
-                <td style="white-space:nowrap;">${escapeHtml(r.ruta)}</td>
-                <td>${escapeHtml(r.usuario)}</td>
-                <td>${badge(r.estado)}</td>
-                <td style="text-align:center;">${(r.tipo === 'almacen' && r.id && r.estado === 'ok') ? `<button class="btn btn-light" style="padding:3px 9px; font-size:12px;" onclick="imprimirDespacho('${r.id}')"><i class="ti ti-printer"></i></button>` : ''}</td>
-            </tr>`).join('') + `</tbody></table>`;
-    } catch(e) { logError('Historial despachos', e); cont.innerHTML = '<p style="color:#b91c1c; font-size:13px;">No se pudo cargar el historial.</p>'; }
-}
-async function _despachoCargarHistorial() {
-    const cont = document.getElementById('despachosHistorial');
-    if(!cont) return;
-    try {
-        const { data, error } = await supabaseClient.from('despachos_almacen').select('*').order('fecha', { ascending: false }).limit(150);
-        if(error) throw error;
-        _despHistRows = data || [];
-        // 1) Traspasos entre almacenes (módulo)
-        const filas = (data || []).map(r => ({
-            tipo: 'almacen', id: r.id, num: r.despacho_numero || '', fecha: r.fecha,
-            art: (r.articulo_nombre || '') + (r.codarticulo ? ` (${r.codarticulo})` : ''),
-            cant: r.cantidad, ruta: _nombreAlmacen(r.almacen_origen) + ' → ' + _nombreAlmacen(r.almacen_destino),
-            usuario: r.usuario || '', estado: r.estado || 'ok', nota: r.nota || ''
-        }));
-        // 2) Equipos de reacondicionado marcados como Despachado (estado vendido + completado)
-        (cache.refurb || []).filter(e => e.estado_evaluacion === 'vendido' && e.completado && (e.fecha_completado || e.fecha_despacho)).forEach(e => {
-            const lote = (cache.lotes || []).find(l => l.id === e.lote_id);
-            filas.push({
                 tipo: 'reacond', fecha: e.fecha_completado || e.fecha_despacho,
                 art: _modeloRep(e) + (e.articulo_codigo ? ` (${e.articulo_codigo})` : ''),
                 cant: 1, ruta: 'Reacondicionado' + (lote ? ' · ' + (lote.codigo_lote || '') : ''),
@@ -21585,7 +21551,7 @@ async function verFichaDespacho(equipoId) {
           <div class="fe-menuwrap">
             <button class="fe-btn" onclick="var m=this.nextElementSibling;m.style.display=(m.style.display==='block'?'none':'block');event.stopPropagation();"><i class="ti ti-dots"></i> Más acciones <i class="ti ti-chevron-down"></i></button>
             <div class="fe-menu">
-              <a onclick="_feCerrar();verHistorialEquipo('${equipoId}')"><i class="ti ti-history"></i> Ver historial</a>
+              <a onclick="_feCerrar();verHistorialEquipoReacond('${equipoId}')"><i class="ti ti-history"></i> Ver historial</a>
               ${isAdminUser() ? `<a onclick="marcarEquipoCompletado('${equipoId}')"><i class="ti ti-circle-check"></i> Marcar Completado</a>` : ''}
             </div>
           </div>
@@ -35519,4 +35485,3 @@ if(saved) {
 </script>
 <script src="crm-marketing-consent.js?v=20260913-fixtabs1"></script>
 </body>
-</html>
