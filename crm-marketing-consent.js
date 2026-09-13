@@ -4,7 +4,7 @@
   if(window.__bcCrmExtensionsLoader)return;
   window.__bcCrmExtensionsLoader=true;
 
-  var V='20260913-refresh-position2';
+  var V='20260913-effects1';
 
   // El botón de actualizar hace una recarga completa, pero la experiencia
   // vuelve al mismo punto: página, pestaña, listas, historial y borrador.
@@ -56,6 +56,11 @@
     polishCss.rel='stylesheet';
     polishCss.href='crm-social-polish-v2.css?v='+V;
     document.head.appendChild(polishCss);
+
+    var effectsCss=document.createElement('link');
+    effectsCss.rel='stylesheet';
+    effectsCss.href='crm-social-effects.css?v='+V;
+    document.head.appendChild(effectsCss);
 
     var hub=document.createElement('script');
     hub.src='crm-social-hub.js?v='+V;

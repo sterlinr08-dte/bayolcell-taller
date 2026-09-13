@@ -50,7 +50,8 @@
       <div id="bcFbActions" class="bc-fb-pop" hidden><button data-chat-action="read">Marcar leído</button><button data-chat-action="archive">Archivar</button><button data-chat-action="unarchive">Desarchivar</button><button data-chat-action="refresh">Actualizar</button></div>
       <div id="bcFbFindBox" class="bc-fb-find" hidden><input id="bcFbFindText" type="search" placeholder="Buscar en los mensajes cargados" aria-label="Buscar en mensajes"><button type="button" id="bcFbFindClose">Cerrar</button></div>
       <div id="bcFbNotice" class="bc-fb-notice" role="status" hidden></div>
-      <div class="bc-fb-messages" id="bcFbMessages">${rows.map(m=>`<article class="bc-fb-row ${m.direccion==='out'?'out':'in'}" data-message="${esc(m.id)}"><div class="bc-fb-bubble">${media(m)}<div class="bc-fb-body">${esc(m.cuerpo||'')}</div><small>${esc(new Date(m.creado_en).toLocaleTimeString('es-DO',{hour:'2-digit',minute:'2-digit'}))}${m.direccion==='out'?' · '+esc(m.estado||'enviado'):''}</small><button type="button" class="bc-fb-message-menu" data-menu="${esc(m.id)}" aria-label="Acciones del mensaje"><i class="ti ti-chevron-down"></i></button></div></article>`).join('')||'<p class="bc-fb-empty">Sin mensajes guardados</p>'}</div>
+      <div class="bc-fb-messages" id="bcFbMessages" style="position:relative;">${rows.map(m=>`<article class="bc-fb-row ${m.direccion==='out'?'out':'in'}" data-message="${esc(m.id)}"><div class="bc-fb-bubble">${media(m)}<div class="bc-fb-body">${esc(m.cuerpo||'')}</div><small>${esc(new Date(m.creado_en).toLocaleTimeString('es-DO',{hour:'2-digit',minute:'2-digit'}))}${m.direccion==='out'?' · '+esc(m.estado||'enviado'):''}</small><button type="button" class="bc-fb-message-menu" data-menu="${esc(m.id)}" aria-label="Acciones del mensaje"><i class="ti ti-chevron-down"></i></button></div></article>`).join('')||'<p class="bc-fb-empty">Sin mensajes guardados</p>'}</div>
+      <button type="button" class="bc-social-jump" id="bcFbJump" aria-label="Ir al último mensaje"><i class="ti ti-arrow-down"></i><span>Últimos mensajes</span></button>
       <div id="bcFbMessageActions" class="bc-fb-pop bc-fb-message-actions" hidden></div>
       <div id="bcFbAttachment" class="bc-fb-attachment" hidden></div>
       <div id="bcFbEmojiPanel" class="bc-fb-emojis" hidden>${['😀','👍','❤️','🙏','😊','✅'].map(e=>`<button type="button" data-emoji="${e}" aria-label="Insertar ${e}">${e}</button>`).join('')}</div>
@@ -77,13 +78,17 @@
       try{const result=await action('media',{messageId:id},threadId);const url=safeUrl(result.url);if(url&&selected===threadId){el.src=url;if(el.parentElement.tagName==='A')el.parentElement.href=url;}}catch{notice('No se pudo recuperar un adjunto.');}
     }));
     paintAttachment();setBusy(busy);
-    const scroll=$('#bcFbMessages');
+    const scroll=$('#bcFbMessages'), jump=$('#bcFbJump');
+    const cercaDelFondo=()=>!scroll||scroll.scrollHeight-scroll.clientHeight-scroll.scrollTop<80;
+    const actualizarJump=()=>{if(jump)jump.classList.toggle('mostrar',!cercaDelFondo());};
     if(scroll){
-      const restore=()=>{scroll.scrollTop=previousAtBottom?scroll.scrollHeight:(previousTop??scroll.scrollHeight);};
+      const restore=()=>{scroll.scrollTop=previousAtBottom?scroll.scrollHeight:(previousTop??scroll.scrollHeight);actualizarJump();};
       restore();
       requestAnimationFrame(restore);
       setTimeout(restore,120);
+      scroll.addEventListener('scroll',actualizarJump);
     }
+    jump?.addEventListener('click',()=>{if(scroll)scroll.scrollTop=scroll.scrollHeight;actualizarJump();});
     resize();
   }
   function paintAttachment(){const box=$('#bcFbAttachment');if(!box)return;box.hidden=!attachment;box.innerHTML=attachment?`<span>${esc(attachment.name)}</span><button type="button" id="bcFbRemoveFile" aria-label="Quitar adjunto">×</button>`:'';if(attachment)$('#bcFbRemoveFile').onclick=()=>{if(!busy){attachment=null;paintAttachment();}};}
@@ -98,7 +103,7 @@
       if(file){const base64=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result).split(',')[1]);r.onerror=reject;r.readAsDataURL(file);});attachmentId=(await action('upload',{file:{base64,name:file.name,type:file.type}},id)).attachmentId;}
       const result=await action('send',{text,attachmentId,requestId:crypto.randomUUID()},id);
       drafts.delete(id);
-      if(selected===id){t.value='';attachment=null;await cb.reload();notice(result.partialFailure?'El adjunto salió, pero el texto no se confirmó.':result.localSaved===false?'Enviado a Facebook; pendiente de registro en el CRM.':'Mensaje enviado.');}
+      if(selected===id){t.value='';attachment=null;const sendBtn=$('#bcFbSend');if(sendBtn){sendBtn.classList.add('bc-sent-ok');setTimeout(()=>sendBtn.classList.remove('bc-sent-ok'),350);}await cb.reload();notice(result.partialFailure?'El adjunto salió, pero el texto no se confirmó.':result.localSaved===false?'Enviado a Facebook; pendiente de registro en el CRM.':'Mensaje enviado.');}
       await cb.refreshList();
     }catch(err){if(selected===id)notice(err.message);}
     finally{setBusy(false);if(selected===id)$('#bcFbText')?.focus({preventScroll:true});}

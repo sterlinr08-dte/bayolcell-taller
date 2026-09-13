@@ -1,0 +1,93 @@
+/* BAYOL CELL — Redes: efectos y animaciones (12/13 sept 2026)
+   Capa puramente aditiva: transiciones suaves + micro-animaciones sobre los
+   botones/tarjetas del hub de Redes (crm-social-hub.js / scope-fix / polish
+   v2). No cambia tamaños, colores base ni handlers — solo movimiento.
+   Respeta prefers-reduced-motion en todo momento. */
+
+#v-crmLinea .bc-smart-platform,
+#v-crmLinea .bc-smart-interaction,
+#v-crmLinea .bc-smart-filter,
+#v-crmLinea .bc-ig-send,
+#v-crmLinea .bc-ig-back,
+#v-crmLinea .bc-social-generic-thread,
+#v-crmLinea .bc-ig-thread {
+  transition: transform .16s cubic-bezier(.34,1.56,.64,1), box-shadow .18s ease, background .18s ease, border-color .18s ease, opacity .18s ease;
+}
+#v-crmLinea .bc-smart-platform:active,
+#v-crmLinea .bc-smart-interaction:active,
+#v-crmLinea .bc-smart-filter:active { transform: scale(.96); }
+#v-crmLinea .bc-ig-send:active { transform: scale(.88); }
+@media (hover:hover) and (pointer:fine) {
+  #v-crmLinea .bc-smart-platform:not(.on):hover { transform: translateY(-1px); }
+  #v-crmLinea .bc-social-generic-thread:hover,
+  #v-crmLinea .bc-ig-thread:hover { transform: translateX(2px); }
+}
+
+/* Tarjetas/hilos entrando en la lista — fade + leve deslizamiento, escalonado */
+@keyframes bcSocialRowIn { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
+#v-crmLinea .bc-ig-thread,
+#v-crmLinea .bc-social-generic-thread {
+  animation: bcSocialRowIn .28s cubic-bezier(.22,.61,.36,1) both;
+}
+#v-crmLinea .bc-ig-thread:nth-child(1), #v-crmLinea .bc-social-generic-thread:nth-child(1) { animation-delay: 0ms; }
+#v-crmLinea .bc-ig-thread:nth-child(2), #v-crmLinea .bc-social-generic-thread:nth-child(2) { animation-delay: 22ms; }
+#v-crmLinea .bc-ig-thread:nth-child(3), #v-crmLinea .bc-social-generic-thread:nth-child(3) { animation-delay: 44ms; }
+#v-crmLinea .bc-ig-thread:nth-child(4), #v-crmLinea .bc-social-generic-thread:nth-child(4) { animation-delay: 66ms; }
+#v-crmLinea .bc-ig-thread:nth-child(5), #v-crmLinea .bc-social-generic-thread:nth-child(5) { animation-delay: 88ms; }
+#v-crmLinea .bc-ig-thread:nth-child(n+6), #v-crmLinea .bc-social-generic-thread:nth-child(n+6) { animation-delay: 100ms; }
+
+/* Burbujas de chat entrando */
+@keyframes bcSocialBubbleIn { from { opacity:0; transform:scale(.94) translateY(4px); } to { opacity:1; transform:scale(1) translateY(0); } }
+#v-crmLinea .bc-ig-bubble,
+#v-crmLinea .bc-fb-bubble { animation: bcSocialBubbleIn .18s ease-out; }
+
+/* Pulso suave en contadores de no leídos — llama la atención sin ser molesto */
+@keyframes bcSocialBadgePulse { 0%,100% { box-shadow:0 0 0 0 rgba(219,39,119,.35); } 50% { box-shadow:0 0 0 5px rgba(219,39,119,0); } }
+#v-crmLinea .bc-smart-count:not(:empty),
+#v-crmLinea .bc-smart-mini-count:not(:empty) { animation: bcSocialBadgePulse 2.2s ease-out infinite; }
+
+/* Cambio de canal/tipo — el panel entra con un fundido corto en vez de saltar */
+@keyframes bcSocialPanelIn { from { opacity:0; } to { opacity:1; } }
+#v-crmLinea #bcIgThreads,
+#v-crmLinea #bcIgChat,
+#v-crmLinea #bcSocialFacebookPanel,
+#v-crmLinea #bcFbChat { animation: bcSocialPanelIn .2s ease-out; }
+
+/* Boton enviar: pequeño "salto" al confirmarse el envio (clase que agrega el JS) */
+@keyframes bcSocialSentPop { 0%{transform:scale(1);} 40%{transform:scale(1.18);} 100%{transform:scale(1);} }
+#v-crmLinea .bc-ig-send.bc-sent-ok,
+#v-crmLinea .bc-fb-icon.bc-sent-ok { animation: bcSocialSentPop .32s ease-out; }
+
+/* Ancla de posicionamiento para el boton flotante "bajar a lo ultimo" —
+   sin esto, .bc-social-jump (position:absolute) se ancla a un ancestro
+   mas arriba en el arbol y aparece en un lugar impredecible. */
+#v-crmLinea .bc-ig-chat,
+#v-crmLinea .bc-social-generic-chat { position: relative; }
+
+/* Boton "bajar a lo ultimo" (smart scroll) */
+.bc-social-jump {
+  position: absolute; right: 14px; bottom: 78px; z-index: 5;
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 13px; border-radius: 999px; border: none; cursor: pointer;
+  background: linear-gradient(135deg,#fb7185,#d946ef); color: #fff;
+  font-size: 11.5px; font-weight: 700;
+  box-shadow: 0 10px 22px -10px rgba(219,39,119,.55);
+  opacity: 0; pointer-events: none; transform: translateY(6px);
+  transition: opacity .18s ease, transform .18s ease;
+}
+.bc-social-jump.mostrar { opacity: 1; pointer-events: auto; transform: translateY(0); }
+.bc-social-jump .bc-jump-n {
+  min-width: 17px; height: 17px; padding: 0 4px; border-radius: 999px;
+  background: rgba(255,255,255,.3); font-size: 10px; display: inline-flex; align-items: center; justify-content: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #v-crmLinea .bc-smart-platform, #v-crmLinea .bc-smart-interaction, #v-crmLinea .bc-smart-filter,
+  #v-crmLinea .bc-ig-send, #v-crmLinea .bc-ig-back, #v-crmLinea .bc-social-generic-thread, #v-crmLinea .bc-ig-thread,
+  #v-crmLinea .bc-ig-bubble, #v-crmLinea .bc-fb-bubble, #v-crmLinea .bc-smart-count, #v-crmLinea .bc-smart-mini-count,
+  #v-crmLinea #bcIgThreads, #v-crmLinea #bcIgChat, #v-crmLinea #bcSocialFacebookPanel, #v-crmLinea #bcFbChat,
+  #v-crmLinea .bc-ig-send.bc-sent-ok, #v-crmLinea .bc-fb-icon.bc-sent-ok, .bc-social-jump {
+    animation: none !important;
+    transition-duration: .01ms !important;
+  }
+}

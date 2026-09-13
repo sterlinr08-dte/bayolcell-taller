@@ -376,14 +376,21 @@
     const nm=h.nombre_perfil || h.participant_username || 'Cliente de Instagram';
     const user=h.participant_username ? `@${h.participant_username}` : 'Instagram Direct';
     const rows=state.messages.map(m=>`<div class="bc-ig-msg-row ${m.direccion==='out'?'out':'in'}"><div class="bc-ig-msg">${mediaMarkup(m,mediaUrls[m.id])}${m.cuerpo ? `<div>${esc(m.cuerpo).replace(/\n/g,'<br>')}</div>` : ''}<span class="bc-ig-msg-time">${esc(fmtTime(m.creado_en))}${m.direccion==='out' ? ` · ${esc(m.estado||'enviado')}` : ''}</span></div></div>`).join('');
-    chat.innerHTML=`<div class="bc-ig-chat-head"><button class="bc-ig-back" id="bcIgBack" type="button" aria-label="Volver"><i class="ti ti-chevron-left"></i></button><span class="bc-ig-avatar">${esc(initials(nm))}</span><div class="bc-ig-chat-title"><b>${esc(nm)}</b><span>${esc(user)}</span></div><span class="bc-ig-chat-badge">Instagram Direct</span></div><div class="bc-ig-messages" id="bcIgMessages">${rows || '<div class="bc-ig-empty"><div><b>Sin mensajes</b><span>Este hilo todavía no tiene mensajes guardados.</span></div></div>'}</div><form class="bc-ig-composer" id="bcIgComposer"><textarea id="bcIgText" rows="1" placeholder="Escribe un mensaje…" ${h.zernio_conversation_id?'':'disabled'}></textarea><button class="bc-ig-send" id="bcIgSend" type="submit" ${h.zernio_conversation_id?'':'disabled'} aria-label="Enviar"><i class="ti ti-arrow-up"></i></button></form>`;
+    chat.innerHTML=`<div class="bc-ig-chat-head"><button class="bc-ig-back" id="bcIgBack" type="button" aria-label="Volver"><i class="ti ti-chevron-left"></i></button><span class="bc-ig-avatar">${esc(initials(nm))}</span><div class="bc-ig-chat-title"><b>${esc(nm)}</b><span>${esc(user)}</span></div><span class="bc-ig-chat-badge">Instagram Direct</span></div><div class="bc-ig-messages" id="bcIgMessages" style="position:relative;">${rows || '<div class="bc-ig-empty"><div><b>Sin mensajes</b><span>Este hilo todavía no tiene mensajes guardados.</span></div></div>'}</div><button type="button" class="bc-social-jump" id="bcIgJump" aria-label="Ir al último mensaje"><i class="ti ti-arrow-down"></i><span>Últimos mensajes</span></button><form class="bc-ig-composer" id="bcIgComposer"><textarea id="bcIgText" rows="1" placeholder="Escribe un mensaje…" ${h.zernio_conversation_id?'':'disabled'}></textarea><button class="bc-ig-send" id="bcIgSend" type="submit" ${h.zernio_conversation_id?'':'disabled'} aria-label="Enviar"><i class="ti ti-arrow-up"></i></button></form>`;
     $('#bcIgBack')?.addEventListener('click',()=>$('#v-crmLinea')?.classList.remove('bc-ig-chat-open'));
     $('#bcIgComposer')?.addEventListener('submit',sendInstagram);
     const ta=$('#bcIgText');
     if(ta){ta.value=draft;if(focused){ta.focus({preventScroll:true});if(caret!=null)ta.setSelectionRange(caret,caret);}}
     ta?.addEventListener('input',()=>{ta.style.height='auto';ta.style.height=Math.min(ta.scrollHeight,112)+'px';});
     ta?.addEventListener('keydown',(e)=>{if(e.key==='Enter' && !e.shiftKey && window.innerWidth>1024){e.preventDefault();sendInstagram(e);}});
-    requestAnimationFrame(()=>{const sc=$('#bcIgMessages');if(sc)sc.scrollTop=bottom?sc.scrollHeight:top;});
+    // Smart scroll: si el empleado esta leyendo mensajes viejos hacia arriba,
+    // no lo saltamos al fondo solo -- aparece un boton para ir a lo ultimo.
+    const scroller=$('#bcIgMessages'), jump=$('#bcIgJump');
+    const cercaDelFondo=()=>!scroller || scroller.scrollHeight-scroller.clientHeight-scroller.scrollTop<80;
+    const actualizarJump=()=>{ if(jump) jump.classList.toggle('mostrar', !cercaDelFondo()); };
+    scroller?.addEventListener('scroll',actualizarJump);
+    jump?.addEventListener('click',()=>{ if(scroller) scroller.scrollTop=scroller.scrollHeight; actualizarJump(); });
+    requestAnimationFrame(()=>{if(scroller)scroller.scrollTop=bottom?scroller.scrollHeight:top; actualizarJump();});
   }
 
   async function sendInstagram(e){
@@ -397,6 +404,7 @@
       if(error) throw error;
       if(data?.ok===false) throw new Error(data.mensaje||data.error||'Instagram rechazó el envío.');
       if(ta){ta.value='';ta.style.height='auto';}
+      if(btn){btn.classList.add('bc-sent-ok');setTimeout(()=>btn.classList.remove('bc-sent-ok'),350);}
       await loadInstagram(false); await loadMessages(state.selected.id,false); notify('Mensaje de Instagram enviado.');
     }catch(err){ console.error('instagram-enviar',err); notify(err.message||'No se pudo enviar el mensaje de Instagram.','error'); }
     finally{state.busySend=false;if(btn){btn.disabled=!state.selected?.zernio_conversation_id;btn.innerHTML='<i class="ti ti-arrow-up"></i>';}ta?.focus?.();}
