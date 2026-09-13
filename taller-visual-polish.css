@@ -571,3 +571,230 @@ body{background:#f4f6f8 !important;}
   color:#015AA0 !important;
   border-color:#fff !important;
 }
+
+/* Línea gráfica Navy + Orange: navegación e iconografía consistente. */
+:root{
+  --bc-nav-navy:#14213D;
+  --bc-nav-navy-deep:#0d162b;
+  --bc-nav-orange:#FF6B35;
+  --bc-nav-orange-dark:#D65225;
+  --bc-nav-orange-soft:#fff1eb;
+}
+body{background:#f6f7f9 !important;}
+
+/* Barras principales: navy como superficie, naranja como señal de acción. */
+#app .sidebar{
+  background:linear-gradient(180deg,#14213D 0%,#0d162b 100%) !important;
+  color:#fff !important;
+  border-right:1px solid rgba(209,209,209,.46) !important;
+  box-shadow:8px 0 26px -18px rgba(13,22,43,.72) !important;
+}
+#app .sidebar::before,#app .sidebar::after{display:none !important;}
+#app .side-brand{
+  background:rgba(7,14,28,.22) !important;
+  border-bottom:1px solid rgba(255,107,53,.44) !important;
+}
+#app .brand-icon{
+  background:#FF6B35 !important;
+  color:#14213D !important;
+  border:1px solid rgba(255,255,255,.72) !important;
+  box-shadow:0 8px 18px -8px rgba(0,0,0,.50),inset 0 1px 0 rgba(255,255,255,.82) !important;
+}
+#app .brand-text h3{color:#fff !important;}
+#app .brand-text small{color:rgba(255,255,255,.74) !important;}
+#app .nav-section{color:#D1D1D1 !important;opacity:.96 !important;}
+#app .nav button{
+  background:transparent !important;
+  color:rgba(255,255,255,.94) !important;
+  border-color:transparent !important;
+  box-shadow:none !important;
+}
+#app .nav button > i[class*="ti-"]{color:rgba(255,255,255,.84) !important;}
+#app .nav button:hover{
+  background:rgba(255,107,53,.14) !important;
+  color:#fff !important;
+  border-color:rgba(255,107,53,.52) !important;
+  box-shadow:none !important;
+}
+#app .nav button:hover > i[class*="ti-"]{color:#FF6B35 !important;}
+#app .nav button.active{
+  background:#FF6B35 !important;
+  color:#14213D !important;
+  border-color:#FF6B35 !important;
+  box-shadow:inset 3px 0 0 #fff,0 8px 18px -14px rgba(0,0,0,.58) !important;
+}
+#app .nav button.active > i[class*="ti-"]{color:#14213D !important;}
+#app .nav button .nav-badge-admin{
+  background:rgba(255,107,53,.18) !important;
+  color:#FFB39B !important;
+  border:1px solid rgba(255,107,53,.35) !important;
+}
+#app .nav button.active .nav-badge-admin{
+  background:#14213D !important;
+  color:#FF6B35 !important;
+  border-color:#14213D !important;
+}
+#app .side-user{
+  background:rgba(255,255,255,.10) !important;
+  border-color:rgba(209,209,209,.46) !important;
+  color:#fff !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08) !important;
+}
+#app .side-user .avatar{
+  background:#FF6B35 !important;
+  color:#14213D !important;
+  box-shadow:0 7px 14px -8px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.72) !important;
+}
+#app .profile-info h4{color:#fff !important;}
+#app .profile-info small{color:#bbf7d0 !important;}
+
+/* Barra superior: navy continuo, naranja solo como línea de acción. */
+#app .top-bar{
+  background:linear-gradient(110deg,#14213D 0%,#0d162b 100%) !important;
+  color:#fff !important;
+  border-top:0 !important;
+  border-bottom:3px solid #FF6B35 !important;
+  box-shadow:0 5px 18px -14px rgba(0,0,0,.72) !important;
+}
+#app .top-title{color:#fff !important;}
+#app .top-right-info{
+  background:rgba(255,107,53,.94) !important;
+  color:#14213D !important;
+  border-color:#FF6B35 !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22) !important;
+}
+#app .top-bar .btn-light{
+  background:rgba(255,255,255,.12) !important;
+  color:#fff !important;
+  border-color:rgba(209,209,209,.48) !important;
+  box-shadow:none !important;
+}
+#app .menu-toggle{
+  background:#FF6B35 !important;
+  color:#14213D !important;
+  border-color:#FF6B35 !important;
+}
+#app .top-bar .btn-light:hover{
+  background:#FF6B35 !important;
+  color:#14213D !important;
+  border-color:#FF6B35 !important;
+}
+#app .menu-toggle:hover{
+  background:#ff8256 !important;
+  color:#14213D !important;
+  border-color:#ff8256 !important;
+}
+
+/* Iconografía: familia Tabler lineal, tamaño y alineación uniformes. */
+#app .nav button > i[class*="ti-"],
+#app .top-bar i[class*="ti-"],
+#app .view:not(#v-crmLinea) .block-header i[class*="ti-"],
+#app .view:not(#v-crmLinea) h4 > i[class*="ti-"],
+#app .view:not(#v-crmLinea) .kpi-box i[class*="ti-"]{
+  font-size:19px !important;
+  line-height:1 !important;
+  width:20px !important;
+  min-width:20px !important;
+  height:20px !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  vertical-align:middle !important;
+  font-style:normal !important;
+  font-weight:400 !important;
+  text-rendering:geometricPrecision !important;
+}
+#app .nav button > i[class*="ti-"],
+#app .top-bar i[class*="ti-"]{
+  transition:color .16s ease,transform .16s ease !important;
+}
+#app .nav button:hover > i[class*="ti-"]{transform:translateX(1px);}
+#app .nav button.active > i[class*="ti-"]{transform:none;}
+
+/* Módulos operativos: naranja para acción, navy para lectura. */
+#app .view:not(#v-crmLinea) .block-header{
+  background:linear-gradient(135deg,#14213D,#1f335d) !important;
+  color:#fff !important;
+}
+#app .view:not(#v-crmLinea) .block-header i{color:#FF6B35 !important;}
+#app .view:not(#v-crmLinea) .kpi-box{border-top-color:#FF6B35 !important;}
+#app .view:not(#v-crmLinea) .rx-head{border-left-color:#FF6B35 !important;}
+#app .view:not(#v-crmLinea) .rx-head i,
+#app .view:not(#v-crmLinea) h4 > i{color:#FF6B35 !important;}
+#app .view:not(#v-crmLinea) h4{color:#14213D !important;}
+#app .view:not(#v-crmLinea) .reacond-main-tab.tab-active,
+#app .view:not(#v-crmLinea) .reacond-tabs-scroll .tab-btn.active{
+  background:#fff1eb !important;
+  color:#14213D !important;
+  border-color:#ffc2ad !important;
+}
+#app .view:not(#v-crmLinea) .reacond-tabs-scroll .tab-btn.active span{
+  background:#ffe1d6 !important;
+  color:#D65225 !important;
+}
+#app .view:not(#v-crmLinea) .btn-blue{
+  background:#FF6B35 !important;
+  border-color:#FF6B35 !important;
+  color:#14213D !important;
+  box-shadow:0 7px 16px -11px rgba(255,107,53,.72) !important;
+}
+#app .view:not(#v-crmLinea) .btn-blue:hover{
+  background:#D65225 !important;
+  border-color:#D65225 !important;
+  color:#fff !important;
+}
+#app .view:not(#v-crmLinea) .btn-dark{
+  background:#14213D !important;
+  border-color:#14213D !important;
+  color:#fff !important;
+  box-shadow:0 7px 16px -11px rgba(20,33,61,.58) !important;
+}
+
+/* Acceso y cargador: la misma identidad navy/orange. */
+#login.login{
+  background:
+    radial-gradient(720px 420px at 12% 0%,rgba(20,33,61,.12),transparent 68%),
+    radial-gradient(680px 420px at 100% 100%,rgba(255,107,53,.14),transparent 70%),
+    #f6f7f9 !important;
+}
+#login .login-card input:focus{
+  border-color:#FF6B35 !important;
+  box-shadow:0 0 0 3px rgba(255,107,53,.15) !important;
+}
+#login .login-card a{
+  background:#fff1eb !important;
+  color:#D65225 !important;
+  border-color:#ffc2ad !important;
+}
+#login .login-card .logo-login > div:first-child{
+  background:#FF6B35 !important;
+  color:#14213D !important;
+  box-shadow:0 8px 18px rgba(255,107,53,.36) !important;
+}
+#login .login-card .logo-login h1 span{color:#FF6B35 !important;}
+#login .login-card .btn-blue{
+  background:linear-gradient(135deg,#FF6B35,#D65225) !important;
+  border-color:#FF6B35 !important;
+  color:#14213D !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 3px 10px rgba(255,107,53,.28) !important;
+}
+#login .login-card .btn-blue:hover{
+  background:linear-gradient(135deg,#ff8256,#FF6B35) !important;
+}
+#appLoader{
+  background:radial-gradient(700px 500px at 50% 40%,rgba(255,107,53,.20),transparent 70%),#14213D !important;
+}
+#appLoader .ldr-ring{
+  border-color:rgba(209,209,209,.26) !important;
+  border-top-color:#FF6B35 !important;
+}
+@keyframes ldrGlowOrange{
+  0%,100%{filter:drop-shadow(0 0 6px rgba(255,107,53,.45))}
+  50%{filter:drop-shadow(0 0 28px rgba(255,107,53,.95))}
+}
+#appLoader .ldr-logo{
+  animation:ldrFlip 2.4s cubic-bezier(.4,.05,.3,1) infinite,ldrGlowOrange 1.5s ease-in-out infinite !important;
+}
+@media (prefers-reduced-motion:reduce){
+  #appLoader .ldr-logo{animation:ldrGlowOrange 1.5s ease-in-out infinite !important;}
+}
