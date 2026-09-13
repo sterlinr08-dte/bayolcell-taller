@@ -1648,3 +1648,160 @@ body{
     transform:none !important;
   }
 }
+
+BAYOL CELL — ACABADO TÁCTIL REALISTA v13
+   Relieve muy contenido para que la iconografía se sienta física:
+   una cara iluminada, un borde refractivo y una sombra interior.
+   El lenguaje se mantiene lineal; el CRM queda fuera de esta capa.
+   ============================================================ */
+:root{
+  --bc-real-orange:#FF6B35;
+  --bc-real-orange-deep:#D65225;
+  --bc-real-orange-pale:#fff1eb;
+  --bc-real-navy:#14213D;
+  --bc-real-highlight:rgba(255,255,255,.96);
+}
+
+/* Iconos de títulos: pequeña pieza de vidrio con volumen, no una pegatina. */
+#app .view:not(#v-crmLinea) h2 > i[class*="ti-"],
+#app .view:not(#v-crmLinea) h3 > i[class*="ti-"],
+#app .view:not(#v-crmLinea) h4 > i[class*="ti-"],
+#app .view:not(#v-crmLinea) .rx-head > i[class*="ti-"]{
+  display:inline-flex !important;
+  align-items:center;
+  justify-content:center;
+  width:32px !important;
+  min-width:32px !important;
+  height:32px !important;
+  padding:7px !important;
+  border-radius:11px !important;
+  color:var(--bc-real-orange) !important;
+  background:
+    radial-gradient(68% 60% at 28% 18%,rgba(255,255,255,.99) 0%,rgba(255,255,255,.74) 34%,transparent 72%),
+    linear-gradient(145deg,#fff 0%,#fff7f3 53%,#ffd9ca 100%) !important;
+  border:1px solid rgba(255,255,255,.98) !important;
+  box-shadow:
+    inset 1px 1px 0 var(--bc-real-highlight),
+    inset -2px -3px 5px rgba(214,82,37,.16),
+    0 2px 0 rgba(214,82,37,.12),
+    0 8px 15px -11px rgba(20,33,61,.58) !important;
+  text-shadow:0 1px 0 rgba(255,255,255,.88);
+  transition:transform .20s cubic-bezier(.22,.8,.28,1),box-shadow .20s ease !important;
+}
+#app .view:not(#v-crmLinea) h2 > i[class*="ti-"]:hover,
+#app .view:not(#v-crmLinea) h3 > i[class*="ti-"]:hover,
+#app .view:not(#v-crmLinea) h4 > i[class*="ti-"]:hover,
+#app .view:not(#v-crmLinea) .rx-head > i[class*="ti-"]:hover{
+  transform:translateY(-1px) rotate(-2deg);
+  box-shadow:
+    inset 1px 1px 0 #fff,
+    inset -2px -3px 5px rgba(214,82,37,.13),
+    0 3px 0 rgba(214,82,37,.12),
+    0 12px 18px -11px rgba(20,33,61,.64) !important;
+}
+
+/* Encabezados oscuros: el icono conserva contraste, pero gana una cara iluminada. */
+#app .view:not(#v-crmLinea) .block-header > i[class*="ti-"]{
+  display:inline-flex !important;
+  align-items:center;
+  justify-content:center;
+  width:30px !important;
+  min-width:30px !important;
+  height:30px !important;
+  padding:7px !important;
+  border-radius:10px !important;
+  color:#fff !important;
+  background:
+    radial-gradient(70% 62% at 28% 16%,rgba(255,255,255,.58) 0%,rgba(255,255,255,.16) 35%,transparent 72%),
+    linear-gradient(145deg,rgba(255,255,255,.28),rgba(255,107,53,.32) 56%,rgba(13,22,43,.42)) !important;
+  border:1px solid rgba(255,255,255,.58) !important;
+  box-shadow:
+    inset 1px 1px 0 rgba(255,255,255,.42),
+    inset -2px -3px 5px rgba(13,22,43,.23),
+    0 6px 12px -10px rgba(0,0,0,.72) !important;
+  text-shadow:0 1px 2px rgba(13,22,43,.45);
+}
+
+/* KPI: volumen leve para que el dato siga siendo el protagonista. */
+#app #v-dashboard .kpi-box i[class*="ti-"]{
+  background:
+    radial-gradient(68% 58% at 28% 16%,#fff 0%,rgba(255,255,255,.72) 35%,transparent 72%),
+    linear-gradient(145deg,#fffdfa 0%,#fff4ef 54%,#ffd9ca 100%) !important;
+  border-color:rgba(255,255,255,.98) !important;
+  box-shadow:
+    inset 1px 1px 0 #fff,
+    inset -2px -3px 5px rgba(214,82,37,.17),
+    0 2px 0 rgba(214,82,37,.13),
+    0 8px 15px -11px rgba(20,33,61,.60) !important;
+  transition:transform .20s cubic-bezier(.22,.8,.28,1),box-shadow .20s ease !important;
+}
+#app #v-dashboard .kpi-box:hover i[class*="ti-"]{
+  transform:translateY(-1px) rotate(-3deg) !important;
+  box-shadow:
+    inset 1px 1px 0 #fff,
+    inset -2px -3px 5px rgba(214,82,37,.13),
+    0 3px 0 rgba(214,82,37,.13),
+    0 12px 20px -11px rgba(20,33,61,.66) !important;
+}
+
+/* Navegación: iconos con una base ligera para que no parezcan texto suelto. */
+#app .nav button > i[class*="ti-"]{
+  display:inline-flex !important;
+  align-items:center;
+  justify-content:center;
+  width:24px !important;
+  min-width:24px !important;
+  height:24px !important;
+  padding:4px !important;
+  border-radius:8px !important;
+  background:linear-gradient(145deg,rgba(255,255,255,.15),rgba(255,255,255,.035)) !important;
+  border:1px solid rgba(255,255,255,.12) !important;
+  box-shadow:
+    inset 1px 1px 0 rgba(255,255,255,.13),
+    inset -2px -2px 4px rgba(0,0,0,.14) !important;
+  text-shadow:0 1px 2px rgba(0,0,0,.30) !important;
+  transition:transform .18s ease,background .18s ease,border-color .18s ease !important;
+}
+#app .nav button:hover > i[class*="ti-"]{
+  background:linear-gradient(145deg,rgba(255,255,255,.24),rgba(255,107,53,.18)) !important;
+  border-color:rgba(255,255,255,.28) !important;
+}
+#app .nav button.active > i[class*="ti-"]{
+  background:linear-gradient(145deg,rgba(255,255,255,.42),rgba(255,255,255,.16)) !important;
+  border-color:rgba(255,255,255,.62) !important;
+  box-shadow:
+    inset 1px 1px 0 rgba(255,255,255,.54),
+    inset -2px -2px 4px rgba(125,34,12,.16),
+    0 5px 10px -9px rgba(125,34,12,.72) !important;
+  text-shadow:0 1px 0 rgba(255,255,255,.34) !important;
+}
+
+/* Botones: el icono recibe luz, pero mantiene la lectura rápida de una acción. */
+#app .view:not(#v-crmLinea) .btn > i[class*="ti-"]{
+  filter:drop-shadow(0 1px 0 rgba(255,255,255,.42));
+  transition:transform .18s cubic-bezier(.22,.8,.28,1),filter .18s ease !important;
+}
+#app .view:not(#v-crmLinea) .btn:hover > i[class*="ti-"]{
+  transform:translateY(-1px) scale(1.04) !important;
+  filter:drop-shadow(0 2px 1px rgba(20,33,61,.24));
+}
+
+@media (prefers-reduced-motion:reduce){
+  #app .view:not(#v-crmLinea) h2 > i[class*="ti-"],
+  #app .view:not(#v-crmLinea) h3 > i[class*="ti-"],
+  #app .view:not(#v-crmLinea) h4 > i[class*="ti-"],
+  #app .view:not(#v-crmLinea) .rx-head > i[class*="ti-"],
+  #app #v-dashboard .kpi-box i[class*="ti-"],
+  #app .nav button > i[class*="ti-"],
+  #app .view:not(#v-crmLinea) .btn > i[class*="ti-"]{
+    transition:none !important;
+  }
+  #app .view:not(#v-crmLinea) h2 > i[class*="ti-"]:hover,
+  #app .view:not(#v-crmLinea) h3 > i[class*="ti-"]:hover,
+  #app .view:not(#v-crmLinea) h4 > i[class*="ti-"]:hover,
+  #app .view:not(#v-crmLinea) .rx-head > i[class*="ti-"]:hover,
+  #app #v-dashboard .kpi-box:hover i[class*="ti-"],
+  #app .view:not(#v-crmLinea) .btn:hover > i[class*="ti-"]{
+    transform:none !important;
+  }
+}
