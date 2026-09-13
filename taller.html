@@ -15,7 +15,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Libre+Barcode+39&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="taller-visual-polish.css?v=20260913-visual13">
+  <link rel="stylesheet" href="taller-visual-polish.css?v=20260913-visual14">
 
 <style>
 :root {
@@ -7668,11 +7668,25 @@ let _notifYaInicializado = false;
 
 // Días configurables para considerar un equipo "demorado" (default 5)
 let _diasDemora = parseInt(localStorage.getItem('bayol_dias_demora') || '5', 10);
+const DEMORAS_POR_PAGINA = 10;
+let _demorasPagina = 0;
 function setDiasDemora(n) {
     _diasDemora = Math.max(1, parseInt(n, 10) || 5);
+    _demorasPagina = 0;
     localStorage.setItem('bayol_dias_demora', _diasDemora);
     if(document.getElementById('v-atencion')?.classList.contains('active')) renderAtencionCliente();
     if(document.getElementById('v-dashboard')?.classList.contains('active')) renderAll();
+}
+function cambiarPaginaDemoras(delta) {
+    const paso = Number(delta) || 0;
+    _demorasPagina = Math.max(0, _demorasPagina + paso);
+    const html = construirAlertaDemoras(true);
+    ['dashboardDemoras', 'atencionDemoras'].forEach(id => {
+        const cont = document.getElementById(id);
+        if(!cont) return;
+        if(id === 'dashboardDemoras' && typeof _pintarSiCambio === 'function') _pintarSiCambio(id, html);
+        else cont.innerHTML = html;
+    });
 }
 // Calcula días transcurridos desde una fecha ISO
 function diasDesde(fechaISO) {
@@ -24576,7 +24590,34 @@ function construirAlertaDemoras(incluirReacond) {
     const ordsDem = ordenesDemoradas();
     const verReacond = incluirReacond && (isAdminUser() || (typeof tienePermiso === 'function' && tienePermiso('refurb_ver')));
     const refDem = verReacond ? reacondDemorados() : [];
-    const total = ordsDem.length + refDem.length;
+    const elementos = [
+        ...ordsDem.map(o => {
+            const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
+            const dias = diasDesde(o.creado_en);
+            return {
+                tipo: 'orden',
+                nombre: `${formatoOrden(o.numero_orden)} · ${c.nombre || 'Cliente'}`,
+                detalle: `${e.marca||''} ${e.modelo||''} · ${etiquetaEstadoTexto(o.estado)}`,
+                dias,
+                color: dias >= _diasDemora*2 ? '#991b1b' : '#ef4444'
+            };
+        }),
+        ...refDem.map(eq => {
+            const dias = diasDesde(eq.creado_en);
+            return {
+                tipo: 'refurb',
+                nombre: `${eq.marca||''} ${eq.modelo||''}`.trim() || 'Equipo',
+                detalle: `Reacondicionado · ${(eq.estado_evaluacion||'').replace(/_/g,' ')}`,
+                dias,
+                color: dias >= _diasDemora*2 ? '#991b1b' : '#f59e0b'
+            };
+        })
+    ];
+    const total = elementos.length;
+    const totalPaginas = Math.max(1, Math.ceil(total / DEMORAS_POR_PAGINA));
+    _demorasPagina = Math.max(0, Math.min(_demorasPagina, totalPaginas - 1));
+    const inicio = _demorasPagina * DEMORAS_POR_PAGINA;
+    const pagina = elementos.slice(inicio, inicio + DEMORAS_POR_PAGINA);
     
     let html = `<div class="card" style="margin-bottom:14px; border-left:4px solid ${total > 0 ? '#ef4444' : '#86efac'};">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
@@ -24599,23 +24640,27 @@ function construirAlertaDemoras(incluirReacond) {
                 </div>
                 <span style="background:${color}; color:#fff; font-size:11px; font-weight:700; padding:3px 9px; border-radius:12px; white-space:nowrap;">${dias} días</span>
             </div>`;
-        ordsDem.forEach(o => {
-            const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
-            const d = diasDesde(o.creado_en);
-            html += fila(`${formatoOrden(o.numero_orden)} · ${c.nombre || 'Cliente'}`, `${e.marca||''} ${e.modelo||''} · ${etiquetaEstadoTexto(o.estado)}`, d, d >= _diasDemora*2 ? '#991b1b' : '#ef4444');
+        let ultimoTipo = '';
+        pagina.forEach(item => {
+            if(item.tipo === 'refurb' && ultimoTipo !== 'refurb') {
+                html += `<div style="font-size:11px; font-weight:700; color:#9a3412; margin:8px 0 4px;">♻️ Reacondicionados demorados</div>`;
+            }
+            html += fila(item.nombre, item.detalle, item.dias, item.color);
+            ultimoTipo = item.tipo;
         });
-        if(verReacond && refDem.length) {
-            html += `<div style="font-size:11px; font-weight:700; color:#9a3412; margin:8px 0 4px;">♻️ Reacondicionados demorados</div>`;
-            refDem.forEach(eq => {
-                const d = diasDesde(eq.creado_en);
-                html += fila(`${eq.marca||''} ${eq.modelo||''}`.trim() || 'Equipo', `Reacondicionado · ${(eq.estado_evaluacion||'').replace(/_/g,' ')}`, d, d >= _diasDemora*2 ? '#991b1b' : '#f59e0b');
-            });
+        const desde = inicio + 1;
+        const hasta = Math.min(inicio + pagina.length, total);
+        if(totalPaginas > 1) {
+            html += `<div class="bc-demoras-pagination" aria-label="Paginación de equipos demorados">
+                <button type="button" class="btn btn-light" onclick="cambiarPaginaDemoras(-1)" ${_demorasPagina === 0 ? 'disabled' : ''} aria-label="Página anterior"><i class="ti ti-chevron-left"></i><span>Anterior</span></button>
+                <span class="bc-demoras-page-label" aria-live="polite">Mostrando ${desde}–${hasta} de ${total}</span>
+                <button type="button" class="btn btn-light" onclick="cambiarPaginaDemoras(1)" ${_demorasPagina >= totalPaginas - 1 ? 'disabled' : ''} aria-label="Página siguiente"><span>Siguiente</span><i class="ti ti-chevron-right"></i></button>
+            </div>`;
         }
     }
     html += `</div>`;
     return html;
 }
-
 // ============================================================
 //   PANEL INTELIGENTE (alertas automáticas + tendencias)
 // ============================================================
@@ -24835,7 +24880,7 @@ function renderAtencionCliente() {
     let html = '';
     
     // SECCIÓN: Alertas de equipos demorados (con reacond si tiene permiso)
-    html += construirAlertaDemoras(true);
+    html += `<div id="atencionDemoras">${construirAlertaDemoras(true)}</div>`;
 
     // SECCIÓN: Equipos sin reparación pendientes de devolver al cliente (solo si hay)
     const sinReparar = ordenes.filter(o => normalizarEstadoOrden(o.estado) === 'no_reparado' && !o.fecha_entregado);

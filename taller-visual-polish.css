@@ -1805,3 +1805,43 @@ BAYOL CELL — ACABADO TÁCTIL REALISTA v13
     transform:none !important;
   }
 }
+
+/* Paginación compacta para revisar alertas sin convertirlas en un muro. */
+#app .view:not(#v-crmLinea) .bc-demoras-pagination{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  margin-top:10px;
+  padding-top:10px;
+  border-top:1px solid rgba(20,33,61,.10);
+}
+#app .view:not(#v-crmLinea) .bc-demoras-pagination .btn{
+  min-height:32px !important;
+  padding:6px 10px !important;
+  border-radius:9px !important;
+  font-size:11px !important;
+  white-space:nowrap;
+}
+#app .view:not(#v-crmLinea) .bc-demoras-pagination .btn i[class*="ti-"]{
+  width:auto !important;
+  min-width:0 !important;
+  height:auto !important;
+  padding:0 !important;
+  border:0 !important;
+  background:none !important;
+  box-shadow:none !important;
+  color:currentColor !important;
+}
+#app .view:not(#v-crmLinea) .bc-demoras-page-label{
+  color:var(--bc-ui-muted);
+  font-size:11px;
+  font-weight:700;
+  text-align:center;
+  white-space:nowrap;
+}
+@media (max-width:560px){
+  #app .view:not(#v-crmLinea) .bc-demoras-pagination .btn span{display:none;}
+  #app .view:not(#v-crmLinea) .bc-demoras-pagination .btn{min-width:34px !important;padding:6px 8px !important;}
+  #app .view:not(#v-crmLinea) .bc-demoras-page-label{font-size:10px;}
+}
