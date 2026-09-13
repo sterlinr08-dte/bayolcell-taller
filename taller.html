@@ -15,7 +15,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Libre+Barcode+39&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="taller-visual-polish.css?v=20260913-visual15">
+  <link rel="stylesheet" href="taller-visual-polish.css?v=20260913-visual16">
 
 <style>
 :root {
@@ -7669,16 +7669,15 @@ let _notifYaInicializado = false;
 // Días configurables para considerar un equipo "demorado" (default 5)
 let _diasDemora = parseInt(localStorage.getItem('bayol_dias_demora') || '5', 10);
 const DEMORAS_POR_PAGINA = 10;
-let _demorasVisibles = DEMORAS_POR_PAGINA;
+let _demorasPagina = 0;
 function setDiasDemora(n) {
     _diasDemora = Math.max(1, parseInt(n, 10) || 5);
-    _demorasVisibles = DEMORAS_POR_PAGINA;
+    _demorasPagina = 0;
     localStorage.setItem('bayol_dias_demora', _diasDemora);
     if(document.getElementById('v-atencion')?.classList.contains('active')) renderAtencionCliente();
     if(document.getElementById('v-dashboard')?.classList.contains('active')) renderAll();
 }
-function mostrarMasDemoras() {
-    _demorasVisibles += DEMORAS_POR_PAGINA;
+function _actualizarBloquesDemoras() {
     const html = construirAlertaDemoras(true);
     ['dashboardDemoras', 'atencionDemoras'].forEach(id => {
         const cont = document.getElementById(id);
@@ -7686,6 +7685,14 @@ function mostrarMasDemoras() {
         if(id === 'dashboardDemoras' && typeof _pintarSiCambio === 'function') _pintarSiCambio(id, html);
         else cont.innerHTML = html;
     });
+}
+function cambiarPaginaDemoras(delta) {
+    _demorasPagina = Math.max(0, _demorasPagina + (Number(delta) || 0));
+    _actualizarBloquesDemoras();
+}
+function irPaginaDemoras(pagina) {
+    _demorasPagina = Math.max(0, (Number(pagina) || 1) - 1);
+    _actualizarBloquesDemoras();
 }
 // Calcula días transcurridos desde una fecha ISO
 function diasDesde(fechaISO) {
@@ -24613,8 +24620,10 @@ function construirAlertaDemoras(incluirReacond) {
         })
     ];
     const total = elementos.length;
-    const visibles = Math.min(total, Math.max(DEMORAS_POR_PAGINA, _demorasVisibles));
-    const elementosVisibles = elementos.slice(0, visibles);
+    const totalPaginas = Math.max(1, Math.ceil(total / DEMORAS_POR_PAGINA));
+    _demorasPagina = Math.max(0, Math.min(_demorasPagina, totalPaginas - 1));
+    const inicio = _demorasPagina * DEMORAS_POR_PAGINA;
+    const pagina = elementos.slice(inicio, inicio + DEMORAS_POR_PAGINA);
     
     let html = `<div class="card" style="margin-bottom:14px; border-left:4px solid ${total > 0 ? '#ef4444' : '#86efac'};">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
@@ -24638,24 +24647,34 @@ function construirAlertaDemoras(incluirReacond) {
                 <span style="background:${color}; color:#fff; font-size:11px; font-weight:700; padding:3px 9px; border-radius:12px; white-space:nowrap;">${dias} días</span>
             </div>`;
         let ultimoTipo = '';
-        elementosVisibles.forEach(item => {
+        pagina.forEach(item => {
             if(item.tipo === 'refurb' && ultimoTipo !== 'refurb') {
                 html += `<div style="font-size:11px; font-weight:700; color:#9a3412; margin:8px 0 4px;">♻️ Reacondicionados demorados</div>`;
             }
             html += fila(item.nombre, item.detalle, item.dias, item.color);
             ultimoTipo = item.tipo;
         });
-        const restantes = total - visibles;
-        if(restantes > 0) {
-            const cantidadSiguiente = Math.min(DEMORAS_POR_PAGINA, restantes);
-            html += `<div class="bc-demoras-stack-footer" aria-label="Carga progresiva de equipos demorados">
-                <span class="bc-demoras-stack-label" aria-live="polite">Mostrando ${visibles} de ${total}</span>
-                <button type="button" class="btn btn-light" onclick="mostrarMasDemoras()" aria-label="Mostrar ${cantidadSiguiente} equipos demorados más"><i class="ti ti-plus"></i><span>Ver ${cantidadSiguiente} más</span></button>
-            </div>`;
-        } else if(total > DEMORAS_POR_PAGINA) {
-            html += `<div class="bc-demoras-stack-footer" aria-label="Equipos demorados visibles">
-                <span class="bc-demoras-stack-label" aria-live="polite">Mostrando todos los ${total} equipos demorados</span>
-            </div>`;
+        const desde = inicio + 1;
+        const hasta = Math.min(inicio + pagina.length, total);
+        if(totalPaginas > 1) {
+            const paginas = Array.from(new Set([
+                0,
+                totalPaginas - 1,
+                ...Array.from({length:3}, (_, i) => _demorasPagina - 1 + i).filter(n => n >= 0 && n < totalPaginas)
+            ])).sort((a,b) => a - b);
+            const controles = [];
+            let anterior = -1;
+            paginas.forEach(n => {
+                if(n - anterior > 1) controles.push(`<span class="bc-demoras-page-ellipsis" aria-hidden="true">…</span>`);
+                controles.push(`<button type="button" class="bc-demoras-page${n === _demorasPagina ? ' is-active' : ''}" onclick="irPaginaDemoras(${n + 1})" aria-label="Ir a la página ${n + 1}" ${n === _demorasPagina ? 'aria-current="page"' : ''}>${n + 1}</button>`);
+                anterior = n;
+            });
+            html += `<div class="bc-demoras-pagination" aria-label="Paginación de equipos demorados">
+                <button type="button" class="bc-demoras-page-arrow" onclick="cambiarPaginaDemoras(-1)" ${_demorasPagina === 0 ? 'disabled' : ''} aria-label="Página anterior"><i class="ti ti-chevron-left"></i></button>
+                <div class="bc-demoras-page-numbers">${controles.join('')}</div>
+                <button type="button" class="bc-demoras-page-arrow" onclick="cambiarPaginaDemoras(1)" ${_demorasPagina >= totalPaginas - 1 ? 'disabled' : ''} aria-label="Página siguiente"><i class="ti ti-chevron-right"></i></button>
+            </div>
+            <div class="bc-demoras-page-summary" aria-live="polite">Mostrando ${desde}–${hasta} de ${total} · 10 por página</div>`;
         }
     }
     html += `</div>`;

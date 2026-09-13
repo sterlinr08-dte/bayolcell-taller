@@ -1806,25 +1806,79 @@ BAYOL CELL — ACABADO TÁCTIL REALISTA v13
   }
 }
 
-/* Carga progresiva: cada tanda se apila debajo de la anterior. */
-#app .view:not(#v-crmLinea) .bc-demoras-stack-footer{
+/* Paginación numerada inspirada en la referencia: compacta y táctil. */
+#app .view:not(#v-crmLinea) .bc-demoras-pagination{
   display:flex;
   align-items:center;
-  justify-content:space-between;
+  justify-content:center;
+  gap:10px;
+  width:fit-content;
+  max-width:100%;
+  margin:14px auto 0;
+  padding:10px 12px;
+  border:1px solid rgba(20,33,61,.12);
+  border-radius:20px;
+  background:
+    radial-gradient(80% 120% at 50% 0%,rgba(255,255,255,.96),rgba(235,244,249,.72)),
+    linear-gradient(145deg,#f8fbfd,#e5eef5);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.98),
+    0 12px 25px -20px rgba(20,33,61,.62);
+}
+#app .view:not(#v-crmLinea) .bc-demoras-page-numbers{
+  display:flex;
+  align-items:center;
   gap:8px;
-  flex-wrap:wrap;
-  margin-top:10px;
-  padding-top:10px;
-  border-top:1px solid rgba(20,33,61,.10);
+  min-width:0;
+  max-width:100%;
+  overflow-x:auto;
+  scrollbar-width:none;
 }
-#app .view:not(#v-crmLinea) .bc-demoras-stack-footer .btn{
-  min-height:32px !important;
-  padding:6px 10px !important;
-  border-radius:9px !important;
-  font-size:11px !important;
-  white-space:nowrap;
+#app .view:not(#v-crmLinea) .bc-demoras-page-numbers::-webkit-scrollbar{display:none;}
+#app .view:not(#v-crmLinea) .bc-demoras-page,
+#app .view:not(#v-crmLinea) .bc-demoras-page-arrow{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  flex:0 0 auto;
+  width:48px !important;
+  min-width:48px !important;
+  height:48px !important;
+  min-height:48px !important;
+  padding:0 !important;
+  border:1px solid rgba(20,33,61,.10) !important;
+  border-radius:50% !important;
+  background:rgba(255,255,255,.82) !important;
+  color:var(--bc-ui-navy) !important;
+  font-size:16px !important;
+  font-weight:800 !important;
+  line-height:1 !important;
+  box-shadow:
+    inset 1px 1px 0 rgba(255,255,255,.98),
+    0 5px 11px -9px rgba(20,33,61,.72) !important;
+  transition:transform .18s ease,background .18s ease,border-color .18s ease,box-shadow .18s ease !important;
 }
-#app .view:not(#v-crmLinea) .bc-demoras-stack-footer .btn i[class*="ti-"]{
+#app .view:not(#v-crmLinea) .bc-demoras-page.is-active{
+  border-color:rgba(255,255,255,.86) !important;
+  background:linear-gradient(145deg,#ff9a7a,#FF6B35 55%,#D65225) !important;
+  color:var(--bc-ui-navy) !important;
+  box-shadow:
+    inset 1px 1px 0 rgba(255,255,255,.58),
+    inset -2px -3px 5px rgba(125,34,12,.18),
+    0 7px 13px -9px rgba(214,82,37,.78) !important;
+}
+#app .view:not(#v-crmLinea) .bc-demoras-page:hover:not(.is-active),
+#app .view:not(#v-crmLinea) .bc-demoras-page-arrow:hover:not(:disabled){
+  transform:translateY(-1px);
+  border-color:rgba(255,107,53,.42) !important;
+  background:rgba(255,244,239,.96) !important;
+}
+#app .view:not(#v-crmLinea) .bc-demoras-page-arrow:disabled{
+  opacity:.42;
+  cursor:not-allowed;
+  box-shadow:none !important;
+}
+#app .view:not(#v-crmLinea) .bc-demoras-page-arrow i[class*="ti-"]{
   width:auto !important;
   min-width:0 !important;
   height:auto !important;
@@ -1834,15 +1888,33 @@ BAYOL CELL — ACABADO TÁCTIL REALISTA v13
   box-shadow:none !important;
   color:currentColor !important;
 }
-#app .view:not(#v-crmLinea) .bc-demoras-stack-label{
+#app .view:not(#v-crmLinea) .bc-demoras-page-ellipsis{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  flex:0 0 auto;
+  width:22px;
   color:var(--bc-ui-muted);
-  font-size:11px;
+  font-size:19px;
+  font-weight:800;
+}
+#app .view:not(#v-crmLinea) .bc-demoras-page-summary{
+  margin-top:7px;
+  color:var(--bc-ui-muted);
+  font-size:10.5px;
   font-weight:700;
   text-align:center;
-  white-space:nowrap;
 }
 @media (max-width:560px){
-  #app .view:not(#v-crmLinea) .bc-demoras-stack-footer{justify-content:center;}
-  #app .view:not(#v-crmLinea) .bc-demoras-stack-label{width:100%;font-size:10px;}
-  #app .view:not(#v-crmLinea) .bc-demoras-stack-footer .btn{flex:1;min-width:0 !important;padding:6px 8px !important;}
+  #app .view:not(#v-crmLinea) .bc-demoras-pagination{gap:5px;padding:8px 7px;border-radius:18px;}
+  #app .view:not(#v-crmLinea) .bc-demoras-page-numbers{gap:4px;}
+  #app .view:not(#v-crmLinea) .bc-demoras-page,
+  #app .view:not(#v-crmLinea) .bc-demoras-page-arrow{
+    width:40px !important;
+    min-width:40px !important;
+    height:40px !important;
+    min-height:40px !important;
+    font-size:14px !important;
+  }
+  #app .view:not(#v-crmLinea) .bc-demoras-page-ellipsis{width:15px;font-size:16px;}
 }
