@@ -47,12 +47,33 @@
     openBox: null // {commentId, mode:'reply'|'private'}
   };
 
+  // Códigos técnicos que devuelve social-facebook-comentarios (o Supabase al
+  // fallar la llamada) -> mensaje en español entendible para el equipo.
+  const FBC_ERRORES = {
+    account_not_configured: 'No hay una cuenta de Facebook conectada todavía.',
+    postId_required: 'Falta elegir una publicación.',
+    postId_message_required: 'Escribe un mensaje antes de enviar.',
+    postId_commentId_message_required: 'Escribe un mensaje antes de enviar.',
+    zernio_error: 'Facebook no respondió. Intenta de nuevo en un momento.',
+    zernio_reply_failed: 'No se pudo publicar la respuesta. Puede que el comentario ya no exista.',
+    zernio_private_reply_failed: 'No se pudo enviar el Private Reply. Puede que ya se haya usado el único envío de este comentario, o que tenga más de 7 días.',
+    unknown_action: 'Acción no reconocida.',
+    upstream_failed: 'Facebook no respondió. Intenta de nuevo en un momento.',
+    missing_auth: 'Tu sesión venció. Vuelve a entrar.',
+    zernio_key_not_configured: 'Falta configurar la conexión con Facebook (avisa a soporte).',
+    method_not_allowed: 'No se pudo completar la acción.',
+    invalid_json: 'No se pudo completar la acción.'
+  };
+  function fbcFriendly(msg){
+    return FBC_ERRORES[msg] || msg || 'No se pudo completar la acción.';
+  }
+
   async function fbcInvoke(action, extra){
     const client = typeof supabaseClient !== 'undefined' ? supabaseClient : window.supabaseClient;
     if (!client?.functions?.invoke) throw new Error('Sin conexión a Supabase.');
     const { data, error } = await withTimeout(client.functions.invoke('social-facebook-comentarios', { body: { action, ...extra } }), 18000);
-    if (error) throw error;
-    if (data?.ok !== true) throw new Error(data?.error || 'No se pudo completar la acción.');
+    if (error) throw new Error(fbcFriendly(error?.message));
+    if (data?.ok !== true) throw new Error(fbcFriendly(data?.error));
     return data;
   }
 
@@ -280,6 +301,17 @@
     const panel = $('#bcSocialContextPanel');
     if (!panel) return;
     panel.classList.add('bc-fbc-active');
+    // Si ya estaba armado (el agente solo se fue a otra sub-pestaña — p.ej.
+    // Mensajes — y volvió a Comentarios), no se reconstruye de cero: se
+    // pierde la publicación/comentarios que tenía abiertos si no se hace
+    // este chequeo (antes recargaba las publicaciones y mostraba de nuevo
+    // "Elige una publicación" cada vez).
+    if (panel.dataset.fbcBuilt === '1' && $('#bcFbcPostsList', panel)) {
+      fbcRenderPosts();
+      if (fbc.postId) fbcRenderComments();
+      return;
+    }
+    panel.dataset.fbcBuilt = '1';
     panel.innerHTML = `
       <div class="bc-fbc-shell">
         <aside class="bc-fbc-posts">
@@ -398,18 +430,25 @@
 
   async function loadFbcComments(postId, more){
     if (!more) { fbc.postId = postId; fbc.comments = []; fbc.commentsCursor = null; }
+    // Si el agente hace clic en otra publicación antes de que esta respuesta
+    // llegue, una respuesta tardía no debe pisar los comentarios del post
+    // que quedó seleccionado despues (se compara contra el postId vigente).
+    const idPedido = fbc.postId;
     fbc.commentsError = null; fbc.commentsLoading = true;
     fbcRenderPosts();
     fbcRenderComments();
     try {
-      const data = await fbcInvoke('comments', { postId: fbc.postId, limit: 50, cursor: fbc.commentsCursor || undefined });
+      const data = await fbcInvoke('comments', { postId: idPedido, limit: 50, cursor: fbc.commentsCursor || undefined });
+      if (fbc.postId !== idPedido) return;
       const nuevos = data.comments || [];
       fbc.comments = more ? fbc.comments.concat(nuevos) : nuevos;
       fbc.commentsHasMore = !!data.pagination?.hasMore;
       fbc.commentsCursor = data.pagination?.cursor || null;
     } catch (e) {
+      if (fbc.postId !== idPedido) return;
       fbc.commentsError = e?.message || 'Error de conexión con Facebook.';
     } finally {
+      if (fbc.postId !== idPedido) return;
       fbc.commentsLoading = false;
       fbcRenderComments();
     }
@@ -756,7 +795,7 @@
     // usarla para cualquier otra vista pendiente (menciones IG, TikTok, etc.).
     panel.classList.remove('bc-fbc-active');
     let card=$('.bc-social-context-card',panel);
-    if(!card){ panel.innerHTML='<div class="bc-social-context-card"></div>'; card=$('.bc-social-context-card',panel); }
+    if(!card){ panel.innerHTML='<div class="bc-social-context-card"></div>'; card=$('.bc-social-context-card',panel); delete panel.dataset.fbcBuilt; }
     if(!card) return;
     const info=contextInfo();
     const meta=state.meta[state.channel];
