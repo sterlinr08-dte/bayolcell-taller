@@ -997,3 +997,366 @@ body{background:#f6f7f9 !important;}
     filter:none !important;
   }
 }
+
+/* ============================================================
+   BAYOL CELL — GLASS OPERATIVO v2
+   Adaptación del lenguaje Glass de la referencia:
+   superficies translúcidas, borde refractivo, luz superior,
+   profundidad suave y acento navy/orange. Se aplica al Taller
+   operativo; CRM Redes conserva su sistema visual propio.
+   ============================================================ */
+:root{
+  --bc-glass-navy:#14213D;
+  --bc-glass-navy-deep:#0d162b;
+  --bc-glass-blue:#294878;
+  --bc-glass-orange:#FF6B35;
+  --bc-glass-orange-dark:#D65225;
+  --bc-glass-orange-soft:#ff9a7a;
+  --bc-glass-white:rgba(255,255,255,.86);
+  --bc-glass-border:rgba(255,255,255,.88);
+  --bc-glass-shadow:0 18px 38px -26px rgba(20,33,61,.50);
+}
+
+/* Fondo operativo: profundidad visual discreta sin animar la pantalla completa. */
+#app .content{
+  background:
+    radial-gradient(760px 360px at 88% -12%,rgba(255,107,53,.10),transparent 72%),
+    radial-gradient(700px 340px at 2% 0%,rgba(20,33,61,.10),transparent 70%),
+    var(--bc-bg) !important;
+  animation:none !important;
+}
+
+/* Barra lateral: navy estable con una capa de vidrio contenida. */
+#app .sidebar{
+  background:
+    linear-gradient(160deg,rgba(20,33,61,.99),rgba(13,22,43,.985)) !important;
+  color:rgba(255,255,255,.92) !important;
+  border-right:1px solid rgba(255,255,255,.14) !important;
+  box-shadow:10px 0 30px -22px rgba(13,22,43,.72) !important;
+  backdrop-filter:blur(18px) saturate(145%) !important;
+  -webkit-backdrop-filter:blur(18px) saturate(145%) !important;
+}
+#app .side-brand{
+  background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(255,255,255,.035)) !important;
+  border-bottom:1px solid rgba(255,255,255,.14) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18) !important;
+}
+#app .brand-icon{
+  background:linear-gradient(145deg,#ff9a7a 0%,#FF6B35 48%,#D65225 100%) !important;
+  color:var(--bc-glass-navy) !important;
+  border:1px solid rgba(255,255,255,.66) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.58),
+    inset 0 -4px 9px rgba(125,34,12,.25),
+    0 12px 24px -14px rgba(255,107,53,.82) !important;
+}
+#app .brand-text h3{color:#fff !important;}
+#app .brand-text small{color:rgba(255,255,255,.58) !important;}
+#app .nav-section{color:rgba(255,255,255,.54) !important;}
+#app .nav button{
+  background:transparent !important;
+  color:rgba(255,255,255,.78) !important;
+  border-color:transparent !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06) !important;
+}
+#app .nav button:hover{
+  background:linear-gradient(145deg,rgba(255,255,255,.14),rgba(255,255,255,.055)) !important;
+  color:#fff !important;
+  border-color:rgba(255,255,255,.18) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.20),
+    0 8px 18px -15px rgba(255,107,53,.72) !important;
+}
+#app .nav button.active{
+  background:linear-gradient(145deg,rgba(255,154,122,.98),rgba(255,107,53,.94) 52%,rgba(214,82,37,.96)) !important;
+  color:var(--bc-glass-navy) !important;
+  border-color:rgba(255,255,255,.72) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.55),
+    inset 0 -3px 8px rgba(125,34,12,.17),
+    0 12px 24px -16px rgba(255,107,53,.86) !important;
+}
+#app .nav button.active i{color:var(--bc-glass-navy) !important;}
+#app .nav button > i[class*="ti-"]{text-shadow:0 1px 2px rgba(0,0,0,.28) !important;}
+#app .nav button.active > i[class*="ti-"]{text-shadow:0 1px 0 rgba(255,255,255,.30) !important;}
+#app .side-user{
+  background:linear-gradient(145deg,rgba(255,255,255,.13),rgba(255,255,255,.045)) !important;
+  color:#fff !important;
+  border:1px solid rgba(255,255,255,.15) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.16),
+    0 10px 22px -18px rgba(0,0,0,.74) !important;
+}
+#app .profile-info h4{color:#fff !important;}
+#app .profile-info small{color:#a7f3d0 !important;}
+
+/* Barra superior: navy + cristal de baja transparencia para no perder contraste. */
+#app .top-bar{
+  background:
+    linear-gradient(110deg,rgba(20,33,61,.99),rgba(13,22,43,.965)) !important;
+  color:#fff !important;
+  border-bottom:1px solid rgba(255,107,53,.72) !important;
+  box-shadow:
+    0 10px 26px -22px rgba(13,22,43,.82),
+    inset 0 1px 0 rgba(255,255,255,.12) !important;
+  backdrop-filter:blur(18px) saturate(150%) !important;
+  -webkit-backdrop-filter:blur(18px) saturate(150%) !important;
+}
+#app .top-title{color:#fff !important;}
+#app .top-right-info{
+  background:linear-gradient(145deg,rgba(255,154,122,.98),rgba(214,82,37,.95)) !important;
+  color:var(--bc-glass-navy) !important;
+  border-color:rgba(255,255,255,.56) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.42),
+    0 8px 18px -14px rgba(255,107,53,.84) !important;
+}
+#app .top-bar .btn-light{
+  background:linear-gradient(145deg,rgba(255,255,255,.23),rgba(255,255,255,.08)) !important;
+  color:#fff !important;
+  border-color:rgba(255,255,255,.34) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.24),
+    inset 0 -2px 5px rgba(0,0,0,.12),
+    0 7px 16px -14px rgba(0,0,0,.78) !important;
+  backdrop-filter:blur(12px) saturate(145%) !important;
+  -webkit-backdrop-filter:blur(12px) saturate(145%) !important;
+}
+#app .top-bar .btn-light:hover{
+  background:linear-gradient(145deg,rgba(255,255,255,.36),rgba(255,107,53,.30)) !important;
+  color:#fff !important;
+  border-color:rgba(255,255,255,.72) !important;
+}
+#app .menu-toggle{
+  background:linear-gradient(145deg,#ff9a7a,#FF6B35 54%,#D65225) !important;
+  color:var(--bc-glass-navy) !important;
+  border-color:#FF6B35 !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.48),
+    0 9px 18px -14px rgba(255,107,53,.84) !important;
+}
+
+/* Tarjetas operativas: vidrio frosted con lectura estable. CRM queda fuera. */
+#app .view:not(#v-crmLinea) .card,
+#app .view:not(#v-crmLinea) .block-card,
+#app .view:not(#v-crmLinea) .prov-card,
+#app .view:not(#v-crmLinea) .refurb-item-card,
+#app .view:not(#v-crmLinea) .lote-card,
+#app .view:not(#v-crmLinea) .inc-card,
+#app .view:not(#v-crmLinea) .fe-card,
+#app .view:not(#v-crmLinea) .fin-click-card{
+  background:
+    linear-gradient(145deg,rgba(255,255,255,.86),rgba(255,247,243,.62)) !important;
+  border:1px solid var(--bc-glass-border) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.98),
+    inset 0 -1px 0 rgba(20,33,61,.055),
+    var(--bc-glass-shadow),
+    0 6px 16px -14px rgba(255,107,53,.25) !important;
+  backdrop-filter:blur(17px) saturate(145%) !important;
+  -webkit-backdrop-filter:blur(17px) saturate(145%) !important;
+}
+#app .view:not(#v-crmLinea) .card:hover,
+#app .view:not(#v-crmLinea) .prov-card:hover,
+#app .view:not(#v-crmLinea) .refurb-item-card:hover,
+#app .view:not(#v-crmLinea) .fin-click-card:hover{
+  border-color:rgba(255,194,173,.95) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,1),
+    0 20px 42px -27px rgba(20,33,61,.58),
+    0 8px 18px -14px rgba(255,107,53,.32) !important;
+}
+#app .view:not(#v-crmLinea) .kpi-box{
+  background:
+    linear-gradient(145deg,rgba(255,255,255,.88),rgba(255,247,243,.64)) !important;
+  border:1px solid var(--bc-glass-border) !important;
+  border-top:3px solid var(--bc-glass-orange) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.98),
+    inset 0 -1px 0 rgba(20,33,61,.055),
+    0 16px 34px -25px rgba(20,33,61,.50),
+    0 6px 16px -13px rgba(255,107,53,.28) !important;
+  backdrop-filter:blur(17px) saturate(145%) !important;
+  -webkit-backdrop-filter:blur(17px) saturate(145%) !important;
+}
+#app .view:not(#v-crmLinea) .kpi-box:hover{
+  border-top-color:#ff8256 !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,1),
+    0 20px 40px -27px rgba(20,33,61,.58),
+    0 8px 20px -14px rgba(255,107,53,.34) !important;
+}
+
+/* Encabezados y tablas: contraste semántico, sin volverlos pesados. */
+#app .view:not(#v-crmLinea) .block-header{
+  background:linear-gradient(135deg,rgba(20,33,61,.97),rgba(41,72,120,.94)) !important;
+  color:#fff !important;
+  border-bottom:1px solid rgba(255,255,255,.20) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22) !important;
+}
+#app .view:not(#v-crmLinea) .block-header i[class*="ti-"]{
+  color:#fff !important;
+  background:linear-gradient(145deg,rgba(255,255,255,.28),rgba(255,107,53,.25)) !important;
+  border-color:rgba(255,255,255,.46) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.38),
+    inset 0 -3px 6px rgba(13,22,43,.20),
+    0 7px 14px -11px rgba(0,0,0,.70) !important;
+}
+#app .view:not(#v-crmLinea) .data-table,
+#app .view:not(#v-crmLinea) .table-wrap{
+  background:rgba(255,255,255,.58) !important;
+  border-color:rgba(255,255,255,.88) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.92),
+    0 14px 30px -24px rgba(20,33,61,.42) !important;
+  backdrop-filter:blur(14px) saturate(135%) !important;
+  -webkit-backdrop-filter:blur(14px) saturate(135%) !important;
+}
+#app .view:not(#v-crmLinea) table{background:rgba(255,255,255,.64) !important;}
+#app .view:not(#v-crmLinea) th{
+  background:rgba(20,33,61,.075) !important;
+  color:var(--bc-glass-navy) !important;
+  border-bottom-color:rgba(20,33,61,.12) !important;
+}
+#app .view:not(#v-crmLinea) tbody tr:hover td{
+  background:rgba(255,107,53,.085) !important;
+}
+
+/* Iconografía: superficies cuadradas suaves, con luz y profundidad realistas. */
+#app .view:not(#v-crmLinea) .block-header i[class*="ti-"],
+#app .view:not(#v-crmLinea) .rx-head i[class*="ti-"],
+#app .view:not(#v-crmLinea) h4 > i[class*="ti-"],
+#app .view:not(#v-crmLinea) .kpi-box i[class*="ti-"]{
+  border-radius:10px !important;
+  border-color:rgba(255,255,255,.72) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.92),
+    inset 0 -4px 8px rgba(20,33,61,.075),
+    0 8px 16px -13px rgba(20,33,61,.52) !important;
+}
+#app .view:not(#v-crmLinea) .rx-head i[class*="ti-"],
+#app .view:not(#v-crmLinea) h4 > i[class*="ti-"],
+#app .view:not(#v-crmLinea) .kpi-box i[class*="ti-"]{
+  color:var(--bc-glass-orange) !important;
+  background:linear-gradient(145deg,rgba(255,255,255,.82),rgba(255,107,53,.18)) !important;
+}
+#app .view:not(#v-crmLinea) .block-header i[class*="ti-"]{
+  color:#fff !important;
+}
+
+/* Acciones: cápsulas Glass; los estados peligro/éxito mantienen su semántica. */
+#app .view:not(#v-crmLinea) .btn-blue{
+  background:linear-gradient(145deg,#ff9a7a 0%,#FF6B35 48%,#D65225 100%) !important;
+  color:var(--bc-glass-navy) !important;
+  border:1px solid rgba(255,255,255,.74) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.52),
+    inset 0 -3px 7px rgba(125,34,12,.18),
+    0 10px 20px -14px rgba(255,107,53,.80) !important;
+}
+#app .view:not(#v-crmLinea) .btn-blue:hover{
+  background:linear-gradient(145deg,#ffad92 0%,#ff8256 52%,#FF6B35 100%) !important;
+  border-color:rgba(255,255,255,.90) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.66),
+    0 13px 24px -15px rgba(255,107,53,.88) !important;
+}
+#app .view:not(#v-crmLinea) .btn-light{
+  background:linear-gradient(145deg,rgba(255,255,255,.84),rgba(255,247,243,.58)) !important;
+  color:var(--bc-glass-navy) !important;
+  border-color:rgba(255,255,255,.90) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.98),
+    inset 0 -2px 5px rgba(20,33,61,.05),
+    0 8px 16px -14px rgba(20,33,61,.48) !important;
+  backdrop-filter:blur(12px) saturate(140%) !important;
+  -webkit-backdrop-filter:blur(12px) saturate(140%) !important;
+}
+#app .view:not(#v-crmLinea) .btn-light:hover{
+  background:linear-gradient(145deg,rgba(255,255,255,.96),rgba(255,237,230,.78)) !important;
+  border-color:#ffc2ad !important;
+  color:var(--bc-glass-orange-dark) !important;
+}
+#app .view:not(#v-crmLinea) .btn-dark{
+  background:linear-gradient(145deg,#294878,#14213D 58%,#0d162b) !important;
+  color:#fff !important;
+  border:1px solid rgba(255,255,255,.30) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.20),
+    inset 0 -3px 8px rgba(0,0,0,.18),
+    0 10px 20px -14px rgba(20,33,61,.78) !important;
+}
+#app .view:not(#v-crmLinea) .btn-dark:hover{
+  background:linear-gradient(145deg,#3b6094,#294878 58%,#14213D) !important;
+  border-color:rgba(255,255,255,.48) !important;
+}
+#app .view:not(#v-crmLinea) .btn-success,
+#app .view:not(#v-crmLinea) .btn-danger,
+#app .view:not(#v-crmLinea) .btn-teal{
+  border:1px solid rgba(255,255,255,.54) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.32),0 9px 18px -14px rgba(20,33,61,.55) !important;
+}
+#app .view:not(#v-crmLinea) .btn{
+  transition:
+    background .20s ease,
+    border-color .20s ease,
+    box-shadow .20s ease,
+    color .20s ease,
+    transform .16s cubic-bezier(.22,.8,.28,1) !important;
+}
+#app .view:not(#v-crmLinea) .btn:focus-visible,
+#app .view:not(#v-crmLinea) a:focus-visible,
+#app .view:not(#v-crmLinea) input:focus-visible,
+#app .view:not(#v-crmLinea) select:focus-visible,
+#app .view:not(#v-crmLinea) textarea:focus-visible{
+  outline:3px solid rgba(255,107,53,.34) !important;
+  outline-offset:2px !important;
+}
+
+/* Campos: frosted ligero y foco naranja consistente con el CTA. */
+#app .view:not(#v-crmLinea) input:not([type="checkbox"]):not([type="radio"]),
+#app .view:not(#v-crmLinea) select,
+#app .view:not(#v-crmLinea) textarea{
+  background:rgba(255,255,255,.76) !important;
+  border-color:rgba(255,255,255,.92) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.98),
+    0 5px 12px -12px rgba(20,33,61,.48) !important;
+  backdrop-filter:blur(10px) saturate(130%) !important;
+  -webkit-backdrop-filter:blur(10px) saturate(130%) !important;
+}
+#app .view:not(#v-crmLinea) input:not([type="checkbox"]):not([type="radio"]):focus,
+#app .view:not(#v-crmLinea) select:focus,
+#app .view:not(#v-crmLinea) textarea:focus{
+  border-color:rgba(255,107,53,.72) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,1),
+    0 0 0 3px rgba(255,107,53,.14),
+    0 8px 16px -14px rgba(255,107,53,.46) !important;
+}
+
+/* Fallback: la interfaz sigue siendo sólida en navegadores sin blur. */
+@supports not ((backdrop-filter:blur(1px))){
+  #app .view:not(#v-crmLinea) .card,
+  #app .view:not(#v-crmLinea) .block-card,
+  #app .view:not(#v-crmLinea) .prov-card,
+  #app .view:not(#v-crmLinea) .refurb-item-card,
+  #app .view:not(#v-crmLinea) .lote-card,
+  #app .view:not(#v-crmLinea) .inc-card,
+  #app .view:not(#v-crmLinea) .fe-card,
+  #app .view:not(#v-crmLinea) .fin-click-card,
+  #app .view:not(#v-crmLinea) .kpi-box{
+    background:#fff !important;
+  }
+}
+@media (prefers-reduced-motion:reduce){
+  #app .content,
+  #app .view:not(#v-crmLinea) .btn,
+  #app .view:not(#v-crmLinea) .card,
+  #app .view:not(#v-crmLinea) .kpi-box{
+    animation:none !important;
+    transition:none !important;
+  }
+}
+

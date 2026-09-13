@@ -8,6 +8,8 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 //   GET  /v1/inbox/comments/{postId}?accountId=X   -> comentarios de esa publicacion
 //   POST /v1/inbox/comments/{postId}                -> responder (publico o a un comentario)
 //   POST /v1/inbox/comments/{postId}/{commentId}/private-reply -> Private Reply (DM)
+//   POST /v1/inbox/comments/{postId}/{commentId}/like -> like al comentario
+//   DELETE /v1/inbox/comments/{postId}/{commentId}/like -> retirar like
 const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 const ZERNIO_KEY = Deno.env.get("ZERNIO_API_KEY") ?? "";
 const BASE = "https://zernio.com/api/v1";
@@ -43,6 +45,7 @@ Deno.serve(async (req) => {
   const postId = body.postId ? String(body.postId) : "";
   const commentId = body.commentId ? String(body.commentId) : "";
   const message = body.message ? String(body.message).trim() : "";
+  const likeUri = body.likeUri ? String(body.likeUri) : "";
   const cursor = body.cursor ? String(body.cursor) : "";
   const limit = Number.isFinite(body.limit) ? Math.min(100, Math.max(1, Number(body.limit))) : null;
 
@@ -67,6 +70,27 @@ Deno.serve(async (req) => {
       if (cursor) qs.set("cursor", cursor);
       const r = await zernio(`/inbox/comments/${encodeURIComponent(postId)}?${qs.toString()}`);
       if (!r.ok) return out({ ok: false, error: "zernio_error", detail: r.body }, 502);
+      return out({ ok: true, ...r.body });
+    }
+
+    if (action === "like") {
+      if (!postId || !commentId) return out({ ok: false, error: "postId_commentId_required" }, 400);
+      const r = await zernio(`/inbox/comments/${encodeURIComponent(postId)}/${encodeURIComponent(commentId)}/like`, {
+        method: "POST",
+        body: JSON.stringify({ accountId }),
+      });
+      if (!r.ok || r.body?.success === false) return out({ ok: false, error: "zernio_like_failed", detail: r.body }, 502);
+      return out({ ok: true, ...r.body });
+    }
+
+    if (action === "unlike") {
+      if (!postId || !commentId) return out({ ok: false, error: "postId_commentId_required" }, 400);
+      const qs = new URLSearchParams({ accountId });
+      if (likeUri) qs.set("likeUri", likeUri);
+      const r = await zernio(`/inbox/comments/${encodeURIComponent(postId)}/${encodeURIComponent(commentId)}/like?${qs.toString()}`, {
+        method: "DELETE",
+      });
+      if (!r.ok || r.body?.success === false) return out({ ok: false, error: "zernio_unlike_failed", detail: r.body }, 502);
       return out({ ok: true, ...r.body });
     }
 
