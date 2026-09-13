@@ -8,14 +8,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#dc2626">
+<meta name="theme-color" content="#14213D">
 <title>SISTEMA TALLER BAYOL CELL</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Libre+Barcode+39&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="taller-visual-polish.css?v=20260913-visual10">
+  <link rel="stylesheet" href="taller-visual-polish.css?v=20260913-visual17">
 
 <style>
 :root {
@@ -2233,7 +2233,7 @@ body{
                     <div class="card">
                         <h3 style="margin:0 0 15px 0; font-size:15px; font-weight:700;">Monitoreo de Órdenes Recientes</h3>
                         <div class="table-wrap">
-                            <table>
+                            <table class="recent-orders-table">
                                 <thead>
                                     <tr><th>Orden</th><th>Cliente</th><th>Equipo</th><th>Falla</th><th>Estado</th></tr>
                                 </thead>
@@ -2579,6 +2579,7 @@ body{
                                 <tbody id="partsTable"></tbody>
                             </table>
                         </div>
+                        <div id="partsPagination"></div>
                     </div>
 
                     <div class="card" id="assetsAdminCard" style="border-top: 4px solid #f59e0b;">
@@ -2608,6 +2609,7 @@ body{
                                 </tbody>
                             </table>
                         </div>
+                        <div id="assetsPagination"></div>
                     </div>
                 </div>
             </div>
@@ -2985,6 +2987,7 @@ body{
                             <div id="comprasContainer" style="display:flex; flex-direction:column; gap:10px;">
                                 <p style="color:var(--text-muted); text-align:center; padding:20px;">Cargando compras...</p>
                             </div>
+                            <div id="comprasPagination"></div>
                         </div>
                         
                         <!-- TAB CONTENT: PROVEEDORES -->
@@ -2993,6 +2996,7 @@ body{
                             <div id="proveedoresContainer" style="display:flex; flex-direction:column; gap:10px;">
                                 <p style="color:var(--text-muted); text-align:center;">Cargando proveedores...</p>
                             </div>
+                            <div id="proveedoresPagination"></div>
                         </div>
                     </div>
                 </div>
@@ -3215,6 +3219,7 @@ body{
                         <div id="lotesReacondContainer">
                             <p style="color:var(--text-muted); text-align:center; padding:20px;">Cargando...</p>
                         </div>
+                        <div id="lotesReacondPagination"></div>
                     </div>
                 </div>
                 
@@ -3314,6 +3319,7 @@ body{
                             </select>
                         </div>
                         <div id="reacondEquiposLista"></div>
+                        <div id="reacondEquiposPagination"></div>
                     </div>
                 </div>
                 </div>
@@ -3362,6 +3368,7 @@ body{
                         <div id="devolucionesLista">
                             <p style="color:var(--text-muted); text-align:center; padding:30px; font-size:13px;">Cargando devoluciones...</p>
                         </div>
+                        <div id="devolucionesPagination"></div>
                     </div>
                 </div>
                 <!-- /CONTENIDO PESTAÑA DEVOLUCIONES -->
@@ -3498,6 +3505,7 @@ body{
                             <b><i class="ti ti-info-circle"></i> Aquí gestionas los técnicos que trabajarán los equipos.</b> Asígnales un rol para definir qué pueden hacer.
                         </div>
                         <div id="tecnicosLista"></div>
+                        <div id="tecnicosPagination"></div>
                     </div>
                 </div>
                 
@@ -3514,6 +3522,7 @@ body{
                         <div id="rolesLista">
                             <p style="color:var(--text-muted); text-align:center; padding:20px;">Cargando roles...</p>
                         </div>
+                        <div id="rolesPagination"></div>
                     </div>
                 </div>
                 
@@ -3531,6 +3540,7 @@ body{
                         <div id="categoriasLista">
                             <p style="color:var(--text-muted); text-align:center; padding:20px;">Cargando...</p>
                         </div>
+                        <div id="categoriasPagination"></div>
                     </div>
                     
                     <!-- Sección Marcas -->
@@ -3545,6 +3555,7 @@ body{
                         <div id="marcasLista">
                             <p style="color:var(--text-muted); text-align:center; padding:20px;">Cargando...</p>
                         </div>
+                        <div id="marcasPagination"></div>
                     </div>
                 </div>
                 
@@ -7668,11 +7679,31 @@ let _notifYaInicializado = false;
 
 // Días configurables para considerar un equipo "demorado" (default 5)
 let _diasDemora = parseInt(localStorage.getItem('bayol_dias_demora') || '5', 10);
+const DEMORAS_POR_PAGINA = 10;
+let _demorasPagina = 0;
 function setDiasDemora(n) {
     _diasDemora = Math.max(1, parseInt(n, 10) || 5);
+    _demorasPagina = 0;
     localStorage.setItem('bayol_dias_demora', _diasDemora);
     if(document.getElementById('v-atencion')?.classList.contains('active')) renderAtencionCliente();
     if(document.getElementById('v-dashboard')?.classList.contains('active')) renderAll();
+}
+function _actualizarBloquesDemoras() {
+    const html = construirAlertaDemoras(true);
+    ['dashboardDemoras', 'atencionDemoras'].forEach(id => {
+        const cont = document.getElementById(id);
+        if(!cont) return;
+        if(id === 'dashboardDemoras' && typeof _pintarSiCambio === 'function') _pintarSiCambio(id, html);
+        else cont.innerHTML = html;
+    });
+}
+function cambiarPaginaDemoras(delta) {
+    _demorasPagina = Math.max(0, _demorasPagina + (Number(delta) || 0));
+    _actualizarBloquesDemoras();
+}
+function irPaginaDemoras(pagina) {
+    _demorasPagina = Math.max(0, (Number(pagina) || 1) - 1);
+    _actualizarBloquesDemoras();
 }
 // Calcula días transcurridos desde una fecha ISO
 function diasDesde(fechaISO) {
@@ -7831,6 +7862,47 @@ function _pintarSiCambio(id, html) {
     if(el.innerHTML !== html) el.innerHTML = html;
 }
 
+// Paginación visual común para listados operativos largos. Mantiene el arreglo
+// completo en memoria y solo limita las filas que se pintan en pantalla.
+const UI_LIST_PAGE_SIZE = 10;
+const _uiListPages = Object.create(null);
+function _uiListPageNums(page, pages) {
+    if(pages <= 7) return Array.from({length: pages}, (_, i) => i + 1);
+    const out = [1], lo = Math.max(2, page - 1), hi = Math.min(pages - 1, page + 1);
+    if(lo > 2) out.push('...');
+    for(let n = lo; n <= hi; n++) out.push(n);
+    if(hi < pages - 1) out.push('...');
+    out.push(pages);
+    return out;
+}
+function _uiListPage(key, total) {
+    const pages = Math.max(1, Math.ceil(total / UI_LIST_PAGE_SIZE));
+    let page = Number(_uiListPages[key] || 1);
+    page = Math.max(1, Math.min(page, pages));
+    _uiListPages[key] = page;
+    return { page, pages, start: (page - 1) * UI_LIST_PAGE_SIZE };
+}
+function _uiSetListPage(key, page) {
+    _uiListPages[key] = Number(page) || 1;
+    if(typeof _uiListRenderers[key] === 'function') _uiListRenderers[key]();
+}
+const _uiListRenderers = Object.create(null);
+function _uiListPager(key, total, label) {
+    const p = _uiListPage(key, total);
+    if(p.pages <= 1) return '';
+    const nums = _uiListPageNums(p.page, p.pages).map(n => n === '...'
+        ? '<span class="bc-demoras-page-ellipsis" aria-hidden="true">…</span>'
+        : `<button type="button" class="bc-demoras-page${n === p.page ? ' is-active' : ''}" onclick="_uiSetListPage('${key}',${n})" aria-label="Ir a la página ${n}" ${n === p.page ? 'aria-current="page"' : ''}>${n}</button>`).join('');
+    const desde = (p.page - 1) * UI_LIST_PAGE_SIZE + 1;
+    const hasta = Math.min(p.page * UI_LIST_PAGE_SIZE, total);
+    return `<div class="bc-demoras-pagination ui-list-pagination" aria-label="Paginación de ${label}">
+        <button type="button" class="bc-demoras-page-arrow" onclick="_uiSetListPage('${key}',${p.page - 1})" ${p.page === 1 ? 'disabled' : ''} aria-label="Página anterior"><i class="ti ti-chevron-left"></i></button>
+        <div class="bc-demoras-page-numbers">${nums}</div>
+        <button type="button" class="bc-demoras-page-arrow" onclick="_uiSetListPage('${key}',${p.page + 1})" ${p.page === p.pages ? 'disabled' : ''} aria-label="Página siguiente"><i class="ti ti-chevron-right"></i></button>
+        <span class="bc-demoras-page-summary">Mostrando ${desde}–${hasta} de ${total}</span>
+    </div>`;
+}
+
 function renderAll() {
     const _primera = !_renderAllListo; // la 1ª vez (al entrar) se pinta TODO; luego solo la vista visible
     const today = new Date().toISOString().slice(0, 10);
@@ -7853,11 +7925,18 @@ function renderAll() {
     
     _pintarSiCambio("recentOrders", cache.ordenes.slice(0, 5).map(o => {
         const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
-        return `<tr><td data-label="Orden"><b>${formatoOrden(o.numero_orden)}</b></td><td data-label="Cliente">${escapeHtml(c.nombre)}</td><td data-label="Equipo">${escapeHtml(e.modelo)}</td><td data-label="Falla">${escapeHtml(o.falla_reportada)}</td><td data-label="Estado"><span class="badge" style="background:#d1fae5;">${o.estado}</span></td></tr>`;
+        const estado = obtenerEtiquetaOrden(normalizarEstadoOrden(o.estado));
+        return `<tr><td colspan="5"><div class="recent-order-card">
+            <div class="recent-order-head"><div><span class="recent-order-label">ORDEN</span><b class="recent-order-number">${formatoOrden(o.numero_orden)}</b></div><span class="badge" style="background:${estado.bg}; color:${estado.color};">${estado.text}</span></div>
+            <div class="recent-order-grid"><div><span class="recent-order-label">CLIENTE</span><span>${escapeHtml(c.nombre || '—')}</span></div><div><span class="recent-order-label">EQUIPO</span><span>${escapeHtml(`${e.marca || ''} ${e.modelo || ''}`.trim() || '—')}</span></div>${o.falla_reportada ? `<div class="recent-order-falla"><span class="recent-order-label">FALLA</span><span>${escapeHtml(o.falla_reportada)}</span></div>` : ''}</div>
+        </div></td></tr>`;
     }).join(""));
 
     if(_primera || _verVisible('ordersTable')) renderOrders();
-    _pintarSiCambio("partsTable", cache.piezas.map(p => `<tr><td data-label="Código"><code>${escapeHtml(p.codigo||'')}</code></td><td data-label="Descripción"><b>${escapeHtml(p.nombre||'')}</b></td><td data-label="Marca">${escapeHtml(p.marca||'')}</td><td data-label="Referencia">${escapeHtml(p.referencia||'')}</td><td data-label="Existencia">${p.cantidad} uds</td><td data-label="Costo">${money(p.costo)}</td></tr>`).join(""));
+    const _partsPage = _uiListPage('parts', (cache.piezas || []).length);
+    _pintarSiCambio("partsTable", (cache.piezas || []).slice(_partsPage.start, _partsPage.start + UI_LIST_PAGE_SIZE).map(p => `<tr><td data-label="Código"><code>${escapeHtml(p.codigo||'')}</code></td><td data-label="Descripción"><b>${escapeHtml(p.nombre||'')}</b></td><td data-label="Marca">${escapeHtml(p.marca||'')}</td><td data-label="Referencia">${escapeHtml(p.referencia||'')}</td><td data-label="Existencia">${p.cantidad} uds</td><td data-label="Costo">${money(p.costo)}</td></tr>`).join(""));
+    const _partsPg = document.getElementById('partsPagination'); if(_partsPg) _partsPg.innerHTML = _uiListPager('parts', (cache.piezas || []).length, 'inventario');
+    _uiListRenderers.parts = () => renderAll();
     if(isAdminUser()) renderActivosTaller();
     if(_primera || _verVisible('proveedoresContainer')) renderProveedores();
     if(_primera || _verVisible('comprasContainer')) renderComprasTab();
@@ -8059,7 +8138,8 @@ function renderActivosTaller() {
         document.getElementById("assetsTable").innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No hay herramientas registradas.</td></tr>`;
         return;
     }
-    document.getElementById("assetsTable").innerHTML = cache.activos.map(a => {
+    const _assetsPage = _uiListPage('assets', (cache.activos || []).length);
+    document.getElementById("assetsTable").innerHTML = (cache.activos || []).slice(_assetsPage.start, _assetsPage.start + UI_LIST_PAGE_SIZE).map(a => {
         let styleBadge = "background:#d1fae5; color:#065f46;";
         if(a.estado_tecnico === "Desgaste Medio") styleBadge = "background:#fef3c7; color:#92400e;";
         if(a.estado_tecnico === "Mantenimiento") styleBadge = "background:#fee2e2; color:#991b1b;";
@@ -8081,6 +8161,8 @@ function renderActivosTaller() {
             <td data-label="Asignado"><div style="display:flex; flex-wrap:wrap; gap:4px;">${asignadosFormateado}</div></td>
         </tr>`;
     }).join("");
+    const _assetsPg = document.getElementById('assetsPagination'); if(_assetsPg) _assetsPg.innerHTML = _uiListPager('assets', (cache.activos || []).length, 'herramientas');
+    _uiListRenderers.assets = () => renderActivosTaller();
 }
 
 async function cambiarEstadoActivo(activoId, nuevoEstado) {
@@ -10523,9 +10605,11 @@ function renderArticulos() {
     }
     if(!lista.length) {
         tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-muted);">${filtro ? 'Sin resultados' : 'No hay artículos en el catálogo.'}</td></tr>`;
+        const _pg = document.getElementById('articulosPagination'); if(_pg) _pg.innerHTML = '';
         return;
     }
-    tbody.innerHTML = lista.map(a => {
+    const _artPage = _uiListPage('articulos', lista.length);
+    tbody.innerHTML = lista.slice(_artPage.start, _artPage.start + UI_LIST_PAGE_SIZE).map(a => {
         const llevaImei = a.lleva_imei !== false;
         const badgeImei = llevaImei
             ? `<span class="badge" style="background:#dbeafe; color:#b91c1c;">SÍ</span>`
@@ -10546,6 +10630,8 @@ function renderArticulos() {
             </td>
         </tr>`;
     }).join('');
+    const _artPg = document.getElementById('articulosPagination'); if(_artPg) _artPg.innerHTML = _uiListPager('articulos', lista.length, 'artículos');
+    _uiListRenderers.articulos = () => renderArticulos();
 }
 
 function calcularSiguienteCodigoArticulo() {
@@ -10699,7 +10785,8 @@ function renderProveedores() {
         cont.innerHTML = `<p style="color:var(--text-muted); text-align:center; padding:20px;">${filtro ? 'Sin resultados' : 'No hay proveedores. Crea uno con el botón + Crear Proveedor.'}</p>`;
         return;
     }
-    cont.innerHTML = lista.map(p => {
+    const _provPage = _uiListPage('proveedores', lista.length);
+    cont.innerHTML = lista.slice(_provPage.start, _provPage.start + UI_LIST_PAGE_SIZE).map(p => {
         const lotesProv = cache.lotes.filter(l => l.proveedor_id === p.id);
         const equiposProv = cache.refurb.filter(r => lotesProv.some(l => l.id === r.lote_id));
         let confStyle = 'background:#f1f5f9; color:#475569;';
@@ -10726,6 +10813,8 @@ function renderProveedores() {
             </div>
         </div>`;
     }).join('');
+    const _provPg = document.getElementById('proveedoresPagination'); if(_provPg) _provPg.innerHTML = _uiListPager('proveedores', lista.length, 'proveedores');
+    _uiListRenderers.proveedores = () => renderProveedores();
 }
 
 // ===== Proveedores de Info Plus (para mapear / registrar compras) =====
@@ -13797,7 +13886,8 @@ function renderLotesReacondTab(lotesConEstado) {
         return;
     }
     
-    cont.innerHTML = filtrados.map(d => {
+    const _lotesPage = _uiListPage('lotesReacond', filtrados.length);
+    cont.innerHTML = filtrados.slice(_lotesPage.start, _lotesPage.start + UI_LIST_PAGE_SIZE).map(d => {
         const lote = d.lote;
         const prov = (cache.proveedores || []).find(p => p.id === lote.proveedor_id);
         const nombreLote = lote.codigo_lote || lote.nombre || ('Lote #' + (lote.id || '').slice(0,8));
@@ -13832,6 +13922,8 @@ function renderLotesReacondTab(lotesConEstado) {
             <div style="font-size:10px; color:var(--text-muted); text-align:right; margin-top:2px;">${progreso}% completado</div>
         </div>`;
     }).join('');
+    const _lotesPg = document.getElementById('lotesReacondPagination'); if(_lotesPg) _lotesPg.innerHTML = _uiListPager('lotesReacond', filtrados.length, 'lotes');
+    _uiListRenderers.lotesReacond = () => renderLotesReacondTab(lotesConEstado);
 }
 
 // Muestra los EQUIPOS Listo / Despachado AGRUPADOS POR LOTE (de todos los lotes)
@@ -16469,7 +16561,11 @@ function renderDetalleLoteReacond() {
         return;
     }
     _reacondVisibleEquipos = filtrados.map(x => x.eq); // para "Marcar Listo/Desp." (respeta filtros)
-    cont.innerHTML = filtrados.map(x => renderEquipoReacondCard(x.eq, x.num)).join('');
+    const _reacondPage = _uiListPage('reacondEquipos', filtrados.length);
+    const _reacondPagina = filtrados.slice(_reacondPage.start, _reacondPage.start + UI_LIST_PAGE_SIZE);
+    cont.innerHTML = _reacondPagina.map(x => renderEquipoReacondCard(x.eq, x.num)).join('');
+    const _reacondPg = document.getElementById('reacondEquiposPagination'); if(_reacondPg) _reacondPg.innerHTML = _uiListPager('reacondEquipos', filtrados.length, 'equipos reacondicionados');
+    _uiListRenderers.reacondEquipos = () => renderDetalleLoteReacond();
     // Estado de la selección (casillas) y del "Marcar todos"
     _reacondActualizarSelUI();
     const todos = document.getElementById('reacondSelTodos');
@@ -17819,7 +17915,8 @@ function renderTecnicos() {
         cont.innerHTML = `<p style="color:var(--text-muted); text-align:center; padding:30px; font-size:13px;">No hay empleados registrados. Crea el primero con "+ Nuevo Empleado".</p>`;
         return;
     }
-    cont.innerHTML = tecnicos.map(t => {
+    const _tecPage = _uiListPage('tecnicos', tecnicos.length);
+    cont.innerHTML = tecnicos.slice(_tecPage.start, _tecPage.start + UI_LIST_PAGE_SIZE).map(t => {
         const activoBadge = t.activo 
             ? '<span class="badge" style="background:#d1fae5; color:#065f46;">Activo</span>'
             : '<span class="badge" style="background:#fee2e2; color:#991b1b;">Inactivo</span>';
@@ -17865,6 +17962,8 @@ function renderTecnicos() {
             </div>
         </div>`;
     }).join('');
+    const _tecPg = document.getElementById('tecnicosPagination'); if(_tecPg) _tecPg.innerHTML = _uiListPager('tecnicos', tecnicos.length, 'empleados');
+    _uiListRenderers.tecnicos = () => renderTecnicos();
 }
 
 function llenarSelectorRolesTecnico(selectedRolId) {
@@ -22111,7 +22210,8 @@ function renderDevoluciones() {
         return;
     }
     
-    cont.innerHTML = _devolucionesCache.map(d => {
+    const _devolPage = _uiListPage('devoluciones', _devolucionesCache.length);
+    cont.innerHTML = _devolucionesCache.slice(_devolPage.start, _devolPage.start + UI_LIST_PAGE_SIZE).map(d => {
         const eq = (cache.refurb || []).find(r => r.id === d.equipo_id);
         const fecha = new Date(d.fecha_devolucion).toLocaleString('es-DO', { dateStyle:'short', timeStyle:'short' });
         const cicloTxt = d.ciclo > 1 ? ` · Ciclo ${d.ciclo}` : '';
@@ -22148,6 +22248,8 @@ function renderDevoluciones() {
             </div>
         </div>`;
     }).join('');
+    const _devolPg = document.getElementById('devolucionesPagination'); if(_devolPg) _devolPg.innerHTML = _uiListPager('devoluciones', _devolucionesCache.length, 'devoluciones');
+    _uiListRenderers.devoluciones = () => renderDevoluciones();
 }
 
 function obtenerEtiquetaEstado(estado) {
@@ -24576,7 +24678,34 @@ function construirAlertaDemoras(incluirReacond) {
     const ordsDem = ordenesDemoradas();
     const verReacond = incluirReacond && (isAdminUser() || (typeof tienePermiso === 'function' && tienePermiso('refurb_ver')));
     const refDem = verReacond ? reacondDemorados() : [];
-    const total = ordsDem.length + refDem.length;
+    const elementos = [
+        ...ordsDem.map(o => {
+            const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
+            const dias = diasDesde(o.creado_en);
+            return {
+                tipo: 'orden',
+                nombre: `${formatoOrden(o.numero_orden)} · ${c.nombre || 'Cliente'}`,
+                detalle: `${e.marca||''} ${e.modelo||''} · ${etiquetaEstadoTexto(o.estado)}`,
+                dias,
+                color: dias >= _diasDemora*2 ? '#991b1b' : '#ef4444'
+            };
+        }),
+        ...refDem.map(eq => {
+            const dias = diasDesde(eq.creado_en);
+            return {
+                tipo: 'refurb',
+                nombre: `${eq.marca||''} ${eq.modelo||''}`.trim() || 'Equipo',
+                detalle: `Reacondicionado · ${(eq.estado_evaluacion||'').replace(/_/g,' ')}`,
+                dias,
+                color: dias >= _diasDemora*2 ? '#991b1b' : '#f59e0b'
+            };
+        })
+    ];
+    const total = elementos.length;
+    const totalPaginas = Math.max(1, Math.ceil(total / DEMORAS_POR_PAGINA));
+    _demorasPagina = Math.max(0, Math.min(_demorasPagina, totalPaginas - 1));
+    const inicio = _demorasPagina * DEMORAS_POR_PAGINA;
+    const pagina = elementos.slice(inicio, inicio + DEMORAS_POR_PAGINA);
     
     let html = `<div class="card" style="margin-bottom:14px; border-left:4px solid ${total > 0 ? '#ef4444' : '#86efac'};">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
@@ -24599,23 +24728,40 @@ function construirAlertaDemoras(incluirReacond) {
                 </div>
                 <span style="background:${color}; color:#fff; font-size:11px; font-weight:700; padding:3px 9px; border-radius:12px; white-space:nowrap;">${dias} días</span>
             </div>`;
-        ordsDem.forEach(o => {
-            const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
-            const d = diasDesde(o.creado_en);
-            html += fila(`${formatoOrden(o.numero_orden)} · ${c.nombre || 'Cliente'}`, `${e.marca||''} ${e.modelo||''} · ${etiquetaEstadoTexto(o.estado)}`, d, d >= _diasDemora*2 ? '#991b1b' : '#ef4444');
+        let ultimoTipo = '';
+        pagina.forEach(item => {
+            if(item.tipo === 'refurb' && ultimoTipo !== 'refurb') {
+                html += `<div style="font-size:11px; font-weight:700; color:#9a3412; margin:8px 0 4px;">♻️ Reacondicionados demorados</div>`;
+            }
+            html += fila(item.nombre, item.detalle, item.dias, item.color);
+            ultimoTipo = item.tipo;
         });
-        if(verReacond && refDem.length) {
-            html += `<div style="font-size:11px; font-weight:700; color:#9a3412; margin:8px 0 4px;">♻️ Reacondicionados demorados</div>`;
-            refDem.forEach(eq => {
-                const d = diasDesde(eq.creado_en);
-                html += fila(`${eq.marca||''} ${eq.modelo||''}`.trim() || 'Equipo', `Reacondicionado · ${(eq.estado_evaluacion||'').replace(/_/g,' ')}`, d, d >= _diasDemora*2 ? '#991b1b' : '#f59e0b');
+        const desde = inicio + 1;
+        const hasta = Math.min(inicio + pagina.length, total);
+        if(totalPaginas > 1) {
+            const paginas = Array.from(new Set([
+                0,
+                totalPaginas - 1,
+                ...Array.from({length:3}, (_, i) => _demorasPagina - 1 + i).filter(n => n >= 0 && n < totalPaginas)
+            ])).sort((a,b) => a - b);
+            const controles = [];
+            let anterior = -1;
+            paginas.forEach(n => {
+                if(n - anterior > 1) controles.push(`<span class="bc-demoras-page-ellipsis" aria-hidden="true">…</span>`);
+                controles.push(`<button type="button" class="bc-demoras-page${n === _demorasPagina ? ' is-active' : ''}" onclick="irPaginaDemoras(${n + 1})" aria-label="Ir a la página ${n + 1}" ${n === _demorasPagina ? 'aria-current="page"' : ''}>${n + 1}</button>`);
+                anterior = n;
             });
+            html += `<div class="bc-demoras-pagination" aria-label="Paginación de equipos demorados">
+                <button type="button" class="bc-demoras-page-arrow" onclick="cambiarPaginaDemoras(-1)" ${_demorasPagina === 0 ? 'disabled' : ''} aria-label="Página anterior"><i class="ti ti-chevron-left"></i></button>
+                <div class="bc-demoras-page-numbers">${controles.join('')}</div>
+                <button type="button" class="bc-demoras-page-arrow" onclick="cambiarPaginaDemoras(1)" ${_demorasPagina >= totalPaginas - 1 ? 'disabled' : ''} aria-label="Página siguiente"><i class="ti ti-chevron-right"></i></button>
+            </div>
+            <div class="bc-demoras-page-summary" aria-live="polite">Mostrando ${desde}–${hasta} de ${total} · 10 por página</div>`;
         }
     }
     html += `</div>`;
     return html;
 }
-
 // ============================================================
 //   PANEL INTELIGENTE (alertas automáticas + tendencias)
 // ============================================================
@@ -24835,7 +24981,7 @@ function renderAtencionCliente() {
     let html = '';
     
     // SECCIÓN: Alertas de equipos demorados (con reacond si tiene permiso)
-    html += construirAlertaDemoras(true);
+    html += `<div id="atencionDemoras">${construirAlertaDemoras(true)}</div>`;
 
     // SECCIÓN: Equipos sin reparación pendientes de devolver al cliente (solo si hay)
     const sinReparar = ordenes.filter(o => normalizarEstadoOrden(o.estado) === 'no_reparado' && !o.fecha_entregado);
@@ -26050,8 +26196,9 @@ function renderCategorias() {
         cont.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:20px; font-size:13px;">No hay categorías. Crea la primera con "+ Nueva Categoría".</p>';
         return;
     }
+    const _catPage = _uiListPage('categorias', _categoriasCache.length);
     cont.innerHTML = `<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:8px;">` + 
-        _categoriasCache.map(c => {
+        _categoriasCache.slice(_catPage.start, _catPage.start + UI_LIST_PAGE_SIZE).map(c => {
             const color = c.color || '#0891b2';
             const icono = c.icono || 'ti-category';
             return `<div data-item-id="${c.id}" style="background:#fff; border:1px solid var(--border-color); border-left:4px solid ${color}; border-radius:8px; padding:12px;">
@@ -26071,6 +26218,8 @@ function renderCategorias() {
                 </div>
             </div>`;
         }).join('') + `</div>`;
+    const _catPg = document.getElementById('categoriasPagination'); if(_catPg) _catPg.innerHTML = _uiListPager('categorias', _categoriasCache.length, 'categorías');
+    _uiListRenderers.categorias = () => renderCategorias();
 }
 
 function abrirModalCategoria() {
@@ -26173,8 +26322,9 @@ function renderMarcas() {
         cont.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:20px; font-size:13px;">No hay marcas. Crea la primera con "+ Nueva Marca".</p>';
         return;
     }
+    const _marcasPage = _uiListPage('marcas', _marcasCache.length);
     cont.innerHTML = `<div style="display:flex; flex-wrap:wrap; gap:8px;">` + 
-        _marcasCache.map(m => {
+        _marcasCache.slice(_marcasPage.start, _marcasPage.start + UI_LIST_PAGE_SIZE).map(m => {
             return `<div data-item-id="${m.id}" style="background:#fff; border:1px solid var(--border-color); border-radius:8px; padding:8px 12px; display:flex; align-items:center; gap:8px;">
                 <i class="ti ti-brand-apple" style="color:#6366f1;"></i>
                 <b style="font-size:13px; ${m.activa ? '' : 'text-decoration:line-through; color:var(--text-muted);'}">${escapeHtml(m.nombre)}</b>
@@ -26183,6 +26333,8 @@ function renderMarcas() {
                 <button onclick="eliminarMarca('${m.id}')" style="background:#fee2e2; color:#991b1b; border:0; padding:4px 6px; border-radius:5px; cursor:pointer;" title="Eliminar"><i class="ti ti-trash"></i></button>
             </div>`;
         }).join('') + `</div>`;
+    const _marcasPg = document.getElementById('marcasPagination'); if(_marcasPg) _marcasPg.innerHTML = _uiListPager('marcas', _marcasCache.length, 'marcas');
+    _uiListRenderers.marcas = () => renderMarcas();
 }
 
 function abrirModalMarca() {
@@ -26444,7 +26596,8 @@ function renderRoles() {
         return;
     }
     
-    cont.innerHTML = _rolesCache.map(r => {
+    const _rolesPage = _uiListPage('roles', _rolesCache.length);
+    cont.innerHTML = _rolesCache.slice(_rolesPage.start, _rolesPage.start + UI_LIST_PAGE_SIZE).map(r => {
         const permisos = r.permisos || {};
         const cantPermisos = Object.values(permisos).filter(v => v === true).length;
         const totalPosibles = PERMISOS_DEF.reduce((s, g) => s + g.items.length, 0);
@@ -26472,6 +26625,8 @@ function renderRoles() {
             </div>
         </div>`;
     }).join('');
+    const _rolesPg = document.getElementById('rolesPagination'); if(_rolesPg) _rolesPg.innerHTML = _uiListPager('roles', _rolesCache.length, 'roles');
+    _uiListRenderers.roles = () => renderRoles();
 }
 
 function renderPermisosCheckboxes(permisos = {}) {
@@ -27622,7 +27777,8 @@ function renderComprasTab() {
         return;
     }
     
-    cont.innerHTML = lista.map(l => {
+    const _comprasPage = _uiListPage('compras', lista.length);
+    cont.innerHTML = lista.slice(_comprasPage.start, _comprasPage.start + UI_LIST_PAGE_SIZE).map(l => {
         const equiposLote = cache.refurb.filter(r => r.lote_id === l.id);
         const totalLote = equiposLote.reduce((s, e) => s + (parseFloat(e.costo_compra) || 0), 0);
         const prov = findProveedor(l.proveedor_id);
@@ -27651,6 +27807,8 @@ function renderComprasTab() {
             </div>
         </div>`;
     }).join('');
+    const _comprasPg = document.getElementById('comprasPagination'); if(_comprasPg) _comprasPg.innerHTML = _uiListPager('compras', lista.length, 'compras');
+    _uiListRenderers.compras = () => renderComprasTab();
 }
 
 function abrirLoteDesdeCompras(loteId) {
