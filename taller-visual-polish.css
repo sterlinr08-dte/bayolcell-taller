@@ -1639,6 +1639,29 @@ body{
   #app #v-dashboard .kpi-box i[class*="ti-"]{width:25px !important;min-width:25px !important;height:25px !important;padding:5px !important;}
 }
 
+/* Dashboard móvil: la tabla de órdenes recientes se comporta como tarjeta,
+   no como cinco columnas verticales con grandes espacios vacíos. */
+#app #v-dashboard .recent-orders-table{width:100%;min-width:0 !important;border-collapse:separate;table-layout:fixed;}
+#app #v-dashboard .recent-orders-table td{padding:0 !important;border:0 !important;}
+#app #v-dashboard .recent-order-card{padding:13px 14px;border:1px solid #e2e8f0;border-radius:12px;background:rgba(255,255,255,.92);}
+#app #v-dashboard .recent-order-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:11px;}
+#app #v-dashboard .recent-order-head .badge{white-space:nowrap;}
+#app #v-dashboard .recent-order-label{display:block;font-size:10px;line-height:1.1;font-weight:800;letter-spacing:.06em;color:#64748b;margin-bottom:3px;}
+#app #v-dashboard .recent-order-number{display:block;font-size:18px;line-height:1.05;letter-spacing:-.02em;color:#172033;}
+#app #v-dashboard .recent-order-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:9px 14px;}
+#app #v-dashboard .recent-order-grid > div{min-width:0;color:#263449;font-size:13px;line-height:1.25;overflow-wrap:anywhere;}
+#app #v-dashboard .recent-order-falla{grid-column:1 / -1;}
+@media (max-width:560px){
+  #app #v-dashboard .recent-orders-table thead{display:none;}
+  #app #v-dashboard .recent-orders-table,
+  #app #v-dashboard .recent-orders-table tbody,
+  #app #v-dashboard .recent-orders-table tr,
+  #app #v-dashboard .recent-orders-table td{display:block;width:100%;}
+  #app #v-dashboard .recent-orders-table tr{padding:0;margin:0 0 8px;background:transparent;border:0;}
+  #app #v-dashboard .recent-order-card{padding:11px 12px;}
+  #app #v-dashboard .recent-order-number{font-size:17px;}
+}
+
 @media (prefers-reduced-motion:reduce){
   #app .view:not(#v-crmLinea) button:hover > i[class*="ti-"],
   #app .view:not(#v-crmLinea) .card:hover,
