@@ -474,3 +474,100 @@ body{background:#f4f6f8 !important;}
 @media (prefers-reduced-motion:reduce){
   #appLoader .ldr-logo{animation:ldrGlowBlue 1.5s ease-in-out infinite !important;}
 }
+
+/* Marco de navegación: Princess Blue con contraste alto y jerarquía clara. */
+#app .sidebar{
+  background:linear-gradient(180deg,#015AA0 0%,#014474 100%) !important;
+  color:#fff !important;
+  border-right:1px solid rgba(209,209,209,.46) !important;
+  box-shadow:8px 0 26px -18px rgba(1,68,116,.62) !important;
+}
+#app .sidebar::before,#app .sidebar::after{display:none !important;}
+#app .side-brand{
+  background:rgba(0,34,61,.18) !important;
+  border-bottom:1px solid rgba(209,209,209,.42) !important;
+}
+#app .brand-icon{
+  background:#D1D1D1 !important;
+  color:#015AA0 !important;
+  border:1px solid rgba(255,255,255,.72) !important;
+  box-shadow:0 8px 18px -8px rgba(0,34,61,.5),inset 0 1px 0 rgba(255,255,255,.85) !important;
+}
+#app .brand-text h3{color:#fff !important;}
+#app .brand-text small{color:rgba(255,255,255,.74) !important;}
+#app .nav-section{
+  color:#D1D1D1 !important;
+  opacity:.96 !important;
+}
+#app .nav button{
+  background:transparent !important;
+  color:rgba(255,255,255,.94) !important;
+  border-color:transparent !important;
+  box-shadow:none !important;
+}
+#app .nav button i{color:rgba(255,255,255,.82) !important;}
+#app .nav button:hover{
+  background:rgba(255,255,255,.13) !important;
+  color:#fff !important;
+  border-color:rgba(209,209,209,.38) !important;
+  box-shadow:none !important;
+}
+#app .nav button:hover i{color:#fff !important;}
+#app .nav button.active{
+  background:#fff !important;
+  color:#015AA0 !important;
+  border-color:#fff !important;
+  box-shadow:inset 3px 0 0 #D1D1D1,0 8px 18px -14px rgba(0,34,61,.58) !important;
+}
+#app .nav button.active i{color:#015AA0 !important;}
+#app .nav button .nav-badge-admin{
+  background:rgba(255,255,255,.16) !important;
+  color:#fff !important;
+  border:1px solid rgba(209,209,209,.35) !important;
+}
+#app .nav button.active .nav-badge-admin{
+  background:#edf4f8 !important;
+  color:#015AA0 !important;
+  border-color:#b9cbd6 !important;
+}
+#app .side-user{
+  background:rgba(0,34,61,.22) !important;
+  border-color:rgba(209,209,209,.44) !important;
+  color:#fff !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08) !important;
+}
+#app .side-user .avatar{
+  background:#D1D1D1 !important;
+  color:#015AA0 !important;
+  box-shadow:0 7px 14px -8px rgba(0,34,61,.65),inset 0 1px 0 rgba(255,255,255,.72) !important;
+}
+#app .profile-info h4{color:#fff !important;}
+#app .profile-info small{color:#bbf7d0 !important;}
+
+#app .top-bar{
+  background:linear-gradient(110deg,#015AA0 0%,#014474 100%) !important;
+  color:#fff !important;
+  border-top:3px solid #D1D1D1 !important;
+  border-bottom:1px solid rgba(209,209,209,.46) !important;
+  box-shadow:0 5px 18px -14px rgba(0,34,61,.72) !important;
+}
+#app .top-title{color:#fff !important;}
+#app .top-right-info{
+  background:rgba(255,255,255,.14) !important;
+  color:#fff !important;
+  border-color:rgba(209,209,209,.48) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10) !important;
+}
+#app .top-bar .btn-light,
+#app .menu-toggle{
+  background:rgba(255,255,255,.14) !important;
+  color:#fff !important;
+  border-color:rgba(209,209,209,.48) !important;
+  box-shadow:none !important;
+}
+#app .top-bar .btn-light:hover,
+#app .menu-toggle:hover{
+  background:#fff !important;
+  color:#015AA0 !important;
+  border-color:#fff !important;
+}
