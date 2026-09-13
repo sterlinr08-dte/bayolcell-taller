@@ -4,7 +4,7 @@
   if(window.__bcCrmExtensionsLoader)return;
   window.__bcCrmExtensionsLoader=true;
 
-  var V='20260913a';
+  var V='20260913-facebook-ui';
   var legacy=document.createElement('script');
   legacy.src='crm-marketing-consent-legacy.js?v='+V;
   legacy.onload=function(){
@@ -12,6 +12,10 @@
     scopeCss.rel='stylesheet';
     scopeCss.href='crm-social-scope-fix.css?v='+V;
     document.head.appendChild(scopeCss);
+    var facebookCss=document.createElement('link');
+    facebookCss.rel='stylesheet';
+    facebookCss.href='crm-facebook-chat.css?v='+V;
+    document.head.appendChild(facebookCss);
 
     var polishCss=document.createElement('link');
     polishCss.rel='stylesheet';
@@ -28,7 +32,11 @@
         polish.src='crm-social-polish-v2.js?v='+V;
         document.head.appendChild(polish);
       };
-      document.head.appendChild(scope);
+      var facebook=document.createElement('script');
+      facebook.src='crm-facebook-chat.js?v='+V;
+      facebook.onload=function(){document.head.appendChild(scope);};
+      facebook.onerror=function(){document.head.appendChild(scope);};
+      document.head.appendChild(facebook);
     };
     document.head.appendChild(hub);
 
