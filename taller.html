@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 637622)
-... 1501911 bytes omitted ...
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -2497,8 +2494,7 @@ function abrirQrEnrolarAndroid() {
     setTimeout(() => _finQrRender(data, 'qrEnroll', 230), 80);
 }
 function _editarEnrollAndroid(primera) {
-    const data = (_finCache.config || {}).enroll_android || '';
-    abrirModalGenerico('Dato de enrolamiento Android', `
+    const data = (_finCache.config || {}).enroll_android || '';    abrirModalGenerico('Dato de enrolamiento Android', `
         <div style="font-size:12.5px; color:var(--text-muted); margin-bottom:8px;">
             ${primera ? 'Aún no hay un QR de enrolamiento configurado. ' : ''}Pega el <b>dato del QR de enrolamiento Android</b> que te da <b>Hexnode</b> (en Hexnode: <i>Enroll → Android → Device Owner / QR</i>). Con eso generamos el QR grande e imprimible.
         </div>
@@ -4997,8 +4993,7 @@ function _crmElegirLinea(id) {
     _crmCambioLinea();
 }
 
-// El <select> real esta invisible encima de la pildora — hay que reflejar su
-// valor en el texto visible cada vez que cambia.
+// El <select> real esta invisible encima de la pildora — hay que reflejar su// valor en el texto visible cada vez que cambia.
 function _crmPintarTextoSelectores(nombreSucursal, nombreLinea) {
     const a = document.getElementById('crmSucTxt'), b = document.getElementById('crmLineaTxt');
     if(a) a.textContent = nombreSucursal || '';
