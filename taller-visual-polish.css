@@ -322,4 +322,102 @@
 #login .login-card input:focus{border-color:#93c5fd !important;box-shadow:0 0 0 3px rgba(37,99,235,.12) !important;}
 #login .login-card a{background:var(--bc-blue-soft) !important;color:#1d4ed8 !important;border-color:#dbeafe !important;}
 
-/* =================
+/* ============================================================
+   PALETA OFICIAL DEL TALLER — Princess Blue / American Silver
+   Princess Blue: #015AA0
+   American Silver: #D1D1D1
+   Los colores de estado (éxito, alerta y error) se conservan.
+   ============================================================ */
+:root{
+  --bc-red:#015AA0;
+  --bc-red-dark:#014474;
+  --bc-blue:#015AA0;
+  --bc-blue-soft:#edf4f8;
+  --bc-ink:#16364d;
+  --bc-muted:#667785;
+  --bc-line:#D1D1D1;
+  --bc-bg:#f4f6f8;
+  --bc-surface:#ffffff;
+  --bc-shadow:0 8px 24px -18px rgba(15,42,61,.28);
+}
+
+/* Navegación y marco principal. */
+#app .nav-section{color:#7b8b98 !important;}
+#app .nav button:hover{
+  background:#f3f7fa !important;
+  color:#015AA0 !important;
+  border-color:#b9cbd6 !important;
+}
+#app .nav button.active{
+  background:#e9f2f7 !important;
+  color:#015AA0 !important;
+  border-color:#b9cbd6 !important;
+  box-shadow:inset 3px 0 0 #015AA0 !important;
+}
+#app .nav button.active i{color:#015AA0 !important;}
+#app .top-right-info{
+  background:#e9f2f7 !important;
+  color:#015AA0 !important;
+  border-color:#b9cbd6 !important;
+}
+#app .top-bar .btn-light{
+  background:#f6f8fa !important;
+  color:#496273 !important;
+  border-color:#D1D1D1 !important;
+}
+#app .top-bar .btn-light:hover,
+#app .menu-toggle{
+  background:#e9f2f7 !important;
+  color:#015AA0 !important;
+  border-color:#b9cbd6 !important;
+}
+
+/* Superficies operativas y encabezados de módulo. */
+#app .view:not(#v-crmLinea) .card,
+#app .view:not(#v-crmLinea) .block-card,
+#app .view:not(#v-crmLinea) .prov-card,
+#app .view:not(#v-crmLinea) .refurb-item-card,
+#app .view:not(#v-crmLinea) .kpi-box{
+  border-color:#D1D1D1 !important;
+}
+#app .view:not(#v-crmLinea) .block-header{
+  background:linear-gradient(135deg,#015AA0,#0b6eae) !important;
+  color:#fff !important;
+}
+#app .view:not(#v-crmLinea) .block-header i{color:#fff !important;}
+#app .view:not(#v-crmLinea) .reacond-main-tab.tab-active,
+#app .view:not(#v-crmLinea) .reacond-tabs-scroll .tab-btn.active{
+  background:#e9f2f7 !important;
+  color:#015AA0 !important;
+  border-color:#b9cbd6 !important;
+}
+#app .view:not(#v-crmLinea) .reacond-tabs-scroll .tab-btn.active span{
+  background:#d8e7ef !important;
+  color:#015AA0 !important;
+}
+#app .view:not(#v-crmLinea) .btn-blue,
+#app .view:not(#v-crmLinea) .btn-dark{
+  background:#015AA0 !important;
+  border-color:#015AA0 !important;
+  color:#fff !important;
+  box-shadow:0 7px 16px -11px rgba(1,90,160,.58) !important;
+}
+#app .view:not(#v-crmLinea) .btn-blue:hover,
+#app .view:not(#v-crmLinea) .btn-dark:hover{background:#014474 !important;}
+
+/* Acceso: misma identidad, sin convertirlo en una pantalla oscura. */
+#login.login{
+  background:
+    radial-gradient(720px 420px at 12% 0%,rgba(1,90,160,.12),transparent 68%),
+    radial-gradient(680px 420px at 100% 100%,rgba(209,209,209,.40),transparent 70%),
+    #f4f6f8 !important;
+}
+#login .login-card input:focus{
+  border-color:#015AA0 !important;
+  box-shadow:0 0 0 3px rgba(1,90,160,.12) !important;
+}
+#login .login-card a{
+  background:#e9f2f7 !important;
+  color:#015AA0 !important;
+  border-color:#b9cbd6 !important;
+}
