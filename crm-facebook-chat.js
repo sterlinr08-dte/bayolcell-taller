@@ -20,6 +20,10 @@
   function close(){
     const ta=$('#bcFbText');if(selected&&ta)drafts.set(selected,ta.value);
     $('#bcSocialFacebookPanel')?.classList.remove('bc-fb-open');
+    const panel=$('#bcSocialFacebookPanel');
+    panel?.style.removeProperty('--fb-chat-height');
+    panel?.style.removeProperty('--fb-chat-top');
+    document.documentElement.classList.remove('bc-fb-lock-scroll');
   }
   function media(m){
     if(!m.media_url)return '';
@@ -37,6 +41,7 @@
     selected=thread.id;callbacks=cb;messages=rows;
     if(!same)attachment=null;
     $('#bcSocialFacebookPanel')?.classList.add('bc-fb-open');
+    document.documentElement.classList.add('bc-fb-lock-scroll');
     const name=thread.participant_name||thread.participant_username||'Contacto de Facebook';
     host.innerHTML=`<header class="bc-fb-head">${icon('bcFbBack','Volver a conversaciones','arrow-left')}<span class="bc-fb-avatar">${esc(name.slice(0,2).toUpperCase())}</span><div class="bc-fb-name"><b>${esc(name)}</b><small>Facebook · Messenger</small></div>${icon('bcFbFind','Buscar en este chat','search')}${icon('bcFbMore','Acciones de conversación','dots-vertical')}</header>
       <div id="bcFbActions" class="bc-fb-pop" hidden><button data-chat-action="read">Marcar leído</button><button data-chat-action="archive">Archivar</button><button data-chat-action="unarchive">Desarchivar</button><button data-chat-action="refresh">Actualizar</button></div>
@@ -99,7 +104,15 @@
       box.hidden=true;
     }catch(err){notice(err.message);}};
   }
-  function resize(){const p=$('#bcSocialFacebookPanel');if(!p||!p.classList.contains('bc-fb-open'))return;const v=window.visualViewport;const bottom=(v?.height||window.innerHeight)+(v?.offsetTop||0);p.style.setProperty('--fb-chat-height',Math.max(200,bottom-p.getBoundingClientRect().top-8)+'px');}
+  function resize(){
+    const p=$('#bcSocialFacebookPanel');
+    if(!p||!p.classList.contains('bc-fb-open'))return;
+    const v=window.visualViewport;
+    const height=Math.round(v?.height||window.innerHeight);
+    const top=Math.max(0,Math.round(v?.offsetTop||0));
+    p.style.setProperty('--fb-chat-height',Math.max(200,height)+'px');
+    p.style.setProperty('--fb-chat-top',top+'px');
+  }
   window.visualViewport?.addEventListener('resize',resize);
   window.visualViewport?.addEventListener('scroll',resize);
   window.addEventListener('resize',resize);
