@@ -3185,7 +3185,7 @@ body{
                         
                         <!-- Buscador global: a qué lote pertenece un equipo -->
                         <div style="margin-bottom:14px;">
-                            <input id="reacondBuscadorGlobal" type="text" placeholder="🔎 Buscar equipo por IMEI, código o modelo en TODOS los lotes…" oninput="buscarEquipoGlobalReacond()" autocomplete="off" style="width:100%; padding:10px 12px; font-size:14px; border:1px solid #cbd5e1; border-radius:8px;">
+                            <input id="reacondBuscadorGlobal" type="text" placeholder="Buscar equipo por IMEI, código o modelo en TODOS los lotes…" oninput="buscarEquipoGlobalReacond()" autocomplete="off" style="width:100%; padding:10px 12px; font-size:14px; border:1px solid #cbd5e1; border-radius:8px;">
                             <div id="reacondBuscadorGlobalResultados"></div>
                         </div>
 
@@ -3268,7 +3268,7 @@ body{
                             <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                                 <label style="display:inline-flex; align-items:center; gap:6px; font-size:12px; color:#475569; cursor:pointer;"><input type="checkbox" id="reacondSelTodos" onclick="_reacondSelTodos(this.checked)" style="width:16px; height:16px; cursor:pointer; accent-color:#f59e0b;"> Marcar todos</label>
                                 <span style="display:inline-flex; align-items:center; gap:3px; padding-left:4px; border-left:1px solid #e2e8f0;" title="Filtrar por fecha (Despachado)">
-                                    <span style="font-size:11px; color:#475569;">📅</span>
+                                    <span style="font-size:11px; color:#475569;"><i class="ti ti-calendar"></i></span>
                                     <input id="reacondFechaDesde" type="date" title="Desde" onchange="renderDetalleLoteReacond()" style="padding:3px 5px; font-size:11px; border:1px solid #cbd5e1; border-radius:6px;">
                                     <span style="font-size:11px; color:#475569;">–</span>
                                     <input id="reacondFechaHasta" type="date" title="Hasta" onchange="renderDetalleLoteReacond()" style="padding:3px 5px; font-size:11px; border:1px solid #cbd5e1; border-radius:6px;">
@@ -3280,12 +3280,12 @@ body{
                                     <button class="btn btn-dark" style="padding:5px 10px; font-size:12px; background:#5b21b6;" onclick="_reacondTogglePasarMenu(event)"><i class="ti ti-arrows-exchange"></i> Pasar a ▾</button>
                                     <div id="reacondPasarMenu" style="display:none; position:absolute; top:calc(100% + 4px); right:0; background:#fff; border:1px solid #e2e8f0; border-radius:8px; box-shadow:0 8px 20px rgba(15,23,42,0.18); z-index:50; min-width:200px; overflow:hidden;">
                                         <div style="font-size:10px; color:#475569; text-transform:uppercase; padding:8px 14px 4px;">Pasar seleccionados a:</div>
-                                        <button onclick="_reacondPasarA('pendiente')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'">🟡 Pendiente</button>
-                                        <button onclick="_reacondPasarA('evaluado')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'">✅ Evaluado</button>
-                                        <button onclick="_reacondPasarA('en_proceso')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'">🔧 En proceso</button>
-                                        <button onclick="_reacondPasarA('listo_venta')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'">🛒 Listo</button>
-                                        <button onclick="_reacondPasarA('vendido')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'">✅ Completado</button>
-                                        <button onclick="_reacondPasarA('completado')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; border-top:1px solid #f1f5f9; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'">🚚 Despachado</button>
+                                        <button onclick="_reacondPasarA('pendiente')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'"><i class="ti ti-hourglass"></i> Pendiente</button>
+                                        <button onclick="_reacondPasarA('evaluado')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'"><i class="ti ti-check"></i> Evaluado</button>
+                                        <button onclick="_reacondPasarA('en_proceso')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'"><i class="ti ti-tool"></i> En proceso</button>
+                                        <button onclick="_reacondPasarA('listo_venta')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'"><i class="ti ti-shopping-cart"></i> Listo</button>
+                                        <button onclick="_reacondPasarA('vendido')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'"><i class="ti ti-check"></i> Completado</button>
+                                        <button onclick="_reacondPasarA('completado')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; border-top:1px solid #f1f5f9; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'"><i class="ti ti-truck"></i> Despachado</button>
                                     </div>
                                 </div>
                                 <button id="btnReporteCostosLote" class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#166534; border-color:#86efac; display:none;" onclick="imprimirReporteCostosLote()"><i class="ti ti-printer"></i> Imprimir</button>
@@ -3300,17 +3300,17 @@ body{
                         </div>
                         <div id="reacondTecnicosRow" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;"></div>
                         <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
-                            <input id="reacondBusq" placeholder="🔍 Buscar / escanear por IMEI, código o modelo…" oninput="renderDetalleLoteReacond()" onkeydown="if(event.key==='Enter'){event.preventDefault();renderDetalleLoteReacond();}" autocomplete="off" style="flex:1; min-width:220px; padding:9px 12px; font-size:13px; border:1px solid #cbd5e1; border-radius:8px;">
+                            <input id="reacondBusq" placeholder="Buscar / escanear por IMEI, código o modelo…" oninput="renderDetalleLoteReacond()" onkeydown="if(event.key==='Enter'){event.preventDefault();renderDetalleLoteReacond();}" autocomplete="off" style="flex:1; min-width:220px; padding:9px 12px; font-size:13px; border:1px solid #cbd5e1; border-radius:8px;">
                             <select id="reacondFiltroEstado" onchange="renderDetalleLoteReacond()" style="padding:9px 12px; font-size:13px; border:1px solid #cbd5e1; border-radius:8px;">
                                 <option value="">Todos los estados</option>
-                                <option value="pendiente">🟡 Pendiente</option>
-                                <option value="en_evaluacion">⚠️ En evaluación</option>
-                                <option value="evaluado">✅ Evaluado</option>
-                                <option value="en_proceso">🔧 En proceso</option>
-                                <option value="reasignado">↪️ Reasignado</option>
-                                <option value="listo_venta">🛒 Listo para venta</option>
-                                <option value="vendido">✅ Completado</option>
-                                <option value="completado">🚚 Despachado</option>
+                                <option value="pendiente">Pendiente</option>
+                                <option value="en_evaluacion">En evaluación</option>
+                                <option value="evaluado">Evaluado</option>
+                                <option value="en_proceso">En proceso</option>
+                                <option value="reasignado">Reasignado</option>
+                                <option value="listo_venta">Listo para venta</option>
+                                <option value="vendido">Completado</option>
+                                <option value="completado">Despachado</option>
                             </select>
                         </div>
                         <div id="reacondEquiposLista"></div>
@@ -3336,7 +3336,7 @@ body{
                         
                         <!-- Buscador -->
                         <div class="form-row">
-                            <input type="text" id="fallasBuscador" placeholder="🔍 Buscar falla..." oninput="renderCatalogoFallas()" style="width:100%;">
+                            <input type="text" id="fallasBuscador" placeholder="Buscar falla..." oninput="renderCatalogoFallas()" style="width:100%;">
                         </div>
                         
                         <!-- Contenedor del catálogo -->
@@ -11047,7 +11047,7 @@ function verLineasImportCompra(idx) {
         return `
       <tr style="${sosp ? 'background:#fffbeb;' : ''}">
         <td style="text-align:center;"><input type="checkbox" id="impchk_${j}" style="width:17px; height:17px;"></td>
-        <td>${escapeHtml(l.producto)} ${sosp ? '<span title="El costo parece traer el 18% rebajado (ITBIS). Revísalo." style="cursor:help;">⚠️</span>' : ''}${(l.seriales && l.seriales.length) ? ` <span style="font-size:10px; font-weight:700; background:#dcfce7; color:#166534; padding:1px 7px; border-radius:8px;" title="Estos IMEI se pondrán solos en cada equipo">🔖 ${l.seriales.length} IMEI</span>` : ''}</td>
+        <td>${escapeHtml(l.producto)} ${sosp ? '<span title="El costo parece traer el 18% rebajado (ITBIS). Revísalo." style="cursor:help;"><i class="ti ti-alert-triangle"></i></span>' : ''}${(l.seriales && l.seriales.length) ? ` <span style="font-size:10px; font-weight:700; background:#dcfce7; color:#166534; padding:1px 7px; border-radius:8px;" title="Estos IMEI se pondrán solos en cada equipo"><i class="ti ti-bookmark"></i> ${l.seriales.length} IMEI</span>` : ''}</td>
         <td style="text-align:center; color:#475569;">${escapeHtml(String(l.codproducto ?? ''))}</td>
         <td style="text-align:center;">${l.cantidad}</td>
         <td style="text-align:right; white-space:nowrap;">
@@ -11059,7 +11059,7 @@ function verLineasImportCompra(idx) {
     cont.innerHTML = `
       <button class="btn btn-light" style="padding:5px 10px; font-size:12px; margin-bottom:10px;" onclick="buscarComprasInfoPlus()"><i class="ti ti-arrow-left"></i> Volver</button>
       <div style="font-size:13px; margin-bottom:4px;"><b>Compra ${escapeHtml(f.factura)}</b> · ${escapeHtml(f.proveedor || '')}</div>
-      ${yaExiste ? '<div style="background:#fef3c7; color:#92400e; font-size:12px; padding:6px 10px; border-radius:8px; margin-bottom:8px;">⚠️ Ya existe un lote con este número de factura. Si continúas, crearás otro.</div>' : ''}
+      ${yaExiste ? '<div style="background:#fef3c7; color:#92400e; font-size:12px; padding:6px 10px; border-radius:8px; margin-bottom:8px;"><i class="ti ti-alert-triangle"></i> Ya existe un lote con este número de factura. Si continúas, crearás otro.</div>' : ''}
       <p style="font-size:12px; color:#475569; margin:0 0 8px;">Marca los <b>modelos de teléfono</b> que entran al lote (cada unidad = un equipo). Las piezas/accesorios <b>no</b> los marques.</p>
       <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
         <thead><tr style="background:#f1f5f9;"><th style="padding:6px;">✓</th><th style="text-align:left; padding:6px;">Producto</th><th>Código</th><th>Cant.</th><th style="text-align:right; padding:6px;">Costo c/u</th></tr></thead>
@@ -11120,7 +11120,7 @@ async function crearLoteDesdeCompraInfoPlus(idx) {
             const { error: eEq } = await supabaseClient.from('equipos_refurbish').insert(equipos.slice(i, i + 200));
             if(eEq) throw eEq;
         }
-        toast(`✅ Lote ${f.factura} creado con ${totalEquipos} equipo(s).`);
+        toast(`Lote ${f.factura} creado con ${totalEquipos} equipo(s).`);
         cerrarImportCompra();
         await loadAll();
         if(typeof nav === 'function') nav('refurb', document.getElementById('menu-refurb'));
@@ -11205,7 +11205,7 @@ function _manifRender() {
             <td style="padding:6px;">${escapeHtml(m.modelo)}<div style="font-size:10px; color:#475569;">${m.imeis.length} IMEI</div></td>
             <td style="text-align:center;">${m.count}</td>
             <td style="text-align:right;">${money(prom)}</td>
-            <td style="padding:6px;">${ok ? `<span style="color:#1d4ed8; font-weight:700;">${escapeHtml(m.codigo)}</span> <span style="color:#475569; font-size:11px;">${escapeHtml((m.nombreIP || '').slice(0, 26))}</span>` : `<span style="color:#b91c1c; font-weight:700;">⚠️ Sin código IP</span>`}</td>
+            <td style="padding:6px;">${ok ? `<span style="color:#1d4ed8; font-weight:700;">${escapeHtml(m.codigo)}</span> <span style="color:#475569; font-size:11px;">${escapeHtml((m.nombreIP || '').slice(0, 26))}</span>` : `<span style="color:#b91c1c; font-weight:700;"><i class="ti ti-alert-triangle"></i> Sin código IP</span>`}</td>
             <td style="text-align:center;"><button class="btn btn-light" style="padding:2px 9px; font-size:11px;" onclick="_manifCambiarCodigo('${encodeURIComponent(k)}')">${ok ? 'Cambiar' : 'Enlazar'}</button></td>
         </tr>`;
     }).join('');
@@ -11224,7 +11224,7 @@ function _manifRender() {
     </div>
     <div style="font-weight:700; font-size:13px; margin:10px 0 4px;">Modelos → Info Plus <span style="color:#475569; font-weight:500; font-size:12px;">(verifica/corrige cada enlace)</span></div>
     <div class="table-wrap"><table style="width:100%; border-collapse:collapse; font-size:12.5px;"><thead><tr style="background:#0f172a; color:#fff;"><th style="text-align:left; padding:6px;">Modelo</th><th>Cant.</th><th style="text-align:right;">Prom. RD$</th><th style="text-align:left; padding:6px;">Código Info Plus</th><th></th></tr></thead><tbody>${modelRows}</tbody></table></div>
-    ${sinCod ? `<div style="margin-top:8px; background:#fef2f2; color:#b91c1c; font-size:12px; padding:8px 10px; border-radius:8px;">⚠️ <b>${sinCod} modelo(s) sin código de Info Plus.</b> Se crean en el taller igual (con IMEI y costo), pero para <b>despacharlos/registrarlos en Info Plus</b> primero hay que <b>crear ese artículo en Info Plus</b> y enlazarlo con "Enlazar". Puedes dejarlo y asignarlo después.</div>` : ''}
+    ${sinCod ? `<div style="margin-top:8px; background:#fef2f2; color:#b91c1c; font-size:12px; padding:8px 10px; border-radius:8px;"><i class="ti ti-alert-triangle"></i> <b>${sinCod} modelo(s) sin código de Info Plus.</b> Se crean en el taller igual (con IMEI y costo), pero para <b>despacharlos/registrarlos en Info Plus</b> primero hay que <b>crear ese artículo en Info Plus</b> y enlazarlo con "Enlazar". Puedes dejarlo y asignarlo después.</div>` : ''}
     <div style="text-align:right; margin-top:10px; font-size:13px;"><b>${phones.length}</b> teléfono(s) · Total <b>${money(totRD)}</b></div>
     <div style="text-align:right; margin-top:12px;"><button class="btn btn-blue" onclick="crearLoteDesdeManifiesto()"><i class="ti ti-plus"></i> Crear lote (${phones.length} equipos)</button></div>`;
 }
@@ -11271,7 +11271,7 @@ async function crearLoteDesdeManifiesto() {
             const { error: eEq } = await supabaseClient.from('equipos_refurbish').insert(equipos.slice(i, i + 200));
             if(eEq) throw eEq;
         }
-        toast(`✅ Lote ${codigoLote} creado con ${phones.length} equipo(s).`);
+        toast(`Lote ${codigoLote} creado con ${phones.length} equipo(s).`);
         document.getElementById('modalManif')?.remove();
         await loadAll();
         if(typeof nav === 'function') nav('refurb', document.getElementById('menu-refurb'));
@@ -11965,7 +11965,7 @@ async function agregarEquipoAlLote() {
         if(rep) {
             const loteRep = cache.lotes.find(l => l.id === rep.lote_id);
             const dondeTxt = loteRep ? ('lote ' + (loteRep.codigo_lote || '')) : 'otro lote';
-            return toast(`⚠️ Ese IMEI (${imei}) ya está registrado en ${dondeTxt}. Si el equipo volvió por garantía, marca la casilla "Es por garantía".`, 'error');
+            return toast(`Ese IMEI (${imei}) ya está registrado en ${dondeTxt}. Si el equipo volvió por garantía, marca la casilla "Es por garantía".`, 'error');
         }
     }
 
@@ -11997,7 +11997,7 @@ async function agregarEquipoAlLote() {
             notas_diagnostico: (esGarantia ? 'GARANTÍA' + (notas ? ' · ' + notas : '') : (notas || null))
         }]);
         if(error) throw error;
-        toast(esGarantia ? `🛡️ Equipo por garantía agregado: ${modeloCompleto}${colorSel ? ' · ' + colorSel : ''}` : `Equipo agregado: ${modeloCompleto}${colorSel ? ' · ' + colorSel : ''}`);
+        toast(esGarantia ? `Equipo por garantía agregado: ${modeloCompleto}${colorSel ? ' · ' + colorSel : ''}` : `Equipo agregado: ${modeloCompleto}${colorSel ? ' · ' + colorSel : ''}`);
         const _g = document.getElementById('eq_garantia'); if(_g) _g.checked = false;
         // Modo rápido: se MANTIENEN el artículo, el costo y el color (solo se limpia el IMEI y las notas).
         // El costo queda de sugerencia; cámbialo si el próximo IMEI vale distinto. El cursor vuelve al IMEI para escanear el siguiente.
@@ -12079,7 +12079,7 @@ function _eqCardRow(e, esAdmin) {
     const precio = ip && Number(ip.precio) > 0 ? Number(ip.precio) : 0;
     const imei = e.imei || '';
     const imeiBadge = imei ? (_eqImeiOk(imei) ? `<span class="eq-vb ok"><i class="ti ti-circle-check"></i> Válido</span>` : `<span class="eq-vb serial">Serial</span>`) : `<span class="eq-vb no">Sin IMEI</span>`;
-    const gar = e.es_garantia ? ` <span class="eq-vb gar">🛡️ Garantía</span>` : '';
+    const gar = e.es_garantia ? ` <span class="eq-vb gar"><i class="ti ti-shield"></i> Garantía</span>` : '';
     return `<div class="eq-row">
       <div class="eq-art">
         <div class="eq-thumb">${_abEmoji(_abCat(desc))}</div>
@@ -12201,7 +12201,7 @@ function _editarEquipoLote(id) {
         <div class="form-row"><label>Color</label><input id="editEq_color" value="${escapeHtml(_eqColorReal(e))}" placeholder="Ej. Negro, Azul, Dorado…"></div>
         ${esAdmin ? `<div class="form-row"><label>Costo unidad (RD$) *</label><input id="editEq_costo" type="number" step="0.01" value="${e.costo_compra || 0}"></div>` : ''}
         <div class="form-row"><label>Notas</label><input id="editEq_notas" value="${escapeHtml(notas)}" placeholder="Opcional"></div>
-        <div class="form-row"><label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="editEq_garantia" ${esGar ? 'checked' : ''} style="width:16px; height:16px;"> 🛡️ Es por garantía (permite repetir el mismo IMEI)</label></div>
+        <div class="form-row"><label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="editEq_garantia" ${esGar ? 'checked' : ''} style="width:16px; height:16px;"> <i class="ti ti-shield"></i> Es por garantía (permite repetir el mismo IMEI)</label></div>
       </div>
       <div class="modal-footer"><button class="btn btn-light" onclick="document.getElementById('modalEditEq').remove()">Cancelar</button><button class="btn btn-blue" onclick="_guardarEdicionEquipoLote('${id}')"><i class="ti ti-device-floppy"></i> Guardar cambios</button></div>
     </div>`;
@@ -12221,7 +12221,7 @@ async function _guardarEdicionEquipoLote(id) {
     if(!esGar) {
         const norm = imei.toLowerCase().trim();
         const rep = (cache.refurb || []).find(r => r.id !== id && (r.imei || '').toLowerCase().trim() === norm);
-        if(rep) { const loteRep = (cache.lotes || []).find(l => l.id === rep.lote_id); const donde = loteRep ? ('lote ' + (loteRep.codigo_lote || '')) : 'otro lote'; return toast(`⚠️ Ese IMEI (${imei}) ya está registrado en ${donde}. Si el equipo volvió por garantía, marca la casilla.`, 'error'); }
+        if(rep) { const loteRep = (cache.lotes || []).find(l => l.id === rep.lote_id); const donde = loteRep ? ('lote ' + (loteRep.codigo_lote || '')) : 'otro lote'; return toast(`Ese IMEI (${imei}) ya está registrado en ${donde}. Si el equipo volvió por garantía, marca la casilla.`, 'error'); }
     }
     const upd = { imei, es_garantia: esGar };
     upd.color = ((document.getElementById('editEq_color') || {}).value || '').trim() || null;
@@ -12232,7 +12232,7 @@ async function _guardarEdicionEquipoLote(id) {
     try {
         const { error } = await supabaseClient.from('equipos_refurbish').update(upd).eq('id', id);
         if(error) throw error;
-        toast('✏️ Equipo corregido.');
+        toast('Equipo corregido.');
         document.getElementById('modalEditEq')?.remove();
         await loadAll();
     } catch(err) { logError('editar equipo lote', err); toastError(getFriendlyError(err)); }
@@ -13919,11 +13919,11 @@ function imprimirReporteCostosLote(_modo) {
         `<b>Compra:</b> ${lote.fecha_compra ? new Date(lote.fecha_compra).toLocaleDateString('es-DO') : '—'}`,
         `<b>Envío total:</b> ${money(Number(lote.gastos_envio) || 0)}`
     ];
-    if(concl) chips.push(`<b>Estado:</b> ✅ Lote concluido`);
+    if(concl) chips.push(`<b>Estado:</b> Lote concluido`);
     if(filtrosTxt.length) chips.push(`<b>Filtro:</b> ${escapeHtml(filtrosTxt.join(' · '))}`);
     _reporteCostosPrintHTML({
         titulo: `Costos lote ${lote.codigo_lote || ''}`,
-        subtitulo: `${concl ? '📋 Informe general' : 'Reporte de costos'} — Lote ${lote.codigo_lote || ''}`,
+        subtitulo: `${concl ? 'Informe general' : 'Reporte de costos'} — Lote ${lote.codigo_lote || ''}`,
         infoChips: chips,
         equipos,
         pdf: _modo === 'pdf',
@@ -14086,12 +14086,12 @@ async function _ejecutarRegistroCompraIP() {
         detallescompra, detallescompra2: [], detallescompra3: [], seriales
     };
     try {
-        toast(pedidoExistente ? ('⏳ Actualizando la compra ' + pedidoExistente + '…') : '⏳ Registrando compra en Info Plus…');
+        toast(pedidoExistente ? ('Actualizando la compra ' + pedidoExistente + '…') : 'Registrando compra en Info Plus…');
         const { data, error } = await supabaseClient.functions.invoke('infoplus-compra-crear', { body: { compra } });
         if(error) throw error;
         const msg = (data && data.respuesta && data.respuesta.message) || '';
         const okFinal = data && data.ok && /correctamente/i.test(msg);
-        if(!okFinal) return toast('⚠️ No se registró: ' + (msg || 'Info Plus rechazó la compra'), 'error');
+        if(!okFinal) return toast('No se registró: ' + (msg || 'Info Plus rechazó la compra'), 'error');
         const codpedido = (data.respuesta && data.respuesta.data && data.respuesta.data[0] && data.respuesta.data[0].codpedido) || pedidoExistente || 'OK';
         for(let i = 0; i < idsTodos.length; i += 200) {
             await supabaseClient.from('equipos_refurbish').update({ infoplus_compra_pedido: codpedido }).in('id', idsTodos.slice(i, i + 200));
@@ -14110,12 +14110,12 @@ async function _ejecutarRegistroCompraIP() {
             savedCompra = sc;
         } catch(e) { logError('guardar compra IP', e); }
         toast(pedidoExistente
-            ? `✅ Compra ${codpedido} ACTUALIZADA en Info Plus (${idsTodos.length} equipo(s) en total).`
-            : `✅ Compra registrada en Info Plus (${codpedido}). ${idsTodos.length} equipo(s).`);
+            ? `Compra ${codpedido} ACTUALIZADA en Info Plus (${idsTodos.length} equipo(s) en total).`
+            : `Compra registrada en Info Plus (${codpedido}). ${idsTodos.length} equipo(s).`);
         const m = document.getElementById('modalRegCompraIP'); if(m) m.remove();
         await loadAll();
         renderDetalleLoteReacond();
-        if(savedCompra && await confirmar(`Compra ${codpedido} ${pedidoExistente ? 'actualizada' : 'registrada'} ✅\n\n¿Imprimir el comprobante?`)) imprimirCompraIP(savedCompra);
+        if(savedCompra && await confirmar(`Compra ${codpedido} ${pedidoExistente ? 'actualizada' : 'registrada'}\n\n¿Imprimir el comprobante?`)) imprimirCompraIP(savedCompra);
     } catch(e) { logError('registrar compra IP', e); toastError(getFriendlyError(e)); }
 }
 // Imprime el comprobante de una compra registrada en Info Plus (para entregar/firmar).
@@ -16231,10 +16231,10 @@ function imprimirFormatoInfoPlus() {
         </style></head><body>
         <div class="top"><h1>${escapeHtml(tienda)} — Formato para Info Plus</h1><div class="sub">${escapeHtml(subTienda)}</div></div>
         <div class="chips">${chips.map(c => `<span>${c}</span>`).join('')}</div>
-        <div class="nota">Cada modelo = 1 artículo en Info Plus, con sus IMEIs y el <b class="tip">costo promedio</b> como costo unitario. 👉 Haz <b>clic</b> sobre un IMEI, código o precio para copiarlo.</div>
+        <div class="nota">Cada modelo = 1 artículo en Info Plus, con sus IMEIs y el <b class="tip">costo promedio</b> como costo unitario. Haz <b>clic</b> sobre un IMEI, código o precio para copiarlo.</div>
         ${bloques}
         <div class="tot"><span class="totdesg">Compra: ${money(totCompra)}</span><span class="totdesg">Flete: ${money(totFlete)}</span><span class="totdesg">Piezas: ${money(totPiezas)}</span> TOTAL GENERAL: ${money(totGen)} · ${totUds} unidad(es)</div>
-        <button onclick="window.print()" style="margin-top:12px;padding:7px 16px;background:#0891b2;color:#fff;border:0;border-radius:8px;cursor:pointer;font-size:13px;">🖨️ Imprimir</button>
+        <button onclick="window.print()" style="margin-top:12px;padding:7px 16px;background:#0891b2;color:#fff;border:0;border-radius:8px;cursor:pointer;font-size:13px;">Imprimir</button>
         <script>
         function cp(el){var t=(el.getAttribute('data-c')||el.innerText||'').trim();if(!t)return;
             try{navigator.clipboard.writeText(t);}catch(e){var ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch(_){}document.body.removeChild(ta);}
@@ -16397,16 +16397,16 @@ function renderDetalleLoteReacond() {
     // Badge de estado
     const badge = document.getElementById('reacondLoteEstadoBadge');
     if(equipos.length > 0 && (listoV + despachados) === equipos.length) {
-        badge.textContent = '✅ Lote concluido';
+        badge.innerHTML = '<i class="ti ti-circle-check"></i> Lote concluido';
         badge.style.cssText = 'background:#ede9fe; color:#5b21b6;';
     } else if(evaluados === equipos.length && equipos.length > 0) {
-        badge.textContent = '✅ Terminado';
+        badge.innerHTML = '<i class="ti ti-circle-check"></i> Terminado';
         badge.style.cssText = 'background:#d1fae5; color:#065f46;';
     } else if(enEval > 0 || evaluados > 0) {
-        badge.textContent = '⚠️ En Evaluación';
+        badge.innerHTML = '<i class="ti ti-alert-triangle"></i> En Evaluación';
         badge.style.cssText = 'background:#dbeafe; color:#b91c1c;';
     } else {
-        badge.textContent = '🟡 Pendiente';
+        badge.innerHTML = '<i class="ti ti-hourglass"></i> Pendiente';
         badge.style.cssText = 'background:#fef3c7; color:#92400e;';
     }
     
@@ -16428,14 +16428,14 @@ function renderDetalleLoteReacond() {
         if(!keys.length) { rowTec.innerHTML = ''; }
         else {
             const fEstadoChip = document.getElementById('reacondFiltroEstado')?.value || '';
-            rowTec.innerHTML = `<span style="font-size:12px; color:#475569; align-self:center;">👷 Técnicos:</span>` + keys.map(tid => {
+            rowTec.innerHTML = `<span style="font-size:12px; color:#475569; align-self:center;"><i class="ti ti-user-cog"></i> Técnicos:</span>` + keys.map(tid => {
                 const t = (cache.tecnicos || []).find(x => x.id === tid);
                 const activo = _reacondFiltroTec === tid;
                 const r = resTec[tid];
                 // El desglose "(N listos)" solo en "Todos"; con un estado filtrado el total ya es de ese estado.
                 const sub = (!fEstadoChip && r.term > 0) ? ` <span style="font-weight:600; opacity:.85;">(${r.term} listo${r.term > 1 ? 's' : ''})</span>` : '';
                 return `<button onclick="_reacondFiltrarTec('${tid}')" style="border:1px solid ${activo ? '#0f172a' : '#c7d2fe'}; background:${activo ? '#0f172a' : '#e0e7ff'}; color:${activo ? '#fff' : '#3730a3'}; padding:5px 11px; border-radius:999px; cursor:pointer; font-size:12px; font-weight:700;"><i class="ti ti-user"></i> ${escapeHtml(t?.nombre || 'Técnico')} · ${r.total}${sub}</button>`;
-            }).join('') + (_reacondFiltroTec ? `<button onclick="_reacondFiltrarTec('${_reacondFiltroTec}')" style="border:0; background:transparent; color:#b91c1c; cursor:pointer; font-size:12px;">✕ quitar filtro</button>` : '');
+            }).join('') + (_reacondFiltroTec ? `<button onclick="_reacondFiltrarTec('${_reacondFiltroTec}')" style="border:0; background:transparent; color:#b91c1c; cursor:pointer; font-size:12px;"><i class="ti ti-x"></i> quitar filtro</button>` : '');
         }
     }
 
@@ -18059,7 +18059,7 @@ function abrirModalAsignarTecnico(equipoId) {
     const tecnicosActivos = (cache.tecnicos || []).filter(t => t.activo);
     smartSelectInit({
         containerId: 'ss-asign-tecnico',
-        placeholder: '🔍 Buscar técnico...',
+        placeholder: 'Buscar técnico...',
         items: tecnicosActivos.map(t => ({
             id: t.id,
             label: t.nombre,
@@ -18529,10 +18529,10 @@ async function abrirPanelProceso(equipoId) {
     // ====== STEPPER VISUAL ======
     // Definir el orden de pasos
     const pasos = [
-        { id: 'en_proceso', label: 'Asignado', icono: '📋' },
-        { id: 'tecnico_recibio', label: 'Recibido', icono: '📦' },
-        { id: 'espera_pieza', label: 'Espera pieza', icono: '⏳' },
-        { id: 'listo_revision', label: 'Finalizado', icono: '👍' }
+        { id: 'en_proceso', label: 'Asignado', icono: '<i class="ti ti-clipboard-list"></i>' },
+        { id: 'tecnico_recibio', label: 'Recibido', icono: '<i class="ti ti-package"></i>' },
+        { id: 'espera_pieza', label: 'Espera pieza', icono: '<i class="ti ti-hourglass"></i>' },
+        { id: 'listo_revision', label: 'Finalizado', icono: '<i class="ti ti-thumb-up"></i>' }
     ];
     // Determinar índice del estado actual
     const ordenEstados = ['en_proceso', 'tecnico_recibio', 'espera_pieza', 'listo_revision'];
@@ -18559,7 +18559,7 @@ async function abrirPanelProceso(equipoId) {
         const habilitado = canGoto(idx);
         const clickAttr = habilitado ? `onclick="cambiarEstadoProceso('${equipoId}', '${p.id}')"` : '';
         return `<div class="stepper-step ${cls} ${!habilitado && idx !== idxActual ? 'bloqueado' : ''}" ${clickAttr}>
-            <div class="stepper-circle">${cls === 'completado' ? '✓' : p.icono}</div>
+            <div class="stepper-circle">${cls === 'completado' ? '<i class="ti ti-check"></i>' : p.icono}</div>
             <div class="stepper-label">${p.label}</div>
         </div>`;
     }).join('');
@@ -18601,17 +18601,17 @@ async function abrirPanelProceso(equipoId) {
         // === COLUMNA ADMIN (entregó pieza) ===
         let adminCol = '';
         if(esRechazada) {
-            adminCol = `<div class="pieza-status-col pendiente">❌ Pieza rechazada</div>`;
+            adminCol = `<div class="pieza-status-col pendiente"><i class="ti ti-x"></i> Pieza rechazada</div>`;
         } else if(estaDevuelta) {
             adminCol = `<div class="pieza-status-col" style="background:#e0e7ff; color:#3730a3;"><i class="ti ti-rotate-2"></i> Devuelta al inventario</div>`;
         } else if(devolucionPendiente) {
-            adminCol = `<div class="pieza-status-col esperando">🔄 Devolución solicitada</div>`;
+            adminCol = `<div class="pieza-status-col esperando"><i class="ti ti-refresh"></i> Devolución solicitada</div>`;
         } else if(esExtraNoAprobado) {
-            adminCol = `<div class="pieza-status-col esperando">⚠️ Extra pendiente de aprobación</div>`;
+            adminCol = `<div class="pieza-status-col esperando"><i class="ti ti-alert-triangle"></i> Extra pendiente de aprobación</div>`;
         } else if(estaEntregada || estaRecibida) {
             adminCol = `<div class="pieza-status-col ok"><i class="ti ti-check"></i> Admin: Entregada</div>`;
         } else {
-            adminCol = `<div class="pieza-status-col pendiente">⏳ Admin: NO entregada</div>`;
+            adminCol = `<div class="pieza-status-col pendiente"><i class="ti ti-hourglass"></i> Admin: NO entregada</div>`;
         }
         
         // === COLUMNA TÉCNICO (recibió) ===
@@ -18621,13 +18621,13 @@ async function abrirPanelProceso(equipoId) {
         } else if(estaDevuelta) {
             tecCol = `<div class="pieza-status-col" style="background:#e0e7ff; color:#3730a3;">Pieza devuelta</div>`;
         } else if(devolucionPendiente) {
-            tecCol = `<div class="pieza-status-col esperando">⏳ Esperando aprobación admin</div>`;
+            tecCol = `<div class="pieza-status-col esperando"><i class="ti ti-hourglass"></i> Esperando aprobación admin</div>`;
         } else if(esExtraNoAprobado) {
             tecCol = `<div class="pieza-status-col pendiente">—</div>`;
         } else if(estaRecibida) {
             tecCol = `<div class="pieza-status-col ok"><i class="ti ti-check"></i> Técnico: Recibida</div>`;
         } else if(estaEntregada) {
-            tecCol = `<div class="pieza-status-col esperando">⏳ Esperando técnico confirme</div>`;
+            tecCol = `<div class="pieza-status-col esperando"><i class="ti ti-hourglass"></i> Esperando técnico confirme</div>`;
         } else {
             tecCol = `<div class="pieza-status-col pendiente">Pendiente admin</div>`;
         }
@@ -18709,11 +18709,11 @@ async function abrirPanelProceso(equipoId) {
             <div class="modal-body" style="max-height:75vh; overflow-y:auto;">
                 <div style="background:#f1f5f9; padding:12px; border-radius:8px; margin-bottom:15px;">
                     <b style="font-size:15px;">${escapeHtml(eq.modelo || 'Equipo')}</b>
-                    ${esEquipoDevuelto ? `<span class="badge" style="background:#fee2e2; color:#991b1b; margin-left:8px; font-size:11px;">🔄 DEVUELTO ${eq.veces_devuelto}×</span>` : ''}
+                    ${esEquipoDevuelto ? `<span class="badge" style="background:#fee2e2; color:#991b1b; margin-left:8px; font-size:11px;"><i class="ti ti-refresh"></i> DEVUELTO ${eq.veces_devuelto}×</span>` : ''}
                     <br>
                     <span style="color:var(--text-muted); font-size:12px;">
                         IMEI: ${escapeHtml(eq.imei || '—')} 
-                        ${tecnico ? ` · 👤 ${escapeHtml(tecnico.nombre)}` : ''}
+                        ${tecnico ? ` · <i class="ti ti-user"></i> ${escapeHtml(tecnico.nombre)}` : ''}
                         ${eq.ciclo_actual > 1 ? ` · Ciclo ${eq.ciclo_actual}` : ''}
                     </span>
                 </div>
@@ -18722,7 +18722,7 @@ async function abrirPanelProceso(equipoId) {
                 <div style="background:linear-gradient(135deg, #fef2f2, #fee2e2); border:2px solid #dc2626; padding:14px; border-radius:12px; margin-bottom:15px; box-shadow:0 4px 12px rgba(220, 38, 38, 0.15);">
                     <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
                         <i class="ti ti-rotate-2" style="color:#dc2626; font-size:22px;"></i>
-                        <b style="color:#991b1b; font-size:14px;">⚠️ EQUIPO DEVUELTO - Historial de Devoluciones</b>
+                        <b style="color:#991b1b; font-size:14px;"><i class="ti ti-alert-triangle"></i> EQUIPO DEVUELTO - Historial de Devoluciones</b>
                     </div>
                     <div style="font-size:12px; color:#7f1d1d;">
                         ${devsPrev.slice(0, 5).map((d, idx) => {
@@ -18899,7 +18899,7 @@ async function verHistorialEquipoReacond(equipoId) {
     const trabajoHtml = Object.keys(porTec).length ? Object.entries(porTec).map(([tid, arr]) => {
         const nombre = tid === '_sin' ? 'Sin asignar' : nombreEmpleado(tid);
         const hechas = arr.filter(t => t.estado === 'hecha').length;
-        const items = arr.map(t => `<li style="margin:2px 0; ${t.estado === 'hecha' ? 'color:#16a34a;' : ''}">${t.estado === 'hecha' ? '✅' : '⏳'} ${escapeHtml(t.descripcion || '')}${t.notas ? ` <span style="color:#475569;">— ${escapeHtml(t.notas)}</span>` : ''}${t.fecha_completada ? ` <span style="color:#475569; font-size:10px;">(${fmtFecha(t.fecha_completada)})</span>` : ''}</li>`).join('');
+        const items = arr.map(t => `<li style="margin:2px 0; ${t.estado === 'hecha' ? 'color:#16a34a;' : ''}">${t.estado === 'hecha' ? '<i class="ti ti-check"></i>' : '<i class="ti ti-hourglass"></i>'} ${escapeHtml(t.descripcion || '')}${t.notas ? ` <span style="color:#475569;">— ${escapeHtml(t.notas)}</span>` : ''}${t.fecha_completada ? ` <span style="color:#475569; font-size:10px;">(${fmtFecha(t.fecha_completada)})</span>` : ''}</li>`).join('');
         return `<div style="margin-bottom:8px;"><b style="font-size:13px; color:#3730a3;"><i class="ti ti-user"></i> ${escapeHtml(nombre)}</b> <span style="font-size:11px; color:#475569;">(${hechas}/${arr.length} hechas)</span><ul style="margin:4px 0 0; padding-left:18px; font-size:12px;">${items}</ul></div>`;
     }).join('') : '<div style="color:#475569; font-size:12px;">Aún no hay tareas registradas.</div>';
 
@@ -18935,14 +18935,14 @@ async function verHistorialEquipoReacond(equipoId) {
                 <div style="background:#f1f5f9; padding:12px; border-radius:8px;">
                     <b style="font-size:15px;">${escapeHtml(eq.modelo || 'Equipo')}</b>
                     <span class="badge" style="background:${et.bg}; color:${et.color}; margin-left:8px; font-size:11px;">${et.text}</span>
-                    ${eq.veces_devuelto > 0 ? `<span class="badge" style="background:#fee2e2; color:#991b1b; margin-left:6px; font-size:10px;">🔄 DEVUELTO ${eq.veces_devuelto}×</span>` : ''}
-                    <div style="font-size:12px; color:#475569; margin-top:4px;">IMEI: ${escapeHtml(eq.imei || '—')}${tecnicoActual ? ` · 👤 Técnico actual: <b>${escapeHtml(tecnicoActual)}</b>` : ''}</div>
+                    ${eq.veces_devuelto > 0 ? `<span class="badge" style="background:#fee2e2; color:#991b1b; margin-left:6px; font-size:10px;"><i class="ti ti-refresh"></i> DEVUELTO ${eq.veces_devuelto}×</span>` : ''}
+                    <div style="font-size:12px; color:#475569; margin-top:4px;">IMEI: ${escapeHtml(eq.imei || '—')}${tecnicoActual ? ` · <i class="ti ti-user"></i> Técnico actual: <b>${escapeHtml(tecnicoActual)}</b>` : ''}</div>
                 </div>
-                ${seccion('💰 Costos', costosHtml)}
-                ${seccion('👨‍🔧 Trabajo por técnico', trabajoHtml)}
-                ${seccion('🧩 Piezas usadas', `<div style="background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:8px 10px;">${piezasHtml}</div>`)}
-                ${seccion('⚠️ Fallas registradas', `<div>${fallasHtml}</div>`)}
-                ${seccion('🕓 Línea de tiempo', `<div style="margin-top:4px;">${timelineHtml}</div>`)}
+                ${seccion('<i class="ti ti-currency-dollar"></i> Costos', costosHtml)}
+                ${seccion('<i class="ti ti-user-cog"></i> Trabajo por técnico', trabajoHtml)}
+                ${seccion('<i class="ti ti-puzzle"></i> Piezas usadas', `<div style="background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:8px 10px;">${piezasHtml}</div>`)}
+                ${seccion('<i class="ti ti-alert-triangle"></i> Fallas registradas', `<div>${fallasHtml}</div>`)}
+                ${seccion('<i class="ti ti-history"></i> Línea de tiempo', `<div style="margin-top:4px;">${timelineHtml}</div>`)}
             </div>
             <div class="modal-footer">
                 ${eq.estado_evaluacion !== 'vendido' ? `<button class="btn btn-light" onclick="cerrarHistorialEquipo(); continuarEvaluacion('${equipoId}')"><i class="ti ti-pencil"></i> Editar evaluación</button>` : ''}
@@ -20350,7 +20350,7 @@ function despacharTelefonosSeleccionados() {
             <td style="padding:6px; border-bottom:1px solid #eef2f7; text-align:center; color:#1d4ed8; font-weight:700;">${escapeHtml(g.codigo)}</td>
             <td style="padding:6px; border-bottom:1px solid #eef2f7; text-align:center;">${cant}</td>
             <td style="padding:6px; border-bottom:1px solid #eef2f7; text-align:right;">${money(prom)}</td>
-            <td style="padding:6px; border-bottom:1px solid #eef2f7; text-align:center;">${g.imeis.length}${faltan > 0 ? ` <span style="color:#b91c1c;">⚠️ ${faltan}</span>` : ''}</td>
+            <td style="padding:6px; border-bottom:1px solid #eef2f7; text-align:center;">${g.imeis.length}${faltan > 0 ? ` <span style="color:#b91c1c;"><i class="ti ti-alert-triangle"></i> ${faltan}</span>` : ''}</td>
         </tr>`;
     }).join('');
     const totU = lista.reduce((s, g) => s + g.equipos.length, 0);
@@ -20368,7 +20368,7 @@ function despacharTelefonosSeleccionados() {
         </div>
         <div class="table-wrap"><table style="width:100%; border-collapse:collapse; font-size:12.5px;"><thead><tr style="background:#0f172a; color:#fff;"><th style="padding:6px; text-align:left;">Modelo / IMEIs</th><th>Cód IP</th><th>Cant.</th><th style="text-align:right;">Prom.</th><th>IMEI</th></tr></thead><tbody>${filas}</tbody></table></div>
         <div style="text-align:right; margin-top:8px; font-size:13px;"><b>${totU}</b> teléfono(s) · Total <b>${money(totRD)}</b></div>
-        ${sinCodigo ? `<div style="margin-top:8px; background:#fef2f2; color:#b91c1c; font-size:12px; padding:8px; border-radius:8px;">⚠️ ${sinCodigo} teléfono(s) sin código Info Plus quedaron fuera.</div>` : ''}
+        ${sinCodigo ? `<div style="margin-top:8px; background:#fef2f2; color:#b91c1c; font-size:12px; padding:8px; border-radius:8px;"><i class="ti ti-alert-triangle"></i> ${sinCodigo} teléfono(s) sin código Info Plus quedaron fuera.</div>` : ''}
         <div style="margin-top:10px; background:#ecfdf5; border:1px solid #a7f3d0; font-size:11.5px; padding:8px 10px; border-radius:8px; color:#065f46;">Info Plus agrupa por modelo con <b>costo promedio</b> y se despacha como <b>un documento único</b> con todos sus IMEI. Cada teléfono debe estar en la localidad de origen.</div>
       </div>
       <div class="modal-footer">
@@ -20395,12 +20395,12 @@ async function _despTelConfirmar() {
     const r = await _ejecutarDespachoReal({ origen, destino, items, seriales, nota: 'Despacho teléfonos reacondicionados' });
     const saved = await _despGuardarHistorial({ origen, destino, items, nota: 'Teléfonos reacondicionados', r });
     if(r.ok) {
-        toast(`✅ Despacho #${r.numero} de teléfonos hecho: ${totU} u.`);
+        toast(`Despacho #${r.numero} de teléfonos hecho: ${totU} u.`);
         document.getElementById('modalDespTel')?.remove();
         await _ensureInfoplusArticulos(true);
-        if(saved && await confirmar(`Despacho #${r.numero} creado ✅\n\n¿Imprimir el documento?`)) imprimirDespacho(saved.id);
+        if(saved && await confirmar(`Despacho #${r.numero} creado\n\n¿Imprimir el documento?`)) imprimirDespacho(saved.id);
     } else {
-        toast(`❌ No se pudo despachar: ${r.error}\n(Revisa que cada teléfono esté en la localidad de origen.)`, 'error');
+        toast(`No se pudo despachar: ${r.error}\n(Revisa que cada teléfono esté en la localidad de origen.)`, 'error');
     }
 }
 
@@ -20892,7 +20892,7 @@ async function editarGastosEnvioLote() {
     try {
         const { error } = await supabaseClient.from('refurb_lotes').update({ gastos_envio: monto }).eq('id', reacondLoteAbiertoId);
         if(error) throw error;
-        toast('✅ Gastos de envío guardados: ' + money(monto));
+        toast('Gastos de envío guardados: ' + money(monto));
         await loadAll();
         renderDetalleLoteReacond();
     } catch(e) { logError('Editar gastos envío', e); toastError(getFriendlyError(e)); }
@@ -20931,7 +20931,7 @@ async function agregarPiezaInfoPlus(equipoId) {
         const { data } = await supabaseClient.from('equipo_fallas').select('*').eq('equipo_id', equipoId);
         const fallas = data || [];
         if(fallas.length) {
-            const chips = fallas.map(f => `<span style="display:inline-block; background:#fee2e2; color:#991b1b; font-size:11px; font-weight:600; padding:3px 9px; border-radius:10px; margin:2px;">⚠️ ${escapeHtml(f.falla_corto || f.falla_nombre || '')}${f.adicional ? ' (adic.)' : ''}</span>`).join('');
+            const chips = fallas.map(f => `<span style="display:inline-block; background:#fee2e2; color:#991b1b; font-size:11px; font-weight:600; padding:3px 9px; border-radius:10px; margin:2px;"><i class="ti ti-alert-triangle"></i> ${escapeHtml(f.falla_corto || f.falla_nombre || '')}${f.adicional ? ' (adic.)' : ''}</span>`).join('');
             refHtml = `<div style="background:#fff7ed; border:1px solid #fed7aa; border-radius:8px; padding:8px 10px; margin-bottom:10px;"><div style="font-size:11px; font-weight:700; color:#9a3412; margin-bottom:4px;">FALLAS DEL EQUIPO (referencia)</div>${chips}</div>`;
         }
     } catch(e) { logError('Fallas referencia Info Plus', e); }
@@ -20970,7 +20970,7 @@ function _piezaElegirAlmacen(art, ex) {
         box.id = 'modalPiezaAlmacen';
         box.style.zIndex = '700';
         box.innerHTML = `<div class="modal-box" style="max-width:460px;">
-            <div class="modal-header"><h3 style="margin:0;">📦 ¿De cuál almacén se descuenta?</h3></div>
+            <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-package"></i> ¿De cuál almacén se descuenta?</h3></div>
             <div class="modal-body">
               <p style="font-size:14px; margin-top:0;">"<b>${escapeHtml(art.descripcion || String(art.codigo))}</b>"</p>
               <p style="font-size:13px; color:#475569; margin-bottom:6px; font-weight:700;">Elige el almacén: <span id="piezaAlmCarga" style="font-weight:400; color:#0891b2;"><i class="ti ti-loader"></i> actualizando existencia…</span></p>
@@ -21023,12 +21023,12 @@ async function _agregarPiezaInfoPlusConfirm(equipoId, a) {
             const r = await _infoplusAjustePieza(a.codigo, 1, a.costo, false, _comentarioPieza('Salida', nombrePz, equipoId), almDesc);
             if(r.ok && ins) {
                 await supabaseClient.from('equipo_piezas_pedidas').update({ infoplus_desc_cant: 1, infoplus_desc_almacen: almDesc }).eq('id', ins.id);
-                toast('✅ Pieza agregada al costo y descontada de Info Plus (' + _nombreAlmacen(almDesc) + '): ' + nombrePz);
+                toast('Pieza agregada al costo y descontada de Info Plus (' + _nombreAlmacen(almDesc) + '): ' + nombrePz);
             } else {
-                toast('✅ Pieza agregada al costo: ' + nombrePz + '\n⚠️ Info Plus no dejó descontarla: ' + (r.error || 'rechazado') + '.\nSuele ser porque ese artículo no tiene existencia en Info Plus (no se puede dejar en negativo). El costo SÍ quedó sumado; corrige el inventario o descuéntala a mano.', 'error');
+                toast('Pieza agregada al costo: ' + nombrePz + '\nInfo Plus no dejó descontarla: ' + (r.error || 'rechazado') + '.\nSuele ser porque ese artículo no tiene existencia en Info Plus (no se puede dejar en negativo). El costo SÍ quedó sumado; corrige el inventario o descuéntala a mano.', 'error');
             }
         } else {
-            toast('✅ Pieza agregada al costo (sin descontar del inventario): ' + nombrePz);
+            toast('Pieza agregada al costo (sin descontar del inventario): ' + nombrePz);
         }
         await loadAll();
         _refrescarVistaEquipo(equipoId);
@@ -21106,10 +21106,10 @@ async function _descontarPiezaPendiente(piezaId, skipRefresh) {
         let ok = false;
         if(r.ok) {
             await supabaseClient.from('equipo_piezas_pedidas').update({ infoplus_desc_cant: cant, infoplus_desc_almacen: almDesc, estado: 'aprobada' }).eq('id', piezaId);
-            toast('✅ Pieza descontada de Info Plus (' + _nombreAlmacen(almDesc) + '): ' + (pz.pieza_nombre || ''));
+            toast('Pieza descontada de Info Plus (' + _nombreAlmacen(almDesc) + '): ' + (pz.pieza_nombre || ''));
             ok = true;
         } else {
-            toast('⚠️ Info Plus no dejó descontar «' + (pz.pieza_nombre || '') + '»: ' + (r.error || 'rechazado') + '.\nSuele ser porque ese artículo no tiene existencia en Info Plus (no se puede dejar en negativo). Corrige el inventario o descuéntala a mano.', 'error');
+            toast('Info Plus no dejó descontar «' + (pz.pieza_nombre || '') + '»: ' + (r.error || 'rechazado') + '.\nSuele ser porque ese artículo no tiene existencia en Info Plus (no se puede dejar en negativo). Corrige el inventario o descuéntala a mano.', 'error');
         }
         if(!skipRefresh) { await loadAll(); _refrescarVistaEquipo(pz.equipo_id); }
         return ok;
@@ -21315,7 +21315,7 @@ async function aprobarTerminado(equipoId) {
             accion: 'Aprobado por admin → Listo para venta',
             usuario: sessionUser?.nombre || 'Admin'
         }]);
-        toast('✅ Equipo recibido (Listo para Venta).');
+        toast('Equipo recibido (Listo para Venta).');
         cerrarPanelProceso();
         await loadAll();
         if(reacondLoteAbiertoId) renderDetalleLoteReacond();
@@ -21333,14 +21333,14 @@ async function marcarEquipoCompletado(equipoId) {
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return;
     if(eq.completado) return toast('Este equipo ya está Completado.');
-    if(!await confirmar(`✅ ¿Marcar "${eq.modelo || 'equipo'}" como COMPLETADO?\n\nQueda registrado como Completado (sigue editable por garantía).`)) return;
+    if(!await confirmar(`¿Marcar "${eq.modelo || 'equipo'}" como COMPLETADO?\n\nQueda registrado como Completado (sigue editable por garantía).`)) return;
     try {
         const { error } = await supabaseClient.from('equipos_refurbish').update({
             estado_evaluacion: 'vendido', completado: true, fecha_completado: new Date().toISOString()
         }).eq('id', equipoId);
         if(error) throw error;
-        try { await supabaseClient.from('equipo_historial').insert([{ equipo_id: equipoId, estado_nuevo: 'completado', accion: '✅ Marcado como Completado', usuario: sessionUser?.nombre || 'Admin' }]); } catch(_e) {}
-        toast('✅ Equipo marcado como Completado.');
+        try { await supabaseClient.from('equipo_historial').insert([{ equipo_id: equipoId, estado_nuevo: 'completado', accion: 'Marcado como Completado', usuario: sessionUser?.nombre || 'Admin' }]); } catch(_e) {}
+        toast('Equipo marcado como Completado.');
         cerrarPanelProceso();
         const mg = document.getElementById('modalGenerico'); if(mg) mg.remove();
         await loadAll();
@@ -21377,7 +21377,7 @@ async function marcarDespachado(equipoId) {
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return;
     // El taller es para CONTROL: "despachar" = entregar al almacén principal (no es una venta, no se pide precio)
-    if(!await confirmar(`✅ ¿Marcar "${eq.modelo}" como COMPLETADO?\n\nQuedará registrado como Completado.`)) return;
+    if(!await confirmar(`¿Marcar "${eq.modelo}" como COMPLETADO?\n\nQuedará registrado como Completado.`)) return;
     try {
         const { error } = await supabaseClient.from('equipos_refurbish').update({
             estado_evaluacion: 'vendido',
@@ -21386,12 +21386,12 @@ async function marcarDespachado(equipoId) {
         if(error) throw error;
         await supabaseClient.from('equipo_historial').insert([{
             equipo_id: equipoId, estado_anterior: 'listo_venta', estado_nuevo: 'vendido',
-            accion: '✅ Marcado como Completado',
+            accion: 'Marcado como Completado',
             usuario: sessionUser?.nombre || 'Admin'
         }]);
         // Descontar automáticamente las piezas "por descontar" (del Taller; si no hay, pregunta)
         const _rd = await _descontarPiezasAlCompletar(equipoId);
-        toast(_rd.n ? `✅ Completado. ${_rd.n} pieza(s) descontada(s) de Info Plus.` : '✅ Equipo marcado como Completado.');
+        toast(_rd.n ? `Completado. ${_rd.n} pieza(s) descontada(s) de Info Plus.` : 'Equipo marcado como Completado.');
         await loadAll();
         if(reacondLoteAbiertoId) renderDetalleLoteReacond();
     } catch(e) {
@@ -21415,7 +21415,7 @@ async function verFichaDespacho(equipoId) {
         fallas = rf.data || []; piezas = rp.data || []; hist = rh.data || [];
     } catch(e) { logError('Ficha despacho', e); }
     const fallasHtml = fallas.length
-        ? fallas.map(f => `<span style="display:inline-block; background:#fee2e2; color:#991b1b; font-size:11.5px; font-weight:600; padding:4px 10px; border-radius:10px; margin:3px;">⚠️ ${escapeHtml(f.falla_corto || f.falla_nombre || '')}${f.adicional ? ' (adic.)' : ''}</span>`).join('')
+        ? fallas.map(f => `<span style="display:inline-block; background:#fee2e2; color:#991b1b; font-size:11.5px; font-weight:600; padding:4px 10px; border-radius:10px; margin:3px;"><i class="ti ti-alert-triangle"></i> ${escapeHtml(f.falla_corto || f.falla_nombre || '')}${f.adicional ? ' (adic.)' : ''}</span>`).join('')
         : '<span style="color:var(--text-muted); font-size:12.5px;">Sin fallas registradas.</span>';
     let costoHtml = '';
     if(isAdminUser()) {
@@ -22152,17 +22152,17 @@ function renderDevoluciones() {
 
 function obtenerEtiquetaEstado(estado) {
     const map = {
-        'pendiente': { text: '🟡 Pendiente', bg:'#fef3c7', color:'#92400e' },
-        'en_evaluacion': { text: '⚠️ Evaluación', bg:'#dbeafe', color:'#b91c1c' },
-        'evaluado': { text: '✅ Evaluado', bg:'#d1fae5', color:'#065f46' },
-        'en_proceso': { text: '🔧 En Proceso', bg:'#fed7aa', color:'#9a3412' },
-        'tecnico_recibio': { text: '📦 Recibido', bg:'#bfdbfe', color:'#b91c1c' },
-        'espera_pieza': { text: '⏳ Espera pieza', bg:'#fde68a', color:'#92400e' },
-        'listo_revision': { text: '👍 Finalizado (por recibir)', bg:'#e9d5ff', color:'#6b21a8' },
-        'listo_venta': { text: '🛒 Listo Venta', bg:'#ddd6fe', color:'#5b21b6' },
-        'vendido': { text: '✅ Completado', bg:'#d1fae5', color:'#065f46' },
-        'reasignado': { text: '👥 Reasignado', bg:'#fef3c7', color:'#92400e' },
-        'reparacion_externa': { text: '🔧 Reparación externa', bg:'#e0e7ff', color:'#3730a3' }
+        'pendiente': { text: 'Pendiente', bg:'#fef3c7', color:'#92400e' },
+        'en_evaluacion': { text: 'Evaluación', bg:'#dbeafe', color:'#b91c1c' },
+        'evaluado': { text: 'Evaluado', bg:'#d1fae5', color:'#065f46' },
+        'en_proceso': { text: 'En Proceso', bg:'#fed7aa', color:'#9a3412' },
+        'tecnico_recibio': { text: 'Recibido', bg:'#bfdbfe', color:'#b91c1c' },
+        'espera_pieza': { text: 'Espera pieza', bg:'#fde68a', color:'#92400e' },
+        'listo_revision': { text: 'Finalizado (por recibir)', bg:'#e9d5ff', color:'#6b21a8' },
+        'listo_venta': { text: 'Listo Venta', bg:'#ddd6fe', color:'#5b21b6' },
+        'vendido': { text: 'Completado', bg:'#d1fae5', color:'#065f46' },
+        'reasignado': { text: 'Reasignado', bg:'#fef3c7', color:'#92400e' },
+        'reparacion_externa': { text: 'Reparación externa', bg:'#e0e7ff', color:'#3730a3' }
     };
     const _r = map[estado] || { text: estado, bg:'#f1f5f9', color:'#475569' };
     return { ..._r, text: (_r.text || '').toUpperCase() };
