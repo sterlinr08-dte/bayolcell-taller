@@ -14,8 +14,8 @@
     radial-gradient(700px 320px at 85% -10%,rgba(248,113,113,.08),transparent 70%),
     radial-gradient(650px 300px at 0% 0%,rgba(96,165,250,.07),transparent 68%);
 }
-#app .content > .view.active{animation:bcViewIn .24s ease-out both;}
-@keyframes bcViewIn{from{opacity:.72;transform:translateY(4px)}to{opacity:1;transform:none}}
+/* Las vistas permanecen estables; cambiar de datos no debe parecer una recarga. */
+#app .content > .view.active{animation:none !important;}
 #app .top-bar{height:60px;padding:0 22px;backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%);}
 #app .top-title{letter-spacing:.02em;font-weight:800;}
 #app .top-right-info{border-radius:999px;padding:7px 13px;}
