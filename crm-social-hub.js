@@ -256,7 +256,18 @@
       if(status){status.textContent='Conectado';status.removeAttribute('style');}
       const {data:threads,error:hErr}=await instagramQuery(client.from('instagram_hilos').select('*').eq('cuenta_id',state.account.id).eq('estado','abierto').order('ultimo_mensaje_at',{ascending:false,nullsFirst:false}).limit(300));
       if (hErr) throw hErr;
-      state.threads = threads || [];
+      let visibles = threads || [];
+      // Mismo candado que WhatsApp/Leads (ver CLAUDE.md): un empleado no-admin
+      // solo ve lo que tiene asignado a él o lo que todavia no tiene dueño.
+      // Sin esto, cualquier empleado veia las 120+ conversaciones de todos.
+      try {
+        if (typeof window.isAdminUser === 'function' && !window.isAdminUser()
+            && typeof window._crmMiIdentidad === 'function' && typeof window._crmMismoAsignado === 'function') {
+          const yo = window._crmMiIdentidad();
+          visibles = visibles.filter(h => !h.asignado_id || window._crmMismoAsignado(h, yo));
+        }
+      } catch(e) { console.error('CRM Social Instagram: filtro de asignacion fallo', e); }
+      state.threads = visibles;
       if (state.selected) {
         const fresh = state.threads.find(x => x.id === state.selected.id);
         if (fresh) state.selected = fresh;

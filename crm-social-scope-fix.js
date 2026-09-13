@@ -96,8 +96,18 @@
       state.meta.facebook.ready=true;
       state.meta.facebook.account=account.display_name||account.username||'BayolCell';
       syncHeaderState();
-      const {data:threads,error}=await withTimeout(client.from('social_hilos').select('id,participant_name,participant_username,ultimo_mensaje_preview,ultimo_mensaje_at,no_leidos_count,estado').eq('cuenta_id',account.id).order('actualizado_en',{ascending:false}).limit(100),12000);
+      const {data:threadsRaw,error}=await withTimeout(client.from('social_hilos').select('id,participant_name,participant_username,ultimo_mensaje_preview,ultimo_mensaje_at,no_leidos_count,estado,asignado_id,asignado_tipo').eq('cuenta_id',account.id).order('actualizado_en',{ascending:false}).limit(100),12000);
       if(error) throw error;
+      let threads=threadsRaw||[];
+      // Mismo candado que WhatsApp/Instagram (ver CLAUDE.md): un empleado
+      // no-admin solo ve lo asignado a el o sin dueño todavia.
+      try {
+        if (typeof window.isAdminUser==='function' && !window.isAdminUser()
+            && typeof window._crmMiIdentidad==='function' && typeof window._crmMismoAsignado==='function') {
+          const yo=window._crmMiIdentidad();
+          threads=threads.filter(t=>!t.asignado_id||window._crmMismoAsignado(t,yo));
+        }
+      } catch(e){ console.error('CRM Social Facebook: filtro de asignacion fallo', e); }
       if(!threads?.length){host.innerHTML='<div class="bc-social-empty-state"><i class="ti ti-message-circle"></i><b>Sin conversaciones todavía</b><span>La importación inicial de Zernio puede tardar unos segundos.</span></div>';return;}
       host.innerHTML=threads.map(t=>{const name=t.participant_name||t.participant_username||'Contacto de Facebook';const initials=name.split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase();return `<button type="button" class="bc-social-generic-thread${t.no_leidos_count?' unread':''}" data-fb-thread="${t.id}"><span class="bc-social-generic-avatar">${escapeHtml(initials)}</span><span class="bc-social-generic-thread-copy"><b>${escapeHtml(name)}</b><small>${escapeHtml(t.ultimo_mensaje_preview||'Sin mensajes')}</small></span>${t.no_leidos_count?`<em>${t.no_leidos_count}</em>`:''}</button>`;}).join('');
     }catch(e){
