@@ -4,7 +4,42 @@
   if(window.__bcCrmExtensionsLoader)return;
   window.__bcCrmExtensionsLoader=true;
 
-  var V='20260913-refresh-position1';
+  var V='20260913-refresh-position2';
+
+  // El botón de actualizar hace una recarga completa, pero la experiencia
+  // vuelve al mismo punto: página, pestaña, listas, historial y borrador.
+  function guardarPosicionAntesDeActualizar(){
+    var scrolls={};
+    document.querySelectorAll('[id]').forEach(function(el){
+      if(el.scrollTop>0 && el.scrollHeight>el.clientHeight) scrolls[el.id]=el.scrollTop;
+    });
+    var active=document.activeElement;
+    var snap={x:window.scrollX||0,y:window.scrollY||0,scrolls:scrolls,
+      nav:localStorage.getItem('bayol_nav_actual')||'',subtab:localStorage.getItem('bayol_subtab_crmlinea')||'',
+      input:active && /^(INPUT|TEXTAREA)$/.test(active.tagName) && active.id ? {id:active.id,value:active.value,start:active.selectionStart,end:active.selectionEnd}:null};
+    try{sessionStorage.setItem('bayol_refresh_position',JSON.stringify(snap));}catch(e){}
+  }
+  function restaurarPosicionDespuesDeActualizar(){
+    var raw;try{raw=sessionStorage.getItem('bayol_refresh_position');sessionStorage.removeItem('bayol_refresh_position');}catch(e){return;}
+    if(!raw)return;
+    var snap;try{snap=JSON.parse(raw);}catch(e){return;}
+    var restore=function(){
+      window.scrollTo(snap.x||0,snap.y||0);
+      Object.keys(snap.scrolls||{}).forEach(function(id){var el=document.getElementById(id);if(el)el.scrollTop=snap.scrolls[id];});
+      var d=snap.input,input=d&&document.getElementById(d.id);
+      if(input && d.value!=null){input.value=d.value;if(d.start!=null){try{input.setSelectionRange(d.start,d.end==null?d.start:d.end);}catch(e){}}}
+    };
+    [150,500,1200,2200].forEach(function(ms){setTimeout(restore,ms);});
+  }
+  var _renderOriginal=window.renderCrmLinea;
+  if(typeof _renderOriginal==='function' && !window.__bcFullReloadRefresh){
+    window.__bcFullReloadRefresh=true;
+    window.renderCrmLinea=function(btn){
+      if(btn){guardarPosicionAntesDeActualizar();setTimeout(function(){window.location.reload();},80);return Promise.resolve();}
+      return _renderOriginal.apply(this,arguments);
+    };
+  }
+  restaurarPosicionDespuesDeActualizar();
   var legacy=document.createElement('script');
   legacy.src='crm-marketing-consent-legacy.js?v='+V;
   legacy.onload=function(){
