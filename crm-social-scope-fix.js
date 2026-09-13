@@ -127,10 +127,14 @@
     if(!current())return;
     if(threadError)throw threadError;
     if(!thread)throw new Error('Conversación no disponible.');
-    const {data:rows,error:messagesError}=await withTimeout(client.from('social_mensajes').select('id,direccion,cuerpo,tipo_contenido,media_url,estado,creado_en').eq('hilo_id',id).order('creado_en',{ascending:false}).order('id',{ascending:false}).limit(500),12000);
+    const {data:rows,error:messagesError}=await withTimeout(client.from('social_mensajes').select('id,direccion,cuerpo,tipo_contenido,media_url,estado,creado_en,metadata').eq('hilo_id',id).order('creado_en',{ascending:false}).order('id',{ascending:false}).limit(500),12000);
     if(!current())return;
     if(messagesError)throw messagesError;
-    const messages=(rows||[]).reverse();
+    const messages=(rows||[]).filter(m=>!m.metadata?.upload_only).reverse();
+    if(window.BayolFacebookChat){
+      window.BayolFacebookChat.render(thread,messages,{reload:()=>{if(current())return openFacebookThread(id);},refreshList:loadFacebookThreads});
+      return;
+    }
     const name=thread.participant_name||thread.participant_username||'Contacto de Facebook';
     chat.innerHTML=`<div class="bc-social-generic-chat-head"><span class="bc-social-generic-avatar">${escapeHtml(name.slice(0,2).toUpperCase())}</span><div><b>${escapeHtml(name)}</b><small>${escapeHtml(thread.participant_username||'Messenger')}</small></div><span class="bc-social-generic-channel">Facebook</span></div><div class="bc-social-generic-messages" id="bcFbMessages">${(messages||[]).map(m=>`<div class="bc-social-generic-message ${m.direccion==='out'?'out':'in'}"><div>${escapeHtml(m.cuerpo|| (m.media_url?'Adjunto':'Mensaje sin texto'))}</div><small>${new Date(m.creado_en).toLocaleString('es-DO',{dateStyle:'short',timeStyle:'short'})} · ${m.estado||''}</small></div>`).join('')||'<div class="bc-ig-empty"><div><b>Sin mensajes</b></div></div>'}</div><form class="bc-social-generic-composer" id="bcFbComposer"><textarea id="bcFbText" rows="1" placeholder="Escribe un mensaje…"></textarea><button type="submit" aria-label="Enviar"><i class="ti ti-send"></i></button></form>`;
     const messagesEl=$('#bcFbMessages'); if(messagesEl)messagesEl.scrollTop=messagesEl.scrollHeight;
