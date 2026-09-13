@@ -974,9 +974,18 @@
     if(window.__bcSocialTabsPatched || typeof window.crmLineaTab!=='function') return;
     state.originalCrmLineaTab=window.crmLineaTab;
     window.crmLineaTab=async function(){
-      if(arguments[0]==='redes'){ showSocial('instagram'); return; }
-      hideSocial();
-      return state.originalCrmLineaTab.apply(this,arguments);
+      const args=arguments;
+      if(args[0]==='redes'){
+        try{ showSocial('instagram'); }
+        catch(e){ console.error('CRM Redes: fallo al abrir Redes',e); }
+        return;
+      }
+      // Si hideSocial() falla por lo que sea, el cambio de pestaña nativo
+      // (Mensajes/Leads) tiene que pasar igual — si no, la pestaña se queda
+      // pegada y solo se arregla recargando la página (bug reportado 13 sept).
+      try{ hideSocial(); }
+      catch(e){ console.error('CRM Redes: fallo saliendo de Redes, se continúa igual con el cambio de pestaña',e); }
+      return state.originalCrmLineaTab.apply(this,args);
     };
     window.__bcSocialTabsPatched=true;
   }

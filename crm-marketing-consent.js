@@ -4,7 +4,7 @@
   if(window.__bcCrmExtensionsLoader)return;
   window.__bcCrmExtensionsLoader=true;
 
-  var V='20260913-fbcomments2';
+  var V='20260913-fixtabs1';
 
   // El botón de actualizar hace una recarga completa, pero la experiencia
   // vuelve al mismo punto: página, pestaña, listas, historial y borrador.
