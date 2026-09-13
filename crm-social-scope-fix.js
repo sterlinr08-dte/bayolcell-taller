@@ -114,14 +114,45 @@
     }
   }
 
+  let facebookMessageGeneration=0;
+  let facebookSelectedThread=null;
   async function openFacebookThread(id){
     const client=typeof supabaseClient!=='undefined'?supabaseClient:window.supabaseClient; const chat=$('#bcFbChat'); if(!client?.from||!chat)return;
-    const {data:thread}=await client.from('social_hilos').select('id,participant_name,participant_username').eq('id',id).maybeSingle(); if(!thread)return;
-    const {data:messages}=await client.from('social_mensajes').select('id,direccion,cuerpo,tipo_contenido,media_url,estado,creado_en').eq('hilo_id',id).order('creado_en',{ascending:true}).limit(500);
+    const generation=++facebookMessageGeneration;
+    facebookSelectedThread=id;
+    const current=()=>generation===facebookMessageGeneration && facebookSelectedThread===id && state.visible && state.channel==='facebook';
+    chat.innerHTML='<div class="bc-social-loading"><span class="bc-social-spin"></span>Cargando mensajes…</div>';
+    try{
+    const {data:thread,error:threadError}=await withTimeout(client.from('social_hilos').select('id,participant_name,participant_username').eq('id',id).maybeSingle(),12000);
+    if(!current())return;
+    if(threadError)throw threadError;
+    if(!thread)throw new Error('Conversación no disponible.');
+    const {data:rows,error:messagesError}=await withTimeout(client.from('social_mensajes').select('id,direccion,cuerpo,tipo_contenido,media_url,estado,creado_en').eq('hilo_id',id).order('creado_en',{ascending:false}).order('id',{ascending:false}).limit(500),12000);
+    if(!current())return;
+    if(messagesError)throw messagesError;
+    const messages=(rows||[]).reverse();
     const name=thread.participant_name||thread.participant_username||'Contacto de Facebook';
     chat.innerHTML=`<div class="bc-social-generic-chat-head"><span class="bc-social-generic-avatar">${escapeHtml(name.slice(0,2).toUpperCase())}</span><div><b>${escapeHtml(name)}</b><small>${escapeHtml(thread.participant_username||'Messenger')}</small></div><span class="bc-social-generic-channel">Facebook</span></div><div class="bc-social-generic-messages" id="bcFbMessages">${(messages||[]).map(m=>`<div class="bc-social-generic-message ${m.direccion==='out'?'out':'in'}"><div>${escapeHtml(m.cuerpo|| (m.media_url?'Adjunto':'Mensaje sin texto'))}</div><small>${new Date(m.creado_en).toLocaleString('es-DO',{dateStyle:'short',timeStyle:'short'})} · ${m.estado||''}</small></div>`).join('')||'<div class="bc-ig-empty"><div><b>Sin mensajes</b></div></div>'}</div><form class="bc-social-generic-composer" id="bcFbComposer"><textarea id="bcFbText" rows="1" placeholder="Escribe un mensaje…"></textarea><button type="submit" aria-label="Enviar"><i class="ti ti-send"></i></button></form>`;
     const messagesEl=$('#bcFbMessages'); if(messagesEl)messagesEl.scrollTop=messagesEl.scrollHeight;
-    $('#bcFbComposer')?.addEventListener('submit',async e=>{e.preventDefault();const ta=$('#bcFbText'),text=String(ta?.value||'').trim();if(!text)return;const btn=e.currentTarget.querySelector('button');btn.disabled=true;try{const {error}=await client.functions.invoke('social-enviar',{body:{hiloId:id,text}});if(error)throw error;ta.value='';await openFacebookThread(id);await loadFacebookThreads();}catch(err){alert('No se pudo enviar el mensaje a Facebook.');}finally{btn.disabled=false;}});
+    $('#bcFbComposer')?.addEventListener('submit',async e=>{
+      e.preventDefault();const ta=$('#bcFbText'),text=String(ta?.value||'').trim();
+      const btn=e.currentTarget.querySelector('button');if(!text||btn.disabled)return;
+      btn.disabled=true;
+      try{
+        const {data,error}=await withTimeout(client.functions.invoke('social-enviar',{body:{hiloId:id,text}}),22000);
+        if(error)throw error;
+        if(data?.ok!==true)throw new Error('No se confirmó el envío.');
+        ta.value='';
+        if(current())await openFacebookThread(id);
+        await loadFacebookThreads();
+      }catch(err){alert('No se confirmó el envío. Revisa la conversación antes de reenviar; el mensaje podría haber salido.');}
+      finally{btn.disabled=false;}
+    });
+    }catch(error){
+      if(!current())return;
+      chat.innerHTML='<div class="bc-social-error"><b>No se pudieron cargar los mensajes</b><span>Comprueba la conexión y vuelve a intentarlo.</span><button type="button" id="bcFbRetryMessages">Reintentar</button></div>';
+      $('#bcFbRetryMessages')?.addEventListener('click',()=>openFacebookThread(id));
+    }
   }
 
   function ensureContextPanel(){
