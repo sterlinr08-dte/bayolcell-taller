@@ -360,6 +360,14 @@ Deno.serve(async (req: Request) => {
     return await generarSugerencia(hilo, (body.mensaje_cliente_id as string) ?? null);
   }
 
+  // La linea decide el tono del saludo: "Al por Mayor" (Santiago y Navarrete)
+  // es un publico distinto (revendedores/negocios comprando en volumen) al
+  // publico general que escribe a Reparacion/Servicio al Cliente/Principal
+  // -- no tiene sentido preguntarle "de que ciudad escribes" a alguien que
+  // ya eligio especificamente la linea de mayoreo.
+  const { data: linea } = await db.from("whatsapp_lineas").select("nombre, zernio_account_id").eq("id", hilo.linea_id).maybeSingle();
+  const esMayorista = (linea?.nombre || "").trim().toLowerCase() === "al por mayor";
+
   const { dia, horaMinutos } = horaLocalRD();
   const abiertoAhora = estaAbierto(config.horario_json, dia, horaMinutos);
 
@@ -369,7 +377,18 @@ Deno.serve(async (req: Request) => {
     respuesta = (await construirMensajeFueraDeHorario(hilo.sucursal_id)) || "";
     if (!respuesta) return json({ ok: true, omitido: "fuera de horario, pero no hay sucursales configuradas para listar" });
   } else {
-    const systemPrompt = `Eres el asistente de WhatsApp de BAYOL CELL (taller de reparacion de celulares y venta), para la sucursal de este chat.
+    const systemPrompt = esMayorista
+      ? `Eres el asistente de WhatsApp de BAYOL CELL AL POR MAYOR (venta al por mayor a negocios/revendedores de celulares y accesorios), para la linea de mayoreo de esta sucursal.
+
+Tu UNICA tarea es redactar el saludo de bienvenida para un cliente MAYORISTA que arranca una conversacion nueva (primera vez que escribe, o retoma el chat despues de 24 horas o mas sin actividad). No se te pide nada mas.
+
+Reglas:
+1. Saludo corto y profesional dandole la bienvenida a BAYOL CELL AL POR MAYOR. NO le preguntes de que ciudad escribe (ya eligio esta linea de mayoreo, esa pregunta no aplica aqui). En vez de eso, pregunta que esta buscando o que tipo de producto le interesa (celulares, accesorios, piezas) para poder orientarlo.
+2. NO menciones horario, direccion, ni montos/precios especificos -- si necesitas referirte a la lista de precios o catalogo, dilo sin la palabra "precio" (ejemplo: "te paso lo que manejamos al por mayor").
+3. Tono: profesional pero cercano, como un vendedor real de mayoreo texteando por WhatsApp, NO como una IA ni un bot -- nada acartonado ni de plantilla repetida. Dominicano, breve, natural. No uses el signo de apertura ¿ en las preguntas -- en WhatsApp real casi nadie lo usa, solo pon el signo de cierre al final (ejemplo correcto: "que estas buscando?"; incorrecto: "¿Que estas buscando?").
+4. Responde EXCLUSIVAMENTE con un JSON valido, sin texto extra antes o despues, con esta forma exacta:
+{"respuesta": "el texto del saludo"}`
+      : `Eres el asistente de WhatsApp de BAYOL CELL (taller de reparacion de celulares y venta), para la sucursal de este chat.
 
 Tu UNICA tarea es redactar el saludo de bienvenida para un cliente que arranca una conversacion nueva con esta sucursal (primera vez que escribe, o retoma el chat despues de 24 horas o mas sin actividad). No se te pide nada mas.
 
@@ -428,7 +447,6 @@ Reglas:
     return json({ ok: true, omitido: "el saludo generado mencionaba un precio, se descarta por seguridad" });
   }
 
-  const { data: linea } = await db.from("whatsapp_lineas").select("zernio_account_id").eq("id", hilo.linea_id).maybeSingle();
   if (!linea?.zernio_account_id) {
     return json({ ok: true, omitido: "sin cuenta de Zernio configurada para enviar automaticamente" });
   }
