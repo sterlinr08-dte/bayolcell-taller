@@ -33628,12 +33628,16 @@ async function _waAbrirConfigAgenteIA() {
             <select onchange="_waCambiarNivelAgente('${s.id}', this.value, this)" style="width:100%; padding:6px 8px; border:1px solid #cbd5e1; border-radius:7px; font-size:12.5px; margin-bottom:7px;">${opciones}</select>
             <div style="font-size:11px; color:#64748b; margin-bottom:4px;"><i class="ti ti-map-pin"></i> Dirección y GPS (para responder "dónde están" y mandar el pin de ubicación)</div>
             <input id="iaDir_${s.id}" placeholder="Dirección (ej: Av. Estrella Sadhalá esq. Bartolomé Colón)" value="${escapeHtml(cfg.direccion || '')}" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #cbd5e1; border-radius:7px; font-size:12px; margin-bottom:5px;">
+            <div style="display:flex; gap:6px; margin-bottom:5px;">
+                <input id="iaLink_${s.id}" placeholder="Pega aquí el link de Google Maps (el que compartes por WhatsApp)" style="flex:1; min-width:0; padding:6px 8px; border:1px solid #cbd5e1; border-radius:7px; font-size:12px;">
+                <button class="btn btn-blue" id="iaBtnDetectar_${s.id}" style="font-size:11.5px; white-space:nowrap;" onclick="_waDetectarUbicacionLink('${s.id}')"><i class="ti ti-map-pin-search"></i> Detectar</button>
+            </div>
             <div style="display:flex; gap:6px;">
                 <input id="iaLat_${s.id}" type="number" step="any" placeholder="Latitud (ej: 19.4517)" value="${cfg.lat ?? ''}" style="flex:1; min-width:0; padding:6px 8px; border:1px solid #cbd5e1; border-radius:7px; font-size:12px;">
                 <input id="iaLng_${s.id}" type="number" step="any" placeholder="Longitud (ej: -70.6970)" value="${cfg.lng ?? ''}" style="flex:1; min-width:0; padding:6px 8px; border:1px solid #cbd5e1; border-radius:7px; font-size:12px;">
                 <button class="btn btn-light" style="font-size:11.5px; white-space:nowrap;" onclick="_waGuardarUbicacionSucursal('${s.id}')"><i class="ti ti-device-floppy"></i></button>
             </div>
-            <div style="font-size:10.5px; color:#94a3b8; margin-top:3px;">Tip: abre la ubicación de la tienda en Google Maps, toca "Compartir", copia el link y ahí vienen las coordenadas (los dos números después de @).</div>
+            <div style="font-size:10.5px; color:#94a3b8; margin-top:3px;">Tip: en Google Maps o en WhatsApp, toca "Compartir ubicación", copia el link y pégalo arriba — "Detectar" llena la latitud/longitud solo. Después toca 💾 para guardar.</div>
         </div>`;
     }).join('') || `<div style="color:#94a3b8; font-size:12.5px;">No hay sucursales activas configuradas.</div>`;
 
@@ -33675,6 +33679,30 @@ async function _waCambiarNivelAgente(sucursalId, valorNivel, sel) {
         logError('_waCambiarNivelAgente', e); toastError('No se pudo cambiar el nivel del agente.');
         if(sel && anterior) sel.value = anterior;
     }
+}
+
+// Pega un link de Google Maps (o el que WhatsApp arma al compartir una
+// ubicación, que también es de Maps) y llena Latitud/Longitud solo -- para
+// links "cortos" (maps.app.goo.gl/..., goo.gl/maps/...) hace falta seguir
+// la redirección desde el servidor (el navegador no puede por CORS), por
+// eso llama a la función resolver-link-mapa.
+async function _waDetectarUbicacionLink(sucursalId) {
+    const link = (document.getElementById('iaLink_' + sucursalId)?.value || '').trim();
+    if(!link) return toast('Pega primero el link de la ubicación.', 'error');
+    const btn = document.getElementById('iaBtnDetectar_' + sucursalId);
+    const textoOriginal = btn ? btn.innerHTML : '';
+    if(btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Buscando…'; }
+    try {
+        const { data, error } = await supabaseClient.functions.invoke('resolver-link-mapa', { body: { url: link } });
+        if(error) throw error;
+        if(!data || !data.ok) { toastError((data && data.error) || 'No se pudieron sacar las coordenadas de ese link.'); return; }
+        const latInp = document.getElementById('iaLat_' + sucursalId);
+        const lngInp = document.getElementById('iaLng_' + sucursalId);
+        if(latInp) latInp.value = data.lat;
+        if(lngInp) lngInp.value = data.lng;
+        toast('📍 Coordenadas encontradas: ' + data.lat.toFixed(5) + ', ' + data.lng.toFixed(5) + ' — toca 💾 para guardar.');
+    } catch(e) { logError('_waDetectarUbicacionLink', e); toastError('No se pudo procesar ese link.'); }
+    finally { if(btn) { btn.disabled = false; btn.innerHTML = textoOriginal; } }
 }
 
 async function _waGuardarUbicacionSucursal(sucursalId) {
