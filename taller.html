@@ -33587,6 +33587,21 @@ async function _waEditarSugerenciaIA(sugerenciaId) {
 //   El agente NUNCA envía directo (salvo el saludo de bienvenida, que ya
 //   existía); todo lo demás queda como sugerencia — ver whatsapp-ia-responder.
 // ============================================================
+// Los 4 niveles que puede tener una sucursal, de menos a mas autonomia.
+// Se guardan como DOS columnas (activo + modo) pero se muestran como UN
+// solo selector para que sea simple de entender: Apagado = activo:false;
+// las otras 3 son activo:true con su modo.
+const _WA_IA_NIVELES = [
+    { valor: 'apagado', label: 'Apagado — no hace nada', activo: false, modo: 'observacion' },
+    { valor: 'observacion', label: 'Observación — no envía nada, solo mira', activo: true, modo: 'observacion' },
+    { valor: 'copiloto', label: 'Copiloto — sugiere, el empleado revisa y envía', activo: true, modo: 'copiloto' },
+    { valor: 'automatico', label: 'Automático — el saludo se envía solo', activo: true, modo: 'automatico' },
+];
+function _waIaNivelDe(cfg) {
+    if(!cfg || !cfg.activo) return 'apagado';
+    return ['observacion', 'copiloto', 'automatico'].includes(cfg.modo) ? cfg.modo : 'observacion';
+}
+
 async function _waAbrirConfigAgenteIA() {
     if(!isAdminUser()) return toast('Solo un administrador puede configurar el Agente de IA.', 'error');
     let conocimiento = {}, sucursales = [], configs = [];
@@ -33594,24 +33609,22 @@ async function _waAbrirConfigAgenteIA() {
         const [{ data: c }, { data: s }, { data: cfg }] = await Promise.all([
             supabaseClient.from('whatsapp_ia_conocimiento').select('*').eq('id', 1).maybeSingle(),
             supabaseClient.from('sucursales').select('id, nombre').eq('activo', true).order('nombre', { ascending: true }),
-            supabaseClient.from('whatsapp_ia_config').select('sucursal_id, activo'),
+            supabaseClient.from('whatsapp_ia_config').select('sucursal_id, activo, modo'),
         ]);
         conocimiento = c || {};
         sucursales = s || [];
         configs = cfg || [];
     } catch(e) { logError('_waAbrirConfigAgenteIA', e); toastError('No se pudo cargar la configuración del Agente de IA.'); return; }
 
-    const activoPorSucursal = {};
-    configs.forEach(c => activoPorSucursal[c.sucursal_id] = !!c.activo);
+    const configPorSucursal = {};
+    configs.forEach(c => configPorSucursal[c.sucursal_id] = c);
 
     const filasSucursal = sucursales.map(s => {
-        const activo = !!activoPorSucursal[s.id];
-        return `<div style="display:flex; align-items:center; justify-content:space-between; padding:8px 10px; border:1px solid #e2e8f0; border-radius:9px; margin-bottom:6px;">
-            <span style="font-size:13px; font-weight:600;"><i class="ti ti-building-store"></i> ${escapeHtml(s.nombre)}</span>
-            <label style="display:flex; align-items:center; gap:7px; cursor:pointer; font-size:12px; color:${activo ? '#166534' : '#64748b'};">
-                <span class="ia-suc-label">${activo ? 'Activado' : 'Apagado'}</span>
-                <input type="checkbox" ${activo ? 'checked' : ''} onchange="_waToggleAgenteSucursal('${s.id}', this.checked, this)">
-            </label>
+        const nivelActual = _waIaNivelDe(configPorSucursal[s.id]);
+        const opciones = _WA_IA_NIVELES.map(n => `<option value="${n.valor}" ${n.valor === nivelActual ? 'selected' : ''}>${escapeHtml(n.label)}</option>`).join('');
+        return `<div style="padding:8px 10px; border:1px solid #e2e8f0; border-radius:9px; margin-bottom:6px;">
+            <div style="font-size:13px; font-weight:600; margin-bottom:5px;"><i class="ti ti-building-store"></i> ${escapeHtml(s.nombre)}</div>
+            <select onchange="_waCambiarNivelAgente('${s.id}', this.value, this)" style="width:100%; padding:6px 8px; border:1px solid #cbd5e1; border-radius:7px; font-size:12.5px;">${opciones}</select>
         </div>`;
     }).join('') || `<div style="color:#94a3b8; font-size:12.5px;">No hay sucursales activas configuradas.</div>`;
 
@@ -33623,9 +33636,9 @@ async function _waAbrirConfigAgenteIA() {
 
     const html = `
         <div style="font-size:12.5px; color:#64748b; margin-bottom:14px;">
-            Esto es lo que el Agente de IA usa para redactar sus <b>sugerencias</b> (nunca las envía solo — un empleado siempre las revisa antes). Mientras más completo esto, mejores sugerencias da.
+            <b>Observación</b>: el agente no manda nada, solo aprende. <b>Copiloto</b>: prepara la respuesta pero un empleado la revisa antes de enviarla (así funciona hoy el saludo y todos los seguimientos). <b>Automático</b>: el saludo de bienvenida se manda solo — los seguimientos SIEMPRE quedan como sugerencia por ahora, para eso hace falta más historial validado.
         </div>
-        <div style="font-weight:700; font-size:13px; margin-bottom:8px;"><i class="ti ti-toggle-right"></i> Agente activado por sucursal</div>
+        <div style="font-weight:700; font-size:13px; margin-bottom:8px;"><i class="ti ti-toggle-right"></i> Nivel del agente por sucursal</div>
         ${filasSucursal}
         <div style="font-weight:700; font-size:13px; margin:16px 0 8px;"><i class="ti ti-book"></i> Base de conocimiento del negocio</div>
         ${campo('iaConServicios', 'Servicios', 'Ej: Reparación de pantallas, baterías, cambio de flex, venta de celulares nuevos y reacondicionados...', conocimiento.servicios)}
@@ -33640,15 +33653,18 @@ async function _waAbrirConfigAgenteIA() {
     abrirModalGenerico('🤖 Agente de IA — WhatsApp', html);
 }
 
-async function _waToggleAgenteSucursal(sucursalId, activo, chk) {
+async function _waCambiarNivelAgente(sucursalId, valorNivel, sel) {
+    const nivel = _WA_IA_NIVELES.find(n => n.valor === valorNivel);
+    if(!nivel) return;
+    const anterior = sel ? sel.dataset.anterior || '' : '';
     try {
-        const { error } = await supabaseClient.from('whatsapp_ia_config').upsert({ sucursal_id: sucursalId, activo }, { onConflict: 'sucursal_id' });
+        const { error } = await supabaseClient.from('whatsapp_ia_config').upsert({ sucursal_id: sucursalId, activo: nivel.activo, modo: nivel.modo }, { onConflict: 'sucursal_id' });
         if(error) throw error;
-        toast(activo ? '✅ Agente activado para esta sucursal.' : 'Agente apagado para esta sucursal.');
-        if(chk) { const lbl = chk.parentElement; lbl.style.color = activo ? '#166534' : '#64748b'; const txt = lbl.querySelector('.ia-suc-label'); if(txt) txt.textContent = activo ? 'Activado' : 'Apagado'; }
+        toast('✅ Nivel actualizado: ' + nivel.label.split(' —')[0]);
+        if(sel) sel.dataset.anterior = valorNivel;
     } catch(e) {
-        logError('_waToggleAgenteSucursal', e); toastError('No se pudo cambiar el estado del agente.');
-        if(chk) chk.checked = !activo;
+        logError('_waCambiarNivelAgente', e); toastError('No se pudo cambiar el nivel del agente.');
+        if(sel && anterior) sel.value = anterior;
     }
 }
 

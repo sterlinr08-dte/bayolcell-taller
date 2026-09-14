@@ -27,9 +27,20 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 // ultimos mensajes del hilo) + una base de conocimiento del negocio
 // (whatsapp_ia_conocimiento, editable desde el CRM) y, si el mensaje que
 // la dispara es una FOTO, intenta identificar marca/modelo del equipo
-// (vision de Claude) y lo incluye en la sugerencia. El saludo de inicio de
-// conversacion sigue exactamente igual que antes (auto-envio directo, sin
-// pasar por sugerencia).
+// (vision de Claude) y lo incluye en la sugerencia.
+//
+// ACTUALIZACION 14 sept 2026 (modo real, hoja de ruta de revision externa):
+// whatsapp_ia_config gano la columna "modo" (observacion/copiloto/
+// automatico) -- "activo" sigue siendo el apagado general (false = silencio
+// total), y "modo" decide que tanto hace el agente cuando esta activo:
+//   observacion: no envia ni genera NADA, ni siquiera el saludo.
+//   copiloto:    el saludo TAMBIEN pasa a ser una sugerencia (como los
+//                seguimientos) -- nunca se auto-envia.
+//   automatico:  el saludo se auto-envia (comportamiento historico, en vivo
+//                desde antes de esta hoja de ruta). Los SEGUIMIENTOS siguen
+//                siendo sugerencia incluso en 'automatico' -- automatizarlos
+//                requiere el marco de evaluacion/graduacion por capacidad
+//                de fases posteriores, no implementado todavia.
 //
 // Fix 2026-09-04 (saludo distinto fuera de horario): el dueño pidio que el
 // saludo tome en cuenta la hora real a la que escribe el cliente. Si la
@@ -164,10 +175,60 @@ async function construirMensajeFueraDeHorario(sucursalIdActual: string): Promise
 // Cuantos mensajes recientes del hilo se le dan de "memoria" al modelo.
 const MEMORIA_MENSAJES = 15;
 
+// Guarda "texto" como la UNICA sugerencia 'pendiente' del hilo -- la usan
+// tanto los seguimientos (generarSugerencia) como el saludo cuando el modo
+// es 'copiloto'. Solo puede haber una 'pendiente' por hilo: las viejas se
+// reemplazan (evita el bug de tarjetas duplicadas del 2026-09-04). Ademas
+// hay un indice unico parcial en la base
+// (whatsapp_ia_sugerencias_una_pendiente_por_hilo) que lo garantiza aunque
+// el UPDATE y el INSERT de aqui no sean atomicos entre llamadas
+// concurrentes del mismo hilo -- en ese choque (23505) se reintenta con un
+// UPDATE en vez de fallar.
+async function guardarSugerenciaPendiente(
+  hiloId: string,
+  texto: string,
+  mensajeClienteId: string | null,
+  modeloDetectado: string | null,
+  razon: string | null
+) {
+  await db
+    .from("whatsapp_ia_sugerencias")
+    .update({ estado: "reemplazada", resuelto_por_tipo: "sistema", resuelto_en: new Date().toISOString() })
+    .eq("hilo_id", hiloId)
+    .eq("estado", "pendiente");
+  const nuevaFila = {
+    hilo_id: hiloId,
+    mensaje_cliente_id: mensajeClienteId,
+    texto_sugerido: texto,
+    modelo_detectado: modeloDetectado,
+    razon,
+    estado: "pendiente",
+  };
+  const { error: insErr } = await db.from("whatsapp_ia_sugerencias").insert(nuevaFila);
+  if (insErr) {
+    if ((insErr as any).code === "23505") {
+      const { error: updErr } = await db
+        .from("whatsapp_ia_sugerencias")
+        .update(nuevaFila)
+        .eq("hilo_id", hiloId)
+        .eq("estado", "pendiente");
+      if (updErr) {
+        console.error("whatsapp-ia-responder: choque de sugerencias concurrentes, no se pudo resolver:", updErr.message);
+        return json({ ok: false, error: "guardado_fallido" }, 500);
+      }
+    } else {
+      console.error("whatsapp-ia-responder: no se pudo guardar la sugerencia:", insErr.message);
+      return json({ ok: false, error: "guardado_fallido" }, 500);
+    }
+  }
+  return json({ ok: true, sugerido: true, modelo_detectado: modeloDetectado });
+}
+
 // Fase de aprendizaje: redacta una SUGERENCIA (nunca se auto-envia) para un
 // mensaje que no es el arranque de la conversacion. Usa memoria del hilo +
 // base de conocimiento del negocio, y si el mensaje disparador es una foto,
-// intenta identificar el equipo antes de redactar.
+// intenta identificar el equipo antes de redactar. El caller ya garantiza
+// que el modo no es 'observacion' (esa rama nunca llega hasta aqui).
 async function generarSugerencia(hilo: { id: string; sucursal_id: string }, mensajeClienteId: string | null) {
   const { data: historialDesc } = await db
     .from("whatsapp_mensajes")
@@ -287,47 +348,7 @@ Reglas:
 
   respuesta = respuesta.replace(/¿/g, "");
 
-  // Solo una sugerencia "pendiente" por hilo -- las viejas se reemplazan
-  // (evita el bug de tarjetas duplicadas del 2026-09-04). Ademas hay un
-  // indice unico parcial en la base (whatsapp_ia_sugerencias_una_pendiente_por_hilo)
-  // que lo garantiza aunque este UPDATE y el siguiente INSERT no sean
-  // atomicos entre llamadas concurrentes del mismo hilo.
-  await db
-    .from("whatsapp_ia_sugerencias")
-    .update({ estado: "reemplazada", resuelto_por_tipo: "sistema", resuelto_en: new Date().toISOString() })
-    .eq("hilo_id", hilo.id)
-    .eq("estado", "pendiente");
-  const nuevaFila = {
-    hilo_id: hilo.id,
-    mensaje_cliente_id: mensajeClienteId,
-    texto_sugerido: respuesta,
-    modelo_detectado: modeloDetectado,
-    razon: mensajeEsImagen ? "Detectó una foto de equipo" : null,
-    estado: "pendiente",
-  };
-  const { error: insErr } = await db.from("whatsapp_ia_sugerencias").insert(nuevaFila);
-  if (insErr) {
-    // 23505 = choco con el indice unico -- otra llamada concurrente para
-    // este mismo hilo gano la carrera y ya dejo su propia 'pendiente' justo
-    // despues del UPDATE de arriba. Se resuelve actualizando esa fila con
-    // esta generacion (la mas nueva gana), en vez de fallar sin mas.
-    if ((insErr as any).code === "23505") {
-      const { error: updErr } = await db
-        .from("whatsapp_ia_sugerencias")
-        .update(nuevaFila)
-        .eq("hilo_id", hilo.id)
-        .eq("estado", "pendiente");
-      if (updErr) {
-        console.error("whatsapp-ia-responder: choque de sugerencias concurrentes, no se pudo resolver:", updErr.message);
-        return json({ ok: false, error: "guardado_fallido" }, 500);
-      }
-    } else {
-      console.error("whatsapp-ia-responder: no se pudo guardar la sugerencia:", insErr.message);
-      return json({ ok: false, error: "guardado_fallido" }, 500);
-    }
-  }
-
-  return json({ ok: true, sugerido: true, modelo_detectado: modeloDetectado });
+  return await guardarSugerenciaPendiente(hilo.id, respuesta, mensajeClienteId, modeloDetectado, mensajeEsImagen ? "Detectó una foto de equipo" : null);
 }
 
 Deno.serve(async (req: Request) => {
@@ -359,17 +380,22 @@ Deno.serve(async (req: Request) => {
 
   const { data: config } = await db
     .from("whatsapp_ia_config")
-    .select("activo, horario_json")
+    .select("activo, horario_json, modo")
     .eq("sucursal_id", hilo.sucursal_id)
     .maybeSingle();
   if (!config?.activo) return json({ ok: true, omitido: "agente inactivo para esta sucursal" });
+  // "activo" es el apagado general; "modo" (observacion/copiloto/automatico)
+  // decide QUE tanto hace el agente cuando esta activo. observacion = no
+  // envia nada, ni siquiera el saludo.
+  const modo = config.modo || "observacion";
+  if (modo === "observacion") return json({ ok: true, omitido: "modo observación: no se envía ni se genera nada" });
 
   // Los timestamps de los dos mensajes mas recientes del hilo (el que
   // disparo esta llamada, y el que vino justo antes) miden el hueco de
   // inactividad para decidir si es un saludo de inicio de conversacion.
   const { data: ultimosMensajes } = await db
     .from("whatsapp_mensajes")
-    .select("creado_en")
+    .select("id, creado_en")
     .eq("hilo_id", hiloId)
     .order("creado_en", { ascending: false })
     .limit(2);
@@ -382,8 +408,10 @@ Deno.serve(async (req: Request) => {
   const esInicioDeConversacion = horasDesdeUltimoMensaje >= VENTANA_SALUDO_HORAS;
 
   // Cualquier mensaje que no sea el arranque de la conversacion: se redacta
-  // una SUGERENCIA (fase de aprendizaje, nunca se auto-envia) en vez del
-  // saludo. Ver generarSugerencia().
+  // una SUGERENCIA (fase de aprendizaje, nunca se auto-envia -- ni siquiera
+  // en modo 'automatico': automatizar seguimientos requiere el marco de
+  // evaluacion/graduacion por capacidad, que es una fase posterior) en vez
+  // del saludo. Ver generarSugerencia().
   if (!esInicioDeConversacion) {
     return await generarSugerencia(hilo, (body.mensaje_cliente_id as string) ?? null);
   }
@@ -466,13 +494,20 @@ Reglas:
 
   // Guarda de codigo: el saludo (el redactado por el modelo cuando esta
   // abierto) nunca deberia mencionar un precio, pero si por alguna razon el
-  // modelo se desvia, nunca se auto-envia -- se omite sin mas (ya no hay
-  // bandeja de sugerencias donde caer). El mensaje de fuera de horario es
-  // una plantilla fija que nunca menciona precios, asi que esto nunca
+  // modelo se desvia, nunca se auto-envia -- se omite sin mas (si el modo
+  // es 'copiloto' cae en una sugerencia igual, asi que esta guarda solo
+  // aplica al auto-envio de 'automatico'). El mensaje de fuera de horario
+  // es una plantilla fija que nunca menciona precios, asi que esto nunca
   // deberia dispararse en ese caso.
-  if (/RD\$|US\$|\$\s?\d|\bprecio\b|\bcuesta\b|\bvale\b/i.test(respuesta)) {
+  if (modo === "automatico" && /RD\$|US\$|\$\s?\d|\bprecio\b|\bcuesta\b|\bvale\b/i.test(respuesta)) {
     console.error("whatsapp-ia-responder: saludo generado mencionaba un precio, se omite:", respuesta);
     return json({ ok: true, omitido: "el saludo generado mencionaba un precio, se descarta por seguridad" });
+  }
+
+  // modo 'copiloto': el saludo tambien pasa por revision humana, igual que
+  // los seguimientos -- no se auto-envia nada salvo en 'automatico'.
+  if (modo === "copiloto") {
+    return await guardarSugerenciaPendiente(hilo.id, respuesta, mensajeActual.id ?? null, null, esMayorista ? "Saludo (línea Al por Mayor)" : "Saludo de bienvenida");
   }
 
   if (!linea?.zernio_account_id) {
