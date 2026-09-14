@@ -1612,10 +1612,18 @@ body{
 #v-crmLinea .crm-stat .bola{width:21px;height:21px;font-size:11px}
 #v-crmLinea .crm-stat .num{font-size:15px}
 #v-crmLinea .crm-stat .lbl{font-size:8.5px;white-space:nowrap}
-@media (min-width:1025px){
-  #v-crmLinea .crm-cabecera-resumen{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+/* Antes esta unión de renglones (Sucursal/Área, pestañas+iconos, buscador,
+   chips) solo se activaba desde 1025px, que en la práctica dejaba la
+   bandeja apilada en 4-5 renglones en ventanas de escritorio normales que
+   no llegan justo a ese ancho -- reportado por Sterling (foto de escritorio,
+   14 sept 2026). Se baja a 900px (una ventana de escritorio corriente ya
+   cabe) y se agrega flex-wrap:wrap como red de seguridad: si de verdad no
+   cabe en una sola línea a ese ancho, pasa a una segunda línea en vez de
+   desbordar o aplastar los botones. */
+@media (min-width:900px){
+  #v-crmLinea .crm-cabecera-resumen{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:5px}
   #v-crmLinea .crm-cabecera-resumen .crm-selectores{margin:0;flex:0 1 520px}
-  #v-crmLinea .crm-bandeja-controles{display:flex;align-items:center;gap:7px;margin-bottom:6px;min-width:0;white-space:nowrap}
+  #v-crmLinea .crm-bandeja-controles{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-bottom:6px;min-width:0}
   #v-crmLinea .crm-bandeja-controles .crm-tabs-row,
   #v-crmLinea .crm-bandeja-controles .crm-busq-row,
   #v-crmLinea .crm-bandeja-controles .crm-chips-row,
@@ -1623,7 +1631,7 @@ body{
   #v-crmLinea .crm-bandeja-controles .crm-chips-row{flex:1;justify-content:flex-start;overflow:hidden;white-space:nowrap}
   #v-crmLinea .crm-bandeja-controles .crm-stats{align-self:center}
 }
-@media (max-width:1024px){
+@media (max-width:899px){
   #v-crmLinea .crm-cabecera-resumen{display:flex;flex-wrap:wrap;gap:0}
   #v-crmLinea .crm-cabecera-resumen .crm-selectores{flex:1 0 100%}
   #v-crmLinea .crm-bandeja-controles{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:7px}
