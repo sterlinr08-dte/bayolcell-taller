@@ -4,7 +4,7 @@
   if(window.__bcCrmExtensionsLoader)return;
   window.__bcCrmExtensionsLoader=true;
 
-  var V='20260913-fbcfix2';
+  var V='20260913-fx1';
 
   // El botón de actualizar hace una recarga completa, pero la experiencia
   // vuelve al mismo punto: página, pestaña, listas, historial y borrador.
@@ -62,6 +62,11 @@
     effectsCss.href='crm-social-effects.css?v='+V;
     document.head.appendChild(effectsCss);
 
+    var interactionCss=document.createElement('link');
+    interactionCss.rel='stylesheet';
+    interactionCss.href='crm-interaction-fx.css?v='+V;
+    document.head.appendChild(interactionCss);
+
     var hub=document.createElement('script');
     hub.src='crm-social-hub.js?v='+V;
     hub.onload=function(){
@@ -70,6 +75,11 @@
       scope.onload=function(){
         var polish=document.createElement('script');
         polish.src='crm-social-polish-v2.js?v='+V;
+        polish.onload=function(){
+          var interaction=document.createElement('script');
+          interaction.src='crm-interaction-fx.js?v='+V;
+          document.head.appendChild(interaction);
+        };
         document.head.appendChild(polish);
       };
       var facebook=document.createElement('script');
