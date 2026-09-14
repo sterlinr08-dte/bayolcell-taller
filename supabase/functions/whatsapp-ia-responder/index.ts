@@ -33,7 +33,11 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 // whatsapp_ia_config gano la columna "modo" (observacion/copiloto/
 // automatico) -- "activo" sigue siendo el apagado general (false = silencio
 // total), y "modo" decide que tanto hace el agente cuando esta activo:
-//   observacion: no envia ni genera NADA, ni siquiera el saludo.
+//   observacion: NUNCA envia ni sugiere nada -- pero SI redacta un borrador
+//                por dentro para cada seguimiento y lo guarda como
+//                "episodio" (whatsapp_ia_episodios) para comparar despues
+//                contra la respuesta humana real ("observacion activa", ver
+//                mas abajo). El saludo de inicio NO genera episodio.
 //   copiloto:    el saludo TAMBIEN pasa a ser una sugerencia (como los
 //                seguimientos) -- nunca se auto-envia.
 //   automatico:  el saludo se auto-envia (comportamiento historico, en vivo
@@ -41,6 +45,20 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 //                siendo sugerencia incluso en 'automatico' -- automatizarlos
 //                requiere el marco de evaluacion/graduacion por capacidad
 //                de fases posteriores, no implementado todavia.
+//
+// ACTUALIZACION 14 sept 2026 ("observacion activa", cumpliendo
+// .claude/rules/agente-atencion-supervisado.md): antes, 'observacion' no
+// hacia nada -- la regla exige que el agente "analice y registre" mientras
+// esta en observacion, no que este simplemente apagado. Ahora, para
+// seguimientos (no el saludo), se llama a registrarEpisodioObservacion():
+// redacta el MISMO borrador que usaria en copiloto, pero lo guarda en
+// whatsapp_ia_episodios (nunca en whatsapp_ia_sugerencias, nunca visible
+// para el empleado ni el cliente). Un trigger de la base
+// (whatsapp_episodio_capturar_respuesta_humana) captura la respuesta
+// humana real cuando llega, para que un admin compare las dos en un panel
+// de revision y decida si el borrador "se parece" o no -- la base real
+// para graduar una capacidad a copiloto/automatico mas adelante, en vez de
+// adivinar.
 //
 // Fix 2026-09-04 (saludo distinto fuera de horario): el dueño pidio que el
 // saludo tome en cuenta la hora real a la que escribe el cliente. Si la
@@ -224,12 +242,17 @@ async function guardarSugerenciaPendiente(
   return json({ ok: true, sugerido: true, modelo_detectado: modeloDetectado });
 }
 
-// Fase de aprendizaje: redacta una SUGERENCIA (nunca se auto-envia) para un
-// mensaje que no es el arranque de la conversacion. Usa memoria del hilo +
-// base de conocimiento del negocio, y si el mensaje disparador es una foto,
-// intenta identificar el equipo antes de redactar. El caller ya garantiza
-// que el modo no es 'observacion' (esa rama nunca llega hasta aqui).
-async function generarSugerencia(hilo: { id: string; sucursal_id: string }, mensajeClienteId: string | null) {
+// Redacta el borrador (llama a Claude) para un mensaje que no es el arranque
+// de la conversacion -- el trabajo pesado que comparten generarSugerencia
+// (modo copiloto/automatico, se muestra al empleado) y
+// registrarEpisodioObservacion (modo observacion, NUNCA se muestra a nadie
+// -- solo queda para comparar despues contra la respuesta humana real).
+// No guarda nada en la base -- eso lo decide cada caller.
+type ResultadoBorrador =
+  | { ok: true; respuesta: string; modeloDetectado: string | null; razon: string | null; mensajeClienteTexto: string | null }
+  | { ok: false; response: Response };
+
+async function redactarBorrador(hilo: { id: string; sucursal_id: string }, mensajeClienteId: string | null): Promise<ResultadoBorrador> {
   const { data: historialDesc } = await db
     .from("whatsapp_mensajes")
     .select("id, direccion, tipo_contenido, cuerpo, media_path, creado_en")
@@ -237,7 +260,7 @@ async function generarSugerencia(hilo: { id: string; sucursal_id: string }, mens
     .order("creado_en", { ascending: false })
     .limit(MEMORIA_MENSAJES);
   const historial = (historialDesc || []).slice().reverse();
-  if (!historial.length) return json({ ok: true, omitido: "sin historial para generar sugerencia" });
+  if (!historial.length) return { ok: false, response: json({ ok: true, omitido: "sin historial para generar sugerencia" }) };
 
   const { data: conocimiento } = await db.from("whatsapp_ia_conocimiento").select("*").eq("id", 1).maybeSingle();
   // Direccion de ESTA sucursal (no la base de conocimiento global) -- para
@@ -253,25 +276,26 @@ async function generarSugerencia(hilo: { id: string; sucursal_id: string }, mens
   // o pesa mas de 5MB, el prompt NUNCA debe decir "te la adjunto" para algo
   // que en realidad no se adjunto (bug detectado en revision externa, 14 sept).
   let imageBlock: Record<string, unknown> | null = null;
-  if (mensajeClienteId) {
-    const disparador = historial.find((m: any) => m.id === mensajeClienteId);
-    if (disparador?.tipo_contenido === "imagen" && disparador.media_path) {
-      try {
-        const { data: fileData } = await db.storage.from("whatsapp-media").download(disparador.media_path);
-        if (fileData) {
-          const bytes = new Uint8Array(await fileData.arrayBuffer());
-          // Limite de seguridad: una foto fuera de lo normal (>5MB) se
-          // salta -- no vale la pena arriesgar timeout/costo por eso.
-          if (bytes.length > 0 && bytes.length <= 5 * 1024 * 1024) {
-            imageBlock = {
-              type: "image",
-              source: { type: "base64", media_type: fileData.type || "image/jpeg", data: toBase64(bytes) },
-            };
-          }
+  const disparador = mensajeClienteId ? historial.find((m: any) => m.id === mensajeClienteId) : null;
+  const mensajeClienteTexto = disparador
+    ? (disparador.tipo_contenido === "text" ? disparador.cuerpo : `[envió ${disparador.tipo_contenido}]`)
+    : null;
+  if (disparador?.tipo_contenido === "imagen" && disparador.media_path) {
+    try {
+      const { data: fileData } = await db.storage.from("whatsapp-media").download(disparador.media_path);
+      if (fileData) {
+        const bytes = new Uint8Array(await fileData.arrayBuffer());
+        // Limite de seguridad: una foto fuera de lo normal (>5MB) se
+        // salta -- no vale la pena arriesgar timeout/costo por eso.
+        if (bytes.length > 0 && bytes.length <= 5 * 1024 * 1024) {
+          imageBlock = {
+            type: "image",
+            source: { type: "base64", media_type: fileData.type || "image/jpeg", data: toBase64(bytes) },
+          };
         }
-      } catch (e) {
-        console.error("whatsapp-ia-responder: no se pudo descargar la imagen para analizarla:", e instanceof Error ? e.message : String(e));
       }
+    } catch (e) {
+      console.error("whatsapp-ia-responder: no se pudo descargar la imagen para analizarla:", e instanceof Error ? e.message : String(e));
     }
   }
   const mensajeEsImagen = imageBlock !== null;
@@ -352,9 +376,9 @@ Reglas:
     }
   } catch (e) {
     console.error("whatsapp-ia-responder: fallo generando sugerencia:", e instanceof Error ? e.message : String(e));
-    return json({ ok: false, error: "fallo_ia" }, 502);
+    return { ok: false, response: json({ ok: false, error: "fallo_ia" }, 502) };
   }
-  if (!respuesta.trim()) return json({ ok: true, omitido: "el modelo no genero una sugerencia util" });
+  if (!respuesta.trim()) return { ok: false, response: json({ ok: true, omitido: "el modelo no genero una sugerencia util" }) };
 
   respuesta = respuesta.replace(/¿/g, "");
 
@@ -363,7 +387,40 @@ Reglas:
     : pidioUbicacion
       ? (tieneGps ? "Pidió la ubicación — recuerda enviar también el GPS (botón 📍)" : "Pidió la ubicación")
       : null;
-  return await guardarSugerenciaPendiente(hilo.id, respuesta, mensajeClienteId, modeloDetectado, razon);
+  return { ok: true, respuesta, modeloDetectado, razon, mensajeClienteTexto };
+}
+
+// Modo copiloto/automatico: redacta el borrador y lo guarda como SUGERENCIA
+// visible para el empleado (usarla, editarla o descartarla). El caller ya
+// garantiza que el modo no es 'observacion' (esa rama nunca llega hasta aqui).
+async function generarSugerencia(hilo: { id: string; sucursal_id: string }, mensajeClienteId: string | null): Promise<Response> {
+  const r = await redactarBorrador(hilo, mensajeClienteId);
+  if (!r.ok) return r.response;
+  return await guardarSugerenciaPendiente(hilo.id, r.respuesta, mensajeClienteId, r.modeloDetectado, r.razon);
+}
+
+// Modo observacion ("observacion activa"): redacta el MISMO borrador, pero
+// NUNCA lo muestra a nadie -- lo guarda como un episodio para comparar mas
+// adelante contra lo que el empleado realmente respondio (lo captura un
+// trigger de la base cuando llega esa respuesta). Cumple la "Primera
+// entrega exigida" de .claude/rules/agente-atencion-supervisado.md: el
+// agente analiza y registra, sin enviar ni sugerir nada.
+async function registrarEpisodioObservacion(hilo: { id: string; sucursal_id: string }, mensajeClienteId: string | null): Promise<Response> {
+  const r = await redactarBorrador(hilo, mensajeClienteId);
+  if (!r.ok) return r.response;
+  const { error } = await db.from("whatsapp_ia_episodios").insert({
+    hilo_id: hilo.id,
+    mensaje_cliente_id: mensajeClienteId,
+    mensaje_cliente_texto: r.mensajeClienteTexto,
+    borrador_ia: r.respuesta,
+    modelo_detectado: r.modeloDetectado,
+    estado: "esperando_respuesta",
+  });
+  if (error) {
+    console.error("whatsapp-ia-responder: no se pudo guardar el episodio de observación:", error.message);
+    return json({ ok: false, error: "guardado_fallido" }, 500);
+  }
+  return json({ ok: true, episodio: true });
 }
 
 Deno.serve(async (req: Request) => {
@@ -400,10 +457,15 @@ Deno.serve(async (req: Request) => {
     .maybeSingle();
   if (!config?.activo) return json({ ok: true, omitido: "agente inactivo para esta sucursal" });
   // "activo" es el apagado general; "modo" (observacion/copiloto/automatico)
-  // decide QUE tanto hace el agente cuando esta activo. observacion = no
-  // envia nada, ni siquiera el saludo.
+  // decide QUE tanto hace el agente cuando esta activo:
+  //   observacion: NUNCA envia ni sugiere nada -- pero SI sigue redactando
+  //   por dentro para los seguimientos y lo guarda como "episodio" para
+  //   comparar despues contra la respuesta humana real (ver
+  //   registrarEpisodioObservacion). Es la "observacion activa" que pide
+  //   .claude/rules/agente-atencion-supervisado.md: analiza y registra,
+  //   nunca envia. El saludo de inicio NO genera episodio (no hay una
+  //   "respuesta correcta" clara con la que compararlo).
   const modo = config.modo || "observacion";
-  if (modo === "observacion") return json({ ok: true, omitido: "modo observación: no se envía ni se genera nada" });
 
   // "Al por Mayor" (Santiago y Navarrete) es un publico distinto
   // (revendedores/negocios comprando en volumen) al publico general que
@@ -430,19 +492,28 @@ Deno.serve(async (req: Request) => {
   const esInicioDeConversacion = horasDesdeUltimoMensaje >= VENTANA_SALUDO_HORAS;
 
   // Cualquier mensaje que no sea el arranque de la conversacion: se redacta
-  // una SUGERENCIA (fase de aprendizaje, nunca se auto-envia -- ni siquiera
-  // en modo 'automatico': automatizar seguimientos requiere el marco de
+  // un borrador (fase de aprendizaje, nunca se auto-envia -- ni siquiera en
+  // modo 'automatico': automatizar seguimientos requiere el marco de
   // evaluacion/graduacion por capacidad, que es una fase posterior) en vez
-  // del saludo. Ver generarSugerencia().
+  // del saludo. En 'observacion' se guarda como episodio (invisible); en
+  // 'copiloto'/'automatico' se muestra como sugerencia al empleado.
   //
   // "Al por Mayor" (14 sept 2026, pedido explicito): a estos clientes SOLO
-  // se les da el saludo -- ningun seguimiento por ahora (el negocio de
-  // mayoreo es distinto: precios/condiciones se negocian directo con el
-  // vendedor, no por IA todavia). Simplemente no se genera nada aqui.
+  // se les da el saludo -- ningun seguimiento por ahora, ni siquiera como
+  // episodio de observacion (el negocio de mayoreo se negocia directo con
+  // el vendedor). Simplemente no se genera nada aqui.
   if (!esInicioDeConversacion) {
     if (esMayorista) return json({ ok: true, omitido: "línea al por mayor: solo el saludo, sin seguimientos" });
-    return await generarSugerencia(hilo, (body.mensaje_cliente_id as string) ?? null);
+    const mensajeClienteId = (body.mensaje_cliente_id as string) ?? null;
+    if (modo === "observacion") return await registrarEpisodioObservacion(hilo, mensajeClienteId);
+    return await generarSugerencia(hilo, mensajeClienteId);
   }
+
+  // El saludo de inicio NUNCA se envia ni se registra en observacion -- no
+  // hay una "respuesta correcta" del empleado con la que comparar un saludo
+  // (el empleado normalmente responde la pregunta real del cliente, no
+  // repite un saludo).
+  if (modo === "observacion") return json({ ok: true, omitido: "modo observación: no se envía ni se genera nada para el saludo" });
 
   const { dia, horaMinutos } = horaLocalRD();
   const abiertoAhora = estaAbierto(config.horario_json, dia, horaMinutos);
