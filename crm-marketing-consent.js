@@ -8,22 +8,26 @@
   var AMBIENT='20260914-midnight1';
   var SURFACE='20260914-clean1';
   var MIDNIGHT='20260914-midnight1';
+  var surfaceCss=null;
+  var midnightCss=null;
 
-  // Capa final del Taller: elimina el borde blanco/refractivo en todo el sistema.
+  // Capas finales del Taller. Se reafirman al final para ganar la cascada del CRM.
   try{
-    var surfaceCss=document.createElement('link');
+    surfaceCss=document.createElement('link');
     surfaceCss.rel='stylesheet';
     surfaceCss.href='taller-surface-cleanup.css?v='+SURFACE;
     document.head.appendChild(surfaceCss);
   }catch(e){}
-
-  // Línea gráfica aprobada: Midnight Blue + motion tabs. Solo presentación.
   try{
-    var midnightCss=document.createElement('link');
+    midnightCss=document.createElement('link');
     midnightCss.rel='stylesheet';
     midnightCss.href='taller-midnight-motion.css?v='+MIDNIGHT;
     document.head.appendChild(midnightCss);
   }catch(e){}
+  function reafirmarCapasVisuales(){
+    try{if(surfaceCss&&surfaceCss.parentNode)document.head.appendChild(surfaceCss);}catch(e){}
+    try{if(midnightCss&&midnightCss.parentNode)document.head.appendChild(midnightCss);}catch(e){}
+  }
 
   // El botón de actualizar hace una recarga completa, pero la experiencia
   // vuelve al mismo punto: página, pestaña, listas, historial y borrador.
@@ -74,12 +78,15 @@
     var polishCss=document.createElement('link');
     polishCss.rel='stylesheet';
     polishCss.href='crm-social-polish-v2.css?v='+V;
+    polishCss.onload=function(){reafirmarCapasVisuales();};
     document.head.appendChild(polishCss);
 
     var effectsCss=document.createElement('link');
     effectsCss.rel='stylesheet';
     effectsCss.href='crm-social-effects.css?v='+V;
+    effectsCss.onload=function(){reafirmarCapasVisuales();};
     document.head.appendChild(effectsCss);
+    setTimeout(reafirmarCapasVisuales,300);
 
     var hub=document.createElement('script');
     hub.src='crm-social-hub.js?v='+V;
@@ -89,6 +96,7 @@
       scope.onload=function(){
         var polish=document.createElement('script');
         polish.src='crm-social-polish-v2.js?v='+V;
+        polish.onload=function(){reafirmarCapasVisuales();};
         document.head.appendChild(polish);
       };
       var facebook=document.createElement('script');
@@ -134,6 +142,7 @@
   function programarVisual(){
     try{setTimeout(cargarAmbientOrbSeguro,1200);}catch(e){}
     try{setTimeout(cargarNavigationMotionSeguro,1350);}catch(e){}
+    try{setTimeout(reafirmarCapasVisuales,1800);}catch(e){}
   }
   if(document.readyState==='complete')programarVisual();
   else window.addEventListener('load',programarVisual,{once:true,passive:true});
