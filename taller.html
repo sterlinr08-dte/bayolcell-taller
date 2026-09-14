@@ -2129,6 +2129,7 @@ body{
                         </div>
                         <div class="crm-acciones-rapidas" aria-label="Acciones de conversaciones">
                             <button class="crm-icon-btn" id="crmAgenteIaBtn" style="display:none;" onclick="_waAbrirConfigAgenteIA()" title="Configurar Agente de IA" aria-label="Configurar Agente de IA"><i class="ti ti-robot"></i></button>
+                            <button class="crm-icon-btn" id="crmEpisodiosBtn" style="display:none; position:relative;" onclick="_waAbrirRevisionEpisodios()" title="Revisar aprendizaje del Agente de IA" aria-label="Revisar aprendizaje del Agente de IA"><i class="ti ti-school"></i><span id="crmEpisodiosBadge" style="display:none; position:absolute; top:-4px; right:-4px; background:#e31e24; color:#fff; font-size:9px; font-weight:700; line-height:1; border-radius:8px; padding:2px 4px; min-width:14px; text-align:center;"></span></button>
                             <button class="crm-icon-btn" id="crmHistorialBtn" onclick="_crmImportarHistorial()" title="Traer conversaciones anteriores" aria-label="Traer conversaciones anteriores"><i class="ti ti-history"></i></button>
                             <button class="crm-icon-btn" onclick="renderCrmLinea(this)" title="Actualizar" aria-label="Actualizar"><i class="ti ti-refresh"></i></button>
                         </div>
@@ -25145,7 +25146,8 @@ function verHistorialCliente(clienteId) {
 }
 
 // Modal genérico simple
-function abrirModalGenerico(titulo, contenidoHtml) {
+function abrirModalGenerico(titulo, contenidoHtml, opts) {
+    const anchoMax = (opts && opts.ancho) || '520px';
     let modal = document.getElementById('modalGenerico');
     if(!modal) {
         modal = document.createElement('div');
@@ -25155,12 +25157,12 @@ function abrirModalGenerico(titulo, contenidoHtml) {
         document.body.appendChild(modal);
     }
     modal.style.zIndex = '500'; // siempre al frente, sobre cualquier otra ventana
-    modal.innerHTML = `<div style="background:#fff; border-radius:18px; padding:20px; max-width:520px; width:100%; max-height:85vh; overflow-y:auto; box-shadow:0 25px 60px -12px rgba(15,23,42,0.35);">
+    modal.innerHTML = `<div id="modalGenericoBody" style="background:#fff; border-radius:18px; padding:20px; max-width:${escapeHtml(anchoMax)}; width:100%; max-height:85vh; overflow-y:auto; box-shadow:0 25px 60px -12px rgba(15,23,42,0.35);">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
             <b style="font-size:16px; color:#dc2626;">${escapeHtml(titulo)}</b>
             <button onclick="document.getElementById('modalGenerico').remove()" style="background:#fee2e2; color:#991b1b; border:0; width:32px; height:32px; border-radius:10px; cursor:pointer; font-size:16px;">✕</button>
         </div>
-        ${contenidoHtml}
+        <div id="modalGenericoContenido">${contenidoHtml}</div>
     </div>`;
 }
 
@@ -33766,6 +33768,119 @@ async function _waGuardarConocimientoIA() {
     } catch(e) { logError('_waGuardarConocimientoIA', e); toastError('No se pudo guardar la base de conocimiento.'); }
 }
 
+/* ============================================================
+   REVISIÓN DE APRENDIZAJE (observación activa) — 14 sept 2026
+   Panel solo-admin para comparar, episodio por episodio, lo que el
+   Agente de IA habría respondido (borrador interno, nunca enviado)
+   contra lo que el empleado realmente contestó. Cumple lo pedido en
+   .claude/rules/agente-atencion-supervisado.md: "el responsable puede
+   revisar qué información se propone incorporar" — aquí no se
+   incorpora nada solo; el admin decide manualmente si "se parece" o
+   no, y eso queda guardado en whatsapp_ia_episodios para más adelante
+   decidir con criterio si un flujo puede subir de nivel.
+   ============================================================ */
+async function _waActualizarBadgeEpisodios() {
+    const badge = document.getElementById('crmEpisodiosBadge');
+    if(!badge) return;
+    try {
+        const { count, error } = await supabaseClient.from('whatsapp_ia_episodios').select('id', { count: 'exact', head: true }).eq('estado', 'listo_revisar');
+        if(error) throw error;
+        if(count > 0) { badge.textContent = count > 99 ? '99+' : String(count); badge.style.display = ''; }
+        else badge.style.display = 'none';
+    } catch(e) { logError('_waActualizarBadgeEpisodios', e); }
+}
+
+async function _waAbrirRevisionEpisodios() {
+    if(!isAdminUser()) return toast('Solo un administrador puede revisar el aprendizaje del Agente de IA.', 'error');
+    let episodios = [];
+    try {
+        const { data, error } = await supabaseClient.from('whatsapp_ia_episodios')
+            .select('*')
+            .eq('estado', 'listo_revisar')
+            .order('creado_en', { ascending: true })
+            .limit(100);
+        if(error) throw error;
+        episodios = data || [];
+    } catch(e) { logError('_waAbrirRevisionEpisodios', e); toastError('No se pudieron cargar los episodios.'); return; }
+
+    let hilosPorId = {};
+    const hiloIds = [...new Set(episodios.map(e => e.hilo_id).filter(Boolean))];
+    if(hiloIds.length) {
+        try {
+            const { data: hilos } = await supabaseClient.from('whatsapp_hilos').select('id, nombre_perfil, telefono_e164').in('id', hiloIds);
+            (hilos || []).forEach(h => hilosPorId[h.id] = h);
+        } catch(e) { logError('_waAbrirRevisionEpisodios hilos', e); }
+    }
+    _waEpisodiosCache = { episodios, hilosPorId };
+    abrirModalGenerico('🎓 Revisar aprendizaje del Agente de IA', _waRevisionEpisodiosHTML(), { ancho: '760px' });
+}
+
+function _waRevisionEpisodiosHTML() {
+    const { episodios, hilosPorId } = _waEpisodiosCache || { episodios: [], hilosPorId: {} };
+    const intro = `<div style="font-size:12.5px; color:#64748b; margin-bottom:14px;">
+        El agente está en <b>observación</b>: nunca envía ni sugiere nada de esto, solo lo guarda para comparar contra lo que el empleado respondió de verdad. Marca cada uno como <b>Se parece</b> (el borrador del agente iba bien encaminado) o <b>No se parece</b> (iba mal / le faltó algo) — esto NO activa nada solo; es la base para decidir más adelante, con criterio, si algún tipo de respuesta puede pasar a copiloto.
+    </div>`;
+    if(!episodios.length) {
+        return intro + `<div style="color:#94a3b8; font-size:12.5px; text-align:center; padding:20px 0;">No hay episodios listos para revisar por ahora.</div>
+            <div style="display:flex; justify-content:flex-end; margin-top:6px;"><button class="btn btn-light" onclick="document.getElementById('modalGenerico').remove()">Cerrar</button></div>`;
+    }
+    const tarjetas = episodios.map(e => {
+        const h = hilosPorId[e.hilo_id] || {};
+        const nombre = h.nombre_perfil || h.telefono_e164 || 'Cliente';
+        const fecha = e.creado_en ? new Date(e.creado_en).toLocaleString('es-DO', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }) : '';
+        return `<div id="epCard_${e.id}" style="border:1px solid #e2e8f0; border-radius:12px; padding:12px; margin-bottom:10px; background:#fff;">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px;">
+                <div style="font-weight:700; font-size:13px;"><i class="ti ti-user"></i> ${escapeHtml(nombre)}</div>
+                <div style="font-size:11px; color:#94a3b8;">${fecha}</div>
+            </div>
+            ${e.mensaje_cliente_texto ? `<div style="font-size:12px; color:#475569; background:#f8fafc; border-radius:8px; padding:7px 9px; margin-bottom:8px;"><b>Cliente:</b> ${escapeHtml(e.mensaje_cliente_texto)}</div>` : ''}
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+                <div style="background:#eff6ff; border-radius:8px; padding:8px 9px;">
+                    <div style="font-size:10.5px; font-weight:700; color:#1d4ed8; margin-bottom:3px;"><i class="ti ti-robot"></i> El agente habría dicho</div>
+                    <div style="font-size:12.5px; white-space:pre-wrap;">${escapeHtml(e.borrador_ia || '')}</div>
+                    ${e.modelo_detectado ? `<div style="margin-top:5px; font-size:10.5px; color:#1d4ed8;"><i class="ti ti-device-mobile"></i> ${escapeHtml(e.modelo_detectado)}</div>` : ''}
+                </div>
+                <div style="background:#f0fdf4; border-radius:8px; padding:8px 9px;">
+                    <div style="font-size:10.5px; font-weight:700; color:#15803d; margin-bottom:3px;"><i class="ti ti-user-check"></i> El empleado respondió</div>
+                    <div style="font-size:12.5px; white-space:pre-wrap;">${escapeHtml(e.respuesta_humana || '')}</div>
+                </div>
+            </div>
+            <div style="display:flex; gap:6px; justify-content:flex-end;">
+                <button class="btn btn-light" style="font-size:12px; color:#b91c1c;" onclick="_waEvaluarEpisodio('${e.id}', 'no_parecido')"><i class="ti ti-x"></i> No se parece</button>
+                <button class="btn btn-blue" style="font-size:12px;" onclick="_waEvaluarEpisodio('${e.id}', 'parecido')"><i class="ti ti-check"></i> Se parece</button>
+            </div>
+        </div>`;
+    }).join('');
+    return intro + tarjetas + `<div style="display:flex; justify-content:flex-end; margin-top:6px;"><button class="btn btn-light" onclick="document.getElementById('modalGenerico').remove()">Cerrar</button></div>`;
+}
+
+async function _waEvaluarEpisodio(id, evaluacion) {
+    let nota = null;
+    if(evaluacion === 'no_parecido') {
+        nota = await pedirTexto('¿Qué le faltó o qué hizo mal el agente? (opcional)', { multilinea: true });
+    }
+    try {
+        const { error } = await supabaseClient.from('whatsapp_ia_episodios').update({
+            estado: evaluacion === 'parecido' ? 'aprobado' : 'rechazado',
+            evaluacion,
+            nota_revisor: nota || null,
+            revisado_por: sessionUser?.nombre || 'Admin',
+            revisado_en: new Date().toISOString(),
+        }).eq('id', id).eq('estado', 'listo_revisar');
+        if(error) throw error;
+        if(_waEpisodiosCache) _waEpisodiosCache.episodios = _waEpisodiosCache.episodios.filter(e => e.id !== id);
+        const card = document.getElementById('epCard_' + id);
+        if(card) card.remove();
+        if(!_waEpisodiosCache?.episodios?.length) {
+            const cont = document.getElementById('modalGenericoContenido');
+            if(cont) cont.innerHTML = _waRevisionEpisodiosHTML();
+        }
+        _waActualizarBadgeEpisodios();
+        toast(evaluacion === 'parecido' ? '✅ Marcado: se parece.' : '📝 Marcado: no se parece.');
+    } catch(e) { logError('_waEvaluarEpisodio', e); toastError('No se pudo guardar la evaluación.'); }
+}
+let _waEpisodiosCache = null;
+
 function _waBurbujaMedia(m) {
     // Ubicacion/contacto van ANTES del guard de media_path: no tienen archivo
     // adjunto, guardan su dato como JSON dentro de "cuerpo".
@@ -35255,6 +35370,8 @@ async function construirSelectorCRM() {
     if(!cont) return;
     const btnIa = document.getElementById('crmAgenteIaBtn');
     if(btnIa) btnIa.style.display = isAdminUser() ? '' : 'none';
+    const btnEp = document.getElementById('crmEpisodiosBtn');
+    if(btnEp) { btnEp.style.display = isAdminUser() ? '' : 'none'; if(isAdminUser()) _waActualizarBadgeEpisodios(); }
     if(!isAdminUser() && !tienePermiso('whatsapp_ver') && !tienePermiso('leads_ver')) { cont.innerHTML = ''; return; }
 
     try {
