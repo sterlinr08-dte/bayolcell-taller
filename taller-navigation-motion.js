@@ -99,12 +99,13 @@
     try{
       findAndAttach();
       [400,1200,2600,5000].forEach(function(ms){setTimeout(findAndAttach,ms);});
+      document.addEventListener('click',function(){setTimeout(findAndAttach,0);},{passive:true});
       window.addEventListener('resize',function(){
         if(raf)cancelAnimationFrame(raf);
         raf=requestAnimationFrame(function(){raf=0;refreshAll();});
       },{passive:true});
       document.addEventListener('visibilitychange',function(){if(!document.hidden)refreshAll();},{passive:true});
-      window.BayolNavigationMotion={refresh:refreshAll,version:'20260914a'};
+      window.BayolNavigationMotion={refresh:refreshAll,version:'20260914b'};
     }catch(_){}
   }
 
