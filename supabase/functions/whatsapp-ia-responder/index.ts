@@ -11,17 +11,25 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 // agente esta APAGADO hasta que un admin lo active desde el CRM).
 //
 // Fix 2026-09-04 (se retira la funcion de sugerencias): el dueño pidio
-// eliminar por completo la redaccion de borradores para seguimientos
-// (precios, fotos, notas de voz, disponibilidad, etc) -- estaban generando
-// tarjetas "IA sugiere" duplicadas/confusas en la pantalla cuando el
-// cliente mandaba varios mensajes seguidos. Ahora esta funcion SOLO hace
-// una cosa: auto-enviar el saludo de bienvenida cuando arranca una
-// conversacion nueva (primera vez que el cliente escribe, o retoma el chat
-// despues de 24 horas o mas sin actividad, en cualquier direccion). Para
-// cualquier otro mensaje (seguimientos, fotos, notas de voz, preguntas de
-// precio) la funcion no hace nada -- no llama a Anthropic, no busca en el
-// catalogo, no guarda ninguna sugerencia. El tecnico responde directo,
-// sin ayuda de IA, para todo lo que no sea ese saludo inicial.
+// eliminar por completo la redaccion de borradores para seguimientos --
+// estaban generando tarjetas "IA sugiere" duplicadas/confusas en la
+// pantalla cuando el cliente mandaba varios mensajes seguidos. Por meses,
+// esta funcion SOLO auto-envio el saludo de bienvenida.
+//
+// ACTUALIZACION 14 sept 2026 (fase de aprendizaje, se reintroducen las
+// sugerencias con el bug de duplicados corregido): para cualquier mensaje
+// que NO sea el saludo inicial, la funcion ahora SI redacta una sugerencia
+// -- pero NUNCA la envia sola. Queda guardada en whatsapp_ia_sugerencias
+// (estado 'pendiente') y el empleado la ve en el CRM para usarla tal cual,
+// editarla, o descartarla. Solo puede haber UNA sugerencia 'pendiente' por
+// hilo: al generar una nueva, la anterior pasa a 'reemplazada' (asi no se
+// repite el bug de tarjetas duplicadas). La sugerencia usa memoria (los
+// ultimos mensajes del hilo) + una base de conocimiento del negocio
+// (whatsapp_ia_conocimiento, editable desde el CRM) y, si el mensaje que
+// la dispara es una FOTO, intenta identificar marca/modelo del equipo
+// (vision de Claude) y lo incluye en la sugerencia. El saludo de inicio de
+// conversacion sigue exactamente igual que antes (auto-envio directo, sin
+// pasar por sugerencia).
 //
 // Fix 2026-09-04 (saludo distinto fuera de horario): el dueño pidio que el
 // saludo tome en cuenta la hora real a la que escribe el cliente. Si la
@@ -45,6 +53,17 @@ const db = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
 function json(o: unknown, status = 200) {
   return new Response(JSON.stringify(o), { status, headers: { "Content-Type": "application/json" } });
+}
+
+// Codifica en base64 por bloques -- String.fromCharCode(...bytes) revienta
+// el stack con una foto normal de WhatsApp (varios MB).
+function toBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
 }
 
 async function mandarAZernio(conversationId: string, accountId: string, mensaje: string) {
@@ -142,6 +161,147 @@ async function construirMensajeFueraDeHorario(sucursalIdActual: string): Promise
   )}\n\nApenas abramos te respondemos!`;
 }
 
+// Cuantos mensajes recientes del hilo se le dan de "memoria" al modelo.
+const MEMORIA_MENSAJES = 15;
+
+// Fase de aprendizaje: redacta una SUGERENCIA (nunca se auto-envia) para un
+// mensaje que no es el arranque de la conversacion. Usa memoria del hilo +
+// base de conocimiento del negocio, y si el mensaje disparador es una foto,
+// intenta identificar el equipo antes de redactar.
+async function generarSugerencia(hilo: { id: string; sucursal_id: string }, mensajeClienteId: string | null) {
+  const { data: historialDesc } = await db
+    .from("whatsapp_mensajes")
+    .select("id, direccion, tipo_contenido, cuerpo, media_path, creado_en")
+    .eq("hilo_id", hilo.id)
+    .order("creado_en", { ascending: false })
+    .limit(MEMORIA_MENSAJES);
+  const historial = (historialDesc || []).slice().reverse();
+  if (!historial.length) return json({ ok: true, omitido: "sin historial para generar sugerencia" });
+
+  const { data: conocimiento } = await db.from("whatsapp_ia_conocimiento").select("*").eq("id", 1).maybeSingle();
+
+  // Si el mensaje que disparo esta llamada es una foto, se intenta
+  // identificar el equipo (vision) antes de redactar la sugerencia.
+  let imageBlock: Record<string, unknown> | null = null;
+  let mensajeEsImagen = false;
+  if (mensajeClienteId) {
+    const disparador = historial.find((m: any) => m.id === mensajeClienteId);
+    if (disparador?.tipo_contenido === "imagen" && disparador.media_path) {
+      mensajeEsImagen = true;
+      try {
+        const { data: fileData } = await db.storage.from("whatsapp-media").download(disparador.media_path);
+        if (fileData) {
+          const bytes = new Uint8Array(await fileData.arrayBuffer());
+          // Limite de seguridad: una foto fuera de lo normal (>5MB) se
+          // salta -- no vale la pena arriesgar timeout/costo por eso.
+          if (bytes.length > 0 && bytes.length <= 5 * 1024 * 1024) {
+            imageBlock = {
+              type: "image",
+              source: { type: "base64", media_type: fileData.type || "image/jpeg", data: toBase64(bytes) },
+            };
+          }
+        }
+      } catch (e) {
+        console.error("whatsapp-ia-responder: no se pudo descargar la imagen para analizarla:", e instanceof Error ? e.message : String(e));
+      }
+    }
+  }
+
+  const lineasHistorial = historial
+    .map((m: any) => {
+      const quien = m.direccion === "in" ? "Cliente" : "Bayol Cell";
+      if (m.tipo_contenido === "text") return `${quien}: ${(m.cuerpo || "").slice(0, 400)}`;
+      if (m.tipo_contenido === "imagen") return `${quien}: [envio una foto]`;
+      return `${quien}: [envio ${m.tipo_contenido}]`;
+    })
+    .join("\n");
+
+  const conocimientoTexto = [
+    conocimiento?.servicios ? `SERVICIOS:\n${conocimiento.servicios}` : "",
+    conocimiento?.precios_politica ? `PRECIOS/POLITICA DE PRECIOS:\n${conocimiento.precios_politica}` : "",
+    conocimiento?.politicas ? `POLITICAS:\n${conocimiento.politicas}` : "",
+    conocimiento?.faqs ? `PREGUNTAS FRECUENTES:\n${conocimiento.faqs}` : "",
+    conocimiento?.personalidad ? `PERSONALIDAD DE MARCA:\n${conocimiento.personalidad}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
+  const systemPrompt = `Eres el asistente de WhatsApp de BAYOL CELL (taller de reparacion de celulares y venta en Santiago/Moca/Navarrete, Republica Dominicana).
+
+Estas en FASE DE APRENDIZAJE: tu respuesta NUNCA se envia sola -- es solo una SUGERENCIA que un empleado real revisa, edita o descarta antes de mandarla. Redacta como si el empleado fuera a mandarla tal cual, para que sea lo mas util posible.
+${conocimientoTexto ? "\nINFORMACION DEL NEGOCIO (usala si aplica, no inventes datos que no esten aqui):\n" + conocimientoTexto + "\n" : ""}
+Aqui esta la conversacion reciente (la mas nueva al final):
+${lineasHistorial}
+${mensajeEsImagen ? "\nEl ULTIMO mensaje del cliente es una FOTO (te la adjunto). Si es un celular, identifica marca y modelo exacto (y capacidad/color si se ve) con la mayor precision posible; si no estas 100% seguro, dilo con naturalidad pidiendo confirmacion en vez de asegurarlo. Si la foto no es un celular, dilo tambien." : ""}
+
+Reglas:
+1. Tono dominicano, natural, breve, como lo escribiria rapido un empleado real desde el celular -- nada de sonar como IA/bot/plantilla. No uses el signo de apertura ¿ (solo el de cierre).
+2. NO inventes precios, disponibilidad ni promesas que no esten en la informacion del negocio de arriba -- si no lo sabes, dilo con naturalidad y ofrece confirmar con un compañero.
+3. Responde EXCLUSIVAMENTE con un JSON valido, sin texto extra antes o despues, con esta forma exacta:
+{"respuesta": "el texto sugerido", "modelo_detectado": "marca y modelo si identificaste un equipo en una foto, o null"}`;
+
+  const userContent: Record<string, unknown>[] = [
+    { type: "text", text: "Redacta la sugerencia de respuesta para el ultimo mensaje del cliente. Responde con el JSON pedido." },
+  ];
+  if (imageBlock) userContent.unshift(imageBlock);
+
+  let respuesta = "";
+  let modeloDetectado: string | null = null;
+  try {
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5",
+        max_tokens: 500,
+        system: systemPrompt,
+        messages: [{ role: "user", content: userContent }],
+      }),
+      signal: AbortSignal.timeout(30000),
+    });
+    const data = await resp.json();
+    const textoRespuesta: string = data?.content?.[0]?.text || "";
+    const match = textoRespuesta.match(/\{[\s\S]*\}/);
+    if (match) {
+      const parsed = JSON.parse(match[0]);
+      if (parsed.respuesta) respuesta = String(parsed.respuesta).slice(0, 1000);
+      if (parsed.modelo_detectado && String(parsed.modelo_detectado).toLowerCase() !== "null") {
+        modeloDetectado = String(parsed.modelo_detectado).slice(0, 200);
+      }
+    } else {
+      console.error("whatsapp-ia-responder: sugerencia sin JSON reconocible:", JSON.stringify(data).slice(0, 500));
+    }
+  } catch (e) {
+    console.error("whatsapp-ia-responder: fallo generando sugerencia:", e instanceof Error ? e.message : String(e));
+    return json({ ok: false, error: "fallo_ia" }, 502);
+  }
+  if (!respuesta.trim()) return json({ ok: true, omitido: "el modelo no genero una sugerencia util" });
+
+  respuesta = respuesta.replace(/¿/g, "");
+
+  // Solo una sugerencia "pendiente" por hilo -- las viejas se reemplazan
+  // (evita el bug de tarjetas duplicadas del 2026-09-04).
+  await db
+    .from("whatsapp_ia_sugerencias")
+    .update({ estado: "reemplazada", resuelto_por_tipo: "sistema", resuelto_en: new Date().toISOString() })
+    .eq("hilo_id", hilo.id)
+    .eq("estado", "pendiente");
+  const { error: insErr } = await db.from("whatsapp_ia_sugerencias").insert({
+    hilo_id: hilo.id,
+    mensaje_cliente_id: mensajeClienteId,
+    texto_sugerido: respuesta,
+    modelo_detectado: modeloDetectado,
+    razon: mensajeEsImagen ? "Detectó una foto de equipo" : null,
+    estado: "pendiente",
+  });
+  if (insErr) {
+    console.error("whatsapp-ia-responder: no se pudo guardar la sugerencia:", insErr.message);
+    return json({ ok: false, error: "guardado_fallido" }, 500);
+  }
+
+  return json({ ok: true, sugerido: true, modelo_detectado: modeloDetectado });
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json({ ok: false, error: "Metodo no permitido" }, 405);
   // verify_jwt:false (funcion interna, disparada solo por whatsapp-webhook)
@@ -176,10 +336,9 @@ Deno.serve(async (req: Request) => {
     .maybeSingle();
   if (!config?.activo) return json({ ok: true, omitido: "agente inactivo para esta sucursal" });
 
-  // Solo hacen falta los timestamps de los dos mensajes mas recientes del
-  // hilo (el que disparo esta llamada, y el que vino justo antes) para
-  // medir el hueco de inactividad -- ya no se usa el contenido del
-  // historial para nada (no hay mas sugerencias que redactar con contexto).
+  // Los timestamps de los dos mensajes mas recientes del hilo (el que
+  // disparo esta llamada, y el que vino justo antes) miden el hueco de
+  // inactividad para decidir si es un saludo de inicio de conversacion.
   const { data: ultimosMensajes } = await db
     .from("whatsapp_mensajes")
     .select("creado_en")
@@ -194,8 +353,11 @@ Deno.serve(async (req: Request) => {
     : Infinity;
   const esInicioDeConversacion = horasDesdeUltimoMensaje >= VENTANA_SALUDO_HORAS;
 
+  // Cualquier mensaje que no sea el arranque de la conversacion: se redacta
+  // una SUGERENCIA (fase de aprendizaje, nunca se auto-envia) en vez del
+  // saludo. Ver generarSugerencia().
   if (!esInicioDeConversacion) {
-    return json({ ok: true, omitido: "fuera de alcance: solo se auto-envia el saludo de inicio de conversacion" });
+    return await generarSugerencia(hilo, (body.mensaje_cliente_id as string) ?? null);
   }
 
   const { dia, horaMinutos } = horaLocalRD();
