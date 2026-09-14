@@ -33526,7 +33526,7 @@ async function cargarMensajesHilo(hiloId) {
     lista.sort((a,b) => new Date(a.creado_en) - new Date(b.creado_en));
     _waMensajes = lista;
 
-    const { data: sug } = await supabaseClient.from('whatsapp_ia_sugerencias').select('id, texto_sugerido, razon, modelo_detectado, creado_en').eq('hilo_id', hiloId).eq('estado', 'pendiente').order('creado_en', { ascending: true });
+    const { data: sug } = await supabaseClient.from('whatsapp_ia_sugerencias').select('id, texto_sugerido, razon, modelo_detectado, creado_en').eq('hilo_id', hiloId).eq('estado', 'pendiente').order('creado_en', { ascending: true }).limit(1);
     if(token !== _waCargaToken) return;
     _waSugerenciasIA = sug || [];
 }
