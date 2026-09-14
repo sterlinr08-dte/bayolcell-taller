@@ -5,16 +5,29 @@
   window.__bcCrmExtensionsLoader=true;
 
   var V='20260913-hotfix1';
-  var AMBIENT='20260914-safe3';
+  var AMBIENT='20260914-midnight1';
   var SURFACE='20260914-clean1';
+  var MIDNIGHT='20260914-midnight1';
+  var surfaceCss=null;
+  var midnightCss=null;
 
-  // Capa final del Taller: elimina el borde blanco/refractivo en todo el sistema.
+  // Capas finales del Taller. Se reafirman al final para ganar la cascada del CRM.
   try{
-    var surfaceCss=document.createElement('link');
+    surfaceCss=document.createElement('link');
     surfaceCss.rel='stylesheet';
     surfaceCss.href='taller-surface-cleanup.css?v='+SURFACE;
     document.head.appendChild(surfaceCss);
   }catch(e){}
+  try{
+    midnightCss=document.createElement('link');
+    midnightCss.rel='stylesheet';
+    midnightCss.href='taller-midnight-motion.css?v='+MIDNIGHT;
+    document.head.appendChild(midnightCss);
+  }catch(e){}
+  function reafirmarCapasVisuales(){
+    try{if(surfaceCss&&surfaceCss.parentNode)document.head.appendChild(surfaceCss);}catch(e){}
+    try{if(midnightCss&&midnightCss.parentNode)document.head.appendChild(midnightCss);}catch(e){}
+  }
 
   // El botón de actualizar hace una recarga completa, pero la experiencia
   // vuelve al mismo punto: página, pestaña, listas, historial y borrador.
@@ -65,12 +78,15 @@
     var polishCss=document.createElement('link');
     polishCss.rel='stylesheet';
     polishCss.href='crm-social-polish-v2.css?v='+V;
+    polishCss.onload=function(){reafirmarCapasVisuales();};
     document.head.appendChild(polishCss);
 
     var effectsCss=document.createElement('link');
     effectsCss.rel='stylesheet';
     effectsCss.href='crm-social-effects.css?v='+V;
+    effectsCss.onload=function(){reafirmarCapasVisuales();};
     document.head.appendChild(effectsCss);
+    setTimeout(reafirmarCapasVisuales,300);
 
     var hub=document.createElement('script');
     hub.src='crm-social-hub.js?v='+V;
@@ -80,6 +96,7 @@
       scope.onload=function(){
         var polish=document.createElement('script');
         polish.src='crm-social-polish-v2.js?v='+V;
+        polish.onload=function(){reafirmarCapasVisuales();};
         document.head.appendChild(polish);
       };
       var facebook=document.createElement('script');
@@ -96,8 +113,7 @@
   };
   document.head.appendChild(legacy);
 
-  // Decorativo y completamente desacoplado: solo se solicita DESPUÉS de window.load.
-  // Si el archivo falla o no existe, el taller no depende de él y sigue operando.
+  // Decorativo y completamente desacoplado: se solicita DESPUÉS de window.load.
   function cargarAmbientOrbSeguro(){
     try{
       if(window.__bcAmbientOrbRequested)return;
@@ -109,9 +125,25 @@
       document.head.appendChild(ambient);
     }catch(e){}
   }
-  function programarAmbient(){
-    try{setTimeout(cargarAmbientOrbSeguro,1200);}catch(e){}
+
+  // Microinteracción de navegación: si falla, los botones/tabs siguen operando normal.
+  function cargarNavigationMotionSeguro(){
+    try{
+      if(window.__bcNavigationMotionRequested)return;
+      window.__bcNavigationMotionRequested=true;
+      var motion=document.createElement('script');
+      motion.async=true;
+      motion.src='taller-navigation-motion.js?v='+MIDNIGHT;
+      motion.onerror=function(){};
+      document.head.appendChild(motion);
+    }catch(e){}
   }
-  if(document.readyState==='complete')programarAmbient();
-  else window.addEventListener('load',programarAmbient,{once:true,passive:true});
+
+  function programarVisual(){
+    try{setTimeout(cargarAmbientOrbSeguro,1200);}catch(e){}
+    try{setTimeout(cargarNavigationMotionSeguro,1350);}catch(e){}
+    try{setTimeout(reafirmarCapasVisuales,1800);}catch(e){}
+  }
+  if(document.readyState==='complete')programarVisual();
+  else window.addEventListener('load',programarVisual,{once:true,passive:true});
 })();
