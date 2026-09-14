@@ -1373,6 +1373,30 @@ mark.ss-hl { background: #fef08a; color: inherit; padding: 0 1px; border-radius:
 .ev-seg.on { background: linear-gradient(90deg, var(--ev-g1), var(--ev-g2)); box-shadow: 0 2px 6px -2px var(--ev-g2), inset 0 1px 0 rgba(255,255,255,0.5); }
 .ev-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 7px; font-size: 9.5px; font-weight: 800; color: #7a8aa3; text-transform: uppercase; letter-spacing: 0.4px; }
 .ev-foot .ev-fase { color: var(--ev-g2); }
+/* Chip de estado tocable: el técnico/admin toca aquí para proponer/cambiar el estado */
+.ev-card.ev-clickable { cursor: pointer; transition: transform 0.12s ease, box-shadow 0.12s ease; }
+.ev-card.ev-clickable:hover { box-shadow: 0 14px 30px -14px rgba(15,23,42,0.42), inset 0 1px 0 rgba(255,255,255,0.9); }
+.ev-card.ev-clickable:active { transform: scale(0.97); }
+.ev-card.ev-clickable:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+.ev-tap-hint { display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background: rgba(255,255,255,0.22); font-size: 11px; flex-shrink: 0; animation: evTapHint 1.8s ease-in-out infinite; }
+@keyframes evTapHint { 0%, 100% { opacity: 0.55; transform: scale(1); } 50% { opacity: 1; transform: scale(1.12); } }
+.ev-card.ev-tap { animation: evTapPulse 0.4s ease; }
+@keyframes evTapPulse {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.035); box-shadow: 0 16px 34px -14px rgba(15,23,42,0.45), inset 0 1px 0 rgba(255,255,255,0.9), 0 0 0 6px rgba(37,99,235,0.14); }
+    100% { transform: scale(1); }
+}
+/* Banner de propuesta de cambio de estado, pendiente de aprobación de servicio/admin */
+.ev-pend { margin-top: 2px; padding: 9px 11px; border-radius: 12px; background: linear-gradient(180deg, #fff7ed, #fef3c7); border: 1px solid #fcd34d; animation: evPendGlow 1.8s ease-in-out infinite; }
+.ev-pend-tx { font-size: 11.5px; color: #92400e; line-height: 1.4; }
+.ev-pend-tx b { color: #78350f; }
+@keyframes evPendGlow { 0%, 100% { box-shadow: 0 0 0 0 rgba(251,191,36,0.35); } 50% { box-shadow: 0 0 0 5px rgba(251,191,36,0); } }
+/* Ventana de "Cambiar estado" (abrirCambioEstadoOrden): entra con un pequeño rebote */
+.ceo-sheet { animation: ceoPop 0.2s cubic-bezier(0.34,1.56,0.64,1); }
+@keyframes ceoPop { 0% { transform: scale(0.92) translateY(8px); opacity: 0; } 100% { transform: scale(1) translateY(0); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+    .ev-card.ev-tap, .ev-tap-hint, .ev-pend, .ceo-sheet { animation: none; }
+}
 
 /* ========== PIEZAS CON ESTADOS DUALES ========== */
 .pieza-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; margin-bottom: 8px; transition: all 0.2s; }
@@ -22336,7 +22360,10 @@ function obtenerEtiquetaOrden(estado) {
 
 // Componente visual moderno del estado de una orden (chip con degradado + stepper de progreso).
 // Pensado para la columna "Estado del Equipo" que ve el técnico.
-function construirEstadoVisual(estadoRaw) {
+// opts.clickable + opts.ordenId: hace el chip tocable (con animación) para abrir el
+// selector de "Cambiar estado" — ver abrirCambioEstadoOrden().
+function construirEstadoVisual(estadoRaw, opts) {
+    opts = opts || {};
     const estado = normalizarEstadoOrden(estadoRaw);
     const viz = {
         'recibido':          { g1:'#38bdf8', g2:'#0284c7', icon:'ti-package-import', label:'Recibido',       sub:'En recepción',       step:1, fase:'Recepción',  live:false },
@@ -22355,16 +22382,74 @@ function construirEstadoVisual(estadoRaw) {
     const segs = Array.from({ length: total }, (_, i) =>
         `<div class="ev-seg ${!cancel && i < v.step ? 'on' : ''}"></div>`
     ).join('');
+    const clickable = !!(opts.clickable && opts.ordenId && !cancel);
+    const clickAttrs = clickable
+        ? ` onclick="abrirCambioEstadoOrden('${opts.ordenId}', this)" role="button" tabindex="0" aria-label="Cambiar estado del equipo" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}"`
+        : '';
     return `
-    <div class="ev-card ${cancel ? 'ev-cancel' : ''}" style="--ev-g1:${v.g1}; --ev-g2:${v.g2};">
+    <div class="ev-card ${cancel ? 'ev-cancel' : ''} ${clickable ? 'ev-clickable' : ''}" style="--ev-g1:${v.g1}; --ev-g2:${v.g2};"${clickAttrs}>
         <div class="ev-chip" style="background:linear-gradient(135deg, ${v.g1}, ${v.g2}); --ev-shadow:${v.g2}66;">
             <span class="ev-ic"><i class="ti ${v.icon}"></i></span>
             <span class="ev-tx"><b>${(v.label||'').toUpperCase()}</b><small>${(v.sub||'').toUpperCase()}</small></span>
             ${v.live ? '<span class="ev-dot live"></span>' : (cancel ? '' : '<span class="ev-dot"></span>')}
+            ${clickable ? '<span class="ev-tap-hint"><i class="ti ti-hand-grab"></i></span>' : ''}
         </div>
         ${cancel ? '' : `<div class="ev-steps">${segs}</div>
         <div class="ev-foot"><span>Paso ${v.step} de ${total}</span><span class="ev-fase">${v.fase}</span></div>`}
     </div>`;
+}
+
+// Guarda, por orden, las acciones ya calculadas para ESTE viewer (respetando sus permisos) —
+// así el chip animado (construirEstadoVisual) puede abrirlas en una ventana sin recalcular
+// ni duplicar toda la lógica de permisos/estado de construirCardOrden.
+let _ordenAccionesCache = {};
+
+// Click en el chip de "Estado del Equipo": abre las acciones disponibles para cambiarlo,
+// en una ventana animada. Las acciones son las MISMAS que ya se ven abajo de la tarjeta
+// (mismos permisos, mismos onclick) — solo cambia dónde se presentan.
+function abrirCambioEstadoOrden(ordenId, elChip) {
+    if(elChip) { elChip.classList.remove('ev-tap'); void elChip.offsetWidth; elChip.classList.add('ev-tap'); }
+    const data = _ordenAccionesCache[ordenId] || {};
+    const html = (data.principal || '') + (data.extra || '');
+    if(!html.trim()) return toast('No tienes ninguna acción disponible para cambiar el estado de este equipo ahora mismo.', 'error');
+    let m = document.getElementById('modalCambioEstado'); if(m) m.remove();
+    m = document.createElement('div');
+    m.id = 'modalCambioEstado';
+    m.className = 'modal-backdrop active ceo-backdrop';
+    m.innerHTML = `<div class="modal-box ceo-sheet" style="max-width:380px; width:92%;">
+        <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-transform"></i> Cambiar estado del equipo</h3><button class="modal-close" onclick="document.getElementById('modalCambioEstado').remove()">✕</button></div>
+        <div class="modal-body acciones-verticales" id="ceoAcciones" style="display:flex; flex-direction:column; gap:8px;">${html}</div>
+    </div>`;
+    document.body.appendChild(m);
+    m.addEventListener('click', e => { if(e.target === m) m.remove(); });
+    // Al tocar cualquier acción de la lista, la propia acción hace su trabajo (confirmar/pedir texto/guardar);
+    // esta ventana se cierra sola un instante después para no estorbar.
+    document.getElementById('ceoAcciones').addEventListener('click', e => {
+        if(e.target.closest('button, a')) setTimeout(() => { const el = document.getElementById('modalCambioEstado'); if(el) el.remove(); }, 150);
+    });
+}
+
+// Banner de "propuesta pendiente" (técnico propuso, falta que servicio/admin acepte o rechace).
+function construirPropuestaEstadoHTML(o, esAdmin, esServicio, esMia) {
+    const etq = obtenerEtiquetaOrden(o.estado_propuesto).text;
+    const quien = escapeHtml(o.estado_propuesto_por || 'Técnico');
+    const hace = o.estado_propuesto_en ? tiempoDesde(o.estado_propuesto_en) : '';
+    if(esAdmin || esServicio) {
+        return `<div class="ev-pend">
+            <div class="ev-pend-tx"><i class="ti ti-hourglass-high"></i> <b>${quien}</b> propone cambiar a <b>${escapeHtml(etq)}</b>${hace ? ' · ' + hace : ''}</div>
+            <div style="display:flex; gap:8px; margin-top:8px;">
+                <button class="btn btn-success" style="flex:1; font-size:12px;" onclick="aceptarCambioEstadoOrden('${o.id}')"><i class="ti ti-check"></i> Aceptar</button>
+                <button class="btn btn-light" style="flex:1; font-size:12px; color:#b91c1c;" onclick="rechazarCambioEstadoOrden('${o.id}')"><i class="ti ti-x"></i> Rechazar</button>
+            </div>
+        </div>`;
+    }
+    if(esMia) {
+        return `<div class="ev-pend ev-pend-mia">
+            <div class="ev-pend-tx"><i class="ti ti-hourglass-high"></i> Propusiste cambiar a <b>${escapeHtml(etq)}</b>${hace ? ' · ' + hace : ''}. Esperando aprobación de servicio/administración.</div>
+            <button class="btn btn-light" style="font-size:11px; margin-top:6px;" onclick="cancelarPropuestaEstadoOrden('${o.id}')"><i class="ti ti-arrow-back-up"></i> Cancelar propuesta</button>
+        </div>`;
+    }
+    return `<div class="ev-pend"><div class="ev-pend-tx"><i class="ti ti-hourglass-high"></i> Cambio pendiente de aprobación: <b>${escapeHtml(etq)}</b></div></div>`;
 }
 
 // Normaliza estados viejos al nuevo flujo
@@ -24452,7 +24537,11 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
         // Cerrada si entregada/cancelada. Servicio puede AGREGAR fallas pero no resolverlas (soloAgregar)
         const ordenCerrada = ['entregado','cancelado'].includes(estado);
         const tareasHtml = construirSeccionTareas('orden', o.id, tareasOrden, ordenCerrada, esServicio);
-        
+        const tienePropuesta = !!o.estado_propuesto;
+        // Deja disponibles estas acciones (respetando los permisos de ESTE viewer) para el
+        // chip animado de "Estado del Equipo" — ver abrirCambioEstadoOrden().
+        _ordenAccionesCache[o.id] = { principal: acciones, extra: accionesExtra };
+
         return `<div style="background:#fff; border:1px solid var(--border-color); border-radius:7px; padding:8px 10px; margin-bottom:6px;">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:6px;">
                 <div style="flex:1; min-width:200px;">
@@ -24489,12 +24578,12 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
                 </div>
                 <div style="display:flex; flex-direction:column; gap:7px; align-items:stretch; min-width:172px;" class="acciones-verticales">
                     <div style="font-size:10px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;"><i class="ti ti-settings"></i> Estado del Equipo</div>
-                    ${construirEstadoVisual(estado)}
-                    ${acciones}
+                    ${construirEstadoVisual(estado, { ordenId: o.id, clickable: !tienePropuesta && (!!acciones.trim() || !!accionesExtra.trim()) })}
+                    ${tienePropuesta ? construirPropuestaEstadoHTML(o, esAdmin, esServicio, esMia) : `${acciones}
                     ${accionesExtra ? `<details class="ord-mas">
                         <summary><i class="ti ti-dots"></i> Más opciones (${(accionesExtra.match(/<button|<a /g)||[]).length})</summary>
                         <div class="ord-mas-body">${accionesExtra}</div>
-                    </details>` : ''}
+                    </details>` : ''}`}
                 </div>
             </div>
         </div>`;
@@ -25537,8 +25626,13 @@ async function cambiarEstadoOrdenUI(ordenId, nuevoEstado) {
 async function marcarNoReparado(ordenId) {
     const orden = (cache.ordenes || []).find(o => o.id === ordenId);
     if(!orden) return toast('Orden no encontrada.', 'error');
-    if(!isAdminUser() && orden.tecnico_asignado_id !== sessionUser?.id) {
+    const esAdmin = isAdminUser();
+    const esServicio = esServicioActor();
+    if(!esAdmin && !esServicio && orden.tecnico_asignado_id !== sessionUser?.id) {
         return toast('Solo el técnico asignado (o un administrador) puede marcar esto.', 'error');
+    }
+    if(!esAdmin && !esServicio && orden.estado_propuesto) {
+        return toast('Ya hay un cambio pendiente de aprobación para esta orden.', 'error');
     }
     if(!await confirmar('❌ ¿Marcar este equipo como NO REPARADO?\n\nÚsalo cuando el equipo tiene un daño sin solución. Pasará a Servicio para devolverlo al cliente.')) return;
     // El comentario/motivo es OBLIGATORIO: insiste hasta que escriban algo (o cancelen del todo)
@@ -25549,7 +25643,31 @@ async function marcarNoReparado(ordenId) {
         if(motivo.trim()) break;
         toast('⚠️ El comentario es obligatorio para marcar "NO REPARADO".', 'error');
     }
-    // Manejar las piezas YA entregadas/recibidas de esta orden: preguntar por cada una
+    // Técnico: queda propuesto (sin tocar piezas todavía — eso lo confirma servicio/admin al aceptar).
+    if(!esAdmin && !esServicio) {
+        try {
+            const { error } = await supabaseClient.from('ordenes_reparacion').update({
+                estado_propuesto: 'no_reparado', estado_propuesto_por: sessionUser?.nombre || 'Técnico',
+                estado_propuesto_en: new Date().toISOString(), estado_propuesto_nota: motivo.trim()
+            }).eq('id', ordenId);
+            if(error) throw error;
+            try {
+                await supabaseClient.from('orden_notas').insert([{
+                    orden_id: ordenId, mensaje: `⏳ Propuso marcar el equipo como NO REPARADO. Motivo: ${motivo.trim()}`,
+                    autor_id: sessionUser?.id || null, autor_nombre: sessionUser?.nombre || 'Técnico', autor_rol: 'tecnico', leida_servicio: false
+                }]);
+            } catch(e) { /* informativa */ }
+            toast('⏳ Propuesto: No reparado. Esperando aprobación de servicio/administración.');
+            await loadAll();
+        } catch(e) { logError('Proponer no reparado', e); toastError(getFriendlyError(e)); }
+        return;
+    }
+    await _aplicarNoReparado(ordenId, motivo.trim());
+}
+
+// Aplica de verdad "No reparado": pregunta por las piezas ya entregadas/recibidas y actualiza la orden.
+// La usa marcarNoReparado (admin/servicio directo) y aceptarCambioEstadoOrden (al aprobar la propuesta del técnico).
+async function _aplicarNoReparado(ordenId, motivo) {
     const piezas = (cache.ordenPiezas || []).filter(p => p.orden_id === ordenId && ['entregada','recibida'].includes(p.estado));
     let devueltas = 0, usadas = 0;
     for(const p of piezas) {
@@ -25561,7 +25679,7 @@ async function marcarNoReparado(ordenId) {
     try {
         const { error } = await supabaseClient.from('ordenes_reparacion').update({
             estado: 'no_reparado',
-            nota_estado: '🚫 NO REPARADO: ' + motivo.trim(),
+            nota_estado: '🚫 NO REPARADO: ' + motivo,
             fecha_finalizado: new Date().toISOString()
         }).eq('id', ordenId);
         if(error) throw error;
@@ -25919,15 +26037,28 @@ async function asignarOrdenTecnico(ordenId, tecnicoId) {
     } catch(e) { logError('Asignar orden', e); toastError(getFriendlyError(e)); }
 }
 
-// Avanza el estado de la orden (solo hacia adelante)
+// true si la sesión actual es "servicio al cliente" (no técnico, no admin) — mismo criterio ya usado en cambiarEstadoOrdenUI
+function esServicioActor() {
+    return sessionUser?.tipo_empleado === 'servicio' || tienePermiso('solo_atencion') || tienePermiso('recepcion_ver');
+}
+
+// Avanza el estado de la orden (solo hacia adelante).
+// Si quien llama es un TÉCNICO (no admin, no servicio), el cambio queda PROPUESTO
+// (estado_propuesto*) en vez de aplicarse — servicio/admin lo acepta o rechaza
+// desde aceptarCambioEstadoOrden/rechazarCambioEstadoOrden. Admin y servicio siguen
+// aplicando el cambio al instante (son quienes aprueban, no necesitan auto-aprobarse).
 async function avanzarEstadoOrden(ordenId, nuevoEstado, nota, solucion) {
     const orden = (cache.ordenes || []).find(o => o.id === ordenId);
     if(!orden) return;
     const actual = normalizarEstadoOrden(orden.estado);
     // Anti juez-y-parte: el técnico solo puede mover SU orden
     const esAdmin = isAdminUser();
-    if(!esAdmin && orden.tecnico_asignado_id !== sessionUser?.id) {
+    const esServicio = esServicioActor();
+    if(!esAdmin && !esServicio && orden.tecnico_asignado_id !== sessionUser?.id) {
         return toast('Solo el técnico asignado (o un administrador) puede cambiar el estado.', 'error');
+    }
+    if(!esAdmin && !esServicio && orden.estado_propuesto) {
+        return toast('Ya hay un cambio pendiente de aprobación para esta orden.', 'error');
     }
     // Validar que solo avance (no retroceda), salvo cancelar o resolver estados temporales
     const estadosTemporales = ['espera_repuesto', 'pendiente_cliente'];
@@ -25940,6 +26071,25 @@ async function avanzarEstadoOrden(ordenId, nuevoEstado, nota, solucion) {
         if(iNuevo !== -1 && iActual !== -1 && iNuevo < iActual) {
             return toast('El estado solo puede avanzar, no retroceder.', 'error');
         }
+    }
+    // Técnico: no se aplica todavía — queda propuesto para que servicio/admin lo acepte.
+    if(!esAdmin && !esServicio) {
+        try {
+            const upd = { estado_propuesto: nuevoEstado, estado_propuesto_por: sessionUser?.nombre || 'Técnico', estado_propuesto_en: new Date().toISOString() };
+            upd.estado_propuesto_nota = typeof nota === 'string' && nota ? nota : null;
+            upd.estado_propuesto_solucion = typeof solucion === 'string' && solucion ? solucion : null;
+            const { error } = await supabaseClient.from('ordenes_reparacion').update(upd).eq('id', ordenId);
+            if(error) throw error;
+            try {
+                await supabaseClient.from('orden_notas').insert([{
+                    orden_id: ordenId, mensaje: `⏳ Propuso cambiar el estado a "${obtenerEtiquetaOrden(nuevoEstado).text}" — pendiente de aprobación.`,
+                    autor_id: sessionUser?.id || null, autor_nombre: sessionUser?.nombre || 'Técnico', autor_rol: 'tecnico', leida_servicio: false
+                }]);
+            } catch(e) { /* la nota es informativa; si falla no bloquea la propuesta */ }
+            toast('⏳ Cambio propuesto: ' + obtenerEtiquetaOrden(nuevoEstado).text + '. Esperando aprobación de servicio/administración.');
+            await loadAll();
+        } catch(e) { logError('Proponer cambio de estado', e); toastError(getFriendlyError(e)); }
+        return;
     }
     try {
         const upd = { estado: nuevoEstado };
@@ -25958,6 +26108,68 @@ async function avanzarEstadoOrden(ordenId, nuevoEstado, nota, solucion) {
         toast('✅ Estado actualizado: ' + obtenerEtiquetaOrden(nuevoEstado).text);
         await loadAll();
     } catch(e) { logError('Avanzar estado orden', e); toastError(getFriendlyError(e)); }
+}
+
+// Servicio/admin ACEPTA la propuesta de cambio de estado del técnico: se aplica de verdad.
+async function aceptarCambioEstadoOrden(ordenId) {
+    const orden = (cache.ordenes || []).find(o => o.id === ordenId);
+    if(!orden || !orden.estado_propuesto) return toast('No hay ningún cambio pendiente para esta orden.', 'error');
+    if(!isAdminUser() && !esServicioActor()) return toast('Solo servicio al cliente o un administrador puede aceptar este cambio.', 'error');
+    if(!await confirmar(`¿Aceptar el cambio propuesto a "${obtenerEtiquetaOrden(orden.estado_propuesto).text}"?`)) return;
+    const nuevoEstado = orden.estado_propuesto;
+    const notaGuardada = orden.estado_propuesto_nota || undefined;
+    const solucionGuardada = orden.estado_propuesto_solucion || undefined;
+    // Limpiar la propuesta ANTES de aplicar: si algo falla después, no queda una propuesta fantasma bloqueando al técnico.
+    try {
+        await supabaseClient.from('ordenes_reparacion').update({ estado_propuesto: null, estado_propuesto_por: null, estado_propuesto_en: null, estado_propuesto_nota: null, estado_propuesto_solucion: null }).eq('id', ordenId);
+        orden.estado_propuesto = null;
+    } catch(e) { logError('Limpiar propuesta al aceptar', e); }
+    if(nuevoEstado === 'no_reparado') {
+        await _aplicarNoReparado(ordenId, notaGuardada || 'Sin motivo especificado.');
+    } else {
+        // avanzarEstadoOrden se llama como admin/servicio: aplica directo, con el mismo efecto (fechas, solución, etc.)
+        await avanzarEstadoOrden(ordenId, nuevoEstado, notaGuardada, solucionGuardada);
+    }
+    try {
+        await supabaseClient.from('orden_notas').insert([{
+            orden_id: ordenId, mensaje: `✅ Aceptó el cambio a "${obtenerEtiquetaOrden(nuevoEstado).text}".`,
+            autor_id: sessionUser?.id || null, autor_nombre: sessionUser?.nombre || 'Servicio', autor_rol: 'servicio', leida_servicio: true
+        }]);
+    } catch(e) { /* informativa */ }
+}
+
+// Servicio/admin RECHAZA la propuesta del técnico: se descarta, no se aplica nada.
+async function rechazarCambioEstadoOrden(ordenId) {
+    const orden = (cache.ordenes || []).find(o => o.id === ordenId);
+    if(!orden || !orden.estado_propuesto) return toast('No hay ningún cambio pendiente para esta orden.', 'error');
+    if(!isAdminUser() && !esServicioActor()) return toast('Solo servicio al cliente o un administrador puede rechazar este cambio.', 'error');
+    const motivo = await pedirTexto('¿Por qué se rechaza este cambio? (opcional)');
+    if(motivo === null) return; // canceló
+    const propuesto = orden.estado_propuesto;
+    try {
+        const { error } = await supabaseClient.from('ordenes_reparacion').update({ estado_propuesto: null, estado_propuesto_por: null, estado_propuesto_en: null, estado_propuesto_nota: null, estado_propuesto_solucion: null }).eq('id', ordenId);
+        if(error) throw error;
+        await supabaseClient.from('orden_notas').insert([{
+            orden_id: ordenId, mensaje: `❌ Rechazó el cambio a "${obtenerEtiquetaOrden(propuesto).text}".${motivo.trim() ? ' Motivo: ' + motivo.trim() : ''}`,
+            autor_id: sessionUser?.id || null, autor_nombre: sessionUser?.nombre || 'Servicio', autor_rol: 'servicio', leida_servicio: true
+        }]);
+        toast('Cambio rechazado.');
+        await loadAll();
+    } catch(e) { logError('Rechazar cambio estado', e); toastError(getFriendlyError(e)); }
+}
+
+// El técnico cancela su propia propuesta (por si se equivocó) mientras espera aprobación
+async function cancelarPropuestaEstadoOrden(ordenId) {
+    const orden = (cache.ordenes || []).find(o => o.id === ordenId);
+    if(!orden || !orden.estado_propuesto) return;
+    if(!isAdminUser() && orden.tecnico_asignado_id !== sessionUser?.id) return toast('No puedes cancelar esta propuesta.', 'error');
+    if(!await confirmar('¿Cancelar tu propuesta de cambio de estado?')) return;
+    try {
+        const { error } = await supabaseClient.from('ordenes_reparacion').update({ estado_propuesto: null, estado_propuesto_por: null, estado_propuesto_en: null, estado_propuesto_nota: null, estado_propuesto_solucion: null }).eq('id', ordenId);
+        if(error) throw error;
+        toast('Propuesta cancelada.');
+        await loadAll();
+    } catch(e) { logError('Cancelar propuesta estado', e); toastError(getFriendlyError(e)); }
 }
 
 // === GARANTÍA ===
