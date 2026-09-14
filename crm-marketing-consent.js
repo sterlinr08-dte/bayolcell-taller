@@ -5,8 +5,9 @@
   window.__bcCrmExtensionsLoader=true;
 
   var V='20260913-hotfix1';
-  var AMBIENT='20260914-safe3';
+  var AMBIENT='20260914-midnight1';
   var SURFACE='20260914-clean1';
+  var MIDNIGHT='20260914-midnight1';
 
   // Capa final del Taller: elimina el borde blanco/refractivo en todo el sistema.
   try{
@@ -14,6 +15,14 @@
     surfaceCss.rel='stylesheet';
     surfaceCss.href='taller-surface-cleanup.css?v='+SURFACE;
     document.head.appendChild(surfaceCss);
+  }catch(e){}
+
+  // Línea gráfica aprobada: Midnight Blue + motion tabs. Solo presentación.
+  try{
+    var midnightCss=document.createElement('link');
+    midnightCss.rel='stylesheet';
+    midnightCss.href='taller-midnight-motion.css?v='+MIDNIGHT;
+    document.head.appendChild(midnightCss);
   }catch(e){}
 
   // El botón de actualizar hace una recarga completa, pero la experiencia
@@ -96,8 +105,7 @@
   };
   document.head.appendChild(legacy);
 
-  // Decorativo y completamente desacoplado: solo se solicita DESPUÉS de window.load.
-  // Si el archivo falla o no existe, el taller no depende de él y sigue operando.
+  // Decorativo y completamente desacoplado: se solicita DESPUÉS de window.load.
   function cargarAmbientOrbSeguro(){
     try{
       if(window.__bcAmbientOrbRequested)return;
@@ -109,9 +117,24 @@
       document.head.appendChild(ambient);
     }catch(e){}
   }
-  function programarAmbient(){
-    try{setTimeout(cargarAmbientOrbSeguro,1200);}catch(e){}
+
+  // Microinteracción de navegación: si falla, los botones/tabs siguen operando normal.
+  function cargarNavigationMotionSeguro(){
+    try{
+      if(window.__bcNavigationMotionRequested)return;
+      window.__bcNavigationMotionRequested=true;
+      var motion=document.createElement('script');
+      motion.async=true;
+      motion.src='taller-navigation-motion.js?v='+MIDNIGHT;
+      motion.onerror=function(){};
+      document.head.appendChild(motion);
+    }catch(e){}
   }
-  if(document.readyState==='complete')programarAmbient();
-  else window.addEventListener('load',programarAmbient,{once:true,passive:true});
+
+  function programarVisual(){
+    try{setTimeout(cargarAmbientOrbSeguro,1200);}catch(e){}
+    try{setTimeout(cargarNavigationMotionSeguro,1350);}catch(e){}
+  }
+  if(document.readyState==='complete')programarVisual();
+  else window.addEventListener('load',programarVisual,{once:true,passive:true});
 })();
