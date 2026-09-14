@@ -60,6 +60,14 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 // para graduar una capacidad a copiloto/automatico mas adelante, en vez de
 // adivinar.
 //
+// ACTUALIZACION 14 sept 2026 (chat tomado por un empleado gana): la regla
+// tambien exige que "un chat tomado por un empleado prevalece sobre
+// cualquier automatismo". Si whatsapp_hilos.asignado_id ya tiene dueño (boton
+// "Asignarme"/"Reasignar" del CRM), esta funcion no hace absolutamente nada
+// -- ni guarda episodio, ni sugerencia, ni auto-envia el saludo -- sin
+// importar el modo. Se chequea justo despues de traer el hilo, antes de
+// cualquier otra logica.
+//
 // Fix 2026-09-04 (saludo distinto fuera de horario): el dueño pidio que el
 // saludo tome en cuenta la hora real a la que escribe el cliente. Si la
 // sucursal esta ABIERTA en este momento, se manda el saludo normal
@@ -445,10 +453,20 @@ Deno.serve(async (req: Request) => {
 
   const { data: hilo } = await db
     .from("whatsapp_hilos")
-    .select("id, sucursal_id, linea_id, telefono_e164, zernio_conversation_id")
+    .select("id, sucursal_id, linea_id, telefono_e164, zernio_conversation_id, asignado_id")
     .eq("id", hiloId)
     .maybeSingle();
   if (!hilo) return json({ ok: false, error: "Hilo no encontrado" }, 404);
+
+  // Regla obligatoria de .claude/rules/agente-atencion-supervisado.md: "Un
+  // chat tomado por un empleado prevalece sobre cualquier automatismo". Si
+  // alguien ya se asigno el hilo (boton "Asignarme"/"Reasignar" del CRM), el
+  // agente no genera NADA aqui -- ni episodio de observacion, ni sugerencia,
+  // ni saludo automatico -- sin importar el modo. El empleado que lo tomo es
+  // quien decide que responder.
+  if (hilo.asignado_id) {
+    return json({ ok: true, omitido: "el chat ya fue tomado por un empleado" });
+  }
 
   const { data: config } = await db
     .from("whatsapp_ia_config")
