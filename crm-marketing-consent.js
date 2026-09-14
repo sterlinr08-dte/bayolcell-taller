@@ -5,6 +5,7 @@
   window.__bcCrmExtensionsLoader=true;
 
   var V='20260913-hotfix1';
+  var AMBIENT='20260914-safe1';
 
   // El botón de actualizar hace una recarga completa, pero la experiencia
   // vuelve al mismo punto: página, pestaña, listas, historial y borrador.
@@ -85,4 +86,23 @@
     document.head.appendChild(messages);
   };
   document.head.appendChild(legacy);
+
+  // Decorativo y completamente desacoplado: solo se solicita DESPUÉS de window.load.
+  // Si el archivo falla o no existe, el taller no depende de él y sigue operando.
+  function cargarAmbientOrbSeguro(){
+    try{
+      if(window.__bcAmbientOrbRequested)return;
+      window.__bcAmbientOrbRequested=true;
+      var ambient=document.createElement('script');
+      ambient.async=true;
+      ambient.src='taller-ambient-orb-safe.js?v='+AMBIENT;
+      ambient.onerror=function(){};
+      document.head.appendChild(ambient);
+    }catch(e){}
+  }
+  function programarAmbient(){
+    try{setTimeout(cargarAmbientOrbSeguro,1200);}catch(e){}
+  }
+  if(document.readyState==='complete')programarAmbient();
+  else window.addEventListener('load',programarAmbient,{once:true,passive:true});
 })();
