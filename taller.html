@@ -15,7 +15,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Libre+Barcode+39&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="taller-visual-polish.css?v=20260913-visual17">
+  <link rel="stylesheet" href="taller-visual-polish.css?v=20260914-visual19">
 
 <style>
 :root {
@@ -2186,9 +2186,10 @@ body{
                 <!-- KPIs de Reacondicionado -->
                 <h3 style="margin:15px 0 10px; font-size:14px; color:#06b6d4; text-transform:uppercase; display:flex; align-items:center; gap:8px;"><i class="ti ti-recycle"></i> Reacondicionados</h3>
                 <div class="kpi-row">
-                    <div class="kpi-box clickable" style="border-top-color:#f59e0b;" onclick="nav('refurb')"><small>Pendientes</small><strong id="kdPend">0</strong><i class="ti ti-clock"></i></div>
-                    <div class="kpi-box clickable" style="border-top-color:#ef4444;" onclick="nav('refurb')"><small>Evaluación</small><strong id="kdEval">0</strong><i class="ti ti-clipboard-list"></i></div>
-                    <div class="kpi-box clickable" style="border-top-color:#9a3412;" onclick="nav('refurb')"><small>En Proceso</small><strong id="kdProc">0</strong><i class="ti ti-tool"></i></div>
+                    <div class="kpi-box clickable" style="border-top-color:#f59e0b;" onclick="nav('refurb')"><small>Recibidos</small><strong id="kdPend">0</strong><i class="ti ti-package-import"></i></div>
+                    <div class="kpi-box clickable" style="border-top-color:#2563eb;" onclick="nav('refurb')"><small>Diagnóstico</small><strong id="kdEval">0</strong><i class="ti ti-clipboard-list"></i></div>
+                    <div class="kpi-box clickable" style="border-top-color:#9a3412;" onclick="nav('refurb')"><small>En reparación</small><strong id="kdProc">0</strong><i class="ti ti-tool"></i></div>
+                    <div class="kpi-box clickable" style="border-top-color:#7e22ce;" onclick="nav('refurb')"><small>Control calidad</small><strong id="kdCalidad">0</strong><i class="ti ti-shield-check"></i></div>
                     <div class="kpi-box clickable" style="border-top-color:#5b21b6;" onclick="nav('refurb')"><small>Listo Venta</small><strong id="kdListoV">0</strong><i class="ti ti-shopping-cart"></i></div>
                     <div class="kpi-box clickable" style="border-top-color:#10b981;" onclick="nav('refurb')"><small>Despachados</small><strong id="kdDesp">0</strong><i class="ti ti-truck-delivery"></i></div>
                     <div class="kpi-box clickable" style="border-top-color:#dc2626;" onclick="nav('refurb')"><small>Devoluciones</small><strong id="kdDev">0</strong><i class="ti ti-rotate-2"></i></div>
@@ -3155,21 +3156,21 @@ body{
             <!-- REACONDICIONADOS - NUEVO FLUJO -->
             <div id="v-refurb" class="view">
                 <!-- PESTAÑAS EXTERNAS DEL MÓDULO -->
-                <div style="background:#fff; border-radius:12px; padding:6px; margin-bottom:15px; display:flex; gap:4px; box-shadow:0 1px 3px rgba(0,0,0,0.05); flex-wrap:wrap;">
+                <div class="reacond-module-nav" style="background:#fff; border-radius:12px; padding:6px; margin-bottom:15px; display:flex; gap:4px; box-shadow:0 1px 3px rgba(0,0,0,0.05); flex-wrap:wrap;">
                     <button id="reacondMainTabLotes" onclick="cambiarMainTabReacond('lotes')" class="reacond-main-tab tab-active" style="flex:1; min-width:90px; padding:12px; border:0; background:var(--blue-btn); color:#fff; border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">
-                        <i class="ti ti-stack"></i> Lotes
+                        <span class="reacond-main-icon"><i class="ti ti-stack"></i></span><span class="reacond-main-label">Lotes</span>
                     </button>
                     <button id="reacondMainTabCatalogo" onclick="cambiarMainTabReacond('catalogo')" class="reacond-main-tab" style="flex:1; min-width:90px; padding:12px; border:0; background:transparent; color:var(--text-muted); border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">
-                        <i class="ti ti-list-details"></i> Catálogo de Fallas
+                        <span class="reacond-main-icon"><i class="ti ti-list-details"></i></span><span class="reacond-main-label">Catálogo de Fallas</span>
                     </button>
                     <button id="reacondMainTabDevoluciones" onclick="cambiarMainTabReacond('devoluciones')" class="reacond-main-tab" style="flex:1; min-width:90px; padding:12px; border:0; background:transparent; color:var(--text-muted); border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">
-                        <i class="ti ti-rotate-2"></i> Devoluciones
+                        <span class="reacond-main-icon"><i class="ti ti-rotate-2"></i></span><span class="reacond-main-label">Devoluciones</span>
                     </button>
                     <button id="reacondMainTabPiezas" onclick="cambiarMainTabReacond('piezas')" class="reacond-main-tab" style="flex:1; min-width:90px; padding:12px; border:0; background:transparent; color:var(--text-muted); border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">
-                        <i class="ti ti-packages"></i> Pedidos de Piezas
+                        <span class="reacond-main-icon"><i class="ti ti-packages"></i></span><span class="reacond-main-label">Pedidos de Piezas</span>
                     </button>
                     <button id="reacondMainTabRentabilidad" onclick="cambiarMainTabReacond('rentabilidad')" class="reacond-main-tab" style="flex:1; min-width:90px; padding:12px; border:0; background:transparent; color:var(--text-muted); border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">
-                        <i class="ti ti-cash"></i> Rentabilidad
+                        <span class="reacond-main-icon"><i class="ti ti-cash"></i></span><span class="reacond-main-label">Rentabilidad</span>
                     </button>
                 </div>
                 
@@ -3177,7 +3178,7 @@ body{
                 <div id="reacondMainContentLotes">
                     <!-- VISTA 1: LISTA DE LOTES POR PESTAÑA -->
                     <div id="reacondListaLotes">
-                        <div class="card">
+                        <div class="card reacond-overview-card">
                             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
                                 <h3 style="margin:0;"><i class="ti ti-recycle" style="color:#06b6d4;"></i> Reacondicionados</h3>
                                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -3195,23 +3196,23 @@ body{
 
                         <!-- Tabs -->
                         <div class="tabs reacond-tabs-scroll" style="display:flex; gap:4px; margin-bottom:15px; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; padding:4px 2px 6px;">
-                            <button class="tab-btn active" data-tab="pendientes" onclick="cambiarTabReacond('pendientes')" style="padding:11px 14px; cursor:pointer; font-weight:700; white-space:nowrap; font-size:13px;">
-                                <i class="ti ti-clock"></i> Pendientes <span id="cntPendientes" class="badge" style="background:#fef3c7; color:#92400e; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
+                            <button class="tab-btn active" data-tab="recibidos" onclick="cambiarTabReacond('recibidos')" style="padding:11px 14px; cursor:pointer; font-weight:700; white-space:nowrap; font-size:13px;">
+                                <span class="reacond-stage-number">01</span><span class="reacond-stage-label">Recibidos</span><span id="cntPendientes" class="badge" style="background:#fef3c7; color:#92400e; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
                             </button>
                             <button class="tab-btn" data-tab="evaluacion" onclick="cambiarTabReacond('evaluacion')" style="padding:11px 14px; cursor:pointer; font-weight:700; white-space:nowrap; font-size:13px;">
-                                <i class="ti ti-clipboard-list"></i> Evaluación <span id="cntEvaluacion" class="badge" style="background:#dbeafe; color:#b91c1c; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
+                                <span class="reacond-stage-number">02</span><span class="reacond-stage-label">Diagnóstico</span><span id="cntEvaluacion" class="badge" style="background:#dbeafe; color:#1d4ed8; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
                             </button>
                             <button class="tab-btn" data-tab="proceso" onclick="cambiarTabReacond('proceso')" style="padding:11px 14px; cursor:pointer; font-weight:700; white-space:nowrap; font-size:13px;">
-                                <i class="ti ti-tool"></i> En Proceso <span id="cntProceso" class="badge" style="background:#fed7aa; color:#9a3412; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
+                                <span class="reacond-stage-number">03</span><span class="reacond-stage-label">En reparación</span><span id="cntProceso" class="badge" style="background:#fed7aa; color:#9a3412; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
+                            </button>
+                            <button class="tab-btn" data-tab="control_calidad" onclick="cambiarTabReacond('control_calidad')" style="padding:11px 14px; cursor:pointer; font-weight:700; white-space:nowrap; font-size:13px;">
+                                <span class="reacond-stage-number">04</span><span class="reacond-stage-label">Control de calidad</span><span id="cntControlCalidad" class="badge" style="background:#f3e8ff; color:#7e22ce; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
                             </button>
                             <button class="tab-btn" data-tab="listo_venta" onclick="cambiarTabReacond('listo_venta')" style="padding:11px 14px; cursor:pointer; font-weight:700; white-space:nowrap; font-size:13px;">
-                                <i class="ti ti-shopping-cart"></i> Listo para venta <span id="cntListoVenta" class="badge" style="background:#ddd6fe; color:#5b21b6; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
+                                <span class="reacond-stage-number">05</span><span class="reacond-stage-label">Listo para venta</span><span id="cntListoVenta" class="badge" style="background:#ddd6fe; color:#5b21b6; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
                             </button>
-                            <button class="tab-btn" data-tab="terminados" onclick="cambiarTabReacond('terminados')" style="padding:11px 14px; cursor:pointer; font-weight:700; white-space:nowrap; font-size:13px;">
-                                <i class="ti ti-truck-delivery"></i> Despachados <span id="cntTerminados" class="badge" style="background:#d1fae5; color:#065f46; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
-                            </button>
-                            <button class="tab-btn" data-tab="completado" onclick="cambiarTabReacond('completado')" style="padding:11px 14px; cursor:pointer; font-weight:700; white-space:nowrap; font-size:13px;">
-                                <i class="ti ti-circle-check"></i> Completados <span id="cntCompletado" class="badge" style="background:#e2e8f0; color:#334155; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
+                            <button class="tab-btn" data-tab="despachados" onclick="cambiarTabReacond('despachados')" style="padding:11px 14px; cursor:pointer; font-weight:700; white-space:nowrap; font-size:13px;">
+                                <span class="reacond-stage-number">06</span><span class="reacond-stage-label">Despachados</span><span id="cntTerminados" class="badge" style="background:#d1fae5; color:#065f46; margin-left:6px; padding:2px 7px; border-radius:10px; font-size:11px;">0</span>
                             </button>
                         </div>
                         
@@ -3225,7 +3226,7 @@ body{
                 
                 <!-- VISTA 2: DETALLE DEL LOTE (oculta por defecto) -->
                 <div id="reacondDetalleLote" style="display:none;">
-                    <div class="card">
+                    <div class="card reacond-detail-card">
                         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
                             <button class="btn btn-light" onclick="volverListaLotesReacond()" style="padding:6px 12px;"><i class="ti ti-arrow-left"></i> Volver</button>
                             <h3 id="reacondLoteTitulo" style="margin:0; flex:1; text-align:center;">Lote</h3>
@@ -3236,34 +3237,30 @@ body{
                         <div id="reacondLoteInfo" style="background:#f1f5f9; padding:12px; border-radius:8px; margin-bottom:15px; font-size:13px;"></div>
                         
                         <!-- Resumen de estados -->
-                        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-bottom:15px;">
-                            <div id="kpiCardPendiente" onclick="_reacondFiltrarPorEstado('pendiente')" title="Clic para filtrar" style="background:#fef3c7; padding:12px; border-radius:8px; text-align:center; cursor:pointer; border:2px solid transparent;">
+                        <div class="reacond-detail-kpis" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-bottom:15px;">
+                            <div id="kpiCardPendiente" class="reacond-kpi-card" onclick="_reacondFiltrarPorEstado('recibido')" title="Clic para filtrar" style="background:#fef3c7; padding:12px; border-radius:8px; text-align:center; cursor:pointer; border:2px solid transparent;">
                                 <div style="font-size:24px; font-weight:bold; color:#92400e;" id="kpiPendientes">0</div>
-                                <div style="font-size:11px; color:#92400e;">PENDIENTES</div>
+                                <div style="font-size:11px; color:#92400e;">RECIBIDOS</div>
                             </div>
-                            <div id="kpiCardEnEval" onclick="_reacondFiltrarPorEstado('en_evaluacion')" title="Clic para filtrar" style="background:#dbeafe; padding:12px; border-radius:8px; text-align:center; cursor:pointer; border:2px solid transparent;">
-                                <div style="font-size:24px; font-weight:bold; color:#b91c1c;" id="kpiEnEval">0</div>
-                                <div style="font-size:11px; color:#b91c1c;">EN EVALUACIÓN</div>
+                            <div id="kpiCardDiagnostico" class="reacond-kpi-card" onclick="_reacondFiltrarPorEstado('diagnostico')" title="Incluye diagnósticos abiertos y terminados por asignar" style="background:#dbeafe; padding:12px; border-radius:8px; text-align:center; cursor:pointer; border:2px solid transparent;">
+                                <div style="font-size:24px; font-weight:bold; color:#1d4ed8;" id="kpiDiagnostico">0</div>
+                                <div style="font-size:11px; color:#1d4ed8;">DIAGNÓSTICO</div>
                             </div>
-                            <div id="kpiCardEvaluado" onclick="_reacondFiltrarPorEstado('evaluado')" title="Clic para filtrar" style="background:#d1fae5; padding:12px; border-radius:8px; text-align:center; cursor:pointer; border:2px solid transparent;">
-                                <div style="font-size:24px; font-weight:bold; color:#065f46;" id="kpiEvaluados">0</div>
-                                <div style="font-size:11px; color:#065f46;">EVALUADOS</div>
-                            </div>
-                            <div id="kpiCardProceso" onclick="_reacondFiltrarPorEstado('en_proceso')" title="Clic para filtrar" style="background:#fed7aa; padding:12px; border-radius:8px; text-align:center; cursor:pointer; border:2px solid transparent;">
+                            <div id="kpiCardProceso" class="reacond-kpi-card" onclick="_reacondFiltrarPorEstado('reparacion')" title="Las incidencias se muestran como etiquetas" style="background:#fed7aa; padding:12px; border-radius:8px; text-align:center; cursor:pointer; border:2px solid transparent;">
                                 <div style="font-size:24px; font-weight:bold; color:#9a3412;" id="kpiProceso">0</div>
-                                <div style="font-size:11px; color:#9a3412;">EN PROCESO</div>
+                                <div style="font-size:11px; color:#9a3412;">EN REPARACIÓN</div>
                             </div>
-                            <div id="kpiCardListoV" onclick="_reacondFiltrarPorEstado('listo_venta')" title="Clic para filtrar" style="background:#ddd6fe; padding:12px; border-radius:8px; text-align:center; cursor:pointer; border:2px solid transparent;">
+                            <div id="kpiCardCalidad" class="reacond-kpi-card" onclick="_reacondFiltrarPorEstado('control_calidad')" title="Equipos esperando revisión administrativa" style="background:#f3e8ff; padding:12px; border-radius:8px; text-align:center; cursor:pointer; border:2px solid transparent;">
+                                <div style="font-size:24px; font-weight:bold; color:#7e22ce;" id="kpiCalidad">0</div>
+                                <div style="font-size:11px; color:#7e22ce;">CONTROL DE CALIDAD</div>
+                            </div>
+                            <div id="kpiCardListoV" class="reacond-kpi-card" onclick="_reacondFiltrarPorEstado('listo_venta')" title="Clic para filtrar" style="background:#ddd6fe; padding:12px; border-radius:8px; text-align:center; cursor:pointer; border:2px solid transparent;">
                                 <div style="font-size:24px; font-weight:bold; color:#5b21b6;" id="kpiListoV">0</div>
                                 <div style="font-size:11px; color:#5b21b6;">LISTO</div>
                             </div>
-                            <div id="kpiCardDespachado" onclick="_reacondFiltrarPorEstado('vendido')" title="Clic para filtrar" style="background:#dcfce7; padding:12px; border-radius:8px; text-align:center; cursor:pointer; border:2px solid transparent;">
+                            <div id="kpiCardDespachado" class="reacond-kpi-card" onclick="_reacondFiltrarPorEstado('despachado')" title="Equipos que ya salieron del taller" style="background:#dcfce7; padding:12px; border-radius:8px; text-align:center; cursor:pointer; border:2px solid transparent;">
                                 <div style="font-size:24px; font-weight:bold; color:#15803d;" id="kpiDespachado">0</div>
-                                <div style="font-size:11px; color:#15803d;">COMPLETADO</div>
-                            </div>
-                            <div id="kpiCardCompletado" onclick="_reacondFiltrarPorEstado('completado')" title="Equipos despachados ya completados (editables por garantía)" style="background:#e2e8f0; padding:12px; border-radius:8px; text-align:center; cursor:pointer; border:2px solid transparent;">
-                                <div style="font-size:24px; font-weight:bold; color:#334155;" id="kpiCompletado">0</div>
-                                <div style="font-size:11px; color:#334155;">DESPACHADO</div>
+                                <div style="font-size:11px; color:#15803d;">DESPACHADO</div>
                             </div>
                         </div>
                         
@@ -3284,13 +3281,12 @@ body{
                                 <div style="position:relative; display:inline-block;">
                                     <button class="btn btn-dark" style="padding:5px 10px; font-size:12px; background:#5b21b6;" onclick="_reacondTogglePasarMenu(event)"><i class="ti ti-arrows-exchange"></i> Pasar a ▾</button>
                                     <div id="reacondPasarMenu" style="display:none; position:absolute; top:calc(100% + 4px); right:0; background:#fff; border:1px solid #e2e8f0; border-radius:8px; box-shadow:0 8px 20px rgba(15,23,42,0.18); z-index:50; min-width:200px; overflow:hidden;">
-                                        <div style="font-size:10px; color:#475569; text-transform:uppercase; padding:8px 14px 4px;">Pasar seleccionados a:</div>
-                                        <button onclick="_reacondPasarA('pendiente')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'"><i class="ti ti-hourglass"></i> Pendiente</button>
-                                        <button onclick="_reacondPasarA('evaluado')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'"><i class="ti ti-check"></i> Evaluado</button>
-                                        <button onclick="_reacondPasarA('en_proceso')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'"><i class="ti ti-tool"></i> En proceso</button>
-                                        <button onclick="_reacondPasarA('listo_venta')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'"><i class="ti ti-shopping-cart"></i> Listo</button>
-                                        <button onclick="_reacondPasarA('vendido')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'"><i class="ti ti-check"></i> Completado</button>
-                                        <button onclick="_reacondPasarA('completado')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; border-top:1px solid #f1f5f9; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'"><i class="ti ti-truck"></i> Despachado</button>
+                                        <div style="font-size:10px; color:#475569; text-transform:uppercase; padding:8px 14px 4px;">Acción válida para la selección:</div>
+                                        <button onclick="_reacondPasarA('evaluado')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'"><i class="ti ti-clipboard-check"></i> Diagnóstico listo</button>
+                                        <button onclick="_reacondPasarA('en_proceso')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'"><i class="ti ti-tool"></i> En reparación</button>
+                                        <button onclick="_reacondPasarA('listo_venta')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'"><i class="ti ti-shopping-cart"></i> Listo para venta</button>
+                                        <button onclick="_reacondPasarA('vendido')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'"><i class="ti ti-truck-delivery"></i> Despachado</button>
+                                        <button onclick="_reacondPasarA('completado')" style="display:block; width:100%; text-align:left; padding:9px 14px; border:0; border-top:1px solid #f1f5f9; background:#fff; cursor:pointer; font-size:13px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#fff'"><i class="ti ti-lock-check"></i> Cerrar salida</button>
                                     </div>
                                 </div>
                                 <button id="btnReporteCostosLote" class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#166534; border-color:#86efac; display:none;" onclick="imprimirReporteCostosLote()"><i class="ti ti-printer"></i> Imprimir</button>
@@ -3307,15 +3303,13 @@ body{
                         <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
                             <input id="reacondBusq" placeholder="Buscar / escanear por IMEI, código o modelo…" oninput="renderDetalleLoteReacond()" onkeydown="if(event.key==='Enter'){event.preventDefault();renderDetalleLoteReacond();}" autocomplete="off" style="flex:1; min-width:220px; padding:9px 12px; font-size:13px; border:1px solid #cbd5e1; border-radius:8px;">
                             <select id="reacondFiltroEstado" onchange="renderDetalleLoteReacond()" style="padding:9px 12px; font-size:13px; border:1px solid #cbd5e1; border-radius:8px;">
-                                <option value="">Todos los estados</option>
-                                <option value="pendiente">Pendiente</option>
-                                <option value="en_evaluacion">En evaluación</option>
-                                <option value="evaluado">Evaluado</option>
-                                <option value="en_proceso">En proceso</option>
-                                <option value="reasignado">Reasignado</option>
+                                <option value="">Todas las etapas</option>
+                                <option value="recibido">Recibido</option>
+                                <option value="diagnostico">Diagnóstico</option>
+                                <option value="reparacion">En reparación</option>
+                                <option value="control_calidad">Control de calidad</option>
                                 <option value="listo_venta">Listo para venta</option>
-                                <option value="vendido">Completado</option>
-                                <option value="completado">Despachado</option>
+                                <option value="despachado">Despachado</option>
                             </select>
                         </div>
                         <div id="reacondEquiposLista"></div>
@@ -3381,7 +3375,7 @@ body{
                             <button class="btn btn-light" onclick="refrescarVista(renderPedidosPiezasReacond, this)" style="padding:6px 12px; font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
                         </div>
                         <div style="background:#ecfeff; border:1px solid #a5f3fc; padding:12px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#0e7490;">
-                            <b><i class="ti ti-info-circle"></i> Aquí ves todas las piezas que los técnicos necesitan para los equipos.</b> Revisa cuáles están pedidas (por conseguir), entregadas, en uso o devueltas.
+                            <b><i class="ti ti-info-circle"></i> Separa el trabajo operativo de los costos.</b> Las solicitudes técnicas muestran lo que debe gestionarse; los costos Info Plus quedan como consulta contable y no cuentan como pedidos pendientes.
                         </div>
                         <div id="pedidosPiezasReacondCont">
                             <p style="color:var(--text-muted); text-align:center; padding:30px; font-size:13px;">Cargando pedidos...</p>
@@ -3769,7 +3763,7 @@ body{
                 <div id="evalTabResumen" style="display:none; background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:14px; box-shadow:0 1px 4px rgba(15,23,42,0.06);">
                     <div class="form-row">
                         <label><i class="ti ti-note"></i> Notas adicionales (van en el label)</label>
-                        <textarea id="eval_notas" rows="3" placeholder="Ej: Pantalla con manchas leves, batería 78%, etc." style="resize:vertical;"></textarea>
+                        <textarea id="eval_notas" rows="3" placeholder="Resultado del diagnóstico: estado físico, batería, pruebas o por qué no requiere reparación…" style="resize:vertical;"></textarea>
                     </div>
                     
                     <div style="background:#f8fafc; border:1px solid var(--border-color); border-radius:8px; padding:15px; margin-top:15px;">
@@ -7918,7 +7912,8 @@ function renderAll() {
     const setKpi = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
     setKpi('kdPend', refurb.filter(e => (e.estado_evaluacion || 'pendiente') === 'pendiente').length);
     setKpi('kdEval', refurb.filter(e => ['en_evaluacion','evaluado'].includes(e.estado_evaluacion)).length);
-    setKpi('kdProc', refurb.filter(e => ['en_proceso','tecnico_recibio','espera_pieza','listo_revision','reasignado','reparacion_externa'].includes(e.estado_evaluacion)).length);
+    setKpi('kdProc', refurb.filter(e => ['en_proceso','tecnico_recibio','espera_pieza','reasignado','reparacion_externa'].includes(e.estado_evaluacion)).length);
+    setKpi('kdCalidad', refurb.filter(e => e.estado_evaluacion === 'listo_revision').length);
     setKpi('kdListoV', refurb.filter(e => e.estado_evaluacion === 'listo_venta').length);
     setKpi('kdDesp', refurb.filter(e => e.estado_evaluacion === 'vendido').length);
     setKpi('kdDev', refurb.filter(e => (e.veces_devuelto || 0) > 0).length);
@@ -12365,19 +12360,33 @@ async function registrarEquipoRefurb() {
 /* ============================================================
    REACONDICIONADOS - NUEVO FLUJO POR LOTES
    ============================================================ */
-let reacondTabActual = 'pendientes';
+let reacondTabActual = 'recibidos';
 let reacondLoteAbiertoId = null;
 let _reacondSel = new Set(); // equipos marcados con casilla para asignar en bloque
 let _reacondFiltroTec = ''; // filtrar la lista por técnico (clic en su chip)
-const _REACOND_ESTADOS_TRABAJO = ['en_proceso','tecnico_recibio','espera_pieza','listo_revision','reasignado','reparacion_externa'];
+const _REACOND_ESTADOS_REPARACION = ['en_proceso','tecnico_recibio','espera_pieza','reasignado','reparacion_externa'];
+const _REACOND_ESTADOS_TRABAJO = [..._REACOND_ESTADOS_REPARACION, 'listo_revision'];
+function _reacondTienePiezasPendientes(filas) {
+    return (filas || []).some(p => {
+        const esSolicitudOperativa = !!p.agregada_por_tecnico || !!p.pieza_id;
+        return esSolicitudOperativa && ['pendiente','extra_pendiente','aprobada','entregada'].includes(p.estado);
+    });
+}
 // ¿El equipo pasa el filtro de estado seleccionado? (mismo criterio que usa la lista)
 function _reacondEquipoPasaEstado(e, fEstado) {
+    const estado = e.estado_evaluacion || 'pendiente';
+    if(fEstado === 'recibido') return estado === 'pendiente';
+    if(fEstado === 'diagnostico') return ['en_evaluacion','evaluado'].includes(estado);
+    if(fEstado === 'reparacion') return _REACOND_ESTADOS_REPARACION.includes(estado);
+    if(fEstado === 'control_calidad') return estado === 'listo_revision';
+    if(fEstado === 'despachado') return estado === 'vendido';
+    // Compatibilidad con enlaces/filtros guardados de la vista anterior.
     if(fEstado === 'completado') return e.estado_evaluacion === 'vendido' && e.completado;
     if(fEstado === 'vendido') return e.estado_evaluacion === 'vendido' && !e.completado;
     // "En proceso" agrupa TODOS los sub-estados de trabajo (igual que la tarjeta KPI)
     if(fEstado === 'en_proceso') return _REACOND_ESTADOS_TRABAJO.includes(e.estado_evaluacion);
     if(fEstado) return (e.estado_evaluacion || 'pendiente') === fEstado;
-    return !(e.estado_evaluacion === 'vendido' && e.completado); // "Todos" oculta los completados
+    return true;
 }
 // ¿El equipo pasa el filtro de fecha (por fecha_completado = fecha en que se marcó Despachado)?
 function _reacondPasaFecha(eq) {
@@ -12451,13 +12460,31 @@ function _reacondCerrarPasarMenu(ev) {
     const m = document.getElementById('reacondPasarMenu');
     if(m && !m.contains(ev.target)) { m.style.display = 'none'; document.removeEventListener('click', _reacondCerrarPasarMenu); }
 }
-// Mueve los equipos seleccionados al estado elegido (incluye "completado" como distintivo)
+// Valida los saltos masivos usando las etapas reales del flujo.
+function _reacondValidarMovimientoMasivo(eq, destino) {
+    const estado = eq.estado_evaluacion || 'pendiente';
+    if(destino === 'evaluado') return estado === 'en_evaluacion';
+    if(destino === 'en_proceso') return estado === 'evaluado' && !!eq.tecnico_asignado_id;
+    if(destino === 'listo_venta') return estado === 'listo_revision' || (estado === 'evaluado' && !eq.tecnico_asignado_id);
+    if(destino === 'vendido') return estado === 'listo_venta';
+    if(destino === 'completado') return estado === 'vendido' && !eq.completado;
+    return false;
+}
+
+// Mueve los equipos seleccionados a una etapa válida.
 async function _reacondPasarA(destino) {
     const m = document.getElementById('reacondPasarMenu'); if(m) m.style.display = 'none';
     document.removeEventListener('click', _reacondCerrarPasarMenu);
     const ids = [..._reacondSel];
     if(!ids.length) return toast('Marca primero los equipos que quieres mover.', 'error');
-    const labels = { pendiente:'Pendiente', evaluado:'Evaluado', en_proceso:'En proceso', listo_venta:'Listo', vendido:'Completado', completado:'Despachado' };
+    const labels = { pendiente:'Recibido', evaluado:'Diagnóstico listo', en_proceso:'En reparación', listo_venta:'Listo para venta', vendido:'Despachado', completado:'Cerrar salida' };
+    const equiposCache = (cache.refurb || []).filter(r => _reacondSel.has(r.id));
+    const bloqueado = equiposCache.find(r => !_reacondValidarMovimientoMasivo(r, destino));
+    if(bloqueado) {
+        const estadoActual = obtenerEtiquetaEstado(bloqueado.estado_evaluacion).text.toLowerCase();
+        const destinoTxt = labels[destino] || destino;
+        return toast(`No se puede mover en bloque a «${destinoTxt}». «${bloqueado.modelo || 'Este equipo'}» está en «${estadoActual}». Usa la acción de su etapa para conservar los controles.`, 'error');
+    }
     if(!await confirmar(`¿Pasar ${ids.length} equipo(s) a "${labels[destino] || destino}"?`)) return;
     // Construir el cambio según el destino
     const patch = {};
@@ -12468,7 +12495,6 @@ async function _reacondPasarA(destino) {
         if(destino === 'vendido') patch.fecha_despacho = new Date().toISOString();
     }
     try {
-        const equiposCache = (cache.refurb || []).filter(r => _reacondSel.has(r.id));
         const { error } = await supabaseClient.from('equipos_refurbish').update(patch).in('id', ids);
         if(error) throw error;
         // Historial (best-effort)
@@ -12479,7 +12505,7 @@ async function _reacondPasarA(destino) {
         // Actualizar cache local
         equiposCache.forEach(r => { Object.assign(r, patch); });
         _reacondSel = new Set();
-        // Al pasar a "Completado" (destino 'vendido'), descontar automáticamente las piezas por descontar
+        // Al registrar la salida (estado interno 'vendido'), descontar automáticamente las piezas pendientes.
         let _totDesc = 0;
         if(destino === 'vendido') { for(const id of ids) { const rr = await _descontarPiezasAlCompletar(id); _totDesc += rr.n; } }
         toast(`✅ ${ids.length} equipo(s) pasado(s) a "${labels[destino] || destino}".${_totDesc ? ' 🧩 ' + _totDesc + ' pieza(s) descontada(s).' : ''}`);
@@ -12501,26 +12527,26 @@ function _reacondActualizarSelCostoUI() {
     if(btn) { btn.style.display = show; btn.innerHTML = `<i class="ti ti-printer"></i> Imprimir costos (${n})`; }
     const bx = document.getElementById('btnExcelSelCosto');
     if(bx) { bx.style.display = show; bx.innerHTML = `<i class="ti ti-file-spreadsheet"></i> Excel (${n})`; }
-    // Botones Completar / Regresar según los seleccionados (solo despachados)
+    // El booleano histórico "completado" se presenta como cierre administrativo, no como otra etapa.
     const selEq = (cache.refurb || []).filter(r => _reacondSelCosto.has(r.id) && r.estado_evaluacion === 'vendido');
     const paraCompletar = selEq.filter(r => !r.completado).length;
     const paraRegresar = selEq.filter(r => r.completado).length;
     const bc = document.getElementById('btnCompletarSel');
-    if(bc) { bc.style.display = (isAdminUser() && paraCompletar > 0) ? '' : 'none'; bc.innerHTML = `<i class="ti ti-truck-delivery"></i> Marcar Despachado (${paraCompletar})`; }
+    if(bc) { bc.style.display = (isAdminUser() && paraCompletar > 0) ? '' : 'none'; bc.innerHTML = `<i class="ti ti-lock-check"></i> Cerrar salida (${paraCompletar})`; }
     const bd = document.getElementById('btnDescompletarSel');
-    if(bd) { bd.style.display = (isAdminUser() && paraRegresar > 0) ? '' : 'none'; bd.innerHTML = `<i class="ti ti-arrow-back-up"></i> Regresar a Completado (${paraRegresar})`; }
+    if(bd) { bd.style.display = (isAdminUser() && paraRegresar > 0) ? '' : 'none'; bd.innerHTML = `<i class="ti ti-lock-open"></i> Reabrir salida (${paraRegresar})`; }
 }
-// Quita de "Despachado" y marca como COMPLETADO los seleccionados (siguen editables)
+// Cierra administrativamente las salidas seleccionadas.
 async function _reacondMarcarCompletado() {
     if(!isAdminUser()) return toast('Solo el administrador.', 'error');
     const ids = (cache.refurb || []).filter(r => _reacondSelCosto.has(r.id) && r.estado_evaluacion === 'vendido' && !r.completado).map(r => r.id);
-    if(!ids.length) return toast('Marca primero equipos completados.', 'error');
-    if(!await confirmar(`¿Marcar ${ids.length} equipo(s) como DESPACHADO? Saldrán de "Completado" pero seguirán editables (por si hay garantía).`)) return;
+    if(!ids.length) return toast('Marca primero salidas pendientes de cierre.', 'error');
+    if(!await confirmar(`¿Cerrar administrativamente ${ids.length} salida(s)? Los equipos seguirán disponibles para garantías.`)) return;
     try {
         const { error } = await supabaseClient.from('equipos_refurbish').update({ completado: true, fecha_completado: new Date().toISOString() }).in('id', ids);
         if(error) throw error;
         ids.forEach(id => { const r = (cache.refurb || []).find(x => x.id === id); if(r) { r.completado = true; r.fecha_completado = new Date().toISOString(); } _reacondSelCosto.delete(id); });
-        toast(`🚚 ${ids.length} equipo(s) marcado(s) como despachado.`);
+        toast(`🔒 ${ids.length} salida(s) cerrada(s).`);
         renderDetalleLoteReacond();
     } catch(e) { logError('Marcar completado', e); toastError(getFriendlyError(e)); }
 }
@@ -12528,12 +12554,12 @@ async function _reacondMarcarCompletado() {
 async function _reacondRegresarDespachado() {
     if(!isAdminUser()) return toast('Solo el administrador.', 'error');
     const ids = (cache.refurb || []).filter(r => _reacondSelCosto.has(r.id) && r.estado_evaluacion === 'vendido' && r.completado).map(r => r.id);
-    if(!ids.length) return toast('Marca primero equipos despachados.', 'error');
+    if(!ids.length) return toast('Marca primero salidas cerradas.', 'error');
     try {
         const { error } = await supabaseClient.from('equipos_refurbish').update({ completado: false, fecha_completado: null }).in('id', ids);
         if(error) throw error;
         ids.forEach(id => { const r = (cache.refurb || []).find(x => x.id === id); if(r) { r.completado = false; r.fecha_completado = null; } _reacondSelCosto.delete(id); });
-        toast(`↩️ ${ids.length} equipo(s) regresado(s) a Completado.`);
+        toast(`↩️ ${ids.length} salida(s) reabierta(s).`);
         renderDetalleLoteReacond();
     } catch(e) { logError('Regresar a despachado', e); toastError(getFriendlyError(e)); }
 }
@@ -13810,50 +13836,38 @@ async function refrescarVista(renderFn, btn) {
 function cargarLotesReacond() {
     // Filtra solo lotes enviados a reacond y calcula sus contadores
     const lotesReacond = (cache.lotes || []).filter(l => l.enviado_reacond === true);
-    
-    let contPend = 0, contEval = 0, contProc = 0, contListo = 0, contTerm = 0;
+
     const lotesConEstado = lotesReacond.map(lote => {
         const equipos = (cache.refurb || []).filter(r => r.lote_id === lote.id);
         const pendientes = equipos.filter(e => (e.estado_evaluacion || 'pendiente') === 'pendiente').length;
         const enEval = equipos.filter(e => e.estado_evaluacion === 'en_evaluacion').length;
         const evaluados = equipos.filter(e => e.estado_evaluacion === 'evaluado').length;
-        const enProceso = equipos.filter(e => ['en_proceso','tecnico_recibio','espera_pieza','listo_revision','reasignado','reparacion_externa'].includes(e.estado_evaluacion)).length;
+        const diagnostico = enEval + evaluados;
+        const enProceso = equipos.filter(e => _REACOND_ESTADOS_REPARACION.includes(e.estado_evaluacion)).length;
+        const controlCalidad = equipos.filter(e => e.estado_evaluacion === 'listo_revision').length;
         const listoVenta = equipos.filter(e => e.estado_evaluacion === 'listo_venta').length;
         const vendidos = equipos.filter(e => e.estado_evaluacion === 'vendido').length;
         const completados = equipos.filter(e => e.estado_evaluacion === 'vendido' && e.completado).length;
         const despachadosNC = vendidos - completados; // despachados que aún NO están completados
         const total = equipos.length;
-        
-        // Decidir estado predominante del lote
-        let estadoLote;
-        if(total === 0) estadoLote = 'pendientes';
-        else if(vendidos === total) estadoLote = 'terminados';
-        else if(listoVenta > 0 && listoVenta + vendidos === total) estadoLote = 'listo_venta';
-        else if(enProceso > 0) estadoLote = 'proceso';
-        else if(enEval > 0 || (evaluados > 0 && evaluados < total)) estadoLote = 'evaluacion';
-        else if(evaluados === total) estadoLote = 'proceso'; // todos evaluados pero ninguno aún en proceso = sigue siendo activo
-        else estadoLote = 'pendientes';
-        
-        if(estadoLote === 'pendientes') contPend++;
-        else if(estadoLote === 'evaluacion') contEval++;
-        else if(estadoLote === 'proceso') contProc++;
-        else if(estadoLote === 'listo_venta') contListo++;
-        else contTerm++;
-        
-        return { lote, equipos, pendientes, enEval, evaluados, enProceso, listoVenta, vendidos, completados, despachadosNC, total, estadoLote };
+
+        return { lote, equipos, pendientes, enEval, evaluados, diagnostico, enProceso, controlCalidad, listoVenta, vendidos, completados, despachadosNC, total };
     });
 
-    // Actualizar contadores en pestañas (Listo/Despachado/Completado cuentan EQUIPOS, no lotes)
+    // Todas las pestañas cuentan equipos; así cada número representa trabajo real pendiente.
     const setBadge = (id, n) => { const el = document.getElementById(id); if(el) el.textContent = n; };
+    const eqRecibidos = lotesConEstado.reduce((s, d) => s + d.pendientes, 0);
+    const eqDiagnostico = lotesConEstado.reduce((s, d) => s + d.diagnostico, 0);
+    const eqProceso = lotesConEstado.reduce((s, d) => s + d.enProceso, 0);
+    const eqCalidad = lotesConEstado.reduce((s, d) => s + d.controlCalidad, 0);
     const eqListo = lotesConEstado.reduce((s, d) => s + d.listoVenta, 0);
-    const eqDesp = lotesConEstado.reduce((s, d) => s + d.despachadosNC, 0);
-    const eqComp = lotesConEstado.reduce((s, d) => s + d.completados, 0);
-    setBadge('cntPendientes', contPend);
-    setBadge('cntEvaluacion', contEval);
-    setBadge('cntProceso', contProc);
+    const eqDesp = lotesConEstado.reduce((s, d) => s + d.vendidos, 0);
+    setBadge('cntPendientes', eqRecibidos);
+    setBadge('cntEvaluacion', eqDiagnostico);
+    setBadge('cntProceso', eqProceso);
+    setBadge('cntControlCalidad', eqCalidad);
     setBadge('cntListoVenta', eqListo);
     setBadge('cntTerminados', eqDesp);
-    setBadge('cntCompletado', eqComp);
 
     renderLotesReacondTab(lotesConEstado);
 }
@@ -13862,25 +13876,27 @@ function renderLotesReacondTab(lotesConEstado) {
     const cont = document.getElementById('lotesReacondContainer');
     if(!cont) return;
 
-    // Todas las pestañas (incluidas Listo y Despachado) muestran la CARPETA por lote.
-    // Listo = lotes con equipos listos; Despachado = lotes con equipos despachados.
+    // Cada etapa muestra los lotes que contienen al menos un equipo en esa cola.
     let filtrados;
-    if(reacondTabActual === 'listo_venta') filtrados = lotesConEstado.filter(d => d.listoVenta > 0);
-    else if(reacondTabActual === 'terminados') filtrados = lotesConEstado.filter(d => d.despachadosNC > 0);
-    else if(reacondTabActual === 'completado') filtrados = lotesConEstado.filter(d => d.completados > 0);
-    else filtrados = lotesConEstado.filter(d => d.estadoLote === reacondTabActual);
+    if(reacondTabActual === 'recibidos') filtrados = lotesConEstado.filter(d => d.pendientes > 0);
+    else if(reacondTabActual === 'evaluacion') filtrados = lotesConEstado.filter(d => d.diagnostico > 0);
+    else if(reacondTabActual === 'proceso') filtrados = lotesConEstado.filter(d => d.enProceso > 0);
+    else if(reacondTabActual === 'control_calidad') filtrados = lotesConEstado.filter(d => d.controlCalidad > 0);
+    else if(reacondTabActual === 'listo_venta') filtrados = lotesConEstado.filter(d => d.listoVenta > 0);
+    else if(reacondTabActual === 'despachados') filtrados = lotesConEstado.filter(d => d.vendidos > 0);
+    else filtrados = lotesConEstado;
 
     if(filtrados.length === 0) {
-        const msg = reacondTabActual === 'pendientes'
-            ? 'No hay lotes pendientes. Envía un lote desde el módulo Compras.'
+        const msg = reacondTabActual === 'recibidos'
+            ? 'No hay equipos recibidos pendientes de diagnóstico.'
             : reacondTabActual === 'evaluacion'
-            ? 'No hay lotes en evaluación.'
+            ? 'No hay equipos en diagnóstico.'
             : reacondTabActual === 'proceso'
-            ? 'No hay lotes en proceso de reparación.'
+            ? 'No hay equipos en reparación.'
+            : reacondTabActual === 'control_calidad'
+            ? 'No hay equipos esperando control de calidad.'
             : reacondTabActual === 'listo_venta'
             ? 'No hay lotes con equipos listos para venta.'
-            : reacondTabActual === 'completado'
-            ? 'No hay lotes con equipos completados.'
             : 'No hay lotes con equipos despachados.';
         cont.innerHTML = `<p style="color:var(--text-muted); text-align:center; padding:30px; font-size:13px;">${msg}</p>`;
         return;
@@ -13893,33 +13909,32 @@ function renderLotesReacondTab(lotesConEstado) {
         const nombreLote = lote.codigo_lote || lote.nombre || ('Lote #' + (lote.id || '').slice(0,8));
         const fechaCompra = lote.fecha_compra ? new Date(lote.fecha_compra).toLocaleDateString('es-DO') : '—';
         const fechaEnvio = lote.fecha_envio_reacond ? new Date(lote.fecha_envio_reacond).toLocaleDateString('es-DO') : '—';
-        const progreso = d.total > 0 ? Math.round((d.evaluados / d.total) * 100) : 0;
+        const progreso = d.total > 0 ? Math.round(((d.controlCalidad + d.listoVenta + d.vendidos) / d.total) * 100) : 0;
         
-        return `<div style="background:#fff; border:1px solid var(--border-color); border-radius:10px; padding:14px; margin-bottom:10px;">
+        return `<div class="reacond-lote-card" style="background:#fff; border:1px solid var(--border-color); border-radius:10px; padding:14px; margin-bottom:10px;">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
                 <div style="flex:1; min-width:200px;">
-                    <div style="font-weight:700; font-size:15px; color:var(--blue-btn);">${escapeHtml(nombreLote)}</div>
-                    <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+                    <div class="reacond-lote-name" style="font-weight:700; font-size:15px; color:var(--blue-btn);">${escapeHtml(nombreLote)}</div>
+                    <div class="reacond-lote-meta" style="font-size:12px; color:var(--text-muted); margin-top:4px;">
                         <i class="ti ti-truck"></i> ${escapeHtml(prov ? prov.nombre : 'Sin proveedor')}<br>
                         <i class="ti ti-calendar"></i> Compra: ${fechaCompra} · Enviado: ${fechaEnvio}
                     </div>
                 </div>
                 <button class="btn btn-blue" style="padding:8px 14px;" onclick="abrirLoteReacond('${lote.id}')"><i class="ti ti-folder-open"></i> Abrir Lote</button>
             </div>
-            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(72px, 1fr)); gap:8px; margin-top:12px;">
-                <div style="background:#fef3c7; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#92400e;">${d.pendientes}</b><br>Pendientes</div>
-                <div style="background:#dbeafe; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#b91c1c;">${d.enEval}</b><br>En Eval</div>
-                <div style="background:#d1fae5; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#065f46;">${d.evaluados}</b><br>Evaluados</div>
-                <div style="background:#fed7aa; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#9a3412;">${d.enProceso}</b><br>En Proceso</div>
-                <div style="background:#ddd6fe; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#5b21b6;">${d.listoVenta}</b><br>Listo Venta</div>
-                <div style="background:#dcfce7; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#15803d;">${d.despachadosNC}</b><br>Completado</div>
-                <div style="background:#e2e8f0; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#334155;">${d.completados}</b><br>Despachado</div>
-                <div style="background:#f1f5f9; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px;">${d.total}</b><br>Total</div>
+            <div class="reacond-lote-stages" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(72px, 1fr)); gap:8px; margin-top:12px;">
+                <div class="reacond-lote-stage" style="background:#fef3c7; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#92400e;">${d.pendientes}</b><br>Recibidos</div>
+                <div class="reacond-lote-stage" style="background:#dbeafe; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#1d4ed8;">${d.diagnostico}</b><br>Diagnóstico</div>
+                <div class="reacond-lote-stage" style="background:#fed7aa; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#9a3412;">${d.enProceso}</b><br>Reparación</div>
+                <div class="reacond-lote-stage" style="background:#f3e8ff; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#7e22ce;">${d.controlCalidad}</b><br>Calidad</div>
+                <div class="reacond-lote-stage" style="background:#ddd6fe; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#5b21b6;">${d.listoVenta}</b><br>Listo Venta</div>
+                <div class="reacond-lote-stage" style="background:#dcfce7; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px; color:#15803d;">${d.vendidos}</b><br>Despachados</div>
+                <div class="reacond-lote-stage reacond-lote-total" style="background:#f1f5f9; padding:6px; border-radius:6px; text-align:center; font-size:11px;"><b style="font-size:16px;">${d.total}</b><br>Total</div>
             </div>
-            <div style="background:#e5e7eb; height:6px; border-radius:3px; margin-top:10px; overflow:hidden;">
+            <div class="reacond-lote-progress" style="background:#e5e7eb; height:6px; border-radius:3px; margin-top:10px; overflow:hidden;">
                 <div style="background:#10b981; height:100%; width:${progreso}%; transition:width 0.3s;"></div>
             </div>
-            <div style="font-size:10px; color:var(--text-muted); text-align:right; margin-top:2px;">${progreso}% completado</div>
+            <div class="reacond-lote-progress-label" style="font-size:10px; color:var(--text-muted); text-align:right; margin-top:2px;">${progreso}% completado</div>
         </div>`;
     }).join('');
     const _lotesPg = document.getElementById('lotesReacondPagination'); if(_lotesPg) _lotesPg.innerHTML = _uiListPager('lotesReacond', filtrados.length, 'lotes');
@@ -13942,7 +13957,7 @@ function renderEquiposEstadoReacond(estadoEq, lotesConEstado, cont) {
             const tec = e.tecnico_asignado_id ? (cache.tecnicos || []).find(t => t.id === e.tecnico_asignado_id) : null;
             const btnLabel = `<button class="btn btn-light" style="padding:6px 9px; font-size:12px; background:#fef3c7; color:#92400e; border:1px solid #fcd34d;" onclick="imprimirLabelEquipo('${e.id}')" title="Imprimir label"><i class="ti ti-printer"></i></button>`;
             const acciones = estadoEq === 'listo_venta'
-                ? `${permBtn('estado_despachar', `<button class="btn btn-dark" style="padding:6px 11px; font-size:12px; background:linear-gradient(180deg,#10b981,#059669);" onclick="marcarDespachado('${e.id}')"><i class="ti ti-flag-check"></i> Marcar Completado</button>`)}
+                ? `${permBtn('estado_despachar', `<button class="btn btn-dark" style="padding:6px 11px; font-size:12px; background:linear-gradient(180deg,#10b981,#059669);" onclick="marcarDespachado('${e.id}')"><i class="ti ti-truck-delivery"></i> Registrar salida</button>`)}
                    ${btnLabel}
                    <button class="btn btn-light" style="padding:6px 9px; font-size:12px;" onclick="abrirPanelProceso('${e.id}')" title="Ver"><i class="ti ti-eye"></i></button>`
                 : `${e.fecha_despacho ? `<span style="font-size:11px; color:#15803d;"><i class="ti ti-calendar"></i> ${new Date(e.fecha_despacho).toLocaleDateString('es-DO')}</span>` : ''}
@@ -13959,7 +13974,7 @@ function renderEquiposEstadoReacond(estadoEq, lotesConEstado, cont) {
         return `<div style="background:#fff; border:1px solid var(--border-color); border-radius:10px; padding:12px; margin-bottom:10px;">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
                 <div style="font-weight:700; font-size:14px; color:var(--blue-btn);">📦 Lote ${escapeHtml(g.lote.codigo_lote || (g.lote.id || '').slice(0,8))} <span style="color:#475569; font-weight:600; font-size:12px;">· ${escapeHtml(prov ? prov.nombre : 'Sin proveedor')}</span></div>
-                <span class="badge" style="${estadoEq === 'listo_venta' ? 'background:#ddd6fe; color:#5b21b6;' : 'background:#dcfce7; color:#15803d;'} font-size:11px; font-weight:700;">${estadoEq === 'listo_venta' ? '🛒 Listos: ' + g.equipos.length : '✅ Completados: ' + g.equipos.length}</span>
+                <span class="badge" style="${estadoEq === 'listo_venta' ? 'background:#ddd6fe; color:#5b21b6;' : 'background:#dcfce7; color:#15803d;'} font-size:11px; font-weight:700;">${estadoEq === 'listo_venta' ? '🛒 Listos: ' + g.equipos.length : '🚚 Despachados: ' + g.equipos.length}</span>
             </div>
             ${filasEq}
         </div>`;
@@ -13977,18 +13992,10 @@ function _datosReporteCostosLote() {
     const q = (document.getElementById('reacondBusq')?.value || '').toLowerCase().trim();
     const filtrosTxt = [];
     if(_reacondFiltroTec) { const t = (cache.tecnicos||[]).find(x => x.id === _reacondFiltroTec); equipos = equipos.filter(e => e.tecnico_asignado_id === _reacondFiltroTec); filtrosTxt.push('Técnico: ' + (t?.nombre || '')); }
-    if(fEstado === 'completado') {
-        equipos = equipos.filter(e => e.estado_evaluacion === 'vendido' && e.completado);
-        filtrosTxt.push('Estado: Despachado');
-    } else if(fEstado === 'vendido') {
-        equipos = equipos.filter(e => e.estado_evaluacion === 'vendido' && !e.completado);
-        filtrosTxt.push('Estado: Completado');
-    } else if(fEstado) {
-        const lbl = { pendiente:'Pendiente', en_evaluacion:'En evaluación', evaluado:'Evaluado', en_proceso:'En proceso', reasignado:'Reasignado', listo_venta:'Listo' }[fEstado] || fEstado;
+    if(fEstado) {
+        const lbl = { recibido:'Recibido', diagnostico:'Diagnóstico', reparacion:'En reparación', control_calidad:'Control de calidad', listo_venta:'Listo para venta', despachado:'Despachado' }[fEstado] || fEstado;
         equipos = equipos.filter(e => _reacondEquipoPasaEstado(e, fEstado));
         filtrosTxt.push('Estado: ' + lbl);
-    } else {
-        equipos = equipos.filter(e => !(e.estado_evaluacion === 'vendido' && e.completado));
     }
     if(q) { equipos = equipos.filter(e => [e.imei, e.articulo_codigo, e.modelo, e.marca].filter(Boolean).join(' ').toLowerCase().includes(q)); filtrosTxt.push('Búsqueda: "' + q + '"'); }
     const _fd = document.getElementById('reacondFechaDesde')?.value || '';
@@ -16392,7 +16399,7 @@ function buscarEquipoGlobalReacond() {
         const lote = (cache.lotes || []).find(l => l.id === e.lote_id);
         const loteName = lote ? (lote.codigo_lote || (lote.id || '').slice(0, 8)) : 'Sin lote';
         let et = (typeof obtenerEtiquetaEstado === 'function') ? obtenerEtiquetaEstado(e.estado_evaluacion) : { text: e.estado_evaluacion, bg: '#eee', color: '#333' };
-        if(e.estado_evaluacion === 'vendido' && e.completado) et = { text: '🚚 Despachado', bg: '#e2e8f0', color: '#334155' };
+        if(e.estado_evaluacion === 'vendido') et = { text: '🚚 Despachado', bg: '#dcfce7', color: '#15803d' };
         const qArg = (e.imei || e.articulo_codigo || e.modelo || '').toString().replace(/'/g, '');
         return `<div onclick="_irAEquipoReacond('${e.id}','${e.lote_id}','${escapeHtml(qArg)}')" style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding:9px 11px; border-bottom:1px solid #f1f5f9; cursor:pointer;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">
             <div style="min-width:0;">
@@ -16422,10 +16429,10 @@ function abrirLoteReacond(loteId) {
     document.getElementById('reacondListaLotes').style.display = 'none';
     document.getElementById('reacondDetalleLote').style.display = 'block';
     renderDetalleLoteReacond();
-    // Si vino desde la pestaña Listo o Despachado, entrar con ese filtro puesto
+    // Mantener dentro del lote la misma etapa elegida en la lista general.
     const fsel = document.getElementById('reacondFiltroEstado');
     if(fsel) {
-        const mapaFiltro = { listo_venta: 'listo_venta', terminados: 'vendido', completado: 'completado' };
+        const mapaFiltro = { recibidos: 'recibido', evaluacion: 'diagnostico', proceso: 'reparacion', control_calidad: 'control_calidad', listo_venta: 'listo_venta', despachados: 'despachado' };
         fsel.value = mapaFiltro[reacondTabActual] || '';
         renderDetalleLoteReacond();
     }
@@ -16462,19 +16469,19 @@ function renderDetalleLoteReacond() {
     const pendientes = equipos.filter(e => (e.estado_evaluacion || 'pendiente') === 'pendiente').length;
     const enEval = equipos.filter(e => e.estado_evaluacion === 'en_evaluacion').length;
     const evaluados = equipos.filter(e => e.estado_evaluacion === 'evaluado').length;
-    const enProceso = equipos.filter(e => _REACOND_ESTADOS_TRABAJO.includes(e.estado_evaluacion)).length;
+    const diagnostico = enEval + evaluados;
+    const enProceso = equipos.filter(e => _REACOND_ESTADOS_REPARACION.includes(e.estado_evaluacion)).length;
+    const controlCalidad = equipos.filter(e => e.estado_evaluacion === 'listo_revision').length;
     const listoV = equipos.filter(e => e.estado_evaluacion === 'listo_venta').length;
-    const despachados = equipos.filter(e => e.estado_evaluacion === 'vendido' && !e.completado).length;
-    const completados = equipos.filter(e => e.estado_evaluacion === 'vendido' && e.completado).length;
+    const despachados = equipos.filter(e => e.estado_evaluacion === 'vendido').length;
 
     document.getElementById('kpiPendientes').textContent = pendientes;
-    document.getElementById('kpiEnEval').textContent = enEval;
-    document.getElementById('kpiEvaluados').textContent = evaluados;
     const _setKpi = (id, v) => { const e = document.getElementById(id); if(e) e.textContent = v; };
+    _setKpi('kpiDiagnostico', diagnostico);
     _setKpi('kpiProceso', enProceso);
+    _setKpi('kpiCalidad', controlCalidad);
     _setKpi('kpiListoV', listoV);
     _setKpi('kpiDespachado', despachados);
-    _setKpi('kpiCompletado', completados);
     // Lote concluido = todos los equipos en Listo o Despachado
     const concluido = equipos.length > 0 && (listoV + despachados) === equipos.length;
     const _br = document.getElementById('btnReporteCostosLote'); if(_br) _br.style.display = isAdminUser() ? '' : 'none';
@@ -16491,14 +16498,17 @@ function renderDetalleLoteReacond() {
     if(equipos.length > 0 && (listoV + despachados) === equipos.length) {
         badge.innerHTML = '<i class="ti ti-circle-check"></i> Lote concluido';
         badge.style.cssText = 'background:#ede9fe; color:#5b21b6;';
-    } else if(evaluados === equipos.length && equipos.length > 0) {
-        badge.innerHTML = '<i class="ti ti-circle-check"></i> Terminado';
-        badge.style.cssText = 'background:#d1fae5; color:#065f46;';
-    } else if(enEval > 0 || evaluados > 0) {
-        badge.innerHTML = '<i class="ti ti-alert-triangle"></i> En Evaluación';
-        badge.style.cssText = 'background:#dbeafe; color:#b91c1c;';
+    } else if(controlCalidad > 0) {
+        badge.innerHTML = '<i class="ti ti-shield-check"></i> Control de calidad';
+        badge.style.cssText = 'background:#f3e8ff; color:#7e22ce;';
+    } else if(enProceso > 0) {
+        badge.innerHTML = '<i class="ti ti-tool"></i> En reparación';
+        badge.style.cssText = 'background:#fed7aa; color:#9a3412;';
+    } else if(diagnostico > 0) {
+        badge.innerHTML = '<i class="ti ti-clipboard-list"></i> Diagnóstico';
+        badge.style.cssText = 'background:#dbeafe; color:#1d4ed8;';
     } else {
-        badge.innerHTML = '<i class="ti ti-hourglass"></i> Pendiente';
+        badge.innerHTML = '<i class="ti ti-package-import"></i> Recibido';
         badge.style.cssText = 'background:#fef3c7; color:#92400e;';
     }
     
@@ -16540,12 +16550,11 @@ function renderDetalleLoteReacond() {
     const q = (document.getElementById('reacondBusq')?.value || '').toLowerCase().trim();
     const fEstado = document.getElementById('reacondFiltroEstado')?.value || '';
     // Resaltar la tarjeta de estado activa
-    const cardMap = { pendiente: 'kpiCardPendiente', en_evaluacion: 'kpiCardEnEval', evaluado: 'kpiCardEvaluado', en_proceso: 'kpiCardProceso', listo_venta: 'kpiCardListoV', vendido: 'kpiCardDespachado', completado: 'kpiCardCompletado' };
-    ['kpiCardPendiente','kpiCardEnEval','kpiCardEvaluado','kpiCardProceso','kpiCardListoV','kpiCardDespachado','kpiCardCompletado'].forEach(id => { const c = document.getElementById(id); if(c) c.style.border = '2px solid transparent'; });
-    if(cardMap[fEstado]) { const c = document.getElementById(cardMap[fEstado]); if(c) c.style.border = '2px solid #0f172a'; }
+    const cardMap = { recibido: 'kpiCardPendiente', diagnostico: 'kpiCardDiagnostico', reparacion: 'kpiCardProceso', control_calidad: 'kpiCardCalidad', listo_venta: 'kpiCardListoV', despachado: 'kpiCardDespachado' };
+    ['kpiCardPendiente','kpiCardDiagnostico','kpiCardProceso','kpiCardCalidad','kpiCardListoV','kpiCardDespachado'].forEach(id => { const c = document.getElementById(id); if(c) { c.style.border = '2px solid transparent'; c.classList.remove('is-filtered'); } });
+    if(cardMap[fEstado]) { const c = document.getElementById(cardMap[fEstado]); if(c) { c.style.border = '2px solid #0f172a'; c.classList.add('is-filtered'); } }
     let filtrados = equipos.map((eq, i) => ({ eq, num: i + 1 }));
     if(_reacondFiltroTec) filtrados = filtrados.filter(x => x.eq.tecnico_asignado_id === _reacondFiltroTec);
-    // "Completado" = despachados ya completados; el resto de vistas (incluido "Todos") los ocultan
     filtrados = filtrados.filter(x => _reacondEquipoPasaEstado(x.eq, fEstado));
     filtrados = filtrados.filter(x => _reacondPasaFecha(x.eq));
     if(q) {
@@ -16583,48 +16592,49 @@ function _tienePiezasInfoPlus(equipoId) {
 function renderEquipoReacondCard(eq, num) {
     const estado = eq.estado_evaluacion || 'pendiente';
     const tecnico = eq.tecnico_asignado_id ? (cache.tecnicos || []).find(t => t.id === eq.tecnico_asignado_id) : null;
-    let badgeColor, badgeText, accionPrincipal = '', botones = '';
+    let badgeColor, badgeText, accionPrincipal = '', botones = '', indicadorOperacion = '';
 
     if(estado === 'pendiente') {
         badgeColor = 'background:#fef3c7; color:#92400e;';
-        badgeText = '🟡 Pendiente';
+        badgeText = '📥 Recibido';
         accionPrincipal = `empezarEvaluacion('${eq.id}')`;
     } else if(estado === 'en_evaluacion') {
         badgeColor = 'background:#dbeafe; color:#b91c1c;';
-        badgeText = '⚠️ En Evaluación';
+        badgeText = '🩺 Diagnóstico en curso';
         accionPrincipal = `continuarEvaluacion('${eq.id}')`;
     } else if(estado === 'evaluado') {
         badgeColor = 'background:#d1fae5; color:#065f46;';
-        badgeText = '✅ Evaluado';
+        badgeText = '✅ Diagnóstico listo';
         accionPrincipal = `abrirModalAsignarTecnico('${eq.id}')`;
-    } else if(estado === 'en_proceso') {
+    } else if(_REACOND_ESTADOS_REPARACION.includes(estado)) {
         badgeColor = 'background:#fed7aa; color:#9a3412;';
-        badgeText = '🔧 En Proceso';
-        accionPrincipal = `abrirPanelProceso('${eq.id}')`;
-    } else if(estado === 'reasignado') {
-        badgeColor = 'background:#fef3c7; color:#92400e;';
-        badgeText = '👥 Reasignado';
-        accionPrincipal = `abrirPanelProceso('${eq.id}')`;
-    } else if(estado === 'tecnico_recibio') {
-        badgeColor = 'background:#bfdbfe; color:#b91c1c;';
-        badgeText = '📦 Técnico recibió';
-        accionPrincipal = `abrirPanelProceso('${eq.id}')`;
-    } else if(estado === 'espera_pieza') {
-        badgeColor = 'background:#fde68a; color:#92400e;';
-        badgeText = '⏳ Espera pieza';
+        badgeText = '🔧 En reparación';
+        const indicadores = {
+            tecnico_recibio: ['📦 Técnico recibió', '#dbeafe', '#1d4ed8'],
+            espera_pieza: ['⏳ Bloqueado por pieza', '#fef3c7', '#92400e'],
+            reasignado: ['👥 Reasignado', '#fef3c7', '#92400e'],
+            reparacion_externa: ['↗ Reparación externa', '#e0f2fe', '#0369a1']
+        };
+        if(indicadores[estado]) {
+            const [texto, fondo, color] = indicadores[estado];
+            indicadorOperacion = `<span class="badge" style="background:${fondo}; color:${color}; font-size:10px; font-weight:700;">${texto}</span>`;
+        }
         accionPrincipal = `abrirPanelProceso('${eq.id}')`;
     } else if(estado === 'listo_revision') {
         badgeColor = 'background:#e9d5ff; color:#6b21a8;';
-        badgeText = '👍 Finalizado (por recibir)';
+        badgeText = '🛡️ Control de calidad';
         accionPrincipal = `abrirPanelProceso('${eq.id}')`;
     } else if(estado === 'listo_venta') {
         badgeColor = 'background:#ddd6fe; color:#5b21b6;';
         badgeText = '🛒 Listo';
         accionPrincipal = `verFichaDespacho('${eq.id}')`;
-        botones = `${permBtn('estado_despachar', `<button class="btn btn-dark" style="padding:8px 14px; background:linear-gradient(180deg,#10b981,#059669); box-shadow:0 3px 8px rgba(15,23,42,0.12);" onclick="event.stopPropagation(); marcarDespachado('${eq.id}')"><i class="ti ti-flag-check"></i> Marcar Completado</button>`)}`;
+        botones = `${permBtn('estado_despachar', `<button class="btn btn-dark" style="padding:8px 14px; background:linear-gradient(180deg,#10b981,#059669); box-shadow:0 3px 8px rgba(15,23,42,0.12);" onclick="event.stopPropagation(); marcarDespachado('${eq.id}')"><i class="ti ti-truck-delivery"></i> Registrar salida</button>`)}`;
     } else if(estado === 'vendido') {
-        if(eq.completado) { badgeColor = 'background:#e2e8f0; color:#334155;'; badgeText = '🚚 Despachado'; }
-        else { badgeColor = 'background:#d1fae5; color:#065f46;'; badgeText = '✅ Completado'; }
+        badgeColor = 'background:#dcfce7; color:#15803d;';
+        badgeText = '🚚 Despachado';
+        indicadorOperacion = eq.completado
+            ? '<span class="badge" style="background:#e2e8f0; color:#334155; font-size:10px;">Registro cerrado</span>'
+            : '<span class="badge" style="background:#fef3c7; color:#92400e; font-size:10px;">Salida por cerrar</span>';
         accionPrincipal = `verFichaDespacho('${eq.id}')`;
     } else {
         badgeColor = 'background:#f1f5f9; color:#475569;';
@@ -16632,15 +16642,16 @@ function renderEquipoReacondCard(eq, num) {
         accionPrincipal = `continuarEvaluacion('${eq.id}')`;
     }
     
-    return `<div onclick="${accionPrincipal}" title="Clic para continuar" style="background:#fff; border:1px solid var(--border-color); border-radius:8px; padding:12px; margin-bottom:8px; cursor:pointer; transition:background .15s, box-shadow .15s;" onmouseover="this.style.background='#f8fafc'; this.style.boxShadow='0 2px 8px rgba(15,23,42,0.08)';" onmouseout="this.style.background='#fff'; this.style.boxShadow='none';">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
+    return `<div class="reacond-equipo-card" onclick="${accionPrincipal}" title="Clic para continuar" style="background:#fff; border:1px solid var(--border-color); border-radius:8px; padding:12px; margin-bottom:8px; cursor:pointer; transition:background .15s, box-shadow .15s;" onmouseover="this.style.background='#f8fafc'; this.style.boxShadow='0 2px 8px rgba(15,23,42,0.08)';" onmouseout="this.style.background='#fff'; this.style.boxShadow='none';">
+        <div class="reacond-equipo-layout" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
             <div style="flex:1; min-width:200px;">
-                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <div class="reacond-equipo-head" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                     <input type="checkbox" onclick="event.stopPropagation(); _reacondToggleSel('${eq.id}', this.checked)" ${_reacondSel.has(eq.id) ? 'checked' : ''} title="Seleccionar (para asignar o 'Pasar a')" style="width:18px; height:18px; cursor:pointer; accent-color:#5b21b6;">
-                    <span style="background:var(--blue-btn); color:#fff; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700;">#${num}</span>
+                    <span class="reacond-equipo-number" style="background:var(--blue-btn); color:#fff; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700;">#${num}</span>
                     ${eq.veces_devuelto > 0 ? `<span title="Equipo devuelto ${eq.veces_devuelto} vez(es)" style="font-size:16px;">🔄</span>` : ''}
                     <b style="font-size:14px;">${escapeHtml(eq.modelo || 'Sin modelo')}</b>
                     <span class="badge" style="${badgeColor} font-size:11px;">${badgeText}</span>
+                    ${indicadorOperacion}
                     <button onclick="event.stopPropagation(); ${(estado === 'vendido' || estado === 'listo_venta') ? `verFichaDespacho('${eq.id}')` : `verHistorialEquipoReacond('${eq.id}')`}" title="${(estado === 'vendido' || estado === 'listo_venta') ? 'Ver ficha (costos y piezas Info Plus)' : 'Ver historial completo (trabajo, técnicos y costos)'}" style="background:#cffafe; color:#0e7490; border:1px solid #67e8f9; border-radius:6px; padding:2px 7px; cursor:pointer; font-size:12px;"><i class="ti ti-eye"></i></button>
                     ${(estado === 'vendido' || estado === 'listo_venta') ? `<button onclick="event.stopPropagation(); imprimirLabelEquipo('${eq.id}')" title="Imprimir label (Impresión de Labels)" style="background:#fef3c7; color:#92400e; border:1px solid #fcd34d; border-radius:6px; padding:2px 7px; cursor:pointer; font-size:12px;"><i class="ti ti-printer"></i></button>` : ''}
                     ${estado === 'evaluado' ? `<button onclick="event.stopPropagation(); continuarEvaluacion('${eq.id}')" title="Editar evaluación" style="background:#d1fae5; color:#065f46; border:1px solid #6ee7b7; border-radius:6px; padding:2px 7px; cursor:pointer; font-size:12px;"><i class="ti ti-pencil"></i></button>` : ''}
@@ -16648,16 +16659,16 @@ function renderEquipoReacondCard(eq, num) {
                     ${tecnico ? `<span class="badge" style="background:#e0e7ff; color:#3730a3; font-size:11px;"><i class="ti ti-user"></i> ${escapeHtml(tecnico.nombre)}</span>` : ''}
                     ${_tienePiezasInfoPlus(eq.id) ? `<span class="badge" style="background:#bae6fd; color:#075985; font-size:11px;" title="Ya tiene piezas de Info Plus asignadas"><i class="ti ti-shopping-cart"></i> Info Plus ✓</span>` : ''}
                 </div>
-                <div style="font-size:12px; color:var(--text-muted); margin-top:6px;">
+                <div class="reacond-equipo-meta" style="font-size:12px; color:var(--text-muted); margin-top:6px;">
                     <i class="ti ti-barcode"></i> IMEI: ${escapeHtml(eq.imei || '—')}
                     ${eq.color ? ' · ' + escapeHtml(eq.color) : ''}
                     ${eq.capacidad ? ' · ' + escapeHtml(eq.capacidad) : ''}
                 </div>
-                ${estado === 'vendido' && eq.fecha_despacho ? `<div style="font-size:11px; font-weight:700; margin-top:5px; color:#15803d;"><i class="ti ti-flag-check"></i> ${eq.completado ? 'Despachado' : 'Completado'}: ${new Date(eq.fecha_despacho).toLocaleDateString('es-DO')}</div>` : ''}
+                ${estado === 'vendido' && eq.fecha_despacho ? `<div style="font-size:11px; font-weight:700; margin-top:5px; color:#15803d;"><i class="ti ti-truck-delivery"></i> Salida: ${new Date(eq.fecha_despacho).toLocaleDateString('es-DO')}</div>` : ''}
                 ${tecnico && eq.fecha_asignacion ? `<div style="font-size:11px; color:#0891b2; font-weight:600; margin-top:4px;"><i class="ti ti-stopwatch"></i> Tomado: ${tiempoDesde(eq.fecha_asignacion)}</div>` : ''}
                 ${eq.notas_diagnostico ? `<div style="background:#f1f5f9; padding:6px 10px; border-radius:6px; margin-top:6px; font-size:12px;"><b>Notas:</b> ${escapeHtml(eq.notas_diagnostico)}</div>` : ''}
             </div>
-            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+            <div class="reacond-equipo-actions" style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
                 ${botones}
                 <i class="ti ti-chevron-right" style="color:#475569; font-size:20px;" title="Clic para abrir"></i>
             </div>
@@ -17614,12 +17625,15 @@ async function guardarEvaluacion(marcarEvaluado = false) {
     if(!equipoId) return toast('No hay equipo activo.', 'error');
     
     const notas = document.getElementById('eval_notas').value.trim() || null;
+    const fallasArray = Array.from(_evalState.fallasSeleccionadas);
+    if(marcarEvaluado && !fallasArray.length && !notas) {
+        return toast('Escribe el resultado del diagnóstico o selecciona una falla antes de cerrar la evaluación.', 'error');
+    }
     
     try {
         // 1. Borrar fallas previas y guardar nuevas
         await supabaseClient.from('equipo_fallas').delete().eq('equipo_id', equipoId);
         
-        const fallasArray = Array.from(_evalState.fallasSeleccionadas);
         if(fallasArray.length > 0) {
             const fallasObj = (cache.fallas || []).filter(f => _evalState.fallasSeleccionadas.has(f.id));
             const cats = cache.fallaCategorias || [];
@@ -18624,14 +18638,17 @@ async function abrirPanelProceso(equipoId) {
     // El técnico que lo reasignó (tecnico_anterior) NO puede recibirlo.
     const soyElNuevoTecnico = sessionUser?._tipo === 'tecnico' && sessionUser?.id === eq.tecnico_asignado_id;
     const puedeRecibirReasignado = isAdminUser() || soyElNuevoTecnico;
+    // Las piezas de Info Plus son solo costo; únicamente las solicitudes operativas
+    // de técnico deben bloquear el envío a control de calidad.
+    const hayPiezasPendientes = _reacondTienePiezasPendientes(piezas);
     
     // ====== STEPPER VISUAL ======
     // Definir el orden de pasos
     const pasos = [
-        { id: 'en_proceso', label: 'Asignado', icono: '<i class="ti ti-clipboard-list"></i>' },
+        { id: 'en_proceso', label: 'Reparación', icono: '<i class="ti ti-tool"></i>' },
         { id: 'tecnico_recibio', label: 'Recibido', icono: '<i class="ti ti-package"></i>' },
-        { id: 'espera_pieza', label: 'Espera pieza', icono: '<i class="ti ti-hourglass"></i>' },
-        { id: 'listo_revision', label: 'Finalizado', icono: '<i class="ti ti-thumb-up"></i>' }
+        { id: 'espera_pieza', label: 'Bloqueado', icono: '<i class="ti ti-hourglass"></i>' },
+        { id: 'listo_revision', label: 'Control de calidad', icono: '<i class="ti ti-shield-check"></i>' }
     ];
     // Determinar índice del estado actual
     const ordenEstados = ['en_proceso', 'tecnico_recibio', 'espera_pieza', 'listo_revision'];
@@ -18645,7 +18662,7 @@ async function abrirPanelProceso(equipoId) {
         if(idx === idxActual + 1) return true; // siguiente
         if(idx === idxActual - 1) return true; // anterior (corregir)
         // Caso especial: de "tecnico_recibio" puede saltar a "listo_revision" si no hay piezas
-        if(estado === 'tecnico_recibio' && pasos[idx].id === 'listo_revision') return true;
+        if(estado === 'tecnico_recibio' && pasos[idx].id === 'listo_revision') return !hayPiezasPendientes;
         // Desde "espera_pieza" puede volver a "tecnico_recibio" cuando llegan las piezas
         if(estado === 'espera_pieza' && pasos[idx].id === 'tecnico_recibio') return true;
         return false;
@@ -18861,7 +18878,7 @@ async function abrirPanelProceso(equipoId) {
                         ${estado === 'listo_venta' ? `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;">
                             <button class="btn btn-light" onclick="agregarPiezaInfoPlus('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#0369a1; border-color:#7dd3fc;"><i class="ti ti-search"></i> Agregar piezas (Info Plus)</button>
                             <button class="btn btn-light" onclick="agregarPiezaExterna('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#7c3aed; border-color:#c4b5fd;"><i class="ti ti-plus"></i> Pieza externa</button>
-                            <button class="btn btn-light" onclick="marcarEquipoCompletado('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#0f766e; border-color:#5eead4;"><i class="ti ti-circle-check"></i> Completado</button>
+                            <button class="btn btn-light" onclick="marcarEquipoCompletado('${equipoId}')" style="padding:6px 10px; font-size:11px; color:#0f766e; border-color:#5eead4;"><i class="ti ti-lock-check"></i> Cerrar salida</button>
                         </div>` : ''}
                     </div>`;
                 })() : ''}
@@ -18915,16 +18932,16 @@ async function abrirPanelProceso(equipoId) {
                 ${estado === 'listo_revision' ? (
                     puedeRecibirReasignado || tienePermiso('piezas_aprobar_extra') ? `
                     <div style="background:linear-gradient(135deg, #fef3c7, #fde68a); border:2px solid #f59e0b; padding:16px; border-radius:12px; margin-top:18px; box-shadow:0 4px 12px rgba(245, 158, 11, 0.2);">
-                        <b style="color:#78350f;"><i class="ti ti-shield-check"></i> Recibir como Finalizado (Administración)</b>
-                        <p style="font-size:12px; color:#92400e; margin:8px 0;">El técnico marcó este equipo como <b>FINALIZADO</b>. Revísalo y recíbelo (pasa a Listo para Venta).</p>
+                        <b style="color:#78350f;"><i class="ti ti-shield-check"></i> Control de calidad (Administración)</b>
+                        <p style="font-size:12px; color:#92400e; margin:8px 0;">El técnico envió este equipo a <b>CONTROL DE CALIDAD</b>. Revísalo y apruébalo para pasarlo a Listo para venta.</p>
                         <button onclick="aprobarTerminado('${equipoId}')" style="background:linear-gradient(180deg,#10b981,#059669); color:#fff; border:0; padding:14px 20px; border-radius:10px; cursor:pointer; font-weight:700; width:100%; box-shadow:0 3px 8px rgba(15,23,42,0.12); font-size:14px;">
-                            <i class="ti ti-check"></i> RECIBIR COMO FINALIZADO
+                            <i class="ti ti-shield-check"></i> APROBAR Y PASAR A LISTO
                         </button>
                     </div>
                     ` : `
                     <div style="background:#f1f5f9; border:1px solid #cbd5e1; padding:14px; border-radius:12px; margin-top:18px; text-align:center;">
-                        <b style="color:#475569;"><i class="ti ti-clock"></i> Marcado como finalizado</b>
-                        <p style="font-size:12px; color:#475569; margin:6px 0 0;">Este equipo está esperando que la <b>administración</b> lo reciba.</p>
+                        <b style="color:#475569;"><i class="ti ti-clock"></i> Enviado a control de calidad</b>
+                        <p style="font-size:12px; color:#475569; margin:6px 0 0;">Este equipo está esperando la revisión de <b>administración</b>.</p>
                     </div>
                     `
                 ) : ''}
@@ -19065,6 +19082,9 @@ async function verHistorialEquipoReacond(equipoId) {
 async function marcarListoVentaDirecto(equipoId) {
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return;
+    if(_reacondTienePiezasPendientes((cache.piezasReacond || []).filter(p => p.equipo_id === equipoId))) {
+        return toast('Este equipo todavía tiene piezas pendientes. Resuelve la solicitud antes de pasarlo a Listo para venta.', 'error');
+    }
     if(!await confirmar('¿Este equipo NO requiere reparación y pasa directo a "🛒 Listo para venta"?')) return;
     await cambiarEstadoProceso(equipoId, 'listo_venta');
 }
@@ -19072,6 +19092,10 @@ async function cambiarEstadoProceso(equipoId, nuevoEstado) {
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return;
     const estadoAnterior = eq.estado_evaluacion;
+    if(nuevoEstado === 'listo_revision' && estadoAnterior === 'tecnico_recibio') {
+        const pendientes = _reacondTienePiezasPendientes((cache.piezasReacond || []).filter(p => p.equipo_id === equipoId));
+        if(pendientes) return toast('Este equipo todavía tiene piezas pendientes. Confirma su recepción o resuelve la solicitud antes de enviarlo a calidad.', 'error');
+    }
     // No permitir pasar a revisión final si quedan fallas pendientes
     if(nuevoEstado === 'listo_revision') {
         const pend = fallasPendientesDe('equipo', equipoId);
@@ -21227,7 +21251,7 @@ async function descontarPiezasPendientesEquipo(equipoId) {
     _refrescarVistaEquipo(equipoId);
     toast(`Listo: ${n} de ${ids.length} pieza(s) descontada(s).`);
 }
-// Al pasar un equipo a COMPLETADO: descuenta automáticamente sus piezas "por descontar" del Taller
+// Al registrar la salida: descuenta automáticamente sus piezas "por descontar" del Taller
 // (almacén 6). Si no hay stock suficiente en el Taller, PREGUNTA de cuál almacén descontar.
 async function _descontarPiezasAlCompletar(equipoId) {
     try {
@@ -21402,7 +21426,7 @@ async function aprobarTerminado(equipoId) {
     if(!isAdminUser() && !tienePermiso('piezas_aprobar_extra')) {
         return toast('Solo el administrador puede aprobar equipos. El técnico no puede aprobar su propio trabajo.', 'error');
     }
-    if(!await confirmar('¿Recibir este equipo como FINALIZADO? (pasa a Listo para Venta)')) return;
+    if(!await confirmar('¿Aprobar este equipo en CONTROL DE CALIDAD? Pasará a Listo para venta.')) return;
     try {
         const { error } = await supabaseClient.from('equipos_refurbish').update({ 
             estado_evaluacion: 'listo_venta',
@@ -21414,7 +21438,7 @@ async function aprobarTerminado(equipoId) {
             accion: 'Aprobado por admin → Listo para venta',
             usuario: sessionUser?.nombre || 'Admin'
         }]);
-        toast('Equipo recibido (Listo para Venta).');
+        toast('Equipo aprobado y enviado a Listo para venta.');
         cerrarPanelProceso();
         await loadAll();
         if(reacondLoteAbiertoId) renderDetalleLoteReacond();
@@ -21424,22 +21448,22 @@ async function aprobarTerminado(equipoId) {
     }
 }
 
-// Marca el equipo como COMPLETADO (estado vendido + completado=true). Sale de Despachado pero sigue editable por garantía.
+// Cierra administrativamente una salida (mantiene los campos históricos por compatibilidad).
 async function marcarEquipoCompletado(equipoId) {
     if(!isAdminUser() && !tienePermiso('estado_despachar')) {
         return toast('No tienes permiso para completar equipos.', 'error');
     }
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return;
-    if(eq.completado) return toast('Este equipo ya está Completado.');
-    if(!await confirmar(`¿Marcar "${eq.modelo || 'equipo'}" como COMPLETADO?\n\nQueda registrado como Completado (sigue editable por garantía).`)) return;
+    if(eq.completado) return toast('La salida de este equipo ya está cerrada.');
+    if(!await confirmar(`¿Cerrar la salida de "${eq.modelo || 'equipo'}"?\n\nEl equipo seguirá disponible para garantías.`)) return;
     try {
         const { error } = await supabaseClient.from('equipos_refurbish').update({
             estado_evaluacion: 'vendido', completado: true, fecha_completado: new Date().toISOString()
         }).eq('id', equipoId);
         if(error) throw error;
-        try { await supabaseClient.from('equipo_historial').insert([{ equipo_id: equipoId, estado_nuevo: 'completado', accion: 'Marcado como Completado', usuario: sessionUser?.nombre || 'Admin' }]); } catch(_e) {}
-        toast('Equipo marcado como Completado.');
+        try { await supabaseClient.from('equipo_historial').insert([{ equipo_id: equipoId, estado_nuevo: 'completado', accion: 'Salida cerrada administrativamente', usuario: sessionUser?.nombre || 'Admin' }]); } catch(_e) {}
+        toast('Salida cerrada.');
         cerrarPanelProceso();
         const mg = document.getElementById('modalGenerico'); if(mg) mg.remove();
         await loadAll();
@@ -21476,7 +21500,7 @@ async function marcarDespachado(equipoId) {
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return;
     // El taller es para CONTROL: "despachar" = entregar al almacén principal (no es una venta, no se pide precio)
-    if(!await confirmar(`¿Marcar "${eq.modelo}" como COMPLETADO?\n\nQuedará registrado como Completado.`)) return;
+    if(!await confirmar(`¿Registrar la salida de "${eq.modelo}"?\n\nEl equipo pasará a Despachado.`)) return;
     try {
         const { error } = await supabaseClient.from('equipos_refurbish').update({
             estado_evaluacion: 'vendido',
@@ -21485,12 +21509,12 @@ async function marcarDespachado(equipoId) {
         if(error) throw error;
         await supabaseClient.from('equipo_historial').insert([{
             equipo_id: equipoId, estado_anterior: 'listo_venta', estado_nuevo: 'vendido',
-            accion: 'Marcado como Completado',
+            accion: 'Salida registrada → Despachado',
             usuario: sessionUser?.nombre || 'Admin'
         }]);
         // Descontar automáticamente las piezas "por descontar" (del Taller; si no hay, pregunta)
         const _rd = await _descontarPiezasAlCompletar(equipoId);
-        toast(_rd.n ? `Completado. ${_rd.n} pieza(s) descontada(s) de Info Plus.` : 'Equipo marcado como Completado.');
+        toast(_rd.n ? `Salida registrada. ${_rd.n} pieza(s) descontada(s) de Info Plus.` : 'Equipo marcado como Despachado.');
         await loadAll();
         if(reacondLoteAbiertoId) renderDetalleLoteReacond();
     } catch(e) {
@@ -21542,7 +21566,7 @@ async function verFichaDespacho(equipoId) {
                 <b>${money((p.cantidad || 1) * (p.costo_unitario || 0))}</b>${acc}
             </div>`;
         }).join('') : '';
-        const _estLab = eq.completado ? 'COMPLETADO' : (eq.estado_evaluacion === 'vendido' ? 'DESPACHADO' : 'LISTO');
+        const _estLab = eq.estado_evaluacion === 'vendido' ? 'DESPACHADO' : 'LISTO PARA VENTA';
         const _cpct = (x) => (final > 0 ? (x / final * 100) : 0);
         costoHtml = `<div class="cbx">
             <div class="cbx-hero">
@@ -21573,18 +21597,18 @@ async function verFichaDespacho(equipoId) {
     const esVendido = (eq.estado_evaluacion === 'vendido');
     const _fmtFecha = (d) => d ? new Date(d).toLocaleString('es-DO', { day:'numeric', month:'numeric', year:'numeric', hour:'numeric', minute:'2-digit' }) : '';
     let estBadge;
-    if(eq.completado) estBadge = { t:'COMPLETADO', bg:'#dcfce7', c:'#166534' };
-    else if(esVendido) estBadge = { t:'DESPACHADO', bg:'#e2e8f0', c:'#334155' };
+    if(esVendido) estBadge = { t:'DESPACHADO', bg:'#dcfce7', c:'#166534' };
     else estBadge = { t:'LISTO', bg:'#ede9fe', c:'#5b21b6' };
     // KPI del lote
     const delLote = (cache.refurb || []).filter(r => r.lote_id === eq.lote_id);
     const nc = (fn) => delLote.filter(fn).length;
     const kpis = [
-        { n: nc(r => r.estado_evaluacion==='pendiente'), t:'Pendientes', ic:'ti-clipboard-list', bg:'#fffbeb', c:'#b45309' },
-        { n: nc(r => ['en_evaluacion','evaluado','en_proceso','tecnico_recibio','espera_pieza','listo_revision','reasignado','reparacion_externa'].includes(r.estado_evaluacion)), t:'En evaluación', ic:'ti-alert-triangle', bg:'#fef2f2', c:'#b91c1c' },
+        { n: nc(r => r.estado_evaluacion==='pendiente'), t:'Recibidos', ic:'ti-package-import', bg:'#fffbeb', c:'#b45309' },
+        { n: nc(r => ['en_evaluacion','evaluado'].includes(r.estado_evaluacion)), t:'Diagnóstico', ic:'ti-clipboard-list', bg:'#eff6ff', c:'#1d4ed8' },
+        { n: nc(r => _REACOND_ESTADOS_REPARACION.includes(r.estado_evaluacion)), t:'Reparación', ic:'ti-tool', bg:'#fff7ed', c:'#9a3412' },
+        { n: nc(r => r.estado_evaluacion==='listo_revision'), t:'Calidad', ic:'ti-shield-check', bg:'#faf5ff', c:'#7e22ce' },
         { n: nc(r => r.estado_evaluacion==='listo_venta' && !r.completado), t:'Listo', ic:'ti-list-check', bg:'#f5f3ff', c:'#6d28d9' },
-        { n: nc(r => r.completado), t:'Completado', ic:'ti-circle-check', bg:'#ecfdf5', c:'#047857' },
-        { n: nc(r => r.estado_evaluacion==='vendido' && !r.completado), t:'Despachado', ic:'ti-truck-delivery', bg:'#f1f5f9', c:'#475569' }
+        { n: nc(r => r.estado_evaluacion==='vendido'), t:'Despachado', ic:'ti-truck-delivery', bg:'#ecfdf5', c:'#047857' }
     ];
     const kpiHtml = kpis.map(k => `<div class="fe-kpi" style="background:${k.bg};"><div class="fe-kpi-ic" style="color:${k.c};"><i class="ti ${k.ic}"></i></div><div class="fe-kpi-n" style="color:${k.c};">${k.n}</div><div class="fe-kpi-t">${k.t}</div></div>`).join('');
     // Lote / envío / proveedor
@@ -21658,7 +21682,7 @@ async function verFichaDespacho(equipoId) {
             <button class="fe-btn" onclick="var m=this.nextElementSibling;m.style.display=(m.style.display==='block'?'none':'block');event.stopPropagation();"><i class="ti ti-dots"></i> Más acciones <i class="ti ti-chevron-down"></i></button>
             <div class="fe-menu">
               <a onclick="_feCerrar();verHistorialEquipoReacond('${equipoId}')"><i class="ti ti-history"></i> Ver historial</a>
-              ${isAdminUser() ? `<a onclick="marcarEquipoCompletado('${equipoId}')"><i class="ti ti-circle-check"></i> Marcar Completado</a>` : ''}
+              ${isAdminUser() ? `<a onclick="marcarEquipoCompletado('${equipoId}')"><i class="ti ti-lock-check"></i> Cerrar salida</a>` : ''}
             </div>
           </div>
           <button class="fe-x modal-close" onclick="_feCerrar()">✕</button>
@@ -21670,7 +21694,7 @@ async function verFichaDespacho(equipoId) {
           <div>
             <h1 class="fe-title">${titulo}</h1>
             <div class="fe-sub">${escapeHtml(((eq.marca || '') + ' ' + (eq.modelo || '')).trim())}</div>
-            <div style="margin:10px 0;"><span class="fe-num">#${nEnLote}</span> <span class="fe-badge" style="background:${estBadge.bg};color:${estBadge.c};"><i class="ti ti-circle-check"></i> ${esVendido ? (eq.completado ? 'COMPLETADO' : 'DESPACHADO') : 'LISTO PARA VENTA'}</span></div>
+            <div style="margin:10px 0;"><span class="fe-num">#${nEnLote}</span> <span class="fe-badge" style="background:${estBadge.bg};color:${estBadge.c};"><i class="ti ti-circle-check"></i> ${esVendido ? 'DESPACHADO' : 'LISTO PARA VENTA'}${esVendido && eq.completado ? ' · REGISTRO CERRADO' : ''}</span></div>
             <div class="fe-idline"><i class="ti ti-device-mobile"></i> IMEI: <b>${escapeHtml(eq.imei || '—')}</b> <a onclick="navigator.clipboard&&navigator.clipboard.writeText('${escapeHtml(eq.imei || '')}');if(typeof toast==='function')toast('IMEI copiado');" style="cursor:pointer;color:#64748b;"><i class="ti ti-copy"></i></a></div>
             ${eq.serial ? `<div class="fe-idline2">Serial: ${escapeHtml(eq.serial)}</div>` : ''}
             <div class="fe-idline2">Tomado: ${_fmtFecha(eq.creado_en)}${(tecNombre && tecNombre !== 'Sin asignar') ? `<br><span style="color:#e11d48;font-weight:700;">por ${escapeHtml(tecNombre)}</span>` : ''}</div>
@@ -22254,17 +22278,17 @@ function renderDevoluciones() {
 
 function obtenerEtiquetaEstado(estado) {
     const map = {
-        'pendiente': { text: 'Pendiente', bg:'#fef3c7', color:'#92400e' },
-        'en_evaluacion': { text: 'Evaluación', bg:'#dbeafe', color:'#b91c1c' },
-        'evaluado': { text: 'Evaluado', bg:'#d1fae5', color:'#065f46' },
-        'en_proceso': { text: 'En Proceso', bg:'#fed7aa', color:'#9a3412' },
-        'tecnico_recibio': { text: 'Recibido', bg:'#bfdbfe', color:'#b91c1c' },
-        'espera_pieza': { text: 'Espera pieza', bg:'#fde68a', color:'#92400e' },
-        'listo_revision': { text: 'Finalizado (por recibir)', bg:'#e9d5ff', color:'#6b21a8' },
-        'listo_venta': { text: 'Listo Venta', bg:'#ddd6fe', color:'#5b21b6' },
-        'vendido': { text: 'Completado', bg:'#d1fae5', color:'#065f46' },
-        'reasignado': { text: 'Reasignado', bg:'#fef3c7', color:'#92400e' },
-        'reparacion_externa': { text: 'Reparación externa', bg:'#e0e7ff', color:'#3730a3' }
+        'pendiente': { text: 'Recibido', bg:'#fef3c7', color:'#92400e' },
+        'en_evaluacion': { text: 'Diagnóstico en curso', bg:'#dbeafe', color:'#1d4ed8' },
+        'evaluado': { text: 'Diagnóstico listo', bg:'#d1fae5', color:'#065f46' },
+        'en_proceso': { text: 'En reparación', bg:'#fed7aa', color:'#9a3412' },
+        'tecnico_recibio': { text: 'En reparación · recibido', bg:'#fed7aa', color:'#9a3412' },
+        'espera_pieza': { text: 'En reparación · espera pieza', bg:'#fde68a', color:'#92400e' },
+        'listo_revision': { text: 'Control de calidad', bg:'#e9d5ff', color:'#6b21a8' },
+        'listo_venta': { text: 'Listo para venta', bg:'#ddd6fe', color:'#5b21b6' },
+        'vendido': { text: 'Despachado', bg:'#dcfce7', color:'#166534' },
+        'reasignado': { text: 'En reparación · reasignado', bg:'#fef3c7', color:'#92400e' },
+        'reparacion_externa': { text: 'En reparación · externa', bg:'#e0e7ff', color:'#3730a3' }
     };
     const _r = map[estado] || { text: estado, bg:'#f1f5f9', color:'#475569' };
     return { ..._r, text: (_r.text || '').toUpperCase() };
@@ -24460,6 +24484,7 @@ function detectarPiezasNoUtilizadas(soloTecnicoId) {
         const misEquipos = new Set((cache.refurb || []).filter(e => e.tecnico_asignado_id === soloTecnicoId).map(e => e.id));
         piezas = piezas.filter(p => misEquipos.has(p.equipo_id));
     }
+    piezas = piezas.filter(_reacondEsSolicitudTecnico);
     const terminados = ['listo_venta', 'vendido'];
     return piezas.filter(p => {
         const eq = (cache.refurb || []).find(e => e.id === p.equipo_id);
@@ -24508,17 +24533,37 @@ function construirAlertaPiezasNoUsadas(soloTecnicoId) {
 // ============================================================
 //   PANEL DE PEDIDOS DE PIEZAS (reacondicionados)
 // ============================================================
+let _reacondPiezasVista = 'solicitudes';
+
+// Info Plus se guarda en la misma tabla, pero no representa una solicitud operativa.
+function _reacondEsPiezaCostoInfoPlus(pieza) {
+    return !!pieza && !pieza.agregada_por_tecnico && !pieza.pieza_id && !!String(pieza.pieza_codigo || '').trim();
+}
+
+function _reacondEsSolicitudTecnico(pieza) {
+    return !!pieza && !_reacondEsPiezaCostoInfoPlus(pieza);
+}
+
+function cambiarVistaPiezasReacond(vista) {
+    _reacondPiezasVista = vista === 'costos' ? 'costos' : 'solicitudes';
+    renderPedidosPiezasReacond();
+}
+
 function etiquetaEstadoPiezaReacond(estado) {
     const map = {
         'pendiente':            { txt: '🟡 Pedida',        bg:'#fef3c7', color:'#92400e' },
         'solicitada':           { txt: '🟡 Pedida',        bg:'#fef3c7', color:'#92400e' },
+        'aprobada':             { txt: '✅ Aprobada',       bg:'#dcfce7', color:'#166534' },
         'entregada':            { txt: '📦 Entregada',     bg:'#dbeafe', color:'#b91c1c' },
         'recibida':             { txt: '🔧 En uso',        bg:'#dcfce7', color:'#166534' },
         'devolucion_pendiente': { txt: '🔄 Devolución...', bg:'#fed7aa', color:'#9a3412' },
         'devuelta':             { txt: '↩️ Devuelta',      bg:'#f1f5f9', color:'#475569' },
-        'extra':                { txt: '➕ Extra',         bg:'#e9d5ff', color:'#6b21a8' }
+        'devuelta_pendiente':   { txt: '↩️ Dev. pendiente',bg:'#fed7aa', color:'#9a3412' },
+        'extra':                { txt: '➕ Extra',         bg:'#e9d5ff', color:'#6b21a8' },
+        'extra_pendiente':      { txt: '⏳ Extra pendiente',bg:'#ffedd5', color:'#9a3412' },
+        'rechazada':            { txt: '❌ Rechazada',     bg:'#fee2e2', color:'#b91c1c' }
     };
-    return map[estado] || { txt: estado, bg:'#f1f5f9', color:'#475569' };
+    return map[estado] || { txt: estado || 'Sin estado', bg:'#f1f5f9', color:'#475569' };
 }
 
 // Construye el HTML del panel de pedidos de piezas. Si tecnicoId se pasa, filtra solo ese técnico.
@@ -24577,17 +24622,61 @@ function construirMisPiezasTodas(miId, kind) {
         </table></div>`;
 }
 
-function construirPanelPedidosPiezas(soloTecnicoId) {
+function construirPanelCostosPiezasReacond(piezas) {
+    const unidades = piezas.reduce((s, p) => s + (Number(p.cantidad) || 1), 0);
+    const total = piezas.reduce((s, p) => s + (Number(p.cantidad) || 1) * (Number(p.costo_unitario) || 0), 0);
+    const filas = piezas.map(p => {
+        const eq = (cache.refurb || []).find(e => e.id === p.equipo_id) || {};
+        const equipo = eq.id
+            ? (escapeHtml(`${eq.marca || ''} ${eq.modelo || ''}`.trim() || 'Equipo sin nombre'))
+            : `<span style="color:#92400e;">${p.equipo_id ? 'Equipo no disponible' : 'Sin equipo asociado'}</span>`;
+        const cantidad = Number(p.cantidad) || 1;
+        const unitario = Number(p.costo_unitario) || 0;
+        return `<tr>
+            <td style="font-weight:600;">${escapeHtml(p.pieza_nombre || p.pieza_codigo || 'Pieza')}</td>
+            <td><code>${escapeHtml(p.pieza_codigo || '—')}</code></td>
+            <td style="text-align:center;">${cantidad}</td>
+            <td style="text-align:right;">${money(unitario)}</td>
+            <td style="text-align:right; font-weight:700;">${money(cantidad * unitario)}</td>
+            <td>${equipo}</td>
+            <td><span class="badge" style="background:#e0f2fe; color:#075985; font-size:11px;">Solo costo</span></td>
+        </tr>`;
+    }).join('');
+    return `
+        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+            <span style="background:#e0f2fe; color:#075985; padding:5px 10px; border-radius:8px; font-size:12px; font-weight:700;">🧾 ${piezas.length} registros</span>
+            <span style="background:#f1f5f9; color:#475569; padding:5px 10px; border-radius:8px; font-size:12px; font-weight:700;">📦 ${unidades} unidades</span>
+            <span style="background:#dcfce7; color:#166534; padding:5px 10px; border-radius:8px; font-size:12px; font-weight:700;">💰 Total: ${money(total)}</span>
+        </div>
+        <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:9px 11px; margin-bottom:10px; color:#475569; font-size:12px;">
+            Estos registros alimentan el costo del equipo. No requieren entrega, recepción ni seguimiento del técnico desde este panel.
+        </div>
+        <div style="overflow-x:auto;">
+            <table class="data-table" style="width:100%; font-size:13px;">
+                <thead><tr>
+                    <th>Pieza</th><th>Código</th><th style="text-align:center;">Cant.</th><th style="text-align:right;">Costo unit.</th><th style="text-align:right;">Subtotal</th><th>Equipo</th><th>Tipo</th>
+                </tr></thead>
+                <tbody>${filas}</tbody>
+            </table>
+        </div>`;
+}
+
+function construirPanelPedidosPiezas(soloTecnicoId, vista) {
+    const vistaActual = vista === 'costos' ? 'costos' : 'solicitudes';
     let piezas = (cache.piezasReacond || []);
     if(soloTecnicoId) {
         // filtrar por equipos asignados a ese técnico
         const misEquipos = new Set((cache.refurb || []).filter(e => e.tecnico_asignado_id === soloTecnicoId).map(e => e.id));
         piezas = piezas.filter(p => misEquipos.has(p.equipo_id));
     }
+    piezas = piezas.filter(p => vistaActual === 'costos' ? _reacondEsPiezaCostoInfoPlus(p) : _reacondEsSolicitudTecnico(p));
     if(!piezas.length) {
-        const alerta = construirAlertaPiezasNoUsadas(soloTecnicoId);
-        return alerta + `<div style="color:var(--text-muted); font-size:13px; padding:10px 0;">No hay pedidos de piezas.</div>`;
+        const alerta = vistaActual === 'solicitudes' ? construirAlertaPiezasNoUsadas(soloTecnicoId) : '';
+        const vacio = vistaActual === 'costos' ? 'No hay costos Info Plus registrados.' : 'No hay solicitudes técnicas de piezas.';
+        return alerta + `<div style="color:var(--text-muted); font-size:13px; padding:10px 0;">${vacio}</div>`;
     }
+    if(vistaActual === 'costos') return construirPanelCostosPiezasReacond(piezas);
+
     // Agrupar por estado para resumen
     const cuenta = {};
     piezas.forEach(p => { cuenta[p.estado] = (cuenta[p.estado] || 0) + 1; });
@@ -24599,23 +24688,29 @@ function construirPanelPedidosPiezas(soloTecnicoId) {
     const filas = piezas.map(p => {
         const eq = (cache.refurb || []).find(e => e.id === p.equipo_id) || {};
         const et = etiquetaEstadoPiezaReacond(p.estado);
-        const tecNombre = eq.tecnico_asignado_id ? nombreEmpleado(eq.tecnico_asignado_id) : 'Sin asignar';
+        const tecId = eq.tecnico_asignado_id || p.tecnico_id || null;
+        const tecNombre = tecId ? (nombreEmpleado(tecId) || 'Sin asignar') : 'Sin asignar';
         const invPieza = p.pieza_id ? (cache.piezas || []).find(x => x.id === p.pieza_id) : null;
         const stock = invPieza ? (invPieza.cantidad || 0) : null;
         const stockTxt = stock === null ? '<span style="color:#475569;">—</span>' : `<span style="font-weight:700; color:${stock <= 0 ? '#dc2626' : (stock <= 2 ? '#d97706' : '#16a34a')};">${stock}</span>`;
+        const equipo = eq.id
+            ? escapeHtml(`${eq.marca || ''} ${eq.modelo || ''}`.trim() || 'Equipo sin nombre')
+            : `<span style="color:#92400e;">${p.equipo_id ? 'Equipo no disponible' : 'Sin equipo asociado'}</span>`;
         return `<tr>
             <td style="font-weight:600;">${escapeHtml(p.pieza_nombre || '—')}</td>
             <td style="text-align:center;">${p.cantidad || 1}</td>
             <td style="text-align:center;">${stockTxt}</td>
-            <td>${escapeHtml(eq.marca || '')} ${escapeHtml(eq.modelo || '')}</td>
+            <td>${equipo}</td>
             <td style="font-size:12px;">${escapeHtml(tecNombre)}</td>
             <td><span class="badge" style="background:${et.bg}; color:${et.color}; font-size:11px;">${et.txt}</span></td>
         </tr>`;
     }).join('');
+    const sinEquipo = piezas.filter(p => !p.equipo_id || !(cache.refurb || []).some(e => e.id === p.equipo_id)).length;
+    const avisoSinEquipo = sinEquipo ? `<span style="background:#fff7ed; color:#9a3412; padding:4px 9px; border-radius:8px; font-size:11px; font-weight:700;">⚠️ ${sinEquipo} sin equipo asociado</span>` : '';
     
     return `
         ${construirAlertaPiezasNoUsadas(soloTecnicoId)}
-        <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;">${resumenChips}</div>
+        <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;">${resumenChips}${avisoSinEquipo}</div>
         <div style="overflow-x:auto;">
             <table class="data-table" style="width:100%; font-size:13px;">
                 <thead><tr>
@@ -24630,7 +24725,20 @@ function construirPanelPedidosPiezas(soloTecnicoId) {
 function renderPedidosPiezasReacond() {
     const cont = document.getElementById('pedidosPiezasReacondCont');
     if(!cont) return;
-    cont.innerHTML = construirPanelPedidosPiezas(null);
+    const vista = _reacondPiezasVista === 'costos' ? 'costos' : 'solicitudes';
+    const todas = cache.piezasReacond || [];
+    const solicitudes = todas.filter(_reacondEsSolicitudTecnico).length;
+    const costos = todas.filter(_reacondEsPiezaCostoInfoPlus).length;
+    const botonVista = (clave, icono, texto, cantidad) => {
+        const activo = vista === clave;
+        return `<button role="tab" aria-selected="${activo}" onclick="cambiarVistaPiezasReacond('${clave}')" style="border:1px solid ${activo ? '#0891b2' : '#cbd5e1'}; background:${activo ? '#0891b2' : '#fff'}; color:${activo ? '#fff' : '#475569'}; border-radius:8px; padding:7px 11px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap;"><i class="ti ti-${icono}"></i> ${texto} <span style="opacity:.85;">(${cantidad})</span></button>`;
+    };
+    cont.innerHTML = `
+        <div role="tablist" aria-label="Vista de piezas" style="display:flex; gap:7px; flex-wrap:wrap; margin-bottom:12px;">
+            ${botonVista('solicitudes', 'tool', 'Solicitudes técnicas', solicitudes)}
+            ${botonVista('costos', 'receipt', 'Costos Info Plus', costos)}
+        </div>
+        ${construirPanelPedidosPiezas(null, vista)}`;
 }
 
 // Muestra una ventana emergente con los pendientes del técnico al iniciar sesión
