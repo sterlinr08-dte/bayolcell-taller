@@ -659,6 +659,7 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
 .wa-acciones-menu button { display:flex; align-items:center; gap:9px; background:none; border:none; padding:8px 12px; font-size:13px; text-align:left; border-radius:6px; cursor:pointer; color:#111b21; width:100%; }
 .wa-acciones-menu button:hover { background:#f0f2f5; }
 .wa-acciones-menu button i { font-size:15px; color:#54656f; }
+.wa-acciones-menu button.wa-slash-hl { background:#e7f7f1; }
 .wa-quote { position:relative; border-radius:6px; padding:6px 10px 7px; margin-bottom:5px; font-size:12.5px; cursor:pointer; border-left:4px solid #128C7E; background:rgba(0,0,0,.05); transition:filter .12s; }
 .wa-quote:hover { filter:brightness(.96); }
 .wa-quote .who { font-weight:700; font-size:12.5px; margin-bottom:1px; line-height:1.25; color:#128C7E; }
@@ -33745,6 +33746,8 @@ async function _waGuardarUbicacionSucursal(sucursalId) {
         const { error } = await supabaseClient.from('whatsapp_ia_config').upsert({ sucursal_id: sucursalId, direccion, lat, lng }, { onConflict: 'sucursal_id' });
         if(error) throw error;
         toast('✅ Dirección/GPS guardados.');
+        // Refresca el cache del menu "/" para que el cambio se vea sin recargar la pagina.
+        if(typeof _waSlashCargarSucursales === 'function') _waSlashCargarSucursales(true);
     } catch(e) { logError('_waGuardarUbicacionSucursal', e); toastError('No se pudo guardar la dirección/GPS.'); }
 }
 
@@ -34031,7 +34034,7 @@ function _pintarWhatsappDetalle() {
             <div class="wa-input-bar" id="waInputBar">
                 <button class="wa-icon-btn" id="btnWaEmoji" onclick="_waAbrirEmojis(event)" title="Emoji"><i class="ti ti-mood-smile"></i></button>
                 <button class="wa-icon-btn" id="btnWaAdjuntar" onclick="_waAbrirMenuAdjuntar(event)" title="Adjuntar"><i class="ti ti-paperclip"></i></button>
-                <input type="text" id="waTexto" placeholder="Escribe una respuesta..." autocapitalize="none" autocorrect="off" oninput="_waActualizarBotonEnvio()" onkeydown="if(event.key==='Enter') enviarMensajeWhatsapp()">
+                <input type="text" id="waTexto" placeholder="Escribe una respuesta..." autocapitalize="none" autocorrect="off" oninput="_waActualizarBotonEnvio(); _waSlashDetectar(this)" onkeydown="_waTextoKeydown(event)">
                 <button class="wa-send-btn" id="btnWaEnviar" onclick="_waBotonPrincipalClick()"><i class="ti ti-microphone" id="iconWaEnviar"></i></button>
             </div>
             <div id="waGrabandoBar" class="wa-grabando-bar" style="display:none;"></div>`;
@@ -34130,6 +34133,7 @@ function _waCerrarFlotantesDelChat() {
     if(typeof _waCerrarMenuAcciones === 'function') _waCerrarMenuAcciones();
     const adj = document.getElementById('waAdjuntarMenu'); if(adj) adj.style.display = 'none';
     const emo = document.getElementById('waEmojiPanel'); if(emo) emo.style.display = 'none';
+    _waSlashCerrar();
 }
 
 /* ---------- Subir adjunto a Storage (compartido por foto/documento/camara/nota de voz) ---------- */
@@ -34197,17 +34201,26 @@ function _waAdjuntarAccion(tipo) {
     else if(tipo === 'contacto') _waAbrirModalContacto();
 }
 
-// Manda el PIN de GPS fijo de la sucursal de este hilo (no la ubicacion del
+// Manda el PIN de GPS fijo de la sucursal DE ESTE hilo (no la ubicacion del
 // empleado) -- las coordenadas se configuran una vez desde el panel 🤖.
 async function _waEnviarUbicacionTienda() {
+    const h = _waHilos.find(x => x.id === _waHiloId);
+    if(!h || !h.sucursal_id) return toastError('No se pudo determinar la sucursal de este chat.');
+    await _waEnviarUbicacionSucursal(h.sucursal_id);
+}
+
+// Igual que arriba pero para CUALQUIER sucursal (no solo la de este chat) --
+// la usa tambien el menu de "/" (14 sept 2026, pedido explicito: a veces el
+// cliente de un chat de Santiago pregunta por la direccion de Moca o
+// Navarrete, y hace falta mandarle ESA ubicacion, no la de la linea en la
+// que esta escribiendo).
+async function _waEnviarUbicacionSucursal(sucursalId) {
     const hiloDestino = _waHiloId;
     if(!hiloDestino) return;
-    const h = _waHilos.find(x => x.id === hiloDestino);
-    if(!h || !h.sucursal_id) return toastError('No se pudo determinar la sucursal de este chat.');
     const lockKey = `wa-ubicacion-tienda:${hiloDestino}`;
     if(!_crmIniciarAccion(lockKey)) return;
     try {
-        const { data: cfg, error: cfgErr } = await supabaseClient.from('whatsapp_ia_config').select('lat, lng').eq('sucursal_id', h.sucursal_id).maybeSingle();
+        const { data: cfg, error: cfgErr } = await supabaseClient.from('whatsapp_ia_config').select('lat, lng').eq('sucursal_id', sucursalId).maybeSingle();
         if(cfgErr) throw cfgErr;
         if(!cfg || cfg.lat == null || cfg.lng == null) {
             toastError('Esta sucursal todavía no tiene coordenadas guardadas — configúralas en el botón 🤖 (Agente de IA) del CRM.');
@@ -34227,14 +34240,124 @@ async function _waEnviarUbicacionTienda() {
             if(_waHiloId) await cargarMensajesHilo(_waHiloId);
             await cargarHilosWhatsapp();
             await _crmRepintarWhatsappSilencioso();
-            toast('📍 Ubicación de la tienda enviada.');
+            toast('📍 Ubicación enviada.');
         } else if(j && j.error === 'ventana_cerrada') {
             toastError(j.mensaje || 'Ya no se puede responder libre — hace falta plantilla.');
         } else {
             toastError('No se pudo enviar la ubicación.');
         }
-    } catch(e) { logError('_waEnviarUbicacionTienda', e); toastError('No se pudo enviar la ubicación de la tienda.'); }
+    } catch(e) { logError('_waEnviarUbicacionSucursal', e); toastError('No se pudo enviar la ubicación de la tienda.'); }
     finally { _crmFinalizarAccion(lockKey); }
+}
+
+/* ---------- "/" en la caja de escribir: menu rapido para mandar el PIN de
+   cualquier sucursal (14 sept 2026, pedido explicito) ----------
+   Al escribir "/" en #waTexto sale un menu con Santiago/Moca/Navarrete (las
+   que tengan GPS guardado -- se leen de la base, no se hardcodea cuantas
+   hay ni cuales). Elegir una limpia el "/" y manda esa ubicacion al chat
+   ABIERTO, sin importar la sucursal de ese chat -- para cuando el cliente
+   pregunta por otra tienda. Escribir mas letras despues del "/" filtra por
+   nombre (ej. "/moca"). Flechas + Enter navegan igual que los demas
+   buscadores de la app; Escape cierra. */
+let _waSlashSucursales = null; // cache: [{id, nombre, lat, lng}]
+let _waSlashHl = -1;
+
+async function _waSlashCargarSucursales(force) {
+    if(_waSlashSucursales && !force) return _waSlashSucursales;
+    try {
+        const [{ data: s }, { data: cfg }] = await Promise.all([
+            supabaseClient.from('sucursales').select('id, nombre').eq('activo', true).order('nombre', { ascending: true }),
+            supabaseClient.from('whatsapp_ia_config').select('sucursal_id, lat, lng'),
+        ]);
+        const cfgPorSucursal = {};
+        (cfg || []).forEach(c => cfgPorSucursal[c.sucursal_id] = c);
+        _waSlashSucursales = (s || [])
+            .map(x => ({ id: x.id, nombre: x.nombre, lat: cfgPorSucursal[x.id]?.lat, lng: cfgPorSucursal[x.id]?.lng }))
+            .filter(x => x.lat != null && x.lng != null);
+    } catch(e) { logError('_waSlashCargarSucursales', e); _waSlashSucursales = []; }
+    return _waSlashSucursales;
+}
+
+function _waSlashAbierto() {
+    const menu = document.getElementById('waSlashMenu');
+    return !!menu && menu.style.display === 'block';
+}
+
+async function _waSlashDetectar(input) {
+    const v = input.value;
+    if(!v.startsWith('/')) { _waSlashCerrar(); return; }
+    const filtro = v.slice(1).trim().toLowerCase();
+    const lista = await _waSlashCargarSucursales();
+    // Si mientras cargaba el usuario borró la "/" o cambió de idea, no pintar.
+    if(!document.getElementById('waTexto')?.value.startsWith('/')) return;
+    if(!lista.length) { _waSlashCerrar(); return; }
+    const filtradas = filtro ? lista.filter(s => s.nombre.toLowerCase().includes(filtro)) : lista;
+    _waSlashHl = filtradas.length ? 0 : -1;
+    _waSlashPintar(filtradas, input);
+}
+
+function _waSlashPintar(filtradas, input) {
+    let menu = document.getElementById('waSlashMenu');
+    if(!menu) {
+        menu = document.createElement('div');
+        menu.id = 'waSlashMenu';
+        menu.className = 'wa-acciones-menu';
+        document.body.appendChild(menu);
+        document.addEventListener('click', e => {
+            if(!menu.contains(e.target) && e.target.id !== 'waTexto') _waSlashCerrar();
+        });
+    }
+    menu._filtradas = filtradas;
+    if(!filtradas.length) {
+        menu.innerHTML = `<div style="padding:8px 12px; font-size:12px; color:#94a3b8;">Ninguna sucursal coincide.</div>`;
+    } else {
+        menu.innerHTML = `<div style="padding:6px 12px 2px; font-size:10.5px; font-weight:700; color:#94a3b8; text-transform:uppercase;">Enviar ubicación de</div>` +
+            filtradas.map((s, i) => `<button data-idx="${i}" class="${i === _waSlashHl ? 'wa-slash-hl' : ''}" onclick="_waSlashElegir('${s.id}')"><i class="ti ti-map-pin" style="color:#16a34a;"></i> ${escapeHtml(s.nombre)}</button>`).join('');
+    }
+    menu.style.display = 'block';
+    const r = input.getBoundingClientRect();
+    let top = r.top - (Math.min(filtradas.length, 5) * 36 + 30);
+    if(top < 8) top = r.bottom + 6;
+    menu.style.top = top + 'px';
+    menu.style.left = r.left + 'px';
+}
+
+function _waSlashCerrar() {
+    const menu = document.getElementById('waSlashMenu');
+    if(menu) menu.style.display = 'none';
+    _waSlashHl = -1;
+}
+
+function _waSlashMover(delta) {
+    const menu = document.getElementById('waSlashMenu');
+    const filtradas = (menu && menu._filtradas) || [];
+    if(!filtradas.length) return;
+    _waSlashHl = (_waSlashHl + delta + filtradas.length) % filtradas.length;
+    menu.querySelectorAll('button[data-idx]').forEach((b, i) => b.classList.toggle('wa-slash-hl', i === _waSlashHl));
+}
+
+function _waSlashElegirResaltado() {
+    const menu = document.getElementById('waSlashMenu');
+    const filtradas = (menu && menu._filtradas) || [];
+    if(_waSlashHl >= 0 && filtradas[_waSlashHl]) _waSlashElegir(filtradas[_waSlashHl].id);
+}
+
+function _waSlashElegir(sucursalId) {
+    _waSlashCerrar();
+    const input = document.getElementById('waTexto');
+    if(input) { input.value = ''; _waActualizarBotonEnvio(); }
+    _waEnviarUbicacionSucursal(sucursalId);
+}
+
+function _waTextoKeydown(event) {
+    if(_waSlashAbierto() && ['Enter', 'ArrowDown', 'ArrowUp', 'Escape', 'Tab'].includes(event.key)) {
+        event.preventDefault();
+        if(event.key === 'Escape' || event.key === 'Tab') { _waSlashCerrar(); return; }
+        if(event.key === 'ArrowDown') return _waSlashMover(1);
+        if(event.key === 'ArrowUp') return _waSlashMover(-1);
+        if(event.key === 'Enter') return _waSlashElegirResaltado();
+    }
+    if(event.key === 'Enter') enviarMensajeWhatsapp();
 }
 
 /* ---------- Vista previa de foto/documento/camara antes de enviar ---------- */
