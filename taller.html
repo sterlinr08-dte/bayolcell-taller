@@ -33628,16 +33628,18 @@ async function _waAbrirConfigAgenteIA() {
             <select onchange="_waCambiarNivelAgente('${s.id}', this.value, this)" style="width:100%; padding:6px 8px; border:1px solid #cbd5e1; border-radius:7px; font-size:12.5px; margin-bottom:7px;">${opciones}</select>
             <div style="font-size:11px; color:#64748b; margin-bottom:4px;"><i class="ti ti-map-pin"></i> Dirección y GPS (para responder "dónde están" y mandar el pin de ubicación)</div>
             <input id="iaDir_${s.id}" placeholder="Dirección (ej: Av. Estrella Sadhalá esq. Bartolomé Colón)" value="${escapeHtml(cfg.direccion || '')}" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #cbd5e1; border-radius:7px; font-size:12px; margin-bottom:5px;">
+            <button class="btn btn-blue" id="iaBtnGps_${s.id}" style="width:100%; font-size:12px; margin-bottom:6px;" onclick="_waUsarMiUbicacionActual('${s.id}')"><i class="ti ti-current-location"></i> Usar mi ubicación actual (debes estar parado en la tienda)</button>
+            <div style="font-size:10.5px; color:#94a3b8; margin:2px 0 7px; text-align:center;">— o pega un link con coordenadas —</div>
             <div style="display:flex; gap:6px; margin-bottom:5px;">
-                <input id="iaLink_${s.id}" placeholder="Pega aquí el link de Google Maps (el que compartes por WhatsApp)" style="flex:1; min-width:0; padding:6px 8px; border:1px solid #cbd5e1; border-radius:7px; font-size:12px;">
-                <button class="btn btn-blue" id="iaBtnDetectar_${s.id}" style="font-size:11.5px; white-space:nowrap;" onclick="_waDetectarUbicacionLink('${s.id}')"><i class="ti ti-map-pin-search"></i> Detectar</button>
+                <input id="iaLink_${s.id}" placeholder="Link de Google Maps con coordenadas (no de búsqueda)" style="flex:1; min-width:0; padding:6px 8px; border:1px solid #cbd5e1; border-radius:7px; font-size:12px;">
+                <button class="btn btn-light" id="iaBtnDetectar_${s.id}" style="font-size:11.5px; white-space:nowrap;" onclick="_waDetectarUbicacionLink('${s.id}')"><i class="ti ti-map-pin-search"></i> Detectar</button>
             </div>
             <div style="display:flex; gap:6px;">
                 <input id="iaLat_${s.id}" type="number" step="any" placeholder="Latitud (ej: 19.4517)" value="${cfg.lat ?? ''}" style="flex:1; min-width:0; padding:6px 8px; border:1px solid #cbd5e1; border-radius:7px; font-size:12px;">
                 <input id="iaLng_${s.id}" type="number" step="any" placeholder="Longitud (ej: -70.6970)" value="${cfg.lng ?? ''}" style="flex:1; min-width:0; padding:6px 8px; border:1px solid #cbd5e1; border-radius:7px; font-size:12px;">
                 <button class="btn btn-light" style="font-size:11.5px; white-space:nowrap;" onclick="_waGuardarUbicacionSucursal('${s.id}')"><i class="ti ti-device-floppy"></i></button>
             </div>
-            <div style="font-size:10.5px; color:#94a3b8; margin-top:3px;">Tip: en Google Maps o en WhatsApp, toca "Compartir ubicación", copia el link y pégalo arriba — "Detectar" llena la latitud/longitud solo. Después toca 💾 para guardar.</div>
+            <div style="font-size:10.5px; color:#94a3b8; margin-top:3px;">Tip: lo más fácil es el botón azul de arriba estando en la tienda. El link solo funciona si trae las coordenadas (no sirve un link de "búsqueda por nombre"). Después de detectar o usar el GPS, toca 💾 para guardar.</div>
         </div>`;
     }).join('') || `<div style="color:#94a3b8; font-size:12.5px;">No hay sucursales activas configuradas.</div>`;
 
@@ -33679,6 +33681,31 @@ async function _waCambiarNivelAgente(sucursalId, valorNivel, sel) {
         logError('_waCambiarNivelAgente', e); toastError('No se pudo cambiar el nivel del agente.');
         if(sel && anterior) sel.value = anterior;
     }
+}
+
+// Forma mas confiable de capturar el GPS de la tienda: usar el GPS del
+// propio dispositivo estando parado ahi -- el mismo mecanismo que ya usa
+// el chat de WhatsApp para "Ubicación" (_waEnviarUbicacion), aplicado aqui
+// para GUARDAR la ubicación fija de la sucursal en vez de mandarla a un
+// cliente. Pedido 14 sept 2026: los links de Maps que la gente comparte
+// suelen ser de "búsqueda por nombre" (sin coordenadas reales adentro),
+// asi que esto evita depender de que el link traiga las coordenadas.
+function _waUsarMiUbicacionActual(sucursalId) {
+    if(!navigator.geolocation) { toastError('Este navegador no soporta geolocalización.'); return; }
+    const btn = document.getElementById('iaBtnGps_' + sucursalId);
+    const textoOriginal = btn ? btn.innerHTML : '';
+    if(btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Obteniendo ubicación…'; }
+    navigator.geolocation.getCurrentPosition((pos) => {
+        const latInp = document.getElementById('iaLat_' + sucursalId);
+        const lngInp = document.getElementById('iaLng_' + sucursalId);
+        if(latInp) latInp.value = pos.coords.latitude;
+        if(lngInp) lngInp.value = pos.coords.longitude;
+        toast('📍 Ubicación capturada: ' + pos.coords.latitude.toFixed(5) + ', ' + pos.coords.longitude.toFixed(5) + ' — toca 💾 para guardar.');
+        if(btn) { btn.disabled = false; btn.innerHTML = textoOriginal; }
+    }, () => {
+        toastError('No se pudo obtener tu ubicación — revisa el permiso de ubicación del navegador y que estés parado en la tienda.');
+        if(btn) { btn.disabled = false; btn.innerHTML = textoOriginal; }
+    }, { enableHighAccuracy: true, timeout: 10000 });
 }
 
 // Pega un link de Google Maps (o el que WhatsApp arma al compartir una
