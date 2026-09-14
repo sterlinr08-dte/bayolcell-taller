@@ -1,0 +1,183 @@
+/* BAYOL CELL — Midnight Blue Motion UI
+   Referencia aprobada: #0047AB → #1A1A2E + acento BAYOL #FF6B35.
+   Capa visual final: no modifica lógica, datos ni handlers. */
+:root{
+  --bc-midnight-blue:#0047AB;
+  --bc-midnight-mid:#073b86;
+  --bc-midnight-deep:#1A1A2E;
+  --bc-midnight-ink:#11162d;
+  --bc-midnight-soft:#edf4ff;
+  --bc-orange:#FF6B35;
+  --bc-orange-dark:#D65225;
+}
+
+/* Sustituye el navy anterior por Midnight Blue, manteniendo el contenido claro. */
+#app .sidebar{
+  background:linear-gradient(165deg,var(--bc-midnight-blue) 0%,#063a86 38%,var(--bc-midnight-deep) 100%)!important;
+  border-right-color:rgba(0,71,171,.22)!important;
+  box-shadow:10px 0 30px -24px rgba(26,26,46,.58)!important;
+}
+#app .side-brand{
+  background:linear-gradient(145deg,rgba(0,71,171,.28),rgba(26,26,46,.20))!important;
+  border-bottom-color:rgba(255,107,53,.16)!important;
+}
+#app .top-bar{
+  background:linear-gradient(112deg,var(--bc-midnight-blue) 0%,#073b86 43%,var(--bc-midnight-deep) 100%)!important;
+  border-bottom-color:rgba(255,107,53,.72)!important;
+  box-shadow:0 10px 26px -22px rgba(26,26,46,.64)!important;
+}
+#app .top-title{color:#fff!important;}
+#app .block-header,
+#app .view:not(#v-crmLinea) .block-header{
+  background:linear-gradient(135deg,var(--bc-midnight-blue),var(--bc-midnight-deep))!important;
+  border-bottom-color:rgba(255,107,53,.20)!important;
+}
+#app .view:not(#v-crmLinea) .btn-dark{
+  background:linear-gradient(135deg,var(--bc-midnight-blue),var(--bc-midnight-deep))!important;
+  border-color:transparent!important;
+  color:#fff!important;
+}
+#appLoader{
+  background:radial-gradient(720px 520px at 50% 38%,rgba(0,71,171,.38),transparent 68%),var(--bc-midnight-deep)!important;
+}
+#appLoader .ldr-ring{border-top-color:#2f7fe8!important;}
+
+/* Navegación lateral: la selección la dibuja una cápsula móvil. */
+#app .nav.bc-motion-host{
+  position:relative!important;
+  isolation:isolate!important;
+}
+#app .nav.bc-motion-host > .bc-motion-pill{
+  position:absolute!important;
+  left:0;top:0;
+  width:1px;height:1px;
+  border-radius:12px!important;
+  background:linear-gradient(135deg,#ff8d69 0%,var(--bc-orange) 55%,var(--bc-orange-dark) 100%)!important;
+  box-shadow:0 12px 24px -17px rgba(255,107,53,.82)!important;
+  transform:translate3d(0,0,0);
+  transform-origin:0 0;
+  transition:transform .34s cubic-bezier(.22,.8,.2,1),width .34s cubic-bezier(.22,.8,.2,1),height .34s cubic-bezier(.22,.8,.2,1),opacity .16s ease!important;
+  pointer-events:none!important;
+  z-index:0!important;
+  opacity:0;
+}
+#app .nav.bc-motion-host > button{
+  position:relative!important;
+  z-index:1!important;
+  transition:color .22s ease,transform .22s ease!important;
+}
+#app .nav.bc-motion-host > button.active{
+  background:transparent!important;
+  border-color:transparent!important;
+  color:var(--bc-midnight-deep)!important;
+  box-shadow:none!important;
+}
+#app .nav.bc-motion-host > button.active i{color:var(--bc-midnight-deep)!important;}
+#app .nav.bc-motion-host > button:active{transform:scale(.985)!important;}
+
+/* Cápsula deslizante horizontal inspirada en la referencia del video. */
+.bc-motion-host:not(.nav){
+  position:relative!important;
+  isolation:isolate!important;
+}
+.bc-motion-host:not(.nav) > .bc-motion-pill{
+  position:absolute!important;
+  left:0;top:0;
+  width:1px;height:1px;
+  border-radius:16px!important;
+  background:linear-gradient(135deg,var(--bc-midnight-blue) 0%,var(--bc-midnight-deep) 100%)!important;
+  box-shadow:0 12px 24px -17px rgba(0,71,171,.72),0 0 0 1px rgba(255,107,53,.10)!important;
+  transform:translate3d(0,0,0);
+  transform-origin:0 0;
+  transition:transform .32s cubic-bezier(.2,.82,.2,1),width .32s cubic-bezier(.2,.82,.2,1),height .32s cubic-bezier(.2,.82,.2,1),opacity .16s ease!important;
+  pointer-events:none!important;
+  z-index:0!important;
+  opacity:0;
+}
+.bc-motion-host:not(.nav) > .bc-motion-item{
+  position:relative!important;
+  z-index:1!important;
+  transition:color .22s ease,transform .22s ease,filter .22s ease!important;
+}
+.bc-motion-host:not(.nav) > .bc-motion-item:active{transform:scale(.985)!important;}
+
+/* Tabs operativos: elimina fondos activos estáticos para dejar ver la cápsula. */
+#app .reacond-tabs-scroll.bc-motion-host .tab-btn.active,
+#app .bc-reacond-main-motion.bc-motion-host .reacond-main-tab.tab-active,
+#v-crmLinea .crm-tabs-track.bc-motion-host .crm-tab-seg[aria-selected="true"],
+#v-crmLinea .crm-tabs-track.bc-motion-host .crm-tab-seg.active{
+  background:transparent!important;
+  border-color:transparent!important;
+  box-shadow:none!important;
+  color:#fff!important;
+}
+#app .reacond-tabs-scroll.bc-motion-host .tab-btn.active i,
+#app .bc-reacond-main-motion.bc-motion-host .reacond-main-tab.tab-active i,
+#v-crmLinea .crm-tabs-track.bc-motion-host .crm-tab-seg[aria-selected="true"] i,
+#v-crmLinea .crm-tabs-track.bc-motion-host .crm-tab-seg.active i{
+  color:var(--bc-orange)!important;
+}
+
+/* Redes: conserva iconos/marca, pero la selección usa cápsula Midnight Blue. */
+#bcSmartPlatforms.bc-motion-host > .bc-motion-pill,
+#bcSmartInteractionNav.bc-motion-host > .bc-motion-pill,
+#v-crmLinea .bc-smart-platforms.bc-motion-host > .bc-motion-pill,
+#v-crmLinea .bc-smart-interaction-track.bc-motion-host > .bc-motion-pill{
+  background:linear-gradient(135deg,var(--bc-midnight-blue),var(--bc-midnight-deep))!important;
+  box-shadow:0 12px 25px -18px rgba(0,71,171,.72),0 0 0 1px rgba(255,107,53,.10)!important;
+}
+#v-crmLinea .bc-smart-platforms.bc-motion-host .bc-smart-platform.on,
+#bcSmartPlatforms.bc-motion-host .bc-smart-platform.on,
+#v-crmLinea .bc-smart-interaction-track.bc-motion-host .bc-smart-interaction.on,
+#bcSmartInteractionNav.bc-motion-host .bc-smart-interaction.on{
+  background:transparent!important;
+  border-color:transparent!important;
+  box-shadow:none!important;
+  color:#fff!important;
+}
+#v-crmLinea .bc-smart-platforms.bc-motion-host .bc-smart-platform.on .bc-smart-platform-copy b,
+#v-crmLinea .bc-smart-interaction-track.bc-motion-host .bc-smart-interaction.on .bc-smart-interaction-copy b{color:#fff!important;}
+#v-crmLinea .bc-smart-platforms.bc-motion-host .bc-smart-platform.on .bc-smart-platform-copy small,
+#v-crmLinea .bc-smart-interaction-track.bc-motion-host .bc-smart-interaction.on .bc-smart-interaction-copy small{color:rgba(255,255,255,.72)!important;}
+
+/* Sustituye navy residual de superficies/controles comunes sin reintroducir bordes blancos. */
+#app .card,
+#app .block-card,
+#app .prov-card,
+#app .refurb-item-card,
+#app .lote-card,
+#app .inc-card,
+#app .fe-card,
+#app .fin-click-card,
+#app .kpi-box,
+#app .data-table,
+#app .table-wrap,
+#app .modal-box{
+  border-color:rgba(0,71,171,.10)!important;
+}
+#app .card,
+#app .prov-card,
+#app .refurb-item-card,
+#app .lote-card,
+#app .inc-card,
+#app .fe-card,
+#app .fin-click-card,
+#app .kpi-box{
+  box-shadow:0 16px 34px -25px rgba(0,71,171,.24),0 6px 16px -14px rgba(255,107,53,.13)!important;
+}
+#app input,#app select,#app textarea{border-color:rgba(0,71,171,.14)!important;}
+#app input:focus,#app select:focus,#app textarea:focus{
+  border-color:var(--bc-midnight-blue)!important;
+  box-shadow:0 0 0 3px rgba(0,71,171,.11)!important;
+}
+#login.login{
+  background:radial-gradient(760px 460px at 10% -5%,rgba(0,71,171,.14),transparent 68%),radial-gradient(680px 420px at 100% 100%,rgba(255,107,53,.10),transparent 70%),#f5f7fb!important;
+}
+#login .login-card{border-color:rgba(0,71,171,.10)!important;}
+#login .login-card input:focus{border-color:var(--bc-midnight-blue)!important;box-shadow:0 0 0 3px rgba(0,71,171,.11)!important;}
+
+/* Movimiento seguro y sobrio. */
+@media (prefers-reduced-motion:reduce){
+  .bc-motion-pill{transition:none!important;}
+  .bc-motion-item{transition:none!important;}
+}
