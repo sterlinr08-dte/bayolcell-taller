@@ -7,55 +7,58 @@
   function boot(){
     try {
       var app = document.getElementById('app');
-      if (!app || document.getElementById('bcAmbientOrbSafe')) return;
+      var host = app && app.querySelector('.content');
+      if (!app || !host || document.getElementById('bcAmbientOrbSafe')) return;
 
       var style = document.createElement('style');
       style.id = 'bcAmbientOrbSafeStyle';
       style.textContent = [
+        '#app .content{position:relative!important;isolation:isolate!important;}',
+        '#app .content>.view{position:relative;z-index:1;}',
         '#bcAmbientOrbSafe{',
-        'position:fixed;inset:60px 0 0 250px;overflow:hidden;',
+        'position:fixed;top:60px;right:0;bottom:0;left:250px;overflow:hidden;',
         'pointer-events:none!important;user-select:none!important;',
-        'z-index:1;contain:layout paint style;isolation:isolate;',
-        'opacity:.88;transition:opacity .25s ease;',
+        'z-index:0;contain:layout paint style;isolation:isolate;',
+        'opacity:.94;transition:opacity .25s ease;',
         '}',
         '#bcAmbientOrbSafe .bc-ambient-orb{',
-        'position:absolute;border-radius:999px;filter:blur(52px);',
+        'position:absolute;border-radius:999px;filter:blur(44px);',
         'will-change:transform,opacity;transform:translate3d(0,0,0);',
         'backface-visibility:hidden;-webkit-backface-visibility:hidden;',
         '}',
         '#bcAmbientOrbSafe .bc-ambient-orb--navy{',
-        'width:min(56vw,760px);height:min(56vw,760px);',
-        'left:-20%;top:-22%;background:rgba(20,33,61,.24);',
-        'animation:bcAmbientNavy 18s ease-in-out infinite alternate;',
+        'width:min(60vw,820px);height:min(60vw,820px);',
+        'left:-22%;top:-24%;background:rgba(20,33,61,.30);',
+        'animation:bcAmbientNavy 17s ease-in-out infinite alternate;',
         '}',
         '#bcAmbientOrbSafe .bc-ambient-orb--orange{',
-        'width:min(48vw,650px);height:min(48vw,650px);',
-        'right:-16%;bottom:-20%;background:rgba(255,107,53,.23);',
-        'animation:bcAmbientOrange 21s ease-in-out infinite alternate;',
+        'width:min(52vw,700px);height:min(52vw,700px);',
+        'right:-18%;top:42%;background:rgba(255,107,53,.28);',
+        'animation:bcAmbientOrange 20s ease-in-out infinite alternate;',
         '}',
         '#bcAmbientOrbSafe .bc-ambient-orb--blue{',
-        'width:min(34vw,470px);height:min(34vw,470px);',
-        'left:44%;top:36%;background:rgba(41,72,120,.18);',
-        'animation:bcAmbientBlue 16s ease-in-out infinite alternate;',
+        'width:min(38vw,520px);height:min(38vw,520px);',
+        'left:42%;top:24%;background:rgba(41,72,120,.22);',
+        'animation:bcAmbientBlue 15s ease-in-out infinite alternate;',
         '}',
         '@keyframes bcAmbientNavy{',
-        '0%{transform:translate3d(-2vw,-1vh,0) scale(1);opacity:.70}',
-        '100%{transform:translate3d(13vw,9vh,0) scale(1.16);opacity:.98}',
+        '0%{transform:translate3d(-2vw,-1vh,0) scale(1);opacity:.72}',
+        '100%{transform:translate3d(14vw,10vh,0) scale(1.18);opacity:1}',
         '}',
         '@keyframes bcAmbientOrange{',
-        '0%{transform:translate3d(2vw,2vh,0) scale(1.02);opacity:.72}',
-        '100%{transform:translate3d(-12vw,-9vh,0) scale(1.18);opacity:.98}',
+        '0%{transform:translate3d(3vw,3vh,0) scale(1.02);opacity:.74}',
+        '100%{transform:translate3d(-13vw,-10vh,0) scale(1.20);opacity:1}',
         '}',
         '@keyframes bcAmbientBlue{',
-        '0%{transform:translate3d(-5vw,4vh,0) scale(.94);opacity:.54}',
-        '100%{transform:translate3d(7vw,-7vh,0) scale(1.12);opacity:.86}',
+        '0%{transform:translate3d(-6vw,5vh,0) scale(.94);opacity:.58}',
+        '100%{transform:translate3d(8vw,-8vh,0) scale(1.14);opacity:.90}',
         '}',
         '@media (max-width:1024px){',
-        '#bcAmbientOrbSafe{inset:54px 0 0 0;opacity:.74}',
-        '#bcAmbientOrbSafe .bc-ambient-orb{filter:blur(46px)}',
-        '#bcAmbientOrbSafe .bc-ambient-orb--navy{width:90vw;height:90vw;left:-42%;top:-15%}',
-        '#bcAmbientOrbSafe .bc-ambient-orb--orange{width:82vw;height:82vw;right:-38%;bottom:-15%}',
-        '#bcAmbientOrbSafe .bc-ambient-orb--blue{width:64vw;height:64vw;left:35%;top:40%}',
+        '#bcAmbientOrbSafe{top:54px;right:0;bottom:0;left:0;opacity:.82}',
+        '#bcAmbientOrbSafe .bc-ambient-orb{filter:blur(40px)}',
+        '#bcAmbientOrbSafe .bc-ambient-orb--navy{width:96vw;height:96vw;left:-44%;top:-14%}',
+        '#bcAmbientOrbSafe .bc-ambient-orb--orange{width:88vw;height:88vw;right:-40%;top:52%}',
+        '#bcAmbientOrbSafe .bc-ambient-orb--blue{width:70vw;height:70vw;left:32%;top:28%}',
         '}',
         '@media (prefers-reduced-motion:reduce){',
         '#bcAmbientOrbSafe .bc-ambient-orb{animation:none!important;will-change:auto!important}',
@@ -69,7 +72,7 @@
       layer.id = 'bcAmbientOrbSafe';
       layer.setAttribute('aria-hidden','true');
       layer.innerHTML = '<span class="bc-ambient-orb bc-ambient-orb--navy"></span><span class="bc-ambient-orb bc-ambient-orb--orange"></span><span class="bc-ambient-orb bc-ambient-orb--blue"></span>';
-      app.insertBefore(layer, app.firstChild || null);
+      host.insertBefore(layer, host.firstChild || null);
 
       function syncVisibility(){
         try {
