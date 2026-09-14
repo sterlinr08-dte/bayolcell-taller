@@ -5,6 +5,16 @@
   window.__bcCrmExtensionsLoader=true;
 
   var V='20260913-fbcfix2';
+  var ORB='20260913a';
+
+  // Componente global BAYOL Fluid Orb (adaptación vanilla del concepto Rare UI fluid-orb).
+  var orbCss=document.createElement('link');
+  orbCss.rel='stylesheet';
+  orbCss.href='bayol-fluid-orb.css?v='+ORB;
+  document.head.appendChild(orbCss);
+  var orbScript=document.createElement('script');
+  orbScript.src='bayol-fluid-orb.js?v='+ORB;
+  document.head.appendChild(orbScript);
 
   // El botón de actualizar hace una recarga completa, pero la experiencia
   // vuelve al mismo punto: página, pestaña, listas, historial y borrador.
