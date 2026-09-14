@@ -240,6 +240,11 @@ async function generarSugerencia(hilo: { id: string; sucursal_id: string }, mens
   if (!historial.length) return json({ ok: true, omitido: "sin historial para generar sugerencia" });
 
   const { data: conocimiento } = await db.from("whatsapp_ia_conocimiento").select("*").eq("id", 1).maybeSingle();
+  // Direccion de ESTA sucursal (no la base de conocimiento global) -- para
+  // que el agente pueda contestar bien cuando preguntan la ubicacion. El
+  // PIN de GPS real lo manda el empleado con el boton de la conversacion
+  // (usa whatsapp_ia_config.lat/lng); la IA solo redacta el texto.
+  const { data: direccionConfig } = await db.from("whatsapp_ia_config").select("direccion, lat, lng").eq("sucursal_id", hilo.sucursal_id).maybeSingle();
 
   // Si el mensaje que disparo esta llamada es una foto, se intenta
   // identificar el equipo (vision) antes de redactar la sugerencia.
@@ -286,9 +291,11 @@ async function generarSugerencia(hilo: { id: string; sucursal_id: string }, mens
     conocimiento?.politicas ? `POLITICAS:\n${conocimiento.politicas}` : "",
     conocimiento?.faqs ? `PREGUNTAS FRECUENTES:\n${conocimiento.faqs}` : "",
     conocimiento?.personalidad ? `PERSONALIDAD DE MARCA:\n${conocimiento.personalidad}` : "",
+    direccionConfig?.direccion ? `UBICACION DE ESTA SUCURSAL:\n${direccionConfig.direccion}` : "",
   ]
     .filter(Boolean)
     .join("\n\n");
+  const tieneGps = direccionConfig?.lat != null && direccionConfig?.lng != null;
 
   // La conversacion (texto escrito por el CLIENTE, no confiable) va en el
   // mensaje de usuario, claramente delimitada -- NO dentro del system
@@ -306,8 +313,9 @@ ${mensajeEsImagen ? "\nEl ULTIMO mensaje del cliente es una FOTO (te la adjunto)
 Reglas:
 1. Tono dominicano, natural, breve, como lo escribiria rapido un empleado real desde el celular -- nada de sonar como IA/bot/plantilla. No uses el signo de apertura ¿ (solo el de cierre).
 2. NO inventes precios, disponibilidad ni promesas que no esten en la informacion del negocio de arriba -- si no lo sabes, dilo con naturalidad y ofrece confirmar con un compañero.
-3. Responde EXCLUSIVAMENTE con un JSON valido, sin texto extra antes o despues, con esta forma exacta:
-{"respuesta": "el texto sugerido", "modelo_detectado": "marca y modelo si identificaste un equipo en una foto, o null"}`;
+3. Si el cliente pide la ubicacion/direccion de la sucursal, escribe la direccion (si la tienes arriba)${tieneGps ? ' y menciona que le vas a mandar la ubicacion por GPS tambien' : ''}.
+4. Responde EXCLUSIVAMENTE con un JSON valido, sin texto extra antes o despues, con esta forma exacta:
+{"respuesta": "el texto sugerido", "modelo_detectado": "marca y modelo si identificaste un equipo en una foto, o null", "pidio_ubicacion": true o false}`;
 
   const userContent: Record<string, unknown>[] = [
     { type: "text", text: `<conversacion>\n${lineasHistorial}\n</conversacion>\n\nRedacta la sugerencia de respuesta para el ultimo mensaje del cliente en esa conversacion. Responde con el JSON pedido.` },
@@ -316,6 +324,7 @@ Reglas:
 
   let respuesta = "";
   let modeloDetectado: string | null = null;
+  let pidioUbicacion = false;
   try {
     const resp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -337,6 +346,7 @@ Reglas:
       if (parsed.modelo_detectado && String(parsed.modelo_detectado).toLowerCase() !== "null") {
         modeloDetectado = String(parsed.modelo_detectado).slice(0, 200);
       }
+      pidioUbicacion = parsed.pidio_ubicacion === true;
     } else {
       console.error("whatsapp-ia-responder: sugerencia sin JSON reconocible:", JSON.stringify(data).slice(0, 500));
     }
@@ -348,7 +358,12 @@ Reglas:
 
   respuesta = respuesta.replace(/¿/g, "");
 
-  return await guardarSugerenciaPendiente(hilo.id, respuesta, mensajeClienteId, modeloDetectado, mensajeEsImagen ? "Detectó una foto de equipo" : null);
+  const razon = mensajeEsImagen
+    ? "Detectó una foto de equipo"
+    : pidioUbicacion
+      ? (tieneGps ? "Pidió la ubicación — recuerda enviar también el GPS (botón 📍)" : "Pidió la ubicación")
+      : null;
+  return await guardarSugerenciaPendiente(hilo.id, respuesta, mensajeClienteId, modeloDetectado, razon);
 }
 
 Deno.serve(async (req: Request) => {
@@ -390,6 +405,13 @@ Deno.serve(async (req: Request) => {
   const modo = config.modo || "observacion";
   if (modo === "observacion") return json({ ok: true, omitido: "modo observación: no se envía ni se genera nada" });
 
+  // "Al por Mayor" (Santiago y Navarrete) es un publico distinto
+  // (revendedores/negocios comprando en volumen) al publico general que
+  // escribe a Reparacion/Servicio al Cliente/Principal. Se consulta aqui
+  // (antes de la ramificacion saludo/seguimiento) porque afecta a ambos.
+  const { data: linea } = await db.from("whatsapp_lineas").select("nombre, zernio_account_id").eq("id", hilo.linea_id).maybeSingle();
+  const esMayorista = (linea?.nombre || "").trim().toLowerCase() === "al por mayor";
+
   // Los timestamps de los dos mensajes mas recientes del hilo (el que
   // disparo esta llamada, y el que vino justo antes) miden el hueco de
   // inactividad para decidir si es un saludo de inicio de conversacion.
@@ -412,17 +434,15 @@ Deno.serve(async (req: Request) => {
   // en modo 'automatico': automatizar seguimientos requiere el marco de
   // evaluacion/graduacion por capacidad, que es una fase posterior) en vez
   // del saludo. Ver generarSugerencia().
+  //
+  // "Al por Mayor" (14 sept 2026, pedido explicito): a estos clientes SOLO
+  // se les da el saludo -- ningun seguimiento por ahora (el negocio de
+  // mayoreo es distinto: precios/condiciones se negocian directo con el
+  // vendedor, no por IA todavia). Simplemente no se genera nada aqui.
   if (!esInicioDeConversacion) {
+    if (esMayorista) return json({ ok: true, omitido: "línea al por mayor: solo el saludo, sin seguimientos" });
     return await generarSugerencia(hilo, (body.mensaje_cliente_id as string) ?? null);
   }
-
-  // La linea decide el tono del saludo: "Al por Mayor" (Santiago y Navarrete)
-  // es un publico distinto (revendedores/negocios comprando en volumen) al
-  // publico general que escribe a Reparacion/Servicio al Cliente/Principal
-  // -- no tiene sentido preguntarle "de que ciudad escribes" a alguien que
-  // ya eligio especificamente la linea de mayoreo.
-  const { data: linea } = await db.from("whatsapp_lineas").select("nombre, zernio_account_id").eq("id", hilo.linea_id).maybeSingle();
-  const esMayorista = (linea?.nombre || "").trim().toLowerCase() === "al por mayor";
 
   const { dia, horaMinutos } = horaLocalRD();
   const abiertoAhora = estaAbierto(config.horario_json, dia, horaMinutos);

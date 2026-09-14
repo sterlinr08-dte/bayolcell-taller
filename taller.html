@@ -33609,7 +33609,7 @@ async function _waAbrirConfigAgenteIA() {
         const [{ data: c }, { data: s }, { data: cfg }] = await Promise.all([
             supabaseClient.from('whatsapp_ia_conocimiento').select('*').eq('id', 1).maybeSingle(),
             supabaseClient.from('sucursales').select('id, nombre').eq('activo', true).order('nombre', { ascending: true }),
-            supabaseClient.from('whatsapp_ia_config').select('sucursal_id, activo, modo'),
+            supabaseClient.from('whatsapp_ia_config').select('sucursal_id, activo, modo, direccion, lat, lng'),
         ]);
         conocimiento = c || {};
         sucursales = s || [];
@@ -33620,11 +33620,20 @@ async function _waAbrirConfigAgenteIA() {
     configs.forEach(c => configPorSucursal[c.sucursal_id] = c);
 
     const filasSucursal = sucursales.map(s => {
-        const nivelActual = _waIaNivelDe(configPorSucursal[s.id]);
+        const cfg = configPorSucursal[s.id] || {};
+        const nivelActual = _waIaNivelDe(cfg);
         const opciones = _WA_IA_NIVELES.map(n => `<option value="${n.valor}" ${n.valor === nivelActual ? 'selected' : ''}>${escapeHtml(n.label)}</option>`).join('');
         return `<div style="padding:8px 10px; border:1px solid #e2e8f0; border-radius:9px; margin-bottom:6px;">
             <div style="font-size:13px; font-weight:600; margin-bottom:5px;"><i class="ti ti-building-store"></i> ${escapeHtml(s.nombre)}</div>
-            <select onchange="_waCambiarNivelAgente('${s.id}', this.value, this)" style="width:100%; padding:6px 8px; border:1px solid #cbd5e1; border-radius:7px; font-size:12.5px;">${opciones}</select>
+            <select onchange="_waCambiarNivelAgente('${s.id}', this.value, this)" style="width:100%; padding:6px 8px; border:1px solid #cbd5e1; border-radius:7px; font-size:12.5px; margin-bottom:7px;">${opciones}</select>
+            <div style="font-size:11px; color:#64748b; margin-bottom:4px;"><i class="ti ti-map-pin"></i> Dirección y GPS (para responder "dónde están" y mandar el pin de ubicación)</div>
+            <input id="iaDir_${s.id}" placeholder="Dirección (ej: Av. Estrella Sadhalá esq. Bartolomé Colón)" value="${escapeHtml(cfg.direccion || '')}" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #cbd5e1; border-radius:7px; font-size:12px; margin-bottom:5px;">
+            <div style="display:flex; gap:6px;">
+                <input id="iaLat_${s.id}" type="number" step="any" placeholder="Latitud (ej: 19.4517)" value="${cfg.lat ?? ''}" style="flex:1; min-width:0; padding:6px 8px; border:1px solid #cbd5e1; border-radius:7px; font-size:12px;">
+                <input id="iaLng_${s.id}" type="number" step="any" placeholder="Longitud (ej: -70.6970)" value="${cfg.lng ?? ''}" style="flex:1; min-width:0; padding:6px 8px; border:1px solid #cbd5e1; border-radius:7px; font-size:12px;">
+                <button class="btn btn-light" style="font-size:11.5px; white-space:nowrap;" onclick="_waGuardarUbicacionSucursal('${s.id}')"><i class="ti ti-device-floppy"></i></button>
+            </div>
+            <div style="font-size:10.5px; color:#94a3b8; margin-top:3px;">Tip: abre la ubicación de la tienda en Google Maps, toca "Compartir", copia el link y ahí vienen las coordenadas (los dos números después de @).</div>
         </div>`;
     }).join('') || `<div style="color:#94a3b8; font-size:12.5px;">No hay sucursales activas configuradas.</div>`;
 
@@ -33666,6 +33675,20 @@ async function _waCambiarNivelAgente(sucursalId, valorNivel, sel) {
         logError('_waCambiarNivelAgente', e); toastError('No se pudo cambiar el nivel del agente.');
         if(sel && anterior) sel.value = anterior;
     }
+}
+
+async function _waGuardarUbicacionSucursal(sucursalId) {
+    const direccion = (document.getElementById('iaDir_' + sucursalId)?.value || '').trim() || null;
+    const latRaw = (document.getElementById('iaLat_' + sucursalId)?.value || '').trim();
+    const lngRaw = (document.getElementById('iaLng_' + sucursalId)?.value || '').trim();
+    const lat = latRaw ? Number(latRaw) : null;
+    const lng = lngRaw ? Number(lngRaw) : null;
+    if((latRaw && isNaN(lat)) || (lngRaw && isNaN(lng))) return toast('Latitud/longitud tienen que ser números.', 'error');
+    try {
+        const { error } = await supabaseClient.from('whatsapp_ia_config').upsert({ sucursal_id: sucursalId, direccion, lat, lng }, { onConflict: 'sucursal_id' });
+        if(error) throw error;
+        toast('✅ Dirección/GPS guardados.');
+    } catch(e) { logError('_waGuardarUbicacionSucursal', e); toastError('No se pudo guardar la dirección/GPS.'); }
 }
 
 async function _waGuardarConocimientoIA() {
@@ -33969,6 +33992,7 @@ function _waAsegurarMenuAdjuntar() {
             <button onclick="_waAdjuntarAccion('documento')"><i class="ti ti-file-text" style="color:#2563eb;"></i> Documento</button>
             <button onclick="_waAdjuntarAccion('camara')"><i class="ti ti-camera" style="color:#dc2626;"></i> Cámara</button>
             <button onclick="_waAdjuntarAccion('ubicacion')"><i class="ti ti-map-pin" style="color:#16a34a;"></i> Ubicación</button>
+            <button onclick="_waAdjuntarAccion('tienda')"><i class="ti ti-building-store" style="color:#0891b2;"></i> Ubicación de la tienda</button>
             <button onclick="_waAdjuntarAccion('contacto')"><i class="ti ti-user" style="color:#ea580c;"></i> Contacto</button>`;
         document.body.appendChild(menu);
         document.addEventListener('click', e => {
@@ -33985,7 +34009,7 @@ function _waAbrirMenuAdjuntar(ev) {
     if(yaAbierto) return; // tocar el mismo boton otra vez = cerrar
     menu.style.display = 'flex';
     const r = ev.currentTarget.getBoundingClientRect();
-    const alturaMenu = 5 * 38 + 12;
+    const alturaMenu = 6 * 38 + 12;
     let top = r.top - alturaMenu - 6; // por defecto abre HACIA ARRIBA (el composer esta al fondo)
     if(top < 8) top = r.bottom + 6;
     let left = r.left;
@@ -33999,7 +34023,48 @@ function _waAdjuntarAccion(tipo) {
     else if(tipo === 'documento') document.getElementById('waFileDoc').click();
     else if(tipo === 'camara') document.getElementById('waFileCamara').click();
     else if(tipo === 'ubicacion') _waAbrirModalUbicacion();
+    else if(tipo === 'tienda') _waEnviarUbicacionTienda();
     else if(tipo === 'contacto') _waAbrirModalContacto();
+}
+
+// Manda el PIN de GPS fijo de la sucursal de este hilo (no la ubicacion del
+// empleado) -- las coordenadas se configuran una vez desde el panel 🤖.
+async function _waEnviarUbicacionTienda() {
+    const hiloDestino = _waHiloId;
+    if(!hiloDestino) return;
+    const h = _waHilos.find(x => x.id === hiloDestino);
+    if(!h || !h.sucursal_id) return toastError('No se pudo determinar la sucursal de este chat.');
+    const lockKey = `wa-ubicacion-tienda:${hiloDestino}`;
+    if(!_crmIniciarAccion(lockKey)) return;
+    try {
+        const { data: cfg, error: cfgErr } = await supabaseClient.from('whatsapp_ia_config').select('lat, lng').eq('sucursal_id', h.sucursal_id).maybeSingle();
+        if(cfgErr) throw cfgErr;
+        if(!cfg || cfg.lat == null || cfg.lng == null) {
+            toastError('Esta sucursal todavía no tiene coordenadas guardadas — configúralas en el botón 🤖 (Agente de IA) del CRM.');
+            return;
+        }
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if(!session) { toastError('Inicia sesión de nuevo.'); return; }
+        const respondeA = (_waRespondiendoA && _waRespondiendoA.hiloId === hiloDestino) ? _waRespondiendoA.id : null;
+        const res = await fetch(CONFIG_URL + '/functions/v1/whatsapp-enviar', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ hilo_id: hiloDestino, responde_a_id: respondeA, ubicacion: { lat: cfg.lat, lng: cfg.lng } })
+        });
+        const j = await res.json();
+        if(j && j.ok) {
+            if(_waHiloId === hiloDestino && _waRespondiendoA && _waRespondiendoA.hiloId === hiloDestino) _waRespondiendoA = null;
+            if(_waHiloId) await cargarMensajesHilo(_waHiloId);
+            await cargarHilosWhatsapp();
+            await _crmRepintarWhatsappSilencioso();
+            toast('📍 Ubicación de la tienda enviada.');
+        } else if(j && j.error === 'ventana_cerrada') {
+            toastError(j.mensaje || 'Ya no se puede responder libre — hace falta plantilla.');
+        } else {
+            toastError('No se pudo enviar la ubicación.');
+        }
+    } catch(e) { logError('_waEnviarUbicacionTienda', e); toastError('No se pudo enviar la ubicación de la tienda.'); }
+    finally { _crmFinalizarAccion(lockKey); }
 }
 
 /* ---------- Vista previa de foto/documento/camara antes de enviar ---------- */
