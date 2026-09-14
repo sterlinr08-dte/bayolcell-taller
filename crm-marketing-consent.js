@@ -5,7 +5,16 @@
   window.__bcCrmExtensionsLoader=true;
 
   var V='20260913-hotfix1';
-  var AMBIENT='20260914-safe2';
+  var AMBIENT='20260914-safe3';
+  var SURFACE='20260914-clean1';
+
+  // Capa final del Taller: elimina el borde blanco/refractivo en todo el sistema.
+  try{
+    var surfaceCss=document.createElement('link');
+    surfaceCss.rel='stylesheet';
+    surfaceCss.href='taller-surface-cleanup.css?v='+SURFACE;
+    document.head.appendChild(surfaceCss);
+  }catch(e){}
 
   // El botón de actualizar hace una recarga completa, pero la experiencia
   // vuelve al mismo punto: página, pestaña, listas, historial y borrador.
