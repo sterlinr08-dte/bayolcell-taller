@@ -1,0 +1,129 @@
+/* BAYOL CELL — limpieza global de bordes brillantes/refractivos
+   Mantiene separación visual con tonos navy/naranja/gris, sin líneas blancas. */
+
+/* Cascarón general */
+#app .sidebar,
+#app .side-brand,
+#app .top-bar,
+#app .side-user{
+  border-color:rgba(255,107,53,.18)!important;
+}
+
+#app .brand-icon,
+#app .top-right-info,
+#app .top-bar .btn-light,
+#app .menu-toggle{
+  border-color:rgba(255,107,53,.24)!important;
+  box-shadow:none!important;
+}
+
+#app .nav button{
+  border-color:transparent!important;
+  box-shadow:none!important;
+}
+#app .nav button:hover{
+  border-color:rgba(255,107,53,.18)!important;
+  box-shadow:none!important;
+}
+#app .nav button.active{
+  border-color:#FF6B35!important;
+  box-shadow:0 8px 18px -14px rgba(0,0,0,.42)!important;
+}
+
+/* Superficies del sistema: sin borde blanco de vidrio. */
+#app .card,
+#app .block-card,
+#app .prov-card,
+#app .refurb-item-card,
+#app .lote-card,
+#app .inc-card,
+#app .fe-card,
+#app .fin-click-card,
+#app .kpi-box,
+#app .data-table,
+#app .table-wrap,
+#app .modal-box{
+  border-color:rgba(20,33,61,.12)!important;
+}
+
+#app .card,
+#app .prov-card,
+#app .refurb-item-card,
+#app .lote-card,
+#app .inc-card,
+#app .fe-card,
+#app .fin-click-card,
+#app .kpi-box{
+  box-shadow:0 16px 34px -25px rgba(20,33,61,.38),0 6px 16px -14px rgba(255,107,53,.16)!important;
+}
+
+#app .block-card,
+#app .data-table,
+#app .table-wrap{
+  box-shadow:0 14px 30px -24px rgba(20,33,61,.34)!important;
+}
+
+#app .modal-box{
+  box-shadow:0 28px 70px -30px rgba(20,33,61,.46)!important;
+}
+
+/* Encabezados, iconos y controles: se elimina el aro/blanco exterior. */
+#app .block-header,
+#app .view .block-header{
+  border-color:rgba(255,107,53,.18)!important;
+}
+#app .view .block-header i[class*="ti-"],
+#app .view .rx-head i[class*="ti-"],
+#app .view h4 > i[class*="ti-"],
+#app .view .kpi-box i[class*="ti-"]{
+  border-color:rgba(255,107,53,.22)!important;
+  box-shadow:none!important;
+}
+
+#app .btn,
+#app .btn-icon,
+#app .tab-btn,
+#app .reacond-main-tab,
+#app button[class*="btn-"]{
+  box-shadow:none!important;
+}
+
+#app .btn-light,
+#app .tab-btn,
+#app .reacond-main-tab{
+  border-color:rgba(20,33,61,.14)!important;
+}
+
+#app input,
+#app select,
+#app textarea{
+  border-color:rgba(20,33,61,.16)!important;
+  box-shadow:none;
+}
+#app input:focus,
+#app select:focus,
+#app textarea:focus{
+  border-color:#FF6B35!important;
+  box-shadow:0 0 0 3px rgba(255,107,53,.12)!important;
+}
+
+/* El acceso usa la misma regla: separación sutil, nunca borde blanco. */
+#login .login-card,
+#login .login-card input,
+#login .login-card a,
+#login .login-card .btn-blue{
+  border-color:rgba(20,33,61,.14)!important;
+}
+#login .login-card{
+  box-shadow:0 24px 60px -34px rgba(20,33,61,.34)!important;
+}
+
+/* Profundidad sin brillo blanco en estados hover. */
+#app .card:hover,
+#app .prov-card:hover,
+#app .refurb-item-card:hover,
+#app .fin-click-card:hover,
+#app .kpi-box:hover{
+  border-color:rgba(255,107,53,.28)!important;
+  box-shadow:0 20px 40px -27px rgba(20,33,61,.44),0 8px 18px -14px rgba(255,107,53,.20)!important;
+}
