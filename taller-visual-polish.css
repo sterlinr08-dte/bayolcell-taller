@@ -1017,14 +1017,26 @@ body{background:#f6f7f9 !important;}
   --bc-glass-shadow:0 18px 38px -26px rgba(20,33,61,.50);
 }
 
-/* Fondo operativo: profundidad visual discreta sin animar la pantalla completa. */
+/* Fondo operativo: aura navy/orange con "respiración" muy lenta (aprobado
+   por Sterling 14 sept 2026, pidiendo el efecto de un "fluid orb"). Es la
+   capa que en verdad se ve (#app.background quedaba tapado por esta misma
+   regla, más específica) — solo mueve background-position, sin animar
+   layout/elementos nuevos, así que sigue siendo barato para equipos viejos. */
 #app .content{
   background:
-    radial-gradient(760px 360px at 88% -12%,rgba(255,107,53,.10),transparent 72%),
-    radial-gradient(700px 340px at 2% 0%,rgba(20,33,61,.10),transparent 70%),
+    radial-gradient(760px 360px at 88% -12%,rgba(255,107,53,.16),transparent 72%),
+    radial-gradient(700px 340px at 2% 0%,rgba(20,33,61,.16),transparent 70%),
+    radial-gradient(680px 420px at 100% 105%,rgba(41,72,120,.13),transparent 68%),
+    radial-gradient(620px 380px at -2% 108%,rgba(255,107,53,.10),transparent 66%),
     var(--bc-bg) !important;
-  animation:none !important;
+  background-size:170% 170%,160% 160%,170% 170%,160% 160%,auto;
+  animation:bcContentAuraFlow 26s ease-in-out infinite alternate !important;
 }
+@keyframes bcContentAuraFlow{
+  0%{background-position:100% 0%,0% 0%,100% 100%,0% 100%,0 0;}
+  100%{background-position:92% 6%,8% 6%,94% 94%,6% 94%,0 0;}
+}
+@media (prefers-reduced-motion:reduce){ #app .content{ animation:none !important; } }
 
 /* Barra lateral: navy estable con una capa de vidrio contenida. */
 #app .sidebar{
@@ -1387,25 +1399,12 @@ body{
 #app{
   min-width:0;
   max-width:100%;
-  background:
-    radial-gradient(900px 620px at 6% -10%, rgba(41,72,120,.16), transparent 58%),
-    radial-gradient(760px 620px at 98% 4%, rgba(255,107,53,.11), transparent 55%),
-    radial-gradient(820px 680px at 102% 108%, rgba(20,33,61,.11), transparent 55%),
-    radial-gradient(700px 560px at -4% 112%, rgba(255,107,53,.08), transparent 55%),
-    var(--bc-ui-bg) !important;
-  /* "Fluid orb": el aura respira muy despacio moviendo solo la posición del
-     degradado (no crea capas ni elementos nuevos, no toca position/z-index
-     de nada — cero riesgo de romper un modal/dropdown en un archivo de 35k
-     líneas). Barato para el navegador: es la MISMA técnica de aurora animada
-     que usan sitios como Vercel/Linear. */
-  background-size:160% 160%,150% 150%,160% 160%,150% 150%,auto;
-  animation:bcAuraFlow 26s ease-in-out infinite alternate;
+  /* El aura real vive en "#app .content" (más abajo): esa regla es más
+     específica y es la que en verdad se ve — #app queda tapado por
+     completo (sidebar + .main llenan el 100% sin huecos). Se deja plano
+     aquí a propósito, sin duplicar la animación donde nadie la ve. */
+  background:var(--bc-ui-bg) !important;
 }
-@keyframes bcAuraFlow{
-  0%{background-position:0% 0%,100% 0%,100% 100%,0% 100%,0 0;}
-  100%{background-position:6% 5%,94% 6%,95% 95%,5% 94%,0 0;}
-}
-@media (prefers-reduced-motion:reduce){ #app{ animation:none; } }
 #app .main,
 #app .content,
 #app .content > .view.active{
