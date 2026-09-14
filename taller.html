@@ -846,6 +846,9 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
 .kpi-box small { font-size: 9.5px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; display: block; }
 .kpi-box strong { font-size: 19px; font-weight: 800; display: block; margin-top: 2px; color: var(--text-dark); }
 .kpi-box i { position: absolute; right: 10px; bottom: 9px; font-size: 17px; color: var(--text-muted); opacity: 0.2; }
+.kpi-box strong.skeleton { color: transparent; width: 2.2em; height: 1em; border-radius: 6px; background: linear-gradient(90deg, #e2e8f0 25%, #eef2f7 50%, #e2e8f0 75%); background-size: 200% 100%; animation: bcSkeletonShimmer 1.4s ease-in-out infinite; }
+@keyframes bcSkeletonShimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .kpi-box strong.skeleton { animation: none; } }
 
 .layout-dashboard { display: grid; grid-template-columns: 1.3fr 0.7fr; gap: 20px; }
 .layout-inventario { display: flex; flex-direction: column; gap: 20px; }
@@ -2175,23 +2178,23 @@ body{
             <!-- DASHBOARD -->
             <div id="v-dashboard" class="view active">
                 <div class="kpi-row">
-                    <div class="kpi-box clickable" style="border-top-color:#ef4444;" onclick="nav('ordenes')"><small>Recibidos Hoy</small><strong id="kHoy">0</strong><i class="ti ti-download"></i></div>
-                    <div class="kpi-box clickable" style="border-top-color:#f59e0b;" onclick="nav('ordenes')"><small>En Diagnóstico</small><strong id="kDiag">0</strong><i class="ti ti-search"></i></div>
-                    <div class="kpi-box clickable" style="border-top-color:#10b981;" onclick="nav('ordenes')"><small>En Reparación</small><strong id="kRep">0</strong><i class="ti ti-settings"></i></div>
-                    <div class="kpi-box clickable" style="border-top-color:#ef4444;" onclick="nav('inventario')"><small>Espera Pieza</small><strong id="kPiezas">0</strong><i class="ti ti-hourglass"></i></div>
-                    <div class="kpi-box clickable" style="border-top-color:#8b5cf6;" onclick="nav('ordenes')"><small>Listos Entrega</small><strong id="kListos">0</strong><i class="ti ti-circle-check"></i></div>
-                    <div class="kpi-box clickable" style="border-top-color:#06b6d4;" onclick="nav('refurb')"><small>Reacondicionados</small><strong id="kRefurb">0</strong><i class="ti ti-refresh"></i></div>
+                    <div class="kpi-box clickable" style="border-top-color:#ef4444;" onclick="nav('ordenes')"><small>Recibidos Hoy</small><strong id="kHoy" class="skeleton">0</strong><i class="ti ti-download"></i></div>
+                    <div class="kpi-box clickable" style="border-top-color:#f59e0b;" onclick="nav('ordenes')"><small>En Diagnóstico</small><strong id="kDiag" class="skeleton">0</strong><i class="ti ti-search"></i></div>
+                    <div class="kpi-box clickable" style="border-top-color:#10b981;" onclick="nav('ordenes')"><small>En Reparación</small><strong id="kRep" class="skeleton">0</strong><i class="ti ti-settings"></i></div>
+                    <div class="kpi-box clickable" style="border-top-color:#ef4444;" onclick="nav('inventario')"><small>Espera Pieza</small><strong id="kPiezas" class="skeleton">0</strong><i class="ti ti-hourglass"></i></div>
+                    <div class="kpi-box clickable" style="border-top-color:#8b5cf6;" onclick="nav('ordenes')"><small>Listos Entrega</small><strong id="kListos" class="skeleton">0</strong><i class="ti ti-circle-check"></i></div>
+                    <div class="kpi-box clickable" style="border-top-color:#06b6d4;" onclick="nav('refurb')"><small>Reacondicionados</small><strong id="kRefurb" class="skeleton">0</strong><i class="ti ti-refresh"></i></div>
                 </div>
-                
+
                 <!-- KPIs de Reacondicionado -->
                 <h3 style="margin:15px 0 10px; font-size:14px; color:#06b6d4; text-transform:uppercase; display:flex; align-items:center; gap:8px;"><i class="ti ti-recycle"></i> Reacondicionados</h3>
                 <div class="kpi-row">
-                    <div class="kpi-box clickable" style="border-top-color:#f59e0b;" onclick="nav('refurb')"><small>Pendientes</small><strong id="kdPend">0</strong><i class="ti ti-clock"></i></div>
-                    <div class="kpi-box clickable" style="border-top-color:#ef4444;" onclick="nav('refurb')"><small>Evaluación</small><strong id="kdEval">0</strong><i class="ti ti-clipboard-list"></i></div>
-                    <div class="kpi-box clickable" style="border-top-color:#9a3412;" onclick="nav('refurb')"><small>En Proceso</small><strong id="kdProc">0</strong><i class="ti ti-tool"></i></div>
-                    <div class="kpi-box clickable" style="border-top-color:#5b21b6;" onclick="nav('refurb')"><small>Listo Venta</small><strong id="kdListoV">0</strong><i class="ti ti-shopping-cart"></i></div>
-                    <div class="kpi-box clickable" style="border-top-color:#10b981;" onclick="nav('refurb')"><small>Despachados</small><strong id="kdDesp">0</strong><i class="ti ti-truck-delivery"></i></div>
-                    <div class="kpi-box clickable" style="border-top-color:#dc2626;" onclick="nav('refurb')"><small>Devoluciones</small><strong id="kdDev">0</strong><i class="ti ti-rotate-2"></i></div>
+                    <div class="kpi-box clickable" style="border-top-color:#f59e0b;" onclick="nav('refurb')"><small>Pendientes</small><strong id="kdPend" class="skeleton">0</strong><i class="ti ti-clock"></i></div>
+                    <div class="kpi-box clickable" style="border-top-color:#ef4444;" onclick="nav('refurb')"><small>Evaluación</small><strong id="kdEval" class="skeleton">0</strong><i class="ti ti-clipboard-list"></i></div>
+                    <div class="kpi-box clickable" style="border-top-color:#9a3412;" onclick="nav('refurb')"><small>En Proceso</small><strong id="kdProc" class="skeleton">0</strong><i class="ti ti-tool"></i></div>
+                    <div class="kpi-box clickable" style="border-top-color:#5b21b6;" onclick="nav('refurb')"><small>Listo Venta</small><strong id="kdListoV" class="skeleton">0</strong><i class="ti ti-shopping-cart"></i></div>
+                    <div class="kpi-box clickable" style="border-top-color:#10b981;" onclick="nav('refurb')"><small>Despachados</small><strong id="kdDesp" class="skeleton">0</strong><i class="ti ti-truck-delivery"></i></div>
+                    <div class="kpi-box clickable" style="border-top-color:#dc2626;" onclick="nav('refurb')"><small>Devoluciones</small><strong id="kdDev" class="skeleton">0</strong><i class="ti ti-rotate-2"></i></div>
                 </div>
 
                 <!-- Visitas de la web (solo admin) -->
@@ -7906,16 +7909,19 @@ function _uiListPager(key, total, label) {
 function renderAll() {
     const _primera = !_renderAllListo; // la 1ª vez (al entrar) se pinta TODO; luego solo la vista visible
     const today = new Date().toISOString().slice(0, 10);
-    document.getElementById("kHoy").textContent = cache.ordenes.filter(o => (o.creado_en || "").slice(0, 10) === today).length;
-    document.getElementById("kDiag").textContent = cache.ordenes.filter(o => normalizarEstadoOrden(o.estado) === "recibido").length;
-    document.getElementById("kRep").textContent = cache.ordenes.filter(o => normalizarEstadoOrden(o.estado) === "en_proceso").length;
-    document.getElementById("kPiezas").textContent = cache.ordenes.filter(o => normalizarEstadoOrden(o.estado) === "espera_repuesto").length;
-    document.getElementById("kListos").textContent = cache.ordenes.filter(o => normalizarEstadoOrden(o.estado) === "finalizado").length;
-    document.getElementById("kRefurb").textContent = cache.refurb.length;
-    
+    // setKpi quita el skeleton de carga (ver .kpi-box strong.skeleton) apenas
+    // hay un valor real que mostrar — así el Dashboard no se ve "en 0" mientras
+    // loadAll() todavía está trayendo los datos.
+    const setKpi = (id, val) => { const el = document.getElementById(id); if(el){ el.textContent = val; el.classList.remove('skeleton'); } };
+    setKpi("kHoy", cache.ordenes.filter(o => (o.creado_en || "").slice(0, 10) === today).length);
+    setKpi("kDiag", cache.ordenes.filter(o => normalizarEstadoOrden(o.estado) === "recibido").length);
+    setKpi("kRep", cache.ordenes.filter(o => normalizarEstadoOrden(o.estado) === "en_proceso").length);
+    setKpi("kPiezas", cache.ordenes.filter(o => normalizarEstadoOrden(o.estado) === "espera_repuesto").length);
+    setKpi("kListos", cache.ordenes.filter(o => normalizarEstadoOrden(o.estado) === "finalizado").length);
+    setKpi("kRefurb", cache.refurb.length);
+
     // KPIs de Reacondicionado
     const refurb = cache.refurb || [];
-    const setKpi = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
     setKpi('kdPend', refurb.filter(e => (e.estado_evaluacion || 'pendiente') === 'pendiente').length);
     setKpi('kdEval', refurb.filter(e => ['en_evaluacion','evaluado'].includes(e.estado_evaluacion)).length);
     setKpi('kdProc', refurb.filter(e => ['en_proceso','tecnico_recibio','espera_pieza','listo_revision','reasignado','reparacion_externa'].includes(e.estado_evaluacion)).length);
