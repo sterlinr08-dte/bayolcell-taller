@@ -33618,6 +33618,7 @@ async function _waAbrirConfigAgenteIA() {
         sucursales = s || [];
         configs = cfg || [];
     } catch(e) { logError('_waAbrirConfigAgenteIA', e); toastError('No se pudo cargar la configuración del Agente de IA.'); return; }
+    _waIaConfigSucursales = sucursales; // para que el picker de mapa sepa el nombre de cada sucursal
 
     const configPorSucursal = {};
     configs.forEach(c => configPorSucursal[c.sucursal_id] = c);
@@ -33631,18 +33632,13 @@ async function _waAbrirConfigAgenteIA() {
             <select onchange="_waCambiarNivelAgente('${s.id}', this.value, this)" style="width:100%; padding:6px 8px; border:1px solid #cbd5e1; border-radius:7px; font-size:12.5px; margin-bottom:7px;">${opciones}</select>
             <div style="font-size:11px; color:#64748b; margin-bottom:4px;"><i class="ti ti-map-pin"></i> Dirección y GPS (para responder "dónde están" y mandar el pin de ubicación)</div>
             <input id="iaDir_${s.id}" placeholder="Dirección (ej: Av. Estrella Sadhalá esq. Bartolomé Colón)" value="${escapeHtml(cfg.direccion || '')}" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #cbd5e1; border-radius:7px; font-size:12px; margin-bottom:5px;">
-            <button class="btn btn-blue" id="iaBtnGps_${s.id}" style="width:100%; font-size:12px; margin-bottom:6px;" onclick="_waUsarMiUbicacionActual('${s.id}')"><i class="ti ti-current-location"></i> Usar mi ubicación actual (debes estar parado en la tienda)</button>
-            <div style="font-size:10.5px; color:#94a3b8; margin:2px 0 7px; text-align:center;">— o pega un link con coordenadas —</div>
-            <div style="display:flex; gap:6px; margin-bottom:5px;">
-                <input id="iaLink_${s.id}" placeholder="Link de Google Maps con coordenadas (no de búsqueda)" style="flex:1; min-width:0; padding:6px 8px; border:1px solid #cbd5e1; border-radius:7px; font-size:12px;">
-                <button class="btn btn-light" id="iaBtnDetectar_${s.id}" style="font-size:11.5px; white-space:nowrap;" onclick="_waDetectarUbicacionLink('${s.id}')"><i class="ti ti-map-pin-search"></i> Detectar</button>
-            </div>
+            <button class="btn btn-blue" style="width:100%; font-size:12px; margin-bottom:6px;" onclick="_waAbrirMapaUbicacion('${s.id}')"><i class="ti ti-map-2"></i> Marcar ubicación en el mapa</button>
             <div style="display:flex; gap:6px;">
                 <input id="iaLat_${s.id}" type="number" step="any" placeholder="Latitud (ej: 19.4517)" value="${cfg.lat ?? ''}" style="flex:1; min-width:0; padding:6px 8px; border:1px solid #cbd5e1; border-radius:7px; font-size:12px;">
                 <input id="iaLng_${s.id}" type="number" step="any" placeholder="Longitud (ej: -70.6970)" value="${cfg.lng ?? ''}" style="flex:1; min-width:0; padding:6px 8px; border:1px solid #cbd5e1; border-radius:7px; font-size:12px;">
                 <button class="btn btn-light" style="font-size:11.5px; white-space:nowrap;" onclick="_waGuardarUbicacionSucursal('${s.id}')"><i class="ti ti-device-floppy"></i></button>
             </div>
-            <div style="font-size:10.5px; color:#94a3b8; margin-top:3px;">Tip: lo más fácil es el botón azul de arriba estando en la tienda. El link solo funciona si trae las coordenadas (no sirve un link de "búsqueda por nombre"). Después de detectar o usar el GPS, toca 💾 para guardar.</div>
+            <div style="font-size:10.5px; color:#94a3b8; margin-top:3px;">Toca el botón de arriba, haz clic en el mapa exactamente donde está la tienda, y luego 💾 para guardar. (Los campos de Latitud/Longitud son solo por si ya sabes el número exacto.)</div>
         </div>`;
     }).join('') || `<div style="color:#94a3b8; font-size:12.5px;">No hay sucursales activas configuradas.</div>`;
 
@@ -33686,53 +33682,183 @@ async function _waCambiarNivelAgente(sucursalId, valorNivel, sel) {
     }
 }
 
-// Forma mas confiable de capturar el GPS de la tienda: usar el GPS del
-// propio dispositivo estando parado ahi -- el mismo mecanismo que ya usa
-// el chat de WhatsApp para "Ubicación" (_waEnviarUbicacion), aplicado aqui
-// para GUARDAR la ubicación fija de la sucursal en vez de mandarla a un
-// cliente. Pedido 14 sept 2026: los links de Maps que la gente comparte
-// suelen ser de "búsqueda por nombre" (sin coordenadas reales adentro),
-// asi que esto evita depender de que el link traiga las coordenadas.
-function _waUsarMiUbicacionActual(sucursalId) {
-    if(!navigator.geolocation) { toastError('Este navegador no soporta geolocalización.'); return; }
-    const btn = document.getElementById('iaBtnGps_' + sucursalId);
-    const textoOriginal = btn ? btn.innerHTML : '';
-    if(btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Obteniendo ubicación…'; }
-    navigator.geolocation.getCurrentPosition((pos) => {
-        const latInp = document.getElementById('iaLat_' + sucursalId);
-        const lngInp = document.getElementById('iaLng_' + sucursalId);
-        if(latInp) latInp.value = pos.coords.latitude;
-        if(lngInp) lngInp.value = pos.coords.longitude;
-        toast('📍 Ubicación capturada: ' + pos.coords.latitude.toFixed(5) + ', ' + pos.coords.longitude.toFixed(5) + ' — toca 💾 para guardar.');
-        if(btn) { btn.disabled = false; btn.innerHTML = textoOriginal; }
-    }, () => {
-        toastError('No se pudo obtener tu ubicación — revisa el permiso de ubicación del navegador y que estés parado en la tienda.');
-        if(btn) { btn.disabled = false; btn.innerHTML = textoOriginal; }
-    }, { enableHighAccuracy: true, timeout: 10000 });
+/* ---------- Picker de ubicación con mapa (14 sept 2026) ----------
+   Reemplaza el GPS del navegador (fallaba si no estabas parado en la
+   tienda, o si el navegador negaba el permiso) y el pegar-link-de-Maps
+   (fallaba con links de "búsqueda por nombre" sin coordenadas adentro) --
+   los dos métodos que Sterling reportó como poco confiables. Ahora se abre
+   un mapa (Leaflet + OpenStreetMap, sin costo ni llave de API) y se hace
+   clic exactamente donde está la tienda; no depende de GPS ni de parsear
+   nada, así que no tiene ese tipo de error. Hay un buscador de apoyo
+   (Nominatim, también gratis) que solo MUEVE el mapa a la zona -- el clic
+   final para confirmar el punto exacto lo sigue dando el humano.
+   _waIaConfigSucursales guarda {id, nombre} de la última carga del panel
+   🤖, para mostrar el nombre en el título del picker sin otra consulta. */
+let _waIaConfigSucursales = [];
+let _waMapaUbicLeafletListo = false;
+let _waMapaUbicSucursalId = null;
+let _waMapaUbicMap = null;
+let _waMapaUbicMarker = null;
+const _WA_MAPA_UBIC_DEFAULT = { lat: 19.4517, lng: -70.6970 }; // Santiago, RD -- centro por defecto si la sucursal no tiene nada guardado aun
+
+function _waCargarLeaflet() {
+    return new Promise((resolve, reject) => {
+        if(_waMapaUbicLeafletListo && window.L) return resolve();
+        const css = document.createElement('link');
+        css.rel = 'stylesheet';
+        css.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
+        document.head.appendChild(css);
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+        s.onload = () => {
+            // Fix estandar de Leaflet: los iconos por defecto se rompen si no
+            // se les da la URL completa (buscan una ruta relativa que aqui no existe).
+            delete L.Icon.Default.prototype._getIconUrl;
+            L.Icon.Default.mergeOptions({
+                iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+                iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+            });
+            _waMapaUbicLeafletListo = true;
+            resolve();
+        };
+        s.onerror = () => reject(new Error('No se pudo cargar el mapa'));
+        document.head.appendChild(s);
+    });
 }
 
-// Pega un link de Google Maps (o el que WhatsApp arma al compartir una
-// ubicación, que también es de Maps) y llena Latitud/Longitud solo -- para
-// links "cortos" (maps.app.goo.gl/..., goo.gl/maps/...) hace falta seguir
-// la redirección desde el servidor (el navegador no puede por CORS), por
-// eso llama a la función resolver-link-mapa.
-async function _waDetectarUbicacionLink(sucursalId) {
-    const link = (document.getElementById('iaLink_' + sucursalId)?.value || '').trim();
-    if(!link) return toast('Pega primero el link de la ubicación.', 'error');
-    const btn = document.getElementById('iaBtnDetectar_' + sucursalId);
-    const textoOriginal = btn ? btn.innerHTML : '';
-    if(btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Buscando…'; }
+function _waAsegurarModalMapaUbicacion() {
+    let modal = document.getElementById('modalMapaUbicacion');
+    if(modal) return modal;
+    modal = document.createElement('div');
+    modal.id = 'modalMapaUbicacion';
+    // Misma clase modal-backdrop/.active que el resto de la app (no
+    // display:none/flex inline) -- asi el ESC global (_cerrarVentanaTop, que
+    // busca .modal-close y hace boton.click()) lo cierra bien en vez de
+    // borrar el <div> del DOM por no reconocerlo.
+    modal.className = 'modal-backdrop';
+    modal.style.zIndex = '600'; // encima del panel de configuracion (#modalGenerico, z-index 500)
+    modal.innerHTML = `<div class="modal-box" style="max-width:640px;">
+        <div class="modal-header">
+            <h3><i class="ti ti-map-pin"></i> Marcar ubicación — <span id="mapaUbicNombre"></span></h3>
+            <button class="modal-close" onclick="_waCerrarMapaUbicacion()">✕</button>
+        </div>
+        <div class="modal-body" style="padding:16px; display:flex; flex-direction:column; gap:10px;">
+            <div style="font-size:11.5px; color:#64748b;">Busca la zona o mueve el mapa, y haz clic exactamente donde está la tienda para poner el marcador.</div>
+            <div style="display:flex; gap:6px;">
+                <input id="mapaUbicBusq" placeholder="Buscar dirección o lugar (ej: Bayol Cell Santiago)" style="flex:1; min-width:0; padding:8px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:12.5px;" onkeydown="if(event.key==='Enter'){event.preventDefault(); _waBuscarEnMapaUbicacion();}">
+                <button class="btn btn-light" id="mapaUbicBtnBuscar" onclick="_waBuscarEnMapaUbicacion()" style="white-space:nowrap;"><i class="ti ti-search"></i> Buscar</button>
+            </div>
+            <div id="mapaUbicMapaDiv" style="width:100%; height:340px; border-radius:10px; overflow:hidden; border:1px solid #e2e8f0;"></div>
+            <div style="font-size:12px; color:#475569;">Coordenadas: <b id="mapaUbicCoords">—</b></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-light" onclick="_waCerrarMapaUbicacion()">Cancelar</button>
+            <button class="btn btn-blue" id="mapaUbicBtnGuardar" onclick="_waUsarUbicacionDelMapa()" disabled><i class="ti ti-check"></i> Usar esta ubicación</button>
+        </div>
+    </div>`;
+    modal.addEventListener('click', (e) => { if(e.target === modal) _waCerrarMapaUbicacion(); });
+    document.body.appendChild(modal);
+    return modal;
+}
+
+async function _waAbrirMapaUbicacion(sucursalId) {
+    _waMapaUbicSucursalId = sucursalId;
+    const nombre = (_waIaConfigSucursales.find(s => s.id === sucursalId) || {}).nombre || 'sucursal';
+    const modal = _waAsegurarModalMapaUbicacion();
+    document.getElementById('mapaUbicNombre').textContent = nombre;
+    document.getElementById('mapaUbicBusq').value = '';
+    document.getElementById('mapaUbicCoords').textContent = 'Cargando mapa…';
+    document.getElementById('mapaUbicBtnGuardar').disabled = true;
+    modal.classList.add('active');
     try {
-        const { data, error } = await supabaseClient.functions.invoke('resolver-link-mapa', { body: { url: link } });
-        if(error) throw error;
-        if(!data || !data.ok) { toastError((data && data.error) || 'No se pudieron sacar las coordenadas de ese link.'); return; }
-        const latInp = document.getElementById('iaLat_' + sucursalId);
-        const lngInp = document.getElementById('iaLng_' + sucursalId);
-        if(latInp) latInp.value = data.lat;
-        if(lngInp) lngInp.value = data.lng;
-        toast('📍 Coordenadas encontradas: ' + data.lat.toFixed(5) + ', ' + data.lng.toFixed(5) + ' — toca 💾 para guardar.');
-    } catch(e) { logError('_waDetectarUbicacionLink', e); toastError('No se pudo procesar ese link.'); }
-    finally { if(btn) { btn.disabled = false; btn.innerHTML = textoOriginal; } }
+        await _waCargarLeaflet();
+    } catch(e) {
+        logError('_waAbrirMapaUbicacion', e);
+        toastError('No se pudo cargar el mapa — revisa tu conexión e intenta de nuevo.');
+        _waCerrarMapaUbicacion();
+        return;
+    }
+
+    const latActual = Number(document.getElementById('iaLat_' + sucursalId)?.value);
+    const lngActual = Number(document.getElementById('iaLng_' + sucursalId)?.value);
+    const yaTeniaUbicacion = Number.isFinite(latActual) && Number.isFinite(lngActual) && (latActual || lngActual);
+    const centro = yaTeniaUbicacion ? { lat: latActual, lng: lngActual } : _WA_MAPA_UBIC_DEFAULT;
+
+    // El contenedor se limpia y el mapa anterior se destruye en cada apertura
+    // -- Leaflet no permite reusar el mismo <div> para un segundo mapa
+    // (tira "Map container is already initialized" si no se hace esto).
+    const cont = document.getElementById('mapaUbicMapaDiv');
+    cont.innerHTML = '';
+    if(_waMapaUbicMap) { try { _waMapaUbicMap.remove(); } catch(e) {} _waMapaUbicMap = null; }
+    _waMapaUbicMarker = null;
+    _waMapaUbicMap = L.map(cont).setView([centro.lat, centro.lng], yaTeniaUbicacion ? 17 : 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap',
+        maxZoom: 19,
+    }).addTo(_waMapaUbicMap);
+    if(yaTeniaUbicacion) _waMapaUbicColocarMarcador(centro.lat, centro.lng);
+    else document.getElementById('mapaUbicCoords').textContent = 'Haz clic en el mapa…';
+    _waMapaUbicMap.on('click', (e) => _waMapaUbicColocarMarcador(e.latlng.lat, e.latlng.lng));
+    // El modal pasa de display:none a flex justo antes de crear el mapa --
+    // Leaflet mide el contenedor en ese instante y a veces sale con 0 de
+    // alto/ancho (mapa en blanco) hasta que la ventana se redimensiona.
+    // invalidateSize() lo corrige apenas termina el layout del modal.
+    setTimeout(() => _waMapaUbicMap && _waMapaUbicMap.invalidateSize(), 60);
+}
+
+function _waMapaUbicColocarMarcador(lat, lng) {
+    if(!_waMapaUbicMap) return;
+    if(_waMapaUbicMarker) _waMapaUbicMarker.setLatLng([lat, lng]);
+    else {
+        _waMapaUbicMarker = L.marker([lat, lng], { draggable: true }).addTo(_waMapaUbicMap);
+        _waMapaUbicMarker.on('dragend', () => {
+            const p = _waMapaUbicMarker.getLatLng();
+            _waMapaUbicActualizarCoords(p.lat, p.lng);
+        });
+    }
+    _waMapaUbicActualizarCoords(lat, lng);
+}
+function _waMapaUbicActualizarCoords(lat, lng) {
+    document.getElementById('mapaUbicCoords').textContent = lat.toFixed(6) + ', ' + lng.toFixed(6);
+    document.getElementById('mapaUbicBtnGuardar').disabled = false;
+}
+
+// Nominatim (buscador gratis de OpenStreetMap) solo mueve el mapa a la zona
+// encontrada -- NO coloca el marcador solo. El clic final para confirmar el
+// punto EXACTO de la tienda lo sigue dando la persona, para no arriesgar
+// guardar la ubicación de otro negocio con nombre parecido.
+async function _waBuscarEnMapaUbicacion() {
+    const q = (document.getElementById('mapaUbicBusq')?.value || '').trim();
+    if(!q) return;
+    const btn = document.getElementById('mapaUbicBtnBuscar');
+    const original = btn.innerHTML;
+    btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i>';
+    try {
+        const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=do&q=' + encodeURIComponent(q);
+        const resp = await fetch(url, { headers: { 'Accept-Language': 'es' } });
+        const data = await resp.json();
+        if(!data || !data[0]) { toastError('No se encontró ese lugar — prueba con otras palabras o mueve el mapa a mano.'); return; }
+        _waMapaUbicMap.setView([Number(data[0].lat), Number(data[0].lon)], 17);
+    } catch(e) { logError('_waBuscarEnMapaUbicacion', e); toastError('No se pudo buscar ese lugar — mueve el mapa a mano.'); }
+    finally { btn.disabled = false; btn.innerHTML = original; }
+}
+
+function _waUsarUbicacionDelMapa() {
+    if(!_waMapaUbicMarker || !_waMapaUbicSucursalId) return;
+    const p = _waMapaUbicMarker.getLatLng();
+    const latInp = document.getElementById('iaLat_' + _waMapaUbicSucursalId);
+    const lngInp = document.getElementById('iaLng_' + _waMapaUbicSucursalId);
+    if(latInp) latInp.value = p.lat.toFixed(6);
+    if(lngInp) lngInp.value = p.lng.toFixed(6);
+    toast('📍 Coordenadas listas — toca 💾 para guardar.');
+    _waCerrarMapaUbicacion();
+}
+
+function _waCerrarMapaUbicacion() {
+    const modal = document.getElementById('modalMapaUbicacion');
+    if(modal) modal.classList.remove('active');
+    _waMapaUbicSucursalId = null;
 }
 
 async function _waGuardarUbicacionSucursal(sucursalId) {
