@@ -1106,9 +1106,10 @@ body{background:#f6f7f9 !important;}
 #app .top-right-info{
   background:linear-gradient(145deg,rgba(255,154,122,.98),rgba(214,82,37,.95)) !important;
   color:var(--bc-glass-navy) !important;
-  border-color:rgba(255,255,255,.56) !important;
+  border-color:rgba(214,82,37,.55) !important;
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.42),
+    inset 0 1px 0 rgba(255,255,255,.38),
+    inset 0 -2px 5px rgba(0,0,0,.16),
     0 8px 18px -14px rgba(255,107,53,.84) !important;
 }
 #app .top-bar .btn-light{
