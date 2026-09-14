@@ -3,11 +3,12 @@
   'use strict';
   if(window.__bcCrmExtensionsLoader)return;
   window.__bcCrmExtensionsLoader=true;
+  window.__bcVisualRelease='20260914-midnight-live1';
 
   var V='20260913-hotfix1';
-  var AMBIENT='20260914-midnight1';
-  var SURFACE='20260914-clean1';
-  var MIDNIGHT='20260914-midnight1';
+  var AMBIENT='20260914-midnight-live1';
+  var SURFACE='20260914-clean2';
+  var MIDNIGHT='20260914-midnight-live1';
   var surfaceCss=null;
   var midnightCss=null;
 
