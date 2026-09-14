@@ -1393,7 +1393,19 @@ body{
     radial-gradient(820px 680px at 102% 108%, rgba(20,33,61,.11), transparent 55%),
     radial-gradient(700px 560px at -4% 112%, rgba(255,107,53,.08), transparent 55%),
     var(--bc-ui-bg) !important;
+  /* "Fluid orb": el aura respira muy despacio moviendo solo la posición del
+     degradado (no crea capas ni elementos nuevos, no toca position/z-index
+     de nada — cero riesgo de romper un modal/dropdown en un archivo de 35k
+     líneas). Barato para el navegador: es la MISMA técnica de aurora animada
+     que usan sitios como Vercel/Linear. */
+  background-size:160% 160%,150% 150%,160% 160%,150% 150%,auto;
+  animation:bcAuraFlow 26s ease-in-out infinite alternate;
 }
+@keyframes bcAuraFlow{
+  0%{background-position:0% 0%,100% 0%,100% 100%,0% 100%,0 0;}
+  100%{background-position:6% 5%,94% 6%,95% 95%,5% 94%,0 0;}
+}
+@media (prefers-reduced-motion:reduce){ #app{ animation:none; } }
 #app .main,
 #app .content,
 #app .content > .view.active{
