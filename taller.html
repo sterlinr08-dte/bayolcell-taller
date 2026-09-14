@@ -2125,7 +2125,7 @@ body{
                     <div class="crm-tabs-row">
                         <div class="crm-tabs-track pill-elevado">
                             <button class="crm-tab-seg on pill-hundido" id="crmLineaTabWa" onclick="crmLineaTab('mensajes')"><i class="ti ti-brand-whatsapp"></i> Mensajes</button>
-                            <button class="crm-tab-seg" id="crmLineaTabLeads" onclick="crmLineaTab('leads')"><i class="ti ti-user-plus"></i> Leads</button>
+                            <button class="crm-tab-seg" id="crmLineaTabLeads" onclick="crmLineaTab('leads')"><i class="ti ti-user-plus"></i> Leads<span id="crmLeadsTabBadge" style="display:none; margin-left:4px; font-size:11px; font-weight:800; opacity:.75;"></span></button>
                             <button class="crm-tab-seg" id="crmLineaTabRedes" onclick="crmLineaTab('redes')"><i class="ti ti-share"></i> Redes</button>
                         </div>
                         <div class="crm-acciones-rapidas" aria-label="Acciones de conversaciones">
@@ -33201,7 +33201,7 @@ async function cargarHilosWhatsapp() {
 // para no traerse las filas completas, que aquí no se usan.
 let _crmLeadsAbiertos = 0;
 async function _crmContarLeadsAbiertos() {
-    if(!_crmLineaActualId) { _crmLeadsAbiertos = 0; return; }
+    if(!_crmLineaActualId) { _crmLeadsAbiertos = 0; _crmPintarBadgeLeads(); return; }
     try {
         const { count, error } = await supabaseClient
             .from('leads')
@@ -33211,6 +33211,17 @@ async function _crmContarLeadsAbiertos() {
         if(error) throw error;
         _crmLeadsAbiertos = count || 0;
     } catch(e) { logError('_crmContarLeadsAbiertos', e); _crmLeadsAbiertos = 0; }
+    _crmPintarBadgeLeads();
+}
+// Antes esto salía en una tarjeta "Leads abiertos" aparte, en la fila de
+// stats de WhatsApp (donde no aplicaba nada, porque esa fila es de
+// mensajes) -- ahora sale directo sobre la pestaña Leads, que es donde
+// tiene sentido verlo.
+function _crmPintarBadgeLeads() {
+    const b = document.getElementById('crmLeadsTabBadge');
+    if(!b) return;
+    if(_crmLeadsAbiertos > 0) { b.textContent = _crmLeadsAbiertos; b.style.display = ''; }
+    else b.style.display = 'none';
 }
 
 async function renderWhatsapp() {
@@ -33359,29 +33370,22 @@ function _pintarWhatsappLista() {
     _crmListaAnimarProxima = false;
 }
 
-// Resumen + chips. Se repinta junto con la lista para que los números y
-// los contadores de cada chip siempre reflejen lo que se está viendo.
+// Chips de la bandeja. Se repinta junto con la lista para que los
+// contadores siempre reflejen lo que se está viendo.
+// Antes había DOS filas aquí (esta de chips + una de "tarjetas" con
+// No leídos/Por responder/Leads abiertos) que repetían casi la misma
+// información dos veces (ej. "Pendientes" y "Por responder" eran el
+// MISMO número) -- Sterling la reportó como desordenada/apretada (14 sept
+// 2026). Se quitó la fila de tarjetas: "Pendientes" ya cubre "Por
+// responder" (ver _crmSetChip abajo), y "No leídos" queda solo en el chip
+// (antes la tarjeta contaba MENSAJES sin leer y el chip contaba
+// CONVERSACIONES sin leer -- dos números distintos para lo mismo, más
+// confuso que útil). "Leads abiertos" se movió como insignia sobre la
+// pestaña "Leads" (ver _crmContarLeadsAbiertos), que es donde tiene más
+// sentido verla. #crmStats se deja vacío a propósito -- el CSS
+// (.crm-stats:empty{display:none}) lo esconde solo, así no hace falta
+// tocar el resto de las reglas responsive que ya lo tenían en cuenta.
 function _crmPintarCabecera() {
-    const stats = document.getElementById('crmStats');
-    if(stats) {
-        const noLeidos = (_waHilos || []).reduce((n, h) => n + (h.no_leidos_count || 0), 0);
-        const pendientes = (_waHilos || []).filter(_crmEsPendiente).length;
-        const leads = _crmLeadsAbiertos;
-        const statsHtml = `
-            <div class="crm-stat rojo" title="${noLeidos} mensajes sin leer">
-                <div class="bola"><i class="ti ti-message-circle"></i></div>
-                <div class="num">${noLeidos}</div><div class="lbl">No leídos</div>
-            </div>
-            <div class="crm-stat azul" title="${pendientes} conversaciones requieren atención humana">
-                <div class="bola"><i class="ti ti-clock-exclamation"></i></div>
-                <div class="num">${pendientes}</div><div class="lbl">Por responder</div>
-            </div>
-            <div class="crm-stat morado" title="${leads} leads abiertos">
-                <div class="bola"><i class="ti ti-users"></i></div>
-                <div class="num">${leads}</div><div class="lbl">Leads abiertos</div>
-            </div>`;
-        if(stats.innerHTML !== statsHtml) stats.innerHTML = statsHtml;
-    }
     const chips = document.getElementById('crmChipsRow');
     if(chips) {
         const total = (_waHilos || []).length;
