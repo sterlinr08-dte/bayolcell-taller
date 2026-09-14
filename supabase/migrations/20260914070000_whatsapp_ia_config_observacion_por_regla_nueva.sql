@@ -1,0 +1,12 @@
+-- Sterling agrego .claude/rules/agente-atencion-supervisado.md (commit
+-- 25212d0): la primera entrega del agente debe empezar en 'observacion'
+-- -- cero envios automaticos, incluido el saludo inicial -- hasta que un
+-- administrador decida subir de nivel desde el panel del CRM.
+--
+-- Las 3 sucursales estaban en 'automatico' porque el saludo YA se auto-
+-- enviaba en produccion desde antes de esta hoja de ruta -- se habian
+-- migrado asi para no apagarlo en silencio. Sterling confirmo explicitamente
+-- (14 sept 2026) que prefiere cumplir la regla al pie de la letra: se
+-- apaga el saludo automatico tambien, quedando el agente puramente en
+-- observacion hasta que el admin lo reactive.
+update public.whatsapp_ia_config set modo = 'observacion' where modo = 'automatico';
