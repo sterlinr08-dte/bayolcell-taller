@@ -1387,7 +1387,12 @@ body{
 #app{
   min-width:0;
   max-width:100%;
-  background:var(--bc-ui-bg) !important;
+  background:
+    radial-gradient(900px 620px at 6% -10%, rgba(41,72,120,.16), transparent 58%),
+    radial-gradient(760px 620px at 98% 4%, rgba(255,107,53,.11), transparent 55%),
+    radial-gradient(820px 680px at 102% 108%, rgba(20,33,61,.11), transparent 55%),
+    radial-gradient(700px 560px at -4% 112%, rgba(255,107,53,.08), transparent 55%),
+    var(--bc-ui-bg) !important;
 }
 #app .main,
 #app .content,
