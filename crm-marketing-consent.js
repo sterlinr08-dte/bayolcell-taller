@@ -11,6 +11,56 @@
   var surfaceCss=null;
   var midnightCss=null;
 
+  // Loader premium: conserva la lógica de cierre original de taller.html y
+  // sustituye únicamente la presentación del aro/logo giratorio.
+  function instalarLoaderPremium(){
+    try{
+      var loader=document.getElementById('appLoader');
+      if(!loader||document.getElementById('bcLoaderPremiumStyle'))return;
+
+      var style=document.createElement('style');
+      style.id='bcLoaderPremiumStyle';
+      style.textContent=[
+        '#appLoader{flex-direction:column!important;gap:0!important;perspective:none!important;',
+        'background:radial-gradient(58% 48% at 18% 12%,rgba(0,71,171,.62),transparent 70%),',
+        'radial-gradient(46% 40% at 84% 84%,rgba(255,107,53,.13),transparent 72%),',
+        'linear-gradient(135deg,#0047AB 0%,#17345f 42%,#1A1A2E 100%)!important;',
+        'transition:opacity .34s ease,visibility .34s ease!important;}',
+        '#appLoader .ldr-logo{order:1!important;position:relative!important;width:154px!important;max-width:46vw!important;',
+        'height:auto!important;animation:bcLoaderLogoPulse 2.35s ease-in-out infinite!important;',
+        'filter:drop-shadow(0 16px 30px rgba(0,0,0,.28)) drop-shadow(0 0 18px rgba(95,168,255,.18))!important;}',
+        '#appLoader .bc-loader-copy{order:2!important;margin-top:18px!important;text-align:center!important;',
+        'font-family:"Plus Jakarta Sans",system-ui,sans-serif!important;pointer-events:none!important;}',
+        '#appLoader .bc-loader-title{display:block!important;color:#fff!important;font-size:18px!important;',
+        'line-height:1.25!important;font-weight:800!important;letter-spacing:-.02em!important;}',
+        '#appLoader .bc-loader-status{display:block!important;margin-top:7px!important;color:rgba(255,255,255,.68)!important;',
+        'font-size:12px!important;font-weight:600!important;letter-spacing:.01em!important;}',
+        '#appLoader .ldr-ring{order:3!important;position:relative!important;width:min(244px,64vw)!important;height:5px!important;',
+        'max-width:none!important;max-height:none!important;margin-top:18px!important;border:0!important;border-radius:999px!important;',
+        'background:rgba(255,255,255,.16)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)!important;',
+        'animation:none!important;overflow:hidden!important;transform:none!important;}',
+        '#appLoader .ldr-ring::after{content:"";position:absolute;inset:0 auto 0 0;width:42%;border-radius:999px;',
+        'background:linear-gradient(90deg,#FF6B35 0%,#fff 50%,#5FA8FF 100%);',
+        'box-shadow:0 0 16px rgba(95,168,255,.34);animation:bcLoaderProgress 1.22s cubic-bezier(.45,0,.25,1) infinite;}',
+        '@keyframes bcLoaderLogoPulse{0%,100%{transform:translateY(0) scale(1);opacity:1}',
+        '50%{transform:translateY(-2px) scale(1.024);opacity:.97}}',
+        '@keyframes bcLoaderProgress{0%{transform:translateX(-125%)}100%{transform:translateX(340%)}}',
+        '@media(max-width:640px){#appLoader .ldr-logo{width:136px!important}#appLoader .bc-loader-title{font-size:17px!important}',
+        '#appLoader .ldr-ring{width:min(224px,66vw)!important}}',
+        '@media(prefers-reduced-motion:reduce){#appLoader .ldr-logo{animation:none!important}',
+        '#appLoader .ldr-ring::after{animation:none!important;transform:none!important;width:68%!important}}'
+      ].join('');
+      document.head.appendChild(style);
+
+      var copy=document.createElement('div');
+      copy.className='bc-loader-copy';
+      copy.innerHTML='<strong class="bc-loader-title">Cargando sistema…</strong><span class="bc-loader-status">Preparando tu espacio de trabajo</span>';
+      loader.appendChild(copy);
+      loader.setAttribute('aria-label','Cargando sistema BAYOL CELL');
+    }catch(e){}
+  }
+  instalarLoaderPremium();
+
   // Capas finales del Taller. Se reafirman al final para ganar la cascada del CRM.
   try{
     surfaceCss=document.createElement('link');
