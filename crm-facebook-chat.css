@@ -43,11 +43,19 @@
  #bcSocialFacebookPanel .bc-social-generic-shell{display:flex;flex-direction:column;min-height:0}
  #bcSocialFacebookPanel .bc-social-generic-list{flex:1;border:0;max-height:none;min-height:350px}
  #bcSocialFacebookPanel .bc-social-generic-chat{display:none}
- #bcSocialFacebookPanel.bc-fb-open{position:fixed;z-index:60;top:var(--fb-chat-top,0px);left:0;right:0;width:100%;height:var(--fb-chat-height,100dvh);max-height:none;min-height:0;flex:none;margin:0;border-radius:0;background:#f7f9fd;overflow:hidden}
+ /* iOS Safari: no permitir que el alto calculado por JS sea mayor que el
+    viewport dinámico visible. Cuando window.innerHeight conserva el layout
+    viewport grande, la burbuja y el composer quedan debajo de la pantalla y
+    solo se ve el header. 100dvh pone un techo real; si aparece el teclado,
+    --fb-chat-height (visualViewport.height) puede seguir reduciendo el panel. */
+ #bcSocialFacebookPanel.bc-fb-open{position:fixed;z-index:60;top:var(--fb-chat-top,0px);left:0;right:0;width:100%;height:var(--fb-chat-height,100dvh);height:min(100dvh,var(--fb-chat-height,100dvh));max-height:min(100dvh,var(--fb-chat-height,100dvh));min-height:0;flex:none;margin:0;border-radius:0;background:#f7f9fd;overflow:hidden}
  #bcSocialFacebookPanel.bc-fb-open{display:flex!important;flex-direction:column}
- #bcSocialFacebookPanel.bc-fb-open .bc-social-generic-shell{display:flex;flex:1 1 auto;width:100%;height:100%;min-height:0;overflow:hidden}
+ #bcSocialFacebookPanel.bc-fb-open .bc-social-generic-shell{display:flex;flex:1 1 auto;width:100%;height:100%;min-height:0;max-height:100%;overflow:hidden}
  #bcSocialFacebookPanel.bc-fb-open .bc-social-generic-list{display:none}
- #bcSocialFacebookPanel.bc-fb-open .bc-social-generic-chat{display:flex;flex:1 1 auto;width:100%;height:100%;min-height:0}
+ #bcSocialFacebookPanel.bc-fb-open .bc-social-generic-chat{display:flex;flex:1 1 auto;width:100%;height:100%;min-height:0;max-height:100%;overflow:hidden}
+ #bcSocialFacebookPanel.bc-fb-open #bcFbChat{height:100%;min-height:0;max-height:100%;overflow:hidden}
+ #bcSocialFacebookPanel.bc-fb-open #bcFbMessages{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
+ #bcSocialFacebookPanel.bc-fb-open #bcFbComposer{flex:0 0 auto}
  #v-crmLinea[data-social-channel="facebook"]:has(#bcSocialFacebookPanel.bc-fb-open) #bcSocialHubHead{display:none!important}
  .bc-fb-messages{padding:12px}.bc-fb-bubble{max-width:86%;font-size:13.5px}.bc-fb-composer{padding-left:6px;padding-right:7px;gap:2px}.bc-fb-composer textarea{font-size:16px}.bc-fb-head{gap:6px;padding:7px 8px}
  /* 15 sept 2026: la barra superior del sistema (.top-bar) tiene su propio
