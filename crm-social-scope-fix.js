@@ -275,6 +275,7 @@
       .bc-fbc-actions button.like.liked{background:linear-gradient(145deg,#ff9a7a,#FF6B35 54%,#D65225);border-color:rgba(255,255,255,.86);color:#14213d;box-shadow:inset 0 1px 0 rgba(255,255,255,.54),inset 0 -3px 7px rgba(125,34,12,.18),0 8px 17px -12px rgba(255,107,53,.78);}
       .bc-fbc-actions button:disabled{opacity:.62;cursor:wait;transform:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.75);}
       .bc-fbc-replybox{margin:6px 0;display:flex;gap:6px;}
+      .bc-fbc-replybox[hidden]{display:none;}
       .bc-fbc-replybox textarea{flex:1;resize:none;border:1px solid rgba(15,23,42,.15);border-radius:10px;padding:7px 9px;font-size:12.5px;font-family:inherit;min-height:34px;}
       .bc-fbc-replybox .bc-fbc-box-btns{display:flex;flex-direction:column;gap:4px;}
       .bc-fbc-replybox button{border:none;border-radius:8px;padding:6px 10px;font-size:11.5px;font-weight:700;cursor:pointer;}
