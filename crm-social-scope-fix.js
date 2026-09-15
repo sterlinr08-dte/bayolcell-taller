@@ -203,6 +203,14 @@
     const generation=++facebookMessageGeneration;
     facebookSelectedThread=id;
     const current=()=>generation===facebookMessageGeneration && facebookSelectedThread===id && state.visible && state.channel==='facebook';
+    // 15 sept 2026: .bc-fb-open se activa YA (antes de esperar la respuesta
+    // de Supabase) -- en celular #bcSocialFacebookPanel .bc-social-generic-chat
+    // es display:none sin esta clase, así que sin esto ni el spinner de
+    // carga se llegaba a ver (el chat entero queda invisible hasta que
+    // render() la agrega más abajo, y si algo falla antes de eso -- ver los
+    // catch/fallback de esta función -- nunca se agregaba).
+    $('#bcSocialFacebookPanel')?.classList.add('bc-fb-open');
+    document.documentElement.classList.add('bc-fb-lock-scroll');
     chat.innerHTML='<div class="bc-social-loading"><span class="bc-social-spin"></span>Cargando mensajes…</div>';
     try{
     const {data:thread,error:threadError}=await withTimeout(client.from('social_hilos').select('id,participant_name,participant_username,asignado_id,asignado_tipo').eq('id',id).maybeSingle(),12000);
@@ -217,8 +225,18 @@
       window.BayolFacebookChat.render(thread,messages,{reload:()=>{if(current())return openFacebookThread(id);},refreshList:loadFacebookThreads});
       return;
     }
+    // 15 sept 2026: si crm-facebook-chat.js no llegó a cargar (falla de red,
+    // ver el .onerror del loader en crm-marketing-consent.js que sigue de
+    // largo sin avisar), este fallback es lo único que pinta el chat. A
+    // diferencia de render(), nunca traía un botón para volver a la lista
+    // en celular -- se agrega aquí (.bc-fb-open ya se activó arriba).
     const name=thread.participant_name||thread.participant_username||'Contacto de Facebook';
-    chat.innerHTML=`<div class="bc-social-generic-chat-head"><span class="bc-social-generic-avatar">${escapeHtml(name.slice(0,2).toUpperCase())}</span><div><b>${escapeHtml(name)}</b><small>${escapeHtml(thread.participant_username||'Messenger')}</small></div><span class="bc-social-generic-channel">Facebook</span></div><div class="bc-social-generic-messages" id="bcFbMessages">${(messages||[]).map(m=>`<div class="bc-social-generic-message ${m.direccion==='out'?'out':'in'}"><div>${escapeHtml(m.cuerpo|| (m.media_url?'Adjunto':'Mensaje sin texto'))}</div><small>${new Date(m.creado_en).toLocaleString('es-DO',{dateStyle:'short',timeStyle:'short'})} · ${m.estado||''}</small></div>`).join('')||'<div class="bc-ig-empty"><div><b>Sin mensajes</b></div></div>'}</div><form class="bc-social-generic-composer" id="bcFbComposer"><textarea id="bcFbText" rows="1" placeholder="Escribe un mensaje…"></textarea><button type="submit" aria-label="Enviar"><i class="ti ti-send"></i></button></form>`;
+    chat.innerHTML=`<div class="bc-social-generic-chat-head"><button type="button" id="bcFbBackFallback" class="bc-fb-icon" aria-label="Volver a conversaciones"><i class="ti ti-arrow-left"></i></button><span class="bc-social-generic-avatar">${escapeHtml(name.slice(0,2).toUpperCase())}</span><div><b>${escapeHtml(name)}</b><small>${escapeHtml(thread.participant_username||'Messenger')}</small></div><span class="bc-social-generic-channel">Facebook</span></div><div class="bc-social-generic-messages" id="bcFbMessages">${(messages||[]).map(m=>`<div class="bc-social-generic-message ${m.direccion==='out'?'out':'in'}"><div>${escapeHtml(m.cuerpo|| (m.media_url?'Adjunto':'Mensaje sin texto'))}</div><small>${new Date(m.creado_en).toLocaleString('es-DO',{dateStyle:'short',timeStyle:'short'})} · ${m.estado||''}</small></div>`).join('')||'<div class="bc-ig-empty"><div><b>Sin mensajes</b></div></div>'}</div><form class="bc-social-generic-composer" id="bcFbComposer"><textarea id="bcFbText" rows="1" placeholder="Escribe un mensaje…"></textarea><button type="submit" aria-label="Enviar"><i class="ti ti-send"></i></button></form>`;
+    $('#bcFbBackFallback').onclick=()=>{
+      $('#bcSocialFacebookPanel')?.classList.remove('bc-fb-open');
+      document.documentElement.classList.remove('bc-fb-lock-scroll');
+      facebookSelectedThread=null;
+    };
     const messagesEl=$('#bcFbMessages'); if(messagesEl)messagesEl.scrollTop=messagesEl.scrollHeight;
     $('#bcFbComposer')?.addEventListener('submit',async e=>{
       e.preventDefault();const ta=$('#bcFbText'),text=String(ta?.value||'').trim();
@@ -236,7 +254,19 @@
     });
     }catch(error){
       if(!current())return;
-      chat.innerHTML='<div class="bc-social-error"><b>No se pudieron cargar los mensajes</b><span>Comprueba la conexión y vuelve a intentarlo.</span><button type="button" id="bcFbRetryMessages">Reintentar</button></div>';
+      // 15 sept 2026: .bc-fb-open ya se activó arriba (antes del fetch), así
+      // que esta tarjeta de error sí se ve en celular -- pero antes de ese
+      // cambio, un timeout de red al abrir un chat (de las formas más
+      // comunes de caer aquí) dejaba SOLO la lista visible, sin ningún
+      // aviso ni forma de volver ("una capa por encima" / todo en blanco).
+      // Le falta igual un botón de volver, porque el header normal
+      // (con el nombre del contacto) nunca llegó a pintarse.
+      chat.innerHTML='<div class="bc-social-generic-chat-head"><button type="button" id="bcFbBackFallback" class="bc-fb-icon" aria-label="Volver a conversaciones"><i class="ti ti-arrow-left"></i></button><div><b>Facebook Messenger</b></div></div><div class="bc-social-error"><b>No se pudieron cargar los mensajes</b><span>Comprueba la conexión y vuelve a intentarlo.</span><button type="button" id="bcFbRetryMessages">Reintentar</button></div>';
+      $('#bcFbBackFallback').onclick=()=>{
+        $('#bcSocialFacebookPanel')?.classList.remove('bc-fb-open');
+        document.documentElement.classList.remove('bc-fb-lock-scroll');
+        facebookSelectedThread=null;
+      };
       $('#bcFbRetryMessages')?.addEventListener('click',()=>openFacebookThread(id));
     }
   }
