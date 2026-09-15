@@ -25,7 +25,7 @@ de datos, convención de módulos) seguir lo que ya dice `CLAUDE.md`.
 - **No** aplica si el pedido es una función nueva o un cambio de lógica —
   en ese caso la estética es secundaria a que el dato/flujo esté correcto.
 
-## Principios visuales (Human Interface Guidelines, adaptado)
+## Principios visuales (Human Interface Guidelines, adaptado a web/móvil)
 - **Tipografía como jerarquía principal.** El tamaño y el peso (700–850 para
   títulos, 400–600 para cuerpo) comunican importancia — no el color. Números
   grandes y en negrita para KPIs; texto secundario en gris (`#64748b`/
@@ -44,24 +44,59 @@ de datos, convención de módulos) seguir lo que ya dice `CLAUDE.md`.
   acento de BAYOL CELL; si el módulo ya estableció otro acento (azul en CRM/
   WhatsApp, siguiendo `--crm-azul:#2563eb`), respetar ESE, no mezclar. El
   resto de la paleta es grises neutros + blanco. Color con propósito (estado,
-  acción principal), no decorativo.
+  acción principal), no decorativo — "un color = una cosa".
 - **Iconos, nunca emoji.** `<i class="ti ti-*">` (Tabler, ya cargado en el
   proyecto) en gris o en el acento — un ícono por elemento, sin duplicar con
-  emoji al lado. Ver la convención ya aplicada en Financiamiento y en los
-  rediseños de Recepción/buscador/ficha de equipo.
+  emoji al lado, del mismo peso/tamaño que el texto que acompañan. Ver la
+  convención ya aplicada en Financiamiento y en los rediseños de Recepción/
+  buscador/ficha de equipo.
 - **Movimiento discreto.** Transiciones 150–250ms, `ease`/`cubic-bezier`
-  suave, en hover/focus/active — nunca animaciones que retrasen una acción
-  que el usuario ya pidió (ver la reversión de la animación de "Imprimir",
-  20 jul: Sterling la sintió más lenta y se quitó).
-- **Contenido primero.** Cada tarjeta/fila debe poder leerse de un vistazo:
-  dato principal grande, metadatos pequeños debajo, acciones al final o a la
-  derecha. Si algo no ayuda a decidir o actuar, no va.
+  suave, cancelable, en hover/focus/active — nunca animaciones que retrasen
+  una acción que el usuario ya pidió (ver la reversión de la animación de
+  "Imprimir", 20 jul: Sterling la sintió más lenta y se quitó). Respetar
+  `prefers-reduced-motion`.
+- **Contenido primero, progressive disclosure.** Cada tarjeta/fila debe
+  poder leerse de un vistazo: dato principal grande, metadatos pequeños
+  debajo, acciones al final o a la derecha. Preferir menús "Más opciones"
+  para lo ocasional en vez de amontonar todos los botones. Si algo no ayuda
+  a decidir o actuar, no va.
+
+## Números concretos, no adjetivos
+Al revisar o proponer un cambio, dar cifras — "12px gris #64748b sobre
+blanco, contraste 4.7:1" en vez de "se ve pequeño". Referencias mínimas
+(adaptadas de Apple HIG a un panel web usado desde el celular):
+- **Contraste de texto:** ≥4.5:1 para texto ≤17px; ≥3:1 para texto ≥18px o
+  negrita. Nunca informar contraste solo "a ojo".
+- **Tamaño de texto:** cuerpo 13–15px como piso en el panel del taller (no
+  bajar de ahí "para que quepa más" — se gana espacio con jerarquía, no con
+  letra diminuta).
+- **Áreas táctiles:** mínimo 40×40px (ideal 44×44px) para cualquier botón/
+  ícono tocable — Sterling usa el sistema desde el celular todo el día.
+- **Un color = una cosa.** Si el rojo de marca ya significa "acción
+  principal", no reusarlo también para "error" en la misma pantalla.
+
+## Evitar el look genérico de plantilla de IA
+Antes de dar un rediseño por terminado, preguntarse: *¿este mismo diseño le
+serviría a cualquier otro negocio, o tiene algo que lo hace de BAYOL CELL?*
+Señales de que quedó "genérico" (evitarlas o justificarlas):
+- Combos gastados: crema cálido + serif + terracota; casi-negro + acento
+  ácido; solo líneas finas sin radio de esquina; número grande + etiqueta
+  chica + degradado, sin nada más.
+- El rojo de marca (o el acento del módulo) apareciendo repetido como
+  decoración en vez de reservarse para lo importante.
+- Nada que se sienta hecho a medida del taller (RD$, es-DO, el flujo real
+  de reacondicionados/CRM/financiamiento) — si el texto/ejemplo de mentira
+  serviría para cualquier app de inventario, falta contexto real.
+Antes de cerrar: ¿qué es lo único que esta pantalla va a hacer recordar? Y
+¿se puede quitar un accesorio más sin perder nada?
 
 ## Lo que este proyecto YA decidió — no reabrir
-- **Sin tema oscuro.** Palabras textuales de Sterling: *"sus herramientas
-  necesarias, el diseño lo modernizamos nosotros; del tema oscuro nada"*. No
-  proponer dark mode ni "detectar preferencia del sistema" para colores
-  oscuros en el panel del taller (la landing pública es aparte).
+- **Sin tema oscuro**, aunque el HIG de Apple en general pida soportar claro
+  y oscuro. Palabras textuales de Sterling: *"sus herramientas necesarias, el
+  diseño lo modernizamos nosotros; del tema oscuro nada"*. No proponer dark
+  mode ni "detectar preferencia del sistema" para colores oscuros en el panel
+  del taller (la landing pública es aparte). Es una decisión de producto ya
+  tomada, no un vacío por llenar.
 - **Sin emojis en la interfaz** (ya es regla general del proyecto, no solo de
   Financiamiento).
 - **Español, RD$, es-DO, imprimible/PDF/WhatsApp** cuando aplique — ver
@@ -102,4 +137,16 @@ de datos, convención de módulos) seguir lo que ya dice `CLAUDE.md`.
 3. ¿Los `id`/`onclick`/funciones siguen intactos (mismo comportamiento)?
 4. ¿Un solo acento de color, consistente con el módulo?
 5. ¿Sombras suaves en vez de bordes duros; esquinas redondeadas reales?
-6. ¿Sintaxis verificada (JS/CSS) antes de commitear?
+6. ¿Contraste de texto y tamaño de áreas táctiles dentro de los mínimos de
+   arriba (no solo "a ojo")?
+7. ¿No quedó genérico — tiene algo que lo hace de BAYOL CELL y no de
+   cualquier otro negocio?
+8. ¿Sintaxis verificada (JS/CSS) antes de commitear?
+
+## Fuente
+Principios adaptados de las Apple Human Interface Guidelines (accesibilidad,
+tipografía, color, contenido) más una capa de criterio de estudio para
+evitar el look genérico de plantilla, con las convenciones propias de
+BAYOL CELL siempre por encima cuando hay conflicto (ver arriba). No se
+instaló ningún paquete de terceros para esta skill — es contenido propio del
+repo, sin dependencias externas ni código ejecutado fuera de este archivo.
