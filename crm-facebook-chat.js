@@ -5,6 +5,19 @@
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const drafts=new Map();
   let selected=null,callbacks={},messages=[],busy=false,attachment=null;
+  function composerUnlock(){
+    const ta=$('#bcFbText');
+    if(!ta||busy)return ta;
+    ta.disabled=false;
+    ta.readOnly=false;
+    ta.removeAttribute('disabled');
+    ta.removeAttribute('readonly');
+    ta.setAttribute('tabindex','0');
+    ta.style.pointerEvents='auto';
+    ta.style.userSelect='text';
+    ta.style.webkitUserSelect='text';
+    return ta;
+  }
   const client=()=>typeof supabaseClient!=='undefined'?supabaseClient:window.supabaseClient;
   const icon=(id,title,symbol)=>`<button type="button" id="${id}" class="bc-fb-icon" title="${title}" aria-label="${title}"><i class="ti ti-${symbol}"></i></button>`;
   const safeUrl=url=>{try{const u=new URL(url);return u.protocol==='https:'?u.href:'';}catch{return '';}};
@@ -69,6 +82,7 @@
     $('#bcFbAttach').onclick=()=>{if(!busy)$('#bcFbFile').click();};
     $('#bcFbFile').onchange=e=>{const f=e.target.files[0];if(!f)return;if(f.size>8*1024*1024){notice('El archivo debe pesar menos de 8 MB.');return;}attachment=f;paintAttachment();};
     $('#bcFbText').oninput=e=>{drafts.set(selected,e.target.value);e.target.style.height='auto';e.target.style.height=Math.min(e.target.scrollHeight,112)+'px';};
+    $('#bcFbText').onfocus=()=>{if(!busy)composerUnlock();resize();};
     $('#bcFbText').onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing&&matchMedia('(pointer:fine)').matches){e.preventDefault();send(e);}};
     $('#bcFbComposer').onsubmit=send;
     host.querySelectorAll('[data-menu]').forEach(btn=>btn.onclick=()=>messageMenu(btn.dataset.menu));
@@ -92,7 +106,11 @@
     resize();
   }
   function paintAttachment(){const box=$('#bcFbAttachment');if(!box)return;box.hidden=!attachment;box.innerHTML=attachment?`<span>${esc(attachment.name)}</span><button type="button" id="bcFbRemoveFile" aria-label="Quitar adjunto">×</button>`:'';if(attachment)$('#bcFbRemoveFile').onclick=()=>{if(!busy){attachment=null;paintAttachment();}};}
-  function setBusy(value){busy=value;['#bcFbSend','#bcFbAttach','#bcFbText'].forEach(s=>{if($(s))$(s).disabled=value;});}
+  function setBusy(value){
+    busy=!!value;
+    ['#bcFbSend','#bcFbAttach','#bcFbText'].forEach(s=>{if($(s))$(s).disabled=busy;});
+    if(!busy)composerUnlock();
+  }
   async function send(e){
     e.preventDefault();if(busy)return;
     const id=selected,t=$('#bcFbText'),text=t.value.trim(),file=attachment,cb=callbacks;
