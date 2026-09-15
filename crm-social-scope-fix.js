@@ -38,44 +38,62 @@
     tiktok: { label:'TikTok', icon:'ti-brand-tiktok' }
   };
 
-  // Comentarios de Facebook (Zernio) — reemplaza el placeholder "Integración
-  // backend pendiente" por la funcionalidad real: publicaciones, comentarios
-  // con respuestas anidadas, Responder público, Private Reply y Lead.
+  // Comentarios de Facebook e Instagram (Zernio) — reemplaza el placeholder
+  // "Integración backend pendiente" por la funcionalidad real: publicaciones,
+  // comentarios con respuestas anidadas, Responder público, Private Reply y
+  // Lead. Un mismo panel/estado sirve a los dos canales (mismo endpoint de
+  // Zernio, solo cambia la cuenta consultada) -- ver fbc.platform.
   const fbc = {
+    platform: null, // 'facebook' | 'instagram' -- del último canal renderizado
     postId: null, posts: [], postsLoading: false, postsError: null, postsCursor: null, postsHasMore: false,
     comments: [], commentsLoading: false, commentsError: null, commentsCursor: null, commentsHasMore: false,
     openBox: null, // {commentId, mode:'reply'|'private'}
     likeBusy: new Set()
   };
 
+  function fbcResetState(){
+    fbc.postId = null; fbc.posts = []; fbc.postsLoading = false; fbc.postsError = null;
+    fbc.postsCursor = null; fbc.postsHasMore = false;
+    fbc.comments = []; fbc.commentsLoading = false; fbc.commentsError = null;
+    fbc.commentsCursor = null; fbc.commentsHasMore = false;
+    fbc.openBox = null; fbc.likeBusy = new Set();
+  }
+
   // Códigos técnicos que devuelve social-facebook-comentarios (o Supabase al
   // fallar la llamada) -> mensaje en español entendible para el equipo.
   const FBC_ERRORES = {
-    account_not_configured: 'No hay una cuenta de Facebook conectada todavía.',
+    account_not_configured: 'No hay una cuenta conectada todavía.',
     postId_required: 'Falta elegir una publicación.',
     postId_message_required: 'Escribe un mensaje antes de enviar.',
     postId_commentId_message_required: 'Escribe un mensaje antes de enviar.',
-    zernio_error: 'Facebook no respondió. Intenta de nuevo en un momento.',
+    zernio_error: '{red} no respondió. Intenta de nuevo en un momento.',
     zernio_reply_failed: 'No se pudo publicar la respuesta. Puede que el comentario ya no exista.',
     zernio_private_reply_failed: 'No se pudo enviar el Private Reply. Puede que ya se haya usado el único envío de este comentario, o que tenga más de 7 días.',
     postId_commentId_required: 'Falta elegir el comentario.',
     zernio_like_failed: 'No se pudo dar like al comentario.',
     zernio_unlike_failed: 'No se pudo quitar el like.',
     unknown_action: 'Acción no reconocida.',
-    upstream_failed: 'Facebook no respondió. Intenta de nuevo en un momento.',
+    upstream_failed: '{red} no respondió. Intenta de nuevo en un momento.',
     missing_auth: 'Tu sesión venció. Vuelve a entrar.',
-    zernio_key_not_configured: 'Falta configurar la conexión con Facebook (avisa a soporte).',
+    zernio_key_not_configured: 'Falta configurar la conexión con {red} (avisa a soporte).',
     method_not_allowed: 'No se pudo completar la acción.',
     invalid_json: 'No se pudo completar la acción.'
   };
   function fbcFriendly(msg){
-    return FBC_ERRORES[msg] || msg || 'No se pudo completar la acción.';
+    const texto = FBC_ERRORES[msg] || msg || 'No se pudo completar la acción.';
+    return texto.includes('{red}') ? texto.replace('{red}', fbcRedLabel()) : texto;
+  }
+
+  // Nombre de la red para mensajes genéricos (el panel de Comentarios sirve
+  // a Facebook e Instagram con el mismo código -- ver fbc.platform).
+  function fbcRedLabel(){
+    return (fbc.platform || state.channel) === 'instagram' ? 'Instagram' : 'Facebook';
   }
 
   async function fbcInvoke(action, extra){
     const client = typeof supabaseClient !== 'undefined' ? supabaseClient : window.supabaseClient;
     if (!client?.functions?.invoke) throw new Error('Sin conexión a Supabase.');
-    const { data, error } = await withTimeout(client.functions.invoke('social-facebook-comentarios', { body: { action, ...extra } }), 18000);
+    const { data, error } = await withTimeout(client.functions.invoke('social-facebook-comentarios', { body: { action, platform: state.channel, ...extra } }), 18000);
     if (error) throw new Error(fbcFriendly(error?.message));
     if (data?.ok !== true) throw new Error(fbcFriendly(data?.error));
     return data;
@@ -318,6 +336,15 @@
     const panel = $('#bcSocialContextPanel');
     if (!panel) return;
     panel.classList.add('bc-fbc-active');
+    // 15 sept 2026: este panel ahora sirve tanto a Facebook como a Instagram
+    // (mismo endpoint de Zernio, solo cambia la cuenta consultada). Si se
+    // cambió de canal desde la última vez, hay que botar el cache -- si no,
+    // se ven publicaciones/comentarios de la otra red.
+    if (fbc.platform && fbc.platform !== state.channel) {
+      fbcResetState();
+      delete panel.dataset.fbcBuilt;
+    }
+    fbc.platform = state.channel;
     // Si ya estaba armado (el agente solo se fue a otra sub-pestaña — p.ej.
     // Mensajes — y volvió a Comentarios), no se reconstruye de cero: se
     // pierde la publicación/comentarios que tenía abiertos si no se hace
@@ -383,7 +410,7 @@
       fbc.postsHasMore = !!data.pagination?.hasMore;
       fbc.postsCursor = data.pagination?.nextCursor || null;
     } catch (e) {
-      fbc.postsError = e?.message || 'Error de conexión con Facebook.';
+      fbc.postsError = e?.message || `Error de conexión con ${fbcRedLabel()}.`;
     } finally {
       fbc.postsLoading = false;
       fbcRenderPosts();
@@ -475,11 +502,11 @@
 
   function fbcCommentHTML(c){
     const replies = (c.replies || []).map(fbcReplyHTML).join('');
-    const masReplies = c.repliesHasMore ? `<div class="bc-fbc-more-replies">Hay más respuestas de las mostradas (Facebook solo entrega las primeras 10 aquí).</div>` : '';
+    const masReplies = c.repliesHasMore ? `<div class="bc-fbc-more-replies">Hay más respuestas de las mostradas (${fbcRedLabel()} solo entrega las primeras 10 aquí).</div>` : '';
     return `<div class="bc-fbc-comment" data-fbc-top="${escapeHtml(c.id)}">
       ${c.from?.picture ? `<img class="bc-fbc-avatar" src="${escapeHtml(c.from.picture)}" alt="">` : '<span class="bc-fbc-avatar"></span>'}
       <div class="bc-fbc-body-col">
-        <div class="bc-fbc-meta"><b>${escapeHtml(c.from?.name || 'Contacto de Facebook')}</b><small>${fbcFecha(c.createdTime)}</small>${c.from?.isOwner ? '<span class="bc-fbc-badge">Tú</span>' : ''}</div>
+        <div class="bc-fbc-meta"><b>${escapeHtml(c.from?.name || `Contacto de ${fbcRedLabel()}`)}</b><small>${fbcFecha(c.createdTime)}</small>${c.from?.isOwner ? '<span class="bc-fbc-badge">Tú</span>' : ''}</div>
         <p>${escapeHtml(c.message || '')}</p>
         ${c.from?.isOwner ? '' : fbcCommentActionsHTML(c)}
         <div class="bc-fbc-replybox" id="bcFbcBox-${escapeHtml(c.id)}" hidden></div>
@@ -494,7 +521,7 @@
     const post = fbc.posts.find(p => p.id === fbc.postId);
     const head = post ? `<div class="bc-fbc-comments-head">
         ${post.picture ? `<img class="bc-fbc-post-pic" src="${escapeHtml(post.picture)}" alt="">` : ''}
-        <div><p>${escapeHtml(fbcTruncate(post.content, 160))}</p><a href="${escapeHtml(post.permalink || '#')}" target="_blank" rel="noopener"><i class="ti ti-external-link"></i> Ver publicación en Facebook</a></div>
+        <div><p>${escapeHtml(fbcTruncate(post.content, 160))}</p><a href="${escapeHtml(post.permalink || '#')}" target="_blank" rel="noopener"><i class="ti ti-external-link"></i> Ver publicación en ${fbcRedLabel()}</a></div>
       </div>` : '';
     let body;
     if (fbc.commentsLoading && !fbc.comments.length) body = '<div class="bc-social-loading"><span class="bc-social-spin"></span>Cargando comentarios…</div>';
@@ -522,7 +549,7 @@
       fbc.commentsCursor = data.pagination?.cursor || null;
     } catch (e) {
       if (fbc.postId !== idPedido) return;
-      fbc.commentsError = e?.message || 'Error de conexión con Facebook.';
+      fbc.commentsError = e?.message || `Error de conexión con ${fbcRedLabel()}.`;
     } finally {
       if (fbc.postId !== idPedido) return;
       fbc.commentsLoading = false;
@@ -580,12 +607,13 @@
       const sucursalId = await resolveSocialSucursalId(client, actor);
       if (!sucursalId) throw new Error('No se pudo determinar la sucursal para el lead.');
       const post = fbc.posts.find(p => p.id === fbc.postId);
+      const red = fbcRedLabel();
       const { error } = await client.from('leads').insert({
         sucursal_id: sucursalId,
-        canal: 'facebook',
-        nombre: comment.from?.name || 'Contacto de Facebook',
+        canal: fbc.platform === 'instagram' ? 'instagram' : 'facebook',
+        nombre: comment.from?.name || `Contacto de ${red}`,
         interes: comment.message || null,
-        notas: `Comentario en Facebook${post ? ' (' + fbcTruncate(post.content, 60) + ')' : ''}: "${comment.message || ''}"\n${comment.url || ''}`.trim(),
+        notas: `Comentario en ${red}${post ? ' (' + fbcTruncate(post.content, 60) + ')' : ''}: "${comment.message || ''}"\n${comment.url || ''}`.trim(),
         asignado_tipo: actor?._tipo === 'tecnico' ? 'tecnico' : 'usuario',
         asignado_id: actor?.id || null,
         etapa: 'nuevo'
@@ -694,7 +722,11 @@
     if(!allowed.some(x=>x.key===state.view)) state.view='all';
     host.innerHTML=allowed.map(item=>{
       const count=knownCount(state.channel,item.key);
-      const yaFunciona=(state.channel==='facebook' && item.key==='comments');
+      // 15 sept 2026: Comentarios de Instagram se confirmó que SÍ funciona
+      // (mismo endpoint de Zernio que ya usaba Facebook, probado en vivo con
+      // publicaciones y comentarios reales de @bayolcell) -- deja de estar
+      // marcado como pendiente.
+      const yaFunciona=item.key==='comments' && (state.channel==='facebook' || state.channel==='instagram');
       const pending=!yaFunciona && ((state.channel!=='instagram') || (state.channel==='instagram' && ['comments','mentions'].includes(item.key)));
       return `
         <button type="button" class="bc-smart-interaction${state.view===item.key?' on':''}" data-smart-view="${item.key}" role="tab" aria-selected="${state.view===item.key}">
@@ -806,12 +838,9 @@
     const ch=CHANNELS[state.channel]?.label || state.channel;
     const configs={
       instagram:{
-        comments:{
-          icon:'ti-message-circle',
-          title:'Comentarios de Instagram',
-          text:'Aquí se mostrarán comentarios de publicaciones y Reels, con publicación de origen, estado, tiempo sin responder, agente y acceso a conversación privada relacionada.',
-          chips:['Publicación de origen','Responder público','Enviar a DM','Convertir en lead']
-        },
+        // 'comments' ya no usa este placeholder: renderFacebookCommentsPanel()
+        // (mas abajo) construye la vista real con datos de Zernio, igual que
+        // Facebook.
         mentions:{
           icon:'ti-at',
           title:'Menciones de Instagram',
@@ -915,9 +944,11 @@
     }else if(state.channel==='tiktok' && state.view==='all'){
       tt.style.display='flex';
       view.dataset.socialChannel='tiktok';
-    }else if(state.channel==='facebook' && state.view==='comments'){
+    }else if((state.channel==='facebook' || state.channel==='instagram') && state.view==='comments'){
+      // Mismo panel para los dos canales -- ver fbc.platform en
+      // renderFacebookCommentsPanel() (bota el cache si cambió el canal).
       ctx.style.display='flex';
-      view.dataset.socialChannel='facebook';
+      view.dataset.socialChannel=state.channel;
       renderFacebookCommentsPanel();
     }else{
       ctx.style.display='flex';

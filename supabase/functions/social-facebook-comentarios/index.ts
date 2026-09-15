@@ -1,8 +1,14 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-// Proxy de Comentarios de Facebook (Zernio) para el CRM.
+// Proxy de Comentarios de Facebook E INSTAGRAM (Zernio) para el CRM.
 // La API key de Zernio vive SOLO aca (Deno.env); el navegador nunca la ve.
+// 15 sept 2026: se generalizo para Instagram -- Zernio expone el MISMO
+// endpoint /inbox/comments para ambas plataformas, basta con pasarle el
+// accountId de la cuenta correcta (probado en vivo contra @bayolcell con
+// publicaciones/comentarios reales antes de generalizar). El unico cambio
+// real es DE DONDE se lee el zernio_account_id: social_cuentas (facebook)
+// o instagram_cuentas (instagram) -- el resto del proxy es identico.
 // Endpoints reales confirmados via /openapi.json (13 sept 2026):
 //   GET  /v1/inbox/comments?accountId=X            -> publicaciones de la cuenta
 //   GET  /v1/inbox/comments/{postId}?accountId=X   -> comentarios de esa publicacion
@@ -42,6 +48,7 @@ Deno.serve(async (req) => {
   let body: any;
   try { body = await req.json(); } catch { return out({ ok: false, error: "invalid_json" }, 400); }
   const action = String(body.action || "");
+  const platform = body.platform === "instagram" ? "instagram" : "facebook";
   const postId = body.postId ? String(body.postId) : "";
   const commentId = body.commentId ? String(body.commentId) : "";
   const message = body.message ? String(body.message).trim() : "";
@@ -49,10 +56,12 @@ Deno.serve(async (req) => {
   const cursor = body.cursor ? String(body.cursor) : "";
   const limit = Number.isFinite(body.limit) ? Math.min(100, Math.max(1, Number(body.limit))) : null;
 
-  const { data: cuenta } = await db.from("social_cuentas").select("zernio_account_id")
-    .eq("plataforma", "facebook").eq("activo", true)
-    .order("actualizado_en", { ascending: false }).limit(1).maybeSingle();
-  const accountId = cuenta?.zernio_account_id;
+  const accountId = platform === "instagram"
+    ? (await db.from("instagram_cuentas").select("zernio_account_id")
+        .eq("activo", true).order("creado_en", { ascending: false }).limit(1).maybeSingle()).data?.zernio_account_id
+    : (await db.from("social_cuentas").select("zernio_account_id")
+        .eq("plataforma", "facebook").eq("activo", true)
+        .order("actualizado_en", { ascending: false }).limit(1).maybeSingle()).data?.zernio_account_id;
   if (!accountId) return out({ ok: false, error: "account_not_configured" }, 409);
 
   try {
