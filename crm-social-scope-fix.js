@@ -208,7 +208,11 @@
     // es display:none sin esta clase, así que sin esto ni el spinner de
     // carga se llegaba a ver (el chat entero queda invisible hasta que
     // render() la agrega más abajo, y si algo falla antes de eso -- ver los
-    // catch/fallback de esta función -- nunca se agregaba).
+    // catch/fallback de esta función -- nunca se agregaba). Si la página
+    // venía desplazada, arrancar de nuevo desde el tope evita que Safari
+    // iOS calcule mal el "position:fixed" del panel (ver el mismo fix en
+    // render() de crm-facebook-chat.js).
+    if(!$('#bcSocialFacebookPanel')?.classList.contains('bc-fb-open')){try{window.scrollTo(0,0);}catch(_){}}
     $('#bcSocialFacebookPanel')?.classList.add('bc-fb-open');
     document.documentElement.classList.add('bc-fb-lock-scroll');
     chat.innerHTML='<div class="bc-social-loading"><span class="bc-social-spin"></span>Cargando mensajes…</div>';

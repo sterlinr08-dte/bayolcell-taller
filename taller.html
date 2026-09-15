@@ -1499,6 +1499,19 @@ body{
   background:linear-gradient(90deg,#ef4444,#b91c1c, transparent); }
 .top-right-info{ background:linear-gradient(145deg,#f87171,#b91c1c) !important; border:0;
   box-shadow:0 10px 20px -10px rgba(220,38,38,0.7), inset 0 1px 0 rgba(255,255,255,0.35); }
+/* 15 sept 2026: el "position:relative" de arriba (agregado con este pase de
+   vidrio líquido) pisaba el "position:sticky" que .top-bar ya tenía en
+   @media(max-width:1024px) (línea ~1003) -- misma especificidad, gana el que
+   viene después en el archivo. Resultado: en celular la barra superior deja
+   de quedarse fija y se puede desplazar fuera de la pantalla con el scroll
+   de la página. Eso es justo lo que dejaba el chat de Facebook (pantalla
+   completa vía position:fixed) mostrando solo su propio encabezado con todo
+   lo demás en blanco: el fixed SÍ se pinta bien relativo al viewport, pero
+   si la página venía desplazada hacia abajo cuando se abre, Safari iOS a
+   veces no recalcula bien el fixed hasta el próximo scroll/resize. Se
+   restaura el sticky en celular para que la barra nunca se desplace fuera
+   de vista y esa condición no se repita.  */
+@media (max-width:1024px){ .top-bar{ position:sticky; top:0; } }
 
 /* ---------- CARDS de vidrio líquido ---------- */
 .card{
@@ -36648,5 +36661,5 @@ if(saved) {
     }).catch(function(){ localStorage.removeItem("bayol_session"); });
 }
 </script>
-<script src="crm-marketing-consent.js?v=20260915-hotfix14"></script>
+<script src="crm-marketing-consent.js?v=20260915-hotfix15"></script>
 </body>

@@ -50,5 +50,15 @@
  #bcSocialFacebookPanel.bc-fb-open .bc-social-generic-chat{display:flex;flex:1 1 auto;width:100%;height:100%;min-height:0}
  #v-crmLinea[data-social-channel="facebook"]:has(#bcSocialFacebookPanel.bc-fb-open) #bcSocialHubHead{display:none!important}
  .bc-fb-messages{padding:12px}.bc-fb-bubble{max-width:86%;font-size:13.5px}.bc-fb-composer{padding-left:6px;padding-right:7px;gap:2px}.bc-fb-composer textarea{font-size:16px}.bc-fb-head{gap:6px;padding:7px 8px}
+ /* 15 sept 2026: la barra superior del sistema (.top-bar) tiene su propio
+    z-index (8) fuera de #v-crmLinea; #bcSocialFacebookPanel.bc-fb-open
+    (fixed, z-index:60) queda "atrapado" dentro del stacking context de
+    .content y NUNCA le gana a .top-bar en la franja donde ambos caen
+    (arriba de la pantalla) -- por eso a veces el propio encabezado del
+    chat de Facebook (con el nombre del contacto) quedaba tapado por la
+    barra "CRM" del sistema. Mismo patrón ya usado arriba para
+    #bcSocialHubHead: se esconde .top-bar mientras el chat está a pantalla
+    completa, así no compite por ese espacio. */
+ body:has(#bcSocialFacebookPanel.bc-fb-open) .top-bar{display:none!important}
 }
 @media(prefers-reduced-motion:no-preference){.bc-fb-row{animation:bcFbAppear .15s ease-out}@keyframes bcFbAppear{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}}

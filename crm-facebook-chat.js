@@ -56,6 +56,14 @@
     const previousAtBottom=!same||!previousMessages||previousMessages.scrollHeight-previousMessages.clientHeight-previousMessages.scrollTop<80;
     selected=thread.id;callbacks=cb;messages=rows;
     if(!same)attachment=null;
+    const panelYaAbierto=$('#bcSocialFacebookPanel')?.classList.contains('bc-fb-open');
+    // 15 sept 2026: si la página venía desplazada (el usuario scrolleó la
+    // lista antes de abrir el chat) y justo en ese momento se bloquea el
+    // scroll (línea de abajo), Safari iOS a veces no recalcula bien el
+    // "position:fixed" de este panel hasta el próximo scroll/resize -- se
+    // ve el encabezado pero el resto en blanco. Empezar siempre desde el
+    // tope de la página evita esa condición.
+    if(!panelYaAbierto){try{window.scrollTo(0,0);}catch(_){}}
     $('#bcSocialFacebookPanel')?.classList.add('bc-fb-open');
     document.documentElement.classList.add('bc-fb-lock-scroll');
     const name=thread.participant_name||thread.participant_username||'Contacto de Facebook';
