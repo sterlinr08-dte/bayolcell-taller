@@ -65,20 +65,15 @@
         '}',
         'body.bc-page-hidden #bcAmbientOrbSafe .bc-ambient-orb{animation-play-state:paused!important}',
         '#bcAmbientOrbSafe[hidden]{display:none!important}',
-        /* 14 sept 2026 (Sterling, foto de móvil): el chat de Facebook a
-           pantalla completa se veia en blanco con este fondo decorativo
-           encimado por detras -- probablemente el panel fijo no estaba
-           cubriendo toda la pantalla en ese momento por algun detalle de
-           layout/viewport dificil de reproducir a ciegas. Como esta capa es
-           puramente decorativa, la forma mas segura de garantizar que NUNCA
-           tape un chat de verdad es escondersela por completo mientras haya
-           un chat a pantalla completa abierto (Facebook o Instagram en
-           movil), sin importar la causa exacta del layout. */
-        'html.bc-fb-lock-scroll #bcAmbientOrbSafe{display:none!important}',
         // #bcAmbientOrbSafe es HERMANO de #v-crmLinea (ambos hijos directos
         // de .content), no su descendiente -- por eso hace falta :has() en
         // vez de un selector normal de ancestro/descendiente para "esconder
         // el de al lado cuando el otro tiene esta clase".
+        // 15 sept 2026: el chat de Facebook dejó de usar position:fixed
+        // (ver crm-facebook-chat.css/js) -- ahora queda en el flujo normal
+        // como cualquier vista, así que el z-index:1 de #app .content>.view
+        // ya lo tapa igual que a todo lo demás; no necesita este caso
+        // especial (se quita la regla que escondía el orb para Facebook).
         'body:has(#v-crmLinea.bc-ig-chat-open) #bcAmbientOrbSafe{display:none!important}'
       ].join('');
       document.head.appendChild(style);

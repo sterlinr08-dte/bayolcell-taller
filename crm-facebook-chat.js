@@ -33,10 +33,7 @@
   function close(){
     const ta=$('#bcFbText');if(selected&&ta)drafts.set(selected,ta.value);
     $('#bcSocialFacebookPanel')?.classList.remove('bc-fb-open');
-    const panel=$('#bcSocialFacebookPanel');
-    panel?.style.removeProperty('--fb-chat-height');
-    panel?.style.removeProperty('--fb-chat-top');
-    document.documentElement.classList.remove('bc-fb-lock-scroll');
+    document.documentElement.style.removeProperty('--fb-shell-height');
   }
   function media(m){
     if(!m.media_url)return '';
@@ -56,16 +53,10 @@
     const previousAtBottom=!same||!previousMessages||previousMessages.scrollHeight-previousMessages.clientHeight-previousMessages.scrollTop<80;
     selected=thread.id;callbacks=cb;messages=rows;
     if(!same)attachment=null;
-    const panelYaAbierto=$('#bcSocialFacebookPanel')?.classList.contains('bc-fb-open');
-    // 15 sept 2026: si la página venía desplazada (el usuario scrolleó la
-    // lista antes de abrir el chat) y justo en ese momento se bloquea el
-    // scroll (línea de abajo), Safari iOS a veces no recalcula bien el
-    // "position:fixed" de este panel hasta el próximo scroll/resize -- se
-    // ve el encabezado pero el resto en blanco. Empezar siempre desde el
-    // tope de la página evita esa condición.
-    if(!panelYaAbierto){try{window.scrollTo(0,0);}catch(_){}}
+    // 15 sept 2026: el chat ya NO se abre a pantalla completa con
+    // position:fixed -- se queda en el flujo normal, igual que WhatsApp
+    // (ver resize() más abajo). Solo hace falta la clase para revelarlo.
     $('#bcSocialFacebookPanel')?.classList.add('bc-fb-open');
-    document.documentElement.classList.add('bc-fb-lock-scroll');
     const name=thread.participant_name||thread.participant_username||'Contacto de Facebook';
     // Asignarme/Reasignar (15 sept 2026): mismo helper que ya usa WhatsApp
     // (_crmAsignarHTML, en taller.html) -- antes una conversación de
@@ -208,18 +199,26 @@
     }catch(err){notice(err.message||'No se pudo reenviar.');}
     finally{if(box)box.hidden=true;fbForwardMsg=null;}
   }
+  // 15 sept 2026: mismo cálculo que _waActualizarAltoVisual() (taller.html)
+  // para .wa-shell, adaptado al panel de Facebook. Ya no hay position:fixed
+  // -- el panel se queda donde cae en el flujo normal de la página, y esto
+  // solo mide cuánto queda visible desde ahí hasta el fondo real de la
+  // pantalla (respetando el teclado en iOS) para dárselo como alto.
   function resize(){
     const p=$('#bcSocialFacebookPanel');
     if(!p||!p.classList.contains('bc-fb-open'))return;
-    const v=window.visualViewport;
-    const layoutHeight=Math.round(window.innerHeight||document.documentElement.clientHeight||0);
-    const visualHeight=Math.round(v?.height||layoutHeight);
-    const keyboardOpen=!!v&&layoutHeight-visualHeight>120;
-    const height=keyboardOpen?visualHeight:Math.max(layoutHeight,visualHeight);
-    p.style.setProperty('--fb-chat-height',Math.max(200,height)+'px');
-    // A fixed element already follows Safari's visual viewport. Applying
-    // offsetTop again moves the panel twice and leaves the white keyboard gap.
-    p.style.setProperty('--fb-chat-top','0px');
+    if(!matchMedia('(max-width:720px)').matches){document.documentElement.style.removeProperty('--fb-shell-height');return;}
+    const vv=window.visualViewport;
+    const alturaViewport=vv?vv.height:window.innerHeight;
+    const alturaLayout=Math.max(window.innerHeight,document.documentElement.clientHeight||0);
+    const tecladoAbierto=!!vv&&(alturaLayout-vv.height>160);
+    const desplazamientoTeclado=tecladoAbierto?Math.max(0,vv.offsetTop||0):0;
+    const fondoVisible=alturaViewport+desplazamientoTeclado;
+    const arribaDentroViewport=Math.max(0,p.getBoundingClientRect().top);
+    const disponible=Math.floor(fondoVisible-arribaDentroViewport-4);
+    const maximoVisible=Math.floor(fondoVisible-4);
+    const alto=Math.max(200,Math.min(disponible,maximoVisible));
+    document.documentElement.style.setProperty('--fb-shell-height',alto+'px');
   }
   window.visualViewport?.addEventListener('resize',resize);
   window.visualViewport?.addEventListener('scroll',resize);

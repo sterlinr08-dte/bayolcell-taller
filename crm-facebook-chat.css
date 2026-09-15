@@ -1,7 +1,6 @@
 /* Match the existing WhatsApp CRM: light canvas, compact chrome, rounded composer. */
 #bcSocialFacebookPanel{min-height:0;flex:1}
 #bcSocialFacebookPanel.bc-fb-open{overflow:hidden}
-.bc-fb-lock-scroll{overflow:hidden!important}
 #bcSocialFacebookPanel .bc-social-generic-shell{min-height:0;height:100%;grid-template-columns:minmax(260px,32%) minmax(0,1fr);border-radius:16px}
 #bcSocialFacebookPanel .bc-social-generic-chat{position:relative;min-height:0;background:#f7f9fd;background-image:radial-gradient(#2563eb0e 1px,transparent 1px);background-size:14px 14px;overflow:hidden}
 #bcSocialFacebookPanel .bc-social-generic-list{max-height:none;min-height:0}
@@ -43,30 +42,28 @@
  #bcSocialFacebookPanel .bc-social-generic-shell{display:flex;flex-direction:column;min-height:0}
  #bcSocialFacebookPanel .bc-social-generic-list{flex:1;border:0;max-height:none;min-height:350px}
  #bcSocialFacebookPanel .bc-social-generic-chat{display:none}
- /* iOS Safari: no permitir que el alto calculado por JS sea mayor que el
-    viewport dinámico visible. Cuando window.innerHeight conserva el layout
-    viewport grande, la burbuja y el composer quedan debajo de la pantalla y
-    solo se ve el header. 100dvh pone un techo real; si aparece el teclado,
-    --fb-chat-height (visualViewport.height) puede seguir reduciendo el panel. */
- #bcSocialFacebookPanel.bc-fb-open{position:fixed;z-index:60;top:var(--fb-chat-top,0px);left:0;right:0;width:100%;height:var(--fb-chat-height,100dvh);height:min(100dvh,var(--fb-chat-height,100dvh));max-height:min(100dvh,var(--fb-chat-height,100dvh));min-height:0;flex:none;margin:0;border-radius:0;background:#f7f9fd;overflow:hidden}
- #bcSocialFacebookPanel.bc-fb-open{display:flex!important;flex-direction:column}
- #bcSocialFacebookPanel.bc-fb-open .bc-social-generic-shell{display:flex;flex:1 1 auto;width:100%;height:100%;min-height:0;max-height:100%;overflow:hidden}
+ /* 15 sept 2026 -- rediseño completo a pedido de Sterling: "que sea bien
+    parecida a la de WhatsApp, quitar todo lo que tiene". Se investigaron y
+    corrigieron dos causas reales de que el chat quedara "atrás" sin verse
+    (la barra del sistema le ganaba el stacking, y Safari iOS a veces no
+    recalculaba bien un position:fixed al bloquear el scroll a media
+    página) pero el enfoque de fondo -- sacar el chat del flujo normal con
+    position:fixed para simular pantalla completa -- seguía siendo frágil.
+    WhatsApp NUNCA hace eso (ver .wa-shell/_waActualizarAltoVisual() en
+    taller.html): se queda en el flujo normal del documento, con su propio
+    alto medido en vivo desde dónde cae la caja en la página. Facebook
+    ahora usa EXACTAMENTE esa misma técnica (--fb-shell-height, calculado
+    por _fbActualizarAltoVisual() en crm-facebook-chat.js) -- ya no hay
+    position:fixed, ni bloqueo de scroll, ni pelea de z-index con la barra
+    del sistema (que se queda visible arriba, igual que con WhatsApp). */
+ #bcSocialFacebookPanel.bc-fb-open{height:var(--fb-shell-height, max(200px, calc(100dvh - 240px)));min-height:0;flex:none}
+ #bcSocialFacebookPanel.bc-fb-open .bc-social-generic-shell{height:100%}
  #bcSocialFacebookPanel.bc-fb-open .bc-social-generic-list{display:none}
- #bcSocialFacebookPanel.bc-fb-open .bc-social-generic-chat{display:flex;flex:1 1 auto;width:100%;height:100%;min-height:0;max-height:100%;overflow:hidden}
- #bcSocialFacebookPanel.bc-fb-open #bcFbChat{height:100%;min-height:0;max-height:100%;overflow:hidden}
+ #bcSocialFacebookPanel.bc-fb-open .bc-social-generic-chat{display:flex;flex:1 1 auto;width:100%;height:100%;min-height:0;overflow:hidden}
+ #bcSocialFacebookPanel.bc-fb-open #bcFbChat{height:100%;min-height:0;display:flex;flex-direction:column;overflow:hidden}
  #bcSocialFacebookPanel.bc-fb-open #bcFbMessages{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
  #bcSocialFacebookPanel.bc-fb-open #bcFbComposer{flex:0 0 auto}
  #v-crmLinea[data-social-channel="facebook"]:has(#bcSocialFacebookPanel.bc-fb-open) #bcSocialHubHead{display:none!important}
  .bc-fb-messages{padding:12px}.bc-fb-bubble{max-width:86%;font-size:13.5px}.bc-fb-composer{padding-left:6px;padding-right:7px;gap:2px}.bc-fb-composer textarea{font-size:16px}.bc-fb-head{gap:6px;padding:7px 8px}
- /* 15 sept 2026: la barra superior del sistema (.top-bar) tiene su propio
-    z-index (8) fuera de #v-crmLinea; #bcSocialFacebookPanel.bc-fb-open
-    (fixed, z-index:60) queda "atrapado" dentro del stacking context de
-    .content y NUNCA le gana a .top-bar en la franja donde ambos caen
-    (arriba de la pantalla) -- por eso a veces el propio encabezado del
-    chat de Facebook (con el nombre del contacto) quedaba tapado por la
-    barra "CRM" del sistema. Mismo patrón ya usado arriba para
-    #bcSocialHubHead: se esconde .top-bar mientras el chat está a pantalla
-    completa, así no compite por ese espacio. */
- body:has(#bcSocialFacebookPanel.bc-fb-open) .top-bar{display:none!important}
 }
 @media(prefers-reduced-motion:no-preference){.bc-fb-row{animation:bcFbAppear .15s ease-out}@keyframes bcFbAppear{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}}
