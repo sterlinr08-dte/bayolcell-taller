@@ -180,6 +180,7 @@
           threads=threads.filter(t=>!t.asignado_id||window._crmMismoAsignado(t,yo));
         }
       } catch(e){ console.error('CRM Social Facebook: filtro de asignacion fallo', e); }
+      setupFacebookRealtime();
       if(!threads?.length){host.innerHTML='<div class="bc-social-empty-state"><i class="ti ti-message-circle"></i><b>Sin conversaciones todavía</b><span>La importación inicial de Zernio puede tardar unos segundos.</span></div>';return;}
       host.innerHTML=threads.map(t=>{const name=t.participant_name||t.participant_username||'Contacto de Facebook';const initials=name.split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase();return `<button type="button" class="bc-social-generic-thread${t.no_leidos_count?' unread':''}" data-fb-thread="${t.id}"><span class="bc-social-generic-avatar">${escapeHtml(initials)}</span><span class="bc-social-generic-thread-copy"><b>${escapeHtml(name)}</b><small>${escapeHtml(t.ultimo_mensaje_preview||'Sin mensajes')}</small></span>${t.no_leidos_count?`<em>${t.no_leidos_count}</em>`:''}</button>`;}).join('');
     }catch(e){
@@ -194,6 +195,36 @@
         if(state.visible && state.channel==='facebook') loadFacebookThreads();
       }
     }
+  }
+
+  // 15 sept 2026: Facebook nunca tuvo suscripción en tiempo real (a
+  // diferencia de Instagram, que sí -- ver setupRealtime() en
+  // crm-social-hub.js). Junto con eso, social_hilos/social_mensajes
+  // tampoco estaban agregadas a la publicación supabase_realtime de
+  // Supabase (mismo problema que ya se había resuelto antes para
+  // whatsapp_hilos/whatsapp_mensajes/leads) -- sin ESA migración, esta
+  // suscripción tampoco recibiría nada aunque el código esté bien.
+  let facebookRealtimeChannel=null;
+  let facebookRealtimeTimer=null;
+  function setupFacebookRealtime(){
+    const client=typeof supabaseClient!=='undefined'?supabaseClient:window.supabaseClient;
+    if(facebookRealtimeChannel || !client?.channel) return;
+    try{
+      facebookRealtimeChannel=client.channel('bc-social-facebook')
+        .on('postgres_changes',{event:'*',schema:'public',table:'social_hilos'},()=>scheduleFacebookRealtime())
+        .on('postgres_changes',{event:'*',schema:'public',table:'social_mensajes'},payload=>{
+          if(facebookSelectedThread && (payload.new?.hilo_id===facebookSelectedThread || payload.old?.hilo_id===facebookSelectedThread)) scheduleFacebookRealtime(true);
+          else scheduleFacebookRealtime(false);
+        }).subscribe();
+    }catch(e){console.warn('Realtime Facebook no disponible',e);}
+  }
+  function scheduleFacebookRealtime(openChat){
+    clearTimeout(facebookRealtimeTimer);
+    facebookRealtimeTimer=setTimeout(async()=>{
+      if(!(state.visible && state.channel==='facebook')) return;
+      await loadFacebookThreads();
+      if(openChat && facebookSelectedThread) await openFacebookThread(facebookSelectedThread);
+    },180);
   }
 
   let facebookMessageGeneration=0;

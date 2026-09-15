@@ -159,8 +159,14 @@
 #bcIgForwardBox[hidden]{display:none}
 #bcIgForwardBox button{width:100%;text-align:left}
 
-.bc-ig-composer{flex:none;display:flex;align-items:flex-end;gap:8px;padding:9px 10px;background:rgba(255,255,255,.94);border-top:1px solid #e6edf6}
-.bc-ig-composer textarea{min-height:38px!important;max-height:112px;resize:none;padding:9px 11px!important;border:1px solid #e0e8f4!important;border-radius:22px!important;background:#fff!important;font-size:13.5px!important;line-height:1.35!important;box-shadow:0 1px 2px rgba(11,20,26,.08)!important}
+/* 15 sept 2026: mismo arreglo que ya tiene Facebook (crm-facebook-chat.css,
+   "protege el compositor contra overlays") -- Instagram nunca lo recibió y
+   Sterling reportó que en PC no se podía escribir en su caja de mensaje.
+   position+z-index+isolation aseguran que el compositor gane cualquier capa
+   decorativa que caiga encima, y pointer-events/user-select/cursor:text
+   garantizan que el clic y el tecleo lleguen al textarea de verdad. */
+.bc-ig-composer{flex:none;display:flex;align-items:flex-end;gap:8px;padding:9px 10px;background:rgba(255,255,255,.94);border-top:1px solid #e6edf6;position:relative;z-index:10;pointer-events:auto!important;isolation:isolate}
+.bc-ig-composer textarea{min-height:38px!important;max-height:112px;resize:none;padding:9px 11px!important;border:1px solid #e0e8f4!important;border-radius:22px!important;background:#fff!important;font-size:13.5px!important;line-height:1.35!important;box-shadow:0 1px 2px rgba(11,20,26,.08)!important;position:relative;z-index:11;pointer-events:auto!important;user-select:text!important;-webkit-user-select:text!important;touch-action:manipulation;cursor:text}
 .bc-ig-composer textarea:focus{background:#fff!important;border-color:#93c5fd!important;box-shadow:0 0 0 3px rgba(37,99,235,.10)!important}
 .bc-ig-send{width:38px;height:38px;border-radius:50%;border:0;flex:none;color:#fff;background:linear-gradient(135deg,#2563eb,#3b82f6);display:grid;place-items:center;font-size:17px;cursor:pointer;box-shadow:0 5px 13px -6px rgba(37,99,235,.58)}
 .bc-ig-send:disabled{opacity:.5;cursor:not-allowed;box-shadow:none}
