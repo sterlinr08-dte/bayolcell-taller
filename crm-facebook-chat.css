@@ -8,19 +8,22 @@
 #bcSocialFacebookPanel .bc-social-generic-thread-copy b{font-size:13px}
 #bcSocialFacebookPanel .bc-social-generic-thread-copy small{font-size:12px}
 .bc-fb-head{display:flex;align-items:center;gap:9px;flex:none;min-height:56px;padding:7px 12px;border-bottom:1px solid #e6edf6;background:#ffffffed;box-sizing:border-box}
-.bc-fb-avatar{display:grid;place-items:center;flex:none;width:36px;height:36px;border-radius:50%;font-size:12px;font-weight:700;background:#e5efff;color:#2563eb}
+.bc-fb-avatar{display:grid;place-items:center;flex:none;width:36px;height:36px;border-radius:50%;font-size:12px;font-weight:800;background:linear-gradient(135deg,#2563eb,#60a5fa);color:#fff;box-shadow:0 3px 8px -5px rgba(37,99,235,.55)}
 .bc-fb-name{flex:1;min-width:0}.bc-fb-name b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;color:#172b4d}.bc-fb-name small{font-size:11px;color:#718096}
 .bc-fb-icon{display:inline-grid;place-items:center;flex:none;width:34px;height:34px;border:0;border-radius:50%;background:transparent;color:#61728b;font-size:20px;cursor:pointer}
 .bc-fb-icon:hover{background:#edf3fb}.bc-fb-icon:focus-visible,.bc-fb-composer button:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
 .bc-fb-messages{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:16px 20px;display:flex;flex-direction:column;gap:8px}
 .bc-fb-row{display:flex;flex-shrink:0}.bc-fb-row.out{justify-content:flex-end}.bc-fb-row[hidden]{display:none}
-.bc-fb-bubble{position:relative;min-width:60px;max-width:78%;padding:9px 26px 6px 11px;border-radius:4px 16px 16px;background:white;border:1px solid #e4eaf2;box-shadow:0 2px 3px #172b4d06;color:#24354b;font-size:14px;line-height:1.45;overflow-wrap:anywhere}
-.out .bc-fb-bubble{background:#e8f2ff;border-color:#d9e7fa;border-radius:16px 4px 16px 16px}
-.bc-fb-body{white-space:pre-wrap}.bc-fb-bubble small{display:block;text-align:right;color:#718096;font-size:10px;margin-top:4px}.bc-fb-bubble img,.bc-fb-bubble video{display:block;max-width:100%;max-height:280px;border-radius:9px}.bc-fb-bubble audio{max-width:100%;width:240px}
+/* Burbujas iguales a WhatsApp (15 sept 2026, pedido de Sterling: misma
+   apariencia en las demás redes) -- mismo verde/blanco, radio, relleno,
+   sombra y tamaño de letra que .wa-bubble-wrap en taller.html. */
+.bc-fb-bubble{position:relative;min-width:60px;max-width:78%;padding:6px 26px 7px 11px;border-radius:8px;background:#fff;border:0;box-shadow:0 1px .5px rgba(0,0,0,.13);color:#111b21;font-size:13.5px;line-height:1.45;overflow-wrap:anywhere}
+.out .bc-fb-bubble{background:#dcf8c6}
+.bc-fb-body{white-space:pre-wrap}.bc-fb-bubble small{display:block;text-align:right;color:#8696a0;font-size:10px;margin-top:4px}.bc-fb-bubble img,.bc-fb-bubble video{display:block;max-width:100%;max-height:280px;border-radius:9px}.bc-fb-bubble audio{max-width:100%;width:240px}
 .bc-fb-message-menu{position:absolute;right:3px;top:4px;width:24px;height:24px;border:0;border-radius:50%;background:transparent;color:#718096;cursor:pointer}
 .bc-fb-composer{display:flex;flex:none;align-items:flex-end;gap:5px;padding:9px 12px max(9px,env(safe-area-inset-bottom));background:#ffffffed;border-top:1px solid #e6edf6;position:relative;z-index:10;pointer-events:auto!important;isolation:isolate}
 .bc-fb-composer textarea{flex:1;min-width:0;box-sizing:border-box;min-height:38px;max-height:112px;resize:none;border:1px solid #e0e8f4;border-radius:22px;background:#fff;padding:9px 14px;font:inherit;font-size:14px;line-height:20px;outline:none;position:relative;z-index:11;pointer-events:auto!important;user-select:text!important;-webkit-user-select:text!important;touch-action:manipulation;cursor:text}.bc-fb-composer textarea:focus{border-color:#93c5fd}
-#bcFbSend{display:grid;place-items:center;width:38px;height:38px;flex:none;border:0;border-radius:50%;background:#2563eb;color:white;font-size:22px;cursor:pointer}.bc-fb-composer button:disabled{opacity:.45;cursor:wait}
+#bcFbSend{display:grid;place-items:center;width:38px;height:38px;flex:none;border:0;border-radius:50%;background:linear-gradient(135deg,#2563eb,#3b82f6);color:white;font-size:22px;cursor:pointer;box-shadow:0 5px 13px -6px rgba(37,99,235,.58)}.bc-fb-composer button:disabled{opacity:.45;cursor:wait}
 .bc-fb-pop{position:absolute;right:12px;top:54px;z-index:20;padding:7px;display:flex;flex-wrap:wrap;gap:4px;max-width:270px;background:#fff;border:1px solid #e0e8f4;border-radius:14px;box-shadow:0 14px 40px #172b4d24}.bc-fb-pop button{border:0;background:#f4f7fb;border-radius:8px;padding:9px 11px;color:#344054;font-size:13px;cursor:pointer}.bc-fb-message-actions{top:auto;bottom:70px}
 .bc-fb-find{display:flex;gap:6px;padding:8px;background:white}.bc-fb-find input{min-width:0;flex:1;border:1px solid #e0e8f4;border-radius:12px;padding:8px;font-size:14px}.bc-fb-find button,.bc-fb-attachment button{border:0;border-radius:8px;background:#edf3fb;color:#344054;padding:7px}
 .bc-fb-notice{padding:7px 12px;background:#eff6ff;color:#24548b;font-size:12px;flex:none}.bc-fb-attachment{display:flex;justify-content:space-between;padding:8px 12px;background:#eff6ff;font-size:12px}.bc-fb-attachment span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bc-fb-emojis{display:flex;gap:8px;padding:7px 12px;background:white}.bc-fb-emojis button{border:0;background:transparent;font-size:22px;cursor:pointer}
