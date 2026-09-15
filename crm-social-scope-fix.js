@@ -187,7 +187,7 @@
     const current=()=>generation===facebookMessageGeneration && facebookSelectedThread===id && state.visible && state.channel==='facebook';
     chat.innerHTML='<div class="bc-social-loading"><span class="bc-social-spin"></span>Cargando mensajes…</div>';
     try{
-    const {data:thread,error:threadError}=await withTimeout(client.from('social_hilos').select('id,participant_name,participant_username').eq('id',id).maybeSingle(),12000);
+    const {data:thread,error:threadError}=await withTimeout(client.from('social_hilos').select('id,participant_name,participant_username,asignado_id,asignado_tipo').eq('id',id).maybeSingle(),12000);
     if(!current())return;
     if(threadError)throw threadError;
     if(!thread)throw new Error('Conversación no disponible.');
@@ -222,6 +222,16 @@
       $('#bcFbRetryMessages')?.addEventListener('click',()=>openFacebookThread(id));
     }
   }
+
+  // Llamado por _crmAsignarHTML (taller.html) despues de Asignarme/Reasignar
+  // en un hilo de Facebook -- refresca la lista y, si el hilo asignado es el
+  // que está abierto, lo vuelve a cargar para que el encabezado muestre el
+  // nuevo estado ("Asignado a mí" / los botones desaparecen, etc).
+  window._fbRefrescarAsignacion=function(){
+    if (window.BayolSocialNetworks) window.BayolSocialNetworks.refresh();
+    else loadFacebookThreads();
+    if (facebookSelectedThread) openFacebookThread(facebookSelectedThread);
+  };
 
   function ensureContextPanel(){
     const view=$('#v-crmLinea');

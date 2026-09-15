@@ -59,7 +59,14 @@
     $('#bcSocialFacebookPanel')?.classList.add('bc-fb-open');
     document.documentElement.classList.add('bc-fb-lock-scroll');
     const name=thread.participant_name||thread.participant_username||'Contacto de Facebook';
+    // Asignarme/Reasignar (15 sept 2026): mismo helper que ya usa WhatsApp
+    // (_crmAsignarHTML, en taller.html) -- antes una conversación de
+    // Facebook sin dueño quedaba visible para todos los empleados sin que
+    // nadie pudiera reclamarla. _fbRefrescarAsignacion (crm-social-scope-fix.js)
+    // repinta este chat y la lista una vez guardada la asignación.
+    const asignarHtml=typeof window._crmAsignarHTML==='function' ? window._crmAsignarHTML('social_hilos', thread, '_fbRefrescarAsignacion') : '';
     host.innerHTML=`<header class="bc-fb-head">${icon('bcFbBack','Volver a conversaciones','arrow-left')}<span class="bc-fb-avatar">${esc(name.slice(0,2).toUpperCase())}</span><div class="bc-fb-name"><b>${esc(name)}</b><small>Facebook · Messenger</small></div>${icon('bcFbFind','Buscar en este chat','search')}${icon('bcFbMore','Acciones de conversación','dots-vertical')}</header>
+      ${asignarHtml ? `<div style="padding:6px 12px; background:#eff6ff; border-bottom:1px solid #dbeafe;">${asignarHtml}</div>` : ''}
       <div id="bcFbActions" class="bc-fb-pop" hidden><button data-chat-action="read">Marcar leído</button><button data-chat-action="archive">Archivar</button><button data-chat-action="unarchive">Desarchivar</button><button data-chat-action="refresh">Actualizar</button></div>
       <div id="bcFbFindBox" class="bc-fb-find" hidden><input id="bcFbFindText" type="search" placeholder="Buscar en los mensajes cargados" aria-label="Buscar en mensajes"><button type="button" id="bcFbFindClose">Cerrar</button></div>
       <div id="bcFbNotice" class="bc-fb-notice" role="status" hidden></div>
