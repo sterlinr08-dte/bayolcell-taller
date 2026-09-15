@@ -25,6 +25,15 @@
 .bc-fb-find{display:flex;gap:6px;padding:8px;background:white}.bc-fb-find input{min-width:0;flex:1;border:1px solid #e0e8f4;border-radius:12px;padding:8px;font-size:14px}.bc-fb-find button,.bc-fb-attachment button{border:0;border-radius:8px;background:#edf3fb;color:#344054;padding:7px}
 .bc-fb-notice{padding:7px 12px;background:#eff6ff;color:#24548b;font-size:12px;flex:none}.bc-fb-attachment{display:flex;justify-content:space-between;padding:8px 12px;background:#eff6ff;font-size:12px}.bc-fb-attachment span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bc-fb-emojis{display:flex;gap:8px;padding:7px 12px;background:white}.bc-fb-emojis button{border:0;background:transparent;font-size:22px;cursor:pointer}
 .bc-fb-pop[hidden],.bc-fb-find[hidden],.bc-fb-notice[hidden],.bc-fb-attachment[hidden],.bc-fb-emojis[hidden]{display:none}
+/* #bcFbForwardBox (Reenviar, 15 sept 2026) es .bc-fb-pop pero de columna,
+   no de fila -- necesita su propio display:block. Un selector por ID
+   normal le ganaria al [hidden] de arriba (misma clase de bug ya
+   corregida esta sesion para .bc-smart-count/.bc-ig-thread/etc), por eso
+   el "escondido" tambien va calificado por ID para que gane cuando
+   corresponde. */
+#bcFbForwardBox{display:block}
+#bcFbForwardBox[hidden]{display:none}
+#bcFbForwardBox button{width:100%;text-align:left}
 .bc-fb-empty{margin:auto;color:#718096;font-size:13px}
 @media(min-width:721px){#bcFbBack{display:none}#bcSocialFacebookPanel{height:calc(100dvh - 255px);min-height:360px;max-height:900px}}
 @media(max-width:720px){

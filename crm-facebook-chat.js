@@ -69,6 +69,12 @@
       ${asignarHtml ? `<div style="padding:6px 12px; background:#eff6ff; border-bottom:1px solid #dbeafe;">${asignarHtml}</div>` : ''}
       <div id="bcFbActions" class="bc-fb-pop" hidden><button data-chat-action="read">Marcar leído</button><button data-chat-action="archive">Archivar</button><button data-chat-action="unarchive">Desarchivar</button><button data-chat-action="refresh">Actualizar</button></div>
       <div id="bcFbFindBox" class="bc-fb-find" hidden><input id="bcFbFindText" type="search" placeholder="Buscar en los mensajes cargados" aria-label="Buscar en mensajes"><button type="button" id="bcFbFindClose">Cerrar</button></div>
+      <div id="bcFbForwardBox" class="bc-fb-pop" style="right:auto;left:12px;width:260px;max-width:calc(100% - 24px);" hidden>
+        <div style="padding:2px 4px 6px;font-size:11px;font-weight:700;color:#334155;">Reenviar a…</div>
+        <input id="bcFbForwardSearch" type="search" placeholder="Buscar conversación…" style="width:100%;box-sizing:border-box;border:1px solid #e0e8f4;border-radius:8px;padding:6px 8px;font-size:12.5px;margin-bottom:6px;">
+        <div id="bcFbForwardList" style="max-height:220px;overflow:auto;"></div>
+        <button type="button" id="bcFbForwardClose" style="width:100%;margin-top:4px;">Cerrar</button>
+      </div>
       <div id="bcFbNotice" class="bc-fb-notice" role="status" hidden></div>
       <div class="bc-fb-messages" id="bcFbMessages" style="position:relative;">${rows.map(m=>`<article class="bc-fb-row ${m.direccion==='out'?'out':'in'}" data-message="${esc(m.id)}"><div class="bc-fb-bubble">${media(m)}<div class="bc-fb-body">${esc(m.cuerpo||'')}</div><small>${esc(new Date(m.creado_en).toLocaleTimeString('es-DO',{hour:'2-digit',minute:'2-digit'}))}${m.direccion==='out'?' · '+esc(m.estado||'enviado'):''}</small><button type="button" class="bc-fb-message-menu" data-menu="${esc(m.id)}" aria-label="Acciones del mensaje"><i class="ti ti-chevron-down"></i></button></div></article>`).join('')||'<p class="bc-fb-empty">Sin mensajes guardados</p>'}</div>
       <button type="button" class="bc-social-jump" id="bcFbJump" aria-label="Ir al último mensaje"><i class="ti ti-arrow-down"></i><span>Últimos mensajes</span></button>
@@ -82,6 +88,8 @@
     $('#bcFbFind').onclick=()=>{$('#bcFbFindBox').hidden=false;$('#bcFbFindText').focus();};
     $('#bcFbFindClose').onclick=()=>{$('#bcFbFindBox').hidden=true;host.querySelectorAll('[data-message]').forEach(el=>el.hidden=false);};
     $('#bcFbFindText').oninput=e=>{const q=e.target.value.toLocaleLowerCase();host.querySelectorAll('[data-message]').forEach(el=>{el.hidden=!el.textContent.toLocaleLowerCase().includes(q);});};
+    $('#bcFbForwardClose').onclick=()=>{$('#bcFbForwardBox').hidden=true;};
+    $('#bcFbForwardSearch').oninput=e=>paintForwardList(e.target.value);
     $('#bcFbActions').onclick=async e=>{const a=e.target.dataset.chatAction;if(!a||busy)return;$('#bcFbActions').hidden=true;const id=selected;
       try{if(a==='refresh'){await callbacks.reload();return;}await action(a);if(selected===id)notice('Acción confirmada.');await callbacks.refreshList();}catch(err){notice(err.message);}};
     $('#bcFbEmoji').onclick=()=>{$('#bcFbEmojiPanel').hidden=!$('#bcFbEmojiPanel').hidden;};
@@ -138,12 +146,59 @@
   function messageMenu(id){
     const m=messages.find(x=>x.id===id);if(!m)return;
     const box=$('#bcFbMessageActions');box.hidden=false;
-    box.innerHTML=`<button type="button" data-copy>Copiar texto</button>${['👍','❤️','😂','😮','😢','🙏'].map(e=>`<button type="button" data-react="${e}" aria-label="Reaccionar ${e}">${e}</button>`).join('')}<button type="button" data-unreact>Quitar mi reacción</button><button type="button" data-close>Cerrar</button>`;
-    box.onclick=async e=>{const btn=e.target.closest('button');if(!btn)return;if(btn.hasAttribute('data-close')){box.hidden=true;return;}try{
+    box.innerHTML=`<button type="button" data-copy>Copiar texto</button><button type="button" data-forward>Reenviar</button>${['👍','❤️','😂','😮','😢','🙏'].map(e=>`<button type="button" data-react="${e}" aria-label="Reaccionar ${e}">${e}</button>`).join('')}<button type="button" data-unreact>Quitar mi reacción</button><button type="button" data-close>Cerrar</button>`;
+    box.onclick=async e=>{const btn=e.target.closest('button');if(!btn)return;if(btn.hasAttribute('data-close')){box.hidden=true;return;}
+      if(btn.hasAttribute('data-forward')){box.hidden=true;forwardMessage(m);return;}
+      try{
       if(btn.hasAttribute('data-copy')){await navigator.clipboard.writeText(m.cuerpo||'');notice('Texto copiado.');}
       else{await action(btn.hasAttribute('data-unreact')?'unreact':'react',{messageId:id,emoji:btn.dataset.react});notice('Reacción actualizada en Facebook.');}
       box.hidden=true;
     }catch(err){notice(err.message);}};
+  }
+  // Reenviar (15 sept 2026, mismo patrón que WhatsApp/_waAbrirReenviar):
+  // manda el TEXTO del mensaje como un mensaje nuevo a otra conversación de
+  // Facebook -- no existe (ni en Messenger ni via Zernio) un "forward" real
+  // que conserve el mensaje original como reenviado, así que esto es lo
+  // mismo que ya hace WhatsApp: componer y enviar de nuevo.
+  let fbForwardMsg=null,fbForwardThreads=null;
+  async function loadForwardThreads(){
+    if(fbForwardThreads)return fbForwardThreads;
+    try{
+      const {data,error}=await withTimeout(client().from('social_hilos').select('id,participant_name,participant_username').neq('id',selected).order('actualizado_en',{ascending:false}).limit(200));
+      if(error)throw error;
+      fbForwardThreads=data||[];
+    }catch{fbForwardThreads=[];}
+    return fbForwardThreads;
+  }
+  function withTimeout(promise,ms=12000){
+    let timer;
+    return Promise.race([Promise.resolve(promise),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('La búsqueda tardó demasiado.')),ms);})]).finally(()=>clearTimeout(timer));
+  }
+  async function paintForwardList(q){
+    const list=$('#bcFbForwardList');if(!list)return;
+    list.innerHTML='<div style="padding:8px;color:#94a3b8;font-size:12px;">Buscando…</div>';
+    const threads=await loadForwardThreads();
+    const filtro=(q||'').trim().toLowerCase();
+    const filtrados=threads.filter(t=>!filtro||(t.participant_name||'').toLowerCase().includes(filtro)||(t.participant_username||'').toLowerCase().includes(filtro));
+    list.innerHTML=filtrados.length?filtrados.map(t=>`<button type="button" data-forward-to="${esc(t.id)}" style="display:block;width:100%;text-align:left;border:0;background:none;padding:8px 6px;font-size:12.5px;cursor:pointer;border-bottom:1px solid #f1f5f9;color:#334155;">${esc(t.participant_name||t.participant_username||'Contacto de Facebook')}</button>`).join(''):'<div style="padding:8px 6px;color:#94a3b8;font-size:12px;">Sin conversaciones que coincidan.</div>';
+    list.querySelectorAll('[data-forward-to]').forEach(btn=>btn.onclick=()=>forwardTo(btn.dataset.forwardTo));
+  }
+  async function forwardMessage(m){
+    if(!m.cuerpo){notice('Por ahora solo se pueden reenviar mensajes de texto.');return;}
+    fbForwardMsg=m;fbForwardThreads=null;
+    const box=$('#bcFbForwardBox');if(!box)return;
+    box.hidden=false;
+    const s=$('#bcFbForwardSearch');if(s)s.value='';
+    await paintForwardList('');
+  }
+  async function forwardTo(destinoId){
+    if(!fbForwardMsg)return;
+    const box=$('#bcFbForwardBox');
+    try{
+      await action('send',{text:fbForwardMsg.cuerpo,requestId:crypto.randomUUID()},destinoId);
+      notice('Mensaje reenviado.');
+    }catch(err){notice(err.message||'No se pudo reenviar.');}
+    finally{if(box)box.hidden=true;fbForwardMsg=null;}
   }
   function resize(){
     const p=$('#bcSocialFacebookPanel');

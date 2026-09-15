@@ -134,13 +134,26 @@
 .bc-ig-msg-row{display:flex}
 .bc-ig-msg-row.out{justify-content:flex-end}
 .bc-ig-msg{
-  max-width:min(72%,620px);padding:8px 10px;border-radius:14px;background:#fff;border:1px solid #e6eaf0;
-  box-shadow:0 3px 10px -9px rgba(15,23,42,.45);font-size:11px;color:#344054;line-height:1.4;overflow:hidden;
+  position:relative;max-width:min(72%,620px);padding:8px 24px 8px 10px;border-radius:14px;background:#fff;border:1px solid #e6eaf0;
+  box-shadow:0 3px 10px -9px rgba(15,23,42,.45);font-size:11px;color:#344054;line-height:1.4;
 }
 .bc-ig-msg-row.out .bc-ig-msg{background:linear-gradient(145deg,#fdf4ff,#f5f3ff);border-color:#ead7f3}
 .bc-ig-msg-time{display:block;text-align:right;font-size:7.5px;color:#98a2b3;margin-top:4px}
 .bc-ig-media-link{display:inline-flex;align-items:center;gap:5px;color:#7e22ce;text-decoration:none;font-size:9.5px;font-weight:700;margin-top:4px}
 .bc-ig-media-img{display:block;max-width:260px;max-height:280px;border-radius:10px;margin-bottom:5px;object-fit:cover}
+/* Menú de mensaje (Copiar/Reenviar, 15 sept 2026) -- mismo patrón visual
+   que .bc-fb-message-menu/.bc-fb-pop de Facebook. */
+.bc-ig-msg-menu{position:absolute;right:3px;top:4px;width:20px;height:20px;border:0;border-radius:50%;background:transparent;color:#a78bba;cursor:pointer;font-size:12px}
+.bc-ig-msg-menu:hover{background:rgba(126,34,206,.08)}
+.bc-ig-pop{position:absolute;right:14px;top:54px;z-index:20;padding:7px;display:flex;flex-wrap:wrap;gap:4px;max-width:260px;background:#fff;border:1px solid #e6eaf0;border-radius:14px;box-shadow:0 14px 40px rgba(23,27,45,.18)}
+.bc-ig-pop button{border:0;background:#f7f2fb;border-radius:8px;padding:9px 11px;color:#4a3560;font-size:13px;cursor:pointer}
+.bc-ig-pop[hidden]{display:none}
+/* .bc-ig-forward-box es de columna, no de fila -- necesita su propio
+   display:block (mismo motivo que #bcFbForwardBox en crm-facebook-chat.css:
+   un selector por ID le gana al [hidden] de la clase de arriba). */
+#bcIgForwardBox{display:block}
+#bcIgForwardBox[hidden]{display:none}
+#bcIgForwardBox button{width:100%;text-align:left}
 
 .bc-ig-composer{flex:none;display:flex;align-items:flex-end;gap:8px;padding:9px 10px;background:#fff;border-top:1px solid #e8edf4}
 .bc-ig-composer textarea{min-height:38px!important;max-height:112px;resize:none;padding:9px 11px!important;border:1px solid #e2e8f0!important;border-radius:12px!important;background:#f8fafc!important;font-size:11px!important;line-height:1.35!important;box-shadow:none!important}

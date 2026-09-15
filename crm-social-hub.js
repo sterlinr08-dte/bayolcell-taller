@@ -375,7 +375,11 @@
     chat.dataset.hilo=h.id;
     const nm=h.nombre_perfil || h.participant_username || 'Cliente de Instagram';
     const user=h.participant_username ? `@${h.participant_username}` : 'Instagram Direct';
-    const rows=state.messages.map(m=>`<div class="bc-ig-msg-row ${m.direccion==='out'?'out':'in'}"><div class="bc-ig-msg">${mediaMarkup(m,mediaUrls[m.id])}${m.cuerpo ? `<div>${esc(m.cuerpo).replace(/\n/g,'<br>')}</div>` : ''}<span class="bc-ig-msg-time">${esc(fmtTime(m.creado_en))}${m.direccion==='out' ? ` · ${esc(m.estado||'enviado')}` : ''}</span></div></div>`).join('');
+    // Menú de mensaje (15 sept 2026): Copiar/Reenviar, igual que ya tiene
+    // Facebook -- Instagram NO tiene reacciones aquí porque Zernio no
+    // expone esa acción para Instagram (solo hay endpoint de reacciones
+    // para Facebook); reaccionar quedaría simulado, así que se deja fuera.
+    const rows=state.messages.map(m=>`<div class="bc-ig-msg-row ${m.direccion==='out'?'out':'in'}"><div class="bc-ig-msg">${mediaMarkup(m,mediaUrls[m.id])}${m.cuerpo ? `<div>${esc(m.cuerpo).replace(/\n/g,'<br>')}</div>` : ''}<span class="bc-ig-msg-time">${esc(fmtTime(m.creado_en))}${m.direccion==='out' ? ` · ${esc(m.estado||'enviado')}` : ''}</span>${m.cuerpo ? `<button type="button" class="bc-ig-msg-menu" data-igmenu="${esc(m.id)}" aria-label="Acciones del mensaje"><i class="ti ti-chevron-down"></i></button>` : ''}</div></div>`).join('');
     // Asignarme/Reasignar (15 sept 2026): mismo helper que ya usa WhatsApp
     // (_crmAsignarHTML, definido en taller.html) -- así "asignado a mí" /
     // "sin dueño" queda visible igual en los 3 canales, y un empleado
@@ -383,9 +387,12 @@
     // de un admin. _igRefrescarAsignacion (abajo) repinta este chat + la
     // lista una vez que la asignación quedó guardada.
     const asignarHtml=typeof window._crmAsignarHTML==='function' ? window._crmAsignarHTML('instagram_hilos', h, '_igRefrescarAsignacion') : '';
-    chat.innerHTML=`<div class="bc-ig-chat-head"><button class="bc-ig-back" id="bcIgBack" type="button" aria-label="Volver"><i class="ti ti-chevron-left"></i></button><span class="bc-ig-avatar">${esc(initials(nm))}</span><div class="bc-ig-chat-title"><b>${esc(nm)}</b><span>${esc(user)}</span></div><span class="bc-ig-chat-badge">Instagram Direct</span></div>${asignarHtml ? `<div style="padding:6px 14px; background:#faf5ff; border-bottom:1px solid #f3e8ff;">${asignarHtml}</div>` : ''}<div class="bc-ig-messages" id="bcIgMessages" style="position:relative;">${rows || '<div class="bc-ig-empty"><div><b>Sin mensajes</b><span>Este hilo todavía no tiene mensajes guardados.</span></div></div>'}</div><button type="button" class="bc-social-jump" id="bcIgJump" aria-label="Ir al último mensaje"><i class="ti ti-arrow-down"></i><span>Últimos mensajes</span></button><form class="bc-ig-composer" id="bcIgComposer"><textarea id="bcIgText" rows="1" placeholder="Escribe un mensaje…" ${h.zernio_conversation_id?'':'disabled'}></textarea><button class="bc-ig-send" id="bcIgSend" type="submit" ${h.zernio_conversation_id?'':'disabled'} aria-label="Enviar"><i class="ti ti-arrow-up"></i></button></form>`;
+    chat.innerHTML=`<div class="bc-ig-chat-head"><button class="bc-ig-back" id="bcIgBack" type="button" aria-label="Volver"><i class="ti ti-chevron-left"></i></button><span class="bc-ig-avatar">${esc(initials(nm))}</span><div class="bc-ig-chat-title"><b>${esc(nm)}</b><span>${esc(user)}</span></div><span class="bc-ig-chat-badge">Instagram Direct</span></div>${asignarHtml ? `<div style="padding:6px 14px; background:#faf5ff; border-bottom:1px solid #f3e8ff;">${asignarHtml}</div>` : ''}<div id="bcIgMessageActions" class="bc-ig-pop" hidden></div><div id="bcIgForwardBox" class="bc-ig-pop bc-ig-forward-box" hidden><div style="padding:2px 4px 6px;font-size:11px;font-weight:700;color:#4a3560;">Reenviar a…</div><input id="bcIgForwardSearch" type="search" placeholder="Buscar conversación…" style="width:100%;box-sizing:border-box;border:1px solid #ead7f3;border-radius:8px;padding:6px 8px;font-size:12.5px;margin-bottom:6px;"><div id="bcIgForwardList" style="max-height:220px;overflow:auto;"></div><button type="button" id="bcIgForwardClose" style="width:100%;margin-top:4px;">Cerrar</button></div><div class="bc-ig-messages" id="bcIgMessages" style="position:relative;">${rows || '<div class="bc-ig-empty"><div><b>Sin mensajes</b><span>Este hilo todavía no tiene mensajes guardados.</span></div></div>'}</div><button type="button" class="bc-social-jump" id="bcIgJump" aria-label="Ir al último mensaje"><i class="ti ti-arrow-down"></i><span>Últimos mensajes</span></button><form class="bc-ig-composer" id="bcIgComposer"><textarea id="bcIgText" rows="1" placeholder="Escribe un mensaje…" ${h.zernio_conversation_id?'':'disabled'}></textarea><button class="bc-ig-send" id="bcIgSend" type="submit" ${h.zernio_conversation_id?'':'disabled'} aria-label="Enviar"><i class="ti ti-arrow-up"></i></button></form>`;
     $('#bcIgBack')?.addEventListener('click',()=>$('#v-crmLinea')?.classList.remove('bc-ig-chat-open'));
     $('#bcIgComposer')?.addEventListener('submit',sendInstagram);
+    chat.querySelectorAll('[data-igmenu]').forEach(btn=>btn.addEventListener('click',(e)=>{e.stopPropagation();igMessageMenu(btn.dataset.igmenu);}));
+    $('#bcIgForwardClose')?.addEventListener('click',()=>{$('#bcIgForwardBox').hidden=true;});
+    $('#bcIgForwardSearch')?.addEventListener('input',(e)=>igPaintForwardList(e.target.value));
     const ta=$('#bcIgText');
     if(ta){ta.value=draft;if(focused){ta.focus({preventScroll:true});if(caret!=null)ta.setSelectionRange(caret,caret);}}
     ta?.addEventListener('input',()=>{ta.style.height='auto';ta.style.height=Math.min(ta.scrollHeight,112)+'px';});
@@ -415,6 +422,64 @@
       await loadInstagram(false); await loadMessages(state.selected.id,false); notify('Mensaje de Instagram enviado.');
     }catch(err){ console.error('instagram-enviar',err); notify(err.message||'No se pudo enviar el mensaje de Instagram.','error'); }
     finally{state.busySend=false;if(btn){btn.disabled=!state.selected?.zernio_conversation_id;btn.innerHTML='<i class="ti ti-arrow-up"></i>';}ta?.focus?.();}
+  }
+
+  // Menú de mensaje + Reenviar (15 sept 2026, misma idea que ya tiene
+  // Facebook/crm-facebook-chat.js): Instagram no deja citar/responder un
+  // mensaje puntual (Meta lo rechaza -- ver instagram-enviar/index.ts, "Meta
+  // rechaza reply_to... silently ignored"), así que "Reenviar" es lo mismo
+  // que hace WhatsApp: mandar el mismo texto como mensaje nuevo a otra
+  // conversación, vía el mismo instagram-enviar de siempre.
+  let igForwardMsg=null, igForwardThreads=null;
+  function igMessageMenu(id){
+    const m=state.messages.find(x=>x.id===id); if(!m) return;
+    const box=$('#bcIgMessageActions'); if(!box) return;
+    box.hidden=false;
+    box.innerHTML=`<button type="button" data-igcopy>Copiar texto</button><button type="button" data-igforward>Reenviar</button><button type="button" data-igclose>Cerrar</button>`;
+    box.onclick=async (e)=>{
+      const btn=e.target.closest('button'); if(!btn) return;
+      if(btn.hasAttribute('data-igclose')){box.hidden=true;return;}
+      if(btn.hasAttribute('data-igforward')){box.hidden=true;igForwardMessage(m);return;}
+      try{ await navigator.clipboard.writeText(m.cuerpo||''); notify('Texto copiado.'); }catch{ notify('No se pudo copiar.','error'); }
+      box.hidden=true;
+    };
+  }
+  async function igLoadForwardThreads(){
+    if(igForwardThreads) return igForwardThreads;
+    try{
+      const {data,error}=await instagramQuery(sb().from('instagram_hilos').select('id,nombre_perfil,participant_username').eq('cuenta_id',state.account?.id).neq('id',state.selected?.id).order('ultimo_mensaje_at',{ascending:false}).limit(200));
+      if(error) throw error;
+      igForwardThreads=data||[];
+    }catch{ igForwardThreads=[]; }
+    return igForwardThreads;
+  }
+  async function igPaintForwardList(q){
+    const list=$('#bcIgForwardList'); if(!list) return;
+    list.innerHTML='<div style="padding:8px;color:#94a3b8;font-size:12px;">Buscando…</div>';
+    const threads=await igLoadForwardThreads();
+    const filtro=String(q||'').trim().toLowerCase();
+    const filtrados=threads.filter(t=>!filtro || (t.nombre_perfil||'').toLowerCase().includes(filtro) || (t.participant_username||'').toLowerCase().includes(filtro));
+    list.innerHTML=filtrados.length ? filtrados.map(t=>`<button type="button" data-igforward-to="${esc(t.id)}" style="display:block;width:100%;text-align:left;border:0;background:none;padding:8px 6px;font-size:12.5px;cursor:pointer;border-bottom:1px solid #f3ecf9;color:#4a3560;">${esc(t.nombre_perfil||t.participant_username||'Cliente de Instagram')}</button>`).join('') : '<div style="padding:8px 6px;color:#94a3b8;font-size:12px;">Sin conversaciones que coincidan.</div>';
+    list.querySelectorAll('[data-igforward-to]').forEach(btn=>btn.addEventListener('click',()=>igForwardTo(btn.dataset.igforwardTo)));
+  }
+  async function igForwardMessage(m){
+    if(!m.cuerpo){ notify('Por ahora solo se pueden reenviar mensajes de texto.','error'); return; }
+    igForwardMsg=m; igForwardThreads=null;
+    const box=$('#bcIgForwardBox'); if(!box) return;
+    box.hidden=false;
+    const s=$('#bcIgForwardSearch'); if(s) s.value='';
+    await igPaintForwardList('');
+  }
+  async function igForwardTo(destinoId){
+    if(!igForwardMsg) return;
+    const box=$('#bcIgForwardBox');
+    try{
+      const {data,error}=await sb().functions.invoke('instagram-enviar',{body:{hilo_id:destinoId,mensaje:igForwardMsg.cuerpo}});
+      if(error) throw error;
+      if(data?.ok===false) throw new Error(data.mensaje||data.error||'Instagram rechazó el envío.');
+      notify('Mensaje reenviado.');
+    }catch(err){ notify(err.message||'No se pudo reenviar.','error'); }
+    finally{ if(box) box.hidden=true; igForwardMsg=null; }
   }
 
   function setupRealtime(){
