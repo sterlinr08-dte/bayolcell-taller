@@ -918,11 +918,23 @@
   }
 
   function applyFilters(){
-    if(state.channel!=='instagram' || !['all','messages'].includes(state.view)) return;
-    $$('.bc-ig-thread').forEach(row=>{
-      const hasUnread=!!row.querySelector('.bc-ig-unread');
-      row.hidden=state.unreadOnly && !hasUnread;
-    });
+    // 15 sept 2026: el checkbox "Solo sin leer" es UNO SOLO en la barra
+    // compartida (aplica a cualquier canal que esté activo), pero antes esta
+    // función salía de inmediato si el canal no era Instagram -- en
+    // Facebook, marcar el checkbox no hacía absolutamente nada (ni ocultaba
+    // ni daba error, simplemente no pasaba nada). Facebook ya trae la marca
+    // ".unread" en cada fila (ver renderThreads de loadFacebookThreads), así
+    // que reusa la misma idea en vez de dejarlo sin implementar.
+    if(state.channel==='instagram' && ['all','messages'].includes(state.view)){
+      $$('.bc-ig-thread').forEach(row=>{
+        const hasUnread=!!row.querySelector('.bc-ig-unread');
+        row.hidden=state.unreadOnly && !hasUnread;
+      });
+    } else if(state.channel==='facebook'){
+      $$('.bc-social-generic-thread').forEach(row=>{
+        row.hidden=state.unreadOnly && !row.classList.contains('unread');
+      });
+    }
   }
 
   function ensureRedesTab(){

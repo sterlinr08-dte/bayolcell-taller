@@ -100,6 +100,12 @@
 }
 .bc-ig-thread:hover{background:#fff;border-color:#e8edf4;box-shadow:0 5px 14px -12px rgba(15,23,42,.45)}
 .bc-ig-thread.on{background:#fdf4ff;border-color:#f5d0fe;box-shadow:inset 3px 0 0 #d946ef}
+/* Bug real (15 sept 2026): .bc-ig-thread ya trae su propio "display:flex"
+   -- le gana al "hidden" del navegador (mismo patrón que .bc-smart-count/
+   .bc-social-generic-thread). El filtro "Solo sin leer" ponía hidden=true
+   en las conversaciones leídas de Instagram, pero sin esta regla nunca se
+   escondían de verdad. */
+.bc-ig-thread[hidden]{display:none}
 .bc-ig-avatar{
   width:38px;height:38px;border-radius:12px;flex:none;display:grid;place-items:center;color:#fff;font-size:11px;font-weight:800;
   background:linear-gradient(145deg,#c026d3,#6366f1);
