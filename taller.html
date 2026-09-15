@@ -1630,6 +1630,20 @@ body{
   #v-crmLinea .crm-cabecera-resumen{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:5px}
   #v-crmLinea .crm-cabecera-resumen .crm-selectores{margin:0;flex:0 1 520px}
   #v-crmLinea .crm-bandeja-controles{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-bottom:6px;min-width:0}
+  /* BUG real encontrado 15 sept 2026: .crm-busq-row y .crm-chips-row NO son
+     hijos DIRECTOS de .crm-bandeja-controles -- estan envueltos en
+     #crmWaControlesWrap (un <div> sin estilo propio, solo existe para
+     esconder los tres de un golpe en las pestañas Leads/Redes). Un flex
+     container solo puede ordenar a sus hijos directos: por mas que aqui se
+     les pusiera flex:none, no hacian nada porque en verdad son NIETOS. Por
+     eso la fila de pestañas SI se veia en linea (esa si es hija directa) y
+     el buscador+chips seguian cada uno en su propio renglon debajo, por mas
+     que se bajara o subiera el punto de corte -- no era un problema de
+     ancho de ventana ni de zoom. display:contents saca a
+     #crmWaControlesWrap de en medio (sin tocar el JS que lo esconde por
+     pestaña, que sigue funcionando igual) para que sus hijos SI cuenten
+     como hijos directos del flex container. */
+  #v-crmLinea .crm-bandeja-controles #crmWaControlesWrap{display:contents}
   #v-crmLinea .crm-bandeja-controles .crm-tabs-row,
   #v-crmLinea .crm-bandeja-controles .crm-busq-row,
   #v-crmLinea .crm-bandeja-controles .crm-chips-row,
