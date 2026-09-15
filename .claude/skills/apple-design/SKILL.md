@@ -75,6 +75,36 @@ blanco, contraste 4.7:1" en vez de "se ve pequeño". Referencias mínimas
 - **Un color = una cosa.** Si el rojo de marca ya significa "acción
   principal", no reusarlo también para "error" en la misma pantalla.
 
+## Botones (auditado contra el HIG real de Apple, filtrado a lo que aplica en web)
+Verificado contra la página "Buttons" del HIG (se descartó todo lo específico
+de apps nativas de macOS/iPadOS que no aplica a un panel web: push/square/
+help buttons, spring loading, SF Symbols, elipsis de ventana, visionOS).
+Lo que SÍ aplica y conviene seguir en `taller.html`:
+- **1–2 botones prominentes por pantalla/tarjeta, máximo.** El resto va como
+  botón secundario (`.btn-light`) o dentro de "Más opciones" — ya es el
+  patrón usado en Reacond ("Pasar a ▾") y Órdenes ("Más opciones"). Un
+  tercer botón "destacado" compitiendo por atención confunde cuál es la
+  acción esperada.
+- **Estilo, no tamaño, para marcar la opción preferida.** El botón principal
+  usa el acento (relleno, color de marca); los demás quedan neutros
+  (`.btn-light`, borde/gris) — no agrandar un botón para que "se note más".
+- **Nunca el rojo/estilo "principal" en un botón destructivo**, aunque sea
+  la acción más probable en esa pantalla. Borrar/Eliminar/Anular llevan su
+  propio color de peligro (rojo también sirve, pero DISTINTO tratamiento
+  visual del botón "primario" de esa vista — ej. outline en vez de relleno,
+  o agrupado aparte) para que no se confunda con "seguir/guardar". Un botón
+  "Cancelar" nunca debe verse como el botón por defecto.
+- **Etiquetas: verbo + acción concreta, sin relleno.** "Guardar cambios",
+  no "Enviar"; "Registrar compra en Info Plus", no "Aceptar". El texto del
+  botón debe decir exactamente qué va a pasar. Ya es la convención de este
+  repo (ver los nombres de botón en Reacond/Financiamiento/Recepción) —
+  mantenerla al agregar botones nuevos.
+- **Estado de presión visible** en cualquier botón (`:active` con
+  `transform:scale(.96-.98)` o cambio de fondo) — refuerza que el toque
+  registró, sobre todo en celular donde no hay hover.
+- **No poner botones "ocasionales" (help, ajustes finos, acciones raras) al
+  mismo nivel visual que la acción principal de la vista.**
+
 ## Evitar el look genérico de plantilla de IA
 Antes de dar un rediseño por terminado, preguntarse: *¿este mismo diseño le
 serviría a cualquier otro negocio, o tiene algo que lo hace de BAYOL CELL?*
@@ -141,12 +171,16 @@ Antes de cerrar: ¿qué es lo único que esta pantalla va a hacer recordar? Y
    arriba (no solo "a ojo")?
 7. ¿No quedó genérico — tiene algo que lo hace de BAYOL CELL y no de
    cualquier otro negocio?
-8. ¿Sintaxis verificada (JS/CSS) antes de commitear?
+8. ¿Como máximo 1–2 botones prominentes, ningún destructivo con estilo de
+   botón principal?
+9. ¿Sintaxis verificada (JS/CSS) antes de commitear?
 
 ## Fuente
 Principios adaptados de las Apple Human Interface Guidelines (accesibilidad,
-tipografía, color, contenido) más una capa de criterio de estudio para
-evitar el look genérico de plantilla, con las convenciones propias de
-BAYOL CELL siempre por encima cuando hay conflicto (ver arriba). No se
-instaló ningún paquete de terceros para esta skill — es contenido propio del
-repo, sin dependencias externas ni código ejecutado fuera de este archivo.
+tipografía, color, contenido, botones — esta última página se leyó completa
+y se filtró explícitamente lo que no aplica a un panel web) más una capa de
+criterio de estudio para evitar el look genérico de plantilla, con las
+convenciones propias de BAYOL CELL siempre por encima cuando hay conflicto
+(ver arriba). No se instaló ningún paquete de terceros para esta skill — es
+contenido propio del repo, sin dependencias externas ni código ejecutado
+fuera de este archivo.
