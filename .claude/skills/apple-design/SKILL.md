@@ -105,6 +105,41 @@ Lo que SÍ aplica y conviene seguir en `taller.html`:
 - **No poner botones "ocasionales" (help, ajustes finos, acciones raras) al
   mismo nivel visual que la acción principal de la vista.**
 
+## Vidrio (Liquid Glass) — auditado, cuándo sí y cuándo no
+Verificado contra la guía "Liquid Glass" del HIG. Este proyecto **ya usa**
+vidrio/blur en varios lados (sidebar y top-bar "vidrio oscuro", tarjetas
+`.card` con `backdrop-filter`, el buscador de artículos) — esto NO pide
+quitarlo ni rehacerlo todo; es la referencia para lo NUEVO y para decidir
+si vale la pena tocar algo existente.
+- **Regla de las dos capas.** El vidrio va en la capa "flotante" (barra
+  superior, modales, popovers, la barra de escribir que queda fija abajo en
+  WhatsApp/Facebook, menús desplegables) — **no** en la capa de contenido
+  (tarjetas de datos, filas de lista, fondos de vista). Poner blur en cada
+  tarjeta de una lista larga es justo el error que señala el HIG ("vidrio en
+  contenido = defecto") y además es caro en rendimiento con muchas tarjetas
+  en un celular. Si una pantalla nueva necesita "sensación premium", el
+  vidrio va en su barra fija o su modal, y las tarjetas de datos usan sombra
+  suave (ver arriba), no blur.
+- **Con moderación.** Unos pocos elementos flotantes con vidrio por pantalla,
+  no todos. Vidrio encima de vidrio (un modal con blur sobre una barra con
+  blur) es confuso — máximo una capa de vidrio a la vez en el mismo punto de
+  la pantalla.
+- **Valores de referencia** (ya en el rango de lo que usa el repo — sidebar/
+  top-bar están en `blur(12-18px) saturate(140-150%)`, tarjetas en
+  `blur(20px) saturate(170%)`): blur 20-40px y relleno 60-80% de opacidad
+  para la variante normal (con texto); blur 8-16px y relleno 20-40% solo si
+  va encima de una foto/video real (fotos de equipo, catálogo) — nunca sobre
+  fondo plano.
+- **Sin color propio.** El vidrio toma el color de lo que tiene detrás; los
+  íconos/texto encima van neutros (gris oscuro/blanco), y el color de marca
+  se reserva para 1-2 acciones primarias como máximo — mismo límite que la
+  sección de Botones.
+- **Accesibilidad real, no cosmética:** respetar
+  `prefers-reduced-transparency` (fondo sólido en vez de blur),
+  `prefers-contrast` (borde/relleno más fuerte) y `prefers-reduced-motion`
+  (sin animación) cuando se agregue vidrio nuevo — Safari en iPhone sí
+  reporta estas preferencias.
+
 ## Evitar el look genérico de plantilla de IA
 Antes de dar un rediseño por terminado, preguntarse: *¿este mismo diseño le
 serviría a cualquier otro negocio, o tiene algo que lo hace de BAYOL CELL?*
@@ -173,14 +208,17 @@ Antes de cerrar: ¿qué es lo único que esta pantalla va a hacer recordar? Y
    cualquier otro negocio?
 8. ¿Como máximo 1–2 botones prominentes, ningún destructivo con estilo de
    botón principal?
-9. ¿Sintaxis verificada (JS/CSS) antes de commitear?
+9. Si hay vidrio/blur nuevo: ¿está en la capa flotante (barra/modal), no en
+   tarjetas de contenido, y con `prefers-reduced-transparency`/`-contrast`/
+   `-reduced-motion` cubiertos?
+10. ¿Sintaxis verificada (JS/CSS) antes de commitear?
 
 ## Fuente
 Principios adaptados de las Apple Human Interface Guidelines (accesibilidad,
-tipografía, color, contenido, botones — esta última página se leyó completa
-y se filtró explícitamente lo que no aplica a un panel web) más una capa de
-criterio de estudio para evitar el look genérico de plantilla, con las
-convenciones propias de BAYOL CELL siempre por encima cuando hay conflicto
-(ver arriba). No se instaló ningún paquete de terceros para esta skill — es
-contenido propio del repo, sin dependencias externas ni código ejecutado
-fuera de este archivo.
+tipografía, color, contenido, botones, Liquid Glass — estas dos últimas
+páginas se leyeron completas y se filtró explícitamente lo que no aplica a
+un panel web) más una capa de criterio de estudio para evitar el look
+genérico de plantilla, con las convenciones propias de BAYOL CELL siempre
+por encima cuando hay conflicto (ver arriba). No se instaló ningún paquete
+de terceros para esta skill — es contenido propio del repo, sin
+dependencias externas ni código ejecutado fuera de este archivo.
