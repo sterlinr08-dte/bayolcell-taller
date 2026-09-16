@@ -77,7 +77,8 @@
     missing_auth: 'Tu sesión venció. Vuelve a entrar.',
     zernio_key_not_configured: 'Falta configurar la conexión con {red} (avisa a soporte).',
     method_not_allowed: 'No se pudo completar la acción.',
-    invalid_json: 'No se pudo completar la acción.'
+    invalid_json: 'No se pudo completar la acción.',
+    tiktok_no_dm: 'TikTok no tiene mensajes privados disponibles.'
   };
   function fbcFriendly(msg){
     const texto = FBC_ERRORES[msg] || msg || 'No se pudo completar la acción.';
@@ -85,9 +86,12 @@
   }
 
   // Nombre de la red para mensajes genéricos (el panel de Comentarios sirve
-  // a Facebook e Instagram con el mismo código -- ver fbc.platform).
+  // a Facebook, Instagram y TikTok con el mismo código -- ver fbc.platform).
   function fbcRedLabel(){
-    return (fbc.platform || state.channel) === 'instagram' ? 'Instagram' : 'Facebook';
+    const p = fbc.platform || state.channel;
+    if (p === 'instagram') return 'Instagram';
+    if (p === 'tiktok') return 'TikTok';
+    return 'Facebook';
   }
 
   async function fbcInvoke(action, extra){
@@ -542,10 +546,16 @@
 
   function fbcCommentActionsHTML(c){
     const leadDone = c._leadDone ? ' done' : '';
+    // 16 sept 2026: TikTok no tiene mensajes privados en Zernio (confirmado
+    // contra el propio openapi.json: el endpoint de conversaciones/DM solo
+    // lista facebook/instagram/twitter/bluesky/reddit/telegram/whatsapp,
+    // tiktok no aparece) -- por eso "Private Reply" no se ofrece ahí, para
+    // no simular una acción que la plataforma no permite.
+    const privateBtn = fbc.platform === 'tiktok' ? '' : `<button type="button" data-fbc-act="private" data-fbc-comment="${escapeHtml(c.id)}"><i class="ti ti-send"></i> Private Reply</button>`;
     return `<div class="bc-fbc-actions">
       ${fbcLikeButtonHTML(c)}
       <button type="button" data-fbc-act="reply" data-fbc-comment="${escapeHtml(c.id)}"><i class="ti ti-message-reply"></i> Responder público</button>
-      <button type="button" data-fbc-act="private" data-fbc-comment="${escapeHtml(c.id)}"><i class="ti ti-send"></i> Private Reply</button>
+      ${privateBtn}
       <button type="button" class="${leadDone}" data-fbc-act="lead" data-fbc-comment="${escapeHtml(c.id)}"><i class="ti ${c._leadDone ? 'ti-check' : 'ti-user-plus'}"></i> ${c._leadDone ? 'Lead creado' : 'Lead'}</button>
     </div>`;
   }
@@ -675,7 +685,7 @@
       const red = fbcRedLabel();
       const { error } = await client.from('leads').insert({
         sucursal_id: sucursalId,
-        canal: fbc.platform === 'instagram' ? 'instagram' : 'facebook',
+        canal: fbc.platform === 'instagram' ? 'instagram' : fbc.platform === 'tiktok' ? 'tiktok' : 'facebook',
         nombre: comment.from?.name || `Contacto de ${red}`,
         interes: comment.message || null,
         notas: `Comentario en ${red}${post ? ' (' + fbcTruncate(post.content, 60) + ')' : ''}: "${comment.message || ''}"\n${comment.url || ''}`.trim(),
@@ -769,6 +779,13 @@
       {key:'comments', label:'Comentarios', sub:'Publicaciones y Reels', icon:'ti-message-circle'}
     ];
     if(channel==='instagram') base.push({key:'mentions', label:'Menciones', sub:'Historias y etiquetas', icon:'ti-at'});
+    // 16 sept 2026: TikTok no tiene mensajes directos en Zernio (confirmado
+    // contra el openapi.json -- el endpoint de conversaciones solo cubre
+    // facebook/instagram/twitter/bluesky/reddit/telegram/whatsapp). Se quita
+    // la pestaña "Mensajes" para no mostrar algo que la plataforma no
+    // permite; "Todos" se queda porque cae en el mismo panel real de
+    // Comentarios (ver showCurrentContent), no en un vacío.
+    if(channel==='tiktok') return base.filter(x=>x.key!=='messages');
     return base;
   }
 
@@ -787,11 +804,13 @@
     if(!allowed.some(x=>x.key===state.view)) state.view='all';
     host.innerHTML=allowed.map(item=>{
       const count=knownCount(state.channel,item.key);
-      // 15 sept 2026: Comentarios de Instagram se confirmó que SÍ funciona
-      // (mismo endpoint de Zernio que ya usaba Facebook, probado en vivo con
-      // publicaciones y comentarios reales de @bayolcell) -- deja de estar
-      // marcado como pendiente.
-      const yaFunciona=item.key==='comments' && (state.channel==='facebook' || state.channel==='instagram');
+      // 15-16 sept 2026: Comentarios de Instagram y de TikTok se confirmaron
+      // funcionando (mismo endpoint de Zernio que ya usaba Facebook, probado
+      // en vivo con publicaciones/comentarios reales de @bayolcell) -- dejan
+      // de estar marcados como pendientes. Para TikTok, "Todos" cae en el
+      // mismo panel real de Comentarios (no hay Mensajes en esa red), así
+      // que también cuenta como funcionando.
+      const yaFunciona = state.channel==='tiktok' ? true : (item.key==='comments' && (state.channel==='facebook' || state.channel==='instagram'));
       const pending=!yaFunciona && ((state.channel!=='instagram') || (state.channel==='instagram' && ['comments','mentions'].includes(item.key)));
       return `
         <button type="button" class="bc-smart-interaction${state.view===item.key?' on':''}" data-smart-view="${item.key}" role="tab" aria-selected="${state.view===item.key}">
@@ -928,27 +947,11 @@
         }
         // 'comments' ya no usa este placeholder: renderFacebookCommentsPanel()
         // (mas abajo) construye la vista real con datos de Zernio.
-      },
-      tiktok:{
-        all:{
-          icon:'ti-brand-tiktok',
-          title:'Actividad de TikTok',
-          text:'La vista está preparada para integrar únicamente las capacidades oficiales y autorizadas disponibles para BAYOL CELL.',
-          chips:['Comentarios','Inbox cuando aplique','Asignación','Leads']
-        },
-        messages:{
-          icon:'ti-send',
-          title:'TikTok Inbox',
-          text:'Reservado para mensajes privados si la integración oficial aprobada para la cuenta permite recibirlos y responderlos.',
-          chips:['Inbox','No leídos','Asignación']
-        },
-        comments:{
-          icon:'ti-message-circle',
-          title:'Comentarios de TikTok',
-          text:'Reservado para comentarios y respuestas cuando la API autorizada permita administrar esas interacciones.',
-          chips:['Video de origen','Comentario','Respuesta','Lead']
-        }
       }
+      // 16 sept 2026: se quita el bloque "tiktok" de aquí -- sus dos únicas
+      // pestañas ("Todos" y "Comentarios") ya caen en el panel real de
+      // renderFacebookCommentsPanel() (ver showCurrentContent), no en este
+      // placeholder. TikTok no tiene Mensajes (Zernio no lo soporta).
     };
     return configs[state.channel]?.[state.view] || {
       icon: CHANNELS[state.channel]?.icon || 'ti-message-circle',
@@ -1006,12 +1009,14 @@
       // Both inbox tabs share the real Messenger panel.
       fb.style.display='flex';
       view.dataset.socialChannel='facebook';
-    }else if(state.channel==='tiktok' && state.view==='all'){
-      tt.style.display='flex';
-      view.dataset.socialChannel='tiktok';
-    }else if((state.channel==='facebook' || state.channel==='instagram') && state.view==='comments'){
-      // Mismo panel para los dos canales -- ver fbc.platform en
+    }else if(
+      ((state.channel==='facebook' || state.channel==='instagram') && state.view==='comments') ||
+      (state.channel==='tiktok' && (state.view==='all' || state.view==='comments'))
+    ){
+      // Mismo panel para los tres canales -- ver fbc.platform en
       // renderFacebookCommentsPanel() (bota el cache si cambió el canal).
+      // TikTok no tiene Mensajes (ver interactionItems), así que su pestaña
+      // "Todos" cae aquí también en vez del placeholder viejo de #bcSocialTikTokPanel.
       ctx.style.display='flex';
       view.dataset.socialChannel=state.channel;
       renderFacebookCommentsPanel();

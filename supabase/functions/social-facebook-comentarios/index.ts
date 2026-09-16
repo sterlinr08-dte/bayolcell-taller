@@ -1,19 +1,25 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-// Proxy de Comentarios de Facebook E INSTAGRAM (Zernio) para el CRM.
+// Proxy de Comentarios de Facebook, INSTAGRAM y TIKTOK (Zernio) para el CRM.
 // La API key de Zernio vive SOLO aca (Deno.env); el navegador nunca la ve.
 // 15 sept 2026: se generalizo para Instagram -- Zernio expone el MISMO
 // endpoint /inbox/comments para ambas plataformas, basta con pasarle el
 // accountId de la cuenta correcta (probado en vivo contra @bayolcell con
 // publicaciones/comentarios reales antes de generalizar). El unico cambio
-// real es DE DONDE se lee el zernio_account_id: social_cuentas (facebook)
-// o instagram_cuentas (instagram) -- el resto del proxy es identico.
-// Endpoints reales confirmados via /openapi.json (13 sept 2026):
+// real es DE DONDE se lee el zernio_account_id: social_cuentas (facebook,
+// tiktok) o instagram_cuentas (instagram) -- el resto del proxy es identico.
+// 16 sept 2026: se agrega TikTok, tambien probado en vivo contra @bayolcell
+// (publicaciones y comentarios reales con like/reply/hide). TikTok NO tiene
+// mensajes privados en Zernio (confirmado contra el propio openapi.json: el
+// endpoint de conversaciones/DM lista facebook/instagram/twitter/bluesky/
+// reddit/telegram/whatsapp -- tiktok no aparece), asi que private_reply se
+// rechaza explicitamente para esa plataforma en vez de intentarlo.
+// Endpoints reales confirmados via /openapi.json (13-16 sept 2026):
 //   GET  /v1/inbox/comments?accountId=X            -> publicaciones de la cuenta
 //   GET  /v1/inbox/comments/{postId}?accountId=X   -> comentarios de esa publicacion
 //   POST /v1/inbox/comments/{postId}                -> responder (publico o a un comentario)
-//   POST /v1/inbox/comments/{postId}/{commentId}/private-reply -> Private Reply (DM)
+//   POST /v1/inbox/comments/{postId}/{commentId}/private-reply -> Private Reply (DM, no TikTok)
 //   POST /v1/inbox/comments/{postId}/{commentId}/like -> like al comentario
 //   DELETE /v1/inbox/comments/{postId}/{commentId}/like -> retirar like
 const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -48,7 +54,7 @@ Deno.serve(async (req) => {
   let body: any;
   try { body = await req.json(); } catch { return out({ ok: false, error: "invalid_json" }, 400); }
   const action = String(body.action || "");
-  const platform = body.platform === "instagram" ? "instagram" : "facebook";
+  const platform = body.platform === "instagram" ? "instagram" : body.platform === "tiktok" ? "tiktok" : "facebook";
   const postId = body.postId ? String(body.postId) : "";
   const commentId = body.commentId ? String(body.commentId) : "";
   const message = body.message ? String(body.message).trim() : "";
@@ -56,11 +62,15 @@ Deno.serve(async (req) => {
   const cursor = body.cursor ? String(body.cursor) : "";
   const limit = Number.isFinite(body.limit) ? Math.min(100, Math.max(1, Number(body.limit))) : null;
 
+  if (action === "private_reply" && platform === "tiktok") {
+    return out({ ok: false, error: "tiktok_no_dm" }, 400);
+  }
+
   const accountId = platform === "instagram"
     ? (await db.from("instagram_cuentas").select("zernio_account_id")
         .eq("activo", true).order("creado_en", { ascending: false }).limit(1).maybeSingle()).data?.zernio_account_id
     : (await db.from("social_cuentas").select("zernio_account_id")
-        .eq("plataforma", "facebook").eq("activo", true)
+        .eq("plataforma", platform).eq("activo", true)
         .order("actualizado_en", { ascending: false }).limit(1).maybeSingle()).data?.zernio_account_id;
   if (!accountId) return out({ ok: false, error: "account_not_configured" }, 409);
 

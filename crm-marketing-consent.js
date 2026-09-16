@@ -4,7 +4,7 @@
   if(window.__bcCrmExtensionsLoader)return;
   window.__bcCrmExtensionsLoader=true;
 
-  var V='20260915-hotfix17';
+  var V='20260916-hotfix1';
   var AMBIENT='20260915-hotfix3';
   var SURFACE='20260914-clean1';
   var MIDNIGHT='20260914-midnight1';
