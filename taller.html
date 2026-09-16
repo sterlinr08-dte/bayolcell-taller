@@ -6219,9 +6219,16 @@ function applyAccessControls() {
     }
     
     // MODO "SOLO ATENCIÓN AL CLIENTE": servicio solo ve esa pantalla (+ recepción para recibir, + financiamientos si tiene permiso)
+    // 16 sept 2026: se agrega menu-crm a la lista -- roles como "SERVICIO AL
+    // CLIENTE + CRM REDES" (ej. Michelle) combinan solo_atencion:true con
+    // whatsapp_ver/leads_ver:true, pero como este modo corta con `return`
+    // antes de llegar a la revisión normal de permisos (más abajo, la que
+    // sí controla menu-crm), el botón de CRM se quedaba oculto sin importar
+    // que el permiso estuviera activo. Mismo patrón ya usado aquí para
+    // menu-ordenes/menu-financiamientos: se permite si tiene el permiso.
     if(tienePermiso('solo_atencion')) {
         document.querySelectorAll('.nav button').forEach(b => {
-            b.style.display = (b.id === 'menu-atencion' || b.id === 'menu-recepcion' || b.id === 'menu-piezasSolicitadas' || (b.id === 'menu-ordenes' && tienePermiso('ordenes_ver')) || (b.id === 'menu-financiamientos' && tienePermiso('financiamientos_ver'))) ? '' : 'none';
+            b.style.display = (b.id === 'menu-atencion' || b.id === 'menu-recepcion' || b.id === 'menu-piezasSolicitadas' || (b.id === 'menu-ordenes' && tienePermiso('ordenes_ver')) || (b.id === 'menu-financiamientos' && tienePermiso('financiamientos_ver')) || (b.id === 'menu-crm' && (tienePermiso('whatsapp_ver') || tienePermiso('leads_ver')))) ? '' : 'none';
         });
         if(typeof closeSidebar === 'function') closeSidebar();
         document.body.style.overflow = '';
