@@ -2435,3 +2435,43 @@ BAYOL CELL — ACABADO TÁCTIL REALISTA v13
   #app #v-refurb .reacond-equipo-card:hover,
   #app #v-refurb .reacond-kpi-card:hover{transform:none !important;}
 }
+
+/* 16 sept 2026 -- RENDIMIENTO (auditado con evidencia, pedido de Sterling:
+   "arréglalo para que funcione rápido"). Este archivo (y los que se cargan
+   después) le habían puesto backdrop-filter:blur() a las superficies de
+   CONTENIDO que se repiten decenas/cientos de veces en una sola pantalla:
+   tarjetas (.card/.block-card/.prov-card/.refurb-item-card/.lote-card/
+   .inc-card/.fe-card/.fin-click-card), KPI, TABLAS completas (.data-table/
+   .table-wrap, que además se desplazan -- el blur se recalcula en cada
+   frame de scroll), inputs/selects/textareas de CADA formulario, botones
+   secundarios, y las tarjetas de Reacondicionados (donde puede haber
+   decenas visibles a la vez). El blur es de las propiedades más caras de
+   pintar en CSS (crea una capa de composición aparte y muestrea en vivo lo
+   que hay detrás); aplicado a tantos elementos de contenido a la vez -- en
+   vez de solo a la capa flotante (barra superior/lateral/fondo de modal,
+   que si se dejan) -- es un costo real y medible, no solo estético. Mismo
+   criterio ya documentado en la skill apple-design (sección Liquid Glass):
+   el vidrio va en controles flotantes, nunca en tarjetas de contenido.
+   Esta regla gana la cascada por ir al final del archivo (misma
+   especificidad + !important que las de arriba): apaga el blur ahí y lo
+   deja en sombra suave (ya definida arriba, sin tocarla), que se ve casi
+   igual en una tarjeta pequeña pero cuesta muchísimo menos. */
+#app .view:not(#v-crmLinea) .card,
+#app .view:not(#v-crmLinea) .block-card,
+#app .view:not(#v-crmLinea) .prov-card,
+#app .view:not(#v-crmLinea) .refurb-item-card,
+#app .view:not(#v-crmLinea) .lote-card,
+#app .view:not(#v-crmLinea) .inc-card,
+#app .view:not(#v-crmLinea) .fe-card,
+#app .view:not(#v-crmLinea) .fin-click-card,
+#app .view:not(#v-crmLinea) .kpi-box,
+#app .view:not(#v-crmLinea) .data-table,
+#app .view:not(#v-crmLinea) .table-wrap,
+#app .view:not(#v-crmLinea) .btn-light,
+#app .view:not(#v-crmLinea) input:not([type="checkbox"]):not([type="radio"]),
+#app .view:not(#v-crmLinea) select,
+#app .view:not(#v-crmLinea) textarea,
+#app #v-refurb .card{
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+}

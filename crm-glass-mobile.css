@@ -659,4 +659,38 @@
       box-shadow:none !important;
     }
   }
+
+  /* 16 sept 2026 -- RENDIMIENTO (pedido de Sterling, auditado con evidencia).
+     .wa-row es CADA fila de la lista de conversaciones -- la pantalla que
+     más se usa en todo el sistema, con decenas de chats en pantalla. Tenía
+     blur(13px) + will-change:transform en TODAS las filas a la vez: el
+     blur es de lo más caro de pintar en CSS, y will-change deja cada fila
+     con su propia capa de GPU de forma permanente (no solo mientras se
+     anima), lo que pesa en memoria con muchas filas. El fondo ya es casi
+     opaco (87%), así que quitar el blur no se nota en la fila individual,
+     pero sí se nota en fluidez con la lista completa. Se deja la sombra
+     (ya definida arriba) y las animaciones de entrada/hover intactas --
+     solo se apaga el blur y el will-change permanente. Los controles de
+     arriba (buscador/chips/tabs/píldoras) son pocos por pantalla, pero se
+     incluyen por el mismo criterio (ver skill apple-design: vidrio solo en
+     la capa flotante -- .wa-chat-head/.wa-input-bar/.wa-shell si quedan). */
+  #v-crmLinea .wa-row,
+  #v-crmLinea .crm-pill-select,
+  #v-crmLinea .crm-tabs-track,
+  #v-crmLinea .crm-icon-btn,
+  #v-crmLinea .crm-stats,
+  #v-crmLinea .crm-buscar,
+  #v-crmLinea .crm-filtros-btn,
+  #v-crmLinea .crm-buscar-input,
+  #v-crmLinea .crm-chip{
+    backdrop-filter:none !important;
+    -webkit-backdrop-filter:none !important;
+  }
+  #v-crmLinea .wa-row{ will-change:auto; }
+  /* .wa-bubble-wrap es CADA burbuja de mensaje -- con un chat largo puede
+     haber decenas visibles a la vez; will-change:transform permanente en
+     todas fuerza una capa de GPU por burbuja todo el tiempo, no solo
+     mientras se toca/anima una. Se deja el transition (barato, solo corre
+     cuando algo realmente cambia) y se quita el will-change fijo. */
+  #v-crmLinea .wa-bubble-wrap{ will-change:auto; }
 }

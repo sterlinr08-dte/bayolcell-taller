@@ -15,7 +15,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Libre+Barcode+39&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="taller-visual-polish.css?v=20260914-visual23">
+  <link rel="stylesheet" href="taller-visual-polish.css?v=20260916-perf1">
 
 <style>
 :root {
@@ -61,7 +61,19 @@
 .mdm-action.info { color: var(--fin-info); } .mdm-action.info:hover { background: var(--fin-info-bg); border-color: var(--fin-info-brd); }
 .mdm-action.muted { color: var(--fin-muted); } .mdm-action.muted:hover { background: #f8fafc; }
 
-* { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; transition: background 0.2s, transform 0.1s; }
+/* 16 sept 2026 (rendimiento, auditado con evidencia): el "transition" de acá
+   abajo se le aplicaba a TODOS los elementos del sistema -- cada texto,
+   cada celda de tabla, cada div. El sistema ya declara su propia transición
+   en cada botón/tarjeta/tab que la necesita (más de 130 reglas puntuales
+   solo en este archivo y las hojas de estilo del CRM), así que la regla
+   universal era, en la práctica, puro costo sin beneficio: obliga al
+   navegador a rastrear una transición en miles de elementos que nunca
+   cambian de fondo/posición, y eso pesa más en cada repintado grande (listas,
+   tablas, mensajes) del taller. Se quita de "*" y solo se deja donde ya
+   existe explícita. Si algún control puntual se siente menos suave después
+   de esto, se le agrega su propia línea de transition (barato, ya es el
+   patrón que usa el resto del sistema). */
+* { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
 body { margin: 0; background-color: var(--bg-main); color: var(--text-dark); overflow: hidden; height: 100vh; }
 
 .login { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #0f172a, #020617); padding: 20px; }
@@ -1687,7 +1699,7 @@ body{
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <link rel="stylesheet" href="crm-glass-mobile.css?v=20260904b">
+    <link rel="stylesheet" href="crm-glass-mobile.css?v=20260916-perf1">
 </head>
 <body>
 
