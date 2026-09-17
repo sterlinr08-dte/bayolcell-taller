@@ -7,6 +7,7 @@
   var V='20260916-perf2';
   var PERF='20260916-perf2';
   var FB_DIRECT='20260916-fb3';
+  var GLASS='20260916-glass1';
   var AMBIENT='20260915-hotfix3';
   var SURFACE='20260914-clean1';
   var MIDNIGHT='20260914-midnight1';
@@ -110,6 +111,11 @@
     polishCss.href='crm-social-polish-v2.css?v='+V;
     polishCss.onload=function(){reafirmarCapasVisuales();};
     document.head.appendChild(polishCss);
+
+    var glassCss=document.createElement('link');
+    glassCss.rel='stylesheet';
+    glassCss.href='crm-liquid-glass-transparent.css?v='+GLASS;
+    document.head.appendChild(glassCss);
 
     var effectsCss=document.createElement('link');
     effectsCss.rel='stylesheet';
