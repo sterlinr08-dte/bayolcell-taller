@@ -5,6 +5,8 @@
    - Refresca la lista por la API pública BayolSocialNetworks.refresh().
    - Si ya hay conversaciones visibles, mantiene la lista mientras llega la
      respuesta nueva y conserva la posición de scroll.
+   - Consume data-fb-reload generado por cargas duplicadas para impedir el
+     ciclo carga -> reload forzado -> carga.
    - Si el chat abierto recibe mensajes, lo vuelve a abrir una sola vez al
      final de la ráfaga para mostrar el contenido nuevo.
 */
@@ -13,7 +15,7 @@
   if(window.__bcFacebookRealtimeDirect) return;
   window.__bcFacebookRealtimeDirect = true;
 
-  const VERSION = '20260916.1';
+  const VERSION = '20260916.2';
   const DEBOUNCE_MS = 750;
   const state = window.BayolFacebookRealtimeDirect = window.BayolFacebookRealtimeDirect || {
     version: VERSION,
@@ -22,6 +24,7 @@
     refreshes: 0,
     coalescedEvents: 0,
     silentRefreshes: 0,
+    clearedQueuedReloads: 0,
     lastListScroll: 0,
     selectedThreadId: null,
     stableChannel: null,
@@ -78,6 +81,27 @@
     });
   }
 
+  // El módulo base usa data-fb-reload=1 cuando una segunda llamada llega
+  // mientras loadFacebookThreads() sigue activa. En el finally esa bandera
+  // dispara otra carga completa. Al entrar a Facebook se producen dos llamadas
+  // casi simultáneas (carga directa + refreshSmartData), así que esa bandera
+  // era suficiente para generar el segundo spinner incluso sin Realtime.
+  function clearQueuedReload(){
+    const host=listHost();
+    if(!host || host.dataset.fbReload !== '1') return false;
+    delete host.dataset.fbReload;
+    state.clearedQueuedReloads++;
+    return true;
+  }
+
+  function clearQueuedReloadBurst(){
+    clearQueuedReload();
+    setTimeout(clearQueuedReload, 40);
+    setTimeout(clearQueuedReload, 120);
+    setTimeout(clearQueuedReload, 280);
+    setTimeout(clearQueuedReload, 520);
+  }
+
   function wrapSocialRefresh(){
     const api=window.BayolSocialNetworks;
     if(!api || typeof api.refresh !== 'function') return false;
@@ -96,24 +120,46 @@
       let resultPromise;
       try{
         // refreshSmartData() ejecuta loadFacebookThreads() síncronamente hasta
-        // su primer await. Por eso el spinner ya puede estar pintado justo al
-        // regresar de esta llamada, y aquí podemos devolver la lista estable.
+        // su primer await. Si ya existe una carga activa, el módulo base marca
+        // data-fb-reload; se consume inmediatamente para que no encadene otra.
         resultPromise=original.apply(this,arguments);
+        clearQueuedReloadBurst();
         if(keep && host?.querySelector('.bc-social-loading')){
           host.innerHTML=html;
           restoreListScroll();
           state.silentRefreshes++;
         }
         const result=await resultPromise;
+        clearQueuedReloadBurst();
         if(keep && facebookActive()) restoreListScroll();
         return result;
       }catch(error){
+        clearQueuedReloadBurst();
         throw error;
       }
     }
     stableRefresh.__bcFacebookDirectWrapped=true;
     stableRefresh.__bcOriginal=original;
     api.refresh=stableRefresh;
+    return true;
+  }
+
+  function wrapNavigationCalls(){
+    const api=window.BayolSocialNetworks;
+    if(!api || api.__bcFacebookNavigationWrapped) return !!api;
+    ['show','selectChannel','selectView'].forEach(function(name){
+      const original=api[name];
+      if(typeof original !== 'function' || original.__bcFacebookNavigationWrapped) return;
+      function wrapped(){
+        const result=original.apply(this,arguments);
+        if(facebookActive()) clearQueuedReloadBurst();
+        return result;
+      }
+      wrapped.__bcFacebookNavigationWrapped=true;
+      wrapped.__bcOriginal=original;
+      api[name]=wrapped;
+    });
+    api.__bcFacebookNavigationWrapped=true;
     return true;
   }
 
@@ -181,6 +227,7 @@
         state.refreshes++;
         await window.BayolSocialNetworks.refresh();
       }
+      clearQueuedReloadBurst();
       if(openChat && id) await reopenSelectedThread(id);
     }catch(error){
       console.warn('[Facebook Realtime Direct] refresh no disponible',error);
@@ -219,10 +266,12 @@
 
   function install(){
     wrapSocialRefresh();
+    wrapNavigationCalls();
     wrapFacebookRender();
     wireListScroll();
     installStableRealtime();
     removeLegacyRealtime();
+    if(facebookActive()) clearQueuedReloadBurst();
     state.installed=!!(window.BayolSocialNetworks && state.stableChannel);
   }
 
@@ -233,18 +282,20 @@
     // variable lexical del módulo queda marcada y no se recrea después de
     // removeChannel(), por lo que basta con retirarlo cuando aparezca.
     removeLegacyRealtime();
+    if(facebookActive()) clearQueuedReload();
   },500);
   setTimeout(function(){ clearInterval(boot); install(); },30000);
 
   document.addEventListener('click',function(event){
-    if(event.target.closest('[data-channel="facebook"],#menu-crm')){
-      setTimeout(function(){ install(); removeLegacyRealtime(); },120);
-      setTimeout(function(){ install(); removeLegacyRealtime(); },900);
+    if(event.target.closest('[data-smart-channel="facebook"],#crmLineaTabSocial,#menu-crm')){
+      setTimeout(function(){ install(); removeLegacyRealtime(); clearQueuedReloadBurst(); },80);
+      setTimeout(function(){ install(); removeLegacyRealtime(); clearQueuedReloadBurst(); },500);
+      setTimeout(function(){ install(); removeLegacyRealtime(); clearQueuedReloadBurst(); },1200);
     }
   },true);
 
   document.addEventListener('visibilitychange',function(){
-    if(!document.hidden) setTimeout(function(){ install(); removeLegacyRealtime(); },150);
+    if(!document.hidden) setTimeout(function(){ install(); removeLegacyRealtime(); clearQueuedReloadBurst(); },150);
   },{passive:true});
 
   state.getSnapshot=function(){
@@ -256,6 +307,7 @@
       coalescedEvents:state.coalescedEvents,
       refreshes:state.refreshes,
       silentRefreshes:state.silentRefreshes,
+      clearedQueuedReloads:state.clearedQueuedReloads,
       selectedThreadId:selectedThreadId(),
       facebookActive:facebookActive(),
       chatOpen:facebookChatOpen()
