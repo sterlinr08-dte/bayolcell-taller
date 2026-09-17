@@ -5,16 +5,13 @@
   window.__bcCrmExtensionsLoader=true;
 
   var V='20260916-perf2';
-  var PERF='20260916-perf3';
+  var PERF='20260916-perf2';
   var AMBIENT='20260915-hotfix3';
   var SURFACE='20260914-clean1';
   var MIDNIGHT='20260914-midnight1';
   var surfaceCss=null;
   var midnightCss=null;
 
-  // Rendimiento Fase 1: esta capa se carga al final del HTML, pero antes de
-  // que la restauración de sesión termine en la mayoría de los casos. Si
-  // startApp ya arrancó, el propio runtime sustituye el poller existente.
   function cargarPerformanceRuntime(){
     try{
       if(window.__bcPerformanceRuntimeRequested)return;
@@ -28,8 +25,6 @@
   }
   cargarPerformanceRuntime();
 
-  // Loader premium: conserva la lógica de cierre original de taller.html y
-  // sustituye únicamente la presentación del aro/logo giratorio.
   function instalarLoaderPremium(){
     try{
       var loader=document.getElementById('appLoader');
@@ -78,7 +73,6 @@
   }
   instalarLoaderPremium();
 
-  // Capas finales del Taller. Se reafirman al final para ganar la cascada del CRM.
   try{
     surfaceCss=document.createElement('link');
     surfaceCss.rel='stylesheet';
@@ -95,14 +89,6 @@
     try{if(surfaceCss&&surfaceCss.parentNode)document.head.appendChild(surfaceCss);}catch(e){}
     try{if(midnightCss&&midnightCss.parentNode)document.head.appendChild(midnightCss);}catch(e){}
   }
-
-  /*
-   * Rendimiento Fase 1:
-   * renderCrmLinea() en taller.html ya captura/restaura posición y actualiza
-   * únicamente el CRM. La capa anterior interceptaba el botón Actualizar y
-   * hacía window.location.reload(), reiniciando TODA la app. Se elimina esa
-   * intercepción y se deja trabajar la función nativa del CRM.
-   */
 
   function cargarExtensionesCrmSocial(){
     if(window.__bcCrmSocialExtensionsRequested)return;
@@ -155,9 +141,6 @@
     document.head.appendChild(messages);
   }
 
-  // El consentimiento de recepción sí se necesita fuera del CRM y se mantiene
-  // inmediato. Facebook/Instagram/TikTok y sus efectos solo se descargan cuando
-  // el usuario entra realmente en la vista CRM.
   function armarCargaDiferidaCrm(){
     var root=document.getElementById('v-crmLinea');
     if(!root){ setTimeout(armarCargaDiferidaCrm,250); return; }
@@ -178,7 +161,6 @@
   legacy.onload=armarCargaDiferidaCrm;
   document.head.appendChild(legacy);
 
-  // Decorativo y completamente desacoplado: se solicita DESPUÉS de window.load.
   function cargarAmbientOrbSeguro(){
     try{
       if(window.__bcAmbientOrbRequested)return;
@@ -191,7 +173,6 @@
     }catch(e){}
   }
 
-  // Microinteracción de navegación: si falla, los botones/tabs siguen operando normal.
   function cargarNavigationMotionSeguro(){
     try{
       if(window.__bcNavigationMotionRequested)return;
