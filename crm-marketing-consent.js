@@ -6,6 +6,7 @@
 
   var V='20260916-perf2';
   var PERF='20260916-perf2';
+  var FB_DIRECT='20260916-fb3';
   var AMBIENT='20260915-hotfix3';
   var SURFACE='20260914-clean1';
   var MIDNIGHT='20260914-midnight1';
@@ -123,6 +124,11 @@
       var scope=document.createElement('script');
       scope.src='crm-social-scope-fix.js?v='+V;
       scope.onload=function(){
+        var direct=document.createElement('script');
+        direct.src='crm-facebook-realtime-direct.js?v='+FB_DIRECT;
+        direct.onerror=function(){console.warn('[CRM] control directo de Facebook no cargó');};
+        document.head.appendChild(direct);
+
         var polish=document.createElement('script');
         polish.src='crm-social-polish-v2.js?v='+V;
         polish.onload=function(){reafirmarCapasVisuales();};
