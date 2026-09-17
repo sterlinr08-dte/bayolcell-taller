@@ -27996,8 +27996,17 @@ function onCambioRealtime(payload) {
     // taller cada ~24 segundos por pestaña, para datos que ni siquiera
     // cambiaron. El CRM tiene su propio canal ('crm-linea-*') que si escucha
     // esas tablas y refresca solo lo suyo.
+    // 17 sept 2026: mismo problema se repitió al agregar instagram_hilos/
+    // instagram_mensajes/social_hilos/social_mensajes a la publicacion de
+    // tiempo real (para que Instagram y Facebook sincronizaran solos) -- se
+    // me pasó actualizar este filtro en ese momento. Cada mensaje de
+    // Instagram/Facebook TAMBIÉN disparaba loadAll() completo por el canal
+    // global 'bayol-realtime' (sin filtro de tabla), exactamente igual que
+    // WhatsApp antes de este filtro. Instagram/Facebook también tienen su
+    // propio canal dedicado (setupRealtime()/setupFacebookRealtime()) que
+    // refresca solo lo suyo.
     const tabla = payload?.table || '';
-    if(tabla.startsWith('whatsapp_') || tabla === 'leads') return;
+    if(tabla.startsWith('whatsapp_') || tabla === 'leads' || tabla.startsWith('instagram_') || tabla.startsWith('social_')) return;
 
     // Debounce corto: si llegan varios cambios juntos, recargar una sola vez
     if(_realtimeDebounce) clearTimeout(_realtimeDebounce);
