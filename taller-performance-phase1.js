@@ -9,7 +9,7 @@
   if(window.__bcPerfPhase1) return;
   window.__bcPerfPhase1 = true;
 
-  const VERSION = '20260916.1';
+  const VERSION = '20260916.2';
   const BACKUP_POLL_MS = 5 * 60 * 1000;
   const CORE_TABLES = new Set([
     'ordenes_reparacion','clientes','equipos','piezas_inventario','activos_taller',
@@ -110,8 +110,6 @@
     optimizedPoller.__bcPerfOriginal = original;
     window.startAppRefurbPoller = optimizedPoller;
 
-    // Si startApp ya alcanzó a crear el poller de 60 s antes de cargar esta capa,
-    // lo sustituimos ahora. Si todavía no hay sesión, startApp llamará esta versión luego.
     if(hasSession()) optimizedPoller();
   }
 
@@ -126,15 +124,27 @@
     }, {passive:true});
   }
 
+  function loadWhatsAppPagination(){
+    try {
+      if(window.__bcWaPaginationRuntimeRequested) return;
+      window.__bcWaPaginationRuntimeRequested = true;
+      const s = document.createElement('script');
+      s.async = false;
+      s.src = 'crm-whatsapp-pagination.js?v=20260916-p2';
+      s.onerror = function(){ window.__bcWaPaginationRuntimeRequested = false; };
+      document.head.appendChild(s);
+    } catch(_e) {}
+  }
+
   function install(){
     installLoadAllMetrics();
     installRealtimeAllowlist();
     installBackupPoller();
     installResumeSafety();
+    loadWhatsAppPagination();
   }
 
   install();
-  // Reintentos baratos por si la sesión/restauración termina unos milisegundos después.
   setTimeout(install, 250);
   setTimeout(install, 1200);
 
@@ -148,7 +158,8 @@
         ignored: state.realtime.ignored,
         ignoredByTable: Object.assign({}, state.realtime.ignoredByTable)
       },
-      pollerInstalled: !!state.pollerInstalled
+      pollerInstalled: !!state.pollerInstalled,
+      whatsappPaging: !!window.__bcWaPaginationInstalled
     };
   };
 })();
