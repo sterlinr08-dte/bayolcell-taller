@@ -1,0 +1,1 @@
+Rollback operativo preparado tras regresión visual reportada en Facebook. El objetivo es retirar únicamente la capa crm-facebook-refresh-stability.js y devolver taller-performance-phase1.js / crm-marketing-consent.js a sus versiones previas al PR #79, conservando las Fases 1 y 2 de rendimiento y la paginación de WhatsApp.
