@@ -4,12 +4,29 @@
   if(window.__bcCrmExtensionsLoader)return;
   window.__bcCrmExtensionsLoader=true;
 
-  var V='20260916-hotfix1';
+  var V='20260916-perf2';
+  var PERF='20260916-perf1';
   var AMBIENT='20260915-hotfix3';
   var SURFACE='20260914-clean1';
   var MIDNIGHT='20260914-midnight1';
   var surfaceCss=null;
   var midnightCss=null;
+
+  // Rendimiento Fase 1: esta capa se carga al final del HTML, pero antes de
+  // que la restauración de sesión termine en la mayoría de los casos. Si
+  // startApp ya arrancó, el propio runtime sustituye el poller existente.
+  function cargarPerformanceRuntime(){
+    try{
+      if(window.__bcPerformanceRuntimeRequested)return;
+      window.__bcPerformanceRuntimeRequested=true;
+      var perf=document.createElement('script');
+      perf.async=false;
+      perf.src='taller-performance-phase1.js?v='+PERF;
+      perf.onerror=function(){window.__bcPerformanceRuntimeRequested=false;};
+      document.head.appendChild(perf);
+    }catch(e){}
+  }
+  cargarPerformanceRuntime();
 
   // Loader premium: conserva la lógica de cierre original de taller.html y
   // sustituye únicamente la presentación del aro/logo giratorio.
@@ -79,47 +96,23 @@
     try{if(midnightCss&&midnightCss.parentNode)document.head.appendChild(midnightCss);}catch(e){}
   }
 
-  // El botón de actualizar hace una recarga completa, pero la experiencia
-  // vuelve al mismo punto: página, pestaña, listas, historial y borrador.
-  function guardarPosicionAntesDeActualizar(){
-    var scrolls={};
-    document.querySelectorAll('[id]').forEach(function(el){
-      if(el.scrollTop>0 && el.scrollHeight>el.clientHeight) scrolls[el.id]=el.scrollTop;
-    });
-    var active=document.activeElement;
-    var snap={x:window.scrollX||0,y:window.scrollY||0,scrolls:scrolls,
-      nav:localStorage.getItem('bayol_nav_actual')||'',subtab:localStorage.getItem('bayol_subtab_crmlinea')||'',
-      input:active && /^(INPUT|TEXTAREA)$/.test(active.tagName) && active.id ? {id:active.id,value:active.value,start:active.selectionStart,end:active.selectionEnd}:null};
-    try{sessionStorage.setItem('bayol_refresh_position',JSON.stringify(snap));}catch(e){}
-  }
-  function restaurarPosicionDespuesDeActualizar(){
-    var raw;try{raw=sessionStorage.getItem('bayol_refresh_position');sessionStorage.removeItem('bayol_refresh_position');}catch(e){return;}
-    if(!raw)return;
-    var snap;try{snap=JSON.parse(raw);}catch(e){return;}
-    var restore=function(){
-      window.scrollTo(snap.x||0,snap.y||0);
-      Object.keys(snap.scrolls||{}).forEach(function(id){var el=document.getElementById(id);if(el)el.scrollTop=snap.scrolls[id];});
-      var d=snap.input,input=d&&document.getElementById(d.id);
-      if(input && d.value!=null){input.value=d.value;if(d.start!=null){try{input.setSelectionRange(d.start,d.end==null?d.start:d.end);}catch(e){}}}
-    };
-    [150,500,1200,2200].forEach(function(ms){setTimeout(restore,ms);});
-  }
-  var _renderOriginal=window.renderCrmLinea;
-  if(typeof _renderOriginal==='function' && !window.__bcFullReloadRefresh){
-    window.__bcFullReloadRefresh=true;
-    window.renderCrmLinea=function(btn){
-      if(btn){guardarPosicionAntesDeActualizar();setTimeout(function(){window.location.reload();},80);return Promise.resolve();}
-      return _renderOriginal.apply(this,arguments);
-    };
-  }
-  restaurarPosicionDespuesDeActualizar();
-  var legacy=document.createElement('script');
-  legacy.src='crm-marketing-consent-legacy.js?v='+V;
-  legacy.onload=function(){
+  /*
+   * Rendimiento Fase 1:
+   * renderCrmLinea() en taller.html ya captura/restaura posición y actualiza
+   * únicamente el CRM. La capa anterior interceptaba el botón Actualizar y
+   * hacía window.location.reload(), reiniciando TODA la app. Se elimina esa
+   * intercepción y se deja trabajar la función nativa del CRM.
+   */
+
+  function cargarExtensionesCrmSocial(){
+    if(window.__bcCrmSocialExtensionsRequested)return;
+    window.__bcCrmSocialExtensionsRequested=true;
+
     var scopeCss=document.createElement('link');
     scopeCss.rel='stylesheet';
     scopeCss.href='crm-social-scope-fix.css?v='+V;
     document.head.appendChild(scopeCss);
+
     var facebookCss=document.createElement('link');
     facebookCss.rel='stylesheet';
     facebookCss.href='crm-facebook-chat.css?v='+V;
@@ -160,7 +153,29 @@
     var messages=document.createElement('script');
     messages.src='crm-message-loading.js?v='+V;
     document.head.appendChild(messages);
-  };
+  }
+
+  // El consentimiento de recepción sí se necesita fuera del CRM y se mantiene
+  // inmediato. Facebook/Instagram/TikTok y sus efectos solo se descargan cuando
+  // el usuario entra realmente en la vista CRM.
+  function armarCargaDiferidaCrm(){
+    var root=document.getElementById('v-crmLinea');
+    if(!root){ setTimeout(armarCargaDiferidaCrm,250); return; }
+    if(root.classList.contains('active')){ cargarExtensionesCrmSocial(); return; }
+
+    var mo=new MutationObserver(function(){
+      if(root.classList.contains('active')){
+        try{mo.disconnect();}catch(e){}
+        cargarExtensionesCrmSocial();
+      }
+    });
+    mo.observe(root,{attributes:true,attributeFilter:['class']});
+    window.__bcCrmLazyActivationObserver=mo;
+  }
+
+  var legacy=document.createElement('script');
+  legacy.src='crm-marketing-consent-legacy.js?v='+V;
+  legacy.onload=armarCargaDiferidaCrm;
   document.head.appendChild(legacy);
 
   // Decorativo y completamente desacoplado: se solicita DESPUÉS de window.load.

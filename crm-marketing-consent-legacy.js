@@ -195,20 +195,44 @@
     return state;
   }
 
-  function autoMount(){
-    // Recepción de equipos / reparación: WhatsApp del cliente.
-    const reception=document.getElementById('c_whatsapp');
-    if(reception && !mounted.has(reception)) attach({input:reception,source:'reparacion'});
-
-    // Hooks declarativos para futuros formularios de cliente/venta sin duplicar lógica.
-    document.querySelectorAll('[data-marketing-consent-phone]').forEach(el=>{
-      if(!mounted.has(el)) attach({input:el,source:el.getAttribute('data-marketing-consent-source')||'cliente'});
-    });
+  // Antes se ejecutaba document.querySelectorAll(...) sobre TODO el documento
+  // por cada mutación del DOM. En un CRM con mensajes en vivo eso convertía cada
+  // burbuja/fila nueva en un barrido completo. Ahora solo inspeccionamos los
+  // nodos que realmente se agregaron.
+  function mountCandidate(el){
+    if(!el || el.nodeType !== 1) return;
+    if(el.id === 'c_whatsapp' && !mounted.has(el)) attach({input:el,source:'reparacion'});
+    if(el.matches?.('[data-marketing-consent-phone]') && !mounted.has(el)){
+      attach({input:el,source:el.getAttribute('data-marketing-consent-source')||'cliente'});
+    }
   }
 
-  const observer=new MutationObserver(autoMount);
-  function start(){ autoMount(); observer.observe(document.documentElement,{childList:true,subtree:true}); }
+  function scanAddedRoot(root){
+    if(!root) return;
+    if(root === document){
+      const reception=document.getElementById('c_whatsapp');
+      if(reception) mountCandidate(reception);
+      document.querySelectorAll('[data-marketing-consent-phone]').forEach(mountCandidate);
+      return;
+    }
+    if(root.nodeType !== 1) return;
+    mountCandidate(root);
+    const reception=root.querySelector?.('#c_whatsapp');
+    if(reception) mountCandidate(reception);
+    root.querySelectorAll?.('[data-marketing-consent-phone]').forEach(mountCandidate);
+  }
+
+  const observer=new MutationObserver(records=>{
+    for(const record of records){
+      for(const node of record.addedNodes) scanAddedRoot(node);
+    }
+  });
+
+  function start(){
+    scanAddedRoot(document);
+    observer.observe(document.body || document.documentElement,{childList:true,subtree:true});
+  }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start,{once:true}); else start();
 
-  window.BayolMarketingConsent={attach,refresh:el=>{const s=mounted.get(el);return s?refresh(s):null;},version:'1.0.0'};
+  window.BayolMarketingConsent={attach,refresh:el=>{const s=mounted.get(el);return s?refresh(s):null;},version:'1.1.0-perf'};
 })();
