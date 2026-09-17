@@ -136,3 +136,101 @@ body #v-crmLinea .bc-fb-pop{
     backdrop-filter:none!important;
   }
 }
+
+/* ============================================================
+   GLASS2 — geometría más redonda, menos plana
+   Solo forma/profundidad. No altera layout funcional ni eventos.
+   ============================================================ */
+body #v-crmLinea:is(.bc-social-mode,.bc-unified-nav) .bc-smart-platforms{
+  border-radius:30px!important;
+  padding:7px!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.34),inset 0 -1px 0 rgba(255,255,255,.08),0 15px 36px -29px rgba(15,23,42,.32)!important;
+}
+body #v-crmLinea:is(.bc-social-mode,.bc-unified-nav) .bc-smart-interactions{
+  border-radius:28px!important;
+  padding:7px!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.32),inset 0 -1px 0 rgba(255,255,255,.07),0 14px 34px -29px rgba(15,23,42,.30)!important;
+}
+
+/* Los controles internos pasan de tarjeta plana a píldora. */
+body #v-crmLinea:is(.bc-social-mode,.bc-unified-nav) .bc-smart-platform,
+body #v-crmLinea:is(.bc-social-mode,.bc-unified-nav) .bc-smart-interaction,
+body #v-crmLinea:is(.bc-social-mode,.bc-unified-nav) .bc-smart-filter,
+body #v-crmLinea:is(.bc-social-mode,.bc-unified-nav) .bc-smart-platform.on,
+body #v-crmLinea:is(.bc-social-mode,.bc-unified-nav) .bc-smart-interaction.on{
+  border-radius:999px!important;
+}
+body #v-crmLinea:is(.bc-social-mode,.bc-unified-nav) .bc-smart-platform:hover,
+body #v-crmLinea:is(.bc-social-mode,.bc-unified-nav) .bc-smart-interaction:hover,
+body #v-crmLinea:is(.bc-social-mode,.bc-unified-nav) .bc-smart-filter:hover{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.26),0 10px 24px -19px rgba(15,23,42,.26)!important;
+}
+
+/* Iconos más circulares para reforzar el lenguaje redondeado. */
+body #v-crmLinea:is(.bc-social-mode,.bc-unified-nav) .bc-smart-platform-icon,
+body #v-crmLinea:is(.bc-social-mode,.bc-unified-nav) .bc-smart-interaction-icon{
+  border-radius:50%!important;
+}
+
+/* La selección móvil queda como cápsula real, no bloque rectangular. */
+#bcSmartPlatforms.bc-motion-host > .bc-motion-pill,
+#bcSmartInteractionNav.bc-motion-host > .bc-motion-pill,
+#v-crmLinea .bc-smart-platforms.bc-motion-host > .bc-motion-pill,
+#v-crmLinea .bc-smart-interaction-track.bc-motion-host > .bc-motion-pill{
+  border-radius:999px!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,0)),linear-gradient(135deg,rgba(0,71,171,.58),rgba(26,26,46,.42))!important;
+  box-shadow:0 14px 30px -20px rgba(0,71,171,.44),inset 0 1px 0 rgba(255,255,255,.24),inset 0 -1px 0 rgba(255,255,255,.06)!important;
+}
+
+body #v-crmLinea:is(.bc-social-mode,.bc-unified-nav) .bc-smart-filter-pop{
+  border-radius:24px!important;
+  overflow:hidden!important;
+}
+
+/* WhatsApp: shell de vidrio con esquinas coherentes, sin separar visualmente las piezas. */
+body #v-crmLinea .wa-chat-head{
+  border-radius:20px 20px 0 0!important;
+}
+body #v-crmLinea .wa-input-bar{
+  border-radius:0 0 20px 20px!important;
+}
+body #v-crmLinea .wa-input-bar input,
+body #v-crmLinea .wa-input-bar textarea{
+  border-radius:24px!important;
+}
+
+/* Facebook: mismo tratamiento del shell y composer. */
+body #v-crmLinea .bc-fb-head,
+body #v-crmLinea .bc-social-generic-head{
+  border-radius:20px 20px 0 0!important;
+}
+body #v-crmLinea .bc-fb-composer{
+  border-radius:0 0 20px 20px!important;
+}
+body #v-crmLinea .bc-fb-composer textarea{
+  border-radius:24px!important;
+}
+body #v-crmLinea .bc-fb-pop{
+  border-radius:22px!important;
+  overflow:hidden!important;
+}
+
+@media(max-width:700px){
+  body #v-crmLinea:is(.bc-social-mode,.bc-unified-nav) .bc-smart-platforms{
+    border-radius:25px!important;
+    padding:5px!important;
+  }
+  body #v-crmLinea:is(.bc-social-mode,.bc-unified-nav) .bc-smart-interactions{
+    border-radius:24px!important;
+    padding:5px!important;
+  }
+  body #v-crmLinea .wa-chat-head,
+  body #v-crmLinea .bc-fb-head,
+  body #v-crmLinea .bc-social-generic-head{
+    border-radius:18px 18px 0 0!important;
+  }
+  body #v-crmLinea .wa-input-bar,
+  body #v-crmLinea .bc-fb-composer{
+    border-radius:0 0 18px 18px!important;
+  }
+}
