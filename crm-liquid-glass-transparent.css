@@ -1,0 +1,138 @@
+/* BAYOL CELL — Liquid Glass más transparente (2026-09-16)
+   Override visual final del CRM. No toca layout, eventos, Realtime ni datos.
+   Objetivo: reducir la apariencia lechosa y dejar ver más el fondo manteniendo
+   blur/saturación y contraste suficiente para uso operativo. */
+
+#v-crmLinea{
+  --bc-liquid-glass:rgba(248,250,252,.36);
+  --bc-liquid-glass-strong:rgba(255,255,255,.54);
+  --bc-liquid-border:rgba(60,60,67,.10);
+  --bc-liquid-highlight:rgba(255,255,255,.30);
+}
+
+/* Navegación social: vidrio más claro, menos blanco sólido. */
+body #v-crmLinea:is(.bc-social-mode,.bc-unified-nav) .bc-smart-platforms,
+body #v-crmLinea:is(.bc-social-mode,.bc-unified-nav) .bc-smart-interactions{
+  background:linear-gradient(125deg,rgba(255,255,255,.38),rgba(240,246,255,.28))!important;
+  border-color:var(--bc-liquid-border)!important;
+  box-shadow:inset 0 1px 0 var(--bc-liquid-highlight),0 12px 34px -28px rgba(15,23,42,.30)!important;
+  -webkit-backdrop-filter:blur(30px) saturate(175%)!important;
+  backdrop-filter:blur(30px) saturate(175%)!important;
+}
+
+body #v-crmLinea:is(.bc-social-mode,.bc-unified-nav) .bc-smart-platform:hover,
+body #v-crmLinea:is(.bc-social-mode,.bc-unified-nav) .bc-smart-interaction:hover,
+body #v-crmLinea:is(.bc-social-mode,.bc-unified-nav) .bc-smart-filter:hover,
+body #v-crmLinea:is(.bc-social-mode,.bc-unified-nav) .bc-smart-filter[aria-expanded="true"]{
+  background:rgba(255,255,255,.26)!important;
+}
+
+/* Estados seleccionados mantienen identidad del canal pero dejan pasar el fondo. */
+body #v-crmLinea:is(.bc-social-mode,.bc-unified-nav) .bc-smart-platform.on[data-smart-channel="instagram"]{
+  background:linear-gradient(135deg,rgba(253,242,248,.48),rgba(252,231,243,.30))!important;
+  border-color:rgba(219,39,119,.24)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.26)!important;
+}
+body #v-crmLinea:is(.bc-social-mode,.bc-unified-nav) .bc-smart-platform.on[data-smart-channel="facebook"]{
+  background:linear-gradient(135deg,rgba(239,246,255,.48),rgba(219,234,254,.28))!important;
+  border-color:rgba(37,99,235,.20)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.24)!important;
+}
+body #v-crmLinea:is(.bc-social-mode,.bc-unified-nav) .bc-smart-platform.on[data-smart-channel="tiktok"]{
+  background:linear-gradient(135deg,rgba(248,250,252,.50),rgba(241,245,249,.30))!important;
+  border-color:rgba(15,23,42,.14)!important;
+  box-shadow:inset 2px 0 0 rgba(37,244,238,.30),inset -2px 0 0 rgba(254,44,85,.32)!important;
+}
+body #v-crmLinea.bc-unified-nav .bc-smart-platform.on[data-smart-channel="whatsapp"]{
+  background:linear-gradient(135deg,rgba(236,253,245,.48),rgba(209,250,229,.28))!important;
+  border-color:rgba(18,140,126,.20)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.24)!important;
+}
+body #v-crmLinea:is(.bc-social-mode,.bc-unified-nav) .bc-smart-interaction.on{
+  background:rgba(217,45,32,.065)!important;
+  border-color:rgba(217,45,32,.15)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.20)!important;
+}
+body #v-crmLinea:is(.bc-social-mode,.bc-unified-nav) .bc-smart-interaction-icon{
+  background:rgba(255,255,255,.44)!important;
+  -webkit-backdrop-filter:blur(16px) saturate(150%)!important;
+  backdrop-filter:blur(16px) saturate(150%)!important;
+}
+
+/* Cápsula móvil: conserva el azul BAYOL pero ya no se ve como bloque sólido. */
+#bcSmartPlatforms.bc-motion-host > .bc-motion-pill,
+#bcSmartInteractionNav.bc-motion-host > .bc-motion-pill,
+#v-crmLinea .bc-smart-platforms.bc-motion-host > .bc-motion-pill,
+#v-crmLinea .bc-smart-interaction-track.bc-motion-host > .bc-motion-pill{
+  background:linear-gradient(135deg,rgba(0,71,171,.58),rgba(26,26,46,.42))!important;
+  border:1px solid rgba(0,71,171,.18)!important;
+  box-shadow:0 12px 26px -20px rgba(0,71,171,.48),inset 0 1px 0 rgba(255,255,255,.18)!important;
+  -webkit-backdrop-filter:blur(18px) saturate(165%)!important;
+  backdrop-filter:blur(18px) saturate(165%)!important;
+}
+
+/* Filtro flotante: translúcido, no blanco opaco. */
+body #v-crmLinea:is(.bc-social-mode,.bc-unified-nav) .bc-smart-filter-pop{
+  background:rgba(255,255,255,.58)!important;
+  border-color:rgba(60,60,67,.10)!important;
+  box-shadow:0 18px 48px rgba(15,23,42,.10)!important;
+  -webkit-backdrop-filter:blur(30px) saturate(165%)!important;
+  backdrop-filter:blur(30px) saturate(165%)!important;
+}
+
+/* WhatsApp: encabezado y composer son la capa Liquid Glass principal. */
+body #v-crmLinea .wa-chat-head,
+body #v-crmLinea .wa-input-bar{
+  background:rgba(255,255,255,.54)!important;
+  border-color:rgba(60,60,67,.10)!important;
+  -webkit-backdrop-filter:blur(30px) saturate(165%)!important;
+  backdrop-filter:blur(30px) saturate(165%)!important;
+}
+body #v-crmLinea .wa-input-bar input,
+body #v-crmLinea .wa-input-bar textarea{
+  background:rgba(255,255,255,.82)!important;
+}
+
+/* Facebook Messenger: mismo material del composer/cabecera, sin tocar el input. */
+body #v-crmLinea .bc-fb-head,
+body #v-crmLinea .bc-fb-composer,
+body #v-crmLinea .bc-social-generic-head{
+  background:rgba(255,255,255,.54)!important;
+  border-color:rgba(60,60,67,.10)!important;
+  -webkit-backdrop-filter:blur(30px) saturate(165%)!important;
+  backdrop-filter:blur(30px) saturate(165%)!important;
+}
+body #v-crmLinea .bc-fb-pop{
+  background:rgba(255,255,255,.66)!important;
+  border-color:rgba(60,60,67,.10)!important;
+  -webkit-backdrop-filter:blur(26px) saturate(160%)!important;
+  backdrop-filter:blur(26px) saturate(160%)!important;
+}
+
+/* Safari/iOS: mejora la percepción del vidrio sin agregar líneas blancas fuertes. */
+@supports((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){
+  body #v-crmLinea:is(.bc-social-mode,.bc-unified-nav) .bc-smart-platforms,
+  body #v-crmLinea:is(.bc-social-mode,.bc-unified-nav) .bc-smart-interactions,
+  body #v-crmLinea .wa-chat-head,
+  body #v-crmLinea .wa-input-bar,
+  body #v-crmLinea .bc-fb-head,
+  body #v-crmLinea .bc-fb-composer{
+    background-color:rgba(255,255,255,.18)!important;
+  }
+}
+
+/* Accesibilidad: si el sistema pide menos transparencia, vuelve a superficies sólidas. */
+@media (prefers-reduced-transparency: reduce){
+  body #v-crmLinea:is(.bc-social-mode,.bc-unified-nav) .bc-smart-platforms,
+  body #v-crmLinea:is(.bc-social-mode,.bc-unified-nav) .bc-smart-interactions,
+  body #v-crmLinea:is(.bc-social-mode,.bc-unified-nav) .bc-smart-filter-pop,
+  body #v-crmLinea .wa-chat-head,
+  body #v-crmLinea .wa-input-bar,
+  body #v-crmLinea .bc-fb-head,
+  body #v-crmLinea .bc-fb-composer,
+  body #v-crmLinea .bc-fb-pop{
+    background:rgba(255,255,255,.94)!important;
+    -webkit-backdrop-filter:none!important;
+    backdrop-filter:none!important;
+  }
+}
