@@ -30620,6 +30620,7 @@ function _pintarMDMTab() {
             <div style="display:flex; gap:6px; flex-wrap:wrap;">${Object.keys(filtros).map(k => `<button class="fin-chip${_mdmFiltro === k ? (k === 'bloqueado' ? ' on-danger' : ' on') : ''}" onclick="_mdmFiltro='${k}'; _pintarMDMTab()">${filtros[k]}</button>`).join('')}</div>
             <div style="display:flex; gap:6px; flex-wrap:wrap;">
                 ${puedeMDM ? `<button class="btn btn-light" onclick="abrirEquiposDisponibles()" style="font-size:12px; color:var(--fin-ok); border-color:var(--fin-ok-brd);"><i class="ti ti-device-mobile-check"></i> Equipos disponibles</button>` : ''}
+                ${puedeMDM ? `<button class="btn btn-light" onclick="abrirEquiposPreenrolados()" style="font-size:12px; color:var(--fin-info); border-color:var(--fin-info-brd);"><i class="ti ti-brand-apple"></i> Preenrolados (ABM)</button>` : ''}
                 ${puedeMDM ? `<button class="btn btn-light" onclick="abrirQrEnrolarAndroid()" style="font-size:12px; color:var(--fin-info); border-color:var(--fin-info-brd);"><i class="ti ti-qrcode"></i> QR enrolar Android</button>` : ''}
                 ${puedeMDM ? `<button class="btn btn-light" onclick="abrirAuditoriaSeguridadMdm()" style="font-size:12px; color:var(--fin-danger); border-color:var(--fin-danger-brd);"><i class="ti ti-shield-exclamation"></i> Seguridad MDM</button>` : ''}
                 ${puedeMDM && finListosParaBloqueo().length ? `<button class="btn btn-danger" onclick="abrirListosBloqueo()" style="font-size:12px;"><i class="ti ti-lock"></i> Listos para bloquear (${finListosParaBloqueo().length})</button>` : ''}
@@ -32029,6 +32030,203 @@ function _edRender() {
     html += disp.length ? disp.map(d => card(d, null)).join('') : `<div style="color:var(--fin-muted); font-size:12.5px; padding:6px 0 10px;">${q ? 'Ninguno coincide con la búsqueda.' : 'No hay equipos disponibles (todos están asignados).'}</div>`;
     if(ocup.length) { html += `<div style="font-size:12.5px; font-weight:700; color:var(--fin-muted); margin:10px 0 6px;">Ya asignados a un cliente (${ocup.length})</div>` + ocup.map(o => card(o.d, o.dueno)).join(''); }
     cont.innerHTML = html;
+}
+// ============================================================
+//   EQUIPOS PREENROLADOS EN APPLE BUSINESS MANAGER (17 sep 2026)
+//   Cruza abm-accion 'listar' (Apple Business Manager) con mdm-accion 'listar'
+//   (Hexnode) para mostrar en qué etapa está cada equipo antes de entregarlo:
+//   pendiente (en ABM, sin servidor MDM) -> en tránsito (asignado a Hexnode,
+//   el cliente aún no lo activó) -> listo (ya enrolado y activo en Hexnode).
+// ============================================================
+let _abmPreCache = [];
+let _abmPreBusq = '';
+let _abmPreChip = 'todos';
+const _ABM_ETAPA_INFO = {
+    pendiente: { txt: 'Pendiente', cls: 'warn', icon: 'clock', sub: 'En ABM, sin servidor MDM asignado' },
+    transito:  { txt: 'Esperando activación', cls: 'info', icon: 'device-mobile', sub: 'Asignado a Hexnode, cliente sin encender' },
+    listo:     { txt: 'Listo', cls: 'ok', icon: 'circle-check', sub: 'Enrolado y activo en Hexnode' }
+};
+function _abmPreStyles() {
+    if(document.getElementById('abmPreStyles')) return;
+    const css = document.createElement('style');
+    css.id = 'abmPreStyles';
+    css.textContent = `
+        .abpre-modal{background:#fff; border-radius:18px; padding:0; max-width:760px; width:100%; max-height:88vh; overflow:hidden; display:flex; flex-direction:column; box-shadow:0 25px 60px -12px rgba(15,23,42,0.35);}
+        .abpre-head{display:flex; justify-content:space-between; align-items:flex-start; gap:12px; padding:18px 22px 14px; border-bottom:1px solid var(--border-color);}
+        .abpre-head h3{margin:0 0 4px; font-size:16px; color:var(--fin-ink,#0f172a);}
+        .abpre-head p{margin:0; font-size:12.5px; color:var(--fin-muted); max-width:56ch;}
+        .abpre-close{background:#fee2e2; color:#991b1b; border:0; width:32px; height:32px; border-radius:10px; cursor:pointer; font-size:16px; flex:none;}
+        .abpre-body{overflow-y:auto; padding:16px 22px 22px;}
+        .abpre-toolbar{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px;}
+        .abpre-search{position:relative; flex:1 1 220px; min-width:0;}
+        .abpre-search i{position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--fin-muted); font-size:14px;}
+        .abpre-search input{width:100%; padding:9px 12px 9px 32px; border-radius:9px; border:1px solid #cbd5e1; font-size:13px;}
+        .abpre-chips{display:flex; gap:6px; flex-wrap:wrap;}
+        .abpre-chip{font-size:12px; font-weight:600; padding:7px 11px; border-radius:999px; border:1px solid #cbd5e1; background:#fff; color:var(--fin-muted); cursor:pointer; white-space:nowrap;}
+        .abpre-chip.on{background:var(--fin-info); border-color:var(--fin-info); color:#fff;}
+        .abpre-summary{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:14px;}
+        .abpre-tile{border:1px solid var(--border-color); border-radius:11px; padding:11px 13px;}
+        .abpre-tile .lbl{font-size:11.5px; font-weight:700; display:flex; align-items:center; gap:5px; margin-bottom:5px;}
+        .abpre-tile .num{font-size:22px; font-weight:800; line-height:1;}
+        .abpre-tile .sub{font-size:10.5px; color:var(--fin-muted); margin-top:3px;}
+        .abpre-tile.warn{background:var(--fin-warn-bg);} .abpre-tile.warn .lbl,.abpre-tile.warn .num{color:var(--fin-warn);}
+        .abpre-tile.info{background:var(--fin-info-bg);} .abpre-tile.info .lbl,.abpre-tile.info .num{color:var(--fin-info);}
+        .abpre-tile.ok{background:var(--fin-ok-bg);} .abpre-tile.ok .lbl,.abpre-tile.ok .num{color:var(--fin-ok);}
+        .abpre-grouplbl{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--fin-muted); margin:14px 0 6px;}
+        .abpre-grouplbl:first-child{margin-top:0;}
+        .abpre-row{display:flex; align-items:center; gap:12px; padding:11px 13px; border:1px solid var(--border-color); border-radius:11px; margin-bottom:8px; flex-wrap:wrap;}
+        .abpre-glyph{width:38px; height:38px; border-radius:10px; background:#f1f5f9; border:1px solid var(--border-color); display:flex; align-items:center; justify-content:center; flex:none; color:var(--fin-muted); font-size:17px;}
+        .abpre-main{min-width:0; flex:1;}
+        .abpre-title{font-weight:700; font-size:13.5px;}
+        .abpre-title .cap{font-weight:500; color:var(--fin-muted); font-size:12px;}
+        .abpre-meta{margin-top:4px; display:flex; flex-wrap:wrap; gap:5px 14px; font-size:11.5px; color:var(--fin-muted); align-items:center;}
+        .abpre-meta .mono{font-family:ui-monospace,Menlo,monospace; font-size:11px; color:var(--fin-ink,#0f172a);}
+        .abpre-copy{border:0; background:none; padding:2px; cursor:pointer; color:var(--fin-muted); display:inline-flex;}
+        .abpre-copy:hover{color:var(--fin-info);}
+        .abpre-client{display:flex; align-items:center; gap:5px; margin-top:6px; padding-top:6px; border-top:1px dashed var(--border-color); font-size:12px; font-weight:700; color:var(--fin-info);}
+        .abpre-client .who{color:var(--fin-muted); font-weight:500;}
+        .abpre-client.none{color:var(--fin-muted); font-weight:500;}
+        .abpre-side{display:flex; align-items:center; gap:8px; flex:none; margin-left:auto;}
+        .abpre-pill{font-size:11px; font-weight:700; padding:5px 10px; border-radius:999px; display:inline-flex; align-items:center; gap:5px; white-space:nowrap;}
+        .abpre-pill.warn{background:var(--fin-warn-bg); color:var(--fin-warn);}
+        .abpre-pill.info{background:var(--fin-info-bg); color:var(--fin-info);}
+        .abpre-pill.ok{background:var(--fin-ok-bg); color:var(--fin-ok);}
+        @media (max-width:640px){ .abpre-summary{grid-template-columns:1fr;} .abpre-side{width:100%; justify-content:space-between; margin-left:0;} }
+    `;
+    document.head.appendChild(css);
+}
+async function abrirEquiposPreenrolados() {
+    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso.', 'error'); return; }
+    _abmPreBusq = ''; _abmPreChip = 'todos';
+    _abmPreStyles();
+    let modal = document.getElementById('modalGenerico');
+    if(!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modalGenerico';
+        modal.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:500; display:flex; align-items:center; justify-content:center; padding:16px; overflow-y:auto;';
+        modal.onclick = (e) => { if(e.target === modal) modal.remove(); };
+        document.body.appendChild(modal);
+    }
+    modal.style.zIndex = '500';
+    modal.innerHTML = `<div class="abpre-modal">
+        <div class="abpre-head">
+            <div>
+                <h3>Equipos preenrolados en Apple Business Manager</h3>
+                <p>Celulares agregados con Apple Configurator. Aquí ves en qué etapa está cada uno antes de entregarlo a un cliente financiado.</p>
+            </div>
+            <button class="abpre-close" onclick="document.getElementById('modalGenerico').remove()">✕</button>
+        </div>
+        <div class="abpre-body">
+            <div class="abpre-toolbar">
+                <div class="abpre-search"><i class="ti ti-search"></i><input id="abpreBusq" placeholder="Buscar por IMEI, serie o modelo…" oninput="_abmPreFiltrar(this.value)" autocomplete="off"></div>
+                <div class="abpre-chips" id="abpreChips"></div>
+            </div>
+            <div class="abpre-summary" id="abpreSummary"></div>
+            <div id="abpreLista"><div style="text-align:center; color:var(--fin-muted); padding:24px;"><i class="ti ti-loader"></i> Cargando de Apple Business Manager y Hexnode…</div></div>
+        </div>
+    </div>`;
+    try {
+        const [rAbm, rHex] = await Promise.all([
+            supabaseClient.functions.invoke('abm-accion', { body: { accion: 'listar' } }),
+            supabaseClient.functions.invoke('mdm-accion', { body: { accion: 'listar' } })
+        ]);
+        if(rAbm.error) { let det = ''; try { det = (await rAbm.error.context.json()).error || ''; } catch(_e) {} throw new Error(det || rAbm.error.message); }
+        if(rAbm.data && rAbm.data.error) throw new Error(rAbm.data.error);
+        const abmDevices = (rAbm.data && rAbm.data.devices) || [];
+        let hexDevices = [];
+        if(!rHex.error && rHex.data && !rHex.data.error) hexDevices = rHex.data.devices || [];
+        const hexPorClave = {};
+        hexDevices.forEach(h => { if(h.serial) hexPorClave[String(h.serial).toLowerCase().trim()] = h; if(h.imei) hexPorClave[String(h.imei).toLowerCase().trim()] = h; });
+        _abmPreCache = abmDevices.map(d => {
+            const enHex = hexPorClave[String(d.serial || '').toLowerCase().trim()] || hexPorClave[String(d.imei || '').toLowerCase().trim()] || null;
+            const etapa = d.estado !== 'ASSIGNED' ? 'pendiente' : (enHex ? 'listo' : 'transito');
+            return { ...d, etapa, hex: enHex };
+        });
+    } catch(e) {
+        const l = document.getElementById('abpreLista');
+        if(l) l.innerHTML = `<div style="background:var(--fin-danger-bg); border:1px solid var(--fin-danger-brd); color:var(--fin-danger); padding:10px 12px; border-radius:8px; font-size:12.5px;"><i class="ti ti-alert-triangle"></i> No se pudo cargar: ${escapeHtml(e.message || String(e))}</div>`;
+        return;
+    }
+    _abmPreRender();
+}
+function _abmPreFiltrar(v) { _abmPreBusq = (v || '').toLowerCase().trim(); _abmPreRender(); }
+function _abmPreChipSet(k) { _abmPreChip = k; _abmPreRender(); }
+function _abmPreClienteHTML(d) {
+    const lm = _mdmLinkMap();
+    const dueno = _mdmDispOcupadoPor({ id: d.hex ? d.hex.id : null, serial: d.serial, imei: d.imei }, lm);
+    if(dueno) return `<div class="abpre-client"><i class="ti ti-user"></i><span class="who">Financiado a</span>&nbsp;${escapeHtml(dueno)}</div>`;
+    return `<div class="abpre-client none"><i class="ti ti-user"></i>&nbsp;Sin cliente asignado todavía</div>`;
+}
+function _abmPreRender() {
+    const cont = document.getElementById('abpreLista'); if(!cont) return;
+    const q = _abmPreBusq;
+    const coincide = d => !q || [d.modelo, d.serial, d.imei, d.capacidad, d.color].some(x => String(x || '').toLowerCase().includes(q));
+    const filtrados = _abmPreCache.filter(coincide);
+    const porEtapa = { pendiente: [], transito: [], listo: [] };
+    filtrados.forEach(d => porEtapa[d.etapa].push(d));
+
+    const chipsEl = document.getElementById('abpreChips');
+    if(chipsEl) {
+        const chip = (k, lbl, n) => `<button class="abpre-chip${_abmPreChip === k ? ' on' : ''}" onclick="_abmPreChipSet('${k}')">${lbl} · ${n}</button>`;
+        chipsEl.innerHTML = chip('todos', 'Todos', filtrados.length) + chip('pendiente', 'Pendiente', porEtapa.pendiente.length) + chip('transito', 'En tránsito', porEtapa.transito.length) + chip('listo', 'Listo', porEtapa.listo.length);
+    }
+    const sum = document.getElementById('abpreSummary');
+    if(sum) {
+        sum.innerHTML = ['pendiente', 'transito', 'listo'].map(k => {
+            const info = _ABM_ETAPA_INFO[k];
+            return `<div class="abpre-tile ${info.cls}"><div class="lbl"><i class="ti ti-${info.icon}"></i>${info.txt}</div><div class="num">${porEtapa[k].length}</div><div class="sub">${info.sub}</div></div>`;
+        }).join('');
+    }
+    if(!filtrados.length) { cont.innerHTML = `<div style="color:var(--fin-muted); padding:20px; text-align:center; font-size:12.5px;">${_abmPreCache.length ? 'Ninguno coincide con la búsqueda.' : 'No hay equipos preenrolados en Apple Business Manager todavía.'}</div>`; return; }
+
+    const card = (d) => {
+        const info = _ABM_ETAPA_INFO[d.etapa];
+        const fecha = d.agregado ? new Date(d.agregado).toLocaleDateString('es-DO', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+        const asignarBtn = d.etapa === 'pendiente'
+            ? `<button class="btn btn-blue" style="font-size:11.5px; padding:6px 10px;" onclick="_abmPreAsignar(this, '${escapeHtml(String(d.serial || '')).replace(/'/g, "\\'")}')"><i class="ti ti-link"></i> Asignar a Hexnode</button>`
+            : '';
+        return `<div class="abpre-row">
+            <div class="abpre-glyph"><i class="ti ti-device-mobile"></i></div>
+            <div class="abpre-main">
+                <div class="abpre-title">${escapeHtml(d.modelo || 'Equipo')} <span class="cap">${[d.capacidad, d.color].filter(Boolean).map(x => escapeHtml(String(x))).join(' · ')}</span></div>
+                <div class="abpre-meta">
+                    ${d.imei ? `<span class="mono">IMEI ${escapeHtml(d.imei)}</span><button class="abpre-copy" onclick="_eqCopy('${escapeHtml(d.imei)}')" title="Copiar IMEI"><i class="ti ti-copy"></i></button>` : ''}
+                    ${d.serial ? `<span>Serie ${escapeHtml(d.serial)}</span>` : ''}
+                    <span><i class="ti ti-calendar"></i> Agregado ${fecha}</span>
+                </div>
+                ${_abmPreClienteHTML(d)}
+            </div>
+            <div class="abpre-side">
+                ${asignarBtn}
+                <span class="abpre-pill ${info.cls}"><i class="ti ti-${info.icon}"></i>${info.txt}</span>
+            </div>
+        </div>`;
+    };
+
+    let html = '';
+    if(_abmPreChip === 'todos') {
+        if(porEtapa.pendiente.length) html += `<div class="abpre-grouplbl">Pendiente de asignar a MDM</div>` + porEtapa.pendiente.map(card).join('');
+        if(porEtapa.transito.length) html += `<div class="abpre-grouplbl">Asignados a Hexnode · esperando activación</div>` + porEtapa.transito.map(card).join('');
+        if(porEtapa.listo.length) html += `<div class="abpre-grouplbl">Enrolados y activos en Hexnode</div>` + porEtapa.listo.map(card).join('');
+    } else {
+        html = porEtapa[_abmPreChip].map(card).join('');
+    }
+    cont.innerHTML = html;
+}
+async function _abmPreAsignar(btn, serial) {
+    const orig = btn ? btn.innerHTML : '';
+    if(btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i>'; }
+    try {
+        const { data, error } = await supabaseClient.functions.invoke('abm-accion', { body: { accion: 'asignar', serial, servidor: 'HEXNODE' } });
+        if(error) { let det = ''; try { det = (await error.context.json()).error || ''; } catch(_e) {} throw new Error(det || error.message); }
+        if(!data || !data.ok) throw new Error((data && data.error) || 'No se pudo asignar.');
+        toast('✅ Asignado a Hexnode.');
+        await abrirEquiposPreenrolados();
+    } catch(e) {
+        console.error('_abmPreAsignar', e);
+        toastError(getFriendlyError(e, 'No se pudo asignar a Hexnode.'));
+        if(btn) { btn.disabled = false; btn.innerHTML = orig; }
+    }
 }
 // ============================================================
 //   QR PARA ENROLAR ANDROID (Device Owner / Hexnode)
