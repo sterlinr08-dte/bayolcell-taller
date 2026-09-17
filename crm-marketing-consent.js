@@ -5,7 +5,7 @@
   window.__bcCrmExtensionsLoader=true;
 
   var V='20260916-perf2';
-  var PERF='20260916-perf1';
+  var PERF='20260916-perf2';
   var AMBIENT='20260915-hotfix3';
   var SURFACE='20260914-clean1';
   var MIDNIGHT='20260914-midnight1';
