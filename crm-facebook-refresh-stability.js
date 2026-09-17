@@ -1,166 +1,240 @@
-/* BAYOL CELL — Facebook CRM refresh stability hotfix (2026-09-16)
-   Problema observado en iPhone: ráfagas de Realtime disparan loadFacebookThreads()
-   repetidamente. Esa función sustituye la lista por "Comprobando Facebook…"
-   antes de cada lectura, provocando parpadeo lista -> spinner -> lista.
-
-   Esta capa no modifica mensajes, permisos ni datos. Mantiene la última bandeja
-   estable visible durante refrescos silenciosos y coalesce los reloads que llegan
-   mientras una lectura ya está en curso.
+/* BAYOL CELL — Social CRM refresh stability (2026-09-16)
+   Corrige parpadeos y saltos de scroll producidos por refrescos repetidos.
+   Facebook: coalesce ráfagas Realtime y evita lista -> spinner -> lista.
+   Instagram: conserva lista/scroll durante repintados Realtime.
+   Comentarios FB/IG/TikTok: conserva scroll y evita loaders de pantalla completa
+   cuando ya existe contenido estable para la misma vista.
+   No modifica mensajes, permisos, asignaciones ni datos.
 */
 (function(){
   'use strict';
   if(window.__bcFbRefreshStability) return;
   window.__bcFbRefreshStability = true;
+  window.__bcSocialRefreshStability = true;
 
-  const VERSION = '20260916.1';
-  const QUIET_MS = 850;
-  const state = window.BayolFacebookRefreshStability = window.BayolFacebookRefreshStability || {
+  const VERSION = '20260916.2';
+  const QUIET_MS = 900;
+  const state = window.BayolSocialRefreshStability = window.BayolSocialRefreshStability || {
     version: VERSION,
-    cachedHtml: '',
-    cachedScrollTop: 0,
-    host: null,
-    observer: null,
-    pendingRefresh: false,
-    quietTimer: null,
-    maskedSpinners: 0,
-    coalescedReloads: 0,
-    stableSnapshots: 0
+    facebook: { cachedHtml:'', scrollTop:0, host:null, observer:null, pending:false, timer:null, masked:0, coalesced:0, snapshots:0 },
+    instagram: { cachedHtml:'', scrollTop:0, host:null, observer:null, masked:0, snapshots:0, restores:0 },
+    context: { key:'', cachedHtml:'', host:null, observer:null, masked:0, snapshots:0 },
+    scrolls: new Map(),
+    rootObserver: null
   };
+  window.BayolFacebookRefreshStability = state.facebook;
 
-  function facebookVisible(){
-    try {
-      const root = document.getElementById('v-crmLinea');
-      const panel = document.getElementById('bcSocialFacebookPanel');
-      if(!root || !panel) return false;
-      if(!root.classList.contains('active') || !root.classList.contains('bc-social-mode')) return false;
-      if(root.dataset.socialChannel !== 'facebook') return false;
-      return panel.style.display !== 'none';
-    } catch(_e) { return false; }
+  function root(){ return document.getElementById('v-crmLinea'); }
+  function activeChannel(){ return root()?.dataset?.socialChannel || window.BayolSocialNetworks?.channel || ''; }
+  function activeView(){ return window.BayolSocialNetworks?.view || 'all'; }
+  function socialVisible(channel){
+    try{
+      const r=root();
+      if(!r || !r.classList.contains('active') || !r.classList.contains('bc-social-mode')) return false;
+      return activeChannel()===channel;
+    }catch(_e){ return false; }
   }
-
-  function isLoadingView(host){
+  function loadingOnly(host){
     if(!host) return false;
-    const loading = host.querySelector('.bc-social-loading');
-    if(!loading) return false;
-    return /Comprobando Facebook|Cargando conversaciones/i.test(loading.textContent || '');
+    const loader=host.querySelector('.bc-social-loading');
+    if(!loader) return false;
+    const stable=host.querySelector('[data-fb-thread],.bc-ig-thread,.bc-social-empty-state,.bc-social-error,.bc-fbc-post,.bc-fbc-comment,.bc-fbc-comments-head');
+    return !stable;
+  }
+  function restoreScroll(el, value){
+    if(!el || !Number.isFinite(value)) return;
+    const v=Math.max(0,value);
+    el.scrollTop=v;
+    requestAnimationFrame(()=>{ try{ if(el.isConnected) el.scrollTop=v; }catch(_e){} });
+    setTimeout(()=>{ try{ if(el.isConnected) el.scrollTop=v; }catch(_e){} },40);
   }
 
-  function isStableView(host){
-    if(!host || isLoadingView(host)) return false;
-    return !!(
-      host.querySelector('[data-fb-thread]') ||
-      host.querySelector('.bc-social-empty-state') ||
-      host.querySelector('.bc-social-error')
-    );
+  function fbStable(host){
+    return !!host && !loadingOnly(host) && !!host.querySelector('[data-fb-thread],.bc-social-empty-state,.bc-social-error');
   }
-
-  function snapshot(host){
-    if(!isStableView(host)) return;
-    state.cachedHtml = host.innerHTML;
-    state.cachedScrollTop = host.scrollTop || 0;
-    state.stableSnapshots++;
+  function fbSnapshot(){
+    const s=state.facebook, host=s.host;
+    if(!fbStable(host)) return;
+    s.cachedHtml=host.innerHTML;
+    s.scrollTop=host.scrollTop||0;
+    s.snapshots++;
   }
-
-  function restoreStable(host){
-    if(!state.cachedHtml || !facebookVisible()) return false;
-    const wantedScroll = state.cachedScrollTop || 0;
-    host.innerHTML = state.cachedHtml;
-    host.scrollTop = wantedScroll;
-    requestAnimationFrame(function(){
-      try { if(host === state.host) host.scrollTop = wantedScroll; } catch(_e) {}
-    });
-    state.maskedSpinners++;
+  function fbRestore(){
+    const s=state.facebook, host=s.host;
+    if(!host || !s.cachedHtml || !socialVisible('facebook')) return false;
+    host.innerHTML=s.cachedHtml;
+    restoreScroll(host,s.scrollTop);
+    s.masked++;
     return true;
   }
-
-  function requestOneRefreshAfterQuiet(){
-    state.pendingRefresh = true;
-    if(state.quietTimer) clearTimeout(state.quietTimer);
-    state.quietTimer = setTimeout(function run(){
-      state.quietTimer = null;
-      const host = state.host;
-      if(!state.pendingRefresh || !facebookVisible() || !host) return;
-      if(host.dataset.fbLoading === '1'){
-        state.quietTimer = setTimeout(run, 350);
+  function fbOneRefreshAfterQuiet(){
+    const s=state.facebook;
+    s.pending=true;
+    if(s.timer) clearTimeout(s.timer);
+    s.timer=setTimeout(function run(){
+      s.timer=null;
+      const host=s.host;
+      if(!s.pending || !socialVisible('facebook') || !host) return;
+      if(host.dataset.fbLoading==='1'){
+        s.timer=setTimeout(run,350);
         return;
       }
-      state.pendingRefresh = false;
-      try {
-        if(window.BayolSocialNetworks && typeof window.BayolSocialNetworks.refresh === 'function'){
-          window.BayolSocialNetworks.refresh();
-        }
-      } catch(_e) {}
-    }, QUIET_MS);
+      s.pending=false;
+      try{ window.BayolSocialNetworks?.refresh?.(); }catch(_e){}
+    },QUIET_MS);
   }
-
-  function onMutations(mutations){
-    const host = state.host;
+  function fbMutated(){
+    const s=state.facebook, host=s.host;
     if(!host) return;
-
-    // Si otra llamada llega mientras Facebook ya está cargando, el código base
-    // marca data-fb-reload=1 para repetir la consulta al terminar. En ráfagas de
-    // Realtime esto encadena reload tras reload. Consumimos esa marca y dejamos
-    // un único refresco diferido cuando la ráfaga se calme.
-    if(host.dataset.fbLoading === '1' && host.dataset.fbReload === '1'){
+    if(host.dataset.fbLoading==='1' && host.dataset.fbReload==='1'){
       delete host.dataset.fbReload;
-      state.coalescedReloads++;
-      requestOneRefreshAfterQuiet();
+      s.coalesced++;
+      fbOneRefreshAfterQuiet();
     }
-
-    if(isLoadingView(host)){
-      restoreStable(host);
+    if(loadingOnly(host)){
+      fbRestore();
       return;
     }
+    if(fbStable(host)) fbSnapshot();
+    if(host.dataset.fbLoading==='0' && s.pending && !s.timer) fbOneRefreshAfterQuiet();
+  }
+  function attachFacebook(){
+    const s=state.facebook, host=document.getElementById('bcFbThreads');
+    if(!host || (s.host===host && s.observer)) return;
+    try{s.observer?.disconnect();}catch(_e){}
+    s.host=host;
+    host.addEventListener('scroll',()=>{s.scrollTop=host.scrollTop||0;},{passive:true});
+    fbSnapshot();
+    s.observer=new MutationObserver(fbMutated);
+    s.observer.observe(host,{childList:true,subtree:true,attributes:true,attributeFilter:['data-fb-loading','data-fb-reload']});
+  }
 
-    if(isStableView(host)) snapshot(host);
-
-    // Si la carga terminó y había eventos agrupados, el temporizador anterior
-    // hará una única lectura más. No se fuerza nada aquí para evitar bucles.
-    if(host.dataset.fbLoading === '0' && state.pendingRefresh && !state.quietTimer){
-      requestOneRefreshAfterQuiet();
+  function igStable(host){
+    return !!host && !loadingOnly(host) && !!host.querySelector('.bc-ig-thread,.bc-ig-empty');
+  }
+  function igSnapshot(){
+    const s=state.instagram, host=s.host;
+    if(!igStable(host)) return;
+    s.cachedHtml=host.innerHTML;
+    s.snapshots++;
+  }
+  function igRestoreLoading(){
+    const s=state.instagram, host=s.host;
+    if(!host || !s.cachedHtml || !socialVisible('instagram')) return false;
+    host.innerHTML=s.cachedHtml;
+    restoreScroll(host,s.scrollTop);
+    s.masked++;
+    return true;
+  }
+  function igMutated(){
+    const s=state.instagram, host=s.host;
+    if(!host) return;
+    if(loadingOnly(host)){
+      igRestoreLoading();
+      return;
+    }
+    if(igStable(host)){
+      const wanted=s.scrollTop||0;
+      igSnapshot();
+      if(socialVisible('instagram') && wanted>0){
+        restoreScroll(host,wanted);
+        s.restores++;
+      }
     }
   }
+  function attachInstagram(){
+    const s=state.instagram, host=document.getElementById('bcIgThreads');
+    if(!host || (s.host===host && s.observer)) return;
+    try{s.observer?.disconnect();}catch(_e){}
+    s.host=host;
+    s.scrollTop=host.scrollTop||0;
+    host.addEventListener('scroll',()=>{s.scrollTop=host.scrollTop||0;},{passive:true});
+    igSnapshot();
+    s.observer=new MutationObserver(igMutated);
+    s.observer.observe(host,{childList:true,subtree:true});
+  }
 
-  function attach(){
-    const host = document.getElementById('bcFbThreads');
-    if(!host){ setTimeout(attach, 180); return; }
-    if(state.host === host && state.observer) return;
-
-    try { state.observer?.disconnect(); } catch(_e) {}
-    state.host = host;
-    snapshot(host);
-
-    state.observer = new MutationObserver(onMutations);
-    state.observer.observe(host, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ['data-fb-loading','data-fb-reload']
+  function contextKey(){ return `${activeChannel()}:${activeView()}`; }
+  function contextStable(host){
+    return !!host && !loadingOnly(host) && !!host.querySelector('.bc-fbc-post,.bc-fbc-comment,.bc-fbc-comments-head,.bc-social-empty-state,.bc-social-error');
+  }
+  function contextSnapshot(){
+    const s=state.context, host=s.host;
+    if(!contextStable(host)) return;
+    s.key=contextKey();
+    s.cachedHtml=host.innerHTML;
+    s.snapshots++;
+  }
+  function contextMutated(){
+    const s=state.context, host=s.host;
+    if(!host) return;
+    const key=contextKey();
+    if(loadingOnly(host) && s.cachedHtml && s.key===key){
+      host.innerHTML=s.cachedHtml;
+      s.masked++;
+      return;
+    }
+    if(contextStable(host)) contextSnapshot();
+    wireNestedScrollers();
+  }
+  function attachContext(){
+    const s=state.context, host=document.getElementById('bcSocialContextPanel');
+    if(!host || (s.host===host && s.observer)) return;
+    try{s.observer?.disconnect();}catch(_e){}
+    s.host=host;
+    contextSnapshot();
+    s.observer=new MutationObserver(contextMutated);
+    s.observer.observe(host,{childList:true,subtree:true});
+    wireNestedScrollers();
+  }
+  function wireNestedScrollers(){
+    document.querySelectorAll('#bcSocialContextPanel .bc-fbc-posts-list,#bcSocialContextPanel .bc-fbc-comments-body').forEach(el=>{
+      if(el.dataset.bcScrollStable==='1') return;
+      el.dataset.bcScrollStable='1';
+      const key=()=>`${contextKey()}:${el.classList.contains('bc-fbc-posts-list')?'posts':'comments'}`;
+      const saved=state.scrolls.get(key());
+      if(Number.isFinite(saved)) restoreScroll(el,saved);
+      el.addEventListener('scroll',()=>state.scrolls.set(key(),el.scrollTop||0),{passive:true});
+      new MutationObserver(()=>{
+        const v=state.scrolls.get(key());
+        if(Number.isFinite(v) && v>0) restoreScroll(el,v);
+      }).observe(el,{childList:true,subtree:true});
     });
   }
 
-  // #bcFbThreads se crea de forma diferida al entrar a Redes. Además puede ser
-  // reconstruido por cambios de vista, por eso vigilamos únicamente hasta tener
-  // un host válido y revalidamos cuando cambia la estructura del CRM.
-  attach();
-  const root = document.getElementById('v-crmLinea');
-  if(root){
-    const rootObserver = new MutationObserver(function(){
-      const current = document.getElementById('bcFbThreads');
-      if(current && current !== state.host) attach();
-    });
-    rootObserver.observe(root, {childList:true, subtree:true});
-    state.rootObserver = rootObserver;
+  function attachAll(){
+    attachFacebook();
+    attachInstagram();
+    attachContext();
+    wireNestedScrollers();
   }
 
-  state.getSnapshot = function(){
+  attachAll();
+  const r=root();
+  if(r){
+    state.rootObserver=new MutationObserver(attachAll);
+    state.rootObserver.observe(r,{childList:true,subtree:true,attributes:true,attributeFilter:['data-social-channel','class']});
+  }else{
+    const wait=new MutationObserver(()=>{
+      if(root()){
+        wait.disconnect();
+        attachAll();
+        state.rootObserver=new MutationObserver(attachAll);
+        state.rootObserver.observe(root(),{childList:true,subtree:true,attributes:true,attributeFilter:['data-social-channel','class']});
+      }
+    });
+    wait.observe(document.documentElement,{childList:true,subtree:true});
+    setTimeout(()=>wait.disconnect(),30000);
+  }
+
+  state.getSnapshot=function(){
     return {
-      version: VERSION,
-      maskedSpinners: state.maskedSpinners,
-      coalescedReloads: state.coalescedReloads,
-      stableSnapshots: state.stableSnapshots,
-      pendingRefresh: !!state.pendingRefresh,
-      loading: state.host?.dataset?.fbLoading === '1'
+      version:VERSION,
+      facebook:{maskedSpinners:state.facebook.masked,coalescedReloads:state.facebook.coalesced,stableSnapshots:state.facebook.snapshots,pendingRefresh:!!state.facebook.pending},
+      instagram:{maskedSpinners:state.instagram.masked,scrollRestores:state.instagram.restores,stableSnapshots:state.instagram.snapshots},
+      context:{maskedSpinners:state.context.masked,stableSnapshots:state.context.snapshots,key:state.context.key},
+      channel:activeChannel(),view:activeView()
     };
   };
+  state.facebook.getSnapshot=state.getSnapshot;
 })();
