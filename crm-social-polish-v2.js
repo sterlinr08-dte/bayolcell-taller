@@ -183,16 +183,35 @@
     scheduleFit();
   }
 
+  function isRelevantMutation(records){
+    for(const record of records){
+      for(const node of record.addedNodes){
+        if(node.nodeType !== 1) continue;
+        if(node.matches?.('#bcSocialHubHead,.crm-tabs-track,#crmLineaTabSocial')) return true;
+        if(node.querySelector?.('#bcSocialHubHead,.crm-tabs-track,#crmLineaTabSocial')) return true;
+      }
+    }
+    return false;
+  }
+
   function start(){
     markReady();
     const root = $('#v-crmLinea') || document.documentElement;
+
+    // Antes se repintaba/escaneaba el CRM por CADA mutación durante 120 s.
+    // Ahora solo reaccionamos cuando aparece/reconstruye la estructura de
+    // navegación social, y desconectamos este observer de arranque a los 15 s.
     let t = null;
-    const mo = new MutationObserver(() => {
+    const mo = new MutationObserver((records) => {
+      if(!isRelevantMutation(records)) return;
       clearTimeout(t);
       t = setTimeout(markReady, 30);
     });
     mo.observe(root,{childList:true,subtree:true});
-    setTimeout(() => mo.disconnect(), 120000);
+    setTimeout(() => { try{mo.disconnect();}catch{} }, 15000);
+
+    // Reintentos finitos para cubrir carga asíncrona sin observer permanente.
+    [120,500,1500,4000].forEach(ms => setTimeout(markReady, ms));
 
     if (root !== document.documentElement) {
       const attrMo = new MutationObserver(scheduleFit);
