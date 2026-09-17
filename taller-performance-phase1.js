@@ -9,7 +9,7 @@
   if(window.__bcPerfPhase1) return;
   window.__bcPerfPhase1 = true;
 
-  const VERSION = '20260916.2';
+  const VERSION = '20260916.3';
   const BACKUP_POLL_MS = 5 * 60 * 1000;
   const CORE_TABLES = new Set([
     'ordenes_reparacion','clientes','equipos','piezas_inventario','activos_taller',
@@ -136,12 +136,25 @@
     } catch(_e) {}
   }
 
+  function loadFacebookRefreshStability(){
+    try {
+      if(window.__bcFbRefreshStabilityRequested) return;
+      window.__bcFbRefreshStabilityRequested = true;
+      const s = document.createElement('script');
+      s.async = true;
+      s.src = 'crm-facebook-refresh-stability.js?v=20260916-fb1';
+      s.onerror = function(){ window.__bcFbRefreshStabilityRequested = false; };
+      document.head.appendChild(s);
+    } catch(_e) {}
+  }
+
   function install(){
     installLoadAllMetrics();
     installRealtimeAllowlist();
     installBackupPoller();
     installResumeSafety();
     loadWhatsAppPagination();
+    loadFacebookRefreshStability();
   }
 
   install();
@@ -159,7 +172,8 @@
         ignoredByTable: Object.assign({}, state.realtime.ignoredByTable)
       },
       pollerInstalled: !!state.pollerInstalled,
-      whatsappPaging: !!window.__bcWaPaginationInstalled
+      whatsappPaging: !!window.__bcWaPaginationInstalled,
+      facebookRefreshStability: !!window.__bcFbRefreshStability
     };
   };
 })();
