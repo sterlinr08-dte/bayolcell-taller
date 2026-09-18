@@ -11,7 +11,11 @@
 .bc-fb-name{flex:1;min-width:0}.bc-fb-name b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;color:#172b4d}.bc-fb-name small{font-size:11px;color:#718096}
 .bc-fb-icon{display:inline-grid;place-items:center;flex:none;width:34px;height:34px;border:0;border-radius:50%;background:transparent;color:#61728b;font-size:20px;cursor:pointer}
 .bc-fb-icon:hover{background:#edf3fb}.bc-fb-icon:focus-visible,.bc-fb-composer button:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
-.bc-fb-messages{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:16px 20px;display:flex;flex-direction:column;gap:8px}
+.bc-fb-messages{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:16px 20px;display:flex;flex-direction:column;gap:8px;scrollbar-width:thin;scrollbar-color:#c7d2e8 transparent}
+.bc-fb-messages::-webkit-scrollbar{width:7px}
+.bc-fb-messages::-webkit-scrollbar-track{background:transparent}
+.bc-fb-messages::-webkit-scrollbar-thumb{background:#c7d2e8;border-radius:999px}
+.bc-fb-messages::-webkit-scrollbar-thumb:hover{background:#a9b8dc}
 .bc-fb-row{display:flex;flex-shrink:0}.bc-fb-row.out{justify-content:flex-end}.bc-fb-row[hidden]{display:none}
 /* Burbujas iguales a WhatsApp (15 sept 2026, pedido de Sterling: misma
    apariencia en las demás redes) -- mismo verde/blanco, radio, relleno,

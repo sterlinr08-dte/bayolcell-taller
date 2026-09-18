@@ -93,7 +93,11 @@
 .bc-ig-cap.on{color:#1d4ed8;background:#eff6ff;border-color:#bfdbfe}
 .bc-ig-cap.pending{color:#9a6700;background:#fffaeb;border-color:#fedf89}
 
-.bc-ig-threads{flex:1;min-height:0;overflow:auto;padding:7px}
+.bc-ig-threads{flex:1;min-height:0;overflow:auto;padding:7px;scrollbar-width:thin;scrollbar-color:#c7d2e8 transparent}
+.bc-ig-threads::-webkit-scrollbar{width:7px}
+.bc-ig-threads::-webkit-scrollbar-track{background:transparent}
+.bc-ig-threads::-webkit-scrollbar-thumb{background:#c7d2e8;border-radius:999px}
+.bc-ig-threads::-webkit-scrollbar-thumb:hover{background:#a9b8dc}
 .bc-ig-thread{
   width:100%;border:1px solid transparent;background:transparent;border-radius:12px;padding:9px 9px;display:flex;gap:9px;
   text-align:left;cursor:pointer;margin:0 0 4px;transition:.14s ease;color:inherit;
@@ -132,7 +136,11 @@
    que WhatsApp en las demás redes) -- antes era una insignia morada. */
 .bc-ig-chat-badge{font-size:8px;font-weight:750;color:#64748b;background:#f1f5f9;border:1px solid #e2e8f0;padding:4px 7px;border-radius:999px}
 
-.bc-ig-messages{flex:1;min-height:0;overflow:auto;padding:15px 14px;display:flex;flex-direction:column;gap:6px}
+.bc-ig-messages{flex:1;min-height:0;overflow:auto;padding:15px 14px;display:flex;flex-direction:column;gap:6px;scrollbar-width:thin;scrollbar-color:#c7d2e8 transparent}
+.bc-ig-messages::-webkit-scrollbar{width:7px}
+.bc-ig-messages::-webkit-scrollbar-track{background:transparent}
+.bc-ig-messages::-webkit-scrollbar-thumb{background:#c7d2e8;border-radius:999px}
+.bc-ig-messages::-webkit-scrollbar-thumb:hover{background:#a9b8dc}
 .bc-ig-msg-row{display:flex}
 .bc-ig-msg-row.out{justify-content:flex-end}
 /* Burbujas iguales a WhatsApp (15 sept 2026): mismo verde/blanco, radio,

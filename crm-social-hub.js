@@ -8,7 +8,7 @@
   'use strict';
   if (window.BayolSocialHub) return;
 
-  const VERSION = '20260915b';
+  const VERSION = '20260918-scroll1';
   const state = {
     channel: 'whatsapp',
     mounted: false,
