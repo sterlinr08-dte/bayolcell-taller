@@ -36045,6 +36045,7 @@ async function crmLineaTab(name) {
    backend, fix 2026-09-12).
    ============================================================ */
 let _igSubTab = localStorage.getItem('bayol_subtab_redes') || 'instagram';
+if(_igSubTab === 'tiktok') _igSubTab = 'instagram'; // TikTok se quitó 18 sept 2026 -- no dejar una pestaña vieja guardada apuntando ahí
 let _igCuentaId = null;
 let _igHilos = [];
 let _igHiloId = null;
@@ -36119,10 +36120,12 @@ function _rsPintarCanales() {
     const cont = document.getElementById('rsCanales');
     if(!cont) return;
     const noLeidosIg = (_igHilos || []).reduce((n, h) => n + (h.no_leidos_count || 0), 0);
+    // 18 sept 2026: se quitó TikTok de aquí a pedido de Sterling -- la cuenta
+    // se desconectó de Zernio (no ofrecía mensajería/DM y generaba costo de
+    // cuenta conectada sin uso real). Si se retoma, agregar de nuevo aquí.
     const canales = [
         { id: 'instagram', icono: 'ti-brand-instagram', clase: 'ig', nombre: 'Instagram', sub: '@bayolcell', badge: noLeidosIg, real: true },
         { id: 'facebook', icono: 'ti-brand-facebook', clase: 'fb', nombre: 'Facebook', sub: 'BAYOL CELL', badge: null, real: false },
-        { id: 'tiktok', icono: 'ti-brand-tiktok', clase: 'tk', nombre: 'TikTok', sub: '@bayolcellrd', badge: null, real: false },
     ];
     const html = canales.map(c => `
         <button type="button" aria-pressed="${_igSubTab === c.id}" class="rs-canal${_igSubTab === c.id ? ' activo' : ''}${!c.real ? ' pendiente' : ''}" onclick="crmRedesSubTab('${c.id}')">

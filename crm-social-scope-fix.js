@@ -23,19 +23,23 @@
     unreadOnly: false,
     refreshTimer: null,
     originalCrmLineaTab: null,
+    // 18 sept 2026: se quitó TikTok (canal y meta) a pedido de Sterling -- la
+    // cuenta se desconectó de Zernio (sin mensajería/DM real y generaba costo
+    // de cuenta conectada). El resto del archivo (fbc.platform==='tiktok',
+    // ensureTikTokPanel, etc.) queda inerte a propósito: nada puede volver a
+    // seleccionar ese canal porque ya no está en CHANNELS. Si se retoma,
+    // agregar de nuevo aquí.
     meta: {
       whatsapp: { count: null, account: 'Mensajes', ready: true },
       instagram: { count: null, account: '', ready: true },
-      facebook: { count: null, account: 'Pendiente', ready: false },
-      tiktok: { count: null, account: 'Pendiente', ready: false }
+      facebook: { count: null, account: 'Pendiente', ready: false }
     }
   };
 
   const CHANNELS = {
     whatsapp: { label:'WhatsApp', icon:'ti-brand-whatsapp' },
     instagram: { label:'Instagram', icon:'ti-brand-instagram' },
-    facebook: { label:'Facebook', icon:'ti-brand-facebook' },
-    tiktok: { label:'TikTok', icon:'ti-brand-tiktok' }
+    facebook: { label:'Facebook', icon:'ti-brand-facebook' }
   };
 
   // Comentarios de Facebook e Instagram (Zernio) — reemplaza el placeholder
@@ -765,7 +769,7 @@
       </div>`;
 
     head.classList.add('bc-smart-ready');
-    head.setAttribute('aria-label','Redes sociales: WhatsApp, Instagram, Facebook y TikTok');
+    head.setAttribute('aria-label','Redes sociales: WhatsApp, Instagram y Facebook');
     bindHeader();
     renderInteractionNav();
     syncHeaderState();
