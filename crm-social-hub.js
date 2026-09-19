@@ -8,7 +8,7 @@
   'use strict';
   if (window.BayolSocialHub) return;
 
-  const VERSION = '20260918-scroll1';
+  const VERSION = '20260919-igfix1';
   const state = {
     channel: 'whatsapp',
     mounted: false,
@@ -229,7 +229,8 @@
     put('#bcKpiWa',waPending); put('#bcKpiIg',igUnread); put('#bcKpiLeads',leads); put('#bcKpiChannels',`${channels}/3`);
   }
 
-  async function loadInstagram(force){
+  async function loadInstagram(force, options={}){
+    const refreshSelected = options.refreshSelected !== false;
     const client = sb();
     const list = $('#bcIgThreads');
     if (!list) return;
@@ -273,7 +274,7 @@
         if (fresh) state.selected = fresh;
       }
       renderThreads(); setupRealtime();
-      if (state.selected) await loadMessages(state.selected.id,false);
+      if (state.selected && refreshSelected) await loadMessages(state.selected.id,false);
     } catch(e) {
       console.error('CRM Social Instagram',e);
       if(list) list.innerHTML = `<div class="bc-ig-empty"><div><i class="ti ti-alert-circle"></i><b>No se pudo cargar Instagram</b><span>${esc(e.message || 'Error inesperado.')}</span><button type="button" class="btn btn-light" id="bcIgRetry">Reintentar</button></div></div>`;
@@ -419,7 +420,7 @@
       if(data?.ok===false) throw new Error(data.mensaje||data.error||'Instagram rechazó el envío.');
       if(ta){ta.value='';ta.style.height='auto';}
       if(btn){btn.classList.add('bc-sent-ok');setTimeout(()=>btn.classList.remove('bc-sent-ok'),350);}
-      await loadInstagram(false); await loadMessages(state.selected.id,false); notify('Mensaje de Instagram enviado.');
+      await loadInstagram(false,{refreshSelected:true}); notify('Mensaje de Instagram enviado.');
     }catch(err){ console.error('instagram-enviar',err); notify(err.message||'No se pudo enviar el mensaje de Instagram.','error'); }
     finally{state.busySend=false;if(btn){btn.disabled=!state.selected?.zernio_conversation_id;btn.innerHTML='<i class="ti ti-arrow-up"></i>';}ta?.focus?.();}
   }
@@ -482,21 +483,46 @@
     finally{ if(box) box.hidden=true; igForwardMsg=null; }
   }
 
+  let igRealtimeNeedsChat=false;
+  let igRealtimeRunning=false;
+  let igRealtimeQueued=false;
+
   function setupRealtime(){
     if(state.realtime || !sb()) return;
     try{
       state.realtime = sb().channel('bc-social-instagram')
-        .on('postgres_changes',{event:'*',schema:'public',table:'instagram_hilos'},()=>scheduleIgRealtime())
+        .on('postgres_changes',{event:'*',schema:'public',table:'instagram_hilos'},()=>scheduleIgRealtime(false))
         .on('postgres_changes',{event:'*',schema:'public',table:'instagram_mensajes'},payload=>{
-          if(state.selected && (payload.new?.hilo_id===state.selected.id || payload.old?.hilo_id===state.selected.id)) scheduleIgRealtime(true);
-          else scheduleIgRealtime(false);
+          const selectedId=state.selected?.id;
+          const changedId=payload.new?.hilo_id || payload.old?.hilo_id;
+          scheduleIgRealtime(!!selectedId && changedId===selectedId);
         }).subscribe();
     }catch(e){console.warn('Realtime Instagram no disponible',e);}
   }
 
+  async function flushIgRealtime(){
+    if(igRealtimeRunning){igRealtimeQueued=true;return;}
+    igRealtimeRunning=true;
+    try{
+      do{
+        igRealtimeQueued=false;
+        const refreshSelected=igRealtimeNeedsChat;
+        igRealtimeNeedsChat=false;
+        await loadInstagram(false,{refreshSelected});
+      }while(igRealtimeQueued || igRealtimeNeedsChat);
+    }finally{
+      igRealtimeRunning=false;
+    }
+  }
+
   function scheduleIgRealtime(openChat=false){
+    igRealtimeNeedsChat = igRealtimeNeedsChat || !!openChat;
     clearTimeout(window.__bcIgRealtimeTimer);
-    window.__bcIgRealtimeTimer=setTimeout(async()=>{await loadInstagram(false);if(openChat && state.selected) await loadMessages(state.selected.id,false);},180);
+    window.__bcIgRealtimeTimer=setTimeout(()=>{
+      window.__bcIgRealtimeTimer=null;
+      if(igRealtimeRunning){igRealtimeQueued=true;return;}
+      flushIgRealtime().catch(e=>console.warn('Realtime Instagram refresh falló',e));
+    },450);
   }
 
   function start(){
