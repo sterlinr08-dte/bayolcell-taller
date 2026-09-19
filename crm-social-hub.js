@@ -8,7 +8,7 @@
   'use strict';
   if (window.BayolSocialHub) return;
 
-  const VERSION = '20260919-igfix2';
+  const VERSION = '20260919-igfix3';
   const state = {
     channel: 'whatsapp',
     mounted: false,
@@ -59,6 +59,61 @@
     l.rel = 'stylesheet';
     l.href = `crm-social-hub.css?v=${VERSION}`;
     document.head.appendChild(l);
+  }
+
+  let igViewportFitRaf=0;
+  function fitInstagramPanelToViewport(){
+    if(state.channel!=='instagram') return;
+    const view=$('#v-crmLinea');
+    const panel=$('#bcSocialInstagramPanel');
+    if(!view || !panel || !view.classList.contains('active')) return;
+
+    const vv=window.visualViewport;
+    const viewportTop=vv ? vv.offsetTop : 0;
+    const viewportHeight=vv ? vv.height : window.innerHeight;
+    const rect=panel.getBoundingClientRect();
+    const topInsideViewport=Math.max(0, rect.top - viewportTop);
+    const reserve=window.innerWidth<=720 ? 6 : 10;
+    const available=Math.max(160, Math.floor(viewportHeight - topInsideViewport - reserve));
+
+    panel.style.setProperty('height', available+'px', 'important');
+    panel.style.setProperty('max-height', available+'px', 'important');
+    panel.style.setProperty('--bc-ig-viewport-height', available+'px');
+
+    const shell=panel.querySelector('.bc-ig-shell');
+    const chat=panel.querySelector('.bc-ig-chat');
+    if(shell){
+      shell.style.setProperty('height','100%','important');
+      shell.style.setProperty('max-height','100%','important');
+      shell.style.setProperty('min-height','0','important');
+    }
+    if(chat){
+      chat.style.setProperty('height','100%','important');
+      chat.style.setProperty('max-height','100%','important');
+      chat.style.setProperty('min-height','0','important');
+    }
+  }
+
+  function scheduleInstagramViewportFit(){
+    cancelAnimationFrame(igViewportFitRaf);
+    igViewportFitRaf=requestAnimationFrame(fitInstagramPanelToViewport);
+  }
+
+  function installInstagramViewportFit(){
+    if(window.__bcInstagramViewportFitInstalled) return;
+    window.__bcInstagramViewportFitInstalled=true;
+    window.addEventListener('resize',scheduleInstagramViewportFit,{passive:true});
+    window.addEventListener('orientationchange',()=>setTimeout(scheduleInstagramViewportFit,120),{passive:true});
+    if(window.visualViewport){
+      window.visualViewport.addEventListener('resize',scheduleInstagramViewportFit,{passive:true});
+      window.visualViewport.addEventListener('scroll',scheduleInstagramViewportFit,{passive:true});
+    }
+    document.addEventListener('focusin',e=>{
+      if(e.target?.closest?.('#bcIgComposer')) setTimeout(scheduleInstagramViewportFit,40);
+    },true);
+    document.addEventListener('focusout',e=>{
+      if(e.target?.closest?.('#bcIgComposer')) setTimeout(scheduleInstagramViewportFit,120);
+    },true);
   }
 
   function mount(){
@@ -174,6 +229,10 @@
     view.classList.remove('bc-ig-chat-open');
     document.querySelectorAll('#bcSocialHubHead .bc-social-channel').forEach(b => b.classList.toggle('on', b.dataset.channel === channel));
     if (channel === 'instagram') {
+      installInstagramViewportFit();
+      setTimeout(scheduleInstagramViewportFit,0);
+      setTimeout(scheduleInstagramViewportFit,80);
+      setTimeout(scheduleInstagramViewportFit,240);
       loadInstagram(true);
     } else if (channel === 'whatsapp') {
       try {
@@ -303,7 +362,10 @@
   async function openThread(id){
     const h = state.threads.find(x => x.id === id);
     if (!h) return;
-    state.selected = h; renderThreads(); $('#v-crmLinea')?.classList.add('bc-ig-chat-open'); await loadMessages(id,true);
+    state.selected = h; renderThreads(); $('#v-crmLinea')?.classList.add('bc-ig-chat-open');
+    scheduleInstagramViewportFit();
+    await loadMessages(id,true);
+    scheduleInstagramViewportFit();
     try {
       if (Number(h.no_leidos_count||0) > 0) {
         const {error} = await sb().from('instagram_hilos').update({no_leidos_count:0}).eq('id',id);
@@ -406,6 +468,7 @@
     scroller?.addEventListener('scroll',actualizarJump);
     jump?.addEventListener('click',()=>{ if(scroller) scroller.scrollTop=scroller.scrollHeight; actualizarJump(); });
     requestAnimationFrame(()=>{if(scroller)scroller.scrollTop=bottom?scroller.scrollHeight:top; actualizarJump();});
+    scheduleInstagramViewportFit();
   }
 
   async function sendInstagram(e){
@@ -527,6 +590,7 @@
 
   function start(){
     ensureCss();
+    installInstagramViewportFit();
     if (!mount()) {
       const mo = new MutationObserver(() => { if (mount()) mo.disconnect(); });
       mo.observe(document.documentElement,{childList:true,subtree:true});

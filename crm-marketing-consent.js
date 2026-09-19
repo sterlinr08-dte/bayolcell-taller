@@ -5,7 +5,7 @@
   window.__bcCrmExtensionsLoader=true;
 
   var V='20260918-scroll1';
-  var SOCIAL_HUB='20260919-igfix2';
+  var SOCIAL_HUB='20260919-igfix3';
   var PERF='20260916-perf2';
   var FB_DIRECT='20260916-fb3';
   var GLASS='20260916-glass2';
