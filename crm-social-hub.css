@@ -232,3 +232,70 @@
   .bc-fb-placeholder{padding:20px 12px;border-radius:13px}
   .bc-fb-list{grid-template-columns:1fr}
 }
+
+
+/* 19 sep 2026 — Instagram composer visibility / layout containment.
+   El chat debe ocupar exactamente el espacio disponible; solo la lista de
+   mensajes puede hacer scroll. Así el composer nunca queda empujado fuera
+   del panel por historiales largos ni por el layout móvil. */
+#bcSocialInstagramPanel{
+  min-height:0!important;
+  overflow:hidden!important;
+}
+#bcSocialInstagramPanel .bc-ig-shell{
+  height:100%!important;
+  min-height:0!important;
+  overflow:hidden!important;
+}
+#bcSocialInstagramPanel .bc-ig-chat{
+  height:100%!important;
+  min-height:0!important;
+  overflow:hidden!important;
+  position:relative!important;
+}
+#bcSocialInstagramPanel .bc-ig-messages{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  overflow-y:auto!important;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+}
+#bcSocialInstagramPanel .bc-ig-composer{
+  display:flex!important;
+  flex:0 0 auto!important;
+  width:100%!important;
+  min-height:56px;
+  box-sizing:border-box!important;
+  position:sticky!important;
+  bottom:0!important;
+  z-index:30!important;
+  padding:9px 10px max(9px,env(safe-area-inset-bottom))!important;
+  background:rgba(255,255,255,.96)!important;
+  backdrop-filter:blur(18px) saturate(135%);
+  -webkit-backdrop-filter:blur(18px) saturate(135%);
+}
+#bcSocialInstagramPanel .bc-ig-composer textarea{
+  flex:1 1 auto!important;
+  width:auto!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+}
+#bcSocialInstagramPanel .bc-ig-send{
+  flex:0 0 38px!important;
+}
+
+@media(max-width:720px){
+  #v-crmLinea.bc-ig-chat-open #bcSocialInstagramPanel,
+  #v-crmLinea.bc-ig-chat-open #bcSocialInstagramPanel .bc-ig-shell,
+  #v-crmLinea.bc-ig-chat-open #bcSocialInstagramPanel .bc-ig-chat{
+    height:100%!important;
+    min-height:0!important;
+    overflow:hidden!important;
+  }
+  #v-crmLinea.bc-ig-chat-open #bcSocialInstagramPanel .bc-ig-composer{
+    position:sticky!important;
+    bottom:0!important;
+    min-height:58px;
+    padding-bottom:max(10px,env(safe-area-inset-bottom))!important;
+  }
+}
