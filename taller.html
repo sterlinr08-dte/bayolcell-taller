@@ -28390,13 +28390,40 @@ function _rtIndicador(caido) {
     if(!document.getElementById('rtAvisoStyle')) {
         const st = document.createElement('style');
         st.id = 'rtAvisoStyle';
-        st.textContent = '@keyframes rtGirar{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}@media (prefers-reduced-motion: reduce){#rtAviso i{animation:none !important;}}';
+        st.textContent = `
+            @keyframes rtGirar{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+            @keyframes rtPulse{0%,100%{opacity:1;}50%{opacity:.7;}}
+            @keyframes rtDots{0%{content:''}33%{content:'.'}66%{content:'..'}100%{content:'...'}}
+            @keyframes rtSlideUp{from{opacity:0;transform:translate(-50%,20px);}to{opacity:1;transform:translate(-50%,0);}}
+            @keyframes rtSignal{0%,100%{opacity:.3;}50%{opacity:1;}}
+            #rtAviso{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:99999;
+                background:linear-gradient(135deg,#1e293b,#334155);color:#fff;font-size:13px;font-weight:600;
+                padding:12px 20px;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.3),0 0 0 1px rgba(255,255,255,.06);
+                pointer-events:none;display:flex;align-items:center;gap:12px;animation:rtSlideUp .4s ease both;
+                backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);}
+            #rtAviso .rt-icon{width:36px;height:36px;border-radius:10px;background:rgba(239,68,68,.15);
+                display:flex;align-items:center;justify-content:center;flex:none;position:relative;}
+            #rtAviso .rt-icon i{font-size:18px;color:#f87171;}
+            #rtAviso .rt-icon::after{content:'';position:absolute;inset:-3px;border-radius:13px;
+                border:2px solid rgba(239,68,68,.25);animation:rtPulse 2s ease-in-out infinite;}
+            #rtAviso .rt-text{display:flex;flex-direction:column;gap:1px;}
+            #rtAviso .rt-title{font-weight:700;font-size:13px;letter-spacing:-.01em;}
+            #rtAviso .rt-sub{font-size:11px;color:rgba(255,255,255,.6);font-weight:500;display:flex;align-items:center;gap:5px;}
+            #rtAviso .rt-sub .rt-spin{display:inline-block;animation:rtGirar 1s linear infinite;font-size:12px;}
+            #rtAviso .rt-sub::after{content:'...';animation:rtDots 1.5s steps(4,end) infinite;width:14px;display:inline-block;}
+            #rtAviso .rt-bars{display:flex;align-items:flex-end;gap:2px;margin-left:4px;}
+            #rtAviso .rt-bar{width:3px;border-radius:1px;background:rgba(255,255,255,.2);}
+            #rtAviso .rt-bar:nth-child(1){height:6px;animation:rtSignal 1.5s ease-in-out .0s infinite;}
+            #rtAviso .rt-bar:nth-child(2){height:10px;animation:rtSignal 1.5s ease-in-out .2s infinite;}
+            #rtAviso .rt-bar:nth-child(3){height:14px;animation:rtSignal 1.5s ease-in-out .4s infinite;}
+            @media(prefers-reduced-motion:reduce){#rtAviso,#rtAviso .rt-icon::after,#rtAviso .rt-sub .rt-spin,
+                #rtAviso .rt-sub::after,#rtAviso .rt-bar{animation:none!important;}}
+        `;
         document.head.appendChild(st);
     }
     el = document.createElement('div');
     el.id = 'rtAviso';
-    el.innerHTML = '<i class="ti ti-loader-2" style="display:inline-block;animation:rtGirar 1s linear infinite;"></i> Sin conexión en tiempo real — reconectando…';
-    el.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:99999;background:#b45309;color:#fff;font-size:12.5px;font-weight:700;padding:8px 14px;border-radius:999px;box-shadow:0 6px 20px rgba(0,0,0,.25);pointer-events:none;display:flex;align-items:center;gap:7px;';
+    el.innerHTML = '<div class="rt-icon"><i class="ti ti-wifi-off"></i></div><div class="rt-text"><span class="rt-title">Sin conexion en tiempo real</span><span class="rt-sub"><i class="ti ti-loader-2 rt-spin"></i> Reconectando</span></div><div class="rt-bars"><span class="rt-bar"></span><span class="rt-bar"></span><span class="rt-bar"></span></div>';
     document.body.appendChild(el);
 }
 
