@@ -8,7 +8,7 @@
   'use strict';
   if (window.BayolSocialHub) return;
 
-  const VERSION = '20260919-igfix3';
+  const VERSION = '20260920-gen1';
   const state = {
     channel: 'whatsapp',
     mounted: false,
@@ -20,6 +20,7 @@
     realtime: null,
     refreshTimer: null,
     messageGeneration: 0,
+    threadsGeneration: 0,
     busySend: false
   };
 
@@ -293,6 +294,11 @@
     const client = sb();
     const list = $('#bcIgThreads');
     if (!list) return;
+    // Guarda de reentrancia (mismo patrón que loadMessages/messageGeneration):
+    // si dos loadInstagram() se solapan (ej. entrar al chat mientras Realtime
+    // dispara otro refresh), la llamada más vieja no debe pisar el estado
+    // después de que una más nueva ya haya empezado o terminado.
+    const gen = ++state.threadsGeneration;
     if (force && !state.threads.length) list.innerHTML = '<div class="bc-social-loading"><span class="bc-social-spin"></span>Cargando conversaciones…</div>';
     try {
       if(!client) throw new Error('No se pudo iniciar la conexión. Recarga el CRM.');
@@ -301,6 +307,7 @@
       if (ownBranch) q = q.eq('sucursal_id',ownBranch);
       const {data:accounts,error:aErr}=await instagramQuery(q);
       if (aErr) throw aErr;
+      if (gen !== state.threadsGeneration) return;
       state.account = (accounts || [])[0] || null;
       const name = $('#bcIgAccountName'), sub = $('#bcIgAccountSub'), status = $('#bcIgStatus');
       if (!state.account) {
@@ -316,6 +323,7 @@
       if(status){status.textContent='Conectado';status.removeAttribute('style');}
       const {data:threads,error:hErr}=await instagramQuery(client.from('instagram_hilos').select('*').eq('cuenta_id',state.account.id).eq('estado','abierto').order('ultimo_mensaje_at',{ascending:false,nullsFirst:false}).limit(300));
       if (hErr) throw hErr;
+      if (gen !== state.threadsGeneration) return;
       let visibles = threads || [];
       // Mismo candado que WhatsApp/Leads (ver CLAUDE.md): un empleado no-admin
       // solo ve lo que tiene asignado a él o lo que todavia no tiene dueño.
@@ -335,11 +343,12 @@
       renderThreads(); setupRealtime();
       if (state.selected && refreshSelected) await loadMessages(state.selected.id,false);
     } catch(e) {
+      if (gen !== state.threadsGeneration) return;
       console.error('CRM Social Instagram',e);
       if(list) list.innerHTML = `<div class="bc-ig-empty"><div><i class="ti ti-alert-circle"></i><b>No se pudo cargar Instagram</b><span>${esc(e.message || 'Error inesperado.')}</span><button type="button" class="btn btn-light" id="bcIgRetry">Reintentar</button></div></div>`;
       $('#bcIgRetry')?.addEventListener('click',()=>loadInstagram(true));
       const status=$('#bcIgStatus'); if(status) status.textContent='Sin conexión';
-    } finally { if(client) refreshKpis(); }
+    } finally { if(client && gen === state.threadsGeneration) refreshKpis(); }
   }
 
   function renderThreads(){
