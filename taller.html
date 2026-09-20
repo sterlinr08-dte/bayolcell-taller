@@ -3479,6 +3479,110 @@ body{
 
             <!-- REACONDICIONADOS - NUEVO FLUJO -->
             <div id="v-refurb" class="view">
+                <style>
+                /* ═══ REACONDICIONADOS — rediseño visual premium (20 sept 2026) ═══ */
+                #v-refurb { --rc-accent: #06b6d4; --rc-accent-dark: #0891b2; --rc-radius: 16px; --rc-shadow: 0 4px 24px rgba(6,182,212,.08), 0 1px 3px rgba(0,0,0,.04); --rc-shadow-hover: 0 8px 32px rgba(6,182,212,.13), 0 2px 6px rgba(0,0,0,.06); --rc-border: rgba(226,232,240,.7); }
+
+                /* ── Pestañas principales (glassmorphism) ── */
+                #v-refurb .reacond-module-nav { background:rgba(241,245,249,.85)!important; backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border-radius:14px!important; padding:4px!important; border:1px solid var(--rc-border); box-shadow:var(--rc-shadow)!important; animation:rcSlideDown .4s ease both; }
+                #v-refurb .reacond-main-tab { border-radius:10px!important; padding:10px 14px!important; font-size:12.5px!important; transition:all .22s cubic-bezier(.4,0,.2,1)!important; display:flex; align-items:center; gap:6px; }
+                #v-refurb .reacond-main-tab:not(.tab-active) { background:transparent!important; color:#64748b!important; }
+                #v-refurb .reacond-main-tab:not(.tab-active):hover { background:rgba(255,255,255,.6)!important; color:#334155!important; }
+                #v-refurb .reacond-main-tab.tab-active { background:#fff!important; color:var(--rc-accent-dark)!important; box-shadow:0 2px 8px rgba(6,182,212,.12), 0 1px 2px rgba(0,0,0,.04)!important; }
+
+                /* ── Card contenedores ── */
+                #v-refurb .reacond-overview-card, #v-refurb .reacond-detail-card { border-radius:var(--rc-radius)!important; border:1px solid var(--rc-border)!important; box-shadow:var(--rc-shadow)!important; transition:box-shadow .25s ease; animation:rcFadeUp .45s ease both; }
+                #v-refurb .reacond-overview-card:hover, #v-refurb .reacond-detail-card:hover { box-shadow:var(--rc-shadow-hover)!important; }
+                #v-refurb .reacond-overview-card h3, #v-refurb .reacond-detail-card h3 { font-weight:700; }
+
+                /* ── Buscador global ── */
+                #v-refurb #reacondBuscadorGlobal { border-radius:12px!important; border:1px solid var(--rc-border)!important; padding:11px 14px!important; font-size:13px!important; transition:border-color .2s, box-shadow .2s; }
+                #v-refurb #reacondBuscadorGlobal:focus { border-color:var(--rc-accent)!important; box-shadow:0 0 0 3px rgba(6,182,212,.1)!important; outline:none; }
+
+                /* ── Stage tabs (pipeline) ── */
+                #v-refurb .reacond-tabs-scroll { background:rgba(248,250,252,.9); border-radius:14px; border:1px solid var(--rc-border); padding:5px!important; gap:3px!important; animation:rcSlideDown .45s ease both; }
+                #v-refurb .reacond-tabs-scroll .tab-btn { border-radius:10px!important; padding:10px 13px!important; font-size:12.5px!important; border:1px solid transparent!important; transition:all .22s cubic-bezier(.4,0,.2,1)!important; box-shadow:none!important; }
+                #v-refurb .reacond-tabs-scroll .tab-btn:not(.active) { background:#f8fafc!important; }
+                #v-refurb .reacond-tabs-scroll .tab-btn:not(.active):hover { background:#e2e8f0!important; transform:translateY(-1px); }
+                #v-refurb .reacond-tabs-scroll .tab-btn .badge { border-radius:8px!important; font-weight:700!important; }
+                #v-refurb .reacond-tabs-scroll .reacond-stage-number { font-size:10px; font-weight:800; opacity:.5; margin-right:3px; }
+
+                /* ── KPI cards del detalle ── */
+                #v-refurb .reacond-detail-kpis { gap:12px!important; }
+                #v-refurb .reacond-kpi-card { border-radius:14px!important; padding:16px 12px!important; border:1px solid var(--rc-border)!important; box-shadow:var(--rc-shadow); position:relative; overflow:hidden; transition:all .25s cubic-bezier(.4,0,.2,1)!important; animation:rcFadeUp .5s ease both; }
+                #v-refurb .reacond-kpi-card:hover { transform:translateY(-3px); box-shadow:var(--rc-shadow-hover)!important; }
+                #v-refurb .reacond-kpi-card.is-filtered { border-color:var(--rc-accent-dark)!important; box-shadow:0 0 0 2px rgba(6,182,212,.2), var(--rc-shadow-hover)!important; }
+                #v-refurb .reacond-kpi-card::after { content:''; position:absolute; top:-20px; right:-20px; width:60px; height:60px; border-radius:50%; background:currentColor; opacity:.06; transition:transform .3s ease; pointer-events:none; }
+                #v-refurb .reacond-kpi-card:hover::after { transform:scale(1.4); }
+                #v-refurb #kpiCardPendiente { animation-delay:.05s; }
+                #v-refurb #kpiCardDiagnostico { animation-delay:.1s; }
+                #v-refurb #kpiCardProceso { animation-delay:.15s; }
+                #v-refurb #kpiCardCalidad { animation-delay:.2s; }
+                #v-refurb #kpiCardListoV { animation-delay:.25s; }
+                #v-refurb #kpiCardDespachado { animation-delay:.3s; }
+
+                /* ── Lote info panel ── */
+                #v-refurb #reacondLoteInfo { border-radius:12px!important; border:1px solid var(--rc-border); background:#f8fafc!important; }
+
+                /* ── Lote cards (JS-rendered) ── */
+                #v-refurb .reacond-lote-card { border-radius:14px!important; border:1px solid var(--rc-border)!important; box-shadow:var(--rc-shadow); transition:all .22s cubic-bezier(.4,0,.2,1)!important; animation:rcFadeUp .4s ease both; position:relative; overflow:hidden; }
+                #v-refurb .reacond-lote-card:hover { transform:translateY(-2px); box-shadow:var(--rc-shadow-hover)!important; border-color:rgba(6,182,212,.15)!important; }
+                #v-refurb .reacond-lote-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:4px; border-radius:14px 0 0 14px; background:linear-gradient(180deg,#06b6d4,#0891b2); opacity:0; transition:opacity .2s; }
+                #v-refurb .reacond-lote-card:hover::before { opacity:1; }
+                #v-refurb .reacond-lote-name { color:var(--rc-accent-dark)!important; font-size:15px!important; }
+                #v-refurb .reacond-lote-stages { gap:10px!important; }
+                #v-refurb .reacond-lote-stage { border-radius:10px!important; padding:8px!important; transition:transform .2s ease; }
+                #v-refurb .reacond-lote-stage:hover { transform:scale(1.04); }
+                #v-refurb .reacond-lote-progress { border-radius:6px!important; height:8px!important; overflow:hidden; position:relative; }
+                #v-refurb .reacond-lote-progress > div { position:relative; overflow:hidden; }
+                #v-refurb .reacond-lote-progress > div::after { content:''; position:absolute; top:0; left:-100%; width:100%; height:100%; background:linear-gradient(90deg, transparent, rgba(255,255,255,.4), transparent); animation:rcShimmer 2s ease-in-out infinite; }
+
+                /* ── Equipment cards (JS-rendered) ── */
+                #v-refurb .reacond-equipo-card { border-radius:12px!important; border:1px solid var(--rc-border)!important; box-shadow:0 1px 4px rgba(0,0,0,.03); transition:all .2s cubic-bezier(.4,0,.2,1)!important; animation:rcFadeUp .35s ease both; }
+                #v-refurb .reacond-equipo-card:hover { transform:translateY(-1px)!important; box-shadow:var(--rc-shadow)!important; border-color:rgba(6,182,212,.15)!important; background:#fff!important; }
+                #v-refurb .reacond-equipo-number { border-radius:8px!important; }
+
+                /* ── Buscador de equipos ── */
+                #v-refurb #reacondBusq { border-radius:12px!important; border:1px solid var(--rc-border)!important; transition:border-color .2s, box-shadow .2s; }
+                #v-refurb #reacondBusq:focus { border-color:var(--rc-accent)!important; box-shadow:0 0 0 3px rgba(6,182,212,.1)!important; outline:none; }
+                #v-refurb #reacondFiltroEstado { border-radius:12px!important; border:1px solid var(--rc-border)!important; transition:border-color .2s; }
+                #v-refurb #reacondFiltroEstado:focus { border-color:var(--rc-accent)!important; outline:none; }
+
+                /* ── Buttons premium ── */
+                #v-refurb .btn { border-radius:10px!important; transition:all .2s ease!important; }
+                #v-refurb .btn:hover { transform:translateY(-1px); }
+                #v-refurb .btn-blue, #v-refurb .btn-success { box-shadow:0 2px 8px rgba(0,0,0,.12); }
+
+                /* ── Technician filter chips ── */
+                #v-refurb #reacondTecnicosRow { gap:6px!important; }
+
+                /* ── Other content tabs ── */
+                #v-refurb #reacondMainContentCatalogo .card,
+                #v-refurb #reacondMainContentDevoluciones .card,
+                #v-refurb #reacondMainContentPiezas .card,
+                #v-refurb #reacondMainContentRentabilidad .card { border-radius:var(--rc-radius)!important; border:1px solid var(--rc-border)!important; box-shadow:var(--rc-shadow)!important; animation:rcFadeUp .45s ease both; }
+
+                /* ── Animations ── */
+                @keyframes rcFadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+                @keyframes rcSlideDown { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
+                @keyframes rcShimmer { 0% { left:-100%; } 100% { left:200%; } }
+
+                @media (prefers-reduced-motion: reduce) {
+                    #v-refurb .reacond-module-nav, #v-refurb .reacond-overview-card, #v-refurb .reacond-detail-card,
+                    #v-refurb .reacond-tabs-scroll, #v-refurb .reacond-kpi-card, #v-refurb .reacond-lote-card,
+                    #v-refurb .reacond-equipo-card, #v-refurb #reacondMainContentCatalogo .card,
+                    #v-refurb #reacondMainContentDevoluciones .card, #v-refurb #reacondMainContentPiezas .card,
+                    #v-refurb #reacondMainContentRentabilidad .card { animation:none!important; }
+                    #v-refurb .reacond-lote-progress > div::after { animation:none!important; }
+                }
+                @media (max-width:640px) {
+                    #v-refurb .reacond-module-nav { gap:3px!important; }
+                    #v-refurb .reacond-main-tab { padding:8px 10px!important; font-size:11.5px!important; }
+                    #v-refurb .reacond-detail-kpis { grid-template-columns:repeat(3, 1fr)!important; gap:8px!important; }
+                    #v-refurb .reacond-kpi-card { padding:10px 8px!important; }
+                    #v-refurb .reacond-lote-stages { grid-template-columns:repeat(3, 1fr)!important; }
+                }
+                </style>
                 <!-- PESTAÑAS EXTERNAS DEL MÓDULO -->
                 <div class="reacond-module-nav" style="background:#fff; border-radius:12px; padding:6px; margin-bottom:15px; display:flex; gap:4px; box-shadow:0 1px 3px rgba(0,0,0,0.05); flex-wrap:wrap;">
                     <button id="reacondMainTabLotes" onclick="cambiarMainTabReacond('lotes')" class="reacond-main-tab tab-active" style="flex:1; min-width:90px; padding:12px; border:0; background:var(--blue-btn); color:#fff; border-radius:8px; font-weight:700; cursor:pointer; font-size:13px;">
