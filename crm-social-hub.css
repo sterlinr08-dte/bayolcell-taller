@@ -251,9 +251,10 @@
   overflow:hidden!important;
 }
 #bcSocialInstagramPanel .bc-ig-chat{
+  display:flex!important;
+  flex-direction:column!important;
   height:100%!important;
   min-height:0!important;
-  overflow:hidden!important;
   position:relative!important;
 }
 #bcSocialInstagramPanel .bc-ig-messages{
@@ -269,8 +270,7 @@
   width:100%!important;
   min-height:56px;
   box-sizing:border-box!important;
-  position:sticky!important;
-  bottom:0!important;
+  position:relative!important;
   z-index:30!important;
   padding:9px 10px max(9px,env(safe-area-inset-bottom))!important;
   background:rgba(255,255,255,.96)!important;
@@ -289,15 +289,19 @@
 
 @media(max-width:720px){
   #v-crmLinea.bc-ig-chat-open #bcSocialInstagramPanel,
-  #v-crmLinea.bc-ig-chat-open #bcSocialInstagramPanel .bc-ig-shell,
-  #v-crmLinea.bc-ig-chat-open #bcSocialInstagramPanel .bc-ig-chat{
+  #v-crmLinea.bc-ig-chat-open #bcSocialInstagramPanel .bc-ig-shell{
     height:100%!important;
     min-height:0!important;
     overflow:hidden!important;
   }
+  #v-crmLinea.bc-ig-chat-open #bcSocialInstagramPanel .bc-ig-chat{
+    display:flex!important;
+    flex-direction:column!important;
+    height:100%!important;
+    min-height:0!important;
+  }
   #v-crmLinea.bc-ig-chat-open #bcSocialInstagramPanel .bc-ig-composer{
-    position:sticky!important;
-    bottom:0!important;
+    position:relative!important;
     min-height:58px;
     padding-bottom:max(10px,env(safe-area-inset-bottom))!important;
   }
