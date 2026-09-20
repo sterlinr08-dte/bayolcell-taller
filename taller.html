@@ -2289,6 +2289,53 @@ body{
                 #v-financiamientos .fv-filter-bar { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
                 #v-financiamientos .fv-toolbar { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
 
+                /* ── Config: section cards ── */
+                #v-financiamientos .fv-cfg-section { border:1px solid var(--fv-border); border-radius:var(--fv-radius); padding:20px; margin-bottom:14px; background:#fff; box-shadow:var(--fv-shadow); transition:box-shadow .25s ease; animation:fvFadeUp .45s ease both; position:relative; overflow:hidden; }
+                #v-financiamientos .fv-cfg-section:hover { box-shadow:var(--fv-shadow-hover); }
+                #v-financiamientos .fv-cfg-section::before { content:''; position:absolute; left:0; top:0; bottom:0; width:4px; border-radius:var(--fv-radius) 0 0 var(--fv-radius); background:var(--cfg-accent, var(--fv-accent)); }
+                #v-financiamientos .fv-cfg-head { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+                #v-financiamientos .fv-cfg-icon { width:38px; height:38px; border-radius:12px; display:flex; align-items:center; justify-content:center; flex:none; box-shadow:0 4px 12px rgba(0,0,0,.12); }
+                #v-financiamientos .fv-cfg-icon i { color:#fff; font-size:18px; }
+                #v-financiamientos .fv-cfg-head h3 { margin:0; font-size:15px; font-weight:700; }
+                #v-financiamientos .fv-cfg-head p { margin:2px 0 0; font-size:12px; color:var(--text-muted); }
+                #v-financiamientos .fv-cfg-section .form-row { margin-bottom:10px; }
+                #v-financiamientos .fv-cfg-section .form-row label { font-size:12px; font-weight:600; color:#475569; margin-bottom:3px; display:block; }
+                #v-financiamientos .fv-cfg-section input[type="text"],
+                #v-financiamientos .fv-cfg-section input[type="number"],
+                #v-financiamientos .fv-cfg-section textarea,
+                #v-financiamientos .fv-cfg-section select { border:1px solid var(--fv-border); border-radius:10px; padding:8px 12px; font-size:13px; width:100%; box-sizing:border-box; transition:border-color .2s, box-shadow .2s; background:#fff; }
+                #v-financiamientos .fv-cfg-section input:focus,
+                #v-financiamientos .fv-cfg-section textarea:focus,
+                #v-financiamientos .fv-cfg-section select:focus { border-color:var(--fv-accent); box-shadow:0 0 0 3px rgba(0,71,171,.1); outline:none; }
+                #v-financiamientos .fv-cfg-vars { background:#f8fafc; border:1px solid var(--fv-border); border-radius:10px; padding:10px 12px; font-size:11.5px; color:#475569; margin-bottom:10px; }
+                #v-financiamientos .fv-cfg-vars code { background:#fff; border:1px solid #e2e8f0; border-radius:6px; padding:2px 6px; margin:2px; display:inline-block; font-size:11px; }
+                #v-financiamientos .fv-cfg-save { text-align:right; margin-bottom:14px; }
+                #v-financiamientos .fv-cfg-save .btn { border-radius:12px; font-size:13px; font-weight:600; padding:10px 20px; background:linear-gradient(135deg,#0047AB,#1d6fdb); border:none; box-shadow:0 4px 14px rgba(0,71,171,.25); transition:all .2s; }
+                #v-financiamientos .fv-cfg-save .btn:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(0,71,171,.35); }
+                #v-financiamientos .fv-cfg-plan { display:flex; justify-content:space-between; align-items:center; gap:10px; border:1px solid var(--fv-border); border-radius:12px; padding:12px 14px; margin-bottom:8px; background:#fff; transition:all .2s; animation:fvFadeUp .35s ease both; }
+                #v-financiamientos .fv-cfg-plan:hover { box-shadow:var(--fv-shadow); border-color:rgba(0,71,171,.12); }
+                #v-financiamientos .fv-cfg-plan b { font-size:13px; }
+                #v-financiamientos .fv-cfg-newplan { border-top:1px dashed var(--fv-border); padding-top:14px; margin-top:4px; }
+
+                /* ── Consulta: premium form ── */
+                #v-financiamientos .fv-cq-card { border:1px solid var(--fv-border); border-radius:var(--fv-radius); padding:22px 20px; background:#fff; box-shadow:var(--fv-shadow); animation:fvFadeUp .45s ease both; position:relative; overflow:hidden; margin-bottom:14px; }
+                #v-financiamientos .fv-cq-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:4px; border-radius:var(--fv-radius) 0 0 var(--fv-radius); background:linear-gradient(180deg,#0891b2,#06b6d4); }
+                #v-financiamientos .fv-cq-head { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+                #v-financiamientos .fv-cq-head .fv-cq-icon { width:38px; height:38px; border-radius:12px; background:linear-gradient(135deg,#0891b2,#06b6d4); display:flex; align-items:center; justify-content:center; flex:none; box-shadow:0 4px 12px rgba(8,145,178,.25); }
+                #v-financiamientos .fv-cq-head .fv-cq-icon i { color:#fff; font-size:18px; }
+                #v-financiamientos .fv-cq-head h3 { margin:0; font-size:16px; font-weight:700; }
+                #v-financiamientos .fv-cq-sub { font-size:12px; color:var(--text-muted); margin:0 0 14px; padding-left:48px; }
+                #v-financiamientos .fv-cq-card .form-row { margin-bottom:10px; }
+                #v-financiamientos .fv-cq-card .form-row label { font-size:12px; font-weight:600; color:#475569; margin-bottom:3px; display:block; }
+                #v-financiamientos .fv-cq-card input[type="text"],
+                #v-financiamientos .fv-cq-card input[type="number"],
+                #v-financiamientos .fv-cq-card select { border:1px solid var(--fv-border); border-radius:10px; padding:8px 12px; font-size:13px; width:100%; box-sizing:border-box; transition:border-color .2s, box-shadow .2s; background:#fff; }
+                #v-financiamientos .fv-cq-card input:focus,
+                #v-financiamientos .fv-cq-card select:focus { border-color:#0891b2; box-shadow:0 0 0 3px rgba(8,145,178,.1); outline:none; }
+                #v-financiamientos .fv-cq-fin-box { background:linear-gradient(135deg,#ecfeff,#f0fdfa); border:1px solid #99f6e4; border-radius:12px; padding:10px 14px; font-size:13px; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+                #v-financiamientos .fv-cq-fin-box b { font-size:16px; color:#0891b2; }
+                #v-financiamientos .fv-cq-result .card { border-radius:var(--fv-radius); animation:fvFadeUp .4s ease both; }
+
                 /* ── Modal de pago: fondo suave ── */
                 #v-financiamientos .fv-modal-pago { backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }
 
@@ -2303,7 +2350,9 @@ body{
                 @media (prefers-reduced-motion: reduce) {
                     #v-financiamientos .fv-kpi, #v-financiamientos .fv-fin-card, #v-financiamientos .fv-dash-grid .card,
                     #v-financiamientos .fv-header, #v-financiamientos .fv-tabs, #v-financiamientos #finContenido,
-                    #v-financiamientos .fv-cobro-bar, #v-financiamientos .fv-detail-hero { animation:none!important; }
+                    #v-financiamientos .fv-cobro-bar, #v-financiamientos .fv-detail-hero,
+                    #v-financiamientos .fv-cfg-section, #v-financiamientos .fv-cfg-plan,
+                    #v-financiamientos .fv-cq-card, #v-financiamientos .fv-cq-result .card { animation:none!important; }
                     #v-financiamientos .fv-progress-fill::after { animation:none!important; }
                     #v-financiamientos .fv-alert.fv-alert-pulse i:first-child { animation:none!important; }
                 }
@@ -2322,6 +2371,10 @@ body{
                     #v-financiamientos .fv-mora-actions { width:100%; justify-content:flex-end; }
                     #v-financiamientos .fv-mdm-grid { grid-template-columns:1fr; }
                     #v-financiamientos .fv-cli-card { flex-direction:column; align-items:flex-start; }
+                    #v-financiamientos .fv-cfg-section { padding:14px; }
+                    #v-financiamientos .fv-cfg-plan { flex-wrap:wrap; }
+                    #v-financiamientos .fv-cq-card { padding:16px 14px; }
+                    #v-financiamientos .fv-cq-sub { padding-left:0; }
                 }
                 </style>
                 <div class="fv-header">
@@ -31687,31 +31740,37 @@ function _pintarReportes() {
     const atrasados = fins.filter(f => finEstado(f) === 'atrasado');
     const saldados = fins.filter(f => finEstado(f) === 'saldado').length;
     const morosidad = activos.length ? Math.round(atrasados.length / activos.length * 100) : 0;
-    const fila = (l, v) => `<tr><td>${l}</td><td style="text-align:right; font-weight:600;">${v}</td></tr>`;
+    const fila = (icon, l, v, color) => `<div style="display:flex; align-items:center; gap:10px; padding:10px 12px; border-bottom:1px solid #f1f5f9; transition:background .15s; border-radius:6px;" onmouseenter="this.style.background='#f8fafc'" onmouseleave="this.style.background=''"><i class="ti ${icon}" style="font-size:16px; color:${color || '#64748b'}; flex:none;"></i><span style="flex:1; font-size:13px;">${l}</span><b style="font-size:14px;">${v}</b></div>`;
     cont.innerHTML = `
-        <div class="card" style="margin-bottom:14px;">
-            <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-cash" style="color:#16a34a;"></i> Caja (cobrado)</h3>
+        <div class="card" style="margin-bottom:14px; animation:fvFadeUp .4s ease both;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+                <div style="width:38px; height:38px; border-radius:12px; background:linear-gradient(135deg,#16a34a,#22c55e); display:flex; align-items:center; justify-content:center; flex:none; box-shadow:0 4px 12px rgba(22,163,74,.25);"><i class="ti ti-cash" style="color:#fff; font-size:18px;"></i></div>
+                <h3 style="margin:0; font-size:16px; font-weight:700;">Caja (cobrado)</h3>
+            </div>
             <div class="fv-kpis" style="margin-bottom:0;">
                 <div class="fv-kpi" style="--kpi-color:#16a34a;"><small>Hoy</small><strong>${money(cobradoHoy)}</strong><i class="ti ti-calendar fv-kpi-icon"></i></div>
                 <div class="fv-kpi" style="--kpi-color:#0891b2;"><small>Esta semana</small><strong>${money(cobradoSemana)}</strong><i class="ti ti-calendar-week fv-kpi-icon"></i></div>
                 <div class="fv-kpi" style="--kpi-color:#7c3aed;"><small>Este mes</small><strong>${money(cobradoMes)}</strong><i class="ti ti-calendar-month fv-kpi-icon"></i></div>
             </div>
-            <div class="table-wrap" style="margin-top:8px;"><table><tbody>
-                ${fila('Efectivo (mes)', money(porMetodo.efectivo))}
-                ${fila('Transferencia (mes)', money(porMetodo.transferencia))}
-                ${fila('Tarjeta (mes)', money(porMetodo.tarjeta))}
-            </tbody></table></div>
+            <div style="margin-top:12px; border:1px solid #f1f5f9; border-radius:12px; overflow:hidden;">
+                ${fila('ti-coins', 'Efectivo (mes)', money(porMetodo.efectivo), '#16a34a')}
+                ${fila('ti-arrows-transfer-up', 'Transferencia (mes)', money(porMetodo.transferencia), '#0891b2')}
+                ${fila('ti-credit-card', 'Tarjeta (mes)', money(porMetodo.tarjeta), '#7c3aed')}
+            </div>
         </div>
-        <div class="card" style="margin-bottom:14px;">
-            <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-wallet" style="color:#0891b2;"></i> Cartera</h3>
-            <div class="table-wrap"><table><tbody>
-                ${fila('Financiamientos activos', activos.length)}
-                ${fila('Total financiado (histórico)', money(totalFinanciado))}
-                ${fila('Total cobrado (abonos)', money(totalCobrado))}
-                ${fila('Por cobrar (saldo activo)', money(porCobrar))}
-                ${fila('Saldados', saldados)}
-                ${fila('En atraso', `${atrasados.length} <span style="color:var(--fin-danger);">(${morosidad}% morosidad)</span>`)}
-            </tbody></table></div>
+        <div class="card" style="margin-bottom:14px; animation:fvFadeUp .45s ease both; animation-delay:.1s;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+                <div style="width:38px; height:38px; border-radius:12px; background:linear-gradient(135deg,#0891b2,#06b6d4); display:flex; align-items:center; justify-content:center; flex:none; box-shadow:0 4px 12px rgba(8,145,178,.25);"><i class="ti ti-wallet" style="color:#fff; font-size:18px;"></i></div>
+                <h3 style="margin:0; font-size:16px; font-weight:700;">Cartera</h3>
+            </div>
+            <div style="border:1px solid #f1f5f9; border-radius:12px; overflow:hidden;">
+                ${fila('ti-chart-bar', 'Financiamientos activos', activos.length, '#0891b2')}
+                ${fila('ti-cash', 'Total financiado (histórico)', money(totalFinanciado), '#7c3aed')}
+                ${fila('ti-checks', 'Total cobrado (abonos)', money(totalCobrado), '#16a34a')}
+                ${fila('ti-clock-dollar', 'Por cobrar (saldo activo)', money(porCobrar), '#f59e0b')}
+                ${fila('ti-circle-check', 'Saldados', saldados, '#16a34a')}
+                ${fila('ti-alert-triangle', 'En atraso', `${atrasados.length} <span style="color:var(--fin-danger); font-size:12px;">(${morosidad}% morosidad)</span>`, '#b91c1c')}
+            </div>
         </div>`;
 }
 
@@ -32040,41 +32099,53 @@ function _pintarConfigFin() {
     }
     const cfg = _finCache.config || {};
     cont.innerHTML = `
-        <div class="card" style="margin-bottom:14px;">
-            <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-gavel" style="color:#7c3aed;"></i> Datos del abogado / notario</h3>
+        <div class="fv-cfg-section" style="--cfg-accent:#7c3aed; animation-delay:.05s;">
+            <div class="fv-cfg-head">
+                <div class="fv-cfg-icon" style="background:linear-gradient(135deg,#7c3aed,#a78bfa);"><i class="ti ti-gavel"></i></div>
+                <div><h3>Datos del abogado / notario</h3><p>Aparecen en el contrato y la carta de saldo</p></div>
+            </div>
             <div class="form-row"><label>Nombre</label><input type="text" id="cfgAbgNombre" value="${escapeHtml(cfg.abogado_nombre || '')}"></div>
-            <div class="form-row"><label>Título</label><input type="text" id="cfgAbgTitulo" value="${escapeHtml(cfg.abogado_titulo || 'Abogado Notario Público')}"></div>
+            <div class="form-row"><label>Titulo</label><input type="text" id="cfgAbgTitulo" value="${escapeHtml(cfg.abogado_titulo || 'Abogado Notario Público')}"></div>
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                <div class="form-row" style="flex:1; min-width:130px;"><label>Matrícula / Colegiatura No.</label><input type="text" id="cfgAbgMatricula" value="${escapeHtml(cfg.abogado_matricula || '')}"></div>
+                <div class="form-row" style="flex:1; min-width:130px;"><label>Matricula / Colegiatura No.</label><input type="text" id="cfgAbgMatricula" value="${escapeHtml(cfg.abogado_matricula || '')}"></div>
                 <div class="form-row" style="flex:1; min-width:130px;"><label>Municipio</label><input type="text" id="cfgAbgMunicipio" value="${escapeHtml(cfg.abogado_municipio || '')}"></div>
             </div>
         </div>
 
-        <div class="card" style="margin-bottom:14px;">
-            <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-file-text" style="color:#0891b2;"></i> Redacción del contrato</h3>
-            <div class="form-row"><label>Título del contrato</label><input type="text" id="cfgContratoTitulo" value="${escapeHtml(cfg.contrato_titulo || FIN_CONTRATO_TITULO_DEF)}"></div>
-            <div class="form-row"><label>Cuerpo / cláusulas (una por línea)</label>
+        <div class="fv-cfg-section" style="--cfg-accent:#0891b2; animation-delay:.1s;">
+            <div class="fv-cfg-head">
+                <div class="fv-cfg-icon" style="background:linear-gradient(135deg,#0891b2,#06b6d4);"><i class="ti ti-file-text"></i></div>
+                <div><h3>Redaccion del contrato</h3><p>Texto y clausulas del documento legal</p></div>
+            </div>
+            <div class="form-row"><label>Titulo del contrato</label><input type="text" id="cfgContratoTitulo" value="${escapeHtml(cfg.contrato_titulo || FIN_CONTRATO_TITULO_DEF)}"></div>
+            <div class="form-row"><label>Cuerpo / clausulas (una por linea)</label>
                 <textarea id="cfgContratoCuerpo" rows="12" style="font-family:inherit; line-height:1.5;">${escapeHtml(cfg.contrato_cuerpo || FIN_CONTRATO_CUERPO_DEF)}</textarea>
             </div>
-            <div style="background:#f1f5f9; border-radius:8px; padding:8px 10px; font-size:11.5px; color:#475569; margin-bottom:8px;">
-                <b>Variables disponibles</b> (se rellenan solas al imprimir): ${FIN_CONTRATO_VARS.map(v => `<code style="background:#fff; border:1px solid #e2e8f0; border-radius:4px; padding:1px 4px; margin:1px; display:inline-block;">{{${v}}}</code>`).join(' ')}
+            <div class="fv-cfg-vars">
+                <b>Variables disponibles</b> (se rellenan solas al imprimir): ${FIN_CONTRATO_VARS.map(v => `<code>{{${v}}}</code>`).join(' ')}
             </div>
-            <button class="btn btn-light" onclick="_finRestaurarContrato()" style="font-size:12px;"><i class="ti ti-rotate"></i> Restaurar texto por defecto</button>
-            <div class="form-row" style="margin-top:10px;"><label>Cláusula adicional (se añade al final, opcional)</label><textarea id="cfgClausulas" rows="2">${escapeHtml(cfg.clausulas_extra || '')}</textarea></div>
+            <button class="btn btn-light" onclick="_finRestaurarContrato()" style="font-size:12px; border-radius:10px;"><i class="ti ti-rotate"></i> Restaurar texto por defecto</button>
+            <div class="form-row" style="margin-top:10px;"><label>Clausula adicional (se anade al final, opcional)</label><textarea id="cfgClausulas" rows="2">${escapeHtml(cfg.clausulas_extra || '')}</textarea></div>
         </div>
 
-        <div class="card" style="margin-bottom:14px;">
-            <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-award" style="color:#15803d;"></i> Carta de saldo (constancia de pago total)</h3>
-            <div class="form-row"><label>Título</label><input type="text" id="cfgCartaTitulo" value="${escapeHtml(cfg.carta_saldo_titulo || FIN_CARTA_TITULO_DEF)}"></div>
-            <div class="form-row"><label>Cuerpo (una idea por línea)</label><textarea id="cfgCartaCuerpo" rows="7" style="font-family:inherit; line-height:1.5;">${escapeHtml(cfg.carta_saldo_cuerpo || FIN_CARTA_CUERPO_DEF)}</textarea></div>
-            <div style="background:#f1f5f9; border-radius:8px; padding:8px 10px; font-size:11.5px; color:#475569; margin-bottom:8px;">
-                <b>Variables</b>: ${FIN_CARTA_VARS.map(v => `<code style="background:#fff; border:1px solid #e2e8f0; border-radius:4px; padding:1px 4px; margin:1px; display:inline-block;">{{${v}}}</code>`).join(' ')}
+        <div class="fv-cfg-section" style="--cfg-accent:#15803d; animation-delay:.15s;">
+            <div class="fv-cfg-head">
+                <div class="fv-cfg-icon" style="background:linear-gradient(135deg,#15803d,#22c55e);"><i class="ti ti-award"></i></div>
+                <div><h3>Carta de saldo</h3><p>Constancia de pago total para el cliente</p></div>
             </div>
-            <button class="btn btn-light" onclick="_finRestaurarCarta()" style="font-size:12px;"><i class="ti ti-rotate"></i> Restaurar texto por defecto</button>
+            <div class="form-row"><label>Titulo</label><input type="text" id="cfgCartaTitulo" value="${escapeHtml(cfg.carta_saldo_titulo || FIN_CARTA_TITULO_DEF)}"></div>
+            <div class="form-row"><label>Cuerpo (una idea por linea)</label><textarea id="cfgCartaCuerpo" rows="7" style="font-family:inherit; line-height:1.5;">${escapeHtml(cfg.carta_saldo_cuerpo || FIN_CARTA_CUERPO_DEF)}</textarea></div>
+            <div class="fv-cfg-vars">
+                <b>Variables</b>: ${FIN_CARTA_VARS.map(v => `<code>{{${v}}}</code>`).join(' ')}
+            </div>
+            <button class="btn btn-light" onclick="_finRestaurarCarta()" style="font-size:12px; border-radius:10px;"><i class="ti ti-rotate"></i> Restaurar texto por defecto</button>
         </div>
 
-        <div class="card" style="margin-bottom:14px;">
-            <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-adjustments" style="color:#16a34a;"></i> Otras opciones</h3>
+        <div class="fv-cfg-section" style="--cfg-accent:#16a34a; animation-delay:.2s;">
+            <div class="fv-cfg-head">
+                <div class="fv-cfg-icon" style="background:linear-gradient(135deg,#16a34a,#4ade80);"><i class="ti ti-adjustments"></i></div>
+                <div><h3>Otras opciones</h3><p>Mora, recibos y valores por defecto</p></div>
+            </div>
             <div class="form-row"><label>Pie del recibo de pago</label><input type="text" id="cfgReciboPie" value="${escapeHtml(cfg.recibo_pie || '')}" placeholder="Ej: Gracias por su pago"></div>
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
                 <div class="form-row" style="flex:1; min-width:140px;"><label>Mora por defecto</label><select id="cfgMoraTipoDef"><option value="ninguna" ${(cfg.mora_tipo_def || 'ninguna') === 'ninguna' ? 'selected' : ''}>Sin mora</option><option value="porcentaje" ${cfg.mora_tipo_def === 'porcentaje' ? 'selected' : ''}>% por cuota</option><option value="fijo" ${cfg.mora_tipo_def === 'fijo' ? 'selected' : ''}>Fijo por cuota</option></select></div>
@@ -32082,40 +32153,42 @@ function _pintarConfigFin() {
             </div>
         </div>
 
-        <div style="text-align:right; margin-bottom:14px;">
-            <button class="btn btn-blue" onclick="guardarConfigFin()"><i class="ti ti-device-floppy"></i> Guardar configuración</button>
+        <div class="fv-cfg-save">
+            <button class="btn btn-blue" onclick="guardarConfigFin()"><i class="ti ti-device-floppy"></i> Guardar configuracion</button>
         </div>
 
-        <div class="card" style="margin-bottom:14px;">
-            <h3 style="margin:0 0 4px; font-size:15px;"><i class="ti ti-bolt" style="color:#f59e0b;"></i> Planes Smart (tasa mixta)</h3>
-            <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px;">Planes con tasa que cambia en el tiempo. Se eligen en la solicitud y la consulta.</p>
+        <div class="fv-cfg-section" style="--cfg-accent:#f59e0b; animation-delay:.25s;">
+            <div class="fv-cfg-head">
+                <div class="fv-cfg-icon" style="background:linear-gradient(135deg,#f59e0b,#fbbf24);"><i class="ti ti-bolt"></i></div>
+                <div><h3>Planes Smart (tasa mixta)</h3><p>Planes con tasa que cambia en el tiempo</p></div>
+            </div>
             <div id="finPlanesLista" style="margin-bottom:12px;">${_planesListaHTML()}</div>
-            <div style="border-top:1px dashed #e2e8f0; padding-top:10px;">
-                <b style="font-size:13px;">Nuevo plan</b>
-                <div class="form-row" style="margin-top:6px;"><label>Nombre</label><input type="text" id="plNombre" placeholder="Ej: Mixto 8 meses (4x15% + 4x10%)"></div>
+            <div class="fv-cfg-newplan">
+                <div style="font-size:13px; font-weight:700; margin-bottom:8px;">Nuevo plan</div>
+                <div class="form-row"><label>Nombre</label><input type="text" id="plNombre" placeholder="Ej: Mixto 8 meses (4x15% + 4x10%)"></div>
                 <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                    <div class="form-row" style="flex:1; min-width:130px;"><label>Método</label><select id="plMetodo"><option value="saldo">Sobre saldo</option><option value="plano">Plano</option></select></div>
+                    <div class="form-row" style="flex:1; min-width:130px;"><label>Metodo</label><select id="plMetodo"><option value="saldo">Sobre saldo</option><option value="plano">Plano</option></select></div>
                     <div class="form-row" style="flex:1; min-width:90px;"><label># cuotas</label><input type="number" id="plNumCuotas" min="1" step="1" value="8"></div>
                     <div class="form-row" style="flex:1; min-width:120px;"><label>Frecuencia</label><select id="plFrec"><option value="semanal">Semanal</option><option value="quincenal">Quincenal</option><option value="mensual" selected>Mensual</option></select></div>
                 </div>
                 <div style="display:flex; gap:10px; flex-wrap:wrap;">
                     <div class="form-row" style="flex:1; min-width:120px;"><label>Tasa inicial %</label><input type="number" id="plTasa1" min="0" step="0.01" value="0"></div>
-                    <div class="form-row" style="flex:1; min-width:130px;"><label>Cuotas a tasa inicial</label><input type="number" id="plCuotasFase1" min="0" step="1" value="0" placeholder="0 = tasa única"></div>
+                    <div class="form-row" style="flex:1; min-width:130px;"><label>Cuotas a tasa inicial</label><input type="number" id="plCuotasFase1" min="0" step="1" value="0" placeholder="0 = tasa unica"></div>
                     <div class="form-row" style="flex:1; min-width:120px;"><label>Tasa 2 (resto) %</label><input type="number" id="plTasa2" min="0" step="0.01" value="0"></div>
                 </div>
-                <div style="text-align:right;"><button class="btn btn-blue" onclick="guardarPlanSmart()" style="font-size:12px;"><i class="ti ti-plus"></i> Agregar plan</button></div>
+                <div style="text-align:right;"><button class="btn btn-blue" onclick="guardarPlanSmart()" style="font-size:12px; border-radius:10px;"><i class="ti ti-plus"></i> Agregar plan</button></div>
             </div>
         </div>`;
 }
 function _planesListaHTML() {
     const planes = _finCache.planes || [];
     if(!planes.length) return `<div style="color:var(--text-muted); font-size:13px;">No hay planes creados.</div>`;
-    return planes.map(p => {
+    return planes.map((p, idx) => {
         const mixto = (p.cuotas_fase1 > 0 && Number(p.tasa2) >= 0 && p.cuotas_fase1 < p.num_cuotas);
         const desc = mixto ? `${p.tasa1}% las primeras ${p.cuotas_fase1}, luego ${p.tasa2}%` : `${p.tasa1}% por cuota`;
-        return `<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; border:1px solid #e2e8f0; border-radius:8px; padding:8px 10px; margin-bottom:6px;">
-            <div style="font-size:13px;"><b>${escapeHtml(p.nombre)}</b><br><span style="color:var(--text-muted); font-size:12px;">${p.num_cuotas} cuotas ${FIN_FREC_TXT[p.frecuencia] || p.frecuencia || ''} · ${p.metodo === 'saldo' ? 'Sobre saldo' : 'Plano'} · ${desc}</span></div>
-            <button class="btn btn-light" onclick="eliminarPlanSmart('${p.id}')" style="font-size:11px; color:#b91c1c;"><i class="ti ti-trash"></i></button>
+        return `<div class="fv-cfg-plan" style="animation-delay:${Math.min(idx * .04, .32)}s;">
+            <div><b>${escapeHtml(p.nombre)}</b><br><span style="color:var(--text-muted); font-size:12px;">${p.num_cuotas} cuotas ${FIN_FREC_TXT[p.frecuencia] || p.frecuencia || ''} · ${p.metodo === 'saldo' ? 'Sobre saldo' : 'Plano'} · ${desc}</span></div>
+            <button class="btn btn-light" onclick="eliminarPlanSmart('${p.id}')" style="font-size:11px; color:#b91c1c; border-radius:10px;"><i class="ti ti-trash"></i></button>
         </div>`;
     }).join('');
 }
@@ -33195,9 +33268,12 @@ function _pintarConsulta() {
     if(kpis) kpis.innerHTML = '';
     if(!cont) return;
     cont.innerHTML = `
-        <div class="card" style="margin-bottom:14px;">
-            <h3 style="margin:0 0 4px; font-size:15px;"><i class="ti ti-calculator" style="color:#0891b2;"></i> Consulta rápida de financiamiento</h3>
-            <p style="font-size:12px; color:var(--text-muted); margin:0 0 12px;">Estimado para el cliente. No guarda nada.</p>
+        <div class="fv-cq-card">
+            <div class="fv-cq-head">
+                <div class="fv-cq-icon"><i class="ti ti-calculator"></i></div>
+                <h3>Consulta rapida de financiamiento</h3>
+            </div>
+            <p class="fv-cq-sub">Estimado para el cliente. No guarda nada.</p>
             <div class="form-row"><label>Equipo / concepto (opcional)</label><input type="text" id="cqEquipo" placeholder="Ej: iPhone 11 64GB" oninput="_consultaCalcular()"></div>
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
                 <div class="form-row" style="flex:1; min-width:130px;"><label>Precio del equipo (RD$)</label><input type="number" id="cqPrecio" min="0" step="0.01" placeholder="0.00" oninput="_consultaCalcular()"></div>
@@ -33208,14 +33284,14 @@ function _pintarConsulta() {
                     </div>
                 </div>
             </div>
-            <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:8px 10px; font-size:13px; margin-bottom:12px;">Monto a financiar: <b id="cqFinanciadoPrev">RD$ 0.00</b> <span style="color:var(--text-muted);">(precio − inicial)</span></div>
-            <div class="form-row"><label>Plan Smart (opcional)</label><select id="cqPlan" onchange="_aplicarPlanConsulta()"><option value="">— Manual —</option>${_finPlanesOptions()}</select></div>
+            <div class="fv-cq-fin-box"><i class="ti ti-receipt" style="color:#0891b2; font-size:18px;"></i> Monto a financiar: <b id="cqFinanciadoPrev">RD$ 0.00</b> <span style="color:var(--text-muted); font-size:12px;">(precio - inicial)</span></div>
+            <div class="form-row"><label>Plan Smart (opcional)</label><select id="cqPlan" onchange="_aplicarPlanConsulta()"><option value="">-- Manual --</option>${_finPlanesOptions()}</select></div>
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
                 <div class="form-row" style="flex:1; min-width:110px;"><label>Tasa % por cuota</label><input type="number" id="cqTasa" min="0" step="0.01" value="0" oninput="_consultaCalcular()"></div>
-                <div class="form-row" style="flex:1; min-width:140px;"><label>Tipo de préstamo</label><select id="cqMetodo" onchange="_consultaCalcular()"><option value="plano">Plano (sobre el monto)</option><option value="saldo">Sobre saldo (francés)</option></select></div>
+                <div class="form-row" style="flex:1; min-width:140px;"><label>Tipo de prestamo</label><select id="cqMetodo" onchange="_consultaCalcular()"><option value="plano">Plano (sobre el monto)</option><option value="saldo">Sobre saldo (frances)</option></select></div>
             </div>
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                <div class="form-row" style="flex:1; min-width:150px;"><label>Tasa mixta: cuotas a tasa inicial</label><input type="number" id="cqCuotasFase1" min="0" step="1" value="0" oninput="_consultaCalcular()" placeholder="0 = tasa única"></div>
+                <div class="form-row" style="flex:1; min-width:150px;"><label>Tasa mixta: cuotas a tasa inicial</label><input type="number" id="cqCuotasFase1" min="0" step="1" value="0" oninput="_consultaCalcular()" placeholder="0 = tasa unica"></div>
                 <div class="form-row" style="flex:1; min-width:100px;"><label>Tasa 2 (resto) %</label><input type="number" id="cqTasa2" min="0" step="0.01" value="0" oninput="_consultaCalcular()"></div>
             </div>
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
@@ -33223,7 +33299,7 @@ function _pintarConsulta() {
                 <div class="form-row" style="flex:1; min-width:100px;"><label># de cuotas</label><input type="number" id="cqCuotas" min="1" step="1" value="6" oninput="_consultaCalcular()"></div>
             </div>
         </div>
-        <div id="cqResultado"></div>`;
+        <div id="cqResultado" class="fv-cq-result"></div>`;
     _consultaCalcular();
 }
 function _aplicarPlanConsulta() {
@@ -33268,15 +33344,18 @@ function _consultaCalcular() {
     cont.innerHTML = `
         <div class="fv-kpis" style="margin-bottom:14px;">
             ${kpi('Cuota', money(o.valor_cuota), '#16a34a')}
-            ${kpi('Interés total', money(interes), '#b45309')}
+            ${kpi('Interes total', money(interes), '#b45309')}
             ${kpi('Total a pagar', money(total), '#1d4ed8')}
         </div>
-        <div class="card" style="margin-bottom:14px;">
+        <div class="card" style="margin-bottom:14px; border-radius:var(--fv-radius); animation:fvFadeUp .4s ease both; animation-delay:.1s;">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-                <h3 style="margin:0; font-size:15px;"><i class="ti ti-table"></i> Tabla de amortización</h3>
-                <button class="btn btn-light" onclick="_consultaImprimir()" style="font-size:12px;"><i class="ti ti-printer"></i> Imprimir estimado</button>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:34px; height:34px; border-radius:10px; background:linear-gradient(135deg,#0047AB,#1d6fdb); display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,71,171,.2);"><i class="ti ti-table" style="color:#fff; font-size:16px;"></i></div>
+                    <h3 style="margin:0; font-size:15px; font-weight:700;">Tabla de amortizacion</h3>
+                </div>
+                <button class="btn btn-light" onclick="_consultaImprimir()" style="font-size:12px; border-radius:10px;"><i class="ti ti-printer"></i> Imprimir estimado</button>
             </div>
-            <div style="margin-top:10px;">${_finAmortizacionHTML(o)}</div>
+            <div style="margin-top:12px;">${_finAmortizacionHTML(o)}</div>
         </div>`;
 }
 function _consultaImprimir() {
