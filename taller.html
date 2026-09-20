@@ -2253,6 +2253,42 @@ body{
                 #v-financiamientos .fv-cuota-row { transition:all .15s ease; border-radius:8px; }
                 #v-financiamientos .fv-cuota-row:hover { background:#f8fafc; }
 
+                /* ── Mora: rows como tarjetas ── */
+                #v-financiamientos .fv-mora-row { display:flex; align-items:center; gap:12px; padding:14px 16px; border:1px solid var(--fv-border); border-radius:14px; margin-bottom:8px; background:#fff; transition:all .22s cubic-bezier(.4,0,.2,1); animation:fvFadeUp .4s ease both; position:relative; overflow:hidden; }
+                #v-financiamientos .fv-mora-row:hover { transform:translateY(-2px); box-shadow:var(--fv-shadow-hover); border-color:rgba(185,28,28,.15); }
+                #v-financiamientos .fv-mora-row::before { content:''; position:absolute; left:0; top:0; bottom:0; width:4px; border-radius:14px 0 0 14px; background:var(--mora-accent, var(--fin-warn)); }
+                #v-financiamientos .fv-mora-avatar { width:44px; height:44px; border-radius:12px; flex:none; display:flex; align-items:center; justify-content:center; font-size:20px; }
+                #v-financiamientos .fv-mora-info { flex:1; min-width:0; }
+                #v-financiamientos .fv-mora-badge { font-size:20px; font-weight:800; min-width:56px; text-align:center; line-height:1; }
+                #v-financiamientos .fv-mora-actions { display:flex; gap:5px; flex:none; }
+                #v-financiamientos .fv-mora-actions .btn { border-radius:10px; padding:7px 10px; font-size:12px; transition:all .2s; }
+                #v-financiamientos .fv-mora-actions .btn:hover { transform:translateY(-1px); }
+
+                /* ── MDM: cards premium ── */
+                #v-financiamientos .fv-mdm-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:12px; }
+                #v-financiamientos .fv-mdm-card { border:1px solid var(--fv-border); border-radius:var(--fv-radius); padding:16px; background:#fff; transition:all .22s cubic-bezier(.4,0,.2,1); animation:fvFadeUp .4s ease both; position:relative; overflow:hidden; }
+                #v-financiamientos .fv-mdm-card:hover { transform:translateY(-2px); box-shadow:var(--fv-shadow-hover); }
+                #v-financiamientos .fv-mdm-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:4px; border-radius:var(--fv-radius) 0 0 var(--fv-radius); background:var(--mdm-accent, var(--fin-ok)); }
+                #v-financiamientos .fv-mdm-icon { width:44px; height:44px; border-radius:12px; flex:none; display:flex; align-items:center; justify-content:center; transition:transform .3s ease; }
+                #v-financiamientos .fv-mdm-card:hover .fv-mdm-icon { transform:scale(1.08); }
+                #v-financiamientos .fv-mdm-meta { font-size:12px; color:var(--text-muted); margin-top:10px; display:flex; flex-wrap:wrap; gap:3px 14px; }
+                #v-financiamientos .fv-mdm-actions { display:flex; gap:6px; margin-top:12px; flex-wrap:wrap; }
+                #v-financiamientos .fv-mdm-actions .btn { border-radius:10px; font-size:12px; font-weight:600; transition:all .2s; }
+                #v-financiamientos .fv-mdm-actions .btn:hover { transform:translateY(-1px); }
+
+                /* ── Clientes: cards ── */
+                #v-financiamientos .fv-cli-card { border:1px solid var(--fv-border); border-radius:14px; padding:14px 16px; margin-bottom:9px; background:#fff; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; transition:all .22s cubic-bezier(.4,0,.2,1); animation:fvFadeUp .4s ease both; }
+                #v-financiamientos .fv-cli-card:hover { transform:translateY(-2px); box-shadow:var(--fv-shadow-hover); border-color:rgba(0,71,171,.12); }
+
+                /* ── Solicitudes: cards ── */
+                #v-financiamientos .fv-sol-card { border:1px solid var(--fv-border); border-radius:var(--fv-radius); padding:16px; margin-bottom:10px; background:#fff; transition:all .22s cubic-bezier(.4,0,.2,1); animation:fvFadeUp .4s ease both; position:relative; overflow:hidden; }
+                #v-financiamientos .fv-sol-card:hover { transform:translateY(-2px); box-shadow:var(--fv-shadow-hover); border-color:rgba(0,71,171,.12); }
+                #v-financiamientos .fv-sol-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:4px; border-radius:var(--fv-radius) 0 0 var(--fv-radius); background:var(--sol-accent, #b45309); }
+
+                /* ── Filter bar shared ── */
+                #v-financiamientos .fv-filter-bar { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+                #v-financiamientos .fv-toolbar { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+
                 /* ── Modal de pago: fondo suave ── */
                 #v-financiamientos .fv-modal-pago { backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }
 
@@ -2281,6 +2317,11 @@ body{
                     #v-financiamientos .fv-donut-wrap { flex-direction:column; }
                     #v-financiamientos .fv-tabs button { padding:7px 11px; font-size:11.5px; }
                     #v-financiamientos .fv-detail-hero .fv-detail-kpis { grid-template-columns:repeat(2, 1fr); }
+                    #v-financiamientos .fv-mora-row { flex-wrap:wrap; padding:12px; }
+                    #v-financiamientos .fv-mora-badge { font-size:17px; }
+                    #v-financiamientos .fv-mora-actions { width:100%; justify-content:flex-end; }
+                    #v-financiamientos .fv-mdm-grid { grid-template-columns:1fr; }
+                    #v-financiamientos .fv-cli-card { flex-direction:column; align-items:flex-start; }
                 }
                 </style>
                 <div class="fv-header">
@@ -30056,22 +30097,23 @@ function _pintarListaSol() {
         String(s.codigo || '').includes(q)
     );
     if(!lista.length) { cont.innerHTML = `<div style="color:var(--text-muted); font-size:13px; padding:8px 0;">No hay solicitudes en esta vista.</div>`; return; }
-    cont.innerHTML = lista.map(s => `<div style="border:1px solid #e2e8f0; border-radius:12px; padding:12px; margin-bottom:10px; background:#fff;">
+    const solAccent = { pendiente: '#b45309', aprobada: '#15803d', rechazada: '#b91c1c' };
+    cont.innerHTML = lista.map((s, idx) => `<div class="fv-sol-card" style="--sol-accent:${solAccent[s.estado] || '#b45309'}; animation-delay:${Math.min(idx * .04, .32)}s;">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap;">
             <div style="min-width:0; flex:1;">
-                <div style="font-weight:700; font-size:14px;">${escapeHtml(s.cliente_nombre || 'Sin cliente')} <span style="color:#475569; font-weight:600; font-size:12px;">#${s.codigo || '—'}</span></div>
+                <div style="font-weight:700; font-size:14px;">${escapeHtml(s.cliente_nombre || 'Sin cliente')} <span style="color:#64748b; font-weight:600; font-size:12px;">#${s.codigo || '—'}</span></div>
                 <div style="font-size:12.5px; color:var(--text-muted);">${escapeHtml(s.concepto || '')}</div>
             </div>
             ${solBadge(s.estado)}
         </div>
-        <div style="display:flex; gap:14px; flex-wrap:wrap; margin-top:8px; font-size:12px;">
-            <span><b>Total:</b> ${money(s.monto_total)}</span>
-            <span><b>Inicial:</b> ${money(s.inicial)}</span>
-            <span><b>Cuota:</b> ${money(s.valor_cuota)} · ${FIN_FREC_TXT[s.frecuencia] || s.frecuencia} x${s.num_cuotas}</span>
+        <div style="display:flex; gap:14px; flex-wrap:wrap; margin-top:10px; font-size:12.5px;">
+            <span style="background:#f8fafc; padding:3px 10px; border-radius:8px;"><b>Total:</b> ${money(s.monto_total)}</span>
+            <span style="background:#f8fafc; padding:3px 10px; border-radius:8px;"><b>Inicial:</b> ${money(s.inicial)}</span>
+            <span style="background:#f8fafc; padding:3px 10px; border-radius:8px;"><b>Cuota:</b> ${money(s.valor_cuota)} · ${FIN_FREC_TXT[s.frecuencia] || s.frecuencia} x${s.num_cuotas}</span>
         </div>
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
-            <small style="color:var(--text-muted);">${s.creado_en ? new Date(s.creado_en).toLocaleDateString('es-DO') : ''}</small>
-            <button class="btn btn-blue" onclick="verSolicitud('${s.id}')" style="font-size:12px;"><i class="ti ti-eye"></i> Ver solicitud</button>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
+            <small style="color:var(--text-muted);"><i class="ti ti-calendar" style="font-size:13px;"></i> ${s.creado_en ? new Date(s.creado_en).toLocaleDateString('es-DO') : ''}</small>
+            <button class="btn btn-blue" onclick="verSolicitud('${s.id}')" style="font-size:12px; border-radius:10px; background:linear-gradient(135deg,#0047AB,#1d6fdb); border:none; box-shadow:0 2px 8px rgba(0,71,171,.2);"><i class="ti ti-eye"></i> Ver solicitud</button>
         </div>
     </div>`).join('');
 }
@@ -31118,9 +31160,9 @@ function _pintarClientes() {
     }
     const puedeCrearCli = isAdminUser() || tienePermiso('financiamientos_crear');
     let html = `<div class="card" style="margin-bottom:14px;">
-        <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap;">
-            <input id="cliBuscador" oninput="_cliBusqueda=this.value; _pintarListaCli()" value="${escapeHtml(_cliBusqueda)}" placeholder="Buscar por nombre, cédula o teléfono..." style="flex:1; min-width:180px; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
-            ${puedeCrearCli ? `<button class="btn btn-blue" onclick="nuevoClienteFin()" style="font-size:13px; white-space:nowrap;"><i class="ti ti-user-plus"></i> Nuevo cliente</button>` : ''}
+        <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap;">
+            <div style="position:relative; flex:1; min-width:180px;"><i class="ti ti-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:16px;"></i><input id="cliBuscador" oninput="_cliBusqueda=this.value; _pintarListaCli()" value="${escapeHtml(_cliBusqueda)}" placeholder="Buscar por nombre, cédula o teléfono..." style="width:100%; padding:10px 12px 10px 38px; border:1px solid var(--fv-border,#cbd5e1); border-radius:12px; font-size:13px; transition:border-color .2s, box-shadow .2s; outline:none;" onfocus="this.style.borderColor='var(--fv-accent,#0047AB)'; this.style.boxShadow='0 0 0 3px rgba(0,71,171,.08)';" onblur="this.style.borderColor=''; this.style.boxShadow='';"></div>
+            ${puedeCrearCli ? `<button class="btn btn-blue" onclick="nuevoClienteFin()" style="font-size:13px; white-space:nowrap; border-radius:10px; background:linear-gradient(135deg,#0047AB,#1d6fdb); border:none; box-shadow:0 2px 8px rgba(0,71,171,.2);"><i class="ti ti-user-plus"></i> Nuevo cliente</button>` : ''}
         </div>
         <div id="cliLista"></div>
     </div>`;
@@ -31134,17 +31176,22 @@ function _pintarListaCli() {
     const q = (_cliBusqueda || '').trim().toLowerCase();
     if(q) lista = lista.filter(c => `${c.nombre || ''} ${c.apellido || ''}`.toLowerCase().includes(q) || (c.cedula || '').toLowerCase().includes(q) || (c.telefono || '').toLowerCase().includes(q));
     if(!lista.length) { cont.innerHTML = `<div style="color:var(--text-muted); font-size:13px;">No hay clientes registrados.</div>`; return; }
-    cont.innerHTML = lista.map(c => {
+    cont.innerHTML = lista.map((c, idx) => {
         const fins = finFinanciamientosDeCliente(c.id);
         const saldo = fins.reduce((s, f) => s + finSaldo(f), 0);
         const activos = fins.filter(f => ['activo', 'atrasado'].includes(finEstado(f))).length;
-        return `<div style="border:1px solid #e2e8f0; border-radius:12px; padding:12px; margin-bottom:10px; background:#fff; display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
-            <div style="min-width:0;">
-                <div style="font-weight:700; font-size:14px;">${escapeHtml(`${c.nombre || ''} ${c.apellido || ''}`.trim())}</div>
-                <div style="font-size:12px; color:var(--text-muted);">${c.cedula ? escapeHtml(c.cedula) + ' · ' : ''}${c.telefono ? '<i class="ti ti-phone"></i> ' + escapeHtml(c.telefono) : ''}</div>
-                <div style="font-size:12px; color:var(--text-muted);">${fins.length} financiamiento(s)${activos ? ' · ' + activos + ' activo(s)' : ''}${saldo > 0 ? ' · Saldo ' + money(saldo) : ''}</div>
+        const atrasado = fins.some(f => finEstado(f) === 'atrasado');
+        const inicial = (c.nombre || '?').charAt(0).toUpperCase();
+        return `<div class="fv-cli-card" style="animation-delay:${Math.min(idx * .03, .3)}s;">
+            <div style="display:flex; gap:12px; align-items:center; min-width:0; flex:1;">
+                <div style="width:42px; height:42px; border-radius:50%; background:linear-gradient(135deg,${atrasado ? '#dc2626,#ef4444' : '#0891b2,#06b6d4'}); color:#fff; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:800; flex:none;">${escapeHtml(inicial)}</div>
+                <div style="min-width:0;">
+                    <div style="font-weight:700; font-size:14px;">${escapeHtml(`${c.nombre || ''} ${c.apellido || ''}`.trim())} ${atrasado ? '<span class="fin-badge danger" style="font-size:10px; vertical-align:middle;">Mora</span>' : (activos ? '<span class="fin-badge ok" style="font-size:10px; vertical-align:middle;">Activo</span>' : '')}</div>
+                    <div style="font-size:12px; color:var(--text-muted);">${c.cedula ? escapeHtml(c.cedula) + ' · ' : ''}${c.telefono ? '<i class="ti ti-phone"></i> ' + escapeHtml(c.telefono) : ''}</div>
+                    <div style="font-size:12px; color:var(--text-muted);">${fins.length} financiamiento(s)${activos ? ' · ' + activos + ' activo(s)' : ''}${saldo > 0 ? ' · <b style="color:var(--fin-ink);">' + money(saldo) + '</b>' : ''}</div>
+                </div>
             </div>
-            <button class="btn btn-blue" onclick="verFinCliente('${c.id}')" style="font-size:12px;"><i class="ti ti-id"></i> Ficha</button>
+            <button class="btn btn-blue" onclick="verFinCliente('${c.id}')" style="font-size:12px; border-radius:10px; background:linear-gradient(135deg,#0047AB,#1d6fdb); border:none; box-shadow:0 2px 8px rgba(0,71,171,.2);"><i class="ti ti-id"></i> Ficha</button>
         </div>`;
     }).join('');
 }
@@ -31311,9 +31358,9 @@ function _pintarCobros() {
     const filtros = { atrasados: 'Atrasados', hoy: 'Vencen hoy', semana: '7 días', mes: '30 días' };
     const nRecoCobros = finRecordatoriosHoy().filter(x => !x.enviado).length;
     let html = `<div class="card" style="margin-bottom:14px;">
-        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; align-items:center;">
+        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; align-items:center;">
             ${Object.keys(filtros).map(k => `<button class="fin-chip${_cobrosFiltro === k ? (k === 'atrasados' ? ' on-danger' : ' on') : ''}" onclick="_cobrosFiltro='${k}'; _pintarCobros()">${filtros[k]}</button>`).join('')}
-            <button class="btn btn-light" onclick="abrirRecordatoriosHoy()" style="font-size:12px; color:var(--fin-info); border-color:var(--fin-info-brd); margin-left:auto;"><i class="ti ti-brand-whatsapp"></i> Recordatorios de hoy${nRecoCobros > 0 ? ` (${nRecoCobros})` : ''}</button>
+            <button class="btn btn-light" onclick="abrirRecordatoriosHoy()" style="font-size:12px; color:var(--fin-info); border-color:var(--fin-info-brd); margin-left:auto; border-radius:10px;"><i class="ti ti-brand-whatsapp"></i> Recordatorios${nRecoCobros > 0 ? ` <span style="background:var(--fin-danger); color:#fff; font-size:10px; font-weight:700; padding:1px 6px; border-radius:8px; margin-left:4px;">${nRecoCobros}</span>` : ''}</button>
         </div>
         <div id="cobrosLista"></div>
     </div>`;
@@ -31324,18 +31371,23 @@ function _pintarCobros() {
     else if(_cobrosFiltro === 'semana') lista = todas.filter(x => x.dias >= -7);
     else lista = todas.filter(x => x.dias >= -30);
     const cont2 = document.getElementById('cobrosLista');
-    if(!lista.length) { cont2.innerHTML = `<div style="color:var(--text-muted); font-size:13px;">Nada por cobrar en esta vista.</div>`; return; }
-    cont2.innerHTML = lista.map(x => {
-        const etiqueta = x.dias > 0 ? `<span style="color:var(--fin-danger); font-weight:700;">${x.dias} día(s) de atraso</span>` : (x.dias === 0 ? `<span style="color:var(--fin-warn); font-weight:700;">Vence hoy</span>` : `<span style="color:var(--fin-muted);">Faltan ${Math.abs(x.dias)} día(s)</span>`);
-        return `<div style="border:1px solid var(--border-color); border-radius:10px; padding:10px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
-            <div style="min-width:0;">
-                <div style="font-weight:700; font-size:13px;">${escapeHtml(x.f.cliente_nombre || '')} <span style="color:var(--fin-muted);">#${x.f.codigo}</span></div>
-                <div style="font-size:12px; color:var(--text-muted);">${escapeHtml(x.f.concepto || '')} · Cuota ${x.cuota.num}/${x.f.num_cuotas} · Vence ${_finFmtFecha(x.cuota.vence)}</div>
-                <div style="font-size:12px;">${etiqueta} · Pendiente: <b>${money(x.cuota.pendiente)}</b></div>
-            </div>
-            <div style="display:flex; gap:5px;">
-                ${x.f.cliente_telefono ? `<button class="btn btn-light" onclick="whatsappRecordatorioFin('${x.f.id}')" style="font-size:12px; color:var(--fin-ok);" title="WhatsApp"><i class="ti ti-brand-whatsapp"></i></button>` : ''}
-                <button class="btn btn-blue" onclick="verFinanciamiento('${x.f.id}')" style="font-size:12px;"><i class="ti ti-cash"></i> Cobrar</button>
+    if(!lista.length) { cont2.innerHTML = `<div style="color:var(--text-muted); font-size:13px; padding:12px 0;">Nada por cobrar en esta vista.</div>`; return; }
+    cont2.innerHTML = lista.map((x, idx) => {
+        const esAtraso = x.dias > 0;
+        const esHoy = x.dias === 0;
+        const etiqueta = esAtraso ? `<span style="color:#fff; font-weight:700; font-size:11px; background:var(--fin-danger); padding:2px 8px; border-radius:6px;">${x.dias} día(s) de atraso</span>` : (esHoy ? `<span style="color:#fff; font-weight:700; font-size:11px; background:var(--fin-warn); padding:2px 8px; border-radius:6px;">Vence hoy</span>` : `<span style="color:var(--fin-muted); font-size:12px;">Faltan ${Math.abs(x.dias)} día(s)</span>`);
+        const borderLeft = esAtraso ? 'var(--fin-danger)' : esHoy ? 'var(--fin-warn)' : 'transparent';
+        return `<div class="fv-fin-card" style="--card-accent:${borderLeft}; animation-delay:${Math.min(idx * .03, .3)}s; cursor:default; padding:14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+                <div style="min-width:0; flex:1;">
+                    <div style="font-weight:700; font-size:13.5px; display:flex; align-items:center; gap:6px;"><i class="ti ti-user" style="color:#94a3b8; font-size:14px;"></i> ${escapeHtml(x.f.cliente_nombre || '')} <span style="color:#94a3b8; font-size:11px;">#${x.f.codigo}</span></div>
+                    <div style="font-size:12px; color:var(--text-muted); margin-top:3px;"><i class="ti ti-device-mobile" style="font-size:12px;"></i> ${escapeHtml(x.f.concepto || '')} · Cuota ${x.cuota.num}/${x.f.num_cuotas} · Vence ${_finFmtFecha(x.cuota.vence)}</div>
+                    <div style="display:flex; align-items:center; gap:8px; margin-top:5px;">${etiqueta} <span style="font-size:13px; font-weight:700;">Pendiente: ${money(x.cuota.pendiente)}</span></div>
+                </div>
+                <div style="display:flex; gap:6px;">
+                    ${x.f.cliente_telefono ? `<button class="btn btn-light" onclick="whatsappRecordatorioFin('${x.f.id}')" style="font-size:12px; color:var(--fin-ok); border-radius:10px; padding:8px 10px;" title="WhatsApp"><i class="ti ti-brand-whatsapp"></i></button>` : ''}
+                    <button class="btn btn-blue" onclick="verFinanciamiento('${x.f.id}')" style="font-size:12px; border-radius:10px; padding:8px 14px; background:linear-gradient(135deg,#0047AB,#1d6fdb); border:none; box-shadow:0 3px 10px rgba(0,71,171,.25);"><i class="ti ti-cash"></i> Cobrar</button>
+                </div>
             </div>
         </div>`;
     }).join('');
@@ -31367,30 +31419,37 @@ function _pintarMora() {
     const enRango = x => _moraFiltro === 'todos' || (_moraFiltro === '1-15' && x.dias <= 15) || (_moraFiltro === '16-30' && x.dias > 15 && x.dias <= 30) || (_moraFiltro === '31-60' && x.dias > 30 && x.dias <= 60) || (_moraFiltro === '+60' && x.dias > 60);
     const lista = atrasados.filter(enRango);
     let html = `<div class="card">
-        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px;">
+        <div class="fv-filter-bar">
             ${Object.keys(rangos).map(k => `<button class="fin-chip${_moraFiltro === k ? ' on-danger' : ''}" onclick="_moraFiltro='${k}'; _pintarMora()">${rangos[k]}</button>`).join('')}
         </div>`;
     if(!lista.length) { html += `<div style="color:var(--text-muted); font-size:13px;">Sin clientes en mora en este rango.</div></div>`; cont.innerHTML = html; return; }
-    html += `<div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Contrato</th><th style="text-align:right;">Días</th><th style="text-align:right;">Cuotas venc.</th><th style="text-align:right;">Pendiente</th><th>Acciones</th></tr></thead><tbody>`;
-    html += lista.map(x => {
+    html += lista.map((x, idx) => {
         const f = x.f;
-        const colorD = x.dias > 30 ? 'var(--fin-danger)' : 'var(--fin-warn)';
+        const sevColor = x.dias > 60 ? '#b91c1c' : (x.dias > 30 ? '#dc2626' : '#f59e0b');
+        const sevBg = x.dias > 60 ? '#fef2f2' : (x.dias > 30 ? '#fff5f5' : '#fffbeb');
         const puedeBloq = (isAdminUser() || tienePermiso('financiamientos_aprobar')) && f.mdm_enrolado && f.mdm_estado !== 'bloqueado';
-        return `<tr>
-            <td><b>${escapeHtml(f.cliente_nombre || '')}</b></td>
-            <td>#${f.codigo}</td>
-            <td style="text-align:right; color:${colorD}; font-weight:700;">${x.dias}</td>
-            <td style="text-align:right;">${x.cuotas}</td>
-            <td style="text-align:right; font-weight:600;">${money(x.pend)}</td>
-            <td style="white-space:nowrap;">
-                ${f.cliente_telefono ? `<button class="btn btn-light" onclick="whatsappRecordatorioFin('${f.id}')" style="font-size:11px; padding:3px 7px; color:var(--fin-ok);" title="WhatsApp"><i class="ti ti-brand-whatsapp"></i></button>
-                <a class="btn btn-light" href="tel:${escapeHtml(f.cliente_telefono)}" style="font-size:11px; padding:3px 7px; color:var(--fin-info);" title="Llamar"><i class="ti ti-phone"></i></a>` : ''}
-                ${puedeBloq ? `<button class="btn btn-light" onclick="mdmAccionReal('${f.id}','bloquear')" style="font-size:11px; padding:3px 7px; color:var(--fin-danger);" title="Bloquear equipo"><i class="ti ti-lock"></i></button>` : ''}
-                <button class="btn btn-blue" onclick="verFinanciamiento('${f.id}')" style="font-size:11px; padding:3px 7px;" title="Cobrar/Ver"><i class="ti ti-cash"></i></button>
-            </td>
-        </tr>`;
+        const inicial = (f.cliente_nombre || '?').charAt(0).toUpperCase();
+        return `<div class="fv-mora-row" style="--mora-accent:${sevColor}; animation-delay:${Math.min(idx * .04, .32)}s;">
+            <div class="fv-mora-avatar" style="background:${sevBg}; color:${sevColor};">
+                <i class="ti ${x.dias > 30 ? 'ti-alert-triangle' : 'ti-clock'}"></i>
+            </div>
+            <div class="fv-mora-info">
+                <div style="font-weight:700; font-size:14px;">${escapeHtml(f.cliente_nombre || '')} <span style="color:#64748b; font-weight:600; font-size:12px;">#${f.codigo}</span></div>
+                <div style="font-size:12px; color:var(--text-muted); display:flex; gap:10px; flex-wrap:wrap; margin-top:2px;">
+                    <span>${x.cuotas} cuota${x.cuotas === 1 ? '' : 's'} vencida${x.cuotas === 1 ? '' : 's'}</span>
+                    <span style="font-weight:700;">${money(x.pend)}</span>
+                </div>
+            </div>
+            <div class="fv-mora-badge" style="color:${sevColor};">${x.dias}<small style="font-size:10px; font-weight:600; display:block; color:#64748b;">días</small></div>
+            <div class="fv-mora-actions">
+                ${f.cliente_telefono ? `<button class="btn btn-light" onclick="whatsappRecordatorioFin('${f.id}')" title="WhatsApp" style="color:var(--fin-ok);"><i class="ti ti-brand-whatsapp"></i></button>
+                <a class="btn btn-light" href="tel:${escapeHtml(f.cliente_telefono)}" title="Llamar" style="color:var(--fin-info);"><i class="ti ti-phone"></i></a>` : ''}
+                ${puedeBloq ? `<button class="btn btn-light" onclick="mdmAccionReal('${f.id}','bloquear')" title="Bloquear equipo" style="color:var(--fin-danger);"><i class="ti ti-lock"></i></button>` : ''}
+                <button class="btn btn-blue" onclick="verFinanciamiento('${f.id}')" title="Cobrar/Ver" style="background:linear-gradient(135deg,#0047AB,#1d6fdb); border:none; box-shadow:0 2px 8px rgba(0,71,171,.2);"><i class="ti ti-cash"></i></button>
+            </div>
+        </div>`;
     }).join('');
-    html += `</tbody></table></div></div>`;
+    html += `</div>`;
     cont.innerHTML = html;
 }
 
@@ -31413,45 +31472,46 @@ function _pintarMDMTab() {
     const filtros = { todos: 'Todos', activo: 'Activos', bloqueado: 'Bloqueados', liberado: 'Liberados', ninguno: 'Sin MDM' };
     const lista = fins.filter(f => _mdmFiltro === 'todos' || (f.mdm_estado || 'ninguno') === _mdmFiltro);
     let html = `<div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
-            <div style="display:flex; gap:6px; flex-wrap:wrap;">${Object.keys(filtros).map(k => `<button class="fin-chip${_mdmFiltro === k ? (k === 'bloqueado' ? ' on-danger' : ' on') : ''}" onclick="_mdmFiltro='${k}'; _pintarMDMTab()">${filtros[k]}</button>`).join('')}</div>
+        <div class="fv-toolbar">
+            <div class="fv-filter-bar" style="margin-bottom:0;">${Object.keys(filtros).map(k => `<button class="fin-chip${_mdmFiltro === k ? (k === 'bloqueado' ? ' on-danger' : ' on') : ''}" onclick="_mdmFiltro='${k}'; _pintarMDMTab()">${filtros[k]}</button>`).join('')}</div>
             <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                ${puedeMDM ? `<button class="btn btn-light" onclick="abrirEquiposDisponibles()" style="font-size:12px; color:var(--fin-ok); border-color:var(--fin-ok-brd);"><i class="ti ti-device-mobile-check"></i> Equipos disponibles</button>` : ''}
-                ${puedeMDM ? `<button class="btn btn-light" onclick="abrirQrEnrolarAndroid()" style="font-size:12px; color:var(--fin-info); border-color:var(--fin-info-brd);"><i class="ti ti-qrcode"></i> QR enrolar Android</button>` : ''}
-                ${puedeMDM ? `<button class="btn btn-light" onclick="abrirAuditoriaSeguridadMdm()" style="font-size:12px; color:var(--fin-danger); border-color:var(--fin-danger-brd);"><i class="ti ti-shield-exclamation"></i> Seguridad MDM</button>` : ''}
-                ${puedeMDM && finListosParaBloqueo().length ? `<button class="btn btn-danger" onclick="abrirListosBloqueo()" style="font-size:12px;"><i class="ti ti-lock"></i> Listos para bloquear (${finListosParaBloqueo().length})</button>` : ''}
-                <button class="btn btn-light" onclick="renderFinanciamientos()" style="font-size:12px;"><i class="ti ti-refresh"></i> Sincronizar</button>
+                ${puedeMDM ? `<button class="btn btn-light" onclick="abrirEquiposDisponibles()" style="font-size:12px; color:var(--fin-ok); border-radius:10px;"><i class="ti ti-device-mobile-check"></i> Equipos disponibles</button>` : ''}
+                ${puedeMDM ? `<button class="btn btn-light" onclick="abrirQrEnrolarAndroid()" style="font-size:12px; color:var(--fin-info); border-radius:10px;"><i class="ti ti-qrcode"></i> QR enrolar Android</button>` : ''}
+                ${puedeMDM ? `<button class="btn btn-light" onclick="abrirAuditoriaSeguridadMdm()" style="font-size:12px; color:var(--fin-danger); border-radius:10px;"><i class="ti ti-shield-exclamation"></i> Seguridad MDM</button>` : ''}
+                ${puedeMDM && finListosParaBloqueo().length ? `<button class="btn btn-danger" onclick="abrirListosBloqueo()" style="font-size:12px; border-radius:10px;"><i class="ti ti-lock"></i> Listos para bloquear (${finListosParaBloqueo().length})</button>` : ''}
+                <button class="btn btn-light" onclick="renderFinanciamientos()" style="font-size:12px; border-radius:10px;"><i class="ti ti-refresh"></i> Sincronizar</button>
             </div>
         </div>`;
     if(!lista.length) { html += `<div style="color:var(--text-muted); font-size:13px;">No hay equipos en esta vista.</div></div>`; cont.innerHTML = html; return; }
-    html += `<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:10px;">`;
-    html += lista.map(f => {
+    html += `<div class="fv-mdm-grid">`;
+    html += lista.map((f, idx) => {
         const est = f.mdm_estado || 'ninguno';
         const ei = { ninguno: ['Sin MDM', 'muted'], activo: ['Activo', 'ok'], bloqueado: ['Bloqueado', 'danger'], liberado: ['Liberado', 'info'] }[est] || ['?', 'muted'];
         const bloqueado = est === 'bloqueado';
+        const mdmAccent = bloqueado ? 'var(--fin-danger)' : (f.mdm_enrolado ? 'var(--fin-ok)' : '#94a3b8');
         const iconoBg = bloqueado ? 'var(--fin-danger-bg)' : (f.mdm_enrolado ? 'var(--fin-ok-bg)' : '#f1f5f9');
         const iconoCol = bloqueado ? 'var(--fin-danger)' : (f.mdm_enrolado ? 'var(--fin-ok)' : 'var(--fin-muted)');
         const serial = f.mdm_serial || f.equipo_imei || '—';
-        return `<div style="border:1px solid var(--border-color); border-radius:13px; padding:13px; background:#fff;">
+        return `<div class="fv-mdm-card" style="--mdm-accent:${mdmAccent}; animation-delay:${Math.min(idx * .04, .36)}s;">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
                 <div style="display:flex; gap:10px; min-width:0;">
-                    <div style="width:40px; height:40px; border-radius:11px; flex:none; display:flex; align-items:center; justify-content:center; background:${iconoBg};"><i class="ti ${bloqueado ? 'ti-lock' : 'ti-device-mobile'}" style="font-size:21px; color:${iconoCol};"></i></div>
+                    <div class="fv-mdm-icon" style="background:${iconoBg};"><i class="ti ${bloqueado ? 'ti-lock' : 'ti-device-mobile'}" style="font-size:21px; color:${iconoCol};"></i></div>
                     <div style="min-width:0;">
-                        <div style="font-weight:700; font-size:14px;">${escapeHtml(f.cliente_nombre || 'Cliente')} <span style="color:var(--fin-muted); font-weight:600;">#${escapeHtml(String(f.codigo || ''))}</span></div>
+                        <div style="font-weight:700; font-size:14px;">${escapeHtml(f.cliente_nombre || 'Cliente')} <span style="color:#64748b; font-weight:600; font-size:12px;">#${escapeHtml(String(f.codigo || ''))}</span></div>
                         <div style="font-size:12.5px; color:var(--text-muted);">${escapeHtml(f.concepto || 'Equipo')}</div>
                     </div>
                 </div>
                 <span class="fin-badge ${ei[1]}" style="flex:none;">${ei[0]}</span>
             </div>
-            <div style="font-size:12px; color:var(--text-muted); margin-top:9px; display:flex; flex-wrap:wrap; gap:3px 12px;">
+            <div class="fv-mdm-meta">
                 <span><i class="ti ti-fingerprint"></i> ${escapeHtml(serial)}</span>
                 ${f.mdm_enrolado ? '<span style="color:var(--fin-ok); font-weight:700;"><i class="ti ti-circle-check"></i> Enrolado</span>' : '<span style="color:var(--fin-warn); font-weight:700;"><i class="ti ti-alert-circle"></i> No enrolado</span>'}
                 ${f.mdm_accion_en ? `<span><i class="ti ti-clock"></i> ${new Date(f.mdm_accion_en).toLocaleDateString('es-DO')}</span>` : ''}
             </div>
-            <div style="display:flex; gap:6px; margin-top:11px; flex-wrap:wrap;">
-                ${puedeMDM && est !== 'bloqueado' ? `<button class="btn btn-light" onclick="mdmAccionReal('${f.id}','bloquear')" style="font-size:12px; color:var(--fin-danger);"><i class="ti ti-lock"></i> Bloquear</button>` : ''}
-                ${puedeMDM && est === 'bloqueado' ? `<button class="btn btn-light" onclick="mdmAccionReal('${f.id}','desbloquear')" style="font-size:12px; color:var(--fin-ok);"><i class="ti ti-lock-open"></i> Desbloquear</button>` : ''}
-                <button class="btn btn-blue" onclick="verFinanciamiento('${f.id}')" style="font-size:12px; margin-left:auto;"><i class="ti ti-device-mobile-cog"></i> Gestionar</button>
+            <div class="fv-mdm-actions">
+                ${puedeMDM && est !== 'bloqueado' ? `<button class="btn btn-light" onclick="mdmAccionReal('${f.id}','bloquear')" style="color:var(--fin-danger);"><i class="ti ti-lock"></i> Bloquear</button>` : ''}
+                ${puedeMDM && est === 'bloqueado' ? `<button class="btn btn-light" onclick="mdmAccionReal('${f.id}','desbloquear')" style="color:var(--fin-ok);"><i class="ti ti-lock-open"></i> Desbloquear</button>` : ''}
+                <button class="btn btn-blue" onclick="verFinanciamiento('${f.id}')" style="margin-left:auto; background:linear-gradient(135deg,#0047AB,#1d6fdb); border:none; box-shadow:0 2px 8px rgba(0,71,171,.2);"><i class="ti ti-device-mobile-cog"></i> Gestionar</button>
             </div>
         </div>`;
     }).join('');
