@@ -2145,27 +2145,165 @@ body{
 
             <!-- FINANCIAMIENTOS (servicio al cliente) -->
             <div id="v-financiamientos" class="view">
-                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:14px;">
-                    <h2 style="margin:0;"><i class="ti ti-cash" style="color:#16a34a;"></i> Financiamientos</h2>
-                    <div style="display:flex; gap:6px;">
-                        <button class="btn btn-blue" id="btnNuevaSolicitud" onclick="abrirModalNuevaSolicitud()" style="font-size:12px;"><i class="ti ti-plus"></i> Nueva solicitud</button>
-                        <button class="btn btn-light" id="btnConfigFin" onclick="finCambiarTab('config')" style="font-size:12px;" title="Configuración (abogado/contrato)"><i class="ti ti-settings"></i></button>
-                        <button class="btn btn-light" onclick="renderFinanciamientos()" style="font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
+                <style>
+                /* ═══ FINANCIAMIENTOS — rediseño visual premium (20 sept 2026) ═══ */
+                #v-financiamientos { --fv-accent: #0047AB; --fv-accent-light: #e8f0fe; --fv-radius: 16px; --fv-shadow: 0 4px 24px rgba(0,71,171,.08), 0 1px 3px rgba(0,0,0,.04); --fv-shadow-hover: 0 8px 32px rgba(0,71,171,.13), 0 2px 6px rgba(0,0,0,.06); --fv-glass: rgba(255,255,255,.82); --fv-border: rgba(226,232,240,.7); }
+
+                /* ── Encabezado ── */
+                #v-financiamientos .fv-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:18px; animation: fvSlideDown .4s ease both; }
+                #v-financiamientos .fv-header h2 { margin:0; font-size:22px; font-weight:800; letter-spacing:-.02em; display:flex; align-items:center; gap:10px; }
+                #v-financiamientos .fv-header h2 .fv-icon-wrap { width:38px; height:38px; border-radius:12px; background:linear-gradient(135deg, #0047AB, #1d6fdb); display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,71,171,.25); }
+                #v-financiamientos .fv-header h2 .fv-icon-wrap i { color:#fff; font-size:20px; }
+                #v-financiamientos .fv-header .fv-actions { display:flex; gap:7px; }
+                #v-financiamientos .fv-header .fv-actions .btn { border-radius:10px; font-size:12.5px; font-weight:600; padding:8px 14px; transition:all .2s ease; }
+                #v-financiamientos .fv-header .fv-actions .btn:hover { transform:translateY(-1px); }
+                #v-financiamientos .fv-header .fv-actions .btn-blue { background:linear-gradient(135deg, #0047AB, #1d6fdb); border:none; box-shadow:0 4px 14px rgba(0,71,171,.3); }
+                #v-financiamientos .fv-header .fv-actions .btn-blue:hover { box-shadow:0 6px 20px rgba(0,71,171,.4); }
+
+                /* ── Barra de pestañas (segmented control con glassmorphism) ── */
+                #v-financiamientos .fv-tabs { display:flex; gap:3px; margin-bottom:18px; padding:4px; background:rgba(241,245,249,.85); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border-radius:14px; border:1px solid var(--fv-border); overflow-x:auto; scrollbar-width:none; animation: fvSlideDown .45s ease both; }
+                #v-financiamientos .fv-tabs::-webkit-scrollbar { display:none; }
+                #v-financiamientos .fv-tabs button { flex:none; border:none; background:transparent; color:#64748b; font-size:12px; font-weight:600; padding:8px 14px; border-radius:10px; cursor:pointer; white-space:nowrap; transition:all .22s cubic-bezier(.4,0,.2,1); display:flex; align-items:center; gap:5px; position:relative; }
+                #v-financiamientos .fv-tabs button:hover { color:#334155; background:rgba(255,255,255,.6); }
+                #v-financiamientos .fv-tabs button.fv-tab-on { background:#fff; color:var(--fv-accent); box-shadow:0 2px 8px rgba(0,71,171,.1), 0 1px 2px rgba(0,0,0,.04); font-weight:700; }
+                #v-financiamientos .fv-tabs button.fv-tab-on i { color:var(--fv-accent); }
+
+                /* ── KPI cards premium ── */
+                #v-financiamientos .fv-kpis { display:grid; grid-template-columns:repeat(auto-fit, minmax(155px, 1fr)); gap:12px; margin-bottom:20px; }
+                #v-financiamientos .fv-kpi { background:#fff; border-radius:var(--fv-radius); padding:16px 14px; position:relative; overflow:hidden; border:1px solid var(--fv-border); box-shadow:var(--fv-shadow); transition:all .25s cubic-bezier(.4,0,.2,1); animation:fvFadeUp .5s ease both; }
+                #v-financiamientos .fv-kpi:hover { transform:translateY(-3px); box-shadow:var(--fv-shadow-hover); }
+                #v-financiamientos .fv-kpi::before { content:''; position:absolute; top:0; left:0; right:0; height:4px; border-radius:var(--fv-radius) var(--fv-radius) 0 0; background:var(--kpi-color, var(--fv-accent)); }
+                #v-financiamientos .fv-kpi::after { content:''; position:absolute; top:-20px; right:-20px; width:72px; height:72px; border-radius:50%; background:var(--kpi-color, var(--fv-accent)); opacity:.06; transition:transform .3s ease; }
+                #v-financiamientos .fv-kpi:hover::after { transform:scale(1.3); }
+                #v-financiamientos .fv-kpi small { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#64748b; display:block; }
+                #v-financiamientos .fv-kpi strong { font-size:20px; font-weight:800; display:block; margin-top:4px; color:#0f172a; }
+                #v-financiamientos .fv-kpi .fv-kpi-icon { position:absolute; right:12px; bottom:12px; font-size:20px; color:var(--kpi-color, var(--fv-accent)); opacity:.18; }
+                #v-financiamientos .fv-kpi:nth-child(1) { animation-delay:.05s; }
+                #v-financiamientos .fv-kpi:nth-child(2) { animation-delay:.1s; }
+                #v-financiamientos .fv-kpi:nth-child(3) { animation-delay:.15s; }
+                #v-financiamientos .fv-kpi:nth-child(4) { animation-delay:.2s; }
+                #v-financiamientos .fv-kpi:nth-child(5) { animation-delay:.25s; }
+                #v-financiamientos .fv-kpi:nth-child(6) { animation-delay:.3s; }
+
+                /* ── Contenido: cards con glassmorphism sutil ── */
+                #v-financiamientos #finContenido .card { border-radius:var(--fv-radius); border:1px solid var(--fv-border); box-shadow:var(--fv-shadow); transition:box-shadow .25s ease; }
+                #v-financiamientos #finContenido .card:hover { box-shadow:var(--fv-shadow-hover); }
+                #v-financiamientos #finContenido { animation:fvFadeUp .45s ease both; }
+
+                /* ── Dashboard: barra de cobro rápido ── */
+                #v-financiamientos .fv-cobro-bar { border-radius:var(--fv-radius); border:1px solid rgba(0,71,171,.15); background:linear-gradient(135deg, rgba(0,71,171,.04) 0%, rgba(22,163,74,.04) 100%); padding:16px 18px; margin-bottom:18px; display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap; animation:fvFadeUp .4s ease both; backdrop-filter:blur(8px); }
+                #v-financiamientos .fv-cobro-bar .fv-cobro-left { display:flex; align-items:center; gap:14px; cursor:pointer; border-radius:12px; padding:4px; transition:background .2s; }
+                #v-financiamientos .fv-cobro-bar .fv-cobro-left:hover { background:rgba(0,71,171,.04); }
+                #v-financiamientos .fv-cobro-bar .fv-cobro-icon { width:50px; height:50px; border-radius:14px; display:flex; align-items:center; justify-content:center; flex:none; transition:transform .3s ease; }
+                #v-financiamientos .fv-cobro-bar .fv-cobro-left:hover .fv-cobro-icon { transform:scale(1.06); }
+                #v-financiamientos .fv-cobro-bar .fv-cobro-num { font-size:26px; font-weight:800; line-height:1; }
+                #v-financiamientos .fv-cobro-bar .fv-cobro-sub { font-size:12px; color:#64748b; margin-top:2px; }
+
+                /* ── Dashboard: grid de cards ── */
+                #v-financiamientos .fv-dash-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:16px; margin-bottom:18px; }
+                #v-financiamientos .fv-dash-grid .card { animation:fvFadeUp .5s ease both; }
+                #v-financiamientos .fv-dash-grid .card:nth-child(1) { animation-delay:.08s; }
+                #v-financiamientos .fv-dash-grid .card:nth-child(2) { animation-delay:.16s; }
+                #v-financiamientos .fv-dash-grid .card:nth-child(3) { animation-delay:.24s; }
+                #v-financiamientos .fv-dash-grid .card h3 { font-size:15px; font-weight:700; display:flex; align-items:center; gap:8px; margin:0 0 12px; }
+                #v-financiamientos .fv-dash-grid .card h3 i { font-size:18px; }
+
+                /* ── Lista de financiamientos: tarjetas animadas ── */
+                #v-financiamientos .fv-fin-card { border:1px solid var(--fv-border); border-radius:var(--fv-radius); padding:16px; margin-bottom:10px; background:#fff; transition:all .22s cubic-bezier(.4,0,.2,1); cursor:pointer; animation:fvFadeUp .4s ease both; position:relative; overflow:hidden; }
+                #v-financiamientos .fv-fin-card:hover { transform:translateY(-2px); box-shadow:var(--fv-shadow-hover); border-color:rgba(0,71,171,.15); }
+                #v-financiamientos .fv-fin-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--card-accent, var(--fin-ok)); border-radius:var(--fv-radius) 0 0 var(--fv-radius); opacity:0; transition:opacity .2s; }
+                #v-financiamientos .fv-fin-card:hover::before { opacity:1; }
+
+                /* ── Barra de progreso animada ── */
+                #v-financiamientos .fv-progress-track { background:#f1f5f9; border-radius:999px; height:8px; margin-top:10px; overflow:hidden; position:relative; }
+                #v-financiamientos .fv-progress-fill { height:100%; border-radius:999px; transition:width .8s cubic-bezier(.4,0,.2,1); position:relative; overflow:hidden; }
+                #v-financiamientos .fv-progress-fill::after { content:''; position:absolute; top:0; left:-100%; width:100%; height:100%; background:linear-gradient(90deg, transparent, rgba(255,255,255,.4), transparent); animation:fvShimmer 2s ease-in-out infinite; }
+
+                /* ── Alertas con animación ── */
+                #v-financiamientos .fv-alert { display:flex; justify-content:space-between; align-items:center; padding:10px 14px; border-radius:10px; margin-bottom:7px; cursor:pointer; font-size:13px; font-weight:600; transition:all .2s ease; }
+                #v-financiamientos .fv-alert:hover { transform:translateX(4px); }
+                #v-financiamientos .fv-alert.fv-alert-pulse i:first-child { animation:fvPulse 2s ease-in-out infinite; }
+
+                /* ── Donut container ── */
+                #v-financiamientos .fv-donut-wrap { display:flex; align-items:center; gap:18px; }
+                #v-financiamientos .fv-donut-chart { width:140px; height:140px; position:relative; flex:none; }
+                #v-financiamientos .fv-donut-legend { flex:1; }
+                #v-financiamientos .fv-legend-row { display:flex; align-items:center; justify-content:space-between; font-size:12.5px; padding:4px 0; }
+                #v-financiamientos .fv-legend-row span { display:flex; align-items:center; gap:7px; }
+
+                /* ── Vencimientos rows ── */
+                #v-financiamientos .fv-venc-row { display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px solid #f1f5f9; font-size:13px; transition:background .15s; }
+                #v-financiamientos .fv-venc-row:hover { background:#f8fafc; border-radius:6px; padding-left:6px; margin-left:-6px; padding-right:6px; margin-right:-6px; }
+                #v-financiamientos .fv-venc-row:last-child { border-bottom:none; }
+
+                /* ── Clientes recientes: grid de cards ── */
+                #v-financiamientos .fv-recent-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(210px, 1fr)); gap:12px; }
+                #v-financiamientos .fv-recent-card { border:1px solid var(--fv-border); border-radius:14px; padding:14px; cursor:pointer; transition:all .22s ease; background:#fff; }
+                #v-financiamientos .fv-recent-card:hover { transform:translateY(-2px); box-shadow:var(--fv-shadow-hover); border-color:rgba(0,71,171,.15); }
+                #v-financiamientos .fv-recent-saldo { font-size:17px; font-weight:800; color:var(--fv-accent); margin:4px 0 0; }
+
+                /* ── Detalle: encabezado hero ── */
+                #v-financiamientos .fv-detail-hero { border-radius:var(--fv-radius); border:1px solid var(--fv-border); padding:20px; margin-bottom:16px; background:linear-gradient(135deg, #fff 60%, var(--fv-accent-light) 100%); box-shadow:var(--fv-shadow); animation:fvFadeUp .4s ease both; }
+                #v-financiamientos .fv-detail-hero .fv-detail-kpis { display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-top:14px; }
+                #v-financiamientos .fv-detail-hero .fv-detail-kpi { text-align:center; padding:10px 8px; background:rgba(255,255,255,.7); border-radius:12px; border:1px solid var(--fv-border); }
+                #v-financiamientos .fv-detail-hero .fv-detail-kpi small { font-size:10px; font-weight:700; text-transform:uppercase; color:#64748b; }
+                #v-financiamientos .fv-detail-hero .fv-detail-kpi strong { font-size:18px; font-weight:800; display:block; margin-top:2px; }
+
+                /* ── Cronograma: cuotas ── */
+                #v-financiamientos .fv-cuota-row { transition:all .15s ease; border-radius:8px; }
+                #v-financiamientos .fv-cuota-row:hover { background:#f8fafc; }
+
+                /* ── Modal de pago: fondo suave ── */
+                #v-financiamientos .fv-modal-pago { backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }
+
+                /* ── Animations ── */
+                @keyframes fvFadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+                @keyframes fvSlideDown { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
+                @keyframes fvShimmer { 0% { left:-100%; } 100% { left:200%; } }
+                @keyframes fvPulse { 0%,100% { opacity:1; } 50% { opacity:.5; } }
+                @keyframes fvScaleIn { from { opacity:0; transform:scale(.92); } to { opacity:1; transform:scale(1); } }
+                @keyframes fvCountUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+                @media (prefers-reduced-motion: reduce) {
+                    #v-financiamientos .fv-kpi, #v-financiamientos .fv-fin-card, #v-financiamientos .fv-dash-grid .card,
+                    #v-financiamientos .fv-header, #v-financiamientos .fv-tabs, #v-financiamientos #finContenido,
+                    #v-financiamientos .fv-cobro-bar, #v-financiamientos .fv-detail-hero { animation:none!important; }
+                    #v-financiamientos .fv-progress-fill::after { animation:none!important; }
+                    #v-financiamientos .fv-alert.fv-alert-pulse i:first-child { animation:none!important; }
+                }
+                @media (max-width:640px) {
+                    #v-financiamientos .fv-kpis { grid-template-columns:repeat(2, 1fr); gap:8px; }
+                    #v-financiamientos .fv-kpi strong { font-size:17px; }
+                    #v-financiamientos .fv-dash-grid { grid-template-columns:1fr; }
+                    #v-financiamientos .fv-cobro-bar { flex-direction:column; text-align:center; }
+                    #v-financiamientos .fv-cobro-bar .fv-cobro-left { flex-direction:column; }
+                    #v-financiamientos .fv-recent-grid { grid-template-columns:1fr; }
+                    #v-financiamientos .fv-donut-wrap { flex-direction:column; }
+                    #v-financiamientos .fv-tabs button { padding:7px 11px; font-size:11.5px; }
+                    #v-financiamientos .fv-detail-hero .fv-detail-kpis { grid-template-columns:repeat(2, 1fr); }
+                }
+                </style>
+                <div class="fv-header">
+                    <h2><span class="fv-icon-wrap"><i class="ti ti-cash"></i></span> Financiamientos</h2>
+                    <div class="fv-actions">
+                        <button class="btn btn-blue" id="btnNuevaSolicitud" onclick="abrirModalNuevaSolicitud()"><i class="ti ti-plus"></i> Nueva solicitud</button>
+                        <button class="btn btn-light" id="btnConfigFin" onclick="finCambiarTab('config')" title="Configuración"><i class="ti ti-settings"></i></button>
+                        <button class="btn btn-light" onclick="renderFinanciamientos()"><i class="ti ti-refresh"></i></button>
                     </div>
                 </div>
-                <div style="display:flex; gap:8px; margin-bottom:14px; overflow-x:auto; padding-bottom:4px;">
-                    <button id="finTabDashboard" class="btn btn-light" onclick="finCambiarTab('dashboard')" style="font-size:12px; white-space:nowrap;"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
-                    <button id="finTabConsulta" class="btn btn-light" onclick="finCambiarTab('consulta')" style="font-size:12px; white-space:nowrap;"><i class="ti ti-calculator"></i> Consulta</button>
-                    <button id="finTabSolicitudes" class="btn btn-light" onclick="finCambiarTab('solicitudes')" style="font-size:12px; white-space:nowrap;"><i class="ti ti-file-text"></i> Solicitudes</button>
-                    <button id="finTabFinanciamientos" class="btn btn-light" onclick="finCambiarTab('financiamientos')" style="font-size:12px; white-space:nowrap;"><i class="ti ti-cash"></i> Financiamientos</button>
-                    <button id="finTabClientes" class="btn btn-light" onclick="finCambiarTab('clientes')" style="font-size:12px; white-space:nowrap;"><i class="ti ti-users"></i> Clientes</button>
-                    <button id="finTabCobros" class="btn btn-light" onclick="finCambiarTab('cobros')" style="font-size:12px; white-space:nowrap;"><i class="ti ti-calendar-due"></i> Cobros</button>
-                    <button id="finTabMora" class="btn btn-light" onclick="finCambiarTab('mora')" style="font-size:12px; white-space:nowrap;"><i class="ti ti-alert-triangle"></i> Mora</button>
-                    <button id="finTabMdm" class="btn btn-light" onclick="finCambiarTab('mdm')" style="font-size:12px; white-space:nowrap;"><i class="ti ti-device-mobile"></i> MDM</button>
-                    <button id="finTabReportes" class="btn btn-light" onclick="finCambiarTab('reportes')" style="font-size:12px; white-space:nowrap;"><i class="ti ti-chart-bar"></i> Reportes</button>
-                    <button id="finTabConfig" class="btn btn-light" onclick="finCambiarTab('config')" style="font-size:12px; white-space:nowrap;"><i class="ti ti-settings"></i> Configuración</button>
+                <div class="fv-tabs" id="finTabsBar">
+                    <button id="finTabDashboard" onclick="finCambiarTab('dashboard')"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
+                    <button id="finTabConsulta" onclick="finCambiarTab('consulta')"><i class="ti ti-calculator"></i> Consulta</button>
+                    <button id="finTabSolicitudes" onclick="finCambiarTab('solicitudes')"><i class="ti ti-file-text"></i> Solicitudes</button>
+                    <button id="finTabFinanciamientos" onclick="finCambiarTab('financiamientos')"><i class="ti ti-cash"></i> Financiamientos</button>
+                    <button id="finTabClientes" onclick="finCambiarTab('clientes')"><i class="ti ti-users"></i> Clientes</button>
+                    <button id="finTabCobros" onclick="finCambiarTab('cobros')"><i class="ti ti-calendar-due"></i> Cobros</button>
+                    <button id="finTabMora" onclick="finCambiarTab('mora')"><i class="ti ti-alert-triangle"></i> Mora</button>
+                    <button id="finTabMdm" onclick="finCambiarTab('mdm')"><i class="ti ti-device-mobile"></i> MDM</button>
+                    <button id="finTabReportes" onclick="finCambiarTab('reportes')"><i class="ti ti-chart-bar"></i> Reportes</button>
+                    <button id="finTabConfig" onclick="finCambiarTab('config')"><i class="ti ti-settings"></i> Config</button>
                 </div>
-                <div id="finKpis" class="kpi-row" style="margin-bottom:16px;"></div>
+                <div id="finKpis" class="fv-kpis"></div>
                 <div id="finContenido"></div>
             </div>
 
@@ -29573,7 +29711,7 @@ function _pintarTabFin() {
     const tabs = { dashboard: 'finTabDashboard', consulta: 'finTabConsulta', solicitudes: 'finTabSolicitudes', financiamientos: 'finTabFinanciamientos', clientes: 'finTabClientes', cobros: 'finTabCobros', mora: 'finTabMora', mdm: 'finTabMdm', reportes: 'finTabReportes', config: 'finTabConfig' };
     Object.keys(tabs).forEach(k => {
         const el = document.getElementById(tabs[k]);
-        if(el) el.className = 'btn ' + (_finTab === k ? 'btn-blue' : 'btn-light');
+        if(el) el.className = _finTab === k ? 'fv-tab-on' : '';
     });
     // La pestaña de configuración solo para admin / permiso
     const cfgTab = document.getElementById('finTabConfig');
@@ -29611,7 +29749,7 @@ function _pintarFinanciamientos() {
         return d.getMonth() === ahora.getMonth() && d.getFullYear() === ahora.getFullYear();
     }).reduce((s, p) => s + Number(p.monto || 0), 0);
     if(kpis) {
-        const kpi = (label, val, color, icon) => `<div class="kpi-box" style="border-top-color:${color};"><small>${label}</small><strong>${val}</strong><i class="ti ${icon}"></i></div>`;
+        const kpi = (label, val, color, icon) => `<div class="fv-kpi" style="--kpi-color:${color};"><small>${label}</small><strong>${val}</strong><i class="ti ${icon} fv-kpi-icon"></i></div>`;
         kpis.innerHTML =
             kpi('Activos', activos.length, '#16a34a', 'ti-cash') +
             kpi('Por Cobrar', money(porCobrar), '#0891b2', 'ti-coins') +
@@ -29621,7 +29759,7 @@ function _pintarFinanciamientos() {
 
     // Filtro + buscador
     let html = `<div class="card" style="margin-bottom:14px;">
-        <input id="finBuscador" oninput="_finBusqueda=this.value; _pintarListaFin()" value="${escapeHtml(_finBusqueda)}" placeholder="Buscar por cliente, concepto o # código..." style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; margin-bottom:10px;">
+        <div style="position:relative; margin-bottom:10px;"><i class="ti ti-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:16px;"></i><input id="finBuscador" oninput="_finBusqueda=this.value; _pintarListaFin()" value="${escapeHtml(_finBusqueda)}" placeholder="Buscar por cliente, concepto o # código..." style="width:100%; padding:10px 12px 10px 38px; border:1px solid var(--fv-border,#cbd5e1); border-radius:12px; font-size:13px; transition:border-color .2s, box-shadow .2s; outline:none;" onfocus="this.style.borderColor='var(--fv-accent,#0047AB)'; this.style.boxShadow='0 0 0 3px rgba(0,71,171,.08)';" onblur="this.style.borderColor=''; this.style.boxShadow='';"></div>
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
             ${['activos', 'atrasados', 'saldados', 'todos'].map(ff => `<button class="fin-chip${_finFiltro === ff ? (ff === 'atrasados' ? ' on-danger' : ' on') : ''}" onclick="_finFiltro='${ff}'; _pintarFinanciamientos()">${({ activos: 'Activos', atrasados: 'Atrasados', saldados: 'Saldados', todos: 'Todos' })[ff]}</button>`).join('')}
         </div>
@@ -29649,33 +29787,35 @@ function _pintarListaFin() {
         cont.innerHTML = `<div style="color:var(--text-muted); font-size:13px; padding:8px 0;">No hay financiamientos en esta vista.</div>`;
         return;
     }
-    cont.innerHTML = lista.map(f => {
+    cont.innerHTML = lista.map((f, idx) => {
         const est = finEstado(f);
         const saldo = finSaldo(f);
         const financiado = finFinanciado(f);
         const abonado = finAbonado(f);
         const pct = financiado > 0 ? Math.min(100, Math.round(abonado / financiado * 100)) : 100;
         const prox = finProximaCuota(f);
-        return `<div style="border:1px solid #e2e8f0; border-radius:12px; padding:12px; margin-bottom:10px; background:#fff;">
+        const accentColor = est === 'atrasado' ? 'var(--fin-danger,#dc2626)' : est === 'saldado' ? 'var(--fin-info,#1d4ed8)' : 'var(--fin-ok,#16a34a)';
+        const progColor = est === 'atrasado' ? '#dc2626' : pct >= 100 ? '#1d4ed8' : '#16a34a';
+        return `<div class="fv-fin-card" style="--card-accent:${accentColor}; animation-delay:${Math.min(idx * .04, .32)}s;" onclick="verFinanciamiento('${f.id}')">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap;">
                 <div style="min-width:0; flex:1;">
-                    <div style="font-weight:700; font-size:14px;">${escapeHtml(f.cliente_nombre || 'Sin cliente')} <span style="color:#475569; font-weight:600; font-size:12px;">#${f.codigo || '—'}</span></div>
-                    <div style="font-size:12.5px; color:var(--text-muted);">${escapeHtml(f.concepto || '')}</div>
+                    <div style="font-weight:700; font-size:14px; display:flex; align-items:center; gap:6px;"><i class="ti ti-user" style="color:#94a3b8; font-size:15px;"></i> ${escapeHtml(f.cliente_nombre || 'Sin cliente')} <span style="color:#94a3b8; font-weight:600; font-size:11.5px;">#${f.codigo || '—'}</span></div>
+                    <div style="font-size:12.5px; color:var(--text-muted); margin-top:2px;"><i class="ti ti-device-mobile" style="font-size:13px;"></i> ${escapeHtml(f.concepto || '')}</div>
                 </div>
                 ${finBadge(est)}
             </div>
-            <div style="display:flex; gap:14px; flex-wrap:wrap; margin-top:8px; font-size:12px;">
+            <div style="display:flex; gap:14px; flex-wrap:wrap; margin-top:10px; font-size:12px;">
                 <span><b>Total:</b> ${money(f.monto_total)}</span>
                 <span><b>Saldo:</b> <span style="color:${saldo > 0 ? '#b91c1c' : '#16a34a'}; font-weight:700;">${money(saldo)}</span></span>
                 <span><b>Cuota:</b> ${money(f.valor_cuota)} · ${FIN_FREC_TXT[f.frecuencia] || f.frecuencia}</span>
-                ${prox ? `<span><b>Próx. vence:</b> ${_finFmtFecha(prox.vence)}</span>` : ''}
+                ${prox ? `<span><b>Vence:</b> ${_finFmtFecha(prox.vence)}</span>` : ''}
             </div>
-            <div style="background:#f1f5f9; border-radius:999px; height:7px; margin-top:8px; overflow:hidden;">
-                <div style="height:100%; width:${pct}%; background:${est === 'atrasado' ? '#dc2626' : '#16a34a'};"></div>
+            <div class="fv-progress-track">
+                <div class="fv-progress-fill" style="width:${pct}%; background:${progColor};"></div>
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
-                <small style="color:var(--text-muted);">${pct}% pagado</small>
-                <button class="btn btn-blue" onclick="verFinanciamiento('${f.id}')" style="font-size:12px;"><i class="ti ti-eye"></i> Ver / Cobrar</button>
+                <small style="color:var(--text-muted); font-weight:600;">${pct}% pagado</small>
+                <span style="font-size:12px; color:var(--fv-accent,#0047AB); font-weight:700; display:flex; align-items:center; gap:4px;"><i class="ti ti-eye"></i> Ver / Cobrar</span>
             </div>
         </div>`;
     }).join('');
@@ -29699,26 +29839,31 @@ function _pintarDetalleFin() {
     const puedeEliminar = isAdminUser() || tienePermiso('financiamientos_eliminar');
     const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
 
-    let html = `<button class="btn btn-light" onclick="volverListaFin()" style="font-size:12px; margin-bottom:12px;"><i class="ti ti-arrow-left"></i> Volver a la lista</button>`;
+    let html = `<button class="btn btn-light" onclick="volverListaFin()" style="font-size:12.5px; margin-bottom:14px; border-radius:10px; display:inline-flex; align-items:center; gap:5px; padding:8px 14px; transition:all .2s;"><i class="ti ti-arrow-left"></i> Volver a la lista</button>`;
 
-    // Encabezado / resumen
-    html += `<div class="card" style="margin-bottom:14px;">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap;">
+    // Encabezado / resumen — hero card
+    const _pctDet = finFinanciado(f) > 0 ? Math.min(100, Math.round(abonado / finFinanciado(f) * 100)) : 100;
+    html += `<div class="fv-detail-hero">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap;">
             <div>
-                <h3 style="margin:0 0 2px; font-size:16px;">${escapeHtml(f.cliente_nombre || 'Sin cliente')} <span style="color:#475569; font-size:13px;">#${f.codigo || '—'}</span></h3>
+                <h3 style="margin:0 0 4px; font-size:18px; font-weight:800; display:flex; align-items:center; gap:8px;"><i class="ti ti-user-circle" style="color:var(--fv-accent,#0047AB); font-size:22px;"></i> ${escapeHtml(f.cliente_nombre || 'Sin cliente')} <span style="color:#94a3b8; font-size:13px; font-weight:600;">#${f.codigo || '—'}</span></h3>
                 <div style="font-size:13px; color:var(--text-muted);"><i class="ti ti-device-mobile"></i> ${escapeHtml(f.concepto || '')}${f.equipo_capacidad ? ' · ' + escapeHtml(f.equipo_capacidad) : ''}${f.equipo_imei ? ' · IMEI: ' + escapeHtml(f.equipo_imei) : ''}</div>
-                ${f.cliente_telefono ? `<div style="font-size:12px; color:var(--text-muted);"><i class="ti ti-phone"></i> ${escapeHtml(f.cliente_telefono)}</div>` : ''}
+                ${f.cliente_telefono ? `<div style="font-size:12px; color:var(--text-muted); margin-top:2px;"><i class="ti ti-phone"></i> ${escapeHtml(f.cliente_telefono)}</div>` : ''}
                 ${(finClienteDe(f.fin_cliente_id) || {}).email ? `<div style="font-size:12px; color:var(--text-muted);"><i class="ti ti-mail"></i> ${escapeHtml((finClienteDe(f.fin_cliente_id) || {}).email)}</div>` : ''}
             </div>
-            <div style="text-align:right;">${finBadge(est)}<div style="margin-top:6px; display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end;"><button class="btn btn-light" onclick="abrirContratoFin('${f.id}')" style="font-size:12px;"><i class="ti ti-file-certificate"></i> Contrato${f.contrato_en ? ' <i class="ti ti-check" style="color:var(--fin-ok);"></i>' : ''}</button><button class="btn btn-light" onclick="imprimirCalendarioPagos('${f.id}')" style="font-size:12px;"><i class="ti ti-calendar"></i> Calendario de pagos</button><button class="btn btn-light" onclick="imprimirEstadoCuentaFin('${f.id}')" style="font-size:12px;"><i class="ti ti-printer"></i> Estado de cuenta</button>${est === 'saldado' ? `<button class="btn btn-light" onclick="imprimirCartaSaldo('${f.id}')" style="font-size:12px; color:#15803d;"><i class="ti ti-award"></i> Carta de saldo</button>` : ''}</div></div>
+            <div style="text-align:right;">${finBadge(est)}<div style="margin-top:8px; display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end;"><button class="btn btn-light" onclick="abrirContratoFin('${f.id}')" style="font-size:12px; border-radius:10px;"><i class="ti ti-file-certificate"></i> Contrato${f.contrato_en ? ' <i class="ti ti-check" style="color:var(--fin-ok);"></i>' : ''}</button><button class="btn btn-light" onclick="imprimirCalendarioPagos('${f.id}')" style="font-size:12px; border-radius:10px;"><i class="ti ti-calendar"></i> Calendario</button><button class="btn btn-light" onclick="imprimirEstadoCuentaFin('${f.id}')" style="font-size:12px; border-radius:10px;"><i class="ti ti-printer"></i> Estado de cuenta</button>${est === 'saldado' ? `<button class="btn btn-light" onclick="imprimirCartaSaldo('${f.id}')" style="font-size:12px; color:#15803d; border-radius:10px;"><i class="ti ti-award"></i> Carta de saldo</button>` : ''}</div></div>
         </div>
-        <div class="kpi-row" style="margin-top:12px;">
-            <div class="kpi-box" style="border-top-color:#1e293b;"><small>Precio total</small><strong>${money(f.monto_total)}</strong></div>
-            <div class="kpi-box" style="border-top-color:#7c3aed;"><small>Inicial</small><strong>${money(f.inicial)}</strong></div>
-            <div class="kpi-box" style="border-top-color:#16a34a;"><small>Abonado</small><strong>${money(abonado)}</strong></div>
-            <div class="kpi-box" style="border-top-color:#b91c1c;"><small>Saldo pendiente</small><strong>${money(saldo)}</strong></div>
+        <div class="fv-progress-track" style="margin-top:14px; height:10px;">
+            <div class="fv-progress-fill" style="width:${_pctDet}%; background:${est === 'atrasado' ? '#dc2626' : _pctDet >= 100 ? '#1d4ed8' : '#16a34a'};"></div>
         </div>
-        <div style="font-size:12px; color:var(--text-muted); margin-top:8px;">
+        <div style="display:flex; justify-content:space-between; margin-top:4px; font-size:11px; color:var(--text-muted); font-weight:600;"><span>${_pctDet}% pagado</span><span>${money(abonado)} / ${money(finFinanciado(f))}</span></div>
+        <div class="fv-detail-kpis">
+            <div class="fv-detail-kpi"><small>Precio total</small><strong style="color:#1e293b;">${money(f.monto_total)}</strong></div>
+            <div class="fv-detail-kpi"><small>Inicial</small><strong style="color:#7c3aed;">${money(f.inicial)}</strong></div>
+            <div class="fv-detail-kpi"><small>Abonado</small><strong style="color:#16a34a;">${money(abonado)}</strong></div>
+            <div class="fv-detail-kpi"><small>Saldo pendiente</small><strong style="color:#b91c1c;">${money(saldo)}</strong></div>
+        </div>
+        <div style="font-size:12px; color:var(--text-muted); margin-top:10px;">
             ${f.num_cuotas} cuota${f.num_cuotas == 1 ? '' : 's'} de ${money(f.valor_cuota)} · ${FIN_FREC_TXT[f.frecuencia] || f.frecuencia} · Inicio ${_finFmtFecha(_finAddPeriodo(f.fecha_inicio, f.frecuencia, 0))}
             ${finInteresTotal(f) > 0 ? `<br>A financiar ${money(finFinanciado(f))} + interés ${money(finInteresTotal(f))} = total ${money(finMontoCuotas(f))} · ${escapeHtml(finInteresTxt(f))}` : ''}
             ${f.notas ? '<br><i class="ti ti-note"></i> ' + escapeHtml(f.notas) : ''}
@@ -29788,15 +29933,15 @@ function _pintarDetalleFin() {
     // Cobros — botón que abre el modal flotante de pago
     const moraPend = finMoraPendiente(f);
     if(puedeCobrar && est !== 'saldado' && est !== 'cancelado') {
-        html += `<div class="card" style="margin-bottom:14px; border:1px solid #bbf7d0; background:linear-gradient(180deg,#f0fdf4 0%,#ffffff 60%);">
+        html += `<div class="card" style="margin-bottom:14px; border:1px solid rgba(22,163,74,.2); background:linear-gradient(135deg,#f0fdf4 0%,#ffffff 60%); animation:fvFadeUp .45s ease both; animation-delay:.1s;">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                 <div>
-                    <h3 style="margin:0; font-size:16px;"><i class="ti ti-cash" style="color:#16a34a;"></i> Cobros</h3>
-                    <div style="font-size:12.5px; color:var(--text-muted); margin-top:3px;">Saldo <b style="color:#0f172a;">${money(saldo)}</b>${moraPend > 0 ? ` · Mora <b style="color:#b91c1c;">${money(moraPend)}</b>` : ''}</div>
+                    <h3 style="margin:0; font-size:16px; display:flex; align-items:center; gap:8px;"><span style="width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg,#16a34a,#22c55e); display:inline-flex; align-items:center; justify-content:center;"><i class="ti ti-cash" style="color:#fff; font-size:18px;"></i></span> Cobros</h3>
+                    <div style="font-size:12.5px; color:var(--text-muted); margin-top:5px;">Saldo <b style="color:#0f172a;">${money(saldo)}</b>${moraPend > 0 ? ` · Mora <b style="color:#b91c1c;">${money(moraPend)}</b>` : ''}</div>
                 </div>
                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                    ${moraPend > 0 && isAdminUser() ? `<button class="btn btn-light" onclick="abrirCondonarMora('${f.id}')" style="padding:11px 16px; font-size:13px; color:#b45309;"><i class="ti ti-heart-handshake"></i> Perdonar mora</button>` : ''}
-                    <button class="btn btn-blue" onclick="abrirModalPago('${f.id}')" style="padding:11px 22px; font-size:14px;"><i class="ti ti-plus"></i> Registrar pago</button>
+                    ${moraPend > 0 && isAdminUser() ? `<button class="btn btn-light" onclick="abrirCondonarMora('${f.id}')" style="padding:11px 16px; font-size:13px; color:#b45309; border-radius:12px;"><i class="ti ti-heart-handshake"></i> Perdonar mora</button>` : ''}
+                    <button class="btn btn-blue" onclick="abrirModalPago('${f.id}')" style="padding:12px 24px; font-size:14px; border-radius:12px; background:linear-gradient(135deg,#16a34a,#22c55e); border:none; box-shadow:0 4px 14px rgba(22,163,74,.3); transition:all .2s;"><i class="ti ti-plus"></i> Registrar pago</button>
                 </div>
             </div>
         </div>`;
@@ -29804,9 +29949,9 @@ function _pintarDetalleFin() {
 
     // Cronograma de cuotas / amortización (con saldo restante)
     let _saldoAmort = finFinanciado(f);
-    html += `<div class="card" style="margin-bottom:14px;">
-        <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-calendar-stats" style="color:#0891b2;"></i> Plan de cuotas / Amortización</h3>
-        <div class="table-wrap"><table><thead><tr><th>#</th><th>Vence</th><th style="text-align:right;">Cuota</th><th style="text-align:right;">Saldo</th><th>Estado</th></tr></thead><tbody>`;
+    html += `<div class="card" style="margin-bottom:14px; animation:fvFadeUp .5s ease both; animation-delay:.15s;">
+        <h3 style="margin:0 0 12px; font-size:15px; display:flex; align-items:center; gap:8px;"><span style="width:32px; height:32px; border-radius:9px; background:linear-gradient(135deg,#0891b2,#06b6d4); display:inline-flex; align-items:center; justify-content:center;"><i class="ti ti-calendar-stats" style="color:#fff; font-size:16px;"></i></span> Plan de cuotas / Amortización</h3>
+        <div class="table-wrap"><table><thead><tr style="background:#f8fafc;"><th style="border-radius:8px 0 0 0;">#</th><th>Vence</th><th style="text-align:right;">Cuota</th><th style="text-align:right;">Saldo</th><th style="border-radius:0 8px 0 0;">Estado</th></tr></thead><tbody>`;
     html += crono.map(c => {
         let badge, color;
         if(c.cubierta) { badge = 'Pagada'; color = 'var(--fin-ok)'; }
@@ -29814,13 +29959,13 @@ function _pintarDetalleFin() {
         else if(c.vence < hoy) { badge = 'Vencida'; color = 'var(--fin-danger)'; }
         else { badge = 'Pendiente'; color = 'var(--fin-muted)'; }
         _saldoAmort = Math.round((_saldoAmort - c.valor) * 100) / 100; if(_saldoAmort < 0) _saldoAmort = 0;
-        return `<tr><td>${c.num}</td><td>${_finFmtFecha(c.vence)}</td><td style="text-align:right;">${money(c.valor)}</td><td style="text-align:right;">${money(_saldoAmort)}</td><td style="color:${color}; font-weight:600;">${badge}</td></tr>`;
+        return `<tr class="fv-cuota-row"><td style="font-weight:700; color:#64748b;">${c.num}</td><td>${_finFmtFecha(c.vence)}</td><td style="text-align:right; font-weight:600;">${money(c.valor)}</td><td style="text-align:right;">${money(_saldoAmort)}</td><td><span style="color:${color}; font-weight:700; font-size:12px; padding:2px 8px; border-radius:6px; background:${c.cubierta ? 'rgba(22,163,74,.08)' : c.pagado > 0 ? 'rgba(234,179,8,.08)' : c.vence < hoy ? 'rgba(185,28,28,.08)' : 'transparent'};">${badge}</span></td></tr>`;
     }).join('');
     html += `</tbody></table></div></div>`;
 
     // Historial de pagos
-    html += `<div class="card" style="margin-bottom:14px;">
-        <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-history" style="color:#7c3aed;"></i> Historial de abonos (${pagos.length})</h3>`;
+    html += `<div class="card" style="margin-bottom:14px; animation:fvFadeUp .5s ease both; animation-delay:.2s;">
+        <h3 style="margin:0 0 12px; font-size:15px; display:flex; align-items:center; gap:8px;"><span style="width:32px; height:32px; border-radius:9px; background:linear-gradient(135deg,#7c3aed,#a855f7); display:inline-flex; align-items:center; justify-content:center;"><i class="ti ti-history" style="color:#fff; font-size:16px;"></i></span> Historial de abonos <span style="font-size:12px; font-weight:600; color:#64748b; background:#f1f5f9; padding:2px 8px; border-radius:6px;">${pagos.length}</span></h3>`;
     if(pagos.length) {
         html += `<div class="table-wrap"><table><thead><tr><th>Recibo</th><th>Fecha</th><th>Monto</th><th>Método</th><th></th></tr></thead><tbody>`;
         html += pagos.slice().reverse().map(p => {
@@ -29881,7 +30026,7 @@ function _pintarSolicitudes() {
     const apro = lista.filter(s => s.estado === 'aprobada');
     const rech = lista.filter(s => s.estado === 'rechazada');
     if(kpis) {
-        const kpi = (label, val, color, icon) => `<div class="kpi-box" style="border-top-color:${color};"><small>${label}</small><strong>${val}</strong><i class="ti ${icon}"></i></div>`;
+        const kpi = (label, val, color, icon) => `<div class="fv-kpi" style="--kpi-color:${color};"><small>${label}</small><strong>${val}</strong><i class="ti ${icon} fv-kpi-icon"></i></div>`;
         kpis.innerHTML =
             kpi('Pendientes', pend.length, '#b45309', 'ti-clock') +
             kpi('Aprobadas', apro.length, '#16a34a', 'ti-circle-check') +
@@ -29889,7 +30034,7 @@ function _pintarSolicitudes() {
             kpi('Total', lista.length, '#0891b2', 'ti-file-text');
     }
     let html = `<div class="card" style="margin-bottom:14px;">
-        <input id="solBuscador" oninput="_solBusqueda=this.value; _pintarListaSol()" value="${escapeHtml(_solBusqueda)}" placeholder="Buscar por cliente, concepto o # código..." style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; margin-bottom:10px;">
+        <div style="position:relative; margin-bottom:10px;"><i class="ti ti-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:16px;"></i><input id="solBuscador" oninput="_solBusqueda=this.value; _pintarListaSol()" value="${escapeHtml(_solBusqueda)}" placeholder="Buscar por cliente, concepto o # código..." style="width:100%; padding:10px 12px 10px 38px; border:1px solid var(--fv-border,#cbd5e1); border-radius:12px; font-size:13px; transition:border-color .2s, box-shadow .2s; outline:none;" onfocus="this.style.borderColor='var(--fv-accent,#0047AB)'; this.style.boxShadow='0 0 0 3px rgba(0,71,171,.08)';" onblur="this.style.borderColor=''; this.style.boxShadow='';"></div>
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
             ${['pendientes', 'aprobadas', 'rechazadas', 'todas'].map(ff => `<button class="fin-chip${_solFiltro === ff ? (ff === 'rechazadas' ? ' on-danger' : ' on') : ''}" onclick="_solFiltro='${ff}'; _pintarSolicitudes()">${({ pendientes: 'Pendientes', aprobadas: 'Aprobadas', rechazadas: 'Rechazadas', todas: 'Todas' })[ff]}</button>`).join('')}
         </div>
@@ -30968,7 +31113,7 @@ function _pintarClientes() {
     const clientes = _finCache.clientes || [];
     const conActivo = clientes.filter(c => finFinanciamientosDeCliente(c.id).some(f => ['activo', 'atrasado'].includes(finEstado(f))));
     if(kpis) {
-        const kpi = (label, val, color, icon) => `<div class="kpi-box" style="border-top-color:${color};"><small>${label}</small><strong>${val}</strong><i class="ti ${icon}"></i></div>`;
+        const kpi = (label, val, color, icon) => `<div class="fv-kpi" style="--kpi-color:${color};"><small>${label}</small><strong>${val}</strong><i class="ti ${icon} fv-kpi-icon"></i></div>`;
         kpis.innerHTML = kpi('Clientes', clientes.length, '#0891b2', 'ti-users') + kpi('Con financiamiento activo', conActivo.length, '#16a34a', 'ti-user-check');
     }
     const puedeCrearCli = isAdminUser() || tienePermiso('financiamientos_crear');
@@ -31160,7 +31305,7 @@ function _pintarCobros() {
     const hoyC = todas.filter(x => x.dias === 0);
     const totalAtraso = atrasadas.reduce((s, x) => s + x.cuota.pendiente, 0);
     if(kpis) {
-        const kpi = (label, val, color, icon) => `<div class="kpi-box" style="border-top-color:${color};"><small>${label}</small><strong>${val}</strong><i class="ti ${icon}"></i></div>`;
+        const kpi = (label, val, color, icon) => `<div class="fv-kpi" style="--kpi-color:${color};"><small>${label}</small><strong>${val}</strong><i class="ti ${icon} fv-kpi-icon"></i></div>`;
         kpis.innerHTML = kpi('Vencen hoy', hoyC.length, 'var(--fin-warn)', 'ti-calendar-due') + kpi('Atrasadas', atrasadas.length, 'var(--fin-danger)', 'ti-alert-triangle') + kpi('Monto en atraso', money(totalAtraso), 'var(--fin-danger)', 'ti-cash');
     }
     const filtros = { atrasados: 'Atrasados', hoy: 'Vencen hoy', semana: '7 días', mes: '30 días' };
@@ -31214,7 +31359,7 @@ function _pintarMora() {
     const atrasados = (_finCache.financiamientos || []).filter(f => finEstado(f) === 'atrasado').map(f => ({ f, ...(_finMoraInfo(f)) })).sort((a, b) => b.dias - a.dias);
     const totalMonto = atrasados.reduce((s, x) => s + x.pend, 0);
     if(kpisEl) {
-        const kpi = (l, v, c, i) => `<div class="kpi-box" style="border-top-color:${c};"><small>${l}</small><strong>${v}</strong><i class="ti ${i}"></i></div>`;
+        const kpi = (l, v, c, i) => `<div class="fv-kpi" style="--kpi-color:${c};"><small>${l}</small><strong>${v}</strong><i class="ti ${i} fv-kpi-icon"></i></div>`;
         kpisEl.innerHTML = kpi('En mora', atrasados.length, 'var(--fin-danger)', 'ti-user-x') + kpi('Monto en mora', money(totalMonto), 'var(--fin-danger)', 'ti-cash') +
             kpi('+30 días', atrasados.filter(x => x.dias > 30).length, 'var(--fin-danger)', 'ti-alert-octagon') + kpi('+60 días', atrasados.filter(x => x.dias > 60).length, 'var(--fin-danger)', 'ti-flame');
     }
@@ -31260,7 +31405,7 @@ function _pintarMDMTab() {
     const fins = (_finCache.financiamientos || []).filter(f => finEstado(f) !== 'cancelado');
     const cnt = (e) => fins.filter(f => (f.mdm_estado || 'ninguno') === e).length;
     if(kpisEl) {
-        const kpi = (l, v, c, i) => `<div class="kpi-box" style="border-top-color:${c};"><small>${l}</small><strong>${v}</strong><i class="ti ${i}"></i></div>`;
+        const kpi = (l, v, c, i) => `<div class="fv-kpi" style="--kpi-color:${c};"><small>${l}</small><strong>${v}</strong><i class="ti ${i} fv-kpi-icon"></i></div>`;
         kpisEl.innerHTML = kpi('Enrolados', fins.filter(f => f.mdm_enrolado).length, 'var(--fin-ok)', 'ti-device-mobile-check') +
             kpi('Activos', cnt('activo'), 'var(--fin-ok)', 'ti-lock-open') + kpi('Bloqueados', cnt('bloqueado'), 'var(--fin-danger)', 'ti-lock') + kpi('Sin MDM', cnt('ninguno'), 'var(--fin-muted)', 'ti-device-mobile-off');
     }
@@ -31342,7 +31487,7 @@ function _pintarDashboardFin() {
     const pctMorosidad = activos.length ? Math.round(atrasados.length / activos.length * 1000) / 10 : 0;
 
     // KPIs
-    const kpi = (label, val, color, icon) => `<div class="kpi-box" style="border-top-color:${color};"><small>${label}</small><strong>${val}</strong><i class="ti ${icon}"></i></div>`;
+    const kpi = (label, val, color, icon) => `<div class="fv-kpi" style="--kpi-color:${color};"><small>${label}</small><strong>${val}</strong><i class="ti ${icon} fv-kpi-icon"></i></div>`;
     if(kpisEl) kpisEl.innerHTML =
         kpi('Activos', activos.length, 'var(--fin-ok)', 'ti-cash') +
         kpi('Capital pendiente', money(capitalPendiente), 'var(--fin-info)', 'ti-wallet') +
@@ -31356,20 +31501,20 @@ function _pintarDashboardFin() {
     activos.forEach(f => { const d = _finBucketDias(f); const s = finSaldo(f); if(d <= 0) b.aldia += s; else if(d <= 30) b.d1 += s; else if(d <= 60) b.d2 += s; else b.d3 += s; });
     const totalCartera = b.aldia + b.d1 + b.d2 + b.d3;
     const pct = v => totalCartera > 0 ? Math.round(v / totalCartera * 100) : 0;
-    const legItem = (c, txt, v) => `<div style="display:flex; align-items:center; justify-content:space-between; font-size:12.5px; margin:3px 0;"><span style="display:flex; align-items:center; gap:7px;"><i class="fin-dot" style="background:${c};"></i>${txt}</span><b>${pct(v)}%</b></div>`;
+    const legItem = (c, txt, v) => `<div class="fv-legend-row"><span><i class="fin-dot" style="background:${c};"></i>${txt}</span><b>${pct(v)}%</b></div>`;
 
     // Próximos vencimientos
     const pend = finCuotasPendientes();
     const grupo = (fil) => { const a = pend.filter(fil); return { n: a.length, monto: a.reduce((s, x) => s + x.cuota.pendiente, 0) }; };
     const gVenc = grupo(x => x.dias > 0), gHoy = grupo(x => x.dias === 0), gMan = grupo(x => x.dias === -1), gSem = grupo(x => x.dias <= -2 && x.dias >= -7);
-    const rowVenc = (lbl, g, color) => `<div style="display:flex; justify-content:space-between; align-items:center; padding:7px 0; border-bottom:1px solid #f1f5f9; font-size:13px;"><span style="display:flex; align-items:center; gap:7px; color:${color}; font-weight:600;"><i class="fin-dot" style="background:${color};"></i>${lbl}</span><span>${g.n} cuota${g.n === 1 ? '' : 's'} · <b>${money(g.monto)}</b></span></div>`;
+    const rowVenc = (lbl, g, color) => `<div class="fv-venc-row"><span style="display:flex; align-items:center; gap:7px; color:${color}; font-weight:600;"><i class="fin-dot" style="background:${color};"></i>${lbl}</span><span>${g.n} cuota${g.n === 1 ? '' : 's'} · <b>${money(g.monto)}</b></span></div>`;
 
     // Alertas
     const solPend = (_finCache.solicitudes || []).filter(s => s.estado === 'pendiente').length;
     const cli30 = new Set(fins.filter(f => _finBucketDias(f) > 30).map(f => f.fin_cliente_id || f.id)).size;
     const listosBloq = finListosParaBloqueo().length;
     const sinContrato = activos.filter(f => !f.contrato_en).length;
-    const alerta = (icon, txt, n, color, accion) => n > 0 ? `<div class="fin-click-card" onclick="${accion}" style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border:1px solid var(--fin-warn-brd); background:var(--fin-warn-bg); border-radius:9px; margin-bottom:6px; cursor:pointer; font-size:13px;"><span><i class="ti ${icon}" style="color:${color};"></i> ${txt}</span><b style="color:${color};">${n} ›</b></div>` : '';
+    const alerta = (icon, txt, n, color, accion) => n > 0 ? `<div class="fv-alert fv-alert-pulse" onclick="${accion}" style="border:1px solid var(--fin-warn-brd); background:var(--fin-warn-bg);"><span><i class="ti ${icon}" style="color:${color};"></i> ${txt}</span><b style="color:${color};">${n} ›</b></div>` : '';
     const alertasHtml = [
         alerta('ti-file-text', 'Solicitudes por aprobar', solPend, 'var(--fin-warn)', "finCambiarTab('solicitudes')"),
         alerta('ti-user-x', 'Clientes con +30 días de mora', cli30, 'var(--fin-danger)', "finCambiarTab('cobros')"),
@@ -31395,51 +31540,51 @@ function _pintarDashboardFin() {
     const nVenc = gVenc.n + gHoy.n;
     const nReco = finRecordatoriosHoy().filter(x => !x.enviado).length;
     cont.innerHTML = `
-        ${puedeCobrarDash ? `<div class="card" style="margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; background:linear-gradient(180deg, var(--fin-ok-bg) 0%, #ffffff 70%); border:1px solid var(--fin-ok-brd);">
-            <div class="fin-click-card" onclick="finCambiarTab('cobros')" style="cursor:pointer; display:flex; align-items:center; gap:12px; border-radius:12px; padding:4px;">
-                <div style="width:46px; height:46px; border-radius:13px; background:${nVenc > 0 ? 'var(--fin-danger-bg)' : 'var(--fin-ok-bg)'}; display:flex; align-items:center; justify-content:center; flex:none;">
-                    <i class="ti ${nVenc > 0 ? 'ti-alarm' : 'ti-checks'}" style="font-size:24px; color:${nVenc > 0 ? 'var(--fin-danger)' : 'var(--fin-ok)'};"></i>
+        ${puedeCobrarDash ? `<div class="fv-cobro-bar">
+            <div class="fv-cobro-left" onclick="finCambiarTab('cobros')">
+                <div class="fv-cobro-icon" style="background:${nVenc > 0 ? 'var(--fin-danger-bg)' : 'var(--fin-ok-bg)'};">
+                    <i class="ti ${nVenc > 0 ? 'ti-alarm' : 'ti-checks'}" style="font-size:26px; color:${nVenc > 0 ? 'var(--fin-danger)' : 'var(--fin-ok)'};"></i>
                 </div>
                 <div>
-                    <div style="font-size:22px; font-weight:800; color:${nVenc > 0 ? 'var(--fin-danger)' : 'var(--fin-ok)'}; line-height:1;">${nVenc}</div>
-                    <div style="font-size:12px; color:var(--text-muted);">cuota${nVenc === 1 ? '' : 's'} vencida${nVenc === 1 ? '' : 's'} / vence${nVenc === 1 ? '' : 'n'} hoy</div>
+                    <div class="fv-cobro-num" style="color:${nVenc > 0 ? 'var(--fin-danger)' : 'var(--fin-ok)'};">${nVenc}</div>
+                    <div class="fv-cobro-sub">cuota${nVenc === 1 ? '' : 's'} vencida${nVenc === 1 ? '' : 's'} / vence${nVenc === 1 ? '' : 'n'} hoy</div>
                 </div>
             </div>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                <button class="btn btn-light" onclick="abrirRecordatoriosHoy()" style="padding:13px 16px; font-size:14px; font-weight:700;"><i class="ti ti-brand-whatsapp"></i> Recordatorios${nReco > 0 ? ` <span class="fin-badge info" style="margin-left:2px;">${nReco}</span>` : ''}</button>
-                <button class="btn btn-blue" onclick="abrirCobroRapido()" style="padding:13px 24px; font-size:15px; font-weight:700;"><i class="ti ti-cash-register"></i> Registrar pago</button>
+                <button class="btn btn-light" onclick="abrirRecordatoriosHoy()" style="padding:12px 16px; font-size:13.5px; font-weight:700; border-radius:12px;"><i class="ti ti-brand-whatsapp"></i> Recordatorios${nReco > 0 ? ` <span class="fin-badge info" style="margin-left:2px;">${nReco}</span>` : ''}</button>
+                <button class="btn btn-blue" onclick="abrirCobroRapido()" style="padding:12px 24px; font-size:14px; font-weight:700; border-radius:12px; background:linear-gradient(135deg,#0047AB,#1d6fdb); border:none; box-shadow:0 4px 14px rgba(0,71,171,.3);"><i class="ti ti-cash-register"></i> Registrar pago</button>
             </div>
         </div>` : ''}
-        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px; margin-bottom:14px;">
-            <div class="card">
-                <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-chart-donut" style="color:var(--fin-info);"></i> Resumen de cartera</h3>
-                <div style="display:flex; align-items:center; gap:14px;">
-                    <div style="width:130px; height:130px; position:relative; flex:none;"><canvas id="finDonutCartera"></canvas></div>
-                    <div style="flex:1;">
+        <div class="fv-dash-grid">
+            <div class="card" style="padding:18px;">
+                <h3><i class="ti ti-chart-donut" style="color:var(--fin-info);"></i> Resumen de cartera</h3>
+                <div class="fv-donut-wrap">
+                    <div class="fv-donut-chart"><canvas id="finDonutCartera"></canvas></div>
+                    <div class="fv-donut-legend">
                         ${legItem('#059669', 'Al día', b.aldia)}
                         ${legItem('#f59e0b', 'Mora 1-30 días', b.d1)}
                         ${legItem('#f97316', 'Mora 31-60 días', b.d2)}
                         ${legItem('#b91c1c', 'Mora +60 días', b.d3)}
                     </div>
                 </div>
-                <div style="border-top:1px solid #f1f5f9; margin-top:8px; padding-top:8px; font-size:13px;">Total cartera: <b>${money(totalCartera)}</b></div>
+                <div style="border-top:1px solid #f1f5f9; margin-top:10px; padding-top:10px; font-size:13px;">Total cartera: <b>${money(totalCartera)}</b></div>
             </div>
-            <div class="card">
-                <h3 style="margin:0 0 8px; font-size:15px;"><i class="ti ti-calendar-due" style="color:var(--fin-warn);"></i> Próximos vencimientos</h3>
+            <div class="card" style="padding:18px;">
+                <h3><i class="ti ti-calendar-due" style="color:var(--fin-warn);"></i> Próximos vencimientos</h3>
                 ${rowVenc('Vencidas', gVenc, 'var(--fin-danger)')}
                 ${rowVenc('Hoy', gHoy, 'var(--fin-warn)')}
                 ${rowVenc('Mañana', gMan, 'var(--fin-info)')}
                 ${rowVenc('Esta semana (7 días)', gSem, 'var(--fin-muted)')}
-                <div style="text-align:right; margin-top:8px;"><button class="btn btn-light" onclick="finCambiarTab('cobros')" style="font-size:12px;">Ver cobros ›</button></div>
+                <div style="text-align:right; margin-top:10px;"><button class="btn btn-light" onclick="finCambiarTab('cobros')" style="font-size:12px; border-radius:8px;">Ver cobros ›</button></div>
             </div>
-            <div class="card">
-                <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-bell" style="color:var(--fin-warn);"></i> Alertas importantes</h3>
+            <div class="card" style="padding:18px;">
+                <h3><i class="ti ti-bell" style="color:var(--fin-warn);"></i> Alertas importantes</h3>
                 ${alertasHtml}
             </div>
         </div>
-        <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;"><h3 style="margin:0; font-size:15px;"><i class="ti ti-users" style="color:var(--fin-info);"></i> Financiamientos recientes</h3><button class="btn btn-light" onclick="finCambiarTab('clientes')" style="font-size:12px;">Ver clientes ›</button></div>
-            ${recientes.length ? `<div style="display:flex; gap:12px; flex-wrap:wrap;">${recientes.map(cardCli).join('')}</div>` : `<div style="color:var(--text-muted); font-size:13px;">Aún no hay financiamientos.</div>`}
+        <div class="card" style="padding:18px; animation:fvFadeUp .55s ease both; animation-delay:.3s;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;"><h3 style="margin:0; font-size:15px; display:flex; align-items:center; gap:8px;"><i class="ti ti-users" style="color:var(--fin-info);"></i> Financiamientos recientes</h3><button class="btn btn-light" onclick="finCambiarTab('clientes')" style="font-size:12px; border-radius:8px;">Ver clientes ›</button></div>
+            ${recientes.length ? `<div class="fv-recent-grid">${recientes.map(cardCli).join('')}</div>` : `<div style="color:var(--text-muted); font-size:13px;">Aún no hay financiamientos.</div>`}
         </div>`;
 
     // Donut (Chart.js)
@@ -31486,10 +31631,10 @@ function _pintarReportes() {
     cont.innerHTML = `
         <div class="card" style="margin-bottom:14px;">
             <h3 style="margin:0 0 10px; font-size:15px;"><i class="ti ti-cash" style="color:#16a34a;"></i> Caja (cobrado)</h3>
-            <div class="kpi-row">
-                <div class="kpi-box" style="border-top-color:#16a34a;"><small>Hoy</small><strong>${money(cobradoHoy)}</strong></div>
-                <div class="kpi-box" style="border-top-color:#0891b2;"><small>Esta semana</small><strong>${money(cobradoSemana)}</strong></div>
-                <div class="kpi-box" style="border-top-color:#7c3aed;"><small>Este mes</small><strong>${money(cobradoMes)}</strong></div>
+            <div class="fv-kpis" style="margin-bottom:0;">
+                <div class="fv-kpi" style="--kpi-color:#16a34a;"><small>Hoy</small><strong>${money(cobradoHoy)}</strong><i class="ti ti-calendar fv-kpi-icon"></i></div>
+                <div class="fv-kpi" style="--kpi-color:#0891b2;"><small>Esta semana</small><strong>${money(cobradoSemana)}</strong><i class="ti ti-calendar-week fv-kpi-icon"></i></div>
+                <div class="fv-kpi" style="--kpi-color:#7c3aed;"><small>Este mes</small><strong>${money(cobradoMes)}</strong><i class="ti ti-calendar-month fv-kpi-icon"></i></div>
             </div>
             <div class="table-wrap" style="margin-top:8px;"><table><tbody>
                 ${fila('Efectivo (mes)', money(porMetodo.efectivo))}
@@ -33059,9 +33204,9 @@ function _consultaCalcular() {
     o.valor_cuota = finValorCuotaCalc(o);
     const interes = finInteresTotal(o);
     const total = finMontoCuotas(o);
-    const kpi = (label, val, color) => `<div class="kpi-box" style="border-top-color:${color};"><small>${label}</small><strong>${val}</strong></div>`;
+    const kpi = (label, val, color) => `<div class="fv-kpi" style="--kpi-color:${color};"><small>${label}</small><strong>${val}</strong></div>`;
     cont.innerHTML = `
-        <div class="kpi-row" style="margin-bottom:14px;">
+        <div class="fv-kpis" style="margin-bottom:14px;">
             ${kpi('Cuota', money(o.valor_cuota), '#16a34a')}
             ${kpi('Interés total', money(interes), '#b45309')}
             ${kpi('Total a pagar', money(total), '#1d4ed8')}
