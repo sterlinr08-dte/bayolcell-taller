@@ -340,7 +340,8 @@
         const fresh = state.threads.find(x => x.id === state.selected.id);
         if (fresh) state.selected = fresh;
       }
-      renderThreads(); setupRealtime();
+      if(!igActualizarListaIncremental()) renderThreads();
+      setupRealtime();
       if (state.selected && refreshSelected) await loadMessages(state.selected.id,false);
     } catch(e) {
       if (gen !== state.threadsGeneration) return;
@@ -407,7 +408,7 @@
       if(error) throw error;
       if(generation!==state.messageGeneration || state.selected?.id!==id) return;
       state.messages=(data||[]).reverse();
-      renderChat(h,{});
+      if(!igActualizarChatIncremental()) renderChat(h,{});
       // Attachments cannot hold the conversation or composer in a loading state.
       const pending=state.messages.filter(m=>m.media_path).slice(-40);
       async function worker(){
@@ -451,7 +452,7 @@
     // Facebook -- Instagram NO tiene reacciones aquí porque Zernio no
     // expone esa acción para Instagram (solo hay endpoint de reacciones
     // para Facebook); reaccionar quedaría simulado, así que se deja fuera.
-    const rows=state.messages.map(m=>`<div class="bc-ig-msg-row ${m.direccion==='out'?'out':'in'}"><div class="bc-ig-msg">${mediaMarkup(m,mediaUrls[m.id])}${m.cuerpo ? `<div>${esc(m.cuerpo).replace(/\n/g,'<br>')}</div>` : ''}<span class="bc-ig-msg-time">${esc(fmtTime(m.creado_en))}${m.direccion==='out' ? ` · ${esc(m.estado||'enviado')}` : ''}</span>${m.cuerpo ? `<button type="button" class="bc-ig-msg-menu" data-igmenu="${esc(m.id)}" aria-label="Acciones del mensaje"><i class="ti ti-chevron-down"></i></button>` : ''}</div></div>`).join('');
+    const rows=state.messages.map(m=>`<div class="bc-ig-msg-row ${m.direccion==='out'?'out':'in'}" data-igmsgid="${esc(m.id)}"><div class="bc-ig-msg">${mediaMarkup(m,mediaUrls[m.id])}${m.cuerpo ? `<div>${esc(m.cuerpo).replace(/\n/g,'<br>')}</div>` : ''}<span class="bc-ig-msg-time">${esc(fmtTime(m.creado_en))}${m.direccion==='out' ? ` · ${esc(m.estado||'enviado')}` : ''}</span>${m.cuerpo ? `<button type="button" class="bc-ig-msg-menu" data-igmenu="${esc(m.id)}" aria-label="Acciones del mensaje"><i class="ti ti-chevron-down"></i></button>` : ''}</div></div>`).join('');
     // Asignarme/Reasignar (15 sept 2026): mismo helper que ya usa WhatsApp
     // (_crmAsignarHTML, definido en taller.html) -- así "asignado a mí" /
     // "sin dueño" queda visible igual en los 3 canales, y un empleado
@@ -555,6 +556,69 @@
       notify('Mensaje reenviado.');
     }catch(err){ notify(err.message||'No se pudo reenviar.','error'); }
     finally{ if(box) box.hidden=true; igForwardMsg=null; }
+  }
+
+  function igActualizarChatIncremental(){
+    const chat=$('#bcIgMessages');
+    if(!chat || !state.selected) return false;
+    const rendered=new Set();
+    chat.querySelectorAll('[data-igmsgid]').forEach(el=>rendered.add(el.dataset.igmsgid));
+    if(!rendered.size) return false;
+    state.messages.forEach(m=>{
+      if(m.direccion!=='out' || !rendered.has(m.id)) return;
+      const row=chat.querySelector(`[data-igmsgid="${m.id}"]`);
+      if(!row) return;
+      const time=row.querySelector('.bc-ig-msg-time');
+      if(time) time.textContent=fmtTime(m.creado_en)+(m.direccion==='out'?' · '+(m.estado||'enviado'):'');
+    });
+    const newMsgs=state.messages.filter(m=>m.id && !rendered.has(m.id));
+    if(newMsgs.length){
+      const pegado=chat.scrollHeight-chat.clientHeight-chat.scrollTop<80;
+      const html=newMsgs.map(m=>`<div class="bc-ig-msg-row ${m.direccion==='out'?'out':'in'}" data-igmsgid="${esc(m.id)}"><div class="bc-ig-msg">${mediaMarkup(m)}${m.cuerpo ? `<div>${esc(m.cuerpo).replace(/\n/g,'<br>')}</div>` : ''}<span class="bc-ig-msg-time">${esc(fmtTime(m.creado_en))}${m.direccion==='out' ? ` · ${esc(m.estado||'enviado')}` : ''}</span>${m.cuerpo ? `<button type="button" class="bc-ig-msg-menu" data-igmenu="${esc(m.id)}" aria-label="Acciones del mensaje"><i class="ti ti-chevron-down"></i></button>` : ''}</div></div>`).join('');
+      chat.insertAdjacentHTML('beforeend',html);
+      chat.querySelectorAll('[data-igmenu]').forEach(btn=>{if(!btn._bcWired){btn._bcWired=true;btn.addEventListener('click',(e)=>{e.stopPropagation();igMessageMenu(btn.dataset.igmenu);});}});
+      const pending=newMsgs.filter(m=>m.media_path);
+      (async()=>{for(const m of pending){const url=await signedMedia(m);const slot=document.getElementById('bcIgMedia-'+m.id);if(slot)slot.innerHTML=url?mediaMarkup(m,url):'<span>Adjunto no disponible</span>';}})();
+      if(pegado){chat.scrollTop=chat.scrollHeight;requestAnimationFrame(()=>{chat.scrollTop=chat.scrollHeight;});}
+    }
+    return true;
+  }
+
+  function igActualizarListaIncremental(){
+    const host=$('#bcIgThreads');
+    if(!host || !host.children.length) return false;
+    const botones=host.querySelectorAll('[data-id]');
+    if(!botones.length) return false;
+    const q=state.search;
+    const items=state.threads.filter(h=>!q||`${h.nombre_perfil||''} ${h.participant_username||''} ${h.ultimo_mensaje_preview||''}`.toLowerCase().includes(q));
+    const idsActuales=new Set();
+    botones.forEach(el=>idsActuales.add(el.dataset.id));
+    const idsNuevos=new Set(items.map(h=>h.id));
+    if(idsActuales.size!==idsNuevos.size) return false;
+    let rebuild=false;
+    idsNuevos.forEach(id=>{if(!idsActuales.has(id))rebuild=true;});
+    if(rebuild) return false;
+    items.forEach(h=>{
+      const btn=host.querySelector(`[data-id="${h.id}"]`);
+      if(!btn) return;
+      const unread=Number(h.no_leidos_count||0);
+      btn.classList.toggle('on',state.selected?.id===h.id);
+      btn.classList.toggle('unread',!!unread);
+      const time=btn.querySelector('.bc-ig-thread-time');
+      if(time) time.textContent=fmtTime(h.ultimo_mensaje_at);
+      const preview=btn.querySelector('.bc-ig-thread-preview');
+      if(preview) preview.textContent=h.ultimo_mensaje_preview||'Sin vista previa';
+      const badge=btn.querySelector('.bc-ig-unread');
+      if(badge && !unread) badge.remove();
+      else if(!badge && unread) btn.insertAdjacentHTML('beforeend',`<span class="bc-ig-unread">${unread>99?'99+':unread}</span>`);
+      else if(badge && unread) badge.textContent=unread>99?'99+':unread;
+    });
+    const order=items.map(h=>h.id);
+    const actual=Array.from(host.querySelectorAll('[data-id]'));
+    let needsReorder=false;
+    for(let i=0;i<order.length;i++){if(!actual[i]||actual[i].dataset.id!==order[i]){needsReorder=true;break;}}
+    if(needsReorder) order.forEach(id=>{const el=host.querySelector(`[data-id="${id}"]`);if(el)host.appendChild(el);});
+    return true;
   }
 
   let igRealtimeNeedsChat=false;

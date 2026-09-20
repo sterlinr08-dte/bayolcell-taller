@@ -190,7 +190,7 @@
       } catch(e){ console.error('CRM Social Facebook: filtro de asignacion fallo', e); }
       setupFacebookRealtime();
       if(!threads?.length){host.innerHTML='<div class="bc-social-empty-state"><i class="ti ti-message-circle"></i><b>Sin conversaciones todavía</b><span>La importación inicial de Zernio puede tardar unos segundos.</span></div>';return;}
-      host.innerHTML=threads.map(t=>{const name=t.participant_name||t.participant_username||'Contacto de Facebook';const initials=name.split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase();return `<button type="button" class="bc-social-generic-thread${t.no_leidos_count?' unread':''}" data-fb-thread="${t.id}"><span class="bc-social-generic-avatar">${escapeHtml(initials)}</span><span class="bc-social-generic-thread-copy"><b>${escapeHtml(name)}</b><small>${escapeHtml(t.ultimo_mensaje_preview||'Sin mensajes')}</small></span>${t.no_leidos_count?`<em>${t.no_leidos_count}</em>`:''}</button>`;}).join('');
+      if(!fbActualizarListaIncremental(host,threads)) host.innerHTML=threads.map(t=>{const name=t.participant_name||t.participant_username||'Contacto de Facebook';const initials=name.split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase();return `<button type="button" class="bc-social-generic-thread${t.no_leidos_count?' unread':''}" data-fb-thread="${t.id}"><span class="bc-social-generic-avatar">${escapeHtml(initials)}</span><span class="bc-social-generic-thread-copy"><b>${escapeHtml(name)}</b><small>${escapeHtml(t.ultimo_mensaje_preview||'Sin mensajes')}</small></span>${t.no_leidos_count?`<em>${t.no_leidos_count}</em>`:''}</button>`;}).join('');
     }catch(e){
       state.meta.facebook.ready=false;
       syncHeaderState();
@@ -212,6 +212,36 @@
   // Supabase (mismo problema que ya se había resuelto antes para
   // whatsapp_hilos/whatsapp_mensajes/leads) -- sin ESA migración, esta
   // suscripción tampoco recibiría nada aunque el código esté bien.
+  function fbActualizarListaIncremental(host,threads){
+    if(!host||!host.children.length)return false;
+    const botones=host.querySelectorAll('[data-fb-thread]');
+    if(!botones.length)return false;
+    const idsActuales=new Set();
+    botones.forEach(el=>idsActuales.add(el.dataset.fbThread));
+    const idsNuevos=new Set(threads.map(t=>t.id));
+    if(idsActuales.size!==idsNuevos.size)return false;
+    let rebuild=false;
+    idsNuevos.forEach(id=>{if(!idsActuales.has(id))rebuild=true;});
+    if(rebuild)return false;
+    threads.forEach(t=>{
+      const btn=host.querySelector(`[data-fb-thread="${t.id}"]`);if(!btn)return;
+      const unread=Number(t.no_leidos_count||0);
+      btn.classList.toggle('unread',!!unread);
+      const preview=btn.querySelector('small');
+      if(preview) preview.textContent=t.ultimo_mensaje_preview||'Sin mensajes';
+      const badge=btn.querySelector('em');
+      if(badge&&!unread)badge.remove();
+      else if(!badge&&unread)btn.insertAdjacentHTML('beforeend',`<em>${unread}</em>`);
+      else if(badge&&unread)badge.textContent=unread;
+    });
+    const order=threads.map(t=>t.id);
+    const actual=Array.from(host.querySelectorAll('[data-fb-thread]'));
+    let needsReorder=false;
+    for(let i=0;i<order.length;i++){if(!actual[i]||actual[i].dataset.fbThread!==order[i]){needsReorder=true;break;}}
+    if(needsReorder)order.forEach(id=>{const el=host.querySelector(`[data-fb-thread="${id}"]`);if(el)host.appendChild(el);});
+    return true;
+  }
+
   let facebookRealtimeChannel=null;
   let facebookRealtimeTimer=null;
   function setupFacebookRealtime(){
@@ -231,8 +261,21 @@
     facebookRealtimeTimer=setTimeout(async()=>{
       if(!(state.visible && state.channel==='facebook')) return;
       await loadFacebookThreads();
-      if(openChat && facebookSelectedThread) await openFacebookThread(facebookSelectedThread);
+      if(openChat && facebookSelectedThread) await fbRefreshChatIncremental(facebookSelectedThread);
     },180);
+  }
+  async function fbRefreshChatIncremental(id){
+    const client=typeof supabaseClient!=='undefined'?supabaseClient:window.supabaseClient;
+    if(!client?.from)return;
+    try{
+      const {data:thread}=await withTimeout(client.from('social_hilos').select('id,participant_name,participant_username,asignado_id,asignado_tipo').eq('id',id).maybeSingle(),12000);
+      if(!thread||facebookSelectedThread!==id)return;
+      const {data:rows}=await withTimeout(client.from('social_mensajes').select('id,direccion,cuerpo,tipo_contenido,media_url,estado,creado_en,metadata').eq('hilo_id',id).order('creado_en',{ascending:false}).order('id',{ascending:false}).limit(500),12000);
+      if(facebookSelectedThread!==id)return;
+      const messages=(rows||[]).filter(m=>!m.metadata?.upload_only).reverse();
+      if(window.BayolFacebookChat?.incrementalChat && window.BayolFacebookChat.incrementalChat(thread,messages)) return;
+      await openFacebookThread(id);
+    }catch{await openFacebookThread(id);}
   }
 
   let facebookMessageGeneration=0;
@@ -249,7 +292,8 @@
     // render() la agrega más abajo, y si algo falla antes de eso -- ver los
     // catch/fallback de esta función -- nunca se agregaba).
     $('#bcSocialFacebookPanel')?.classList.add('bc-fb-open');
-    chat.innerHTML='<div class="bc-social-loading"><span class="bc-social-spin"></span>Cargando mensajes…</div>';
+    const esRefresco=facebookSelectedThread===id && chat.querySelector('#bcFbMessages');
+    if(!esRefresco) chat.innerHTML='<div class="bc-social-loading"><span class="bc-social-spin"></span>Cargando mensajes…</div>';
     try{
     const {data:thread,error:threadError}=await withTimeout(client.from('social_hilos').select('id,participant_name,participant_username,asignado_id,asignado_tipo').eq('id',id).maybeSingle(),12000);
     if(!current())return;

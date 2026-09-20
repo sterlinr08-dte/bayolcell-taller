@@ -226,5 +226,28 @@
   window.visualViewport?.addEventListener('scroll',resize);
   window.addEventListener('resize',resize);
   document.addEventListener('focusin',e=>{if(e.target?.id==='bcFbText'){resize();requestAnimationFrame(resize);setTimeout(resize,180);setTimeout(resize,420);}});
-  window.BayolFacebookChat={render,close};
+  function incrementalChat(thread,rows){
+    const host=$('#bcFbChat');if(!host||!selected||selected!==thread.id)return false;
+    const msgContainer=$('#bcFbMessages');if(!msgContainer)return false;
+    const rendered=new Set();
+    msgContainer.querySelectorAll('[data-message]').forEach(el=>rendered.add(el.dataset.message));
+    if(!rendered.size)return false;
+    rows.forEach(m=>{
+      if(m.direccion!=='out'||!rendered.has(m.id))return;
+      const el=msgContainer.querySelector(`[data-message="${m.id}"]`);if(!el)return;
+      const small=el.querySelector('small');
+      if(small)small.textContent=new Date(m.creado_en).toLocaleTimeString('es-DO',{hour:'2-digit',minute:'2-digit'})+' · '+(m.estado||'enviado');
+    });
+    const newMsgs=rows.filter(m=>m.id&&!rendered.has(m.id));
+    if(newMsgs.length){
+      const pegado=msgContainer.scrollHeight-msgContainer.clientHeight-msgContainer.scrollTop<80;
+      const html=newMsgs.map(m=>`<article class="bc-fb-row ${m.direccion==='out'?'out':'in'}" data-message="${esc(m.id)}"><div class="bc-fb-bubble">${media(m)}<div class="bc-fb-body">${esc(m.cuerpo||'')}</div><small>${esc(new Date(m.creado_en).toLocaleTimeString('es-DO',{hour:'2-digit',minute:'2-digit'}))}${m.direccion==='out'?' · '+esc(m.estado||'enviado'):''}</small><button type="button" class="bc-fb-message-menu" data-menu="${esc(m.id)}" aria-label="Acciones del mensaje"><i class="ti ti-chevron-down"></i></button></div></article>`).join('');
+      msgContainer.insertAdjacentHTML('beforeend',html);
+      msgContainer.querySelectorAll('[data-menu]').forEach(btn=>{if(!btn._bcWired){btn._bcWired=true;btn.onclick=()=>messageMenu(btn.dataset.menu);}});
+      messages=rows;
+      if(pegado){msgContainer.scrollTop=msgContainer.scrollHeight;requestAnimationFrame(()=>{msgContainer.scrollTop=msgContainer.scrollHeight;});}
+    } else { messages=rows; }
+    return true;
+  }
+  window.BayolFacebookChat={render,close,incrementalChat};
 })();

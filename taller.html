@@ -33165,8 +33165,8 @@ async function _crmSinParpadeo(fn) {
 }
 async function _crmRepintarWhatsappSilencioso() {
     await _crmSinParpadeo(async () => {
-        _pintarWhatsappLista();
-        _pintarWhatsappDetalle();
+        _actualizarListaWhatsappIncremental();
+        if(!_waActualizarChatIncremental()) _pintarWhatsappDetalle();
         _crmPintarCabecera();
         _waActualizarAltoVisual();
     });
@@ -33386,6 +33386,62 @@ function _crmHilosFiltrados() {
     });
 }
 
+function _actualizarListaWhatsappIncremental() {
+    const cont = document.getElementById('waLista');
+    if(!cont || !cont.children.length) { _pintarWhatsappLista(); return; }
+    const lista = _crmHilosFiltrados();
+    if(!lista.length) { _pintarWhatsappLista(); return; }
+    const existentes = cont.querySelectorAll('[data-hiloid]');
+    if(!existentes.length) { _pintarWhatsappLista(); return; }
+    const idsActuales = new Set();
+    existentes.forEach(el => idsActuales.add(el.dataset.hiloid));
+    const idsNuevos = new Set(lista.map(h => h.id));
+    let necesitaRebuild = false;
+    if(idsActuales.size !== idsNuevos.size) necesitaRebuild = true;
+    if(!necesitaRebuild) idsNuevos.forEach(id => { if(!idsActuales.has(id)) necesitaRebuild = true; });
+    if(necesitaRebuild) { _pintarWhatsappLista(); return; }
+    lista.forEach(h => {
+        const row = cont.querySelector(`[data-hiloid="${h.id}"]`);
+        if(!row) return;
+        const noLeido = (h.no_leidos_count || 0) > 0;
+        const activo = h.id === _waHiloId;
+        const pendienteHumano = _crmEsPendiente(h);
+        row.classList.toggle('active', activo);
+        row.classList.toggle('no-leido', noLeido);
+        row.classList.toggle('pendiente', pendienteHumano);
+        const hora = row.querySelector('.fila-hora');
+        if(hora) hora.textContent = _waHoraRelativa(h.ultimo_mensaje_at);
+        const preview = row.querySelector('.fila-preview');
+        if(preview) preview.textContent = h.ultimo_mensaje_preview || '';
+        const badge = row.querySelector('.fila-badge');
+        if(badge) { badge.textContent = h.no_leidos_count || ''; badge.style.display = noLeido ? '' : 'none'; }
+        else if(noLeido) {
+            const span = row.querySelector('.fila-pendiente');
+            const wrap = span ? span.parentElement : null;
+            if(wrap) wrap.insertAdjacentHTML('beforeend', `<span class="fila-badge">${h.no_leidos_count}</span>`);
+        }
+        const pendTag = row.querySelector('.fila-pendiente');
+        if(pendTag && !pendienteHumano) pendTag.remove();
+        else if(!pendTag && pendienteHumano) {
+            const wrap2 = row.querySelector('.fila-badge');
+            const container = wrap2 ? wrap2.parentElement : row.querySelector('[style*="flex-shrink:0"]');
+            if(container) container.insertAdjacentHTML('afterbegin', `<span class="fila-pendiente" title="El saludo automático no sustituye una respuesta humana"><i class="ti ti-user-exclamation"></i> Atender</span>`);
+        }
+    });
+    const ordenIds = lista.map(h => h.id);
+    let reordenar = false;
+    const filasActuales = Array.from(cont.querySelectorAll('[data-hiloid]'));
+    for(let i = 0; i < ordenIds.length; i++) {
+        if(!filasActuales[i] || filasActuales[i].dataset.hiloid !== ordenIds[i]) { reordenar = true; break; }
+    }
+    if(reordenar) {
+        ordenIds.forEach(id => {
+            const el = cont.querySelector(`[data-hiloid="${id}"]`);
+            if(el) cont.appendChild(el);
+        });
+    }
+}
+
 function _pintarWhatsappLista() {
     const cont = document.getElementById('waLista');
     if(!cont) return;
@@ -33415,7 +33471,7 @@ function _pintarWhatsappLista() {
         if(noLeido) clases.push('no-leido');
         const pendienteHumano = _crmEsPendiente(h);
         if(pendienteHumano) clases.push('pendiente');
-        return `<div class="${clases.join(' ')}" onclick="abrirHiloWhatsapp('${h.id}')">
+        return `<div class="${clases.join(' ')}" data-hiloid="${h.id}" onclick="abrirHiloWhatsapp('${h.id}')">
             <div class="wa-avatar-wrap">
                 <div class="wa-avatar">${escapeHtml(_waIniciales(nombre))}</div>
                 <span class="wa-wa-badge"><i class="ti ti-brand-whatsapp"></i></span>
@@ -34127,6 +34183,73 @@ function _waIconoEstado(estado) {
     return '';
 }
 
+function _waBurbujaRowHTML(m, nombre, porId) {
+    const esOut = m.direccion === 'out';
+    const esOptimista = !!m._optimista;
+    const etiqueta = esOut ? 'Tú (BayolCell)' : nombre;
+    const original = m.responde_a_id ? porId[m.responde_a_id] : null;
+    const animarEnvio = esOut && m.id === _waMensajeAnimarId;
+    const citaHTML = original ? `<div class="wa-quote wa-quote-${original.direccion}" onclick="event.stopPropagation(); _waIrAMensaje('${original.id}')"><div class="who">${escapeHtml(original.direccion === 'out' ? 'Tú (BayolCell)' : nombre)}</div><div class="txt">${escapeHtml(_waPreviewTexto(original))}</div></div>` : '';
+    return `<div class="wa-brow ${esOut ? 'out' : 'in'}${animarEnvio ? ' wa-envio-nuevo' : ''}"${esOptimista ? '' : ` data-msgid="${m.id}"`} data-estado="${esOut ? (m.estado||'') : ''}">
+        ${esOptimista ? '' : `<i class="ti ti-arrow-back-up wa-reply-icon" onclick="_waActivarRespuesta('${m.id}')" title="Responder"></i>`}
+        <div class="wa-bubble-wrap" style="background:${esOut ? '#dcf8c6' : '#fff'}; border-radius:8px; padding:6px 9px 7px; box-shadow:0 1px .5px rgba(0,0,0,.13); font-size:13.5px;">
+            ${esOptimista ? '' : `<span class="wa-swipe-forward-cue"><i class="ti ti-arrow-forward-up"></i><span>Reenviar</span></span>
+            <i class="ti ti-chevron-down wa-menu-btn" onclick="_waAbrirMenuAcciones(event, '${m.id}')" title="Más opciones"></i>`}
+            <div style="font-size:10px; font-weight:700; color:${esOut ? '#166534' : '#128C7E'}; margin-bottom:2px;">${escapeHtml(etiqueta)}</div>
+            ${m.plantilla_nombre ? `<div style="font-size:10px; color:#8696a0; margin-bottom:3px;"><i class="ti ti-file-text"></i> Plantilla: ${escapeHtml(m.plantilla_nombre)}</div>` : ''}
+            ${m.es_automatico ? `<div style="font-size:10px; color:#4338ca; margin-bottom:3px;"><i class="ti ti-robot"></i> Respondido por IA</div>` : ''}
+            ${citaHTML}
+            ${_waBurbujaMedia(m)}
+            ${m.cuerpo ? `<div style="white-space:pre-wrap; word-break:break-word;">${escapeHtml(m.cuerpo)}</div>` : ''}
+            <div class="wa-tick-line" style="text-align:right; font-size:10px; color:#8696a0; margin-top:2px;">
+                ${new Date(m.creado_en).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}
+                ${esOut ? ' ' + _waIconoEstado(m.estado) : ''}
+            </div>
+        </div>
+    </div>`;
+}
+
+function _waActualizarChatIncremental() {
+    const scrollContainer = document.getElementById('waMessagesScroll');
+    if(!scrollContainer || !_waHiloId || _waDetalleHiloPintadoId !== _waHiloId) return false;
+    if(_waGrabando && _waGrabandoHiloId === _waHiloId) return true;
+    const h = _waHilos.find(x => x.id === _waHiloId);
+    if(!h) return false;
+    const nombre = h.nombre_perfil || 'Sin nombre';
+    const porId = {}; _waMensajes.forEach(x => porId[x.id] = x);
+
+    const renderedIds = new Set();
+    scrollContainer.querySelectorAll('[data-msgid]').forEach(el => renderedIds.add(el.dataset.msgid));
+
+    _waMensajes.forEach(m => {
+        if(m.direccion !== 'out' || !renderedIds.has(m.id)) return;
+        const row = scrollContainer.querySelector(`[data-msgid="${m.id}"]`);
+        if(!row || row.dataset.estado === m.estado) return;
+        const tickLine = row.querySelector('.wa-tick-line');
+        if(tickLine) {
+            const t = new Date(m.creado_en).toLocaleTimeString('es-DO',{hour:'2-digit',minute:'2-digit'});
+            tickLine.innerHTML = t + ' ' + _waIconoEstado(m.estado);
+        }
+        row.dataset.estado = m.estado;
+    });
+
+    scrollContainer.querySelectorAll('.wa-brow:not([data-msgid])').forEach(el => el.remove());
+
+    const newMsgs = _waMensajes.filter(m => !m._optimista && m.id && !renderedIds.has(m.id));
+    if(newMsgs.length) {
+        const pegadoAlFondo = (scrollContainer.scrollHeight - scrollContainer.scrollTop - scrollContainer.clientHeight) < 80;
+        const html = newMsgs.map(m => _waBurbujaRowHTML(m, nombre, porId)).join('');
+        scrollContainer.insertAdjacentHTML('beforeend', html);
+        _waMensajeAnimarId = null;
+        _waWireSwipe();
+        if(pegadoAlFondo) {
+            scrollContainer.scrollTop = scrollContainer.scrollHeight;
+            requestAnimationFrame(() => { scrollContainer.scrollTop = scrollContainer.scrollHeight; });
+        }
+    }
+    return true;
+}
+
 function _pintarWhatsappDetalle() {
     const cont = document.getElementById('waDetalle');
     if(!cont) return;
@@ -34184,31 +34307,7 @@ function _pintarWhatsappDetalle() {
         html += `<div class="wa-chat-empty">Sin mensajes todavía.</div>`;
     } else {
         const porId = {}; _waMensajes.forEach(x => porId[x.id] = x);
-        html += _waMensajes.map(m => {
-            const esOut = m.direccion === 'out';
-            const esOptimista = !!m._optimista;
-            const etiqueta = esOut ? 'Tú (BayolCell)' : nombre;
-            const original = m.responde_a_id ? porId[m.responde_a_id] : null;
-            const animarEnvio = esOut && m.id === _waMensajeAnimarId;
-            const citaHTML = original ? `<div class="wa-quote wa-quote-${original.direccion}" onclick="event.stopPropagation(); _waIrAMensaje('${original.id}')"><div class="who">${escapeHtml(original.direccion === 'out' ? 'Tú (BayolCell)' : nombre)}</div><div class="txt">${escapeHtml(_waPreviewTexto(original))}</div></div>` : '';
-            return `<div class="wa-brow ${esOut ? 'out' : 'in'}${animarEnvio ? ' wa-envio-nuevo' : ''}"${esOptimista ? '' : ` data-msgid="${m.id}"`}>
-                ${esOptimista ? '' : `<i class="ti ti-arrow-back-up wa-reply-icon" onclick="_waActivarRespuesta('${m.id}')" title="Responder"></i>`}
-                <div class="wa-bubble-wrap" style="background:${esOut ? '#dcf8c6' : '#fff'}; border-radius:8px; padding:6px 9px 7px; box-shadow:0 1px .5px rgba(0,0,0,.13); font-size:13.5px;">
-                    ${esOptimista ? '' : `<span class="wa-swipe-forward-cue"><i class="ti ti-arrow-forward-up"></i><span>Reenviar</span></span>
-                    <i class="ti ti-chevron-down wa-menu-btn" onclick="_waAbrirMenuAcciones(event, '${m.id}')" title="Más opciones"></i>`}
-                    <div style="font-size:10px; font-weight:700; color:${esOut ? '#166534' : '#128C7E'}; margin-bottom:2px;">${escapeHtml(etiqueta)}</div>
-                    ${m.plantilla_nombre ? `<div style="font-size:10px; color:#8696a0; margin-bottom:3px;"><i class="ti ti-file-text"></i> Plantilla: ${escapeHtml(m.plantilla_nombre)}</div>` : ''}
-                    ${m.es_automatico ? `<div style="font-size:10px; color:#4338ca; margin-bottom:3px;"><i class="ti ti-robot"></i> Respondido por IA</div>` : ''}
-                    ${citaHTML}
-                    ${_waBurbujaMedia(m)}
-                    ${m.cuerpo ? `<div style="white-space:pre-wrap; word-break:break-word;">${escapeHtml(m.cuerpo)}</div>` : ''}
-                    <div style="text-align:right; font-size:10px; color:#8696a0; margin-top:2px;">
-                        ${new Date(m.creado_en).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}
-                        ${esOut ? ' ' + _waIconoEstado(m.estado) : ''}
-                    </div>
-                </div>
-            </div>`;
-        }).join('');
+        html += _waMensajes.map(m => _waBurbujaRowHTML(m, nombre, porId)).join('');
     }
     html += `</div>`;
 
