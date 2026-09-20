@@ -80,7 +80,7 @@
       <div id="bcFbMessageActions" class="bc-fb-pop bc-fb-message-actions" hidden></div>
       <div id="bcFbAttachment" class="bc-fb-attachment" hidden></div>
       <div id="bcFbEmojiPanel" class="bc-fb-emojis" hidden>${['😀','👍','❤️','🙏','😊','✅'].map(e=>`<button type="button" data-emoji="${e}" aria-label="Insertar ${e}">${e}</button>`).join('')}</div>
-      <form id="bcFbComposer" class="bc-fb-composer">${icon('bcFbEmoji','Emojis','mood-smile')}${icon('bcFbAttach','Adjuntar foto, video, audio o PDF','paperclip')}<input type="file" id="bcFbFile" accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,video/webm,audio/*,application/pdf" hidden><textarea id="bcFbText" maxlength="2000" rows="1" placeholder="Escribe un mensaje…" aria-label="Mensaje"></textarea><button id="bcFbSend" type="submit" aria-label="Enviar mensaje"><i class="ti ti-arrow-up"></i></button></form>`;
+      <form id="bcFbComposer" class="bc-fb-composer">${icon('bcFbEmoji','Emojis','mood-smile')}${icon('bcFbAttach','Adjuntar foto, video, audio o PDF','paperclip')}${icon('bcFbLocation','Enviar ubicación de la tienda','map-pin')}<input type="file" id="bcFbFile" accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,video/webm,audio/*,application/pdf" hidden><textarea id="bcFbText" maxlength="2000" rows="1" placeholder="Escribe un mensaje…" aria-label="Mensaje"></textarea><button id="bcFbSend" type="submit" aria-label="Enviar mensaje"><i class="ti ti-arrow-up"></i></button></form>`;
     $('#bcFbText').value=drafts.get(selected)||'';
     $('#bcFbBack').onclick=close;
     $('#bcFbMore').onclick=()=>{$('#bcFbActions').hidden=!$('#bcFbActions').hidden;};
@@ -94,6 +94,8 @@
     $('#bcFbEmoji').onclick=()=>{$('#bcFbEmojiPanel').hidden=!$('#bcFbEmojiPanel').hidden;};
     $('#bcFbEmojiPanel').onclick=e=>{const emoji=e.target.dataset.emoji;if(!emoji)return;const t=$('#bcFbText');t.setRangeText(emoji,t.selectionStart,t.selectionEnd,'end');drafts.set(selected,t.value);t.focus();};
     $('#bcFbAttach').onclick=()=>{if(!busy)$('#bcFbFile').click();};
+    $('#bcFbLocation').onclick=function(){if(typeof window._crmMostrarMenuUbicacion==='function')window._crmMostrarMenuUbicacion('facebook',this);};
+    window.__bcFbSendLocation=async function(text){if(busy||!selected)throw new Error('Chat no listo.');setBusy(true);notice('Enviando ubicación…');try{await action('send',{text,requestId:crypto.randomUUID()},selected);const sendBtn=$('#bcFbSend');if(sendBtn){sendBtn.classList.add('bc-sent-ok');setTimeout(()=>sendBtn.classList.remove('bc-sent-ok'),350);}await callbacks.reload();await callbacks.refreshList();notice('Ubicación enviada.');}finally{setBusy(false);}};
     $('#bcFbFile').onchange=e=>{const f=e.target.files[0];if(!f)return;if(f.size>8*1024*1024){notice('El archivo debe pesar menos de 8 MB.');return;}attachment=f;paintAttachment();};
     $('#bcFbText').oninput=e=>{drafts.set(selected,e.target.value);e.target.style.height='auto';e.target.style.height=Math.min(e.target.scrollHeight,112)+'px';};
     $('#bcFbText').onfocus=()=>{if(!busy)composerUnlock();resize();};

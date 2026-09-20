@@ -34233,6 +34233,7 @@ function _pintarWhatsappDetalle() {
             <div class="wa-input-bar" id="waInputBar">
                 <button class="wa-icon-btn" id="btnWaEmoji" onclick="_waAbrirEmojis(event)" title="Emoji"><i class="ti ti-mood-smile"></i></button>
                 <button class="wa-icon-btn" id="btnWaAdjuntar" onclick="_waAbrirMenuAdjuntar(event)" title="Adjuntar"><i class="ti ti-paperclip"></i></button>
+                <button class="wa-icon-btn" id="btnWaUbicacion" onclick="_crmMostrarMenuUbicacion('whatsapp', this)" title="Enviar ubicación de la tienda"><i class="ti ti-map-pin"></i></button>
                 <input type="text" id="waTexto" placeholder="Escribe una respuesta..." autocapitalize="none" autocorrect="off" oninput="_waActualizarBotonEnvio(); _waSlashDetectar(this)" onkeydown="_waTextoKeydown(event)">
                 <button class="wa-send-btn" id="btnWaEnviar" onclick="_waBotonPrincipalClick()"><i class="ti ti-microphone" id="iconWaEnviar"></i></button>
             </div>
@@ -34448,6 +34449,144 @@ async function _waEnviarUbicacionSucursal(sucursalId) {
     } catch(e) { logError('_waEnviarUbicacionSucursal', e); toastError('No se pudo enviar la ubicación de la tienda.'); }
     finally { _crmFinalizarAccion(lockKey); }
 }
+
+/* ---------- Boton de ubicacion GLOBAL para TODOS los canales ----------
+   Muestra un menu flotante con las sucursales y envia la direccion + enlace
+   de Google Maps como mensaje de texto. Funciona en WhatsApp, Instagram y
+   Facebook. Para WhatsApp ademas manda el pin GPS nativo si hay coordenadas.
+   Se expone en window para que los scripts externos (crm-social-hub.js,
+   crm-facebook-chat.js) lo llamen. */
+let _crmUbiSucursales = null;
+
+async function _crmUbiCargarSucursales() {
+    if(_crmUbiSucursales) return _crmUbiSucursales;
+    try {
+        const { data } = await supabaseClient.from('sucursales')
+            .select('id, nombre, direccion, maps_url, telefono')
+            .eq('activo', true).order('nombre');
+        _crmUbiSucursales = (data || []).filter(s => s.direccion && s.maps_url);
+    } catch(e) { logError('_crmUbiCargarSucursales', e); _crmUbiSucursales = []; }
+    return _crmUbiSucursales;
+}
+
+function _crmUbiCerrarMenu() {
+    const m = document.getElementById('crmUbiMenu');
+    if(m) m.remove();
+}
+
+async function _crmMostrarMenuUbicacion(canal, btnEl) {
+    _crmUbiCerrarMenu();
+    const lista = await _crmUbiCargarSucursales();
+    if(!lista.length) { toastError('No hay sucursales con dirección configurada.'); return; }
+
+    const menu = document.createElement('div');
+    menu.id = 'crmUbiMenu';
+    menu.style.cssText = 'position:fixed;z-index:9999;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.18);padding:6px 0;min-width:220px;max-width:300px;font-family:inherit;';
+    menu.innerHTML = `<div style="padding:6px 14px 4px;font-size:11px;font-weight:700;color:#475569;letter-spacing:.02em;">Enviar ubicación</div>`
+        + lista.map(s => `<button data-suc-id="${s.id}" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 14px;border:none;background:none;cursor:pointer;font-size:13.5px;color:#1e293b;text-align:left;"
+            onmouseenter="this.style.background='#f1f5f9'" onmouseleave="this.style.background='none'">
+            <i class="ti ti-map-pin" style="color:#dc2626;font-size:17px;flex:none;"></i>
+            <span><b>${escapeHtml(s.nombre)}</b><br><span style="font-size:11.5px;color:#64748b;">${escapeHtml(s.direccion)}</span></span>
+        </button>`).join('');
+    document.body.appendChild(menu);
+
+    const r = btnEl.getBoundingClientRect();
+    let top = r.top - menu.offsetHeight - 6;
+    if(top < 8) top = r.bottom + 6;
+    let left = r.left;
+    if(left + menu.offsetWidth > window.innerWidth) left = window.innerWidth - menu.offsetWidth - 8;
+    if(left < 4) left = 4;
+    menu.style.top = top + 'px';
+    menu.style.left = left + 'px';
+
+    menu.addEventListener('click', async e => {
+        const btn = e.target.closest('[data-suc-id]');
+        if(!btn) return;
+        _crmUbiCerrarMenu();
+        const sucId = btn.dataset.sucId;
+        const suc = lista.find(s => s.id === sucId);
+        if(!suc) return;
+        await _crmEnviarUbicacionTexto(canal, suc);
+    });
+
+    const cerrarAlClickAfuera = e => {
+        if(!menu.contains(e.target) && e.target !== btnEl && !btnEl.contains(e.target)) {
+            _crmUbiCerrarMenu();
+            document.removeEventListener('click', cerrarAlClickAfuera, true);
+        }
+    };
+    setTimeout(() => document.addEventListener('click', cerrarAlClickAfuera, true), 0);
+}
+
+async function _crmEnviarUbicacionTexto(canal, suc) {
+    const texto = `📍 BAYOL CELL ${suc.nombre}\n${suc.direccion}\n${suc.maps_url}`;
+
+    if(canal === 'whatsapp') {
+        const hiloDestino = _waHiloId;
+        if(!hiloDestino) return;
+        const lockKey = `wa-ubi-txt:${hiloDestino}`;
+        if(!_crmIniciarAccion(lockKey)) return;
+        try {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if(!session) { toastError('Inicia sesión de nuevo.'); return; }
+            const res = await fetch(CONFIG_URL + '/functions/v1/whatsapp-enviar', {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ hilo_id: hiloDestino, mensaje: texto })
+            });
+            const j = await res.json();
+            if(j && j.ok) {
+                if(_waHiloId) await cargarMensajesHilo(_waHiloId);
+                await cargarHilosWhatsapp();
+                await _crmRepintarWhatsappSilencioso();
+                toast('📍 Ubicación enviada.');
+            } else { toastError(j?.mensaje || 'No se pudo enviar la ubicación.'); }
+        } catch(e) { logError('_crmEnviarUbicacionTexto-wa', e); toastError('Error al enviar ubicación.'); }
+        finally { _crmFinalizarAccion(lockKey); }
+    }
+    else if(canal === 'instagram') {
+        if(_igEnviando) return;
+        const hiloDestino = _igHiloId;
+        if(!hiloDestino) return;
+        _igEnviando = true;
+        try {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if(!session) { toastError('Inicia sesión de nuevo.'); return; }
+            const res = await fetch(CONFIG_URL + '/functions/v1/instagram-enviar', {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ hilo_id: hiloDestino, mensaje: texto })
+            });
+            const j = await res.json();
+            if(j && j.ok) {
+                await _pintarDetalleInstagram();
+                await cargarHilosInstagram();
+                toast('📍 Ubicación enviada por Instagram.');
+            } else { toastError(j?.mensaje || 'No se pudo enviar la ubicación por Instagram.'); }
+        } catch(e) { logError('_crmEnviarUbicacionTexto-ig', e); toastError('Error al enviar ubicación por Instagram.'); }
+        finally { _igEnviando = false; }
+    }
+    else if(canal === 'instagram-hub') {
+        try {
+            const { data, error } = await supabaseClient.functions.invoke('instagram-enviar', { body: { hilo_id: window.__bcIgSelectedId, mensaje: texto } });
+            if(error) throw error;
+            if(data?.ok === false) throw new Error(data.mensaje || 'Instagram rechazó el envío.');
+            if(typeof window.__bcIgReload === 'function') await window.__bcIgReload();
+            toast('📍 Ubicación enviada por Instagram.');
+        } catch(e) { logError('_crmEnviarUbicacionTexto-ig-hub', e); toastError(e.message || 'Error al enviar ubicación por Instagram.'); }
+    }
+    else if(canal === 'facebook') {
+        // Invocado desde crm-facebook-chat.js via window._crmEnviarUbicacionTexto
+        try {
+            const fbSend = window.__bcFbSendLocation;
+            if(typeof fbSend === 'function') await fbSend(texto);
+            else toastError('El chat de Facebook no está listo.');
+        } catch(e) { logError('_crmEnviarUbicacionTexto-fb', e); toastError(e.message || 'Error al enviar ubicación por Facebook.'); }
+    }
+}
+
+window._crmMostrarMenuUbicacion = _crmMostrarMenuUbicacion;
+window._crmEnviarUbicacionTexto = _crmEnviarUbicacionTexto;
 
 /* ---------- "/" en la caja de escribir: menu rapido para mandar el PIN de
    cualquier sucursal (14 sept 2026, pedido explicito) ----------
@@ -36492,6 +36631,7 @@ function _pintarInstagramDetalle() {
 
     if(puedeResponder) {
         html += `<div class="wa-input-bar" id="igInputBar">
+            <button class="wa-icon-btn" onclick="_crmMostrarMenuUbicacion('instagram', this)" title="Enviar ubicación de la tienda"><i class="ti ti-map-pin"></i></button>
             <input type="text" id="igTexto" placeholder="Escribe una respuesta..." autocapitalize="none" autocorrect="off" onkeydown="if(event.key==='Enter') enviarMensajeInstagram()">
             <button class="wa-send-btn" id="btnIgEnviar" onclick="enviarMensajeInstagram()"><i class="ti ti-send"></i></button>
         </div>`;

@@ -8,7 +8,7 @@
   'use strict';
   if (window.BayolSocialHub) return;
 
-  const VERSION = '20260920-gen1';
+  const VERSION = '20260920-loc1';
   const state = {
     channel: 'whatsapp',
     mounted: false,
@@ -459,9 +459,11 @@
     // de un admin. _igRefrescarAsignacion (abajo) repinta este chat + la
     // lista una vez que la asignación quedó guardada.
     const asignarHtml=typeof window._crmAsignarHTML==='function' ? window._crmAsignarHTML('instagram_hilos', h, '_igRefrescarAsignacion') : '';
-    chat.innerHTML=`<div class="bc-ig-chat-head"><button class="bc-ig-back" id="bcIgBack" type="button" aria-label="Volver"><i class="ti ti-chevron-left"></i></button><span class="bc-ig-avatar">${esc(initials(nm))}</span><div class="bc-ig-chat-title"><b>${esc(nm)}</b><span>${esc(user)}</span></div><span class="bc-ig-chat-badge">Instagram Direct</span></div>${asignarHtml ? `<div style="padding:6px 14px; background:#faf5ff; border-bottom:1px solid #f3e8ff;">${asignarHtml}</div>` : ''}<div id="bcIgMessageActions" class="bc-ig-pop" hidden></div><div id="bcIgForwardBox" class="bc-ig-pop bc-ig-forward-box" hidden><div style="padding:2px 4px 6px;font-size:11px;font-weight:700;color:#4a3560;">Reenviar a…</div><input id="bcIgForwardSearch" type="search" placeholder="Buscar conversación…" style="width:100%;box-sizing:border-box;border:1px solid #ead7f3;border-radius:8px;padding:6px 8px;font-size:12.5px;margin-bottom:6px;"><div id="bcIgForwardList" style="max-height:220px;overflow:auto;"></div><button type="button" id="bcIgForwardClose" style="width:100%;margin-top:4px;">Cerrar</button></div><div class="bc-ig-messages" id="bcIgMessages" style="position:relative;">${rows || '<div class="bc-ig-empty"><div><b>Sin mensajes</b><span>Este hilo todavía no tiene mensajes guardados.</span></div></div>'}</div><button type="button" class="bc-social-jump" id="bcIgJump" aria-label="Ir al último mensaje"><i class="ti ti-arrow-down"></i><span>Últimos mensajes</span></button><form class="bc-ig-composer" id="bcIgComposer"><textarea id="bcIgText" rows="1" placeholder="Escribe un mensaje…" ${h.zernio_conversation_id?'':'disabled'}></textarea><button class="bc-ig-send" id="bcIgSend" type="submit" ${h.zernio_conversation_id?'':'disabled'} aria-label="Enviar"><i class="ti ti-arrow-up"></i></button></form>`;
+    chat.innerHTML=`<div class="bc-ig-chat-head"><button class="bc-ig-back" id="bcIgBack" type="button" aria-label="Volver"><i class="ti ti-chevron-left"></i></button><span class="bc-ig-avatar">${esc(initials(nm))}</span><div class="bc-ig-chat-title"><b>${esc(nm)}</b><span>${esc(user)}</span></div><span class="bc-ig-chat-badge">Instagram Direct</span></div>${asignarHtml ? `<div style="padding:6px 14px; background:#faf5ff; border-bottom:1px solid #f3e8ff;">${asignarHtml}</div>` : ''}<div id="bcIgMessageActions" class="bc-ig-pop" hidden></div><div id="bcIgForwardBox" class="bc-ig-pop bc-ig-forward-box" hidden><div style="padding:2px 4px 6px;font-size:11px;font-weight:700;color:#4a3560;">Reenviar a…</div><input id="bcIgForwardSearch" type="search" placeholder="Buscar conversación…" style="width:100%;box-sizing:border-box;border:1px solid #ead7f3;border-radius:8px;padding:6px 8px;font-size:12.5px;margin-bottom:6px;"><div id="bcIgForwardList" style="max-height:220px;overflow:auto;"></div><button type="button" id="bcIgForwardClose" style="width:100%;margin-top:4px;">Cerrar</button></div><div class="bc-ig-messages" id="bcIgMessages" style="position:relative;">${rows || '<div class="bc-ig-empty"><div><b>Sin mensajes</b><span>Este hilo todavía no tiene mensajes guardados.</span></div></div>'}</div><button type="button" class="bc-social-jump" id="bcIgJump" aria-label="Ir al último mensaje"><i class="ti ti-arrow-down"></i><span>Últimos mensajes</span></button><form class="bc-ig-composer" id="bcIgComposer"><button type="button" class="bc-ig-location" id="bcIgLocation" aria-label="Enviar ubicación" title="Enviar ubicación de la tienda" style="background:none;border:none;cursor:pointer;padding:6px;color:#64748b;font-size:18px;flex:none;"><i class="ti ti-map-pin"></i></button><textarea id="bcIgText" rows="1" placeholder="Escribe un mensaje…" ${h.zernio_conversation_id?'':'disabled'}></textarea><button class="bc-ig-send" id="bcIgSend" type="submit" ${h.zernio_conversation_id?'':'disabled'} aria-label="Enviar"><i class="ti ti-arrow-up"></i></button></form>`;
+    window.__bcIgSelectedId=h.id;
     $('#bcIgBack')?.addEventListener('click',()=>$('#v-crmLinea')?.classList.remove('bc-ig-chat-open'));
     $('#bcIgComposer')?.addEventListener('submit',sendInstagram);
+    $('#bcIgLocation')?.addEventListener('click',function(){if(typeof window._crmMostrarMenuUbicacion==='function')window._crmMostrarMenuUbicacion('instagram-hub',this);});
     chat.querySelectorAll('[data-igmenu]').forEach(btn=>btn.addEventListener('click',(e)=>{e.stopPropagation();igMessageMenu(btn.dataset.igmenu);}));
     $('#bcIgForwardClose')?.addEventListener('click',()=>{$('#bcIgForwardBox').hidden=true;});
     $('#bcIgForwardSearch')?.addEventListener('input',(e)=>igPaintForwardList(e.target.value));
@@ -609,6 +611,7 @@
 
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start,{once:true}); else start();
   window.BayolSocialHub={switchChannel,refresh:refreshAll,state,version:VERSION};
+  window.__bcIgReload=function(opts){ return loadInstagram(false, opts||{refreshSelected:true}); };
   // Llamado por _crmAsignarHTML (taller.html) despues de Asignarme/Reasignar
   // en un hilo de Instagram -- refreshAll() vuelve a traer los hilos (con el
   // asignado_id ya actualizado) y repinta la lista y el chat abierto.
