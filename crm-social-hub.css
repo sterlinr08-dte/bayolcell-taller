@@ -251,11 +251,13 @@
   overflow:hidden!important;
 }
 #bcSocialInstagramPanel .bc-ig-chat{
-  display:flex!important;
   flex-direction:column!important;
   height:100%!important;
   min-height:0!important;
   position:relative!important;
+}
+@media(min-width:721px){
+  #bcSocialInstagramPanel .bc-ig-chat{display:flex!important;}
 }
 #bcSocialInstagramPanel .bc-ig-messages{
   flex:1 1 auto!important;
