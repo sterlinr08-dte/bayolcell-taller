@@ -7851,24 +7851,29 @@ function startApp() {
     document.getElementById("userAvatar").textContent = (sessionUser.nombre || "B").charAt(0).toUpperCase();
     document.getElementById("userRole").textContent = sessionUser.rol || sessionUser.nivel_acceso || sessionUser.nivel || "Técnico";
     applyAccessControls();
+    // Restaurar la última pestaña INMEDIATO (antes de loadAll) para no mostrar el Dashboard mientras carga
+    try {
+        const last = localStorage.getItem('bayol_nav_actual');
+        const modoForzado = tienePermiso('solo_mi_trabajo') || tienePermiso('solo_atencion') || tienePermiso('solo_contabilidad');
+        if(last && last !== 'dashboard' && !modoForzado) {
+            const permisoReq = NAV_PERMISOS[last];
+            const permitido = !permisoReq || tienePermiso(permisoReq);
+            const especial = (last === 'estadisticas' && !esDueno()) || (last === 'incentivos' && !isAdminUser());
+            if(permitido && !especial && document.getElementById('v-' + last)) {
+                document.querySelectorAll('.view').forEach(x => x.classList.remove('active'));
+                document.getElementById('v-' + last).classList.add('active');
+                setActiveNav(last);
+                const pt = document.getElementById('pageTitle');
+                const ab = document.querySelector('.nav button.active');
+                if(pt && ab) pt.textContent = ab.textContent.trim();
+            }
+        }
+    } catch(e){}
     renderWebVisitas();
     actualizarBotonNotif();
     startAppRefurbPoller();
     qzAutoConectar();
     loadAll().then(() => {
-        // Restaurar la última pestaña donde estaba (si tiene permiso y no es un modo forzado)
-        try {
-            const last = localStorage.getItem('bayol_nav_actual');
-            const modoForzado = tienePermiso('solo_mi_trabajo') || tienePermiso('solo_atencion') || tienePermiso('solo_contabilidad');
-            if(last && !modoForzado) {
-                const permisoReq = NAV_PERMISOS[last];
-                const permitido = !permisoReq || tienePermiso(permisoReq);
-                const especial = (last === 'estadisticas' && !esDueno()) || (last === 'incentivos' && !isAdminUser());
-                if(permitido && !especial && document.getElementById('v-' + last)) {
-                    setTimeout(() => { try { nav(last); } catch(e){} }, 150);
-                }
-            }
-        } catch(e){}
         // Mostrar ventana de pendientes al técnico (una vez por sesión)
         if(!sessionStorage.getItem('bayol_pendientes_visto')) {
             setTimeout(() => { mostrarPendientesTecnico(); sessionStorage.setItem('bayol_pendientes_visto', '1'); }, 800);
