@@ -7858,7 +7858,7 @@ async function renderWebVisitas() {
 
 function _iniciarVistaRestaurada(v) {
     try {
-        if(v === 'crmLinea' && typeof renderCrmLinea === 'function') { try { localStorage.setItem('bayol_subtab_crmlinea', 'mensajes'); } catch(e){} renderCrmLinea(); }
+        if(v === 'crmLinea' && typeof renderCrmLinea === 'function') { var _st = localStorage.getItem('bayol_subtab_crmlinea'); if(!['mensajes','leads','campanas','redes'].includes(_st)) { try { localStorage.setItem('bayol_subtab_crmlinea', 'mensajes'); } catch(e){} } renderCrmLinea(); }
         else if(v === 'refurb') { volverListaLotesReacond(); var st = localStorage.getItem('bayol_subtab_reacond'); st = ['lotes','catalogo','devoluciones','piezas','rentabilidad'].includes(st) ? st : 'lotes'; if(typeof cambiarMainTabReacond === 'function') cambiarMainTabReacond(st); }
         else if(v === 'ordenes') { if(typeof renderOrders === 'function') renderOrders(); if(typeof renderTallerOrdenes === 'function') renderTallerOrdenes(); }
         else if(v === 'financiamientos' && typeof renderFinanciamientos === 'function') renderFinanciamientos();
@@ -36829,7 +36829,7 @@ async function crmLineaTab(name) {
     if(btnCa) btnCa.className = 'crm-tab-seg' + (name === 'campanas' ? ' on pill-hundido' : '');
     if(name === 'campanas') {
         var fr = document.getElementById('crmCampanasFrame');
-        if(fr && !fr.src.includes('crm-campanas.html')) fr.src = 'crm-campanas.html?v=20260921-limit1';
+        if(fr && !fr.src.includes('crm-campanas.html')) fr.src = 'crm-campanas.html?v=20260921-audit5';
     } else if(name === 'mensajes') await renderWhatsapp();
     else if(name === 'redes') await renderRedesSociales();
     else await renderLeads();
@@ -36837,7 +36837,7 @@ async function crmLineaTab(name) {
 
 window.addEventListener('message', function(ev) {
     if (!ev.data || ev.data.type !== 'campanas-back') return;
-    crmLineaTab('mensajes');
+    crmLineaTab(ev.data.tab || 'mensajes');
 });
 
 /* ============================================================
