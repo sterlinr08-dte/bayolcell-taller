@@ -14292,6 +14292,8 @@ async function refrescarVista(renderFn, btn) {
     if(btn){ btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Actualizando…'; }
     const sc = document.querySelector('.content');
     const prevScroll = sc ? sc.scrollTop : 0;
+    const vistaActiva = document.querySelector('.view.active');
+    const vistaId = vistaActiva ? vistaActiva.id : null;
     try {
         await loadAll();
         if(typeof renderFn === 'function') await renderFn();
@@ -14300,6 +14302,14 @@ async function refrescarVista(renderFn, btn) {
         toastError(getFriendlyError(e));
     } finally {
         if(btn){ btn.disabled = false; btn.innerHTML = orig; }
+        if(vistaId) {
+            const actual = document.querySelector('.view.active');
+            if(!actual || actual.id !== vistaId) {
+                document.querySelectorAll('.view').forEach(x => x.classList.remove('active'));
+                const orig = document.getElementById(vistaId);
+                if(orig) orig.classList.add('active');
+            }
+        }
         if(sc) requestAnimationFrame(() => { sc.scrollTop = prevScroll; });
     }
 }
@@ -28430,9 +28440,7 @@ function onCambioRealtime(payload) {
     // Debounce corto: si llegan varios cambios juntos, recargar una sola vez
     if(_realtimeDebounce) clearTimeout(_realtimeDebounce);
     _realtimeDebounce = setTimeout(() => {
-        if(!sessionUser) return;
-        // Si hay un modal abierto, recargar datos en segundo plano para detectar notificaciones,
-        // pero sin re-renderizar la vista (para no interrumpir lo que el usuario escribe)
+        if(!sessionUser || _loadAllInFlight > 0) return;
         loadAll();
     }, 400);
 }
