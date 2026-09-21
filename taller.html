@@ -739,6 +739,8 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
     #v-crmLinea #crmLinea-campanas { flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column; }
     #v-crmLinea #crmLinea-campanas iframe { flex:1; min-height:0; height:100%; }
 }
+#crmLinea-campanas { display:flex; flex-direction:column; }
+#crmLinea-campanas iframe { flex:1; min-height:calc(100vh - 260px); }
 @media (prefers-reduced-motion:reduce) {
     #v-crmLinea *, .crm-filtros-menu { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
 }
