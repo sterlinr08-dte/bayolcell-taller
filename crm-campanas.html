@@ -43,12 +43,12 @@ button,input,select,textarea{font:inherit}.hidden{display:none!important}.app{mi
     <h2>Campañas BAYOL CELL</h2>
     <p id="wallText">Comprobando tu sesión segura del CRM…</p>
     <div id="wallLoader"><span class="loader"></span></div>
-    <button id="wallBtn" class="btn btn-primary hidden" onclick="location.href='taller.html'"><i class="ti ti-login"></i> Abrir CRM e iniciar sesión</button>
+    <button id="wallBtn" class="btn btn-primary hidden" onclick="_campBack('login')"><i class="ti ti-login"></i> Abrir CRM e iniciar sesión</button>
   </div>
 </div>
 <div class="app">
 <header class="topbar">
-  <button class="back" onclick="location.href='taller.html'" title="Volver al CRM"><i class="ti ti-arrow-left"></i></button>
+  <button class="back" onclick="_campBack('mensajes')" title="Volver al CRM"><i class="ti ti-arrow-left"></i></button>
   <div class="brand"><div class="brand-mark">B</div><div><h1>Campañas CRM</h1><p>BAYOL CELL · WhatsApp promocional</p></div></div>
   <div class="top-spacer"></div>
   <div class="status-pill"><span id="statusDot" class="dot"></span><span id="statusText">Conectando…</span></div>
@@ -115,6 +115,10 @@ button,input,select,textarea{font:inherit}.hidden{display:none!important}.app{mi
 <div id="detailModal" class="modal"><div class="modal-card"><div class="modal-head"><h3>Detalle de campaña</h3><button class="btn btn-light btn-icon" onclick="closeModal('detailModal')"><i class="ti ti-x"></i></button></div><div id="detailBody" class="modal-body"></div></div></div>
 <div id="toast" class="toast"></div>
 <script>
+function _campBack(tab){
+  if(window.parent&&window.parent!==window){window.parent.postMessage({type:'campanas-back',tab:tab},'*');return}
+  location.href='taller.html';
+}
 const CONFIG_URL='https://vkhwdvjtowrhkhqavnvk.supabase.co';
 const CONFIG_KEY='sb_publishable_PynS5ZjKoQ36HCpguVzxaw_KZOlagtz';
 const client=supabase.createClient(CONFIG_URL,CONFIG_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});

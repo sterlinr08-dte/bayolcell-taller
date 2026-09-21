@@ -36827,11 +36827,16 @@ async function crmLineaTab(name) {
     if(btnCa) btnCa.className = 'crm-tab-seg' + (name === 'campanas' ? ' on pill-hundido' : '');
     if(name === 'campanas') {
         var fr = document.getElementById('crmCampanasFrame');
-        if(fr && !fr.src.includes('crm-campanas.html')) fr.src = 'crm-campanas.html';
+        if(fr && !fr.src.includes('crm-campanas.html')) fr.src = 'crm-campanas.html?v=20260921-postmsg1';
     } else if(name === 'mensajes') await renderWhatsapp();
     else if(name === 'redes') await renderRedesSociales();
     else await renderLeads();
 }
+
+window.addEventListener('message', function(ev) {
+    if (!ev.data || ev.data.type !== 'campanas-back') return;
+    crmLineaTab('mensajes');
+});
 
 /* ============================================================
    CRM REDES — Instagram (Facebook y TikTok son placeholders, sin
@@ -37499,5 +37504,5 @@ if(saved) {
     }).catch(function(){ localStorage.removeItem("bayol_session"); });
 }
 </script>
-<script src="crm-marketing-consent.js?v=20260921-campfix5"></script>
+<script src="crm-marketing-consent.js?v=20260921-campfix6"></script>
 </body>
