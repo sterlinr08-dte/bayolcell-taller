@@ -14290,6 +14290,8 @@ async function reconciliarTaller(codigo){
 async function refrescarVista(renderFn, btn) {
     const orig = btn ? btn.innerHTML : '';
     if(btn){ btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Actualizando…'; }
+    const sc = document.querySelector('.content');
+    const prevScroll = sc ? sc.scrollTop : 0;
     try {
         await loadAll();
         if(typeof renderFn === 'function') await renderFn();
@@ -14298,6 +14300,7 @@ async function refrescarVista(renderFn, btn) {
         toastError(getFriendlyError(e));
     } finally {
         if(btn){ btn.disabled = false; btn.innerHTML = orig; }
+        if(sc) requestAnimationFrame(() => { sc.scrollTop = prevScroll; });
     }
 }
 
