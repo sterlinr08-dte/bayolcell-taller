@@ -7848,7 +7848,7 @@ async function renderWebVisitas() {
 
 function _iniciarVistaRestaurada(v) {
     try {
-        if(v === 'crmLinea' && typeof renderCrmLinea === 'function') renderCrmLinea();
+        if(v === 'crmLinea' && typeof renderCrmLinea === 'function') { try { localStorage.setItem('bayol_subtab_crmlinea', 'mensajes'); } catch(e){} renderCrmLinea(); }
         else if(v === 'refurb') { volverListaLotesReacond(); var st = localStorage.getItem('bayol_subtab_reacond'); st = ['lotes','catalogo','devoluciones','piezas','rentabilidad'].includes(st) ? st : 'lotes'; if(typeof cambiarMainTabReacond === 'function') cambiarMainTabReacond(st); }
         else if(v === 'ordenes') { if(typeof renderOrders === 'function') renderOrders(); if(typeof renderTallerOrdenes === 'function') renderTallerOrdenes(); }
         else if(v === 'financiamientos' && typeof renderFinanciamientos === 'function') renderFinanciamientos();
