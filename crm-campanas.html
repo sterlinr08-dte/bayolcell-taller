@@ -4,116 +4,394 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="robots" content="noindex,nofollow">
-<meta name="theme-color" content="#f6f7f9">
-<title>Campañas · CRM BAYOL CELL</title>
+<title>Campañas · BAYOL CELL</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.4"></script>
 <style>
-:root{--red:#e31e24;--red2:#c9161c;--ink:#121826;--muted:#687386;--line:#e6e9ef;--soft:#f6f7f9;--card:rgba(255,255,255,.82);--glass:rgba(255,255,255,.68);--green:#079669;--amber:#b76b00;--blue:#2563eb;--danger:#b42318;--shadow:0 14px 44px rgba(18,24,38,.08)}
-*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:'Plus Jakarta Sans',sans-serif;color:var(--ink);background:radial-gradient(circle at 10% -10%,rgba(227,30,36,.08),transparent 34%),radial-gradient(circle at 95% 5%,rgba(37,99,235,.06),transparent 28%),var(--soft)}
-button,input,select,textarea{font:inherit}.hidden{display:none!important}.app{min-height:100vh}.topbar{position:sticky;top:0;z-index:40;height:70px;display:flex;align-items:center;gap:14px;padding:0 22px;border-bottom:1px solid rgba(218,222,230,.75);background:rgba(246,247,249,.78);backdrop-filter:blur(22px) saturate(150%)}
-.back{width:38px;height:38px;border-radius:12px;border:1px solid var(--line);background:#fff;display:grid;place-items:center;color:#334155;cursor:pointer}.brand{display:flex;align-items:center;gap:11px;min-width:0}.brand-mark{width:36px;height:36px;border-radius:11px;background:linear-gradient(145deg,#f1464b,var(--red2));color:#fff;display:grid;place-items:center;font-weight:900;box-shadow:0 8px 20px rgba(227,30,36,.22)}
-.brand h1{font-size:16px;margin:0;font-weight:800;letter-spacing:-.3px}.brand p{font-size:10.5px;margin:2px 0 0;color:var(--muted);font-weight:600}.top-spacer{flex:1}.status-pill{display:flex;align-items:center;gap:7px;padding:8px 11px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.8);font-size:11px;font-weight:700;color:#475569}.dot{width:7px;height:7px;border-radius:50%;background:#94a3b8}.dot.ok{background:#10b981;box-shadow:0 0 0 4px rgba(16,185,129,.1)}
-.wrap{max-width:1420px;margin:0 auto;padding:22px}.hero{display:flex;align-items:flex-end;gap:18px;margin-bottom:18px}.hero-main{flex:1}.eyebrow{font-size:10px;color:var(--red);letter-spacing:.14em;font-weight:800;text-transform:uppercase}.hero h2{font-size:27px;letter-spacing:-.8px;margin:5px 0 6px}.hero p{max-width:720px;color:var(--muted);margin:0;font-size:12.5px;line-height:1.6}.hero-action{display:flex;gap:8px}
-.btn{border:0;border-radius:11px;padding:9px 13px;display:inline-flex;align-items:center;justify-content:center;gap:7px;font-size:12px;font-weight:800;cursor:pointer;transition:.16s ease}.btn:hover{transform:translateY(-1px)}.btn:active{transform:scale(.97)}.btn:disabled{opacity:.48;cursor:not-allowed;transform:none}.btn-primary{background:linear-gradient(145deg,#ee3339,var(--red2));color:#fff;box-shadow:0 8px 22px rgba(227,30,36,.21)}.btn-light{background:#fff;color:#334155;border:1px solid var(--line)}.btn-danger{background:#fff1f1;color:#a7191f;border:1px solid #ffd6d8}.btn-green{background:#eafaf4;color:#047857;border:1px solid #c8f0df}.btn-sm{padding:7px 10px;font-size:10.5px;border-radius:9px}.btn-icon{width:36px;height:36px;padding:0}
-.policy{display:flex;align-items:flex-start;gap:11px;padding:13px 15px;background:linear-gradient(90deg,rgba(255,248,235,.94),rgba(255,255,255,.82));border:1px solid #f1dfb8;border-radius:15px;margin-bottom:17px;box-shadow:0 7px 26px rgba(156,91,0,.04)}.policy i{font-size:19px;color:#ad6b00;margin-top:1px}.policy b{display:block;font-size:11.5px;margin-bottom:3px}.policy span{font-size:11px;color:#765b2c;line-height:1.45}
-.tabs{display:flex;gap:5px;padding:5px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.62);width:max-content;max-width:100%;overflow:auto;margin-bottom:17px}.tab{border:0;background:transparent;color:#667085;padding:9px 13px;border-radius:10px;font-size:11.5px;font-weight:800;white-space:nowrap;cursor:pointer}.tab.on{background:#fff;color:#111827;box-shadow:0 2px 10px rgba(15,23,42,.07)}.tab i{margin-right:5px}
-.grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(310px,.75fr);gap:17px}.card{background:var(--card);border:1px solid rgba(226,230,237,.9);border-radius:18px;box-shadow:var(--shadow);backdrop-filter:blur(18px);overflow:hidden}.card-head{display:flex;align-items:center;gap:12px;padding:15px 17px;border-bottom:1px solid rgba(230,233,239,.9)}.step{width:27px;height:27px;border-radius:9px;background:#fff1f2;color:var(--red);display:grid;place-items:center;font-size:11px;font-weight:900}.card-head h3{margin:0;font-size:13px}.card-head p{margin:2px 0 0;color:var(--muted);font-size:10.5px}.card-body{padding:17px}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{margin-bottom:12px}.field label{display:block;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#667085;margin:0 0 6px}.input,.select,.textarea{width:100%;border:1px solid #dde2ea;border-radius:11px;background:rgba(255,255,255,.92);outline:0;padding:10px 11px;color:#1f2937;font-size:11.5px;transition:.16s}.input:focus,.select:focus,.textarea:focus{border-color:#f2a1a4;box-shadow:0 0 0 3px rgba(227,30,36,.08)}.textarea{resize:vertical;min-height:76px}.help{font-size:9.5px;color:#8a94a6;line-height:1.45;margin-top:5px}
-.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-bottom:14px}.metric{border:1px solid var(--line);background:rgba(255,255,255,.78);border-radius:14px;padding:12px}.metric .num{font-size:23px;font-weight:800;letter-spacing:-.7px}.metric .lab{font-size:9.5px;color:#7a8495;font-weight:700;margin-top:2px}.metric.good .num{color:var(--green)}.metric.warn .num{color:var(--amber)}
-.audience-box{border:1px dashed #d7dce5;border-radius:14px;padding:12px;background:rgba(248,250,252,.7)}.aud-row{display:flex;align-items:center;gap:10px}.aud-icon{width:37px;height:37px;border-radius:11px;background:#ecfdf5;color:#059669;display:grid;place-items:center;font-size:18px}.aud-row b{font-size:11.5px}.aud-row p{font-size:9.5px;color:var(--muted);margin:2px 0 0}.aud-row .right{margin-left:auto;text-align:right}.aud-row .right strong{font-size:19px}.aud-row .right span{display:block;font-size:8.5px;color:var(--muted)}
-.template-preview{background:linear-gradient(145deg,#edf7f2,#f7fbf9);border:1px solid #dcece5;border-radius:15px;padding:14px;min-height:110px}.bubble{max-width:92%;background:#d9fdd3;padding:10px 11px;border-radius:10px 10px 2px 10px;box-shadow:0 1px 1px rgba(0,0,0,.06);font-size:11.5px;line-height:1.5;white-space:pre-wrap}.bubble small{display:block;text-align:right;color:#6d7e72;font-size:8px;margin-top:3px}.template-meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px}.chip{padding:5px 8px;border-radius:999px;background:#f2f4f7;color:#566074;font-size:9px;font-weight:800}.chip.marketing{background:#fff1f1;color:#b42318}.vars{margin-top:12px}.var-row{display:grid;grid-template-columns:110px 1fr;gap:8px;align-items:center;margin-bottom:7px}.var-row span{font-size:9.5px;color:#667085;font-weight:700}.dynamic-tip{padding:8px 9px;border-radius:10px;background:#f7f8fa;color:#667085;font-size:9.5px;line-height:1.4;margin-top:8px}
-.summary-list{display:grid;gap:9px}.sum-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid #edf0f4}.sum-row:last-child{border-bottom:0}.sum-row span{font-size:10px;color:#707b8d}.sum-row b{font-size:11px}.send-box{padding:12px;border-radius:14px;background:#fff7f7;border:1px solid #ffe0e1;margin-top:12px}.send-box p{margin:0 0 9px;font-size:9.5px;color:#7d4447;line-height:1.5}.send-box .btn{width:100%}
-.campaigns{display:grid;gap:10px}.campaign{background:rgba(255,255,255,.86);border:1px solid var(--line);border-radius:16px;padding:13px}.camp-top{display:flex;align-items:flex-start;gap:10px}.camp-icon{width:38px;height:38px;border-radius:12px;background:#fff1f2;color:var(--red);display:grid;place-items:center;font-size:18px}.camp-main{flex:1;min-width:0}.camp-main h4{font-size:12px;margin:1px 0 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.camp-main p{font-size:9.5px;color:var(--muted);margin:0}.state{padding:5px 8px;border-radius:999px;font-size:8.5px;font-weight:900;text-transform:uppercase;letter-spacing:.03em;background:#f2f4f7;color:#667085}.state.en_progreso{background:#eff6ff;color:#2563eb}.state.completado{background:#ecfdf5;color:#047857}.state.pausado{background:#fff7e6;color:#a15c00}.state.cancelado,.state.error{background:#fff1f1;color:#b42318}.progress{height:6px;background:#eef1f4;border-radius:999px;overflow:hidden;margin:12px 0 8px}.progress span{display:block;height:100%;background:linear-gradient(90deg,#ef4444,#c9161c);border-radius:999px;transition:width .25s}.camp-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}.camp-stat{text-align:center;padding:6px 3px;border-radius:9px;background:#f8fafc}.camp-stat b{display:block;font-size:11px}.camp-stat span{font-size:7.8px;color:#7a8495}.camp-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;padding-top:9px;border-top:1px solid #edf0f4}
-.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:10px}.search{position:relative;flex:1}.search i{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#98a2b3}.search input{padding-left:31px}.contact-list{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:rgba(255,255,255,.72)}.contact-row{display:grid;grid-template-columns:28px minmax(0,1fr) 120px 95px;gap:8px;align-items:center;padding:9px 11px;border-bottom:1px solid #edf0f4}.contact-row:last-child{border-bottom:0}.contact-row:hover{background:#fafbfc}.check{width:17px;height:17px;accent-color:var(--red)}.contact-name{font-size:10.5px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.contact-phone{font-size:9px;color:#758095;margin-top:2px}.contact-last{font-size:8.5px;color:#8a94a6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.consent{justify-self:end;padding:5px 7px;border-radius:999px;font-size:8.5px;font-weight:800}.consent.yes{background:#ecfdf5;color:#047857}.consent.no{background:#f2f4f7;color:#667085}.bulkbar{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:12px;background:#fff;border:1px solid var(--line);margin-bottom:9px}.bulkbar span{font-size:10px;font-weight:700;color:#667085;margin-right:auto}
-.empty{padding:34px 20px;text-align:center;color:#8a94a6}.empty i{font-size:30px;display:block;margin-bottom:7px;color:#c0c6d0}.empty b{display:block;color:#596273;font-size:11px;margin-bottom:3px}.empty span{font-size:9.5px}.loader{width:18px;height:18px;border:2px solid #e4e7ec;border-top-color:var(--red);border-radius:50%;animation:spin .7s linear infinite;display:inline-block}@keyframes spin{to{transform:rotate(360deg)}}
-.modal{position:fixed;inset:0;z-index:80;background:rgba(12,17,29,.36);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:18px}.modal.on{display:flex}.modal-card{width:min(620px,100%);max-height:88vh;overflow:auto;background:#fff;border:1px solid #e4e7ec;border-radius:20px;box-shadow:0 30px 80px rgba(15,23,42,.24)}.modal-head{position:sticky;top:0;z-index:2;display:flex;align-items:center;padding:14px 16px;background:rgba(255,255,255,.93);backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}.modal-head h3{font-size:13px;margin:0}.modal-head .btn{margin-left:auto}.modal-body{padding:16px}.confirm-check{display:flex;align-items:flex-start;gap:9px;padding:11px;border:1px solid #f0d8d9;border-radius:12px;background:#fff8f8}.confirm-check input{margin-top:2px;accent-color:var(--red)}.confirm-check span{font-size:10px;color:#70464a;line-height:1.5}
-.toast{position:fixed;z-index:120;right:18px;bottom:18px;max-width:360px;padding:11px 13px;border-radius:12px;background:#111827;color:#fff;font-size:10.5px;font-weight:700;box-shadow:0 12px 35px rgba(0,0,0,.22);transform:translateY(20px);opacity:0;pointer-events:none;transition:.22s}.toast.on{transform:none;opacity:1}.toast.bad{background:#991b1b}.toast.good{background:#065f46}
-.session-wall{position:fixed;inset:0;background:var(--soft);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px}.wall-card{width:min(420px,100%);background:#fff;border:1px solid var(--line);border-radius:20px;padding:28px;box-shadow:var(--shadow);text-align:center}.wall-logo{width:54px;height:54px;border-radius:16px;background:linear-gradient(145deg,#ef4444,var(--red2));display:grid;place-items:center;color:#fff;font-size:24px;margin:0 auto 14px}.wall-card h2{font-size:17px;margin:0 0 7px}.wall-card p{font-size:10.5px;color:var(--muted);line-height:1.6;margin:0 0 15px}
-@media(max-width:900px){.wrap{padding:14px}.topbar{height:62px;padding:0 12px}.status-pill{display:none}.hero{align-items:flex-start;flex-direction:column}.hero h2{font-size:22px}.hero-action{width:100%}.hero-action .btn{flex:1}.grid{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(4,1fr)}.metric{padding:9px}.metric .num{font-size:18px}.contact-row{grid-template-columns:28px minmax(0,1fr) 75px}.contact-last{display:none}.camp-stats{grid-template-columns:repeat(5,1fr)}}
-@media(max-width:560px){.wrap{padding:11px}.brand p{display:none}.hero p{font-size:11px}.policy{padding:11px}.tabs{width:100%}.tab{flex:1;padding:8px 9px}.grid{gap:11px}.card{border-radius:15px}.card-head,.card-body{padding:13px}.metrics{grid-template-columns:repeat(2,1fr)}.var-row{grid-template-columns:1fr}.camp-stats{grid-template-columns:repeat(3,1fr)}.contact-row{grid-template-columns:24px minmax(0,1fr) 72px;padding:8px}.toolbar{align-items:stretch;flex-wrap:wrap}.toolbar .btn{flex:1}.bulkbar{flex-wrap:wrap}.bulkbar span{width:100%}.modal{padding:0;align-items:flex-end}.modal-card{max-height:100%;height:auto;border-radius:16px 16px 0 0;overflow-y:auto}.modal-body{padding-bottom:28px}.topbar .back{width:35px;height:35px}}
+:root{--red:#e31e24;--red-dk:#c9161c;--ink:#1a1a2e;--muted:#6b7280;--line:#e5e7eb;--bg:#f4f5f7;--card:#fff;--green:#059669;--amber:#d97706;--blue:#2563eb;--danger:#dc2626;--radius:16px;--shadow:0 2px 12px rgba(0,0,0,.06)}
+*{box-sizing:border-box;margin:0}html,body{min-height:100%;font-family:'Plus Jakarta Sans',system-ui,sans-serif;font-size:15px;color:var(--ink);background:var(--bg)}button,input,select,textarea{font:inherit}
+.hidden{display:none!important}
+
+/* ===== SESSION WALL ===== */
+.session-wall{position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
+.wall-card{width:min(400px,100%);background:var(--card);border:1px solid var(--line);border-radius:20px;padding:32px 24px;box-shadow:var(--shadow);text-align:center}
+.wall-icon{width:60px;height:60px;border-radius:18px;background:linear-gradient(145deg,#ef4444,var(--red-dk));display:grid;place-items:center;color:#fff;font-size:28px;margin:0 auto 16px}
+.wall-card h2{font-size:20px;margin-bottom:8px}.wall-card p{font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:18px}
+
+/* ===== TOPBAR ===== */
+.topbar{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:12px;padding:10px 16px;background:rgba(244,245,247,.85);backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
+.back-btn{width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:var(--card);display:grid;place-items:center;color:var(--ink);cursor:pointer;font-size:18px}
+.topbar-title{font-size:17px;font-weight:800;flex:1}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.dot{width:8px;height:8px;border-radius:50%;background:#94a3b8;display:inline-block}.dot.ok{background:#10b981}
+.status-dot{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);font-weight:700}
+
+/* ===== MAIN WRAP ===== */
+.main-wrap{max-width:660px;margin:0 auto;padding:16px}
+
+/* ===== TABS ===== */
+.tabs{display:flex;gap:6px;margin-bottom:18px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:5px}
+.tab{flex:1;border:0;background:transparent;color:var(--muted);padding:11px 8px;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:.15s}
+.tab.on{background:var(--red);color:#fff;box-shadow:0 4px 14px rgba(227,30,36,.22)}
+.tab i{font-size:18px}
+
+/* ===== CARDS ===== */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden}
+.card-step{display:flex;align-items:center;gap:14px;padding:16px 18px;border-bottom:1px solid var(--line);background:#fafbfc}
+.step-num{width:40px;height:40px;border-radius:12px;background:#fff1f2;color:var(--red);display:grid;place-items:center;font-size:17px;font-weight:900;flex-shrink:0}
+.card-step h3{font-size:16px;font-weight:800;margin-bottom:2px}.card-step p{font-size:12px;color:var(--muted)}
+.card-body{padding:18px}
+.card-send{border:2px solid var(--red);border-radius:var(--radius)}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}.section-header h2{font-size:18px;font-weight:800}
+.section-desc{font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:16px}
+
+/* ===== FORM ELEMENTS ===== */
+.field{margin-bottom:14px}.field label{display:block;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#6b7280;margin-bottom:6px}
+.input,.select,.textarea{width:100%;border:1px solid var(--line);border-radius:12px;background:var(--card);padding:12px 14px;font-size:15px;color:var(--ink);outline:0;transition:.15s}
+.input:focus,.select:focus,.textarea:focus{border-color:#f2a1a4;box-shadow:0 0 0 3px rgba(227,30,36,.08)}
+.textarea{resize:vertical;min-height:80px}
+.help{font-size:12px;color:#9ca3af;line-height:1.5;margin-top:6px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+/* ===== BUTTONS ===== */
+.btn{border:0;border-radius:12px;padding:11px 16px;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:800;cursor:pointer;transition:.12s}.btn:hover{transform:translateY(-1px)}.btn:active{transform:scale(.97)}.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn-primary{background:linear-gradient(145deg,#ee3339,var(--red-dk));color:#fff;box-shadow:0 6px 18px rgba(227,30,36,.2)}
+.btn-light{background:var(--card);color:#374151;border:1px solid var(--line)}
+.btn-danger{background:#fff1f1;color:#b91c1c;border:1px solid #fecaca}
+.btn-green{background:#ecfdf5;color:#047857;border:1px solid #a7f3d0}
+.btn-sm{padding:9px 12px;font-size:12px;border-radius:10px}
+.btn-icon{width:40px;height:40px;padding:0}
+.btn-big{width:100%;padding:14px;font-size:16px;border-radius:14px}
+
+/* ===== TEMPLATE PREVIEW ===== */
+.template-meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.chip{padding:6px 10px;border-radius:999px;background:#f3f4f6;color:#4b5563;font-size:11px;font-weight:800}.chip.marketing{background:#fff1f2;color:#b91c1c}
+.vars{margin-top:14px}
+.var-row{display:grid;grid-template-columns:120px 1fr;gap:10px;align-items:center;margin-bottom:8px}.var-row span{font-size:13px;color:#6b7280;font-weight:700}
+.dynamic-tip{padding:10px 12px;border-radius:12px;background:#f9fafb;color:#6b7280;font-size:13px;line-height:1.5;margin-top:10px}
+.template-preview{background:#edf7f2;border:1px solid #d1e7dd;border-radius:14px;padding:16px;margin-top:14px;min-height:80px}
+.bubble{max-width:92%;background:#d9fdd3;padding:12px 14px;border-radius:12px 12px 2px 12px;box-shadow:0 1px 2px rgba(0,0,0,.06);font-size:14px;line-height:1.6;white-space:pre-wrap}
+.bubble small{display:block;text-align:right;color:#6d7e72;font-size:10px;margin-top:4px}
+
+/* ===== AUDIENCE ===== */
+.audience-box{border:1px dashed #d1d5db;border-radius:14px;padding:16px;background:#fafbfc}
+.aud-row{display:flex;align-items:center;gap:12px}.aud-icon{width:44px;height:44px;border-radius:13px;background:#ecfdf5;color:var(--green);display:grid;place-items:center;font-size:22px}
+.aud-row b{font-size:14px}.aud-row p{font-size:12px;color:var(--muted);margin-top:2px}
+.aud-row .right{margin-left:auto;text-align:right}.aud-row .right strong{font-size:24px;font-weight:800}.aud-row .right span{display:block;font-size:10px;color:var(--muted)}
+
+/* ===== METRICS ===== */
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.metric{border:1px solid var(--line);background:#fafbfc;border-radius:14px;padding:14px;text-align:center}
+.metric .num{font-size:28px;font-weight:800;letter-spacing:-.5px}.metric .lab{font-size:12px;color:#9ca3af;font-weight:700;margin-top:3px}
+.metric.good .num{color:var(--green)}.metric.warn .num{color:var(--amber)}
+
+/* ===== SUMMARY ===== */
+.summary-list{display:grid;gap:8px;margin-bottom:14px}
+.sum-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f3f4f6}.sum-row:last-child{border-bottom:0}
+.sum-row span{font-size:13px;color:#9ca3af}.sum-row b{font-size:14px}
+.send-box{padding:14px;border-radius:14px;background:#fff7f7;border:1px solid #fecaca;margin-top:14px}
+.send-box p{margin:0 0 12px;font-size:13px;color:#92404e;line-height:1.5}
+
+/* ===== CAMPAIGNS LIST ===== */
+.campaigns{display:grid;gap:12px}
+.campaign{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+.camp-top{display:flex;align-items:flex-start;gap:12px}
+.camp-icon{width:42px;height:42px;border-radius:13px;background:#fff1f2;color:var(--red);display:grid;place-items:center;font-size:20px;flex-shrink:0}
+.camp-main{flex:1;min-width:0}.camp-main h4{font-size:15px;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.camp-main p{font-size:12px;color:var(--muted)}
+.state{padding:5px 10px;border-radius:999px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.02em;background:#f3f4f6;color:#6b7280;white-space:nowrap}
+.state.en_progreso{background:#eff6ff;color:#2563eb}.state.completado{background:#ecfdf5;color:#047857}.state.pausado{background:#fffbeb;color:#b45309}.state.cancelado,.state.error{background:#fff1f2;color:#b91c1c}
+.progress{height:7px;background:#f3f4f6;border-radius:999px;overflow:hidden;margin:14px 0 10px}.progress span{display:block;height:100%;background:linear-gradient(90deg,#ef4444,var(--red-dk));border-radius:999px;transition:width .25s}
+.camp-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}.camp-stat{text-align:center;padding:8px 4px;border-radius:10px;background:#f9fafb}.camp-stat b{display:block;font-size:14px}.camp-stat span{font-size:10px;color:#9ca3af}
+.camp-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px;padding-top:10px;border-top:1px solid #f3f4f6}
+
+/* ===== CONTACTS / CONSENT ===== */
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.toolbar .select{max-width:280px}
+.search{position:relative;flex:1;min-width:160px}.search i{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#9ca3af;font-size:16px}.search .input{padding-left:36px}
+.bulkbar{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;background:var(--card);border:1px solid var(--line);margin-bottom:12px;flex-wrap:wrap}
+.bulkbar span{font-size:13px;font-weight:700;color:#6b7280;margin-right:auto}
+.contact-list{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--card)}
+.contact-row{display:grid;grid-template-columns:30px minmax(0,1fr) 120px 100px;gap:10px;align-items:center;padding:11px 14px;border-bottom:1px solid #f3f4f6}
+.contact-row:last-child{border-bottom:0}.contact-row:hover{background:#f9fafb}
+.check{width:20px;height:20px;accent-color:var(--red)}
+.contact-name{font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.contact-phone{font-size:12px;color:#9ca3af;margin-top:2px}
+.contact-last{font-size:12px;color:#9ca3af;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.consent{justify-self:end;padding:6px 10px;border-radius:999px;font-size:11px;font-weight:800}.consent.yes{background:#ecfdf5;color:#047857}.consent.no{background:#f3f4f6;color:#6b7280}
+
+/* ===== MODALS ===== */
+.modal{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.35);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:16px}.modal.on{display:flex}
+.modal-card{width:min(560px,100%);max-height:88vh;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:0 24px 64px rgba(0,0,0,.18)}
+.modal-head{position:sticky;top:0;z-index:2;display:flex;align-items:center;padding:16px 18px;background:rgba(255,255,255,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.modal-head h3{font-size:16px;flex:1}.modal-head .btn{margin-left:auto}
+.modal-body{padding:18px}
+.confirm-check{display:flex;align-items:flex-start;gap:10px;padding:14px;border:1px solid #fecaca;border-radius:12px;background:#fff7f7}
+.confirm-check input{margin-top:3px;accent-color:var(--red);width:20px;height:20px;flex-shrink:0}
+.confirm-check span{font-size:13px;color:#7f1d1d;line-height:1.6}
+
+/* ===== TOAST ===== */
+.toast{position:fixed;z-index:120;right:16px;bottom:16px;max-width:380px;padding:14px 16px;border-radius:14px;background:#111827;color:#fff;font-size:14px;font-weight:700;box-shadow:0 10px 30px rgba(0,0,0,.2);transform:translateY(20px);opacity:0;pointer-events:none;transition:.2s}
+.toast.on{transform:none;opacity:1}.toast.bad{background:#991b1b}.toast.good{background:#065f46}
+
+/* ===== EMPTY & LOADER ===== */
+.empty{padding:40px 20px;text-align:center;color:#9ca3af}.empty i{font-size:36px;display:block;margin-bottom:10px;color:#d1d5db}.empty b{display:block;color:#4b5563;font-size:14px;margin-bottom:4px}.empty span{font-size:13px}
+.loader{width:22px;height:22px;border:3px solid #e5e7eb;border-top-color:var(--red);border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ===== RESPONSIVE ===== */
+@media(max-width:640px){
+  .main-wrap{padding:12px}
+  .topbar{padding:8px 12px}
+  .status-dot span:last-child{display:none}
+  .tab{font-size:13px;padding:10px 6px}.tab i{font-size:16px}
+  .card-step{padding:14px}.card-body{padding:14px}
+  .card-step h3{font-size:15px}
+  .metrics{grid-template-columns:repeat(2,1fr)}
+  .var-row{grid-template-columns:1fr}
+  .contact-row{grid-template-columns:26px minmax(0,1fr) 85px;padding:10px 12px}
+  .contact-last{display:none}
+  .camp-stats{grid-template-columns:repeat(3,1fr)}
+  .toolbar{flex-direction:column;align-items:stretch}
+  .toolbar .select{max-width:100%}
+  .search{min-width:auto}
+  .bulkbar{flex-direction:column;align-items:stretch;gap:8px}
+  .bulkbar span{text-align:center}
+  .modal{padding:0;align-items:flex-end}
+  .modal-card{max-height:92vh;border-radius:18px 18px 0 0}
+  .modal-body{padding-bottom:28px}
+  .form-grid{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
+
+<!-- ===== WALL DE SESION ===== -->
 <div id="sessionWall" class="session-wall">
   <div class="wall-card">
-    <div class="wall-logo"><i class="ti ti-speakerphone"></i></div>
+    <div class="wall-icon"><i class="ti ti-speakerphone"></i></div>
     <h2>Campañas BAYOL CELL</h2>
-    <p id="wallText">Comprobando tu sesión segura del CRM…</p>
+    <p id="wallText">Verificando tu sesión…</p>
     <div id="wallLoader"><span class="loader"></span></div>
-    <button id="wallBtn" class="btn btn-primary hidden" onclick="_campBack('login')"><i class="ti ti-login"></i> Abrir CRM e iniciar sesión</button>
+    <button id="wallBtn" class="btn btn-primary hidden" onclick="_campBack('login')"><i class="ti ti-login"></i> Abrir CRM</button>
   </div>
 </div>
+
+<!-- ===== APP ===== -->
 <div class="app">
 <header class="topbar">
-  <button class="back" onclick="_campBack('mensajes')" title="Volver al CRM"><i class="ti ti-arrow-left"></i></button>
-  <div class="brand"><div class="brand-mark">B</div><div><h1>Campañas CRM</h1><p>BAYOL CELL · WhatsApp promocional</p></div></div>
-  <div class="top-spacer"></div>
-  <div class="status-pill"><span id="statusDot" class="dot"></span><span id="statusText">Conectando…</span></div>
-  <button class="btn btn-light btn-icon" onclick="refreshAll()" title="Actualizar"><i class="ti ti-refresh"></i></button>
+  <button class="back-btn" onclick="_campBack('mensajes')" title="Volver al CRM"><i class="ti ti-arrow-left"></i></button>
+  <div class="topbar-title">Campañas</div>
+  <div class="topbar-right">
+    <span class="status-dot"><span id="statusDot" class="dot"></span> <span id="statusText">Conectando…</span></span>
+    <button class="btn btn-light btn-icon" onclick="refreshAll()" title="Actualizar"><i class="ti ti-refresh"></i></button>
+  </div>
 </header>
-<main class="wrap">
-  <section class="hero">
-    <div class="hero-main"><div class="eyebrow">CRM 2 · Promociones</div><h2>Campañas masivas con control real</h2><p>Crea promociones desde tus líneas oficiales, usa plantillas aprobadas y mide cada envío sin mezclarlo con los chats normales del equipo.</p></div>
-    <div class="hero-action"><button class="btn btn-light" onclick="showTab('consent')"><i class="ti ti-user-check"></i> Consentimientos</button><button class="btn btn-primary" onclick="showTab('new')"><i class="ti ti-plus"></i> Nueva campaña</button></div>
-  </section>
-  <div class="policy"><i class="ti ti-shield-check"></i><div><b>Protección contra spam activada</b><span>Solo entran a una campaña los contactos con consentimiento registrado. Las bajas solicitadas por WhatsApp se excluyen automáticamente de futuras promociones.</span></div></div>
+
+<div class="main-wrap">
+  <!-- ===== PESTANAS ===== -->
   <nav class="tabs">
-    <button id="tab-new" class="tab on" onclick="showTab('new')"><i class="ti ti-sparkles"></i>Nueva campaña</button>
-    <button id="tab-list" class="tab" onclick="showTab('list')"><i class="ti ti-chart-bar"></i>Campañas</button>
-    <button id="tab-consent" class="tab" onclick="showTab('consent')"><i class="ti ti-user-check"></i>Consentimientos</button>
+    <button id="tab-new" class="tab on" onclick="showTab('new')"><i class="ti ti-plus"></i> Crear</button>
+    <button id="tab-list" class="tab" onclick="showTab('list')"><i class="ti ti-speakerphone"></i> Campañas</button>
+    <button id="tab-consent" class="tab" onclick="showTab('consent')"><i class="ti ti-user-check"></i> Permisos</button>
   </nav>
 
+  <!-- ========================================== -->
+  <!-- VISTA: NUEVA CAMPAÑA (pasos 1-2-3-4)       -->
+  <!-- ========================================== -->
   <section id="view-new">
-    <div class="grid">
-      <div>
-        <div class="card" style="margin-bottom:17px"><div class="card-head"><div class="step">1</div><div><h3>Configuración</h3><p>Origen y nombre interno de la promoción</p></div></div><div class="card-body">
-          <div class="form-grid"><div class="field"><label>Línea de WhatsApp</label><select id="lineSelect" class="select" onchange="onLineChanged()"><option value="">Cargando líneas…</option></select></div><div class="field"><label>Nombre de campaña</label><input id="campaignName" class="input" placeholder="Ej. Especial iPhone septiembre"></div></div>
-        </div></div>
-        <div class="card" style="margin-bottom:17px"><div class="card-head"><div class="step">2</div><div><h3>Plantilla aprobada</h3><p>Para promociones fuera de la ventana de 24 horas</p></div></div><div class="card-body">
-          <div class="field"><label>Plantilla MARKETING</label><select id="templateSelect" class="select" onchange="onTemplateChanged()"><option value="">Selecciona una línea primero</option></select><div class="help" id="templateHelp">El sistema solo permitirá plantillas aprobadas por Meta/Zernio y clasificadas como marketing.</div></div>
-          <div id="templateMeta" class="template-meta"></div>
-          <div id="templateVars" class="vars"></div>
-          <div id="mediaHeaderField" class="field hidden"><label>URL pública del encabezado multimedia</label><input id="headerUrl" class="input" placeholder="https://…" oninput="renderTemplatePreview()"><div class="help">Solo si la plantilla aprobada exige imagen, video o documento en el encabezado.</div></div>
-          <div class="template-preview"><div id="templateBubble" class="bubble">Selecciona una plantilla para ver cómo se verá.<small>Ahora ✓✓</small></div></div>
-        </div></div>
-        <div class="card"><div class="card-head"><div class="step">3</div><div><h3>Audiencia</h3><p>Solo contactos que aceptaron promociones de BAYOL CELL</p></div></div><div class="card-body">
-          <div class="audience-box"><div class="aud-row"><div class="aud-icon"><i class="ti ti-users"></i></div><div><b>Todos los elegibles de esta línea</b><p id="audienceCaption">Selecciona una línea para calcular la audiencia.</p></div><div class="right"><strong id="audienceEligible">—</strong><span>elegibles</span></div></div></div>
-          <div class="help" style="margin-top:9px">Límite v1: 500 destinatarios por campaña. Los números sin consentimiento no entran aunque estén en el CRM.</div>
-        </div></div>
+
+    <!-- PASO 1 -->
+    <div class="card">
+      <div class="card-step">
+        <span class="step-num">1</span>
+        <div><h3>Elige la línea y ponle nombre</h3><p>¿Desde cuál línea de WhatsApp quieres enviar?</p></div>
       </div>
-      <aside>
-        <div class="card" style="position:sticky;top:88px"><div class="card-head"><div class="step"><i class="ti ti-checklist"></i></div><div><h3>Resumen</h3><p>Revisa antes de ponerla en cola</p></div></div><div class="card-body">
-          <div class="metrics"><div class="metric good"><div id="sumEligible" class="num">0</div><div class="lab">Con consentimiento</div></div><div class="metric warn"><div id="sumBlocked" class="num">0</div><div class="lab">Excluidos</div></div></div>
-          <div class="summary-list"><div class="sum-row"><span>Línea</span><b id="sumLine">—</b></div><div class="sum-row"><span>Campaña</span><b id="sumName">—</b></div><div class="sum-row"><span>Plantilla</span><b id="sumTemplate">—</b></div><div class="sum-row"><span>Categoría</span><b id="sumCategory">—</b></div></div>
-          <div class="send-box"><p>Al crearla queda preparada. Tú decides cuándo comenzar el procesamiento y puedes pausarla en cualquier momento.</p><button id="createBtn" class="btn btn-primary" onclick="openCreateConfirm()"><i class="ti ti-send"></i> Crear campaña</button></div>
-        </div></div>
-      </aside>
+      <div class="card-body">
+        <div class="field">
+          <label>Línea de WhatsApp</label>
+          <select id="lineSelect" class="select" onchange="onLineChanged()"><option value="">Cargando líneas…</option></select>
+        </div>
+        <div class="field">
+          <label>Nombre de la campaña</label>
+          <input id="campaignName" class="input" placeholder="Ej. Especial iPhone septiembre">
+        </div>
+      </div>
+    </div>
+
+    <!-- PASO 2 -->
+    <div class="card">
+      <div class="card-step">
+        <span class="step-num">2</span>
+        <div><h3>Elige el mensaje</h3><p>Solo se pueden usar plantillas aprobadas por Meta</p></div>
+      </div>
+      <div class="card-body">
+        <div class="field">
+          <label>Plantilla</label>
+          <select id="templateSelect" class="select" onchange="onTemplateChanged()"><option value="">Selecciona una línea primero</option></select>
+          <div class="help" id="templateHelp">Solo aparecen plantillas MARKETING aprobadas.</div>
+        </div>
+        <div id="templateMeta" class="template-meta"></div>
+        <div id="templateVars"></div>
+        <div id="mediaHeaderField" class="field hidden">
+          <label>Enlace de la imagen o video</label>
+          <input id="headerUrl" class="input" placeholder="https://…" oninput="renderTemplatePreview()">
+          <div class="help">Pega el enlace si la plantilla pide una imagen o video arriba.</div>
+        </div>
+        <div class="template-preview">
+          <div id="templateBubble" class="bubble">Elige una plantilla para ver cómo se verá el mensaje.<small>Ahora ✓✓</small></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PASO 3 -->
+    <div class="card">
+      <div class="card-step">
+        <span class="step-num">3</span>
+        <div><h3>¿A quiénes les llega?</h3><p>Solo reciben los contactos que tienen permiso</p></div>
+      </div>
+      <div class="card-body">
+        <div class="audience-box">
+          <div class="aud-row">
+            <div class="aud-icon"><i class="ti ti-users"></i></div>
+            <div>
+              <b>Contactos con permiso</b>
+              <p id="audienceCaption">Selecciona una línea para ver cuántos hay.</p>
+            </div>
+            <div class="right">
+              <strong id="audienceEligible">—</strong>
+              <span>elegibles</span>
+            </div>
+          </div>
+        </div>
+        <div class="help" style="margin-top:10px">Máximo 500 por campaña. Los que no tengan permiso no reciben nada.</div>
+      </div>
+    </div>
+
+    <!-- PASO 4: RESUMEN -->
+    <div class="card card-send">
+      <div class="card-step">
+        <span class="step-num">4</span>
+        <div><h3>Revisa y crea la campaña</h3><p>Cuando la crees, queda en espera hasta que le des Comenzar</p></div>
+      </div>
+      <div class="card-body">
+        <div class="metrics">
+          <div class="metric good"><div id="sumEligible" class="num">0</div><div class="lab">Con permiso</div></div>
+          <div class="metric warn"><div id="sumBlocked" class="num">0</div><div class="lab">Sin permiso</div></div>
+        </div>
+        <div class="summary-list">
+          <div class="sum-row"><span>Línea</span><b id="sumLine">—</b></div>
+          <div class="sum-row"><span>Campaña</span><b id="sumName">—</b></div>
+          <div class="sum-row"><span>Plantilla</span><b id="sumTemplate">—</b></div>
+          <div class="sum-row"><span>Categoría</span><b id="sumCategory">—</b></div>
+        </div>
+        <div class="send-box">
+          <p>La campaña no se envía sola. Tú decides cuándo empezar y puedes pausarla en cualquier momento.</p>
+          <button id="createBtn" class="btn btn-primary btn-big" onclick="openCreateConfirm()"><i class="ti ti-send"></i> Crear campaña</button>
+        </div>
+      </div>
     </div>
   </section>
 
+  <!-- ========================================== -->
+  <!-- VISTA: LISTA DE CAMPAÑAS                    -->
+  <!-- ========================================== -->
   <section id="view-list" class="hidden">
-    <div class="card"><div class="card-head"><div class="step"><i class="ti ti-chart-bar"></i></div><div><h3>Campañas</h3><p>Entrega, lectura, respuesta y errores por promoción</p></div><div style="margin-left:auto"><button class="btn btn-light btn-sm" onclick="loadCampaigns()"><i class="ti ti-refresh"></i> Actualizar</button></div></div><div class="card-body"><div id="campaignList" class="campaigns"><div class="empty"><span class="loader"></span></div></div></div></div>
+    <div class="section-header">
+      <h2>Tus campañas</h2>
+      <button class="btn btn-light btn-sm" onclick="loadCampaigns()"><i class="ti ti-refresh"></i> Actualizar</button>
+    </div>
+    <div id="campaignList" class="campaigns"><div class="empty"><span class="loader"></span></div></div>
   </section>
 
+  <!-- ========================================== -->
+  <!-- VISTA: PERMISOS (CONSENTIMIENTOS)           -->
+  <!-- ========================================== -->
   <section id="view-consent" class="hidden">
-    <div class="card"><div class="card-head"><div class="step"><i class="ti ti-user-check"></i></div><div><h3>Consentimientos de marketing</h3><p>Controla quién puede recibir promociones por WhatsApp</p></div></div><div class="card-body">
-      <div class="toolbar"><select id="consentLine" class="select" style="max-width:270px" onchange="loadContacts()"></select><div class="search"><i class="ti ti-search"></i><input id="contactSearch" class="input" placeholder="Buscar nombre o teléfono" oninput="filterContacts()"></div><button class="btn btn-light" onclick="loadContacts()"><i class="ti ti-refresh"></i></button></div>
-      <div class="metrics" style="max-width:430px"><div class="metric good"><div id="consYes" class="num">0</div><div class="lab">Pueden recibir</div></div><div class="metric"><div id="consNo" class="num">0</div><div class="lab">Sin consentimiento / baja</div></div></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"><button class="btn btn-primary btn-sm" onclick="bulkConsentAll()"><i class="ti ti-users-plus"></i> Autorizar todos los contactos</button></div>
-      <div class="bulkbar"><label style="display:flex;align-items:center;gap:6px;font-size:10px;font-weight:700"><input id="selectAllContacts" class="check" type="checkbox" onchange="selectVisible(this.checked)"> Seleccionar visibles</label><span id="selectedCount">0 seleccionados</span><button class="btn btn-green btn-sm" onclick="openConsentModal(true)"><i class="ti ti-user-check"></i> Marcar consentimiento</button><button class="btn btn-danger btn-sm" onclick="openConsentModal(false)"><i class="ti ti-user-x"></i> Dar de baja</button></div>
-      <div id="contactList" class="contact-list"><div class="empty"><i class="ti ti-address-book-off"></i><b>Selecciona una línea</b><span>Los contactos aparecerán aquí.</span></div></div>
-    </div></div>
+    <div class="section-header"><h2>Permisos de envío</h2></div>
+    <p class="section-desc">Controla quién puede recibir tus promociones por WhatsApp. Solo los que estén autorizados entran en las campañas.</p>
+
+    <div class="toolbar">
+      <select id="consentLine" class="select" onchange="loadContacts()"></select>
+      <div class="search"><i class="ti ti-search"></i><input id="contactSearch" class="input" placeholder="Buscar nombre o teléfono…" oninput="filterContacts()"></div>
+      <button class="btn btn-light btn-icon" onclick="loadContacts()"><i class="ti ti-refresh"></i></button>
+    </div>
+
+    <div class="metrics" style="max-width:440px">
+      <div class="metric good"><div id="consYes" class="num">0</div><div class="lab">Pueden recibir</div></div>
+      <div class="metric"><div id="consNo" class="num">0</div><div class="lab">Sin permiso</div></div>
+    </div>
+
+    <div style="margin-bottom:14px">
+      <button class="btn btn-primary btn-big" onclick="bulkConsentAll()"><i class="ti ti-users-plus"></i> Autorizar todos los contactos</button>
+    </div>
+
+    <div class="bulkbar">
+      <label style="display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;cursor:pointer"><input id="selectAllContacts" class="check" type="checkbox" onchange="selectVisible(this.checked)"> Seleccionar visibles</label>
+      <span id="selectedCount">0 seleccionados</span>
+      <button class="btn btn-green btn-sm" onclick="openConsentModal(true)"><i class="ti ti-user-check"></i> Autorizar</button>
+      <button class="btn btn-danger btn-sm" onclick="openConsentModal(false)"><i class="ti ti-user-x"></i> Quitar</button>
+    </div>
+
+    <div id="contactList" class="contact-list">
+      <div class="empty"><i class="ti ti-address-book-off"></i><b>Selecciona una línea</b><span>Los contactos aparecerán aquí.</span></div>
+    </div>
   </section>
-</main>
+
+</div><!-- /main-wrap -->
+</div><!-- /app -->
+
+<!-- ===== MODALES ===== -->
+<div id="confirmModal" class="modal">
+  <div class="modal-card">
+    <div class="modal-head"><h3>Confirmar campaña</h3><button class="btn btn-light btn-icon" onclick="closeModal('confirmModal')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <div id="confirmText"></div>
+      <div class="confirm-check" style="margin:14px 0">
+        <input id="campaignConfirmCheck" type="checkbox">
+        <span>Confirmo que esta campaña usa una plantilla aprobada y solo se enviará a contactos que dieron su permiso.</span>
+      </div>
+      <button class="btn btn-primary btn-big" onclick="createCampaign()"><i class="ti ti-check"></i> Crear y dejar lista</button>
+    </div>
+  </div>
 </div>
 
-<div id="confirmModal" class="modal"><div class="modal-card"><div class="modal-head"><h3>Confirmar campaña</h3><button class="btn btn-light btn-icon" onclick="closeModal('confirmModal')"><i class="ti ti-x"></i></button></div><div class="modal-body"><div id="confirmText"></div><div class="confirm-check" style="margin:14px 0"><input id="campaignConfirmCheck" type="checkbox"><span>Confirmo que esta campaña es promocional, usa una plantilla aprobada y solo se enviará a contactos registrados con consentimiento.</span></div><button class="btn btn-primary" style="width:100%" onclick="createCampaign()"><i class="ti ti-check"></i> Crear y dejar lista</button></div></div></div>
-<div id="consentModal" class="modal"><div class="modal-card"><div class="modal-head"><h3 id="consentModalTitle">Confirmar consentimiento</h3><button class="btn btn-light btn-icon" onclick="closeModal('consentModal')"><i class="ti ti-x"></i></button></div><div class="modal-body"><p id="consentModalText" style="font-size:10.5px;color:#667085;line-height:1.6"></p><div id="consentProof" class="confirm-check"><input id="consentProofCheck" type="checkbox"><span>Confirmo que estas personas aceptaron explícitamente recibir mensajes posteriores de BAYOL CELL por WhatsApp.</span></div><div class="field" style="margin-top:12px"><label>Fuente del consentimiento</label><select id="consentSource" class="select"><option value="tienda_fisica">Tienda física</option><option value="whatsapp">Conversación de WhatsApp</option><option value="web">Formulario web</option><option value="compra">Proceso de compra con autorización</option><option value="otro">Otro método verificable</option></select></div><button id="consentApplyBtn" class="btn btn-primary" style="width:100%" onclick="applyConsent()">Guardar</button></div></div></div>
-<div id="detailModal" class="modal"><div class="modal-card"><div class="modal-head"><h3>Detalle de campaña</h3><button class="btn btn-light btn-icon" onclick="closeModal('detailModal')"><i class="ti ti-x"></i></button></div><div id="detailBody" class="modal-body"></div></div></div>
+<div id="consentModal" class="modal">
+  <div class="modal-card">
+    <div class="modal-head"><h3 id="consentModalTitle">Confirmar permiso</h3><button class="btn btn-light btn-icon" onclick="closeModal('consentModal')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <p id="consentModalText" style="font-size:14px;color:#6b7280;line-height:1.6"></p>
+      <div id="consentProof" class="confirm-check">
+        <input id="consentProofCheck" type="checkbox">
+        <span>Confirmo que estas personas aceptaron recibir mensajes de BAYOL CELL por WhatsApp.</span>
+      </div>
+      <div class="field" style="margin-top:14px">
+        <label>¿Cómo dieron su permiso?</label>
+        <select id="consentSource" class="select">
+          <option value="tienda_fisica">En la tienda</option>
+          <option value="whatsapp">Por WhatsApp</option>
+          <option value="web">Formulario web</option>
+          <option value="compra">Al comprar</option>
+          <option value="otro">Otro</option>
+        </select>
+      </div>
+      <button id="consentApplyBtn" class="btn btn-primary btn-big" onclick="applyConsent()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div id="detailModal" class="modal">
+  <div class="modal-card">
+    <div class="modal-head"><h3>Detalle de campaña</h3><button class="btn btn-light btn-icon" onclick="closeModal('detailModal')"><i class="ti ti-x"></i></button></div>
+    <div id="detailBody" class="modal-body"></div>
+  </div>
+</div>
+
 <div id="toast" class="toast"></div>
+
+<!-- ===== JS (sin cambios) ===== -->
 <script>
 function _campBack(tab){
   if(window.parent&&window.parent!==window){window.parent.postMessage({type:'campanas-back',tab:tab},'*');return}
@@ -147,18 +425,18 @@ function syncSummary(){const l=lines.find(x=>x.id===$('lineSelect').value);$('su
 $('campaignName').addEventListener('input',syncSummary);
 function openCreateConfirm(){syncSummary();const name=$('campaignName').value.trim(),line=$('lineSelect').value;if(!line)return toast('Selecciona una línea.','bad');if(!name)return toast('Ponle un nombre a la campaña.','bad');if(!selectedTemplate)return toast('Selecciona una plantilla MARKETING aprobada.','bad');if(!audience.elegibles)return toast('Esta línea todavía no tiene contactos con consentimiento.','bad');if(audience.elegibles>500)return toast('La audiencia supera el límite de 500 de esta versión.','bad');$('campaignConfirmCheck').checked=false;$('confirmText').innerHTML=`<div class="summary-list"><div class="sum-row"><span>Campaña</span><b>${esc(name)}</b></div><div class="sum-row"><span>Plantilla</span><b>${esc(selectedTemplate.name)}</b></div><div class="sum-row"><span>Destinatarios elegibles</span><b>${audience.elegibles}</b></div></div>`;openModal('confirmModal')}
 async function createCampaign(){if(!$('campaignConfirmCheck').checked)return toast('Confirma las condiciones antes de crearla.','bad');const btn=$('createBtn');btn.disabled=true;try{const d=await invoke('whatsapp-campanas',{action:'crear',nombre:$('campaignName').value.trim(),linea_id:$('lineSelect').value,plantilla:selectedTemplate,plantilla_config:getTemplateConfig()});closeModal('confirmModal');toast(`Campaña creada con ${d.campaign.total} destinatarios.`,'good');$('campaignName').value='';showTab('list');await loadCampaigns()}catch(e){toast(e.message,'bad')}finally{btn.disabled=false}}
-async function loadCampaigns(){const el=$('campaignList');el.innerHTML='<div class="empty"><span class="loader"></span></div>';try{const d=await invoke('whatsapp-campanas',{action:'listar'});if(!d.campaigns.length){el.innerHTML='<div class="empty"><i class="ti ti-speakerphone-off"></i><b>Aún no hay campañas</b><span>Crea la primera desde “Nueva campaña”.</span></div>';return}el.innerHTML=d.campaigns.map(renderCampaign).join('')}catch(e){el.innerHTML=`<div class="empty"><i class="ti ti-alert-triangle"></i><b>No se pudieron cargar</b><span>${esc(e.message)}</span></div>`}}
+async function loadCampaigns(){const el=$('campaignList');el.innerHTML='<div class="empty"><span class="loader"></span></div>';try{const d=await invoke('whatsapp-campanas',{action:'listar'});if(!d.campaigns.length){el.innerHTML='<div class="empty"><i class="ti ti-speakerphone-off"></i><b>Aún no hay campañas</b><span>Crea la primera desde "Crear".</span></div>';return}el.innerHTML=d.campaigns.map(renderCampaign).join('')}catch(e){el.innerHTML=`<div class="empty"><i class="ti ti-alert-triangle"></i><b>No se pudieron cargar</b><span>${esc(e.message)}</span></div>`}}
 function renderCampaign(c){const done=(c.enviados||0)+(c.fallidos||0)+(c.omitidos||0),progress=pct(done,c.total);const canRun=['borrador','en_progreso'].includes(c.estado),canResume=c.estado==='pausado';return `<article class="campaign"><div class="camp-top"><div class="camp-icon"><i class="ti ti-speakerphone"></i></div><div class="camp-main"><h4>${esc(c.nombre||c.plantilla_nombre||'Campaña')}</h4><p>${esc(c.plantilla_nombre)} · ${fmtDate(c.creado_en)}</p></div><span class="state ${esc(c.estado)}">${esc(stateLabel(c.estado))}</span></div><div class="progress"><span style="width:${progress}%"></span></div><div class="camp-stats"><div class="camp-stat"><b>${c.total||0}</b><span>Total</span></div><div class="camp-stat"><b>${c.enviados||0}</b><span>Enviados</span></div><div class="camp-stat"><b>${c.entregados||0}</b><span>Entregados</span></div><div class="camp-stat"><b>${c.leidos||0}</b><span>Leídos</span></div><div class="camp-stat"><b>${c.respondidos||0}</b><span>Respuestas</span></div></div><div class="camp-actions">${canRun?`<button class="btn btn-primary btn-sm" onclick="startProcessing('${c.id}')"><i class="ti ti-player-play"></i>${c.estado==='borrador'?'Comenzar':'Continuar'}</button>`:''}${c.estado==='en_progreso'?`<button class="btn btn-light btn-sm" onclick="campaignAction('${c.id}','pausar')"><i class="ti ti-player-pause"></i>Pausar</button>`:''}${canResume?`<button class="btn btn-primary btn-sm" onclick="campaignAction('${c.id}','reanudar');setTimeout(()=>startProcessing('${c.id}'),400)"><i class="ti ti-player-play"></i>Reanudar</button>`:''}<button class="btn btn-light btn-sm" onclick="showDetail('${c.id}')"><i class="ti ti-list-details"></i>Detalle</button>${!['completado','cancelado'].includes(c.estado)?`<button class="btn btn-danger btn-sm" onclick="campaignAction('${c.id}','cancelar',true)"><i class="ti ti-ban"></i>Cancelar</button>`:''}</div></article>`}
 async function startProcessing(id){if(processLoops.get(id))return;processLoops.set(id,true);toast('Campaña en procesamiento…');try{for(let round=0;round<60&&processLoops.get(id);round++){const d=await invoke('whatsapp-campanas',{action:'procesar',envio_id:id,batch_size:15});await loadCampaigns();if(!d.procesados||['completado','pausado','cancelado'].includes(d.estado))break;await new Promise(r=>setTimeout(r,450))}toast('Procesamiento actualizado.','good')}catch(e){toast(e.message,'bad')}finally{processLoops.delete(id);await loadCampaigns()}}
 async function campaignAction(id,action,ask=false){if(ask&&!confirm('¿Cancelar esta campaña? Los destinatarios pendientes quedarán omitidos y no se enviarán.'))return;processLoops.delete(id);try{await invoke('whatsapp-campanas',{action,envio_id:id});toast(action==='pausar'?'Campaña pausada.':action==='cancelar'?'Campaña cancelada.':'Campaña reanudada.','good');await loadCampaigns()}catch(e){toast(e.message,'bad')}}
-async function showDetail(id){openModal('detailModal');$('detailBody').innerHTML='<div class="empty"><span class="loader"></span></div>';try{const d=await invoke('whatsapp-campanas',{action:'detalle',envio_id:id});const c=d.campaign;$('detailBody').innerHTML=`<div class="metrics"><div class="metric"><div class="num">${c.total}</div><div class="lab">Total</div></div><div class="metric good"><div class="num">${c.leidos}</div><div class="lab">Leídos</div></div><div class="metric"><div class="num">${c.respondidos}</div><div class="lab">Respondieron</div></div><div class="metric warn"><div class="num">${c.fallidos}</div><div class="lab">Fallidos</div></div></div><div class="contact-list">${d.recipients.map(r=>`<div class="contact-row" style="grid-template-columns:minmax(0,1fr) 95px 95px"><div><div class="contact-name">${esc(r.nombre||'Sin nombre')}</div><div class="contact-phone">${esc(r.telefono_e164)}</div></div><div><span class="state ${esc(r.estado)}">${esc(r.estado)}</span></div><div style="font-size:8.5px;color:#667085;text-align:right">${r.leido_en?'Leído':r.entregado_en?'Entregado':r.enviado_en?'Enviado':r.fallido_en?'Fallido':'Pendiente'}</div></div>`).join('')}</div>`}catch(e){$('detailBody').innerHTML=`<div class="empty"><b>Error</b><span>${esc(e.message)}</span></div>`}}
+async function showDetail(id){openModal('detailModal');$('detailBody').innerHTML='<div class="empty"><span class="loader"></span></div>';try{const d=await invoke('whatsapp-campanas',{action:'detalle',envio_id:id});const c=d.campaign;$('detailBody').innerHTML=`<div class="metrics"><div class="metric"><div class="num">${c.total}</div><div class="lab">Total</div></div><div class="metric good"><div class="num">${c.leidos}</div><div class="lab">Leídos</div></div><div class="metric"><div class="num">${c.respondidos}</div><div class="lab">Respondieron</div></div><div class="metric warn"><div class="num">${c.fallidos}</div><div class="lab">Fallidos</div></div></div><div class="contact-list">${d.recipients.map(r=>`<div class="contact-row" style="grid-template-columns:minmax(0,1fr) 95px 95px"><div><div class="contact-name">${esc(r.nombre||'Sin nombre')}</div><div class="contact-phone">${esc(r.telefono_e164)}</div></div><div><span class="state ${esc(r.estado)}">${esc(r.estado)}</span></div><div style="font-size:12px;color:#6b7280;text-align:right">${r.leido_en?'Leído':r.entregado_en?'Entregado':r.enviado_en?'Enviado':r.fallido_en?'Fallido':'Pendiente'}</div></div>`).join('')}</div>`}catch(e){$('detailBody').innerHTML=`<div class="empty"><b>Error</b><span>${esc(e.message)}</span></div>`}}
 async function loadContacts(){const line=$('consentLine').value;if(!line){$('contactList').innerHTML='<div class="empty"><i class="ti ti-address-book-off"></i><b>Selecciona una línea</b></div>';return}$('contactList').innerHTML='<div class="empty"><span class="loader"></span></div>';try{const d=await invoke('whatsapp-marketing-contactos',{action:'listar',linea_id:line});contacts=d.contactos||[];$('consYes').textContent=d.con_consentimiento;$('consNo').textContent=d.sin_consentimiento;selectedContacts.clear();filterContacts()}catch(e){toast(e.message,'bad')}}
 function filterContacts(){const q=$('contactSearch').value.trim().toLowerCase();filteredContacts=contacts.filter(c=>!q||c.nombre.toLowerCase().includes(q)||c.telefono_e164.includes(q));renderContacts()}
 function renderContacts(){const el=$('contactList');if(!filteredContacts.length){el.innerHTML='<div class="empty"><i class="ti ti-user-search"></i><b>No hay coincidencias</b></div>';updateSelectedCount();return}el.innerHTML=filteredContacts.map(c=>`<label class="contact-row"><input class="check contact-check" type="checkbox" value="${c.id}" ${selectedContacts.has(c.id)?'checked':''} onchange="toggleContact('${c.id}',this.checked)"><div><div class="contact-name">${esc(c.nombre)}</div><div class="contact-phone">+${esc(c.telefono_e164)}</div></div><div class="contact-last">${esc(c.ultimo_mensaje_preview||'')}</div><span class="consent ${c.opt_in?'yes':'no'}">${c.opt_in?'Autorizado':'No autorizado'}</span></label>`).join('');updateSelectedCount()}
 function toggleContact(id,on){on?selectedContacts.add(id):selectedContacts.delete(id);updateSelectedCount()}
 function selectVisible(on){filteredContacts.forEach(c=>on?selectedContacts.add(c.id):selectedContacts.delete(c.id));renderContacts()}
 function updateSelectedCount(){$('selectedCount').textContent=`${selectedContacts.size} seleccionado${selectedContacts.size===1?'':'s'}`}
-function openConsentModal(optIn){if(!selectedContacts.size)return toast('Selecciona al menos un contacto.','bad');consentTarget=optIn;$('consentModalTitle').textContent=optIn?'Registrar consentimiento':'Dar de baja de promociones';$('consentModalText').textContent=optIn?`Vas a autorizar ${selectedContacts.size} contacto(s) para recibir campañas promocionales.`:`Vas a excluir ${selectedContacts.size} contacto(s) de futuras campañas.`;$('consentProof').classList.toggle('hidden',!optIn);$('consentProofCheck').checked=false;$('consentApplyBtn').className='btn '+(optIn?'btn-primary':'btn-danger');$('consentApplyBtn').textContent=optIn?'Guardar consentimiento':'Confirmar baja';openModal('consentModal')}
+function openConsentModal(optIn){if(!selectedContacts.size)return toast('Selecciona al menos un contacto.','bad');consentTarget=optIn;$('consentModalTitle').textContent=optIn?'Registrar consentimiento':'Dar de baja de promociones';$('consentModalText').textContent=optIn?`Vas a autorizar ${selectedContacts.size} contacto(s) para recibir campañas promocionales.`:`Vas a excluir ${selectedContacts.size} contacto(s) de futuras campañas.`;$('consentProof').classList.toggle('hidden',!optIn);$('consentProofCheck').checked=false;$('consentApplyBtn').className='btn '+(optIn?'btn-primary':'btn-danger')+' btn-big';$('consentApplyBtn').textContent=optIn?'Guardar consentimiento':'Confirmar baja';openModal('consentModal')}
 async function applyConsent(){if(consentTarget&&!$('consentProofCheck').checked)return toast('Debes confirmar que existe consentimiento explícito.','bad');const ids=[...selectedContacts];try{const d=await invoke('whatsapp-marketing-contactos',{action:'consentimiento',hilo_ids:ids,opt_in:consentTarget,confirmo_consentimiento:consentTarget?true:undefined,fuente:$('consentSource').value});closeModal('consentModal');toast(`${d.actualizados} contacto(s) actualizado(s).`,'good');await loadContacts();if($('lineSelect').value===$('consentLine').value)await loadAudience($('lineSelect').value)}catch(e){toast(e.message,'bad')}}
 async function bulkConsentLine(){const line=$('consentLine').value;if(!line)return toast('Selecciona una línea primero.','bad');const ln=lines.find(l=>l.id===line);if(!confirm(`¿Autorizar TODOS los contactos de "${ln?.nombre||'esta línea'}" para recibir promociones?\n\nConfirmas que estos clientes aceptaron recibir mensajes de BAYOL CELL por WhatsApp.`))return;try{toast('Registrando consentimiento…');const d=await invoke('whatsapp-marketing-contactos',{action:'consentimiento_todos',linea_id:line,confirmo_consentimiento:true,fuente:'cliente_existente_consentimiento_admin'});toast(`${d.actualizados} contacto(s) autorizados en ${d.linea}.`,'good');await loadContacts();if($('lineSelect').value===line)await loadAudience(line)}catch(e){toast(e.message,'bad')}}
 async function bulkConsentAll(){if(!confirm('¿Autorizar TODOS los contactos de TODAS las líneas para recibir promociones?\n\nConfirmas que estos clientes aceptaron recibir mensajes de BAYOL CELL por WhatsApp.\n\nEsto puede tomar unos segundos.'))return;try{toast('Registrando consentimiento en todas las líneas…');const d=await invoke('whatsapp-marketing-contactos',{action:'consentimiento_todas_lineas',confirmo_consentimiento:true,fuente:'cliente_existente_consentimiento_admin'});let msg=`${d.actualizados} contacto(s) autorizados en total.`;if(d.resumen)msg+='\n'+d.resumen.map(r=>`${r.linea}: ${r.registrados}`).join(', ');toast(msg,'good');await loadContacts();if($('lineSelect').value)await loadAudience($('lineSelect').value)}catch(e){toast(e.message,'bad')}}
