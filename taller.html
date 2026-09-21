@@ -7877,6 +7877,15 @@ function startApp() {
     startAppRefurbPoller();
     qzAutoConectar();
     loadAll().then(() => {
+        // Inicializar la vista restaurada (la CSS ya la muestra, pero falta cargar sus datos)
+        try {
+            const va = document.querySelector('.view.active');
+            const vid = va ? va.id.replace('v-','') : 'dashboard';
+            if(vid !== 'dashboard') {
+                // Disparar la misma inicialización que nav() haría para esta vista
+                nav(vid);
+            }
+        } catch(e){}
         // Mostrar ventana de pendientes al técnico (una vez por sesión)
         if(!sessionStorage.getItem('bayol_pendientes_visto')) {
             setTimeout(() => { mostrarPendientesTecnico(); sessionStorage.setItem('bayol_pendientes_visto', '1'); }, 800);
