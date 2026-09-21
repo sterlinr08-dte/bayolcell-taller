@@ -11963,26 +11963,27 @@ function _abStyles() {
       .ab-chip{border:1.5px solid rgba(0,0,0,.08);background:#fff;color:#1a1a1a;border-radius:999px;padding:7px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap;flex:none;}
       .ab-chip:hover{background:#f5f5f7;border-color:rgba(0,0,0,.12);}
       .ab-chip.on{background:#c8191f;border-color:#c8191f;color:#fff;}
-      .ab-results{flex:1;overflow-y:auto;padding:8px 16px 16px;background:#f5f5f7;}
-      @media(min-width:641px){.ab-results{padding:8px 20px 16px;}}
-      .ab-card{display:flex;align-items:stretch;gap:14px;background:#fff;border:1px solid rgba(0,0,0,.04);border-radius:16px;padding:14px;margin-bottom:8px;cursor:pointer;transition:transform .15s,box-shadow .15s;box-shadow:0 1px 2px rgba(0,0,0,.04);}
-      .ab-card:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,.08);}
-      .ab-card.hl{border-color:#c8191f;box-shadow:0 0 0 2px rgba(200,25,31,.12),0 4px 16px rgba(0,0,0,.06);}
-      .ab-card:active{transform:scale(.99);}
-      .ab-thumb{width:56px;height:56px;border-radius:14px;background:linear-gradient(145deg,#f5f5f7,#ebebed);display:flex;align-items:center;justify-content:center;font-size:22px;flex:none;color:#86868b;}
+      .ab-results{flex:1;overflow-y:auto;padding:4px 0;background:#fff;}
+      .ab-card{display:flex;align-items:center;gap:12px;background:#fff;border:0;border-bottom:1px solid rgba(0,0,0,.06);padding:10px 20px;cursor:pointer;transition:background .1s;}
+      .ab-card:last-child{border-bottom:0;}
+      .ab-card:hover{background:#f5f5f7;}
+      .ab-card.hl{background:rgba(200,25,31,.04);}
+      .ab-card:active{background:#ebebed;}
+      .ab-thumb{width:40px;height:40px;border-radius:10px;background:#f5f5f7;display:flex;align-items:center;justify-content:center;font-size:18px;flex:none;color:#86868b;}
       .ab-info{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;}
-      .ab-cod{font-size:11px;font-weight:700;color:#c8191f;letter-spacing:.02em;} .ab-cod .mk{color:#86868b;font-weight:600;}
-      .ab-name{font-size:14px;font-weight:700;color:#1a1a1a;margin:2px 0;line-height:1.3;letter-spacing:-.01em;}
-      .ab-ref{font-size:12px;color:#86868b;font-weight:500;}
-      .ab-pl{font-size:12px;color:#86868b;margin-top:2px;font-weight:500;}
-      .ab-badges{margin-top:6px;display:flex;gap:4px;flex-wrap:wrap;}
-      .ab-bdg{font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;letter-spacing:.01em;}
-      .ab-right{flex:none;width:140px;display:flex;flex-direction:column;gap:6px;justify-content:center;}
-      .ab-pbox{background:linear-gradient(135deg,#f0fdf4,#ecfdf5);border:1px solid rgba(22,163,74,.1);border-radius:12px;padding:10px 10px 8px;text-align:center;}
-      .ab-pbox b{font-size:17px;color:#15803d;font-weight:800;display:block;letter-spacing:-.02em;line-height:1.1;}
-      .ab-pbox small{font-size:10px;color:#16a34a;font-weight:600;letter-spacing:.02em;}
-      .ab-sel{border:0;background:#c8191f;border-radius:10px;padding:10px;font-size:13px;font-weight:700;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;transition:background .15s,transform .1s;min-height:40px;}
-      .ab-sel:hover{background:#b01419;} .ab-sel:active{transform:scale(.97);}
+      .ab-cod{font-size:11px;font-weight:600;color:#c8191f;letter-spacing:.01em;} .ab-cod .mk{color:#86868b;font-weight:500;}
+      .ab-name{font-size:13.5px;font-weight:600;color:#1a1a1a;margin:1px 0;line-height:1.25;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+      .ab-ref{font-size:11px;color:#86868b;font-weight:500;}
+      .ab-pl{font-size:11.5px;color:#86868b;margin-top:1px;font-weight:500;}
+      .ab-badges{margin-top:4px;display:flex;gap:3px;flex-wrap:wrap;}
+      .ab-bdg{font-size:9.5px;font-weight:700;padding:2px 6px;border-radius:5px;letter-spacing:.01em;}
+      .ab-right{flex:none;display:flex;align-items:center;gap:8px;}
+      .ab-price{text-align:right;min-width:0;}
+      .ab-price b{font-size:14px;color:#15803d;font-weight:700;display:block;letter-spacing:-.01em;line-height:1.1;white-space:nowrap;}
+      .ab-price small{font-size:10px;color:#86868b;font-weight:500;}
+      .ab-add{width:36px;height:36px;border-radius:50%;border:0;background:#c8191f;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;transition:background .12s,transform .1s;line-height:1;}
+      .ab-add:hover{background:#b01419;} .ab-add:active{transform:scale(.9);}
+      .ab-edit{width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(0,0,0,.08);background:#fff;color:#86868b;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;transition:background .12s;} .ab-edit:hover{background:#f5f5f7;color:#1a1a1a;}
       .ab-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 20px;border-top:1px solid rgba(0,0,0,.06);background:#fff;flex-wrap:wrap;}
       .ab-foot .info{font-size:12px;color:#86868b;font-weight:500;}
       .ab-pg{display:flex;align-items:center;gap:3px;flex-wrap:wrap;}
@@ -11993,12 +11994,11 @@ function _abStyles() {
       .ab-size{border:1px solid rgba(0,0,0,.08);border-radius:8px;padding:6px 10px;font-size:12px;font-weight:600;color:#1a1a1a;font-family:inherit;background:#fff;}
       @media(max-width:640px){
         .ab-head{padding:16px 16px 10px;} .ab-head h3{font-size:16px;} .ab-search{padding:8px 16px 6px;flex-wrap:wrap;}
-        .ab-card{flex-wrap:wrap;gap:10px;padding:12px;} .ab-thumb{width:44px;height:44px;border-radius:11px;font-size:18px;}
-        .ab-right{width:100%;flex-direction:row;gap:8px;} .ab-right>*{flex:1;}
-        .ab-pbox{padding:8px;} .ab-pbox b{font-size:15px;}
-        .ab-name{font-size:13px;} .ab-cod{font-size:10.5px;} .ab-ref,.ab-pl{font-size:11px;}
+        .ab-card{padding:10px 16px;gap:10px;} .ab-thumb{width:36px;height:36px;border-radius:9px;font-size:16px;}
+        .ab-name{font-size:13px;} .ab-cod{font-size:10px;} .ab-ref,.ab-pl{font-size:10.5px;}
+        .ab-price b{font-size:13px;} .ab-add{width:34px;height:34px;font-size:18px;} .ab-edit{width:28px;height:28px;font-size:13px;}
         .ab-kbd{display:none;} .ab-foot{padding:10px 16px;} .ab-foot .info{font-size:11px;}
-        .ab-sel{padding:9px 8px;font-size:12px;min-height:38px;}
+        .ab-badges{margin-top:2px;} .ab-bdg{font-size:9px;padding:2px 5px;}
       }
       @media(prefers-reduced-motion:reduce){.ab-backdrop,.ab-modal{animation:none;}}
     `;
@@ -12112,20 +12112,18 @@ function _abCard(a, i) {
     const cod = String(a.codigo).replace(/'/g, "\\'");
     const precio = Number(a.precio) || 0, costo = Number(a.costo) || 0;
     const pventa = Number(a.precio_especial) > 0 ? Number(a.precio_especial) : precio;
-    const totalStock = _existTotalIP(a);
-    return `<div class="ab-card ${i === _artBusc.hl ? 'hl' : ''}" data-cod="${escapeHtml(String(a.codigo))}" onclick="_artBuscElegir('${cod}')" ondblclick="_artBuscElegir('${cod}')">
+    return `<div class="ab-card ${i === _artBusc.hl ? 'hl' : ''}" data-cod="${escapeHtml(String(a.codigo))}" onclick="_artBuscElegir('${cod}')">
       <div class="ab-thumb">${_abEmoji(_abCat(a.descripcion))}</div>
       <div class="ab-info">
         <div class="ab-cod">${escapeHtml(a.codigo)} <span class="mk">${escapeHtml(a.marca || '')}</span></div>
         <div class="ab-name">${escapeHtml(a.descripcion || '(sin descripcion)')}</div>
-        ${a.referencia ? `<div class="ab-ref">${escapeHtml(a.referencia)}</div>` : ''}
-        <div class="ab-pl">${precio > 0 ? `${money(precio)}` : ''}${costo > 0 && isAdminUser() ? `<span style="margin-left:8px;color:#86868b;">Costo: ${money(costo)}</span>` : ''}</div>
+        <div class="ab-pl">${precio > 0 ? money(precio) : ''}${costo > 0 && isAdminUser() ? ` · Costo ${money(costo)}` : ''}</div>
         <div class="ab-badges">${_abInv(a)}</div>
       </div>
       <div class="ab-right">
-        <div class="ab-pbox"><b>${pventa > 0 ? money(pventa) : '—'}</b><small>Precio venta</small></div>
-        <button class="ab-sel" onclick="event.stopPropagation(); _artBuscElegir('${cod}')"><i class="ti ti-check"></i> Seleccionar</button>
-        ${isAdminUser() ? `<button class="ab-sel" style="background:transparent;color:#1a1a1a;border:1.5px solid rgba(0,0,0,.1);" onclick="event.stopPropagation(); abrirEditarPreciosArticulo('${cod}')"><i class="ti ti-edit"></i> Precios</button>` : ''}
+        <div class="ab-price"><b>${pventa > 0 ? money(pventa) : ''}</b></div>
+        ${isAdminUser() ? `<button class="ab-edit" onclick="event.stopPropagation(); abrirEditarPreciosArticulo('${cod}')" title="Editar precios"><i class="ti ti-edit"></i></button>` : ''}
+        <button class="ab-add" onclick="event.stopPropagation(); _artBuscElegir('${cod}')" title="Agregar"><i class="ti ti-plus"></i></button>
       </div>
     </div>`;
 }
