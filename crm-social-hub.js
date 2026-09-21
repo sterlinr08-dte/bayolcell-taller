@@ -8,7 +8,7 @@
   'use strict';
   if (window.BayolSocialHub) return;
 
-  const VERSION = '20260921-igback2';
+  const VERSION = '20260921-campfix2';
   const state = {
     channel: 'whatsapp',
     mounted: false,
