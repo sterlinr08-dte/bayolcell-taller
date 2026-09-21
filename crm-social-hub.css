@@ -43,6 +43,14 @@
 .bc-social-channel[data-ready="1"] .bc-dot{background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.09)}
 .bc-social-channel[data-ready="0"] .bc-dot{background:#f59e0b}
 
+.bc-social-campanas-btn{
+  height:34px;border:1px solid #fecdd3;background:linear-gradient(145deg,#fff1f2,#ffe4e6);color:#be123c;border-radius:10px;
+  padding:0 11px;display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:750;
+  cursor:pointer;box-shadow:0 2px 7px rgba(190,18,60,.08);transition:.16s ease;text-decoration:none;flex:none;
+}
+.bc-social-campanas-btn i{font-size:15px}
+.bc-social-campanas-btn:hover{transform:translateY(-1px);background:#ffe4e6;border-color:#fda4af}
+
 .bc-social-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-top:10px}
 .bc-social-kpi{
   min-width:0;border:1px solid #edf0f5;border-radius:11px;padding:7px 9px;background:#fafbfc;
@@ -214,6 +222,8 @@
   .bc-social-channels::-webkit-scrollbar{display:none}
   .bc-social-channel{height:32px;flex:0 0 auto;padding:0 9px;font-size:10px;border-radius:9px}
   .bc-social-channel i{font-size:15px}
+  .bc-social-campanas-btn{height:32px;padding:0 9px;font-size:10px;border-radius:9px}
+  .bc-social-campanas-btn i{font-size:14px}
   .bc-social-kpis{grid-template-columns:repeat(4,minmax(76px,1fr));gap:5px;margin-top:7px;overflow-x:auto;scrollbar-width:none}
   .bc-social-kpis::-webkit-scrollbar{display:none}
   .bc-social-kpi{padding:5px 6px;grid-template-columns:22px minmax(0,1fr);column-gap:5px;border-radius:9px}
@@ -223,9 +233,9 @@
   #v-crmLinea.chat-abierto[data-social-channel="whatsapp"] #bcSocialHubHead{display:none}
   .bc-ig-shell{grid-template-columns:1fr;border-radius:13px}
   .bc-ig-list{border-right:0}
-  .bc-ig-chat{display:none}
-  #v-crmLinea.bc-ig-chat-open .bc-ig-list{display:none}
-  #v-crmLinea.bc-ig-chat-open .bc-ig-chat{display:flex}
+  .bc-ig-chat{display:none!important}
+  #v-crmLinea.bc-ig-chat-open .bc-ig-list{display:none!important}
+  #v-crmLinea.bc-ig-chat-open .bc-ig-chat{display:flex!important}
   #v-crmLinea.bc-ig-chat-open #bcSocialHubHead{display:none}
   .bc-ig-back{display:grid;place-items:center}
   .bc-ig-list-head{padding:9px}
