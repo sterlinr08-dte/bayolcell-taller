@@ -736,8 +736,8 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
     #v-crmLinea .wa-chat-head { padding:7px 12px; gap:9px; }
     #v-crmLinea .wa-chat-head .wa-avatar { width:34px; height:34px; font-size:12px; }
     #v-crmLinea #crmLinea-leads { flex:1; min-height:0; overflow-y:auto; }
-    #v-crmLinea #crmLinea-campanas { flex:1; min-height:0; overflow-y:auto; display:flex; flex-direction:column; }
-    #v-crmLinea #crmLinea-campanas iframe { flex:1; min-height:0; }
+    #v-crmLinea #crmLinea-campanas { flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column; }
+    #v-crmLinea #crmLinea-campanas iframe { flex:1; min-height:0; height:100%; }
 }
 @media (prefers-reduced-motion:reduce) {
     #v-crmLinea *, .crm-filtros-menu { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
@@ -2444,7 +2444,7 @@ body{
                     <div id="leadsLista"></div>
                 </div>
                 <div id="crmLinea-campanas" style="display:none;">
-                    <iframe id="crmCampanasFrame" src="" style="width:100%;border:none;border-radius:12px;background:#fff;min-height:70vh;" allow="clipboard-write"></iframe>
+                    <iframe id="crmCampanasFrame" src="" style="width:100%;height:100%;border:none;background:#fff;" allow="clipboard-write"></iframe>
                 </div>
                 <div id="crmLinea-redes" style="display:none;">
                     <div class="rs-hub crm-ocultar-en-chat" id="rsHub">
@@ -36827,7 +36827,7 @@ async function crmLineaTab(name) {
     if(btnCa) btnCa.className = 'crm-tab-seg' + (name === 'campanas' ? ' on pill-hundido' : '');
     if(name === 'campanas') {
         var fr = document.getElementById('crmCampanasFrame');
-        if(fr && !fr.src.includes('crm-campanas.html')) fr.src = 'crm-campanas.html?v=20260921-postmsg1';
+        if(fr && !fr.src.includes('crm-campanas.html')) fr.src = 'crm-campanas.html?v=20260921-modal2';
     } else if(name === 'mensajes') await renderWhatsapp();
     else if(name === 'redes') await renderRedesSociales();
     else await renderLeads();
@@ -37504,5 +37504,5 @@ if(saved) {
     }).catch(function(){ localStorage.removeItem("bayol_session"); });
 }
 </script>
-<script src="crm-marketing-consent.js?v=20260921-campfix6"></script>
+<script src="crm-marketing-consent.js?v=20260921-campfix7"></script>
 </body>
