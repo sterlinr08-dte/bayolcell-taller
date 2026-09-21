@@ -2497,7 +2497,7 @@ body{
             </div>
 
             <!-- DASHBOARD -->
-            <div id="v-dashboard" class="view active">
+            <div id="v-dashboard" class="view">
                 <div class="kpi-row">
                     <div class="kpi-box clickable" style="border-top-color:#ef4444;" onclick="nav('ordenes')"><small>Recibidos Hoy</small><strong id="kHoy" class="skeleton">0</strong><i class="ti ti-download"></i></div>
                     <div class="kpi-box clickable" style="border-top-color:#f59e0b;" onclick="nav('ordenes')"><small>En Diagnóstico</small><strong id="kDiag" class="skeleton">0</strong><i class="ti ti-search"></i></div>
@@ -4117,6 +4117,9 @@ body{
         </section>
     </main>
 </div>
+<script>
+(function(){try{var v=localStorage.getItem('bayol_nav_actual');var el=v?document.getElementById('v-'+v):null;if(el){el.classList.add('active')}else{var d=document.getElementById('v-dashboard');if(d)d.classList.add('active')}}catch(e){var d=document.getElementById('v-dashboard');if(d)d.classList.add('active')}})();
+</script>
 
 <!-- MODAL: EVALUACIÓN DE EQUIPO (FALLAS + PIEZAS) -->
 <div id="modalEvaluacion" class="modal-backdrop">
