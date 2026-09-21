@@ -8,7 +8,7 @@
   'use strict';
   if (window.BayolSocialHub) return;
 
-  const VERSION = '20260921-campfix2';
+  const VERSION = '20260921-campfix3';
   const state = {
     channel: 'whatsapp',
     mounted: false,
@@ -136,7 +136,6 @@
           <button class="bc-social-channel on" data-channel="whatsapp" data-ready="1" type="button"><span class="bc-dot"></span><i class="ti ti-brand-whatsapp"></i>WhatsApp</button>
           <button class="bc-social-channel" data-channel="instagram" data-ready="1" type="button"><span class="bc-dot"></span><i class="ti ti-brand-instagram"></i>Instagram</button>
           <button class="bc-social-channel" data-channel="facebook" data-ready="0" type="button"><span class="bc-dot"></span><i class="ti ti-brand-facebook"></i>Facebook</button>
-          <a href="crm-campanas.html" target="_blank" class="bc-social-campanas-btn" title="Campañas masivas de WhatsApp"><i class="ti ti-speakerphone"></i><span>Campañas</span></a>
         </div>
       </div>
       <div class="bc-social-kpis">

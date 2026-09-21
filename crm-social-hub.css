@@ -218,12 +218,10 @@
   #bcSocialHubHead{margin:0 0 7px;padding:8px 9px;border-radius:13px}
   .bc-social-title-row{display:block}
   .bc-social-title-copy{display:none}
-  .bc-social-channels{width:100%;overflow-x:visible;gap:5px;scrollbar-width:none;flex-wrap:wrap}
+  .bc-social-channels{width:100%;overflow-x:auto;gap:5px;scrollbar-width:none}
   .bc-social-channels::-webkit-scrollbar{display:none}
   .bc-social-channel{height:32px;flex:0 0 auto;padding:0 9px;font-size:10px;border-radius:9px}
   .bc-social-channel i{font-size:15px}
-  .bc-social-campanas-btn{height:32px;padding:0 9px;font-size:10px;border-radius:9px;flex:0 0 auto}
-  .bc-social-campanas-btn i{font-size:14px}
   .bc-social-kpis{grid-template-columns:repeat(4,minmax(76px,1fr));gap:5px;margin-top:7px;overflow-x:auto;scrollbar-width:none}
   .bc-social-kpis::-webkit-scrollbar{display:none}
   .bc-social-kpi{padding:5px 6px;grid-template-columns:22px minmax(0,1fr);column-gap:5px;border-radius:9px}
