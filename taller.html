@@ -36827,7 +36827,7 @@ async function crmLineaTab(name) {
     if(btnCa) btnCa.className = 'crm-tab-seg' + (name === 'campanas' ? ' on pill-hundido' : '');
     if(name === 'campanas') {
         var fr = document.getElementById('crmCampanasFrame');
-        if(fr && !fr.src.includes('crm-campanas.html')) fr.src = 'crm-campanas.html?v=20260921-redesign1';
+        if(fr && !fr.src.includes('crm-campanas.html')) fr.src = 'crm-campanas.html?v=20260921-limit1';
     } else if(name === 'mensajes') await renderWhatsapp();
     else if(name === 'redes') await renderRedesSociales();
     else await renderLeads();
