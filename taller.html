@@ -7846,6 +7846,37 @@ async function renderWebVisitas() {
     } catch(e) { logError('Visitas web', e); }
 }
 
+function _iniciarVistaRestaurada(v) {
+    try {
+        if(v === 'crmLinea' && typeof renderCrmLinea === 'function') renderCrmLinea();
+        else if(v === 'refurb') { volverListaLotesReacond(); var st = localStorage.getItem('bayol_subtab_reacond'); st = ['lotes','catalogo','devoluciones','piezas','rentabilidad'].includes(st) ? st : 'lotes'; if(typeof cambiarMainTabReacond === 'function') cambiarMainTabReacond(st); }
+        else if(v === 'ordenes') { if(typeof renderOrders === 'function') renderOrders(); if(typeof renderTallerOrdenes === 'function') renderTallerOrdenes(); }
+        else if(v === 'financiamientos' && typeof renderFinanciamientos === 'function') renderFinanciamientos();
+        else if(v === 'contabilidad') { if(typeof cargarCatalogoCuentas === 'function') cargarCatalogoCuentas(); if(typeof contaTab === 'function') contaTab(localStorage.getItem('bayol_subtab_conta') || 'mensual'); }
+        else if(v === 'miTrabajo' && typeof renderMiTrabajo === 'function') renderMiTrabajo();
+        else if(v === 'atencion' && typeof renderAtencionCliente === 'function') renderAtencionCliente();
+        else if(v === 'nomina' && typeof renderNomina === 'function') renderNomina();
+        else if(v === 'incentivos' && typeof renderIncentivos === 'function') renderIncentivos();
+        else if(v === 'misIncentivos' && typeof renderMisIncentivos === 'function') renderMisIncentivos();
+        else if(v === 'proveedores') { if(typeof volverListaProveedores === 'function') volverListaProveedores(); var sc = localStorage.getItem('bayol_subtab_compras'); if(sc && sc !== 'compras' && typeof cambiarTab === 'function') cambiarTab(sc); }
+        else if(v === 'configuracion' && typeof cambiarMainTabConfig === 'function') cambiarMainTabConfig(localStorage.getItem('bayol_subtab_config') || 'tecnicos');
+        else if(v === 'recepcion') { if(typeof _rpCargarPrefacturas === 'function') _rpCargarPrefacturas().then(function(){ if(typeof _rpInit === 'function') _rpInit(); if(typeof renderRecepcionesRealizadas === 'function') renderRecepcionesRealizadas(); }); }
+        else if(v === 'despachos' && typeof renderDespachos === 'function') renderDespachos();
+        else if(v === 'invfisico' && typeof renderInvFisico === 'function') renderInvFisico();
+        else if(v === 'cuentasPorPagar' && typeof renderCuentasPorPagar === 'function') renderCuentasPorPagar();
+        else if(v === 'catalogoWeb' && typeof renderCatalogo === 'function') renderCatalogo();
+        else if(v === 'estadisticas' && typeof renderEstadisticas === 'function') renderEstadisticas();
+        else if(v === 'diagnostico' && typeof cargarConocimiento === 'function') cargarConocimiento();
+        else if(v === 'reportes' && typeof inicializarReportes === 'function') inicializarReportes();
+        else if(v === 'articulos') { if(typeof actualizarInfoplusCount === 'function') actualizarInfoplusCount(); if(typeof renderInfoplusBusqueda === 'function') renderInfoplusBusqueda(); }
+        else if(v === 'piezasSolicitadas' && typeof renderPiezasSolicitadas === 'function') renderPiezasSolicitadas();
+        else if(v === 'registroTickets' && typeof cargarRegistroTickets === 'function') cargarRegistroTickets();
+        else if(v === 'misReacond' && typeof renderMisReacond === 'function') renderMisReacond();
+        else if(v === 'rifaFactura' && typeof renderRifaFactura === 'function') renderRifaFactura();
+        else if(v === 'etiquetas' && typeof cargarCalibracionLabelVenta === 'function') cargarCalibracionLabelVenta();
+    } catch(e) { logError('_iniciarVistaRestaurada', e); }
+}
+
 function startApp() {
     document.body.classList.add("logged-in");
     document.getElementById("login").style.display = "none";
@@ -7877,13 +7908,18 @@ function startApp() {
     startAppRefurbPoller();
     qzAutoConectar();
     loadAll().then(() => {
-        // Inicializar la vista restaurada (la CSS ya la muestra, pero falta cargar sus datos)
+        // Inicializar la vista restaurada (la CSS ya la muestra, pero falta cargar sus datos).
+        // NO usar nav() — eso resetea sidebar, scroll, y reinicializa todo desde cero.
+        // Solo llamar la función de render/datos de la vista, igual que nav() hace internamente.
         try {
             const va = document.querySelector('.view.active');
             const vid = va ? va.id.replace('v-','') : 'dashboard';
             if(vid !== 'dashboard') {
-                // Disparar la misma inicialización que nav() haría para esta vista
-                nav(vid);
+                setActiveNav(vid);
+                const ab = document.querySelector('.nav button.active');
+                const pt = document.getElementById('pageTitle');
+                if(pt && ab) pt.textContent = ab.textContent.trim();
+                _iniciarVistaRestaurada(vid);
             }
         } catch(e){}
         // Mostrar ventana de pendientes al técnico (una vez por sesión)
