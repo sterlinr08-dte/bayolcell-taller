@@ -29744,6 +29744,24 @@ async function aprobarSolicitud(solId) {
     if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso para aprobar.', 'error'); return; }
     const s = (_finCache.solicitudes || []).find(x => x.id === solId);
     if(!s || s.estado !== 'pendiente') return;
+
+    // Candado de seguridad (Sterling, 21 sep 2026): si el equipo tiene IMEI/serie, se verifica EN VIVO
+    // contra Hexnode antes de aprobar. Si todavía no aparece enrolado y activo ahí ("Listo" en la
+    // ventana de Preenrolados ABM), no se puede bloquear/recuperar el equipo si el cliente no paga —
+    // se avisa claro y se exige una confirmación aparte antes de dejar seguir.
+    if(s.equipo_imei) {
+        try {
+            const { data } = await supabaseClient.functions.invoke('mdm-accion', { body: { accion: 'listar' } });
+            const devices = (data && data.devices) || [];
+            const q = String(s.equipo_imei).toLowerCase().trim();
+            const enHexnode = devices.some(x => String(x.imei || '').toLowerCase().trim() === q || String(x.serial || '').toLowerCase().trim() === q);
+            if(!enHexnode) {
+                const sigue = await confirmar(`⚠️ El equipo (IMEI/serie ${s.equipo_imei}) NO aparece enrolado y activo en Hexnode todavía.\n\nSi apruebas y se lo entregas al cliente así, NO vas a poder bloquearlo ni recuperarlo por control remoto si no paga.\n\n¿Confirmas que quieres aprobar de todas formas?`, { ok: 'Sí, aprobar de todas formas', cancel: 'Cancelar' });
+                if(!sigue) return;
+            }
+        } catch(_e) { /* si falla la verificación (ej. sin conexión con Hexnode), no bloquea la aprobación */ }
+    }
+
     if(!await confirmar('¿Aprobar esta solicitud y crear el financiamiento?')) return;
     const usuario = sessionUser?.nombre || sessionUser?.usuario || 'Sistema';
     try {
