@@ -736,6 +736,8 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
     #v-crmLinea .wa-chat-head { padding:7px 12px; gap:9px; }
     #v-crmLinea .wa-chat-head .wa-avatar { width:34px; height:34px; font-size:12px; }
     #v-crmLinea #crmLinea-leads { flex:1; min-height:0; overflow-y:auto; }
+    #v-crmLinea #crmLinea-campanas { flex:1; min-height:0; overflow-y:auto; display:flex; flex-direction:column; }
+    #v-crmLinea #crmLinea-campanas iframe { flex:1; min-height:0; }
 }
 @media (prefers-reduced-motion:reduce) {
     #v-crmLinea *, .crm-filtros-menu { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
@@ -36816,7 +36818,7 @@ async function crmLineaTab(name) {
     if(wa) wa.style.display = name === 'mensajes' ? '' : 'none';
     if(le) le.style.display = name === 'leads' ? '' : 'none';
     if(re) re.style.display = name === 'redes' ? '' : 'none';
-    if(ca) ca.style.display = name === 'campanas' ? '' : 'none';
+    if(ca) ca.style.display = name === 'campanas' ? 'flex' : 'none';
     if(waControles) waControles.style.display = name === 'mensajes' ? '' : 'none';
     if(btnHist) btnHist.style.display = name === 'mensajes' ? '' : 'none';
     if(btnWa) btnWa.className = 'crm-tab-seg' + (name === 'mensajes' ? ' on pill-hundido' : '');
@@ -37497,5 +37499,5 @@ if(saved) {
     }).catch(function(){ localStorage.removeItem("bayol_session"); });
 }
 </script>
-<script src="crm-marketing-consent.js?v=20260921-campfix4"></script>
+<script src="crm-marketing-consent.js?v=20260921-campfix5"></script>
 </body>
