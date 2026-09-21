@@ -2414,7 +2414,7 @@ body{
                         <div class="crm-tabs-track pill-elevado">
                             <button class="crm-tab-seg on pill-hundido" id="crmLineaTabWa" onclick="crmLineaTab('mensajes')"><i class="ti ti-brand-whatsapp"></i> Mensajes</button>
                             <button class="crm-tab-seg" id="crmLineaTabLeads" onclick="crmLineaTab('leads')"><i class="ti ti-user-plus"></i> Leads<span id="crmLeadsTabBadge" style="display:none; margin-left:4px; font-size:11px; font-weight:800; opacity:.75;"></span></button>
-                            <a href="crm-campanas.html" target="_blank" class="crm-tab-seg crm-tab-campanas" title="Campañas masivas de WhatsApp" style="text-decoration:none;color:inherit;display:inline-flex;align-items:center;gap:4px;"><i class="ti ti-speakerphone" style="color:#e31e24;"></i> Campañas</a>
+                            <button class="crm-tab-seg" id="crmLineaTabCampanas" onclick="crmLineaTab('campanas')"><i class="ti ti-speakerphone" style="color:#e31e24;"></i> Campañas</button>
                             <button class="crm-tab-seg" id="crmLineaTabRedes" onclick="crmLineaTab('redes')"><i class="ti ti-share"></i> Redes</button>
                         </div>
                         <div class="crm-acciones-rapidas" aria-label="Acciones de conversaciones">
@@ -2440,6 +2440,9 @@ body{
                 <div id="crmLinea-leads" style="display:none;">
                     <div style="display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap;" id="leadsFiltros"></div>
                     <div id="leadsLista"></div>
+                </div>
+                <div id="crmLinea-campanas" style="display:none;">
+                    <iframe id="crmCampanasFrame" src="" style="width:100%;border:none;border-radius:12px;background:#fff;min-height:70vh;" allow="clipboard-write"></iframe>
                 </div>
                 <div id="crmLinea-redes" style="display:none;">
                     <div class="rs-hub crm-ocultar-en-chat" id="rsHub">
@@ -36806,23 +36809,24 @@ function _crmDetenerRealtime() {
 async function crmLineaTab(name) {
     try { localStorage.setItem('bayol_subtab_crmlinea', name); } catch(e) {}
     if(name !== 'redes' && typeof _igDetenerRealtime === 'function') _igDetenerRealtime();
-    const wa = document.getElementById('crmLinea-mensajes'), le = document.getElementById('crmLinea-leads'), re = document.getElementById('crmLinea-redes');
-    const btnWa = document.getElementById('crmLineaTabWa'), btnLe = document.getElementById('crmLineaTabLeads'), btnRe = document.getElementById('crmLineaTabRedes');
-    // Buscador/chips/KPI de la bandeja son de WhatsApp (operan sobre _waHilos) —
-    // no tienen efecto visible en Leads/Redes, así que se esconden ahí (antes
-    // quedaban activos pero sin ninguna acción real al tocarlos).
+    const wa = document.getElementById('crmLinea-mensajes'), le = document.getElementById('crmLinea-leads'), re = document.getElementById('crmLinea-redes'), ca = document.getElementById('crmLinea-campanas');
+    const btnWa = document.getElementById('crmLineaTabWa'), btnLe = document.getElementById('crmLineaTabLeads'), btnRe = document.getElementById('crmLineaTabRedes'), btnCa = document.getElementById('crmLineaTabCampanas');
     const waControles = document.getElementById('crmWaControlesWrap');
     const btnHist = document.getElementById('crmHistorialBtn');
     if(wa) wa.style.display = name === 'mensajes' ? '' : 'none';
     if(le) le.style.display = name === 'leads' ? '' : 'none';
     if(re) re.style.display = name === 'redes' ? '' : 'none';
+    if(ca) ca.style.display = name === 'campanas' ? '' : 'none';
     if(waControles) waControles.style.display = name === 'mensajes' ? '' : 'none';
     if(btnHist) btnHist.style.display = name === 'mensajes' ? '' : 'none';
-    // Elevado = sin elegir; hundido = elegido (ver receta "pildora premium" arriba).
     if(btnWa) btnWa.className = 'crm-tab-seg' + (name === 'mensajes' ? ' on pill-hundido' : '');
     if(btnLe) btnLe.className = 'crm-tab-seg' + (name === 'leads' ? ' on pill-hundido' : '');
     if(btnRe) btnRe.className = 'crm-tab-seg' + (name === 'redes' ? ' on pill-hundido' : '');
-    if(name === 'mensajes') await renderWhatsapp();
+    if(btnCa) btnCa.className = 'crm-tab-seg' + (name === 'campanas' ? ' on pill-hundido' : '');
+    if(name === 'campanas') {
+        var fr = document.getElementById('crmCampanasFrame');
+        if(fr && !fr.src.includes('crm-campanas.html')) fr.src = 'crm-campanas.html';
+    } else if(name === 'mensajes') await renderWhatsapp();
     else if(name === 'redes') await renderRedesSociales();
     else await renderLeads();
 }
@@ -37493,5 +37497,5 @@ if(saved) {
     }).catch(function(){ localStorage.removeItem("bayol_session"); });
 }
 </script>
-<script src="crm-marketing-consent.js?v=20260921-campfix3"></script>
+<script src="crm-marketing-consent.js?v=20260921-campfix4"></script>
 </body>
