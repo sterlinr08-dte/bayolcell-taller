@@ -8,7 +8,7 @@
   'use strict';
   if (window.BayolSocialHub) return;
 
-  const VERSION = '20260921-igback1';
+  const VERSION = '20260921-igback2';
   const state = {
     channel: 'whatsapp',
     mounted: false,
@@ -88,7 +88,7 @@
       shell.style.setProperty('max-height','100%','important');
       shell.style.setProperty('min-height','0','important');
     }
-    if(chat){
+    if(chat && state.selected){
       chat.style.setProperty('height','100%','important');
       chat.style.setProperty('max-height','100%','important');
       chat.style.setProperty('min-height','0','important');
@@ -462,7 +462,7 @@
     const asignarHtml=typeof window._crmAsignarHTML==='function' ? window._crmAsignarHTML('instagram_hilos', h, '_igRefrescarAsignacion') : '';
     chat.innerHTML=`<div class="bc-ig-chat-head"><button class="bc-ig-back" id="bcIgBack" type="button" aria-label="Volver"><i class="ti ti-chevron-left"></i></button><span class="bc-ig-avatar">${esc(initials(nm))}</span><div class="bc-ig-chat-title"><b>${esc(nm)}</b><span>${esc(user)}</span></div><span class="bc-ig-chat-badge">Instagram Direct</span></div>${asignarHtml ? `<div style="padding:6px 14px; background:#faf5ff; border-bottom:1px solid #f3e8ff;">${asignarHtml}</div>` : ''}<div id="bcIgMessageActions" class="bc-ig-pop" hidden></div><div id="bcIgForwardBox" class="bc-ig-pop bc-ig-forward-box" hidden><div style="padding:2px 4px 6px;font-size:11px;font-weight:700;color:#4a3560;">Reenviar a…</div><input id="bcIgForwardSearch" type="search" placeholder="Buscar conversación…" style="width:100%;box-sizing:border-box;border:1px solid #ead7f3;border-radius:8px;padding:6px 8px;font-size:12.5px;margin-bottom:6px;"><div id="bcIgForwardList" style="max-height:220px;overflow:auto;"></div><button type="button" id="bcIgForwardClose" style="width:100%;margin-top:4px;">Cerrar</button></div><div class="bc-ig-messages" id="bcIgMessages" style="position:relative;">${rows || '<div class="bc-ig-empty"><div><b>Sin mensajes</b><span>Este hilo todavía no tiene mensajes guardados.</span></div></div>'}</div><button type="button" class="bc-social-jump" id="bcIgJump" aria-label="Ir al último mensaje"><i class="ti ti-arrow-down"></i><span>Últimos mensajes</span></button><form class="bc-ig-composer" id="bcIgComposer"><button type="button" class="bc-ig-location" id="bcIgLocation" aria-label="Enviar ubicación" title="Enviar ubicación de la tienda" style="background:none;border:none;cursor:pointer;padding:6px;color:#64748b;font-size:18px;flex:none;"><i class="ti ti-map-pin"></i></button><textarea id="bcIgText" rows="1" placeholder="Escribe un mensaje…" ${h.zernio_conversation_id?'':'disabled'}></textarea><button class="bc-ig-send" id="bcIgSend" type="submit" ${h.zernio_conversation_id?'':'disabled'} aria-label="Enviar"><i class="ti ti-arrow-up"></i></button></form>`;
     window.__bcIgSelectedId=h.id;
-    $('#bcIgBack')?.addEventListener('click',()=>{state.selected=null;window.__bcIgSelectedId=null;$('#v-crmLinea')?.classList.remove('bc-ig-chat-open');renderThreads();});
+    $('#bcIgBack')?.addEventListener('click',()=>{state.selected=null;window.__bcIgSelectedId=null;const v=$('#v-crmLinea');if(v)v.classList.remove('bc-ig-chat-open');const ch=$('#bcIgChat');if(ch){ch.removeAttribute('style');ch.innerHTML='<div class="bc-ig-empty"><div><b>Selecciona una conversación</b></div></div>';}renderThreads();});
     $('#bcIgComposer')?.addEventListener('submit',sendInstagram);
     $('#bcIgLocation')?.addEventListener('click',function(){if(typeof window._crmMostrarMenuUbicacion==='function')window._crmMostrarMenuUbicacion('instagram-hub',this);});
     chat.querySelectorAll('[data-igmenu]').forEach(btn=>btn.addEventListener('click',(e)=>{e.stopPropagation();igMessageMenu(btn.dataset.igmenu);}));

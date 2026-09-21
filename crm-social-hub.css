@@ -223,9 +223,9 @@
   #v-crmLinea.chat-abierto[data-social-channel="whatsapp"] #bcSocialHubHead{display:none}
   .bc-ig-shell{grid-template-columns:1fr;border-radius:13px}
   .bc-ig-list{border-right:0}
-  .bc-ig-chat{display:none}
-  #v-crmLinea.bc-ig-chat-open .bc-ig-list{display:none}
-  #v-crmLinea.bc-ig-chat-open .bc-ig-chat{display:flex}
+  .bc-ig-chat{display:none!important}
+  #v-crmLinea.bc-ig-chat-open .bc-ig-list{display:none!important}
+  #v-crmLinea.bc-ig-chat-open .bc-ig-chat{display:flex!important}
   #v-crmLinea.bc-ig-chat-open #bcSocialHubHead{display:none}
   .bc-ig-back{display:grid;place-items:center}
   .bc-ig-list-head{padding:9px}
