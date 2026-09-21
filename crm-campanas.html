@@ -419,7 +419,7 @@ const client=supabase.createClient(CONFIG_URL,CONFIG_KEY,{auth:{persistSession:t
 let session=null, lines=[], templates=[], selectedTemplate=null, audience={elegibles:0,sin_consentimiento:0};
 let contacts=[], filteredContacts=[], selectedContacts=new Set(), consentTarget=true, processLoops=new Map();
 const $=id=>document.getElementById(id);
-const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+const esc=s=>String(s??'').replace(/[&<>'\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]));
 function toast(msg,type=''){const t=$('toast');t.textContent=msg;t.className='toast on '+type;clearTimeout(t._x);t._x=setTimeout(()=>t.className='toast',3200)}
 function fmtDate(v){if(!v)return'—';try{return new Intl.DateTimeFormat('es-DO',{dateStyle:'short',timeStyle:'short'}).format(new Date(v))}catch{return v}}
 function pct(a,b){return b?Math.min(100,Math.round((a/b)*100)):0}
