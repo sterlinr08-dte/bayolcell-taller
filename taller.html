@@ -4292,6 +4292,11 @@ body{
                 <input id="mod_tec_infoplus" placeholder="Ej. 748" inputmode="numeric">
                 <small style="color:var(--text-muted); font-size:11px;">El código de este empleado como vendedor en Info Plus. Al crear prefacturas, el vendedor sale con este código.</small>
             </div>
+            <div class="form-row">
+                <label>Sucursal</label>
+                <select id="mod_tec_sucursal"><option value="">Todas las sucursales</option></select>
+                <small style="color:var(--text-muted); font-size:11px;">En el CRM solo verá los chats de esta sucursal. "Todas" = ve las 3.</small>
+            </div>
             <!-- Rol del sistema: OCULTO (se define automático según el tipo). Se mantiene para compatibilidad. -->
             <div class="form-row" style="display:none;">
                 <label>Rol del sistema (automático)</label>
@@ -18535,8 +18540,20 @@ function llenarSelectorRolesTecnico(selectedRolId) {
         ).join('');
 }
 
+async function _tecLlenarSucursales(valor) {
+    const sel = document.getElementById('mod_tec_sucursal');
+    if(!sel) return;
+    if(!cache.sucursalesEmp) {
+        const { data } = await supabaseClient.from('sucursales').select('id, nombre').eq('activo', true).order('nombre');
+        cache.sucursalesEmp = data || [];
+    }
+    sel.innerHTML = '<option value="">Todas las sucursales</option>' +
+        cache.sucursalesEmp.map(s => `<option value="${s.id}">${escapeHtml(s.nombre)}</option>`).join('');
+    sel.value = valor || '';
+}
 function abrirModalTecnico() {
     document.getElementById('mod_tec_id').value = '';
+    _tecLlenarSucursales('').catch(e => logError('Sucursales empleado', e));
     document.getElementById('mod_tec_tipo').value = 'tecnico';
     document.getElementById('mod_tec_nombre').value = '';
     document.getElementById('mod_tec_telefono').value = '';
@@ -18608,6 +18625,7 @@ function editarTecnico(id) {
     document.getElementById('mod_tec_telefono').value = t.telefono || '';
     document.getElementById('mod_tec_especialidad').value = t.especialidad || '';
     const _mti2 = document.getElementById('mod_tec_infoplus'); if(_mti2) _mti2.value = t.infoplus_codempleado || '';
+    _tecLlenarSucursales(t.sucursal_id || '').catch(e => logError('Sucursales empleado', e));
     document.getElementById('mod_tec_rol').value = t.rol || 'tecnico';
     document.getElementById('mod_tec_notas').value = t.notas || '';
     document.getElementById('mod_tec_usuario').value = t.usuario || '';
@@ -18647,6 +18665,8 @@ async function guardarTecnico() {
         notas: document.getElementById('mod_tec_notas').value.trim() || null,
         activo: document.getElementById('mod_tec_activo').checked
     };
+    // Si la lista de sucursales no terminó de cargar, no tocar la sucursal guardada.
+    if(cache.sucursalesEmp) datos.sucursal_id = document.getElementById('mod_tec_sucursal')?.value || null;
     
     // Manejar usuario (login)
     datos.usuario = usuario || null;
