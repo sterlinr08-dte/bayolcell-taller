@@ -2736,7 +2736,7 @@ body{
                             <div style="flex:1;"><label>Prioridad</label><select id="o_prioridad"><option value="normal">Normal</option><option value="urgente">Urgente</option></select></div>
                             <div style="flex:1;"><label>Entrega estimada</label><input id="o_fecha_estimada" type="date"></div>
                           </div>
-                          <div><label>Almacén (Info Plus)</label><select id="rxAlmacen" onchange="_rpRenderResumen()"></select></div>
+                          <div><label>Almacén (Info Plus)</label><select id="rxAlmacen" onchange="_rpRenderCart(); _rpRenderResumen()"></select></div>
                           <div><label>Vendedor (Info Plus)</label><select id="rxVendedor" onchange="_rpRenderResumen()"></select></div>
                         </div>
                       </div>
@@ -24737,14 +24737,62 @@ function _rpCliElegir(cod) {
 function _rpNivelPrecio(it) { const nv = String((_rpState && _rpState.nivel) || 1); if(it.niveles && it.niveles[nv] != null) return Number(it.niveles[nv]); if(it.niveles && it.niveles['1'] != null) return Number(it.niveles['1']); return Number(it.precio || 0); }
 function _rpNivelCambio() { const s = document.getElementById('rxNivel'); if(s && _rpState) _rpState.nivel = Number(s.value) || 1; if(_rpState) _rpState.items.forEach(it => { if(it.niveles) it.precio = _rpNivelPrecio(it); }); _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen(); }
 function _rpTipoNivel() { if(!_rpState) return; const nv = (document.getElementById('c_tipo')?.value === 'tienda') ? 2 : 1; _rpState.nivel = nv; const s = document.getElementById('rxNivel'); if(s) s.value = String(nv); _rpState.items.forEach(it => { if(it.niveles) it.precio = _rpNivelPrecio(it); }); _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen(); }
+// Stock del artículo en el almacén elegido de la prefactura. null = no se sabe (servicio o no está en el catálogo).
+function _rpStockItem(it) {
+    if(it.servicio || String(it.cod) === '1121') return null;
+    const a = _findInfoplusArt(it.cod);
+    if(!a) return null;
+    const alm = document.getElementById('rxAlmacen')?.value || '1';
+    const ex = (a.existencias && typeof a.existencias === 'object') ? a.existencias : {};
+    return Number(ex[alm]) || 0;
+}
+function _rpAlmNombre() { const alm = document.getElementById('rxAlmacen')?.value || '1'; return INFOPLUS_ALMACENES[alm] || ('almacén ' + alm); }
 function _rpAgregar() {
     if(!_rpState) _rpInit();
-    abrirBuscadorArticulos(null, (a) => {
+    abrirBuscadorArticulos(null, async (a) => {
         const it = { cod: a.codigo, desc: (a.descripcion || '').trim(), niveles: a.niveles || null, precio: Number(a.precio || 0), cant: 1 };
         it.precio = _rpNivelPrecio(it);
+        if(_abCat(it.desc) === 'celular') { it.serial = true; it.imeis = []; it.cant = 0; }
+        try {
+            const { data } = await supabaseClient.functions.invoke('infoplus-existencia-art', { body: { codarticulo: Number(a.codigo) } });
+            const vivo = _findInfoplusArt(a.codigo);
+            if(data && data.ok && data.existencias && vivo) vivo.existencias = data.existencias;
+        } catch(e) { logError('existencia en vivo prefactura', e); }
+        const stock = _rpStockItem(it);
+        if(stock !== null && stock <= 0) return toast(`"${it.desc}" no tiene existencia en ${_rpAlmNombre()}. No se puede facturar.`, 'error');
         _rpState.items.push(it);
         _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen();
+        if(it.serial) setTimeout(() => document.getElementById('rpImei_' + (_rpState.items.length - 1))?.focus(), 60);
     });
+}
+function _rpImeiKey(e, i) { if(e.key === 'Enter') { e.preventDefault(); _rpAgregarImei(i, e.target.value); } }
+function _rpAgregarImei(i, v) {
+    const it = _rpState.items[i]; if(!it) return;
+    const imei = (v || '').replace(/\s+/g, '').trim();
+    if(!imei) return;
+    const repetido = _rpState.items.some(x => (x.imeis || []).includes(imei));
+    if(repetido) return toast('Ese IMEI ya está en esta prefactura.', 'error');
+    const stock = _rpStockItem(it);
+    if(stock !== null && (it.imeis || []).length + 1 > stock) return toast(`Solo hay ${stock} en ${_rpAlmNombre()}.`, 'error');
+    it.imeis = [...(it.imeis || []), imei];
+    it.cant = it.imeis.length;
+    _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen();
+    setTimeout(() => document.getElementById('rpImei_' + i)?.focus(), 30);
+}
+function _rpQuitarImei(i, k) {
+    const it = _rpState.items[i]; if(!it) return;
+    it.imeis.splice(k, 1); it.cant = it.imeis.length;
+    _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen();
+}
+// Errores que impiden facturar: equipos con serial sin IMEI y artículos sin existencia suficiente.
+function _rpProblemasFactura() {
+    const probs = [];
+    (_rpState?.items || []).forEach(it => {
+        if(it.serial && !(it.imeis || []).length) probs.push(`"${it.desc}" necesita al menos un IMEI.`);
+        const stock = _rpStockItem(it);
+        if(stock !== null && Number(it.cant) > stock) probs.push(`"${it.desc}": pides ${it.cant} y hay ${stock} en ${_rpAlmNombre()}.`);
+    });
+    return probs;
 }
 function _rpRenderCart() {
     const c = document.getElementById('rxArticulos'); if(!c) return;
@@ -24752,11 +24800,32 @@ function _rpRenderCart() {
     c.innerHTML = `<table class="rx-table"><thead><tr><th>Código</th><th>Descripción</th><th style="width:58px;">Cant.</th><th style="width:96px;">Precio</th><th style="text-align:right;">Subtotal</th><th></th></tr></thead><tbody>${_rpState.items.map((it, i) => `<tr>
         <td style="font-weight:800;color:#e31e24;white-space:nowrap;">${escapeHtml(String(it.cod))}</td>
         <td><input value="${escapeHtml(it.desc)}" onchange="_rpDesc(${i},this.value)" title="Descripción editable (no cambia el artículo maestro)" style="width:100%;min-width:150px;padding:5px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;">${it.niveles ? `<div style="font-size:10px;color:#94a3b8;margin-top:2px;">Contado ${money(it.niveles['1'] || 0)}${it.niveles['2'] != null ? (' · Mayor ' + money(it.niveles['2'])) : ''}${it.niveles['3'] != null ? (' · Extremo ' + money(it.niveles['3'])) : ''}</div>` : ''}</td>
-        <td><input type="number" min="1" step="1" value="${it.cant}" onchange="_rpCant(${i},this.value)" style="width:52px;padding:5px;border:1px solid #cbd5e1;border-radius:6px;"></td>
+        <td>${it.serial
+            ? `<div title="La cantidad sale del número de IMEI" style="width:52px;padding:5px;border:1px solid #e2e8f0;border-radius:6px;background:#f8fafc;text-align:center;font-weight:700;">${it.cant}</div>`
+            : `<input type="number" min="1" step="1" value="${it.cant}" onchange="_rpCant(${i},this.value)" style="width:52px;padding:5px;border:1px solid #cbd5e1;border-radius:6px;">`}</td>
         <td><input type="number" min="0" step="0.01" value="${it.precio}" onchange="_rpPrecio(${i},this.value)" style="width:90px;padding:5px;border:1px solid #cbd5e1;border-radius:6px;"></td>
         <td style="text-align:right;font-weight:700;white-space:nowrap;">${money(it.precio * it.cant)}</td>
         <td style="text-align:right;"><button class="btn btn-light btn-sm" onclick="_rpQuitar(${i})" style="color:#b91c1c;"><i class="ti ti-trash"></i></button></td>
-      </tr>`).join('')}</tbody></table>`;
+      </tr>${_rpFilaImeis(it, i)}${_rpFilaStock(it)}`).join('')}</tbody></table>`;
+}
+function _rpFilaImeis(it, i) {
+    if(!it.serial) return '';
+    const chips = (it.imeis || []).map((m, k) => `<span style="display:inline-flex;align-items:center;gap:4px;background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a;border-radius:999px;padding:2px 8px;font-size:11.5px;margin:2px;">${escapeHtml(m)} <i class="ti ti-x" style="cursor:pointer;" onclick="_rpQuitarImei(${i},${k})" title="Quitar IMEI"></i></span>`).join('');
+    const falta = !(it.imeis || []).length;
+    return `<tr><td></td><td colspan="5" style="padding-top:0;">
+        <div style="border:1px ${falta ? 'solid #fecaca' : 'dashed #cbd5e1'};background:${falta ? '#fef2f2' : '#fff'};border-radius:8px;padding:6px 8px;">
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <i class="ti ti-barcode" style="color:#475569;"></i>
+            <input id="rpImei_${i}" placeholder="Escanea o escribe el IMEI y pulsa Enter" onkeydown="_rpImeiKey(event,${i})" inputmode="numeric" style="flex:1;min-width:180px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;">
+          </div>
+          <div style="margin-top:4px;">${chips || `<span style="font-size:11.5px;color:#b91c1c;">Sin IMEI: no se puede facturar este equipo.</span>`}</div>
+        </div>
+      </td></tr>`;
+}
+function _rpFilaStock(it) {
+    const stock = _rpStockItem(it);
+    if(stock === null || Number(it.cant) <= stock) return '';
+    return `<tr><td></td><td colspan="5" style="padding-top:0;"><div style="font-size:11.5px;color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:5px 8px;"><i class="ti ti-alert-triangle"></i> Solo hay ${stock} en ${escapeHtml(_rpAlmNombre())}. No se puede facturar esta cantidad.</div></td></tr>`;
 }
 function _rpDesc(i, v) { _rpState.items[i].desc = (v || '').trim() || _rpState.items[i].desc; _rpMarcarCambio(); _rpRenderResumen(); }
 async function _rpAgregarServicio() {
@@ -24766,7 +24835,7 @@ async function _rpAgregarServicio() {
     if(desc === null) return;
     const precioTxt = await pedirTexto('Precio del servicio (RD$)', { valor: '300', tipo: 'number' });
     if(precioTxt === null) return;
-    _rpState.items.push({ cod: '1121', desc: (desc || 'Servicio técnico').trim(), precio: Math.max(0, parseFloat(precioTxt) || 0), cant: 1 });
+    _rpState.items.push({ cod: '1121', desc: (desc || 'Servicio técnico').trim(), precio: Math.max(0, parseFloat(precioTxt) || 0), cant: 1, servicio: true });
     _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen();
 }
 function _rpCant(i, v) { _rpState.items[i].cant = Math.max(1, parseInt(v) || 1); _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen(); }
@@ -24810,6 +24879,8 @@ function _rpEstadoBadge(estado, cod) {
 async function _rpCrearPrefactura() {
     if(!_rpState || !_rpState.items.length) return toast('Agrega al menos un artículo o servicio.', 'error');
     if(_rpState.estado === 'facturada') return toast('Ya fue facturada; no se puede modificar.', 'error');
+    const probs = _rpProblemasFactura();
+    if(probs.length) { _rpState.estado = 'error'; _rpRenderResumen(); return toastError('No se puede facturar:\n' + probs.join('\n')); }
     const g = id => (document.getElementById(id)?.value || '').trim();
     const nombre = g('c_nombre') || 'CONTADO';
     const almacen = document.getElementById('rxAlmacen')?.value || '1';
@@ -24823,7 +24894,7 @@ async function _rpCrearPrefactura() {
         nombre, codempleado: vend, codnivelprecio: nivel, codlocalidad: String(almacen), credito: false,
         fecha: now.toISOString().slice(0, 10), hora: now.toTimeString().slice(0, 8),
         contrato: obs ? obs.slice(0, 200) : '', ordencompra: '', centro: '',
-        seriales: [], detallesPreFactura: _rpState.items.map(it => ({ descripcion: it.desc, precio: Number(it.precio), cantidad: Number(it.cant), codarticulo: Number(it.cod), codunidad: 1, porcentaje: 0, despachado: 0, descripcionunidad: null }))
+        seriales: _rpState.items.flatMap(it => (it.imeis || []).map(numero => ({ numero, codarticulo: Number(it.cod) }))), detallesPreFactura: _rpState.items.map(it => ({ descripcion: it.desc, precio: Number(it.precio), cantidad: Number(it.cant), codarticulo: Number(it.cod), codunidad: 1, porcentaje: 0, despachado: 0, descripcionunidad: null }))
     };
     _rpState.estado = 'actualizando'; _rpRenderResumen();
     try {
@@ -24890,6 +24961,8 @@ async function _rpGuardar(imprimir) {
     const hayItems = _rpState && _rpState.items.length;
     if((_rpState && _rpState.soloPrefactura) && !hayItems) return toast('Agrega al menos un artículo o servicio.', 'error');
     if(hayItems) {
+        const probs = _rpProblemasFactura();
+        if(probs.length) { _rpRenderCart(); return toastError('No se puede facturar:\n' + probs.join('\n')); }
         await _rpCrearPrefactura();
         if(_rpState.estado === 'error') {
             if(!await confirmar('La prefactura dio error en Info Plus.\n\n¿Registrar la recepción de todos modos (sin prefactura)?')) return;
@@ -24907,7 +24980,7 @@ function _rpPrefDeOrden(ordenId) { return (cache.recepcionPrefacturas || []).fin
 function _rpCargarDesdeLista(prefId) { const p = (cache.recepcionPrefacturas || []).find(x => x.id === prefId); if(!p) { toast('Prefactura no encontrada.', 'error'); return; } _rpPendingLoad = { pref: p }; nav('recepcion'); }
 function _rpCrearDesdeOrden(ordenId) { const o = (cache.ordenes || []).find(x => x.id === ordenId) || {}; const c = findCliente(o.cliente_id) || {}; const e = findEquipo(o.equipo_id) || {}; _rpPendingLoad = { orden: o, cliente: c, equipo: e }; nav('recepcion'); }
 function _rpAplicarCargaPref(p) {
-    _rpState = { items: (p.items || []).map(it => ({ cod: it.cod, desc: it.desc, niveles: it.niveles || null, precio: Number(it.precio || 0), cant: Number(it.cant || 1) })), codcliente: p.infoplus_codcliente || '1', infoNombre: p.infoplus_nombre || 'CLIENTE DE CONTADO', codprefactura: p.codprefactura, localId: p.id, ordenId: p.orden_id, soloPrefactura: true, estado: p.estado || 'sincronizada', nivel: Number(p.codnivelprecio) || 1 };
+    _rpState = { items: (p.items || []).map(it => ({ cod: it.cod, desc: it.desc, niveles: it.niveles || null, precio: Number(it.precio || 0), cant: Number(it.cant || 1), serial: !!it.serial, imeis: Array.isArray(it.imeis) ? it.imeis : (it.serial ? [] : undefined), servicio: !!it.servicio })), codcliente: p.infoplus_codcliente || '1', infoNombre: p.infoplus_nombre || 'CLIENTE DE CONTADO', codprefactura: p.codprefactura, localId: p.id, ordenId: p.orden_id, soloPrefactura: true, estado: p.estado || 'sincronizada', nivel: Number(p.codnivelprecio) || 1 };
     const _nvS = document.getElementById('rxNivel'); if(_nvS) _nvS.value = String(_rpState.nivel);
     const set = (id, v) => { const el = document.getElementById(id); if(el && v != null && v !== '') el.value = v; };
     set('c_nombre', p.nombre_visible); set('c_whatsapp', p.telefono_visible); set('c_cedula', p.documento_visible); set('o_observaciones', p.observaciones); set('e_imei', p.imei);
