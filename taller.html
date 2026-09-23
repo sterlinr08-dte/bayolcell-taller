@@ -5804,6 +5804,7 @@ function pedirTexto(mensaje, opciones) {
     });
 }
 function escapeHtml(s) { return (s ?? "").toString().replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[m])); }
+function linkifyText(escaped) { return escaped.replace(/(https?:\/\/[^\s<&"']+)/gi, '<a href="$1" target="_blank" rel="noopener" style="color:#1d4ed8; text-decoration:underline;">$1</a>'); }
 
 /* ============================================================
    NOTIFICACIONES CON SONIDO (Web Audio API)
@@ -33727,10 +33728,8 @@ function _crmSetRefrescoSilencioso(on) {
     document.getElementById('v-crmLinea')?.classList.toggle('crm-refresco-silencioso', !!on);
 }
 async function _crmSinParpadeo(fn) {
-    const anterior = _crmRefrescoSilencioso;
     _crmSetRefrescoSilencioso(true);
-    try { return await fn(); }
-    finally { _crmSetRefrescoSilencioso(anterior); }
+    return await fn();
 }
 async function _crmRepintarWhatsappSilencioso() {
     await _crmSinParpadeo(async () => {
@@ -34769,7 +34768,7 @@ function _waBurbujaRowHTML(m, nombre, porId) {
             ${m.es_automatico ? `<div style="font-size:10px; color:#4338ca; margin-bottom:3px;"><i class="ti ti-robot"></i> Respondido por IA</div>` : ''}
             ${citaHTML}
             ${_waBurbujaMedia(m)}
-            ${m.cuerpo ? `<div style="white-space:pre-wrap; word-break:break-word;">${escapeHtml(m.cuerpo)}</div>` : ''}
+            ${m.cuerpo ? `<div style="white-space:pre-wrap; word-break:break-word;">${linkifyText(escapeHtml(m.cuerpo))}</div>` : ''}
             <div class="wa-tick-line" style="text-align:right; font-size:10px; color:#8696a0; margin-top:2px;">
                 ${new Date(m.creado_en).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}
                 ${esOut ? ' ' + _waIconoEstado(m.estado) : ''}
@@ -36648,6 +36647,7 @@ document.addEventListener('keydown', e => { if(e.key === 'Escape') _crmCerrarSel
 
 function seleccionarLineaCRM(lineaId, nombreSucursal, nombreLinea) {
     _waCancelarGrabacionSiActiva();
+    _crmSetRefrescoSilencioso(false);
     _crmListaAnimarProxima = true;
     _crmLineaActualId = lineaId;
     _crmSucursalActualNombre = nombreSucursal;
@@ -37292,7 +37292,7 @@ function _pintarInstagramDetalle() {
                 <div class="wa-bubble-wrap" style="background:${esOut ? '#efe0fb' : '#fff'}; border-radius:8px; padding:6px 9px 7px; box-shadow:0 1px .5px rgba(0,0,0,.13); font-size:13.5px;">
                     <div style="font-size:10px; font-weight:700; color:${esOut ? '#7c3aed' : '#c2185b'}; margin-bottom:2px;">${escapeHtml(etiqueta)}</div>
                     ${_igBurbujaMedia(m)}
-                    ${m.cuerpo ? `<div style="white-space:pre-wrap; word-break:break-word;">${escapeHtml(m.cuerpo)}</div>` : ''}
+                    ${m.cuerpo ? `<div style="white-space:pre-wrap; word-break:break-word;">${linkifyText(escapeHtml(m.cuerpo))}</div>` : ''}
                     <div style="text-align:right; font-size:10px; color:#8696a0; margin-top:2px;">
                         ${new Date(m.creado_en).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}
                         ${m._optimista ? (m.estado === 'fallido' ? ' <i class="ti ti-alert-triangle" style="color:#dc2626;"></i>' : ' <i class="ti ti-clock"></i>') : ''}
