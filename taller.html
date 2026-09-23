@@ -35359,29 +35359,6 @@ window._crmEnviarUbicacionTexto = _crmEnviarUbicacionTexto;
    buscadores de la app; Escape cierra. */
 let _waSlashSucursales = null; // cache: [{id, nombre, lat, lng}]
 let _waSlashHl = -1;
-const _WA_RESPUESTAS_RAPIDAS = [
-    { clave: 'financiamiento', titulo: 'Solicitud de financiamiento', texto:
-`📋 SOLICITUD DE FINANCIAMIENTO – BAYOL CELL
-
-Para iniciar tu solicitud de financiamiento, por favor completa las siguientes informaciones:
-
-🪪 Número de cédula:
-👤 Nombres y apellidos:
-📱 Teléfono o celular:
-
-📍 Dirección actual:
-• Provincia:
-• Ciudad/Municipio:
-• Sector:
-• Calle:
-• No. de casa:
-
-📦 Equipo o artículo que deseas financiar:
-
-Por favor, verifica que todas las informaciones estén correctas antes de enviarlas.
-
-BAYOL CELL 📱` },
-];
 
 async function _waSlashCargarSucursales(force) {
     if(_waSlashSucursales && !force) return _waSlashSucursales;
@@ -35411,13 +35388,8 @@ async function _waSlashDetectar(input) {
     const lista = await _waSlashCargarSucursales();
     // Si mientras cargaba el usuario borró la "/" o cambió de idea, no pintar.
     if(!document.getElementById('waTexto')?.value.startsWith('/')) return;
-    const rapidas = _WA_RESPUESTAS_RAPIDAS
-        .filter(r => !filtro || r.clave.includes(filtro) || r.titulo.toLowerCase().includes(filtro))
-        .map(r => ({ tipo: 'rapida', id: r.clave, nombre: r.titulo }));
-    const ubicaciones = lista
-        .filter(s => !filtro || s.nombre.toLowerCase().includes(filtro))
-        .map(s => ({ tipo: 'ubicacion', id: s.id, nombre: s.nombre }));
-    const filtradas = [...rapidas, ...ubicaciones];
+    if(!lista.length) { _waSlashCerrar(); return; }
+    const filtradas = filtro ? lista.filter(s => s.nombre.toLowerCase().includes(filtro)) : lista;
     _waSlashHl = filtradas.length ? 0 : -1;
     _waSlashPintar(filtradas, input);
 }
@@ -35435,16 +35407,10 @@ function _waSlashPintar(filtradas, input) {
     }
     menu._filtradas = filtradas;
     if(!filtradas.length) {
-        menu.innerHTML = `<div style="padding:8px 12px; font-size:12px; color:#94a3b8;">Nada coincide.</div>`;
+        menu.innerHTML = `<div style="padding:8px 12px; font-size:12px; color:#94a3b8;">Ninguna sucursal coincide.</div>`;
     } else {
-        const encabezado = t => `<div style="padding:6px 12px 2px; font-size:10.5px; font-weight:700; color:#94a3b8; text-transform:uppercase;">${t}</div>`;
-        let html = '';
-        filtradas.forEach((s, i) => {
-            if(i === 0 || filtradas[i - 1].tipo !== s.tipo) html += encabezado(s.tipo === 'rapida' ? 'Respuestas rápidas' : 'Enviar ubicación de');
-            const icono = s.tipo === 'rapida' ? '<i class="ti ti-message-2-bolt" style="color:#2563eb;"></i>' : '<i class="ti ti-map-pin" style="color:#16a34a;"></i>';
-            html += `<button data-idx="${i}" class="${i === _waSlashHl ? 'wa-slash-hl' : ''}" onclick="_waSlashElegir(${i})">${icono} ${escapeHtml(s.nombre)}</button>`;
-        });
-        menu.innerHTML = html;
+        menu.innerHTML = `<div style="padding:6px 12px 2px; font-size:10.5px; font-weight:700; color:#94a3b8; text-transform:uppercase;">Enviar ubicación de</div>` +
+            filtradas.map((s, i) => `<button data-idx="${i}" class="${i === _waSlashHl ? 'wa-slash-hl' : ''}" onclick="_waSlashElegir('${s.id}')"><i class="ti ti-map-pin" style="color:#16a34a;"></i> ${escapeHtml(s.nombre)}</button>`).join('');
     }
     menu.style.display = 'block';
     const r = input.getBoundingClientRect();
@@ -35471,22 +35437,14 @@ function _waSlashMover(delta) {
 function _waSlashElegirResaltado() {
     const menu = document.getElementById('waSlashMenu');
     const filtradas = (menu && menu._filtradas) || [];
-    if(_waSlashHl >= 0 && filtradas[_waSlashHl]) _waSlashElegir(_waSlashHl);
+    if(_waSlashHl >= 0 && filtradas[_waSlashHl]) _waSlashElegir(filtradas[_waSlashHl].id);
 }
 
-function _waSlashElegir(idx) {
-    const menu = document.getElementById('waSlashMenu');
-    const item = ((menu && menu._filtradas) || [])[idx];
+function _waSlashElegir(sucursalId) {
     _waSlashCerrar();
-    if(!item) return;
     const input = document.getElementById('waTexto');
     if(input) { input.value = ''; _waActualizarBotonEnvio(); }
-    if(item.tipo === 'rapida') {
-        const r = _WA_RESPUESTAS_RAPIDAS.find(x => x.clave === item.id);
-        if(r) enviarMensajeWhatsapp(r.texto);
-    } else {
-        _waEnviarUbicacionSucursal(item.id);
-    }
+    _waEnviarUbicacionSucursal(sucursalId);
 }
 
 function _waTextoKeydown(event) {
@@ -36288,11 +36246,10 @@ function _waWireSwipe() {
     });
 }
 
-async function enviarMensajeWhatsapp(textoDirecto) {
+async function enviarMensajeWhatsapp() {
     if(_waEnviando) return;
     const input = document.getElementById('waTexto');
-    const esDirecto = typeof textoDirecto === 'string';
-    const mensaje = (esDirecto ? textoDirecto : (input?.value || '')).trim();
+    const mensaje = (input?.value || '').trim();
     if(!mensaje) return;
     // El destino se congela AQUI, antes del await de sesion (que hace una
     // peticion de red cuando el token esta por vencer) — si no, el usuario
@@ -36341,8 +36298,7 @@ async function enviarMensajeWhatsapp(textoDirecto) {
         if(opt) opt.estado = 'fallido';
         if(_waHiloId === hiloDestino) {
             const actual = document.getElementById('waTexto');
-            // El input es de una línea: una respuesta rápida multilínea se perdería al devolverla ahí.
-            if(actual && !actual.value && !esDirecto) actual.value = mensaje;
+            if(actual && !actual.value) actual.value = mensaje;
             _pintarWhatsappDetalle();
         }
         toastError(textoError || 'No se pudo enviar el mensaje.');
