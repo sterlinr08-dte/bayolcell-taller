@@ -21256,6 +21256,7 @@ function _almPintar() {
     const armada = _almEstaArmada(d);
     const visto = d.agente_visto_at ? (Date.now() - new Date(d.agente_visto_at).getTime()) : Infinity;
     const agenteOk = visto < 3 * 60 * 1000;
+    const dvrOk = d.dvr_visto_at && (Date.now() - new Date(d.dvr_visto_at).getTime()) < 3 * 60 * 1000;
     const manual = d.modo !== 'horario' && (!d.modo_hasta || new Date() < new Date(d.modo_hasta));
     const modoTxt = !manual ? 'Siguiendo el horario'
         : (d.modo === 'armada' ? 'Armada a mano' : 'Desarmada a mano') + (d.modo_hasta ? ` hasta ${_almFecha(d.modo_hasta)}` : ' hasta que la cambies');
@@ -21296,8 +21297,11 @@ function _almPintar() {
             <div style="color:#475569; font-size:13px;">${modoTxt}</div></div>
           ${selDvr}
         </div>
-        <div class="alm-agente ${agenteOk ? 'ok' : 'mal'}"><i class="ti ${agenteOk ? 'ti-plug-connected' : 'ti-plug-connected-x'}"></i>
-          ${agenteOk ? 'La PC del local está vigilando el DVR' : `La PC del local no responde${d.agente_visto_at ? ' desde ' + _almFecha(d.agente_visto_at) : ''} — sin ella no llegan avisos`}</div>
+        <div class="alm-agente ${agenteOk && dvrOk ? 'ok' : 'mal'}"><i class="ti ${agenteOk && dvrOk ? 'ti-plug-connected' : 'ti-plug-connected-x'}"></i>
+          ${!agenteOk ? `La PC del local no responde${d.agente_visto_at ? ' desde ' + _almFecha(d.agente_visto_at) : ''} — sin ella no llegan avisos`
+            : !dvrOk ? `La PC no logra comunicarse con el DVR${d.dvr_visto_at ? ' desde ' + _almFecha(d.dvr_visto_at) : ''} — revisa que esté encendido y conectado`
+            : 'La PC del local está vigilando el DVR'}</div>
+        <p class="alm-nota" style="margin:8px 0 0;">Si la alarma está armada y esto se queda en rojo 5 minutos, te llega un WhatsApp.</p>
         <div class="alm-acciones">
           <select id="almDuracion" title="¿Por cuánto tiempo?">
             <option value="1">Por 1 hora</option><option value="3">Por 3 horas</option>
