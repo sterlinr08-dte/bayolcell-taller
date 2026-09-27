@@ -250,6 +250,12 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
 .alm-ev-txt { display:flex; flex-direction:column; gap:3px; min-width:0; font-size:13px; }
 .alm-ev-txt span:not(.fin-badge) { color:#475569; font-size:12.5px; }
 .alm-ev-txt .fin-badge { align-self:flex-start; }
+.alm-player:empty { display:none; }
+.alm-player video { width:100%; max-width:560px; border-radius:12px; margin-top:6px; background:#0f172a; aspect-ratio:16/9; }
+.alm-inc-form { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
+.alm-inc-form .alm-inc-nota { grid-column:1 / -1; }
+.alm-inc-form input, .alm-inc-form select { text-transform:none; letter-spacing:0; font-weight:500; }
+@media (max-width:620px) { .alm-inc-form { grid-template-columns:1fr 1fr; } }
 @media (max-width:520px) {
     .alm-dia { grid-template-columns:auto 1fr; }
     .alm-dia .alm-t { grid-column:span 1; }
@@ -21205,7 +21211,7 @@ function _invLineaDe(cod) { return _invLineas.find(l => String(l.codarticulo) ==
 // El programa de la PC (BayolCellAlarma\agente.ps1) escucha el DVR y llama a la
 // Edge Function alarma-agente, que decide con esta misma regla si está armada
 // (hora de RD) y manda el WhatsApp. Aquí solo se edita la configuración.
-let _almDvrs = [], _almSel = null, _almEventos = [], _almTimer = null;
+let _almDvrs = [], _almSel = null, _almEventos = [], _almVideos = [], _almTimer = null;
 const _ALM_DIAS = [[1,'Lunes'],[2,'Martes'],[3,'Miércoles'],[4,'Jueves'],[5,'Viernes'],[6,'Sábado'],[0,'Domingo']];
 
 function _almHm(s) { const m = /^(\d{1,2}):(\d{2})$/.exec(s || ''); return m ? (+m[1]) * 60 + (+m[2]) : null; }
@@ -21240,12 +21246,21 @@ async function renderAlarma() {
         const { data } = await supabaseClient.from('alarma_eventos').select('*').eq('dvr_id', _almSel).order('ocurrido_at', { ascending: false }).limit(40);
         _almEventos = data || [];
     } catch(e) { logError('alarma eventos', e); _almEventos = []; }
+    try {
+        const { data } = await supabaseClient.from('alarma_videos').select('*').eq('dvr_id', _almSel).order('creado_en', { ascending: false }).limit(80);
+        _almVideos = data || [];
+    } catch(e) { logError('alarma videos', e); _almVideos = []; }
+    // conservar lo que se estaba escribiendo en el formulario de incidente
+    const form = {};
+    document.querySelectorAll('#almIncForm [id]').forEach(el => { form[el.id] = el.value; });
     _almPintar();
+    Object.entries(form).forEach(([id, val]) => { const el = document.getElementById(id); if(el) el.value = val; });
     clearInterval(_almTimer);
     _almTimer = setInterval(() => {
         const v = document.getElementById('v-alarma');
         if(!v || !v.classList.contains('active')) { clearInterval(_almTimer); _almTimer = null; return; }
-        if(!document.querySelector('#alarmaCont input:focus')) renderAlarma();
+        if(document.querySelector('#alarmaCont input:focus, #alarmaCont textarea:focus, #alarmaCont select:focus, #alarmaCont video')) return;
+        renderAlarma();
     }, 30000);
 }
 
@@ -21278,15 +21293,46 @@ function _almPintar() {
         <i class="ti ${c.vigilar ? 'ti-eye' : 'ti-eye-off'}"></i> <span>${Number(c.canal)} · ${escapeHtml(c.nombre || 'Cámara')}</span></label>`).join('');
 
     const avisoChip = { enviado: ['ok', 'WhatsApp enviado'], omitido: ['info', 'Ya se había avisado'], error: ['danger', 'No se pudo avisar'] };
+    const videoDeEvento = {};
+    _almVideos.forEach(v => { if(v.evento_id) videoDeEvento[v.evento_id] = v; });
     const eventos = _almEventos.length ? _almEventos.map(e => {
         const [cls, txt] = avisoChip[e.aviso_estado] || ['info', 'Sin aviso'];
+        const vid = videoDeEvento[e.id];
         return `<div class="alm-ev">
             <button class="alm-foto" ${e.foto_path ? `data-foto="${escapeHtml(e.foto_path)}" onclick="_almVerFoto(this.dataset.foto)"` : 'disabled'} aria-label="Ver foto">${e.foto_path ? '<i class="ti ti-photo"></i>' : '<i class="ti ti-camera-off"></i>'}</button>
             <div class="alm-ev-txt"><b>${escapeHtml(e.canal_nombre || ('Cámara ' + e.canal))}</b>
                 <span>${_almFecha(e.ocurrido_at)} · ${e.tipo === 'persona' ? 'persona' : 'movimiento'}</span>
-                <span class="fin-badge ${cls}" ${e.aviso_error ? `title="${escapeHtml(e.aviso_error)}"` : ''}>${txt}</span></div>
+                <span style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                  <span class="fin-badge ${cls}" ${e.aviso_error ? `title="${escapeHtml(e.aviso_error)}"` : ''}>${txt}</span>
+                  ${vid && vid.estado === 'listo' ? `<button class="btn btn-light btn-sm" onclick="_almVerVideo('${vid.id}')"><i class="ti ti-player-play"></i> Video</button>`
+                    : vid && vid.estado !== 'error' ? '<span class="fin-badge info">Video en camino…</span>' : ''}
+                </span>
+                <div class="alm-player" id="almPlayer-${vid ? vid.id : ''}"></div></div>
         </div>`;
     }).join('') : '<p style="color:#475569; margin:6px 0 0;">Sin movimientos registrados con la alarma armada.</p>';
+
+    // Videos guardados como evidencia (incidentes)
+    const hoyRD = new Date(Date.now() - 4 * 3600 * 1000).toISOString().slice(0, 10);
+    const optsCam = (d.canales || []).map(c => `<option value="${Number(c.canal)}">${Number(c.canal)} · ${escapeHtml(c.nombre || 'Cámara')}</option>`).join('');
+    const estVideo = v => v.estado === 'listo' ? ['ok', `Listo · ${(v.tamano_bytes / 1048576 || 0).toFixed(1)} MB`]
+        : v.estado === 'error' ? ['danger', 'No se pudo sacar del DVR'] : v.estado === 'procesando' ? ['warn', 'Sacando del DVR…'] : ['info', 'En cola'];
+    const _hRD = iso => new Date(iso).toLocaleTimeString('es-DO', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Santo_Domingo' });
+    const incidentes = _almVideos.filter(v => v.origen === 'incidente');
+    const listaInc = incidentes.length ? incidentes.map(v => {
+        const [cls, txt] = estVideo(v);
+        return `<div class="alm-ev">
+            <div class="alm-foto" style="cursor:default;"><i class="ti ti-movie"></i></div>
+            <div class="alm-ev-txt"><b>${escapeHtml(v.nota || 'Incidente')}</b>
+                <span>${escapeHtml(v.canal_nombre || ('Cámara ' + v.canal))} · ${new Date(v.inicio).toLocaleDateString('es-DO', { day: 'numeric', month: 'short', timeZone: 'America/Santo_Domingo' })}, ${_hRD(v.inicio)} a ${_hRD(v.fin)}</span>
+                <span style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                  <span class="fin-badge ${cls}" ${v.error ? `title="${escapeHtml(v.error)}"` : ''}>${txt}</span>
+                  ${v.estado === 'listo' ? `<button class="btn btn-light btn-sm" onclick="_almVerVideo('${v.id}')"><i class="ti ti-player-play"></i> Ver</button>
+                  <button class="btn btn-light btn-sm" onclick="_almDescargarVideo('${v.id}')"><i class="ti ti-download"></i> Descargar</button>` : ''}
+                  <button class="btn btn-light btn-sm" onclick="_almBorrarVideo('${v.id}')" aria-label="Borrar"><i class="ti ti-trash"></i></button>
+                </span>
+                <div class="alm-player" id="almPlayer-${v.id}"></div></div>
+        </div>`;
+    }).join('') : '<p style="color:#475569; margin:6px 0 0;">Todavía no has guardado videos de incidentes.</p>';
 
     cont.innerHTML = `
     <div class="alm-grid">
@@ -21341,7 +21387,81 @@ function _almPintar() {
         </div>
         ${eventos}
       </div>
+
+      <div class="card alm-eventos">
+        <h3 class="alm-h3"><i class="ti ti-movie"></i> Guardar video de un incidente</h3>
+        <p class="alm-nota">Elige la cámara y la hora. El video se saca del DVR y queda guardado aparte como evidencia, aunque el DVR borre sus grabaciones viejas. Máximo 15 minutos por video.</p>
+        <div id="almIncForm" class="alm-inc-form">
+          <label class="alm-t">Cámara<select id="almIncCam">${optsCam}</select></label>
+          <label class="alm-t">Día<input type="date" id="almIncDia" value="${hoyRD}" max="${hoyRD}"></label>
+          <label class="alm-t">Desde<input type="time" id="almIncDesde"></label>
+          <label class="alm-t">Hasta<input type="time" id="almIncHasta"></label>
+          <label class="alm-t alm-inc-nota">Qué pasó<input id="almIncNota" maxlength="300" placeholder="Ej. cliente se llevó un iPhone 13 sin pagar"></label>
+        </div>
+        <button class="btn btn-blue" style="margin-top:10px;" onclick="_almPedirIncidente()"><i class="ti ti-device-floppy"></i> Guardar video</button>
+        <h3 class="alm-h3" style="margin-top:18px;"><i class="ti ti-folder"></i> Videos guardados</h3>
+        ${listaInc}
+      </div>
     </div>`;
+}
+
+async function _almPedirIncidente() {
+    const canal = Number(document.getElementById('almIncCam')?.value);
+    const dia = document.getElementById('almIncDia')?.value;
+    const desde = document.getElementById('almIncDesde')?.value, hasta = document.getElementById('almIncHasta')?.value;
+    const nota = (document.getElementById('almIncNota')?.value || '').trim();
+    if(!canal || !dia || !desde || !hasta) { toast('Elige la cámara, el día y las horas desde y hasta.', 'error'); return; }
+    if(!nota) { toast('Escribe qué pasó, para encontrarlo después.', 'error'); return; }
+    const inicio = new Date(`${dia}T${desde}:00-04:00`), fin = new Date(`${dia}T${hasta}:00-04:00`);
+    if(!(fin > inicio)) { toast('La hora "hasta" tiene que ser después de "desde".', 'error'); return; }
+    if(fin - inicio > 15 * 60000) { toast('Máximo 15 minutos por video. Si necesitas más, guarda varios.', 'error'); return; }
+    if(fin > new Date()) { toast('Esa hora todavía no ha pasado.', 'error'); return; }
+    const d = _almDvrs.find(x => x.id === _almSel);
+    const cam = (d?.canales || []).find(c => Number(c.canal) === canal);
+    const { error } = await supabaseClient.from('alarma_videos').insert({
+        dvr_id: _almSel, canal, canal_nombre: cam?.nombre || null, origen: 'incidente', nota,
+        inicio: inicio.toISOString(), fin: fin.toISOString()
+    });
+    if(error) { logError('alarma incidente', error); toast('No se pudo pedir el video: ' + error.message, 'error'); return; }
+    ['almIncDesde', 'almIncHasta', 'almIncNota'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+    toast('Pedido. En un momento el video aparece en la lista (la PC del local lo saca del DVR).');
+    renderAlarma();
+}
+
+async function _almUrlVideo(id, descargar) {
+    const v = _almVideos.find(x => x.id === id);
+    if(!v?.video_path) return null;
+    const nombre = `${(v.canal_nombre || 'camara').replace(/[^\w-]+/g, '_')}_${new Date(v.inicio).toISOString().slice(0, 16).replace(/[:T]/g, '-')}.mp4`;
+    const { data, error } = await supabaseClient.storage.from('alarma-videos').createSignedUrl(v.video_path, 3600, descargar ? { download: nombre } : undefined);
+    if(error || !data?.signedUrl) { toast('No se pudo abrir el video.', 'error'); return null; }
+    return data.signedUrl;
+}
+
+async function _almVerVideo(id) {
+    const cont = document.getElementById('almPlayer-' + id);
+    if(!cont) return;
+    if(cont.innerHTML) { cont.innerHTML = ''; return; }
+    const url = await _almUrlVideo(id, false);
+    if(url) cont.innerHTML = `<video src="${escapeHtml(url)}" controls autoplay playsinline muted></video>`;
+}
+
+async function _almDescargarVideo(id) {
+    const url = await _almUrlVideo(id, true);
+    if(url) location.href = url;
+}
+
+async function _almBorrarVideo(id) {
+    const v = _almVideos.find(x => x.id === id);
+    if(!v) return;
+    if(!(await confirmar('¿Borrar este video? No se puede recuperar.'))) return;
+    if(v.video_path) {
+        const { error } = await supabaseClient.storage.from('alarma-videos').remove([v.video_path]);
+        if(error) { toast('No se pudo borrar el archivo: ' + error.message, 'error'); return; }
+    }
+    const { error } = await supabaseClient.from('alarma_videos').delete().eq('id', id);
+    if(error) { toast('No se pudo borrar: ' + error.message, 'error'); return; }
+    toast('Video borrado');
+    renderAlarma();
 }
 
 async function _almActualizar(cambios, okMsg) {
