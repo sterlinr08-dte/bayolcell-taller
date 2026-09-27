@@ -67,6 +67,7 @@ La barra lateral cambia de vista con **`nav('nombre', this)`**. Cada vista es un
 - `recepcion` — Recepción de Equipos (crear órdenes de cliente).
 - `ordenes` — Órdenes de Servicio (reparaciones de clientes). `renderOrders()` / `renderTallerOrdenes()`.
 - `incentivos` — Incentivos Técnicos (ADMIN). `renderIncentivos()`.
+- `alarma` — Alarma y Cámaras (ADMIN). `renderAlarma()`. Tablas `alarma_dvr` / `alarma_eventos` (RLS `app_is_admin()`), bucket privado `alarma-fotos`. Un agente en la PC del local (`C:\Users\BAYOCELL\BayolCellAlarma\agente.ps1`, fuera del repo) escucha los eventos VideoMotion del DVR Dahua y llama a la Edge Function `alarma-agente` (token propio `x-agente-token`), que decide si está armada (hora RD) y manda la plantilla WhatsApp `alerta_seguridad_camaras`. `_almEstaArmada()` en el cliente es copia de `estaArmada()` de la función: si cambias una, cambia la otra. El botón del WhatsApp abre `taller.html#alarma`.
 
 **INVENTARIO**
 - `inventario` — Inventario Taller.
