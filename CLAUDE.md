@@ -18,7 +18,9 @@ No activar bloqueos automáticos hasta validar los controles indicados. Este reg
 
 ## Qué es este proyecto
 Sistema interno de **BAYOL CELL** (tienda/taller de celulares en Santiago y Moca, Rep. Dominicana).
-- **`taller.html`** → la app interna (admin/taller). Es **UN SOLO archivo HTML gigante (~19,700 líneas, ~1.3 MB)** con todo el JS embebido en `<script>`. Título: "SISTEMA TALLER BAYOL CELL". **Aquí se trabaja casi siempre.**
+- **`taller.html`** → la app interna (admin/taller): pantallas (HTML) y estilos. Título: "SISTEMA TALLER BAYOL CELL".
+- **`taller-app.js`** → **desde el 28-sep-2026 aquí vive TODO el JavaScript principal del taller (~2.2 MB)**, movido tal cual desde el `<script>` en línea de `taller.html` para que Chrome guarde el código compilado (el taller abre ~40 % más rápido en celular). `taller.html` lo carga en el mismo lugar y orden (`<script src="taller-app.js?v=AAAAMMDDx">`). **La lógica se edita aquí**; al cambiarlo, sube el `?v=` en `taller.html`.
+- Las librerías de imprimir y gráficas (qz-tray, jsrsasign, html2canvas, JsBarcode, Chart.js, qrcodejs) cargan con `defer`: el código que las usa al arrancar debe esperar `await window.__bayolLibs`.
 - **`index.html`** → página pública (landing) de bayolcell.com.
 - **`PENDIENTES.md`** → tareas pendientes del lado MDM/Financiamiento (Hexnode, Info Plus, etc.). Léelo si el tema es financiamiento o MDM.
 
@@ -36,7 +38,7 @@ Sistema interno de **BAYOL CELL** (tienda/taller de celulares en Santiago y Moca
 
 ## Git / flujo de cambios
 1. Editar `taller.html`.
-2. **Verificar sintaxis JS antes de commitear** (el archivo es enorme; un error rompe todo):
+2. **Verificar sintaxis JS antes de commitear** (el archivo es enorme; un error rompe todo). Primero `node --check taller-app.js`, y además los bloques que quedan en `taller.html`:
    ```bash
    node -e 'const fs=require("fs");const h=fs.readFileSync("taller.html","utf8");const re=/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi;let m,i=0,bad=0;while((m=re.exec(h))){i++;try{new Function(m[1])}catch(e){bad++;console.log("Block #"+i,e.message)}}console.log("Checked "+i+" blocks, "+bad+" errors.")'
    ```
