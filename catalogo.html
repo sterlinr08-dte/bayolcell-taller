@@ -6,12 +6,13 @@
 <title>Catálogo de Celulares · BAYOL CELL</title>
 <meta name="description" content="Catálogo de celulares BAYOL CELL con precios actualizados. Sucursales en Santiago, Moca y Navarrete.">
 <meta name="theme-color" content="#08090b">
+<link rel="preconnect" href="https://vkhwdvjtowrhkhqavnvk.supabase.co" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap">
 <style>
   :root{
     --bg:#08090b; --bg2:#0f1114; --panel:#15171b; --linea:rgba(255,255,255,.08); --linea2:rgba(255,255,255,.14);
-    --txt:#f5f5f4; --txt2:rgba(245,245,244,.62); --txt3:rgba(245,245,244,.42);
+    --txt:#f5f5f4; --txt2:rgba(245,245,244,.62); --txt3:rgba(245,245,244,.64);
     --rojo:#e31e24; --rojo2:#ff3b41; --verde:#4ade80;
     --mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;
     --ease:cubic-bezier(.2,.8,.2,1); --resorte:cubic-bezier(.34,1.4,.5,1);
@@ -54,7 +55,7 @@
   .tab{flex:none;height:36px;padding:0 15px;border:0;border-radius:999px;background:transparent;color:var(--txt2);font-size:13.5px;font-weight:600;display:inline-flex;align-items:center;gap:6px;}
   .tab small{font-family:var(--mono);font-size:10.5px;color:var(--txt3);}
   .tab.on{background:#f5f5f4;color:#0b0b0b;}
-  .tab.on small{color:rgba(0,0,0,.45);}
+  .tab.on small{color:rgba(0,0,0,.66);}
 
   /* ===== Secciones por marca ===== */
   .secs{padding-bottom:40px;}
@@ -103,7 +104,7 @@
   .stepper{display:flex;align-items:center;gap:4px;height:42px;padding:3px;border-radius:999px;background:#fff;color:#0b0b0b;}
   .stepper button{width:36px;height:36px;border:0;border-radius:999px;background:rgba(0,0,0,.07);font-size:18px;font-weight:700;color:#0b0b0b;}
   .stepper b{min-width:22px;text-align:center;font-family:var(--mono);font-size:14px;}
-  .estado{max-width:1180px;margin:0 auto;text-align:center;color:var(--txt2);padding:60px 20px;font-size:15.5px;line-height:1.6;}
+  .estado{max-width:1180px;margin:0 auto;min-height:72vh;text-align:center;color:var(--txt2);padding:60px 20px;font-size:15.5px;line-height:1.6;}
 
   /* ===== Sucursales ===== */
   .sucwrap{max-width:1180px;margin:0 auto;padding:44px 20px 20px;border-top:1px solid var(--linea);}
@@ -385,7 +386,7 @@
       <span class="marca-agua" aria-hidden="true">${esc(marcaAgua(i.nombre))}</span>
       <div class="cab"><span class="specs mono">${specs||'&nbsp;'}</span><span class="disp mono${i.disponible?'':' no'}">${i.disponible?'Disponible':'Agotado'}</span></div>
       ${i.destacado?'<span class="dest mono">Destacado</span>':''}
-      <div class="foto">${i.foto_url? `<img src="${esc(i.foto_url)}" alt="${esc(i.nombre)}" loading="lazy" decoding="async">` : ICON_PHONE}</div>
+      <div class="foto">${i.foto_url? `<img src="${esc(i.foto_url)}" alt="${esc(i.nombre)}" ${(_imgN++ < 3)?'fetchpriority="high"':'loading="lazy"'} decoding="async">` : ICON_PHONE}</div>
       ${i.foto_url?'<div class="ref-foto mono">Imagen de referencia · color según disponibilidad</div>':''}
       <div class="nom">${esc(i.nombre)}</div>
       <div class="pie">
@@ -394,7 +395,9 @@
       </div>
     </article>`;
   }
+  let _imgN = 0;
   function pintar(){
+    _imgN = 0;
     const g = document.getElementById('grid');
     const gr = grupos(listaFiltrada());
     pintarChips(gr);
