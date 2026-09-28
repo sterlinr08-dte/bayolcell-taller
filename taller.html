@@ -20485,16 +20485,33 @@ function _catAgregar() {
     if(typeof abrirBuscadorArticulos !== 'function') return toast('Buscador no disponible.', 'error');
     abrirBuscadorArticulos(null, (art) => { if(art) _catNuevo(art); });
 }
+// Clave del modelo sin capacidad/RAM/variante: "CELULAR IPHONE 11 NORMAL 128GB" y "iPhone 11" -> "IPHONE 11".
+// Sirve para que todas las capacidades de un mismo modelo compartan la misma foto.
+function _catModeloKey(nombre) {
+    return String(nombre || '').toUpperCase()
+        .replace(/\bCELULAR\b|\bXIAOMI\b|\bGALAXY\b|\bNORMAL\b|\bCON AVISO\b|\bAVISO\b|\bFINANCIAMIENTO\b|\bCLASE [A-Z]\b/g, ' ')
+        .replace(/\b(\d+)G\b/g, '$1')
+        .replace(/\(?\b\d+\s*(?:\+\s*\d+\s*)?(?:GB|TB)\b\)?/g, ' ')
+        .replace(/\bRAM\b|\+/g, ' ')
+        .replace(/-/g, ' ').replace(/\s+/g, ' ').trim();
+}
+function _catHermanos(item) {
+    const k = _catModeloKey(item.nombre_publico);
+    return k ? _catData.filter(x => x.id !== item.id && _catModeloKey(x.nombre_publico) === k) : [];
+}
 async function _catNuevo(art) {
     const codigo = String(art.codigo || '').trim(); if(!codigo) return;
     if(_catData.some(i => String(i.codigo) === codigo)) { toast('Ese celular ya está en el catálogo.'); return; }
     try {
+        const k = _catModeloKey(art.descripcion);
+        const hermano = k ? _catData.find(x => x.foto_url && _catModeloKey(x.nombre_publico) === k) : null;
         const { error } = await supabaseClient.from('catalogo_items').insert([{
-            codigo, categoria: 'celular', nombre_publico: art.descripcion || '', capacidad: art.referencia || '',
+            codigo, categoria: 'celular', nombre_publico: hermano ? hermano.nombre_publico : (art.descripcion || ''), capacidad: art.referencia || '',
+            foto_url: hermano ? hermano.foto_url : null,
             visible: true, orden: _catData.length, creado_por: sessionUser?.nombre || 'Admin'
         }]);
         if(error) throw error;
-        toast('✓ Agregado. Ahora súbele la foto.');
+        toast(hermano ? '✓ Agregado con la foto del mismo modelo.' : '✓ Agregado. Ahora súbele la foto.');
         await _catCargar(); _catRender();
         const nuevo = _catData.find(i => String(i.codigo) === codigo);
         if(nuevo) _catEditar(nuevo.id);
@@ -20541,10 +20558,13 @@ async function _catSubirFoto(id) {
         if(error) throw error;
         const { data } = supabaseClient.storage.from('catalogo').getPublicUrl(path);
         const url = data.publicUrl;
-        await supabaseClient.from('catalogo_items').update({ foto_url: url }).eq('id', id);
-        const it = _catData.find(x => x.id === id); if(it) it.foto_url = url;
+        const it = _catData.find(x => x.id === id);
+        const ids = [id].concat(it ? _catHermanos(it).map(x => x.id) : []);
+        const { error: eUp } = await supabaseClient.from('catalogo_items').update({ foto_url: url }).in('id', ids);
+        if(eUp) throw eUp;
+        _catData.forEach(x => { if(ids.includes(x.id)) x.foto_url = url; });
         const prev = document.getElementById('catFotoPrev'); if(prev) prev.innerHTML = `<img src="${escapeHtml(url)}" style="width:100%;height:100%;object-fit:contain;">`;
-        if(msg) msg.textContent = '✓ Foto subida.';
+        if(msg) msg.textContent = ids.length > 1 ? `✓ Foto subida y aplicada a las ${ids.length} capacidades de este modelo.` : '✓ Foto subida.';
         _catRender();
     } catch(e) { logError('cat foto', e); if(msg) msg.textContent = 'No se pudo subir: ' + getFriendlyError(e); }
 }
