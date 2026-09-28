@@ -14,7 +14,10 @@
     --txt:#f5f5f4; --txt2:rgba(245,245,244,.62); --txt3:rgba(245,245,244,.42);
     --rojo:#e31e24; --rojo2:#ff3b41; --verde:#4ade80;
     --mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;
+    --ease:cubic-bezier(.2,.8,.2,1); --resorte:cubic-bezier(.34,1.4,.5,1);
   }
+  @property --tono{syntax:'<color>';inherits:true;initial-value:#2a2f38}
+  @property --g-tono{syntax:'<color>';inherits:true;initial-value:#08090b}
   *{box-sizing:border-box;margin:0;padding:0;}
   html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;}
   body{font-family:Inter,-apple-system,'SF Pro Text',system-ui,sans-serif;-webkit-font-smoothing:antialiased;background:var(--bg);color:var(--txt);letter-spacing:-.01em;}
@@ -75,9 +78,9 @@
   @media(max-width:700px){ .rail{grid-auto-columns:78vw;gap:12px;} }
 
   /* Tarjeta de color */
-  .card{--c1:#2a2d33;--c2:#15171b;scroll-snap-align:start;position:relative;border-radius:22px;overflow:hidden;min-height:430px;display:flex;flex-direction:column;padding:18px;color:#fff;background:radial-gradient(120% 90% at 50% 38%,var(--c1) 0%,var(--c2) 78%);box-shadow:0 22px 40px -24px rgba(0,0,0,.8),inset 0 0 0 1px rgba(255,255,255,.08);isolation:isolate;}
+  .card{--tono:#2a2f38;scroll-snap-align:start;position:relative;border-radius:26px;overflow:hidden;min-height:430px;display:flex;flex-direction:column;padding:18px;color:#fff;background:var(--tono);background:radial-gradient(60% 55% at 50% 45%,color-mix(in oklab,var(--tono),#fff 20%) 0%,transparent 72%),linear-gradient(155deg,color-mix(in oklab,var(--tono),#fff 6%),color-mix(in oklab,var(--tono),#000 20%));box-shadow:0 30px 60px -34px rgba(0,0,0,.85),inset 0 1px 0 rgba(255,255,255,.18);isolation:isolate;transition:opacity .7s var(--ease),transform .7s var(--ease),box-shadow .35s var(--ease),--tono .6s var(--ease);}
   .card.agotado{filter:saturate(.35);}
-  .card .marca-agua{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);font-size:clamp(120px,15vw,190px);font-weight:800;letter-spacing:-.06em;line-height:1;color:rgba(255,255,255,.07);white-space:nowrap;z-index:-1;pointer-events:none;}
+  .card .marca-agua{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);font-size:clamp(120px,15vw,190px);font-weight:800;letter-spacing:-.06em;line-height:1;color:color-mix(in oklab,var(--tono),#fff 13%);white-space:nowrap;z-index:-1;pointer-events:none;}
   .card .cab{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
   .card .specs{font-size:10px;line-height:1.55;color:rgba(255,255,255,.72);max-width:60%;}
   .disp{display:inline-flex;align-items:center;gap:6px;font-size:9.5px;font-weight:600;padding:5px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.18);white-space:nowrap;}
@@ -85,8 +88,7 @@
   .disp.no::before{background:#a1a1aa;box-shadow:none;}
   .dest{position:absolute;top:52px;right:18px;font-size:9.5px;font-weight:600;color:#fff;background:var(--rojo);padding:4px 9px;border-radius:999px;}
   .card .foto{flex:1;display:flex;align-items:center;justify-content:center;min-height:200px;margin:8px 0 6px;}
-  .card .foto img{max-width:88%;max-height:230px;object-fit:contain;filter:drop-shadow(0 18px 22px rgba(0,0,0,.45));transition:transform 400ms cubic-bezier(.2,.8,.2,1);}
-  @media(hover:hover){ .card:hover .foto img{transform:translateY(-4px) scale(1.03);} }
+  .card .foto img{max-width:88%;max-height:230px;object-fit:contain;filter:drop-shadow(0 30px 24px color-mix(in oklab,var(--tono),#000 62%));}
   .card .foto .noimg{width:74px;height:74px;color:rgba(255,255,255,.35);stroke-width:1.4;}
   .card .nom{font-size:25px;font-weight:800;letter-spacing:-.03em;line-height:1.08;}
   .card .pie{margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.22);display:flex;align-items:flex-end;justify-content:space-between;gap:10px;}
@@ -159,7 +161,70 @@
   .draw .df .go{width:100%;height:52px;border-radius:999px;border:0;background:#16a34a;color:#fff;font-size:15.5px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:9px;}
   .draw .df .go:hover{background:#15803d;}
 
-  @media (prefers-reduced-motion: reduce){ *{animation:none!important;transition:none!important;scroll-behavior:auto!important;} }
+
+  /* ===== Movimiento (mismo lenguaje que el catálogo de STUDIO) ===== */
+  .progreso{position:absolute;left:0;bottom:-1px;height:2px;width:100%;transform-origin:left;transform:scaleX(var(--leido,0));background:linear-gradient(90deg,#8f1216,var(--rojo2));box-shadow:0 0 10px rgba(255,59,65,.55);}
+  @keyframes portadaEntra{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+  .wrap .kicker,.wrap .h1,.wrap .sub,.tools{animation:portadaEntra .7s var(--ease) both;}
+  .wrap .h1{animation-delay:.06s} .wrap .sub{animation-delay:.12s} .tools{animation-delay:.2s}
+  /* Tarjetas: aparecen en cascada al verse; la foto llega deslizándose y se enfoca. */
+  .card .foto>*{transition:translate .8s var(--ease),scale .8s var(--resorte),opacity .5s var(--ease);}
+  .js .card{opacity:0;transform:translateY(22px);}
+  .js .card.si{opacity:1;transform:none;}
+  .js .card:not(.si) .foto>*{translate:18% 0;scale:.86;opacity:0;}
+  @media(hover:hover){ .js .card.si:hover{transform:translateY(-4px);box-shadow:0 40px 70px -34px rgba(0,0,0,.9),inset 0 1px 0 rgba(255,255,255,.22);} .card:hover .foto>*{scale:1.04;} }
+  /* Vitrina en celular: la tarjeta del frente se enfoca y la franja toma su color. */
+  @media(max-width:700px){
+    .sec{background:color-mix(in oklab,var(--g-tono) 26%,#08090b);transition:--g-tono .7s var(--ease);border-top:0;}
+    .js .card.si:not(.actual){opacity:.55;transform:scale(.94);}
+    .js .card.si:not(.actual) .foto>*{translate:18% 0;scale:.86;}
+  }
+  .dz{transition:opacity .4s;} .sec.movido .dz{opacity:0;}
+  .tab{transition:background .25s,color .25s;}
+  /* Botón y contador: respuesta al tocar y salto del número. */
+  @keyframes pop{from{transform:scale(.86)}to{transform:none}}
+  @keyframes salta{40%{transform:scale(1.22)}}
+  @keyframes recibe{30%{transform:scale(1.28) rotate(-8deg)}60%{transform:scale(.94) rotate(4deg)}}
+  @keyframes sube{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .slot .btn-add,.slot .stepper{animation:pop .35s var(--resorte);}
+  .salta{display:inline-block;animation:salta .35s var(--resorte);}
+  .miped.recibe{animation:recibe .5s var(--resorte);}
+  /* Al agregar: la foto vuela a la bolsa en curva y asoma un resumen del pedido. */
+  .vuelo{position:fixed;z-index:48;left:0;top:0;pointer-events:none;object-fit:contain;color:#fff;filter:drop-shadow(0 14px 14px rgba(0,0,0,.45));will-change:transform,opacity;}
+  .asoma{position:fixed;z-index:45;right:12px;top:calc(68px + env(safe-area-inset-top));width:min(300px,calc(100vw - 24px));padding:12px;border-radius:22px;background:rgba(18,20,25,.92);backdrop-filter:saturate(1.4) blur(18px);-webkit-backdrop-filter:saturate(1.4) blur(18px);border:1px solid var(--linea2);box-shadow:0 24px 50px -20px rgba(0,0,0,.8);color:var(--txt);text-align:left;opacity:0;visibility:hidden;transform:translateY(-8px) scale(.98);transition:opacity .3s var(--ease),transform .35s var(--resorte),visibility .3s;}
+  .asoma.si{opacity:1;visibility:visible;transform:none;}
+  .asoma-cab{display:flex;align-items:center;justify-content:space-between;gap:8px;font:600 10.5px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--txt2);padding:0 2px 8px;}
+  .asoma-cab b{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--rojo);color:#fff;font:700 11px/20px var(--mono);letter-spacing:0;text-align:center;}
+  .asoma-fila{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;padding:6px 2px;border-top:1px solid var(--linea);}
+  .asoma-fila .mini{width:44px;height:44px;border-radius:12px;background:radial-gradient(60% 60% at 50% 45%,color-mix(in oklab,var(--tono),#fff 18%),var(--tono));display:grid;place-items:center;overflow:hidden;color:rgba(255,255,255,.6);}
+  .asoma-fila .mini img{width:86%;height:86%;object-fit:contain;}
+  .asoma-fila h4{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .asoma-fila small{font:500 11.5px var(--mono);color:var(--txt2);}
+  .asoma-fila>b{font-size:13.5px;font-weight:800;}
+  .asoma-fila.nueva{animation:sube .45s var(--ease) both;}
+  .asoma-mas{font-size:12px;color:var(--txt2);padding:4px 2px 0;}
+  .asoma-pie{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;padding-top:10px;border-top:1px solid var(--linea2);}
+  .asoma-pie b{font-size:18px;font-weight:800;}
+  .asoma-pie span{display:inline-flex;align-items:center;height:36px;padding:0 16px;border-radius:999px;background:var(--rojo);color:#fff;font-size:13.5px;font-weight:700;}
+  /* Enviar: el botón se hunde, un brillo lo cruza y un carrito recoge el pedido; luego abre WhatsApp. */
+  @keyframes waBrillo{to{transform:translateX(120%)}}
+  @keyframes waHunde{25%{transform:scale(.93)}60%{transform:scale(1.04)}}
+  @keyframes waOnda{from{transform:scale(0);opacity:1}to{transform:scale(16);opacity:0}}
+  .wa{position:relative;overflow:hidden;isolation:isolate;}
+  .wa::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.5) 50%,transparent 70%);transform:translateX(-120%);}
+  .wa.envia{animation:waHunde .55s var(--resorte);}
+  .wa.envia::after{animation:waBrillo .7s var(--ease) .1s;}
+  .wa .onda{position:absolute;z-index:-1;width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:50%;background:rgba(255,255,255,.5);pointer-events:none;animation:waOnda .6s var(--ease) forwards;}
+  .wa .ok{display:inline-flex;align-items:center;gap:9px;animation:sube .4s var(--ease) both;}
+  .viaje{position:fixed;z-index:60;left:0;top:0;width:118px;height:92px;pointer-events:none;will-change:transform;}
+  .viaje svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;filter:drop-shadow(0 10px 14px rgba(0,0,0,.5));}
+  .viaje .rueda{transform-box:fill-box;transform-origin:center;}
+  .viaje .cosa{position:absolute;bottom:36px;width:38px;height:38px;border-radius:11px;background:radial-gradient(60% 60% at 50% 45%,color-mix(in oklab,var(--tono),#fff 18%),var(--tono));display:grid;place-items:center;overflow:hidden;color:rgba(255,255,255,.7);box-shadow:0 4px 10px rgba(0,0,0,.35),0 0 0 1.5px rgba(255,255,255,.18);}
+  .viaje .cosa img{width:88%;height:88%;object-fit:contain;}
+  .viaje .cosa .ic{width:20px;height:20px;}
+  .viaje .raya{position:absolute;right:100%;transform-origin:right;height:3px;border-radius:3px;background:linear-gradient(90deg,transparent,rgba(255,59,65,.9));opacity:0;}
+
+  @media (prefers-reduced-motion: reduce){ *{animation:none!important;transition:none!important;scroll-behavior:auto!important;} .js .card,.js .card .foto>*{opacity:1!important;transform:none!important;translate:none!important;scale:none!important;} }
   @media (prefers-reduced-transparency: reduce){ .top,.cartbar{background:var(--bg);backdrop-filter:none;-webkit-backdrop-filter:none;} }
 </style>
 </head>
@@ -171,7 +236,8 @@
       <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="20" r="1"/><circle cx="17" cy="20" r="1"/><path d="M3 4h2l2.5 11h10l2-8H6"/></svg>
       <span class="cnt" id="cnt" style="display:none;">0</span>
     </button>
-  </div></header>
+  </div><span class="progreso" aria-hidden="true"></span></header>
+  <button type="button" class="asoma" id="asoma" aria-hidden="true" onclick="esconderAsoma(); abrirCarrito()"></button>
 
   <main>
     <div class="wrap">
@@ -205,7 +271,7 @@
       <b id="ccTot">RD$ 0</b>
     </div>
     <span id="cc" hidden>0</span>
-    <button type="button" class="go1" id="goBar" onclick="pedirWhatsApp()"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.6a8.5 8.5 0 0 1-12.6 7.5L3.5 20.5l1.4-4.3A8.5 8.5 0 1 1 20.5 11.6z"/><path d="M9 9.5c.5 2 2 3.5 4 4l1.2-1.2 2 .8-.4 1.8c-3.6.2-7.4-3.6-7.2-7.2l1.8-.4.8 2z"/></svg> Enviar pedido</button>
+    <button type="button" class="go1 wa" id="goBar" onclick="pedirWhatsApp(this, event)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.6a8.5 8.5 0 0 1-12.6 7.5L3.5 20.5l1.4-4.3A8.5 8.5 0 1 1 20.5 11.6z"/><path d="M9 9.5c.5 2 2 3.5 4 4l1.2-1.2 2 .8-.4 1.8c-3.6.2-7.4-3.6-7.2-7.2l1.8-.4.8 2z"/></svg> Enviar pedido</button>
   </div></div>
 
   <div class="dbg" id="dbg" onclick="cerrarCarrito()"></div>
@@ -214,7 +280,7 @@
     <div class="db" id="cartBody"></div>
     <div class="df">
       <div class="tot"><span>Total (<span id="ccN">0</span> artículos)</span><b id="ccTot2">RD$ 0</b></div>
-      <button type="button" class="go" onclick="pedirWhatsApp()"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.6a8.5 8.5 0 0 1-12.6 7.5L3.5 20.5l1.4-4.3A8.5 8.5 0 1 1 20.5 11.6z"/><path d="M9 9.5c.5 2 2 3.5 4 4l1.2-1.2 2 .8-.4 1.8c-3.6.2-7.4-3.6-7.2-7.2l1.8-.4.8 2z"/></svg> Enviar pedido por WhatsApp</button>
+      <button type="button" class="go wa" onclick="pedirWhatsApp(this, event)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.6a8.5 8.5 0 0 1-12.6 7.5L3.5 20.5l1.4-4.3A8.5 8.5 0 1 1 20.5 11.6z"/><path d="M9 9.5c.5 2 2 3.5 4 4l1.2-1.2 2 .8-.4 1.8c-3.6.2-7.4-3.6-7.2-7.2l1.8-.4.8 2z"/></svg> Enviar pedido por WhatsApp</button>
     </div>
   </aside>
 
@@ -234,18 +300,20 @@
   const ORDEN_MARCAS = ['iPhone','Samsung','Xiaomi','Motorola','Tecno','Infinix','Realme','Oppo','Huawei','Otros'];
   // Color de la tarjeta según el color del equipo (centro, borde).
   const COLORES = [
-    [/azul|blue|sierra|pac[ií]fico|cielo/i, '#2f7fd8', '#0b2a55'],
-    [/rojo|red|product/i, '#c8232b', '#3d0a0e'],
-    [/verde|green|menta|alpine/i, '#2f8a5c', '#0c2a1c'],
-    [/morado|purple|lila|lavanda|violeta/i, '#7a5bd0', '#231545'],
-    [/rosa|pink|rosado/i, '#d0648f', '#40162a'],
-    [/amarillo|yellow/i, '#d6a622', '#3d2d06'],
-    [/dorado|oro|gold/i, '#b89146', '#33250c'],
-    [/titanio|natural|desert|desierto|crema|beige|cream/i, '#8a7f70', '#26221d'],
-    [/blanco|white|starlight|plata|silver|plateado/i, '#6b7280', '#1d2026'],
-    [/gris|gray|grey|grafito|graphite/i, '#4b5563', '#15181d'],
-    [/negro|black|medianoche|midnight|onyx|espacial/i, '#34363c', '#0c0d10'],
+    [/azul|blue|sierra|pac[ií]fico|cielo/i, '#1f5fb4'],
+    [/rojo|red|product/i, '#a51c22'],
+    [/verde|green|menta|alpine/i, '#1f6e49'],
+    [/morado|purple|lila|lavanda|violeta/i, '#5b3fae'],
+    [/rosa|pink|rosado/i, '#b0476f'],
+    [/amarillo|yellow/i, '#a8801a'],
+    [/dorado|oro|gold/i, '#8f6f33'],
+    [/titanio|natural|desert|desierto|crema|beige|cream/i, '#6e6457'],
+    [/blanco|white|starlight|plata|silver|plateado/i, '#5b6270'],
+    [/gris|gray|grey|grafito|graphite/i, '#3e4450'],
+    [/negro|black|medianoche|midnight|onyx|espacial/i, '#2a2d33'],
   ];
+  const QUIETO = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  document.documentElement.classList.add('js');
   let ITEMS = [], TIENDA = { nombre:'BAYOL CELL', telefono:'' }, MARCA = '';
   let CART = {}; try { CART = JSON.parse(localStorage.getItem('bayol_cat_cart')||'{}') || {}; } catch(e){ CART = {}; }
   const esc = s => (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -255,7 +323,7 @@
   const itemDe = cod => ITEMS.find(i=>String(i.codigo)===String(cod));
   const guardarCart = () => { try{ localStorage.setItem('bayol_cat_cart', JSON.stringify(CART)); }catch(e){} };
   const telVentas = () => { const t = soloNum(TIENDA.telefono); return t ? (t.length===10 ? '1'+t : t) : WA_VENTAS; };
-  const colorDe = i => { const t = (i.color||'')+' '+(i.nombre||''); for(const [re,c1,c2] of COLORES){ if(re.test(t)) return [c1,c2]; } return ['#34363c','#0c0d10']; };
+  const colorDe = i => { const t = (i.color||'')+' '+(i.nombre||''); for(const [re,c] of COLORES){ if(re.test(t)) return c; } return '#2a2d33'; };
   // Texto grande de fondo: el número o código corto del modelo (15, A15, 13C…).
   const marcaAgua = nom => { const s=(nom||'').replace(/iphone|samsung|galaxy|xiaomi|redmi|note|pro|max|plus|ultra|mini|lite|5g|4g/gi,' ').trim(); const m=s.match(/[A-Z]?\d{1,3}[A-Z]?/i); return m? m[0].toUpperCase() : ''; };
   const ICON_WA = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.6a8.5 8.5 0 0 1-12.6 7.5L3.5 20.5l1.4-4.3A8.5 8.5 0 1 1 20.5 11.6z"/><path d="M9 9.5c.5 2 2 3.5 4 4l1.2-1.2 2 .8-.4 1.8c-3.6.2-7.4-3.6-7.2-7.2l1.8-.4.8 2z"/></svg>';
@@ -295,13 +363,13 @@
   function pintarChips(gr){
     document.getElementById('chips').innerHTML = gr.map(([m,a])=>{
       const on = MARCA===m;
-      return `<button type="button" class="tab${on?' on':''}" aria-pressed="${on}" onclick="setMarca('${esc(m)}')">${esc(m)} <small>${a.length}</small></button>`;
+      return `<button type="button" class="tab${on?' on':''}" data-m="${esc(m)}" aria-pressed="${on}" onclick="setMarca('${esc(m)}')">${esc(m)} <small>${a.length}</small></button>`;
     }).join('');
   }
   function setMarca(m){
     MARCA = m;
-    document.querySelectorAll('#chips .tab').forEach(b=>{ const on=b.textContent.trim().startsWith(m); b.classList.toggle('on',on); b.setAttribute('aria-pressed',on); });
-    const s = document.getElementById(idSec(m)); if(s) s.scrollIntoView({behavior:'smooth',block:'start'});
+    marcarTab(m.toLowerCase());
+    const s = document.getElementById(idSec(m)); if(s) s.scrollIntoView({behavior:QUIETO?'auto':'smooth',block:'start'});
   }
   function accionHTML(i){
     const cod = esc(String(i.codigo)), qty = CART[i.codigo]? CART[i.codigo].qty : 0;
@@ -310,9 +378,9 @@
     return `<button type="button" class="btn-add" onclick="mas('${cod}')">Agregar</button>`;
   }
   function tarjetaHTML(i){
-    const [c1,c2] = colorDe(i), cod = esc(String(i.codigo));
+    const tono = colorDe(i), cod = esc(String(i.codigo));
     const specs = [i.capacidad, i.color].filter(Boolean).map(esc).join(' · ');
-    return `<article class="card${i.disponible?'':' agotado'}" data-cod="${cod}" style="--c1:${c1};--c2:${c2}">
+    return `<article class="card${i.disponible?'':' agotado'}" data-cod="${cod}" style="--tono:${tono}">
       <span class="marca-agua" aria-hidden="true">${esc(marcaAgua(i.nombre))}</span>
       <div class="cab"><span class="specs mono">${specs||'&nbsp;'}</span><span class="disp mono${i.disponible?'':' no'}">${i.disponible?'Disponible':'Agotado'}</span></div>
       ${i.destacado?'<span class="dest mono">Destacado</span>':''}
@@ -337,13 +405,49 @@
       </div>
       <div class="rail" onscroll="alDeslizar(this)">${a.map(tarjetaHTML).join('')}</div>
     </section>`).join('');
-    document.querySelectorAll('.rail').forEach(alDeslizar);
+    document.querySelectorAll('.rail').forEach(medirRail);
+    movimiento();
+  }
+  let _io = null, _ioTabs = null;
+  function movimiento(){
+    const cards = [...document.querySelectorAll('.card')];
+    if(_io) _io.disconnect(); if(_ioTabs) _ioTabs.disconnect();
+    if(QUIETO || !('IntersectionObserver' in window)){ cards.forEach(c=>c.classList.add('si')); }
+    else {
+      _io = new IntersectionObserver(es => es.forEach(e => {
+        if(!e.isIntersecting) return;
+        const rail = e.target.parentNode;
+        const pend = [...rail.children].filter(x=>!x.classList.contains('si'));
+        pend.forEach((x,k)=>{ x.style.transitionDelay = Math.min(k,3)*90+'ms'; x.classList.add('si'); _io.unobserve(x); setTimeout(()=>{ x.style.transitionDelay=''; }, 1200); });
+      }), { threshold:.12 });
+      cards.forEach(c=>_io.observe(c));
+    }
+    // La pestaña activa sigue a la marca que está en pantalla.
+    if('IntersectionObserver' in window){
+      _ioTabs = new IntersectionObserver(es => es.forEach(e => { if(e.isIntersecting) marcarTab(e.target.id.replace('marca-','')); }), { rootMargin:'-45% 0px -50% 0px' });
+      document.querySelectorAll('.sec').forEach(s=>_ioTabs.observe(s));
+    }
+  }
+  function marcarTab(clave){
+    const nav = document.getElementById('chips');
+    nav.querySelectorAll('.tab').forEach(b=>{
+      const on = b.dataset.m.toLowerCase()===clave; b.classList.toggle('on',on); b.setAttribute('aria-pressed',on);
+      if(on && nav.scrollWidth>nav.clientWidth) nav.scrollTo({left:b.offsetLeft-(nav.clientWidth-b.clientWidth)/2, behavior:QUIETO?'auto':'smooth'});
+    });
   }
   function mover(btn, dir){ const rail = btn.closest('.sec').querySelector('.rail'); rail.scrollBy({left: dir*rail.clientWidth*0.9, behavior:'smooth'}); }
   function alDeslizar(rail){
-    const sec = rail.closest('.sec'); const cards = rail.querySelectorAll('.card'); if(!cards.length) return;
-    const w = cards[0].getBoundingClientRect().width + 12;
-    const pos = Math.min(cards.length, Math.round(rail.scrollLeft / w) + 1);
+    if(rail._pend) return; rail._pend = true;
+    requestAnimationFrame(()=>{ rail._pend = false; medirRail(rail); });
+  }
+  function medirRail(rail){
+    const sec = rail.closest('.sec'); const cards = [...rail.querySelectorAll('.card')]; if(!cards.length) return;
+    const c = rail.scrollLeft + rail.clientWidth/2; let k = 0, d = Infinity;
+    cards.forEach((t,j)=>{ const dj = Math.abs(t.offsetLeft + t.clientWidth/2 - c); if(dj<d){ d=dj; k=j; } });
+    cards.forEach((t,j)=>t.classList.toggle('actual', j===k));
+    sec.style.setProperty('--g-tono', cards[k].style.getPropertyValue('--tono'));
+    if(k>0) sec.classList.add('movido');
+    const pos = k + 1;
     const p = sec.querySelector('.pos'); if(p) p.textContent = pos;
     const [izq, der] = sec.querySelectorAll('.flechas button');
     if(izq){ izq.disabled = rail.scrollLeft < 8; der.disabled = rail.scrollLeft + rail.clientWidth >= rail.scrollWidth - 8; }
@@ -351,15 +455,54 @@
   // Solo actualiza el botón de la tarjeta tocada: no se redibuja el carrusel ni se pierde la posición.
   function refrescarTarjeta(cod){
     const it = itemDe(cod); if(!it) return;
-    document.querySelectorAll(`.card[data-cod="${CSS.escape(String(cod))}"] .slot`).forEach(s=>{ s.innerHTML = accionHTML(it); });
+    document.querySelectorAll(`.card[data-cod="${CSS.escape(String(cod))}"] .slot`).forEach(s=>{ s.innerHTML = accionHTML(it); saltar(s.querySelector('.stepper b')); });
   }
+  function saltar(el){ if(!el || QUIETO) return; el.classList.remove('salta'); void el.offsetWidth; el.classList.add('salta'); }
+  const cardDe = cod => document.querySelector(`.card[data-cod="${CSS.escape(String(cod))}"]`);
+  // La foto (o el ícono) vuela en curva hasta la bolsa de la cabecera, que rebota al recibirla.
+  function volar(card){
+    const bolsa = document.getElementById('miped');
+    const src = card && card.querySelector('.foto > *');
+    if(QUIETO || !src || !src.animate) return;
+    const o = src.getBoundingClientRect(), dr = bolsa.getBoundingClientRect();
+    const w = Math.min(o.width, 150) || 60, h = w * ((o.height / o.width) || 1);
+    const x0 = o.left + o.width/2 - w/2, y0 = o.top + o.height/2 - h/2;
+    const x1 = dr.left + dr.width/2 - w/2, y1 = dr.top + dr.height/2 - h/2;
+    const cy = Math.min(y0, y1) - 110, pasos = 16, kf = [];
+    for(let i=0;i<=pasos;i++){ const t=i/pasos, u=1-t; const x = x0+(x1-x0)*t, y = u*u*y0 + 2*u*t*cy + t*t*y1;
+      kf.push({ transform:`translate(${x}px,${y}px) rotate(${-18*t}deg) scale(${1-.82*t})`, opacity: t>.9 ? 1-(t-.9)*8 : 1 }); }
+    const v = src.cloneNode(true); v.classList.add('vuelo'); v.removeAttribute('loading');
+    v.style.width = w+'px'; v.style.height = h+'px'; v.style.maxWidth = 'none'; v.style.maxHeight = 'none';
+    document.body.appendChild(v);
+    v.animate(kf, { duration:720, easing:'cubic-bezier(.45,0,.25,1)' }).finished.catch(()=>{}).then(()=>{
+      v.remove(); bolsa.classList.remove('recibe'); void bolsa.offsetWidth; bolsa.classList.add('recibe');
+    });
+  }
+  let _asomaT = 0;
+  function asomar(cod){
+    if(QUIETO) return;
+    const a = document.getElementById('asoma'), filas = cartLista().reverse(), {n,t} = cartTotales();
+    const miniDe = it => it.foto_url ? `<img src="${esc(it.foto_url)}" alt="">` : ICON_PHONE;
+    a.innerHTML = `<div class="asoma-cab">Tu pedido <b>${n}</b></div>` + filas.slice(0,3).map(x=>`<div class="asoma-fila${String(x.it.codigo)===String(cod)?' nueva':''}" style="--tono:${colorDe(x.it)}"><div class="mini">${miniDe(x.it)}</div><div><h4>${esc(x.it.nombre)}</h4><small>${x.qty} × ${money(x.it.precio)}</small></div><b>${money((Number(x.it.precio)||0)*x.qty)}</b></div>`).join('')
+      + (filas.length>3 ? `<p class="asoma-mas">+ ${filas.length-3} ${filas.length-3===1?'artículo más':'artículos más'}</p>` : '')
+      + `<div class="asoma-pie"><b>${money(t)}</b><span>Ver pedido</span></div>`;
+    a.setAttribute('aria-label', 'Ver pedido: '+n+' artículos, '+money(t));
+    a.classList.add('si'); a.setAttribute('aria-hidden','false');
+    clearTimeout(_asomaT); _asomaT = setTimeout(esconderAsoma, 2600);
+  }
+  function esconderAsoma(){ clearTimeout(_asomaT); const a = document.getElementById('asoma'); a.classList.remove('si'); a.setAttribute('aria-hidden','true'); }
+  addEventListener('scroll', ()=>{ if(document.getElementById('asoma').classList.contains('si')) esconderAsoma(); }, { passive:true });
+  // Barra roja de progreso en la cabecera.
+  (()=>{ const barra = document.querySelector('.progreso'); let pend = false;
+    const pintarBarra = () => { pend = false; const hh = document.documentElement.scrollHeight - innerHeight; barra.style.setProperty('--leido', hh>0 ? Math.min(1, scrollY/hh) : 0); };
+    addEventListener('scroll', ()=>{ if(!pend){ pend = true; requestAnimationFrame(pintarBarra); } }, { passive:true }); })();
   function consultar(cod){
     const it = itemDe(cod); if(!it) return;
     const det = [it.capacidad, it.color].filter(Boolean).join(' · ');
     const msg = 'Hola ' + (TIENDA.nombre||'BAYOL CELL') + ', me interesa el ' + it.nombre + (det?(' ('+det+')'):'') + (it.precio>0?(' de '+money(it.precio)):'') + '. ¿Está disponible?';
     window.open('https://wa.me/'+telVentas()+'?text='+encodeURIComponent(msg), '_blank', 'noopener');
   }
-  function mas(cod){ const it=itemDe(cod); if(!it||!it.disponible)return; if(!CART[cod])CART[cod]={qty:0}; CART[cod].qty++; guardarCart(); refrescarTarjeta(cod); pintarCart(); }
+  function mas(cod, desdeCarrito){ const it=itemDe(cod); if(!it||!it.disponible)return; if(!CART[cod])CART[cod]={qty:0}; CART[cod].qty++; guardarCart(); refrescarTarjeta(cod); pintarCart(); if(!desdeCarrito){ volar(cardDe(cod)); asomar(cod); } }
   function menos(cod){ if(!CART[cod])return; CART[cod].qty--; if(CART[cod].qty<=0)delete CART[cod]; guardarCart(); refrescarTarjeta(cod); pintarCart(); }
   function cartLista(){ return Object.keys(CART).map(cod=>({it:itemDe(cod), qty:CART[cod].qty})).filter(x=>x.it); }
   function cartTotales(){ let n=0,t=0; cartLista().forEach(x=>{ n+=x.qty; t+=(Number(x.it.precio)||0)*x.qty; }); return {n,t}; }
@@ -372,22 +515,84 @@
     document.getElementById('ccN').textContent = n;
     document.getElementById('goBar').disabled = n===0;
     const badge = document.getElementById('cnt'); badge.textContent = n; badge.style.display = n>0?'inline-flex':'none';
+    saltar(document.getElementById('ccTot')); saltar(badge);
     const l = cartLista();
     document.getElementById('cartBody').innerHTML = l.length? l.map(x=>{ const cod=esc(String(x.it.codigo)); return `<div class="crow">
       ${x.it.foto_url? `<img class="mini" src="${esc(x.it.foto_url)}" alt="">` : `<span class="mini">${ICON_PHONE}</span>`}
       <div class="cn"><div class="n">${esc(x.it.nombre)}</div><div class="p">${[x.it.capacidad,x.it.color].filter(Boolean).map(esc).join(' · ')}${(x.it.capacidad||x.it.color)?' · ':''}${money(x.it.precio)}</div></div>
-      <div class="st"><button type="button" aria-label="Quitar uno" onclick="menos('${cod}')">−</button><b>${x.qty}</b><button type="button" aria-label="Agregar uno" onclick="mas('${cod}')">+</button></div>
+      <div class="st"><button type="button" aria-label="Quitar uno" onclick="menos('${cod}')">−</button><b>${x.qty}</b><button type="button" aria-label="Agregar uno" onclick="mas('${cod}', true)">+</button></div>
     </div>`; }).join('') : '<p style="text-align:center;color:rgba(245,245,244,.55);padding:26px;">Tu pedido está vacío.</p>';
   }
   function abrirCarrito(){ if(cartTotales().n===0)return; document.getElementById('dbg').classList.add('show'); document.getElementById('draw').classList.add('show'); }
   function cerrarCarrito(){ document.getElementById('dbg').classList.remove('show'); document.getElementById('draw').classList.remove('show'); }
-  function pedirWhatsApp(){
+  let _enviando = false;
+  const ICON_OK = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  function llevarPedido(btn){
+    if(!document.body.animate) return;
+    const r = btn.getBoundingClientRect(), W = 118, H = 92;
+    const x0 = Math.min(innerWidth - W - 8, Math.max(8, r.left + r.width/2 - W/2)), y0 = r.top - H + 14;
+    const v = document.createElement('div'); v.className = 'viaje';
+    const cosas = cartLista().reverse().slice(0,3).map((x,i)=>`<span class="cosa" style="left:${20+i*24}px;--tono:${colorDe(x.it)};z-index:${3-i}">${x.it.foto_url?`<img src="${esc(x.it.foto_url)}" alt="">`:ICON_PHONE}</span>`).join('');
+    v.innerHTML = '<span class="raya" style="top:38px;width:46px"></span><span class="raya" style="top:52px;width:70px"></span><span class="raya" style="top:66px;width:38px"></span>' + cosas
+      + '<svg viewBox="0 0 118 92" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+      + '<path d="M4 22h14l6 8" stroke="#ff3b41" stroke-width="5"/>'
+      + '<path d="M20 30h92l-10 34H30Z" fill="rgba(227,30,36,.28)" stroke="#ff3b41" stroke-width="5"/>'
+      + '<path d="M44 34v26M64 34v26M84 34v26" stroke="#ff3b41" stroke-width="2.5" opacity=".55"/>'
+      + '<path d="M30 64l-4 10h78" stroke="#ff3b41" stroke-width="5"/>'
+      + '<g class="rueda"><circle cx="38" cy="83" r="7" fill="#0A0A0A" stroke="#ff3b41" stroke-width="4"/><path d="M38 78v10" stroke="#ff3b41" stroke-width="2"/></g>'
+      + '<g class="rueda"><circle cx="96" cy="83" r="7" fill="#0A0A0A" stroke="#ff3b41" stroke-width="4"/><path d="M96 78v10" stroke="#ff3b41" stroke-width="2"/></g></svg>';
+    document.body.appendChild(v);
+    const D = 2300, lejos = innerWidth - x0 + 40, at = (x, y, extra='') => `translate(${x}px,${y}px) ${extra}`;
+    const anim = v.animate([
+      { transform: at(-W-20, y0, 'rotate(0)'), easing:'cubic-bezier(.2,.7,.35,1)' },
+      { transform: at(x0+10, y0, 'rotate(5deg)'), offset:.24 },
+      { transform: at(x0-3, y0+1, 'rotate(-2deg)'), offset:.29 },
+      { transform: at(x0, y0, 'rotate(0)'), offset:.33 },
+      { transform: at(x0, y0), offset:.62 },
+      { transform: at(x0-14, y0+2, 'rotate(-5deg)'), offset:.69, easing:'cubic-bezier(.5,0,.9,.5)' },
+      { transform: at(x0+lejos, y0-6, 'rotate(2deg)') }
+    ], { duration:D, easing:'ease-in-out' });
+    v.querySelectorAll('.cosa').forEach((c,i)=>c.animate([
+      { transform:'translateY(-90px) rotate(-18deg) scale(.7)', opacity:0 },
+      { transform:'translateY(-90px) rotate(-18deg) scale(.7)', opacity:0, offset:.33+i*.05 },
+      { transform:'translateY(4px) rotate(4deg) scale(1)', opacity:1, offset:.47+i*.05 },
+      { transform:'translateY(0) rotate(0) scale(1)', opacity:1, offset:.55+i*.05 },
+      { transform:'translateY(0) rotate(0) scale(1)', opacity:1 }
+    ], { duration:D, easing:'cubic-bezier(.3,.6,.4,1)', fill:'both' }));
+    v.querySelectorAll('.rueda').forEach(g=>g.animate([
+      { transform:'rotate(0)', easing:'cubic-bezier(.2,.7,.35,1)' }, { transform:'rotate(720deg)', offset:.26 },
+      { transform:'rotate(720deg)', offset:.69, easing:'cubic-bezier(.6,0,.9,.6)' }, { transform:'rotate(1620deg)' }
+    ], { duration:D }));
+    v.querySelectorAll('.raya').forEach((l,i)=>l.animate([
+      { opacity:1, transform:'scaleX(1.3)' }, { opacity:0, transform:'scaleX(.3)', offset:.22+i*.02 },
+      { opacity:0, transform:'scaleX(.2)', offset:.72+i*.03 }, { opacity:1, transform:'scaleX(1)', offset:.86 },
+      { opacity:0, transform:'scaleX(1.4)' }
+    ], { duration:D }));
+    anim.finished.catch(()=>{}).then(()=>v.remove());
+  }
+  function restaurarWa(){ document.querySelectorAll('.wa').forEach(w=>{ if(w.dataset.html) w.innerHTML = w.dataset.html; w.classList.remove('envia'); }); _enviando = false; }
+  addEventListener('pageshow', e => { if(e.persisted) restaurarWa(); });
+  function pedirWhatsApp(btn, ev){
     const l = cartLista(); if(!l.length)return;
+    if(_enviando) return;
     const {t} = cartTotales();
     let msg = 'Hola ' + (TIENDA.nombre||'BAYOL CELL') + ', quiero pedir:\n\n';
     l.forEach(x=>{ msg += '• ' + x.it.nombre + (x.it.capacidad?(' ('+x.it.capacidad+(x.it.color?(' · '+x.it.color):'')+')'):'') + ' x' + x.qty + ' — ' + money((Number(x.it.precio)||0)*x.qty) + '\n'; });
     msg += '\nTotal: ' + money(t);
-    window.open('https://wa.me/'+telVentas()+'?text='+encodeURIComponent(msg), '_blank', 'noopener');
+    const url = 'https://wa.me/'+telVentas()+'?text='+encodeURIComponent(msg);
+    const abrir = () => { if(matchMedia('(pointer:coarse)').matches) location.href = url; else { const w = open(url, '_blank'); if(w) w.opener = null; else location.href = url; } };
+    if(QUIETO || !btn){ abrir(); return; }
+    // Primero se ve la animación (el carrito recoge el pedido y se va) y al terminar se abre WhatsApp.
+    _enviando = true;
+    const r = btn.getBoundingClientRect(), onda = document.createElement('span');
+    onda.className = 'onda'; onda.style.left = ((ev && ev.clientX) ? ev.clientX - r.left : r.width/2) + 'px'; onda.style.top = ((ev && ev.clientY) ? ev.clientY - r.top : r.height/2) + 'px';
+    btn.classList.remove('envia'); void btn.offsetWidth; btn.classList.add('envia');
+    llevarPedido(btn);
+    if(!btn.dataset.html) btn.dataset.html = btn.innerHTML;
+    btn.innerHTML = '<span class="ok">' + ICON_OK + 'Preparando tu pedido…</span>';
+    btn.appendChild(onda); setTimeout(()=>onda.remove(), 700);
+    setTimeout(()=>{ btn.innerHTML = '<span class="ok">' + ICON_OK + 'Abriendo WhatsApp…</span>'; }, 1500);
+    setTimeout(()=>{ abrir(); setTimeout(restaurarWa, 2500); }, 2150);
   }
   document.addEventListener('keydown', e => { if(e.key==='Escape') cerrarCarrito(); });
 
