@@ -89,6 +89,7 @@
   .dest{position:absolute;top:52px;right:18px;font-size:9.5px;font-weight:600;color:#fff;background:var(--rojo);padding:4px 9px;border-radius:999px;}
   .card .foto{flex:1;display:flex;align-items:center;justify-content:center;min-height:200px;margin:8px 0 6px;}
   .card .foto img{max-width:88%;max-height:230px;object-fit:contain;filter:drop-shadow(0 30px 24px color-mix(in oklab,var(--tono),#000 62%));}
+  .card .ref-foto{font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.5);text-align:center;margin:-4px 0 8px;}
   .card .foto .noimg{width:74px;height:74px;color:rgba(255,255,255,.35);stroke-width:1.4;}
   .card .nom{font-size:25px;font-weight:800;letter-spacing:-.03em;line-height:1.08;}
   .card .pie{margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.22);display:flex;align-items:flex-end;justify-content:space-between;gap:10px;}
@@ -385,6 +386,7 @@
       <div class="cab"><span class="specs mono">${specs||'&nbsp;'}</span><span class="disp mono${i.disponible?'':' no'}">${i.disponible?'Disponible':'Agotado'}</span></div>
       ${i.destacado?'<span class="dest mono">Destacado</span>':''}
       <div class="foto">${i.foto_url? `<img src="${esc(i.foto_url)}" alt="${esc(i.nombre)}" loading="lazy" decoding="async">` : ICON_PHONE}</div>
+      ${i.foto_url?'<div class="ref-foto mono">Imagen de referencia · color según disponibilidad</div>':''}
       <div class="nom">${esc(i.nombre)}</div>
       <div class="pie">
         <div><div class="lbl mono">Precio</div><div class="precio">${i.precio>0? money(i.precio) : '<small>Consultar</small>'}</div></div>
@@ -499,7 +501,7 @@
   function consultar(cod){
     const it = itemDe(cod); if(!it) return;
     const det = [it.capacidad, it.color].filter(Boolean).join(' · ');
-    const msg = 'Hola ' + (TIENDA.nombre||'BAYOL CELL') + ', me interesa el ' + it.nombre + (det?(' ('+det+')'):'') + (it.precio>0?(' de '+money(it.precio)):'') + '. ¿Está disponible?';
+    const msg = 'Hola ' + (TIENDA.nombre||'BAYOL CELL') + ', me interesa el ' + it.nombre + (det?(' ('+det+')'):'') + (it.precio>0?(' de '+money(it.precio)):'') + '. ¿Está disponible? ¿En qué colores lo tienen?';
     window.open('https://wa.me/'+telVentas()+'?text='+encodeURIComponent(msg), '_blank', 'noopener');
   }
   function mas(cod, desdeCarrito){ const it=itemDe(cod); if(!it||!it.disponible)return; if(!CART[cod])CART[cod]={qty:0}; CART[cod].qty++; guardarCart(); refrescarTarjeta(cod); pintarCart(); if(!desdeCarrito){ volar(cardDe(cod)); asomar(cod); } }
@@ -578,7 +580,7 @@
     const {t} = cartTotales();
     let msg = 'Hola ' + (TIENDA.nombre||'BAYOL CELL') + ', quiero pedir:\n\n';
     l.forEach(x=>{ msg += '• ' + x.it.nombre + (x.it.capacidad?(' ('+x.it.capacidad+(x.it.color?(' · '+x.it.color):'')+')'):'') + ' x' + x.qty + ' — ' + money((Number(x.it.precio)||0)*x.qty) + '\n'; });
-    msg += '\nTotal: ' + money(t);
+    msg += '\nTotal: ' + money(t) + '\n\n¿En qué colores los tienen disponibles?';
     const url = 'https://wa.me/'+telVentas()+'?text='+encodeURIComponent(msg);
     const abrir = () => { if(matchMedia('(pointer:coarse)').matches) location.href = url; else { const w = open(url, '_blank'); if(w) w.opener = null; else location.href = url; } };
     if(QUIETO || !btn){ abrir(); return; }
