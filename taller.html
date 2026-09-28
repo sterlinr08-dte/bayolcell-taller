@@ -11,7 +11,9 @@
 <meta name="theme-color" content="#14213D">
 <title>SISTEMA TALLER BAYOL CELL</title>
 <meta name="robots" content="noindex, nofollow">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<script>/* Velocidad (28-sep-2026): las librerías de imprimir/gráficas cargan en diferido; quien las use espera esta promesa. */
+window.__bayolLibs = new Promise(function (r) { if (document.readyState !== 'loading') r(); else document.addEventListener('DOMContentLoaded', function () { r(); }); });</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Libre+Barcode+39&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -1700,12 +1702,12 @@ body{
 }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.8.6/jsrsasign-all-min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.8.6/jsrsasign-all-min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <link rel="stylesheet" href="crm-glass-mobile.css?v=20260916-perf1">
 </head>
 <body>
@@ -1713,7 +1715,7 @@ body{
 <!-- INDICADOR DE CARGA -->
 <div id="appLoader" aria-hidden="true">
   <div class="ldr-ring"></div>
-  <img class="ldr-logo" src="assets/logo.png" alt="Cargando">
+  <img class="ldr-logo" src="assets/logo-carga.webp" width="360" height="360" alt="Cargando" fetchpriority="high">
 </div>
 <script>
   (function(){
@@ -23457,6 +23459,7 @@ function calcularMetricasTecnico(tecnicoId) {
 }
 
 function renderReporteTecnico() {
+    if(typeof Chart === 'undefined' && window.__bayolLibs) { window.__bayolLibs.then(renderReporteTecnico); return; }   // Chart.js en diferido
     const tecnicoId = document.getElementById('rep_tecnico')?.value;
     const cont = document.getElementById('reporteContenido');
     if(!cont) return;
@@ -29702,6 +29705,7 @@ async function qzImprimirPrueba() {
 
 // Auto-conectar QZ al iniciar sesión (silencioso)
 async function qzAutoConectar() {
+    if(!qzDisponible() && window.__bayolLibs) await window.__bayolLibs;   // qz-tray carga en diferido
     if(!qzDisponible()) return;
     try {
         qzConfigurarFirma();
@@ -32062,6 +32066,7 @@ function _finBucketDias(f) {
     return max;
 }
 function _pintarDashboardFin() {
+    if(typeof Chart === 'undefined' && window.__bayolLibs) { window.__bayolLibs.then(_pintarDashboardFin); return; }   // Chart.js en diferido
     const kpisEl = document.getElementById('finKpis');
     const cont = document.getElementById('finContenido');
     if(!cont) return;
