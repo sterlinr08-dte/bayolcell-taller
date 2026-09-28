@@ -3836,6 +3836,7 @@ body{
                 <div class="card" style="margin-bottom:15px; border-left:4px solid #0891b2;">
                     <h2 style="margin:0 0 4px 0; font-size:18px;"><i class="ti ti-truck-delivery" style="color:#0891b2;"></i> Despacho de Almacén <button onclick="ayudaModulo('despachos')" title="Ayuda: ¿qué es esto?" style="background:none; border:none; cursor:pointer; color:#475569; font-size:16px; vertical-align:middle; padding:0 3px;"><i class="ti ti-info-circle"></i></button></h2>
                     <p style="color:var(--text-muted); font-size:13px; margin:0;">Traspasa mercancía de una localidad a otra en Info Plus como un <b>documento único de despacho</b> (Nº DA...). Agrega varios artículos, hazlo de un solo golpe e imprime el conduce.</p>
+                    <button class="btn btn-light" onclick="abrirAjusteRapido()" style="margin-top:10px;"><i class="ti ti-adjustments-alt"></i> Ajuste rápido (entrada / salida)</button>
                 </div>
                 <div class="card" style="margin-bottom:15px;">
                     <h3 style="margin:0 0 12px 0; font-size:15px;"><i class="ti ti-arrows-exchange"></i> Nuevo despacho</h3>
@@ -20118,6 +20119,86 @@ function _despachoLlenarSelects() {
     const opts = ALMACENES_IP.map(a => `<option value="${a.c}">${a.n}</option>`).join('');
     o.innerHTML = opts; d.innerHTML = opts;
     o.value = '1'; d.value = '6';
+}
+// ===================== AJUSTE RÁPIDO (entrada / salida de inventario en Info Plus) =====================
+// Para corregir mercancía mal registrada: sacar de un código y entrar a otro, en una localidad, en un solo paso.
+// Cada línea es un ajuste de Info Plus (codminventario 1 = entrada, 2 = salida). Solo administrador.
+let _ajr = { alm: '4', nota: '', items: [] };
+function abrirAjusteRapido() {
+    if(!isAdminUser()) { toast('🔒 Solo un administrador puede ajustar inventario.', 'error'); return; }
+    _ajr = { alm: '4', nota: '', items: [] };
+    _ensureInfoplusArticulos();
+    const prev = document.getElementById('modalAjusteRapido'); if(prev) prev.remove();
+    const box = document.createElement('div');
+    box.className = 'modal-backdrop active'; box.id = 'modalAjusteRapido'; box.style.zIndex = '790';
+    box.innerHTML = `<div class="modal-box" style="max-width:640px;">
+        <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-adjustments-alt"></i> Ajuste rápido de inventario</h3><button class="modal-close" onclick="document.getElementById('modalAjusteRapido').remove()">✕</button></div>
+        <div class="modal-body" style="display:grid;gap:12px;">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;">
+            <div style="flex:1;min-width:180px;"><label style="font-size:12px;font-weight:700;color:#475569;display:block;margin-bottom:4px;">Localidad</label>
+              <select id="ajrAlm" onchange="_ajr.alm=this.value;_ajrRender()" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:8px;font-weight:600;">${ALMACENES_IP.map(a => `<option value="${a.c}"${String(a.c)===_ajr.alm?' selected':''}>${a.n}</option>`).join('')}</select></div>
+            <button class="btn btn-light" onclick="_ajrAgregar('salida')"><i class="ti ti-minus"></i> Agregar salida</button>
+            <button class="btn btn-light" onclick="_ajrAgregar('entrada')"><i class="ti ti-plus"></i> Agregar entrada</button>
+          </div>
+          <div id="ajrLista"></div>
+          <div><label style="font-size:12px;font-weight:700;color:#475569;display:block;margin-bottom:4px;">Motivo (sale en el ajuste de Info Plus)</label>
+            <input id="ajrNota" oninput="_ajr.nota=this.value" placeholder="Ej: corrección de código, pantalla mal registrada" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:8px;"></div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-light" onclick="document.getElementById('modalAjusteRapido').remove()">Cancelar</button><button class="btn btn-blue" id="ajrBtn" onclick="_ajrEjecutar()"><i class="ti ti-check"></i> Hacer ajuste</button></div></div>`;
+    document.body.appendChild(box);
+    _ajrRender();
+}
+function _ajrAgregar(tipo) {
+    abrirBuscadorArticulos(null, (a) => {
+        if(!a) return;
+        if(/^\s*CELULAR/i.test(a.descripcion || '')) { toast('Los celulares llevan IMEI: úsalos con Despacho o Compra, no con ajuste.', 'error'); return; }
+        _ajr.items.push({ codigo: String(a.codigo), descripcion: a.descripcion || String(a.codigo), costo: Number(a.costo) || 0, tipo, cantidad: 1, estado: '' });
+        _ajrRender();
+        _refrescarExistenciaLive(a.codigo).then(_ajrRender);
+    });
+}
+function _ajrExist(cod) { const a = _findInfoplusArt(cod) || {}; return Number((a.existencias || {})[_ajr.alm] || 0); }
+function _ajrRender() {
+    const cont = document.getElementById('ajrLista'); if(!cont) return;
+    if(!_ajr.items.length) { cont.innerHTML = '<div style="padding:16px;text-align:center;color:#475569;font-size:13px;border:1px dashed #cbd5e1;border-radius:10px;">Agrega la salida y/o la entrada.</div>'; return; }
+    cont.innerHTML = _ajr.items.map((it, i) => {
+        const ex = _ajrExist(it.codigo), sal = it.tipo === 'salida';
+        const despues = sal ? ex - it.cantidad : ex + it.cantidad;
+        const est = it.estado === 'ok' ? '<span style="color:#15803d;font-weight:700;">✓ Hecho</span>' : it.estado ? `<span style="color:#b91c1c;font-weight:700;">${escapeHtml(it.estado)}</span>` : '';
+        return `<div style="display:flex;gap:10px;align-items:center;padding:10px;border:1px solid ${sal?'#fecaca':'#bbf7d0'};background:${sal?'#fef2f2':'#f0fdf4'};border-radius:10px;margin-bottom:8px;">
+          <span style="font-weight:800;font-size:12px;color:${sal?'#b91c1c':'#15803d'};min-width:62px;">${sal?'SALIDA':'ENTRADA'}</span>
+          <div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:13px;">${escapeHtml(it.codigo)} · ${escapeHtml(it.descripcion)}</div>
+            <div style="font-size:12px;color:#475569;">${it.estado === 'ok' ? `Ahora en esta localidad: <b>${ex}</b>` : `En esta localidad: <b>${ex}</b> → queda <b style="color:${despues<0?'#b91c1c':'#0f172a'}">${despues}</b>`} ${est}</div></div>
+          <input type="number" min="1" value="${it.cantidad}" onchange="_ajr.items[${i}].cantidad=Math.max(1,parseInt(this.value,10)||1);_ajrRender()" style="width:64px;padding:7px;border:1px solid #cbd5e1;border-radius:8px;text-align:center;">
+          <button class="btn btn-light" title="Quitar" onclick="_ajr.items.splice(${i},1);_ajrRender()"><i class="ti ti-trash"></i></button></div>`;
+    }).join('');
+}
+async function _ajrEjecutar() {
+    const items = _ajr.items.filter(it => it.estado !== 'ok');
+    if(!items.length) return toast('Agrega al menos un artículo.', 'error');
+    const neg = items.find(it => it.tipo === 'salida' && _ajrExist(it.codigo) - it.cantidad < 0);
+    if(neg) return toast(`No hay suficiente del ${neg.codigo} en esta localidad para sacar ${neg.cantidad}.`, 'error');
+    const alm = _ajr.alm, almN = (ALMACENES_IP.find(a => String(a.c) === String(alm)) || {}).n || ('Almacén ' + alm);
+    let msg = `¿Hacer este ajuste en Info Plus (${almN})?\n\n` + items.map(it => `• ${it.tipo === 'salida' ? 'SALIDA' : 'ENTRADA'} ${it.cantidad} — ${it.codigo} ${it.descripcion}`).join('\n') + '\n\nEsto modifica el inventario real.';
+    if(!await confirmar(msg)) return;
+    const btn = document.getElementById('ajrBtn'); if(btn) btn.disabled = true;
+    const com = (_ajr.nota || '').trim() || 'Ajuste rápido';
+    let ok = 0, err = 0;
+    for(const it of items) {   // primero las salidas, luego las entradas
+        if(it.tipo !== 'salida') continue;
+        const r = await _infoplusAjustePieza(it.codigo, it.cantidad, it.costo, false, com, alm);
+        it.estado = r.ok ? 'ok' : (r.error || 'Error'); r.ok ? ok++ : err++;
+    }
+    for(const it of items) {
+        if(it.tipo !== 'entrada') continue;
+        const r = await _infoplusAjustePieza(it.codigo, it.cantidad, it.costo, true, com, alm);
+        it.estado = r.ok ? 'ok' : (r.error || 'Error'); r.ok ? ok++ : err++;
+    }
+    await Promise.all(items.map(it => _refrescarExistenciaLive(it.codigo)));
+    _ajrRender();
+    if(btn) btn.disabled = false;
+    if(err) toast(`Ajuste: ${ok} hecho(s), ${err} con error. Revisa las líneas en rojo.`, 'error');
+    else toast(`✅ Ajuste hecho en Info Plus (${ok}).`);
 }
 // ===================== CUENTAS POR PAGAR (deudas a proveedores por compras a crédito) =====================
 let _cxpData = { deudas: [], abonos: {} };
