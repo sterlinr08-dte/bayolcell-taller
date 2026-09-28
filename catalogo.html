@@ -93,6 +93,14 @@
   .card .ref-foto{font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.5);text-align:center;margin:-4px 0 8px;}
   .card .foto .noimg{width:74px;height:74px;color:rgba(255,255,255,.35);stroke-width:1.4;}
   .card .nom{font-size:25px;font-weight:800;letter-spacing:-.03em;line-height:1.08;}
+  .card .opts{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+  .card .opt{height:30px;padding:0 11px;border-radius:999px;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.06);color:#fff;font:600 12px/1 var(--mono);letter-spacing:.02em;cursor:pointer;transition:background .2s var(--ease),color .2s var(--ease),border-color .2s var(--ease),transform .2s var(--resorte);}
+  .card .opt:hover{border-color:rgba(255,255,255,.6);}
+  .card .opt:active{transform:scale(.94);}
+  .card .opt.on{background:#fff;color:#0b0b0b;border-color:#fff;}
+  .card .opt.no{opacity:.55;text-decoration:line-through;}
+  .card .opt:focus-visible{outline:2px solid #fff;outline-offset:2px;}
+  .card .precio.cambia{animation:pop .45s var(--resorte);}
   .card .pie{margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.22);display:flex;align-items:flex-end;justify-content:space-between;gap:10px;}
   .card .lbl{font-size:9.5px;color:rgba(255,255,255,.7);}
   .card .precio{font-size:23px;font-weight:800;letter-spacing:-.02em;margin-top:3px;white-space:nowrap;}
@@ -317,6 +325,7 @@
   const QUIETO = matchMedia('(prefers-reduced-motion: reduce)').matches;
   document.documentElement.classList.add('js');
   let ITEMS = [], TIENDA = { nombre:'BAYOL CELL', telefono:'' }, MARCA = '';
+  const SEL = {};   // modelo -> código de la capacidad elegida
   let CART = {}; try { CART = JSON.parse(localStorage.getItem('bayol_cat_cart')||'{}') || {}; } catch(e){ CART = {}; }
   const esc = s => (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const money = n => 'RD$' + (Number(n)||0).toLocaleString('es-DO',{minimumFractionDigits:0,maximumFractionDigits:0});
@@ -354,10 +363,27 @@
   }
   function listaFiltrada(){
     const q = (document.getElementById('q').value||'').toLowerCase().trim();
-    return q ? ITEMS.filter(i=>((i.nombre||'')+' '+(i.capacidad||'')+' '+(i.color||'')).toLowerCase().includes(q)) : ITEMS.slice();
+    if(!q) return ITEMS.slice();
+    const ok = new Set(ITEMS.filter(i=>((i.nombre||'')+' '+(i.capacidad||'')+' '+(i.color||'')).toLowerCase().includes(q)).map(claveModelo));
+    return ITEMS.filter(i=>ok.has(claveModelo(i)));
   }
+  // Todas las capacidades de un mismo modelo van en UNA tarjeta, con botones para elegir los GB.
+  const claveModelo = i => (i.nombre||'').toLowerCase().replace(/\s+/g,' ').trim();
+  const gbDe = t => { const ns = [...String(t||'').toUpperCase().matchAll(/(\d+)\s*(GB|TB)/g)].map(m=>Number(m[1])*(m[2]==='TB'?1024:1)); return ns.length? Math.max(...ns) : 0; };
+  const etiquetaOpcion = i => { const g = gbDe(i.capacidad); const base = g ? (g>=1024? (g/1024)+'TB' : g+'GB') : (i.capacidad||'Única'); return i.color ? base+' · '+i.color : base; };
+  function modelos(list){
+    const m = new Map();
+    list.forEach(i=>{ const k = claveModelo(i); if(!m.has(k)) m.set(k,{k, nombre:i.nombre, ops:[]}); m.get(k).ops.push(i); });
+    return [...m.values()].map(md=>{
+      md.ops.sort((a,b)=> gbDe(a.capacidad)-gbDe(b.capacidad) || (a.color?1:0)-(b.color?1:0) || (a.precio||0)-(b.precio||0));
+      md.destacado = md.ops.some(o=>o.destacado);
+      if(!md.ops.some(o=>String(o.codigo)===String(SEL[md.k]))) SEL[md.k] = String((md.ops.find(o=>o.disponible)||md.ops[0]).codigo);
+      return md;
+    });
+  }
+  const opcionDe = md => md.ops.find(o=>String(o.codigo)===String(SEL[md.k])) || md.ops[0];
   function grupos(list){
-    const g = {}; list.forEach(i=>{ const m=marcaDe(i.nombre); (g[m]=g[m]||[]).push(i); });
+    const g = {}; modelos(list).forEach(md=>{ const m=marcaDe(md.nombre); (g[m]=g[m]||[]).push(md); });
     Object.values(g).forEach(a=>a.sort((x,y)=>(y.destacado?1:0)-(x.destacado?1:0)));
     return ORDEN_MARCAS.filter(m=>g[m]).map(m=>[m,g[m]]);
   }
@@ -379,19 +405,25 @@
     if(qty>0) return `<div class="stepper"><button type="button" aria-label="Quitar uno" onclick="menos('${cod}')">−</button><b>${qty}</b><button type="button" aria-label="Agregar uno" onclick="mas('${cod}')">+</button></div>`;
     return `<button type="button" class="btn-add" onclick="mas('${cod}')">Agregar</button>`;
   }
-  function tarjetaHTML(i){
-    const tono = colorDe(i), cod = esc(String(i.codigo));
-    const specs = [i.capacidad, i.color].filter(Boolean).map(esc).join(' · ');
-    return `<article class="card${i.disponible?'':' agotado'}" data-cod="${cod}" style="--tono:${tono}">
+  const specsDe = i => [i.capacidad, i.color].filter(Boolean).map(esc).join(' · ') || '&nbsp;';
+  function opcionesHTML(md){
+    if(md.ops.length < 2) return '';
+    return `<div class="opts" role="group" aria-label="Capacidad">${md.ops.map(o=>{ const on = String(o.codigo)===String(SEL[md.k]);
+      return `<button type="button" class="opt${on?' on':''}${o.disponible?'':' no'}" aria-pressed="${on}" data-op="${esc(String(o.codigo))}" onclick="elegirOpcion(this)">${esc(etiquetaOpcion(o))}</button>`; }).join('')}</div>`;
+  }
+  function tarjetaHTML(md){
+    const i = opcionDe(md), tono = colorDe(i), cod = esc(String(i.codigo));
+    return `<article class="card${i.disponible?'':' agotado'}" data-cod="${cod}" data-mod="${esc(md.k)}" style="--tono:${tono}">
       <span class="marca-agua" aria-hidden="true">${esc(marcaAgua(i.nombre))}</span>
-      <div class="cab"><span class="specs mono">${specs||'&nbsp;'}</span><span class="disp mono${i.disponible?'':' no'}">${i.disponible?'Disponible':'Agotado'}</span></div>
-      ${i.destacado?'<span class="dest mono">Destacado</span>':''}
+      <div class="cab"><span class="specs mono">${specsDe(i)}</span><span class="disp mono${i.disponible?'':' no'}">${i.disponible?'Disponible':'Agotado'}</span></div>
+      ${md.destacado?'<span class="dest mono">Destacado</span>':''}
       <div class="foto">${i.foto_url? `<img src="${esc(i.foto_url)}" alt="${esc(i.nombre)}" ${(_imgN++ < 3)?'fetchpriority="high"':'loading="lazy"'} decoding="async">` : ICON_PHONE}</div>
       ${i.foto_url?'<div class="ref-foto mono">Imagen de referencia · color según disponibilidad</div>':''}
       <div class="nom">${esc(i.nombre)}</div>
+      ${opcionesHTML(md)}
       <div class="pie">
         <div><div class="lbl mono">Precio</div><div class="precio">${i.precio>0? money(i.precio) : '<small>Consultar</small>'}</div></div>
-        <div class="acc"><button type="button" class="btn-wa" aria-label="Preguntar por WhatsApp por ${esc(i.nombre)}" onclick="consultar('${cod}')">${ICON_WA}</button><span class="slot">${accionHTML(i)}</span></div>
+        <div class="acc"><button type="button" class="btn-wa" aria-label="Preguntar por WhatsApp por ${esc(i.nombre)}" onclick="consultar(this.closest('.card').dataset.cod)">${ICON_WA}</button><span class="slot">${accionHTML(i)}</span></div>
       </div>
     </article>`;
   }
@@ -405,7 +437,7 @@
     document.getElementById('estado').style.display='none';
     g.innerHTML = gr.map(([m,a])=>`<section class="sec" id="${idSec(m)}" aria-label="${esc(m)}">
       <div class="shd"><h2>${esc(m)}</h2>
-        <span class="cuenta mono"><span class="solopc">${a.length} ${a.length===1?'artículo':'artículos'}</span><span class="solomovil"><b class="pos">1</b> / ${a.length} <span class="dz">desliza</span></span></span>
+        <span class="cuenta mono"><span class="solopc">${a.length} ${a.length===1?'modelo':'modelos'}</span><span class="solomovil"><b class="pos">1</b> / ${a.length} <span class="dz">desliza</span></span></span>
         <div class="flechas solopc"><button type="button" aria-label="Anteriores" onclick="mover(this,-1)">${ICON_IZQ}</button><button type="button" aria-label="Siguientes" onclick="mover(this,1)">${ICON_DER}</button></div>
       </div>
       <div class="rail" onscroll="alDeslizar(this)">${a.map(tarjetaHTML).join('')}</div>
@@ -456,6 +488,17 @@
     const p = sec.querySelector('.pos'); if(p) p.textContent = pos;
     const [izq, der] = sec.querySelectorAll('.flechas button');
     if(izq){ izq.disabled = rail.scrollLeft < 8; der.disabled = rail.scrollLeft + rail.clientWidth >= rail.scrollWidth - 8; }
+  }
+  function elegirOpcion(btn){
+    const card = btn.closest('.card'), k = card.dataset.mod, cod = btn.dataset.op, it = itemDe(cod); if(!it) return;
+    SEL[k] = cod; card.dataset.cod = cod;
+    card.querySelectorAll('.opt').forEach(b=>{ const on = b===btn; b.classList.toggle('on',on); b.setAttribute('aria-pressed',on); });
+    card.classList.toggle('agotado', !it.disponible);
+    card.querySelector('.specs').innerHTML = specsDe(it);
+    const d = card.querySelector('.disp'); d.textContent = it.disponible?'Disponible':'Agotado'; d.classList.toggle('no', !it.disponible);
+    const pr = card.querySelector('.precio'); pr.innerHTML = it.precio>0? money(it.precio) : '<small>Consultar</small>';
+    if(!QUIETO){ pr.classList.remove('cambia'); void pr.offsetWidth; pr.classList.add('cambia'); }
+    card.querySelector('.slot').innerHTML = accionHTML(it);
   }
   // Solo actualiza el botón de la tarjeta tocada: no se redibuja el carrusel ni se pierde la posición.
   function refrescarTarjeta(cod){
