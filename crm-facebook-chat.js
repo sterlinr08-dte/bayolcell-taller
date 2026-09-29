@@ -97,7 +97,8 @@
     $('#bcFbForwardSearch').oninput=e=>paintForwardList(e.target.value);
     $('#bcFbActions').onclick=async e=>{const a=e.target.dataset.chatAction;if(!a||busy)return;$('#bcFbActions').hidden=true;const id=selected;
       try{if(a==='refresh'){await callbacks.reload();return;}await action(a);if(selected===id)notice('Acción confirmada.');await callbacks.refreshList();}catch(err){notice(err.message);}};
-    $('#bcFbEmoji').onclick=()=>{$('#bcFbEmojiPanel').hidden=!$('#bcFbEmojiPanel').hidden;};
+    // Mismo selector de emojis completo que WhatsApp/Instagram (crm-chat-unificado.js); el panel de 6 queda de respaldo.
+    $('#bcFbEmoji').onclick=()=>{if(window.BayolChatUnificado&&window.BayolChatUnificado.emojis){window.BayolChatUnificado.emojis($('#bcFbEmoji'),$('#bcFbText'));return;}$('#bcFbEmojiPanel').hidden=!$('#bcFbEmojiPanel').hidden;};
     $('#bcFbEmojiPanel').onclick=e=>{const emoji=e.target.dataset.emoji;if(!emoji)return;const t=$('#bcFbText');t.setRangeText(emoji,t.selectionStart,t.selectionEnd,'end');drafts.set(selected,t.value);t.focus();};
     $('#bcFbAttach').onclick=()=>{if(!busy)$('#bcFbFile').click();};
     $('#bcFbLocation').onclick=function(){if(typeof window._crmMostrarMenuUbicacion==='function')window._crmMostrarMenuUbicacion('facebook',this);};

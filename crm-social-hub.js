@@ -8,7 +8,7 @@
   'use strict';
   if (window.BayolSocialHub) return;
 
-  const VERSION = '20260929-f2';
+  const VERSION = '20260929-f3';
   const state = {
     channel: 'whatsapp',
     mounted: false,
@@ -433,7 +433,11 @@
   function mediaMarkup(m,url){
     if(m.media_path && !url) return `<span id="bcIgMedia-${esc(m.id)}">Cargando adjunto…</span>`;
     const type=String(m.tipo_contenido||'text').toLowerCase();
-    if(url && ['imagen','image'].includes(type)) return `<a href="${esc(url)}" target="_blank" rel="noopener"><img class="bc-ig-media-img" src="${esc(url)}" alt="Imagen de Instagram"></a>`;
+    if(url && ['imagen','image','sticker'].includes(type)) return `<a href="${esc(url)}" target="_blank" rel="noopener"><img class="bc-ig-media-img" src="${esc(url)}" alt="Imagen de Instagram"></a>`;
+    // Audio y video se reproducen dentro del chat, como WhatsApp (antes salía solo "Abrir audio").
+    const esHtml=/\.html?($|\?)/i.test(String(m.media_path||''));
+    if(url && type==='audio' && !esHtml) return `<audio controls preload="metadata" src="${esc(url)}" style="width:250px;max-width:100%;display:block;height:36px;"></audio>`;
+    if(url && type==='video' && !esHtml) return `<video controls preload="metadata" src="${esc(url)}" style="max-width:280px;width:100%;aspect-ratio:4/3;background:#000;display:block;"></video>`;
     if(url) return `<a class="bc-ig-media-link" href="${esc(url)}" target="_blank" rel="noopener"><i class="ti ti-paperclip"></i>Abrir ${esc(type||'archivo')}</a>`;
     if(type!=='text' && !m.cuerpo) return `<span class="bc-ig-media-link"><i class="ti ti-paperclip"></i>${esc(type)}</span>`;
     return '';
@@ -458,6 +462,7 @@
     const top=same?oldScroll?.scrollTop:0;
     const bottom=!same || !oldScroll || oldScroll.scrollHeight-oldScroll.clientHeight-oldScroll.scrollTop<80;
     chat.dataset.hilo=h.id;
+    if(!same) state.igAdjunto=null;
     const nm=h.nombre_perfil || h.participant_username || 'Cliente de Instagram';
     const user=h.participant_username ? `@${h.participant_username}` : 'Instagram Direct';
     // Menú de mensaje (15 sept 2026): Copiar/Reenviar, igual que ya tiene
@@ -472,10 +477,15 @@
     // de un admin. _igRefrescarAsignacion (abajo) repinta este chat + la
     // lista una vez que la asignación quedó guardada.
     const asignarHtml=typeof window._crmAsignarHTML==='function' ? window._crmAsignarHTML('instagram_hilos', h, '_igRefrescarAsignacion') : '';
-    chat.innerHTML=`<div class="bc-ig-chat-head"><button class="bc-ig-back" id="bcIgBack" type="button" aria-label="Volver"><i class="ti ti-chevron-left"></i></button><span class="bc-ig-avatar">${esc(initials(nm))}</span><div class="bc-ig-chat-title"><b>${esc(nm)}</b><span>${esc(user)}</span></div><span class="bc-ig-chat-badge">Instagram Direct</span></div>${asignarHtml ? `<div style="padding:6px 14px; background:#faf5ff; border-bottom:1px solid #f3e8ff;">${asignarHtml}</div>` : ''}<div id="bcIgMessageActions" class="bc-ig-pop" hidden></div><div id="bcIgForwardBox" class="bc-ig-pop bc-ig-forward-box" hidden><div style="padding:2px 4px 6px;font-size:11px;font-weight:700;color:#4a3560;">Reenviar a…</div><input id="bcIgForwardSearch" type="search" placeholder="Buscar conversación…" style="width:100%;box-sizing:border-box;border:1px solid #ead7f3;border-radius:8px;padding:6px 8px;font-size:12.5px;margin-bottom:6px;"><div id="bcIgForwardList" style="max-height:220px;overflow:auto;"></div><button type="button" id="bcIgForwardClose" style="width:100%;margin-top:4px;">Cerrar</button></div><div class="bc-ig-messages" id="bcIgMessages" style="position:relative;">${rows || '<div class="bc-ig-empty"><div><b>Sin mensajes</b><span>Este hilo todavía no tiene mensajes guardados.</span></div></div>'}</div><button type="button" class="bc-social-jump" id="bcIgJump" aria-label="Ir al último mensaje"><i class="ti ti-arrow-down"></i><span>Últimos mensajes</span></button><form class="bc-ig-composer" id="bcIgComposer"><button type="button" class="bc-ig-location" id="bcIgLocation" aria-label="Enviar ubicación" title="Enviar ubicación de la tienda" style="background:none;border:none;cursor:pointer;padding:6px;color:#64748b;font-size:18px;flex:none;"><i class="ti ti-map-pin"></i></button><textarea id="bcIgText" rows="1" placeholder="Escribe un mensaje…" ${h.zernio_conversation_id?'':'disabled'}></textarea><button class="bc-ig-send" id="bcIgSend" type="submit" ${h.zernio_conversation_id?'':'disabled'} aria-label="Enviar"><i class="ti ti-arrow-up"></i></button></form>`;
+    chat.innerHTML=`<div class="bc-ig-chat-head"><button class="bc-ig-back" id="bcIgBack" type="button" aria-label="Volver"><i class="ti ti-chevron-left"></i></button><span class="bc-ig-avatar">${esc(initials(nm))}</span><div class="bc-ig-chat-title"><b>${esc(nm)}</b><span>${esc(user)}</span></div><span class="bc-ig-chat-badge">Instagram Direct</span></div>${asignarHtml ? `<div style="padding:6px 14px; background:#faf5ff; border-bottom:1px solid #f3e8ff;">${asignarHtml}</div>` : ''}<div id="bcIgMessageActions" class="bc-ig-pop" hidden></div><div id="bcIgForwardBox" class="bc-ig-pop bc-ig-forward-box" hidden><div style="padding:2px 4px 6px;font-size:11px;font-weight:700;color:#4a3560;">Reenviar a…</div><input id="bcIgForwardSearch" type="search" placeholder="Buscar conversación…" style="width:100%;box-sizing:border-box;border:1px solid #ead7f3;border-radius:8px;padding:6px 8px;font-size:12.5px;margin-bottom:6px;"><div id="bcIgForwardList" style="max-height:220px;overflow:auto;"></div><button type="button" id="bcIgForwardClose" style="width:100%;margin-top:4px;">Cerrar</button></div><div class="bc-ig-messages" id="bcIgMessages" style="position:relative;">${rows || '<div class="bc-ig-empty"><div><b>Sin mensajes</b><span>Este hilo todavía no tiene mensajes guardados.</span></div></div>'}</div><button type="button" class="bc-social-jump" id="bcIgJump" aria-label="Ir al último mensaje"><i class="ti ti-arrow-down"></i><span>Últimos mensajes</span></button><div id="bcIgAdjunto" class="bc-ig-adjunto" hidden></div><form class="bc-ig-composer" id="bcIgComposer"><button type="button" class="bc-ig-location" id="bcIgEmoji" aria-label="Emojis" title="Emojis"><i class="ti ti-mood-smile"></i></button><button type="button" class="bc-ig-location" id="bcIgAttach" aria-label="Adjuntar" title="Adjuntar foto, video, audio o PDF"><i class="ti ti-paperclip"></i></button><input type="file" id="bcIgFile" accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,audio/*,application/pdf" hidden><button type="button" class="bc-ig-location" id="bcIgLocation" aria-label="Enviar ubicación" title="Enviar ubicación de la tienda" style="background:none;border:none;cursor:pointer;padding:6px;color:#64748b;font-size:18px;flex:none;"><i class="ti ti-map-pin"></i></button><textarea id="bcIgText" rows="1" placeholder="${h.zernio_conversation_id?'Escribe un mensaje…':'Esta conversación aún no se puede responder desde aquí'}" title="${h.zernio_conversation_id?'':'Instagram todavía no envió el identificador de esta conversación. Respóndela desde la app de Instagram.'}" ${h.zernio_conversation_id?'':'disabled'}></textarea><button class="bc-ig-send" id="bcIgSend" type="submit" ${h.zernio_conversation_id?'':'disabled'} aria-label="Enviar"><i class="ti ti-arrow-up"></i></button></form>`;
     window.__bcIgSelectedId=h.id;
     $('#bcIgBack')?.addEventListener('click',()=>{state.selected=null;window.__bcIgSelectedId=null;const v=$('#v-crmLinea');if(v)v.classList.remove('bc-ig-chat-open');const ch=$('#bcIgChat');if(ch){ch.removeAttribute('style');ch.innerHTML='<div class="bc-ig-empty"><div><b>Selecciona una conversación</b></div></div>';}renderThreads();});
     $('#bcIgComposer')?.addEventListener('submit',sendInstagram);
+    // Emojis (mismo selector que WhatsApp) y adjuntos (foto/video/audio/PDF) — 29 sep 2026.
+    $('#bcIgEmoji')?.addEventListener('click',function(){ if(window.BayolChatUnificado) window.BayolChatUnificado.emojis(this,$('#bcIgText')); });
+    $('#bcIgAttach')?.addEventListener('click',()=>{ if(h.zernio_conversation_id) $('#bcIgFile')?.click(); });
+    $('#bcIgFile')?.addEventListener('change',e=>{ const f=e.target.files&&e.target.files[0]; e.target.value=''; if(f) igElegirAdjunto(f); });
+    igPintarAdjunto();
     $('#bcIgLocation')?.addEventListener('click',function(){if(typeof window._crmMostrarMenuUbicacion==='function')window._crmMostrarMenuUbicacion('instagram-hub',this);});
     chat.querySelectorAll('[data-igmenu]').forEach(btn=>btn.addEventListener('click',(e)=>{e.stopPropagation();igMessageMenu(btn.dataset.igmenu);}));
     $('#bcIgForwardClose')?.addEventListener('click',()=>{$('#bcIgForwardBox').hidden=true;});
@@ -495,16 +505,48 @@
     scheduleInstagramViewportFit();
   }
 
+  // Adjuntos de Instagram: se suben a instagram-media/out/ (permitido a usuarios del sistema), se genera un enlace
+  // temporal de 1 hora y instagram-enviar se lo pasa a Instagram. Límites de Meta: foto 8 MB, video/audio/PDF 25 MB.
+  function igTipoArchivo(f){ const t=String(f.type||''); if(t.startsWith('image/')) return 'imagen'; if(t.startsWith('video/')) return 'video'; if(t.startsWith('audio/')) return 'audio'; return 'documento'; }
+  function igElegirAdjunto(f){
+    const tipo=igTipoArchivo(f), max=(tipo==='imagen'?8:25)*1024*1024;
+    if(f.size>max){ notify(`El archivo pesa demasiado (máximo ${tipo==='imagen'?8:25} MB).`,'error'); return; }
+    state.igAdjunto={file:f,tipo}; igPintarAdjunto();
+  }
+  function igPintarAdjunto(){
+    const box=$('#bcIgAdjunto'); if(!box) return;
+    const a=state.igAdjunto;
+    if(!a){ box.hidden=true; box.innerHTML=''; return; }
+    const icono={imagen:'ti-photo',video:'ti-video',audio:'ti-microphone',documento:'ti-file'}[a.tipo]||'ti-file';
+    const prev=a.tipo==='imagen'?`<img alt="" src="${URL.createObjectURL(a.file)}">`:`<i class="ti ${icono}" style="font-size:22px;color:#54656f;"></i>`;
+    box.innerHTML=`${prev}<span>${esc(a.file.name)} · se envía con el texto que escribas (opcional)</span><button type="button" aria-label="Quitar adjunto" title="Quitar adjunto">✕</button>`;
+    box.hidden=false;
+    box.querySelector('button')?.addEventListener('click',()=>{state.igAdjunto=null;igPintarAdjunto();});
+  }
+  async function igSubirAdjunto(a){
+    const ext=(String(a.file.name).split('.').pop()||'bin').toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,5)||'bin';
+    const path=`out/${(crypto.randomUUID&&crypto.randomUUID())||Date.now()}.${ext}`;
+    const up=await sb().storage.from('instagram-media').upload(path,a.file,{contentType:a.file.type||'application/octet-stream',upsert:false});
+    if(up.error) throw new Error('No se pudo subir el archivo: '+up.error.message);
+    const {data,error}=await sb().storage.from('instagram-media').createSignedUrl(path,3600);
+    if(error||!data?.signedUrl) throw new Error('No se pudo preparar el archivo para Instagram.');
+    return {url:data.signedUrl,tipo:a.tipo,nombre:a.file.name,path};
+  }
   async function sendInstagram(e){
     e?.preventDefault?.();
     if(state.busySend || !state.selected) return;
-    const ta=$('#bcIgText'), btn=$('#bcIgSend'); const text=String(ta?.value||'').trim(); if(!text) return;
+    const ta=$('#bcIgText'), btn=$('#bcIgSend'); const text=String(ta?.value||'').trim();
+    const adj=state.igAdjunto;
+    if(!text && !adj) return;
     state.busySend=true;
     if(btn){btn.disabled=true;btn.innerHTML='<span class="bc-social-spin"></span>';}
     try{
-      const {data,error}=await sb().functions.invoke('instagram-enviar',{body:{hilo_id:state.selected.id,mensaje:text}});
+      const body={hilo_id:state.selected.id,mensaje:text};
+      if(adj) body.adjunto=await igSubirAdjunto(adj);
+      const {data,error}=await sb().functions.invoke('instagram-enviar',{body});
       if(error) throw error;
       if(data?.ok===false) throw new Error(data.mensaje||data.error||'Instagram rechazó el envío.');
+      state.igAdjunto=null; igPintarAdjunto();
       if(ta){ta.value='';ta.style.height='auto';}
       if(btn){btn.classList.add('bc-sent-ok');setTimeout(()=>btn.classList.remove('bc-sent-ok'),350);}
       await loadInstagram(false,{refreshSelected:true}); notify('Mensaje de Instagram enviado.');

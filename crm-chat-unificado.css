@@ -288,3 +288,24 @@ body #v-crmLinea .bc-fb-composer textarea::placeholder { white-space: nowrap; ov
   body #v-crmLinea .wa-input-bar textarea, body #v-crmLinea .bc-ig-composer textarea, body #v-crmLinea .bc-fb-composer textarea { flex: 1 1 auto !important; min-width: 0 !important; padding: 10px 12px !important; }
   body #v-crmLinea .wa-chat-head, body #v-crmLinea .bc-ig-chat-head, body #v-crmLinea .bc-fb-head { gap: 8px !important; padding: 8px 10px !important; }
 }
+
+/* Selector de emojis (el mismo en los 3 canales) */
+.bc-emoji-picker {
+  position: fixed; z-index: 100001; box-sizing: border-box;
+  display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px;
+  max-height: 260px; overflow-y: auto; padding: 8px;
+  background: #fff; border: 1px solid #e9edef; border-radius: 14px;
+  box-shadow: 0 12px 32px -12px rgba(11, 20, 26, .35);
+}
+.bc-emoji-picker button {
+  border: 0; background: transparent; font-size: 22px; line-height: 1; padding: 6px 0; border-radius: 8px; cursor: pointer;
+}
+.bc-emoji-picker button:hover, .bc-emoji-picker button:focus-visible { background: #f0f2f5; outline: none; }
+/* Adjunto elegido en Instagram (vista previa sobre la barra de escribir) */
+body #v-crmLinea .bc-ig-adjunto {
+  display: flex; align-items: center; gap: 8px; padding: 6px 12px;
+  background: var(--bcu-barra); border-top: 1px solid var(--bcu-linea); font-size: 12.5px; color: var(--bcu-tinta);
+}
+body #v-crmLinea .bc-ig-adjunto img { width: 40px; height: 40px; object-fit: cover; border-radius: 6px; }
+body #v-crmLinea .bc-ig-adjunto span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body #v-crmLinea .bc-ig-adjunto button { border: 0; background: transparent; color: #54656f; font-size: 18px; cursor: pointer; }

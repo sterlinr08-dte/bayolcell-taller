@@ -7,7 +7,7 @@
   'use strict';
   if(window.__bcChatUnificado) return;
   window.__bcChatUnificado = true;
-  var VERSION = '20260929-f2';
+  var VERSION = '20260929-f3';
 
   // 1) Hoja de estilos al final del <head> para que gane a las capas anteriores.
   function cargarCss(){
@@ -107,5 +107,127 @@
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', observar, { once: true });
   else observar();
 
-  window.BayolChatUnificado = { version: VERSION, refrescar: procesarTodo };
+  // 4) Selector de emojis COMPLETO (el mismo de WhatsApp) para Instagram y Facebook.
+  var EMOJIS_RESPALDO = ['😀','😁','😂','🤣','😊','😍','😘','😉','😎','🤩','🙂','🤔','😮','😢','😭','😡','🥳','🙏','👍','👎','👏','🙌','👋','🤝','💪','👌','❤️','💙','💚','🔥','✨','✅','❌','⭐','🎉','📱','💻','🔋','🔧','🛠️','📦','🚚','💵','💳','📍','📞','⏰','🙋','🤷'];
+  function listaEmojis(){ try { if(typeof _WA_EMOJIS !== 'undefined' && _WA_EMOJIS && _WA_EMOJIS.length) return _WA_EMOJIS; } catch(e) {} return EMOJIS_RESPALDO; }
+  function cerrarEmojis(){ var p = document.getElementById('bcEmojiPicker'); if(p) p.remove(); document.removeEventListener('mousedown', fueraEmojis, true); }
+  function fueraEmojis(ev){ var p = document.getElementById('bcEmojiPicker'); if(p && !p.contains(ev.target) && !(ev.target.closest && ev.target.closest('[data-bc-emoji-btn]'))) cerrarEmojis(); }
+  function abrirEmojis(boton, textarea){
+    if(document.getElementById('bcEmojiPicker')){ cerrarEmojis(); return; }
+    if(!boton || !textarea) return;
+    boton.setAttribute('data-bc-emoji-btn', '1');
+    var p = document.createElement('div');
+    p.id = 'bcEmojiPicker'; p.className = 'bc-emoji-picker'; p.setAttribute('role', 'dialog'); p.setAttribute('aria-label', 'Emojis');
+    p.innerHTML = listaEmojis().map(function(e){ return '<button type="button" data-e="' + e + '" aria-label="' + e + '">' + e + '</button>'; }).join('');
+    p.addEventListener('mousedown', function(ev){ ev.preventDefault(); }); // no quita el foco de la caja de escribir
+    p.addEventListener('click', function(ev){
+      var e = ev.target.closest && ev.target.closest('[data-e]'); if(!e) return;
+      var t = textarea, ini = t.selectionStart != null ? t.selectionStart : t.value.length, fin = t.selectionEnd != null ? t.selectionEnd : ini;
+      t.setRangeText(e.getAttribute('data-e'), ini, fin, 'end');
+      t.dispatchEvent(new Event('input', { bubbles: true }));
+      t.focus();
+    });
+    document.body.appendChild(p);
+    var r = boton.getBoundingClientRect(), w = Math.min(320, window.innerWidth - 16), h = p.offsetHeight || 260;
+    p.style.width = w + 'px';
+    p.style.left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8)) + 'px';
+    p.style.top = Math.max(8, r.top - h - 8) + 'px';
+    setTimeout(function(){ document.addEventListener('mousedown', fueraEmojis, true); }, 0);
+  }
+  document.addEventListener('keydown', function(ev){ if(ev.key === 'Escape') cerrarEmojis(); });
+
+  // 5) WhatsApp: "Copiar" en el menú de cada mensaje (Instagram y Facebook ya lo tenían).
+  function copiarTexto(txt){
+    if(navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(txt);
+    var ta = document.createElement('textarea'); ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); } finally { ta.remove(); }
+    return Promise.resolve();
+  }
+  window._bcWaCopiarMensaje = function(){
+    var id = null, lista = [];
+    try { id = _waMenuAccionesMsgId; lista = _waMensajes || []; } catch(e) {}
+    var m = lista.find(function(x){ return x.id === id; });
+    try { _waCerrarMenuAcciones(); } catch(e) {}
+    if(!m || !m.cuerpo){ try { toast('Este mensaje no tiene texto para copiar.'); } catch(e) {} return; }
+    copiarTexto(m.cuerpo).then(function(){ try { toast('Texto copiado.'); } catch(e) {} });
+  };
+  function envolverMenuWa(){
+    if(typeof window._waAsegurarMenuAcciones !== 'function') return false;
+    if(window._waAsegurarMenuAcciones.__bcCopiar) return true;
+    var orig = window._waAsegurarMenuAcciones;
+    var nuevo = function(){
+      var menu = orig.apply(this, arguments);
+      if(menu && !menu.querySelector('#waMenuCopiar')){
+        var b = document.createElement('button');
+        b.id = 'waMenuCopiar'; b.innerHTML = '<i class="ti ti-copy"></i> Copiar';
+        b.setAttribute('onclick', '_bcWaCopiarMensaje()');
+        menu.appendChild(b);
+      }
+      return menu;
+    };
+    nuevo.__bcCopiar = true;
+    window._waAsegurarMenuAcciones = nuevo;
+    return true;
+  }
+  if(!envolverMenuWa()){ var n2 = 0, t2 = setInterval(function(){ if(envolverMenuWa() || ++n2 > 60) clearInterval(t2); }, 250); }
+
+  // 6) Sonido al recibir un mensaje nuevo (WhatsApp, Instagram y Facebook). Respeta la opción de sonidos del sistema.
+  var vistos = new Set(), ultimoSonido = 0, arranque = Date.now();
+  function tonoEntrante(){
+    var ahora = Date.now(); if(ahora - ultimoSonido < 2500) return; ultimoSonido = ahora;
+    try {
+      if(typeof _audioHabilitado === 'undefined' || !_audioHabilitado || !_audioCtx || !_notifConfig || !_notifConfig.activadas) return;
+      var ctx = _audioCtx;
+      [{ f: 587, t: 0 }, { f: 880, t: .09 }].forEach(function(n){
+        var o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = 'sine'; o.frequency.value = n.f;
+        g.gain.setValueAtTime(.0001, ctx.currentTime + n.t);
+        g.gain.exponentialRampToValueAtTime(.12, ctx.currentTime + n.t + .02);
+        g.gain.exponentialRampToValueAtTime(.0001, ctx.currentTime + n.t + .22);
+        o.connect(g); g.connect(ctx.destination); o.start(ctx.currentTime + n.t); o.stop(ctx.currentTime + n.t + .24);
+      });
+    } catch(e) {}
+  }
+  var FILAS_ENTRANTES = [
+    { sel: '#waMessagesScroll .wa-brow.in[data-msgid]', id: 'data-msgid' },
+    { sel: '#bcIgMessages .bc-ig-msg-row.in[data-igmsgid]', id: 'data-igmsgid' },
+    { sel: '#bcFbMessages .bc-fb-row.in[data-message]', id: 'data-message' }
+  ];
+  function revisarEntrantes(){
+    var sonar = false, ahora = Date.now();
+    FILAS_ENTRANTES.forEach(function(c){
+      document.querySelectorAll(c.sel).forEach(function(f){
+        var id = f.getAttribute(c.id); if(!id || vistos.has(id)) return;
+        vistos.add(id);
+        var ts = Date.parse(f.getAttribute('data-ts') || '');
+        // Solo mensajes que llegaron hace poco y después de abrir el sistema (no al cargar historial ni mensajes viejos).
+        if(!isNaN(ts) && ahora - ts < 90000 && ts > arranque - 5000) sonar = true;
+      });
+    });
+    if(sonar) tonoEntrante();
+  }
+  var procesarBase = procesarTodo;
+  procesarTodo = function(){ procesarBase(); try { revisarEntrantes(); } catch(e) {} };
+
+  // 7) WhatsApp: el botón de fotos también acepta VIDEO (whatsapp-enviar ya lo soporta; límite 16 MB).
+  function habilitarVideoWa(){
+    var inp = document.getElementById('waFileFoto');
+    if(inp && !/video/.test(inp.accept || '')) inp.accept = 'image/*,video/mp4,video/3gpp,video/quicktime';
+    if(typeof window._waAdjuntoSeleccionado === 'function' && !window._waAdjuntoSeleccionado.__bcVideo){
+      var orig = window._waAdjuntoSeleccionado;
+      var nuevo = function(input, tipo){
+        var f = input && input.files && input.files[0];
+        if(tipo === 'imagen' && f && /^video\//.test(f.type || '')) tipo = 'video';
+        return orig.call(this, input, tipo);
+      };
+      nuevo.__bcVideo = true;
+      window._waAdjuntoSeleccionado = nuevo;
+    }
+    var b = document.querySelector('button[onclick="_waAdjuntarAccion(\'foto\')"]');
+    if(b && !b.__bcVideo){ b.__bcVideo = true; b.innerHTML = '<i class="ti ti-photo" style="color:#7c3aed;"></i> Foto o video'; }
+  }
+  habilitarVideoWa();
+  document.addEventListener('click', function(){ setTimeout(habilitarVideoWa, 0); }, true);
+
+  window.BayolChatUnificado = { version: VERSION, refrescar: procesarTodo, emojis: abrirEmojis, cerrarEmojis: cerrarEmojis, copiar: copiarTexto };
 })();

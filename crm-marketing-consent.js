@@ -4,8 +4,8 @@
   if(window.__bcCrmExtensionsLoader)return;
   window.__bcCrmExtensionsLoader=true;
 
-  var V='20260929-f2';
-  var SOCIAL_HUB='20260929-f2';
+  var V='20260929-f3';
+  var SOCIAL_HUB='20260929-f3';
   var PERF='20260929-f1';
   var FB_DIRECT='20260920-incr1';
   var GLASS='20260916-glass2';
@@ -155,7 +155,7 @@
 
     // Fase 2 CRM: mismo diseño en WhatsApp/Instagram/Facebook + separadores de fecha.
     var unificado=document.createElement('script');
-    unificado.src='crm-chat-unificado.js?v=20260929-f2';
+    unificado.src='crm-chat-unificado.js?v=20260929-f3';
     unificado.onerror=function(){console.warn('[CRM] No se pudo cargar el diseño unificado del chat.');};
     document.head.appendChild(unificado);
 
