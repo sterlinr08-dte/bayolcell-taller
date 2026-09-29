@@ -8,7 +8,7 @@
   'use strict';
   if (window.BayolSocialHub) return;
 
-  const VERSION = '20260929-f1';
+  const VERSION = '20260929-f2';
   const state = {
     channel: 'whatsapp',
     mounted: false,
@@ -27,6 +27,8 @@
   const $ = (s, r=document) => r.querySelector(s);
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const initials = (v) => String(v || 'IG').trim().split(/\s+/).slice(0,2).map(x => x[0]?.toUpperCase() || '').join('') || 'IG';
+  // Lista: mismo formato relativo que WhatsApp ("ahora", "21 h", "2 d").
+  const listaHora = (v) => typeof window._waHoraRelativa==='function' ? window._waHoraRelativa(v) : fmtTime(v);
   const fmtTime = (v) => {
     if (!v) return '';
     try {
@@ -364,7 +366,7 @@
     host.innerHTML = items.map(h => {
       const nm = h.nombre_perfil || h.participant_username || 'Cliente de Instagram';
       const unread = Number(h.no_leidos_count||0);
-      return `<button class="bc-ig-thread ${state.selected?.id===h.id?'on':''}" data-id="${esc(h.id)}" type="button"><span class="bc-ig-avatar">${esc(initials(nm))}</span><span class="bc-ig-thread-main"><span class="bc-ig-thread-top"><span class="bc-ig-thread-name">${esc(nm)}</span><span class="bc-ig-thread-time">${esc(fmtTime(h.ultimo_mensaje_at))}</span></span><span class="bc-ig-thread-preview">${esc(h.ultimo_mensaje_preview || 'Sin vista previa')}</span></span>${unread ? `<span class="bc-ig-unread">${unread>99?'99+':unread}</span>` : ''}</button>`;
+      return `<button class="bc-ig-thread ${state.selected?.id===h.id?'on':''}" data-id="${esc(h.id)}" type="button"><span class="bc-ig-avatar">${esc(initials(nm))}</span><span class="bc-ig-thread-main"><span class="bc-ig-thread-top"><span class="bc-ig-thread-name">${esc(nm)}</span><span class="bc-ig-thread-time">${esc(listaHora(h.ultimo_mensaje_at))}</span></span><span class="bc-ig-thread-preview">${esc(h.ultimo_mensaje_preview || 'Sin vista previa')}</span></span>${unread ? `<span class="bc-ig-unread">${unread>99?'99+':unread}</span>` : ''}</button>`;
     }).join('');
     host.querySelectorAll('.bc-ig-thread').forEach(b => b.addEventListener('click',()=>openThread(b.dataset.id)));
   }
@@ -437,6 +439,15 @@
     return '';
   }
 
+  // Mismo formato que WhatsApp: hora sola (la fecha va en el separador "Hoy/Ayer"), palomitas ✓/✓✓ y enlaces tocables.
+  // data-ts lo usa crm-chat-unificado.js para poner los separadores de fecha.
+  function igHora(d){ try{ return new Date(d).toLocaleTimeString('es-DO',{hour:'2-digit',minute:'2-digit'}); }catch(_e){ return ''; } }
+  function igTick(estado){ return typeof window._waIconoEstado==='function' ? window._waIconoEstado(estado||'enviado') : '· '+esc(estado||'enviado'); }
+  function igTexto(c){ const t=esc(c).replace(/\n/g,'<br>'); return typeof window.linkifyText==='function' ? window.linkifyText(t) : t; }
+  function igFilaHTML(m,url){
+    return `<div class="bc-ig-msg-row ${m.direccion==='out'?'out':'in'}" data-igmsgid="${esc(m.id)}" data-ts="${esc(m.creado_en||'')}"><div class="bc-ig-msg">${mediaMarkup(m,url)}${m.cuerpo ? `<div>${igTexto(m.cuerpo)}</div>` : ''}<span class="bc-ig-msg-time">${esc(igHora(m.creado_en))}${m.direccion==='out' ? ' '+igTick(m.estado) : ''}</span>${m.cuerpo ? `<button type="button" class="bc-ig-msg-menu" data-igmenu="${esc(m.id)}" aria-label="Acciones del mensaje"><i class="ti ti-chevron-down"></i></button>` : ''}</div></div>`;
+  }
+
   function renderChat(h,mediaUrls={}){
     const chat=$('#bcIgChat'); if(!chat) return;
     const oldInput=$('#bcIgText'), oldScroll=$('#bcIgMessages');
@@ -453,7 +464,7 @@
     // Facebook -- Instagram NO tiene reacciones aquí porque Zernio no
     // expone esa acción para Instagram (solo hay endpoint de reacciones
     // para Facebook); reaccionar quedaría simulado, así que se deja fuera.
-    const rows=state.messages.map(m=>`<div class="bc-ig-msg-row ${m.direccion==='out'?'out':'in'}" data-igmsgid="${esc(m.id)}"><div class="bc-ig-msg">${mediaMarkup(m,mediaUrls[m.id])}${m.cuerpo ? `<div>${esc(m.cuerpo).replace(/\n/g,'<br>')}</div>` : ''}<span class="bc-ig-msg-time">${esc(fmtTime(m.creado_en))}${m.direccion==='out' ? ` · ${esc(m.estado||'enviado')}` : ''}</span>${m.cuerpo ? `<button type="button" class="bc-ig-msg-menu" data-igmenu="${esc(m.id)}" aria-label="Acciones del mensaje"><i class="ti ti-chevron-down"></i></button>` : ''}</div></div>`).join('');
+    const rows=state.messages.map(m=>igFilaHTML(m,mediaUrls[m.id])).join('');
     // Asignarme/Reasignar (15 sept 2026): mismo helper que ya usa WhatsApp
     // (_crmAsignarHTML, definido en taller.html) -- así "asignado a mí" /
     // "sin dueño" queda visible igual en los 3 canales, y un empleado
@@ -570,12 +581,12 @@
       const row=chat.querySelector(`[data-igmsgid="${m.id}"]`);
       if(!row) return;
       const time=row.querySelector('.bc-ig-msg-time');
-      if(time) time.textContent=fmtTime(m.creado_en)+(m.direccion==='out'?' · '+(m.estado||'enviado'):'');
+      if(time) time.innerHTML=esc(igHora(m.creado_en))+(m.direccion==='out'?' '+igTick(m.estado):'');
     });
     const newMsgs=state.messages.filter(m=>m.id && !rendered.has(m.id));
     if(newMsgs.length){
       const pegado=chat.scrollHeight-chat.clientHeight-chat.scrollTop<80;
-      const html=newMsgs.map(m=>`<div class="bc-ig-msg-row ${m.direccion==='out'?'out':'in'}" data-igmsgid="${esc(m.id)}"><div class="bc-ig-msg">${mediaMarkup(m)}${m.cuerpo ? `<div>${esc(m.cuerpo).replace(/\n/g,'<br>')}</div>` : ''}<span class="bc-ig-msg-time">${esc(fmtTime(m.creado_en))}${m.direccion==='out' ? ` · ${esc(m.estado||'enviado')}` : ''}</span>${m.cuerpo ? `<button type="button" class="bc-ig-msg-menu" data-igmenu="${esc(m.id)}" aria-label="Acciones del mensaje"><i class="ti ti-chevron-down"></i></button>` : ''}</div></div>`).join('');
+      const html=newMsgs.map(m=>igFilaHTML(m)).join('');
       chat.insertAdjacentHTML('beforeend',html);
       chat.querySelectorAll('[data-igmenu]').forEach(btn=>{if(!btn._bcWired){btn._bcWired=true;btn.addEventListener('click',(e)=>{e.stopPropagation();igMessageMenu(btn.dataset.igmenu);});}});
       const pending=newMsgs.filter(m=>m.media_path);
@@ -606,7 +617,7 @@
       btn.classList.toggle('on',state.selected?.id===h.id);
       btn.classList.toggle('unread',!!unread);
       const time=btn.querySelector('.bc-ig-thread-time');
-      if(time) time.textContent=fmtTime(h.ultimo_mensaje_at);
+      if(time) time.textContent=listaHora(h.ultimo_mensaje_at);
       const preview=btn.querySelector('.bc-ig-thread-preview');
       if(preview) preview.textContent=h.ultimo_mensaje_preview||'Sin vista previa';
       const badge=btn.querySelector('.bc-ig-unread');

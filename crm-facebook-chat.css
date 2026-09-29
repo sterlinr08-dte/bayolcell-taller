@@ -41,8 +41,8 @@
 #bcFbForwardBox[hidden]{display:none}
 #bcFbForwardBox button{width:100%;text-align:left}
 .bc-fb-empty{margin:auto;color:#718096;font-size:13px}
-@media(min-width:721px){#bcFbBack{display:none}#bcSocialFacebookPanel{height:calc(100dvh - 255px);min-height:360px;max-height:900px}}
-@media(max-width:720px){
+@media(min-width:1025px){#bcFbBack{display:none}#bcSocialFacebookPanel{height:calc(100dvh - 255px);min-height:360px;max-height:900px}}
+@media(max-width:1024px){
  #bcSocialFacebookPanel .bc-social-generic-shell{display:flex;flex-direction:column;min-height:0}
  #bcSocialFacebookPanel .bc-social-generic-list{flex:1;border:0;max-height:none;min-height:350px}
  #bcSocialFacebookPanel .bc-social-generic-chat{display:none}
