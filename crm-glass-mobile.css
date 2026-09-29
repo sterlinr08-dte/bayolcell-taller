@@ -427,7 +427,9 @@
     -webkit-backdrop-filter:blur(22px) saturate(145%);
   }
 
-  #v-crmLinea .wa-input-bar input {
+  #v-crmLinea .wa-input-bar textarea { border-radius:22px !important; }
+  #v-crmLinea .wa-input-bar input,
+  #v-crmLinea .wa-input-bar textarea {
     min-height:46px;
     padding:10px 16px !important;
     border-radius:999px !important;
@@ -437,7 +439,8 @@
     color:#1e293b;
     transition:box-shadow .2s ease,background .2s ease,border-color .2s ease !important;
   }
-  #v-crmLinea .wa-input-bar input:focus {
+  #v-crmLinea .wa-input-bar input:focus,
+  #v-crmLinea .wa-input-bar textarea:focus {
     outline:none;
     background:#fff !important;
     border-color:rgba(15,150,136,.22) !important;
@@ -545,6 +548,7 @@
   #v-crmLinea .wa-chat-head .wa-tab-btn,
   #v-crmLinea .wa-chat-head + div .btn.btn-light,
   #v-crmLinea .wa-input-bar input,
+  #v-crmLinea .wa-input-bar textarea,
   #v-crmLinea .wa-input-bar .wa-icon-btn,
   #v-crmLinea .wa-send-btn,
   #v-crmLinea .wa-swipe-forward-cue {

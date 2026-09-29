@@ -4,14 +4,14 @@
   if(window.__bcCrmExtensionsLoader)return;
   window.__bcCrmExtensionsLoader=true;
 
-  var V='20260920-incr1';
-  var SOCIAL_HUB='20260921-campfix3';
-  var PERF='20260916-perf2';
+  var V='20260929-f1';
+  var SOCIAL_HUB='20260929-f1';
+  var PERF='20260929-f1';
   var FB_DIRECT='20260920-incr1';
   var GLASS='20260916-glass2';
   var AMBIENT='20260915-hotfix3';
   var SURFACE='20260914-clean1';
-  var MIDNIGHT='20260914-midnight1';
+  var MIDNIGHT='20260929-f1';
   var surfaceCss=null;
   var midnightCss=null;
 

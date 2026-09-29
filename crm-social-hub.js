@@ -8,7 +8,7 @@
   'use strict';
   if (window.BayolSocialHub) return;
 
-  const VERSION = '20260921-campfix3';
+  const VERSION = '20260929-f1';
   const state = {
     channel: 'whatsapp',
     mounted: false,
@@ -410,7 +410,8 @@
       state.messages=(data||[]).reverse();
       if(!igActualizarChatIncremental()) renderChat(h,{});
       // Attachments cannot hold the conversation or composer in a loading state.
-      const pending=state.messages.filter(m=>m.media_path).slice(-40);
+      // Todos los adjuntos, empezando por los más recientes (antes solo los últimos 40: los viejos quedaban en "Cargando adjunto…").
+      const pending=state.messages.filter(m=>m.media_path).reverse();
       async function worker(){
         while(pending.length){
           const m=pending.shift(); const url=await signedMedia(m);

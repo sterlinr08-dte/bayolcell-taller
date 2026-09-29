@@ -142,10 +142,12 @@
       <aside class="bc-social-generic-list">
         <div class="bc-social-generic-head"><div class="bc-social-generic-account"><span class="bc-social-generic-logo fb"><i class="ti ti-brand-facebook"></i></span><span><b>Facebook Messenger</b><small id="bcFbAccountSub">Conectando cuenta…</small></span><em id="bcFbStatus">Conectando</em></div><label class="bc-social-generic-search"><i class="ti ti-search"></i><input id="bcFbSearch" type="search" placeholder="Buscar conversación…"></label></div>
         <div class="bc-social-generic-threads" id="bcFbThreads"><div class="bc-social-loading"><span class="bc-social-spin"></span>Cargando conversaciones…</div></div>
+        <button type="button" id="bcFbArchToggle" class="bc-fb-arch-toggle" style="margin:6px 10px 10px;padding:7px 10px;border:1px dashed #cbd5e1;border-radius:10px;background:transparent;color:#475569;font-size:12px;font-weight:600;cursor:pointer;"><i class="ti ti-archive"></i> Ver archivados</button>
       </aside>
       <section class="bc-social-generic-chat" id="bcFbChat"><div class="bc-ig-empty"><div><i class="ti ti-brand-facebook"></i><b>Selecciona una conversación</b><span>Los mensajes de Messenger aparecerán aquí.</span></div></div></section>
     </div>`;
     panel.dataset.fbReady='1';
+    $('#bcFbArchToggle')?.addEventListener('click',()=>{ state.fbVerArchivados=!state.fbVerArchivados; const b=$('#bcFbArchToggle'); if(b) b.innerHTML=state.fbVerArchivados?'<i class="ti ti-arrow-back-up"></i> Volver a conversaciones':'<i class="ti ti-archive"></i> Ver archivados'; const h=$('#bcFbThreads'); if(h) h.innerHTML=''; loadFacebookThreads(); });
     panel.addEventListener('click',e=>{ const row=e.target.closest('[data-fb-thread]'); if(row) openFacebookThread(row.dataset.fbThread); });
     $('#bcFbSearch')?.addEventListener('input',e=>{ const q=String(e.target.value||'').toLowerCase(); $$('#bcFbThreads [data-fb-thread]').forEach(r=>{r.hidden=q && !r.textContent.toLowerCase().includes(q);}); });
   }
@@ -176,7 +178,7 @@
       state.meta.facebook.ready=true;
       state.meta.facebook.account=account.display_name||account.username||'BayolCell';
       syncHeaderState();
-      const {data:threadsRaw,error}=await withTimeout(client.from('social_hilos').select('id,participant_name,participant_username,ultimo_mensaje_preview,ultimo_mensaje_at,no_leidos_count,estado,asignado_id,asignado_tipo').eq('cuenta_id',account.id).order('actualizado_en',{ascending:false}).limit(100),12000);
+      const {data:threadsRaw,error}=await withTimeout(client.from('social_hilos').select('id,participant_name,participant_username,ultimo_mensaje_preview,ultimo_mensaje_at,no_leidos_count,estado,asignado_id,asignado_tipo').eq('cuenta_id',account.id).or(state.fbVerArchivados?'estado.eq.archivado':'estado.is.null,estado.neq.archivado').order('ultimo_mensaje_at',{ascending:false,nullsFirst:false}).limit(100),12000);
       if(error) throw error;
       let threads=threadsRaw||[];
       // Mismo candado que WhatsApp/Instagram (ver CLAUDE.md): un empleado
@@ -189,6 +191,7 @@
         }
       } catch(e){ console.error('CRM Social Facebook: filtro de asignacion fallo', e); }
       setupFacebookRealtime();
+      if(!threads?.length && state.fbVerArchivados){host.innerHTML='<div class="bc-social-empty-state"><i class="ti ti-archive"></i><b>No hay conversaciones archivadas</b><span>Las que archives desde el menú ⋮ aparecerán aquí.</span></div>';return;}
       if(!threads?.length){host.innerHTML='<div class="bc-social-empty-state"><i class="ti ti-message-circle"></i><b>Sin conversaciones todavía</b><span>La importación inicial de Zernio puede tardar unos segundos.</span></div>';return;}
       if(!fbActualizarListaIncremental(host,threads)) host.innerHTML=threads.map(t=>{const name=t.participant_name||t.participant_username||'Contacto de Facebook';const initials=name.split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase();return `<button type="button" class="bc-social-generic-thread${t.no_leidos_count?' unread':''}" data-fb-thread="${t.id}"><span class="bc-social-generic-avatar">${escapeHtml(initials)}</span><span class="bc-social-generic-thread-copy"><b>${escapeHtml(name)}</b><small>${escapeHtml(t.ultimo_mensaje_preview||'Sin mensajes')}</small></span>${t.no_leidos_count?`<em>${t.no_leidos_count}</em>`:''}</button>`;}).join('');
     }catch(e){
@@ -295,9 +298,17 @@
     const esRefresco=facebookSelectedThread===id && chat.querySelector('#bcFbMessages');
     if(!esRefresco) chat.innerHTML='<div class="bc-social-loading"><span class="bc-social-spin"></span>Cargando mensajes…</div>';
     try{
-    const {data:thread,error:threadError}=await withTimeout(client.from('social_hilos').select('id,participant_name,participant_username,asignado_id,asignado_tipo').eq('id',id).maybeSingle(),12000);
+    const {data:thread,error:threadError}=await withTimeout(client.from('social_hilos').select('id,participant_name,participant_username,asignado_id,asignado_tipo,no_leidos_count').eq('id',id).maybeSingle(),12000);
     if(!current())return;
     if(threadError)throw threadError;
+    if(thread && Number(thread.no_leidos_count||0)>0){
+      // Al abrir la conversación se marca leída (como WhatsApp/Instagram). Solo en la base; no avisa a Facebook.
+      client.from('social_hilos').update({no_leidos_count:0}).eq('id',id).then(({error})=>{
+        if(error) return;
+        const row=document.querySelector(`#bcFbThreads [data-fb-thread="${id}"]`);
+        if(row){ row.classList.remove('unread'); row.querySelector('em')?.remove(); }
+      });
+    }
     if(!thread)throw new Error('Conversación no disponible.');
     const {data:rows,error:messagesError}=await withTimeout(client.from('social_mensajes').select('id,direccion,cuerpo,tipo_contenido,media_url,estado,creado_en,metadata').eq('hilo_id',id).order('creado_en',{ascending:false}).order('id',{ascending:false}).limit(500),12000);
     if(!current())return;
@@ -1195,9 +1206,7 @@
       if(error || !data?.ok){
         console.warn('[social] Zernio rechazó la sincronización',error || data);
         state.meta.facebook.account='Permiso pendiente';
-        state.meta.tiktok.account='Permiso pendiente';
         state.meta.facebook.ready=false;
-        state.meta.tiktok.ready=false;
         syncHeaderState();
         await importFacebookHistory(client,sucursalId);
         if(state.channel==='facebook') loadFacebookThreads();
@@ -1222,7 +1231,6 @@
       accountSyncStarted=false;
       console.warn('[social] sync de cuentas no disponible',e);
       state.meta.facebook.ready=false;
-      state.meta.tiktok.ready=false;
       syncHeaderState();
       await importFacebookHistory(client,sucursalId);
       if(state.channel==='facebook') loadFacebookThreads();

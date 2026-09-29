@@ -525,7 +525,9 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
 .wa-chat-empty { margin:auto; color:#8696a0; font-size:13px; text-align:center; }
 .wa-input-bar { padding:10px 14px; background:#f0f2f5; display:flex; gap:4px; align-items:center; border-top:1px solid #e2e5e7; }
 .wa-input-bar input { flex:1; border:1px solid transparent; border-radius:22px; padding:10px 16px; font-size:13.5px; min-width:0; margin:0 6px; background:#fff; color:#111b21; box-shadow:0 1px 2px rgba(11,20,26,.08); outline:none; transition:border-color .15s, box-shadow .15s; }
-.wa-input-bar input::placeholder { color:#8696a0; }
+.wa-input-bar textarea { flex:1; border:1px solid transparent; border-radius:22px; padding:10px 16px; font-size:13.5px; min-width:0; margin:0 6px; background:#fff; color:#111b21; box-shadow:0 1px 2px rgba(11,20,26,.08); outline:none; transition:border-color .15s, box-shadow .15s; font-family:inherit; line-height:1.4; resize:none; height:42px; max-height:140px; overflow-y:auto; display:block; }
+.wa-input-bar input::placeholder, .wa-input-bar textarea::placeholder { color:#8696a0; }
+.wa-input-bar textarea:focus { border-color:#128C7E; box-shadow:0 0 0 3px rgba(18,140,126,.13); }
 .wa-input-bar input:focus { border-color:#128C7E; box-shadow:0 0 0 3px rgba(18,140,126,.13); }
 .wa-send-btn { width:40px; height:40px; border-radius:50%; background:#128C7E; border:none; color:#fff; font-size:17px; cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 3px rgba(7,94,84,.35); transition:background .15s, transform .1s; }
 .wa-send-btn:hover { background:#0e7c6f; }
@@ -599,8 +601,8 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
 #v-crmLinea .wa-avatar { background:linear-gradient(135deg,#2563eb,#60a5fa); box-shadow:0 3px 8px -5px rgba(37,99,235,.55); }
 #v-crmLinea .wa-chat-col { background-color:#f7f9fd; background-image:radial-gradient(rgba(37,99,235,.055) 1px,transparent 1px); }
 #v-crmLinea .wa-chat-head, #v-crmLinea .wa-input-bar { background:rgba(255,255,255,.94); border-color:#e6edf6; }
-#v-crmLinea .wa-input-bar input { border-color:#e0e8f4; box-shadow:none; }
-#v-crmLinea .wa-input-bar input:focus { border-color:#93c5fd; box-shadow:0 0 0 3px rgba(37,99,235,.10); }
+#v-crmLinea .wa-input-bar input, #v-crmLinea .wa-input-bar textarea { border-color:#e0e8f4; box-shadow:none; }
+#v-crmLinea .wa-input-bar input:focus, #v-crmLinea .wa-input-bar textarea:focus { border-color:#93c5fd; box-shadow:0 0 0 3px rgba(37,99,235,.10); }
 #v-crmLinea .wa-send-btn { background:linear-gradient(135deg,#2563eb,#3b82f6); box-shadow:0 5px 13px -6px rgba(37,99,235,.58); }
 @media (max-width:1024px) {
     #v-crmLinea { border-radius:14px; padding:9px; }
@@ -1077,7 +1079,7 @@ tr:hover td { background: #f8fafc; }
     /* Los <input>/<select> del CRM tenian su propio font-size mas chico que gana por
        especificidad al font-size:16px generico de mas abajo — un input con letra menor a
        16px hace que iOS Safari haga zoom de golpe al tocarlo. */
-    .wa-input-bar input, .wa-select { font-size: 16px !important; }
+    .wa-input-bar input, .wa-input-bar textarea, .wa-select { font-size: 16px !important; }
     .wa-send-btn { width: 44px; height: 44px; font-size: 19px; }
     .wa-icon-btn { width: 40px; height: 40px; font-size: 23px; }
     /* Con una conversacion abierta en movil se ve SOLO el chat (la lista se
@@ -1708,7 +1710,7 @@ body{
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <link rel="stylesheet" href="crm-glass-mobile.css?v=20260916-perf1">
+    <link rel="stylesheet" href="crm-glass-mobile.css?v=20260929-f1">
 </head>
 <body>
 
@@ -5561,6 +5563,6 @@ body{
 <div id="toast" class="toast"></div>
 <div id="printArea" class="print-area"></div>
 
-<script src="taller-app.js?v=20260928a"></script>
-<script src="crm-marketing-consent.js?v=20260921-campfix7"></script>
+<script src="taller-app.js?v=20260929-f1"></script>
+<script src="crm-marketing-consent.js?v=20260929-f1"></script>
 </body>

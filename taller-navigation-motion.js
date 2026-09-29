@@ -11,10 +11,20 @@
     try{return host.querySelector(activeSelector)||host.querySelector(itemSelector);}catch(_){return null;}
   }
 
+  // Si el menú se redibuja por dentro (innerHTML), la cápsula y las clases de los botones desaparecen y la
+  // pestaña activa queda con texto blanco sobre fondo claro (invisible). Aquí se reponen.
+  function repair(rec){
+    var host=rec.host;
+    if(rec.pill.parentNode!==host)host.insertBefore(rec.pill,host.firstChild||null);
+    var items=host.querySelectorAll(rec.itemSelector);
+    for(var i=0;i<items.length;i++){if(!items[i].classList.contains('bc-motion-item'))items[i].classList.add('bc-motion-item');}
+  }
+
   function place(rec, immediate){
     try{
       var host=rec.host;
       if(!host || !host.isConnected)return;
+      repair(rec);
       var active=activeFor(host,rec.itemSelector,rec.activeSelector);
       if(!active || !active.isConnected){rec.pill.style.opacity='0';return;}
       var hr=host.getBoundingClientRect();
@@ -61,10 +71,11 @@
         var mo=new MutationObserver(function(muts){
           for(var i=0;i<muts.length;i++){
             var t=muts[i].target;
+            if(muts[i].type==='childList' && t===host){schedule(rec);break;}
             if(t && t.matches && t.matches(itemSelector)){schedule(rec);break;}
           }
         });
-        mo.observe(host,{subtree:true,attributes:true,attributeFilter:['class','aria-selected','aria-pressed']});
+        mo.observe(host,{subtree:true,childList:true,attributes:true,attributeFilter:['class','aria-selected','aria-pressed']});
         rec.mo=mo;
       }
       if(window.ResizeObserver){
@@ -92,6 +103,7 @@
 
   function refreshAll(){
     findAndAttach();
+    for(var k=0;k<records.length;k++){try{if(records[k].host&&records[k].host.isConnected)repair(records[k]);}catch(_){}}
     for(var i=0;i<records.length;i++)schedule(records[i]);
   }
 

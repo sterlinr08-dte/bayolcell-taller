@@ -29368,6 +29368,12 @@ function _waBurbujaMedia(m) {
         </div>`;
     }
     if(!m.media_path) return '';
+    // undefined = todavía se está firmando la URL (carga en segundo plano); null = no se pudo obtener.
+    if(m._mediaUrl === undefined) {
+        if(m.tipo_contenido === 'audio') return `<div class="wa-media-cargando" style="width:250px; max-width:100%; height:36px; border-radius:18px; background:#e9edef; margin-bottom:4px;"></div>`;
+        if(m.tipo_contenido === 'imagen' || m.tipo_contenido === 'video') return `<div class="wa-media-cargando" style="width:280px; max-width:100%; aspect-ratio:4/3; border-radius:7px; background:#e9edef; margin-bottom:4px; display:grid; place-items:center; color:#667781; font-size:12px;">Cargando…</div>`;
+        return `<div class="wa-media-cargando" style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">📎 Cargando adjunto…</div>`;
+    }
     if(!m._mediaUrl) return `<div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">📎 Adjunto no disponible</div>`;
     // aspect-ratio reserva el alto ANTES de que la imagen/video cargue (si no,
     // mide 0px hasta terminar de descargar y el chat "salta" — el scroll al
@@ -29545,7 +29551,7 @@ function _pintarWhatsappDetalle() {
                 <button class="wa-icon-btn" id="btnWaEmoji" onclick="_waAbrirEmojis(event)" title="Emoji"><i class="ti ti-mood-smile"></i></button>
                 <button class="wa-icon-btn" id="btnWaAdjuntar" onclick="_waAbrirMenuAdjuntar(event)" title="Adjuntar"><i class="ti ti-paperclip"></i></button>
                 <button class="wa-icon-btn" id="btnWaUbicacion" onclick="_crmMostrarMenuUbicacion('whatsapp', this)" title="Enviar ubicación de la tienda"><i class="ti ti-map-pin"></i></button>
-                <input type="text" id="waTexto" placeholder="Escribe una respuesta..." autocapitalize="none" autocorrect="off" oninput="_waActualizarBotonEnvio(); _waSlashDetectar(this)" onkeydown="_waTextoKeydown(event)">
+                <textarea id="waTexto" rows="1" placeholder="Escribe una respuesta..." autocapitalize="none" autocorrect="off" oninput="_waActualizarBotonEnvio(); _waSlashDetectar(this)" onkeydown="_waTextoKeydown(event)"></textarea>
                 <button class="wa-send-btn" id="btnWaEnviar" onclick="_waBotonPrincipalClick()"><i class="ti ti-microphone" id="iconWaEnviar"></i></button>
             </div>
             <div id="waGrabandoBar" class="wa-grabando-bar" style="display:none;"></div>`;
@@ -29632,6 +29638,7 @@ function _waActualizarBotonEnvio() {
     const icon = document.getElementById('iconWaEnviar');
     const input = document.getElementById('waTexto');
     if(icon && input) icon.className = input.value.trim() ? 'ti ti-send' : 'ti ti-microphone';
+    _waAutoAlto(input);
 }
 function _waBotonPrincipalClick() {
     const input = document.getElementById('waTexto');
@@ -30006,7 +30013,15 @@ function _waTextoKeydown(event) {
         if(event.key === 'ArrowUp') return _waSlashMover(-1);
         if(event.key === 'Enter') return _waSlashElegirResaltado();
     }
-    if(event.key === 'Enter') enviarMensajeWhatsapp();
+    // Como WhatsApp: en PC Enter envía y Shift+Enter hace salto de línea; en celular Enter es salto de línea
+    // (se envía con el botón). La caja es un textarea para que los textos de varias líneas no se aplasten.
+    if(event.key === 'Enter' && !event.shiftKey && !event.isComposing && !_waEnterEsSalto()) { event.preventDefault(); enviarMensajeWhatsapp(); }
+}
+function _waEnterEsSalto() { try { return window.matchMedia('(pointer:coarse)').matches; } catch(e) { return false; } }
+function _waAutoAlto(el) {
+    if(!el || el.tagName !== 'TEXTAREA' || el.classList.contains('bc-fin-composer')) return;
+    el.style.height = 'auto';
+    el.style.height = Math.min(140, Math.max(42, el.scrollHeight + 2)) + 'px';
 }
 
 /* ---------- Vista previa de foto/documento/camara antes de enviar ---------- */

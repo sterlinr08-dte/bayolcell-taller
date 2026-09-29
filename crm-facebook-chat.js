@@ -32,6 +32,7 @@
   }
   function close(){
     const ta=$('#bcFbText');if(selected&&ta)drafts.set(selected,ta.value);
+    selected=null;
     $('#bcSocialFacebookPanel')?.classList.remove('bc-fb-open');
     document.documentElement.style.removeProperty('--fb-shell-height');
   }
