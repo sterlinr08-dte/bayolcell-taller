@@ -193,7 +193,8 @@
       setupFacebookRealtime();
       if(!threads?.length && state.fbVerArchivados){host.innerHTML='<div class="bc-social-empty-state"><i class="ti ti-archive"></i><b>No hay conversaciones archivadas</b><span>Las que archives desde el menú ⋮ aparecerán aquí.</span></div>';return;}
       if(!threads?.length){host.innerHTML='<div class="bc-social-empty-state"><i class="ti ti-message-circle"></i><b>Sin conversaciones todavía</b><span>La importación inicial de Zernio puede tardar unos segundos.</span></div>';return;}
-      if(!fbActualizarListaIncremental(host,threads)) host.innerHTML=threads.map(t=>{const name=t.participant_name||t.participant_username||'Contacto de Facebook';const initials=name.split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase();return `<button type="button" class="bc-social-generic-thread${t.no_leidos_count?' unread':''}" data-fb-thread="${t.id}"><span class="bc-social-generic-avatar">${escapeHtml(initials)}</span><span class="bc-social-generic-thread-copy"><b>${escapeHtml(name)}</b><small>${escapeHtml(t.ultimo_mensaje_preview||'Sin mensajes')}</small></span>${t.no_leidos_count?`<em>${t.no_leidos_count}</em>`:''}</button>`;}).join('');
+      if(!fbActualizarListaIncremental(host,threads)) host.innerHTML=threads.map(t=>{const name=t.participant_name||t.participant_username||'Contacto de Facebook';const initials=name.split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase();return `<button type="button" class="bc-social-generic-thread${t.no_leidos_count?' unread':''}" data-fb-thread="${t.id}"><span class="bc-social-generic-avatar">${escapeHtml(initials)}</span><span class="bc-social-generic-thread-copy"><b>${escapeHtml(name)}</b><small>${escapeHtml(t.ultimo_mensaje_preview||'Sin mensajes')}</small></span><i class="bc-fb-thread-time">${escapeHtml(fbListaHora(t.ultimo_mensaje_at))}</i>${t.no_leidos_count?`<em>${t.no_leidos_count}</em>`:''}</button>`;}).join('');
+      if(facebookSelectedThread) host.querySelectorAll('[data-fb-thread]').forEach(r=>r.classList.toggle('on',r.dataset.fbThread===facebookSelectedThread));
     }catch(e){
       state.meta.facebook.ready=false;
       syncHeaderState();
@@ -215,6 +216,7 @@
   // Supabase (mismo problema que ya se había resuelto antes para
   // whatsapp_hilos/whatsapp_mensajes/leads) -- sin ESA migración, esta
   // suscripción tampoco recibiría nada aunque el código esté bien.
+  function fbListaHora(v){ if(!v) return ''; return typeof window._waHoraRelativa==='function' ? window._waHoraRelativa(v) : new Date(v).toLocaleDateString('es-DO',{day:'2-digit',month:'2-digit'}); }
   function fbActualizarListaIncremental(host,threads){
     if(!host||!host.children.length)return false;
     const botones=host.querySelectorAll('[data-fb-thread]');
@@ -232,6 +234,8 @@
       btn.classList.toggle('unread',!!unread);
       const preview=btn.querySelector('small');
       if(preview) preview.textContent=t.ultimo_mensaje_preview||'Sin mensajes';
+      const hora=btn.querySelector('.bc-fb-thread-time');
+      if(hora) hora.textContent=fbListaHora(t.ultimo_mensaje_at);
       const badge=btn.querySelector('em');
       if(badge&&!unread)badge.remove();
       else if(!badge&&unread)btn.insertAdjacentHTML('beforeend',`<em>${unread}</em>`);
@@ -287,6 +291,7 @@
     const client=typeof supabaseClient!=='undefined'?supabaseClient:window.supabaseClient; const chat=$('#bcFbChat'); if(!client?.from||!chat)return;
     const generation=++facebookMessageGeneration;
     facebookSelectedThread=id;
+    document.querySelectorAll('#bcFbThreads [data-fb-thread]').forEach(r=>r.classList.toggle('on',r.dataset.fbThread===id));
     const current=()=>generation===facebookMessageGeneration && facebookSelectedThread===id && state.visible && state.channel==='facebook';
     // 15 sept 2026: .bc-fb-open se activa YA (antes de esperar la respuesta
     // de Supabase) -- en celular #bcSocialFacebookPanel .bc-social-generic-chat

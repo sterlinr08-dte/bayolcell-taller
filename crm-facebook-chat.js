@@ -45,6 +45,11 @@
     if(/video/.test(type))return `<video controls preload="none" src="${esc(url)}"></video>`;
     return `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">Abrir adjunto</a>`;
   }
+  // Mismo formato que WhatsApp: palomitas ✓/✓✓, enlaces tocables y data-ts para los separadores "Hoy/Ayer".
+  function fbHora(d){try{return new Date(d).toLocaleTimeString('es-DO',{hour:'2-digit',minute:'2-digit'});}catch(_e){return '';}}
+  function fbTick(e){return typeof window._waIconoEstado==='function'?window._waIconoEstado(e||'enviado'):'· '+esc(e||'enviado');}
+  function fbTexto(c){const t=esc(c||'');return typeof window.linkifyText==='function'?window.linkifyText(t):t;}
+  function fbFilaHTML(m){return `<article class="bc-fb-row ${m.direccion==='out'?'out':'in'}" data-message="${esc(m.id)}" data-ts="${esc(m.creado_en||'')}"><div class="bc-fb-bubble">${media(m)}<div class="bc-fb-body">${fbTexto(m.cuerpo)}</div><small>${esc(fbHora(m.creado_en))}${m.direccion==='out'?' '+fbTick(m.estado):''}</small><button type="button" class="bc-fb-message-menu" data-menu="${esc(m.id)}" aria-label="Acciones del mensaje"><i class="ti ti-chevron-down"></i></button></div></article>`;}
   function render(thread,rows,cb){
     const host=$('#bcFbChat');if(!host)return;
     const same=selected===thread.id;
@@ -76,7 +81,7 @@
         <button type="button" id="bcFbForwardClose" style="width:100%;margin-top:4px;">Cerrar</button>
       </div>
       <div id="bcFbNotice" class="bc-fb-notice" role="status" hidden></div>
-      <div class="bc-fb-messages" id="bcFbMessages" style="position:relative;">${rows.map(m=>`<article class="bc-fb-row ${m.direccion==='out'?'out':'in'}" data-message="${esc(m.id)}"><div class="bc-fb-bubble">${media(m)}<div class="bc-fb-body">${esc(m.cuerpo||'')}</div><small>${esc(new Date(m.creado_en).toLocaleTimeString('es-DO',{hour:'2-digit',minute:'2-digit'}))}${m.direccion==='out'?' · '+esc(m.estado||'enviado'):''}</small><button type="button" class="bc-fb-message-menu" data-menu="${esc(m.id)}" aria-label="Acciones del mensaje"><i class="ti ti-chevron-down"></i></button></div></article>`).join('')||'<p class="bc-fb-empty">Sin mensajes guardados</p>'}</div>
+      <div class="bc-fb-messages" id="bcFbMessages" style="position:relative;">${rows.map(fbFilaHTML).join('')||'<p class="bc-fb-empty">Sin mensajes guardados</p>'}</div>
       <button type="button" class="bc-social-jump" id="bcFbJump" aria-label="Ir al último mensaje"><i class="ti ti-arrow-down"></i><span>Últimos mensajes</span></button>
       <div id="bcFbMessageActions" class="bc-fb-pop bc-fb-message-actions" hidden></div>
       <div id="bcFbAttachment" class="bc-fb-attachment" hidden></div>
@@ -210,7 +215,7 @@
   function resize(){
     const p=$('#bcSocialFacebookPanel');
     if(!p||!p.classList.contains('bc-fb-open'))return;
-    if(!matchMedia('(max-width:720px)').matches){document.documentElement.style.removeProperty('--fb-shell-height');return;}
+    if(!matchMedia('(max-width:1024px)').matches){document.documentElement.style.removeProperty('--fb-shell-height');return;}
     const vv=window.visualViewport;
     const alturaViewport=vv?vv.height:window.innerHeight;
     const alturaLayout=Math.max(window.innerHeight,document.documentElement.clientHeight||0);
@@ -237,12 +242,12 @@
       if(m.direccion!=='out'||!rendered.has(m.id))return;
       const el=msgContainer.querySelector(`[data-message="${m.id}"]`);if(!el)return;
       const small=el.querySelector('small');
-      if(small)small.textContent=new Date(m.creado_en).toLocaleTimeString('es-DO',{hour:'2-digit',minute:'2-digit'})+' · '+(m.estado||'enviado');
+      if(small)small.innerHTML=esc(fbHora(m.creado_en))+' '+fbTick(m.estado);
     });
     const newMsgs=rows.filter(m=>m.id&&!rendered.has(m.id));
     if(newMsgs.length){
       const pegado=msgContainer.scrollHeight-msgContainer.clientHeight-msgContainer.scrollTop<80;
-      const html=newMsgs.map(m=>`<article class="bc-fb-row ${m.direccion==='out'?'out':'in'}" data-message="${esc(m.id)}"><div class="bc-fb-bubble">${media(m)}<div class="bc-fb-body">${esc(m.cuerpo||'')}</div><small>${esc(new Date(m.creado_en).toLocaleTimeString('es-DO',{hour:'2-digit',minute:'2-digit'}))}${m.direccion==='out'?' · '+esc(m.estado||'enviado'):''}</small><button type="button" class="bc-fb-message-menu" data-menu="${esc(m.id)}" aria-label="Acciones del mensaje"><i class="ti ti-chevron-down"></i></button></div></article>`).join('');
+      const html=newMsgs.map(fbFilaHTML).join('');
       msgContainer.insertAdjacentHTML('beforeend',html);
       msgContainer.querySelectorAll('[data-menu]').forEach(btn=>{if(!btn._bcWired){btn._bcWired=true;btn.onclick=()=>messageMenu(btn.dataset.menu);}});
       messages=rows;

@@ -1,0 +1,290 @@
+/* CRM — Fase 2 (29 sep 2026): WhatsApp, Instagram y Facebook con el MISMO diseño de chat.
+   Misma forma de burbuja (con piquito), fondo, cabecera, barra de escribir, listas y separadores de fecha.
+   Lo único que cambia es el color de marca de cada canal. Solo presentación: no toca IDs ni comportamiento.
+   Se carga al final (crm-chat-unificado.js) y usa "body #v-crmLinea" para ganarle a las capas anteriores. */
+
+body #v-crmLinea {
+  --bcu-fondo: #efeae2;
+  --bcu-punto: rgba(84, 101, 111, .07);
+  --bcu-in: #ffffff;
+  --bcu-tinta: #111b21;
+  --bcu-gris: #667781;
+  --bcu-barra: #f0f2f5;
+  --bcu-linea: #e9edef;
+  --bcu-sombra: 0 1px .5px rgba(11, 20, 26, .13);
+}
+/* Color de marca por canal */
+body #v-crmLinea #waWrap, body #v-crmLinea #waDetalle {
+  --bcu-acento: #00a884; --bcu-out: #d9fdd3; --bcu-out-tinta: #111b21; --bcu-out-gris: #667781; --bcu-avatar: linear-gradient(135deg, #25d366, #128c7e);
+}
+body #v-crmLinea #bcSocialInstagramPanel {
+  --bcu-acento: #d62976; --bcu-out: linear-gradient(135deg, #8a3ab9 0%, #c13584 55%, #e1306c 100%); --bcu-out-tinta: #ffffff; --bcu-out-gris: rgba(255,255,255,.82); --bcu-avatar: linear-gradient(135deg, #feda75, #fa7e1e 25%, #d62976 55%, #962fbf 80%, #4f5bd5);
+}
+body #v-crmLinea #bcSocialFacebookPanel {
+  --bcu-acento: #0a7cff; --bcu-out: #0a7cff; --bcu-out-tinta: #ffffff; --bcu-out-gris: rgba(255,255,255,.82); --bcu-avatar: linear-gradient(135deg, #00c6ff, #0a7cff);
+}
+
+/* ---------- Fondo del chat (el mismo en los 3) ---------- */
+body #v-crmLinea #waMessagesScroll,
+body #v-crmLinea #bcIgMessages,
+body #v-crmLinea #bcFbMessages {
+  background-color: var(--bcu-fondo) !important;
+  background-image: radial-gradient(var(--bcu-punto) 1px, transparent 1px) !important;
+  background-size: 18px 18px !important;
+}
+
+/* ---------- Burbujas ---------- */
+body #v-crmLinea .wa-brow .wa-bubble-wrap,
+body #v-crmLinea .bc-ig-msg-row .bc-ig-msg,
+body #v-crmLinea .bc-fb-row .bc-fb-bubble {
+  border-radius: 12px !important;
+  box-shadow: var(--bcu-sombra) !important;
+  font-size: 14px !important;
+  line-height: 1.42 !important;
+  padding: 6px 9px 7px !important;
+  max-width: min(75%, 560px) !important;
+  border: 0 !important;
+}
+/* Entrantes: blancas con el piquito arriba a la izquierda */
+body #v-crmLinea .wa-brow.in .wa-bubble-wrap,
+body #v-crmLinea .bc-ig-msg-row.in .bc-ig-msg,
+body #v-crmLinea .bc-fb-row.in .bc-fb-bubble {
+  background: var(--bcu-in) !important;
+  color: var(--bcu-tinta) !important;
+  border-top-left-radius: 3px !important;
+}
+/* Salientes: color del canal con el piquito arriba a la derecha */
+body #v-crmLinea .wa-brow.out .wa-bubble-wrap,
+body #v-crmLinea .bc-ig-msg-row.out .bc-ig-msg,
+body #v-crmLinea .bc-fb-row.out .bc-fb-bubble {
+  background: var(--bcu-out) !important;
+  color: var(--bcu-out-tinta) !important;
+  border-top-right-radius: 3px !important;
+}
+
+/* Hora y palomitas dentro de la burbuja */
+body #v-crmLinea .wa-brow .wa-tick-line,
+body #v-crmLinea .bc-ig-msg-time,
+body #v-crmLinea .bc-fb-bubble > small {
+  font-size: 11px !important;
+  color: var(--bcu-gris) !important;
+  text-align: right !important;
+  display: block !important;
+  margin-top: 2px !important;
+  white-space: nowrap;
+}
+body #v-crmLinea .bc-ig-msg-row.out .bc-ig-msg-time,
+body #v-crmLinea .bc-fb-row.out .bc-fb-bubble > small { color: var(--bcu-out-gris) !important; }
+body #v-crmLinea .bc-ig-msg-row.out .bc-ig-msg-time span,
+body #v-crmLinea .bc-fb-row.out .bc-fb-bubble > small span { color: rgba(255,255,255,.9) !important; }
+
+/* Enlaces: en burbujas de color van blancos subrayados */
+body #v-crmLinea .bc-ig-msg-row.out .bc-ig-msg a,
+body #v-crmLinea .bc-fb-row.out .bc-fb-bubble a { color: #fff !important; text-decoration: underline !important; }
+body #v-crmLinea .bc-ig-msg a, body #v-crmLinea .bc-fb-bubble a { word-break: break-all; }
+
+/* Fotos y videos con esquinas iguales en los 3 */
+body #v-crmLinea .wa-bubble-wrap img, body #v-crmLinea .wa-bubble-wrap video,
+body #v-crmLinea .bc-ig-msg img, body #v-crmLinea .bc-ig-msg video,
+body #v-crmLinea .bc-fb-bubble img, body #v-crmLinea .bc-fb-bubble video { border-radius: 8px !important; max-width: 280px; width: 100%; }
+
+/* ---------- Separadores de fecha (Hoy / Ayer / Lunes…) ---------- */
+body #v-crmLinea .bc-date-sep {
+  display: flex; justify-content: center;
+  position: relative; z-index: 1;
+  margin: 10px 0 6px; pointer-events: none;
+  width: 100%; max-width: none !important;
+}
+body #v-crmLinea .bc-date-sep span {
+  background: #fff; color: #54656f;
+  font-size: 12px; font-weight: 500; line-height: 1;
+  padding: 7px 12px; border-radius: 8px;
+  box-shadow: var(--bcu-sombra);
+}
+
+/* ---------- Cabecera del chat ---------- */
+body #v-crmLinea .wa-chat-head,
+body #v-crmLinea .bc-ig-chat-head,
+body #v-crmLinea .bc-fb-head {
+  background: var(--bcu-barra) !important;
+  border-bottom: 1px solid var(--bcu-linea) !important;
+  min-height: 60px !important;
+  padding: 8px 14px !important;
+  gap: 12px !important;
+  box-shadow: none !important;
+}
+body #v-crmLinea .wa-chat-head .wa-avatar,
+body #v-crmLinea .bc-ig-chat-head .bc-ig-avatar,
+body #v-crmLinea .bc-fb-head .bc-fb-avatar {
+  width: 40px !important; height: 40px !important; min-width: 40px;
+  border-radius: 50% !important; font-size: 14px !important; font-weight: 700 !important;
+  background: var(--bcu-avatar) !important; color: #fff !important;
+  display: grid !important; place-items: center !important;
+}
+body #v-crmLinea .bc-ig-chat-title b, body #v-crmLinea .bc-fb-name b { font-size: 15px !important; font-weight: 600 !important; color: var(--bcu-tinta) !important; }
+body #v-crmLinea .bc-ig-chat-title span, body #v-crmLinea .bc-fb-name small { font-size: 12.5px !important; color: var(--bcu-gris) !important; }
+
+/* ---------- Barra de escribir ---------- */
+body #v-crmLinea .wa-input-bar,
+body #v-crmLinea .bc-ig-composer,
+body #v-crmLinea .bc-fb-composer {
+  background: var(--bcu-barra) !important;
+  border-top: 1px solid var(--bcu-linea) !important;
+  padding: 8px 10px !important;
+  gap: 6px !important;
+  align-items: flex-end !important;
+  box-shadow: none !important;
+}
+body #v-crmLinea .wa-input-bar textarea,
+body #v-crmLinea .bc-ig-composer textarea,
+body #v-crmLinea .bc-fb-composer textarea {
+  background: #fff !important;
+  border: 1px solid transparent !important;
+  border-radius: 22px !important;
+  min-height: 42px !important;
+  padding: 10px 14px !important;
+  font-size: 14.5px !important;
+  line-height: 1.4 !important;
+  color: var(--bcu-tinta) !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+}
+body #v-crmLinea .wa-input-bar textarea:focus,
+body #v-crmLinea .bc-ig-composer textarea:focus,
+body #v-crmLinea .bc-fb-composer textarea:focus { border-color: var(--bcu-acento) !important; box-shadow: none !important; outline: none !important; }
+/* Botones redondos de la barra (emoji, adjuntar, ubicación) */
+body #v-crmLinea .wa-input-bar .wa-icon-btn,
+body #v-crmLinea .bc-ig-composer .bc-ig-location,
+body #v-crmLinea .bc-fb-composer .bc-fb-icon {
+  width: 40px !important; height: 40px !important; min-width: 40px;
+  border-radius: 50% !important; background: transparent !important; border: 0 !important;
+  color: #54656f !important; font-size: 21px !important; box-shadow: none !important;
+  display: grid !important; place-items: center !important; padding: 0 !important; margin: 1px 0 !important;
+}
+body #v-crmLinea .wa-input-bar .wa-icon-btn:hover,
+body #v-crmLinea .bc-ig-composer .bc-ig-location:hover,
+body #v-crmLinea .bc-fb-composer .bc-fb-icon:hover { background: rgba(11, 20, 26, .06) !important; }
+/* Botón de enviar: redondo, del color del canal */
+body #v-crmLinea .wa-input-bar .wa-send-btn,
+body #v-crmLinea .bc-ig-composer .bc-ig-send,
+body #v-crmLinea .bc-fb-composer #bcFbSend {
+  width: 42px !important; height: 42px !important; min-width: 42px;
+  border-radius: 50% !important; border: 0 !important;
+  background: var(--bcu-acento) !important; color: #fff !important;
+  font-size: 19px !important; box-shadow: 0 2px 6px -2px rgba(11, 20, 26, .35) !important;
+  display: grid !important; place-items: center !important; padding: 0 !important;
+}
+body #v-crmLinea .bc-ig-composer .bc-ig-send { background: linear-gradient(135deg, #8a3ab9, #d62976 60%, #fa7e1e) !important; }
+body #v-crmLinea .wa-input-bar .wa-send-btn:disabled,
+body #v-crmLinea .bc-ig-composer .bc-ig-send:disabled,
+body #v-crmLinea .bc-fb-composer #bcFbSend:disabled { opacity: .45 !important; }
+
+/* ---------- Listas de conversaciones ---------- */
+body #v-crmLinea .wa-row,
+body #v-crmLinea .bc-ig-thread,
+body #v-crmLinea .bc-social-generic-thread {
+  padding: 10px 12px !important;
+  gap: 12px !important;
+  align-items: center !important;
+}
+body #v-crmLinea .wa-row .wa-avatar,
+body #v-crmLinea .bc-ig-thread .bc-ig-avatar,
+body #v-crmLinea .bc-social-generic-thread .bc-social-generic-avatar {
+  width: 46px !important; height: 46px !important; min-width: 46px;
+  border-radius: 50% !important; background: var(--bcu-avatar) !important; color: #fff !important;
+  font-size: 15px !important; font-weight: 700 !important; display: grid !important; place-items: center !important;
+}
+/* Nombre / último mensaje / hora con los mismos tamaños */
+body #v-crmLinea .wa-row .fila-nombre,
+body #v-crmLinea .bc-ig-thread .bc-ig-thread-name,
+body #v-crmLinea .bc-social-generic-thread-copy b { font-size: 14.5px !important; font-weight: 600 !important; color: var(--bcu-tinta) !important; }
+body #v-crmLinea .wa-row .fila-preview,
+body #v-crmLinea .bc-ig-thread .bc-ig-thread-preview,
+body #v-crmLinea .bc-social-generic-thread-copy small { font-size: 13px !important; color: var(--bcu-gris) !important; }
+body #v-crmLinea .wa-row .fila-hora,
+body #v-crmLinea .bc-ig-thread .bc-ig-thread-time,
+body #v-crmLinea .bc-social-generic-thread .bc-fb-thread-time { font-size: 11.5px !important; color: var(--bcu-gris) !important; font-style: normal; }
+body #v-crmLinea .bc-social-generic-thread .bc-fb-thread-time { align-self: flex-start; margin-top: 3px; white-space: nowrap; }
+/* Contador de no leídos: círculo del color del canal */
+body #v-crmLinea .wa-row .fila-badge,
+body #v-crmLinea .bc-ig-thread .bc-ig-unread,
+body #v-crmLinea .bc-social-generic-thread > em {
+  min-width: 20px !important; height: 20px !important; padding: 0 6px !important;
+  border-radius: 999px !important; background: var(--bcu-acento) !important; color: #fff !important;
+  font-size: 11.5px !important; font-weight: 700 !important; font-style: normal !important;
+  display: inline-grid !important; place-items: center !important;
+}
+body #v-crmLinea .wa-row.no-leido .fila-hora,
+body #v-crmLinea .bc-social-generic-thread.unread .bc-fb-thread-time { color: var(--bcu-acento) !important; font-weight: 600 !important; }
+
+/* Celular: letra de 16px en la barra de escribir (evita el zoom de iPhone) */
+@media (max-width: 1024px) {
+  body #v-crmLinea .wa-input-bar textarea,
+  body #v-crmLinea .bc-ig-composer textarea,
+  body #v-crmLinea .bc-fb-composer textarea { font-size: 16px !important; }
+  body #v-crmLinea .wa-brow .wa-bubble-wrap,
+  body #v-crmLinea .bc-ig-msg-row .bc-ig-msg,
+  body #v-crmLinea .bc-fb-row .bc-fb-bubble { max-width: 85% !important; }
+}
+
+
+/* WhatsApp real no pone el nombre dentro de la burbuja en chats de una persona */
+body #v-crmLinea .wa-bubble-wrap > div[style*="font-size:10px; font-weight:700"] { display: none !important; }
+
+/* Flechita de acciones del mensaje: aparece al pasar el mouse (como WhatsApp) y no tapa el texto */
+body #v-crmLinea .bc-ig-msg, body #v-crmLinea .bc-fb-bubble { position: relative !important; }
+body #v-crmLinea .bc-ig-msg .bc-ig-msg-menu,
+body #v-crmLinea .bc-fb-bubble .bc-fb-message-menu {
+  position: absolute !important; top: 3px !important; right: 3px !important;
+  width: 24px !important; height: 24px !important; border-radius: 50% !important;
+  opacity: 0; transition: opacity .15s ease;
+  background: rgba(255,255,255,.92) !important; color: #54656f !important; box-shadow: 0 1px 3px rgba(11,20,26,.18);
+}
+body #v-crmLinea .bc-ig-msg:hover .bc-ig-msg-menu, body #v-crmLinea .bc-ig-msg:focus-within .bc-ig-msg-menu,
+body #v-crmLinea .bc-fb-bubble:hover .bc-fb-message-menu, body #v-crmLinea .bc-fb-bubble:focus-within .bc-fb-message-menu { opacity: 1; }
+@media (hover: none) {
+  body #v-crmLinea .bc-ig-msg-row .bc-ig-msg, body #v-crmLinea .bc-fb-row .bc-fb-bubble { padding-right: 30px !important; }
+  body #v-crmLinea .bc-ig-msg .bc-ig-msg-menu, body #v-crmLinea .bc-fb-bubble .bc-fb-message-menu { opacity: .8; background: transparent !important; box-shadow: none; }
+  body #v-crmLinea .bc-ig-msg-row.out .bc-ig-msg-menu, body #v-crmLinea .bc-fb-row.out .bc-fb-message-menu { color: rgba(255,255,255,.9) !important; }
+}
+
+/* Filas de la lista: mismo fondo, hover y seleccionada en los 3 */
+body #v-crmLinea .wa-row,
+body #v-crmLinea .bc-ig-thread,
+body #v-crmLinea .bc-social-generic-thread {
+  background: transparent !important; border: 0 !important; border-radius: 12px !important; margin: 0 0 2px !important;
+}
+body #v-crmLinea .wa-row:not(.pendiente),
+body #v-crmLinea .bc-ig-thread,
+body #v-crmLinea .bc-social-generic-thread { box-shadow: none !important; }
+body #v-crmLinea .wa-row:hover,
+body #v-crmLinea .bc-ig-thread:hover,
+body #v-crmLinea .bc-social-generic-thread:hover { background: #f5f6f6 !important; }
+body #v-crmLinea .wa-row.active,
+body #v-crmLinea .bc-ig-thread.on,
+body #v-crmLinea .bc-social-generic-thread.on { background: #eceff1 !important; }
+body #v-crmLinea .bc-ig-thread.unread .bc-ig-thread-time { color: var(--bcu-acento) !important; font-weight: 600 !important; }
+
+/* Cabecera: nombre y subtítulo en una sola línea (con "…" si no caben) */
+body #v-crmLinea .wa-chat-head > div[style*="flex:1"] { min-width: 0 !important; }
+body #v-crmLinea .wa-chat-head > div[style*="flex:1"] > div,
+body #v-crmLinea .bc-ig-chat-title b, body #v-crmLinea .bc-ig-chat-title span,
+body #v-crmLinea .bc-fb-name b, body #v-crmLinea .bc-fb-name small {
+  white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; display: block;
+}
+body #v-crmLinea .bc-ig-chat-title, body #v-crmLinea .bc-fb-name { min-width: 0 !important; flex: 1 1 auto !important; }
+
+/* Texto de ayuda de la caja de escribir en una sola línea */
+body #v-crmLinea .wa-input-bar textarea::placeholder,
+body #v-crmLinea .bc-ig-composer textarea::placeholder,
+body #v-crmLinea .bc-fb-composer textarea::placeholder { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+@media (max-width: 1024px) {
+  /* Botones de la barra más compactos para que la caja de escribir tenga espacio */
+  body #v-crmLinea .wa-input-bar, body #v-crmLinea .bc-ig-composer, body #v-crmLinea .bc-fb-composer { gap: 2px !important; padding: 7px 6px !important; }
+  body #v-crmLinea .wa-input-bar .wa-icon-btn,
+  body #v-crmLinea .bc-ig-composer .bc-ig-location,
+  body #v-crmLinea .bc-fb-composer .bc-fb-icon { width: 34px !important; height: 34px !important; min-width: 34px; font-size: 20px !important; margin: 4px 0 !important; }
+  body #v-crmLinea .wa-input-bar textarea, body #v-crmLinea .bc-ig-composer textarea, body #v-crmLinea .bc-fb-composer textarea { flex: 1 1 auto !important; min-width: 0 !important; padding: 10px 12px !important; }
+  body #v-crmLinea .wa-chat-head, body #v-crmLinea .bc-ig-chat-head, body #v-crmLinea .bc-fb-head { gap: 8px !important; padding: 8px 10px !important; }
+}
