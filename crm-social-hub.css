@@ -197,7 +197,7 @@
   padding:32px;text-align:center;box-shadow:0 12px 34px -28px rgba(15,23,42,.45);
 }
 .bc-fb-box{max-width:520px}
-.bc-fb-icon{width:54px;height:54px;border-radius:16px;background:#eff6ff;color:#1877f2;display:grid;place-items:center;font-size:31px;margin:0 auto 12px}
+.bc-fb-placeholder .bc-fb-icon{width:54px;height:54px;border-radius:16px;background:#eff6ff;color:#1877f2;display:grid;place-items:center;font-size:31px;margin:0 auto 12px}
 .bc-fb-box h3{margin:0;color:#253044;font-size:16px}
 .bc-fb-box p{font-size:10.5px;line-height:1.55;color:#667085;margin:7px auto 13px}
 .bc-fb-list{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;text-align:left}

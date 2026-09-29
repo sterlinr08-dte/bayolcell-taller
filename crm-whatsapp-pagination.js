@@ -310,6 +310,22 @@
     return token === _waCargaToken;
   }
 
+  function hydrateLater(rows, token, hiloId){
+    const queue = (rows || []).filter(m => m && m.media_path && m._mediaUrl === undefined);
+    if(!queue.length) return;
+    let timer = null;
+    const current = () => token === _waCargaToken && hiloId === _waHiloId;
+    const repaint = () => { clearTimeout(timer); timer = setTimeout(() => { if(current() && typeof _pintarWhatsappDetalle === 'function') _pintarWhatsappDetalle(); }, 120); };
+    async function worker(){
+      while(queue.length && current()){
+        const m = queue.shift();
+        try { m._mediaUrl = await _waSignedUrl(m.media_path); } catch(_e) { m._mediaUrl = null; }
+        if(current()) repaint();
+      }
+    }
+    Promise.all(Array.from({length:4}, worker)).catch(() => {});
+  }
+
   function realMessages(rows){ return (rows || []).filter(m => !m?._optimista); }
 
   function mergeMessages(rowsA, rowsB){
@@ -360,12 +376,16 @@
     }
 
     const latest = (data || []).slice().reverse();
-    if(!(await hydrateMedia(latest, token)) || token !== _waCargaToken) return;
+    // Conserva las URLs ya firmadas (evita parpadeo al refrescar) y firma las nuevas EN SEGUNDO PLANO:
+    // el texto de la conversación se pinta enseguida, los adjuntos aparecen cuando están listos.
+    const prevUrl = new Map((_waMensajes || []).filter(m => m && m.id && m._mediaUrl !== undefined).map(m => [m.id, m._mediaUrl]));
+    latest.forEach(m => { if(m.media_path && prevUrl.has(m.id)) m._mediaUrl = prevUrl.get(m.id); });
     let lista = preserveOlder ? mergeMessages(realMessages(_waMensajes || []), latest) : latest;
     lista = reconcileOptimistic(lista, hiloId);
     if(token !== _waCargaToken) return;
     _waMensajes = lista;
 
+    hydrateLater(lista, token, hiloId);
     const reals = realMessages(lista);
     s.hiloId = hiloId;
     s.total = count == null ? Math.max(s.total || 0, reals.length) : count;

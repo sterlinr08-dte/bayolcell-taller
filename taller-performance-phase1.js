@@ -130,7 +130,7 @@
       window.__bcWaPaginationRuntimeRequested = true;
       const s = document.createElement('script');
       s.async = false;
-      s.src = 'crm-whatsapp-pagination.js?v=20260916-p2';
+      s.src = 'crm-whatsapp-pagination.js?v=20260929-f1';
       s.onerror = function(){ window.__bcWaPaginationRuntimeRequested = false; };
       document.head.appendChild(s);
     } catch(_e) {}

@@ -10,47 +10,8 @@
     })]);}finally{clearTimeout(timer);}
   }
 
-  function hydrate(list,sign,current,paint){
-    const queue=list.filter(m=>m.media_path);
-    let timer;
-    const refresh=()=>{clearTimeout(timer);timer=setTimeout(()=>{if(current())paint();},80);};
-    async function worker(){
-      while(queue.length && current()){
-        const m=queue.shift();
-        try{m._mediaUrl=await bounded(sign(m.media_path),8000);}catch{m._mediaUrl=null;}
-        if(current())refresh();
-      }
-    }
-    Promise.all(Array.from({length:4},worker)).catch(()=>{});
-  }
-
-  window.cargarMensajesHilo=async function(hiloId){
-    const token=++_waCargaToken;
-    const current=()=>token===_waCargaToken && _waHiloId===hiloId;
-    try{
-      const {data,error}=await bounded(supabaseClient.from('whatsapp_mensajes').select('*').eq('hilo_id',hiloId).order('creado_en',{ascending:true}));
-      if(token!==_waCargaToken)return;
-      if(error)throw error;
-      const list=data||[];
-      for(const [tempId,opt] of _waMensajesOptimistas){
-        if(opt.hilo_id!==hiloId)continue;
-        if(opt.wa_message_id && list.some(m=>m.wa_message_id===opt.wa_message_id))_waMensajesOptimistas.delete(tempId);
-        else list.push(opt);
-      }
-      list.sort((a,b)=>new Date(a.creado_en)-new Date(b.creado_en));
-      _waMensajes=list;
-      _waSugerenciasIA=[];
-      hydrate(list,_waSignedUrl,current,_pintarWhatsappDetalle);
-      // Suggestions are optional: never delay the conversation for them.
-      bounded(supabaseClient.from('whatsapp_ia_sugerencias').select('id, texto_sugerido, razon, creado_en').eq('hilo_id',hiloId).eq('estado','pendiente').order('creado_en',{ascending:true}))
-        .then(({data,error})=>{if(current() && !error){_waSugerenciasIA=data||[];_pintarWhatsappDetalle();}}).catch(()=>{});
-    }catch(e){
-      if(token!==_waCargaToken)return;
-      _waMensajes=[];_waSugerenciasIA=[];
-      logError('cargarMensajesHilo',e);toastError(e.message||'No se pudieron cargar los mensajes.');
-    }
-  };
-
+  // cargarMensajesHilo lo define crm-whatsapp-pagination.js (últimos 80 + carga de viejos al subir,
+  // adjuntos en segundo plano). Antes este archivo lo reemplazaba y cargaba TODO el historial de golpe.
   window.abrirHiloWhatsapp=async function(id){
     _waCancelarGrabacionSiActiva();_crmListaAnimarProxima=false;
     _waForzarScrollFondo=_waHiloId!==id;
