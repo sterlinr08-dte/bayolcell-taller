@@ -1135,6 +1135,10 @@ function applyAccessControls() {
     const btnCxp = document.getElementById('menu-cuentasPorPagar');
     if(btnCxp) btnCxp.style.display = isAdminUser() ? '' : 'none';
 
+    // Alarma y Cámaras: solo administradores (la RLS de alarma_* también lo exige)
+    const btnAlarma = document.getElementById('menu-alarma');
+    if(btnAlarma) btnAlarma.style.display = isAdminUser() ? '' : 'none';
+
     // Catálogo Web: solo administradores
     const btnCat = document.getElementById('menu-catalogoWeb');
     if(btnCat) btnCat.style.display = isAdminUser() ? '' : 'none';
@@ -2322,6 +2326,7 @@ function _iniciarVistaRestaurada(v) {
         else if(v === 'recepcion') { if(typeof _rpCargarPrefacturas === 'function') _rpCargarPrefacturas().then(function(){ if(typeof _rpInit === 'function') _rpInit(); if(typeof renderRecepcionesRealizadas === 'function') renderRecepcionesRealizadas(); }); }
         else if(v === 'despachos' && typeof renderDespachos === 'function') renderDespachos();
         else if(v === 'invfisico' && typeof renderInvFisico === 'function') renderInvFisico();
+        else if(v === 'alarma' && typeof renderAlarma === 'function') renderAlarma();
         else if(v === 'cuentasPorPagar' && typeof renderCuentasPorPagar === 'function') renderCuentasPorPagar();
         else if(v === 'catalogoWeb' && typeof renderCatalogo === 'function') renderCatalogo();
         else if(v === 'estadisticas' && typeof renderEstadisticas === 'function') renderEstadisticas();
@@ -2346,12 +2351,17 @@ function startApp() {
     applyAccessControls();
     // Restaurar la última pestaña INMEDIATO (antes de loadAll) para no mostrar el Dashboard mientras carga
     try {
+        // El botón "Ver alarma" del WhatsApp abre taller.html#alarma
+        if(location.hash === '#alarma' && isAdminUser()) {
+            try { localStorage.setItem('bayol_nav_actual', 'alarma'); } catch(e){}
+            history.replaceState(null, '', location.pathname + location.search);
+        }
         const last = localStorage.getItem('bayol_nav_actual');
         const modoForzado = tienePermiso('solo_mi_trabajo') || tienePermiso('solo_atencion') || tienePermiso('solo_contabilidad');
         if(last && last !== 'dashboard' && !modoForzado) {
             const permisoReq = NAV_PERMISOS[last];
             const permitido = !permisoReq || tienePermiso(permisoReq);
-            const especial = (last === 'estadisticas' && !esDueno()) || (last === 'incentivos' && !isAdminUser());
+            const especial = (last === 'estadisticas' && !esDueno()) || (last === 'incentivos' && !isAdminUser()) || (last === 'alarma' && !isAdminUser());
             if(permitido && !especial && document.getElementById('v-' + last)) {
                 document.querySelectorAll('.view').forEach(x => x.classList.remove('active'));
                 document.getElementById('v-' + last).classList.add('active');
@@ -2456,6 +2466,11 @@ function nav(v, btn) {
         toast('🔒 Módulo solo para administradores.');
         return;
     }
+    // Alarma y Cámaras: solo administradores
+    if(v === 'alarma' && !isAdminUser()) {
+        toast('🔒 Módulo solo para administradores.');
+        return;
+    }
     // Cuentas por Pagar: solo administradores
     if(v === 'cuentasPorPagar' && !isAdminUser()) {
         toast('🔒 Módulo solo para administradores.');
@@ -2491,6 +2506,7 @@ function nav(v, btn) {
     if(v === 'reportes') { setTimeout(() => { inicializarReportes(); }, 50); }
     if(v === 'despachos') { setTimeout(() => { renderDespachos(); }, 50); }
     if(v === 'invfisico') { setTimeout(() => { renderInvFisico(); }, 50); }
+    if(v === 'alarma') { setTimeout(() => { renderAlarma(); }, 50); }
     if(v === 'cuentasPorPagar') { setTimeout(() => { renderCuentasPorPagar(); }, 50); }
     if(v === 'catalogoWeb') { setTimeout(() => { renderCatalogo(); }, 50); }
     if(v === 'nomina') { setTimeout(() => { renderNomina(); }, 50); }
@@ -14505,6 +14521,15 @@ const AYUDAS = {
           <li><b>Desempeño:</b> tú calificas (con estrellas del 1 al 5) a cada empleado en puntualidad, actitud, calidad, atención al cliente, honestidad, etc. Da una nota general, queda en su expediente con historial y se puede imprimir.</li>
         </ul>
         <p style="font-size:12px; color:#475569;">Los montos de acumulados son referenciales para orientarte; el pago formal lo confirma tu contadora.</p>` },
+    alarma: { titulo: 'Alarma y Cámaras', html: `
+        <p>Una PC del local escucha el DVR de cámaras. Cuando la alarma está <b>armada</b> y una cámara marcada detecta movimiento, te llega un WhatsApp con la cámara y la hora, y aquí queda la foto.</p>
+        <ul>
+            <li><b>Horario:</b> cada día tiene hora de armar y de desarmar. Si desarma más temprano que arma, cruza la medianoche (ej. 7:00 PM → 9:00 AM del día siguiente).</li>
+            <li><b>Armar / Desarmar ahora:</b> cambia la alarma a mano por el tiempo que elijas; después vuelve sola al horario.</li>
+            <li><b>Cámaras vigiladas:</b> solo las marcadas avisan (la de la autopista está apagada porque pasa gente todo el tiempo).</li>
+            <li>Para no llenarte el teléfono, llega como máximo un WhatsApp cada 3 minutos; los demás movimientos quedan en la lista.</li>
+            <li>Si sale <b>"La PC del local no responde"</b>, esa PC está apagada o sin internet y no llegarán avisos.</li>
+        </ul>` },
     invfisico: { titulo: 'Inventario Físico', html: `
         <p><b>¿Para qué sirve?</b> Contar la mercancía real y cuadrarla con Info Plus, sin parar la venta.</p>
         <ul style="padding-left:18px; margin:6px 0;">
@@ -15668,6 +15693,328 @@ function _invCatDe(desc) {
 function _invCatLbl(k) { if(k === 'OTROS') return '📦 Otros'; const c = INV_CATS.find(x => x.k === k); return c ? c.lbl : k; }
 function _invStockAlm(art) { return Number((art && art.existencias || {})[String(_invSesion.almacen)] || 0); }
 function _invLineaDe(cod) { return _invLineas.find(l => String(l.codarticulo) === String(cod)) || null; }
+
+// ================= ALARMA Y CÁMARAS (DVR Dahua) =================
+// El programa de la PC (BayolCellAlarma\agente.ps1) escucha el DVR y llama a la
+// Edge Function alarma-agente, que decide con esta misma regla si está armada
+// (hora de RD) y manda el WhatsApp. Aquí solo se edita la configuración.
+let _almDvrs = [], _almSel = null, _almEventos = [], _almVideos = [], _almTimer = null;
+const _ALM_DIAS = [[1,'Lunes'],[2,'Martes'],[3,'Miércoles'],[4,'Jueves'],[5,'Viernes'],[6,'Sábado'],[0,'Domingo']];
+
+function _almHm(s) { const m = /^(\d{1,2}):(\d{2})$/.exec(s || ''); return m ? (+m[1]) * 60 + (+m[2]) : null; }
+function _almHora12(s) { const v = _almHm(s); if(v === null) return '—'; const h = Math.floor(v / 60), m = String(v % 60).padStart(2, '0'); return `${((h + 11) % 12) + 1}:${m} ${h < 12 ? 'AM' : 'PM'}`; }
+// Copia exacta de estaArmada() de la Edge Function alarma-agente
+function _almEstaArmada(d, now = new Date()) {
+    const vigente = !d.modo_hasta || now < new Date(d.modo_hasta);
+    if(d.modo === 'armada' && vigente) return true;
+    if(d.modo === 'desarmada' && vigente) return false;
+    const rd = new Date(now.getTime() - 4 * 3600 * 1000), dow = rd.getUTCDay(), min = rd.getUTCHours() * 60 + rd.getUTCMinutes();
+    const hoy = (d.horario || {})[String(dow)] || {}, ayer = (d.horario || {})[String((dow + 6) % 7)] || {};
+    const a = _almHm(hoy.arma), z = _almHm(hoy.desarma);
+    if(hoy.activo && a !== null && z !== null && (a < z ? (min >= a && min < z) : min >= a)) return true;
+    const ay = _almHm(ayer.arma), zy = _almHm(ayer.desarma);
+    return !!(ayer.activo && ay !== null && zy !== null && zy <= ay && min < zy);
+}
+function _almFecha(iso) { return new Date(iso).toLocaleString('es-DO', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }); }
+
+async function renderAlarma() {
+    if(!isAdminUser()) { toast('🔒 Solo el administrador.', 'error'); return; }
+    const cont = document.getElementById('alarmaCont');
+    if(!cont) return;
+    if(!_almDvrs.length) cont.innerHTML = '<p style="color:#475569; text-align:center; padding:24px;">Cargando alarma…</p>';
+    try {
+        const { data, error } = await supabaseClient.from('alarma_dvr').select('*').order('nombre');
+        if(error) throw error;
+        _almDvrs = data || [];
+    } catch(e) { logError('alarma dvr', e); cont.innerHTML = '<p style="color:#b91c1c; padding:18px;">No se pudo cargar la alarma. Revisa tu conexión y vuelve a entrar.</p>'; return; }
+    if(!_almDvrs.length) { cont.innerHTML = '<div class="card"><p style="margin:0; color:#475569;">Todavía no hay ningún DVR conectado.</p></div>'; return; }
+    if(!_almDvrs.some(d => d.id === _almSel)) _almSel = _almDvrs[0].id;
+    try {
+        const { data } = await supabaseClient.from('alarma_eventos').select('*').eq('dvr_id', _almSel).order('ocurrido_at', { ascending: false }).limit(40);
+        _almEventos = data || [];
+    } catch(e) { logError('alarma eventos', e); _almEventos = []; }
+    try {
+        const { data } = await supabaseClient.from('alarma_videos').select('*').eq('dvr_id', _almSel).order('creado_en', { ascending: false }).limit(80);
+        _almVideos = data || [];
+    } catch(e) { logError('alarma videos', e); _almVideos = []; }
+    // conservar lo que se estaba escribiendo en el formulario de incidente
+    const form = {};
+    document.querySelectorAll('#almIncForm [id]').forEach(el => { form[el.id] = el.value; });
+    _almPintar();
+    Object.entries(form).forEach(([id, val]) => { const el = document.getElementById(id); if(el) el.value = val; });
+    clearInterval(_almTimer);
+    _almTimer = setInterval(() => {
+        const v = document.getElementById('v-alarma');
+        if(!v || !v.classList.contains('active')) { clearInterval(_almTimer); _almTimer = null; return; }
+        if(document.querySelector('#alarmaCont input:focus, #alarmaCont textarea:focus, #alarmaCont select:focus, #alarmaCont video')) return;
+        renderAlarma();
+    }, 30000);
+}
+
+function _almPintar() {
+    const cont = document.getElementById('alarmaCont');
+    const d = _almDvrs.find(x => x.id === _almSel);
+    if(!cont || !d) return;
+    const armada = _almEstaArmada(d);
+    const visto = d.agente_visto_at ? (Date.now() - new Date(d.agente_visto_at).getTime()) : Infinity;
+    const agenteOk = visto < 3 * 60 * 1000;
+    const dvrOk = d.dvr_visto_at && (Date.now() - new Date(d.dvr_visto_at).getTime()) < 3 * 60 * 1000;
+    const manual = d.modo !== 'horario' && (!d.modo_hasta || new Date() < new Date(d.modo_hasta));
+    const modoTxt = !manual ? 'Siguiendo el horario'
+        : (d.modo === 'armada' ? 'Armada a mano' : 'Desarmada a mano') + (d.modo_hasta ? ` hasta ${_almFecha(d.modo_hasta)}` : ' hasta que la cambies');
+    const selDvr = _almDvrs.length > 1
+        ? `<select onchange="_almSel=this.value; renderAlarma();" style="max-width:240px;">${_almDvrs.map(x => `<option value="${x.id}" ${x.id === _almSel ? 'selected' : ''}>${escapeHtml(x.nombre)}</option>`).join('')}</select>` : '';
+
+    const dias = _ALM_DIAS.map(([n, nombre]) => {
+        const h = (d.horario || {})[String(n)] || {};
+        return `<div class="alm-dia${h.activo ? '' : ' off'}" data-dia="${n}">
+            <label class="alm-sw"><input type="checkbox" ${h.activo ? 'checked' : ''} onchange="this.closest('.alm-dia').classList.toggle('off', !this.checked)"><span></span></label>
+            <b>${nombre}</b>
+            <label class="alm-t">Se arma<input type="time" value="${escapeHtml(h.arma || '19:00')}" data-k="arma"></label>
+            <label class="alm-t">Se desarma<input type="time" value="${escapeHtml(h.desarma || '09:00')}" data-k="desarma"></label>
+        </div>`;
+    }).join('');
+
+    const camaras = (d.canales || []).map(c => `<label class="alm-cam pill-elevado${c.vigilar ? ' pill-hundido' : ''}">
+        <input type="checkbox" ${c.vigilar ? 'checked' : ''} onchange="_almCamara(${Number(c.canal)}, this.checked)">
+        <i class="ti ${c.vigilar ? 'ti-eye' : 'ti-eye-off'}"></i> <span>${Number(c.canal)} · ${escapeHtml(c.nombre || 'Cámara')}</span></label>`).join('');
+
+    const avisoChip = { enviado: ['ok', 'WhatsApp enviado'], omitido: ['info', 'Ya se había avisado'], error: ['danger', 'No se pudo avisar'] };
+    const videoDeEvento = {};
+    _almVideos.forEach(v => { if(v.evento_id) videoDeEvento[v.evento_id] = v; });
+    const eventos = _almEventos.length ? _almEventos.map(e => {
+        const [cls, txt] = avisoChip[e.aviso_estado] || ['info', 'Sin aviso'];
+        const vid = videoDeEvento[e.id];
+        return `<div class="alm-ev">
+            <button class="alm-foto" ${e.foto_path ? `data-foto="${escapeHtml(e.foto_path)}" onclick="_almVerFoto(this.dataset.foto)"` : 'disabled'} aria-label="Ver foto">${e.foto_path ? '<i class="ti ti-photo"></i>' : '<i class="ti ti-camera-off"></i>'}</button>
+            <div class="alm-ev-txt"><b>${escapeHtml(e.canal_nombre || ('Cámara ' + e.canal))}</b>
+                <span>${_almFecha(e.ocurrido_at)} · ${e.tipo === 'persona' ? 'persona' : 'movimiento'}</span>
+                <span style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                  <span class="fin-badge ${cls}" ${e.aviso_error ? `title="${escapeHtml(e.aviso_error)}"` : ''}>${txt}</span>
+                  ${vid && vid.estado === 'listo' ? `<button class="btn btn-light btn-sm" onclick="_almVerVideo('${vid.id}')"><i class="ti ti-player-play"></i> Video</button>`
+                    : vid && vid.estado !== 'error' ? '<span class="fin-badge info">Video en camino…</span>' : ''}
+                </span>
+                <div class="alm-player" id="almPlayer-${vid ? vid.id : ''}"></div></div>
+        </div>`;
+    }).join('') : '<p style="color:#475569; margin:6px 0 0;">Sin movimientos registrados con la alarma armada.</p>';
+
+    // Videos guardados como evidencia (incidentes)
+    const hoyRD = new Date(Date.now() - 4 * 3600 * 1000).toISOString().slice(0, 10);
+    const optsCam = (d.canales || []).map(c => `<option value="${Number(c.canal)}">${Number(c.canal)} · ${escapeHtml(c.nombre || 'Cámara')}</option>`).join('');
+    const estVideo = v => v.estado === 'listo' ? ['ok', `Listo · ${(v.tamano_bytes / 1048576 || 0).toFixed(1)} MB`]
+        : v.estado === 'error' ? ['danger', 'No se pudo sacar del DVR'] : v.estado === 'procesando' ? ['warn', 'Sacando del DVR…'] : ['info', 'En cola'];
+    const _hRD = iso => new Date(iso).toLocaleTimeString('es-DO', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Santo_Domingo' });
+    const incidentes = _almVideos.filter(v => v.origen === 'incidente');
+    const listaInc = incidentes.length ? incidentes.map(v => {
+        const [cls, txt] = estVideo(v);
+        return `<div class="alm-ev">
+            <div class="alm-foto" style="cursor:default;"><i class="ti ti-movie"></i></div>
+            <div class="alm-ev-txt"><b>${escapeHtml(v.nota || 'Incidente')}</b>
+                <span>${escapeHtml(v.canal_nombre || ('Cámara ' + v.canal))} · ${new Date(v.inicio).toLocaleDateString('es-DO', { day: 'numeric', month: 'short', timeZone: 'America/Santo_Domingo' })}, ${_hRD(v.inicio)} a ${_hRD(v.fin)}</span>
+                <span style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                  <span class="fin-badge ${cls}" ${v.error ? `title="${escapeHtml(v.error)}"` : ''}>${txt}</span>
+                  ${v.estado === 'listo' ? `<button class="btn btn-light btn-sm" onclick="_almVerVideo('${v.id}')"><i class="ti ti-player-play"></i> Ver</button>
+                  <button class="btn btn-light btn-sm" onclick="_almDescargarVideo('${v.id}')"><i class="ti ti-download"></i> Descargar</button>` : ''}
+                  <button class="btn btn-light btn-sm" onclick="_almBorrarVideo('${v.id}')" aria-label="Borrar"><i class="ti ti-trash"></i></button>
+                </span>
+                <div class="alm-player" id="almPlayer-${v.id}"></div></div>
+        </div>`;
+    }).join('') : '<p style="color:#475569; margin:6px 0 0;">Todavía no has guardado videos de incidentes.</p>';
+
+    cont.innerHTML = `
+    <div class="alm-grid">
+      <div class="card alm-estado ${armada ? 'armada' : ''}">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+          <div><div class="alm-eyebrow">${escapeHtml(d.nombre)}</div>
+            <div class="alm-big"><i class="ti ${armada ? 'ti-shield-lock' : 'ti-shield-off'}"></i> ${armada ? 'ARMADA' : 'Desarmada'}</div>
+            <div style="color:#475569; font-size:13px;">${modoTxt}</div></div>
+          ${selDvr}
+        </div>
+        <div class="alm-agente ${agenteOk && dvrOk ? 'ok' : 'mal'}"><i class="ti ${agenteOk && dvrOk ? 'ti-plug-connected' : 'ti-plug-connected-x'}"></i>
+          ${!agenteOk ? `La PC del local no responde${d.agente_visto_at ? ' desde ' + _almFecha(d.agente_visto_at) : ''} — sin ella no llegan avisos`
+            : !dvrOk ? `La PC no logra comunicarse con el DVR${d.dvr_visto_at ? ' desde ' + _almFecha(d.dvr_visto_at) : ''} — revisa que esté encendido y conectado`
+            : 'La PC del local está vigilando el DVR'}</div>
+        <p class="alm-nota" style="margin:8px 0 0;">Si la alarma está armada y esto se queda en rojo 5 minutos, te llega un WhatsApp.</p>
+        <div class="alm-acciones">
+          <select id="almDuracion" title="¿Por cuánto tiempo?">
+            <option value="1">Por 1 hora</option><option value="3">Por 3 horas</option>
+            <option value="12" selected>Por 12 horas</option><option value="0">Hasta que la cambie</option>
+          </select>
+          <button class="btn btn-danger" onclick="_almModo('armada')"><i class="ti ti-lock"></i> Armar ahora</button>
+          <button class="btn btn-light" onclick="_almModo('desarmada')"><i class="ti ti-lock-open"></i> Desarmar ahora</button>
+          ${manual ? `<button class="btn btn-dark" onclick="_almModo('horario')"><i class="ti ti-calendar-time"></i> Volver al horario</button>` : ''}
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="alm-h3"><i class="ti ti-calendar-time"></i> Horario de cada día</h3>
+        <p class="alm-nota">Si la hora de desarmar es menor que la de armar, se desarma al día siguiente (ej. se arma 7:00 PM y se desarma 9:00 AM).</p>
+        <div id="almDias">${dias}</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
+          <button class="btn btn-light btn-sm" onclick="_almCopiarLunes()"><i class="ti ti-copy"></i> Copiar el lunes a todos</button>
+          <button class="btn btn-blue" onclick="_almGuardarHorario()"><i class="ti ti-device-floppy"></i> Guardar horario</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="alm-h3"><i class="ti ti-video"></i> Cámaras vigiladas</h3>
+        <p class="alm-nota">Solo las cámaras marcadas mandan aviso.</p>
+        <div class="alm-cams">${camaras}</div>
+        <h3 class="alm-h3" style="margin-top:18px;"><i class="ti ti-brand-whatsapp"></i> Enviar avisos a</h3>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <input id="almTel" inputmode="tel" value="${escapeHtml(d.aviso_telefono || '')}" placeholder="18090000000" style="max-width:200px;">
+          <button class="btn btn-light btn-sm" onclick="_almGuardarTel()">Guardar número</button>
+        </div>
+      </div>
+
+      <div class="card alm-eventos">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+          <h3 class="alm-h3" style="margin:0;"><i class="ti ti-alert-triangle"></i> Últimos movimientos</h3>
+          <button class="btn btn-light btn-sm" onclick="renderAlarma()"><i class="ti ti-refresh"></i> Actualizar</button>
+        </div>
+        ${eventos}
+      </div>
+
+      <div class="card alm-eventos">
+        <h3 class="alm-h3"><i class="ti ti-movie"></i> Guardar video de un incidente</h3>
+        <p class="alm-nota">Elige la cámara y la hora. El video se saca del DVR y queda guardado aparte como evidencia, aunque el DVR borre sus grabaciones viejas. Máximo 15 minutos por video.</p>
+        <div id="almIncForm" class="alm-inc-form">
+          <label class="alm-t">Cámara<select id="almIncCam">${optsCam}</select></label>
+          <label class="alm-t">Día<input type="date" id="almIncDia" value="${hoyRD}" max="${hoyRD}"></label>
+          <label class="alm-t">Desde<input type="time" id="almIncDesde"></label>
+          <label class="alm-t">Hasta<input type="time" id="almIncHasta"></label>
+          <label class="alm-t alm-inc-nota">Qué pasó<input id="almIncNota" maxlength="300" placeholder="Ej. cliente se llevó un iPhone 13 sin pagar"></label>
+        </div>
+        <button class="btn btn-blue" style="margin-top:10px;" onclick="_almPedirIncidente()"><i class="ti ti-device-floppy"></i> Guardar video</button>
+        <h3 class="alm-h3" style="margin-top:18px;"><i class="ti ti-folder"></i> Videos guardados</h3>
+        ${listaInc}
+      </div>
+    </div>`;
+}
+
+async function _almPedirIncidente() {
+    const canal = Number(document.getElementById('almIncCam')?.value);
+    const dia = document.getElementById('almIncDia')?.value;
+    const desde = document.getElementById('almIncDesde')?.value, hasta = document.getElementById('almIncHasta')?.value;
+    const nota = (document.getElementById('almIncNota')?.value || '').trim();
+    if(!canal || !dia || !desde || !hasta) { toast('Elige la cámara, el día y las horas desde y hasta.', 'error'); return; }
+    if(!nota) { toast('Escribe qué pasó, para encontrarlo después.', 'error'); return; }
+    const inicio = new Date(`${dia}T${desde}:00-04:00`), fin = new Date(`${dia}T${hasta}:00-04:00`);
+    if(!(fin > inicio)) { toast('La hora "hasta" tiene que ser después de "desde".', 'error'); return; }
+    if(fin - inicio > 15 * 60000) { toast('Máximo 15 minutos por video. Si necesitas más, guarda varios.', 'error'); return; }
+    if(fin > new Date()) { toast('Esa hora todavía no ha pasado.', 'error'); return; }
+    const d = _almDvrs.find(x => x.id === _almSel);
+    const cam = (d?.canales || []).find(c => Number(c.canal) === canal);
+    const { error } = await supabaseClient.from('alarma_videos').insert({
+        dvr_id: _almSel, canal, canal_nombre: cam?.nombre || null, origen: 'incidente', nota,
+        inicio: inicio.toISOString(), fin: fin.toISOString()
+    });
+    if(error) { logError('alarma incidente', error); toast('No se pudo pedir el video: ' + error.message, 'error'); return; }
+    ['almIncDesde', 'almIncHasta', 'almIncNota'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+    toast('Pedido. En un momento el video aparece en la lista (la PC del local lo saca del DVR).');
+    renderAlarma();
+}
+
+async function _almUrlVideo(id, descargar) {
+    const v = _almVideos.find(x => x.id === id);
+    if(!v?.video_path) return null;
+    const nombre = `${(v.canal_nombre || 'camara').replace(/[^\w-]+/g, '_')}_${new Date(v.inicio).toISOString().slice(0, 16).replace(/[:T]/g, '-')}.mp4`;
+    const { data, error } = await supabaseClient.storage.from('alarma-videos').createSignedUrl(v.video_path, 3600, descargar ? { download: nombre } : undefined);
+    if(error || !data?.signedUrl) { toast('No se pudo abrir el video.', 'error'); return null; }
+    return data.signedUrl;
+}
+
+async function _almVerVideo(id) {
+    const cont = document.getElementById('almPlayer-' + id);
+    if(!cont) return;
+    if(cont.innerHTML) { cont.innerHTML = ''; return; }
+    const url = await _almUrlVideo(id, false);
+    if(url) cont.innerHTML = `<video src="${escapeHtml(url)}" controls autoplay playsinline muted></video>`;
+}
+
+async function _almDescargarVideo(id) {
+    const url = await _almUrlVideo(id, true);
+    if(url) location.href = url;
+}
+
+async function _almBorrarVideo(id) {
+    const v = _almVideos.find(x => x.id === id);
+    if(!v) return;
+    if(!(await confirmar('¿Borrar este video? No se puede recuperar.'))) return;
+    if(v.video_path) {
+        const { error } = await supabaseClient.storage.from('alarma-videos').remove([v.video_path]);
+        if(error) { toast('No se pudo borrar el archivo: ' + error.message, 'error'); return; }
+    }
+    const { error } = await supabaseClient.from('alarma_videos').delete().eq('id', id);
+    if(error) { toast('No se pudo borrar: ' + error.message, 'error'); return; }
+    toast('Video borrado');
+    renderAlarma();
+}
+
+async function _almActualizar(cambios, okMsg) {
+    const { error } = await supabaseClient.from('alarma_dvr').update(cambios).eq('id', _almSel);
+    if(error) { logError('alarma guardar', error); toast('No se pudo guardar: ' + error.message, 'error'); return false; }
+    toast(okMsg);
+    await renderAlarma();
+    return true;
+}
+
+function _almModo(modo) {
+    if(modo === 'horario') return _almActualizar({ modo: 'horario', modo_hasta: null }, 'La alarma vuelve a seguir el horario');
+    const horas = Number(document.getElementById('almDuracion')?.value || 0);
+    const hasta = horas ? new Date(Date.now() + horas * 3600 * 1000).toISOString() : null;
+    return _almActualizar({ modo, modo_hasta: hasta }, modo === 'armada' ? 'Alarma armada' : 'Alarma desarmada');
+}
+
+function _almLeerDias() {
+    const horario = {};
+    for(const row of document.querySelectorAll('#almDias .alm-dia')) {
+        const arma = row.querySelector('[data-k="arma"]').value, desarma = row.querySelector('[data-k="desarma"]').value;
+        const activo = row.querySelector('input[type="checkbox"]').checked;
+        if(activo && (_almHm(arma) === null || _almHm(desarma) === null)) return { error: 'Pon la hora de armar y de desarmar en los días activos.' };
+        if(activo && arma === desarma) return { error: 'La hora de armar y de desarmar no pueden ser iguales.' };
+        horario[row.dataset.dia] = { activo, arma: arma || '19:00', desarma: desarma || '09:00' };
+    }
+    return { horario };
+}
+
+function _almCopiarLunes() {
+    const filas = [...document.querySelectorAll('#almDias .alm-dia')];
+    const lunes = filas.find(r => r.dataset.dia === '1');
+    if(!lunes) return;
+    const a = lunes.querySelector('[data-k="arma"]').value, z = lunes.querySelector('[data-k="desarma"]').value, on = lunes.querySelector('input[type="checkbox"]').checked;
+    filas.forEach(r => {
+        r.querySelector('[data-k="arma"]').value = a; r.querySelector('[data-k="desarma"]').value = z;
+        r.querySelector('input[type="checkbox"]').checked = on; r.classList.toggle('off', !on);
+    });
+    toast('Copiado a todos los días. Falta tocar "Guardar horario".');
+}
+
+function _almGuardarHorario() {
+    const r = _almLeerDias();
+    if(r.error) { toast(r.error, 'error'); return; }
+    return _almActualizar({ horario: r.horario }, 'Horario guardado');
+}
+
+function _almCamara(canal, vigilar) {
+    const d = _almDvrs.find(x => x.id === _almSel);
+    if(!d) return;
+    const canales = (d.canales || []).map(c => Number(c.canal) === canal ? { ...c, vigilar } : c);
+    return _almActualizar({ canales }, vigilar ? 'Cámara vigilada' : 'Cámara ya no avisa');
+}
+
+function _almGuardarTel() {
+    const tel = (document.getElementById('almTel')?.value || '').replace(/\D/g, '');
+    if(tel.length !== 11 || tel[0] !== '1') { toast('Escribe el número con 1 delante, ej. 18291234567.', 'error'); return; }
+    return _almActualizar({ aviso_telefono: tel }, 'Número guardado');
+}
+
+async function _almVerFoto(path) {
+    const w = window.open('', '_blank');
+    const { data, error } = await supabaseClient.storage.from('alarma-fotos').createSignedUrl(path, 600);
+    if(error || !data?.signedUrl) { if(w) w.close(); toast('No se pudo abrir la foto.', 'error'); return; }
+    if(w) w.location = data.signedUrl; else location.href = data.signedUrl;
+}
 
 async function renderInvFisico() {
     if(!isAdminUser()) { toast('🔒 Solo el administrador.', 'error'); return; }
