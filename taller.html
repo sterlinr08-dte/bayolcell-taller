@@ -216,6 +216,52 @@ input[disabled] { background-color: #f8fafc; color: #475569; cursor: not-allowed
         0 7px 20px -15px rgba(220,38,38,.40);
     border-radius:9999px;
 }
+/* ===== Alarma y Cámaras ===== */
+.alm-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr)); gap:15px; align-items:start; }
+.alm-grid .card { margin:0; }
+.alm-eyebrow { font-size:11px; font-weight:800; letter-spacing:.6px; text-transform:uppercase; color:#475569; }
+.alm-big { font-size:26px; font-weight:800; color:#334155; display:flex; align-items:center; gap:8px; margin:2px 0; }
+.alm-estado.armada .alm-big { color:#dc2626; }
+.alm-estado.armada { box-shadow:0 0 0 1px rgba(220,38,38,.18), 0 14px 30px -20px rgba(220,38,38,.55); }
+.alm-agente { display:flex; align-items:center; gap:8px; margin-top:12px; padding:9px 12px; border-radius:12px; font-size:13px; font-weight:600; }
+.alm-agente.ok { background:var(--fin-ok-bg); color:var(--fin-ok); }
+.alm-agente.mal { background:var(--fin-danger-bg); color:var(--fin-danger); }
+.alm-acciones { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+.alm-acciones select { width:auto; }
+.alm-h3 { font-size:15px; margin:0 0 4px; display:flex; align-items:center; gap:6px; }
+.alm-nota { color:#475569; font-size:12.5px; margin:0 0 10px; }
+.alm-dia { display:grid; grid-template-columns:auto 92px 1fr 1fr; align-items:center; gap:10px; padding:8px 0; border-top:1px solid #eef2f7; }
+.alm-dia:first-child { border-top:0; }
+.alm-dia.off .alm-t { opacity:.4; }
+.alm-t { display:flex; flex-direction:column; font-size:10.5px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:.3px; gap:3px; }
+.alm-t input { font-variant-numeric:tabular-nums; padding:6px 8px; }
+.alm-sw { position:relative; width:40px; height:23px; flex-shrink:0; }
+.alm-sw input { opacity:0; width:0; height:0; position:absolute; }
+.alm-sw span { position:absolute; inset:0; border-radius:999px; background:#cbd5e1; box-shadow:inset 0 2px 4px rgba(15,23,42,.18); transition:background .2s ease; cursor:pointer; }
+.alm-sw span::after { content:''; position:absolute; top:3px; left:3px; width:17px; height:17px; border-radius:50%; background:#fff; box-shadow:0 2px 5px rgba(15,23,42,.3); transition:transform .2s cubic-bezier(.2,.8,.2,1); }
+.alm-sw input:checked + span { background:#dc2626; }
+.alm-sw input:checked + span::after { transform:translateX(17px); }
+.alm-sw input:focus-visible + span { box-shadow:0 0 0 3px rgba(220,38,38,.3); }
+.alm-cams { display:flex; flex-wrap:wrap; gap:8px; }
+.alm-cam { display:inline-flex; align-items:center; gap:6px; padding:8px 13px; font-size:12.5px; font-weight:700; color:#475569; }
+.alm-cam.pill-hundido { color:#b91c1c; }
+.alm-cam input { position:absolute; opacity:0; width:0; height:0; }
+.alm-ev { display:flex; gap:12px; align-items:center; padding:10px 0; border-top:1px solid #eef2f7; }
+.alm-foto { width:52px; height:52px; flex-shrink:0; border-radius:12px; border:1px solid #e2e8f0; background:#f8fafc; color:#dc2626; font-size:22px; cursor:pointer; display:grid; place-items:center; }
+.alm-foto:disabled { color:#94a3b8; cursor:default; }
+.alm-ev-txt { display:flex; flex-direction:column; gap:3px; min-width:0; font-size:13px; }
+.alm-ev-txt span:not(.fin-badge) { color:#475569; font-size:12.5px; }
+.alm-ev-txt .fin-badge { align-self:flex-start; }
+.alm-player:empty { display:none; }
+.alm-player video { width:100%; max-width:560px; border-radius:12px; margin-top:6px; background:#0f172a; aspect-ratio:16/9; }
+.alm-inc-form { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
+.alm-inc-form .alm-inc-nota { grid-column:1 / -1; }
+.alm-inc-form input, .alm-inc-form select { text-transform:none; letter-spacing:0; font-weight:500; }
+@media (max-width:620px) { .alm-inc-form { grid-template-columns:1fr 1fr; } }
+@media (max-width:520px) {
+    .alm-dia { grid-template-columns:auto 1fr; }
+    .alm-dia .alm-t { grid-column:span 1; }
+}
 /* Safari no puede redondear el outline nativo — se quita del todo. */
 .pill-elevado:focus, .pill-elevado:focus-visible,
 .crm-tab-seg:focus, .crm-tab-seg:focus-visible,
@@ -1792,6 +1838,7 @@ body{
             <button id="menu-contabilidad" onclick="nav('contabilidad',this)"><i class="ti ti-calculator"></i> <span>Contabilidad</span></button>
             <button id="menu-incentivos" onclick="nav('incentivos',this)" style="display:none;"><i class="ti ti-coin"></i> <span>Incentivos Técnicos</span> <span class="nav-badge-admin">ADMIN</span></button>
             <button id="menu-nomina" onclick="nav('nomina',this)" style="display:none;"><i class="ti ti-users-group"></i> <span>Recursos Humanos</span> <span class="nav-badge-admin">ADMIN</span></button>
+            <button id="menu-alarma" onclick="nav('alarma',this)" style="display:none;"><i class="ti ti-shield-lock"></i> <span>Alarma y Cámaras</span> <span class="nav-badge-admin">ADMIN</span></button>
 
             <div class="nav-section">REPORTES</div>
             <button id="menu-reportes" onclick="nav('reportes',this)"><i class="ti ti-chart-bar"></i> <span>Reportes</span></button>
@@ -3879,6 +3926,15 @@ body{
                 <div id="invFisicoCont"></div>
             </div>
 
+            <!-- ============= ALARMA Y CÁMARAS (DVR Dahua) ============= -->
+            <div id="v-alarma" class="view">
+                <div class="card" style="margin-bottom:15px; border-left:4px solid #dc2626;">
+                    <h2 style="margin:0 0 4px 0; font-size:18px;"><i class="ti ti-shield-lock" style="color:#dc2626;"></i> Alarma y Cámaras <span class="nav-badge-admin">ADMIN</span> <button onclick="ayudaModulo('alarma')" title="Ayuda: ¿qué es esto?" style="background:none; border:none; cursor:pointer; color:#475569; font-size:16px; vertical-align:middle; padding:0 3px;"><i class="ti ti-info-circle"></i></button></h2>
+                    <p style="color:var(--text-muted); font-size:13px; margin:0;">Programa a qué hora se arma la alarma cada día. Mientras está armada, si una cámara vigilada detecta movimiento te llega un WhatsApp con la hora y aquí queda la foto.</p>
+                </div>
+                <div id="alarmaCont"></div>
+            </div>
+
             <!-- ============= REPORTES ============= -->
             <div id="v-reportes" class="view">
                 <div class="card" style="margin-bottom:15px;">
@@ -5563,6 +5619,6 @@ body{
 <div id="toast" class="toast"></div>
 <div id="printArea" class="print-area"></div>
 
-<script src="taller-app.js?v=20260929-mv"></script>
+<script src="taller-app.js?v=20260929-alarma"></script>
 <script src="crm-marketing-consent.js?v=20260929-f3"></script>
 </body>
