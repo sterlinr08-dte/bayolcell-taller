@@ -14,6 +14,8 @@
   var MIDNIGHT='20260929-f1';
   var surfaceCss=null;
   var midnightCss=null;
+  var afinadoCss=null;
+  var AFINADO='20261001-f1';
 
   function cargarPerformanceRuntime(){
     try{
@@ -88,9 +90,17 @@
     midnightCss.href='taller-midnight-motion.css?v='+MIDNIGHT;
     document.head.appendChild(midnightCss);
   }catch(e){}
+  // Afinado del taller (1 oct 2026): un solo acento naranja + celular. Va de último.
+  try{
+    afinadoCss=document.createElement('link');
+    afinadoCss.rel='stylesheet';
+    afinadoCss.href='taller-afinado.css?v='+AFINADO;
+    document.head.appendChild(afinadoCss);
+  }catch(e){}
   function reafirmarCapasVisuales(){
     try{if(surfaceCss&&surfaceCss.parentNode)document.head.appendChild(surfaceCss);}catch(e){}
     try{if(midnightCss&&midnightCss.parentNode)document.head.appendChild(midnightCss);}catch(e){}
+    try{if(afinadoCss&&afinadoCss.parentNode)document.head.appendChild(afinadoCss);}catch(e){}
   }
 
   function cargarExtensionesCrmSocial(){

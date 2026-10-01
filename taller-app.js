@@ -1183,7 +1183,7 @@ function _incFilaRegistro(r) {
         <td style="text-align:right; font-weight:700;">${money(r.monto_incentivo)}</td>
         <td>${_incEstadoBadge(est, r.sellado)}${(est === 'validado' || est === 'pagado') && r.aprobado_por ? `<div style="font-size:10px; color:#16a34a; margin-top:2px;">✓ ${escapeHtml(r.aprobado_por)}</div>` : ''}</td>
         <td style="white-space:nowrap; text-align:right;">
-            ${est === 'pendiente' ? `<button class="btn btn-light btn-sm" onclick="setEstadoIncentivo('${r.id}','validado')" title="Validar (firmado y sellado)" style="color:#1d4ed8;"><i class="ti ti-rosette-discount-check"></i></button>` : ''}
+            ${est === 'pendiente' ? `<button class="btn btn-light btn-sm" onclick="setEstadoIncentivo('${r.id}','validado')" title="Validar (firmado y sellado)" style="color:#1d4ed8;"><i class="ti ti-discount-check"></i></button>` : ''}
             ${est === 'validado' ? `<button class="btn btn-light btn-sm" onclick="setEstadoIncentivo('${r.id}','pendiente')" title="Quitar validación">↩</button>` : ''}
             ${est === 'pagado' ? `<button class="btn btn-light btn-sm" onclick="setEstadoIncentivo('${r.id}','validado')" title="Revertir pago">↩</button>` : ''}
             ${est !== 'pagado' ? `<button class="btn btn-light btn-sm" onclick="editarIncentivo('${r.id}')" title="Editar" style="color:#0369a1;"><i class="ti ti-pencil"></i></button>` : ''}
@@ -1199,7 +1199,7 @@ function _incFilaServicioAgrupada(r) {
         <td style="text-align:right; font-weight:700;">${money(r.monto_incentivo)}</td>
         <td>${_incEstadoBadge(est, r.sellado)}${(est === 'validado' || est === 'pagado') && r.aprobado_por ? `<div style="font-size:10px; color:#16a34a; margin-top:2px;">✓ ${escapeHtml(r.aprobado_por)}</div>` : ''}</td>
         <td style="white-space:nowrap; text-align:right;">
-            ${est === 'pendiente' ? `<button class="btn btn-light btn-sm" onclick="setEstadoIncentivo('${r.id}','validado')" title="Validar (firmado y sellado)" style="color:#1d4ed8;"><i class="ti ti-rosette-discount-check"></i></button>` : ''}
+            ${est === 'pendiente' ? `<button class="btn btn-light btn-sm" onclick="setEstadoIncentivo('${r.id}','validado')" title="Validar (firmado y sellado)" style="color:#1d4ed8;"><i class="ti ti-discount-check"></i></button>` : ''}
             ${est === 'validado' ? `<button class="btn btn-light btn-sm" onclick="setEstadoIncentivo('${r.id}','pendiente')" title="Quitar validación">↩</button>` : ''}
             ${est === 'pagado' ? `<button class="btn btn-light btn-sm" onclick="setEstadoIncentivo('${r.id}','validado')" title="Revertir pago">↩</button>` : ''}
             ${est !== 'pagado' ? `<button class="btn btn-light btn-sm" onclick="editarIncentivo('${r.id}')" title="Editar" style="color:#0369a1;"><i class="ti ti-pencil"></i></button>` : ''}
@@ -1212,7 +1212,7 @@ function _incFilaPlana(r) {
     const est = r.estado;
     const serv = r.tipo === 'pulido' ? 'Pulido de pantalla' : (r.tipo === 'manual' ? 'Manual' : 'Reparación');
     let acc = '';
-    if(est === 'pendiente') acc += `<button class="inc-ib" title="Validar (firmado y sellado)" onclick="setEstadoIncentivo('${r.id}','validado')" style="color:#1d4ed8;"><i class="ti ti-rosette-discount-check"></i></button>`;
+    if(est === 'pendiente') acc += `<button class="inc-ib" title="Validar (firmado y sellado)" onclick="setEstadoIncentivo('${r.id}','validado')" style="color:#1d4ed8;"><i class="ti ti-discount-check"></i></button>`;
     if(est === 'validado') acc += `<button class="inc-ib" title="Quitar validación" onclick="setEstadoIncentivo('${r.id}','pendiente')"><i class="ti ti-arrow-back-up"></i></button>`;
     if(est === 'pagado') acc += `<button class="inc-ib" title="Revertir pago" onclick="setEstadoIncentivo('${r.id}','validado')"><i class="ti ti-arrow-back-up"></i></button>`;
     if(est !== 'pagado') acc += `<button class="inc-ib" title="Editar" onclick="editarIncentivo('${r.id}')" style="color:#0369a1;"><i class="ti ti-pencil"></i></button>`;
@@ -10863,7 +10863,7 @@ function _renderNominaGenerar() {
         <td style="padding:2px; border:1px solid #e2e8f0;"><input class="nq-cxc" type="number" step="0.01" value="${l.cuentas_por_cobrar}" oninput="_nominaEdit()" style="width:85px; text-align:right; border:none; background:transparent;"></td>
         <td style="padding:2px; border:1px solid #e2e8f0;"><input class="nq-dd" type="number" step="0.01" value="${l.dias_descontado}" oninput="_nominaEdit()" style="width:80px; text-align:right; border:none; background:transparent;"></td>
         <td class="nq-total" style="padding:4px 6px; border:1px solid #e2e8f0; text-align:right; font-weight:800; color:#166534; background:#f0fdf4;">${money(l.total)}</td>
-        <td style="padding:4px 6px; border:1px solid #e2e8f0; text-align:center;"><a class="nq-com" onclick="_nominaComentario(${i}, this)" title="${escapeHtml(l.comentario || 'Agregar comentario')}" style="cursor:pointer; font-size:16px; color:${l.comentario ? '#0369a1' : '#cbd5e1'};"><i class="ti ${l.comentario ? 'ti-message-circle-filled' : 'ti-message-plus'}"></i></a></td>
+        <td style="padding:4px 6px; border:1px solid #e2e8f0; text-align:center;"><a class="nq-com" onclick="_nominaComentario(${i}, this)" title="${escapeHtml(l.comentario || 'Agregar comentario')}" style="cursor:pointer; font-size:16px; color:${l.comentario ? '#0369a1' : '#cbd5e1'};"><i class="ti ${l.comentario ? 'ti-message-circle-2-filled' : 'ti-message-plus'}"></i></a></td>
         <td style="padding:4px 6px; border:1px solid #e2e8f0; text-align:center;" title="Marcar cuando verifiques que esta línea está correcta"><input type="checkbox" class="nq-ok" ${l.revisado ? 'checked' : ''} onchange="_nominaToggleOk(this, ${i})" style="width:17px; height:17px; cursor:pointer; accent-color:#16a34a;"></td>
         <td style="padding:4px 6px; border:1px solid #e2e8f0; text-align:center;"><a onclick="_nominaQuitarLinea(${i})" title="Quitar a ${escapeHtml(l.nombre)} de ESTA quincena (no borra al empleado)" style="cursor:pointer; color:#fca5a5; font-size:15px;"><i class="ti ti-x"></i></a></td>
     </tr>`).join('');
@@ -10938,7 +10938,7 @@ async function _nominaComentario(i, el) {
     if(el) {
         el.title = l.comentario || 'Agregar comentario';
         el.style.color = l.comentario ? '#0369a1' : '#cbd5e1';
-        el.innerHTML = `<i class="ti ${l.comentario ? 'ti-message-circle-filled' : 'ti-message-plus'}"></i>`;
+        el.innerHTML = `<i class="ti ${l.comentario ? 'ti-message-circle-2-filled' : 'ti-message-plus'}"></i>`;
     }
     toast(l.comentario ? '💬 Comentario guardado en la línea.' : 'Comentario quitado.');
 }
@@ -11658,7 +11658,7 @@ function renderEquipoReacondCard(eq, num) {
                     ${eq.capacidad ? ' · ' + escapeHtml(eq.capacidad) : ''}
                 </div>
                 ${estado === 'vendido' && eq.fecha_despacho ? `<div style="font-size:11px; font-weight:700; margin-top:5px; color:#15803d;"><i class="ti ti-truck-delivery"></i> Salida: ${new Date(eq.fecha_despacho).toLocaleDateString('es-DO')}</div>` : ''}
-                ${tecnico && eq.fecha_asignacion ? `<div style="font-size:11px; color:#0891b2; font-weight:600; margin-top:4px;"><i class="ti ti-stopwatch"></i> Tomado: ${tiempoDesde(eq.fecha_asignacion)}</div>` : ''}
+                ${tecnico && eq.fecha_asignacion ? `<div style="font-size:11px; color:#0891b2; font-weight:600; margin-top:4px;"><i class="ti ti-clock-hour-4"></i> Tomado: ${tiempoDesde(eq.fecha_asignacion)}</div>` : ''}
                 ${eq.notas_diagnostico ? `<div style="background:#f1f5f9; padding:6px 10px; border-radius:6px; margin-top:6px; font-size:12px;"><b>Notas:</b> ${escapeHtml(eq.notas_diagnostico)}</div>` : ''}
             </div>
             <div class="reacond-equipo-actions" style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
@@ -12315,7 +12315,7 @@ function renderFallasEnTabPiezas() {
         const f = fallas.find(x => x.id === fid);
         if(!f) return '';
         const nota = (notas[fid] || '').trim();
-        return `<span class="badge" style="background:#fff; color:#92400e; border:1px solid #f59e0b; font-size:11px; display:inline-flex; align-items:center; gap:5px;">${escapeHtml(f.nombre_corto || f.nombre)}<i class="ti ${nota ? 'ti-message-circle-filled' : 'ti-message-plus'}" onclick="event.stopPropagation(); _evalFallaNota('${fid}')" title="${nota ? escapeHtml(nota) : 'Agregar nota a esta falla'}" style="cursor:pointer; color:${nota ? '#0369a1' : '#b45309'}; font-size:14px;"></i></span>`;
+        return `<span class="badge" style="background:#fff; color:#92400e; border:1px solid #f59e0b; font-size:11px; display:inline-flex; align-items:center; gap:5px;">${escapeHtml(f.nombre_corto || f.nombre)}<i class="ti ${nota ? 'ti-message-circle-2-filled' : 'ti-message-plus'}" onclick="event.stopPropagation(); _evalFallaNota('${fid}')" title="${nota ? escapeHtml(nota) : 'Agregar nota a esta falla'}" style="cursor:pointer; color:${nota ? '#0369a1' : '#b45309'}; font-size:14px;"></i></span>`;
     }).join('');
 }
 // Agregar/editar una nota para una falla específica del equipo (en la evaluación)
@@ -17931,7 +17931,7 @@ function renderReporteTecnico() {
             </div>
         </div>
         <div class="card" style="margin-bottom:15px;">
-            <h3 style="margin:0 0 12px;"><i class="ti ti-stopwatch" style="color:#0891b2;"></i> Tiempos Promedio</h3>
+            <h3 style="margin:0 0 12px;"><i class="ti ti-clock-hour-4" style="color:#0891b2;"></i> Tiempos Promedio</h3>
             <div class="kpi-grid">
                 ${kpi('⏱️ Trabajo (órdenes)', formatoHoras(mt.ord_trabajo.prom), '#0891b2')}
                 ${kpi('📦 Total cliente', formatoHoras(mt.ord_total.prom), '#ef4444')}
@@ -19752,7 +19752,7 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
                     ${(o.clave_equipo && (esMia || esAdmin || esServicio)) ? `<div style="font-size:11px; margin-top:3px; display:flex; align-items:center; gap:5px; flex-wrap:wrap;"><i class="ti ti-key" style="color:#0891b2;"></i> <b>Acceso del equipo:</b> <span class="access-mask" data-visible="0">•••• <button class="btn btn-light" style="padding:1px 6px; font-size:10px;" onclick="revelarClave('${o.id}', this)">Mostrar</button></span></div>` : ''}
                     ${o.condicion_fisica && o.condicion_fisica !== 'Sin marcas' ? `<div style="font-size:10px; color:#7c3aed; margin-top:1px;"><i class="ti ti-note"></i> Estado físico: ${escapeHtml(o.condicion_fisica)}</div>` : ''}
                     <div style="font-size:10px; color:#475569; margin-top:1px;"><i class="ti ti-clock"></i> Recibido: ${o.creado_en ? new Date(o.creado_en).toLocaleString('es-DO', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'}</div>
-                    ${o.tecnico_asignado_id && o.fecha_asignacion ? `<div style="font-size:10px; color:#0891b2; font-weight:600; margin-top:1px;"><i class="ti ti-stopwatch"></i> Tomada: ${tiempoDesde(o.fecha_asignacion)}</div>` : ''}
+                    ${o.tecnico_asignado_id && o.fecha_asignacion ? `<div style="font-size:10px; color:#0891b2; font-weight:600; margin-top:1px;"><i class="ti ti-clock-hour-4"></i> Tomada: ${tiempoDesde(o.fecha_asignacion)}</div>` : ''}
                     ${(() => {
                         if(!o.fecha_estimada_entrega) return '';
                         const fechaTxt = new Date(o.fecha_estimada_entrega + 'T00:00:00').toLocaleDateString('es-DO', {day:'2-digit', month:'2-digit', year:'numeric'});
@@ -20688,7 +20688,7 @@ function renderMisReacond() {
                 <div>
                     <b>${escapeHtml(eq.marca || '')} ${escapeHtml(eq.modelo || '')}</b> ${eq.capacidad ? '· ' + escapeHtml(eq.capacidad) : ''}
                     <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">Estado: ${escapeHtml(estLabel)} ${pend > 0 ? `· ${pend} falla(s) pendiente(s)` : '· ✅ sin pendientes'}</div>
-                    ${eq.fecha_asignacion ? `<div style="font-size:11px; color:#0891b2; font-weight:600; margin-top:2px;"><i class="ti ti-stopwatch"></i> Tomado: ${tiempoDesde(eq.fecha_asignacion)}</div>` : ''}
+                    ${eq.fecha_asignacion ? `<div style="font-size:11px; color:#0891b2; font-weight:600; margin-top:2px;"><i class="ti ti-clock-hour-4"></i> Tomado: ${tiempoDesde(eq.fecha_asignacion)}</div>` : ''}
                 </div>
                 <button class="btn btn-dark" style="padding:8px 14px;" onclick="abrirPanelProceso('${eq.id}')"><i class="ti ti-tool"></i> Trabajar</button>
             </div>`;
@@ -24918,7 +24918,7 @@ function _pintarDetalleFin() {
             </div>
             ${enMora && f.mdm_enrolado && est === 'activo' ? `<div style="background:var(--fin-danger-bg); border:1px solid var(--fin-danger-brd); color:var(--fin-danger); padding:8px 12px; border-radius:8px; margin-bottom:11px; font-size:12.5px;"><i class="ti ti-alert-triangle"></i> Cliente en atraso y equipo enrolado — candidato a bloqueo desde Hexnode.</div>` : ''}
             <!-- Acción principal: verificar -->
-            <button class="btn btn-blue" onclick="mdmVerificar('${f.id}', this)" style="font-size:13px; width:100%; margin-bottom:6px; padding:11px;"><i class="ti ti-rosette-discount-check"></i> Verificar enrolamiento (antes de entregar)</button>
+            <button class="btn btn-blue" onclick="mdmVerificar('${f.id}', this)" style="font-size:13px; width:100%; margin-bottom:6px; padding:11px;"><i class="ti ti-discount-check"></i> Verificar enrolamiento (antes de entregar)</button>
             <div id="mdmVerif_${f.id}" style="font-size:12.5px; margin-bottom:6px;"></div>
             <div id="mdmLoc_${f.id}" style="font-size:12.5px; margin-bottom:6px;"></div>
             <!-- Cuadrícula de acciones reales en Hexnode -->
@@ -24929,7 +24929,7 @@ function _pintarDetalleFin() {
                 <div class="mdm-action info" onclick="mdmUbicar('${f.id}', this)"><i class="ti ti-map-pin"></i>Ubicar</div>
                 <div class="mdm-action muted" onclick="window.open('https://bayolcell.uem.hexnode.com','_blank')"><i class="ti ti-history"></i>Historial</div>
                 <div class="mdm-action danger" onclick="mdmBorrarEquipo('${f.id}')"><i class="ti ti-eraser"></i>Borrar equipo</div>
-                <div class="mdm-action info" onclick="mdmLiberarEquipo('${f.id}')"><i class="ti ti-lock-open-2"></i>Liberar</div>
+                <div class="mdm-action info" onclick="mdmLiberarEquipo('${f.id}')"><i class="ti ti-lock-open"></i>Liberar</div>
             </div>
             <div id="mdmRes_${f.id}" style="font-size:12.5px; margin-top:10px;"></div>
             <div style="font-size:11px; color:var(--text-muted); margin-top:8px;">Las acciones envían la orden directo a Hexnode (requiere equipo enrolado/supervisado y la API configurada).</div>
@@ -25711,7 +25711,7 @@ function _finModalPagoExito(finId, pagoId) {
             <div style="font-size:19px; font-weight:800; color:#0f172a;">Pago registrado</div>
             <div style="font-size:26px; font-weight:800; color:#15803d; margin:6px 0;">${money(total)}</div>
             <div style="font-size:13px; color:var(--text-muted);">Recibo #${escapeHtml(String(pagoId).slice(0, 8))} · Saldo restante <b style="color:#0f172a;">${money(saldoRest)}</b></div>
-            ${saldado ? `<div style="margin-top:10px; display:inline-block; background:#dcfce7; color:#15803d; font-weight:700; font-size:12.5px; padding:5px 12px; border-radius:999px;"><i class="ti ti-rosette-discount-check"></i> Financiamiento saldado</div>` : ''}
+            ${saldado ? `<div style="margin-top:10px; display:inline-block; background:#dcfce7; color:#15803d; font-weight:700; font-size:12.5px; padding:5px 12px; border-radius:999px;"><i class="ti ti-discount-check"></i> Financiamiento saldado</div>` : ''}
         </div>
         <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:18px;">
             <button class="btn btn-light" onclick="imprimirReciboFin('${pagoId}')" style="padding:11px; font-size:13.5px;"><i class="ti ti-printer"></i> Imprimir ticket</button>
@@ -26594,7 +26594,7 @@ function _pintarDashboardFin() {
             </div>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
                 <button class="btn btn-light" onclick="abrirRecordatoriosHoy()" style="padding:12px 16px; font-size:13.5px; font-weight:700; border-radius:12px;"><i class="ti ti-brand-whatsapp"></i> Recordatorios${nReco > 0 ? ` <span class="fin-badge info" style="margin-left:2px;">${nReco}</span>` : ''}</button>
-                <button class="btn btn-blue" onclick="abrirCobroRapido()" style="padding:12px 24px; font-size:14px; font-weight:700; border-radius:12px; background:linear-gradient(135deg,#0047AB,#1d6fdb); border:none; box-shadow:0 4px 14px rgba(0,71,171,.3);"><i class="ti ti-cash-register"></i> Registrar pago</button>
+                <button class="btn btn-blue" onclick="abrirCobroRapido()" style="padding:12px 24px; font-size:14px; font-weight:700; border-radius:12px; background:linear-gradient(135deg,#0047AB,#1d6fdb); border:none; box-shadow:0 4px 14px rgba(0,71,171,.3);"><i class="ti ti-cash"></i> Registrar pago</button>
             </div>
         </div>` : ''}
         <div class="fv-dash-grid">

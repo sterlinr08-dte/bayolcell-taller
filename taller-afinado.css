@@ -1,0 +1,83 @@
+/* =====================================================================
+   BAYOL CELL — Afinado visual del taller (1 oct 2026, Fase 1)
+   Capa SOLO de estilo: no cambia ids, onclick ni funciones.
+   Se carga la última (crm-marketing-consent.js la reafirma al final).
+   Decisión de Sterling: un solo color de acento = NARANJA de la marca
+   del panel (#FF6B35 / oscuro #D65225). El rojo queda solo para
+   peligro (borrar, anular, atrasos), como manda la guía de diseño.
+   ===================================================================== */
+:root{
+  --bc-acento:#FF6B35;
+  --bc-acento-osc:#D65225;
+  --bc-acento-suave:#fff1eb;
+  /* La variable vieja "--blue-btn" era el color principal (en rojo):
+     la usan pestañas, iconos de títulos y botones viejos. */
+  --blue-btn:#E8552A;
+}
+
+/* ---------- Botones principales que todavía salían en rojo ---------- */
+#v-recepcion .rx-btn-red,
+#incentivosContenido .inc-btn-red{
+  background:linear-gradient(135deg,var(--bc-acento),var(--bc-acento-osc)) !important;
+  border-color:var(--bc-acento-osc) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 3px 10px rgba(214,82,37,.28) !important;
+}
+#v-recepcion .rx-btn-red:hover,
+#incentivosContenido .inc-btn-red:hover{
+  background:linear-gradient(135deg,#ff7a4a,var(--bc-acento)) !important;
+}
+/* Recepción: la franja de color de "Datos del Cliente" y de la vista previa iba en rojo */
+#v-recepcion .rx-head:not(.c2):not(.c3):not(.c4){ border-top-color:var(--bc-acento) !important; }
+#v-recepcion .rx-side .rx-card{ border-top-color:var(--bc-acento) !important; }
+/* Pestaña activa de Configuración (usa --blue-btn en línea) */
+.cfg-main-tab.tab-active{ box-shadow:0 4px 12px -4px rgba(214,82,37,.45); }
+
+/* Estado "presionado" visible en todos los botones (celular no tiene hover) */
+.btn:active, .rx-btn:active, .inc-btn:active, .cfg-main-tab:active{ transform:scale(.97); }
+
+/* ---------- Encabezado superior en el celular ---------- */
+@media (max-width:600px){
+  /* La pastilla "Rol:" se cortaba (mostraba solo "Rol:" sin el rol). */
+  .top-bar .top-right-info{ display:none !important; }
+  .top-bar .top-title{ flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .top-bar #btnNotif{ margin-left:auto; }
+  .top-bar > .btn{ min-width:40px; min-height:40px; display:inline-flex; align-items:center; justify-content:center; }
+  .top-bar > .btn span{ display:none; }
+}
+
+/* ---------- Campos de formulario: que se vea dónde se escribe ---------- */
+/* Antes (taller-visual-polish.css): borde BLANCO + vidrio sobre fondo casi blanco:
+   no se distinguía el campo. Mismo selector => esta capa (última) gana.
+   Sin blur en los campos: el vidrio va en capas flotantes, no en contenido. */
+#app .view:not(#v-crmLinea) input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+#app .view:not(#v-crmLinea) select,
+#app .view:not(#v-crmLinea) textarea{
+  background:#fff !important;
+  border-color:#d5dce6 !important;
+  box-shadow:0 1px 2px rgba(15,23,42,.04) !important;
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+}
+#app .view:not(#v-crmLinea) input:not([type="checkbox"]):not([type="radio"]):hover,
+#app .view:not(#v-crmLinea) select:hover,
+#app .view:not(#v-crmLinea) textarea:hover{ border-color:#b8c2d0 !important; }
+#app .view:not(#v-crmLinea) input:not([type="checkbox"]):not([type="radio"]):focus,
+#app .view:not(#v-crmLinea) select:focus,
+#app .view:not(#v-crmLinea) textarea:focus{
+  border-color:var(--bc-acento) !important;
+  box-shadow:0 0 0 3px rgba(255,107,53,.16) !important;
+}
+#app .view input[type=checkbox], #app .view input[type=radio]{ accent-color:var(--bc-acento); }
+
+/* ---------- Tablas: que el número de orden no se parta en dos líneas ---------- */
+#v-ordenes table td:first-child, #v-ordenes table th:first-child{ white-space:nowrap; }
+
+/* ---------- Títulos de módulo en celular: un poco más proporcionados ---------- */
+@media (max-width:600px){
+  .view > h2, .view > .card > h2{ font-size:20px !important; line-height:1.25; }
+  .view .card h3{ font-size:16px; }
+}
+
+@media (prefers-reduced-motion:reduce){
+  .btn:active, .rx-btn:active, .inc-btn:active, .cfg-main-tab:active{ transform:none; }
+}
