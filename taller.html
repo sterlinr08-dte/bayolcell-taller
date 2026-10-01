@@ -3475,7 +3475,7 @@ body{
                                     <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">
                                         <input id="eqLoteBusq" placeholder="🔍 Buscar / escanear por IMEI, código o modelo…" oninput="renderEquiposLote()" onkeydown="if(event.key==='Enter'){event.preventDefault();renderEquiposLote();}" autocomplete="off" style="flex:1; min-width:180px; padding:10px 13px; font-size:13.5px; border:1px solid #cbd5e1; border-radius:11px;">
                                         <select id="eqLoteFiltro" onchange="renderEquiposLote()" style="flex:none; width:210px; padding:10px 12px; font-size:13px; border:1px solid #cbd5e1; border-radius:11px;"><option value="">Todos los artículos</option></select>
-                                        <select id="eqLoteFiltroGar" onchange="renderEquiposLote()" style="flex:none; width:160px; padding:10px 12px; font-size:13px; border:1px solid #cbd5e1; border-radius:11px;"><option value="">Todos</option><option value="garantia">🛡️ Solo garantía</option><option value="normal">Sin garantía</option></select>
+                                        <select id="eqLoteFiltroGar" onchange="renderEquiposLote()" style="flex:none; width:160px; padding:10px 12px; font-size:13px; border:1px solid #cbd5e1; border-radius:11px;"><option value="">Todos</option><option value="garantia">Solo garantía</option><option value="normal">Sin garantía</option></select>
                                     </div>
                                     <div id="eqChips" class="eq-chips"></div>
                                     <div id="equiposLoteTable"><div style="text-align:center; color:var(--text-muted); padding:20px;">Sin equipos agregados aún.</div></div>
@@ -4274,9 +4274,9 @@ body{
             <div class="form-row">
                 <label>Tipo de empleado *</label>
                 <select id="mod_tec_tipo" onchange="actualizarCamposPorTipoEmpleado()">
-                    <option value="tecnico">🔧 Técnico (repara equipos)</option>
-                    <option value="servicio">🧑‍💼 Servicio al Cliente (recibe y entrega)</option>
-                    <option value="admin">🛡️ Administrador (gestiona todo)</option>
+                    <option value="tecnico">Técnico (repara equipos)</option>
+                    <option value="servicio">‍Servicio al Cliente (recibe y entrega)</option>
+                    <option value="admin">Administrador (gestiona todo)</option>
                 </select>
                 <small style="color:var(--text-muted); font-size:11px;">El técnico procesa reparaciones. Servicio al cliente recibe clientes. Administrador gestiona todo el sistema.</small>
             </div>
@@ -4795,15 +4795,15 @@ body{
                 <div class="form-row" style="flex:1; min-width:140px;">
                     <label>Icono (Tabler)</label>
                     <select id="mod_cat_icono">
-                        <option value="ti-category">📦 Categoría</option>
-                        <option value="ti-device-mobile">📱 Celular</option>
-                        <option value="ti-device-tablet">📲 Tablet</option>
-                        <option value="ti-device-laptop">💻 Laptop</option>
-                        <option value="ti-headphones">🎧 Accesorio</option>
-                        <option value="ti-plug">🔌 Cargador</option>
-                        <option value="ti-battery">🔋 Batería</option>
-                        <option value="ti-tools">🔧 Repuesto</option>
-                        <option value="ti-box">📦 Otro</option>
+                        <option value="ti-category">Categoría</option>
+                        <option value="ti-device-mobile">Celular</option>
+                        <option value="ti-device-tablet">Tablet</option>
+                        <option value="ti-device-laptop">Laptop</option>
+                        <option value="ti-headphones">Accesorio</option>
+                        <option value="ti-plug">Cargador</option>
+                        <option value="ti-battery">Batería</option>
+                        <option value="ti-tools">Repuesto</option>
+                        <option value="ti-box">Otro</option>
                     </select>
                 </div>
             </div>
@@ -5163,11 +5163,11 @@ body{
             </div>
             <div class="form-row"><label>Estado actual *</label>
                 <select id="rex_estado">
-                    <option value="en_proceso">🔧 En Proceso</option>
-                    <option value="espera_pieza">⏳ Espera pieza</option>
-                    <option value="listo_revision">👍 Finalizado (por recibir)</option>
-                    <option value="listo_venta">🛒 Listo para venta</option>
-                    <option value="pendiente">🟡 Pendiente (sin empezar)</option>
+                    <option value="en_proceso">En Proceso</option>
+                    <option value="espera_pieza">Espera pieza</option>
+                    <option value="listo_revision">Finalizado (por recibir)</option>
+                    <option value="listo_venta">Listo para venta</option>
+                    <option value="pendiente">Pendiente (sin empezar)</option>
                 </select>
             </div>
             <div class="form-row"><label>Nota (opcional)</label><textarea id="rex_nota" rows="2" placeholder="Detalle de en qué punto va, falla, etc."></textarea></div>
@@ -5563,6 +5563,6 @@ body{
 <div id="toast" class="toast"></div>
 <div id="printArea" class="print-area"></div>
 
-<script src="taller-app.js?v=20261001-f1"></script>
-<script src="crm-marketing-consent.js?v=20261001-f1"></script>
+<script src="taller-app.js?v=20261001-f2"></script>
+<script src="crm-marketing-consent.js?v=20261001-f2"></script>
 </body>

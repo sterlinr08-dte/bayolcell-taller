@@ -15,7 +15,7 @@
   var surfaceCss=null;
   var midnightCss=null;
   var afinadoCss=null;
-  var AFINADO='20261001-f1';
+  var AFINADO='20261001-f2';
 
   function cargarPerformanceRuntime(){
     try{
@@ -29,6 +29,17 @@
     }catch(e){}
   }
   cargarPerformanceRuntime();
+
+  // Afinado Fase 2 (1 oct 2026): emojis de la interfaz -> íconos Tabler.
+  try{
+    if(!window.__bcIconosTallerReq){
+      window.__bcIconosTallerReq=true;
+      var ico=document.createElement('script');
+      ico.async=false;
+      ico.src='taller-iconos.js?v='+AFINADO;
+      document.head.appendChild(ico);
+    }
+  }catch(e){}
 
   function instalarLoaderPremium(){
     try{

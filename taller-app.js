@@ -1628,7 +1628,7 @@ function _valRenderShell() {
             <option value="porsellar">Validados (por sellar)</option>
             <option value="validado">Validados</option>
             <option value="rechazado">Devueltos</option>
-            <option value="duplicados">⚠️ Duplicados</option>
+            <option value="duplicados">Duplicados</option>
             <option value="todos">Todos</option>
           </select>
           <button class="btn" style="background:#16a34a; color:#fff;" onclick="_valRevisarSecuencial()"><i class="ti ti-player-play"></i> Revisar uno por uno</button>
@@ -1791,9 +1791,9 @@ function _revRender() {
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
           <div class="form-row" style="flex:1; min-width:150px;"><label>Tipo de trabajo</label>
             <select id="rv_tipo" onchange="_revTipoCambio()" ${ci}>
-              <option value="reparacion" ${r.tipo === 'reparacion' ? 'selected' : ''}>🔧 Reparación (+${INC_REPARACION})</option>
-              <option value="pulido" ${r.tipo === 'pulido' ? 'selected' : ''}>✨ Pulido (+${INC_PULIDO})</option>
-              <option value="manual" ${r.tipo === 'manual' ? 'selected' : ''}>✏️ Manual</option>
+              <option value="reparacion" ${r.tipo === 'reparacion' ? 'selected' : ''}>Reparación (+${INC_REPARACION})</option>
+              <option value="pulido" ${r.tipo === 'pulido' ? 'selected' : ''}>Pulido (+${INC_PULIDO})</option>
+              <option value="manual" ${r.tipo === 'manual' ? 'selected' : ''}>Manual</option>
             </select></div>
           <div class="form-row" style="flex:1; min-width:120px;"><label>Incentivo (RD$)</label><input type="number" id="rv_inc" value="${r.monto_incentivo}" ${r.tipo === 'manual' ? '' : 'readonly'} ${ci}></div>
           <div class="form-row" style="flex:1; min-width:120px;"><label>Monto factura (RD$)</label><input type="number" id="rv_fac" value="${r.monto_factura || 0}" ${ci}></div>
@@ -1887,9 +1887,9 @@ function editarIncentivo(id) {
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
             <div class="form-row" style="flex:1; min-width:150px;"><label>Tipo</label><select id="edTipo" onchange="_incEditTipoCambio()" ${ci}>
-                <option value="reparacion" ${r.tipo==='reparacion'?'selected':''}>🔧 Reparación (+50)</option>
-                <option value="pulido" ${r.tipo==='pulido'?'selected':''}>✨ Pulido (+100)</option>
-                <option value="manual" ${r.tipo==='manual'?'selected':''}>✏️ Manual</option>
+                <option value="reparacion" ${r.tipo==='reparacion'?'selected':''}>Reparación (+50)</option>
+                <option value="pulido" ${r.tipo==='pulido'?'selected':''}>Pulido (+100)</option>
+                <option value="manual" ${r.tipo==='manual'?'selected':''}>Manual</option>
             </select></div>
             <div class="form-row" style="flex:1; min-width:100px;"><label>Incentivo</label><input type="number" id="edIncentivo" value="${r.monto_incentivo}" ${r.tipo==='manual'?'':'readonly'} ${ci}></div>
             <div class="form-row" style="flex:1; min-width:100px;"><label>Monto de la factura *</label><input type="number" id="edFactura" value="${r.monto_factura||0}" ${ci}></div>
@@ -2105,9 +2105,9 @@ function _srvServiciosHtml(scope, arr) {
         return `<div data-srv="${i}" style="display:flex; gap:6px; align-items:flex-end; flex-wrap:wrap; margin-bottom:6px;">
             <div style="flex:1; min-width:150px;"><label style="font-size:10px; color:#475569;">Tipo</label>
                 <select class="srvTipo" onchange="_srvTipoCambio('${scope}',${i})" ${ci}>
-                    <option value="reparacion" ${sel('reparacion')}>🔧 Reparación (+50)</option>
-                    <option value="pulido" ${sel('pulido')}>✨ Pulido (+100)</option>
-                    <option value="manual" ${sel('manual')}>✏️ Manual</option>
+                    <option value="reparacion" ${sel('reparacion')}>Reparación (+50)</option>
+                    <option value="pulido" ${sel('pulido')}>Pulido (+100)</option>
+                    <option value="manual" ${sel('manual')}>Manual</option>
                 </select></div>
             <div style="width:90px;"><label style="font-size:10px; color:#475569;">Incentivo</label><input type="number" class="srvInc" value="${s.incentivo}" ${s.tipo === 'manual' ? '' : 'readonly'} ${ci}></div>
             <div style="flex:1; min-width:120px;"><label style="font-size:10px; color:#475569;">Nota (opc.)</label><input type="text" class="srvNota" value="${escapeHtml(s.nota || '')}" placeholder="Detalle" ${ci}></div>
@@ -5659,7 +5659,7 @@ async function guardarArticuloModal() {
         if(id) {
             const { error } = await supabaseClient.from('articulos').update(data).eq('id', id);
             if(error) throw error;
-            toast('✅ Artículo actualizado.');
+            toast('Artículo actualizado.');
         } else {
             // Evitar códigos duplicados (la clave que amarra con Info Plus)
             const { data: dup } = await supabaseClient.from('articulos').select('id').eq('codigo', codigo).limit(1);
@@ -5668,7 +5668,7 @@ async function guardarArticuloModal() {
             const { data: ins, error } = await supabaseClient.from('articulos').insert([data]).select().single();
             if(error) throw error;
             nuevoId = ins?.id;
-            toast(`✅ Artículo ${data.codigo} creado.`);
+            toast(`Artículo ${data.codigo} creado.`);
         }
         cerrarModalArticulo();
         // Si la marca o categoría son nuevas, agregarlas al catálogo para la próxima vez
@@ -5705,7 +5705,7 @@ async function eliminarArticulo(id) {
     try {
         const { error } = await supabaseClient.from('articulos').update({ activo: false }).eq('id', id);
         if(error) throw error;
-        toast('🗑️ Artículo desactivado.');
+        toast('Artículo desactivado.');
         await loadAll();
     } catch(e) { logError('Desactivar artículo', e); toastError(getFriendlyError(e)); }
 }
@@ -18705,8 +18705,8 @@ function abrirEditarRecepcion(ordenId) {
             <div style="display:flex; gap:8px;">
                 <div style="flex:1;"><label style="font-size:12px; font-weight:600;">Prioridad</label>
                     <select id="ed_prioridad" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin:3px 0 8px; font-size:13px;">
-                        <option value="normal" ${o.prioridad !== 'urgente' ? 'selected' : ''}>🟢 Normal</option>
-                        <option value="urgente" ${o.prioridad === 'urgente' ? 'selected' : ''}>🔴 Urgente</option>
+                        <option value="normal" ${o.prioridad !== 'urgente' ? 'selected' : ''}>Normal</option>
+                        <option value="urgente" ${o.prioridad === 'urgente' ? 'selected' : ''}>Urgente</option>
                     </select></div>
                 <div style="flex:1;"><label style="font-size:12px; font-weight:600;">Entrega estimada</label>
                     <input id="ed_fecha_estimada" type="date" value="${escapeHtml(o.fecha_estimada_entrega || '')}" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin:3px 0 8px; font-size:13px;"></div>
