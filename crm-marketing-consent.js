@@ -40,6 +40,7 @@
       document.head.appendChild(ico);
     }
   }catch(e){}
+  try{var avp=document.createElement('script');avp.async=false;avp.src='taller-pestana-avisos.js?v=20261002-p1';document.head.appendChild(avp);}catch(e){} // Aviso en la pestaña: (N) sin leer + parpadeo con mensaje nuevo
 
   function instalarLoaderPremium(){
     try{
