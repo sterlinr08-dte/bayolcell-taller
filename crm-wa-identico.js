@@ -16,7 +16,7 @@
   'use strict';
   if (window.__bcWaIdentico) return;
   window.__bcWaIdentico = true;
-  var VERSION = '20261002-w2';
+  var VERSION = '20261002-w3';
 
   // ---------- CSS (siempre de último) ----------
   function css(){
@@ -505,18 +505,267 @@
   });
 
   // =====================================================================
+  // FASE 3 — FIJAR, ARCHIVAR, NO LEÍDO, SILENCIAR, ETIQUETAS
+  // (columnas whatsapp_hilos.fijado_en/silenciado/etiquetas + tabla whatsapp_etiquetas)
+  // =====================================================================
+  var etiquetas = [], etiquetasCargadas = false, modoArchivados = false, filtroEtiqueta = null;
+  var extras = [], extrasDeLinea = null, cargandoExtras = false;
+  var lineaId = function(){ try { return (typeof _crmLineaActualId !== 'undefined') ? _crmLineaActualId : null; } catch(e){ return null; } };
+  var admin = function(){ try { return typeof isAdminUser === 'function' && isAdminUser(); } catch(e){ return false; } };
+  var hilos = function(){ try { return _waHilos || []; } catch(e){ return []; } };
+  var hiloPorId = function(id){ return hilos().find(function(h){ return h.id === id; }) || extras.find(function(h){ return h.id === id; }) || null; };
+  var etqDe = function(h){ var a = h && h.etiquetas; return Array.isArray(a) ? a : []; };
+  var repintarLista = function(){ try { if (typeof _pintarWhatsappLista === 'function') _pintarWhatsappLista(); } catch(e){} };
+
+  async function cargarEtiquetas(forzar){
+    if (etiquetasCargadas && !forzar) return etiquetas;
+    try { var r = await supabaseClient.from('whatsapp_etiquetas').select('id,nombre,color,orden').order('orden').order('nombre'); if (!r.error){ etiquetas = r.data || []; etiquetasCargadas = true; } } catch(e){}
+    return etiquetas;
+  }
+  // Conversaciones fijadas o archivadas que pueden no estar en la página cargada de la lista
+  async function cargarExtras(){
+    var lid = lineaId(); if (!lid || cargandoExtras) return;
+    cargandoExtras = true;
+    try {
+      var r = await supabaseClient.from('whatsapp_hilos').select('*, whatsapp_lineas(nombre)').eq('linea_id', lid).or('fijado_en.not.is.null,estado.eq.archivado').limit(300);
+      if (r.error || lid !== lineaId()) return;
+      var yo = null; try { yo = _crmMiIdentidad(); } catch(e){}
+      extras = (r.data || []).filter(function(h){ return admin() || !h.asignado_id || (yo && String(h.asignado_id) === String(yo.id)); });
+      extrasDeLinea = lid;
+      repintarLista();
+    } catch(e){} finally { cargandoExtras = false; }
+  }
+  function mezclarExtras(){
+    var base = hilos(); if (!Array.isArray(base)) return;
+    var ids = new Set(base.map(function(h){ return h.id; }));
+    extras.forEach(function(h){ if (!ids.has(h.id)) base.push(h); });
+  }
+  function envolverFiltro(){
+    if (typeof window._crmHilosFiltrados !== 'function' || window._crmHilosFiltrados.__bcwaF3) return;
+    var orig = window._crmHilosFiltrados;
+    var nuevo = function(){
+      if (extrasDeLinea === lineaId()) mezclarExtras();
+      var lista = orig.apply(this, arguments) || [];
+      if (!esWaCanal()) return lista;
+      lista = lista.filter(function(h){
+        var arch = h.estado === 'archivado';
+        if (modoArchivados ? !arch : arch) return false;
+        if (filtroEtiqueta && etqDe(h).indexOf(filtroEtiqueta) < 0) return false;
+        return true;
+      });
+      if (!modoArchivados){
+        var fij = lista.filter(function(h){ return h.fijado_en; }).sort(function(a, b){ return String(b.fijado_en).localeCompare(String(a.fijado_en)); });
+        lista = fij.concat(lista.filter(function(h){ return !h.fijado_en; }));
+      }
+      return lista;
+    };
+    nuevo.__bcwaF3 = true; window._crmHilosFiltrados = nuevo;
+  }
+  var esWaCanal = function(){ var v = vista(); return !v || v.dataset.socialChannel === 'whatsapp' || !v.dataset.socialChannel; };
+
+  async function actualizarHilo(id, cambios, msgOk){
+    var h = hiloPorId(id); if (!h) return false;
+    var antes = {}; Object.keys(cambios).forEach(function(k){ antes[k] = h[k]; h[k] = cambios[k]; });
+    var x = extras.find(function(e){ return e.id === id; }); if (x && x !== h) Object.assign(x, cambios);
+    if ((cambios.fijado_en || cambios.estado === 'archivado') && !extras.some(function(e){ return e.id === id; })) extras.push(h);
+    repintarLista();
+    try {
+      var r = await supabaseClient.from('whatsapp_hilos').update(cambios).eq('id', id);
+      if (r.error) throw r.error;
+      if (msgOk) try { toast(msgOk); } catch(e){}
+      return true;
+    } catch(e){
+      Object.assign(h, antes); repintarLista();
+      try { toastError('No se pudo guardar el cambio.'); } catch(_){}
+      return false;
+    }
+  }
+  var acciones = {
+    fijar: function(id){
+      var h = hiloPorId(id); if (!h) return;
+      if (!h.fijado_en){
+        var n = hilos().filter(function(x){ return x.fijado_en && x.linea_id === h.linea_id; }).length;
+        if (n >= 3){ try { toastError('Solo puedes fijar 3 chats. Desfija uno primero.'); } catch(e){} return; }
+      }
+      actualizarHilo(id, { fijado_en: h.fijado_en ? null : new Date().toISOString() }, h.fijado_en ? 'Chat desfijado' : 'Chat fijado');
+    },
+    archivar: function(id){
+      var h = hiloPorId(id); if (!h) return;
+      var arch = h.estado === 'archivado';
+      if (!arch && hiloId() === id){ try { volverListaWhatsapp(); } catch(e){} }
+      actualizarHilo(id, { estado: arch ? 'abierto' : 'archivado' }, arch ? 'Chat desarchivado' : 'Chat archivado');
+    },
+    silenciar: function(id){
+      var h = hiloPorId(id); if (!h) return;
+      actualizarHilo(id, { silenciado: !h.silenciado }, h.silenciado ? 'Notificaciones activadas' : 'Chat silenciado');
+    },
+    noLeido: function(id){
+      var h = hiloPorId(id); if (!h) return;
+      var leer = (h.no_leidos_count || 0) > 0;
+      if (!leer && hiloId() === id){ try { volverListaWhatsapp(); } catch(e){} }
+      actualizarHilo(id, { no_leidos_count: leer ? 0 : 1 }, leer ? 'Marcado como leído' : 'Marcado como no leído');
+    },
+    etiquetar: function(id){ abrirEtiquetas(id); },
+    info: function(id){ if (hiloId() !== id){ try { abrirHiloWhatsapp(id); } catch(e){} setTimeout(abrirInfo, 900); } else abrirInfo(); },
+    buscar: function(){ abrirBuscar(); }
+  };
+  window._bcWaChatAccion = function(accion, id){ cerrarMenuChat(); if (acciones[accion]) acciones[accion](id || hiloId()); };
+
+  // ---------- Menú de chat (chevron en la fila, ⋮ en la cabecera, mantener presionado en el celular) ----------
+  function opcionesChat(h, enCabecera){
+    if (!h) return [];
+    var o = [];
+    if (enCabecera){ o.push(['info', 'info-circle', 'Info. del contacto']); o.push(['buscar', 'search', 'Buscar']); }
+    o.push(['archivar', h.estado === 'archivado' ? 'archive-off' : 'archive', h.estado === 'archivado' ? 'Desarchivar chat' : 'Archivar chat']);
+    o.push(['silenciar', h.silenciado ? 'bell' : 'bell-off', h.silenciado ? 'Activar notificaciones' : 'Silenciar notificaciones']);
+    if (h.estado !== 'archivado') o.push(['fijar', h.fijado_en ? 'pinned-off' : 'pin', h.fijado_en ? 'Desfijar chat' : 'Fijar chat']);
+    o.push(['noLeido', (h.no_leidos_count || 0) > 0 ? 'message-check' : 'message-dots', (h.no_leidos_count || 0) > 0 ? 'Marcar como leído' : 'Marcar como no leído']);
+    o.push(['etiquetar', 'tag', 'Etiquetar chat']);
+    return o;
+  }
+  function cerrarMenuChat(){ var m = document.getElementById('bcwaMenuChat'); if (m) m.remove(); var s = document.getElementById('bcwaHoja'); if (s) s.remove(); }
+  function abrirMenuChat(id, anclaEl, enCabecera){
+    cerrarMenuChat();
+    var h = hiloPorId(id); if (!h) return;
+    var ops = opcionesChat(h, enCabecera);
+    if (movil()){
+      var hoja = document.createElement('div'); hoja.id = 'bcwaHoja'; hoja.className = 'bcwa-hoja';
+      hoja.innerHTML = '<div class="bcwa-hoja-caja" role="menu"><div class="bcwa-hoja-agarre"></div><div class="bcwa-hoja-tit">' + esc(h.nombre_perfil || h.telefono_e164 || '') + '</div>' +
+        ops.map(function(o){ return '<button type="button" role="menuitem" data-a="' + o[0] + '"><i class="ti ti-' + o[1] + '"></i>' + esc(o[2]) + '</button>'; }).join('') + '</div>';
+      document.body.appendChild(hoja);
+      var abierta = Date.now();
+      // El toque que abrió la hoja (mantener presionado) puede soltar un clic justo después: ignorarlo.
+      hoja.addEventListener('click', function(e){ if (Date.now() - abierta < 450) return; var b = e.target.closest('button[data-a]'); if (b) window._bcWaChatAccion(b.dataset.a, id); else if (e.target === hoja) cerrarMenuChat(); });
+      return;
+    }
+    var m = document.createElement('div'); m.id = 'bcwaMenuChat'; m.className = 'bcwa-menu-chat'; m.setAttribute('role', 'menu');
+    m.innerHTML = ops.map(function(o){ return '<button type="button" role="menuitem" data-a="' + o[0] + '"><i class="ti ti-' + o[1] + '"></i>' + esc(o[2]) + '</button>'; }).join('');
+    document.body.appendChild(m);
+    var r = anclaEl.getBoundingClientRect(), w = m.offsetWidth, hgt = m.offsetHeight;
+    var left = Math.min(window.innerWidth - w - 8, Math.max(8, r.right - w)), top = r.bottom + 4;
+    if (top + hgt > window.innerHeight - 8) top = Math.max(8, r.top - hgt - 4);
+    m.style.left = left + 'px'; m.style.top = top + 'px';
+    m.addEventListener('click', function(e){ var b = e.target.closest('button[data-a]'); if (b) window._bcWaChatAccion(b.dataset.a, id); });
+  }
+  document.addEventListener('click', function(e){
+    var mc = document.getElementById('bcwaMenuChat');
+    if (mc && !mc.contains(e.target) && !(e.target.closest && e.target.closest('.bcwa-row-menu, .bcwa-mas'))) cerrarMenuChat();
+  }, true);
+  document.addEventListener('keydown', function(e){
+    if (e.key !== 'Escape') return;
+    if (document.getElementById('bcwaMenuChat') || document.getElementById('bcwaHoja') || document.getElementById('bcwaEtq')){ e.preventDefault(); e.stopImmediatePropagation(); cerrarMenuChat(); cerrarEtiquetas(); }
+  }, true);
+
+  // Mantener presionado (celular) sobre una fila
+  var lp = null;
+  document.addEventListener('pointerdown', function(e){
+    if (!movil() || !esWa()) return;
+    var row = e.target.closest && e.target.closest('#waLista .wa-row[data-hiloid]'); if (!row) return;
+    var x0 = e.clientX, y0 = e.clientY;
+    lp = { row: row, t: setTimeout(function(){ lp && (lp.hecho = true); if (navigator.vibrate) try { navigator.vibrate(12); } catch(_){} row.classList.add('bcwa-presionada'); abrirMenuChat(row.dataset.hiloid, row, false); setTimeout(function(){ row.classList.remove('bcwa-presionada'); }, 300); }, 520), x0: x0, y0: y0 };
+  }, true);
+  var cancelarLp = function(e){ if (!lp) return; if (e && e.type === 'pointermove' && Math.hypot(e.clientX - lp.x0, e.clientY - lp.y0) < 10) return; clearTimeout(lp.t); if (e && e.type !== 'pointermove' && lp.hecho){ var r = lp.row; r.__bcwaSinClick = true; setTimeout(function(){ r.__bcwaSinClick = false; }, 450); } if (!e || e.type !== 'pointermove' || !lp.hecho) lp = (e && e.type === 'pointermove') ? null : null; };
+  document.addEventListener('pointerup', cancelarLp, true);
+  document.addEventListener('pointercancel', cancelarLp, true);
+  document.addEventListener('pointermove', cancelarLp, true);
+  document.addEventListener('click', function(e){ var row = e.target.closest && e.target.closest('#waLista .wa-row'); if (row && row.__bcwaSinClick){ e.preventDefault(); e.stopPropagation(); row.__bcwaSinClick = false; } }, true);
+  document.addEventListener('contextmenu', function(e){ if (movil() && e.target.closest && e.target.closest('#waLista .wa-row')) e.preventDefault(); }, true);
+
+  // ---------- Etiquetas ----------
+  function cerrarEtiquetas(){ var x = document.getElementById('bcwaEtq'); if (x) x.remove(); }
+  async function abrirEtiquetas(id){
+    cerrarMenuChat(); cerrarEtiquetas();
+    var h = hiloPorId(id); if (!h) return;
+    await cargarEtiquetas(true);
+    var sel = new Set(etqDe(h));
+    var cap = document.createElement('div'); cap.id = 'bcwaEtq'; cap.className = 'bcwa-hoja bcwa-etq';
+    var pintar = function(){
+      cap.innerHTML = '<div class="bcwa-hoja-caja" role="dialog" aria-label="Etiquetar chat"><div class="bcwa-hoja-agarre"></div><div class="bcwa-hoja-tit">Etiquetar chat</div>' +
+        (etiquetas.length ? etiquetas.map(function(t){ return '<label class="bcwa-etq-fila"><i class="ti ti-tag-filled" style="color:' + esc(t.color) + '"></i><span>' + esc(t.nombre) + '</span><input type="checkbox" data-id="' + esc(t.id) + '"' + (sel.has(t.id) ? ' checked' : '') + '>' + (admin() ? '<button type="button" class="bcwa-etq-del" data-del="' + esc(t.id) + '" title="Borrar etiqueta" aria-label="Borrar etiqueta"><i class="ti ti-trash"></i></button>' : '') + '</label>'; }).join('') : '<div class="vacio">Todavía no hay etiquetas.</div>') +
+        (admin() ? '<div class="bcwa-etq-nueva"><input type="text" maxlength="30" placeholder="Nueva etiqueta" aria-label="Nombre de la nueva etiqueta"><input type="color" value="#25d366" aria-label="Color"><button type="button" class="bcwa-etq-crear">Agregar</button></div>' : '') +
+        '<div class="bcwa-etq-pie"><button type="button" class="bcwa-etq-cancelar">Cancelar</button><button type="button" class="bcwa-etq-guardar">Guardar</button></div></div>';
+    };
+    pintar(); document.body.appendChild(cap);
+    cap.addEventListener('change', function(e){ var c = e.target; if (c.matches('input[type=checkbox][data-id]')){ if (c.checked) sel.add(c.dataset.id); else sel.delete(c.dataset.id); } });
+    cap.addEventListener('click', async function(e){
+      if (e.target === cap || e.target.closest('.bcwa-etq-cancelar')){ cerrarEtiquetas(); return; }
+      if (e.target.closest('.bcwa-etq-guardar')){ var lista = Array.from(sel).filter(function(x){ return etiquetas.some(function(t){ return t.id === x; }); }); cerrarEtiquetas(); actualizarHilo(id, { etiquetas: lista }, 'Etiquetas guardadas'); return; }
+      var del = e.target.closest('.bcwa-etq-del');
+      if (del){ e.preventDefault(); var t = etiquetas.find(function(x){ return x.id === del.dataset.del; }); var okb = true; try { okb = await confirmar('¿Borrar la etiqueta "' + (t ? t.nombre : '') + '"? Se quita de todos los chats.'); } catch(_){}
+        if (!okb) return; var r = await supabaseClient.from('whatsapp_etiquetas').delete().eq('id', del.dataset.del); if (!r.error){ sel.delete(del.dataset.del); await cargarEtiquetas(true); pintar(); } return; }
+      if (e.target.closest('.bcwa-etq-crear')){
+        var nom = cap.querySelector('.bcwa-etq-nueva input[type=text]').value.trim(), col = cap.querySelector('.bcwa-etq-nueva input[type=color]').value;
+        if (!nom) return;
+        var r2 = await supabaseClient.from('whatsapp_etiquetas').insert({ nombre: nom, color: col, orden: etiquetas.length + 1 }).select('id').single();
+        if (!r2.error){ sel.add(r2.data.id); await cargarEtiquetas(true); pintar(); } else { try { toastError('No se pudo crear la etiqueta.'); } catch(_){} }
+      }
+    });
+  }
+
+  // ---------- Pintar indicadores en la lista + fila "Archivados" + chips de etiqueta ----------
+  function decorarLista(){
+    var lista = document.getElementById('waLista'); if (!lista) return;
+    // Fila "Archivados" (arriba, como WhatsApp) o cabecera de vuelta en modo archivados
+    var nArch = extras.filter(function(h){ return h.estado === 'archivado'; }).length;
+    var fila = lista.querySelector(':scope > .bcwa-archivados');
+    var html = modoArchivados ? '<i class="ti ti-arrow-left"></i><b>Archivados</b><span></span>' : '<i class="ti ti-archive"></i><b>Archivados</b><span>' + (nArch || '') + '</span>';
+    if (!modoArchivados && !nArch){ if (fila) fila.remove(); }
+    else {
+      if (!fila){ fila = document.createElement('button'); fila.type = 'button'; fila.className = 'bcwa-archivados'; fila.addEventListener('click', function(){ modoArchivados = !modoArchivados; repintarLista(); var l = document.getElementById('waLista'); if (l) l.scrollTop = 0; }); }
+      if (lista.firstElementChild !== fila) lista.insertBefore(fila, lista.firstChild);
+      if (fila.innerHTML !== html) fila.innerHTML = html;
+    }
+    lista.querySelectorAll('.wa-row[data-hiloid]').forEach(function(row){
+      var h = hiloPorId(row.dataset.hiloid); if (!h) return;
+      // chevron (PC)
+      if (!row.querySelector('.bcwa-row-menu')){
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'bcwa-row-menu'; b.setAttribute('aria-label', 'Opciones del chat'); b.innerHTML = '<i class="ti ti-chevron-down"></i>';
+        b.addEventListener('click', function(ev){ ev.stopPropagation(); ev.preventDefault(); abrirMenuChat(row.dataset.hiloid, b, false); });
+        var der = row.querySelector('.fila-badge, .fila-pendiente'); var cont = der ? der.parentNode : row.lastElementChild; cont.appendChild(b);
+      }
+      var iconos = (h.fijado_en ? '<i class="ti ti-pin-filled" title="Fijado"></i>' : '') + (h.silenciado ? '<i class="ti ti-volume-off" title="Silenciado"></i>' : '');
+      var ic = row.querySelector('.bcwa-row-ic');
+      if (iconos){ if (!ic){ ic = document.createElement('span'); ic.className = 'bcwa-row-ic'; var p = row.querySelector('.fila-badge, .fila-pendiente, .bcwa-row-menu'); p.parentNode.insertBefore(ic, p); } if (ic.innerHTML !== iconos) ic.innerHTML = iconos; }
+      else if (ic) ic.remove();
+      var tags = etqDe(h).map(function(id){ var t = etiquetas.find(function(x){ return x.id === id; }); return t ? '<i class="ti ti-tag-filled" style="color:' + esc(t.color) + '" title="' + esc(t.nombre) + '"></i>' : ''; }).join('');
+      var tg = row.querySelector('.bcwa-row-tags');
+      if (tags){ if (!tg){ tg = document.createElement('span'); tg.className = 'bcwa-row-tags'; var nom = row.querySelector('.fila-nombre'); nom.parentNode.insertBefore(tg, nom.nextSibling); } if (tg.innerHTML !== tags) tg.innerHTML = tags; }
+      else if (tg) tg.remove();
+    });
+    // Chips de etiquetas (filtro), detrás de los chips del CRM
+    var chips = document.getElementById('crmChipsRow');
+    if (chips && etiquetas.length){
+      var cont2 = chips.querySelector(':scope > .bcwa-chips-etq');
+      var chtml = etiquetas.map(function(t){ return '<button type="button" class="crm-chip bcwa-chip-etq' + (filtroEtiqueta === t.id ? ' on' : '') + '" data-etq="' + esc(t.id) + '"><i class="ti ti-tag-filled" style="color:' + esc(t.color) + '"></i> ' + esc(t.nombre) + '</button>'; }).join('');
+      if (!cont2){ cont2 = document.createElement('span'); cont2.className = 'bcwa-chips-etq'; chips.appendChild(cont2);
+        cont2.addEventListener('click', function(e){ var b = e.target.closest('[data-etq]'); if (!b) return; filtroEtiqueta = filtroEtiqueta === b.dataset.etq ? null : b.dataset.etq; repintarLista(); decorarLista(); }); }
+      if (cont2.innerHTML !== chtml) cont2.innerHTML = chtml;
+    }
+  }
+  function botonMasCabecera(){
+    var head = document.querySelector('#waDetalle .wa-chat-head'); if (!head || head.querySelector('.bcwa-mas')) return;
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'bcwa-hbtn bcwa-mas'; b.title = 'Menú'; b.setAttribute('aria-label', 'Menú del chat');
+    b.innerHTML = '<i class="ti ti-dots-vertical"></i>';
+    b.addEventListener('click', function(e){ e.stopPropagation(); abrirMenuChat(hiloId(), b, true); });
+    var lupa = head.querySelector('.bcwa-lupa'); head.insertBefore(b, lupa ? lupa.nextSibling : null);
+  }
+
+  // =====================================================================
   // Aplicar todo al pintarse el CRM
   // =====================================================================
   var hiloAntes = null;
   function aplicar(){
     if (!document.getElementById('waWrap')) return;
-    envolverEnviar(); envolverMenu();
+    envolverEnviar(); envolverMenu(); envolverFiltro();
+    if (!etiquetasCargadas) cargarEtiquetas().then(function(){ decorarLista(); });
+    if (lineaId() && extrasDeLinea !== lineaId()){ extrasDeLinea = lineaId(); modoArchivados = false; filtroEtiqueta = null; cargarExtras(); }
     var id = hiloId();
     if (id !== hiloAntes){
       hiloAntes = id; cerrarBuscar(); cerrarInfo(); if (id) cargarDestacados(id);
       var p = document.querySelector('#waDetalleCol > .bcwa-buscar'); if (p){ var i = p.querySelector('input'); if (i) i.value = ''; p.querySelector('.bcwa-buscar-res').innerHTML = '<div class="vacio">Buscar mensajes de este chat.</div>'; }
     }
-    if (id){ botonLupa(); cabeceraClicable(); restaurarBorrador(); pildoraMovil(); engancharScroll(); contarNuevos(); marcarDestacados(); }
+    decorarLista();
+    if (id){ botonLupa(); botonMasCabecera(); cabeceraClicable(); restaurarBorrador(); pildoraMovil(); engancharScroll(); contarNuevos(); marcarDestacados(); }
     borradoresEnLista();
   }
   var pendiente = false;
@@ -524,7 +773,7 @@
     if (pendiente) return;
     for (var i = 0; i < muts.length; i++){
       var t = muts[i].target;
-      if (t && t.nodeType === 1 && t.closest && t.closest('.bcwa-bajar, .bcwa-fecha, .bcwa-buscar, .bcwa-soltar, .bcwa-info')) continue;
+      if (t && t.nodeType === 1 && t.closest && t.closest('.bcwa-bajar, .bcwa-fecha, .bcwa-buscar, .bcwa-soltar, .bcwa-info, .bcwa-row-ic, .bcwa-row-tags, .bcwa-archivados, .bcwa-chips-etq')) continue;
       if (t && t.nodeType === 1 && (t.id === 'waWrap' || (t.closest && t.closest('#waWrap')))){
         pendiente = true;
         Promise.resolve().then(function(){ pendiente = false; try { aplicar(); } catch(e){} });
@@ -538,5 +787,5 @@
     aplicar();
   }
   if (document.body) iniciar(); else document.addEventListener('DOMContentLoaded', iniciar);
-  window.BayolWaIdentico = { version: VERSION, aplicar: aplicar, buscar: abrirBuscar, irA: irA, info: abrirInfo, visor: abrirVisor, destacados: function(){ return Array.from(destacados); } };
+  window.BayolWaIdentico = { version: VERSION, aplicar: aplicar, buscar: abrirBuscar, irA: irA, info: abrirInfo, visor: abrirVisor, destacados: function(){ return Array.from(destacados); }, accion: function(a, id){ window._bcWaChatAccion(a, id); }, etiquetas: function(){ return etiquetas; }, estado: function(){ return { modoArchivados: modoArchivados, filtroEtiqueta: filtroEtiqueta, extras: extras.length }; }, archivados: function(on){ modoArchivados = !!on; repintarLista(); } };
 })();

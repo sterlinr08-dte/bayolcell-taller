@@ -101,11 +101,13 @@
       var u = usuario(), admin = esAdmin(), n = 0, algunaOk = false;
       for (var i = 0; i < TABLAS.length; i++){
         try {
-          var r = await sb.from(TABLAS[i]).select('id,asignado_id,asignado_tipo,sucursal_id,estado').gt('no_leidos_count', 0).limit(2000);
+          var campos = 'id,asignado_id,asignado_tipo,sucursal_id,estado' + (TABLAS[i] === 'whatsapp_hilos' ? ',silenciado' : '');
+          var r = await sb.from(TABLAS[i]).select(campos).gt('no_leidos_count', 0).limit(2000);
+          if (r.error && campos.indexOf('silenciado') > 0) r = await sb.from(TABLAS[i]).select('id,asignado_id,asignado_tipo,sucursal_id,estado').gt('no_leidos_count', 0).limit(2000);
           if (r.error || !r.data) continue;
           algunaOk = true;
           r.data.forEach(function(h){
-            if (h.estado === 'archivado') return;
+            if (h.estado === 'archivado' || h.silenciado) return;
             if (!admin){
               if (u.sucursal_id && h.sucursal_id && String(h.sucursal_id) !== String(u.sucursal_id)) return;
               if (h.asignado_id && !(String(h.asignado_id) === String(u.id) && (!h.asignado_tipo || h.asignado_tipo === u._tipo))) return;

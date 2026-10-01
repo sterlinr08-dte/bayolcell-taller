@@ -205,3 +205,72 @@ body #v-crmLinea[data-social-channel="whatsapp"] .bcwa-info-destlist .bcwa-res{ 
 @media (prefers-reduced-motion:reduce){ .bcwa-visor.ver{ animation:none; } }
 
 @media (prefers-reduced-motion:reduce){ body #v-crmLinea[data-social-channel="whatsapp"] .bcwa-buscar{ transition:none; } body #v-crmLinea[data-social-channel="whatsapp"] .bcwa-bajar.ver{ animation:none; } body #v-crmLinea[data-social-channel="whatsapp"] .wa-bubble-wrap.bcwa-encontrado{ animation:none; outline:3px solid rgba(37,211,102,.55); } }
+
+/* =====================================================================
+   Fase 3 — fijar, archivar, no leído, silenciar y etiquetas
+   ===================================================================== */
+/* Chevron de opciones en la fila (aparece al pasar el ratón, como WhatsApp Web) */
+body #v-crmLinea[data-social-channel="whatsapp"] .wa-row{ position:relative; }
+.bcwa-row-menu{ border:0; background:transparent; color:var(--wa-gris,#667781); width:22px; height:22px; padding:0; margin-left:2px;
+  display:inline-flex; align-items:center; justify-content:center; cursor:pointer; opacity:0; width:0; overflow:hidden; transition:opacity .12s, width .12s; border-radius:50%; }
+.bcwa-row-menu i{ font-size:19px; }
+#waLista .wa-row:hover .bcwa-row-menu, .bcwa-row-menu:focus-visible{ opacity:1; width:22px; }
+.bcwa-row-menu:focus-visible{ outline:2px solid #00a884; outline-offset:1px; }
+@media (hover:none){ .bcwa-row-menu{ display:none !important; } }
+/* Íconos fijado / silenciado y etiquetas en la fila */
+.bcwa-row-ic{ display:inline-flex; align-items:center; gap:4px; color:#8696a0; margin-right:4px; }
+.bcwa-row-ic i{ font-size:17px; }
+.bcwa-row-tags{ display:inline-flex; gap:1px; margin-left:4px; vertical-align:middle; }
+.bcwa-row-tags i{ font-size:14px; }
+.bcwa-presionada{ background:#f0f2f5 !important; transition:background .15s; }
+/* Fila "Archivados" arriba de la lista */
+.bcwa-archivados{ display:flex; align-items:center; gap:18px; width:100%; min-height:49px; padding:0 15px 0 26px; border:0; border-bottom:1px solid #e9edef;
+  background:#fff; color:#111b21; font:inherit; font-size:16px; cursor:pointer; text-align:left; }
+.bcwa-archivados:hover{ background:#f5f6f6; }
+.bcwa-archivados i{ font-size:20px; color:#00a884; }
+.bcwa-archivados b{ font-weight:400; flex:1; }
+.bcwa-archivados span{ color:#00a884; font-size:12px; font-weight:500; }
+/* Chips de etiquetas en la fila de filtros */
+.bcwa-chips-etq{ display:contents; }
+.bcwa-chip-etq i{ font-size:13px; }
+body #v-crmLinea[data-social-channel="whatsapp"] .bcwa-chip-etq.on{ background:#e7fce3 !important; color:#008069 !important; border-color:#bfe8b5 !important; }
+body #v-crmLinea:not([data-social-channel="whatsapp"]) .bcwa-chips-etq{ display:none; }
+/* Menú desplegable (PC) */
+.bcwa-menu-chat{ position:fixed; z-index:100050; min-width:208px; padding:9px 0; background:#fff; border-radius:3px;
+  box-shadow:0 2px 5px rgba(11,20,26,.26),0 2px 10px rgba(11,20,26,.16); animation:bcwaMenuIn .12s ease-out; }
+.bcwa-menu-chat button{ display:flex; align-items:center; gap:12px; width:100%; padding:0 24px 0 20px; height:40px; border:0; background:transparent;
+  font:inherit; font-size:14.5px; color:#3b4a54; text-align:left; cursor:pointer; }
+.bcwa-menu-chat button i{ font-size:18px; color:#54656f; }
+.bcwa-menu-chat button:hover, .bcwa-menu-chat button:focus-visible{ background:#f5f6f6; outline:none; }
+@keyframes bcwaMenuIn{ from{ opacity:0; transform:scale(.96); } to{ opacity:1; transform:none; } }
+/* Hoja inferior (celular) y selector de etiquetas */
+.bcwa-hoja{ position:fixed; inset:0; z-index:100050; background:rgba(11,20,26,.4); display:flex; align-items:flex-end; justify-content:center; animation:bcwaFade .15s; }
+.bcwa-hoja-caja{ width:100%; max-width:520px; max-height:82vh; overflow:auto; background:#fff; border-radius:16px 16px 0 0; padding:6px 0 calc(10px + env(safe-area-inset-bottom));
+  box-shadow:0 -4px 20px rgba(0,0,0,.15); animation:bcwaSube .2s ease-out; }
+.bcwa-hoja-agarre{ width:36px; height:4px; border-radius:2px; background:#d1d7db; margin:6px auto 8px; }
+.bcwa-hoja-tit{ padding:4px 22px 10px; font-size:15px; font-weight:600; color:#111b21; border-bottom:1px solid #e9edef; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.bcwa-hoja-caja > button{ display:flex; align-items:center; gap:18px; width:100%; min-height:52px; padding:0 22px; border:0; background:transparent;
+  font:inherit; font-size:16px; color:#111b21; text-align:left; cursor:pointer; }
+.bcwa-hoja-caja > button i{ font-size:22px; color:#54656f; }
+.bcwa-hoja-caja > button:active{ background:#f0f2f5; }
+@media (min-width:768px){ .bcwa-hoja{ align-items:center; } .bcwa-hoja-caja{ border-radius:12px; max-width:420px; } .bcwa-hoja-agarre{ display:none; } }
+@keyframes bcwaFade{ from{ opacity:0; } to{ opacity:1; } }
+@keyframes bcwaSube{ from{ transform:translateY(40px); opacity:.6; } to{ transform:none; opacity:1; } }
+.bcwa-etq .vacio{ padding:14px 22px; color:#667781; font-size:14px; }
+.bcwa-etq-fila{ display:flex; align-items:center; gap:14px; min-height:48px; padding:0 18px 0 22px; cursor:pointer; font-size:15.5px; color:#111b21; }
+.bcwa-etq-fila:hover{ background:#f5f6f6; }
+.bcwa-etq-fila i.ti-tag-filled{ font-size:20px; }
+.bcwa-etq-fila span{ flex:1; }
+.bcwa-etq-fila input[type=checkbox]{ width:19px; height:19px; accent-color:#00a884; cursor:pointer; }
+.bcwa-etq-del{ border:0; background:transparent; color:#8696a0; width:32px; height:32px; border-radius:50%; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; }
+.bcwa-etq-del:hover{ background:#fde8e8; color:#dc2626; }
+.bcwa-etq-nueva{ display:flex; gap:8px; align-items:center; padding:10px 18px 4px 22px; border-top:1px solid #e9edef; margin-top:4px; }
+.bcwa-etq-nueva input[type=text]{ flex:1; min-width:0; height:36px; border:1px solid #d1d7db; border-radius:8px; padding:0 10px; font:inherit; font-size:14px; }
+.bcwa-etq-nueva input[type=text]:focus{ outline:none; border-color:#00a884; box-shadow:0 0 0 2px rgba(0,168,132,.15); }
+.bcwa-etq-nueva input[type=color]{ width:36px; height:36px; padding:2px; border:1px solid #d1d7db; border-radius:8px; background:#fff; cursor:pointer; }
+.bcwa-etq-crear, .bcwa-etq-cancelar, .bcwa-etq-guardar{ height:36px; padding:0 16px; border-radius:18px; font:inherit; font-size:14px; font-weight:500; cursor:pointer; }
+.bcwa-etq-crear, .bcwa-etq-cancelar{ border:1px solid #d1d7db; background:#fff; color:#008069; }
+.bcwa-etq-guardar{ border:0; background:#00a884; color:#fff; }
+.bcwa-etq-guardar:hover{ background:#008f72; }
+.bcwa-etq-pie{ display:flex; justify-content:flex-end; gap:10px; padding:12px 18px 6px; }
+@media (prefers-reduced-motion:reduce){ .bcwa-menu-chat, .bcwa-hoja, .bcwa-hoja-caja{ animation:none; } }
