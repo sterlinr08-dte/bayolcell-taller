@@ -40,6 +40,7 @@
       document.head.appendChild(ico);
     }
   }catch(e){}
+  try{var nav=document.createElement('script');nav.async=false;nav.src='taller-nav-apple.js?v=20261002-n1';document.head.appendChild(nav);}catch(e){} // Barra de navegación de ventanas estilo Apple (capa reversible)
 
   function instalarLoaderPremium(){
     try{
