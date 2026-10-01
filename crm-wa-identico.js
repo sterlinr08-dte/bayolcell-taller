@@ -16,7 +16,7 @@
   'use strict';
   if (window.__bcWaIdentico) return;
   window.__bcWaIdentico = true;
-  var VERSION = '20261002-w1';
+  var VERSION = '20261002-w2';
 
   // ---------- CSS (siempre de último) ----------
   function css(){
@@ -269,18 +269,254 @@
   });
 
   // =====================================================================
+  // FASE 2 — 6) DESTACADOS (estrella), 7) VISOR DE FOTOS, 8) ARRASTRAR/PEGAR,
+  //          9) INFO DEL CONTACTO
+  // =====================================================================
+  var destacados = new Set(), destacadosDe = null;
+  async function cargarDestacados(id){
+    destacadosDe = id; destacados = new Set();
+    try {
+      var r = await supabaseClient.from('whatsapp_mensajes').select('id').eq('hilo_id', id).eq('destacado', true).limit(500);
+      if (destacadosDe !== id || r.error) return;
+      (r.data || []).forEach(function(m){ destacados.add(m.id); });
+      marcarDestacados();
+    } catch(e){}
+  }
+  function marcarDestacados(){
+    document.querySelectorAll('#waMessagesScroll .wa-brow[data-msgid]').forEach(function(row){
+      var on = destacados.has(row.getAttribute('data-msgid'));
+      var tick = row.querySelector('.wa-tick-line'), star = tick && tick.querySelector('.bcwa-star');
+      if (on && tick && !star){ var i = document.createElement('i'); i.className = 'ti ti-star-filled bcwa-star'; i.setAttribute('aria-label', 'Destacado'); tick.insertBefore(i, tick.firstChild); }
+      else if (!on && star) star.remove();
+    });
+  }
+  window._bcWaDestacar = async function(){
+    var id = null; try { id = _waMenuAccionesMsgId; } catch(e){}
+    try { if (typeof _waCerrarMenuAcciones === 'function') _waCerrarMenuAcciones(); } catch(e){}
+    if (!id) return;
+    var nuevo = !destacados.has(id);
+    var quien = ''; try { quien = (sessionUser && sessionUser.nombre) || ''; } catch(e){}
+    try {
+      var r = await supabaseClient.from('whatsapp_mensajes').update({ destacado: nuevo, destacado_por: nuevo ? quien : null, destacado_en: nuevo ? new Date().toISOString() : null }).eq('id', id);
+      if (r.error) throw r.error;
+      if (nuevo) destacados.add(id); else destacados.delete(id);
+      marcarDestacados();
+      try { toast(nuevo ? 'Mensaje destacado' : 'Ya no está destacado'); } catch(e){}
+      var info = document.querySelector('#waDetalleCol > .bcwa-info.ver'); if (info) pintarInfo();
+    } catch(e){ try { toastError('No se pudo destacar el mensaje.'); } catch(_){} }
+  };
+  function envolverMenu(){
+    if (typeof window._waAsegurarMenuAcciones === 'function' && !window._waAsegurarMenuAcciones.__bcwaStar){
+      var origA = window._waAsegurarMenuAcciones;
+      var nA = function(){
+        var menu = origA.apply(this, arguments);
+        if (menu && !menu.querySelector('#waMenuDestacar')){
+          var b = document.createElement('button'); b.type = 'button'; b.id = 'waMenuDestacar';
+          b.innerHTML = '<i class="ti ti-star"></i> <span>Destacar</span>';
+          b.setAttribute('onclick', '_bcWaDestacar()');
+          menu.appendChild(b);
+        }
+        return menu;
+      };
+      Object.keys(origA).forEach(function(k){ nA[k] = origA[k]; });
+      nA.__bcwaStar = true; window._waAsegurarMenuAcciones = nA;
+    }
+    if (typeof window._waAbrirMenuAcciones === 'function' && !window._waAbrirMenuAcciones.__bcwaStar){
+      var origB = window._waAbrirMenuAcciones;
+      var nB = function(ev, msgId){
+        try { var menu = window._waAsegurarMenuAcciones(); var b = menu && menu.querySelector('#waMenuDestacar');
+          if (b){ var on = destacados.has(msgId); b.querySelector('span').textContent = on ? 'Quitar destacado' : 'Destacar'; b.querySelector('.ti').className = 'ti ' + (on ? 'ti-star-off' : 'ti-star'); } } catch(e){}
+        return origB.apply(this, arguments);
+      };
+      nB.__bcwaStar = true; window._waAbrirMenuAcciones = nB;
+    }
+  }
+
+  // ---------- 7) VISOR DE FOTOS ----------
+  var visor = { lista: [], i: 0, el: null, x0: null };
+  function quienDe(row){ if (!row) return ''; if (row.classList.contains('out')) return 'Tú'; var h = hiloActual(); return (h && (h.nombre_perfil || h.telefono_e164)) || 'Cliente'; }
+  function fechaLarga(iso){ var d = new Date(iso); if (isNaN(d)) return ''; return d.toLocaleDateString('es-DO', { day: 'numeric', month: 'short', year: 'numeric' }) + ', ' + d.toLocaleTimeString('es-DO', { hour: 'numeric', minute: '2-digit' }); }
+  function listaDesdeChat(){
+    return [].slice.call(document.querySelectorAll('#waMessagesScroll .wa-brow img')).filter(function(im){ return im.src && !/^data:/.test(im.src); }).map(function(im){
+      var row = im.closest('.wa-brow'); return { src: im.src, quien: quienDe(row), ts: row && row.getAttribute('data-ts'), msgid: row && row.getAttribute('data-msgid') };
+    });
+  }
+  function asegurarVisor(){
+    if (visor.el) return visor.el;
+    var v = document.createElement('div'); v.id = 'bcwaVisor'; v.className = 'bcwa-visor'; v.setAttribute('role', 'dialog'); v.setAttribute('aria-label', 'Visor de fotos');
+    v.innerHTML = '<div class="bcwa-v-head"><div class="bcwa-v-quien"><b></b><small></small></div><div class="bcwa-v-acc">' +
+      '<button type="button" class="bcwa-v-ir" title="Ir al mensaje" aria-label="Ir al mensaje"><i class="ti ti-message-circle"></i></button>' +
+      '<button type="button" class="bcwa-v-bajar" title="Descargar" aria-label="Descargar"><i class="ti ti-download"></i></button>' +
+      '<button type="button" class="bcwa-v-cerrar" title="Cerrar" aria-label="Cerrar"><i class="ti ti-x"></i></button></div></div>' +
+      '<div class="bcwa-v-centro"><button type="button" class="bcwa-v-prev" aria-label="Anterior"><i class="ti ti-chevron-left"></i></button><img alt="Foto del chat"><button type="button" class="bcwa-v-next" aria-label="Siguiente"><i class="ti ti-chevron-right"></i></button></div>' +
+      '<div class="bcwa-v-tiras"></div>';
+    document.body.appendChild(v); visor.el = v;
+    v.querySelector('.bcwa-v-cerrar').addEventListener('click', cerrarVisor);
+    v.querySelector('.bcwa-v-prev').addEventListener('click', function(){ moverVisor(-1); });
+    v.querySelector('.bcwa-v-next').addEventListener('click', function(){ moverVisor(1); });
+    v.querySelector('.bcwa-v-bajar').addEventListener('click', descargarActual);
+    v.querySelector('.bcwa-v-ir').addEventListener('click', function(){ var it = visor.lista[visor.i]; cerrarVisor(); if (it && it.msgid) irA(it.msgid); });
+    v.addEventListener('click', function(e){ if (e.target === v || e.target.classList.contains('bcwa-v-centro')) cerrarVisor(); });
+    var c = v.querySelector('.bcwa-v-centro');
+    c.addEventListener('pointerdown', function(e){ visor.x0 = e.clientX; });
+    c.addEventListener('pointerup', function(e){ if (visor.x0 == null) return; var dx = e.clientX - visor.x0; visor.x0 = null; if (Math.abs(dx) > 50) moverVisor(dx < 0 ? 1 : -1); });
+    return v;
+  }
+  function pintarVisor(){
+    var v = asegurarVisor(), it = visor.lista[visor.i]; if (!it) return;
+    v.querySelector('.bcwa-v-centro img').src = it.src;
+    v.querySelector('.bcwa-v-quien b').textContent = it.quien || '';
+    v.querySelector('.bcwa-v-quien small').textContent = fechaLarga(it.ts);
+    v.querySelector('.bcwa-v-prev').style.visibility = visor.i > 0 ? 'visible' : 'hidden';
+    v.querySelector('.bcwa-v-next').style.visibility = visor.i < visor.lista.length - 1 ? 'visible' : 'hidden';
+    v.querySelector('.bcwa-v-ir').style.display = it.msgid ? '' : 'none';
+    var tiras = v.querySelector('.bcwa-v-tiras');
+    tiras.innerHTML = visor.lista.map(function(x, k){ return '<img src="' + esc(x.src) + '" data-k="' + k + '" class="' + (k === visor.i ? 'on' : '') + '" alt="">'; }).join('');
+    tiras.querySelectorAll('img').forEach(function(im){ im.addEventListener('click', function(){ visor.i = +im.dataset.k; pintarVisor(); }); });
+    var on = tiras.querySelector('img.on'); if (on) on.scrollIntoView({ block: 'nearest', inline: 'center' });
+  }
+  function abrirVisor(lista, i){ if (!lista.length) return; visor.lista = lista; visor.i = Math.max(0, Math.min(i, lista.length - 1)); asegurarVisor().classList.add('ver'); pintarVisor(); }
+  function cerrarVisor(){ if (visor.el) visor.el.classList.remove('ver'); }
+  function moverVisor(d){ var n = visor.i + d; if (n < 0 || n >= visor.lista.length) return; visor.i = n; pintarVisor(); }
+  async function descargarActual(){
+    var it = visor.lista[visor.i]; if (!it) return;
+    try {
+      var r = await fetch(it.src); var b = await r.blob(); var u = URL.createObjectURL(b);
+      var a = document.createElement('a'); a.href = u; a.download = 'BayolCell_' + (it.ts || Date.now()).toString().slice(0, 19).replace(/[:T]/g, '-') + '.' + ((b.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg'));
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(u); }, 4000);
+    } catch(e){ window.open(it.src, '_blank'); }
+  }
+  // Clic en una foto del chat: abre el visor en vez de una pestaña nueva
+  document.addEventListener('click', function(e){
+    var im = e.target && e.target.closest && e.target.closest('#waMessagesScroll .wa-brow img');
+    if (!im || !esWa()) return;
+    e.preventDefault(); e.stopPropagation();
+    var lista = listaDesdeChat(), i = lista.findIndex(function(x){ return x.src === im.src; });
+    abrirVisor(lista, i < 0 ? 0 : i);
+  }, true);
+
+  // ---------- 8) ARRASTRAR Y SOLTAR / PEGAR ARCHIVOS ----------
+  function tipoDe(f){ var t = f.type || ''; if (/^image\//.test(t) || /^video\//.test(t)) return 'imagen'; return 'documento'; }
+  function adjuntar(f){
+    if (!f || typeof window._waAdjuntoSeleccionado !== 'function') return;
+    window._waAdjuntoSeleccionado({ files: [f], value: '' }, tipoDe(f));
+  }
+  var arrastre = 0;
+  function capaSoltar(){
+    var col = document.getElementById('waDetalleCol'); if (!col) return null;
+    var c = col.querySelector(':scope > .bcwa-soltar');
+    if (!c){ c = document.createElement('div'); c.className = 'bcwa-soltar'; c.innerHTML = '<div><i class="ti ti-file-upload"></i><b>Suelta el archivo aquí</b><span>Foto, video o documento</span></div>'; col.appendChild(c); }
+    return c;
+  }
+  var tieneArchivos = function(e){ var t = e.dataTransfer && e.dataTransfer.types; return t && [].indexOf.call(t, 'Files') >= 0; };
+  document.addEventListener('dragenter', function(e){ if (!esWa() || !hiloId() || !tieneArchivos(e) || !(e.target.closest && e.target.closest('#waDetalleCol'))) return; arrastre++; var c = capaSoltar(); if (c) c.classList.add('ver'); });
+  document.addEventListener('dragover', function(e){ if (esWa() && hiloId() && tieneArchivos(e) && e.target.closest && e.target.closest('#waDetalleCol')) e.preventDefault(); });
+  document.addEventListener('dragleave', function(e){ if (!tieneArchivos(e)) return; arrastre = Math.max(0, arrastre - 1); if (!arrastre){ var c = document.querySelector('.bcwa-soltar'); if (c) c.classList.remove('ver'); } });
+  document.addEventListener('drop', function(e){
+    var c = document.querySelector('.bcwa-soltar'); if (c) c.classList.remove('ver'); arrastre = 0;
+    if (!esWa() || !hiloId() || !tieneArchivos(e) || !(e.target.closest && e.target.closest('#waDetalleCol'))) return;
+    e.preventDefault(); var f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) adjuntar(f);
+  });
+  document.addEventListener('paste', function(e){
+    if (!esWa() || !hiloId() || !e.target || !(e.target.closest && e.target.closest('#waDetalleCol'))) return;
+    var items = (e.clipboardData && e.clipboardData.files) || []; if (!items.length) return;
+    e.preventDefault(); adjuntar(items[0]);
+  });
+
+  // ---------- 9) INFO DEL CONTACTO ----------
+  function hiloActual(){ var id = hiloId(); try { return (_waHilos || []).find(function(h){ return h.id === id; }) || null; } catch(e){ return null; } }
+  function panelInfo(){
+    var col = document.getElementById('waDetalleCol'); if (!col) return null;
+    var p = col.querySelector(':scope > .bcwa-info');
+    if (!p){
+      p = document.createElement('div'); p.className = 'bcwa-info'; p.setAttribute('role', 'dialog'); p.setAttribute('aria-label', 'Info. del contacto');
+      p.innerHTML = '<div class="bcwa-buscar-head"><button type="button" class="bcwa-info-cerrar" aria-label="Cerrar"><i class="ti ti-x"></i></button><span>Info. del contacto</span></div><div class="bcwa-info-cuerpo"></div>';
+      col.appendChild(p);
+      p.querySelector('.bcwa-info-cerrar').addEventListener('click', cerrarInfo);
+    }
+    return p;
+  }
+  function abrirInfo(){ cerrarBuscar(); var p = panelInfo(); if (!p) return; p.classList.add('ver'); pintarInfo(); }
+  function cerrarInfo(){ var p = document.querySelector('#waDetalleCol > .bcwa-info'); if (p) p.classList.remove('ver'); }
+  var infoToken = 0;
+  async function pintarInfo(){
+    var p = panelInfo(), h = hiloActual(), id = hiloId(); if (!p || !h) return;
+    var tok = ++infoToken, cuerpo = p.querySelector('.bcwa-info-cuerpo');
+    var nombre = h.nombre_perfil || h.telefono_e164 || 'Sin nombre', tel = h.telefono_e164 || '';
+    var ini = ''; try { ini = _waIniciales(nombre); } catch(e){ ini = nombre.slice(0, 2).toUpperCase(); }
+    var cli = null; try { if (h.cliente_id && cache && cache.clientes) cli = cache.clientes.find(function(c){ return c.id === h.cliente_id; }); } catch(e){}
+    var asignado = ''; try { if (h.asignado_id) asignado = nombreEmpleado(h.asignado_id) || ''; } catch(e){}
+    cuerpo.innerHTML = '<div class="bcwa-info-top"><div class="bcwa-info-av">' + esc(ini) + '</div><h3>' + esc(nombre) + '</h3><p>' + esc(tel) + '</p>' +
+      '<div class="bcwa-info-btns">' + (tel ? '<a href="tel:' + esc(tel) + '"><i class="ti ti-phone"></i><span>Llamar</span></a>' : '') +
+      '<button type="button" data-a="buscar"><i class="ti ti-search"></i><span>Buscar</span></button>' +
+      (tel ? '<button type="button" data-a="copiar"><i class="ti ti-copy"></i><span>Copiar</span></button>' : '') + '</div></div>' +
+      '<div class="bcwa-info-sec"><div class="bcwa-info-t">Datos del CRM</div>' +
+      '<div class="bcwa-info-fila"><i class="ti ti-user-check"></i><div><small>Cliente vinculado</small>' + (cli ? esc(((cli.nombre || '') + ' ' + (cli.apellido || '')).trim()) : '<em>Sin vincular</em>') + '</div></div>' +
+      '<div class="bcwa-info-fila"><i class="ti ti-user"></i><div><small>Atendido por</small>' + (asignado ? esc(asignado) : '<em>Sin asignar</em>') + '</div></div></div>' +
+      '<div class="bcwa-info-sec bcwa-info-media"><div class="bcwa-info-t">Archivos, enlaces y documentos <span class="cnt"></span></div><div class="bcwa-info-grid"><div class="vacio">Cargando…</div></div><div class="bcwa-info-docs"></div><div class="bcwa-info-links"></div></div>' +
+      '<div class="bcwa-info-sec bcwa-info-dest"><div class="bcwa-info-t"><i class="ti ti-star"></i> Mensajes destacados <span class="cnt"></span></div><div class="bcwa-info-destlist"><div class="vacio">Cargando…</div></div></div>';
+    cuerpo.querySelector('[data-a="buscar"]').addEventListener('click', function(){ cerrarInfo(); abrirBuscar(); });
+    var bc = cuerpo.querySelector('[data-a="copiar"]'); if (bc) bc.addEventListener('click', function(){ try { navigator.clipboard.writeText(tel); toast('Número copiado'); } catch(e){} });
+    try {
+      var rm = await supabaseClient.from('whatsapp_mensajes').select('id,tipo_contenido,media_path,cuerpo,creado_en,direccion').eq('hilo_id', id).not('media_path', 'is', null).order('creado_en', { ascending: false }).limit(60);
+      var rl = await supabaseClient.from('whatsapp_mensajes').select('id,cuerpo,creado_en').eq('hilo_id', id).ilike('cuerpo', '%http%').order('creado_en', { ascending: false }).limit(30);
+      var rd = await supabaseClient.from('whatsapp_mensajes').select('id,cuerpo,creado_en,direccion,tipo_contenido').eq('hilo_id', id).eq('destacado', true).order('creado_en', { ascending: false }).limit(100);
+      if (tok !== infoToken) return;
+      var media = (rm.data || []), imgs = media.filter(function(m){ return m.tipo_contenido === 'imagen'; }), docs = media.filter(function(m){ return m.tipo_contenido === 'documento'; });
+      var links = []; (rl.data || []).forEach(function(m){ (String(m.cuerpo || '').match(/https?:\/\/[^\s<>"]+/g) || []).forEach(function(u){ if (links.indexOf(u) < 0) links.push(u); }); });
+      cuerpo.querySelector('.bcwa-info-media .cnt').textContent = String(media.length + links.length);
+      var grid = cuerpo.querySelector('.bcwa-info-grid');
+      if (!imgs.length) grid.innerHTML = '<div class="vacio">Sin fotos en este chat.</div>';
+      else {
+        var urls = await Promise.all(imgs.slice(0, 12).map(function(m){ try { return _waSignedUrl(m.media_path); } catch(e){ return null; } }));
+        if (tok !== infoToken) return;
+        var galeria = imgs.slice(0, 12).map(function(m, k){ return { src: urls[k], quien: m.direccion === 'out' ? 'Tú' : nombre, ts: m.creado_en, msgid: m.id }; }).filter(function(x){ return x.src; });
+        grid.innerHTML = galeria.map(function(x, k){ return '<img src="' + esc(x.src) + '" data-k="' + k + '" alt="Foto del chat">'; }).join('');
+        grid.querySelectorAll('img').forEach(function(im){ im.addEventListener('click', function(){ abrirVisor(galeria, +im.dataset.k); }); });
+      }
+      cuerpo.querySelector('.bcwa-info-docs').innerHTML = docs.slice(0, 10).map(function(m){ return '<div class="bcwa-info-doc" data-path="' + esc(m.media_path) + '"><i class="ti ti-file-text"></i><span>' + esc((m.cuerpo || m.media_path.split('/').pop() || 'Documento').slice(0, 60)) + '</span><small>' + esc(fechaCorta(m.creado_en)) + '</small></div>'; }).join('');
+      cuerpo.querySelectorAll('.bcwa-info-doc').forEach(function(d){ d.addEventListener('click', async function(){ var u = await _waSignedUrl(d.dataset.path); if (u) window.open(u, '_blank'); }); });
+      cuerpo.querySelector('.bcwa-info-links').innerHTML = links.slice(0, 10).map(function(u){ return '<a class="bcwa-info-link" href="' + esc(u) + '" target="_blank" rel="noopener"><i class="ti ti-link"></i><span>' + esc(u.replace(/^https?:\/\//, '').slice(0, 60)) + '</span></a>'; }).join('');
+      var dest = rd.data || [];
+      cuerpo.querySelector('.bcwa-info-dest .cnt').textContent = String(dest.length);
+      var dl = cuerpo.querySelector('.bcwa-info-destlist');
+      dl.innerHTML = dest.length ? dest.map(function(m){ return '<div class="bcwa-res" data-id="' + esc(m.id) + '"><small>' + (m.direccion === 'out' ? 'Tú' : esc(nombre)) + ' · ' + esc(fechaCorta(m.creado_en)) + '</small><div>' + esc(m.cuerpo || ('[' + (m.tipo_contenido || 'adjunto') + ']')) + '</div></div>'; }).join('') : '<div class="vacio">Sin mensajes destacados. Usa el menú de un mensaje → Destacar.</div>';
+      dl.querySelectorAll('.bcwa-res').forEach(function(el){ el.addEventListener('click', function(){ if (movil()) cerrarInfo(); irA(el.getAttribute('data-id')); }); });
+    } catch(e){ var g = cuerpo.querySelector('.bcwa-info-grid'); if (g) g.innerHTML = '<div class="vacio">No se pudo cargar.</div>'; }
+  }
+  function cabeceraClicable(){
+    var head = document.querySelector('#waDetalle .wa-chat-head'); if (!head || head.__bcwaInfo) return;
+    head.__bcwaInfo = true;
+    head.addEventListener('click', function(e){
+      if (e.target.closest('button, a')) return;
+      if (e.target.closest('.wa-avatar') || e.target.closest('.wa-chat-head > div:not(.wa-avatar)')) abrirInfo();
+    });
+  }
+  // Esc: cierra visor / paneles antes que cualquier otra cosa
+  document.addEventListener('keydown', function(e){
+    if (e.key !== 'Escape') return;
+    if (visor.el && visor.el.classList.contains('ver')){ e.preventDefault(); e.stopImmediatePropagation(); cerrarVisor(); return; }
+    var info = document.querySelector('#waDetalleCol > .bcwa-info.ver'); if (info){ e.preventDefault(); e.stopImmediatePropagation(); cerrarInfo(); return; }
+    var bus = document.querySelector('#waDetalleCol > .bcwa-buscar.ver'); if (bus){ e.preventDefault(); e.stopImmediatePropagation(); cerrarBuscar(); }
+  }, true);
+  document.addEventListener('keydown', function(e){
+    if (!visor.el || !visor.el.classList.contains('ver')) return;
+    if (e.key === 'ArrowLeft'){ e.preventDefault(); moverVisor(-1); } else if (e.key === 'ArrowRight'){ e.preventDefault(); moverVisor(1); }
+  });
+
+  // =====================================================================
   // Aplicar todo al pintarse el CRM
   // =====================================================================
   var hiloAntes = null;
   function aplicar(){
     if (!document.getElementById('waWrap')) return;
-    envolverEnviar();
+    envolverEnviar(); envolverMenu();
     var id = hiloId();
     if (id !== hiloAntes){
-      hiloAntes = id; cerrarBuscar();
+      hiloAntes = id; cerrarBuscar(); cerrarInfo(); if (id) cargarDestacados(id);
       var p = document.querySelector('#waDetalleCol > .bcwa-buscar'); if (p){ var i = p.querySelector('input'); if (i) i.value = ''; p.querySelector('.bcwa-buscar-res').innerHTML = '<div class="vacio">Buscar mensajes de este chat.</div>'; }
     }
-    if (id){ botonLupa(); restaurarBorrador(); pildoraMovil(); engancharScroll(); contarNuevos(); }
+    if (id){ botonLupa(); cabeceraClicable(); restaurarBorrador(); pildoraMovil(); engancharScroll(); contarNuevos(); marcarDestacados(); }
     borradoresEnLista();
   }
   var pendiente = false;
@@ -288,7 +524,7 @@
     if (pendiente) return;
     for (var i = 0; i < muts.length; i++){
       var t = muts[i].target;
-      if (t && t.nodeType === 1 && t.closest && t.closest('.bcwa-bajar, .bcwa-fecha, .bcwa-buscar')) continue;
+      if (t && t.nodeType === 1 && t.closest && t.closest('.bcwa-bajar, .bcwa-fecha, .bcwa-buscar, .bcwa-soltar, .bcwa-info')) continue;
       if (t && t.nodeType === 1 && (t.id === 'waWrap' || (t.closest && t.closest('#waWrap')))){
         pendiente = true;
         Promise.resolve().then(function(){ pendiente = false; try { aplicar(); } catch(e){} });
@@ -302,5 +538,5 @@
     aplicar();
   }
   if (document.body) iniciar(); else document.addEventListener('DOMContentLoaded', iniciar);
-  window.BayolWaIdentico = { version: VERSION, aplicar: aplicar, buscar: abrirBuscar, irA: irA };
+  window.BayolWaIdentico = { version: VERSION, aplicar: aplicar, buscar: abrirBuscar, irA: irA, info: abrirInfo, visor: abrirVisor, destacados: function(){ return Array.from(destacados); } };
 })();
