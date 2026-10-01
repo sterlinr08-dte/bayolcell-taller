@@ -181,6 +181,11 @@
     unificado.onerror=function(){console.warn('[CRM] No se pudo cargar el diseño unificado del chat.');};
     document.head.appendChild(unificado);
 
+    // WhatsApp idéntico a WhatsApp Web / app (solo la pestaña WhatsApp). Va después del diseño unificado.
+    var waIdentico=document.createElement('script');
+    waIdentico.src='crm-wa-identico.js?v=20261002-w1';
+    document.head.appendChild(waIdentico);
+
     var financing=document.createElement('script');
     financing.src='crm-financiamiento-quick-reply.js?v=20260923-1';
     financing.onerror=function(){console.warn('[CRM] No se pudo cargar el atajo de financiamiento.');};
