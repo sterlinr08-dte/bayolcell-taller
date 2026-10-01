@@ -15,7 +15,7 @@
   var surfaceCss=null;
   var midnightCss=null;
   var afinadoCss=null;
-  var AFINADO='20261001-f2';
+  var AFINADO='20261001-f3';
 
   function cargarPerformanceRuntime(){
     try{

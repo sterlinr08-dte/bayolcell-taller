@@ -72,10 +72,48 @@
 /* ---------- Tablas: que el número de orden no se parta en dos líneas ---------- */
 #v-ordenes table td:first-child, #v-ordenes table th:first-child{ white-space:nowrap; }
 
+/* Etiquetas de estado largas en tablas: si parten en 2 líneas, que sea un bloque
+   redondeado completo (antes el color se cortaba línea por línea). */
+#app table .badge{ display:inline-flex; align-items:center; gap:4px; line-height:1.25; vertical-align:middle; }
+
 /* ---------- Títulos de módulo en celular: un poco más proporcionados ---------- */
 @media (max-width:600px){
   .view > h2, .view > .card > h2{ font-size:20px !important; line-height:1.25; }
   .view .card h3{ font-size:16px; }
+}
+
+/* ---------- Tablas convertidas en tarjetas (celular/tablet) ---------- */
+/* Antes: la etiqueta (ORDEN, CLIENTE…) quedaba ENCIMA del dato y cada fila
+   ocupaba una pantalla. Ahora: etiqueta a la izquierda y dato a la derecha,
+   en una línea, y la primera celda (el número) hace de título de la tarjeta. */
+@media (max-width:1024px){
+  /* taller-visual-polish.css fuerza las tablas a 620px; en modo tarjeta deben caber en la pantalla */
+  #app .table-wrap table, #app .table-wrap tbody{ min-width:0 !important; width:100% !important; }
+  #app .table-wrap tr{
+    border:1px solid #e3e8ef !important; border-radius:14px !important;
+    padding:10px 14px !important; margin-bottom:10px !important;
+    background:#fff !important; box-shadow:0 2px 8px -4px rgba(15,23,42,.12) !important;
+    box-sizing:border-box !important; width:100% !important; max-width:100% !important;
+  }
+  #app .table-wrap td[data-label]{ box-sizing:border-box !important; max-width:100%; overflow-wrap:anywhere; }
+  #app .table-wrap td[data-label]{
+    display:flex !important; align-items:center; gap:10px;
+    padding:6px 0 !important; min-height:0 !important; position:static !important;
+    border-bottom:1px solid #f1f4f8 !important; font-size:14px; line-height:1.35;
+  }
+  #app .table-wrap td[data-label]:last-child{ border-bottom:0 !important; }
+  #app .table-wrap td[data-label]::before{
+    position:static !important; flex:0 0 88px; width:88px !important;
+    font-size:10.5px; font-weight:700; letter-spacing:.3px; color:#64748b;
+    text-transform:uppercase; line-height:1.2;
+  }
+  /* La primera celda (número de orden / código) es el título: sin etiqueta. */
+  #app .table-wrap td[data-label]:first-child{ font-size:16px; padding-top:2px !important; border-bottom:1px solid #eef1f5 !important; }
+  #app .table-wrap td[data-label]:first-child::before{ display:none !important; }
+  #app .table-wrap td[data-label] .btn{ min-height:36px; }
+  /* Tablas FUERA de .table-wrap (ej. Estado Mensual de Contabilidad): no tienen
+     dónde desplazarse, así que el mínimo de 620px las dejaba cortadas. Que quepan. */
+  #app .view:not(#v-crmLinea) table:not(.table-wrap table){ min-width:0 !important; width:100% !important; }
 }
 
 @media (prefers-reduced-motion:reduce){
