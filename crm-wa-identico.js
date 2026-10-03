@@ -16,7 +16,7 @@
   'use strict';
   if (window.__bcWaIdentico) return;
   window.__bcWaIdentico = true;
-  var VERSION = '20261003-w4';
+  var VERSION = '20261003-w5';
 
   // ---------- CSS (siempre de último) ----------
   function css(){
@@ -688,7 +688,7 @@
     var cap = document.createElement('div'); cap.id = 'bcwaEtq'; cap.className = 'bcwa-hoja bcwa-etq';
     var pintar = function(){
       cap.innerHTML = '<div class="bcwa-hoja-caja" role="dialog" aria-label="Etiquetar chat"><div class="bcwa-hoja-agarre"></div><div class="bcwa-hoja-tit">Etiquetar chat</div>' +
-        (etiquetas.length ? etiquetas.map(function(t){ return '<label class="bcwa-etq-fila"><i class="ti ti-tag-filled" style="color:' + esc(t.color) + '"></i><span>' + esc(t.nombre) + '</span><input type="checkbox" data-id="' + esc(t.id) + '"' + (sel.has(t.id) ? ' checked' : '') + '>' + (admin() ? '<button type="button" class="bcwa-etq-del" data-del="' + esc(t.id) + '" title="Borrar etiqueta" aria-label="Borrar etiqueta"><i class="ti ti-trash"></i></button>' : '') + '</label>'; }).join('') : '<div class="vacio">Todavía no hay etiquetas.</div>') +
+        (etiquetas.length ? etiquetas.map(function(t){ return '<label class="bcwa-etq-fila"><i class="ti ti-circle-filled" style="color:' + esc(t.color) + '"></i><span>' + esc(t.nombre) + '</span><input type="checkbox" data-id="' + esc(t.id) + '"' + (sel.has(t.id) ? ' checked' : '') + '>' + (admin() ? '<button type="button" class="bcwa-etq-del" data-del="' + esc(t.id) + '" title="Borrar etiqueta" aria-label="Borrar etiqueta"><i class="ti ti-trash"></i></button>' : '') + '</label>'; }).join('') : '<div class="vacio">Todavía no hay etiquetas.</div>') +
         (admin() ? '<div class="bcwa-etq-nueva"><input type="text" maxlength="30" placeholder="Nueva etiqueta" aria-label="Nombre de la nueva etiqueta"><input type="color" value="#25d366" aria-label="Color"><button type="button" class="bcwa-etq-crear">Agregar</button></div>' : '') +
         '<div class="bcwa-etq-pie"><button type="button" class="bcwa-etq-cancelar">Cancelar</button><button type="button" class="bcwa-etq-guardar">Guardar</button></div></div>';
     };
@@ -734,20 +734,34 @@
       var ic = row.querySelector('.bcwa-row-ic');
       if (iconos){ if (!ic){ ic = document.createElement('span'); ic.className = 'bcwa-row-ic'; var p = row.querySelector('.fila-badge, .fila-pendiente, .bcwa-row-menu'); p.parentNode.insertBefore(ic, p); } if (ic.innerHTML !== iconos) ic.innerHTML = iconos; }
       else if (ic) ic.remove();
-      var tags = etqDe(h).map(function(id){ var t = etiquetas.find(function(x){ return x.id === id; }); return t ? '<i class="ti ti-tag-filled" style="color:' + esc(t.color) + '" title="' + esc(t.nombre) + '"></i>' : ''; }).join('');
+      var tags = etqDe(h).map(function(id){ var t = etiquetas.find(function(x){ return x.id === id; }); return t ? '<i class="ti ti-circle-filled" style="color:' + esc(t.color) + '" title="' + esc(t.nombre) + '"></i>' : ''; }).join('');
       var tg = row.querySelector('.bcwa-row-tags');
       if (tags){ if (!tg){ tg = document.createElement('span'); tg.className = 'bcwa-row-tags'; var nom = row.querySelector('.fila-nombre'); nom.parentNode.insertBefore(tg, nom.nextSibling); } if (tg.innerHTML !== tags) tg.innerHTML = tags; }
       else if (tg) tg.remove();
     });
-    // Chips de etiquetas (filtro), detrás de los chips del CRM
+    // Filtro por etiqueta: UN solo botón "Etiquetas ▾" (antes 6 chips que hacían saltar la barra a otra línea)
     var chips = document.getElementById('crmChipsRow');
+    var viejo = chips && chips.querySelector(':scope > .bcwa-chips-etq'); if (viejo) viejo.remove();
     if (chips && etiquetas.length){
-      var cont2 = chips.querySelector(':scope > .bcwa-chips-etq');
-      var chtml = etiquetas.map(function(t){ return '<button type="button" class="crm-chip bcwa-chip-etq' + (filtroEtiqueta === t.id ? ' on' : '') + '" data-etq="' + esc(t.id) + '"><i class="ti ti-tag-filled" style="color:' + esc(t.color) + '"></i> ' + esc(t.nombre) + '</button>'; }).join('');
-      if (!cont2){ cont2 = document.createElement('span'); cont2.className = 'bcwa-chips-etq'; chips.appendChild(cont2);
-        cont2.addEventListener('click', function(e){ var b = e.target.closest('[data-etq]'); if (!b) return; filtroEtiqueta = filtroEtiqueta === b.dataset.etq ? null : b.dataset.etq; repintarLista(); decorarLista(); }); }
-      if (cont2.innerHTML !== chtml) cont2.innerHTML = chtml;
+      var btn = chips.querySelector(':scope > .bcwa-etq-filtro');
+      var sel = filtroEtiqueta && etiquetas.find(function(t){ return t.id === filtroEtiqueta; });
+      var bhtml = '<i class="ti ti-' + (sel ? 'circle-filled' : 'tag') + '"' + (sel ? ' style="color:' + esc(sel.color) + '"' : '') + '></i> ' + esc(sel ? sel.nombre : 'Etiquetas') + ' <i class="ti ti-chevron-down"></i>';
+      if (!btn){ btn = document.createElement('button'); btn.type = 'button'; btn.className = 'crm-chip bcwa-etq-filtro'; btn.setAttribute('aria-haspopup', 'menu'); chips.appendChild(btn);
+        btn.addEventListener('click', function(e){ e.stopPropagation(); abrirMenuEtiquetaFiltro(btn); }); }
+      btn.classList.toggle('on', !!sel);
+      if (btn.innerHTML !== bhtml) btn.innerHTML = bhtml;
     }
+  }
+  function abrirMenuEtiquetaFiltro(ancla){
+    var ya = document.getElementById('bcwaMenuEtq'); if (ya){ ya.remove(); return; }
+    var m = document.createElement('div'); m.id = 'bcwaMenuEtq'; m.className = 'bcwa-menu-chat'; m.setAttribute('role', 'menu');
+    m.innerHTML = '<button type="button" role="menuitem" data-etq=""><i class="ti ti-tags-off"></i>Todas las etiquetas</button>' +
+      etiquetas.map(function(t){ return '<button type="button" role="menuitem" data-etq="' + esc(t.id) + '"' + (filtroEtiqueta === t.id ? ' class="on"' : '') + '><i class="ti ti-circle-filled" style="color:' + esc(t.color) + '"></i>' + esc(t.nombre) + '</button>'; }).join('');
+    document.body.appendChild(m);
+    var r = ancla.getBoundingClientRect();
+    m.style.left = Math.min(window.innerWidth - m.offsetWidth - 8, Math.max(8, r.left)) + 'px'; m.style.top = (r.bottom + 4) + 'px';
+    m.addEventListener('click', function(e){ var b = e.target.closest('[data-etq]'); if (!b) return; filtroEtiqueta = b.dataset.etq || null; m.remove(); repintarLista(); decorarLista(); });
+    setTimeout(function(){ document.addEventListener('click', function cerrar(ev){ if (!m.contains(ev.target)){ m.remove(); document.removeEventListener('click', cerrar, true); } }, true); }, 0);
   }
   function botonMasCabecera(){
     var head = document.querySelector('#waDetalle .wa-chat-head'); if (!head || head.querySelector('.bcwa-mas')) return;
@@ -780,7 +794,7 @@
     if (pendiente) return;
     for (var i = 0; i < muts.length; i++){
       var t = muts[i].target;
-      if (t && t.nodeType === 1 && t.closest && t.closest('.bcwa-bajar, .bcwa-fecha, .bcwa-buscar, .bcwa-soltar, .bcwa-info, .bcwa-row-ic, .bcwa-row-tags, .bcwa-archivados, .bcwa-chips-etq')) continue;
+      if (t && t.nodeType === 1 && t.closest && t.closest('.bcwa-bajar, .bcwa-fecha, .bcwa-buscar, .bcwa-soltar, .bcwa-info, .bcwa-row-ic, .bcwa-row-tags, .bcwa-archivados, .bcwa-chips-etq, .bcwa-etq-filtro')) continue;
       if (t && t.nodeType === 1 && (t.id === 'waWrap' || (t.closest && t.closest('#waWrap')))){
         pendiente = true;
         Promise.resolve().then(function(){ pendiente = false; try { aplicar(); } catch(e){} });

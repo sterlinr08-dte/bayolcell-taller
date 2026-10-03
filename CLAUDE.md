@@ -758,3 +758,9 @@ Pedido del dueño: «que los empleados se pasen clientes y le puedan escribir»,
 - Los ~410 pendientes que quedan son chats donde el CLIENTE escribió después de la última respuesta (pendientes reales).
 - OJO: el `whatsapp-webhook` DESPLEGADO (v32, con F15/F16: hilo por linea_id+teléfono, hora del evento, 500 para
   reintento) es más nuevo que el archivo del repo. Antes de tocar ese archivo, bajar la versión desplegada.
+
+## ACTUALIZACIÓN 3 oct 2026 — Barra de arriba del CRM (WhatsApp, PC) en DOS líneas
+Pedido del dueño: "organizar todos esos botones para que solo sean dos líneas horizontales". Solo CSS en `crm-wa-identico.css` (bloque "Barra de arriba del CRM en DOS líneas"), PC ≥1025px y SOLO pestaña WhatsApp; celular, Instagram y Facebook sin cambios.
+- `#v-crmLinea.active` pasa a **grid**: línea 1 = `#bcSocialHubHead` (canales, más bajitos, 40px) + `.crm-cabecera-resumen` (Sucursal/Área, 200px c/u); línea 2 = `.crm-bandeja-controles` sin saltar de línea (los filtros rápidos se desplazan de lado si no caben); fila 3 = `#crmLinea-mensajes`/`-leads`/`-campanas`. La lista gana ~90 px de alto.
+- Las 6 etiquetas ya NO son chips sueltos: un solo botón **"Etiquetas ▾"** (`.bcwa-etq-filtro`) abre `#bcwaMenuEtq` (Todas + cada etiqueta con su punto de color). El punto es `ti-circle-filled` — **`ti-tag-filled` NO existe en Tabler 2.47** (salía vacío; corregido también en las filas y el selector de etiquetas).
+- Fix 3 oct: el **borrador por chat** se volvía a escribir en la caja después de enviar (el chat se redibuja durante el envío). Ahora `envolverEnviar` borra el borrador ANTES de enviar y solo lo guarda si el envío falla.
