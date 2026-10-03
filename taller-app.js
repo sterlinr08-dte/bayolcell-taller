@@ -31183,8 +31183,137 @@ function _crmAsignarHTML(tabla, fila, alTerminar) {
     if(esAdmin) {
         html += ` <button class="btn btn-light" style="font-size:11.5px;" onclick="_crmToggleReasignar('${tabla}','${fila.id}','${alTerminar || ''}')"><i class="ti ti-arrows-exchange"></i> Reasignar</button>`;
     }
+    // 3 oct 2026: cualquier empleado puede pasarle ESTE cliente a otro (de cualquier sucursal) con una nota.
+    if(tabla === 'whatsapp_hilos') {
+        html += ` <button class="btn btn-light" style="font-size:11.5px;" onclick="_waAbrirTransferir('${fila.id}')"><i class="ti ti-arrow-forward-up"></i> Transferir</button>`;
+    }
     html += `</span><div id="reasignBox_${tabla}_${fila.id}" style="display:none; margin-top:6px;"></div>`;
     return html;
+}
+
+// ── Transferir cliente entre empleados (3 oct 2026, pedido del dueño: «que los empleados se pasen clientes y le
+// puedan escribir», sin que el cliente tenga que volver a escribir) ────────────────────────────────────────────────
+// Transferir = asignarle el chat a otro empleado (de cualquier sucursal) con una nota. El que lo recibe lo ve en
+// «Transferidos a mí» (botón ⇄ del CRM, con aviso al instante) y le escribe desde el MISMO número del chat.
+// Base: RPC whatsapp_transferir_hilo / whatsapp_mis_transferencias / whatsapp_transferencia_vista /
+// whatsapp_empleados_directorio, tabla whatsapp_transferencias, RLS «o el chat está asignado a mí» y whatsapp-enviar
+// acepta al empleado asignado (migración 20261003010000_whatsapp_transferir_cliente.sql).
+let _waTransferirEmpleados = [];
+async function _waAbrirTransferir(hiloId) {
+    try {
+        const { data, error } = await supabaseClient.rpc('whatsapp_empleados_directorio');
+        if(error) throw error;
+        const yo = _crmMiIdentidad();
+        _waTransferirEmpleados = (data || []).filter(e => !(yo.tipo === 'tecnico' && String(e.id) === String(yo.id)));
+        if(!_waTransferirEmpleados.length) { toastError('No hay otros empleados activos.'); return; }
+        const h = _waHilos.find(x => x.id === hiloId);
+        const cliente = h ? (h.nombre_perfil || h.telefono_e164 || 'este cliente') : 'este cliente';
+        const html = `<p style="margin:0 0 10px; font-size:13px; color:#475569;">Pásale <b>${escapeHtml(cliente)}</b> a otro empleado. Le va a aparecer en <b>Transferidos a mí</b> y le podrá escribir desde este mismo WhatsApp; el cliente no tiene que escribir a otro número.</p>
+            <input id="waTrBuscar" type="text" placeholder="🔍 Buscar empleado o sucursal…" oninput="_waTransferirFiltrar(this.value)" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:10px; font-size:13.5px; margin-bottom:8px;">
+            <div id="waTrLista" style="max-height:38vh; overflow-y:auto; display:flex; flex-direction:column; gap:6px; margin-bottom:10px;"></div>
+            <label style="font-size:12.5px; font-weight:700; color:#334155;">Nota para el compañero (opcional)</label>
+            <textarea id="waTrNota" rows="2" maxlength="500" placeholder="Ej.: quiere cambiar la pantalla de un iPhone 13, ya le di el precio" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:10px; font-size:13.5px; margin:4px 0 12px; resize:vertical;"></textarea>
+            <button id="waTrBtn" class="btn btn-blue" style="width:100%; justify-content:center; background:linear-gradient(180deg,#128C7E,#075E54);" onclick="_waConfirmarTransferir('${hiloId}')" disabled><i class="ti ti-arrow-forward-up"></i> Elige un empleado</button>`;
+        abrirModalGenerico('Transferir cliente', html, { ancho: '460px' });
+        _waTransferirElegido = null;
+        _waTransferirFiltrar('');
+    } catch(e) { logError('_waAbrirTransferir', e); toastError('No se pudo cargar la lista de empleados.'); }
+}
+let _waTransferirElegido = null;
+function _waTransferirFiltrar(q) {
+    const cont = document.getElementById('waTrLista');
+    if(!cont) return;
+    q = (q || '').toLowerCase().trim();
+    const lista = _waTransferirEmpleados.filter(e => !q || (e.nombre || '').toLowerCase().includes(q) || (e.sucursal_nombre || '').toLowerCase().includes(q));
+    cont.innerHTML = lista.length ? lista.map(e => {
+        const sel = String(_waTransferirElegido) === String(e.id);
+        const ini = String(e.nombre || '?').trim().split(/\s+/).map(x => x[0]).slice(0, 2).join('').toUpperCase();
+        return `<button type="button" onclick="_waTransferirElegir('${e.id}')" style="display:flex; align-items:center; gap:10px; width:100%; text-align:left; padding:9px 12px; border:1.5px solid ${sel ? '#128C7E' : '#e2e8f0'}; border-radius:12px; background:${sel ? '#ecfdf5' : '#fff'}; cursor:pointer;">
+            <span style="flex:0 0 34px; height:34px; border-radius:50%; background:${sel ? '#128C7E' : '#e2e8f0'}; color:${sel ? '#fff' : '#334155'}; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800;">${escapeHtml(ini)}</span>
+            <span style="flex:1; min-width:0;"><b style="display:block; font-size:13.5px; color:#0f172a;">${escapeHtml(e.nombre || 'Empleado')}</b><span style="font-size:12px; color:#64748b;">${escapeHtml(e.sucursal_nombre || 'Sin sucursal')}</span></span>
+            ${sel ? '<i class="ti ti-circle-check-filled" style="color:#128C7E; font-size:20px;"></i>' : ''}
+        </button>`;
+    }).join('') : '<div style="font-size:13px; color:#64748b; padding:8px;">Nadie coincide con la búsqueda.</div>';
+}
+function _waTransferirElegir(id) {
+    _waTransferirElegido = id;
+    _waTransferirFiltrar(document.getElementById('waTrBuscar')?.value || '');
+    const e = _waTransferirEmpleados.find(x => String(x.id) === String(id));
+    const btn = document.getElementById('waTrBtn');
+    if(btn && e) { btn.disabled = false; btn.innerHTML = `<i class="ti ti-arrow-forward-up"></i> Transferir a ${escapeHtml(e.nombre || 'empleado')}`; }
+}
+async function _waConfirmarTransferir(hiloId) {
+    const destino = _waTransferirElegido;
+    if(!destino) return;
+    const lockKey = `wa-transferir:${hiloId}`;
+    if(!_crmIniciarAccion(lockKey)) return;
+    const btn = document.getElementById('waTrBtn');
+    if(btn) btn.disabled = true;
+    try {
+        const nota = (document.getElementById('waTrNota')?.value || '').trim();
+        const { data, error } = await supabaseClient.rpc('whatsapp_transferir_hilo', { p_hilo: hiloId, p_a: destino, p_nota: nota || null });
+        if(error) throw error;
+        document.getElementById('modalGenerico')?.remove();
+        toast(`✅ Cliente transferido a ${data?.a_nombre || 'tu compañero'}.`);
+        const h = _waHilos.find(x => x.id === hiloId);
+        if(h) { h.asignado_tipo = 'tecnico'; h.asignado_id = destino; }
+        await cargarHilosWhatsapp();
+        await _crmRepintarWhatsappSilencioso();
+    } catch(e) {
+        logError('_waConfirmarTransferir', e);
+        const m = String(e?.message || '');
+        toastError(m.includes('sin_permiso') ? 'No tienes permiso para transferir este chat.' : m.includes('empleado_no_valido') ? 'Ese empleado ya no está activo.' : 'No se pudo transferir el cliente.');
+        if(btn) btn.disabled = false;
+    } finally { _crmFinalizarAccion(lockKey); }
+}
+// Bandeja «Transferidos a mí»
+let _waTransferidos = [];
+async function _waContarTransferidos() {
+    const badge = document.getElementById('crmTransferidosBadge');
+    try {
+        const { data, error } = await supabaseClient.rpc('whatsapp_mis_transferencias');
+        if(error) throw error;
+        _waTransferidos = data || [];
+        const n = _waTransferidos.filter(t => !t.visto_en && t.sigue_asignado).length;
+        if(badge) { badge.textContent = n > 9 ? '9+' : String(n); badge.style.display = n ? '' : 'none'; }
+    } catch(e) { logError('_waContarTransferidos', e); }
+}
+async function _waAbrirTransferidos() {
+    await _waContarTransferidos();
+    const lista = _waTransferidos;
+    const hace = d => { const m = Math.round((Date.now() - new Date(d).getTime()) / 60000); return m < 1 ? 'ahora' : m < 60 ? `hace ${m} min` : m < 1440 ? `hace ${Math.round(m / 60)} h` : `hace ${Math.round(m / 1440)} d`; };
+    const html = lista.length ? `<div style="display:flex; flex-direction:column; gap:8px;">${lista.map((t, i) => `
+        <button type="button" onclick="_waIrATransferido(${i})" ${t.sigue_asignado ? '' : 'disabled'} style="display:block; width:100%; text-align:left; padding:11px 13px; border:1.5px solid ${!t.visto_en && t.sigue_asignado ? '#128C7E' : '#e2e8f0'}; border-radius:14px; background:${t.sigue_asignado ? '#fff' : '#f8fafc'}; cursor:${t.sigue_asignado ? 'pointer' : 'default'}; opacity:${t.sigue_asignado ? 1 : .6};">
+            <div style="display:flex; justify-content:space-between; gap:8px; align-items:baseline;">
+                <b style="font-size:14px; color:#0f172a;">${!t.visto_en && t.sigue_asignado ? '<span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#e31e24; margin-right:6px;"></span>' : ''}${escapeHtml(t.cliente || 'Cliente')}</b>
+                <span style="font-size:11.5px; color:#64748b; white-space:nowrap;">${hace(t.creado_en)}</span>
+            </div>
+            <div style="font-size:12.5px; color:#475569; margin-top:2px;">De <b>${escapeHtml(t.de_nombre || 'un compañero')}</b> · ${escapeHtml(t.sucursal_nombre || '')} ${escapeHtml(t.linea_nombre || '')}</div>
+            ${t.nota ? `<div style="font-size:12.5px; color:#0f172a; background:#f1f5f9; border-radius:10px; padding:6px 9px; margin-top:6px;">“${escapeHtml(t.nota)}”</div>` : ''}
+            ${t.sigue_asignado ? '' : '<div style="font-size:11.5px; color:#94a3b8; margin-top:4px;">Ya no está asignado a ti.</div>'}
+        </button>`).join('')}</div>`
+        : '<div style="font-size:13.5px; color:#64748b; padding:10px 2px;">No te han transferido clientes en los últimos 7 días.</div>';
+    abrirModalGenerico('Transferidos a mí', html, { ancho: '460px' });
+}
+async function _waIrATransferido(i) {
+    const t = _waTransferidos[i];
+    if(!t || !t.sigue_asignado) return;
+    document.getElementById('modalGenerico')?.remove();
+    if(!t.visto_en) { supabaseClient.rpc('whatsapp_transferencia_vista', { p_id: t.id }).then(() => _waContarTransferidos(), () => {}); t.visto_en = new Date().toISOString(); }
+    try {
+        if(_crmLineaActualId !== t.linea_id) {
+            seleccionarLineaCRM(t.linea_id, t.sucursal_nombre || '', t.linea_nombre || '');
+            try { localStorage.setItem('bayol_subtab_crmlinea', 'mensajes'); } catch(e) {}
+            // espera a que la lista de esa linea termine de cargar
+            for(let k = 0; k < 30 && !_waHilos.some(h => h.linea_id === t.linea_id); k++) await new Promise(r => setTimeout(r, 200));
+        }
+        if(!_waHilos.some(h => h.id === t.hilo_id)) {
+            // puede no venir en la primera página de la lista: se trae y se agrega
+            const { data } = await supabaseClient.from('whatsapp_hilos').select('*, whatsapp_lineas(nombre)').eq('id', t.hilo_id).maybeSingle();
+            if(data) { _waHilos.unshift(data); _crmRtOrdenarHilos(); }
+        }
+        await abrirHiloWhatsapp(t.hilo_id);
+    } catch(e) { logError('_waIrATransferido', e); toastError('No se pudo abrir el chat transferido.'); }
 }
 
 async function _crmToggleReasignar(tabla, id, alTerminar) {
@@ -31398,6 +31527,7 @@ function seleccionarLineaCRM(lineaId, nombreSucursal, nombreLinea) {
     crmLineaTab(tabGuardada);
     _crmSuscribirRealtime(lineaId);
     _waEscucharViewport();
+    _waContarTransferidos();
 }
 
 // Sigue el alto REAL visible para .wa-shell en movil. En iOS, al enfocar el
@@ -31644,6 +31774,13 @@ function _crmSuscribirRealtime(lineaId) {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_hilos', filter: `linea_id=eq.${lineaId}` }, p => refrescarCRM(p, 'whatsapp_hilos'))
         .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_mensajes' }, p => refrescarCRM(p, 'whatsapp_mensajes'))
         .on('postgres_changes', { event: '*', schema: 'public', table: 'leads', filter: `linea_id=eq.${lineaId}` }, p => refrescarCRM(p, 'leads'))
+        // 3 oct 2026: aviso al instante cuando un compañero me transfiere un cliente (solo empleados).
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'whatsapp_transferencias', filter: `a_id=eq.${(_crmMiIdentidad().tipo === 'tecnico' && _crmMiIdentidad().id) || '00000000-0000-0000-0000-000000000000'}` }, p => {
+            const t = p?.new || {};
+            toast(`📨 ${t.de_nombre || 'Un compañero'} te transfirió un cliente${t.nota ? ': «' + String(t.nota).slice(0, 80) + '»' : ''}. Ábrelo en ⇄ Transferidos.`);
+            try { reproducirSonido('orden'); } catch(e) {}
+            _waContarTransferidos();
+        })
         // Antes: .subscribe() sin callback -- si este canal se caia, el chat
         // quedaba congelado en silencio y para siempre (no hay poller que
         // cubra las tablas de WhatsApp). Ver "SALUD DEL TIEMPO REAL".
