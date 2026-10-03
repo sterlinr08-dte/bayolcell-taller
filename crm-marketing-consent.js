@@ -185,7 +185,7 @@
 
     // WhatsApp idéntico a WhatsApp Web / app (solo la pestaña WhatsApp). Va después del diseño unificado.
     var waIdentico=document.createElement('script');
-    waIdentico.src='crm-wa-identico.js?v=20261003-w10';
+    waIdentico.src='crm-wa-identico.js?v=20261003-w11';
     document.head.appendChild(waIdentico);
 
     var financing=document.createElement('script');

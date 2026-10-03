@@ -364,7 +364,7 @@ body #v-crmLinea:not([data-social-channel="whatsapp"]) .bcwa-etq-filtro{ display
 .bcwa-ct-tx b i{ color:#00a884; font-size:14px; }
 .bcwa-ct-tx small{ font-size:12.5px; color:#667781; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .bcwa-ct-fila > .ti-chevron-right{ color:#8696a0; }
-body #v-crmLinea:not([data-social-channel="whatsapp"]) #bcwaContactosBtn{ display:none !important; }
+body #v-crmLinea:not([data-social-channel="whatsapp"]) #bcwaContactosBtn{ visibility:hidden !important; pointer-events:none !important; }
 
 /* =====================================================================
    Barra del nombre del cliente más fina + botón de Etiquetas (3 oct 2026)
@@ -383,3 +383,17 @@ body #v-crmLinea[data-social-channel="whatsapp"] .wa-chat-head .bcwa-etq-btn.on 
   /* Celular: "Llamar" sale de la barra (sigue en Info. del contacto) para que quepa el nombre */
   body #v-crmLinea[data-social-channel="whatsapp"] .wa-chat-head .wa-call-btn{ display:none !important; }
 }
+
+/* Chat referido desde otra sucursal (3 oct 2026) */
+.bcwa-referido{ display:flex; align-items:center; gap:12px; padding:9px 14px; background:#fff8e6; border-bottom:1px solid #f5dfa6; color:#5c4813; font-size:13px; flex:0 0 auto; }
+.bcwa-referido > .ti{ font-size:22px; color:#b7791f; }
+.bcwa-referido .tx{ flex:1; min-width:0; display:flex; flex-direction:column; gap:1px; }
+.bcwa-referido .tx b{ font-size:13.5px; color:#3d2f0b; font-weight:600; }
+.bcwa-referido .tx span{ font-size:12px; color:#7a6224; }
+.bcwa-referido .tx em{ font-style:normal; font-size:12.5px; color:#3d2f0b; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.bcwa-referido-btn{ flex:none; display:inline-flex; align-items:center; gap:6px; min-height:36px; padding:0 14px; border-radius:999px; background:#00a884; color:#fff !important; font-weight:600; font-size:13px; text-decoration:none; }
+.bcwa-referido-btn:hover{ background:#008f72; }
+@media (max-width:768px){ .bcwa-referido{ flex-wrap:wrap; } .bcwa-referido-btn{ width:100%; justify-content:center; } }
+/* Botón Contactos en la fila de Buscar/Filtros (solo WhatsApp) */
+/* (en IG/FB la fila de buscar queda invisible: el botón también, sin cambiar el ancho de la cuadrícula) */
+@media (max-width:420px){ .bcwa-contactos-btn span{ display:none; } }

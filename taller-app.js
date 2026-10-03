@@ -31203,41 +31203,69 @@ function _crmAsignarHTML(tabla, fila, alTerminar) {
 // whatsapp_empleados_directorio, tabla whatsapp_transferencias, RLS «o el chat está asignado a mí» y whatsapp-enviar
 // acepta al empleado asignado (migración 20261003010000_whatsapp_transferir_cliente.sql).
 let _waTransferirEmpleados = [];
+// 3 oct 2026: «Transferir» tiene 2 opciones. «A otra sucursal» (pedido del dueño: «si el cliente es de Santiago,
+// pasarle el contacto al número que usa la vendedora de Santiago para que ella le escriba») = RPC
+// whatsapp_referir_a_linea: el cliente aparece en el CRM de esa línea (no leído, con la nota) y, si esta línea tiene
+// un chat abierto (24 h) con el número de esa sucursal, además se le manda por WhatsApp la tarjeta del cliente + la nota.
+// «A un empleado» = lo de siempre (whatsapp_transferir_hilo).
+let _waTrModo = 'linea', _waTrLineas = [], _waTransferirLinea = null, _waTrHilo = null, _waTrHiloDatos = null;
 async function _waAbrirTransferir(hiloId) {
     try {
-        const { data, error } = await supabaseClient.rpc('whatsapp_empleados_directorio');
-        if(error) throw error;
+        const [emp, lin] = await Promise.all([supabaseClient.rpc('whatsapp_empleados_directorio'), supabaseClient.rpc('whatsapp_lineas_directorio')]);
+        if(emp.error) throw emp.error;
         const yo = _crmMiIdentidad();
-        _waTransferirEmpleados = (data || []).filter(e => !(yo.tipo === 'tecnico' && String(e.id) === String(yo.id)));
-        if(!_waTransferirEmpleados.length) { toastError('No hay otros empleados activos.'); return; }
-        const h = _waHilos.find(x => x.id === hiloId);
+        _waTransferirEmpleados = (emp.data || []).filter(e => !(yo.tipo === 'tecnico' && String(e.id) === String(yo.id)));
+        let h = _waHilos.find(x => x.id === hiloId);
+        if(!h) { const r = await supabaseClient.from('whatsapp_hilos').select('id, linea_id, telefono_e164, nombre_perfil').eq('id', hiloId).maybeSingle(); h = r.data || null; }
+        _waTrHilo = hiloId; _waTrHiloDatos = h;
+        _waTrLineas = ((lin && lin.data) || []).filter(l => l.whatsapp_numero && (!h || l.id !== h.linea_id))
+            .sort((a, b) => String(a.sucursal_nombre || '').localeCompare(String(b.sucursal_nombre || '')) || String(a.nombre || '').localeCompare(String(b.nombre || '')));
         const cliente = h ? (h.nombre_perfil || h.telefono_e164 || 'este cliente') : 'este cliente';
-        const html = `<p style="margin:0 0 10px; font-size:13px; color:#475569;">Pásale <b>${escapeHtml(cliente)}</b> a otro empleado. Le va a aparecer en <b>Transferidos a mí</b> y le podrá escribir desde este mismo WhatsApp; el cliente no tiene que escribir a otro número.</p>
-            <input id="waTrBuscar" type="text" placeholder="🔍 Buscar empleado o sucursal…" oninput="_waTransferirFiltrar(this.value)" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:10px; font-size:13.5px; margin-bottom:8px;">
+        const tab = (m, ic, t) => `<button type="button" id="waTrTab_${m}" onclick="_waTrCambiarModo('${m}')" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:8px 10px; border:0; border-radius:9px; font-size:13px; font-weight:700; cursor:pointer;"><i class="ti ti-${ic}"></i> ${t}</button>`;
+        const html = `<div style="display:flex; gap:4px; padding:3px; background:#f1f5f9; border-radius:12px; margin-bottom:10px;">${tab('linea', 'building-store', 'A otra sucursal')}${tab('empleado', 'user', 'A un empleado')}</div>
+            <p id="waTrExplica" style="margin:0 0 10px; font-size:13px; color:#475569;"></p>
+            <input id="waTrBuscar" type="text" placeholder="Buscar…" oninput="_waTransferirFiltrar(this.value)" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:10px; font-size:13.5px; margin-bottom:8px;">
             <div id="waTrLista" style="max-height:38vh; overflow-y:auto; display:flex; flex-direction:column; gap:6px; margin-bottom:10px;"></div>
-            <label style="font-size:12.5px; font-weight:700; color:#334155;">Nota para el compañero (opcional)</label>
-            <textarea id="waTrNota" rows="2" maxlength="500" placeholder="Ej.: quiere cambiar la pantalla de un iPhone 13, ya le di el precio" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:10px; font-size:13.5px; margin:4px 0 12px; resize:vertical;"></textarea>
-            <button id="waTrBtn" class="btn btn-blue" style="width:100%; justify-content:center; background:linear-gradient(180deg,#128C7E,#075E54);" onclick="_waConfirmarTransferir('${hiloId}')" disabled><i class="ti ti-arrow-forward-up"></i> Elige un empleado</button>`;
+            <label style="font-size:12.5px; font-weight:700; color:#334155;">Nota (opcional)</label>
+            <textarea id="waTrNota" rows="2" maxlength="500" placeholder="Ej.: es de Santiago, quiere cambiar la pantalla de un iPhone 13" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:10px; font-size:13.5px; margin:4px 0 12px; resize:vertical;"></textarea>
+            <button id="waTrBtn" class="btn btn-blue" style="width:100%; justify-content:center; background:linear-gradient(180deg,#128C7E,#075E54);" onclick="_waConfirmarTransferir('${hiloId}')" disabled><i class="ti ti-arrow-forward-up"></i> Elige a dónde</button>`;
         abrirModalGenerico('Transferir cliente', html, { ancho: '460px' });
-        _waTransferirElegido = null;
-        _waTransferirFiltrar('');
-    } catch(e) { logError('_waAbrirTransferir', e); toastError('No se pudo cargar la lista de empleados.'); }
+        _waTrCliente = cliente;
+        _waTransferirElegido = null; _waTransferirLinea = null;
+        _waTrCambiarModo(_waTrLineas.length ? 'linea' : 'empleado');
+    } catch(e) { logError('_waAbrirTransferir', e); toastError('No se pudo abrir Transferir.'); }
 }
-let _waTransferirElegido = null;
+let _waTransferirElegido = null, _waTrCliente = '';
+function _waTrCambiarModo(m) {
+    _waTrModo = m; _waTransferirElegido = null; _waTransferirLinea = null;
+    ['linea', 'empleado'].forEach(k => { const b = document.getElementById('waTrTab_' + k); if(b) { b.style.background = k === m ? '#fff' : 'transparent'; b.style.color = k === m ? '#075E54' : '#475569'; b.style.boxShadow = k === m ? '0 1px 3px rgba(15,23,42,.15)' : 'none'; } });
+    const ex = document.getElementById('waTrExplica');
+    if(ex) ex.innerHTML = m === 'linea'
+        ? `Pasa <b>${escapeHtml(_waTrCliente)}</b> al <b>número de otra sucursal</b>. Le aparece en el CRM de esa línea con tu nota, y la vendedora le escribe desde su WhatsApp.`
+        : `Pásale <b>${escapeHtml(_waTrCliente)}</b> a otro empleado. Le aparece en <b>Transferidos a mí</b> y le escribe desde este mismo WhatsApp.`;
+    const bus = document.getElementById('waTrBuscar'); if(bus) { bus.value = ''; bus.placeholder = m === 'linea' ? 'Buscar sucursal o línea…' : 'Buscar empleado o sucursal…'; }
+    const btn = document.getElementById('waTrBtn'); if(btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-arrow-forward-up"></i> Elige a dónde'; }
+    _waTransferirFiltrar('');
+}
+function _waTrTel(n) { const d = String(n || '').replace(/\D/g, ''); return d.length === 11 && d[0] === '1' ? `${d.slice(1,4)}-${d.slice(4,7)}-${d.slice(7)}` : String(n || ''); }
 function _waTransferirFiltrar(q) {
     const cont = document.getElementById('waTrLista');
     if(!cont) return;
     q = (q || '').toLowerCase().trim();
-    const lista = _waTransferirEmpleados.filter(e => !q || (e.nombre || '').toLowerCase().includes(q) || (e.sucursal_nombre || '').toLowerCase().includes(q));
-    cont.innerHTML = lista.length ? lista.map(e => {
-        const sel = String(_waTransferirElegido) === String(e.id);
-        const ini = String(e.nombre || '?').trim().split(/\s+/).map(x => x[0]).slice(0, 2).join('').toUpperCase();
-        return `<button type="button" onclick="_waTransferirElegir('${e.id}')" style="display:flex; align-items:center; gap:10px; width:100%; text-align:left; padding:9px 12px; border:1.5px solid ${sel ? '#128C7E' : '#e2e8f0'}; border-radius:12px; background:${sel ? '#ecfdf5' : '#fff'}; cursor:pointer;">
-            <span style="flex:0 0 34px; height:34px; border-radius:50%; background:${sel ? '#128C7E' : '#e2e8f0'}; color:${sel ? '#fff' : '#334155'}; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800;">${escapeHtml(ini)}</span>
-            <span style="flex:1; min-width:0;"><b style="display:block; font-size:13.5px; color:#0f172a;">${escapeHtml(e.nombre || 'Empleado')}</b><span style="font-size:12px; color:#64748b;">${escapeHtml(e.sucursal_nombre || 'Sin sucursal')}</span></span>
+    const fila = (id, sel, ini, titulo, sub, fn, icono) => `<button type="button" onclick="${fn}('${id}')" style="display:flex; align-items:center; gap:10px; width:100%; text-align:left; padding:9px 12px; border:1.5px solid ${sel ? '#128C7E' : '#e2e8f0'}; border-radius:12px; background:${sel ? '#ecfdf5' : '#fff'}; cursor:pointer;">
+            <span style="flex:0 0 34px; height:34px; border-radius:50%; background:${sel ? '#128C7E' : '#e2e8f0'}; color:${sel ? '#fff' : '#334155'}; display:flex; align-items:center; justify-content:center; font-size:${icono ? 18 : 12}px; font-weight:800;">${icono ? `<i class="ti ti-${icono}"></i>` : escapeHtml(ini)}</span>
+            <span style="flex:1; min-width:0;"><b style="display:block; font-size:13.5px; color:#0f172a;">${escapeHtml(titulo)}</b><span style="font-size:12px; color:#64748b;">${escapeHtml(sub)}</span></span>
             ${sel ? '<i class="ti ti-circle-check-filled" style="color:#128C7E; font-size:20px;"></i>' : ''}
         </button>`;
-    }).join('') : '<div style="font-size:13px; color:#64748b; padding:8px;">Nadie coincide con la búsqueda.</div>';
+    if(_waTrModo === 'linea') {
+        const lista = _waTrLineas.filter(l => !q || `${l.sucursal_nombre || ''} ${l.nombre || ''} ${l.whatsapp_numero || ''}`.toLowerCase().includes(q));
+        cont.innerHTML = lista.length ? lista.map(l => fila(l.id, String(_waTransferirLinea) === String(l.id), '', `${l.sucursal_nombre || 'Sucursal'} · ${l.nombre || ''}`, _waTrTel(l.whatsapp_numero), '_waTransferirElegirLinea', 'brand-whatsapp')).join('')
+            : '<div style="font-size:13px; color:#64748b; padding:8px;">No hay otras líneas que coincidan.</div>';
+        return;
+    }
+    const lista = _waTransferirEmpleados.filter(e => !q || (e.nombre || '').toLowerCase().includes(q) || (e.sucursal_nombre || '').toLowerCase().includes(q));
+    cont.innerHTML = lista.length ? lista.map(e => fila(e.id, String(_waTransferirElegido) === String(e.id), String(e.nombre || '?').trim().split(/\s+/).map(x => x[0]).slice(0, 2).join('').toUpperCase(), e.nombre || 'Empleado', e.sucursal_nombre || 'Sin sucursal', '_waTransferirElegir')).join('')
+        : '<div style="font-size:13px; color:#64748b; padding:8px;">Nadie coincide con la búsqueda.</div>';
 }
 function _waTransferirElegir(id) {
     _waTransferirElegido = id;
@@ -31246,10 +31274,60 @@ function _waTransferirElegir(id) {
     const btn = document.getElementById('waTrBtn');
     if(btn && e) { btn.disabled = false; btn.innerHTML = `<i class="ti ti-arrow-forward-up"></i> Transferir a ${escapeHtml(e.nombre || 'empleado')}`; }
 }
+function _waTransferirElegirLinea(id) {
+    _waTransferirLinea = id;
+    _waTransferirFiltrar(document.getElementById('waTrBuscar')?.value || '');
+    const l = _waTrLineas.find(x => String(x.id) === String(id));
+    const btn = document.getElementById('waTrBtn');
+    if(btn && l) { btn.disabled = false; btn.innerHTML = `<i class="ti ti-arrow-forward-up"></i> Pasar a ${escapeHtml((l.sucursal_nombre || '') + ' · ' + (l.nombre || ''))}`; }
+}
+// Si esta línea tiene un chat abierto (el número de la otra sucursal escribió en las últimas 24 h), se le manda allí
+// la tarjeta de contacto del cliente + la nota. Devuelve true si se mandó.
+async function _waAvisarLineaPorWhatsapp(hOrigen, linea, nota) {
+    try {
+        const num = String(linea.whatsapp_numero || '').replace(/\D/g, '');
+        if(!num || !hOrigen) return false;
+        const { data } = await supabaseClient.from('whatsapp_hilos').select('id, ultimo_inbound_at')
+            .eq('linea_id', hOrigen.linea_id).in('telefono_e164', [num, '+' + num]).order('ultimo_inbound_at', { ascending: false, nullsFirst: false }).limit(1);
+        const chat = data && data[0];
+        if(!chat || !chat.ultimo_inbound_at || (Date.now() - new Date(chat.ultimo_inbound_at).getTime()) > 23.5 * 3600 * 1000) return false;
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if(!session) return false;
+        const enviar = body => fetch(CONFIG_URL + '/functions/v1/whatsapp-enviar', { method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY, 'Content-Type': 'application/json' },
+            body: JSON.stringify(Object.assign({ hilo_id: chat.id }, body)) }).then(r => r.ok);
+        const tel = String(hOrigen.telefono_e164 || '').replace(/\D/g, '');
+        const ok1 = await enviar({ contacto: { nombre: hOrigen.nombre_perfil || ('Cliente ' + tel), telefono: tel } });
+        const ok2 = await enviar({ mensaje: `Cliente referido para que le escribas: ${hOrigen.nombre_perfil || ''} (${_waTrTel(tel)})${nota ? '\n' + nota : ''}`.replace(/\s+\(/, ' (') });
+        return ok1 || ok2;
+    } catch(e) { logError('_waAvisarLineaPorWhatsapp', e); return false; }
+}
 async function _waConfirmarTransferir(hiloId) {
+    const lockKey = `wa-transferir:${hiloId}`;
+    if(_waTrModo === 'linea') {
+        const linea = _waTrLineas.find(x => String(x.id) === String(_waTransferirLinea));
+        if(!linea) return;
+        if(!_crmIniciarAccion(lockKey)) return;
+        const btn = document.getElementById('waTrBtn');
+        if(btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Pasando…'; }
+        try {
+            const nota = (document.getElementById('waTrNota')?.value || '').trim();
+            const { data, error } = await supabaseClient.rpc('whatsapp_referir_a_linea', { p_hilo: hiloId, p_linea: linea.id, p_nota: nota || null });
+            if(error) throw error;
+            const h = _waHilos.find(x => x.id === hiloId) || _waTrHiloDatos;
+            const avisado = await _waAvisarLineaPorWhatsapp(h, linea, nota);
+            document.getElementById('modalGenerico')?.remove();
+            toast(`✅ Cliente pasado a ${data?.linea || 'la sucursal'}. Le aparece en su CRM${avisado ? ' y se le mandó por WhatsApp' : ''}.`);
+        } catch(e) {
+            logError('_waConfirmarTransferir', e);
+            const m = String(e?.message || '');
+            toastError(m.includes('sin_permiso') ? 'No tienes permiso para pasar este chat.' : m.includes('sin_telefono') ? 'Este chat no tiene un número de teléfono para pasar.' : 'No se pudo pasar el cliente.');
+            if(btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-arrow-forward-up"></i> Intentar de nuevo'; }
+        } finally { _crmFinalizarAccion(lockKey); }
+        return;
+    }
     const destino = _waTransferirElegido;
     if(!destino) return;
-    const lockKey = `wa-transferir:${hiloId}`;
     if(!_crmIniciarAccion(lockKey)) return;
     const btn = document.getElementById('waTrBtn');
     if(btn) btn.disabled = true;

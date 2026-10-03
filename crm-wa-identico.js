@@ -16,7 +16,7 @@
   'use strict';
   if (window.__bcWaIdentico) return;
   window.__bcWaIdentico = true;
-  var VERSION = '20261003-w10';
+  var VERSION = '20261003-w11';
 
   // ---------- CSS (siempre de último) ----------
   function css(){
@@ -835,11 +835,13 @@
     return lineasInfo;
   }
   function botonContactos(){
-    var cont = document.querySelector('#v-crmLinea .crm-acciones-rapidas'); if (!cont || cont.querySelector('#bcwaContactosBtn')) return;
-    var b = document.createElement('button'); b.type = 'button'; b.id = 'bcwaContactosBtn'; b.className = 'crm-icon-btn';
-    b.title = 'Contactos'; b.setAttribute('aria-label', 'Buscar contactos'); b.innerHTML = '<i class="ti ti-address-book"></i>';
+    // 3 oct 2026: junto a Buscar y Filtros (antes era un iconito suelto en las acciones rápidas y no se veía)
+    var cont = document.querySelector('#v-crmLinea .crm-busq-row'); if (!cont || document.getElementById('bcwaContactosBtn')) return;
+    var b = document.createElement('button'); b.type = 'button'; b.id = 'bcwaContactosBtn'; b.className = 'crm-filtros-btn pill-elevado bcwa-contactos-btn';
+    b.title = 'Buscar contactos de todas las sucursales'; b.setAttribute('aria-label', 'Contactos'); b.innerHTML = '<i class="ti ti-address-book"></i> <span>Contactos</span>';
     b.addEventListener('click', abrirContactos);
-    cont.insertBefore(b, cont.firstChild);
+    var filtros = document.getElementById('crmFiltrosBtn');
+    cont.insertBefore(b, filtros || null);
   }
   function cerrarContactos(){ var m = document.getElementById('bcwaContactos'); if (m) m.remove(); }
   function abrirContactos(){
@@ -928,6 +930,41 @@
     var lupa = head.querySelector('.bcwa-lupa'); head.insertBefore(b, lupa ? lupa.nextSibling : null);
   }
 
+  // Chat REFERIDO desde otra sucursal (3 oct 2026): aviso arriba de los mensajes con quién lo pasó, la nota y un botón
+  // "Escribirle desde mi WhatsApp" (abre el WhatsApp de este teléfono/computadora con el número del cliente; así la
+  // vendedora le escribe desde su número aunque el cliente nunca le haya escrito a esta línea).
+  var referidoCache = {};
+  async function cargarReferido(id){
+    if (!id || referidoCache.hasOwnProperty(id)) return;
+    referidoCache[id] = null;
+    try {
+      var r = await supabaseClient.from('whatsapp_referidos').select('id,de_nombre,nota,creado_en,linea_origen').eq('hilo_destino', id).order('creado_en', { ascending: false }).limit(1);
+      var ref = r.data && r.data[0];
+      if (ref){
+        var li = (await cargarLineasInfo())[ref.linea_origen] || {};
+        ref._linea = (li.sucursal ? li.sucursal + ' · ' : '') + (li.linea || '');
+        referidoCache[id] = ref; avisoReferido();
+      }
+    } catch(e){}
+  }
+  function avisoReferido(){
+    var id = hiloId(), ref = id && referidoCache[id];
+    var det = document.getElementById('waDetalle'); if (!det) return;
+    var ya = det.querySelector('.bcwa-referido');
+    if (!ref){ if (ya) ya.remove(); return; }
+    if (ya && ya.dataset.hilo === id) return;
+    if (ya) ya.remove();
+    var h = hiloActual(), tel = String((h && h.telefono_e164) || '').replace(/\D/g, '');
+    var box = document.createElement('div'); box.className = 'bcwa-referido'; box.dataset.hilo = id;
+    var cuando = ''; try { cuando = new Date(ref.creado_en).toLocaleString('es-DO', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }); } catch(e){}
+    box.innerHTML = '<i class="ti ti-arrow-forward-up"></i><div class="tx"><b>Cliente referido' + (ref._linea ? ' desde ' + esc(ref._linea) : '') + '</b>' +
+      '<span>Lo pasó ' + esc(ref.de_nombre || 'un compañero') + (cuando ? ' · ' + esc(cuando) : '') + '</span>' +
+      (ref.nota ? '<em>“' + esc(ref.nota) + '”</em>' : '') + '</div>' +
+      (tel ? '<a class="bcwa-referido-btn" href="https://wa.me/' + tel + '" target="_blank" rel="noopener"><i class="ti ti-brand-whatsapp"></i> Escribirle desde mi WhatsApp</a>' : '');
+    var scroll = det.querySelector('#waMessagesScroll');
+    if (scroll && scroll.parentNode) scroll.parentNode.insertBefore(box, scroll); else det.appendChild(box);
+  }
+
   // Botón "Etiquetas" en la barra del nombre del cliente (3 oct 2026): un toque abre
   // "Etiquetar chat"; muestra los puntos de color de las etiquetas que ya tiene.
   function botonEtiquetasCabecera(){
@@ -962,7 +999,7 @@
       var p = document.querySelector('#waDetalleCol > .bcwa-buscar'); if (p){ var i = p.querySelector('input'); if (i) i.value = ''; p.querySelector('.bcwa-buscar-res').innerHTML = '<div class="vacio">Buscar mensajes de este chat.</div>'; }
     }
     decorarLista();
-    if (id){ botonLupa(); botonEtiquetasCabecera(); botonMasCabecera(); cabeceraClicable(); restaurarBorrador(); pildoraMovil(); engancharScroll(); contarNuevos(); marcarDestacados(); }
+    if (id){ cargarReferido(id); avisoReferido(); botonLupa(); botonEtiquetasCabecera(); botonMasCabecera(); cabeceraClicable(); restaurarBorrador(); pildoraMovil(); engancharScroll(); contarNuevos(); marcarDestacados(); }
     borradoresEnLista();
   }
   var pendiente = false;
