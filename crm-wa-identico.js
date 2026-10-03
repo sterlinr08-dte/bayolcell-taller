@@ -16,7 +16,7 @@
   'use strict';
   if (window.__bcWaIdentico) return;
   window.__bcWaIdentico = true;
-  var VERSION = '20261003-w5';
+  var VERSION = '20261003-w6';
 
   // ---------- CSS (siempre de último) ----------
   function css(){

@@ -239,35 +239,55 @@ body #v-crmLinea:not([data-social-channel="whatsapp"]) .bcwa-etq-filtro{ display
 .bcwa-menu-chat button.on{ background:#f0f2f5; font-weight:600; }
 
 /* =====================================================================
-   Barra de arriba del CRM en DOS líneas (PC). Pedido del dueño 3 oct 2026.
-   Línea 1: canales (WhatsApp/Instagram/Facebook) + Sucursal + Área.
-   Línea 2: Leads, Campañas, íconos, buscar, Filtros y filtros rápidos (sin saltar de línea).
+   Barra de arriba del CRM en DOS líneas (PC). Pedido del dueño 3 oct 2026 (v2).
+   Línea 1: canales (WhatsApp/Instagram/Facebook) centrados + Leads, Campañas e íconos.
+   Línea 2: Sucursal y Área + buscar/Filtros + filtros rápidos (sin saltar de línea).
+   Los contenedores .crm-cabecera-resumen y .crm-bandeja-controles pasan a display:contents
+   para que sus piezas se acomoden en la cuadrícula; NO se mueve nada del HTML (mismos ids/onclick).
    ===================================================================== */
 @media (min-width:1025px){
   body #v-crmLinea.active[data-social-channel="whatsapp"]{
-    display:grid !important; grid-template-columns:minmax(0,1fr) auto; grid-template-rows:auto auto minmax(0,1fr);
-    column-gap:12px; row-gap:6px; align-items:center;
+    display:grid !important; grid-template-columns:auto auto minmax(0,1fr) auto; grid-template-rows:auto auto minmax(0,1fr);
+    column-gap:10px; row-gap:6px; align-items:center;
   }
   body #v-crmLinea.active[data-social-channel="whatsapp"] > *{ grid-column:1 / -1; min-width:0; }
-  body #v-crmLinea.active[data-social-channel="whatsapp"] > #bcSocialHubHead{ grid-column:1; grid-row:1; margin:0 !important; }
-  body #v-crmLinea.active[data-social-channel="whatsapp"] > .crm-cabecera-resumen{ grid-column:2; grid-row:1; margin:0 !important; flex-wrap:nowrap !important; }
-  body #v-crmLinea.active[data-social-channel="whatsapp"] > .crm-cabecera-resumen .crm-selectores{ flex:none !important; flex-wrap:nowrap !important; }
-  body #v-crmLinea.active[data-social-channel="whatsapp"] > .crm-cabecera-resumen .crm-pill-select{ width:200px !important; min-width:0 !important; }
-  body #v-crmLinea.active[data-social-channel="whatsapp"] > .crm-bandeja-controles{ grid-row:2; flex-wrap:nowrap !important; margin:0 !important; }
+  body #v-crmLinea.active[data-social-channel="whatsapp"] > .crm-cabecera-resumen,
+  body #v-crmLinea.active[data-social-channel="whatsapp"] > .crm-bandeja-controles{ display:contents !important; }
+  /* Línea 1 */
+  body #v-crmLinea.active[data-social-channel="whatsapp"] > #bcSocialHubHead{ grid-column:1 / 4; grid-row:1; justify-self:center; width:max-content; max-width:100%; margin:0 !important; }
+  body #v-crmLinea.active[data-social-channel="whatsapp"] .crm-tabs-row{ grid-column:4; grid-row:1; margin:0 !important; justify-self:end; }
+  /* Línea 2 */
+  body #v-crmLinea.active[data-social-channel="whatsapp"] #crmSelectorWrap{ grid-column:1; grid-row:2; margin:0 !important; flex:none !important; flex-wrap:nowrap !important; }
+  body #v-crmLinea.active[data-social-channel="whatsapp"] #crmSelectorWrap .crm-pill-select{ width:190px !important; min-width:0 !important; }
+  body #v-crmLinea.active[data-social-channel="whatsapp"] .crm-busq-row{ grid-column:2; grid-row:2; margin:0 !important; }
+  body #v-crmLinea.active[data-social-channel="whatsapp"] #crmChipsRow{ grid-column:3 / 5; grid-row:2; margin:0 !important; }
+  body #v-crmLinea.active[data-social-channel="whatsapp"] #crmStats{ display:none !important; }
+  /* Contenido */
   body #v-crmLinea.active[data-social-channel="whatsapp"] > #crmLinea-mensajes,
   body #v-crmLinea.active[data-social-channel="whatsapp"] > #crmLinea-leads,
   body #v-crmLinea.active[data-social-channel="whatsapp"] > #crmLinea-campanas{ grid-row:3; align-self:stretch; min-height:0; }
-  /* Canales más bajitos para que quepan junto a Sucursal/Área */
-  body #v-crmLinea.active[data-social-channel="whatsapp"] #bcSmartPlatforms{ min-height:0 !important; padding:4px !important; }
+  /* Canales: 3 del mismo ancho, sin el hueco vacío a la derecha, más bajitos */
+  body #v-crmLinea.active[data-social-channel="whatsapp"] #bcSmartPlatforms{ grid-template-columns:repeat(3, 190px) !important; width:max-content !important; min-height:0 !important; padding:4px !important; }
   body #v-crmLinea.active[data-social-channel="whatsapp"] #bcSmartPlatforms .bc-smart-platform{ min-height:0 !important; height:40px !important; padding-top:0 !important; padding-bottom:0 !important; }
   body #v-crmLinea.active[data-social-channel="whatsapp"] #bcSmartPlatforms .bc-motion-pill{ height:40px !important; top:4px !important; }
   body #v-crmLinea.active[data-social-channel="whatsapp"] #bcSmartPlatforms .bc-smart-platform-icon{ width:28px !important; height:28px !important; }
-  /* Línea 2: los filtros rápidos no saltan de línea; si no caben, se desplazan de lado */
-  body #v-crmLinea.active[data-social-channel="whatsapp"] .crm-bandeja-controles .crm-chips-row{
-    flex:1 1 auto !important; min-width:0 !important; flex-wrap:nowrap !important; overflow-x:auto !important; overflow-y:hidden !important; scrollbar-width:none;
+  /* Filtros rápidos: no saltan de línea; si no caben, se desplazan de lado */
+  body #v-crmLinea.active[data-social-channel="whatsapp"] #crmChipsRow{
+    min-width:0 !important; flex-wrap:nowrap !important; overflow-x:auto !important; overflow-y:hidden !important; scrollbar-width:none;
   }
-  body #v-crmLinea.active[data-social-channel="whatsapp"] .crm-bandeja-controles .crm-chips-row::-webkit-scrollbar{ display:none; }
-  body #v-crmLinea.active[data-social-channel="whatsapp"] .crm-bandeja-controles .crm-chips-row > *{ flex:none !important; }
+  body #v-crmLinea.active[data-social-channel="whatsapp"] #crmChipsRow::-webkit-scrollbar{ display:none; }
+  body #v-crmLinea.active[data-social-channel="whatsapp"] #crmChipsRow > *{ flex:none !important; }
+}
+@media (min-width:1025px) and (max-width:1300px){
+  body #v-crmLinea.active[data-social-channel="whatsapp"] #bcSmartPlatforms{ grid-template-columns:repeat(3, 160px) !important; }
+  body #v-crmLinea.active[data-social-channel="whatsapp"] #crmSelectorWrap .crm-pill-select{ width:160px !important; }
+}
+@media (min-width:1025px) and (max-width:1220px){
+  /* Pantalla angosta: solo el logo de cada red (los nombres se cortaban) */
+  body #v-crmLinea.active[data-social-channel="whatsapp"] #bcSmartPlatforms{ grid-template-columns:repeat(3, 58px) !important; }
+  body #v-crmLinea.active[data-social-channel="whatsapp"] #bcSmartPlatforms .bc-smart-platform-copy{ display:none !important; }
+  body #v-crmLinea.active[data-social-channel="whatsapp"] #bcSmartPlatforms .bc-smart-platform{ justify-content:center !important; padding-left:0 !important; padding-right:0 !important; }
+}
 }
 
 /* Menú desplegable (PC) */
