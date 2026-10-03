@@ -5,7 +5,7 @@
   window.__bcCrmExtensionsLoader=true;
 
   var V='20260929-f3';
-  var SOCIAL_HUB='20260929-f3';
+  var SOCIAL_HUB='20261003-ci1';
   var PERF='20260929-f1';
   var FB_DIRECT='20260920-incr1';
   var GLASS='20260916-glass2';
@@ -183,7 +183,7 @@
 
     // WhatsApp idéntico a WhatsApp Web / app (solo la pestaña WhatsApp). Va después del diseño unificado.
     var waIdentico=document.createElement('script');
-    waIdentico.src='crm-wa-identico.js?v=20261003-w8';
+    waIdentico.src='crm-wa-identico.js?v=20261003-w9';
     document.head.appendChild(waIdentico);
 
     var financing=document.createElement('script');

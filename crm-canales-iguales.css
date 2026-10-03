@@ -1,0 +1,245 @@
+/* =====================================================================
+   BAYOL CELL — Canales iguales (3 oct 2026)
+   Pedido del dueño: "cuando hago cambio de red social el formato cambia,
+   deberían tener el formato igual todas". Instagram y Facebook usan aquí las
+   MISMAS medidas, posiciones y forma que la pestaña WhatsApp (crm-wa-identico.css):
+   barra de arriba en dos líneas, lista blanca de 72 px, cabecera gris de 59 px,
+   fondo con garabatos, burbujas de 7.5 px y barra de escribir de WhatsApp Web.
+   Solo cambia el color de cada red (acento, burbuja propia y contador).
+   Capa de solo estilo: no cambia ids, onclick ni funciones.
+   ===================================================================== */
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]){
+  --cx-tinta:#111b21; --cx-gris:#667781; --cx-icono:#54656f; --cx-barra:#f0f2f5; --cx-linea:#e9edef;
+  --cx-fondo:#efeae2; --cx-in:#ffffff; --cx-hover:#f5f6f6; --cx-sel:#f0f2f5; --cx-sombra:0 1px .5px rgba(11,20,26,.13);
+  --cx-fuente:-apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",Helvetica,"Lucida Grande",Arial,Ubuntu,Cantarell,"Fira Sans",sans-serif;
+}
+body #v-crmLinea[data-social-channel="instagram"]{ --cx-acento:#d62976; --cx-acento-osc:#a3195b; --cx-out:#f3e6fb; --cx-chip:#fbe4f0; }
+body #v-crmLinea[data-social-channel="facebook"]{ --cx-acento:#0866ff; --cx-acento-osc:#0653cc; --cx-out:#dceaff; --cx-chip:#e3eeff; }
+
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(#bcSocialInstagramPanel,#bcSocialFacebookPanel),
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(#bcSocialInstagramPanel,#bcSocialFacebookPanel) *{ font-family:var(--cx-fuente); }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(#bcSocialInstagramPanel,#bcSocialFacebookPanel) .ti{ font-family:"tabler-icons" !important; }
+
+/* ---------------- Marco (igual que .wa-shell) ---------------- */
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-shell,.bc-social-generic-shell){
+  background:#fff !important; border:1px solid #d1d7db !important; border-radius:6px !important; overflow:hidden !important; box-shadow:0 6px 18px rgba(11,20,26,.05) !important; }
+
+/* ---------------- Lista de chats ---------------- */
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-list,.bc-social-generic-list){ background:#fff !important; border-right:1px solid var(--cx-linea) !important; }
+/* Cabecera de la lista: solo el buscador, gris como el de WhatsApp (la cuenta ya se ve en el botón de la red) */
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-list-head,.bc-social-generic-head){ background:#fff !important; padding:7px 12px !important; border-bottom:1px solid var(--cx-linea) !important; box-shadow:none !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-account,.bc-social-generic-account){ display:none !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-search,.bc-social-generic-search){ margin:0 !important; position:relative; display:block; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(#bcIgSearch,#bcFbSearch){ height:35px !important; min-height:35px !important; width:100% !important; box-sizing:border-box;
+  background:var(--cx-barra) !important; border:0 !important; border-radius:8px !important; padding:0 12px 0 40px !important; font-size:14px !important; color:var(--cx-tinta) !important; box-shadow:none !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-search,.bc-social-generic-search) > .ti{ left:13px !important; font-size:16px !important; color:var(--cx-icono) !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-threads,.bc-social-generic-threads){ background:#fff !important; padding:0 !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-thread,.bc-social-generic-thread){
+  display:flex !important; align-items:center !important; gap:13px !important; width:100% !important; min-height:72px !important; padding:0 15px 0 13px !important; margin:0 !important;
+  background:#fff !important; border:0 !important; border-radius:0 !important; box-shadow:none !important; transform:none !important; position:relative; text-align:left; }
+/* Separador desde el avatar, como WhatsApp */
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-thread,.bc-social-generic-thread)::after{ content:""; position:absolute; left:75px; right:0; bottom:0; height:1px; background:var(--cx-linea); }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-thread,.bc-social-generic-thread):last-child::after{ display:none; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-thread,.bc-social-generic-thread):hover{ background:var(--cx-hover) !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-thread.on,.bc-social-generic-thread.on){ background:var(--cx-sel) !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-thread .bc-ig-avatar,.bc-social-generic-thread .bc-social-generic-avatar){
+  width:49px !important; height:49px !important; min-width:49px !important; flex:0 0 49px !important; background:#dfe5e7 !important; background-image:none !important; color:#fff !important;
+  font-size:17px !important; font-weight:500 !important; box-shadow:none !important; border:0 !important; border-radius:50% !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-thread-name,.bc-social-generic-thread-copy b){ font-size:17px !important; font-weight:400 !important; color:var(--cx-tinta) !important; line-height:21px !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-thread-preview,.bc-social-generic-thread-copy small){ font-size:14px !important; color:var(--cx-gris) !important; line-height:20px !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-thread-time,.bc-fb-thread-time){ font-size:12px !important; font-weight:400 !important; color:var(--cx-gris) !important; font-style:normal !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-thread.unread .bc-ig-thread-time,.bc-social-generic-thread.unread .bc-fb-thread-time){ color:var(--cx-acento) !important; font-weight:500 !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-thread.unread .bc-ig-thread-preview,.bc-social-generic-thread.unread .bc-social-generic-thread-copy small){ color:var(--cx-tinta) !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-unread,.bc-social-generic-thread > em){
+  background:var(--cx-acento) !important; color:#fff !important; min-width:20px !important; height:20px !important; padding:0 6px !important; border-radius:999px !important;
+  font-size:12px !important; font-weight:600 !important; box-shadow:none !important; border:0 !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-thread-main,.bc-social-generic-thread-copy){ flex:1 1 auto !important; min-width:0 !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-thread-name,.bc-ig-thread-preview,.bc-social-generic-thread-copy b,.bc-social-generic-thread-copy small){ display:block; white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) .bc-social-generic-thread .bc-fb-thread-time{ align-self:flex-start !important; margin-top:17px !important; }
+/* "Ver archivados" de Facebook: fila como "Archivados" de WhatsApp */
+body #v-crmLinea[data-social-channel="facebook"] [class*="fb-arch-toggle"]{ display:flex !important; align-items:center; gap:18px; width:100% !important; min-height:49px; margin:0 !important; padding:0 15px 0 26px !important;
+  border:0 !important; border-top:1px solid var(--cx-linea) !important; border-radius:0 !important; background:#fff !important; color:var(--cx-tinta) !important; font-size:16px !important; font-weight:400 !important; text-align:left; }
+body #v-crmLinea[data-social-channel="facebook"] [class*="fb-arch-toggle"]:hover{ background:var(--cx-hover) !important; }
+body #v-crmLinea[data-social-channel="facebook"] [class*="fb-arch-toggle"] .ti{ font-size:20px; color:var(--cx-acento); }
+
+/* ---------------- Cabecera del chat (59 px gris) ---------------- */
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-chat-head,.bc-fb-head){ background:var(--cx-barra) !important; min-height:59px !important; padding:10px 16px !important; gap:15px !important; border-bottom:0 !important; box-shadow:none !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-chat-head .bc-ig-avatar,.bc-fb-head .bc-fb-avatar){
+  width:40px !important; height:40px !important; min-width:40px !important; font-size:15px !important; font-weight:500 !important; background:#dfe5e7 !important; background-image:none !important; color:#fff !important; box-shadow:none !important; border:0 !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-chat-title b,.bc-fb-name b){ font-size:16px !important; font-weight:400 !important; color:var(--cx-tinta) !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-chat-title span,.bc-fb-name small){ font-size:13px !important; color:var(--cx-gris) !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) .bc-ig-chat-badge{ background:transparent !important; border:1px solid #d1d7db !important; color:var(--cx-icono) !important; border-radius:999px !important; box-shadow:none !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) .bc-fb-head .bc-fb-icon{ width:40px !important; height:40px !important; min-width:40px; border-radius:50% !important; background:transparent !important; border:0 !important; box-shadow:none !important;
+  color:var(--cx-icono) !important; display:inline-flex !important; align-items:center; justify-content:center; padding:0 !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) .bc-fb-head .bc-fb-icon .ti{ font-size:22px !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) .bc-fb-head .bc-fb-icon:hover{ background:rgba(11,20,26,.1) !important; }
+/* Barra de Asignarme / Reasignar: fina y blanca como en WhatsApp (sin aplastarse) */
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-chat-head,.bc-fb-head){ flex:0 0 auto !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-chat-head,.bc-fb-head) + div{ flex:0 0 auto !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-chat-head,.bc-fb-head) + div{ background:#fff !important; border-bottom:1px solid var(--cx-linea) !important; padding:5px 14px !important; min-height:0 !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-chat-head,.bc-fb-head) + div button{ min-height:30px !important; height:auto !important; padding:4px 12px !important; font-size:13px !important; border-radius:999px !important; box-shadow:none !important;
+  border:1px solid #d1d7db !important; background:#fff !important; color:var(--cx-icono) !important; }
+
+/* ---------------- Mensajes ---------------- */
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(#bcIgMessages,#bcFbMessages){ background-color:var(--cx-fondo) !important; padding:12px 7% 8px !important; gap:2px !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-msg-row.in + .bc-ig-msg-row.out,.bc-ig-msg-row.out + .bc-ig-msg-row.in,.bc-fb-row.in + .bc-fb-row.out,.bc-fb-row.out + .bc-fb-row.in){ margin-top:10px !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-msg-row .bc-ig-msg,.bc-fb-row .bc-fb-bubble){
+  border-radius:7.5px !important; box-shadow:var(--cx-sombra) !important; padding:6px 7px 8px 9px !important; font-size:14.2px !important; line-height:19px !important; color:var(--cx-tinta) !important; max-width:min(65%, 560px) !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-msg-row.in .bc-ig-msg,.bc-fb-row.in .bc-fb-bubble){ background:var(--cx-in) !important; border-top-left-radius:7.5px !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-msg-row.out .bc-ig-msg,.bc-fb-row.out .bc-fb-bubble){ background:var(--cx-out) !important; background-image:none !important; color:var(--cx-tinta) !important; border-top-right-radius:7.5px !important; }
+/* Hora, palomitas y enlaces en color normal (las burbujas propias ya no son oscuras) */
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-msg-time,.bc-fb-bubble > small),
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-msg-row.out .bc-ig-msg-time,.bc-fb-row.out .bc-fb-bubble > small){ font-size:11px !important; color:var(--cx-gris) !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-msg-row.out .bc-ig-msg-time span,.bc-fb-row.out .bc-fb-bubble > small span){ color:#53bdeb !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-msg-row.out .bc-ig-msg a,.bc-fb-row.out .bc-fb-bubble a,.bc-ig-msg a,.bc-fb-bubble a){ color:#027eb5 !important; text-decoration:none !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-msg-row.out .bc-ig-msg-menu,.bc-fb-row.out .bc-fb-message-menu){ color:var(--cx-icono) !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-msg img,.bc-ig-msg video,.bc-fb-bubble img,.bc-fb-bubble video){ border-radius:6px !important; }
+/* Separador de fecha como WhatsApp */
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(#bcIgMessages,#bcFbMessages) .bc-date-sep{ margin:10px 0 8px !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(#bcIgMessages,#bcFbMessages) .bc-date-sep span{ background:#fff !important; color:var(--cx-icono) !important; font-size:12.5px !important; text-transform:uppercase; padding:5px 12px 6px !important; border-radius:7.5px !important; box-shadow:var(--cx-sombra) !important; font-weight:400 !important; }
+
+/* ---------------- Barra de escribir (PC = WhatsApp Web) ---------------- */
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-composer,.bc-fb-composer){
+  background:var(--cx-barra) !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; min-height:62px !important; padding:5px 16px !important; gap:8px !important; border-top:0 !important; box-shadow:none !important; align-items:center !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-composer .bc-ig-location,.bc-fb-composer .bc-fb-icon){
+  width:40px !important; height:40px !important; min-width:40px !important; border-radius:50% !important; background:transparent !important; border:0 !important; box-shadow:none !important; color:var(--cx-icono) !important; margin:0 !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-composer .bc-ig-location,.bc-fb-composer .bc-fb-icon) .ti{ font-size:24px !important; color:var(--cx-icono) !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-composer .bc-ig-location,.bc-fb-composer .bc-fb-icon):hover{ background:rgba(11,20,26,.08) !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(#bcIgText,#bcFbText){ background:#fff !important; border:0 !important; border-radius:8px !important; padding:9px 12px 11px !important; font-size:15px !important; line-height:20px !important; color:var(--cx-tinta) !important; box-shadow:none !important; min-height:42px !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(#bcIgText,#bcFbText):focus{ border:0 !important; box-shadow:none !important; outline:none !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(#bcIgText,#bcFbText)::placeholder{ color:var(--cx-gris) !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-composer .bc-ig-send,.bc-fb-composer #bcFbSend){
+  width:40px !important; height:40px !important; min-width:40px !important; flex:0 0 40px !important; border-radius:50% !important; background:transparent !important; background-image:none !important; color:var(--cx-icono) !important; box-shadow:none !important; border:0 !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-composer .bc-ig-send,.bc-fb-composer #bcFbSend) .ti{ font-size:24px !important; color:var(--cx-icono) !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-composer .bc-ig-send,.bc-fb-composer #bcFbSend):hover{ background:rgba(11,20,26,.08) !important; }
+/* Botón "Ir al último" como el de WhatsApp */
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(#bcIgJump,#bcFbJump){ background:#fff !important; color:var(--cx-icono) !important; border:0 !important; border-radius:999px !important; box-shadow:0 1px 1px rgba(11,20,26,.06),0 2px 5px rgba(11,20,26,.2) !important; }
+
+/* Sin chat abierto: el mismo fondo claro que muestra WhatsApp */
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-chat,.bc-social-generic-chat):not(:has(:is(#bcIgMessages,#bcFbMessages))){ background:#f5f2ee !important; background-image:none !important; border:0 !important; }
+
+/* =====================================================================
+   Barra de arriba en DOS líneas (PC), en las MISMAS posiciones que WhatsApp:
+   línea 1 = canales centrados (y un espacio igual al de Leads/Campañas para que
+   no se muevan al cambiar de red); línea 2 = filtros de la red como los chips
+   de WhatsApp (Todos / Mensajes / Comentarios / Menciones / Filtros).
+   ===================================================================== */
+@media (min-width:1025px){
+  body #v-crmLinea.active:is([data-social-channel="instagram"],[data-social-channel="facebook"]){
+    display:grid !important; grid-template-columns:auto auto minmax(0,1fr) auto; grid-template-rows:auto auto minmax(0,1fr);
+    column-gap:10px; row-gap:6px; align-items:center;
+  }
+  body #v-crmLinea.active:is([data-social-channel="instagram"],[data-social-channel="facebook"]) > *{ grid-column:1 / -1; min-width:0; }
+  body #v-crmLinea.active:is([data-social-channel="instagram"],[data-social-channel="facebook"]) > #bcSocialHubHead{ display:contents !important; }
+  body #v-crmLinea.active:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #bcSmartPlatforms{
+    grid-column:1 / 4; grid-row:1; justify-self:center; margin:0 !important;
+    grid-template-columns:repeat(3, 190px) !important; width:max-content !important; min-height:0 !important; padding:4px !important; }
+  body #v-crmLinea.active:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #bcSmartPlatforms .bc-smart-platform{ min-height:0 !important; height:40px !important; padding-top:0 !important; padding-bottom:0 !important; }
+  body #v-crmLinea.active:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #bcSmartPlatforms .bc-motion-pill{ height:40px !important; top:4px !important; }
+  body #v-crmLinea.active:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #bcSmartPlatforms .bc-smart-platform-icon{ width:28px !important; height:28px !important; }
+  /* Los controles de WhatsApp (Sucursal/Área, buscar, filtros, Leads/Campañas) se quedan en su casilla
+     pero INVISIBLES: así la cuadrícula mide igual que en WhatsApp y nada se mueve al cambiar de red. */
+  body #v-crmLinea.active:is([data-social-channel="instagram"],[data-social-channel="facebook"]) > :is(.crm-cabecera-resumen,.crm-bandeja-controles){ display:contents !important; }
+  body #v-crmLinea.active:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(#crmSelectorWrap,.crm-busq-row,#crmChipsRow,.crm-tabs-row){ visibility:hidden !important; pointer-events:none !important; }
+  body #v-crmLinea.active:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #crmSelectorWrap{ display:flex !important; grid-column:1; grid-row:2; margin:0 !important; flex:none !important; flex-wrap:nowrap !important; }
+  body #v-crmLinea.active:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #crmSelectorWrap .crm-pill-select{ width:190px !important; min-width:0 !important; }
+  body #v-crmLinea.active:is([data-social-channel="instagram"],[data-social-channel="facebook"]) .crm-busq-row{ display:flex !important; grid-column:2; grid-row:2; margin:0 !important; }
+  body #v-crmLinea.active:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #crmChipsRow{ display:flex !important; grid-column:3 / 5; grid-row:2; margin:0 !important; min-width:0 !important; flex-wrap:nowrap !important; overflow:hidden !important; }
+  body #v-crmLinea.active:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #crmChipsRow > *{ flex:none !important; }
+  body #v-crmLinea.active:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #crmStats{ display:none !important; }
+  body #v-crmLinea.active:is([data-social-channel="instagram"],[data-social-channel="facebook"]) .crm-tabs-row{ display:flex !important; grid-column:4; grid-row:1; margin:0 !important; justify-self:end; }
+  body #v-crmLinea.active:is([data-social-channel="instagram"],[data-social-channel="facebook"]) .crm-tabs-row .crm-acciones-rapidas{ display:flex !important; }
+  body #v-crmLinea.active:is([data-social-channel="instagram"],[data-social-channel="facebook"]) .crm-tabs-row #bcwaContactosBtn{ display:inline-flex !important; }
+  /* Línea 2: filtros de la red */
+  body #v-crmLinea.active:is([data-social-channel="instagram"],[data-social-channel="facebook"]) .bc-smart-interactions{ grid-column:1 / -1; grid-row:2; position:relative; z-index:2; align-self:center; margin:0 !important; padding:0 !important; min-height:0 !important;
+    background:transparent !important; border:0 !important; box-shadow:none !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; display:flex !important; align-items:center; gap:8px; }
+  body #v-crmLinea.active:is([data-social-channel="instagram"],[data-social-channel="facebook"]) > :is(#bcSocialInstagramPanel,#bcSocialFacebookPanel,#bcSocialTikTokPanel,#bcSocialContextPanel){ grid-row:3; align-self:stretch; min-height:0; margin:0 !important; height:auto !important; max-height:none !important; }
+  body #v-crmLinea.active:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #bcFbBack{ display:none !important; }
+  body #v-crmLinea.active:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-chat-head,.bc-fb-head){ min-height:64px !important; }
+  body #v-crmLinea.active:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-shell,.bc-social-generic-shell){ grid-template-columns:285px minmax(0,1fr) !important; height:100% !important; min-height:0 !important; }
+  body #v-crmLinea.active:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-back,.bc-fb-back,.bc-social-back){ display:none !important; }
+}
+@media (min-width:1025px) and (max-width:1300px){
+  body #v-crmLinea.active:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #bcSmartPlatforms{ grid-template-columns:repeat(3, 160px) !important; }
+  body #v-crmLinea.active:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #crmSelectorWrap .crm-pill-select{ width:160px !important; }
+}
+@media (min-width:1025px) and (max-width:1220px){
+  body #v-crmLinea.active:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #bcSmartPlatforms{ grid-template-columns:repeat(3, 58px) !important; }
+  body #v-crmLinea.active:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #bcSmartPlatforms .bc-smart-platform-copy,
+  body #v-crmLinea.active:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #bcSmartPlatforms .bc-smart-count{ display:none !important; }
+  body #v-crmLinea.active:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #bcSmartPlatforms .bc-smart-platform{ justify-content:center !important; padding-left:0 !important; padding-right:0 !important; }
+}
+
+/* Filtros de la red (Todos/Mensajes/Comentarios/Menciones) = chips de WhatsApp, en PC y celular */
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #bcSmartInteractionNav{ background:transparent !important; border:0 !important; box-shadow:none !important; padding:0 !important; gap:8px !important; display:flex !important; flex-wrap:nowrap !important; overflow-x:auto; scrollbar-width:none; min-height:0 !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #bcSmartInteractionNav::-webkit-scrollbar{ display:none; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #bcSmartInteractionNav > .bc-motion-pill{ display:none !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #bcSmartInteractionNav .bc-smart-interaction{
+  flex:none !important; min-height:0 !important; height:auto !important; padding:6px 12px !important; gap:5px !important; border-radius:999px !important; border:0 !important; box-shadow:none !important; transform:none !important;
+  background:var(--cx-barra) !important; color:var(--cx-icono) !important; display:inline-flex !important; align-items:center !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #bcSmartInteractionNav .bc-smart-interaction{ width:auto !important; min-width:0 !important; max-width:none !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #bcSmartInteractionNav .bc-smart-interaction::before,
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #bcSmartInteractionNav .bc-smart-interaction::after{ display:none !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #bcSmartInteractionNav .bc-smart-interaction:hover{ background:#e9edef !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #bcSmartInteractionNav .bc-smart-interaction.on{ background:var(--cx-chip) !important; color:var(--cx-acento-osc) !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #bcSmartInteractionNav .bc-smart-interaction-icon,
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #bcSmartInteractionNav .bc-smart-interaction-copy small{ display:none !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #bcSmartInteractionNav .bc-smart-interaction-copy{ display:inline !important; min-width:0 !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #bcSmartInteractionNav .bc-smart-interaction-copy b{ font-size:14px !important; font-weight:400 !important; color:inherit !important; line-height:20px !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #bcSmartInteractionNav .bc-smart-interaction.on #bcSmartInteractionNav .bc-smart-interaction-copy b{ font-weight:500 !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #bcSmartInteractionNav .bc-smart-mini-count{ background:transparent !important; color:inherit !important; box-shadow:none !important; border:0 !important; font-size:12px !important; font-weight:500 !important; padding:0 0 0 2px !important; min-width:0 !important; height:auto !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #bcSmartInteractionNav .bc-smart-pending-dot{ background:var(--cx-acento) !important; position:static !important; margin-left:2px; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #bcSmartFilterBtn{ flex:none !important; height:auto !important; min-height:0 !important; padding:6px 12px !important; border-radius:999px !important; border:0 !important; box-shadow:none !important;
+  background:var(--cx-barra) !important; color:var(--cx-icono) !important; font-size:14px !important; gap:5px !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #bcSmartFilterBtn span{ font-size:14px !important; font-weight:400 !important; }
+
+/* =====================================================================
+   Celular = app (igual que WhatsApp)
+   ===================================================================== */
+@media (max-width:1024px){
+  body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) .bc-smart-interactions{ background:transparent !important; border:0 !important; box-shadow:none !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; padding:4px 0 !important; min-height:0 !important; }
+}
+@media (max-width:768px){
+  body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-shell,.bc-social-generic-shell){ border-radius:0 !important; border-left:0 !important; border-right:0 !important; }
+  body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-chat-head,.bc-fb-head){ background:#fff !important; min-height:56px !important; padding:6px 8px 6px 4px !important; gap:8px !important; border-bottom:1px solid var(--cx-linea) !important; }
+  body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-chat-head .bc-ig-avatar,.bc-fb-head .bc-fb-avatar){ width:38px !important; height:38px !important; min-width:38px !important; }
+  body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-chat-title b,.bc-fb-name b){ font-size:16.5px !important; font-weight:500 !important; }
+  body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) .bc-ig-chat-badge{ display:none !important; }
+  body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-back,.bc-fb-back,.bc-social-back){ width:40px !important; height:40px !important; min-width:40px; padding:0 !important; border:0 !important; background:transparent !important; box-shadow:none !important; color:var(--cx-tinta) !important; border-radius:50% !important; }
+  body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-back,.bc-fb-back,.bc-social-back) .ti{ font-size:24px !important; }
+  body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(#bcIgMessages,#bcFbMessages){ padding:8px 10px 6px !important; }
+  body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-msg-row .bc-ig-msg,.bc-fb-row .bc-fb-bubble){ max-width:85% !important; font-size:15.5px !important; line-height:20.5px !important; }
+  /* Chat abierto: se esconden los canales y filtros (como WhatsApp) */
+  body #v-crmLinea.bc-ig-chat-open[data-social-channel="instagram"] #bcSocialHubHead{ display:none !important; }
+  /* Barra de escribir de la app: píldora blanca (emoji · texto · adjuntar · ubicación) + botón redondo del color de la red.
+     La píldora es un fondo dibujado detrás; el orden se acomoda con "order" sin mover el HTML. */
+  body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-composer,.bc-fb-composer){ position:relative !important; }
+  body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-composer,.bc-fb-composer)::before{ content:""; position:absolute; left:6px; right:58px; top:6px; bottom:max(8px,env(safe-area-inset-bottom)); background:#fff; border-radius:24px; box-shadow:0 1px .5px rgba(11,20,26,.13); z-index:0; pointer-events:none; }
+  body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-composer,.bc-fb-composer) > *{ position:relative; z-index:1; }
+  body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(#bcIgEmoji,#bcFbEmoji){ order:1; margin-left:4px !important; }
+  body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(#bcIgText,#bcFbText){ order:2; }
+  body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(#bcIgAttach,#bcFbAttach){ order:3; }
+  body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(#bcIgLocation,#bcFbLocation){ order:4; margin-right:6px !important; }
+  body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(#bcIgSend,#bcFbSend){ order:5; margin-left:6px !important; }
+  body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-composer,.bc-fb-composer){ background:transparent !important; padding:6px 6px max(8px,env(safe-area-inset-bottom)) !important; gap:4px !important; min-height:0 !important; align-items:flex-end !important; }
+  body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(#bcIgText,#bcFbText){ background:transparent !important; border-radius:0 !important; padding:12px 4px 13px !important; font-size:16px !important; min-height:48px !important; box-shadow:none !important; flex:1 1 auto !important; min-width:0 !important; }
+  body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-composer .bc-ig-location,.bc-fb-composer .bc-fb-icon){ width:36px !important; height:48px !important; min-width:36px !important; }
+  body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-composer .bc-ig-send,.bc-fb-composer #bcFbSend){ width:48px !important; height:48px !important; min-width:48px !important; flex:0 0 48px !important; background:var(--cx-acento) !important; color:#fff !important; box-shadow:0 1px 3px rgba(11,20,26,.25) !important; }
+  body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-composer .bc-ig-send,.bc-fb-composer #bcFbSend) .ti{ color:#fff !important; }
+  body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-thread,.bc-social-generic-thread){ min-height:76px !important; }
+  body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-thread .bc-ig-avatar,.bc-social-generic-thread .bc-social-generic-avatar){ width:52px !important; height:52px !important; min-width:52px !important; flex-basis:52px !important; }
+  body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-thread,.bc-social-generic-thread)::after{ left:78px; }
+  body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #bcSmartInteractionNav .bc-smart-interaction{ padding:7px 14px !important; }
+  body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #bcSmartInteractionNav .bc-smart-interaction-copy b{ font-size:15px !important; }
+}
+
+/* Sin transparencias/animaciones si el teléfono lo pide */
+@media (prefers-reduced-transparency:reduce){
+  body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-composer,.bc-fb-composer){ backdrop-filter:none !important; }
+}
+
+/* Tableta (769–1024 px) con un chat abierto: igual que WhatsApp, se ven los canales pero no los filtros */
+@media (min-width:769px) and (max-width:1024px){
+  body #v-crmLinea:is([data-social-channel="instagram"].bc-ig-chat-open,[data-social-channel="facebook"]:has(#bcSocialFacebookPanel.bc-fb-open)) #bcSocialHubHead{ display:block !important; }
+  body #v-crmLinea:is([data-social-channel="instagram"].bc-ig-chat-open,[data-social-channel="facebook"]:has(#bcSocialFacebookPanel.bc-fb-open)) .bc-smart-interactions{ display:none !important; }
+}

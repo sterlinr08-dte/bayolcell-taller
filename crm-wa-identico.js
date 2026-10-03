@@ -16,13 +16,17 @@
   'use strict';
   if (window.__bcWaIdentico) return;
   window.__bcWaIdentico = true;
-  var VERSION = '20261003-w8';
+  var VERSION = '20261003-w9';
 
   // ---------- CSS (siempre de último) ----------
   function css(){
     var l = document.getElementById('bcWaIdenticoCss');
     if (!l){ l = document.createElement('link'); l.id = 'bcWaIdenticoCss'; l.rel = 'stylesheet'; l.href = 'crm-wa-identico.css?v=' + VERSION; }
     document.head.appendChild(l);
+    // Instagram y Facebook con el mismo formato que WhatsApp (3 oct 2026)
+    var c = document.getElementById('bcCanalesIgualesCss');
+    if (!c){ c = document.createElement('link'); c.id = 'bcCanalesIgualesCss'; c.rel = 'stylesheet'; c.href = 'crm-canales-iguales.css?v=' + VERSION; }
+    document.head.appendChild(c);
   }
   css(); setTimeout(css, 1600); setTimeout(css, 4000);
 
