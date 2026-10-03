@@ -251,7 +251,35 @@ async function chatEntreSucursalesValido(lineaId: string, telefonoE164: string, 
     .eq("linea_id", lineaId)
     .in("telefono_e164", [tel, "+" + tel])
     .limit(1);
-  return !!(data && data.length);
+  if (data && data.length) return true;
+  // Primer mensaje de un chat entre sucursales escrito desde el celular (espejo
+  // saliente): el hilo de ESTA linea aun no existe. Se verifica por el otro lado:
+  // la linea del contacto ya tiene un chat con el numero de esta linea (lo crea
+  // el entrante real, que Zernio entrega antes que el espejo).
+  const lineaDelContacto = lineasCache?.find((l) => l.whatsapp_numero && normalizarTelefono(l.whatsapp_numero) === tel);
+  if (!lineaDelContacto || !propio) return false;
+  const { data: otroLado } = await db
+    .from("whatsapp_hilos")
+    .select("id")
+    .eq("linea_id", lineaDelContacto.id)
+    .in("telefono_e164", [propio, "+" + propio])
+    .limit(1);
+  return !!(otroLado && otroLado.length);
+}
+
+// Los chats viejos entre sucursales se guardaron con "+" delante; los nuevos
+// llegan sin "+". Para no abrir un chat repetido, se usa la forma que ya exista.
+async function telefonoDeHiloExistente(lineaId: string, telefonoE164: string): Promise<string> {
+  const tel = (telefonoE164 || "").replace(/\D/g, "");
+  if (!tel || telefonoE164.startsWith("bsid:")) return telefonoE164;
+  const { data } = await db
+    .from("whatsapp_hilos")
+    .select("telefono_e164")
+    .eq("linea_id", lineaId)
+    .in("telefono_e164", [tel, "+" + tel])
+    .order("ultimo_mensaje_at", { ascending: false, nullsFirst: false })
+    .limit(1);
+  return data && data.length ? data[0].telefono_e164 : telefonoE164;
 }
 
 // Identificador del contacto para esta conversacion. conversation.* primero
@@ -402,7 +430,7 @@ async function procesarMensaje(payload: any) {
   }
   const { sucursalId, lineaId } = destino;
 
-  const telefonoE164 = identificarContacto(payload);
+  let telefonoE164 = identificarContacto(payload);
   if (!telefonoE164) {
     console.error("Mensaje sin telefono ni id de contacto identificable, se descarta");
     return;
@@ -419,6 +447,8 @@ async function procesarMensaje(payload: any) {
     );
     return;
   }
+  // Chat entre sucursales aceptado: reusar el hilo existente aunque este guardado con "+".
+  if (esNumeroDeLineaPropia(telefonoE164)) telefonoE164 = await telefonoDeHiloExistente(lineaId, telefonoE164);
   // Un saludo automatico se guarda antes de que Zernio pueda reflejar su
   // evento message.sent. Si este es ese reflejo, no puede cerrar el pendiente
   // de atencion humana del cliente.
