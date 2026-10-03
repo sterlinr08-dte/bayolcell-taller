@@ -16,7 +16,7 @@
   'use strict';
   if (window.__bcWaIdentico) return;
   window.__bcWaIdentico = true;
-  var VERSION = '20261003-w6';
+  var VERSION = '20261003-w7';
 
   // ---------- CSS (siempre de último) ----------
   function css(){
@@ -453,7 +453,8 @@
     var ini = ''; try { ini = _waIniciales(nombre); } catch(e){ ini = nombre.slice(0, 2).toUpperCase(); }
     var cli = null; try { if (h.cliente_id && cache && cache.clientes) cli = cache.clientes.find(function(c){ return c.id === h.cliente_id; }); } catch(e){}
     var asignado = ''; try { if (h.asignado_id) asignado = nombreEmpleado(h.asignado_id) || ''; } catch(e){}
-    cuerpo.innerHTML = '<div class="bcwa-info-top"><div class="bcwa-info-av">' + esc(ini) + '</div><h3>' + esc(nombre) + '</h3><p>' + esc(tel) + '</p>' +
+    cuerpo.innerHTML = '<div class="bcwa-info-top"><div class="bcwa-info-av">' + esc(ini) + '</div><h3>' + esc(nombre) + ' <button type="button" class="bcwa-info-edit" data-a="nombre" title="' + (h.cliente_id ? 'Editar nombre' : 'Guardar contacto') + '" aria-label="' + (h.cliente_id ? 'Editar nombre' : 'Guardar contacto') + '"><i class="ti ti-' + (h.cliente_id ? 'pencil' : 'user-plus') + '"></i></button></h3><p>' + esc(tel) + '</p>' +
+      (h._nombreWa && h._nombreWa !== nombre ? '<p class="bcwa-info-wa">~ ' + esc(h._nombreWa) + ' <span>(nombre en WhatsApp)</span></p>' : '') +
       '<div class="bcwa-info-btns">' + (tel ? '<a href="tel:' + esc(tel) + '"><i class="ti ti-phone"></i><span>Llamar</span></a>' : '') +
       '<button type="button" data-a="buscar"><i class="ti ti-search"></i><span>Buscar</span></button>' +
       (tel ? '<button type="button" data-a="copiar"><i class="ti ti-copy"></i><span>Copiar</span></button>' : '') + '</div></div>' +
@@ -463,6 +464,7 @@
       '<div class="bcwa-info-sec bcwa-info-media"><div class="bcwa-info-t">Archivos, enlaces y documentos <span class="cnt"></span></div><div class="bcwa-info-grid"><div class="vacio">Cargando…</div></div><div class="bcwa-info-docs"></div><div class="bcwa-info-links"></div></div>' +
       '<div class="bcwa-info-sec bcwa-info-dest"><div class="bcwa-info-t"><i class="ti ti-star"></i> Mensajes destacados <span class="cnt"></span></div><div class="bcwa-info-destlist"><div class="vacio">Cargando…</div></div></div>';
     cuerpo.querySelector('[data-a="buscar"]').addEventListener('click', function(){ cerrarInfo(); abrirBuscar(); });
+    cuerpo.querySelector('[data-a="nombre"]').addEventListener('click', function(){ editarNombreContacto(); });
     var bc = cuerpo.querySelector('[data-a="copiar"]'); if (bc) bc.addEventListener('click', function(){ try { navigator.clipboard.writeText(tel); toast('Número copiado'); } catch(e){} });
     try {
       var rm = await supabaseClient.from('whatsapp_mensajes').select('id,tipo_contenido,media_path,cuerpo,creado_en,direccion').eq('hilo_id', id).not('media_path', 'is', null).order('creado_en', { ascending: false }).limit(60);
@@ -552,6 +554,7 @@
     var orig = window._crmHilosFiltrados;
     var nuevo = function(){
       if (extrasDeLinea === lineaId()) mezclarExtras();
+      try { nombresGuardados(); } catch(e){}
       var lista = orig.apply(this, arguments) || [];
       if (!esWaCanal()) return lista;
       lista = lista.filter(function(h){
@@ -568,6 +571,57 @@
     };
     nuevo.__bcwaF3 = true; window._crmHilosFiltrados = nuevo;
   }
+  // Contacto guardado: si el chat está ligado a un cliente, se muestra el nombre guardado (como la agenda del teléfono).
+  // El nombre que el cliente puso en su WhatsApp se conserva en h._nombreWa (se ve en la Info. del contacto).
+  function nombreCliente(c){ return c ? ((c.nombre || '') + ' ' + (c.apellido || '')).trim() : ''; }
+  function nombresGuardados(){
+    if (typeof cache === 'undefined' || !cache || !cache.clientes || !cache.clientes.length) return;
+    var hilos = []; try { hilos = _waHilos || []; } catch(e){}
+    var mapa = {}; cache.clientes.forEach(function(c){ mapa[c.id] = c; });
+    hilos.concat(extras || []).forEach(function(h){
+      if (!h || !h.cliente_id) return;
+      var n = nombreCliente(mapa[h.cliente_id]); if (!n) return;
+      if (h.nombre_perfil !== n){ if (h._nombreWa === undefined || h.nombre_perfil !== h._nombreGuardado) h._nombreWa = h.nombre_perfil; h.nombre_perfil = n; }
+      h._nombreGuardado = n;
+    });
+  }
+  async function editarNombreContacto(){
+    var h = hiloActual(); if (!h) return;
+    if (!h.cliente_id){ cerrarInfo(); if (typeof window._waCrearYVincular === 'function') await window._waCrearYVincular('whatsapp_hilos', h.id); return; }
+    var cli = (cache.clientes || []).find(function(c){ return c.id === h.cliente_id; }); if (!cli) return;
+    var nuevo = await pedirTexto('Nombre del contacto' + (h.telefono_e164 ? '\n' + h.telefono_e164 : ''), { valor: nombreCliente(cli), placeholder: 'Nombre y apellido' });
+    if (nuevo === null) return; nuevo = nuevo.trim(); if (!nuevo || nuevo === nombreCliente(cli)) return;
+    var r = await supabaseClient.from('clientes').update({ nombre: nuevo, apellido: null }).eq('id', cli.id);
+    if (r.error){ try { toastError('No se pudo guardar el nombre.'); } catch(e){} return; }
+    cli.nombre = nuevo; cli.apellido = null;
+    nombresGuardados();
+    try { toast('Nombre guardado'); } catch(e){}
+    refrescarNombreVisible(h);
+    if (panelInfo() && panelInfo().classList.contains('ver')) pintarInfo();
+  }
+  // Redibuja la lista y el nombre de la cabecera (la recarga "silenciosa" del CRM no repinta nombres)
+  function refrescarNombreVisible(h){
+    try { if (typeof _pintarWhatsappLista === 'function' && document.getElementById('waLista')) _pintarWhatsappLista(); } catch(e){}
+    try {
+      if (!h || hiloId() !== h.id) return;
+      var n = document.querySelector('#waDetalle .wa-chat-head > div:not(.wa-avatar) > div');
+      if (n && n.textContent !== h.nombre_perfil) n.textContent = h.nombre_perfil;
+      var av = document.querySelector('#waDetalle .wa-chat-head .wa-avatar');
+      if (av){ var ini = ''; try { ini = _waIniciales(h.nombre_perfil); } catch(e){} if (ini && av.textContent !== ini) av.textContent = ini; }
+    } catch(e){}
+  }
+  // Al ligar un chat a un cliente (o crear uno nuevo), mostrar enseguida el nombre guardado
+  function envolverVincular(){
+    if (typeof window._waVincularCliente !== 'function' || window._waVincularCliente.__bcwaN) return;
+    var orig = window._waVincularCliente;
+    var nuevo = async function(tabla, id){
+      var r = await orig.apply(this, arguments);
+      if (tabla === 'whatsapp_hilos'){ try { nombresGuardados(); if (hiloId() === id && typeof _pintarWhatsappDetalle === 'function') _pintarWhatsappDetalle(); refrescarNombreVisible(hiloPorId(id)); if (panelInfo() && panelInfo().classList.contains('ver')) pintarInfo(); } catch(e){} }
+      return r;
+    };
+    nuevo.__bcwaN = true; window._waVincularCliente = nuevo;
+  }
+  window._bcWaEditarNombre = editarNombreContacto;
   var esWaCanal = function(){ var v = vista(); return !v || v.dataset.socialChannel === 'whatsapp' || !v.dataset.socialChannel; };
 
   async function actualizarHilo(id, cambios, msgOk){
@@ -777,7 +831,7 @@
   var hiloAntes = null;
   function aplicar(){
     if (!document.getElementById('waWrap')) return;
-    envolverEnviar(); envolverMenu(); envolverFiltro();
+    envolverEnviar(); envolverMenu(); envolverVincular(); envolverFiltro();
     if (!etiquetasCargadas) cargarEtiquetas().then(function(){ decorarLista(); });
     if (lineaId() && extrasDeLinea !== lineaId()){ extrasDeLinea = lineaId(); modoArchivados = false; filtroEtiqueta = null; cargarExtras(); }
     var id = hiloId();

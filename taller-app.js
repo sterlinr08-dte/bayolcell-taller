@@ -30992,7 +30992,7 @@ function _clienteVincularHTML(tabla, id, nombreSugerido, telSugerido) {
     return `<div style="margin-top:8px; border-top:1px dashed #e2e8f0; padding-top:8px;">
         <input type="text" placeholder="🔍 Buscar cliente por nombre o WhatsApp..." oninput="_waFiltrarClientes('${tabla}','${id}', this.value)" style="width:100%; padding:7px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:12.5px;">
         <div id="vincCliRes_${tabla}_${id}" style="max-height:180px; overflow-y:auto; margin-top:6px;"></div>
-        ${(nombreSugerido || telSugerido) ? `<button class="btn btn-light" style="font-size:11.5px; margin-top:6px;" onclick="_waCrearYVincular('${tabla}','${id}')"><i class="ti ti-user-plus"></i> Crear cliente nuevo (${escapeHtml(nombreSugerido || telSugerido || '')})</button>` : ''}
+        ${(nombreSugerido || telSugerido) ? `<button class="btn btn-light" style="font-size:11.5px; margin-top:6px;" onclick="_waCrearYVincular('${tabla}','${id}')"><i class="ti ti-user-plus"></i> Guardar como cliente nuevo</button>` : ''}
     </div>`;
 }
 function _waToggleVincular(tabla, id) {
@@ -31042,6 +31042,10 @@ async function _waCrearYVincular(tabla, id) {
             nombre = l?.nombre || 'Cliente WhatsApp';
             telefono = l?.telefono_e164 || '';
         }
+        // Dejar corregir el nombre antes de guardar (el de WhatsApp a veces trae emojis o apodos)
+        const editado = await pedirTexto('Nombre con el que se guardará el contacto' + (telefono ? '\n' + telefono : ''), { valor: nombre, placeholder: 'Nombre y apellido' });
+        if(editado === null) return;
+        nombre = editado.trim() || nombre;
         const ins = await supabaseClient.from('clientes').insert([{ nombre, whatsapp: telefono || null, whatsapp_e164: telefono || null, tipo_cliente: 'final' }]).select().single();
         if(ins.error) throw ins.error;
         if(cache.clientes) cache.clientes.push(ins.data);
