@@ -16,7 +16,7 @@
   'use strict';
   if (window.__bcWaIdentico) return;
   window.__bcWaIdentico = true;
-  var VERSION = '20261003-w9';
+  var VERSION = '20261003-w10';
 
   // ---------- CSS (siempre de último) ----------
   function css(){
@@ -754,7 +754,7 @@
     cap.addEventListener('change', function(e){ var c = e.target; if (c.matches('input[type=checkbox][data-id]')){ if (c.checked) sel.add(c.dataset.id); else sel.delete(c.dataset.id); } });
     cap.addEventListener('click', async function(e){
       if (e.target === cap || e.target.closest('.bcwa-etq-cancelar')){ cerrarEtiquetas(); return; }
-      if (e.target.closest('.bcwa-etq-guardar')){ var lista = Array.from(sel).filter(function(x){ return etiquetas.some(function(t){ return t.id === x; }); }); cerrarEtiquetas(); actualizarHilo(id, { etiquetas: lista }, 'Etiquetas guardadas'); return; }
+      if (e.target.closest('.bcwa-etq-guardar')){ var lista = Array.from(sel).filter(function(x){ return etiquetas.some(function(t){ return t.id === x; }); }); cerrarEtiquetas(); var hm = (_waHilos || []).find(function(x){ return x.id === id; }); if (hm) hm.etiquetas = lista; actualizarHilo(id, { etiquetas: lista }, 'Etiquetas guardadas'); setTimeout(botonEtiquetasCabecera, 50); setTimeout(botonEtiquetasCabecera, 1200); return; }
       var del = e.target.closest('.bcwa-etq-del');
       if (del){ e.preventDefault(); var t = etiquetas.find(function(x){ return x.id === del.dataset.del; }); var okb = true; try { okb = await confirmar('¿Borrar la etiqueta "' + (t ? t.nombre : '') + '"? Se quita de todos los chats.'); } catch(_){}
         if (!okb) return; var r = await supabaseClient.from('whatsapp_etiquetas').delete().eq('id', del.dataset.del); if (!r.error){ sel.delete(del.dataset.del); await cargarEtiquetas(true); pintar(); } return; }
@@ -928,6 +928,25 @@
     var lupa = head.querySelector('.bcwa-lupa'); head.insertBefore(b, lupa ? lupa.nextSibling : null);
   }
 
+  // Botón "Etiquetas" en la barra del nombre del cliente (3 oct 2026): un toque abre
+  // "Etiquetar chat"; muestra los puntos de color de las etiquetas que ya tiene.
+  function botonEtiquetasCabecera(){
+    var head = document.querySelector('#waDetalle .wa-chat-head'); if (!head) return;
+    var b = head.querySelector('.bcwa-etq-btn');
+    if (!b){
+      b = document.createElement('button'); b.type = 'button'; b.className = 'bcwa-hbtn bcwa-etq-btn'; b.setAttribute('aria-label', 'Etiquetas del chat');
+      b.addEventListener('click', function(e){ e.stopPropagation(); abrirEtiquetas(hiloId()); });
+      var lupa = head.querySelector('.bcwa-lupa'); head.insertBefore(b, lupa || null);
+    }
+    var h = hiloActual(), ids = (h && Array.isArray(h.etiquetas)) ? h.etiquetas : [];
+    var tags = ids.map(function(id){ return etiquetas.find(function(t){ return t.id === id; }); }).filter(Boolean);
+    var html = '<i class="ti ti-tag"></i>' + (tags.length ? '<span class="bcwa-etq-dots">' + tags.slice(0, 3).map(function(t){ return '<i style="background:' + esc(t.color || '#8696a0') + '"></i>'; }).join('') + '</span>' : '');
+    var tit = tags.length ? 'Etiquetas: ' + tags.map(function(t){ return t.nombre; }).join(', ') : 'Poner etiqueta';
+    if (b.innerHTML !== html) b.innerHTML = html;
+    if (b.title !== tit) b.title = tit;
+    b.classList.toggle('on', tags.length > 0);
+  }
+
   // =====================================================================
   // Aplicar todo al pintarse el CRM
   // =====================================================================
@@ -943,7 +962,7 @@
       var p = document.querySelector('#waDetalleCol > .bcwa-buscar'); if (p){ var i = p.querySelector('input'); if (i) i.value = ''; p.querySelector('.bcwa-buscar-res').innerHTML = '<div class="vacio">Buscar mensajes de este chat.</div>'; }
     }
     decorarLista();
-    if (id){ botonLupa(); botonMasCabecera(); cabeceraClicable(); restaurarBorrador(); pildoraMovil(); engancharScroll(); contarNuevos(); marcarDestacados(); }
+    if (id){ botonLupa(); botonEtiquetasCabecera(); botonMasCabecera(); cabeceraClicable(); restaurarBorrador(); pildoraMovil(); engancharScroll(); contarNuevos(); marcarDestacados(); }
     borradoresEnLista();
   }
   var pendiente = false;

@@ -365,3 +365,21 @@ body #v-crmLinea:not([data-social-channel="whatsapp"]) .bcwa-etq-filtro{ display
 .bcwa-ct-tx small{ font-size:12.5px; color:#667781; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .bcwa-ct-fila > .ti-chevron-right{ color:#8696a0; }
 body #v-crmLinea:not([data-social-channel="whatsapp"]) #bcwaContactosBtn{ display:none !important; }
+
+/* =====================================================================
+   Barra del nombre del cliente más fina + botón de Etiquetas (3 oct 2026)
+   ===================================================================== */
+body #v-crmLinea[data-social-channel="whatsapp"] .wa-chat-head{ min-height:50px !important; padding-top:5px !important; padding-bottom:5px !important; }
+body #v-crmLinea[data-social-channel="whatsapp"] .wa-chat-head .wa-avatar{ width:36px !important; height:36px !important; flex:0 0 36px !important; font-size:14px !important; }
+body #v-crmLinea[data-social-channel="whatsapp"] .wa-chat-head .wa-icon-btn, body #v-crmLinea[data-social-channel="whatsapp"] .wa-chat-head .wa-focus-btn, body #v-crmLinea[data-social-channel="whatsapp"] .wa-chat-head .bcwa-hbtn{ height:36px !important; min-height:36px !important; }
+body #v-crmLinea[data-social-channel="whatsapp"] .wa-chat-head > div:nth-child(2) > div:last-child, body #v-crmLinea[data-social-channel="whatsapp"] .wa-chat-head > div:nth-child(3) > div:last-child{ font-size:12.5px !important; line-height:16px !important; }
+body #v-crmLinea[data-social-channel="whatsapp"] .wa-chat-head .bcwa-etq-btn{ position:relative; }
+body #v-crmLinea[data-social-channel="whatsapp"] .wa-chat-head .bcwa-etq-btn.on .ti{ color:#008069 !important; }
+.bcwa-etq-dots{ position:absolute; right:3px; bottom:4px; display:flex; gap:1px; pointer-events:none; }
+.bcwa-etq-dots i{ width:7px; height:7px; border-radius:50%; box-shadow:0 0 0 1.5px #f0f2f5; }
+@media (max-width:768px){
+  body #v-crmLinea[data-social-channel="whatsapp"] .wa-chat-head{ min-height:50px !important; padding-top:4px !important; padding-bottom:4px !important; }
+  .bcwa-etq-dots i{ box-shadow:0 0 0 1.5px #fff; }
+  /* Celular: "Llamar" sale de la barra (sigue en Info. del contacto) para que quepa el nombre */
+  body #v-crmLinea[data-social-channel="whatsapp"] .wa-chat-head .wa-call-btn{ display:none !important; }
+}

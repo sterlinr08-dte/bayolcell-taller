@@ -155,7 +155,7 @@ body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="face
     background:transparent !important; border:0 !important; box-shadow:none !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; display:flex !important; align-items:center; gap:8px; }
   body #v-crmLinea.active:is([data-social-channel="instagram"],[data-social-channel="facebook"]) > :is(#bcSocialInstagramPanel,#bcSocialFacebookPanel,#bcSocialTikTokPanel,#bcSocialContextPanel){ grid-row:3; align-self:stretch; min-height:0; margin:0 !important; height:auto !important; max-height:none !important; }
   body #v-crmLinea.active:is([data-social-channel="instagram"],[data-social-channel="facebook"]) #bcFbBack{ display:none !important; }
-  body #v-crmLinea.active:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-chat-head,.bc-fb-head){ min-height:64px !important; }
+  body #v-crmLinea.active:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-chat-head,.bc-fb-head){ min-height:50px !important; padding-top:5px !important; padding-bottom:5px !important; }
   body #v-crmLinea.active:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-shell,.bc-social-generic-shell){ grid-template-columns:285px minmax(0,1fr) !important; height:100% !important; min-height:0 !important; }
   body #v-crmLinea.active:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-back,.bc-fb-back,.bc-social-back){ display:none !important; }
 }
@@ -201,7 +201,7 @@ body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="face
 }
 @media (max-width:768px){
   body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-shell,.bc-social-generic-shell){ border-radius:0 !important; border-left:0 !important; border-right:0 !important; }
-  body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-chat-head,.bc-fb-head){ background:#fff !important; min-height:56px !important; padding:6px 8px 6px 4px !important; gap:8px !important; border-bottom:1px solid var(--cx-linea) !important; }
+  body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-chat-head,.bc-fb-head){ background:#fff !important; height:auto !important; min-height:50px !important; padding:6px 8px 6px 4px !important; gap:8px !important; border-bottom:1px solid var(--cx-linea) !important; }
   body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-chat-head .bc-ig-avatar,.bc-fb-head .bc-fb-avatar){ width:38px !important; height:38px !important; min-width:38px !important; }
   body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-chat-title b,.bc-fb-name b){ font-size:16.5px !important; font-weight:500 !important; }
   body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) .bc-ig-chat-badge{ display:none !important; }
@@ -243,3 +243,8 @@ body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="face
   body #v-crmLinea:is([data-social-channel="instagram"].bc-ig-chat-open,[data-social-channel="facebook"]:has(#bcSocialFacebookPanel.bc-fb-open)) #bcSocialHubHead{ display:block !important; }
   body #v-crmLinea:is([data-social-channel="instagram"].bc-ig-chat-open,[data-social-channel="facebook"]:has(#bcSocialFacebookPanel.bc-fb-open)) .bc-smart-interactions{ display:none !important; }
 }
+
+/* Barra del nombre más fina (igual que WhatsApp, 3 oct 2026) */
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-chat-head,.bc-fb-head){ height:auto !important; min-height:50px !important; padding-top:5px !important; padding-bottom:5px !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) :is(.bc-ig-chat-head .bc-ig-avatar,.bc-fb-head .bc-fb-avatar){ width:36px !important; height:36px !important; min-width:36px !important; }
+body #v-crmLinea:is([data-social-channel="instagram"],[data-social-channel="facebook"]) .bc-fb-head .bc-fb-icon{ height:36px !important; }
