@@ -745,3 +745,16 @@ Pedido del dueño: «que los empleados se pasen clientes y le puedan escribir»,
 - ⚠️ `whatsapp-enviar` se **reconstruyó desde la versión desplegada v18** (traía el fix F17 «guardado_local» que nunca se commiteó); el diff de código contra el repo es solo F17 + el permiso del asignado.
 - Migración `20261003010000_whatsapp_transferir_cliente.sql` (YA aplicada en la base; probada en transacción deshecha: transferir OK, el destino ve el chat y sus mensajes y lo ve en «mis transferencias»). Prueba de pantalla con datos simulados (modal y bandeja) OK. `taller-app.js?v=20261003-tr1`.
 - Pendiente al publicar: desplegar `whatsapp-enviar` (sin eso, un empleado de OTRA sucursal ve el chat transferido pero el envío le da «sin_permiso»).
+
+## ACTUALIZACIÓN 3 oct 2026 — Chats respondidos desde la app del celular ya no salen «Atender»
+- Pedido del dueño: «que los mensajes ya respondidos por la app no salgan en el CRM como pendientes».
+- Causa: el pendiente («Atender») = `ultimo_inbound_at > ultima_respuesta_humana_at`, y esa marca solo la escribía el
+  código del webhook/whatsapp-enviar. Si ese paso se perdía (reintento de Zernio, carrera entre eventos) el mensaje quedaba
+  guardado pero el chat seguía «sin responder». Medido antes del arreglo: 36 chats abiertos así.
+- Arreglo (migración `20261003020000_whatsapp_respuesta_app_cierra_pendiente.sql`, YA APLICADA en producción): el trigger
+  `whatsapp_cerrar_pendiente_al_responder` (AFTER INSERT de mensajes `out`) ahora también adelanta
+  `ultima_respuesta_humana_at` cuando el mensaje NO es automático (`es_automatico = false`). Nunca la atrasa. Saludo/IA
+  automáticos siguen sin cerrar el pendiente. Se corrigieron los chats ya afectados (0 restantes).
+- Los ~410 pendientes que quedan son chats donde el CLIENTE escribió después de la última respuesta (pendientes reales).
+- OJO: el `whatsapp-webhook` DESPLEGADO (v32, con F15/F16: hilo por linea_id+teléfono, hora del evento, 500 para
+  reintento) es más nuevo que el archivo del repo. Antes de tocar ese archivo, bajar la versión desplegada.
