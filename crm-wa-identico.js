@@ -16,7 +16,7 @@
   'use strict';
   if (window.__bcWaIdentico) return;
   window.__bcWaIdentico = true;
-  var VERSION = '20261002-w3';
+  var VERSION = '20261003-w4';
 
   // ---------- CSS (siempre de último) ----------
   function css(){
@@ -62,8 +62,15 @@
     var orig = window.enviarMensajeWhatsapp;
     var nuevo = async function(){
       var id = hiloId();
-      var r = await orig.apply(this, arguments);
-      try { var t = document.getElementById('waTexto'); if (id && (!t || !t.value.trim())) ls.set(KB + id, ''); } catch(e){}
+      // Borrar el borrador ANTES de enviar: el chat se redibuja durante el envío y, si el
+      // borrador seguía guardado, se volvía a escribir en la caja (el mensaje quedaba ahí).
+      if (id) ls.set(KB + id, '');
+      var r;
+      try { r = await orig.apply(this, arguments); }
+      finally {
+        // Si el envío falló y el texto quedó en la caja, se conserva como borrador.
+        try { var t = document.getElementById('waTexto'); if (id && t && t.value.trim() && hiloId() === id) ls.set(KB + id, t.value); } catch(e){}
+      }
       return r;
     };
     nuevo.__bcwa = true; window.enviarMensajeWhatsapp = nuevo;
