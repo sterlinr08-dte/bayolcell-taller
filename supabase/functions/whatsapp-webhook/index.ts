@@ -56,6 +56,10 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 // mensajes por dos lineas distintas terminaba con linea_id desincronizado
 // de su propio lead. Ahora el hilo conserva la linea con la que se creo,
 // igual que el lead asociado.
+// SUPERADO por el fix del 2026-09-12 de abajo: ya no puede pasar que "un
+// hilo reciba mensajes por dos lineas distintas", porque el hilo ahora se
+// busca/crea por (linea_id, telefono_e164) — dos lineas del mismo cliente
+// son, por diseno, DOS hilos separados (cada linea es un numero distinto).
 //
 // Fix 2026-09-04 (agente de IA): tras procesar un mensaje entrante real de
 // un cliente, se dispara whatsapp-ia-responder (fire-and-forget, envuelto
@@ -78,6 +82,49 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 // de un mensaje, ahora se guarda un texto que explica el motivo real y que
 // hacer, en vez de un "[Contenido de WhatsApp no visible]" que parecia una
 // falla del sistema.
+//
+// Auditoria 2026-09-12 — 3 fixes:
+//
+// F15 (mezcla de conversaciones entre lineas de una misma sucursal): el hilo
+// se buscaba/creaba por (sucursal_id, telefono_e164) — si un cliente le
+// escribia a DOS lineas de la misma sucursal (ej. Santiago "Reparacion" y
+// Santiago "Servicio al Cliente"), el segundo mensaje caia en el hilo creado
+// por la primera linea y el empleado de la otra linea nunca lo veia. Otras
+// partes del sistema (whatsapp-campanas.ensureHilo, whatsapp-importar-
+// historial) ya buscaban por (linea_id, telefono_e164) -- solo este webhook
+// (el camino en vivo) seguia con la clave vieja. Se corrigio la busqueda para
+// usar linea_id (ya resuelto arriba via buscarLineaPorCuenta) + telefono, y
+// la tabla ahora tiene su UNIQUE en (linea_id, telefono_e164) en vez de
+// (sucursal_id, telefono_e164) -- ver migracion whatsapp_hilos_unique_por_linea.
+// Verificado antes de migrar: 0 hilos con linea_id NULL, sin colisiones.
+//
+// F16 (fiabilidad ante repeticiones/fallos):
+//  (a) no_leidos_count se incrementaba en el UPDATE del hilo ANTES de saber
+//      si el insert del mensaje (upsert ignoreDuplicates por wa_message_id)
+//      fue una fila NUEVA o un duplicado — un reintento de Zernio del MISMO
+//      evento volvia a sumar el contador aunque el mensaje no se duplicara.
+//      Ahora el mensaje se inserta primero (ya con el hiloId resuelto) y
+//      no_leidos_count solo sube si el insert devolvio una fila (mensaje
+//      nuevo, no ignorado por duplicado).
+//  (b) ultimo_inbound_at/ultimo_mensaje_at/ultima_respuesta_humana_at y el
+//      creado_en del mensaje usaban new Date() (hora del SERVIDOR) en vez del
+//      timestamp del EVENTO -- afecta la ventana de 24h y el orden si hay
+//      demora o reintento. Ahora se usa timestampDeEvento(payload), que
+//      busca la fecha en varios campos posibles del payload de Zernio
+//      (message.createdAt/timestamp/sentAt, conversation.updatedTime,
+//      timestamp/createdAt de raiz) y cae a la hora del servidor solo si
+//      ninguno viene o no es una fecha valida.
+//  (c) el Deno.serve envolvia todo en try/catch y SIEMPRE respondia 200,
+//      incluso ante una excepcion real de procesamiento -- Zernio nunca
+//      reintentaba un fallo genuino. Ahora: (1) fallas de configuracion/datos
+//      ya irrecuperables (cuenta sin linea mapeada, telefono no identificable,
+//      numero propio) se siguen registrando y respondiendo 200 -- reintentar
+//      no las arregla y Zernio reintentaria para siempre; (2) fallas reales
+//      de escritura en la base (crear el hilo, insertar el mensaje, o
+//      actualizar el estado de un mensaje) ahora SE LANZAN como excepcion, y
+//      el catch de nivel superior responde 500 para que Zernio SI reintente.
+//      La validacion de firma HMAC sigue devolviendo 401 sin pasar por este
+//      catch (no cambia).
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -100,30 +147,29 @@ function idMensaje(msg: any): string {
   return msg?.platformMessageId || msg?.id;
 }
 
-// Identificador del contacto para esta conversacion. conversation.* primero
-// (correcto para entrante Y para espejo saliente); sender solo como ultimo
-// respaldo opaco, y solo si el mensaje es entrante (en un espejo saliente
-// sender es la propia linea del negocio, nunca el cliente).
-//
-// Fix 2026-09-04 (v4 — bsid duplicado por conversacion): confirmado en
-// produccion con varios pares de hilos reales (mismo cliente, mismos
-// segundos, mismo texto) que terminaban en DOS hilos distintos. Causa: para
-// un mensaje entrante, el codigo preferia msg.sender.businessScopedUserId
-// sobre conversation.contactId -- pero businessScopedUserId es un dato del
-// REMITENTE de ESE mensaje puntual y no siempre es el mismo entre dos
-// mensajes de la misma persona, mientras que contactId es estable a nivel
-// de conversacion (el propio comentario de arriba ya lo decia, pero el
-// codigo no lo aplicaba asi). Ahora contactId siempre gana cuando esta
-// presente, sin importar la direccion; businessScopedUserId queda como
-// ultimo respaldo solo cuando no hay contactId (y el mensaje es entrante).
-function identificarContacto(payload: any): string | null {
-  const conv = payload.conversation || {};
-  const msg = payload.message || {};
-  if (esTelefono(conv.participantId)) return normalizarTelefono(conv.participantId);
-  if (esTelefono(conv.participantUsername)) return normalizarTelefono(conv.participantUsername);
-  if (conv.contactId) return `bsid:${conv.contactId}`;
-  const scoped = msg.direction === "incoming" ? msg.sender?.businessScopedUserId : null;
-  if (scoped) return `bsid:${scoped}`;
+// F16(b): timestamp del EVENTO tal como lo manda Zernio, en vez de la hora en
+// que este servidor termino de procesarlo. Se prueban varios campos posibles
+// (el objeto "message" que entrega el webhook comparte esquema con el objeto
+// "message" que devuelve la API REST de mensajes de Zernio -- ese SI trae
+// createdAt, confirmado en whatsapp-importar-historial -- y con
+// conversation.updatedTime, tambien usado ahi como fecha de conversacion) y
+// se cae a null si ninguno es una fecha valida; el llamador usa la hora del
+// servidor como ultimo recurso.
+function timestampDeEvento(payload: any): string | null {
+  const candidatos = [
+    payload?.message?.createdAt,
+    payload?.message?.timestamp,
+    payload?.message?.sentAt,
+    payload?.message?.sentTime,
+    payload?.conversation?.updatedTime,
+    payload?.timestamp,
+    payload?.createdAt,
+  ];
+  for (const c of candidatos) {
+    if (c === undefined || c === null || c === "") continue;
+    const d = new Date(c);
+    if (!Number.isNaN(d.getTime())) return d.toISOString();
+  }
   return null;
 }
 
@@ -173,6 +219,66 @@ function esNumeroDeLineaPropia(telefonoE164: string): boolean {
   const tel = (telefonoE164 || "").replace(/\D/g, "");
   if (!tel) return false;
   return lineasCache.some((l) => l.whatsapp_numero && normalizarTelefono(l.whatsapp_numero) === tel);
+}
+
+// Fix 2026-10-03 (chats ENTRE sucursales): la regla de arriba descartaba
+// TAMBIEN los mensajes legitimos entre dos lineas del negocio (una empleada de
+// Navarrete escribiendole desde su WhatsApp al de Santiago) -- desde el
+// 2026-09-23 ningun chat interno se guardaba (logs: "se descarta el evento"
+// varias veces por hora). Ahora:
+//  - "self" (el contacto es la MISMA linea que recibe el evento) se sigue
+//    descartando siempre: eso solo puede ser un dato cruzado de Zernio.
+//  - "cross-line" (el contacto es OTRA linea del negocio) se acepta si se puede
+//    comprobar que es real: en un ENTRANTE el remitente (sender) debe ser ese
+//    mismo numero; en un espejo SALIENTE (message.sent) debe existir ya el hilo
+//    de esa linea con ese numero (lo crea el primer entrante real).
+function numeroDeLinea(lineaId: string): string {
+  const l = lineasCache?.find((x) => x.id === lineaId);
+  return l?.whatsapp_numero ? normalizarTelefono(l.whatsapp_numero) : "";
+}
+async function chatEntreSucursalesValido(lineaId: string, telefonoE164: string, msg: any, esEntrante: boolean): Promise<boolean> {
+  const tel = (telefonoE164 || "").replace(/\D/g, "");
+  if (!tel) return false;
+  const propio = numeroDeLinea(lineaId);
+  if (propio && propio === tel) return false; // "self": nunca
+  if (esEntrante) {
+    const remitente = normalizarTelefono(String(msg?.sender?.phoneNumber || msg?.sender?.username || msg?.from || ""));
+    if (remitente) return remitente === tel;
+  }
+  const { data } = await db
+    .from("whatsapp_hilos")
+    .select("id")
+    .eq("linea_id", lineaId)
+    .in("telefono_e164", [tel, "+" + tel])
+    .limit(1);
+  return !!(data && data.length);
+}
+
+// Identificador del contacto para esta conversacion. conversation.* primero
+// (correcto para entrante Y para espejo saliente); sender solo como ultimo
+// respaldo opaco, y solo si el mensaje es entrante (en un espejo saliente
+// sender es la propia linea del negocio, nunca el cliente).
+//
+// Fix 2026-09-04 (v4 — bsid duplicado por conversacion): confirmado en
+// produccion con varios pares de hilos reales (mismo cliente, mismos
+// segundos, mismo texto) que terminaban en DOS hilos distintos. Causa: para
+// un mensaje entrante, el codigo preferia msg.sender.businessScopedUserId
+// sobre conversation.contactId -- pero businessScopedUserId es un dato del
+// REMITENTE de ESE mensaje puntual y no siempre es el mismo entre dos
+// mensajes de la misma persona, mientras que contactId es estable a nivel
+// de conversacion (el propio comentario de arriba ya lo decia, pero el
+// codigo no lo aplicaba asi). Ahora contactId siempre gana cuando esta
+// presente, sin importar la direccion; businessScopedUserId queda como
+// ultimo respaldo solo cuando no hay contactId (y el mensaje es entrante).
+function identificarContacto(payload: any): string | null {
+  const conv = payload.conversation || {};
+  const msg = payload.message || {};
+  if (esTelefono(conv.participantId)) return normalizarTelefono(conv.participantId);
+  if (esTelefono(conv.participantUsername)) return normalizarTelefono(conv.participantUsername);
+  if (conv.contactId) return `bsid:${conv.contactId}`;
+  const scoped = msg.direction === "incoming" ? msg.sender?.businessScopedUserId : null;
+  if (scoped) return `bsid:${scoped}`;
+  return null;
 }
 
 async function buscarClientePorTelefono(telefonoE164: string) {
@@ -289,6 +395,8 @@ async function procesarMensaje(payload: any) {
   const account = payload.account || {};
   const destino = await buscarLineaPorCuenta(account.id, account.accountId, account.username);
   if (!destino) {
+    // Config/dato irrecuperable (cuenta de Zernio sin linea mapeada en
+    // whatsapp_lineas) -- reintentar no lo arregla, se descarta con 200.
     console.error("Sin linea/sucursal para cuenta:", account.id, account.accountId, account.username);
     return;
   }
@@ -299,9 +407,10 @@ async function procesarMensaje(payload: any) {
     console.error("Mensaje sin telefono ni id de contacto identificable, se descarta");
     return;
   }
-  if (esNumeroDeLineaPropia(telefonoE164)) {
+  const esEntrante = msg.direction === "incoming";
+  if (esNumeroDeLineaPropia(telefonoE164) && !(await chatEntreSucursalesValido(lineaId, telefonoE164, msg, esEntrante))) {
     console.error(
-      "Contacto resuelto coincide con el numero de una linea propia del negocio, se descarta el evento:",
+      "Contacto resuelto coincide con el numero de una linea propia del negocio y no es un chat entre sucursales verificable, se descarta el evento:",
       telefonoE164,
       "evento:",
       payload.event,
@@ -310,10 +419,9 @@ async function procesarMensaje(payload: any) {
     );
     return;
   }
-  const esEntrante = msg.direction === "incoming";
-  // Un saludo automático se guarda antes de que Zernio pueda reflejar su
+  // Un saludo automatico se guarda antes de que Zernio pueda reflejar su
   // evento message.sent. Si este es ese reflejo, no puede cerrar el pendiente
-  // de atención humana del cliente.
+  // de atencion humana del cliente.
   const waId = idMensaje(msg);
   let esRespuestaHumana = !esEntrante;
   if (!esEntrante && waId) {
@@ -328,7 +436,9 @@ async function procesarMensaje(payload: any) {
   // ENTRANTE (ahi sender = el cliente). En un espejo saliente sender es la
   // propia linea del negocio — no usar su nombre como si fuera el del cliente.
   const nombrePerfil = esEntrante ? (msg.sender?.name || null) : null;
-  const ahora = new Date().toISOString();
+  // F16(b): timestamp del EVENTO (Zernio/Meta) en vez de la hora del servidor.
+  const eventoTs = timestampDeEvento(payload) ?? new Date().toISOString();
+  const ahora = new Date().toISOString(); // solo para "actualizado_en" (bookkeeping de escritura, no del evento)
 
   let tipoContenido = "text";
   let mediaPath: string | null = null;
@@ -365,13 +475,13 @@ async function procesarMensaje(payload: any) {
     if (code === 131060) {
       // Lo mas comun (29 de 37): el cliente borro el mensaje, o es un reenvio
       // viejo que WhatsApp ya no entrega.
-      textoNoDisponible = "⚠️ Mensaje no disponible — el cliente lo eliminó, o WhatsApp ya no lo entrega.";
+      textoNoDisponible = "⚠️ Mensaje no disponible — el cliente lo elimino, o WhatsApp ya no lo entrega.";
     } else if (code === 131051) {
       // Tipo que la API de WhatsApp no reenvia a sistemas externos. Aca cae,
       // entre otros, el contacto compartido.
-      textoNoDisponible = "📇 WhatsApp no envía este tipo de mensaje (por ejemplo un contacto compartido) a sistemas externos. Ábrelo desde el celular para verlo.";
+      textoNoDisponible = "📇 WhatsApp no envia este tipo de mensaje (por ejemplo un contacto compartido) a sistemas externos. Abrelo desde el celular para verlo.";
     } else {
-      textoNoDisponible = "⚠️ WhatsApp no entregó el contenido de este mensaje. Ábrelo desde el celular para verlo.";
+      textoNoDisponible = "⚠️ WhatsApp no entrego el contenido de este mensaje. Abrelo desde el celular para verlo.";
     }
   }
 
@@ -405,10 +515,14 @@ async function procesarMensaje(payload: any) {
   const quotedWaId: string | null = payload.metadata?.quotedMessageId || null;
   const respondeAId = quotedWaId ? await buscarMensajeLocalPorWaId(quotedWaId) : null;
 
+  // F15: se busca/crea el hilo por (linea_id, telefono_e164) -- ya no por
+  // (sucursal_id, telefono_e164). lineaId ya viene resuelto de
+  // buscarLineaPorCuenta arriba (la misma linea con la que se crea el hilo si
+  // no existe), asi que la busqueda y la creacion usan siempre la misma clave.
   const { data: hiloExistente } = await db
     .from("whatsapp_hilos")
     .select("id, cliente_id, no_leidos_count, nombre_perfil")
-    .eq("sucursal_id", sucursalId)
+    .eq("linea_id", lineaId)
     .eq("telefono_e164", telefonoE164)
     .maybeSingle();
 
@@ -419,25 +533,6 @@ async function procesarMensaje(payload: any) {
     hiloId = hiloExistente.id;
     clienteId = hiloExistente.cliente_id;
     if (!clienteId) clienteId = await buscarClientePorTelefono(telefonoE164);
-    const actualizacion: Record<string, unknown> = {
-      // No pisar un nombre ya guardado con null (el espejo saliente no trae nombre confiable)
-      nombre_perfil: nombrePerfil ?? hiloExistente.nombre_perfil ?? undefined,
-      // linea_id NO se toca aqui: se fija una sola vez al crear el hilo,
-      // igual que leads.linea_id, para que ambos queden siempre consistentes.
-      ultimo_mensaje_at: ahora,
-      ultimo_mensaje_preview: cuerpo.slice(0, 200),
-      cliente_id: clienteId ?? undefined,
-      actualizado_en: ahora,
-    };
-    // Solo se escribe cuando Zernio lo manda; nunca se pisa con null un id ya guardado.
-    if (conversationIdZernio) actualizacion.zernio_conversation_id = conversationIdZernio;
-    if (esEntrante) {
-      actualizacion.ultimo_inbound_at = ahora;
-      actualizacion.no_leidos_count = (hiloExistente.no_leidos_count ?? 0) + 1;
-    } else if (esRespuestaHumana) {
-      actualizacion.ultima_respuesta_humana_at = ahora;
-    }
-    await db.from("whatsapp_hilos").update(actualizacion).eq("id", hiloId);
   } else {
     clienteId = await buscarClientePorTelefono(telefonoE164);
     const { data: nuevoHilo, error } = await db
@@ -448,9 +543,9 @@ async function procesarMensaje(payload: any) {
         telefono_e164: telefonoE164,
         cliente_id: clienteId,
         nombre_perfil: nombrePerfil,
-        ultimo_mensaje_at: ahora,
-        ultimo_inbound_at: esEntrante ? ahora : null,
-        ultima_respuesta_humana_at: esRespuestaHumana ? ahora : null,
+        ultimo_mensaje_at: eventoTs,
+        ultimo_inbound_at: esEntrante ? eventoTs : null,
+        ultima_respuesta_humana_at: esRespuestaHumana ? eventoTs : null,
         ultimo_mensaje_preview: cuerpo.slice(0, 200),
         no_leidos_count: esEntrante ? 1 : 0,
         zernio_conversation_id: conversationIdZernio,
@@ -458,12 +553,20 @@ async function procesarMensaje(payload: any) {
       .select("id")
       .single();
     if (error || !nuevoHilo) {
-      console.error("crear hilo error:", error?.message);
-      return;
+      // F16(c): fallo real de escritura en un paso critico (sin hilo no hay
+      // donde guardar nada) -- se lanza para que el catch de nivel superior
+      // responda 500 y Zernio reintente, en vez de perder el mensaje en
+      // silencio con un 200.
+      throw new Error(`crear hilo fallo: ${error?.message ?? "sin fila devuelta"}`);
     }
     hiloId = nuevoHilo.id;
   }
 
+  // F16(a): el mensaje se inserta ANTES de decidir si el hilo existente debe
+  // sumar no_leidos_count -- asi solo suma cuando esta insercion trajo una
+  // fila REALMENTE nueva (upsert con ignoreDuplicates: un reintento de Zernio
+  // del mismo wa_message_id no devuelve fila, y por lo tanto no vuelve a
+  // sumar el contador ni dispara el agente de IA otra vez).
   const { data: mensajeGuardado, error: msgError } = await db
     .from("whatsapp_mensajes")
     .upsert(
@@ -477,6 +580,9 @@ async function procesarMensaje(payload: any) {
         responde_a_id: respondeAId,
         estado: esEntrante ? "recibido" : "enviado",
         es_automatico: false,
+        // F16(b): fecha del EVENTO, no la del procesamiento -- mismo criterio
+        // que ya usa whatsapp-importar-historial para no desordenar el hilo.
+        creado_en: eventoTs,
         // Guarda el motivo real (codigo de WhatsApp) de los mensajes que llegan
         // sin contenido. Antes solo quedaba en los logs, que se borran a las
         // 24h -- y sin esto no hay forma de medir cuantos se pierden ni por que.
@@ -486,9 +592,43 @@ async function procesarMensaje(payload: any) {
     )
     .select("id")
     .maybeSingle();
-  if (msgError) console.error("insertar mensaje error:", msgError.message);
+  if (msgError) {
+    // F16(c): fallo real (no un duplicado ignorado -- eso no es un error,
+    // llega aca sin `msgError` y con `mensajeGuardado` en null). Se lanza
+    // para que Zernio reintente en vez de dar por enviado un mensaje que
+    // nunca quedo guardado.
+    throw new Error(`insertar mensaje fallo: ${msgError.message}`);
+  }
+  const esMensajeNuevo = !!mensajeGuardado?.id;
 
-  if (esEntrante) {
+  if (hiloExistente) {
+    const actualizacion: Record<string, unknown> = {
+      // No pisar un nombre ya guardado con null (el espejo saliente no trae nombre confiable)
+      nombre_perfil: nombrePerfil ?? hiloExistente.nombre_perfil ?? undefined,
+      ultimo_mensaje_at: eventoTs,
+      ultimo_mensaje_preview: cuerpo.slice(0, 200),
+      cliente_id: clienteId ?? undefined,
+      actualizado_en: ahora,
+    };
+    // Solo se escribe cuando Zernio lo manda; nunca se pisa con null un id ya guardado.
+    if (conversationIdZernio) actualizacion.zernio_conversation_id = conversationIdZernio;
+    if (esEntrante) {
+      actualizacion.ultimo_inbound_at = eventoTs;
+      // F16(a): solo sube si el mensaje realmente se guardo por primera vez.
+      if (esMensajeNuevo) actualizacion.no_leidos_count = (hiloExistente.no_leidos_count ?? 0) + 1;
+    } else if (esRespuestaHumana) {
+      actualizacion.ultima_respuesta_humana_at = eventoTs;
+    }
+    const { error: updError } = await db.from("whatsapp_hilos").update(actualizacion).eq("id", hiloId);
+    if (updError) {
+      // Fallo real actualizando el resumen del hilo (preview/no_leidos/ventana
+      // de 24h) -- el mensaje YA quedo guardado arriba, pero el hilo quedaria
+      // con datos viejos/incorrectos si no se reintenta. Se lanza igual.
+      throw new Error(`actualizar hilo fallo: ${updError.message}`);
+    }
+  }
+
+  if (esEntrante && esMensajeNuevo) {
     await asegurarLead(sucursalId, hiloId, lineaId, telefonoE164, nombrePerfil, cuerpo, clienteId);
     dispararAgenteIA(hiloId, mensajeGuardado?.id ?? null);
   }
@@ -509,8 +649,13 @@ async function procesarEstadoMensaje(payload: any, evento: string) {
     .from("whatsapp_mensajes")
     .update({ estado, error_detalle: errorDetalle }, { count: "exact" })
     .eq("wa_message_id", idBuscado);
-  if (error) console.error("actualizar estado error:", error.message);
-  else if (!count) console.error("actualizar estado: no se encontro mensaje con wa_message_id =", idBuscado);
+  if (error) {
+    // F16(c): fallo real de escritura (no el caso "no se encontro el mensaje
+    // local", que es una condicion de carrera benigna y no amerita reintento
+    // -- ese caso solo se loguea, count===0 no lanza).
+    throw new Error(`actualizar estado fallo: ${error.message}`);
+  }
+  if (!count) console.error("actualizar estado: no se encontro mensaje con wa_message_id =", idBuscado);
 }
 
 Deno.serve(async (req: Request) => {
@@ -535,7 +680,16 @@ Deno.serve(async (req: Request) => {
       console.error("Evento no manejado:", evento);
     }
   } catch (e) {
-    console.error("whatsapp-webhook error:", e instanceof Error ? e.message : String(e));
+    // F16(c): un fallo REAL de procesamiento (excepcion no esperada, o una de
+    // las lanzadas arriba por un error genuino de escritura) responde >=500
+    // para que Zernio reintente la entrega -- antes esto siempre caia en un
+    // 200 silencioso. La validacion de firma HMAC (arriba) no pasa por este
+    // catch y sigue devolviendo 401, sin reintento.
+    console.error("whatsapp-webhook error (fallo real, se pide reintento a Zernio):", e instanceof Error ? e.message : String(e));
+    return new Response(JSON.stringify({ received: false, error: "processing_failed" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   return new Response(JSON.stringify({ received: true }), {
