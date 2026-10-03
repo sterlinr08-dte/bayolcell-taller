@@ -94,13 +94,18 @@ function fechaIso(valor: unknown): string | null {
 }
 
 async function buscarOCrearHilo(linea: any, conversacion: any, telefono: string) {
-  const { data: exacto } = await db
+  // Fix 2026-10-03: el webhook guarda el numero SIN "+" y este importador con
+  // "+"; buscar solo el exacto creo ~2,477 chats repetidos (uno vacio). Se
+  // busca el numero en las dos formas y se reusa el chat que ya existe.
+  const digitos = telefono.startsWith("bsid:") ? "" : telefono.replace(/\D/g, "");
+  const { data: existentes } = await db
     .from("whatsapp_hilos")
     .select("id")
     .eq("linea_id", linea.id)
-    .eq("telefono_e164", telefono)
-    .maybeSingle();
-  if (exacto) return { id: exacto.id, conflicto: false };
+    .in("telefono_e164", digitos ? [telefono, digitos, "+" + digitos] : [telefono])
+    .order("ultimo_mensaje_at", { ascending: false, nullsFirst: false })
+    .limit(1);
+  if (existentes && existentes.length) return { id: existentes[0].id, conflicto: false };
 
   // La restriccion historica de la tabla era sucursal+telefono. No se fuerza
   // un hilo de otra linea porque eso mezclaria conversaciones diferentes.
@@ -160,6 +165,27 @@ async function importarMensajes(linea: any, conversacion: any, hiloId: string, s
           media_path: null,
         }];
       });
+      // Fix 2026-10-03: Zernio da aqui su id interno, no el wamid que guarda el
+      // webhook, asi que wa_message_id no evita duplicar lo que ya llego en
+      // vivo. Se saltan los mensajes que ya existen en el chat con la misma
+      // direccion, hora (al segundo) y texto.
+      if (filas.length) {
+        const horas = filas.map((f: any) => f.creado_en).sort();
+        const desde = new Date(new Date(horas[0]).getTime() - 2000).toISOString();
+        const hasta = new Date(new Date(horas[horas.length - 1]).getTime() + 2000).toISOString();
+        const { data: yaEstan } = await db
+          .from("whatsapp_mensajes")
+          .select("direccion,creado_en,cuerpo")
+          .eq("hilo_id", hiloId)
+          .gte("creado_en", desde)
+          .lte("creado_en", hasta)
+          .limit(5000);
+        const clave = (d: string, c: string, t: string) => `${d}|${Math.floor(new Date(c).getTime() / 1000)}|${(t || "").trim()}`;
+        const vistosEnChat = new Set((yaEstan || []).map((m: any) => clave(m.direccion, m.creado_en, m.cuerpo)));
+        for (let i = filas.length - 1; i >= 0; i--) {
+          if (vistosEnChat.has(clave(filas[i].direccion, filas[i].creado_en, filas[i].cuerpo))) filas.splice(i, 1);
+        }
+      }
       if (filas.length) {
         const { data, error } = await db
           .from("whatsapp_mensajes")
