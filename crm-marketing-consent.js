@@ -42,6 +42,8 @@
   }catch(e){}
   try{var avp=document.createElement('script');avp.async=false;avp.src='taller-pestana-avisos.js?v=20261002-p1';document.head.appendChild(avp);}catch(e){} // Aviso en la pestaña: (N) sin leer + parpadeo con mensaje nuevo
 
+  try{var nav=document.createElement('script');nav.async=false;nav.src='taller-nav-apple.js?v=20261003-n1';document.head.appendChild(nav);}catch(e){} // Barra de navegación de ventanas estilo Apple (capa reversible)
+
   function instalarLoaderPremium(){
     try{
       var loader=document.getElementById('appLoader');
