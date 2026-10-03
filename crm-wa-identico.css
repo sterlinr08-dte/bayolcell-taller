@@ -336,3 +336,26 @@ body #v-crmLinea:not([data-social-channel="whatsapp"]) .bcwa-etq-filtro{ display
 .bcwa-info-edit i{ font-size:18px; }
 .bcwa-info-wa{ font-size:13px !important; color:#667781 !important; margin-top:2px !important; }
 .bcwa-info-wa span{ font-size:11.5px; }
+
+/* Contactos (buscar por nombre o número en todos los chats y clientes del taller) */
+.bcwa-contactos .bcwa-hoja-caja{ max-width:480px; padding-bottom:12px; display:flex; flex-direction:column; max-height:80vh; }
+@media (min-width:768px){ .bcwa-contactos{ align-items:flex-start; padding-top:10vh; } }
+.bcwa-ct-head{ display:flex; align-items:center; justify-content:space-between; padding:6px 14px 8px 20px; font-size:16px; color:#111b21; }
+.bcwa-ct-x{ border:0; background:transparent; width:34px; height:34px; border-radius:50%; cursor:pointer; color:#54656f; font-size:18px; }
+.bcwa-ct-x:hover{ background:#f0f2f5; }
+.bcwa-ct-busq{ display:flex; align-items:center; gap:8px; margin:0 14px 8px; padding:0 12px; height:38px; background:#f0f2f5; border-radius:8px; color:#54656f; }
+.bcwa-ct-busq input{ flex:1; min-width:0; border:0 !important; background:transparent !important; outline:none; font:inherit; font-size:15px; color:#111b21; box-shadow:none !important; }
+.bcwa-ct-res{ overflow-y:auto; flex:1; min-height:120px; }
+.bcwa-ct-res .vacio{ padding:22px 20px; color:#667781; font-size:14px; text-align:center; }
+.bcwa-ct-t{ padding:10px 20px 4px; font-size:12.5px; font-weight:600; color:#008069; text-transform:uppercase; letter-spacing:.3px; }
+.bcwa-ct-fila{ display:flex; align-items:center; gap:12px; width:100%; padding:8px 16px 8px 20px; border:0; background:transparent; font:inherit; text-align:left; cursor:pointer; color:#111b21; }
+.bcwa-ct-fila:hover, .bcwa-ct-fila:focus-visible{ background:#f5f6f6; outline:none; }
+.bcwa-ct-fila.off{ cursor:default; opacity:.75; }
+.bcwa-ct-fila.off:hover{ background:transparent; }
+.bcwa-ct-av{ flex:none; width:40px; height:40px; border-radius:50%; background:#dfe5e7; color:#54656f; display:grid; place-items:center; font-size:14px; font-weight:600; }
+.bcwa-ct-tx{ flex:1; min-width:0; display:flex; flex-direction:column; }
+.bcwa-ct-tx b{ font-weight:500; font-size:15.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.bcwa-ct-tx b i{ color:#00a884; font-size:14px; }
+.bcwa-ct-tx small{ font-size:12.5px; color:#667781; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.bcwa-ct-fila > .ti-chevron-right{ color:#8696a0; }
+body #v-crmLinea:not([data-social-channel="whatsapp"]) #bcwaContactosBtn{ display:none !important; }

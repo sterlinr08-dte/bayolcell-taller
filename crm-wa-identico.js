@@ -16,7 +16,7 @@
   'use strict';
   if (window.__bcWaIdentico) return;
   window.__bcWaIdentico = true;
-  var VERSION = '20261003-w7';
+  var VERSION = '20261003-w8';
 
   // ---------- CSS (siempre de último) ----------
   function css(){
@@ -817,6 +817,105 @@
     m.addEventListener('click', function(e){ var b = e.target.closest('[data-etq]'); if (!b) return; filtroEtiqueta = b.dataset.etq || null; m.remove(); repintarLista(); decorarLista(); });
     setTimeout(function(){ document.addEventListener('click', function cerrar(ev){ if (!m.contains(ev.target)){ m.remove(); document.removeEventListener('click', cerrar, true); } }, true); }, 0);
   }
+  // =====================================================================
+  // CONTACTOS (3 oct 2026): botón en las acciones rápidas del CRM, como "Nuevo chat"
+  // de WhatsApp. Busca por nombre o número entre los chats (todas las líneas que el
+  // usuario puede ver, RLS) y los clientes del taller; al tocar abre ese chat
+  // (cambiando de sucursal/línea si hace falta).
+  // =====================================================================
+  var lineasInfo = null;
+  async function cargarLineasInfo(){
+    if (lineasInfo) return lineasInfo;
+    var r = await supabaseClient.from('whatsapp_lineas').select('id,nombre,sucursal_id,sucursales(nombre)');
+    lineasInfo = {}; (r.data || []).forEach(function(l){ lineasInfo[l.id] = { linea: l.nombre || '', sucursal: (l.sucursales && l.sucursales.nombre) || '' }; });
+    return lineasInfo;
+  }
+  function botonContactos(){
+    var cont = document.querySelector('#v-crmLinea .crm-acciones-rapidas'); if (!cont || cont.querySelector('#bcwaContactosBtn')) return;
+    var b = document.createElement('button'); b.type = 'button'; b.id = 'bcwaContactosBtn'; b.className = 'crm-icon-btn';
+    b.title = 'Contactos'; b.setAttribute('aria-label', 'Buscar contactos'); b.innerHTML = '<i class="ti ti-address-book"></i>';
+    b.addEventListener('click', abrirContactos);
+    cont.insertBefore(b, cont.firstChild);
+  }
+  function cerrarContactos(){ var m = document.getElementById('bcwaContactos'); if (m) m.remove(); }
+  function abrirContactos(){
+    cerrarContactos();
+    var m = document.createElement('div'); m.id = 'bcwaContactos'; m.className = 'bcwa-hoja bcwa-contactos';
+    m.innerHTML = '<div class="bcwa-hoja-caja" role="dialog" aria-label="Contactos"><div class="bcwa-hoja-agarre"></div>' +
+      '<div class="bcwa-ct-head"><b>Contactos</b><button type="button" class="bcwa-ct-x" aria-label="Cerrar"><i class="ti ti-x"></i></button></div>' +
+      '<div class="bcwa-ct-busq"><i class="ti ti-search"></i><input type="search" placeholder="Buscar por nombre o número" aria-label="Buscar contacto" autocomplete="off"></div>' +
+      '<div class="bcwa-ct-res"><div class="vacio">Escribe un nombre o un número para buscar en todos los chats y clientes del taller.</div></div></div>';
+    document.body.appendChild(m);
+    var inp = m.querySelector('input'), res = m.querySelector('.bcwa-ct-res'), t = null, tok = 0;
+    m.addEventListener('click', function(e){
+      if (e.target === m || e.target.closest('.bcwa-ct-x')){ cerrarContactos(); return; }
+      var f = e.target.closest('[data-hilo]'); if (f){ cerrarContactos(); irAHilo(f.dataset.hilo, f.dataset.linea); }
+    });
+    inp.addEventListener('keydown', function(e){ if (e.key === 'Escape'){ e.stopPropagation(); cerrarContactos(); } if (e.key === 'Enter'){ var p = res.querySelector('[data-hilo]'); if (p) p.click(); } });
+    inp.addEventListener('input', function(){ clearTimeout(t); t = setTimeout(function(){ buscarContactos(inp.value, res, ++tok, function(){ return tok; }); }, 250); });
+    setTimeout(function(){ inp.focus(); }, 50);
+  }
+  async function buscarContactos(q, res, miTok, tokActual){
+    q = (q || '').trim();
+    if (q.length < 2){ res.innerHTML = '<div class="vacio">Escribe al menos 2 letras o números.</div>'; return; }
+    res.innerHTML = '<div class="vacio">Buscando…</div>';
+    try {
+      var lineas = await cargarLineasInfo();
+      var dig = q.replace(/\D/g, ''), texto = q.replace(/[%,()]/g, ' ').trim();
+      var clis = (cache.clientes || []).filter(function(c){
+        var n = (((c.nombre || '') + ' ' + (c.apellido || '')).toLowerCase());
+        var tel = String(c.whatsapp_e164 || c.whatsapp || '').replace(/\D/g, '');
+        return n.indexOf(q.toLowerCase()) >= 0 || (dig.length >= 3 && tel.indexOf(dig) >= 0);
+      }).slice(0, 40);
+      var filtros = [];
+      if (texto && !/^\d+$/.test(texto)) filtros.push('nombre_perfil.ilike.%' + texto + '%');
+      if (dig.length >= 3) filtros.push('telefono_e164.ilike.%' + dig + '%');
+      if (clis.length) filtros.push('cliente_id.in.(' + clis.map(function(c){ return c.id; }).join(',') + ')');
+      var hilos = [];
+      if (filtros.length){
+        var r = await supabaseClient.from('whatsapp_hilos').select('id,linea_id,telefono_e164,nombre_perfil,cliente_id,ultimo_mensaje_at,estado')
+          .or(filtros.join(',')).not('telefono_e164', 'like', 'duplicado:%').order('ultimo_mensaje_at', { ascending: false }).limit(40);
+        hilos = r.data || [];
+      }
+      if (tokActual() !== miTok) return;
+      var mapaCli = {}; (cache.clientes || []).forEach(function(c){ mapaCli[c.id] = c; });
+      var conChat = {};
+      var filas = hilos.map(function(h){
+        if (h.cliente_id) conChat[h.cliente_id] = true;
+        var c = h.cliente_id && mapaCli[h.cliente_id];
+        var nombre = c ? nombreCliente(c) : (h.nombre_perfil || h.telefono_e164 || 'Sin nombre');
+        var li = lineas[h.linea_id] || {};
+        var ini = ''; try { ini = _waIniciales(nombre); } catch(e){ ini = nombre.slice(0, 2).toUpperCase(); }
+        return '<button type="button" class="bcwa-ct-fila" data-hilo="' + esc(h.id) + '" data-linea="' + esc(h.linea_id) + '"><span class="bcwa-ct-av">' + esc(ini) + '</span><span class="bcwa-ct-tx"><b>' + esc(nombre) + (c ? ' <i class="ti ti-user-check" title="Cliente del taller"></i>' : '') + '</b><small>' + esc((h.telefono_e164 || '').replace(/^bsid:.*/, 'Contacto de anuncio')) + ' · ' + esc((li.sucursal ? li.sucursal + ' · ' : '') + (li.linea || '')) + (h.estado === 'archivado' ? ' · archivado' : '') + '</small></span><i class="ti ti-chevron-right"></i></button>';
+      });
+      var sinChat = clis.filter(function(c){ return !conChat[c.id]; }).slice(0, 15).map(function(c){
+        var tel = c.whatsapp_e164 || c.whatsapp || '';
+        return '<div class="bcwa-ct-fila off"><span class="bcwa-ct-av">' + esc((function(){ try { return _waIniciales(nombreCliente(c)); } catch(e){ return '?'; } })()) + '</span><span class="bcwa-ct-tx"><b>' + esc(nombreCliente(c)) + '</b><small>' + esc(tel || 'Sin número') + ' · sin chat de WhatsApp todavía</small></span></div>';
+      });
+      res.innerHTML = (filas.length ? '<div class="bcwa-ct-t">Chats</div>' + filas.join('') : '') +
+        (sinChat.length ? '<div class="bcwa-ct-t">Clientes del taller sin chat</div>' + sinChat.join('') : '') ||
+        '<div class="vacio">No se encontró ningún contacto con “' + esc(q) + '”.</div>';
+    } catch(e){
+      if (tokActual() === miTok) res.innerHTML = '<div class="vacio">No se pudo buscar. Revisa la conexión e intenta de nuevo.</div>';
+    }
+  }
+  async function irAHilo(hiloIdDest, lineaDest){
+    try {
+      if (lineaId() !== lineaDest){
+        var li = (await cargarLineasInfo())[lineaDest] || {};
+        seleccionarLineaCRM(lineaDest, li.sucursal || '', li.linea || '');
+        try { localStorage.setItem('bayol_subtab_crmlinea', 'mensajes'); } catch(e){}
+        for (var k = 0; k < 30 && !(_waHilos || []).some(function(h){ return h.linea_id === lineaDest; }); k++) await new Promise(function(r){ setTimeout(r, 200); });
+      }
+      if (!(_waHilos || []).some(function(h){ return h.id === hiloIdDest; })){
+        var r = await supabaseClient.from('whatsapp_hilos').select('*, whatsapp_lineas(nombre)').eq('id', hiloIdDest).maybeSingle();
+        if (r.data){ _waHilos.unshift(r.data); try { _crmRtOrdenarHilos(); } catch(e){} }
+      }
+      await abrirHiloWhatsapp(hiloIdDest);
+    } catch(e){ try { toastError('No se pudo abrir el chat.'); } catch(_){} }
+  }
+  window._bcWaAbrirContactos = abrirContactos;
+
   function botonMasCabecera(){
     var head = document.querySelector('#waDetalle .wa-chat-head'); if (!head || head.querySelector('.bcwa-mas')) return;
     var b = document.createElement('button'); b.type = 'button'; b.className = 'bcwa-hbtn bcwa-mas'; b.title = 'Menú'; b.setAttribute('aria-label', 'Menú del chat');
@@ -831,7 +930,7 @@
   var hiloAntes = null;
   function aplicar(){
     if (!document.getElementById('waWrap')) return;
-    envolverEnviar(); envolverMenu(); envolverVincular(); envolverFiltro();
+    envolverEnviar(); envolverMenu(); botonContactos(); envolverVincular(); envolverFiltro();
     if (!etiquetasCargadas) cargarEtiquetas().then(function(){ decorarLista(); });
     if (lineaId() && extrasDeLinea !== lineaId()){ extrasDeLinea = lineaId(); modoArchivados = false; filtroEtiqueta = null; cargarExtras(); }
     var id = hiloId();
@@ -848,7 +947,7 @@
     if (pendiente) return;
     for (var i = 0; i < muts.length; i++){
       var t = muts[i].target;
-      if (t && t.nodeType === 1 && t.closest && t.closest('.bcwa-bajar, .bcwa-fecha, .bcwa-buscar, .bcwa-soltar, .bcwa-info, .bcwa-row-ic, .bcwa-row-tags, .bcwa-archivados, .bcwa-chips-etq, .bcwa-etq-filtro')) continue;
+      if (t && t.nodeType === 1 && t.closest && t.closest('.bcwa-bajar, .bcwa-fecha, .bcwa-buscar, .bcwa-soltar, .bcwa-info, .bcwa-row-ic, .bcwa-row-tags, .bcwa-archivados, .bcwa-chips-etq, .bcwa-etq-filtro, #bcwaContactosBtn')) continue;
       if (t && t.nodeType === 1 && (t.id === 'waWrap' || (t.closest && t.closest('#waWrap')))){
         pendiente = true;
         Promise.resolve().then(function(){ pendiente = false; try { aplicar(); } catch(e){} });
