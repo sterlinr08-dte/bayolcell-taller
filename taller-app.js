@@ -23096,14 +23096,20 @@ function iniciarRealtime() {
     if(!supabaseClient || typeof supabaseClient.channel !== 'function') return;
     
     try {
-        // Escuchar cambios en TODAS las tablas principales
+        // 3 oct 2026 (lag del CRM): antes escuchaba 'schema: public' COMPLETO.
+        // Supabase solo transmite las tablas de la publicacion supabase_realtime,
+        // y de esas las unicas del taller son alarma_videos y orden_notas -- el
+        // resto son del CRM (whatsapp_*, leads, instagram_*, social_*), que
+        // onCambioRealtime() descartaba en el navegador. O sea: TODAS las
+        // pestañas abiertas (aunque no estuvieran en el CRM) recibian por red
+        // cada mensaje, cada "entregado" y cada "leido" de las 6 lineas
+        // (~13.000 eventos al dia) solo para tirarlos. Ahora el canal global
+        // pide solo esas dos tablas; el CRM tiene su propio canal.
+        // Si se agrega otra tabla del taller a la publicacion, sumarla aqui.
         _realtimeChannel = supabaseClient
             .channel('bayol-realtime')
-            .on('postgres_changes', { event: '*', schema: 'public' }, (payload) => {
-                // Recarga inteligente: con debounce para no saturar,
-                // y sin interrumpir si hay un modal abierto
-                onCambioRealtime(payload);
-            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'alarma_videos' }, (payload) => onCambioRealtime(payload))
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'orden_notas' }, (payload) => onCambioRealtime(payload))
             .subscribe((status) => {
                 if(status === 'SUBSCRIBED') {
                     console.log('✅ Realtime activo - cambios en tiempo real');
@@ -29685,7 +29691,8 @@ function _waAsegurarMenuAdjuntar() {
             <button onclick="_waAdjuntarAccion('camara')"><i class="ti ti-camera" style="color:#dc2626;"></i> Cámara</button>
             <button onclick="_waAdjuntarAccion('ubicacion')"><i class="ti ti-map-pin" style="color:#16a34a;"></i> Ubicación</button>
             <button onclick="_waAdjuntarAccion('tienda')"><i class="ti ti-building-store" style="color:#0891b2;"></i> Ubicación de la tienda</button>
-            <button onclick="_waAdjuntarAccion('contacto')"><i class="ti ti-user" style="color:#ea580c;"></i> Contacto</button>`;
+            <button onclick="_waAdjuntarAccion('contacto')"><i class="ti ti-user" style="color:#ea580c;"></i> Contacto</button>
+            <button onclick="_waAdjuntarAccion('sucursales')"><i class="ti ti-address-book" style="color:#128C7E;"></i> Contactos de sucursales</button>`;
         document.body.appendChild(menu);
         document.addEventListener('click', e => {
             if(!menu.contains(e.target) && !e.target.closest('#btnWaAdjuntar')) menu.style.display = 'none';
@@ -29701,7 +29708,7 @@ function _waAbrirMenuAdjuntar(ev) {
     if(yaAbierto) return; // tocar el mismo boton otra vez = cerrar
     menu.style.display = 'flex';
     const r = ev.currentTarget.getBoundingClientRect();
-    const alturaMenu = 6 * 38 + 12;
+    const alturaMenu = 7 * 38 + 12;
     let top = r.top - alturaMenu - 6; // por defecto abre HACIA ARRIBA (el composer esta al fondo)
     if(top < 8) top = r.bottom + 6;
     let left = r.left;
@@ -29717,6 +29724,75 @@ function _waAdjuntarAccion(tipo) {
     else if(tipo === 'ubicacion') _waAbrirModalUbicacion();
     else if(tipo === 'tienda') _waEnviarUbicacionTienda();
     else if(tipo === 'contacto') _waAbrirModalContacto();
+    else if(tipo === 'sucursales') _waAbrirContactosSucursales();
+}
+
+// ── Contactos de sucursales (3 oct 2026, pedido del dueño) ─────────────────────────────────────────────
+// Un toque y el cliente recibe la tarjeta de contacto (como «Compartir contacto» de WhatsApp) de otra
+// linea/sucursal de BAYOL CELL: p. ej. el cliente de Santiago que pregunta por Moca. Usa el mismo envío
+// de contacto que ya existe (whatsapp-enviar con body.contacto). Lista las lineas ACTIVAS de whatsapp_lineas
+// con el nombre de su sucursal; la linea de ESTE chat sale al final y marcada.
+async function _waAbrirContactosSucursales() {
+    if(!_waHiloId) return;
+    try {
+        // RPC whatsapp_lineas_directorio (security definer, solo nombre/numero/sucursal): así también la ve
+        // el empleado con «solo su sucursal», que por RLS no lee las lineas de las otras.
+        const { data: dir, error } = await supabaseClient.rpc('whatsapp_lineas_directorio');
+        if(error) throw error;
+        const data = (dir || []).map(r => ({ id: r.id, nombre: r.nombre, whatsapp_numero: r.whatsapp_numero, sucursales: { nombre: r.sucursal_nombre } }));
+        const h = _waHilos.find(x => x.id === _waHiloId);
+        const lineaChat = h ? h.linea_id : _crmLineaActualId;
+        const filas = (data || []).filter(l => l.whatsapp_numero)
+            .sort((a, b) => ((a.id === lineaChat) - (b.id === lineaChat)) || String(a.sucursales?.nombre || '').localeCompare(String(b.sucursales?.nombre || '')) || String(a.nombre || '').localeCompare(String(b.nombre || '')));
+        if(!filas.length) { toastError('No hay líneas de WhatsApp activas para compartir.'); return; }
+        _waContactosSucursalesCache = filas;
+        const tel = n => { const d = String(n || '').replace(/\D/g, ''); return d.length === 11 && d[0] === '1' ? `${d.slice(1,4)}-${d.slice(4,7)}-${d.slice(7)}` : String(n || ''); };
+        const html = `<p style="margin:0 0 12px; font-size:13px; color:#475569;">Toca una sucursal y al cliente le llega su <b>tarjeta de contacto</b> para guardarla o escribirle.</p>
+            <div style="display:flex; flex-direction:column; gap:8px;">${filas.map((l, i) => `
+                <button type="button" onclick="_waEnviarContactoSucursal(${i}, this)" style="display:flex; align-items:center; gap:12px; width:100%; text-align:left; padding:12px 14px; border:1px solid #e2e8f0; border-radius:14px; background:${l.id === lineaChat ? '#f8fafc' : '#fff'}; cursor:pointer;">
+                    <span style="flex:0 0 40px; height:40px; border-radius:50%; background:linear-gradient(180deg,#25D366,#128C7E); color:#fff; display:flex; align-items:center; justify-content:center; font-size:20px;"><i class="ti ti-brand-whatsapp"></i></span>
+                    <span style="flex:1; min-width:0;">
+                        <b style="display:block; font-size:14px; color:#0f172a;">${escapeHtml(l.sucursales?.nombre || 'Sucursal')} · ${escapeHtml(l.nombre || '')}</b>
+                        <span style="font-size:12.5px; color:#475569;">${escapeHtml(tel(l.whatsapp_numero))}${l.id === lineaChat ? ' · <i>esta línea</i>' : ''}</span>
+                    </span>
+                    <span style="font-size:12px; font-weight:700; color:#128C7E; white-space:nowrap;"><i class="ti ti-send"></i> Enviar</span>
+                </button>`).join('')}
+            </div>`;
+        abrirModalGenerico('Contactos de sucursales', html, { ancho: '460px' });
+    } catch(e) { logError('_waAbrirContactosSucursales', e); toastError('No se pudieron cargar las sucursales.'); }
+}
+let _waContactosSucursalesCache = [];
+async function _waEnviarContactoSucursal(i, btn) {
+    const l = _waContactosSucursalesCache[i];
+    const hiloDestino = _waHiloId;
+    if(!l || !hiloDestino) return;
+    const lockKey = `wa-contacto-sucursal:${hiloDestino}`;
+    if(!_crmIniciarAccion(lockKey)) return;
+    if(btn) { btn.disabled = true; btn.style.opacity = '.6'; }
+    try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if(!session) { toastError('Inicia sesión de nuevo.'); return; }
+        const nombre = `Bayol Cell ${l.sucursales?.nombre || ''} - ${l.nombre || 'WhatsApp'}`.replace(/\s+/g, ' ').trim();
+        const respondeA = (_waRespondiendoA && _waRespondiendoA.hiloId === hiloDestino) ? _waRespondiendoA.id : null;
+        const res = await fetch(CONFIG_URL + '/functions/v1/whatsapp-enviar', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ hilo_id: hiloDestino, responde_a_id: respondeA, contacto: { nombre, telefono: l.whatsapp_numero } })
+        });
+        const j = await res.json();
+        if(j && j.ok) {
+            document.getElementById('modalGenerico')?.remove();
+            if(_waHiloId === hiloDestino && _waRespondiendoA && _waRespondiendoA.hiloId === hiloDestino) _waRespondiendoA = null;
+            toast('👤 Contacto de ' + (l.sucursales?.nombre || 'la sucursal') + ' enviado.');
+            // La burbuja la trae el tiempo real; respaldo por si tarda.
+            setTimeout(async () => { if(_waHiloId === hiloDestino) { try { await cargarMensajesHilo(hiloDestino); await _crmRepintarWhatsappSilencioso(); } catch(e) {} } }, 2500);
+        } else if(j && j.error === 'ventana_cerrada') {
+            toastError(j.mensaje || 'Ya no se puede responder libre — hace falta plantilla.');
+        } else {
+            toastError(j?.mensaje || 'No se pudo enviar el contacto.');
+        }
+    } catch(e) { logError('_waEnviarContactoSucursal', e); toastError('No se pudo enviar el contacto.'); }
+    finally { if(btn) { btn.disabled = false; btn.style.opacity = ''; } _crmFinalizarAccion(lockKey); }
 }
 
 // Manda el PIN de GPS fijo de la sucursal DE ESTE hilo (no la ubicacion del
@@ -30886,18 +30962,20 @@ async function enviarMensajeWhatsapp() {
             }
             if(_waHiloId === hiloDestino) {
                 _pintarWhatsappDetalle();
-                bloquearBoton(true);
                 reproducirSonido('whatsappEnviado');
             }
-            // Las consultas posteriores viajan juntas y reemplazan el mensaje
-            // provisional por la fila definitiva de Supabase.
-            await Promise.all([
-                cargarMensajesHilo(_waHiloId || hiloDestino),
-                cargarHilosWhatsapp()
-            ]);
-            if(_waHiloId === hiloDestino) {
-                await _crmRepintarWhatsappSilencioso();
-            }
+            // 3 oct 2026 (lag al enviar): antes el botón seguía bloqueado hasta
+            // recargar TODO el chat y TODA la lista (2 consultas más) después de
+            // que Zernio ya había aceptado el mensaje. Ahora se libera en cuanto
+            // llega el OK; la fila definitiva la trae el tiempo real
+            // (_crmRtAplicarEnMemoria la cambia por la provisional). Solo si a
+            // los 2,5 s la provisional sigue ahí se recarga el chat como antes.
+            _waEnviando = false; bloquearBoton(false); _waActualizarBotonEnvio();
+            setTimeout(async () => {
+                if(!_waMensajesOptimistas.has(tempId) || _waHiloId !== hiloDestino) return;
+                try { await cargarMensajesHilo(hiloDestino); if(_waHiloId === hiloDestino) await _crmRepintarWhatsappSilencioso(); }
+                catch(e) { logError('enviarMensajeWhatsapp/respaldo', e); }
+            }, 2500);
         } else if(j && j.error === 'ventana_cerrada') {
             marcarFallo(j.mensaje || 'Ya no se puede responder libre — hace falta plantilla.');
             await cargarHilosWhatsapp();
@@ -31387,6 +31465,101 @@ function _waDejarDeEscucharViewport() {
 // migracion) — ademas esas tablas no forman parte de loadAll()/cache, asi
 // que hace falta un canal propio que refresque especificamente esta vista.
 let _crmRealtimeChannel = null;
+// ── Tiempo real en memoria (3 oct 2026, pedido del dueño: «corrige los lag y el tiempo de llegada y salida») ──
+// Antes CADA evento (mensaje, ✓ enviado, ✓✓ entregado, leído, cambio del hilo) recargaba la lista completa de la
+// linea, contaba los leads y volvia a bajar TODOS los mensajes del chat abierto (con un enlace firmado por cada
+// adjunto): 3+ consultas por evento, y en hora pico los eventos llegan cada pocos segundos. Ahora el evento trae la
+// fila y se aplica directo; la base solo se consulta cuando no hay otra (ver refrescarCRM).
+let _crmRtUltimaRecargaCompleta = Date.now();
+let _crmRtPintarPend = null;
+function _crmRtProgramarPintado() {
+    if(_crmRtPintarPend) return;
+    _crmRtPintarPend = setTimeout(async () => {
+        _crmRtPintarPend = null;
+        if(!document.getElementById('v-crmLinea')?.classList.contains('active')) return;
+        if((localStorage.getItem('bayol_subtab_crmlinea') || 'mensajes') !== 'mensajes') return;
+        try { await _crmRepintarWhatsappSilencioso(); } catch(e) { logError('_crmRtProgramarPintado', e); }
+    }, 60);
+}
+// Mismo orden que crm-whatsapp-pagination.js (sortThreads): más reciente arriba; empate por id.
+function _crmRtOrdenarHilos() {
+    const t = h => { const n = new Date(h?.ultimo_mensaje_at || h?.creado_en || 0).getTime(); return Number.isFinite(n) ? n : 0; };
+    _waHilos.sort((a, b) => (t(b) - t(a)) || String(b?.id || '').localeCompare(String(a?.id || '')));
+}
+let _waSugerenciasPend = null;
+function _waRecargarSugerenciasPronto(hiloId) {
+    // El agente de IA redacta su sugerencia unos segundos DESPUES del mensaje del cliente.
+    clearTimeout(_waSugerenciasPend);
+    _waSugerenciasPend = setTimeout(async () => {
+        if(_waHiloId !== hiloId) return;
+        try {
+            const { data } = await supabaseClient.from('whatsapp_ia_sugerencias').select('id, texto_sugerido, razon, modelo_detectado, creado_en').eq('hilo_id', hiloId).eq('estado', 'pendiente').order('creado_en', { ascending: true }).limit(1);
+            if(_waHiloId !== hiloId) return;
+            const antes = JSON.stringify((_waSugerenciasIA || []).map(x => x.id)), ahora = JSON.stringify((data || []).map(x => x.id));
+            _waSugerenciasIA = data || [];
+            if(antes !== ahora) _pintarWhatsappDetalle();
+        } catch(e) { logError('_waRecargarSugerenciasPronto', e); }
+    }, 4000);
+}
+// Devuelve true si el evento quedó aplicado en memoria (no hace falta ir a la base).
+function _crmRtAplicarEnMemoria(payload, tabla) {
+    try {
+        const tipo = payload?.eventType, n = payload?.new || {};
+        if(tipo === 'DELETE' || !n.id) return false;
+        if(tabla === 'leads') {
+            // En la pestaña Mensajes un lead solo cambia el numerito de la pestaña Leads.
+            if((localStorage.getItem('bayol_subtab_crmlinea') || 'mensajes') !== 'mensajes') return false;
+            _crmContarLeadsAbiertos();
+            return true;
+        }
+        if(tabla === 'whatsapp_hilos') {
+            const i = _waHilos.findIndex(h => h.id === n.id);
+            if(!isAdminUser() && n.asignado_id && !_crmMismoAsignado(n, _crmMiIdentidad())) {
+                if(i >= 0) { _waHilos.splice(i, 1); _crmRtProgramarPintado(); }
+                return true;   // ya no le toca a este empleado
+            }
+            if(i < 0) return false;   // hilo nuevo: la recarga trae también el nombre de la linea
+            _waHilos[i] = Object.assign({}, _waHilos[i], n);
+            _crmRtOrdenarHilos();
+            _crmRtProgramarPintado();
+            return true;
+        }
+        if(tabla === 'whatsapp_mensajes') {
+            if(!_waHiloId || n.hilo_id !== _waHiloId) return false;
+            const i = _waMensajes.findIndex(m => m.id === n.id);
+            if(tipo === 'UPDATE') {
+                if(i < 0) return false;
+                const prev = _waMensajes[i];
+                if((n.media_path || null) !== (prev.media_path || null)) return false;   // adjunto nuevo: hay que firmarlo
+                _waMensajes[i] = Object.assign({}, prev, n, { _mediaUrl: prev._mediaUrl });
+                _crmRtProgramarPintado();
+                return true;
+            }
+            if(i >= 0) return true;   // ya estaba
+            // La burbuja provisional («enviando…») de este mismo mensaje se reemplaza por la fila real.
+            for(const [tempId, opt] of _waMensajesOptimistas) {
+                if(opt.hilo_id !== n.hilo_id || n.direccion !== 'out') continue;
+                const mismo = (opt.wa_message_id && opt.wa_message_id === n.wa_message_id) ||
+                    (!opt.wa_message_id && opt.estado !== 'fallido' && (opt.cuerpo || '') === (n.cuerpo || ''));
+                if(!mismo) continue;
+                _waMensajesOptimistas.delete(tempId);
+                _waMensajes = _waMensajes.filter(m => m.id !== tempId);
+                break;
+            }
+            const meter = () => {
+                if(_waHiloId !== n.hilo_id || _waMensajes.some(m => m.id === n.id)) return;
+                _waMensajes.push(n);
+                _waMensajes.sort((a, b) => new Date(a.creado_en) - new Date(b.creado_en));
+                _crmRtProgramarPintado();
+            };
+            if(n.media_path) _waSignedUrl(n.media_path).then(u => { n._mediaUrl = u; meter(); }, () => meter());
+            else meter();
+            if(n.direccion === 'in') _waRecargarSugerenciasPronto(n.hilo_id);
+            return true;
+        }
+    } catch(e) { logError('_crmRtAplicarEnMemoria', e); }
+    return false;
+}
 let _crmRtDebounce = null; // fuera de _crmSuscribirRealtime: hay que poder cancelarlo desde _crmDetenerRealtime tambien
 // Un mensaje entrante actualiza DOS tablas casi al mismo tiempo: primero
 // whatsapp_mensajes y luego whatsapp_hilos. No se puede conservar solo el
@@ -31424,6 +31597,19 @@ function _crmSuscribirRealtime(lineaId) {
             // cargado en esta linea, se ignora del todo.
             const hiloId = payload?.new?.hilo_id || payload?.old?.hilo_id;
             if(hiloId && hiloId !== _waHiloId && !_waHilos.some(h => h.id === hiloId)) return;
+            // 3 oct 2026 (lag): un mensaje (o un ✓✓/leído) de OTRO chat ya cargado
+            // no necesita nada aquí -- el trigger de la base toca su fila en
+            // whatsapp_hilos y ese evento actualiza la lista. Antes cada uno de
+            // estos recargaba la lista entera + el conteo de leads.
+            if(hiloId && hiloId !== _waHiloId) return;
+        }
+        // 3 oct 2026 (lag): lo que se puede aplicar en memoria se aplica sin ir
+        // a la base (mensaje nuevo o cambio de estado del chat abierto, cambio de
+        // un hilo de la lista). Solo lo que no se puede (hilo nuevo, adjunto que
+        // cambió, borrado…) cae en la recarga completa de siempre.
+        if(_crmLineaActualId === lineaId && _crmRtAplicarEnMemoria(payload, tabla)) {
+            if(Date.now() - _crmRtUltimaRecargaCompleta < 90000) return;
+            // Respaldo: como mucho una recarga completa cada 90 s, por si algo se desfasó.
         }
         const esMensajeDelHiloAbierto = tabla === 'whatsapp_mensajes' && _waHiloId &&
             (payload?.new?.hilo_id === _waHiloId || payload?.old?.hilo_id === _waHiloId);
@@ -31436,6 +31622,7 @@ function _crmSuscribirRealtime(lineaId) {
             if(!document.getElementById('v-crmLinea')?.classList.contains('active')) return; // vista ya no visible
             const tabActiva = localStorage.getItem('bayol_subtab_crmlinea') || 'mensajes';
             if(tabActiva === 'mensajes') {
+                _crmRtUltimaRecargaCompleta = Date.now();
                 await cargarHilosWhatsapp();
                 await _crmContarLeadsAbiertos();
                 if(recargarHiloAbierto && _waHiloId) {
