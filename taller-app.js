@@ -22099,6 +22099,7 @@ const PERMISOS_DEF = [
         items: [
             { id: 'whatsapp_ver', label: 'Ver bandeja de WhatsApp' },
             { id: 'whatsapp_responder', label: 'Responder mensajes de WhatsApp' },
+            { id: 'whatsapp_solo_sucursal', label: 'Solo ver los chats de SU sucursal (sin esto ve todas)' },
             { id: 'leads_ver', label: 'Ver módulo de Leads' },
             { id: 'leads_gestionar', label: 'Cambiar etapa / vincular cliente en Leads' }
         ]
