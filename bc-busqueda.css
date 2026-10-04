@@ -1,0 +1,72 @@
+/* BAYOL CELL · BUSCADOR «Premium» (4 oct 2026) — estilos de bc-busqueda.js. Réplica del de NEXUS PRO
+   (style#nxBusquedaPremiumCSS + nxBuscaEnsureCSS), con el naranja del taller. Lupa redonda con borde naranja → píldora
+   a lo ancho (el resorte lo lleva el JS: width/left del marco y la opacidad del contenido); halo naranja, puntitos
+   flotantes y aviso «Esc» (solo computadora). */
+:root{--bcbp-d:44px;--bcbp-acento:#D65225;--bcbp-halo:rgba(255,107,53,.30);--bcbp-fondo:#fff;--bcbp-tx:#0f172a;--bcbp-ph:#64748b;--bcbp-x:#f1f5f9;--bcbp-x-tx:#475569}
+@media(max-width:768px){:root{--bcbp-d:48px}}
+
+/* ── componente base (campo con lupa y ✕) ── */
+.bcBusca{position:relative;box-sizing:border-box;display:flex;align-items:center;height:42px;width:100%;background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;flex:0 0 auto}
+.bcBusca-lupa{width:42px;height:42px;flex:0 0 auto;border:0;background:transparent;color:#64748b;font-size:17px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:12px;touch-action:manipulation;padding:0;margin:0}
+.bcBusca-in{flex:1;min-width:0;width:auto!important;max-width:none!important;border:0!important;background:transparent!important;height:100%!important;font-size:16px!important;color:#0f172a;outline:none!important;padding:0!important;margin:0!important;box-shadow:none!important;font-family:inherit;border-radius:0!important}
+.bcBusca-in::-webkit-search-cancel-button,.bcBusca-in::-webkit-search-decoration{-webkit-appearance:none}
+html body .bcBusca .bcBusca-in{background:transparent!important;border:0!important}
+.bcBusca-x{width:30px;height:30px;flex:0 0 auto;margin-right:6px;border:0;border-radius:50%;background:#f1f5f9;color:#475569;font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:manipulation;padding:0}
+
+/* ── marco: el círculo/píldora vive dentro; el halo, los puntos y el aviso Esc cuelgan fuera ── */
+.bcbp-marco{position:relative;display:inline-flex;vertical-align:middle;width:var(--bcbp-d);height:var(--bcbp-d);flex:0 0 auto;max-width:100%;isolation:isolate}
+.bcbp-hueco{display:inline-flex;vertical-align:middle;flex:0 0 auto;visibility:hidden}
+.bcbp-marco.bcbp-flotante{position:absolute;z-index:6}
+.bcbp-cont-rel{position:relative}
+.bcbp-oculto{display:none!important}
+.bcbp-desvanecido{opacity:0!important;pointer-events:none!important;transition:opacity .22s ease!important}
+.bcbp-marco .bcBusca.bcBusca-c{position:relative;z-index:1;flex:none!important;width:100%!important;min-width:0!important;height:100%;border-radius:999px;border:2px solid var(--bcbp-acento);background:var(--bcbp-fondo);overflow:hidden;box-shadow:0 2px 8px -3px rgba(15,23,42,.18);cursor:pointer;transition:box-shadow .35s cubic-bezier(.23,1,.32,1),border-color .25s ease,background-color .25s ease}
+.bcbp-marco.open .bcBusca.bcBusca-c{cursor:text;box-shadow:0 0 0 4px var(--bcbp-halo),0 14px 32px -12px var(--bcbp-halo)}
+.bcbp-marco:not(.open) .bcBusca.bcBusca-c:focus-within{box-shadow:0 0 0 3px var(--bcbp-halo)}
+@media(hover:hover) and (pointer:fine){.bcbp-marco:not(.open) .bcBusca.bcBusca-c:hover{box-shadow:0 0 0 3px var(--bcbp-halo),0 6px 16px -6px rgba(255,107,53,.45)}}
+.bcbp-marco .bcBusca-lupa{width:calc(var(--bcbp-d) - 4px);height:calc(var(--bcbp-d) - 4px);min-width:0;min-height:0;padding:0;flex:0 0 auto;color:var(--bcbp-acento);font-size:19px;border-radius:999px;background:transparent;transition:transform .16s cubic-bezier(.23,1,.32,1)}
+.bcbp-marco .bcBusca-lupa i{color:inherit}
+.bcbp-marco:not(.open) .bcBusca-lupa:active{transform:scale(.92)}
+.bcbp-marco .bcBusca-lupa:focus-visible{outline:2px solid var(--bcbp-acento);outline-offset:-4px}
+.bcbp-marco .bcBusca-in{opacity:0;transition:none;color:var(--bcbp-tx)}
+.bcbp-marco:not(.open) .bcBusca-in,.bcbp-marco:not(.open) .bcBusca-x{pointer-events:none}
+.bcbp-marco .bcBusca-in::placeholder{color:var(--bcbp-ph);opacity:1}
+.bcbp-marco .bcBusca-x{display:none;width:30px;height:30px;min-width:0;min-height:0;padding:0;margin-right:7px;border-radius:50%;background:var(--bcbp-x);color:var(--bcbp-x-tx);opacity:0;transition:transform .16s cubic-bezier(.23,1,.32,1)}
+.bcbp-marco.open .bcBusca-x{display:flex!important}
+.bcbp-marco .bcBusca-x:active{transform:scale(.9)}
+/* punto de «búsqueda activa»: la lupa cerrada conserva un texto que sigue filtrando */
+.bcbp-marco.bcbp-con-texto:not(.open)::after{content:"";position:absolute;top:1px;right:1px;width:11px;height:11px;border-radius:50%;background:var(--bcbp-acento);border:2px solid var(--bcbp-fondo);z-index:2;pointer-events:none}
+/* brillo: halo suave que respira detrás de la píldora */
+.bcbp-brillo{position:absolute;inset:-8px;border-radius:999px;background:radial-gradient(60% 120% at 50% 50%,var(--bcbp-halo),transparent 72%);filter:blur(10px);opacity:0;pointer-events:none;z-index:0;transition:opacity .45s ease}
+.bcbp-marco.open .bcbp-brillo{opacity:1;animation:bcbpRespira 3.2s ease-in-out .4s infinite}
+@keyframes bcbpRespira{0%,100%{opacity:.75}50%{opacity:1}}
+/* puntitos flotantes (5, lentos, sin interacción) */
+.bcbp-aura{position:absolute;inset:0;pointer-events:none;z-index:0;display:none}
+.bcbp-marco.open .bcbp-aura{display:block}
+.bcbp-aura i{position:absolute;width:5px;height:5px;border-radius:50%;background:#FF6B35;opacity:0;animation:bcbpFlota 3.6s ease-in-out infinite;animation-delay:calc(var(--bcbp-t0,0s) + var(--bcbp-r,0s))}
+.bcbp-aura i:nth-child(1){left:14%;top:-9px;--bcbp-r:0s}
+.bcbp-aura i:nth-child(2){left:37%;bottom:-8px;--bcbp-r:-1.1s;width:4px;height:4px}
+.bcbp-aura i:nth-child(3){left:61%;top:-11px;--bcbp-r:-2.3s;width:7px;height:7px}
+.bcbp-aura i:nth-child(4){left:80%;bottom:-6px;--bcbp-r:-.6s}
+.bcbp-aura i:nth-child(5){left:95%;top:35%;--bcbp-r:-1.8s;width:4px;height:4px}
+@keyframes bcbpFlota{0%,100%{transform:translate3d(0,0,0);opacity:.15}50%{transform:translate3d(2px,-7px,0);opacity:.6}}
+/* aviso Esc: solo computadora; flota bajo la píldora sin ocupar sitio */
+.bcbp-esc{display:none;position:absolute;left:12px;top:calc(100% + 5px);align-items:center;gap:6px;padding:3px 8px 3px 4px;border-radius:7px;background:var(--bcbp-fondo);font-size:11px;line-height:1;color:var(--bcbp-ph);white-space:nowrap;pointer-events:none;opacity:0;transform:translateY(-3px);transition:opacity .25s ease .25s,transform .25s ease .25s;z-index:2;box-shadow:0 4px 10px -6px rgba(15,23,42,.3)}
+.bcbp-esc kbd{font:inherit;font-size:10px;font-weight:700;padding:2px 6px;border-radius:5px;border:1px solid var(--bcbp-ph);color:var(--bcbp-tx)}
+@media(hover:hover) and (pointer:fine) and (min-width:769px){.bcbp-esc{display:inline-flex}.bcbp-marco.open .bcbp-esc{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.bcbp-aura{display:none!important}.bcbp-brillo{animation:none!important;transition:none}.bcbp-marco .bcBusca-in,.bcbp-marco .bcBusca-x{transition:opacity .16s ease}.bcbp-desvanecido,.bcbp-esc{transition:none!important}}
+@media print{.bcbp-brillo,.bcbp-aura,.bcbp-esc{display:none!important}}
+/* Blindaje contra los estilos globales de campos del taller (taller-visual-polish/afinado ponen borde, fondo, radio y
+   sombra de foco a todo input con mucha especificidad): dentro de la píldora el campo es transparente y sin marco. */
+html body #app .view:not(#v-crmLinea) .bcbp-marco .bcBusca input.bcBusca-in:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+html body #app .view:not(#v-crmLinea) .bcbp-marco .bcBusca input.bcBusca-in:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):focus,
+html body #app .view:not(#v-crmLinea) .bcbp-marco .bcBusca input.bcBusca-in:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):hover,
+html body #app .view:not(#v-crmLinea) .bcbp-marco .bcBusca input.bcBusca-in:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):focus-visible,
+html body .bcbp-marco .bcBusca input.bcBusca-in,
+html body .bcbp-marco .bcBusca input.bcBusca-in:focus{
+  border:0!important;outline:0!important;box-shadow:none!important;background:transparent!important;background-image:none!important;
+  border-radius:0!important;padding:0 4px!important;margin:0!important;height:100%!important;min-height:0!important;width:auto!important;
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;transform:none!important}
+html body #app .bcbp-marco .bcBusca,html body .bcbp-marco .bcBusca{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+html body #app .bcbp-marco button.bcBusca-lupa,html body #app .bcbp-marco button.bcBusca-x{box-shadow:none!important;border:0!important;min-height:0!important}
+html body #app .bcbp-marco button.bcBusca-lupa{background:transparent!important}
