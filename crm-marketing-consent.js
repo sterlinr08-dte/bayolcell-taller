@@ -188,6 +188,12 @@
     waIdentico.src='crm-wa-identico.js?v=20261003-w11';
     document.head.appendChild(waIdentico);
 
+    // Automatizaciones estilo ManyChat (Fase 1: comentario → privado en Instagram/Facebook). Solo admin.
+    var automat=document.createElement('script');
+    automat.src='crm-automatizaciones.js?v=20261004-a1';
+    automat.onerror=function(){console.warn('[CRM] No se pudo cargar Automatizaciones.');};
+    document.head.appendChild(automat);
+
     var financing=document.createElement('script');
     financing.src='crm-financiamiento-quick-reply.js?v=20260923-1';
     financing.onerror=function(){console.warn('[CRM] No se pudo cargar el atajo de financiamiento.');};
