@@ -29,7 +29,7 @@
             if (!w) return;
             if (/^\s+$/.test(w)) { frag.appendChild(document.createTextNode(' ')); return; }
             var pal = document.createElement('span'); pal.className = 'mpal'; pal.setAttribute('aria-hidden', 'true');
-            w.split('').forEach(function (c) { var s = document.createElement('span'); s.className = 'mch'; s.textContent = c; pal.appendChild(s); letras.push(s); });
+            pal.textContent = w; letras.push(pal);
             frag.appendChild(pal);
           });
           nodo.replaceChild(frag, n);
@@ -49,11 +49,8 @@
     var letras = [].slice.call(h.querySelectorAll('.ch'));
     letras.forEach(function (c) { c.style.transition = 'none'; c.style.opacity = '0'; });
     h.classList.add('go');
-    animate(letras, { opacity: [0, 1], y: ['0.55em', '0em'], filter: ['blur(10px)', 'blur(0px)'] }, { duration: 0.75, delay: stagger(0.03, { startDelay: 0.15 }), ease: EASE })
-      .then(function () {
-        var em = h.querySelector('em');
-        if (em) animate(em, { textShadow: ['0 0 0 rgba(255,90,79,0)', '0 0 34px rgba(255,90,79,.75)', '0 0 14px rgba(255,90,79,.25)'] }, { duration: 1.4, ease: 'easeOut' });
-      });
+    // Único momento «de autor»: el título de portada entra letra por letra (sin desenfoque, < 0.6 s en total).
+    animate(letras, { opacity: [0, 1], y: ['0.4em', '0em'] }, { duration: 0.45, delay: stagger(0.014, { startDelay: 0.05 }), ease: EASE });
   })();
 
   // ── 2. Líneas guía punteadas que se dibujan a lo ancho, arriba y abajo del título (del video) ──
@@ -68,7 +65,7 @@
       g2.style.top = (r.bottom - rh.top + 4) + 'px';
     }
     ubicar(); addEventListener('resize', ubicar);
-    animate([g1, g2], { scaleX: [0, 1], opacity: [0, 1] }, { duration: 1.1, delay: stagger(0.15, { startDelay: 0.1 }), ease: EASE });
+    animate([g1, g2], { scaleX: [0, 1], opacity: [0, 1] }, { duration: 0.8, delay: stagger(0.1), ease: EASE });
   })();
 
   // ── 3. Portada al bajar: el equipo sube y se aleja, el nombre de fondo va en contra (parallax) ──
@@ -93,61 +90,26 @@
     });
   };
 
-  // ── 5. Títulos de sección letra por letra y etiquetas que se escriben, al llegar a cada sección ──
+  // ── 5. Títulos de sección: las palabras suben juntas y rápido; la etiqueta se escribe ──
   document.querySelectorAll('main h2:not(#hero-modelo)').forEach(function (h2) {
-    var letras = partirLetras(h2); if (!letras.length) return;
+    var palabras = partirLetras(h2); if (!palabras.length) return;
     var cab = h2.closest('.aparece'); if (cab) tomar(cab);
-    ocultar(letras);
+    ocultar(palabras);
     var eb = h2.parentElement && h2.parentElement.querySelector('.eyebrow');
     if (eb) eb.style.clipPath = 'inset(0 100% 0 0)';
-    var lead0 = h2.parentElement && h2.parentElement.querySelector('.lead');
-    if (lead0) lead0.style.opacity = '0';
     inView(h2, function () {
-      if (eb) animate(eb, { clipPath: ['inset(0 100% 0 0)', 'inset(0 0% 0 0)'] }, { duration: 0.6, ease: 'linear' });
-      animate(letras, { opacity: [0, 1], y: ['0.5em', '0em'], filter: ['blur(8px)', 'blur(0px)'] }, { duration: 0.6, delay: stagger(0.018, { startDelay: 0.12 }), ease: EASE });
-      var lead = h2.parentElement && h2.parentElement.querySelector('.lead');
-      if (lead) animate(lead, { opacity: [0, 1], y: [14, 0] }, { duration: 0.6, delay: 0.35, ease: EASE });
-    }, { amount: 0.6 });
+      if (eb) animate(eb, { clipPath: ['inset(0 100% 0 0)', 'inset(0 0% 0 0)'] }, { duration: 0.35, ease: 'linear' });
+      animate(palabras, { opacity: [0, 1], y: ['0.35em', '0em'] }, { duration: 0.4, delay: stagger(Math.min(0.04, 0.24 / palabras.length)), ease: EASE });
+    }, { amount: 0.5 });
   });
 
-  // ── 6. Pasos (financiamiento y canje): la línea se dibuja y cada paso cae en cascada ──
+  // ── 6. Pasos: los pasos se ven desde el principio; solo la línea se dibuja ──
   document.querySelectorAll('.pasos').forEach(function (p) {
     tomar(p);
     var linea = document.createElement('span'); linea.className = 'pasos-linea'; linea.setAttribute('aria-hidden', 'true'); p.prepend(linea);
-    var pasos = [].slice.call(p.querySelectorAll('.paso')); ocultar(pasos); linea.style.transform = 'scaleX(0)';
-    inView(p, function () {
-      animate(linea, { scaleX: [0, 1] }, { duration: 0.9, ease: EASE });
-      animate(pasos, { opacity: [0, 1], y: [22, 0] }, { duration: 0.55, delay: stagger(0.14, { startDelay: 0.25 }), ease: EASE });
-    }, { amount: 0.4 });
+    linea.style.transform = 'scaleX(0)';
+    inView(p, function () { animate(linea, { scaleX: [0, 1] }, { duration: 0.8, ease: EASE }); }, { amount: 0.4 });
   });
-
-  // ── 7. Grupos de tarjetas en cascada ──
-  [['.confianza .wrap', '> div'], ['.servicios', '> .servicio'], ['.ofertas', '> .oferta'], ['.datos-c', '> *'], ['.dos', '> .tarjeta'], ['.para', '> .chip']].forEach(function (par) {
-    document.querySelectorAll(par[0]).forEach(function (cont) {
-      tomar(cont);
-      var hijos = [].slice.call(cont.querySelectorAll(':scope ' + par[1]));
-      hijos.forEach(tomar); ocultar(hijos);
-      inView(cont, function () {
-        animate(hijos, { opacity: [0, 1], y: [28, 0], scale: [0.97, 1] }, { duration: 0.6, delay: stagger(0.08), ease: EASE });
-        var iconos = [].slice.call(cont.querySelectorAll(':scope > div > i, .servicio > i'));
-        if (iconos.length) animate(iconos, { rotate: [-90, 0], scale: [0.4, 1] }, Object.assign({ delay: stagger(0.08, { startDelay: 0.1 }) }, RESORTE));
-      }, { amount: 0.25 });
-    });
-  });
-
-  // ── 8. Video: se abre como una ventana desde el centro ──
-  (function () {
-    var marco = document.querySelector('.comercial-marco'); if (!marco) return;
-    tomar(marco); marco.style.clipPath = 'inset(12% 12% 12% 12% round 22px)';
-    inView(marco, function () { animate(marco, { clipPath: ['inset(12% 12% 12% 12% round 22px)', 'inset(0% 0% 0% 0% round 22px)'], scale: [0.96, 1] }, { duration: 0.9, ease: EASE }); }, { amount: 0.3 });
-  })();
-
-  // ── 9. Imagen de plan canje: entra con un leve giro ──
-  (function () {
-    var img = document.querySelector('.canje-foto'); if (!img) return;
-    tomar(img); img.style.opacity = '0';
-    inView(img, function () { animate(img, { opacity: [0, 1], rotate: [4, 0], y: [40, 0] }, RESORTE); }, { amount: 0.25 });
-  })();
 
   // ── 10. Tarjetas de equipos: los números cuentan y la foto entra al llegar a cada una ──
   function contar(b) {

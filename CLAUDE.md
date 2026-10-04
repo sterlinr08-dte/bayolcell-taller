@@ -860,3 +860,18 @@ Pedido del dueño: «repliquemos y adaptemos» la web de STUDIO (studiord.net, r
 - **Animaciones:** `web-motion.js` (capa aparte, carga la librería **Motion 12** por CDN `cdn.jsdelivr.net/npm/motion@12.23.12/dist/motion.js`, global `window.Motion`). Títulos letra por letra con desenfoque, etiquetas que se escriben, líneas guía punteadas, pasos que se dibujan, números que cuentan, parallax de la portada, cambio de equipo con resorte (`window.bcMotionHero`), cascadas, botones con resorte. Ganchos desde `index.html`: `window.bcMotionHero`, `window.bcMotionBind(root)` (tras pintar el catálogo). Si Motion no carga o hay «reducir movimiento», queda la animación simple del CSS (`.aparece`). Al cambiar `web-motion.js`, subir su `?v=` en `index.html`.
 - **Video:** `assets/video/bayolcell-motion.mp4` (720p, ~0.9 MB) + portada `.webp`. Código del video en **`videos-remotion/`** (Remotion; ver su README para volver a sacarlo).
 - Fuentes: Inter + JetBrains Mono (Google Fonts). Íconos Tabler 3.7 (la web pública usa la v3, el taller la 2.47).
+- **Revisión Impeccable (4 oct 2026, nota 25/40) — aplicada en la rama de desarrollo:**
+  - Catálogo en **cuadrícula** (4/3/2 columnas, 8 por marca + «Ver los N de …», tarjeta `.eq`).
+  - **Una sola acción «Pedir por WhatsApp»**, siempre verde; el rojo queda para lo que no es WhatsApp. «Agregar» queda como botón secundario de ícono.
+  - Barra del celular: WhatsApp siempre visible junto a «Pedido · N»; **«Llamar» deja elegir tienda** (`#bm-tel`).
+  - Financiamiento:
+    - «Qué necesitas»: cédula y referencias.
+    - Aviso «El equipo queda protegido hasta terminar de pagar».
+    - Botón «Preguntar mi cuota por WhatsApp». **Sin cifras de cuotas por decisión del dueño.**
+  - Se quitó la sección Servicios (pasó a la franja, que ahora muestra **4.3 en Google**).
+  - Video en formato compacto; Movilidad va después de Plan canje.
+  - Texto mínimo de 12 px, botones de 44 px, sin brillos de color ni puntos que parpadean (salvo «Abierto»), menú del celular opaco.
+  - Títulos animados por palabra, sin desenfoque. Los pasos se ven desde el inicio.
+  - Carteles e imagen de canje en `.webp` (6 MB → 0.7 MB).
+  - Detector: 68 → 30 hallazgos; los que quedan son decisiones de estilo (etiquetas sobre títulos, Inter, pasos numerados) o falsos positivos.
+  - Pendiente: confirmar qué significa «Con aviso» para explicarlo en la web.
