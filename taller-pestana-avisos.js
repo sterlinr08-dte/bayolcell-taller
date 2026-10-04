@@ -36,17 +36,25 @@
     if (!l){ l = document.createElement('link'); l.id = 'bcFavicon'; l.rel = 'icon'; l.type = 'image/png'; document.head.appendChild(l); }
     return l;
   }
+  // Ícono del taller (azul noche + «B» naranja + llave, 4 oct 2026): assets/taller/taller-icon-64.png.
+  // Encima se pinta el punto rojo con el número de chats sin leer.
+  var imgBase = null, imgLista = false;
+  function cargarBase(){
+    if (imgBase) return;
+    imgBase = new Image();
+    imgBase.onload = function(){ imgLista = true; var n = ultimoIcono; ultimoIcono = null; dibujarIcono(+n || 0); };
+    imgBase.src = 'assets/taller/taller-icon-64.png?v=20261004';
+  }
   function dibujarIcono(n){
+    cargarBase();
     var clave = String(n);
     if (clave === ultimoIcono) return;
     ultimoIcono = clave;
+    if (!imgLista) return; // se pinta al terminar de cargar la imagen
     try {
       var c = document.createElement('canvas'); c.width = c.height = 64;
       var g = c.getContext('2d');
-      // Mismo cuadro naranja con la "B" del menú del sistema (el logo horizontal no se lee a 16 px)
-      var gr = g.createLinearGradient(0, 0, 64, 64); gr.addColorStop(0, '#FF8A5B'); gr.addColorStop(1, '#D65225');
-      g.fillStyle = gr; g.beginPath(); g.moveTo(16, 2); g.arcTo(62, 2, 62, 62, 16); g.arcTo(62, 62, 2, 62, 16); g.arcTo(2, 62, 2, 2, 16); g.arcTo(2, 2, 62, 2, 16); g.fill();
-      g.fillStyle = '#fff'; g.font = '800 44px system-ui, -apple-system, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('B', 30, 35);
+      g.drawImage(imgBase, 0, 0, 64, 64);
       if (n > 0){
         var txt = n > 99 ? '99+' : String(n), r = txt.length > 2 ? 22 : 19;
         g.beginPath(); g.arc(64 - r + 1, r - 1, r, 0, Math.PI * 2);
