@@ -337,39 +337,34 @@
       },true);
       document.addEventListener('click',function(){setTimeout(function(){if(actual&&!document.documentElement.contains(actual))apagar();},60);},{passive:true,capture:true});
     }else{
-      // Táctil: al tocar, la luz aparece con onda desde el dedo; al deslizar una lista pasa de fila en fila.
-      var px=0,py=0,tocando=false,tFade=0,tVivo=0,rafT=0;
-      function fade(ms){clearTimeout(tFade);tFade=setTimeout(function(){if(!tocando&&capa){capa.classList.remove('on');visible=false;prev=null;actual=null;}},ms);}
-      function seguir(){
-        rafT=0;
-        var el=objetivoTactil(document.elementFromPoint(px,py));if(!el)return;
-        var deslizar=visible&&prev&&prev!==el&&vecinos(prev,el);
-        if(el!==prev||!visible){colocar(el,deslizar);crear().classList.add('on');visible=true;prev=el;actual=el;}
-        else colocar(el,true);
-      }
+      // Táctil: solo un destello breve sobre lo que se toca (botón, enlace, pestaña). La capa es fija a la pantalla, así
+      // que en cuanto el dedo arrastra o la página se desplaza se apaga al instante: nunca se queda pegada encima del
+      // contenido mientras se baja (pasaba en el iPhone). Tampoco sigue al dedo por las listas.
+      var px=0,py=0,tocando=false,tFade=0,tMax=0;
+      function ocultar(){clearTimeout(tFade);clearTimeout(tMax);tocando=false;if(capa)capa.classList.remove('on','onda','press');visible=false;prev=null;actual=null;}
+      function fade(ms){clearTimeout(tFade);tFade=setTimeout(function(){if(capa){capa.classList.remove('on');visible=false;prev=null;actual=null;}},ms);}
       document.addEventListener('pointerdown',function(ev){
         if(ev.pointerType==='mouse')return;
-        var el=objetivoTactil(ev.target);
-        tocando=true;px=ev.clientX;py=ev.clientY;tVivo=Date.now();
-        if(!el)return;
-        mx=px;my=py;
-        var deslizar=visible&&prev&&prev!==el&&vecinos(prev,el);
-        colocar(el,deslizar);crear().classList.add('on');visible=true;prev=el;actual=el;
+        var el=objetivo(ev.target);
+        px=ev.clientX;py=ev.clientY;
+        if(!el){ocultar();return;}
+        tocando=true;mx=px;my=py;
+        colocar(el,false);crear().classList.add('on');visible=true;prev=el;actual=el;
         onda(ev,el);clearTimeout(tFade);
+        clearTimeout(tMax);tMax=setTimeout(ocultar,900);   // tope: nunca más de un instante en pantalla
       },{passive:true});
-      document.addEventListener('touchmove',function(ev){var t=ev.touches&&ev.touches[0];if(t){px=t.clientX;py=t.clientY;tVivo=Date.now();}},{passive:true});
-      function soltar(){tocando=false;fade(450);}
+      document.addEventListener('touchmove',function(ev){
+        var t=ev.touches&&ev.touches[0];if(!t||!visible)return;
+        if(Math.abs(t.clientX-px)>8||Math.abs(t.clientY-py)>8)ocultar();   // empezó a arrastrar: no es un toque
+      },{passive:true});
+      function soltar(){if(!tocando)return;tocando=false;fade(260);}
       document.addEventListener('pointerup',soltar,{passive:true});
-      document.addEventListener('pointercancel',function(){tocando=false;tVivo=Date.now();fade(700);},{passive:true});
       document.addEventListener('touchend',soltar,{passive:true});
-      window.addEventListener('scroll',function(){
-        if(Date.now()-tVivo>2500&&!tocando)return;
-        tVivo=Date.now();
-        if(!rafT)rafT=requestAnimationFrame(seguir);
-        fade(380);
-      },{passive:true,capture:true});
+      document.addEventListener('pointercancel',ocultar,{passive:true});
+      document.addEventListener('touchcancel',ocultar,{passive:true});
+      window.addEventListener('scroll',function(){if(visible)ocultar();},{passive:true,capture:true});
     }
   })();
 
-  window.BayolReflector={version:'20261004r1'};
+  window.BayolReflector={version:'20261004r2'};
 })();
