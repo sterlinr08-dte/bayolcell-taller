@@ -190,7 +190,7 @@
 
     // Automatizaciones estilo ManyChat (Fase 1: comentario → privado en Instagram/Facebook). Solo admin.
     var automat=document.createElement('script');
-    automat.src='crm-automatizaciones.js?v=20261004-a2';
+    automat.src='crm-automatizaciones.js?v=20261004-a3';
     automat.onerror=function(){console.warn('[CRM] No se pudo cargar Automatizaciones.');};
     document.head.appendChild(automat);
 

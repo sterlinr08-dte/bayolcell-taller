@@ -6,8 +6,8 @@
 (function(){
   'use strict';
   if (window.BayolAutomatizaciones) return;
-  var VERSION = '20261004-a2';
-  var st = { lista: [], editando: null, posts: {}, cargandoPosts: false, tab: 'comentario', lineas: null };
+  var VERSION = '20261004-a3';
+  var st = { lista: [], editando: null, posts: {}, cargandoPosts: false, tab: 'comentario', lineas: null, etiquetas: null };
 
   function cli(){ return (typeof supabaseClient !== 'undefined') ? supabaseClient : window.supabaseClient; }
   function esAdmin(){ try { return typeof isAdminUser === 'function' && isAdminUser(); } catch(e){ return false; } }
@@ -26,6 +26,11 @@
     if (modo === 'exacta') return ps.some(function(p){ return t === p; });
     return ps.some(function(p){ return (' ' + t + ' ').indexOf(' ' + p + ' ') >= 0; }); }
   async function cargarLineas(){ if (st.lineas) return st.lineas; try { var r = await cli().rpc('whatsapp_lineas_directorio'); st.lineas = (r.data || []); } catch(e){ st.lineas = []; } return st.lineas; }
+  var CAMPOS = [['nombre','Nombre'],['telefono','Teléfono'],['cedula','Cédula'],['correo','Correo'],['equipo','Equipo / modelo'],['texto','Texto libre']];
+  function campoTxt(c){ var x = CAMPOS.find(function(k){ return k[0] === c; }); return x ? x[1] : 'Texto'; }
+  async function cargarEtiquetas(){ if (st.etiquetas) return st.etiquetas; try { var r = await cli().from('whatsapp_etiquetas').select('id,nombre,color,orden').order('orden').order('nombre'); st.etiquetas = r.data || []; } catch(e){ st.etiquetas = []; } return st.etiquetas; }
+  function etiq(id){ return (st.etiquetas || []).find(function(x){ return String(x.id) === String(id); }); }
+  function chipEtiqueta(id){ var e = etiq(id); return e ? '<span class="bcau-chip" style="background:' + esc(e.color || '#e9edef') + '22;color:#111b21"><i class="ti ti-circle-filled" style="color:' + esc(e.color || '#8696a0') + ';font-size:9px"></i> ' + esc(e.nombre) + '</span>' : ''; }
   function nombreLinea(id){ if (!id) return 'Todas las líneas'; var l = (st.lineas || []).find(function(x){ return x.id === id; }); return l ? ((l.sucursal_nombre ? l.sucursal_nombre + ' · ' : '') + l.nombre) : 'Una línea'; }
   function modoTxt(m){ return m === 'exacta' ? 'Comentario exacto' : m === 'cualquiera' ? 'Cualquier comentario' : 'Contiene la palabra'; }
 
@@ -75,8 +80,13 @@
       '.bcau-tabs{display:flex;gap:6px;margin-bottom:12px}.bcau-tabs button{flex:1;border:1px solid #e9edef;background:#fff;border-radius:10px;padding:9px 10px;font-weight:600;cursor:pointer;color:#54656f;display:inline-flex;gap:6px;align-items:center;justify-content:center}.bcau-tabs button.on{border-color:#FF6B35;color:#D65225;background:#fff7f3}',
       '.bcau-bot{display:grid;grid-template-columns:150px 1fr auto;gap:6px;margin-bottom:6px;align-items:start}.bcau-bot input,.bcau-bot textarea{width:100%;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:10px;padding:8px 10px;font:inherit}.bcau-bot textarea{min-height:40px;resize:vertical}',
       '.bcau-prueba{background:#efeae2;border-radius:12px;padding:12px;margin-top:10px}.bcau-burbuja{background:#fff;border-radius:8px;padding:8px 10px;max-width:85%;box-shadow:0 1px 1px rgba(0,0,0,.08);white-space:pre-wrap}.bcau-burbuja.yo{background:#d9fdd3;margin-left:auto}.bcau-burbuja + .bcau-burbuja{margin-top:6px}',
+      '.bcau-preg{display:grid;grid-template-columns:24px 1fr 150px auto;gap:6px;margin-bottom:6px;align-items:center}.bcau-preg input,.bcau-preg select{width:100%;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:10px;padding:8px 10px;font:inherit;background:#fff}.bcau-preg .n{font-weight:700;color:#8696a0;text-align:center}',
+      '.bcau-etqs{display:flex;flex-wrap:wrap;gap:6px}.bcau-etqs button{border:1px solid #e2e8f0;background:#fff;border-radius:999px;padding:5px 11px;cursor:pointer;font:inherit;font-size:13px;display:inline-flex;gap:6px;align-items:center}.bcau-etqs button.on{border-color:#111b21;background:#f0f2f5;font-weight:600}',
+      '.bcau-form{display:flex;gap:10px;align-items:flex-start;padding:8px 14px;background:#eef6ff;border-bottom:1px solid #cfe3fb;color:#0b3a66;font-size:13px;flex:0 0 auto}.bcau-form .tx{flex:1;min-width:0}.bcau-form dl{margin:4px 0 0;display:flex;flex-wrap:wrap;gap:4px 14px}.bcau-form dt{font-weight:600;display:inline}.bcau-form dd{display:inline;margin:0 0 0 4px}.bcau-form button{border:0;background:transparent;cursor:pointer;color:#0b3a66;font-size:16px}',
+      '@media (max-width:640px){.bcau-preg{grid-template-columns:20px 1fr auto}.bcau-preg select{grid-column:2/3}}',
       '.bcau-pbtn{display:block;text-align:center;color:#027eb5;background:#fff;border-radius:8px;padding:7px;margin-top:4px;max-width:85%;font-weight:600;font-size:13px}',
-      '@media (max-width:640px){.bcau-bot{grid-template-columns:1fr auto}.bcau-bot textarea{grid-column:1/-1}}',
+      '.bcau-bot-etq{grid-column:2/3;border:1px solid #cbd5e1;border-radius:10px;padding:6px 8px;font:inherit;background:#fff}',
+      '@media (max-width:640px){.bcau-bot{grid-template-columns:1fr auto}.bcau-bot textarea,.bcau-bot .bcau-bot-etq{grid-column:1/-1}.bcau-bot [data-quitar]{grid-row:1;grid-column:2}}',
       '@media (max-width:640px){#bcauFondo{padding:0;align-items:flex-end}#bcauCaja{border-radius:16px 16px 0 0;max-height:92vh}}'
     ].join('\n');
     document.head.appendChild(s);
@@ -112,7 +122,7 @@
     st.editando = null;
     if (tab === 'mensaje' || tab === 'comentario') st.tab = tab;
     caja('Automatizaciones', '<div class="bcau-vacio"><i class="ti ti-loader"></i>Cargando…</div>');
-    try { await Promise.all([cargar(), cargarLineas()]); pintarLista(); }
+    try { await Promise.all([cargar(), cargarLineas(), cargarEtiquetas()]); pintarLista(); }
     catch(e){ caja('Automatizaciones', '<div class="bcau-vacio"><i class="ti ti-alert-triangle"></i>No se pudieron cargar las automatizaciones.</div>'); }
   }
 
@@ -125,6 +135,8 @@
       '<div class="bcau-info"><b>' + esc(a.nombre) + '</b>' +
       '<small><i class="ti ' + R.ic + '" style="color:' + R.col + '"></i> ' + R.n + (a.plataforma === 'whatsapp' ? ' · ' + esc(nombreLinea(a.linea_id)) : '') + ' · una vez por chat cada ' + (a.enfriamiento_horas || 24) + ' h</small>' +
       '<div class="bcau-chips">' + pal + bots + '</div>' +
+      ((a.preguntas || []).length ? '<small><i class="ti ti-list-numbers"></i> ' + a.preguntas.length + ' pregunta(s): ' + esc(a.preguntas.map(function(p){ return campoTxt(p.campo); }).join(', ')) + '</small>' : '') +
+      ((a.etiquetas_auto || []).length ? '<div class="bcau-chips">' + a.etiquetas_auto.map(chipEtiqueta).join('') + '</div>' : '') +
       '<small>' + (a.activo ? 'Activa desde ' + fecha(a.activado_en) : 'Apagada') + ' · Respuestas enviadas: <b>' + (a.enviados_count || 0) + '</b></small>' +
       '<div class="bcau-acc">' +
         '<button type="button" class="bcau-btn chico" data-acc="editar"><i class="ti ti-pencil"></i> Editar</button>' +
@@ -373,18 +385,26 @@
   }
 
   // ---------- Respuestas en chats (Fase 2) ----------
-  function filaBoton(b, i){
+  function filaBoton(b, i, wa){
+    var ops = '<option value="">Sin etiqueta</option>' + (st.etiquetas || []).map(function(e){ return '<option value="' + esc(e.id) + '"' + (String(e.id) === String(b.etiqueta || '') ? ' selected' : '') + '>Etiqueta: ' + esc(e.nombre) + '</option>'; }).join('');
     return '<div class="bcau-bot" data-bot="' + i + '"><input type="text" maxlength="20" placeholder="Texto del botón" value="' + esc(b.titulo || '') + '" aria-label="Texto del botón ' + (i + 1) + '">' +
       '<textarea maxlength="1000" placeholder="Respuesta al tocarlo (opcional: vacío = lo atiende un empleado)" aria-label="Respuesta del botón ' + (i + 1) + '">' + esc(b.respuesta || '') + '</textarea>' +
-      '<button type="button" class="bcau-btn chico peligro" data-quitar="' + i + '" aria-label="Quitar botón"><i class="ti ti-x"></i></button></div>';
+      '<button type="button" class="bcau-btn chico peligro" data-quitar="' + i + '" aria-label="Quitar botón"><i class="ti ti-x"></i></button>' +
+      (wa ? '<select class="bcau-bot-etq" aria-label="Etiqueta al tocar el botón ' + (i + 1) + '">' + ops + '</select>' : '') + '</div>';
+  }
+  function filaPregunta(p, i){
+    return '<div class="bcau-preg" data-preg="' + i + '"><span class="n">' + (i + 1) + '</span><input type="text" maxlength="300" placeholder="Pregunta, ej.: ¿Cuál es tu nombre completo?" value="' + esc(p.pregunta || '') + '" aria-label="Pregunta ' + (i + 1) + '">' +
+      '<select aria-label="Tipo de dato de la pregunta ' + (i + 1) + '">' + CAMPOS.map(function(c){ return '<option value="' + c[0] + '"' + (c[0] === (p.campo || 'texto') ? ' selected' : '') + '>' + c[1] + '</option>'; }).join('') + '</select>' +
+      '<button type="button" class="bcau-btn chico peligro" data-quitarp="' + i + '" aria-label="Quitar pregunta"><i class="ti ti-x"></i></button></div>';
   }
 
   async function editorMensaje(a){
-    await cargarLineas();
-    st.editando = a ? Object.assign({}, a, { botones: (a.botones || []).map(function(b){ return Object.assign({}, b); }) })
+    await Promise.all([cargarLineas(), cargarEtiquetas()]);
+    st.editando = a ? Object.assign({}, a, { botones: (a.botones || []).map(function(b){ return Object.assign({}, b); }),
+        preguntas: (a.preguntas || []).map(function(p){ return Object.assign({}, p); }), etiquetas_auto: (a.etiquetas_auto || []).slice() })
       : { tipo: 'mensaje', nombre: '', plataforma: canal() === 'instagram' ? 'instagram' : canal() === 'facebook' ? 'facebook' : 'whatsapp',
           linea_id: null, palabras: [], coincidencia: 'contiene',
-          mensaje_privado: '', botones: [], enfriamiento_horas: 24 };
+          mensaje_privado: '', botones: [], enfriamiento_horas: 24, preguntas: [], mensaje_final: '', etiquetas_auto: [] };
     var e = st.editando;
     var opsLinea = '<option value="">Todas las líneas</option>' + (st.lineas || []).map(function(l){ return '<option value="' + esc(l.id) + '">' + esc((l.sucursal_nombre ? l.sucursal_nombre + ' · ' : '') + l.nombre) + '</option>'; }).join('');
     var cuerpo =
@@ -405,6 +425,11 @@
       '<div class="bcau-f"><label>Botones (hasta 3)</label><div id="bcauBots"></div>' +
         '<button type="button" class="bcau-btn chico" id="bcauAddBot"><i class="ti ti-plus"></i> Agregar botón</button>' +
         '<div class="ayuda">Máximo 20 letras por botón. Si el botón no tiene respuesta, el cliente queda esperando a un empleado (útil para «Hablar con alguien»).</div></div>' +
+      '<div class="bcau-f"><label>Preguntas para guardar datos (opcional)</label><div id="bcauPregs"></div>' +
+        '<button type="button" class="bcau-btn chico" id="bcauAddPreg"><i class="ti ti-plus"></i> Agregar pregunta</button>' +
+        '<div class="ayuda">Después de la respuesta, se le pregunta una por una. Revisa que la cédula tenga 11 números, el teléfono 10 y el correo sea válido (si no, vuelve a preguntar una vez). El cliente puede escribir «cancelar» para salir. Lo que conteste queda en el historial y en las notas del lead.</div></div>' +
+      '<div class="bcau-f" id="bcauFinWrap"><label for="bcauFin">Mensaje al terminar las preguntas</label><textarea id="bcauFin" maxlength="1000" style="min-height:56px" placeholder="¡Gracias {nombre}! Ya tenemos tus datos, en breve te escribe un asesor.">' + esc(e.mensaje_final || '') + '</textarea></div>' +
+      '<div class="bcau-f" id="bcauEtqWrap"><label id="bcauEtqLbl">Poner etiquetas al chat</label><div class="bcau-etqs" id="bcauEtqs"></div><div class="ayuda">Solo WhatsApp. Se agregan, nunca se quitan las que ya tenga.</div></div>' +
       '<div class="bcau-f"><label for="bcauEnf">No repetir en el mismo chat durante</label><select id="bcauEnf">' +
         '<option value="1">1 hora</option><option value="6">6 horas</option><option value="24">24 horas</option><option value="72">3 días</option><option value="168">7 días</option></select></div>' +
       (a ? '' : '<div class="bcau-nota" style="margin:0">Se guarda <b>apagada</b>. Usa «Probar» para ver cómo contesta y luego actívala.</div>');
@@ -415,26 +440,47 @@
     $('#bcauEnf', f).value = String(e.enfriamiento_horas || 24);
     function leerBotones(){
       e.botones = Array.prototype.map.call(f.querySelectorAll('#bcauBots .bcau-bot'), function(r){
-        return { titulo: r.querySelector('input').value.trim(), respuesta: r.querySelector('textarea').value.trim() };
+        var sel = r.querySelector('.bcau-bot-etq');
+        return { titulo: r.querySelector('input').value.trim(), respuesta: r.querySelector('textarea').value.trim(), etiqueta: sel ? sel.value : '' };
       });
+      e.preguntas = Array.prototype.map.call(f.querySelectorAll('#bcauPregs .bcau-preg'), function(r){
+        return { pregunta: r.querySelector('input').value.trim(), campo: r.querySelector('select').value };
+      });
+    }
+    function pintarPregs(){
+      var w = $('#bcauPregs', f);
+      w.innerHTML = e.preguntas.map(filaPregunta).join('');
+      $('#bcauAddPreg', f).style.display = e.preguntas.length >= 10 ? 'none' : '';
+      $('#bcauFinWrap', f).style.display = e.preguntas.length ? '' : 'none';
+      $('#bcauEtqLbl', f).textContent = e.preguntas.length ? 'Poner etiquetas al chat al terminar las preguntas' : 'Poner etiquetas al chat cuando se active';
+      w.querySelectorAll('[data-quitarp]').forEach(function(b){ b.onclick = function(){ leerBotones(); e.preguntas.splice(+b.dataset.quitarp, 1); pintarPregs(); }; });
+    }
+    function pintarEtqs(){
+      var w = $('#bcauEtqs', f);
+      w.innerHTML = (st.etiquetas || []).length ? st.etiquetas.map(function(x){ var on = e.etiquetas_auto.indexOf(String(x.id)) >= 0;
+        return '<button type="button" data-etq="' + esc(x.id) + '" class="' + (on ? 'on' : '') + '" aria-pressed="' + on + '"><i class="ti ti-circle-filled" style="color:' + esc(x.color || '#8696a0') + ';font-size:10px"></i> ' + esc(x.nombre) + '</button>'; }).join('')
+        : '<span class="ayuda">No hay etiquetas creadas.</span>';
+      w.querySelectorAll('[data-etq]').forEach(function(b){ b.onclick = function(){ var id = String(b.dataset.etq), k = e.etiquetas_auto.indexOf(id); if (k >= 0) e.etiquetas_auto.splice(k, 1); else e.etiquetas_auto.push(id); pintarEtqs(); }; });
     }
     function pintarBots(){
       var w = $('#bcauBots', f);
-      w.innerHTML = e.botones.map(filaBoton).join('');
+      w.innerHTML = e.botones.map(function(b, i){ return filaBoton(b, i, e.plataforma === 'whatsapp'); }).join('');
       $('#bcauAddBot', f).style.display = e.botones.length >= 3 ? 'none' : '';
       w.querySelectorAll('[data-quitar]').forEach(function(b){ b.onclick = function(){ leerBotones(); e.botones.splice(+b.dataset.quitar, 1); pintarBots(); }; });
     }
     function sync(){
       f.querySelectorAll('#bcauRed button').forEach(function(b){ b.classList.toggle('on', b.dataset.red === e.plataforma); });
       $('#bcauLineaWrap', f).style.display = e.plataforma === 'whatsapp' ? '' : 'none';
+      $('#bcauEtqWrap', f).style.display = e.plataforma === 'whatsapp' ? '' : 'none';
       $('#bcauPalWrap', f).style.display = $('#bcauModo', f).value === 'cualquiera' ? 'none' : '';
     }
-    f.querySelectorAll('#bcauRed button').forEach(function(b){ b.onclick = function(){ e.plataforma = b.dataset.red; sync(); }; });
+    f.querySelectorAll('#bcauRed button').forEach(function(b){ b.onclick = function(){ leerBotones(); e.plataforma = b.dataset.red; pintarBots(); sync(); }; });
     $('#bcauModo', f).onchange = sync;
+    $('#bcauAddPreg', f).onclick = function(){ leerBotones(); if (e.preguntas.length < 10) e.preguntas.push({ pregunta: '', campo: 'texto' }); pintarPregs(); var ins = f.querySelectorAll('#bcauPregs input'); if (ins.length) ins[ins.length - 1].focus(); };
     $('#bcauAddBot', f).onclick = function(){ leerBotones(); if (e.botones.length < 3) e.botones.push({ titulo: '', respuesta: '' }); pintarBots(); var ins = f.querySelectorAll('#bcauBots input'); if (ins.length) ins[ins.length - 1].focus(); };
     f.querySelector('[data-bcau="cancelar"]').onclick = function(){ st.editando = null; pintarLista(); };
     f.querySelector('[data-bcau="guardar"]').onclick = function(){ leerBotones(); guardarMensaje(); };
-    pintarBots(); sync();
+    pintarBots(); pintarPregs(); pintarEtqs(); sync();
     setTimeout(function(){ var n = $('#bcauNombre'); if (n && !a) n.focus(); }, 30);
   }
 
@@ -444,7 +490,10 @@
     var modo = $('#bcauModo').value;
     var palabras = ($('#bcauPal').value || '').split(',').map(function(s){ return s.trim(); }).filter(Boolean).slice(0, 20);
     var resp = ($('#bcauPriv').value || '').trim();
-    var botones = (e.botones || []).filter(function(b){ return b.titulo; }).slice(0, 3).map(function(b){ return { titulo: b.titulo.slice(0, 20), respuesta: b.respuesta || '' }; });
+    var wa = e.plataforma === 'whatsapp';
+    var botones = (e.botones || []).filter(function(b){ return b.titulo; }).slice(0, 3).map(function(b){ return { titulo: b.titulo.slice(0, 20), respuesta: b.respuesta || '', etiqueta: wa ? (b.etiqueta || '') : '' }; });
+    var preguntas = (e.preguntas || []).filter(function(p){ return p.pregunta; }).slice(0, 10);
+    var fin = ($('#bcauFin').value || '').trim();
     if (!nombre) { aviso('Ponle un nombre.', true); $('#bcauNombre').focus(); return; }
     if (modo !== 'cualquiera' && !palabras.length) { aviso('Escribe al menos una palabra clave.', true); $('#bcauPal').focus(); return; }
     if (!resp) { aviso('Escribe la respuesta automática.', true); $('#bcauPriv').focus(); return; }
@@ -452,7 +501,8 @@
     if (titulos.some(function(t, i){ return titulos.indexOf(t) !== i; })) { aviso('Dos botones tienen el mismo texto.', true); return; }
     var datos = { tipo: 'mensaje', nombre: nombre, plataforma: e.plataforma, linea_id: e.plataforma === 'whatsapp' ? ($('#bcauLinea').value || null) : null,
       palabras: modo === 'cualquiera' ? [] : palabras, coincidencia: modo, mensaje_privado: resp, botones: botones,
-      enfriamiento_horas: parseInt($('#bcauEnf').value, 10) || 24, post_id: null, respuesta_publica: null };
+      enfriamiento_horas: parseInt($('#bcauEnf').value, 10) || 24, post_id: null, respuesta_publica: null,
+      preguntas: preguntas, mensaje_final: preguntas.length ? (fin || null) : null, etiquetas_auto: wa ? (e.etiquetas_auto || []) : [] };
     var btn = document.querySelector('[data-bcau="guardar"]'); if (btn) btn.disabled = true;
     var r;
     if (e.id) r = await cli().from('social_automatizaciones').update(datos).eq('id', e.id);
@@ -485,7 +535,10 @@
       } else if (coincide(t, a.palabras, a.coincidencia)) {
         html += '<div class="bcau-burbuja yo">' + esc(String(a.mensaje_privado || '').replace(/\{nombre\}/gi, nombre)) + '</div>' +
           (a.botones || []).map(function(b){ return '<span class="bcau-pbtn" style="margin-left:auto">' + esc(b.titulo) + '</span>'; }).join('') + '</div>' +
-          '<p style="color:#166534;font-size:12.5px;margin:6px 0 0"><i class="ti ti-check"></i> Se activa (con el nombre real del cliente en lugar de «Juan»).</p>';
+          '<p style="color:#166534;font-size:12.5px;margin:6px 0 0"><i class="ti ti-check"></i> Se activa (con el nombre real del cliente en lugar de «Juan»).</p>' +
+          ((a.preguntas || []).length ? '<p style="color:#475569;font-size:12.5px;margin:6px 0 0">Luego pregunta, una por una: ' + a.preguntas.map(function(p, i){ return (i + 1) + ') ' + esc(p.pregunta); }).join(' · ') +
+            (a.mensaje_final ? '. Al terminar: «' + esc(String(a.mensaje_final).replace(/\{nombre\}/gi, nombre)) + '»' : '') + '</p>' : '') +
+          ((a.etiquetas_auto || []).length ? '<div class="bcau-chips" style="margin-top:6px">Etiquetas: ' + a.etiquetas_auto.map(chipEtiqueta).join('') + '</div>' : '');
       } else {
         html += '</div><p style="color:#475569;font-size:12.5px;margin:6px 0 0"><i class="ti ti-x"></i> No se activa: ese mensaje no tiene ninguna de las palabras clave.</p>';
       }
@@ -498,15 +551,59 @@
   async function historialMensaje(a){
     caja('Historial — ' + a.nombre, '<div class="bcau-vacio"><i class="ti ti-loader"></i>Cargando…</div>');
     var r = await cli().from('social_auto_respuestas').select('*').eq('automatizacion_id', a.id).order('creado_en', { ascending: false }).limit(100);
+    var fl = (a.preguntas || []).length ? await cli().from('social_auto_flujos').select('*').eq('automatizacion_id', a.id).order('creado_en', { ascending: false }).limit(50) : { data: [] };
+    var estF = { activo:'Contestando', completo:'Completo', cancelado:'Cancelado', vencido:'Sin terminar' };
+    var formularios = (fl.data || []).map(function(x){
+      return '<div class="bcau-fila"><div style="flex:1;min-width:0"><b>' + esc(x.contacto || 'Cliente') + '</b> <small style="color:#475569">' + fecha(x.creado_en) + '</small><div>' +
+        ((x.respuestas || []).map(function(rr){ return '<span class="bcau-chip">' + esc(campoTxt(rr.campo)) + ': ' + esc(rr.valor) + '</span>'; }).join(' ') || '<small style="color:#475569">Sin respuestas todavía</small>') + '</div></div>' +
+        '<span class="bcau-est ' + (x.estado === 'completo' ? 'ok' : x.estado === 'activo' ? 'enviando' : 'omitido_tomado') + '">' + (estF[x.estado] || esc(x.estado)) + '</span></div>';
+    }).join('');
     var txt = { ok:'Respondido', error:'Error', omitido_tomado:'Omitido: chat tomado', enviando:'Enviando' };
     var filas = (r.data || []).map(function(e){
       return '<div class="bcau-fila"><div style="flex:1;min-width:0"><b>' + esc(e.contacto || 'Cliente') + '</b> <small style="color:#475569">' + fecha(e.creado_en) + (e.boton ? ' · tocó «' + esc(e.boton) + '»' : '') + '</small><div>' + esc(e.texto || '') + '</div>' +
         (e.error ? '<div class="bcau-err">' + esc(e.error) + '</div>' : '') + '</div>' +
         '<span class="bcau-est ' + esc(e.estado) + '">' + (txt[e.estado] || esc(e.estado)) + '</span></div>';
     }).join('');
+    if (formularios) filas = '<h4 style="margin:0 0 6px;font-size:14px">Datos recogidos</h4>' + formularios + '<h4 style="margin:14px 0 6px;font-size:14px">Mensajes</h4>' + filas;
     var f = caja('Historial — ' + a.nombre, filas || '<div class="bcau-vacio"><i class="ti ti-inbox"></i>Todavía no ha respondido a nadie.</div>',
       '<button type="button" class="bcau-btn" data-bcau="volver"><i class="ti ti-arrow-left"></i> Volver</button>');
     f.querySelector('[data-bcau="volver"]').onclick = pintarLista;
+  }
+
+  // ---------- Datos del formulario en el chat de WhatsApp (franja azul arriba de los mensajes) ----------
+  var formCache = {}, formPidiendo = {};
+  async function cargarFormulario(id){
+    if (!id || formPidiendo[id] || (formCache[id] && Date.now() - formCache[id].t < 30000)) return;
+    formPidiendo[id] = true;
+    try {
+      var r = await cli().from('social_auto_flujos').select('estado,respuestas,actualizado_en,automatizacion_id').eq('canal', 'whatsapp').eq('hilo_id', id)
+        .in('estado', ['activo', 'completo']).order('creado_en', { ascending: false }).limit(1);
+      formCache[id] = { t: Date.now(), f: (r.data || [])[0] || null };
+    } catch(e){ formCache[id] = { t: Date.now(), f: null }; }
+    formPidiendo[id] = false;
+    pintarFormulario();
+  }
+  var formOcultos = {};
+  function pintarFormulario(){
+    var det = document.getElementById('waDetalle'); if (!det) return;
+    var id = null; try { id = (typeof _waHiloId !== 'undefined') ? _waHiloId : null; } catch(e){}
+    var ya = det.querySelector('.bcau-form');
+    var c = id && formCache[id], fo = c && c.f;
+    if (!id || canal() !== 'whatsapp') { if (ya) ya.remove(); return; }
+    if (!c) { cargarFormulario(id); if (ya && ya.dataset.hilo !== id) ya.remove(); return; }
+    cargarFormulario(id);
+    if (!fo || !(fo.respuestas || []).length || formOcultos[id]) { if (ya) ya.remove(); return; }
+    var firma = id + '|' + fo.estado + '|' + fo.actualizado_en;
+    if (ya && ya.dataset.firma === firma) return;
+    if (ya) ya.remove();
+    css();
+    var box = document.createElement('div'); box.className = 'bcau-form'; box.dataset.hilo = id; box.dataset.firma = firma;
+    box.innerHTML = '<i class="ti ti-forms" style="font-size:18px;margin-top:1px"></i><div class="tx"><b>' + (fo.estado === 'completo' ? 'Datos que dio el cliente' : 'El cliente está contestando las preguntas') + '</b><dl>' +
+      fo.respuestas.map(function(r){ return '<div><dt>' + esc(campoTxt(r.campo)) + ':</dt><dd>' + esc(r.valor) + '</dd></div>'; }).join('') + '</dl></div>' +
+      '<button type="button" aria-label="Ocultar datos del formulario" title="Ocultar"><i class="ti ti-x"></i></button>';
+    box.querySelector('button').onclick = function(){ formOcultos[id] = true; box.remove(); };
+    var scroll = det.querySelector('#waMessagesScroll');
+    if (scroll && scroll.parentNode) scroll.parentNode.insertBefore(box, scroll); else det.appendChild(box);
   }
 
   // ---------- Botón en la fila de filtros de Instagram/Facebook ----------
@@ -540,7 +637,7 @@
     acc.insertBefore(b, ref || null);
   }
   var pend = false;
-  var obs = new MutationObserver(function(){ if (pend) return; pend = true; requestAnimationFrame(function(){ pend = false; asegurarBoton(); asegurarBotonWa(); }); });
+  var obs = new MutationObserver(function(){ if (pend) return; pend = true; requestAnimationFrame(function(){ pend = false; asegurarBoton(); asegurarBotonWa(); pintarFormulario(); }); });
   function iniciar(){
     var v = document.getElementById('v-crmLinea');
     if (!v) { setTimeout(iniciar, 400); return; }
