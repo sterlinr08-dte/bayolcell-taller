@@ -69,6 +69,8 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/motion@12.23.12/dist/motion.js" defer></script>
+<script src="web-motion.js?v=20261004m1" defer></script>
 <style>
 /* BAYOL CELL · web pública (oct 2026). Misma arquitectura de la web de STUDIO (portada con modelos,
    franja de confianza, vitrinas por categoría, pedido por WhatsApp, financiamiento en pasos, barra fija
@@ -529,6 +531,15 @@ html.pd-abierta body{overflow:hidden}
   .vt-puntos.muchos{display:none}
   .final{padding:72px 0}
 }
+/* Capa Motion (web-motion.js): letras, líneas guía y pasos animados */
+.mpal{display:inline-block;white-space:nowrap}
+.mch{display:inline-block}
+.guia{position:absolute;left:0;right:0;height:0;border-top:1px dashed rgba(255,255,255,.13);transform-origin:left;pointer-events:none;z-index:0}
+.pasos{position:relative}
+.pasos-linea{position:absolute;left:0;right:0;top:-1px;height:1px;background:linear-gradient(90deg,var(--rojo-luz),rgba(255,255,255,.14) 40%);transform-origin:left}
+.bc-motion .pasos{border-top-color:transparent}
+.bc-motion #hero-foto{transition:none}
+.bc-motion .btn:active,.bc-motion .btn-rojo:hover,.bc-motion .vt .btn-linea:hover,.bc-motion .vt .btn-blanco:hover{transform:none}
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
   *,*::before,*::after{animation:none!important;transition:none!important}
@@ -872,7 +883,8 @@ html.pd-abierta body{overflow:hidden}
         return '<span style="white-space:nowrap">' + w.split('').map(function(c){ k++; return '<span class="ch" style="transition-delay:' + (k * 0.03).toFixed(2) + 's">' + esc(c) + '</span>'; }).join('') + '</span>';
       }).join(' ');
     });
-    setTimeout(function(){ h.classList.add('go'); }, 250);
+    // Si la capa Motion (web-motion.js) llega a tiempo, ella anima el título; si no, entra con el CSS.
+    setTimeout(function(){ if(!window.__bcMotion) h.classList.add('go'); }, 700);
   })();
 
   // ── Líneas con destello (portada y llamado final), al tamaño real ──
@@ -989,6 +1001,7 @@ html.pd-abierta body{overflow:hidden}
     document.getElementById('hero-total').textContent = String(HERO.length).padStart(2, '0');
   }
   function pintaHero(i, animar){
+    var dir = i >= hk ? 1 : -1;
     hk = (i + HERO.length) % HERO.length;
     var g = HERO[hk], v = g.vars[varInicial(g)];
     var gbs = g.vars.map(function(x){ return x.gb; }).filter(function(x, j, a){ return x && a.indexOf(x) === j; });
@@ -1006,7 +1019,8 @@ html.pd-abierta body{overflow:hidden}
       var act = document.querySelector('#hero-lista [aria-pressed="true"]'); if(act && act.scrollIntoView && animar) act.scrollIntoView({block:'nearest', inline:'center', behavior:suave()});
       heroFoto.classList.remove('sale');
     }
-    if(animar && !matchMedia('(prefers-reduced-motion: reduce)').matches){ heroFoto.classList.add('sale'); setTimeout(aplicar, 260); } else aplicar();
+    if(animar && window.bcMotionHero) window.bcMotionHero(heroFoto, heroLetra, dir, aplicar);
+    else if(animar && !matchMedia('(prefers-reduced-motion: reduce)').matches){ heroFoto.classList.add('sale'); setTimeout(aplicar, 260); } else aplicar();
   }
   document.querySelector('.hero-controles').addEventListener('click', function(e){
     var b = e.target.closest('[data-hero-dir],[data-hero-modelo]'); if(!b) return;
@@ -1185,6 +1199,7 @@ html.pd-abierta body{overflow:hidden}
       t.addEventListener('keydown', function(e){ if(e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return; e.preventDefault(); var nx = tabsEl[(k + (e.key === 'ArrowRight' ? 1 : -1) + tabsEl.length) % tabsEl.length]; nx.focus(); elegirMarca(nx.dataset.panel); });
     });
     elegirMarca(primero);
+    if(window.bcMotionBind) window.bcMotionBind(document.getElementById('cat-vitrinas'));
   }
   function cargarCatalogo(){
     fetch(SB_URL + '/functions/v1/catalogo-publico', {method:'POST', headers:{'Content-Type':'application/json', 'apikey':SB_KEY, 'Authorization':'Bearer ' + SB_KEY}, body:JSON.stringify({categoria:'celular'})})
