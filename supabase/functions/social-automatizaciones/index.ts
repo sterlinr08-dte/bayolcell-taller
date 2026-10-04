@@ -167,6 +167,121 @@ async function procesar(a: any, resumen: any, simular = false) {
   }
 }
 
+// ---------- Fase 2: palabra clave en el chat → respuesta automática con botones ----------
+const TABLAS: Record<string, { msg: string; hilo: string }> = {
+  whatsapp: { msg: "whatsapp_mensajes", hilo: "whatsapp_hilos" },
+  instagram: { msg: "instagram_mensajes", hilo: "instagram_hilos" },
+  facebook: { msg: "social_mensajes", hilo: "social_hilos" },
+};
+
+async function cuentaDelHilo(canal: string, hilo: any) {
+  if (canal === "whatsapp") {
+    const { data } = await db.from("whatsapp_lineas").select("zernio_account_id").eq("id", hilo.linea_id).maybeSingle();
+    return data?.zernio_account_id || null;
+  }
+  const { data } = await db.from(canal === "instagram" ? "instagram_cuentas" : "social_cuentas")
+    .select("zernio_account_id").eq("id", hilo.cuenta_id).maybeSingle();
+  return data?.zernio_account_id || null;
+}
+
+function botonesValidos(lista: any): { titulo: string; respuesta: string }[] {
+  return (Array.isArray(lista) ? lista : [])
+    .map((b: any) => ({ titulo: String(b?.titulo || "").trim().slice(0, 20), respuesta: String(b?.respuesta || "").trim() }))
+    .filter((b) => b.titulo).slice(0, 3);
+}
+
+async function yaRespondio(autoId: string, hiloId: string, horas: number) {
+  const desde = new Date(Date.now() - Math.max(1, horas) * 3600e3).toISOString();
+  const { data } = await db.from("social_auto_respuestas").select("id").eq("automatizacion_id", autoId)
+    .eq("hilo_id", hiloId).eq("estado", "ok").is("boton", null).gte("creado_en", desde).limit(1);
+  return !!data?.length;
+}
+
+async function procesarMensaje(canal: string, mensajeId: string, resumen: any) {
+  const T = TABLAS[canal];
+  if (!T || !mensajeId) return;
+  const { data: msg } = await db.from(T.msg).select("id, hilo_id, direccion, cuerpo, creado_en").eq("id", mensajeId).maybeSingle();
+  if (!msg || msg.direccion !== "in" || !msg.cuerpo) return;
+  if (Date.now() - new Date(msg.creado_en).getTime() > 15 * 60e3) return; // solo mensajes recién llegados
+  const { data: hilo } = await db.from(T.hilo).select("*").eq("id", msg.hilo_id).maybeSingle();
+  if (!hilo) return;
+  const q = db.from("social_automatizaciones").select("*").eq("activo", true).eq("tipo", "mensaje").eq("plataforma", canal)
+    .order("creado_en", { ascending: true });
+  const { data: todas } = await q;
+  const autos = (todas || []).filter((a: any) =>
+    (!a.activado_en || new Date(a.activado_en).getTime() <= new Date(msg.creado_en).getTime()) &&
+    (canal !== "whatsapp" || !a.linea_id || a.linea_id === hilo.linea_id));
+  if (!autos.length) return;
+  const texto = String(msg.cuerpo);
+  let elegido: { a: any; texto: string; boton: string | null; botones: { titulo: string; respuesta: string }[] } | null = null;
+  // 1) ¿tocó un botón de una respuesta que este chat recibió en las últimas 24 h?
+  for (const a of autos) {
+    const b = botonesValidos(a.botones).find((x) => x.respuesta && normalizar(x.titulo) === normalizar(texto));
+    if (b && await yaRespondio(a.id, hilo.id, 24)) { elegido = { a, texto: b.respuesta, boton: b.titulo, botones: [] }; break; }
+  }
+  // 2) palabra clave (una vez por chat cada enfriamiento_horas)
+  if (!elegido) {
+    for (const a of autos) {
+      if (!coincide(texto, a.palabras, a.coincidencia)) continue;
+      if (await yaRespondio(a.id, hilo.id, a.enfriamiento_horas || 24)) continue;
+      elegido = { a, texto: a.mensaje_privado, boton: null, botones: botonesValidos(a.botones) };
+      break;
+    }
+  }
+  if (!elegido) return;
+  const contacto = hilo.nombre_perfil || hilo.participant_name || hilo.participant_username || hilo.telefono_e164 || null;
+  const ins = await db.from("social_auto_respuestas").insert({
+    automatizacion_id: elegido.a.id, canal, hilo_id: hilo.id, mensaje_id: msg.id, boton: elegido.boton,
+    contacto, texto: texto.slice(0, 500),
+  }).select("id").maybeSingle();
+  if (ins.error || !ins.data) return; // ese mensaje ya se atendió
+  const regId = ins.data.id;
+  // Un chat tomado por un empleado prevalece sobre cualquier automatismo.
+  if (hilo.asignado_id) {
+    await db.from("social_auto_respuestas").update({ estado: "omitido_tomado" }).eq("id", regId);
+    resumen.omitidos++;
+    return;
+  }
+  const accountId = await cuentaDelHilo(canal, hilo);
+  const conversationId = hilo.zernio_conversation_id ||
+    (canal === "whatsapp" && hilo.telefono_e164 && !String(hilo.telefono_e164).startsWith("bsid:") ? hilo.telefono_e164 : null);
+  const falla = async (e: string) => {
+    await db.from("social_auto_respuestas").update({ estado: "error", error: e.slice(0, 300) }).eq("id", regId);
+    resumen.errores.push(`${elegido!.a.id}:${e.slice(0, 80)}`);
+  };
+  if (!accountId || !conversationId) return falla("sin_cuenta_o_conversacion");
+  const nombreFrom = { name: hilo.nombre_perfil || hilo.participant_name || hilo.participant_username || "" };
+  const mensaje = personalizar(elegido.texto, nombreFrom);
+  const cuerpoEnvio: Record<string, unknown> = { accountId, message: mensaje };
+  if (elegido.botones.length) {
+    if (canal === "whatsapp") cuerpoEnvio.buttons = elegido.botones.map((b, i) => ({ type: "reply", title: b.titulo, payload: `bcau_${i}` }));
+    else cuerpoEnvio.quickReplies = elegido.botones.map((b, i) => ({ title: b.titulo, payload: `bcau_${i}` }));
+  }
+  const r = await zernio(`/inbox/conversations/${encodeURIComponent(conversationId)}/messages`, {
+    method: "POST", headers: { "Idempotency-Key": `autores-${regId}` }, body: JSON.stringify(cuerpoEnvio),
+  });
+  if (!r.ok) return falla(`${r.status} ${JSON.stringify(r.body?.error || r.body?.message || r.body || {})}`);
+  const mid = r.body?.data?.messageId ?? r.body?.messageId ?? null;
+  const ahora = new Date().toISOString();
+  const etiquetaBotones = elegido.botones.length ? "\n\n" + elegido.botones.map((b) => "[" + b.titulo + "]").join(" ") : "";
+  if (canal === "whatsapp") {
+    await db.from("whatsapp_mensajes").insert({ hilo_id: hilo.id, direccion: "out", tipo_contenido: "text", cuerpo: mensaje + etiquetaBotones,
+      wa_message_id: mid, estado: "enviado", es_automatico: true, enviado_por_tipo: "sistema" });
+  } else if (canal === "instagram") {
+    await db.from("instagram_mensajes").insert({ hilo_id: hilo.id, direccion: "out", tipo_contenido: "text", cuerpo: mensaje + etiquetaBotones,
+      zernio_message_id: mid, estado: "enviado", es_automatico: true, enviado_por_tipo: "sistema",
+      metadata: { automatizacion_id: elegido.a.id } });
+  } else {
+    await db.from("social_mensajes").insert({ hilo_id: hilo.id, direccion: "out", tipo_contenido: "text", cuerpo: mensaje + etiquetaBotones,
+      zernio_message_id: mid, estado: "enviado", enviado_por_tipo: "sistema",
+      metadata: { automatizacion_id: elegido.a.id, es_automatico: true } });
+  }
+  await db.from(T.hilo).update({ ultimo_mensaje_at: ahora, ultimo_mensaje_preview: mensaje.slice(0, 200), actualizado_en: ahora }).eq("id", hilo.id);
+  await db.from("social_auto_respuestas").update({ estado: "ok" }).eq("id", regId);
+  await db.rpc("social_automatizacion_sumar", { p_id: elegido.a.id });
+  resumen.enviados++;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return out({ ok: false, error: "method_not_allowed" }, 405);
@@ -190,9 +305,17 @@ Deno.serve(async (req) => {
   }
   if (!autorizado) return out({ ok: false, error: "sin_permiso" }, 403);
 
+  if (body.accion === "mensaje") {
+    if (!token) return out({ ok: false, error: "solo_motor" }, 403);
+    const r = { ok: true, enviados: 0, omitidos: 0, errores: [] as string[] };
+    try { await procesarMensaje(String(body.canal || ""), String(body.mensaje_id || ""), r); }
+    catch (e) { r.errores.push(e instanceof Error ? e.message : String(e)); }
+    return out(r);
+  }
+
   const simular = body.accion === "simular";
   if (simular && !body.id) return out({ ok: false, error: "id_requerido" }, 400);
-  let q = db.from("social_automatizaciones").select("*");
+  let q = db.from("social_automatizaciones").select("*").eq("tipo", "comentario");
   if (!simular) q = q.eq("activo", true);
   if (body.id) q = q.eq("id", String(body.id));
   const { data: autos, error } = await q;
