@@ -16,7 +16,7 @@ html body .bcBusca .bcBusca-in{background:transparent!important;border:0!importa
 /* ── marco: el círculo/píldora vive dentro; el halo, los puntos y el aviso Esc cuelgan fuera ── */
 .bcbp-marco{position:relative;display:inline-flex;vertical-align:middle;width:var(--bcbp-d);height:var(--bcbp-d);flex:0 0 auto;max-width:100%;isolation:isolate}
 .bcbp-hueco{display:inline-flex;vertical-align:middle;flex:0 0 auto;visibility:hidden}
-.bcbp-marco.bcbp-flotante{position:absolute;z-index:6}
+.bcbp-marco.bcbp-flotante{position:absolute;z-index:6;max-width:none}
 .bcbp-cont-rel{position:relative}
 .bcbp-oculto{display:none!important}
 .bcbp-desvanecido{opacity:0!important;pointer-events:none!important;transition:opacity .22s ease!important}
@@ -63,10 +63,19 @@ html body #app .view:not(#v-crmLinea) .bcbp-marco .bcBusca input.bcBusca-in:not(
 html body #app .view:not(#v-crmLinea) .bcbp-marco .bcBusca input.bcBusca-in:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):hover,
 html body #app .view:not(#v-crmLinea) .bcbp-marco .bcBusca input.bcBusca-in:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):focus-visible,
 html body .bcbp-marco .bcBusca input.bcBusca-in,
-html body .bcbp-marco .bcBusca input.bcBusca-in:focus{
+html body .bcbp-marco .bcBusca input.bcBusca-in:focus,
+html body .bcbp-marco:not(#bcbp-z1):not(#bcbp-z2) .bcBusca input.bcBusca-in:not(#bcbp-z3),
+html body .bcbp-marco:not(#bcbp-z1):not(#bcbp-z2) .bcBusca input.bcBusca-in:not(#bcbp-z3):focus{
   border:0!important;outline:0!important;box-shadow:none!important;background:transparent!important;background-image:none!important;
   border-radius:0!important;padding:0 4px!important;margin:0!important;height:100%!important;min-height:0!important;width:auto!important;
   -webkit-backdrop-filter:none!important;backdrop-filter:none!important;transform:none!important}
 html body #app .bcbp-marco .bcBusca,html body .bcbp-marco .bcBusca{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
 html body #app .bcbp-marco button.bcBusca-lupa,html body #app .bcbp-marco button.bcBusca-x{box-shadow:none!important;border:0!important;min-height:0!important}
 html body #app .bcbp-marco button.bcBusca-lupa{background:transparent!important}
+/* Sistema completo (CRM, Instagram/Facebook, buscador de artículos…): sus estilos traen ids y !important, por eso el
+   campo se blinda con más peso (:not(#…) suma especificidad de id) y se fuerza visible (el CRM lo escondía con style). */
+html body .bcbp-marco:not(#bcbp-z1):not(#bcbp-z2) .bcBusca input.bcBusca-in:not(#bcbp-z3){display:block!important;min-width:0!important;max-width:none!important;flex:1 1 auto!important;font-size:16px!important;color:var(--bcbp-tx)!important;line-height:normal!important}
+html body .bcbp-marco:not(#bcbp-z1):not(#bcbp-z2) .bcBusca.bcBusca-c:not(#bcbp-z3){display:flex!important;align-items:center!important;padding:0!important;margin:0!important}
+html body .bcbp-marco:not(#bcbp-z1):not(#bcbp-z2) button.bcBusca-lupa:not(#bcbp-z3),
+html body .bcbp-marco:not(#bcbp-z1):not(#bcbp-z2) button.bcBusca-x:not(#bcbp-z3){box-shadow:none!important;border:0!important;min-height:0!important;position:static!important}
+html body .bcbp-marco:not(#bcbp-z1):not(#bcbp-z2) button.bcBusca-lupa:not(#bcbp-z3){background:transparent!important;color:var(--bcbp-acento)!important}

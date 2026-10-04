@@ -28,8 +28,17 @@
 
   var API = {
     SELECTORES: ['input[type="text"][placeholder]', 'input[type="search"][placeholder]', 'input:not([type])[placeholder]'],
-    FILTRO: /(buscar|busca |escanear|escribe imei)/i,
-    EXCLUIR: '#v-crmLinea, [data-bcbp-no], .ab-modal, #mapaUbicBusq, #login, [id^="bcwa"], .bcwa-contactos, #bcauPanel, .print-only',
+    // Todo el sistema: «Buscar…», «Filtrar…», los que empiezan con la lupa (🔍/🔎), los de escanear/buscar IMEI y los
+    // buscadores de clientes («Nombre, cédula…» / «Nombre, teléfono…»).
+    FILTRO: /(^\s*(🔍|🔎))|buscar|busca |escanear|escribe imei|filtrar|^\s*nombre, (c[eé]dula|tel[eé]fono)/i,
+    // Fuera solo lo que NO es un buscador: los selectores de los formularios (.smart-select: muestran lo elegido, ej. el
+    // técnico o el artículo), el login y lo de imprimir.
+    EXCLUIR: '[data-bcbp-no], .smart-select, #login, .print-only',
+    // Botón propio que abría el buscador (lo reemplaza la lupa): se esconde mientras la lupa está montada.
+    BOTON_PROPIO: { crmBuscarInput: '#crmBuscarBtn' },
+    // Ajustes por campo: el del CRM vive en una casilla angosta de la cuadrícula → flota por encima a un ancho útil;
+    // el buscador grande de artículos puede crecer más que el resto.
+    OPCIONES: { crmBuscarInput: { flotar: true, anchoFlotante: 420 }, artBuscModal: { anchoMax: 900 } },
     escalaTiempo: 1
   };
   var reg = (typeof WeakMap === 'function') ? new WeakMap() : null;
@@ -69,6 +78,21 @@
     var p = marco.parentElement;
     while (p && p.tagName === 'SPAN' && p.children.length <= 2) p = p.parentElement;
     return p || marco.parentElement;
+  }
+
+  // Marco decorativo propio del módulo (lupa pintada + campo, ej. CRM, Instagram, buscador de artículos): solo contiene
+  // el campo, una lupa <i> y a lo sumo un aviso de tecla. Se esconde para no dejar una píldora dentro de otra.
+  function soloAdorno(p, input) {
+    if (!p || p === doc.body || p.id === 'app' || p.classList.contains('view') || p.children.length > 4) return false;
+    var lupa = false;
+    for (var i = 0; i < p.children.length; i++) {
+      var h = p.children[i];
+      if (h === input) continue;
+      if (h.matches('i.ti-search, i.ti-search + *:empty')) { lupa = true; continue; }
+      if (h.matches('kbd, .ab-kbd')) continue;
+      return false;
+    }
+    return lupa;
   }
 
   /* ───────────────────────────── instancia ───────────────────────────── */
@@ -117,7 +141,9 @@
       // El campo vive suelto (Cliente 360, CRM…): el marco ocupa su sitio; si estaba dentro de un <label> con marco
       // propio (label.nxCrmSearch) el marco va delante del label y el label se esconde (sin píldora dentro de píldora).
       var ancla = input;
-      if (padre && padre.tagName === 'LABEL') { ancla = padre; this.ocultos.push(padre); }
+      if (padre && (padre.tagName === 'LABEL' || soloAdorno(padre, input))) { ancla = padre; this.ocultos.push(padre); }
+      var propio = API.BOTON_PROPIO[input.id] && resolver(API.BOTON_PROPIO[input.id]);
+      if (propio) this.ocultos.push(propio);
       ancla.parentNode.insertBefore(marco, ancla);
       wrap.appendChild(lupa); wrap.appendChild(input); wrap.appendChild(x); marco.appendChild(wrap);
       if (ancla === input && padre) Array.prototype.forEach.call(padre.children, function (h) { if (h !== marco && h.matches && h.matches('i.ti-search')) self.ocultos.push(h); });
@@ -187,6 +213,10 @@
     if (superponer) {
       var util = ancho - padL - padR;
       this.xObj = padL; this.wObj = movil() ? util : Math.min(util, this.o.anchoMax || 640); this.superponer = true;
+      if (this.o.anchoFlotante) {   // puede salir de su casilla (cubre lo de al lado) sin pasar del borde de la pantalla
+        var crf = cont.getBoundingClientRect(), maxW = (window.innerWidth || doc.documentElement.clientWidth) - (crf.left + padL) - 12;
+        this.wObj = Math.max(this.D, Math.min(this.o.anchoFlotante, maxW));
+      }
     }
     else {
       // En línea (escritorio): crece hasta el sitio libre de su propia línea (así los filtros no bajan de fila); si en
@@ -372,7 +402,7 @@
       if (raiz.nodeType === 1 && raiz.matches(sel)) lista.push(raiz);
       if (raiz.querySelectorAll) Array.prototype.push.apply(lista, raiz.querySelectorAll(sel));
     } catch (e) { return; }
-    lista.forEach(function (inp) { if (!inp.closest(API.EXCLUIR) && API.FILTRO.test(inp.getAttribute('placeholder') || '')) montar(inp); });   // la exclusión solo aplica al montaje automático
+    lista.forEach(function (inp) { if (!inp.closest(API.EXCLUIR) && API.FILTRO.test(inp.getAttribute('placeholder') || '')) montar(inp, API.OPCIONES[inp.id]); });   // la exclusión solo aplica al montaje automático
   }
 
   // Esc: cierra lo abierto. Si el foco estaba dentro, se detiene ahí (el resto de la app no ve ese Esc; el siguiente
@@ -397,6 +427,6 @@
   if (doc.body) arrancar(); else doc.addEventListener('DOMContentLoaded', arrancar);
 
   API.montar = montar; API.desmontar = desmontar; API.instancia = instancia; API.montarTodo = montarTodo;
-  API.version = '58.94';
+  API.version = '58.94-bc2';
   window.bcBusquedaPremium = API;
 })();
