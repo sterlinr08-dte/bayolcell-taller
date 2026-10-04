@@ -1,0 +1,110 @@
+/* BAYOL CELL · EFECTOS REFLECTOR (4 oct 2026) — réplica de los de NEXUS PRO (video «Glassy Navbar UI»), solo visual.
+   Lo carga bc-reflector.js (taller y web pública). Tres capas:
+   1) Barra superior: reflejo en el borde de ARRIBA que sigue al puntero + luz de vidrio (.bc-glide) que se desliza con
+      resorte entre los botones de la barra y se queda FIJA en el último que tocaste.
+   2) Brillo fijo (.bc-marca): rayita de luz en el borde de arriba de lo ELEGIDO (pestañas, filtros, chips…). En el menú
+      lateral del taller va VERTICAL y viaja con la cápsula naranja.
+   3) Luz de vidrio global (.bc-vidrio): acompaña al puntero sobre cualquier botón, toma el color de los botones de
+      color, onda desde el clic; en el celular, destello breve al tocar.
+   Color: --bcr-acento = naranja del taller (255,107,53) o rojo de la web (255,90,79). Sobre fondo oscuro la luz es
+   blanca; sobre fondo claro usa el acento. Con «reducir movimiento» no se dibuja nada. */
+:root{ --bcr-acento:255,107,53; }
+html.bcr-web{ --bcr-acento:255,90,79; }
+
+/* ── 1 · Barra superior ─────────────────────────────────────────────────────────────────────────────────────── */
+.bcr-bar{ isolation:isolate; } /* la posición la pone el JS solo si era «static» (no rompe sticky/fixed) */
+.bcr-bar::after{
+  content:''; position:absolute; inset:0; pointer-events:none; z-index:-1; opacity:.7;
+  background:
+    radial-gradient(200px 2px at var(--bcr-x,50%) 0,rgba(255,255,255,.95),transparent 100%),
+    radial-gradient(240px 30px at var(--bcr-x,50%) 0,rgba(255,255,255,.10),transparent 100%);
+  transition:opacity .25s ease;
+}
+.bcr-bar.bcr-fijo::after{ opacity:.9; }
+.bcr-bar.bcr-activa::after{ opacity:1; }
+.bcr-bar > .bc-glide{
+  position:absolute; z-index:-1; left:0; top:0;
+  width:var(--g-w,40px); height:var(--g-h,40px);
+  transform:translate3d(var(--g-x,0px),var(--g-y,0px),0);
+  border-radius:var(--g-r,999px); pointer-events:none; opacity:0;
+  background:linear-gradient(180deg,rgba(255,255,255,.12) 0%,rgba(255,255,255,.04) 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 6px 18px rgba(0,0,0,.28);
+  transition:transform .42s cubic-bezier(.22,1.18,.36,1),width .42s cubic-bezier(.22,1.18,.36,1),height .3s ease,opacity .2s ease;
+  will-change:transform,width;
+}
+.bcr-bar > .bc-glide::after{
+  content:''; position:absolute; left:18%; right:18%; top:0; height:2px; border-radius:2px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.9),transparent);
+  box-shadow:0 0 8px rgba(255,255,255,.45);
+}
+.bcr-bar > .bc-glide.on{ opacity:1; }
+.bcr-bar > .bc-glide.sin{ transition:opacity .2s ease; }
+.bcr-bar > .bc-glide.fijo::after{ left:14%; right:14%; box-shadow:0 0 10px rgba(255,255,255,.6),0 0 18px rgba(var(--bcr-acento),.45); }
+
+/* ── 2 · Brillo fijo en lo elegido ──────────────────────────────────────────────────────────────────────────── */
+bcr-luz.bc-marca{
+  position:absolute; left:16%; right:16%; top:0; height:2px; border-radius:2px; box-sizing:border-box;
+  z-index:2; pointer-events:none; display:block; margin:0; padding:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.95),transparent);
+  box-shadow:0 0 6px rgba(255,255,255,.7),0 0 14px rgba(var(--bcr-acento),.45);
+  animation:bcrMarcaIn .45s cubic-bezier(.22,1,.36,1) both;
+}
+bcr-luz.bc-marca.claro{
+  background:linear-gradient(90deg,transparent,rgba(var(--bcr-acento),.95),transparent);
+  box-shadow:0 0 8px rgba(var(--bcr-acento),.4);
+}
+@keyframes bcrMarcaIn{ from{opacity:0;transform:scaleX(.3)} to{opacity:1;transform:none} }
+/* Menú lateral del taller: la rayita VERTICAL viaja con la cápsula naranja del elegido. */
+#app .nav.bc-sidebar-motion > .bc-motion-pill::after{
+  content:''; position:absolute; left:5px; top:22%; bottom:22%; width:2px; border-radius:2px; pointer-events:none; z-index:1;
+  background:linear-gradient(180deg,transparent,#fff 50%,transparent);
+  box-shadow:0 0 6px rgba(255,255,255,.8),0 0 14px rgba(255,255,255,.45),0 0 22px rgba(255,190,150,.55);
+}
+
+/* ── 3 · Luz de vidrio global ───────────────────────────────────────────────────────────────────────────────── */
+.bc-vidrio{
+  --v-luz:var(--bcr-acento);
+  position:fixed; left:0; top:0;
+  width:var(--v-w,0px); height:var(--v-h,0px);
+  transform:translate3d(calc(var(--v-x,0px) + var(--v-dx,0px)),calc(var(--v-y,0px) + var(--v-dy,0px)),0);
+  border-radius:var(--v-r,10px);
+  z-index:2147483000; pointer-events:none; opacity:0; overflow:hidden;
+  background:
+    radial-gradient(70% 90% at var(--v-mx,50%) 0%,rgba(var(--v-luz),.16) 0%,transparent 70%),
+    linear-gradient(180deg,rgba(var(--v-luz),.07) 0%,rgba(var(--v-luz),.025) 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.85),inset 0 0 0 1px rgba(var(--v-luz),.12);
+  transition:transform .42s cubic-bezier(.22,1.18,.36,1),width .42s cubic-bezier(.22,1.18,.36,1),height .42s cubic-bezier(.22,1.18,.36,1),border-radius .3s ease,opacity .18s ease,scale .16s ease;
+  will-change:transform,width,height,opacity;
+}
+/* Sobre fondo oscuro (menú, barra superior, web): luz blanca que ilumina. */
+.bc-vidrio.oscuro{ --v-luz:255,255,255; mix-blend-mode:screen; box-shadow:inset 0 1px 0 rgba(255,255,255,.24),inset 0 0 0 1px rgba(255,255,255,.07);
+  background:
+    radial-gradient(70% 90% at var(--v-mx,50%) 0%,rgba(var(--v-luz),.20) 0%,transparent 70%),
+    linear-gradient(180deg,rgba(var(--v-luz),.085) 0%,rgba(var(--v-luz),.03) 100%); }
+.bc-vidrio::after{
+  content:''; position:absolute; left:20%; right:20%; top:0; height:2px; border-radius:2px;
+  background:linear-gradient(90deg,transparent,rgba(var(--v-luz),.9),transparent);
+  box-shadow:0 0 8px rgba(var(--v-luz),.45);
+  transition:left .3s ease,right .3s ease,opacity .2s ease;
+}
+.bc-vidrio.alto::after{ left:38%; right:38%; opacity:.6; }
+.bc-vidrio::before{
+  content:''; position:absolute; left:var(--v-ox,50%); top:var(--v-oy,50%);
+  width:12px; height:12px; margin:-6px 0 0 -6px; border-radius:50%;
+  background:radial-gradient(circle,rgba(var(--v-luz),.45) 0%,rgba(var(--v-luz),0) 70%);
+  opacity:0; transform:scale(0);
+}
+.bc-vidrio.onda::before{ animation:bcrOnda .55s cubic-bezier(.22,1,.36,1) both; }
+@keyframes bcrOnda{ 0%{opacity:.9;transform:scale(0)} 100%{opacity:0;transform:scale(18)} }
+.bc-vidrio.on{ opacity:1; }
+.bc-vidrio.sin{ transition:opacity .18s ease; }
+.bc-vidrio.quieto{ opacity:0 !important; transition:opacity .1s ease; }
+.bc-vidrio.tinte{ --v-luz:var(--v-tinte); mix-blend-mode:screen; }
+.bc-vidrio.actual{ background:radial-gradient(70% 90% at var(--v-mx,50%) 0%,rgba(var(--v-luz),.14) 0%,transparent 70%); box-shadow:none; }
+.bc-vidrio.press{ scale:.96; transition:transform .42s cubic-bezier(.22,1.18,.36,1),width .42s cubic-bezier(.22,1.18,.36,1),height .42s cubic-bezier(.22,1.18,.36,1),opacity .18s ease,scale .08s ease; }
+
+@media (prefers-reduced-motion:reduce){
+  .bcr-bar::after,.bcr-bar > .bc-glide,.bc-vidrio{ display:none !important; }
+  bcr-luz.bc-marca{ animation:none; }
+}
+@media print{ .bcr-bar::after,.bc-glide,.bc-vidrio,bcr-luz.bc-marca{ display:none !important; } }

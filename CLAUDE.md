@@ -875,3 +875,11 @@ Pedido del dueño: «repliquemos y adaptemos» la web de STUDIO (studiord.net, r
   - Carteles e imagen de canje en `.webp` (6 MB → 0.7 MB).
   - Detector: 68 → 30 hallazgos; los que quedan son decisiones de estilo (etiquetas sobre títulos, Inter, pasos numerados) o falsos positivos.
   - Pendiente: confirmar qué significa «Con aviso» para explicarlo en la web.
+
+## ACTUALIZACIÓN 4 oct 2026 — EFECTOS REFLECTOR (réplica de NEXUS PRO) en el taller y la web
+Pedido del dueño: «replicar los efectos reflector que hice en nexus pro» — en los dos (taller y web), las 3 capas. Fuente: `sterlinr08-dte/nexus-pro` → `parches-glass-pointer.js`, `parches-brillo-fijo.js`, `parches-vidrio-global.js` (dibujo en `parches-sidebar-curva.css`), video «Glassy Navbar UI».
+- **Una sola capa aislada:** `bc-reflector.js` (trae `bc-reflector.css`). Taller: la carga `crm-marketing-consent.js`; web: `<script defer>` en `index.html`. Detecta la página (`#sidebar` = taller) y pone `html.bcr-taller` (acento naranja 255,107,53) o `html.bcr-web` (rojo 255,90,79).
+- **1 · Barra superior** (taller `.top-bar`, web `body > header`): reflejo en el borde de ARRIBA que sigue al puntero (`--bcr-x`) + luz `.bc-glide` que se desliza con resorte entre los botones y queda FIJA en el último tocado. La barra NO se reposiciona (solo si era `static`), así no rompe el sticky de la web.
+- **2 · Brillo fijo** (`<bcr-luz class="bc-marca">`): rayita en el borde de arriba de lo elegido (`.active/.on/.tab-active/[aria-selected|pressed=true]…`); blanca sobre fondo oscuro, del acento sobre claro (`.claro`, se mide una vez). Excluye `#sidebar`, filas/burbujas del chat (`.wa-*`), campos, ventanas. En el menú lateral la rayita VERTICAL va en `.bc-motion-pill::after` (la cápsula de `taller-navigation-motion.js`).
+- **3 · Luz de vidrio** (`.bc-vidrio`, capa fija sin clics): sigue al puntero sobre cualquier tocable, se desliza entre vecinos, imán, toma el color de botones de color (`tinte`), blanca sobre fondo oscuro (`.oscuro`), onda desde el clic; táctil = destello con onda. Excluir algo: clase `no-reflector`.
+- «Reducir movimiento» = nada; al imprimir se ocultan. API: `window.BayolReflector`.
