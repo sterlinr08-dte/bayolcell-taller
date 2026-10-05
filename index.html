@@ -1102,7 +1102,10 @@ html.pd-abierta body{overflow:hidden}
       document.getElementById('hero-consulta').href = waLink(msgQuiero(g, v));
       document.getElementById('hero-numero').textContent = String(hk + 1).padStart(2, '0');
       document.querySelectorAll('#hero-lista button').forEach(function(b){ b.setAttribute('aria-pressed', String(+b.dataset.heroModelo === hk)); });
-      var act = document.querySelector('#hero-lista [aria-pressed="true"]'); if(act && act.scrollIntoView && animar) act.scrollIntoView({block:'nearest', inline:'center', behavior:suave()});
+      // Centra el modelo elegido moviendo SOLO la lista de modelos (de lado). Antes usaba scrollIntoView, que además
+      // movía toda la página: cada 6,5 s el cambio automático subía la página aunque el cliente estuviera más abajo.
+      var act = document.querySelector('#hero-lista [aria-pressed="true"]'), lista = document.getElementById('hero-lista');
+      if(act && lista && animar && lista.scrollWidth > lista.clientWidth){ var ra = act.getBoundingClientRect(), rl = lista.getBoundingClientRect(); lista.scrollTo({left:lista.scrollLeft + (ra.left - rl.left) - (lista.clientWidth - ra.width) / 2, behavior:suave()}); }
       heroFoto.classList.remove('sale');
     }
     if(animar && window.bcMotionHero) window.bcMotionHero(heroFoto, heroLetra, dir, aplicar);

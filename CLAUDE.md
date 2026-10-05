@@ -875,6 +875,7 @@ Pedido del dueño: «repliquemos y adaptemos» la web de STUDIO (studiord.net, r
   - Carteles e imagen de canje en `.webp` (6 MB → 0.7 MB).
   - Detector: 68 → 30 hallazgos; los que quedan son decisiones de estilo (etiquetas sobre títulos, Inter, pasos numerados) o falsos positivos.
   - Pendiente: confirmar qué significa «Con aviso» para explicarlo en la web.
+- **Fix 5 oct 2026 — la página subía sola al bajar:** el cambio automático de la portada (cada 6,5 s, `pintaHero`) centraba el modelo con `scrollIntoView`, que también movía TODA la página hasta la portada. Ahora solo se desplaza de lado la lista `#hero-lista` (`lista.scrollTo`). Regla: en la web no usar `scrollIntoView` en cosas automáticas (solo en respuesta a un clic).
 
 ## ACTUALIZACIÓN 4 oct 2026 — EFECTOS REFLECTOR (réplica de NEXUS PRO) en el taller y la web
 Pedido del dueño: «replicar los efectos reflector que hice en nexus pro» — en los dos (taller y web), las 3 capas. Fuente: `sterlinr08-dte/nexus-pro` → `parches-glass-pointer.js`, `parches-brillo-fijo.js`, `parches-vidrio-global.js` (dibujo en `parches-sidebar-curva.css`), video «Glassy Navbar UI».
