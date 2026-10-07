@@ -16,7 +16,7 @@
   'use strict';
   if (window.__bcWaIdentico) return;
   window.__bcWaIdentico = true;
-  var VERSION = '20261003-w11';
+  var VERSION = '20261007-w12';
 
   // ---------- CSS (siempre de último) ----------
   function css(){
@@ -27,6 +27,10 @@
     var c = document.getElementById('bcCanalesIgualesCss');
     if (!c){ c = document.createElement('link'); c.id = 'bcCanalesIgualesCss'; c.rel = 'stylesheet'; c.href = 'crm-canales-iguales.css?v=' + VERSION; }
     document.head.appendChild(c);
+    // PC más compacto: el chat crece (7 oct 2026). Capa aislada, va de última.
+    var k = document.getElementById('bcWaCompactoCss');
+    if (!k){ k = document.createElement('link'); k.id = 'bcWaCompactoCss'; k.rel = 'stylesheet'; k.href = 'crm-wa-compacto.css?v=' + VERSION; }
+    document.head.appendChild(k);
   }
   css(); setTimeout(css, 1600); setTimeout(css, 4000);
 
@@ -984,6 +988,29 @@
     b.classList.toggle('on', tags.length > 0);
   }
 
+
+  // Asignarme / Reasignar / Transferir dentro de la barra del nombre (solo PC ≥1025 px, 7 oct 2026).
+  // Se MUEVEN los mismos botones (conservan su onclick); en pantallas chicas vuelven a su fila de siempre.
+  var pcAncho = function(){ return window.matchMedia && matchMedia('(min-width:1025px)').matches; };
+  function asignacionEnCabecera(){
+    var head = document.querySelector('#waDetalle .wa-chat-head'); if (!head) return;
+    var enCab = head.querySelector(':scope > .bcwa-asig-cab');
+    var fila = null, abajo = head.nextElementSibling;
+    if (abajo){ var c = abajo.querySelectorAll(':scope > div'); for (var i = 0; i < c.length; i++){ if (c[i].querySelector('[id^="reasignBox_"]')){ fila = c[i]; break; } } }
+    if (!fila) return;
+    if (!pcAncho()){
+      if (enCab){ enCab.classList.remove('bcwa-asig-cab'); fila.insertBefore(enCab, fila.firstChild); }
+      fila.classList.remove('bcwa-asig-fila');
+      return;
+    }
+    if (enCab) return;
+    var span = fila.querySelector(':scope > span'); if (!span) return;
+    span.classList.add('bcwa-asig-cab');
+    var ref = head.querySelector('.bcwa-etq-btn') || head.querySelector('.bcwa-lupa') || head.querySelector('.wa-focus-btn');
+    head.insertBefore(span, ref || null);
+    fila.classList.add('bcwa-asig-fila');
+  }
+
   // =====================================================================
   // Aplicar todo al pintarse el CRM
   // =====================================================================
@@ -999,7 +1026,7 @@
       var p = document.querySelector('#waDetalleCol > .bcwa-buscar'); if (p){ var i = p.querySelector('input'); if (i) i.value = ''; p.querySelector('.bcwa-buscar-res').innerHTML = '<div class="vacio">Buscar mensajes de este chat.</div>'; }
     }
     decorarLista();
-    if (id){ cargarReferido(id); avisoReferido(); botonLupa(); botonEtiquetasCabecera(); botonMasCabecera(); cabeceraClicable(); restaurarBorrador(); pildoraMovil(); engancharScroll(); contarNuevos(); marcarDestacados(); }
+    if (id){ cargarReferido(id); avisoReferido(); botonLupa(); botonEtiquetasCabecera(); botonMasCabecera(); asignacionEnCabecera(); cabeceraClicable(); restaurarBorrador(); pildoraMovil(); engancharScroll(); contarNuevos(); marcarDestacados(); }
     borradoresEnLista();
   }
   var pendiente = false;
@@ -1017,7 +1044,7 @@
   });
   function iniciar(){
     obs.observe(document.body, { childList: true, subtree: true });
-    window.addEventListener('resize', function(){ try { pildoraMovil(); } catch(e){} });
+    window.addEventListener('resize', function(){ try { pildoraMovil(); } catch(e){} try { asignacionEnCabecera(); } catch(e){} });
     aplicar();
   }
   if (document.body) iniciar(); else document.addEventListener('DOMContentLoaded', iniciar);

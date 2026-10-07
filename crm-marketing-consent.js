@@ -187,7 +187,7 @@
 
     // WhatsApp idéntico a WhatsApp Web / app (solo la pestaña WhatsApp). Va después del diseño unificado.
     var waIdentico=document.createElement('script');
-    waIdentico.src='crm-wa-identico.js?v=20261003-w11';
+    waIdentico.src='crm-wa-identico.js?v=20261007-w12';
     document.head.appendChild(waIdentico);
 
     // Automatizaciones estilo ManyChat (Fase 1: comentario → privado en Instagram/Facebook). Solo admin.

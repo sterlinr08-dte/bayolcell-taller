@@ -1,0 +1,53 @@
+/* =====================================================================
+   CRM en PC más compacto: la ventana del chat crece (7 oct 2026).
+   Pedido del dueño: «compactar más para que la ventana del chat no se vea tan pequeña;
+   en WhatsApp Web se ve bien grande la ventana de chat».
+   - Solo PC (≥1025 px). En celular no cambia nada.
+   - Las barras de arriba siguen siendo DOS líneas (estructura aprobada), solo más bajitas.
+   - Afecta a WhatsApp, Instagram y Facebook por igual, para que los canales no salten al
+     cambiar de red (la prueba canales_iguales exige las mismas posiciones).
+   - Asignarme / Reasignar / Transferir pasan a la barra del nombre (crm-wa-identico.js,
+     asignacionEnCabecera); aquí solo su estilo. Mismos botones, mismos onclick.
+   Capa aislada: la carga crm-wa-identico.js de última. Para revertir, basta quitar esa línea.
+   ===================================================================== */
+@media (min-width:1025px){
+  /* Márgenes alrededor de la vista CRM */
+  body .content:has(> #v-crmLinea.active){ padding:8px 12px 10px !important; }
+  body #v-crmLinea.active[data-social-channel]{ padding:8px 10px !important; row-gap:5px !important; }
+
+  /* Línea 1: canales más bajitos (40 → 32) */
+  body #v-crmLinea.active[data-social-channel] #bcSmartPlatforms{ padding:3px !important; }
+  body #v-crmLinea.active[data-social-channel] #bcSmartPlatforms .bc-smart-platform{ height:32px !important; min-height:0 !important; }
+  body #v-crmLinea.active[data-social-channel] #bcSmartPlatforms .bc-motion-pill{ height:32px !important; top:-1px !important; }
+  body #v-crmLinea.active[data-social-channel] #bcSmartPlatforms .bc-smart-platform-icon{ width:24px !important; height:24px !important; }
+  body #v-crmLinea.active[data-social-channel] .crm-tabs-row .crm-tabs-track{ min-height:0 !important; }
+
+  /* Línea 2: lupa 44 → 34, Sucursal/Área 36 → 32 */
+  body #v-crmLinea.active[data-social-channel] .crm-busq-row{ height:auto !important; }
+  body #v-crmLinea.active[data-social-channel] .crm-busq-row .bcbp-marco{ --bcbp-d:34px; }
+  /* Búsqueda abierta: por encima de los filtros rápidos (antes «Todos»/«No leídos» se veían dentro del campo) */
+  body #v-crmLinea.active[data-social-channel] .crm-busq-row:has(.bcbp-marco.open){ position:relative; z-index:40 !important; }
+  body #v-crmLinea.active[data-social-channel] .crm-busq-row .bcbp-marco.open{ z-index:40 !important; }
+  body #v-crmLinea.active[data-social-channel] #crmSelectorWrap .crm-pill-select{ height:32px !important; min-height:0 !important; padding-top:3px !important; padding-bottom:3px !important; }
+
+  /* Asignarme / Reasignar / Transferir dentro de la barra del nombre */
+  body #v-crmLinea[data-social-channel="whatsapp"] .wa-chat-head .bcwa-asig-cab{
+    display:inline-flex !important; align-items:center; gap:6px !important; flex:none; margin:0 4px 0 6px;
+  }
+  body #v-crmLinea[data-social-channel="whatsapp"] .wa-chat-head .bcwa-asig-cab .btn{
+    height:30px !important; min-height:0 !important; padding:0 10px !important; border-radius:15px !important;
+    font-size:12px !important; font-weight:600; line-height:1 !important; white-space:nowrap;
+    display:inline-flex; align-items:center; gap:4px; background:#fff !important; border:1px solid #d1d7db !important; color:#3b4a54 !important; box-shadow:none !important;
+  }
+  body #v-crmLinea[data-social-channel="whatsapp"] .wa-chat-head .bcwa-asig-cab .btn:hover{ background:#f5f6f6 !important; }
+  body #v-crmLinea[data-social-channel="whatsapp"] .wa-chat-head .bcwa-asig-cab > span{ white-space:nowrap; font-size:12px !important; }
+  /* La fila de abajo queda vacía: sin alto mientras no se abra Reasignar/Vincular */
+  body #v-crmLinea[data-social-channel="whatsapp"] .bcwa-asig-fila{ padding:0 !important; }
+  body #v-crmLinea[data-social-channel="whatsapp"] .bcwa-asig-fila > [id^="reasignBox_"]{ margin:6px 0 8px !important; }
+}
+/* Pantallas de PC angostas: los tres botones solo con su ícono (el texto queda como título) */
+@media (min-width:1025px) and (max-width:1439px){
+  body #v-crmLinea[data-social-channel="whatsapp"] .wa-chat-head .bcwa-asig-cab .btn{ width:30px; padding:0 !important; justify-content:center; font-size:0 !important; }
+  body #v-crmLinea[data-social-channel="whatsapp"] .wa-chat-head .bcwa-asig-cab .btn .ti{ font-size:16px !important; }
+  body #v-crmLinea[data-social-channel="whatsapp"] .wa-chat-head .bcwa-asig-cab > span:not(.btn){ max-width:150px; overflow:hidden; text-overflow:ellipsis; }
+}

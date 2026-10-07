@@ -895,3 +895,30 @@ Pedido del dueño: «el buscador como el de nexus», decisión: «Lupa en TODOS�
 - **Blindaje CSS:** `taller-visual-polish.css`/`taller-afinado.css` ponen borde/fondo/outline a los inputs con `#app .view:not(#v-crmLinea) input…` (2 ids): el bloque final de `bc-busqueda.css` usa más especificidad para dejar el campo transparente dentro de la píldora.
 - **Sistema completo (4 oct 2026, v b2):** ahora también en el CRM (WhatsApp `#crmBuscarInput` — la lupa reemplaza al botón «Buscar» `#crmBuscarBtn` y flota a 420 px sobre su casilla, `OPCIONES.anchoFlotante`; Instagram/Facebook; reenviar; buscar mensajes; Contactos), el buscador grande de artículos (`.ab-modal`, hasta 900 px), el mapa y los buscadores de clientes («Nombre, cédula…»). `FILTRO` incluye «Filtrar…» y placeholders que empiezan con 🔍/🔎. Si el campo vive dentro de un marco propio con lupa pintada (`soloAdorno`: solo campo + `i.ti-search` + kbd), ese marco se esconde. **Fuera solo:** `.smart-select` (selectores de formularios: técnico, artículo, proveedor — mostrar lo elegido; en b1 se volvían lupa y escondían el valor, corregido), `#login`, `.print-only`, `[data-bcbp-no]`. Blindaje CSS con `:not(#bcbp-zN)` para ganar a los estilos con id/!important del CRM.
 
+
+## ACTUALIZACIÓN 7 oct 2026 — CRM en PC más compacto: la ventana del chat crece (rama `claude/crm-chat-compacto`, SIN publicar)
+Pedido de Sterling (con fotos del CRM de Navarrete y de WhatsApp Web): «compactar más para que la ventana del chat no se vea tan pequeña; en WhatsApp Web se ve bien grande».
+- **Capa nueva y aislada `crm-wa-compacto.css`.** La carga `crm-wa-identico.js` de última, después de `crm-canales-iguales.css`, con el mismo `?v=`. Para revertir basta quitar esas 3 líneas de `css()`.
+  - Solo PC (≥1025 px). En celular no cambia nada.
+  - Afecta a WhatsApp, Instagram y Facebook por igual: los canales quedan en la misma posición exacta en las tres redes.
+- **Alturas:**
+  - márgenes de `.content`: 18/24 → 8/10 (con `:has(> #v-crmLinea.active)`, solo en el CRM);
+  - padding de la vista: 12 → 8;
+  - **línea 1**: canales de 40 → 32;
+  - **línea 2**: lupa de 44 → 34 (`--bcbp-d`), Sucursal/Área de 36 → 32;
+  - siguen siendo **dos líneas**, la estructura aprobada.
+- **Asignarme / Reasignar / Transferir pasan a la barra del nombre.** `asignacionEnCabecera()` en `crm-wa-identico.js`, llamada en `aplicar()` y al cambiar el tamaño de la ventana.
+  - **MUEVE** los mismos botones (conservan su onclick) antes del botón de Etiquetas. La fila vieja queda sin alto (`.bcwa-asig-fila`) y la caja de Reasignar sigue saliendo debajo de la barra.
+  - Entre 1025 y 1439 px los botones van solo con su ícono; desde 1440 px, con texto.
+  - En menos de 1025 px vuelven a su fila de siempre.
+- **Resultado (alto de los mensajes):** 1366×768: 373 → 473 px (+27 %); 1600×900: 505 → 605 px (+20 %); 1920×1080: 685 → 785 px.
+- **De paso:** la búsqueda abierta (lupa) queda por encima de los filtros rápidos. Antes «Todos»/«No leídos» se veían dentro del campo; el problema ya existía.
+- **Pruebas** con una copia del taller con Supabase simulado (datos inventados), de 1100 a 1920 px y en 390 px:
+  - canales iguales en las tres redes;
+  - botones en la barra;
+  - Reasignar abre su lista y Transferir su ventana;
+  - al pasar a celular los botones vuelven a su fila;
+  - la búsqueda filtra;
+  - 0 errores de JavaScript;
+  - `node --check` y los bloques de `taller.html` OK.
+- **Versiones:** `crm-wa-identico.js?v=20261007-w12` (VERSION interna igual) y `crm-marketing-consent.js?v=20261007-c1`.
