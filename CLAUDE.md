@@ -896,7 +896,7 @@ Pedido del dueño: «el buscador como el de nexus», decisión: «Lupa en TODOS�
 - **Sistema completo (4 oct 2026, v b2):** ahora también en el CRM (WhatsApp `#crmBuscarInput` — la lupa reemplaza al botón «Buscar» `#crmBuscarBtn` y flota a 420 px sobre su casilla, `OPCIONES.anchoFlotante`; Instagram/Facebook; reenviar; buscar mensajes; Contactos), el buscador grande de artículos (`.ab-modal`, hasta 900 px), el mapa y los buscadores de clientes («Nombre, cédula…»). `FILTRO` incluye «Filtrar…» y placeholders que empiezan con 🔍/🔎. Si el campo vive dentro de un marco propio con lupa pintada (`soloAdorno`: solo campo + `i.ti-search` + kbd), ese marco se esconde. **Fuera solo:** `.smart-select` (selectores de formularios: técnico, artículo, proveedor — mostrar lo elegido; en b1 se volvían lupa y escondían el valor, corregido), `#login`, `.print-only`, `[data-bcbp-no]`. Blindaje CSS con `:not(#bcbp-zN)` para ganar a los estilos con id/!important del CRM.
 
 
-## ACTUALIZACIÓN 7 oct 2026 — CRM en PC más compacto: la ventana del chat crece (rama `claude/crm-chat-compacto`, SIN publicar)
+## ACTUALIZACIÓN 7 oct 2026 — CRM en PC más compacto: la ventana del chat crece (PUBLICADA 7 oct con el «publícalo» de Sterling)
 Pedido de Sterling (con fotos del CRM de Navarrete y de WhatsApp Web): «compactar más para que la ventana del chat no se vea tan pequeña; en WhatsApp Web se ve bien grande».
 - **Capa nueva y aislada `crm-wa-compacto.css`.** La carga `crm-wa-identico.js` de última, después de `crm-canales-iguales.css`, con el mismo `?v=`. Para revertir basta quitar esas 3 líneas de `css()`.
   - Solo PC (≥1025 px). En celular no cambia nada.
