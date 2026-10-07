@@ -16,7 +16,7 @@
   'use strict';
   if (window.__bcWaIdentico) return;
   window.__bcWaIdentico = true;
-  var VERSION = '20261007-w12';
+  var VERSION = '20261007-w13';
 
   // ---------- CSS (siempre de último) ----------
   function css(){
@@ -539,12 +539,13 @@
     try { var r = await supabaseClient.from('whatsapp_etiquetas').select('id,nombre,color,orden').order('orden').order('nombre'); if (!r.error){ etiquetas = r.data || []; etiquetasCargadas = true; } } catch(e){}
     return etiquetas;
   }
-  // Conversaciones fijadas o archivadas que pueden no estar en la página cargada de la lista
+  // Conversaciones fijadas o archivadas que pueden no estar en la página cargada de la lista.
+  // Sin las copias 'duplicado:' de la unión del 3-oct (2,478): no son chats reales, solo respaldo.
   async function cargarExtras(){
     var lid = lineaId(); if (!lid || cargandoExtras) return;
     cargandoExtras = true;
     try {
-      var r = await supabaseClient.from('whatsapp_hilos').select('*, whatsapp_lineas(nombre)').eq('linea_id', lid).or('fijado_en.not.is.null,estado.eq.archivado').limit(300);
+      var r = await supabaseClient.from('whatsapp_hilos').select('*, whatsapp_lineas(nombre)').eq('linea_id', lid).or('fijado_en.not.is.null,estado.eq.archivado').not('telefono_e164', 'like', 'duplicado:%').limit(300);
       if (r.error || lid !== lineaId()) return;
       var yo = null; try { yo = _crmMiIdentidad(); } catch(e){}
       extras = (r.data || []).filter(function(h){ return admin() || !h.asignado_id || (yo && String(h.asignado_id) === String(yo.id)); });
