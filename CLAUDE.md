@@ -922,3 +922,17 @@ Pedido de Sterling (con fotos del CRM de Navarrete y de WhatsApp Web): «compact
   - 0 errores de JavaScript;
   - `node --check` y los bloques de `taller.html` OK.
 - **Versiones:** `crm-wa-identico.js?v=20261007-w12` (VERSION interna igual) y `crm-marketing-consent.js?v=20261007-c1`.
+
+## ACTUALIZACIÓN 7 oct 2026 — Archivados sin las copias de respaldo (PUBLICADA)
+
+**Pedido del dueño:** «hay muchos mensajes en archivados y son chat duplicado».
+
+**Causa:**
+- Las **2,478** copias que quedaron como respaldo de la unión del 3-oct (`estado='archivado'`, `telefono_e164='duplicado:…'`) salían en la carpeta «Archivados».
+- Comprobado en la base: todos los archivados eran esas copias. No había ninguno archivado a mano.
+- 127 de esas copias conservan mensajes que estaban repetidos en las dos copias, puestos ahí a propósito para no mostrarlos dobles.
+
+**Arreglo:**
+- `cargarExtras()` en `crm-wa-identico.js` añade `.not('telefono_e164','like','duplicado:%')`;
+- VERSION `20261007-w13`, consent `?v=20261007-w13`, `taller.html` carga consent `?v=20261007-c2`.
+- **No se borró ni cambió ningún dato**: los respaldos siguen en la base. Un chat archivado a mano sigue saliendo en «Archivados».
