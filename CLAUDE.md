@@ -939,3 +939,12 @@ Pedido de Sterling (con fotos del CRM de Navarrete y de WhatsApp Web): «compact
 
 ## Regla del dueño: usar SIEMPRE las skills instaladas (08-oct-2026)
 Antes de cualquier tarea, revisar las skills disponibles (`.claude/skills/` de este repo y las que anuncie la sesión) y usar la que corresponda **sin esperar a que el dueño la nombre**: diseño, seguridad (`security-audit`), video (`remotion-*`; en nexus-pro también HyperFrames), redes (`ver-video-redes` en nexus-pro), revisión de código, etc. Si una skill puede mejorar el trabajo aunque no se pidiera, proponerla o aplicarla. El catálogo completo por necesidad está en el `CLAUDE.md` de nexus-pro. No conectar cuentas ni gastar en servicios de pago sin el OK del dueño.
+
+**Lista completa de herramientas, skills y conectores con su estado: [`HERRAMIENTAS.md`](HERRAMIENTAS.md)** (leerla al empezar cada pedido). Skill propia de redes: `analizar-instagram` (`.claude/skills/analizar-instagram/`).
+
+### Marketing — datos confirmados por el dueño (08-oct-2026)
+- Pantallas **Android desde RD$1,000** (en los flyers, las de iPhone empiezan en RD$1,190).
+- Pantalla y batería en **30 minutos**; las **3 sucursales** hacen todas las reparaciones.
+- En los videos: «Cotiza gratis» en lugar de precios, salvo el video específico de pantallas Android.
+- **Cada reparación da un boleto de la rifa** (se consulta en bayolcell.com).
+- Números por sucursal: Santiago 809-707-2493 · Moca 829-670-9694 · Navarrete 809-893-4412 · WhatsApp general 849-564-4791.
