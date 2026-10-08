@@ -936,3 +936,12 @@ Pedido de Sterling (con fotos del CRM de Navarrete y de WhatsApp Web): «compact
 - `cargarExtras()` en `crm-wa-identico.js` añade `.not('telefono_e164','like','duplicado:%')`;
 - VERSION `20261007-w13`, consent `?v=20261007-w13`, `taller.html` carga consent `?v=20261007-c2`.
 - **No se borró ni cambió ningún dato**: los respaldos siguen en la base. Un chat archivado a mano sigue saliendo en «Archivados».
+
+## ACTUALIZACIÓN 8 oct 2026 — Ajuste de permisos (rama `claude/seguridad-graves`, NO publicada ni aplicada)
+
+Preparado en rama aparte; nada se aplicó a la base, a las funciones ni al sitio.
+- **`_config.yml`** (nuevo): el sitio publica solo páginas y recursos; las notas `.md`, `supabase/`, `scripts/`, `bde/`, `videos-remotion/` y archivos de herramientas quedan fuera. Comprobado con Jekyll 3.10: los 131 archivos que sí usa el sitio salen idénticos. **Si se agrega una página o recurso nuevo, no usar extensión `.md`/`.sql`/`.ts`/`.py` ni esas carpetas.**
+- **Migración** `supabase/migrations/20261008000000_ajuste_permisos.sql`: permisos por operación en `taller_incentivos` / `taller_incentivo_reportes` (+ disparador `taller_incentivos_control_cambios`), `set_taller_existencia` exige admin o `catalogo_articulos`, y `campanas_activar_programadas` queda solo para la tarea programada. Ayudante nuevo `app_actor_tecnico_id()`.
+- **Prueba** `supabase/tests/prueba_ajuste_permisos.sql` (corre dentro de BEGIN … ROLLBACK, no deja datos).
+- **Funciones**: `whatsapp-enviar`, `instagram-enviar` y `_shared/inbox-common.ts` (y sus copias) resuelven la identidad en el servidor (`identidadVerificada`: sesión + `auth_actor_bindings`). `puente-rifa` y `recepcion-boleto` entran al repo, leen la cuenta-puente de los Secrets `NEXUS_PRO_*` (los mismos de `consultar-boleto`) y exigen admin / `rifas_ver` o admin / `recepcion_ver`.
+- **Orden para aplicar:** migración → prueba → funciones → (cuenta-puente) → sitio.

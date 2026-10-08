@@ -47,16 +47,30 @@ export async function verificarFirmaZernio(rawBody: string, signatureHeader: str
   return diff === 0;
 }
 
-export function identidadDesdeJWT(req: Request): { tipo: string | null; refId: string | null } {
+// Ajuste de permisos (8 oct 2026): la identidad de quien llama se resuelve en
+// el servidor — se valida la sesión con Supabase Auth y se busca su vínculo
+// activo en auth_actor_bindings (la misma fuente que usan app_is_admin() y
+// las demás funciones de la base). Sin sesión válida o sin vínculo activo,
+// devuelve tipo/refId nulos y el llamador niega el acceso.
+// deno-lint-ignore no-explicit-any
+export async function identidadVerificada(db: any, req: Request): Promise<{ tipo: string | null; refId: string | null }> {
+  const sinIdentidad = { tipo: null, refId: null };
   try {
     const auth = req.headers.get("Authorization") || "";
-    const token = auth.replace(/^Bearer\s+/i, "");
-    const payloadB64 = token.split(".")[1];
-    const payload = JSON.parse(atob(payloadB64.replace(/-/g, "+").replace(/_/g, "/")));
-    const meta = payload.user_metadata || {};
-    return { tipo: meta.tipo ?? null, refId: meta.ref_id ?? null };
+    const token = auth.replace(/^Bearer\s+/i, "").trim();
+    if (!token) return sinIdentidad;
+    const { data: sesion, error: sesionError } = await db.auth.getUser(token);
+    if (sesionError || !sesion?.user?.id) return sinIdentidad;
+    const { data: vinculo, error: vinculoError } = await db
+      .from("auth_actor_bindings")
+      .select("actor_type, actor_ref_id")
+      .eq("auth_user_id", sesion.user.id)
+      .eq("activo", true)
+      .maybeSingle();
+    if (vinculoError || !vinculo?.actor_type || !vinculo?.actor_ref_id) return sinIdentidad;
+    return { tipo: vinculo.actor_type, refId: vinculo.actor_ref_id };
   } catch {
-    return { tipo: null, refId: null };
+    return sinIdentidad;
   }
 }
 
