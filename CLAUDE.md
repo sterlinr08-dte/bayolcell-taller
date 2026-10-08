@@ -936,3 +936,6 @@ Pedido de Sterling (con fotos del CRM de Navarrete y de WhatsApp Web): «compact
 - `cargarExtras()` en `crm-wa-identico.js` añade `.not('telefono_e164','like','duplicado:%')`;
 - VERSION `20261007-w13`, consent `?v=20261007-w13`, `taller.html` carga consent `?v=20261007-c2`.
 - **No se borró ni cambió ningún dato**: los respaldos siguen en la base. Un chat archivado a mano sigue saliendo en «Archivados».
+
+## Regla del dueño: usar SIEMPRE las skills instaladas (08-oct-2026)
+Antes de cualquier tarea, revisar las skills disponibles (`.claude/skills/` de este repo y las que anuncie la sesión) y usar la que corresponda **sin esperar a que el dueño la nombre**: diseño, seguridad (`security-audit`), video (`remotion-*`; en nexus-pro también HyperFrames), redes (`ver-video-redes` en nexus-pro), revisión de código, etc. Si una skill puede mejorar el trabajo aunque no se pidiera, proponerla o aplicarla. El catálogo completo por necesidad está en el `CLAUDE.md` de nexus-pro. No conectar cuentas ni gastar en servicios de pago sin el OK del dueño.
