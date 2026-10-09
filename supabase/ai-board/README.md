@@ -37,3 +37,7 @@ Permanent deletion is available through session DELETE with RLS, cascading to tu
 From `tests/ai-board`: `npm ci`, `npx playwright install chromium`, `python -m pip install -r ../../tools/ai-board/requirements.txt`, `npm test`, `npm run test:photos`. Backend/database only: `npm run test:backend`.
 
 References: https://supabase.com/docs/guides/database/postgres/row-level-security ; https://supabase.com/docs/guides/functions/auth ; https://platform.claude.com/docs/en/api/messages ; https://platform.claude.com/docs/en/api/errors
+
+## Real staging smoke
+
+After staging deployment, configure `AI_BOARD_STAGING_URL`, `AI_BOARD_STAGING_ANON_KEY`, `AI_BOARD_STAGING_JWT_A`, `AI_BOARD_STAGING_JWT_B`, and `AI_BOARD_STAGING_CASE_A` through the runtime environment (never a committed file). Use two distinct synthetic Auth users with active actor bindings and diagnostic permission, and an existing synthetic case visible to A on the first case page. Run `node tools/ai-board/staging_smoke.mjs` from the repo root. It makes two real provider calls, verifies persistence/idempotence/cross-user denial, and deletes its temporary session. It refuses the production project. It does not delete the supplied case or users. This smoke complements, but does not replace, revocation/expired-token/quota testing and physical board validation.

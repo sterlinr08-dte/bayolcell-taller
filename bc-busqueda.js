@@ -405,17 +405,19 @@
     lista.forEach(function (inp) { if (!inp.closest(API.EXCLUIR) && API.FILTRO.test(inp.getAttribute('placeholder') || '')) montar(inp, API.OPCIONES[inp.id]); });   // la exclusión solo aplica al montaje automático
   }
 
-  // Esc: cierra lo abierto. Si el foco estaba dentro, se detiene ahí (el resto de la app no ve ese Esc; el siguiente
-  // Esc ya llega a ventanas/menús). Si el foco estaba fuera, cierra en silencio y deja pasar el evento.
+  // 9 oct 2026 (pedido del dueño: «que el buscador no se cierre solo»): la píldora abierta ya NO se cierra al tocar
+  // fuera ni con un Esc pensado para otra cosa. Solo se cierra con su ✕ (o con su lupa si está vacía) o con Esc
+  // mientras el cursor está DENTRO de ese buscador. Para volver al comportamiento anterior: API.cerrarAlTocarFuera = true.
+  API.cerrarAlTocarFuera = false;
   doc.addEventListener('keydown', function (ev) {
     if (ev.key !== 'Escape' && ev.key !== 'Esc') return;
     var dentro = false;
-    vivas.forEach(function (i) { if (i.abierto && i.marco.isConnected) { var d = i.marco.contains(doc.activeElement); if (d) dentro = true; i.cerrar({ foco: d }); } });
+    vivas.forEach(function (i) { if (i.abierto && i.marco.isConnected && i.marco.contains(doc.activeElement)) { dentro = true; i.cerrar({ foco: true }); } });
     if (dentro) { ev.preventDefault(); ev.stopPropagation(); }
   }, true);
-  // Toque/clic fuera: contrae al instante del pointer-down (respuesta inmediata), conservando el texto.
   var evFuera = window.PointerEvent ? 'pointerdown' : 'mousedown';
   doc.addEventListener(evFuera, function (ev) {
+    if (!API.cerrarAlTocarFuera) return;
     var t = ev.target; if (!t || t.nodeType !== 1) return;
     vivas.forEach(function (i) { if (i.abierto && i.marco.isConnected && !i.marco.contains(t)) i.cerrar(); });
   }, true);
@@ -427,6 +429,6 @@
   if (doc.body) arrancar(); else doc.addEventListener('DOMContentLoaded', arrancar);
 
   API.montar = montar; API.desmontar = desmontar; API.instancia = instancia; API.montarTodo = montarTodo;
-  API.version = '58.94-bc2';
+  API.version = '58.94-bc3';
   window.bcBusquedaPremium = API;
 })();
