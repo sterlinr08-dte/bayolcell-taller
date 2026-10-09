@@ -62,3 +62,15 @@
 #v-diagnostico .ab-target svg text,#v-diagnostico .ab-target svg circle{pointer-events:none}
 #v-diagnostico #ab-selection{font-size:12px;line-height:1.6;overflow-wrap:anywhere;margin:8px 0}
 #v-diagnostico .ab-tabs button:focus-visible{outline:2px solid #18202e;outline-offset:2px}
+#v-diagnostico .ab-photo-grid{position:relative;flex:none;overflow:hidden}
+#v-diagnostico .ab-photo-preview{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;pointer-events:none}
+#v-diagnostico .ab-photo-active{position:absolute;inset:0;pointer-events:none}
+#v-diagnostico .ab-photo-active img{position:absolute;object-fit:fill;pointer-events:none}
+#v-diagnostico .ab-library-form{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}
+#v-diagnostico .ab-library-form label{display:grid;gap:6px;font-size:13px}
+#v-diagnostico .ab-library-form input,#v-diagnostico .ab-library-form textarea,#v-diagnostico .ab-library-form select{width:100%;min-height:44px;border:1px solid #dfe3eb;border-radius:10px;background:#fff;padding:9px;font-size:14px}
+#v-diagnostico .ab-library-form textarea{resize:vertical}
+#v-diagnostico .ab-library-pagination{display:flex;gap:8px;margin:12px 0}
+#v-diagnostico .ab-library-pagination button{padding:10px;min-height:44px;border:1px solid #dfe3eb;border-radius:10px;background:#fff;cursor:pointer}
+#v-diagnostico #ab-library-feed{display:grid;gap:12px}
+@media(max-width:680px){#v-diagnostico .ab-library-form{grid-template-columns:1fr}}

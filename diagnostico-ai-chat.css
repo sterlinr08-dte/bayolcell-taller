@@ -30,3 +30,6 @@
 #v-diagnostico .ab-chat-history button{min-height:44px;border:1px solid #dfe3eb;border-radius:10px;background:#fff;padding:8px 12px;cursor:pointer}
 #v-diagnostico #ab-chat-history-state{font-size:12px;color:#657084}
 #v-diagnostico #ab-ai-chat button:disabled{opacity:.55;cursor:not-allowed}
+#v-diagnostico .ab-chat-pages{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;margin:10px 0}
+#v-diagnostico .ab-chat-pages span{display:flex;align-items:center;gap:5px}
+#v-diagnostico .ab-chat-pages button{min-height:36px;padding:6px 9px;border:1px solid #dfe3eb;border-radius:9px;background:#fff;font-size:12px;cursor:pointer}

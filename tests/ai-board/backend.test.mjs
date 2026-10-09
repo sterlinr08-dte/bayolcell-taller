@@ -65,3 +65,12 @@ test('provider error marks pending turn failed and does not leak provider body',
 });
 test('save failure is not reported as success',async()=>{const m=mock({saved:false});const r=await m.handler(request());assert.equal(r.status,503);assert.equal((await r.json()).ok,false);});
 test('actual streamed input size is bounded without Content-Length',async()=>{const m=mock();assert.equal((await m.handler(request({...body,message:'x'.repeat(9000)}))).status,413);assert(!m.calls.some(c=>c.url.includes('anthropic')));});
+test('component context is bounded, unverified and restricted to the case model',async()=>{
+ const point={model:'iPhone X',revision:'QA',ref:'QA1',source:{title:'Synthetic QA',reference:'Internal QA',license:'Test only'},pins:[{id:'1',net:'QA_NET'}]};
+ assert.equal(validate({...body,context:{point}}).context.point.validation,'unverified');
+ assert.throws(()=>validate({...body,context:{point:{...point,validation:'verified'}}}));
+ assert.throws(()=>validate({...body,context:{point:{...point,pins:Array(9).fill(point.pins[0])}}}));
+ const m=mock();assert.equal((await m.handler(request({...body,context:{point:{...point,model:'iPhone XR'}}}))).status,400);assert(!m.calls.some(c=>c.url.includes('anthropic')));
+ const ok=mock();assert.equal((await ok.handler(request({...body,context:{point}}))).status,200);
+ assert(JSON.parse(ok.calls.find(c=>c.url.includes('anthropic')).options.body).messages.at(-1).content.includes('unverified'));
+});

@@ -17,23 +17,23 @@ The schema was checked against the existing production schema through read-only 
 ## Test environment setup
 
 1. Use a separate Supabase development project/branch with the existing schema and synthetic Auth actors; never copy client unlock codes or personal data.
-2. Review and apply `schema.sql` there. It is a test schema proposal, outside `migrations`, because it has not been validated on staging yet.
+2. Review and apply `schema.sql`, then `library.sql`, then `maintenance.sql` there. These scripts are for a fresh test environment and are not idempotent migrations. It is a test schema proposal, outside `migrations`, because it has not been validated on staging yet.
 3. Configure the new function with `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and the existing provider's `ANTHROPIC_API_KEY`. Never put server credentials in frontend files. `AI_BOARD_ALLOWED_ORIGINS` is an explicit comma-separated staging origin allowlist. `AI_BOARD_CLAUDE_MODEL` can select a supported model; default matches the existing service, `claude-sonnet-4-6`.
 4. Deploy only `ai-board-chat` to that development environment with gateway JWT verification enabled. The handler additionally calls Auth `/user` and rejects anonymous identities.
 5. Test with two users, assignment revocation, expired sessions, quota, failed requests and refresh. Then audit policies/grants before requesting production authorization.
 
 ## Data and limitations
 
-The endpoint accepts only a message, a session UUID, a request UUID, explicit consent and optional symptoms/battery/current measurements. It never reads whole repair orders, customer records, panic logs or Library records. It stores minimized messages and measurements, and loads up to seven prior completed pairs into the model context (maximum context character budget 18,000). The browser displays the latest 40 turns without writing message content to localStorage/sessionStorage.
+The endpoint accepts only a message, a session UUID, a request UUID, explicit consent and optional symptoms/battery/current measurements and an explicitly selected component with declared provenance (always unverified). It never reads whole repair orders, customer records, panic logs or Library records. It stores minimized messages and measurements, and loads up to seven prior completed pairs into the model context (maximum context character budget 18,000). The browser paginates cases (50), conversations (30) and turns (40 per page) without writing message content to localStorage/sessionStorage.
 
 Pattern redaction is not exhaustive anonymization. Technicians must send technical data only. Names or freeform addresses without labels can escape automatic redaction. Existing broad legacy diagnosis policies are not rewritten by this proposal.
 
-No automatic knowledge publication or unverified case retrieval is enabled. The separate system prompt treats AI output as unverified and prohibits invented electrical references and probability percentages. Model output still needs human review.
+Library proposals remain pending until an independent administrator reviews the supplied evidence; self-approval and direct client writes are forbidden. Approved entries are visible to diagnostic users, so review must also remove personal data. Withdrawals hide an entry and append a review record. Legacy knowledge is never automatically approved. No automatic knowledge publication or unverified case retrieval into the model is enabled. The separate system prompt treats AI output as unverified and prohibits invented electrical references and probability percentages. Model output still needs human review.
 
-Permanent deletion is available through session DELETE with RLS, cascading to turns. There is no automatic retention cleanup yet; agree retention before staging stores real case data. Provider generation is mocked in automated tests; no real Anthropic request or cost was incurred.
+Permanent deletion is available through session DELETE with RLS, cascading to turns. Retention defaults to 180 days after last conversation activity; administrators can set 30–730 days. The server-only purge also marks abandoned pending requests failed after two minutes. A daily 03:17 database cron job is installed only if pg_cron already exists; otherwise the setup emits a notice and an external staging scheduler is still required. Agree this policy before storing real case data. Provider generation is mocked in automated tests; no real Anthropic request or cost was incurred.
 
 ## Reproducible checks
 
-From `tests/ai-board`: `npm ci`, `npx playwright install chromium`, `npm test`. Backend/database only: `npm run test:backend`.
+From `tests/ai-board`: `npm ci`, `npx playwright install chromium`, `python -m pip install -r ../../tools/ai-board/requirements.txt`, `npm test`, `npm run test:photos`. Backend/database only: `npm run test:backend`.
 
 References: https://supabase.com/docs/guides/database/postgres/row-level-security ; https://supabase.com/docs/guides/functions/auth ; https://platform.claude.com/docs/en/api/messages ; https://platform.claude.com/docs/en/api/errors

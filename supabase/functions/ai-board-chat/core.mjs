@@ -6,17 +6,25 @@ export function minimize(text) {
     .replace(/[\w.+-]{1,128}@[\w.-]{1,128}\.[a-z]{2,20}/gi,'[CORREO OMITIDO]')
     .replace(/(?:\+?\d[\s().-]*){9,}/g,'[IDENTIFICADOR OMITIDO]');
 }
+export function safePoint(point){
+ if(!point||typeof point!=='object'||Array.isArray(point)||Object.keys(point).some(k=>!['model','revision','ref','source','pins'].includes(k)))throw Error('INVALID_INPUT');
+ for(const k of ['model','revision','ref'])if(typeof point[k]!=='string'||!point[k].trim()||point[k].length>80)throw Error('INVALID_INPUT');
+ if(!point.source||typeof point.source!=='object'||Object.keys(point.source).some(k=>!['title','reference','license'].includes(k)))throw Error('INVALID_INPUT');
+ for(const k of ['title','reference','license'])if(typeof point.source[k]!=='string'||!point.source[k].trim()||point.source[k].length>500)throw Error('INVALID_INPUT');
+ if(!Array.isArray(point.pins)||point.pins.length>8||point.pins.some(p=>!p||Object.keys(p).some(k=>!['id','net'].includes(k))||typeof p.id!=='string'||p.id.length>40||typeof p.net!=='string'||p.net.length>120))throw Error('INVALID_INPUT');
+ return {model:minimize(point.model),revision:minimize(point.revision),ref:minimize(point.ref),source:{title:minimize(point.source.title),reference:minimize(point.source.reference),license:minimize(point.source.license)},pins:point.pins.map(p=>({id:minimize(p.id),net:minimize(p.net)})),validation:'unverified'};
+}
 export function validate(body) {
   if (!body || typeof body !== 'object' || Array.isArray(body) ||
       Object.keys(body).some(k=>!['session_id','request_id','message','context','consent'].includes(k)) ||
       !UUID.test(body.session_id) || !UUID.test(body.request_id) || body.consent !== true ||
       typeof body.message !== 'string' || !body.message.trim() || body.message.length > 1400) throw Error('INVALID_INPUT');
   const c = body.context ?? {};
-  if (!c || typeof c !== 'object' || Array.isArray(c) || Object.keys(c).some(k=>!['bateria','consumo','sintomas'].includes(k))) throw Error('INVALID_INPUT');
+  if (!c || typeof c !== 'object' || Array.isArray(c) || Object.keys(c).some(k=>!['bateria','consumo','sintomas','point'].includes(k))) throw Error('INVALID_INPUT');
   for (const key of ['bateria','consumo']) if (c[key] !== undefined && (typeof c[key] !== 'string' || c[key].length > 130)) throw Error('INVALID_INPUT');
   if (c.sintomas !== undefined && (!Array.isArray(c.sintomas) || c.sintomas.length>12 || c.sintomas.some(s=>typeof s!=='string'||s.length>160))) throw Error('INVALID_INPUT');
   return {session_id:body.session_id,request_id:body.request_id,message:minimize(body.message).trim(),
-    context:{bateria:minimize(c.bateria),consumo:minimize(c.consumo),sintomas:(c.sintomas||[]).map(minimize)}};
+    context:{bateria:minimize(c.bateria),consumo:minimize(c.consumo),sintomas:(c.sintomas||[]).map(minimize),...(c.point?{point:safePoint(c.point)}:{})}};
 }
 export function buildMessages(turns, message, model, context) {
   // Database returns latest completed turns DESC. Keep complete pairs; chronological order.
@@ -28,6 +36,7 @@ export function buildMessages(turns, message, model, context) {
     const safe={bateria:typeof c.bateria==='string'?minimize(c.bateria).slice(0,130):'',
       consumo:typeof c.consumo==='string'?minimize(c.consumo).slice(0,130):'',
       sintomas:Array.isArray(c.sintomas)?c.sintomas.filter(s=>typeof s==='string').slice(0,12).map(s=>minimize(s).slice(0,160)):[]};
+    if(c.point)try{const p={...c.point};delete p.validation;safe.point=safePoint(p);}catch{}
     const user=JSON.stringify({consulta:minimize(t.user_message).slice(0,1400),mediciones_reportadas:safe}), assistant=minimize(t.assistant_message).slice(0,4000);
     if(!user||!assistant||user.length+assistant.length>budget) break;
     budget-=user.length+assistant.length;selected.push({user,assistant});
@@ -74,6 +83,7 @@ export function createHandler({env,fetchImpl=fetch}) {
       const input=validate(parsed);
       const sessions=await rest('/rest/v1/ai_board_sessions?select=id,modelo&limit=1&id=eq.'+input.session_id);
       if(!Array.isArray(sessions)||sessions.length!==1)throw Error('ACCESS');
+      if(input.context.point&&input.context.point.model!==sessions[0].modelo)throw Error('INVALID_INPUT');
       const reserved=await rest('/rest/v1/rpc/ai_board_reserve',{method:'POST',body:JSON.stringify({p_session:input.session_id,p_request:input.request_id,p_message:input.message,p_context:input.context})});
       if(!reserved?.fresh){
         if(reserved?.turn?.status==='completed')return json({ok:true,answer:reserved.turn.assistant_message,request_id:input.request_id,persisted:true});

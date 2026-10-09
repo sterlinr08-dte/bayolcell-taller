@@ -14,20 +14,21 @@ async function setup(width=1200){
  await page.addStyleTag({content:'body{margin:10px;background:#f7f8fa} #v-diagnostico{width:100%;max-width:1200px;margin:auto}'});
  for(const f of ['diagnostico-ai-board.css','diagnostico-ai-chat.css'])await page.addStyleTag({path:path.join(root,f)});
  await page.evaluate(({A,C,S})=>{
-  window.mock={user:A,calls:[],turns:[],sessions:[{id:S,owner_id:A,modelo:'iPhone X',diagnostico_id:C,created_at:'2026-10-09T12:00:00Z'}],callbacks:[],error:false};
+  window.mock={user:A,calls:[],turns:[],sessions:[{id:S,owner_id:A,modelo:'iPhone X',diagnostico_id:C,created_at:'2026-10-09T12:00:00Z'}],callbacks:[],error:false,library:[],admin:false};
   const state=window.mock;
   window.supabaseClient={
    auth:{getUser:async()=>({data:{user:state.user?{id:state.user}:null}}),onAuthStateChange:cb=>state.callbacks.push(cb)},
-   rpc:async(name,args)=>{state.calls.push({rpc:name,args});return {data:name==='ai_board_create_case'?C:[{id:C,modelo:'iPhone X',orden_id:null}]};},
+   rpc:async(name,args)=>{state.calls.push({rpc:name,args});if(name==='app_is_admin')return {data:state.admin};if(name==='ai_board_library_submit'){state.library.push({id:C,modelo:'iPhone X',revision:args.p_revision,summary:args.p_summary,evidence:args.p_evidence,sources:args.p_sources,status:'pending',author_id:state.user});return {data:C};}if(name==='ai_board_library_review'){state.library.find(e=>e.id===args.p_entry).status=args.p_decision;return {data:true};}return {data:name==='ai_board_create_case'?C:[{id:C,modelo:'iPhone X',orden_id:null}]};},
    from:name=>{
-    let filters={},inserted,deleted=false;
-    const q={select(){return q},eq(k,v){filters[k]=v;return q},order(){return q},limit(){return q},insert(v){inserted=v;return q},delete(){deleted=true;return q},single(){return q},then(resolve){
+    let filters={},inserted,deleted=false,range;
+    const q={select(){return q},eq(k,v){filters[k]=v;return q},order(){return q},limit(){return q},range(start,end){range=[start,end];return q},insert(v){inserted=v;return q},delete(){deleted=true;return q},single(){return q},then(resolve){
      let data;
      if(name==='ai_board_sessions'){
       if(deleted){data=state.sessions.filter(s=>s.id===filters.id);state.sessions=state.sessions.filter(s=>s.id!==filters.id);state.turns=[];}
       else if(inserted){data={id:S,...inserted,created_at:'2026-10-09T12:00:00Z'};state.sessions=[data];}
       else {data=state.sessions.filter(s=>Object.entries(filters).every(([k,v])=>s[k]===v));if(filters.id)data=data[0];}
-     }else data=[...state.turns].reverse();
+     }else if(name==='ai_board_library')data=state.library.filter(e=>state.admin||e.status==='approved'||e.author_id===state.user);else data=[...state.turns].reverse();
+     if(range&&Array.isArray(data))data=data.slice(range[0],range[1]+1);
      return Promise.resolve({data,error:null}).then(resolve);
     }};return q;
    },
@@ -39,7 +40,7 @@ async function setup(width=1200){
    }}
   };
  },{A,C,S});
- for(const f of ['diagnostico-board-data.js','diagnostico-ai-board.js','diagnostico-ai-chat.js'])await page.addScriptTag({path:path.join(root,f)});
+ for(const f of ['diagnostico-photo-tiles.js','diagnostico-board-data.js','diagnostico-ai-board.js','diagnostico-ai-chat.js','diagnostico-ai-library.js'])await page.addScriptTag({path:path.join(root,f)});
  return {page,errors};
 }
 async function openChat(page){
@@ -81,8 +82,10 @@ test('boardview model/provenance validation, component selection and net search'
  const {page}=await setup();const board={schema:'bayol-boardview/1',model:'iPhone X',revision:'TEST-FIXTURE-NOT-REAL',source:{title:'Synthetic QA fixture',license:'Test only',reference:'Internal test'},width:100,height:100,components:[{ref:'QA1',side:'top',x:10,y:10,width:20,height:20,pins:[{id:'1',x:1,y:1,net:'QA_NET'}]}]};
  await page.locator('#ab-model').selectOption('iPhone X');await page.locator('#ab-board-file').setInputFiles({name:'fixture.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(board))});await page.waitForFunction(()=>!!document.querySelector('[data-ref="QA1"]'));
  await page.locator('[data-ref="QA1"] rect').click();assert((await page.locator('#ab-selection').innerText()).includes('QA_NET'));
- await page.locator('#ab-board-search').fill('QA_NET');assert((await page.locator('#ab-coverage').innerText()).includes('pendiente'));
- await page.locator('#ab-model').selectOption('iPhone XR');assert.equal(await page.locator('[data-ref]').count(),0);await page.close();
+ await openChat(page);await page.locator('[data-ab-tab="bitmap"]').click();await page.locator('#ab-point-query').click();assert(await page.locator('#ab-chat-point').isChecked());
+ await page.locator('#ab-chat-text').fill('Synthetic QA component question');await page.locator('#ab-chat-agree').check();await page.locator('#ab-chat-send').click();await page.waitForFunction(()=>mock.turns.length===1);assert.equal(await page.evaluate(()=>mock.calls.find(c=>c.name).body.context.point.ref),'QA1');
+ await page.locator('[data-ab-tab="bitmap"]').click();await page.locator('#ab-board-search').fill('QA_NET');assert((await page.locator('#ab-coverage').innerText()).includes('pendiente'));
+ await page.locator('#ab-model').selectOption('iPhone XR');assert.equal(await page.locator('[data-ref]').count(),0);assert(await page.locator('#ab-point-query').isDisabled());assert.equal(await page.locator('#ab-chat-point').isChecked(),false);await page.close();
 });
 
 test('minimal case and conversation creation; owner can delete persisted history',async()=>{
@@ -92,4 +95,29 @@ test('minimal case and conversation creation; owner can delete persisted history
  await page.locator('#ab-chat-new').click();await page.waitForFunction(()=>document.getElementById('ab-chat-history-state').textContent.includes('Conversación guardada'));
  page.on('dialog',d=>d.accept());await page.locator('#ab-chat-delete').click();await page.waitForFunction(()=>mock.sessions.length===0&&!document.getElementById('ab-chat-reload').disabled);
  assert.equal(await page.locator('#ab-chat-feed .ab-bubble').count(),0);assert.deepEqual(errors,[]);await page.close();
+});
+
+test('HD local folder loads visible tiles and clears on user identity reset',async()=>{
+ const temp=fs.mkdtempSync(path.join(require('node:os').tmpdir(),'ai-board-qa-')),photo=path.join(temp,'qa.png'),out=path.join(temp,'pyramid');
+ require('node:child_process').execFileSync('python',['-c',"from PIL import Image; import sys; Image.new('RGB',(1024,512),(20,90,150)).save(sys.argv[1])",photo]);
+ require('node:child_process').execFileSync('python',[path.join(root,'tools/ai-board/build_photo_pyramid.py'),photo,out,'--model','iPhone X','--revision','QA-SYNTHETIC','--title','Synthetic QA photo','--license','Test only','--reference','Internal QA']);
+ const {page,errors}=await setup();await page.locator('#ab-model').selectOption('iPhone X');await page.locator('#ab-photo-folder').setInputFiles(out);
+ await page.waitForFunction(()=>document.querySelectorAll('.ab-photo-active img').length>0);assert((await page.locator('#ab-coverage').innerText()).includes('Foto HD'));
+ for(let i=0;i<6;i++)await page.locator('#ab-plus').click();assert(await page.locator('.ab-photo-active img').count()<=64);
+ await page.evaluate(()=>window.dispatchEvent(new Event('bayol-ai-board-identity-reset')));assert.equal(await page.locator('.ab-photo-grid').count(),0);assert.deepEqual(errors,[]);await page.close();fs.rmSync(temp,{recursive:true});
+});
+test('library proposal remains pending and author cannot approve own solution',async()=>{
+ const {page,errors}=await setup(390);await page.locator('[data-ab-tab="biblioteca"]').click();await page.waitForFunction(()=>document.getElementById('ab-library-case').options.length>0);
+ await page.locator('#ab-library-revision').fill('QA-SYNTHETIC');await page.locator('#ab-library-summary').fill('Synthetic proposed repair for QA only');await page.locator('#ab-library-evidence').fill('Synthetic final measurement conditions for QA only');await page.locator('#ab-library-source-title').fill('QA reference');await page.locator('#ab-library-source').fill('https://support.apple.com/');
+ await page.locator('#ab-library-submit').click();await page.waitForFunction(()=>document.getElementById('ab-library-feed').textContent.includes('Pendiente de revisión'));
+ await page.evaluate(()=>mock.admin=true);await page.locator('#ab-library-refresh').click();assert.equal(await page.getByRole('button',{name:'Aprobar tras comprobar'}).count(),0);
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.deepEqual(errors,[]);await page.close();
+});
+test('older history pages remain accessible and identity change resets pagination',async()=>{
+ const {page,errors}=await setup();await page.evaluate(()=>{mock.turns=Array.from({length:45},(_,i)=>({user_message:'Synthetic QA turn '+i,assistant_message:'QA answer '+i,status:'completed'}));});
+ await openChat(page);assert.equal(await page.locator('#ab-chat-feed .human').count(),40);assert(!(await page.locator('#ab-chat-feed').innerText()).includes('Synthetic QA turn 0\n'));
+ await page.locator('#ab-chat-turns-next').click();await page.waitForFunction(()=>document.getElementById('ab-chat-history-state').textContent.includes('Página 2'));
+ assert.equal(await page.locator('#ab-chat-feed .human').count(),5);assert((await page.locator('#ab-chat-feed').innerText()).includes('Synthetic QA turn 0'));
+ await page.evaluate(()=>{mock.user=null;mock.callbacks.forEach(cb=>cb('SIGNED_OUT',null));});assert.equal(await page.locator('#ab-chat-feed .human').count(),0);
+ await page.evaluate(()=>{mock.user='11111111-1111-4111-8111-111111111111';});await openChat(page);assert.equal(await page.locator('#ab-chat-feed .human').count(),40);assert.deepEqual(errors,[]);await page.close();
 });

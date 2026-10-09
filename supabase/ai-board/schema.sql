@@ -14,7 +14,7 @@ create table public.ai_board_turns (
   session_id uuid not null references public.ai_board_sessions(id) on delete cascade,
   request_id uuid not null,
   user_message text not null check (char_length(user_message) between 1 and 1400),
-  context jsonb not null default '{}' check (jsonb_typeof(context)='object' and octet_length(context::text)<=3000),
+  context jsonb not null default '{}' check (jsonb_typeof(context)='object' and octet_length(context::text)<=6000),
   assistant_message text check (char_length(assistant_message) <= 12000),
   status text not null default 'pending' check (status in ('pending','completed','failed')),
   created_at timestamptz not null default now(),
@@ -74,8 +74,8 @@ begin
   select * into s from public.ai_board_sessions where id=p_session and owner_id=auth.uid() for update;
   if s.id is null or not public.ai_board_can_case(s.diagnostico_id) then raise exception 'Access denied' using errcode='42501'; end if;
   if p_request is null or p_message is null or char_length(btrim(p_message)) not between 1 and 1400 then raise exception 'Invalid message'; end if;
-  if p_context is null or jsonb_typeof(p_context)<>'object' or octet_length(p_context::text)>3000
-    or exists(select 1 from jsonb_object_keys(p_context) k where k not in ('bateria','consumo','sintomas')) then raise exception 'Invalid context'; end if;
+  if p_context is null or jsonb_typeof(p_context)<>'object' or octet_length(p_context::text)>6000
+    or exists(select 1 from jsonb_object_keys(p_context) k where k not in ('bateria','consumo','sintomas','point')) then raise exception 'Invalid context'; end if;
   select * into t from public.ai_board_turns where session_id=p_session and request_id=p_request;
   if t.id is not null then
     if t.user_message <> p_message or t.context <> p_context then raise exception 'Request conflict'; end if;
@@ -100,14 +100,14 @@ end $$;
 revoke all on function public.ai_board_reserve(uuid,uuid,text,jsonb) from public, anon;
 grant execute on function public.ai_board_reserve(uuid,uuid,text,jsonb) to authenticated;
 
-create function public.ai_board_cases() returns table(id uuid, modelo text, orden_id uuid)
+create function public.ai_board_cases(p_offset integer default 0,p_limit integer default 50) returns table(id uuid, modelo text, orden_id uuid)
 language sql stable security invoker set search_path='' as $$
   select d.id,d.modelo,d.orden_id from public.diagnosticos d
   where public.ai_board_can_case(d.id) and d.modelo like 'iPhone %'
-  order by d.created_at desc,d.id desc limit 50;
+  order by d.created_at desc,d.id desc limit least(greatest(p_limit,1),50) offset greatest(p_offset,0);
 $$;
-revoke all on function public.ai_board_cases() from public, anon;
-grant execute on function public.ai_board_cases() to authenticated;
+revoke all on function public.ai_board_cases(integer,integer) from public, anon;
+grant execute on function public.ai_board_cases(integer,integer) to authenticated;
 
 -- Create a minimal case without sending a legacy diagnostic request to the LLM.
 -- Existing order-linked cases are opened through ai_board_cases, never copied.
