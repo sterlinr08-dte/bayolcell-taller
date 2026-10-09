@@ -1,0 +1,38 @@
+# Configuración de publicación del sitio (GitHub Pages / Jekyll).
+# Solo se publican las páginas y recursos que usa el sitio.
+# Los archivos internos de trabajo (notas, código del servidor, scripts,
+# proyectos aparte) quedan fuera de la publicación.
+# Ojo: si se agrega una página o recurso nuevo con una de estas
+# extensiones o dentro de estas carpetas, no se publicará.
+
+exclude:
+  # Notas y documentación interna (cualquier .md, en cualquier carpeta)
+  - "*.md"
+  - "README*"
+  - "AGENTS.md"
+  - "CLAUDE*"
+  - "docs/"
+  # Código del servidor y archivos de base de datos
+  - "supabase/"
+  - "*.sql"
+  - "*.ts"
+  # Scripts, pruebas y proyectos aparte
+  - "scripts/"
+  - "tests/"
+  - "test/"
+  - "qa/"
+  - "QA/"
+  - "bde/"
+  - "videos-remotion/"
+  - "*.py"
+  - "*.pyc"
+  - "skills-lock.json"
+  # Configuración de herramientas
+  - ".claude/"
+  - ".github/"
+  - ".impeccable/"
+  - ".mcp.json"
+  - "Gemfile"
+  - "Gemfile.lock"
+  - "node_modules/"
+  - "vendor/"

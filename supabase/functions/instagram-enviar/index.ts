@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { crearClienteDB, identidadDesdeJWT, tieneAccesoARedSocial, mandarAZernio, esTimeout, json, cors } from "./_shared/inbox-common.ts";
+import { crearClienteDB, identidadVerificada, tieneAccesoARedSocial, mandarAZernio, esTimeout, json, cors } from "./_shared/inbox-common.ts";
 
 // instagram-enviar — responde un hilo de Instagram Direct existente.
 //
@@ -28,6 +28,13 @@ import { crearClienteDB, identidadDesdeJWT, tieneAccesoARedSocial, mandarAZernio
 // sucursal), la cuenta de Instagram es UNA SOLA compartida por todo el
 // negocio — cualquier tecnico activo de cualquier sucursal (o el admin)
 // puede responder, ver tieneAccesoARedSocial en _shared/inbox-common.ts.
+//
+// 29 sep 2026: si el adjunto viene de instagram-media/out/ (lo sube el CRM),
+// se guarda su ruta en media_path para que la foto/video enviado se vea en el chat.
+//
+// 8 oct 2026 (ajuste de permisos): la identidad se resuelve en el servidor
+// con identidadVerificada (sesión + auth_actor_bindings). Este archivo parte
+// de la versión DESPLEGADA v8 (traía el cambio del 29 sep que no estaba en el repo).
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -51,7 +58,7 @@ Deno.serve(async (req: Request) => {
 
   const hiloId = body.hilo_id as string;
   const mensaje = (body.mensaje as string || "").trim();
-  const adjunto = (body.adjunto || null) as { url: string; tipo: string; nombre?: string } | null;
+  const adjunto = (body.adjunto || null) as { url: string; tipo: string; nombre?: string; path?: string } | null;
 
   if (!hiloId) return json({ ok: false, error: "Falta hilo_id" }, 400);
   if (!mensaje && !adjunto) return json({ ok: false, error: "El mensaje esta vacio" }, 400);
@@ -72,7 +79,7 @@ Deno.serve(async (req: Request) => {
     .maybeSingle();
   if (cuentaError || !cuenta?.zernio_account_id) return json({ ok: false, error: "Cuenta sin cuenta de Zernio configurada" }, 500);
 
-  const { tipo, refId } = identidadDesdeJWT(req);
+  const { tipo, refId } = await identidadVerificada(db, req);
   const autorizado = await tieneAccesoARedSocial(db, tipo, refId);
   if (!autorizado) return json({ ok: false, error: "sin_permiso", mensaje: "No tenes acceso a esta cuenta de Instagram." }, 403);
 
@@ -129,6 +136,7 @@ Deno.serve(async (req: Request) => {
   // texto de seguimiento fue rechazado aunque el adjunto sí se entregó.
   const zernioMsgId: string | null = resultado.data?.data?.messageId ?? null;
   const partialFailure = resultado.data?.data?.partialFailure ?? null;
+  const mediaPath = adjunto && typeof adjunto.path === "string" && /^out\/[A-Za-z0-9._-]{1,80}$/.test(adjunto.path) ? adjunto.path : null;
 
   const { error: msgError } = await db.from("instagram_mensajes").insert({
     hilo_id: hiloId,
@@ -140,6 +148,7 @@ Deno.serve(async (req: Request) => {
     es_automatico: false,
     enviado_por_tipo: tipo,
     enviado_por_id: refId,
+    media_path: mediaPath,
     metadata: partialFailure ? { partialFailure } : null,
   });
   if (msgError) console.error("insertar mensaje saliente instagram error:", msgError.message);

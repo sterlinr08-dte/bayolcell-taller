@@ -98,6 +98,9 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 // otra sucursal — el cliente sigue escribiendo al mismo numero. Solo ESE chat.
 // (Este archivo se reconstruyo desde la version DESPLEGADA v18, que traia el
 // fix F17 sin commitear en el repo.)
+//
+// 8 oct 2026 (ajuste de permisos): la identidad se resuelve en el servidor
+// (identidadVerificada: sesión + auth_actor_bindings). Parte de la v19 desplegada.
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -115,24 +118,37 @@ function json(o: unknown, status = 200) {
   return new Response(JSON.stringify(o), { status, headers: { ...cors, "Content-Type": "application/json" } });
 }
 
-function identidadDesdeJWT(req: Request): { tipo: string | null; refId: string | null } {
+// Ajuste de permisos (8 oct 2026): la identidad de quien llama se resuelve en
+// el servidor — se valida la sesión con Supabase Auth y se busca su vínculo
+// activo en auth_actor_bindings (la misma fuente que usan app_is_admin() y las
+// demás funciones de la base). Sin sesión válida o sin vínculo activo no hay
+// identidad y el envío se rechaza.
+async function identidadVerificada(req: Request): Promise<{ tipo: string | null; refId: string | null }> {
+  const sinIdentidad = { tipo: null, refId: null };
   try {
     const auth = req.headers.get("Authorization") || "";
-    const token = auth.replace(/^Bearer\s+/i, "");
-    const payloadB64 = token.split(".")[1];
-    const payload = JSON.parse(atob(payloadB64.replace(/-/g, "+").replace(/_/g, "/")));
-    const meta = payload.user_metadata || {};
-    return { tipo: meta.tipo ?? null, refId: meta.ref_id ?? null };
+    const token = auth.replace(/^Bearer\s+/i, "").trim();
+    if (!token) return sinIdentidad;
+    const { data: sesion, error: sesionError } = await db.auth.getUser(token);
+    if (sesionError || !sesion?.user?.id) return sinIdentidad;
+    const { data: vinculo, error: vinculoError } = await db
+      .from("auth_actor_bindings")
+      .select("actor_type, actor_ref_id")
+      .eq("auth_user_id", sesion.user.id)
+      .eq("activo", true)
+      .maybeSingle();
+    if (vinculoError || !vinculo?.actor_type || !vinculo?.actor_ref_id) return sinIdentidad;
+    return { tipo: vinculo.actor_type, refId: vinculo.actor_ref_id };
   } catch {
-    return { tipo: null, refId: null };
+    return sinIdentidad;
   }
 }
 
 async function tieneAccesoALinea(tipo: string | null, refId: string | null, sucursalIdLinea: string): Promise<boolean> {
   if (tipo === "usuario") return true; // admin unico del sistema
   if (tipo === "tecnico" && refId) {
-    const { data: tecnico } = await db.from("tecnicos").select("sucursal_id, tipo_empleado, rol").eq("id", refId).maybeSingle();
-    if (!tecnico) return false;
+    const { data: tecnico } = await db.from("tecnicos").select("sucursal_id, tipo_empleado, rol, activo").eq("id", refId).maybeSingle();
+    if (!tecnico || tecnico.activo === false) return false;
     if (tecnico.tipo_empleado === "admin" || tecnico.rol === "admin") return true;
     return tecnico.sucursal_id === sucursalIdLinea;
   }
@@ -269,7 +285,7 @@ Deno.serve(async (req: Request) => {
     .maybeSingle();
   if (lineaError || !linea?.zernio_account_id) return json({ ok: false, error: "Linea sin cuenta de Zernio configurada" }, 500);
 
-  const { tipo, refId } = identidadDesdeJWT(req);
+  const { tipo, refId } = await identidadVerificada(req);
   // 3 oct 2026: el empleado al que le transfirieron ESTE chat puede responderlo (ver cabecera).
   const esSuAsignado = !!refId && !!tipo && hilo.asignado_id === refId && hilo.asignado_tipo === tipo;
   const autorizado = esSuAsignado || await tieneAccesoALinea(tipo, refId, linea.sucursal_id);
