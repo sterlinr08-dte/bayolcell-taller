@@ -24,3 +24,9 @@
 #v-diagnostico #ab-chat-error[hidden]{display:none}
 #v-diagnostico .ab-chat-foot{font-size:11px;color:#758195;line-height:1.5;padding:0 15px 14px;margin:0}
 @media(max-width:680px){#v-diagnostico #ab-ai-chat header{padding:12px}#v-diagnostico #ab-ai-chat h3{font-size:16px}#v-diagnostico #ab-chat-feed{padding:12px;height:45vh}#v-diagnostico .ab-chat-composer{padding:12px}}
+#v-diagnostico .ab-chat-history{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+#v-diagnostico .ab-chat-history label{display:grid;gap:5px;flex:1;min-width:180px;font-size:12px}
+#v-diagnostico .ab-chat-history select{width:100%;min-height:44px;border:1px solid #dfe3eb;border-radius:10px;background:#fff;padding:8px;font-size:14px}
+#v-diagnostico .ab-chat-history button{min-height:44px;border:1px solid #dfe3eb;border-radius:10px;background:#fff;padding:8px 12px;cursor:pointer}
+#v-diagnostico #ab-chat-history-state{font-size:12px;color:#657084}
+#v-diagnostico #ab-ai-chat button:disabled{opacity:.55;cursor:not-allowed}

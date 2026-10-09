@@ -1,4 +1,4 @@
-/* BAYOL CELL AI BOARD - prototipo de interfaz en Diagnostico.
+/* BAYOL CELL AI BOARD - visor experimental de datos de placa en Diagnostico.
  * No reemplaza el motor existente ni presenta diagramas electronicos inventados.
  * Sin escrituras a Supabase, sin envios de datos de imagen, sin claves en navegador.
  */
@@ -9,8 +9,53 @@ const STORAGE_KEY="bayol_ai_board_ui_v1";
 const R=(id)=>document.getElementById(id);
 let storage={};
 try { storage=JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}")||{}; }catch(_){}
-const state={tab:["bitmap","ia","biblioteca"].includes(storage.tab)?storage.tab:"bitmap",model:MODELOS.includes(storage.model)?storage.model:"iPhone 13 Pro Max",scale:1,x:0,y:0,url:null,pointers:new Map(),lastDistance:0,lastX:0,lastY:0};
-const svgDemo='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 430" role="img" aria-label="Ilustración geométrica genérica, no es un boardview real"><defs><linearGradient id="ab-g" x2="1" y2="1"><stop stop-color="#252d3a"/><stop offset="1" stop-color="#10151e"/></linearGradient><pattern id="ab-p" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M0 12H24M12 0V24" stroke="#58677b" stroke-opacity=".16" stroke-width="1"/></pattern></defs><rect x="78" y="61" width="660" height="307" rx="24" fill="url(#ab-g)" stroke="#9ca8b9" stroke-width="5"/><rect x="95" y="78" width="626" height="273" fill="url(#ab-p)"/><g stroke="#c19d62" fill="none" stroke-width="3"><path d="M125 115H310V165H432M160 290H380V258H540M440 105V180H650M230 345V312H610"/><circle cx="125" cy="115" r="8"/><circle cx="610" cy="312" r="8"/><circle cx="650" cy="180" r="8"/></g><g fill="#293747" stroke="#7c899e" stroke-width="4"><rect x="296" y="135" width="178" height="142" rx="9"/><rect x="522" y="116" width="113" height="93" rx="7"/><rect x="168" y="191" width="89" height="119" rx="7"/><rect x="506" y="250" width="132" height="67" rx="7"/></g><g fill="#8b9cb2"><circle cx="111" cy="92" r="13"/><circle cx="707" cy="94" r="13"/><circle cx="705" cy="336" r="13"/><circle cx="112" cy="336" r="13"/></g><text x="385" y="197" fill="#c9d3e4" font-size="19" text-anchor="middle" font-family="Arial,sans-serif">PCB DE MUESTRA</text><text x="385" y="222" fill="#8b9cb2" font-size="12" text-anchor="middle" font-family="Arial,sans-serif">Sin datos eléctricos</text></svg>';
+const state={tab:["bitmap","ia","biblioteca"].includes(storage.tab)?storage.tab:"bitmap",model:MODELOS.includes(storage.model)?storage.model:"iPhone 13 Pro Max",scale:1,x:0,y:0,url:null,board:null,selected:null,side:"top",photoSize:null,pointers:new Map(),lastDistance:0,lastX:0,lastY:0};
+
+let assetEpoch=0;
+function clearAsset(){assetEpoch++;if(state.url)URL.revokeObjectURL(state.url);state.url=null;state.photoSize=null;state.board=null;state.selected=null;R('ab-selection')?.replaceChildren();const side=R('ab-side');if(side)side.disabled=true;}
+function mountBoardTools(){
+ R('ab-minus').textContent='−';R('ab-plus').textContent='+';R('ab-reset').textContent='Centrar';
+ document.querySelector('#ab-shell .ab-under>span').textContent='Zoom vectorial de boardview · Fotografía local según resolución original';
+ const tools=document.createElement('div');tools.className='ab-board-tools';
+ tools.innerHTML='<label class="ab-upload">Importar boardview JSON<input id="ab-board-file" type="file" accept="application/json,.json" hidden></label><label>Buscar componente o red<input id="ab-board-search" type="search" maxlength="120" placeholder="Designador o nombre de red"></label><label><input id="ab-board-labels" type="checkbox" checked> Designadores</label><label><input id="ab-board-pins" type="checkbox"> Pines</label>';
+ R('ab-stage-view').before(tools);
+ const detail=document.createElement('div');detail.id='ab-selection';detail.setAttribute('role','status');R('ab-details').after(detail);
+ R('ab-board-file').addEventListener('change',async e=>{
+   const f=e.target.files?.[0];e.target.value='';if(!f)return;
+   if(f.size>3*1024*1024){alert('Máximo 3 MB de datos de boardview.');return;}
+   const token=++assetEpoch,model=state.model;
+   try{const board=window.BayolBoardData.validate(JSON.parse(await f.text()),model);if(token!==assetEpoch||model!==state.model)return;clearAsset();state.board=board;state.side=board.components[0].side;resetView();refresh();}
+   catch(err){alert(err.message||'No se pudo importar el boardview.');}
+ });
+ for(const id of ['ab-board-search','ab-board-labels','ab-board-pins'])R(id).addEventListener(id==='ab-board-search'?'input':'change',()=>{if(state.board)renderBoard();});
+ const side=R('ab-side');side.replaceChildren();for(const [value,label] of [['top','Superior'],['bottom','Inferior']]){const o=document.createElement('option');o.value=value;o.textContent=label;side.append(o);}
+ side.addEventListener('change',()=>{state.side=side.value;state.selected=null;resetView();renderBoard();});
+ R('ab-target').addEventListener('click',e=>{const ref=e.target.closest('[data-ref]')?.dataset.ref;if(!ref||!state.board)return;state.selected=ref;renderBoard();});
+ R('ab-shell').querySelectorAll('[data-ab-tab]').forEach((b,i,all)=>b.addEventListener('keydown',e=>{
+   let index;if(e.key==='ArrowRight')index=(i+1)%all.length;else if(e.key==='ArrowLeft')index=(i+all.length-1)%all.length;else if(e.key==='Home')index=0;else if(e.key==='End')index=all.length-1;else return;
+   e.preventDefault();show(all[index].dataset.abTab);all[index].focus();
+ }));
+}
+function renderBoard(){
+ const board=state.board;if(!board)return;
+ R('ab-coverage').textContent='Boardview aportado · pendiente de validación';
+ R('ab-details').textContent=board.model+' · Revisión '+board.revision+' · Fuente: '+board.source.title+' · Licencia declarada: '+board.source.license+' · Referencia: '+board.source.reference;
+ R('ab-side').disabled=false;R('ab-side').value=state.side;
+ const svgNS='http://www.w3.org/2000/svg';const el=(name,attrs,text)=>{const n=document.createElementNS(svgNS,name);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,String(v));if(text)n.textContent=text;return n;};
+ const svg=el('svg',{viewBox:'0 0 '+board.width+' '+board.height,role:'img','aria-label':'Boardview aportado para '+board.model});
+ const query=R('ab-board-search').value.trim().toUpperCase();let count=0;
+ for(const c of board.components.filter(c=>c.side===state.side)){
+  const match=!!query&&(c.ref.toUpperCase().includes(query)||c.pins.some(p=>p.net.toUpperCase().includes(query)));
+  if(match)count++;
+  const g=el('g',{'data-ref':c.ref});g.append(el('rect',{x:c.x,y:c.y,width:c.width,height:c.height,fill:c.ref===state.selected?'#E31E24':match?'#ffe0a3':'#d2dbe7',stroke:'#566479','stroke-width':Math.max(board.width/1200,.2)}));
+  if(R('ab-board-labels').checked)g.append(el('text',{x:c.x+c.width/2,y:c.y+c.height/2,'text-anchor':'middle','dominant-baseline':'middle','font-size':Math.min(c.width/c.ref.length*1.3,c.height*.4),fill:'#172334'},c.ref));
+  if(R('ab-board-pins').checked)for(const p of c.pins)g.append(el('circle',{cx:c.x+p.x,cy:c.y+p.y,r:Math.max(board.width/1200,.3),fill:'#111'}));
+  svg.append(g);
+ }
+ R('ab-target').replaceChildren(svg);const selected=board.components.find(c=>c.ref===state.selected);
+ R('ab-selection').textContent=selected?selected.ref+' · Pines aportados: '+selected.pins.map(p=>p.id+': '+(p.net||'sin red indicada')).join(', '):(query?count+' componentes coinciden en este lado.':'Selecciona un componente para consultar los datos aportados.');
+ document.querySelector('#ab-shell .ab-watermark').textContent='MAPA APORTADO · REVISIÓN TÉCNICA PENDIENTE';repaint();
+}
 function save(){
   try {localStorage.setItem(STORAGE_KEY,JSON.stringify({tab:state.tab,model:state.model}));}catch(_){}
 }
@@ -38,7 +83,7 @@ function mount(){
  const sel=R("ab-model");
  sel.innerHTML=MODELOS.map(m=>'<option value="'+m+'">'+m+'</option>').join("");
  sel.value=state.model;
- sel.addEventListener("change",()=>{state.model=sel.value;const legacyModel=R("dg_modelo");if(legacyModel&&!legacyModel.value.trim())legacyModel.value=state.model;resetView();refresh();save();});
+ sel.addEventListener("change",()=>{state.model=sel.value;clearAsset();const legacyModel=R("dg_modelo");if(legacyModel)legacyModel.value=state.model;resetView();refresh();save();});
  R("ab-file").addEventListener("change",loadPhoto);
  R("ab-plus").addEventListener("click",()=>zoom(1.35));
  R("ab-minus").addEventListener("click",()=>zoom(1/1.35));
@@ -46,58 +91,67 @@ function mount(){
  R("ab-open-ia").addEventListener("click",()=>show("ia"));
  shell.querySelectorAll("[data-ab-tab]").forEach(b=>b.addEventListener("click",()=>show(b.dataset.abTab)));
  const stage=R("ab-stage-view");
- stage.addEventListener("wheel",e=>{e.preventDefault();zoom(e.deltaY>0?0.88:1.14);},{passive:false});
+ stage.addEventListener("wheel",e=>{e.preventDefault();const r=stage.getBoundingClientRect();zoom(e.deltaY>0?0.88:1.14,e.clientX-r.left-r.width/2,e.clientY-r.top-r.height/2);},{passive:false});
  stage.addEventListener("pointerdown",startPointer);
  stage.addEventListener("pointermove",movePointer);
  ["pointerup","pointercancel","lostpointercapture"].forEach(n=>stage.addEventListener(n,endPointer));
  stage.addEventListener("keydown",e=>{if(e.key==="+"||e.key==="="){e.preventDefault();zoom(1.2);}if(e.key==="-"){e.preventDefault();zoom(1/1.2);}});
  const lm=R("dg_modelo");if(lm&&!lm.value.trim())lm.value=state.model;
- refresh();show(state.tab);
+ mountBoardTools();refresh();show(state.tab);
+ window.addEventListener('bayol-ai-board-identity-reset',()=>{clearAsset();resetView();refresh();});
 }
 function show(tab){
  if(!["bitmap","ia","biblioteca"].includes(tab))return;
  state.tab=tab;save();
- document.querySelectorAll("#ab-shell [data-ab-tab]").forEach(b=>{const active=b.dataset.abTab===tab;b.classList.toggle("active",active);b.setAttribute("aria-selected",String(active));});
- document.querySelectorAll("#ab-shell .ab-pane").forEach(p=>{p.hidden=p.id!=="ab-pane-"+tab;});
+ document.querySelectorAll("#ab-shell [data-ab-tab]").forEach(b=>{const active=b.dataset.abTab===tab;b.classList.toggle("active",active);b.setAttribute("aria-selected",String(active));b.tabIndex=active?0:-1;b.id="ab-tab-"+b.dataset.abTab;b.setAttribute("aria-controls","ab-pane-"+b.dataset.abTab);});
+ document.querySelectorAll("#ab-shell .ab-pane").forEach(p=>{p.hidden=p.id!=="ab-pane-"+tab;p.setAttribute("aria-labelledby",p.id.replace("pane","tab"));});
  if(tab==="biblioteca"&&typeof window.cargarConocimiento==="function")window.cargarConocimiento();
 }
 function refresh(){
+ if(state.board){renderBoard();return;}
+ document.querySelector('#ab-shell .ab-watermark').textContent=state.url?'FOTOGRAFÍA LOCAL · SIN VALIDACIÓN ELÉCTRICA':'SIN MAPA TÉCNICO VERIFICADO';
  R("ab-coverage").textContent=state.url?"Foto local · sin validación":"Sin boardview verificado";
  R("ab-details").textContent=state.url?"Fotografía cargada localmente para inspección visual. No incluye conexiones, pines ni referencias eléctricas.":"El "+state.model+" figura en el catálogo, pero aún no existe una placa electrónica verificada disponible en este módulo.";
  const target=R("ab-target");
  if(state.url){target.innerHTML="";const img=document.createElement("img");img.src=state.url;img.alt="Fotografía local aportada por el técnico, no verificada";img.draggable=false;target.appendChild(img);}
- else target.innerHTML=svgDemo;
+ else {target.replaceChildren();const empty=document.createElement("p");empty.className="ab-no-map";empty.textContent="Sin boardview verificado para "+state.model+". Abre una fotografía local o importa un mapa con su fuente y revisión.";target.appendChild(empty);}
  repaint();
 }
 function repaint(){
  const tar=R("ab-target");if(tar)tar.style.transform="translate("+state.x+"px,"+state.y+"px) scale("+state.scale+")";
  const status=R("ab-zoom-status");if(status)status.textContent=Math.round(state.scale*100)+"%";
 }
-function zoom(factor){state.scale=Math.min(12,Math.max(.5,state.scale*factor));repaint();}
+function zoom(factor,ax=0,ay=0){const old=state.scale;state.scale=Math.min(24,Math.max(.5,old*factor));state.x=ax-(ax-state.x)*state.scale/old;state.y=ay-(ay-state.y)*state.scale/old;repaint();}
 function resetView(){state.scale=1;state.x=0;state.y=0;state.pointers.clear();repaint();}
-function loadPhoto(event){
- const f=event.target.files&&event.target.files[0];
- if(!f)return;
- if(!f.type.startsWith("image/")||f.size>35*1024*1024){alert("Selecciona una imagen válida de hasta 35 MB.");event.target.value="";return;}
- if(state.url)URL.revokeObjectURL(state.url);
- state.url=URL.createObjectURL(f);resetView();refresh();event.target.value="";
+async function loadPhoto(event){
+ const f=event.target.files&&event.target.files[0];if(!f)return;
+ event.target.value="";
+ if(!["image/png","image/jpeg","image/webp","image/avif"].includes(f.type)||f.size>35*1024*1024){alert("Selecciona PNG, JPEG, WebP o AVIF de hasta 35 MB.");return;}
+ const selectedModel=state.model,token=++assetEpoch,url=URL.createObjectURL(f),img=new Image();
+ try{img.src=url;await img.decode();if(img.naturalWidth*img.naturalHeight>80000000)throw Error("La fotografía supera 80 megapíxeles.");
+   if(token!==assetEpoch||selectedModel!==state.model){URL.revokeObjectURL(url);return;}
+   clearAsset();state.url=url;state.photoSize={width:img.naturalWidth,height:img.naturalHeight};resetView();refresh();
+   R("ab-details").textContent="Fotografía local: "+img.naturalWidth+" × "+img.naturalHeight+" píxeles. Modelo asociado: "+state.model+". Sin datos eléctricos validados.";
+ }catch(e){URL.revokeObjectURL(url);alert(e.message||"No se pudo abrir la imagen.");}
 }
 function startPointer(e){
  if(e.pointerType==="mouse"&&e.button!==0)return;
  const stage=R("ab-stage-view");stage.setPointerCapture(e.pointerId);
  state.pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+ state.hitRef=e.target.closest('[data-ref]')?.dataset.ref;state.dragDistance=0;
  state.lastX=e.clientX;state.lastY=e.clientY;
  if(state.pointers.size===2){const p=Array.from(state.pointers.values());state.lastDistance=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);}
 }
 function movePointer(e){
  if(!state.pointers.has(e.pointerId))return;
  const prior=state.pointers.get(e.pointerId);
+ state.dragDistance+=Math.hypot(e.clientX-prior.x,e.clientY-prior.y);
  state.pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
  if(state.pointers.size===1){state.x+=e.clientX-prior.x;state.y+=e.clientY-prior.y;}
- else if(state.pointers.size===2){const p=Array.from(state.pointers.values());const dist=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);if(state.lastDistance>0)state.scale=Math.min(12,Math.max(.5,state.scale*dist/state.lastDistance));state.lastDistance=dist;}
+ else if(state.pointers.size===2){const p=Array.from(state.pointers.values());const dist=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);const r=R("ab-stage-view").getBoundingClientRect();const mx=(p[0].x+p[1].x)/2-r.left-r.width/2,my=(p[0].y+p[1].y)/2-r.top-r.height/2;state.x+=(e.clientX-prior.x)/2;state.y+=(e.clientY-prior.y)/2;if(state.lastDistance>0)zoom(dist/state.lastDistance,mx,my);state.lastDistance=dist;}
  repaint();
 }
-function endPointer(e){state.pointers.delete(e.pointerId);state.lastDistance=0;if(state.pointers.size===2){const p=Array.from(state.pointers.values());state.lastDistance=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);}}
-window.addEventListener("pagehide",()=>{if(state.url)URL.revokeObjectURL(state.url);},{once:true});
+function endPointer(e){const select=e.type==='pointerup'&&state.pointers.size===1&&state.hitRef&&state.dragDistance<4;state.pointers.delete(e.pointerId);state.lastDistance=0;if(select&&state.board){state.selected=state.hitRef;renderBoard();}state.hitRef=null;if(state.pointers.size===2){const p=Array.from(state.pointers.values());state.lastDistance=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);}}
+window.addEventListener("pagehide",()=>{state.pointers.clear();});
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",mount,{once:true});else mount();
 })();

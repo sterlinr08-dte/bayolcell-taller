@@ -33,6 +33,10 @@ test('chronological paired context ends with user and remains bounded',()=>{
  const m=buildMessages(turns,'siguiente','iPhone X',{});assert.deepEqual(m.map(t=>t.role),['user','assistant','user','assistant','user']);assert.equal(JSON.parse(m[0].content).consulta,'viejo');
  assert(JSON.stringify(buildMessages(Array(100).fill({user_message:'x'.repeat(1400),assistant_message:'y'.repeat(12000)}),'next','iPhone X',{})).length<22000);
 });
+test('stored measurements follow the conversation and unknown historical fields are excluded',()=>{
+ const m=buildMessages([{user_message:'medí corriente',assistant_message:'condiciones?',context:{consumo:'0.08 A',orden:{clave:'secreto'},bateria:{clave:'secreto'},sintomas:['no enciende']}}],'seguimiento','iPhone X',{});
+ assert(m[0].content.includes('0.08 A'));assert(!m[0].content.includes('secreto'));assert(!m[0].content.includes('orden'));
+});
 test('auth and permission precede provider access',async()=>{
  for(const overrides of [{permission:false},{auth:{id:ID,is_anonymous:true}},{sessions:[]}]){const m=mock(overrides);const r=await m.handler(request());assert.equal(r.status,403);assert(!m.calls.some(c=>c.url.includes('anthropic')));}
 });

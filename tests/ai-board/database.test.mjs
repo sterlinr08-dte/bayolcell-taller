@@ -14,7 +14,7 @@ create table public.auth_actor_bindings(auth_user_id uuid primary key, actor_typ
 create function public.app_actor_identity() returns table(actor_type text,actor_ref_id uuid) language sql stable security definer as $$ select actor_type,actor_ref_id from public.auth_actor_bindings where auth_user_id=auth.uid() and activo $$;
 create function public.app_puede_diagnostico() returns boolean language sql stable security definer as $$ select coalesce((select permitted and activo from public.auth_actor_bindings where auth_user_id=auth.uid()),false) $$;
 create table public.ordenes_reparacion(id uuid primary key,tecnico_asignado_id uuid,tecnico_principal_id uuid);
-create table public.diagnosticos(id uuid primary key,creado_por uuid,orden_id uuid,modelo text,created_at timestamptz default now());
+create table public.diagnosticos(id uuid primary key default gen_random_uuid(),creado_por uuid,orden_id uuid,modelo text,created_at timestamptz default now());
 alter table public.diagnosticos enable row level security;alter table public.ordenes_reparacion enable row level security;
 create policy legacy_diagnosticos on public.diagnosticos for all to authenticated using(public.app_puede_diagnostico());
 create policy legacy_ordenes on public.ordenes_reparacion for all to authenticated using(public.app_puede_diagnostico());
@@ -63,6 +63,12 @@ test('quota enforced in database across sessions and retries do not consume anot
  await as('authenticated',A);
  await deny(`select ai_board_reserve('${S}','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','consulta nueva')`);
  assert.equal((await scalar(`select ai_board_reserve('${S}','${Q}','consulta') as data`)).data.fresh,false);
+});
+test('minimal case creation binds Auth owner without an AI call and rejects out-of-catalog models',async()=>{
+ await as('authenticated',A);
+ const row=await scalar("select ai_board_create_case('iPhone X') as id");
+ assert.equal((await scalar(`select creado_por from diagnosticos where id='${row.id}'`)).creado_por,A);
+ await deny("select ai_board_create_case('iPhone 6')");
 });
 test('inactive binding removes owner access; anon cannot read, reserve or finish',async()=>{
  await as('postgres');await db.exec(`update auth_actor_bindings set activo=false where auth_user_id='${A}'`);

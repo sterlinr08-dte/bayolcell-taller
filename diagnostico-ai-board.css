@@ -52,3 +52,13 @@
 @media(max-width:1060px){#v-diagnostico .ab-workspace{grid-template-columns:1fr}#v-diagnostico .ab-side{grid-template-columns:repeat(2,minmax(0,1fr))}#v-diagnostico .ab-side>.ab-card:first-child{grid-column:1/-1}}
 @media(max-width:680px){#v-diagnostico .ab-header{align-items:flex-start}#v-diagnostico .ab-stage{display:none}#v-diagnostico .ab-tabs{gap:3px;padding:3px}#v-diagnostico .ab-tabs button{font-size:11px;gap:4px;padding:6px 3px;min-height:43px;flex-wrap:wrap}#v-diagnostico .ab-tabs button i{font-size:17px}#v-diagnostico .ab-visual{padding:9px}#v-diagnostico .ab-controls{gap:6px}#v-diagnostico .ab-controls label:first-child{flex:1;min-width:150px}#v-diagnostico .ab-controls label select{width:100%}#v-diagnostico .ab-controls label:nth-child(3){display:none}#v-diagnostico .ab-zoom-buttons{margin-left:0}#v-diagnostico .ab-stage-view{height:49vh;min-height:310px}#v-diagnostico .ab-side{grid-template-columns:1fr}#v-diagnostico .ab-side>.ab-card:first-child{grid-column:auto}}
 @media(prefers-reduced-motion:reduce){#v-diagnostico .ab-tabs button{transition:none}#v-diagnostico .ab-target{will-change:auto}}
+
+#v-diagnostico .ab-board-tools{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:10px 0;font-size:12px}
+#v-diagnostico .ab-board-tools label{display:flex;align-items:center;gap:6px}
+#v-diagnostico .ab-board-tools input[type=search]{min-height:44px;border:1px solid #dfe3eb;border-radius:10px;padding:8px;width:180px;font-size:14px}
+#v-diagnostico .ab-no-map{max-width:420px;margin:24px;text-align:center;line-height:1.7;color:#526072}
+#v-diagnostico .ab-target svg{pointer-events:auto;filter:none}
+#v-diagnostico .ab-target svg [data-ref]{cursor:crosshair}
+#v-diagnostico .ab-target svg text,#v-diagnostico .ab-target svg circle{pointer-events:none}
+#v-diagnostico #ab-selection{font-size:12px;line-height:1.6;overflow-wrap:anywhere;margin:8px 0}
+#v-diagnostico .ab-tabs button:focus-visible{outline:2px solid #18202e;outline-offset:2px}
