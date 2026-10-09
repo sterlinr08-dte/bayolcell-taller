@@ -1,0 +1,76 @@
+name: AI BOARD checks
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'diagnostico-*.js'
+      - 'diagnostico-*.css'
+      - 'taller.html'
+      - 'supabase/ai-board/**'
+      - 'supabase/functions/ai-board-chat/**'
+      - 'tests/ai-board/**'
+      - 'tools/ai-board/**'
+      - '.github/workflows/ai-board-tests.yml'
+  push:
+    branches: [feature/ai-board-plan-iphone-x-plus]
+    paths:
+      - 'diagnostico-*.js'
+      - 'diagnostico-*.css'
+      - 'taller.html'
+      - 'supabase/ai-board/**'
+      - 'supabase/functions/ai-board-chat/**'
+      - 'tests/ai-board/**'
+      - 'tools/ai-board/**'
+      - '.github/workflows/ai-board-tests.yml'
+permissions:
+  contents: read
+concurrency:
+  group: ai-board-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  unit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - run: npm ci
+        working-directory: tests/ai-board
+      - run: python -m pip install -r tools/ai-board/requirements.txt
+      - run: npm run test:unit
+        working-directory: tests/ai-board
+      - run: npm run test:photos
+        working-directory: tests/ai-board
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [chromium, webkit]
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - run: npm ci
+        working-directory: tests/ai-board
+      - run: python -m pip install -r tools/ai-board/requirements.txt
+      - run: npx playwright install --with-deps ${{ matrix.engine }}
+        working-directory: tests/ai-board
+      - run: npm run test:browser
+        working-directory: tests/ai-board
+        env:
+          AI_BOARD_BROWSER_ENGINE: ${{ matrix.engine }}

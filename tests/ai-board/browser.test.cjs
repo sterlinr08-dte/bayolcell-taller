@@ -1,5 +1,7 @@
 const test=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const path=require('node:path');
-const {chromium}=require(process.env.AI_BOARD_PLAYWRIGHT_MODULE||'playwright');
+const engines=require(process.env.AI_BOARD_PLAYWRIGHT_MODULE||'playwright');
+const engine=process.env.AI_BOARD_BROWSER_ENGINE||'chromium';
+if(!['chromium','webkit'].includes(engine))throw Error('Unsupported AI BOARD browser engine.');
 const root=path.resolve(__dirname,'../..');let browser;
 const full=fs.readFileSync(path.join(root,'taller.html'),'utf8');
 const A='11111111-1111-4111-8111-111111111111',C='44444444-4444-4444-8444-444444444444',S='77777777-7777-4777-8777-777777777777';
@@ -49,7 +51,7 @@ async function openChat(page){
  await page.locator('#ab-chat-session').selectOption(S);await page.waitForFunction(()=>document.getElementById('ab-chat-history-state').textContent.includes('Historial guardado'));
  assert.equal(await page.locator('#ab-model').inputValue(),'iPhone X');
 }
-test.before(async()=>{browser=await chromium.launch({headless:true,args:['--no-sandbox'],...(process.env.AI_BOARD_CHROMIUM_PATH?{executablePath:process.env.AI_BOARD_CHROMIUM_PATH}:{})});});
+test.before(async()=>{browser=await engines[engine].launch({headless:true,...(engine==='chromium'?{args:['--no-sandbox']}:{}),...(process.env.AI_BOARD_CHROMIUM_PATH?{executablePath:process.env.AI_BOARD_CHROMIUM_PATH}:{})});});
 test.after(async()=>browser?.close());
 test('actual diagnostic DOM mounts once with three tabs and legacy tools preserved',async()=>{
  const {page,errors}=await setup();assert.equal(await page.locator('[role=tab]').count(),3);assert.equal(await page.locator('#dg_panic').count(),1);assert.equal(await page.locator('#conocimientoTable').count(),1);
