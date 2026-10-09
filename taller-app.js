@@ -6097,7 +6097,6 @@ function verLineasImportCompra(idx) {
       <p style="font-size:12px; color:#475569; margin:0 0 8px;">Marca los <b>modelos de teléfono</b> que entran al lote (cada unidad = un equipo). Las piezas/accesorios <b>no</b> los marques.</p>
       <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:0 0 8px;">
         <button type="button" class="btn btn-light" style="padding:5px 10px; font-size:12px;" onclick="_impMarcarTodos(${idx}, true)"><i class="ti ti-checks"></i> Seleccionar todo</button>
-        <button type="button" class="btn btn-light" style="padding:5px 10px; font-size:12px;" onclick="_impMarcarTodos(${idx}, false)"><i class="ti ti-square"></i> Quitar todo</button>
         <span id="impContador" style="font-size:12px; color:#475569; margin-left:auto;">Nada marcado</span>
       </div>
       <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
