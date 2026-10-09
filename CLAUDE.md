@@ -968,3 +968,11 @@ Estado al 9 oct 2026: **funciones desplegadas** (`whatsapp-enviar` v20, `instagr
 - **Prueba** `supabase/tests/prueba_ajuste_permisos.sql` (corre dentro de BEGIN … ROLLBACK, no deja datos).
 - **Funciones**: `whatsapp-enviar`, `instagram-enviar` y `_shared/inbox-common.ts` (y sus copias) resuelven la identidad en el servidor (`identidadVerificada`: sesión + `auth_actor_bindings`). `puente-rifa` y `recepcion-boleto` entran al repo, leen la cuenta-puente de los Secrets `NEXUS_PRO_*` (los mismos de `consultar-boleto`) y exigen admin / `rifas_ver` o admin / `recepcion_ver`.
 - **Orden para aplicar:** migración → prueba → funciones → (cuenta-puente) → sitio.
+
+## ACTUALIZACIÓN 9 oct 2026 — Menú lateral compacto (solo íconos) en la computadora
+Pedido del dueño: «que la barra lateral se oculte automáticamente y solo se queden los íconos para ahorrar espacio».
+- **Capa aislada:** `taller-sidebar-mini.js` (trae `taller-sidebar-mini.css`), la carga `crm-marketing-consent.js`. Solo ≥1025 px; celular/tableta sin cambios. No cambia ids ni onclick. API `window.BayolMenuMini` (`fijar(bool)`, `abrir()`, `cerrar()`, `estado()`).
+- **Cómo funciona:** `html.bcm-mini` → `#sidebar` fijo a la izquierda en 76 px (solo íconos; los títulos de sección quedan como línea fina; logo «B» y avatar solos) y `.main` con `margin-left:76px`. Al pasar el ratón (110 ms) o entrar con Tab se abre a 250 px **flotando encima** del contenido (`.bcm-abierta`, z-index 90 < ventanas 100); se cierra al salir (260 ms), con Esc o al elegir una opción (no se reabre hasta salir y volver a entrar). Cada botón lleva `title` con su nombre.
+- **Fijar menú:** chincheta `#bcmPin` en la cabecera de la barra (visible con la barra abierta) → vuelve a la barra normal; se recuerda en `localStorage bc_menu_fijo`.
+- El fondo decorativo `#bcAmbientOrbSafe` (taller-ambient-orb-safe.js) tenía `left:250px` fijo; con la barra compacta se pasa a 76 px. La cápsula del menú (`taller-navigation-motion.js`) se recoloca sola (ResizeObserver + resize).
+- Pruebas (copia local, 1366/1920/390): cerrada 76 px, abre a 250 sin mover el contenido, cierra al salir y al hacer clic, teclado/Esc, fijar persiste tras recargar, sin desbordes en CRM/Recepción/Reacond/Financiamiento/Incentivos/Configuración; celular igual que antes.

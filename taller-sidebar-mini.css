@@ -1,0 +1,54 @@
+/* BAYOL CELL · Menú lateral compacto (9 oct 2026) — solo computadora (≥1025 px).
+   La barra queda delgada con los íconos; al pasar el ratón (o al llegar con el teclado) se abre flotando
+   SOBRE el contenido, sin empujarlo; al salir se vuelve a cerrar. Con «Fijar menú» queda abierta como antes.
+   La activa taller-sidebar-mini.js (clase html.bcm-mini). Celular/tableta: sin cambios. Solo estilo. */
+@media (min-width:1025px){
+  html.bcm-mini body #app aside.sidebar{
+    position:fixed !important;left:0 !important;top:0 !important;bottom:0 !important;
+    height:100vh !important;width:76px !important;min-width:0 !important;
+    z-index:90 !important; /* por encima del contenido, por debajo de las ventanas (z 100) */
+    overflow-x:hidden !important;
+    transition:width .22s cubic-bezier(.2,.8,.2,1),box-shadow .22s ease !important;
+  }
+  html.bcm-mini body #app aside.sidebar.bcm-abierta{
+    width:250px !important;
+    box-shadow:18px 0 44px -16px rgba(8,13,24,.55) !important;
+  }
+  html.bcm-mini body #app .main{margin-left:76px !important;}
+  /* el fondo decorativo (taller-ambient-orb-safe.js) empezaba fijo en 250px = ancho de la barra normal */
+  html.bcm-mini body #bcAmbientOrbSafe{left:76px !important;}
+  html.bcm-mini body #app aside.sidebar .nav button{white-space:nowrap !important;overflow:hidden !important;}
+
+  /* ── Cerrada: solo íconos ── */
+  html.bcm-mini body #app aside.sidebar:not(.bcm-abierta) .side-brand{justify-content:center !important;padding-left:0 !important;padding-right:0 !important;}
+  html.bcm-mini body #app aside.sidebar:not(.bcm-abierta) .brand-text,
+  html.bcm-mini body #app aside.sidebar:not(.bcm-abierta) .bcm-pin{display:none !important;}
+  html.bcm-mini body #app aside.sidebar:not(.bcm-abierta) .nav{padding-left:10px !important;padding-right:10px !important;overflow-x:hidden !important;}
+  html.bcm-mini body #app aside.sidebar:not(.bcm-abierta) .nav button{
+    justify-content:center !important;gap:0 !important;padding-left:0 !important;padding-right:0 !important;
+  }
+  html.bcm-mini body #app aside.sidebar:not(.bcm-abierta) .nav button > span,
+  html.bcm-mini body #app aside.sidebar:not(.bcm-abierta) .nav button > i ~ i,
+  html.bcm-mini body #app aside.sidebar:not(.bcm-abierta) .nav .nav-badge-admin{display:none !important;}
+  html.bcm-mini body #app aside.sidebar:not(.bcm-abierta) .nav button > i:first-child{font-size:20px !important;margin:0 !important;}
+  /* los títulos de sección se vuelven una línea fina que separa los grupos */
+  html.bcm-mini body #app aside.sidebar:not(.bcm-abierta) .nav-section{
+    font-size:0 !important;line-height:0 !important;height:1px !important;padding:0 !important;
+    margin:12px 8px !important;background:rgba(255,255,255,.14) !important;overflow:hidden !important;
+  }
+  html.bcm-mini body #app aside.sidebar:not(.bcm-abierta) .side-user{justify-content:center !important;padding-left:0 !important;padding-right:0 !important;}
+  html.bcm-mini body #app aside.sidebar:not(.bcm-abierta) .side-user .profile-info{display:none !important;}
+
+  /* ── Botón «Fijar menú» (en la cabecera, visible con la barra abierta) ── */
+  #app .side-brand .bcm-pin{
+    margin-left:auto;flex:none;width:34px;height:34px;border-radius:10px;border:0;cursor:pointer;
+    display:inline-flex;align-items:center;justify-content:center;font-size:17px;
+    background:rgba(255,255,255,.08);color:rgba(255,255,255,.78);transition:background .15s ease,color .15s ease;
+  }
+  #app .side-brand .bcm-pin:hover{background:rgba(255,255,255,.16);color:#fff;}
+  #app .side-brand .bcm-pin:focus-visible{outline:2px solid #FF6B35;outline-offset:2px;}
+  html:not(.bcm-mini) #app .side-brand .bcm-pin{background:rgba(255,107,53,.22);color:#FFB08F;}
+}
+@media (max-width:1024px){ #app .side-brand .bcm-pin{display:none !important;} }
+@media (prefers-reduced-motion:reduce){ html.bcm-mini body #app aside.sidebar{transition:none !important;} }
+@media print{ html.bcm-mini body #app .main{margin-left:0 !important;} }
