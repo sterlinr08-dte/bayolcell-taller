@@ -1,0 +1,26 @@
+/* AI BOARD chat de prueba; solo dentro de Diagnostico */
+#v-diagnostico #ab-ai-chat{background:#fff;border:1px solid #e6e9ef;border-radius:18px;overflow:hidden;margin-bottom:16px;box-shadow:0 10px 25px rgba(28,36,49,.035)}
+#v-diagnostico #ab-ai-chat header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px;border-bottom:1px solid #eceff4}
+#v-diagnostico #ab-ai-chat h3{margin:0;font-size:18px;color:#1f2937}
+#v-diagnostico #ab-ai-chat h3 i{color:#e31e24;margin-right:7px}
+#v-diagnostico #ab-chat-new{border:1px solid #dce2ea;border-radius:10px;background:#fff;padding:9px 12px;color:#334155;cursor:pointer}
+#v-diagnostico .ab-chat-tip{font-size:12px;color:#556276;padding:10px 16px;margin:0;background:#f8f9fb;line-height:1.6}
+#v-diagnostico #ab-chat-feed{display:flex;flex-direction:column;gap:12px;min-height:285px;height:43vh;max-height:590px;overflow-y:auto;overscroll-behavior:contain;padding:18px;background:#fafbfc}
+#v-diagnostico .ab-bubble{max-width:94%;padding:12px 14px;border-radius:14px;font-size:13px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
+#v-diagnostico .ab-bubble b{display:block;font-size:11px;margin-bottom:4px}
+#v-diagnostico .ab-bubble p{margin:0}
+#v-diagnostico .ab-bubble.human{align-self:flex-end;background:#f0f2f6;border:1px solid #e3e6ed}
+#v-diagnostico .ab-bubble.ai{align-self:flex-start;background:white;border:1px solid #f0dfe2}
+#v-diagnostico .ab-bubble.ai b{color:#c71c26}
+#v-diagnostico .ab-chat-composer{padding:15px}
+#v-diagnostico .ab-chat-composer>label{font-size:12px;font-weight:700;display:block;margin-bottom:6px}
+#v-diagnostico #ab-chat-text{width:100%;box-sizing:border-box;border:1px solid #dce2ea;border-radius:11px;padding:12px;min-height:78px;font-size:14px;line-height:1.5;resize:vertical}
+#v-diagnostico .ab-chat-checks{display:flex;flex-wrap:wrap;gap:9px 20px;margin:12px 0}
+#v-diagnostico .ab-chat-checks label{display:inline-flex;align-items:center;gap:6px;color:#596477;font-size:12px}
+#v-diagnostico .ab-chat-checks input{width:16px;height:16px;accent-color:#e31e24}
+#v-diagnostico #ab-chat-send{display:block;margin-left:auto;background:#e31e24;border:0;border-radius:10px;padding:11px 17px;min-height:44px;color:#fff;font-weight:700;cursor:pointer}
+#v-diagnostico #ab-chat-send:disabled{opacity:.45;cursor:not-allowed}
+#v-diagnostico #ab-chat-error{background:#fff0f1;border:1px solid #fecaca;color:#991b1b;border-radius:10px;margin:10px 15px;padding:10px;font-size:12px}
+#v-diagnostico #ab-chat-error[hidden]{display:none}
+#v-diagnostico .ab-chat-foot{font-size:11px;color:#758195;line-height:1.5;padding:0 15px 14px;margin:0}
+@media(max-width:680px){#v-diagnostico #ab-ai-chat header{padding:12px}#v-diagnostico #ab-ai-chat h3{font-size:16px}#v-diagnostico #ab-chat-feed{padding:12px;height:45vh}#v-diagnostico .ab-chat-composer{padding:12px}}
