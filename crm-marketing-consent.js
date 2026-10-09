@@ -42,7 +42,7 @@
   }catch(e){}
   try{var avp=document.createElement('script');avp.async=false;avp.src='taller-pestana-avisos.js?v=20261004-ic1';document.head.appendChild(avp);}catch(e){} // Aviso en la pestaña: (N) sin leer + parpadeo con mensaje nuevo
   try{var bcr=document.createElement('script');bcr.async=false;bcr.src='bc-reflector.js?v=20261004r2';document.head.appendChild(bcr);}catch(e){} // Efectos reflector (réplica de NEXUS PRO): barra superior, brillo fijo, luz de vidrio
-  try{var bcb=document.createElement('script');bcb.async=false;bcb.src='bc-busqueda.js?v=20261004b2';document.head.appendChild(bcb);}catch(e){} // Buscador «Premium» (réplica de NEXUS PRO): lupa que se estira a píldora en todos los buscadores
+  try{var bcb=document.createElement('script');bcb.async=false;bcb.src='bc-busqueda.js?v=20261009b3';document.head.appendChild(bcb);}catch(e){} // Buscador «Premium» (réplica de NEXUS PRO): lupa que se estira a píldora en todos los buscadores
 
   try{var nav=document.createElement('script');nav.async=false;nav.src='taller-nav-apple.js?v=20261003-n1';document.head.appendChild(nav);}catch(e){} // Barra de navegación de ventanas estilo Apple (capa reversible)
   try{var bcm=document.createElement('script');bcm.async=false;bcm.src='taller-sidebar-mini.js?v=20261009m1';document.head.appendChild(bcm);}catch(e){} // Menú lateral compacto: solo íconos en la computadora, se abre al pasar el ratón
