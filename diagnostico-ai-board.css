@@ -7,7 +7,7 @@
 #v-diagnostico .ab-title p{font-size:12.5px;color:var(--ab-muted);margin:3px 0 0}
 #v-diagnostico .ab-mark{background:#ffeff0;color:#e31e24;border-radius:14px;width:43px;height:43px;display:grid;place-items:center;font-size:24px;flex-shrink:0}
 #v-diagnostico .ab-stage{font-size:11px;color:#8b4752;border:1px solid #ffdae0;background:#fff5f6;padding:8px 11px;border-radius:999px;white-space:nowrap}
-#v-diagnostico .ab-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;background:#f3f4f7;padding:5px;border-radius:17px;margin-bottom:14px}
+#v-diagnostico .ab-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;background:#f3f4f7;padding:5px;border-radius:17px;margin-bottom:14px}
 #v-diagnostico .ab-tabs button{display:flex;align-items:center;justify-content:center;gap:7px;border:0;background:transparent;color:#626c7b;border-radius:12px;min-height:42px;padding:8px 12px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;transition:background .18s,color .18s,box-shadow .18s}
 #v-diagnostico .ab-tabs button i{font-size:18px}
 #v-diagnostico .ab-tabs button.active{color:#fff;background:#e31e24;box-shadow:0 4px 13px rgba(227,30,36,.16)}
