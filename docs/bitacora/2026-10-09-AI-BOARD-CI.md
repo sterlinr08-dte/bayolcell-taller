@@ -1,0 +1,15 @@
+# AI BOARD — comprobaciones en GitHub
+
+El propietario seleccionó el plugin GitHub para continuar. El acceso navegador a Supabase quedó pendiente en la verificación en dos pasos de Google; no se ha verificado acceso autenticado al panel, obtenido coste ni creado staging. No guardar datos de autenticación en GitHub ni en la bitácora.
+
+Se añadió `.github/workflows/ai-board-tests.yml`: pruebas de endpoint/PostgreSQL, ingestores y bloqueo de producción; Python para pirámides; navegador Chromium y WebKit. Acciones oficiales fijadas por SHA (refs v6 verificadas con GitHub), Node 24, Python 3.12, Ubuntu 24.04 y dependencias del lockfile. Token contents:read, checkout sin conservar credenciales, sin secretos Supabase/Anthropic y sin pasos de despliegue. Se ejecuta para cambios AI BOARD en PR a main y push a la rama feature; no usa pull_request_target.
+
+La suite de navegador acepta AI_BOARD_BROWSER_ENGINE=chromium|webkit. Chromium local: 9/9. Suite Node total local: 39/39; Python: 2/2. WebKit se comprobará mediante el job remoto y no equivale a probar Safari/iPhone físico. La configuración de CI por sí sola no demuestra un resultado remoto: revisar el run del commit antes de marcarlo aprobado.
+
+Primera ejecución remota: PostgreSQL/Python y Chromium aprobaron; WebKit ejecutó 7/9 pruebas y fallaron las dos de imagen local. Se sustituyó el PNG sintético con CRC inválido y se corrigió la interceptación del fixture para permitir URLs blob/data locales; las peticiones HTTP externas siguen bloqueadas. Se mantiene toda la suite WebKit sin saltar pruebas. Referencia de fallo inicial: run 37998405916, job 114050206169. Revisar la ejecución posterior a esta corrección.
+
+La reproducción WebKit local no pudo instalar dependencias del sistema por restricciones de setgroups/seteuid del runtime; no se cambiaron esas restricciones. El job alojado en GitHub sí instaló WebKit.
+
+Resultado remoto comprobado: commit `db82903a8394411edb68c42a621d0a2a025a2d73`, [run de la rama 37998775663](https://github.com/sterlinr08-dte/bayolcell-taller/actions/runs/37998775663), tres jobs completados con success: unit (30 Node + 2 Python), browser Chromium (9) y browser WebKit (9). Son 41 pruebas distintas y 50 ejecuciones, contando ambos navegadores. La corrección de las URLs locales pasa ambas pruebas de imagen en WebKit, sin omitirlas. Este registro de resultados solo modifica documentación; el código probado corresponde al SHA anterior.
+
+La integración del endpoint con SQL/proveedor simulado está comprobada. La integración con Supabase/Anthropic reales permanece pendiente: no existe staging configurado ni credenciales disponibles. No se han aplicado las migraciones ni desplegado el endpoint. Las tablas de mapas consultadas tienen cero mapas y cero puntos; no se inventaron datos eléctricos. El PR continúa en borrador hasta completar staging real, incorporar mapas legítimos y verificar Safari/iPhone y hardware físicos. Main permanece en `4bad1f4f496f4be21860156c4e99eaeb2c674b1d`; no se publicó producción.

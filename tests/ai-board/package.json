@@ -1,0 +1,15 @@
+{
+  "name": "bayol-ai-board-tests",
+  "private": true,
+  "scripts": {
+    "test": "node --test backend.test.mjs database.test.mjs board-data.test.cjs photo-tiles.test.cjs staging-guard.test.mjs browser.test.cjs",
+    "test:unit": "node --test backend.test.mjs database.test.mjs board-data.test.cjs photo-tiles.test.cjs staging-guard.test.mjs",
+    "test:backend": "node --test backend.test.mjs database.test.mjs",
+    "test:photos": "python photo_pyramid_test.py",
+    "test:browser": "node --test browser.test.cjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.8",
+    "playwright": "1.61.1"
+  }
+}
