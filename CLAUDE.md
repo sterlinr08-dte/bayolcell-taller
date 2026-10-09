@@ -968,3 +968,12 @@ Estado al 9 oct 2026: **funciones desplegadas** (`whatsapp-enviar` v20, `instagr
 - **Prueba** `supabase/tests/prueba_ajuste_permisos.sql` (corre dentro de BEGIN … ROLLBACK, no deja datos).
 - **Funciones**: `whatsapp-enviar`, `instagram-enviar` y `_shared/inbox-common.ts` (y sus copias) resuelven la identidad en el servidor (`identidadVerificada`: sesión + `auth_actor_bindings`). `puente-rifa` y `recepcion-boleto` entran al repo, leen la cuenta-puente de los Secrets `NEXUS_PRO_*` (los mismos de `consultar-boleto`) y exigen admin / `rifas_ver` o admin / `recepcion_ver`.
 - **Orden para aplicar:** migración → prueba → funciones → (cuenta-puente) → sitio.
+
+## ACTUALIZACIÓN 9 oct 2026 — Instagram de la competencia por Meta directo (gratis)
+Pedido de Sterling: poder preguntarle a la IA cuando quiera «qué está haciendo la competencia en Instagram, qué funciona y qué no». Windsor se descartó (su plan gratis no alcanza) y Supermetrics vence ~21-oct.
+- **Función** `instagram-competencia` (v1, `verify_jwt=false` pero sin parámetros peligrosos: solo lee las cuentas de la tabla, devuelve un resumen y tiene freno de 3 minutos). Usa Business Discovery de Meta con el secret `IG_GRAPH_TOKEN` (usuario del sistema del Business Manager de Bayol Cell, permisos `instagram_basic`, `instagram_manage_insights`, `pages_read_engagement`, `pages_show_list`, `ads_read`). IG de @bayolcell: `17841437425998828`.
+- **Tablas** `ig_competencia_cuentas`, `ig_competencia_perfiles`, `ig_competencia_posts`, `ig_competencia_corridas` (migración `20261009120000_instagram_competencia.sql`, aplicada). RLS sin políticas: con la llave pública devuelven `[]` y no aceptan escrituras (comprobado).
+- **Tarea diaria** pg_cron `ig-competencia-diario` (10:15 UTC = 6:15 a. m. RD).
+- Cuentas cargadas: bayolcell, deorocell, orocelloficial, dukeiphone, amauricell_ (las dos últimas tomadas de TikTok: confirmar).
+- **Estado:** falta que el dueño cree la app de Meta y pegue `IG_GRAPH_TOKEN` en Supabase → Edge Functions → Secrets. Mientras, la función responde 503 «falta_permiso» sin hacer nada.
+- Cómo consultarla: skill `precios-competencia`, punto 1a.

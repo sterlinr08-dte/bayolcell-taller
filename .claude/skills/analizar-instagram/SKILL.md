@@ -14,13 +14,14 @@ Objetivo: que cada video o anuncio nuevo salga de **lo que ya funciona** en @bay
 - Descargas en una carpeta nueva del scratchpad, nunca dentro del repo.
 
 ## Fuentes (de la más completa a la más simple)
-1. **Supermetrics (MCP) — `instagram_insights`**
+1. **Meta directo, gratis (desde 09-oct-2026)**: tablas `ig_competencia_*` que llena la Edge Function `instagram-competencia` (incluye @bayolcell para comparar). Cómo leer, agregar tiendas y refrescar: ver la skill `precios-competencia`, punto 1a.
+2. **Supermetrics (MCP) — `instagram_insights`** (respaldo; prueba hasta ~21-oct-2026)
    - `ds_id: "IGI"`: cuenta propia con métricas (alcance, vistas, guardados, mejores Reels). Necesita que el dueño autorice su cuenta una vez.
    - `ds_id: "IGPD2"`: perfiles públicos (`BusinessDiscoveryMedia` con `ds_accounts: "bayolcell"` o el usuario de la competencia) y búsqueda por hashtag.
-2. **Biblioteca de anuncios de Meta (MCP Meta Ads, `ads_library_search`)**: anuncios activos en RD («reparación de celulares», «cambio de pantalla», «iPhone Santiago»…). Un anuncio que lleva mucho tiempo activo suele ser rentable.
-3. **Por enlace**: skill `ver-video-redes` (en nexus-pro). Usa yt-dlp para videos públicos, saca un mosaico de cuadros y el audio.
-4. **Web**: Firecrawl (buscar cuentas y tendencias) y Buzzy `trending_search_videos`.
-5. **Flyers de precios propios**: `assets/reparacion-*.webp` y la página `index.html`.
+3. **Biblioteca de anuncios de Meta (MCP Meta Ads, `ads_library_search`)**: anuncios activos en RD («reparación de celulares», «cambio de pantalla», «iPhone Santiago»…). Un anuncio que lleva mucho tiempo activo suele ser rentable.
+4. **Por enlace**: skill `ver-video-redes` (en nexus-pro). Usa yt-dlp para videos públicos, saca un mosaico de cuadros y el audio.
+5. **Web**: Firecrawl (buscar cuentas y tendencias) y Buzzy `trending_search_videos`.
+6. **Flyers de precios propios**: `assets/reparacion-*.webp` y la página `index.html`.
 
 ## Pasos
 1. Traer las últimas 30–50 publicaciones (o todas las que se puedan) con fecha, tipo (Reel, foto, carrusel), texto y métricas.

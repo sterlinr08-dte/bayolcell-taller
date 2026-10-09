@@ -12,6 +12,19 @@ description: Ver el perfil de Instagram (o TikTok) de otra tienda de celulares y
 - Siempre poner **la fecha de cada precio**: un precio de hace semanas puede haber cambiado.
 
 ## 1. Instagram (vía oficial, sin riesgo de baneo)
+
+### 1a. Fuente principal y GRATIS: Meta directo (desde el 09-oct-2026)
+Edge Function `instagram-competencia` (proyecto `vkhwdvjtowrhkhqavnvk`) + tablas `ig_competencia_*`. Usa Business Discovery de Meta con el permiso del Business Manager de Bayol Cell (secret `IG_GRAPH_TOKEN`; nunca en el chat ni en el repo).
+- **Ver qué cuentas se vigilan:** `select username, nombre, ultima_sync, ultimo_error from ig_competencia_cuentas order by username;`
+- **Agregar una tienda:** `insert into ig_competencia_cuentas (username, nombre, nota) values ('usuario', 'Nombre', 'por qué') on conflict do nothing;` (usuario en minúsculas, sin @).
+- **Leer ahora** (máximo una vez cada 3 minutos; también corre sola todos los días a las 6:15 a. m. RD):
+  `select net.http_post(url := 'https://vkhwdvjtowrhkhqavnvk.supabase.co/functions/v1/instagram-competencia', headers := '{"Content-Type":"application/json"}'::jsonb, body := '{"origen":"ia"}'::jsonb, timeout_milliseconds := 120000);`
+  y luego ver el resultado en `select resumen from ig_competencia_corridas order by id desc limit 1;`
+- **Lo mejor del último mes:** `select username, publicado_en, producto, likes, comentarios, vistas, left(texto,120), permalink from ig_competencia_posts where publicado_en > now() - interval '30 days' order by coalesce(vistas, likes*10) desc limit 20;`
+- **Crecimiento:** `ig_competencia_perfiles` guarda seguidores y publicaciones por día.
+- Si una cuenta da error «not found» o código 110: no es de empresa/creador o el usuario está mal. Confirmar el usuario en Instagram.
+
+### 1b. Respaldo: Supermetrics (prueba gratis hasta ~21-oct-2026)
 Supermetrics → `instagram_insights` con `ds_id: "IGPD2"`.
 - **Conexión:** cuenta de Supermetrics `bayolcellsrl@gmail.com`, equipo «Team bayolcellsrl», login de Facebook «Bayol Cell RD». Conectada el 09-oct-2026; la prueba gratis vence cerca del 21-oct-2026.
 - **Perfil:** `settings {"report_type":"BusinessDiscoveryAccount"}`, `ds_accounts: "<usuario>"`, `fields: username,name,biography,followers,total_post_count`.
@@ -38,4 +51,5 @@ Tabla «Modelo · Ellos (fecha) · BAYOL · Quién está más barato», en espa�
 - **Contenido:** lo que más les funciona (top por vistas y comentarios) e ideas para BAYOL.
 
 ## Historial
+- 09-oct-2026: fuente gratis y fija por Meta directo (`instagram-competencia`); Windsor descartado (su plan gratis no deja vigilar competencia).
 - 09-oct-2026: primera prueba exitosa con @deorocell (745 mil seguidores, 100 publicaciones de los últimos 30 días leídas por la vía oficial).
