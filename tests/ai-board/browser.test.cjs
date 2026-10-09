@@ -6,8 +6,8 @@ const root=path.resolve(__dirname,'../..');let browser;
 const full=fs.readFileSync(path.join(root,'taller.html'),'utf8');
 const A='11111111-1111-4111-8111-111111111111',C='44444444-4444-4444-8444-444444444444',S='77777777-7777-4777-8777-777777777777';
 async function setup(width=1200){
- const page=await browser.newPage({viewport:{width,height:850}});page.setDefaultTimeout(5000);const errors=[];page.on('pageerror',e=>errors.push(e.message));
- await page.route('**/*',r=>r.request().isNavigationRequest()?r.fulfill({contentType:'text/html',body:'<!doctype html><meta name="viewport" content="width=device-width"><body></body>'}):r.abort());
+ const page=await browser.newPage({viewport:{width,height:850}});page.setDefaultTimeout(5000);const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('requestfailed',r=>{if(/^(blob:|data:)/.test(r.url()))console.error('Local fixture request failed:',r.failure()?.errorText);});
+ await page.route('**/*',r=>/^(blob:|data:)/.test(r.request().url())?r.continue():r.request().isNavigationRequest()?r.fulfill({contentType:'text/html',body:'<!doctype html><meta name="viewport" content="width=device-width"><body></body>'}):r.abort());
  await page.goto('https://ai-board.test');
  await page.evaluate(html=>{
   const parsed=new DOMParser().parseFromString(html,'text/html');document.head.append(...[...parsed.head.querySelectorAll('style')].map(n=>n.cloneNode(true)));
