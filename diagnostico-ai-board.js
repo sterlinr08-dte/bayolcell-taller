@@ -139,14 +139,19 @@ function resetView(){state.scale=1;state.x=0;state.y=0;state.pointers.clear();re
 async function loadPhoto(event){
  const f=event.target.files&&event.target.files[0];if(!f)return;
  event.target.value="";
- if(!["image/png","image/jpeg","image/webp","image/avif"].includes(f.type)||f.size>35*1024*1024){alert("Selecciona PNG, JPEG, WebP o AVIF de hasta 35 MB.");return;}
+ try{await openPhoto(f);}catch(e){alert(e.message||'No se pudo abrir la imagen.');}
+}
+async function openPhoto(f,{model=state.model,description='',isCurrent=()=>true}={}){
+ if(model!==state.model||!isCurrent())return false;
+ if(!["image/png","image/jpeg","image/webp","image/avif"].includes(f.type)||f.size>35*1024*1024)throw Error("Selecciona PNG, JPEG, WebP o AVIF de hasta 35 MB.");
  const selectedModel=state.model,token=++assetEpoch,url=URL.createObjectURL(f),img=new Image();
  try{img.src=url;await img.decode();if(img.naturalWidth*img.naturalHeight>80000000)throw Error("La fotografía supera 80 megapíxeles.");
-   if(token!==assetEpoch||selectedModel!==state.model){URL.revokeObjectURL(url);return;}
+   if(token!==assetEpoch||selectedModel!==state.model||!isCurrent()){URL.revokeObjectURL(url);return false;}
    clearAsset();state.url=url;state.photoSize={width:img.naturalWidth,height:img.naturalHeight};resetView();refresh();
-   R("ab-details").textContent="Fotografía local: "+img.naturalWidth+" × "+img.naturalHeight+" píxeles. Modelo asociado: "+state.model+". Sin datos eléctricos validados.";
- }catch(e){URL.revokeObjectURL(url);alert(e.message||"No se pudo abrir la imagen.");}
+   R("ab-details").textContent=(description?String(description).slice(0,1800)+' · ':'Fotografía local: ')+img.naturalWidth+" × "+img.naturalHeight+" píxeles. Modelo asociado: "+state.model+". Sin datos eléctricos validados.";return true;
+ }catch(e){URL.revokeObjectURL(url);throw e;}
 }
+window.BayolAIBoard={openPhoto};
 function startPointer(e){
  if(e.pointerType==="mouse"&&e.button!==0)return;
  const stage=R("ab-stage-view");stage.setPointerCapture(e.pointerId);
