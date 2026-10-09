@@ -6080,7 +6080,7 @@ function verLineasImportCompra(idx) {
         const sosp = _sospechosoITBIS(l.precio);
         return `
       <tr style="${sosp ? 'background:#fffbeb;' : ''}">
-        <td style="text-align:center;"><input type="checkbox" id="impchk_${j}" style="width:17px; height:17px;"></td>
+        <td style="text-align:center;"><input type="checkbox" id="impchk_${j}" onchange="_impContarMarcados(${idx})" style="width:17px; height:17px;"></td>
         <td>${escapeHtml(l.producto)} ${sosp ? '<span title="El costo parece traer el 18% rebajado (ITBIS). Revísalo." style="cursor:help;"><i class="ti ti-alert-triangle"></i></span>' : ''}${(l.seriales && l.seriales.length) ? ` <span style="font-size:10px; font-weight:700; background:#dcfce7; color:#166534; padding:1px 7px; border-radius:8px;" title="Estos IMEI se pondrán solos en cada equipo"><i class="ti ti-bookmark"></i> ${l.seriales.length} IMEI</span>` : ''}</td>
         <td style="text-align:center; color:#475569;">${escapeHtml(String(l.codproducto ?? ''))}</td>
         <td style="text-align:center;">${l.cantidad}</td>
@@ -6095,11 +6095,35 @@ function verLineasImportCompra(idx) {
       <div style="font-size:13px; margin-bottom:4px;"><b>Compra ${escapeHtml(f.factura)}</b> · ${escapeHtml(f.proveedor || '')}</div>
       ${yaExiste ? '<div style="background:#fef3c7; color:#92400e; font-size:12px; padding:6px 10px; border-radius:8px; margin-bottom:8px;"><i class="ti ti-alert-triangle"></i> Ya existe un lote con este número de factura. Si continúas, crearás otro.</div>' : ''}
       <p style="font-size:12px; color:#475569; margin:0 0 8px;">Marca los <b>modelos de teléfono</b> que entran al lote (cada unidad = un equipo). Las piezas/accesorios <b>no</b> los marques.</p>
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:0 0 8px;">
+        <button type="button" class="btn btn-light" style="padding:5px 10px; font-size:12px;" onclick="_impMarcarTodos(${idx}, true)"><i class="ti ti-checks"></i> Seleccionar todo</button>
+        <button type="button" class="btn btn-light" style="padding:5px 10px; font-size:12px;" onclick="_impMarcarTodos(${idx}, false)"><i class="ti ti-square"></i> Quitar todo</button>
+        <span id="impContador" style="font-size:12px; color:#475569; margin-left:auto;">Nada marcado</span>
+      </div>
       <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
-        <thead><tr style="background:#f1f5f9;"><th style="padding:6px;">✓</th><th style="text-align:left; padding:6px;">Producto</th><th>Código</th><th>Cant.</th><th style="text-align:right; padding:6px;">Costo c/u</th></tr></thead>
+        <thead><tr style="background:#f1f5f9;"><th style="padding:6px;"><input type="checkbox" id="impchk_todos" title="Seleccionar o quitar todo" onchange="_impMarcarTodos(${idx}, this.checked)" style="width:17px; height:17px;"></th><th style="text-align:left; padding:6px;">Producto</th><th>Código</th><th>Cant.</th><th style="text-align:right; padding:6px;">Costo c/u</th></tr></thead>
         <tbody>${filas}</tbody>
       </table>
       <button class="btn btn-success" style="margin-top:14px;" onclick="crearLoteDesdeCompraInfoPlus(${idx})"><i class="ti ti-package"></i> Crear lote con lo marcado</button>`;
+}
+
+// Marcar o quitar todas las líneas de la compra de una vez (antes había que ir una por una)
+function _impMarcarTodos(idx, valor) {
+    const f = _impComprasData[idx]; if(!f) return;
+    f.lineas.forEach((l, j) => { const c = document.getElementById('impchk_' + j); if(c) c.checked = !!valor; });
+    _impContarMarcados(idx);
+}
+
+// Contador «N modelos · M equipos marcados» y estado de la casilla del encabezado
+function _impContarMarcados(idx) {
+    const f = _impComprasData[idx]; if(!f) return;
+    let modelos = 0, equipos = 0;
+    f.lineas.forEach((l, j) => { if(document.getElementById('impchk_' + j)?.checked) { modelos++; equipos += parseInt(l.cantidad) || 0; } });
+    const total = f.lineas.length;
+    const todos = document.getElementById('impchk_todos');
+    if(todos) { todos.checked = total > 0 && modelos === total; todos.indeterminate = modelos > 0 && modelos < total; }
+    const el = document.getElementById('impContador');
+    if(el) el.textContent = modelos ? `${modelos} de ${total} marcado(s) · ${equipos} equipo(s)` : 'Nada marcado';
 }
 
 // Suma el 18% al costo editable de una línea (corrige el ITBIS que Info Plus le rebajó)
