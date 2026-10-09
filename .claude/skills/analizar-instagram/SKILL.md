@@ -45,7 +45,7 @@ Objetivo: que cada video o anuncio nuevo salga de **lo que ya funciona** en @bay
 - **Estilo de los flyers:** rojo y negro, títulos en mayúscula gruesa e inclinada y sellos «EN 30 MINUTOS ¡CAMBIO RÁPIDO!».
 - **Pantalla y batería:** 30 minutos. **Cristal frontal de iPhone:** 2 horas. **Cristal trasero:** 50 minutos (según flyers).
 - **Precios de los flyers:**
-  - pantallas de iPhone desde RD$1,190;
+  - pantallas de iPhone desde RD$1,000 (lista nueva del 09-oct-2026 en CLAUDE.md);
   - **pantallas Android desde RD$1,000**, según el dueño;
   - baterías desde RD$1,000;
   - cristal trasero desde RD$1,200;
