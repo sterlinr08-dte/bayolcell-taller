@@ -74,7 +74,7 @@ test('failure keeps draft; pending response cannot appear after signout',async()
 });
 test('mobile has no horizontal overflow; local photo cleared on model change; corrupt image rejected',async()=>{
  const {page,errors}=await setup(390);const dialog=[];page.on('dialog',async d=>{dialog.push(d.message());await d.dismiss();});
- await page.locator('#ab-file').setInputFiles({name:'photo.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aS9sAAAAASUVORK5CYII=','base64')});
+ await page.locator('#ab-file').setInputFiles({name:'photo.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4////fwAJ+wP9KobjigAAAABJRU5ErkJggg==','base64')});
  await page.waitForFunction(()=>!!document.querySelector('#ab-target img'));await page.locator('#ab-model').selectOption('iPhone X');assert.equal(await page.locator('#ab-target img').count(),0);
  await page.locator('#ab-file').setInputFiles({name:'broken.png',mimeType:'image/png',buffer:Buffer.from('not an image')});await page.waitForFunction(()=>document.getElementById('ab-file').value==='');
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
