@@ -29,6 +29,10 @@ insert into public.diagnosticos(id,creado_por,orden_id,modelo) values('${C}','${
 await db.exec(await readFile(new URL('../../supabase/ai-board/schema.sql',import.meta.url),'utf8'));
 await db.exec(await readFile(new URL('../../supabase/ai-board/library.sql',import.meta.url),'utf8'));
 await db.exec(await readFile(new URL('../../supabase/ai-board/maintenance.sql',import.meta.url),'utf8'));
+// Actual upstream photo tables/policies, without installing Storage in PGlite.
+await db.exec((await readFile(new URL('../../supabase/migrations/20261009000000_placas_mapas.sql',import.meta.url),'utf8')).split('-- Fotos:')[0]);
+await db.exec('grant all on public.placas_mapas,public.placas_puntos to anon,authenticated;');
+await db.exec(await readFile(new URL('../../supabase/ai-board/catalog_access.sql',import.meta.url),'utf8'));
 const as=async(role,user='')=>db.exec(`reset role;set role ${role};select set_config('request.jwt.claim.sub','${user}',false);`);
 const scalar=async(sql)=>(await db.query(sql)).rows[0];
 const deny=async(sql)=>assert.rejects(db.exec(sql));
@@ -143,5 +147,17 @@ test('endpoint persists a multi-turn conversation through actual SQL/RLS and den
  assert.equal((await handler(request(second))).status,200);assert.equal(providerCalls,2);
  assert.equal((await handler(request(first,'user-b'))).status,403);assert.equal(providerCalls,2);
  await as('authenticated',A);assert.equal((await db.query('select * from ai_board_turns where session_id=$1',[id])).rows.length,2);
+});
+test('photo catalog client grants exclude TRUNCATE/REFERENCES/TRIGGER and all anonymous access',async()=>{
+ await as('postgres');
+ for(const table of ['placas_mapas','placas_puntos'])for(const privilege of ['TRUNCATE','REFERENCES','TRIGGER'])assert.equal((await scalar(`select has_table_privilege('authenticated','public.${table}','${privilege}') as allowed`)).allowed,false);
+ await as('anon');await deny('select * from public.placas_mapas');await deny('truncate public.placas_mapas cascade');
+ await as('authenticated',A);await deny('truncate public.placas_mapas cascade');
+});
+test('existing diagnostic policy allows photo registration and rejects an inactive actor',async()=>{
+ await as('authenticated',A);const row=await scalar(`insert into public.placas_mapas(modelo,titulo,creado_por) values('iPhone X','Synthetic QA photo','${A}') returning id`);assert(row.id);
+ await as('postgres');await db.exec(`update auth_actor_bindings set activo=false where auth_user_id='${A}'`);
+ await as('authenticated',A);assert.equal((await scalar('select count(*)::int as n from public.placas_mapas')).n,0);await deny(`insert into public.placas_mapas(modelo) values('iPhone X')`);
+ await as('postgres');await db.exec(`update auth_actor_bindings set activo=true where auth_user_id='${A}'`);
 });
 test.after(async()=>db.close());

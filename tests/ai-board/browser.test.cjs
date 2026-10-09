@@ -5,6 +5,7 @@ if(!['chromium','webkit'].includes(engine))throw Error('Unsupported AI BOARD bro
 const root=path.resolve(__dirname,'../..');let browser;
 const full=fs.readFileSync(path.join(root,'taller.html'),'utf8');
 const A='11111111-1111-4111-8111-111111111111',C='44444444-4444-4444-8444-444444444444',S='77777777-7777-4777-8777-777777777777';
+const PNG='iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4////fwAJ+wP9KobjigAAAABJRU5ErkJggg==';
 async function setup(width=1200){
  const page=await browser.newPage({viewport:{width,height:850}});page.setDefaultTimeout(5000);const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('requestfailed',r=>{if(/^(blob:|data:)/.test(r.url()))console.error('Local fixture request failed:',r.failure()?.errorText);});
  await page.route('**/*',r=>/^(blob:|data:)/.test(r.request().url())?r.continue():r.request().isNavigationRequest()?r.fulfill({contentType:'text/html',body:'<!doctype html><meta name="viewport" content="width=device-width"><body></body>'}):r.abort());
@@ -15,16 +16,22 @@ async function setup(width=1200){
  },full);
  await page.addStyleTag({content:'body{margin:10px;background:#f7f8fa} #v-diagnostico{width:100%;max-width:1200px;margin:auto}'});
  for(const f of ['diagnostico-ai-board.css','diagnostico-ai-chat.css'])await page.addStyleTag({path:path.join(root,f)});
- await page.evaluate(({A,C,S})=>{
-  window.mock={user:A,calls:[],turns:[],sessions:[{id:S,owner_id:A,modelo:'iPhone X',diagnostico_id:C,created_at:'2026-10-09T12:00:00Z'}],callbacks:[],error:false,library:[],admin:false};
+ await page.evaluate(({A,C,S,PNG})=>{
+  window.mock={user:A,calls:[],turns:[],sessions:[{id:S,owner_id:A,modelo:'iPhone X',diagnostico_id:C,created_at:'2026-10-09T12:00:00Z'}],callbacks:[],error:false,library:[],admin:false,catalog:[],storageCalls:[]};
   const state=window.mock;
   window.supabaseClient={
    auth:{getUser:async()=>({data:{user:state.user?{id:state.user}:null}}),onAuthStateChange:cb=>state.callbacks.push(cb)},
-   rpc:async(name,args)=>{state.calls.push({rpc:name,args});if(name==='app_is_admin')return {data:state.admin};if(name==='ai_board_library_submit'){state.library.push({id:C,modelo:'iPhone X',revision:args.p_revision,summary:args.p_summary,evidence:args.p_evidence,sources:args.p_sources,status:'pending',author_id:state.user});return {data:C};}if(name==='ai_board_library_review'){state.library.find(e=>e.id===args.p_entry).status=args.p_decision;return {data:true};}return {data:name==='ai_board_create_case'?C:[{id:C,modelo:'iPhone X',orden_id:null}]};},
+   rpc:async(name,args)=>{state.calls.push({rpc:name,args});if(name==='app_puede_diagnostico')return {data:state.permission!==false};if(name==='app_is_admin')return {data:state.admin};if(name==='ai_board_library_submit'){state.library.push({id:C,modelo:'iPhone X',revision:args.p_revision,summary:args.p_summary,evidence:args.p_evidence,sources:args.p_sources,status:'pending',author_id:state.user});return {data:C};}if(name==='ai_board_library_review'){state.library.find(e=>e.id===args.p_entry).status=args.p_decision;return {data:true};}return {data:name==='ai_board_create_case'?C:[{id:C,modelo:'iPhone X',orden_id:null}]};},
    from:name=>{
-    let filters={},inserted,deleted=false,range;
-    const q={select(){return q},eq(k,v){filters[k]=v;return q},order(){return q},limit(){return q},range(start,end){range=[start,end];return q},insert(v){inserted=v;return q},delete(){deleted=true;return q},single(){return q},then(resolve){
+    let filters={},inserted,deleted=false,range,isSingle=false;
+    const q={select(){return q},eq(k,v){filters[k]=v;return q},order(){return q},limit(){return q},range(start,end){range=[start,end];return q},insert(v){inserted=v;return q},delete(){deleted=true;return q},single(){isSingle=true;return q},then(resolve){
      let data;
+     if(name==='placas_mapas'){
+      state.calls.push({table:name,filters,inserted});
+      if(inserted){if(state.catalogInsertError)return Promise.resolve({error:{message:'Synthetic failed insert'}}).then(resolve);state.catalog.push(inserted);data=inserted;}
+      else{if(state.catalogReadError)return Promise.resolve({error:{message:'Synthetic failed read'}}).then(resolve);data=state.catalog.filter(s=>Object.entries(filters).every(([k,v])=>s[k]===v));if(isSingle)data=data[0];}
+      if(range&&Array.isArray(data))data=data.slice(range[0],range[1]+1);return Promise.resolve({data,error:null}).then(resolve);
+     }
      if(name==='ai_board_sessions'){
       if(deleted){data=state.sessions.filter(s=>s.id===filters.id);state.sessions=state.sessions.filter(s=>s.id!==filters.id);state.turns=[];}
       else if(inserted){data={id:S,...inserted,created_at:'2026-10-09T12:00:00Z'};state.sessions=[data];}
@@ -34,6 +41,7 @@ async function setup(width=1200){
      return Promise.resolve({data,error:null}).then(resolve);
     }};return q;
    },
+   storage:{from:bucket=>({download:async path=>{state.storageCalls.push({op:'download',bucket,path});if(state.deferPhoto)await new Promise(r=>state.resolvePhoto=r);return {data:new Blob([Uint8Array.from(atob(PNG),c=>c.charCodeAt(0))],{type:'image/png'})};},upload:async(path,file,options)=>{state.storageCalls.push({op:'upload',bucket,path,options,size:file.size});return {data:{path}};},remove:async paths=>{state.storageCalls.push({op:'remove',bucket,paths});return {data:[]};}})},
    functions:{invoke:async(name,{body})=>{
     state.calls.push({name,body});if(state.deferred)await new Promise(r=>state.resolve=r);
     if(state.error)return {error:{context:new Response(JSON.stringify({error:'Error simulado',code:state.errorCode}),{status:state.errorStatus||502})}};
@@ -41,8 +49,8 @@ async function setup(width=1200){
     return {data:{ok:true,persisted:true,answer:state.turns.at(-1).assistant_message}};
    }}
   };
- },{A,C,S});
- for(const f of ['diagnostico-photo-tiles.js','diagnostico-board-data.js','diagnostico-ai-board.js','diagnostico-ai-chat.js','diagnostico-ai-library.js'])await page.addScriptTag({path:path.join(root,f)});
+ },{A,C,S,PNG});
+ for(const f of ['diagnostico-photo-tiles.js','diagnostico-board-data.js','diagnostico-ai-board.js','diagnostico-ai-catalog.js','diagnostico-ai-chat.js','diagnostico-ai-library.js'])await page.addScriptTag({path:path.join(root,f)});
  return {page,errors};
 }
 async function openChat(page){
@@ -138,4 +146,24 @@ test('older history pages remain accessible and identity change resets paginatio
  await page.locator('#ab-chat-turns-prev').click();await page.waitForFunction(()=>document.getElementById('ab-chat-history-state').textContent.includes('Página 1'));assert.equal(await page.locator('#ab-chat-text').inputValue(),'Borrador durante lectura de historial');assert.equal(await page.locator('#ab-chat-send').isDisabled(),false);
  await page.evaluate(()=>{mock.user=null;mock.callbacks.forEach(cb=>cb('SIGNED_OUT',null));});assert.equal(await page.locator('#ab-chat-feed .human').count(),0);
  await page.evaluate(()=>{mock.user='11111111-1111-4111-8111-111111111111';});await openChat(page);assert.equal(await page.locator('#ab-chat-feed .human').count(),40);assert.deepEqual(errors,[]);await page.close();
+});
+async function catalogFixture(page){await page.locator('#ab-model').selectOption('iPhone X');await page.evaluate(({C,A})=>{mock.catalog=[{id:C,marca:'Apple',modelo:'iPhone X',cara:'A',titulo:'<img src=x> Synthetic QA',foto_path:'ai-board/'+A+'/qa.png',peso_bytes:70,ancho:1,alto:1,notas:'{}'}];},{C,A});await page.locator('#ab-catalog-refresh').click();await page.waitForFunction(()=>document.querySelectorAll('#ab-catalog-list button').length===1);}
+async function catalogForm(page){await page.locator('#ab-model').selectOption('iPhone X');await page.locator('#ab-catalog summary').click();for(const [id,value] of [['title','Synthetic QA board photo'],['revision','QA-NOT-REAL'],['license','Test only'],['reference','Internal QA fixture']])await page.locator('#ab-catalog-'+id).fill(value);await page.locator('#ab-catalog-file').setInputFiles({name:'qa.png',mimeType:'image/png',buffer:Buffer.from(PNG,'base64')});}
+test('private photo catalog filters the model, renders plain text and clears on signout',async()=>{
+ const {page,errors}=await setup(390);await catalogFixture(page);assert.equal(await page.locator('#ab-catalog-list img').count(),0);await page.locator('#ab-catalog-list button').click();await page.waitForFunction(()=>!!document.querySelector('#ab-target img'));assert((await page.locator('#ab-details').innerText()).includes('Procedencia y revisión no registradas'));
+ const call=await page.evaluate(()=>mock.storageCalls[0]);assert.equal(call.bucket,'placas');assert.equal(call.op,'download');assert.equal(await page.evaluate(()=>mock.calls.filter(c=>c.name).length),0);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+ await page.evaluate(()=>{mock.user=null;mock.callbacks.forEach(cb=>cb('SIGNED_OUT',null));});assert.equal(await page.locator('#ab-target img').count(),0);assert.equal(await page.locator('#ab-catalog-list button').count(),0);assert.deepEqual(errors,[]);await page.close();
+});
+test('catalog rejects missing diagnostic permission before table or storage access',async()=>{
+ const {page,errors}=await setup();await page.evaluate(()=>mock.permission=false);await page.locator('#ab-catalog-refresh').click();await page.waitForFunction(()=>document.getElementById('ab-catalog-status').textContent.includes('Sin permiso'));assert.equal(await page.evaluate(()=>mock.storageCalls.length),0);assert.equal(await page.evaluate(()=>mock.calls.filter(c=>c.table==='placas_mapas').length),0);assert.deepEqual(errors,[]);await page.close();
+});
+test('late private photo download cannot restore a photo after identity change',async()=>{
+ const {page,errors}=await setup();await catalogFixture(page);await page.evaluate(()=>mock.deferPhoto=true);await page.locator('#ab-catalog-list button').click();await page.waitForFunction(()=>!!mock.resolvePhoto);await page.evaluate(()=>{mock.user=null;mock.callbacks.forEach(cb=>cb('SIGNED_OUT',null));mock.resolvePhoto();});await page.waitForFunction(()=>!document.getElementById('ab-catalog-refresh').disabled);assert.equal(await page.locator('#ab-target img').count(),0);assert.deepEqual(errors,[]);await page.close();
+});
+test('photo upload requires consent, stores provenance and original hash, and never calls the LLM',async()=>{
+ const {page,errors}=await setup(390);await catalogForm(page);await page.locator('#ab-catalog-upload').click();assert.equal(await page.evaluate(()=>mock.storageCalls.length),0);await page.locator('#ab-catalog-consent').check();await page.locator('#ab-catalog-upload').click();await page.waitForFunction(()=>document.getElementById('ab-catalog-status').textContent.includes('Fotografía guardada'));
+ const row=await page.evaluate(()=>mock.catalog[0]),meta=JSON.parse(row.notas);assert.equal(row.modelo,'iPhone X');assert.equal(row.creado_por,A);assert.equal(row.ancho,1);assert.equal(meta.validation,'unverified');assert.equal(meta.revision,'QA-NOT-REAL');assert.equal(meta.originalSHA256,require('node:crypto').createHash('sha256').update(Buffer.from(PNG,'base64')).digest('hex'));const call=await page.evaluate(()=>mock.storageCalls[0]);assert.equal(call.options.upsert,false);assert(call.path.startsWith('ai-board/'+A+'/'));assert.equal(await page.evaluate(()=>mock.calls.filter(c=>c.name).length),0);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.deepEqual(errors,[]);await page.close();
+});
+test('confirmed absent photo record cleans up only its new object; uncertain record keeps it',async()=>{
+ for(const uncertain of [false,true]){const {page,errors}=await setup();await catalogForm(page);await page.locator('#ab-catalog-consent').check();await page.evaluate(v=>{mock.catalogInsertError=true;mock.catalogReadError=v;},uncertain);await page.locator('#ab-catalog-upload').click();await page.waitForFunction(()=>document.getElementById('ab-catalog-status').textContent.includes('No se confirmó')&&!document.getElementById('ab-catalog-upload').disabled);const calls=await page.evaluate(()=>mock.storageCalls);assert.equal(calls.filter(c=>c.op==='remove').length,uncertain?0:1);if(!uncertain)assert.deepEqual(calls.find(c=>c.op==='remove').paths,[calls.find(c=>c.op==='upload').path]);assert.equal(await page.locator('#ab-catalog-file').evaluate(n=>n.files.length),1);assert.deepEqual(errors,[]);await page.close();}
 });
