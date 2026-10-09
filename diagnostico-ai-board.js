@@ -100,6 +100,7 @@ function mount(){
  R("ab-open-ia").addEventListener("click",()=>show("ia"));
  shell.querySelectorAll("[data-ab-tab]").forEach(b=>b.addEventListener("click",()=>show(b.dataset.abTab)));
  const stage=R("ab-stage-view");
+ if(typeof ResizeObserver!=='undefined')new ResizeObserver(()=>repaint()).observe(stage);
  stage.addEventListener("wheel",e=>{e.preventDefault();const r=stage.getBoundingClientRect();zoom(e.deltaY>0?0.88:1.14,e.clientX-r.left-r.width/2,e.clientY-r.top-r.height/2);},{passive:false});
  stage.addEventListener("pointerdown",startPointer);
  stage.addEventListener("pointermove",movePointer);
@@ -114,6 +115,7 @@ function show(tab){
  state.tab=tab;save();
  document.querySelectorAll("#ab-shell [data-ab-tab]").forEach(b=>{const active=b.dataset.abTab===tab;b.classList.toggle("active",active);b.setAttribute("aria-selected",String(active));b.tabIndex=active?0:-1;b.id="ab-tab-"+b.dataset.abTab;b.setAttribute("aria-controls","ab-pane-"+b.dataset.abTab);});
  document.querySelectorAll("#ab-shell .ab-pane").forEach(p=>{p.hidden=p.id!=="ab-pane-"+tab;p.setAttribute("aria-labelledby",p.id.replace("pane","tab"));});
+ if(tab==='bitmap')repaint();
  if(tab==="biblioteca"&&typeof window.cargarConocimiento==="function")window.cargarConocimiento();
 }
 function refresh(){

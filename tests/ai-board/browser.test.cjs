@@ -114,8 +114,11 @@ test('HD local folder loads visible tiles and clears on user identity reset',asy
  const temp=fs.mkdtempSync(path.join(require('node:os').tmpdir(),'ai-board-qa-')),photo=path.join(temp,'qa.png'),out=path.join(temp,'pyramid');
  require('node:child_process').execFileSync('python',['-c',"from PIL import Image; import sys; Image.new('RGB',(1024,512),(20,90,150)).save(sys.argv[1])",photo]);
  require('node:child_process').execFileSync('python',[path.join(root,'tools/ai-board/build_photo_pyramid.py'),photo,out,'--model','iPhone X','--revision','QA-SYNTHETIC','--title','Synthetic QA photo','--license','Test only','--reference','Internal QA']);
- const {page,errors}=await setup();await page.locator('#ab-model').selectOption('iPhone X');await page.locator('#ab-photo-folder').setInputFiles(out);
+ const {page,errors}=await setup();await page.locator('#ab-model').selectOption('iPhone X');await page.locator('[data-ab-tab="ia"]').click();await page.locator('#ab-photo-folder').setInputFiles(out);
+ await page.waitForFunction(()=>!!document.querySelector('.ab-photo-grid'));await page.locator('[data-ab-tab="bitmap"]').click();
  await page.waitForFunction(()=>document.querySelectorAll('.ab-photo-active img').length>0);assert((await page.locator('#ab-coverage').innerText()).includes('Foto HD'));
+ const before=await page.locator('.ab-photo-grid').evaluate(n=>parseFloat(n.style.width));assert(before>0);
+ await page.locator('#ab-stage-view').evaluate(n=>n.style.width='320px');await page.waitForFunction(w=>parseFloat(document.querySelector('.ab-photo-grid').style.width)<w,before);assert.equal(await page.locator('.ab-photo-grid').evaluate(n=>parseFloat(n.style.width)),await page.locator('#ab-stage-view').evaluate(n=>n.clientWidth));
  for(let i=0;i<6;i++)await page.locator('#ab-plus').click();assert(await page.locator('.ab-photo-active img').count()<=64);
  await page.evaluate(()=>window.dispatchEvent(new Event('bayol-ai-board-identity-reset')));assert.equal(await page.locator('.ab-photo-grid').count(),0);assert.deepEqual(errors,[]);await page.close();fs.rmSync(temp,{recursive:true});
 });
