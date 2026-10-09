@@ -6,12 +6,18 @@
 // - No devuelve datos de las publicaciones: solo un resumen (cuántas se guardaron y errores).
 // - Freno: si hubo una corrida hace menos de 3 minutos, no hace nada (429).
 // - Secrets del proyecto:
-//     IG_GRAPH_TOKEN   (obligatorio) permiso de usuario del sistema del Business Manager de Bayol Cell
+//     IG_GRAPH_TOKEN   (opcional; si falta se usa Zernio) permiso de usuario del sistema del Business Manager de Bayol Cell
 //                      con instagram_basic, instagram_manage_insights, pages_read_engagement,
 //                      pages_show_list y ads_read. Nunca va en el código ni en el chat.
 //     IG_USER_ID       (opcional) id de Instagram de @bayolcell; por defecto 17841437425998828.
 //     IG_GRAPH_VERSION (opcional) por defecto v23.0.
 // - La llama la tarea programada diaria (pg_cron) y, a pedido, la IA con net.http_post.
+//
+// 9 oct 2026 (v2): si NO hay IG_GRAPH_TOKEN, usa Zernio (ya conectado al Instagram de BAYOL, secret
+// ZERNIO_API_KEY que ya existía): GET /v1/accounts/{accountId}/instagram/business-discovery.
+// Límites de esa vía: solo las 25 publicaciones más recientes por cuenta y sin número de vistas.
+// Requiere que @bayolcell esté conectada en Zernio con «Facebook Login» (si no, Zernio responde 400
+// instagram_business_discovery_requires_facebook_login y hay que reconectarla con la opción de Facebook).
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
@@ -20,6 +26,7 @@ const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const TOKEN = (Deno.env.get("IG_GRAPH_TOKEN") || "").trim();
 const IG_USER_ID = (Deno.env.get("IG_USER_ID") || "17841437425998828").trim();
 const VERSION = (Deno.env.get("IG_GRAPH_VERSION") || "v23.0").trim();
+const ZERNIO_API_KEY = (Deno.env.get("ZERNIO_API_KEY") || "").trim();
 
 const db = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
@@ -36,7 +43,9 @@ function json(o: unknown, status = 200) {
 
 function limpiarError(t: string): string {
   // Nunca devolver ni guardar el permiso, aunque Meta lo repita en un mensaje.
-  return (TOKEN ? t.split(TOKEN).join("[oculto]") : t).slice(0, 400);
+  let r = t;
+  for (const s of [TOKEN, ZERNIO_API_KEY]) if (s) r = r.split(s).join("[oculto]");
+  return r.slice(0, 400);
 }
 
 async function pedir(username: string, after: string | null, conVistas: boolean) {
@@ -73,12 +82,38 @@ async function leerCuenta(username: string, primeraVez: boolean) {
   return { perfil, posts };
 }
 
+// Vía Zernio (sin permiso propio de Meta). Devuelve lo mismo que leerCuenta, con los nombres de Meta.
+async function leerCuentaZernio(username: string, accountId: string) {
+  const url = `https://zernio.com/api/v1/accounts/${encodeURIComponent(accountId)}/instagram/business-discovery?username=${encodeURIComponent(username)}&limit=25`;
+  const r = await fetch(url, { headers: { Authorization: `Bearer ${ZERNIO_API_KEY}` }, signal: AbortSignal.timeout(20000) });
+  const d = await r.json().catch(() => null);
+  if (!r.ok || !d?.profile) {
+    const det = d?.error?.message || d?.error || d?.message || d?.code || "sin detalle";
+    throw new Error(limpiarError(`Zernio ${r.status}: ${typeof det === "string" ? det : JSON.stringify(det)}`));
+  }
+  const p = d.profile;
+  const perfil = { id: p.id, name: p.name, biography: p.biography, website: p.website,
+    followers_count: p.followersCount, follows_count: p.followsCount, media_count: p.mediaCount };
+  const posts = (d.media || []).map((m: any) => ({ id: m.id, caption: m.caption, media_type: m.mediaType,
+    media_product_type: m.mediaProductType, permalink: m.permalink, timestamp: m.timestamp,
+    like_count: m.likeCount, comments_count: m.commentsCount }));
+  return { perfil, posts };
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json({ ok: false, error: "Método no permitido" }, 405);
   const body = await req.json().catch(() => ({}));
   const origen = typeof body?.origen === "string" ? body.origen.slice(0, 20) : "manual";
 
-  if (!TOKEN) return json({ ok: false, error: "falta_permiso", mensaje: "Falta el secret IG_GRAPH_TOKEN en el proyecto." }, 503);
+  let fuente: "meta" | "zernio" | null = TOKEN ? "meta" : (ZERNIO_API_KEY ? "zernio" : null);
+  let zernioCuenta: string | null = null;
+  if (fuente === "zernio") {
+    const { data: ig } = await db.from("instagram_cuentas").select("zernio_account_id").eq("activo", true)
+      .not("zernio_account_id", "is", null).order("creado_en").limit(1).maybeSingle();
+    zernioCuenta = ig?.zernio_account_id ?? null;
+    if (!zernioCuenta) fuente = null;
+  }
+  if (!fuente) return json({ ok: false, error: "falta_permiso", mensaje: "No hay IG_GRAPH_TOKEN ni una cuenta de Instagram conectada en Zernio." }, 503);
 
   const { data: ultima } = await db.from("ig_competencia_corridas").select("inicio").order("inicio", { ascending: false }).limit(1).maybeSingle();
   if (ultima && Date.now() - new Date(ultima.inicio).getTime() < 3 * 60 * 1000) {
@@ -94,7 +129,7 @@ Deno.serve(async (req: Request) => {
     const username = c.username as string;
     try {
       const { count } = await db.from("ig_competencia_posts").select("id", { count: "exact", head: true }).eq("username", username);
-      const { perfil, posts } = await leerCuenta(username, !count);
+      const { perfil, posts } = fuente === "meta" ? await leerCuenta(username, !count) : await leerCuentaZernio(username, zernioCuenta!);
       const ahora = new Date().toISOString();
       await db.from("ig_competencia_perfiles").upsert({
         username, fecha: hoy, ig_id: perfil?.id ?? null, nombre: perfil?.name ?? null, biografia: perfil?.biography ?? null,
@@ -105,13 +140,14 @@ Deno.serve(async (req: Request) => {
         const filas = posts.map((m) => ({
           id: String(m.id), username, publicado_en: m.timestamp ?? null, tipo: m.media_type ?? null,
           producto: m.media_product_type ?? null, permalink: m.permalink ?? null, texto: m.caption ?? null,
-          likes: m.like_count ?? null, comentarios: m.comments_count ?? null, vistas: m.view_count ?? null, actualizado_en: ahora,
+          likes: m.like_count ?? null, comentarios: m.comments_count ?? null, actualizado_en: ahora,
+          ...(fuente === "meta" ? { vistas: m.view_count ?? null } : {}), // Zernio no trae vistas: no borrar las que hubiera
         }));
         const { error } = await db.from("ig_competencia_posts").upsert(filas, { onConflict: "id" });
         if (error) throw new Error("guardar publicaciones: " + error.message);
       }
       await db.from("ig_competencia_cuentas").update({ ultima_sync: ahora, ultimo_error: null }).eq("username", username);
-      resumen.push({ username, ok: true, publicaciones_leidas: posts.length, seguidores: perfil?.followers_count ?? null });
+      resumen.push({ username, ok: true, fuente, publicaciones_leidas: posts.length, seguidores: perfil?.followers_count ?? null });
     } catch (e) {
       const msg = limpiarError(e instanceof Error ? e.message : String(e));
       await db.from("ig_competencia_cuentas").update({ ultimo_error: msg }).eq("username", username);
@@ -120,5 +156,5 @@ Deno.serve(async (req: Request) => {
   }
 
   if (corrida?.id) await db.from("ig_competencia_corridas").update({ fin: new Date().toISOString(), resumen }).eq("id", corrida.id);
-  return json({ ok: true, cuentas: resumen });
+  return json({ ok: true, fuente, cuentas: resumen });
 });
