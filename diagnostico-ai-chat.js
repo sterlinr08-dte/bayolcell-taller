@@ -5,7 +5,7 @@ const client=()=>typeof supabaseClient!=='undefined'?supabaseClient:null;
 let busy=false,owner=null,session=null,cases=[],epoch=0,pending=null,casePage=0,sessionPage=0,turnPage=0,selectedPoint=null,pointEpoch=0;
 function status(message=''){const e=$('ab-chat-error');e.textContent=message;e.hidden=!message;}
 function controls(){
-  $('ab-chat-send').disabled=busy||!session||!owner||!$('ab-chat-text').value.trim()||!$('ab-chat-agree').checked;
+  $('ab-chat-send').disabled=busy||turnPage>0||!session||!owner||!$('ab-chat-text').value.trim()||!$('ab-chat-agree').checked;
   for(const id of ['ab-chat-text','ab-chat-case','ab-chat-session','ab-chat-new','ab-chat-reload','ab-chat-create-case','ab-chat-delete'])$(id).disabled=busy;
   $('ab-chat-new').disabled=busy||!$('ab-chat-case').value||!owner;
   $('ab-chat-delete').disabled=busy||!session;
@@ -60,7 +60,7 @@ async function history(){
       bubble('human',t.user_message);
       bubble('ai',t.status==='completed'?t.assistant_message:t.status==='failed'?'Consulta fallida. Puedes enviarla de nuevo.':'Respuesta pendiente. Recarga el historial en unos segundos.');
     }
-    $('ab-chat-history-state').textContent='Historial guardado · Página '+(turnPage+1)+' de turnos · '+s.modelo;
+    $('ab-chat-history-state').textContent='Historial guardado · Página '+(turnPage+1)+' de turnos · '+s.modelo+(turnPage>0?' · Vuelve a mensajes recientes para enviar; tu borrador se conserva.':'');
     $('ab-chat-feed').scrollTop=$('ab-chat-feed').scrollHeight;
   }catch(e){if(version===epoch)status(e.message);}
   finally{busy=false;controls();}
@@ -100,6 +100,7 @@ async function deleteChat(){
 }
 async function send(){
   const input=$('ab-chat-text'),message=input.value.trim();if(busy||!session||!owner||!message||!$('ab-chat-agree').checked)return;
+  if(turnPage>0)return status('Vuelve a mensajes recientes antes de enviar. Tu borrador se conserva.');
   if(message.length>1400)return status('Máximo 1,400 caracteres.');
   const selected=$('ab-model')?.value;if(selected&&selected!==session.modelo)return status('El modelo del BITMAP no coincide con el diagnóstico. Selecciona '+session.modelo+' antes de enviar.');
   if($('ab-chat-use-form').checked&&$('dg_modelo')?.value.trim()!==session.modelo)return status('El formulario corresponde a otro modelo. Revisa las mediciones antes de incluirlas.');
@@ -115,7 +116,7 @@ async function send(){
     if(pending?.payload!==payload)pending={payload,id:crypto.randomUUID()};
     thinking=bubble('ai','Analizando…');
     const {data,error}=await client().functions.invoke('ai-board-chat',{body:{session_id:session.id,request_id:pending.id,message,context,consent:true}});
-    if(error){let details;try{details=await error.context?.clone().json();}catch{}if(error.context?.status&&error.context.status<500)pending=null;throw Error(details?.error||'No se confirmó el envío. Recarga el historial antes de reintentar.');}
+    if(error){let details;try{details=await error.context?.clone().json();}catch{}const code=error.context?.status;if(details?.code==='TURN_FAILED'||(code&&code<500&&code!==409))pending=null;throw Error(details?.error||'No se confirmó el envío. Recarga el historial antes de reintentar.');}
     if(!data?.ok||data.persisted!==true||typeof data.answer!=='string')throw Error(data?.error||'No se confirmó el guardado.');
     if(version!==epoch)return;
     thinking.remove();thinking=null;bubble('human',message);bubble('ai',data.answer);pending=null;input.value='';

@@ -55,7 +55,10 @@ test('idempotent completed request returns stored answer without provider',async
  const m=mock({reserve:{fresh:false,turn:{status:'completed',assistant_message:'Guardado'}}});const r=await m.handler(request());assert.equal((await r.json()).answer,'Guardado');assert(!m.calls.some(c=>c.url.includes('anthropic')));
 });
 test('pending request is not repeated',async()=>{
- const m=mock({reserve:{fresh:false,turn:{status:'pending'}}});assert.equal((await m.handler(request())).status,409);assert(!m.calls.some(c=>c.url.includes('anthropic')));
+ const m=mock({reserve:{fresh:false,turn:{status:'pending'}}}),r=await m.handler(request());assert.equal(r.status,409);assert.equal((await r.json()).code,'TURN_PENDING');assert(!m.calls.some(c=>c.url.includes('anthropic')));
+});
+test('failed reservation permits a new attempt without another provider call on the failed UUID',async()=>{
+ const m=mock({reserve:{fresh:false,turn:{status:'failed'}}}),r=await m.handler(request());assert.equal(r.status,409);assert.equal((await r.json()).code,'TURN_FAILED');assert(!m.calls.some(c=>c.url.includes('anthropic')));
 });
 test('quota rejection cannot call provider',async()=>{
  const m=mock({reserve:{message:'Quota exceeded'},reserveStatus:400});assert.equal((await m.handler(request())).status,429);assert(!m.calls.some(c=>c.url.includes('anthropic')));

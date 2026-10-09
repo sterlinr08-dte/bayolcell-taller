@@ -87,7 +87,8 @@ export function createHandler({env,fetchImpl=fetch}) {
       const reserved=await rest('/rest/v1/rpc/ai_board_reserve',{method:'POST',body:JSON.stringify({p_session:input.session_id,p_request:input.request_id,p_message:input.message,p_context:input.context})});
       if(!reserved?.fresh){
         if(reserved?.turn?.status==='completed')return json({ok:true,answer:reserved.turn.assistant_message,request_id:input.request_id,persisted:true});
-        return json({ok:false,error:reserved?.turn?.status==='pending'?'Respuesta en proceso. Recarga el historial.':'El intento anterior falló. Envía la consulta de nuevo.'},409);
+        const waiting=reserved?.turn?.status==='pending';
+        return json({ok:false,code:waiting?'TURN_PENDING':'TURN_FAILED',error:waiting?'Respuesta en proceso. Reintenta en unos segundos o recarga el historial.':'El intento anterior falló. Envía la consulta de nuevo.'},409);
       }
       turn=reserved.turn.id;
       const history=await rest('/rest/v1/ai_board_turns?select=user_message,assistant_message,context&session_id=eq.'+input.session_id+'&status=eq.completed&order=created_at.desc,id.desc&limit=7');

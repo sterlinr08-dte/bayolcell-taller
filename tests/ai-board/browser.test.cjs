@@ -36,7 +36,7 @@ async function setup(width=1200){
    },
    functions:{invoke:async(name,{body})=>{
     state.calls.push({name,body});if(state.deferred)await new Promise(r=>state.resolve=r);
-    if(state.error)return {error:{context:new Response(JSON.stringify({error:'Error simulado'}),{status:502})}};
+    if(state.error)return {error:{context:new Response(JSON.stringify({error:'Error simulado',code:state.errorCode}),{status:state.errorStatus||502})}};
     state.turns.push({user_message:body.message,assistant_message:'EVIDENCIA: medición reportada. PRÓXIMA PRUEBA: confirmar condiciones.',status:'completed'});
     return {data:{ok:true,persisted:true,answer:state.turns.at(-1).assistant_message}};
    }}
@@ -71,6 +71,17 @@ test('failure keeps draft; pending response cannot appear after signout',async()
  await page.evaluate(()=>{mock.error=false;mock.deferred=true;});await page.locator('#ab-chat-send').click();await page.waitForFunction(()=>!!mock.resolve);
  await page.evaluate(()=>{mock.user=null;mock.callbacks.forEach(cb=>cb('SIGNED_OUT',null));mock.resolve();});await page.waitForFunction(()=>!document.getElementById('ab-chat-reload').disabled);
  assert.equal(await page.locator('#ab-chat-feed .ab-bubble').count(),0);assert(await page.locator('#ab-chat-send').isDisabled());await page.close();
+});
+test('uncertain delivery and pending response reuse UUID; a confirmed failed turn starts a new attempt',async()=>{
+ const {page,errors}=await setup();await openChat(page);await page.locator('#ab-chat-text').fill('Consulta sintética de reintento');await page.locator('#ab-chat-agree').check();
+ await page.evaluate(()=>{mock.error=true;mock.errorStatus=502;});
+ const sendAndWait=async()=>{const count=await page.evaluate(()=>mock.calls.filter(c=>c.name).length);await page.locator('#ab-chat-send').click();await page.waitForFunction(n=>mock.calls.filter(c=>c.name).length===n+1&&!document.getElementById('ab-chat-send').disabled,count);};
+ await sendAndWait();const original=await page.evaluate(()=>mock.calls.filter(c=>c.name).at(-1).body.request_id);
+ await page.evaluate(()=>{mock.errorStatus=409;mock.errorCode='TURN_PENDING';});await sendAndWait();await sendAndWait();
+ assert(await page.evaluate(id=>mock.calls.filter(c=>c.name).every(c=>c.body.request_id===id),original));
+ await page.evaluate(()=>{mock.errorCode='TURN_FAILED';});await sendAndWait();
+ await page.evaluate(()=>{mock.error=false;});await page.locator('#ab-chat-send').click();await page.waitForFunction(()=>!document.getElementById('ab-chat-text').value);
+ assert.notEqual(await page.evaluate(()=>mock.calls.filter(c=>c.name).at(-1).body.request_id),original);assert.equal(await page.evaluate(()=>mock.turns.length),1);assert.deepEqual(errors,[]);await page.close();
 });
 test('mobile has no horizontal overflow; local photo cleared on model change; corrupt image rejected',async()=>{
  const {page,errors}=await setup(390);const dialog=[];page.on('dialog',async d=>{dialog.push(d.message());await d.dismiss();});
@@ -120,6 +131,8 @@ test('older history pages remain accessible and identity change resets paginatio
  await openChat(page);assert.equal(await page.locator('#ab-chat-feed .human').count(),40);assert(!(await page.locator('#ab-chat-feed').innerText()).includes('Synthetic QA turn 0\n'));
  await page.locator('#ab-chat-turns-next').click();await page.waitForFunction(()=>document.getElementById('ab-chat-history-state').textContent.includes('Página 2'));
  assert.equal(await page.locator('#ab-chat-feed .human').count(),5);assert((await page.locator('#ab-chat-feed').innerText()).includes('Synthetic QA turn 0'));
+ await page.locator('#ab-chat-text').fill('Borrador durante lectura de historial');await page.locator('#ab-chat-agree').check();assert(await page.locator('#ab-chat-send').isDisabled());await page.locator('#ab-chat-text').press('Enter');assert.equal(await page.evaluate(()=>mock.calls.filter(c=>c.name).length),0);
+ await page.locator('#ab-chat-turns-prev').click();await page.waitForFunction(()=>document.getElementById('ab-chat-history-state').textContent.includes('Página 1'));assert.equal(await page.locator('#ab-chat-text').inputValue(),'Borrador durante lectura de historial');assert.equal(await page.locator('#ab-chat-send').isDisabled(),false);
  await page.evaluate(()=>{mock.user=null;mock.callbacks.forEach(cb=>cb('SIGNED_OUT',null));});assert.equal(await page.locator('#ab-chat-feed .human').count(),0);
  await page.evaluate(()=>{mock.user='11111111-1111-4111-8111-111111111111';});await openChat(page);assert.equal(await page.locator('#ab-chat-feed .human').count(),40);assert.deepEqual(errors,[]);await page.close();
 });
