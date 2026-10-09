@@ -1,0 +1,54 @@
+/* AI BOARD: solo afecta la vista Diagnostico */
+#v-diagnostico #ab-shell{--ab-border:#e7e9ef;--ab-text:#18202e;--ab-muted:#6b7483;color:var(--ab-text);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+#v-diagnostico #ab-shell *,#v-diagnostico #ab-shell *::before,#v-diagnostico #ab-shell *::after{box-sizing:border-box}
+#v-diagnostico .ab-header{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 16px}
+#v-diagnostico .ab-title{display:flex;align-items:center;gap:12px;min-width:0}
+#v-diagnostico .ab-title h2{font-size:clamp(21px,2vw,27px);font-weight:750;line-height:1.2;margin:0}
+#v-diagnostico .ab-title p{font-size:12.5px;color:var(--ab-muted);margin:3px 0 0}
+#v-diagnostico .ab-mark{background:#ffeff0;color:#e31e24;border-radius:14px;width:43px;height:43px;display:grid;place-items:center;font-size:24px;flex-shrink:0}
+#v-diagnostico .ab-stage{font-size:11px;color:#8b4752;border:1px solid #ffdae0;background:#fff5f6;padding:8px 11px;border-radius:999px;white-space:nowrap}
+#v-diagnostico .ab-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;background:#f3f4f7;padding:5px;border-radius:17px;margin-bottom:14px}
+#v-diagnostico .ab-tabs button{display:flex;align-items:center;justify-content:center;gap:7px;border:0;background:transparent;color:#626c7b;border-radius:12px;min-height:42px;padding:8px 12px;cursor:pointer;font:600 13px inherit;transition:background .18s,color .18s,box-shadow .18s}
+#v-diagnostico .ab-tabs button i{font-size:18px}
+#v-diagnostico .ab-tabs button.active{color:#fff;background:#e31e24;box-shadow:0 4px 13px rgba(227,30,36,.16)}
+#v-diagnostico .ab-pane[hidden]{display:none!important}
+#v-diagnostico .ab-workspace{display:grid;grid-template-columns:minmax(0,1.95fr) minmax(255px,.75fr);gap:13px;align-items:start}
+#v-diagnostico .ab-visual,#v-diagnostico .ab-card,#v-diagnostico .ab-empty{background:#fff;border:1px solid var(--ab-border);border-radius:18px;box-shadow:0 10px 35px rgba(42,48,67,.035)}
+#v-diagnostico .ab-visual{padding:13px;min-width:0}
+#v-diagnostico .ab-controls{display:flex;align-items:end;gap:9px;flex-wrap:wrap;margin-bottom:10px}
+#v-diagnostico .ab-controls label{font-weight:600;font-size:11px;color:var(--ab-muted);display:flex;flex-direction:column;gap:3px}
+#v-diagnostico .ab-controls select{border:1px solid var(--ab-border);background:#fafbfd;color:var(--ab-text);height:36px;border-radius:10px;padding:0 8px;min-width:100px;font:500 12px inherit}
+#v-diagnostico .ab-chip{display:inline-flex;align-items:center;justify-content:center;min-height:34px;border-radius:10px;padding:7px 10px;font:600 11px inherit}
+#v-diagnostico .ab-chip-warn{background:#fff7e8;border:1px solid #fce0a2;color:#996800}
+#v-diagnostico .ab-zoom-buttons{display:flex;align-items:center;margin-left:auto;border-radius:11px;border:1px solid var(--ab-border);overflow:hidden}
+#v-diagnostico .ab-zoom-buttons button{border:0;background:white;min-width:36px;min-height:36px;cursor:pointer;color:#465162}
+#v-diagnostico .ab-zoom-buttons button:hover{background:#f3f4f7}
+#v-diagnostico .ab-zoom-buttons span{min-width:46px;text-align:center;font:600 12px inherit}
+#v-diagnostico .ab-stage-view{height:clamp(290px,49vh,640px);position:relative;overflow:hidden;touch-action:none;background:radial-gradient(circle at 50% 25%,#eef1f6,#dfe4ec);border-radius:14px;border:1px solid #e3e7ef;cursor:grab;outline-offset:2px;user-select:none}
+#v-diagnostico .ab-stage-view:active{cursor:grabbing}
+#v-diagnostico .ab-target{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;transform-origin:center center;will-change:transform}
+#v-diagnostico .ab-target svg{width:100%;max-width:900px;max-height:100%;height:auto;pointer-events:none;filter:drop-shadow(0 16px 20px rgba(0,0,0,.1))}
+#v-diagnostico .ab-target img{width:100%;height:100%;object-fit:contain;pointer-events:none}
+#v-diagnostico .ab-watermark{position:absolute;bottom:12px;left:12px;border-radius:9px;background:rgba(255,255,255,.92);padding:7px 10px;font-size:10px;font-weight:700;letter-spacing:.02em;color:#a33333;pointer-events:none;max-width:calc(100% - 24px)}
+#v-diagnostico .ab-under{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:9px;font-size:11px;color:var(--ab-muted)}
+#v-diagnostico .ab-upload{display:inline-flex;align-items:center;gap:5px;border:1px solid #dfe3eb;border-radius:10px;padding:9px 11px;background:#fff;cursor:pointer;color:#374151;font-size:12px;font-weight:650}
+#v-diagnostico .ab-side{display:grid;gap:12px}
+#v-diagnostico .ab-card{padding:16px}
+#v-diagnostico .ab-card h3{margin:0 0 9px;font-size:14px;font-weight:750;display:flex;gap:8px;align-items:center;color:var(--ab-text)}
+#v-diagnostico .ab-card h3 i{color:#e31e24;font-size:20px}
+#v-diagnostico .ab-card p{font-size:12.5px;color:var(--ab-muted);line-height:1.55;margin:0 0 12px}
+#v-diagnostico .ab-alert{border:1px solid #f5d9d9;background:#fff8f8;color:#9c4545;border-radius:11px;padding:10px;font-size:11.5px;line-height:1.5}
+#v-diagnostico .ab-primary,#v-diagnostico .ab-secondary{min-height:40px;width:100%;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;border-radius:11px;cursor:pointer;font-size:12px;padding:9px 13px}
+#v-diagnostico .ab-primary{background:#e31e24;color:white;border:1px solid #e31e24}
+#v-diagnostico .ab-secondary{background:white;color:#2b3544;border:1px solid #dce1e9}
+#v-diagnostico .ab-inline-note{font-size:12px;color:#5c6574;border-radius:12px;border:1px solid #dce1e9;background:#f9fafc;padding:12px;margin-bottom:12px}
+#v-diagnostico .ab-inline-note i{color:#e31e24;margin-right:5px}
+#v-diagnostico .ab-legacy,#v-diagnostico .ab-library{max-width:100%}
+#v-diagnostico .ab-empty{min-height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 18px;text-align:center}
+#v-diagnostico .ab-empty>i{font-size:34px;color:#e31e24}
+#v-diagnostico .ab-empty h3{margin:8px 0;font-size:20px}
+#v-diagnostico .ab-empty p{max-width:430px;font-size:13px;line-height:1.7;color:var(--ab-muted)}
+#v-diagnostico .ab-legacy>.card{margin-bottom:14px}
+@media(max-width:1060px){#v-diagnostico .ab-workspace{grid-template-columns:1fr}#v-diagnostico .ab-side{grid-template-columns:repeat(2,minmax(0,1fr))}#v-diagnostico .ab-side>.ab-card:first-child{grid-column:1/-1}}
+@media(max-width:680px){#v-diagnostico .ab-header{align-items:flex-start}#v-diagnostico .ab-stage{display:none}#v-diagnostico .ab-tabs{gap:3px;padding:3px}#v-diagnostico .ab-tabs button{font-size:11px;gap:4px;padding:6px 3px;min-height:43px;flex-wrap:wrap}#v-diagnostico .ab-tabs button i{font-size:17px}#v-diagnostico .ab-visual{padding:9px}#v-diagnostico .ab-controls{gap:6px}#v-diagnostico .ab-controls label:first-child{flex:1;min-width:150px}#v-diagnostico .ab-controls label select{width:100%}#v-diagnostico .ab-controls label:nth-child(3){display:none}#v-diagnostico .ab-zoom-buttons{margin-left:0}#v-diagnostico .ab-stage-view{height:49vh;min-height:310px}#v-diagnostico .ab-side{grid-template-columns:1fr}#v-diagnostico .ab-side>.ab-card:first-child{grid-column:auto}}
+@media(prefers-reduced-motion:reduce){#v-diagnostico .ab-tabs button{transition:none}#v-diagnostico .ab-target{will-change:auto}}
