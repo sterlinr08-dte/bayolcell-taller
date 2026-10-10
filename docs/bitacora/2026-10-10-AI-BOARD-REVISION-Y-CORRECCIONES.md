@@ -231,3 +231,59 @@ Lo que sigue, sin tocar producción:
   - Sin errores nuevos en `get_advisors`.
 - **Regresiones**
   - «Diagnosticar con IA», «Guardar como caso resuelto», panic logs y el resto del taller siguen funcionando, en celular y en PC.
+
+## 4. Segunda parte (10 oct 2026) — con permiso del dueño: instalado, protegido y simplificado
+
+### Servidor instalado en producción
+- **Tablas y funciones:** `supabase/migrations/20261010010000_ai_board_servidor.sql`, aplicado en 9 partes (`ai_board_1_tablas` … `ai_board_8_ajustes`).
+  - Aplicado en una sola pieza, la herramienta se quedaba esperando (60 s).
+- **Falta solo la limpieza automática del historial** (`ai_board_purge_history` + tarea programada).
+  - La herramienta exige una confirmación extra cuando hay `delete`, y esa confirmación no llega desde el chat.
+  - Queda en `supabase/PEGAR-EN-SUPABASE-2026-10-10.sql`.
+- **Prueba con usuarios reales** (Francis y Loribel, dentro de una transacción deshecha; no quedó nada guardado):
+  - un técnico crea su caso y su conversación;
+  - no puede falsificar respuestas: `update` y `ai_board_finish` le son denegados;
+  - el otro técnico no ve la sesión, los turnos ni los casos de ese técnico, y no puede reservar ni crear sesiones en ellos;
+  - un usuario sin permiso de Diagnóstico (Josiel) no puede crear casos.
+- **`ai-board-chat` (v3, verify_jwt):**
+  - modelo `claude-opus-5-5`, esfuerzo `medium`;
+  - `fallbacks:"default"` y aviso claro si la IA rechaza la consulta;
+  - **red de seguridad:** si el modelo nuevo da 400/404, reintenta con `claude-sonnet-4-6`;
+  - CORS por defecto: `bayolcell.com` y `www.bayolcell.com`;
+  - respuestas en texto plano.
+  - **Probado:** sin sesión → 401.
+- **`bde-diagnostico` (v23):**
+  - ahora exige `app_puede_diagnostico` en el servidor; sin permiso, mensaje claro y nunca llama a la IA;
+  - modelo nuevo con la misma red de seguridad;
+  - `max_tokens` 8000.
+  - **Probado:** con la llave anónima responde «sin permiso».
+  - El código está ahora en el repo: `supabase/functions/bde-diagnostico/`.
+- **Fotos de placas:** la migración `20261010000000_placas_solo_dueno.sql` también quedó retenida por la misma confirmación (`drop policy`).
+  - Está dentro del mismo archivo para pegar.
+  - Ese archivo se probó dos veces seguidas en PGlite sin errores.
+- **No probado de punta a punta:** una pregunta real a la IA con la sesión de un técnico.
+  - Desde aquí no hay credenciales de usuario.
+  - Lo prueba el dueño (pasos en «Para probarlo»).
+
+### Pantalla más fácil para el técnico
+- **Diagnóstico IA**
+  - Tres pasos visibles: elegir modelo → escribir → la IA dice qué medir.
+  - Un solo selector de modelo, sincronizado con el del BITMAP.
+  - Botones de preguntas rápidas con plantilla para completar con lo medido: No enciende, No carga, Sin imagen, Se reinicia, Se calienta.
+  - «Nueva consulta» en rojo.
+  - **La primera pregunta crea sola el caso y la conversación** (`crearCasoYSesion`).
+  - Al entrar se abre sola la última conversación del modelo elegido (`autoAbrir`).
+  - El consentimiento se recuerda por usuario en el navegador (`bayol_ai_board_consent_v1`).
+  - Listas de casos, conversaciones y páginas plegadas en «Consultas anteriores».
+  - La opción «componente del mapa» solo aparece cuando hay uno seleccionado.
+- **BITMAP**
+  - Foto ilustrativa por generación de placa, generada con **Buzzy (Nano Banana Pro, 4K 3584×4800)**: `assets/ai-board/placas/placa-{x,xr,11,12-13,14-16}.webp` + `-mini.webp`.
+    - Se muestra como fondo (no como `<img>`) con la marca «ILUSTRACIÓN CON IA · NO ES LA PLACA REAL · NO USAR PARA MEDIR».
+    - La 4K se carga solo al acercar (zoom ≥ 1.6).
+    - La primera versión del iPhone 11 traía un conector micro-USB; se volvió a generar.
+  - Herramientas de desarrollador (importar mapa, carpeta HD, buscar componente, designadores, pines) plegadas en «Herramientas avanzadas». Se abren solas al cargar un mapa.
+  - Textos más simples.
+- **Pruebas:**
+  - unitarias y base: 38/38, con nuevas pruebas de modelo, red de seguridad y rechazo;
+  - navegador Chromium: 19/19, con dos nuevas: flujo simple y apertura automática;
+  - pantallas revisadas en el taller completo a 1366 px y 390 px, con 0 errores de JavaScript.

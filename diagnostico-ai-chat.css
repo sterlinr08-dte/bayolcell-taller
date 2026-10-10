@@ -37,3 +37,40 @@
 /* Servidor del chat aún no instalado: solo se ve el aviso; el diagnóstico de siempre sigue debajo. */
 #v-diagnostico #ab-ai-chat.ab-chat-pendiente>:not(header):not(#ab-chat-off){display:none!important}
 #v-diagnostico #ab-ai-chat.ab-chat-pendiente header>div{display:none!important}
+
+/* 10 oct 2026 — chat simple para el técnico: pasos, modelo, preguntas rápidas e historial plegado */
+#v-diagnostico #ab-ai-chat header>div{display:flex;gap:8px;align-items:center}
+#v-diagnostico #ab-chat-new{background:#e31e24;border-color:#e31e24;color:#fff;font-weight:700;min-height:40px;display:inline-flex;align-items:center;gap:6px}
+#v-diagnostico #ab-ai-chat .ab-chat-quiet{border:1px solid #dce2ea;border-radius:10px;background:#fff;color:#64748b;min-width:40px;min-height:40px;cursor:pointer;font-size:16px}
+#v-diagnostico .ab-chat-pasos{list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0;padding:12px 16px;background:#f8f9fb;border-bottom:1px solid #eef0f4}
+#v-diagnostico .ab-chat-pasos li{display:flex;align-items:center;gap:8px;font-size:12.5px;color:#334155;line-height:1.35}
+#v-diagnostico .ab-chat-pasos b{flex:none;width:24px;height:24px;border-radius:999px;display:grid;place-items:center;background:#fff;border:1px solid #f3c9cc;color:#c71c26;font-size:12px}
+#v-diagnostico .ab-chat-modelo{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid #eef0f4}
+#v-diagnostico .ab-chat-modelo label{font-size:12px;font-weight:700;color:#334155}
+#v-diagnostico #ab-chat-model{min-height:40px;border:1px solid #dce2ea;border-radius:10px;padding:0 10px;font-size:14px;background:#fff;min-width:190px}
+#v-diagnostico .ab-chat-modelo #ab-chat-history-state{margin-left:auto}
+#v-diagnostico .ab-chat-rapidas{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 10px}
+#v-diagnostico .ab-chat-rapidas button{min-height:36px;border:1px solid #e6dfe0;background:#fff;border-radius:999px;padding:6px 13px;font-size:12.5px;color:#7a1d22;cursor:pointer;transition:background .15s,border-color .15s}
+#v-diagnostico .ab-chat-rapidas button:hover{background:#fff5f6;border-color:#f3c9cc}
+#v-diagnostico #ab-chat-send{display:inline-flex;align-items:center;gap:7px;float:none}
+#v-diagnostico .ab-chat-composer{display:flex;flex-direction:column}
+#v-diagnostico .ab-chat-composer #ab-chat-send{align-self:flex-end}
+#v-diagnostico .ab-chat-hist{margin:0 15px 12px;border:1px solid #eceff4;border-radius:12px;padding:0 12px}
+#v-diagnostico .ab-chat-hist summary{cursor:pointer;min-height:44px;display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:#475569}
+#v-diagnostico #ab-chat-feed:empty::before{content:"Aquí aparecerán tus preguntas y las respuestas de la IA.";color:#94a3b8;font-size:13px;margin:auto;text-align:center}
+#v-diagnostico .ab-chat-punto,#v-diagnostico #ab-chat-point-note{display:none}
+#v-diagnostico #ab-ai-chat.ab-con-punto .ab-chat-punto{display:inline-flex}
+#v-diagnostico #ab-ai-chat.ab-con-punto #ab-chat-point-note{display:inline}
+@media(max-width:680px){#v-diagnostico .ab-chat-pasos{grid-template-columns:1fr;gap:6px}#v-diagnostico .ab-chat-modelo #ab-chat-history-state{margin-left:0;width:100%}#v-diagnostico #ab-chat-model{flex:1}}
+/* chat vacío: no empujar la caja de escribir fuera de la pantalla */
+#v-diagnostico #ab-chat-feed:empty{height:auto;min-height:96px}
+@media(max-width:680px){#v-diagnostico #ab-ai-chat header{flex-wrap:nowrap}#v-diagnostico #ab-ai-chat h3{font-size:15px;line-height:1.25}#v-diagnostico #ab-chat-new{padding:8px 10px;font-size:13px;white-space:nowrap}}
+/* Más fuerza que los estilos globales de formularios del taller (#app .view …) */
+#app #v-diagnostico #ab-ai-chat .ab-chat-punto,#app #v-diagnostico #ab-ai-chat #ab-chat-point-note{display:none}
+#app #v-diagnostico #ab-ai-chat.ab-con-punto .ab-chat-punto{display:inline-flex}
+#app #v-diagnostico #ab-ai-chat.ab-con-punto #ab-chat-point-note{display:inline}
+#app #v-diagnostico #ab-ai-chat .ab-chat-modelo label{display:inline;margin:0;text-transform:none;letter-spacing:0;font-size:13px}
+#app #v-diagnostico #ab-ai-chat #ab-chat-model{width:auto;min-width:200px;max-width:300px;margin:0}
+#app #v-diagnostico #ab-ai-chat .ab-chat-checks label{text-transform:none;letter-spacing:0;font-size:12.5px;font-weight:500;margin:0}
+#app #v-diagnostico #ab-ai-chat .ab-chat-checks input[type=checkbox]{-webkit-appearance:auto;appearance:auto;width:18px;height:18px;min-height:0;padding:0;margin:0;border-radius:4px;box-shadow:none;flex:none}
+@media(max-width:680px){#app #v-diagnostico #ab-ai-chat #ab-chat-model{flex:1;max-width:none}}

@@ -5,9 +5,9 @@ const client=()=>typeof supabaseClient!=='undefined'?supabaseClient:null;
 let busy=false,owner=null,session=null,cases=[],epoch=0,pending=null,casePage=0,sessionPage=0,turnPage=0,selectedPoint=null,pointEpoch=0;
 function status(message=''){const e=$('ab-chat-error');e.textContent=message;e.hidden=!message;}
 function controls(){
-  $('ab-chat-send').disabled=busy||turnPage>0||!session||!owner||!$('ab-chat-text').value.trim()||!$('ab-chat-agree').checked;
+  $('ab-chat-send').disabled=busy||turnPage>0||!owner||!$('ab-chat-text').value.trim()||!$('ab-chat-agree').checked;
   for(const id of ['ab-chat-text','ab-chat-case','ab-chat-session','ab-chat-new','ab-chat-reload','ab-chat-create-case','ab-chat-delete'])$(id).disabled=busy;
-  $('ab-chat-new').disabled=busy||!$('ab-chat-case').value||!owner;
+  $('ab-chat-new').disabled=busy||!owner;
   $('ab-chat-delete').disabled=busy||!session;
   for(const id of ['ab-chat-cases-prev','ab-chat-cases-next','ab-chat-sessions-prev','ab-chat-sessions-next','ab-chat-turns-prev','ab-chat-turns-next'])$(id).disabled=busy;
   $('ab-chat-cases-prev').disabled=busy||casePage===0;$('ab-chat-sessions-prev').disabled=busy||sessionPage===0;$('ab-chat-turns-prev').disabled=busy||turnPage===0;
@@ -17,6 +17,9 @@ function bubble(who,message){
   const label=document.createElement('b');label.textContent=who==='human'?'Técnico':'Asistente IA';
   const body=document.createElement('p');body.textContent=message;item.append(label,body);$('ab-chat-feed').append(item);return item;
 }
+const CONSENT_KEY='bayol_ai_board_consent_v1';
+function consentGuardado(){try{return !!owner&&localStorage.getItem(CONSENT_KEY)===owner;}catch{return false;}}
+function recordarConsent(v){try{if(v&&owner)localStorage.setItem(CONSENT_KEY,owner);else localStorage.removeItem(CONSENT_KEY);}catch{}}
 function reset(){epoch++;owner=null;session=null;pending=null;cases=[];selectedPoint=null;$('ab-chat-point').checked=false;$('ab-chat-point-note').textContent='Sin componente seleccionado';$('ab-chat-feed').replaceChildren();$('ab-chat-text').value='';$('ab-chat-agree').checked=false;
   $('ab-chat-use-form').checked=false;$('ab-chat-case').replaceChildren();$('ab-chat-session').replaceChildren();$('ab-chat-history-state').textContent='Historial no cargado';controls();}
 function option(select,value,label){const o=document.createElement('option');o.value=value;o.textContent=label;select.append(o);}
@@ -32,13 +35,12 @@ async function loadCases(){
     option($('ab-chat-case'),'','Selecciona un diagnóstico guardado');
     for(const c of cases)option($('ab-chat-case'),c.id,c.modelo+' · Caso '+c.id.slice(0,8)+(c.orden_id?' · Con orden':''));
     $('ab-chat-history-state').textContent=cases.length?'Selecciona un caso para abrir su historial':'Sin casos autorizados';
-    if(!cases.length)status('Guarda un diagnóstico asociado a tu usuario u orden asignada para iniciar.');
   }catch(e){if(version===epoch)status(e.message);}
   finally{busy=false;controls();}
 }
 async function loadSessions(){
   if(busy)return;const id=$('ab-chat-case').value;session=null;pending=null;epoch++;const version=epoch;
-  $('ab-chat-feed').replaceChildren();$('ab-chat-session').replaceChildren();$('ab-chat-text').value='';$('ab-chat-agree').checked=false;$('ab-chat-use-form').checked=false;status();
+  $('ab-chat-feed').replaceChildren();$('ab-chat-session').replaceChildren();$('ab-chat-text').value='';$('ab-chat-agree').checked=consentGuardado();$('ab-chat-use-form').checked=false;status();
   if(!id)return controls();busy=true;controls();
   try{
     const list=await checked(client().from('ai_board_sessions').select('id,modelo,created_at').eq('diagnostico_id',id).eq('owner_id',owner).order('created_at',{ascending:false}).order('id',{ascending:false}).range(sessionPage*30,sessionPage*30+29));
@@ -98,15 +100,28 @@ async function deleteChat(){
   }catch(e){if(version===epoch)status(e.message);}
   finally{busy=false;controls();}
 }
+// Primera pregunta sin conversación abierta: se crea sola (caso del modelo elegido + conversación).
+async function crearCasoYSesion(model){
+  const id=await checked(client().rpc('ai_board_create_case',{p_model:model}));
+  const s=await checked(client().from('ai_board_sessions').insert({owner_id:owner,diagnostico_id:id,modelo:model}).select('id,modelo,diagnostico_id').single());
+  cases.unshift({id,modelo:model,orden_id:null});
+  const sel=$('ab-chat-case');if(sel.options.length===0)option(sel,'','Selecciona un diagnóstico guardado');
+  const o=document.createElement('option');o.value=id;o.textContent=model+' · Caso '+id.slice(0,8);sel.insertBefore(o,sel.options[1]||null);sel.value=id;
+  $('ab-chat-session').replaceChildren();option($('ab-chat-session'),'','Selecciona o crea una conversación');option($('ab-chat-session'),s.id,'Nueva conversación · '+s.modelo);$('ab-chat-session').value=s.id;
+  return s;
+}
 async function send(){
-  const input=$('ab-chat-text'),message=input.value.trim();if(busy||!session||!owner||!message||!$('ab-chat-agree').checked)return;
+  const input=$('ab-chat-text'),message=input.value.trim();if(busy||!owner||!message||!$('ab-chat-agree').checked)return;
   if(turnPage>0)return status('Vuelve a mensajes recientes antes de enviar. Tu borrador se conserva.');
   if(message.length>1400)return status('Máximo 1,400 caracteres.');
-  const selected=$('ab-model')?.value;if(selected&&selected!==session.modelo)return status('El modelo del BITMAP no coincide con el diagnóstico. Selecciona '+session.modelo+' antes de enviar.');
-  if($('ab-chat-use-form').checked&&$('dg_modelo')?.value.trim()!==session.modelo)return status('El formulario corresponde a otro modelo. Revisa las mediciones antes de incluirlas.');
+  const selected=$('ab-model')?.value;if(session&&selected&&selected!==session.modelo)return status('El modelo elegido no coincide con esta conversación. Pulsa «Nueva consulta» o vuelve a '+session.modelo+'.');
+  const modelo=session?session.modelo:selected;if(!modelo)return status('Elige el modelo del iPhone.');
+  if($('ab-chat-use-form').checked&&$('dg_modelo')?.value.trim()!==modelo)return status('El formulario corresponde a otro modelo. Revisa las mediciones antes de incluirlas.');
   busy=true;controls();status();const version=epoch;let thinking;
   try{
     const auth=await client().auth.getUser();if(auth.error||auth.data?.user?.id!==owner)throw Error('Cambió tu sesión. Recarga los casos.');
+    if(!session){const s=await crearCasoYSesion(modelo);if(version!==epoch)return;session=s;pending=null;}
+    recordarConsent(true);
     const context=$('ab-chat-use-form').checked?{
       bateria:($('dg_bateria')?.value||'').slice(0,130),consumo:($('dg_consumo')?.value||'').slice(0,130),
       sintomas:[...document.querySelectorAll('#dg_sintomas .diag-sint.on')].map(n=>n.textContent.trim().slice(0,160)).slice(0,12)
@@ -128,19 +143,31 @@ async function send(){
 function mount(){
   const legacy=$('ab-legacy');if(!legacy||$('ab-ai-chat'))return;
   const box=document.createElement('section');box.id='ab-ai-chat';
-  box.innerHTML='<header><h3>Chat técnico con IA</h3><div><button id="ab-chat-new" type="button">Nuevo chat</button><button id="ab-chat-delete" type="button">Eliminar conversación</button></div></header>'+
-  '<p class="ab-chat-tip">Conversaciones por diagnóstico. Envía únicamente información técnica; evita claves, identificadores y datos de clientes.</p>'+
-  '<div class="ab-chat-history"><label>Diagnóstico guardado<select id="ab-chat-case"></select></label><label>Conversación<select id="ab-chat-session"></select></label><button id="ab-chat-reload" type="button">Recargar casos</button><button id="ab-chat-create-case" type="button">Crear diagnóstico del modelo seleccionado</button></div>'+
-  '<div class="ab-chat-pages"><span>Casos <button id="ab-chat-cases-prev" type="button">Anteriores</button><button id="ab-chat-cases-next" type="button">Más</button></span><span>Conversaciones <button id="ab-chat-sessions-prev" type="button">Anteriores</button><button id="ab-chat-sessions-next" type="button">Más</button></span><span>Mensajes <button id="ab-chat-turns-prev" type="button">Recientes</button><button id="ab-chat-turns-next" type="button">Anteriores</button></span></div>'+
-  '<p id="ab-chat-history-state" role="status">Historial no cargado</p><div id="ab-chat-feed" role="log" aria-label="Conversación con IA" aria-live="polite"></div>'+
-  '<div class="ab-chat-composer"><label for="ab-chat-text">Consulta técnica</label><textarea id="ab-chat-text" rows="2" maxlength="1400" placeholder="Indica mediciones, condiciones y la próxima pregunta…"></textarea>'+
-  '<div class="ab-chat-checks"><label><input id="ab-chat-use-form" type="checkbox"> Incluir síntomas y mediciones del formulario</label><label><input id="ab-chat-point" type="checkbox"> Incluir componente aportado, sin validación eléctrica</label><span id="ab-chat-point-note">Sin componente seleccionado</span><label><input id="ab-chat-agree" type="checkbox"> Autorizo enviar estos datos técnicos a la IA y guardarlos en este caso</label></div>'+
-  '<button type="button" id="ab-chat-send" disabled>Enviar</button></div><p id="ab-chat-error" role="alert" hidden></p><p class="ab-chat-foot">Respuestas IA pendientes de validación técnica. Historial disponible cuando el backend de prueba esté instalado.</p>';
+  box.innerHTML='<header><h3><i class="ti ti-message-chatbot"></i>Pregúntale a la IA</h3><div><button id="ab-chat-new" type="button"><i class="ti ti-plus"></i> Nueva consulta</button><button id="ab-chat-delete" type="button" class="ab-chat-quiet" title="Eliminar esta conversación"><i class="ti ti-trash"></i></button></div></header>'+
+  '<ol class="ab-chat-pasos"><li><b>1</b> Elige el modelo</li><li><b>2</b> Escribe lo que ves y lo que mediste</li><li><b>3</b> La IA te dice qué revisar y qué medir</li></ol>'+
+  '<div class="ab-chat-modelo"><label for="ab-chat-model">Modelo del iPhone</label><select id="ab-chat-model"></select><span id="ab-chat-history-state" role="status">Historial no cargado</span></div>'+
+  '<div id="ab-chat-feed" role="log" aria-label="Conversación con IA" aria-live="polite"></div>'+
+  '<div class="ab-chat-composer"><div class="ab-chat-rapidas" aria-label="Preguntas rápidas"></div><label for="ab-chat-text">Tu consulta</label><textarea id="ab-chat-text" rows="2" maxlength="1400" placeholder="Ej.: No enciende. En la fuente marca 0.00 A. Ya cambié la batería."></textarea>'+
+  '<div class="ab-chat-checks"><label><input id="ab-chat-use-form" type="checkbox"> Incluir síntomas y mediciones del formulario de abajo</label><label class="ab-chat-punto"><input id="ab-chat-point" type="checkbox"> Incluir componente del mapa</label><span id="ab-chat-point-note">Sin componente seleccionado</span><label><input id="ab-chat-agree" type="checkbox"> Autorizo enviar estos datos técnicos a la IA y guardarlos en el caso</label></div>'+
+  '<button type="button" id="ab-chat-send" disabled><i class="ti ti-send"></i> Enviar</button></div><p id="ab-chat-error" role="alert" hidden></p>'+
+  '<details id="ab-chat-hist" class="ab-chat-hist"><summary><i class="ti ti-history"></i> Consultas anteriores</summary>'+
+  '<div class="ab-chat-history"><label>Diagnóstico guardado<select id="ab-chat-case"></select></label><label>Conversación<select id="ab-chat-session"></select></label><button id="ab-chat-reload" type="button">Recargar</button><button id="ab-chat-create-case" type="button">Crear caso vacío del modelo</button></div>'+
+  '<div class="ab-chat-pages"><span>Casos <button id="ab-chat-cases-prev" type="button">Anteriores</button><button id="ab-chat-cases-next" type="button">Más</button></span><span>Conversaciones <button id="ab-chat-sessions-prev" type="button">Anteriores</button><button id="ab-chat-sessions-next" type="button">Más</button></span><span>Mensajes <button id="ab-chat-turns-prev" type="button">Recientes</button><button id="ab-chat-turns-next" type="button">Anteriores</button></span></div></details>'+
+  '<p class="ab-chat-foot">Escribe solo datos técnicos: nada de claves, IMEI ni nombres de clientes. La IA orienta; la última palabra la tiene el técnico.</p>';
   legacy.prepend(box);legacy.querySelector('.ab-inline-note')?.remove();
+  // Selector de modelo del chat = el mismo del BITMAP (uno solo para todo el módulo).
+  const bm=$('ab-model'),cm=$('ab-chat-model');
+  if(bm){cm.innerHTML=bm.innerHTML;cm.value=bm.value;
+    cm.addEventListener('change',()=>{if(bm.value!==cm.value){bm.value=cm.value;bm.dispatchEvent(new Event('change'));}});
+    bm.addEventListener('change',()=>{cm.value=bm.value;if(session&&session.modelo!==bm.value){epoch++;session=null;pending=null;turnPage=0;$('ab-chat-feed').replaceChildren();$('ab-chat-session').value='';status();$('ab-chat-history-state').textContent='Nueva consulta para '+bm.value;controls();}});}
+  // Preguntas rápidas: llenan la caja con una plantilla para completar con lo medido.
+  const rapidas=[['No enciende','No enciende. Consumo en la fuente: ___ A. Batería: ___ V. ¿Qué reviso primero?'],['No carga','No carga. Con el cargador marca ___ A. ¿Qué mido en la línea de carga?'],['Sin imagen','Enciende pero no da imagen. Consumo: ___ A. ¿Qué reviso?'],['Se reinicia','Se reinicia solo cada ___ minutos. Panic log: ___. ¿Por dónde empiezo?'],['Se calienta','Se calienta en la zona de ___. Consumo en la fuente: ___ A. ¿Qué componente reviso?']];
+  for(const [t,plantilla] of rapidas){const b=document.createElement('button');b.type='button';b.textContent=t;b.addEventListener('click',()=>{const ta=$('ab-chat-text');if(!ta.value.trim())ta.value=plantilla;ta.focus();const i=ta.value.indexOf('___');if(i>=0)ta.setSelectionRange(i,i+3);controls();});box.querySelector('.ab-chat-rapidas').append(b);}
+  $('ab-chat-agree').addEventListener('change',()=>{recordarConsent($('ab-chat-agree').checked);});
   $('ab-chat-text').addEventListener('input',controls);
   $('ab-chat-text').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();send();}});
   $('ab-chat-agree').addEventListener('change',controls);$('ab-chat-send').addEventListener('click',send);
-  $('ab-chat-new').addEventListener('click',()=>{turnPage=0;newChat();});$('ab-chat-reload').addEventListener('click',()=>{casePage=0;sessionPage=0;turnPage=0;loadCases();});
+  $('ab-chat-new').addEventListener('click',()=>{if(busy)return;turnPage=0;if(!$('ab-chat-case').value||$('ab-chat-hist').open)return newChat();epoch++;session=null;pending=null;$('ab-chat-feed').replaceChildren();$('ab-chat-session').value='';$('ab-chat-text').value='';status();$('ab-chat-history-state').textContent='Nueva consulta · '+($('ab-model')?.value||'');controls();$('ab-chat-text').focus();});$('ab-chat-reload').addEventListener('click',()=>{casePage=0;sessionPage=0;turnPage=0;loadCases();});
   $('ab-chat-create-case').addEventListener('click',createCase);
   $('ab-chat-delete').addEventListener('click',deleteChat);
   $('ab-chat-case').addEventListener('change',()=>{sessionPage=0;turnPage=0;loadSessions();});$('ab-chat-session').addEventListener('change',()=>{turnPage=0;history();});
@@ -151,8 +178,8 @@ function mount(){
     if(event==='SIGNED_OUT'||(owner&&userSession?.user?.id!==owner)){casePage=0;sessionPage=0;turnPage=0;reset();window.dispatchEvent(new Event('bayol-ai-board-identity-reset'));status('Sesión cambiada. Recarga los casos.');}
   });
   controls();
-  window.addEventListener('bayol-ai-board-point-reset',()=>{pointEpoch++;selectedPoint=null;$('ab-chat-point').checked=false;$('ab-chat-point-note').textContent='Sin componente seleccionado';});
-  window.addEventListener('bayol-ai-board-point-query',async e=>{const point=e.detail,pointVersion=pointEpoch;if(!owner&&!busy)await loadCases();if(!owner||pointVersion!==pointEpoch)return;selectedPoint=point;$('ab-chat-point').checked=true;$('ab-chat-point-note').textContent=point.model+' · '+point.revision+' · '+point.ref+' · Fuente pendiente de comprobar';});
+  window.addEventListener('bayol-ai-board-point-reset',()=>{pointEpoch++;selectedPoint=null;$('ab-ai-chat')?.classList.remove('ab-con-punto');$('ab-chat-point').checked=false;$('ab-chat-point-note').textContent='Sin componente seleccionado';});
+  window.addEventListener('bayol-ai-board-point-query',async e=>{const point=e.detail,pointVersion=pointEpoch;if(!owner&&!busy)await loadCases();if(!owner||pointVersion!==pointEpoch)return;selectedPoint=point;$('ab-ai-chat').classList.add('ab-con-punto');$('ab-chat-point').checked=true;$('ab-chat-point-note').textContent=point.model+' · '+point.revision+' · '+point.ref+' · Fuente pendiente de comprobar';});
   // The old button used an endpoint without server authorization. Route this view
   // to the protected chat while keeping panic-log and manual tools in place.
   // Preserve the existing one-shot diagnostic button. The new secure chat remains
@@ -163,7 +190,14 @@ function mount(){
   box.querySelector('header').after(off);
   // Solo se intenta cargar casos si el servidor del chat está instalado; si falta, no se muestran errores ni botones muertos.
   const abrir=async()=>{if(owner||busy)return;const ok=await (window.BayolAIBoardBackend?.disponible()??Promise.resolve(true));
-    box.classList.toggle('ab-chat-pendiente',!ok);off.hidden=ok;if(ok)loadCases();};
+    box.classList.toggle('ab-chat-pendiente',!ok);off.hidden=ok;if(!ok)return;await loadCases();await autoAbrir();};
+  async function autoAbrir(){
+    if(!owner||busy||session)return;$('ab-chat-agree').checked=consentGuardado();
+    const m=$('ab-model')?.value,c=cases.find(c=>c.modelo===m);
+    if(!c){$('ab-chat-history-state').textContent='Escribe tu primera consulta para '+(m||'el modelo');controls();return;}
+    $('ab-chat-case').value=c.id;await loadSessions();const sel=$('ab-chat-session');
+    if(sel.options.length>1&&!session){sel.value=sel.options[1].value;await history();}
+  }
   document.querySelector('[data-ab-tab="ia"]')?.addEventListener('click',abrir);
   $('ab-open-ia')?.addEventListener('click',abrir);
   if(!$('ab-pane-ia').hidden)abrir();

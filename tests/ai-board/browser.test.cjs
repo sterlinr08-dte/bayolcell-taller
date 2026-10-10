@@ -54,7 +54,7 @@ async function setup(width=1200){
  return {page,errors};
 }
 async function openChat(page){
- await page.locator('[data-ab-tab="ia"]').click();await page.waitForFunction(()=>document.getElementById('ab-chat-case').options.length>1);
+ await page.locator('[data-ab-tab="ia"]').click();await page.evaluate(()=>{document.getElementById('ab-chat-hist').open=true;});await page.waitForFunction(()=>document.getElementById('ab-chat-case').options.length>1);
  await page.locator('#ab-chat-case').selectOption(C);await page.waitForFunction(()=>document.getElementById('ab-chat-session').options.length>1);
  await page.locator('#ab-chat-session').selectOption(S);await page.waitForFunction(()=>document.getElementById('ab-chat-history-state').textContent.includes('Historial guardado'));
  assert.equal(await page.locator('#ab-model').inputValue(),'iPhone X');
@@ -85,6 +85,32 @@ test('without the chat server the legacy save button and one-shot diagnosis keep
  const calls=await page.evaluate(()=>window.mock.calls);
  assert.equal(calls.filter(c=>c.name==='ai-board-chat').length,0);
  assert.equal(calls.filter(c=>c.rpc==='ai_board_cases').length,1,'el servidor se consulta una sola vez');
+ assert.deepEqual(errors,[]);await page.close();
+});
+test('flujo simple: elegir modelo, escribir y enviar crea el caso y la conversación solos; la última conversación del modelo se abre sola',async()=>{
+ const {page,errors}=await setup();await page.evaluate(()=>{window.mock.sessions=[];});
+ await page.locator('[data-ab-tab="ia"]').click();
+ assert.equal(await page.locator('#ab-chat-hist').evaluate(d=>d.open),false,'el historial arranca plegado');
+ assert.equal(await page.locator('#ab-chat-model').inputValue(),await page.locator('#ab-model').inputValue());
+ await page.locator('#ab-chat-model').selectOption('iPhone 12');
+ assert.equal(await page.locator('#ab-model').inputValue(),'iPhone 12','un solo modelo para todo el módulo');
+ await page.locator('.ab-chat-rapidas button',{hasText:'No enciende'}).click();
+ assert.match(await page.locator('#ab-chat-text').inputValue(),/No enciende/);
+ await page.locator('#ab-chat-text').fill('No enciende. Consumo 0.00 A.');await page.locator('#ab-chat-agree').check();
+ await page.locator('#ab-chat-send').click();await page.waitForFunction(()=>window.mock.turns.length===1);
+ const calls=await page.evaluate(()=>window.mock.calls);
+ assert.equal(calls.find(c=>c.rpc==='ai_board_create_case').args.p_model,'iPhone 12');
+ assert.equal(calls.filter(c=>c.name==='ai-board-chat').length,1);
+ await page.waitForFunction(()=>document.querySelectorAll('#ab-chat-feed .ab-bubble').length===2);
+ // Otra pestaña del navegador: el consentimiento queda recordado para este usuario
+ assert.equal(await page.evaluate(()=>localStorage.getItem('bayol_ai_board_consent_v1')),'11111111-1111-4111-8111-111111111111');
+ assert.deepEqual(errors,[]);await page.close();
+});
+test('al entrar con el modelo de un caso existente, se abre sola su última conversación',async()=>{
+ const {page,errors}=await setup();await page.locator('#ab-model').selectOption('iPhone X');
+ await page.locator('[data-ab-tab="ia"]').click();
+ await page.waitForFunction(()=>document.getElementById('ab-chat-history-state').textContent.includes('Historial guardado'));
+ assert.equal(await page.locator('#ab-chat-session').inputValue(),'77777777-7777-4777-8777-777777777777');
  assert.deepEqual(errors,[]);await page.close();
 });
 test('actual diagnostic DOM mounts once with three tabs and legacy tools preserved',async()=>{
@@ -136,7 +162,7 @@ test('boardview model/provenance validation, component selection and net search'
 });
 
 test('minimal case and conversation creation; owner can delete persisted history',async()=>{
- const {page,errors}=await setup();await page.locator('[data-ab-tab="ia"]').click();await page.waitForFunction(()=>document.getElementById('ab-chat-case').options.length>1);
+ const {page,errors}=await setup();await page.locator('[data-ab-tab="ia"]').click();await page.evaluate(()=>{document.getElementById('ab-chat-hist').open=true;});await page.waitForFunction(()=>document.getElementById('ab-chat-case').options.length>1);
  await page.locator('#ab-chat-create-case').click();await page.waitForFunction(()=>document.getElementById('ab-chat-case').value=== '44444444-4444-4444-8444-444444444444'&&!document.getElementById('ab-chat-new').disabled);
  assert.equal(await page.evaluate(()=>mock.calls.find(c=>c.rpc==='ai_board_create_case').args.p_model),'iPhone 13 Pro Max');
  await page.locator('#ab-chat-new').click();await page.waitForFunction(()=>document.getElementById('ab-chat-history-state').textContent.includes('Conversación guardada'));

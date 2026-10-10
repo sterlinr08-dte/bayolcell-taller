@@ -80,3 +80,14 @@
 #v-diagnostico .ab-library-pagination button{padding:10px;min-height:44px;border:1px solid #dfe3eb;border-radius:10px;background:#fff;cursor:pointer}
 #v-diagnostico #ab-library-feed{display:grid;gap:12px}
 @media(max-width:680px){#v-diagnostico .ab-library-form{grid-template-columns:1fr}}
+
+/* 10 oct 2026 — foto ilustrativa (IA) por generación de placa + herramientas avanzadas plegadas */
+#v-diagnostico .ab-ilustra{height:100%;max-width:100%;aspect-ratio:3/4;margin:0 auto;pointer-events:none;background:#eef0f3 center/contain no-repeat;border-radius:14px;filter:saturate(.92)}
+#v-diagnostico .ab-avanzado{border:1px solid var(--ab-border);border-radius:12px;padding:0 10px;margin:0 0 10px;background:#fafbfd}
+#v-diagnostico .ab-avanzado summary{cursor:pointer;min-height:42px;display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:#475569}
+#v-diagnostico .ab-avanzado[open]{padding-bottom:10px}
+/* catálogo de fotos: botones con el mismo estilo del módulo */
+#v-diagnostico #ab-catalog button,#v-diagnostico #ab-catalog summary{min-height:40px;border:1px solid var(--ab-border);border-radius:10px;background:#fff;padding:7px 12px;font:600 12.5px inherit;color:#334155;cursor:pointer;margin:0 6px 6px 0}
+#v-diagnostico #ab-catalog summary{display:inline-flex;align-items:center;margin:4px 0 0}
+#v-diagnostico #ab-catalog button:disabled{opacity:.5;cursor:not-allowed}
+#v-diagnostico #ab-catalog-list button{display:block;width:100%;text-align:left}

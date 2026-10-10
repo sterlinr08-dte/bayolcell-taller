@@ -15,10 +15,11 @@ let assetEpoch=0;
 function clearAsset(){assetEpoch++;const q=R('ab-point-query');if(q)q.disabled=true;window.dispatchEvent(new Event('bayol-ai-board-point-reset'));if(state.url)URL.revokeObjectURL(state.url);state.tiles?.destroy();state.tiles=null;state.url=null;state.photoSize=null;state.board=null;state.selected=null;R('ab-selection')?.replaceChildren();const side=R('ab-side');if(side)side.disabled=true;}
 function mountBoardTools(){
  R('ab-minus').textContent='−';R('ab-plus').textContent='+';R('ab-reset').textContent='Centrar';
- document.querySelector('#ab-shell .ab-under>span').textContent='Zoom vectorial de boardview · Fotografía local según resolución original';
+ document.querySelector('#ab-shell .ab-under>span').textContent='Pellizca o usa la rueda del ratón para acercar · Arrastra para moverte';
+ const avanzado=document.createElement('details');avanzado.id='ab-avanzado';avanzado.className='ab-avanzado';avanzado.innerHTML='<summary><i class="ti ti-adjustments"></i> Herramientas avanzadas · mapas de componentes y fotos HD</summary>';
  const tools=document.createElement('div');tools.className='ab-board-tools';
  tools.innerHTML='<label class="ab-upload">Importar boardview JSON<input id="ab-board-file" type="file" accept="application/json,.json" hidden></label><label>Buscar componente o red<input id="ab-board-search" type="search" maxlength="120" placeholder="Designador o nombre de red"></label><label><input id="ab-board-labels" type="checkbox" checked> Designadores</label><label><input id="ab-board-pins" type="checkbox"> Pines</label>';
- R('ab-stage-view').before(tools);
+ avanzado.append(tools);R('ab-stage-view').before(avanzado);
  const queryPoint=document.createElement('button');queryPoint.id='ab-point-query';queryPoint.type='button';queryPoint.className='ab-upload';queryPoint.textContent='Consultar componente con IA';queryPoint.disabled=true;tools.append(queryPoint);
  queryPoint.addEventListener('click',()=>{const c=state.board?.components.find(c=>c.ref===state.selected);if(!c)return;const b=state.board;window.dispatchEvent(new CustomEvent('bayol-ai-board-point-query',{detail:{model:b.model,revision:b.revision,ref:c.ref,source:b.source,pins:c.pins.slice(0,8).map(p=>({id:p.id,net:p.net}))}}));show('ia');});
  const hd=document.createElement('label');hd.className='ab-upload';hd.textContent='Abrir carpeta de foto HD';const folder=document.createElement('input');folder.id='ab-photo-folder';folder.type='file';folder.hidden=true;folder.multiple=true;folder.setAttribute('webkitdirectory','');hd.append(folder);tools.prepend(hd);
@@ -32,7 +33,7 @@ function mountBoardTools(){
    const f=e.target.files?.[0];e.target.value='';if(!f)return;
    if(f.size>3*1024*1024){alert('Máximo 3 MB de datos de boardview.');return;}
    const token=++assetEpoch,model=state.model;
-   try{const board=window.BayolBoardData.validate(JSON.parse(await f.text()),model);if(token!==assetEpoch||model!==state.model)return;clearAsset();state.board=board;state.side=board.components[0].side;resetView();refresh();}
+   try{const board=window.BayolBoardData.validate(JSON.parse(await f.text()),model);if(token!==assetEpoch||model!==state.model)return;clearAsset();state.board=board;state.side=board.components[0].side;R('ab-avanzado').open=true;resetView();refresh();}
    catch(err){alert(err.message||'No se pudo importar el boardview.');}
  });
  for(const id of ['ab-board-search','ab-board-labels','ab-board-pins'])R(id).addEventListener(id==='ab-board-search'?'input':'change',()=>{if(state.board)renderBoard();});
@@ -65,6 +66,27 @@ function renderBoard(){
  R('ab-selection').textContent=selected?selected.ref+' · Pines aportados: '+selected.pins.map(p=>p.id+': '+(p.net||'sin red indicada')).join(', '):(query?count+' componentes coinciden en este lado.':'Selecciona un componente para consultar los datos aportados.');
  document.querySelector('#ab-shell .ab-watermark').textContent='MAPA APORTADO · REVISIÓN TÉCNICA PENDIENTE';repaint();
 }
+// Fotos ilustrativas generadas con IA (Buzzy, 4K) por generación de placa. Sirven para orientarse,
+// NO para medir: no son la placa real ni tienen posiciones exactas. Nunca se envían a la IA del chat.
+function familiaPlaca(m){
+ if(/^iPhone XR$/.test(m))return 'xr';
+ if(/^iPhone X/.test(m))return 'x';
+ if(/^iPhone 11/.test(m))return '11';
+ if(/^iPhone 1[23]/.test(m))return '12-13';
+ return '14-16';
+}
+function pintarIlustracion(target){
+ const fam=familiaPlaca(state.model),base='assets/ai-board/placas/placa-'+fam;
+ const d=document.createElement('div');d.className='ab-ilustra';d.setAttribute('role','img');
+ d.setAttribute('aria-label','Ilustración generada con IA de una placa de la generación '+state.model+'. No es la placa real.');
+ d.style.backgroundImage='url("'+base+'-mini.webp")';target.replaceChildren(d);
+ // La versión 4K se carga cuando el técnico acerca la imagen, para no gastar datos al entrar.
+ d.dataset.full=base+'.webp';
+}
+function ilustracionHD(){
+ const d=R('ab-target')?.querySelector('.ab-ilustra');if(!d||d.dataset.cargada||state.scale<1.6)return;
+ d.dataset.cargada='1';const img=new Image();img.onload=()=>{if(d.isConnected)d.style.backgroundImage='url("'+d.dataset.full+'")';};img.src=d.dataset.full;
+}
 function save(){
   try {localStorage.setItem(STORAGE_KEY,JSON.stringify({tab:state.tab,model:state.model}));}catch(_){}
 }
@@ -76,8 +98,8 @@ function mount(){
  shell.id="ab-shell";
  shell.innerHTML='<div class="ab-header"><div class="ab-title"><span class="ab-mark" aria-hidden="true"><i class="ti ti-cpu"></i></span><div><h2>Diagnóstico</h2><p>BITMAP, inteligencia artificial y conocimiento técnico, en un solo lugar.</p></div></div><span class="ab-stage">AI BOARD · Versión de prueba</span></div>'
  +'<div class="ab-tabs" role="tablist" aria-label="Secciones de Diagnóstico"><button type="button" data-ab-tab="bitmap" role="tab"><i class="ti ti-layers-intersect"></i> BITMAP</button><button type="button" data-ab-tab="ia" role="tab"><i class="ti ti-brain"></i> Diagnóstico IA</button><button type="button" data-ab-tab="biblioteca" role="tab"><i class="ti ti-book"></i> Biblioteca</button></div>'
- +'<section id="ab-pane-bitmap" class="ab-pane" role="tabpanel"><div class="ab-workspace"><div class="ab-visual"><div class="ab-controls"><label>Modelo <select id="ab-model" aria-label="Seleccionar modelo de iPhone"></select></label><span class="ab-chip ab-chip-warn" id="ab-coverage">Sin boardview verificado</span><label>Vista <select id="ab-side" disabled title="Disponible cuando existan mapas certificados"><option>Superior</option></select></label><div class="ab-zoom-buttons"><button type="button" id="ab-minus" aria-label="Alejar"><i class="ti ti-minus"></i></button><span id="ab-zoom-status">100%</span><button type="button" id="ab-plus" aria-label="Acercar"><i class="ti ti-plus"></i></button><button type="button" id="ab-reset" aria-label="Centrar"><i class="ti ti-focus-centered"></i></button></div></div><div id="ab-stage-view" class="ab-stage-view" tabindex="0" aria-label="Visor de placa: rueda del ratón o gesto de pinza para acercar"><div id="ab-target" class="ab-target"></div><span class="ab-watermark">MUESTRA VISUAL · NO USAR COMO DIAGRAMA TÉCNICO</span></div><div class="ab-under"><span>Geometría aportada y fotos locales · Procedencia visible, pendiente de comprobación</span><label class="ab-upload"><i class="ti ti-photo-up"></i> Abrir foto local<input id="ab-file" type="file" accept="image/png,image/jpeg,image/webp,image/avif" hidden></label></div></div>'
- +'<aside class="ab-side"><div class="ab-card"><h3><i class="ti ti-shield-check"></i> Estado de cobertura</h3><p id="ab-details">Este modelo está en el catálogo. Aún no hay datos de pines, líneas o componentes validados.</p><div class="ab-alert"><i class="ti ti-alert-circle"></i> El zoom vectorial no inventa detalle de una fotografía; depende de los píxeles originales.</div></div><div class="ab-card"><h3><i class="ti ti-stethoscope"></i> Diagnóstico conectado</h3><p>El motor de IA, los panic logs y el historial del taller están disponibles en la pestaña Diagnóstico IA.</p><button id="ab-open-ia" type="button" class="ab-primary">Abrir Diagnóstico IA <i class="ti ti-arrow-right"></i></button></div></aside></div></section>'
+ +'<section id="ab-pane-bitmap" class="ab-pane" role="tabpanel"><div class="ab-workspace"><div class="ab-visual"><div class="ab-controls"><label>Modelo <select id="ab-model" aria-label="Seleccionar modelo de iPhone"></select></label><span class="ab-chip ab-chip-warn" id="ab-coverage">Sin boardview verificado</span><label>Vista <select id="ab-side" disabled title="Disponible cuando existan mapas certificados"><option>Superior</option></select></label><div class="ab-zoom-buttons"><button type="button" id="ab-minus" aria-label="Alejar"><i class="ti ti-minus"></i></button><span id="ab-zoom-status">100%</span><button type="button" id="ab-plus" aria-label="Acercar"><i class="ti ti-plus"></i></button><button type="button" id="ab-reset" aria-label="Centrar"><i class="ti ti-focus-centered"></i></button></div></div><div id="ab-stage-view" class="ab-stage-view" tabindex="0" aria-label="Visor de placa: rueda del ratón o gesto de pinza para acercar"><div id="ab-target" class="ab-target"></div><span class="ab-watermark">MUESTRA VISUAL · NO USAR COMO DIAGRAMA TÉCNICO</span></div><div class="ab-under"><span>Geometría aportada y fotos locales · Procedencia visible, pendiente de comprobación</span><label class="ab-upload"><i class="ti ti-photo-up"></i> Abrir foto de la placa<input id="ab-file" type="file" accept="image/png,image/jpeg,image/webp,image/avif" hidden></label></div></div>'
+ +'<aside class="ab-side"><div class="ab-card"><h3><i class="ti ti-shield-check"></i> Estado de cobertura</h3><p id="ab-details">Este modelo está en el catálogo. Aún no hay datos de pines, líneas o componentes validados.</p><div class="ab-alert"><i class="ti ti-alert-circle"></i> El zoom vectorial no inventa detalle de una fotografía; depende de los píxeles originales.</div></div><div class="ab-card"><h3><i class="ti ti-stethoscope"></i> Diagnóstico conectado</h3><p>¿No sabes por dónde empezar? Cuéntale a la IA el síntoma y lo que mediste; te dice qué revisar.</p><button id="ab-open-ia" type="button" class="ab-primary">Preguntarle a la IA <i class="ti ti-arrow-right"></i></button></div></aside></div></section>'
  +'<section id="ab-pane-ia" class="ab-pane" role="tabpanel"><div class="ab-legacy" id="ab-legacy"><div class="ab-inline-note"><i class="ti ti-check"></i> Conservamos el diagnóstico y las herramientas existentes. El futuro chat conversacional con IA conservará contexto y mediciones de cada caso.</div></div></section>'
 
  +'<section id="ab-pane-biblioteca" class="ab-pane" role="tabpanel"><div id="ab-library" class="ab-library"><div class="ab-inline-note"><i class="ti ti-book"></i> Casos existentes del taller. Las soluciones todavía no cuentan con aprobación técnica independiente.</div></div></section>';
@@ -121,18 +143,19 @@ function show(tab){
 function refresh(){
  if(state.board){renderBoard();return;}
  if(state.tiles){const m=state.tiles.manifest;R('ab-target').replaceChildren(state.tiles.root);R('ab-coverage').textContent='Foto HD por niveles · pendiente de validación';R('ab-details').textContent=m.model+' · '+m.revision+' · '+m.width+' × '+m.height+' píxeles · Fuente: '+m.source.title+' · '+m.source.reference;document.querySelector('#ab-shell .ab-watermark').textContent='FOTO ORIGINAL POR NIVELES · SIN MAPA ELÉCTRICO';repaint();return;}
- document.querySelector('#ab-shell .ab-watermark').textContent=state.url?'FOTOGRAFÍA LOCAL · SIN VALIDACIÓN ELÉCTRICA':'SIN MAPA TÉCNICO VERIFICADO';
- R("ab-coverage").textContent=state.url?"Foto local · sin validación":"Sin boardview verificado";
- R("ab-details").textContent=state.url?"Fotografía cargada localmente para inspección visual. No incluye conexiones, pines ni referencias eléctricas.":"El "+state.model+" figura en el catálogo, pero aún no existe una placa electrónica verificada disponible en este módulo.";
+ document.querySelector('#ab-shell .ab-watermark').textContent=state.url?'FOTOGRAFÍA LOCAL · SIN VALIDACIÓN ELÉCTRICA':'ILUSTRACIÓN CON IA · NO ES LA PLACA REAL · NO USAR PARA MEDIR';
+ R("ab-coverage").textContent=state.url?"Foto local · sin validación":"Ilustración (IA) · sin mapa verificado";
+ R("ab-details").textContent=state.url?"Fotografía cargada localmente para inspección visual. No incluye conexiones, pines ni referencias eléctricas.":"Imagen de referencia de la placa de esta generación ("+state.model+"), creada con IA para orientarte. Los componentes y su posición NO son exactos: para medir, abre una foto real de la placa (botón «Abrir foto») o pregúntale a la IA.";
  const target=R("ab-target");
  if(state.url){target.innerHTML="";const img=document.createElement("img");img.src=state.url;img.alt="Fotografía local aportada por el técnico, no verificada";img.draggable=false;target.appendChild(img);}
- else {target.replaceChildren();const empty=document.createElement("p");empty.className="ab-no-map";empty.textContent="Sin boardview verificado para "+state.model+". Abre una fotografía local o importa un mapa con su fuente y revisión.";target.appendChild(empty);}
+ else pintarIlustracion(target);
  repaint();
 }
 function repaint(){
  const tar=R("ab-target");if(tar)tar.style.transform="translate("+state.x+"px,"+state.y+"px) scale("+state.scale+")";
  const status=R("ab-zoom-status");if(status)status.textContent=Math.round(state.scale*100)+"%";
  if(state.tiles){const stage=R('ab-stage-view');state.tiles.render(stage.clientWidth,stage.clientHeight,state.scale,state.x,state.y);}
+ ilustracionHD();
 }
 function zoom(factor,ax=0,ay=0){const old=state.scale;state.scale=Math.min(24,Math.max(.5,old*factor));state.x=ax-(ax-state.x)*state.scale/old;state.y=ay-(ay-state.y)*state.scale/old;repaint();}
 function resetView(){state.scale=1;state.x=0;state.y=0;state.pointers.clear();repaint();}

@@ -15,7 +15,12 @@ function mock(overrides={}){
   if(url.includes('ai_board_sessions?'))return respond(overrides.sessions??[{id:ID,modelo:'iPhone X'}]);
   if(url.endsWith('ai_board_reserve'))return respond(overrides.reserve??{fresh:true,turn:{id:RID}},overrides.reserveStatus??200);
   if(url.includes('ai_board_turns?'))return respond(overrides.history??[{user_message:'No enciende.',assistant_message:'Mide con condiciones seguras.'}]);
-  if(url.includes('api.anthropic.com'))return respond({content:[{type:'text',text:'EVIDENCIA: 0.08 A. HIPÓTESIS: pendiente. PRÓXIMA PRUEBA: confirmar modelo.'}]},overrides.providerStatus??200);
+  if(url.includes('api.anthropic.com')){
+   const sent=JSON.parse(options.body);
+   if(overrides.rejectNewModel&&sent.model!=='claude-sonnet-4-6')return respond({error:{message:'unsupported'}},400);
+   if(overrides.refusal)return respond({stop_reason:'refusal',content:[]});
+   return respond({content:[{type:'text',text:'EVIDENCIA: 0.08 A. HIPÓTESIS: pendiente. PRÓXIMA PRUEBA: confirmar modelo.'}]},overrides.providerStatus??200);
+  }
   if(url.endsWith('ai_board_finish'))return respond(overrides.saved??true);
   throw Error('Unexpected URL');
  };
@@ -80,4 +85,15 @@ test('component context is bounded, unverified and restricted to the case model'
  const m=mock();assert.equal((await m.handler(request({...body,context:{point:{...point,model:'iPhone XR'}}}))).status,400);assert(!m.calls.some(c=>c.url.includes('anthropic')));
  const ok=mock();assert.equal((await ok.handler(request({...body,context:{point}}))).status,200);
  assert(JSON.parse(ok.calls.find(c=>c.url.includes('anthropic')).options.body).messages.at(-1).content.includes('unverified'));
+});
+
+test('modelo actual por defecto, con red de seguridad al modelo anterior y manejo de rechazo',async()=>{
+ let m=mock();let r=await m.handler(request());assert.equal(r.status,200);
+ const primero=JSON.parse(m.calls.find(c=>c.url.includes('api.anthropic.com')).options.body);
+ assert.equal(primero.model,'claude-opus-5-5');assert.equal(primero.fallbacks,'default');assert.equal(primero.output_config.effort,'medium');
+ m=mock({rejectNewModel:true});r=await m.handler(request());assert.equal(r.status,200);
+ const modelos=m.calls.filter(c=>c.url.includes('api.anthropic.com')).map(c=>JSON.parse(c.options.body).model);
+ assert.deepEqual(modelos,['claude-opus-5-5','claude-sonnet-4-6']);
+ m=mock({refusal:true});r=await m.handler(request());assert.equal(r.status,422);
+ assert.equal(m.calls.filter(c=>c.url.endsWith('ai_board_finish')).length,1,'el turno se cierra como fallido');
 });

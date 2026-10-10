@@ -48,7 +48,7 @@ export function buildMessages(turns, message, model, context) {
   return messages;
 }
 export function createHandler({env,fetchImpl=fetch}) {
-  const allowed=(env('AI_BOARD_ALLOWED_ORIGINS')||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const allowed=(env('AI_BOARD_ALLOWED_ORIGINS')||'https://bayolcell.com,https://www.bayolcell.com').split(',').map(s=>s.trim()).filter(Boolean);
   return async req=>{
     const origin=req.headers.get('origin');
     const cors=origin&&allowed.includes(origin)?{'Access-Control-Allow-Origin':origin,'Vary':'Origin',
@@ -94,11 +94,18 @@ export function createHandler({env,fetchImpl=fetch}) {
       }
       turn=reserved.turn.id;
       const history=await rest('/rest/v1/ai_board_turns?select=user_message,assistant_message,context&session_id=eq.'+input.session_id+'&status=eq.completed&order=created_at.desc,id.desc&limit=7');
-      const response=await fetchImpl('https://api.anthropic.com/v1/messages',{method:'POST',signal:AbortSignal.timeout(45000),
-        headers:{'x-api-key':key,'anthropic-version':'2023-06-01','content-type':'application/json'},
-        body:JSON.stringify({model:env('AI_BOARD_CLAUDE_MODEL')||'claude-sonnet-4-6',max_tokens:1800,system:SYSTEM_PROMPT,messages:buildMessages(history,input.message,sessions[0].modelo,input.context)})});
-      if(!response.ok)throw Error('PROVIDER');
+      // Modelo actual por defecto (10 oct 2026). Esfuerzo medio: respuestas técnicas cuidadosas sin demorar al técnico.
+      // fallbacks:"default" = si el filtro de seguridad rechaza la consulta, la API reintenta sola con otro modelo.
+      const msgs=buildMessages(history,input.message,sessions[0].modelo,input.context);
+      const llamar=(extra,beta,ms)=>fetchImpl('https://api.anthropic.com/v1/messages',{method:'POST',signal:AbortSignal.timeout(ms),
+        headers:{'x-api-key':key,'anthropic-version':'2023-06-01',...(beta?{'anthropic-beta':'server-side-fallback-2026-07-01'}:{}),'content-type':'application/json'},
+        body:JSON.stringify({...extra,system:SYSTEM_PROMPT,messages:msgs})});
+      let response=await llamar({model:env('AI_BOARD_CLAUDE_MODEL')||'claude-opus-5-5',max_tokens:8000,output_config:{effort:'medium'},fallbacks:'default'},true,55000);
+      // Red de seguridad: si la cuenta no acepta el modelo o los parámetros nuevos, se usa el modelo de siempre.
+      if(response.status===400||response.status===404){console.log('AIB-MODELO-NUEVO-RECHAZADO',response.status,(await response.text().catch(()=>'')).slice(0,300));response=await llamar({model:'claude-sonnet-4-6',max_tokens:4000},false,40000);}
+      if(!response.ok){console.log('AIB-PROVIDER',response.status,(await response.text().catch(()=>'')).slice(0,300));throw Error('PROVIDER');}
       const data=await response.json();
+      if(data.stop_reason==='refusal')throw Error('REFUSAL');
       const answer=minimize((data.content||[]).filter(b=>b.type==='text').map(b=>b.text||'').join('\n')).trim().slice(0,12000);
       if(!answer)throw Error('PROVIDER');
       // Recheck caller access after generation; do not save after reassignment/revocation.
@@ -110,7 +117,7 @@ export function createHandler({env,fetchImpl=fetch}) {
       return json({ok:true,answer,request_id:input.request_id,persisted:true});
     } catch(e) {
       if(turn)try{await rest('/rest/v1/rpc/ai_board_finish',{method:'POST',body:JSON.stringify({p_turn:turn,p_owner:owner,p_answer:null})},true);}catch{}
-      const errors={INVALID_INPUT:[400,'Datos técnicos inválidos.'],QUOTA:[429,'Límite de consultas alcanzado.'],BUSY:[409,'Ya hay una respuesta en proceso.'],ACCESS:[403,'No tienes acceso a este caso.'],SAVE:[503,'No se confirmó el guardado. Recarga el historial antes de reintentar.']};
+      const errors={INVALID_INPUT:[400,'Datos técnicos inválidos.'],QUOTA:[429,'Límite de consultas alcanzado.'],BUSY:[409,'Ya hay una respuesta en proceso.'],ACCESS:[403,'No tienes acceso a este caso.'],SAVE:[503,'No se confirmó el guardado. Recarga el historial antes de reintentar.'],REFUSAL:[422,'La IA no pudo responder esa consulta. Reformúlala con datos técnicos (modelo, síntoma, medición).']};
       const [code,error]=errors[e.message]||[502,'No se completó la consulta IA. Recarga el historial antes de reintentar.'];
       return json({ok:false,error},code);
     }
