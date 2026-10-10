@@ -1,0 +1,36 @@
+-- REVIEW/STAGING ONLY -- DO NOT APPLY TO PRODUCTION WITHOUT AUTH TESTS.
+-- Focus: 'ai-board/<auth.uid()>/<uuid>.<ext>' uploads inside private bucket placas.
+-- Existing storage.objects policies ('placas_obj_*') allow broad access to
+-- ANY authenticated diagnostic user. Restrictive additions do not override
+-- permissive RLS policies: policies are OR-combined.
+--
+-- SAFEST CUTOVER APPROACH:
+-- 1. Identify legacy consumers of placas bucket BEFORE revoking broad writes.
+-- 2. Replace existing INSERT/UPDATE/DELETE policies with permission-aware
+--    ownership predicates in staging, with regression tests for legacy flows.
+-- 3. Preserve SELECT for diagnostic authorized users if shared team images
+--    are intended; do NOT make the bucket public.
+-- 4. For AI Board DELETE/UPDATE, enforce path-prefix ownership and dedicated
+--    application audit trail. Admin workflows should use trusted server-side
+--    operations with explicit privilege checks.
+--
+-- This script intentionally has no executable policy changes: a direct DROP
+-- of original bucket policies without inventory could break existing uploads
+-- from other workshop modules. It records the gate for a separate staging
+-- migration once legacy paths and permissions are validated.
+--
+-- Example ownership predicate FOR STAGING REVIEW ONLY:
+--   bucket_id = 'placas'
+--   AND (storage.foldername(name))[1] = 'ai-board'
+--   AND (storage.foldername(name))[2] = (SELECT auth.uid())::text
+--   AND public.app_puede_diagnostico()
+--
+-- Tests required:
+-- - User A may upload/delete its own ai-board/A/... object.
+-- - User A cannot delete/overwrite ai-board/B/... from user B.
+-- - Anonymous users cannot read private images.
+-- - Diagnostic-authorized users may read shared photographs as designed.
+-- - No access to unrelated bucket assets is widened.
+-- - Legacy upload/delete paths keep working for their intended roles.
+-- - Before and after: review SELECT/INSERT/UPDATE/DELETE policies in
+--   storage.objects and public.placas_mapas.
