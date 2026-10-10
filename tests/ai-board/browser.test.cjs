@@ -61,6 +61,15 @@ async function openChat(page){
 }
 test.before(async()=>{browser=await engines[engine].launch({headless:true,...(engine==='chromium'?{args:['--no-sandbox']}:{}),...(process.env.AI_BOARD_CHROMIUM_PATH?{executablePath:process.env.AI_BOARD_CHROMIUM_PATH}:{})});});
 test.after(async()=>browser?.close());
+test('legacy one-shot diagnosis action remains available with missing chat backend',async()=>{
+ const {page,errors}=await setup();
+ const button=page.locator('#dg_btn');
+ assert.equal(await button.getAttribute('onclick'),'diagnosticarIA()');
+ await page.locator('[data-ab-tab="ia"]').click();
+ assert.equal(await button.getAttribute('onclick'),'diagnosticarIA()');
+ assert.match(await button.textContent(),/Diagnosticar con IA/i);
+ assert.deepEqual(errors,[]);await page.close();
+});
 test('actual diagnostic DOM mounts once with three tabs and legacy tools preserved',async()=>{
  const {page,errors}=await setup();assert.equal(await page.locator('[role=tab]').count(),3);assert.equal(await page.locator('#dg_panic').count(),1);assert.equal(await page.locator('#conocimientoTable').count(),1);
  await page.addScriptTag({path:path.join(root,'diagnostico-ai-board.js')});assert.equal(await page.locator('#ab-shell').count(),1);
