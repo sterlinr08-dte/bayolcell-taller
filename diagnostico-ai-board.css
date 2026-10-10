@@ -17,13 +17,13 @@
 #v-diagnostico .ab-visual{padding:13px;min-width:0}
 #v-diagnostico .ab-controls{display:flex;align-items:end;gap:9px;flex-wrap:wrap;margin-bottom:10px}
 #v-diagnostico .ab-controls label{font-weight:600;font-size:11px;color:var(--ab-muted);display:flex;flex-direction:column;gap:3px}
-#v-diagnostico .ab-controls select{border:1px solid var(--ab-border);background:#fafbfd;color:var(--ab-text);height:36px;border-radius:10px;padding:0 8px;min-width:100px;font:500 12px inherit}
-#v-diagnostico .ab-chip{display:inline-flex;align-items:center;justify-content:center;min-height:34px;border-radius:10px;padding:7px 10px;font:600 11px inherit}
+#v-diagnostico .ab-controls select{border:1px solid var(--ab-border);background:#fafbfd;color:var(--ab-text);height:36px;border-radius:10px;padding:0 8px;min-width:100px;font-family:inherit;font-weight:500;font-size:12px}
+#v-diagnostico .ab-chip{display:inline-flex;align-items:center;justify-content:center;min-height:34px;border-radius:10px;padding:7px 10px;font-family:inherit;font-weight:600;font-size:11px}
 #v-diagnostico .ab-chip-warn{background:#fff7e8;border:1px solid #fce0a2;color:#996800}
 #v-diagnostico .ab-zoom-buttons{display:flex;align-items:center;margin-left:auto;border-radius:11px;border:1px solid var(--ab-border);overflow:hidden}
 #v-diagnostico .ab-zoom-buttons button{border:0;background:white;min-width:36px;min-height:36px;cursor:pointer;color:#465162}
 #v-diagnostico .ab-zoom-buttons button:hover{background:#f3f4f7}
-#v-diagnostico .ab-zoom-buttons span{min-width:46px;text-align:center;font:600 12px inherit}
+#v-diagnostico .ab-zoom-buttons span{min-width:46px;text-align:center;font-family:inherit;font-weight:600;font-size:12px}
 #v-diagnostico .ab-stage-view{height:clamp(290px,49vh,640px);position:relative;overflow:hidden;touch-action:none;background:radial-gradient(circle at 50% 25%,#eef1f6,#dfe4ec);border-radius:14px;border:1px solid #e3e7ef;cursor:grab;outline-offset:2px;user-select:none}
 #v-diagnostico .ab-stage-view:active{cursor:grabbing}
 #v-diagnostico .ab-target{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;transform-origin:center center;will-change:transform}
@@ -87,7 +87,38 @@
 #v-diagnostico .ab-avanzado summary{cursor:pointer;min-height:42px;display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:#475569}
 #v-diagnostico .ab-avanzado[open]{padding-bottom:10px}
 /* catálogo de fotos: botones con el mismo estilo del módulo */
-#v-diagnostico #ab-catalog button,#v-diagnostico #ab-catalog summary{min-height:40px;border:1px solid var(--ab-border);border-radius:10px;background:#fff;padding:7px 12px;font:600 12.5px inherit;color:#334155;cursor:pointer;margin:0 6px 6px 0}
+#v-diagnostico #ab-catalog button,#v-diagnostico #ab-catalog summary{min-height:40px;border:1px solid var(--ab-border);border-radius:10px;background:#fff;padding:7px 12px;font-family:inherit;font-weight:600;font-size:12.5px;color:#334155;cursor:pointer;margin:0 6px 6px 0}
 #v-diagnostico #ab-catalog summary{display:inline-flex;align-items:center;margin:4px 0 0}
 #v-diagnostico #ab-catalog button:disabled{opacity:.5;cursor:not-allowed}
 #v-diagnostico #ab-catalog-list button{display:block;width:100%;text-align:left}
+/* Buscador de cortos (10 oct 2026) */
+#v-diagnostico #ab-cortos-capa{position:absolute;pointer-events:none;z-index:2}
+#v-diagnostico .abc-p{position:absolute;width:0;height:0}
+#v-diagnostico .abc-p::before{content:"";position:absolute;left:-6px;top:-6px;width:12px;height:12px;border-radius:50%;background:rgba(37,99,235,.9);border:2px solid #fff;box-shadow:0 1px 4px rgba(15,23,42,.45);transform:scale(var(--abc-s,1))}
+#v-diagnostico .abc-p b{display:none;position:absolute;left:9px;top:-9px;font:700 11px/1.2 system-ui,sans-serif;color:#0f172a;background:rgba(255,255,255,.94);border-radius:5px;padding:2px 5px;white-space:nowrap;box-shadow:0 1px 3px rgba(15,23,42,.3);transform:scale(var(--abc-s,1));transform-origin:-9px 9px}
+#v-diagnostico .abc-p.on::before{background:#dc2626;width:14px;height:14px;left:-7px;top:-7px;animation:abcPulso 1.4s ease-in-out infinite}
+#v-diagnostico .abc-p.on b,#v-diagnostico .abc-p.sel b,#v-diagnostico #ab-cortos-capa.marcando .abc-p b{display:block}
+#v-diagnostico .abc-p.off{opacity:.22}
+#v-diagnostico .abc-p.ok::before{background:#16a34a;animation:none}
+#v-diagnostico .abc-p.mal::before{background:#111827;box-shadow:0 0 0 4px rgba(220,38,38,.55);animation:none}
+#v-diagnostico .abc-p.sel::before{box-shadow:0 0 0 4px rgba(214,82,37,.55)}
+@keyframes abcPulso{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.55)}50%{box-shadow:0 0 0 7px rgba(220,38,38,0)}}
+#v-diagnostico .abc-ayuda{font-size:12.5px;color:#475569;margin:4px 0 8px}
+#v-diagnostico .abc-fila{display:flex;gap:6px}
+#v-diagnostico .abc-fila input{flex:1;min-width:0;min-height:40px;border:1px solid #cbd5e1;border-radius:10px;padding:6px 10px;font-family:inherit;font-weight:600;font-size:13px;text-transform:uppercase}
+#v-diagnostico #ab-cortos button,#v-diagnostico #ab-cortos summary{min-height:40px;border:1px solid #d6dbe4;border-radius:10px;background:#fff;padding:6px 11px;font-family:inherit;font-weight:600;font-size:12.5px;color:#334155;cursor:pointer}
+#v-diagnostico #ab-cortos #ab-cortos-buscar{background:#D65225;border-color:#D65225;color:#fff}
+#v-diagnostico #ab-cortos summary{display:inline-flex;align-items:center;margin-top:8px}
+#v-diagnostico .abc-top{margin:8px 0 0;padding:8px 10px;border-radius:10px;background:#fff7ed;color:#9a3412;font-size:12.5px;font-weight:600}
+#v-diagnostico .abc-lista{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px;max-height:320px;overflow:auto}
+#v-diagnostico .abc-lista li{display:flex;align-items:center;gap:6px;padding:6px 8px;border:1px solid #e5e7eb;border-radius:10px;background:#fff}
+#v-diagnostico .abc-lista li.abc-ok{background:#f0fdf4;border-color:#bbf7d0}
+#v-diagnostico .abc-lista li.abc-culpable{background:#fef2f2;border-color:#fecaca}
+#v-diagnostico .abc-lista li.abc-vacio{font-size:12.5px;color:#475569}
+#v-diagnostico .abc-ref{flex:1;font-weight:700;font-size:13px;color:#0f172a;overflow-wrap:anywhere}
+#v-diagnostico #ab-cortos .abc-culpable{color:#b91c1c;border-color:#fecaca}
+#v-diagnostico .abc-check{display:flex;gap:8px;align-items:center;font-size:12.5px;margin:6px 0;min-height:40px}
+#v-diagnostico #ab-cortos-sel{display:flex;flex-wrap:wrap;gap:6px}
+#v-diagnostico #ab-cortos-sel p{width:100%;margin:4px 0 0;font-size:12.5px;font-weight:600}
+#v-diagnostico #ab-cortos-status{font-size:12px;color:#475569;margin:8px 0 0}
+@media(prefers-reduced-motion:reduce){#v-diagnostico .abc-p.on::before{animation:none}}

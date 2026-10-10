@@ -23,9 +23,17 @@ async function setup(width=1200){
    auth:{getUser:async()=>({data:{user:state.user?{id:state.user}:null}}),onAuthStateChange:cb=>state.callbacks.push(cb)},
    rpc:async(name,args)=>{state.calls.push({rpc:name,args});if(state.missingBackend&&name.startsWith('ai_board'))return {data:null,error:{code:'PGRST202',message:'Could not find the function public.'+name}};if(name==='app_puede_diagnostico')return {data:state.permission!==false};if(name==='app_is_admin')return {data:state.admin};if(name==='ai_board_library_submit'){state.library.push({id:C,modelo:'iPhone X',revision:args.p_revision,summary:args.p_summary,evidence:args.p_evidence,sources:args.p_sources,status:'pending',author_id:state.user});return {data:C};}if(name==='ai_board_library_review'){state.library.find(e=>e.id===args.p_entry).status=args.p_decision;return {data:true};}return {data:name==='ai_board_create_case'?C:[{id:C,modelo:'iPhone X',orden_id:null}]};},
    from:name=>{
-    let filters={},inserted,deleted=false,range,isSingle=false;
-    const q={select(){return q},eq(k,v){filters[k]=v;return q},order(){return q},limit(){return q},range(start,end){range=[start,end];return q},insert(v){inserted=v;return q},delete(){deleted=true;return q},single(){isSingle=true;return q},then(resolve){
+    let filters={},inserted,deleted=false,range,isSingle=false,updated;
+    const q={select(){return q},eq(k,v){filters[k]=v;return q},in(k,v){filters[k]={in:v};return q},update(v){updated=v;return q},order(){return q},limit(){return q},range(start,end){range=[start,end];return q},insert(v){inserted=v;return q},delete(){deleted=true;return q},single(){isSingle=true;return q},then(resolve){
      let data;
+     if(name==='placas_puntos'||name==='placas_cortos'){
+      state.t=state.t||{};const T=state.t[name]=state.t[name]||[];const m=r=>Object.entries(filters).every(([k,v])=>v&&v.in?v.in.includes(r[k]):r[k]===v);
+      if(inserted){const row={id:crypto.randomUUID(),...inserted};T.push(row);data=isSingle?row:[row];}
+      else if(updated){data=T.filter(m);data.forEach(r=>Object.assign(r,updated));}
+      else if(deleted){data=T.filter(m);state.t[name]=T.filter(r=>!m(r));}
+      else{data=T.filter(m);if(isSingle)data=data[0];}
+      return Promise.resolve({data,error:null}).then(resolve);
+     }
      if(name==='placas_mapas'){
       state.calls.push({table:name,filters,inserted});
       if(inserted){if(state.catalogInsertError)return Promise.resolve({error:{message:'Synthetic failed insert'}}).then(resolve);state.catalog.push(inserted);data=inserted;}
@@ -50,7 +58,7 @@ async function setup(width=1200){
    }}
   };
  },{A,C,S,PNG});
- for(const f of ['diagnostico-photo-tiles.js','diagnostico-board-data.js','diagnostico-ai-board.js','diagnostico-ai-catalog.js','diagnostico-ai-chat.js','diagnostico-ai-library.js'])await page.addScriptTag({path:path.join(root,f)});
+ for(const f of ['diagnostico-photo-tiles.js','diagnostico-board-data.js','diagnostico-ai-board.js','diagnostico-ai-catalog.js','diagnostico-ai-cortos.js','diagnostico-ai-chat.js','diagnostico-ai-library.js'])await page.addScriptTag({path:path.join(root,f)});
  return {page,errors};
 }
 async function openChat(page){
@@ -243,5 +251,30 @@ test('REFOX preset fills the authorized source and uploads several captures at o
  await page.waitForFunction(()=>/2 de 2 capturas guardadas/.test(document.getElementById('ab-catalog-status').textContent)||mock.catalog.length===2);
  const rows=await page.evaluate(()=>mock.catalog);assert.equal(rows.length,2);
  for(const r of rows){const m=JSON.parse(r.notas);assert.match(m.source.license,/REFOX/);assert.match(r.titulo,/REFOX BITMAP · iPhone X · (cara-a|zona-carga)/);}
+ assert.deepEqual(errors,[]);await page.close();
+});
+test('short finder: mark a component on the line, light it up and save the culprit',async()=>{
+ const {page,errors}=await setup(1200);
+ page.on('dialog',d=>d.type()==='prompt'?d.accept('c4321'):d.accept());
+ await page.evaluate(({A})=>{mock.catalog=[{id:'11111111-1111-4111-8111-111111111111',marca:'Apple',modelo:'iPhone 12',cara:'A',titulo:'REFOX BITMAP · iPhone 12',foto_path:'ai-board/'+A+'/a.png',peso_bytes:70,ancho:1,alto:1,notas:'{}'}];},{A});
+ await page.locator('#ab-model').selectOption('iPhone 12');
+ await page.waitForFunction(()=>window.BayolCortos.estado().mapa==='11111111-1111-4111-8111-111111111111');
+ await page.locator('#ab-cortos-red').fill('pp vdd main');await page.locator('#ab-cortos-buscar').click();
+ await page.waitForFunction(()=>/Todavía nadie/.test(document.getElementById('ab-cortos-lista').textContent));
+ assert.equal(await page.locator('#ab-cortos-red').inputValue(),'PP_VDD_MAIN');
+ await page.locator('#ab-cortos-marcar-box summary').click();await page.locator('#ab-cortos-marcar').check();
+ await page.locator('#ab-stage-view').scrollIntoViewIfNeeded();const b=await page.locator('#ab-stage-view').boundingBox();await page.mouse.click(b.x+b.width/2,b.y+b.height/2);
+ await page.waitForFunction(()=>window.BayolCortos.estado().puntos===1);
+ const row=await page.evaluate(()=>mock.t.placas_puntos[0]);assert.equal(row.nombre,'C4321');assert.deepEqual(row.redes,['PP_VDD_MAIN']);assert.ok(row.x>0.3&&row.x<0.7&&row.y>0.3&&row.y<0.7);
+ assert.equal(await page.locator('#ab-cortos-capa .abc-p.on').count(),1);
+ await page.waitForFunction(()=>/C4321/.test(document.getElementById('ab-cortos-lista').textContent));
+ await page.locator('#ab-cortos-lista .abc-culpable').click();
+ await page.waitForFunction(()=>/C4321 \(1 vez\)/.test(document.getElementById('ab-cortos-top').textContent));
+ const c=await page.evaluate(()=>mock.t.placas_cortos[0]);assert.equal(c.modelo,'iPhone 12');assert.equal(c.red,'PP_VDD_MAIN');assert.equal(c.componente,'C4321');
+ assert.equal(await page.locator('#ab-cortos-capa .abc-p.mal').count(),1);
+ // Un toque cerca de la marca la selecciona en vez de crear otra
+ await page.mouse.click(b.x+b.width/2+3,b.y+b.height/2+3);await page.waitForFunction(()=>/C4321 · líneas: PP_VDD_MAIN/.test(document.getElementById('ab-cortos-sel').textContent));
+ assert.equal(await page.evaluate(()=>mock.t.placas_puntos.length),1);
+ await page.locator('#ab-model').selectOption('iPhone 11');assert.equal(await page.evaluate(()=>window.BayolCortos.estado().puntos),0);
  assert.deepEqual(errors,[]);await page.close();
 });

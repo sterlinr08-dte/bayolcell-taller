@@ -31,15 +31,20 @@ begin
     execute format('drop policy %I on public.placas_puntos', p.policyname);
   end loop;
 end $$;
+-- Puntos marcados (Buscador de cortos, 10 oct 2026): es conocimiento COMPARTIDO del taller.
+-- Todos los técnicos con Diagnóstico ven, marcan y corrigen las líneas; borrar solo el autor o un admin.
+drop policy if exists placas_puntos_leer on public.placas_puntos;
 create policy placas_puntos_leer on public.placas_puntos for select to authenticated
   using (public.app_puede_diagnostico());
-create policy placas_puntos_escribir on public.placas_puntos for all to authenticated
-  using (public.app_puede_diagnostico() and exists (
-    select 1 from public.placas_mapas m where m.id = placas_puntos.mapa_id
-      and (m.creado_por = (select auth.uid())::text or public.app_is_admin())))
-  with check (public.app_puede_diagnostico() and exists (
-    select 1 from public.placas_mapas m where m.id = placas_puntos.mapa_id
-      and (m.creado_por = (select auth.uid())::text or public.app_is_admin())));
+drop policy if exists placas_puntos_crear on public.placas_puntos;
+create policy placas_puntos_crear on public.placas_puntos for insert to authenticated
+  with check (public.app_puede_diagnostico() and creado_por = (select auth.uid())::text);
+drop policy if exists placas_puntos_editar on public.placas_puntos;
+create policy placas_puntos_editar on public.placas_puntos for update to authenticated
+  using (public.app_puede_diagnostico()) with check (public.app_puede_diagnostico());
+drop policy if exists placas_puntos_borrar on public.placas_puntos;
+create policy placas_puntos_borrar on public.placas_puntos for delete to authenticated
+  using (public.app_puede_diagnostico() and (creado_por = (select auth.uid())::text or public.app_is_admin()));
 
 -- Archivos del bucket privado «placas»: subir solo dentro de la carpeta propia ai-board/<mi id>/.
 drop policy if exists placas_obj_select on storage.objects;

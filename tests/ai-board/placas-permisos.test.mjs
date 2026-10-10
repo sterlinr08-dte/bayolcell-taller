@@ -27,12 +27,14 @@ const foto=(id,u)=>`insert into public.placas_mapas(id,marca,modelo,cara,titulo,
 
 test('cada quien sube y edita solo lo suyo; los demás autorizados solo ven',async()=>{
  await as(A);await db.exec(foto(M,A));
- await db.exec(`insert into public.placas_puntos(mapa_id,x,y,nombre) values('${M}',0.1,0.2,'PP_VDD')`);
+ await db.exec(`insert into public.placas_puntos(mapa_id,x,y,nombre,creado_por) values('${M}',0.1,0.2,'C1','${A}')`);
  await as(B);
  assert.equal((await db.query('select id from public.placas_mapas')).rows.length,1,'B ve la foto de A');
  assert.equal(await filas(`update public.placas_mapas set titulo='x' where id='${M}'`),0,'B no edita la foto de A');
  assert.equal(await filas(`delete from public.placas_mapas where id='${M}'`),0,'B no borra la foto de A');
  assert.equal(await filas(`delete from public.placas_puntos where mapa_id='${M}'`),0,'B no borra puntos de A');
+ assert.equal(await filas(`update public.placas_puntos set nombre='C2' where mapa_id='${M}'`),1,'B corrige la marca de A (conocimiento compartido)');
+ await assert.rejects(db.exec(`insert into public.placas_puntos(mapa_id,x,y,nombre,creado_por) values('${M}',0.3,0.3,'C3','${A}')`),'B no marca a nombre de A');
  await assert.rejects(db.exec(foto('55555555-5555-4555-8555-555555555555',A)),'B no crea fotos a nombre de A');
  await as(N);assert.equal((await db.query('select id from public.placas_mapas')).rows.length,0,'sin permiso de Diagnóstico no ve nada');
  await as(ADM);assert.equal(await filas(`update public.placas_mapas set titulo='revisada' where id='${M}'`),1,'el admin corrige');
