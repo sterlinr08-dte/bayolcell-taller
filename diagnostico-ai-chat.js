@@ -155,7 +155,9 @@ function mount(){
   window.addEventListener('bayol-ai-board-point-query',async e=>{const point=e.detail,pointVersion=pointEpoch;if(!owner&&!busy)await loadCases();if(!owner||pointVersion!==pointEpoch)return;selectedPoint=point;$('ab-chat-point').checked=true;$('ab-chat-point-note').textContent=point.model+' · '+point.revision+' · '+point.ref+' · Fuente pendiente de comprobar';});
   // The old button used an endpoint without server authorization. Route this view
   // to the protected chat while keeping panic-log and manual tools in place.
-  const oldButton=$('dg_btn');if(oldButton){oldButton.removeAttribute('onclick');oldButton.textContent='Usar chat técnico seguro';oldButton.addEventListener('click',()=>{box.scrollIntoView({block:'start',behavior:'smooth'});if(!owner&&!busy)loadCases();});}
+  // Preserve the existing one-shot diagnostic button. The new secure chat remains
+  // an independent feature and may be unavailable until the staging backend is deployed.
+  const oldButton=$('dg_btn');if(oldButton){oldButton.title='Diagnóstico clásico disponible de forma independiente del chat';}
   document.querySelector('[data-ab-tab="ia"]')?.addEventListener('click',()=>{if(!owner&&!busy)loadCases();});
   $('ab-open-ia')?.addEventListener('click',()=>{if(!owner&&!busy)loadCases();});
   if(!$('ab-pane-ia').hidden)loadCases();
