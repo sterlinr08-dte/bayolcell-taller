@@ -18,6 +18,7 @@ exclude:
   - "*.ts"
   # Scripts, pruebas y proyectos aparte
   - "scripts/"
+  - "replica/"
   - "tests/"
   - "test/"
   - "qa/"

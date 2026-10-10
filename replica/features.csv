@@ -1,0 +1,23 @@
+feature,area,priority,original,clone,notes
+Elegir modelo y abrir su placa,navegacion,must,yes,yes,AI BOARD ya lo tiene (32 iPhone)
+Zoom arrastre y centrar,visor,must,yes,yes,con 4K al acercar
+Cara A / cara B,visor,must,yes,yes,selector Vista
+Buscar componente o red,busqueda,must,yes,yes,solo con boardview JSON importado
+Resaltar todos los pines de la misma red,visor,must,yes,no,el hueco mas grande
+Pin anterior / siguiente,visor,should,yes,no,
+Mediciones de diodo y voltaje por pin,mediciones,must,yes,no,solo medidas por tecnicos con autor fecha multimetro; nunca inventadas
+Mediciones compartidas entre tecnicos,mediciones,should,yes,no,tabla Supabase con RLS
+Elegir multimetro de la medicion,mediciones,should,yes,no,REFOX usa Victory y Fluke
+Favoritos por tecnico,navegacion,should,yes,no,
+Vista dividida (dos vistas a la vez),visor,should,yes,no,foto + boardview o cara A + B
+Varias placas en pestanas,visor,could,yes,no,
+Arbol de documentos por modelo,navegacion,should,yes,no,boardview fotos pines de arranque valores de conectores casos
+Reportar error del mapa,calidad,should,yes,no,con ruta y foto
+Colores por tipo de red (GND energia),visor,could,yes,no,
+Capas de la placa,visor,could,yes,no,depende de tener datos por capa
+Rotar y voltear,visor,could,yes,no,
+Casos de reparacion,casos,must,yes,yes,biblioteca del AI BOARD
+Consultar componente con IA,ia,should,no,yes,ventaja nuestra
+Base de +2000 diagramas,datos,skip,yes,no,es de REFOX
+Esquematicos,datos,skip,yes,no,propiedad de Apple y fabricantes
+Valores de diodo de fabrica,datos,skip,yes,no,no inventar: solo mediciones propias
