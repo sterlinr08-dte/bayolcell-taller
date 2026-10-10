@@ -175,7 +175,7 @@ async function openPhoto(f,{model=state.model,description='',isCurrent=()=>true}
    R("ab-details").textContent=(description?String(description).slice(0,1800)+' · ':'Fotografía local: ')+img.naturalWidth+" × "+img.naturalHeight+" píxeles. Modelo asociado: "+state.model+". Sin datos eléctricos validados.";return true;
  }catch(e){URL.revokeObjectURL(url);throw e;}
 }
-window.BayolAIBoard={openPhoto};
+window.BayolAIBoard={openPhoto,showIllustration(){clearAsset();refresh();}};
 // 10 oct 2026: ¿está instalado el servidor del chat/Biblioteca (tablas ai_board_* en Supabase)?
 // Mientras no exista, el chat y la Biblioteca revisada se muestran como «pendientes» y el
 // taller conserva sus botones de siempre. Se consulta una sola vez y solo al abrir esas pestañas.

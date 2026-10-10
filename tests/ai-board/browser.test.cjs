@@ -219,3 +219,29 @@ test('photo upload requires consent, stores provenance and original hash, and ne
 test('confirmed absent photo record cleans up only its new object; uncertain record keeps it',async()=>{
  for(const uncertain of [false,true]){const {page,errors}=await setup();await catalogForm(page);await page.locator('#ab-catalog-consent').check();await page.evaluate(v=>{mock.catalogInsertError=true;mock.catalogReadError=v;},uncertain);await page.locator('#ab-catalog-upload').click();await page.waitForFunction(()=>document.getElementById('ab-catalog-status').textContent.includes('No se confirmó')&&!document.getElementById('ab-catalog-upload').disabled);const calls=await page.evaluate(()=>mock.storageCalls);assert.equal(calls.filter(c=>c.op==='remove').length,uncertain?0:1);if(!uncertain)assert.deepEqual(calls.find(c=>c.op==='remove').paths,[calls.find(c=>c.op==='upload').path]);assert.equal(await page.locator('#ab-catalog-file').evaluate(n=>n.files.length),1);assert.deepEqual(errors,[]);await page.close();}
 });
+test('model with real photos opens them alone, follows face A/B and falls back to the illustration',async()=>{
+ const {page,errors}=await setup(390);
+ await page.evaluate(({A})=>{const r=(id,modelo,cara)=>({id,marca:'Apple',modelo,cara,titulo:'REFOX BITMAP · '+modelo,foto_path:'ai-board/'+A+'/'+id+'.png',peso_bytes:70,ancho:1,alto:1,notas:'{}'});mock.catalog=[r('11111111-1111-4111-8111-111111111111','iPhone 12','A'),r('22222222-2222-4222-8222-222222222222','iPhone 12','B'),r('33333333-3333-4333-8333-333333333333','iPhone 11','A')];},{A});
+await page.locator('#ab-model').selectOption('iPhone 12');
+ await page.waitForFunction(()=>/Cara A/.test(document.getElementById('ab-details').textContent));
+ assert.equal(await page.locator('#ab-side').isDisabled(),false);
+ await page.locator('#ab-side').selectOption('bottom');
+ await page.waitForFunction(()=>/Cara B/.test(document.getElementById('ab-details').textContent));
+ await page.locator('#ab-model').selectOption('iPhone 11');
+ await page.waitForFunction(()=>/ILUSTRACI/.test(document.querySelector('#ab-shell .ab-watermark').textContent)&&/iPhone 11/.test(document.getElementById('ab-details').textContent));
+ await page.locator('#ab-side').selectOption('top');
+ await page.waitForFunction(()=>/iPhone 11 · Cara A/.test(document.getElementById('ab-details').textContent));
+ await page.locator('#ab-side').selectOption('bottom');
+ await page.waitForFunction(()=>/ILUSTRACI/.test(document.querySelector('#ab-shell .ab-watermark').textContent));
+ assert.deepEqual(errors,[]);await page.close();
+});
+test('REFOX preset fills the authorized source and uploads several captures at once',async()=>{
+ const {page,errors}=await setup(390);await page.locator('#ab-model').selectOption('iPhone X');await page.locator('#ab-catalog summary').click();
+ await page.locator('#ab-catalog-refox').click();assert.equal(await page.locator('#ab-catalog-consent').isChecked(),true);
+ await page.locator('#ab-catalog-file').setInputFiles([{name:'cara-a.png',mimeType:'image/png',buffer:Buffer.from(PNG,'base64')},{name:'zona-carga.png',mimeType:'image/png',buffer:Buffer.from(PNG,'base64')}]);
+ await page.locator('#ab-catalog-upload').click();
+ await page.waitForFunction(()=>/2 de 2 capturas guardadas/.test(document.getElementById('ab-catalog-status').textContent)||mock.catalog.length===2);
+ const rows=await page.evaluate(()=>mock.catalog);assert.equal(rows.length,2);
+ for(const r of rows){const m=JSON.parse(r.notas);assert.match(m.source.license,/REFOX/);assert.match(r.titulo,/REFOX BITMAP · iPhone X · (cara-a|zona-carga)/);}
+ assert.deepEqual(errors,[]);await page.close();
+});
