@@ -36,7 +36,7 @@ create function public.ai_board_minimize(p_text text) returns text language sql 
  select regexp_replace(regexp_replace(regexp_replace(coalesce(p_text,''),
  '(clave|contraseña|password|pin|patrón|nombre|cliente|dirección|serial|imei)[[:space:]]*[:=][[:space:]]*[^\n,;]+','[DATO OMITIDO]','gi'),
  '[[:alnum:].+_-]{1,128}@[[:alnum:]._-]{1,128}\.[[:alpha:]]{2,20}','[CORREO OMITIDO]','gi'),
- '([+]?([0-9][ ().-]*){9,})','[IDENTIFICADOR OMITIDO]','g');
+ '(?<![0-9])(?<![0-9][.])[+]?[0-9]([ ()-]*[0-9]){8,}(?![0-9])(?![.][0-9])','[IDENTIFICADOR OMITIDO]','g');
 $$;
 revoke all on function public.ai_board_minimize(text) from public,anon;
 grant execute on function public.ai_board_minimize(text) to authenticated,service_role;

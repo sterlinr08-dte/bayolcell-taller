@@ -55,11 +55,20 @@ function mount(){
  '<button id="ab-library-submit" type="button" class="ab-primary">Enviar a revisión</button><p id="ab-library-status" role="status">Biblioteca protegida no cargada.</p><div class="ab-library-pagination"><button id="ab-library-refresh" type="button">Recargar</button><button id="ab-library-prev" type="button">Anterior</button><button id="ab-library-next" type="button">Siguiente</button></div><div id="ab-library-feed"></div>';
  host.prepend(box);$('ab-library-refresh').addEventListener('click',load);$('ab-library-submit').addEventListener('click',submit);
  $('ab-library-prev').addEventListener('click',()=>{if(!busy&&page){page--;load();}});$('ab-library-next').addEventListener('click',()=>{if(!busy){page++;load();}});
- document.querySelector('[data-ab-tab="biblioteca"]')?.addEventListener('click',load);
+ // 10 oct 2026: la Biblioteca revisada solo se usa si su servidor está instalado. Si falta,
+ // el botón «Guardar como caso resuelto» y la tabla de casos siguen funcionando como siempre.
+ let listo=false;
+ const activar=async()=>{
+  const ok=await (window.BayolAIBoardBackend?.disponible()??Promise.resolve(true));
+  box.hidden=!ok;if(!ok||listo)return ok;listo=true;
+  // Evita que el flujo viejo (exitoso=true) salte la revisión independiente cuando ya existe la Biblioteca revisada.
+  for(const b of document.querySelectorAll('#v-diagnostico [onclick*="guardarCasoConocimiento"]')){b.removeAttribute('onclick');b.textContent='Proponer solución para revisión';b.addEventListener('click',()=>{document.querySelector('[data-ab-tab="biblioteca"]').click();box.scrollIntoView({block:'start'});});}
+  return ok;
+ };
+ document.querySelector('[data-ab-tab="biblioteca"]')?.addEventListener('click',async()=>{if(await activar())load();});
+ document.querySelector('[data-ab-tab="ia"]')?.addEventListener('click',activar);
  window.addEventListener('bayol-ai-board-identity-reset',()=>{epoch++;owner=null;admin=false;page=0;$('ab-library-feed').replaceChildren();for(const n of box.querySelectorAll('textarea,input,select'))n.value='';state('Sesión cambiada. Recarga la Biblioteca.');});
- // Prevent the legacy exitoso=true flow from bypassing independent review in this view.
- for(const b of document.querySelectorAll('#v-diagnostico [onclick*="guardarCasoConocimiento"]')){b.removeAttribute('onclick');b.textContent='Proponer solución para revisión';b.addEventListener('click',()=>{document.querySelector('[data-ab-tab="biblioteca"]').click();box.scrollIntoView({block:'start'});});}
- if(!$('ab-pane-biblioteca').hidden)load();
+ if(!$('ab-pane-biblioteca').hidden||!$('ab-pane-ia').hidden)activar().then(ok=>{if(ok&&!$('ab-pane-biblioteca').hidden)load();});
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
 })();

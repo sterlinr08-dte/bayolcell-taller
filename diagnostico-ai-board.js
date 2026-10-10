@@ -152,6 +152,25 @@ async function openPhoto(f,{model=state.model,description='',isCurrent=()=>true}
  }catch(e){URL.revokeObjectURL(url);throw e;}
 }
 window.BayolAIBoard={openPhoto};
+// 10 oct 2026: ¿está instalado el servidor del chat/Biblioteca (tablas ai_board_* en Supabase)?
+// Mientras no exista, el chat y la Biblioteca revisada se muestran como «pendientes» y el
+// taller conserva sus botones de siempre. Se consulta una sola vez y solo al abrir esas pestañas.
+let backendPromise=null;
+window.BayolAIBoardBackend={
+ disponible(){
+  if(backendPromise)return backendPromise;
+  backendPromise=(async()=>{
+   const sb=typeof supabaseClient!=='undefined'?supabaseClient:null;if(!sb)return false;
+   try{const {error}=await sb.rpc('ai_board_cases',{p_offset:0,p_limit:1});
+    if(!error)return true;
+    // PGRST202 = la función no existe en el servidor. Cualquier otro error (permiso, red) no prueba que falte.
+    if(error.code==='PGRST202'||/could not find the function|does not exist/i.test(error.message||''))return false;
+    backendPromise=null;return true;
+   }catch(_){backendPromise=null;return false;}
+  })();
+  return backendPromise;
+ }
+};
 function startPointer(e){
  if(e.pointerType==="mouse"&&e.button!==0)return;
  const stage=R("ab-stage-view");stage.setPointerCapture(e.pointerId);

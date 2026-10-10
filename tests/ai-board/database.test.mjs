@@ -161,3 +161,12 @@ test('existing diagnostic policy allows photo registration and rejects an inacti
  await as('postgres');await db.exec(`update auth_actor_bindings set activo=true where auth_user_id='${A}'`);
 });
 test.after(async()=>db.close());
+
+test('ai_board_minimize en SQL conserva mediciones y oculta teléfonos (igual que el servidor)',async()=>{
+ await db.exec('reset role');
+ const q=async t=>(await db.query('select public.ai_board_minimize($1) v',[t])).rows[0].v;
+ assert.equal(await q('Diodo PP_VDD_MAIN 0.412 0.389 0.401'),'Diodo PP_VDD_MAIN 0.412 0.389 0.401');
+ assert.equal(await q('Voltajes: 3.8 1.8 1.2 0.9 0.75'),'Voltajes: 3.8 1.8 1.2 0.9 0.75');
+ assert.match(await q('llamar al 809-707-2493.'),/IDENTIFICADOR OMITIDO/);
+ assert.match(await q('serie 351829689413208'),/IDENTIFICADOR OMITIDO/);
+});

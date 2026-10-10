@@ -21,7 +21,7 @@ async function setup(width=1200){
   const state=window.mock;
   window.supabaseClient={
    auth:{getUser:async()=>({data:{user:state.user?{id:state.user}:null}}),onAuthStateChange:cb=>state.callbacks.push(cb)},
-   rpc:async(name,args)=>{state.calls.push({rpc:name,args});if(name==='app_puede_diagnostico')return {data:state.permission!==false};if(name==='app_is_admin')return {data:state.admin};if(name==='ai_board_library_submit'){state.library.push({id:C,modelo:'iPhone X',revision:args.p_revision,summary:args.p_summary,evidence:args.p_evidence,sources:args.p_sources,status:'pending',author_id:state.user});return {data:C};}if(name==='ai_board_library_review'){state.library.find(e=>e.id===args.p_entry).status=args.p_decision;return {data:true};}return {data:name==='ai_board_create_case'?C:[{id:C,modelo:'iPhone X',orden_id:null}]};},
+   rpc:async(name,args)=>{state.calls.push({rpc:name,args});if(state.missingBackend&&name.startsWith('ai_board'))return {data:null,error:{code:'PGRST202',message:'Could not find the function public.'+name}};if(name==='app_puede_diagnostico')return {data:state.permission!==false};if(name==='app_is_admin')return {data:state.admin};if(name==='ai_board_library_submit'){state.library.push({id:C,modelo:'iPhone X',revision:args.p_revision,summary:args.p_summary,evidence:args.p_evidence,sources:args.p_sources,status:'pending',author_id:state.user});return {data:C};}if(name==='ai_board_library_review'){state.library.find(e=>e.id===args.p_entry).status=args.p_decision;return {data:true};}return {data:name==='ai_board_create_case'?C:[{id:C,modelo:'iPhone X',orden_id:null}]};},
    from:name=>{
     let filters={},inserted,deleted=false,range,isSingle=false;
     const q={select(){return q},eq(k,v){filters[k]=v;return q},order(){return q},limit(){return q},range(start,end){range=[start,end];return q},insert(v){inserted=v;return q},delete(){deleted=true;return q},single(){isSingle=true;return q},then(resolve){
@@ -68,6 +68,23 @@ test('legacy one-shot diagnosis action remains available with missing chat backe
  await page.locator('[data-ab-tab="ia"]').click();
  assert.equal(await button.getAttribute('onclick'),'diagnosticarIA()');
  assert.match(await button.textContent(),/Diagnosticar con IA/i);
+ assert.deepEqual(errors,[]);await page.close();
+});
+test('without the chat server the legacy save button and one-shot diagnosis keep working, with no dead controls',async()=>{
+ const {page,errors}=await setup();await page.evaluate(()=>{window.mock.missingBackend=true;});
+ const save=page.locator('#v-diagnostico button',{hasText:'Guardar como caso resuelto'});
+ assert.equal(await save.getAttribute('onclick'),'guardarCasoConocimiento()');
+ await page.locator('[data-ab-tab="ia"]').click();
+ await page.waitForFunction(()=>!document.getElementById('ab-chat-off').hidden);
+ assert.equal(await page.locator('#ab-chat-error').isHidden(),true);
+ assert.equal(await page.locator('#ab-chat-send').isVisible(),false);
+ assert.equal(await page.locator('#dg_btn').getAttribute('onclick'),'diagnosticarIA()');
+ await page.locator('[data-ab-tab="biblioteca"]').click();
+ await page.waitForFunction(()=>document.getElementById('ab-reviewed-library').hidden);
+ assert.equal(await save.getAttribute('onclick'),'guardarCasoConocimiento()');
+ const calls=await page.evaluate(()=>window.mock.calls);
+ assert.equal(calls.filter(c=>c.name==='ai-board-chat').length,0);
+ assert.equal(calls.filter(c=>c.rpc==='ai_board_cases').length,1,'el servidor se consulta una sola vez');
  assert.deepEqual(errors,[]);await page.close();
 });
 test('actual diagnostic DOM mounts once with three tabs and legacy tools preserved',async()=>{

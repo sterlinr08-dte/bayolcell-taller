@@ -33,3 +33,7 @@
 #v-diagnostico .ab-chat-pages{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;margin:10px 0}
 #v-diagnostico .ab-chat-pages span{display:flex;align-items:center;gap:5px}
 #v-diagnostico .ab-chat-pages button{min-height:36px;padding:6px 9px;border:1px solid #dfe3eb;border-radius:9px;background:#fff;font-size:12px;cursor:pointer}
+
+/* Servidor del chat aún no instalado: solo se ve el aviso; el diagnóstico de siempre sigue debajo. */
+#v-diagnostico #ab-ai-chat.ab-chat-pendiente>:not(header):not(#ab-chat-off){display:none!important}
+#v-diagnostico #ab-ai-chat.ab-chat-pendiente header>div{display:none!important}

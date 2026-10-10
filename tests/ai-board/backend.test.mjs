@@ -24,6 +24,10 @@ function mock(overrides={}){
 test('reject unknown or oversized technical fields and missing consent',()=>{
  for(const bad of [{...body,consent:false},{...body,imei:'123'},{...body,message:'x'.repeat(1401)},{...body,context:{orden:{clave:'1234'}}}])assert.throws(()=>validate(bad));
 });
+test('las mediciones con punto decimal llegan intactas; teléfonos e IMEI se ocultan',()=>{
+ for(const t of ['Diodo PP_VDD_MAIN 0.412 0.389 0.401','Voltajes: 3.8 1.8 1.2 0.9 0.75','Consumo 0.05 A, luego 0.12 A, 0.35 A','U2 1610A3 caliente'])assert.equal(minimize(t),t);
+ for(const t of ['llamar al 809-707-2493.','tel (809) 707 2493','serie 351829689413208','+1 809 555 1234'])assert.match(minimize(t),/IDENTIFICADOR OMITIDO/);
+});
 test('minimize known identifiers while preserving electrical measurements',()=>{
  const s=minimize('IMEI: 123456789012345; correo test@example.com; +1 809 555 1234; consumo 0.08 A; 3.8 V');
  assert(!s.includes('123456789012345'));assert(!s.includes('test@example.com'));assert(!s.includes('555'));assert(s.includes('0.08 A'));assert(s.includes('3.8 V'));

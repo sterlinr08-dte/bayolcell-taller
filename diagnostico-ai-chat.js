@@ -158,9 +158,15 @@ function mount(){
   // Preserve the existing one-shot diagnostic button. The new secure chat remains
   // an independent feature and may be unavailable until the staging backend is deployed.
   const oldButton=$('dg_btn');if(oldButton){oldButton.title='Diagnóstico clásico disponible de forma independiente del chat';}
-  document.querySelector('[data-ab-tab="ia"]')?.addEventListener('click',()=>{if(!owner&&!busy)loadCases();});
-  $('ab-open-ia')?.addEventListener('click',()=>{if(!owner&&!busy)loadCases();});
-  if(!$('ab-pane-ia').hidden)loadCases();
+  const off=document.createElement('p');off.id='ab-chat-off';off.className='ab-chat-tip';off.hidden=true;
+  off.textContent='El chat con historial todavía no está activado en el servidor. Mientras tanto, usa «Diagnosticar con IA» más abajo: funciona igual que siempre.';
+  box.querySelector('header').after(off);
+  // Solo se intenta cargar casos si el servidor del chat está instalado; si falta, no se muestran errores ni botones muertos.
+  const abrir=async()=>{if(owner||busy)return;const ok=await (window.BayolAIBoardBackend?.disponible()??Promise.resolve(true));
+    box.classList.toggle('ab-chat-pendiente',!ok);off.hidden=ok;if(ok)loadCases();};
+  document.querySelector('[data-ab-tab="ia"]')?.addEventListener('click',abrir);
+  $('ab-open-ia')?.addEventListener('click',abrir);
+  if(!$('ab-pane-ia').hidden)abrir();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
 })();

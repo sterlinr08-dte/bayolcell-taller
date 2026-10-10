@@ -4,7 +4,9 @@ export function minimize(text) {
   return String(text || '').normalize('NFKC')
     .replace(/(?:clave|contraseña|password|pin|patr[oó]n|nombre|cliente|direcci[oó]n|serial|imei)\s*[:=]\s*[^\n,;]+/gi,'[DATO OMITIDO]')
     .replace(/[\w.+-]{1,128}@[\w.-]{1,128}\.[a-z]{2,20}/gi,'[CORREO OMITIDO]')
-    .replace(/(?:\+?\d[\s().-]*){9,}/g,'[IDENTIFICADOR OMITIDO]');
+    // Teléfonos/IMEI/series: 9+ dígitos separados solo por espacios, guiones o paréntesis.
+    // El punto NO separa: así las mediciones (0.412 0.389 / 3.8 1.8 1.2) llegan intactas a la IA.
+    .replace(/(?<!\d|\d\.)\+?\d(?:[\s()-]*\d){8,}(?!\d|\.\d)/g,'[IDENTIFICADOR OMITIDO]');
 }
 export function safePoint(point){
  if(!point||typeof point!=='object'||Array.isArray(point)||Object.keys(point).some(k=>!['model','revision','ref','source','pins'].includes(k)))throw Error('INVALID_INPUT');
