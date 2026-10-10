@@ -287,3 +287,46 @@ Lo que sigue, sin tocar producción:
   - unitarias y base: 38/38, con nuevas pruebas de modelo, red de seguridad y rechazo;
   - navegador Chromium: 19/19, con dos nuevas: flujo simple y apertura automática;
   - pantallas revisadas en el taller completo a 1366 px y 390 px, con 0 errores de JavaScript.
+
+## 5. Placas por modelo y por cara (10 oct 2026)
+
+**Pedido del dueño:** placas «lo más reales posible», una por modelo, cara A y cara B, empezando por los modelos que más llegan.
+
+**Modelos que más llegan** (según órdenes y reacondicionados, en este orden):
+14/14 Plus, 12 Pro Max, 13 Pro Max, 12, XR, 15/15 Plus, 11, 15 Pro Max, 11 Pro Max, 14 Pro Max.
+
+**Diseños de placa** — 16 grupos de modelos que comparten placa (`familiaPlaca` en `diagnostico-ai-board.js`):
+
+| Grupo | Modelos |
+|---|---|
+| `x` | X, XS, XS Max |
+| `xr` | XR |
+| `11` | 11 |
+| `11pro` | 11 Pro, 11 Pro Max |
+| `12` | 12, 12 Pro |
+| `12mini` | 12 mini |
+| `12promax` | 12 Pro Max |
+| `13` | 13, 13 mini |
+| `13pro` | 13 Pro, 13 Pro Max |
+| `14` | 14, 14 Plus |
+| `14pro` | 14 Pro, 14 Pro Max |
+| `15` | 15, 15 Plus |
+| `15pro` | 15 Pro, 15 Pro Max |
+| `16` | 16, 16 Plus, 16e |
+| `16pro` | 16 Pro, 16 Pro Max |
+| `17` | 17, Air, 17 Pro |
+
+**Archivos:** `assets/ai-board/placas/placa-<diseño>-<a|b>.webp` (4K, 3584×4800) más `-mini.webp` (900 px).
+- Cara A = placa superior (lado del procesador).
+- Cara B = placa inferior (lado de la radio y la SIM).
+- El selector «Vista» cambia de cara.
+
+**Generación** (Buzzy, Nano Banana Pro 4K): 32 iniciales y 21 repetidas.
+- **Motivo de las repeticiones:** varias salieron con forma de teléfono entero y hueco de cámara, otra con el anillo MagSafe, y otras torcidas o en verde.
+- **Lo que funcionó en el prompt:** pedir «placa angosta, unas 2,2 veces más alta que ancha, derecha, completa, sin hueco de cámara, sin MagSafe, sin puerto».
+- **Para el 17** se quedó la primera versión: la repetición salió peor.
+- Se borraron las 5 fotos por familia de la versión anterior.
+
+**Siguen siendo ilustraciones:** la marca «NO ES LA PLACA REAL · NO USAR PARA MEDIR» se mantiene.
+
+**Pruebas:** 38/38 y 19/19. Cambio de modelo y de cara probado en el taller completo, con 0 errores.

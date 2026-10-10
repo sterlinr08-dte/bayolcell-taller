@@ -37,8 +37,8 @@ function mountBoardTools(){
    catch(err){alert(err.message||'No se pudo importar el boardview.');}
  });
  for(const id of ['ab-board-search','ab-board-labels','ab-board-pins'])R(id).addEventListener(id==='ab-board-search'?'input':'change',()=>{if(state.board)renderBoard();});
- const side=R('ab-side');side.replaceChildren();for(const [value,label] of [['top','Superior'],['bottom','Inferior']]){const o=document.createElement('option');o.value=value;o.textContent=label;side.append(o);}
- side.addEventListener('change',()=>{state.side=side.value;state.selected=null;resetView();renderBoard();});
+ const side=R('ab-side');side.replaceChildren();for(const [value,label] of [['top','Cara A · superior'],['bottom','Cara B · inferior']]){const o=document.createElement('option');o.value=value;o.textContent=label;side.append(o);}
+ side.addEventListener('change',()=>{state.side=side.value;state.selected=null;resetView();if(state.board)renderBoard();else if(!state.tiles&&!state.url)refresh();});
  R('ab-target').addEventListener('click',e=>{const ref=e.target.closest('[data-ref]')?.dataset.ref;if(!ref||!state.board)return;state.selected=ref;renderBoard();});
  R('ab-shell').querySelectorAll('[data-ab-tab]').forEach((b,i,all)=>b.addEventListener('keydown',e=>{
    let index;if(e.key==='ArrowRight')index=(i+1)%all.length;else if(e.key==='ArrowLeft')index=(i+all.length-1)%all.length;else if(e.key==='Home')index=0;else if(e.key==='End')index=all.length-1;else return;
@@ -68,17 +68,18 @@ function renderBoard(){
 }
 // Fotos ilustrativas generadas con IA (Buzzy, 4K) por generación de placa. Sirven para orientarse,
 // NO para medir: no son la placa real ni tienen posiciones exactas. Nunca se envían a la IA del chat.
+// Un diseño de placa por grupo de modelos que comparten la misma placa (aprox.).
 function familiaPlaca(m){
- if(/^iPhone XR$/.test(m))return 'xr';
- if(/^iPhone X/.test(m))return 'x';
- if(/^iPhone 11/.test(m))return '11';
- if(/^iPhone 1[23]/.test(m))return '12-13';
- return '14-16';
+ const t=[[/^iPhone XR$/,'xr'],[/^iPhone X/,'x'],[/^iPhone 11 Pro/,'11pro'],[/^iPhone 11/,'11'],[/^iPhone 12 mini/,'12mini'],[/^iPhone 12 Pro Max/,'12promax'],[/^iPhone 12/,'12'],
+  [/^iPhone 13 Pro/,'13pro'],[/^iPhone 13/,'13'],[/^iPhone 14 Pro/,'14pro'],[/^iPhone 14/,'14'],[/^iPhone 15 Pro/,'15pro'],[/^iPhone 15/,'15'],[/^iPhone 16 Pro/,'16pro'],[/^iPhone 16/,'16'],[/^iPhone (17|Air)/,'17']];
+ for(const [re,d] of t)if(re.test(m))return d;
+ return '17';
 }
 function pintarIlustracion(target){
- const fam=familiaPlaca(state.model),base='assets/ai-board/placas/placa-'+fam;
+ const cara=state.side==='bottom'?'b':'a',fam=familiaPlaca(state.model),base='assets/ai-board/placas/placa-'+fam+'-'+cara;
+ const side=R('ab-side');if(side){side.disabled=false;side.value=state.side==='bottom'?'bottom':'top';}
  const d=document.createElement('div');d.className='ab-ilustra';d.setAttribute('role','img');
- d.setAttribute('aria-label','Ilustración generada con IA de una placa de la generación '+state.model+'. No es la placa real.');
+ d.setAttribute('aria-label','Ilustración generada con IA de la placa del '+state.model+', cara '+cara.toUpperCase()+'. No es la placa real.');
  d.style.backgroundImage='url("'+base+'-mini.webp")';target.replaceChildren(d);
  // La versión 4K se carga cuando el técnico acerca la imagen, para no gastar datos al entrar.
  d.dataset.full=base+'.webp';
@@ -145,7 +146,7 @@ function refresh(){
  if(state.tiles){const m=state.tiles.manifest;R('ab-target').replaceChildren(state.tiles.root);R('ab-coverage').textContent='Foto HD por niveles · pendiente de validación';R('ab-details').textContent=m.model+' · '+m.revision+' · '+m.width+' × '+m.height+' píxeles · Fuente: '+m.source.title+' · '+m.source.reference;document.querySelector('#ab-shell .ab-watermark').textContent='FOTO ORIGINAL POR NIVELES · SIN MAPA ELÉCTRICO';repaint();return;}
  document.querySelector('#ab-shell .ab-watermark').textContent=state.url?'FOTOGRAFÍA LOCAL · SIN VALIDACIÓN ELÉCTRICA':'ILUSTRACIÓN CON IA · NO ES LA PLACA REAL · NO USAR PARA MEDIR';
  R("ab-coverage").textContent=state.url?"Foto local · sin validación":"Ilustración (IA) · sin mapa verificado";
- R("ab-details").textContent=state.url?"Fotografía cargada localmente para inspección visual. No incluye conexiones, pines ni referencias eléctricas.":"Imagen de referencia de la placa de esta generación ("+state.model+"), creada con IA para orientarte. Los componentes y su posición NO son exactos: para medir, abre una foto real de la placa (botón «Abrir foto») o pregúntale a la IA.";
+ R("ab-details").textContent=state.url?"Fotografía cargada localmente para inspección visual. No incluye conexiones, pines ni referencias eléctricas.":"Imagen de referencia de la placa del "+state.model+" ("+(state.side==='bottom'?'cara B, inferior':'cara A, superior')+"), creada con IA para orientarte. Cambia de cara en «Vista». Los componentes y su posición NO son exactos: para medir, abre una foto real de la placa (botón «Abrir foto») o pregúntale a la IA.";
  const target=R("ab-target");
  if(state.url){target.innerHTML="";const img=document.createElement("img");img.src=state.url;img.alt="Fotografía local aportada por el técnico, no verificada";img.draggable=false;target.appendChild(img);}
  else pintarIlustracion(target);
