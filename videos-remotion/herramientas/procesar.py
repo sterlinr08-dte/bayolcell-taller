@@ -10,7 +10,7 @@ Uso:
 Deja en public/NOMBRE/: video.mp4 y palabras.json. Luego:
   npx remotion render src/index.ts Reel salida.mp4 --props='{"carpeta":"NOMBRE"}'
 """
-import argparse, json, os, subprocess, sys, tempfile
+import argparse, json, os, re, subprocess, sys, tempfile
 
 import imageio_ffmpeg
 from faster_whisper import WhisperModel
@@ -70,7 +70,28 @@ def transcribir(wav, nombre_modelo):
             if base in ARREGLOS:
                 t = t.lower().replace(base, ARREGLOS[base])
             palabras.append({'texto': t, 'ini': round(w.start, 3), 'fin': round(w.end, 3)})
-    return palabras
+    return precios(palabras)
+
+
+def precios(ps):
+    """«2000 pesos» / «2.000» / «RD$ 2000» -> «RD$2,000» en una sola palabra (como en los flyers)."""
+    out = []
+    for p in ps:
+        t = p['texto']
+        num = re.sub(r'[^0-9]', '', t)
+        cola = re.sub(r'^[0-9.,$RDrd]+', '', t)
+        es_num = num and re.fullmatch(r'(RD\$)?[0-9][0-9.,]*[.,!?]?', t, re.I)
+        if es_num and int(num) >= 100:
+            if out and out[-1]['texto'].lower().rstrip('.,') in ('rd$', 'rd', 'rds'):
+                p = {**p, 'ini': out.pop()['ini']}
+            out.append({**p, 'texto': f'RD${int(num):,}' + (cola if cola in '.,!?' else '')})
+            continue
+        base = t.lower().strip('.,!?')
+        if base in ('pesos', 'peso') and out and out[-1]['texto'].startswith('RD$'):
+            out[-1] = {**out[-1], 'fin': p['fin'], 'texto': out[-1]['texto'].rstrip('.,!?') + t[len(base):]}
+            continue
+        out.append(p)
+    return out
 
 
 def main():
