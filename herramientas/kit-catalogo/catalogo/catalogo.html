@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<title>Catálogo de pantallas — Bayol Cell</title>
+<!-- Plantilla del catálogo de pantallas (carrusel 1080×1350 para Instagram/WhatsApp y PDF).
+     Datos: catalogo.json (ver ejemplo-datos.json). Solo nombre y PRECIO NIVEL 1. Nunca costos ni nivel 2/3.
+     Render: node render.js  → salida/pagina-01.png … y salida/catalogo.pdf -->
+<style>
+@font-face{font-family:'Barlow Condensed';font-weight:800;src:url(../flyer-pantallas/fonts/barlow-condensed-800.woff2) format('woff2')}
+@font-face{font-family:'Barlow Condensed';font-weight:700;src:url(../flyer-pantallas/fonts/barlow-condensed-700.woff2) format('woff2')}
+@font-face{font-family:'Inter';font-weight:100 900;src:url(../flyer-pantallas/fonts/inter-var.woff2) format('woff2')}
+:root{--ink:#0A0A0C;--graphite:#141418;--line:rgba(255,255,255,.09);--red:#E31E24;--red-deep:#7A0B10;--bone:#F5F5F7;--mute:#9A9AA3;--wa:#25D366}
+*{margin:0;box-sizing:border-box}
+html,body{background:#000}
+.pag{width:1080px;height:1350px;position:relative;overflow:hidden;background:var(--ink);color:var(--bone);font-family:Inter,system-ui,sans-serif;
+ background-image:radial-gradient(900px 600px at 85% -10%,rgba(227,30,36,.28),transparent 60%),radial-gradient(700px 500px at -10% 110%,rgba(227,30,36,.14),transparent 60%);
+ page-break-after:always;break-after:page}
+.top{position:absolute;left:60px;right:60px;top:48px;display:flex;align-items:center;justify-content:space-between}
+.top img{height:130px;margin:-20px 0 -26px -10px}
+.top .pg{font:700 26px 'Barlow Condensed';letter-spacing:4px;color:var(--mute)}
+/* portada */
+.kick{position:absolute;left:60px;top:250px;font:700 40px 'Barlow Condensed';letter-spacing:8px;color:var(--red);text-transform:uppercase}
+.hero{position:absolute;left:56px;right:60px;top:300px;font:800 190px/0.9 'Barlow Condensed';text-transform:uppercase;letter-spacing:-2px}
+.hero em{font-style:normal;color:var(--red)}
+.desde{position:absolute;left:60px;top:720px;display:flex;align-items:baseline;gap:18px}
+.desde small{font:700 44px 'Barlow Condensed';color:var(--mute);letter-spacing:3px;text-transform:uppercase}
+.desde b{font:800 150px/1 'Barlow Condensed';color:var(--bone)}
+.chips{position:absolute;left:60px;right:60px;top:930px;display:flex;flex-wrap:wrap;gap:16px}
+.chip{padding:16px 28px;border:1px solid var(--line);border-radius:999px;background:var(--graphite);font:600 30px Inter}
+.chip i{font-style:normal;color:var(--red);margin-right:10px}
+/* listas */
+.tit{position:absolute;left:60px;right:60px;top:180px}
+.tit small{display:block;font:700 30px 'Barlow Condensed';letter-spacing:6px;color:var(--red);text-transform:uppercase}
+.tit h2{font:800 96px/1 'Barlow Condensed';text-transform:uppercase;margin-top:6px}
+.tit p{font:500 26px Inter;color:var(--mute);margin-top:10px}
+.lista{position:absolute;left:60px;right:60px;top:400px;bottom:150px;display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:min-content;column-gap:40px}
+.fila{display:flex;align-items:baseline;gap:12px;padding:15px 0;border-bottom:1px solid var(--line)}
+.fila .n{font:600 28px/1.15 Inter;flex:1;min-width:0}
+.fila .dots{flex:none}
+.fila .p{font:800 38px 'Barlow Condensed';color:var(--bone);white-space:nowrap;font-variant-numeric:tabular-nums}
+.fila .p span{color:var(--red);font-size:26px;margin-right:4px}
+/* pie */
+.pie{position:absolute;left:60px;right:60px;bottom:48px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+.wa{display:flex;align-items:center;gap:14px;background:var(--wa);color:#04210f;border-radius:999px;padding:16px 30px;font:800 30px Inter;white-space:nowrap}
+.wa svg{width:34px;height:34px}
+.nota{font:500 22px/1.3 Inter;color:var(--mute);max-width:520px}
+</style></head><body>
+<script>
+// Datos: se pasan desde render.js (window.DATOS) o se cargan de catalogo.json.
+function dinero(n){return Math.round(n).toLocaleString('en-US')}
+function pie(d){return `<div class="pie"><div class="nota">${d.nota||''}</div><div class="wa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 20.5l1.6-5.3A8.4 8.4 0 1 1 21 11.5z"/></svg>${d.whatsapp||'Escríbenos'}</div></div>`}
+function armar(d){
+  const POR=d.porPagina||20, paginas=[];
+  // portada
+  const minimo=Math.min(...d.grupos.flatMap(g=>g.items.map(i=>i.precio)));
+  paginas.push(`<section class="pag"><div class="top"><img src="${d.logo}"><div class="pg">${d.fecha||''}</div></div>
+   <div class="kick">${d.kicker||'Cambio de pantalla'}</div>
+   <div class="hero">${d.titulo||'Precios de <em>pantallas</em>'}</div>
+   <div class="desde"><small>Desde</small><b>RD$${dinero(minimo)}</b></div>
+   <div class="chips">${d.grupos.map(g=>`<div class="chip"><i>●</i>${g.nombre}</div>`).join('')}</div>${pie(d)}</section>`);
+  // páginas de lista: cada grupo se parte en páginas de POR artículos
+  d.grupos.forEach(g=>{
+    for(let i=0;i<g.items.length;i+=POR){
+      const trozo=g.items.slice(i,i+POR), parte=g.items.length>POR?` · ${Math.floor(i/POR)+1}/${Math.ceil(g.items.length/POR)}`:'';
+      paginas.push(`<section class="pag"><div class="top"><img src="${d.logo}"><div class="pg">${d.fecha||''}</div></div>
+       <div class="tit"><small>${g.subtitulo||'Precio instalada'}</small><h2>${g.nombre}${parte}</h2><p>${g.nota||''}</p></div>
+       <div class="lista">${trozo.map(x=>`<div class="fila"><div class="n">${x.nombre}</div><div class="p"><span>RD$</span>${dinero(x.precio)}</div></div>`).join('')}</div>${pie(d)}</section>`);
+    }
+  });
+  document.body.insertAdjacentHTML('beforeend',paginas.join(''));
+  document.body.dataset.ready='1';
+}
+if(window.DATOS) armar(window.DATOS);
+else fetch('catalogo.json').then(r=>r.json()).then(armar);
+</script>
+</body></html>

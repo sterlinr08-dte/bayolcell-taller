@@ -5,6 +5,10 @@
 - Este archivo vale para los 3 negocios: NEXUS PRO, STUDIO y BAYOL CELL.
 - Si se instala o conecta algo nuevo, se agrega aquí y se deja la entrada en la bitácora.
 
+## Kit de catálogo y skills copiadas (13-oct-2026)
+- **`herramientas/kit-catalogo/README.md`**: cómo hacer el catálogo de precios (plantilla HTML → páginas PNG + PDF), el flyer de pantallas, las recetas probadas (Buzzy para imágenes y música, reels cuadro a cuadro, subtítulos exactos, volumen −14 LUFS) y lo que falla.
+- Se copiaron a `.claude/skills/` las skills de NEXUS PRO que faltaban aquí: diseño, marketing, anuncios, SEO, video (HyperFrames y Remotion), revisión de código y seguridad. Licencias en `.claude/skills/LICENCIAS-TERCEROS.md`.
+
 ## Reglas que siempre aplican
 
 **Cuentas, claves y pagos**
@@ -32,7 +36,7 @@
 ### Videos, reels y anuncios en video
 | Herramienta | Para qué | Estado |
 |---|---|---|
-| **HyperFrames** (skills `hyperframes`, `general-video`, `motion-graphics`, `product-launch-video`, `music-to-video`, `embedded-captions`, `talking-head-recut`, `slideshow`, `faceless-explainer`, `media-use`, `hyperframes-*`) | Armar el video final en esta máquina: textos animados, transiciones, logo, música y cierre. | Instalado (nexus-pro). Gratis. |
+| **HyperFrames** (skills `hyperframes`, `general-video`, `motion-graphics`, `product-launch-video`, `music-to-video`, `embedded-captions`, `talking-head-recut`, `slideshow`, `faceless-explainer`, `media-use`, `hyperframes-*`) | Armar el video final en esta máquina: textos animados, transiciones, logo, música y cierre. | Instalado (nexus-pro y, desde el 13-oct-2026, también en este repo). Gratis. |
 | **Buzzy** (MCP) | Generar imágenes y clips de video con IA: escenas, manos reparando, productos. Modelos probados: MiniMax-H3 (video) y Nano Banana (imagen). Seedance falla con personas reales. | Conectado. Usa créditos; el dueño autorizó usarlos para los videos de BAYOL. |
 | **Higgsfield** (MCP) | Otra opción de video e imagen con IA, avatares, anuncios y publicar en TikTok. | Conectado. Pedir OK antes de gastar créditos o publicar. |
 | **Remotion** (skills `remotion-*`) | Videos hechos con código, como el de la web de BAYOL (`videos-remotion/`). | Instalado. |
