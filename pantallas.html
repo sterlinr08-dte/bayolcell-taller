@@ -133,7 +133,7 @@
 
   <div id="res"><div class="estado">Cargando pantallas…</div></div>
 
-  <p class="nota">Precios en RD$ para cliente final; pueden cambiar sin aviso. <b>Incell</b> y <b>OLED</b> son calidades distintas de pantalla: pregúntanos cuál te conviene. La disponibilidad puede variar entre sucursales.</p>
+  <p class="nota">Precios en RD$ con instalación incluida; pueden cambiar sin aviso. <b>Incell</b> y <b>OLED</b> son calidades distintas de pantalla: pregúntanos cuál te conviene. La disponibilidad puede variar entre sucursales.</p>
 </main>
 
 <div class="barra">
@@ -202,7 +202,7 @@
     const et = (x.etiquetas||[]).map(t => `<span class="et${t==='OLED'?' oled':t==='Original'?' orig':''}">${esc(t)}</span>`).join('');
     return `<li class="it">
       <div><div class="nom">${esc(x.nombre)}</div><div class="meta">${et}<span class="dis${x.disponible?'':' no'}">${x.disponible?'Disponible':'Por encargo'}</span></div></div>
-      <div class="precio">${rd(x.precio)}<small>la pantalla</small></div>
+      <div class="precio">${rd(x.precio)}<small>instalada</small></div>
       <button class="pedir" type="button" data-c="${esc(x.codigo)}" aria-label="Pedir ${esc(x.nombre)} por WhatsApp">${ICON_WA}<span class="txt">Pedir</span></button>
     </li>`;
   }
