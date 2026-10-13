@@ -1,606 +1,587 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bayol Cell · Celulares y cambio de pantalla</title>
-<meta name="description" content="Celulares con precios al día y cambio de pantalla con instalación. Bayol Cell: Santiago, Moca y Navarrete.">
-<meta name="theme-color" content="#08090B">
-<meta property="og:title" content="Bayol Cell · Celulares y cambio de pantalla">
-<meta property="og:description" content="Precios al día, financiamiento y taller propio. Santiago, Moca y Navarrete.">
-<meta property="og:image" content="https://bayolcell.com/assets/logo.png">
-<link rel="icon" href="assets/taller/taller-icon-64.png">
+<title>Catálogo de Celulares · BAYOL CELL</title>
+<meta name="description" content="Catálogo de celulares BAYOL CELL con precios actualizados. Sucursales en Santiago, Moca y Navarrete.">
+<meta name="theme-color" content="#08090b">
 <link rel="preconnect" href="https://vkhwdvjtowrhkhqavnvk.supabase.co" crossorigin>
-<!-- Catálogo web estilo STUDIO (13-oct-2026). Celulares: Edge catalogo-publico (precio nivel 1 en vivo).
-     Pantallas: Edge pantallas-publico (solo por búsqueda, máx. 6 resultados, «Calidad certificada», sin Incell).
-     Nunca muestra costos ni otros niveles. El carrito usa la misma llave que el catálogo anterior (bayol_cat_cart). -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap">
 <style>
-@font-face{font-family:"BC Barlow";font-weight:800;font-display:swap;src:url(assets/cotizar/barlow-condensed-800.woff2) format("woff2")}
-@font-face{font-family:"BC Inter";font-weight:100 900;font-display:swap;src:url(assets/cotizar/inter-var.woff2) format("woff2")}
-:root{
-  --ink:#08090B; --panel:#111216; --panel2:#16171C; --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.14);
-  --red:#E31E24; --red2:#FF4A4F; --bone:#F5F5F7; --mute:#A1A1AA; --dim:#71717A; --wa:#25D366; --ok:#4ADE80;
-  --disp:"BC Barlow","Barlow Condensed",Impact,"Arial Narrow",sans-serif; --body:"BC Inter",Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
-  --r:22px; --pad:clamp(16px,4vw,48px); --max:1200px; --ease:cubic-bezier(.23,1,.32,1);
-}
-*{box-sizing:border-box;margin:0}
-html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
-body{background:var(--ink);color:var(--bone);font:400 16px/1.5 var(--body);-webkit-font-smoothing:antialiased;overflow-x:hidden}
-img{display:block;max-width:100%}
-button,input{font:inherit;color:inherit}
-a{color:inherit;text-decoration:none}
-:focus-visible{outline:2px solid var(--red2);outline-offset:3px;border-radius:10px}
-.wrap{max-width:var(--max);margin:0 auto;padding:0 var(--pad)}
-.kick{font:700 12px/1 var(--body);letter-spacing:.28em;text-transform:uppercase;color:var(--red2)}
-.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  :root{
+    --bg:#08090b; --bg2:#0f1114; --panel:#15171b; --linea:rgba(255,255,255,.08); --linea2:rgba(255,255,255,.14);
+    --txt:#f5f5f4; --txt2:rgba(245,245,244,.62); --txt3:rgba(245,245,244,.64);
+    --rojo:#e31e24; --rojo2:#ff3b41; --verde:#4ade80;
+    --mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;
+    --ease:cubic-bezier(.2,.8,.2,1); --resorte:cubic-bezier(.34,1.4,.5,1);
+  }
+  @property --tono{syntax:'<color>';inherits:true;initial-value:#2a2f38}
+  @property --g-tono{syntax:'<color>';inherits:true;initial-value:#08090b}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;}
+  body{font-family:Inter,-apple-system,'SF Pro Text',system-ui,sans-serif;-webkit-font-smoothing:antialiased;background:var(--bg);color:var(--txt);letter-spacing:-.01em;}
+  a{color:inherit;text-decoration:none;}
+  button{font-family:inherit;cursor:pointer;transition:transform 120ms ease,background-color 180ms,color 180ms,opacity 180ms;}
+  button:active,.btn:active{transform:scale(.96);}
+  :focus-visible{outline:2px solid var(--rojo2);outline-offset:2px;}
+  .ic{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none;}
+  .mono{font-family:var(--mono);text-transform:uppercase;letter-spacing:.14em;}
 
-/* ---------- barra superior ---------- */
-.top{position:sticky;top:0;z-index:40;background:rgba(8,9,11,.78);backdrop-filter:saturate(160%) blur(14px);-webkit-backdrop-filter:saturate(160%) blur(14px);border-bottom:1px solid var(--line)}
-.top .wrap{display:flex;align-items:center;gap:24px;height:68px}
-.logo{display:block;height:44px;aspect-ratio:622/270;background:url(assets/logo.png) no-repeat;background-size:112.54% auto;background-position:51.3% 46%;flex:none}
-.top nav{display:flex;gap:26px;margin-left:auto;font:600 14px var(--body);color:var(--mute)}
-.top nav a:hover{color:var(--bone)}
-.pill-wa{display:inline-flex;align-items:center;gap:8px;background:var(--wa);color:#03170b;font:800 14px var(--body);padding:10px 16px;border-radius:999px;transition:transform .15s var(--ease)}
-.pill-wa:active{transform:scale(.97)}
-.pill-wa svg{width:18px;height:18px}
-@media (max-width:820px){.top nav{display:none}.top .pill-wa{margin-left:auto}}
+  /* ===== Cabecera ===== */
+  .top{position:sticky;top:0;z-index:30;background:rgba(8,9,11,.82);backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);border-bottom:1px solid var(--linea);}
+  .topin{max-width:1180px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:6px 20px;min-height:58px;}
+  .logo img{height:58px;width:auto;display:block;margin:-8px -6px -8px -10px;}
+  .tag{margin-left:auto;font-size:10.5px;font-weight:600;color:var(--rojo2);border:1px solid rgba(227,30,36,.5);border-radius:999px;padding:6px 12px;}
+  .miped{display:flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:999px;border:1px solid var(--linea2);background:rgba(255,255,255,.04);color:var(--txt);position:relative;}
+  .cnt{position:absolute;top:-4px;right:-4px;background:var(--rojo);color:#fff;font-size:10.5px;font-weight:700;min-width:18px;height:18px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;padding:0 5px;font-family:var(--mono);}
+  @media(max-width:520px){ .tag{display:none;} .miped{margin-left:auto;} }
 
-/* ---------- héroe ---------- */
-.hero{position:relative;overflow:hidden;padding:clamp(28px,6vw,72px) 0 30px}
-.hero::before{content:"";position:absolute;inset:-20% -10% auto auto;width:70vw;height:70vw;max-width:900px;max-height:900px;background:radial-gradient(closest-side,rgba(227,30,36,.30),transparent 70%);pointer-events:none}
-.hero::after{content:"";position:absolute;inset:0;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:64px 64px;mask-image:radial-gradient(ellipse at 70% 40%,#000 0,transparent 65%);-webkit-mask-image:radial-gradient(ellipse at 70% 40%,#000 0,transparent 65%);opacity:.35;pointer-events:none}
-.hero .wrap{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:clamp(20px,4vw,56px);align-items:center}
-.estado{display:inline-flex;align-items:center;gap:9px;margin-top:16px;font:600 13.5px var(--body);color:var(--ok)}
-.estado::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor;box-shadow:0 0 0 4px rgba(74,222,128,.15)}
-.estado.no{color:var(--mute)}.estado.no::before{box-shadow:none}
-h1{font:800 clamp(50px,7vw,96px)/.9 var(--disp);overflow-wrap:anywhere;letter-spacing:-.5px;text-transform:uppercase;margin-top:18px;text-wrap:balance}
-h1 em{font-style:normal;color:var(--red)}
-.hero p.sub{color:var(--mute);font-size:17px;max-width:44ch;margin-top:16px}
-.dest{margin-top:26px;padding-top:22px;border-top:1px solid var(--line)}
-.dest .tag{display:inline-flex;align-items:center;gap:7px;font:700 11px var(--body);letter-spacing:.2em;text-transform:uppercase;color:var(--mute);border:1px solid var(--line2);border-radius:999px;padding:6px 11px}
-.dest .tag::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--ok)}
-.dest h2{font:800 clamp(34px,4.6vw,52px)/1 var(--disp);text-transform:uppercase;margin-top:12px}
-.dest .cap{color:var(--mute);margin-top:4px}
-.dest .fila{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-top:18px}
-.precio-xl{font:800 44px/1 var(--disp);font-variant-numeric:tabular-nums}
-.precio-xl small{font-size:22px;color:var(--red2);margin-right:4px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;border:0;border-radius:999px;padding:14px 22px;font:800 15px var(--body);cursor:pointer;transition:transform .15s var(--ease),background-color .2s}
-.btn:active{transform:scale(.97)}
-.btn-red{background:var(--red);color:#fff}.btn-red:hover{background:#c8181e}
-.btn-ghost{background:transparent;color:var(--mute);padding:14px 8px}.btn-ghost:hover{color:var(--bone)}
-.btn svg{width:18px;height:18px}
-.escena{position:relative;aspect-ratio:1/1;max-height:560px;justify-self:center;width:100%}
-.escena{overflow:hidden}.escena .marca{position:absolute;inset:0;display:grid;place-items:center;font:800 clamp(120px,22vw,300px)/1 var(--disp);color:transparent;-webkit-text-stroke:1.5px rgba(255,255,255,.07);text-transform:uppercase;user-select:none;pointer-events:none;white-space:nowrap;overflow:hidden}
-.escena .glow{position:absolute;left:50%;bottom:8%;width:70%;height:12%;transform:translateX(-50%);background:radial-gradient(closest-side,rgba(227,30,36,.55),transparent);filter:blur(10px)}
-.escena img{position:absolute;inset:6% 12% 10%;width:76%;height:84%;object-fit:contain;filter:drop-shadow(0 40px 50px rgba(0,0,0,.6));transition:opacity .35s var(--ease),transform .5s var(--ease)}
-.escena img.sale{opacity:0;transform:translateY(14px) scale(.97)}
-.carr{display:flex;align-items:center;gap:10px;margin-top:6px}
-.carr .flecha{width:42px;height:42px;border-radius:50%;border:1px solid var(--line2);background:transparent;display:grid;place-items:center;cursor:pointer;flex:none}
-.carr .flecha:hover{border-color:var(--bone)}
-.carr .flecha svg{width:18px;height:18px}
-.carr .nombres{flex:1;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;justify-content:center}
-.carr .nombres button{flex:none;border:0;background:transparent;color:var(--dim);font:700 13px var(--body);padding:10px 10px;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap}
-.carr .nombres button.on{color:var(--bone);border-color:var(--red)}
-@media (max-width:820px){.hero .wrap{grid-template-columns:minmax(0,1fr);row-gap:0}.hero .ll{display:contents}.hero .kick{order:1}#estadoGeneral{order:2;justify-self:start}.hero h1{order:3}.hero .rr{order:4;margin-top:8px}.hero p.sub{order:5}.hero .dest{order:6}.escena{max-height:320px;aspect-ratio:4/3}.carr .nombres{justify-content:flex-start}}
+  /* ===== Titular + búsqueda + pestañas ===== */
+  .wrap{max-width:1180px;margin:0 auto;padding:30px 20px 0;}
+  .kicker{font-size:11px;font-weight:600;color:var(--rojo2);}
+  .h1{font-size:46px;font-weight:800;letter-spacing:-.035em;line-height:1.05;margin-top:10px;}
+  .sub{font-size:15.5px;color:var(--txt2);margin-top:10px;max-width:560px;line-height:1.5;}
+  @media(max-width:640px){ .wrap{padding-top:20px;} .h1{font-size:32px;} .sub{font-size:14.5px;} }
+  .tools{position:sticky;top:58px;z-index:20;background:linear-gradient(var(--bg) 78%,rgba(8,9,11,0));padding:18px 0 14px;display:flex;flex-direction:column;gap:12px;}
+  .search{position:relative;display:block;max-width:560px;}
+  .search .ic{position:absolute;left:15px;top:50%;transform:translateY(-50%);color:var(--txt3);}
+  .search input{width:100%;height:46px;border:1px solid var(--linea2);border-radius:999px;padding:0 16px 0 44px;font-size:15px;color:var(--txt);background:rgba(255,255,255,.04);font-family:inherit;}
+  .search input::placeholder{color:var(--txt3);}
+  .search input:focus{outline:none;border-color:rgba(227,30,36,.7);background:rgba(255,255,255,.06);}
+  .tabs{display:inline-flex;gap:4px;padding:4px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid var(--linea);overflow-x:auto;max-width:100%;scrollbar-width:none;align-self:flex-start;}
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab{flex:none;height:36px;padding:0 15px;border:0;border-radius:999px;background:transparent;color:var(--txt2);font-size:13.5px;font-weight:600;display:inline-flex;align-items:center;gap:6px;}
+  .tab small{font-family:var(--mono);font-size:10.5px;color:var(--txt3);}
+  .tab.on{background:#f5f5f4;color:#0b0b0b;}
+  .tab.on small{color:rgba(0,0,0,.66);}
 
-/* ---------- franja de valores ---------- */
-.valores{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--panel)}
-.valores .wrap{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;padding-top:18px;padding-bottom:18px}
-.valor{display:flex;gap:12px;align-items:flex-start}
-.valor svg{width:22px;height:22px;color:var(--red2);flex:none;margin-top:2px}
-.valor b{display:block;font:700 14.5px var(--body)}
-.valor span{display:block;font-size:13px;color:var(--mute)}
-@media (max-width:820px){.valores .wrap{grid-template-columns:1fr 1fr}}
+  /* ===== Secciones por marca ===== */
+  .secs{padding-bottom:40px;}
+  .sec{padding:26px 0 10px;border-top:1px solid var(--linea);scroll-margin-top:170px;}
+  .sec:first-child{border-top:0;}
+  .shd{max-width:1180px;margin:0 auto;padding:0 20px;display:flex;align-items:baseline;justify-content:space-between;gap:10px;}
+  .shd h2{font-size:26px;font-weight:800;letter-spacing:-.03em;}
+  .shd .cuenta{font-size:10.5px;color:var(--txt3);margin-left:auto;margin-right:6px;}
+  .shd .cuenta b{color:var(--txt);font-weight:600;}
+  .shd .cuenta .dz{color:var(--rojo2);}
+  .flechas{display:flex;gap:8px;}
+  .flechas button{width:38px;height:38px;border-radius:999px;border:1px solid var(--linea2);background:rgba(255,255,255,.04);color:var(--txt);display:flex;align-items:center;justify-content:center;}
+  .flechas button:disabled{opacity:.3;cursor:default;}
+  .solomovil{display:none;}
+  @media(max-width:700px){ .flechas{display:none;} .solomovil{display:inline;} .solopc{display:none;} .shd h2{font-size:22px;} }
 
-/* ---------- catálogo ---------- */
-.sec{padding:clamp(48px,8vw,96px) 0}
-.sec h2.t{font:800 clamp(40px,6vw,72px)/.95 var(--disp);text-transform:uppercase;margin-top:12px;text-wrap:balance}
-.seg{display:inline-flex;gap:4px;padding:5px;background:var(--panel2);border:1px solid var(--line);border-radius:999px;margin-top:26px;max-width:100%}
-.seg button{border:0;background:transparent;color:var(--mute);font:700 15px var(--body);padding:11px 18px;border-radius:999px;cursor:pointer;display:inline-flex;gap:8px;align-items:center;white-space:nowrap}
-.seg button .n{font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
-.seg button.on{background:var(--bone);color:#0b0b0d}.seg button.on .n{color:#52525b}
-.panel[hidden]{display:none}
-.herram{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:24px}
-.buscar{flex:1 1 280px;display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line2);border-radius:16px;padding:0 16px}
-.buscar:focus-within{border-color:var(--red2)}
-.buscar svg{width:18px;height:18px;color:var(--dim);flex:none}
-.buscar input{flex:1;min-width:0;border:0;background:transparent;outline:0;padding:14px 0;font-size:16px}
-.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px}
-.chips button{flex:none;border:1px solid var(--line2);background:transparent;color:var(--mute);font:700 13.5px var(--body);border-radius:999px;padding:9px 15px;cursor:pointer}
-.chips button.on{background:var(--red);border-color:var(--red);color:#fff}
-.toggle{display:inline-flex;align-items:center;gap:8px;font:600 13.5px var(--body);color:var(--mute);cursor:pointer;user-select:none}
-.toggle input{accent-color:var(--red);width:17px;height:17px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px;margin-top:22px}
-@media (max-width:520px){.grid{grid-template-columns:1fr 1fr;gap:10px}}
-.card{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column;transition:border-color .2s,transform .25s var(--ease)}
-.card:hover{border-color:var(--line2);transform:translateY(-2px)}
-.card .foto{position:relative;aspect-ratio:1/1;background:radial-gradient(circle at 50% 60%,var(--tono,rgba(227,30,36,.22)),transparent 68%),var(--panel2)}
-.card .foto img{position:absolute;inset:10%;width:80%;height:80%;object-fit:contain;filter:drop-shadow(0 18px 22px rgba(0,0,0,.5))}
-.card .disp{position:absolute;top:10px;left:10px;font:700 11px var(--body);letter-spacing:.04em;color:var(--ok);background:rgba(8,9,11,.72);border:1px solid rgba(74,222,128,.25);padding:5px 9px;border-radius:999px}
-.card .disp.no{color:var(--mute);border-color:var(--line2)}
-.card .cuerpo{padding:14px 14px 14px;display:flex;flex-direction:column;gap:4px;flex:1}
-.card h3{font:700 15.5px/1.25 var(--body)}
-.card .cap{font-size:13px;color:var(--mute)}
-.card .pie{display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:12px;flex-wrap:wrap}
-.card .precio{font:800 26px/1 var(--disp);font-variant-numeric:tabular-nums;flex:1 1 auto}
-.card .precio small{color:var(--red2);font-size:15px;margin-right:2px}
-.card .precio .cons{font:600 13px var(--body);color:var(--mute)}
-.card .acc{display:flex;gap:6px}
-.card .mas{height:40px;border:0;border-radius:999px;background:var(--bone);color:#0b0b0d;font:800 13.5px var(--body);padding:0 14px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:transform .15s var(--ease)}
-.card .mas:active{transform:scale(.96)}
-.card .mas svg{width:16px;height:16px}
-.card .q{width:40px;height:40px;border-radius:50%;border:1px solid var(--line2);background:transparent;display:grid;place-items:center;cursor:pointer;flex:none}
-.card .q svg{width:18px;height:18px;color:var(--wa)}
-.card.agotado .foto img{filter:grayscale(1) opacity(.55)}
-.card .cant{font:800 12px var(--body);background:var(--red);color:#fff;border-radius:999px;min-width:20px;height:20px;display:inline-grid;place-items:center;padding:0 5px}
-@media (max-width:520px){.card .cuerpo{padding:12px}.card h3{font-size:14px}.card .precio{font-size:23px;flex-basis:100%}.card .acc{width:100%}.card .mas{flex:1;justify-content:center}}
-.vacio{grid-column:1/-1;padding:44px 16px;text-align:center;color:var(--mute);border:1px dashed var(--line2);border-radius:var(--r)}
-.vacio a{color:var(--wa);font-weight:700}
+  /* Carrusel */
+  .rail{display:grid;grid-auto-flow:column;grid-auto-columns:calc((min(1180px,100vw) - 40px - 32px)/3);gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;padding:16px max(20px, calc((100vw - 1180px)/2 + 20px)) 18px;scroll-padding-inline:max(20px, calc((100vw - 1180px)/2 + 20px));scrollbar-width:none;overscroll-behavior-x:contain;}
+  .rail::-webkit-scrollbar{display:none;}
+  @media(max-width:1000px){ .rail{grid-auto-columns:calc((100vw - 40px - 16px)/2);} }
+  @media(max-width:700px){ .rail{grid-auto-columns:78vw;gap:12px;} }
 
-/* pantallas */
-.pant{display:grid;grid-template-columns:1.1fr .9fr;gap:24px;margin-top:24px;align-items:start}
-.pant .caja{background:linear-gradient(160deg,rgba(227,30,36,.16),transparent 55%),var(--panel);border:1px solid var(--line);border-radius:28px;padding:clamp(20px,4vw,36px)}
-.pant .caja h3{font:800 clamp(34px,4.4vw,52px)/.95 var(--disp);text-transform:uppercase}
-.pant .caja p{color:var(--mute);margin-top:10px}
-.pant .buscar{margin-top:20px;background:var(--ink)}
-.pant .buscar input{font-size:18px;padding:17px 0}
-.ejemplos{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
-.ejemplos button{border:1px solid var(--line2);background:transparent;color:var(--mute);border-radius:999px;padding:7px 12px;font:600 13px var(--body);cursor:pointer}
-.ejemplos button:hover{color:var(--bone);border-color:var(--bone)}
-.res{display:flex;flex-direction:column;gap:12px}
-.res .r{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:18px;display:grid;grid-template-columns:1fr auto;gap:8px 14px;align-items:center;animation:entra .3s var(--ease) both}
-@keyframes entra{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-.res .r h4{font:800 26px/1 var(--disp);text-transform:uppercase}
-.res .r .cal{display:inline-block;justify-self:start;font:700 12px var(--body);border:1px solid var(--line2);border-radius:999px;padding:5px 10px;color:var(--bone)}
-.res .r .pr{grid-row:1/3;grid-column:2;text-align:right;font:800 34px/1 var(--disp);font-variant-numeric:tabular-nums}
-.res .r .pr small{display:block;font:600 12px var(--body);color:var(--mute);margin-top:4px}
-.res .r .pr small.rd{display:inline;color:var(--red2);font:800 18px var(--disp);margin-right:2px}
-.res .r .go{grid-column:1/-1;margin-top:6px;justify-content:center;background:var(--wa);color:#03170b}
-.res .info{color:var(--mute);font-size:14px;padding:6px 4px}
-.res .info a{color:var(--wa);font-weight:700}
-@media (max-width:820px){.pant{grid-template-columns:1fr}}
+  /* Tarjeta de color */
+  .card{--tono:#2a2f38;scroll-snap-align:start;position:relative;border-radius:26px;overflow:hidden;min-height:430px;display:flex;flex-direction:column;padding:18px;color:#fff;background:var(--tono);background:radial-gradient(60% 55% at 50% 45%,color-mix(in oklab,var(--tono),#fff 20%) 0%,transparent 72%),linear-gradient(155deg,color-mix(in oklab,var(--tono),#fff 6%),color-mix(in oklab,var(--tono),#000 20%));box-shadow:0 30px 60px -34px rgba(0,0,0,.85),inset 0 1px 0 rgba(255,255,255,.18);isolation:isolate;transition:opacity .7s var(--ease),transform .7s var(--ease),box-shadow .35s var(--ease),--tono .6s var(--ease);}
+  .card.agotado{filter:saturate(.35);}
+  .card .marca-agua{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);font-size:clamp(120px,15vw,190px);font-weight:800;letter-spacing:-.06em;line-height:1;color:color-mix(in oklab,var(--tono),#fff 13%);white-space:nowrap;z-index:-1;pointer-events:none;}
+  .card .cab{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+  .card .specs{font-size:10px;line-height:1.55;color:rgba(255,255,255,.72);max-width:60%;}
+  .disp{display:inline-flex;align-items:center;gap:6px;font-size:9.5px;font-weight:600;padding:5px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.18);white-space:nowrap;}
+  .disp::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--verde);box-shadow:0 0 8px var(--verde);}
+  .disp.no::before{background:#a1a1aa;box-shadow:none;}
+  .dest{position:absolute;top:52px;right:18px;font-size:9.5px;font-weight:600;color:#fff;background:var(--rojo);padding:4px 9px;border-radius:999px;}
+  .card .foto{flex:1;display:flex;align-items:center;justify-content:center;min-height:200px;margin:8px 0 6px;}
+  .card .foto img{max-width:88%;max-height:230px;object-fit:contain;filter:drop-shadow(0 30px 24px color-mix(in oklab,var(--tono),#000 62%));}
+  .card .ref-foto{font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.5);text-align:center;margin:-4px 0 8px;}
+  .card .foto .noimg{width:74px;height:74px;color:rgba(255,255,255,.35);stroke-width:1.4;}
+  .card .nom{font-size:25px;font-weight:800;letter-spacing:-.03em;line-height:1.08;}
+  .card .opts{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+  .card .opt{height:30px;padding:0 11px;border-radius:999px;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.06);color:#fff;font:600 12px/1 var(--mono);letter-spacing:.02em;cursor:pointer;transition:background .2s var(--ease),color .2s var(--ease),border-color .2s var(--ease),transform .2s var(--resorte);}
+  .card .opt:hover{border-color:rgba(255,255,255,.6);}
+  .card .opt:active{transform:scale(.94);}
+  .card .opt.on{background:#fff;color:#0b0b0b;border-color:#fff;}
+  .card .opt.no{opacity:.55;text-decoration:line-through;}
+  .card .opt:focus-visible{outline:2px solid #fff;outline-offset:2px;}
+  .card .precio.cambia{animation:pop .45s var(--resorte);}
+  .card .pie{margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.22);display:flex;align-items:flex-end;justify-content:space-between;gap:10px;}
+  .card .lbl{font-size:9.5px;color:rgba(255,255,255,.7);}
+  .card .precio{font-size:23px;font-weight:800;letter-spacing:-.02em;margin-top:3px;white-space:nowrap;}
+  .card .precio small{font-size:14px;font-weight:600;color:rgba(255,255,255,.8);}
+  .card .acc{display:flex;align-items:center;gap:8px;flex:none;}
+  .btn-add{height:42px;padding:0 20px;border-radius:999px;border:0;background:#fff;color:#0b0b0b;font-size:14px;font-weight:700;}
+  .btn-add.dis{background:rgba(255,255,255,.18);color:rgba(255,255,255,.7);pointer-events:none;font-weight:600;font-size:12.5px;padding:0 14px;}
+  .btn-wa{width:42px;height:42px;border-radius:999px;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.2);color:#fff;display:flex;align-items:center;justify-content:center;}
+  .stepper{display:flex;align-items:center;gap:4px;height:42px;padding:3px;border-radius:999px;background:#fff;color:#0b0b0b;}
+  .stepper button{width:36px;height:36px;border:0;border-radius:999px;background:rgba(0,0,0,.07);font-size:18px;font-weight:700;color:#0b0b0b;}
+  .stepper b{min-width:22px;text-align:center;font-family:var(--mono);font-size:14px;}
+  .estado{max-width:1180px;margin:0 auto;min-height:72vh;text-align:center;color:var(--txt2);padding:60px 20px;font-size:15.5px;line-height:1.6;}
 
-/* tiendas */
-.tiendas{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:28px}
-.tienda{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:22px;display:flex;flex-direction:column;gap:8px}
-.tienda h3{font:800 30px/1 var(--disp);text-transform:uppercase}
-.tienda .dir{color:var(--mute);font-size:14px}
-.tienda .estado{margin-top:2px;font-size:13px}
-.tienda .acc{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
-.tienda .acc a{flex:1;min-width:96px;display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line2);border-radius:999px;padding:10px 12px;font:700 13px var(--body)}
-.tienda .acc a.wa{background:var(--wa);color:#03170b;border-color:var(--wa)}
-.tienda .acc svg{width:16px;height:16px}
-@media (max-width:820px){.tiendas{grid-template-columns:1fr}}
-footer.pie-pag{border-top:1px solid var(--line);padding:28px 0 120px;color:var(--dim);font-size:13px}
+  /* ===== Sucursales ===== */
+  .sucwrap{max-width:1180px;margin:0 auto;padding:44px 20px 20px;border-top:1px solid var(--linea);}
+  .sucwrap h2{font-size:30px;font-weight:800;letter-spacing:-.03em;margin-top:8px;}
+  .sucs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:20px;}
+  @media(max-width:860px){ .sucs{grid-template-columns:1fr;gap:12px;} }
+  .suc{background:var(--panel);border:1px solid var(--linea);border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:12px;}
+  .suc .sh{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .suc .sn{font-size:20px;font-weight:700;letter-spacing:-.02em;}
+  .abierto{display:inline-flex;align-items:center;gap:6px;font-size:9.5px;font-weight:600;padding:5px 10px;border-radius:999px;border:1px solid var(--linea2);white-space:nowrap;}
+  .abierto .dot{width:6px;height:6px;border-radius:50%;background:#a1a1aa;}
+  .abierto.si{color:var(--verde);border-color:rgba(74,222,128,.35);}
+  .abierto.si .dot{background:var(--verde);box-shadow:0 0 8px var(--verde);animation:late 1.8s ease-in-out infinite;}
+  .abierto.no{color:var(--txt2);}
+  @keyframes late{50%{opacity:.35;}}
+  .suc .row{display:flex;gap:10px;font-size:14px;color:var(--txt2);line-height:1.45;}
+  .suc .row .ic{width:16px;height:16px;margin-top:2px;color:var(--txt);}
+  .suc .det{font-size:12.5px;color:var(--txt);font-weight:500;}
+  .suc .btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;}
+  .btn{display:flex;align-items:center;justify-content:center;gap:7px;height:42px;border-radius:999px;font-size:13.5px;font-weight:600;border:1px solid var(--linea2);background:rgba(255,255,255,.04);color:var(--txt);}
+  .btn:hover{background:rgba(255,255,255,.08);}
+  .foot{max-width:1180px;margin:0 auto;padding:26px 20px 130px;color:var(--txt3);font-size:12.5px;line-height:1.6;}
 
-/* barra fija (celular) + carrito */
-.barra{position:fixed;left:0;right:0;bottom:0;z-index:50;display:none;gap:10px;padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:rgba(8,9,11,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--line)}
-.barra a{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;padding:14px;font:800 15px var(--body)}
-.barra a.t{border:1px solid var(--line2)}
-.barra a.wa{background:var(--wa);color:#03170b}
-.barra svg{width:18px;height:18px}
-@media (max-width:820px){.barra{display:flex}}
-.carrito{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:24px;z-index:55;display:none;align-items:center;gap:10px;background:var(--bone);color:#0b0b0d;border:0;border-radius:999px;padding:12px 18px 12px 14px;font:800 15px var(--body);box-shadow:0 18px 40px rgba(0,0,0,.45);cursor:pointer;transition:transform .2s var(--ease)}
-.carrito.on{display:inline-flex}
-.carrito.pulso{animation:pulso .5s var(--ease)}
-@keyframes pulso{50%{transform:scale(1.07)}}
-.carrito .cant{background:var(--red);color:#fff;border-radius:999px;min-width:24px;height:24px;display:inline-grid;place-items:center;font-size:13px}
-.barra .ped{display:none;flex:1;align-items:center;justify-content:center;gap:8px;border:0;border-radius:999px;padding:14px;font:800 15px var(--body);background:var(--bone);color:#0b0b0d;cursor:pointer}
-.barra .ped .cant{background:var(--red);color:#fff;border-radius:999px;min-width:22px;height:22px;display:inline-grid;place-items:center;font-size:12px}
-.barra.con-pedido .t{display:none}.barra.con-pedido .ped{display:inline-flex}
-@media (max-width:820px){.carrito{display:none!important}}
-.hoja-fondo{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);display:none}
-.hoja-fondo.on{display:block}
-.hoja{position:fixed;z-index:71;right:0;top:0;bottom:0;width:min(440px,100vw);background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .3s var(--ease);visibility:hidden}
-.hoja.on{transform:none;visibility:visible}
-.hoja header{display:flex;align-items:center;padding:20px;border-bottom:1px solid var(--line)}
-.hoja header h3{font:800 30px/1 var(--disp);text-transform:uppercase;flex:1}
-.hoja .cerrar{width:40px;height:40px;border-radius:50%;border:1px solid var(--line2);background:transparent;cursor:pointer;display:grid;place-items:center}
-.hoja .lista{flex:1;overflow:auto;padding:12px 20px}
-.hoja .item{display:grid;grid-template-columns:56px 1fr auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
-.hoja .item img,.hoja .item .ph{width:56px;height:56px;object-fit:contain;background:var(--panel2);border-radius:14px}
-.hoja .item h4{font:700 14.5px/1.3 var(--body)}
-.hoja .item small{color:var(--mute);font-size:12.5px}
-.hoja .qty{display:flex;align-items:center;gap:6px}
-.hoja .qty button{width:30px;height:30px;border-radius:50%;border:1px solid var(--line2);background:transparent;cursor:pointer;font:700 16px var(--body)}
-.hoja .fin{padding:18px 20px calc(18px + env(safe-area-inset-bottom));border-top:1px solid var(--line);display:flex;flex-direction:column;gap:12px}
-.hoja .tot{display:flex;justify-content:space-between;align-items:baseline;font:800 30px var(--disp)}
-.hoja .tot span{font:600 14px var(--body);color:var(--mute)}
-@media (max-width:640px){.hoja{top:auto;width:100vw;max-height:88vh;border-radius:24px 24px 0 0;border-left:0;transform:translateY(100%)}}
-/* micro-animaciones (referencia: carrusel «Claude Motion», 13-oct-2026): contador que rueda y botón que confirma */
-.rodillo{display:inline-flex;align-items:flex-end;line-height:1;vertical-align:baseline}
-.rodillo .d{display:inline-block;height:1em;overflow:hidden}
-.rodillo .d>span{display:flex;flex-direction:column;transition:transform .9s cubic-bezier(.2,1.18,.32,1)}
-.rodillo .d i{display:block;height:1em;font-style:normal}
-.rodillo .s{display:inline-block}
-.card .mas.hecho{background:var(--ok);color:#03170b;animation:pop .38s cubic-bezier(.2,1.4,.4,1)}
-@keyframes pop{0%{transform:scale(.92)}60%{transform:scale(1.05)}100%{transform:scale(1)}}
-/* Animaciones del catálogo anterior (rescatadas 13-oct-2026, pedido del dueño): la foto vuela al pedido,
-   asoma un resumen y, al enviar, un carrito recoge el pedido antes de abrir WhatsApp. */
-@keyframes recibe{30%{transform:scale(1.18) rotate(-6deg)}60%{transform:scale(.95) rotate(3deg)}}
-@keyframes sube{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-.carrito.recibe,.barra .ped.recibe{animation:recibe .5s cubic-bezier(.34,1.4,.5,1)}
-.vuelo{position:fixed;z-index:90;left:0;top:0;pointer-events:none;object-fit:contain;filter:drop-shadow(0 14px 14px rgba(0,0,0,.45));will-change:transform,opacity}
-.asoma{position:fixed;z-index:56;right:max(16px,env(safe-area-inset-right));bottom:84px;width:min(320px,calc(100vw - 24px));padding:12px;border-radius:22px;background:rgba(18,20,25,.94);backdrop-filter:saturate(1.4) blur(18px);-webkit-backdrop-filter:saturate(1.4) blur(18px);border:1px solid var(--line2);box-shadow:0 24px 50px -20px rgba(0,0,0,.8);color:var(--bone);text-align:left;font-family:var(--body);cursor:pointer;opacity:0;visibility:hidden;transform:translateY(10px) scale(.98);transform-origin:bottom right;transition:opacity .25s var(--ease),transform .35s cubic-bezier(.34,1.4,.5,1),visibility 0s linear .25s}
-.asoma.si{opacity:1;visibility:visible;transform:none;transition-delay:0s}
-@media (max-width:820px){.asoma{right:12px;bottom:calc(84px + env(safe-area-inset-bottom))}}
-.asoma-cab{display:flex;align-items:center;justify-content:space-between;gap:8px;font:700 11px var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--mute);padding:0 2px 8px}
-.asoma-cab b{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--red);color:#fff;font:800 11px/20px var(--body);letter-spacing:0;text-align:center}
-.asoma-fila{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;padding:6px 2px;border-top:1px solid var(--line)}
-.asoma-fila .mini{width:44px;height:44px;border-radius:12px;background:var(--panel2);display:grid;place-items:center;overflow:hidden}
-.asoma-fila .mini img{width:86%;height:86%;object-fit:contain}
-.asoma-fila h4{font:700 13px var(--body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.asoma-fila small{font:500 11.5px var(--body);color:var(--mute)}
-.asoma-fila>b{font:800 13.5px var(--body)}
-.asoma-fila.nueva{animation:sube .45s var(--ease) both}
-.asoma-mas{font-size:12px;color:var(--mute);padding:4px 2px 0}
-.asoma-pie{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;padding-top:10px;border-top:1px solid var(--line2)}
-.asoma-pie b{font:800 20px var(--disp)}
-.asoma-pie span{display:inline-flex;align-items:center;height:36px;padding:0 16px;border-radius:999px;background:var(--red);color:#fff;font:700 13.5px var(--body)}
-@keyframes waBrillo{to{transform:translateX(120%)}}
-@keyframes waHunde{25%{transform:scale(.93)}60%{transform:scale(1.04)}}
-@keyframes waOnda{from{transform:scale(0);opacity:1}to{transform:scale(16);opacity:0}}
-#enviarPedido{position:relative;overflow:hidden;isolation:isolate}
-#enviarPedido::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.5) 50%,transparent 70%);transform:translateX(-120%)}
-#enviarPedido.envia{animation:waHunde .55s cubic-bezier(.34,1.4,.5,1)}
-#enviarPedido.envia::after{animation:waBrillo .7s var(--ease) .1s}
-#enviarPedido .onda{position:absolute;z-index:-1;width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:50%;background:rgba(255,255,255,.5);pointer-events:none;animation:waOnda .6s var(--ease) forwards}
-#enviarPedido .ok{display:inline-flex;align-items:center;gap:9px;animation:sube .4s var(--ease) both}
-#enviarPedido .ok svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
-.viaje{position:fixed;z-index:90;left:0;top:0;width:118px;height:92px;pointer-events:none;will-change:transform}
-.viaje svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;filter:drop-shadow(0 10px 14px rgba(0,0,0,.5))}
-.viaje .rueda{transform-box:fill-box;transform-origin:center}
-.viaje .carga{position:absolute;inset:0;clip-path:polygon(22px -140px,110px -140px,110px 30px,101px 62px,31px 62px,22px 30px)}
-.viaje .cosa{position:absolute;top:31px;width:30px;height:30px;border-radius:9px;background:var(--panel2);display:grid;place-items:center;overflow:hidden;box-shadow:0 4px 10px rgba(0,0,0,.35),0 0 0 1.5px rgba(255,255,255,.18)}
-.viaje .cosa img{width:88%;height:88%;object-fit:contain}
-.viaje .raya{position:absolute;right:100%;transform-origin:right;height:3px;border-radius:3px;background:linear-gradient(90deg,transparent,rgba(255,59,65,.9));opacity:0}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+  /* ===== Barra fija del pedido ===== */
+  .cartbar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(8,9,11,.9);backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);border-top:1px solid var(--linea);padding:10px 20px calc(10px + env(safe-area-inset-bottom));display:none;}
+  .cartbar.show{display:block;}
+  .cartin{max-width:1180px;margin:0 auto;display:flex;align-items:center;gap:14px;}
+  .cartbar .tt{flex:1;min-width:0;}
+  .cartbar .tt .l{font-size:10px;color:var(--txt3);}
+  .cartbar .tt .l button{border:0;background:none;color:var(--rojo2);font:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:0;}
+  .cartbar .tt b{display:block;font-size:19px;font-weight:800;letter-spacing:-.02em;margin-top:2px;}
+  .go1{height:46px;padding:0 22px;border-radius:999px;border:0;background:var(--rojo);color:#fff;font-size:14.5px;font-weight:700;display:inline-flex;align-items:center;gap:8px;box-shadow:0 8px 24px -8px rgba(227,30,36,.7);}
+  .go1:hover{background:#c8181d;}
+  .go1[disabled]{opacity:.45;box-shadow:none;cursor:default;}
+
+  /* ===== Panel del pedido ===== */
+  .dbg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:40;display:none;}
+  .dbg.show{display:block;}
+  .draw{position:fixed;top:0;right:0;bottom:0;width:420px;max-width:94vw;background:var(--bg2);border-left:1px solid var(--linea);z-index:41;transform:translateX(100%);transition:transform .35s cubic-bezier(.2,.8,.2,1);display:flex;flex-direction:column;}
+  .draw.show{transform:translateX(0);}
+  .draw .dh{padding:20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--linea);}
+  .draw .dh h3{font-size:24px;font-weight:800;letter-spacing:-.03em;}
+  .draw .x{width:38px;height:38px;border-radius:999px;border:1px solid var(--linea2);background:rgba(255,255,255,.04);color:var(--txt);display:flex;align-items:center;justify-content:center;}
+  .draw .db{flex:1;overflow-y:auto;padding:12px 20px;}
+  .crow{display:flex;gap:12px;align-items:center;padding:12px;margin-bottom:8px;background:var(--panel);border:1px solid var(--linea);border-radius:16px;}
+  .crow .mini{width:54px;height:54px;object-fit:contain;border-radius:12px;background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;color:var(--txt3);flex:none;}
+  .crow .cn{flex:1;min-width:0;}
+  .crow .cn .n{font-size:14.5px;font-weight:700;}
+  .crow .cn .p{font-size:12.5px;color:var(--txt2);margin-top:2px;}
+  .crow .st{display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.06);border-radius:999px;padding:3px;}
+  .crow .st button{width:30px;height:30px;border:0;border-radius:999px;background:rgba(255,255,255,.1);color:var(--txt);font-size:16px;}
+  .crow .st b{min-width:18px;text-align:center;font-family:var(--mono);font-size:13px;}
+  .draw .df{padding:16px 20px calc(16px + env(safe-area-inset-bottom));border-top:1px solid var(--linea);}
+  .draw .df .tot{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;font-size:13px;color:var(--txt2);}
+  .draw .df .tot b{font-size:24px;font-weight:800;color:var(--txt);letter-spacing:-.02em;}
+  .draw .df .go{width:100%;height:52px;border-radius:999px;border:0;background:#16a34a;color:#fff;font-size:15.5px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:9px;}
+  .draw .df .go:hover{background:#15803d;}
+
+
+  /* ===== Movimiento (mismo lenguaje que el catálogo de STUDIO) ===== */
+  .progreso{position:absolute;left:0;bottom:-1px;height:2px;width:100%;transform-origin:left;transform:scaleX(var(--leido,0));background:linear-gradient(90deg,#8f1216,var(--rojo2));box-shadow:0 0 10px rgba(255,59,65,.55);}
+  @keyframes portadaEntra{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+  .wrap .kicker,.wrap .h1,.wrap .sub,.tools{animation:portadaEntra .7s var(--ease) both;}
+  .wrap .h1{animation-delay:.06s} .wrap .sub{animation-delay:.12s} .tools{animation-delay:.2s}
+  /* Tarjetas: aparecen en cascada al verse; la foto llega deslizándose y se enfoca. */
+  .card .foto>*{transition:translate .8s var(--ease),scale .8s var(--resorte),opacity .5s var(--ease);}
+  .js .card{opacity:0;transform:translateY(22px);}
+  .js .card.si{opacity:1;transform:none;}
+  .js .card:not(.si) .foto>*{translate:18% 0;scale:.86;opacity:0;}
+  @media(hover:hover){ .js .card.si:hover{transform:translateY(-4px);box-shadow:0 40px 70px -34px rgba(0,0,0,.9),inset 0 1px 0 rgba(255,255,255,.22);} .card:hover .foto>*{scale:1.04;} }
+  /* Vitrina en celular: la tarjeta del frente se enfoca y la franja toma su color. */
+  @media(max-width:700px){
+    .sec{background:color-mix(in oklab,var(--g-tono) 26%,#08090b);transition:--g-tono .7s var(--ease);border-top:0;}
+    .js .card.si:not(.actual){opacity:.55;transform:scale(.94);}
+    .js .card.si:not(.actual) .foto>*{translate:18% 0;scale:.86;}
+  }
+  .dz{transition:opacity .4s;} .sec.movido .dz{opacity:0;}
+  .tab{transition:background .25s,color .25s;}
+  /* Botón y contador: respuesta al tocar y salto del número. */
+  @keyframes pop{from{transform:scale(.86)}to{transform:none}}
+  @keyframes salta{40%{transform:scale(1.22)}}
+  @keyframes recibe{30%{transform:scale(1.28) rotate(-8deg)}60%{transform:scale(.94) rotate(4deg)}}
+  @keyframes sube{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .slot .btn-add,.slot .stepper{animation:pop .35s var(--resorte);}
+  .salta{display:inline-block;animation:salta .35s var(--resorte);}
+  .miped.recibe{animation:recibe .5s var(--resorte);}
+  /* Al agregar: la foto vuela a la bolsa en curva y asoma un resumen del pedido. */
+  .vuelo{position:fixed;z-index:48;left:0;top:0;pointer-events:none;object-fit:contain;color:#fff;filter:drop-shadow(0 14px 14px rgba(0,0,0,.45));will-change:transform,opacity;}
+  .asoma{position:fixed;z-index:45;right:12px;top:calc(68px + env(safe-area-inset-top));width:min(300px,calc(100vw - 24px));padding:12px;border-radius:22px;background:rgba(18,20,25,.92);backdrop-filter:saturate(1.4) blur(18px);-webkit-backdrop-filter:saturate(1.4) blur(18px);border:1px solid var(--linea2);box-shadow:0 24px 50px -20px rgba(0,0,0,.8);color:var(--txt);text-align:left;opacity:0;visibility:hidden;transform:translateY(-8px) scale(.98);transition:opacity .3s var(--ease),transform .35s var(--resorte),visibility .3s;}
+  .asoma.si{opacity:1;visibility:visible;transform:none;}
+  .asoma-cab{display:flex;align-items:center;justify-content:space-between;gap:8px;font:600 10.5px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--txt2);padding:0 2px 8px;}
+  .asoma-cab b{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--rojo);color:#fff;font:700 11px/20px var(--mono);letter-spacing:0;text-align:center;}
+  .asoma-fila{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;padding:6px 2px;border-top:1px solid var(--linea);}
+  .asoma-fila .mini{width:44px;height:44px;border-radius:12px;background:radial-gradient(60% 60% at 50% 45%,color-mix(in oklab,var(--tono),#fff 18%),var(--tono));display:grid;place-items:center;overflow:hidden;color:rgba(255,255,255,.6);}
+  .asoma-fila .mini img{width:86%;height:86%;object-fit:contain;}
+  .asoma-fila h4{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .asoma-fila small{font:500 11.5px var(--mono);color:var(--txt2);}
+  .asoma-fila>b{font-size:13.5px;font-weight:800;}
+  .asoma-fila.nueva{animation:sube .45s var(--ease) both;}
+  .asoma-mas{font-size:12px;color:var(--txt2);padding:4px 2px 0;}
+  .asoma-pie{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;padding-top:10px;border-top:1px solid var(--linea2);}
+  .asoma-pie b{font-size:18px;font-weight:800;}
+  .asoma-pie span{display:inline-flex;align-items:center;height:36px;padding:0 16px;border-radius:999px;background:var(--rojo);color:#fff;font-size:13.5px;font-weight:700;}
+  /* Enviar: el botón se hunde, un brillo lo cruza y un carrito recoge el pedido; luego abre WhatsApp. */
+  @keyframes waBrillo{to{transform:translateX(120%)}}
+  @keyframes waHunde{25%{transform:scale(.93)}60%{transform:scale(1.04)}}
+  @keyframes waOnda{from{transform:scale(0);opacity:1}to{transform:scale(16);opacity:0}}
+  .wa{position:relative;overflow:hidden;isolation:isolate;}
+  .wa::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.5) 50%,transparent 70%);transform:translateX(-120%);}
+  .wa.envia{animation:waHunde .55s var(--resorte);}
+  .wa.envia::after{animation:waBrillo .7s var(--ease) .1s;}
+  .wa .onda{position:absolute;z-index:-1;width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:50%;background:rgba(255,255,255,.5);pointer-events:none;animation:waOnda .6s var(--ease) forwards;}
+  .wa .ok{display:inline-flex;align-items:center;gap:9px;animation:sube .4s var(--ease) both;}
+  .viaje{position:fixed;z-index:60;left:0;top:0;width:118px;height:92px;pointer-events:none;will-change:transform;}
+  .viaje svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;filter:drop-shadow(0 10px 14px rgba(0,0,0,.5));}
+  .viaje .rueda{transform-box:fill-box;transform-origin:center;}
+  .viaje .cosa{position:absolute;bottom:36px;width:38px;height:38px;border-radius:11px;background:radial-gradient(60% 60% at 50% 45%,color-mix(in oklab,var(--tono),#fff 18%),var(--tono));display:grid;place-items:center;overflow:hidden;color:rgba(255,255,255,.7);box-shadow:0 4px 10px rgba(0,0,0,.35),0 0 0 1.5px rgba(255,255,255,.18);}
+  .viaje .cosa img{width:88%;height:88%;object-fit:contain;}
+  .viaje .cosa .ic{width:20px;height:20px;}
+  .viaje .raya{position:absolute;right:100%;transform-origin:right;height:3px;border-radius:3px;background:linear-gradient(90deg,transparent,rgba(255,59,65,.9));opacity:0;}
+
+  @media (prefers-reduced-motion: reduce){ *{animation:none!important;transition:none!important;scroll-behavior:auto!important;} .js .card,.js .card .foto>*{opacity:1!important;transform:none!important;translate:none!important;scale:none!important;} }
+  @media (prefers-reduced-transparency: reduce){ .top,.cartbar{background:var(--bg);backdrop-filter:none;-webkit-backdrop-filter:none;} }
 </style>
 </head>
 <body>
-<header class="top">
-  <div class="wrap">
-    <a class="logo" href="index.html" aria-label="Bayol Cell, inicio"></a>
-    <nav aria-label="Secciones"><a href="#catalogo" data-ir="celulares">Celulares</a><a href="#catalogo" data-ir="pantallas">Pantallas</a><a href="#tiendas">Tiendas</a></nav>
-    <a class="pill-wa" id="waTop" href="#" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm4.5 12.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.1 5.1 0 0 0 1.1 2.7 11.7 11.7 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6.5-.1 1.5-.6 1.7-1.2s.2-1.1.2-1.2-.2-.2-.5-.3Z"/></svg>Escríbenos</a>
-  </div>
-</header>
+  <header class="top"><div class="topin">
+    <a class="logo" href="index.html" aria-label="Bayolcell, ir a la página principal"><img src="assets/logo.png" alt="Bayolcell"></a>
+    <span class="tag mono">Santiago · Moca · Navarrete</span>
+    <button type="button" class="miped" id="miped" onclick="abrirCarrito()" aria-label="Ver mi pedido">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="20" r="1"/><circle cx="17" cy="20" r="1"/><path d="M3 4h2l2.5 11h10l2-8H6"/></svg>
+      <span class="cnt" id="cnt" style="display:none;">0</span>
+    </button>
+  </div><span class="progreso" aria-hidden="true"></span></header>
+  <button type="button" class="asoma" id="asoma" aria-hidden="true" onclick="esconderAsoma(); abrirCarrito()"></button>
 
-<main>
-<section class="hero" aria-labelledby="tHero">
-  <div class="wrap">
-    <div class="ll">
-      <div class="kick">Bayol Cell · Celulares y reparación</div>
-      <div class="estado no" id="estadoGeneral" hidden></div>
-      <h1 id="tHero">Tu próximo celular, <em>hoy mismo.</em></h1>
-      <p class="sub">Precios al día directo del inventario, financiamiento a cuotas y taller propio en Santiago, Moca y Navarrete.</p>
-      <div class="dest" id="dest" hidden>
-        <span class="tag">Disponible</span>
-        <h2 id="destNombre"></h2>
-        <div class="cap" id="destCap"></div>
-        <div class="fila">
-          <div class="precio-xl" id="destPrecio"></div>
-          <button class="btn btn-red" id="destPedir" type="button">Lo quiero <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg></button>
-          <a class="btn btn-ghost" href="#catalogo">Ver catálogo ↓</a>
-        </div>
+  <main>
+    <div class="wrap">
+      <div class="kicker mono">Precios actualizados</div>
+      <h1 class="h1">Catálogo de celulares</h1>
+      <p class="sub">Escoge tu equipo, revisa tu pedido y envíalo por WhatsApp. Te confirmamos disponibilidad y entrega.</p>
+      <div class="tools">
+        <label class="search">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
+          <input id="q" type="search" placeholder="Buscar modelo, capacidad o color" aria-label="Buscar celular" oninput="pintar()">
+        </label>
+        <div class="tabs" id="chips" role="group" aria-label="Ir a una marca"></div>
       </div>
     </div>
-    <div class="rr">
-      <div class="escena" aria-hidden="true"><div class="marca" id="destMarca"></div><div class="glow"></div><img id="destFoto" alt=""></div>
-      <div class="carr" id="carr" hidden>
-        <button class="flecha" type="button" data-d="-1" aria-label="Anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M15 18 9 12l6-6"/></svg></button>
-        <div class="nombres" id="destNombres" role="tablist" aria-label="Celulares destacados"></div>
-        <button class="flecha" type="button" data-d="1" aria-label="Siguiente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
-      </div>
+
+    <div class="secs" id="grid"></div>
+    <div id="estado" class="estado">Cargando catálogo…</div>
+
+    <section class="sucwrap" id="sucursales" aria-labelledby="tSuc">
+      <div class="kicker mono">Visítanos</div>
+      <h2 id="tSuc">Nuestras sucursales</h2>
+      <div class="sucs" id="sucs"></div>
+    </section>
+
+    <footer class="foot" id="foot">Precios en pesos dominicanos, sujetos a cambio sin previo aviso. © 2026 Bayol Cell.</footer>
+  </main>
+
+  <div class="cartbar" id="cartbar"><div class="cartin">
+    <div class="tt">
+      <div class="l mono"><span id="ccTxt">0 artículos</span> · <button type="button" onclick="abrirCarrito()">Ver pedido</button></div>
+      <b id="ccTot">RD$ 0</b>
     </div>
-  </div>
-</section>
+    <span id="cc" hidden>0</span>
+    <button type="button" class="go1 wa" id="goBar" onclick="pedirWhatsApp(this, event)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.6a8.5 8.5 0 0 1-12.6 7.5L3.5 20.5l1.4-4.3A8.5 8.5 0 1 1 20.5 11.6z"/><path d="M9 9.5c.5 2 2 3.5 4 4l1.2-1.2 2 .8-.4 1.8c-3.6.2-7.4-3.6-7.2-7.2l1.8-.4.8 2z"/></svg> Enviar pedido</button>
+  </div></div>
 
-<section class="valores" aria-label="Por qué Bayol Cell">
-  <div class="wrap">
-    <div class="valor"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 10h18M7 15h4"/></svg><div><b>Financiamiento</b><span>Llévatelo a cuotas</span></div></div>
-    <div class="valor"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4Z"/></svg><div><b>Taller propio</b><span>Cambio de pantalla con instalación</span></div></div>
-    <div class="valor"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/></svg><div><b>3 tiendas</b><span>Santiago · Moca · Navarrete</span></div></div>
-    <div class="valor"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg><div><b>Precios al día</b><span>Directo de nuestro inventario</span></div></div>
-  </div>
-</section>
-
-<section class="sec" id="catalogo" aria-labelledby="tCat">
-  <div class="wrap">
-    <div class="kick">Catálogo</div>
-    <h2 class="t" id="tCat">Elige lo que necesitas.</h2>
-    <div class="seg" role="tablist" aria-label="Secciones del catálogo">
-      <button type="button" role="tab" id="tabCel" aria-controls="panCel" aria-selected="true" class="on">Celulares <span class="n" id="nCel"></span></button>
-      <button type="button" role="tab" id="tabPan" aria-controls="panPan" aria-selected="false">Cambio de pantalla</button>
+  <div class="dbg" id="dbg" onclick="cerrarCarrito()"></div>
+  <aside class="draw" id="draw" aria-label="Tu pedido">
+    <div class="dh"><h3>Tu pedido</h3><button type="button" class="x" onclick="cerrarCarrito()" aria-label="Cerrar"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="db" id="cartBody"></div>
+    <div class="df">
+      <div class="tot"><span>Total (<span id="ccN">0</span> artículos)</span><b id="ccTot2">RD$ 0</b></div>
+      <button type="button" class="go wa" onclick="pedirWhatsApp(this, event)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.6a8.5 8.5 0 0 1-12.6 7.5L3.5 20.5l1.4-4.3A8.5 8.5 0 1 1 20.5 11.6z"/><path d="M9 9.5c.5 2 2 3.5 4 4l1.2-1.2 2 .8-.4 1.8c-3.6.2-7.4-3.6-7.2-7.2l1.8-.4.8 2z"/></svg> Enviar pedido por WhatsApp</button>
     </div>
-
-    <div class="panel" id="panCel" role="tabpanel" aria-labelledby="tabCel">
-      <div class="herram">
-        <label class="buscar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span class="sr">Buscar celular</span><input id="qCel" type="search" placeholder="Busca: iPhone 13, Redmi, A15…" autocomplete="off"></label>
-        <label class="toggle"><input type="checkbox" id="soloDisp" checked> Solo disponibles</label>
-      </div>
-      <div class="chips" id="marcas" role="group" aria-label="Marcas" style="margin-top:14px"></div>
-      <div class="grid" id="grid" aria-live="polite"><div class="vacio">Cargando celulares…</div></div>
-    </div>
-
-    <div class="panel" id="panPan" role="tabpanel" aria-labelledby="tabPan" hidden>
-      <div class="pant">
-        <div class="caja">
-          <h3>¿Cuál es tu modelo?</h3>
-          <p>Escríbelo y te decimos al momento cuánto sale el cambio de pantalla, con instalación.</p>
-          <label class="buscar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span class="sr">Modelo de tu celular</span><input id="qPan" type="search" placeholder="Ej.: iPhone 11 Pro Max" autocomplete="off" enterkeyhint="search"></label>
-          <div class="ejemplos" id="ejemplos"><button type="button">iPhone 11</button><button type="button">iPhone 13 Pro</button><button type="button">Samsung A10s</button><button type="button">Redmi Note 8</button></div>
-        </div>
-        <div class="res" id="resPan" aria-live="polite"><div class="info">Escribe tu modelo para ver el precio.</div></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="sec" id="tiendas" aria-labelledby="tTi" style="padding-top:0">
-  <div class="wrap">
-    <div class="kick">Visítanos</div>
-    <h2 class="t" id="tTi">Tres tiendas, un mismo trato.</h2>
-    <div class="tiendas" id="listaTiendas"></div>
-  </div>
-</section>
-</main>
-
-<footer class="pie-pag"><div class="wrap">© <span id="anio"></span> Bayol Cell · Precios sujetos a disponibilidad · Cambio de pantalla con instalación.</div></footer>
-
-<div class="barra" id="barra" role="navigation" aria-label="Contacto rápido">
-  <button class="ped" id="barraPedido" type="button" aria-label="Ver tu pedido">Tu pedido <span class="cant" id="barraN">0</span></button>
-  <a class="t" href="#tiendas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/></svg>Tiendas</a>
-  <a class="wa" id="waBarra" href="#" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm4.5 12.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.1 5.1 0 0 0 1.1 2.7 11.7 11.7 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6.5-.1 1.5-.6 1.7-1.2s.2-1.1.2-1.2-.2-.2-.5-.3Z"/></svg>Escribir por WhatsApp</a>
-</div>
-
-<button class="carrito" id="btnCarrito" type="button" aria-label="Ver tu pedido"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6h15l-1.5 9h-12z"/><path d="M6 6 5 3H2"/><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/></svg><span id="carritoTxt">Tu pedido</span><span class="cant" id="carritoN">0</span></button>
-<button type="button" class="asoma" id="asoma" aria-hidden="true" tabindex="-1"></button>
-<div class="hoja-fondo" id="hojaFondo"></div>
-<aside class="hoja" id="hoja" aria-label="Tu pedido" aria-hidden="true">
-  <header><h3>Tu pedido</h3><button class="cerrar" id="cerrarHoja" type="button" aria-label="Cerrar">✕</button></header>
-  <div class="lista" id="hojaLista"></div>
-  <div class="fin"><div class="tot"><span>Total</span><b id="hojaTotal"></b></div><button class="btn" id="enviarPedido" type="button" style="background:var(--wa);color:#03170b">Enviar pedido por WhatsApp</button></div>
-</aside>
+  </aside>
 
 <script>
-(function(){
-  'use strict';
-  const BASE = 'https://vkhwdvjtowrhkhqavnvk.supabase.co/functions/v1/';
+  const URL = 'https://vkhwdvjtowrhkhqavnvk.supabase.co/functions/v1/catalogo-publico';
   const APIKEY = 'sb_publishable_PynS5ZjKoQ36HCpguVzxaw_KZOlagtz';
+  // Línea de ventas (Servicio al Cliente) si la tienda no tiene teléfono configurado.
   const WA_VENTAS = '18495644791';
-  const TIENDAS = [
-    { k:'santiago', nombre:'Santiago', dir:'Calle Sánchez, casi esq. Restauración #102', tel:'18097072493', mapa:'https://www.google.com/maps/search/?api=1&query=Bayol%20Cell%20Calle%20S%C3%A1nchez%20Restauraci%C3%B3n%20Santiago' },
-    { k:'moca', nombre:'Moca', dir:'Calle Pdte. Vásquez #5, frente a Parada Villa Trina', tel:'18296709694', mapa:'https://www.google.com/maps/search/?api=1&query=Bayol%20Cell%20Presidente%20V%C3%A1squez%20Moca' },
-    { k:'navarrete', nombre:'Navarrete', dir:'Autopista Duarte, frente al Banco Popular, al lado de Tienda 20 y 10', tel:'18098934412', mapa:'https://www.google.com/maps/search/?api=1&query=Bayol%20Cell%20Navarrete%20Autopista%20Duarte' }
+  const SUCURSALES = [
+    { nombre:'Santiago', direccion:'Calle Sánchez, casi esq. Restauración #102, Santiago de los Caballeros', horario:'Lun a vie 8:30 a. m. – 6:00 p. m. · Sáb 9:00 a. m. – 4:00 p. m.', wa:'18495644791',
+      mapa:'Bayol Cell Calle Sánchez Restauración Santiago', h:{1:['08:30','18:00'],2:['08:30','18:00'],3:['08:30','18:00'],4:['08:30','18:00'],5:['08:30','18:00'],6:['09:00','16:00']} },
+    { nombre:'Moca', direccion:'Calle Pdte. Vásquez #5, frente a Parada Villa Trina, Moca', horario:'Lun a vie 8:00 a. m. – 6:00 p. m. · Sáb 8:00 a. m. – 5:00 p. m.', wa:'18296709694',
+      mapa:'Bayol Cell Presidente Vásquez Moca', h:{1:['08:00','18:00'],2:['08:00','18:00'],3:['08:00','18:00'],4:['08:00','18:00'],5:['08:00','18:00'],6:['08:00','17:00']} },
+    { nombre:'Navarrete', direccion:'Av. Duarte #180, Navarrete, Santiago', horario:'Lun a sáb 9:00 a. m. – 7:00 p. m. · Dom 9:00 a. m. – 1:00 p. m.', wa:'18098934412',
+      mapa:'Bayol Cell Avenida Duarte 180 Navarrete', h:{0:['09:00','13:00'],1:['09:00','19:00'],2:['09:00','19:00'],3:['09:00','19:00'],4:['09:00','19:00'],5:['09:00','19:00'],6:['09:00','19:00']} },
   ];
-  // Horario en minutos (igual que index.html). 0 = domingo.
-  const HOR = {
-    santiago:{1:[510,1080],2:[510,1080],3:[510,1080],4:[510,1080],5:[510,1080],6:[540,960]},
-    moca:{1:[510,1080],2:[510,1080],3:[510,1080],4:[510,1080],5:[510,1080],6:[510,1080]},
-    navarrete:{0:[540,720],1:[540,1140],2:[540,1140],3:[540,1140],4:[540,1140],5:[540,1140],6:[540,1140]}
-  };
-  const $ = id => document.getElementById(id);
-  const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const norm = s => String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
-  const dinero = n => Math.round(Number(n)||0).toLocaleString('en-US');
-  const wa = (texto, numero) => 'https://wa.me/' + (numero||WA_VENTAS) + (texto ? '?text=' + encodeURIComponent(texto) : '');
-  const abrirWa = url => { if (matchMedia('(pointer:coarse)').matches) location.href = url; else { const w = open(url, '_blank'); if (w) w.opener = null; else location.href = url; } };
+  const ORDEN_MARCAS = ['iPhone','Samsung','Xiaomi','Motorola','Tecno','Infinix','Realme','Oppo','Huawei','Otros'];
+  // Color de la tarjeta según el color del equipo (centro, borde).
+  const COLORES = [
+    [/azul|blue|sierra|pac[ií]fico|cielo/i, '#1f5fb4'],
+    [/rojo|red|product/i, '#a51c22'],
+    [/verde|green|menta|alpine/i, '#1f6e49'],
+    [/morado|purple|lila|lavanda|violeta/i, '#5b3fae'],
+    [/rosa|pink|rosado/i, '#b0476f'],
+    [/amarillo|yellow/i, '#a8801a'],
+    [/dorado|oro|gold/i, '#8f6f33'],
+    [/titanio|natural|desert|desierto|crema|beige|cream/i, '#6e6457'],
+    [/blanco|white|starlight|plata|silver|plateado/i, '#5b6270'],
+    [/gris|gray|grey|grafito|graphite/i, '#3e4450'],
+    [/negro|black|medianoche|midnight|onyx|espacial/i, '#2a2d33'],
+  ];
   const QUIETO = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  // Contador que rueda dígito por dígito hasta el precio (estilo «0 → 12,480»). Sin animación si el usuario pide menos movimiento.
-  function rodar(el, n){
-    const txt = dinero(n);
-    el.setAttribute('aria-label', 'RD$ ' + txt);
-    if (QUIETO){ el.textContent = txt; return; }
-    el.innerHTML = '<span class="rodillo" aria-hidden="true">' + [...txt].map(c => /\d/.test(c)
-      ? '<span class="d"><span>' + [0,1,2,3,4,5,6,7,8,9].map(k => '<i>'+k+'</i>').join('') + '</span></span>'
-      : '<span class="s">'+c+'</span>').join('') + '</span>';
-    const tiras = el.querySelectorAll('.d>span'), dig = [...txt].filter(c => /\d/.test(c));
-    requestAnimationFrame(() => requestAnimationFrame(() => tiras.forEach((t,i) => { t.style.transitionDelay = (i*55)+'ms'; t.style.transform = 'translateY(-'+dig[i]+'em)'; })));
-  }
-  $('anio').textContent = new Date().getFullYear();
-  ['waTop','waBarra'].forEach(id => $(id).href = wa('Hola Bayol Cell 👋'));
-
-  // ---------- abierto / cerrado ----------
-  function hora(m){ const h=Math.floor(m/60), mm=m%60, ap=h<12?'a.m.':'p.m.', h12=h%12||12; return h12+':'+(mm<10?'0':'')+mm+' '+ap; }
-  const DIAS = ['el domingo','el lunes','el martes','el miércoles','el jueves','el viernes','el sábado'];
-  function estado(k){
-    const d = new Date(new Date().toLocaleString('en-US',{timeZone:'America/Santo_Domingo'})), day=d.getDay(), min=d.getHours()*60+d.getMinutes(), hoy=HOR[k][day];
-    if (hoy && min>=hoy[0] && min<hoy[1]) return {abierto:true, txt:'Abierto · cierra a las '+hora(hoy[1])};
-    for (let i=0;i<=7;i++){ const dd=(day+i)%7, s=HOR[k][dd]; if(!s) continue;
-      if (i===0){ if (min<s[0]) return {abierto:false, espera:s[0]-min, txt:'Cerrado · abrimos hoy a las '+hora(s[0])}; continue; }
-      return {abierto:false, espera:i*1440+s[0]-min, txt:'Cerrado · abrimos '+(i===1?'mañana':DIAS[dd])+' a las '+hora(s[0])}; }
-    return {abierto:false, txt:'Cerrado'};
-  }
-  function pintarTiendas(){
-    const est = {}; TIENDAS.forEach(t => est[t.k] = estado(t.k));
-    $('listaTiendas').innerHTML = TIENDAS.map(t => `<article class="tienda"><h3>${esc(t.nombre)}</h3><div class="dir">${esc(t.dir)}</div>
-      <div class="estado${est[t.k].abierto?'':' no'}">${esc(est[t.k].txt)}</div>
-      <div class="acc"><a href="tel:+${t.tel}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>Llamar</a>
-      <a class="wa" href="${wa('Hola Bayol Cell '+t.nombre+' 👋', t.tel)}" target="_blank" rel="noopener">WhatsApp</a>
-      <a href="${t.mapa}" target="_blank" rel="noopener">Cómo llegar</a></div></article>`).join('');
-    const ab = TIENDAS.filter(t => est[t.k].abierto), g = $('estadoGeneral');
-    let txt;
-    if (ab.length===3) txt='Abierto ahora en las 3 tiendas';
-    else if (ab.length===2) txt='Abierto ahora en '+ab[0].nombre+' y '+ab[1].nombre;
-    else if (ab.length===1) txt=ab[0].nombre+': '+est[ab[0].k].txt.toLowerCase();
-    else { const p = TIENDAS.slice().sort((x,y)=>(est[x.k].espera||1e9)-(est[y.k].espera||1e9))[0]; txt = est[p.k].txt+' en '+p.nombre; }
-    g.textContent = txt; g.classList.toggle('no', !ab.length); g.hidden = false;
-  }
-  pintarTiendas(); setInterval(pintarTiendas, 60000);
-
-  // ---------- celulares ----------
-  let ITEMS = [], MARCA = 'Todas';
+  document.documentElement.classList.add('js');
+  let ITEMS = [], TIENDA = { nombre:'BAYOL CELL', telefono:'' }, MARCA = '';
+  const SEL = {};   // modelo -> código de la capacidad elegida
   let CART = {}; try { CART = JSON.parse(localStorage.getItem('bayol_cat_cart')||'{}') || {}; } catch(e){ CART = {}; }
-  const guardarCart = () => { try { localStorage.setItem('bayol_cat_cart', JSON.stringify(CART)); } catch(e){} };
-  function nombreCel(n){
-    let s = String(n||'').replace(/^\s*(CELULAR|TELEFONO|TELÉFONO)\s+/i,'').trim();
-    if (s === s.toUpperCase()) s = s.toLowerCase().replace(/\b([a-z])/g, m => m.toUpperCase()).replace(/\bIphone\b/g,'iPhone').replace(/\bIpad\b/g,'iPad').replace(/\b(\d+)(gb|tb)\b/gi,(m,a,b)=>a+b.toUpperCase());
-    return s;
-  }
-  function marcaDe(n){
-    const s = norm(n);
-    if (/iphone|apple/.test(s)) return 'iPhone';
-    if (/samsung|galaxy/.test(s)) return 'Samsung';
-    if (/redmi|xiaomi|poco/.test(s)) return 'Xiaomi';
-    if (/moto|motorola/.test(s)) return 'Motorola';
-    if (/honor|huawei/.test(s)) return 'Honor';
-    return 'Otras';
-  }
-  const TONOS = {iPhone:'rgba(255,255,255,.16)', Samsung:'rgba(59,130,246,.22)', Xiaomi:'rgba(249,115,22,.22)', Motorola:'rgba(14,165,233,.2)', Honor:'rgba(168,85,247,.2)', Otras:'rgba(227,30,36,.22)'};
-  const itemDe = cod => ITEMS.find(x => String(x.codigo) === String(cod));
+  const esc = s => (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const money = n => 'RD$' + (Number(n)||0).toLocaleString('es-DO',{minimumFractionDigits:0,maximumFractionDigits:0});
+  const soloNum = t => (t||'').replace(/[^0-9]/g,'');
+  const marcaDe = nom => { const s=(nom||'').toUpperCase(); if(s.includes('IPHONE')||s.includes('APPLE'))return'iPhone'; if(s.includes('SAMSUNG')||s.includes('GALAXY'))return'Samsung'; if(s.includes('XIAOMI')||s.includes('REDMI')||s.includes('POCO'))return'Xiaomi'; if(s.includes('REALME'))return'Realme'; if(s.includes('TECNO'))return'Tecno'; if(s.includes('INFINIX'))return'Infinix'; if(s.includes('OPPO'))return'Oppo'; if(s.includes('HUAWEI'))return'Huawei'; if(s.includes('MOTOROLA')||s.includes('MOTO '))return'Motorola'; return'Otros'; };
+  const itemDe = cod => ITEMS.find(i=>String(i.codigo)===String(cod));
+  const guardarCart = () => { try{ localStorage.setItem('bayol_cat_cart', JSON.stringify(CART)); }catch(e){} };
+  const telVentas = () => { const t = soloNum(TIENDA.telefono); return t ? (t.length===10 ? '1'+t : t) : WA_VENTAS; };
+  const colorDe = i => { const t = (i.color||'')+' '+(i.nombre||''); for(const [re,c] of COLORES){ if(re.test(t)) return c; } return '#2a2d33'; };
+  // Texto grande de fondo: el número o código corto del modelo (15, A15, 13C…).
+  const marcaAgua = nom => { const s=(nom||'').replace(/iphone|samsung|galaxy|xiaomi|redmi|note|pro|max|plus|ultra|mini|lite|5g|4g/gi,' ').trim(); const m=s.match(/[A-Z]?\d{1,3}[A-Z]?/i); return m? m[0].toUpperCase() : ''; };
+  const ICON_WA = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.6a8.5 8.5 0 0 1-12.6 7.5L3.5 20.5l1.4-4.3A8.5 8.5 0 1 1 20.5 11.6z"/><path d="M9 9.5c.5 2 2 3.5 4 4l1.2-1.2 2 .8-.4 1.8c-3.6.2-7.4-3.6-7.2-7.2l1.8-.4.8 2z"/></svg>';
+  const ICON_PHONE = '<svg class="ic noimg" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.2"/><path d="M11 18.5h2"/></svg>';
+  const ICON_IZQ = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>';
+  const ICON_DER = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
 
-  async function cargarCelulares(){
-    try {
-      const r = await fetch(BASE+'catalogo-publico',{method:'POST',headers:{'Content-Type':'application/json','apikey':APIKEY,'Authorization':'Bearer '+APIKEY},body:JSON.stringify({categoria:'celular'})});
-      const j = await r.json();
-      if (j && j.publicado === false){ $('grid').innerHTML = '<div class="vacio">El catálogo no está disponible en este momento. Escríbenos por WhatsApp y te ayudamos.</div>'; return; }
-      ITEMS = (j.items||[]).map(it => Object.assign({}, it, { nombreBonito: nombreCel(it.nombre), marca: marcaDe(it.nombre) }));
-      for (const k in CART){ const it = itemDe(k); if (!it || !it.disponible) delete CART[k]; } guardarCart();
-      $('nCel').textContent = ITEMS.filter(x=>x.disponible).length;
-      pintarMarcas(); pintarGrid(); pintarDestacados(); pintarCarrito();
-    } catch(e){
-      $('grid').innerHTML = '<div class="vacio">No pudimos cargar los celulares. <a href="'+wa('Hola, quiero ver los celulares disponibles')+'" target="_blank" rel="noopener">Pregúntanos por WhatsApp</a>.</div>';
+  async function cargar(){
+    try{
+      const r = await fetch(URL,{method:'POST',headers:{'Content-Type':'application/json','apikey':APIKEY,'Authorization':'Bearer '+APIKEY},body:JSON.stringify({categoria:'celular'})});
+      const d = await r.json();
+      if(!d || !d.ok){ document.getElementById('estado').textContent='No se pudo cargar el catálogo.'; return; }
+      TIENDA = d.tienda||TIENDA;
+      if(d.publicado === false){
+        document.querySelector('.tools').style.display='none';
+        const e=document.getElementById('estado'); e.style.display='block';
+        e.innerHTML='El catálogo no está disponible en este momento.<br>Escríbenos por WhatsApp para consultar disponibilidad.';
+        return;
+      }
+      ITEMS = d.items||[];
+      for(const k in CART){ const it=itemDe(k); if(!it || !it.disponible){ delete CART[k]; } } guardarCart();
+      document.getElementById('estado').style.display='none';
+      document.getElementById('cartbar').classList.add('show');
+      pintar(); pintarCart();
+    }catch(e){ document.getElementById('estado').textContent='Sin conexión. Intenta de nuevo.'; }
+  }
+  function listaFiltrada(){
+    const q = (document.getElementById('q').value||'').toLowerCase().trim();
+    if(!q) return ITEMS.slice();
+    const ok = new Set(ITEMS.filter(i=>((i.nombre||'')+' '+(i.capacidad||'')+' '+(i.color||'')).toLowerCase().includes(q)).map(claveModelo));
+    return ITEMS.filter(i=>ok.has(claveModelo(i)));
+  }
+  // Todas las capacidades de un mismo modelo van en UNA tarjeta, con botones para elegir los GB.
+  const claveModelo = i => (i.nombre||'').toLowerCase().replace(/\s+/g,' ').trim();
+  const gbDe = t => { const ns = [...String(t||'').toUpperCase().matchAll(/(\d+)\s*(GB|TB)/g)].map(m=>Number(m[1])*(m[2]==='TB'?1024:1)); return ns.length? Math.max(...ns) : 0; };
+  const etiquetaOpcion = i => { const g = gbDe(i.capacidad); const base = g ? (g>=1024? (g/1024)+'TB' : g+'GB') : (i.capacidad||'Única'); return i.color ? base+' · '+i.color : base; };
+  function modelos(list){
+    const m = new Map();
+    list.forEach(i=>{ const k = claveModelo(i); if(!m.has(k)) m.set(k,{k, nombre:i.nombre, ops:[]}); m.get(k).ops.push(i); });
+    return [...m.values()].map(md=>{
+      md.ops.sort((a,b)=> gbDe(a.capacidad)-gbDe(b.capacidad) || (a.color?1:0)-(b.color?1:0) || (a.precio||0)-(b.precio||0));
+      md.destacado = md.ops.some(o=>o.destacado);
+      if(!md.ops.some(o=>String(o.codigo)===String(SEL[md.k]))) SEL[md.k] = String((md.ops.find(o=>o.disponible)||md.ops[0]).codigo);
+      return md;
+    });
+  }
+  const opcionDe = md => md.ops.find(o=>String(o.codigo)===String(SEL[md.k])) || md.ops[0];
+  function grupos(list){
+    const g = {}; modelos(list).forEach(md=>{ const m=marcaDe(md.nombre); (g[m]=g[m]||[]).push(md); });
+    Object.values(g).forEach(a=>a.sort((x,y)=>(y.destacado?1:0)-(x.destacado?1:0)));
+    return ORDEN_MARCAS.filter(m=>g[m]).map(m=>[m,g[m]]);
+  }
+  const idSec = m => 'marca-' + m.toLowerCase();
+  function pintarChips(gr){
+    document.getElementById('chips').innerHTML = gr.map(([m,a])=>{
+      const on = MARCA===m;
+      return `<button type="button" class="tab${on?' on':''}" data-m="${esc(m)}" aria-pressed="${on}" onclick="setMarca('${esc(m)}')">${esc(m)} <small>${a.length}</small></button>`;
+    }).join('');
+  }
+  function setMarca(m){
+    MARCA = m;
+    marcarTab(m.toLowerCase());
+    const s = document.getElementById(idSec(m)); if(s) s.scrollIntoView({behavior:QUIETO?'auto':'smooth',block:'start'});
+  }
+  function accionHTML(i){
+    const cod = esc(String(i.codigo)), qty = CART[i.codigo]? CART[i.codigo].qty : 0;
+    if(!i.disponible) return '<span class="btn-add dis">Sin existencia</span>';
+    if(qty>0) return `<div class="stepper"><button type="button" aria-label="Quitar uno" onclick="menos('${cod}')">−</button><b>${qty}</b><button type="button" aria-label="Agregar uno" onclick="mas('${cod}')">+</button></div>`;
+    return `<button type="button" class="btn-add" onclick="mas('${cod}')">Agregar</button>`;
+  }
+  const specsDe = i => [i.capacidad, i.color].filter(Boolean).map(esc).join(' · ') || '&nbsp;';
+  function opcionesHTML(md){
+    if(md.ops.length < 2) return '';
+    return `<div class="opts" role="group" aria-label="Capacidad">${md.ops.map(o=>{ const on = String(o.codigo)===String(SEL[md.k]);
+      return `<button type="button" class="opt${on?' on':''}${o.disponible?'':' no'}" aria-pressed="${on}" data-op="${esc(String(o.codigo))}" onclick="elegirOpcion(this)">${esc(etiquetaOpcion(o))}</button>`; }).join('')}</div>`;
+  }
+  function tarjetaHTML(md){
+    const i = opcionDe(md), tono = colorDe(i), cod = esc(String(i.codigo));
+    return `<article class="card${i.disponible?'':' agotado'}" data-cod="${cod}" data-mod="${esc(md.k)}" style="--tono:${tono}">
+      <span class="marca-agua" aria-hidden="true">${esc(marcaAgua(i.nombre))}</span>
+      <div class="cab"><span class="specs mono">${specsDe(i)}</span><span class="disp mono${i.disponible?'':' no'}">${i.disponible?'Disponible':'Agotado'}</span></div>
+      ${md.destacado?'<span class="dest mono">Destacado</span>':''}
+      <div class="foto">${i.foto_url? `<img src="${esc(i.foto_url)}" alt="${esc(i.nombre)}" ${(_imgN++ < 3)?'fetchpriority="high"':'loading="lazy"'} decoding="async">` : ICON_PHONE}</div>
+      ${i.foto_url?'<div class="ref-foto mono">Imagen de referencia · color según disponibilidad</div>':''}
+      <div class="nom">${esc(i.nombre)}</div>
+      ${opcionesHTML(md)}
+      <div class="pie">
+        <div><div class="lbl mono">Precio</div><div class="precio">${i.precio>0? money(i.precio) : '<small>Consultar</small>'}</div></div>
+        <div class="acc"><button type="button" class="btn-wa" aria-label="Preguntar por WhatsApp por ${esc(i.nombre)}" onclick="consultar(this.closest('.card').dataset.cod)">${ICON_WA}</button><span class="slot">${accionHTML(i)}</span></div>
+      </div>
+    </article>`;
+  }
+  let _imgN = 0;
+  function pintar(){
+    _imgN = 0;
+    const g = document.getElementById('grid');
+    const gr = grupos(listaFiltrada());
+    pintarChips(gr);
+    if(!gr.length){ g.innerHTML=''; const e=document.getElementById('estado'); e.style.display='block'; e.textContent = ITEMS.length? 'No hay resultados para tu búsqueda.' : 'Aún no hay celulares en el catálogo.'; return; }
+    document.getElementById('estado').style.display='none';
+    g.innerHTML = gr.map(([m,a])=>`<section class="sec" id="${idSec(m)}" aria-label="${esc(m)}">
+      <div class="shd"><h2>${esc(m)}</h2>
+        <span class="cuenta mono"><span class="solopc">${a.length} ${a.length===1?'modelo':'modelos'}</span><span class="solomovil"><b class="pos">1</b> / ${a.length} <span class="dz">desliza</span></span></span>
+        <div class="flechas solopc"><button type="button" aria-label="Anteriores" onclick="mover(this,-1)">${ICON_IZQ}</button><button type="button" aria-label="Siguientes" onclick="mover(this,1)">${ICON_DER}</button></div>
+      </div>
+      <div class="rail" onscroll="alDeslizar(this)">${a.map(tarjetaHTML).join('')}</div>
+    </section>`).join('');
+    document.querySelectorAll('.rail').forEach(medirRail);
+    movimiento();
+  }
+  let _io = null, _ioTabs = null;
+  function movimiento(){
+    const cards = [...document.querySelectorAll('.card')];
+    if(_io) _io.disconnect(); if(_ioTabs) _ioTabs.disconnect();
+    if(QUIETO || !('IntersectionObserver' in window)){ cards.forEach(c=>c.classList.add('si')); }
+    else {
+      _io = new IntersectionObserver(es => es.forEach(e => {
+        if(!e.isIntersecting) return;
+        const rail = e.target.parentNode;
+        const pend = [...rail.children].filter(x=>!x.classList.contains('si'));
+        pend.forEach((x,k)=>{ x.style.transitionDelay = Math.min(k,3)*90+'ms'; x.classList.add('si'); _io.unobserve(x); setTimeout(()=>{ x.style.transitionDelay=''; }, 1200); });
+      }), { threshold:.12 });
+      cards.forEach(c=>_io.observe(c));
+    }
+    // La pestaña activa sigue a la marca que está en pantalla.
+    if('IntersectionObserver' in window){
+      _ioTabs = new IntersectionObserver(es => es.forEach(e => { if(e.isIntersecting) marcarTab(e.target.id.replace('marca-','')); }), { rootMargin:'-45% 0px -50% 0px' });
+      document.querySelectorAll('.sec').forEach(s=>_ioTabs.observe(s));
     }
   }
-  function pintarMarcas(){
-    const orden = ['Todas','iPhone','Samsung','Xiaomi','Motorola','Honor','Otras'];
-    const hay = new Set(ITEMS.map(x=>x.marca));
-    $('marcas').innerHTML = orden.filter(m => m==='Todas' || hay.has(m)).map(m => `<button type="button" class="${m===MARCA?'on':''}" data-m="${m}" aria-pressed="${m===MARCA}">${m}</button>`).join('');
-    $('marcas').querySelectorAll('button').forEach(b => b.onclick = () => { MARCA = b.dataset.m; pintarMarcas(); pintarGrid(); });
+  function marcarTab(clave){
+    const nav = document.getElementById('chips');
+    nav.querySelectorAll('.tab').forEach(b=>{
+      const on = b.dataset.m.toLowerCase()===clave; b.classList.toggle('on',on); b.setAttribute('aria-pressed',on);
+      if(on && nav.scrollWidth>nav.clientWidth) nav.scrollTo({left:b.offsetLeft-(nav.clientWidth-b.clientWidth)/2, behavior:QUIETO?'auto':'smooth'});
+    });
   }
-  function filtrados(){
-    const q = norm($('qCel').value).split(/\s+/).filter(Boolean), solo = $('soloDisp').checked;
-    return ITEMS.filter(x => (MARCA==='Todas'||x.marca===MARCA) && (!solo||x.disponible) && q.every(p => norm(x.nombreBonito+' '+(x.capacidad||'')+' '+(x.color||'')).includes(p)))
-      .sort((a,b) => (b.disponible-a.disponible) || (b.precio||0)-(a.precio||0));
+  function mover(btn, dir){ const rail = btn.closest('.sec').querySelector('.rail'); rail.scrollBy({left: dir*rail.clientWidth*0.9, behavior:'smooth'}); }
+  function alDeslizar(rail){
+    if(rail._pend) return; rail._pend = true;
+    requestAnimationFrame(()=>{ rail._pend = false; medirRail(rail); });
   }
-  function tarjeta(it){
-    const cod = esc(String(it.codigo)), qty = (CART[it.codigo]||{}).qty||0, det = [it.capacidad, it.color].filter(Boolean).join(' · ');
-    return `<article class="card${it.disponible?'':' agotado'}" data-cod="${cod}" style="--tono:${TONOS[it.marca]||TONOS.Otras}">
-      <div class="foto">${it.foto_url?`<img loading="lazy" src="${esc(it.foto_url)}" alt="${esc(it.nombreBonito)}">`:''}<span class="disp${it.disponible?'':' no'}">${it.disponible?'Disponible':'Agotado'}</span></div>
-      <div class="cuerpo"><h3>${esc(it.nombreBonito)}</h3><div class="cap">${esc(det)}</div>
-        <div class="pie"><div class="precio">${it.precio>0?'<small>RD$</small>'+dinero(it.precio):'<span class="cons">Consultar</span>'}</div>
-          <div class="acc"><button type="button" class="q" data-pregunta="${cod}" aria-label="Preguntar por WhatsApp"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Z"/></svg></button>
-          ${it.disponible && it.precio>0 ? `<button type="button" class="mas" data-mas="${cod}">${qty?`<span class="cant">${qty}</span> Otro`:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Agregar'}</button>` : ''}</div>
-        </div></div></article>`;
+  function medirRail(rail){
+    const sec = rail.closest('.sec'); const cards = [...rail.querySelectorAll('.card')]; if(!cards.length) return;
+    const c = rail.scrollLeft + rail.clientWidth/2; let k = 0, d = Infinity;
+    cards.forEach((t,j)=>{ const dj = Math.abs(t.offsetLeft + t.clientWidth/2 - c); if(dj<d){ d=dj; k=j; } });
+    cards.forEach((t,j)=>t.classList.toggle('actual', j===k));
+    sec.style.setProperty('--g-tono', cards[k].style.getPropertyValue('--tono'));
+    if(k>0) sec.classList.add('movido');
+    const pos = k + 1;
+    const p = sec.querySelector('.pos'); if(p) p.textContent = pos;
+    const [izq, der] = sec.querySelectorAll('.flechas button');
+    if(izq){ izq.disabled = rail.scrollLeft < 8; der.disabled = rail.scrollLeft + rail.clientWidth >= rail.scrollWidth - 8; }
   }
-  function pintarGrid(){
-    const l = filtrados();
-    $('grid').innerHTML = l.length ? l.map(tarjeta).join('') : '<div class="vacio">No encontramos ese modelo. <a href="'+wa('Hola, ¿tienen '+$('qCel').value+'?')+'" target="_blank" rel="noopener">Pregúntanos por WhatsApp</a>.</div>';
+  function elegirOpcion(btn){
+    const card = btn.closest('.card'), k = card.dataset.mod, cod = btn.dataset.op, it = itemDe(cod); if(!it) return;
+    SEL[k] = cod; card.dataset.cod = cod;
+    card.querySelectorAll('.opt').forEach(b=>{ const on = b===btn; b.classList.toggle('on',on); b.setAttribute('aria-pressed',on); });
+    card.classList.toggle('agotado', !it.disponible);
+    card.querySelector('.specs').innerHTML = specsDe(it);
+    const d = card.querySelector('.disp'); d.textContent = it.disponible?'Disponible':'Agotado'; d.classList.toggle('no', !it.disponible);
+    const pr = card.querySelector('.precio'); pr.innerHTML = it.precio>0? money(it.precio) : '<small>Consultar</small>';
+    if(!QUIETO){ pr.classList.remove('cambia'); void pr.offsetWidth; pr.classList.add('cambia'); }
+    card.querySelector('.slot').innerHTML = accionHTML(it);
   }
-  $('grid').addEventListener('click', e => {
-    const m = e.target.closest('[data-mas]'), p = e.target.closest('[data-pregunta]');
-    if (m) mas(m.dataset.mas, true);
-    if (p){ const it = itemDe(p.dataset.pregunta); if (it){ const det=[it.capacidad,it.color].filter(Boolean).join(' · '); abrirWa(wa('Hola Bayol Cell, me interesa el '+it.nombreBonito+(det?' ('+det+')':'')+(it.precio>0?' de RD$'+dinero(it.precio):'')+'. ¿Está disponible?')); } }
-  });
-  $('qCel').addEventListener('input', pintarGrid);
-  $('soloDisp').addEventListener('change', pintarGrid);
-
-  // destacados del héroe: los disponibles más caros con foto, sin repetir modelo
-  let DEST = [], iDest = 0;
-  const modeloBase = n => n.replace(/\s+\d+\s*(GB|TB).*$/i,'').trim();
-  function pintarDestacados(){
-    const cands = ITEMS.filter(x => x.disponible && x.foto_url && x.precio>0).sort((a,b)=>b.precio-a.precio);
-    const vistas = new Set(); DEST = [];
-    cands.forEach(x => { const base = modeloBase(x.nombreBonito); if (DEST.length<5 && !vistas.has(base)){ vistas.add(base); DEST.push(x); } });
-    if (!DEST.length) return;
-    $('destNombres').innerHTML = DEST.map((x,i) => `<button type="button" role="tab" data-i="${i}">${esc(modeloBase(x.nombreBonito))}</button>`).join('');
-    $('destNombres').querySelectorAll('button').forEach(b => b.onclick = () => verDest(+b.dataset.i));
-    document.querySelectorAll('#carr .flecha').forEach(b => b.onclick = () => verDest((iDest + Number(b.dataset.d) + DEST.length) % DEST.length));
-    $('dest').hidden = false; $('carr').hidden = DEST.length < 2;
-    verDest(0, true);
+  // Solo actualiza el botón de la tarjeta tocada: no se redibuja el carrusel ni se pierde la posición.
+  function refrescarTarjeta(cod){
+    const it = itemDe(cod); if(!it) return;
+    document.querySelectorAll(`.card[data-cod="${CSS.escape(String(cod))}"] .slot`).forEach(s=>{ s.innerHTML = accionHTML(it); saltar(s.querySelector('.stepper b')); });
   }
-  function verDest(i, primero){
-    iDest = i; const x = DEST[i], img = $('destFoto');
-    $('destNombre').textContent = modeloBase(x.nombreBonito);
-    $('destCap').textContent = [x.capacidad, x.color].filter(Boolean).join(' · ');
-    $('destPrecio').innerHTML = '<small>RD$</small><span class="num"></span>'; rodar($('destPrecio').querySelector('.num'), x.precio);
-    $('destMarca').textContent = x.marca === 'Otras' ? 'Bayol' : x.marca;
-    $('destPedir').onclick = () => abrirWa(wa('Hola Bayol Cell, quiero el '+x.nombreBonito+(x.capacidad?' ('+x.capacidad+')':'')+' de RD$'+dinero(x.precio)+'. ¿Está disponible?'));
-    $('destNombres').querySelectorAll('button').forEach((b,k) => { b.classList.toggle('on', k===i); b.setAttribute('aria-selected', k===i); });
-    if (primero || QUIETO){ img.src = x.foto_url; img.alt = x.nombreBonito; return; }
-    img.classList.add('sale'); setTimeout(() => { img.onload = () => img.classList.remove('sale'); img.src = x.foto_url; img.alt = x.nombreBonito; }, 180);
-  }
-
-  // ---------- carrito / pedido (misma llave que el catálogo anterior) ----------
-  function cartLista(){ return Object.keys(CART).map(k => ({ it:itemDe(k), qty:CART[k].qty })).filter(x => x.it && x.qty>0); }
-  function mas(cod, confirmar){
-    const it = itemDe(cod); if (!it || !it.disponible) return;
-    // Antes de repintar: dónde está la foto de la tarjeta (para que vuele desde ahí).
-    const fotoAntes = confirmar && !QUIETO ? document.querySelector('#grid [data-mas="'+CSS.escape(String(cod))+'"]')?.closest('.card')?.querySelector('.foto img') : null;
-    const origen = fotoAntes ? { r:fotoAntes.getBoundingClientRect(), copia:fotoAntes.cloneNode(true) } : null;
-    CART[cod] = { qty:((CART[cod]||{}).qty||0)+1 }; guardarCart(); pintarGrid(); pintarCarrito(!confirmar);
-    if (!confirmar) return;
-    volar(origen); asomar(cod);
-    // El botón confirma con «✓ Agregado» un momento y vuelve (estilo «Click → done»).
-    const b = document.querySelector('#grid [data-mas="'+CSS.escape(String(cod))+'"]'); if (!b) return;
-    const antes = b.innerHTML; b.classList.add('hecho'); b.innerHTML = '✓ Agregado';
-    setTimeout(() => { if (b.isConnected){ b.classList.remove('hecho'); b.innerHTML = antes; } }, 900);
-  }
-  // Destino visible del pedido: el botón flotante en computadora y «Tu pedido» de la barra en celular.
-  const destinoPedido = () => [$('btnCarrito'), $('barraPedido')].find(el => el.getBoundingClientRect().width > 0);
-  function recibir(el){ if (!el || QUIETO) return; el.classList.remove('recibe','pulso'); void el.offsetWidth; el.classList.add('recibe'); }
-  // La foto vuela en curva hasta «Tu pedido», que rebota al recibirla (como en el catálogo anterior).
-  function volar(origen){
-    const destino = destinoPedido();
-    if (QUIETO || !origen || !destino || !document.body.animate){ recibir(destino); return; }
-    const o = origen.r, dr = destino.getBoundingClientRect();
-    if (!o.width || o.bottom < 0 || o.top > innerHeight){ recibir(destino); return; }
+  function saltar(el){ if(!el || QUIETO) return; el.classList.remove('salta'); void el.offsetWidth; el.classList.add('salta'); }
+  const cardDe = cod => document.querySelector(`.card[data-cod="${CSS.escape(String(cod))}"]`);
+  // La foto (o el ícono) vuela en curva hasta la bolsa de la cabecera, que rebota al recibirla.
+  function volar(card){
+    const bolsa = document.getElementById('miped');
+    const src = card && card.querySelector('.foto > *');
+    if(QUIETO || !src || !src.animate) return;
+    const o = src.getBoundingClientRect(), dr = bolsa.getBoundingClientRect();
     const w = Math.min(o.width, 150) || 60, h = w * ((o.height / o.width) || 1);
     const x0 = o.left + o.width/2 - w/2, y0 = o.top + o.height/2 - h/2;
     const x1 = dr.left + dr.width/2 - w/2, y1 = dr.top + dr.height/2 - h/2;
     const cy = Math.min(y0, y1) - 110, pasos = 16, kf = [];
-    for (let i=0;i<=pasos;i++){ const t=i/pasos, u=1-t; const x = x0+(x1-x0)*t, y = u*u*y0 + 2*u*t*cy + t*t*y1;
+    for(let i=0;i<=pasos;i++){ const t=i/pasos, u=1-t; const x = x0+(x1-x0)*t, y = u*u*y0 + 2*u*t*cy + t*t*y1;
       kf.push({ transform:`translate(${x}px,${y}px) rotate(${-18*t}deg) scale(${1-.82*t})`, opacity: t>.9 ? 1-(t-.9)*8 : 1 }); }
-    const v = origen.copia; v.className = 'vuelo'; v.removeAttribute('loading'); v.alt = '';
-    v.style.width = w+'px'; v.style.height = h+'px';
+    const v = src.cloneNode(true); v.classList.add('vuelo'); v.removeAttribute('loading');
+    v.style.width = w+'px'; v.style.height = h+'px'; v.style.maxWidth = 'none'; v.style.maxHeight = 'none';
     document.body.appendChild(v);
-    v.animate(kf, { duration:720, easing:'cubic-bezier(.45,0,.25,1)' }).finished.catch(()=>{}).then(() => { v.remove(); recibir(destino); });
+    v.animate(kf, { duration:720, easing:'cubic-bezier(.45,0,.25,1)' }).finished.catch(()=>{}).then(()=>{
+      v.remove(); bolsa.classList.remove('recibe'); void bolsa.offsetWidth; bolsa.classList.add('recibe');
+    });
   }
-  // Asoma un resumen del pedido (últimos 3) junto a «Tu pedido»; se esconde solo o al desplazarse.
-  let asomaT = 0, asomaY = 0;
+  let _asomaT = 0;
   function asomar(cod){
-    if (QUIETO) return;
-    const a = $('asoma'), filas = cartLista().reverse(), n = filas.reduce((s,x)=>s+x.qty,0), t = filas.reduce((s,x)=>s+(Number(x.it.precio)||0)*x.qty,0);
-    a.innerHTML = `<div class="asoma-cab">Tu pedido <b>${n}</b></div>` + filas.slice(0,3).map(x => `<div class="asoma-fila${String(x.it.codigo)===String(cod)?' nueva':''}"><div class="mini">${x.it.foto_url?`<img src="${esc(x.it.foto_url)}" alt="">`:''}</div><div><h4>${esc(x.it.nombreBonito)}</h4><small>${x.qty} × RD$${dinero(x.it.precio)}</small></div><b>RD$${dinero((Number(x.it.precio)||0)*x.qty)}</b></div>`).join('')
+    if(QUIETO) return;
+    const a = document.getElementById('asoma'), filas = cartLista().reverse(), {n,t} = cartTotales();
+    const miniDe = it => it.foto_url ? `<img src="${esc(it.foto_url)}" alt="">` : ICON_PHONE;
+    a.innerHTML = `<div class="asoma-cab">Tu pedido <b>${n}</b></div>` + filas.slice(0,3).map(x=>`<div class="asoma-fila${String(x.it.codigo)===String(cod)?' nueva':''}" style="--tono:${colorDe(x.it)}"><div class="mini">${miniDe(x.it)}</div><div><h4>${esc(x.it.nombre)}</h4><small>${x.qty} × ${money(x.it.precio)}</small></div><b>${money((Number(x.it.precio)||0)*x.qty)}</b></div>`).join('')
       + (filas.length>3 ? `<p class="asoma-mas">+ ${filas.length-3} ${filas.length-3===1?'artículo más':'artículos más'}</p>` : '')
-      + `<div class="asoma-pie"><b>RD$${dinero(t)}</b><span>Ver pedido</span></div>`;
-    a.setAttribute('aria-label', 'Ver pedido: '+n+(n===1?' artículo':' artículos')+', RD$'+dinero(t));
-    a.classList.add('si'); a.setAttribute('aria-hidden','false'); a.tabIndex = 0; asomaY = scrollY;
-    clearTimeout(asomaT); asomaT = setTimeout(esconderAsoma, 2600);
+      + `<div class="asoma-pie"><b>${money(t)}</b><span>Ver pedido</span></div>`;
+    a.setAttribute('aria-label', 'Ver pedido: '+n+' artículos, '+money(t));
+    a.classList.add('si'); a.setAttribute('aria-hidden','false');
+    clearTimeout(_asomaT); _asomaT = setTimeout(esconderAsoma, 2600);
   }
-  function esconderAsoma(){ clearTimeout(asomaT); const a = $('asoma'); a.classList.remove('si'); a.setAttribute('aria-hidden','true'); a.tabIndex = -1; }
-  $('asoma').onclick = () => { esconderAsoma(); abrirHoja(); };
-  addEventListener('scroll', () => { if ($('asoma').classList.contains('si') && Math.abs(scrollY - asomaY) > 60) esconderAsoma(); }, { passive:true }); // un roce no lo esconde
-  function menos(cod){ if (!CART[cod]) return; CART[cod].qty--; if (CART[cod].qty<=0) delete CART[cod]; guardarCart(); pintarGrid(); pintarCarrito(); pintarHoja(); }
-  function pintarCarrito(pulso){
-    const l = cartLista(), n = l.reduce((s,x)=>s+x.qty,0), t = l.reduce((s,x)=>s+(Number(x.it.precio)||0)*x.qty,0), b = $('btnCarrito');
-    b.classList.toggle('on', n>0); $('carritoN').textContent = n; $('carritoTxt').textContent = 'RD$'+dinero(t);
-    $('barra').classList.toggle('con-pedido', n>0); $('barraN').textContent = n;
-    if (pulso && !QUIETO){ b.classList.remove('pulso'); void b.offsetWidth; b.classList.add('pulso'); }
+  function esconderAsoma(){ clearTimeout(_asomaT); const a = document.getElementById('asoma'); a.classList.remove('si'); a.setAttribute('aria-hidden','true'); }
+  addEventListener('scroll', ()=>{ if(document.getElementById('asoma').classList.contains('si')) esconderAsoma(); }, { passive:true });
+  // Barra roja de progreso en la cabecera.
+  (()=>{ const barra = document.querySelector('.progreso'); let pend = false;
+    const pintarBarra = () => { pend = false; const hh = document.documentElement.scrollHeight - innerHeight; barra.style.setProperty('--leido', hh>0 ? Math.min(1, scrollY/hh) : 0); };
+    addEventListener('scroll', ()=>{ if(!pend){ pend = true; requestAnimationFrame(pintarBarra); } }, { passive:true }); })();
+  function consultar(cod){
+    const it = itemDe(cod); if(!it) return;
+    const det = [it.capacidad, it.color].filter(Boolean).join(' · ');
+    const msg = 'Hola ' + (TIENDA.nombre||'BAYOL CELL') + ', me interesa el ' + it.nombre + (det?(' ('+det+')'):'') + (it.precio>0?(' de '+money(it.precio)):'') + '. ¿Está disponible? ¿En qué colores lo tienen?';
+    window.open('https://wa.me/'+telVentas()+'?text='+encodeURIComponent(msg), '_blank', 'noopener');
   }
-  function pintarHoja(){
-    const l = cartLista(), t = l.reduce((s,x)=>s+(Number(x.it.precio)||0)*x.qty,0);
-    if (!l.length){ cerrarHoja(); return; }
-    $('hojaLista').innerHTML = l.map(x => `<div class="item">${x.it.foto_url?`<img src="${esc(x.it.foto_url)}" alt="">`:'<span class="ph"></span>'}<div><h4>${esc(x.it.nombreBonito)}</h4><small>${esc([x.it.capacidad,x.it.color].filter(Boolean).join(' · '))} · RD$${dinero(x.it.precio)}</small></div>
-      <div class="qty"><button type="button" data-menos="${esc(String(x.it.codigo))}" aria-label="Quitar uno">−</button><b>${x.qty}</b><button type="button" data-mas="${esc(String(x.it.codigo))}" aria-label="Agregar uno">+</button></div></div>`).join('');
-    $('hojaTotal').textContent = 'RD$'+dinero(t);
+  function mas(cod, desdeCarrito){ const it=itemDe(cod); if(!it||!it.disponible)return; if(!CART[cod])CART[cod]={qty:0}; CART[cod].qty++; guardarCart(); refrescarTarjeta(cod); pintarCart(); if(!desdeCarrito){ volar(cardDe(cod)); asomar(cod); } }
+  function menos(cod){ if(!CART[cod])return; CART[cod].qty--; if(CART[cod].qty<=0)delete CART[cod]; guardarCart(); refrescarTarjeta(cod); pintarCart(); }
+  function cartLista(){ return Object.keys(CART).map(cod=>({it:itemDe(cod), qty:CART[cod].qty})).filter(x=>x.it); }
+  function cartTotales(){ let n=0,t=0; cartLista().forEach(x=>{ n+=x.qty; t+=(Number(x.it.precio)||0)*x.qty; }); return {n,t}; }
+  function pintarCart(){
+    const {n,t} = cartTotales();
+    document.getElementById('cc').textContent = n;
+    document.getElementById('ccTxt').textContent = n + (n===1?' artículo':' artículos');
+    document.getElementById('ccTot').textContent = money(t);
+    document.getElementById('ccTot2').textContent = money(t);
+    document.getElementById('ccN').textContent = n;
+    document.getElementById('goBar').disabled = n===0;
+    const badge = document.getElementById('cnt'); badge.textContent = n; badge.style.display = n>0?'inline-flex':'none';
+    saltar(document.getElementById('ccTot')); saltar(badge);
+    const l = cartLista();
+    document.getElementById('cartBody').innerHTML = l.length? l.map(x=>{ const cod=esc(String(x.it.codigo)); return `<div class="crow">
+      ${x.it.foto_url? `<img class="mini" src="${esc(x.it.foto_url)}" alt="">` : `<span class="mini">${ICON_PHONE}</span>`}
+      <div class="cn"><div class="n">${esc(x.it.nombre)}</div><div class="p">${[x.it.capacidad,x.it.color].filter(Boolean).map(esc).join(' · ')}${(x.it.capacidad||x.it.color)?' · ':''}${money(x.it.precio)}</div></div>
+      <div class="st"><button type="button" aria-label="Quitar uno" onclick="menos('${cod}')">−</button><b>${x.qty}</b><button type="button" aria-label="Agregar uno" onclick="mas('${cod}', true)">+</button></div>
+    </div>`; }).join('') : '<p style="text-align:center;color:rgba(245,245,244,.55);padding:26px;">Tu pedido está vacío.</p>';
   }
-  $('hojaLista').addEventListener('click', e => { const a = e.target.closest('[data-mas]'), b = e.target.closest('[data-menos]'); if (a){ mas(a.dataset.mas); pintarHoja(); } if (b) menos(b.dataset.menos); });
-  function abrirHoja(){ pintarHoja(); $('hoja').classList.add('on'); $('hoja').setAttribute('aria-hidden','false'); $('hojaFondo').classList.add('on'); $('cerrarHoja').focus(); }
-  function cerrarHoja(){ $('hoja').classList.remove('on'); $('hoja').setAttribute('aria-hidden','true'); $('hojaFondo').classList.remove('on'); }
-  $('btnCarrito').onclick = abrirHoja; $('barraPedido').onclick = abrirHoja; $('cerrarHoja').onclick = cerrarHoja; $('hojaFondo').onclick = cerrarHoja;
-  addEventListener('keydown', e => { if (e.key === 'Escape') cerrarHoja(); });
-  // Al enviar: el botón se hunde, un brillo lo cruza y un carrito recoge el pedido; luego abre WhatsApp.
-  let enviando = false;
-  const ICON_OK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  function abrirCarrito(){ if(cartTotales().n===0)return; document.getElementById('dbg').classList.add('show'); document.getElementById('draw').classList.add('show'); }
+  function cerrarCarrito(){ document.getElementById('dbg').classList.remove('show'); document.getElementById('draw').classList.remove('show'); }
+  let _enviando = false;
+  const ICON_OK = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
   function llevarPedido(btn){
-    if (!document.body.animate) return;
+    if(!document.body.animate) return;
     const r = btn.getBoundingClientRect(), W = 118, H = 92;
     const x0 = Math.min(innerWidth - W - 8, Math.max(8, r.left + r.width/2 - W/2)), y0 = r.top - H + 14;
     const v = document.createElement('div'); v.className = 'viaje';
-    const cosas = cartLista().reverse().slice(0,3).map((x,i) => `<span class="cosa" style="left:${30+i*24}px;z-index:${3-i}">${x.it.foto_url?`<img src="${esc(x.it.foto_url)}" alt="">`:''}</span>`).join('');
-    v.innerHTML = '<span class="raya" style="top:38px;width:46px"></span><span class="raya" style="top:52px;width:70px"></span><span class="raya" style="top:66px;width:38px"></span><span class="carga">' + cosas + '</span>'
+    const cosas = cartLista().reverse().slice(0,3).map((x,i)=>`<span class="cosa" style="left:${20+i*24}px;--tono:${colorDe(x.it)};z-index:${3-i}">${x.it.foto_url?`<img src="${esc(x.it.foto_url)}" alt="">`:ICON_PHONE}</span>`).join('');
+    v.innerHTML = '<span class="raya" style="top:38px;width:46px"></span><span class="raya" style="top:52px;width:70px"></span><span class="raya" style="top:66px;width:38px"></span>' + cosas
       + '<svg viewBox="0 0 118 92" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
       + '<path d="M4 22h14l6 8" stroke="#ff3b41" stroke-width="5"/>'
       + '<path d="M20 30h92l-10 34H30Z" fill="rgba(227,30,36,.28)" stroke="#ff3b41" stroke-width="5"/>'
@@ -619,92 +600,82 @@ footer.pie-pag{border-top:1px solid var(--line);padding:28px 0 120px;color:var(-
       { transform: at(x0-14, y0+2, 'rotate(-5deg)'), offset:.69, easing:'cubic-bezier(.5,0,.9,.5)' },
       { transform: at(x0+lejos, y0-6, 'rotate(2deg)') }
     ], { duration:D, easing:'ease-in-out' });
-    v.querySelectorAll('.cosa').forEach((c,i) => c.animate([
-      { transform:'translateY(-80px) rotate(-18deg) scale(.8)', opacity:0 },
-      { transform:'translateY(-80px) rotate(-18deg) scale(.8)', opacity:0, offset:.33+i*.05 },
-      { transform:'translateY(3px) rotate(4deg) scale(1)', opacity:1, offset:.47+i*.05 },
+    v.querySelectorAll('.cosa').forEach((c,i)=>c.animate([
+      { transform:'translateY(-90px) rotate(-18deg) scale(.7)', opacity:0 },
+      { transform:'translateY(-90px) rotate(-18deg) scale(.7)', opacity:0, offset:.33+i*.05 },
+      { transform:'translateY(4px) rotate(4deg) scale(1)', opacity:1, offset:.47+i*.05 },
       { transform:'translateY(0) rotate(0) scale(1)', opacity:1, offset:.55+i*.05 },
       { transform:'translateY(0) rotate(0) scale(1)', opacity:1 }
     ], { duration:D, easing:'cubic-bezier(.3,.6,.4,1)', fill:'both' }));
-    v.querySelectorAll('.rueda').forEach(g => g.animate([
+    v.querySelectorAll('.rueda').forEach(g=>g.animate([
       { transform:'rotate(0)', easing:'cubic-bezier(.2,.7,.35,1)' }, { transform:'rotate(720deg)', offset:.26 },
       { transform:'rotate(720deg)', offset:.69, easing:'cubic-bezier(.6,0,.9,.6)' }, { transform:'rotate(1620deg)' }
     ], { duration:D }));
-    v.querySelectorAll('.raya').forEach((l,i) => l.animate([
+    v.querySelectorAll('.raya').forEach((l,i)=>l.animate([
       { opacity:1, transform:'scaleX(1.3)' }, { opacity:0, transform:'scaleX(.3)', offset:.22+i*.02 },
       { opacity:0, transform:'scaleX(.2)', offset:.72+i*.03 }, { opacity:1, transform:'scaleX(1)', offset:.86 },
       { opacity:0, transform:'scaleX(1.4)' }
     ], { duration:D }));
-    anim.finished.catch(()=>{}).then(() => v.remove());
+    anim.finished.catch(()=>{}).then(()=>v.remove());
   }
-  function restaurarEnviar(){ const b = $('enviarPedido'); if (b.dataset.html) b.innerHTML = b.dataset.html; b.classList.remove('envia'); enviando = false; }
-  addEventListener('pageshow', e => { if (e.persisted) restaurarEnviar(); });
-  $('enviarPedido').onclick = ev => {
-    const l = cartLista(); if (!l.length || enviando) return;
-    const t = l.reduce((s,x)=>s+(Number(x.it.precio)||0)*x.qty,0);
-    let msg = 'Hola BAYOL CELL, quiero pedir:\n\n';
-    l.forEach(x => { msg += '• ' + x.it.nombreBonito + (x.it.capacidad?(' ('+x.it.capacidad+(x.it.color?(' · '+x.it.color):'')+')'):'') + ' x' + x.qty + ' — RD$' + dinero((Number(x.it.precio)||0)*x.qty) + '\n'; });
-    msg += '\nTotal: RD$' + dinero(t) + '\n\n¿En qué colores los tienen disponibles?';
-    const url = wa(msg), btn = $('enviarPedido');
-    if (QUIETO){ abrirWa(url); return; }
+  function restaurarWa(){ document.querySelectorAll('.wa').forEach(w=>{ if(w.dataset.html) w.innerHTML = w.dataset.html; w.classList.remove('envia'); }); _enviando = false; }
+  addEventListener('pageshow', e => { if(e.persisted) restaurarWa(); });
+  function pedirWhatsApp(btn, ev){
+    const l = cartLista(); if(!l.length)return;
+    if(_enviando) return;
+    const {t} = cartTotales();
+    let msg = 'Hola ' + (TIENDA.nombre||'BAYOL CELL') + ', quiero pedir:\n\n';
+    l.forEach(x=>{ msg += '• ' + x.it.nombre + (x.it.capacidad?(' ('+x.it.capacidad+(x.it.color?(' · '+x.it.color):'')+')'):'') + ' x' + x.qty + ' — ' + money((Number(x.it.precio)||0)*x.qty) + '\n'; });
+    msg += '\nTotal: ' + money(t) + '\n\n¿En qué colores los tienen disponibles?';
+    const url = 'https://wa.me/'+telVentas()+'?text='+encodeURIComponent(msg);
+    const abrir = () => { if(matchMedia('(pointer:coarse)').matches) location.href = url; else { const w = open(url, '_blank'); if(w) w.opener = null; else location.href = url; } };
+    if(QUIETO || !btn){ abrir(); return; }
     // Primero se ve la animación (el carrito recoge el pedido y se va) y al terminar se abre WhatsApp.
-    enviando = true;
+    _enviando = true;
     const r = btn.getBoundingClientRect(), onda = document.createElement('span');
     onda.className = 'onda'; onda.style.left = ((ev && ev.clientX) ? ev.clientX - r.left : r.width/2) + 'px'; onda.style.top = ((ev && ev.clientY) ? ev.clientY - r.top : r.height/2) + 'px';
     btn.classList.remove('envia'); void btn.offsetWidth; btn.classList.add('envia');
     llevarPedido(btn);
-    if (!btn.dataset.html) btn.dataset.html = btn.innerHTML;
+    if(!btn.dataset.html) btn.dataset.html = btn.innerHTML;
     btn.innerHTML = '<span class="ok">' + ICON_OK + 'Preparando tu pedido…</span>';
-    btn.appendChild(onda); setTimeout(() => onda.remove(), 700);
-    setTimeout(() => { btn.innerHTML = '<span class="ok">' + ICON_OK + 'Abriendo WhatsApp…</span>'; }, 1500);
-    setTimeout(() => { abrirWa(url); setTimeout(restaurarEnviar, 2500); }, 2150);
-  };
-
-  // ---------- pantallas: solo por búsqueda ----------
-  let seqPan = 0, timerPan = null;
-  function pintarPantallas(items, q, error){
-    const box = $('resPan');
-    if (error){ box.innerHTML = `<div class="info">Ahora mismo no podemos mostrar el precio. <a href="${wa('Hola, ¿cuánto sale el cambio de pantalla de mi '+q+'?')}" target="_blank" rel="noopener">Pregúntanos por WhatsApp</a> y te respondemos enseguida.</div>`; return; }
-    if (!items.length){ box.innerHTML = `<div class="info">No encontramos «${esc(q)}». Puede que lo tengamos con otro nombre: <a href="${wa('Hola, ¿cuánto sale el cambio de pantalla de mi '+q+'?')}" target="_blank" rel="noopener">escríbenos tu modelo por WhatsApp</a>.</div>`; return; }
-    box.innerHTML = items.map(x => `<div class="r"><h4>${esc(x.nombre)}</h4><div class="pr"><small class="rd">RD$</small><span class="num" data-v="${x.precio}">${dinero(x.precio)}</span><small>con instalación</small></div>
-      ${x.calidad?`<span class="cal">${esc(x.calidad)}</span>`:''}
-      <a class="btn go" href="${wa('Hola Bayol Cell, quiero cambiar la pantalla de mi '+x.nombre+(x.calidad?' ('+x.calidad.toLowerCase()+')':'')+', RD$'+dinero(x.precio)+'. ¿Cuándo puedo pasar?')}" target="_blank" rel="noopener">Agendar por WhatsApp</a></div>`).join('')
-      + `<div class="info">¿Buscas otra calidad? <a href="${wa('Hola, para mi '+items[0].nombre+' ¿qué otra calidad de pantalla tienen?')}" target="_blank" rel="noopener">Pregúntanos por WhatsApp</a>.</div>`;
-    box.querySelectorAll('.pr .num').forEach(el => rodar(el, Number(el.dataset.v)));
+    btn.appendChild(onda); setTimeout(()=>onda.remove(), 700);
+    setTimeout(()=>{ btn.innerHTML = '<span class="ok">' + ICON_OK + 'Abriendo WhatsApp…</span>'; }, 1500);
+    setTimeout(()=>{ abrir(); setTimeout(restaurarWa, 2500); }, 2150);
   }
-  async function buscarPantalla(){
-    const q = $('qPan').value.trim(), mio = ++seqPan;
-    if (q.replace(/\s/g,'').length < 2){ $('resPan').innerHTML = '<div class="info">Escribe tu modelo para ver el precio.</div>'; return; }
-    $('resPan').innerHTML = '<div class="info">Buscando…</div>';
-    try {
-      const r = await fetch(BASE+'pantallas-publico',{method:'POST',headers:{'Content-Type':'application/json','apikey':APIKEY,'Authorization':'Bearer '+APIKEY},body:JSON.stringify({q})});
-      const j = await r.json().catch(() => null);
-      if (mio !== seqPan) return;
-      if (!r.ok || !j || j.ok === false || j.publicado === false) return pintarPantallas([], q, true);
-      // Defensa también en el navegador: solo nombre, calidad y precio; nunca la palabra «Incell».
-      const items = (j.items||[]).map(x => ({ nombre:String(x.nombre||''), calidad:/in-?cell/i.test(String(x.calidad||'')) ? 'Calidad certificada' : String(x.calidad||''), precio:Number(x.precio)||0 })).filter(x => x.precio>0).slice(0,6);
-      pintarPantallas(items, q);
-    } catch(e){ if (mio === seqPan) pintarPantallas([], q, true); }
-  }
-  $('qPan').addEventListener('input', () => { clearTimeout(timerPan); timerPan = setTimeout(buscarPantalla, 380); });
-  $('qPan').addEventListener('keydown', e => { if (e.key === 'Enter'){ clearTimeout(timerPan); buscarPantalla(); } });
-  $('ejemplos').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; $('qPan').value = b.textContent; buscarPantalla(); });
+  document.addEventListener('keydown', e => { if(e.key==='Escape') cerrarCarrito(); });
 
-  // ---------- pestañas ----------
-  function verTab(cual){
-    const cel = cual !== 'pantallas';
-    $('tabCel').classList.toggle('on', cel); $('tabCel').setAttribute('aria-selected', cel);
-    $('tabPan').classList.toggle('on', !cel); $('tabPan').setAttribute('aria-selected', !cel);
-    $('panCel').hidden = !cel; $('panPan').hidden = cel;
-    try { history.replaceState(null, '', cel ? location.pathname : '#pantallas'); } catch(e){}
+  // ===== Sucursales con "Abierto ahora" (hora de República Dominicana) =====
+  function ahoraRD(){
+    const p = new Intl.DateTimeFormat('en-US',{timeZone:'America/Santo_Domingo',weekday:'short',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date());
+    const g = t => p.find(x=>x.type===t)?.value;
+    return { dia:{Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6}[g('weekday')], min:Number(g('hour'))*60+Number(g('minute')) };
   }
-  $('tabCel').onclick = () => verTab('celulares');
-  $('tabPan').onclick = () => { verTab('pantallas'); setTimeout(() => $('qPan').focus({preventScroll:true}), 30); };
-  document.querySelectorAll('[data-ir]').forEach(a => a.addEventListener('click', () => verTab(a.dataset.ir)));
-  if (location.hash === '#pantallas'){ verTab('pantallas'); setTimeout(() => $('catalogo').scrollIntoView(), 50); }
-
-  cargarCelulares();
-})();
+  const aMin = s => { const [h,m]=s.split(':').map(Number); return h*60+m; };
+  const hora12 = s => { let [h,m]=s.split(':').map(Number); const ap = h>=12?'p. m.':'a. m.'; h = h%12||12; return h+':'+String(m).padStart(2,'0')+' '+ap; };
+  function estadoSuc(s){
+    const {dia,min} = ahoraRD(), hoy = s.h[dia];
+    if(hoy && min>=aMin(hoy[0]) && min<aMin(hoy[1])) return {abierto:true, det:'Cierra '+hora12(hoy[1])};
+    if(hoy && min<aMin(hoy[0])) return {abierto:false, det:'Abre hoy '+hora12(hoy[0])};
+    const dias=['dom','lun','mar','mié','jue','vie','sáb'];
+    for(let k=1;k<=7;k++){ const d=(dia+k)%7; if(s.h[d]) return {abierto:false, det:'Abre '+(k===1?'mañana':dias[d])+' '+hora12(s.h[d][0])}; }
+    return {abierto:false, det:''};
+  }
+  function pintarSucursales(){
+    document.getElementById('sucs').innerHTML = SUCURSALES.map(s=>{
+      const e = estadoSuc(s);
+      return `<div class="suc">
+        <div class="sh"><span class="sn">${esc(s.nombre)}</span><span class="abierto mono ${e.abierto?'si':'no'}"><span class="dot"></span>${e.abierto?'Abierto ahora':'Cerrado'}</span></div>
+        <div class="row"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg><span>${esc(s.direccion)}</span></div>
+        <div class="row"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span>${esc(s.horario)}${e.det?`<br><span class="det">${esc(e.det)}</span>`:''}</span></div>
+        <div class="btns">
+          <a class="btn" href="https://wa.me/${s.wa}" target="_blank" rel="noopener">${ICON_WA} WhatsApp</a>
+          <a class="btn" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.mapa)}" target="_blank" rel="noopener"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4l-5 2v14l5-2 6 2 5-2V4l-5 2z"/><path d="M9 4v14M15 6v14"/></svg> Cómo llegar</a>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  pintarSucursales(); setInterval(pintarSucursales, 60000);
+  cargar();
 </script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-// Prueba del catálogo web (catalogo.html) con los servicios simulados (sin tocar Supabase).
+// Prueba del catálogo web (tienda.html) con los servicios simulados (sin tocar Supabase).
 // Uso: NODE_PATH=/opt/node22/lib/node_modules node tests/catalogo-web/catalogo.test.cjs [carpetaCapturas] [celulares.json real opcional]
 const http = require('http'), fs = require('fs'), path = require('path'), assert = require('assert');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
@@ -23,7 +23,7 @@ function pantallas(q) {
 }
 function servidor() {
   return new Promise(res => { const s = http.createServer((req, r) => {
-    const u = decodeURIComponent(req.url.split('?')[0]); const f = path.join(RAIZ, u === '/' ? 'catalogo.html' : u);
+    const u = decodeURIComponent(req.url.split('?')[0]); const f = path.join(RAIZ, u === '/' ? 'tienda.html' : u);
     if (!f.startsWith(RAIZ) || !fs.existsSync(f)) { r.writeHead(404); return r.end(); }
     const t = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.png': 'image/png', '.woff2': 'font/woff2', '.webp': 'image/webp' };
     r.writeHead(200, { 'content-type': t[path.extname(f)] || 'application/octet-stream' }); fs.createReadStream(f).pipe(r);
@@ -56,7 +56,7 @@ async function textoVisible(page, sel) { // el precio rueda con tiras de dígito
       const page = await ctx.newPage(); const llamadas = [];
       page.on('pageerror', e => errores.push(nom + ': ' + e));
       await preparar(page, base, llamadas);
-      await page.goto(base + 'catalogo.html');
+      await page.goto(base + 'tienda.html');
       await page.waitForSelector('.card');
       await page.waitForTimeout(REAL ? 2500 : 300);
       await page.screenshot({ path: path.join(SALIDA, nom + '-inicio.png') });
