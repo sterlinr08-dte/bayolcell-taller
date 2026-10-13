@@ -132,7 +132,7 @@ async function textoVisible(page, sel) { // el precio rueda con tiras de dígito
     // servicio de pantallas caído → mensaje amable
     const p2 = await browser.newPage(); await p2.route('**/*', r => { const u = r.request().url(); if (u.startsWith(base)) return r.continue(); if (u.includes('catalogo-publico')) return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(CEL) }); if (u.includes('pantallas-publico')) return r.fulfill({ status: 404, body: 'no' }); return r.abort(); });
     p2.on('pageerror', e => errores.push('caido: ' + e));
-    await p2.goto(base + 'catalogo.html#pantallas'); await p2.fill('#qPan', 'iphone 11'); await p2.waitForTimeout(700);
+    await p2.goto(base + 'tienda.html#pantallas'); await p2.fill('#qPan', 'iphone 11'); await p2.waitForTimeout(700);
     await prueba('si el servicio de pantallas no responde, invita a WhatsApp', async () => { assert.ok(/no podemos mostrar el precio/.test(await p2.textContent('#resPan'))); });
     await prueba('sin errores de JavaScript', async () => { assert.deepStrictEqual(errores, []); });
   } catch (e) { console.error('FAIL', e.message); process.exitCode = 1; }
