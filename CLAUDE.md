@@ -952,6 +952,16 @@ Antes de cualquier tarea, revisar las skills disponibles (`.claude/skills/` de e
 - **Nueva lista de pantallas iPhone (decisión del dueño, 09-oct-2026; reemplaza la del flyer viejo).** Se igualaron los modelos viejos a la competencia (DeOroCell) y se redondeó todo:
   7/8 RD$1,000 · 7 Plus/8 Plus RD$1,000 · X/XS RD$1,200 · XS Max RD$2,000 (ajustado por el dueño) · XR RD$1,500 · 11 RD$2,000 (ajustado por el dueño) · 11 Pro RD$2,000 · 11 Pro Max RD$2,500 · 12/12 Pro RD$2,500 · 12 Pro Max RD$3,000 · 13 RD$3,700 · 13 Pro RD$4,500 · 13 Pro Max RD$6,000 · 14 RD$4,500 · 14 Plus RD$4,500 · 14 Pro RD$4,500 · 14 Pro Max RD$8,000 · 15 Plus RD$5,000 · 15 Pro RD$6,500 · 15 Pro Max RD$9,000. **Estos precios son SOLO para pantallas INCELL** (las OLED no entran: se cotizan aparte). Con esto: **«Pantallas desde RD$1,000» vale para iPhone (Incell) y Android.** Pendiente (dueño, «luego»): cambiar estos precios en **Info Plus, nivel de precio 1, solo artículos de pantalla Incell** —antes auditar los artículos y mostrar tabla actual→nueva para aprobación—; falta además actualizar el flyer `assets/reparacion-pantalla.webp` y el sistema/Info Plus cuando el dueño lo apruebe.
 
+## REGLA DEL DUEÑO (13 oct 2026) — Cómo se le llama a la calidad de la pantalla ante el cliente
+> «No se puede poner calidad incell se le dice calidad certificada si el cliente quiere otra calidad se le ofrece oled es la calidad igual a la original»
+- **Al cliente NUNCA se le dice «Incell».** Se le dice **«Calidad certificada»**.
+- Si el cliente quiere otra calidad, se le ofrece **OLED**, que es **la calidad igual a la original**.
+- **Dónde aplica:** tarjetas, textos de WhatsApp, catálogos, flyers, la web, anuncios y la IA de respuestas (`whatsapp-ia-responder`).
+- **Internamente** (Info Plus, código, bitácoras) puede seguir diciendo Incell.
+- Ya lo aplica «Cotizar pantalla» (`crm-cotizar-pantalla.js`):
+  - etiqueta «Calidad certificada»;
+  - con la OLED del mismo modelo, si existe, ofrecida en la tarjeta y en el texto.
+
 ## ACTUALIZACIÓN 8 oct 2026 (23:39 RD) — Precios de pantallas Incell de iPhone cambiados en Info Plus (nivel 1) — APLICADO
 Sterling aprobó la nueva lista de pantallas (ver «Marketing — datos confirmados») y autorizó por escrito aplicarla en Info Plus: «Te autorizo que aplica los precios en Info Plus».
 - **Qué se cambió:** SOLO el **nivel de precio 1** de **24 artículos** (pantallas Incell JK/ZY + las LCD de 7/8 que no dicen Incell), con **contado = crédito = mínimo = precio nuevo** (regla de Info Plus: dentro de un nivel reescribe las 3 casillas juntas). No se tocaron OLED, «Original», micas/glass/bisel, ni los niveles 2 y 3.

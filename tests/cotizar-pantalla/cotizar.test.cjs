@@ -9,6 +9,7 @@ const COSTO_TRAMPA = 12345; // si este número aparece en algún lado, la capa f
 
 const ARTICULOS = [
   { codigo: '2155', descripcion: 'PANTALLA IPHONE 11 PRO MAX ZY INCELL', costo: COSTO_TRAMPA, precio_especial: 1800, niveles: { 1: 2500, 2: 1800, 3: 1700 } },
+  { codigo: '2156', descripcion: 'PANTALLA IPHONE 11 PRO MAX OLED', costo: COSTO_TRAMPA, niveles: { 1: 4000, 2: 3200 } },
   { codigo: '2901', descripcion: 'PANTALLA IPHONE 15 PRO ZY INCELL', costo: COSTO_TRAMPA, niveles: { 1: 6500, 2: 5000 } },
   { codigo: '3001', descripcion: 'PANTALLA IPHONE 13 OLED ORIGINAL', costo: COSTO_TRAMPA, niveles: { 1: 9000, 2: 7000 } },
   { codigo: '1500', descripcion: 'PANTALLA SAMSUNG A10S SM-A107 ORIGINAL NEGRA', costo: COSTO_TRAMPA, niveles: { 1: 1500, 2: 900 } },
@@ -71,8 +72,8 @@ function servidor() {
     await prueba('lista sin micas, flex ni precios en cero; sin costo', async () => {
       const l = await pc.evaluate(() => BcCotizarPantalla.pantallas().map(x => x.nombre + '|' + x.tipo + '|' + x.precio));
       assert.ok(!l.some(x => /mica|glass|flex|huawei/i.test(x)), l.join(','));
-      assert.strictEqual(l.length, 7);
-      assert.ok(l.includes('iPhone 11 Pro Max|Incell|2500') && l.includes('Moto E6||1200'));
+      assert.strictEqual(l.length, 8);
+      assert.ok(l.includes('iPhone 11 Pro Max|Calidad certificada|2500') && l.includes('iPhone 11 Pro Max|OLED · igual a la original|4000') && l.includes('Moto E6||1200'));
     });
     await prueba('botón en la barra (PC)', async () => { assert.ok(await pc.$('#btnWaCotizar')); });
     await pc.click('#btnWaCotizar');
@@ -80,9 +81,11 @@ function servidor() {
     await pc.fill('#bcCotQ', '11 pro');
     await pc.waitForTimeout(150);
     await pc.screenshot({ path: path.join(SALIDA, 'pc-buscador.png') });
-    await prueba('búsqueda «11 pro» → un resultado con nivel 1', async () => {
+    await prueba('búsqueda «11 pro» → certificada y OLED, sin decir «Incell»', async () => {
       const t = await pc.$$eval('#bcCot .it', b => b.map(x => x.innerText.replace(/\s+/g, ' ')));
-      assert.strictEqual(t.length, 1); assert.ok(/iPhone 11 Pro Max/.test(t[0]) && /2,500/.test(t[0]), t[0]);
+      assert.strictEqual(t.length, 2, t.join(' | '));
+      assert.ok(t.some(x => /Calidad certificada/.test(x) && /2,500/.test(x)) && t.some(x => /OLED/.test(x) && /4,000/.test(x)), t.join(' | '));
+      assert.ok(!t.some(x => /incell/i.test(x)));
     });
     await pc.fill('#bcCotQ', '');
     await pc.click('#bcCot [data-f="Samsung"]');
@@ -90,13 +93,14 @@ function servidor() {
       const t = await pc.$$eval('#bcCot .it', b => b.map(x => x.innerText));
       assert.strictEqual(t.length, 1); assert.ok(/Samsung A10s/.test(t[0]));
     });
-    await pc.click('#bcCot [data-f="Todas"]'); await pc.fill('#bcCotQ', '11 pro max');
+    await pc.click('#bcCot [data-f="Todas"]'); await pc.fill('#bcCotQ', '11 pro max certificada');
     await pc.click('#bcCot .it');
     await pc.waitForTimeout(600);
     await pc.screenshot({ path: path.join(SALIDA, 'pc-tarjeta.png') });
     await prueba('el costo nunca aparece en pantalla', async () => {
       const txt = await pc.evaluate(() => document.body.innerText);
       assert.ok(!/12[,.]?345/.test(txt) && !/1[,.]?800/.test(txt), 'apareció el costo o el por mayor');
+      assert.ok(!/incell/i.test(txt), 'apareció la palabra Incell');
     });
     await pc.click('#bcCot [data-a="enviar"]');
     await pc.waitForFunction(() => window.__adj);
@@ -104,6 +108,7 @@ function servidor() {
       const a = await pc.evaluate(() => window.__adj);
       assert.strictEqual(a.tipo, 'imagen'); assert.strictEqual(a.type, 'image/jpeg'); assert.ok(a.size > 30000, 'imagen muy pequeña');
       assert.ok(/iphone-11-pro-max/.test(a.nombre)); assert.ok(/RD\$2,500/.test(a.caption) && !/12,345/.test(a.caption), a.caption);
+      assert.ok(/calidad certificada/.test(a.caption) && /OLED, que es la calidad igual a la original, te sale en RD\$4,000/.test(a.caption) && !/incell/i.test(a.caption), a.caption);
       assert.ok(!(await pc.$('#bcCot.on')), 'el modal debió cerrarse');
     });
     await prueba('candado: rechaza campos extra (costo)', async () => {
@@ -119,7 +124,7 @@ function servidor() {
       await pc.evaluate(() => { _waHiloId = 'hilo-1'; });
     });
     // tarjetas de muestra para el dueño
-    for (const [i, c] of [[1, { codigo: '2155', nombre: 'iPhone 11 Pro Max', tipo: 'Incell', precio: 2500 }], [2, { codigo: '1500', nombre: 'Samsung A10s', tipo: 'Original', precio: 1500 }], [3, { codigo: '1335', nombre: 'Redmi Note 8', tipo: 'Original', precio: 1200 }]]) {
+    for (const [i, c] of [[1, { codigo: '2155', nombre: 'iPhone 11 Pro Max', tipo: 'Calidad certificada', precio: 2500 }], [4, { codigo: '2156', nombre: 'iPhone 11 Pro Max', tipo: 'OLED · igual a la original', precio: 4000 }], [2, { codigo: '1500', nombre: 'Samsung A10s', tipo: 'Original', precio: 1500 }], [3, { codigo: '1335', nombre: 'Redmi Note 8', tipo: 'Original', precio: 1200 }]]) {
       const data = await pc.evaluate(async c => { const r = await BcCotizarPantalla.recursos(); const cv = BcCotizarPantalla.pintarTarjeta(document.createElement('canvas'), c, r); return cv.toDataURL('image/png'); }, c);
       fs.writeFileSync(path.join(SALIDA, 'tarjeta-' + i + '.png'), Buffer.from(data.split(',')[1], 'base64'));
     }

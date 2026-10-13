@@ -9,9 +9,9 @@
   "porPagina": 20,
   "grupos": [
     {
-      "nombre": "iPhone Incell",
+      "nombre": "iPhone · calidad certificada",
       "subtitulo": "Precio instalada",
-      "nota": "Pantallas Incell. Las OLED se cotizan aparte.",
+      "nota": "Calidad certificada. Si prefieres OLED, la calidad igual a la original, pregúntanos.",
       "items": [
         { "nombre": "iPhone 7 / 8", "precio": 1000 },
         { "nombre": "iPhone X / XS", "precio": 1200 },

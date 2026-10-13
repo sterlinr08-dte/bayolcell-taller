@@ -37,7 +37,7 @@ El logo se toma de `assets/logo.png` del repo.
 ## 2. Reglas del dueño que aplican
 
 - **Precios:** solo **nivel 1** (cliente final). **Nunca** poner costos, nivel 2 (por mayor) ni nivel 3 en nada público. Este repo es **público**: tampoco se suben costos aquí.
-- **Pantallas iPhone:** los precios publicados son solo para **Incell**; las OLED se cotizan aparte. **Android:** los precios nuevos ya están publicados en Info Plus. Leerlos en vivo; no copiar listas viejas.
+- **Pantallas iPhone:** los precios publicados son de la calidad que internamente es Incell. **Al cliente NUNCA se le dice «Incell»: se le dice «Calidad certificada»** (regla del dueño, 13-oct-2026). Si quiere otra calidad, se le ofrece **OLED, la calidad igual a la original**. **Android:** los precios nuevos ya están publicados en Info Plus. Leerlos en vivo; no copiar listas viejas.
 - **Antes de cambiar precios en Info Plus:** tabla «precio de hoy → precio nuevo», OK del dueño por escrito, solo el nivel 1 (contado = crédito = mínimo) y verificar después.
 - **No publicar ni mandar nada** a redes, clientes o anuncios sin que el dueño lo apruebe.
 - **Anuncios pagados de Meta:** nada de fotos de antes y después, ni promesas de salud.
@@ -100,7 +100,7 @@ Se copiaron del repo NEXUS PRO las skills que el taller no tenía. Las licencias
 ---
 
 ## 5. Ideas para el catálogo (cuando el dueño lo pida)
-- **Carrusel de Instagram:** portada + una página por marca (iPhone Incell, Samsung, Motorola, Xiaomi/Redmi, etc.) + la última página con las sucursales y el WhatsApp.
+- **Carrusel de Instagram:** portada + una página por marca (iPhone · calidad certificada, Samsung, Motorola, Xiaomi/Redmi, etc.) + la última página con las sucursales y el WhatsApp.
 - **PDF para WhatsApp:** el mismo `salida/catalogo.pdf`, para mandarlo directo a los clientes.
 - **Web:** el «Catálogo Web» del sistema (`catalogo-publico`, precio en vivo de nivel 1) ya existe para celulares y se puede extender a pantallas con `categoria='pantalla'` (ver `CLAUDE.md`, «Catálogo Web público»). Así el precio se actualiza solo.
 - **Reel corto:** «Pantallas desde RD$1,000» con los modelos pasando y la llamada a WhatsApp (receta b).

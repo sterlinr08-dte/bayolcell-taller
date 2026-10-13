@@ -41,10 +41,13 @@
   // Nombre para el cliente: «PANTALLA IPHONE 11 PRO MAX ZY INCELL» → «iPhone 11 Pro Max» + tipo «Incell».
   var MARCAS = { IPHONE: 'iPhone', IPAD: 'iPad', SAMSUNG: 'Samsung', GALAXY: 'Galaxy', MOTO: 'Moto', MOTOROLA: 'Motorola', REDMI: 'Redmi', XIAOMI: 'Xiaomi', POCO: 'Poco', HUAWEI: 'Huawei', HONOR: 'Honor', ALCATEL: 'Alcatel', ZTE: 'ZTE', TCL: 'TCL', LG: 'LG', NOKIA: 'Nokia', TECNO: 'Tecno', INFINIX: 'Infinix', ITEL: 'Itel', OPPO: 'Oppo', VIVO: 'Vivo', REALME: 'Realme', COOLPAD: 'Coolpad', BLADE: 'Blade', NOTE: 'Note', PLUS: 'Plus', PRO: 'Pro', MAX: 'Max', MINI: 'Mini', LITE: 'Lite', ULTRA: 'Ultra', PRIME: 'Prime', PLAY: 'Play', POWER: 'Power', STYLUS: 'Stylus', EDGE: 'Edge', SPARK: 'Spark', HOT: 'Hot', SMART: 'Smart' };
   var RUIDO = /^(PANTALLA|PANT\.?|DISPLAY|LCD|COMPLETA|CON|SIN|MARCO|JK|ZY|GX|RJ|HE|PREMIUM|CALIDAD|ORIGINAL|ORIG|OLED|INCELL|IN-CELL|TFT|AMOLED|HARD|SOFT|NEGRA|NEGRO|BLANCA|BLANCO|DORADA|DORADO|AZUL|ROJA|ROJO|VERDE|MORADO|ROSADA|GRIS|PLATEADA|COLOR|NUEVA|NUEVO|Y|DE|PARA|TOUCH|TACTIL|MODULO|\/)$/;
+  // Regla del dueño (13-oct-2026): al cliente NUNCA se le dice «Incell»; se le dice «Calidad certificada».
+  // Si quiere otra calidad se le ofrece OLED, que es la calidad igual a la original.
+  var CERTIFICADA = 'Calidad certificada', OLED = 'OLED · igual a la original';
   function tipoDe(desc) {
     var d = String(desc || '').toUpperCase();
-    if (/\bOLED\b|\bAMOLED\b/.test(d)) return 'OLED';
-    if (/\bIN-?CELL\b/.test(d)) return 'Incell';
+    if (/\bOLED\b|\bAMOLED\b/.test(d)) return OLED;
+    if (/\bIN-?CELL\b/.test(d)) return CERTIFICADA;
     if (/\bORIGINAL\b|\bORIG\b/.test(d)) return 'Original';
     return '';
   }
@@ -84,7 +87,8 @@
       return ES_PANTALLA.test(d) && !NO_PANTALLA.test(d);
     }).map(function (a) {
       var nombre = nombreLimpio(a.descripcion);
-      return { codigo: String(a.codigo), nombre: nombre, tipo: tipoDe(a.descripcion), precio: precioNivel1(a), _busca: norm(a.descripcion + ' ' + nombre + ' ' + a.codigo), _marca: marcaDe(nombre) };
+      var tipo = tipoDe(a.descripcion);
+      return { codigo: String(a.codigo), nombre: nombre, tipo: tipo, precio: precioNivel1(a), _busca: norm(a.descripcion + ' ' + nombre + ' ' + tipo + ' ' + a.codigo), _marca: marcaDe(nombre) };
     }).filter(function (x) {
       if (!(x.precio > 0)) return false;
       var k = x.nombre + '|' + x.tipo + '|' + x.precio;
@@ -162,6 +166,12 @@
       ctx.strokeStyle = 'rgba(245,245,247,.35)'; ctx.lineWidth = 2; redondo(ctx, 60, y + 36, tw, 64, 32); ctx.stroke();
       ctx.fillStyle = '#F5F5F7'; ctx.textBaseline = 'middle'; ctx.fillText(c.tipo, 90, y + 69); ctx.textBaseline = 'alphabetic';
       y += 100;
+      var alt = oledDe(c);
+      if (alt) {
+        ctx.fillStyle = '#9A9AA3'; ctx.font = '600 30px ' + FI;
+        ctx.fillText('¿Prefieres OLED, igual a la original? RD$' + dinero(alt.precio), 60, y + 44);
+        y += 50;
+      }
     }
     // precio
     var py = Math.max(y + 260, H - 300);
@@ -183,9 +193,20 @@
     return canvas;
   }
   function redondo(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+  function oledDe(c) {
+    // Busca la OLED del mismo modelo para ofrecerla cuando se cotiza la de calidad certificada.
+    if (!c || c.tipo !== CERTIFICADA) return null;
+    var o = estado.lista.filter(function (x) { return x.tipo === OLED && norm(x.nombre) === norm(c.nombre) && x.precio > 0; })[0];
+    return o ? { precio: o.precio } : null;
+  }
   function textoCliente(c) {
-    var tipo = c.tipo ? ' (' + c.tipo + ')' : '';
-    return 'Hola 👋 El cambio de pantalla de tu ' + c.nombre + tipo + ' te sale en RD$' + dinero(c.precio) + ' con instalación. ¿Quieres que te la reservemos?';
+    var calidad = c.tipo === CERTIFICADA ? ' en calidad certificada' : c.tipo === OLED ? ' en OLED, la calidad igual a la original,' : c.tipo ? ' (' + c.tipo + ')' : '';
+    var t = 'Hola 👋 El cambio de pantalla de tu ' + c.nombre + calidad + ' te sale en RD$' + dinero(c.precio) + ' con instalación.';
+    if (c.tipo === CERTIFICADA) {
+      var o = oledDe(c);
+      t += o ? ' Si prefieres OLED, que es la calidad igual a la original, te sale en RD$' + dinero(o.precio) + '.' : ' Si prefieres otra calidad, también tenemos OLED, que es igual a la original.';
+    }
+    return t + ' ¿Quieres que te la reservemos?';
   }
 
   // ---------- interfaz ----------
