@@ -702,7 +702,7 @@ footer.pie-pag{border-top:1px solid var(--line);padding:28px 0 120px;color:var(-
   $('tabCel').onclick = () => verTab('celulares');
   $('tabPan').onclick = () => { verTab('pantallas'); setTimeout(() => $('qPan').focus({preventScroll:true}), 30); };
   document.querySelectorAll('[data-ir]').forEach(a => a.addEventListener('click', () => verTab(a.dataset.ir)));
-  if (location.hash === '#pantallas'){ verTab('pantallas'); setTimeout(() => $('catalogo').scrollIntoView(), 50); }
+  if (location.hash === '#pantallas'){ verTab('pantallas'); setTimeout(() => $('qPan').scrollIntoView({ block:'center' }), 300); } // enlace directo (botón de la portada): el buscador queda a la vista
 
   cargarCelulares();
 })();
