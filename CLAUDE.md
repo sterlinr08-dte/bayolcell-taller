@@ -1010,3 +1010,9 @@ Pedido del dueño: «Hazme el catálogo de pantallas».
 - **Página `pantallas.html`** (pública, mismo estilo oscuro de `catalogo.html`): buscador, filtros por marca y por tipo (Incell/OLED/Original/Disponibles), lista agrupada por marca con precio «instalada» (el dueño confirmó el 13 oct que el nivel 1 de pantallas incluye la instalación), «Disponible / Por encargo», y botón de WhatsApp que pregunta a qué sucursal escribir (Santiago 809-707-2493, Moca 829-670-9694, Navarrete 809-893-4412) con el mensaje armado. Barra fija «¿No encuentras tu modelo? Consultar».
 - **Taller → Catálogo Web:** tarjeta «Catálogo de pantallas» arriba (`_catPantallasHTML`, `_catTogglePantallas`): Publicar/Ocultar, Ver página, Copiar enlace, Compartir.
 - Regla aprendida: al desplegar una Edge con la herramienta, pasar el CÓDIGO REAL en `content` (un despliegue con texto de relleno tumbó el catálogo de celulares ~40 s).
+
+## 13 oct 2026 — Almacén 7 = NAVARRETE (confirmado por el dueño)
+- Info Plus tiene el **almacén/localidad 7 = Navarrete** (ventas con `codlocalidad=7` desde el 24 ago 2026). Lista completa: 1 Santiago · 3 Garantía China · 4 Moca · 5 2do nivel · 6 Taller · **7 Navarrete**.
+- En `listaarticulos?...&codalmacen=7` la existencia viene en el campo **`cantidad`** (no `existencia`).
+- ⚠️ La sync (`infoplus-sync` → `infoplus_articulos.existencias`) y `infoplus-existencia-art` todavía **NO leen el almacén 7** (solo 1,3,4,5,6): por eso en el taller el stock de Navarrete no aparece. Pendiente con OK del dueño: agregar el 7.
+- Lista de pantallas en stock de Navarrete (13 oct): 114 modelos, hecha con el kit (`herramientas/kit-catalogo/catalogo/`, datos `navarrete.json`, no se suben al repo), precio nivel 1 con instalación; iPhone solo Incell.
