@@ -42,8 +42,8 @@
   var MARCAS = { IPHONE: 'iPhone', IPAD: 'iPad', SAMSUNG: 'Samsung', GALAXY: 'Galaxy', MOTO: 'Moto', MOTOROLA: 'Motorola', REDMI: 'Redmi', XIAOMI: 'Xiaomi', POCO: 'Poco', HUAWEI: 'Huawei', HONOR: 'Honor', ALCATEL: 'Alcatel', ZTE: 'ZTE', TCL: 'TCL', LG: 'LG', NOKIA: 'Nokia', TECNO: 'Tecno', INFINIX: 'Infinix', ITEL: 'Itel', OPPO: 'Oppo', VIVO: 'Vivo', REALME: 'Realme', COOLPAD: 'Coolpad', BLADE: 'Blade', NOTE: 'Note', PLUS: 'Plus', PRO: 'Pro', MAX: 'Max', MINI: 'Mini', LITE: 'Lite', ULTRA: 'Ultra', PRIME: 'Prime', PLAY: 'Play', POWER: 'Power', STYLUS: 'Stylus', EDGE: 'Edge', SPARK: 'Spark', HOT: 'Hot', SMART: 'Smart' };
   var RUIDO = /^(PANTALLA|PANT\.?|DISPLAY|LCD|COMPLETA|CON|SIN|MARCO|JK|ZY|GX|RJ|HE|PREMIUM|CALIDAD|ORIGINAL|ORIG|OLED|INCELL|IN-CELL|TFT|AMOLED|HARD|SOFT|NEGRA|NEGRO|BLANCA|BLANCO|DORADA|DORADO|AZUL|ROJA|ROJO|VERDE|MORADO|ROSADA|GRIS|PLATEADA|COLOR|NUEVA|NUEVO|Y|DE|PARA|TOUCH|TACTIL|MODULO|\/)$/;
   // Regla del dueño (13-oct-2026): al cliente NUNCA se le dice «Incell»; se le dice «Calidad certificada».
-  // La OLED es «calidad parecida a la original» y se ofrece SOLO si el cliente pide otra calidad (no va sola en la tarjeta).
-  var CERTIFICADA = 'Calidad certificada', OLED = 'OLED · parecida a la original';
+  // La OLED se llama solamente «Calidad Soft OLED» y se ofrece SOLO si el cliente pide otra calidad (no va sola en la tarjeta).
+  var CERTIFICADA = 'Calidad certificada', OLED = 'Calidad Soft OLED';
   function tipoDe(desc) {
     var d = String(desc || '').toUpperCase();
     if (/\bOLED\b|\bAMOLED\b/.test(d)) return OLED;
@@ -188,7 +188,7 @@
   }
   function redondo(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
   function textoCliente(c) {
-    var calidad = c.tipo === CERTIFICADA ? ' en calidad certificada' : c.tipo === OLED ? ' en OLED, calidad parecida a la original,' : c.tipo ? ' (' + c.tipo + ')' : '';
+    var calidad = c.tipo === CERTIFICADA ? ' en calidad certificada' : c.tipo === OLED ? ' en calidad Soft OLED' : c.tipo ? ' (' + c.tipo + ')' : '';
     return 'Hola 👋 El cambio de pantalla de tu ' + c.nombre + calidad + ' te sale en RD$' + dinero(c.precio) + ' con instalación. ¿Quieres que te la reservemos?';
   }
 

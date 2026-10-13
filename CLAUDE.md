@@ -958,11 +958,12 @@ Antes de cualquier tarea, revisar las skills disponibles (`.claude/skills/` de e
 - Si el cliente **pide** otra calidad, se le ofrece **OLED**, que es **calidad parecida a la original**. Corrección del dueño del mismo día: «No si tengo oled calidad parecida a la original no tenía que ponerlo».
   - **No** es «igual» a la original: es «parecida».
   - **No** se ofrece sola en tarjetas ni textos: solo cuando el cliente pregunta por otra calidad.
+  - **Nombre ante el cliente (13 oct, «Ponlo solamente calidad soft oled»):** solamente **«Calidad Soft OLED»**, sin agregarle «parecida a la original» ni otro texto.
 - **Dónde aplica:** tarjetas, textos de WhatsApp, catálogos, flyers, la web, anuncios y la IA de respuestas (`whatsapp-ia-responder`).
 - **Internamente** (Info Plus, código, bitácoras) puede seguir diciendo Incell.
 - Ya lo aplica «Cotizar pantalla» (`crm-cotizar-pantalla.js`):
   - etiqueta «Calidad certificada»;
-  - la OLED solo aparece si el empleado la elige, con la etiqueta «OLED · parecida a la original».
+  - la OLED solo aparece si el empleado la elige, con la etiqueta «Calidad Soft OLED».
 
 ## ACTUALIZACIÓN 8 oct 2026 (23:39 RD) — Precios de pantallas Incell de iPhone cambiados en Info Plus (nivel 1) — APLICADO
 Sterling aprobó la nueva lista de pantallas (ver «Marketing — datos confirmados») y autorizó por escrito aplicarla en Info Plus: «Te autorizo que aplica los precios en Info Plus».

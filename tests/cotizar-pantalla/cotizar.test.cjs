@@ -73,7 +73,7 @@ function servidor() {
       const l = await pc.evaluate(() => BcCotizarPantalla.pantallas().map(x => x.nombre + '|' + x.tipo + '|' + x.precio));
       assert.ok(!l.some(x => /mica|glass|flex|huawei/i.test(x)), l.join(','));
       assert.strictEqual(l.length, 8);
-      assert.ok(l.includes('iPhone 11 Pro Max|Calidad certificada|2500') && l.includes('iPhone 11 Pro Max|OLED · parecida a la original|4000') && l.includes('Moto E6||1200'));
+      assert.ok(l.includes('iPhone 11 Pro Max|Calidad certificada|2500') && l.includes('iPhone 11 Pro Max|Calidad Soft OLED|4000') && l.includes('Moto E6||1200'));
     });
     await prueba('botón en la barra (PC)', async () => { assert.ok(await pc.$('#btnWaCotizar')); });
     await pc.click('#btnWaCotizar');
@@ -125,7 +125,7 @@ function servidor() {
       await pc.evaluate(() => { _waHiloId = 'hilo-1'; });
     });
     // tarjetas de muestra para el dueño
-    for (const [i, c] of [[1, { codigo: '2155', nombre: 'iPhone 11 Pro Max', tipo: 'Calidad certificada', precio: 2500 }], [4, { codigo: '2156', nombre: 'iPhone 11 Pro Max', tipo: 'OLED · parecida a la original', precio: 4000 }], [2, { codigo: '1500', nombre: 'Samsung A10s', tipo: 'Original', precio: 1500 }], [3, { codigo: '1335', nombre: 'Redmi Note 8', tipo: 'Original', precio: 1200 }]]) {
+    for (const [i, c] of [[1, { codigo: '2155', nombre: 'iPhone 11 Pro Max', tipo: 'Calidad certificada', precio: 2500 }], [4, { codigo: '2156', nombre: 'iPhone 11 Pro Max', tipo: 'Calidad Soft OLED', precio: 4000 }], [2, { codigo: '1500', nombre: 'Samsung A10s', tipo: 'Original', precio: 1500 }], [3, { codigo: '1335', nombre: 'Redmi Note 8', tipo: 'Original', precio: 1200 }]]) {
       const data = await pc.evaluate(async c => { const r = await BcCotizarPantalla.recursos(); const cv = BcCotizarPantalla.pintarTarjeta(document.createElement('canvas'), c, r); return cv.toDataURL('image/png'); }, c);
       fs.writeFileSync(path.join(SALIDA, 'tarjeta-' + i + '.png'), Buffer.from(data.split(',')[1], 'base64'));
     }
