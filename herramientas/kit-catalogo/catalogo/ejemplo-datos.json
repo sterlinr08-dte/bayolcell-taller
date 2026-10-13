@@ -1,0 +1,31 @@
+{
+  "_nota": "EJEMPLO para probar la plantilla. Los precios reales se leen EN VIVO de Info Plus (nivel 1) antes de cada catálogo. Solo nombre, precio y, si se quiere, código. Nunca costos ni niveles 2/3.",
+  "logo": "../../../assets/logo.png",
+  "fecha": "OCT 2026",
+  "kicker": "Cambio de pantalla",
+  "titulo": "Precios de <em>pantallas</em>",
+  "whatsapp": "Escríbenos por WhatsApp",
+  "nota": "Precio con instalación. Sujeto a disponibilidad.",
+  "porPagina": 20,
+  "grupos": [
+    {
+      "nombre": "iPhone Incell",
+      "subtitulo": "Precio instalada",
+      "nota": "Pantallas Incell. Las OLED se cotizan aparte.",
+      "items": [
+        { "nombre": "iPhone 7 / 8", "precio": 1000 },
+        { "nombre": "iPhone X / XS", "precio": 1200 },
+        { "nombre": "iPhone XR", "precio": 1500 },
+        { "nombre": "iPhone 11", "precio": 2000 }
+      ]
+    },
+    {
+      "nombre": "Android",
+      "subtitulo": "Precio instalada",
+      "items": [
+        { "nombre": "Ejemplo modelo A", "precio": 1000 },
+        { "nombre": "Ejemplo modelo B", "precio": 1500 }
+      ]
+    }
+  ]
+}
