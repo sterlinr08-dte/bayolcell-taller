@@ -250,7 +250,8 @@ footer.pie-pag{border-top:1px solid var(--line);padding:28px 0 120px;color:var(-
 .viaje{position:fixed;z-index:90;left:0;top:0;width:118px;height:92px;pointer-events:none;will-change:transform}
 .viaje svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;filter:drop-shadow(0 10px 14px rgba(0,0,0,.5))}
 .viaje .rueda{transform-box:fill-box;transform-origin:center}
-.viaje .cosa{position:absolute;bottom:36px;width:38px;height:38px;border-radius:11px;background:var(--panel2);display:grid;place-items:center;overflow:hidden;box-shadow:0 4px 10px rgba(0,0,0,.35),0 0 0 1.5px rgba(255,255,255,.18)}
+.viaje .carga{position:absolute;inset:0;clip-path:polygon(22px -140px,110px -140px,110px 30px,101px 62px,31px 62px,22px 30px)}
+.viaje .cosa{position:absolute;top:31px;width:30px;height:30px;border-radius:9px;background:var(--panel2);display:grid;place-items:center;overflow:hidden;box-shadow:0 4px 10px rgba(0,0,0,.35),0 0 0 1.5px rgba(255,255,255,.18)}
 .viaje .cosa img{width:88%;height:88%;object-fit:contain}
 .viaje .raya{position:absolute;right:100%;transform-origin:right;height:3px;border-radius:3px;background:linear-gradient(90deg,transparent,rgba(255,59,65,.9));opacity:0}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
@@ -598,8 +599,8 @@ footer.pie-pag{border-top:1px solid var(--line);padding:28px 0 120px;color:var(-
     const r = btn.getBoundingClientRect(), W = 118, H = 92;
     const x0 = Math.min(innerWidth - W - 8, Math.max(8, r.left + r.width/2 - W/2)), y0 = r.top - H + 14;
     const v = document.createElement('div'); v.className = 'viaje';
-    const cosas = cartLista().reverse().slice(0,3).map((x,i) => `<span class="cosa" style="left:${20+i*24}px;z-index:${3-i}">${x.it.foto_url?`<img src="${esc(x.it.foto_url)}" alt="">`:''}</span>`).join('');
-    v.innerHTML = '<span class="raya" style="top:38px;width:46px"></span><span class="raya" style="top:52px;width:70px"></span><span class="raya" style="top:66px;width:38px"></span>' + cosas
+    const cosas = cartLista().reverse().slice(0,3).map((x,i) => `<span class="cosa" style="left:${30+i*24}px;z-index:${3-i}">${x.it.foto_url?`<img src="${esc(x.it.foto_url)}" alt="">`:''}</span>`).join('');
+    v.innerHTML = '<span class="raya" style="top:38px;width:46px"></span><span class="raya" style="top:52px;width:70px"></span><span class="raya" style="top:66px;width:38px"></span><span class="carga">' + cosas + '</span>'
       + '<svg viewBox="0 0 118 92" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
       + '<path d="M4 22h14l6 8" stroke="#ff3b41" stroke-width="5"/>'
       + '<path d="M20 30h92l-10 34H30Z" fill="rgba(227,30,36,.28)" stroke="#ff3b41" stroke-width="5"/>'
@@ -619,9 +620,9 @@ footer.pie-pag{border-top:1px solid var(--line);padding:28px 0 120px;color:var(-
       { transform: at(x0+lejos, y0-6, 'rotate(2deg)') }
     ], { duration:D, easing:'ease-in-out' });
     v.querySelectorAll('.cosa').forEach((c,i) => c.animate([
-      { transform:'translateY(-90px) rotate(-18deg) scale(.7)', opacity:0 },
-      { transform:'translateY(-90px) rotate(-18deg) scale(.7)', opacity:0, offset:.33+i*.05 },
-      { transform:'translateY(4px) rotate(4deg) scale(1)', opacity:1, offset:.47+i*.05 },
+      { transform:'translateY(-80px) rotate(-18deg) scale(.8)', opacity:0 },
+      { transform:'translateY(-80px) rotate(-18deg) scale(.8)', opacity:0, offset:.33+i*.05 },
+      { transform:'translateY(3px) rotate(4deg) scale(1)', opacity:1, offset:.47+i*.05 },
       { transform:'translateY(0) rotate(0) scale(1)', opacity:1, offset:.55+i*.05 },
       { transform:'translateY(0) rotate(0) scale(1)', opacity:1 }
     ], { duration:D, easing:'cubic-bezier(.3,.6,.4,1)', fill:'both' }));
