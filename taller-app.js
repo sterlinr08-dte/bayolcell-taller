@@ -14970,7 +14970,42 @@ async function renderCatalogo() {
 async function _catCargar() {
     try { const { data } = await supabaseClient.from('catalogo_items').select('*').eq('categoria', 'celular').order('destacado', { ascending: false }).order('orden', { ascending: true }); _catData = data || []; }
     catch(e) { logError('cargar catalogo', e); _catData = []; }
-    try { const { data: ct } = await supabaseClient.from('config_taller').select('catalogo_publicado').limit(1).maybeSingle(); _catPublicado = !!(ct && ct.catalogo_publicado); } catch(e) {}
+    try { const { data: ct } = await supabaseClient.from('config_taller').select('catalogo_publicado,catalogo_pantallas_publicado').limit(1).maybeSingle(); _catPublicado = !!(ct && ct.catalogo_publicado); _catPantPublicado = !!(ct && ct.catalogo_pantallas_publicado); } catch(e) {}
+}
+// Catálogo de PANTALLAS (13 oct 2026): sale solo de Info Plus (todas las pantallas con precio nivel 1). Aquí solo se publica/oculta.
+const CAT_PANT_URL = 'https://bayolcell.com/pantallas.html';
+let _catPantPublicado = false;
+async function _catTogglePantallas(val) {
+    try {
+        const cid = (cache.configTaller && cache.configTaller.id) || 1;
+        const { error } = await supabaseClient.from('config_taller').update({ catalogo_pantallas_publicado: !!val }).eq('id', cid);
+        if(error) throw error;
+        _catPantPublicado = !!val;
+        toast(val ? 'Catálogo de pantallas PUBLICADO en la web.' : 'Catálogo de pantallas ocultado de la web.');
+        _catRender();
+    } catch(e) { logError('cat pantallas publicar', e); toastError(getFriendlyError(e)); }
+}
+function _catPantallasHTML() {
+    const n = (cache.infoplusArticulos || []).filter(a => /^\s*PANTALLA/i.test(a.descripcion || '') && _catPrecioN1(a.codigo) > 0).length;
+    const estado = _catPantPublicado
+        ? `<span style="font-weight:800;color:#166534;"><i class="ti ti-circle-check-filled"></i> Publicado</span>`
+        : `<span style="font-weight:800;color:#b91c1c;"><i class="ti ti-eye-off"></i> Oculto</span>`;
+    const boton = _catPantPublicado
+        ? `<button class="btn btn-light" style="color:#b91c1c;" onclick="_catTogglePantallas(false)"><i class="ti ti-eye-off"></i> Ocultar de la web</button>`
+        : `<button class="btn btn-blue" onclick="_catTogglePantallas(true)"><i class="ti ti-world"></i> Publicar en la web</button>`;
+    return `<div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:14px;margin-bottom:16px;box-shadow:0 8px 24px -18px rgba(15,23,42,.35);">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <i class="ti ti-device-mobile-cog" style="font-size:22px;color:#e31e24;"></i>
+          <b style="font-size:15px;">Catálogo de pantallas</b> ${estado}
+          <span style="flex:1;"></span>
+          <span style="font-size:12px;color:#475569;">${n} pantallas con precio nivel 1</span>
+        </div>
+        <div style="font-size:12.5px;color:#475569;margin:8px 0 10px;">Sale <b>solo</b> de Info Plus: todas las pantallas con precio de cliente final (nivel 1), agrupadas por marca. Si cambias un precio en Info Plus, cambia aquí solo.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">${boton}
+          <a class="btn btn-light" href="${CAT_PANT_URL}" target="_blank" rel="noopener"><i class="ti ti-external-link"></i> Ver página</a>
+          <button class="btn btn-light" onclick="try{navigator.clipboard.writeText(CAT_PANT_URL);toast('Enlace copiado: '+CAT_PANT_URL);}catch(e){toast(CAT_PANT_URL);}"><i class="ti ti-copy"></i> Copiar enlace</button>
+          <a class="btn btn-light" style="color:#16a34a;" href="https://wa.me/?text=${encodeURIComponent('Mira los precios de pantallas de BAYOL CELL: ' + CAT_PANT_URL)}" target="_blank" rel="noopener"><i class="ti ti-brand-whatsapp"></i> Compartir</a>
+        </div></div>`;
 }
 async function _catTogglePublicado(val) {
     try {
@@ -15004,7 +15039,7 @@ function _catRender() {
     const pubBanner = _catPublicado
         ? `<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;"><span style="font-weight:800;color:#166534;font-size:14px;"><i class="ti ti-circle-check-filled"></i> Catálogo PUBLICADO en la web</span><span style="flex:1;min-width:120px;font-size:12px;color:#475569;">Los clientes lo ven en el enlace.</span><button class="btn" style="background:#b91c1c;color:#fff;" onclick="_catTogglePublicado(false)"><i class="ti ti-eye-off"></i> Ocultar de la web</button></div>`
         : `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;"><span style="font-weight:800;color:#b91c1c;font-size:14px;"><i class="ti ti-eye-off"></i> Catálogo OCULTO (no se ve en la web)</span><span style="flex:1;min-width:120px;font-size:12px;color:#475569;">Actívalo para que los clientes lo vean.</span><button class="btn btn-blue" onclick="_catTogglePublicado(true)"><i class="ti ti-world"></i> Publicar en la web</button></div>`;
-    cont.innerHTML = pubBanner + `
+    cont.innerHTML = _catPantallasHTML() + pubBanner + `
         <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:12.5px;color:#1e40af;">
           <i class="ti ti-info-circle"></i> Los <b>precios salen solos de Info Plus (nivel 1 · cliente final)</b> y se actualizan solos. Aquí eliges cuáles celulares se muestran y les subes la <b>foto</b>.
         </div>
