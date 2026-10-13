@@ -30,7 +30,9 @@ El logo se toma de `assets/logo.png` del repo.
 4. **Mirar cada página** antes de entregar: que ningún nombre se corte, que no falten precios y que se lea en el celular.
 5. **Enseñarle las páginas al dueño.** No se publica ni se manda a clientes sin su OK.
 
-`porPagina` (20 por defecto) dice cuántos artículos van en cada página. Con más de 20, la página se parte («Android · 1/3»).
+La plantilla **mide** cuánto cabe en cada página (dos columnas) y sigue en otra cuando se llena («Samsung · 1/6»); ya no usa `porPagina`. Espera a que carguen las letras antes de medir y achica el título si no cabe en una línea. La variante de un modelo (pequeña/grande, con marco, incell, OLED) va debajo del nombre en letra pequeña: `"nombre": "Samsung A14 5G<small>Grande</small>"`.
+
+Primer catálogo real (13 oct 2026): 31 modelos de iPhone Incell + 419 de Android, 27 páginas, precios nivel 1 leídos en vivo.
 
 ---
 
