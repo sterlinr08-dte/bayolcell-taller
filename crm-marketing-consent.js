@@ -201,6 +201,12 @@
     financing.src='crm-financiamiento-quick-reply.js?v=20260923-1';
     financing.onerror=function(){console.warn('[CRM] No se pudo cargar el atajo de financiamiento.');};
     document.head.appendChild(financing);
+
+    // Cotizar pantalla (13-oct-2026): precio de nivel 1 de un modelo en una tarjeta para el cliente. Capa aislada.
+    var cotizar=document.createElement('script');
+    cotizar.src='crm-cotizar-pantalla.js?v=20261013-c1';
+    cotizar.onerror=function(){console.warn('[CRM] No se pudo cargar Cotizar pantalla.');};
+    document.head.appendChild(cotizar);
   }
 
   function armarCargaDiferidaCrm(){
