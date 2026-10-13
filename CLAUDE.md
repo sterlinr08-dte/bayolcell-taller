@@ -955,12 +955,14 @@ Antes de cualquier tarea, revisar las skills disponibles (`.claude/skills/` de e
 ## REGLA DEL DUEÑO (13 oct 2026) — Cómo se le llama a la calidad de la pantalla ante el cliente
 > «No se puede poner calidad incell se le dice calidad certificada si el cliente quiere otra calidad se le ofrece oled es la calidad igual a la original»
 - **Al cliente NUNCA se le dice «Incell».** Se le dice **«Calidad certificada»**.
-- Si el cliente quiere otra calidad, se le ofrece **OLED**, que es **la calidad igual a la original**.
+- Si el cliente **pide** otra calidad, se le ofrece **OLED**, que es **calidad parecida a la original**. Corrección del dueño del mismo día: «No si tengo oled calidad parecida a la original no tenía que ponerlo».
+  - **No** es «igual» a la original: es «parecida».
+  - **No** se ofrece sola en tarjetas ni textos: solo cuando el cliente pregunta por otra calidad.
 - **Dónde aplica:** tarjetas, textos de WhatsApp, catálogos, flyers, la web, anuncios y la IA de respuestas (`whatsapp-ia-responder`).
 - **Internamente** (Info Plus, código, bitácoras) puede seguir diciendo Incell.
 - Ya lo aplica «Cotizar pantalla» (`crm-cotizar-pantalla.js`):
   - etiqueta «Calidad certificada»;
-  - con la OLED del mismo modelo, si existe, ofrecida en la tarjeta y en el texto.
+  - la OLED solo aparece si el empleado la elige, con la etiqueta «OLED · parecida a la original».
 
 ## ACTUALIZACIÓN 8 oct 2026 (23:39 RD) — Precios de pantallas Incell de iPhone cambiados en Info Plus (nivel 1) — APLICADO
 Sterling aprobó la nueva lista de pantallas (ver «Marketing — datos confirmados») y autorizó por escrito aplicarla en Info Plus: «Te autorizo que aplica los precios en Info Plus».
