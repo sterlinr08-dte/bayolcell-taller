@@ -42,6 +42,9 @@ async function preparar(page, base, llamadas) {
     return route.abort();
   });
 }
+async function textoVisible(page, sel) { // el precio rueda con tiras de dígitos: se lee su valor real (aria-label)
+  return page.$eval(sel, el => { const c = el.cloneNode(true); c.querySelectorAll('.num[aria-label]').forEach(n => { n.textContent = n.getAttribute('aria-label').replace(/^RD\$\s*/, ''); }); return c.textContent; });
+}
 (async () => {
   fs.mkdirSync(SALIDA, { recursive: true });
   const srv = await servidor(), base = 'http://127.0.0.1:' + srv.address().port + '/';
@@ -66,7 +69,9 @@ async function preparar(page, base, llamadas) {
         assert.ok(!(await page.$('.card.agotado')), 'salió un agotado con el filtro activo');
       });
       await prueba(nom + ': destacado del héroe', async () => { assert.ok(await page.isVisible('#dest')); assert.ok((await page.textContent('#destPrecio')).includes('RD$')); });
-      await page.click('.card .mas'); await page.click('.card .mas');
+      await page.click('.card .mas');
+      await prueba(nom + ': el botón confirma «✓ Agregado»', async () => { assert.ok(/Agregado/.test(await page.textContent('.card .mas.hecho'))); });
+      await page.waitForTimeout(950); await page.click('.card .mas');
       await prueba(nom + ': carrito con 2 y total', async () => {
         assert.strictEqual(await page.textContent(movil ? '#barraN' : '#carritoN'), '2');
         const ls = await page.evaluate(() => JSON.parse(localStorage.getItem('bayol_cat_cart'))); assert.ok(Object.values(ls)[0].qty === 2);
@@ -79,13 +84,18 @@ async function preparar(page, base, llamadas) {
       await page.locator('#catalogo').scrollIntoViewIfNeeded(); await page.waitForTimeout(300);
       await page.screenshot({ path: path.join(SALIDA, nom + '-pantallas.png') });
       await prueba(nom + ': pantallas solo por búsqueda, sin «Incell» y sin OLED si no la pide', async () => {
-        const txt = await page.textContent('#resPan');
+        const txt = await textoVisible(page, '#resPan');
         assert.ok(/IPHONE 11 PRO MAX/i.test(txt) && /2,500/.test(txt) && /Calidad certificada/.test(txt), txt);
         assert.ok(!/incell/i.test(txt) && !/OLED/.test(txt) && !/4,000/.test(txt), txt);
         assert.ok(llamadas.every(q => q.replace(/\s/g, '').length >= 2), 'se pidió sin búsqueda: ' + llamadas.join('|'));
       });
       await page.fill('#qPan', 'iphone 11 oled'); await page.waitForTimeout(700);
-      await prueba(nom + ': la Soft OLED sale solo si el cliente la busca', async () => { assert.ok(/Calidad Soft OLED/.test(await page.textContent('#resPan'))); });
+      await prueba(nom + ': la Soft OLED sale solo si el cliente la busca', async () => { assert.ok(/Calidad Soft OLED/.test(await textoVisible(page, '#resPan'))); });
+      await prueba(nom + ': el precio rueda hasta el valor correcto (y se lee bien)', async () => {
+        await page.waitForTimeout(1300);
+        const r = await page.$eval('#resPan .pr .num', el => ({ label: el.getAttribute('aria-label'), vis: [...el.querySelectorAll('.d')].map(d => { const t = d.firstElementChild.style.transform; return t; }) }));
+        assert.strictEqual(r.label, 'RD$ 2,500'); assert.deepStrictEqual(r.vis, ['translateY(-2em)', 'translateY(-5em)', 'translateY(0em)', 'translateY(0em)']);
+      });
       await prueba(nom + ': el botón de agendar lleva el modelo y el precio', async () => {
         await page.fill('#qPan', '11 pro max'); await page.waitForTimeout(700);
         const href = await page.getAttribute('#resPan .go', 'href'); const msg = decodeURIComponent(href.split('text=')[1]);

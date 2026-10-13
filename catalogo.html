@@ -207,6 +207,14 @@ footer.pie-pag{border-top:1px solid var(--line);padding:28px 0 120px;color:var(-
 .hoja .tot{display:flex;justify-content:space-between;align-items:baseline;font:800 30px var(--disp)}
 .hoja .tot span{font:600 14px var(--body);color:var(--mute)}
 @media (max-width:640px){.hoja{top:auto;width:100vw;max-height:88vh;border-radius:24px 24px 0 0;border-left:0;transform:translateY(100%)}}
+/* micro-animaciones (referencia: carrusel «Claude Motion», 13-oct-2026): contador que rueda y botón que confirma */
+.rodillo{display:inline-flex;align-items:flex-end;line-height:1;vertical-align:baseline}
+.rodillo .d{display:inline-block;height:1em;overflow:hidden}
+.rodillo .d>span{display:flex;flex-direction:column;transition:transform .9s cubic-bezier(.2,1.18,.32,1)}
+.rodillo .d i{display:block;height:1em;font-style:normal}
+.rodillo .s{display:inline-block}
+.card .mas.hecho{background:var(--ok);color:#03170b;animation:pop .38s cubic-bezier(.2,1.4,.4,1)}
+@keyframes pop{0%{transform:scale(.92)}60%{transform:scale(1.05)}100%{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
@@ -339,6 +347,17 @@ footer.pie-pag{border-top:1px solid var(--line);padding:28px 0 120px;color:var(-
   const wa = (texto, numero) => 'https://wa.me/' + (numero||WA_VENTAS) + (texto ? '?text=' + encodeURIComponent(texto) : '');
   const abrirWa = url => { if (matchMedia('(pointer:coarse)').matches) location.href = url; else { const w = open(url, '_blank'); if (w) w.opener = null; else location.href = url; } };
   const QUIETO = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Contador que rueda dígito por dígito hasta el precio (estilo «0 → 12,480»). Sin animación si el usuario pide menos movimiento.
+  function rodar(el, n){
+    const txt = dinero(n);
+    el.setAttribute('aria-label', 'RD$ ' + txt);
+    if (QUIETO){ el.textContent = txt; return; }
+    el.innerHTML = '<span class="rodillo" aria-hidden="true">' + [...txt].map(c => /\d/.test(c)
+      ? '<span class="d"><span>' + [0,1,2,3,4,5,6,7,8,9].map(k => '<i>'+k+'</i>').join('') + '</span></span>'
+      : '<span class="s">'+c+'</span>').join('') + '</span>';
+    const tiras = el.querySelectorAll('.d>span'), dig = [...txt].filter(c => /\d/.test(c));
+    requestAnimationFrame(() => requestAnimationFrame(() => tiras.forEach((t,i) => { t.style.transitionDelay = (i*55)+'ms'; t.style.transform = 'translateY(-'+dig[i]+'em)'; })));
+  }
   $('anio').textContent = new Date().getFullYear();
   ['waTop','waBarra'].forEach(id => $(id).href = wa('Hola Bayol Cell 👋'));
 
@@ -431,7 +450,7 @@ footer.pie-pag{border-top:1px solid var(--line);padding:28px 0 120px;color:var(-
   }
   $('grid').addEventListener('click', e => {
     const m = e.target.closest('[data-mas]'), p = e.target.closest('[data-pregunta]');
-    if (m) mas(m.dataset.mas);
+    if (m) mas(m.dataset.mas, true);
     if (p){ const it = itemDe(p.dataset.pregunta); if (it){ const det=[it.capacidad,it.color].filter(Boolean).join(' · '); abrirWa(wa('Hola Bayol Cell, me interesa el '+it.nombreBonito+(det?' ('+det+')':'')+(it.precio>0?' de RD$'+dinero(it.precio):'')+'. ¿Está disponible?')); } }
   });
   $('qCel').addEventListener('input', pintarGrid);
@@ -455,7 +474,7 @@ footer.pie-pag{border-top:1px solid var(--line);padding:28px 0 120px;color:var(-
     iDest = i; const x = DEST[i], img = $('destFoto');
     $('destNombre').textContent = modeloBase(x.nombreBonito);
     $('destCap').textContent = [x.capacidad, x.color].filter(Boolean).join(' · ');
-    $('destPrecio').innerHTML = '<small>RD$</small>'+dinero(x.precio);
+    $('destPrecio').innerHTML = '<small>RD$</small><span class="num"></span>'; rodar($('destPrecio').querySelector('.num'), x.precio);
     $('destMarca').textContent = x.marca === 'Otras' ? 'Bayol' : x.marca;
     $('destPedir').onclick = () => abrirWa(wa('Hola Bayol Cell, quiero el '+x.nombreBonito+(x.capacidad?' ('+x.capacidad+')':'')+' de RD$'+dinero(x.precio)+'. ¿Está disponible?'));
     $('destNombres').querySelectorAll('button').forEach((b,k) => { b.classList.toggle('on', k===i); b.setAttribute('aria-selected', k===i); });
@@ -465,7 +484,15 @@ footer.pie-pag{border-top:1px solid var(--line);padding:28px 0 120px;color:var(-
 
   // ---------- carrito / pedido (misma llave que el catálogo anterior) ----------
   function cartLista(){ return Object.keys(CART).map(k => ({ it:itemDe(k), qty:CART[k].qty })).filter(x => x.it && x.qty>0); }
-  function mas(cod){ const it = itemDe(cod); if (!it || !it.disponible) return; CART[cod] = { qty:((CART[cod]||{}).qty||0)+1 }; guardarCart(); pintarGrid(); pintarCarrito(true); }
+  function mas(cod, confirmar){
+    const it = itemDe(cod); if (!it || !it.disponible) return;
+    CART[cod] = { qty:((CART[cod]||{}).qty||0)+1 }; guardarCart(); pintarGrid(); pintarCarrito(true);
+    if (!confirmar) return;
+    // El botón confirma con «✓ Agregado» un momento y vuelve (estilo «Click → done»).
+    const b = document.querySelector('#grid [data-mas="'+CSS.escape(String(cod))+'"]'); if (!b) return;
+    const antes = b.innerHTML; b.classList.add('hecho'); b.innerHTML = '✓ Agregado';
+    setTimeout(() => { if (b.isConnected){ b.classList.remove('hecho'); b.innerHTML = antes; } }, 900);
+  }
   function menos(cod){ if (!CART[cod]) return; CART[cod].qty--; if (CART[cod].qty<=0) delete CART[cod]; guardarCart(); pintarGrid(); pintarCarrito(); pintarHoja(); }
   function pintarCarrito(pulso){
     const l = cartLista(), n = l.reduce((s,x)=>s+x.qty,0), t = l.reduce((s,x)=>s+(Number(x.it.precio)||0)*x.qty,0), b = $('btnCarrito');
@@ -500,10 +527,11 @@ footer.pie-pag{border-top:1px solid var(--line);padding:28px 0 120px;color:var(-
     const box = $('resPan');
     if (error){ box.innerHTML = `<div class="info">Ahora mismo no podemos mostrar el precio. <a href="${wa('Hola, ¿cuánto sale el cambio de pantalla de mi '+q+'?')}" target="_blank" rel="noopener">Pregúntanos por WhatsApp</a> y te respondemos enseguida.</div>`; return; }
     if (!items.length){ box.innerHTML = `<div class="info">No encontramos «${esc(q)}». Puede que lo tengamos con otro nombre: <a href="${wa('Hola, ¿cuánto sale el cambio de pantalla de mi '+q+'?')}" target="_blank" rel="noopener">escríbenos tu modelo por WhatsApp</a>.</div>`; return; }
-    box.innerHTML = items.map(x => `<div class="r"><h4>${esc(x.nombre)}</h4><div class="pr"><small class="rd">RD$</small>${dinero(x.precio)}<small>con instalación</small></div>
+    box.innerHTML = items.map(x => `<div class="r"><h4>${esc(x.nombre)}</h4><div class="pr"><small class="rd">RD$</small><span class="num" data-v="${x.precio}">${dinero(x.precio)}</span><small>con instalación</small></div>
       ${x.calidad?`<span class="cal">${esc(x.calidad)}</span>`:''}
       <a class="btn go" href="${wa('Hola Bayol Cell, quiero cambiar la pantalla de mi '+x.nombre+(x.calidad?' ('+x.calidad.toLowerCase()+')':'')+', RD$'+dinero(x.precio)+'. ¿Cuándo puedo pasar?')}" target="_blank" rel="noopener">Agendar por WhatsApp</a></div>`).join('')
       + `<div class="info">¿Buscas otra calidad? <a href="${wa('Hola, para mi '+items[0].nombre+' ¿qué otra calidad de pantalla tienen?')}" target="_blank" rel="noopener">Pregúntanos por WhatsApp</a>.</div>`;
+    box.querySelectorAll('.pr .num').forEach(el => rodar(el, Number(el.dataset.v)));
   }
   async function buscarPantalla(){
     const q = $('qPan').value.trim(), mio = ++seqPan;
