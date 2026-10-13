@@ -11,7 +11,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 const TOKEN_SHA256 = "6431e3a3e6d7df4776a8247047182cbd2647b92e1ffb89a24ecf43587d5fd4fb";
 const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 const ALMACENES: Record<string, string> = { "1": "Oficina Santiago", "3": "Garantía China", "4": "Moca", "5": "Almacén 2do nivel", "6": "Taller" };
-const LOCALIDADES: Record<string, string> = { "1": "Santiago", "4": "Moca", "7": "Localidad 7" };
+const LOCALIDADES: Record<string, string> = { "1": "Santiago", "4": "Moca", "7": "Navarrete" };
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { "Content-Type": "application/json" } });
 const sha = async (t: string) => [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t)))].map((x) => x.toString(16).padStart(2, "0")).join("");
 const fechaOk = (s: unknown) => typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s);
