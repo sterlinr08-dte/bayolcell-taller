@@ -16,7 +16,7 @@ const PAGINAS: [string, number][][] = [
 ];
 const fmt = (n: number) => n.toLocaleString('en-US');
 
-const Fondo: React.FC = () => {
+export const Fondo: React.FC = () => {
   const f = useCurrentFrame();
   const a = f * 0.4;
   return (
@@ -31,7 +31,7 @@ const Fondo: React.FC = () => {
   );
 };
 
-const Logo: React.FC<{size?: number; top?: number}> = ({size = 300, top = 90}) => (
+export const Logo: React.FC<{size?: number; top?: number}> = ({size = 300, top = 90}) => (
   <div style={{position: 'absolute', top, left: 0, right: 0, display: 'flex', justifyContent: 'center'}}>
     <div style={{width: size, height: size * 0.42, backgroundImage: `url(${staticFile('logo.png')})`, backgroundSize: `${size}px auto`, backgroundPosition: `center ${-size * 0.285}px`, backgroundRepeat: 'no-repeat'}} />
   </div>
@@ -150,7 +150,7 @@ const Beneficios: React.FC = () => {
   );
 };
 
-const Cierre: React.FC = () => {
+export const Cierre: React.FC = () => {
   const f = useCurrentFrame();
   const {fps} = useVideoConfig();
   const b = spring({frame: f - 14, fps, config: {damping: 10}});

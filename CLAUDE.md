@@ -1018,3 +1018,9 @@ Pedido del dueño: «Hazme el catálogo de pantallas».
 - ⚠️ La sync (`infoplus-sync` → `infoplus_articulos.existencias`) y `infoplus-existencia-art` todavía **NO leen el almacén 7** (solo 1,3,4,5,6): por eso en el taller el stock de Navarrete no aparece. Pendiente con OK del dueño: agregar el 7.
 - ⚠️ **Artículos SIN precio nivel 1 son invisibles por API.** `listaarticulos` (con o sin `todos=true`/`detallado=true`, con o sin `codarticulo`) NO devuelve artículos que no tienen precio de cliente final, aunque tengan existencia. Ej.: pantallas **«CLASE A»** (solo tienen nivel 2 = por mayor): el dueño confirmó que el 1222 SÍ hay en Navarrete, pero la API no lo trae en ningún almacén. `inventario` tampoco sirve (2,125 filas sin código de artículo e ignora los filtros). ⏳ Pedir a Dagoberto que `listaarticulos` incluya los artículos con existencia aunque el nivel 1 esté en 0.
 - Lista de pantallas en stock de Navarrete (13 oct): 114 modelos, hecha con el kit (`herramientas/kit-catalogo/catalogo/`, datos `navarrete.json`, no se suben al repo), precio nivel 1 con instalación; iPhone solo Incell.
+
+## 13 oct 2026 — Videos nivel profesional (Remotion + FFmpeg + Whisper + Silero)
+- Pedido del dueño: hacer todos sus videos a nivel profesional con estas herramientas. Guía y estándar en `videos-remotion/README.md`.
+- `videos-remotion/herramientas/preparar.sh` instala todo en una sesión nueva; `procesar.py VIDEO NOMBRE` corta silencios (Silero), deja vertical y −14 LUFS (FFmpeg) y saca cada palabra con su segundo (Whisper `small`, español).
+- Composición `Reel` (`src/Reel.tsx`): video + subtítulos animados (3 palabras, claves en rojo) + logo + título + cierre con WhatsApp. Composición `Cristal`: video de 30 s de precios de cristal.
+- Apple Vision (seguir la cara) NO funciona aquí (solo Mac). Los videos del dueño no se suben al repo (`public/*/` ignorado).
