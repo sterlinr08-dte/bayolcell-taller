@@ -215,6 +215,44 @@ footer.pie-pag{border-top:1px solid var(--line);padding:28px 0 120px;color:var(-
 .rodillo .s{display:inline-block}
 .card .mas.hecho{background:var(--ok);color:#03170b;animation:pop .38s cubic-bezier(.2,1.4,.4,1)}
 @keyframes pop{0%{transform:scale(.92)}60%{transform:scale(1.05)}100%{transform:scale(1)}}
+/* Animaciones del catálogo anterior (rescatadas 13-oct-2026, pedido del dueño): la foto vuela al pedido,
+   asoma un resumen y, al enviar, un carrito recoge el pedido antes de abrir WhatsApp. */
+@keyframes recibe{30%{transform:scale(1.18) rotate(-6deg)}60%{transform:scale(.95) rotate(3deg)}}
+@keyframes sube{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.carrito.recibe,.barra .ped.recibe{animation:recibe .5s cubic-bezier(.34,1.4,.5,1)}
+.vuelo{position:fixed;z-index:90;left:0;top:0;pointer-events:none;object-fit:contain;filter:drop-shadow(0 14px 14px rgba(0,0,0,.45));will-change:transform,opacity}
+.asoma{position:fixed;z-index:56;right:max(16px,env(safe-area-inset-right));bottom:84px;width:min(320px,calc(100vw - 24px));padding:12px;border-radius:22px;background:rgba(18,20,25,.94);backdrop-filter:saturate(1.4) blur(18px);-webkit-backdrop-filter:saturate(1.4) blur(18px);border:1px solid var(--line2);box-shadow:0 24px 50px -20px rgba(0,0,0,.8);color:var(--bone);text-align:left;font-family:var(--body);cursor:pointer;opacity:0;visibility:hidden;transform:translateY(10px) scale(.98);transform-origin:bottom right;transition:opacity .25s var(--ease),transform .35s cubic-bezier(.34,1.4,.5,1),visibility 0s linear .25s}
+.asoma.si{opacity:1;visibility:visible;transform:none;transition-delay:0s}
+@media (max-width:820px){.asoma{right:12px;bottom:calc(84px + env(safe-area-inset-bottom))}}
+.asoma-cab{display:flex;align-items:center;justify-content:space-between;gap:8px;font:700 11px var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--mute);padding:0 2px 8px}
+.asoma-cab b{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--red);color:#fff;font:800 11px/20px var(--body);letter-spacing:0;text-align:center}
+.asoma-fila{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;padding:6px 2px;border-top:1px solid var(--line)}
+.asoma-fila .mini{width:44px;height:44px;border-radius:12px;background:var(--panel2);display:grid;place-items:center;overflow:hidden}
+.asoma-fila .mini img{width:86%;height:86%;object-fit:contain}
+.asoma-fila h4{font:700 13px var(--body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.asoma-fila small{font:500 11.5px var(--body);color:var(--mute)}
+.asoma-fila>b{font:800 13.5px var(--body)}
+.asoma-fila.nueva{animation:sube .45s var(--ease) both}
+.asoma-mas{font-size:12px;color:var(--mute);padding:4px 2px 0}
+.asoma-pie{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;padding-top:10px;border-top:1px solid var(--line2)}
+.asoma-pie b{font:800 20px var(--disp)}
+.asoma-pie span{display:inline-flex;align-items:center;height:36px;padding:0 16px;border-radius:999px;background:var(--red);color:#fff;font:700 13.5px var(--body)}
+@keyframes waBrillo{to{transform:translateX(120%)}}
+@keyframes waHunde{25%{transform:scale(.93)}60%{transform:scale(1.04)}}
+@keyframes waOnda{from{transform:scale(0);opacity:1}to{transform:scale(16);opacity:0}}
+#enviarPedido{position:relative;overflow:hidden;isolation:isolate}
+#enviarPedido::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.5) 50%,transparent 70%);transform:translateX(-120%)}
+#enviarPedido.envia{animation:waHunde .55s cubic-bezier(.34,1.4,.5,1)}
+#enviarPedido.envia::after{animation:waBrillo .7s var(--ease) .1s}
+#enviarPedido .onda{position:absolute;z-index:-1;width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:50%;background:rgba(255,255,255,.5);pointer-events:none;animation:waOnda .6s var(--ease) forwards}
+#enviarPedido .ok{display:inline-flex;align-items:center;gap:9px;animation:sube .4s var(--ease) both}
+#enviarPedido .ok svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.viaje{position:fixed;z-index:90;left:0;top:0;width:118px;height:92px;pointer-events:none;will-change:transform}
+.viaje svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;filter:drop-shadow(0 10px 14px rgba(0,0,0,.5))}
+.viaje .rueda{transform-box:fill-box;transform-origin:center}
+.viaje .cosa{position:absolute;bottom:36px;width:38px;height:38px;border-radius:11px;background:var(--panel2);display:grid;place-items:center;overflow:hidden;box-shadow:0 4px 10px rgba(0,0,0,.35),0 0 0 1.5px rgba(255,255,255,.18)}
+.viaje .cosa img{width:88%;height:88%;object-fit:contain}
+.viaje .raya{position:absolute;right:100%;transform-origin:right;height:3px;border-radius:3px;background:linear-gradient(90deg,transparent,rgba(255,59,65,.9));opacity:0}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
@@ -316,6 +354,7 @@ footer.pie-pag{border-top:1px solid var(--line);padding:28px 0 120px;color:var(-
 </div>
 
 <button class="carrito" id="btnCarrito" type="button" aria-label="Ver tu pedido"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6h15l-1.5 9h-12z"/><path d="M6 6 5 3H2"/><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/></svg><span id="carritoTxt">Tu pedido</span><span class="cant" id="carritoN">0</span></button>
+<button type="button" class="asoma" id="asoma" aria-hidden="true" tabindex="-1"></button>
 <div class="hoja-fondo" id="hojaFondo"></div>
 <aside class="hoja" id="hoja" aria-label="Tu pedido" aria-hidden="true">
   <header><h3>Tu pedido</h3><button class="cerrar" id="cerrarHoja" type="button" aria-label="Cerrar">✕</button></header>
@@ -486,13 +525,52 @@ footer.pie-pag{border-top:1px solid var(--line);padding:28px 0 120px;color:var(-
   function cartLista(){ return Object.keys(CART).map(k => ({ it:itemDe(k), qty:CART[k].qty })).filter(x => x.it && x.qty>0); }
   function mas(cod, confirmar){
     const it = itemDe(cod); if (!it || !it.disponible) return;
-    CART[cod] = { qty:((CART[cod]||{}).qty||0)+1 }; guardarCart(); pintarGrid(); pintarCarrito(true);
+    // Antes de repintar: dónde está la foto de la tarjeta (para que vuele desde ahí).
+    const fotoAntes = confirmar && !QUIETO ? document.querySelector('#grid [data-mas="'+CSS.escape(String(cod))+'"]')?.closest('.card')?.querySelector('.foto img') : null;
+    const origen = fotoAntes ? { r:fotoAntes.getBoundingClientRect(), copia:fotoAntes.cloneNode(true) } : null;
+    CART[cod] = { qty:((CART[cod]||{}).qty||0)+1 }; guardarCart(); pintarGrid(); pintarCarrito(!confirmar);
     if (!confirmar) return;
+    volar(origen); asomar(cod);
     // El botón confirma con «✓ Agregado» un momento y vuelve (estilo «Click → done»).
     const b = document.querySelector('#grid [data-mas="'+CSS.escape(String(cod))+'"]'); if (!b) return;
     const antes = b.innerHTML; b.classList.add('hecho'); b.innerHTML = '✓ Agregado';
     setTimeout(() => { if (b.isConnected){ b.classList.remove('hecho'); b.innerHTML = antes; } }, 900);
   }
+  // Destino visible del pedido: el botón flotante en computadora y «Tu pedido» de la barra en celular.
+  const destinoPedido = () => [$('btnCarrito'), $('barraPedido')].find(el => el.getBoundingClientRect().width > 0);
+  function recibir(el){ if (!el || QUIETO) return; el.classList.remove('recibe','pulso'); void el.offsetWidth; el.classList.add('recibe'); }
+  // La foto vuela en curva hasta «Tu pedido», que rebota al recibirla (como en el catálogo anterior).
+  function volar(origen){
+    const destino = destinoPedido();
+    if (QUIETO || !origen || !destino || !document.body.animate){ recibir(destino); return; }
+    const o = origen.r, dr = destino.getBoundingClientRect();
+    if (!o.width || o.bottom < 0 || o.top > innerHeight){ recibir(destino); return; }
+    const w = Math.min(o.width, 150) || 60, h = w * ((o.height / o.width) || 1);
+    const x0 = o.left + o.width/2 - w/2, y0 = o.top + o.height/2 - h/2;
+    const x1 = dr.left + dr.width/2 - w/2, y1 = dr.top + dr.height/2 - h/2;
+    const cy = Math.min(y0, y1) - 110, pasos = 16, kf = [];
+    for (let i=0;i<=pasos;i++){ const t=i/pasos, u=1-t; const x = x0+(x1-x0)*t, y = u*u*y0 + 2*u*t*cy + t*t*y1;
+      kf.push({ transform:`translate(${x}px,${y}px) rotate(${-18*t}deg) scale(${1-.82*t})`, opacity: t>.9 ? 1-(t-.9)*8 : 1 }); }
+    const v = origen.copia; v.className = 'vuelo'; v.removeAttribute('loading'); v.alt = '';
+    v.style.width = w+'px'; v.style.height = h+'px';
+    document.body.appendChild(v);
+    v.animate(kf, { duration:720, easing:'cubic-bezier(.45,0,.25,1)' }).finished.catch(()=>{}).then(() => { v.remove(); recibir(destino); });
+  }
+  // Asoma un resumen del pedido (últimos 3) junto a «Tu pedido»; se esconde solo o al desplazarse.
+  let asomaT = 0, asomaY = 0;
+  function asomar(cod){
+    if (QUIETO) return;
+    const a = $('asoma'), filas = cartLista().reverse(), n = filas.reduce((s,x)=>s+x.qty,0), t = filas.reduce((s,x)=>s+(Number(x.it.precio)||0)*x.qty,0);
+    a.innerHTML = `<div class="asoma-cab">Tu pedido <b>${n}</b></div>` + filas.slice(0,3).map(x => `<div class="asoma-fila${String(x.it.codigo)===String(cod)?' nueva':''}"><div class="mini">${x.it.foto_url?`<img src="${esc(x.it.foto_url)}" alt="">`:''}</div><div><h4>${esc(x.it.nombreBonito)}</h4><small>${x.qty} × RD$${dinero(x.it.precio)}</small></div><b>RD$${dinero((Number(x.it.precio)||0)*x.qty)}</b></div>`).join('')
+      + (filas.length>3 ? `<p class="asoma-mas">+ ${filas.length-3} ${filas.length-3===1?'artículo más':'artículos más'}</p>` : '')
+      + `<div class="asoma-pie"><b>RD$${dinero(t)}</b><span>Ver pedido</span></div>`;
+    a.setAttribute('aria-label', 'Ver pedido: '+n+(n===1?' artículo':' artículos')+', RD$'+dinero(t));
+    a.classList.add('si'); a.setAttribute('aria-hidden','false'); a.tabIndex = 0; asomaY = scrollY;
+    clearTimeout(asomaT); asomaT = setTimeout(esconderAsoma, 2600);
+  }
+  function esconderAsoma(){ clearTimeout(asomaT); const a = $('asoma'); a.classList.remove('si'); a.setAttribute('aria-hidden','true'); a.tabIndex = -1; }
+  $('asoma').onclick = () => { esconderAsoma(); abrirHoja(); };
+  addEventListener('scroll', () => { if ($('asoma').classList.contains('si') && Math.abs(scrollY - asomaY) > 60) esconderAsoma(); }, { passive:true }); // un roce no lo esconde
   function menos(cod){ if (!CART[cod]) return; CART[cod].qty--; if (CART[cod].qty<=0) delete CART[cod]; guardarCart(); pintarGrid(); pintarCarrito(); pintarHoja(); }
   function pintarCarrito(pulso){
     const l = cartLista(), n = l.reduce((s,x)=>s+x.qty,0), t = l.reduce((s,x)=>s+(Number(x.it.precio)||0)*x.qty,0), b = $('btnCarrito');
@@ -512,13 +590,73 @@ footer.pie-pag{border-top:1px solid var(--line);padding:28px 0 120px;color:var(-
   function cerrarHoja(){ $('hoja').classList.remove('on'); $('hoja').setAttribute('aria-hidden','true'); $('hojaFondo').classList.remove('on'); }
   $('btnCarrito').onclick = abrirHoja; $('barraPedido').onclick = abrirHoja; $('cerrarHoja').onclick = cerrarHoja; $('hojaFondo').onclick = cerrarHoja;
   addEventListener('keydown', e => { if (e.key === 'Escape') cerrarHoja(); });
-  $('enviarPedido').onclick = () => {
-    const l = cartLista(); if (!l.length) return;
+  // Al enviar: el botón se hunde, un brillo lo cruza y un carrito recoge el pedido; luego abre WhatsApp.
+  let enviando = false;
+  const ICON_OK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  function llevarPedido(btn){
+    if (!document.body.animate) return;
+    const r = btn.getBoundingClientRect(), W = 118, H = 92;
+    const x0 = Math.min(innerWidth - W - 8, Math.max(8, r.left + r.width/2 - W/2)), y0 = r.top - H + 14;
+    const v = document.createElement('div'); v.className = 'viaje';
+    const cosas = cartLista().reverse().slice(0,3).map((x,i) => `<span class="cosa" style="left:${20+i*24}px;z-index:${3-i}">${x.it.foto_url?`<img src="${esc(x.it.foto_url)}" alt="">`:''}</span>`).join('');
+    v.innerHTML = '<span class="raya" style="top:38px;width:46px"></span><span class="raya" style="top:52px;width:70px"></span><span class="raya" style="top:66px;width:38px"></span>' + cosas
+      + '<svg viewBox="0 0 118 92" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+      + '<path d="M4 22h14l6 8" stroke="#ff3b41" stroke-width="5"/>'
+      + '<path d="M20 30h92l-10 34H30Z" fill="rgba(227,30,36,.28)" stroke="#ff3b41" stroke-width="5"/>'
+      + '<path d="M44 34v26M64 34v26M84 34v26" stroke="#ff3b41" stroke-width="2.5" opacity=".55"/>'
+      + '<path d="M30 64l-4 10h78" stroke="#ff3b41" stroke-width="5"/>'
+      + '<g class="rueda"><circle cx="38" cy="83" r="7" fill="#0A0A0A" stroke="#ff3b41" stroke-width="4"/><path d="M38 78v10" stroke="#ff3b41" stroke-width="2"/></g>'
+      + '<g class="rueda"><circle cx="96" cy="83" r="7" fill="#0A0A0A" stroke="#ff3b41" stroke-width="4"/><path d="M96 78v10" stroke="#ff3b41" stroke-width="2"/></g></svg>';
+    document.body.appendChild(v);
+    const D = 2300, lejos = innerWidth - x0 + 40, at = (x, y, extra='') => `translate(${x}px,${y}px) ${extra}`;
+    const anim = v.animate([
+      { transform: at(-W-20, y0, 'rotate(0)'), easing:'cubic-bezier(.2,.7,.35,1)' },
+      { transform: at(x0+10, y0, 'rotate(5deg)'), offset:.24 },
+      { transform: at(x0-3, y0+1, 'rotate(-2deg)'), offset:.29 },
+      { transform: at(x0, y0, 'rotate(0)'), offset:.33 },
+      { transform: at(x0, y0), offset:.62 },
+      { transform: at(x0-14, y0+2, 'rotate(-5deg)'), offset:.69, easing:'cubic-bezier(.5,0,.9,.5)' },
+      { transform: at(x0+lejos, y0-6, 'rotate(2deg)') }
+    ], { duration:D, easing:'ease-in-out' });
+    v.querySelectorAll('.cosa').forEach((c,i) => c.animate([
+      { transform:'translateY(-90px) rotate(-18deg) scale(.7)', opacity:0 },
+      { transform:'translateY(-90px) rotate(-18deg) scale(.7)', opacity:0, offset:.33+i*.05 },
+      { transform:'translateY(4px) rotate(4deg) scale(1)', opacity:1, offset:.47+i*.05 },
+      { transform:'translateY(0) rotate(0) scale(1)', opacity:1, offset:.55+i*.05 },
+      { transform:'translateY(0) rotate(0) scale(1)', opacity:1 }
+    ], { duration:D, easing:'cubic-bezier(.3,.6,.4,1)', fill:'both' }));
+    v.querySelectorAll('.rueda').forEach(g => g.animate([
+      { transform:'rotate(0)', easing:'cubic-bezier(.2,.7,.35,1)' }, { transform:'rotate(720deg)', offset:.26 },
+      { transform:'rotate(720deg)', offset:.69, easing:'cubic-bezier(.6,0,.9,.6)' }, { transform:'rotate(1620deg)' }
+    ], { duration:D }));
+    v.querySelectorAll('.raya').forEach((l,i) => l.animate([
+      { opacity:1, transform:'scaleX(1.3)' }, { opacity:0, transform:'scaleX(.3)', offset:.22+i*.02 },
+      { opacity:0, transform:'scaleX(.2)', offset:.72+i*.03 }, { opacity:1, transform:'scaleX(1)', offset:.86 },
+      { opacity:0, transform:'scaleX(1.4)' }
+    ], { duration:D }));
+    anim.finished.catch(()=>{}).then(() => v.remove());
+  }
+  function restaurarEnviar(){ const b = $('enviarPedido'); if (b.dataset.html) b.innerHTML = b.dataset.html; b.classList.remove('envia'); enviando = false; }
+  addEventListener('pageshow', e => { if (e.persisted) restaurarEnviar(); });
+  $('enviarPedido').onclick = ev => {
+    const l = cartLista(); if (!l.length || enviando) return;
     const t = l.reduce((s,x)=>s+(Number(x.it.precio)||0)*x.qty,0);
     let msg = 'Hola BAYOL CELL, quiero pedir:\n\n';
     l.forEach(x => { msg += '• ' + x.it.nombreBonito + (x.it.capacidad?(' ('+x.it.capacidad+(x.it.color?(' · '+x.it.color):'')+')'):'') + ' x' + x.qty + ' — RD$' + dinero((Number(x.it.precio)||0)*x.qty) + '\n'; });
     msg += '\nTotal: RD$' + dinero(t) + '\n\n¿En qué colores los tienen disponibles?';
-    abrirWa(wa(msg));
+    const url = wa(msg), btn = $('enviarPedido');
+    if (QUIETO){ abrirWa(url); return; }
+    // Primero se ve la animación (el carrito recoge el pedido y se va) y al terminar se abre WhatsApp.
+    enviando = true;
+    const r = btn.getBoundingClientRect(), onda = document.createElement('span');
+    onda.className = 'onda'; onda.style.left = ((ev && ev.clientX) ? ev.clientX - r.left : r.width/2) + 'px'; onda.style.top = ((ev && ev.clientY) ? ev.clientY - r.top : r.height/2) + 'px';
+    btn.classList.remove('envia'); void btn.offsetWidth; btn.classList.add('envia');
+    llevarPedido(btn);
+    if (!btn.dataset.html) btn.dataset.html = btn.innerHTML;
+    btn.innerHTML = '<span class="ok">' + ICON_OK + 'Preparando tu pedido…</span>';
+    btn.appendChild(onda); setTimeout(() => onda.remove(), 700);
+    setTimeout(() => { btn.innerHTML = '<span class="ok">' + ICON_OK + 'Abriendo WhatsApp…</span>'; }, 1500);
+    setTimeout(() => { abrirWa(url); setTimeout(restaurarEnviar, 2500); }, 2150);
   };
 
   // ---------- pantallas: solo por búsqueda ----------

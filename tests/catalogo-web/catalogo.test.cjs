@@ -6,7 +6,7 @@ const RAIZ = path.resolve(__dirname, '../..');
 const SALIDA = process.argv[2] || path.join(__dirname, 'salida');
 const REAL = process.argv[3];
 const CEL = REAL ? JSON.parse(fs.readFileSync(REAL, 'utf8')) : { ok: true, publicado: true, tienda: { nombre: 'BAYOL CELL', telefono: '' }, items: [
-  { codigo: '1', nombre: 'IPHONE 15 PRO MAX 256GB', foto_url: '', capacidad: '256GB', color: '', precio: 62000, disponible: true },
+  { codigo: '1', nombre: 'IPHONE 15 PRO MAX 256GB', foto_url: 'assets/logo.png', capacidad: '256GB', color: '', precio: 62000, disponible: true },
   { codigo: '2', nombre: 'CELULAR SAMSUNG A15 128GB', foto_url: '', capacidad: '128GB + 4GB RAM', color: '', precio: 9500, disponible: true },
   { codigo: '3', nombre: 'Redmi Note 14', foto_url: '', capacidad: '256GB', color: '', precio: 11500, disponible: false },
   { codigo: '4', nombre: 'MOTO G24', foto_url: '', capacidad: '128GB', color: '', precio: 7800, disponible: true } ] };
@@ -70,8 +70,16 @@ async function textoVisible(page, sel) { // el precio rueda con tiras de dígito
       });
       await prueba(nom + ': destacado del héroe', async () => { assert.ok(await page.isVisible('#dest')); assert.ok((await page.textContent('#destPrecio')).includes('RD$')); });
       await page.click('.card .mas');
+      await prueba(nom + ': la foto vuela hacia «Tu pedido»', async () => { if (!REAL) assert.ok(await page.$('img.vuelo'), 'no voló la foto'); });
+      await prueba(nom + ': asoma el resumen del pedido', async () => {
+        assert.ok(await page.isVisible('#asoma.si')); assert.ok(/Tu pedido\s*1/.test(await page.textContent('#asoma .asoma-cab')) && /Ver pedido/.test(await page.textContent('#asoma')));
+      });
       await prueba(nom + ': el botón confirma «✓ Agregado»', async () => { assert.ok(/Agregado/.test(await page.textContent('.card .mas.hecho'))); });
-      await page.waitForTimeout(950); await page.click('.card .mas');
+      await page.waitForTimeout(800);
+      await prueba(nom + ': la foto que vuela desaparece y «Tu pedido» la recibe', async () => {
+        assert.ok(!(await page.$('img.vuelo'))); assert.ok(await page.$(movil ? '#barraPedido.recibe' : '#btnCarrito.recibe'));
+      });
+      await page.waitForTimeout(150); await page.click('.card .mas');
       await prueba(nom + ': carrito con 2 y total', async () => {
         assert.strictEqual(await page.textContent(movil ? '#barraN' : '#carritoN'), '2');
         const ls = await page.evaluate(() => JSON.parse(localStorage.getItem('bayol_cat_cart'))); assert.ok(Object.values(ls)[0].qty === 2);
@@ -106,6 +114,19 @@ async function textoVisible(page, sel) { // el precio rueda con tiras de dígito
       await page.click('#tabCel'); await page.locator('#tiendas').scrollIntoViewIfNeeded(); await page.waitForTimeout(300);
       await page.screenshot({ path: path.join(SALIDA, nom + '-tiendas.png') });
       await prueba(nom + ': 3 tiendas con estado', async () => { assert.strictEqual(await page.$$eval('.tienda', e => e.length), 3); });
+      // enviar: animación primero («Preparando…», carrito que se lleva el pedido) y luego WhatsApp
+      const aWa = []; ctx.on('request', r => { if (r.url().startsWith('https://wa.me/')) aWa.push(r.url()); });
+      await page.click(movil ? '#barraPedido' : '#btnCarrito'); await page.waitForTimeout(400);
+      await page.click('#enviarPedido'); await page.waitForTimeout(250);
+      await prueba(nom + ': al enviar se ve «Preparando tu pedido…» y el carrito', async () => {
+        assert.ok(/Preparando tu pedido/.test(await page.textContent('#enviarPedido'))); assert.ok(await page.$('.viaje .rueda')); assert.strictEqual(aWa.length, 0, 'abrió WhatsApp antes de la animación');
+      });
+      await page.waitForTimeout(700); await page.screenshot({ path: path.join(SALIDA, nom + '-enviando.png') }).catch(() => {});
+      await page.waitForTimeout(1600);
+      await prueba(nom + ': después abre WhatsApp con el pedido', async () => {
+        assert.strictEqual(aWa.length, 1, aWa.join(' | ')); const msg = decodeURIComponent(aWa[0].split('text=')[1]);
+        assert.ok(aWa[0].startsWith('https://wa.me/18495644791') && /quiero pedir/.test(msg) && /x2/.test(msg), msg);
+      });
       await ctx.close();
     }
     // servicio de pantallas caído → mensaje amable
