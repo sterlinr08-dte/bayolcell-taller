@@ -6,6 +6,9 @@
  *  4) Malla de puntos que sigue el dedo (Originkit «Kinetic Grid», 14 oct 2026): fondo de la portada.
  *  5) Ofertas del taller en 3D (Skecher UI «3D Carousel», 14 oct 2026): en el celular giran como carrusel al deslizar;
  *     en la computadora la tarjeta se inclina hacia el ratón.
+ *  6) Pestañas de marcas con indicador que se desliza y se estira (Skecher UI «Velocity Tabs»).
+ *  7) Total del pedido que cambia dígito por dígito (Skecher UI «Add to Cart»).
+ *  8) Tarjeta «Plan de cuotas» que se inclina con el ratón/dedo en Financiamiento (Skecher UI «Credit Card»).
  * Capa aislada: si no carga, la página se ve igual que antes. «Reducir movimiento» = todo quieto.
  */
 (()=>{'use strict';
@@ -42,7 +45,33 @@ const css=`
 .ofertas.bcx-3d .oferta{transform-style:preserve-3d;will-change:transform;transition:transform .25s ease-out,box-shadow .25s}
 .ofertas.bcx-3d .oferta.bcx-hover{transition:transform .08s linear,box-shadow .25s;box-shadow:0 30px 60px -20px rgba(227,30,36,.45)}
 .ofertas.bcx-3d .oferta .bcx-brillo{position:absolute;inset:0;pointer-events:none;border-radius:inherit;background:radial-gradient(circle at var(--bx,50%) var(--by,50%),rgba(255,255,255,.18),transparent 55%);opacity:0;transition:opacity .25s;z-index:1}
-.ofertas.bcx-3d .oferta.bcx-hover .bcx-brillo{opacity:1}`;
+.ofertas.bcx-3d .oferta.bcx-hover .bcx-brillo{opacity:1}
+.cat-tabs.bcx-vt{position:relative;isolation:isolate}
+.cat-tabs.bcx-vt button[aria-selected="true"]{background:transparent}
+.cat-tabs .bcx-vt-pil{position:absolute;z-index:-1;top:0;left:0;height:40px;border-radius:999px;background:var(--texto);pointer-events:none;transition:transform .42s cubic-bezier(.2,1.25,.35,1),width .42s cubic-bezier(.2,1.25,.35,1);will-change:transform,width}
+.bcx-num-d{display:inline-block;overflow:hidden;height:1.2em;line-height:1.2em;vertical-align:bottom}
+.bcx-num-d>i{display:block;font-style:normal;animation:bcxSube .45s cubic-bezier(.2,.9,.25,1.15) both}
+.bcx-num-d.baja>i{animation-name:bcxBaja}
+@keyframes bcxSube{from{transform:translateY(100%);opacity:0}to{transform:none;opacity:1}}
+@keyframes bcxBaja{from{transform:translateY(-100%);opacity:0}to{transform:none;opacity:1}}
+.bcx-plan{position:relative;width:min(340px,100%);aspect-ratio:1.6;border-radius:20px;padding:20px 22px;color:#fff;overflow:hidden;
+ background:radial-gradient(120% 140% at 0% 0%,#ff5a4f 0%,#c4151c 45%,#5c0a0e 100%);box-shadow:0 30px 60px -25px rgba(227,30,36,.7),inset 0 1px 0 rgba(255,255,255,.25);
+ transform-style:preserve-3d;transition:transform .3s ease-out;display:flex;flex-direction:column;justify-content:space-between;margin:22px 0 0}
+.bcx-plan::before{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.22) 1px,transparent 1.2px);background-size:5px 5px;mix-blend-mode:overlay;opacity:.55;
+ -webkit-mask:linear-gradient(115deg,transparent 30%,#000 70%);mask:linear-gradient(115deg,transparent 30%,#000 70%)}
+.bcx-plan::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at var(--px,30%) var(--py,20%),rgba(255,255,255,.35),transparent 45%);mix-blend-mode:soft-light;pointer-events:none}
+.bcx-plan.mueve{transition:transform .08s linear}
+.bcx-plan .arriba{display:flex;justify-content:space-between;align-items:flex-start;position:relative;z-index:1}
+.bcx-plan .marca{font:800 20px/1 var(--disp,system-ui);letter-spacing:-.02em}
+.bcx-plan .marca small{display:block;font:600 10px/1.6 var(--mono,monospace);letter-spacing:.2em;opacity:.8;margin-top:4px}
+.bcx-plan .chip-sim{width:40px;height:30px;border-radius:7px;background:linear-gradient(135deg,#ffd76a,#c99a2e);box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}
+.bcx-plan .abajo{position:relative;z-index:1}
+.bcx-plan .lema{font:800 22px/1.1 var(--disp,system-ui);letter-spacing:-.02em}
+.bcx-plan .pie{display:flex;justify-content:space-between;margin-top:8px;font:600 11px var(--mono,monospace);letter-spacing:.12em;opacity:.85}
+.fin-extra.bcx-con-plan{display:grid;grid-template-columns:1fr auto;gap:10px 28px;align-items:center}
+.fin-extra.bcx-con-plan>.bcx-plan{grid-column:2;grid-row:1/span 3;margin:0}
+@media (max-width:720px){.fin-extra.bcx-con-plan{grid-template-columns:1fr}.fin-extra.bcx-con-plan>.bcx-plan{grid-column:1;grid-row:auto;margin:6px auto 0}}
+@media (prefers-reduced-motion:reduce){.cat-tabs .bcx-vt-pil{transition:none}.bcx-num-d>i{animation:none}}`;
 const st=document.createElement('style');st.id='bcxEfectosCSS';st.textContent=css;document.head.append(st);
 
 /* 1 · Texto que cambia en la portada */
@@ -151,7 +180,59 @@ function ofertas3D(){
  });
 }
 
-function iniciar(){textoQueCambia();numerosQueSeMezclan();bordeDeLuz();mallaQueSigue();ofertas3D();}
+/* 6 · Pestañas de marcas con indicador que se desliza y se estira */
+function pestanasVelocidad(){
+ const tabs=document.getElementById('cat-tabs');if(!tabs)return;
+ let pil=null,ultimoX=null;
+ const mover=(animar)=>{
+  const sel=tabs.querySelector('button[aria-selected="true"]');if(!sel){if(pil)pil.style.opacity='0';return;}
+  if(!pil){pil=document.createElement('span');pil.className='bcx-vt-pil';pil.setAttribute('aria-hidden','true');tabs.prepend(pil);tabs.classList.add('bcx-vt');}
+  const x=sel.offsetLeft,w=sel.offsetWidth,y=sel.offsetTop,h=sel.offsetHeight;
+  pil.style.opacity='1';pil.style.height=h+'px';
+  if(!animar||ultimoX===null||quieto){pil.style.transition='none';pil.style.transform=`translate(${x}px,${y}px)`;pil.style.width=w+'px';void pil.offsetWidth;pil.style.transition='';ultimoX=x;return;}
+  // estirar en la dirección del movimiento y luego encoger (efecto «velocidad»)
+  const desde=ultimoX,izq=Math.min(desde,x),ancho=Math.abs(x-desde)+w;
+  pil.style.transform=`translate(${izq}px,${y}px)`;pil.style.width=ancho+'px';
+  setTimeout(()=>{pil.style.transform=`translate(${x}px,${y}px)`;pil.style.width=w+'px';},170);
+  ultimoX=x;
+ };
+ new MutationObserver(()=>requestAnimationFrame(()=>mover(true))).observe(tabs,{subtree:true,childList:true,attributes:true,attributeFilter:['aria-selected']});
+ addEventListener('resize',()=>mover(false),{passive:true});
+ mover(false);
+}
+
+/* 7 · Total del pedido que cambia dígito por dígito */
+function totalQueCambia(){
+ const el=document.getElementById('pd-total');if(!el||quieto)return;
+ let viejo=el.textContent,propio=false;
+ new MutationObserver(()=>{
+  if(propio){propio=false;return;}
+  const nuevo=el.textContent;if(nuevo===viejo)return;
+  const vn=parseFloat(viejo.replace(/[^\d.]/g,''))||0,nn=parseFloat(nuevo.replace(/[^\d.]/g,''))||0,baja=nn<vn;
+  const off=nuevo.length-viejo.length;let c=0,html='';
+  for(let k=0;k<nuevo.length;k++){const ch=nuevo[k],ant=viejo[k-off];
+   if(/\d/.test(ch)&&ch!==ant)html+=`<span class="bcx-num-d${baja?' baja':''}"><i style="animation-delay:${c++*40}ms">${ch}</i></span>`;else html+=ch.replace('&','&amp;').replace('<','&lt;');}
+  viejo=nuevo;if(!c)return;propio=true;el.innerHTML=html;el.setAttribute('aria-label',nuevo);
+ }).observe(el,{childList:true,characterData:true,subtree:true});
+}
+
+/* 8 · Tarjeta «Plan de cuotas» en Financiamiento */
+function tarjetaFinanciamiento(){
+ const caja=document.querySelector('#financiamiento .fin-extra');if(!caja||caja.querySelector('.bcx-plan'))return;
+ const t=document.createElement('div');t.className='bcx-plan';t.setAttribute('aria-hidden','true');
+ t.innerHTML='<div class="arriba"><div class="marca">Bayol Cell<small>PLAN DE CUOTAS</small></div><span class="chip-sim"></span></div><div class="abajo"><div class="lema">Llévatelo hoy.<br>Págalo en cuotas.</div><div class="pie"><span>CELULARES · PASOLAS · Y MÁS</span><span>BAYOLCELL.COM</span></div></div>';
+ caja.classList.add('bcx-con-plan');caja.prepend(t);
+ if(quieto)return;
+ const mover=(cx,cy)=>{const b=t.getBoundingClientRect(),x=Math.max(0,Math.min(1,(cx-b.left)/b.width)),y=Math.max(0,Math.min(1,(cy-b.top)/b.height));
+  t.classList.add('mueve');t.style.transform=`perspective(800px) rotateX(${(.5-y)*16}deg) rotateY(${(x-.5)*20}deg)`;t.style.setProperty('--px',x*100+'%');t.style.setProperty('--py',y*100+'%');};
+ const soltar=()=>{t.classList.remove('mueve');t.style.transform='';};
+ t.addEventListener('pointermove',e=>mover(e.clientX,e.clientY));t.addEventListener('pointerleave',soltar);t.addEventListener('pointerup',()=>setTimeout(soltar,300));
+ t.style.pointerEvents='auto';t.style.touchAction='pan-y';
+ // en el celular se mueve sola un poco al aparecer en pantalla
+ if('IntersectionObserver' in window){const io=new IntersectionObserver(es=>{if(es[0].isIntersecting){io.disconnect();t.animate([{transform:'perspective(800px) rotateY(-18deg) rotateX(6deg)'},{transform:'perspective(800px) rotateY(12deg) rotateX(-4deg)'},{transform:'none'}],{duration:1600,easing:'cubic-bezier(.3,.7,.3,1)'});}},{threshold:.6});io.observe(t);}
+}
+
+function iniciar(){textoQueCambia();numerosQueSeMezclan();bordeDeLuz();mallaQueSigue();ofertas3D();pestanasVelocidad();totalQueCambia();tarjetaFinanciamiento();}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',iniciar,{once:true});else iniciar();
-window.BayolEfectosWeb={version:'20261014c'};
+window.BayolEfectosWeb={version:'20261014d'};
 })();
