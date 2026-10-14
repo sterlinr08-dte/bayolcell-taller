@@ -62,6 +62,20 @@ caso("Redmi note 11 no es iPhone 11", "pantalla redmi note 11", null);
 caso("cristal/mica no", "cuanto el cristal del iphone 11", null);
 caso("128gb no confunde", "pantalla iphone 12 128gb", P("iPhone 12", 2500));
 caso("15 sin datos → persona", "pantalla iphone 15", null);
+// Faltas de ortografía (caso real 14-oct: «XS más» se cotizó como XS).
+ART.push(A("PANTALLA IPHONE XS MAX INCELL JK", 2000), A("PANTALLA IPHONE X / XS INCELL JK", 1200));
+caso("XS más = XS Max", "Tienen pantalla de iPhone XS más", P("iPhone XS Max", 2000));
+caso("XS max", "pantalla iphone xs max", P("iPhone XS Max", 2000));
+caso("XS normal", "pantalla iphone xs", P("iPhone XS", 1200));
+caso("11 pro mas", "pantalla iphone 11 pro mas", P("iPhone 11 Pro Max", 2500));
+caso("promas pegado", "pantalla 11 promas", P("iPhone 11 Pro Max", 2500));
+caso("13 pro maz", "pantalla 13 pro maz", P("iPhone 13 Pro Max", 6000));
+caso("prp = pro", "pantalla iphone 13 prp", P("iPhone 13 Pro", 4500));
+caso("pluss", "pantalla iphone 14 pluss", P("iPhone 14 Plus", 4500));
+caso("12 mimi", "pantalla iphone 12 mimi", P("iPhone 12 Mini", 3500));
+caso("por favor no confunde", "pantalla iphone 11 por favor", P("iPhone 11", 2000));
+caso("dudosa → persona", "pantalla iphone 11 prix", null);
+caso("11 más barata → no cotiza otro", "pantalla iphone 11 mas barata", null);
 
 // modeloDelMensaje
 const m = (t) => { const x = modeloDelMensaje(t); return x ? x.gen + "|" + x.variante : null; };

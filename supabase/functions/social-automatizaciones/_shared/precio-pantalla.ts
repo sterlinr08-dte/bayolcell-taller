@@ -78,8 +78,52 @@ export function esPreguntaDePantalla(texto: string): boolean {
 }
 
 // Modelo de iPhone que pide el cliente. null si no está claro (ninguno, o dos modelos distintos).
+// Faltas de ortografía en la variante (14 oct 2026: un cliente escribió «XS más» y se le cotizó el XS).
+// Después de una generación se corrigen las palabras que se parecen a PRO/MAX/PLUS/MINI (a 1 letra: «MAS»→MAX,
+// «PROMAS»→PRO MAX, «PLUSS»→PLUS). Si la palabra se parece a 2 letras y no es una palabra común, el modelo queda
+// en duda (null) y responde una persona: es preferible no cotizar que cotizar otro modelo.
+const VARIANTES = ["PRO", "MAX", "PLUS", "MINI"];
+const COMUNES = new Set(["DE", "DEL", "LA", "EL", "LO", "LOS", "LAS", "Y", "O", "EN", "QUE", "CON", "SIN", "MI", "TU", "SU", "NO",
+  "SI", "ES", "A", "AL", "ME", "TE", "LE", "YA", "POR", "PARA", "PERO", "CUANTO", "CUANTA", "PRECIO", "PANTALLA", "PANTALLAS",
+  "NORMAL", "TIENE", "TIENEN", "HAY", "VALE", "CUESTA", "SALE", "GB", "OLED", "SOFT", "ORIGINAL", "INCELL", "COMPLETA",
+  "NEGRO", "NEGRA", "BLANCO", "BLANCA", "ROTA", "ROTO", "BUENAS", "HOLA", "GRACIAS", "FAVOR", "PLIS", "PORFA", "AMIGO", "MANO"]);
+function distancia(a: string, b: string): number {
+  const d: number[][] = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++)
+    d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return d[a.length][b.length];
+}
+// Devuelve la variante corregida, "" si no es variante, o null si es dudosa.
+function variantePorFalta(w: string): string | null {
+  if (!w || COMUNES.has(w) || /\d/.test(w)) return "";
+  if (VARIANTES.includes(w)) return w;
+  if (/^PRO[A-Z]{2,4}$/.test(w)) { const r = variantePorFalta(w.slice(3)); return r === "MAX" ? "PRO MAX" : r === "" ? "" : null; }
+  let mejor = "", dmin = 9;
+  for (const v of VARIANTES) { const dd = distancia(w, v); if (dd < dmin) { dmin = dd; mejor = v; } }
+  if (dmin <= 1 && w.length >= 3) return mejor;
+  if (dmin <= 2 && w.length >= 3) return null;
+  return "";
+}
+export function corregirVariantes(t: string): string | null {
+  const ws = t.split(" ");
+  for (let i = 0; i < ws.length; i++) {
+    if (!/^(1[1-7]|[5-8]G?S?|5C|SE|XS|XR|X)$/.test(ws[i]) && ws[i] !== "PRO") continue;
+    for (let k = i + 1; k <= i + 2 && k < ws.length; k++) {
+      const r = variantePorFalta(ws[k]);
+      if (r === null) return null;
+      if (!r) break;
+      ws[k] = r;
+      if (r === "PRO MAX") break;
+    }
+  }
+  return ws.join(" ");
+}
+
 export function modeloDelMensaje(texto: string): Modelo | null {
-  const t = normalizar(texto).replace(/\bIPHONE(\d)/g, "IPHONE $1").replace(/\bI ?PHONE\b|\bIFONE\b|\bAIFON\b/g, "IPHONE");
+  const t0 = normalizar(texto).replace(/\bIPHONE(\d)/g, "IPHONE $1").replace(/\bI ?PHONE\b|\bIFONE\b|\bAIFON\b/g, "IPHONE");
+  const t = corregirVariantes(t0);
+  if (t === null) return null;
   const tieneIphone = /\bIPHONE\b/.test(t);
   if (!tieneIphone && OTRAS_MARCAS.test(t)) return null;
   const encontrados = new Map<string, Modelo>();
