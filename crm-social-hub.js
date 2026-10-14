@@ -483,7 +483,7 @@
     // de un admin. _igRefrescarAsignacion (abajo) repinta este chat + la
     // lista una vez que la asignación quedó guardada.
     const asignarHtml=typeof window._crmAsignarHTML==='function' ? window._crmAsignarHTML('instagram_hilos', h, '_igRefrescarAsignacion') : '';
-    chat.innerHTML=`<div class="bc-ig-chat-head"><button class="bc-ig-back" id="bcIgBack" type="button" aria-label="Volver"><i class="ti ti-arrow-left"></i></button><span class="bc-ig-avatar">${esc(initials(nm))}</span><div class="bc-ig-chat-title"><b>${esc(nm)}</b><span>${esc(user)}</span></div><span class="bc-ig-chat-badge">Instagram Direct</span></div>${asignarHtml ? `<div style="padding:6px 14px; background:#faf5ff; border-bottom:1px solid #f3e8ff;">${asignarHtml}</div>` : ''}<div id="bcIgMessageActions" class="bc-ig-pop" hidden></div><div id="bcIgForwardBox" class="bc-ig-pop bc-ig-forward-box" hidden><div style="padding:2px 4px 6px;font-size:11px;font-weight:700;color:#4a3560;">Reenviar a…</div><input id="bcIgForwardSearch" type="search" placeholder="Buscar conversación…" style="width:100%;box-sizing:border-box;border:1px solid #ead7f3;border-radius:8px;padding:6px 8px;font-size:12.5px;margin-bottom:6px;"><div id="bcIgForwardList" style="max-height:220px;overflow:auto;"></div><button type="button" id="bcIgForwardClose" style="width:100%;margin-top:4px;">Cerrar</button></div><div class="bc-ig-messages" id="bcIgMessages" style="position:relative;">${rows || '<div class="bc-ig-empty"><div><b>Sin mensajes</b><span>Este hilo todavía no tiene mensajes guardados.</span></div></div>'}</div><button type="button" class="bc-social-jump" id="bcIgJump" aria-label="Ir al último mensaje"><i class="ti ti-arrow-down"></i><span>Últimos mensajes</span></button><div id="bcIgAdjunto" class="bc-ig-adjunto" hidden></div><form class="bc-ig-composer" id="bcIgComposer"><button type="button" class="bc-ig-location" id="bcIgEmoji" aria-label="Emojis" title="Emojis"><i class="ti ti-mood-smile"></i></button><button type="button" class="bc-ig-location" id="bcIgAttach" aria-label="Adjuntar" title="Adjuntar foto, video, audio o PDF"><i class="ti ti-paperclip"></i></button><input type="file" id="bcIgFile" accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,audio/*,application/pdf" hidden><button type="button" class="bc-ig-location" id="bcIgLocation" aria-label="Enviar ubicación" title="Enviar ubicación de la tienda" style="background:none;border:none;cursor:pointer;padding:6px;color:#64748b;font-size:18px;flex:none;"><i class="ti ti-map-pin"></i></button><textarea id="bcIgText" rows="1" placeholder="${h.zernio_conversation_id?'Escribe un mensaje…':'Esta conversación aún no se puede responder desde aquí'}" title="${h.zernio_conversation_id?'':'Instagram todavía no envió el identificador de esta conversación. Respóndela desde la app de Instagram.'}" ${h.zernio_conversation_id?'':'disabled'}></textarea><button class="bc-ig-send" id="bcIgSend" type="submit" ${h.zernio_conversation_id?'':'disabled'} aria-label="Enviar"><i class="ti ti-arrow-up"></i></button></form>`;
+    chat.innerHTML=`<div class="bc-ig-chat-head"><button class="bc-ig-back" id="bcIgBack" type="button" aria-label="Volver"><i class="ti ti-arrow-left"></i></button><span class="bc-ig-avatar">${esc(initials(nm))}</span><div class="bc-ig-chat-title"><b>${esc(nm)}</b><span>${esc(user)}</span></div><span class="bc-ig-chat-badge">Instagram Direct</span></div>${asignarHtml ? `<div style="padding:6px 14px; background:#faf5ff; border-bottom:1px solid #f3e8ff;">${asignarHtml}</div>` : ''}<div id="bcIgMessageActions" class="bc-ig-pop" hidden></div><div id="bcIgForwardBox" class="bc-ig-pop bc-ig-forward-box" hidden><div style="padding:2px 4px 6px;font-size:11px;font-weight:700;color:#4a3560;">Reenviar a…</div><input id="bcIgForwardSearch" type="search" placeholder="Buscar conversación…" style="width:100%;box-sizing:border-box;border:1px solid #ead7f3;border-radius:8px;padding:6px 8px;font-size:12.5px;margin-bottom:6px;"><div id="bcIgForwardList" style="max-height:220px;overflow:auto;"></div><button type="button" id="bcIgForwardClose" style="width:100%;margin-top:4px;">Cerrar</button></div><div class="bc-ig-messages" id="bcIgMessages" style="position:relative;">${rows || '<div class="bc-ig-empty"><div><b>Sin mensajes</b><span>Este hilo todavía no tiene mensajes guardados.</span></div></div>'}</div><button type="button" class="bc-social-jump" id="bcIgJump" aria-label="Ir al último mensaje"><i class="ti ti-arrow-down"></i><span>Últimos mensajes</span></button>${h.zernio_conversation_id && igVentanaCerrada(h) ? igAvisoVentanaHTML(h) : ''}<div id="bcIgAdjunto" class="bc-ig-adjunto" hidden></div><form class="bc-ig-composer" id="bcIgComposer"><button type="button" class="bc-ig-location" id="bcIgEmoji" aria-label="Emojis" title="Emojis"><i class="ti ti-mood-smile"></i></button><button type="button" class="bc-ig-location" id="bcIgAttach" aria-label="Adjuntar" title="Adjuntar foto, video, audio o PDF"><i class="ti ti-paperclip"></i></button><input type="file" id="bcIgFile" accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,audio/*,application/pdf" hidden><button type="button" class="bc-ig-location" id="bcIgLocation" aria-label="Enviar ubicación" title="Enviar ubicación de la tienda" style="background:none;border:none;cursor:pointer;padding:6px;color:#64748b;font-size:18px;flex:none;"><i class="ti ti-map-pin"></i></button><textarea id="bcIgText" rows="1" placeholder="${h.zernio_conversation_id?'Escribe un mensaje…':'Esta conversación aún no se puede responder desde aquí'}" title="${h.zernio_conversation_id?'':'Instagram todavía no envió el identificador de esta conversación. Respóndela desde la app de Instagram.'}" ${h.zernio_conversation_id?'':'disabled'}></textarea><button class="bc-ig-send" id="bcIgSend" type="submit" ${h.zernio_conversation_id?'':'disabled'} aria-label="Enviar"><i class="ti ti-arrow-up"></i></button></form>`;
     window.__bcIgSelectedId=h.id;
     $('#bcIgBack')?.addEventListener('click',()=>{state.selected=null;window.__bcIgSelectedId=null;const v=$('#v-crmLinea');if(v)v.classList.remove('bc-ig-chat-open');const ch=$('#bcIgChat');if(ch){ch.removeAttribute('style');ch.innerHTML='<div class="bc-ig-empty"><div><b>Selecciona una conversación</b></div></div>';}renderThreads();});
     $('#bcIgComposer')?.addEventListener('submit',sendInstagram);
@@ -538,12 +538,36 @@
     if(error||!data?.signedUrl) throw new Error('No se pudo preparar el archivo para Instagram.');
     return {url:data.signedUrl,tipo:a.tipo,nombre:a.file.name,path};
   }
+  // Ventana de 24 h de Instagram (14 oct 2026): Meta solo deja responder por API dentro de 24 h desde el último
+  // mensaje del cliente. Fuera de ese plazo instagram-enviar prueba la etiqueta HUMAN_AGENT, pero esa etiqueta
+  // requiere una aprobación de Meta que la app no tiene → Instagram responde 403 y el CRM daba un error rojo.
+  // Ahora el CRM lo avisa antes de intentar: copia el mensaje y abre la conversación en la app de Instagram.
+  function igVentanaCerrada(h){ const t=h&&h.ultimo_inbound_at?new Date(h.ultimo_inbound_at).getTime():0; return !t || (Date.now()-t)>24*3600*1000; }
+  function igHaceCuanto(h){ const t=h&&h.ultimo_inbound_at?new Date(h.ultimo_inbound_at).getTime():0; if(!t) return 'hace tiempo'; const hrs=Math.floor((Date.now()-t)/3600000); if(hrs<48) return 'hace '+hrs+' horas'; return 'hace '+Math.floor(hrs/24)+' días'; }
+  function igEnlaceApp(h){ const u=String(h&&h.participant_username||'').replace(/[^A-Za-z0-9._]/g,''); return u ? 'https://ig.me/m/'+u : 'https://www.instagram.com/direct/inbox/'; }
+  function igAvisoVentanaHTML(h){
+    return `<div class="bc-ig-ventana" role="note" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:9px 14px;background:#fff7ed;border-top:1px solid #fed7aa;color:#7c2d12;font-size:12.5px;line-height:1.4;"><i class="ti ti-clock-exclamation" style="font-size:18px;color:#c2410c;"></i><span style="flex:1;min-width:200px;">Esta persona escribió <b>${esc(igHaceCuanto(h))}</b>. Instagram solo deja contestar desde aquí dentro de 24 horas. Respóndele desde la app de Instagram (o espera a que vuelva a escribir).</span><a href="${esc(igEnlaceApp(h))}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 12px;border-radius:10px;background:#c2410c;color:#fff;font-weight:700;text-decoration:none;"><i class="ti ti-brand-instagram"></i> Abrir en Instagram</a></div>`;
+  }
+  async function igCopiar(t){ try{ await navigator.clipboard.writeText(t); return true; }catch(_){ return false; } }
+  async function igErrorDeEnvio(err){
+    // functions.invoke esconde la respuesta del servidor dentro de err.context; se lee para dar un mensaje claro.
+    let detalle='';
+    try{ if(err&&err.context&&typeof err.context.json==='function'){ const j=await err.context.json(); detalle=JSON.stringify(j); if(j&&j.mensaje) return j.mensaje; } }catch(_){}
+    if(/Human Agent|HUMAN_AGENT/i.test(detalle)) return 'Instagram no deja contestar desde aquí después de 24 horas del último mensaje del cliente. Respóndele desde la app de Instagram.';
+    return (err&&err.message)||'No se pudo enviar el mensaje de Instagram.';
+  }
   async function sendInstagram(e){
     e?.preventDefault?.();
     if(state.busySend || !state.selected) return;
     const ta=$('#bcIgText'), btn=$('#bcIgSend'); const text=String(ta?.value||'').trim();
     const adj=state.igAdjunto;
     if(!text && !adj) return;
+    if(igVentanaCerrada(state.selected)){
+      const copiado=text ? await igCopiar(text) : false;
+      try{ window.open(igEnlaceApp(state.selected),'_blank','noopener'); }catch(_){}
+      notify((copiado?'Copié tu mensaje. ':'')+'Instagram no deja contestar desde aquí después de 24 horas: '+(copiado?'pégalo en la app de Instagram que se abrió.':'respóndele desde la app de Instagram.'),'error');
+      return;
+    }
     state.busySend=true;
     if(btn){btn.disabled=true;btn.innerHTML='<span class="bc-social-spin"></span>';}
     try{
@@ -556,7 +580,7 @@
       if(ta){ta.value='';ta.style.height='auto';}
       if(btn){btn.classList.add('bc-sent-ok');setTimeout(()=>btn.classList.remove('bc-sent-ok'),350);}
       await loadInstagram(false,{refreshSelected:true}); notify('Mensaje de Instagram enviado.');
-    }catch(err){ console.error('instagram-enviar',err); notify(err.message||'No se pudo enviar el mensaje de Instagram.','error'); }
+    }catch(err){ console.error('instagram-enviar',err); notify(await igErrorDeEnvio(err),'error'); }
     finally{state.busySend=false;if(btn){btn.disabled=!state.selected?.zernio_conversation_id;btn.innerHTML='<i class="ti ti-arrow-up"></i>';}ta?.focus?.();}
   }
 
