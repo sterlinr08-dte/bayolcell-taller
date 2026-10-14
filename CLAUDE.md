@@ -1079,3 +1079,20 @@ Pedido del dueño: «lee las últimas referencias que subió el otro chat y apli
 - Arreglo en `crm-social-hub.js` (consent `SOCIAL_HUB='20261014-ig1'`, `taller.html` → consent `?v=20261014-ig1`): `igVentanaCerrada(h)` (sin `ultimo_inbound_at` o >24 h) → franja naranja `.bc-ig-ventana` encima de la barra de escribir con «escribió hace N días» y botón **«Abrir en Instagram»** (`https://ig.me/m/<usuario>`). Al enviar con la ventana cerrada NO se llama a la función: copia el texto, abre la app de Instagram y avisa «pégalo ahí». `igErrorDeEnvio` lee la respuesta real del servidor (`err.context`) para mostrar mensajes claros. La función del servidor no se cambió.
 - Vistos de paso en el registro (sin tocar): `whatsapp-ia-responder` llegó al **límite de uso de la API de IA hasta el 1-nov-2026** (las sugerencias de IA no salen) y «crear lead instagram error: leads_hilo_id_fkey» (los leads de Instagram no se crean porque `leads.hilo_id` apunta a `whatsapp_hilos`).
 - Prueba (copia local con datos simulados): chat de hace 18 días → franja + enlace `ig.me/m/yenny_1513`, al enviar no llama a `instagram-enviar`, abre el enlace y copia; chat de hace 1 h → sin franja y sí envía.
+
+## 14 oct 2026 — Tarjetas estilo «FleetTrack» en Reacondicionados y Órdenes de Servicio (en rama, sin publicar)
+Referencia: carrusel `Dee_Pr1FGm_` de Orbix Studio (fila en `docs/REFERENCIAS-DISENO.md`). El dueño eligió aplicarlo a las dos pantallas.
+- **Tarjeta** (`taller-app.js`): `renderEquipoReacondCard` (equipos del lote) y `_ordCardHTML` (vista `v-ordenes`) arman `article.bcf-card`:
+  - foto del catálogo web (`_bcfFoto`: `catalogo_items` por código de Info Plus o por nombre normalizado `_bcfNorm`; si no hay, el logo de la marca de `BayolMejorasRef`);
+  - etiqueta de estado del mismo color que su filtro;
+  - técnico con avatar de iniciales (`_bcfAvatar`) y «Tomado hace N días»;
+  - barra de avance por pasos (`_bcfBarra`: 7 pasos en Reacond, 4 en Órdenes) y 3 datos abajo.
+  - **Rojo solo para problemas:** espera pieza, más de 7 días en reparación, devuelto, orden atrasada o urgente.
+  - Se conservan todas las acciones y onclick de antes (casilla de selección, ver/imprimir/editar, Registrar salida, Label diagnóstico, mostrar clave).
+- **Órdenes de Servicio:** la tabla `#ordersTable` pasó a:
+  - cuadros de resumen `#ordKpis`;
+  - buscador `#ordBusq` (`setOrdBusq`);
+  - filtros de color `#ordChips` (`setOrdFiltro`, `_BCF_ORD_FILTROS`, incluye «Atrasadas»);
+  - cuadrícula `#ordersGrid` de 12 por página (`ORDERS_PER_PAGE`).
+- **Capa `taller-flota.js`** (la carga `crm-marketing-consent.js`): estilos `.bcf-*`, carga de fotos (`window._bcfFotos`), filtros de color sobre la lista del lote (`#bcfReacondChips`, sincronizados con `#reacondFiltroEstado`, que queda oculto) y los cuadros de etapas del lote con el mismo color. API `window.BayolFlota`.
+- Probado en copia local con datos inventados (1366 y 390 px): 7 tarjetas con 4 fotos, filtros y conteos, selección, filtro Atrasadas, búsqueda, sin desborde ni errores.

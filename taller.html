@@ -2890,6 +2890,7 @@ body{
             <!-- ORDENES -->
             <div id="v-ordenes" class="view">
                 <h2 style="margin:0 0 12px; display:flex; align-items:center; gap:8px;"><i class="ti ti-clipboard-list" style="color:var(--blue-btn);"></i> Órdenes de Servicio</h2>
+                <div class="bcf-kpis" id="ordKpis" aria-label="Resumen de órdenes"></div>
                 <div class="card">
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
                         <h3 style="margin:0;"><i class="ti ti-users" style="color:#0891b2;"></i> Carga de Trabajo por Técnico</h3>
@@ -2897,16 +2898,13 @@ body{
                     </div>
                     <div id="cargaTecnicosPanel" style="margin-top:12px;"></div>
                 </div>
-                <div class="card">
-                    <h3><i class="ti ti-list-check" style="color:var(--blue-btn);"></i> Órdenes de Servicio Activas</h3>
-                    <div class="table-wrap">
-                        <table>
-                            <thead>
-                                <tr><th>Orden</th><th>Cliente</th><th>Equipo</th><th>Falla</th><th>Acceso Privado</th><th>Atendido por</th><th>Estado</th><th>Acciones</th></tr>
-                            </thead>
-                            <tbody id="ordersTable"></tbody>
-                        </table>
+                <div class="card bcf-panel">
+                    <div class="bcf-tools">
+                        <h3><i class="ti ti-list-check" style="color:var(--blue-btn);"></i> Lista de órdenes</h3>
+                        <input id="ordBusq" type="search" placeholder="Buscar orden, cliente, equipo o falla…" oninput="setOrdBusq(this.value)" autocomplete="off" class="bcf-busq">
                     </div>
+                    <div class="bcf-fchips" id="ordChips" role="group" aria-label="Filtrar por estado"></div>
+                    <div class="bcf-grid" id="ordersGrid"></div>
                     <div id="ordersPagination"></div>
                 </div>
             </div>
@@ -5570,7 +5568,7 @@ body{
 <div id="toast" class="toast"></div>
 <div id="printArea" class="print-area"></div>
 
-<script src="taller-app.js?v=20261013-pt1"></script>
+<script src="taller-app.js?v=20261014-f1"></script>
 <script src="diagnostico-photo-tiles.js?v=20261009e"></script>
 <script src="diagnostico-board-data.js?v=20261009e"></script>
 <script src="diagnostico-ai-board.js?v=20261010d"></script>
@@ -5578,6 +5576,6 @@ body{
 <script src="diagnostico-ai-cortos.js?v=20261010e"></script>
 <script src="diagnostico-ai-chat.js?v=20261010b"></script>
 <script src="diagnostico-ai-library.js?v=20261010a"></script>
-<script src="crm-marketing-consent.js?v=20261014-ig1"></script>
+<script src="crm-marketing-consent.js?v=20261014-f1"></script>
 </body>
 

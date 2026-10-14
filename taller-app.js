@@ -2877,7 +2877,7 @@ function renderAll() {
         </div></td></tr>`;
     }).join(""));
 
-    if(_primera || _verVisible('ordersTable')) renderOrders();
+    if(_primera || _verVisible('ordersGrid')) renderOrders();
     const _partsPage = _uiListPage('parts', (cache.piezas || []).length);
     _pintarSiCambio("partsTable", (cache.piezas || []).slice(_partsPage.start, _partsPage.start + UI_LIST_PAGE_SIZE).map(p => `<tr><td data-label="Código"><code>${escapeHtml(p.codigo||'')}</code></td><td data-label="Descripción"><b>${escapeHtml(p.nombre||'')}</b></td><td data-label="Marca">${escapeHtml(p.marca||'')}</td><td data-label="Referencia">${escapeHtml(p.referencia||'')}</td><td data-label="Existencia">${p.cantidad} uds</td><td data-label="Costo">${money(p.costo)}</td></tr>`).join(""));
     const _partsPg = document.getElementById('partsPagination'); if(_partsPg) _partsPg.innerHTML = _uiListPager('parts', (cache.piezas || []).length, 'inventario');
@@ -3009,39 +3009,116 @@ function irAEquipoDesdeBusqueda(equipoId) {
     }, 200);
 }
 
-const ORDERS_PER_PAGE = 10;
+const ORDERS_PER_PAGE = 12;
 let ordersPage = 1;
 
+let _ordFiltro = '';   // '' = todas; si no, una clave de _BCF_ORD_FILTROS
+let _ordBusq = '';
+const _BCF_ORD_FILTROS = [
+    ['', 'Todas', 'gris'],
+    ['recibido', 'Recibido', 'gris'],
+    ['en_proceso', 'En proceso', 'naranja'],
+    ['espera_repuesto', 'Espera repuesto', 'amarillo'],
+    ['pendiente_cliente', 'Esperando cliente', 'morado'],
+    ['finalizado', 'Finalizado', 'verde'],
+    ['entregado', 'Entregado', 'teal'],
+    ['atrasada', 'Atrasadas', 'rojo']
+];
+const _BCF_ORD_TONO = { recibido:'gris', en_proceso:'naranja', espera_repuesto:'amarillo', pendiente_cliente:'morado', finalizado:'verde', entregado:'teal', cancelado:'gris', no_reparado:'gris', reparacion_externa:'azul' };
+const _BCF_ORD_TXT = { recibido:'Recibido', en_proceso:'En proceso', espera_repuesto:'Espera repuesto', pendiente_cliente:'Esperando cliente', finalizado:'Finalizado', entregado:'Entregado', cancelado:'Cancelado', no_reparado:'No reparado', reparacion_externa:'Reparación externa' };
+const _BCF_PASOS_ORDEN = ['Recibido', 'En proceso', 'Finalizado', 'Entregado'];
+function _ordAtrasada(o) {
+    const est = normalizarEstadoOrden(o.estado);
+    return !!o.fecha_estimada_entrega && !['finalizado','entregado','cancelado','no_reparado'].includes(est)
+        && o.fecha_estimada_entrega < new Date().toISOString().slice(0, 10);
+}
+function _ordPasaFiltro(o, f) {
+    if(!f) return true;
+    if(f === 'atrasada') return _ordAtrasada(o);
+    return normalizarEstadoOrden(o.estado) === f;
+}
+function setOrdFiltro(f) { _ordFiltro = (_ordFiltro === f) ? '' : f; ordersPage = 1; renderOrders(); }
+function setOrdBusq(v) { _ordBusq = String(v || ''); ordersPage = 1; renderOrders(); }
+function _ordCardHTML(o) {
+    const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
+    const est = normalizarEstadoOrden(o.estado);
+    const tono = _BCF_ORD_TONO[est] || 'gris';
+    const tec = o.tecnico_asignado_id ? nombreEmpleado(o.tecnico_asignado_id) : '';
+    const atrasada = _ordAtrasada(o);
+    const paso = { recibido:0, en_proceso:1, espera_repuesto:1, pendiente_cliente:1, reparacion_externa:1, finalizado:2, entregado:3, cancelado:3, no_reparado:3 }[est] ?? 0;
+    const ico = { recibido:'ti-package-import', finalizado:'ti-circle-check', entregado:'ti-package', cancelado:'ti-x', no_reparado:'ti-x' }[est] || 'ti-tool';
+    const equipoTxt = `${e.marca || ''} ${e.modelo || ''}`.trim() || 'Equipo';
+    const chips = [];
+    if(atrasada) chips.push(['Atrasada', 'rojo']);
+    if(o.prioridad === 'urgente') chips.push(['Urgente', 'rojo']);
+    if(o.es_garantia) chips.push(['Garantía', 'azul']);
+    const recibida = o.creado_en ? new Date(o.creado_en).toLocaleDateString('es-DO', {day:'2-digit', month:'short'}) : '—';
+    const entrega = o.fecha_estimada_entrega ? new Date(o.fecha_estimada_entrega + 'T00:00:00').toLocaleDateString('es-DO', {day:'2-digit', month:'short'}) : '—';
+    const dAsig = _bcfDias(o.fecha_asignacion);
+    const upd = tec && dAsig != null ? 'Tomada ' + (dAsig === 0 ? 'hoy' : 'hace ' + _bcfDiasTxt(dAsig)) : (tec ? '' : 'Sin tomar');
+    return `<article class="bcf-card bcf-ord${atrasada ? ' bcf-alerta' : ''}" data-tono="${tono}">
+        <header class="bcf-h">
+            <div class="bcf-tit"><b>${escapeHtml(equipoTxt)}</b></div>
+            <span class="bcf-tag bcf-t-${tono}">${_BCF_ORD_TXT[est] || escapeHtml(est)}</span>
+        </header>
+        <div class="bcf-sub">${formatoOrden(o.numero_orden)} · ${escapeHtml(c.nombre || 'Cliente')}</div>
+        <div class="bcf-media">${_bcfMedia(_bcfFoto(null, e.modelo), equipoTxt)}</div>
+        ${chips.length ? `<div class="bcf-chips">${chips.map(([t, k]) => `<span class="bcf-chip bcf-t-${k}">${t}</span>`).join('')}</div>` : ''}
+        <div class="bcf-falla" title="${escapeHtml(o.falla_reportada || '')}"><i class="ti ti-alert-circle"></i> ${escapeHtml(o.falla_reportada || 'Sin falla anotada')}</div>
+        <div class="bcf-per">${_bcfAvatar(tec)}<div class="bcf-per-txt"><small>Técnico</small><b>${escapeHtml(tec || 'Sin asignar')}</b></div><span class="bcf-upd">${escapeHtml(upd)}</span></div>
+        <div class="bcf-prog"><div class="bcf-prog-top"><span>${_BCF_PASOS_ORDEN[paso]}</span><span>Paso ${paso + 1} de ${_BCF_PASOS_ORDEN.length}</span></div>${_bcfBarra(paso, _BCF_PASOS_ORDEN.length, ico, atrasada)}</div>
+        <footer class="bcf-f">
+            <span title="Recibida"><i class="ti ti-calendar"></i>${recibida}</span>
+            <span title="Entrega estimada"><i class="ti ti-calendar-event"></i>${entrega}</span>
+            <span title="Atendido por"><i class="ti ti-user-check"></i>${escapeHtml((nombreEmpleado(o.creado_by) || '—').split(' ')[0])}</span>
+        </footer>
+        <div class="bcf-acc">
+            <div class="access-mask bcf-clave">•••• <button class="bcf-ib" onclick="revelarClave('${o.id}', this)" title="Mostrar acceso del equipo" aria-label="Mostrar acceso del equipo"><i class="ti ti-key"></i></button></div>
+            <span class="bcf-acc-sp"></span>
+            <button class="btn btn-light bcf-btn-sec" onclick="cargarEnLabel('${o.id}')"><i class="ti ti-clipboard-list"></i> Label diagnóstico</button>
+        </div>
+    </article>`;
+}
+function _ordKpisHTML(todas) {
+    const n = f => todas.filter(o => _ordPasaFiltro(o, f)).length;
+    const activas = todas.filter(o => !['entregado','cancelado','no_reparado'].includes(normalizarEstadoOrden(o.estado))).length;
+    const esperando = n('espera_repuesto') + n('pendiente_cliente');
+    const k = [
+        ['ti-clipboard-list', 'Activas', activas, '', 'naranja'],
+        ['ti-tool', 'En proceso', n('en_proceso'), 'en_proceso', 'naranja'],
+        ['ti-hourglass', 'Esperando', esperando, 'espera_repuesto', 'amarillo'],
+        ['ti-circle-check', 'Por entregar', n('finalizado'), 'finalizado', 'verde'],
+        ['ti-alert-triangle', 'Atrasadas', n('atrasada'), 'atrasada', 'rojo']
+    ];
+    return k.map(([i, t, v, f, tono]) => `<button type="button" class="bcf-kpi${_ordFiltro && _ordFiltro === f ? ' on' : ''}" data-tono="${tono}" onclick="setOrdFiltro('${f}')"><span class="bcf-kpi-ico"><i class="ti ${i}"></i></span><span class="bcf-kpi-txt"><small>${t}</small><b>${v}</b></span></button>`).join('');
+}
 function renderOrders() {
-    const tbody = document.getElementById("ordersTable");
-    if(!tbody) return;
+    const grid = document.getElementById("ordersGrid");
+    if(!grid) return;
     const todas = cache.ordenes || [];
-    const total = todas.length;
+    const kp = document.getElementById('ordKpis'); if(kp) kp.innerHTML = _ordKpisHTML(todas);
+    const ch = document.getElementById('ordChips');
+    if(ch) ch.innerHTML = _BCF_ORD_FILTROS.map(([f, t, tono]) => {
+        const cnt = todas.filter(o => _ordPasaFiltro(o, f)).length;
+        if(f && !cnt && _ordFiltro !== f) return '';
+        const on = _ordFiltro === f;
+        return `<button type="button" class="bcf-fchip${on ? ' on' : ''}" data-tono="${tono}" aria-pressed="${on}" onclick="setOrdFiltro('${f}')">${f ? '<i class="bcf-dot"></i>' : ''}${t} <small>${cnt}</small></button>`;
+    }).join('');
+    const q = _ordBusq.trim().toLowerCase();
+    const lista = todas.filter(o => _ordPasaFiltro(o, _ordFiltro)).filter(o => {
+        if(!q) return true;
+        const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
+        return [formatoOrden(o.numero_orden), c.nombre, e.marca, e.modelo, e.imei, o.falla_reportada].filter(Boolean).join(' ').toLowerCase().includes(q);
+    });
+    const total = lista.length;
     const totalPag = Math.max(1, Math.ceil(total / ORDERS_PER_PAGE));
     if(ordersPage > totalPag) ordersPage = totalPag;
     if(ordersPage < 1) ordersPage = 1;
     const inicio = (ordersPage - 1) * ORDERS_PER_PAGE;
-    const pagina = todas.slice(inicio, inicio + ORDERS_PER_PAGE);
-
-    if(total === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:18px;">No hay órdenes de trabajo activas.</td></tr>`;
-    } else {
-        tbody.innerHTML = pagina.map(o => {
-            const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
-            const etOrd = obtenerEtiquetaOrden(normalizarEstadoOrden(o.estado));
-            const tecOrd = o.tecnico_asignado_id ? nombreEmpleado(o.tecnico_asignado_id) : null;
-            return `<tr>
-                <td data-label="Orden"><b>${formatoOrden(o.numero_orden)}</b></td>
-                <td data-label="Cliente">${escapeHtml(c.nombre)}</td>
-                <td data-label="Equipo">${escapeHtml(e.modelo)}</td>
-                <td data-label="Falla">${escapeHtml(o.falla_reportada)}</td>
-                <td data-label="Acceso"><div class="access-mask">•••• <button class="btn btn-light" style="padding:1px 4px; font-size:10px" onclick="revelarClave('${o.id}', this)">Mostrar</button></div></td>
-                <td data-label="Atendido por"><span style="font-size:12px;"><i class="ti ti-user-check" style="color:#0891b2;"></i> ${escapeHtml(nombreEmpleado(o.creado_by))}${tecOrd ? `<br><i class="ti ti-tool" style="color:#9a3412;"></i> ${escapeHtml(tecOrd)}` : ''}</span></td>
-                <td data-label="Estado"><span class="badge" style="background:${etOrd.bg}; color:${etOrd.color};">${etOrd.text}</span></td>
-                <td data-label="Acciones"><button class="btn btn-light" style="padding:4px 8px;" onclick="cargarEnLabel('${o.id}')"><i class="ti ti-clipboard-list"></i> Label Diagnóstico</button></td>
-            </tr>`;
-        }).join("");
-    }
+    const pagina = lista.slice(inicio, inicio + ORDERS_PER_PAGE);
+    grid.innerHTML = total === 0
+        ? `<div class="bcf-vacio">${todas.length ? 'Ninguna orden coincide con el filtro o la búsqueda.' : 'No hay órdenes de servicio todavía.'}</div>`
+        : pagina.map(_ordCardHTML).join('');
     renderOrdersPagination(total, totalPag, inicio, pagina.length);
 }
 
@@ -11605,91 +11682,129 @@ function renderDetalleLoteReacond() {
 function _tienePiezasInfoPlus(equipoId) {
     return (cache.piezasReacond || []).some(p => p.equipo_id === equipoId && !p.agregada_por_tecnico && !p.pieza_id && !!p.pieza_codigo && p.estado !== 'rechazada' && p.estado !== 'devuelta');
 }
+/* ===== Tarjetas estilo «FleetTrack» (ref. Orbix Studio, 14-oct-2026) =====
+   Foto del equipo, etiqueta de estado del MISMO color que su filtro, técnico con avatar,
+   barra de avance por los pasos del proceso y 3 datos abajo. El rojo queda solo para problemas.
+   Los estilos y los filtros de color viven en taller-flota.js; sin esa capa la tarjeta sigue funcionando. */
+function _bcfNorm(s) {
+    return String(s || '').toLowerCase()
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .replace(/\b(apple|samsung|galaxy|celular|telefono)\b/g, ' ')
+        .replace(/\b\d+\s*(gb|tb)\b/g, ' ').replace(/\b[45]g\b/g, ' ')
+        .replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+// Foto del catálogo web (catalogo_items): por código de Info Plus o por nombre del modelo.
+function _bcfFoto(codigo, nombre) {
+    const m = window._bcfFotos; if(!m) return '';
+    if(codigo != null && m.code[String(codigo)]) return m.code[String(codigo)];
+    const n = _bcfNorm(nombre); if(!n) return '';
+    if(m.name[n]) return m.name[n];
+    let mejor = '';
+    for(const k of m.keys) { if(k.length > mejor.length && (n === k || n.startsWith(k + ' '))) mejor = k; }
+    return mejor ? m.name[mejor] : '';
+}
+function _bcfMedia(foto, textoMarca) {
+    if(foto) return `<img src="${escapeHtml(foto)}" alt="" loading="lazy" decoding="async">`;
+    const R = window.BayolMejorasRef;
+    const k = R && typeof R.marcaDe === 'function' ? R.marcaDe(textoMarca) : '';
+    const logo = k ? R.logo(k, 26) : '';
+    return `<span class="bcf-sinfoto">${logo || '<i class="ti ti-device-mobile"></i>'}</span>`;
+}
+function _bcfAvatar(nombre) {
+    const n = String(nombre || '').trim();
+    if(!n) return '<span class="bcf-av bcf-av-vacio"><i class="ti ti-user"></i></span>';
+    const ini = n.split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+    let h = 0; for(const ch of n) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    return `<span class="bcf-av bcf-av-${h % 6}">${escapeHtml(ini)}</span>`;
+}
+function _bcfDias(fechaISO) {
+    if(!fechaISO) return null;
+    const d = Math.floor((Date.now() - new Date(fechaISO).getTime()) / 86400000);
+    return isNaN(d) ? null : Math.max(0, d);
+}
+function _bcfDiasTxt(d) { return d == null ? '—' : (d === 0 ? 'Hoy' : (d === 1 ? '1 día' : d + ' días')); }
+// Barra de avance: tramo hecho en naranja, lo que falta rayado y el ícono encima del borde.
+function _bcfBarra(paso, total, ico, alerta) {
+    const pct = Math.max(6, Math.min(100, Math.round(((paso + 1) / total) * 100)));
+    return `<div class="bcf-track${alerta ? ' bcf-track-alerta' : ''}" role="progressbar" aria-valuemin="1" aria-valuemax="${total}" aria-valuenow="${paso + 1}">
+        <i class="bcf-fill" style="width:${pct}%"></i><span class="bcf-ico" style="left:${pct}%"><i class="ti ${ico}"></i></span></div>`;
+}
+const _BCF_PASOS_REACOND = ['Recibido', 'Diagnóstico', 'Evaluado', 'Reparación', 'Control', 'Listo', 'Despachado'];
+
 function renderEquipoReacondCard(eq, num) {
     const estado = eq.estado_evaluacion || 'pendiente';
     const tecnico = eq.tecnico_asignado_id ? (cache.tecnicos || []).find(t => t.id === eq.tecnico_asignado_id) : null;
-    let badgeColor, badgeText, accionPrincipal = '', botones = '', indicadorOperacion = '';
-
+    let tono = 'gris', tagTxt = estado, paso = 0, accionPrincipal = `continuarEvaluacion('${eq.id}')`, botones = '', ico = 'ti-device-mobile';
+    const chips = [];
+    let desde = eq.creado_en;
     if(estado === 'pendiente') {
-        badgeColor = 'background:#fef3c7; color:#92400e;';
-        badgeText = '📥 Recibido';
+        tono = 'gris'; tagTxt = 'Recibido'; paso = 0; ico = 'ti-package-import';
         accionPrincipal = `empezarEvaluacion('${eq.id}')`;
     } else if(estado === 'en_evaluacion') {
-        badgeColor = 'background:#dbeafe; color:#b91c1c;';
-        badgeText = '🩺 Diagnóstico en curso';
+        tono = 'azul'; tagTxt = 'En diagnóstico'; paso = 1; ico = 'ti-stethoscope';
         accionPrincipal = `continuarEvaluacion('${eq.id}')`;
     } else if(estado === 'evaluado') {
-        badgeColor = 'background:#d1fae5; color:#065f46;';
-        badgeText = '✅ Diagnóstico listo';
+        tono = 'azul'; tagTxt = 'Diagnosticado'; paso = 2; ico = 'ti-clipboard-check';
         accionPrincipal = `abrirModalAsignarTecnico('${eq.id}')`;
     } else if(_REACOND_ESTADOS_REPARACION.includes(estado)) {
-        badgeColor = 'background:#fed7aa; color:#9a3412;';
-        badgeText = '🔧 En reparación';
-        const indicadores = {
-            tecnico_recibio: ['📦 Técnico recibió', '#dbeafe', '#1d4ed8'],
-            espera_pieza: ['⏳ Bloqueado por pieza', '#fef3c7', '#92400e'],
-            reasignado: ['👥 Reasignado', '#fef3c7', '#92400e'],
-            reparacion_externa: ['↗ Reparación externa', '#e0f2fe', '#0369a1']
-        };
-        if(indicadores[estado]) {
-            const [texto, fondo, color] = indicadores[estado];
-            indicadorOperacion = `<span class="badge" style="background:${fondo}; color:${color}; font-size:10px; font-weight:700;">${texto}</span>`;
-        }
+        tono = 'naranja'; tagTxt = 'En reparación'; paso = 3; ico = 'ti-tool';
+        desde = eq.fecha_asignacion || eq.creado_en;
+        const ind = { tecnico_recibio: ['Técnico recibió', 'azul'], espera_pieza: ['Espera pieza', 'rojo'], reasignado: ['Reasignado', 'amarillo'], reparacion_externa: ['Reparación externa', 'azul'] };
+        if(ind[estado]) chips.push(ind[estado]);
         accionPrincipal = `abrirPanelProceso('${eq.id}')`;
     } else if(estado === 'listo_revision') {
-        badgeColor = 'background:#e9d5ff; color:#6b21a8;';
-        badgeText = '🛡️ Control de calidad';
+        tono = 'morado'; tagTxt = 'Control calidad'; paso = 4; ico = 'ti-shield-check';
+        desde = eq.fecha_terminado || eq.fecha_asignacion || eq.creado_en;
         accionPrincipal = `abrirPanelProceso('${eq.id}')`;
     } else if(estado === 'listo_venta') {
-        badgeColor = 'background:#ddd6fe; color:#5b21b6;';
-        badgeText = '🛒 Listo';
+        tono = 'verde'; tagTxt = 'Listo'; paso = 5; ico = 'ti-circle-check';
+        desde = eq.fecha_terminado || eq.creado_en;
         accionPrincipal = `verFichaDespacho('${eq.id}')`;
-        botones = `${permBtn('estado_despachar', `<button class="btn btn-dark" style="padding:8px 14px; background:linear-gradient(180deg,#10b981,#059669); box-shadow:0 3px 8px rgba(15,23,42,0.12);" onclick="event.stopPropagation(); marcarDespachado('${eq.id}')"><i class="ti ti-truck-delivery"></i> Registrar salida</button>`)}`;
+        botones = `${permBtn('estado_despachar', `<button class="btn btn-dark bcf-btn-salida" onclick="event.stopPropagation(); marcarDespachado('${eq.id}')"><i class="ti ti-truck-delivery"></i> Registrar salida</button>`)}`;
     } else if(estado === 'vendido') {
-        badgeColor = 'background:#dcfce7; color:#15803d;';
-        badgeText = '🚚 Despachado';
-        indicadorOperacion = eq.completado
-            ? '<span class="badge" style="background:#e2e8f0; color:#334155; font-size:10px;">Registro cerrado</span>'
-            : '<span class="badge" style="background:#fef3c7; color:#92400e; font-size:10px;">Salida por cerrar</span>';
+        tono = 'teal'; tagTxt = 'Despachado'; paso = 6; ico = 'ti-truck-delivery';
+        desde = eq.fecha_despacho || eq.creado_en;
+        chips.push(eq.completado ? ['Registro cerrado', 'gris'] : ['Salida por cerrar', 'amarillo']);
         accionPrincipal = `verFichaDespacho('${eq.id}')`;
-    } else {
-        badgeColor = 'background:#f1f5f9; color:#475569;';
-        badgeText = estado;
-        accionPrincipal = `continuarEvaluacion('${eq.id}')`;
     }
-    
-    return `<div class="reacond-equipo-card" onclick="${accionPrincipal}" title="Clic para continuar" style="background:#fff; border:1px solid var(--border-color); border-radius:8px; padding:12px; margin-bottom:8px; cursor:pointer; transition:background .15s, box-shadow .15s;" onmouseover="this.style.background='#f8fafc'; this.style.boxShadow='0 2px 8px rgba(15,23,42,0.08)';" onmouseout="this.style.background='#fff'; this.style.boxShadow='none';">
-        <div class="reacond-equipo-layout" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
-            <div style="flex:1; min-width:200px;">
-                <div class="reacond-equipo-head" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                    <input type="checkbox" onclick="event.stopPropagation(); _reacondToggleSel('${eq.id}', this.checked)" ${_reacondSel.has(eq.id) ? 'checked' : ''} title="Seleccionar (para asignar o 'Pasar a')" style="width:18px; height:18px; cursor:pointer; accent-color:#5b21b6;">
-                    <span class="reacond-equipo-number" style="background:var(--blue-btn); color:#fff; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700;">#${num}</span>
-                    ${eq.veces_devuelto > 0 ? `<span title="Equipo devuelto ${eq.veces_devuelto} vez(es)" style="font-size:16px;">🔄</span>` : ''}
-                    <b style="font-size:14px;">${escapeHtml(eq.modelo || 'Sin modelo')}</b>
-                    <span class="badge" style="${badgeColor} font-size:11px;">${badgeText}</span>
-                    ${indicadorOperacion}
-                    <button onclick="event.stopPropagation(); ${(estado === 'vendido' || estado === 'listo_venta') ? `verFichaDespacho('${eq.id}')` : `verHistorialEquipoReacond('${eq.id}')`}" title="${(estado === 'vendido' || estado === 'listo_venta') ? 'Ver ficha (costos y piezas Info Plus)' : 'Ver historial completo (trabajo, técnicos y costos)'}" style="background:#cffafe; color:#0e7490; border:1px solid #67e8f9; border-radius:6px; padding:2px 7px; cursor:pointer; font-size:12px;"><i class="ti ti-eye"></i></button>
-                    ${(estado === 'vendido' || estado === 'listo_venta') ? `<button onclick="event.stopPropagation(); imprimirLabelEquipo('${eq.id}')" title="Imprimir label (Impresión de Labels)" style="background:#fef3c7; color:#92400e; border:1px solid #fcd34d; border-radius:6px; padding:2px 7px; cursor:pointer; font-size:12px;"><i class="ti ti-printer"></i></button>` : ''}
-                    ${estado === 'evaluado' ? `<button onclick="event.stopPropagation(); continuarEvaluacion('${eq.id}')" title="Editar evaluación" style="background:#d1fae5; color:#065f46; border:1px solid #6ee7b7; border-radius:6px; padding:2px 7px; cursor:pointer; font-size:12px;"><i class="ti ti-pencil"></i></button>` : ''}
-                    ${eq.veces_devuelto > 0 ? `<span class="badge" style="background:#fee2e2; color:#991b1b; font-size:10px; font-weight:700;">DEVUELTO ${eq.veces_devuelto}×</span>` : ''}
-                    ${tecnico ? `<span class="badge" style="background:#e0e7ff; color:#3730a3; font-size:11px;"><i class="ti ti-user"></i> ${escapeHtml(tecnico.nombre)}</span>` : ''}
-                    ${_tienePiezasInfoPlus(eq.id) ? `<span class="badge" style="background:#bae6fd; color:#075985; font-size:11px;" title="Ya tiene piezas de Info Plus asignadas"><i class="ti ti-shopping-cart"></i> Info Plus ✓</span>` : ''}
-                </div>
-                <div class="reacond-equipo-meta" style="font-size:12px; color:var(--text-muted); margin-top:6px;">
-                    <i class="ti ti-barcode"></i> IMEI: ${escapeHtml(eq.imei || '—')}
-                    ${eq.color ? ' · ' + escapeHtml(eq.color) : ''}
-                    ${eq.capacidad ? ' · ' + escapeHtml(eq.capacidad) : ''}
-                </div>
-                ${estado === 'vendido' && eq.fecha_despacho ? `<div style="font-size:11px; font-weight:700; margin-top:5px; color:#15803d;"><i class="ti ti-truck-delivery"></i> Salida: ${new Date(eq.fecha_despacho).toLocaleDateString('es-DO')}</div>` : ''}
-                ${tecnico && eq.fecha_asignacion ? `<div style="font-size:11px; color:#0891b2; font-weight:600; margin-top:4px;"><i class="ti ti-clock-hour-4"></i> Tomado: ${tiempoDesde(eq.fecha_asignacion)}</div>` : ''}
-                ${eq.notas_diagnostico ? `<div style="background:#f1f5f9; padding:6px 10px; border-radius:6px; margin-top:6px; font-size:12px;"><b>Notas:</b> ${escapeHtml(eq.notas_diagnostico)}</div>` : ''}
-            </div>
-            <div class="reacond-equipo-actions" style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-                ${botones}
-                <i class="ti ti-chevron-right" style="color:#475569; font-size:20px;" title="Clic para abrir"></i>
-            </div>
+    const dias = _bcfDias(desde);
+    // Rojo solo para lo que tiene problema: esperando pieza o más de 7 días en reparación.
+    const atrasado = paso === 3 && dias != null && dias > 7;
+    if(atrasado) chips.unshift([`Atrasado · ${dias} días`, 'rojo']);
+    if(eq.veces_devuelto > 0) chips.push([`Devuelto ${eq.veces_devuelto}×`, 'rojo']);
+    if(_tienePiezasInfoPlus(eq.id)) chips.push(['Piezas Info Plus', 'azul']);
+    const alerta = atrasado || estado === 'espera_pieza';
+    const esFicha = estado === 'vendido' || estado === 'listo_venta';
+    const sel = _reacondSel.has(eq.id);
+    const foto = _bcfFoto(eq.articulo_codigo, eq.modelo);
+    const dAsig = _bcfDias(eq.fecha_asignacion);
+    const tomado = tecnico && dAsig != null ? 'Tomado ' + (dAsig === 0 ? 'hoy' : 'hace ' + _bcfDiasTxt(dAsig)) : (tecnico ? '' : 'Por asignar');
+    return `<article class="bcf-card${sel ? ' bcf-sel' : ''}${alerta ? ' bcf-alerta' : ''}" data-tono="${tono}" onclick="${accionPrincipal}" title="Clic para continuar">
+        <header class="bcf-h">
+            <input type="checkbox" class="bcf-chk" onclick="event.stopPropagation(); _reacondToggleSel('${eq.id}', this.checked); this.closest('.bcf-card').classList.toggle('bcf-sel', this.checked)" ${sel ? 'checked' : ''} title="Seleccionar (para asignar o 'Pasar a')" aria-label="Seleccionar equipo #${num}">
+            <div class="bcf-tit"><b>${escapeHtml(eq.modelo || 'Sin modelo')}</b></div>
+            <span class="bcf-tag bcf-t-${tono}">${tagTxt}</span>
+        </header>
+        <div class="bcf-sub">#${num} · IMEI ${escapeHtml(eq.imei || '—')}</div>
+        <div class="bcf-media">${_bcfMedia(foto, (eq.marca || '') + ' ' + (eq.modelo || ''))}</div>
+        ${chips.length ? `<div class="bcf-chips">${chips.map(([t, c]) => `<span class="bcf-chip bcf-t-${c}">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
+        <div class="bcf-per">${_bcfAvatar(tecnico?.nombre)}<div class="bcf-per-txt"><small>Técnico</small><b>${escapeHtml(tecnico?.nombre || 'Sin asignar')}</b></div><span class="bcf-upd">${escapeHtml(tomado)}</span></div>
+        <div class="bcf-prog"><div class="bcf-prog-top"><span>${_BCF_PASOS_REACOND[paso]}</span><span>Paso ${paso + 1} de ${_BCF_PASOS_REACOND.length}</span></div>${_bcfBarra(paso, _BCF_PASOS_REACOND.length, ico, alerta)}</div>
+        <footer class="bcf-f">
+            <span title="Capacidad"><i class="ti ti-database"></i>${escapeHtml(eq.capacidad || '—')}</span>
+            <span title="Color"><i class="ti ti-palette"></i>${escapeHtml(eq.color || '—')}</span>
+            <span title="Tiempo en este paso"><i class="ti ti-clock-hour-4"></i>${_bcfDiasTxt(dias)}</span>
+        </footer>
+        ${eq.notas_diagnostico ? `<div class="bcf-nota" title="${escapeHtml(eq.notas_diagnostico)}"><i class="ti ti-note"></i> ${escapeHtml(eq.notas_diagnostico)}</div>` : ''}
+        <div class="bcf-acc" onclick="event.stopPropagation()">
+            <button class="bcf-ib" onclick="${esFicha ? `verFichaDespacho('${eq.id}')` : `verHistorialEquipoReacond('${eq.id}')`}" title="${esFicha ? 'Ver ficha (costos y piezas Info Plus)' : 'Ver historial completo (trabajo, técnicos y costos)'}" aria-label="Ver detalle"><i class="ti ti-eye"></i></button>
+            ${esFicha ? `<button class="bcf-ib" onclick="imprimirLabelEquipo('${eq.id}')" title="Imprimir label" aria-label="Imprimir label"><i class="ti ti-printer"></i></button>` : ''}
+            ${estado === 'evaluado' ? `<button class="bcf-ib" onclick="continuarEvaluacion('${eq.id}')" title="Editar evaluación" aria-label="Editar evaluación"><i class="ti ti-pencil"></i></button>` : ''}
+            <span class="bcf-acc-sp"></span>
+            ${botones}
+            <span class="bcf-abrir">Abrir <i class="ti ti-chevron-right"></i></span>
         </div>
-    </div>`;
+    </article>`;
 }
 
 async function marcarEvaluado(equipoId) {
