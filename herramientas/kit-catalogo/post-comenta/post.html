@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="es-DO">
+<head>
+<meta charset="utf-8">
+<title>Post Comenta PANTALLA</title>
+<!-- Publicación que invita a comentar (dueño, 14-oct-2026: «Haz la 2 para Bayol»).
+     No muestra la lista completa: el precio se manda por privado cuando la persona comenta PANTALLA.
+     Usa las fuentes y el logo del kit (flyer-pantallas). Precio «desde» = nivel 1 aprobado. -->
+<style>
+@font-face{font-family:"Barlow Condensed";font-weight:800;src:url(../flyer-pantallas/fonts/barlow-condensed-800.woff2) format("woff2");}
+@font-face{font-family:"Barlow Condensed";font-weight:700;src:url(../flyer-pantallas/fonts/barlow-condensed-700.woff2) format("woff2");}
+@font-face{font-family:"Inter";font-weight:100 900;src:url(../flyer-pantallas/fonts/inter-var.woff2) format("woff2");}
+:root{--ink:#0A0A0C;--line:rgba(255,255,255,.10);--red:#E31E24;--bone:#F5F5F7;--mute:#9A9AA3;
+  --W:1080px;--H:1350px;--pad:64px;--top:52px;--h1:96px;--hero:178px;--phone-w:330px;--phone-top:400px;--cmt-top:572px;--cta-b:200px}
+body.story{--H:1920px;--top:250px;--h1:104px;--hero:196px;--phone-w:340px;--phone-top:800px;--cmt-top:880px;--cta-b:330px}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--ink)}
+body{width:var(--W);height:var(--H);overflow:hidden;font-family:"Inter",system-ui,sans-serif;color:var(--bone);-webkit-font-smoothing:antialiased}
+.canvas{position:relative;width:100%;height:100%;overflow:hidden;
+  background:radial-gradient(900px 700px at 88% 46%,rgba(227,30,36,.30),transparent 62%),
+             radial-gradient(700px 500px at 0% 100%,rgba(227,30,36,.12),transparent 70%),
+             linear-gradient(180deg,#121215 0%,#08080A 100%)}
+.grain{position:absolute;inset:0;background:url(../flyer-pantallas/grano.png);opacity:.06;mix-blend-mode:screen;z-index:50}
+.header{position:absolute;left:var(--pad);right:var(--pad);top:var(--top);display:flex;align-items:center;justify-content:space-between}
+.logo{height:92px;display:block;filter:drop-shadow(0 10px 24px rgba(0,0,0,.6))}
+.pill{display:flex;align-items:center;gap:12px;height:60px;padding:0 26px;border-radius:999px;background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.14);font-weight:600;font-size:26px}
+.pill i{width:12px;height:12px;border-radius:50%;background:var(--red);box-shadow:0 0 14px var(--red)}
+.headline{position:absolute;left:var(--pad);right:var(--pad);top:calc(var(--top) + 132px)}
+.q{font-family:"Barlow Condensed";font-weight:800;font-size:var(--h1);line-height:.92;text-transform:uppercase;letter-spacing:.01em}
+.q em{font-style:normal;color:var(--red)}
+.hero{font-weight:700;font-size:var(--hero);line-height:.86;letter-spacing:-.055em;margin-top:8px;margin-left:-.04em;
+  background:linear-gradient(180deg,#fff 30%,#C9C9CF 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.phone{position:absolute;right:calc(var(--pad) - 4px);top:var(--phone-top);width:var(--phone-w);
+  filter:drop-shadow(0 0 60px rgba(227,30,36,.35)) drop-shadow(0 30px 50px rgba(0,0,0,.7))}
+.phone svg{display:block;width:100%;height:auto}
+.scr{position:absolute;left:0;right:0;top:20%;text-align:center}
+.scr .qm{font-family:"Barlow Condensed";font-weight:800;font-size:250px;line-height:.9;color:#fff;text-shadow:0 6px 30px rgba(80,0,0,.6)}
+.scr .d{font-family:"Barlow Condensed";font-weight:700;font-size:30px;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.85);margin-top:18px;padding-left:.2em}
+.scr .a{font-family:"Barlow Condensed";font-weight:800;font-size:78px;line-height:1;color:#fff}
+.scr .a small{font-size:.5em;vertical-align:.6em;margin-right:4px}
+/* simulated Instagram comment thread */
+.thread{position:absolute;left:var(--pad);top:var(--cmt-top);width:600px;display:flex;flex-direction:column;gap:16px}
+.cm{display:flex;gap:18px;align-items:flex-start}
+.av{flex:none;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#3A3A42,#1C1C22);border:2px solid rgba(255,255,255,.14);
+  display:grid;place-items:center;font-weight:700;font-size:26px;color:#C9C9CF}
+.av.br{background:#000;border-color:var(--red);overflow:hidden}
+.av.br img{width:100%;height:100%;object-fit:contain}
+.bub{border-radius:26px;padding:13px 22px;background:rgba(255,255,255,.07);border:1px solid var(--line);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+.bub .u{font-size:21px;font-weight:700;color:var(--mute);margin-bottom:4px}
+.bub .t{font-size:30px;font-weight:600;letter-spacing:-.015em;line-height:1.2}
+.bub .t b{font-family:"Barlow Condensed";font-weight:800;font-size:36px;letter-spacing:.04em;color:#fff;background:var(--red);border-radius:10px;padding:0 10px;margin-right:6px}
+.cm.re{margin-left:56px}
+.cm.re .bub{background:rgba(227,30,36,.14);border-color:rgba(227,30,36,.40)}
+.cm.re .t{font-size:28px;white-space:nowrap}
+/* CTA */
+.cta{position:absolute;left:calc(var(--pad) - 16px);right:calc(var(--pad) - 16px);bottom:var(--cta-b);border-radius:34px;overflow:hidden;
+  background:linear-gradient(90deg,#E31E24,#B5141A);box-shadow:0 30px 70px rgba(227,30,36,.35),inset 0 1px 0 rgba(255,255,255,.25);
+  padding:30px 40px;display:flex;align-items:center;gap:30px}
+.cta svg{width:84px;height:84px;flex:none}
+.cta .l1{font-family:"Barlow Condensed";font-weight:800;font-size:68px;line-height:.95;text-transform:uppercase;letter-spacing:.01em}
+.cta .l1 span{background:#fff;color:#C0161C;border-radius:12px;padding:0 14px}
+.cta .l2{font-size:28px;font-weight:600;margin-top:10px;color:rgba(255,255,255,.92)}
+.foot{position:absolute;left:var(--pad);right:var(--pad);bottom:calc(var(--cta-b) - 140px);display:flex;justify-content:space-between;align-items:center;
+  border-top:1px solid var(--line);padding-top:28px}
+body.story .foot{bottom:calc(var(--cta-b) - 150px)}
+.city{font-family:"Barlow Condensed";font-weight:700;font-size:30px;letter-spacing:.16em;color:var(--mute)}
+.city em{font-style:normal;color:var(--red);margin:0 12px}
+.hand{font-size:28px;font-weight:700}
+</style>
+</head>
+<body>
+<div class="canvas">
+  <div class="grain"></div>
+  <header class="header">
+    <img class="logo" src="../../../assets/logo.png" alt="Bayolcell">
+    <div class="pill"><i></i>Con instalación incluida</div>
+  </header>
+
+  <section class="headline">
+    <div class="q">¿Cuánto cuesta la <em>pantalla</em> de tu</div>
+    <div class="hero">iPhone?</div>
+  </section>
+
+  <div class="phone">
+    <svg viewBox="0 0 340 700" aria-hidden="true">
+      <defs>
+        <linearGradient id="fr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5A5A62"/><stop offset=".35" stop-color="#2A2A30"/><stop offset=".7" stop-color="#3C3C44"/><stop offset="1" stop-color="#1A1A1E"/></linearGradient>
+        <radialGradient id="gl" cx=".5" cy=".36" r=".85"><stop offset="0" stop-color="#FF4A4F"/><stop offset=".28" stop-color="#E31E24"/><stop offset=".62" stop-color="#6E0A0E"/><stop offset="1" stop-color="#160406"/></radialGradient>
+        <linearGradient id="sh" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".16"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/></linearGradient>
+      </defs>
+      <rect x="0" y="128" width="6" height="34" rx="2" fill="#2E2E34"/><rect x="0" y="186" width="6" height="58" rx="2" fill="#2E2E34"/>
+      <rect x="0" y="258" width="6" height="58" rx="2" fill="#2E2E34"/><rect x="334" y="206" width="6" height="92" rx="2" fill="#2E2E34"/>
+      <rect x="4" y="2" width="332" height="696" rx="58" fill="url(#fr)"/><rect x="9" y="7" width="322" height="686" rx="53" fill="#050506"/>
+      <rect x="19" y="17" width="302" height="666" rx="44" fill="url(#gl)"/><rect x="19" y="17" width="302" height="666" rx="44" fill="url(#sh)"/>
+      <rect x="122" y="33" width="96" height="28" rx="14" fill="#000"/>
+    </svg>
+    <div class="scr">
+      <div class="qm">?</div>
+      <div class="d">Desde</div>
+      <div class="a"><small>RD$</small>1,000</div>
+    </div>
+  </div>
+
+  <section class="thread">
+    <div class="cm"><div class="av">M</div><div class="bub"><div class="u">maria.rd</div><div class="t"><b>PANTALLA</b> 13 Pro</div></div></div>
+    <div class="cm"><div class="av">J</div><div class="bub"><div class="u">joel_stgo</div><div class="t"><b>PANTALLA</b> 11</div></div></div>
+    <div class="cm re"><div class="av br"><img src="../../../assets/logo.png" alt=""></div><div class="bub"><div class="u">bayolcell</div><div class="t">¡Te escribimos por privado!</div></div></div>
+  </section>
+
+  <section class="cta">
+    <svg viewBox="0 0 84 84" fill="none" aria-hidden="true"><path d="M42 8C22.7 8 8 21.7 8 38.6c0 9.3 4.5 17.6 11.6 23.2L17 76l14.2-7.5c3.4 1 7 1.5 10.8 1.5 19.3 0 34-13.7 34-30.6S61.3 8 42 8z" fill="#fff"/><circle cx="28" cy="39" r="4.5" fill="#E31E24"/><circle cx="42" cy="39" r="4.5" fill="#E31E24"/><circle cx="56" cy="39" r="4.5" fill="#E31E24"/></svg>
+    <div><div class="l1">Comenta <span>PANTALLA</span><br>+ tu modelo</div><div class="l2">y te mandamos el precio por privado</div></div>
+  </section>
+
+  <footer class="foot">
+    <div class="city">SANTIAGO<em>·</em>MOCA<em>·</em>NAVARRETE</div>
+    <div class="hand">@bayolcell</div>
+  </footer>
+</div>
+<script>
+document.body.className = new URLSearchParams(location.search).get('v') || 'feed';
+document.fonts.ready.then(() => document.body.dataset.ready = '1');
+</script>
+</body>
+</html>
