@@ -732,7 +732,14 @@ Deno.serve(async (req: Request) => {
   if (!esInicioDeConversacion) {
     if (esMayorista) return json({ ok: true, omitido: "línea al por mayor: solo el saludo, sin seguimientos" });
     const mensajeClienteId = (body.mensaje_cliente_id as string) ?? null;
-    if (modo === "observacion") return await registrarEpisodioObservacion(hilo, mensajeClienteId);
+    if (modo === "observacion") {
+      // 14 oct 2026 (dueño: «Sí», pausar): los borradores de observación gastaban IA con cada mensaje (2,090 en un mes
+      // sin revisar) y agotaron el límite de Anthropic. Pausados hasta llenar la base de conocimiento.
+      // Se reactivan con whatsapp_ia_config.borradores_observacion = true.
+      const { data: cfgObs } = await db.from("whatsapp_ia_config").select("borradores_observacion").eq("sucursal_id", hilo.sucursal_id).maybeSingle();
+      if (cfgObs?.borradores_observacion !== true) return json({ ok: true, omitido: "borradores de observación en pausa" });
+      return await registrarEpisodioObservacion(hilo, mensajeClienteId);
+    }
     // No reemplazar la sugerencia del formulario con un borrador general.
     if (sugirioFinanciamiento) return json({ ok: true, sugerido: "financiamiento" });
     return await generarSugerencia(hilo, mensajeClienteId);
