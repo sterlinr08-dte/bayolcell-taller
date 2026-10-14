@@ -46,6 +46,7 @@
 
   try{var nav=document.createElement('script');nav.async=false;nav.src='taller-nav-apple.js?v=20261003-n1';document.head.appendChild(nav);}catch(e){} // Barra de navegación de ventanas estilo Apple (capa reversible)
   try{var bcm=document.createElement('script');bcm.async=false;bcm.src='taller-sidebar-mini.js?v=20261009m1';document.head.appendChild(bcm);}catch(e){} // Menú lateral compacto: solo íconos en la computadora, se abre al pasar el ratón
+  try{var bca=document.createElement('script');bca.async=false;bca.src='taller-animaciones.js?v=20261014a';document.head.appendChild(bca);}catch(e){} // Animaciones de beUI: números de los KPI, botón Guardar → Listo ✓ y deslizar chats en el celular
 
   function instalarLoaderPremium(){
     try{
