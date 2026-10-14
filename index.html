@@ -32,30 +32,162 @@
   "@context": "https://schema.org",
   "@graph": [
     {
+      "@type": "Organization",
+      "@id": "https://bayolcell.com/#org",
+      "name": "Bayol Cell",
+      "alternateName": [
+        "Bayolcell",
+        "Bayolcell Cell Phone Store"
+      ],
+      "url": "https://bayolcell.com/",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://bayolcell.com/assets/logo.png",
+        "width": 700,
+        "height": 700
+      },
+      "image": "https://bayolcell.com/assets/og-bayolcell.jpg",
+      "description": "Tienda de celulares en República Dominicana: celulares con precio al día, financiamiento, taller de reparación con garantía, plan canje de iPhone, importación de piezas y venta al por mayor.",
+      "sameAs": [
+        "https://www.instagram.com/bayolcell"
+      ],
+      "subOrganization": [
+        {
+          "@id": "https://bayolcell.com/#santiago"
+        },
+        {
+          "@id": "https://bayolcell.com/#moca"
+        },
+        {
+          "@id": "https://bayolcell.com/#navarrete"
+        }
+      ]
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://bayolcell.com/#web",
+      "url": "https://bayolcell.com/",
+      "name": "Bayol Cell",
+      "inLanguage": "es-DO",
+      "publisher": {
+        "@id": "https://bayolcell.com/#org"
+      }
+    },
+    {
       "@type": "MobilePhoneStore",
       "@id": "https://bayolcell.com/#santiago",
       "name": "Bayol Cell — Santiago",
-      "image": "https://bayolcell.com/assets/logo.png",
+      "image": [
+        "https://bayolcell.com/assets/og-bayolcell.jpg",
+        "https://bayolcell.com/assets/logo.png"
+      ],
       "url": "https://bayolcell.com/",
       "telephone": "+18097072493",
       "address": {
         "@type": "PostalAddress",
         "streetAddress": "Calle Sánchez, casi esq. Restauración #102",
         "addressLocality": "Santiago de los Caballeros",
-        "addressCountry": "DO"
+        "addressCountry": "DO",
+        "addressRegion": "Santiago"
       },
       "openingHoursSpecification": [
-        { "@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday"], "opens": "08:30", "closes": "18:00" },
-        { "@type": "OpeningHoursSpecification", "dayOfWeek": "Saturday", "opens": "09:00", "closes": "16:00" }
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday"
+          ],
+          "opens": "08:30",
+          "closes": "18:00"
+        },
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": "Saturday",
+          "opens": "09:00",
+          "closes": "16:00"
+        }
       ],
       "priceRange": "RD$",
-      "sameAs": ["https://www.instagram.com/bayolcell"]
+      "sameAs": [
+        "https://www.instagram.com/bayolcell"
+      ],
+      "logo": "https://bayolcell.com/assets/logo.png",
+      "parentOrganization": {
+        "@id": "https://bayolcell.com/#org"
+      },
+      "hasMap": "https://www.google.com/maps/search/?api=1&query=Bayol%20Cell%20Calle%20S%C3%A1nchez%20Restauraci%C3%B3n%20Santiago",
+      "currenciesAccepted": "DOP",
+      "areaServed": {
+        "@type": "Country",
+        "name": "República Dominicana"
+      },
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "Servicios de Bayol Cell",
+        "itemListElement": [
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Venta de celulares"
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Financiamiento de celulares"
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Reparación de celulares con garantía"
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Cambio de pantalla"
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Plan canje de iPhone"
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Importación de piezas"
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Venta al por mayor"
+            }
+          }
+        ]
+      }
     },
     {
       "@type": "MobilePhoneStore",
       "@id": "https://bayolcell.com/#moca",
       "name": "Bayol Cell — Moca",
-      "image": "https://bayolcell.com/assets/logo.png",
+      "image": [
+        "https://bayolcell.com/assets/og-bayolcell.jpg",
+        "https://bayolcell.com/assets/logo.png"
+      ],
       "url": "https://bayolcell.com/",
       "telephone": "+18296709694",
       "address": {
@@ -66,16 +198,98 @@
         "addressCountry": "DO"
       },
       "openingHoursSpecification": [
-        { "@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"], "opens": "08:30", "closes": "18:00" }
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday"
+          ],
+          "opens": "08:30",
+          "closes": "18:00"
+        }
       ],
       "priceRange": "RD$",
-      "sameAs": ["https://www.instagram.com/bayolcell"]
+      "sameAs": [
+        "https://www.instagram.com/bayolcell"
+      ],
+      "logo": "https://bayolcell.com/assets/logo.png",
+      "parentOrganization": {
+        "@id": "https://bayolcell.com/#org"
+      },
+      "hasMap": "https://www.google.com/maps/search/?api=1&query=Bayol%20Cell%20Presidente%20V%C3%A1squez%20Moca",
+      "currenciesAccepted": "DOP",
+      "areaServed": {
+        "@type": "Country",
+        "name": "República Dominicana"
+      },
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "Servicios de Bayol Cell",
+        "itemListElement": [
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Venta de celulares"
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Financiamiento de celulares"
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Reparación de celulares con garantía"
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Cambio de pantalla"
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Plan canje de iPhone"
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Importación de piezas"
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Venta al por mayor"
+            }
+          }
+        ]
+      }
     },
     {
       "@type": "MobilePhoneStore",
       "@id": "https://bayolcell.com/#navarrete",
       "name": "Bayol Cell — Navarrete",
-      "image": "https://bayolcell.com/assets/logo.png",
+      "image": [
+        "https://bayolcell.com/assets/og-bayolcell.jpg",
+        "https://bayolcell.com/assets/logo.png"
+      ],
       "url": "https://bayolcell.com/",
       "telephone": "+18098934412",
       "address": {
@@ -86,11 +300,95 @@
         "addressCountry": "DO"
       },
       "openingHoursSpecification": [
-        { "@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"], "opens": "09:00", "closes": "19:00" },
-        { "@type": "OpeningHoursSpecification", "dayOfWeek": "Sunday", "opens": "09:00", "closes": "12:00" }
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday"
+          ],
+          "opens": "09:00",
+          "closes": "19:00"
+        },
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": "Sunday",
+          "opens": "09:00",
+          "closes": "12:00"
+        }
       ],
       "priceRange": "RD$",
-      "sameAs": ["https://www.instagram.com/bayolcell"]
+      "sameAs": [
+        "https://www.instagram.com/bayolcell"
+      ],
+      "logo": "https://bayolcell.com/assets/logo.png",
+      "parentOrganization": {
+        "@id": "https://bayolcell.com/#org"
+      },
+      "hasMap": "https://www.google.com/maps/search/?api=1&query=Bayol%20Cell%20Navarrete%20Autopista%20Duarte",
+      "currenciesAccepted": "DOP",
+      "areaServed": {
+        "@type": "Country",
+        "name": "República Dominicana"
+      },
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "Servicios de Bayol Cell",
+        "itemListElement": [
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Venta de celulares"
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Financiamiento de celulares"
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Reparación de celulares con garantía"
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Cambio de pantalla"
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Plan canje de iPhone"
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Importación de piezas"
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Venta al por mayor"
+            }
+          }
+        ]
+      }
     }
   ]
 }
