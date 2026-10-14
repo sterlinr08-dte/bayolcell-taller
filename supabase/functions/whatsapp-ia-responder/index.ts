@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { cotizarPantalla, esPreguntaDePantalla, frasePrecio, modeloDelMensaje } from "./_shared/precio-pantalla.ts";
 
 // whatsapp-ia-responder — agente de IA (Claude Haiku 4.5) para WhatsApp.
 //
@@ -257,7 +258,7 @@ async function guardarSugerenciaPendiente(
 // -- solo queda para comparar despues contra la respuesta humana real).
 // No guarda nada en la base -- eso lo decide cada caller.
 type ResultadoBorrador =
-  | { ok: true; respuesta: string; modeloDetectado: string | null; razon: string | null; mensajeClienteTexto: string | null }
+  | { ok: true; respuesta: string; modeloDetectado: string | null; razon: string | null; mensajeClienteTexto: string | null; conocimientoTexto: string }
   | { ok: false; response: Response };
 
 async function redactarBorrador(hilo: { id: string; sucursal_id: string }, mensajeClienteId: string | null): Promise<ResultadoBorrador> {
@@ -395,7 +396,7 @@ Reglas:
     : pidioUbicacion
       ? (tieneGps ? "Pidió la ubicación — recuerda enviar también el GPS (botón 📍)" : "Pidió la ubicación")
       : null;
-  return { ok: true, respuesta, modeloDetectado, razon, mensajeClienteTexto };
+  return { ok: true, respuesta, modeloDetectado, razon, mensajeClienteTexto, conocimientoTexto };
 }
 
 // Modo copiloto/automatico: redacta el borrador y lo guarda como SUGERENCIA
@@ -404,6 +405,13 @@ Reglas:
 async function generarSugerencia(hilo: { id: string; sucursal_id: string }, mensajeClienteId: string | null): Promise<Response> {
   const r = await redactarBorrador(hilo, mensajeClienteId);
   if (!r.ok) return r.response;
+  // 14 oct 2026 (dueño: «que no dé un precio por otro»): un borrador del modelo con un monto que no está en la
+  // información del negocio no se muestra. Los precios de pantalla salen solo de sugerirPrecioPantallaSiAplica.
+  const sinRespaldo = montosSinRespaldo(r.respuesta, r.conocimientoTexto);
+  if (sinRespaldo.length) {
+    console.error("whatsapp-ia-responder: borrador con monto inventado, se descarta:", sinRespaldo.join(", "));
+    return json({ ok: true, omitido: "el borrador mencionaba un monto que no viene de la información del negocio" });
+  }
   return await guardarSugerenciaPendiente(hilo.id, r.respuesta, mensajeClienteId, r.modeloDetectado, r.razon);
 }
 
@@ -537,6 +545,85 @@ Responde EXCLUSIVAMENTE con JSON: {"quiere_financiamiento": true} o {"quiere_fin
   return r.status === 200;
 }
 
+// Montos de dinero del texto (RD$2,000 · 2000 pesos · $2,500) que no aparecen en la información del negocio.
+export function montosSinRespaldo(texto: string, fuente: string): string[] {
+  const enFuente = new Set((String(fuente || "").match(/\d[\d,.]*/g) || []).map((x) => x.replace(/[,.]/g, "")));
+  const re = /(?:RD\$|US\$|\$)\s?(\d[\d,.]*)|(\d[\d,.]*)\s?(?:pesos|mil\b)/gi;
+  const malos: string[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(String(texto || "")))) {
+    const n = (m[1] || m[2] || "").replace(/[,.]/g, "");
+    if (n && !enFuente.has(n)) malos.push(m[0].trim());
+  }
+  return malos;
+}
+
+// PRECIO DE PANTALLA (14 oct 2026, pedido del dueño: «que la IA responda cuando el cliente pregunta de manera
+// específica, ¿a qué precio la pantalla de iPhone 11?, que no dé un precio por otro y que no dé OLED a menos que el
+// cliente pregunte por la OLED»). Igual que el formulario de financiamiento: el texto y el PRECIO los arma el
+// código (_shared/precio-pantalla.ts, Info Plus nivel 1, modelo exacto), nunca el modelo de IA. Queda como la
+// sugerencia pendiente del hilo para «Enviar tal cual». AUTOENVÍO solo de esta capacidad: si el dueño la habilitó
+// (whatsapp_ia_config.auto_precio_pantalla = true en esa sucursal; dueño, 14 oct 2026: «que el precio se envíe
+// solo»), se manda sola por Zernio y queda en el chat como mensaje automático. Funciona en cualquier modo, incluido
+// 'observacion'; nunca en chats tomados por un empleado (el handler sale antes). Si el modelo no está claro o hay
+// dos precios, no hace nada (responde una persona).
+export const RAZON_PRECIO_PANTALLA = "Precio exacto de pantalla (Info Plus, nivel 1)";
+const PISTAS_PRECIO = /precio|cu[aá]nto|cuesta|vale|sale|costo|cobran|\?/i;
+
+type EnvioAuto = { conversationId: string; accountId: string } | null;
+async function sugerirPrecioPantallaSiAplica(hiloId: string, mensajeClienteId: string | null, esInicio: boolean, auto: EnvioAuto): Promise<boolean> {
+  const { data: desc } = await db.from("whatsapp_mensajes").select("id, direccion, tipo_contenido, cuerpo, creado_en")
+    .eq("hilo_id", hiloId).order("creado_en", { ascending: false }).limit(6);
+  const recientes = (desc || []).filter((m: any) => m.direccion === "in" && m.tipo_contenido === "text" && m.cuerpo);
+  const ultimo = recientes[0];
+  if (!ultimo || (mensajeClienteId && ultimo.id !== mensajeClienteId)) return false;
+  const textoUltimo = String(ultimo.cuerpo);
+  const contexto = recientes.slice(0, 3).reverse().map((m: any) => m.cuerpo).join(" \n ");
+  // Pregunta de pantalla en el último mensaje, o pregunta de precio en el último y «pantalla» en los anteriores.
+  if (!esPreguntaDePantalla(textoUltimo) && !(PISTAS_PRECIO.test(textoUltimo) && esPreguntaDePantalla(contexto))) return false;
+  // El modelo sale del último mensaje; si no lo dice, de los anteriores (p. ej. «tengo un 13 pro» … «cuánto la pantalla?»).
+  const texto = modeloDelMensaje(textoUltimo) ? textoUltimo : contexto;
+  let c;
+  try { c = await cotizarPantalla(db, texto); } catch (e) {
+    console.error("whatsapp-ia-responder: no se pudo leer el precio de pantalla:", e instanceof Error ? e.message : String(e));
+    return false;
+  }
+  if (!c.ok) return false;
+  const frase = frasePrecio(c);
+  // No repetir el mismo precio si ya se le mandó en las últimas 12 horas.
+  const hace12 = new Date(Date.now() - 12 * 3600e3).toISOString();
+  const { data: ya } = await db.from("whatsapp_mensajes").select("id").eq("hilo_id", hiloId).eq("direccion", "out")
+    .gte("creado_en", hace12).ilike("cuerpo", `%${c.modelo}%`).ilike("cuerpo", `%${c.precio.toLocaleString("en-US")}%`).limit(1);
+  if (ya?.length) return false;
+  const textoSugerido = `${esInicio ? "Hola! 👋 Gracias por escribir a BAYOL CELL.\n\n" : ""}${frase}\n\nEn cuál sucursal te queda mejor: Santiago, Moca o Navarrete?`;
+  if (auto) {
+    // Reclamar ANTES de enviar: índice único (mensaje_cliente_id, razón de precio) → nunca dos envíos por el mismo mensaje.
+    const ahora = new Date().toISOString();
+    const { data: reclamo, error: errReclamo } = await db.from("whatsapp_ia_sugerencias").insert({
+      hilo_id: hiloId, mensaje_cliente_id: ultimo.id, texto_sugerido: textoSugerido, modelo_detectado: c.modelo,
+      razon: RAZON_PRECIO_PANTALLA, estado: "enviada", resuelto_por_tipo: "sistema", resuelto_en: ahora,
+    }).select("id").maybeSingle();
+    if (errReclamo || !reclamo) return true; // otra llamada ya lo atendió
+    const envio = await mandarAZernio(auto.conversationId, auto.accountId, textoSugerido);
+    if (envio.ok) {
+      await db.from("whatsapp_mensajes").insert({
+        hilo_id: hiloId, direccion: "out", tipo_contenido: "text", cuerpo: textoSugerido,
+        wa_message_id: envio.data?.data?.messageId ?? null, estado: "enviado", es_automatico: true, enviado_por_tipo: "sistema",
+      });
+      await db.from("whatsapp_hilos").update({ ultimo_mensaje_at: ahora, ultimo_mensaje_preview: textoSugerido.slice(0, 200), actualizado_en: ahora }).eq("id", hiloId);
+      // Una sugerencia vieja pendiente ya no aplica: el cliente recibió su respuesta.
+      await db.from("whatsapp_ia_sugerencias").update({ estado: "reemplazada", resuelto_por_tipo: "sistema", resuelto_en: ahora })
+        .eq("hilo_id", hiloId).eq("estado", "pendiente");
+      return true;
+    }
+    // Zernio no lo aceptó: queda como sugerencia para que el empleado la mande.
+    console.error("whatsapp-ia-responder: Zernio rechazó el precio automático:", envio.status);
+    await db.from("whatsapp_ia_sugerencias").update({ estado: "descartada" }).eq("id", reclamo.id);
+  }
+  const r = await guardarSugerenciaPendiente(hiloId, textoSugerido, mensajeClienteId ?? ultimo.id, c.modelo, RAZON_PRECIO_PANTALLA);
+  return r.status === 200;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json({ ok: false, error: "Metodo no permitido" }, 405);
   // verify_jwt:false (funcion interna, disparada solo por whatsapp-webhook)
@@ -620,6 +707,16 @@ Deno.serve(async (req: Request) => {
   const sugirioFinanciamiento = esMayorista
     ? false
     : await sugerirFinanciamientoSiAplica(hiloId, (body.mensaje_cliente_id as string) ?? mensajeActual.id ?? null);
+  // Precio exacto de pantalla (ver sugerirPrecioPantallaSiAplica): no en «Al por Mayor» ni si ya se sugirió el formulario.
+  const { data: cfgPrecio } = await db.from("whatsapp_ia_config").select("auto_precio_pantalla").eq("sucursal_id", hilo.sucursal_id).maybeSingle();
+  const convId = hilo.zernio_conversation_id
+    || (String(hilo.telefono_e164 || "").startsWith("bsid:") ? String(hilo.telefono_e164).slice(5) : hilo.telefono_e164);
+  const envioAuto: EnvioAuto = cfgPrecio?.auto_precio_pantalla === true && linea?.zernio_account_id && convId
+    ? { conversationId: String(convId), accountId: String(linea.zernio_account_id) } : null;
+  const sugirioPrecio = esMayorista || sugirioFinanciamiento
+    ? false
+    : await sugerirPrecioPantallaSiAplica(hiloId, (body.mensaje_cliente_id as string) ?? mensajeActual.id ?? null, esInicioDeConversacion, envioAuto);
+  if (sugirioPrecio) return json({ ok: true, precio_pantalla: envioAuto ? "auto" : "sugerido" });
 
   // Cualquier mensaje que no sea el arranque de la conversacion: se redacta
   // un borrador (fase de aprendizaje, nunca se auto-envia -- ni siquiera en

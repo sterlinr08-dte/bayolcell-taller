@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { cotizarPantalla, frasePrecio } from "./_shared/precio-pantalla.ts";
 
 // 4 oct 2026 — Motor de automatizaciones estilo ManyChat, Fase 1: «Comentario → privado» (Instagram/Facebook).
 // Lo llama el cron cada 2 min (header x-auto-token, validado contra vault con social_auto_token_valido) o un
@@ -11,6 +12,9 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 //  - Si el chat de esa persona ya está tomado por un empleado (asignado_id), NO envía (estado omitido_tomado).
 //  - Máximo MAX_POR_CORRIDA envíos por automatización en cada corrida.
 // No usa IA: manda el texto fijo que escribió el administrador.
+// 14 oct 2026: {precio} en el mensaje = precio EXACTO de la pantalla del iPhone que escribió la persona (lo calcula
+// _shared/precio-pantalla.ts con Info Plus nivel 1; OLED solo si la pide). Si no se sabe el modelo, pide el modelo.
+// dar_like = la cuenta del negocio le da «me gusta» al comentario real que activó la regla (nunca cuentas falsas).
 const SB_URL = Deno.env.get("SUPABASE_URL")!;
 const db = createClient(SB_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 const ZERNIO_KEY = (Deno.env.get("ZERNIO_API_KEY") ?? "").trim();
@@ -88,6 +92,16 @@ async function chatTomado(plataforma: string, from: any) {
   return !!data?.length;
 }
 
+const SIN_MODELO = "Dime el modelo exacto de tu iPhone y te digo el precio de la pantalla con instalación.";
+// Reemplaza {precio} con la frase exacta del precio de pantalla (o con la pregunta del modelo).
+async function conPrecio(msg: string, textoCliente: string) {
+  if (!/\{precio\}/i.test(String(msg || ""))) return String(msg || "");
+  let frase = SIN_MODELO;
+  try { const c = await cotizarPantalla(db, textoCliente); if (c.ok) frase = frasePrecio(c); }
+  catch (e) { console.error("social-automatizaciones: precio", e instanceof Error ? e.message : String(e)); }
+  return String(msg).replace(/\{precio\}/gi, frase);
+}
+
 function personalizar(msg: string, from: any) {
   const nombre = String(from?.name || from?.username || "").trim().split(/\s+/)[0] || "";
   return String(msg || "").replace(/\{nombre\}/gi, nombre).replace(/\s+([,.!?])/g, "$1").trim();
@@ -137,6 +151,14 @@ async function procesar(a: any, resumen: any, simular = false) {
       }).select("id").maybeSingle();
       if (ins.error || !ins.data) continue; // ya atendido (misma persona/publicación o mismo comentario)
       const envioId = ins.data.id;
+      if (a.dar_like) {
+        // «Me gusta» de la cuenta del negocio al comentario real. Si falla (p. ej. Instagram sin el permiso), no frena el privado.
+        const lk = await zernio(`/inbox/comments/${encodeURIComponent(postId)}/${encodeURIComponent(String(c.id))}/like`, {
+          method: "POST", body: JSON.stringify({ accountId }),
+        });
+        await db.from("social_automatizacion_envios").update({ like_ok: lk.ok }).eq("id", envioId);
+        if (!lk.ok) resumen.errores.push(`${a.id}:${c.id}:like_${lk.status}`);
+      }
       if (await chatTomado(a.plataforma, c.from)) {
         await db.from("social_automatizacion_envios").update({ estado: "omitido_tomado" }).eq("id", envioId);
         resumen.omitidos++;
@@ -144,7 +166,7 @@ async function procesar(a: any, resumen: any, simular = false) {
       }
       const priv = await zernio(`/inbox/comments/${encodeURIComponent(postId)}/${encodeURIComponent(String(c.id))}/private-reply`, {
         method: "POST", headers: { "Idempotency-Key": `auto-${envioId}` },
-        body: JSON.stringify({ accountId, message: personalizar(a.mensaje_privado, c.from) }),
+        body: JSON.stringify({ accountId, message: personalizar(await conPrecio(a.mensaje_privado, String(c.message || "")), c.from) }),
       });
       if (!priv.ok) {
         const det = JSON.stringify(priv.body?.error || priv.body?.message || priv.body || {}).slice(0, 300);
@@ -384,7 +406,7 @@ async function procesarMensaje(canal: string, mensajeId: string, resumen: any) {
     return;
   }
   let err: string | null = null;
-  if (elegido.texto) err = await enviarAlChat(canal, hilo, personalizar(elegido.texto, nombreFrom), elegido.botones, elegido.a.id, `autores-${regId}`);
+  if (elegido.texto) err = await enviarAlChat(canal, hilo, personalizar(await conPrecio(elegido.texto, texto), nombreFrom), elegido.botones, elegido.a.id, `autores-${regId}`);
   if (!err && elegido.preguntas.length) {
     const ins = await db.from("social_auto_flujos").insert({ automatizacion_id: elegido.a.id, canal, hilo_id: hilo.id, contacto })
       .select("id").maybeSingle();

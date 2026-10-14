@@ -304,9 +304,11 @@
       '<div class="bcau-f" id="bcauPalWrap"><label for="bcauPal">Palabras clave</label><input type="text" id="bcauPal" placeholder="precio, info, cuanto" value="' + esc((e.palabras || []).join(', ')) + '">' +
         '<div class="ayuda">Sepáralas con coma. No importan mayúsculas ni tildes.</div></div>' +
       '<div class="bcau-f"><label for="bcauPriv">Mensaje privado que se envía</label><textarea id="bcauPriv" maxlength="1000" placeholder="¡Hola {nombre}! Gracias por escribir. El precio es…">' + esc(e.mensaje_privado) + '</textarea>' +
-        '<div class="ayuda">Escribe {nombre} para poner el primer nombre de la persona.</div></div>' +
+        '<div class="ayuda">Escribe {nombre} para poner el primer nombre de la persona. Escribe {precio} para poner el precio exacto de la pantalla del iPhone que la persona escribió (si no se sabe el modelo, le pide el modelo).</div></div>' +
       '<div class="bcau-f"><label for="bcauPub">Respuesta pública en el comentario (opcional)</label><textarea id="bcauPub" maxlength="500" style="min-height:56px" placeholder="¡Te escribimos por privado!">' + esc(e.respuesta_publica || '') + '</textarea>' +
         '<div class="ayuda">Si la dejas vacía, solo se manda el privado.</div></div>' +
+      '<div class="bcau-f"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="bcauLike"' + (e.dar_like ? ' checked' : '') + '> Darle «me gusta» al comentario</label>' +
+        '<div class="ayuda">La cuenta del negocio le da like al comentario real de la persona.</div></div>' +
       (a ? '' : '<div class="bcau-nota" style="margin:0">Se guarda <b>apagada</b>. Usa «Vista previa» para ver a quién le respondería y luego actívala.</div>');
     var f = caja(a ? 'Editar automatización' : 'Nueva automatización', cuerpo,
       '<button type="button" class="bcau-btn" data-bcau="cancelar">Cancelar</button><button type="button" class="bcau-btn pri" data-bcau="guardar"><i class="ti ti-device-floppy"></i> Guardar</button>');
@@ -370,7 +372,8 @@
     if (!priv) { aviso('Escribe el mensaje privado.', true); $('#bcauPriv').focus(); return; }
     var datos = { nombre: nombre, plataforma: e.plataforma, post_id: e._una ? e.post_id : null, post_texto: e._una ? e.post_texto : null,
       post_imagen: e._una ? e.post_imagen : null, post_enlace: e._una ? e.post_enlace : null,
-      palabras: modo === 'cualquiera' ? [] : palabras, coincidencia: modo, mensaje_privado: priv, respuesta_publica: pub || null };
+      palabras: modo === 'cualquiera' ? [] : palabras, coincidencia: modo, mensaje_privado: priv, respuesta_publica: pub || null,
+      dar_like: !!($('#bcauLike') && $('#bcauLike').checked) };
     var btn = document.querySelector('[data-bcau="guardar"]'); if (btn) btn.disabled = true;
     var r;
     if (e.id) r = await cli().from('social_automatizaciones').update(datos).eq('id', e.id);
@@ -421,7 +424,7 @@
       '<div class="bcau-f" id="bcauPalWrap"><label for="bcauPal">Palabras clave</label><input type="text" id="bcauPal" placeholder="horario, a que hora, abierto" value="' + esc((e.palabras || []).join(', ')) + '">' +
         '<div class="ayuda">Sepáralas con coma. No importan mayúsculas ni tildes. Cuenta la palabra completa.</div></div>' +
       '<div class="bcau-f"><label for="bcauPriv">Respuesta automática</label><textarea id="bcauPriv" maxlength="1000" placeholder="¡Hola {nombre}! Estamos abiertos de lunes a sábado de 8:30 a 6:00.">' + esc(e.mensaje_privado) + '</textarea>' +
-        '<div class="ayuda">Escribe {nombre} para poner el primer nombre del cliente.</div></div>' +
+        '<div class="ayuda">Escribe {nombre} para poner el primer nombre del cliente. Escribe {precio} para poner el precio exacto de la pantalla del iPhone que escribió.</div></div>' +
       '<div class="bcau-f"><label>Botones (hasta 3)</label><div id="bcauBots"></div>' +
         '<button type="button" class="bcau-btn chico" id="bcauAddBot"><i class="ti ti-plus"></i> Agregar botón</button>' +
         '<div class="ayuda">Máximo 20 letras por botón. Si el botón no tiene respuesta, el cliente queda esperando a un empleado (útil para «Hablar con alguien»).</div></div>' +
