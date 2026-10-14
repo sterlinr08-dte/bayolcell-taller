@@ -263,6 +263,26 @@
   .card.resalta{animation:resalta 1.4s var(--ease);}
   @keyframes resalta{0%,100%{box-shadow:0 30px 60px -34px rgba(0,0,0,.85),inset 0 1px 0 rgba(255,255,255,.18);}30%{box-shadow:0 0 0 3px rgba(255,255,255,.85),0 30px 60px -30px rgba(0,0,0,.9);}}
   @media(max-width:700px){ .vit-fila{height:300px;gap:6px;} .vt{border-radius:18px;} .vt.on{flex-grow:8;} .vt .vnom{font-size:18px;} .vt .vinfo{padding:36px 12px 12px;} .vt .vver{height:40px;padding:0 13px;} .vt .vlab{font-size:10.5px;bottom:12px;} .vit-cab h2{font-size:20px;} }
+  /* Versión premium: marco de vidrio, franjas apagadas y más bajas, la abierta con borde de luz, relieve 3D y brillo que sigue al ratón. */
+  .vit-fila{position:relative;padding:12px;border-radius:30px;background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015));border:1px solid rgba(255,255,255,.08);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 40px 80px -46px rgba(227,30,36,.45);perspective:1100px;}
+  .vt{transform-origin:50% 50%;transform:scaleY(.9);border:1px solid rgba(255,255,255,.06);}
+  .vt::after{content:"";position:absolute;inset:0;z-index:2;pointer-events:none;background:linear-gradient(180deg,rgba(8,9,11,.15),rgba(8,9,11,.65));transition:opacity .6s var(--ease);}
+  .vt::before{content:"";position:absolute;inset:-1px;z-index:3;pointer-events:none;border-radius:inherit;padding:1px;background:conic-gradient(from var(--vt-a,0deg),transparent 0 60%,rgba(255,255,255,.9) 72%,color-mix(in oklab,var(--tono),#fff 45%) 80%,transparent 90%);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:0;transition:opacity .5s var(--ease);}
+  @property --vt-a{syntax:'<angle>';inherits:false;initial-value:0deg}
+  @keyframes vtGira{to{--vt-a:360deg}}
+  .vt.on{transform:perspective(1100px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) scaleY(1);border-color:rgba(255,255,255,.22);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 0 0 1px rgba(255,255,255,.1),0 0 38px -6px color-mix(in oklab,var(--tono),#fff 35%),0 40px 70px -30px rgba(0,0,0,.9);
+    transition:flex-grow .7s var(--ease),filter .5s var(--ease),box-shadow .5s var(--ease),transform .25s var(--ease);}
+  .vt.on::after{opacity:.25;}
+  .vt.on::before{opacity:1;animation:vtGira 5s linear infinite;}
+  .vt .vluz{position:absolute;inset:0;z-index:2;pointer-events:none;border-radius:inherit;background:radial-gradient(280px circle at var(--mx,50%) var(--my,30%),rgba(255,255,255,.16),transparent 60%);opacity:0;transition:opacity .4s var(--ease);}
+  .vt.on .vluz{opacity:1;}
+  .vt img,.vt .noimg{z-index:1;}
+  .vt.on img{transform:translate(calc(-50% + var(--px,0px)),calc(-50% + var(--py,0px))) scale(1.02);}
+  .vt .vlab,.vt .vinfo,.vt .vdest{z-index:4;}
+  @media(min-width:701px){ .vt .vlab{writing-mode:horizontal-tb;transform:translateX(-50%);bottom:18px;font-size:11px;max-width:92%;overflow:hidden;text-overflow:ellipsis;} }
+  @media(max-width:700px){ .vit-fila{padding:8px;border-radius:22px;} .vt{transform:scaleY(.92);} .vt .vnom{white-space:normal;display:-webkit-box!important;-webkit-line-clamp:2;-webkit-box-orient:vertical;font-size:17px;} .vt .vinfo{flex-direction:column;align-items:flex-start;gap:8px;} .vt .vinfo>span:first-child{width:100%;} .vt .vver{height:40px;padding:0 16px;font-size:13.5px;} }
+  @media (prefers-reduced-motion: reduce){ .vt.on::before{animation:none;--vt-a:200deg;} }
   @media (prefers-reduced-motion: reduce){ *{animation:none!important;transition:none!important;scroll-behavior:auto!important;} .js .card,.js .card .foto>*{opacity:1!important;transform:none!important;translate:none!important;scale:none!important;} }
   @media (prefers-reduced-transparency: reduce){ .top,.cartbar{background:var(--bg);backdrop-filter:none;-webkit-backdrop-filter:none;} }
 </style>
@@ -491,9 +511,10 @@
     v.hidden = false;
     v.innerHTML = `<div class="vit-cab"><h2>Destacados</h2><span class="mono">Toca para ver</span></div>
       <div class="vit-fila">${lista.map(({md,i},k)=>{
-        return `<button type="button" class="vt${k===0?' on':''}" style="--tono:${colorDe(i)}" data-mod="${esc(md.k)}" aria-expanded="${k===0}" aria-label="${esc(i.nombre)}, desde ${money(i.precio)}" onclick="vitTocar(this,event)" onmouseenter="vitAbrir(this,true)" onfocus="vitAbrir(this,true)">
+        return `<button type="button" class="vt${k===0?' on':''}" style="--tono:${colorDe(i)}" data-mod="${esc(md.k)}" aria-expanded="${k===0}" aria-label="${esc(i.nombre)}, desde ${money(i.precio)}" onclick="vitTocar(this,event)" onmouseenter="vitAbrir(this,true)" onfocus="vitAbrir(this,true)" onpointermove="vitRelieve(this,event)" onpointerleave="vitRelieve(this)">
           <img src="${esc(i.foto_url)}" alt="" loading="lazy" decoding="async">
           ${md.destacado?'<span class="vdest">Destacado</span>':''}
+          <span class="vluz" aria-hidden="true"></span>
           <span class="vlab">${esc(marcaAgua(i.nombre) || i.nombre)}</span>
           <span class="vinfo"><span style="min-width:0"><span class="vnom" style="display:block">${esc(i.nombre)}</span><span class="vpre" style="display:block"><small>Desde</small>${money(Math.min(...md.ops.filter(o=>o.disponible&&o.precio>0).map(o=>o.precio)))}</span></span><span class="vver">Ver</span></span>
         </button>`; }).join('')}</div>`;
@@ -506,9 +527,18 @@
       vitAbrir(bs[(k+1)%bs.length], false);
     }, 3600);
   }
+  // Relieve 3D y brillo que siguen al ratón (solo en la franja abierta y con ratón).
+  const _VIT_RATON = matchMedia('(hover:hover) and (pointer:fine)').matches;
+  function vitRelieve(b, ev){
+    if(!ev || !_VIT_RATON || QUIETO || !b.classList.contains('on')){ ['--rx','--ry','--px','--py'].forEach(k=>b.style.removeProperty(k)); return; }
+    const r = b.getBoundingClientRect(), x = (ev.clientX-r.left)/r.width, y = (ev.clientY-r.top)/r.height;
+    b.style.setProperty('--mx', (x*100).toFixed(1)+'%'); b.style.setProperty('--my', (y*100).toFixed(1)+'%');
+    b.style.setProperty('--ry', ((x-.5)*8).toFixed(2)+'deg'); b.style.setProperty('--rx', ((.5-y)*6).toFixed(2)+'deg');
+    b.style.setProperty('--px', ((x-.5)*14).toFixed(1)+'px'); b.style.setProperty('--py', ((y-.5)*10).toFixed(1)+'px');
+  }
   function vitAbrir(b, persona){
     if(persona) _vitToco = true;
-    b.parentNode.querySelectorAll('.vt').forEach(x=>{ const on = x===b; x.classList.toggle('on',on); x.setAttribute('aria-expanded', on); });
+    b.parentNode.querySelectorAll('.vt').forEach(x=>{ const on = x===b; x.classList.toggle('on',on); x.setAttribute('aria-expanded', on); if(!on) vitRelieve(x); });
   }
   function vitTocar(b, ev){
     if(!b.classList.contains('on')){ vitAbrir(b,true); return; }

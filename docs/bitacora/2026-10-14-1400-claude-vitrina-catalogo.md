@@ -12,6 +12,7 @@ Reel `DeevGxgEbNJ` («Hover Expanding Cards UI Upgrade») «para el catálogo de
   - Gira sola cada 3,6 s solo cuando está en pantalla, hasta que la persona la toca. Con «reducir movimiento» no gira.
   - Se esconde al buscar.
 - La fila se agregó en `docs/REFERENCIAS-DISENO.md`.
+- **Versión premium (pedido del dueño):** marco de vidrio con resplandor rojo, franjas apagadas y más bajas, la abierta con borde de luz que gira, relieve 3D y brillo que siguen al ratón (solo PC con ratón), nombres abajo en horizontal en PC. En el celular el nombre va en 2 líneas con «Ver» debajo.
 - Probado con Playwright y los datos reales del catálogo (1366 y 390 px): sin errores ni desborde. Toca → se abre; «Ver» → baja a la tarjeta.
 
 ## Pendiente
