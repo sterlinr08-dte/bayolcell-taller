@@ -1024,3 +1024,10 @@ Pedido del dueño: «Hazme el catálogo de pantallas».
 - `videos-remotion/herramientas/preparar.sh` instala todo en una sesión nueva; `procesar.py VIDEO NOMBRE` corta silencios (Silero), deja vertical y −14 LUFS (FFmpeg) y saca cada palabra con su segundo (Whisper `small`, español).
 - Composición `Reel` (`src/Reel.tsx`): video + subtítulos animados (3 palabras, claves en rojo) + logo + título + cierre con WhatsApp. Composición `Cristal`: video de 30 s de precios de cristal.
 - Apple Vision (seguir la cara) NO funciona aquí (solo Mac). Los videos del dueño no se suben al repo (`public/*/` ignorado).
+
+## ACTUALIZACIÓN 13 oct 2026 — Precios nivel 1 corregidos en Info Plus (batería 11 y tapa XS blanca) — APLICADO
+Autorizado por Sterling por escrito: «Arregla en Infoplus».
+- Cambios: **2550** «BATERIA IPHONE 11 NORMAL 22222» 800 → **1,400**; **2220** «TAPA IPHONE XS BLANCA» 3,000 → **1,500**.
+- Solo nivel 1, con contado = crédito = mínimo. 2602 «TAPA IPHONE 14 NORMAL BLANCA» se queda en 2,500 por decisión del dueño.
+- Mismo procedimiento que el 8 de octubre: función de un solo uso `infoplus-precios-ajuste-20261013` (leer en vivo → aplicar → releer, 2/2 coinciden). Después se retiró (stub 410) y se borró el token.
+- Las imágenes nuevas de batería y cristal trasero (`assets/reparacion-bateria.webp`, `assets/reparacion-cristal-trasero.webp`) salen de `herramientas/kit-catalogo/flyer-reparaciones/` con precios de nivel 1. Detalle en `docs/bitacora/2026-10-13-1230-claude-precios-infoplus-2550-2220.md`.
