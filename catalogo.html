@@ -234,6 +234,35 @@
   .viaje .cosa .ic{width:20px;height:20px;}
   .viaje .raya{position:absolute;right:100%;transform-origin:right;height:3px;border-radius:3px;background:linear-gradient(90deg,transparent,rgba(255,59,65,.9));opacity:0;}
 
+  /* ===== Vitrina de destacados: franjas que se abren (ref. «Hover Expanding Cards», 14-oct-2026) ===== */
+  .vit{max-width:1180px;margin:0 auto;padding:4px 20px 22px;}
+  .vit[hidden]{display:none;}
+  .vit-cab{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:12px;}
+  .vit-cab h2{font-size:22px;font-weight:800;letter-spacing:-.03em;}
+  .vit-cab span{font-size:10.5px;color:var(--txt3);}
+  .vit-fila{display:flex;gap:10px;height:380px;}
+  .vt{--tono:#2a2f38;position:relative;flex:1 1 0;min-width:0;border:0;border-radius:24px;overflow:hidden;padding:0;color:#fff;text-align:left;isolation:isolate;cursor:pointer;
+    background:radial-gradient(70% 55% at 50% 42%,color-mix(in oklab,var(--tono),#fff 22%) 0%,transparent 72%),linear-gradient(160deg,color-mix(in oklab,var(--tono),#fff 6%),color-mix(in oklab,var(--tono),#000 35%));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.14);filter:brightness(.55) saturate(.7);
+    transition:flex-grow .7s var(--ease),filter .5s var(--ease),box-shadow .5s var(--ease),transform .2s var(--ease);}
+  button.vt:active{transform:scale(.985);}
+  .vt.on{flex-grow:6;filter:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 0 0 1px rgba(255,255,255,.16),0 30px 60px -28px color-mix(in oklab,var(--tono),#000 10%);}
+  .vt img,.vt .noimg{position:absolute;left:50%;top:44%;height:72%;width:auto;max-width:none;transform:translate(-50%,-50%) scale(.9);object-fit:contain;filter:drop-shadow(0 26px 22px rgba(0,0,0,.55));transition:transform .8s var(--resorte),opacity .5s var(--ease);opacity:.55;pointer-events:none;}
+  .vt .noimg{height:40%;width:40%;color:rgba(255,255,255,.35);}
+  .vt.on img{transform:translate(-50%,-50%) scale(1);opacity:1;}
+  .vt .vlab{position:absolute;left:50%;bottom:16px;transform:translateX(-50%) rotate(180deg);writing-mode:vertical-rl;font:700 12px var(--mono);letter-spacing:.14em;text-transform:uppercase;white-space:nowrap;color:rgba(255,255,255,.85);transition:opacity .3s var(--ease);}
+  .vt.on .vlab{opacity:0;}
+  .vt .vinfo{position:absolute;left:0;right:0;bottom:0;padding:44px 18px 16px;background:linear-gradient(transparent,rgba(0,0,0,.6));display:flex;align-items:flex-end;justify-content:space-between;gap:12px;opacity:0;transform:translateY(12px);transition:opacity .35s var(--ease),transform .5s var(--ease);pointer-events:none;}
+  .vt.on .vinfo{opacity:1;transform:none;transition-delay:.25s;pointer-events:auto;}
+  .vt .vnom{font-size:22px;font-weight:800;letter-spacing:-.03em;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .vt .vpre{font-size:15px;font-weight:700;margin-top:4px;color:rgba(255,255,255,.9);white-space:nowrap;}
+  .vt .vpre small{font:600 10px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.65);margin-right:6px;}
+  .vt .vver{flex:none;display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 16px;border-radius:999px;background:#fff;color:#0b0b0b;font-size:13.5px;font-weight:700;}
+  .vt .vdest{position:absolute;top:14px;left:14px;font:600 10px var(--mono);letter-spacing:.14em;text-transform:uppercase;padding:5px 9px;border-radius:999px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.25);opacity:0;transition:opacity .3s var(--ease);}
+  .vt.on .vdest{opacity:1;}
+  .card.resalta{animation:resalta 1.4s var(--ease);}
+  @keyframes resalta{0%,100%{box-shadow:0 30px 60px -34px rgba(0,0,0,.85),inset 0 1px 0 rgba(255,255,255,.18);}30%{box-shadow:0 0 0 3px rgba(255,255,255,.85),0 30px 60px -30px rgba(0,0,0,.9);}}
+  @media(max-width:700px){ .vit-fila{height:300px;gap:6px;} .vt{border-radius:18px;} .vt.on{flex-grow:8;} .vt .vnom{font-size:18px;} .vt .vinfo{padding:36px 12px 12px;} .vt .vver{height:40px;padding:0 13px;} .vt .vlab{font-size:10.5px;bottom:12px;} .vit-cab h2{font-size:20px;} }
   @media (prefers-reduced-motion: reduce){ *{animation:none!important;transition:none!important;scroll-behavior:auto!important;} .js .card,.js .card .foto>*{opacity:1!important;transform:none!important;translate:none!important;scale:none!important;} }
   @media (prefers-reduced-transparency: reduce){ .top,.cartbar{background:var(--bg);backdrop-filter:none;-webkit-backdrop-filter:none;} }
 </style>
@@ -263,6 +292,7 @@
       </div>
     </div>
 
+    <section class="vit" id="vitrina" aria-label="Destacados" hidden></section>
     <div class="secs" id="grid"></div>
     <div id="estado" class="estado">Cargando catálogo…</div>
 
@@ -433,6 +463,7 @@
     const g = document.getElementById('grid');
     const gr = grupos(listaFiltrada());
     pintarChips(gr);
+    pintarVitrina(gr);
     if(!gr.length){ g.innerHTML=''; const e=document.getElementById('estado'); e.style.display='block'; e.textContent = ITEMS.length? 'No hay resultados para tu búsqueda.' : 'Aún no hay celulares en el catálogo.'; return; }
     document.getElementById('estado').style.display='none';
     g.innerHTML = gr.map(([m,a])=>`<section class="sec" id="${idSec(m)}" aria-label="${esc(m)}">
@@ -444,6 +475,50 @@
     </section>`).join('');
     document.querySelectorAll('.rail').forEach(medirRail);
     movimiento();
+  }
+  // ===== Vitrina: franjas que se abren (destacados primero, luego los disponibles con foto de mayor precio) =====
+  let _vitAuto = null, _vitToco = false, _vitIO = null, _vitVisible = false;
+  function pintarVitrina(gr){
+    const v = document.getElementById('vitrina');
+    const q = (document.getElementById('q').value||'').trim();
+    clearInterval(_vitAuto); _vitAuto = null;
+    if(q || !gr.length){ v.hidden = true; v.innerHTML=''; return; }
+    const todos = gr.flatMap(([m,a])=>a).map(md=>({md, i:opcionDe(md)})).filter(x=>x.i.disponible && x.i.foto_url && x.i.precio>0);
+    todos.sort((a,b)=>(b.md.destacado?1:0)-(a.md.destacado?1:0) || (b.i.precio||0)-(a.i.precio||0));
+    const max = matchMedia('(max-width:700px)').matches ? 5 : 7;
+    const lista = todos.slice(0,max);
+    if(lista.length < 3){ v.hidden = true; v.innerHTML=''; return; }
+    v.hidden = false;
+    v.innerHTML = `<div class="vit-cab"><h2>Destacados</h2><span class="mono">Toca para ver</span></div>
+      <div class="vit-fila">${lista.map(({md,i},k)=>{
+        return `<button type="button" class="vt${k===0?' on':''}" style="--tono:${colorDe(i)}" data-mod="${esc(md.k)}" aria-expanded="${k===0}" aria-label="${esc(i.nombre)}, desde ${money(i.precio)}" onclick="vitTocar(this,event)" onmouseenter="vitAbrir(this,true)" onfocus="vitAbrir(this,true)">
+          <img src="${esc(i.foto_url)}" alt="" loading="lazy" decoding="async">
+          ${md.destacado?'<span class="vdest">Destacado</span>':''}
+          <span class="vlab">${esc(marcaAgua(i.nombre) || i.nombre)}</span>
+          <span class="vinfo"><span style="min-width:0"><span class="vnom" style="display:block">${esc(i.nombre)}</span><span class="vpre" style="display:block"><small>Desde</small>${money(Math.min(...md.ops.filter(o=>o.disponible&&o.precio>0).map(o=>o.precio)))}</span></span><span class="vver">Ver</span></span>
+        </button>`; }).join('')}</div>`;
+    if(QUIETO) return;
+    if(!_vitIO && 'IntersectionObserver' in window){ _vitIO = new IntersectionObserver(es=>{ _vitVisible = es[0].isIntersecting; }); _vitIO.observe(v); }
+    // Gira sola hasta que la persona toque o pase el ratón; se detiene fuera de pantalla o con la pestaña oculta.
+    _vitAuto = setInterval(()=>{
+      if(_vitToco || !_vitVisible || document.hidden) return;
+      const bs = [...v.querySelectorAll('.vt')]; const k = bs.findIndex(b=>b.classList.contains('on'));
+      vitAbrir(bs[(k+1)%bs.length], false);
+    }, 3600);
+  }
+  function vitAbrir(b, persona){
+    if(persona) _vitToco = true;
+    b.parentNode.querySelectorAll('.vt').forEach(x=>{ const on = x===b; x.classList.toggle('on',on); x.setAttribute('aria-expanded', on); });
+  }
+  function vitTocar(b, ev){
+    if(!b.classList.contains('on')){ vitAbrir(b,true); return; }
+    _vitToco = true;
+    const c = [...document.querySelectorAll('.card')].find(x=>x.dataset.mod===b.dataset.mod);
+    if(!c) return;
+    const rail = c.parentNode, sec = c.closest('.sec');
+    sec.scrollIntoView({behavior:QUIETO?'auto':'smooth',block:'start'});
+    rail.scrollTo({left: c.offsetLeft - parseFloat(getComputedStyle(rail).scrollPaddingInlineStart||0), behavior:QUIETO?'auto':'smooth'});
+    c.classList.remove('resalta'); void c.offsetWidth; c.classList.add('resalta');
   }
   let _io = null, _ioTabs = null;
   function movimiento(){
