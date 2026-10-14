@@ -71,8 +71,8 @@ function numerosQueSeMezclan(){
 
 /* 2 · Borde de luz en lo importante */
 function bordeDeLuz(){
- const objetivos=[[document.getElementById('hero-consulta'),''],[document.querySelector('.ofertas a.oferta img[src*="reparacion-pantalla"]')?.closest('a'),'rojo']];
- for(const [el,clase] of objetivos){if(!el||el.querySelector(':scope>.bcx-beam'))continue;el.classList.add('bcx-haz');if(clase)el.classList.add(clase);const b=document.createElement('span');b.className='bcx-beam';b.setAttribute('aria-hidden','true');el.append(b);}
+ const objetivos=[[document.getElementById('hero-consulta'),''],...[...document.querySelectorAll('.ofertas a.oferta')].map(a=>[a,'rojo'])];
+ for(const [el,clase] of objetivos){if(!el||el.querySelector(':scope>.bcx-beam'))continue;el.classList.add('bcx-haz');if(clase)el.classList.add(clase);const b=document.createElement('span');b.className='bcx-beam';b.style.animationDelay=(-(objetivos.indexOf(objetivos.find(o=>o[0]===el)))*0.9)+'s';b.setAttribute('aria-hidden','true');el.append(b);}
 }
 
 /* 4 · Malla de puntos que sigue el dedo (fondo de la portada) */
@@ -121,5 +121,5 @@ function mallaQueSigue(){
 
 function iniciar(){textoQueCambia();numerosQueSeMezclan();bordeDeLuz();mallaQueSigue();}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',iniciar,{once:true});else iniciar();
-window.BayolEfectosWeb={version:'20261014a'};
+window.BayolEfectosWeb={version:'20261014b'};
 })();
