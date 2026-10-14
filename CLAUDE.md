@@ -1031,3 +1031,8 @@ Autorizado por Sterling por escrito: «Arregla en Infoplus».
 - Solo nivel 1, con contado = crédito = mínimo. 2602 «TAPA IPHONE 14 NORMAL BLANCA» se queda en 2,500 por decisión del dueño.
 - Mismo procedimiento que el 8 de octubre: función de un solo uso `infoplus-precios-ajuste-20261013` (leer en vivo → aplicar → releer, 2/2 coinciden). Después se retiró (stub 410) y se borró el token.
 - Las imágenes nuevas de batería y cristal trasero (`assets/reparacion-bateria.webp`, `assets/reparacion-cristal-trasero.webp`) salen de `herramientas/kit-catalogo/flyer-reparaciones/` con precios de nivel 1. Detalle en `docs/bitacora/2026-10-13-1230-claude-precios-infoplus-2550-2220.md`.
+
+## 14 oct 2026 — Efectos de la portada PUBLICADOS + malla de puntos (Originkit «Kinetic Grid»)
+- Con el «Publícalo» del dueño se subió a `main` SOLO `index.html` + `web-efectos.js` (v `20261014a`): texto que cambia, borde de luz, números que se mezclan (eran del 12 oct y NUNCA se habían publicado) y la **malla de puntos** nueva.
+- Malla (`mallaQueSigue` en `web-efectos.js`): `canvas.bcx-malla` al fondo de `.hero` (reemplaza la rejilla `.hero::before`); los puntos cerca del ratón/dedo se agrandan, se ponen rojos y se apartan; se apaga al soltar, con la portada fuera de pantalla o la pestaña oculta. «Reducir movimiento» = puntos quietos.
+- Verificado en bayolcell.com (1366 y 390 px): sin errores ni desborde. Lo demás de la rama de trabajo (pantallas.html, catálogo de pantallas en el taller, videos) sigue SIN publicar.
