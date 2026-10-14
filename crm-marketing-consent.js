@@ -48,6 +48,7 @@
   try{var bcm=document.createElement('script');bcm.async=false;bcm.src='taller-sidebar-mini.js?v=20261009m1';document.head.appendChild(bcm);}catch(e){} // Menú lateral compacto: solo íconos en la computadora, se abre al pasar el ratón
   try{var bca=document.createElement('script');bca.async=false;bca.src='taller-animaciones.js?v=20261014a';document.head.appendChild(bca);}catch(e){} // Animaciones de beUI: números de los KPI, botón Guardar → Listo ✓ y deslizar chats en el celular
   try{var bmr=document.createElement('script');bmr.async=false;bmr.src='taller-mejoras-ref.js?v=20261014m1';document.head.appendChild(bmr);}catch(e){} // Mantener presionado para borrar, embudo de Leads y logos de marcas (lista de referencias)
+  try{var brs=document.createElement('script');brs.async=false;brs.src='taller-reacond-smart.js?v=20261014r1';document.head.appendChild(brs);}catch(e){} // Reacondicionados smart: tablero de atascados, repartir evaluados, revisar terminados y despachar listos en bloque
 
   function instalarLoaderPremium(){
     try{
