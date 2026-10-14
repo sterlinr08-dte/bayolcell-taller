@@ -4,6 +4,8 @@
  *  2) Borde de luz («border beam» de libraries.dev): lo importante (Pedir por WhatsApp, oferta de pantallas).
  *  3) Números que se mezclan («Scramble Text» de The Kitchen): 30 minutos, RD$1,000, 4.3 en Google.
  *  4) Malla de puntos que sigue el dedo (Originkit «Kinetic Grid», 14 oct 2026): fondo de la portada.
+ *  5) Ofertas del taller en 3D (Skecher UI «3D Carousel», 14 oct 2026): en el celular giran como carrusel al deslizar;
+ *     en la computadora la tarjeta se inclina hacia el ratón.
  * Capa aislada: si no carga, la página se ve igual que antes. «Reducir movimiento» = todo quieto.
  */
 (()=>{'use strict';
@@ -35,7 +37,12 @@ const css=`
 .bcx-malla{position:absolute;inset:0;z-index:-1;width:100%;height:100%;pointer-events:none;opacity:0;transition:opacity .9s ease}
 .bcx-malla.on{opacity:1}
 .hero.bcx-con-malla::before{opacity:0}
-@media print{.bcx-malla{display:none}}`;
+@media print{.bcx-malla{display:none}}
+.ofertas.bcx-3d{perspective:900px}
+.ofertas.bcx-3d .oferta{transform-style:preserve-3d;will-change:transform;transition:transform .25s ease-out,box-shadow .25s}
+.ofertas.bcx-3d .oferta.bcx-hover{transition:transform .08s linear,box-shadow .25s;box-shadow:0 30px 60px -20px rgba(227,30,36,.45)}
+.ofertas.bcx-3d .oferta .bcx-brillo{position:absolute;inset:0;pointer-events:none;border-radius:inherit;background:radial-gradient(circle at var(--bx,50%) var(--by,50%),rgba(255,255,255,.18),transparent 55%);opacity:0;transition:opacity .25s;z-index:1}
+.ofertas.bcx-3d .oferta.bcx-hover .bcx-brillo{opacity:1}`;
 const st=document.createElement('style');st.id='bcxEfectosCSS';st.textContent=css;document.head.append(st);
 
 /* 1 · Texto que cambia en la portada */
@@ -119,7 +126,32 @@ function mallaQueSigue(){
  medir();requestAnimationFrame(()=>cv.classList.add('on'));
 }
 
-function iniciar(){textoQueCambia();numerosQueSeMezclan();bordeDeLuz();mallaQueSigue();}
+/* 5 · Ofertas en 3D */
+function ofertas3D(){
+ const fila=document.querySelector('.ofertas');if(!fila||quieto||fila.classList.contains('bcx-3d'))return;
+ fila.classList.add('bcx-3d');
+ const cartas=[...fila.querySelectorAll('.oferta')];
+ const movil=()=>matchMedia('(max-width:720px)').matches||getComputedStyle(fila).overflowX==='auto';
+ // Celular: carrusel tipo «coverflow» según lo lejos que esté cada tarjeta del centro
+ let pend=false;
+ const girar=()=>{pend=false;if(!movil()){cartas.forEach(c=>{if(!c.classList.contains('bcx-hover'))c.style.transform='';});return;}
+  const r=fila.getBoundingClientRect(),cx=r.left+r.width/2;
+  cartas.forEach(c=>{const b=c.getBoundingClientRect(),d=Math.max(-1.4,Math.min(1.4,(b.left+b.width/2-cx)/b.width));
+   c.style.transform=`rotateY(${-d*32}deg) scale(${1-Math.min(1,Math.abs(d))*.12}) translateZ(${-Math.abs(d)*40}px)`;
+   c.style.zIndex=String(10-Math.round(Math.abs(d)*5));c.style.opacity=String(1-Math.min(1,Math.abs(d))*.25);});};
+ const pedir=()=>{if(!pend){pend=true;requestAnimationFrame(girar);}};
+ fila.addEventListener('scroll',pedir,{passive:true});addEventListener('resize',pedir,{passive:true});pedir();
+ // Computadora: la tarjeta se inclina hacia el ratón con un brillo
+ cartas.forEach(c=>{
+  if(getComputedStyle(c).position==='static')c.style.position='relative';
+  const br=document.createElement('span');br.className='bcx-brillo';br.setAttribute('aria-hidden','true');c.append(br);
+  c.addEventListener('pointermove',e=>{if(movil()||e.pointerType!=='mouse')return;const b=c.getBoundingClientRect(),x=(e.clientX-b.left)/b.width,y=(e.clientY-b.top)/b.height;
+   c.classList.add('bcx-hover');c.style.transform=`rotateX(${(.5-y)*14}deg) rotateY(${(x-.5)*16}deg) scale(1.03)`;c.style.setProperty('--bx',x*100+'%');c.style.setProperty('--by',y*100+'%');});
+  c.addEventListener('pointerleave',()=>{c.classList.remove('bcx-hover');c.style.transform='';});
+ });
+}
+
+function iniciar(){textoQueCambia();numerosQueSeMezclan();bordeDeLuz();mallaQueSigue();ofertas3D();}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',iniciar,{once:true});else iniciar();
-window.BayolEfectosWeb={version:'20261014b'};
+window.BayolEfectosWeb={version:'20261014c'};
 })();
