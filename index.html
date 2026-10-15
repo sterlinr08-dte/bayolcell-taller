@@ -206,11 +206,16 @@
             "Tuesday",
             "Wednesday",
             "Thursday",
-            "Friday",
-            "Saturday"
+            "Friday"
           ],
-          "opens": "08:30",
+          "opens": "08:00",
           "closes": "18:00"
+        },
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": "Saturday",
+          "opens": "08:00",
+          "closes": "17:00"
         }
       ],
       "priceRange": "RD$",
@@ -319,7 +324,7 @@
           "@type": "OpeningHoursSpecification",
           "dayOfWeek": "Sunday",
           "opens": "09:00",
-          "closes": "12:00"
+          "closes": "13:00"
         }
       ],
       "priceRange": "RD$",
@@ -1148,9 +1153,9 @@ html.pd-abierta body{overflow:hidden}
       <div class="datos-c aparece">
         <div class="dato-c"><i class="ti ti-map-pin" aria-hidden="true"></i><div><b>Santiago</b><span>Calle Sánchez, casi esq. Restauración #102</span><span>Lun–Vie 8:30 a.m.–6:00 p.m. · Sáb 9:00 a.m.–4:00 p.m.</span><div class="estado-suc" id="open-santiago"></div>
           <div class="mini"><a href="https://share.google/IMUZV4nGyNPCsbPei" target="_blank" rel="noopener"><i class="ti ti-map-2" aria-hidden="true"></i> Cómo llegar</a><a href="https://wa.me/18097072493" target="_blank" rel="noopener"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i> 809-707-2493</a></div></div></div>
-        <div class="dato-c"><i class="ti ti-map-pin" aria-hidden="true"></i><div><b>Moca</b><span>Calle Pdte. Vásquez #5, frente a Parada Villa Trina</span><span>Lun–Sáb 8:30 a.m.–6:00 p.m.</span><div class="estado-suc" id="open-moca"></div>
+        <div class="dato-c"><i class="ti ti-map-pin" aria-hidden="true"></i><div><b>Moca</b><span>Calle Pdte. Vásquez #5, frente a Parada Villa Trina</span><span>Lun–Vie 8:00 a.m.–6:00 p.m. · Sáb 8:00 a.m.–5:00 p.m.</span><div class="estado-suc" id="open-moca"></div>
           <div class="mini"><a href="https://share.google/PBspeg3569Vzm6lEm" target="_blank" rel="noopener"><i class="ti ti-map-2" aria-hidden="true"></i> Cómo llegar</a><a href="https://wa.me/18296709694" target="_blank" rel="noopener"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i> 829-670-9694</a></div></div></div>
-        <div class="dato-c"><i class="ti ti-map-pin" aria-hidden="true"></i><div><b>Navarrete</b><span>Autopista Duarte, frente al Banco Popular, al lado de Tienda 20 y 10</span><span>Lun–Sáb 9:00 a.m.–7:00 p.m. · Dom 9:00 a.m.–12:00 p.m.</span><div class="estado-suc" id="open-navarrete"></div>
+        <div class="dato-c"><i class="ti ti-map-pin" aria-hidden="true"></i><div><b>Navarrete</b><span>Autopista Duarte, frente al Banco Popular, al lado de Tienda 20 y 10</span><span>Lun–Sáb 9:00 a.m.–7:00 p.m. · Dom 9:00 a.m.–1:00 p.m.</span><div class="estado-suc" id="open-navarrete"></div>
           <div class="mini"><a href="https://share.google/36eYOmsL9WyZPzqXa" target="_blank" rel="noopener"><i class="ti ti-map-2" aria-hidden="true"></i> Cómo llegar</a><a href="https://wa.me/18098934412" target="_blank" rel="noopener"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i> 809-893-4412</a></div></div></div>
         <a class="dato-c" href="https://wa.me/18495644791" target="_blank" rel="noopener"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i><div><b>WhatsApp general</b><span>849-564-4791</span></div></a>
         <a class="dato-c" href="https://www.instagram.com/bayolcell" target="_blank" rel="noopener"><i class="ti ti-brand-instagram" aria-hidden="true"></i><div><b>Instagram</b><span>@bayolcell</span></div></a>
@@ -1313,8 +1318,8 @@ html.pd-abierta body{overflow:hidden}
   (function(){
     var HOR = {
       santiago: {1:[510,1080],2:[510,1080],3:[510,1080],4:[510,1080],5:[510,1080],6:[540,960]},
-      moca:     {1:[510,1080],2:[510,1080],3:[510,1080],4:[510,1080],5:[510,1080],6:[510,1080]},
-      navarrete:{0:[540,720],1:[540,1140],2:[540,1140],3:[540,1140],4:[540,1140],5:[540,1140],6:[540,1140]}
+      moca:     {1:[480,1080],2:[480,1080],3:[480,1080],4:[480,1080],5:[480,1080],6:[480,1020]},
+      navarrete:{0:[540,780],1:[540,1140],2:[540,1140],3:[540,1140],4:[540,1140],5:[540,1140],6:[540,1140]}
     };
     var DIAS = ['el domingo','el lunes','el martes','el miércoles','el jueves','el viernes','el sábado'];
     function hora(m){ var h = Math.floor(m/60), mm = m%60, ap = h < 12 ? 'a.m.' : 'p.m.', h12 = h%12 || 12; return h12 + ':' + (mm < 10 ? '0' : '') + mm + ' ' + ap; }
