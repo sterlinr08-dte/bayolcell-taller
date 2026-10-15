@@ -1096,3 +1096,12 @@ Referencia: carrusel `Dee_Pr1FGm_` de Orbix Studio (fila en `docs/REFERENCIAS-DI
   - cuadrícula `#ordersGrid` de 12 por página (`ORDERS_PER_PAGE`).
 - **Capa `taller-flota.js`** (la carga `crm-marketing-consent.js`): estilos `.bcf-*`, carga de fotos (`window._bcfFotos`), filtros de color sobre la lista del lote (`#bcfReacondChips`, sincronizados con `#reacondFiltroEstado`, que queda oculto) y los cuadros de etapas del lote con el mismo color. API `window.BayolFlota`.
 - Probado en copia local con datos inventados (1366 y 390 px): 7 tarjetas con 4 fotos, filtros y conteos, selección, filtro Atrasadas, búsqueda, sin desborde ni errores.
+
+## 15 oct 2026 — Colores de los iPhone por IMEI (taller, compra e importador de Info Plus) (en rama, sin publicar)
+Pedido del dueño: poder ponerles el color a los iPhone al registrarlos, en el lote, en la compra y al importar de Info Plus.
+- **Paleta oficial por modelo** (`_IPHONE_COLORES` + `_bcColoresModelo(texto)` en `taller-app.js`): del 7 al 17 Pro/Air, con los nombres de Apple en español (Medianoche, Blanco estelar, Titanio natural, Verde alpino…). Las demás marcas usan los colores genéricos `_EQ_COLORES`. `_eqColorHex(nombre, modelo)` busca en todas.
+- **Agregar equipo al lote (compra):** los chips `#eqColorChips` cambian al elegir el artículo (`onChange` de `ss-eq-articulo` → `_eqRenderColorChips(texto)`). Si el color elegido no existe en el modelo nuevo, se borra. Tocar el mismo color lo quita.
+- **Importar compra de Info Plus:** columna «Colores» por línea (`_impAbrirColores`, `_impColoresSel[factura|línea][k]`). `crearLoteDesdeCompraInfoPlus` guarda el color de cada IMEI.
+- **Dentro del lote:** botón «Poner colores» en la barra del lote (`abrirColoresLote()`, toma los equipos visibles con los filtros). En la tarjeta, el color es un botón (`.bcf-color` → `abrirColoresLote(id)`). Se guarda al instante en `equipos_refurbish.color` (`_bcGuardarColorEquipo`).
+- **Ventana común** `_bcColoresAbrir({titulo, ayuda, filas, onSet, onCerrar})`: agrupa por modelo, «Todos de» pinta todos los del mismo modelo, «+ Otro» para texto libre.
+- Probado en copia local (1366 y 390 px): paletas (14 Plus, 15 Pro Max, XR, XS, 8), guardado y caché, conteo, importador 0/2 → 2/2, chips de compra; 0 errores.

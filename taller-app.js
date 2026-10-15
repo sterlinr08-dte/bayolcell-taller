@@ -6161,6 +6161,7 @@ function verLineasImportCompra(idx) {
         <td>${escapeHtml(l.producto)} ${sosp ? '<span title="El costo parece traer el 18% rebajado (ITBIS). Revísalo." style="cursor:help;"><i class="ti ti-alert-triangle"></i></span>' : ''}${(l.seriales && l.seriales.length) ? ` <span style="font-size:10px; font-weight:700; background:#dcfce7; color:#166534; padding:1px 7px; border-radius:8px;" title="Estos IMEI se pondrán solos en cada equipo"><i class="ti ti-bookmark"></i> ${l.seriales.length} IMEI</span>` : ''}</td>
         <td style="text-align:center; color:#475569;">${escapeHtml(String(l.codproducto ?? ''))}</td>
         <td style="text-align:center;">${l.cantidad}</td>
+        <td style="text-align:center;"><button type="button" class="btn btn-light" style="padding:4px 9px; font-size:11.5px; white-space:nowrap;" onclick="_impAbrirColores(${idx}, ${j})" title="Poner el color de cada IMEI"><i class="ti ti-palette"></i> <span id="impcolcnt_${j}">${_impColoresCuenta(idx, j)}</span></button></td>
         <td style="text-align:right; white-space:nowrap;">
           RD$ <input type="number" step="0.01" id="impcost_${j}" value="${Number(l.precio) || 0}" style="width:100px; text-align:right; padding:3px 5px;">
           <button type="button" title="Sumarle el 18% (corregir ITBIS)" onclick="_impMas18(${j})" style="background:#dbeafe; color:#1e40af; border:1px solid #93c5fd; border-radius:5px; padding:2px 6px; cursor:pointer; font-size:11px;">+18%</button>
@@ -6177,7 +6178,7 @@ function verLineasImportCompra(idx) {
         <span id="impContador" style="font-size:12px; color:#475569; margin-left:auto;">Nada marcado</span>
       </div>
       <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
-        <thead><tr style="background:#f1f5f9;"><th style="padding:6px;"><input type="checkbox" id="impchk_todos" title="Seleccionar o quitar todo" onchange="_impMarcarTodos(${idx}, this.checked)" style="width:17px; height:17px;"></th><th style="text-align:left; padding:6px;">Producto</th><th>Código</th><th>Cant.</th><th style="text-align:right; padding:6px;">Costo c/u</th></tr></thead>
+        <thead><tr style="background:#f1f5f9;"><th style="padding:6px;"><input type="checkbox" id="impchk_todos" title="Seleccionar o quitar todo" onchange="_impMarcarTodos(${idx}, this.checked)" style="width:17px; height:17px;"></th><th style="text-align:left; padding:6px;">Producto</th><th>Código</th><th>Cant.</th><th>Colores</th><th style="text-align:right; padding:6px;">Costo c/u</th></tr></thead>
         <tbody>${filas}</tbody>
       </table>
       <button class="btn btn-success" style="margin-top:14px;" onclick="crearLoteDesdeCompraInfoPlus(${idx})"><i class="ti ti-package"></i> Crear lote con lo marcado</button>`;
@@ -6208,6 +6209,29 @@ function _impMas18(j) {
     if(!inp) return;
     const v = parseFloat(inp.value) || 0;
     inp.value = (Math.round(v * 1.18 * 100) / 100);
+}
+
+// Colores por IMEI al importar una compra de Info Plus (se guardan en memoria hasta crear el lote)
+const _impColoresSel = {};
+function _impColKey(idx, j) { const f = _impComprasData[idx]; return (f ? f.factura : idx) + '|' + j; }
+function _impColoresCuenta(idx, j) {
+    const f = _impComprasData[idx]; const l = f && f.lineas[j]; if(!l) return '';
+    const arr = _impColoresSel[_impColKey(idx, j)] || []; const n = arr.filter(Boolean).length;
+    return `${n}/${parseInt(l.cantidad) || 0}`;
+}
+function _impAbrirColores(idx, j) {
+    const f = _impComprasData[idx]; const l = f && f.lineas[j]; if(!l) return;
+    const n = parseInt(l.cantidad) || 0; const key = _impColKey(idx, j);
+    const arr = _impColoresSel[key] = _impColoresSel[key] || [];
+    const filas = [];
+    for(let k = 0; k < n; k++) filas.push({ id: k, titulo: `Unidad ${k + 1}` + (Array.isArray(l.seriales) && l.seriales[k] ? ` · IMEI ${l.seriales[k]}` : ''), sub: '', modelo: l.producto || '', color: arr[k] || '' });
+    _bcColoresAbrir({
+        titulo: 'Colores · ' + (l.producto || ''),
+        ayuda: 'Toca el color de cada IMEI. Se guarda al crear el lote.',
+        filas,
+        onSet: (k, color) => { arr[k] = color || ''; },
+        onCerrar: () => { const el = document.getElementById('impcolcnt_' + j); if(el) el.textContent = _impColoresCuenta(idx, j); }
+    });
 }
 
 async function crearLoteDesdeCompraInfoPlus(idx) {
@@ -6243,6 +6267,7 @@ async function crearLoteDesdeCompraInfoPlus(idx) {
                 articulo_codigo: x.l.codproducto != null ? String(x.l.codproducto) : null,
                 imei: (Array.isArray(x.l.seriales) && x.l.seriales[k]) ? String(x.l.seriales[k]).trim() : null, // IMEI real desde Info Plus (compra)
                 capacidad: art?.referencia || null, // GB del artículo en Info Plus (ej. "128GB")
+                color: ((_impColoresSel[_impColKey(idx, x.j)] || [])[k]) || null, // color elegido para ese IMEI
                 costo_compra: Number(x.costo) || 0,
                 costo_repuestos: 0,
                 estado_evaluacion: 'pendiente',
@@ -6471,6 +6496,8 @@ function _initLoteArticuloSelect() {
             // Prefijar el costo desde Info Plus si está vacío
             const c = document.getElementById('eq_costo');
             if(c && item && item._ip && (!c.value || Number(c.value) === 0) && Number(item._ip.costo) > 0) c.value = Number(item._ip.costo);
+            // Los colores cambian según el modelo (iPhone = sus colores oficiales)
+            if(typeof _eqRenderColorChips === 'function') _eqRenderColorChips(item && item._ip ? ((item._ip.marca || '') + ' ' + (item._ip.descripcion || '')) : (item ? item.label : ''));
         },
         onIconClick: (seed) => abrirBuscadorArticulos('ss-eq-articulo', null, '', seed)
     });
@@ -7083,28 +7110,178 @@ async function guardarDatosLote() {
     } catch(e) { logError('Guardar lote', e); toastError(getFriendlyError(e)); }
 }
 
-// ===== Chips de color para "Agregar equipo al lote" (color por IMEI) =====
+// ===== Colores por IMEI (Agregar equipo, importar de Info Plus y dentro del lote) =====
+// Colores genéricos para marcas que no son iPhone.
 const _EQ_COLORES = [['Negro','#111827'],['Blanco','#f1f5f9'],['Azul','#3b82f6'],['Rojo','#ef4444'],['Verde','#22c55e'],['Rosa','#ec4899'],['Morado','#a855f7'],['Dorado','#eab308'],['Gris','#6b7280']];
-function _eqRenderColorChips() {
-    const c = document.getElementById('eqColorChips'); if(!c || c.dataset.done) return;
-    c.innerHTML = _EQ_COLORES.map(([n, hex]) => `<button type="button" class="eqc" data-color="${n}" onclick="_eqSetColor(this)" style="border:1.5px solid #e2e8f0;background:#fff;border-radius:999px;padding:6px 12px;font-weight:700;font-size:12.5px;color:#334155;cursor:pointer;display:inline-flex;align-items:center;gap:7px;margin:2px;"><span style="width:12px;height:12px;border-radius:50%;background:${hex};border:1px solid rgba(0,0,0,.18);display:inline-block;"></span>${n}</button>`).join('')
-        + `<button type="button" class="eqc" onclick="_eqSetColorOtro()" style="border:1.5px dashed #cbd5e1;background:#fff;border-radius:999px;padding:6px 12px;font-weight:700;font-size:12.5px;color:#64748b;cursor:pointer;margin:2px;">+ Otro</button>`;
-    c.dataset.done = '1';
+// Colores oficiales de Apple por modelo de iPhone (nombres como los dice Apple en español).
+const _IPHONE_COLORES = [
+    [/\b17\s*PRO\b/, [['Plata','#e6e6e6'],['Naranja cósmico','#e5732f'],['Azul profundo','#2e3b55']]],
+    [/\b17\s*AIR\b|\bIPHONE\s*AIR\b/, [['Negro espacial','#2a2a2c'],['Blanco nube','#f5f5f3'],['Oro claro','#efe0c8'],['Azul cielo','#cfe0f0']]],
+    [/\b17\b/, [['Negro','#2c2c2e'],['Blanco','#f5f5f0'],['Azul niebla','#96aed1'],['Lavanda','#dfcdf0'],['Salvia','#b9c6a8']]],
+    [/\b16\s*E\b|\b16E\b/, [['Negro','#3c4042'],['Blanco','#fafafa']]],
+    [/\b16\s*PRO\b/, [['Titanio negro','#3c3c3d'],['Titanio blanco','#f2f1ed'],['Titanio natural','#c2bcb2'],['Titanio desierto','#bfa48f']]],
+    [/\b16\b/, [['Negro','#3c4042'],['Blanco','#fafafa'],['Rosa','#f2adda'],['Verde azulado','#b0d4d2'],['Ultramar','#9aadf6']]],
+    [/\b15\s*PRO\b/, [['Titanio negro','#3c3c3d'],['Titanio blanco','#f2f1ed'],['Titanio azul','#2f4452'],['Titanio natural','#bab4a9']]],
+    [/\b15\b/, [['Negro','#35393b'],['Azul','#d4e4ed'],['Verde','#e3e8db'],['Amarillo','#fce79e'],['Rosa','#e9c8cb']]],
+    [/\b14\s*PRO\b/, [['Negro espacial','#403e3d'],['Plata','#f0f2f2'],['Oro','#f4e8ce'],['Morado oscuro','#594f63']]],
+    [/\b14\b/, [['Medianoche','#222930'],['Blanco estelar','#faf6f2'],['Morado','#e5ddea'],['Azul','#a0b4c7'],['Rojo','#fc0324'],['Amarillo','#f9e479']]],
+    [/\b13\s*PRO\b/, [['Grafito','#54524f'],['Oro','#fae7cf'],['Plata','#f1f2ed'],['Azul sierra','#a7c1d9'],['Verde alpino','#576856']]],
+    [/\b13\b/, [['Medianoche','#232a31'],['Blanco estelar','#faf6f2'],['Azul','#437891'],['Rosa','#faddd7'],['Rojo','#bf0013'],['Verde','#394c38']]],
+    [/\b12\s*PRO\b/, [['Grafito','#52514d'],['Plata','#e3e4df'],['Oro','#fcebd3'],['Azul pacífico','#2d4e5c']]],
+    [/\b12\b/, [['Negro','#232a31'],['Blanco','#f6f2ef'],['Rojo','#ba0c2e'],['Verde','#d8efd5'],['Azul','#023b63'],['Morado','#b7afe6']]],
+    [/\b11\s*PRO\b/, [['Gris espacial','#535150'],['Plata','#ebebe3'],['Oro','#fad7bd'],['Verde noche','#4e5851']]],
+    [/\b11\b/, [['Negro','#1f2020'],['Blanco','#f8f7f2'],['Verde','#aee1cd'],['Amarillo','#ffe681'],['Morado','#d1cdda'],['Rojo','#ba0c2e']]],
+    [/\bXR\b/, [['Negro','#1f2020'],['Blanco','#f5f5f0'],['Azul','#49a3d6'],['Amarillo','#f5d24b'],['Coral','#ef6a5b'],['Rojo','#b8102e']]],
+    [/\bXS\b/, [['Gris espacial','#4b4c50'],['Plata','#e3e4e5'],['Oro','#f6e0c9']]],
+    [/\bX\b/, [['Gris espacial','#4b4c50'],['Plata','#e3e4e5']]],
+    [/\bSE\b/, [['Negro','#1f2020'],['Blanco','#f5f5f0'],['Rojo','#b8102e'],['Medianoche','#232a31'],['Blanco estelar','#faf6f2']]],
+    [/\b8\b/, [['Gris espacial','#4b4c50'],['Plata','#e3e4e5'],['Oro','#f5dcc0'],['Rojo','#b8102e']]],
+    [/\b7\b/, [['Negro mate','#1f2023'],['Negro brillante','#0b0b0c'],['Plata','#e3e4e5'],['Oro','#f5dcc0'],['Oro rosa','#f4c7c3'],['Rojo','#b8102e']]]
+];
+// Colores para un modelo: los oficiales si es iPhone; si no, los genéricos.
+function _bcColoresModelo(texto) {
+    const t = String(texto || '').toUpperCase();
+    if(/IPHONE/.test(t)) {
+        const resto = t.slice(t.indexOf('IPHONE') + 6);
+        for(const [re, lista] of _IPHONE_COLORES) if(re.test(resto)) return lista;
+    }
+    return _EQ_COLORES;
+}
+function _bcColorChipHTML(nombre, hex, onclick, on) {
+    return `<button type="button" class="eqc${on ? ' on' : ''}" data-color="${escapeHtml(nombre)}" onclick="${onclick}" style="border:1.5px solid ${on ? '#FF6B35' : '#e2e8f0'};background:${on ? '#fff1ea' : '#fff'};border-radius:999px;padding:6px 12px;font-weight:700;font-size:12.5px;color:${on ? '#c2410c' : '#334155'};cursor:pointer;display:inline-flex;align-items:center;gap:7px;margin:2px;min-height:36px;"><span style="width:14px;height:14px;border-radius:50%;background:${hex};border:1px solid rgba(0,0,0,.2);display:inline-block;"></span>${escapeHtml(nombre)}</button>`;
+}
+// «Agregar equipo al lote»: los chips cambian según el modelo elegido (iPhone = sus colores oficiales).
+function _eqRenderColorChips(texto) {
+    const c = document.getElementById('eqColorChips'); if(!c) return;
+    if(texto === undefined) {
+        const ss = _smartSelects && _smartSelects['ss-eq-articulo'];
+        const v = typeof smartSelectGetValue === 'function' ? smartSelectGetValue('ss-eq-articulo') : '';
+        const it = ss && ss.items ? ss.items.find(i => String(i.id) === String(v)) : null;
+        texto = it && it._ip ? ((it._ip.marca || '') + ' ' + (it._ip.descripcion || '')) : '';
+    }
+    const lista = _bcColoresModelo(texto);
+    const clave = lista.map(x => x[0]).join('|');
+    const sel = (document.getElementById('eq_color')?.value || '').trim();
+    if(c.dataset.clave === clave && c.childElementCount) return;
+    c.dataset.clave = clave;
+    // Si el color elegido no existe en este modelo, se quita.
+    if(sel && !lista.some(x => x[0].toLowerCase() === sel.toLowerCase())) { const el = document.getElementById('eq_color'); if(el) el.value = ''; }
+    const actual = (document.getElementById('eq_color')?.value || '').toLowerCase();
+    c.innerHTML = lista.map(([n, hex]) => _bcColorChipHTML(n, hex, '_eqSetColor(this)', actual === n.toLowerCase())).join('')
+        + `<button type="button" class="eqc" onclick="_eqSetColorOtro()" style="border:1.5px dashed #cbd5e1;background:#fff;border-radius:999px;padding:6px 12px;font-weight:700;font-size:12.5px;color:#64748b;cursor:pointer;margin:2px;min-height:36px;">+ Otro</button>`;
+}
+function _eqMarcarChip(btn) {
+    document.querySelectorAll('#eqColorChips .eqc').forEach(b => { b.classList.remove('on'); b.style.borderColor = '#e2e8f0'; b.style.background = '#fff'; b.style.color = '#334155'; });
+    if(btn) { btn.classList.add('on'); btn.style.borderColor = '#FF6B35'; btn.style.background = '#fff1ea'; btn.style.color = '#c2410c'; }
 }
 function _eqSetColor(btn) {
-    document.querySelectorAll('#eqColorChips .eqc').forEach(b => { b.style.borderColor = '#e2e8f0'; b.style.background = '#fff'; b.style.color = '#334155'; b.style.boxShadow = 'none'; });
-    if(btn) { btn.style.borderColor = '#e31e24'; btn.style.background = '#fef2f6'; btn.style.color = '#be123c'; btn.style.boxShadow = '0 0 0 3px rgba(227,30,36,.12)'; }
-    const el = document.getElementById('eq_color'); if(el) el.value = (btn ? btn.getAttribute('data-color') : '') || '';
+    const el = document.getElementById('eq_color');
+    const nuevo = (btn ? btn.getAttribute('data-color') : '') || '';
+    // Tocar el mismo color otra vez lo quita
+    if(el && btn && el.value === nuevo) { el.value = ''; _eqMarcarChip(null); return; }
+    _eqMarcarChip(btn);
+    if(el) el.value = nuevo;
 }
 async function _eqSetColorOtro() {
     const v = await pedirTexto('Color del equipo:'); if(v == null) return;
     const el = document.getElementById('eq_color'); if(el) el.value = (v || '').trim();
-    document.querySelectorAll('#eqColorChips .eqc').forEach(b => { b.style.borderColor = '#e2e8f0'; b.style.background = '#fff'; b.style.color = '#334155'; b.style.boxShadow = 'none'; });
+    _eqMarcarChip(null);
     toast('Color: ' + ((v || '').trim() || '—'));
 }
-// Color "real" del equipo (ignora los registros viejos que guardaban la capacidad en color)
+// ===== Ventana «Poner colores»: una fila por equipo con los colores de SU modelo =====
+// filas: [{id, titulo, sub, modelo, color}] · onSet(id, color) guarda (puede ser async) · todos: botón «Todos de este color» por modelo
+let _bcCol = null;
+function _bcColoresAbrir({ titulo, ayuda, filas, onSet, onCerrar }) {
+    _bcCol = { filas, onSet, onCerrar };
+    const prev = document.getElementById('modalBcColores'); if(prev) prev.remove();
+    const box = document.createElement('div');
+    box.className = 'modal-backdrop active'; box.id = 'modalBcColores'; box.style.zIndex = '790';
+    box.innerHTML = `<div class="modal-box" style="max-width:760px;">
+        <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-palette" style="color:#FF6B35;"></i> ${escapeHtml(titulo || 'Poner colores')}</h3><button class="modal-close" onclick="_bcColoresCerrar()">✕</button></div>
+        <div class="modal-body" style="max-height:72vh; overflow:auto;">
+          ${ayuda ? `<p style="font-size:12.5px; color:#475569; margin:0 0 10px;">${ayuda}</p>` : ''}
+          <div id="bcColLista"></div>
+        </div>
+        <div class="modal-footer"><span id="bcColCuenta" style="font-size:12.5px; color:#475569; margin-right:auto;"></span><button class="btn btn-blue" onclick="_bcColoresCerrar()">Listo</button></div>
+    </div>`;
+    document.body.appendChild(box);
+    _bcColoresPintar();
+}
+function _bcColoresPintar() {
+    const cont = document.getElementById('bcColLista'); if(!cont || !_bcCol) return;
+    const grupos = {};
+    _bcCol.filas.forEach((f, i) => { const k = (f.modelo || '').trim() || 'Equipo'; (grupos[k] = grupos[k] || []).push(i); });
+    cont.innerHTML = Object.entries(grupos).map(([modelo, idxs]) => {
+        const lista = _bcColoresModelo(modelo);
+        const todos = idxs.length > 1 ? `<div style="display:flex; flex-wrap:wrap; align-items:center; gap:2px; margin:0 0 6px;"><span style="font-size:12px; color:#475569; margin-right:4px;">Todos de:</span>${lista.map(([n, hex]) => _bcColorChipHTML(n, hex, `_bcColoresTodos('${encodeURIComponent(modelo).replace(/'/g, '%27')}', '${escapeHtml(n).replace(/'/g, "\\'")}')`, false)).join('')}</div>` : '';
+        return `<div style="border:1px solid #e6e9ef; border-radius:14px; padding:12px; margin-bottom:12px;">
+            <div style="font-weight:800; font-size:14px; color:#0f172a; margin-bottom:6px;">${escapeHtml(modelo)} <span style="font-weight:600; color:#64748b; font-size:12px;">· ${idxs.length} equipo(s)</span></div>
+            ${todos}
+            ${idxs.map(i => { const f = _bcCol.filas[i];
+                return `<div style="display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; padding:8px 0; border-top:1px solid #f1f5f9;">
+                    <div style="min-width:180px; flex:1;"><div style="font-size:13px; font-weight:700; color:#0f172a;">${escapeHtml(f.titulo || '')}</div><div style="font-size:11.5px; color:#64748b;">${escapeHtml(f.sub || '')}${f.color ? ` · <b style="color:#c2410c;">${escapeHtml(f.color)}</b>` : ''}</div></div>
+                    <div style="display:flex; flex-wrap:wrap;">${lista.map(([n, hex]) => _bcColorChipHTML(n, hex, `_bcColoresSet(${i}, '${escapeHtml(n).replace(/'/g, "\\'")}')`, (f.color || '').toLowerCase() === n.toLowerCase())).join('')}<button type="button" class="eqc" onclick="_bcColoresOtro(${i})" style="border:1.5px dashed #cbd5e1;background:#fff;border-radius:999px;padding:6px 12px;font-weight:700;font-size:12.5px;color:#64748b;cursor:pointer;margin:2px;min-height:36px;">+ Otro</button></div>
+                </div>`; }).join('')}
+        </div>`;
+    }).join('') || '<p style="color:#64748b;">No hay equipos.</p>';
+    const c = document.getElementById('bcColCuenta');
+    if(c) { const n = _bcCol.filas.filter(f => f.color).length; c.textContent = `${n} de ${_bcCol.filas.length} con color`; }
+}
+async function _bcColoresSet(i, color) {
+    if(!_bcCol) return; const f = _bcCol.filas[i]; if(!f) return;
+    const nuevo = (f.color || '').toLowerCase() === String(color).toLowerCase() ? '' : color; // tocar el mismo lo quita
+    const antes = f.color; f.color = nuevo; _bcColoresPintar();
+    try { if(_bcCol.onSet) await _bcCol.onSet(f.id, nuevo || null); }
+    catch(e) { f.color = antes; _bcColoresPintar(); logError('Poner color', e); toastError(getFriendlyError(e)); }
+}
+async function _bcColoresOtro(i) {
+    const v = await pedirTexto('Color del equipo:'); if(v == null) return;
+    const f = _bcCol && _bcCol.filas[i]; if(!f) return;
+    f.color = ''; await _bcColoresSet(i, (v || '').trim());
+}
+async function _bcColoresTodos(modeloEnc, color) {
+    if(!_bcCol) return; const modelo = decodeURIComponent(modeloEnc);
+    for(let i = 0; i < _bcCol.filas.length; i++) {
+        const f = _bcCol.filas[i];
+        if(((f.modelo || '').trim() || 'Equipo') !== modelo || (f.color || '').toLowerCase() === color.toLowerCase()) continue;
+        const antes = f.color; f.color = color;
+        try { if(_bcCol.onSet) await _bcCol.onSet(f.id, color); } catch(e) { f.color = antes; logError('Poner color', e); toastError(getFriendlyError(e)); break; }
+    }
+    _bcColoresPintar();
+}
+function _bcColoresCerrar() {
+    const m = document.getElementById('modalBcColores'); if(m) m.remove();
+    const cb = _bcCol && _bcCol.onCerrar; _bcCol = null;
+    if(cb) try { cb(); } catch(e) {}
+}
+
+// Reacondicionados: poner colores a los equipos del lote (todos los visibles, o uno solo desde su tarjeta)
+async function _bcGuardarColorEquipo(id, color) {
+    const { error } = await supabaseClient.from('equipos_refurbish').update({ color: color || null }).eq('id', id);
+    if(error) throw error;
+    const e = (cache.refurb || []).find(x => x.id === id); if(e) e.color = color || null;
+}
+function abrirColoresLote(soloId) {
+    const loteId = reacondLoteAbiertoId;
+    let eqs = (cache.refurb || []).filter(r => r.lote_id === loteId);
+    const nums = new Map(eqs.map((e, i) => [e.id, i + 1]));
+    if(soloId) eqs = eqs.filter(e => e.id === soloId);
+    else if(Array.isArray(_reacondVisibleEquipos) && _reacondVisibleEquipos.length) { const vis = new Set(_reacondVisibleEquipos.map(e => e.id)); eqs = eqs.filter(e => vis.has(e.id)); }
+    if(!eqs.length) return toast('No hay equipos para ponerles color.', 'error');
+    _bcColoresAbrir({
+        titulo: soloId ? 'Color del equipo' : 'Poner colores al lote',
+        ayuda: soloId ? '' : 'Toca el color de cada IMEI; se guarda al instante. Los iPhone muestran sus colores oficiales. «Todos de» pinta todos los del mismo modelo.',
+        filas: eqs.map(e => ({ id: e.id, titulo: `#${nums.get(e.id) || ''} · IMEI ${e.imei || '—'}`, sub: e.capacidad || '', modelo: e.modelo || '', color: _eqColorReal(e) })),
+        onSet: _bcGuardarColorEquipo,
+        onCerrar: () => { if(typeof renderDetalleLoteReacond === 'function') renderDetalleLoteReacond(); }
+    });
+}
 function _eqColorReal(e) { const c = (e && e.color || '').trim(); return (c && !/\d+\s*(gb|tb)|ram/i.test(c)) ? c : ''; }
-function _eqColorHex(nombre) { const f = _EQ_COLORES.find(x => x[0].toLowerCase() === (nombre || '').toLowerCase()); return f ? f[1] : '#94a3b8'; }
+function _eqColorHex(nombre, modelo) {
+    const n = (nombre || '').toLowerCase(); if(!n) return '#94a3b8';
+    const f = _bcColoresModelo(modelo).find(x => x[0].toLowerCase() === n) || _IPHONE_COLORES.flatMap(x => x[1]).find(x => x[0].toLowerCase() === n) || _EQ_COLORES.find(x => x[0].toLowerCase() === n);
+    return f ? f[1] : '#94a3b8';
+}
 async function agregarEquipoAlLote() {
     if(!loteActualId) return toast('Sin lote activo.', 'error');
     const artId = smartSelectGetValue('ss-eq-articulo');
@@ -7250,7 +7427,7 @@ function _eqCardRow(e, esAdmin) {
         <div style="min-width:0;">
           <div class="eq-cod">Cód. ${escapeHtml(codigo || '—')} <span class="eq-mk">${escapeHtml(marca || '')}</span></div>
           <div class="eq-name">${escapeHtml(desc || '(sin descripción)')}</div>
-          <div class="eq-meta">${cap ? `<i class="ti ti-device-mobile"></i> ${escapeHtml(cap)}` : ''}${_eqColorReal(e) ? `  ·  <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:50%;background:${_eqColorHex(_eqColorReal(e))};border:1px solid rgba(0,0,0,.2);display:inline-block;"></span>${escapeHtml(_eqColorReal(e))}</span>` : ''}${precio > 0 ? `  ·  <b style="color:#16a34a;">${money(precio)}</b>` : ''}${gar}</div>
+          <div class="eq-meta">${cap ? `<i class="ti ti-device-mobile"></i> ${escapeHtml(cap)}` : ''}${_eqColorReal(e) ? `  ·  <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:50%;background:${_eqColorHex(_eqColorReal(e), e.modelo)};border:1px solid rgba(0,0,0,.2);display:inline-block;"></span>${escapeHtml(_eqColorReal(e))}</span>` : ''}${precio > 0 ? `  ·  <b style="color:#16a34a;">${money(precio)}</b>` : ''}${gar}</div>
         </div>
       </div>
       <div class="eq-imei"><div><code>${escapeHtml(imei || '—')}</code>${imei ? ` <i class="ti ti-copy eq-copy" title="Copiar" onclick="_eqCopy('${escapeHtml(imei).replace(/'/g, '')}')"></i>` : ''}</div>${imeiBadge}</div>
@@ -11792,7 +11969,7 @@ function renderEquipoReacondCard(eq, num) {
         <div class="bcf-prog"><div class="bcf-prog-top"><span>${_BCF_PASOS_REACOND[paso]}</span><span>Paso ${paso + 1} de ${_BCF_PASOS_REACOND.length}</span></div>${_bcfBarra(paso, _BCF_PASOS_REACOND.length, ico, alerta)}</div>
         <footer class="bcf-f">
             <span title="Capacidad"><i class="ti ti-database"></i>${escapeHtml(eq.capacidad || '—')}</span>
-            <span title="Color"><i class="ti ti-palette"></i>${escapeHtml(eq.color || '—')}</span>
+            <button type="button" class="bcf-color" title="Poner o cambiar el color" onclick="event.stopPropagation(); abrirColoresLote('${eq.id}')">${_eqColorReal(eq) ? `<i class="bcf-cdot" style="background:${_eqColorHex(_eqColorReal(eq), eq.modelo)}"></i>${escapeHtml(_eqColorReal(eq))}` : '<i class="ti ti-palette"></i>Poner color'}</button>
             <span title="Tiempo en este paso"><i class="ti ti-clock-hour-4"></i>${_bcfDiasTxt(dias)}</span>
         </footer>
         ${eq.notas_diagnostico ? `<div class="bcf-nota" title="${escapeHtml(eq.notas_diagnostico)}"><i class="ti ti-note"></i> ${escapeHtml(eq.notas_diagnostico)}</div>` : ''}

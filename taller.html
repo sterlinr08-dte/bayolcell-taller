@@ -3743,6 +3743,7 @@ body{
                                 <button id="btnFormatoIPExcel" class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#075985; border-color:#7dd3fc; display:none;" onclick="exportarFormatoInfoPlusExcel()"><i class="ti ti-file-spreadsheet"></i> Info Plus (Excel)</button>
                                 <button id="btnRegistrarCompraIP" class="btn btn-dark" style="padding:5px 10px; font-size:12px; background:#0891b2; display:none;" onclick="registrarCompraLoteInfoPlus()" title="Registrar/actualizar en Info Plus la compra del lote (1 artículo por modelo + sus IMEI + costo promedio). La primera vez la crea; después la ACTUALIZA con TODOS los equipos del lote (el API reemplaza la compra, por eso van todos). Misma compra, sin duplicar."><i class="ti ti-cloud-upload"></i> Registrar compra en Info Plus</button>
                                 <button id="btnRegManualIP" class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#0e7490; border-color:#67e8f9; display:none;" onclick="abrirRegistroManualIP()" title="Ver/marcar los equipos listos para registrarlos a mano en Info Plus, con el promedio actualizado"><i class="ti ti-clipboard-check"></i> Registro manual IP</button>
+                                <button class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#c2410c; border-color:#fdba74;" onclick="abrirColoresLote()" title="Poner el color de cada IMEI (los iPhone muestran sus colores oficiales)"><i class="ti ti-palette"></i> Poner colores</button>
                                 <button id="btnDespacharTel" class="btn btn-dark" style="padding:5px 10px; font-size:12px; background:#0e7490; display:none;" onclick="despacharTelefonosSeleccionados()" title="Despachar a otra localidad los teléfonos seleccionados (agrupados por modelo, costo promedio, con sus IMEI)"><i class="ti ti-truck-delivery"></i> Despachar teléfonos</button>
                             </div>
                         </div>
@@ -5568,7 +5569,7 @@ body{
 <div id="toast" class="toast"></div>
 <div id="printArea" class="print-area"></div>
 
-<script src="taller-app.js?v=20261014-f1"></script>
+<script src="taller-app.js?v=20261015-c1"></script>
 <script src="diagnostico-photo-tiles.js?v=20261009e"></script>
 <script src="diagnostico-board-data.js?v=20261009e"></script>
 <script src="diagnostico-ai-board.js?v=20261010d"></script>
@@ -5576,6 +5577,6 @@ body{
 <script src="diagnostico-ai-cortos.js?v=20261010e"></script>
 <script src="diagnostico-ai-chat.js?v=20261010b"></script>
 <script src="diagnostico-ai-library.js?v=20261010a"></script>
-<script src="crm-marketing-consent.js?v=20261014-f1"></script>
+<script src="crm-marketing-consent.js?v=20261015-c1"></script>
 </body>
 

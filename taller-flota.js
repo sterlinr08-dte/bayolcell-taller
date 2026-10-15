@@ -8,7 +8,7 @@
 (function(){
 'use strict';
 if (window.BayolFlota) return;
-var VERSION = '20261014f1';
+var VERSION = '20261015c1';
 
 /* ---------- Estilos ---------- */
 var CSS = `
@@ -69,6 +69,10 @@ var CSS = `
 .bcf-f{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;color:#0f172a;font-weight:550;}
 .bcf-f span{display:inline-flex;align-items:center;gap:5px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .bcf-f i{color:#94a3b8;font-size:15px;}
+.bcf-color{display:inline-flex;align-items:center;gap:5px;min-width:0;max-width:40%;border:0;background:transparent;padding:4px 6px;margin:-4px -6px;border-radius:8px;font:inherit;font-size:12.5px;font-weight:550;color:#0f172a;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bcf-color:hover{background:#fff1ea;color:#c2410c;}
+.bcf-color .ti{color:#94a3b8;font-size:15px;}
+.bcf-cdot{flex:none;width:12px;height:12px;border-radius:50%;border:1px solid rgba(0,0,0,.2);display:inline-block;}
 .bcf-nota{font-size:12px;color:#475569;background:#f8fafc;border-radius:10px;padding:7px 10px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
 .bcf-acc{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding-top:2px;}
 .bcf-acc-sp{flex:1;}
