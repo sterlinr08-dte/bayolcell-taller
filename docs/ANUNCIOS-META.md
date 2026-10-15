@@ -14,7 +14,8 @@ Fuente: reunión del dueño con Meta el 15-oct-2026, más el arreglo de ubicaci�
 
 ## Ritmo de las campañas
 - **Cada 2 meses se duplica la campaña.** La copia queda como la nueva; la **original se desactiva** (después de bajarle el presupuesto).
-- **Presupuesto:** subir **poco a poco cada semana**, de **5 % en 5 %**, sin pasar de **30 %**. Hay que confirmar con el dueño si ese 30 % es por semana o en total. Los saltos grandes hacen que Meta reinicie el aprendizaje del anuncio.
+- **Presupuesto:** subir **5 % cada semana**, y como máximo **30 % en total durante los 2 meses** de vida de la campaña (confirmado por el dueño el 15-oct-2026). Al duplicar, la copia arranca con el presupuesto nuevo y empieza otra vez el ciclo de 2 meses. Los saltos grandes hacen que Meta reinicie el aprendizaje del anuncio.
+  - Ejemplo con RD$1,000/semana: 1,050 → 1,100 → 1,150 → 1,200 → 1,250 → 1,300. Al llegar a 1,300 (+30 %) se mantiene hasta que se duplica la campaña.
 
 ## Ubicación (desde 15-oct-2026)
 - Tipo: «personas que viven aquí o estuvieron recientemente». Meta lo guarda como `home` + `recent` (+ `frequently_in`). La opción vieja `frequently_in` + `home` da el error #1870194.
