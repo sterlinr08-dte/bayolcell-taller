@@ -16169,11 +16169,10 @@ function _despTelImprimir() {
     const origen = document.getElementById('despTelOrigen')?.value, destino = document.getElementById('despTelDestino')?.value;
     const lista = _despTelCtx.lista;
     const totU = lista.reduce((s, g) => s + g.equipos.length, 0);
-    const totRD = lista.reduce((s, g) => s + g.total, 0);
     const filas = lista.map(g => {
         const cant = g.equipos.length;
         const det = g.equipos.map(e => `${escapeHtml(e.imei || '—')}${_eqColorReal(e) ? ' · ' + escapeHtml(_eqColorReal(e)) : ''}`).join('<br>');
-        return `<tr><td><b>${escapeHtml(g.modelo)}</b><div class="im">${det}</div></td><td class="c">${escapeHtml(g.codigo)}</td><td class="c">${cant}</td><td class="r">${money(cant ? g.total / cant : 0)}</td><td class="r">${money(g.total)}</td></tr>`;
+        return `<tr><td><b>${escapeHtml(g.modelo)}</b><div class="im">${det}</div></td><td class="c">${escapeHtml(g.codigo)}</td><td class="c">${cant}</td></tr>`;
     }).join('');
     const w = window.open('', '_blank');
     if(!w) return toast('El navegador bloqueó la ventana de impresión.', 'error');
@@ -16190,8 +16189,8 @@ function _despTelImprimir() {
       <h1>Lista de despacho de teléfonos <span class="tag">Antes de despachar</span></h1>
       <div class="sub">BAYOL CELL · ${new Date().toLocaleString('es-DO')}${(typeof sessionUser !== 'undefined' && sessionUser && sessionUser.nombre) ? ' · ' + escapeHtml(sessionUser.nombre) : ''}</div>
       <div class="ruta"><div><span>Desde</span><b>${escapeHtml(_nombreAlmacen(origen))}</b></div><div><span>Hacia</span><b>${escapeHtml(_nombreAlmacen(destino))}</b></div><div><span>Teléfonos</span><b>${totU}</b></div></div>
-      <table><thead><tr><th>Modelo / IMEI · color</th><th class="c">Cód IP</th><th class="c">Cant.</th><th class="r">Prom.</th><th class="r">Subtotal</th></tr></thead><tbody>${filas}</tbody></table>
-      <div class="tot"><b>${totU}</b> teléfono(s) · Total <b>${money(totRD)}</b></div>
+      <table><thead><tr><th>Modelo / IMEI · color</th><th class="c">Cód IP</th><th class="c">Cant.</th></tr></thead><tbody>${filas}</tbody></table>
+      <div class="tot">Total: <b>${totU}</b> teléfono(s)</div>
       <div class="firmas"><div>Entregado por</div><div>Recibido por</div></div>
       <script>window.onload=function(){window.print();}<\/script>
     </body></html>`);
