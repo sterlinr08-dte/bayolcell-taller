@@ -15763,6 +15763,17 @@ async function hacerDespachoAlmacen() {
     }
 }
 // Imprime el documento formal del despacho (conduce).
+// IMEI de un renglón del despacho con su color («351234… · Morado»). Si el despacho es viejo y no guardó el color,
+// se busca por IMEI en los reacondicionados.
+function _despImeisItem(it) {
+    const arr = Array.isArray(it.imeis) ? it.imeis : (Array.isArray(it.seriales) ? it.seriales : []);
+    return arr.map(x => {
+        const im = String((x && typeof x === 'object') ? (x.imei || x.numero || '') : x).trim(); if(!im) return null;
+        let col = (x && typeof x === 'object' && x.color) || '';
+        if(!col) { const eq = (cache.refurb || []).find(r => String(r.imei || '').trim() === im); col = eq ? _eqColorReal(eq) : ''; }
+        return { imei: im, color: col };
+    }).filter(Boolean);
+}
 function imprimirDespacho(id) {
     const r = _despHistRows.find(x => x.id === id);
     if(!r) return toast('No se encontró el despacho para imprimir.', 'error');
@@ -15774,7 +15785,7 @@ function imprimirDespacho(id) {
     const filas = items.map((it, i) => `<tr>
         <td style="text-align:center;">${i + 1}</td>
         <td style="text-align:center;">${escapeHtml(String(it.codigo || ''))}</td>
-        <td>${escapeHtml(it.descripcion || '')}</td>
+        <td>${escapeHtml(it.descripcion || '')}${_despImeisItem(it).length ? `<div style="font-size:11px;color:#475569;margin-top:3px;line-height:1.45;">${_despImeisItem(it).map(x => `IMEI ${escapeHtml(x.imei)}${x.color ? ' · <b style="color:#0f172a;">' + escapeHtml(x.color) + '</b>' : ''}`).join('<br>')}</div>` : ''}</td>
         <td style="text-align:center; font-weight:700;">${it.cantidad}</td>
         <td style="text-align:right;">${money(it.costo || 0)}</td>
         <td style="text-align:right;">${money((Number(it.costo) || 0) * (Number(it.cantidad) || 0))}</td>
@@ -15887,10 +15898,7 @@ async function descargarDespachoPDF(id) {
             : [{ codigo: r.codarticulo || '', descripcion: r.articulo_nombre || '', cantidad: r.cantidad || 0, costo: 0 }];
         const u = items.reduce((s, x) => s + (Number(x.cantidad) || 0), 0);
         const totalRD = items.reduce((s, x) => s + (Number(x.costo) || 0) * (Number(x.cantidad) || 0), 0);
-        const seriales = items.flatMap(x => {
-            const arr = Array.isArray(x.seriales) ? x.seriales : (Array.isArray(x.imeis) ? x.imeis : []);
-            return arr.map(s => (s && typeof s === 'object') ? (s.numero || s.imei || '') : s).filter(Boolean);
-        });
+        const seriales = items.flatMap(x => _despImeisItem(x).map(s => s.imei + (s.color ? ' · ' + s.color : '')));
         const filasHTML = items.map((it, i) => `<tr>
             <td style="padding:9px 11px;border-bottom:1px solid #eef2f7;text-align:center;">${i + 1}</td>
             <td style="padding:9px 11px;border-bottom:1px solid #eef2f7;text-align:center;">${escapeHtml(String(it.codigo || ''))}</td>
@@ -15899,7 +15907,7 @@ async function descargarDespachoPDF(id) {
             <td style="padding:9px 11px;border-bottom:1px solid #eef2f7;text-align:right;">${money(it.costo || 0)}</td>
             <td style="padding:9px 11px;border-bottom:1px solid #eef2f7;text-align:right;">${money((Number(it.costo) || 0) * (Number(it.cantidad) || 0))}</td>
         </tr>`).join('');
-        const serHTML = seriales.length ? `<div style="margin:10px 0 4px;font-size:12.5px;"><div style="font-weight:800;color:#475569;margin-bottom:5px;">Series / IMEI (${seriales.length}):</div>${seriales.map(s => `<span style="display:inline-block;font-family:ui-monospace,Menlo,monospace;font-weight:700;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:7px;padding:5px 10px;margin:0 6px 6px 0;">${escapeHtml(String(s))}</span>`).join('')}</div>` : '';
+        const serHTML = seriales.length ? `<div style="margin:10px 0 4px;font-size:12.5px;"><div style="font-weight:800;color:#475569;margin-bottom:5px;">Series / IMEI · color (${seriales.length}):</div>${seriales.map(s => `<span style="display:inline-block;font-family:ui-monospace,Menlo,monospace;font-weight:700;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:7px;padding:5px 10px;margin:0 6px 6px 0;">${escapeHtml(String(s))}</span>`).join('')}</div>` : '';
         const wrap = document.createElement('div');
         wrap.style.cssText = 'position:fixed;left:-99999px;top:0;width:760px;background:#fff;padding:34px 38px;font-family:-apple-system,Segoe UI,Arial,sans-serif;color:#0f172a;';
         wrap.innerHTML = `
@@ -16171,7 +16179,7 @@ function _despTelImprimir() {
     const totU = lista.reduce((s, g) => s + g.equipos.length, 0);
     const filas = lista.map(g => {
         const cant = g.equipos.length;
-        const det = g.equipos.map(e => `${escapeHtml(e.imei || '—')}${_eqColorReal(e) ? ' · ' + escapeHtml(_eqColorReal(e)) : ''}`).join('<br>');
+        const det = g.equipos.map(e => `IMEI ${escapeHtml(e.imei || '—')} · Color: <b style="color:#0f172a;">${escapeHtml(_eqColorReal(e) || 'sin color')}</b>`).join('<br>');
         return `<tr><td><b>${escapeHtml(g.modelo)}</b><div class="im">${det}</div></td><td class="c">${escapeHtml(g.codigo)}</td><td class="c">${cant}</td></tr>`;
     }).join('');
     const w = window.open('', '_blank');
@@ -16260,7 +16268,9 @@ async function _despTelConfirmar() {
     if(!await confirmar(`¿Despachar ${totU} teléfono(s)\nde ${_nombreAlmacen(origen)} → ${_nombreAlmacen(destino)}?\n\nSe registra como un documento en Info Plus (por modelo, costo promedio, con sus IMEI).`)) return;
     toast('Despachando teléfonos en Info Plus…');
     const r = await _ejecutarDespachoReal({ origen, destino, items, seriales, nota: 'Despacho teléfonos reacondicionados' });
-    const saved = await _despGuardarHistorial({ origen, destino, items, nota: 'Teléfonos reacondicionados', r });
+    // Para el conduce: cada modelo lleva sus IMEI con el color (solo en el historial; a Info Plus va igual que antes)
+    const itemsHist = items.map((it, i) => ({ ...it, imeis: lista[i].equipos.map(e => ({ imei: String(e.imei || '').trim(), color: _eqColorReal(e) || '' })).filter(x => x.imei) }));
+    const saved = await _despGuardarHistorial({ origen, destino, items: itemsHist, nota: 'Teléfonos reacondicionados', r });
     if(r.ok) {
         toast(`Despacho #${r.numero} de teléfonos hecho: ${totU} u.`);
         _despTelBorrarBorrador(true);
