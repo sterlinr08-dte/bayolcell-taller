@@ -15787,8 +15787,6 @@ function imprimirDespacho(id) {
         <td style="text-align:center;">${escapeHtml(String(it.codigo || ''))}</td>
         <td>${escapeHtml(it.descripcion || '')}${_despImeisItem(it).length ? `<div style="font-size:11px;color:#475569;margin-top:3px;line-height:1.45;">${_despImeisItem(it).map(x => `IMEI ${escapeHtml(x.imei)}${x.color ? ' · <b style="color:#0f172a;">' + escapeHtml(x.color) + '</b>' : ''}`).join('<br>')}</div>` : ''}</td>
         <td style="text-align:center; font-weight:700;">${it.cantidad}</td>
-        <td style="text-align:right;">${money(it.costo || 0)}</td>
-        <td style="text-align:right;">${money((Number(it.costo) || 0) * (Number(it.cantidad) || 0))}</td>
     </tr>`).join('');
     const w = window.open('', '_blank');
     w.document.write(`<html><head><meta charset="utf-8"><title>Despacho ${escapeHtml(r.despacho_numero || '')}</title>
@@ -15816,9 +15814,9 @@ function imprimirDespacho(id) {
     </div>
     <div class="ruta">📦 ${escapeHtml(_nombreAlmacen(r.almacen_origen))} &nbsp;→&nbsp; ${escapeHtml(_nombreAlmacen(r.almacen_destino))}</div>
     ${r.nota ? `<div style="font-size:12.5px;color:#475569;margin-bottom:8px;">Nota: ${escapeHtml(r.nota)}</div>` : ''}
-    <table><thead><tr><th>#</th><th>Código</th><th style="text-align:left;">Descripción</th><th>Cant.</th><th style="text-align:right;">Costo u.</th><th style="text-align:right;">Subtotal</th></tr></thead>
+    <table><thead><tr><th>#</th><th>Código</th><th style="text-align:left;">Descripción</th><th>Cant.</th></tr></thead>
     <tbody>${filas}</tbody>
-    <tfoot><tr><td colspan="3" style="text-align:right;">TOTALES</td><td style="text-align:center;">${u}</td><td></td><td style="text-align:right;">${money(totalRD)}</td></tr></tfoot></table>
+    <tfoot><tr><td colspan="3" style="text-align:right;">TOTAL DE UNIDADES</td><td style="text-align:center;">${u}</td></tr></tfoot></table>
     <div class="firmas"><div>Despachado por</div><div>Recibido por</div></div>
     <p style="font-size:10px;color:#475569;margin-top:20px;">Documento de control interno · BAYOL CELL. Generado desde el sistema del taller.</p>
     </body></html>`);
@@ -15904,8 +15902,6 @@ async function descargarDespachoPDF(id) {
             <td style="padding:9px 11px;border-bottom:1px solid #eef2f7;text-align:center;">${escapeHtml(String(it.codigo || ''))}</td>
             <td style="padding:9px 11px;border-bottom:1px solid #eef2f7;">${escapeHtml(it.descripcion || '')}</td>
             <td style="padding:9px 11px;border-bottom:1px solid #eef2f7;text-align:center;font-weight:700;">${Number(it.cantidad) || 0}</td>
-            <td style="padding:9px 11px;border-bottom:1px solid #eef2f7;text-align:right;">${money(it.costo || 0)}</td>
-            <td style="padding:9px 11px;border-bottom:1px solid #eef2f7;text-align:right;">${money((Number(it.costo) || 0) * (Number(it.cantidad) || 0))}</td>
         </tr>`).join('');
         const serHTML = seriales.length ? `<div style="margin:10px 0 4px;font-size:12.5px;"><div style="font-weight:800;color:#475569;margin-bottom:5px;">Series / IMEI · color (${seriales.length}):</div>${seriales.map(s => `<span style="display:inline-block;font-family:ui-monospace,Menlo,monospace;font-weight:700;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:7px;padding:5px 10px;margin:0 6px 6px 0;">${escapeHtml(String(s))}</span>`).join('')}</div>` : '';
         const wrap = document.createElement('div');
@@ -15934,12 +15930,10 @@ async function descargarDespachoPDF(id) {
             <th style="background:#0f172a;color:#fff;text-align:center;padding:9px 11px;font-size:11px;">C&oacute;d.</th>
             <th style="background:#0f172a;color:#fff;text-align:left;padding:9px 11px;font-size:11px;">Art&iacute;culo</th>
             <th style="background:#0f172a;color:#fff;text-align:center;padding:9px 11px;font-size:11px;">Cant.</th>
-            <th style="background:#0f172a;color:#fff;text-align:right;padding:9px 11px;font-size:11px;">Costo u.</th>
-            <th style="background:#0f172a;color:#fff;text-align:right;padding:9px 11px;font-size:11px;">Monto</th>
           </tr></thead><tbody>${filasHTML}</tbody>
         </table>
         ${serHTML}
-        <div style="text-align:right;font-size:15px;font-weight:900;margin:10px 0 26px;"><span style="color:#475569;font-size:12px;font-weight:700;">Total RD$ </span>${money(totalRD)} <span style="color:#475569;font-size:12px;font-weight:700;">&middot; ${u} und.</span></div>
+        <div style="text-align:right;font-size:15px;font-weight:900;margin:10px 0 26px;"><span style="color:#475569;font-size:12px;font-weight:700;">Total de unidades </span>${u}</div>
         <div style="display:flex;gap:40px;margin-top:40px;">
           <div style="flex:1;text-align:center;"><div style="border-top:1.5px solid #0f172a;margin-bottom:6px;"></div><div style="font-size:11px;color:#475569;font-weight:700;">ENTREGADO POR</div></div>
           <div style="flex:1;text-align:center;"><div style="border-top:1.5px solid #0f172a;margin-bottom:6px;"></div><div style="font-size:11px;color:#475569;font-weight:700;">RECIBIDO POR</div></div>
@@ -16078,6 +16072,20 @@ function _despTelFiltrados() {
     const partes = q.split(/\s+/);
     return todos.filter(e => { const t = _despTelNorm([e.modelo, e.imei, e.color, e.capacidad, _despTelLote(e), _despTelCod(e)].join(' ')); return partes.every(p => t.includes(p)); });
 }
+function _despTelOpcionesColor(e) {
+    const col = _eqColorReal(e);
+    const lista = _bcColoresModelo(e.modelo).map(x => x[0]);
+    if(col && !lista.some(n => n.toLowerCase() === col.toLowerCase())) lista.unshift(col);
+    return `<option value="">${col ? 'Quitar color' : 'Elegir color…'}</option>` + lista.map(n => `<option value="${escapeHtml(n)}"${col && n.toLowerCase() === col.toLowerCase() ? ' selected' : ''}>${escapeHtml(n)}</option>`).join('');
+}
+async function _despTelPonerColor(id, color, sel) {
+    if(sel) sel.disabled = true;
+    try {
+        await _bcGuardarColorEquipo(id, color);
+        toast(color ? `Color guardado: ${color}` : 'Color quitado');
+    } catch(err) { logError('Color en despacho', err); toastError(getFriendlyError(err)); }
+    _despTelRender();
+}
 function _despTelToggle(id, on) {
     if(on) _despTelCtx.sel.add(id); else _despTelCtx.sel.delete(id);
     _despTelRender(true);
@@ -16111,7 +16119,7 @@ function _despTelRender(soloResumen) {
             return `<label class="dt-fila${on ? ' on' : ''}${cod ? '' : ' off'}">
                 <input type="checkbox" ${on ? 'checked' : ''} ${cod ? '' : 'disabled'} onchange="_despTelToggle('${e.id}', this.checked); this.closest('.dt-fila').classList.toggle('on', this.checked)">
                 <span class="dt-mod"><b>${escapeHtml(e.modelo || 'Sin modelo')}</b><small>IMEI ${escapeHtml(e.imei || '—')}</small></span>
-                <span class="dt-col">${col ? `<i style="background:${_eqColorHex(col, e.modelo)}"></i>${escapeHtml(col)}` : '<em>Sin color</em>'}</span>
+                <span class="dt-col"><i style="background:${col ? _eqColorHex(col, e.modelo) : 'transparent'}"></i><select class="dt-colsel${col ? '' : ' vacio'}" title="Elegir el color de este teléfono" onclick="event.stopPropagation()" onchange="_despTelPonerColor('${e.id}', this.value, this)">${_despTelOpcionesColor(e)}</select></span>
                 <span class="dt-lote">${escapeHtml(_despTelLote(e) || '—')}</span>
                 <span class="dt-cod">${cod ? escapeHtml(cod) : '<em>Sin código IP</em>'}</span>
             </label>`;
@@ -16138,7 +16146,7 @@ function _despTelRender(soloResumen) {
     if(res) res.innerHTML = totU ? `<div class="dt-res-h">Documento a despachar</div>
         <div class="table-wrap"><table class="dt-tabla"><thead><tr><th style="text-align:left;">Modelo / IMEIs</th><th>Cód IP</th><th>Cant.</th><th style="text-align:right;">Prom.</th><th>IMEI</th></tr></thead><tbody>${ctx.lista.map(g => {
             const cant = g.equipos.length, prom = cant ? g.total / cant : 0, faltan = cant - g.imeis.length;
-            return `<tr><td>${escapeHtml(g.modelo)}<div class="dt-imeis">${g.imeis.map(x => escapeHtml(x)).join(', ')}</div></td><td class="c" style="color:#1d4ed8; font-weight:700;">${escapeHtml(g.codigo)}</td><td class="c">${cant}</td><td style="text-align:right;">${money(prom)}</td><td class="c">${g.imeis.length}${faltan > 0 ? ` <span style="color:#b91c1c;"><i class="ti ti-alert-triangle"></i> ${faltan}</span>` : ''}</td></tr>`;
+            return `<tr><td>${escapeHtml(g.modelo)}<div class="dt-imeis">${g.equipos.map(e => escapeHtml(e.imei || '—') + (_eqColorReal(e) ? ' · <b>' + escapeHtml(_eqColorReal(e)) + '</b>' : ' · <span style="color:#b45309;">sin color</span>')).join('<br>')}</div></td><td class="c" style="color:#1d4ed8; font-weight:700;">${escapeHtml(g.codigo)}</td><td class="c">${cant}</td><td style="text-align:right;">${money(prom)}</td><td class="c">${g.imeis.length}${faltan > 0 ? ` <span style="color:#b91c1c;"><i class="ti ti-alert-triangle"></i> ${faltan}</span>` : ''}</td></tr>`;
         }).join('')}</tbody></table></div>
         <div class="dt-total"><b>${totU}</b> teléfono(s) · Total <b>${money(totRD)}</b></div>`
         : '<div class="dt-vacio">Marca en la lista los teléfonos que vas a despachar.</div>';
@@ -16243,6 +16251,10 @@ function _despTelEstilos() {
     .dt-mod small{font-size:11px;color:#64748b;font-variant-numeric:tabular-nums;}
     .dt-col{display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .dt-col i{width:10px;height:10px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12);}
+    .dt-colsel{min-width:0;max-width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:4px 6px;font-size:12px;font-family:inherit;color:#334155;background:#fff;cursor:pointer;}
+    .dt-colsel:hover{border-color:#cbd5e1;}
+    .dt-colsel.vacio{color:#b45309;border-color:#fde68a;background:#fffbeb;}
+    .dt-colsel:focus-visible{outline:2px solid #0e7490;outline-offset:1px;}
     .dt-col em,.dt-cod em{font-style:normal;color:#94a3b8;}
     .dt-lote{font-size:11.5px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .dt-cod{font-weight:700;color:#1d4ed8;font-variant-numeric:tabular-nums;}
@@ -16256,7 +16268,7 @@ function _despTelEstilos() {
     .dt-total{text-align:right;margin-top:6px;font-size:13px;}
     .dt-nota{background:#ecfdf5;border:1px solid #a7f3d0;font-size:11.5px;padding:8px 10px;border-radius:10px;color:#065f46;}
     #dtBtnDesp:disabled{opacity:.5;cursor:not-allowed;}
-    @media(max-width:640px){.dt-fila{grid-template-columns:22px minmax(0,1fr) auto;}.dt-lote,.dt-col{display:none;}.dt-lista{max-height:40vh;}}
+    @media(max-width:640px){.dt-fila{grid-template-columns:22px minmax(0,1fr) minmax(0,.9fr);}.dt-lote,.dt-cod{display:none;}.dt-lista{max-height:40vh;}}
     `;
     document.head.appendChild(st);
 }
