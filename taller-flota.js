@@ -42,6 +42,19 @@ var CSS = `
 .bcf-tag::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--bcf-dot);}
 .bcf-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:-4px;}
 .bcf-chip{height:24px;font-size:11.5px;}
+.bcf-media-color{background:radial-gradient(70% 80% at 50% 55%,#ffffff 0%,#eef1f5 100%);}
+.bcf-tel{height:120px;width:auto;filter:drop-shadow(0 10px 12px rgba(15,23,42,.18));transition:transform .35s cubic-bezier(.2,.8,.2,1);}
+@media (hover:hover){.bcf-card:hover .bcf-tel{transform:scale(1.04);}}
+.bcf-pzs{margin-top:-2px;padding:9px 11px;border-radius:12px;background:#f5f8ff;border:1px solid #e3ebfb;}
+.bcf-pzs-h{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#1d4ed8;letter-spacing:.02em;text-transform:uppercase;}
+.bcf-pzs-h b{margin-left:auto;font-variant-numeric:tabular-nums;background:#dbe7ff;border-radius:999px;padding:1px 8px;font-size:11px;}
+.bcf-pzs ul{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:4px;}
+.bcf-pzs li{display:flex;align-items:center;gap:7px;font-size:12.5px;color:#1e293b;font-weight:600;min-width:0;}
+.bcf-pzs li i{color:#2563eb;font-size:14px;flex:none;}
+.bcf-pzs li span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bcf-pzs li em{font-style:normal;font-size:10.5px;font-weight:700;color:#b45309;background:#fef3c7;border-radius:999px;padding:1px 7px;flex:none;}
+.bcf-pzs li.pedida span{color:#64748b;}
+.bcf-pzs-mas{font-size:11.5px;color:#475569;font-weight:600;margin-top:4px;}
 .bcf-media{height:128px;border-radius:14px;background:radial-gradient(70% 80% at 50% 60%,#ffffff 0%,#f1f4f8 100%);display:flex;align-items:center;justify-content:center;overflow:hidden;}
 .bcf-media img{max-height:116px;max-width:88%;object-fit:contain;filter:drop-shadow(0 12px 12px rgba(15,23,42,.18));transition:transform .35s cubic-bezier(.2,.8,.2,1);}
 @media (hover:hover){.bcf-card:hover .bcf-media img{transform:scale(1.04);}}
@@ -133,7 +146,7 @@ var CSS = `
   .bcf-busq{min-width:0;max-width:none;width:100%;}
   .bcf-media{height:116px;}
 }
-@media (prefers-reduced-motion:reduce){.bcf-card,.bcf-media img,.bcf-fill,.bcf-ib,.bcf-fchip,.bcf-kpi{transition:none!important;}.bcf-card:hover{transform:none!important;}}
+@media (prefers-reduced-motion:reduce){.bcf-card,.bcf-media img,.bcf-tel,.bcf-fill,.bcf-ib,.bcf-fchip,.bcf-kpi{transition:none!important;}.bcf-card:hover{transform:none!important;}}
 @media print{.bcf-acc,.bcf-chk{display:none!important;}}
 `;
 function ponerCSS(){

@@ -11908,6 +11908,70 @@ function _bcfBarra(paso, total, ico, alerta) {
 }
 const _BCF_PASOS_REACOND = ['Recibido', 'Diagnóstico', 'Evaluado', 'Reparación', 'Control', 'Listo', 'Despachado'];
 
+/* Teléfono dibujado del color asignado (16-oct-2026): con color puesto, la tarjeta muestra
+   UN solo equipo, parte de atrás y de frente, en ese color (la foto del catálogo trae todos los colores). */
+function _bcfAclarar(hex, k) {
+    const m = /^#?([0-9a-f]{6})$/i.exec(hex || ''); if(!m) return hex;
+    const n = parseInt(m[1], 16); const c = [n >> 16, (n >> 8) & 255, n & 255].map(v => Math.round(k > 0 ? v + (255 - v) * k : v * (1 + k)));
+    return '#' + c.map(v => Math.max(0, Math.min(255, v)).toString(16).padStart(2, '0')).join('');
+}
+function _bcfTelefonoColor(modelo, hex) {
+    const m = String(modelo || '').toLowerCase();
+    const esIphone = /iphone/.test(m);
+    const num = parseInt((/iphone\s*(\d+)/.exec(m) || [])[1], 10) || 0;
+    const pro = /\bpro\b/.test(m);
+    const boton = esIphone && (/\bse\b/.test(m) || /iphone\s*[678]\b/.test(m));
+    const isla = esIphone && (num >= 15 || (num === 14 && pro));
+    const muesca = esIphone && !isla && !boton && (num >= 10 || /iphone\s*x/.test(m));
+    const L = (h, k) => _bcfAclarar(h, k);
+    const claro = (() => { const n = parseInt((hex || '#888888').slice(1), 16); return (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) > 200; })();
+    const borde = claro ? L(hex, -0.22) : L(hex, -0.35);
+    const lente = (cx, cy, r) => `<circle cx="${cx}" cy="${cy}" r="${r + 2.2}" fill="${L(hex, -0.45)}"/><circle cx="${cx}" cy="${cy}" r="${r}" fill="#0b1220"/><circle cx="${cx - r * .3}" cy="${cy - r * .3}" r="${r * .28}" fill="#3b4a66"/>`;
+    // Cámaras traseras según el modelo
+    let cam;
+    if(!esIphone) cam = `<rect x="14" y="14" width="22" height="50" rx="11" fill="${L(hex, -0.12)}"/>${lente(25, 26, 6)}${lente(25, 44, 6)}${lente(25, 60, 3)}`;
+    else if(boton) cam = lente(22, 22, 6);
+    else if(pro && num >= 11) cam = `<rect x="11" y="11" width="44" height="44" rx="12" fill="${L(hex, -0.1)}" stroke="${borde}" stroke-width=".8"/>${lente(23, 23, 7.5)}${lente(23, 43, 7.5)}${lente(42, 33, 7.5)}`;
+    else if(num >= 16) cam = `<rect x="12" y="11" width="22" height="46" rx="11" fill="${L(hex, -0.1)}" stroke="${borde}" stroke-width=".8"/>${lente(23, 23, 7)}${lente(23, 45, 7)}`;
+    else if(num >= 13) cam = `<rect x="11" y="11" width="40" height="40" rx="11" fill="${L(hex, -0.1)}" stroke="${borde}" stroke-width=".8"/>${lente(22, 22, 7)}${lente(40, 40, 7)}`;
+    else cam = `<rect x="11" y="11" width="38" height="38" rx="10" fill="${L(hex, -0.1)}" stroke="${borde}" stroke-width=".8"/>${lente(22, 22, 6.5)}${lente(22, 38, 6.5)}`;
+    const manzana = esIphone ? `<path transform="translate(54 96) scale(.9)" fill="${L(hex, claro ? -0.12 : 0.18)}" d="M13 4c1.7-2 1.5-4 1.5-4s-2 .1-3.6 1.9C9.4 3.6 9.6 5.6 9.6 5.6s1.8.1 3.4-1.6zM17.6 14.4c0-3.1 2.5-4.6 2.6-4.7-1.4-2.1-3.7-2.4-4.5-2.4-1.9-.2-3.7 1.1-4.7 1.1s-2.5-1.1-4.1-1C4.8 7.4 2.9 8.7 1.9 10.6c-2.1 3.6-.5 8.9 1.5 11.8 1 1.4 2.2 3 3.7 3 1.5-.1 2-1 3.8-1s2.3 1 3.9.9c1.6 0 2.6-1.5 3.6-2.9 1.1-1.6 1.6-3.2 1.6-3.3-.1 0-3.4-1.2-3.4-4.7z"/>` : '';
+    const g = 'g' + Math.random().toString(36).slice(2, 8);
+    const atras = `<g transform="translate(6 6)">
+        <rect x="0" y="0" width="120" height="236" rx="${boton ? 18 : 22}" fill="url(#${g}a)" stroke="${borde}" stroke-width="1.6"/>
+        <rect x="2.5" y="2.5" width="115" height="231" rx="${boton ? 16 : 20}" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="1"/>
+        ${cam}${manzana}</g>`;
+    const frente = `<g transform="translate(116 18)">
+        <rect x="0" y="0" width="120" height="236" rx="${boton ? 18 : 22}" fill="${borde}"/>
+        <rect x="3" y="3" width="114" height="230" rx="${boton ? 16 : 20}" fill="#05070c"/>
+        <rect x="${boton ? 8 : 7}" y="${boton ? 30 : 7}" width="${boton ? 104 : 106}" height="${boton ? 176 : 222}" rx="${boton ? 2 : 16}" fill="url(#${g}p)"/>
+        ${isla ? '<rect x="44" y="13" width="32" height="10" rx="5" fill="#000"/>' : ''}
+        ${muesca ? '<path d="M36 7h48v4c0 5-3 8-8 8H44c-5 0-8-3-8-8z" fill="#000"/>' : ''}
+        ${!esIphone ? '<circle cx="60" cy="16" r="3.5" fill="#000"/>' : ''}
+        ${boton ? `<circle cx="60" cy="219" r="9" fill="none" stroke="${L(hex, -0.3)}" stroke-width="1.6"/>` : ''}
+        <rect x="0" y="0" width="120" height="236" rx="${boton ? 18 : 22}" fill="url(#${g}b)" opacity=".5"/></g>`;
+    return `<svg class="bcf-tel" viewBox="0 0 242 262" role="img" aria-label="Equipo en su color">
+        <defs>
+          <linearGradient id="${g}a" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="${L(hex, 0.18)}"/><stop offset=".55" stop-color="${hex}"/><stop offset="1" stop-color="${L(hex, -0.14)}"/></linearGradient>
+          <linearGradient id="${g}p" x1="0" x2=".6" y1="0" y2="1"><stop offset="0" stop-color="${L(hex, -0.25)}"/><stop offset=".5" stop-color="${L(hex, -0.6)}"/><stop offset="1" stop-color="#0b1020"/></linearGradient>
+          <linearGradient id="${g}b" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".18"/><stop offset=".3" stop-color="#fff" stop-opacity="0"/></linearGradient>
+        </defs>${atras}${frente}</svg>`;
+}
+// Piezas puestas al equipo (las rechazadas o devueltas no cuentan), para verlas en la tarjeta
+function _bcfPiezasEquipo(equipoId) {
+    return (cache.piezasReacond || []).filter(p => p.equipo_id === equipoId && p.estado !== 'rechazada' && p.estado !== 'devuelta');
+}
+function _bcfPiezasHTML(equipoId) {
+    const pz = _bcfPiezasEquipo(equipoId); if(!pz.length) return '';
+    const fila = p => {
+        const pedida = p.estado === 'pendiente';
+        const ip = !p.agregada_por_tecnico && !p.pieza_id && !!p.pieza_codigo;
+        return `<li${pedida ? ' class="pedida"' : ''}><i class="ti ${ip ? 'ti-package' : 'ti-tool'}"></i><span>${escapeHtml(p.pieza_nombre || 'Pieza')}${(Number(p.cantidad) || 1) > 1 ? ' ×' + p.cantidad : ''}</span>${pedida ? '<em>Pedida</em>' : ''}</li>`;
+    };
+    const max = 3;
+    return `<div class="bcf-pzs" title="${escapeHtml(pz.map(p => p.pieza_nombre || 'Pieza').join(' · '))}"><div class="bcf-pzs-h"><i class="ti ti-puzzle"></i> Piezas puestas <b>${pz.length}</b></div><ul>${pz.slice(0, max).map(fila).join('')}</ul>${pz.length > max ? `<div class="bcf-pzs-mas">+${pz.length - max} más</div>` : ''}</div>`;
+}
+
 function renderEquipoReacondCard(eq, num) {
     const estado = eq.estado_evaluacion || 'pendiente';
     const tecnico = eq.tecnico_asignado_id ? (cache.tecnicos || []).find(t => t.id === eq.tecnico_asignado_id) : null;
@@ -11949,7 +12013,6 @@ function renderEquipoReacondCard(eq, num) {
     const atrasado = paso === 3 && dias != null && dias > 7;
     if(atrasado) chips.unshift([`Atrasado · ${dias} días`, 'rojo']);
     if(eq.veces_devuelto > 0) chips.push([`Devuelto ${eq.veces_devuelto}×`, 'rojo']);
-    if(_tienePiezasInfoPlus(eq.id)) chips.push(['Piezas Info Plus', 'azul']);
     const alerta = atrasado || estado === 'espera_pieza';
     const esFicha = estado === 'vendido' || estado === 'listo_venta';
     const sel = _reacondSel.has(eq.id);
@@ -11963,8 +12026,9 @@ function renderEquipoReacondCard(eq, num) {
             <span class="bcf-tag bcf-t-${tono}">${tagTxt}</span>
         </header>
         <div class="bcf-sub">#${num} · IMEI ${escapeHtml(eq.imei || '—')}</div>
-        <div class="bcf-media">${_bcfMedia(foto, (eq.marca || '') + ' ' + (eq.modelo || ''))}</div>
+        <div class="bcf-media${_eqColorReal(eq) ? ' bcf-media-color' : ''}">${_eqColorReal(eq) ? _bcfTelefonoColor((eq.marca || '') + ' ' + (eq.modelo || ''), _eqColorHex(_eqColorReal(eq), eq.modelo)) : _bcfMedia(foto, (eq.marca || '') + ' ' + (eq.modelo || ''))}</div>
         ${chips.length ? `<div class="bcf-chips">${chips.map(([t, c]) => `<span class="bcf-chip bcf-t-${c}">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
+        ${_bcfPiezasHTML(eq.id)}
         <div class="bcf-per">${_bcfAvatar(tecnico?.nombre)}<div class="bcf-per-txt"><small>Técnico</small><b>${escapeHtml(tecnico?.nombre || 'Sin asignar')}</b></div><span class="bcf-upd">${escapeHtml(tomado)}</span></div>
         <div class="bcf-prog"><div class="bcf-prog-top"><span>${_BCF_PASOS_REACOND[paso]}</span><span>Paso ${paso + 1} de ${_BCF_PASOS_REACOND.length}</span></div>${_bcfBarra(paso, _BCF_PASOS_REACOND.length, ico, alerta)}</div>
         <footer class="bcf-f">
