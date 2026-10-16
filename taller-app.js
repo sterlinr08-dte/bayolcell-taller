@@ -17095,17 +17095,13 @@ async function verFichaDespacho(equipoId) {
         { n: nc(r => r.estado_evaluacion==='listo_venta' && !r.completado), t:'Listo', ic:'ti-list-check', bg:'#f5f3ff', c:'#6d28d9' },
         { n: nc(r => r.estado_evaluacion==='vendido'), t:'Despachado', ic:'ti-truck-delivery', bg:'#ecfdf5', c:'#047857' }
     ];
-    const kpiHtml = kpis.map(k => `<div class="fe-kpi" style="background:${k.bg};"><div class="fe-kpi-ic" style="color:${k.c};"><i class="ti ${k.ic}"></i></div><div class="fe-kpi-n" style="color:${k.c};">${k.n}</div><div class="fe-kpi-t">${k.t}</div></div>`).join('');
+    const kpiHtml = kpis.map(k => `<span class="fe-kp${k.n ? '' : ' cero'}" style="--kc:${k.c};--kb:${k.bg};"><i class="ti ${k.ic}"></i><b>${k.n}</b>${k.t}</span>`).join('');
     // Lote / envío / proveedor
     const lote = (cache.lotes || []).find(l => l.id === eq.lote_id) || {};
     const envio = Number(lote.gastos_envio) || 0;
     const prov = (cache.proveedores || []).find(p => p.id === (eq.proveedor_id || lote.proveedor_id));
     const provNombre = prov ? (prov.nombre || prov.empresa || prov.razon_social || '—') : '—';
-    const envioHtml = `<div class="fe-envio" ${isAdminUser() ? 'onclick="editarGastosEnvioLote()" style="cursor:pointer;"' : ''}>
-        <div style="display:flex;align-items:center;gap:12px;"><div class="fe-envio-ic"><i class="ti ti-truck"></i></div>
-          <div><div style="font-weight:800;color:#0f172a;">ENVÍO (COURIER)</div><div style="font-size:12px;color:#64748b;">Se edita en Compras</div></div></div>
-        <div style="display:flex;align-items:center;gap:8px;"><b style="font-size:18px;color:#0f172a;">${money(envio)}</b>${isAdminUser() ? '<i class="ti ti-chevron-right" style="color:#94a3b8;"></i>' : ''}</div>
-    </div>`;
+    const envioHtml = `<${isAdminUser() ? 'button type="button" onclick="editarGastosEnvioLote()" title="Editar el envío del lote"' : 'span'} class="fe-envio2"><i class="ti ti-truck"></i>Envío del lote <b>${money(envio)}</b>${isAdminUser() ? '<i class="ti ti-pencil fe-envio2-ed"></i>' : ''}</${isAdminUser() ? 'button' : 'span'}>`;
     // Técnico
     const tec = (cache.tecnicos || []).find(t => t.id === eq.tecnico_asignado_id);
     const tecNombre = eq.tecnico_asignado_id ? nombreEmpleado(eq.tecnico_asignado_id) : 'Sin asignar';
@@ -17121,9 +17117,10 @@ async function verFichaDespacho(equipoId) {
         ['Capacidad', escapeHtml(eq.capacidad || '—')],
         ['Estado físico', estFisico !== '—' ? `<span class="fe-chip-ok">${escapeHtml(estFisico)}</span>` : '—'],
         ['Proveedor', escapeHtml(provNombre)],
-        ['Lote', escapeHtml(lote.codigo_lote || '—')]
+        ['Lote', escapeHtml(lote.codigo_lote || '—')],
+        ['Técnico', `<span class="fe-tec"><span class="fe-avatar">${iniciales || '—'}</span>${escapeHtml(tecNombre)}${tecTel ? ` <a href="tel:${escapeHtml(tecTel)}" title="Llamar"><i class="ti ti-phone"></i></a>` : ''}</span>`]
     ];
-    const infoHtml = infoRows.map(r => `<div class="fe-row"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('');
+    const infoHtml = infoRows.map(r => `<div class="fe-row${r[1] === '—' ? ' vacio' : ''}"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('');
     const notas = escapeHtml((eq.notas_diagnostico || eq.diagnostico_inicial || '').trim());
     // Timeline
     const idxMap = { pendiente:0, en_evaluacion:1, evaluado:1, en_proceso:2, tecnico_recibio:2, espera_pieza:2, reasignado:2, reparacion_externa:2, listo_revision:3, listo_venta:4, vendido:5 };
@@ -17141,7 +17138,7 @@ async function verFichaDespacho(equipoId) {
         const done = i < cur, isCur = i === cur;
         const cls = done ? 'done' : (isCur ? 'cur' : 'pend');
         const ic = done ? 'ti-check' : (isCur ? 'ti-tag' : (i === 5 ? 'ti-truck-delivery' : 'ti-circle'));
-        const fecha = p.f ? _fmtFecha(p.f) : (isCur ? '' : 'Pendiente');
+        const fecha = p.f ? new Date(p.f).toLocaleString('es-DO', { day:'numeric', month:'numeric', hour:'numeric', minute:'2-digit' }) : (isCur ? '' : 'Pendiente');
         return `<div class="fe-step ${cls}"><div class="fe-step-dot"><i class="ti ${ic}"></i></div><div class="fe-step-t">${p.t}</div><div class="fe-step-f">${fecha}</div></div>`;
     }).join('<div class="fe-step-line"></div>');
     const emoji = (typeof _abEmoji === 'function' && typeof _abCat === 'function') ? _abEmoji(_abCat(eq.modelo)) : '📱';
@@ -17157,7 +17154,6 @@ async function verFichaDespacho(equipoId) {
         <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
           <button class="fe-volver" onclick="_feCerrar()"><i class="ti ti-arrow-left"></i> Volver</button>
           <h2>Ficha del Equipo</h2>
-          <span class="fe-badge" style="background:${estBadge.bg};color:${estBadge.c};">${estBadge.t}</span>
         </div>
         <div class="fe-head-actions">
           <button class="fe-btn red" onclick="imprimirLabelEquipo('${equipoId}')"><i class="ti ti-printer"></i> Imprimir Label</button>
@@ -17176,38 +17172,33 @@ async function verFichaDespacho(equipoId) {
       <div class="fe-body">
         <div class="fe-hero">
           <div class="fe-photo">${emoji}</div>
-          <div>
-            <h1 class="fe-title">${titulo}</h1>
+          <div class="fe-id">
+            <div class="fe-titlerow"><h1 class="fe-title">${titulo}</h1><span class="fe-num">#${nEnLote}</span><span class="fe-badge" style="background:${estBadge.bg};color:${estBadge.c};"><i class="ti ti-circle-check"></i> ${esVendido ? 'DESPACHADO' : 'LISTO PARA VENTA'}${esVendido && eq.completado ? ' · REGISTRO CERRADO' : ''}</span></div>
             <div class="fe-sub">${escapeHtml(((eq.marca || '') + ' ' + (eq.modelo || '')).trim())}</div>
-            <div style="margin:10px 0;"><span class="fe-num">#${nEnLote}</span> <span class="fe-badge" style="background:${estBadge.bg};color:${estBadge.c};"><i class="ti ti-circle-check"></i> ${esVendido ? 'DESPACHADO' : 'LISTO PARA VENTA'}${esVendido && eq.completado ? ' · REGISTRO CERRADO' : ''}</span></div>
-            <div class="fe-idline"><i class="ti ti-device-mobile"></i> IMEI: <b>${escapeHtml(eq.imei || '—')}</b> <a onclick="navigator.clipboard&&navigator.clipboard.writeText('${escapeHtml(eq.imei || '')}');if(typeof toast==='function')toast('IMEI copiado');" style="cursor:pointer;color:#64748b;"><i class="ti ti-copy"></i></a></div>
-            ${eq.serial ? `<div class="fe-idline2">Serial: ${escapeHtml(eq.serial)}</div>` : ''}
-            <div class="fe-idline2">Tomado: ${_fmtFecha(eq.creado_en)}${(tecNombre && tecNombre !== 'Sin asignar') ? `<br><span style="color:#e11d48;font-weight:700;">por ${escapeHtml(tecNombre)}</span>` : ''}</div>
+            <div class="fe-idline"><i class="ti ti-device-mobile"></i> IMEI <b>${escapeHtml(eq.imei || '—')}</b> <button type="button" class="fe-copy" title="Copiar IMEI" onclick="navigator.clipboard&&navigator.clipboard.writeText('${escapeHtml(eq.imei || '')}');if(typeof toast==='function')toast('IMEI copiado');"><i class="ti ti-copy"></i></button>${eq.serial ? `<span class="fe-sep"></span>Serial <b>${escapeHtml(eq.serial)}</b>` : ''}</div>
+            <div class="fe-idline2">Tomado ${_fmtFecha(eq.creado_en)}${(tecNombre && tecNombre !== 'Sin asignar') ? ` · por <span class="fe-por">${escapeHtml(tecNombre)}</span>` : ''}</div>
+          </div>
+          <div class="fe-proc">
+            <div class="fe-tl-title">Proceso del equipo</div>
+            <div class="fe-steps">${tlHtml}</div>
           </div>
         </div>
-        <div class="fe-kpis">${kpiHtml}</div>
-        ${envioHtml}
+        <div class="fe-strip">
+          <span class="fe-strip-l">Lote ${escapeHtml(lote.codigo_lote || '—')}</span>
+          <div class="fe-kps">${kpiHtml}</div>
+          ${envioHtml}
+        </div>
         <div class="fe-grid">
           <div class="fe-col">
-            <div class="fe-card"><div class="fe-card-h"><i class="ti ti-device-mobile" style="color:#e11d48;"></i> INFORMACIÓN DEL EQUIPO</div>${infoHtml}</div>
-            <div class="fe-card"><div class="fe-card-h"><i class="ti ti-user" style="color:#e11d48;"></i> TÉCNICO ASIGNADO</div>
-              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:4px;">
-                <div style="display:flex;align-items:center;gap:10px;"><span class="fe-avatar">${iniciales || '—'}</span><b>${escapeHtml(tecNombre)}</b></div>
-                ${tecTel ? `<a href="tel:${escapeHtml(tecTel)}" style="color:#e11d48;font-weight:700;white-space:nowrap;"><i class="ti ti-phone"></i> ${escapeHtml(tecTel)}</a>` : ''}
-              </div>
-            </div>
+            <div class="fe-card"><div class="fe-card-h"><i class="ti ti-device-mobile" style="color:#e11d48;"></i> Información del equipo</div>${infoHtml}</div>
           </div>
           <div class="fe-col">
-            <div class="fe-card"><div class="fe-card-h"><i class="ti ti-alert-triangle" style="color:#d97706;"></i> FALLAS QUE TENÍA EL EQUIPO</div><div style="margin-top:6px;">${fallasHtml}</div></div>
-            <div class="fe-card"><div class="fe-card-h"><i class="ti ti-message" style="color:#64748b;"></i> NOTAS INTERNAS</div><div class="fe-notas">${notas || '<span style="color:#94a3b8;">Sin notas.</span>'}</div></div>
+            <div class="fe-card"><div class="fe-card-h"><i class="ti ti-alert-triangle" style="color:#d97706;"></i> Fallas que tenía el equipo</div><div>${fallasHtml}</div></div>
+            <div class="fe-card"><div class="fe-card-h"><i class="ti ti-message" style="color:#64748b;"></i> Notas internas</div><div class="fe-notas${notas ? '' : ' vacio'}">${notas || 'Sin notas.'}</div></div>
           </div>
           <div class="fe-col">
-            ${costoHtml || '<div class="fe-card" style="color:#94a3b8;">Costo visible solo para el administrador.</div>'}
+            ${costoHtml || '<div class="fe-card" style="color:#64748b;">Costo visible solo para el administrador.</div>'}
           </div>
-        </div>
-        <div class="fe-card fe-timeline">
-          <div class="fe-tl-title">PROCESO DEL EQUIPO</div>
-          <div class="fe-steps">${tlHtml}</div>
         </div>
         <div class="fe-foot">Creado: ${_fmtFecha(eq.creado_en)} &nbsp;|&nbsp; Última actualización: ${_fmtFecha(eq.actualizado_en || eq.creado_en)}</div>
       </div>
@@ -17319,6 +17310,68 @@ function _feStyles() {
     @media(max-width:1050px){.fe-grid{grid-template-columns:1fr;}.fe-kpis{grid-template-columns:repeat(3,1fr);}.fe-hero{grid-template-columns:1fr;}.fe-photo{min-height:100px;font-size:48px;}.fe-steps{overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch;}}
     @media(max-width:560px){.fe-kpis{grid-template-columns:repeat(2,1fr);}.fe-title{font-size:22px;}.fe-head-actions .fe-btn span{display:none;}.fe-step{width:90px;}.fe-hero{padding:14px;gap:14px;}}
     @media(prefers-reduced-motion:reduce){.fe-back,.fe-panel{animation:none;}.fe-step-dot,.fe-kpi,.fe-btn{transition:none;}}
+    /* Ficha compacta (16-oct-2026): todo cabe en una pantalla de escritorio */
+    .fe-back{padding:12px;}
+    .fe-panel{max-width:1440px;}
+    .fe-head{padding:10px 18px;}
+    .fe-head h2{font-size:17px;}
+    .fe-body{padding:14px 18px 16px;}
+    .fe-hero{grid-template-columns:76px minmax(0,1fr) minmax(0,1.25fr);align-items:center;gap:18px;padding:14px 18px;border-radius:16px;}
+    .fe-photo{min-height:76px;height:76px;font-size:36px;border-radius:14px;color:#334155;}
+    .fe-titlerow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+    .fe-title{font-size:22px;text-wrap:balance;}
+    .fe-sub{font-size:12.5px;margin-top:2px;}
+    .fe-idline{margin-top:8px;font-size:13px;gap:5px;}
+    .fe-idline b{font-variant-numeric:tabular-nums;letter-spacing:.01em;}
+    .fe-copy{border:none;background:none;color:#64748b;cursor:pointer;padding:2px 4px;border-radius:6px;font-size:14px;line-height:1;}
+    .fe-copy:hover{background:#f1f5f9;color:#0f172a;}
+    .fe-sep{width:1px;height:12px;background:#e2e8f0;margin:0 6px;}
+    .fe-idline2{margin-top:3px;font-size:12px;}
+    .fe-por{color:#be123c;font-weight:700;}
+    .fe-proc{border-left:1px solid #eef2f7;padding-left:18px;min-width:0;}
+    .fe-tl-title{margin-bottom:10px;font-size:10.5px;}
+    .fe-step{width:auto;flex:1 1 0;min-width:0;}
+    .fe-step-line{margin-top:13px;min-width:8px;flex:0 1 24px;}
+    .fe-step-dot{width:28px;height:28px;font-size:14px;}
+    .fe-step-t{font-size:11px;margin-top:6px;line-height:1.2;}
+    .fe-step-f{font-size:10px;}
+    .fe-strip{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0;}
+    .fe-strip-l{font-size:11px;font-weight:800;color:#475569;letter-spacing:.05em;text-transform:uppercase;}
+    .fe-kps{display:flex;gap:6px;flex-wrap:wrap;flex:1;min-width:0;}
+    .fe-kp{display:inline-flex;align-items:center;gap:6px;background:var(--kb);color:#475569;border:1px solid rgba(15,23,42,.05);border-radius:999px;padding:5px 11px 5px 9px;font-size:12px;font-weight:600;}
+    .fe-kp i{color:var(--kc);font-size:14px;}
+    .fe-kp b{color:var(--kc);font-weight:800;font-variant-numeric:tabular-nums;}
+    .fe-kp.cero{background:#fff;opacity:.7;}
+    .fe-envio2{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid #e2e8f0;border-radius:999px;padding:6px 12px;font:inherit;font-size:12.5px;font-weight:600;color:#475569;}
+    .fe-envio2 > i:first-child{color:#2563eb;font-size:15px;}
+    .fe-envio2 b{color:#0f172a;font-weight:800;font-variant-numeric:tabular-nums;}
+    button.fe-envio2{cursor:pointer;transition:background .15s,border-color .15s;}
+    button.fe-envio2:hover{background:#f8fafc;border-color:#cbd5e1;}
+    .fe-envio2-ed{color:#94a3b8;font-size:13px;}
+    .fe-grid{gap:12px;}
+    .fe-col{gap:12px;}
+    .fe-card{padding:14px 16px;border-radius:14px;}
+    .fe-card-h{font-size:11px;margin-bottom:6px;}
+    .fe-row{padding:7px 0;}
+    .fe-row.vacio b{color:#94a3b8;font-weight:500;}
+    .fe-tec{display:inline-flex;align-items:center;gap:8px;}
+    .fe-tec .fe-avatar{width:24px;height:24px;font-size:10px;}
+    .fe-tec a{color:#e11d48;}
+    .fe-notas{margin-top:0;padding:10px 12px;}
+    .fe-notas.vacio{color:#94a3b8;background:none;border:1px dashed #e2e8f0;}
+    .cbx-hero{padding:16px 18px 18px;}
+    .cbx-num{font-size:28px;}
+    .cbx-lab{margin-top:10px;}
+    .cbx-bar{margin-top:12px;}
+    .cbx-body{padding:10px 16px 14px;}
+    .cbx-row{padding:8px 0;}
+    .cbx-acts{margin-top:10px;}
+    .cbx-act{padding:10px 6px;}
+    .fe-foot{margin-top:12px;}
+    .fe-btn:focus-visible,.fe-volver:focus-visible,.fe-envio2:focus-visible,.fe-copy:focus-visible{outline:2px solid #e11d48;outline-offset:2px;}
+    @media(max-width:1180px){.fe-hero{grid-template-columns:64px minmax(0,1fr);}.fe-photo{height:64px;min-height:64px;}.fe-proc{grid-column:1/-1;border-left:none;border-top:1px solid #eef2f7;padding:12px 0 0;}}
+    @media(max-width:1050px){.fe-grid{grid-template-columns:1fr 1fr;}.fe-grid>.fe-col:last-child{grid-column:1/-1;}.fe-hero{grid-template-columns:64px minmax(0,1fr);}}
+    @media(max-width:700px){.fe-strip{display:grid;grid-template-columns:1fr auto;}.fe-kps{grid-column:1/-1;grid-row:2;flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;}.fe-kp{flex:none;}.fe-grid{grid-template-columns:1fr;}.fe-steps{overflow-x:auto;}.fe-step{flex:0 0 70px;}.fe-title{font-size:20px;}.fe-back{padding:0;}.fe-panel{border-radius:0;}}
     `;
     document.head.appendChild(s);
 }
