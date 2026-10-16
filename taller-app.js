@@ -6640,6 +6640,32 @@ function _abStyles() {
         .ab-badges{margin-top:2px;} .ab-bdg{font-size:9px;padding:2px 5px;}
       }
       @media(prefers-reduced-motion:reduce){.ab-backdrop,.ab-modal{animation:none;}}
+      /* Compacto (16-oct-2026): filas de 2 líneas, controles más chicos */
+      @media(min-width:641px){.ab-modal{max-width:860px;max-height:84vh;}}
+      .ab-head{padding:14px 18px 10px;} .ab-head h3{font-size:16px;} .ab-count{font-size:11.5px;}
+      .ab-ref-fallas{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:10px 18px 0;padding:7px 10px;border-radius:10px;background:#fff7ed;border:1px solid #fde4c8;}
+      .ab-ref-fallas .t{font-size:10.5px;font-weight:700;color:#9a3412;letter-spacing:.04em;text-transform:uppercase;margin-right:2px;}
+      .ab-ref-fallas span:not(.t){margin:0!important;font-size:11px!important;padding:3px 9px!important;}
+      .ab-search{padding:10px 18px 6px;gap:6px;}
+      .ab-inp{padding:7px 12px;border-radius:10px;} .ab-inp input{font-size:14px;}
+      .ab-fbtn{min-height:36px;padding:0 11px;border-radius:10px;}
+      .ab-chips{padding:2px 18px 8px;} .ab-chip{padding:5px 12px;font-size:12px;}
+      #artBuscSyncMsg{padding:0 18px 4px!important;}
+      .ab-card{padding:8px 18px;gap:10px;}
+      .ab-thumb{width:32px;height:32px;border-radius:8px;font-size:15px;}
+      .ab-name{font-size:13px;margin:0;display:flex;align-items:baseline;gap:7px;}
+      .ab-name .ab-cod{font-size:11px;font-variant-numeric:tabular-nums;flex:none;}
+      .ab-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:3px;font-size:11px;color:#86868b;font-weight:500;font-variant-numeric:tabular-nums;}
+      .ab-meta .mk{color:#6e6e73;font-weight:600;}
+      .ab-meta .ab-badges{margin:0;display:inline-flex;gap:3px;}
+      .ab-bdg{font-size:9.5px;padding:1px 6px;}
+      .ab-right{gap:6px;}
+      .ab-price b{font-size:13.5px;font-variant-numeric:tabular-nums;}
+      .ab-add{width:30px;height:30px;font-size:16px;} .ab-edit{width:28px;height:28px;font-size:13px;}
+      .ab-foot{padding:8px 18px;} .ab-pg button{min-width:28px;height:28px;} .ab-size{padding:4px 8px;}
+      .ab-add:focus-visible,.ab-edit:focus-visible,.ab-chip:focus-visible,.ab-fbtn:focus-visible{outline:2px solid #c8191f;outline-offset:2px;}
+      .ab-meta .ab-badges{flex-wrap:wrap;}
+      @media(max-width:640px){.ab-ref-fallas{margin:8px 16px 0;}.ab-card{padding:8px 14px;align-items:flex-start;}.ab-thumb{display:none;}.ab-name{white-space:normal;display:block;line-height:1.3;}.ab-name .ab-cod{margin-right:5px;}.ab-meta{gap:6px;}.ab-right{flex-direction:column;align-items:flex-end;gap:5px;}.ab-right .ab-edit{display:none;}.ab-price b{font-size:12.5px;}}
     `;
     document.head.appendChild(s);
 }
@@ -6659,7 +6685,7 @@ async function abrirBuscadorArticulos(targetSS, onPick, refHtml, seed) {
       </div>
       ${refHtml || ''}
       <div class="ab-search">
-        <div class="ab-inp"><i class="ti ti-search"></i><input id="artBuscModal" autocomplete="off" placeholder="Buscar articulo..." value="${escapeHtml(_artBusc.q)}" oninput="_artBuscOnInput(this.value)" onkeydown="_artBuscKey(event)"><span class="ab-kbd">Ctrl K</span></div>
+        <div class="ab-inp"><i class="ti ti-search"></i><input id="artBuscModal" data-bcbp-no autocomplete="off" placeholder="Buscar articulo..." value="${escapeHtml(_artBusc.q)}" oninput="_artBuscOnInput(this.value)" onkeydown="_artBuscKey(event)"><span class="ab-kbd">Ctrl K</span></div>
         <button class="ab-fbtn" onclick="_artBuscToggleFiltros()"><i class="ti ti-adjustments-horizontal"></i></button>
         <button class="ab-fbtn" onclick="_buscadorSincronizarIP(this)" title="Sincronizar"><i class="ti ti-refresh"></i></button>
       </div>
@@ -6754,10 +6780,8 @@ function _abCard(a, i) {
     return `<div class="ab-card ${i === _artBusc.hl ? 'hl' : ''}" data-cod="${escapeHtml(String(a.codigo))}" onclick="_artBuscElegir('${cod}')">
       <div class="ab-thumb">${_abEmoji(_abCat(a.descripcion))}</div>
       <div class="ab-info">
-        <div class="ab-cod">${escapeHtml(a.codigo)} <span class="mk">${escapeHtml(a.marca || '')}</span></div>
-        <div class="ab-name">${escapeHtml(a.descripcion || '(sin descripcion)')}</div>
-        <div class="ab-pl">${precio > 0 ? money(precio) : ''}${costo > 0 && isAdminUser() ? ` · Costo ${money(costo)}` : ''}</div>
-        <div class="ab-badges">${_abInv(a)}</div>
+        <div class="ab-name"><span class="ab-cod">${escapeHtml(a.codigo)}</span>${escapeHtml(a.descripcion || '(sin descripcion)')}</div>
+        <div class="ab-meta">${a.marca ? `<span class="mk">${escapeHtml(a.marca)}</span>` : ''}${precio > 0 && precio !== pventa ? `<span>Lista ${money(precio)}</span>` : ''}${costo > 0 && isAdminUser() ? `<span>Costo ${money(costo)}</span>` : ''}<span class="ab-badges">${_abInv(a)}</span></div>
       </div>
       <div class="ab-right">
         <div class="ab-price"><b>${pventa > 0 ? money(pventa) : ''}</b></div>
@@ -16577,7 +16601,7 @@ async function agregarPiezaInfoPlus(equipoId) {
         const fallas = data || [];
         if(fallas.length) {
             const chips = fallas.map(f => `<span style="display:inline-block; background:#fee2e2; color:#991b1b; font-size:11px; font-weight:600; padding:3px 9px; border-radius:10px; margin:2px;"><i class="ti ti-alert-triangle"></i> ${escapeHtml(f.falla_corto || f.falla_nombre || '')}${f.adicional ? ' (adic.)' : ''}</span>`).join('');
-            refHtml = `<div style="background:#fff7ed; border:1px solid #fed7aa; border-radius:8px; padding:8px 10px; margin-bottom:10px;"><div style="font-size:11px; font-weight:700; color:#9a3412; margin-bottom:4px;">FALLAS DEL EQUIPO (referencia)</div>${chips}</div>`;
+            refHtml = `<div class="ab-ref-fallas"><span class="t">Fallas del equipo</span>${chips}</div>`;
         }
     } catch(e) { logError('Fallas referencia Info Plus', e); }
     const seed = _seedBuscadorPieza((cache.refurb || []).find(e => e.id === equipoId));
