@@ -16019,6 +16019,13 @@ function _despTelNorm(t) { return String(t || '').toLowerCase().normalize('NFD')
 function despacharTelefonosSeleccionados() {
     if(!isAdminUser()) return toast('Solo el administrador.', 'error');
     _despTelCtx = { sel: new Set([...(_reacondSel || [])].filter(id => (cache.refurb || []).some(r => r.id === id))), q: '', lista: [], sinCodigo: 0 };
+    const borr = _despTelBorradorLeer();
+    let avisoBorr = '';
+    if(borr && borr.ids.length) {
+        const vivos = borr.ids.filter(id => (cache.refurb || []).some(r => r.id === id && r.estado_evaluacion !== 'vendido'));
+        if(vivos.length && !_despTelCtx.sel.size) { vivos.forEach(id => _despTelCtx.sel.add(id)); _despTelCtx.borr = borr; }
+        if(vivos.length) avisoBorr = `<div class="dt-borr"><i class="ti ti-device-floppy"></i><span>Borrador guardado el ${new Date(borr.fecha).toLocaleString('es-DO', { day:'numeric', month:'numeric', hour:'numeric', minute:'2-digit' })}${borr.por ? ' por ' + escapeHtml(borr.por) : ''} · ${vivos.length} teléfono(s)${_despTelCtx.borr ? ' (ya cargado)' : ''}</span><span class="dt-sp"></span>${_despTelCtx.borr ? '' : `<button type="button" onclick="_despTelCargarBorrador()">Cargar</button>`}<button type="button" onclick="_despTelBorrarBorrador()">Descartar</button></div>`;
+    }
     _despTelEstilos();
     const almOpts = ALMACENES_IP.map(a => `<option value="${a.c}">${a.n}</option>`).join('');
     const prev = document.getElementById('modalDespTel'); if(prev) prev.remove();
@@ -16028,6 +16035,7 @@ function despacharTelefonosSeleccionados() {
     box.innerHTML = `<div class="modal-box dt-box">
       <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-truck-delivery"></i> Despachar teléfonos <span id="dtCuenta">(0)</span></h3></div>
       <div class="modal-body dt-body">
+        <div id="dtBorrAviso">${avisoBorr}</div>
         <div class="dt-ruta">
           <div><label>Desde</label><select id="despTelOrigen">${almOpts}</select></div>
           <i class="ti ti-arrow-right"></i>
@@ -16044,12 +16052,15 @@ function despacharTelefonosSeleccionados() {
       </div>
       <div class="modal-footer">
         <button class="btn btn-light" onclick="document.getElementById('modalDespTel').remove()">Cancelar</button>
+        <span style="flex:1"></span>
+        <button class="btn btn-light dt-acc" id="dtBtnGuardar" onclick="_despTelGuardarBorrador()" title="Guarda la lista para seguir luego (no se manda a Info Plus)"><i class="ti ti-device-floppy"></i> Guardar</button>
+        <button class="btn btn-light dt-acc" id="dtBtnImprimir" onclick="_despTelImprimir()" title="Imprime la lista con modelos e IMEI para revisar o firmar"><i class="ti ti-printer"></i> Imprimir</button>
         <button class="btn btn-blue" id="dtBtnDesp" onclick="_despTelConfirmar()"><i class="ti ti-truck-delivery"></i> Despachar</button>
       </div>
     </div>`;
     document.body.appendChild(box);
-    const o = document.getElementById('despTelOrigen'); if(o) o.value = '6';
-    const d = document.getElementById('despTelDestino'); if(d) d.value = '1';
+    const o = document.getElementById('despTelOrigen'); if(o) o.value = (_despTelCtx.borr && _despTelCtx.borr.origen) || '6';
+    const d = document.getElementById('despTelDestino'); if(d) d.value = (_despTelCtx.borr && _despTelCtx.borr.destino) || '1';
     _despTelRender();
     setTimeout(() => document.getElementById('dtBuscar')?.focus(), 60);
 }
@@ -16115,7 +16126,7 @@ function _despTelRender(soloResumen) {
     const totU = ctx.lista.reduce((s, g) => s + g.equipos.length, 0);
     const totRD = ctx.lista.reduce((s, g) => s + g.total, 0);
     const c = document.getElementById('dtCuenta'); if(c) c.textContent = `(${totU})`;
-    const btn = document.getElementById('dtBtnDesp'); if(btn) btn.disabled = !totU;
+    ['dtBtnDesp', 'dtBtnGuardar', 'dtBtnImprimir'].forEach(idb => { const b = document.getElementById(idb); if(b) b.disabled = !totU; });
     const res = document.getElementById('dtResumen');
     if(res) res.innerHTML = totU ? `<div class="dt-res-h">Documento a despachar</div>
         <div class="table-wrap"><table class="dt-tabla"><thead><tr><th style="text-align:left;">Modelo / IMEIs</th><th>Cód IP</th><th>Cant.</th><th style="text-align:right;">Prom.</th><th>IMEI</th></tr></thead><tbody>${ctx.lista.map(g => {
@@ -16125,10 +16136,76 @@ function _despTelRender(soloResumen) {
         <div class="dt-total"><b>${totU}</b> teléfono(s) · Total <b>${money(totRD)}</b></div>`
         : '<div class="dt-vacio">Marca en la lista los teléfonos que vas a despachar.</div>';
 }
+// Borrador del despacho (en esta computadora): guarda qué teléfonos van y la ruta, sin tocar Info Plus.
+const _DT_BORR_KEY = 'bayolDespTelBorrador';
+function _despTelBorradorLeer() { try { const b = JSON.parse(localStorage.getItem(_DT_BORR_KEY) || 'null'); return (b && Array.isArray(b.ids)) ? b : null; } catch(_) { return null; } }
+function _despTelGuardarBorrador() {
+    if(!_despTelCtx || !_despTelCtx.sel.size) return toast('Marca al menos un teléfono.', 'error');
+    const b = { ids: [..._despTelCtx.sel], origen: document.getElementById('despTelOrigen')?.value || '6', destino: document.getElementById('despTelDestino')?.value || '1', fecha: new Date().toISOString(), por: (typeof sessionUser !== 'undefined' && sessionUser && sessionUser.nombre) || '' };
+    try { localStorage.setItem(_DT_BORR_KEY, JSON.stringify(b)); } catch(_) { return toast('No se pudo guardar en esta computadora.', 'error'); }
+    _despTelCtx.borr = b;
+    const av = document.getElementById('dtBorrAviso');
+    if(av) av.innerHTML = `<div class="dt-borr ok"><i class="ti ti-circle-check"></i><span>Guardado: ${b.ids.length} teléfono(s). Al volver a abrir «Despachar teléfonos» en esta computadora, la lista sigue aquí.</span><span class="dt-sp"></span><button type="button" onclick="_despTelBorrarBorrador()">Descartar</button></div>`;
+    toast(`Borrador guardado: ${b.ids.length} teléfono(s).`);
+}
+function _despTelCargarBorrador() {
+    const b = _despTelBorradorLeer(); if(!b || !_despTelCtx) return;
+    b.ids.forEach(id => { if((cache.refurb || []).some(r => r.id === id && r.estado_evaluacion !== 'vendido')) _despTelCtx.sel.add(id); });
+    _despTelCtx.borr = b;
+    const o = document.getElementById('despTelOrigen'); if(o && b.origen) o.value = b.origen;
+    const d = document.getElementById('despTelDestino'); if(d && b.destino) d.value = b.destino;
+    const av = document.getElementById('dtBorrAviso'); if(av) av.innerHTML = '';
+    _despTelRender();
+}
+function _despTelBorrarBorrador(silencio) {
+    try { localStorage.removeItem(_DT_BORR_KEY); } catch(_) {}
+    if(_despTelCtx) _despTelCtx.borr = null;
+    const av = document.getElementById('dtBorrAviso'); if(av) av.innerHTML = '';
+    if(!silencio) toast('Borrador descartado.');
+}
+// Imprime la lista a despachar (por modelo, con IMEI), para revisar o firmar antes de mandar a Info Plus.
+function _despTelImprimir() {
+    if(!_despTelCtx || !(_despTelCtx.lista || []).length) return toast('Marca al menos un teléfono.', 'error');
+    const origen = document.getElementById('despTelOrigen')?.value, destino = document.getElementById('despTelDestino')?.value;
+    const lista = _despTelCtx.lista;
+    const totU = lista.reduce((s, g) => s + g.equipos.length, 0);
+    const totRD = lista.reduce((s, g) => s + g.total, 0);
+    const filas = lista.map(g => {
+        const cant = g.equipos.length;
+        const det = g.equipos.map(e => `${escapeHtml(e.imei || '—')}${_eqColorReal(e) ? ' · ' + escapeHtml(_eqColorReal(e)) : ''}`).join('<br>');
+        return `<tr><td><b>${escapeHtml(g.modelo)}</b><div class="im">${det}</div></td><td class="c">${escapeHtml(g.codigo)}</td><td class="c">${cant}</td><td class="r">${money(cant ? g.total / cant : 0)}</td><td class="r">${money(g.total)}</td></tr>`;
+    }).join('');
+    const w = window.open('', '_blank');
+    if(!w) return toast('El navegador bloqueó la ventana de impresión.', 'error');
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Lista de despacho de teléfonos</title><style>
+      body{font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;color:#0f172a;margin:28px;font-size:12.5px;}
+      h1{font-size:18px;margin:0;} .sub{color:#475569;margin-top:4px;} .tag{display:inline-block;background:#fef3c7;color:#92400e;font-weight:700;font-size:11px;padding:2px 8px;border-radius:6px;margin-left:6px;}
+      .ruta{margin:14px 0;padding:10px 12px;border:1px solid #e2e8f0;border-radius:8px;display:flex;gap:24px;}
+      .ruta b{display:block;font-size:14px;} .ruta span{font-size:10.5px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;}
+      table{width:100%;border-collapse:collapse;} th{background:#0f172a;color:#fff;font-size:11px;padding:6px 8px;text-align:left;} td{padding:7px 8px;border-bottom:1px solid #e5e7eb;vertical-align:top;}
+      .c{text-align:center;} .r{text-align:right;white-space:nowrap;} .im{font-size:11px;color:#475569;margin-top:2px;font-variant-numeric:tabular-nums;}
+      .tot{text-align:right;margin-top:10px;font-size:13px;} .firmas{display:flex;gap:40px;margin-top:56px;} .firmas div{flex:1;border-top:1px solid #0f172a;padding-top:6px;text-align:center;color:#475569;}
+      @media print{body{margin:12mm;}}
+    </style></head><body>
+      <h1>Lista de despacho de teléfonos <span class="tag">Antes de despachar</span></h1>
+      <div class="sub">BAYOL CELL · ${new Date().toLocaleString('es-DO')}${(typeof sessionUser !== 'undefined' && sessionUser && sessionUser.nombre) ? ' · ' + escapeHtml(sessionUser.nombre) : ''}</div>
+      <div class="ruta"><div><span>Desde</span><b>${escapeHtml(_nombreAlmacen(origen))}</b></div><div><span>Hacia</span><b>${escapeHtml(_nombreAlmacen(destino))}</b></div><div><span>Teléfonos</span><b>${totU}</b></div></div>
+      <table><thead><tr><th>Modelo / IMEI · color</th><th class="c">Cód IP</th><th class="c">Cant.</th><th class="r">Prom.</th><th class="r">Subtotal</th></tr></thead><tbody>${filas}</tbody></table>
+      <div class="tot"><b>${totU}</b> teléfono(s) · Total <b>${money(totRD)}</b></div>
+      <div class="firmas"><div>Entregado por</div><div>Recibido por</div></div>
+      <script>window.onload=function(){window.print();}<\/script>
+    </body></html>`);
+    w.document.close();
+}
 function _despTelEstilos() {
     if(document.getElementById('dtStyles')) return;
     const st = document.createElement('style'); st.id = 'dtStyles'; st.textContent = `
     .dt-box{max-width:760px;width:94%;}
+    .dt-borr{display:flex;align-items:center;gap:8px;background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:10px;padding:7px 10px;font-size:12px;}
+    .dt-borr.ok{background:#ecfdf5;border-color:#a7f3d0;color:#065f46;}
+    .dt-borr button{border:1px solid currentColor;background:#fff;color:inherit;border-radius:8px;padding:3px 9px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit;}
+    #modalDespTel .modal-footer{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+    .dt-acc:disabled{opacity:.5;cursor:not-allowed;}
     .dt-body{display:flex;flex-direction:column;gap:10px;}
     .dt-ruta{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:end;}
     .dt-ruta label{display:block;font-size:11px;font-weight:700;color:#475569;letter-spacing:.04em;text-transform:uppercase;margin-bottom:4px;}
@@ -16187,6 +16264,7 @@ async function _despTelConfirmar() {
     const saved = await _despGuardarHistorial({ origen, destino, items, nota: 'Teléfonos reacondicionados', r });
     if(r.ok) {
         toast(`Despacho #${r.numero} de teléfonos hecho: ${totU} u.`);
+        _despTelBorrarBorrador(true);
         document.getElementById('modalDespTel')?.remove();
         await _ensureInfoplusArticulos(true);
         if(saved && await confirmar(`Despacho #${r.numero} creado\n\n¿Imprimir el documento?`)) imprimirDespacho(saved.id);
