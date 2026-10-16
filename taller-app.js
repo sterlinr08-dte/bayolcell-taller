@@ -16061,8 +16061,7 @@ function despacharTelefonosSeleccionados() {
       <div class="modal-footer">
         <button class="btn btn-light" onclick="document.getElementById('modalDespTel').remove()">Cancelar</button>
         <span style="flex:1"></span>
-        <button class="btn btn-light dt-acc" id="dtBtnGuardar" onclick="_despTelGuardarBorrador()" title="Guarda la lista para seguir luego (no se manda a Info Plus)"><i class="ti ti-device-floppy"></i> Guardar</button>
-        <button class="btn btn-light dt-acc" id="dtBtnImprimir" onclick="_despTelImprimir()" title="Imprime la lista con modelos e IMEI para revisar o firmar"><i class="ti ti-printer"></i> Imprimir</button>
+        <button class="btn btn-light dt-acc" id="dtBtnGuardar" onclick="_despTelGuardarImprimir()" title="Guarda la lista para seguir luego (no se manda a Info Plus) e imprime la hoja con modelos, IMEI y color"><i class="ti ti-device-floppy"></i> Guardar e imprimir</button>
         <button class="btn btn-blue" id="dtBtnDesp" onclick="_despTelConfirmar()"><i class="ti ti-truck-delivery"></i> Despachar</button>
       </div>
     </div>`;
@@ -16134,7 +16133,7 @@ function _despTelRender(soloResumen) {
     const totU = ctx.lista.reduce((s, g) => s + g.equipos.length, 0);
     const totRD = ctx.lista.reduce((s, g) => s + g.total, 0);
     const c = document.getElementById('dtCuenta'); if(c) c.textContent = `(${totU})`;
-    ['dtBtnDesp', 'dtBtnGuardar', 'dtBtnImprimir'].forEach(idb => { const b = document.getElementById(idb); if(b) b.disabled = !totU; });
+    ['dtBtnDesp', 'dtBtnGuardar'].forEach(idb => { const b = document.getElementById(idb); if(b) b.disabled = !totU; });
     const res = document.getElementById('dtResumen');
     if(res) res.innerHTML = totU ? `<div class="dt-res-h">Documento a despachar</div>
         <div class="table-wrap"><table class="dt-tabla"><thead><tr><th style="text-align:left;">Modelo / IMEIs</th><th>Cód IP</th><th>Cant.</th><th style="text-align:right;">Prom.</th><th>IMEI</th></tr></thead><tbody>${ctx.lista.map(g => {
@@ -16170,6 +16169,12 @@ function _despTelBorrarBorrador(silencio) {
     if(_despTelCtx) _despTelCtx.borr = null;
     const av = document.getElementById('dtBorrAviso'); if(av) av.innerHTML = '';
     if(!silencio) toast('Borrador descartado.');
+}
+// Un solo botón: guarda el borrador y saca la hoja para imprimir.
+function _despTelGuardarImprimir() {
+    if(!_despTelCtx || !(_despTelCtx.lista || []).length) return toast('Marca al menos un teléfono.', 'error');
+    _despTelGuardarBorrador();
+    _despTelImprimir();
 }
 // Imprime la lista a despachar (por modelo, con IMEI), para revisar o firmar antes de mandar a Info Plus.
 function _despTelImprimir() {
