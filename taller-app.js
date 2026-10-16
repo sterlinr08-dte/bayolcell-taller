@@ -16001,7 +16001,7 @@ async function _despachoCargarHistorial() {
                 <td>${escapeHtml(r.usuario)}</td>
                 <td>${badge(r.estado)}</td>
                 <td>${escapeHtml(r.nota)}</td>
-                <td style="white-space:nowrap; text-align:center;">${(r.tipo === 'almacen' && r.id && r.estado === 'ok') ? `<button class="btn btn-light" style="padding:3px 8px; font-size:12px;" title="Imprimir conduce" onclick="imprimirDespacho('${r.id}')"><i class="ti ti-printer"></i></button> <button class="btn btn-light" style="padding:3px 8px; font-size:12px;" title="Descargar PDF" onclick="descargarDespachoPDF('${r.id}')"><i class="ti ti-file-type-pdf"></i></button>` : ''}</td>
+                <td style="white-space:nowrap; text-align:center;">${(r.tipo === 'almacen' && r.id && r.estado === 'ok') ? `<button class="btn btn-light" style="padding:3px 8px; font-size:12px;" title="Imprimir conduce" onclick="imprimirDespacho('${r.id}')"><i class="ti ti-printer"></i></button> <button class="btn btn-light" style="padding:3px 8px; font-size:12px; color:#15803d;" title="Enviar reporte por WhatsApp" onclick="despReporteDesdeHistorial('${r.id}')"><i class="ti ti-brand-whatsapp"></i></button> <button class="btn btn-light" style="padding:3px 8px; font-size:12px;" title="Descargar PDF" onclick="descargarDespachoPDF('${r.id}')"><i class="ti ti-file-type-pdf"></i></button>` : ''}</td>
             </tr>`).join('') + `</tbody></table>`;
     } catch(e) { logError('Historial despachos', e); cont.innerHTML = '<p style="color:#b91c1c; font-size:13px;">No se pudo cargar el historial.</p>'; }
 }
@@ -16184,6 +16184,185 @@ function _despTelGuardarImprimir() {
     _despTelGuardarBorrador();
     _despTelImprimir();
 }
+// ===== Reportes del despacho por WhatsApp (16-oct-2026) =====
+// Se abren con «Click to chat» (wa.me): salen del WhatsApp que esté abierto en esa computadora (WhatsApp Web o la app),
+// con el texto ya escrito; la persona solo toca Enviar. No usa la API ni plantillas.
+// · Reporte del equipo: modelos, IMEI y color, SIN costos. Se elige a quién mandarlo cada vez.
+// · Reporte administrativo: lo mismo + costo de cada equipo y el lote al que pertenece. Solo al número del dueño.
+const _DESP_CONTACTOS_KEY = 'bayolDespContactos';
+const _DESP_ADMIN_KEY = 'bayolDespAdminTel';
+function _despTelWa(t) {
+    let d = String(t || '').replace(/\D/g, '');
+    if(d.length === 10 && /^(809|829|849)/.test(d)) d = '1' + d;
+    return d.length >= 11 ? d : '';
+}
+function _despInfoDesdeLista(numero, origen, destino, lista) {
+    const equipos = [];
+    (lista || []).forEach(g => g.equipos.forEach(e => equipos.push({
+        modelo: g.modelo || e.modelo || '', imei: String(e.imei || '').trim(), color: _eqColorReal(e) || '',
+        costo: (typeof _costoEquipoRep === 'function') ? (_costoEquipoRep(e).fin || 0) : 0, lote: (typeof _despTelLote === 'function') ? _despTelLote(e) : ''
+    })));
+    return { numero: numero || '', origen, destino, fecha: new Date().toISOString(), usuario: (typeof sessionUser !== 'undefined' && sessionUser && sessionUser.nombre) || '', equipos };
+}
+function despReporteDesdeHistorial(id) {
+    const r = (_despHistRows || []).find(x => x.id === id);
+    if(!r) return toast('No se encontró el despacho.', 'error');
+    const equipos = [];
+    (Array.isArray(r.items) ? r.items : []).forEach(it => {
+        const ims = _despImeisItem(it);
+        if(!ims.length) { equipos.push({ modelo: it.descripcion || '', imei: '', color: '', costo: Number(it.costo) || 0, lote: '', cant: Number(it.cantidad) || 1 }); return; }
+        ims.forEach(x => {
+            const eq = (cache.refurb || []).find(e => String(e.imei || '').trim() === x.imei);
+            equipos.push({ modelo: it.descripcion || '', imei: x.imei, color: x.color, costo: eq && typeof _costoEquipoRep === 'function' ? (_costoEquipoRep(eq).fin || Number(it.costo) || 0) : (Number(it.costo) || 0), lote: eq ? _despTelLote(eq) : '' });
+        });
+    });
+    _despReporteAbrir({ numero: r.despacho_numero || '', origen: r.almacen_origen, destino: r.almacen_destino, fecha: r.fecha, usuario: r.usuario || '', equipos }, r.id);
+}
+function _despReporteTexto(info, admin) {
+    const f = new Date(info.fecha || Date.now()).toLocaleString('es-DO', { day:'numeric', month:'numeric', year:'numeric', hour:'numeric', minute:'2-digit' });
+    const L = [];
+    L.push(admin ? `📊 *Reporte administrativo · Despacho ${info.numero ? '#' + info.numero : ''}*` : `📦 *Despacho de equipos ${info.numero ? '#' + info.numero : ''}*`);
+    L.push(`${_nombreAlmacen(info.origen)} → ${_nombreAlmacen(info.destino)} · ${f}`);
+    L.push('');
+    const total = info.equipos.reduce((s, e) => s + (e.cant || 1), 0);
+    info.equipos.forEach((e, i) => {
+        let t = `${i + 1}) ${e.modelo}`;
+        if(e.imei) t += `\n    IMEI ${e.imei}${e.color ? ' · ' + e.color : ''}`;
+        if(e.cant > 1) t += ` (x${e.cant})`;
+        if(admin) t += `\n    Costo ${money(e.costo || 0)}${e.lote ? ' · Lote ' + e.lote : ''}`;
+        L.push(t);
+    });
+    L.push('');
+    L.push(`*Total: ${total} equipo(s)*`);
+    if(admin) {
+        const totRD = info.equipos.reduce((s, e) => s + (Number(e.costo) || 0) * (e.cant || 1), 0);
+        L.push(`*Costo total: ${money(totRD)}*`);
+        const porLote = {};
+        info.equipos.forEach(e => { const k = e.lote || 'Sin lote'; porLote[k] = porLote[k] || { n: 0, c: 0 }; porLote[k].n += (e.cant || 1); porLote[k].c += (Number(e.costo) || 0) * (e.cant || 1); });
+        L.push('');
+        L.push('_Por lote:_');
+        Object.keys(porLote).forEach(k => L.push(`• ${k}: ${porLote[k].n} equipo(s) · ${money(porLote[k].c)}`));
+    }
+    if(info.usuario) { L.push(''); L.push(`Despachado por: ${info.usuario}`); }
+    return L.join('\n');
+}
+function _despContactos() {
+    let extra = [];
+    try { extra = JSON.parse(localStorage.getItem(_DESP_CONTACTOS_KEY) || '[]') || []; } catch(_) {}
+    const emp = (cache.tecnicos || []).filter(t => _despTelWa(t.telefono || t.celular)).map(t => ({ id: 'emp:' + t.id, nombre: t.nombre || nombreEmpleado(t.id), tel: _despTelWa(t.telefono || t.celular), emp: true }));
+    return emp.concat(extra.filter(c => _despTelWa(c.tel)).map((c, i) => ({ id: 'x:' + i, nombre: c.nombre, tel: _despTelWa(c.tel), emp: false, i })));
+}
+let _despRepCtx = null;
+function _despReporteAbrir(info, histId) {
+    _despRepCtx = { info, histId };
+    document.getElementById('modalDespTel')?.remove();
+    document.getElementById('modalDespRep')?.remove();
+    _despRepEstilos();
+    const box = document.createElement('div');
+    box.className = 'modal-backdrop active'; box.id = 'modalDespRep'; box.style.zIndex = '650';
+    box.onclick = (ev) => { if(ev.target === box) box.remove(); };
+    box.innerHTML = `<div class="modal-box dr-box">
+      <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-circle-check"></i> Despacho ${info.numero ? '#' + escapeHtml(info.numero) : ''} · reportes</h3></div>
+      <div class="modal-body dr-body">
+        <div class="dr-ruta">${escapeHtml(_nombreAlmacen(info.origen))} → ${escapeHtml(_nombreAlmacen(info.destino))} · ${info.equipos.length} equipo(s)
+          ${histId ? `<button type="button" class="dr-btn" onclick="imprimirDespacho('${histId}')"><i class="ti ti-printer"></i> Imprimir conduce</button>` : ''}</div>
+        <div class="dr-sec">
+          <div class="dr-h"><i class="ti ti-users"></i> Reporte para el equipo <small>sin costos · para conocimiento</small></div>
+          <div class="dr-ayuda">Toca <b>Enviar</b> en cada persona: se abre WhatsApp con el mensaje escrito y solo tocas Enviar allá. Sale del WhatsApp abierto en esta computadora (el 829-589-3292 si es el que está en WhatsApp Web).</div>
+          <div id="drContactos"></div>
+          <div class="dr-add"><input id="drNomNuevo" placeholder="Nombre" autocomplete="off"><input id="drTelNuevo" placeholder="Número (809…)" inputmode="tel" autocomplete="off"><button type="button" class="dr-btn" onclick="_despRepAgregar()"><i class="ti ti-plus"></i> Agregar</button></div>
+          <details class="dr-prev"><summary>Ver el mensaje</summary><pre>${escapeHtml(_despReporteTexto(info, false))}</pre><button type="button" class="dr-btn" onclick="_despRepCopiar(false)"><i class="ti ti-copy"></i> Copiar texto</button></details>
+        </div>
+        ${isAdminUser() ? `<div class="dr-sec dr-admin">
+          <div class="dr-h"><i class="ti ti-lock"></i> Reporte administrativo <small>con costo y lote · solo para el dueño</small></div>
+          <div class="dr-fila"><span class="dr-n"><b>Dueño</b><small id="drAdminTel">${escapeHtml(_despAdminTel() || 'sin número')}</small></span><button type="button" class="dr-btn" onclick="_despRepCambiarAdmin()">Cambiar número</button><button type="button" class="dr-btn wa" onclick="_despRepEnviarAdmin()"><i class="ti ti-brand-whatsapp"></i> Enviar</button></div>
+          <details class="dr-prev"><summary>Ver el mensaje</summary><pre>${escapeHtml(_despReporteTexto(info, true))}</pre><button type="button" class="dr-btn" onclick="_despRepCopiar(true)"><i class="ti ti-copy"></i> Copiar texto</button></details>
+        </div>` : ''}
+      </div>
+      <div class="modal-footer"><button class="btn btn-light" onclick="document.getElementById('modalDespRep').remove()">Listo</button></div>
+    </div>`;
+    document.body.appendChild(box);
+    _despRepPintarContactos();
+}
+function _despAdminTel() { try { return localStorage.getItem(_DESP_ADMIN_KEY) || ''; } catch(_) { return ''; } }
+function _despRepPintarContactos() {
+    const c = document.getElementById('drContactos'); if(!c) return;
+    const lista = _despContactos();
+    c.innerHTML = lista.length ? lista.map(p => `<div class="dr-fila"><span class="dr-n"><b>${escapeHtml(p.nombre || 'Contacto')}</b><small>${escapeHtml(p.tel)}${p.emp ? ' · empleado' : ''}</small></span>${p.emp ? '' : `<button type="button" class="dr-btn ghost" title="Quitar" onclick="_despRepQuitar(${p.i})"><i class="ti ti-x"></i></button>`}<button type="button" class="dr-btn wa" id="drEnv-${p.tel}" onclick="_despRepEnviar('${p.tel}', this)"><i class="ti ti-brand-whatsapp"></i> Enviar</button></div>`).join('')
+        : '<div class="dr-vacio">Todavía no hay contactos. Agrega abajo a quién se le manda el reporte.</div>';
+}
+function _despRepAgregar() {
+    const nom = (document.getElementById('drNomNuevo')?.value || '').trim();
+    const tel = _despTelWa(document.getElementById('drTelNuevo')?.value);
+    if(!tel) return toast('Escribe un número válido (809, 829 u 849 + 7 dígitos).', 'error');
+    let extra = []; try { extra = JSON.parse(localStorage.getItem(_DESP_CONTACTOS_KEY) || '[]') || []; } catch(_) {}
+    if(extra.some(x => _despTelWa(x.tel) === tel)) return toast('Ese número ya está en la lista.', 'error');
+    extra.push({ nombre: nom || tel, tel });
+    try { localStorage.setItem(_DESP_CONTACTOS_KEY, JSON.stringify(extra)); } catch(_) {}
+    document.getElementById('drNomNuevo').value = ''; document.getElementById('drTelNuevo').value = '';
+    _despRepPintarContactos();
+}
+function _despRepQuitar(i) {
+    let extra = []; try { extra = JSON.parse(localStorage.getItem(_DESP_CONTACTOS_KEY) || '[]') || []; } catch(_) {}
+    extra.splice(i, 1);
+    try { localStorage.setItem(_DESP_CONTACTOS_KEY, JSON.stringify(extra)); } catch(_) {}
+    _despRepPintarContactos();
+}
+function _despRepAbrirWa(tel, texto) { window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(texto), '_blank'); }
+function _despRepEnviar(tel, btn) {
+    if(!_despRepCtx) return;
+    _despRepAbrirWa(tel, _despReporteTexto(_despRepCtx.info, false));
+    if(btn) { btn.classList.add('ok'); btn.innerHTML = '<i class="ti ti-check"></i> Abierto'; }
+}
+async function _despRepCambiarAdmin() {
+    const v = await pedirTexto('Número de WhatsApp del dueño para el reporte administrativo:', { valor: _despAdminTel() });
+    if(v === null) return;
+    const tel = _despTelWa(v);
+    if(!tel) return toast('Número no válido.', 'error');
+    try { localStorage.setItem(_DESP_ADMIN_KEY, tel); } catch(_) {}
+    const el = document.getElementById('drAdminTel'); if(el) el.textContent = tel;
+}
+async function _despRepEnviarAdmin() {
+    if(!isAdminUser()) return toast('Solo el administrador.', 'error');
+    if(!_despAdminTel()) { await _despRepCambiarAdmin(); if(!_despAdminTel()) return; }
+    _despRepAbrirWa(_despAdminTel(), _despReporteTexto(_despRepCtx.info, true));
+}
+function _despRepCopiar(admin) {
+    if(admin && !isAdminUser()) return;
+    const t = _despReporteTexto(_despRepCtx.info, !!admin);
+    (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('Texto copiado.'), () => toast('No se pudo copiar.', 'error'));
+}
+function _despRepEstilos() {
+    if(document.getElementById('drStyles')) return;
+    const st = document.createElement('style'); st.id = 'drStyles'; st.textContent = `
+    .dr-box{max-width:620px;width:94%;}
+    .dr-body{display:flex;flex-direction:column;gap:12px;}
+    .dr-ruta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-weight:700;color:#0f172a;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:9px 12px;font-size:13px;}
+    .dr-ruta .dr-btn{margin-left:auto;}
+    .dr-sec{border:1px solid #e2e8f0;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;}
+    .dr-admin{border-color:#fde68a;background:#fffdf5;}
+    .dr-h{font-weight:800;font-size:13px;color:#0f172a;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+    .dr-h small{font-weight:600;color:#64748b;font-size:11.5px;}
+    .dr-ayuda{font-size:11.5px;color:#64748b;line-height:1.45;}
+    .dr-fila{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #f1f5f9;}
+    .dr-fila:last-child{border-bottom:0;}
+    .dr-n{flex:1;min-width:0;display:flex;flex-direction:column;font-size:13px;}
+    .dr-n small{color:#64748b;font-size:11.5px;font-variant-numeric:tabular-nums;}
+    .dr-btn{display:inline-flex;align-items:center;gap:5px;border:1px solid #e2e8f0;background:#fff;color:#334155;border-radius:9px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;}
+    .dr-btn:hover{background:#f8fafc;}
+    .dr-btn.wa{background:#16a34a;border-color:#16a34a;color:#fff;}
+    .dr-btn.wa:hover{background:#15803d;}
+    .dr-btn.wa.ok{background:#dcfce7;border-color:#86efac;color:#166534;}
+    .dr-btn.ghost{border-color:transparent;color:#94a3b8;padding:6px 7px;}
+    .dr-add{display:grid;grid-template-columns:1fr 1fr auto;gap:6px;}
+    .dr-add input{border:1px solid #e2e8f0;border-radius:9px;padding:7px 10px;font-size:13px;font-family:inherit;min-width:0;}
+    .dr-prev summary{cursor:pointer;font-size:12px;font-weight:700;color:#0e7490;}
+    .dr-prev pre{white-space:pre-wrap;font-family:inherit;font-size:12px;background:#f8fafc;border:1px solid #eef2f7;border-radius:9px;padding:10px;margin:6px 0;max-height:220px;overflow:auto;}
+    .dr-vacio{font-size:12.5px;color:#94a3b8;padding:6px 0;}
+    @media(max-width:560px){.dr-add{grid-template-columns:1fr;}}
+    `;
+    document.head.appendChild(st);
+}
 // Imprime la lista a despachar (por modelo, con IMEI), para revisar o firmar antes de mandar a Info Plus.
 function _despTelImprimir() {
     if(!_despTelCtx || !(_despTelCtx.lista || []).length) return toast('Marca al menos un teléfono.', 'error');
@@ -16293,7 +16472,8 @@ async function _despTelConfirmar() {
         _despTelBorrarBorrador(true);
         document.getElementById('modalDespTel')?.remove();
         await _ensureInfoplusArticulos(true);
-        if(saved && await confirmar(`Despacho #${r.numero} creado\n\n¿Imprimir el documento?`)) imprimirDespacho(saved.id);
+        // Reportes por WhatsApp (equipo sin costos / dueño con costo y lote) + imprimir conduce, en una sola ventana
+        _despReporteAbrir(_despInfoDesdeLista(r.numero, origen, destino, lista), saved ? saved.id : null);
     } else {
         toast(`No se pudo despachar: ${r.error}\n(Revisa que cada teléfono esté en la localidad de origen.)`, 'error');
     }
