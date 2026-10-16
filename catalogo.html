@@ -369,11 +369,11 @@
   const WA_VENTAS = '18495644791';
   const SUCURSALES = [
     { nombre:'Santiago', direccion:'Calle Sánchez, casi esq. Restauración #102, Santiago de los Caballeros', horario:'Lun a vie 8:30 a. m. – 6:00 p. m. · Sáb 9:00 a. m. – 4:00 p. m.', wa:'18495644791',
-      mapa:'Bayol Cell Calle Sánchez Restauración Santiago', h:{1:['08:30','18:00'],2:['08:30','18:00'],3:['08:30','18:00'],4:['08:30','18:00'],5:['08:30','18:00'],6:['09:00','16:00']} },
+      mapa:'https://share.google/IMUZV4nGyNPCsbPei', h:{1:['08:30','18:00'],2:['08:30','18:00'],3:['08:30','18:00'],4:['08:30','18:00'],5:['08:30','18:00'],6:['09:00','16:00']} },
     { nombre:'Moca', direccion:'Calle Pdte. Vásquez #5, frente a Parada Villa Trina, Moca', horario:'Lun a vie 8:00 a. m. – 6:00 p. m. · Sáb 8:00 a. m. – 5:00 p. m.', wa:'18296709694',
-      mapa:'Bayol Cell Presidente Vásquez Moca', h:{1:['08:00','18:00'],2:['08:00','18:00'],3:['08:00','18:00'],4:['08:00','18:00'],5:['08:00','18:00'],6:['08:00','17:00']} },
+      mapa:'https://share.google/PBspeg3569Vzm6lEm', h:{1:['08:00','18:00'],2:['08:00','18:00'],3:['08:00','18:00'],4:['08:00','18:00'],5:['08:00','18:00'],6:['08:00','17:00']} },
     { nombre:'Navarrete', direccion:'Av. Duarte #180, Navarrete, Santiago', horario:'Lun a sáb 9:00 a. m. – 7:00 p. m. · Dom 9:00 a. m. – 1:00 p. m.', wa:'18098934412',
-      mapa:'Bayol Cell Avenida Duarte 180 Navarrete', h:{0:['09:00','13:00'],1:['09:00','19:00'],2:['09:00','19:00'],3:['09:00','19:00'],4:['09:00','19:00'],5:['09:00','19:00'],6:['09:00','19:00']} },
+      mapa:'https://share.google/36eYOmsL9WyZPzqXa', h:{0:['09:00','13:00'],1:['09:00','19:00'],2:['09:00','19:00'],3:['09:00','19:00'],4:['09:00','19:00'],5:['09:00','19:00'],6:['09:00','19:00']} },
   ];
   const ORDEN_MARCAS = ['iPhone','Samsung','Xiaomi','Motorola','Tecno','Infinix','Realme','Oppo','Huawei','Otros'];
   // Color de la tarjeta según el color del equipo (centro, borde).
@@ -792,7 +792,7 @@
         <div class="row"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span>${esc(s.horario)}${e.det?`<br><span class="det">${esc(e.det)}</span>`:''}</span></div>
         <div class="btns">
           <a class="btn" href="https://wa.me/${s.wa}" target="_blank" rel="noopener">${ICON_WA} WhatsApp</a>
-          <a class="btn" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.mapa)}" target="_blank" rel="noopener"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4l-5 2v14l5-2 6 2 5-2V4l-5 2z"/><path d="M9 4v14M15 6v14"/></svg> Cómo llegar</a>
+          <a class="btn" href="${s.mapa}" target="_blank" rel="noopener"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4l-5 2v14l5-2 6 2 5-2V4l-5 2z"/><path d="M9 4v14M15 6v14"/></svg> Cómo llegar</a>
         </div>
       </div>`;
     }).join('');
