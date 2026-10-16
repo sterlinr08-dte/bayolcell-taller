@@ -11996,6 +11996,18 @@ function _bcfPiezasHTML(equipoId) {
     return `<div class="bcf-pzs" title="${escapeHtml(pz.map(p => p.pieza_nombre || 'Pieza').join(' · '))}"><div class="bcf-pzs-h"><i class="ti ti-puzzle"></i> Piezas puestas <b>${pz.length}</b></div><ul>${pz.slice(0, max).map(fila).join('')}</ul>${pz.length > max ? `<div class="bcf-pzs-mas">+${pz.length - max} más</div>` : ''}</div>`;
 }
 
+// Fotos realistas por modelo y color (img/iphone-colores/<familia>-<color>.jpg, hechas con Buzzy, 16-oct-2026).
+// Si no hay foto para esa combinación, se usa el dibujo _bcfTelefonoColor.
+const _BCF_FAMILIAS = [[/\b17\s*PRO\b/, '17-pro'], [/\b17\s*AIR\b|\bIPHONE\s*AIR\b/, 'air'], [/\b17\b/, '17'], [/\b16\s*E\b|\b16E\b/, '16e'], [/\b16\s*PRO\b/, '16-pro'], [/\b16\b/, '16'], [/\b15\s*PRO\b/, '15-pro'], [/\b15\b/, '15'], [/\b14\s*PRO\b/, '14-pro'], [/\b14\b/, '14'], [/\b13\s*PRO\b/, '13-pro'], [/\b13\b/, '13'], [/\b12\s*PRO\b/, '12-pro'], [/\b12\b/, '12'], [/\b11\s*PRO\b/, '11-pro'], [/\b11\b/, '11'], [/\bXR\b/, 'xr'], [/\bXS\b/, 'xs'], [/\bX\b/, 'x'], [/\bSE\b/, 'se'], [/\b8\b/, '8']];
+const _BCF_FOTOS_COLOR = new Set(['11-amarillo','11-blanco','11-morado','11-negro','11-pro-gris-espacial','11-pro-oro','11-pro-plata','11-pro-verde-noche','11-rojo','11-verde','12-azul','12-blanco','12-morado','12-negro','12-pro-azul-pacifico','12-pro-grafito','12-pro-oro','12-pro-plata','12-rojo','12-verde','13-azul','13-blanco-estelar','13-medianoche','13-pro-azul-sierra','13-pro-grafito','13-pro-oro','13-pro-plata','13-pro-verde-alpino','13-rojo','13-rosa','13-verde','14-amarillo','14-azul','14-blanco-estelar','14-medianoche','14-morado','14-pro-morado-oscuro','14-pro-negro-espacial','14-pro-oro','14-pro-plata','14-rojo','15-amarillo','15-azul','15-negro','15-pro-titanio-azul','15-pro-titanio-blanco','15-pro-titanio-natural','15-pro-titanio-negro','15-rosa','15-verde','16-blanco','16-negro','16-pro-titanio-blanco','16-pro-titanio-desierto','16-pro-titanio-natural','16-pro-titanio-negro','16-rosa','16-ultramar','16-verde-azulado','16e-blanco','16e-negro','17-azul-niebla','17-blanco','17-lavanda','17-negro','17-pro-azul-profundo','17-pro-naranja-cosmico','17-pro-plata','17-salvia','8-gris-espacial','8-oro','8-plata','8-rojo','air-azul-cielo','air-blanco-nube','air-negro-espacial','air-oro-claro','se-blanco-estelar','se-blanco','se-medianoche','se-negro','se-rojo','x-gris-espacial','x-plata','xr-amarillo','xr-azul','xr-blanco','xr-coral','xr-negro','xr-rojo','xs-gris-espacial','xs-oro','xs-plata']);
+function _bcfSlug(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); }
+function _bcfFotoColor(modelo, color) {
+    const m = String(modelo || '').toUpperCase(); if(!/IPHONE/.test(m) || !color) return '';
+    const f = _BCF_FAMILIAS.find(x => x[0].test(m)); if(!f) return '';
+    const k = f[1] + '-' + _bcfSlug(color);
+    return _BCF_FOTOS_COLOR.has(k) ? 'img/iphone-colores/' + k + '.jpg' : '';
+}
+
 function renderEquipoReacondCard(eq, num) {
     const estado = eq.estado_evaluacion || 'pendiente';
     const tecnico = eq.tecnico_asignado_id ? (cache.tecnicos || []).find(t => t.id === eq.tecnico_asignado_id) : null;
@@ -12050,7 +12062,7 @@ function renderEquipoReacondCard(eq, num) {
             <span class="bcf-tag bcf-t-${tono}">${tagTxt}</span>
         </header>
         <div class="bcf-sub">#${num} · IMEI ${escapeHtml(eq.imei || '—')}</div>
-        <div class="bcf-media${_eqColorReal(eq) ? ' bcf-media-color' : ''}">${_eqColorReal(eq) ? _bcfTelefonoColor((eq.marca || '') + ' ' + (eq.modelo || ''), _eqColorHex(_eqColorReal(eq), eq.modelo)) : _bcfMedia(foto, (eq.marca || '') + ' ' + (eq.modelo || ''))}</div>
+        <div class="bcf-media${_eqColorReal(eq) ? ' bcf-media-color' : ''}">${_eqColorReal(eq) ? (_bcfFotoColor((eq.marca || '') + ' ' + (eq.modelo || ''), _eqColorReal(eq)) ? `<img src="${_bcfFotoColor((eq.marca || '') + ' ' + (eq.modelo || ''), _eqColorReal(eq))}" alt="${escapeHtml((eq.modelo || '') + ' ' + _eqColorReal(eq))}" loading="lazy" decoding="async">` : _bcfTelefonoColor((eq.marca || '') + ' ' + (eq.modelo || ''), _eqColorHex(_eqColorReal(eq), eq.modelo))) : _bcfMedia(foto, (eq.marca || '') + ' ' + (eq.modelo || ''))}</div>
         ${chips.length ? `<div class="bcf-chips">${chips.map(([t, c]) => `<span class="bcf-chip bcf-t-${c}">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
         ${_bcfPiezasHTML(eq.id)}
         <div class="bcf-per">${_bcfAvatar(tecnico?.nombre)}<div class="bcf-per-txt"><small>Técnico</small><b>${escapeHtml(tecnico?.nombre || 'Sin asignar')}</b></div><span class="bcf-upd">${escapeHtml(tomado)}</span></div>
@@ -12067,7 +12079,7 @@ function renderEquipoReacondCard(eq, num) {
             ${estado === 'evaluado' ? `<button class="bcf-ib" onclick="continuarEvaluacion('${eq.id}')" title="Editar evaluación" aria-label="Editar evaluación"><i class="ti ti-pencil"></i></button>` : ''}
             <span class="bcf-acc-sp"></span>
             ${botones}
-            <span class="bcf-abrir">Abrir <i class="ti ti-chevron-right"></i></span>
+            <button type="button" class="bcf-abrir" onclick="${accionPrincipal}" title="Abrir el equipo">Abrir <i class="ti ti-chevron-right"></i></button>
         </div>
     </article>`;
 }
@@ -15994,63 +16006,173 @@ async function _despachoCargarHistorial() {
 
 // ===== DESPACHAR TELÉFONOS REACONDICIONADOS SELECCIONADOS (agrupa por modelo, costo promedio, con IMEI) =====
 let _despTelCtx = null;
+// Despacho con buscador (16-oct-2026): la ventana abre aunque no haya nada marcado; se busca por modelo, IMEI,
+// color o lote, se marcan los teléfonos ahí mismo (o se escanea el IMEI + Enter) y abajo se arma el documento por modelo.
+function _despTelCandidatos() {
+    const sel = _despTelCtx ? _despTelCtx.sel : new Set();
+    return (cache.refurb || []).filter(r => (r.estado_evaluacion === 'listo_venta' && !r.completado) || sel.has(r.id))
+        .sort((x, y) => String(x.modelo || '').localeCompare(String(y.modelo || '')) || String(x.imei || '').localeCompare(String(y.imei || '')));
+}
+function _despTelCod(e) { return (e.articulo_codigo != null && String(e.articulo_codigo).trim()) ? String(e.articulo_codigo).trim() : ''; }
+function _despTelLote(e) { const l = (cache.lotes || []).find(x => x.id === e.lote_id); return l ? (l.codigo_lote || '') : ''; }
+function _despTelNorm(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
 function despacharTelefonosSeleccionados() {
     if(!isAdminUser()) return toast('Solo el administrador.', 'error');
-    if(!_reacondSel.size) return toast('Marca primero los teléfonos con la casilla de cada tarjeta.', 'error');
-    const eqs = (cache.refurb || []).filter(r => _reacondSel.has(r.id));
-    const grupos = {};
-    let sinCodigo = 0;
+    _despTelCtx = { sel: new Set([...(_reacondSel || [])].filter(id => (cache.refurb || []).some(r => r.id === id))), q: '', lista: [], sinCodigo: 0 };
+    _despTelEstilos();
+    const almOpts = ALMACENES_IP.map(a => `<option value="${a.c}">${a.n}</option>`).join('');
+    const prev = document.getElementById('modalDespTel'); if(prev) prev.remove();
+    const box = document.createElement('div');
+    box.className = 'modal-backdrop active'; box.id = 'modalDespTel'; box.style.zIndex = '600';
+    box.onclick = (ev) => { if(ev.target === box) box.remove(); };
+    box.innerHTML = `<div class="modal-box dt-box">
+      <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-truck-delivery"></i> Despachar teléfonos <span id="dtCuenta">(0)</span></h3></div>
+      <div class="modal-body dt-body">
+        <div class="dt-ruta">
+          <div><label>Desde</label><select id="despTelOrigen">${almOpts}</select></div>
+          <i class="ti ti-arrow-right"></i>
+          <div><label>Hacia</label><select id="despTelDestino">${almOpts}</select></div>
+        </div>
+        <div class="dt-busca">
+          <i class="ti ti-search"></i>
+          <input id="dtBuscar" data-bcbp-no autocomplete="off" placeholder="Buscar por modelo, IMEI, color o lote · escanea el IMEI y Enter" oninput="_despTelCtx.q=this.value;_despTelRender()" onkeydown="_despTelTecla(event)">
+        </div>
+        <div class="dt-barra"><span id="dtVis"></span><span class="dt-sp"></span><button type="button" onclick="_despTelMarcarVisibles(true)">Marcar los visibles</button><button type="button" onclick="_despTelMarcarVisibles(false)">Quitar todos</button></div>
+        <div class="dt-lista" id="dtLista"></div>
+        <div id="dtResumen"></div>
+        <div class="dt-nota">Info Plus agrupa por modelo con <b>costo promedio</b> y se despacha como <b>un documento único</b> con todos sus IMEI. Cada teléfono debe estar en la localidad de origen.</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-light" onclick="document.getElementById('modalDespTel').remove()">Cancelar</button>
+        <button class="btn btn-blue" id="dtBtnDesp" onclick="_despTelConfirmar()"><i class="ti ti-truck-delivery"></i> Despachar</button>
+      </div>
+    </div>`;
+    document.body.appendChild(box);
+    const o = document.getElementById('despTelOrigen'); if(o) o.value = '6';
+    const d = document.getElementById('despTelDestino'); if(d) d.value = '1';
+    _despTelRender();
+    setTimeout(() => document.getElementById('dtBuscar')?.focus(), 60);
+}
+function _despTelFiltrados() {
+    const q = _despTelNorm(_despTelCtx.q).trim();
+    const todos = _despTelCandidatos();
+    if(!q) return todos;
+    const partes = q.split(/\s+/);
+    return todos.filter(e => { const t = _despTelNorm([e.modelo, e.imei, e.color, e.capacidad, _despTelLote(e), _despTelCod(e)].join(' ')); return partes.every(p => t.includes(p)); });
+}
+function _despTelToggle(id, on) {
+    if(on) _despTelCtx.sel.add(id); else _despTelCtx.sel.delete(id);
+    _despTelRender(true);
+}
+function _despTelMarcarVisibles(on) {
+    if(on) _despTelFiltrados().forEach(e => { if(_despTelCod(e)) _despTelCtx.sel.add(e.id); });
+    else _despTelCtx.sel.clear();
+    _despTelRender();
+}
+function _despTelTecla(ev) {
+    if(ev.key !== 'Enter') return;
+    ev.preventDefault();
+    const q = String(ev.target.value || '').trim(); if(!q) return;
+    const vis = _despTelFiltrados();
+    const exacto = _despTelCandidatos().find(e => String(e.imei || '').trim() === q);
+    const elegido = exacto || (vis.length === 1 ? vis[0] : null);
+    if(!elegido) return toast(vis.length ? 'Hay varios; márcalo en la lista.' : 'No hay un teléfono listo con ese IMEI.', 'error');
+    if(!_despTelCod(elegido)) return toast('Ese teléfono no tiene código de Info Plus.', 'error');
+    _despTelCtx.sel.add(elegido.id);
+    ev.target.value = ''; _despTelCtx.q = '';
+    _despTelRender();
+    toast(`Agregado: ${elegido.modelo || ''} · ${elegido.imei || ''}`);
+}
+function _despTelRender(soloResumen) {
+    const ctx = _despTelCtx; if(!ctx || !document.getElementById('modalDespTel')) return;
+    const vis = _despTelFiltrados();
+    if(!soloResumen) {
+        const lista = document.getElementById('dtLista');
+        if(lista) lista.innerHTML = vis.length ? vis.map(e => {
+            const cod = _despTelCod(e), on = ctx.sel.has(e.id), col = _eqColorReal(e);
+            return `<label class="dt-fila${on ? ' on' : ''}${cod ? '' : ' off'}">
+                <input type="checkbox" ${on ? 'checked' : ''} ${cod ? '' : 'disabled'} onchange="_despTelToggle('${e.id}', this.checked); this.closest('.dt-fila').classList.toggle('on', this.checked)">
+                <span class="dt-mod"><b>${escapeHtml(e.modelo || 'Sin modelo')}</b><small>IMEI ${escapeHtml(e.imei || '—')}</small></span>
+                <span class="dt-col">${col ? `<i style="background:${_eqColorHex(col, e.modelo)}"></i>${escapeHtml(col)}` : '<em>Sin color</em>'}</span>
+                <span class="dt-lote">${escapeHtml(_despTelLote(e) || '—')}</span>
+                <span class="dt-cod">${cod ? escapeHtml(cod) : '<em>Sin código IP</em>'}</span>
+            </label>`;
+        }).join('') : `<div class="dt-vacio">${ctx.q ? 'No hay teléfonos listos que coincidan con «' + escapeHtml(ctx.q) + '».' : 'No hay teléfonos listos para despachar.'}</div>`;
+        const v = document.getElementById('dtVis'); if(v) v.textContent = `${vis.length} listo(s) para despachar${ctx.q ? ' con esa búsqueda' : ''}`;
+    }
+    // Resumen por modelo (documento de Info Plus)
+    const eqs = (cache.refurb || []).filter(r => ctx.sel.has(r.id));
+    const grupos = {}; let sinCodigo = 0;
     eqs.forEach(e => {
-        const cod = (e.articulo_codigo != null && String(e.articulo_codigo).trim()) ? String(e.articulo_codigo).trim() : '';
+        const cod = _despTelCod(e);
         if(!cod) { sinCodigo++; return; }
         if(!grupos[cod]) grupos[cod] = { codigo: cod, modelo: _modeloRep(e), imeis: [], equipos: [], total: 0 };
         grupos[cod].equipos.push(e);
         if(e.imei) grupos[cod].imeis.push(String(e.imei).trim());
         grupos[cod].total += _costoEquipoRep(e).fin;
     });
-    const lista = Object.values(grupos);
-    if(!lista.length) return toast('Los teléfonos seleccionados no tienen código de Info Plus (articulo_codigo).', 'error');
-    _despTelCtx = { lista, sinCodigo };
-    const almOpts = ALMACENES_IP.map(a => `<option value="${a.c}">${a.n}</option>`).join('');
-    const filas = lista.map(g => {
-        const cant = g.equipos.length, prom = cant ? g.total / cant : 0, faltan = cant - g.imeis.length;
-        return `<tr>
-            <td style="padding:6px; border-bottom:1px solid #eef2f7;">${escapeHtml(g.modelo)}<div style="font-size:10px; color:#475569;">${g.imeis.map(x => escapeHtml(x)).join(', ')}</div></td>
-            <td style="padding:6px; border-bottom:1px solid #eef2f7; text-align:center; color:#1d4ed8; font-weight:700;">${escapeHtml(g.codigo)}</td>
-            <td style="padding:6px; border-bottom:1px solid #eef2f7; text-align:center;">${cant}</td>
-            <td style="padding:6px; border-bottom:1px solid #eef2f7; text-align:right;">${money(prom)}</td>
-            <td style="padding:6px; border-bottom:1px solid #eef2f7; text-align:center;">${g.imeis.length}${faltan > 0 ? ` <span style="color:#b91c1c;"><i class="ti ti-alert-triangle"></i> ${faltan}</span>` : ''}</td>
-        </tr>`;
-    }).join('');
-    const totU = lista.reduce((s, g) => s + g.equipos.length, 0);
-    const totRD = lista.reduce((s, g) => s + g.total, 0);
-    const prev = document.getElementById('modalDespTel'); if(prev) prev.remove();
-    const box = document.createElement('div');
-    box.className = 'modal-backdrop active'; box.id = 'modalDespTel'; box.style.zIndex = '600';
-    box.innerHTML = `<div class="modal-box" style="max-width:660px;">
-      <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-truck-delivery"></i> Despachar teléfonos (${totU})</h3></div>
-      <div class="modal-body">
-        <div style="display:grid; grid-template-columns:1fr auto 1fr; gap:10px; align-items:end; margin-bottom:12px;">
-          <div><label style="font-size:12px; font-weight:700; color:#475569;">Desde</label><select id="despTelOrigen" style="width:100%; padding:9px; border:1px solid #cbd5e1; border-radius:8px; font-weight:600;">${almOpts}</select></div>
-          <div style="font-size:20px; color:#0891b2; padding-bottom:6px;">→</div>
-          <div><label style="font-size:12px; font-weight:700; color:#475569;">Hacia</label><select id="despTelDestino" style="width:100%; padding:9px; border:1px solid #cbd5e1; border-radius:8px; font-weight:600;">${almOpts}</select></div>
-        </div>
-        <div class="table-wrap"><table style="width:100%; border-collapse:collapse; font-size:12.5px;"><thead><tr style="background:#0f172a; color:#fff;"><th style="padding:6px; text-align:left;">Modelo / IMEIs</th><th>Cód IP</th><th>Cant.</th><th style="text-align:right;">Prom.</th><th>IMEI</th></tr></thead><tbody>${filas}</tbody></table></div>
-        <div style="text-align:right; margin-top:8px; font-size:13px;"><b>${totU}</b> teléfono(s) · Total <b>${money(totRD)}</b></div>
-        ${sinCodigo ? `<div style="margin-top:8px; background:#fef2f2; color:#b91c1c; font-size:12px; padding:8px; border-radius:8px;"><i class="ti ti-alert-triangle"></i> ${sinCodigo} teléfono(s) sin código Info Plus quedaron fuera.</div>` : ''}
-        <div style="margin-top:10px; background:#ecfdf5; border:1px solid #a7f3d0; font-size:11.5px; padding:8px 10px; border-radius:8px; color:#065f46;">Info Plus agrupa por modelo con <b>costo promedio</b> y se despacha como <b>un documento único</b> con todos sus IMEI. Cada teléfono debe estar en la localidad de origen.</div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-light" onclick="document.getElementById('modalDespTel').remove()">Cancelar</button>
-        <button class="btn btn-blue" onclick="_despTelConfirmar()"><i class="ti ti-truck-delivery"></i> Despachar</button>
-      </div>
-    </div>`;
-    document.body.appendChild(box);
-    const o = document.getElementById('despTelOrigen'); if(o) o.value = '6';
-    const d = document.getElementById('despTelDestino'); if(d) d.value = '1';
+    ctx.lista = Object.values(grupos); ctx.sinCodigo = sinCodigo;
+    const totU = ctx.lista.reduce((s, g) => s + g.equipos.length, 0);
+    const totRD = ctx.lista.reduce((s, g) => s + g.total, 0);
+    const c = document.getElementById('dtCuenta'); if(c) c.textContent = `(${totU})`;
+    const btn = document.getElementById('dtBtnDesp'); if(btn) btn.disabled = !totU;
+    const res = document.getElementById('dtResumen');
+    if(res) res.innerHTML = totU ? `<div class="dt-res-h">Documento a despachar</div>
+        <div class="table-wrap"><table class="dt-tabla"><thead><tr><th style="text-align:left;">Modelo / IMEIs</th><th>Cód IP</th><th>Cant.</th><th style="text-align:right;">Prom.</th><th>IMEI</th></tr></thead><tbody>${ctx.lista.map(g => {
+            const cant = g.equipos.length, prom = cant ? g.total / cant : 0, faltan = cant - g.imeis.length;
+            return `<tr><td>${escapeHtml(g.modelo)}<div class="dt-imeis">${g.imeis.map(x => escapeHtml(x)).join(', ')}</div></td><td class="c" style="color:#1d4ed8; font-weight:700;">${escapeHtml(g.codigo)}</td><td class="c">${cant}</td><td style="text-align:right;">${money(prom)}</td><td class="c">${g.imeis.length}${faltan > 0 ? ` <span style="color:#b91c1c;"><i class="ti ti-alert-triangle"></i> ${faltan}</span>` : ''}</td></tr>`;
+        }).join('')}</tbody></table></div>
+        <div class="dt-total"><b>${totU}</b> teléfono(s) · Total <b>${money(totRD)}</b></div>`
+        : '<div class="dt-vacio">Marca en la lista los teléfonos que vas a despachar.</div>';
+}
+function _despTelEstilos() {
+    if(document.getElementById('dtStyles')) return;
+    const st = document.createElement('style'); st.id = 'dtStyles'; st.textContent = `
+    .dt-box{max-width:760px;width:94%;}
+    .dt-body{display:flex;flex-direction:column;gap:10px;}
+    .dt-ruta{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:end;}
+    .dt-ruta label{display:block;font-size:11px;font-weight:700;color:#475569;letter-spacing:.04em;text-transform:uppercase;margin-bottom:4px;}
+    .dt-ruta select{width:100%;padding:8px 10px;border:1px solid #cbd5e1;border-radius:10px;font-weight:600;font-family:inherit;background:#fff;}
+    .dt-ruta > i{color:#0891b2;font-size:18px;padding-bottom:9px;}
+    .dt-busca{display:flex;align-items:center;gap:8px;background:#f5f5f7;border:1.5px solid transparent;border-radius:10px;padding:8px 12px;}
+    .dt-busca:focus-within{background:#fff;border-color:#c8191f;box-shadow:0 0 0 3px rgba(200,25,31,.08);}
+    .dt-busca i{color:#86868b;font-size:16px;}
+    .dt-busca input{flex:1;border:0;outline:0;background:transparent;font-size:14px;font-family:inherit;color:#0f172a;min-width:0;}
+    .dt-barra{display:flex;align-items:center;gap:8px;font-size:12px;color:#64748b;}
+    .dt-sp{flex:1;}
+    .dt-barra button{border:1px solid #e2e8f0;background:#fff;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:600;color:#334155;cursor:pointer;font-family:inherit;}
+    .dt-barra button:hover{background:#f8fafc;}
+    .dt-lista{max-height:260px;overflow-y:auto;border:1px solid #eef2f7;border-radius:12px;}
+    .dt-fila{display:grid;grid-template-columns:22px minmax(0,1.6fr) minmax(0,.9fr) minmax(0,.8fr) auto;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid #f1f5f9;cursor:pointer;font-size:12.5px;color:#334155;}
+    .dt-fila:last-child{border-bottom:0;}
+    .dt-fila:hover{background:#f8fafc;}
+    .dt-fila.on{background:#f0f9ff;}
+    .dt-fila.off{opacity:.55;cursor:not-allowed;}
+    .dt-fila input{width:16px;height:16px;accent-color:#0e7490;margin:0;}
+    .dt-mod{display:flex;flex-direction:column;min-width:0;}
+    .dt-mod b{font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .dt-mod small{font-size:11px;color:#64748b;font-variant-numeric:tabular-nums;}
+    .dt-col{display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .dt-col i{width:10px;height:10px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12);}
+    .dt-col em,.dt-cod em{font-style:normal;color:#94a3b8;}
+    .dt-lote{font-size:11.5px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .dt-cod{font-weight:700;color:#1d4ed8;font-variant-numeric:tabular-nums;}
+    .dt-vacio{padding:18px;text-align:center;color:#94a3b8;font-size:13px;}
+    .dt-res-h{font-size:11px;font-weight:700;color:#475569;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px;}
+    .dt-tabla{width:100%;border-collapse:collapse;font-size:12.5px;}
+    .dt-tabla th{background:#0f172a;color:#fff;padding:6px 8px;font-size:11px;}
+    .dt-tabla td{padding:6px 8px;border-bottom:1px solid #eef2f7;}
+    .dt-tabla td.c,.dt-tabla th{text-align:center;}
+    .dt-imeis{font-size:10.5px;color:#475569;}
+    .dt-total{text-align:right;margin-top:6px;font-size:13px;}
+    .dt-nota{background:#ecfdf5;border:1px solid #a7f3d0;font-size:11.5px;padding:8px 10px;border-radius:10px;color:#065f46;}
+    #dtBtnDesp:disabled{opacity:.5;cursor:not-allowed;}
+    @media(max-width:640px){.dt-fila{grid-template-columns:22px minmax(0,1fr) auto;}.dt-lote,.dt-col{display:none;}.dt-lista{max-height:40vh;}}
+    `;
+    document.head.appendChild(st);
 }
 async function _despTelConfirmar() {
-    if(!_despTelCtx) return;
+    if(!_despTelCtx || !(_despTelCtx.lista || []).length) return toast('Marca al menos un teléfono.', 'error');
     const origen = parseInt(document.getElementById('despTelOrigen')?.value, 10);
     const destino = parseInt(document.getElementById('despTelDestino')?.value, 10);
     if(origen === destino) return toast('El origen y el destino no pueden ser el mismo.', 'error');
