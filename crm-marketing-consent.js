@@ -50,7 +50,7 @@
   try{var bmr=document.createElement('script');bmr.async=false;bmr.src='taller-mejoras-ref.js?v=20261014m1';document.head.appendChild(bmr);}catch(e){} // Mantener presionado para borrar, embudo de Leads y logos de marcas (lista de referencias)
   try{var brs=document.createElement('script');brs.async=false;brs.src='taller-reacond-smart.js?v=20261014r1';document.head.appendChild(brs);}catch(e){} // Reacondicionados smart: tablero de atascados, repartir evaluados, revisar terminados y despachar listos en bloque
   try{var brz=document.createElement('script');brz.async=false;brz.src='taller-rapidez.js?v=20261014q1';document.head.appendChild(brz);}catch(e){} // Que se sienta instantáneo: línea de carga, fondo desenfocado, Ctrl+K, deshacer archivar y aviso de conexión
-  try{var bfl=document.createElement('script');bfl.async=false;bfl.src='taller-flota.js?v=20261015c1';document.head.appendChild(bfl);}catch(e){} // Tarjetas estilo FleetTrack en Reacondicionados y Órdenes: foto, técnico, barra de avance y filtros del color de la etiqueta
+  try{var bfl=document.createElement('script');bfl.async=false;bfl.src='taller-flota.js?v=20261016c2';document.head.appendChild(bfl);}catch(e){} // Tarjetas estilo FleetTrack en Reacondicionados y Órdenes: foto, técnico, barra de avance y filtros del color de la etiqueta
 
   function instalarLoaderPremium(){
     try{

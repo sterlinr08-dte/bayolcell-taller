@@ -6640,6 +6640,32 @@ function _abStyles() {
         .ab-badges{margin-top:2px;} .ab-bdg{font-size:9px;padding:2px 5px;}
       }
       @media(prefers-reduced-motion:reduce){.ab-backdrop,.ab-modal{animation:none;}}
+      /* Compacto (16-oct-2026): filas de 2 líneas, controles más chicos */
+      @media(min-width:641px){.ab-modal{max-width:860px;max-height:84vh;}}
+      .ab-head{padding:14px 18px 10px;} .ab-head h3{font-size:16px;} .ab-count{font-size:11.5px;}
+      .ab-ref-fallas{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:10px 18px 0;padding:7px 10px;border-radius:10px;background:#fff7ed;border:1px solid #fde4c8;}
+      .ab-ref-fallas .t{font-size:10.5px;font-weight:700;color:#9a3412;letter-spacing:.04em;text-transform:uppercase;margin-right:2px;}
+      .ab-ref-fallas span:not(.t){margin:0!important;font-size:11px!important;padding:3px 9px!important;}
+      .ab-search{padding:10px 18px 6px;gap:6px;}
+      .ab-inp{padding:7px 12px;border-radius:10px;} .ab-inp input{font-size:14px;}
+      .ab-fbtn{min-height:36px;padding:0 11px;border-radius:10px;}
+      .ab-chips{padding:2px 18px 8px;} .ab-chip{padding:5px 12px;font-size:12px;}
+      #artBuscSyncMsg{padding:0 18px 4px!important;}
+      .ab-card{padding:8px 18px;gap:10px;}
+      .ab-thumb{width:32px;height:32px;border-radius:8px;font-size:15px;}
+      .ab-name{font-size:13px;margin:0;display:flex;align-items:baseline;gap:7px;}
+      .ab-name .ab-cod{font-size:11px;font-variant-numeric:tabular-nums;flex:none;}
+      .ab-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:3px;font-size:11px;color:#86868b;font-weight:500;font-variant-numeric:tabular-nums;}
+      .ab-meta .mk{color:#6e6e73;font-weight:600;}
+      .ab-meta .ab-badges{margin:0;display:inline-flex;gap:3px;}
+      .ab-bdg{font-size:9.5px;padding:1px 6px;}
+      .ab-right{gap:6px;}
+      .ab-price b{font-size:13.5px;font-variant-numeric:tabular-nums;}
+      .ab-add{width:30px;height:30px;font-size:16px;} .ab-edit{width:28px;height:28px;font-size:13px;}
+      .ab-foot{padding:8px 18px;} .ab-pg button{min-width:28px;height:28px;} .ab-size{padding:4px 8px;}
+      .ab-add:focus-visible,.ab-edit:focus-visible,.ab-chip:focus-visible,.ab-fbtn:focus-visible{outline:2px solid #c8191f;outline-offset:2px;}
+      .ab-meta .ab-badges{flex-wrap:wrap;}
+      @media(max-width:640px){.ab-ref-fallas{margin:8px 16px 0;}.ab-card{padding:8px 14px;align-items:flex-start;}.ab-thumb{display:none;}.ab-name{white-space:normal;display:block;line-height:1.3;}.ab-name .ab-cod{margin-right:5px;}.ab-meta{gap:6px;}.ab-right{flex-direction:column;align-items:flex-end;gap:5px;}.ab-right .ab-edit{display:none;}.ab-price b{font-size:12.5px;}}
     `;
     document.head.appendChild(s);
 }
@@ -6659,7 +6685,7 @@ async function abrirBuscadorArticulos(targetSS, onPick, refHtml, seed) {
       </div>
       ${refHtml || ''}
       <div class="ab-search">
-        <div class="ab-inp"><i class="ti ti-search"></i><input id="artBuscModal" autocomplete="off" placeholder="Buscar articulo..." value="${escapeHtml(_artBusc.q)}" oninput="_artBuscOnInput(this.value)" onkeydown="_artBuscKey(event)"><span class="ab-kbd">Ctrl K</span></div>
+        <div class="ab-inp"><i class="ti ti-search"></i><input id="artBuscModal" data-bcbp-no autocomplete="off" placeholder="Buscar articulo..." value="${escapeHtml(_artBusc.q)}" oninput="_artBuscOnInput(this.value)" onkeydown="_artBuscKey(event)"><span class="ab-kbd">Ctrl K</span></div>
         <button class="ab-fbtn" onclick="_artBuscToggleFiltros()"><i class="ti ti-adjustments-horizontal"></i></button>
         <button class="ab-fbtn" onclick="_buscadorSincronizarIP(this)" title="Sincronizar"><i class="ti ti-refresh"></i></button>
       </div>
@@ -6754,10 +6780,8 @@ function _abCard(a, i) {
     return `<div class="ab-card ${i === _artBusc.hl ? 'hl' : ''}" data-cod="${escapeHtml(String(a.codigo))}" onclick="_artBuscElegir('${cod}')">
       <div class="ab-thumb">${_abEmoji(_abCat(a.descripcion))}</div>
       <div class="ab-info">
-        <div class="ab-cod">${escapeHtml(a.codigo)} <span class="mk">${escapeHtml(a.marca || '')}</span></div>
-        <div class="ab-name">${escapeHtml(a.descripcion || '(sin descripcion)')}</div>
-        <div class="ab-pl">${precio > 0 ? money(precio) : ''}${costo > 0 && isAdminUser() ? ` · Costo ${money(costo)}` : ''}</div>
-        <div class="ab-badges">${_abInv(a)}</div>
+        <div class="ab-name"><span class="ab-cod">${escapeHtml(a.codigo)}</span>${escapeHtml(a.descripcion || '(sin descripcion)')}</div>
+        <div class="ab-meta">${a.marca ? `<span class="mk">${escapeHtml(a.marca)}</span>` : ''}${precio > 0 && precio !== pventa ? `<span>Lista ${money(precio)}</span>` : ''}${costo > 0 && isAdminUser() ? `<span>Costo ${money(costo)}</span>` : ''}<span class="ab-badges">${_abInv(a)}</span></div>
       </div>
       <div class="ab-right">
         <div class="ab-price"><b>${pventa > 0 ? money(pventa) : ''}</b></div>
@@ -11908,6 +11932,82 @@ function _bcfBarra(paso, total, ico, alerta) {
 }
 const _BCF_PASOS_REACOND = ['Recibido', 'Diagnóstico', 'Evaluado', 'Reparación', 'Control', 'Listo', 'Despachado'];
 
+/* Teléfono dibujado del color asignado (16-oct-2026): con color puesto, la tarjeta muestra
+   UN solo equipo, parte de atrás y de frente, en ese color (la foto del catálogo trae todos los colores). */
+function _bcfAclarar(hex, k) {
+    const m = /^#?([0-9a-f]{6})$/i.exec(hex || ''); if(!m) return hex;
+    const n = parseInt(m[1], 16); const c = [n >> 16, (n >> 8) & 255, n & 255].map(v => Math.round(k > 0 ? v + (255 - v) * k : v * (1 + k)));
+    return '#' + c.map(v => Math.max(0, Math.min(255, v)).toString(16).padStart(2, '0')).join('');
+}
+function _bcfTelefonoColor(modelo, hex) {
+    const m = String(modelo || '').toLowerCase();
+    const esIphone = /iphone/.test(m);
+    const num = parseInt((/iphone\s*(\d+)/.exec(m) || [])[1], 10) || 0;
+    const pro = /\bpro\b/.test(m);
+    const boton = esIphone && (/\bse\b/.test(m) || /iphone\s*[678]\b/.test(m));
+    const isla = esIphone && (num >= 15 || (num === 14 && pro));
+    const muesca = esIphone && !isla && !boton && (num >= 10 || /iphone\s*x/.test(m));
+    const L = (h, k) => _bcfAclarar(h, k);
+    const claro = (() => { const n = parseInt((hex || '#888888').slice(1), 16); return (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) > 200; })();
+    const borde = claro ? L(hex, -0.22) : L(hex, -0.35);
+    const lente = (cx, cy, r) => `<circle cx="${cx}" cy="${cy}" r="${r + 2.2}" fill="${L(hex, -0.45)}"/><circle cx="${cx}" cy="${cy}" r="${r}" fill="#0b1220"/><circle cx="${cx - r * .3}" cy="${cy - r * .3}" r="${r * .28}" fill="#3b4a66"/>`;
+    // Cámaras traseras según el modelo
+    let cam;
+    if(!esIphone) cam = `<rect x="14" y="14" width="22" height="50" rx="11" fill="${L(hex, -0.12)}"/>${lente(25, 26, 6)}${lente(25, 44, 6)}${lente(25, 60, 3)}`;
+    else if(boton) cam = lente(22, 22, 6);
+    else if(pro && num >= 11) cam = `<rect x="11" y="11" width="44" height="44" rx="12" fill="${L(hex, -0.1)}" stroke="${borde}" stroke-width=".8"/>${lente(23, 23, 7.5)}${lente(23, 43, 7.5)}${lente(42, 33, 7.5)}`;
+    else if(num >= 16) cam = `<rect x="12" y="11" width="22" height="46" rx="11" fill="${L(hex, -0.1)}" stroke="${borde}" stroke-width=".8"/>${lente(23, 23, 7)}${lente(23, 45, 7)}`;
+    else if(num >= 13) cam = `<rect x="11" y="11" width="40" height="40" rx="11" fill="${L(hex, -0.1)}" stroke="${borde}" stroke-width=".8"/>${lente(22, 22, 7)}${lente(40, 40, 7)}`;
+    else cam = `<rect x="11" y="11" width="38" height="38" rx="10" fill="${L(hex, -0.1)}" stroke="${borde}" stroke-width=".8"/>${lente(22, 22, 6.5)}${lente(22, 38, 6.5)}`;
+    const manzana = esIphone ? `<path transform="translate(54 96) scale(.9)" fill="${L(hex, claro ? -0.12 : 0.18)}" d="M13 4c1.7-2 1.5-4 1.5-4s-2 .1-3.6 1.9C9.4 3.6 9.6 5.6 9.6 5.6s1.8.1 3.4-1.6zM17.6 14.4c0-3.1 2.5-4.6 2.6-4.7-1.4-2.1-3.7-2.4-4.5-2.4-1.9-.2-3.7 1.1-4.7 1.1s-2.5-1.1-4.1-1C4.8 7.4 2.9 8.7 1.9 10.6c-2.1 3.6-.5 8.9 1.5 11.8 1 1.4 2.2 3 3.7 3 1.5-.1 2-1 3.8-1s2.3 1 3.9.9c1.6 0 2.6-1.5 3.6-2.9 1.1-1.6 1.6-3.2 1.6-3.3-.1 0-3.4-1.2-3.4-4.7z"/>` : '';
+    const g = 'g' + Math.random().toString(36).slice(2, 8);
+    const atras = `<g transform="translate(6 6)">
+        <rect x="0" y="0" width="120" height="236" rx="${boton ? 18 : 22}" fill="url(#${g}a)" stroke="${borde}" stroke-width="1.6"/>
+        <rect x="2.5" y="2.5" width="115" height="231" rx="${boton ? 16 : 20}" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="1"/>
+        ${cam}${manzana}</g>`;
+    const frente = `<g transform="translate(116 18)">
+        <rect x="0" y="0" width="120" height="236" rx="${boton ? 18 : 22}" fill="${borde}"/>
+        <rect x="3" y="3" width="114" height="230" rx="${boton ? 16 : 20}" fill="#05070c"/>
+        <rect x="${boton ? 8 : 7}" y="${boton ? 30 : 7}" width="${boton ? 104 : 106}" height="${boton ? 176 : 222}" rx="${boton ? 2 : 16}" fill="url(#${g}p)"/>
+        ${isla ? '<rect x="44" y="13" width="32" height="10" rx="5" fill="#000"/>' : ''}
+        ${muesca ? '<path d="M36 7h48v4c0 5-3 8-8 8H44c-5 0-8-3-8-8z" fill="#000"/>' : ''}
+        ${!esIphone ? '<circle cx="60" cy="16" r="3.5" fill="#000"/>' : ''}
+        ${boton ? `<circle cx="60" cy="219" r="9" fill="none" stroke="${L(hex, -0.3)}" stroke-width="1.6"/>` : ''}
+        <rect x="0" y="0" width="120" height="236" rx="${boton ? 18 : 22}" fill="url(#${g}b)" opacity=".5"/></g>`;
+    return `<svg class="bcf-tel" viewBox="0 0 242 262" role="img" aria-label="Equipo en su color">
+        <defs>
+          <linearGradient id="${g}a" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="${L(hex, 0.18)}"/><stop offset=".55" stop-color="${hex}"/><stop offset="1" stop-color="${L(hex, -0.14)}"/></linearGradient>
+          <linearGradient id="${g}p" x1="0" x2=".6" y1="0" y2="1"><stop offset="0" stop-color="${L(hex, -0.25)}"/><stop offset=".5" stop-color="${L(hex, -0.6)}"/><stop offset="1" stop-color="#0b1020"/></linearGradient>
+          <linearGradient id="${g}b" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".18"/><stop offset=".3" stop-color="#fff" stop-opacity="0"/></linearGradient>
+        </defs>${atras}${frente}</svg>`;
+}
+// Piezas puestas al equipo (las rechazadas o devueltas no cuentan), para verlas en la tarjeta
+function _bcfPiezasEquipo(equipoId) {
+    return (cache.piezasReacond || []).filter(p => p.equipo_id === equipoId && p.estado !== 'rechazada' && p.estado !== 'devuelta');
+}
+function _bcfPiezasHTML(equipoId) {
+    const pz = _bcfPiezasEquipo(equipoId); if(!pz.length) return '';
+    const fila = p => {
+        const pedida = p.estado === 'pendiente';
+        const ip = !p.agregada_por_tecnico && !p.pieza_id && !!p.pieza_codigo;
+        return `<li${pedida ? ' class="pedida"' : ''}><i class="ti ${ip ? 'ti-package' : 'ti-tool'}"></i><span>${escapeHtml(p.pieza_nombre || 'Pieza')}${(Number(p.cantidad) || 1) > 1 ? ' ×' + p.cantidad : ''}</span>${pedida ? '<em>Pedida</em>' : ''}</li>`;
+    };
+    const max = 3;
+    return `<div class="bcf-pzs" title="${escapeHtml(pz.map(p => p.pieza_nombre || 'Pieza').join(' · '))}"><div class="bcf-pzs-h"><i class="ti ti-puzzle"></i> Piezas puestas <b>${pz.length}</b></div><ul>${pz.slice(0, max).map(fila).join('')}</ul>${pz.length > max ? `<div class="bcf-pzs-mas">+${pz.length - max} más</div>` : ''}</div>`;
+}
+
+// Fotos realistas por modelo y color (img/iphone-colores/<familia>-<color>.jpg, hechas con Buzzy, 16-oct-2026).
+// Si no hay foto para esa combinación, se usa el dibujo _bcfTelefonoColor.
+const _BCF_FAMILIAS = [[/\b17\s*PRO\b/, '17-pro'], [/\b17\s*AIR\b|\bIPHONE\s*AIR\b/, 'air'], [/\b17\b/, '17'], [/\b16\s*E\b|\b16E\b/, '16e'], [/\b16\s*PRO\b/, '16-pro'], [/\b16\b/, '16'], [/\b15\s*PRO\b/, '15-pro'], [/\b15\b/, '15'], [/\b14\s*PRO\b/, '14-pro'], [/\b14\b/, '14'], [/\b13\s*PRO\b/, '13-pro'], [/\b13\b/, '13'], [/\b12\s*PRO\b/, '12-pro'], [/\b12\b/, '12'], [/\b11\s*PRO\b/, '11-pro'], [/\b11\b/, '11'], [/\bXR\b/, 'xr'], [/\bXS\b/, 'xs'], [/\bX\b/, 'x'], [/\bSE\b/, 'se'], [/\b8\b/, '8']];
+const _BCF_FOTOS_COLOR = new Set(['11-amarillo','11-blanco','11-morado','11-negro','11-pro-gris-espacial','11-pro-oro','11-pro-plata','11-pro-verde-noche','11-rojo','11-verde','12-azul','12-blanco','12-morado','12-negro','12-pro-azul-pacifico','12-pro-grafito','12-pro-oro','12-pro-plata','12-rojo','12-verde','13-azul','13-blanco-estelar','13-medianoche','13-pro-azul-sierra','13-pro-grafito','13-pro-oro','13-pro-plata','13-pro-verde-alpino','13-rojo','13-rosa','13-verde','14-amarillo','14-azul','14-blanco-estelar','14-medianoche','14-morado','14-pro-morado-oscuro','14-pro-negro-espacial','14-pro-oro','14-pro-plata','14-rojo','15-amarillo','15-azul','15-negro','15-pro-titanio-azul','15-pro-titanio-blanco','15-pro-titanio-natural','15-pro-titanio-negro','15-rosa','15-verde','16-blanco','16-negro','16-pro-titanio-blanco','16-pro-titanio-desierto','16-pro-titanio-natural','16-pro-titanio-negro','16-rosa','16-ultramar','16-verde-azulado','16e-blanco','16e-negro','17-azul-niebla','17-blanco','17-lavanda','17-negro','17-pro-azul-profundo','17-pro-naranja-cosmico','17-pro-plata','17-salvia','8-gris-espacial','8-oro','8-plata','8-rojo','air-azul-cielo','air-blanco-nube','air-negro-espacial','air-oro-claro','se-blanco-estelar','se-blanco','se-medianoche','se-negro','se-rojo','x-gris-espacial','x-plata','xr-amarillo','xr-azul','xr-blanco','xr-coral','xr-negro','xr-rojo','xs-gris-espacial','xs-oro','xs-plata']);
+function _bcfSlug(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); }
+function _bcfFotoColor(modelo, color) {
+    const m = String(modelo || '').toUpperCase(); if(!/IPHONE/.test(m) || !color) return '';
+    const f = _BCF_FAMILIAS.find(x => x[0].test(m)); if(!f) return '';
+    const k = f[1] + '-' + _bcfSlug(color);
+    return _BCF_FOTOS_COLOR.has(k) ? 'img/iphone-colores/' + k + '.jpg' : '';
+}
+
 function renderEquipoReacondCard(eq, num) {
     const estado = eq.estado_evaluacion || 'pendiente';
     const tecnico = eq.tecnico_asignado_id ? (cache.tecnicos || []).find(t => t.id === eq.tecnico_asignado_id) : null;
@@ -11949,7 +12049,6 @@ function renderEquipoReacondCard(eq, num) {
     const atrasado = paso === 3 && dias != null && dias > 7;
     if(atrasado) chips.unshift([`Atrasado · ${dias} días`, 'rojo']);
     if(eq.veces_devuelto > 0) chips.push([`Devuelto ${eq.veces_devuelto}×`, 'rojo']);
-    if(_tienePiezasInfoPlus(eq.id)) chips.push(['Piezas Info Plus', 'azul']);
     const alerta = atrasado || estado === 'espera_pieza';
     const esFicha = estado === 'vendido' || estado === 'listo_venta';
     const sel = _reacondSel.has(eq.id);
@@ -11963,8 +12062,9 @@ function renderEquipoReacondCard(eq, num) {
             <span class="bcf-tag bcf-t-${tono}">${tagTxt}</span>
         </header>
         <div class="bcf-sub">#${num} · IMEI ${escapeHtml(eq.imei || '—')}</div>
-        <div class="bcf-media">${_bcfMedia(foto, (eq.marca || '') + ' ' + (eq.modelo || ''))}</div>
+        <div class="bcf-media${_eqColorReal(eq) ? ' bcf-media-color' : ''}">${_eqColorReal(eq) ? (_bcfFotoColor((eq.marca || '') + ' ' + (eq.modelo || ''), _eqColorReal(eq)) ? `<img src="${_bcfFotoColor((eq.marca || '') + ' ' + (eq.modelo || ''), _eqColorReal(eq))}" alt="${escapeHtml((eq.modelo || '') + ' ' + _eqColorReal(eq))}" loading="lazy" decoding="async">` : _bcfTelefonoColor((eq.marca || '') + ' ' + (eq.modelo || ''), _eqColorHex(_eqColorReal(eq), eq.modelo))) : _bcfMedia(foto, (eq.marca || '') + ' ' + (eq.modelo || ''))}</div>
         ${chips.length ? `<div class="bcf-chips">${chips.map(([t, c]) => `<span class="bcf-chip bcf-t-${c}">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
+        ${_bcfPiezasHTML(eq.id)}
         <div class="bcf-per">${_bcfAvatar(tecnico?.nombre)}<div class="bcf-per-txt"><small>Técnico</small><b>${escapeHtml(tecnico?.nombre || 'Sin asignar')}</b></div><span class="bcf-upd">${escapeHtml(tomado)}</span></div>
         <div class="bcf-prog"><div class="bcf-prog-top"><span>${_BCF_PASOS_REACOND[paso]}</span><span>Paso ${paso + 1} de ${_BCF_PASOS_REACOND.length}</span></div>${_bcfBarra(paso, _BCF_PASOS_REACOND.length, ico, alerta)}</div>
         <footer class="bcf-f">
@@ -11979,7 +12079,7 @@ function renderEquipoReacondCard(eq, num) {
             ${estado === 'evaluado' ? `<button class="bcf-ib" onclick="continuarEvaluacion('${eq.id}')" title="Editar evaluación" aria-label="Editar evaluación"><i class="ti ti-pencil"></i></button>` : ''}
             <span class="bcf-acc-sp"></span>
             ${botones}
-            <span class="bcf-abrir">Abrir <i class="ti ti-chevron-right"></i></span>
+            <button type="button" class="bcf-abrir" onclick="${accionPrincipal}" title="Abrir el equipo">Abrir <i class="ti ti-chevron-right"></i></button>
         </div>
     </article>`;
 }
@@ -15663,6 +15763,17 @@ async function hacerDespachoAlmacen() {
     }
 }
 // Imprime el documento formal del despacho (conduce).
+// IMEI de un renglón del despacho con su color («351234… · Morado»). Si el despacho es viejo y no guardó el color,
+// se busca por IMEI en los reacondicionados.
+function _despImeisItem(it) {
+    const arr = Array.isArray(it.imeis) ? it.imeis : (Array.isArray(it.seriales) ? it.seriales : []);
+    return arr.map(x => {
+        const im = String((x && typeof x === 'object') ? (x.imei || x.numero || '') : x).trim(); if(!im) return null;
+        let col = (x && typeof x === 'object' && x.color) || '';
+        if(!col) { const eq = (cache.refurb || []).find(r => String(r.imei || '').trim() === im); col = eq ? _eqColorReal(eq) : ''; }
+        return { imei: im, color: col };
+    }).filter(Boolean);
+}
 function imprimirDespacho(id) {
     const r = _despHistRows.find(x => x.id === id);
     if(!r) return toast('No se encontró el despacho para imprimir.', 'error');
@@ -15674,10 +15785,8 @@ function imprimirDespacho(id) {
     const filas = items.map((it, i) => `<tr>
         <td style="text-align:center;">${i + 1}</td>
         <td style="text-align:center;">${escapeHtml(String(it.codigo || ''))}</td>
-        <td>${escapeHtml(it.descripcion || '')}</td>
+        <td>${escapeHtml(it.descripcion || '')}${_despImeisItem(it).length ? `<div style="font-size:11px;color:#475569;margin-top:3px;line-height:1.45;">${_despImeisItem(it).map(x => `IMEI ${escapeHtml(x.imei)}${x.color ? ' · <b style="color:#0f172a;">' + escapeHtml(x.color) + '</b>' : ''}`).join('<br>')}</div>` : ''}</td>
         <td style="text-align:center; font-weight:700;">${it.cantidad}</td>
-        <td style="text-align:right;">${money(it.costo || 0)}</td>
-        <td style="text-align:right;">${money((Number(it.costo) || 0) * (Number(it.cantidad) || 0))}</td>
     </tr>`).join('');
     const w = window.open('', '_blank');
     w.document.write(`<html><head><meta charset="utf-8"><title>Despacho ${escapeHtml(r.despacho_numero || '')}</title>
@@ -15705,9 +15814,9 @@ function imprimirDespacho(id) {
     </div>
     <div class="ruta">📦 ${escapeHtml(_nombreAlmacen(r.almacen_origen))} &nbsp;→&nbsp; ${escapeHtml(_nombreAlmacen(r.almacen_destino))}</div>
     ${r.nota ? `<div style="font-size:12.5px;color:#475569;margin-bottom:8px;">Nota: ${escapeHtml(r.nota)}</div>` : ''}
-    <table><thead><tr><th>#</th><th>Código</th><th style="text-align:left;">Descripción</th><th>Cant.</th><th style="text-align:right;">Costo u.</th><th style="text-align:right;">Subtotal</th></tr></thead>
+    <table><thead><tr><th>#</th><th>Código</th><th style="text-align:left;">Descripción</th><th>Cant.</th></tr></thead>
     <tbody>${filas}</tbody>
-    <tfoot><tr><td colspan="3" style="text-align:right;">TOTALES</td><td style="text-align:center;">${u}</td><td></td><td style="text-align:right;">${money(totalRD)}</td></tr></tfoot></table>
+    <tfoot><tr><td colspan="3" style="text-align:right;">TOTAL DE UNIDADES</td><td style="text-align:center;">${u}</td></tr></tfoot></table>
     <div class="firmas"><div>Despachado por</div><div>Recibido por</div></div>
     <p style="font-size:10px;color:#475569;margin-top:20px;">Documento de control interno · BAYOL CELL. Generado desde el sistema del taller.</p>
     </body></html>`);
@@ -15787,19 +15896,14 @@ async function descargarDespachoPDF(id) {
             : [{ codigo: r.codarticulo || '', descripcion: r.articulo_nombre || '', cantidad: r.cantidad || 0, costo: 0 }];
         const u = items.reduce((s, x) => s + (Number(x.cantidad) || 0), 0);
         const totalRD = items.reduce((s, x) => s + (Number(x.costo) || 0) * (Number(x.cantidad) || 0), 0);
-        const seriales = items.flatMap(x => {
-            const arr = Array.isArray(x.seriales) ? x.seriales : (Array.isArray(x.imeis) ? x.imeis : []);
-            return arr.map(s => (s && typeof s === 'object') ? (s.numero || s.imei || '') : s).filter(Boolean);
-        });
+        const seriales = items.flatMap(x => _despImeisItem(x).map(s => s.imei + (s.color ? ' · ' + s.color : '')));
         const filasHTML = items.map((it, i) => `<tr>
             <td style="padding:9px 11px;border-bottom:1px solid #eef2f7;text-align:center;">${i + 1}</td>
             <td style="padding:9px 11px;border-bottom:1px solid #eef2f7;text-align:center;">${escapeHtml(String(it.codigo || ''))}</td>
             <td style="padding:9px 11px;border-bottom:1px solid #eef2f7;">${escapeHtml(it.descripcion || '')}</td>
             <td style="padding:9px 11px;border-bottom:1px solid #eef2f7;text-align:center;font-weight:700;">${Number(it.cantidad) || 0}</td>
-            <td style="padding:9px 11px;border-bottom:1px solid #eef2f7;text-align:right;">${money(it.costo || 0)}</td>
-            <td style="padding:9px 11px;border-bottom:1px solid #eef2f7;text-align:right;">${money((Number(it.costo) || 0) * (Number(it.cantidad) || 0))}</td>
         </tr>`).join('');
-        const serHTML = seriales.length ? `<div style="margin:10px 0 4px;font-size:12.5px;"><div style="font-weight:800;color:#475569;margin-bottom:5px;">Series / IMEI (${seriales.length}):</div>${seriales.map(s => `<span style="display:inline-block;font-family:ui-monospace,Menlo,monospace;font-weight:700;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:7px;padding:5px 10px;margin:0 6px 6px 0;">${escapeHtml(String(s))}</span>`).join('')}</div>` : '';
+        const serHTML = seriales.length ? `<div style="margin:10px 0 4px;font-size:12.5px;"><div style="font-weight:800;color:#475569;margin-bottom:5px;">Series / IMEI · color (${seriales.length}):</div>${seriales.map(s => `<span style="display:inline-block;font-family:ui-monospace,Menlo,monospace;font-weight:700;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:7px;padding:5px 10px;margin:0 6px 6px 0;">${escapeHtml(String(s))}</span>`).join('')}</div>` : '';
         const wrap = document.createElement('div');
         wrap.style.cssText = 'position:fixed;left:-99999px;top:0;width:760px;background:#fff;padding:34px 38px;font-family:-apple-system,Segoe UI,Arial,sans-serif;color:#0f172a;';
         wrap.innerHTML = `
@@ -15826,12 +15930,10 @@ async function descargarDespachoPDF(id) {
             <th style="background:#0f172a;color:#fff;text-align:center;padding:9px 11px;font-size:11px;">C&oacute;d.</th>
             <th style="background:#0f172a;color:#fff;text-align:left;padding:9px 11px;font-size:11px;">Art&iacute;culo</th>
             <th style="background:#0f172a;color:#fff;text-align:center;padding:9px 11px;font-size:11px;">Cant.</th>
-            <th style="background:#0f172a;color:#fff;text-align:right;padding:9px 11px;font-size:11px;">Costo u.</th>
-            <th style="background:#0f172a;color:#fff;text-align:right;padding:9px 11px;font-size:11px;">Monto</th>
           </tr></thead><tbody>${filasHTML}</tbody>
         </table>
         ${serHTML}
-        <div style="text-align:right;font-size:15px;font-weight:900;margin:10px 0 26px;"><span style="color:#475569;font-size:12px;font-weight:700;">Total RD$ </span>${money(totalRD)} <span style="color:#475569;font-size:12px;font-weight:700;">&middot; ${u} und.</span></div>
+        <div style="text-align:right;font-size:15px;font-weight:900;margin:10px 0 26px;"><span style="color:#475569;font-size:12px;font-weight:700;">Total de unidades </span>${u}</div>
         <div style="display:flex;gap:40px;margin-top:40px;">
           <div style="flex:1;text-align:center;"><div style="border-top:1.5px solid #0f172a;margin-bottom:6px;"></div><div style="font-size:11px;color:#475569;font-weight:700;">ENTREGADO POR</div></div>
           <div style="flex:1;text-align:center;"><div style="border-top:1.5px solid #0f172a;margin-bottom:6px;"></div><div style="font-size:11px;color:#475569;font-weight:700;">RECIBIDO POR</div></div>
@@ -15899,70 +16001,458 @@ async function _despachoCargarHistorial() {
                 <td>${escapeHtml(r.usuario)}</td>
                 <td>${badge(r.estado)}</td>
                 <td>${escapeHtml(r.nota)}</td>
-                <td style="white-space:nowrap; text-align:center;">${(r.tipo === 'almacen' && r.id && r.estado === 'ok') ? `<button class="btn btn-light" style="padding:3px 8px; font-size:12px;" title="Imprimir conduce" onclick="imprimirDespacho('${r.id}')"><i class="ti ti-printer"></i></button> <button class="btn btn-light" style="padding:3px 8px; font-size:12px;" title="Descargar PDF" onclick="descargarDespachoPDF('${r.id}')"><i class="ti ti-file-type-pdf"></i></button>` : ''}</td>
+                <td style="white-space:nowrap; text-align:center;">${(r.tipo === 'almacen' && r.id && r.estado === 'ok') ? `<button class="btn btn-light" style="padding:3px 8px; font-size:12px;" title="Imprimir conduce" onclick="imprimirDespacho('${r.id}')"><i class="ti ti-printer"></i></button> <button class="btn btn-light" style="padding:3px 8px; font-size:12px; color:#15803d;" title="Enviar reporte por WhatsApp" onclick="despReporteDesdeHistorial('${r.id}')"><i class="ti ti-brand-whatsapp"></i></button> <button class="btn btn-light" style="padding:3px 8px; font-size:12px;" title="Descargar PDF" onclick="descargarDespachoPDF('${r.id}')"><i class="ti ti-file-type-pdf"></i></button>` : ''}</td>
             </tr>`).join('') + `</tbody></table>`;
     } catch(e) { logError('Historial despachos', e); cont.innerHTML = '<p style="color:#b91c1c; font-size:13px;">No se pudo cargar el historial.</p>'; }
 }
 
 // ===== DESPACHAR TELÉFONOS REACONDICIONADOS SELECCIONADOS (agrupa por modelo, costo promedio, con IMEI) =====
 let _despTelCtx = null;
+// Despacho con buscador (16-oct-2026): la ventana abre aunque no haya nada marcado; se busca por modelo, IMEI,
+// color o lote, se marcan los teléfonos ahí mismo (o se escanea el IMEI + Enter) y abajo se arma el documento por modelo.
+function _despTelCandidatos() {
+    const sel = _despTelCtx ? _despTelCtx.sel : new Set();
+    return (cache.refurb || []).filter(r => (r.estado_evaluacion === 'listo_venta' && !r.completado) || sel.has(r.id))
+        .sort((x, y) => String(x.modelo || '').localeCompare(String(y.modelo || '')) || String(x.imei || '').localeCompare(String(y.imei || '')));
+}
+function _despTelCod(e) { return (e.articulo_codigo != null && String(e.articulo_codigo).trim()) ? String(e.articulo_codigo).trim() : ''; }
+function _despTelLote(e) { const l = (cache.lotes || []).find(x => x.id === e.lote_id); return l ? (l.codigo_lote || '') : ''; }
+function _despTelNorm(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
 function despacharTelefonosSeleccionados() {
     if(!isAdminUser()) return toast('Solo el administrador.', 'error');
-    if(!_reacondSel.size) return toast('Marca primero los teléfonos con la casilla de cada tarjeta.', 'error');
-    const eqs = (cache.refurb || []).filter(r => _reacondSel.has(r.id));
-    const grupos = {};
-    let sinCodigo = 0;
+    _despTelCtx = { sel: new Set([...(_reacondSel || [])].filter(id => (cache.refurb || []).some(r => r.id === id))), q: '', lista: [], sinCodigo: 0 };
+    const borr = _despTelBorradorLeer();
+    let avisoBorr = '';
+    if(borr && borr.ids.length) {
+        const vivos = borr.ids.filter(id => (cache.refurb || []).some(r => r.id === id && r.estado_evaluacion !== 'vendido'));
+        if(vivos.length && !_despTelCtx.sel.size) { vivos.forEach(id => _despTelCtx.sel.add(id)); _despTelCtx.borr = borr; }
+        if(vivos.length) avisoBorr = `<div class="dt-borr"><i class="ti ti-device-floppy"></i><span>Borrador guardado el ${new Date(borr.fecha).toLocaleString('es-DO', { day:'numeric', month:'numeric', hour:'numeric', minute:'2-digit' })}${borr.por ? ' por ' + escapeHtml(borr.por) : ''} · ${vivos.length} teléfono(s)${_despTelCtx.borr ? ' (ya cargado)' : ''}</span><span class="dt-sp"></span>${_despTelCtx.borr ? '' : `<button type="button" onclick="_despTelCargarBorrador()">Cargar</button>`}<button type="button" onclick="_despTelBorrarBorrador()">Descartar</button></div>`;
+    }
+    _despTelEstilos();
+    const almOpts = ALMACENES_IP.map(a => `<option value="${a.c}">${a.n}</option>`).join('');
+    const prev = document.getElementById('modalDespTel'); if(prev) prev.remove();
+    const box = document.createElement('div');
+    box.className = 'modal-backdrop active'; box.id = 'modalDespTel'; box.style.zIndex = '600';
+    box.onclick = (ev) => { if(ev.target === box) box.remove(); };
+    box.innerHTML = `<div class="modal-box dt-box">
+      <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-truck-delivery"></i> Despachar teléfonos <span id="dtCuenta">(0)</span></h3></div>
+      <div class="modal-body dt-body">
+        <div id="dtBorrAviso">${avisoBorr}</div>
+        <div class="dt-ruta">
+          <div><label>Desde</label><select id="despTelOrigen">${almOpts}</select></div>
+          <i class="ti ti-arrow-right"></i>
+          <div><label>Hacia</label><select id="despTelDestino">${almOpts}</select></div>
+        </div>
+        <div class="dt-busca">
+          <i class="ti ti-search"></i>
+          <input id="dtBuscar" data-bcbp-no autocomplete="off" placeholder="Buscar por modelo, IMEI, color o lote · escanea el IMEI y Enter" oninput="_despTelCtx.q=this.value;_despTelRender()" onkeydown="_despTelTecla(event)">
+        </div>
+        <div class="dt-barra"><span id="dtVis"></span><span class="dt-sp"></span><button type="button" onclick="_despTelMarcarVisibles(true)">Marcar los visibles</button><button type="button" onclick="_despTelMarcarVisibles(false)">Quitar todos</button></div>
+        <div class="dt-lista" id="dtLista"></div>
+        <div id="dtResumen"></div>
+        <div class="dt-nota">Info Plus agrupa por modelo con <b>costo promedio</b> y se despacha como <b>un documento único</b> con todos sus IMEI. Cada teléfono debe estar en la localidad de origen.</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-light" onclick="document.getElementById('modalDespTel').remove()">Cancelar</button>
+        <span style="flex:1"></span>
+        <button class="btn btn-light dt-acc" id="dtBtnGuardar" onclick="_despTelGuardarImprimir()" title="Guarda la lista para seguir luego (no se manda a Info Plus) e imprime la hoja con modelos, IMEI y color"><i class="ti ti-device-floppy"></i> Guardar e imprimir</button>
+        <button class="btn btn-blue" id="dtBtnDesp" onclick="_despTelConfirmar()"><i class="ti ti-truck-delivery"></i> Despachar</button>
+      </div>
+    </div>`;
+    document.body.appendChild(box);
+    const o = document.getElementById('despTelOrigen'); if(o) o.value = (_despTelCtx.borr && _despTelCtx.borr.origen) || '6';
+    const d = document.getElementById('despTelDestino'); if(d) d.value = (_despTelCtx.borr && _despTelCtx.borr.destino) || '1';
+    _despTelRender();
+    setTimeout(() => document.getElementById('dtBuscar')?.focus(), 60);
+}
+function _despTelFiltrados() {
+    const q = _despTelNorm(_despTelCtx.q).trim();
+    const todos = _despTelCandidatos();
+    if(!q) return todos;
+    const partes = q.split(/\s+/);
+    return todos.filter(e => { const t = _despTelNorm([e.modelo, e.imei, e.color, e.capacidad, _despTelLote(e), _despTelCod(e)].join(' ')); return partes.every(p => t.includes(p)); });
+}
+function _despTelOpcionesColor(e) {
+    const col = _eqColorReal(e);
+    const lista = _bcColoresModelo(e.modelo).map(x => x[0]);
+    if(col && !lista.some(n => n.toLowerCase() === col.toLowerCase())) lista.unshift(col);
+    return `<option value="">${col ? 'Quitar color' : 'Elegir color…'}</option>` + lista.map(n => `<option value="${escapeHtml(n)}"${col && n.toLowerCase() === col.toLowerCase() ? ' selected' : ''}>${escapeHtml(n)}</option>`).join('');
+}
+async function _despTelPonerColor(id, color, sel) {
+    if(sel) sel.disabled = true;
+    try {
+        await _bcGuardarColorEquipo(id, color);
+        toast(color ? `Color guardado: ${color}` : 'Color quitado');
+    } catch(err) { logError('Color en despacho', err); toastError(getFriendlyError(err)); }
+    _despTelRender();
+}
+function _despTelToggle(id, on) {
+    if(on) _despTelCtx.sel.add(id); else _despTelCtx.sel.delete(id);
+    _despTelRender(true);
+}
+function _despTelMarcarVisibles(on) {
+    if(on) _despTelFiltrados().forEach(e => { if(_despTelCod(e)) _despTelCtx.sel.add(e.id); });
+    else _despTelCtx.sel.clear();
+    _despTelRender();
+}
+function _despTelTecla(ev) {
+    if(ev.key !== 'Enter') return;
+    ev.preventDefault();
+    const q = String(ev.target.value || '').trim(); if(!q) return;
+    const vis = _despTelFiltrados();
+    const exacto = _despTelCandidatos().find(e => String(e.imei || '').trim() === q);
+    const elegido = exacto || (vis.length === 1 ? vis[0] : null);
+    if(!elegido) return toast(vis.length ? 'Hay varios; márcalo en la lista.' : 'No hay un teléfono listo con ese IMEI.', 'error');
+    if(!_despTelCod(elegido)) return toast('Ese teléfono no tiene código de Info Plus.', 'error');
+    _despTelCtx.sel.add(elegido.id);
+    ev.target.value = ''; _despTelCtx.q = '';
+    _despTelRender();
+    toast(`Agregado: ${elegido.modelo || ''} · ${elegido.imei || ''}`);
+}
+function _despTelRender(soloResumen) {
+    const ctx = _despTelCtx; if(!ctx || !document.getElementById('modalDespTel')) return;
+    const vis = _despTelFiltrados();
+    if(!soloResumen) {
+        const lista = document.getElementById('dtLista');
+        if(lista) lista.innerHTML = vis.length ? vis.map(e => {
+            const cod = _despTelCod(e), on = ctx.sel.has(e.id), col = _eqColorReal(e);
+            return `<label class="dt-fila${on ? ' on' : ''}${cod ? '' : ' off'}">
+                <input type="checkbox" ${on ? 'checked' : ''} ${cod ? '' : 'disabled'} onchange="_despTelToggle('${e.id}', this.checked); this.closest('.dt-fila').classList.toggle('on', this.checked)">
+                <span class="dt-mod"><b>${escapeHtml(e.modelo || 'Sin modelo')}</b><small>IMEI ${escapeHtml(e.imei || '—')}</small></span>
+                <span class="dt-col"><i style="background:${col ? _eqColorHex(col, e.modelo) : 'transparent'}"></i><select class="dt-colsel${col ? '' : ' vacio'}" title="Elegir el color de este teléfono" onclick="event.stopPropagation()" onchange="_despTelPonerColor('${e.id}', this.value, this)">${_despTelOpcionesColor(e)}</select></span>
+                <span class="dt-lote">${escapeHtml(_despTelLote(e) || '—')}</span>
+                <span class="dt-cod">${cod ? escapeHtml(cod) : '<em>Sin código IP</em>'}</span>
+            </label>`;
+        }).join('') : `<div class="dt-vacio">${ctx.q ? 'No hay teléfonos listos que coincidan con «' + escapeHtml(ctx.q) + '».' : 'No hay teléfonos listos para despachar.'}</div>`;
+        const v = document.getElementById('dtVis'); if(v) v.textContent = `${vis.length} listo(s) para despachar${ctx.q ? ' con esa búsqueda' : ''}`;
+    }
+    // Resumen por modelo (documento de Info Plus)
+    const eqs = (cache.refurb || []).filter(r => ctx.sel.has(r.id));
+    const grupos = {}; let sinCodigo = 0;
     eqs.forEach(e => {
-        const cod = (e.articulo_codigo != null && String(e.articulo_codigo).trim()) ? String(e.articulo_codigo).trim() : '';
+        const cod = _despTelCod(e);
         if(!cod) { sinCodigo++; return; }
         if(!grupos[cod]) grupos[cod] = { codigo: cod, modelo: _modeloRep(e), imeis: [], equipos: [], total: 0 };
         grupos[cod].equipos.push(e);
         if(e.imei) grupos[cod].imeis.push(String(e.imei).trim());
         grupos[cod].total += _costoEquipoRep(e).fin;
     });
-    const lista = Object.values(grupos);
-    if(!lista.length) return toast('Los teléfonos seleccionados no tienen código de Info Plus (articulo_codigo).', 'error');
-    _despTelCtx = { lista, sinCodigo };
-    const almOpts = ALMACENES_IP.map(a => `<option value="${a.c}">${a.n}</option>`).join('');
-    const filas = lista.map(g => {
-        const cant = g.equipos.length, prom = cant ? g.total / cant : 0, faltan = cant - g.imeis.length;
-        return `<tr>
-            <td style="padding:6px; border-bottom:1px solid #eef2f7;">${escapeHtml(g.modelo)}<div style="font-size:10px; color:#475569;">${g.imeis.map(x => escapeHtml(x)).join(', ')}</div></td>
-            <td style="padding:6px; border-bottom:1px solid #eef2f7; text-align:center; color:#1d4ed8; font-weight:700;">${escapeHtml(g.codigo)}</td>
-            <td style="padding:6px; border-bottom:1px solid #eef2f7; text-align:center;">${cant}</td>
-            <td style="padding:6px; border-bottom:1px solid #eef2f7; text-align:right;">${money(prom)}</td>
-            <td style="padding:6px; border-bottom:1px solid #eef2f7; text-align:center;">${g.imeis.length}${faltan > 0 ? ` <span style="color:#b91c1c;"><i class="ti ti-alert-triangle"></i> ${faltan}</span>` : ''}</td>
-        </tr>`;
-    }).join('');
-    const totU = lista.reduce((s, g) => s + g.equipos.length, 0);
-    const totRD = lista.reduce((s, g) => s + g.total, 0);
-    const prev = document.getElementById('modalDespTel'); if(prev) prev.remove();
+    ctx.lista = Object.values(grupos); ctx.sinCodigo = sinCodigo;
+    const totU = ctx.lista.reduce((s, g) => s + g.equipos.length, 0);
+    const totRD = ctx.lista.reduce((s, g) => s + g.total, 0);
+    const c = document.getElementById('dtCuenta'); if(c) c.textContent = `(${totU})`;
+    ['dtBtnDesp', 'dtBtnGuardar'].forEach(idb => { const b = document.getElementById(idb); if(b) b.disabled = !totU; });
+    const res = document.getElementById('dtResumen');
+    if(res) res.innerHTML = totU ? `<div class="dt-res-h">Documento a despachar</div>
+        <div class="table-wrap"><table class="dt-tabla"><thead><tr><th style="text-align:left;">Modelo / IMEIs</th><th>Cód IP</th><th>Cant.</th><th style="text-align:right;">Prom.</th><th>IMEI</th></tr></thead><tbody>${ctx.lista.map(g => {
+            const cant = g.equipos.length, prom = cant ? g.total / cant : 0, faltan = cant - g.imeis.length;
+            return `<tr><td>${escapeHtml(g.modelo)}<div class="dt-imeis">${g.equipos.map(e => escapeHtml(e.imei || '—') + (_eqColorReal(e) ? ' · <b>' + escapeHtml(_eqColorReal(e)) + '</b>' : ' · <span style="color:#b45309;">sin color</span>')).join('<br>')}</div></td><td class="c" style="color:#1d4ed8; font-weight:700;">${escapeHtml(g.codigo)}</td><td class="c">${cant}</td><td style="text-align:right;">${money(prom)}</td><td class="c">${g.imeis.length}${faltan > 0 ? ` <span style="color:#b91c1c;"><i class="ti ti-alert-triangle"></i> ${faltan}</span>` : ''}</td></tr>`;
+        }).join('')}</tbody></table></div>
+        <div class="dt-total"><b>${totU}</b> teléfono(s) · Total <b>${money(totRD)}</b></div>`
+        : '<div class="dt-vacio">Marca en la lista los teléfonos que vas a despachar.</div>';
+}
+// Borrador del despacho (en esta computadora): guarda qué teléfonos van y la ruta, sin tocar Info Plus.
+const _DT_BORR_KEY = 'bayolDespTelBorrador';
+function _despTelBorradorLeer() { try { const b = JSON.parse(localStorage.getItem(_DT_BORR_KEY) || 'null'); return (b && Array.isArray(b.ids)) ? b : null; } catch(_) { return null; } }
+function _despTelGuardarBorrador() {
+    if(!_despTelCtx || !_despTelCtx.sel.size) return toast('Marca al menos un teléfono.', 'error');
+    const b = { ids: [..._despTelCtx.sel], origen: document.getElementById('despTelOrigen')?.value || '6', destino: document.getElementById('despTelDestino')?.value || '1', fecha: new Date().toISOString(), por: (typeof sessionUser !== 'undefined' && sessionUser && sessionUser.nombre) || '' };
+    try { localStorage.setItem(_DT_BORR_KEY, JSON.stringify(b)); } catch(_) { return toast('No se pudo guardar en esta computadora.', 'error'); }
+    _despTelCtx.borr = b;
+    const av = document.getElementById('dtBorrAviso');
+    if(av) av.innerHTML = `<div class="dt-borr ok"><i class="ti ti-circle-check"></i><span>Guardado: ${b.ids.length} teléfono(s). Al volver a abrir «Despachar teléfonos» en esta computadora, la lista sigue aquí.</span><span class="dt-sp"></span><button type="button" onclick="_despTelBorrarBorrador()">Descartar</button></div>`;
+    toast(`Borrador guardado: ${b.ids.length} teléfono(s).`);
+}
+function _despTelCargarBorrador() {
+    const b = _despTelBorradorLeer(); if(!b || !_despTelCtx) return;
+    b.ids.forEach(id => { if((cache.refurb || []).some(r => r.id === id && r.estado_evaluacion !== 'vendido')) _despTelCtx.sel.add(id); });
+    _despTelCtx.borr = b;
+    const o = document.getElementById('despTelOrigen'); if(o && b.origen) o.value = b.origen;
+    const d = document.getElementById('despTelDestino'); if(d && b.destino) d.value = b.destino;
+    const av = document.getElementById('dtBorrAviso'); if(av) av.innerHTML = '';
+    _despTelRender();
+}
+function _despTelBorrarBorrador(silencio) {
+    try { localStorage.removeItem(_DT_BORR_KEY); } catch(_) {}
+    if(_despTelCtx) _despTelCtx.borr = null;
+    const av = document.getElementById('dtBorrAviso'); if(av) av.innerHTML = '';
+    if(!silencio) toast('Borrador descartado.');
+}
+// Un solo botón: guarda el borrador y saca la hoja para imprimir.
+function _despTelGuardarImprimir() {
+    if(!_despTelCtx || !(_despTelCtx.lista || []).length) return toast('Marca al menos un teléfono.', 'error');
+    _despTelGuardarBorrador();
+    _despTelImprimir();
+}
+// ===== Reportes del despacho por WhatsApp (16-oct-2026) =====
+// Se abren con «Click to chat» (wa.me): salen del WhatsApp que esté abierto en esa computadora (WhatsApp Web o la app),
+// con el texto ya escrito; la persona solo toca Enviar. No usa la API ni plantillas.
+// · Reporte del equipo: modelos, IMEI y color, SIN costos. Se elige a quién mandarlo cada vez.
+// · Reporte administrativo: lo mismo + costo de cada equipo y el lote al que pertenece. Solo al número del dueño.
+const _DESP_CONTACTOS_KEY = 'bayolDespContactos';
+const _DESP_ADMIN_KEY = 'bayolDespAdminTel';
+function _despTelWa(t) {
+    let d = String(t || '').replace(/\D/g, '');
+    if(d.length === 10 && /^(809|829|849)/.test(d)) d = '1' + d;
+    return d.length >= 11 ? d : '';
+}
+function _despInfoDesdeLista(numero, origen, destino, lista) {
+    const equipos = [];
+    (lista || []).forEach(g => g.equipos.forEach(e => equipos.push({
+        modelo: g.modelo || e.modelo || '', imei: String(e.imei || '').trim(), color: _eqColorReal(e) || '',
+        costo: (typeof _costoEquipoRep === 'function') ? (_costoEquipoRep(e).fin || 0) : 0, lote: (typeof _despTelLote === 'function') ? _despTelLote(e) : ''
+    })));
+    return { numero: numero || '', origen, destino, fecha: new Date().toISOString(), usuario: (typeof sessionUser !== 'undefined' && sessionUser && sessionUser.nombre) || '', equipos };
+}
+function despReporteDesdeHistorial(id) {
+    const r = (_despHistRows || []).find(x => x.id === id);
+    if(!r) return toast('No se encontró el despacho.', 'error');
+    const equipos = [];
+    (Array.isArray(r.items) ? r.items : []).forEach(it => {
+        const ims = _despImeisItem(it);
+        if(!ims.length) { equipos.push({ modelo: it.descripcion || '', imei: '', color: '', costo: Number(it.costo) || 0, lote: '', cant: Number(it.cantidad) || 1 }); return; }
+        ims.forEach(x => {
+            const eq = (cache.refurb || []).find(e => String(e.imei || '').trim() === x.imei);
+            equipos.push({ modelo: it.descripcion || '', imei: x.imei, color: x.color, costo: eq && typeof _costoEquipoRep === 'function' ? (_costoEquipoRep(eq).fin || Number(it.costo) || 0) : (Number(it.costo) || 0), lote: eq ? _despTelLote(eq) : '' });
+        });
+    });
+    _despReporteAbrir({ numero: r.despacho_numero || '', origen: r.almacen_origen, destino: r.almacen_destino, fecha: r.fecha, usuario: r.usuario || '', equipos }, r.id);
+}
+function _despReporteTexto(info, admin) {
+    const f = new Date(info.fecha || Date.now()).toLocaleString('es-DO', { day:'numeric', month:'numeric', year:'numeric', hour:'numeric', minute:'2-digit' });
+    const L = [];
+    L.push(admin ? `📊 *Reporte administrativo · Despacho ${info.numero ? '#' + info.numero : ''}*` : `📦 *Despacho de equipos ${info.numero ? '#' + info.numero : ''}*`);
+    L.push(`${_nombreAlmacen(info.origen)} → ${_nombreAlmacen(info.destino)} · ${f}`);
+    L.push('');
+    const total = info.equipos.reduce((s, e) => s + (e.cant || 1), 0);
+    info.equipos.forEach((e, i) => {
+        let t = `${i + 1}) ${e.modelo}`;
+        if(e.imei) t += `\n    IMEI ${e.imei}${e.color ? ' · ' + e.color : ''}`;
+        if(e.cant > 1) t += ` (x${e.cant})`;
+        if(admin) t += `\n    Costo ${money(e.costo || 0)}${e.lote ? ' · Lote ' + e.lote : ''}`;
+        L.push(t);
+    });
+    L.push('');
+    L.push(`*Total: ${total} equipo(s)*`);
+    if(admin) {
+        const totRD = info.equipos.reduce((s, e) => s + (Number(e.costo) || 0) * (e.cant || 1), 0);
+        L.push(`*Costo total: ${money(totRD)}*`);
+        const porLote = {};
+        info.equipos.forEach(e => { const k = e.lote || 'Sin lote'; porLote[k] = porLote[k] || { n: 0, c: 0 }; porLote[k].n += (e.cant || 1); porLote[k].c += (Number(e.costo) || 0) * (e.cant || 1); });
+        L.push('');
+        L.push('_Por lote:_');
+        Object.keys(porLote).forEach(k => L.push(`• ${k}: ${porLote[k].n} equipo(s) · ${money(porLote[k].c)}`));
+    }
+    if(info.usuario) { L.push(''); L.push(`Despachado por: ${info.usuario}`); }
+    return L.join('\n');
+}
+function _despContactos() {
+    let extra = [];
+    try { extra = JSON.parse(localStorage.getItem(_DESP_CONTACTOS_KEY) || '[]') || []; } catch(_) {}
+    const emp = (cache.tecnicos || []).filter(t => _despTelWa(t.telefono || t.celular)).map(t => ({ id: 'emp:' + t.id, nombre: t.nombre || nombreEmpleado(t.id), tel: _despTelWa(t.telefono || t.celular), emp: true }));
+    return emp.concat(extra.filter(c => _despTelWa(c.tel)).map((c, i) => ({ id: 'x:' + i, nombre: c.nombre, tel: _despTelWa(c.tel), emp: false, i })));
+}
+let _despRepCtx = null;
+function _despReporteAbrir(info, histId) {
+    _despRepCtx = { info, histId };
+    document.getElementById('modalDespTel')?.remove();
+    document.getElementById('modalDespRep')?.remove();
+    _despRepEstilos();
     const box = document.createElement('div');
-    box.className = 'modal-backdrop active'; box.id = 'modalDespTel'; box.style.zIndex = '600';
-    box.innerHTML = `<div class="modal-box" style="max-width:660px;">
-      <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-truck-delivery"></i> Despachar teléfonos (${totU})</h3></div>
-      <div class="modal-body">
-        <div style="display:grid; grid-template-columns:1fr auto 1fr; gap:10px; align-items:end; margin-bottom:12px;">
-          <div><label style="font-size:12px; font-weight:700; color:#475569;">Desde</label><select id="despTelOrigen" style="width:100%; padding:9px; border:1px solid #cbd5e1; border-radius:8px; font-weight:600;">${almOpts}</select></div>
-          <div style="font-size:20px; color:#0891b2; padding-bottom:6px;">→</div>
-          <div><label style="font-size:12px; font-weight:700; color:#475569;">Hacia</label><select id="despTelDestino" style="width:100%; padding:9px; border:1px solid #cbd5e1; border-radius:8px; font-weight:600;">${almOpts}</select></div>
+    box.className = 'modal-backdrop active'; box.id = 'modalDespRep'; box.style.zIndex = '650';
+    box.onclick = (ev) => { if(ev.target === box) box.remove(); };
+    box.innerHTML = `<div class="modal-box dr-box">
+      <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-circle-check"></i> Despacho ${info.numero ? '#' + escapeHtml(info.numero) : ''} · reportes</h3></div>
+      <div class="modal-body dr-body">
+        <div class="dr-ruta">${escapeHtml(_nombreAlmacen(info.origen))} → ${escapeHtml(_nombreAlmacen(info.destino))} · ${info.equipos.length} equipo(s)
+          ${histId ? `<button type="button" class="dr-btn" onclick="imprimirDespacho('${histId}')"><i class="ti ti-printer"></i> Imprimir conduce</button>` : ''}</div>
+        <div class="dr-sec">
+          <div class="dr-h"><i class="ti ti-users"></i> Reporte para el equipo <small>sin costos · para conocimiento</small></div>
+          <div class="dr-ayuda">Toca <b>Enviar</b> en cada persona: se abre WhatsApp con el mensaje escrito y solo tocas Enviar allá. Sale del WhatsApp abierto en esta computadora (el 829-589-3292 si es el que está en WhatsApp Web).</div>
+          <div id="drContactos"></div>
+          <div class="dr-add"><input id="drNomNuevo" placeholder="Nombre" autocomplete="off"><input id="drTelNuevo" placeholder="Número (809…)" inputmode="tel" autocomplete="off"><button type="button" class="dr-btn" onclick="_despRepAgregar()"><i class="ti ti-plus"></i> Agregar</button></div>
+          <details class="dr-prev"><summary>Ver el mensaje</summary><pre>${escapeHtml(_despReporteTexto(info, false))}</pre><button type="button" class="dr-btn" onclick="_despRepCopiar(false)"><i class="ti ti-copy"></i> Copiar texto</button></details>
         </div>
-        <div class="table-wrap"><table style="width:100%; border-collapse:collapse; font-size:12.5px;"><thead><tr style="background:#0f172a; color:#fff;"><th style="padding:6px; text-align:left;">Modelo / IMEIs</th><th>Cód IP</th><th>Cant.</th><th style="text-align:right;">Prom.</th><th>IMEI</th></tr></thead><tbody>${filas}</tbody></table></div>
-        <div style="text-align:right; margin-top:8px; font-size:13px;"><b>${totU}</b> teléfono(s) · Total <b>${money(totRD)}</b></div>
-        ${sinCodigo ? `<div style="margin-top:8px; background:#fef2f2; color:#b91c1c; font-size:12px; padding:8px; border-radius:8px;"><i class="ti ti-alert-triangle"></i> ${sinCodigo} teléfono(s) sin código Info Plus quedaron fuera.</div>` : ''}
-        <div style="margin-top:10px; background:#ecfdf5; border:1px solid #a7f3d0; font-size:11.5px; padding:8px 10px; border-radius:8px; color:#065f46;">Info Plus agrupa por modelo con <b>costo promedio</b> y se despacha como <b>un documento único</b> con todos sus IMEI. Cada teléfono debe estar en la localidad de origen.</div>
+        ${isAdminUser() ? `<div class="dr-sec dr-admin">
+          <div class="dr-h"><i class="ti ti-lock"></i> Reporte administrativo <small>con costo y lote · solo para el dueño</small></div>
+          <div class="dr-fila"><span class="dr-n"><b>Dueño</b><small id="drAdminTel">${escapeHtml(_despAdminTel() || 'sin número')}</small></span><button type="button" class="dr-btn" onclick="_despRepCambiarAdmin()">Cambiar número</button><button type="button" class="dr-btn wa" onclick="_despRepEnviarAdmin()"><i class="ti ti-brand-whatsapp"></i> Enviar</button></div>
+          <details class="dr-prev"><summary>Ver el mensaje</summary><pre>${escapeHtml(_despReporteTexto(info, true))}</pre><button type="button" class="dr-btn" onclick="_despRepCopiar(true)"><i class="ti ti-copy"></i> Copiar texto</button></details>
+        </div>` : ''}
       </div>
-      <div class="modal-footer">
-        <button class="btn btn-light" onclick="document.getElementById('modalDespTel').remove()">Cancelar</button>
-        <button class="btn btn-blue" onclick="_despTelConfirmar()"><i class="ti ti-truck-delivery"></i> Despachar</button>
-      </div>
+      <div class="modal-footer"><button class="btn btn-light" onclick="document.getElementById('modalDespRep').remove()">Listo</button></div>
     </div>`;
     document.body.appendChild(box);
-    const o = document.getElementById('despTelOrigen'); if(o) o.value = '6';
-    const d = document.getElementById('despTelDestino'); if(d) d.value = '1';
+    _despRepPintarContactos();
+}
+function _despAdminTel() { try { return localStorage.getItem(_DESP_ADMIN_KEY) || ''; } catch(_) { return ''; } }
+function _despRepPintarContactos() {
+    const c = document.getElementById('drContactos'); if(!c) return;
+    const lista = _despContactos();
+    c.innerHTML = lista.length ? lista.map(p => `<div class="dr-fila"><span class="dr-n"><b>${escapeHtml(p.nombre || 'Contacto')}</b><small>${escapeHtml(p.tel)}${p.emp ? ' · empleado' : ''}</small></span>${p.emp ? '' : `<button type="button" class="dr-btn ghost" title="Quitar" onclick="_despRepQuitar(${p.i})"><i class="ti ti-x"></i></button>`}<button type="button" class="dr-btn wa" id="drEnv-${p.tel}" onclick="_despRepEnviar('${p.tel}', this)"><i class="ti ti-brand-whatsapp"></i> Enviar</button></div>`).join('')
+        : '<div class="dr-vacio">Todavía no hay contactos. Agrega abajo a quién se le manda el reporte.</div>';
+}
+function _despRepAgregar() {
+    const nom = (document.getElementById('drNomNuevo')?.value || '').trim();
+    const tel = _despTelWa(document.getElementById('drTelNuevo')?.value);
+    if(!tel) return toast('Escribe un número válido (809, 829 u 849 + 7 dígitos).', 'error');
+    let extra = []; try { extra = JSON.parse(localStorage.getItem(_DESP_CONTACTOS_KEY) || '[]') || []; } catch(_) {}
+    if(extra.some(x => _despTelWa(x.tel) === tel)) return toast('Ese número ya está en la lista.', 'error');
+    extra.push({ nombre: nom || tel, tel });
+    try { localStorage.setItem(_DESP_CONTACTOS_KEY, JSON.stringify(extra)); } catch(_) {}
+    document.getElementById('drNomNuevo').value = ''; document.getElementById('drTelNuevo').value = '';
+    _despRepPintarContactos();
+}
+function _despRepQuitar(i) {
+    let extra = []; try { extra = JSON.parse(localStorage.getItem(_DESP_CONTACTOS_KEY) || '[]') || []; } catch(_) {}
+    extra.splice(i, 1);
+    try { localStorage.setItem(_DESP_CONTACTOS_KEY, JSON.stringify(extra)); } catch(_) {}
+    _despRepPintarContactos();
+}
+function _despRepAbrirWa(tel, texto) { window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(texto), '_blank'); }
+function _despRepEnviar(tel, btn) {
+    if(!_despRepCtx) return;
+    _despRepAbrirWa(tel, _despReporteTexto(_despRepCtx.info, false));
+    if(btn) { btn.classList.add('ok'); btn.innerHTML = '<i class="ti ti-check"></i> Abierto'; }
+}
+async function _despRepCambiarAdmin() {
+    const v = await pedirTexto('Número de WhatsApp del dueño para el reporte administrativo:', { valor: _despAdminTel() });
+    if(v === null) return;
+    const tel = _despTelWa(v);
+    if(!tel) return toast('Número no válido.', 'error');
+    try { localStorage.setItem(_DESP_ADMIN_KEY, tel); } catch(_) {}
+    const el = document.getElementById('drAdminTel'); if(el) el.textContent = tel;
+}
+async function _despRepEnviarAdmin() {
+    if(!isAdminUser()) return toast('Solo el administrador.', 'error');
+    if(!_despAdminTel()) { await _despRepCambiarAdmin(); if(!_despAdminTel()) return; }
+    _despRepAbrirWa(_despAdminTel(), _despReporteTexto(_despRepCtx.info, true));
+}
+function _despRepCopiar(admin) {
+    if(admin && !isAdminUser()) return;
+    const t = _despReporteTexto(_despRepCtx.info, !!admin);
+    (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('Texto copiado.'), () => toast('No se pudo copiar.', 'error'));
+}
+function _despRepEstilos() {
+    if(document.getElementById('drStyles')) return;
+    const st = document.createElement('style'); st.id = 'drStyles'; st.textContent = `
+    .dr-box{max-width:620px;width:94%;}
+    .dr-body{display:flex;flex-direction:column;gap:12px;}
+    .dr-ruta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-weight:700;color:#0f172a;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:9px 12px;font-size:13px;}
+    .dr-ruta .dr-btn{margin-left:auto;}
+    .dr-sec{border:1px solid #e2e8f0;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;}
+    .dr-admin{border-color:#fde68a;background:#fffdf5;}
+    .dr-h{font-weight:800;font-size:13px;color:#0f172a;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+    .dr-h small{font-weight:600;color:#64748b;font-size:11.5px;}
+    .dr-ayuda{font-size:11.5px;color:#64748b;line-height:1.45;}
+    .dr-fila{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #f1f5f9;}
+    .dr-fila:last-child{border-bottom:0;}
+    .dr-n{flex:1;min-width:0;display:flex;flex-direction:column;font-size:13px;}
+    .dr-n small{color:#64748b;font-size:11.5px;font-variant-numeric:tabular-nums;}
+    .dr-btn{display:inline-flex;align-items:center;gap:5px;border:1px solid #e2e8f0;background:#fff;color:#334155;border-radius:9px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;}
+    .dr-btn:hover{background:#f8fafc;}
+    .dr-btn.wa{background:#16a34a;border-color:#16a34a;color:#fff;}
+    .dr-btn.wa:hover{background:#15803d;}
+    .dr-btn.wa.ok{background:#dcfce7;border-color:#86efac;color:#166534;}
+    .dr-btn.ghost{border-color:transparent;color:#94a3b8;padding:6px 7px;}
+    .dr-add{display:grid;grid-template-columns:1fr 1fr auto;gap:6px;}
+    .dr-add input{border:1px solid #e2e8f0;border-radius:9px;padding:7px 10px;font-size:13px;font-family:inherit;min-width:0;}
+    .dr-prev summary{cursor:pointer;font-size:12px;font-weight:700;color:#0e7490;}
+    .dr-prev pre{white-space:pre-wrap;font-family:inherit;font-size:12px;background:#f8fafc;border:1px solid #eef2f7;border-radius:9px;padding:10px;margin:6px 0;max-height:220px;overflow:auto;}
+    .dr-vacio{font-size:12.5px;color:#94a3b8;padding:6px 0;}
+    @media(max-width:560px){.dr-add{grid-template-columns:1fr;}}
+    `;
+    document.head.appendChild(st);
+}
+// Imprime la lista a despachar (por modelo, con IMEI), para revisar o firmar antes de mandar a Info Plus.
+function _despTelImprimir() {
+    if(!_despTelCtx || !(_despTelCtx.lista || []).length) return toast('Marca al menos un teléfono.', 'error');
+    const origen = document.getElementById('despTelOrigen')?.value, destino = document.getElementById('despTelDestino')?.value;
+    const lista = _despTelCtx.lista;
+    const totU = lista.reduce((s, g) => s + g.equipos.length, 0);
+    const filas = lista.map(g => {
+        const cant = g.equipos.length;
+        const det = g.equipos.map(e => `IMEI ${escapeHtml(e.imei || '—')} · Color: <b style="color:#0f172a;">${escapeHtml(_eqColorReal(e) || 'sin color')}</b>`).join('<br>');
+        return `<tr><td><b>${escapeHtml(g.modelo)}</b><div class="im">${det}</div></td><td class="c">${escapeHtml(g.codigo)}</td><td class="c">${cant}</td></tr>`;
+    }).join('');
+    const w = window.open('', '_blank');
+    if(!w) return toast('El navegador bloqueó la ventana de impresión.', 'error');
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Lista de despacho de teléfonos</title><style>
+      body{font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;color:#0f172a;margin:28px;font-size:12.5px;}
+      h1{font-size:18px;margin:0;} .sub{color:#475569;margin-top:4px;} .tag{display:inline-block;background:#fef3c7;color:#92400e;font-weight:700;font-size:11px;padding:2px 8px;border-radius:6px;margin-left:6px;}
+      .ruta{margin:14px 0;padding:10px 12px;border:1px solid #e2e8f0;border-radius:8px;display:flex;gap:24px;}
+      .ruta b{display:block;font-size:14px;} .ruta span{font-size:10.5px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;}
+      table{width:100%;border-collapse:collapse;} th{background:#0f172a;color:#fff;font-size:11px;padding:6px 8px;text-align:left;} td{padding:7px 8px;border-bottom:1px solid #e5e7eb;vertical-align:top;}
+      .c{text-align:center;} .r{text-align:right;white-space:nowrap;} .im{font-size:11px;color:#475569;margin-top:2px;font-variant-numeric:tabular-nums;}
+      .tot{text-align:right;margin-top:10px;font-size:13px;} .firmas{display:flex;gap:40px;margin-top:56px;} .firmas div{flex:1;border-top:1px solid #0f172a;padding-top:6px;text-align:center;color:#475569;}
+      @media print{body{margin:12mm;}}
+    </style></head><body>
+      <h1>Lista de despacho de teléfonos <span class="tag">Antes de despachar</span></h1>
+      <div class="sub">BAYOL CELL · ${new Date().toLocaleString('es-DO')}${(typeof sessionUser !== 'undefined' && sessionUser && sessionUser.nombre) ? ' · ' + escapeHtml(sessionUser.nombre) : ''}</div>
+      <div class="ruta"><div><span>Desde</span><b>${escapeHtml(_nombreAlmacen(origen))}</b></div><div><span>Hacia</span><b>${escapeHtml(_nombreAlmacen(destino))}</b></div><div><span>Teléfonos</span><b>${totU}</b></div></div>
+      <table><thead><tr><th>Modelo / IMEI · color</th><th class="c">Cód IP</th><th class="c">Cant.</th></tr></thead><tbody>${filas}</tbody></table>
+      <div class="tot">Total: <b>${totU}</b> teléfono(s)</div>
+      <div class="firmas"><div>Entregado por</div><div>Recibido por</div></div>
+      <script>window.onload=function(){window.print();}<\/script>
+    </body></html>`);
+    w.document.close();
+}
+function _despTelEstilos() {
+    if(document.getElementById('dtStyles')) return;
+    const st = document.createElement('style'); st.id = 'dtStyles'; st.textContent = `
+    .dt-box{max-width:760px;width:94%;}
+    .dt-borr{display:flex;align-items:center;gap:8px;background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:10px;padding:7px 10px;font-size:12px;}
+    .dt-borr.ok{background:#ecfdf5;border-color:#a7f3d0;color:#065f46;}
+    .dt-borr button{border:1px solid currentColor;background:#fff;color:inherit;border-radius:8px;padding:3px 9px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit;}
+    #modalDespTel .modal-footer{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+    .dt-acc:disabled{opacity:.5;cursor:not-allowed;}
+    .dt-body{display:flex;flex-direction:column;gap:10px;}
+    .dt-ruta{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:end;}
+    .dt-ruta label{display:block;font-size:11px;font-weight:700;color:#475569;letter-spacing:.04em;text-transform:uppercase;margin-bottom:4px;}
+    .dt-ruta select{width:100%;padding:8px 10px;border:1px solid #cbd5e1;border-radius:10px;font-weight:600;font-family:inherit;background:#fff;}
+    .dt-ruta > i{color:#0891b2;font-size:18px;padding-bottom:9px;}
+    .dt-busca{display:flex;align-items:center;gap:8px;background:#f5f5f7;border:1.5px solid transparent;border-radius:10px;padding:8px 12px;}
+    .dt-busca:focus-within{background:#fff;border-color:#c8191f;box-shadow:0 0 0 3px rgba(200,25,31,.08);}
+    .dt-busca i{color:#86868b;font-size:16px;}
+    .dt-busca input{flex:1;border:0;outline:0;background:transparent;font-size:14px;font-family:inherit;color:#0f172a;min-width:0;}
+    .dt-barra{display:flex;align-items:center;gap:8px;font-size:12px;color:#64748b;}
+    .dt-sp{flex:1;}
+    .dt-barra button{border:1px solid #e2e8f0;background:#fff;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:600;color:#334155;cursor:pointer;font-family:inherit;}
+    .dt-barra button:hover{background:#f8fafc;}
+    .dt-lista{max-height:260px;overflow-y:auto;border:1px solid #eef2f7;border-radius:12px;}
+    .dt-fila{display:grid;grid-template-columns:22px minmax(0,1.6fr) minmax(0,.9fr) minmax(0,.8fr) auto;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid #f1f5f9;cursor:pointer;font-size:12.5px;color:#334155;}
+    .dt-fila:last-child{border-bottom:0;}
+    .dt-fila:hover{background:#f8fafc;}
+    .dt-fila.on{background:#f0f9ff;}
+    .dt-fila.off{opacity:.55;cursor:not-allowed;}
+    .dt-fila input{width:16px;height:16px;accent-color:#0e7490;margin:0;}
+    .dt-mod{display:flex;flex-direction:column;min-width:0;}
+    .dt-mod b{font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .dt-mod small{font-size:11px;color:#64748b;font-variant-numeric:tabular-nums;}
+    .dt-col{display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .dt-col i{width:10px;height:10px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12);}
+    .dt-colsel{min-width:0;max-width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:4px 6px;font-size:12px;font-family:inherit;color:#334155;background:#fff;cursor:pointer;}
+    .dt-colsel:hover{border-color:#cbd5e1;}
+    .dt-colsel.vacio{color:#b45309;border-color:#fde68a;background:#fffbeb;}
+    .dt-colsel:focus-visible{outline:2px solid #0e7490;outline-offset:1px;}
+    .dt-col em,.dt-cod em{font-style:normal;color:#94a3b8;}
+    .dt-lote{font-size:11.5px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .dt-cod{font-weight:700;color:#1d4ed8;font-variant-numeric:tabular-nums;}
+    .dt-vacio{padding:18px;text-align:center;color:#94a3b8;font-size:13px;}
+    .dt-res-h{font-size:11px;font-weight:700;color:#475569;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px;}
+    .dt-tabla{width:100%;border-collapse:collapse;font-size:12.5px;}
+    .dt-tabla th{background:#0f172a;color:#fff;padding:6px 8px;font-size:11px;}
+    .dt-tabla td{padding:6px 8px;border-bottom:1px solid #eef2f7;}
+    .dt-tabla td.c,.dt-tabla th{text-align:center;}
+    .dt-imeis{font-size:10.5px;color:#475569;}
+    .dt-total{text-align:right;margin-top:6px;font-size:13px;}
+    .dt-nota{background:#ecfdf5;border:1px solid #a7f3d0;font-size:11.5px;padding:8px 10px;border-radius:10px;color:#065f46;}
+    #dtBtnDesp:disabled{opacity:.5;cursor:not-allowed;}
+    @media(max-width:640px){.dt-fila{grid-template-columns:22px minmax(0,1fr) minmax(0,.9fr);}.dt-lote,.dt-cod{display:none;}.dt-lista{max-height:40vh;}}
+    `;
+    document.head.appendChild(st);
 }
 async function _despTelConfirmar() {
-    if(!_despTelCtx) return;
+    if(!_despTelCtx || !(_despTelCtx.lista || []).length) return toast('Marca al menos un teléfono.', 'error');
     const origen = parseInt(document.getElementById('despTelOrigen')?.value, 10);
     const destino = parseInt(document.getElementById('despTelDestino')?.value, 10);
     if(origen === destino) return toast('El origen y el destino no pueden ser el mismo.', 'error');
@@ -15974,12 +16464,16 @@ async function _despTelConfirmar() {
     if(!await confirmar(`¿Despachar ${totU} teléfono(s)\nde ${_nombreAlmacen(origen)} → ${_nombreAlmacen(destino)}?\n\nSe registra como un documento en Info Plus (por modelo, costo promedio, con sus IMEI).`)) return;
     toast('Despachando teléfonos en Info Plus…');
     const r = await _ejecutarDespachoReal({ origen, destino, items, seriales, nota: 'Despacho teléfonos reacondicionados' });
-    const saved = await _despGuardarHistorial({ origen, destino, items, nota: 'Teléfonos reacondicionados', r });
+    // Para el conduce: cada modelo lleva sus IMEI con el color (solo en el historial; a Info Plus va igual que antes)
+    const itemsHist = items.map((it, i) => ({ ...it, imeis: lista[i].equipos.map(e => ({ imei: String(e.imei || '').trim(), color: _eqColorReal(e) || '' })).filter(x => x.imei) }));
+    const saved = await _despGuardarHistorial({ origen, destino, items: itemsHist, nota: 'Teléfonos reacondicionados', r });
     if(r.ok) {
         toast(`Despacho #${r.numero} de teléfonos hecho: ${totU} u.`);
+        _despTelBorrarBorrador(true);
         document.getElementById('modalDespTel')?.remove();
         await _ensureInfoplusArticulos(true);
-        if(saved && await confirmar(`Despacho #${r.numero} creado\n\n¿Imprimir el documento?`)) imprimirDespacho(saved.id);
+        // Reportes por WhatsApp (equipo sin costos / dueño con costo y lote) + imprimir conduce, en una sola ventana
+        _despReporteAbrir(_despInfoDesdeLista(r.numero, origen, destino, lista), saved ? saved.id : null);
     } else {
         toast(`No se pudo despachar: ${r.error}\n(Revisa que cada teléfono esté en la localidad de origen.)`, 'error');
     }
@@ -16513,7 +17007,7 @@ async function agregarPiezaInfoPlus(equipoId) {
         const fallas = data || [];
         if(fallas.length) {
             const chips = fallas.map(f => `<span style="display:inline-block; background:#fee2e2; color:#991b1b; font-size:11px; font-weight:600; padding:3px 9px; border-radius:10px; margin:2px;"><i class="ti ti-alert-triangle"></i> ${escapeHtml(f.falla_corto || f.falla_nombre || '')}${f.adicional ? ' (adic.)' : ''}</span>`).join('');
-            refHtml = `<div style="background:#fff7ed; border:1px solid #fed7aa; border-radius:8px; padding:8px 10px; margin-bottom:10px;"><div style="font-size:11px; font-weight:700; color:#9a3412; margin-bottom:4px;">FALLAS DEL EQUIPO (referencia)</div>${chips}</div>`;
+            refHtml = `<div class="ab-ref-fallas"><span class="t">Fallas del equipo</span>${chips}</div>`;
         }
     } catch(e) { logError('Fallas referencia Info Plus', e); }
     const seed = _seedBuscadorPieza((cache.refurb || []).find(e => e.id === equipoId));
@@ -17095,17 +17589,13 @@ async function verFichaDespacho(equipoId) {
         { n: nc(r => r.estado_evaluacion==='listo_venta' && !r.completado), t:'Listo', ic:'ti-list-check', bg:'#f5f3ff', c:'#6d28d9' },
         { n: nc(r => r.estado_evaluacion==='vendido'), t:'Despachado', ic:'ti-truck-delivery', bg:'#ecfdf5', c:'#047857' }
     ];
-    const kpiHtml = kpis.map(k => `<div class="fe-kpi" style="background:${k.bg};"><div class="fe-kpi-ic" style="color:${k.c};"><i class="ti ${k.ic}"></i></div><div class="fe-kpi-n" style="color:${k.c};">${k.n}</div><div class="fe-kpi-t">${k.t}</div></div>`).join('');
+    const kpiHtml = kpis.map(k => `<span class="fe-kp${k.n ? '' : ' cero'}" style="--kc:${k.c};--kb:${k.bg};"><i class="ti ${k.ic}"></i><b>${k.n}</b>${k.t}</span>`).join('');
     // Lote / envío / proveedor
     const lote = (cache.lotes || []).find(l => l.id === eq.lote_id) || {};
     const envio = Number(lote.gastos_envio) || 0;
     const prov = (cache.proveedores || []).find(p => p.id === (eq.proveedor_id || lote.proveedor_id));
     const provNombre = prov ? (prov.nombre || prov.empresa || prov.razon_social || '—') : '—';
-    const envioHtml = `<div class="fe-envio" ${isAdminUser() ? 'onclick="editarGastosEnvioLote()" style="cursor:pointer;"' : ''}>
-        <div style="display:flex;align-items:center;gap:12px;"><div class="fe-envio-ic"><i class="ti ti-truck"></i></div>
-          <div><div style="font-weight:800;color:#0f172a;">ENVÍO (COURIER)</div><div style="font-size:12px;color:#64748b;">Se edita en Compras</div></div></div>
-        <div style="display:flex;align-items:center;gap:8px;"><b style="font-size:18px;color:#0f172a;">${money(envio)}</b>${isAdminUser() ? '<i class="ti ti-chevron-right" style="color:#94a3b8;"></i>' : ''}</div>
-    </div>`;
+    const envioHtml = `<${isAdminUser() ? 'button type="button" onclick="editarGastosEnvioLote()" title="Editar el envío del lote"' : 'span'} class="fe-envio2"><i class="ti ti-truck"></i>Envío del lote <b>${money(envio)}</b>${isAdminUser() ? '<i class="ti ti-pencil fe-envio2-ed"></i>' : ''}</${isAdminUser() ? 'button' : 'span'}>`;
     // Técnico
     const tec = (cache.tecnicos || []).find(t => t.id === eq.tecnico_asignado_id);
     const tecNombre = eq.tecnico_asignado_id ? nombreEmpleado(eq.tecnico_asignado_id) : 'Sin asignar';
@@ -17121,9 +17611,10 @@ async function verFichaDespacho(equipoId) {
         ['Capacidad', escapeHtml(eq.capacidad || '—')],
         ['Estado físico', estFisico !== '—' ? `<span class="fe-chip-ok">${escapeHtml(estFisico)}</span>` : '—'],
         ['Proveedor', escapeHtml(provNombre)],
-        ['Lote', escapeHtml(lote.codigo_lote || '—')]
+        ['Lote', escapeHtml(lote.codigo_lote || '—')],
+        ['Técnico', `<span class="fe-tec"><span class="fe-avatar">${iniciales || '—'}</span>${escapeHtml(tecNombre)}${tecTel ? ` <a href="tel:${escapeHtml(tecTel)}" title="Llamar"><i class="ti ti-phone"></i></a>` : ''}</span>`]
     ];
-    const infoHtml = infoRows.map(r => `<div class="fe-row"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('');
+    const infoHtml = infoRows.map(r => `<div class="fe-row${r[1] === '—' ? ' vacio' : ''}"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('');
     const notas = escapeHtml((eq.notas_diagnostico || eq.diagnostico_inicial || '').trim());
     // Timeline
     const idxMap = { pendiente:0, en_evaluacion:1, evaluado:1, en_proceso:2, tecnico_recibio:2, espera_pieza:2, reasignado:2, reparacion_externa:2, listo_revision:3, listo_venta:4, vendido:5 };
@@ -17141,7 +17632,7 @@ async function verFichaDespacho(equipoId) {
         const done = i < cur, isCur = i === cur;
         const cls = done ? 'done' : (isCur ? 'cur' : 'pend');
         const ic = done ? 'ti-check' : (isCur ? 'ti-tag' : (i === 5 ? 'ti-truck-delivery' : 'ti-circle'));
-        const fecha = p.f ? _fmtFecha(p.f) : (isCur ? '' : 'Pendiente');
+        const fecha = p.f ? new Date(p.f).toLocaleString('es-DO', { day:'numeric', month:'numeric', hour:'numeric', minute:'2-digit' }) : (isCur ? '' : 'Pendiente');
         return `<div class="fe-step ${cls}"><div class="fe-step-dot"><i class="ti ${ic}"></i></div><div class="fe-step-t">${p.t}</div><div class="fe-step-f">${fecha}</div></div>`;
     }).join('<div class="fe-step-line"></div>');
     const emoji = (typeof _abEmoji === 'function' && typeof _abCat === 'function') ? _abEmoji(_abCat(eq.modelo)) : '📱';
@@ -17157,7 +17648,6 @@ async function verFichaDespacho(equipoId) {
         <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
           <button class="fe-volver" onclick="_feCerrar()"><i class="ti ti-arrow-left"></i> Volver</button>
           <h2>Ficha del Equipo</h2>
-          <span class="fe-badge" style="background:${estBadge.bg};color:${estBadge.c};">${estBadge.t}</span>
         </div>
         <div class="fe-head-actions">
           <button class="fe-btn red" onclick="imprimirLabelEquipo('${equipoId}')"><i class="ti ti-printer"></i> Imprimir Label</button>
@@ -17176,38 +17666,33 @@ async function verFichaDespacho(equipoId) {
       <div class="fe-body">
         <div class="fe-hero">
           <div class="fe-photo">${emoji}</div>
-          <div>
-            <h1 class="fe-title">${titulo}</h1>
+          <div class="fe-id">
+            <div class="fe-titlerow"><h1 class="fe-title">${titulo}</h1><span class="fe-num">#${nEnLote}</span><span class="fe-badge" style="background:${estBadge.bg};color:${estBadge.c};"><i class="ti ti-circle-check"></i> ${esVendido ? 'DESPACHADO' : 'LISTO PARA VENTA'}${esVendido && eq.completado ? ' · REGISTRO CERRADO' : ''}</span></div>
             <div class="fe-sub">${escapeHtml(((eq.marca || '') + ' ' + (eq.modelo || '')).trim())}</div>
-            <div style="margin:10px 0;"><span class="fe-num">#${nEnLote}</span> <span class="fe-badge" style="background:${estBadge.bg};color:${estBadge.c};"><i class="ti ti-circle-check"></i> ${esVendido ? 'DESPACHADO' : 'LISTO PARA VENTA'}${esVendido && eq.completado ? ' · REGISTRO CERRADO' : ''}</span></div>
-            <div class="fe-idline"><i class="ti ti-device-mobile"></i> IMEI: <b>${escapeHtml(eq.imei || '—')}</b> <a onclick="navigator.clipboard&&navigator.clipboard.writeText('${escapeHtml(eq.imei || '')}');if(typeof toast==='function')toast('IMEI copiado');" style="cursor:pointer;color:#64748b;"><i class="ti ti-copy"></i></a></div>
-            ${eq.serial ? `<div class="fe-idline2">Serial: ${escapeHtml(eq.serial)}</div>` : ''}
-            <div class="fe-idline2">Tomado: ${_fmtFecha(eq.creado_en)}${(tecNombre && tecNombre !== 'Sin asignar') ? `<br><span style="color:#e11d48;font-weight:700;">por ${escapeHtml(tecNombre)}</span>` : ''}</div>
+            <div class="fe-idline"><i class="ti ti-device-mobile"></i> IMEI <b>${escapeHtml(eq.imei || '—')}</b> <button type="button" class="fe-copy" title="Copiar IMEI" onclick="navigator.clipboard&&navigator.clipboard.writeText('${escapeHtml(eq.imei || '')}');if(typeof toast==='function')toast('IMEI copiado');"><i class="ti ti-copy"></i></button>${eq.serial ? `<span class="fe-sep"></span>Serial <b>${escapeHtml(eq.serial)}</b>` : ''}</div>
+            <div class="fe-idline2">Tomado ${_fmtFecha(eq.creado_en)}${(tecNombre && tecNombre !== 'Sin asignar') ? ` · por <span class="fe-por">${escapeHtml(tecNombre)}</span>` : ''}</div>
+          </div>
+          <div class="fe-proc">
+            <div class="fe-tl-title">Proceso del equipo</div>
+            <div class="fe-steps">${tlHtml}</div>
           </div>
         </div>
-        <div class="fe-kpis">${kpiHtml}</div>
-        ${envioHtml}
+        <div class="fe-strip">
+          <span class="fe-strip-l">Lote ${escapeHtml(lote.codigo_lote || '—')}</span>
+          <div class="fe-kps">${kpiHtml}</div>
+          ${envioHtml}
+        </div>
         <div class="fe-grid">
           <div class="fe-col">
-            <div class="fe-card"><div class="fe-card-h"><i class="ti ti-device-mobile" style="color:#e11d48;"></i> INFORMACIÓN DEL EQUIPO</div>${infoHtml}</div>
-            <div class="fe-card"><div class="fe-card-h"><i class="ti ti-user" style="color:#e11d48;"></i> TÉCNICO ASIGNADO</div>
-              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:4px;">
-                <div style="display:flex;align-items:center;gap:10px;"><span class="fe-avatar">${iniciales || '—'}</span><b>${escapeHtml(tecNombre)}</b></div>
-                ${tecTel ? `<a href="tel:${escapeHtml(tecTel)}" style="color:#e11d48;font-weight:700;white-space:nowrap;"><i class="ti ti-phone"></i> ${escapeHtml(tecTel)}</a>` : ''}
-              </div>
-            </div>
+            <div class="fe-card"><div class="fe-card-h"><i class="ti ti-device-mobile" style="color:#e11d48;"></i> Información del equipo</div>${infoHtml}</div>
           </div>
           <div class="fe-col">
-            <div class="fe-card"><div class="fe-card-h"><i class="ti ti-alert-triangle" style="color:#d97706;"></i> FALLAS QUE TENÍA EL EQUIPO</div><div style="margin-top:6px;">${fallasHtml}</div></div>
-            <div class="fe-card"><div class="fe-card-h"><i class="ti ti-message" style="color:#64748b;"></i> NOTAS INTERNAS</div><div class="fe-notas">${notas || '<span style="color:#94a3b8;">Sin notas.</span>'}</div></div>
+            <div class="fe-card"><div class="fe-card-h"><i class="ti ti-alert-triangle" style="color:#d97706;"></i> Fallas que tenía el equipo</div><div>${fallasHtml}</div></div>
+            <div class="fe-card"><div class="fe-card-h"><i class="ti ti-message" style="color:#64748b;"></i> Notas internas</div><div class="fe-notas${notas ? '' : ' vacio'}">${notas || 'Sin notas.'}</div></div>
           </div>
           <div class="fe-col">
-            ${costoHtml || '<div class="fe-card" style="color:#94a3b8;">Costo visible solo para el administrador.</div>'}
+            ${costoHtml || '<div class="fe-card" style="color:#64748b;">Costo visible solo para el administrador.</div>'}
           </div>
-        </div>
-        <div class="fe-card fe-timeline">
-          <div class="fe-tl-title">PROCESO DEL EQUIPO</div>
-          <div class="fe-steps">${tlHtml}</div>
         </div>
         <div class="fe-foot">Creado: ${_fmtFecha(eq.creado_en)} &nbsp;|&nbsp; Última actualización: ${_fmtFecha(eq.actualizado_en || eq.creado_en)}</div>
       </div>
@@ -17319,6 +17804,68 @@ function _feStyles() {
     @media(max-width:1050px){.fe-grid{grid-template-columns:1fr;}.fe-kpis{grid-template-columns:repeat(3,1fr);}.fe-hero{grid-template-columns:1fr;}.fe-photo{min-height:100px;font-size:48px;}.fe-steps{overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch;}}
     @media(max-width:560px){.fe-kpis{grid-template-columns:repeat(2,1fr);}.fe-title{font-size:22px;}.fe-head-actions .fe-btn span{display:none;}.fe-step{width:90px;}.fe-hero{padding:14px;gap:14px;}}
     @media(prefers-reduced-motion:reduce){.fe-back,.fe-panel{animation:none;}.fe-step-dot,.fe-kpi,.fe-btn{transition:none;}}
+    /* Ficha compacta (16-oct-2026): todo cabe en una pantalla de escritorio */
+    .fe-back{padding:12px;}
+    .fe-panel{max-width:1440px;}
+    .fe-head{padding:10px 18px;}
+    .fe-head h2{font-size:17px;}
+    .fe-body{padding:14px 18px 16px;}
+    .fe-hero{grid-template-columns:76px minmax(0,1fr) minmax(0,1.25fr);align-items:center;gap:18px;padding:14px 18px;border-radius:16px;}
+    .fe-photo{min-height:76px;height:76px;font-size:36px;border-radius:14px;color:#334155;}
+    .fe-titlerow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+    .fe-title{font-size:22px;text-wrap:balance;}
+    .fe-sub{font-size:12.5px;margin-top:2px;}
+    .fe-idline{margin-top:8px;font-size:13px;gap:5px;}
+    .fe-idline b{font-variant-numeric:tabular-nums;letter-spacing:.01em;}
+    .fe-copy{border:none;background:none;color:#64748b;cursor:pointer;padding:2px 4px;border-radius:6px;font-size:14px;line-height:1;}
+    .fe-copy:hover{background:#f1f5f9;color:#0f172a;}
+    .fe-sep{width:1px;height:12px;background:#e2e8f0;margin:0 6px;}
+    .fe-idline2{margin-top:3px;font-size:12px;}
+    .fe-por{color:#be123c;font-weight:700;}
+    .fe-proc{border-left:1px solid #eef2f7;padding-left:18px;min-width:0;}
+    .fe-tl-title{margin-bottom:10px;font-size:10.5px;}
+    .fe-step{width:auto;flex:1 1 0;min-width:0;}
+    .fe-step-line{margin-top:13px;min-width:8px;flex:0 1 24px;}
+    .fe-step-dot{width:28px;height:28px;font-size:14px;}
+    .fe-step-t{font-size:11px;margin-top:6px;line-height:1.2;}
+    .fe-step-f{font-size:10px;}
+    .fe-strip{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0;}
+    .fe-strip-l{font-size:11px;font-weight:800;color:#475569;letter-spacing:.05em;text-transform:uppercase;}
+    .fe-kps{display:flex;gap:6px;flex-wrap:wrap;flex:1;min-width:0;}
+    .fe-kp{display:inline-flex;align-items:center;gap:6px;background:var(--kb);color:#475569;border:1px solid rgba(15,23,42,.05);border-radius:999px;padding:5px 11px 5px 9px;font-size:12px;font-weight:600;}
+    .fe-kp i{color:var(--kc);font-size:14px;}
+    .fe-kp b{color:var(--kc);font-weight:800;font-variant-numeric:tabular-nums;}
+    .fe-kp.cero{background:#fff;opacity:.7;}
+    .fe-envio2{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid #e2e8f0;border-radius:999px;padding:6px 12px;font:inherit;font-size:12.5px;font-weight:600;color:#475569;}
+    .fe-envio2 > i:first-child{color:#2563eb;font-size:15px;}
+    .fe-envio2 b{color:#0f172a;font-weight:800;font-variant-numeric:tabular-nums;}
+    button.fe-envio2{cursor:pointer;transition:background .15s,border-color .15s;}
+    button.fe-envio2:hover{background:#f8fafc;border-color:#cbd5e1;}
+    .fe-envio2-ed{color:#94a3b8;font-size:13px;}
+    .fe-grid{gap:12px;}
+    .fe-col{gap:12px;}
+    .fe-card{padding:14px 16px;border-radius:14px;}
+    .fe-card-h{font-size:11px;margin-bottom:6px;}
+    .fe-row{padding:7px 0;}
+    .fe-row.vacio b{color:#94a3b8;font-weight:500;}
+    .fe-tec{display:inline-flex;align-items:center;gap:8px;}
+    .fe-tec .fe-avatar{width:24px;height:24px;font-size:10px;}
+    .fe-tec a{color:#e11d48;}
+    .fe-notas{margin-top:0;padding:10px 12px;}
+    .fe-notas.vacio{color:#94a3b8;background:none;border:1px dashed #e2e8f0;}
+    .cbx-hero{padding:16px 18px 18px;}
+    .cbx-num{font-size:28px;}
+    .cbx-lab{margin-top:10px;}
+    .cbx-bar{margin-top:12px;}
+    .cbx-body{padding:10px 16px 14px;}
+    .cbx-row{padding:8px 0;}
+    .cbx-acts{margin-top:10px;}
+    .cbx-act{padding:10px 6px;}
+    .fe-foot{margin-top:12px;}
+    .fe-btn:focus-visible,.fe-volver:focus-visible,.fe-envio2:focus-visible,.fe-copy:focus-visible{outline:2px solid #e11d48;outline-offset:2px;}
+    @media(max-width:1180px){.fe-hero{grid-template-columns:64px minmax(0,1fr);}.fe-photo{height:64px;min-height:64px;}.fe-proc{grid-column:1/-1;border-left:none;border-top:1px solid #eef2f7;padding:12px 0 0;}}
+    @media(max-width:1050px){.fe-grid{grid-template-columns:1fr 1fr;}.fe-grid>.fe-col:last-child{grid-column:1/-1;}.fe-hero{grid-template-columns:64px minmax(0,1fr);}}
+    @media(max-width:700px){.fe-strip{display:grid;grid-template-columns:1fr auto;}.fe-kps{grid-column:1/-1;grid-row:2;flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;}.fe-kp{flex:none;}.fe-grid{grid-template-columns:1fr;}.fe-steps{overflow-x:auto;}.fe-step{flex:0 0 70px;}.fe-title{font-size:20px;}.fe-back{padding:0;}.fe-panel{border-radius:0;}}
     `;
     document.head.appendChild(s);
 }
