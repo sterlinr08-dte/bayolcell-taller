@@ -30386,6 +30386,19 @@ function _waMotivoFallo(m) {
     return `<div class="wa-motivo-fallo" style="font-size:11px; color:#b91c1c; margin-top:3px; text-align:left;"><i class="ti ti-alert-circle"></i> ${escapeHtml(motivo)}</div>`;
 }
 
+// Reacciones como en WhatsApp (fase 3): el emoji de cada lado en una pastilla pegada al pie de la burbuja.
+function _waReaccionesHTML(m) {
+    const r = m && m.reacciones;
+    if(!r || typeof r !== 'object') return '';
+    const items = [];
+    if(r.cliente) items.push(`<span title="Reacción del cliente">${escapeHtml(String(r.cliente).slice(0, 16))}</span>`);
+    if(r.negocio) items.push(`<span title="Reacción de BayolCell">${escapeHtml(String(r.negocio).slice(0, 16))}</span>`);
+    if(!items.length) return '';
+    return `<div class="wa-reacciones" style="position:absolute; bottom:-14px; ${m.direccion === 'out' ? 'right' : 'left'}:10px; display:flex; gap:2px; background:#fff; border:1px solid #e9edef; border-radius:12px; padding:1px 6px; font-size:13px; line-height:20px; box-shadow:0 1px 2px rgba(0,0,0,.12);">${items.join('')}</div>`;
+}
+
+function _waFirmaReacciones(m) { const r = m && m.reacciones; return r && typeof r === 'object' ? String(r.cliente || '') + '|' + String(r.negocio || '') : ''; }
+
 function _waBurbujaRowHTML(m, nombre, porId) {
     if(_waEsReaccionSinDatos(m)) return '';
     const esOut = m.direccion === 'out';
@@ -30394,9 +30407,9 @@ function _waBurbujaRowHTML(m, nombre, porId) {
     const original = m.responde_a_id ? porId[m.responde_a_id] : null;
     const animarEnvio = esOut && m.id === _waMensajeAnimarId;
     const citaHTML = original ? `<div class="wa-quote wa-quote-${original.direccion}" onclick="event.stopPropagation(); _waIrAMensaje('${original.id}')"><div class="who">${escapeHtml(original.direccion === 'out' ? 'Tú (BayolCell)' : nombre)}</div><div class="txt">${escapeHtml(_waPreviewTexto(original))}</div></div>` : '';
-    return `<div class="wa-brow ${esOut ? 'out' : 'in'}${animarEnvio ? ' wa-envio-nuevo' : ''}"${esOptimista ? '' : ` data-msgid="${m.id}"`} data-estado="${esOut ? (m.estado||'') : ''}">
+    return `<div class="wa-brow ${esOut ? 'out' : 'in'}${animarEnvio ? ' wa-envio-nuevo' : ''}"${esOptimista ? '' : ` data-msgid="${m.id}"`} data-estado="${esOut ? (m.estado||'') : ''}" data-reac="${escapeHtml(_waFirmaReacciones(m))}">
         ${esOptimista ? '' : `<i class="ti ti-arrow-back-up wa-reply-icon" onclick="_waActivarRespuesta('${m.id}')" title="Responder"></i>`}
-        <div class="wa-bubble-wrap" style="background:${esOut ? '#dcf8c6' : '#fff'}; border-radius:8px; padding:6px 9px 7px; box-shadow:0 1px .5px rgba(0,0,0,.13); font-size:13.5px;">
+        <div class="wa-bubble-wrap" style="background:${esOut ? '#dcf8c6' : '#fff'}; border-radius:8px; padding:6px 9px 7px; box-shadow:0 1px .5px rgba(0,0,0,.13); font-size:13.5px;${m.reacciones && (m.reacciones.cliente || m.reacciones.negocio) ? ' position:relative; margin-bottom:16px;' : ''}">
             ${esOptimista ? '' : `<span class="wa-swipe-forward-cue"><i class="ti ti-arrow-forward-up"></i><span>Reenviar</span></span>
             <i class="ti ti-chevron-down wa-menu-btn" onclick="_waAbrirMenuAcciones(event, '${m.id}')" title="Más opciones"></i>`}
             <div style="font-size:10px; font-weight:700; color:${esOut ? '#166534' : '#128C7E'}; margin-bottom:2px;">${escapeHtml(etiqueta)}</div>
@@ -30411,6 +30424,7 @@ function _waBurbujaRowHTML(m, nombre, porId) {
                 ${esOut ? ' ' + _waIconoEstado(m.estado) : ''}
             </div>
             ${esOut ? _waMotivoFallo(m) : ''}
+            ${_waReaccionesHTML(m)}
         </div>
     </div>`;
 }
@@ -30426,6 +30440,20 @@ function _waActualizarChatIncremental() {
 
     const renderedIds = new Set();
     scrollContainer.querySelectorAll('[data-msgid]').forEach(el => renderedIds.add(el.dataset.msgid));
+
+    // Reacción nueva o quitada en un mensaje ya dibujado: se vuelve a dibujar solo esa burbuja (fase 3).
+    let reacCambiadas = 0;
+    _waMensajes.forEach(m => {
+        if(!renderedIds.has(m.id)) return;
+        const row = scrollContainer.querySelector(`[data-msgid="${m.id}"]`);
+        if(!row) return;
+        const firma = _waFirmaReacciones(m);
+        if((row.dataset.reac || '') === firma) return;
+        const fn = (typeof window._waBurbujaRowHTML === 'function') ? window._waBurbujaRowHTML : _waBurbujaRowHTML;
+        row.outerHTML = fn(m, nombre, porId);
+        reacCambiadas++;
+    });
+    if(reacCambiadas) _waWireSwipe();
 
     _waMensajes.forEach(m => {
         if(m.direccion !== 'out' || !renderedIds.has(m.id)) return;
@@ -31836,6 +31864,9 @@ function _waWireSwipe() {
         const forwardCue = row.querySelector('.wa-swipe-forward-cue');
         const msgId = row.dataset.msgid;
         if(!wrap || !msgId) return;
+        // Cada vez que llegaba un mensaje se volvían a enganchar los gestos de TODAS las burbujas (doble listener).
+        if(row.dataset.swipeListo) return;
+        row.dataset.swipeListo = '1';
         let x0 = 0, y0 = 0, dx = 0, activo = false;
         const reset = () => {
             wrap.style.transform = 'translateX(0)';

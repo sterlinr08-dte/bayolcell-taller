@@ -740,6 +740,25 @@ async function procesarEstadoMensaje(payload: any, evento: string) {
   if (resultado === "pendiente") console.log("estado guardado en espera de su mensaje:", estado);
 }
 
+// Reacciones (fase 3, 18-oct-2026): evento propio `reaction.received` de Zernio. Se guarda la reacción de cada lado
+// (cliente / negocio) en whatsapp_mensajes.reacciones con wa_aplicar_reaccion. Quitar una reacción llega con emoji vacío.
+// Si el mensaje al que se reacciona no está en el CRM (muy viejo o de antes de conectar la línea), se ignora.
+async function procesarReaccion(payload: any) {
+  const r = payload.reaction || {};
+  const wamid: string | null = r.platformMessageId || r.messageId || null;
+  if (!wamid) return;
+  const deNegocio = r.fromMe === true || r.direction === "outgoing" || r.sender?.isMe === true ||
+    payload.message?.direction === "outgoing";
+  const emoji = r.action === "removed" ? "" : String(r.emoji || r.rawEmoji || "");
+  const { data, error } = await db.rpc("wa_aplicar_reaccion", {
+    p_wamid: wamid,
+    p_quien: deNegocio ? "negocio" : "cliente",
+    p_emoji: emoji,
+  });
+  if (error) throw new Error(`guardar reaccion fallo: ${error.message}`);
+  if (data === "sin_mensaje") console.log("reaccion a un mensaje que no esta en el CRM");
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok");
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
@@ -758,6 +777,8 @@ Deno.serve(async (req: Request) => {
       await procesarMensaje(payload);
     } else if (evento === "message.delivered" || evento === "message.read" || evento === "message.failed") {
       await procesarEstadoMensaje(payload, evento);
+    } else if (evento === "reaction.received") {
+      await procesarReaccion(payload);
     } else {
       console.error("Evento no manejado:", evento);
     }
