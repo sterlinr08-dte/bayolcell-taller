@@ -29453,11 +29453,48 @@ function _pintarWhatsapp() {
     </div>`;
     if(mostrarLista) _pintarWhatsappLista();
     if(mostrarDetalle) _pintarWhatsappDetalle();
+    _waPintarAvisoLineas();
+    _waCargarEstadoLineas();
     _crmPintarCabecera();
     // El "espacio de arriba" que .wa-shell le resta a su alto cambia segun si
     // se ve la lista (cabecera completa) o un chat (cabecera escondida) — hay
     // que remedir cada vez que esto cambia, no solo cuando cambia el teclado.
     _waActualizarAltoVisual();
+}
+
+// Aviso de línea desconectada (18-oct-2026), como WhatsApp Web cuando el teléfono pierde la conexión. El estado lo
+// escribe el trigger trg_wa_estado_conexion_linea con los avisos account.connected/disconnected de Zernio.
+let _waLineasCaidas = [], _waLineasCaidasTs = 0, _waLineasCaidasCargando = false;
+async function _waCargarEstadoLineas(forzar) {
+    if(_waLineasCaidasCargando || (!forzar && Date.now() - _waLineasCaidasTs < 60000)) return;
+    _waLineasCaidasCargando = true;
+    try {
+        const { data, error } = await supabaseClient.from('whatsapp_lineas')
+            .select('id, nombre, whatsapp_numero, conectada, conexion_cambio_en, motivo_desconexion')
+            .eq('activo', true).eq('conectada', false);
+        if(!error) { _waLineasCaidas = data || []; _waLineasCaidasTs = Date.now(); _waPintarAvisoLineas(); }
+    } catch(e) { /* columna aún no creada o sin red: no se muestra aviso */ }
+    finally { _waLineasCaidasCargando = false; }
+}
+function _waPintarAvisoLineas() {
+    const wrap = document.getElementById('waWrap');
+    if(!wrap) return;
+    let aviso = document.getElementById('waAvisoLineas');
+    if(!_waLineasCaidas.length) { if(aviso) { aviso.remove(); _waActualizarAltoVisual(); } return; }
+    const filas = _waLineasCaidas.map(l => {
+        const desde = l.conexion_cambio_en ? new Date(l.conexion_cambio_en).toLocaleString('es-DO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+        const quien = [l.nombre, l.whatsapp_numero].filter(Boolean).join(' · ');
+        return `<div><b>${escapeHtml(quien || 'Una línea')}</b> está desconectada${desde ? ' desde el ' + escapeHtml(desde) : ''}. No entran ni salen mensajes por esa línea hasta reconectarla en Zernio.</div>`;
+    }).join('');
+    const html = `<i class="ti ti-plug-connected-x" style="font-size:20px; flex:0 0 auto;"></i><div style="min-width:0;">${filas}</div>`;
+    if(!aviso) {
+        aviso = document.createElement('div');
+        aviso.id = 'waAvisoLineas';
+        aviso.setAttribute('role', 'alert');
+        aviso.style.cssText = 'display:flex; gap:10px; align-items:flex-start; background:#fef2f2; color:#991b1b; border:1px solid #fecaca; border-radius:10px; padding:8px 12px; margin:0 0 8px; font-size:12.5px; line-height:1.35;';
+        wrap.insertBefore(aviso, wrap.firstChild);
+    }
+    if(aviso.innerHTML !== html) { aviso.innerHTML = html; _waActualizarAltoVisual(); }
 }
 
 function _waIniciales(nombre) {
@@ -30327,6 +30364,28 @@ function _waMetaHTML(m) {
     return h;
 }
 
+// Por qué falló un mensaje, en palabras del dueño (18-oct-2026). Zernio guarda el error de Meta en error_detalle
+// (JSON {code, message}); estos son los códigos que de verdad aparecieron en los últimos 30 días, más los de 24 h.
+const _WA_MOTIVOS_FALLO = {
+    130429: 'Se mandaron demasiados mensajes seguidos. Espera unos minutos y vuelve a intentarlo.',
+    131049: 'WhatsApp lo frenó para no saturar al cliente con mensajes de promoción. Escríbele más tarde o desde el celular.',
+    130472: 'Meta tiene este número en una prueba y no le entrega mensajes de promoción.',
+    131026: 'No se pudo entregar: el número no tiene WhatsApp, bloqueó a la línea o tiene una versión vieja.',
+    131031: 'La cuenta de WhatsApp Business está bloqueada. Hay que revisarla en Meta Business.',
+    131047: 'Pasaron más de 24 horas desde el último mensaje del cliente: hay que mandar una plantilla.',
+    470: 'Pasaron más de 24 horas desde el último mensaje del cliente: hay que mandar una plantilla.',
+    131053: 'No se pudo subir el archivo adjunto. Prueba con otro archivo.',
+};
+function _waMotivoFallo(m) {
+    if(!m || m.estado !== 'fallido') return '';
+    const crudo = String(m.error_detalle || '');
+    let code = null, texto = '';
+    try { const j = JSON.parse(crudo); code = Number(j && (j.code ?? j.error?.code)) || null; texto = (j && (j.message || j.title || j.error?.message)) || ''; }
+    catch(e) { const mm = crudo.match(/\b(1[0-9]{5}|470)\b/); code = mm ? Number(mm[1]) : null; texto = crudo; }
+    const motivo = (code && _WA_MOTIVOS_FALLO[code]) || (texto ? String(texto).slice(0, 140) : 'No se pudo enviar.');
+    return `<div class="wa-motivo-fallo" style="font-size:11px; color:#b91c1c; margin-top:3px; text-align:left;"><i class="ti ti-alert-circle"></i> ${escapeHtml(motivo)}</div>`;
+}
+
 function _waBurbujaRowHTML(m, nombre, porId) {
     if(_waEsReaccionSinDatos(m)) return '';
     const esOut = m.direccion === 'out';
@@ -30351,6 +30410,7 @@ function _waBurbujaRowHTML(m, nombre, porId) {
                 ${new Date(m.creado_en).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}
                 ${esOut ? ' ' + _waIconoEstado(m.estado) : ''}
             </div>
+            ${esOut ? _waMotivoFallo(m) : ''}
         </div>
     </div>`;
 }
@@ -30375,6 +30435,9 @@ function _waActualizarChatIncremental() {
         if(tickLine) {
             const t = new Date(m.creado_en).toLocaleTimeString('es-DO',{hour:'2-digit',minute:'2-digit'});
             tickLine.innerHTML = t + ' ' + _waIconoEstado(m.estado);
+            const previo = row.querySelector('.wa-motivo-fallo');
+            if(previo) previo.remove();
+            if(m.estado === 'fallido') tickLine.insertAdjacentHTML('afterend', _waMotivoFallo(m));
         }
         row.dataset.estado = m.estado;
     });
