@@ -100,13 +100,22 @@
   }
 
   // ---------- Contar conversaciones sin leer ----------
-  var contando = false;
+  var contando = false, sinFuncion = false;
   async function contar(){
     if (contando || !puedeVerCrm()) return;
     var sb = cliente(); if (!sb) return;
     contando = true;
     try {
       var u = usuario(), admin = esAdmin(), n = 0, algunaOk = false;
+      // 18-oct-2026: la base devuelve solo el número (crm_no_leidos_count, mismas reglas). Si la función todavía no
+      // existe o falla, se cuenta como antes bajando las filas.
+      if (!sinFuncion){
+        try {
+          var rr = await sb.rpc('crm_no_leidos_count', { p_admin: !!admin, p_usuario: (u && u.id) || null, p_tipo: (u && u._tipo) || null, p_sucursal: (u && u.sucursal_id) || null });
+          if (!rr.error && typeof rr.data === 'number'){ actualizar(rr.data); return; }
+          if (rr.error && /crm_no_leidos_count|PGRST20[25]|404|does not exist/i.test(String(rr.error.message || rr.error.code || ''))) sinFuncion = true;
+        } catch(e){}
+      }
       for (var i = 0; i < TABLAS.length; i++){
         try {
           var campos = 'id,asignado_id,asignado_tipo,sucursal_id,estado' + (TABLAS[i] === 'whatsapp_hilos' ? ',silenciado' : '');
