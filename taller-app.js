@@ -30261,14 +30261,17 @@ function _waBurbujaMedia(m) {
     if(m.tipo_contenido === 'ubicacion') {
         let loc; try { loc = JSON.parse(m.cuerpo || '{}'); } catch(e) { loc = {}; }
         if(loc.lat == null || loc.lng == null) return '';
-        const mapsUrl = `https://www.google.com/maps?q=${loc.lat},${loc.lng}`;
-        return `<a href="${mapsUrl}" target="_blank" style="display:flex; align-items:center; gap:8px; background:#e9edef; border-radius:7px; padding:8px 10px; margin-bottom:4px; font-size:12.5px; color:#075E54; text-decoration:none;"><i class="ti ti-map-pin" style="font-size:20px;"></i> Ver ubicación en el mapa</a>`;
+        const mapsUrl = `https://www.google.com/maps?q=${encodeURIComponent(loc.lat + ',' + loc.lng)}`;
+        // Nombre y dirección del lugar cuando WhatsApp los manda (18-oct-2026: llegan desde whatsapp-webhook).
+        const lugar = loc.nombre ? `<div style="font-weight:700; color:#111b21;">${escapeHtml(loc.nombre)}</div>` : '';
+        const dir = loc.direccion ? `<div style="font-size:11.5px; color:#667781;">${escapeHtml(loc.direccion)}</div>` : '';
+        return `<a href="${mapsUrl}" target="_blank" rel="noopener" style="display:flex; align-items:center; gap:10px; background:#e9edef; border-radius:7px; padding:8px 10px; margin-bottom:4px; font-size:12.5px; color:#075E54; text-decoration:none; min-width:200px;"><i class="ti ti-map-pin-filled" style="font-size:24px; color:#ea4335;"></i><div>${lugar}${dir}<div>Ver ubicación en el mapa</div></div></a>`;
     }
     if(m.tipo_contenido === 'contacto') {
         let c; try { c = JSON.parse(m.cuerpo || '{}'); } catch(e) { c = {}; }
         return `<div style="display:flex; align-items:center; gap:8px; background:#fff; border:1px solid #e9edef; border-radius:7px; padding:8px 10px; margin-bottom:4px;">
             <div class="wa-avatar" style="width:34px; height:34px; font-size:13px;">${escapeHtml(_waIniciales(c.nombre || '?'))}</div>
-            <div><div style="font-weight:700; font-size:12.5px;">${escapeHtml(c.nombre || 'Contacto')}</div><div style="font-size:11.5px; color:#667781;">${escapeHtml(c.telefono || '')}</div></div>
+            <div style="min-width:0;"><div style="font-weight:700; font-size:12.5px;">${escapeHtml(c.nombre || 'Contacto')}</div>${c.telefono ? `<a href="tel:${escapeHtml(String(c.telefono).replace(/[^+\d]/g, ''))}" onclick="event.stopPropagation()" style="font-size:11.5px; color:#027eb5; text-decoration:none;">${escapeHtml(c.telefono)}</a>` : ''}${c.mas > 0 ? `<div style="font-size:11px; color:#667781;">y ${Number(c.mas)} contacto${c.mas > 1 ? 's' : ''} más</div>` : ''}</div>
         </div>`;
     }
     if(!m.media_path) return '';
@@ -30305,7 +30308,27 @@ function _waIconoEstado(estado) {
     return '';
 }
 
+// Reacciones viejas guardadas como texto "[reaction]" (antes del 18-oct-2026): WhatsApp no las muestra como mensaje y
+// Zernio no dice qué emoji fue, así que no se dibujan.
+function _waEsReaccionSinDatos(m) { return !!m && m.tipo_contenido === 'text' && !m.media_path && String(m.cuerpo || '').trim() === '[reaction]'; }
+// «Reenviado» y la tarjeta del anuncio del que vino el cliente, como en WhatsApp.
+function _waMetaHTML(m) {
+    const meta = m && m.meta;
+    if(!meta || typeof meta !== 'object') return '';
+    let h = '';
+    if(meta.reenviado) h += `<div style="font-size:11px; color:#667781; font-style:italic; margin-bottom:2px;"><i class="ti ti-arrow-forward-up"></i> Reenviado</div>`;
+    const a = meta.anuncio;
+    if(a && typeof a === 'object') {
+        const url = a.url && /^https:\/\//.test(a.url) ? a.url : '';
+        const img = a.imagen && /^https:\/\//.test(a.imagen) ? `<img src="${escapeHtml(a.imagen)}" alt="" loading="lazy" onerror="this.remove()" style="width:46px; height:46px; object-fit:cover; border-radius:5px; flex:0 0 46px;">` : '';
+        const texto = a.titulo || (a.texto ? String(a.texto).split('\n')[0] : '') || 'Anuncio';
+        h += `<${url ? `a href="${escapeHtml(url)}" target="_blank" rel="noopener"` : 'div'} style="display:flex; gap:8px; align-items:center; background:rgba(0,0,0,.05); border-left:3px solid #25d366; border-radius:6px; padding:6px 8px; margin-bottom:4px; text-decoration:none; color:inherit;">${img}<div style="min-width:0;"><div style="font-size:10.5px; color:#667781;">📣 Vino de un anuncio</div><div style="font-size:12px; font-weight:600; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${escapeHtml(texto)}</div></div></${url ? 'a' : 'div'}>`;
+    }
+    return h;
+}
+
 function _waBurbujaRowHTML(m, nombre, porId) {
+    if(_waEsReaccionSinDatos(m)) return '';
     const esOut = m.direccion === 'out';
     const esOptimista = !!m._optimista;
     const etiqueta = esOut ? 'Tú (BayolCell)' : nombre;
@@ -30320,9 +30343,10 @@ function _waBurbujaRowHTML(m, nombre, porId) {
             <div style="font-size:10px; font-weight:700; color:${esOut ? '#166534' : '#128C7E'}; margin-bottom:2px;">${escapeHtml(etiqueta)}</div>
             ${m.plantilla_nombre ? `<div style="font-size:10px; color:#8696a0; margin-bottom:3px;"><i class="ti ti-file-text"></i> Plantilla: ${escapeHtml(m.plantilla_nombre)}</div>` : ''}
             ${m.es_automatico ? `<div style="font-size:10px; color:#4338ca; margin-bottom:3px;"><i class="ti ti-robot"></i> Respondido por IA</div>` : ''}
+            ${_waMetaHTML(m)}
             ${citaHTML}
             ${_waBurbujaMedia(m)}
-            ${m.cuerpo ? `<div style="white-space:pre-wrap; word-break:break-word;">${linkifyText(escapeHtml(m.cuerpo))}</div>` : ''}
+            ${m.cuerpo && m.tipo_contenido !== 'ubicacion' && m.tipo_contenido !== 'contacto' ? `<div style="white-space:pre-wrap; word-break:break-word;">${linkifyText(escapeHtml(m.cuerpo))}</div>` : ''}
             <div class="wa-tick-line" style="text-align:right; font-size:10px; color:#8696a0; margin-top:2px;">
                 ${new Date(m.creado_en).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}
                 ${esOut ? ' ' + _waIconoEstado(m.estado) : ''}
