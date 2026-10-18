@@ -95,3 +95,7 @@ La lista completa (con la regla y cómo se usan) está en **`docs/REFERENCIAS-DI
 | «Revisa la seguridad» | `security-audit` |
 | «Algo falla» | `gstack-investigate` + Sentry + Supabase logs |
 | «Haz una campaña» | Meta Ads (con aprobación) + video con HyperFrames |
+| «Antes de empezar, pregúntame hasta que el plan quede claro» | `/grill-me` (usa `grilling`; instalada 18-oct-2026, MIT) |
+| «No entendí, explícamelo más sencillo» | `/wait-what` (adaptada a español sencillo) |
+| «Vamos a seguir en otro chat» | `/handoff` (deja el resumen como entrada de `docs/bitacora/`) |
+| «Critica esta idea de negocio sin rodeos» | `/abogado-del-diablo` (8 ángulos y veredicto; solo lectura) |
