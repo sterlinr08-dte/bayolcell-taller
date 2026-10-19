@@ -416,3 +416,35 @@ html.bc-pf #v-recepcion .bcpf-ith { display: none; }
   html.bc-pf #v-recepcion .bcpf-it .l2 > .lq { flex-direction: row; align-items: center; gap: 12px; }
   html.bc-pf #v-recepcion .bcpf-it { padding-top: 10px; padding-bottom: 10px; }
 }
+
+/* 20-oct-2026 (e): /apple-design — respuesta inmediata al tocar, plegables que se materializan, curva de Apple, cursor y selección */
+html.bc-pf #v-recepcion { --pf-ease: cubic-bezier(.23, 1, .32, 1); }
+/* 1. Todo lo que se toca responde al presionar (no al soltar) */
+html.bc-pf #v-recepcion :is(.bcpf-it .stp button, .bcpf-it .del, .bcpf-dh .ibtn, .bcrx-srv, .bcrx-scan, .bcpf-det > summary, .bcpf-mas > summary) {
+  transition: transform 100ms var(--pf-ease), background-color .15s ease, border-color .15s ease;
+}
+html.bc-pf #v-recepcion :is(.bcpf-it .stp button, .bcpf-it .del, .bcpf-dh .ibtn, .bcrx-srv, .bcrx-scan):active { transform: scale(.94); }
+html.bc-pf #v-recepcion :is(.bcpf-det > summary, .bcpf-mas > summary):active { transform: scale(.99); }
+/* 2. Los plegables se materializan desde su título (opacidad + 4 px), no aparecen de golpe */
+@keyframes bcpfAbrir { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+html.bc-pf #v-recepcion .bcpf-mas[open] > .bcpf-mas-body,
+html.bc-pf #v-recepcion .bcpf-coment[open] > :not(summary),
+html.bc-pf #v-recepcion .bcpf-resena[open] > .card { animation: bcpfAbrir 220ms var(--pf-ease) both; transform-origin: top center; }
+/* 3. La barra fija entra y sale con la curva de Apple (sale rápida, llega suave) */
+html.bc-pf #v-recepcion .bcpf-bar { transition: transform 280ms var(--pf-ease), opacity 200ms ease; }
+/* 4. Cursor y selección con el color de la marca */
+html.bc-pf #v-recepcion .bcpf-doc :is(input, textarea) { caret-color: var(--pf-acc); }
+html.bc-pf #v-recepcion .bcpf-doc ::selection { background: rgba(228, 87, 46, .22); color: inherit; }
+/* Hover solo con mouse (en el celular no se queda «pegado») */
+@media (hover: none) {
+  html.bc-pf #v-recepcion .pcli:hover { border-color: var(--pf-hair); background: #fff; }
+  html.bc-pf #v-recepcion .bcpf-q:hover { border-color: var(--pf-hair); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html.bc-pf #v-recepcion :is(.bcpf-it .stp button, .bcpf-it .del, .bcpf-dh .ibtn, .bcrx-srv, .bcrx-scan, .bcpf-det > summary, .bcpf-mas > summary):active { transform: none; }
+  html.bc-pf #v-recepcion .bcpf-mas[open] > .bcpf-mas-body,
+  html.bc-pf #v-recepcion .bcpf-coment[open] > :not(summary),
+  html.bc-pf #v-recepcion .bcpf-resena[open] > .card { animation: bcpfFundido 160ms ease both; }
+  @keyframes bcpfFundido { from { opacity: 0; } to { opacity: 1; } }
+  html.bc-pf #v-recepcion .bcpf-bar { transition: opacity 160ms ease; }
+}
