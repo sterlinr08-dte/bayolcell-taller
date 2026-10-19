@@ -28,3 +28,9 @@ html.bc-info .bcInfoI:focus-visible { outline: 3px solid rgb(96 165 250 / .55); 
 #bcInfoTip.arriba:before { top: auto; bottom: -6px; }
 @keyframes bcInfoTip { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { #bcInfoTip { animation: none; } html.bc-info .bcInfoI > span { transition: none; } }
+/* Botón de ayuda que ya tenía el módulo (abre su explicación completa): mismo color y área de toque que la ⓘ */
+html.bc-info .bcInfoAyuda {
+  min-width: 44px !important; min-height: 44px !important; display: inline-grid !important; place-items: center;
+  color: #c2410c !important; vertical-align: middle;
+}
+html.bc-info .bcInfoAyuda i { color: inherit !important; }

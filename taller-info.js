@@ -17,6 +17,21 @@
     return todos(raiz + ' ' + sel).filter(function (e) { return limpio(e.textContent).indexOf(inicio) === 0; });
   }
   function encabezado(n) { var c = n.closest('.rx-card'); return c ? c.querySelector('.rx-head') : null; }
+  // Título más cercano ANTES de la nota (subiendo hasta la pantalla): h1–h4 o .card-title.
+  var TIT = 'h1,h2,h3,h4,.card-title';
+  function cercano(n) {
+    for (var x = n; x && !(x.classList && x.classList.contains('view')); x = x.parentElement) {
+      for (var s = x.previousElementSibling; s; s = s.previousElementSibling) {
+        if (s.matches(TIT)) return s;
+        var hs = s.querySelectorAll(TIT); if (hs.length) return hs[hs.length - 1];
+      }
+    }
+    return null;
+  }
+  // Atajo para las demás pantallas: nota por su comienzo; la ⓘ va en el título más cercano (o el que se indique).
+  function nota(vista, sel, inicio, titulo) {
+    return { notas: function () { var ns = porTexto('#v-' + vista, sel, inicio); return ns.filter(function (e) { return !ns.some(function (o) { return o !== e && e.contains(o); }); }); }, titulo: titulo || cercano };
+  }
 
   // Cada regla: notas() → elementos a esconder; titulo(nota) → dónde va la ⓘ; paren: solo el «(…)» de una etiqueta.
   // texto(nota) opcional → cómo se lee en la burbuja (si la nota original es un paréntesis o un «toca para abrir»).
@@ -43,7 +58,40 @@
     { notas: function () { return todos('#v-recepcion .access-note'); },
       titulo: function (n) { var d = n.closest('details'); return d && d.querySelector('summary'); } },
     // Etiquetas con una aclaración entre paréntesis: la etiqueta queda corta y el paréntesis va a la ⓘ
-    { paren: true, notas: function () { return porTexto('#v-recepcion', '.rx-body label', 'Nombre visible (').concat(porTexto('#v-recepcion', '.rx-body label', 'Observaciones (')); } }
+    { paren: true, notas: function () { return porTexto('#v-recepcion', '.rx-body label', 'Nombre visible (').concat(porTexto('#v-recepcion', '.rx-body label', 'Observaciones (')); } },
+
+    // ── Demás pantallas del taller (19-oct-2026, dueño: «sigue con la ⓘ en las demás pantallas») ──
+    // Solo notas que EXPLICAN. Se quedan a la vista: avisos (ilustración con IA, zoom), pasos de instalación de QZ Tray,
+    // estados vacíos, cifras y totales.
+    nota('dashboard', 'p', 'Solo cuenta visitantes reales'),
+    nota('contabilidad', 'p', 'Las ventas y el costo salen solos'),
+    nota('diagnostico', 'p', 'BITMAP, inteligencia artificial'),
+    nota('diagnostico', 'p', '¿No sabes por dónde empezar?'),
+    nota('diagnostico', 'p.abc-ayuda', 'Escribe la línea'),
+    nota('diagnostico', 'p', 'Catálogo privado compartido'),
+    nota('articulos', 'p', '"Sincronizar Taller"'),
+    nota('despachos', 'p', 'Traspasa mercancía'),
+    nota('etiquetas', 'p', 'Modifica los campos del dispositivo'),
+    nota('configImpresora', 'div', 'Ajusta el tamaño y verifica'),
+    nota('configImpresora', 'small', 'Más alto = más oscuro', function (n) { return n.parentElement.querySelector('label'); }),
+    nota('configImpresora', 'p', 'Esto se imprime EXACTAMENTE'),
+    nota('configImpresora', 'p', 'Ajusta el tamaño y elige'),
+    nota('configImpresora', 'p', 'Los cambios se guardan automáticamente'),
+    nota('reportes', 'p', 'Evalúa el trabajo de cada técnico'),
+    nota('reportes', 'p', 'Dinero cobrado por reparaciones'),
+    nota('configuracion', 'div', 'Aquí gestionas los técnicos'),
+    nota('catalogoWeb', 'div', 'Sale solo de Info Plus', function (n) { var h = n.previousElementSibling; return h && h.querySelector('b'); }),
+    nota('catalogoWeb', 'div', 'Los precios salen solos de Info Plus'),
+    nota('invfisico', 'p', 'Cuenta la mercancía real'),
+    nota('invfisico', 'p', 'Cuenta primero lo más caro'),
+    nota('liquidacion', 'p', 'Los productos van en US$'),
+    nota('liquidacion', 'span', 'Clic en el título de una columna'),
+    nota('rifaFactura', 'p', 'Registro independiente de la Rifa'),
+    // Mis incentivos e Incentivos: «Servicios de este ticket (usa el ＋ …)» queda corto; la aclaración va a su ⓘ
+    { notas: function () { return todos('#v-misIncentivos div > span, #v-incentivos label.inc-lbl > span').filter(function (e) { return /^\(usa (el )?＋/.test(limpio(e.textContent)); }); },
+      titulo: function (n) { return n.parentElement; }, texto: function () { return 'Usa el ＋ para agregar otra reparación al mismo ticket.'; } },
+    nota('misIncentivos', 'div', 'Si el ticket tiene más de una reparación', function () {
+      var s = todos('#v-misIncentivos div > span').filter(function (e) { return /^\(usa (el )?＋/.test(limpio(e.textContent)); })[0]; return s && s.parentElement; })
   ];
 
   function boton(titulo) {
@@ -86,6 +134,9 @@
         var t; try { t = r.titulo(n); } catch (e) { t = null; }
         if (!t || t === n || n.contains(t)) return;
         n.classList.add('bcInfoOculto');
+        // Si el título ya tiene su botón de ayuda del módulo (ayudaModulo: explica lo mismo y más), no se pone otra ⓘ
+        var ay = t.querySelector(':scope > button[onclick^="ayudaModulo"]');
+        if (ay) { ay.classList.add('bcInfoAyuda'); return; }
         anotar(boton(t), n, r.texto ? r.texto(n) : null);
       });
     });
