@@ -378,3 +378,41 @@ html.bc-pf #v-recepcion .bcpf-it .del:hover { color: #b91c1c; border-color: #fec
   html.bc-pf #v-recepcion .pcli .pchev { font-size: 0; }
   html.bc-pf #v-recepcion .pcli .pchev i { font-size: 20px; }
 }
+
+/* 20-oct-2026 (d): dueño «muchos espacios vacíos» → artículos en una sola línea (tabla) en PC, cabecera y caja del cliente más compactas */
+html.bc-pf #v-recepcion .bcpf-dh .dhl .dest { margin-top: 6px; }
+html.bc-pf #v-recepcion .bcpf-dh { padding-bottom: 10px; }
+html.bc-pf #v-recepcion .bcpf-partes { margin: 12px 0 10px; padding: 12px 14px; }
+html.bc-pf #v-recepcion .bcpf-tot .t-info { font-size: 13px; line-height: 1.45; color: var(--pf-steel); text-align: left; }
+html.bc-pf #v-recepcion .bcpf-ith { display: none; }
+@media (min-width: 761px) {
+  html.bc-pf #v-recepcion .bcpf-ith,
+  html.bc-pf #v-recepcion .bcpf-it { grid-template-columns: 26px minmax(0, 1fr) 128px 136px 98px 124px 44px; column-gap: 10px; }
+  html.bc-pf #v-recepcion .bcpf-ith {
+    display: grid; align-items: center; padding: 8px 12px; background: var(--pf-canvas2); border-bottom: 1px solid var(--pf-line);
+    font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--pf-steel);
+  }
+  html.bc-pf #v-recepcion .bcpf-ith span:nth-child(3), html.bc-pf #v-recepcion .bcpf-ith span:nth-child(6) { text-align: right; }
+  html.bc-pf #v-recepcion .bcpf-ith span:nth-child(4), html.bc-pf #v-recepcion .bcpf-ith span:nth-child(5) { text-align: center; }
+  html.bc-pf #v-recepcion .bcpf-it { grid-template-areas: "n d p q c i x" ". m m m m m m" ". s s s s s s"; align-items: center; row-gap: 6px; padding: 8px 12px; }
+  html.bc-pf #v-recepcion .bcpf-it .l2 { display: contents; }
+  html.bc-pf #v-recepcion .bcpf-it .l2 > label:first-child { grid-area: p; }
+  html.bc-pf #v-recepcion .bcpf-it .l2 > .lq { grid-area: q; justify-self: center; }
+  html.bc-pf #v-recepcion .bcpf-it .l2 > .ldc { grid-area: c; justify-self: center; }
+  html.bc-pf body #v-recepcion#v-recepcion .bcpf-it .l2 span:first-child { display: none; }
+  html.bc-pf #v-recepcion .bcpf-it .pin { width: 100%; }
+  html.bc-pf #v-recepcion .bcpf-it .imp { text-align: right; line-height: 1.2; }
+  html.bc-pf #v-recepcion .bcpf-it .dsub { margin-top: 0; }
+  html.bc-pf #v-recepcion .bcpf-it .dnm { min-height: 40px; padding: 4px 8px; }
+}
+@media (max-width: 760px) {
+  /* Celular: importe a la derecha del código (una línea menos) */
+  html.bc-pf #v-recepcion .bcpf-it { grid-template-columns: 24px minmax(0, 1fr) auto 44px; grid-template-areas: "n d d x" ". c i i" ". l l l" ". m m m" ". s s s"; row-gap: 6px; }
+  html.bc-pf #v-recepcion .bcpf-it .d { display: contents; }
+  html.bc-pf #v-recepcion .bcpf-it .dnm { grid-area: d; }
+  html.bc-pf #v-recepcion .bcpf-it .dsub { grid-area: c; align-self: center; }
+  html.bc-pf #v-recepcion .bcpf-it .imp { grid-area: i; text-align: right; align-self: center; }
+  html.bc-pf #v-recepcion .bcpf-it .imp s { text-align: right; }
+  html.bc-pf #v-recepcion .bcpf-it .l2 > .lq { flex-direction: row; align-items: center; gap: 12px; }
+  html.bc-pf #v-recepcion .bcpf-it { padding-top: 10px; padding-bottom: 10px; }
+}

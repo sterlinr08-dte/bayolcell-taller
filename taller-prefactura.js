@@ -54,7 +54,7 @@
       '<span class="dno">Nº</span><span class="dnum">Nueva</span><span class="dfec">' + fechaHoy() + '</span></div>' +
       '<div class="dest"></div>');
     pad.appendChild(dh);
-    R.num = q('.dnum', dh); R.est = q('.dest', dh);
+    R.num = q('.dnum', dh); R.est = q('.dest', dh); q('.dhl', dh).appendChild(R.est); // estado debajo de «Prefactura de Info Plus», sin fila propia
     q('.ibtn', dh).addEventListener('click', function () { try { _rpHistorial(); } catch (e) {} });
 
     // Facturar a + Condiciones. 20-oct-2026 (dueño): «ponerla como la tenemos en estudio y quitar todo lo otro … para
@@ -86,7 +86,6 @@
     ['rxAlmacen', 'rxVendedor'].forEach(function (id) { var f = campo(id); if (f) condCampos.appendChild(f); });
     var aviso = doc.getElementById('rxVendAviso'); if (aviso) condCampos.appendChild(aviso);
     cCond.appendChild(condCampos);
-    cCond.appendChild(el('p', 'bcpf-nota', 'La prefactura no cobra ni descuenta inventario: se factura en Info Plus.'));
     p1.appendChild(cCli); p1.appendChild(cCond);
     pad.appendChild(p1);
 
@@ -242,7 +241,7 @@
     var c = doc.getElementById('rxArticulos'); if (!c) return;
     var s = st();
     if (!s || !s.items.length) { c.innerHTML = '<div class="bcpf-vacio">Sin artículos. Use el buscador o escanee un código para agregarlos.</div>'; return; }
-    c.innerHTML = '<div class="bcpf-items">' + s.items.map(function (it, i) {
+    c.innerHTML = '<div class="bcpf-items"><div class="bcpf-ith" aria-hidden="true"><span>#</span><span>Artículo</span><span>Precio</span><span>Cant.</span><span>Desc.</span><span>Importe</span><span></span></div>' + s.items.map(function (it, i) {
       var cant = it.serial
         ? '<span class="stp fijo" title="La cantidad sale del número de IMEI">' + it.cant + '</span>'
         : '<span class="stp"><button type="button" aria-label="Quitar una unidad" onclick="_rpCant(' + i + ',' + (Number(it.cant) - 1) + ')">−</button>' +
@@ -307,7 +306,7 @@
     R.tDesF.hidden = !(tt.descuento > 0); R.tDes.textContent = '− ' + plata(tt.descuento);
     var facturada = s && s.estado === 'facturada';
     R.tInfo.innerHTML = facturada ? '<div class="t-fac">Esta prefactura ya fue convertida en factura y no puede modificarse.</div>'
-      : (s && s.codprefactura ? 'Prefactura Nº <b>' + esc(s.codprefactura) + '</b> en Info Plus' : '');
+      : (s && s.codprefactura ? 'Prefactura Nº <b>' + esc(s.codprefactura) + '</b> en Info Plus' : 'No cobra ni descuenta inventario: se factura en Info Plus.');
     R.bar.querySelector('.bimp').hidden = !(s && s.codprefactura);
     R.bar.querySelector('.bg').hidden = !!facturada; R.bar.querySelector('.bgi').hidden = !!facturada;
     R.bar.querySelector('.bfin').hidden = !facturada;
