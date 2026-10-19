@@ -38,7 +38,7 @@
   var BC_INFO_REGLAS = [
     // ── Recepción ──
     { notas: function () { return porTexto('#v-recepcion', '.rx-toolsbox > summary > span', '— pedir reseña'); },
-      titulo: function (n) { return n.parentElement; }, texto: function () { return 'Pedir reseña de Google a un cliente y generar boletos de rifa. Toca para abrir.'; } },
+      titulo: function (n) { return n.parentElement; }, texto: function () { return 'Pedir reseña de Google a un cliente y generar boletos de rifa. Toque para abrir.'; } },
     { notas: function () { return porTexto('#v-recepcion', '.rx-tools p', 'Para clientes que').concat(porTexto('#v-recepcion', '.rx-tools p', 'Rifa presencial')); },
       titulo: function (n) { var c = n.closest('.card') || n.parentElement; return c.querySelector('h3'); } },
     { notas: function () { return todos('#v-recepcion .rx-head > span[style*="94a3b8"]').filter(function (e) { return /Info Plus/.test(e.textContent); }); },
@@ -51,7 +51,7 @@
       titulo: encabezado },
     { notas: function () { return porTexto('#v-recepcion', 'details > summary > span', '(opcional'); },
       titulo: function (n) { return n.parentElement; }, texto: function () { return 'Opcional.'; } },
-    { notas: function () { return porTexto('#v-recepcion', 'details div', 'Marca los problemas que reporta').filter(function (e) { return !e.children.length; }); },
+    { notas: function () { return porTexto('#v-recepcion', 'details div', 'Marque los problemas que reporta').filter(function (e) { return !e.children.length; }); },
       titulo: function (n) { var d = n.closest('details'); return d && d.querySelector('summary'); } },
     { notas: function () { return porTexto('#v-recepcion', 'details > summary > span', '(claves, patrón'); },
       titulo: function (n) { return n.parentElement; }, texto: function () { return 'Claves, PIN, patrón y cuentas del equipo.'; } },
@@ -66,32 +66,32 @@
     nota('dashboard', 'p', 'Solo cuenta visitantes reales'),
     nota('contabilidad', 'p', 'Las ventas y el costo salen solos'),
     nota('diagnostico', 'p', 'BITMAP, inteligencia artificial'),
-    nota('diagnostico', 'p', '¿No sabes por dónde empezar?'),
-    nota('diagnostico', 'p.abc-ayuda', 'Escribe la línea'),
+    nota('diagnostico', 'p', 'Describa a la IA el síntoma'),
+    nota('diagnostico', 'p.abc-ayuda', 'Escriba la línea'),
     nota('diagnostico', 'p', 'Catálogo privado compartido'),
     nota('articulos', 'p', '"Sincronizar Taller"'),
     nota('despachos', 'p', 'Traspasa mercancía'),
-    nota('etiquetas', 'p', 'Modifica los campos del dispositivo'),
-    nota('configImpresora', 'div', 'Ajusta el tamaño y verifica'),
+    nota('etiquetas', 'p', 'Modifique los campos del dispositivo'),
+    nota('configImpresora', 'div', 'Ajuste el tamaño y verifique'),
     nota('configImpresora', 'small', 'Más alto = más oscuro', function (n) { return n.parentElement.querySelector('label'); }),
     nota('configImpresora', 'p', 'Esto se imprime EXACTAMENTE'),
-    nota('configImpresora', 'p', 'Ajusta el tamaño y elige'),
+    nota('configImpresora', 'p', 'Ajuste el tamaño y seleccione'),
     nota('configImpresora', 'p', 'Los cambios se guardan automáticamente'),
     nota('reportes', 'p', 'Evalúa el trabajo de cada técnico'),
     nota('reportes', 'p', 'Dinero cobrado por reparaciones'),
-    nota('configuracion', 'div', 'Aquí gestionas los técnicos'),
+    nota('configuracion', 'div', 'Aquí se gestionan los técnicos'),
     nota('catalogoWeb', 'div', 'Sale solo de Info Plus', function (n) { var h = n.previousElementSibling; return h && h.querySelector('b'); }),
     nota('catalogoWeb', 'div', 'Los precios salen solos de Info Plus'),
-    nota('invfisico', 'p', 'Cuenta la mercancía real'),
-    nota('invfisico', 'p', 'Cuenta primero lo más caro'),
+    nota('invfisico', 'p', 'Cuente la mercancía real'),
+    nota('invfisico', 'p', 'Cuente primero lo más caro'),
     nota('liquidacion', 'p', 'Los productos van en US$'),
     nota('liquidacion', 'span', 'Clic en el título de una columna'),
     nota('rifaFactura', 'p', 'Registro independiente de la Rifa'),
     // Mis incentivos e Incentivos: «Servicios de este ticket (usa el ＋ …)» queda corto; la aclaración va a su ⓘ
-    { notas: function () { return todos('#v-misIncentivos div > span, #v-incentivos label.inc-lbl > span').filter(function (e) { return /^\(usa (el )?＋/.test(limpio(e.textContent)); }); },
-      titulo: function (n) { return n.parentElement; }, texto: function () { return 'Usa el ＋ para agregar otra reparación al mismo ticket.'; } },
+    { notas: function () { return todos('#v-misIncentivos div > span, #v-incentivos label.inc-lbl > span').filter(function (e) { return /^\(us[ae] (el )?＋/.test(limpio(e.textContent)); }); },
+      titulo: function (n) { return n.parentElement; }, texto: function () { return 'Use el ＋ para agregar otra reparación al mismo ticket.'; } },
     nota('misIncentivos', 'div', 'Si el ticket tiene más de una reparación', function () {
-      var s = todos('#v-misIncentivos div > span').filter(function (e) { return /^\(usa (el )?＋/.test(limpio(e.textContent)); })[0]; return s && s.parentElement; })
+      var s = todos('#v-misIncentivos div > span').filter(function (e) { return /^\(us[ae] (el )?＋/.test(limpio(e.textContent)); })[0]; return s && s.parentElement; })
   ];
 
   function boton(titulo) {

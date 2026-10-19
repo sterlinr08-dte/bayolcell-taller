@@ -128,7 +128,7 @@
     function pintar() {
       var cont = q('.bcrx-ppk-list', slot); if (!cont) return;
       var arts = (typeof cache !== 'undefined' && cache.infoplusArticulos) || [];
-      if (!arts.length) { cont.innerHTML = '<div class="bcrx-ppk-vacio">' + ((typeof _infoplusCargando !== 'undefined' && _infoplusCargando) ? 'Cargando artículos de Info Plus…' : 'No hay artículos cargados. Usa «Catálogo completo» para sincronizar.') + '</div>'; return; }
+      if (!arts.length) { cont.innerHTML = '<div class="bcrx-ppk-vacio">' + ((typeof _infoplusCargando !== 'undefined' && _infoplusCargando) ? 'Cargando artículos de Info Plus…' : 'No hay artículos cargados. Use «Catálogo completo» para sincronizar.') + '</div>'; return; }
       var l = estado.lista, show = l.slice(0, MAXF);
       var filas = show.map(function (a, i) {
         var ex = existe(a), pr = precioDe(a);
@@ -140,7 +140,7 @@
           '<span class="pk-pre">' + (pr > 0 ? plata(pr) : '<span class="bcrx-stk out">Sin precio</span>') + '</span>' +
           '<button type="button" class="pk-add" data-i="' + i + '" aria-label="Agregar ' + esc((a.descripcion || '').trim()) + '"><i class="ti ti-plus" aria-hidden="true"></i></button></div>';
       }).join('');
-      cont.innerHTML = (l.length > MAXF ? '<div class="bcrx-ppk-mas">Mostrando ' + MAXF + ' de ' + l.length.toLocaleString('es-DO') + ' — escribe para afinar</div>' : '') +
+      cont.innerHTML = (l.length > MAXF ? '<div class="bcrx-ppk-mas">Mostrando ' + MAXF + ' de ' + l.length.toLocaleString('es-DO') + ' — escriba para afinar</div>' : '') +
         (filas ? '<div class="bcrx-ppk-head" aria-hidden="true"><span>Código</span><span>Artículo</span><span>Existencia</span><span>Precio</span><span></span></div>' + filas
           : '<div class="bcrx-ppk-vacio">Sin resultados para «' + esc(estado.q) + '».</div>');
     }

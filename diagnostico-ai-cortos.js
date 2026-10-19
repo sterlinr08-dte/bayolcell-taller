@@ -15,8 +15,8 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'
 function msg(t){const p=$('ab-cortos-status');if(p)p.textContent=t;}
 async function checked(p){const r=await p;if(r.error)throw Error('No se pudo completar con la base de datos.');return r.data;}
 async function quien(){
- if(st.user)return st.user;const c=sb();if(!c)throw Error('Inicia sesión en el taller.');
- const r=await c.auth.getUser();if(r.error||!r.data?.user?.id)throw Error('Inicia sesión con una cuenta del taller.');
+ if(st.user)return st.user;const c=sb();if(!c)throw Error('Inicie sesión en el taller.');
+ const r=await c.auth.getUser();if(r.error||!r.data?.user?.id)throw Error('Inicie sesión con una cuenta del taller.');
  if(await checked(c.rpc('app_puede_diagnostico'))!==true)throw Error('Sin permiso de diagnóstico.');
  return st.user=r.data.user.id;
 }
@@ -78,7 +78,7 @@ function lista(){
  const enModelo=new Set((st.otros||[]).filter(p=>(p.redes||[]).includes(red)).map(p=>p.nombre));
  const todos=[...new Set([...enFoto,...enModelo])],peso=Object.fromEntries(st.ranking);
  todos.sort((a,b)=>(peso[b]||0)-(peso[a]||0)||((a[0]==='C')===(b[0]==='C')?a.localeCompare(b,undefined,{numeric:true}):(a[0]==='C'?-1:1)));
- if(!todos.length){const li=document.createElement('li');li.className='abc-vacio';li.textContent='Todavía nadie ha marcado componentes de '+red+' en este modelo. Ábrelo en REFOX, busca la línea y márcalos aquí con «Marcar componentes».';ul.append(li);return;}
+ if(!todos.length){const li=document.createElement('li');li.className='abc-vacio';li.textContent='Todavía nadie ha marcado componentes de '+red+' en este modelo. Ábralo en REFOX, busque la línea y márquelos aquí con «Marcar componentes».';ul.append(li);return;}
  for(const ref of todos){
   const li=document.createElement('li'),r=st.revisado[ref];li.className=r?'abc-'+r:'';
   const n=document.createElement('span');n.className='abc-ref';n.textContent=ref+(enFoto.has(ref)?'':' · en otra foto');
@@ -86,17 +86,17 @@ function lista(){
   const mal=document.createElement('button');mal.type='button';mal.className='abc-culpable';mal.textContent='Culpable';mal.title='Este era el que estaba en corto';mal.addEventListener('click',()=>culpable(ref));
   li.append(n,ok,mal);ul.append(li);
  }
- msg(todos.length+' componente(s) en '+red+'. Revísalos uno por uno; marca «Bien» o «Culpable».');
+ msg(todos.length+' componente(s) en '+red+'. Revíselos uno por uno y marque «Bien» o «Culpable».');
 }
 async function buscar(){
- const red=norm($('ab-cortos-red').value);if(!red)return msg('Escribe la línea en corto, por ejemplo PP_VDD_MAIN.');
+ const red=norm($('ab-cortos-red').value);if(!red)return msg('Escriba la línea en corto; por ejemplo, PP_VDD_MAIN.');
  $('ab-cortos-red').value=red;if(red!==st.red)st.revisado={};st.red=red;
  try{await quien();await Promise.all([cargarRanking(),st.otros?null:cargarRedesModelo()]);}catch(e){return msg(e.message);}
- lista();pintar();if(!st.mapa)msg('Abre la foto o captura de la placa de este modelo para ver los componentes iluminados. La lista ya está abajo.');
+ lista();pintar();if(!st.mapa)msg('Abra la foto o captura de la placa de este modelo para ver los componentes iluminados. La lista ya está abajo.');
 }
 async function culpable(ref){
  const red=st.red,m=modelo();if(!red||st.busy)return;
- if(!await confirmar2('¿Confirmas que '+ref+' estaba en corto en '+red+' ('+m+')? Quedará guardado para todo el taller.'))return;
+ if(!await confirmar2('¿Confirma que '+ref+' estaba en corto en '+red+' ('+m+')? Quedará guardado para todo el taller.'))return;
  st.busy=true;try{const user=await quien();const p=st.puntos.find(x=>x.nombre===ref);
   await checked(sb().from('placas_cortos').insert({modelo:m,red,componente:ref,punto_id:p?.id||null,creado_por:user}));
   st.revisado[ref]='culpable';await cargarRanking();lista();pintar();msg('Guardado: '+ref+' era el culpable en '+red+'. Gracias, esto ayuda al próximo técnico.');
@@ -119,18 +119,18 @@ async function guardarPunto(p,cambios){
 }
 async function cambiarRed(p,red,poner){await guardarPunto(p,{redes:poner?[...new Set([...p.redes,red])]:p.redes.filter(r=>r!==red)});}
 async function tocar(clientX,clientY){
- const i=img();if(!i||!st.mapa)return msg('Primero abre la foto o captura de la placa.');
+ const i=img();if(!i||!st.mapa)return msg('Primero abra la foto o captura de la placa.');
  const r=i.getBoundingClientRect(),s=Math.min(r.width/i.naturalWidth,r.height/i.naturalHeight),w=i.naturalWidth*s,h=i.naturalHeight*s;
  const x=(clientX-r.left-(r.width-w)/2)/w,y=(clientY-r.top-(r.height-h)/2)/h;if(x<0||x>1||y<0||y>1)return;
  // ¿Tocó una marca existente? (radio de 14 px en pantalla)
  let cerca=null,dmin=14;for(const p of st.puntos){const d=Math.hypot((p.x-x)*w,(p.y-y)*h);if(d<dmin){dmin=d;cerca=p;}}
  if(cerca){st.sel=cerca.id;seleccion();pintar();return;}
- const nombre=normRef(await preguntar('Nombre del componente que tocaste (ej. C4321, L2400, U2900):'));if(!nombre)return;
+ const nombre=normRef(await preguntar('Nombre del componente tocado (ej. C4321, L2400, U2900):'));if(!nombre)return;
  const red=st.red||norm($('ab-cortos-red').value);
  try{const user=await quien(),mapa=st.mapa;const fila={mapa_id:mapa.id,x:Math.round(x*1e5)/1e5,y:Math.round(y*1e5)/1e5,nombre,tipo:'pieza',redes:red?[red]:[],creado_por:user};
   const r2=await checked(sb().from('placas_puntos').insert(fila).select('id,x,y,nombre,redes,creado_por').single());if(st.mapa!==mapa)return;
   const p={...r2,redes:Array.isArray(r2?.redes)?r2.redes:fila.redes};st.puntos.push(p);st.sel=p.id;st.otros=null;seleccion();pintar();if(st.red)lista();
-  msg('Marcado '+nombre+(red?' en '+red:'')+'. Toca el siguiente.');
+  msg('Marcado '+nombre+(red?' en '+red:'')+'. Toque el siguiente.');
  }catch(e){msg(e.message);}
 }
 
@@ -139,17 +139,17 @@ function mount(){
  if(!$('ab-shell')||$('ab-cortos'))return;const aside=$('ab-pane-bitmap')?.querySelector('aside');if(!aside)return;
  const box=document.createElement('section');box.id='ab-cortos';box.className='ab-card';
  box.innerHTML='<h3><i class="ti ti-bolt"></i> Buscador de cortos</h3>'
-  +'<p class="abc-ayuda">Escribe la línea que está en corto. Se iluminan en la placa los componentes de esa línea y sale la lista para revisarlos uno por uno.</p>'
+  +'<p class="abc-ayuda">Escriba la línea que está en corto. Se iluminan en la placa los componentes de esa línea y sale la lista para revisarlos uno por uno.</p>'
   +'<div class="abc-fila"><input id="ab-cortos-red" list="ab-cortos-redes" maxlength="80" autocomplete="off" placeholder="Ej. PP_VDD_MAIN" aria-label="Línea en corto" data-bcbp-no><button id="ab-cortos-buscar" type="button"><i class="ti ti-search"></i> Buscar</button></div><datalist id="ab-cortos-redes"></datalist>'
   +'<div id="ab-cortos-top"></div><ul id="ab-cortos-lista" class="abc-lista"></ul>'
   +'<details id="ab-cortos-marcar-box"><summary>Marcar componentes (una vez por modelo)</summary>'
-  +'<p class="abc-ayuda">Abre REFOX al lado, busca la misma línea y toca aquí, sobre la captura, cada componente que REFOX ilumine. Queda guardado para todos los técnicos.</p>'
+  +'<p class="abc-ayuda">Abra REFOX al lado, busque la misma línea y toque aquí, sobre la captura, cada componente que REFOX ilumine. Queda guardado para todos los técnicos.</p>'
   +'<label class="abc-check"><input id="ab-cortos-marcar" type="checkbox"> Modo marcar: tocar la placa agrega o elige un componente</label><div id="ab-cortos-sel"></div></details>'
-  +'<p id="ab-cortos-status" role="status">Abre la foto o captura de la placa del modelo.</p>';
+  +'<p id="ab-cortos-status" role="status">Abra la foto o captura de la placa del modelo.</p>';
  const cat=$('ab-catalog');cat?aside.insertBefore(box,cat):aside.append(box);
  $('ab-cortos-buscar').addEventListener('click',buscar);
  $('ab-cortos-red').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();buscar();}});
- $('ab-cortos-marcar').addEventListener('change',e=>{st.marcar=e.target.checked;st.sel=null;seleccion();pintar();msg(st.marcar?(st.mapa?'Toca un componente en la placa.':'Primero abre la foto o captura de la placa.'):'Modo marcar apagado.');});
+ $('ab-cortos-marcar').addEventListener('change',e=>{st.marcar=e.target.checked;st.sel=null;seleccion();pintar();msg(st.marcar?(st.mapa?'Toque un componente en la placa.':'Primero abra la foto o captura de la placa.'):'Modo marcar apagado.');});
  $('ab-model').addEventListener('change',()=>{st.mapa=null;st.puntos=[];st.otros=null;st.red='';st.revisado={};st.ranking=[];st.sel=null;$('ab-cortos-red').value='';lista();seleccion();pintar();if(sb())cargarRedesModelo().catch(()=>{});});
  const stage=$('ab-stage-view');
  stage.addEventListener('pointerdown',e=>{st.down={x:e.clientX,y:e.clientY,n:(st.down?.n||0)+1,id:e.pointerId};},true);

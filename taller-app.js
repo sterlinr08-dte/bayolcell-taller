@@ -160,7 +160,7 @@ window.addEventListener('unhandledrejection', function(ev){
 window.bayolVerErrores = function(){ console.table(window._bcErrores); return window._bcErrores; };
 function getFriendlyError(error, fallback) {
     const m = error?.message || '';
-    if(/jwt|expired|token/i.test(m)) { _bcRefreshSession(); return "Tu sesión se renovó. Por favor intenta de nuevo; si persiste, recarga la página."; }
+    if(/jwt|expired|token/i.test(m)) { _bcRefreshSession(); return "Su sesión se renovó. Intente de nuevo; si el problema persiste, recargue la página."; }
     return m || fallback || "Error inesperado.";
 }
 function requireSupabaseOk(response, context) {
@@ -679,7 +679,7 @@ async function doLogin() {
             if(e2) throw e2;
             if(!rows || !rows.length || rows[0].activo === false) {
                 try { await supabaseClient.auth.signOut(); } catch(e) {}
-                return toast("Tu cuenta está desactivada. Contacta al administrador.", 'error');
+                return toast("Su cuenta está desactivada. Contacte al administrador.", 'error');
             }
             await aplicarSesionDesdeFila(rows[0], tipo);
             return;
@@ -696,7 +696,7 @@ async function logout() { try { await supabaseClient.auth.signOut(); } catch(e) 
 async function abrirRifas() {
     try {
         const { data: { session } } = await supabaseClient.auth.getSession();
-        if(!session) { toast('Inicia sesión primero.', 'error'); return; }
+        if(!session) { toast('Inicie sesión primero.', 'error'); return; }
         toast('Abriendo Rifas…');
         const res = await fetch(CONFIG_URL + '/functions/v1/puente-rifa', {
             method: 'POST',
@@ -723,12 +723,12 @@ async function generarBoletoRifa() {
     const btn = document.getElementById('btnBoletoRifa');
     const nombre = (elN?.value || '').trim();
     const telefono = (elT?.value || '').trim();
-    if(!nombre) { if(msg) msg.innerHTML = '<span style="color:#dc2626; font-size:13px;">Escribe el nombre del cliente.</span>'; return; }
+    if(!nombre) { if(msg) msg.innerHTML = '<span style="color:#dc2626; font-size:13px;">Escriba el nombre del cliente.</span>'; return; }
     if(msg) msg.innerHTML = '<span style="color:#475569; font-size:13px;">⏳ Generando boleto…</span>';
     if(btn) btn.disabled = true;
     try {
         const { data: { session } } = await supabaseClient.auth.getSession();
-        if(!session) { if(msg) msg.innerHTML = '<span style="color:#dc2626; font-size:13px;">Inicia sesión primero.</span>'; return; }
+        if(!session) { if(msg) msg.innerHTML = '<span style="color:#dc2626; font-size:13px;">Inicie sesión primero.</span>'; return; }
         const res = await fetch(CONFIG_URL + '/functions/v1/recepcion-boleto', {
             method: 'POST',
             headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY, 'Content-Type': 'application/json' },
@@ -741,13 +741,13 @@ async function generarBoletoRifa() {
                 <div style="font-size:12px; color:#6d28d9; font-weight:700; text-transform:uppercase; letter-spacing:.5px;">Número de boleto</div>
                 <div style="font-size:54px; font-weight:900; color:#5b21b6; line-height:1.05; letter-spacing:1px;">${escapeHtml(String(j.numero))}</div>
                 <div style="font-size:13px; color:#475569; margin-top:4px;">${escapeHtml(nombre)}${telefono ? ' · ' + escapeHtml(telefono) : ''}</div>
-                <div style="font-size:11px; color:#16a34a; font-weight:700; margin-top:6px;">✅ Boleto confirmado — dáselo al cliente</div>
+                <div style="font-size:11px; color:#16a34a; font-weight:700; margin-top:6px;">✅ Boleto confirmado — entréguelo al cliente</div>
                 ${telefono ? `<button onclick="_boletoWhatsapp()" style="margin-top:10px; background:#22c55e; color:#fff; border:0; border-radius:8px; padding:9px 16px; font-size:13px; font-weight:700; cursor:pointer;"><i class="ti ti-brand-whatsapp"></i> Enviar por WhatsApp al cliente</button>` : ''}
             </div>`;
             if(elN) elN.value = ''; if(elT) elT.value = '';
             try { toast('🎟️ Boleto #' + j.numero + ' generado.'); } catch(_e) {}
         } else {
-            const detalle = (j && (j.msg || j.error)) || 'No se pudo generar el boleto. Verifica que haya una rifa activa.';
+            const detalle = (j && (j.msg || j.error)) || 'No se pudo generar el boleto. Verifique que haya una rifa activa.';
             if(msg) msg.innerHTML = `<span style="color:#dc2626; font-size:13px;">⚠️ ${escapeHtml(detalle)}</span>`;
         }
     } catch(e) {
@@ -758,12 +758,12 @@ async function generarBoletoRifa() {
 // Abre WhatsApp con el número del cliente y su boleto de rifa (último generado)
 function _boletoWhatsapp() {
     const b = window._ultimoBoleto;
-    if(!b || !b.telefono) { toast('Genera un boleto primero.', 'error'); return; }
+    if(!b || !b.telefono) { toast('Genere un boleto primero.', 'error'); return; }
     const raw = String(b.telefono).replace(/\D/g, '');
     if(raw.length < 10) { toast('El teléfono no es válido para WhatsApp.', 'error'); return; }
     const num = raw.length === 10 ? '1' + raw : raw; // Rep. Dom.: +1
     const tienda = (cache.configTaller && cache.configTaller.nombre) || 'BAYOL CELL';
-    const texto = encodeURIComponent(`🎟️ ¡Gracias por tu compra en ${tienda}!\n\nTu número de rifa es: *${b.numero}*\n\n¡Mucha suerte! 🍀`);
+    const texto = encodeURIComponent(`🎟️ Gracias por su compra en ${tienda}.\n\nSu número de rifa es: *${b.numero}*\n\nLe deseamos mucha suerte.`);
     window.open(`https://wa.me/${num}?text=${texto}`, '_blank');
 }
 
@@ -791,7 +791,7 @@ async function guardarRifaFactura(btn) {
     const msg = document.getElementById('rf_msg');
     const setMsg = (txt, ok) => { if(msg) msg.innerHTML = `<span style="color:${ok ? '#16a34a' : '#dc2626'};">${escapeHtml(txt)}</span>`; };
 
-    if(!nombre) return setMsg('Escribe el nombre completo del cliente.', false);
+    if(!nombre) return setMsg('Escriba el nombre completo del cliente.', false);
     if(_rfSoloDigitos(whatsappRaw).length < 10) return setMsg('El WhatsApp no es válido (ej. 809-123-4567).', false);
     if(factura.length !== 6) return setMsg('La factura debe tener exactamente 6 dígitos.', false);
 
@@ -838,7 +838,7 @@ function buildTicketRifaFacturaHtml(row, copia) {
             <b>Fecha:</b> ${fecha.toLocaleString('es-DO', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'})}<br>
             <div class="line"></div>
             <div style="text-align:center; font-weight:900; font-size:16px; margin-top:6px;">${copia === 'cliente' ? 'COPIA CLIENTE' : 'COPIA TÓMBOLA'}</div>
-            <div class="small" style="text-align:center; margin-top:4px;">Guarda tu copia. El sorteo se realiza en tienda.</div>
+            <div class="small" style="text-align:center; margin-top:4px;">Guarde su copia. El sorteo se realiza en tienda.</div>
         </div>
     `;
 }
@@ -963,7 +963,7 @@ function abrirModalCambiarClave(obligatorio = false) {
 
 function cerrarModalCambiarClave() {
     if(_cambioClaveObligatorio) {
-        toast('Debes cambiar tu contraseña para continuar.', 'error');
+        toast('Debe cambiar su contraseña para continuar.', 'error');
         return;
     }
     document.getElementById('modalCambiarClave').classList.remove('active');
@@ -1285,7 +1285,7 @@ function _incChequearDuplicados(ticket, tecnicoId, tecnicoNombre, servicios) {
             return `🚫 DUPLICADO: ${tecnicoNombre || 'el técnico'} ya tiene "${_incTipoCorto(s.tipo)}" en el ticket ${ticket}. No se puede registrar dos veces la misma factura.`;
         }
         if(vistos.has(s.tipo)) {
-            return `🚫 Pusiste dos "${_incTipoCorto(s.tipo)}" en el mismo ticket ${ticket}. Déjalo una sola vez.`;
+            return `🚫 Hay dos "${_incTipoCorto(s.tipo)}" en el mismo ticket ${ticket}. Deje solo uno.`;
         }
         vistos.add(s.tipo);
     }
@@ -1435,12 +1435,12 @@ async function renderIncentivos() {
     html += `<div class="inc-card" style="padding:11px 13px;margin-bottom:10px;">
         <div class="inc-title" style="margin-bottom:8px;"><i class="ti ti-plus" style="color:#16a34a;"></i> Registrar ticket</div>
         <div class="inc-row-f" style="margin-bottom:8px;">
-            <div class="inc-fg" style="flex:1;min-width:150px;"><label class="inc-lbl">Técnico *</label><select id="incTecnico" class="inc-in"><option value="">— Elige —</option>${opts}</select></div>
+            <div class="inc-fg" style="flex:1;min-width:150px;"><label class="inc-lbl">Técnico *</label><select id="incTecnico" class="inc-in"><option value="">— Seleccione —</option>${opts}</select></div>
             <div class="inc-fg" style="width:130px;"><label class="inc-lbl">Fecha</label><input type="date" id="incFecha" class="inc-in" value="${hoy}"></div>
             <div class="inc-fg" style="width:130px;"><label class="inc-lbl"># Ticket</label><input type="text" id="incTicket" class="inc-in" placeholder="CO000..." onkeydown="if(event.key==='Enter')guardarIncentivo()"></div>
             <div class="inc-fg" style="width:130px;"><label class="inc-lbl">Monto factura *</label><input type="number" id="incMontoFactura" class="inc-in" min="0" step="0.01" placeholder="0" onkeydown="if(event.key==='Enter')guardarIncentivo()"></div>
         </div>
-        <label class="inc-lbl" style="margin-bottom:4px;">Servicios de este ticket <span style="text-transform:none;font-weight:400;color:#94a3b8;">(usa ＋ para agregar otra reparación al mismo ticket)</span></label>
+        <label class="inc-lbl" style="margin-bottom:4px;">Servicios de este ticket <span style="text-transform:none;font-weight:400;color:#94a3b8;">(use ＋ para agregar otra reparación al mismo ticket)</span></label>
         <div id="incServicios">${_srvServiciosHtml('inc', srvIniAdmin)}</div>
         <div style="margin-top:9px;"><button class="inc-btn inc-btn-red" onclick="guardarIncentivo()"><i class="ti ti-device-floppy"></i> Registrar ticket</button></div>
     </div>`;
@@ -1525,14 +1525,14 @@ async function guardarIncentivo() {
     if(!isAdminUser()) { toast('Solo administradores.', 'error'); return; }
     const tecSel = document.getElementById('incTecnico');
     const tecnico_id = tecSel?.value || '';
-    if(!tecnico_id) { toast('Elige el técnico.', 'error'); return; }
+    if(!tecnico_id) { toast('Seleccione el técnico.', 'error'); return; }
     const tecnico_nombre = tecSel.options[tecSel.selectedIndex]?.text || '';
     const mf = parseFloat(document.getElementById('incMontoFactura')?.value) || 0;
     if(mf <= 0) { toast('El monto de la factura es obligatorio.', 'error'); const e = document.getElementById('incMontoFactura'); if(e) e.focus(); return; }
     const ticket = (document.getElementById('incTicket')?.value || '').trim() || null;
     const fecha = document.getElementById('incFecha')?.value || new Date().toISOString().slice(0,10);
     const servicios = _srvLeer('inc').filter(s => Number(s.incentivo) > 0);
-    if(!servicios.length) { toast('Agrega al menos un servicio con incentivo.', 'error'); return; }
+    if(!servicios.length) { toast('Agregue al menos un servicio con incentivo.', 'error'); return; }
     // BLOQUEO de duplicados exactos: mismo ticket + mismo tipo + mismo técnico (reparación/pulido)
     const _bloq = _incChequearDuplicados(ticket, tecnico_id, tecnico_nombre, servicios);
     if(_bloq) { toast(_bloq, 'error'); return; }
@@ -1561,7 +1561,7 @@ async function guardarIncentivo() {
 }
 async function setEstadoIncentivo(id, estado) {
     // Pagar/revertir pago = solo admin. Validar/quitar validación = admin o permiso.
-    if(estado === 'pagado' || !puedeValidarTickets()) { if(!isAdminUser()) { toast(estado === 'pagado' ? 'Solo administradores pueden pagar.' : 'No tienes permiso.', 'error'); return; } }
+    if(estado === 'pagado' || !puedeValidarTickets()) { if(!isAdminUser()) { toast(estado === 'pagado' ? 'Solo administradores pueden pagar.' : 'No tiene permiso.', 'error'); return; } }
     try {
         const quien = (typeof sessionUser !== 'undefined' && sessionUser) ? (sessionUser.nombre || sessionUser.usuario || null) : null;
         const upd = { estado, pagado_en: estado === 'pagado' ? new Date().toISOString() : null };
@@ -1576,7 +1576,7 @@ async function validarTodoTecnico(tecnicoId) {
     if(!isAdminUser()) { toast('Solo administradores.', 'error'); return; }
     const regs = _incCache.filter(r => (r.tecnico_id || '_') === tecnicoId && _incEnRango(r) && r.estado === 'pendiente');
     if(!regs.length) { toast('No hay pendientes por validar de ese técnico en el rango.', 'error'); return; }
-    if(!confirm(`¿Validar ${regs.length} trabajo(s) de ${regs[0].tecnico_nombre || 'este técnico'}?\n\nConfirmas que sus tickets están firmados y sellados.`)) return;
+    if(!confirm(`¿Validar ${regs.length} trabajo(s) de ${regs[0].tecnico_nombre || 'este técnico'}?\n\nAl continuar, confirma que sus tickets están firmados y sellados.`)) return;
     try {
         const ids = regs.map(r => r.id);
         const { error } = await supabaseClient.from('taller_incentivos').update({ estado: 'validado' }).in('id', ids);
@@ -1590,7 +1590,7 @@ async function validarTodoTecnico(tecnicoId) {
 function puedeValidarTickets() { return isAdminUser() || tienePermiso('validar_tickets'); }
 let _valBusq = '', _valEstado = 'pendiente', _valTecId = '';
 function abrirValidadorGlobal(tecId) {
-    if(!puedeValidarTickets()) { toast('No tienes permiso para validar tickets.', 'error'); return; }
+    if(!puedeValidarTickets()) { toast('No tiene permiso para validar tickets.', 'error'); return; }
     _valBusq = ''; _valEstado = 'pendiente'; _valTecId = tecId || '';
     let modal = document.getElementById('modalValTickets');
     if(!modal) { modal = document.createElement('div'); modal.id = 'modalValTickets'; modal.className = 'modal-backdrop'; document.body.appendChild(modal); }
@@ -1666,9 +1666,9 @@ function _valRenderLista() {
         <tbody>${filas}</tbody></table></div>`;
 }
 async function _valValidar(id) {
-    if(!puedeValidarTickets()) { toast('No tienes permiso.', 'error'); return; }
+    if(!puedeValidarTickets()) { toast('No tiene permiso.', 'error'); return; }
     const r = (_incCache || []).find(x => x.id === id); if(!r) return;
-    if(!r.sellado) { toast('🔒 Marca primero "Firmado y sellado" para poder validar este ticket.', 'error'); return; }
+    if(!r.sellado) { toast('🔒 Marque primero "Firmado y sellado" para poder validar este ticket.', 'error'); return; }
     try {
         const quien = (sessionUser?.nombre || sessionUser?.usuario || null);
         const upd = { estado: 'validado', rechazo_motivo: null, sellado: true, sellado_por: r.sellado_por || quien, sellado_en: r.sellado_en || new Date().toISOString(), aprobado_por: quien, aprobado_en: new Date().toISOString() };
@@ -1692,7 +1692,7 @@ async function _valBorrar(id) {
 }
 // Check "Firmado y sellado" de la lista: SOLO marca/desmarca el sello (se pone azul). No valida — para validar se usa el ✔.
 async function _valToggleSello(id) {
-    if(!puedeValidarTickets()) { toast('No tienes permiso.', 'error'); return; }
+    if(!puedeValidarTickets()) { toast('No tiene permiso.', 'error'); return; }
     const r = (_incCache || []).find(x => x.id === id); if(!r) return;
     if(r.estado === 'pagado') { toast('Ese ticket ya está pagado.', 'error'); return; }
     const quien = (sessionUser?.nombre || sessionUser?.usuario || null);
@@ -1709,9 +1709,9 @@ async function _valToggleSello(id) {
     } catch(e) { console.error('_valToggleSello', e); toast('No se pudo.', 'error'); }
 }
 async function _valSellar(id, sellar) {
-    if(!puedeValidarTickets()) { toast('No tienes permiso.', 'error'); return; }
+    if(!puedeValidarTickets()) { toast('No tiene permiso.', 'error'); return; }
     const r = (_incCache || []).find(x => x.id === id); if(!r) return;
-    if(sellar && r.estado !== 'validado') { toast('Primero valida el ticket.', 'error'); return; }
+    if(sellar && r.estado !== 'validado') { toast('Primero valide el ticket.', 'error'); return; }
     try {
         const quien = (sessionUser?.nombre || sessionUser?.usuario || null);
         const upd = sellar ? { sellado: true, sellado_por: quien, sellado_en: new Date().toISOString() } : { sellado: false, sellado_por: null, sellado_en: null };
@@ -1721,11 +1721,11 @@ async function _valSellar(id, sellar) {
     } catch(e) { console.error('_valSellar', e); toast('No se pudo.', 'error'); }
 }
 async function _valDevolver(id) {
-    if(!puedeValidarTickets()) { toast('No tienes permiso.', 'error'); return; }
+    if(!puedeValidarTickets()) { toast('No tiene permiso.', 'error'); return; }
     const r = (_incCache || []).find(x => x.id === id); if(!r) return;
-    const motivo = await pedirTexto('¿Por qué devuelves este ticket al técnico?', { multilinea: true });
+    const motivo = await pedirTexto('Motivo de la devolución al técnico', { multilinea: true });
     if(motivo === null) return;
-    if(!(motivo || '').trim()) { toast('Escribe el motivo para que el técnico sepa qué corregir.', 'error'); return; }
+    if(!(motivo || '').trim()) { toast('Escriba el motivo para que el técnico sepa qué corregir.', 'error'); return; }
     try {
         const upd = { estado: 'rechazado', rechazo_motivo: motivo.trim(), sellado: false, sellado_por: null, sellado_en: null };
         const { error } = await supabaseClient.from('taller_incentivos').update(upd).eq('id', id);
@@ -1769,7 +1769,7 @@ function _revRender() {
         modal.innerHTML = `<div class="modal-box" style="max-width:460px;">
           <div class="modal-header" style="background:#16a34a; color:#fff;"><h3 style="color:#fff; margin:0;">✅ Revisión terminada</h3></div>
           <div class="modal-body" style="text-align:center; padding:24px;"><div style="font-size:46px;">🎉</div>
-            <p style="font-size:15px; margin:8px 0 0;">Revisaste los tickets de <b>${escapeHtml(_revData.nombre)}</b>.</p>
+            <p style="font-size:15px; margin:8px 0 0;">Se revisaron los tickets de <b>${escapeHtml(_revData.nombre)}</b>.</p>
             <p style="font-size:13px; color:#475569;">✅ Validados: <b>${_revData.validados}</b> &nbsp;·&nbsp; ⚠️ Devueltos: <b>${_revData.devueltos}</b></p>
           </div>
           <div class="modal-footer"><button class="btn btn-blue" onclick="_revCerrar()">Listo</button></div>
@@ -1799,8 +1799,8 @@ function _revRender() {
           <div class="form-row" style="flex:1; min-width:120px;"><label>Monto factura (RD$)</label><input type="number" id="rv_fac" value="${r.monto_factura || 0}" ${ci}></div>
         </div>
         <div class="form-row"><label>Nota</label><input type="text" id="rv_nota" value="${escapeHtml(r.nota || '')}" ${ci}></div>
-        <label style="display:flex; align-items:center; gap:8px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:9px; padding:9px 12px; margin-top:8px; cursor:pointer; font-size:13.5px; font-weight:700; color:#1d4ed8;"><input type="checkbox" id="rv_sellada" checked style="width:18px; height:18px;"> ✔✔ Firmada y sellada <span style="font-weight:400; color:#475569; font-size:12px;">(déjalo marcado si el papel ya está firmado y sellado)</span></label>
-        <p style="font-size:11.5px; color:#475569; margin:6px 0 0;">Si algo está mal, corrígelo aquí y dale <b>Correcto</b>. Si está mal de verdad, dale <b>Devolver</b> y explícale al técnico por qué.</p>
+        <label style="display:flex; align-items:center; gap:8px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:9px; padding:9px 12px; margin-top:8px; cursor:pointer; font-size:13.5px; font-weight:700; color:#1d4ed8;"><input type="checkbox" id="rv_sellada" checked style="width:18px; height:18px;"> ✔✔ Firmada y sellada <span style="font-weight:400; color:#475569; font-size:12px;">(déjelo marcado si el papel ya está firmado y sellado)</span></label>
+        <p style="font-size:11.5px; color:#475569; margin:6px 0 0;">Si algo está mal, corríjalo aquí y presione <b>Correcto</b>. Si no se puede corregir, presione <b>Devolver</b> e indique al técnico el motivo.</p>
       </div>
       <div class="modal-footer" style="flex-wrap:wrap; gap:8px;">
         <button class="btn" style="background:#fee2e2; color:#b91c1c; margin-right:auto;" onclick="_revRechazar()"><i class="ti ti-arrow-back-up"></i> Devolver</button>
@@ -1811,7 +1811,7 @@ function _revRender() {
 }
 function _revSaltar() { if(!_revData) return; _revData.idx++; _revRender(); }
 async function _revCorrecto() {
-    if(!puedeValidarTickets()) { toast('No tienes permiso.', 'error'); return; }
+    if(!puedeValidarTickets()) { toast('No tiene permiso.', 'error'); return; }
     if(!_revData) return;
     const r = _revData.lista[_revData.idx]; if(!r) return;
     const inc = parseFloat(document.getElementById('rv_inc')?.value) || 0;
@@ -1819,7 +1819,7 @@ async function _revCorrecto() {
     if(inc <= 0) { toast('El incentivo debe ser mayor que 0.', 'error'); return; }
     if(fac <= 0) { toast('El monto de la factura es obligatorio.', 'error'); return; }
     const sellada = !!document.getElementById('rv_sellada')?.checked;
-    if(!sellada) { toast('🔒 Marca "Firmada y sellada" para poder validar este ticket.', 'error'); return; }
+    if(!sellada) { toast('🔒 Marque "Firmada y sellada" para poder validar este ticket.', 'error'); return; }
     const quien = (sessionUser?.nombre || sessionUser?.usuario || null);
     const upd = {
         tipo: document.getElementById('rv_tipo')?.value || r.tipo,
@@ -1837,12 +1837,12 @@ async function _revCorrecto() {
     } catch(e) { console.error('_revCorrecto', e); toast('No se pudo validar.', 'error'); }
 }
 async function _revRechazar() {
-    if(!puedeValidarTickets()) { toast('No tienes permiso.', 'error'); return; }
+    if(!puedeValidarTickets()) { toast('No tiene permiso.', 'error'); return; }
     if(!_revData) return;
     const r = _revData.lista[_revData.idx]; if(!r) return;
-    const motivo = await pedirTexto('¿Por qué devuelves este ticket al técnico?', { multilinea: true });
+    const motivo = await pedirTexto('Motivo de la devolución al técnico', { multilinea: true });
     if(motivo === null) return;
-    if(!(motivo || '').trim()) { toast('Escribe el motivo para que el técnico sepa qué corregir.', 'error'); return; }
+    if(!(motivo || '').trim()) { toast('Escriba el motivo para que el técnico sepa qué corregir.', 'error'); return; }
     try {
         const upd = { estado: 'rechazado', rechazo_motivo: motivo.trim(), sellado: false, sellado_por: null, sellado_en: null };
         const { error } = await supabaseClient.from('taller_incentivos').update(upd).eq('id', r.id);
@@ -1854,7 +1854,7 @@ async function _revRechazar() {
 async function borrarIncentivo(id) {
     const r = _incCache.find(x => x.id === id);
     const puede = isAdminUser() || (r && r.tecnico_id === sessionUser?.id && (r.estado === 'pendiente' || r.estado === 'rechazado'));
-    if(!puede) { toast('No puedes borrar este registro.', 'error'); return; }
+    if(!puede) { toast('No puede borrar este registro.', 'error'); return; }
     if(!confirm('¿Borrar este registro de incentivo?')) return;
     try {
         const { error } = await supabaseClient.from('taller_incentivos').delete().eq('id', id);
@@ -1875,7 +1875,7 @@ function editarIncentivo(id) {
     const r = _incCache.find(x => x.id === id);
     if(!r) { toast('Registro no encontrado.', 'error'); return; }
     const puede = isAdminUser() || (r.tecnico_id === sessionUser?.id && (r.estado === 'pendiente' || r.estado === 'rechazado'));
-    if(!puede) { toast('No puedes editar este registro.', 'error'); return; }
+    if(!puede) { toast('No puede editar este registro.', 'error'); return; }
     const tecs = (cache.tecnicos || []).filter(t => t.activo !== false).sort((a,b) => (a.nombre||'').localeCompare(b.nombre||''));
     const opts = tecs.map(t => `<option value="${t.id}" ${t.id===r.tecnico_id?'selected':''}>${escapeHtml(t.nombre || t.usuario || 'Técnico')}</option>`).join('');
     const ci = 'style="padding:7px 10px; font-size:13px;"';
@@ -1904,7 +1904,7 @@ function editarIncentivo(id) {
 async function guardarEdicionIncentivo(id) {
     const _r = _incCache.find(x => x.id === id);
     const puede = isAdminUser() || (_r && _r.tecnico_id === sessionUser?.id && (_r.estado === 'pendiente' || _r.estado === 'rechazado'));
-    if(!puede) { toast('No puedes editar este registro.', 'error'); return; }
+    if(!puede) { toast('No puede editar este registro.', 'error'); return; }
     const tecSel = document.getElementById('edTecnico');
     const monto_incentivo = parseFloat(document.getElementById('edIncentivo')?.value) || 0;
     if(monto_incentivo <= 0) { toast('El incentivo debe ser mayor que 0.', 'error'); return; }
@@ -1978,7 +1978,7 @@ function imprimirIncentivosTecnico(tecnicoId, _modo) {
         </body></html>`;
     if(_modo === 'pdf') return _htmlAPdf(_html, 'Incentivos_' + String(nombre || 'tecnico').replace(/\s+/g, '_'), { ancho: 720 });
     const w = window.open('', '_blank');
-    if(!w) { toast('Permite las ventanas emergentes para imprimir.', 'error'); return; }
+    if(!w) { toast('Permita las ventanas emergentes para imprimir.', 'error'); return; }
     w.document.write(_html);
     w.document.close(); w.focus();
     setTimeout(() => { try { w.print(); } catch(e) {} }, 400);
@@ -1986,7 +1986,7 @@ function imprimirIncentivosTecnico(tecnicoId, _modo) {
 async function guardarReporteIncentivos(tecnicoId) {
     if(!isAdminUser()) { toast('Solo administradores.', 'error'); return; }
     const regs = _incCache.filter(r => (r.tecnico_id || '_') === tecnicoId && _incEnRango(r) && r.estado === 'validado');
-    if(!regs.length) { toast('No hay trabajos VALIDADOS de ese técnico en el rango. Valida primero los tickets (firmados y sellados).', 'error'); return; }
+    if(!regs.length) { toast('No hay trabajos VALIDADOS de ese técnico en el rango. Valide primero los tickets (firmados y sellados).', 'error'); return; }
     const nombre = regs[0].tecnico_nombre || 'Técnico';
     const total = regs.reduce((s,r) => s + Number(r.monto_incentivo||0), 0);
     const periodoTxt = (_incDesde || _incHasta) ? `${_incDesde ? _incFmtFecha(_incDesde) : '...'} al ${_incHasta ? _incFmtFecha(_incHasta) : '...'}` : 'todos los registros';
@@ -2016,7 +2016,7 @@ function imprimirReporteGuardado(id) {
     const periodo = `Período: ${rp.desde ? _incFmtFecha(rp.desde) : '...'} al ${rp.hasta ? _incFmtFecha(rp.hasta) : '...'}`;
     const filas = det.map(d => `<tr><td>${_incFmtFecha(d.fecha)}</td><td>${escapeHtml(d.ticket||'-')}</td><td>${_incTipoTxt(d.tipo).replace(/[^\x20-\x7EñÑáéíóúÁÉÍÓÚ ]/g,'').trim()}</td><td style="text-align:right;">${money(d.monto_incentivo)}</td></tr>`).join('');
     const w = window.open('', '_blank');
-    if(!w) { toast('Permite las ventanas emergentes para imprimir.', 'error'); return; }
+    if(!w) { toast('Permita las ventanas emergentes para imprimir.', 'error'); return; }
     w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Reporte de pago ${escapeHtml(rp.tecnico_nombre||'')}</title>
         <style>
             body{font-family:Arial,Helvetica,sans-serif; color:#0f172a; padding:24px; max-width:680px; margin:0 auto;}
@@ -2056,7 +2056,7 @@ function editarReporteGuardado(id) {
         <div style="border:1px solid #e2e8f0; border-radius:8px; padding:8px; margin-bottom:10px; max-height:180px; overflow:auto;">${filas || '<span class="muted">Sin detalle</span>'}</div>
         <div style="text-align:right; font-weight:700; margin-bottom:10px;">Total: ${money(rp.total)}</div>
         <div class="form-row"><label>Nota del reporte</label><input type="text" id="repNota" value="${escapeHtml(rp.nota||'')}" placeholder="Ej: Pagado en efectivo el 15/06" style="padding:8px 10px;"></div>
-        <div style="font-size:11px; color:#475569; margin-bottom:10px;">💡 Para cambiar los trabajos incluidos, bórralo y vuelve a generarlo.</div>
+        <div style="font-size:11px; color:#475569; margin-bottom:10px;">💡 Para cambiar los trabajos incluidos, bórrelo y vuelva a generarlo.</div>
         <div style="display:flex; gap:8px; justify-content:flex-end;">
             <button class="btn btn-light" onclick="document.getElementById('modalGenerico').remove()">Cancelar</button>
             <button class="btn btn-blue" onclick="guardarEdicionReporte('${id}')"><i class="ti ti-device-floppy"></i> Guardar</button>
@@ -2076,7 +2076,7 @@ async function guardarEdicionReporte(id) {
 }
 async function borrarReporteGuardado(id) {
     if(!isAdminUser()) { toast('Solo administradores.', 'error'); return; }
-    if(!confirm('¿Borrar este reporte de pago guardado?\n\n(Los trabajos seguirán marcados como pagados. Si quieres revertir un pago, hazlo en la lista de registros.)')) return;
+    if(!confirm('¿Borrar este reporte de pago guardado?\n\n(Los trabajos seguirán marcados como pagados. Si desea revertir un pago, hágalo en la lista de registros.)')) return;
     try {
         const { error } = await supabaseClient.from('taller_incentivo_reportes').delete().eq('id', id);
         if(error) throw error;
@@ -2153,7 +2153,7 @@ async function renderMisIncentivos(targetId) {
     const cont = document.getElementById(targetId || _misIncTarget());
     if(!cont) return;
     const yo = sessionUser?.id;
-    if(!yo) { cont.innerHTML = '<div class="card"><div style="color:var(--text-muted);">No se pudo identificar tu usuario.</div></div>'; return; }
+    if(!yo) { cont.innerHTML = '<div class="card"><div style="color:var(--text-muted);">No se pudo identificar su usuario.</div></div>'; return; }
     try {
         const { data } = await supabaseClient.from('taller_incentivos').select('*').eq('tecnico_id', yo).order('creado_en', { ascending: false });
         _incCache = data || [];
@@ -2168,10 +2168,10 @@ async function renderMisIncentivos(targetId) {
             <div style="width:130px;"><label style="font-size:10px; color:#475569;"># Ticket</label><input type="text" id="miTicket" placeholder="CO000..." ${ci}></div>
             <div style="width:120px;"><label style="font-size:10px; color:#475569;">Monto factura *</label><input type="number" id="miMontoFactura" min="0" step="0.01" placeholder="0" ${ci}></div>
         </div>
-        <div style="font-size:10px; color:#475569; margin-bottom:4px; font-weight:700;">Servicios de este ticket <span style="font-weight:400;">(usa el ＋ para agregar otra reparación al mismo ticket)</span></div>
+        <div style="font-size:10px; color:#475569; margin-bottom:4px; font-weight:700;">Servicios de este ticket <span style="font-weight:400;">(use el ＋ para agregar otra reparación al mismo ticket)</span></div>
         <div id="miServicios">${_srvServiciosHtml('mi', srvIni)}</div>
         <div style="margin-top:10px;"><button class="btn btn-blue btn-sm" onclick="guardarMiIncentivo()" style="height:32px;"><i class="ti ti-device-floppy"></i> Guardar ticket</button></div>
-        <div style="font-size:11px; color:#475569; margin-top:6px;">💡 Si el ticket tiene <b>más de una reparación</b>, dale al <b>＋</b> junto al Tipo para agregar otra línea; al final dale <b>"Guardar ticket"</b> y todas quedan en el mismo # de ticket.</div>
+        <div style="font-size:11px; color:#475569; margin-top:6px;">💡 Si el ticket tiene <b>más de una reparación</b>, presione el <b>＋</b> junto al Tipo para agregar otra línea; al final presione <b>"Guardar ticket"</b> y todas quedan en el mismo # de ticket.</div>
     </div>`;
     const { desde: qDesde, hasta: qHasta } = _quincenaActualRango();
     const enQuincena = (r) => { const f = (r.fecha || '').slice(0,10); return f >= qDesde && f <= qHasta; };
@@ -2188,7 +2188,7 @@ function abrirRegistroTickets() { nav('registroTickets'); }
 async function cargarRegistroTickets() {
     const yo = sessionUser?.id;
     const cont = document.getElementById('registroTicketsContenido');
-    if(!yo) { if(cont) cont.innerHTML = '<div style="color:var(--text-muted); padding:16px;">No se pudo identificar tu usuario.</div>'; return; }
+    if(!yo) { if(cont) cont.innerHTML = '<div style="color:var(--text-muted); padding:16px;">No se pudo identificar su usuario.</div>'; return; }
     if(cont) cont.innerHTML = '<div style="text-align:center; color:#475569; padding:20px;">⏳ Cargando…</div>';
     try {
         const { data } = await supabaseClient.from('taller_incentivos').select('*').eq('tecnico_id', yo).order('creado_en', { ascending: false });
@@ -2213,14 +2213,14 @@ function renderRegistroTickets() {
     if(q) keys = orden.filter(k => { const g = grupos[k]; return (g.ticket || '').toLowerCase().includes(q) || g.items.some(it => (it.nota || '').toLowerCase().includes(q)); });
     let html = `<div class="card" style="margin-bottom:10px; padding:10px; font-size:13px;">⏳ Por validar: <b style="color:#b45309;">${money(sum('pendiente'))}</b> &nbsp;·&nbsp; ✅ Por cobrar: <b style="color:#1d4ed8;">${money(sum('validado'))}</b> &nbsp;·&nbsp; 💵 Pagado: <b style="color:#16a34a;">${money(sum('pagado'))}</b></div>`;
     if(!keys.length) {
-        html += `<div style="color:#475569; text-align:center; padding:24px;">${q ? 'No hay tickets que coincidan.' : 'Aún no has registrado tickets.'}</div>`;
+        html += `<div style="color:#475569; text-align:center; padding:24px;">${q ? 'No hay tickets que coincidan.' : 'Aún no ha registrado tickets.'}</div>`;
         cont.innerHTML = html; return;
     }
     html += keys.map(k => {
         const g = grupos[k];
         const totalInc = g.items.reduce((s,it) => s + Number(it.monto_incentivo||0), 0);
         const filas = g.items.map(it => `<tr>
-            <td>${_incTipoTxt(it.tipo)}${it.nota ? ` <span style="color:#475569; font-size:11px;">· ${escapeHtml(it.nota)}</span>` : ''}${it.estado === 'rechazado' && it.rechazo_motivo ? `<div style="color:#b91c1c; font-size:11px; margin-top:3px;">⚠️ Devuelto: ${escapeHtml(it.rechazo_motivo)} <span style="color:#475569;">— corrígelo y guarda para reenviarlo.</span></div>` : ''}</td>
+            <td>${_incTipoTxt(it.tipo)}${it.nota ? ` <span style="color:#475569; font-size:11px;">· ${escapeHtml(it.nota)}</span>` : ''}${it.estado === 'rechazado' && it.rechazo_motivo ? `<div style="color:#b91c1c; font-size:11px; margin-top:3px;">⚠️ Devuelto: ${escapeHtml(it.rechazo_motivo)} <span style="color:#475569;">— corríjalo y guarde para reenviarlo.</span></div>` : ''}</td>
             <td style="text-align:right; font-weight:700;">${money(it.monto_incentivo)}</td>
             <td style="text-align:center;">${_incEstadoBadge(it.estado, it.sellado)}</td>
             <td style="text-align:right; white-space:nowrap;">${(it.estado === 'pendiente' || it.estado === 'rechazado') ? `<button class="btn btn-light btn-sm" onclick="editarIncentivo('${it.id}')" title="Editar"><i class="ti ti-pencil"></i></button> <button class="btn btn-light btn-sm" onclick="borrarIncentivo('${it.id}')" title="Borrar" style="color:#b91c1c;"><i class="ti ti-trash"></i></button>` : '<span style="font-size:11px; color:#475569;">—</span>'}</td>
@@ -2233,18 +2233,18 @@ function renderRegistroTickets() {
             <div class="table-wrap"><table><thead><tr><th>Servicio</th><th style="text-align:right;">Incentivo</th><th style="text-align:center;">Estado</th><th></th></tr></thead><tbody>${filas}</tbody></table></div>
         </div>`;
     }).join('');
-    html += `<div style="font-size:11px; color:#475569; margin-top:2px;">Solo puedes editar/borrar los servicios que están ⏳ Por validar.</div>`;
+    html += `<div style="font-size:11px; color:#475569; margin-top:2px;">Solo puede editar/borrar los servicios que están ⏳ Por validar.</div>`;
     cont.innerHTML = html;
 }
 async function guardarMiIncentivo() {
     const yo = sessionUser?.id;
-    if(!yo) { toast('No se pudo identificar tu usuario.', 'error'); return; }
+    if(!yo) { toast('No se pudo identificar su usuario.', 'error'); return; }
     const mf = parseFloat(document.getElementById('miMontoFactura')?.value) || 0;
     if(mf <= 0) { toast('El monto de la factura es obligatorio.', 'error'); const e = document.getElementById('miMontoFactura'); if(e) e.focus(); return; }
     const ticket = (document.getElementById('miTicket')?.value || '').trim() || null;
     const fecha = document.getElementById('miFecha')?.value || new Date().toISOString().slice(0,10);
     const servicios = _srvLeer('mi').filter(s => Number(s.incentivo) > 0);
-    if(!servicios.length) { toast('Agrega al menos un servicio con incentivo.', 'error'); return; }
+    if(!servicios.length) { toast('Agregue al menos un servicio con incentivo.', 'error'); return; }
     const nombre = sessionUser?.nombre || sessionUser?.usuario || 'Técnico';
     // BLOQUEO de duplicados exactos: mismo ticket + mismo tipo + mismo técnico
     const _bloq = _incChequearDuplicados(ticket, yo, nombre, servicios);
@@ -2423,7 +2423,7 @@ function nav(v, btn) {
     }
     // Aviso: cambios sin guardar en la prefactura (cargada del historial y editada)
     if(typeof _rpState !== 'undefined' && _rpState && _rpState.estado === 'cambios' && v !== 'recepcion' && document.getElementById('v-recepcion')?.classList.contains('active')) {
-        if(!confirm('Tienes cambios sin guardar en la prefactura.\n\nSi sales sin guardar, los cambios NO surtirán efecto (no se guardaron).\n\n¿Salir sin guardar?')) return;
+        if(!confirm('Tiene cambios sin guardar en la prefactura.\n\nSi sale sin guardar, los cambios NO surtirán efecto (no se guardaron).\n\n¿Salir sin guardar?')) return;
     }
     // Candado especial: Estadísticas es privado del dueño (por ID), no por rol admin
     if(v === 'estadisticas' && !esDueno()) {
@@ -2443,7 +2443,7 @@ function nav(v, btn) {
     }
     // CRM (WhatsApp/Leads por línea): hace falta al menos uno de los dos permisos
     if(v === 'crmLinea' && !isAdminUser() && !tienePermiso('whatsapp_ver') && !tienePermiso('leads_ver')) {
-        toast('🔒 No tienes permiso para este módulo.');
+        toast('🔒 No tiene permiso para este módulo.');
         return;
     }
     // Nómina: solo administradores
@@ -2469,7 +2469,7 @@ function nav(v, btn) {
     // PORTERO CENTRAL: verifica permiso antes de entrar (sin importar de dónde venga el clic)
     const permisoReq = NAV_PERMISOS[v];
     if(permisoReq && !tienePermiso(permisoReq)) {
-        toast('🔒 No tienes permiso para acceder a esta sección.');
+        toast('🔒 No tiene permiso para acceder a esta sección.');
         return; // bloquea el acceso
     }
     
@@ -3290,8 +3290,8 @@ async function guardarCuenta() {
     const id = document.getElementById('cta_id').value;
     const codigo = document.getElementById('cta_codigo').value.trim();
     const nombre = document.getElementById('cta_nombre').value.trim();
-    if(!codigo) return toast('Indica el código.', 'error');
-    if(!nombre) return toast('Indica el nombre.', 'error');
+    if(!codigo) return toast('Indique el código.', 'error');
+    if(!nombre) return toast('Indique el nombre.', 'error');
     const datos = {
         codigo, nombre,
         tipo: document.getElementById('cta_tipo').value,
@@ -3312,7 +3312,7 @@ async function guardarCuenta() {
 }
 async function eliminarCuenta(id) {
     const c = _cuentasCache.find(x => x.id === id);
-    if(!await confirmar('¿Eliminar la cuenta "' + (c ? c.nombre : '') + '"?\n\nSi ya tiene movimientos, mejor desactívala en vez de eliminarla.')) return;
+    if(!await confirmar('¿Eliminar la cuenta "' + (c ? c.nombre : '') + '"?\n\nSi ya tiene movimientos, se recomienda desactivarla en lugar de eliminarla.')) return;
     try { const { error } = await supabaseClient.from('conta_cuentas').delete().eq('id', id); if(error) throw error; toast('Cuenta eliminada.'); cargarCatalogoCuentas(); }
     catch(e) { logError('Eliminar cuenta', e); toastError(getFriendlyError(e)); }
 }
@@ -3355,7 +3355,7 @@ async function render606() {
     cont.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:16px;">Cargando…</p>';
     const d = await _datos606(); _r606Data = d;
     if(!d.rows.length) {
-        cont.innerHTML = `<div style="text-align:center; padding:24px; color:#475569; font-size:13px;">No hay gastos <b>con NCF</b> en ${d.mes}.${d.sinNcf ? `<br><span style="color:#b45309;">⚠️ Hay ${d.sinNcf} gasto(s) registrados SIN NCF ese mes (no van al 606).</span>` : ''}<br><br>💡 Al registrar un gasto, abre la sección <b>"🧾 Comprobante fiscal (NCF)"</b> y llena NCF, RNC e ITBIS.</div>`;
+        cont.innerHTML = `<div style="text-align:center; padding:24px; color:#475569; font-size:13px;">No hay gastos <b>con NCF</b> en ${d.mes}.${d.sinNcf ? `<br><span style="color:#b45309;">⚠️ Hay ${d.sinNcf} gasto(s) registrados SIN NCF ese mes (no van al 606).</span>` : ''}<br><br>💡 Al registrar un gasto, abra la sección <b>"🧾 Comprobante fiscal (NCF)"</b> y complete NCF, RNC e ITBIS.</div>`;
         return;
     }
     const totM = d.rows.reduce((s, g) => s + (Number(g.monto) || 0), 0);
@@ -3384,7 +3384,7 @@ async function render606() {
 // Excel en el layout oficial del 606 (23 columnas)
 function exportar606Excel() {
     const d = _r606Data;
-    if(!d || !d.rows.length) return toast('No hay comprobantes que exportar. Actualiza primero.', 'error');
+    if(!d || !d.rows.length) return toast('No hay comprobantes que exportar. Actualice primero.', 'error');
     const f8 = (s) => (s || '').replace(/-/g, ''); // AAAAMMDD
     const head = ['RNC o Cédula','Tipo Id','Tipo Bienes y Servicios Comprados','NCF','NCF o Documento Modificado','Fecha Comprobante','Fecha Pago','Monto Facturado en Servicios','Monto Facturado en Bienes','Total Monto Facturado','ITBIS Facturado','ITBIS Retenido','ITBIS sujeto a Proporcionalidad','ITBIS llevado al Costo','ITBIS por Adelantar','ITBIS percibido en compras','Tipo de Retención en ISR','Monto Retención Renta','ISR Percibido en compras','Impuesto Selectivo al Consumo','Otros Impuestos/Tasas','Monto Propina Legal','Forma de Pago'];
     const filas = d.rows.map(g => {
@@ -3475,9 +3475,9 @@ async function guardarGastoSimple(btn) {
     const monto = Number(document.getElementById('gs_monto').value) || 0;
     const metodo = document.getElementById('gs_metodo').value;
     const desc = (document.getElementById('gs_desc').value || '').trim();
-    if(!fecha) return toast('Pon la fecha.', 'error');
-    if(!categoria) return toast('Elige la categoría.', 'error');
-    if(monto <= 0) return toast('Pon el monto.', 'error');
+    if(!fecha) return toast('Indique la fecha.', 'error');
+    if(!categoria) return toast('Seleccione la categoría.', 'error');
+    if(monto <= 0) return toast('Indique el monto.', 'error');
     const orig = btn ? btn.innerHTML : ''; if(btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Guardando…'; }
     // Campos fiscales (606) — opcionales
     const ncf = (document.getElementById('gs_ncf')?.value || '').trim().toUpperCase();
@@ -3485,7 +3485,7 @@ async function guardarGastoSimple(btn) {
     const provNom = (document.getElementById('gs_provnom')?.value || '').trim();
     const itbis = Number(document.getElementById('gs_itbis')?.value) || 0;
     const tipoDgii = document.getElementById('gs_tipodgii')?.value || '02';
-    if(ncf && !/^[BE]\d{10,12}$/.test(ncf)) return toast('El NCF no parece válido (ej. B0100000123). Revísalo o déjalo vacío.', 'error');
+    if(ncf && !/^[BE]\d{10,12}$/.test(ncf)) return toast('El NCF no parece válido (ej. B0100000123). Revíselo o déjelo vacío.', 'error');
     if(itbis > monto) return toast('El ITBIS no puede ser mayor que el monto.', 'error');
     try {
         const { error } = await supabaseClient.from('conta_movimientos').insert([{ fecha, tipo: 'gasto', categoria, sucursal, monto, metodo_pago: metodo, descripcion: desc || null,
@@ -3536,21 +3536,21 @@ function _emPuntoEquilibrioHTML(d) {
     return `<div style="max-width:520px; margin:16px auto; background:linear-gradient(135deg,#0e7490,#0891b2); color:#fff; border-radius:12px; padding:14px 16px; box-shadow:0 6px 18px rgba(14,116,144,0.3);">
       <div style="font-size:11px; opacity:.85; text-transform:uppercase; letter-spacing:.5px;">🔒 Solo el dueño · Punto de equilibrio</div>
       <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:8px;">
-        <div style="flex:1; min-width:110px;"><div style="font-size:11px; opacity:.85;">Tu margen</div><div style="font-size:21px; font-weight:800;">${(margen * 100).toFixed(1)}%</div></div>
+        <div style="flex:1; min-width:110px;"><div style="font-size:11px; opacity:.85;">Margen</div><div style="font-size:21px; font-weight:800;">${(margen * 100).toFixed(1)}%</div></div>
         <div style="flex:1; min-width:150px;"><div style="font-size:11px; opacity:.85;">Vender para NO perder</div><div style="font-size:21px; font-weight:800;">${money(pe)}</div></div>
       </div>
       <div style="font-size:12.5px; margin-top:8px; background:rgba(255,255,255,.14); border-radius:8px; padding:8px 11px;">
-        ${dif >= 0 ? `✅ Este mes vendiste <b>${money(dif)}</b> por ENCIMA del equilibrio.` : `📉 Este mes te faltaron <b>${money(-dif)}</b> en ventas para no perder.`}
+        ${dif >= 0 ? `✅ Este mes se vendieron <b>${money(dif)}</b> por ENCIMA del equilibrio.` : `📉 Este mes faltaron <b>${money(-dif)}</b> en ventas para no perder.`}
       </div>
       <div style="margin-top:11px; border-top:1px solid rgba(255,255,255,.25); padding-top:10px;">
-        <div style="font-size:12px; opacity:.9; margin-bottom:5px;">🎯 ¿Cuánto quieres GANAR al mes (tú + socio)?</div>
+        <div style="font-size:12px; opacity:.9; margin-bottom:5px;">🎯 Ganancia deseada al mes (usted + socio)</div>
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
           <input id="pe_meta" type="number" min="0" step="1000" placeholder="Ej. 200000" oninput="_emCalcMeta()" style="padding:8px 10px; border-radius:8px; border:0; font-size:14px; width:150px; color:#0f172a;">
-          <span style="font-size:13px;">→ debes vender <b id="pe_result" style="font-size:17px;">—</b></span>
+          <span style="font-size:13px;">→ debe vender <b id="pe_result" style="font-size:17px;">—</b></span>
         </div>
       </div>
       <div style="margin-top:11px; border-top:1px solid rgba(255,255,255,.25); padding-top:10px;">
-        <div style="font-size:12px; opacity:.9; margin-bottom:6px;">📦 Faltante de inventario (merma) — dónde se te va la ganancia</div>
+        <div style="font-size:12px; opacity:.9; margin-bottom:6px;">📦 Faltante de inventario (merma) — dónde se pierde la ganancia</div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
           <button onclick="_emGuardarSnapshot()" style="background:#fff; color:#0e7490; border:0; border-radius:8px; padding:7px 11px; font-weight:700; font-size:12.5px; cursor:pointer;"><i class="ti ti-camera"></i> Guardar inventario de hoy</button>
           <button onclick="_emMedirFaltante()" style="background:#f59e0b; color:#fff; border:0; border-radius:8px; padding:7px 11px; font-weight:700; font-size:12.5px; cursor:pointer;"><i class="ti ti-search"></i> Medir faltante del mes</button>
@@ -3574,7 +3574,7 @@ async function _emGuardarSnapshot() {
 async function _emMedirFaltante() {
     if(!esDueno() || !_emData) return;
     const out = document.getElementById('faltante_out'); if(!out) return;
-    out.innerHTML = '<span style="opacity:.85;">Midiendo… (buscando las compras del mes en Info Plus, aguanta unos segundos)</span>';
+    out.innerHTML = '<span style="opacity:.85;">Midiendo… (buscando las compras del mes en Info Plus, espere unos segundos)</span>';
     try {
         const ini = _emData.ini, fin = _emData.fin; // fin = 1er día del mes siguiente
         const { data: snaps } = await supabaseClient.from('inventario_snapshots').select('fecha,valor').order('fecha');
@@ -3582,7 +3582,7 @@ async function _emMedirFaltante() {
         const invIni = arr.filter(s => s.fecha <= ini).slice(-1)[0];
         const invFin = arr.filter(s => s.fecha > ini && s.fecha < fin).slice(-1)[0];
         if(!invIni || !invFin) {
-            out.innerHTML = `<div style="background:rgba(255,255,255,.14); border-radius:8px; padding:9px 11px;">⚠️ Necesito <b>2 fotos</b> del inventario para este mes: una al <b>inicio</b> y otra al <b>fin</b>. Guarda una hoy con "📸 Guardar inventario de hoy" y otra a fin de mes — de ahí en adelante se calcula solo cada mes.</div>`;
+            out.innerHTML = `<div style="background:rgba(255,255,255,.14); border-radius:8px; padding:9px 11px;">⚠️ Se necesitan <b>2 fotos</b> del inventario para este mes: una al <b>inicio</b> y otra al <b>fin</b>. Guarde una hoy con "📸 Guardar inventario de hoy" y otra a fin de mes — de ahí en adelante se calcula solo cada mes.</div>`;
             return;
         }
         const noPad = d => d.split('-').map(x => String(parseInt(x, 10))).join('-');
@@ -3603,9 +3603,9 @@ async function _emMedirFaltante() {
           <div style="border-top:1px solid rgba(255,255,255,.3); margin-top:4px; padding-top:4px;">${row('= Mercancía que SALIÓ', money(salidaReal))}</div>
           ${row('(−) Costo de ventas (Info Plus)', money(costoIP))}
           <div style="font-size:15px; margin-top:4px;">${row('🔴 FALTANTE del mes', money(faltante))}</div>
-          <div style="font-size:11px; opacity:.85; margin-top:5px;">Ese faltante = piezas de reparación (legítimo) + merma sin explicar. Compáralo con los ajustes "REACOND" del mes para ver cuánto es merma pura.</div>
+          <div style="font-size:11px; opacity:.85; margin-top:5px;">Ese faltante = piezas de reparación (legítimo) + merma sin explicar. Compárelo con los ajustes "REACOND" del mes para ver cuánto es merma pura.</div>
         </div>`;
-    } catch(e) { logError('medir faltante', e); out.innerHTML = '<span style="color:#fecaca;">No se pudo medir. Intenta de nuevo.</span>'; }
+    } catch(e) { logError('medir faltante', e); out.innerHTML = '<span style="color:#fecaca;">No se pudo medir. Intente de nuevo.</span>'; }
 }
 // ===== Reporte: celulares vendidos por modelo con margen (usa el mes/tienda del Estado Mensual) =====
 let _celModeloData = null;
@@ -3661,7 +3661,7 @@ function _celModeloRender() {
           <thead><tr style="background:#0f172a; color:#fff;"><th style="text-align:left;">Modelo</th><th>Cant.</th><th style="text-align:right;">Costo</th><th style="text-align:right;">Venta</th><th style="text-align:right;">Ganancia</th><th>Margen</th></tr></thead>
           <tbody>${filas || '<tr><td colspan="6" style="text-align:center; color:#475569; padding:16px;">Sin ventas de celulares este mes.</td></tr>'}</tbody>
         </table></div>
-        <p style="font-size:11px; color:#475569; margin:8px 0 0;">Ordenado por ganancia. El margen en <b style="color:#b45309;">ámbar</b> (menos de 15%) es donde ganas poco — súbele el precio o compra más barato. Incluye lo que Info Plus pone en "MOBILES".</p>
+        <p style="font-size:11px; color:#475569; margin:8px 0 0;">Ordenado por ganancia. El margen en <b style="color:#b45309;">ámbar</b> (menos de 15%) indica poca ganancia: suba el precio o compre más barato. Incluye lo que Info Plus pone en "MOBILES".</p>
       </div>
       <div class="modal-footer">
         <button class="btn btn-light" onclick="_celModeloExcel()"><i class="ti ti-file-spreadsheet"></i> Excel</button>
@@ -3675,7 +3675,7 @@ function _celModeloImprimir() {
     const tVenta = lista.reduce((s, r) => s + r.venta, 0), tCosto = lista.reduce((s, r) => s + r.costo, 0), tGan = tVenta - tCosto, tCant = lista.reduce((s, r) => s + r.cant, 0);
     const cfg = cache.configTaller || {};
     const filas = lista.map(r => `<tr><td>${escapeHtml(r.desc)}</td><td class=c>${Math.round(r.cant)}</td><td class=n>${money(r.costo)}</td><td class=n>${money(r.venta)}</td><td class=n>${money(r.gan)}</td><td class=c>${r.margen.toFixed(1)}%</td></tr>`).join('');
-    const w = window.open('', '_blank'); if(!w) return toast('Permite las ventanas emergentes.', 'error');
+    const w = window.open('', '_blank'); if(!w) return toast('Permita las ventanas emergentes.', 'error');
     w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Celulares por modelo ${escapeHtml(mes)}</title><style>*{font-family:Arial,sans-serif;}body{margin:22px;color:#0f172a;}h2{margin:0;font-size:17px;}table{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px;}th,td{border:1px solid #cbd5e1;padding:5px 7px;}th{background:#0f172a;color:#fff;}td.n{text-align:right;}td.c{text-align:center;}tfoot td{font-weight:800;background:#eef2ff;}</style></head><body>
       <h2>${escapeHtml(cfg.nombre || 'BAYOL CELL')} — Celulares vendidos por modelo</h2>
       <div style="color:#475569;font-size:12px;">${escapeHtml(mes)} · ${suc ? escapeHtml(suc) : 'Combinado (Santiago + Moca)'} · RD$</div>
@@ -3745,13 +3745,13 @@ async function renderEstadoMensual() {
     } catch(e) { logError('Render estado mensual', e); cont.innerHTML = '<p style="color:#dc2626;">Error al generar.</p>'; }
 }
 function imprimirEstadoMensual() {
-    if(!_emData) return toast('Genera primero el estado.', 'error');
+    if(!_emData) return toast('Genere primero el estado.', 'error');
     const d = _emData; const cfg = cache.configTaller || {};
     const tienda = cfg.nombre || 'BAYOL CELL, S.R.L.';
     const tiendaLbl = d.suc ? d.suc : 'Combinado (Santiago + Moca)';
     const catsG = Object.keys(d.gastosPorCat).sort((a, b) => d.gastosPorCat[b] - d.gastosPorCat[a]);
     const filasG = catsG.length ? catsG.map(c => `<tr><td style="padding-left:18px;">${escapeHtml(c)}</td><td class="num">${money(d.gastosPorCat[c])}</td></tr>`).join('') : `<tr><td colspan="2" style="padding-left:18px; color:#475569;">Sin gastos.</td></tr>`;
-    const w = window.open('', '_blank'); if(!w) return toast('Permite las ventanas emergentes.', 'error');
+    const w = window.open('', '_blank'); if(!w) return toast('Permita las ventanas emergentes.', 'error');
     w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Estado de Resultados ${escapeHtml(d.mes)}</title>
       <style>*{box-sizing:border-box;} body{font-family:Arial,Helvetica,sans-serif; color:#0f172a; padding:24px; max-width:620px; margin:0 auto;}
       h1{font-size:20px; text-align:center; margin:0;} .sub{text-align:center; color:#475569; font-size:12px; margin:2px 0 14px;}
@@ -3776,7 +3776,7 @@ function imprimirEstadoMensual() {
     w.document.close();
 }
 function exportarEstadoMensualExcel() {
-    if(!_emData) return toast('Genera primero el estado.', 'error');
+    if(!_emData) return toast('Genere primero el estado.', 'error');
     const d = _emData; const n2 = (v) => (Number(v) || 0).toFixed(2);
     const catsG = Object.keys(d.gastosPorCat).sort((a, b) => d.gastosPorCat[b] - d.gastosPorCat[a]);
     const filasG = catsG.map(c => `<tr><td>${escapeHtml(c)}</td><td>${n2(d.gastosPorCat[c])}</td></tr>`).join('');
@@ -3987,14 +3987,14 @@ function _erCpaDocHTML() {
     <p style="font-size:10.5px; color:#475569; margin-top:14px;">Ventas y costo de Info Plus · Inventarios/devoluciones según registro del período. Preparado conforme a NIIF para PYMES. Sujeto a validación del CPA. Generado ${new Date().toLocaleString('es-DO')}.</p>`;
 }
 function imprimirErCpa() {
-    if(!_erCpa) return toast('Genera el estado primero.', 'error');
+    if(!_erCpa) return toast('Genere el estado primero.', 'error');
     const w = window.open('', '_blank');
     w.document.write(`<html><head><meta charset="utf-8"><title>Estado de Resultados ${escapeHtml(_erCpa.mes)}</title>
     <style>body{font-family:-apple-system,Segoe UI,Arial,sans-serif;margin:30px;color:#0f172a;max-width:760px;margin-left:auto;margin-right:auto;}@media print{td{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style></head><body>${_erCpaDocHTML()}</body></html>`);
     w.document.close(); setTimeout(() => w.print(), 300);
 }
 function exportarErCpaExcel() {
-    if(!_erCpa) return toast('Genera el estado primero.', 'error');
+    if(!_erCpa) return toast('Genere el estado primero.', 'error');
     const blob = new Blob(['﻿<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"></head><body>' + _erCpaDocHTML() + '</body></html>'], { type: 'application/vnd.ms-excel' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob); a.download = `EstadoResultados_${_erCpa.mes}_${(_erCpa.suc || 'Combinado')}.xls`; a.click();
@@ -4194,7 +4194,7 @@ function cargarSelectCuentasLM() {
     if(!_cuentasCache || !_cuentasCache.length) { cargarCatalogoCuentas().then(cargarSelectCuentasLM); return; }
     const prev = sel.value;
     const cuentas = _cuentasCache.filter(c => c.permite_movimiento);
-    sel.innerHTML = '<option value="">— Selecciona una cuenta —</option>' + cuentas.map(c => `<option value="${escapeHtml(c.codigo)}">${escapeHtml(c.codigo)} · ${escapeHtml(c.nombre)}</option>`).join('');
+    sel.innerHTML = '<option value="">— Seleccione una cuenta —</option>' + cuentas.map(c => `<option value="${escapeHtml(c.codigo)}">${escapeHtml(c.codigo)} · ${escapeHtml(c.nombre)}</option>`).join('');
     if(prev) sel.value = prev;
 }
 function _natSaldo(nat, debe, haber) { return nat === 'acreedora' ? (haber - debe) : (debe - haber); }
@@ -4203,7 +4203,7 @@ async function renderLibroMayor() {
     const cod = document.getElementById('lm_cuenta')?.value;
     const mes = document.getElementById('lm_mes')?.value;
     const suc = document.getElementById('lm_sucursal')?.value;
-    if(!cod) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);">Selecciona una cuenta.</td></tr>'; return; }
+    if(!cod) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);">Seleccione una cuenta.</td></tr>'; return; }
     try {
         const cuenta = (_cuentasCache || []).find(c => c.codigo === cod);
         const nat = cuenta ? cuenta.naturaleza : 'deudora';
@@ -4289,8 +4289,8 @@ async function guardarAsiento() {
     const sucursal = document.getElementById('as_sucursal').value;
     const referencia = document.getElementById('as_referencia').value.trim() || null;
     const descripcion = document.getElementById('as_descripcion').value.trim();
-    if(!fecha) return toast('Indica la fecha.', 'error');
-    if(!descripcion) return toast('Indica la descripción.', 'error');
+    if(!fecha) return toast('Indique la fecha.', 'error');
+    if(!descripcion) return toast('Indique la descripción.', 'error');
     const lineas = [];
     document.querySelectorAll('#as_lineas tr').forEach(tr => {
         const cod = tr.querySelector('.as-cuenta').value;
@@ -4542,9 +4542,9 @@ function recalcApertura() {
 }
 async function guardarApertura() {
     const fecha = document.getElementById('ap_fecha').value;
-    if(!fecha) return toast('Indica la fecha de apertura.', 'error');
+    if(!fecha) return toast('Indique la fecha de apertura.', 'error');
     const { activos, pasivos, capital } = _apCalc();
-    if(activos <= 0 && pasivos <= 0) return toast('Pon al menos un saldo.', 'error');
+    if(activos <= 0 && pasivos <= 0) return toast('Indique al menos un saldo.', 'error');
     const L = [];
     const add = (cod, debe, haber) => { if(_r2(debe) > 0 || _r2(haber) > 0) L.push({ cuenta_codigo: cod, cuenta_nombre: _aipCuentaNombre(cod), debe: _r2(debe), haber: _r2(haber) }); };
     _apActivos.forEach(c => add(c, _apVal(c), 0));
@@ -4602,7 +4602,7 @@ function _aipcLineasMes(m, incItbis) {
 async function previsualizarAutoIPC() {
     const cont = document.getElementById('aipc_preview'), btn = document.getElementById('aipc_btnGen');
     const desde = document.getElementById('aipc_desde').value, hasta = document.getElementById('aipc_hasta').value;
-    if(!desde || !hasta) { cont.innerHTML = '<p style="color:#dc2626;">Elige el mes desde y hasta.</p>'; return; }
+    if(!desde || !hasta) { cont.innerHTML = '<p style="color:#dc2626;">Seleccione el mes desde y hasta.</p>'; return; }
     cont.innerHTML = '<p style="color:var(--text-muted);">Leyendo Info Plus en vivo... (puede tardar unos segundos)</p>'; btn.disabled = true;
     try {
         if(!_cuentasCache || !_cuentasCache.length) await cargarCatalogoCuentas();
@@ -4670,7 +4670,7 @@ function _opcionesGastos() {
     const grupos = {};
     gastos.forEach(c => { const g = c.codigo.slice(0, 2); (grupos[g] = grupos[g] || []).push(c); });
     const nombreGrupo = g => { const x = (_cuentasCache || []).find(c => c.codigo === g); return x ? x.nombre : ('Grupo ' + g); };
-    return '<option value="">— Elige el tipo de gasto —</option>' + Object.keys(grupos).sort().map(g =>
+    return '<option value="">— Seleccione el tipo de gasto —</option>' + Object.keys(grupos).sort().map(g =>
         `<optgroup label="${escapeHtml(nombreGrupo(g))}">` +
         grupos[g].sort((a, b) => a.codigo.localeCompare(b.codigo)).map(c => `<option value="${escapeHtml(c.codigo)}">${escapeHtml(c.nombre)}</option>`).join('') +
         `</optgroup>`).join('');
@@ -4712,10 +4712,10 @@ async function guardarRegGasto() {
     const desc = document.getElementById('rgto_desc').value.trim();
     const ref = document.getElementById('rgto_ref').value.trim() || null;
     const incItbis = document.getElementById('rgto_itbis').checked;
-    if(!fecha) return toast('Indica la fecha.', 'error');
-    if(!cod) return toast('Elige el tipo de gasto.', 'error');
-    if(!(total > 0)) return toast('Indica el monto del gasto.', 'error');
-    if(!desc) return toast('Escribe la descripción del gasto.', 'error');
+    if(!fecha) return toast('Indique la fecha.', 'error');
+    if(!cod) return toast('Seleccione el tipo de gasto.', 'error');
+    if(!(total > 0)) return toast('Indique el monto del gasto.', 'error');
+    if(!desc) return toast('Escriba la descripción del gasto.', 'error');
     const neto = incItbis ? _r2(total / 1.18) : total, itbis = incItbis ? _r2(total - neto) : 0;
     const lineas = [{ cuenta_codigo: cod, cuenta_nombre: _ctaNombre(cod), debe: neto, haber: 0 }];
     if(itbis > 0) lineas.push({ cuenta_codigo: '1104', cuenta_nombre: _ctaNombre('1104'), debe: itbis, haber: 0 });
@@ -4772,7 +4772,7 @@ function cambiarTipoMovEf(t) {
     } else {
         wConcepto.style.display = ''; wHacia.style.display = 'none'; lblCuenta.textContent = 'Cuenta de efectivo *';
         const lista = t === 'entrada' ? _mefEntrada : _mefSalida;
-        document.getElementById('mef_lblConcepto').textContent = t === 'entrada' ? '¿De dónde entra? *' : '¿Para qué sale? *';
+        document.getElementById('mef_lblConcepto').textContent = t === 'entrada' ? 'Origen de la entrada *' : 'Motivo de la salida *';
         document.getElementById('mef_concepto').innerHTML = lista.map(c => `<option value="${c.cod}">${escapeHtml(c.label)}</option>`).join('');
     }
     recalcMovEf();
@@ -4803,11 +4803,11 @@ async function guardarMovEf() {
     const sucursal = document.getElementById('mef_sucursal').value;
     const desc = document.getElementById('mef_desc').value.trim();
     const ref = document.getElementById('mef_ref').value.trim() || null;
-    if(!fecha) return toast('Indica la fecha.', 'error');
+    if(!fecha) return toast('Indique la fecha.', 'error');
     const L = _mefLineas();
     if(L === 'igual') return toast('El "desde" y el "hacia" no pueden ser la misma cuenta.', 'error');
-    if(!L) return toast('Indica el monto del movimiento.', 'error');
-    if(!desc) return toast('Escribe la descripción.', 'error');
+    if(!L) return toast('Indique el monto del movimiento.', 'error');
+    if(!desc) return toast('Escriba la descripción.', 'error');
     const tipoTxt = { entrada: 'Entrada de efectivo', salida: 'Salida de efectivo', transferencia: 'Transferencia de efectivo' }[_mefTipo];
     try {
         const { data: maxA } = await supabaseClient.from('conta_asientos').select('numero').order('numero', { ascending: false }).limit(1);
@@ -4944,7 +4944,7 @@ async function diagnosticarIA(){
     const panic_log = (document.getElementById('dg_panic').value || '').trim();
     const historial = (document.getElementById('dg_historial').value || '').trim();
     const sintomas = _diagSintomas();
-    if(!modelo && !panic_log && !sintomas.length) return toast('Indica al menos el modelo y los síntomas.', 'error');
+    if(!modelo && !panic_log && !sintomas.length) return toast('Indique al menos el modelo y los síntomas.', 'error');
     const btn = document.getElementById('dg_btn'), card = document.getElementById('diagResultadoCard'), res = document.getElementById('diagResultado');
     btn.disabled = true; const txtOrig = btn.innerHTML; btn.innerHTML = '<i class="ti ti-loader"></i> Analizando...';
     card.style.display = 'block'; res.textContent = '🤖 La IA está analizando el caso… (puede tardar unos segundos)';
@@ -4957,7 +4957,7 @@ async function diagnosticarIA(){
     finally{ btn.disabled = false; btn.innerHTML = txtOrig; }
 }
 async function guardarDiagnosticoIA(){
-    if(!_ultimoDiag) return toast('Primero genera un diagnóstico.', 'error');
+    if(!_ultimoDiag) return toast('Primero genere un diagnóstico.', 'error');
     try{
         const { error } = await supabaseClient.from('diagnosticos').insert({ modelo: _ultimoDiag.modelo || null, ios_version: _ultimoDiag.ios_version || null, panic_log_raw: _ultimoDiag.panic_log || null, sintomas: _ultimoDiag.sintomas, ia_diagnostico: _ultimoDiag.diagnostico, creado_por: sessionUser?.id || null });
         if(error) throw error;
@@ -4965,8 +4965,8 @@ async function guardarDiagnosticoIA(){
     }catch(e){ logError('Guardar diagnóstico', e); toastError(getFriendlyError(e)); }
 }
 async function guardarCasoConocimiento(){
-    if(!_ultimoDiag) return toast('Primero genera un diagnóstico.', 'error');
-    const solucion = (prompt('¿Cuál fue la SOLUCIÓN que funcionó? (se guarda en la base de conocimiento)') || '').trim();
+    if(!_ultimoDiag) return toast('Primero genere un diagnóstico.', 'error');
+    const solucion = (prompt('Solución que funcionó (se guarda en la base de conocimiento):') || '').trim();
     if(!solucion) return;
     try{
         const { error } = await supabaseClient.from('conocimiento_casos').insert({ modelo: _ultimoDiag.modelo || null, sintomas: _ultimoDiag.sintomas, solucion, exitoso: true });
@@ -5023,7 +5023,7 @@ async function importarCatalogoInfoplus(input) {
         const head = rows[0].map(h => (h || '').trim().toLowerCase());
         const idx = (...names) => { for(const n of names) { const k = head.findIndex(h => h.includes(n)); if(k >= 0) return k; } return -1; };
         const iCod = idx('código', 'codigo'), iDesc = idx('descrip'), iExist = idx('exist'), iRef = idx('refer'), iMarca = idx('marca');
-        if(iCod < 0 || iDesc < 0) { setMsg('No encontré las columnas Código y Descripción en el archivo.', '#dc2626'); input.value = ''; return; }
+        if(iCod < 0 || iDesc < 0) { setMsg('No se encontraron las columnas Código y Descripción en el archivo.', '#dc2626'); input.value = ''; return; }
         const data = [];
         for(let r = 1; r < rows.length; r++) {
             const row = rows[r]; if(!row) continue;
@@ -5099,7 +5099,7 @@ async function importarExistenciaTaller(input){
             const header = _csvCampos(lineas[0]).map(h=>h.toLowerCase());
             const iCod = header.findIndex(h=>h.includes('articulo') && !h.includes('desc'));
             const iEx = header.findIndex(h=>h.includes('existencia'));
-            if(iCod<0 || iEx<0) throw new Error('No encontré las columnas "Articulo" y "Existencia" en el CSV.');
+            if(iCod<0 || iEx<0) throw new Error('No se encontraron las columnas "Articulo" y "Existencia" en el CSV.');
             for(let k=1;k<lineas.length;k++){
                 const c = _csvCampos(lineas[k]); if(c.length<=Math.max(iCod,iEx)) continue;
                 const cod = (c[iCod]||'').trim();
@@ -5143,7 +5143,7 @@ async function verificarSyncInfoplus() {
         if(!ult.ok){
             // La última corrida falló
             box.style.cssText = 'font-size:13px; margin-bottom:10px; display:block; background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; padding:8px 12px; border-radius:8px;';
-            box.innerHTML = `<b>⚠️ La sincronización con Info Plus FALLÓ</b> (última vez ${hora}). ${escapeHtml((ult.error||'').slice(0,150))}. Puedes intentar el botón "Sincronizar Taller" manualmente.`;
+            box.innerHTML = `<b>⚠️ La sincronización con Info Plus FALLÓ</b> (última vez ${hora}). ${escapeHtml((ult.error||'').slice(0,150))}. Puede usar el botón "Sincronizar Taller" manualmente.`;
         } else if(minutos >= 10){
             // Hace rato que no entra una sincronización buena
             box.style.cssText = 'font-size:13px; margin-bottom:10px; display:block; background:#fffbeb; border:1px solid #fde68a; color:#92400e; padding:8px 12px; border-radius:8px;';
@@ -5314,7 +5314,7 @@ async function renderEstadisticas(btn){
         let vtHtml;
         if(!vt){
             vtHtml = `<div class="card" style="margin-bottom:15px;"><h3 style="margin:0 0 8px;"><i class="ti ti-cash" style="color:#16a34a;"></i> Ventas de tienda (Info Plus)</h3>
-                <p style="color:#dc2626; font-size:13px; margin:0;">No se pudieron cargar las ventas (¿permiso o conexión?). Intenta Actualizar.</p></div>`;
+                <p style="color:#dc2626; font-size:13px; margin:0;">No se pudieron cargar las ventas (permiso o conexión). Presione Actualizar.</p></div>`;
         } else {
             const rs = vt.resumen || {};
             const margenPct = (Number(rs.venta)>0) ? Math.round(Number(rs.margen)/Number(rs.venta)*100) : 0;
@@ -5355,7 +5355,7 @@ async function renderEstadisticas(btn){
         let repHtml;
         if(!rep){
             repHtml = `<div class="card" style="margin-bottom:15px;"><h3 style="margin:0 0 8px;"><i class="ti ti-alert-triangle" style="color:#dc2626;"></i> Reposición / Agotamiento</h3>
-                <p style="color:#dc2626; font-size:13px; margin:0;">No se pudo cargar el reporte de reposición. Intenta Actualizar.</p></div>`;
+                <p style="color:#dc2626; font-size:13px; margin:0;">No se pudo cargar el reporte de reposición. Presione Actualizar.</p></div>`;
         } else {
             const items = rep.items || [];
             const filas = items.map(it=>{
@@ -5425,7 +5425,7 @@ async function renderEstadisticas(btn){
             tcHtml = `
             <div class="card" style="margin-bottom:15px; border-top:3px solid #16a34a;">
                 <h3 style="margin:0 0 4px;"><i class="ti ti-tool" style="color:#16a34a;"></i> Control del Taller (consumo interno)</h3>
-                <p style="color:var(--text-muted); font-size:12px; margin:0 0 12px;">Piezas que los técnicos <b>ya usaron</b> en reacondicionados pero que Info Plus <b>todavía no ha descontado</b>. "Real" = lo que Info Plus dice menos lo ya consumido. Cuando la cajera lo descuente en Info Plus, toca <b>"Ya descontado"</b> para cuadrar.</p>
+                <p style="color:var(--text-muted); font-size:12px; margin:0 0 12px;">Piezas que los técnicos <b>ya usaron</b> en reacondicionados pero que Info Plus <b>todavía no ha descontado</b>. "Real" = lo que Info Plus dice menos lo ya consumido. Cuando la cajera lo descuente en Info Plus, toque <b>"Ya descontado"</b> para cuadrar.</p>
                 <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-bottom:14px;">
                     ${_statCard('Piezas pendientes de descontar', _statNum(tc.total_pendiente), '#d97706', 'en '+_statNum(tc.codigos_pendientes)+' productos')}
                 </div>
@@ -5451,7 +5451,7 @@ async function renderEstadisticas(btn){
             rentHtml = `
             <div class="card" style="margin-bottom:15px; border-top:3px solid #16a34a;">
                 <h3 style="margin:0 0 4px;"><i class="ti ti-trending-up" style="color:#16a34a;"></i> Rentabilidad por producto</h3>
-                <p style="color:var(--text-muted); font-size:12px; margin:0 0 12px;">Lo que más <b>ganancia</b> te deja en el período, y cuánto <b>capital tienes parado</b> en stock de cada uno. (Top 25 por ganancia)</p>
+                <p style="color:var(--text-muted); font-size:12px; margin:0 0 12px;">Lo que más <b>ganancia</b> deja en el período, y cuánto <b>capital hay parado</b> en stock de cada uno. (Top 25 por ganancia)</p>
                 <div class="table-wrap" style="max-height:460px; overflow-y:auto;"><table><thead><tr>
                     <th>Código</th><th>Producto</th><th>Unid.</th><th>Venta</th><th>Ganancia</th><th>Margen</th><th>Stock</th><th>Capital parado</th>
                 </tr></thead><tbody>${fr}</tbody></table></div>
@@ -5476,11 +5476,11 @@ async function renderEstadisticas(btn){
                 ? `<div class="table-wrap" style="max-height:460px; overflow-y:auto;"><table><thead><tr>
                     <th>Código</th><th>Producto</th><th>Stock</th><th>Dinero dormido</th><th>Última venta</th>
                    </tr></thead><tbody>${fd}</tbody></table></div>`
-                : '<p style="color:#16a34a; padding:10px;">✅ Todo tu stock ha rotado en los últimos 90 días.</p>';
+                : '<p style="color:#16a34a; padding:10px;">✅ Todo el stock ha rotado en los últimos 90 días.</p>';
             dormHtml = `
             <div class="card" style="margin-bottom:15px; border-top:3px solid #dc2626;">
                 <h3 style="margin:0 0 4px;"><i class="ti ti-zzz" style="color:#dc2626;"></i> Productos que NO rotan (dinero dormido)</h3>
-                <p style="color:var(--text-muted); font-size:12px; margin:0 0 12px;">Tienen stock pero <b>no se han vendido en 90 días</b>. Es capital parado que podrías mover (oferta, traslado, etc.). Ordenado por el que más dinero tiene dormido.</p>
+                <p style="color:var(--text-muted); font-size:12px; margin:0 0 12px;">Tienen stock pero <b>no se han vendido en 90 días</b>. Es capital parado que se podría mover (oferta, traslado, etc.). Ordenado por el que más dinero tiene dormido.</p>
                 <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-bottom:14px;">
                     ${_statCard('Productos sin rotar', _statNum(dorm.total_productos), '#dc2626', 'sin venta en 90 días')}
                     ${_statCard('Dinero dormido', _statRD(dorm.valor_dormido_total), '#dc2626', 'capital parado en ese stock')}
@@ -5512,7 +5512,7 @@ async function renderEstadisticas(btn){
             cliHtml = `
             <div class="card" style="margin-bottom:15px; border-top:3px solid #0891b2;">
                 <h3 style="margin:0 0 4px;"><i class="ti ti-users" style="color:#0891b2;"></i> Clientes frecuentes</h3>
-                <p style="color:var(--text-muted); font-size:12px; margin:0 0 12px;">Tus mejores clientes del período (por monto comprado). "Ticket prom." = cuánto gasta por factura. Si tiene <span style="color:#dc2626;">(Xd sin comprar)</span>, lleva rato sin volver — buena señal para darle seguimiento. (Top 30)</p>
+                <p style="color:var(--text-muted); font-size:12px; margin:0 0 12px;">Mejores clientes del período (por monto comprado). "Ticket prom." = cuánto gasta por factura. Si tiene <span style="color:#dc2626;">(Xd sin comprar)</span>, lleva rato sin volver — buena señal para darle seguimiento. (Top 30)</p>
                 <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-bottom:14px;">
                     ${_statCard('Clientes que compraron', _statNum(cli.total_clientes), '#0891b2', 'en el período')}
                     ${_statCard('Venta total del período', _statRD(cli.venta_total), '#16a34a', '')}
@@ -5585,7 +5585,7 @@ async function renderEstadisticas(btn){
         <div class="card" style="margin-bottom:15px;">
             <h3 style="margin:0 0 12px;"><i class="ti ti-package" style="color:#7c3aed;"></i> Inventario (Info Plus, todos los almacenes)</h3>
             <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px;">
-                ${_statCard('Valor al costo', _statRD(inv.valor_costo), '#7c3aed', 'lo que te costó la mercancía')}
+                ${_statCard('Valor al costo', _statRD(inv.valor_costo), '#7c3aed', 'costo de la mercancía')}
                 ${_statCard('Valor a precio de venta', _statRD(inv.valor_precio), '#16a34a', 'si se vendiera todo')}
                 ${_statCard('Unidades en existencia', _statNum(inv.unidades_total), '#0891b2', _statNum(inv.articulos_con_stock)+' artículos con stock')}
                 ${_statCard('Artículos agotados', _statNum(inv.articulos_agotados), '#dc2626', 'de '+_statNum(inv.total_articulos)+' en catálogo')}
@@ -5777,7 +5777,7 @@ async function registrarEnCatalogoSiEsNueva(marca, categoria) {
 }
 
 async function eliminarArticulo(id) {
-    if(!tienePermiso('catalogo_articulos_eliminar')) return toast('No tienes permiso para eliminar artículos.', 'error');
+    if(!tienePermiso('catalogo_articulos_eliminar')) return toast('No tiene permiso para eliminar artículos.', 'error');
     if(!await confirmar('¿Desactivar este artículo?')) return;
     try {
         const { error } = await supabaseClient.from('articulos').update({ activo: false }).eq('id', id);
@@ -5804,7 +5804,7 @@ function renderProveedores() {
         );
     }
     if(!lista.length) {
-        cont.innerHTML = `<p style="color:var(--text-muted); text-align:center; padding:20px;">${filtro ? 'Sin resultados' : 'No hay proveedores. Crea uno con el botón + Crear Proveedor.'}</p>`;
+        cont.innerHTML = `<p style="color:var(--text-muted); text-align:center; padding:20px;">${filtro ? 'Sin resultados' : 'No hay proveedores. Cree uno con el botón + Crear Proveedor.'}</p>`;
         return;
     }
     const _provPage = _uiListPage('proveedores', lista.length);
@@ -5852,7 +5852,7 @@ async function _cargarProveedoresIP() {
 }
 function _opcionesProveedoresIP(valorSel) {
     const arr = cache.infoplusProveedores || [];
-    return `<option value="">— elige proveedor de Info Plus —</option>` + arr.map(p => `<option value="${escapeHtml(p.codigo)}"${String(valorSel || '') === String(p.codigo) ? ' selected' : ''}>${escapeHtml(p.nombre)} (${escapeHtml(p.codigo)})</option>`).join('');
+    return `<option value="">— seleccione proveedor de Info Plus —</option>` + arr.map(p => `<option value="${escapeHtml(p.codigo)}"${String(valorSel || '') === String(p.codigo) ? ' selected' : ''}>${escapeHtml(p.nombre)} (${escapeHtml(p.codigo)})</option>`).join('');
 }
 async function _llenarProvIPSelect(valor) {
     const sel = document.getElementById('mod_prov_codip'); if(!sel) return;
@@ -5868,11 +5868,11 @@ function abrirBuscarSerialIP() {
         <div class="modal-header" style="background:linear-gradient(135deg,#0e7490,#0891b2); color:#fff; border-radius:12px 12px 0 0;"><h3 style="margin:0; color:#fff;"><i class="ti ti-search"></i> IMEI → Proveedor</h3><button class="modal-close" style="color:#fff;" onclick="document.getElementById('modalSerialIP').remove()">✕</button></div>
         <div class="modal-body">
           <div style="display:flex; gap:8px;">
-            <input id="serialIPInput" placeholder="Escribe o escanea el IMEI…" style="flex:1; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px;" onkeydown="if(event.key==='Enter')buscarSerialIP()">
+            <input id="serialIPInput" placeholder="Escriba o escanee el IMEI…" style="flex:1; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px;" onkeydown="if(event.key==='Enter')buscarSerialIP()">
             <button class="btn btn-blue" onclick="buscarSerialIP()"><i class="ti ti-search"></i> Buscar</button>
           </div>
           <div id="serialIPResultado" style="margin-top:12px;"></div>
-          ${isAdminUser() ? `<div style="margin-top:14px; border-top:1px solid #eef2f7; padding-top:10px; font-size:12px; color:#475569;">¿No aparece un IMEI reciente? <button class="btn btn-light" style="padding:4px 10px; font-size:12px;" onclick="sincronizarSerialesIP()"><i class="ti ti-refresh"></i> Sincronizar seriales</button> (lee las compras de Info Plus).</div>` : ''}
+          ${isAdminUser() ? `<div style="margin-top:14px; border-top:1px solid #eef2f7; padding-top:10px; font-size:12px; color:#475569;">Si no aparece un IMEI reciente: <button class="btn btn-light" style="padding:4px 10px; font-size:12px;" onclick="sincronizarSerialesIP()"><i class="ti ti-refresh"></i> Sincronizar seriales</button> (lee las compras de Info Plus).</div>` : ''}
         </div>
     </div>`;
     document.body.appendChild(box);
@@ -5882,11 +5882,11 @@ async function buscarSerialIP() {
     const q = (document.getElementById('serialIPInput')?.value || '').replace(/\D/g, '').trim();
     const cont = document.getElementById('serialIPResultado');
     if(!cont) return;
-    if(!q || q.length < 5) { cont.innerHTML = '<p style="color:#b91c1c; font-size:13px;">Escribe un IMEI (al menos 5 dígitos).</p>'; return; }
+    if(!q || q.length < 5) { cont.innerHTML = '<p style="color:#b91c1c; font-size:13px;">Escriba un IMEI (al menos 5 dígitos).</p>'; return; }
     cont.innerHTML = '<p style="color:#475569; font-size:13px;">Buscando…</p>';
     try {
         const { data } = await supabaseClient.from('infoplus_seriales').select('*').ilike('imei', '%' + q + '%').limit(6);
-        if(!data || !data.length) { cont.innerHTML = `<div style="background:#fef3c7; color:#92400e; padding:10px; border-radius:8px; font-size:13px;">No se encontró ese IMEI en las compras.${isAdminUser() ? ' Prueba "Sincronizar seriales", o quizá es una compra muy vieja.' : ''}</div>`; return; }
+        if(!data || !data.length) { cont.innerHTML = `<div style="background:#fef3c7; color:#92400e; padding:10px; border-radius:8px; font-size:13px;">No se encontró ese IMEI en las compras.${isAdminUser() ? ' Pruebe "Sincronizar seriales"; también puede tratarse de una compra antigua.' : ''}</div>`; return; }
         cont.innerHTML = data.map(s => `<div style="border:1px solid #e2e8f0; border-radius:10px; padding:12px; margin-bottom:8px;">
             <div style="font-weight:800; color:#0f172a;">${escapeHtml(s.producto || '—')}</div>
             <div style="font-size:13px; margin-top:6px;">🏷️ IMEI: <b class="mono">${escapeHtml(s.imei)}</b></div>
@@ -6013,7 +6013,7 @@ function renderDetalleProveedor(provId) {
     
     const cont = document.getElementById('lotesProveedorContainer');
     if(!lotesProv.length) {
-        cont.innerHTML = `<p style="color:var(--text-muted); text-align:center; font-size:13px; padding:20px;">Sin lotes registrados. Crea uno con el botón + Nuevo Lote.</p>`;
+        cont.innerHTML = `<p style="color:var(--text-muted); text-align:center; font-size:13px; padding:20px;">Sin lotes registrados. Cree uno con el botón + Nuevo Lote.</p>`;
         return;
     }
     cont.innerHTML = lotesProv.map(l => {
@@ -6109,7 +6109,7 @@ function abrirImportarCompraInfoPlus() {
           <button class="modal-close" onclick="cerrarImportCompra()" style="color:#fff;">✕</button>
         </div>
         <div class="modal-body" style="max-height:78vh; overflow-y:auto;">
-          <p style="font-size:13px; color:#475569; margin:0 0 12px;">Elige el rango de fechas, busca la compra que registraste en Info Plus y marca los <b>modelos de teléfono</b>. Cada unidad será un equipo individual con su costo.</p>
+          <p style="font-size:13px; color:#475569; margin:0 0 12px;">Seleccione el rango de fechas, busque la compra registrada en Info Plus y marque los <b>modelos de teléfono</b>. Cada unidad será un equipo individual con su costo.</p>
           <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
             <div><label style="font-size:12px; font-weight:600;">Desde</label><br><input type="date" id="impDesde" value="${fmt(hace30)}"></div>
             <div><label style="font-size:12px; font-weight:600;">Hasta</label><br><input type="date" id="impHasta" value="${fmt(hoy)}"></div>
@@ -6125,7 +6125,7 @@ function cerrarImportCompra() { const m = document.getElementById('modalImportCo
 async function buscarComprasInfoPlus() {
     const desde = document.getElementById('impDesde')?.value;
     const hasta = document.getElementById('impHasta')?.value;
-    if(!desde || !hasta) return toast('Elige las dos fechas.', 'error');
+    if(!desde || !hasta) return toast('Seleccione las dos fechas.', 'error');
     const cont = document.getElementById('impResultado');
     cont.innerHTML = '<p style="text-align:center; color:#475569; padding:16px;">Buscando en Info Plus...</p>';
     const ip = (s) => { const [y, m, d] = s.split('-'); return `${parseInt(y)}-${parseInt(m)}-${parseInt(d)}`; }; // Info Plus quiere YYYY-M-D
@@ -6158,7 +6158,7 @@ function verLineasImportCompra(idx) {
         return `
       <tr style="${sosp ? 'background:#fffbeb;' : ''}">
         <td style="text-align:center;"><input type="checkbox" id="impchk_${j}" onchange="_impContarMarcados(${idx})" style="width:17px; height:17px;"></td>
-        <td>${escapeHtml(l.producto)} ${sosp ? '<span title="El costo parece traer el 18% rebajado (ITBIS). Revísalo." style="cursor:help;"><i class="ti ti-alert-triangle"></i></span>' : ''}${(l.seriales && l.seriales.length) ? ` <span style="font-size:10px; font-weight:700; background:#dcfce7; color:#166534; padding:1px 7px; border-radius:8px;" title="Estos IMEI se pondrán solos en cada equipo"><i class="ti ti-bookmark"></i> ${l.seriales.length} IMEI</span>` : ''}</td>
+        <td>${escapeHtml(l.producto)} ${sosp ? '<span title="El costo parece traer el 18% rebajado (ITBIS). Revíselo." style="cursor:help;"><i class="ti ti-alert-triangle"></i></span>' : ''}${(l.seriales && l.seriales.length) ? ` <span style="font-size:10px; font-weight:700; background:#dcfce7; color:#166534; padding:1px 7px; border-radius:8px;" title="Estos IMEI se pondrán solos en cada equipo"><i class="ti ti-bookmark"></i> ${l.seriales.length} IMEI</span>` : ''}</td>
         <td style="text-align:center; color:#475569;">${escapeHtml(String(l.codproducto ?? ''))}</td>
         <td style="text-align:center;">${l.cantidad}</td>
         <td style="text-align:center;"><button type="button" class="btn btn-light" style="padding:4px 9px; font-size:11.5px; white-space:nowrap;" onclick="_impAbrirColores(${idx}, ${j})" title="Poner el color de cada IMEI"><i class="ti ti-palette"></i> <span id="impcolcnt_${j}">${_impColoresCuenta(idx, j)}</span></button></td>
@@ -6171,8 +6171,8 @@ function verLineasImportCompra(idx) {
     cont.innerHTML = `
       <button class="btn btn-light" style="padding:5px 10px; font-size:12px; margin-bottom:10px;" onclick="buscarComprasInfoPlus()"><i class="ti ti-arrow-left"></i> Volver</button>
       <div style="font-size:13px; margin-bottom:4px;"><b>Compra ${escapeHtml(f.factura)}</b> · ${escapeHtml(f.proveedor || '')}</div>
-      ${yaExiste ? '<div style="background:#fef3c7; color:#92400e; font-size:12px; padding:6px 10px; border-radius:8px; margin-bottom:8px;"><i class="ti ti-alert-triangle"></i> Ya existe un lote con este número de factura. Si continúas, crearás otro.</div>' : ''}
-      <p style="font-size:12px; color:#475569; margin:0 0 8px;">Marca los <b>modelos de teléfono</b> que entran al lote (cada unidad = un equipo). Las piezas/accesorios <b>no</b> los marques.</p>
+      ${yaExiste ? '<div style="background:#fef3c7; color:#92400e; font-size:12px; padding:6px 10px; border-radius:8px; margin-bottom:8px;"><i class="ti ti-alert-triangle"></i> Ya existe un lote con este número de factura. Si continúa, se creará otro.</div>' : ''}
+      <p style="font-size:12px; color:#475569; margin:0 0 8px;">Marque los <b>modelos de teléfono</b> que entran al lote (cada unidad = un equipo). Las piezas/accesorios <b>no</b> se marcan.</p>
       <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:0 0 8px;">
         <button type="button" class="btn btn-light" style="padding:5px 10px; font-size:12px;" onclick="_impMarcarTodos(${idx}, true)"><i class="ti ti-checks"></i> Seleccionar todo</button>
         <span id="impContador" style="font-size:12px; color:#475569; margin-left:auto;">Nada marcado</span>
@@ -6227,7 +6227,7 @@ function _impAbrirColores(idx, j) {
     for(let k = 0; k < n; k++) filas.push({ id: k, titulo: `Unidad ${k + 1}` + (Array.isArray(l.seriales) && l.seriales[k] ? ` · IMEI ${l.seriales[k]}` : ''), sub: '', modelo: l.producto || '', color: arr[k] || '' });
     _bcColoresAbrir({
         titulo: 'Colores · ' + (l.producto || ''),
-        ayuda: 'Toca el color de cada IMEI. Se guarda al crear el lote.',
+        ayuda: 'Toque el color de cada IMEI. Se guarda al crear el lote.',
         filas,
         onSet: (k, color) => { arr[k] = color || ''; },
         onCerrar: () => { const el = document.getElementById('impcolcnt_' + j); if(el) el.textContent = _impColoresCuenta(idx, j); }
@@ -6237,8 +6237,8 @@ function _impAbrirColores(idx, j) {
 async function crearLoteDesdeCompraInfoPlus(idx) {
     const f = _impComprasData[idx]; if(!f) return;
     const seleccion = f.lineas.map((l, j) => ({ l, j, checked: document.getElementById('impchk_' + j)?.checked, costo: parseFloat(document.getElementById('impcost_' + j)?.value) })).filter(x => x.checked);
-    if(!seleccion.length) return toast('Marca al menos un modelo.', 'error');
-    if(seleccion.some(x => isNaN(x.costo) || x.costo < 0)) return toast('Hay un costo inválido. Revísalo.', 'error');
+    if(!seleccion.length) return toast('Marque al menos un modelo.', 'error');
+    if(seleccion.some(x => isNaN(x.costo) || x.costo < 0)) return toast('Hay un costo inválido. Revíselo.', 'error');
     const totalEquipos = seleccion.reduce((s, x) => s + (parseInt(x.l.cantidad) || 0), 0);
     if(totalEquipos <= 0) return toast('Las líneas marcadas no tienen cantidad.', 'error');
     await _ensureInfoplusArticulos();
@@ -6299,7 +6299,7 @@ function abrirImportarManifiesto() {
     box.innerHTML = `<div class="modal-box" style="max-width:840px;">
         <div class="modal-header" style="background:linear-gradient(135deg,#6d28d9,#a855f7); color:#fff; border-radius:12px 12px 0 0;"><h3 style="margin:0; color:#fff;"><i class="ti ti-file-spreadsheet"></i> Importar manifiesto (Excel)</h3><button class="modal-close" style="color:#fff;" onclick="document.getElementById('modalManif').remove()">✕</button></div>
         <div class="modal-body" style="max-height:76vh; overflow:auto;">
-          <p style="font-size:12.5px; color:#475569; margin-top:0;">Sube el Excel del proveedor (manifiesto). Cada fila = <b>1 teléfono con su IMEI</b>. El sistema <b>detecta la tasa</b>, <b>enlaza cada modelo con Info Plus</b> y crea el lote con cada equipo individual.</p>
+          <p style="font-size:12.5px; color:#475569; margin-top:0;">Suba el Excel del proveedor (manifiesto). Cada fila = <b>1 teléfono con su IMEI</b>. El sistema <b>detecta la tasa</b>, <b>enlaza cada modelo con Info Plus</b> y crea el lote con cada equipo individual.</p>
           <input type="file" accept=".xlsx,.xls" onchange="_manifSubirArchivo(this.files[0])" style="margin-bottom:12px;">
           <div id="manifCont"></div>
         </div>
@@ -6309,7 +6309,7 @@ function abrirImportarManifiesto() {
 }
 async function _manifSubirArchivo(file) {
     if(!file) return;
-    if(!window.XLSX) return toast('Aún carga el lector de Excel, intenta de nuevo en 2 segundos.', 'error');
+    if(!window.XLSX) return toast('El lector de Excel aún está cargando. Intente de nuevo en 2 segundos.', 'error');
     try {
         const buf = await file.arrayBuffer();
         const wb = window.XLSX.read(buf, { type: 'array' });
@@ -6323,7 +6323,7 @@ async function _manifSubirArchivo(file) {
         let rdi = col(['amount', 'total', 'importe', 'dop']);
         if(rdi < 0 && ci.usd >= 0) rdi = ci.usd + 1; // la columna de al lado del precio US$ (RD$)
         ci.rd = rdi;
-        if(ci.imei < 0 || ci.modelo < 0) return toast('No encontré las columnas IMEI y Model en el Excel.', 'error');
+        if(ci.imei < 0 || ci.modelo < 0) return toast('No se encontraron las columnas IMEI y Model en el Excel.', 'error');
         const phones = [];
         for(let i = hi + 1; i < filas.length; i++) {
             const r = filas[i]; if(!Array.isArray(r)) continue;
@@ -6333,7 +6333,7 @@ async function _manifSubirArchivo(file) {
             let rd = ci.rd >= 0 ? (parseFloat(r[ci.rd]) || 0) : 0;
             phones.push({ modelo: String(r[ci.modelo] || '').trim(), imei, memoria: ci.mem >= 0 ? String(r[ci.mem] || '').trim() : '', color: ci.color >= 0 ? String(r[ci.color] || '').trim() : '', marca: ci.marca >= 0 ? String(r[ci.marca] || '').trim() : '', usd, rd });
         }
-        if(!phones.length) return toast('No encontré teléfonos con IMEI en el Excel.', 'error');
+        if(!phones.length) return toast('No se encontraron teléfonos con IMEI en el Excel.', 'error');
         const tasas = phones.filter(p => p.usd > 0 && p.rd > 0).map(p => p.rd / p.usd).sort((a, b) => a - b);
         const tasa = tasas.length ? Math.round(tasas[Math.floor(tasas.length / 2)] * 100) / 100 : 60;
         phones.forEach(p => { if(!p.rd && p.usd) p.rd = Math.round(p.usd * tasa * 100) / 100; });
@@ -6381,9 +6381,9 @@ function _manifRender() {
       <div class="form-row"><label>Fecha compra</label><input id="manifFecha" type="date" value="${hoy}"></div>
       <div class="form-row"><label>Flete / Aduana (RD$, opcional)</label><input id="manifFlete" type="number" value="0"></div>
     </div>
-    <div style="font-weight:700; font-size:13px; margin:10px 0 4px;">Modelos → Info Plus <span style="color:#475569; font-weight:500; font-size:12px;">(verifica/corrige cada enlace)</span></div>
+    <div style="font-weight:700; font-size:13px; margin:10px 0 4px;">Modelos → Info Plus <span style="color:#475569; font-weight:500; font-size:12px;">(verifique/corrija cada enlace)</span></div>
     <div class="table-wrap"><table style="width:100%; border-collapse:collapse; font-size:12.5px;"><thead><tr style="background:#0f172a; color:#fff;"><th style="text-align:left; padding:6px;">Modelo</th><th>Cant.</th><th style="text-align:right;">Prom. RD$</th><th style="text-align:left; padding:6px;">Código Info Plus</th><th></th></tr></thead><tbody>${modelRows}</tbody></table></div>
-    ${sinCod ? `<div style="margin-top:8px; background:#fef2f2; color:#b91c1c; font-size:12px; padding:8px 10px; border-radius:8px;"><i class="ti ti-alert-triangle"></i> <b>${sinCod} modelo(s) sin código de Info Plus.</b> Se crean en el taller igual (con IMEI y costo), pero para <b>despacharlos/registrarlos en Info Plus</b> primero hay que <b>crear ese artículo en Info Plus</b> y enlazarlo con "Enlazar". Puedes dejarlo y asignarlo después.</div>` : ''}
+    ${sinCod ? `<div style="margin-top:8px; background:#fef2f2; color:#b91c1c; font-size:12px; padding:8px 10px; border-radius:8px;"><i class="ti ti-alert-triangle"></i> <b>${sinCod} modelo(s) sin código de Info Plus.</b> Se crean en el taller igual (con IMEI y costo), pero para <b>despacharlos/registrarlos en Info Plus</b> primero hay que <b>crear ese artículo en Info Plus</b> y enlazarlo con "Enlazar". Puede dejarlo y asignarlo después.</div>` : ''}
     <div style="text-align:right; margin-top:10px; font-size:13px;"><b>${phones.length}</b> teléfono(s) · Total <b>${money(totRD)}</b></div>
     <div style="text-align:right; margin-top:12px;"><button class="btn btn-blue" onclick="crearLoteDesdeManifiesto()"><i class="ti ti-plus"></i> Crear lote (${phones.length} equipos)</button></div>`;
 }
@@ -6525,7 +6525,7 @@ function _initEvalPiezaSelect(modelo) {
     if(toks.length) arts = arts.filter(a => { const hay = (a.descripcion || '').toLowerCase(); return toks.every(t => hay.includes(t)); });
     smartSelectInit({
         containerId: 'ss-eval-pieza',
-        placeholder: solo ? `🔍 Piezas de ${key}… (o desmarca para ver todo)` : '🔍 Buscar pieza del inventario (Info Plus)...',
+        placeholder: solo ? `🔍 Piezas de ${key}… (o desmarque para ver todo)` : '🔍 Buscar pieza del inventario (Info Plus)...',
         items: arts.map(a => ({
             id: a.codigo,
             label: `${a.codigo} · ${(a.descripcion || '').trim()}`,
@@ -6724,7 +6724,7 @@ async function _buscadorSincronizarIP(btn) {
         if(error) throw error;
         await _ensureInfoplusArticulos(true); // refrescar memoria
         renderBuscadorArticulos();
-        if(msg) { msg.style.color = '#16a34a'; msg.textContent = '✅ Actualizado: ' + ((data && data.total) || 0).toLocaleString('es-DO') + ' artículos. Busca de nuevo.'; }
+        if(msg) { msg.style.color = '#16a34a'; msg.textContent = '✅ Actualizado: ' + ((data && data.total) || 0).toLocaleString('es-DO') + ' artículos. Busque de nuevo.'; }
     } catch(e) { logError('sincronizar buscador IP', e); if(msg) { msg.style.color = '#dc2626'; msg.textContent = '⚠️ ' + getFriendlyError(e); } }
     finally { btn.disabled = false; btn.innerHTML = orig; }
 }
@@ -6795,7 +6795,7 @@ const _NIVELES_PRECIO = [{ k: 1, n: 'Cliente Final' }, { k: 2, n: 'Por Mayor' },
 function abrirEditarPreciosArticulo(codigo) {
     if(!isAdminUser()) return toast('Solo el administrador puede cambiar precios.', 'error');
     const a = _findInfoplusArt(codigo);
-    if(!a) return toast('No encuentro ese artículo en el catálogo.', 'error');
+    if(!a) return toast('No se encontró ese artículo en el catálogo.', 'error');
     const niv = (a.niveles && typeof a.niveles === 'object') ? a.niveles : {};
     // Contado por nivel: del jsonb niveles; si no hay, cae a precio (nivel1) / precio_especial (nivel2).
     const contadoDe = (k) => {
@@ -6822,7 +6822,7 @@ function abrirEditarPreciosArticulo(codigo) {
           <p style="margin:0 0 4px; font-weight:700; color:#0f172a;">${escapeHtml(a.descripcion || String(a.codigo))}</p>
           <p style="margin:0 0 12px; font-size:12px; color:#64748b;">Código ${escapeHtml(String(a.codigo))}</p>
           <div style="background:#fef2f2; border:1px solid #fca5a5; border-radius:10px; padding:10px 12px; font-size:12.5px; color:#991b1b; margin-bottom:12px;">
-            <b>Importante:</b> Info Plus guarda el <b>Precio y el Mínimo JUNTOS</b> en cada nivel. Para cambiar un nivel, <b>pon SU Precio y SU Mínimo</b> (los dos). El nivel que dejes con el <b>Mínimo en blanco NO se toca</b>. El Precio se guarda igual en Contado y Crédito. Va <b>directo a Info Plus</b>.
+            <b>Importante:</b> Info Plus guarda el <b>Precio y el Mínimo JUNTOS</b> en cada nivel. Para cambiar un nivel, <b>indique SU Precio y SU Mínimo</b> (los dos). El nivel que deje con el <b>Mínimo en blanco NO se toca</b>. El Precio se guarda igual en Contado y Crédito. Va <b>directo a Info Plus</b>.
           </div>
           <table style="width:100%; border-collapse:collapse; font-size:13px;">
             <thead><tr style="background:#f1f5f9;"><th style="padding:8px 6px; text-align:left;">Nivel</th><th style="padding:8px 4px;">Precio (Contado/Crédito)</th><th style="padding:8px 4px;">Mínimo</th></tr></thead>
@@ -6856,10 +6856,10 @@ async function _guardarPreciosArticulo(codigo) {
             incompletos.push(nv.n); // le falta uno de los dos → NO se manda (evita poner 0)
         }
     }
-    if(incompletos.length) return toast('Para guardar un nivel debes poner SU Precio y SU Mínimo (los dos). Falta completar: ' + incompletos.join(', ') + '. Déjalo en blanco (los dos) si no quieres tocarlo.', 'error');
-    if(!precios.length) return toast('Pon el Precio y el Mínimo del nivel que quieras cambiar.', 'error');
+    if(incompletos.length) return toast('Para guardar un nivel debe indicar SU Precio y SU Mínimo (los dos). Falta completar: ' + incompletos.join(', ') + '. Déjelo en blanco (los dos) si no desea cambiarlo.', 'error');
+    if(!precios.length) return toast('Indique el Precio y el Mínimo del nivel que desea cambiar.', 'error');
     const resumen = precios.map(p => { const nv = _NIVELES_PRECIO.find(x => x.k === p.codnivelprecio); return `${nv.n}: Precio ${money(p.contado)} · Mínimo ${money(p.minimo)}`; }).join('\n');
-    const ok = await confirmar('Se van a guardar estos niveles en Info Plus (Contado y Crédito iguales; los demás niveles no se tocan):\n\n' + resumen + '\n\n¿Confirmas?');
+    const ok = await confirmar('Se van a guardar estos niveles en Info Plus (Contado y Crédito iguales; los demás niveles no se tocan):\n\n' + resumen + '\n\n¿Confirma?');
     if(!ok) return;
     const btn = document.getElementById('btnGuardarPrecios'); if(btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Guardando…'; }
     try {
@@ -7294,7 +7294,7 @@ function abrirColoresLote(soloId) {
     if(!eqs.length) return toast('No hay equipos para ponerles color.', 'error');
     _bcColoresAbrir({
         titulo: soloId ? 'Color del equipo' : 'Poner colores al lote',
-        ayuda: soloId ? '' : 'Toca el color de cada IMEI; se guarda al instante. Los iPhone muestran sus colores oficiales. «Todos de» pinta todos los del mismo modelo.',
+        ayuda: soloId ? '' : 'Toque el color de cada IMEI; se guarda al instante. Los iPhone muestran sus colores oficiales. «Todos de» pinta todos los del mismo modelo.',
         filas: eqs.map(e => ({ id: e.id, titulo: `#${nums.get(e.id) || ''} · IMEI ${e.imei || '—'}`, sub: e.capacidad || '', modelo: e.modelo || '', color: _eqColorReal(e) })),
         onSet: _bcGuardarColorEquipo,
         onCerrar: () => { if(typeof renderDetalleLoteReacond === 'function') renderDetalleLoteReacond(); }
@@ -7312,7 +7312,7 @@ async function agregarEquipoAlLote() {
     const imei = val('eq_imei');
     const notas = val('eq_notas');
 
-    if(!artId) return toast('Selecciona un artículo del catálogo.', 'error');
+    if(!artId) return toast('Seleccione un artículo del catálogo.', 'error');
 
     // El catálogo es el de Info Plus (artId = código del artículo)
     // Tomar la info del propio selector (siempre la tiene); respaldo: el caché
@@ -7330,7 +7330,7 @@ async function agregarEquipoAlLote() {
         if(rep) {
             const loteRep = cache.lotes.find(l => l.id === rep.lote_id);
             const dondeTxt = loteRep ? ('lote ' + (loteRep.codigo_lote || '')) : 'otro lote';
-            return toast(`Ese IMEI (${imei}) ya está registrado en ${dondeTxt}. Si el equipo volvió por garantía, marca la casilla "Es por garantía".`, 'error');
+            return toast(`Ese IMEI (${imei}) ya está registrado en ${dondeTxt}. Si el equipo volvió por garantía, marque la casilla "Es por garantía".`, 'error');
         }
     }
 
@@ -7586,7 +7586,7 @@ async function _guardarEdicionEquipoLote(id) {
     if(!esGar) {
         const norm = imei.toLowerCase().trim();
         const rep = (cache.refurb || []).find(r => r.id !== id && (r.imei || '').toLowerCase().trim() === norm);
-        if(rep) { const loteRep = (cache.lotes || []).find(l => l.id === rep.lote_id); const donde = loteRep ? ('lote ' + (loteRep.codigo_lote || '')) : 'otro lote'; return toast(`Ese IMEI (${imei}) ya está registrado en ${donde}. Si el equipo volvió por garantía, marca la casilla.`, 'error'); }
+        if(rep) { const loteRep = (cache.lotes || []).find(l => l.id === rep.lote_id); const donde = loteRep ? ('lote ' + (loteRep.codigo_lote || '')) : 'otro lote'; return toast(`Ese IMEI (${imei}) ya está registrado en ${donde}. Si el equipo volvió por garantía, marque la casilla.`, 'error'); }
     }
     const upd = { imei, es_garantia: esGar };
     upd.color = ((document.getElementById('editEq_color') || {}).value || '').trim() || null;
@@ -7757,14 +7757,14 @@ async function _reacondPasarA(destino) {
     const m = document.getElementById('reacondPasarMenu'); if(m) m.style.display = 'none';
     document.removeEventListener('click', _reacondCerrarPasarMenu);
     const ids = [..._reacondSel];
-    if(!ids.length) return toast('Marca primero los equipos que quieres mover.', 'error');
+    if(!ids.length) return toast('Marque primero los equipos que desea mover.', 'error');
     const labels = { pendiente:'Recibido', evaluado:'Diagnóstico listo', en_proceso:'En reparación', listo_venta:'Listo para venta', vendido:'Despachado', completado:'Cerrar salida' };
     const equiposCache = (cache.refurb || []).filter(r => _reacondSel.has(r.id));
     const bloqueado = equiposCache.find(r => !_reacondValidarMovimientoMasivo(r, destino));
     if(bloqueado) {
         const estadoActual = obtenerEtiquetaEstado(bloqueado.estado_evaluacion).text.toLowerCase();
         const destinoTxt = labels[destino] || destino;
-        return toast(`No se puede mover en bloque a «${destinoTxt}». «${bloqueado.modelo || 'Este equipo'}» está en «${estadoActual}». Usa la acción de su etapa para conservar los controles.`, 'error');
+        return toast(`No se puede mover en bloque a «${destinoTxt}». «${bloqueado.modelo || 'Este equipo'}» está en «${estadoActual}». Use la acción de su etapa para conservar los controles.`, 'error');
     }
     if(!await confirmar(`¿Pasar ${ids.length} equipo(s) a "${labels[destino] || destino}"?`)) return;
     // Construir el cambio según el destino
@@ -7821,7 +7821,7 @@ function _reacondActualizarSelCostoUI() {
 async function _reacondMarcarCompletado() {
     if(!isAdminUser()) return toast('Solo el administrador.', 'error');
     const ids = (cache.refurb || []).filter(r => _reacondSelCosto.has(r.id) && r.estado_evaluacion === 'vendido' && !r.completado).map(r => r.id);
-    if(!ids.length) return toast('Marca primero salidas pendientes de cierre.', 'error');
+    if(!ids.length) return toast('Marque primero las salidas pendientes de cierre.', 'error');
     if(!await confirmar(`¿Cerrar administrativamente ${ids.length} salida(s)? Los equipos seguirán disponibles para garantías.`)) return;
     try {
         const { error } = await supabaseClient.from('equipos_refurbish').update({ completado: true, fecha_completado: new Date().toISOString() }).in('id', ids);
@@ -7835,7 +7835,7 @@ async function _reacondMarcarCompletado() {
 async function _reacondRegresarDespachado() {
     if(!isAdminUser()) return toast('Solo el administrador.', 'error');
     const ids = (cache.refurb || []).filter(r => _reacondSelCosto.has(r.id) && r.estado_evaluacion === 'vendido' && r.completado).map(r => r.id);
-    if(!ids.length) return toast('Marca primero salidas cerradas.', 'error');
+    if(!ids.length) return toast('Marque primero las salidas cerradas.', 'error');
     try {
         const { error } = await supabaseClient.from('equipos_refurbish').update({ completado: false, fecha_completado: null }).in('id', ids);
         if(error) throw error;
@@ -7952,7 +7952,7 @@ function _reporteCostosPrintHTML({ titulo, subtitulo, infoChips, equipos, pdf, f
         </body></html>`;
     if(pdf) return _htmlAPdf(_html, filename || titulo, { ancho: 1040 });
     const w = window.open('', '_blank');
-    if(!w) { toast('Permite las ventanas emergentes para imprimir.', 'error'); return; }
+    if(!w) { toast('Permita las ventanas emergentes para imprimir.', 'error'); return; }
     w.document.write(_html);
     w.document.close();
 }
@@ -8011,13 +8011,13 @@ function _reporteCostosExcelDL({ titulo, infoLineas, equipos, filename }) {
 function imprimirCostosSeleccionados(_modo) {
     if(!isAdminUser()) return toast('Solo el administrador puede ver costos.', 'error');
     const equipos = (cache.refurb || []).filter(r => _reacondSelCosto.has(r.id));
-    if(!equipos.length) return toast('Marca primero los equipos (Listo/Completado/Despachado) que quieres imprimir.', 'error');
+    if(!equipos.length) return toast('Marque primero los equipos (Listo/Completado/Despachado) que desea imprimir.', 'error');
     _reporteCostosPrintHTML({ titulo: 'Costos equipos seleccionados', subtitulo: 'Reporte de costos — Equipos seleccionados', infoChips: [`<b>Equipos seleccionados:</b> ${equipos.length}`], equipos, pdf: _modo === 'pdf', filename: 'Costos_seleccionados_' + new Date().toISOString().slice(0,10) });
 }
 function exportarCostosSeleccionadosExcel() {
     if(!isAdminUser()) return toast('Solo el administrador puede ver costos.', 'error');
     const equipos = (cache.refurb || []).filter(r => _reacondSelCosto.has(r.id));
-    if(!equipos.length) return toast('Marca primero los equipos que quieres exportar.', 'error');
+    if(!equipos.length) return toast('Marque primero los equipos que desea exportar.', 'error');
     _reporteCostosExcelDL({ titulo: 'Costos · Equipos seleccionados', infoLineas: [`Equipos seleccionados: ${equipos.length}`], equipos, filename: `Costos_seleccionados_${new Date().toISOString().slice(0,10)}.xls` });
 }
 
@@ -8034,7 +8034,7 @@ async function abrirLiquidacionAduana() {
     let _borr = null;
     try { _borr = JSON.parse(localStorage.getItem(_ADU_BORRADOR_KEY) || 'null'); } catch(e) {}
     const _hayBorr = _borr && Array.isArray(_borr.items) && _borr.items.some(it => (it.desc || '').trim() || Number(it.costo) > 0);
-    if(_hayBorr && await confirmar('Tienes una liquidación sin terminar. ¿Quieres retomarla?')) {
+    if(_hayBorr && await confirmar('Tiene una liquidación sin terminar. ¿Desea retomarla?')) {
         _aduanaAplicarEstado(_borr);
         nav('liquidacion');
         const _pt0 = document.getElementById('pageTitle'); if(_pt0) _pt0.textContent = 'Liquidación de Aduana';
@@ -8118,7 +8118,7 @@ function _aduanaAplicarEstado(st) {
     _aduanaRenderTabla();
 }
 async function _aduanaPegar() {
-    const txt = await pedirTexto('Pega las filas desde el Excel de la factura (cada línea: Descripción · Cantidad · Precio US$):', { multilinea: true });
+    const txt = await pedirTexto('Pegue las filas desde el Excel de la factura (cada línea: Descripción · Cantidad · Precio US$):', { multilinea: true });
     if(!txt) return;
     _aduanaAgregarLineas(txt.split(/\r?\n/));
 }
@@ -8158,7 +8158,7 @@ function _aduanaAgregarLineas(lineas) {
     });
     if(!_aduanaItems.length) _aduanaItems.push({ desc:'', cant:1, costo:0 });
     _aduanaRenderTabla();
-    toast(`✅ ${agregados} artículo(s) detectado(s). (Se ignoraron ${descartados} líneas que no eran artículos.) Revisa antes de calcular.`);
+    toast(`✅ ${agregados} artículo(s) detectado(s). (Se ignoraron ${descartados} líneas que no eran artículos.) Revise antes de calcular.`);
 }
 // Carga pdf.js (solo cuando se usa) desde CDN
 let _pdfjsListo = false;
@@ -8175,7 +8175,7 @@ function _cargarPdfJs() {
 // Lee un PDF de factura, extrae las líneas (texto) y las pasa al parser de aduana
 async function _aduanaSubirPdf(file) {
     if(!file) return;
-    if(!/pdf/i.test(file.type || '') && !/\.pdf$/i.test(file.name || '')) { toast('Sube un archivo PDF.', 'error'); return; }
+    if(!/pdf/i.test(file.type || '') && !/\.pdf$/i.test(file.name || '')) { toast('Suba un archivo PDF.', 'error'); return; }
     toast('⏳ Leyendo el PDF…');
     try {
         await _cargarPdfJs();
@@ -8197,7 +8197,7 @@ async function _aduanaSubirPdf(file) {
                 if(linea) lineas.push(linea);
             });
         }
-        if(!lineas.length) { toast('No se pudo leer texto del PDF (¿es una imagen escaneada?). Usa "Pegar desde Excel".', 'error'); return; }
+        if(!lineas.length) { toast('No se pudo leer texto del PDF (¿es una imagen escaneada?). Use "Pegar desde Excel".', 'error'); return; }
         _aduanaAgregarLineas(lineas);
     } catch(e) { logError('Subir PDF aduana', e); toastError('No se pudo leer el PDF: ' + getFriendlyError(e)); }
 }
@@ -8243,7 +8243,7 @@ function _aduanaParseFilaExcel(cells) {
 // Lee un archivo Excel/CSV de factura y agrega SOLO las filas que son artículos reales.
 async function _aduanaSubirExcel(file) {
     if(!file) return;
-    if(!/\.(xlsx?|csv)$/i.test(file.name || '')) { toast('Sube un archivo Excel (.xlsx, .xls) o CSV.', 'error'); return; }
+    if(!/\.(xlsx?|csv)$/i.test(file.name || '')) { toast('Suba un archivo Excel (.xlsx, .xls) o CSV.', 'error'); return; }
     toast('⏳ Leyendo el Excel…');
     try {
         await _cargarXlsx();
@@ -8261,7 +8261,7 @@ async function _aduanaSubirExcel(file) {
         });
         if(!_aduanaItems.length) _aduanaItems.push({ desc: '', cant: 1, costo: 0 });
         _aduanaRenderTabla();
-        toast(`✅ ${agregados} artículo(s) detectado(s) del Excel. (Se ignoraron ${descartados} filas que no eran artículos.) Revisa antes de calcular.`);
+        toast(`✅ ${agregados} artículo(s) detectado(s) del Excel. (Se ignoraron ${descartados} filas que no eran artículos.) Revise antes de calcular.`);
     } catch(e) { logError('Subir Excel aduana', e); toastError('No se pudo leer el Excel: ' + getFriendlyError(e)); }
 }
 // Botón unificado: detecta si el archivo es PDF o Excel/CSV y usa el lector que toca.
@@ -8284,7 +8284,7 @@ function _aduanaRenderTabla() {
             <td class="adu-final-unit aducol-finalunit" onclick="_aduanaCopiarCelda(this)" title="Clic para copiar el costo unitario final" style="border:1px solid #e2e8f0; padding:4px; text-align:right; font-weight:700; background:#f0fdf4; cursor:copy;">RD$ 0.00</td>
             <td class="adu-final aducol-total" style="border:1px solid #e2e8f0; padding:4px; text-align:right; font-weight:700;">RD$ 0.00</td>
             <td class="adu-venta aducol-venta" style="border:1px solid #e2e8f0; padding:4px; text-align:right; font-weight:700; color:#a16207; background:#fef9c3;">RD$ 0.00</td>
-            <td style="border:1px solid #e2e8f0; padding:4px; text-align:center;"><input type="checkbox" class="adu-reg" ${it.registrado ? 'checked' : ''} onchange="_aduanaRecalcular()" title="Marca cuando ya registraste este artículo en Info Plus (se guarda)" style="width:16px; height:16px; cursor:pointer;"></td>
+            <td style="border:1px solid #e2e8f0; padding:4px; text-align:center;"><input type="checkbox" class="adu-reg" ${it.registrado ? 'checked' : ''} onchange="_aduanaRecalcular()" title="Marque cuando ya haya registrado este artículo en Info Plus (se guarda)" style="width:16px; height:16px; cursor:pointer;"></td>
             <td class="aducol-x" style="border:1px solid #e2e8f0; padding:4px; text-align:center;"><button onclick="_aduanaEliminarFila(${i})" title="Quitar" style="background:none; border:none; color:#ef4444; cursor:pointer;"><i class="ti ti-x"></i></button></td>
         </tr>`).join('');
     _aduanaRecalcular();
@@ -8358,7 +8358,7 @@ function _aduanaRecalcular() {
         tr.querySelector('.adu-final').textContent = money(it.finalRD);
         tr.querySelector('.adu-venta').textContent = money(it.precioVentaRef);
     });
-    const avisoTasa = r.tasa > 0 ? '' : `<div style="color:#b91c1c; font-size:12px; margin-bottom:6px;">⚠️ Pon la <b>tasa US$→RD$</b> arriba para convertir a pesos (ahora va 1:1).</div>`;
+    const avisoTasa = r.tasa > 0 ? '' : `<div style="color:#b91c1c; font-size:12px; margin-bottom:6px;">⚠️ Indique la <b>tasa US$→RD$</b> arriba para convertir a pesos (ahora va 1:1).</div>`;
     const _unidades = r.items.reduce((s, it) => s + (Number(it.cant) || 0), 0);
     const _articulos = r.items.filter(it => (it.desc || '').trim() || Number(it.costo) > 0).length;
     const _totalVentaRef = r.items.reduce((s, it) => s + (Number(it.precioVentaRef) || 0) * (Number(it.cant) || 0), 0);
@@ -8394,8 +8394,8 @@ function _aduanaInfoCab() {
 }
 function imprimirLiquidacionAduana() {
     const r = _aduanaCalcular();
-    if(!r.items.length || r.subtotalUSD <= 0) return toast('Agrega productos con precio primero.', 'error');
-    if(r.tasa <= 0) return toast('Pon la tasa US$→RD$ para convertir a pesos.', 'error');
+    if(!r.items.length || r.subtotalUSD <= 0) return toast('Agregue productos con precio primero.', 'error');
+    if(r.tasa <= 0) return toast('Indique la tasa US$→RD$ para convertir a pesos.', 'error');
     const cfg = cache.configTaller || {};
     const tienda = cfg.nombre || 'BAYOL CELL';
     const subTienda = [cfg.direccion, cfg.telefono].filter(Boolean).join(' · ');
@@ -8405,7 +8405,7 @@ function imprimirLiquidacionAduana() {
         <td class="num">${_usd(it.importeUSD)}</td><td class="num" style="color:#0369a1;">${it.pctCompra.toFixed(1)}%</td><td class="num">${money(it.costoUnitRD)}</td><td class="num" style="color:#6d28d9;">${money(it.gastoUnitRD)}</td>
         <td class="num" style="font-weight:bold;">${money(it.finalUnitRD)}</td><td class="num" style="font-weight:bold;">${money(it.finalRD)}</td><td class="num" style="font-weight:bold; color:#a16207; background:#fffbeb;">${money(it.precioVentaRef)}</td><td class="blank"></td><td class="blank"></td></tr>`).join('');
     const w = window.open('', '_blank');
-    if(!w) return toast('Permite las ventanas emergentes para imprimir.', 'error');
+    if(!w) return toast('Permita las ventanas emergentes para imprimir.', 'error');
     w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Liquidación de aduana</title>
         <style>
             *{box-sizing:border-box;} body{font-family:Arial,Helvetica,sans-serif; color:#0f172a; padding:24px; max-width:860px; margin:0 auto;}
@@ -8452,8 +8452,8 @@ function imprimirLiquidacionAduana() {
 }
 function exportarLiquidacionAduanaExcel() {
     const r = _aduanaCalcular();
-    if(!r.items.length || r.subtotalUSD <= 0) return toast('Agrega productos con precio primero.', 'error');
-    if(r.tasa <= 0) return toast('Pon la tasa US$→RD$ para convertir a pesos.', 'error');
+    if(!r.items.length || r.subtotalUSD <= 0) return toast('Agregue productos con precio primero.', 'error');
+    if(r.tasa <= 0) return toast('Indique la tasa US$→RD$ para convertir a pesos.', 'error');
     const cfg = cache.configTaller || {};
     const tienda = cfg.nombre || 'BAYOL CELL';
     const cab = _aduanaInfoCab();
@@ -8539,7 +8539,7 @@ async function guardarLiquidacionAduana() {
     _aduanaOtrosLeer();
     const r = _aduanaCalcular();
     const items = _aduanaItems.filter(it => (it.desc || '').trim() || Number(it.costo) > 0);
-    if(!items.length) return toast('Agrega al menos un artículo antes de guardar.', 'error');
+    if(!items.length) return toast('Agregue al menos un artículo antes de guardar.', 'error');
     const fila = {
         proveedor: document.getElementById('aduana_prov').value || null,
         factura: document.getElementById('aduana_factura').value || null,
@@ -8621,7 +8621,7 @@ async function cargarLiquidacionGuardada(id) {
         const m = document.getElementById('modalHistLiq'); if(m) m.remove();
         nav('liquidacion');
         const _pt = document.getElementById('pageTitle'); if(_pt) _pt.textContent = 'Liquidación de Aduana';
-        toast('✅ Liquidación cargada. Puedes editarla y volver a Guardar.');
+        toast('✅ Liquidación cargada. Puede editarla y volver a guardar.');
     } catch(e) { logError('cargarLiquidacionGuardada', e); toastError(getFriendlyError(e)); }
 }
 async function eliminarLiquidacionGuardada(id) {
@@ -8673,8 +8673,8 @@ function _matchArticuloPorNombre(desc) {
 }
 async function abrirComparacionInfoPlus() {
     const r = _aduanaCalcular();
-    if(!r.items.length || r.subtotalUSD <= 0) return toast('Agrega productos con precio primero.', 'error');
-    if(r.tasa <= 0) return toast('Pon la tasa US$→RD$ para convertir a pesos.', 'error');
+    if(!r.items.length || r.subtotalUSD <= 0) return toast('Agregue productos con precio primero.', 'error');
+    if(r.tasa <= 0) return toast('Indique la tasa US$→RD$ para convertir a pesos.', 'error');
     toast('Cargando artículos de Info Plus…');
     await _ensureInfoplusArticulos();
     _compArtIndex = null; // reconstruir índice por si se sincronizó
@@ -8709,7 +8709,7 @@ function _compIPRender() {
         const codHtml = row.codigo
             ? `<span style="font-weight:800; font-size:14px; color:#0369a1;">${escapeHtml(row.codigo)}</span>`
             : `<span style="color:#dc2626; font-weight:700;">— sin enlace —</span>`;
-        const artHtml = row.art ? escapeHtml(row.descIP) : `<span style="color:#dc2626;">No encontrado, enlázalo a mano</span>`;
+        const artHtml = row.art ? escapeHtml(row.descIP) : `<span style="color:#dc2626;">No encontrado; enlácelo manualmente</span>`;
         let cambioHtml = '<span style="color:#475569;">—</span>';
         if(row.diff !== null) {
             if(row.diff < -0.05) cambioHtml = `<span style="color:#16a34a; font-weight:700;">▼ ${Math.abs(row.diff).toFixed(1)}%</span>`;
@@ -8773,7 +8773,7 @@ function imprimirComparacionIP() {
             <td class="num" style="font-weight:bold;">${np}</td></tr>`;
     }).join('');
     const w = window.open('', '_blank');
-    if(!w) return toast('Permite las ventanas emergentes para imprimir.', 'error');
+    if(!w) return toast('Permita las ventanas emergentes para imprimir.', 'error');
     w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Comparación de costos Info Plus</title>
         <style>
             *{box-sizing:border-box;} body{font-family:Arial,Helvetica,sans-serif; color:#0f172a; padding:24px; max-width:1000px; margin:0 auto;}
@@ -8839,7 +8839,7 @@ function _compFormatoFilas() {
 }
 function imprimirFormatoCompraIP() {
     const d = _compFormatoFilas();
-    if(!d.length) return toast('Enlaza al menos un artículo con su código de Info Plus.', 'error');
+    if(!d.length) return toast('Enlace al menos un artículo con su código de Info Plus.', 'error');
     const sinEnlace = _compIP.length - d.length;
     const cfg = cache.configTaller || {};
     const tienda = cfg.nombre || 'BAYOL CELL';
@@ -8854,7 +8854,7 @@ function imprimirFormatoCompraIP() {
             <td class="num">${row.cant}</td><td class="num">${money(row.costoNuevo)}</td><td class="num" style="font-weight:bold;">${money(monto)}</td></tr>`;
     }).join('');
     const w = window.open('', '_blank');
-    if(!w) return toast('Permite las ventanas emergentes para imprimir.', 'error');
+    if(!w) return toast('Permita las ventanas emergentes para imprimir.', 'error');
     w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Formato compra Info Plus</title>
         <style>
             *{box-sizing:border-box;} body{font-family:Arial,Helvetica,sans-serif; color:#0f172a; padding:24px; max-width:900px; margin:0 auto;}
@@ -8872,7 +8872,7 @@ function imprimirFormatoCompraIP() {
         </style></head><body>
         <div class="head"><div><h1>${escapeHtml(tienda)}</h1>${subTienda ? `<div class="st">${escapeHtml(subTienda)}</div>` : ''}<h2>🧾 Formato para registrar la compra en Info Plus</h2></div><div class="st" style="text-align:right;">${new Date().toLocaleString('es-DO')}</div></div>
         <div class="chips"><span><b>Proveedor:</b> ${escapeHtml(cab.prov)}</span><span><b>Factura:</b> ${escapeHtml(cab.factura)}</span><span><b>Fecha:</b> ${escapeHtml(cab.fecha)}</span><span><b>Artículos:</b> ${d.length}</span></div>
-        <div class="note">📌 Mete esta compra en Info Plus dirigida al <b>almacén 6 (TALLER)</b>. El <b>costo</b> es el costo final con aduana ya incluido. ${sinEnlace > 0 ? `<b style="color:#b91c1c;">⚠️ Faltan ${sinEnlace} repuesto(s) sin enlazar (no salen aquí).</b>` : ''} Para teléfonos, los seriales/IMEI van en la sección Series de Info Plus.</div>
+        <div class="note">📌 Registre esta compra en Info Plus dirigida al <b>almacén 6 (TALLER)</b>. El <b>costo</b> es el costo final con aduana ya incluido. ${sinEnlace > 0 ? `<b style="color:#b91c1c;">⚠️ Faltan ${sinEnlace} repuesto(s) sin enlazar (no salen aquí).</b>` : ''} Para teléfonos, los seriales/IMEI van en la sección Series de Info Plus.</div>
         <table>
             <thead><tr><th class="c">Código</th><th>Descripción</th><th class="num">Cantidad</th><th class="num">Costo unit.</th><th class="num">Monto</th></tr></thead>
             <tbody>${filas}</tbody>
@@ -8884,7 +8884,7 @@ function imprimirFormatoCompraIP() {
 }
 function exportarFormatoCompraIPExcel() {
     const d = _compFormatoFilas();
-    if(!d.length) return toast('Enlaza al menos un artículo con su código de Info Plus.', 'error');
+    if(!d.length) return toast('Enlace al menos un artículo con su código de Info Plus.', 'error');
     const cfg = cache.configTaller || {};
     const tienda = cfg.nombre || 'BAYOL CELL';
     const cab = _compIPInfoCab();
@@ -8928,7 +8928,7 @@ async function abrirModalRegistrarExistente() {
     // Poblar técnicos
     const sel = document.getElementById('rex_tecnico');
     const tecnicos = (cache.tecnicos || []).filter(t => t.activo && (t.tipo_empleado === 'tecnico' || (!t.tipo_empleado && t.rol !== 'admin')));
-    sel.innerHTML = '<option value="">— Selecciona el técnico —</option>' +
+    sel.innerHTML = '<option value="">— Seleccione el técnico —</option>' +
         tecnicos.map(t => `<option value="${t.id}">${escapeHtml(t.nombre || t.usuario || 'Técnico')}</option>`).join('');
     document.getElementById('modalRegistrarExistente').classList.add('active');
     // Selector de equipo del inventario Info Plus (igual que en Compras)
@@ -8984,8 +8984,8 @@ async function guardarEquipoExistente(btn) {
     const modelo = art ? (art.descripcion || art.codigo || '').trim().toUpperCase() : '';
     const tecnicoId = v('rex_tecnico');
     const estado = v('rex_estado') || 'en_proceso';
-    if(!modelo) return toast('Elige el equipo del inventario Info Plus.', 'error');
-    if(!tecnicoId) return toast('Selecciona el técnico que tiene el equipo.', 'error');
+    if(!modelo) return toast('Seleccione el equipo del inventario Info Plus.', 'error');
+    if(!tecnicoId) return toast('Seleccione el técnico que tiene el equipo.', 'error');
     const orig = btn ? btn.innerHTML : '';
     if(btn){ btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Registrando…'; }
     try {
@@ -9035,7 +9035,7 @@ async function guardarEquipoExistente(btn) {
 function abrirModalConsumoTaller(){
     ['ct_buscar','ct_nota'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
     document.getElementById('ct_cantidad').value = '1';
-    document.getElementById('ct_pieza').innerHTML = '<option value="">— Busca y selecciona una pieza —</option>';
+    document.getElementById('ct_pieza').innerHTML = '<option value="">— Busque y seleccione una pieza —</option>';
     const m = document.getElementById('ct_msg'); if(m) m.textContent='';
     document.getElementById('modalConsumoTaller').classList.add('active');
 }
@@ -9046,14 +9046,14 @@ function buscarPiezaConsumo(){
     _ctBuscarTimer = setTimeout(async ()=>{
         const q = (document.getElementById('ct_buscar')?.value || '').trim();
         const sel = document.getElementById('ct_pieza');
-        if(q.length < 2){ sel.innerHTML = '<option value="">— Escribe al menos 2 letras —</option>'; return; }
+        if(q.length < 2){ sel.innerHTML = '<option value="">— Escriba al menos 2 letras —</option>'; return; }
         try {
             // Mismo buscar_infoplus tolerante a errores de tecleo que usa la
             // pantalla de precios — misma tabla, mismo problema.
             const { data, error } = await supabaseClient.rpc('buscar_infoplus', { p_query: q, p_limite: 40 });
             if(error) throw error;
             if(!data || !data.length){ sel.innerHTML = '<option value="">Sin resultados</option>'; return; }
-            sel.innerHTML = '<option value="">— Selecciona —</option>' + data.map(a=>{
+            sel.innerHTML = '<option value="">— Seleccione —</option>' + data.map(a=>{
                 const desc = (a.descripcion||'').trim();
                 return `<option value="${escapeHtml(a.codigo)}" data-desc="${escapeHtml(desc)}">${escapeHtml(a.codigo)} · ${escapeHtml(desc)}</option>`;
             }).join('');
@@ -9067,7 +9067,7 @@ async function guardarConsumoTaller(btn){
     const cantidad = parseInt(document.getElementById('ct_cantidad').value) || 0;
     const nota = (document.getElementById('ct_nota')?.value || '').trim();
     const msg = document.getElementById('ct_msg');
-    if(!codigo){ if(msg){ msg.style.color='#dc2626'; msg.textContent='Busca y selecciona la pieza del catálogo.'; } return; }
+    if(!codigo){ if(msg){ msg.style.color='#dc2626'; msg.textContent='Busque y seleccione la pieza del catálogo.'; } return; }
     if(cantidad < 1){ if(msg){ msg.style.color='#dc2626'; msg.textContent='La cantidad debe ser 1 o más.'; } return; }
     const orig = btn ? btn.innerHTML : '';
     if(btn){ btn.disabled=true; btn.innerHTML='<i class="ti ti-loader"></i> Registrando…'; }
@@ -9088,7 +9088,7 @@ async function guardarConsumoTaller(btn){
 }
 // Marcar como ya descontadas en Info Plus las piezas pendientes de un código (reconciliación)
 async function reconciliarTaller(codigo){
-    if(!await confirmar('¿Confirmas que la cajera YA descontó estas piezas en Info Plus? Se quitarán del pendiente.')) return;
+    if(!await confirmar('¿Confirma que la cajera YA descontó estas piezas en Info Plus? Se quitarán del pendiente.')) return;
     try {
         const { data, error } = await supabaseClient.rpc('reconciliar_taller_consumo', { p_codigo: codigo });
         if(error) throw error;
@@ -9279,7 +9279,7 @@ function renderEquiposEstadoReacond(estadoEq, lotesConEstado, cont) {
 // Filtra los equipos del lote abierto con los mismos filtros de pantalla. Devuelve datos o null (con aviso).
 function _datosReporteCostosLote() {
     if(!isAdminUser()) { toast('Solo el administrador.', 'error'); return null; }
-    if(!reacondLoteAbiertoId) { toast('Abre un lote primero.', 'error'); return null; }
+    if(!reacondLoteAbiertoId) { toast('Abra un lote primero.', 'error'); return null; }
     const lote = (cache.lotes || []).find(l => l.id === reacondLoteAbiertoId);
     let equipos = (cache.refurb || []).filter(r => r.lote_id === reacondLoteAbiertoId);
     const fEstado = document.getElementById('reacondFiltroEstado')?.value || '';
@@ -9295,7 +9295,7 @@ function _datosReporteCostosLote() {
     const _fd = document.getElementById('reacondFechaDesde')?.value || '';
     const _fh = document.getElementById('reacondFechaHasta')?.value || '';
     if(_fd || _fh) { equipos = equipos.filter(e => _reacondPasaFecha(e)); filtrosTxt.push('Fecha: ' + (_fd || '…') + ' a ' + (_fh || '…')); }
-    if(!equipos.length) { toast('No hay equipos para el reporte (revisa los filtros).', 'error'); return null; }
+    if(!equipos.length) { toast('No hay equipos para el reporte (revise los filtros).', 'error'); return null; }
     const prov = (cache.proveedores || []).find(p => p.id === lote.proveedor_id);
     return { lote, equipos, prov, filtrosTxt };
 }
@@ -9370,7 +9370,7 @@ function _datosFormatoInfoPlus() {
 let _regipCtx = null;
 async function registrarCompraLoteInfoPlus() {
     if(!isAdminUser()) return toast('Solo el administrador.', 'error');
-    if(!reacondLoteAbiertoId) return toast('Abre un lote primero.', 'error');
+    if(!reacondLoteAbiertoId) return toast('Abra un lote primero.', 'error');
     await _cargarProveedoresIP();
     const lote = (cache.lotes || []).find(l => l.id === reacondLoteAbiertoId);
     if(!lote) return toast('Lote no encontrado.', 'error');
@@ -9419,11 +9419,11 @@ async function registrarCompraLoteInfoPlus() {
         <div class="modal-header" style="background:linear-gradient(135deg,#0e7490,#0891b2); color:#fff; border-radius:12px 12px 0 0;"><h3 style="margin:0; color:#fff;"><i class="ti ti-cloud-upload"></i> Registrar compra en Info Plus</h3><button class="modal-close" style="color:#fff;" onclick="document.getElementById('modalRegCompraIP').remove()">✕</button></div>
         <div class="modal-body" style="max-height:70vh; overflow:auto;">
           <p style="font-size:12.5px; color:#475569; margin-top:0;">${_pedidoLote
-            ? `Se actualiza la compra con <b>TODOS los equipos del lote ${escapeHtml(lote.codigo_lote || '')}</b> (terminados <b>y en proceso</b>), como <b>1 artículo por modelo + sus IMEI</b>, con el <b>costo promedio</b>. Los <b>en proceso</b> van con su <b>costo actual</b>; cuando los termines, vuelve a registrar y el costo se refresca. El detalle por IMEI queda en el taller.`
+            ? `Se actualiza la compra con <b>TODOS los equipos del lote ${escapeHtml(lote.codigo_lote || '')}</b> (terminados <b>y en proceso</b>), como <b>1 artículo por modelo + sus IMEI</b>, con el <b>costo promedio</b>. Los <b>en proceso</b> van con su <b>costo actual</b>; cuando los termine, vuelva a registrar y el costo se actualiza. El detalle por IMEI queda en el taller.`
             : `Se envían los equipos <b>Listos o Despachados</b> del lote <b>${escapeHtml(lote.codigo_lote || '')}</b> como <b>1 artículo por modelo + sus IMEI</b>, con el <b>costo promedio</b>. El detalle por IMEI queda en el taller.`}</p>
           ${_pedidoLote
             ? `<div style="background:#ecfdf5; border:1px solid #a7f3d0; color:#065f46; font-size:12.5px; padding:8px 12px; border-radius:8px; margin-bottom:8px;"><b>🔄 Se ACTUALIZARÁ la compra Nº ${escapeHtml(String(_pedidoLote))}</b> con <b>todos</b> los equipos del lote. Como el API <b>reemplaza</b> la compra, se mandan todos para <b>no perder ninguno</b> (los terminados con su costo final y los que faltan con su costo actual). No se duplica.</div>`
-            : `<div style="background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; font-size:12.5px; padding:8px 12px; border-radius:8px; margin-bottom:8px;"><b>🆕 Se creará la compra del lote</b> en Info Plus. Cuando termines más equipos, dale otra vez a este botón y la compra se <b>actualiza con todos</b> (misma compra, sin perder ninguno).</div>`}
+            : `<div style="background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; font-size:12.5px; padding:8px 12px; border-radius:8px; margin-bottom:8px;"><b>🆕 Se creará la compra del lote</b> en Info Plus. Cuando termine más equipos, presione de nuevo este botón y la compra se <b>actualiza con todos</b> (misma compra, sin perder ninguno).</div>`}
           ${sinCodigo > 0 ? `<div style="background:#fef3c7; color:#92400e; font-size:12px; padding:6px 10px; border-radius:8px; margin-bottom:8px;">⚠️ ${sinCodigo} equipo(s) sin código de Info Plus — esos NO se enviarán.</div>` : ''}
           <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
             <thead><tr style="background:#f1f5f9;"><th style="padding:6px; text-align:left;">Modelo</th><th>Cód IP</th><th>Cant.</th><th style="padding:6px; text-align:right;">Promedio</th><th style="padding:6px; text-align:right;">Total</th><th>IMEI</th></tr></thead>
@@ -9447,7 +9447,7 @@ async function _ejecutarRegistroCompraIP() {
     if(!_regipCtx) return;
     const almacen = parseInt(document.getElementById('regipAlmacen')?.value, 10) || 1;
     const codproveedor = (document.getElementById('regipProv')?.value || '').trim();
-    if(!codproveedor) return toast('Pon el código de proveedor de Info Plus.', 'error');
+    if(!codproveedor) return toast('Indique el código de proveedor de Info Plus.', 'error');
     const { lista, loteCod } = _regipCtx;
     // Si el lote YA tiene una compra en Info Plus, AGREGAMOS a ella (Dagoberto: mismo JSON con codpedido = nº de compra; las líneas se agregan, no reemplazan).
     const equiposLote = (cache.refurb || []).filter(r => r.lote_id === reacondLoteAbiertoId);
@@ -9560,7 +9560,7 @@ function imprimirCompraIP(rec) {
 // ===== Registro MANUAL en Info Plus: documento al día (qué falta agregar + promedio actualizado) =====
 function abrirRegistroManualIP() {
     if(!isAdminUser()) return toast('Solo el administrador.', 'error');
-    if(!reacondLoteAbiertoId) return toast('Abre un lote primero.', 'error');
+    if(!reacondLoteAbiertoId) return toast('Abra un lote primero.', 'error');
     _renderRegistroManualIP();
 }
 function _renderRegistroManualIP() {
@@ -9595,7 +9595,7 @@ function _renderRegistroManualIP() {
             <div style="background:#ecfeff; padding:8px 12px;">
                 <div style="font-weight:800; color:#0e7490;">${escapeHtml(g.modelo)} ${g.codigo ? `<span style="font-size:11px; background:#cffafe; color:#155e75; padding:1px 7px; border-radius:7px;">Cód IP ${escapeHtml(g.codigo)}</span>` : '<span style="font-size:11px; color:#b91c1c;">⚠️ sin código IP</span>'}</div>
                 <div style="font-size:12px; color:#475569; margin-top:3px;">Listos: <b>${total}</b> · Registrados: <b style="color:#166534;">${reg}</b> · Nuevos por agregar: <b style="color:#a16207;">${nuevos.length}</b></div>
-                <div style="font-size:13px; margin-top:5px;">📌 Costo promedio (de los ${total} listos): <b onclick="_regipCopy('${Math.round(promTodos * 100) / 100}')" style="cursor:copy; color:#0e7490; font-size:14px;" title="Clic para copiar — este es el costo que pones en la compra de Info Plus">${money(promTodos)}</b>${(nuevos.length && nuevos.length < total) ? ` <span style="color:#475569; font-size:11.5px;">(promedio solo de los nuevos: ${money(promNuevos)})</span>` : ''}</div>
+                <div style="font-size:13px; margin-top:5px;">📌 Costo promedio (de los ${total} listos): <b onclick="_regipCopy('${Math.round(promTodos * 100) / 100}')" style="cursor:copy; color:#0e7490; font-size:14px;" title="Clic para copiar — este es el costo que se registra en la compra de Info Plus">${money(promTodos)}</b>${(nuevos.length && nuevos.length < total) ? ` <span style="color:#475569; font-size:11.5px;">(promedio solo de los nuevos: ${money(promNuevos)})</span>` : ''}</div>
             </div>
             <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
                 <thead><tr style="background:#f8fafc;"><th style="padding:5px;">✅</th><th style="padding:5px; text-align:left;">IMEI</th><th style="padding:5px; text-align:right;">Costo final</th><th style="padding:5px;">Estado</th></tr></thead>
@@ -9609,7 +9609,7 @@ function _renderRegistroManualIP() {
     box.innerHTML = `<div class="modal-box" style="max-width:720px;">
         <div class="modal-header" style="background:linear-gradient(135deg,#0e7490,#0891b2); color:#fff; border-radius:12px 12px 0 0;"><h3 style="margin:0; color:#fff;"><i class="ti ti-clipboard-check"></i> Registro manual en Info Plus — Lote ${escapeHtml(lote.codigo_lote || '')}</h3><button class="modal-close" style="color:#fff;" onclick="document.getElementById('modalRegManualIP').remove()">✕</button></div>
         <div class="modal-body" style="max-height:72vh; overflow:auto;">
-          <p style="font-size:12.5px; color:#475569; margin-top:0;">Agrega a mano en Info Plus los equipos <b>NUEVOS</b> (en amarillo) y pon el <b>costo promedio actualizado</b> del modelo. Marca el ✅ cuando ya lo registraste. Clic en un IMEI o en el promedio para copiarlo.</p>
+          <p style="font-size:12.5px; color:#475569; margin-top:0;">Agregue manualmente en Info Plus los equipos <b>NUEVOS</b> (en amarillo) e indique el <b>costo promedio actualizado</b> del modelo. Marque el ✅ cuando ya lo haya registrado. Clic en un IMEI o en el promedio para copiarlo.</p>
           ${secciones || '<p style="color:#475569; text-align:center; padding:18px;">No hay equipos listos en este lote.</p>'}
         </div>
         <div class="modal-footer"><button class="btn btn-light" onclick="document.getElementById('modalRegManualIP').remove()">Cerrar</button></div>
@@ -9787,7 +9787,7 @@ async function _nominaEditarEmpleado(id) {
         <div id="nomempCuentas"></div>
         <button class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#0369a1; border-color:#7dd3fc;" onclick="_rrhhAddCuenta()"><i class="ti ti-plus"></i> Agregar cuenta</button>
         ${sec('<i class="ti ti-users"></i> Referencias personales')}
-        <div style="font-size:11.5px; color:#475569; margin:0 0 6px;">Personas que responden por el empleado (familiares, amigos). Escribe en "Relación": Amigo, Hermano, Vecino, etc.</div>
+        <div style="font-size:11.5px; color:#475569; margin:0 0 6px;">Personas que responden por el empleado (familiares, amigos). Escriba en "Relación": Amigo, Hermano, Vecino, etc.</div>
         <div id="nomempRefs"></div>
         <button class="btn btn-light" style="padding:5px 10px; font-size:12px; color:#0369a1; border-color:#7dd3fc;" onclick="_rrhhAddRef()"><i class="ti ti-plus"></i> Agregar referencia</button>
         ${sec('<i class="ti ti-note"></i> Notas')}
@@ -9835,7 +9835,7 @@ async function _nominaEliminarEmpleado(id) {
             try {
                 const { error: e2 } = await supabaseClient.from('nomina_empleados').update({ activo: false }).eq('id', id);
                 if(e2) throw e2;
-                toast('Tiene nóminas guardadas, así que lo marqué como inactivo (sale de la lista de pago).');
+                toast('Tiene nóminas guardadas; se marcó como inactivo (sale de la lista de pago).');
                 const m = document.getElementById('modalNomEmp'); if(m) m.remove();
                 await _loadNomina(); _renderNominaEmpleados();
             } catch(e3) { logError('desactivar empleado nomina', e3); toastError(getFriendlyError(e3)); }
@@ -9996,7 +9996,7 @@ function _rrhhImprimirExpediente(id) {
     const r = (l, v) => `<tr><td class="l">${l}</td><td>${escapeHtml(v == null || v === '' ? '—' : String(v))}</td></tr>`;
     const cuentas = (Array.isArray(e.cuentas) ? e.cuentas : []).filter(c => c.banco || c.numero);
     const refs = (Array.isArray(e.referencias) ? e.referencias : []).filter(x => x.nombre || x.telefono);
-    const w = window.open('', '_blank'); if(!w) return toast('Permite las ventanas emergentes para imprimir.', 'error');
+    const w = window.open('', '_blank'); if(!w) return toast('Permita las ventanas emergentes para imprimir.', 'error');
     w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Expediente ${escapeHtml(e.nombre)}</title><style>
       *{font-family:Arial,Helvetica,sans-serif; box-sizing:border-box;} body{margin:22px; color:#0f172a; font-size:12.5px;}
       h1{font-size:17px; margin:0;} .sub{color:#475569; font-size:12px;} h2{font-size:13px; color:#0e7490; margin:16px 0 5px; border-bottom:1px solid #cbd5e1; padding-bottom:3px;}
@@ -10045,9 +10045,9 @@ function _renderRRHHAcumulados() {
     const colspan = dueno ? 7 : 6;
     cont.innerHTML = `
       <div style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:10px; padding:11px 14px; margin-bottom:12px; font-size:12.5px; color:#334155;">
-        <b style="color:#0369a1;"><i class="ti ti-info-circle"></i> ¿Qué muestra esto?</b> Lo que cada empleado va <b>acumulando</b> a la fecha:
+        <b style="color:#0369a1;"><i class="ti ti-info-circle"></i> Qué muestra esta tabla:</b> Lo que cada empleado va <b>acumulando</b> a la fecha:
         <b>Regalía navideña</b> = 1/12 de lo que gana en el año (a fin de año ≈ un mes de sueldo).${dueno ? `
-        <b>Vacaciones</b> = 14 días de sueldo al año (18 días a partir de los 5 años). Los montos son <b>referenciales</b>; al pagar, registra el pago con su botón.` : ''}
+        <b>Vacaciones</b> = 14 días de sueldo al año (18 días a partir de los 5 años). Los montos son <b>referenciales</b>; al pagar, registre el pago con su botón.` : ''}
       </div>
       <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
         <div style="display:flex; gap:16px; flex-wrap:wrap; font-size:13px;">
@@ -10075,7 +10075,7 @@ function _rrhhImprimirAcumulados() {
         tReg += reg; tVac += vm;
         return `<tr><td>${escapeHtml(e.nombre)}</td><td>${_rrhhAntiguedadTxt(e)}</td><td class="n">${money(e.salario_mensual)}</td><td class="n">${money(reg)}</td>${dueno ? `<td class="c">${vd} días</td><td class="n">${money(vm)}</td>` : ''}</tr>`;
     }).join('');
-    const w = window.open('', '_blank'); if(!w) return toast('Permite las ventanas emergentes para imprimir.', 'error');
+    const w = window.open('', '_blank'); if(!w) return toast('Permita las ventanas emergentes para imprimir.', 'error');
     w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Acumulados ${anio}</title><style>
       *{font-family:Arial,Helvetica,sans-serif;} body{margin:18px; color:#0f172a; font-size:12px;} h1{font-size:16px; margin:0; text-align:center;} .sub{text-align:center; color:#475569; font-size:11px; margin-bottom:8px;}
       table{width:100%; border-collapse:collapse; margin-top:8px;} th,td{border:1px solid #cbd5e1; padding:4px 6px;} th{background:#0f172a; color:#fff; font-size:10.5px;} td.n{text-align:right;} td.c{text-align:center;} tfoot td{font-weight:800; background:#eef2ff;}
@@ -10116,7 +10116,7 @@ async function _rrhhGuardarBeneficio() {
     const empId = document.getElementById('benef_emp').value;
     const tipo = document.getElementById('benef_tipo').value;
     const monto = Number(document.getElementById('benef_monto').value) || 0;
-    if(monto <= 0) return toast('Escribe un monto.', 'error');
+    if(monto <= 0) return toast('Escriba un monto.', 'error');
     const diasEl = document.getElementById('benef_dias');
     const data = { empleado_id: empId, tipo, anio: new Date().getFullYear(), monto, dias: diasEl ? (Number(diasEl.value) || null) : null, fecha_pago: document.getElementById('benef_fecha').value || null, nota: (document.getElementById('benef_nota').value || '').trim() || null, creado_por: (typeof sessionUser !== 'undefined' && sessionUser) ? (sessionUser.nombre || 'Admin') : 'Admin' };
     try {
@@ -10168,12 +10168,12 @@ const RRHH_PRUEBA = {
     ],
     aptitud: [
         { q: '¿Cuánto es el 15% de 200?', op: ['20', '30', '25', '35'], c: 1 },
-        { q: 'Un artículo cuesta RD$1,200 y le das 10% de descuento. ¿Cuánto paga el cliente?', op: ['RD$1,080', 'RD$1,100', 'RD$1,020', 'RD$1,120'], c: 0 },
+        { q: 'Un artículo cuesta RD$1,200 y se le aplica un 10% de descuento. ¿Cuánto paga el cliente?', op: ['RD$1,080', 'RD$1,100', 'RD$1,020', 'RD$1,120'], c: 0 },
         { q: 'Serie de números: 2, 4, 8, 16, ¿cuál sigue?', op: ['24', '32', '20', '18'], c: 1 },
-        { q: 'Vendes 3 fundas a RD$150 c/u y 2 cargadores a RD$300 c/u. ¿Cuál es el total?', op: ['RD$1,050', 'RD$900', 'RD$1,200', 'RD$950'], c: 0 },
+        { q: 'Usted vende 3 fundas a RD$150 c/u y 2 cargadores a RD$300 c/u. ¿Cuál es el total?', op: ['RD$1,050', 'RD$900', 'RD$1,200', 'RD$950'], c: 0 },
         { q: 'En caja hay RD$5,000. Entran 2 ventas de RD$1,200 y sale un pago de RD$800. ¿Cuánto queda?', op: ['RD$6,600', 'RD$6,400', 'RD$5,600', 'RD$7,000'], c: 0 },
         { q: 'Un cliente paga con RD$1,000 una compra de RD$640. ¿Cuánto es su cambio?', op: ['RD$360', 'RD$460', 'RD$340', 'RD$260'], c: 0 },
-        { q: 'Completa la secuencia: lunes, miércoles, viernes, ¿?', op: ['domingo', 'sábado', 'martes', 'jueves'], c: 0 },
+        { q: 'Complete la secuencia: lunes, miércoles, viernes, ¿?', op: ['domingo', 'sábado', 'martes', 'jueves'], c: 0 },
         { q: '¿Qué número sigue? 100, 90, 81, 73, ¿?', op: ['66', '64', '68', '65'], c: 0 }
     ],
     integridad: [ // rev = si estar "de acuerdo" es señal NEGATIVA
@@ -10265,10 +10265,10 @@ function _rrhhBandaApt(pct) {
     return { txt: 'Bajo', color: '#b91c1c', bg: '#fef2f2', bd: '#fecaca' };
 }
 const _PRU_AREAS = [
-    { k: 'disc', ic: 'ti-user-heart', t: '1. Personalidad (DISC)', sub: 'Qué tan de acuerdo estás con cada frase.' },
-    { k: 'aptitud', ic: 'ti-calculator', t: '2. Aptitud (lógica y números)', sub: 'Elige la respuesta correcta.' },
-    { k: 'integridad', ic: 'ti-shield-check', t: '3. Integridad y honestidad', sub: 'Qué tan de acuerdo estás con cada frase.' },
-    { k: 'servicio', ic: 'ti-mood-smile', t: '4. Servicio al cliente', sub: 'Qué tan de acuerdo estás con cada frase.' }
+    { k: 'disc', ic: 'ti-user-heart', t: '1. Personalidad (DISC)', sub: 'Indique qué tan de acuerdo está con cada frase.' },
+    { k: 'aptitud', ic: 'ti-calculator', t: '2. Aptitud (lógica y números)', sub: 'Seleccione la respuesta correcta.' },
+    { k: 'integridad', ic: 'ti-shield-check', t: '3. Integridad y honestidad', sub: 'Indique qué tan de acuerdo está con cada frase.' },
+    { k: 'servicio', ic: 'ti-mood-smile', t: '4. Servicio al cliente', sub: 'Indique qué tan de acuerdo está con cada frase.' }
 ];
 // Banco de preguntas para un puesto: de la base (editable) o, si está vacía, del banco por defecto
 function _pruebaBanco(perfil) {
@@ -10324,12 +10324,12 @@ function _renderRRHHPruebas() {
         <div style="font-weight:700; color:#92400e; font-size:12.5px; margin-bottom:6px;"><i class="ti ti-clock-hour-4"></i> Enlaces enviados, esperando respuesta (${pendientes.length})</div>
         ${pendientes.map(p => {
             const num = _rrhhWaNum(p.telefono);
-            const msg = `Hola ${p.candidato || ''}, para tu proceso en Bayol Cell, por favor completa esta breve evaluación (5-10 min) desde tu celular:\n${RRHH_PRUEBA_URL}${p.token || ''}`;
+            const msg = `Hola, ${p.candidato || ''}. Para su proceso en Bayol Cell, por favor complete esta breve evaluación (5-10 min) desde su celular:\n${RRHH_PRUEBA_URL}${p.token || ''}`;
             const waHref = (num ? `https://wa.me/${num}` : 'https://wa.me/') + `?text=${encodeURIComponent(msg)}`;
             return `<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:5px 0; border-top:1px solid #fef3c7; font-size:12.5px;">
             <div><b>${escapeHtml(p.candidato || '')}</b> <span style="color:#475569;">${escapeHtml(p.puesto || '')}${p.telefono ? ' · ' + escapeHtml(p.telefono) : ''}</span></div>
             <div style="display:flex; gap:12px; align-items:center; white-space:nowrap;">
-              <a href="${waHref}" target="_blank" rel="noopener" style="color:#16a34a; font-weight:600; text-decoration:none;" title="${num ? 'Enviar a su WhatsApp' : 'Enviar por WhatsApp (elige el contacto)'}"><i class="ti ti-brand-whatsapp"></i> WhatsApp</a>
+              <a href="${waHref}" target="_blank" rel="noopener" style="color:#16a34a; font-weight:600; text-decoration:none;" title="${num ? 'Enviar a su WhatsApp' : 'Enviar por WhatsApp (seleccione el contacto)'}"><i class="ti ti-brand-whatsapp"></i> WhatsApp</a>
               <a onclick="_rrhhMostrarEnlace('${escapeHtml(p.token || '')}', '${escapeHtml((p.candidato || '').replace(/'/g, ''))}', '${escapeHtml((p.telefono || '').replace(/'/g, ''))}')" style="cursor:pointer; color:#0369a1;" title="Ver enlace / copiar"><i class="ti ti-link"></i></a>
               <a onclick="_rrhhEliminarPrueba('${p.id}')" style="cursor:pointer; color:#dc2626;" title="Cancelar"><i class="ti ti-trash"></i></a>
             </div>
@@ -10359,16 +10359,16 @@ function _rrhhNuevaPrueba() {
     box.innerHTML = `<div class="modal-box" style="max-width:460px;">
       <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-clipboard-plus"></i> Nueva prueba</h3><button class="modal-close" onclick="document.getElementById('modalNuevaPrueba').remove()">✕</button></div>
       <div class="modal-body">
-        <div class="form-row"><label>¿Es un empleado actual? (opcional)</label>
+        <div class="form-row"><label>Empleado actual (opcional)</label>
           <select id="prueba_emp" onchange="_pruebaPrefill()"><option value="">— Candidato nuevo —</option>${emps.map(e => `<option value="${e.id}" data-nombre="${escapeHtml(e.nombre)}" data-cedula="${escapeHtml(e.cedula || '')}" data-puesto="${escapeHtml(e.puesto || '')}" data-tel="${escapeHtml(e.telefono || '')}">${escapeHtml(e.nombre)}</option>`).join('')}</select></div>
         <div class="form-row"><label>Nombre completo *</label><input id="prueba_nombre" placeholder="Nombre de la persona"></div>
         <div class="form-row"><label>Cédula</label><input id="prueba_cedula"></div>
         <div class="form-row"><label>WhatsApp / Teléfono <span style="color:#475569; font-weight:400;">(para enviar el enlace)</span></label><input id="prueba_tel" placeholder="809-000-0000"></div>
-        <div class="form-row"><label>Perfil que buscas <a onclick="_rrhhVerPerfiles()" style="color:#7c3aed; cursor:pointer; font-size:12px; font-weight:400;">(ver perfiles ideales)</a></label>
+        <div class="form-row"><label>Perfil buscado <a onclick="_rrhhVerPerfiles()" style="color:#7c3aed; cursor:pointer; font-size:12px; font-weight:400;">(ver perfiles ideales)</a></label>
           <select id="prueba_perfil" onchange="_pruebaPerfilChange()"><option value="general">General / otro (sin perfil específico)</option>${RRHH_PERFILES.map(p => `<option value="${p.key}">${escapeHtml(p.nombre)}</option>`).join('')}</select>
-          <div style="font-size:11.5px; color:#475569; margin-top:3px;">Al elegir un perfil, el resultado te dirá si la persona <b>encaja</b> con ese puesto.</div></div>
+          <div style="font-size:11.5px; color:#475569; margin-top:3px;">Al seleccionar un perfil, el resultado indicará si la persona <b>encaja</b> con ese puesto.</div></div>
         <div class="form-row"><label>Puesto (nombre)</label><input id="prueba_puesto" placeholder="Ej. Cajera, Técnico, Vendedor"></div>
-        <div style="font-size:12px; color:#475569; margin-top:4px;"><i class="ti ti-info-circle"></i> Puedes hacer la prueba aquí mismo, o <b>enviar un enlace</b> para que la persona la conteste desde su celular.</div>
+        <div style="font-size:12px; color:#475569; margin-top:4px;"><i class="ti ti-info-circle"></i> Puede hacer la prueba aquí mismo, o <b>enviar un enlace</b> para que la persona la conteste desde su celular.</div>
       </div>
       <div class="modal-footer"><button class="btn btn-light" onclick="document.getElementById('modalNuevaPrueba').remove()">Cancelar</button><button class="btn" style="background:#0d9488; color:#fff;" onclick="_rrhhGenerarEnlace()"><i class="ti ti-link"></i> Enviar por enlace</button><button class="btn btn-blue" onclick="_rrhhComenzarPrueba()"><i class="ti ti-player-play"></i> Contestar aquí</button></div>
     </div>`;
@@ -10408,7 +10408,7 @@ function _rrhhVerPerfiles() {
     box.innerHTML = `<div class="modal-box" style="max-width:620px; width:96%;">
       <div class="modal-header" style="background:linear-gradient(135deg,#7c3aed,#a855f7); color:#fff; border-radius:12px 12px 0 0;"><h3 style="margin:0; color:#fff;"><i class="ti ti-users"></i> Perfiles ideales por puesto</h3><button class="modal-close" style="color:#fff;" onclick="document.getElementById('modalPerfiles').remove()">✕</button></div>
       <div class="modal-body" style="max-height:78vh; overflow-y:auto;">
-        <div style="font-size:12.5px; color:#475569; margin-bottom:10px;">Guía para elegir el perfil al crear una prueba. El sistema compara el resultado del candidato con esto y te dice si <b>encaja</b>. Recuerda: es apoyo, no una regla absoluta.</div>
+        <div style="font-size:12.5px; color:#475569; margin-bottom:10px;">Guía para elegir el perfil al crear una prueba. El sistema compara el resultado del candidato con esto y le indica si <b>encaja</b>. Recuerde: es apoyo, no una regla absoluta.</div>
         <div style="font-size:11.5px; color:#7c3aed; background:#faf5ff; border:1px solid #e9d5ff; border-radius:8px; padding:8px 10px; margin-bottom:12px;"><b>Estilos DISC:</b> D = Dominante (empuje/decisión) · I = Influyente (social/persuasivo) · S = Estable (paciente/confiable) · C = Concienzudo (detalle/orden).</div>
         ${cards}
       </div>
@@ -10418,7 +10418,7 @@ function _rrhhVerPerfiles() {
 }
 function _rrhhComenzarPrueba() {
     const nombre = (document.getElementById('prueba_nombre').value || '').trim();
-    if(!nombre) return toast('Escribe el nombre de la persona.', 'error');
+    if(!nombre) return toast('Escriba el nombre de la persona.', 'error');
     _pruebaCtx = {
         empleado_id: document.getElementById('prueba_emp').value || null,
         candidato: nombre,
@@ -10449,7 +10449,7 @@ function _rrhhRenderTest() {
     const cont = document.getElementById('nominaContent'); if(!cont) return;
     const c = _pruebaCtx || {};
     const banco = _pruebaBanco(c.perfil);
-    if(!banco.length) { toast('Este puesto no tiene preguntas asignadas. Ve a "Editar preguntas" y asígnale algunas.', 'error'); _renderRRHHPruebas(); return; }
+    if(!banco.length) { toast('Este puesto no tiene preguntas asignadas. Vaya a "Editar preguntas" y asígnele algunas.', 'error'); _renderRRHHPruebas(); return; }
     // Aplanar por área (mezclado) y precalcular opciones mezcladas
     const preg = [];
     _PRU_AREAS.forEach(a => { _shuffle(banco.filter(q => q.area === a.k)).forEach(q => {
@@ -10509,7 +10509,7 @@ function _pruebaWizRender() {
       <div style="font-size:20px; font-weight:800; color:#0f172a; text-align:center; line-height:1.35; margin:14px 0 4px;">${escapeHtml(q.texto)}</div>
       <div style="width:44px; height:3px; background:${meta.color}; border-radius:2px; margin:12px auto 20px;"></div>
       ${opts}
-      ${q.tipo !== 'apt' ? `<div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:9px 12px; font-size:12px; color:#1e3a8a; margin-top:18px; text-align:center;"><i class="ti ti-info-circle"></i> No hay respuestas buenas ni malas. Sé sincero, tu evaluación es confidencial.</div>` : ''}`;
+      ${q.tipo !== 'apt' ? `<div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:9px 12px; font-size:12px; color:#1e3a8a; margin-top:18px; text-align:center;"><i class="ti ti-info-circle"></i> No hay respuestas buenas ni malas. Responda con sinceridad; su evaluación es confidencial.</div>` : ''}`;
     const answered = Object.keys(w.resp).length, pct = Math.round(answered / w.preg.length * 100);
     document.getElementById('pruebaPct').textContent = pct + '%';
     document.getElementById('pruebaBar').style.width = pct + '%';
@@ -10519,7 +10519,7 @@ function _pruebaWizRender() {
     if(next) { const ok = w.resp[q.id] != null; next.innerHTML = (w.idx === w.preg.length - 1) ? '<i class="ti ti-checks"></i> Finalizar' : 'Siguiente <i class="ti ti-arrow-right"></i>'; next.disabled = !ok; next.style.opacity = ok ? '1' : '.5'; }
 }
 function _pruebaWizAns(id, val) { const w = _pruebaWiz; if(!w) return; w.resp[id] = val; _pruebaWizGuardar(); _pruebaWizRender(); }
-function _pruebaWizNext() { const w = _pruebaWiz; if(!w) return; const q = w.preg[w.idx]; if(w.resp[q.id] == null) return toast('Elige una opción.'); if(w.idx < w.preg.length - 1) { w.idx++; _pruebaWizGuardar(); _pruebaWizRender(); window.scrollTo(0, 0); } else { _rrhhCalificarPrueba(); } }
+function _pruebaWizNext() { const w = _pruebaWiz; if(!w) return; const q = w.preg[w.idx]; if(w.resp[q.id] == null) return toast('Seleccione una opción.'); if(w.idx < w.preg.length - 1) { w.idx++; _pruebaWizGuardar(); _pruebaWizRender(); window.scrollTo(0, 0); } else { _rrhhCalificarPrueba(); } }
 function _pruebaWizPrev() { const w = _pruebaWiz; if(!w || w.idx <= 0) return; w.idx--; _pruebaWizRender(); window.scrollTo(0, 0); }
 function _pruebaWizGuardar() { const w = _pruebaWiz, c = _pruebaCtx; if(!w || !c) return; try { localStorage.setItem(w.key, JSON.stringify({ candidato: c.candidato, perfil: c.perfil, resp: w.resp, idx: w.idx, t0: w.t0 })); } catch(e) {} const g = document.getElementById('pruebaGuardado'); if(g) g.textContent = 'guardado hace un momento'; }
 function _pruebaWizTimerStart() {
@@ -10566,7 +10566,7 @@ function _rrhhVerPrueba(id) {
       <div class="modal-header" style="background:linear-gradient(135deg,#7c3aed,#a855f7); color:#fff; border-radius:12px 12px 0 0;"><h3 style="margin:0; color:#fff;"><i class="ti ti-clipboard-check"></i> Resultado — ${escapeHtml(p.candidato || '')}</h3><button class="modal-close" style="color:#fff;" onclick="document.getElementById('modalVerPrueba').remove()">✕</button></div>
       <div class="modal-body" style="max-height:78vh; overflow-y:auto;">
         <div style="font-size:12.5px; color:#475569; margin-bottom:12px;">${escapeHtml(p.puesto || 'Sin puesto')}${p.empleado_id ? ' · empleado actual' : ' · candidato'} · ${p.fecha ? new Date(p.fecha + 'T00:00:00').toLocaleDateString('es-DO') : ''}${(r.tiempo_seg != null) ? ` · <span style="color:#0e7490; font-weight:700;"><i class="ti ti-clock"></i> Tiempo de llenado: ${_rrhhFmtTiempo(r.tiempo_seg)}</span>` : ''}</div>
-        ${(() => { const enc = _rrhhEncaje(r, p.perfil); const v = _rrhhVeredicto(enc); if(!v) return `<div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:12px 14px; margin-bottom:12px; font-size:12.5px; color:#475569;"><i class="ti ti-info-circle"></i> Sin un puesto específico elegido, no se calcula "apto/no apto". Para eso, crea la prueba eligiendo el perfil del puesto.</div>`; return `<div style="display:flex; align-items:center; gap:13px; background:${v.bg}; border:1.5px solid ${v.bd}; border-radius:14px; padding:15px 16px; margin-bottom:12px;">
+        ${(() => { const enc = _rrhhEncaje(r, p.perfil); const v = _rrhhVeredicto(enc); if(!v) return `<div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:12px 14px; margin-bottom:12px; font-size:12.5px; color:#475569;"><i class="ti ti-info-circle"></i> Sin un puesto específico elegido, no se calcula "apto/no apto". Para ello, cree la prueba seleccionando el perfil del puesto.</div>`; return `<div style="display:flex; align-items:center; gap:13px; background:${v.bg}; border:1.5px solid ${v.bd}; border-radius:14px; padding:15px 16px; margin-bottom:12px;">
             <i class="ti ${v.ic}" style="color:${v.color}; font-size:36px;"></i>
             <div style="flex:1;"><div style="font-weight:900; font-size:18px; color:${v.color}; line-height:1.15;">${v.txt}</div><div style="font-size:12.5px; color:#475569; margin-top:2px;">Para <b>${escapeHtml(enc.perfil.nombre)}</b> · Encaje ${enc.pct}%</div></div>
           </div>`; })()}
@@ -10590,7 +10590,7 @@ function _rrhhVerPrueba(id) {
                 <div style="font-size:11.5px; color:#475569; margin-top:6px;"><b>Ideal:</b> ${escapeHtml(enc.perfil.ideal)}</div>
               </div>`;
         })()}
-        <div style="font-size:11px; color:#475569; margin-top:10px;">Herramienta de apoyo. Combínala con la entrevista y las referencias; no decide sola.</div>
+        <div style="font-size:11px; color:#475569; margin-top:10px;">Herramienta de apoyo. Combínela con la entrevista y las referencias; no decide sola.</div>
       </div>
       <div class="modal-footer"><button class="btn btn-light" style="margin-right:auto;" onclick="_rrhhImprimirPrueba('${p.id}')"><i class="ti ti-printer"></i> Imprimir</button><button class="btn" style="background:#fee2e2; color:#b91c1c;" onclick="_rrhhEliminarPrueba('${p.id}')"><i class="ti ti-trash"></i> Eliminar</button><button class="btn btn-light" onclick="document.getElementById('modalVerPrueba').remove()">Cerrar</button></div>
     </div>`;
@@ -10601,7 +10601,7 @@ function _rrhhImprimirPrueba(id) {
     const r = p.resultados || {}, cfg = cache.configTaller || {};
     const est = r.estilo ? RRHH_DISC_INFO[r.estilo] : null;
     const barP = (label, pct, banda) => `<tr><td>${label}</td><td class="n">${pct}%</td><td style="color:${banda.color}; font-weight:700;">${banda.txt}</td></tr>`;
-    const w = window.open('', '_blank'); if(!w) return toast('Permite las ventanas emergentes para imprimir.', 'error');
+    const w = window.open('', '_blank'); if(!w) return toast('Permita las ventanas emergentes para imprimir.', 'error');
     w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Prueba ${escapeHtml(p.candidato || '')}</title><style>
       *{font-family:Arial,Helvetica,sans-serif;} body{margin:22px; color:#0f172a; font-size:12.5px;} h1{font-size:16px; margin:0; text-align:center;} .sub{text-align:center; color:#475569; font-size:11px;} h2{font-size:13px; color:#0e7490; margin:16px 0 5px; border-bottom:1px solid #cbd5e1; padding-bottom:3px;}
       table{width:100%; border-collapse:collapse;} td{border:1px solid #e2e8f0; padding:5px 7px;} td.n{text-align:right;} .disc td{border:0; padding:2px 0;}
@@ -10626,7 +10626,7 @@ function _rrhhImprimirPrueba(id) {
 const RRHH_PRUEBA_URL = 'https://bayolcell.com/prueba.html?t=';
 async function _rrhhGenerarEnlace() {
     const nombre = (document.getElementById('prueba_nombre').value || '').trim();
-    if(!nombre) return toast('Escribe el nombre de la persona.', 'error');
+    if(!nombre) return toast('Escriba el nombre de la persona.', 'error');
     let token = 'p';
     try { token += (crypto.randomUUID ? crypto.randomUUID() : (Date.now() + '' + Math.random())).replace(/[^a-z0-9]/gi, ''); }
     catch(_) { token += Date.now(); }
@@ -10648,7 +10648,7 @@ async function _rrhhGenerarEnlace() {
 }
 function _rrhhMostrarEnlace(token, nombre, telefono) {
     const url = RRHH_PRUEBA_URL + token;
-    const msg = `Hola ${nombre}, para tu proceso en Bayol Cell, por favor completa esta breve evaluación (5-10 min) desde tu celular:\n${url}`;
+    const msg = `Hola, ${nombre}. Para su proceso en Bayol Cell, por favor complete esta breve evaluación (5-10 min) desde su celular:\n${url}`;
     const num = _rrhhWaNum(telefono);
     const waHref = num ? `https://wa.me/${num}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
     const prev = document.getElementById('modalEnlacePrueba'); if(prev) prev.remove();
@@ -10656,12 +10656,12 @@ function _rrhhMostrarEnlace(token, nombre, telefono) {
     box.innerHTML = `<div class="modal-box" style="max-width:480px;">
       <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-link"></i> Enlace de la prueba</h3><button class="modal-close" onclick="document.getElementById('modalEnlacePrueba').remove()">✕</button></div>
       <div class="modal-body">
-        <div style="font-size:13px; color:#475569; margin-bottom:8px;">Comparte este enlace con <b>${escapeHtml(nombre)}</b>${num ? ` (${escapeHtml(telefono)})` : ''}. Al abrirlo desde su celular contesta la prueba y a ti te llega el resultado solo.</div>
+        <div style="font-size:13px; color:#475569; margin-bottom:8px;">Comparta este enlace con <b>${escapeHtml(nombre)}</b>${num ? ` (${escapeHtml(telefono)})` : ''}. Al abrirlo desde su celular, la persona contesta la prueba y el resultado le llega automáticamente.</div>
         <div style="display:flex; gap:6px;"><input id="enlacePruebaTxt" value="${escapeHtml(url)}" readonly style="flex:1; padding:8px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:12px;"><button class="btn btn-light" onclick="_rrhhCopiarEnlace()"><i class="ti ti-copy"></i></button></div>
         <div style="display:flex; gap:8px; margin-top:12px;">
           <a class="btn" style="background:#25d366; color:#fff; flex:1; text-align:center;" href="${waHref}" target="_blank"><i class="ti ti-brand-whatsapp"></i> ${num ? 'Enviar a su WhatsApp' : 'Enviar por WhatsApp'}</a>
         </div>
-        ${num ? '' : '<div style="font-size:11.5px; color:#b45309; margin-top:8px;"><i class="ti ti-info-circle"></i> No pusiste teléfono: WhatsApp te dejará elegir el contacto.</div>'}
+        ${num ? '' : '<div style="font-size:11.5px; color:#b45309; margin-top:8px;"><i class="ti ti-info-circle"></i> No indicó teléfono: WhatsApp le permitirá seleccionar el contacto.</div>'}
         <div style="font-size:11.5px; color:#475569; margin-top:10px;">El enlace sirve una sola vez; cuando la persona termina, queda registrado y no se puede volver a contestar.</div>
       </div>
       <div class="modal-footer"><button class="btn btn-blue" onclick="document.getElementById('modalEnlacePrueba').remove()">Listo</button></div>
@@ -10710,11 +10710,11 @@ function _rrhhFormPregunta(id, areaNueva) {
     const box = document.createElement('div'); box.className = 'modal-backdrop active'; box.id = 'modalFormPreg'; box.style.zIndex = '805';
     let extra = '';
     if(area === 'disc') extra = `<div class="form-row"><label>Rasgo DISC</label><select id="preg_rasgo">${['D', 'I', 'S', 'C'].map(r => `<option value="${r}" ${q.rasgo === r ? 'selected' : ''}>${r} — ${({ D: 'Dominante', I: 'Influyente', S: 'Estable', C: 'Concienzudo' })[r]}</option>`).join('')}</select></div>`;
-    else if(area === 'aptitud') extra = `<div class="form-row"><label>Opciones de respuesta</label>${opciones.map((o, k) => `<input id="preg_op${k}" value="${escapeHtml(o)}" placeholder="Opción ${k + 1}" style="margin-bottom:5px;">`).join('')}</div><div class="form-row"><label>¿Cuál es la correcta?</label><select id="preg_correcta">${[0, 1, 2, 3].map(k => `<option value="${k}" ${q.correcta === k ? 'selected' : ''}>Opción ${k + 1}</option>`).join('')}</select></div>`;
+    else if(area === 'aptitud') extra = `<div class="form-row"><label>Opciones de respuesta</label>${opciones.map((o, k) => `<input id="preg_op${k}" value="${escapeHtml(o)}" placeholder="Opción ${k + 1}" style="margin-bottom:5px;">`).join('')}</div><div class="form-row"><label>Respuesta correcta</label><select id="preg_correcta">${[0, 1, 2, 3].map(k => `<option value="${k}" ${q.correcta === k ? 'selected' : ''}>Opción ${k + 1}</option>`).join('')}</select></div>`;
     else if(area === 'integridad') extra = `<div class="form-row"><label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="preg_reverse" ${q.reverse ? 'checked' : ''} style="width:16px; height:16px;"> Pregunta "invertida" (estar de acuerdo es señal NEGATIVA)</label></div>`;
     const perfSel = Array.isArray(q.perfiles) ? q.perfiles : ['todos'];
     const esTodos = perfSel.includes('todos');
-    extra += `<div class="form-row"><label>¿En qué puestos aparece esta pregunta?</label>
+    extra += `<div class="form-row"><label>Puestos donde aparece esta pregunta</label>
         <label style="display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:6px;"><input type="checkbox" id="preg_perf_todos" ${esTodos ? 'checked' : ''} onchange="_rrhhPerfTodos(this)"> <b>Todos los puestos</b></label>
         <div id="preg_perf_lista" style="display:${esTodos ? 'none' : 'grid'}; grid-template-columns:1fr 1fr; gap:5px 12px; padding-left:4px;">
           ${RRHH_PERFILES.map(P => `<label style="display:flex; align-items:center; gap:6px; font-size:12.5px;"><input type="checkbox" class="preg_perf_one" value="${P.key}" ${perfSel.includes(P.key) ? 'checked' : ''}> ${escapeHtml(P.nombre)}</label>`).join('')}
@@ -10738,7 +10738,7 @@ async function _rrhhGuardarPregunta() {
     const id = document.getElementById('preg_id').value;
     const area = document.getElementById('preg_area').value;
     const texto = (document.getElementById('preg_texto').value || '').trim();
-    if(!texto) return toast('Escribe la pregunta.', 'error');
+    if(!texto) return toast('Escriba la pregunta.', 'error');
     let perfiles;
     if(document.getElementById('preg_perf_todos').checked) perfiles = ['todos'];
     else { perfiles = [...document.querySelectorAll('.preg_perf_one:checked')].map(x => x.value); if(!perfiles.length) perfiles = ['todos']; }
@@ -10746,7 +10746,7 @@ async function _rrhhGuardarPregunta() {
     if(area === 'disc') data.rasgo = document.getElementById('preg_rasgo').value;
     if(area === 'aptitud') {
         const ops = [0, 1, 2, 3].map(k => (document.getElementById('preg_op' + k).value || '').trim()).filter(x => x);
-        if(ops.length < 2) return toast('Pon al menos 2 opciones.', 'error');
+        if(ops.length < 2) return toast('Indique al menos 2 opciones.', 'error');
         data.opciones = ops; data.correcta = Math.min(Number(document.getElementById('preg_correcta').value) || 0, ops.length - 1);
     }
     if(area === 'integridad') data.reverse = document.getElementById('preg_reverse').checked;
@@ -10820,7 +10820,7 @@ function _renderRRHHDesempeno() {
       </tr>`; }).join('');
     const pend = pendientes.length ? `<div style="border:1px solid #fde68a; background:#fffbeb; border-radius:10px; padding:11px 13px; margin-bottom:12px;">
         <div style="font-weight:700; color:#92400e; font-size:12.5px; margin-bottom:6px;"><i class="ti ti-clock-hour-4"></i> Autoevaluaciones enviadas, esperando respuesta (${pendientes.length})</div>
-        ${pendientes.map(e => { const emp = (cache.nominaEmpleados || []).find(x => x.id === e.empleado_id); const tel = emp ? emp.telefono : ''; const num = _rrhhWaNum(tel); const msg = `Hola ${nom(e.empleado_id)}, por favor completa tu autoevaluación de Bayol Cell desde tu celular:\n${RRHH_AUTOEVAL_URL}${e.token}`; const waHref = (num ? `https://wa.me/${num}` : 'https://wa.me/') + `?text=${encodeURIComponent(msg)}`; return `<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:5px 0; border-top:1px solid #fef3c7; font-size:12.5px;">
+        ${pendientes.map(e => { const emp = (cache.nominaEmpleados || []).find(x => x.id === e.empleado_id); const tel = emp ? emp.telefono : ''; const num = _rrhhWaNum(tel); const msg = `Hola, ${nom(e.empleado_id)}. Por favor, complete su autoevaluación de Bayol Cell desde su celular:\n${RRHH_AUTOEVAL_URL}${e.token}`; const waHref = (num ? `https://wa.me/${num}` : 'https://wa.me/') + `?text=${encodeURIComponent(msg)}`; return `<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:5px 0; border-top:1px solid #fef3c7; font-size:12.5px;">
             <div><b>${escapeHtml(nom(e.empleado_id))}</b> <span style="color:#475569;">${escapeHtml(e.periodo || '')}</span></div>
             <div style="display:flex; gap:12px; align-items:center; white-space:nowrap;">
               <a href="${waHref}" target="_blank" rel="noopener" style="color:#16a34a; font-weight:600; text-decoration:none;"><i class="ti ti-brand-whatsapp"></i> WhatsApp</a>
@@ -10831,7 +10831,7 @@ function _renderRRHHDesempeno() {
       </div>` : '';
     cont.innerHTML = `
       <div style="background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:11px 14px; margin-bottom:12px; font-size:12.5px; color:#334155;">
-        <b style="color:#c2410c;"><i class="ti ti-star"></i> Evaluación de desempeño</b> — califica a cada empleado (1 a 5 con estrellas) en puntualidad, actitud, calidad, atención al cliente, honestidad, etc. También puedes pedirle al empleado que se <b>autoevalúe</b> por enlace y luego <b>comparar</b> su nota con la tuya. Todo queda en su expediente.
+        <b style="color:#c2410c;"><i class="ti ti-star"></i> Evaluación de desempeño</b> — califica a cada empleado (1 a 5 con estrellas) en puntualidad, actitud, calidad, atención al cliente, honestidad, etc. También puede solicitar al empleado que se <b>autoevalúe</b> por enlace y luego <b>comparar</b> su nota con la suya. Todo queda en su expediente.
       </div>
       ${pend}
       <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
@@ -10843,7 +10843,7 @@ function _renderRRHHDesempeno() {
       </div>
       <div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12.5px; min-width:640px;">
         <thead><tr style="background:#f1f5f9;"><th style="padding:7px 6px; text-align:left;">Empleado</th><th style="padding:7px 6px; text-align:left;">Período</th><th style="padding:7px 6px;">Fecha</th><th style="padding:7px 6px;">Nota</th><th style="padding:7px 6px;"></th></tr></thead>
-        <tbody>${filas || '<tr><td colspan="5" style="padding:16px; text-align:center; color:#475569;">Aún no hay evaluaciones. Dale a "Nueva evaluación".</td></tr>'}</tbody></table></div>`;
+        <tbody>${filas || '<tr><td colspan="5" style="padding:16px; text-align:center; color:#475569;">Aún no hay evaluaciones. Presione "Nueva evaluación".</td></tr>'}</tbody></table></div>`;
 }
 const RRHH_AUTOEVAL_URL = 'https://bayolcell.com/autoeval.html?t=';
 function _rrhhNuevaAutoEnlace() {
@@ -10856,14 +10856,14 @@ function _rrhhNuevaAutoEnlace() {
       <div class="modal-body">
         <div class="form-row"><label>Empleado *</label><select id="auto_emp"><option value="">— Elegir —</option>${emps.map(e => `<option value="${e.id}" data-tel="${escapeHtml(e.telefono || '')}">${escapeHtml(e.nombre)}</option>`).join('')}</select></div>
         <div class="form-row"><label>Período</label><input id="auto_periodo" value="${escapeHtml(periodo)}"></div>
-        <div style="font-size:12px; color:#475569;"><i class="ti ti-info-circle"></i> Se genera un enlace para que el empleado se califique desde su celular. Cuando lo envíe, podrás comparar su nota con la tuya.</div>
+        <div style="font-size:12px; color:#475569;"><i class="ti ti-info-circle"></i> Se genera un enlace para que el empleado se califique desde su celular. Cuando lo envíe, podrá comparar su nota con la suya.</div>
       </div>
       <div class="modal-footer"><button class="btn btn-light" onclick="document.getElementById('modalAutoEnlace').remove()">Cancelar</button><button class="btn btn-blue" onclick="_rrhhGenerarAutoEnlace()"><i class="ti ti-link"></i> Generar enlace</button></div>
     </div>`;
     document.body.appendChild(box);
 }
 async function _rrhhGenerarAutoEnlace() {
-    const empId = document.getElementById('auto_emp').value; if(!empId) return toast('Elige el empleado.', 'error');
+    const empId = document.getElementById('auto_emp').value; if(!empId) return toast('Seleccione el empleado.', 'error');
     const emp = (cache.nominaEmpleados || []).find(e => e.id === empId);
     let token = 'a'; try { token += (crypto.randomUUID ? crypto.randomUUID() : (Date.now() + '' + Math.random())).replace(/[^a-z0-9]/gi, ''); } catch(_) { token += Date.now(); }
     const data = { empleado_id: empId, periodo: (document.getElementById('auto_periodo').value || '').trim() || null, puesto: emp ? emp.puesto : null, tipo: 'auto', estado: 'pendiente', token, evaluador: emp ? emp.nombre : null, creado_por: (typeof sessionUser !== 'undefined' && sessionUser) ? (sessionUser.nombre || 'Admin') : 'Admin' };
@@ -10877,7 +10877,7 @@ async function _rrhhGenerarAutoEnlace() {
 }
 function _rrhhMostrarAutoEnlace(token, nombre, telefono) {
     const url = RRHH_AUTOEVAL_URL + token;
-    const msg = `Hola ${nombre}, por favor completa tu autoevaluación de Bayol Cell desde tu celular:\n${url}`;
+    const msg = `Hola, ${nombre}. Por favor, complete su autoevaluación de Bayol Cell desde su celular:\n${url}`;
     const num = _rrhhWaNum(telefono);
     const waHref = (num ? `https://wa.me/${num}` : 'https://wa.me/') + `?text=${encodeURIComponent(msg)}`;
     const prev = document.getElementById('modalEnlaceAuto'); if(prev) prev.remove();
@@ -10885,7 +10885,7 @@ function _rrhhMostrarAutoEnlace(token, nombre, telefono) {
     box.innerHTML = `<div class="modal-box" style="max-width:480px;">
       <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-link"></i> Enlace de autoevaluación</h3><button class="modal-close" onclick="document.getElementById('modalEnlaceAuto').remove()">✕</button></div>
       <div class="modal-body">
-        <div style="font-size:13px; color:#475569; margin-bottom:8px;">Compártelo con <b>${escapeHtml(nombre)}</b>. Al abrirlo se califica solo y a ti te llega la nota para comparar.</div>
+        <div style="font-size:13px; color:#475569; margin-bottom:8px;">Compártalo con <b>${escapeHtml(nombre)}</b>. Al abrirlo, la persona se califica y usted recibe la nota para comparar.</div>
         <div style="display:flex; gap:6px;"><input id="enlaceAutoTxt" value="${escapeHtml(url)}" readonly style="flex:1; padding:8px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:12px;"><button class="btn btn-light" onclick="(function(){const el=document.getElementById('enlaceAutoTxt'); el.select(); try{navigator.clipboard.writeText(el.value);}catch(_){document.execCommand('copy');} toast('✓ Enlace copiado.');})()"><i class="ti ti-copy"></i></button></div>
         <div style="margin-top:12px;"><a class="btn" style="background:#25d366; color:#fff; text-align:center; display:block;" href="${waHref}" target="_blank"><i class="ti ti-brand-whatsapp"></i> ${num ? 'Enviar a su WhatsApp' : 'Enviar por WhatsApp'}</a></div>
       </div>
@@ -10899,9 +10899,9 @@ function _rrhhCompararDesempeno(empId) {
     const sup = evs.filter(e => e.tipo !== 'auto').sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))[0];
     const auto = evs.filter(e => e.tipo === 'auto').sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))[0];
     const emp = (cache.nominaEmpleados || []).find(x => x.id === empId);
-    if(!sup || !auto) return toast('Necesitas una evaluación tuya Y una autoevaluación del empleado para comparar.');
+    if(!sup || !auto) return toast('Se necesita una evaluación del supervisor Y una autoevaluación del empleado para comparar.');
     const estrellas = (v, col) => [1, 2, 3, 4, 5].map(x => `<i class="ti ${v >= x ? 'ti-star-filled' : 'ti-star'}" style="font-size:14px; color:${v >= x ? col : '#e2e8f0'};"></i>`).join('');
-    const rows = RRHH_EVAL_CRITERIOS.map(c => { const s = (sup.criterios || {})[c.k] || 0, a = (auto.criterios || {})[c.k] || 0; const dif = a - s; const alerta = Math.abs(dif) >= 2; return `<div style="padding:7px 0; border-bottom:1px solid #f1f5f9;"><div style="font-size:12.5px; color:#0f172a; margin-bottom:3px;">${escapeHtml(c.lbl)}${alerta ? ' <span style="color:#b91c1c; font-size:10px; font-weight:700;">⚠ difieren</span>' : ''}</div><div style="display:flex; justify-content:space-between; font-size:11px;"><span style="color:#0891b2;">Tú: ${estrellas(s, '#0891b2')}</span><span style="color:#7c3aed;">Él/ella: ${estrellas(a, '#7c3aed')}</span></div></div>`; }).join('');
+    const rows = RRHH_EVAL_CRITERIOS.map(c => { const s = (sup.criterios || {})[c.k] || 0, a = (auto.criterios || {})[c.k] || 0; const dif = a - s; const alerta = Math.abs(dif) >= 2; return `<div style="padding:7px 0; border-bottom:1px solid #f1f5f9;"><div style="font-size:12.5px; color:#0f172a; margin-bottom:3px;">${escapeHtml(c.lbl)}${alerta ? ' <span style="color:#b91c1c; font-size:10px; font-weight:700;">⚠ difieren</span>' : ''}</div><div style="display:flex; justify-content:space-between; font-size:11px;"><span style="color:#0891b2;">Supervisor: ${estrellas(s, '#0891b2')}</span><span style="color:#7c3aed;">Empleado: ${estrellas(a, '#7c3aed')}</span></div></div>`; }).join('');
     const bs = _rrhhEvalBanda(Number(sup.nota_general) || 0), ba = _rrhhEvalBanda(Number(auto.nota_general) || 0);
     const prev = document.getElementById('modalComparaEval'); if(prev) prev.remove();
     const box = document.createElement('div'); box.className = 'modal-backdrop active'; box.id = 'modalComparaEval'; box.style.zIndex = '795';
@@ -10909,10 +10909,10 @@ function _rrhhCompararDesempeno(empId) {
       <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-git-compare"></i> Comparar — ${escapeHtml(emp ? emp.nombre : '')}</h3><button class="modal-close" onclick="document.getElementById('modalComparaEval').remove()">✕</button></div>
       <div class="modal-body" style="max-height:78vh; overflow-y:auto;">
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
-          <div style="border:1px solid #a5f3fc; background:#ecfeff; border-radius:12px; padding:11px; text-align:center;"><div style="font-size:11px; color:#0891b2; font-weight:700;">TU EVALUACIÓN</div><div style="font-size:22px; font-weight:900; color:${bs.color};">${Number(sup.nota_general).toFixed(1)}/5</div><div style="font-size:11px; color:${bs.color};">${bs.txt}</div></div>
+          <div style="border:1px solid #a5f3fc; background:#ecfeff; border-radius:12px; padding:11px; text-align:center;"><div style="font-size:11px; color:#0891b2; font-weight:700;">EVALUACIÓN DEL SUPERVISOR</div><div style="font-size:22px; font-weight:900; color:${bs.color};">${Number(sup.nota_general).toFixed(1)}/5</div><div style="font-size:11px; color:${bs.color};">${bs.txt}</div></div>
           <div style="border:1px solid #e9d5ff; background:#faf5ff; border-radius:12px; padding:11px; text-align:center;"><div style="font-size:11px; color:#7c3aed; font-weight:700;">SU AUTOEVALUACIÓN</div><div style="font-size:22px; font-weight:900; color:${ba.color};">${Number(auto.nota_general).toFixed(1)}/5</div><div style="font-size:11px; color:${ba.color};">${ba.txt}</div></div>
         </div>
-        <div style="font-size:11.5px; color:#475569; margin-bottom:6px;">Diferencia de nota: <b>${(Number(auto.nota_general) - Number(sup.nota_general)).toFixed(1)}</b> ${Number(auto.nota_general) > Number(sup.nota_general) ? '(él/ella se ve mejor de lo que tú lo ves)' : Number(auto.nota_general) < Number(sup.nota_general) ? '(él/ella se ve más bajo que tú)' : '(coinciden)'}. Los puntos con ⚠ son donde más se separan — buenos temas de conversación.</div>
+        <div style="font-size:11.5px; color:#475569; margin-bottom:6px;">Diferencia de nota: <b>${(Number(auto.nota_general) - Number(sup.nota_general)).toFixed(1)}</b> ${Number(auto.nota_general) > Number(sup.nota_general) ? '(el empleado se califica más alto que usted)' : Number(auto.nota_general) < Number(sup.nota_general) ? '(el empleado se califica más bajo que usted)' : '(coinciden)'}. Los puntos con ⚠ son donde más se separan — buenos temas de conversación.</div>
         ${rows}
       </div>
       <div class="modal-footer"><button class="btn btn-blue" onclick="document.getElementById('modalComparaEval').remove()">Cerrar</button></div>
@@ -10934,7 +10934,7 @@ function _rrhhNuevaEval(empId) {
           <div class="form-row"><label>Período</label><input id="eval_periodo" value="${escapeHtml(periodo)}"></div>
         </div>
         <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; color:#475569; margin:2px 0 6px;"><input type="checkbox" id="eval_auto" style="width:15px; height:15px;"> Es <b>autoevaluación</b> (la contesta el empleado aquí mismo)</label>
-        <div style="font-size:11.5px; color:#475569; margin:2px 0 4px;">Toca las estrellas: 1 = Malo · 5 = Excelente</div>
+        <div style="font-size:11.5px; color:#475569; margin:2px 0 4px;">Toque las estrellas: 1 = Malo · 5 = Excelente</div>
         <div id="evalCriterios"></div>
         <div id="evalProm" style="text-align:right; font-weight:800; margin:8px 0; font-size:14px;"></div>
         <div class="form-row"><label>Comentario / observaciones</label><textarea id="eval_coment" rows="2" style="width:100%;" placeholder="Ej. mejoró la puntualidad; debe cuidar el trato al cliente…"></textarea></div>
@@ -10956,7 +10956,7 @@ function _rrhhEvalRenderCriterios() {
 }
 function _rrhhEvalStar(k, v) { _rrhhEvalTmp.criterios[k] = v; _rrhhEvalRenderCriterios(); }
 async function _rrhhGuardarEval() {
-    const empId = document.getElementById('eval_emp').value; if(!empId) return toast('Elige el empleado.', 'error');
+    const empId = document.getElementById('eval_emp').value; if(!empId) return toast('Seleccione el empleado.', 'error');
     const crit = _rrhhEvalTmp.criterios;
     const faltan = RRHH_EVAL_CRITERIOS.filter(c => !crit[c.k]).length;
     if(faltan) return toast(`Faltan ${faltan} criterio(s) por calificar.`, 'error');
@@ -11003,7 +11003,7 @@ function _rrhhImprimirEval(id) {
     const emp = (cache.nominaEmpleados || []).find(x => x.id === e.empleado_id); const cfg = cache.configTaller || {};
     const b = _rrhhEvalBanda(Number(e.nota_general) || 0); const crit = e.criterios || {};
     const rows = RRHH_EVAL_CRITERIOS.map(c => { const v = crit[c.k] || 0; return `<tr><td>${escapeHtml(c.lbl)}</td><td class="c">${'★'.repeat(v)}${'☆'.repeat(5 - v)}</td><td class="c">${v}/5 ${v ? RRHH_EVAL_LBL[v - 1] : ''}</td></tr>`; }).join('');
-    const w = window.open('', '_blank'); if(!w) return toast('Permite las ventanas emergentes para imprimir.', 'error');
+    const w = window.open('', '_blank'); if(!w) return toast('Permita las ventanas emergentes para imprimir.', 'error');
     w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Evaluación ${escapeHtml(emp ? emp.nombre : '')}</title><style>
       *{font-family:Arial,Helvetica,sans-serif;} body{margin:22px; color:#0f172a; font-size:12.5px;} h1{font-size:16px; margin:0; text-align:center;} .sub{text-align:center; color:#475569; font-size:11px;} h2{font-size:14px; color:#c2410c; margin:14px 0 6px;}
       table{width:100%; border-collapse:collapse;} td{border:1px solid #e2e8f0; padding:6px 8px;} td.c{text-align:center;} .big{font-size:22px; font-weight:800; color:${b.color};}
@@ -11071,7 +11071,7 @@ function _nominaNuevaQuincena(rerender) {
 function _nominaEdit() { if(_nominaGen) _nominaGen._dirty = true; _nominaRecalc(); }
 // Agregar un empleado a la quincena actual (sirve también mientras se corrige una guardada)
 function _nominaAgregarEmpleado() {
-    const g = _nominaGen; if(!g) return toast('Genera una quincena primero.', 'error');
+    const g = _nominaGen; if(!g) return toast('Genere una quincena primero.', 'error');
     _nominaRecalc(); // conservar lo editado antes de abrir
     let m = document.getElementById('nomAddEmpModal'); if(m) m.remove();
     m = document.createElement('div');
@@ -11125,8 +11125,8 @@ function _nominaConfirmarSalida(accion) {
     m.id = 'nomSalirModal';
     m.style.cssText = 'position:fixed; inset:0; background:rgba(15,23,42,.5); z-index:99992; display:flex; align-items:center; justify-content:center; padding:12px;';
     m.innerHTML = `<div style="background:#fff; border-radius:14px; max-width:430px; width:100%; padding:22px; box-shadow:0 20px 50px rgba(0,0,0,.3);">
-        <div style="font-size:17px; font-weight:800; color:#0f172a; margin-bottom:6px;"><i class="ti ti-alert-triangle" style="color:#f59e0b;"></i> Tienes cambios sin guardar</div>
-        <p style="font-size:13.5px; color:#475569; margin:0 0 18px;">Estás saliendo de la quincena que estás armando. ¿Qué quieres hacer con los cambios?</p>
+        <div style="font-size:17px; font-weight:800; color:#0f172a; margin-bottom:6px;"><i class="ti ti-alert-triangle" style="color:#f59e0b;"></i> Hay cambios sin guardar</div>
+        <p style="font-size:13.5px; color:#475569; margin:0 0 18px;">Está saliendo de la quincena en preparación. ¿Qué desea hacer con los cambios?</p>
         <div style="display:flex; flex-direction:column; gap:9px;">
           <button class="btn btn-blue" onclick="_nominaSalirGuardar()" style="width:100%;"><i class="ti ti-device-floppy"></i> Guardar y salir</button>
           <button class="btn btn-light" onclick="_nominaSalirDescartar()" style="width:100%; color:#b91c1c; border-color:#fecaca;"><i class="ti ti-logout"></i> Salir sin guardar</button>
@@ -11165,7 +11165,7 @@ function _renderNominaGenerar() {
         <td style="padding:2px; border:1px solid #e2e8f0;"><input class="nq-dd" type="number" step="0.01" value="${l.dias_descontado}" oninput="_nominaEdit()" style="width:80px; text-align:right; border:none; background:transparent;"></td>
         <td class="nq-total" style="padding:4px 6px; border:1px solid #e2e8f0; text-align:right; font-weight:800; color:#166534; background:#f0fdf4;">${money(l.total)}</td>
         <td style="padding:4px 6px; border:1px solid #e2e8f0; text-align:center;"><a class="nq-com" onclick="_nominaComentario(${i}, this)" title="${escapeHtml(l.comentario || 'Agregar comentario')}" style="cursor:pointer; font-size:16px; color:${l.comentario ? '#0369a1' : '#cbd5e1'};"><i class="ti ${l.comentario ? 'ti-message-circle-2-filled' : 'ti-message-plus'}"></i></a></td>
-        <td style="padding:4px 6px; border:1px solid #e2e8f0; text-align:center;" title="Marcar cuando verifiques que esta línea está correcta"><input type="checkbox" class="nq-ok" ${l.revisado ? 'checked' : ''} onchange="_nominaToggleOk(this, ${i})" style="width:17px; height:17px; cursor:pointer; accent-color:#16a34a;"></td>
+        <td style="padding:4px 6px; border:1px solid #e2e8f0; text-align:center;" title="Marcar al verificar que esta línea está correcta"><input type="checkbox" class="nq-ok" ${l.revisado ? 'checked' : ''} onchange="_nominaToggleOk(this, ${i})" style="width:17px; height:17px; cursor:pointer; accent-color:#16a34a;"></td>
         <td style="padding:4px 6px; border:1px solid #e2e8f0; text-align:center;"><a onclick="_nominaQuitarLinea(${i})" title="Quitar a ${escapeHtml(l.nombre)} de ESTA quincena (no borra al empleado)" style="cursor:pointer; color:#fca5a5; font-size:15px;"><i class="ti ti-x"></i></a></td>
     </tr>`).join('');
     const _fmtLargo = s => { try { return new Date(s + 'T00:00:00').toLocaleDateString('es-DO', { day: 'numeric', month: 'long' }); } catch(_) { return s; } };
@@ -11192,12 +11192,12 @@ function _renderNominaGenerar() {
           </div>
         </div>
       </div>
-      ${g.editandoId ? `<div style="background:#fffbeb; border:1px solid #fde68a; color:#92400e; border-radius:10px; padding:9px 13px; margin:0 0 10px; font-size:12.5px;"><i class="ti ti-pencil"></i> <b>Estás corrigiendo una quincena YA GUARDADA.</b> Al guardar se te pedirá el motivo de la corrección (queda registrado). Si no quieres corregirla, dale a "Reiniciar".</div>` : ''}
+      ${g.editandoId ? `<div style="background:#fffbeb; border:1px solid #fde68a; color:#92400e; border-radius:10px; padding:9px 13px; margin:0 0 10px; font-size:12.5px;"><i class="ti ti-pencil"></i> <b>Está corrigiendo una quincena YA GUARDADA.</b> Al guardar se le pedirá el motivo de la corrección (queda registrado). Si no desea corregirla, presione "Reiniciar".</div>` : ''}
       <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:0 0 6px;">
         <span style="font-size:11.5px; color:#475569;"><i class="ti ti-calendar-stats"></i> Días laborables del mes (para pago por día):</span>
         <input id="nom_diasbase" type="number" step="0.01" value="${g.diasBase || 23.83}" oninput="_nominaEdit()" style="width:72px; padding:4px 7px; border:1px solid #cbd5e1; border-radius:6px; text-align:right;">
       </div>
-      <p style="font-size:11.5px; color:#475569; margin:0 0 8px;">El <b>SFS/ARS (3.04%)</b> y la <b>AFP (2.87%)</b> se descuentan solos sobre el sueldo quincenal cotizable. Si registras <b>Días trab.</b>, el quincenal se prorratea por día (sueldo ÷ días laborables × días); si lo dejas vacío, va el quincenal completo (editable).</p>
+      <p style="font-size:11.5px; color:#475569; margin:0 0 8px;">El <b>SFS/ARS (3.04%)</b> y la <b>AFP (2.87%)</b> se descuentan solos sobre el sueldo quincenal cotizable. Si registra <b>Días trab.</b>, el quincenal se prorratea por día (sueldo ÷ días laborables × días); si lo deja vacío, va el quincenal completo (editable).</p>
       <div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12px; min-width:980px;">
         <thead><tr style="background:#0f172a; color:#fff;">
           <th style="padding:6px; text-align:left;">Nombre</th><th style="padding:6px;">Puesto</th><th style="padding:6px; text-align:right;">Salario/mes</th><th style="padding:6px;">Días trab.</th><th style="padding:6px; text-align:right;">Quincenal</th><th style="padding:6px;">ARS</th><th style="padding:6px;">AFP</th><th style="padding:6px;">Incentivos</th><th style="padding:6px;">Ctas. cobrar</th><th style="padding:6px;">Días desc.</th><th style="padding:6px;">TOTAL</th><th style="padding:6px;" title="Comentarios"><i class="ti ti-message"></i></th><th style="padding:6px;" title="Verificado">OK</th><th style="padding:6px;"></th>
@@ -11221,7 +11221,7 @@ function _renderNominaGenerar() {
 async function _nominaQuitarLinea(i) {
     const g = _nominaGen; if(!g || !g.lineas[i]) return;
     const l = g.lineas[i];
-    if(!await confirmar(`¿Quitar a "${l.nombre}" de ESTA quincena?\n\nNo se borra de la nómina — solo sale de este pago. (Para volver a incluirlo, dale a "Reiniciar".)`)) return;
+    if(!await confirmar(`¿Quitar a "${l.nombre}" de ESTA quincena?\n\nNo se borra de la nómina — solo sale de este pago. (Para volver a incluirlo, presione «Reiniciar».)`)) return;
     _nominaRecalc(); // guardar lo editado antes de re-dibujar
     g.lineas.splice(i, 1);
     g._dirty = true;
@@ -11232,7 +11232,7 @@ async function _nominaQuitarLinea(i) {
 async function _nominaComentario(i, el) {
     const g = _nominaGen; if(!g || !g.lineas[i]) return;
     const l = g.lineas[i];
-    const r = await pedirTexto(`Comentario para ${l.nombre}:\n\n(Se guarda con la quincena. Déjalo vacío para quitarlo.)`, { valor: l.comentario || '', multilinea: true });
+    const r = await pedirTexto(`Comentario para ${l.nombre}:\n\n(Se guarda con la quincena. Déjelo vacío para quitarlo.)`, { valor: l.comentario || '', multilinea: true });
     if(r === null) return;
     l.comentario = (r || '').trim();
     g._dirty = true;
@@ -11301,11 +11301,11 @@ function _nominaTSSBox(cotiz, sfsEmp, afpEmp) {
         <div style="display:flex; justify-content:space-between; border-top:1px solid #bae6fd; margin-top:4px; padding-top:4px;"><span>SFS patronal (7.09%):</span><span>${money(sfsPat)}</span></div>
         <div style="display:flex; justify-content:space-between;"><span>AFP patronal (7.10%):</span><span>${money(afpPat)}</span></div>
         <div style="display:flex; justify-content:space-between;"><span>Riesgo laboral SRL (1.10%):</span><span>${money(srl)}</span></div>
-        <div style="display:flex; justify-content:space-between;"><span><b>Aporte PATRONAL (lo pagas tú):</b></span><b style="color:#b45309;">${money(aportePatronal)}</b></div>
+        <div style="display:flex; justify-content:space-between;"><span><b>Aporte PATRONAL (lo paga usted):</b></span><b style="color:#b45309;">${money(aportePatronal)}</b></div>
         <div style="display:flex; justify-content:space-between;"><span>INFOTEP (1%, aparte):</span><span>${money(infotep)}</span></div>
         <div style="display:flex; justify-content:space-between; font-size:14px; border-top:2px solid #075985; margin-top:5px; padding-top:5px;"><span><b>TOTAL a TSS (empleado + patronal):</b></span><b style="color:#0e7490;">${money(aporteEmpleado + aportePatronal)}</b></div>
       </div>
-      <div style="font-size:10.5px; color:#475569; margin-top:6px;">Referencial. El INFOTEP (1%) se paga aparte. El SRL puede variar según tu clasificación de riesgo.</div>
+      <div style="font-size:10.5px; color:#475569; margin-top:6px;">Referencial. El INFOTEP (1%) se paga aparte. El SRL puede variar según su clasificación de riesgo.</div>
     </div>`;
 }
 async function _nominaGuardarPeriodo() {
@@ -11313,12 +11313,12 @@ async function _nominaGuardarPeriodo() {
     _nominaRecalc();
     const g = _nominaGen; if(!g || !g.lineas.length) return toast('No hay empleados en la quincena.', 'error');
     const titulo = (g.titulo || '').trim();
-    if(!titulo) return toast('No se pudo determinar el período. Reinicia la quincena.', 'error');
+    if(!titulo) return toast('No se pudo determinar el período. Reinicie la quincena.', 'error');
     // ¿Es una CORRECCIÓN de una quincena ya guardada? → motivo obligatorio (queda registrado)
     if(g.editandoId) {
         let motivo = '';
         while(!motivo) {
-            const r = await pedirTexto('Esta quincena YA estaba guardada.\n\nEscribe el MOTIVO de la corrección (obligatorio, quedará registrado):', { multilinea: true });
+            const r = await pedirTexto('Esta quincena YA estaba guardada.\n\nEscriba el MOTIVO de la corrección (obligatorio, quedará registrado):', { multilinea: true });
             if(r === null) return; // canceló
             motivo = (r || '').trim();
             if(!motivo) toast('El motivo es obligatorio para corregir una quincena guardada.', 'error');
@@ -11356,7 +11356,7 @@ async function _nominaGuardarPeriodo() {
 function _renderNominaHistorial() {
     const cont = _nomCont(); if(!cont) return;
     const pers = cache.nominaPeriodos || [];
-    if(!pers.length) { cont.innerHTML = '<p style="color:#475569; text-align:center; padding:18px;">No hay quincenas guardadas todavía. Genera una en "Generar quincena".</p>'; return; }
+    if(!pers.length) { cont.innerHTML = '<p style="color:#475569; text-align:center; padding:18px;">No hay quincenas guardadas todavía. Genere una en "Generar quincena".</p>'; return; }
     cont.innerHTML = `<table style="width:100%; border-collapse:collapse; font-size:13px;">
       <thead><tr style="background:#f1f5f9;"><th style="padding:7px; text-align:left;">Quincena</th><th style="padding:7px;">Pago</th><th style="padding:7px;">Hecha</th><th></th></tr></thead>
       <tbody>${pers.map(p => {
@@ -11391,7 +11391,7 @@ async function _nominaEditarPeriodo(id) {
                 dias_trabajados: l.dias_trabajados, total: Number(l.total) || 0, revisado: false, comentario: l.comentario || '' }))
         };
         nominaTab('generar');
-        toast('✏️ Corrigiendo la quincena guardada. Al guardar te pedirá el motivo.');
+        toast('✏️ Corrigiendo la quincena guardada. Al guardar se le pedirá el motivo.');
     } catch(e) { logError('editar periodo nomina', e); toastError(getFriendlyError(e)); }
 }
 async function _nominaEliminarPeriodo(id) {
@@ -11406,7 +11406,7 @@ async function _nominaImprimir(periodoId) {
         const { data } = await supabaseClient.from('nomina_lineas').select('*').eq('periodo_id', periodoId).order('orden');
         titulo = p ? (p.titulo || '') : ''; pago = p ? p.fecha_pago : null; lineas = data || [];
     } else {
-        if(!_nominaGen) return toast('Genera una quincena primero.', 'error');
+        if(!_nominaGen) return toast('Genere una quincena primero.', 'error');
         _nominaRecalc();
         titulo = (_nominaGen.titulo || '').trim(); pago = _nominaGen.pago || null; lineas = _nominaGen.lineas;
     }
@@ -11414,7 +11414,7 @@ async function _nominaImprimir(periodoId) {
     const cfg = cache.configTaller || {};
     const filas = lineas.map((l, i) => `<tr><td>${i + 1}</td><td>${escapeHtml(l.nombre)}</td><td>${escapeHtml(l.cedula || '')}</td><td>${escapeHtml(l.cuenta_bhd || '')}</td><td>${escapeHtml(l.puesto || '')}</td><td class="n">${money(l.salario_mensual)}</td><td class="n">${money(l.salario_quincenal)}</td><td class="n">${money(l.ars)}</td><td class="n">${money(l.afp)}</td><td class="n">${money(l.incentivos)}</td><td class="n">${money(l.cuentas_por_cobrar)}</td><td class="n">${money(l.dias_descontado)}</td><td class="n b">${money(l.total)}</td></tr>`).join('');
     const sum = (k) => lineas.reduce((s, l) => s + (Number(l[k]) || 0), 0);
-    const w = window.open('', '_blank'); if(!w) return toast('Permite las ventanas emergentes para imprimir.', 'error');
+    const w = window.open('', '_blank'); if(!w) return toast('Permita las ventanas emergentes para imprimir.', 'error');
     w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Nomina ${escapeHtml(titulo)}</title><style>
       *{font-family:Arial,Helvetica,sans-serif;box-sizing:border-box;} body{margin:14px; color:#0f172a; font-size:11px;}
       .h{text-align:center; margin-bottom:6px;} .h h1{font-size:17px; margin:0;} .h div{font-size:11px; color:#475569;}
@@ -11497,7 +11497,7 @@ async function _nominaVolantes(periodoId) {
         </table>
         <div class="firma">_______________________<br>Recibí conforme</div>
       </div>`).join('');
-    const w = window.open('', '_blank'); if(!w) return toast('Permite las ventanas emergentes.', 'error');
+    const w = window.open('', '_blank'); if(!w) return toast('Permita las ventanas emergentes.', 'error');
     w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Volantes ${escapeHtml(d.titulo || '')}</title><style>
       *{font-family:Arial,Helvetica,sans-serif;box-sizing:border-box;} body{margin:0; color:#0f172a;}
       .vol{padding:22px; page-break-after:always; max-width:560px; margin:0 auto;}
@@ -11581,7 +11581,7 @@ function imprimirFormatoInfoPlus() {
     ];
     if(filtrosTxt.length) chips.push(`<b>Filtro:</b> ${escapeHtml(filtrosTxt.join(' · '))}`);
     const w = window.open('', '_blank');
-    if(!w) { toast('Permite las ventanas emergentes para imprimir.', 'error'); return; }
+    if(!w) { toast('Permita las ventanas emergentes para imprimir.', 'error'); return; }
     w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Formato Info Plus ${escapeHtml(lote.codigo_lote || '')}</title>
         <style>
             *{font-family:Arial,Helvetica,sans-serif;box-sizing:border-box;}
@@ -11624,7 +11624,7 @@ function imprimirFormatoInfoPlus() {
         </style></head><body>
         <div class="top"><h1>${escapeHtml(tienda)} — Formato para Info Plus</h1><div class="sub">${escapeHtml(subTienda)}</div></div>
         <div class="chips">${chips.map(c => `<span>${c}</span>`).join('')}</div>
-        <div class="nota">Cada modelo = 1 artículo en Info Plus, con sus IMEIs y el <b class="tip">costo promedio</b> como costo unitario. Haz <b>clic</b> sobre un IMEI, código o precio para copiarlo.</div>
+        <div class="nota">Cada modelo = 1 artículo en Info Plus, con sus IMEIs y el <b class="tip">costo promedio</b> como costo unitario. Haga <b>clic</b> sobre un IMEI, código o precio para copiarlo.</div>
         ${bloques}
         <div class="tot"><span class="totdesg">Compra: ${money(totCompra)}</span><span class="totdesg">Flete: ${money(totFlete)}</span><span class="totdesg">Piezas: ${money(totPiezas)}</span> TOTAL GENERAL: ${money(totGen)} · ${totUds} unidad(es)</div>
         <button onclick="window.print()" style="margin-top:12px;padding:7px 16px;background:#0891b2;color:#fff;border:0;border-radius:8px;cursor:pointer;font-size:13px;">Imprimir</button>
@@ -12308,14 +12308,14 @@ function renderRentabilidadReacond() {
             <span><i class="ti ti-device-mobile" style="color:#475569;"></i> ${escapeHtml(e.modelo || 'Equipo')} <span style="color:var(--text-muted);">· ${money(inv(e))}</span></span>
             <span style="font-weight:700; color:${alerta ? '#dc2626' : '#b45309'};">${dias} día${dias === 1 ? '' : 's'}</span>
         </div>`;
-    }).join('') : `<div style="color:var(--text-muted); font-size:12px; padding:6px 0;">Sin equipos en inventario. 🎉</div>`;
+    }).join('') : `<div style="color:var(--text-muted); font-size:12px; padding:6px 0;">Sin equipos en inventario.</div>`;
 
     cont.innerHTML = `
         <div class="card" style="margin-bottom:14px; background:linear-gradient(135deg,#f0fdf4,#ecfdf5);">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
                 <div>
                     <h3 style="margin:0 0 3px;"><i class="ti ti-cash" style="color:#16a34a;"></i> Centro de Rentabilidad</h3>
-                    <p style="color:var(--text-muted); font-size:12px; margin:0;">Cuánto inviertes, cuánto vendes y cuánto ganas de verdad con los reacondicionados.</p>
+                    <p style="color:var(--text-muted); font-size:12px; margin:0;">Inversión, ventas y ganancia real de los reacondicionados.</p>
                 </div>
                 <button class="btn btn-light" onclick="refrescarVista(renderRentabilidadReacond, this)" style="padding:6px 12px; font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
             </div>
@@ -12329,7 +12329,7 @@ function renderRentabilidadReacond() {
                 ${kpi('📈 Ganancia neta', money(ganancia), gColor, `margen ${margen.toFixed(1)}%`)}
                 ${kpi('🎯 Ticket promedio', money(ticketProm), '#6366f1')}
             </div>
-            ${conEstim ? `<div style="font-size:11px; color:var(--text-muted); margin-top:9px;"><i class="ti ti-target-arrow"></i> Estimado vs real: vendiste ${sumRealVsEstim >= sumEstim ? 'por encima' : 'por debajo'} de lo estimado (${money(sumRealVsEstim)} real vs ${money(sumEstim)} estimado en ${conEstim} equipo(s)).</div>` : ''}
+            ${conEstim ? `<div style="font-size:11px; color:var(--text-muted); margin-top:9px;"><i class="ti ti-target-arrow"></i> Estimado vs real: se vendió ${sumRealVsEstim >= sumEstim ? 'por encima' : 'por debajo'} de lo estimado (${money(sumRealVsEstim)} real vs ${money(sumEstim)} estimado en ${conEstim} equipo(s)).</div>` : ''}
             ${sinPrecio ? `<div style="background:#fef3c7; border:1px solid #fcd34d; color:#92400e; font-size:11px; border-radius:8px; padding:8px 10px; margin-top:10px;"><i class="ti ti-alert-triangle"></i> ${sinPrecio} equipo(s) vendido(s) sin precio registrado (se despacharon antes de pedir el monto). No suman a los ingresos.</div>` : ''}
         </div>
 
@@ -12400,7 +12400,7 @@ function renderCatalogoFallas() {
     if(fallasFiltradas.length === 0) {
         cont.innerHTML = buscador
             ? `<p style="color:var(--text-muted); text-align:center; padding:30px;">No hay fallas que coincidan con "${escapeHtml(buscador)}"</p>`
-            : `<p style="color:var(--text-muted); text-align:center; padding:30px;">No hay fallas registradas. Crea la primera con "+ Nueva Falla".</p>`;
+            : `<p style="color:var(--text-muted); text-align:center; padding:30px;">No hay fallas registradas. Cree la primera con "+ Nueva Falla".</p>`;
         return;
     }
     
@@ -12738,7 +12738,7 @@ async function _evalFallaNota(fallaId) {
     const f = (cache.fallas || []).find(x => x.id === fallaId);
     const nombre = f ? (f.nombre_corto || f.nombre) : 'la falla';
     const actual = (_evalState.fallasNotas && _evalState.fallasNotas[fallaId]) || '';
-    const r = await pedirTexto(`Nota para "${nombre}":\n\n(Se guarda con la evaluación. Déjala vacía para quitarla.)`, { valor: actual, multilinea: true });
+    const r = await pedirTexto(`Nota para "${nombre}":\n\n(Se guarda con la evaluación. Déjela vacía para quitarla.)`, { valor: actual, multilinea: true });
     if(r === null) return;
     if(!_evalState.fallasNotas) _evalState.fallasNotas = {};
     const txt = (r || '').trim();
@@ -12782,7 +12782,7 @@ function renderFallasEvaluacion() {
     });
     
     if(filtradas.length === 0) {
-        cont.innerHTML = `<p style="color:var(--text-muted); text-align:center; padding:30px;">${buscador ? 'Sin resultados.' : 'No hay fallas en el catálogo. Crea fallas en la pestaña Catálogo.'}</p>`;
+        cont.innerHTML = `<p style="color:var(--text-muted); text-align:center; padding:30px;">${buscador ? 'Sin resultados.' : 'No hay fallas en el catálogo. Cree fallas en la pestaña Catálogo.'}</p>`;
         return;
     }
     
@@ -12898,7 +12898,7 @@ function renderPiezasEvaluacion() {
     if(!cont) return;
     
     if(_evalState.piezasSeleccionadas.length === 0) {
-        cont.innerHTML = `<p style="color:var(--text-muted); text-align:center; padding:20px; font-size:13px;">Aún no has agregado piezas. Selecciona una arriba y dale "Agregar".</p>`;
+        cont.innerHTML = `<p style="color:var(--text-muted); text-align:center; padding:20px; font-size:13px;">Aún no hay piezas agregadas. Seleccione una arriba y presione «Agregar».</p>`;
         return;
     }
     
@@ -12937,7 +12937,7 @@ function renderPiezasEvaluacion() {
 
 function evalAgregarPieza() {
     const codigo = smartSelectGetValue('ss-eval-pieza');
-    if(!codigo) return toast('Selecciona una pieza primero.', 'error');
+    if(!codigo) return toast('Seleccione una pieza primero.', 'error');
 
     // Inventario de Info Plus: tomar del selector (siempre tiene _ip) o del caché
     const st = _smartSelects['ss-eval-pieza'];
@@ -12991,7 +12991,7 @@ function renderResumenEvaluacion() {
     const fallasEl = document.getElementById('evalResumenFallas');
     if(fallasEl) {
         if(_evalState.fallasSeleccionadas.size === 0) {
-            fallasEl.innerHTML = '<p style="color:var(--text-muted); font-size:12px;">No has marcado fallas todavía.</p>';
+            fallasEl.innerHTML = '<p style="color:var(--text-muted); font-size:12px;">No hay fallas marcadas todavía.</p>';
         } else {
             const fallasObj = (cache.fallas || []).filter(f => _evalState.fallasSeleccionadas.has(f.id));
             fallasEl.innerHTML = fallasObj.map(f => {
@@ -13011,7 +13011,7 @@ function renderResumenEvaluacion() {
     if(piezasEl) {
         const verCosto = isAdminUser();
         if(_evalState.piezasSeleccionadas.length === 0) {
-            piezasEl.innerHTML = '<p style="color:var(--text-muted); font-size:12px;">No has agregado piezas todavía.</p>';
+            piezasEl.innerHTML = '<p style="color:var(--text-muted); font-size:12px;">No hay piezas agregadas todavía.</p>';
             if(costoEl) costoEl.innerHTML = '';
         } else {
             let total = 0;
@@ -13035,7 +13035,7 @@ async function guardarEvaluacion(marcarEvaluado = false) {
     const notas = document.getElementById('eval_notas').value.trim() || null;
     const fallasArray = Array.from(_evalState.fallasSeleccionadas);
     if(marcarEvaluado && !fallasArray.length && !notas) {
-        return toast('Escribe el resultado del diagnóstico o selecciona una falla antes de cerrar la evaluación.', 'error');
+        return toast('Escriba el resultado del diagnóstico o seleccione una falla antes de cerrar la evaluación.', 'error');
     }
     
     try {
@@ -13305,7 +13305,7 @@ async function guardarDatosTaller() {
         toast('✅ Datos del taller guardados (todos los dispositivos).', 'success');
     } catch(e) {
         logError('Guardar datos taller', e);
-        toast('Guardado solo en este equipo (sin conexión a la tabla). Corre el SQL si falta.', 'error');
+        toast('Guardado solo en este equipo (sin conexión a la tabla). Ejecute el SQL si falta.', 'error');
     }
 }
 
@@ -13315,7 +13315,7 @@ function renderCfgFallas() {
     if(!cont) return;
     const fallas = (cache.fallasComunes || []).filter(f => f.activo !== false).sort((a,b) => (a.orden||0)-(b.orden||0));
     if(!fallas.length) {
-        cont.innerHTML = `<p style="color:var(--text-muted); font-size:13px; padding:10px 0;">No hay fallas. Si la tabla está vacía, agrégalas abajo o corre el SQL inicial.</p>`;
+        cont.innerHTML = `<p style="color:var(--text-muted); font-size:13px; padding:10px 0;">No hay fallas. Si la tabla está vacía, agréguelas abajo o ejecute el SQL inicial.</p>`;
         return;
     }
     cont.innerHTML = fallas.map(f => `
@@ -13334,7 +13334,7 @@ function renderTecnicos() {
     if(!cont) return;
     const tecnicos = cache.tecnicos || [];
     if(tecnicos.length === 0) {
-        cont.innerHTML = `<p style="color:var(--text-muted); text-align:center; padding:30px; font-size:13px;">No hay empleados registrados. Crea el primero con "+ Nuevo Empleado".</p>`;
+        cont.innerHTML = `<p style="color:var(--text-muted); text-align:center; padding:30px; font-size:13px;">No hay empleados registrados. Cree el primero con "+ Nuevo Empleado".</p>`;
         return;
     }
     const _tecPage = _uiListPage('tecnicos', tecnicos.length);
@@ -13452,7 +13452,7 @@ async function resetClaveTecnico(id) {
     if(!t) return;
     if(!t.usuario) return toast('Este empleado no tiene usuario de acceso.', 'error');
     const sugerida = 'Bayol' + Math.floor(1000 + Math.random() * 9000);
-    const nueva = (prompt(`Contraseña provisional para "${t.nombre}" (usuario: ${t.usuario}).\n\nPuedes dejar la sugerida o escribir otra.\nEl empleado deberá cambiarla al iniciar sesión.`, sugerida) || '').trim();
+    const nueva = (prompt(`Contraseña provisional para "${t.nombre}" (usuario: ${t.usuario}).\n\nPuede dejar la sugerida o escribir otra.\nEl empleado deberá cambiarla al iniciar sesión.`, sugerida) || '').trim();
     if(!nueva) return;
     if(nueva.length < 4) return toast('La contraseña debe tener al menos 4 caracteres.', 'error');
     try {
@@ -13464,7 +13464,7 @@ async function resetClaveTecnico(id) {
         await loadAll();
         renderTecnicos();
         toast(`✅ Clave provisional de ${t.nombre}: ${nueva} — la deberá cambiar al entrar.`, 'success');
-        try { alert(`Contraseña provisional para ${t.nombre}\n(usuario: ${t.usuario})\n\n👉  ${nueva}\n\nEntrégasela al empleado. Se le pedirá cambiarla al iniciar sesión.`); } catch(e) {}
+        try { alert(`Contraseña provisional para ${t.nombre}\n(usuario: ${t.usuario})\n\n👉  ${nueva}\n\nEntréguesela al empleado. Se le pedirá cambiarla al iniciar sesión.`); } catch(e) {}
     } catch(e) {
         logError('Reset clave técnico', e);
         toastError(getFriendlyError(e));
@@ -13619,7 +13619,7 @@ async function confirmarAsignarTecnico() {
     const tecnicoId = smartSelectGetValue('ss-asign-tecnico');
     const notas = document.getElementById('asign_notas').value.trim();
     
-    if(!tecnicoId) return toast('Selecciona un técnico.', 'error');
+    if(!tecnicoId) return toast('Seleccione un técnico.', 'error');
     
     try {
         const updateData = {
@@ -13686,7 +13686,7 @@ function _asignloteRefrescar() {
     if(marcados.length) {
         if(cantRow) cantRow.style.display = 'none';
         elegidos = marcados;
-        dispText = `Se asignarán los ${marcados.length} equipo(s) que marcaste.`;
+        dispText = `Se asignarán los ${marcados.length} equipo(s) marcado(s).`;
     } else {
         if(cantRow) cantRow.style.display = '';
         const inp = document.getElementById('asignlote_cantidad');
@@ -13694,13 +13694,13 @@ function _asignloteRefrescar() {
         if(cant < 0) cant = 0;
         if(cant > disp.length) { cant = disp.length; inp.value = cant; }
         elegidos = disp.slice(0, cant);
-        dispText = `Hay ${disp.length} equipo(s) evaluado(s) disponibles. (O marca con casilla los que quieras.)`;
+        dispText = `Hay ${disp.length} equipo(s) evaluado(s) disponibles. (O marque con la casilla los que desee.)`;
     }
     const d = document.getElementById('asignlote_disp'); if(d) d.textContent = dispText;
     const m = document.getElementById('asignlote_modelos'); if(m) m.innerHTML = _asignloteModelosHtml(elegidos);
 }
 function abrirModalAsignarLote() {
-    if(!reacondLoteAbiertoId) return toast('Abre un lote primero.', 'error');
+    if(!reacondLoteAbiertoId) return toast('Abra un lote primero.', 'error');
     const disp = _equiposEvaluadosDisponibles();
     if(!disp.length) return toast('No hay equipos evaluados sin asignar en este lote.', 'error');
     const sel = disp.filter(e => _reacondSel.has(e.id));
@@ -13724,10 +13724,10 @@ function abrirModalAsignarLote() {
 function cerrarModalAsignarLote() { document.getElementById('modalAsignarLote').classList.remove('active'); }
 // Pasar en bloque los evaluados seleccionados directo a "Listo para venta" (no requieren reparación)
 async function pasarSeleccionListoVenta() {
-    if(!reacondLoteAbiertoId) return toast('Abre un lote primero.', 'error');
+    if(!reacondLoteAbiertoId) return toast('Abra un lote primero.', 'error');
     const disp = _equiposEvaluadosDisponibles();
     const sel = disp.filter(e => _reacondSel.has(e.id));
-    if(!sel.length) return toast('Marca con la casilla los equipos evaluados que pasan a Listo para venta.', 'error');
+    if(!sel.length) return toast('Marque con la casilla los equipos evaluados que pasan a Listo para venta.', 'error');
     if(!await confirmar(`¿Pasar ${sel.length} equipo(s) evaluado(s) a "🛒 Listo para venta"?\n\n(Se asume que NO requieren reparación.)`)) return;
     try {
         const ids = sel.map(e => e.id);
@@ -13742,7 +13742,7 @@ async function pasarSeleccionListoVenta() {
 }
 async function confirmarAsignarLote(btn) {
     const tecnicoId = smartSelectGetValue('ss-asignlote-tecnico');
-    if(!tecnicoId) return toast('Selecciona un técnico.', 'error');
+    if(!tecnicoId) return toast('Seleccione un técnico.', 'error');
     const disp = _equiposEvaluadosDisponibles();
     const marcados = disp.filter(e => _reacondSel.has(e.id));
     let elegidos;
@@ -13750,7 +13750,7 @@ async function confirmarAsignarLote(btn) {
         elegidos = marcados; // usar los que marcó con casilla
     } else {
         let cant = parseInt(document.getElementById('asignlote_cantidad').value) || 0;
-        if(cant < 1) return toast('Marca equipos con la casilla o pon una cantidad.', 'error');
+        if(cant < 1) return toast('Marque equipos con la casilla o indique una cantidad.', 'error');
         if(cant > disp.length) cant = disp.length;
         elegidos = disp.slice(0, cant);
     }
@@ -13869,23 +13869,23 @@ function construirSeccionTareas(tipo, refId, tareas, cerrada, soloAgregar) {
                     </div>
                 </div>
                 ${filas}
-                ${todasHechas ? `<div style="background:#f0fdf4; border:1px solid #86efac; padding:8px; border-radius:8px; margin-top:6px; text-align:center; font-size:12px; color:#166534;"><i class="ti ti-circle-check"></i> ¡Todas las fallas resueltas! El equipo está listo.</div>` : ''}
-            ` : `<div style="color:var(--text-muted); font-size:12px; padding:8px 0;">${cerrada ? 'Esta orden está cerrada. No se pueden agregar tareas.' : 'No hay fallas registradas. Usa el botón "Agregar tarea".'}</div>`}
+                ${todasHechas ? `<div style="background:#f0fdf4; border:1px solid #86efac; padding:8px; border-radius:8px; margin-top:6px; text-align:center; font-size:12px; color:#166534;"><i class="ti ti-circle-check"></i> Todas las fallas resueltas. El equipo está listo.</div>` : ''}
+            ` : `<div style="color:var(--text-muted); font-size:12px; padding:8px 0;">${cerrada ? 'Esta orden está cerrada. No se pueden agregar tareas.' : 'No hay fallas registradas. Use el botón "Agregar tarea".'}</div>`}
         </div>`;
 }
 
 // Crear una tarea (cualquier técnico puede)
 async function crearTarea(tipo, refId) {
-    const desc = await pedirTexto('🔧 NUEVA TAREA\n\n¿Qué hay que hacer?\n\nEjemplo: "Cambiar pantalla", "Microsoldadura", "Cambiar batería"');
+    const desc = await pedirTexto('🔧 NUEVA TAREA\n\nTrabajo a realizar:\n\nEjemplo: "Cambiar pantalla", "Microsoldadura", "Cambiar batería"');
     if(desc === null) return;
-    if(!desc.trim()) return toast('Escribe qué hay que hacer.', 'error');
+    if(!desc.trim()) return toast('Indique el trabajo a realizar.', 'error');
     
     // Elegir técnico (lista numerada)
     const tecnicos = (cache.tecnicos || []).filter(t => t.activo && (t.tipo_empleado === 'tecnico' || (!t.tipo_empleado && t.rol !== 'admin')));
     let tecnicoId = null;
     if(tecnicos.length) {
         const lista = tecnicos.map((t, i) => `${i + 1}. ${t.nombre}`).join('\n');
-        const sel = await pedirTexto(`¿A qué técnico se le asigna?\n\n${lista}\n\nEscribe el número (o deja vacío para "Sin asignar"):`);
+        const sel = await pedirTexto(`Técnico asignado:\n\n${lista}\n\nEscriba el número (o deje vacío para "Sin asignar"):`);
         if(sel === null) return;
         if(sel.trim()) {
             const idx = parseInt(sel) - 1;
@@ -13909,7 +13909,7 @@ async function crearTarea(tipo, refId) {
 
 // Marcar tarea como hecha
 async function completarTarea(tareaId, tipo, refId) {
-    const nota = await pedirTexto('¿Alguna nota sobre el trabajo? (opcional)');
+    const nota = await pedirTexto('Nota sobre el trabajo (opcional):');
     if(nota === null) return; // El usuario canceló: no completar la tarea
     try {
         const upd = { estado: 'hecha', fecha_completada: new Date().toISOString() };
@@ -13925,8 +13925,8 @@ async function completarTarea(tareaId, tipo, refId) {
         
         if(todasHechas) {
             const msg = tipo === 'equipo'
-                ? '✅ ¡Todas las tareas completadas!\n\n¿Marcar el equipo como FINALIZADO para que la administración lo reciba?'
-                : '✅ ¡Todas las tareas completadas!\n\n¿Marcar la orden como FINALIZADA (lista para entregar)?';
+                ? '✅ Todas las tareas completadas.\n\n¿Marcar el equipo como FINALIZADO para que la administración lo reciba?'
+                : '✅ Todas las tareas completadas.\n\n¿Marcar la orden como FINALIZADA (lista para entregar)?';
             if(await confirmar(msg, {peligro:false, ok:'Sí, continuar'})) {
                 if(tipo === 'equipo') {
                     await supabaseClient.from('equipos_refurbish').update({ estado_evaluacion: 'listo_revision' }).eq('id', refId);
@@ -13958,7 +13958,7 @@ async function reabrirTarea(tareaId, tipo, refId) {
 // Eliminar una tarea
 async function eliminarTarea(tareaId, tipo, refId) {
     // El técnico no puede eliminar fallas/tareas; sí el admin o servicio (recepción)
-    if(!isAdminUser() && !tienePermiso('recepcion_ver')) return toast('No tienes permiso para eliminar tareas.', 'error');
+    if(!isAdminUser() && !tienePermiso('recepcion_ver')) return toast('No tiene permiso para eliminar tareas.', 'error');
     if(!await confirmar('¿Eliminar esta tarea?')) return;
     try {
         const { error } = await supabaseClient.from('tareas_trabajo').delete().eq('id', tareaId);
@@ -14009,7 +14009,7 @@ async function reasignarTarea(tareaId, tipo, refId) {
     const tecnicos = (cache.tecnicos || []).filter(t => t.activo && (t.tipo_empleado === 'tecnico' || (!t.tipo_empleado && t.rol !== 'admin')) && t.id !== tarea.tecnico_id);
     if(!tecnicos.length) return toast('No hay otros técnicos disponibles.', 'error');
     const lista = tecnicos.map((t, i) => `${i + 1}. ${t.nombre}`).join('\n');
-    const sel = await pedirTexto(`REASIGNAR TAREA: ${tarea.descripcion}\n\n¿A qué técnico se la pasas?\n\n${lista}\n\nEscribe el número:`);
+    const sel = await pedirTexto(`REASIGNAR TAREA: ${tarea.descripcion}\n\nTécnico al que se reasigna:\n\n${lista}\n\nEscriba el número:`);
     if(sel === null) return;
     const idx = parseInt(sel) - 1;
     if(isNaN(idx) || idx < 0 || idx >= tecnicos.length) return toast('Selección inválida.', 'error');
@@ -14321,11 +14321,11 @@ async function abrirPanelProceso(equipoId) {
                     <div style="background:linear-gradient(135deg, #fef3c7, #fde68a); border:2px solid #f59e0b; padding:16px; border-radius:12px; margin-top:18px; box-shadow:0 4px 12px rgba(245,158,11,0.2);">
                         <b style="color:#78350f;"><i class="ti ti-user-share"></i> Equipo reasignado</b>
                         <p style="font-size:12px; color:#92400e; margin:8px 0;">
-                            ${soyElNuevoTecnico ? 'Este equipo te fue reasignado' : 'Equipo reasignado a <b>' + escapeHtml((cache.tecnicos||[]).find(t=>t.id===eq.tecnico_asignado_id)?.nombre || 'otro técnico') + '</b>'}${tecnicoAnterior ? ` (antes lo tenía <b>${escapeHtml(tecnicoAnterior.nombre)}</b>)` : ''}.
+                            ${soyElNuevoTecnico ? 'Este equipo le fue reasignado' : 'Equipo reasignado a <b>' + escapeHtml((cache.tecnicos||[]).find(t=>t.id===eq.tecnico_asignado_id)?.nombre || 'otro técnico') + '</b>'}${tecnicoAnterior ? ` (antes lo tenía <b>${escapeHtml(tecnicoAnterior.nombre)}</b>)` : ''}.
                             ${eq.motivo_reasignacion ? `<br><b>Motivo:</b> ${escapeHtml(eq.motivo_reasignacion)}` : ''}
                         </p>
                         ${puedeRecibirReasignado ? `
-                        <p style="font-size:12px; color:#92400e; margin:8px 0;">¿Cómo quieres recibirlo?</p>
+                        <p style="font-size:12px; color:#92400e; margin:8px 0;">Modo de recepción:</p>
                         <button onclick="recibirEquipoReasignado('${equipoId}', 'con_piezas')" style="background:linear-gradient(180deg,#10b981,#059669); color:#fff; border:0; padding:12px; border-radius:10px; cursor:pointer; font-weight:700; width:100%; box-shadow:0 3px 8px rgba(15,23,42,0.12); margin-bottom:8px;">
                             <i class="ti ti-package"></i> Recibir CON las piezas actuales
                         </button>
@@ -14335,7 +14335,7 @@ async function abrirPanelProceso(equipoId) {
                         ` : `
                         <div style="background:#fff; border-radius:8px; padding:10px; font-size:12px; color:#92400e; text-align:center;">
                             <i class="ti ti-clock"></i> Esperando que el técnico asignado lo reciba.
-                            <br><small>No puedes recibir un equipo que tú reasignaste.</small>
+                            <br><small>No puede recibir un equipo que usted reasignó.</small>
                         </div>
                         `}
                     </div>
@@ -14356,7 +14356,7 @@ async function abrirPanelProceso(equipoId) {
                     puedeRecibirReasignado || tienePermiso('piezas_aprobar_extra') ? `
                     <div style="background:linear-gradient(135deg, #fef3c7, #fde68a); border:2px solid #f59e0b; padding:16px; border-radius:12px; margin-top:18px; box-shadow:0 4px 12px rgba(245, 158, 11, 0.2);">
                         <b style="color:#78350f;"><i class="ti ti-shield-check"></i> Control de calidad (Administración)</b>
-                        <p style="font-size:12px; color:#92400e; margin:8px 0;">El técnico envió este equipo a <b>CONTROL DE CALIDAD</b>. Revísalo y apruébalo para pasarlo a Listo para venta.</p>
+                        <p style="font-size:12px; color:#92400e; margin:8px 0;">El técnico envió este equipo a <b>CONTROL DE CALIDAD</b>. Revíselo y apruébelo para pasarlo a Listo para venta.</p>
                         <button onclick="aprobarTerminado('${equipoId}')" style="background:linear-gradient(180deg,#10b981,#059669); color:#fff; border:0; padding:14px 20px; border-radius:10px; cursor:pointer; font-weight:700; width:100%; box-shadow:0 3px 8px rgba(15,23,42,0.12); font-size:14px;">
                             <i class="ti ti-shield-check"></i> APROBAR Y PASAR A LISTO
                         </button>
@@ -14506,7 +14506,7 @@ async function marcarListoVentaDirecto(equipoId) {
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return;
     if(_reacondTienePiezasPendientes((cache.piezasReacond || []).filter(p => p.equipo_id === equipoId))) {
-        return toast('Este equipo todavía tiene piezas pendientes. Resuelve la solicitud antes de pasarlo a Listo para venta.', 'error');
+        return toast('Este equipo todavía tiene piezas pendientes. Resuelva la solicitud antes de pasarlo a Listo para venta.', 'error');
     }
     if(!await confirmar('¿Este equipo NO requiere reparación y pasa directo a "🛒 Listo para venta"?')) return;
     await cambiarEstadoProceso(equipoId, 'listo_venta');
@@ -14517,16 +14517,16 @@ async function cambiarEstadoProceso(equipoId, nuevoEstado) {
     const estadoAnterior = eq.estado_evaluacion;
     if(nuevoEstado === 'listo_revision' && estadoAnterior === 'tecnico_recibio') {
         const pendientes = _reacondTienePiezasPendientes((cache.piezasReacond || []).filter(p => p.equipo_id === equipoId));
-        if(pendientes) return toast('Este equipo todavía tiene piezas pendientes. Confirma su recepción o resuelve la solicitud antes de enviarlo a calidad.', 'error');
+        if(pendientes) return toast('Este equipo todavía tiene piezas pendientes. Confirme su recepción o resuelva la solicitud antes de enviarlo a calidad.', 'error');
     }
     // No permitir pasar a revisión final si quedan fallas pendientes
     if(nuevoEstado === 'listo_revision') {
         const pend = fallasPendientesDe('equipo', equipoId);
         if(pend > 0) {
             if(isAdminUser()) {
-                if(!await confirmar(`⚠️ Este equipo tiene ${pend} falla(s) SIN resolver.\n\nComo administrador puedes pasarlo a revisión de todos modos.\n\n¿Forzar?`)) return;
+                if(!await confirmar(`⚠️ Este equipo tiene ${pend} falla(s) SIN resolver.\n\nComo administrador, puede pasarlo a revisión de todos modos.\n\n¿Forzar?`)) return;
             } else {
-                return toast(`⚠️ No puedes pasar a revisión todavía.\n\nQuedan ${pend} falla(s) pendiente(s). Marca todas las fallas como resueltas (✓) primero.`, 'error');
+                return toast(`⚠️ No puede pasar a revisión todavía.\n\nQuedan ${pend} falla(s) pendiente(s). Marque todas las fallas como resueltas (✓) primero.`, 'error');
             }
         }
     }
@@ -14600,9 +14600,9 @@ async function ajustarStockInventario(piezaId, delta) {
 
 /* ---------- DEVOLUCIÓN DE PIEZAS ---------- */
 async function solicitarDevolucionPieza(piezaId) {
-    const motivo = await pedirTexto('¿Por qué devuelves esta pieza?\n(Ej: No se necesitó, pieza defectuosa, sobró...)');
+    const motivo = await pedirTexto('Motivo de la devolución de la pieza:\n(Ej: No se necesitó, pieza defectuosa, sobró...)');
     if(motivo === null) return; // canceló
-    if(!motivo.trim()) return toast('Debes indicar un motivo para devolver la pieza.', 'error');
+    if(!motivo.trim()) return toast('Debe indicar un motivo para devolver la pieza.', 'error');
     try {
         const { error } = await supabaseClient.from('equipo_piezas_pedidas').update({
             estado: 'devolucion_pendiente',
@@ -14717,8 +14717,8 @@ async function guardarReasignacion() {
     const nuevoTecnicoId = smartSelectGetValue('ss-reasig-tecnico');
     
     if(!equipoId) return toast('No hay equipo.', 'error');
-    if(!nuevoTecnicoId) return toast('Selecciona el nuevo técnico.', 'error');
-    if(!motivo) return toast('Indica el motivo de la reasignación.', 'error');
+    if(!nuevoTecnicoId) return toast('Seleccione el nuevo técnico.', 'error');
+    if(!motivo) return toast('Indique el motivo de la reasignación.', 'error');
     
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return;
@@ -14759,7 +14759,7 @@ async function recibirEquipoReasignado(equipoId, modo) {
     // NO JUEZ Y PARTE: solo el nuevo técnico asignado o el admin pueden recibir
     const soyNuevo = sessionUser?._tipo === 'tecnico' && sessionUser?.id === eq.tecnico_asignado_id;
     if(!isAdminUser() && !soyNuevo) {
-        return toast('No puedes recibir este equipo. Solo el técnico al que fue reasignado puede recibirlo.', 'error');
+        return toast('No puede recibir este equipo. Solo el técnico al que fue reasignado puede recibirlo.', 'error');
     }
     
     const mensaje = modo === 'limpio'
@@ -14789,7 +14789,7 @@ async function recibirEquipoReasignado(equipoId, modo) {
             usuario: sessionUser?.nombre || 'Técnico'
         }]);
         
-        toast(modo === 'limpio' ? '📦 Equipo recibido limpio. Puedes solicitar piezas nuevas.' : '📦 Equipo recibido con sus piezas.');
+        toast(modo === 'limpio' ? '📦 Equipo recibido limpio. Puede solicitar piezas nuevas.' : '📦 Equipo recibido con sus piezas.');
         await loadAll();
         if(_panelProcesoEquipoId) abrirPanelProceso(_panelProcesoEquipoId);
     } catch(e) {
@@ -14892,58 +14892,58 @@ async function _refrescarExistenciaLive(codarticulo) {
 //   <button class="btn-ayuda" onclick="ayudaModulo('clave')" title="¿Qué es esto?">ℹ️</button>
 const AYUDAS = {
     catalogoWeb: { titulo: 'Catálogo Web (celulares)', html: `
-        <p><b>¿Para qué sirve?</b> Es un <b>catálogo público</b> de celulares que puedes mandar a tus clientes por WhatsApp o redes. El cliente ve la foto, el modelo, el precio y si está disponible.</p>
+        <p><b>¿Para qué sirve?</b> Es un <b>catálogo público</b> de celulares que puede enviar a sus clientes por WhatsApp o redes. El cliente ve la foto, el modelo, el precio y si está disponible.</p>
         <ul style="padding-left:18px; margin:6px 0;">
-          <li><b>El precio es automático</b> de Info Plus (<b>nivel 1 · cliente final</b>). Si lo cambias en Info Plus, cambia solo en el catálogo — no tocas nada.</li>
-          <li><b>Agregar celular:</b> lo buscas en Info Plus y lo agregas; luego le <b>subes la foto</b> (Info Plus no trae fotos).</li>
-          <li><b>Mostrar / ocultar:</b> tú decides cuáles salen. "Destacado" (★) lo pone de primero.</li>
+          <li><b>El precio es automático</b> de Info Plus (<b>nivel 1 · cliente final</b>). Si se cambia en Info Plus, se actualiza solo en el catálogo; no hay que tocar nada.</li>
+          <li><b>Agregar celular:</b> se busca en Info Plus y se agrega; luego se le <b>sube la foto</b> (Info Plus no trae fotos).</li>
+          <li><b>Mostrar / ocultar:</b> usted decide cuáles salen. "Destacado" (★) lo pone de primero.</li>
           <li><b>Disponible/Agotado</b> sale solo según la existencia en Info Plus.</li>
           <li><b>Ver catálogo público / Copiar enlace / Compartir:</b> el enlace es <b>${escapeHtml('https://bayolcell.com/catalogo.html')}</b>.</li>
         </ul>
-        <p style="font-size:12px; color:#475569;">El público solo ve nombre, foto, precio y disponibilidad — nunca tus costos ni los otros precios.</p>` },
+        <p style="font-size:12px; color:#475569;">El público solo ve nombre, foto, precio y disponibilidad — nunca sus costos ni los otros precios.</p>` },
     cuentasPorPagar: { titulo: 'Cuentas por Pagar', html: `
-        <p><b>¿Para qué sirve?</b> Es el control de lo que <b>tú le debes a tus proveedores</b> por las compras a <b>crédito</b>. Info Plus sabe cuáles compras son a crédito, pero no lleva la cuenta de los abonos ni el saldo — eso lo haces aquí.</p>
+        <p><b>¿Para qué sirve?</b> Es el control de lo que <b>usted le debe a sus proveedores</b> por las compras a <b>crédito</b>. Info Plus sabe cuáles compras son a crédito, pero no lleva la cuenta de los abonos ni el saldo — eso se lleva aquí.</p>
         <ul style="padding-left:18px; margin:6px 0;">
-          <li><b>Jalar compras a crédito de Info Plus:</b> pones un rango de fechas y el sistema trae solas las compras a crédito (proveedor, factura, monto). Las que ya estén no se duplican.</li>
-          <li><b>Deuda manual:</b> por si quieres registrar una deuda que no está en Info Plus.</li>
-          <li><b>Abonos:</b> cada pago que le haces al proveedor. El sistema baja el <b>saldo</b> solo y marca la deuda como Parcial o Pagada.</li>
-          <li><b>Arriba</b> ves el total que debes, lo vencido y lo que vence en 7 días.</li>
+          <li><b>Jalar compras a crédito de Info Plus:</b> se indica un rango de fechas y el sistema trae solas las compras a crédito (proveedor, factura, monto). Las que ya estén no se duplican.</li>
+          <li><b>Deuda manual:</b> por si desea registrar una deuda que no está en Info Plus.</li>
+          <li><b>Abonos:</b> cada pago que se le hace al proveedor. El sistema baja el <b>saldo</b> solo y marca la deuda como Parcial o Pagada.</li>
+          <li><b>Arriba</b> se ve el total adeudado, lo vencido y lo que vence en 7 días.</li>
         </ul>
-        <p style="font-size:12px; color:#475569;">Ponle la fecha de <b>vencimiento</b> a cada deuda (en el ojito 👁️) para que te avise cuándo se vence.</p>` },
+        <p style="font-size:12px; color:#475569;">Indique la fecha de <b>vencimiento</b> de cada deuda (en el ícono del ojo 👁️) para recibir el aviso cuando se venza.</p>` },
     rrhh: { titulo: 'Recursos Humanos (RRHH)', html: `
-        <p><b>¿Para qué sirve?</b> Es el expediente completo de tu personal y el pago de la nómina, todo en un solo lugar.</p>
+        <p><b>¿Para qué sirve?</b> Es el expediente completo de su personal y el pago de la nómina, todo en un solo lugar.</p>
         <ul style="padding-left:18px; margin:6px 0;">
-          <li><b>Empleados:</b> ficha completa de cada uno — datos personales, contacto, referencias (familiares/amigos), cuentas bancarias, fecha de ingreso y salario. Da clic en el nombre para ver el <b>expediente</b> (se puede imprimir).</li>
+          <li><b>Empleados:</b> ficha completa de cada uno — datos personales, contacto, referencias (familiares/amigos), cuentas bancarias, fecha de ingreso y salario. Haga clic en el nombre para ver el <b>expediente</b> (se puede imprimir).</li>
           <li><b>Nómina:</b> la quincena automática de siempre (Generar quincena / Historial), igual de orgánica y con exportación a BHD.</li>
-          <li><b>Acumulados:</b> lo que cada empleado va juntando de <b>regalía navideña</b> (1/12 de lo que gana en el año) y <b>vacaciones</b> (14 días al año, 18 desde los 5 años). Puedes registrar cuándo pagas cada uno.</li>
+          <li><b>Acumulados:</b> lo que cada empleado va juntando de <b>regalía navideña</b> (1/12 de lo que gana en el año) y <b>vacaciones</b> (14 días al año, 18 desde los 5 años). Puede registrar cuándo se paga cada uno.</li>
           <li><b>Pruebas:</b> prueba psicométrica para candidatos o empleados — mide Personalidad (DISC), Aptitud (lógica y números), Integridad y Servicio al cliente. La persona responde en pantalla y el sistema la califica sola.</li>
-          <li><b>Desempeño:</b> tú calificas (con estrellas del 1 al 5) a cada empleado en puntualidad, actitud, calidad, atención al cliente, honestidad, etc. Da una nota general, queda en su expediente con historial y se puede imprimir.</li>
+          <li><b>Desempeño:</b> usted califica (con estrellas del 1 al 5) a cada empleado en puntualidad, actitud, calidad, atención al cliente, honestidad, etc. Da una nota general, queda en su expediente con historial y se puede imprimir.</li>
         </ul>
-        <p style="font-size:12px; color:#475569;">Los montos de acumulados son referenciales para orientarte; el pago formal lo confirma tu contadora.</p>` },
+        <p style="font-size:12px; color:#475569;">Los montos de acumulados son referenciales para orientarte; el pago formal lo confirma su contadora.</p>` },
     invfisico: { titulo: 'Inventario Físico', html: `
         <p><b>¿Para qué sirve?</b> Contar la mercancía real y cuadrarla con Info Plus, sin parar la venta.</p>
         <ul style="padding-left:18px; margin:6px 0;">
-          <li>Eliges un <b>almacén</b> y una <b>categoría</b> (pantallas, baterías, celulares…). Puedes contar por partes y <b>seguir otro día</b>.</li>
-          <li><b>Piezas:</b> escribes cuántas contaste. <b>Celulares:</b> escaneas/anotas cada <b>IMEI</b>.</li>
-          <li>Ajusta por <b>diferencia</b>: aunque se venda mientras cuentas, el faltante real no cambia.</li>
-          <li>Al final, <b>"Cuadrar en Info Plus"</b> manda las diferencias (entradas/salidas). Puedes imprimir la <b>hoja de diferencias</b> y una <b>hoja en blanco</b> para contar en papel.</li>
+          <li>Se elige un <b>almacén</b> y una <b>categoría</b> (pantallas, baterías, celulares…). Puede contar por partes y <b>seguir otro día</b>.</li>
+          <li><b>Piezas:</b> se escribe cuántas se contaron. <b>Celulares:</b> se escanea o anota cada <b>IMEI</b>.</li>
+          <li>Ajusta por <b>diferencia</b>: aunque se venda mientras se cuenta, el faltante real no cambia.</li>
+          <li>Al final, <b>"Cuadrar en Info Plus"</b> manda las diferencias (entradas/salidas). Puede imprimir la <b>hoja de diferencias</b> y una <b>hoja en blanco</b> para contar en papel.</li>
         </ul>` },
     r606: { titulo: 'Reporte 606 (DGII)', html: `
         <p><b>¿Para qué sirve?</b> Armar solo, cada mes, el reporte de <b>compras y gastos (606)</b> que la contadora envía a la DGII — sin re-digitar facturas.</p>
         <ul style="padding-left:18px; margin:6px 0;">
-          <li>Al <b>registrar un gasto</b>, abre la sección <b>"🧾 Comprobante fiscal (NCF)"</b> y pon el NCF, el RNC del proveedor y el ITBIS (botón "calc 18%" si el monto lo incluye).</li>
+          <li>Al <b>registrar un gasto</b>, abra la sección <b>"🧾 Comprobante fiscal (NCF)"</b> y ponga el NCF, el RNC del proveedor y el ITBIS (botón "calc 18%" si el monto lo incluye).</li>
           <li>Esos gastos salen aquí en el <b>formato oficial de 23 columnas</b> de la DGII.</li>
           <li><b>"Exportar Excel"</b> genera el archivo listo para la contadora / DGII. También se puede imprimir un resumen.</li>
-          <li>Los gastos <b>sin NCF</b> (propinas, gastos informales) no van al 606 — el sistema te dice cuántos quedaron fuera.</li>
+          <li>Los gastos <b>sin NCF</b> (propinas, gastos informales) no van al 606 — el sistema indica cuántos quedaron fuera.</li>
           <li>El <b>607 (ventas)</b> sale de Info Plus, que es quien emite los NCF de venta.</li>
         </ul>` },
     despachos: { titulo: 'Despacho de Almacén', html: `
         <p><b>¿Para qué sirve?</b> Mover mercancía de una localidad a otra en Info Plus como un <b>documento único</b> (Nº DA...).</p>
         <ul style="padding-left:18px; margin:6px 0;">
-          <li>Eliges <b>origen → destino</b>, agregas los artículos con su cantidad y das <b>"Hacer despacho"</b>.</li>
+          <li>Seleccione <b>origen → destino</b>, agregue los artículos con su cantidad y presione <b>"Hacer despacho"</b>.</li>
           <li>Funciona para <b>piezas</b> y para <b>teléfonos con IMEI</b>.</li>
           <li>Cada artículo debe estar en la <b>localidad de origen</b>.</li>
-          <li><b>Imprime el conduce</b> para entregarlo firmado. Puedes <b>reimprimir</b> cualquiera desde el historial (botón 🖨️).</li>
+          <li><b>Imprima el conduce</b> para entregarlo firmado. Puede <b>reimprimir</b> cualquiera desde el historial (botón 🖨️).</li>
         </ul>` }
 };
 function ayudaModulo(clave) { const a = AYUDAS[clave]; if(a) abrirAyuda(a.titulo, a.html); }
@@ -15008,7 +15008,7 @@ function abrirAjusteRapido() {
 function _ajrAgregar(tipo) {
     abrirBuscadorArticulos(null, (a) => {
         if(!a) return;
-        if(/^\s*CELULAR/i.test(a.descripcion || '')) { toast('Los celulares llevan IMEI: úsalos con Despacho o Compra, no con ajuste.', 'error'); return; }
+        if(/^\s*CELULAR/i.test(a.descripcion || '')) { toast('Los celulares llevan IMEI: úselos con Despacho o Compra, no con ajuste.', 'error'); return; }
         _ajr.items.push({ codigo: String(a.codigo), descripcion: a.descripcion || String(a.codigo), costo: Number(a.costo) || 0, tipo, cantidad: 1, estado: '' });
         _ajrRender();
         _refrescarExistenciaLive(a.codigo).then(_ajrRender);
@@ -15017,7 +15017,7 @@ function _ajrAgregar(tipo) {
 function _ajrExist(cod) { const a = _findInfoplusArt(cod) || {}; return Number((a.existencias || {})[_ajr.alm] || 0); }
 function _ajrRender() {
     const cont = document.getElementById('ajrLista'); if(!cont) return;
-    if(!_ajr.items.length) { cont.innerHTML = '<div style="padding:16px;text-align:center;color:#475569;font-size:13px;border:1px dashed #cbd5e1;border-radius:10px;">Agrega la salida y/o la entrada.</div>'; return; }
+    if(!_ajr.items.length) { cont.innerHTML = '<div style="padding:16px;text-align:center;color:#475569;font-size:13px;border:1px dashed #cbd5e1;border-radius:10px;">Agregue la salida y/o la entrada.</div>'; return; }
     cont.innerHTML = _ajr.items.map((it, i) => {
         const ex = _ajrExist(it.codigo), sal = it.tipo === 'salida';
         const despues = sal ? ex - it.cantidad : ex + it.cantidad;
@@ -15032,7 +15032,7 @@ function _ajrRender() {
 }
 async function _ajrEjecutar() {
     const items = _ajr.items.filter(it => it.estado !== 'ok');
-    if(!items.length) return toast('Agrega al menos un artículo.', 'error');
+    if(!items.length) return toast('Agregue al menos un artículo.', 'error');
     const neg = items.find(it => it.tipo === 'salida' && _ajrExist(it.codigo) - it.cantidad < 0);
     if(neg) return toast(`No hay suficiente del ${neg.codigo} en esta localidad para sacar ${neg.cantidad}.`, 'error');
     const alm = _ajr.alm, almN = (ALMACENES_IP.find(a => String(a.c) === String(alm)) || {}).n || ('Almacén ' + alm);
@@ -15054,7 +15054,7 @@ async function _ajrEjecutar() {
     await Promise.all(items.map(it => _refrescarExistenciaLive(it.codigo)));
     _ajrRender();
     if(btn) btn.disabled = false;
-    if(err) toast(`Ajuste: ${ok} hecho(s), ${err} con error. Revisa las líneas en rojo.`, 'error');
+    if(err) toast(`Ajuste: ${ok} hecho(s), ${err} con error. Revise las líneas en rojo.`, 'error');
     else toast(`✅ Ajuste hecho en Info Plus (${ok}).`);
 }
 // ===================== CUENTAS POR PAGAR (deudas a proveedores por compras a crédito) =====================
@@ -15139,7 +15139,7 @@ function _cxpRender() {
     }).join('');
     cont.innerHTML = `
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
-          <div class="card" style="flex:1;min-width:150px;border-left:4px solid #b91c1c;padding:10px 14px;"><div style="font-size:11px;color:#64748b;text-transform:uppercase;">Total que debes</div><div style="font-size:20px;font-weight:800;">${money(totalDeuda)}</div><div style="font-size:11px;color:#94a3b8;">${nPend} deuda(s) pendiente(s)</div></div>
+          <div class="card" style="flex:1;min-width:150px;border-left:4px solid #b91c1c;padding:10px 14px;"><div style="font-size:11px;color:#64748b;text-transform:uppercase;">Total adeudado</div><div style="font-size:20px;font-weight:800;">${money(totalDeuda)}</div><div style="font-size:11px;color:#94a3b8;">${nPend} deuda(s) pendiente(s)</div></div>
           <div class="card" style="flex:1;min-width:150px;border-left:4px solid #dc2626;padding:10px 14px;"><div style="font-size:11px;color:#64748b;text-transform:uppercase;">Vencido</div><div style="font-size:20px;font-weight:800;color:#b91c1c;">${money(totalVencido)}</div></div>
           <div class="card" style="flex:1;min-width:150px;border-left:4px solid #f59e0b;padding:10px 14px;"><div style="font-size:11px;color:#64748b;text-transform:uppercase;">Vence en ≤ 7 días</div><div style="font-size:20px;font-weight:800;color:#b45309;">${money(totalPorVencer)}</div></div>
         </div>
@@ -15161,7 +15161,7 @@ function _cxpRender() {
             <th style="text-align:right;">Monto</th><th style="text-align:right;">Pagado</th><th style="text-align:right;">Saldo</th>
             <th>Vencimiento</th><th>Estado</th><th></th>
           </tr></thead>
-          <tbody>${filas || '<tr><td colspan="9" style="text-align:center;color:#64748b;padding:16px;">No hay deudas. Usa "Jalar compras a crédito de Info Plus" para importarlas.</td></tr>'}</tbody>
+          <tbody>${filas || '<tr><td colspan="9" style="text-align:center;color:#64748b;padding:16px;">No hay deudas. Use "Jalar compras a crédito de Info Plus" para importarlas.</td></tr>'}</tbody>
         </table></div>`;
 }
 function _cxpAbrirJalar() {
@@ -15187,7 +15187,7 @@ function _cxpAbrirJalar() {
 }
 async function _cxpJalar() {
     const desde = document.getElementById('cxpDesde')?.value, hasta = document.getElementById('cxpHasta')?.value;
-    if(!desde || !hasta) return toast('Pon las dos fechas.', 'error');
+    if(!desde || !hasta) return toast('Indique las dos fechas.', 'error');
     const fmt = s => { const p = s.split('-'); return `${+p[0]}-${+p[1]}-${+p[2]}`; };
     toast('Consultando Info Plus…');
     try {
@@ -15235,8 +15235,8 @@ function _cxpAbrirManual() {
 async function _cxpGuardarManual() {
     const prov = (document.getElementById('cxpmProv')?.value || '').trim();
     const monto = parseFloat(document.getElementById('cxpmMonto')?.value) || 0;
-    if(!prov) return toast('Pon el proveedor.', 'error');
-    if(monto <= 0) return toast('Pon un monto válido.', 'error');
+    if(!prov) return toast('Indique el proveedor.', 'error');
+    if(monto <= 0) return toast('Indique un monto válido.', 'error');
     try {
         const { error } = await supabaseClient.from('cuentas_por_pagar').insert([{
             proveedor: prov, factura: (document.getElementById('cxpmFactura')?.value || '').trim() || null,
@@ -15274,7 +15274,7 @@ function _cxpAbrirAbono(id) {
 }
 async function _cxpGuardarAbono(id, btn) {
     const monto = parseFloat(document.getElementById('cxpAbMonto')?.value) || 0;
-    if(monto <= 0) return toast('Pon un monto válido.', 'error');
+    if(monto <= 0) return toast('Indique un monto válido.', 'error');
     if(btn) btn.disabled = true;
     try {
         const { error } = await supabaseClient.from('cxp_abonos').insert([{
@@ -15392,11 +15392,11 @@ function _catPantallasHTML() {
           <span style="flex:1;"></span>
           <span style="font-size:12px;color:#475569;">${n} pantallas con precio nivel 1</span>
         </div>
-        <div style="font-size:12.5px;color:#475569;margin:8px 0 10px;">Sale <b>solo</b> de Info Plus: todas las pantallas con precio de cliente final (nivel 1), agrupadas por marca. Si cambias un precio en Info Plus, cambia aquí solo.</div>
+        <div style="font-size:12.5px;color:#475569;margin:8px 0 10px;">Sale <b>solo</b> de Info Plus: todas las pantallas con precio de cliente final (nivel 1), agrupadas por marca. Si se cambia un precio en Info Plus, se actualiza aquí automáticamente.</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">${boton}
           <a class="btn btn-light" href="${CAT_PANT_URL}" target="_blank" rel="noopener"><i class="ti ti-external-link"></i> Ver página</a>
           <button class="btn btn-light" onclick="try{navigator.clipboard.writeText(CAT_PANT_URL);toast('Enlace copiado: '+CAT_PANT_URL);}catch(e){toast(CAT_PANT_URL);}"><i class="ti ti-copy"></i> Copiar enlace</button>
-          <a class="btn btn-light" style="color:#16a34a;" href="https://wa.me/?text=${encodeURIComponent('Mira los precios de pantallas de BAYOL CELL: ' + CAT_PANT_URL)}" target="_blank" rel="noopener"><i class="ti ti-brand-whatsapp"></i> Compartir</a>
+          <a class="btn btn-light" style="color:#16a34a;" href="https://wa.me/?text=${encodeURIComponent('Consulte los precios de pantallas de BAYOL CELL: ' + CAT_PANT_URL)}" target="_blank" rel="noopener"><i class="ti ti-brand-whatsapp"></i> Compartir</a>
         </div></div>`;
 }
 async function _catTogglePublicado(val) {
@@ -15430,16 +15430,16 @@ function _catRender() {
     const waTienda = ((cache.configTaller || {}).telefono || '').replace(/[^0-9]/g, '');
     const pubBanner = _catPublicado
         ? `<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;"><span style="font-weight:800;color:#166534;font-size:14px;"><i class="ti ti-circle-check-filled"></i> Catálogo PUBLICADO en la web</span><span style="flex:1;min-width:120px;font-size:12px;color:#475569;">Los clientes lo ven en el enlace.</span><button class="btn" style="background:#b91c1c;color:#fff;" onclick="_catTogglePublicado(false)"><i class="ti ti-eye-off"></i> Ocultar de la web</button></div>`
-        : `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;"><span style="font-weight:800;color:#b91c1c;font-size:14px;"><i class="ti ti-eye-off"></i> Catálogo OCULTO (no se ve en la web)</span><span style="flex:1;min-width:120px;font-size:12px;color:#475569;">Actívalo para que los clientes lo vean.</span><button class="btn btn-blue" onclick="_catTogglePublicado(true)"><i class="ti ti-world"></i> Publicar en la web</button></div>`;
+        : `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;"><span style="font-weight:800;color:#b91c1c;font-size:14px;"><i class="ti ti-eye-off"></i> Catálogo OCULTO (no se ve en la web)</span><span style="flex:1;min-width:120px;font-size:12px;color:#475569;">Actívelo para que los clientes lo vean.</span><button class="btn btn-blue" onclick="_catTogglePublicado(true)"><i class="ti ti-world"></i> Publicar en la web</button></div>`;
     cont.innerHTML = _catPantallasHTML() + pubBanner + `
         <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:12.5px;color:#1e40af;">
-          <i class="ti ti-info-circle"></i> Los <b>precios salen solos de Info Plus (nivel 1 · cliente final)</b> y se actualizan solos. Aquí eliges cuáles celulares se muestran y les subes la <b>foto</b>.
+          <i class="ti ti-info-circle"></i> Los <b>precios salen solos de Info Plus (nivel 1 · cliente final)</b> y se actualizan solos. Aquí se eligen los celulares que se muestran y se les sube la <b>foto</b>.
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
           <button class="btn btn-blue" onclick="_catAgregar()"><i class="ti ti-plus"></i> Agregar celular</button>
           <a class="btn btn-light" href="${CAT_URL_PUBLICA}" target="_blank" rel="noopener"><i class="ti ti-external-link"></i> Ver catálogo público</a>
           <button class="btn btn-light" onclick="_catCopiarEnlace()"><i class="ti ti-copy"></i> Copiar enlace</button>
-          ${waTienda ? `<a class="btn btn-light" style="color:#16a34a;" href="https://wa.me/?text=${encodeURIComponent('Mira nuestro catálogo de celulares: ' + CAT_URL_PUBLICA)}" target="_blank" rel="noopener"><i class="ti ti-brand-whatsapp"></i> Compartir</a>` : ''}
+          ${waTienda ? `<a class="btn btn-light" style="color:#16a34a;" href="https://wa.me/?text=${encodeURIComponent('Consulte nuestro catálogo de celulares: ' + CAT_URL_PUBLICA)}" target="_blank" rel="noopener"><i class="ti ti-brand-whatsapp"></i> Compartir</a>` : ''}
           <span style="flex:1;"></span>
           <span style="font-size:12px;color:#64748b;">${_catData.length} en catálogo · ${visibles} visibles</span>
         </div>
@@ -15447,7 +15447,7 @@ function _catRender() {
           <thead><tr style="background:#0f172a;color:#fff;font-size:11px;text-transform:uppercase;">
             <th style="padding:8px;text-align:left;">Foto</th><th style="padding:8px;text-align:left;">Modelo</th><th style="padding:8px;text-align:right;">Precio</th><th style="padding:8px;text-align:center;">Disponible</th><th style="padding:8px;text-align:center;">Mostrar</th><th></th>
           </tr></thead>
-          <tbody>${filas || '<tr><td colspan="6" style="text-align:center;color:#64748b;padding:16px;">Aún no hay celulares. Dale a "Agregar celular".</td></tr>'}</tbody>
+          <tbody>${filas || '<tr><td colspan="6" style="text-align:center;color:#64748b;padding:16px;">Aún no hay celulares. Presione "Agregar celular".</td></tr>'}</tbody>
         </table></div>`;
 }
 function _catCopiarEnlace() {
@@ -15484,7 +15484,7 @@ async function _catNuevo(art) {
             visible: true, orden: _catData.length, creado_por: sessionUser?.nombre || 'Admin'
         }]);
         if(error) throw error;
-        toast(hermano ? '✓ Agregado con la foto del mismo modelo.' : '✓ Agregado. Ahora súbele la foto.');
+        toast(hermano ? '✓ Agregado con la foto del mismo modelo.' : '✓ Agregado. Ahora súbale la foto.');
         await _catCargar(); _catRender();
         const nuevo = _catData.find(i => String(i.codigo) === codigo);
         if(nuevo) _catEditar(nuevo.id);
@@ -15566,7 +15566,7 @@ async function _catEliminar(id) {
     try { await supabaseClient.from('catalogo_items').delete().eq('id', id); toast('Quitado del catálogo.'); await _catCargar(); _catRender(); } catch(e) { toastError(getFriendlyError(e)); }
 }
 async function renderDespachos() {
-    if(!tienePermiso('despacho_ver')) { toast('🔒 No tienes permiso.', 'error'); return; }
+    if(!tienePermiso('despacho_ver')) { toast('🔒 No tiene permiso.', 'error'); return; }
     _despachoLlenarSelects();
     _despItems = [];
     const nota = document.getElementById('despachoNota'); if(nota) nota.value = '';
@@ -15597,7 +15597,7 @@ function _despExOrigen(cod) {
 function _despRenderCart() {
     const cont = document.getElementById('despachoCart');
     if(!cont) { _despActualizarTotales(); return; }
-    if(!_despItems.length) { cont.innerHTML = '<p style="color:#475569; font-size:13px; text-align:center; padding:16px;">Aún no hay artículos. Usa "Buscar artículo" para agregarlos.</p>'; _despActualizarTotales(); return; }
+    if(!_despItems.length) { cont.innerHTML = '<p style="color:#475569; font-size:13px; text-align:center; padding:16px;">Aún no hay artículos. Use "Buscar artículo" para agregarlos.</p>'; _despActualizarTotales(); return; }
     cont.innerHTML = `<table style="width:100%; border-collapse:collapse;"><thead><tr style="background:#0f172a; color:#fff;">
         <th style="text-align:left; padding:8px; font-size:11px;">Artículo</th>
         <th style="text-align:center; font-size:11px;">En origen</th>
@@ -15660,7 +15660,7 @@ async function _ejecutarDespachoReal({ origen, destino, items, nota, seriales })
 // ----- DESPACHO RÁPIDO (modal que abre encima del panel de reparación, sin cerrarlo) -----
 let _despRapArt = null;
 function abrirDespachoRapido() {
-    if(!tienePermiso('despacho_ver')) return toast('🔒 No tienes permiso de Despacho.', 'error');
+    if(!tienePermiso('despacho_ver')) return toast('🔒 No tiene permiso de Despacho.', 'error');
     _despRapArt = null;
     const opts = ALMACENES_IP.map(a => `<option value="${a.c}">${a.n} (${a.c})</option>`).join('');
     const prev = document.getElementById('modalDespachoRapido'); if(prev) prev.remove();
@@ -15702,7 +15702,7 @@ function _despRapMostrar() {
     info.innerHTML = `<div style="color:#0f172a; font-weight:700; font-size:13px;">${escapeHtml(_despRapArt.descripcion || String(_despRapArt.codigo))} <span style="color:#475569; font-weight:600;">· ${escapeHtml(String(_despRapArt.codigo))}</span></div><div style="margin-top:4px;">${chips}</div>`;
 }
 async function hacerDespachoRapido() {
-    if(!_despRapArt) return toast('Busca un artículo primero.', 'error');
+    if(!_despRapArt) return toast('Busque un artículo primero.', 'error');
     const origen = parseInt(document.getElementById('despRapOrigen')?.value, 10);
     const destino = parseInt(document.getElementById('despRapDestino')?.value, 10);
     const cant = parseInt(document.getElementById('despRapCant')?.value, 10) || 0;
@@ -15737,12 +15737,12 @@ async function _despGuardarHistorial({ origen, destino, items, nota, r }) {
     } catch(e) { logError('Guardar despacho', e); return null; }
 }
 async function hacerDespachoAlmacen() {
-    if(!tienePermiso('despacho_ver')) return toast('🔒 No tienes permiso.', 'error');
-    if(!_despItems.length) return toast('Agrega al menos un artículo con "Buscar artículo".', 'error');
+    if(!tienePermiso('despacho_ver')) return toast('🔒 No tiene permiso.', 'error');
+    if(!_despItems.length) return toast('Agregue al menos un artículo con "Buscar artículo".', 'error');
     const origen = parseInt(document.getElementById('despachoOrigen')?.value, 10);
     const destino = parseInt(document.getElementById('despachoDestino')?.value, 10);
     const nota = (document.getElementById('despachoNota')?.value || '').trim();
-    if(!origen || !destino) return toast('Elige origen y destino.', 'error');
+    if(!origen || !destino) return toast('Seleccione origen y destino.', 'error');
     if(origen === destino) return toast('El origen y el destino no pueden ser el mismo.', 'error');
     const u = _despItems.reduce((s, x) => s + (Number(x.cantidad) || 0), 0);
     if(!await confirmar(`¿Hacer el despacho de ${_despItems.length} artículo(s) (${u} u.)\nde ${_nombreAlmacen(origen)} → ${_nombreAlmacen(destino)}?\n\nSe registra como un documento en Info Plus.`)) return;
@@ -16045,7 +16045,7 @@ function despacharTelefonosSeleccionados() {
         </div>
         <div class="dt-busca">
           <i class="ti ti-search"></i>
-          <input id="dtBuscar" data-bcbp-no autocomplete="off" placeholder="Buscar por modelo, IMEI, color o lote · escanea el IMEI y Enter" oninput="_despTelCtx.q=this.value;_despTelRender()" onkeydown="_despTelTecla(event)">
+          <input id="dtBuscar" data-bcbp-no autocomplete="off" placeholder="Buscar por modelo, IMEI, color o lote · escanee el IMEI y presione Enter" oninput="_despTelCtx.q=this.value;_despTelRender()" onkeydown="_despTelTecla(event)">
         </div>
         <div class="dt-barra"><span id="dtVis"></span><span class="dt-sp"></span><button type="button" onclick="_despTelMarcarVisibles(true)">Marcar los visibles</button><button type="button" onclick="_despTelMarcarVisibles(false)">Quitar todos</button></div>
         <div class="dt-lista" id="dtLista"></div>
@@ -16055,7 +16055,7 @@ function despacharTelefonosSeleccionados() {
       <div class="modal-footer">
         <button class="btn btn-light" onclick="document.getElementById('modalDespTel').remove()">Cancelar</button>
         <span style="flex:1"></span>
-        <button class="btn btn-light dt-acc" id="dtBtnGuardar" onclick="_despTelGuardarImprimir()" title="Guarda la lista para seguir luego (no se manda a Info Plus) e imprime la hoja con modelos, IMEI y color"><i class="ti ti-device-floppy"></i> Guardar e imprimir</button>
+        <button class="btn btn-light dt-acc" id="dtBtnGuardar" onclick="_despTelGuardarImprimir()" title="Guardar la lista para continuar luego (no se manda a Info Plus) e imprimir la hoja con modelos, IMEI y color"><i class="ti ti-device-floppy"></i> Guardar e imprimir</button>
         <button class="btn btn-blue" id="dtBtnDesp" onclick="_despTelConfirmar()"><i class="ti ti-truck-delivery"></i> Despachar</button>
       </div>
     </div>`;
@@ -16102,7 +16102,7 @@ function _despTelTecla(ev) {
     const vis = _despTelFiltrados();
     const exacto = _despTelCandidatos().find(e => String(e.imei || '').trim() === q);
     const elegido = exacto || (vis.length === 1 ? vis[0] : null);
-    if(!elegido) return toast(vis.length ? 'Hay varios; márcalo en la lista.' : 'No hay un teléfono listo con ese IMEI.', 'error');
+    if(!elegido) return toast(vis.length ? 'Hay varios; márquelo en la lista.' : 'No hay un teléfono listo con ese IMEI.', 'error');
     if(!_despTelCod(elegido)) return toast('Ese teléfono no tiene código de Info Plus.', 'error');
     _despTelCtx.sel.add(elegido.id);
     ev.target.value = ''; _despTelCtx.q = '';
@@ -16149,13 +16149,13 @@ function _despTelRender(soloResumen) {
             return `<tr><td>${escapeHtml(g.modelo)}<div class="dt-imeis">${g.equipos.map(e => escapeHtml(e.imei || '—') + (_eqColorReal(e) ? ' · <b>' + escapeHtml(_eqColorReal(e)) + '</b>' : ' · <span style="color:#b45309;">sin color</span>')).join('<br>')}</div></td><td class="c" style="color:#1d4ed8; font-weight:700;">${escapeHtml(g.codigo)}</td><td class="c">${cant}</td><td style="text-align:right;">${money(prom)}</td><td class="c">${g.imeis.length}${faltan > 0 ? ` <span style="color:#b91c1c;"><i class="ti ti-alert-triangle"></i> ${faltan}</span>` : ''}</td></tr>`;
         }).join('')}</tbody></table></div>
         <div class="dt-total"><b>${totU}</b> teléfono(s) · Total <b>${money(totRD)}</b></div>`
-        : '<div class="dt-vacio">Marca en la lista los teléfonos que vas a despachar.</div>';
+        : '<div class="dt-vacio">Marque en la lista los teléfonos que va a despachar.</div>';
 }
 // Borrador del despacho (en esta computadora): guarda qué teléfonos van y la ruta, sin tocar Info Plus.
 const _DT_BORR_KEY = 'bayolDespTelBorrador';
 function _despTelBorradorLeer() { try { const b = JSON.parse(localStorage.getItem(_DT_BORR_KEY) || 'null'); return (b && Array.isArray(b.ids)) ? b : null; } catch(_) { return null; } }
 function _despTelGuardarBorrador() {
-    if(!_despTelCtx || !_despTelCtx.sel.size) return toast('Marca al menos un teléfono.', 'error');
+    if(!_despTelCtx || !_despTelCtx.sel.size) return toast('Marque al menos un teléfono.', 'error');
     const b = { ids: [..._despTelCtx.sel], origen: document.getElementById('despTelOrigen')?.value || '6', destino: document.getElementById('despTelDestino')?.value || '1', fecha: new Date().toISOString(), por: (typeof sessionUser !== 'undefined' && sessionUser && sessionUser.nombre) || '' };
     try { localStorage.setItem(_DT_BORR_KEY, JSON.stringify(b)); } catch(_) { return toast('No se pudo guardar en esta computadora.', 'error'); }
     _despTelCtx.borr = b;
@@ -16180,7 +16180,7 @@ function _despTelBorrarBorrador(silencio) {
 }
 // Un solo botón: guarda el borrador y saca la hoja para imprimir.
 function _despTelGuardarImprimir() {
-    if(!_despTelCtx || !(_despTelCtx.lista || []).length) return toast('Marca al menos un teléfono.', 'error');
+    if(!_despTelCtx || !(_despTelCtx.lista || []).length) return toast('Marque al menos un teléfono.', 'error');
     _despTelGuardarBorrador();
     _despTelImprimir();
 }
@@ -16268,7 +16268,7 @@ function _despReporteAbrir(info, histId) {
           ${histId ? `<button type="button" class="dr-btn" onclick="imprimirDespacho('${histId}')"><i class="ti ti-printer"></i> Imprimir conduce</button>` : ''}</div>
         <div class="dr-sec">
           <div class="dr-h"><i class="ti ti-users"></i> Reporte para el equipo <small>sin costos · para conocimiento</small></div>
-          <div class="dr-ayuda">Toca <b>Enviar</b> en cada persona: se abre WhatsApp con el mensaje escrito y solo tocas Enviar allá. Sale del WhatsApp abierto en esta computadora (el 829-589-3292 si es el que está en WhatsApp Web).</div>
+          <div class="dr-ayuda">Toque <b>Enviar</b> en cada persona: se abre WhatsApp con el mensaje escrito y solo debe tocar Enviar allí. Sale del WhatsApp abierto en esta computadora (el 829-589-3292 si es el que está en WhatsApp Web).</div>
           <div id="drContactos"></div>
           <div class="dr-add"><input id="drNomNuevo" placeholder="Nombre" autocomplete="off"><input id="drTelNuevo" placeholder="Número (809…)" inputmode="tel" autocomplete="off"><button type="button" class="dr-btn" onclick="_despRepAgregar()"><i class="ti ti-plus"></i> Agregar</button></div>
           <details class="dr-prev"><summary>Ver el mensaje</summary><pre>${escapeHtml(_despReporteTexto(info, false))}</pre><button type="button" class="dr-btn" onclick="_despRepCopiar(false)"><i class="ti ti-copy"></i> Copiar texto</button></details>
@@ -16289,12 +16289,12 @@ function _despRepPintarContactos() {
     const c = document.getElementById('drContactos'); if(!c) return;
     const lista = _despContactos();
     c.innerHTML = lista.length ? lista.map(p => `<div class="dr-fila"><span class="dr-n"><b>${escapeHtml(p.nombre || 'Contacto')}</b><small>${escapeHtml(p.tel)}${p.emp ? ' · empleado' : ''}</small></span>${p.emp ? '' : `<button type="button" class="dr-btn ghost" title="Quitar" onclick="_despRepQuitar(${p.i})"><i class="ti ti-x"></i></button>`}<button type="button" class="dr-btn wa" id="drEnv-${p.tel}" onclick="_despRepEnviar('${p.tel}', this)"><i class="ti ti-brand-whatsapp"></i> Enviar</button></div>`).join('')
-        : '<div class="dr-vacio">Todavía no hay contactos. Agrega abajo a quién se le manda el reporte.</div>';
+        : '<div class="dr-vacio">Todavía no hay contactos. Agregue abajo a quién se le envía el reporte.</div>';
 }
 function _despRepAgregar() {
     const nom = (document.getElementById('drNomNuevo')?.value || '').trim();
     const tel = _despTelWa(document.getElementById('drTelNuevo')?.value);
-    if(!tel) return toast('Escribe un número válido (809, 829 u 849 + 7 dígitos).', 'error');
+    if(!tel) return toast('Escriba un número válido (809, 829 u 849 + 7 dígitos).', 'error');
     let extra = []; try { extra = JSON.parse(localStorage.getItem(_DESP_CONTACTOS_KEY) || '[]') || []; } catch(_) {}
     if(extra.some(x => _despTelWa(x.tel) === tel)) return toast('Ese número ya está en la lista.', 'error');
     extra.push({ nombre: nom || tel, tel });
@@ -16365,7 +16365,7 @@ function _despRepEstilos() {
 }
 // Imprime la lista a despachar (por modelo, con IMEI), para revisar o firmar antes de mandar a Info Plus.
 function _despTelImprimir() {
-    if(!_despTelCtx || !(_despTelCtx.lista || []).length) return toast('Marca al menos un teléfono.', 'error');
+    if(!_despTelCtx || !(_despTelCtx.lista || []).length) return toast('Marque al menos un teléfono.', 'error');
     const origen = document.getElementById('despTelOrigen')?.value, destino = document.getElementById('despTelDestino')?.value;
     const lista = _despTelCtx.lista;
     const totU = lista.reduce((s, g) => s + g.equipos.length, 0);
@@ -16452,7 +16452,7 @@ function _despTelEstilos() {
     document.head.appendChild(st);
 }
 async function _despTelConfirmar() {
-    if(!_despTelCtx || !(_despTelCtx.lista || []).length) return toast('Marca al menos un teléfono.', 'error');
+    if(!_despTelCtx || !(_despTelCtx.lista || []).length) return toast('Marque al menos un teléfono.', 'error');
     const origen = parseInt(document.getElementById('despTelOrigen')?.value, 10);
     const destino = parseInt(document.getElementById('despTelDestino')?.value, 10);
     if(origen === destino) return toast('El origen y el destino no pueden ser el mismo.', 'error');
@@ -16475,7 +16475,7 @@ async function _despTelConfirmar() {
         // Reportes por WhatsApp (equipo sin costos / dueño con costo y lote) + imprimir conduce, en una sola ventana
         _despReporteAbrir(_despInfoDesdeLista(r.numero, origen, destino, lista), saved ? saved.id : null);
     } else {
-        toast(`No se pudo despachar: ${r.error}\n(Revisa que cada teléfono esté en la localidad de origen.)`, 'error');
+        toast(`No se pudo despachar: ${r.error}\n(Revise que cada teléfono esté en la localidad de origen.)`, 'error');
     }
 }
 
@@ -16538,7 +16538,7 @@ async function renderInvFisico() {
         }));
         contHtml = `<div class="card" style="margin-bottom:15px;">
             <h3 style="margin:0 0 6px 0; font-size:15px;"><i class="ti ti-player-play"></i> Conteos en progreso</h3>
-            <p style="color:#475569; font-size:12px; margin:0 0 4px;">Retoma un conteo que dejaste a medias.</p>
+            <p style="color:#475569; font-size:12px; margin:0 0 4px;">Retome un conteo que quedó a medias.</p>
             ${rows.join('')}
         </div>`;
     }
@@ -16546,12 +16546,12 @@ async function renderInvFisico() {
         <h3 style="margin:0 0 12px 0; font-size:15px;"><i class="ti ti-plus"></i> Iniciar un conteo nuevo</h3>
         <div style="display:flex; gap:12px; align-items:end; flex-wrap:wrap;">
             <div>
-                <label style="font-size:12px; font-weight:700; color:#475569; display:block; margin-bottom:4px;">¿Cuál almacén vas a contar?</label>
+                <label style="font-size:12px; font-weight:700; color:#475569; display:block; margin-bottom:4px;">Almacén a contar</label>
                 <select id="invAlmSel" style="padding:9px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; min-width:220px;">${opts}</select>
             </div>
             <button class="btn btn-success" onclick="_invIniciar()"><i class="ti ti-clipboard-check"></i> Empezar a contar</button>
         </div>
-        <p style="color:#475569; font-size:12px; margin:12px 0 0;">💡 Cuenta primero lo más caro (celulares, pantallas) en horas de poca venta. Todo se cuenta y se cuadra por cantidad.</p>
+        <p style="color:#475569; font-size:12px; margin:12px 0 0;">💡 Cuente primero lo más caro (celulares, pantallas) en horas de poca venta. Todo se cuenta y se cuadra por cantidad.</p>
     </div>`;
 }
 
@@ -16657,7 +16657,7 @@ function _invRenderConteo() {
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
             <div>
                 <h3 style="margin:0; font-size:16px;"><i class="ti ti-building-warehouse" style="color:#16a34a;"></i> Contando: ${escapeHtml(_invAlmNombre(_invSesion.almacen))}</h3>
-                <div style="color:#475569; font-size:12px; margin-top:2px;">Escribe lo que cuentas de cada artículo. Se guarda solo.</div>
+                <div style="color:#475569; font-size:12px; margin-top:2px;">Escriba lo que cuente de cada artículo. Se guarda automáticamente.</div>
             </div>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
                 <button class="btn btn-light" style="font-size:12.5px;" onclick="_invImprimirHojaBlanco()"><i class="ti ti-clipboard-list"></i> Hoja para contar</button>
@@ -16674,7 +16674,7 @@ function _invRenderConteo() {
     </div>
 
     <div class="card" style="margin-bottom:14px;">
-        <div style="font-size:12px; font-weight:700; color:#475569; margin-bottom:6px;">¿Qué vas a contar? Elige una categoría (puedes ir por partes):</div>
+        <div style="font-size:12px; font-weight:700; color:#475569; margin-bottom:6px;">Categoría a contar (puede ir por partes):</div>
         <div>${chips}</div>
         <input type="text" value="${escapeHtml(_invBusq)}" oninput="_invBuscar(this.value)" placeholder="🔍 Buscar artículo por nombre o código…" style="width:100%; margin-top:10px; padding:9px 11px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
     </div>
@@ -16682,7 +16682,7 @@ function _invRenderConteo() {
     <div class="card">
         <div class="table-wrap" style="max-height:60vh; overflow:auto;">
         ${arts.length ? `<table><thead><tr><th style="text-align:left;">Artículo</th><th style="text-align:center;">Sistema</th><th style="text-align:center;">Conté</th><th style="text-align:center;">Diferencia</th></tr></thead><tbody>${filas}</tbody></table>`
-            : '<p style="color:#475569; text-align:center; padding:20px;">No hay artículos con existencia en esta categoría. Usa el buscador para agregar uno que tengas físicamente (sobrante).</p>'}
+            : '<p style="color:#475569; text-align:center; padding:20px;">No hay artículos con existencia en esta categoría. Use el buscador para agregar uno que tenga físicamente (sobrante).</p>'}
         </div>
         <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-top:14px; border-top:1px solid #f1f5f9; padding-top:12px;">
             <div style="color:#475569; font-size:12px;">Al cuadrar, se mandan a Info Plus solo las diferencias (entradas y salidas).</div>
@@ -16775,8 +16775,8 @@ function _invAbrirImeis(cod) {
     box.innerHTML = `<div class="modal-box" style="max-width:460px;">
         <div class="modal-header"><h3 style="margin:0;"><i class="ti ti-barcode"></i> IMEIs · ${escapeHtml(art.descripcion || String(cod))}</h3></div>
         <div class="modal-body">
-          <div style="font-size:12px; color:#475569; margin-bottom:8px;">Escanea o escribe el IMEI de cada teléfono y presiona Enter. El conteo será cuántos IMEI anotes.</div>
-          <input id="invImeiInput" type="text" inputmode="numeric" placeholder="Escanea/escribe el IMEI y Enter…" onkeydown="if(event.key==='Enter'){event.preventDefault();_invImeiScan(this.value);this.value='';}" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:15px;">
+          <div style="font-size:12px; color:#475569; margin-bottom:8px;">Escanee o escriba el IMEI de cada teléfono y presione Enter. El conteo será la cantidad de IMEI anotados.</div>
+          <input id="invImeiInput" type="text" inputmode="numeric" placeholder="Escanee o escriba el IMEI y presione Enter…" onkeydown="if(event.key==='Enter'){event.preventDefault();_invImeiScan(this.value);this.value='';}" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:15px;">
           <div id="invImeiLista" style="margin-top:10px; max-height:40vh; overflow:auto;"></div>
         </div>
         <div class="modal-footer">
@@ -16870,7 +16870,7 @@ async function _invCuadrar() {
     }
     await _ensureInfoplusArticulos(true); // refrescar existencias
     _invRenderConteo();
-    if(errN) toast(`Cuadrado: ${okN} OK, ${errN} con error. Revisa las filas en rojo.`, 'error');
+    if(errN) toast(`Cuadrado: ${okN} OK, ${errN} con error. Revise las filas en rojo.`, 'error');
     else toast(`✅ Cuadrado en Info Plus: ${okN} ajuste(s).`);
 }
 async function _invCerrar() {
@@ -16910,7 +16910,7 @@ function _invImprimirHojaBlanco() {
     <div class="sub">${escapeHtml(conf.nombre || 'BAYOL CELL')} · Almacén: <b>${escapeHtml(_invAlmNombre(_invSesion.almacen))}</b> · Categoría: <b>${escapeHtml(catTxt)}</b> · ${arts.length} artículo(s)</div>
     <div class="meta"><div>Contó: ______________________</div><div>Fecha: ______________________</div><div>Revisó: ______________________</div></div>
     <table><thead><tr><th>Artículo</th><th style="text-align:center;">Código</th><th style="text-align:center; width:120px;">Cantidad contada</th></tr></thead><tbody>${rows}</tbody></table>
-    <p style="font-size:11px;color:#475569;margin-top:12px;">Cuenta las unidades reales de cada artículo y escribe la cantidad en la casilla. No se muestra lo que dice el sistema a propósito (conteo a ciegas), para que el conteo sea real. Luego se digita en el módulo <b>Inventario Físico</b> y el sistema calcula el faltante/sobrante.</p>
+    <p style="font-size:11px;color:#475569;margin-top:12px;">Cuente las unidades reales de cada artículo y escriba la cantidad en la casilla. No se muestra lo que dice el sistema a propósito (conteo a ciegas), para que el conteo sea real. Luego se digita en el módulo <b>Inventario Físico</b> y el sistema calcula el faltante/sobrante.</p>
     </body></html>`);
     w.document.close(); setTimeout(() => w.print(), 300);
 }
@@ -16979,7 +16979,7 @@ async function agregarPiezaExterna(equipoId) {
     if(!tienePermiso('piezas_aprobar_extra')) return toast('Solo el administrador puede agregar piezas al costo.', 'error');
     const nombre = await pedirTexto('Nombre de la pieza externa (no es de Info Plus):');
     if(nombre === null) return;
-    if(!nombre.trim()) return toast('Escribe el nombre de la pieza.', 'error');
+    if(!nombre.trim()) return toast('Escriba el nombre de la pieza.', 'error');
     const costoStr = await pedirTexto(`Pieza: ${nombre.trim()}\n\nCosto unitario (RD$):`, { valor: '0', tipo: 'number' });
     if(costoStr === null) return;
     const costo = parseFloat(String(costoStr).replace(/[^0-9.]/g, '')) || 0;
@@ -17127,7 +17127,7 @@ async function _agregarPiezaInfoPlusConfirm(equipoId, a) {
                 await supabaseClient.from('equipo_piezas_pedidas').update({ infoplus_desc_cant: 1, infoplus_desc_almacen: almDesc }).eq('id', ins.id);
                 toast('Pieza agregada al costo y descontada de Info Plus (' + _nombreAlmacen(almDesc) + '): ' + nombrePz);
             } else {
-                toast('Pieza agregada al costo: ' + nombrePz + '\nInfo Plus no dejó descontarla: ' + (r.error || 'rechazado') + '.\nSuele ser porque ese artículo no tiene existencia en Info Plus (no se puede dejar en negativo). El costo SÍ quedó sumado; corrige el inventario o descuéntala a mano.', 'error');
+                toast('Pieza agregada al costo: ' + nombrePz + '\nInfo Plus no dejó descontarla: ' + (r.error || 'rechazado') + '.\nSuele ser porque ese artículo no tiene existencia en Info Plus (no se puede dejar en negativo). El costo SÍ quedó sumado; corrija el inventario o descuéntela a mano.', 'error');
             }
         } else {
             toast('Pieza agregada al costo (sin descontar del inventario): ' + nombrePz);
@@ -17179,7 +17179,7 @@ async function eliminarPiezaInfoPlus(piezaId) {
         const yaDesc = Number(pz.infoplus_desc_cant) || 0;
         if(yaDesc > 0 && pz.pieza_codigo) {
             const r = await _infoplusAjustePieza(pz.pieza_codigo, yaDesc, pz.costo_unitario, true, _comentarioPieza('Devolución', pz.pieza_nombre, pz.equipo_id), pz.infoplus_desc_almacen || 6);
-            if(!r.ok) aviso = '\n⚠️ No se pudo devolver a Info Plus: ' + (r.error || '') + ' (devuélvela a mano)';
+            if(!r.ok) aviso = '\n⚠️ No se pudo devolver a Info Plus: ' + (r.error || '') + ' (devuélvala a mano)';
         }
         const { error } = await supabaseClient.from('equipo_piezas_pedidas').delete().eq('id', piezaId);
         if(error) throw error;
@@ -17211,7 +17211,7 @@ async function _descontarPiezaPendiente(piezaId, skipRefresh) {
             toast('Pieza descontada de Info Plus (' + _nombreAlmacen(almDesc) + '): ' + (pz.pieza_nombre || ''));
             ok = true;
         } else {
-            toast('Info Plus no dejó descontar «' + (pz.pieza_nombre || '') + '»: ' + (r.error || 'rechazado') + '.\nSuele ser porque ese artículo no tiene existencia en Info Plus (no se puede dejar en negativo). Corrige el inventario o descuéntala a mano.', 'error');
+            toast('Info Plus no dejó descontar «' + (pz.pieza_nombre || '') + '»: ' + (r.error || 'rechazado') + '.\nSuele ser porque ese artículo no tiene existencia en Info Plus (no se puede dejar en negativo). Corrija el inventario o descuéntela a mano.', 'error');
         }
         if(!skipRefresh) { await loadAll(); _refrescarVistaEquipo(pz.equipo_id); }
         return ok;
@@ -17327,9 +17327,9 @@ function irPiezasSolicitadasReacond() { nav('piezasSolicitadas'); setTimeout(() 
 async function agregarFallaAdicional(equipoId) {
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return toast('Equipo no encontrado.', 'error');
-    const nombre = await pedirTexto('➕ FALLA ADICIONAL\n\n¿Qué falla nueva encontraste (que NO estaba en la evaluación)?\n\nEjemplo: "Cámara trasera dañada", "No carga", "Face ID no funciona"');
+    const nombre = await pedirTexto('➕ FALLA ADICIONAL\n\nIndique la falla nueva encontrada (que NO estaba en la evaluación):\n\nEjemplo: "Cámara trasera dañada", "No carga", "Face ID no funciona"');
     if(nombre === null) return;
-    if(!nombre.trim()) return toast('Escribe la falla.', 'error');
+    if(!nombre.trim()) return toast('Escriba la falla.', 'error');
     const fNom = nombre.trim();
     try {
         const { error: e1 } = await supabaseClient.from('equipo_fallas').insert([{ equipo_id: equipoId, falla_nombre: fNom, falla_corto: fNom, adicional: true }]);
@@ -17351,7 +17351,7 @@ async function enviarRefurbExterno(equipoId) {
         destino = await pedirTexto('🔧 REPARACIÓN EXTERNA\n\n¿A dónde / a quién se envía el equipo? (OBLIGATORIO)\n\nEjemplo: "Taller microsoldadura Juan", "Centro X - capital"');
         if(destino === null) return;
         if(destino.trim()) break;
-        toast('Indica a dónde se envió el equipo.', 'error');
+        toast('Indique a dónde se envió el equipo.', 'error');
     }
     const nota = await pedirTexto('Nota / motivo (opcional):\n\nEjemplo: "Requiere reballing de CPU"', { valor: '' });
     if(nota === null) return;
@@ -17373,12 +17373,12 @@ async function enviarRefurbExterno(equipoId) {
 async function solicitarPiezaReacondLibre() {
     let nombre = '';
     while(true) {
-        nombre = await pedirTexto('🔧 SOLICITAR PIEZA (Reacondicionados)\n\nEscribe la pieza que necesitas:\n\nEjemplo: "Pantalla iPhone 11", "Batería 13 Pro", "Flex de carga"');
+        nombre = await pedirTexto('🔧 SOLICITAR PIEZA (Reacondicionados)\n\nEscriba la pieza que necesita:\n\nEjemplo: "Pantalla iPhone 11", "Batería 13 Pro", "Flex de carga"');
         if(nombre === null) return; // canceló
         if(nombre.trim()) break;
-        toast('Escribe el nombre de la pieza.', 'error');
+        toast('Escriba el nombre de la pieza.', 'error');
     }
-    const cantStr = await pedirTexto('¿Cuántas unidades? (deja 1 si es una sola)', { valor: '1' });
+    const cantStr = await pedirTexto('Cantidad de unidades (deje 1 si es una sola)', { valor: '1' });
     if(cantStr === null) return;
     const cantidad = parseInt(cantStr) || 1;
     try {
@@ -17430,7 +17430,7 @@ async function aprobarTerminado(equipoId) {
 // Cierra administrativamente una salida (mantiene los campos históricos por compatibilidad).
 async function marcarEquipoCompletado(equipoId) {
     if(!isAdminUser() && !tienePermiso('estado_despachar')) {
-        return toast('No tienes permiso para completar equipos.', 'error');
+        return toast('No tiene permiso para completar equipos.', 'error');
     }
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return;
@@ -17474,7 +17474,7 @@ async function marcarEquipoListo(equipoId) {
 }
 async function marcarDespachado(equipoId) {
     if(!isAdminUser() && !tienePermiso('estado_despachar')) {
-        return toast('No tienes permiso para despachar equipos.', 'error');
+        return toast('No tiene permiso para despachar equipos.', 'error');
     }
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return;
@@ -17925,7 +17925,7 @@ function imprimirLabelEquipo(equipoId) {
                 </div>
             </div>
             <div style="display:flex; justify-content:center; background:#f8fafc; border-radius:8px; padding:14px;"><div id="lr_preview" onwheel="_lrRuedaFuente(event)" title="Rueda del mouse: ajusta el tamaño de letra"></div></div>
-            <p style="font-size:11px; color:var(--text-muted); margin:8px 0 0;">Usa la misma impresora y calibración de "Impresión de Labels". Ajusta la letra con los botones −/+ o la rueda del mouse sobre la vista previa.</p>
+            <p style="font-size:11px; color:var(--text-muted); margin:8px 0 0;">Use la misma impresora y calibración de "Impresión de Labels". Ajuste la letra con los botones −/+ o la rueda del mouse sobre la vista previa.</p>
         </div>
         <div class="modal-footer">
             <button class="btn btn-light" onclick="cerrarLabelRapido()">Cancelar</button>
@@ -18199,7 +18199,7 @@ async function imprimirLabelVenta() {
     const rot = parseInt(document.getElementById('lv_rotacion').value) || 0;
     const copias = document.getElementById('lv_copias').value || 1;
     
-    if(!modeloAbrev || !modeloAbrev.trim()) return toast('Escribe el modelo abreviado.', 'error');
+    if(!modeloAbrev || !modeloAbrev.trim()) return toast('Escriba el modelo abreviado.', 'error');
     if(!eq.imei) return toast('Este equipo no tiene IMEI registrado.', 'error');
     
     // Guardar calibración
@@ -18284,7 +18284,7 @@ function renderDevoluciones() {
     const cont = document.getElementById('devolucionesLista');
     if(!cont) return;
     if(_devolucionesCache.length === 0) {
-        cont.innerHTML = `<p style="color:var(--text-muted); text-align:center; padding:30px; font-size:13px;">No hay devoluciones registradas. Cuando un cliente devuelva un equipo, regístralo aquí.</p>`;
+        cont.innerHTML = `<p style="color:var(--text-muted); text-align:center; padding:30px; font-size:13px;">No hay devoluciones registradas. Cuando un cliente devuelva un equipo, regístrelo aquí.</p>`;
         return;
     }
     
@@ -18427,7 +18427,7 @@ function abrirCambioEstadoOrden(ordenId, elChip) {
     if(elChip) { elChip.classList.remove('ev-tap'); void elChip.offsetWidth; elChip.classList.add('ev-tap'); }
     const data = _ordenAccionesCache[ordenId] || {};
     const html = (data.principal || '') + (data.extra || '');
-    if(!html.trim()) return toast('No tienes ninguna acción disponible para cambiar el estado de este equipo ahora mismo.', 'error');
+    if(!html.trim()) return toast('No tiene ninguna acción disponible para cambiar el estado de este equipo en este momento.', 'error');
     let m = document.getElementById('modalCambioEstado'); if(m) m.remove();
     m = document.createElement('div');
     m.id = 'modalCambioEstado';
@@ -18767,7 +18767,7 @@ function inicializarReportes() {
     const sel = document.getElementById('rep_tecnico');
     if(!sel) return;
     const tecnicos = (cache.tecnicos || []).filter(t => t.tipo_empleado === 'tecnico' || (!t.tipo_empleado && t.rol !== 'admin'));
-    sel.innerHTML = '<option value="">-- Selecciona un técnico --</option>' +
+    sel.innerHTML = '<option value="">-- Seleccione un técnico --</option>' +
         tecnicos.map(t => `<option value="${t.id}">${escapeHtml(t.nombre)}</option>`).join('');
     if(tecnicos.length) { sel.value = tecnicos[0].id; renderReporteTecnico(); }
     else document.getElementById('reporteContenido').innerHTML = '<div class="card" style="color:var(--text-muted);">No hay técnicos registrados.</div>';
@@ -18800,7 +18800,7 @@ function renderReporteTecnico() {
     const tecnicoId = document.getElementById('rep_tecnico')?.value;
     const cont = document.getElementById('reporteContenido');
     if(!cont) return;
-    if(!tecnicoId) { cont.innerHTML = '<div class="card" style="color:var(--text-muted);">Selecciona un técnico para ver su reporte.</div>'; return; }
+    if(!tecnicoId) { cont.innerHTML = '<div class="card" style="color:var(--text-muted);">Seleccione un técnico para ver su reporte.</div>'; return; }
     
     const m = calcularMetricasTecnico(tecnicoId);
     const mt = calcularTiemposReparacion(tecnicoId);
@@ -18966,7 +18966,7 @@ function construirChatNotas(ordenId) {
     return `
         <div id="chatNotas_${ordenId}" style="max-height:240px; overflow-y:auto; background:#f8fafc; border-radius:10px; padding:10px; margin-bottom:8px;">${mensajes}</div>
         <div style="display:flex; gap:6px;">
-            <input id="nota_input_${ordenId}" placeholder="Escribe una nota..." style="flex:1;" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarNotaOrden('${ordenId}');}">
+            <input id="nota_input_${ordenId}" placeholder="Escriba una nota..." style="flex:1;" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarNotaOrden('${ordenId}');}">
             <button onclick="agregarNotaOrden('${ordenId}')" class="btn btn-blue" style="font-size:12px;"><i class="ti ti-send"></i></button>
         </div>`;
 }
@@ -19042,7 +19042,7 @@ function abrirDetalleTecnico(tecnicoId) {
                 ? `<select id="notatec_orden_${tecnicoId}" style="width:100%; margin-bottom:6px; padding:8px; border:1px solid #fcd34d; border-radius:8px; font-size:12px;">${opciones}</select>`
                 : `<input type="hidden" id="notatec_orden_${tecnicoId}" value="${ordenes[0].id}">`}
             <div style="display:flex; gap:6px;">
-                <input id="notatec_input_${tecnicoId}" placeholder="Escribe una nota para el técnico..." style="flex:1; padding:8px; border:1px solid #fcd34d; border-radius:8px; font-size:13px;" onkeydown="if(event.key==='Enter'){event.preventDefault();enviarNotaTecnicoTop('${tecnicoId}');}">
+                <input id="notatec_input_${tecnicoId}" placeholder="Escriba una nota para el técnico..." style="flex:1; padding:8px; border:1px solid #fcd34d; border-radius:8px; font-size:13px;" onkeydown="if(event.key==='Enter'){event.preventDefault();enviarNotaTecnicoTop('${tecnicoId}');}">
                 <button onclick="enviarNotaTecnicoTop('${tecnicoId}')" class="btn btn-blue" style="font-size:12px;"><i class="ti ti-send"></i></button>
             </div>
         </div>` : '';
@@ -19120,7 +19120,7 @@ async function enviarNotaTecnicoTop(tecnicoId) {
     const inp = document.getElementById('notatec_input_' + tecnicoId);
     const ordenId = sel ? sel.value : '';
     const msg = (inp?.value || '').trim();
-    if(!ordenId) return toast('Selecciona una orden para la nota.', 'error');
+    if(!ordenId) return toast('Seleccione una orden para la nota.', 'error');
     if(!msg) return;
     try {
         await supabaseClient.from('orden_notas').insert([{
@@ -19189,7 +19189,7 @@ function renderCargaTecnicos() {
                 <div style="background:#f0fdf4; border-radius:8px; padding:8px 2px;"><div style="font-size:18px; font-weight:700; color:#16a34a;">${ordenesFin.length}</div><div style="font-size:10px; color:var(--text-muted);">Listas</div></div>
             </div>
             <div style="margin-top:10px; border-top:1px solid #f1f5f9; padding-top:8px;">
-                <div style="font-size:11px; color:var(--text-muted); margin-bottom:3px;">Toca para ver el detalle →</div>
+                <div style="font-size:11px; color:var(--text-muted); margin-bottom:3px;">Toque para ver el detalle →</div>
                 ${listaOrdenes}
             </div>
         </div>`;
@@ -19456,7 +19456,7 @@ function renderPiezasSolicitadas() {
 
 // Editar una pieza ya solicitada (nombre y cantidad). Solo admin o el técnico que la pidió.
 async function editarPiezaSolicitada(id, kind, tecnicoId){
-    if(!(isAdminUser() || tecnicoId === sessionUser?.id)) return toast('No puedes editar esta pieza.', 'error');
+    if(!(isAdminUser() || tecnicoId === sessionUser?.id)) return toast('No puede editar esta pieza.', 'error');
     const tabla = kind === 'orden' ? 'orden_piezas' : 'equipo_piezas_pedidas';
     const lista = kind === 'orden' ? (cache.ordenPiezas || []) : (cache.piezasReacond || []);
     const p = lista.find(x => x.id === id);
@@ -19576,7 +19576,7 @@ function abrirEditarRecepcion(ordenId) {
     const c = findCliente(o.cliente_id), e = findEquipo(o.equipo_id);
     const contenido = `
         <div style="max-height:70vh; overflow-y:auto;">
-            <div style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">Corrige los datos que se capturaron mal en la recepción.</div>
+            <div style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">Corrija los datos que se capturaron mal en la recepción.</div>
             <label style="font-size:12px; font-weight:600;">Cliente (nombre)</label>
             <input id="ed_cliente" value="${escapeHtml(c.nombre || '')}" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; margin:3px 0 8px; font-size:13px;">
             <label style="font-size:12px; font-weight:600;">Teléfono</label>
@@ -19613,11 +19613,11 @@ function abrirEditarRecepcion(ordenId) {
             
             <div style="border-top:2px dashed #cbd5e1; margin:12px 0 10px; padding-top:10px;">
                 <label style="font-size:13px; font-weight:700; color:#0891b2;"><i class="ti ti-list-check"></i> Fallas / Problemas a reparar</label>
-                <div style="font-size:11px; color:var(--text-muted); margin:6px 0 4px;">Marca los problemas que reporta el cliente:</div>
+                <div style="font-size:11px; color:var(--text-muted); margin:6px 0 4px;">Marque los problemas que reporta el cliente:</div>
                 <div id="ed_checksFallas" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:4px; margin-bottom:8px;">
                     ${construirChecklistFallasEdit(o.id)}
                 </div>
-                <div style="font-size:11px; color:var(--text-muted); margin:6px 0 4px;">Fallas registradas (puedes quitarlas):</div>
+                <div style="font-size:11px; color:var(--text-muted); margin:6px 0 4px;">Fallas registradas (puede quitarlas):</div>
                 <div id="ed_listaFallas" style="margin:4px 0;">${construirListaFallasEditable(o.id)}</div>
                 <div style="display:flex; gap:6px;">
                     <input id="ed_nuevaFalla" placeholder="Otra falla (texto libre)" style="flex:1; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px;" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarFallaEnEdicion('${o.id}');}">
@@ -19657,7 +19657,7 @@ function abrirEditorFallasComunes() {
     let filas;
     if(!fallas.length) {
         // Si la tabla está vacía, mostrar las default como referencia
-        filas = `<div style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">La tabla está vacía. Corre el SQL primero, o agrega fallas abajo.</div>`;
+        filas = `<div style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">La tabla está vacía. Ejecute el SQL primero o agregue fallas abajo.</div>`;
     } else {
         filas = fallas.map(f => `
             <div style="display:flex; align-items:center; gap:6px; margin-bottom:5px;">
@@ -19764,7 +19764,7 @@ function construirChecklistRefrescar(ordenId) {
 // Construye la lista editable de fallas (tareas) de una orden, dentro del modal de edición
 function construirListaFallasEditable(ordenId) {
     const fallas = (cache.tareas || []).filter(t => t.tipo === 'orden' && t.ref_id === ordenId);
-    if(!fallas.length) return `<div style="font-size:12px; color:var(--text-muted);">Sin fallas registradas. Agrega una abajo.</div>`;
+    if(!fallas.length) return `<div style="font-size:12px; color:var(--text-muted);">Sin fallas registradas. Agregue una abajo.</div>`;
     return fallas.map(t => {
         const hecha = t.estado === 'hecha';
         return `<div style="display:flex; align-items:center; gap:6px; padding:5px 8px; border:1px solid #e2e8f0; border-radius:6px; margin-bottom:4px;">
@@ -19831,9 +19831,9 @@ function enviarResenaWhatsapp(){
     const el = document.getElementById('resenaWa');
     const msgEl = document.getElementById('resenaWaMsg');
     const raw = (el?.value || '').replace(/\D/g, '');
-    if(raw.length < 10){ if(msgEl){ msgEl.style.color = '#dc2626'; msgEl.textContent = 'Pon un número de WhatsApp válido (al menos 10 dígitos).'; } return; }
+    if(raw.length < 10){ if(msgEl){ msgEl.style.color = '#dc2626'; msgEl.textContent = 'Indique un número de WhatsApp válido (al menos 10 dígitos).'; } return; }
     const num = raw.length === 10 ? '1' + raw : raw;
-    const msg = encodeURIComponent(`¡Gracias por tu compra en BAYOL CELL! 🙌 Si quedaste contento con tu equipo, te agradeceríamos muchísimo una reseña en Google ⭐ (te toma 20 segundos): ${RESENA_GOOGLE}`);
+    const msg = encodeURIComponent(`Gracias por su compra en BAYOL CELL. Si quedó satisfecho con su equipo, le agradeceríamos mucho una reseña en Google ⭐ (le toma 20 segundos): ${RESENA_GOOGLE}`);
     window.open(`https://wa.me/${num}?text=${msg}`, '_blank');
     if(msgEl){ msgEl.style.color = '#16a34a'; msgEl.textContent = '✅ Abriendo WhatsApp con el mensaje listo…'; }
     if(el) el.value = '';
@@ -19954,7 +19954,7 @@ function _prefMostrarVista() {
 }
 function _prefVolver() { nav(_pref && _pref.origen ? _pref.origen : 'recepcion'); }
 function _prefItemsHTML() {
-    if(!_pref.items.length) return `<div style="color:var(--text-muted); font-size:13px; padding:16px; text-align:center; border:1px dashed #cbd5e1; border-radius:10px;">Agrega los artículos con el botón de arriba. El precio se toma del artículo de Info Plus (lo puedes ajustar).</div>`;
+    if(!_pref.items.length) return `<div style="color:var(--text-muted); font-size:13px; padding:16px; text-align:center; border:1px dashed #cbd5e1; border-radius:10px;">Agregue los artículos con el botón de arriba. El precio se toma del artículo de Info Plus (se puede ajustar).</div>`;
     return `<div style="overflow-x:auto;"><table style="width:100%; font-size:13px; border-collapse:collapse;"><thead><tr>
         <th style="text-align:left; padding:7px 8px; border-bottom:1px solid #eef2f7; font-size:11px; color:#64748b;">Artículo</th>
         <th style="width:66px; padding:7px 8px; border-bottom:1px solid #eef2f7; font-size:11px; color:#64748b;">Cant.</th>
@@ -20043,7 +20043,7 @@ function _prefPrecio(i, v) { _pref.items[i].precio = Math.max(0, parseFloat(v) |
 function _prefQuitar(i) { _pref.items.splice(i, 1); _prefRefrescarItems(); }
 async function _prefCrear() {
     _prefSync();
-    if(!_pref.items.length) return toast('Agrega al menos un artículo.', 'error');
+    if(!_pref.items.length) return toast('Agregue al menos un artículo.', 'error');
     const total = _pref.items.reduce((s, it) => s + (Number(it.precio) * Number(it.cant)), 0);
     const now = new Date();
     const fecha = now.toISOString().slice(0, 10);
@@ -20076,7 +20076,7 @@ function _prefExito(num, total) {
         <div style="width:64px; height:64px; margin:0 auto 12px; border-radius:50%; background:#dcfce7; display:flex; align-items:center; justify-content:center;"><i class="ti ti-check" style="font-size:36px; color:#16a34a;"></i></div>
         <h2 style="margin:6px 0;">Prefactura creada</h2>
         <div style="font-size:15px; color:#475569;">Nº <b style="font-size:20px; color:#0f172a;">${escapeHtml(num || '—')}</b> · Total <b>${money(total)}</b></div>
-        <div style="font-size:12px; color:#94a3b8; margin-top:8px;">Ya quedó en Info Plus. La cajera la convierte en factura y cobra.</div>
+        <div style="font-size:12px; color:#94a3b8; margin-top:8px;">Quedó registrada en Info Plus. La cajera la convierte en factura y la cobra.</div>
         <div style="display:flex; gap:8px; justify-content:center; margin-top:18px; flex-wrap:wrap;">
           <button class="btn btn-light" onclick="imprimirPrefactura()"><i class="ti ti-printer"></i> Imprimir</button>
           <button class="btn btn-light" onclick="imprimirPrefactura('pdf')" style="color:#b91c1c;"><i class="ti ti-file-type-pdf"></i> PDF</button>
@@ -20102,7 +20102,7 @@ function imprimirPrefactura(_modo) {
       <div style="font-size:11px;color:#888;margin-top:16px;">Documento preliminar (prefactura). La cajera lo convierte en factura fiscal al momento de cobrar.</div>
       <script>window.onload=function(){window.print();}<\/script></body></html>`;
     if(_modo === 'pdf') return _htmlAPdf(_html, 'Prefactura_' + (p.num || 'SN'), { ancho: 760 });
-    const w = window.open('', '_blank'); if(!w) return toast('Permite las ventanas emergentes para imprimir.', 'error');
+    const w = window.open('', '_blank'); if(!w) return toast('Permita las ventanas emergentes para imprimir.', 'error');
     w.document.write(_html); w.document.close(); w.focus();
 }
 // ===== Clientes de Info Plus (para la prefactura) =====
@@ -20144,7 +20144,7 @@ function _prefCliListaHTML() {
         <div style="font-weight:600; font-size:13px;">${escapeHtml(c.nombre || '(sin nombre)')}</div>
         <div style="font-size:11px; color:#64748b;">cód. ${escapeHtml(c.codcliente)}${c.cedula ? (' · céd. ' + escapeHtml(c.cedula)) : ''}${c.rnc ? (' · RNC ' + escapeHtml(c.rnc)) : ''}${c.telefono ? (' · ' + escapeHtml(c.telefono)) : ''}</div>
     </div>`).join('');
-    const pie = lista.length > 60 ? `<div style="text-align:center; color:#94a3b8; font-size:12px; padding:6px;">Mostrando 60 de ${lista.length}. Escribe para filtrar.</div>` : (!lista.length ? `<div style="text-align:center; color:#94a3b8; padding:14px;">Sin clientes que coincidan.</div>` : '');
+    const pie = lista.length > 60 ? `<div style="text-align:center; color:#94a3b8; font-size:12px; padding:6px;">Mostrando 60 de ${lista.length}. Escriba para filtrar.</div>` : (!lista.length ? `<div style="text-align:center; color:#94a3b8; padding:14px;">Sin clientes que coincidan.</div>` : '');
     return (q ? '' : contado) + filas + pie;
 }
 function _prefCliBuscar(v) { _prefCliQ = v; const el = document.getElementById('prefCliLista'); if(el) el.innerHTML = _prefCliListaHTML(); }
@@ -20185,12 +20185,12 @@ function _rpInit() {
         ven.value = miCod || '6';
         // Cada empleada prefactura con su propio código: fija para quien no es administrador
         ven.disabled = !!(miCod && !isAdminUser());
-        ven.title = ven.disabled ? 'Fijo: tu código de empleado en Info Plus' : '';
+        ven.title = ven.disabled ? 'Fijo: su código de empleado en Info Plus' : '';
         let av = document.getElementById('rxVendAviso');
         if(!av) { av = document.createElement('div'); av.id = 'rxVendAviso'; av.style.cssText = 'font-size:13px;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:8px 10px;margin-top:6px;'; ven.insertAdjacentElement('afterend', av); }
         const sinEnlace = !miCod && !isAdminUser();
         av.style.display = sinEnlace ? 'block' : 'none';
-        av.textContent = !sinEnlace ? '' : 'Tu usuario no está enlazado con Info Plus: la prefactura saldrá a nombre de quien elijas aquí. Pide al administrador que ponga tu código en Configuración → Técnicos.';
+        av.textContent = !sinEnlace ? '' : 'Su usuario no está enlazado con Info Plus: la prefactura saldrá a nombre de quien seleccione aquí. Solicite al administrador que registre su código en Configuración → Técnicos.';
     }
     const tec = document.getElementById('rxTecnico');
     if(tec) tec.innerHTML = '<option value="">— Sin asignar —</option>' + (cache.tecnicos || []).filter(t => t.activo !== false).map(t => `<option value="${t.id}">${escapeHtml(t.nombre || t.usuario || 'Técnico')}</option>`).join('');
@@ -20223,7 +20223,7 @@ function _rpCliListaHTML() {
     const top = lista.slice(0, 60);
     const contado = `<div onclick="_rpCliElegir('1')" style="padding:9px 10px;border:1px solid #e2e8f0;border-radius:9px;margin-bottom:5px;cursor:pointer;"><b>CLIENTE DE CONTADO</b> <span style="color:#94a3b8;font-size:12px;">(genérico · cód. 1)</span></div>`;
     const filas = top.map(c => `<div onclick="_rpCliElegir('${escapeHtml(c.codcliente)}')" style="padding:9px 10px;border:1px solid #e2e8f0;border-radius:9px;margin-bottom:5px;cursor:pointer;"><div style="font-weight:600;font-size:13px;">${escapeHtml(c.nombre || '(sin nombre)')}</div><div style="font-size:11px;color:#64748b;">cód. ${escapeHtml(c.codcliente)}${c.cedula ? (' · céd. ' + escapeHtml(c.cedula)) : ''}${c.telefono ? (' · ' + escapeHtml(c.telefono)) : ''}</div></div>`).join('');
-    return (q ? '' : contado) + filas + (lista.length > 60 ? `<div style="text-align:center;color:#94a3b8;font-size:12px;padding:6px;">Mostrando 60 de ${lista.length}. Escribe para filtrar.</div>` : (!lista.length ? '<div style="text-align:center;color:#94a3b8;padding:14px;">Sin clientes que coincidan.</div>' : ''));
+    return (q ? '' : contado) + filas + (lista.length > 60 ? `<div style="text-align:center;color:#94a3b8;font-size:12px;padding:6px;">Mostrando 60 de ${lista.length}. Escriba para filtrar.</div>` : (!lista.length ? '<div style="text-align:center;color:#94a3b8;padding:14px;">Sin clientes que coincidan.</div>' : ''));
 }
 function _rpCliBuscar(v) { _prefCliQ = v; const el = document.getElementById('rpCliLista'); if(el) el.innerHTML = _rpCliListaHTML(); }
 function _rpCliElegir(cod) {
@@ -20313,7 +20313,7 @@ function _rpProblemasFactura() {
 }
 function _rpRenderCart() {
     const c = document.getElementById('rxArticulos'); if(!c) return;
-    if(!_rpState || !_rpState.items.length) { c.innerHTML = `<div style="color:#94a3b8;font-size:13px;padding:16px;text-align:center;border:1px dashed #cbd5e1;border-radius:10px;">Agrega artículos o servicios de Info Plus con el botón de arriba.</div>`; return; }
+    if(!_rpState || !_rpState.items.length) { c.innerHTML = `<div style="color:#94a3b8;font-size:13px;padding:16px;text-align:center;border:1px dashed #cbd5e1;border-radius:10px;">Agregue artículos o servicios de Info Plus con el botón de arriba.</div>`; return; }
     c.innerHTML = `<table class="rx-table"><thead><tr><th>Código</th><th>Descripción</th><th style="width:58px;">Cant.</th><th style="width:96px;">Precio</th><th style="text-align:right;">Subtotal</th><th></th></tr></thead><tbody>${_rpState.items.map((it, i) => `<tr>
         <td style="font-weight:800;color:#e31e24;white-space:nowrap;">${escapeHtml(String(it.cod))}</td>
         <td><input value="${escapeHtml(it.desc)}" onchange="_rpDesc(${i},this.value)" title="Descripción editable (no cambia el artículo maestro)" style="width:100%;min-width:150px;padding:5px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;">${it.niveles ? `<div style="font-size:10px;color:#94a3b8;margin-top:2px;">Contado ${money(it.niveles['1'] || 0)}${it.niveles['2'] != null ? (' · Mayor ' + money(it.niveles['2'])) : ''}${it.niveles['3'] != null ? (' · Extremo ' + money(it.niveles['3'])) : ''}</div>` : ''}</td>
@@ -20333,7 +20333,7 @@ function _rpFilaImeis(it, i) {
         <div style="border:1px ${falta ? 'solid #fecaca' : 'dashed #cbd5e1'};background:${falta ? '#fef2f2' : '#fff'};border-radius:8px;padding:6px 8px;">
           <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <i class="ti ti-barcode" style="color:#475569;"></i>
-            <input id="rpImei_${i}" placeholder="Escanea o escribe el IMEI y pulsa Enter" onkeydown="_rpImeiKey(event,${i})" inputmode="numeric" style="flex:1;min-width:180px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;">
+            <input id="rpImei_${i}" placeholder="Escanee o escriba el IMEI y presione Enter" onkeydown="_rpImeiKey(event,${i})" inputmode="numeric" style="flex:1;min-width:180px;padding:5px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;">
           </div>
           <div style="margin-top:4px;">${chips || `<span style="font-size:11.5px;color:#b91c1c;">Sin IMEI: no se puede facturar este equipo.</span>`}</div>
         </div>
@@ -20394,7 +20394,7 @@ function _rpEstadoBadge(estado, cod) {
     return `<span style="background:${bg};color:${col};font-weight:700;padding:3px 10px;border-radius:999px;font-size:11px;">${txt}${cod && estado !== 'pendiente' ? ' · Nº ' + escapeHtml(cod) : ''}</span>`;
 }
 async function _rpCrearPrefactura() {
-    if(!_rpState || !_rpState.items.length) return toast('Agrega al menos un artículo o servicio.', 'error');
+    if(!_rpState || !_rpState.items.length) return toast('Agregue al menos un artículo o servicio.', 'error');
     if(_rpState.estado === 'facturada') return toast('Ya fue facturada; no se puede modificar.', 'error');
     const probs = _rpProblemasFactura();
     if(probs.length) { _rpState.estado = 'error'; _rpRenderResumen(); return toastError('No se puede facturar:\n' + probs.join('\n')); }
@@ -20476,7 +20476,7 @@ function _rpHistBuscar(v) { _rpHistQ = v; const el = document.getElementById('rp
 // Crea/actualiza la prefactura en Info Plus; si imprimir, imprime el comprobante; y registra la recepción (orden) en el flujo nuevo.
 async function _rpGuardar(imprimir) {
     const hayItems = _rpState && _rpState.items.length;
-    if((_rpState && _rpState.soloPrefactura) && !hayItems) return toast('Agrega al menos un artículo o servicio.', 'error');
+    if((_rpState && _rpState.soloPrefactura) && !hayItems) return toast('Agregue al menos un artículo o servicio.', 'error');
     if(hayItems) {
         const probs = _rpProblemasFactura();
         if(probs.length) { _rpRenderCart(); return toastError('No se puede facturar:\n' + probs.join('\n')); }
@@ -20506,7 +20506,7 @@ function _rpAplicarCargaPref(p) {
     const alm = document.getElementById('rxAlmacen'); if(alm && p.codlocalidad) alm.value = String(p.codlocalidad);
     const ven = document.getElementById('rxVendedor'); if(ven && p.codempleado) ven.value = String(p.codempleado);
     _rpRenderCart(); _rpRenderResumen();
-    toast('Prefactura Nº ' + (p.codprefactura || '') + ' cargada. Edita y dale "Actualizar prefactura".');
+    toast('Prefactura Nº ' + (p.codprefactura || '') + ' cargada. Edítela y presione "Actualizar prefactura".');
 }
 function _rpAplicarCargaOrden(o, c, e) {
     _rpState = { items: [], codcliente: '1', infoNombre: 'CLIENTE DE CONTADO', codprefactura: null, localId: null, ordenId: o.id, soloPrefactura: true, estado: 'pendiente' };
@@ -20582,7 +20582,7 @@ function construirCardOrden(o, esAdmin, miId, tecnicosActivos, modoServicio) {
             const waRLink = waR ? (waR.length === 10 ? '1' + waR : waR) : '';
             if(waRLink){
                 const equipoTxtR = `${(e.marca||'')} ${(e.modelo||'')}`.trim();
-                const msgR = encodeURIComponent(`¡Hola ${c.nombre||''}! 🙌 Gracias por confiar en BAYOL CELL. Si quedaste satisfecho con tu ${equipoTxtR}, te agradeceríamos muchísimo una reseña en Google ⭐ (te toma 20 segundos): ${RESENA_GOOGLE}`);
+                const msgR = encodeURIComponent(`Hola, ${c.nombre||''}. Gracias por confiar en BAYOL CELL. Si quedó satisfecho con su ${equipoTxtR}, le agradeceríamos mucho una reseña en Google ⭐ (le toma 20 segundos): ${RESENA_GOOGLE}`);
                 acciones += `<a class="btn" style="font-size:11px; padding:5px 9px; background:#f59e0b; color:#fff;" href="https://wa.me/${waRLink}?text=${msgR}" target="_blank" rel="noopener"><i class="ti ti-star"></i> Pedir reseña</a>`;
             }
         } else if(estado === 'no_reparado') {
@@ -21084,7 +21084,7 @@ function construirAlertaDemoras(incluirReacond) {
         </div>`;
     
     if(total === 0) {
-        html += `<div style="color:#16a34a; font-size:13px;"><i class="ti ti-circle-check"></i> Ningún equipo demorado. ¡Todo al día!</div>`;
+        html += `<div style="color:#16a34a; font-size:13px;"><i class="ti ti-circle-check"></i> No hay equipos demorados.</div>`;
     } else {
         const fila = (nombre, detalle, dias, color) => `
             <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:8px 10px; border:1px solid #fecaca; background:#fef2f2; border-radius:8px; margin-bottom:5px;">
@@ -21603,7 +21603,7 @@ function renderMiTrabajo() {
     if(misOrdenes.length) {
         html += misOrdenes.map(o => construirCardOrden(o, esAdmin, miId, tecnicosActivos)).join('');
     } else {
-        html += `<div style="color:var(--text-muted); font-size:13px; padding:8px 0;">No tienes órdenes asignadas.</div>`;
+        html += `<div style="color:var(--text-muted); font-size:13px; padding:8px 0;">No tiene órdenes asignadas.</div>`;
     }
 
     html += `<h4 style="font-size:13px; margin:14px 0 6px; color:#075985;"><i class="ti ti-packages"></i> Mis Pedidos de Piezas (Órdenes)</h4>
@@ -21618,7 +21618,7 @@ function renderMiTrabajo() {
     html += `<div id="miReacondModulo" onclick="abrirMisReacondicionados()" style="cursor:pointer; margin-bottom:18px; background:#fffbeb; border:1px solid #fde68a; border-radius:12px; padding:16px; display:flex; justify-content:space-between; align-items:center; gap:10px;">
         <div>
             <h3 style="font-size:16px; margin:0; color:#92400e;"><i class="ti ti-refresh"></i> Mis Reacondicionados</h3>
-            <div style="font-size:13px; color:#92400e; margin-top:4px;">${misReacond.length} equipo(s) asignado(s)${pzReacondPend ? ` · ${pzReacondPend} pieza(s) en proceso` : ''} · <b>toca para abrir</b></div>
+            <div style="font-size:13px; color:#92400e; margin-top:4px;">${misReacond.length} equipo(s) asignado(s)${pzReacondPend ? ` · ${pzReacondPend} pieza(s) en proceso` : ''} · <b>toque para abrir</b></div>
         </div>
         <i class="ti ti-chevron-right" style="font-size:26px; color:#92400e;"></i>
     </div>`;
@@ -21647,7 +21647,7 @@ function renderMisReacond() {
             </div>`;
         }).join('');
     } else {
-        cards = `<div style="color:var(--text-muted); font-size:13px; padding:8px 0;">No tienes equipos reacondicionados asignados.</div>`;
+        cards = `<div style="color:var(--text-muted); font-size:13px; padding:8px 0;">No tiene equipos reacondicionados asignados.</div>`;
     }
     cont.innerHTML = `
         <h4 style="font-size:13px; margin:0 0 8px; color:#92400e; text-transform:uppercase;"><i class="ti ti-device-mobile"></i> Mis Equipos</h4>
@@ -21731,7 +21731,7 @@ async function cambiarEstadoOrdenUI(ordenId, nuevoEstado) {
         const piezasOrden = (cache.ordenPiezas || []).filter(p => p.orden_id === ordenId && !['devuelta','recibida'].includes(p.estado));
         let msg = '¿Cancelar esta orden? Esta acción la marca como anulada.';
         if(piezasOrden.length > 0) {
-            msg = `⚠️ Esta orden tiene ${piezasOrden.length} pieza(s) solicitada(s)/en proceso.\n\nRevisa si debes devolverlas antes de cancelar.\n\n¿Cancelar de todos modos?`;
+            msg = `⚠️ Esta orden tiene ${piezasOrden.length} pieza(s) solicitada(s)/en proceso.\n\nRevise si debe devolverlas antes de cancelar.\n\n¿Cancelar de todos modos?`;
         }
         if(!await confirmar(msg)) return;
     }
@@ -21742,24 +21742,24 @@ async function cambiarEstadoOrdenUI(ordenId, nuevoEstado) {
             const esServicioUser = sessionUser?.tipo_empleado === 'servicio' || tienePermiso('solo_atencion') || tienePermiso('recepcion_ver');
             if(isAdminUser() || esServicioUser) {
                 const rol = isAdminUser() ? 'administrador' : 'servicio al cliente';
-                if(!await confirmar(`⚠️ Esta orden tiene ${pend} falla(s) SIN resolver.\n\nComo ${rol} puedes finalizarla de todos modos.\n\n¿Forzar finalización?`)) return;
+                if(!await confirmar(`⚠️ Esta orden tiene ${pend} falla(s) SIN resolver.\n\nComo ${rol}, puede finalizarla de todos modos.\n\n¿Forzar finalización?`)) return;
             } else {
-                return toast(`⚠️ No puedes finalizar todavía.\n\nQuedan ${pend} falla(s) pendiente(s). Marca todas las fallas como resueltas (✓) antes de finalizar.`, 'error');
+                return toast(`No puede finalizar todavía.\n\nQuedan ${pend} falla(s) pendiente(s). Marque todas las fallas como resueltas (✓) antes de finalizar.`, 'error');
             }
         }
         // Registro de la reparación: qué se le hizo al equipo
         const ordenSol = (cache.ordenes || []).find(o => o.id === ordenId);
         const solPrevia = ordenSol?.solucion_aplicada || '';
-        const solucion = await pedirTexto('✅ FINALIZAR REPARACIÓN\n\n¿Qué se le hizo al equipo? (solución aplicada)\n\nEjemplos:\n• "Cambio de pantalla original"\n• "Limpieza y cambio de conector de carga"\n• "Reballing de CPU, equipo enciende normal"', { valor: solPrevia, multilinea: true, placeholder: 'Describe la reparación realizada...' });
+        const solucion = await pedirTexto('✅ FINALIZAR REPARACIÓN\n\nSolución aplicada al equipo:\n\nEjemplos:\n• "Cambio de pantalla original"\n• "Limpieza y cambio de conector de carga"\n• "Reballing de CPU, equipo enciende normal"', { valor: solPrevia, multilinea: true, placeholder: 'Describa la reparación realizada...' });
         if(solucion === null) return; // canceló
-        if(!solucion.trim()) return toast('Escribe brevemente qué se le hizo al equipo.', 'error');
+        if(!solucion.trim()) return toast('Escriba brevemente qué se le hizo al equipo.', 'error');
         await avanzarEstadoOrden(ordenId, nuevoEstado, undefined, solucion.trim());
         return;
     }
     if(nuevoEstado === 'pendiente_cliente') {
-        const nota = await pedirTexto('🔔 ESPERANDO AUTORIZACIÓN DEL CLIENTE\n\n¿Qué necesitas que el cliente autorice o informe?\n\nEjemplos:\n• "Autorizar cambio de batería - RD$1,200"\n• "Se dañó el flex al abrir, autorizar reemplazo"\n• "Necesito la contraseña del equipo"');
+        const nota = await pedirTexto('🔔 ESPERANDO AUTORIZACIÓN DEL CLIENTE\n\nIndique qué debe autorizar o informar el cliente:\n\nEjemplos:\n• "Autorizar cambio de batería - RD$1,200"\n• "Se dañó el flex al abrir, autorizar reemplazo"\n• "Necesito la contraseña del equipo"');
         if(nota === null) return; // canceló
-        if(!nota.trim()) return toast('Debes escribir qué se necesita autorizar.', 'error');
+        if(!nota.trim()) return toast('Indique qué se necesita autorizar.', 'error');
         await avanzarEstadoOrden(ordenId, nuevoEstado, nota.trim());
         return;
     }
@@ -21781,11 +21781,11 @@ async function marcarNoReparado(ordenId) {
     if(!esAdmin && !esServicio && orden.estado_propuesto) {
         return toast('Ya hay un cambio pendiente de aprobación para esta orden.', 'error');
     }
-    if(!await confirmar('❌ ¿Marcar este equipo como NO REPARADO?\n\nÚsalo cuando el equipo tiene un daño sin solución. Pasará a Servicio para devolverlo al cliente.')) return;
+    if(!await confirmar('❌ ¿Marcar este equipo como NO REPARADO?\n\nÚselo cuando el equipo tenga un daño sin solución. Pasará a Servicio para devolverlo al cliente.')) return;
     // El comentario/motivo es OBLIGATORIO: insiste hasta que escriban algo (o cancelen del todo)
     let motivo = '';
     while(true) {
-        motivo = await pedirTexto('¿Por qué no se pudo reparar? (OBLIGATORIO)\n\nEjemplo: "Placa dañada por humedad, sin solución" · "No existe la pieza"');
+        motivo = await pedirTexto('Motivo por el que no se pudo reparar (OBLIGATORIO):\n\nEjemplo: "Placa dañada por humedad, sin solución" · "No existe la pieza"');
         if(motivo === null) return; // canceló toda la acción
         if(motivo.trim()) break;
         toast('⚠️ El comentario es obligatorio para marcar "NO REPARADO".', 'error');
@@ -21855,7 +21855,7 @@ async function reabrirOrdenProceso(ordenId) {
     if(!isAdminUser() && orden.tecnico_asignado_id !== sessionUser?.id) {
         return toast('Solo el técnico asignado (o un administrador) puede reabrir esta orden.', 'error');
     }
-    if(!await confirmar('¿Volver esta orden a EN PROCESO?\n\nÚsalo si el equipo sigue fallando y necesitas seguir trabajándolo. Podrás agregar tareas o piezas y finalizarla de nuevo.', {peligro:false, ok:'Sí, volver a proceso'})) return;
+    if(!await confirmar('¿Volver esta orden a EN PROCESO?\n\nÚselo si el equipo sigue fallando y necesita seguir trabajándolo. Podrás agregar tareas o piezas y finalizarla de nuevo.', {peligro:false, ok:'Sí, volver a proceso'})) return;
     await avanzarEstadoOrden(ordenId, 'en_proceso');
 }
 
@@ -21865,7 +21865,7 @@ async function togglePrioridadOrden(ordenId) {
     if(!orden) return toast('Orden no encontrada.', 'error');
     // Permiso: admin, servicio al cliente, o el técnico asignado
     const puede = isAdminUser() || tienePermiso('recepcion_ver') || orden.tecnico_asignado_id === sessionUser?.id;
-    if(!puede) return toast('No tienes permiso para cambiar la prioridad de esta orden.', 'error');
+    if(!puede) return toast('No tiene permiso para cambiar la prioridad de esta orden.', 'error');
     const nueva = orden.prioridad === 'urgente' ? 'normal' : 'urgente';
     try {
         const { error } = await supabaseClient.from('ordenes_reparacion').update({ prioridad: nueva }).eq('id', ordenId);
@@ -21885,7 +21885,7 @@ async function derivarExterno(ordenId) {
         destino = await pedirTexto('🔧 REPARACIÓN EXTERNA\n\n¿A dónde / a quién se envía el equipo? (OBLIGATORIO)\n\nEjemplo: "Taller microsoldadura Juan", "Centro X - capital"');
         if(destino === null) return; // canceló
         if(destino.trim()) break;
-        toast('Indica a dónde se envió el equipo.', 'error');
+        toast('Indique a dónde se envió el equipo.', 'error');
     }
     const nota = await pedirTexto('Nota / motivo (opcional):\n\nEjemplo: "Requiere reballing de CPU"', { valor: '' });
     if(nota === null) return; // canceló
@@ -21924,7 +21924,7 @@ async function derivarOrden(ordenId) {
     // Opciones: 0 = reparación externa (otro taller), 1..n = técnicos internos
     const lista = ['0. 🔧 Reparación EXTERNA (otro taller / fuera)']
         .concat(tecnicos.map((t, i) => `${i + 1}. ${t.nombre}`)).join('\n');
-    const sel = await pedirTexto(`DERIVAR ORDEN ${formatoOrden(orden.numero_orden)}\n\n¿A dónde la derivas?\n\n${lista}\n\nEscribe el número:`);
+    const sel = await pedirTexto(`DERIVAR ORDEN ${formatoOrden(orden.numero_orden)}\n\nDestino de la derivación:\n\n${lista}\n\nEscriba el número:`);
     if(sel === null) return;
     const num = parseInt(sel);
     if(isNaN(num) || num < 0 || num > tecnicos.length) return toast('Selección inválida.', 'error');
@@ -21933,7 +21933,7 @@ async function derivarOrden(ordenId) {
     
     const motivo = await pedirTexto(`Motivo de la derivación a ${nuevoTec.nombre}:\n\nEjemplo: "Requiere microsoldadura" o "No pude resolver el problema de carga"`);
     if(motivo === null) return;
-    if(!motivo.trim()) return toast('Debes indicar el motivo de la derivación.', 'error');
+    if(!motivo.trim()) return toast('Indique el motivo de la derivación.', 'error');
 
     try {
         const oldTecId = orden.tecnico_asignado_id || null;
@@ -21981,11 +21981,11 @@ async function solicitarPiezaOrden(ordenId) {
     const esMia = orden.tecnico_asignado_id === sessionUser?.id;
     if(!esAdmin && !esMia) return toast('Solo el técnico asignado puede solicitar piezas para esta orden.', 'error');
     
-    const nombre = await pedirTexto('🔧 SOLICITAR PIEZA ADICIONAL\n\nEscribe el nombre de la pieza que necesitas:\n\nEjemplo: "Pantalla iPhone 12", "Batería", "Flex de carga"');
+    const nombre = await pedirTexto('🔧 SOLICITAR PIEZA ADICIONAL\n\nEscriba el nombre de la pieza que necesita:\n\nEjemplo: "Pantalla iPhone 12", "Batería", "Flex de carga"');
     if(nombre === null) return;
-    if(!nombre.trim()) return toast('Escribe el nombre de la pieza.', 'error');
+    if(!nombre.trim()) return toast('Escriba el nombre de la pieza.', 'error');
     
-    const cantStr = await pedirTexto('¿Cuántas unidades? (deja 1 si es una sola)', {valor:'1'});
+    const cantStr = await pedirTexto('Cantidad de unidades (deje 1 si es una sola)', {valor:'1'});
     if(cantStr === null) return;
     const cantidad = parseInt(cantStr) || 1;
     
@@ -22029,7 +22029,7 @@ async function recibirPiezaOrden(piezaId) {
             fecha_recibida: new Date().toISOString()
         }).eq('id', piezaId);
         if(error) throw error;
-        toast('✅ Pieza recibida. Ahora la tienes tú.');
+        toast('✅ Pieza recibida. Ahora la tiene usted.');
         await loadAll();
     } catch(e) { logError('Recibir pieza orden', e); toastError(getFriendlyError(e)); }
 }
@@ -22042,7 +22042,7 @@ async function devolverPiezaOrden(piezaId) {
     const esAdmin = isAdminUser();
     const esMia = pieza.tecnico_id === sessionUser?.id;
     if(!esAdmin && !esMia) return toast('Solo el técnico que tiene la pieza puede solicitar devolverla.', 'error');
-    const motivo = await pedirTexto(`↩️ DEVOLVER PIEZA: ${pieza.pieza_nombre}\n\n¿Por qué la devuelves?\n\nEjemplos:\n• "No se utilizó, el daño era otro"\n• "Era para probar, no hizo falta"`);
+    const motivo = await pedirTexto(`↩️ DEVOLVER PIEZA: ${pieza.pieza_nombre}\n\nMotivo de la devolución:\n\nEjemplos:\n• "No se utilizó, el daño era otro"\n• "Era para probar, no hizo falta"`);
     if(motivo === null) return;
     try {
         const { error } = await supabaseClient.from('orden_piezas').update({
@@ -22050,14 +22050,14 @@ async function devolverPiezaOrden(piezaId) {
             nota: motivo.trim() || 'Devolución solicitada'
         }).eq('id', piezaId);
         if(error) throw error;
-        toast('↩️ Devolución solicitada. Entrégala a servicio para que la confirme.');
+        toast('↩️ Devolución solicitada. Entréguela a servicio para que la confirme.');
         await loadAll();
     } catch(e) { logError('Devolver pieza orden', e); toastError(getFriendlyError(e)); }
 }
 
 // Servicio confirma que recibió la pieza devuelta
 async function confirmarDevolucionPiezaOrden(piezaId) {
-    if(!await confirmar('¿Confirmar que recibiste esta pieza devuelta del técnico?')) return;
+    if(!await confirmar('¿Confirma que recibió esta pieza devuelta del técnico?')) return;
     try {
         const { error } = await supabaseClient.from('orden_piezas').update({
             estado: 'devuelta',
@@ -22132,7 +22132,7 @@ async function tomarOrden(ordenId) {
         const t = nombreEmpleado(orden.tecnico_asignado_id);
         return toast(`Esta orden ya fue tomada por ${t}.`, 'error');
     }
-    if(!await confirmar(`¿Tomar la orden ${formatoOrden(orden.numero_orden)}?\n\nQuedará asignada a ti y pasará a "En proceso".`)) return;
+    if(!await confirmar(`¿Tomar la orden ${formatoOrden(orden.numero_orden)}?\n\nQuedará asignada a usted y pasará a "En proceso".`)) return;
     try {
         const { error } = await supabaseClient.from('ordenes_reparacion').update({
             tecnico_asignado_id: sessionUser.id,
@@ -22290,7 +22290,7 @@ async function rechazarCambioEstadoOrden(ordenId) {
     const orden = (cache.ordenes || []).find(o => o.id === ordenId);
     if(!orden || !orden.estado_propuesto) return toast('No hay ningún cambio pendiente para esta orden.', 'error');
     if(!isAdminUser() && !esServicioActor()) return toast('Solo servicio al cliente o un administrador puede rechazar este cambio.', 'error');
-    const motivo = await pedirTexto('¿Por qué se rechaza este cambio? (opcional)');
+    const motivo = await pedirTexto('Motivo del rechazo (opcional)');
     if(motivo === null) return; // canceló
     const propuesto = orden.estado_propuesto;
     try {
@@ -22309,8 +22309,8 @@ async function rechazarCambioEstadoOrden(ordenId) {
 async function cancelarPropuestaEstadoOrden(ordenId) {
     const orden = (cache.ordenes || []).find(o => o.id === ordenId);
     if(!orden || !orden.estado_propuesto) return;
-    if(!isAdminUser() && orden.tecnico_asignado_id !== sessionUser?.id) return toast('No puedes cancelar esta propuesta.', 'error');
-    if(!await confirmar('¿Cancelar tu propuesta de cambio de estado?')) return;
+    if(!isAdminUser() && orden.tecnico_asignado_id !== sessionUser?.id) return toast('No puede cancelar esta propuesta.', 'error');
+    if(!await confirmar('¿Cancelar su propuesta de cambio de estado?')) return;
     try {
         const { error } = await supabaseClient.from('ordenes_reparacion').update({ estado_propuesto: null, estado_propuesto_por: null, estado_propuesto_en: null, estado_propuesto_nota: null, estado_propuesto_solucion: null }).eq('id', ordenId);
         if(error) throw error;
@@ -22344,11 +22344,11 @@ async function marcarEntregadoConGarantia(ordenId) {
             return toast('⚠️ Solo se puede entregar una orden FINALIZADA.\n\nMarca la reparación como finalizada antes de entregar.', 'error');
         }
     }
-    const diasStr = await pedirTexto('📦 ENTREGAR EQUIPO\n\n¿Cuántos días de garantía? (deja 0 si no aplica)\n\nEjemplos: 30, 90', {valor:'90'});
+    const diasStr = await pedirTexto('📦 ENTREGAR EQUIPO\n\nDías de garantía (deje 0 si no aplica):\n\nEjemplos: 30, 90', {valor:'90'});
     if(diasStr === null) return;
     const dias = parseInt(diasStr) || 0;
     // Precio final cobrado (un solo número; el inventario/costos viven en el sistema principal)
-    const precioStr = await pedirTexto('💵 PRECIO FINAL COBRADO\n\n¿Cuánto se le cobró al cliente por esta reparación? (RD$)\n\nDéjalo vacío si no aplica.', { valor: orden.costo_final != null ? String(orden.costo_final) : '', tipo: 'number', placeholder: '0.00' });
+    const precioStr = await pedirTexto('💵 PRECIO FINAL COBRADO\n\nMonto cobrado al cliente por esta reparación (RD$)\n\nDéjelo vacío si no aplica.', { valor: orden.costo_final != null ? String(orden.costo_final) : '', tipo: 'number', placeholder: '0.00' });
     if(precioStr === null) return; // canceló
     const precio = precioStr.trim() === '' ? null : (parseFloat(precioStr) || 0);
     try {
@@ -22390,9 +22390,9 @@ async function reabrirOrden(ordenId, tipoMotivo) {
             if(!await confirmar('⚠️ La garantía de esta orden ya venció.\n\n¿Reabrir por OTRA razón (no garantía)?')) return;
             return reabrirOrden(ordenId, 'otra');
         }
-        const motivo = await pedirTexto(`🛡️ REABRIR POR GARANTÍA\n\nQuedan ${info.diasRestantes} días de garantía.\n\n¿Qué problema reporta el cliente?\n\nEjemplo: "La pantalla volvió a fallar"`);
+        const motivo = await pedirTexto(`🛡️ REABRIR POR GARANTÍA\n\nQuedan ${info.diasRestantes} días de garantía.\n\nProblema que reporta el cliente:\n\nEjemplo: "La pantalla volvió a fallar"`);
         if(motivo === null) return;
-        if(!motivo.trim()) return toast('Indica el motivo de la garantía.', 'error');
+        if(!motivo.trim()) return toast('Indique el motivo de la garantía.', 'error');
         updates.es_garantia = true;
         updates.veces_garantia = (orden.veces_garantia || 0) + 1;
         updates.nota_estado = `🛡️ GARANTÍA: ${motivo.trim()}`;
@@ -22400,9 +22400,9 @@ async function reabrirOrden(ordenId, tipoMotivo) {
         avisoTecnico = '🛡️ Reabierta por GARANTÍA';
     } else {
         // Otra razón
-        const motivo = await pedirTexto(`🔄 REABRIR ORDEN (otra razón)\n\n¿Por qué se reabre esta orden?\n\nEjemplo: "El cliente reporta otro problema", "Revisión adicional solicitada"`);
+        const motivo = await pedirTexto(`🔄 REABRIR ORDEN (otra razón)\n\nMotivo de la reapertura:\n\nEjemplo: "El cliente reporta otro problema", "Revisión adicional solicitada"`);
         if(motivo === null) return;
-        if(!motivo.trim()) return toast('Indica la razón de la reapertura.', 'error');
+        if(!motivo.trim()) return toast('Indique el motivo de la reapertura.', 'error');
         updates.nota_estado = `🔄 REABIERTA: ${motivo.trim()}`;
         updates.es_garantia = false;
         avisoTecnico = '🔄 Reabierta (no garantía)';
@@ -22431,7 +22431,7 @@ async function abrirModalNuevaDevolucion() {
     const despachados = (cache.refurb || []).filter(r => r.estado_evaluacion === 'vendido');
     
     if(despachados.length === 0) {
-        toast('No hay equipos terminados aún. Primero debes tener equipos en estado "Completado" o "Despachado" para poder registrar devoluciones.', 'error');
+        toast('No hay equipos terminados aún. Primero debe tener equipos en estado "Completado" o "Despachado" para poder registrar devoluciones.', 'error');
         return;
     }
     
@@ -22583,9 +22583,9 @@ async function guardarDevolucion() {
     const diagnostico = document.getElementById('dev_diagnostico').value.trim();
     const tecnicoId = smartSelectGetValue('ss-dev-tecnico');
     
-    if(!equipoId) return toast('Selecciona el equipo que se devolvió.', 'error');
+    if(!equipoId) return toast('Seleccione el equipo que se devolvió.', 'error');
     if(!motivo) return toast('El motivo de devolución es obligatorio.', 'error');
-    if(!tecnicoId) return toast('Selecciona un técnico para esta reparación.', 'error');
+    if(!tecnicoId) return toast('Seleccione un técnico para esta reparación.', 'error');
     
     const eq = (cache.refurb || []).find(r => r.id === equipoId);
     if(!eq) return toast('Equipo no encontrado.', 'error');
@@ -22683,7 +22683,7 @@ function renderCategorias() {
     const cont = document.getElementById('categoriasLista');
     if(!cont) return;
     if(_categoriasCache.length === 0) {
-        cont.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:20px; font-size:13px;">No hay categorías. Crea la primera con "+ Nueva Categoría".</p>';
+        cont.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:20px; font-size:13px;">No hay categorías. Cree la primera con «+ Nueva Categoría».</p>';
         return;
     }
     const _catPage = _uiListPage('categorias', _categoriasCache.length);
@@ -22809,7 +22809,7 @@ function renderMarcas() {
     const cont = document.getElementById('marcasLista');
     if(!cont) return;
     if(_marcasCache.length === 0) {
-        cont.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:20px; font-size:13px;">No hay marcas. Crea la primera con "+ Nueva Marca".</p>';
+        cont.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:20px; font-size:13px;">No hay marcas. Cree la primera con «+ Nueva Marca».</p>';
         return;
     }
     const _marcasPage = _uiListPage('marcas', _marcasCache.length);
@@ -23083,7 +23083,7 @@ function renderRoles() {
     const cont = document.getElementById('rolesLista');
     if(!cont) return;
     if(_rolesCache.length === 0) {
-        cont.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:30px;">No hay roles. Crea el primero con "+ Nuevo Rol".</p>';
+        cont.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:30px;">No hay roles. Cree el primero con «+ Nuevo Rol».</p>';
         return;
     }
     
@@ -23247,7 +23247,7 @@ async function eliminarRol(id) {
     // Verificar si hay técnicos con este rol
     const tecnicosConRol = (cache.tecnicos || []).filter(t => t.rol_id === id);
     if(tecnicosConRol.length > 0) {
-        return toast(`No se puede eliminar: ${tecnicosConRol.length} técnico(s) tienen este rol asignado. Primero cambia el rol de esos técnicos.`, 'error');
+        return toast(`No se puede eliminar: ${tecnicosConRol.length} técnico(s) tienen este rol asignado. Primero cambie el rol de esos técnicos.`, 'error');
     }
     
     if(!await confirmar(`¿Eliminar el rol "${r.nombre}"?\n\nEsta acción no se puede deshacer.`)) return;
@@ -24304,7 +24304,7 @@ function renderComprasTab() {
     }
     
     if(!lista.length) {
-        cont.innerHTML = `<p style="color:var(--text-muted); text-align:center; padding:20px;">${filtro ? 'Sin resultados' : 'No hay compras registradas. Crea una con el botón "+ Nueva Compra".'}</p>`;
+        cont.innerHTML = `<p style="color:var(--text-muted); text-align:center; padding:20px;">${filtro ? 'Sin resultados' : 'No hay compras registradas. Cree una con el botón «+ Nueva Compra».'}</p>`;
         return;
     }
     
@@ -24357,7 +24357,7 @@ async function enviarLoteAReacond(loteId) {
     if(!lote) return toast('Lote no encontrado.', 'error');
     const equiposLote = cache.refurb.filter(r => r.lote_id === loteId);
     if(equiposLote.length === 0) {
-        return toast('Este lote no tiene equipos registrados. Agrega equipos primero antes de enviarlo a Reacondicionado.', 'error');
+        return toast('Este lote no tiene equipos registrados. Agregue equipos antes de enviarlo a Reacondicionado.', 'error');
     }
     if(!await confirmar(`¿Enviar lote "${lote.codigo_lote || lote.nombre || lote.id.slice(0,8)}" a Reacondicionado?\n\n${equiposLote.length} equipos quedarán pendientes de evaluación.`)) return;
     try {
@@ -24401,7 +24401,7 @@ function cerrarModalNuevaCompra() {
 async function crearNuevaCompra() {
     try {
         const provId = smartSelectGetValue('ss-compra-proveedor');
-        if(!provId) return toast('Selecciona un proveedor.', 'error');
+        if(!provId) return toast('Seleccione un proveedor.', 'error');
         
         const codigo = calcularSiguienteCodigoLote();
         const { data, error } = await supabaseClient.from('refurb_lotes').insert([{
@@ -25103,7 +25103,7 @@ async function qzImprimirPrueba() {
     
     const ok = await qzImprimirRaw(cmd, 'labels');
     if(ok) toast('🖨️ Prueba TSPL enviada a la impresora.');
-    else toast('No se pudo imprimir. Verifica que QZ Tray esté conectado y la impresora de labels seleccionada.', 'error');
+    else toast('No se pudo imprimir. Verifique que QZ Tray esté conectado y la impresora de labels seleccionada.', 'error');
 }
 
 // Auto-conectar QZ al iniciar sesión (silencioso)
@@ -25309,7 +25309,7 @@ function cerrarModalNuevoPerfil() {
 
 function confirmarNuevoPerfil() {
     const nombre = val('mod_perfil_nombre');
-    if(!nombre) return toast('Escribe un nombre para el perfil.', 'error');
+    if(!nombre) return toast('Escriba un nombre para el perfil.', 'error');
     
     const perfiles = obtenerPerfilesImpresora();
     if(perfiles.find(p => p.nombre.toLowerCase() === nombre.toLowerCase())) {
@@ -25339,7 +25339,7 @@ async function eliminarPerfilActual() {
     const nombre = sel.value;
     
     const perfiles = obtenerPerfilesImpresora();
-    if(perfiles.length <= 1) return toast('No puedes eliminar el único perfil. Debe haber al menos uno.', 'error');
+    if(perfiles.length <= 1) return toast('No puede eliminar el único perfil. Debe haber al menos uno.', 'error');
     
     if(!await confirmar(`¿Eliminar el perfil "${nombre}"?`)) return;
     
@@ -25402,7 +25402,7 @@ function imprimirReglaCalibracion() {
 }
 
 function abrirConfigWindows() {
-    toast('Para abrir la configuración de la impresora:\n\n1. Presiona Windows + R\n2. Escribe: control printers\n3. Presiona Enter\n4. Clic derecho en "4BARCODE 4B-2074B" → Preferencias de impresión\n\nDesde ahí ajustas tamaño del papel, velocidad, densidad, etc.', 'error');
+    toast('Para abrir la configuración de la impresora:\n\n1. Presione Windows + R\n2. Escriba: control printers\n3. Presione Enter\n4. Clic derecho en "4BARCODE 4B-2074B" → Preferencias de impresión\n\nDesde ahí se ajustan el tamaño del papel, velocidad, densidad, etc.', 'error');
 }
 
 // Cerrar modal nuevo perfil con Escape y clic fuera
@@ -26157,7 +26157,7 @@ function _pintarDetalleSol() {
 
 // ---- Crear solicitud ----
 function abrirModalNuevaSolicitud() {
-    if(!(isAdminUser() || tienePermiso('financiamientos_crear'))) { toast('No tienes permiso para crear solicitudes.', 'error'); return; }
+    if(!(isAdminUser() || tienePermiso('financiamientos_crear'))) { toast('No tiene permiso para crear solicitudes.', 'error'); return; }
     const clientes = (_finCache.clientes || []).slice().sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
     const hoyISO = new Date().toISOString().slice(0, 10);
     const mcfg = _finCache.config || {};
@@ -26182,7 +26182,7 @@ function abrirModalNuevaSolicitud() {
                 </div>
                 <div id="solCliResultados" style="display:none; margin-top:6px; max-height:210px; overflow-y:auto; border:1px solid var(--border-color); border-radius:11px;"></div>
             </div>
-            <div style="font-size:11px; color:var(--text-muted); margin-top:5px;"><i class="ti ti-info-circle"></i> Deja vacío para registrar un cliente nuevo.${clientes.length ? ` ${clientes.length} cliente(s) guardado(s).` : ''}</div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:5px;"><i class="ti ti-info-circle"></i> Deje vacío para registrar un cliente nuevo.${clientes.length ? ` ${clientes.length} cliente(s) guardado(s).` : ''}</div>
         </div>
         <h4 style="margin:6px 0; font-size:13px; color:#0891b2;"><i class="ti ti-user"></i> Datos del cliente</h4>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
@@ -26379,7 +26379,7 @@ async function verificarImeiSolicitud(btn) {
     const val = (document.getElementById('solImei')?.value || '').trim();
     const cont = document.getElementById('solImeiVerif');
     if(!cont) return;
-    if(!val) { cont.innerHTML = `<div style="background:var(--fin-warn-bg); border:1px solid var(--fin-warn-brd); color:var(--fin-warn); padding:7px 10px; border-radius:8px; font-size:12.5px;"><i class="ti ti-alert-triangle"></i> Escribe el IMEI o serie primero.</div>`; return; }
+    if(!val) { cont.innerHTML = `<div style="background:var(--fin-warn-bg); border:1px solid var(--fin-warn-brd); color:var(--fin-warn); padding:7px 10px; border-radius:8px; font-size:12.5px;"><i class="ti ti-alert-triangle"></i> Escriba primero el IMEI o la serie.</div>`; return; }
     const orig = btn ? btn.innerHTML : '';
     if(btn){ btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Verificando…'; }
     cont.innerHTML = '';
@@ -26401,10 +26401,10 @@ async function verificarImeiSolicitud(btn) {
                     const detalleAbm = [dev.modelo, dev.capacidad, dev.color, dev.imei ? ('IMEI ' + dev.imei) : ''].filter(Boolean).join(' · ');
                     cont.innerHTML = `<div style="background:var(--fin-warn-bg); border:1px solid var(--fin-warn-brd); color:var(--fin-warn); padding:8px 10px; border-radius:8px; font-size:12.5px;"><b><i class="ti ti-alert-triangle"></i> Esta en Apple Business Manager pero NO en Hexnode.</b><br>${escapeHtml(detalleAbm)}<br><button type="button" class="btn btn-blue btn-sm" style="margin-top:6px; font-size:12px;" onclick="_abmAsignarDesdeSolicitud(this, '${escapeHtml(val).replace(/'/g,"\\'")}')"><i class="ti ti-link"></i> Asignar a Hexnode ahora</button></div>`;
                 } else {
-                    cont.innerHTML = `<div style="background:var(--fin-warn-bg); border:1px solid var(--fin-warn-brd); color:var(--fin-warn); padding:8px 10px; border-radius:8px; font-size:12.5px;"><b><i class="ti ti-alert-triangle"></i> No aparece enrolado en Hexnode ni en Apple Business Manager.</b><br>Puedes seguir con la solicitud, pero el equipo debe pre-enrolarse (Apple Configurator) antes de entregarlo al cliente.</div>`;
+                    cont.innerHTML = `<div style="background:var(--fin-warn-bg); border:1px solid var(--fin-warn-brd); color:var(--fin-warn); padding:8px 10px; border-radius:8px; font-size:12.5px;"><b><i class="ti ti-alert-triangle"></i> No aparece enrolado en Hexnode ni en Apple Business Manager.</b><br>Puede seguir con la solicitud, pero el equipo debe pre-enrolarse (Apple Configurator) antes de entregarlo al cliente.</div>`;
                 }
             } catch(_e) {
-                cont.innerHTML = `<div style="background:var(--fin-warn-bg); border:1px solid var(--fin-warn-brd); color:var(--fin-warn); padding:8px 10px; border-radius:8px; font-size:12.5px;"><b><i class="ti ti-alert-triangle"></i> No aparece enrolado en Hexnode.</b><br>Puedes seguir con la solicitud, pero el equipo debe enrolarse antes de entregarlo al cliente.</div>`;
+                cont.innerHTML = `<div style="background:var(--fin-warn-bg); border:1px solid var(--fin-warn-brd); color:var(--fin-warn); padding:8px 10px; border-radius:8px; font-size:12.5px;"><b><i class="ti ti-alert-triangle"></i> No aparece enrolado en Hexnode.</b><br>Puede seguir con la solicitud, pero el equipo debe enrolarse antes de entregarlo al cliente.</div>`;
             }
             return;
         }
@@ -26413,7 +26413,7 @@ async function verificarImeiSolicitud(btn) {
         const dueno = _mdmDispOcupadoPor(d, lm);
         const detalle = [d.model, d.platform ? (d.platform + (d.os ? ' ' + d.os : '')) : '', d.imei ? ('IMEI ' + d.imei) : '', d.serial ? ('Serie ' + d.serial) : ''].filter(Boolean).join(' · ');
         if(dueno) {
-            cont.innerHTML = `<div style="background:var(--fin-danger-bg); border:1px solid var(--fin-danger-brd); color:var(--fin-danger); padding:8px 10px; border-radius:8px; font-size:12.5px;"><b><i class="ti ti-x"></i> Este equipo YA está asignado a otro cliente.</b><br>${escapeHtml(dueno)}<br>${escapeHtml(detalle)}<br>Elige otro equipo o libera primero ese financiamiento.</div>`;
+            cont.innerHTML = `<div style="background:var(--fin-danger-bg); border:1px solid var(--fin-danger-brd); color:var(--fin-danger); padding:8px 10px; border-radius:8px; font-size:12.5px;"><b><i class="ti ti-x"></i> Este equipo YA está asignado a otro cliente.</b><br>${escapeHtml(dueno)}<br>${escapeHtml(detalle)}<br>Seleccione otro equipo o libere primero ese financiamiento.</div>`;
         } else {
             cont.innerHTML = `<div style="background:var(--fin-ok-bg); border:1px solid var(--fin-ok-brd); color:var(--fin-ok); padding:8px 10px; border-radius:8px; font-size:12.5px;"><b><i class="ti ti-circle-check"></i> Enrolado en Hexnode y DISPONIBLE.</b><br>${escapeHtml(detalle)}</div>`;
         }
@@ -26431,14 +26431,14 @@ async function _abmAsignarDesdeSolicitud(btn, serial) {
         if(error){ let det=''; try{ det=(await error.context.json()).error||''; }catch(_){} throw new Error(det||error.message); }
         if(!data || !data.ok) throw new Error((data && data.error) || 'No se pudo asignar.');
         toast('Equipo asignado a Hexnode. Puede tardar unos minutos en sincronizar.');
-        if(cont) cont.innerHTML = `<div style="background:var(--fin-ok-bg); border:1px solid var(--fin-ok-brd); color:var(--fin-ok); padding:8px 10px; border-radius:8px; font-size:12.5px;"><b><i class="ti ti-circle-check"></i> Asignado a Hexnode.</b><br>Puede tardar unos minutos en aparecer enrolado. Vuelve a tocar "Verificar en Hexnode" en un rato.</div>`;
+        if(cont) cont.innerHTML = `<div style="background:var(--fin-ok-bg); border:1px solid var(--fin-ok-brd); color:var(--fin-ok); padding:8px 10px; border-radius:8px; font-size:12.5px;"><b><i class="ti ti-circle-check"></i> Asignado a Hexnode.</b><br>Puede tardar unos minutos en aparecer enrolado. Toque de nuevo «Verificar en Hexnode» en unos minutos.</div>`;
     } catch(e) {
         if(cont) cont.innerHTML = `<div style="background:var(--fin-danger-bg); border:1px solid var(--fin-danger-brd); color:var(--fin-danger); padding:8px 10px; border-radius:8px; font-size:12.5px;"><i class="ti ti-alert-triangle"></i> Error al asignar: ${escapeHtml(e.message || String(e))}</div>`;
         if(btn){ btn.disabled = false; btn.innerHTML = orig; }
     }
 }
 async function guardarSolicitud() {
-    if(!(isAdminUser() || tienePermiso('financiamientos_crear'))) { toast('No tienes permiso.', 'error'); return; }
+    if(!(isAdminUser() || tienePermiso('financiamientos_crear'))) { toast('No tiene permiso.', 'error'); return; }
     const val = id => (document.getElementById(id)?.value || '').trim();
     const nombre = val('solNombre');
     const concepto = val('solConcepto');
@@ -26448,7 +26448,7 @@ async function guardarSolicitud() {
     const frecuencia = document.getElementById('solFrecuencia')?.value || 'mensual';
     const fechaInicio = val('solFechaInicio') || new Date().toISOString().slice(0, 10);
     if(!nombre) { toast('El nombre del cliente es obligatorio.', 'error'); return; }
-    if(!concepto) { toast('Indica qué se financia (concepto).', 'error'); return; }
+    if(!concepto) { toast('Indique el concepto a financiar.', 'error'); return; }
     if(total <= 0) { toast('El precio total debe ser mayor que 0.', 'error'); return; }
     if(inicial < 0 || inicial >= total) { toast('La inicial debe ser menor que el precio total.', 'error'); return; }
     const interesMetodo = document.getElementById('solInteresMetodo')?.value || 'plano';
@@ -26502,7 +26502,7 @@ async function guardarSolicitud() {
     }
 }
 async function aprobarSolicitud(solId) {
-    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso para aprobar.', 'error'); return; }
+    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tiene permiso para aprobar.', 'error'); return; }
     const s = (_finCache.solicitudes || []).find(x => x.id === solId);
     if(!s || s.estado !== 'pendiente') return;
     if(!confirm('¿Aprobar esta solicitud y crear el financiamiento?')) return;
@@ -26546,7 +26546,7 @@ async function aprobarSolicitud(solId) {
     }
 }
 async function rechazarSolicitud(solId) {
-    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso para rechazar.', 'error'); return; }
+    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tiene permiso para rechazar.', 'error'); return; }
     const s = (_finCache.solicitudes || []).find(x => x.id === solId);
     if(!s || s.estado !== 'pendiente') return;
     const motivo = prompt('Motivo del rechazo (opcional):', '');
@@ -26604,7 +26604,7 @@ function _finModalPago(titulo, contenido, tema) {
 }
 function cerrarModalPago() { const m = document.getElementById('modalPago'); if(m) m.remove(); }
 function abrirModalPago(finId) {
-    if(!(isAdminUser() || tienePermiso('financiamientos_cobrar'))) { toast('No tienes permiso para cobrar.', 'error'); return; }
+    if(!(isAdminUser() || tienePermiso('financiamientos_cobrar'))) { toast('No tiene permiso para cobrar.', 'error'); return; }
     const f = (_finCache.financiamientos || []).find(x => x.id === finId);
     if(!f) { toast('Financiamiento no encontrado.', 'error'); return; }
     const saldo = finSaldo(f);
@@ -26679,11 +26679,11 @@ function _finModalPagoExito(finId, pagoId) {
             <button class="btn btn-light" onclick="enviarReciboWhatsApp('${pagoId}')" style="padding:11px; font-size:13.5px; color:#15803d; border-color:#86efac;"><i class="ti ti-brand-whatsapp"></i> WhatsApp</button>
         </div>
         <button class="btn btn-blue" onclick="cerrarModalPago()" style="width:100%; margin-top:10px; padding:12px; font-size:15px; font-weight:700;">Listo</button>`;
-    _finModalPago(saldado ? '¡Financiamiento saldado!' : 'Pago registrado', cont);
+    _finModalPago(saldado ? 'Financiamiento saldado' : 'Pago registrado', cont);
 }
 // ---- Cobro rápido: buscar financiamiento y abrir el modal de pago (estilo "Add Payment") ----
 function abrirCobroRapido() {
-    if(!(isAdminUser() || tienePermiso('financiamientos_cobrar'))) { toast('No tienes permiso para cobrar.', 'error'); return; }
+    if(!(isAdminUser() || tienePermiso('financiamientos_cobrar'))) { toast('No tiene permiso para cobrar.', 'error'); return; }
     const cont = `
         <input id="cobroRapidoBuscar" type="text" placeholder="Buscar por cliente, contrato o cédula…" oninput="_cobroRapidoFiltrar()" style="width:100%; padding:11px 12px; border:1px solid #cbd5e1; border-radius:10px; font-size:14px; box-sizing:border-box;">
         <div id="cobroRapidoLista" style="margin-top:12px; max-height:340px; overflow-y:auto;"></div>`;
@@ -26713,11 +26713,11 @@ function _cobroRapidoFiltrar() {
                 <div style="font-size:10.5px; color:var(--text-muted);">Saldo</div>
             </div>
         </div>`;
-    }).join('') + (fins.length > 40 ? `<div style="text-align:center; font-size:11.5px; color:var(--text-muted); padding:4px;">Mostrando 40 de ${fins.length}. Refina la búsqueda.</div>` : '');
+    }).join('') + (fins.length > 40 ? `<div style="text-align:center; font-size:11.5px; color:var(--text-muted); padding:4px;">Mostrando 40 de ${fins.length}. Refine la búsqueda.</div>` : '');
 }
 // ---- Registrar abono ----
 async function registrarAbonoFin(finId, btn) {
-    if(!(isAdminUser() || tienePermiso('financiamientos_cobrar'))) { toast('No tienes permiso para cobrar.', 'error'); return; }
+    if(!(isAdminUser() || tienePermiso('financiamientos_cobrar'))) { toast('No tiene permiso para cobrar.', 'error'); return; }
     const f = (_finCache.financiamientos || []).find(x => x.id === finId);
     if(!f) return;
     const monto = parseFloat(document.getElementById('finAbonoMonto')?.value) || 0;
@@ -26726,7 +26726,7 @@ async function registrarAbonoFin(finId, btn) {
     const nota = (document.getElementById('finAbonoNota')?.value || '').trim() || null;
     const saldo = finSaldo(f);
     if(monto < 0 || mora < 0) { toast('El monto y la mora no pueden ser negativos.', 'error'); return; }
-    if(monto <= 0 && mora <= 0) { toast('Ingresa un monto válido.', 'error'); return; }
+    if(monto <= 0 && mora <= 0) { toast('Ingrese un monto válido.', 'error'); return; }
     if(monto > saldo + 0.001) { toast(`El abono supera el saldo pendiente (${money(saldo)}).`, 'error'); return; }
     if(btn) btn.disabled = true;
     try {
@@ -26772,7 +26772,7 @@ function abrirCondonarMora(finId) {
             <div style="font-size:20px; font-weight:800; color:#b45309;">${money(pend)}</div>
             <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">${escapeHtml(f.cliente_nombre || '')} · ${escapeHtml(f.concepto || '')}</div>
         </div>
-        <label style="display:block; font-size:12.5px; font-weight:700; color:#334155; margin-bottom:5px;">¿Cuánto perdonar? (RD$)</label>
+        <label style="display:block; font-size:12.5px; font-weight:700; color:#334155; margin-bottom:5px;">Monto a perdonar (RD$)</label>
         <input id="condonarMonto" type="number" step="0.01" min="0" max="${pend}" value="${pend}" placeholder="0.00" style="width:100%; padding:11px 12px; border:1px solid #cbd5e1; border-radius:10px; font-size:16px; font-weight:700; box-sizing:border-box;">
         <label style="display:block; font-size:12.5px; font-weight:700; color:#334155; margin:12px 0 5px;">Motivo (obligatorio)</label>
         <input id="condonarMotivo" type="text" placeholder="Ej. cliente cumplidor, acuerdo especial…" style="width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:10px; font-size:13.5px; box-sizing:border-box;">
@@ -26789,8 +26789,8 @@ async function guardarCondonarMora(finId, btn) {
     const pend = finMoraPendiente(f);
     const monto = parseFloat(document.getElementById('condonarMonto')?.value) || 0;
     const motivo = (document.getElementById('condonarMotivo')?.value || '').trim();
-    if(monto <= 0) { toast('Escribe cuánto perdonar.', 'error'); return; }
-    if(monto > pend + 0.001) { toast(`No puedes perdonar más de la mora pendiente (${money(pend)}).`, 'error'); return; }
+    if(monto <= 0) { toast('Indique el monto a perdonar.', 'error'); return; }
+    if(monto > pend + 0.001) { toast(`No puede perdonar más de la mora pendiente (${money(pend)}).`, 'error'); return; }
     if(!motivo) { toast('El motivo es obligatorio.', 'error'); return; }
     if(btn) btn.disabled = true;
     try {
@@ -26818,7 +26818,7 @@ async function guardarCondonarMora(finId, btn) {
 
 // ---- Cancelar ----
 async function cancelarFinanciamiento(finId) {
-    if(!(isAdminUser() || tienePermiso('financiamientos_eliminar'))) { toast('No tienes permiso.', 'error'); return; }
+    if(!(isAdminUser() || tienePermiso('financiamientos_eliminar'))) { toast('No tiene permiso.', 'error'); return; }
     if(!confirm('¿Cancelar este financiamiento? Quedará marcado como cancelado (no se borran los abonos registrados).')) return;
     try {
         const { error } = await supabaseClient.from('financiamientos').update({ estado: 'cancelado' }).eq('id', finId);
@@ -26842,7 +26842,7 @@ function _finCabeceraImpresion() {
 }
 function _finAbrirImpresion(titulo, cuerpo) {
     const w = window.open('', '_blank', 'width=420,height=640');
-    if(!w) { toast('Permite las ventanas emergentes para imprimir.', 'error'); return; }
+    if(!w) { toast('Permita las ventanas emergentes para imprimir.', 'error'); return; }
     w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escapeHtml(titulo)}</title>
         <style>
             body { font-family: 'Segoe UI', Arial, sans-serif; color:#111; padding:16px; max-width:380px; margin:0 auto; }
@@ -26878,7 +26878,7 @@ function _finReciboWaUrl(pagoId) {
         + (Number(p.mora) > 0 ? `Incluye mora: ${money(p.mora)}\n` : '')
         + `Saldo restante: *${money(saldoTras)}*\n`
         + `Fecha: ${new Date(p.creado_en).toLocaleDateString('es-DO')}\n`
-        + `¡Gracias por su pago!`;
+        + `Gracias por su pago.`;
     return { hasNum: !!tel, url: `https://wa.me/${num}?text=${encodeURIComponent(msg)}` };
 }
 function enviarReciboWhatsApp(pagoId) {
@@ -26933,7 +26933,7 @@ function imprimirReciboFin(pagoId, _modo) {
         <div class="c" style="margin:8px 0 4px;"><div class="muted">TOTAL RECIBIDO</div><div style="font-size:22px; font-weight:800;">${money(totalRec)}</div></div>
         <div class="row" style="font-weight:700;"><span>Saldo restante</span><span>${money(saldoTras)}</span></div>
         <div class="dash"></div>
-        <div class="c muted">${escapeHtml((_finCache.config && _finCache.config.recibo_pie) || c.pie || '¡Gracias por su pago!')}</div>
+        <div class="c muted">${escapeHtml((_finCache.config && _finCache.config.recibo_pie) || c.pie || 'Gracias por su pago.')}</div>
         <div class="c muted" style="margin-top:4px;">Recibido por: ${escapeHtml(p.recibido_por || '')}</div>
         <div class="btns">
             <button onclick="window.print()" style="background:#0f172a; color:#fff;">Imprimir</button>
@@ -26942,7 +26942,7 @@ function imprimirReciboFin(pagoId, _modo) {
         </body></html>`;
     if(_modo === 'pdf') return _htmlAPdf(_html, 'Recibo_' + (p.recibo || 'SN'), { ancho: 300, ajustar: true });
     const w = window.open('', '_blank', 'width=340,height=680');
-    if(!w) { toast('Permite las ventanas emergentes para imprimir.', 'error'); return; }
+    if(!w) { toast('Permita las ventanas emergentes para imprimir.', 'error'); return; }
     w.document.write(_html);
     w.document.close();
 }
@@ -26970,7 +26970,7 @@ function imprimirCartaSaldo(finId) {
     const titulo = cfg.carta_saldo_titulo || FIN_CARTA_TITULO_DEF;
     const parrafos = _finRellenarCarta(cfg.carta_saldo_cuerpo || FIN_CARTA_CUERPO_DEF, f).split(/\n+/).filter(l => l.trim()).map(l => `<p style="text-align:justify; margin:12px 0; line-height:1.7;">${l}</p>`).join('');
     const w = window.open('', '_blank', 'width=800,height=900');
-    if(!w) { toast('Permite las ventanas emergentes para imprimir.', 'error'); return; }
+    if(!w) { toast('Permita las ventanas emergentes para imprimir.', 'error'); return; }
     w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Carta de saldo #${f.codigo || ''}</title>
         <style>body{font-family:'Segoe UI',Arial,sans-serif;color:#111;padding:40px;max-width:720px;margin:0 auto;font-size:14px;}
         h1{font-size:20px;text-align:center;margin:0;} h2{font-size:15px;text-align:center;margin:20px 0;letter-spacing:1px;}
@@ -27804,7 +27804,7 @@ function imprimirContratoFin(finId) {
         <p>Yo, <b>${escapeHtml(cfg.abogado_nombre)}</b>, ${escapeHtml(cfg.abogado_titulo || 'Abogado Notario Público')} de los del número del municipio de <b>${escapeHtml(muni)}</b>${cfg.abogado_matricula ? `, matrícula No. <b>${escapeHtml(cfg.abogado_matricula)}</b>` : ''}, CERTIFICO Y DOY FE de que las firmas que anteceden fueron puestas libremente y de manera voluntaria en mi presencia por los otorgantes, a quienes identifiqué por sus documentos.</p>
         <div style="margin-top:40px; text-align:center; width:60%;"><div style="border-top:1px solid #333; padding-top:4px;">${escapeHtml(cfg.abogado_nombre)}<br><span class="muted">${escapeHtml(cfg.abogado_titulo || 'Abogado Notario Público')}${cfg.abogado_matricula ? ' · Mat. ' + escapeHtml(cfg.abogado_matricula) : ''}</span></div></div>` : '';
     const w = window.open('', '_blank', 'width=820,height=900');
-    if(!w) { toast('Permite las ventanas emergentes para imprimir.', 'error'); return; }
+    if(!w) { toast('Permita las ventanas emergentes para imprimir.', 'error'); return; }
     w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Contrato #${f.codigo || ''}</title>
         <style>
             body{font-family:'Segoe UI',Arial,sans-serif;color:#111;padding:34px;max-width:720px;margin:0 auto;font-size:13px;line-height:1.65;}
@@ -27841,7 +27841,7 @@ function imprimirContratoFin(finId) {
 let _finMediaRecorder = null, _finChunks = [], _finStream = null, _finBlob = null, _finVideoTimer = null, _finVideoCount = null;
 function _finPickMime() { const opts = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4']; for(const o of opts) { if(window.MediaRecorder && MediaRecorder.isTypeSupported(o)) return o; } return ''; }
 async function _finVideoStart() {
-    if(!navigator.mediaDevices || !window.MediaRecorder) { toast('Tu navegador no soporta grabación de video.', 'error'); return; }
+    if(!navigator.mediaDevices || !window.MediaRecorder) { toast('Su navegador no permite grabar video.', 'error'); return; }
     try {
         _finStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true });
         const v = document.getElementById('finVideoPreview');
@@ -27866,7 +27866,7 @@ async function _finVideoStart() {
         if(tEl) tEl.textContent = '● ' + seg + 's';
         _finVideoCount = setInterval(() => { seg--; if(tEl) tEl.textContent = '● ' + seg + 's'; if(seg <= 0) clearInterval(_finVideoCount); }, 1000);
         _finVideoTimer = setTimeout(() => { if(_finMediaRecorder && _finMediaRecorder.state === 'recording') _finVideoStop(); }, 60000);
-    } catch(e) { console.error(e); toast('No se pudo acceder a la cámara/micrófono. Revisa los permisos.', 'error'); }
+    } catch(e) { console.error(e); toast('No se pudo acceder a la cámara/micrófono. Revise los permisos.', 'error'); }
 }
 function _finVideoStop() {
     try { if(_finMediaRecorder && _finMediaRecorder.state === 'recording') _finMediaRecorder.stop(); } catch(e) {}
@@ -27876,7 +27876,7 @@ function _finVideoStop() {
     const tEl = document.getElementById('finVideoTimer'); if(tEl) tEl.textContent = '';
 }
 async function _finVideoSubir(finId) {
-    if(!_finBlob) { toast('Primero graba el video.', 'error'); return; }
+    if(!_finBlob) { toast('Primero grabe el video.', 'error'); return; }
     toast('Subiendo video de evidencia...');
     try {
         const ext = (_finBlob.type || '').includes('mp4') ? 'mp4' : 'webm';
@@ -27983,7 +27983,7 @@ function _pintarConfigFin() {
     if(kpis) kpis.innerHTML = '';
     if(!cont) return;
     if(!(isAdminUser() || tienePermiso('config_ver') || tienePermiso('financiamientos_aprobar'))) {
-        cont.innerHTML = `<div class="card"><div style="color:var(--text-muted);">No tienes permiso para ver la configuración.</div></div>`;
+        cont.innerHTML = `<div class="card"><div style="color:var(--text-muted);">No tiene permiso para ver la configuración.</div></div>`;
         return;
     }
     const cfg = _finCache.config || {};
@@ -28083,7 +28083,7 @@ function _planesListaHTML() {
 }
 async function guardarPlanSmart() {
     const nombre = (document.getElementById('plNombre')?.value || '').trim();
-    if(!nombre) { toast('Ponle un nombre al plan.', 'error'); return; }
+    if(!nombre) { toast('Indique un nombre para el plan.', 'error'); return; }
     const fila = {
         nombre,
         metodo: document.getElementById('plMetodo')?.value || 'saldo',
@@ -28150,7 +28150,7 @@ async function guardarConfigFin() {
 //   EDITAR / ELIMINAR / ANULAR
 // ============================================================
 async function eliminarSolicitud(id) {
-    if(!(isAdminUser() || tienePermiso('financiamientos_eliminar'))) { toast('No tienes permiso.', 'error'); return; }
+    if(!(isAdminUser() || tienePermiso('financiamientos_eliminar'))) { toast('No tiene permiso.', 'error'); return; }
     const s = (_finCache.solicitudes || []).find(x => x.id === id);
     if(!s) return;
     if(s.estado === 'aprobada') { toast('No se puede borrar una solicitud aprobada (ya tiene financiamiento).', 'error'); return; }
@@ -28164,12 +28164,12 @@ async function eliminarSolicitud(id) {
     } catch(e) { console.error('eliminarSolicitud', e); toast('No se pudo eliminar.', 'error'); }
 }
 function editarSolicitud(id) {
-    if(!(isAdminUser() || tienePermiso('financiamientos_crear'))) { toast('No tienes permiso.', 'error'); return; }
+    if(!(isAdminUser() || tienePermiso('financiamientos_crear'))) { toast('No tiene permiso.', 'error'); return; }
     const s = (_finCache.solicitudes || []).find(x => x.id === id);
     if(!s) return;
     if(s.estado !== 'pendiente') { toast('Solo se pueden editar solicitudes pendientes.', 'error'); return; }
     const html = `
-        <p style="font-size:12px; color:var(--text-muted); margin-top:0;">Para editar los datos del cliente usa la pestaña Clientes → Ficha → Editar.</p>
+        <p style="font-size:12px; color:var(--text-muted); margin-top:0;">Para editar los datos del cliente use la pestaña Clientes → Ficha → Editar.</p>
         <div class="form-row"><label>Concepto *</label><input type="text" id="edsConcepto" value="${escapeHtml(s.concepto || '')}"></div>
         <div class="form-row"><label>IMEI</label><input type="text" id="edsImei" value="${escapeHtml(s.equipo_imei || '')}"></div>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
@@ -28209,7 +28209,7 @@ async function guardarEdicionSolicitud(id) {
     const inicialVal = parseFloat(document.getElementById('edsInicial')?.value) || 0;
     const inicial = (document.getElementById('edsInicialTipo')?.value === 'pct') ? Math.round(total * inicialVal) / 100 : inicialVal;
     const nc = Math.max(1, parseInt(document.getElementById('edsCuotas')?.value, 10) || 1);
-    if(total <= 0 || inicial >= total) { toast('Revisa el precio total y la inicial.', 'error'); return; }
+    if(total <= 0 || inicial >= total) { toast('Revise el precio total y la inicial.', 'error'); return; }
     const interesMetodo = document.getElementById('edsInteresMetodo')?.value || 'plano';
     const interesTasa = parseFloat(document.getElementById('edsInteresTasa')?.value) || 0;
     const cuotasFase1 = parseInt(document.getElementById('edsCuotasFase1')?.value, 10) || 0;
@@ -28284,7 +28284,7 @@ function _finLeerClienteForm() {
     return { cliente, refs };
 }
 function nuevoClienteFin() {
-    if(!(isAdminUser() || tienePermiso('financiamientos_crear'))) { toast('No tienes permiso.', 'error'); return; }
+    if(!(isAdminUser() || tienePermiso('financiamientos_crear'))) { toast('No tiene permiso.', 'error'); return; }
     const html = _finClienteFormFields({}, []) + `
         <div style="display:flex; gap:8px; justify-content:flex-end;">
             <button class="btn btn-light" onclick="document.getElementById('modalGenerico').remove()">Cancelar</button>
@@ -28294,7 +28294,7 @@ function nuevoClienteFin() {
     setTimeout(() => document.getElementById('ecNombre')?.focus(), 60);
 }
 async function guardarNuevoCliente() {
-    if(!(isAdminUser() || tienePermiso('financiamientos_crear'))) { toast('No tienes permiso.', 'error'); return; }
+    if(!(isAdminUser() || tienePermiso('financiamientos_crear'))) { toast('No tiene permiso.', 'error'); return; }
     const { cliente, refs } = _finLeerClienteForm();
     if(!cliente.nombre) { toast('El nombre es obligatorio.', 'error'); return; }
     try {
@@ -28310,7 +28310,7 @@ async function guardarNuevoCliente() {
     } catch(e) { console.error('guardarNuevoCliente', e); toast('No se pudo registrar el cliente.', 'error'); }
 }
 function editarCliente(id) {
-    if(!(isAdminUser() || tienePermiso('financiamientos_crear'))) { toast('No tienes permiso.', 'error'); return; }
+    if(!(isAdminUser() || tienePermiso('financiamientos_crear'))) { toast('No tiene permiso.', 'error'); return; }
     const c = finClienteDe(id);
     if(!c) return;
     const refs = finReferenciasDe(id);
@@ -28343,8 +28343,8 @@ async function guardarEdicionCliente(id) {
     } catch(e) { console.error('guardarEdicionCliente', e); toast('No se pudo actualizar.', 'error'); }
 }
 async function eliminarCliente(id) {
-    if(!(isAdminUser() || tienePermiso('financiamientos_eliminar'))) { toast('No tienes permiso.', 'error'); return; }
-    if(finFinanciamientosDeCliente(id).length) { toast('No se puede borrar: el cliente tiene financiamientos. Bórralos primero.', 'error'); return; }
+    if(!(isAdminUser() || tienePermiso('financiamientos_eliminar'))) { toast('No tiene permiso.', 'error'); return; }
+    if(finFinanciamientosDeCliente(id).length) { toast('No se puede borrar: el cliente tiene financiamientos. Elimínelos primero.', 'error'); return; }
     if(!confirm('¿Eliminar este cliente y sus referencias?')) return;
     try {
         const { error } = await supabaseClient.from('fin_clientes').delete().eq('id', id);
@@ -28355,7 +28355,7 @@ async function eliminarCliente(id) {
     } catch(e) { console.error('eliminarCliente', e); toast('No se pudo eliminar.', 'error'); }
 }
 async function eliminarFinanciamiento(finId) {
-    if(!(isAdminUser() || tienePermiso('financiamientos_eliminar'))) { toast('No tienes permiso.', 'error'); return; }
+    if(!(isAdminUser() || tienePermiso('financiamientos_eliminar'))) { toast('No tiene permiso.', 'error'); return; }
     if(!confirm('¿Eliminar PERMANENTEMENTE este financiamiento y todos sus abonos? Esta acción no se puede deshacer.')) return;
     try {
         await supabaseClient.from('fin_solicitudes').update({ financiamiento_id: null }).eq('financiamiento_id', finId);
@@ -28402,7 +28402,7 @@ function whatsappRecordatorioFin(finId) {
     let msg = `Hola ${f.cliente_nombre || ''}, le saludamos de ${_finTienda()}. `;
     if(prox) msg += `Le recordamos su cuota de ${money(prox.valor)} que ${atrasado ? 'venció el' : 'vence el'} ${_finFmtFecha(prox.vence)}. `;
     if(moraP > 0) msg += `Mora acumulada: ${money(moraP)}. `;
-    msg += `Saldo pendiente: ${money(saldo)}. ¡Gracias por su pago!`;
+    msg += `Saldo pendiente: ${money(saldo)}. Gracias por su pago.`;
     window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
@@ -28455,13 +28455,13 @@ function _finRecordatorioMsg(rec) {
     if(rec.tipo === 'previo') m += `Le recordamos que su cuota de ${money(cuota.valor)} vence el ${_finFmtFecha(cuota.vence)}. Puede pasar a pagar o transferir. `;
     else if(rec.tipo === 'vence') m += `Le recordamos que HOY (${_finFmtFecha(cuota.vence)}) vence su cuota de ${money(cuota.valor)}. Puede pasar a pagar o transferir. `;
     else { m += `Su cuota de ${money(cuota.valor)} venció el ${_finFmtFecha(cuota.vence)} (${rec.dias} día${rec.dias === 1 ? '' : 's'} de atraso). `; if(moraP > 0) m += `Mora acumulada: ${money(moraP)}. `; m += `Le pedimos ponerse al día para evitar el bloqueo del equipo. `; }
-    m += `Saldo pendiente: ${money(saldo)}. ¡Gracias!`;
+    m += `Saldo pendiente: ${money(saldo)}. Gracias.`;
     return m;
 }
 function _finWaNum(tel) { const t = (tel || '').replace(/\D/g, ''); return t.length === 10 ? '1' + t : t; }
 function abrirRecordatoriosHoy() {
-    if(!(isAdminUser() || tienePermiso('financiamientos_cobrar') || tienePermiso('financiamientos_ver'))) { toast('No tienes permiso.', 'error'); return; }
-    const cont = `<div style="font-size:12.5px; color:var(--text-muted); margin-bottom:12px;">El sistema arma solo a quién recordarle <b>hoy</b>. Toca <b>WhatsApp</b> para enviar el mensaje (ya viene escrito) y queda marcado como enviado para no repetir.</div><div id="finRecoLista"></div>`;
+    if(!(isAdminUser() || tienePermiso('financiamientos_cobrar') || tienePermiso('financiamientos_ver'))) { toast('No tiene permiso.', 'error'); return; }
+    const cont = `<div style="font-size:12.5px; color:var(--text-muted); margin-bottom:12px;">El sistema arma solo a quién recordarle <b>hoy</b>. Toque <b>WhatsApp</b> para enviar el mensaje (ya viene escrito) y queda marcado como enviado para no repetir.</div><div id="finRecoLista"></div>`;
     _finModalPago('Recordatorios de hoy', cont);
     _finRecordatoriosRender();
 }
@@ -28553,9 +28553,9 @@ async function _finGuardarConfigBloqueo(campo, valor) {
 // senal de fraude/intento de escapar del control remoto.
 const _AUDIT_TIPO_TXT = { DEVICE_IS_ERASED: 'Equipo borrado', DEVICE_UNASSIGNED_FROM_SERVER: 'Desasignado del servidor MDM', DEVICE_REMOVED_FROM_ORG: 'Sacado de la organizacion' };
 async function abrirAuditoriaSeguridadMdm() {
-    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso.', 'error'); return; }
+    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tiene permiso.', 'error'); return; }
     abrirModalGenerico('Seguridad MDM — Apple Business Manager', `
-        <div style="font-size:12.5px; color:var(--text-muted); margin-bottom:10px;">Revisa los últimos 30 días en busca de equipos <b>borrados</b>, <b>desasignados de Hexnode</b> o <b>sacados de la organización</b> sin pasar por "Liberar" — posible señal de fraude en un financiamiento activo.</div>
+        <div style="font-size:12.5px; color:var(--text-muted); margin-bottom:10px;">Se revisan los últimos 30 días en busca de equipos <b>borrados</b>, <b>desasignados de Hexnode</b> o <b>sacados de la organización</b> sin pasar por "Liberar" — posible señal de fraude en un financiamiento activo.</div>
         <div id="auditMdmCont"><div style="text-align:center; color:var(--text-muted); padding:24px;"><i class="ti ti-loader"></i> Consultando Apple Business Manager…</div></div>
     `);
     try {
@@ -28599,7 +28599,7 @@ function _auditMdmRender(eventos) {
     cont.innerHTML = html;
 }
 function abrirListosBloqueo() {
-    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso para bloquear equipos.', 'error'); return; }
+    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tiene permiso para bloquear equipos.', 'error'); return; }
     const gr = _finDiasGracia();
     const cont = `
         <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:12px; font-size:12.5px; color:var(--text-muted);">
@@ -28663,7 +28663,7 @@ async function _finBloquearTodosEnrolados() {
 
 // ---- Control MDM ----
 async function guardarMDM(finId) {
-    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso.', 'error'); return; }
+    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tiene permiso.', 'error'); return; }
     const datos = {
         mdm_enrolado: !!document.getElementById('mdmEnrolado')?.checked,
         mdm_estado: document.getElementById('mdmEstado')?.value || 'ninguno',
@@ -28680,8 +28680,8 @@ async function guardarMDM(finId) {
 }
 // Quita el equipo de este cliente (lo desvincula) para poder asignarlo a otro. NO toca Hexnode, solo el enlace en el sistema.
 async function desvincularEquipoMDM(finId) {
-    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso.', 'error'); return; }
-    if(!confirm('¿Quitar el equipo de este cliente?\n\nEsto SUELTA el enlace en el sistema para que el equipo quede DISPONIBLE y lo puedas asignar a otro cliente.\n\n(No borra ni desenrola nada en Hexnode. Si el cliente no saldó, recuerda recuperar/desenrolar el equipo aparte.)')) return;
+    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tiene permiso.', 'error'); return; }
+    if(!confirm('¿Quitar el equipo de este cliente?\n\nEsto SUELTA el enlace en el sistema para que el equipo quede DISPONIBLE y se pueda asignar a otro cliente.\n\n(No borra ni desenrola nada en Hexnode. Si el cliente no saldó, recuerde recuperar/desenrolar el equipo aparte.)')) return;
     try {
         const { error } = await supabaseClient.from('financiamientos').update({ mdm_device_id: null, mdm_serial: null, mdm_estado: 'ninguno', mdm_enrolado: false }).eq('id', finId);
         if(error) throw error;
@@ -28715,10 +28715,10 @@ function _mdmDispOcupadoPor(d, lm) {
     return null;
 }
 async function abrirBuscadorEquipos(finId) {
-    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso.', 'error'); return; }
+    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tiene permiso.', 'error'); return; }
     _mdmDispFinId = finId; _mdmDispBusq = '';
     abrirModalGenerico('Equipos enrolados disponibles', `
-        <div style="font-size:12.5px; color:#475569; margin-bottom:8px;">Equipos enrolados en Hexnode que <b>aún no están enlazados</b> a ningún cliente. Búscalos por IMEI, serie, modelo o nombre (puedes poner solo los <b>últimos 4 dígitos</b>).</div>
+        <div style="font-size:12.5px; color:#475569; margin-bottom:8px;">Equipos enrolados en Hexnode que <b>aún no están enlazados</b> a ningún cliente. Búsquelos por IMEI, serie, modelo o nombre (puede escribir solo los <b>últimos 4 dígitos</b>).</div>
         <input id="mdmDispBusq" placeholder="Buscar… (ej. 7678, modelo, serie)" oninput="_mdmDispFiltrar(this.value)" autocomplete="off" style="width:100%; padding:10px 12px; font-size:14px; border:1px solid #cbd5e1; border-radius:8px; margin-bottom:10px;">
         <div id="mdmDispLista"><div style="text-align:center; color:#475569; padding:24px;">⏳ Cargando equipos de Hexnode…</div></div>
     `);
@@ -28781,7 +28781,7 @@ function _mdmDispUsar(deviceId) {
 //   EQUIPOS ENROLADOS DISPONIBLES (listos para financiar)
 // ============================================================
 async function abrirEquiposDisponibles() {
-    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso.', 'error'); return; }
+    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tiene permiso.', 'error'); return; }
     _mdmDispFinId = null; _mdmDispBusq = '';
     abrirModalGenerico('Equipos enrolados', `
         <div style="font-size:12.5px; color:var(--text-muted); margin-bottom:8px;">Equipos enrolados en Hexnode. Los <b>disponibles</b> están listos para financiar (aún sin cliente asignado).</div>
@@ -28832,12 +28832,12 @@ function _edRender() {
 function _finQrRender(text, elId, size) {
     const el = document.getElementById(elId); if(!el) return;
     el.innerHTML = '';
-    if(!window.QRCode) { el.innerHTML = '<div style="color:var(--fin-danger); font-size:12px;">No se pudo cargar el generador de QR (revisa tu internet).</div>'; return; }
+    if(!window.QRCode) { el.innerHTML = '<div style="color:var(--fin-danger); font-size:12px;">No se pudo cargar el generador de QR (revise su conexión a internet).</div>'; return; }
     try { new QRCode(el, { text: text, width: size || 220, height: size || 220, correctLevel: QRCode.CorrectLevel.L }); }
     catch(e) { el.innerHTML = '<div style="color:var(--fin-danger); font-size:12px;">No se pudo generar el QR.</div>'; }
 }
 function abrirQrEnrolarAndroid() {
-    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso.', 'error'); return; }
+    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tiene permiso.', 'error'); return; }
     const data = (_finCache.config || {}).enroll_android || '';
     if(!data) { _editarEnrollAndroid(true); return; }
     abrirModalGenerico('QR para enrolar Android', `
@@ -28846,10 +28846,10 @@ function abrirQrEnrolarAndroid() {
             <div style="font-size:12.5px; color:var(--text-muted); margin-top:12px; text-align:left; background:#f8fafc; border:1px solid var(--border-color); border-radius:11px; padding:11px 13px;">
                 <b>Cómo enrolar un Android:</b>
                 <ol style="margin:6px 0 0; padding-left:18px; line-height:1.6;">
-                    <li>Usa un equipo <b>nuevo o reseteado de fábrica</b>.</li>
-                    <li>En la pantalla de bienvenida, toca <b>6 veces seguidas</b> el mismo punto.</li>
-                    <li>Se abre el lector de QR: <b>escanea este código</b>.</li>
-                    <li>Sigue los pasos; el equipo queda enrolado en Hexnode (administrado por BAYOL CELL).</li>
+                    <li>Use un equipo <b>nuevo o reseteado de fábrica</b>.</li>
+                    <li>En la pantalla de bienvenida, toque <b>6 veces seguidas</b> el mismo punto.</li>
+                    <li>Se abre el lector de QR: <b>escanee este código</b>.</li>
+                    <li>Siga los pasos; el equipo queda enrolado en Hexnode (administrado por BAYOL CELL).</li>
                 </ol>
             </div>
             <div style="display:flex; gap:8px; justify-content:center; margin-top:12px; flex-wrap:wrap;">
@@ -28863,9 +28863,9 @@ function _editarEnrollAndroid(primera) {
     const data = (_finCache.config || {}).enroll_android || '';
     abrirModalGenerico('Dato de enrolamiento Android', `
         <div style="font-size:12.5px; color:var(--text-muted); margin-bottom:8px;">
-            ${primera ? 'Aún no hay un QR de enrolamiento configurado. ' : ''}Pega el <b>dato del QR de enrolamiento Android</b> que te da <b>Hexnode</b> (en Hexnode: <i>Enroll → Android → Device Owner / QR</i>). Con eso generamos el QR grande e imprimible.
+            ${primera ? 'Aún no hay un QR de enrolamiento configurado. ' : ''}Pegue el <b>dato del QR de enrolamiento Android</b> que entrega <b>Hexnode</b> (en Hexnode: <i>Enroll → Android → Device Owner / QR</i>). Con eso generamos el QR grande e imprimible.
         </div>
-        <textarea id="enrollAndroidTxt" rows="5" placeholder="Pega aquí el texto/JSON del QR de Hexnode…" style="width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:12px; font-family:monospace;">${escapeHtml(data)}</textarea>
+        <textarea id="enrollAndroidTxt" rows="5" placeholder="Pegue aquí el texto/JSON del QR de Hexnode…" style="width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:12px; font-family:monospace;">${escapeHtml(data)}</textarea>
         <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:10px;">
             <button class="btn btn-light" onclick="document.getElementById('modalGenerico').remove()">Cancelar</button>
             <button class="btn btn-blue" onclick="_guardarEnrollAndroid()"><i class="ti ti-device-floppy"></i> Guardar y ver QR</button>
@@ -28873,7 +28873,7 @@ function _editarEnrollAndroid(primera) {
 }
 async function _guardarEnrollAndroid() {
     const txt = (document.getElementById('enrollAndroidTxt')?.value || '').trim();
-    if(!txt) { toast('Pega el dato de enrolamiento de Hexnode.', 'error'); return; }
+    if(!txt) { toast('Pegue el dato de enrolamiento de Hexnode.', 'error'); return; }
     try {
         await supabaseClient.from('fin_config').update({ enroll_android: txt }).eq('id', 1);
         _finCache.config = { ..._finCache.config, enroll_android: txt };
@@ -28896,7 +28896,7 @@ function imprimirQrEnrolarAndroid() {
         if(!src) { toast('No se pudo generar el QR.', 'error'); return; }
         const c = cache.configTaller || {};
         const w = window.open('', '_blank', 'width=460,height=680');
-        if(!w) { toast('Permite las ventanas emergentes para imprimir.', 'error'); return; }
+        if(!w) { toast('Permita las ventanas emergentes para imprimir.', 'error'); return; }
         w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>QR Enrolamiento Android</title>
             <style>body{font-family:'Segoe UI',Arial,sans-serif;text-align:center;padding:24px;color:#111;} h2{margin:4px 0;} img{width:300px;height:300px;margin:12px 0;} ol{text-align:left;font-size:14px;max-width:340px;margin:8px auto;line-height:1.6;}</style>
             </head><body>
@@ -28905,9 +28905,9 @@ function imprimirQrEnrolarAndroid() {
             <img src="${src}" alt="QR">
             <ol>
                 <li>Equipo nuevo o reseteado de fábrica.</li>
-                <li>En la bienvenida, toca 6 veces la pantalla.</li>
-                <li>Se abre el lector de QR: escanea este código.</li>
-                <li>Sigue los pasos hasta terminar.</li>
+                <li>En la bienvenida, toque 6 veces la pantalla.</li>
+                <li>Se abre el lector de QR: escanee este código.</li>
+                <li>Siga los pasos hasta terminar.</li>
             </ol>
             <script>setTimeout(function(){window.print();},400);<\/script>
             </body></html>`);
@@ -28961,11 +28961,11 @@ async function mdmConfirmarAplicado(finId, accionTxt){
     }
 }
 async function mdmAccionReal(finId, accion) {
-    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso.', 'error'); return; }
+    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tiene permiso.', 'error'); return; }
     const txt = accion === 'bloquear' ? 'BLOQUEAR el equipo en Hexnode' : 'DESBLOQUEAR el equipo en Hexnode';
     const aviso = accion === 'bloquear'
-        ? `¿Confirmas ${txt}?\n\nIMPORTANTE: si el equipo tiene internet AHORA, se bloquea en segundos.\nSi está apagado o sin internet, la orden queda EN ESPERA y se aplica sola en cuanto el cliente conecte (no se pierde).`
-        : `¿Confirmas ${txt}?\n\nSi el equipo tiene internet AHORA, se desbloquea en segundos. Si no, se aplica cuando conecte.`;
+        ? `¿Confirma ${txt}?\n\nIMPORTANTE: si el equipo tiene internet AHORA, se bloquea en segundos.\nSi está apagado o sin internet, la orden queda EN ESPERA y se aplica sola en cuanto el cliente conecte (no se pierde).`
+        : `¿Confirma ${txt}?\n\nSi el equipo tiene internet AHORA, se desbloquea en segundos. Si no, se aplica cuando conecte.`;
     if(!confirm(aviso)) return;
     toast('Enviando orden a Hexnode...');
     try {
@@ -29050,7 +29050,7 @@ async function mdmVerificar(finId, btn) {
             if(cont) cont.innerHTML = `<div style="background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; padding:8px 12px; border-radius:8px;"><b><i class="ti ti-circle-check"></i> Equipo enrolado en Hexnode.</b>${d.name ? '<br><i class="ti ti-device-mobile"></i> ' + escapeHtml(d.name) : ''}<br>Estado: ${escapeHtml(d.estado || 'enrolled')}${detalle ? ' · ' + escapeHtml(detalle) : ''}${conexHtml}${lockHtml}${autoTxt}<br><b><i class="ti ti-circle-check"></i> LISTO para entregar al cliente.</b></div>`;
         } else {
             const msg = (data && data.error) || 'El equipo NO aparece enrolado en Hexnode.';
-            if(cont) cont.innerHTML = `<div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:8px 12px; border-radius:8px;"><b><i class="ti ti-x"></i> NO verificado.</b><br>${escapeHtml(msg)}<br><b><i class="ti ti-alert-triangle"></i> NO entregues el equipo todavía.</b></div>`;
+            if(cont) cont.innerHTML = `<div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:8px 12px; border-radius:8px;"><b><i class="ti ti-x"></i> NO verificado.</b><br>${escapeHtml(msg)}<br><b><i class="ti ti-alert-triangle"></i> NO entregue el equipo todavía.</b></div>`;
         }
     } catch(e){
         if(cont) cont.innerHTML = `<div style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:8px 12px; border-radius:8px;"><i class="ti ti-alert-triangle"></i> Error al verificar: ${escapeHtml(e.message || String(e))}</div>`;
@@ -29059,7 +29059,7 @@ async function mdmVerificar(finId, btn) {
 // ===== Notificaciones al equipo (modal con plantillas) =====
 let _notifMdmFinId = null;
 function abrirNotifMdm(finId){
-    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso.', 'error'); return; }
+    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tiene permiso.', 'error'); return; }
     _notifMdmFinId = finId;
     const t = document.getElementById('notifMdmTexto'); if(t) t.value = '';
     const m = document.getElementById('notifMdmMsg'); if(m) m.textContent = '';
@@ -29084,12 +29084,12 @@ async function enviarNotifMdm(texto){
 }
 function enviarNotifMdmCustom(){
     const t = (document.getElementById('notifMdmTexto')?.value || '').trim();
-    if(!t){ toast('Escribe un mensaje primero.', 'error'); return; }
+    if(!t){ toast('Escriba un mensaje primero.', 'error'); return; }
     enviarNotifMdm(t);
 }
 // Ubicar el equipo (ubicación actual via Hexnode)
 async function mdmUbicar(finId, btn){
-    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso.', 'error'); return; }
+    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tiene permiso.', 'error'); return; }
     const cont = document.getElementById('mdmLoc_' + finId);
     const orig = btn ? btn.innerHTML : '';
     if(btn){ btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Ubicando…'; }
@@ -29109,7 +29109,7 @@ async function mdmUbicar(finId, btn){
 }
 // Enviar una notificación/mensaje a la pantalla del equipo del cliente (vía Hexnode)
 async function mdmEnviarMensaje(finId) {
-    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso.', 'error'); return; }
+    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tiene permiso.', 'error'); return; }
     const mensaje = await pedirTexto('Mensaje para enviar al equipo del cliente:', { valor: 'Le recordamos que su cuota está próxima a vencer. Gracias — BAYOL CELL' });
     if(!mensaje || !mensaje.trim()) return;
     toast('Enviando notificación...');
@@ -29122,9 +29122,9 @@ async function mdmEnviarMensaje(finId) {
 }
 // Borrar (wipe) un equipo recuperado: lo deja limpio, sin la cuenta del cliente, listo para revender.
 async function mdmBorrarEquipo(finId) {
-    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso.', 'error'); return; }
-    if(!confirm('BORRADO TOTAL del equipo recuperado.\n\nEsto BORRA TODO: la cuenta del cliente, sus datos y su clave. El equipo queda LIMPIO para revender (sin candado de cuenta).\n\nSolo hazlo si YA recuperaste el equipo físicamente.\n\n¿Continuar?')) return;
-    const conf = await pedirTexto('Para confirmar el borrado total, escribe la palabra: BORRAR');
+    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tiene permiso.', 'error'); return; }
+    if(!confirm('BORRADO TOTAL del equipo recuperado.\n\nEsto BORRA TODO: la cuenta del cliente, sus datos y su clave. El equipo queda LIMPIO para revender (sin candado de cuenta).\n\nHágalo solo si YA recuperó el equipo físicamente.\n\n¿Continuar?')) return;
+    const conf = await pedirTexto('Para confirmar el borrado total, escriba la palabra: BORRAR');
     if(!conf || conf.trim().toUpperCase() !== 'BORRAR') { toast('Borrado cancelado.', 'error'); return; }
     toast('Enviando orden de borrado a Hexnode...');
     try {
@@ -29137,8 +29137,8 @@ async function mdmBorrarEquipo(finId) {
 }
 // Liberar el equipo cuando el cliente SALDA: quita el MDM (disenroll), sin borrar sus datos. Queda 100% del cliente.
 async function mdmLiberarEquipo(finId) {
-    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tienes permiso.', 'error'); return; }
-    if(!confirm('LIBERAR equipo (financiamiento saldado).\n\nEsto QUITA el MDM del equipo (se va el "administrado por BAYOL CELL"). El equipo queda 100% del cliente. NO se borran sus datos.\n\nHazlo solo si el cliente YA pagó todo.\n\n¿Continuar?')) return;
+    if(!(isAdminUser() || tienePermiso('financiamientos_aprobar'))) { toast('No tiene permiso.', 'error'); return; }
+    if(!confirm('LIBERAR equipo (financiamiento saldado).\n\nEsto QUITA el MDM del equipo (se va el "administrado por BAYOL CELL"). El equipo queda 100% del cliente. NO se borran sus datos.\n\nHágalo solo si el cliente YA pagó todo.\n\n¿Continuar?')) return;
     toast('Liberando equipo en Hexnode...');
     try {
         const { data, error } = await supabaseClient.functions.invoke('mdm-accion', { body: { financiamiento_id: finId, accion: 'liberar', ..._mdmExtra() } });
@@ -29225,7 +29225,7 @@ function _consultaCalcular() {
     const o = _consultaObj();
     const prev = document.getElementById('cqFinanciadoPrev');
     if(prev) prev.textContent = money(finFinanciado(o));
-    if(o.monto_total <= 0) { cont.innerHTML = `<div class="card" style="color:var(--text-muted);">Ingresa el precio del equipo para ver el estimado.</div>`; return; }
+    if(o.monto_total <= 0) { cont.innerHTML = `<div class="card" style="color:var(--text-muted);">Ingrese el precio del equipo para ver el estimado.</div>`; return; }
     o.valor_cuota = finValorCuotaCalc(o);
     const interes = finInteresTotal(o);
     const total = finMontoCuotas(o);
@@ -29249,13 +29249,13 @@ function _consultaCalcular() {
 }
 function _consultaImprimir() {
     const o = _consultaObj();
-    if(o.monto_total <= 0) { toast('Ingresa el monto.', 'error'); return; }
+    if(o.monto_total <= 0) { toast('Ingrese el monto.', 'error'); return; }
     o.valor_cuota = finValorCuotaCalc(o);
     const c = cache.configTaller || {};
     const rows = _finAmortizacionRows(o);
     const conInteres = finInteresTotal(o) > 0;
     const w = window.open('', '_blank', 'width=480,height=700');
-    if(!w) { toast('Permite las ventanas emergentes para imprimir.', 'error'); return; }
+    if(!w) { toast('Permita las ventanas emergentes para imprimir.', 'error'); return; }
     w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Estimado de financiamiento</title>
         <style>body{font-family:'Segoe UI',Arial,sans-serif;color:#111;padding:20px;max-width:440px;margin:0 auto;font-size:13px;}
         table{width:100%;border-collapse:collapse;font-size:12px;} th,td{padding:5px 4px;border-bottom:1px solid #e5e7eb;text-align:left;}
@@ -29387,7 +29387,7 @@ async function _crmImportarHistorial() {
 
     try {
         const { data: { session } } = await supabaseClient.auth.getSession();
-        if(!session?.access_token) throw new Error('La sesión venció. Inicia sesión de nuevo.');
+        if(!session?.access_token) throw new Error('La sesión venció. Inicie sesión de nuevo.');
 
         for(const linea of lineas) {
             let cursor = null, paginas = 0;
@@ -29663,7 +29663,7 @@ function _pintarWhatsappLista() {
     }
     const lista = _crmHilosFiltrados();
     if(!lista.length) {
-        cont.innerHTML = `<div class="crm-vacio">Ninguna conversación coincide con lo que buscas.</div>`;
+        cont.innerHTML = `<div class="crm-vacio">Ninguna conversación coincide con la búsqueda.</div>`;
         _crmListaAnimarProxima = false;
         return;
     }
@@ -29884,7 +29884,7 @@ async function _waEnviarSugerenciaIA(sugerenciaId) {
     if(!hiloDestino) { _crmFinalizarAccion(lockKey); return; }
     try {
         const { data: { session } } = await supabaseClient.auth.getSession();
-        if(!session) { toastError('Inicia sesión de nuevo.'); return; }
+        if(!session) { toastError('Inicie sesión de nuevo.'); return; }
         const res = await fetch(CONFIG_URL + '/functions/v1/whatsapp-enviar', {
             method: 'POST',
             headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY, 'Content-Type': 'application/json' },
@@ -29976,7 +29976,7 @@ async function _waAbrirConfigAgenteIA() {
                 <input id="iaLng_${s.id}" type="number" step="any" placeholder="Longitud (ej: -70.6970)" value="${cfg.lng ?? ''}" style="flex:1; min-width:0; padding:6px 8px; border:1px solid #cbd5e1; border-radius:7px; font-size:12px;">
                 <button class="btn btn-light" style="font-size:11.5px; white-space:nowrap;" onclick="_waGuardarUbicacionSucursal('${s.id}')"><i class="ti ti-device-floppy"></i></button>
             </div>
-            <div style="font-size:10.5px; color:#94a3b8; margin-top:3px;">Toca el botón de arriba, haz clic en el mapa exactamente donde está la tienda, y luego 💾 para guardar. (Los campos de Latitud/Longitud son solo por si ya sabes el número exacto.)</div>
+            <div style="font-size:10.5px; color:#94a3b8; margin-top:3px;">Toque el botón de arriba, haga clic en el mapa exactamente donde está la tienda y luego 💾 para guardar. (Los campos de Latitud/Longitud son solo por si ya conoce el número exacto.)</div>
         </div>`;
     }).join('') || `<div style="color:#94a3b8; font-size:12.5px;">No hay sucursales activas configuradas.</div>`;
 
@@ -30082,7 +30082,7 @@ function _waAsegurarModalMapaUbicacion() {
             <button class="modal-close" onclick="_waCerrarMapaUbicacion()">✕</button>
         </div>
         <div class="modal-body" style="padding:16px; display:flex; flex-direction:column; gap:10px;">
-            <div style="font-size:11.5px; color:#64748b;">Busca la zona o mueve el mapa, y haz clic exactamente donde está la tienda para poner el marcador.</div>
+            <div style="font-size:11.5px; color:#64748b;">Busque la zona o mueva el mapa y haga clic exactamente donde está la tienda para poner el marcador.</div>
             <div style="display:flex; gap:6px;">
                 <input id="mapaUbicBusq" placeholder="Buscar dirección o lugar (ej: Bayol Cell Santiago)" style="flex:1; min-width:0; padding:8px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:12.5px;" onkeydown="if(event.key==='Enter'){event.preventDefault(); _waBuscarEnMapaUbicacion();}">
                 <button class="btn btn-light" id="mapaUbicBtnBuscar" onclick="_waBuscarEnMapaUbicacion()" style="white-space:nowrap;"><i class="ti ti-search"></i> Buscar</button>
@@ -30113,7 +30113,7 @@ async function _waAbrirMapaUbicacion(sucursalId) {
         await _waCargarLeaflet();
     } catch(e) {
         logError('_waAbrirMapaUbicacion', e);
-        toastError('No se pudo cargar el mapa — revisa tu conexión e intenta de nuevo.');
+        toastError('No se pudo cargar el mapa. Revise su conexión e intente de nuevo.');
         _waCerrarMapaUbicacion();
         return;
     }
@@ -30136,7 +30136,7 @@ async function _waAbrirMapaUbicacion(sucursalId) {
         maxZoom: 19,
     }).addTo(_waMapaUbicMap);
     if(yaTeniaUbicacion) _waMapaUbicColocarMarcador(centro.lat, centro.lng);
-    else document.getElementById('mapaUbicCoords').textContent = 'Haz clic en el mapa…';
+    else document.getElementById('mapaUbicCoords').textContent = 'Haga clic en el mapa…';
     _waMapaUbicMap.on('click', (e) => _waMapaUbicColocarMarcador(e.latlng.lat, e.latlng.lng));
     // El modal pasa de display:none a flex justo antes de crear el mapa --
     // Leaflet mide el contenedor en ese instante y a veces sale con 0 de
@@ -30176,9 +30176,9 @@ async function _waBuscarEnMapaUbicacion() {
         const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=do&q=' + encodeURIComponent(q);
         const resp = await fetch(url, { headers: { 'Accept-Language': 'es' } });
         const data = await resp.json();
-        if(!data || !data[0]) { toastError('No se encontró ese lugar — prueba con otras palabras o mueve el mapa a mano.'); return; }
+        if(!data || !data[0]) { toastError('No se encontró ese lugar. Pruebe con otras palabras o mueva el mapa manualmente.'); return; }
         _waMapaUbicMap.setView([Number(data[0].lat), Number(data[0].lon)], 17);
-    } catch(e) { logError('_waBuscarEnMapaUbicacion', e); toastError('No se pudo buscar ese lugar — mueve el mapa a mano.'); }
+    } catch(e) { logError('_waBuscarEnMapaUbicacion', e); toastError('No se pudo buscar ese lugar. Mueva el mapa manualmente.'); }
     finally { btn.disabled = false; btn.innerHTML = original; }
 }
 
@@ -30189,7 +30189,7 @@ function _waUsarUbicacionDelMapa() {
     const lngInp = document.getElementById('iaLng_' + _waMapaUbicSucursalId);
     if(latInp) latInp.value = p.lat.toFixed(6);
     if(lngInp) lngInp.value = p.lng.toFixed(6);
-    toast('📍 Coordenadas listas — toca 💾 para guardar.');
+    toast('📍 Coordenadas listas. Toque 💾 para guardar.');
     _waCerrarMapaUbicacion();
 }
 
@@ -30285,7 +30285,7 @@ async function _waAbrirRevisionEpisodios() {
 function _waRevisionEpisodiosHTML() {
     const { episodios, hilosPorId } = _waEpisodiosCache || { episodios: [], hilosPorId: {} };
     const intro = `<div style="font-size:12.5px; color:#64748b; margin-bottom:14px;">
-        El agente está en <b>observación</b>: nunca envía ni sugiere nada de esto, solo lo guarda para comparar contra lo que el empleado respondió de verdad. Marca cada uno como <b>Se parece</b> (el borrador del agente iba bien encaminado) o <b>No se parece</b> (iba mal / le faltó algo) — esto NO activa nada solo; es la base para decidir más adelante, con criterio, si algún tipo de respuesta puede pasar a copiloto.
+        El agente está en <b>observación</b>: nunca envía ni sugiere nada de esto, solo lo guarda para comparar contra lo que el empleado respondió de verdad. Marque cada uno como <b>Se parece</b> (el borrador del agente iba bien encaminado) o <b>No se parece</b> (iba mal / le faltó algo) — esto NO activa nada solo; es la base para decidir más adelante, con criterio, si algún tipo de respuesta puede pasar a copiloto.
     </div>`;
     if(!episodios.length) {
         return intro + `<div style="color:#94a3b8; font-size:12.5px; text-align:center; padding:20px 0;">No hay episodios listos para revisar por ahora.</div>
@@ -30324,7 +30324,7 @@ function _waRevisionEpisodiosHTML() {
 async function _waEvaluarEpisodio(id, evaluacion) {
     let nota = null;
     if(evaluacion === 'no_parecido') {
-        nota = await pedirTexto('¿Qué le faltó o qué hizo mal el agente? (opcional)', { multilinea: true });
+        nota = await pedirTexto('Qué le faltó o qué hizo mal el agente (opcional):', { multilinea: true });
     }
     try {
         const { error } = await supabaseClient.from('whatsapp_ia_episodios').update({
@@ -30423,14 +30423,14 @@ function _waMetaHTML(m) {
 // Por qué falló un mensaje, en palabras del dueño (18-oct-2026). Zernio guarda el error de Meta en error_detalle
 // (JSON {code, message}); estos son los códigos que de verdad aparecieron en los últimos 30 días, más los de 24 h.
 const _WA_MOTIVOS_FALLO = {
-    130429: 'Se mandaron demasiados mensajes seguidos. Espera unos minutos y vuelve a intentarlo.',
-    131049: 'WhatsApp lo frenó para no saturar al cliente con mensajes de promoción. Escríbele más tarde o desde el celular.',
+    130429: 'Se enviaron demasiados mensajes seguidos. Espere unos minutos e intente de nuevo.',
+    131049: 'WhatsApp lo frenó para no saturar al cliente con mensajes de promoción. Escríbale más tarde o desde el celular.',
     130472: 'Meta tiene este número en una prueba y no le entrega mensajes de promoción.',
     131026: 'No se pudo entregar: el número no tiene WhatsApp, bloqueó a la línea o tiene una versión vieja.',
     131031: 'La cuenta de WhatsApp Business está bloqueada. Hay que revisarla en Meta Business.',
     131047: 'Pasaron más de 24 horas desde el último mensaje del cliente: hay que mandar una plantilla.',
     470: 'Pasaron más de 24 horas desde el último mensaje del cliente: hay que mandar una plantilla.',
-    131053: 'No se pudo subir el archivo adjunto. Prueba con otro archivo.',
+    131053: 'No se pudo subir el archivo adjunto. Pruebe con otro archivo.',
 };
 function _waMotivoFallo(m) {
     if(!m || m.estado !== 'fallido') return '';
@@ -30552,7 +30552,7 @@ function _pintarWhatsappDetalle() {
     // sin ningun boton para pararlos.
     if(_waGrabando && _waGrabandoHiloId === _waHiloId) return;
     if(!_waHiloId) {
-        cont.innerHTML = `<div class="wa-chat-empty">Selecciona una conversación de la lista.</div>`;
+        cont.innerHTML = `<div class="wa-chat-empty">Seleccione una conversación de la lista.</div>`;
         _waDetalleHiloPintadoId = null;
         return;
     }
@@ -30626,7 +30626,7 @@ function _pintarWhatsappDetalle() {
                 <button class="wa-icon-btn" id="btnWaEmoji" onclick="_waAbrirEmojis(event)" title="Emoji"><i class="ti ti-mood-smile"></i></button>
                 <button class="wa-icon-btn" id="btnWaAdjuntar" onclick="_waAbrirMenuAdjuntar(event)" title="Adjuntar"><i class="ti ti-paperclip"></i></button>
                 <button class="wa-icon-btn" id="btnWaUbicacion" onclick="_crmMostrarMenuUbicacion('whatsapp', this)" title="Enviar ubicación de la tienda"><i class="ti ti-map-pin"></i></button>
-                <textarea id="waTexto" rows="1" placeholder="Escribe una respuesta..." autocapitalize="none" autocorrect="off" oninput="_waActualizarBotonEnvio(); _waSlashDetectar(this)" onkeydown="_waTextoKeydown(event)"></textarea>
+                <textarea id="waTexto" rows="1" placeholder="Escriba una respuesta..." autocapitalize="none" autocorrect="off" oninput="_waActualizarBotonEnvio(); _waSlashDetectar(this)" onkeydown="_waTextoKeydown(event)"></textarea>
                 <button class="wa-send-btn" id="btnWaEnviar" onclick="_waBotonPrincipalClick()"><i class="ti ti-microphone" id="iconWaEnviar"></i></button>
             </div>
             <div id="waGrabandoBar" class="wa-grabando-bar" style="display:none;"></div>`;
@@ -30816,7 +30816,7 @@ async function _waAbrirContactosSucursales() {
         if(!filas.length) { toastError('No hay líneas de WhatsApp activas para compartir.'); return; }
         _waContactosSucursalesCache = filas;
         const tel = n => { const d = String(n || '').replace(/\D/g, ''); return d.length === 11 && d[0] === '1' ? `${d.slice(1,4)}-${d.slice(4,7)}-${d.slice(7)}` : String(n || ''); };
-        const html = `<p style="margin:0 0 12px; font-size:13px; color:#475569;">Toca una sucursal y al cliente le llega su <b>tarjeta de contacto</b> para guardarla o escribirle.</p>
+        const html = `<p style="margin:0 0 12px; font-size:13px; color:#475569;">Toque una sucursal y al cliente le llega su <b>tarjeta de contacto</b> para guardarla o escribirle.</p>
             <div style="display:flex; flex-direction:column; gap:8px;">${filas.map((l, i) => `
                 <button type="button" onclick="_waEnviarContactoSucursal(${i}, this)" style="display:flex; align-items:center; gap:12px; width:100%; text-align:left; padding:12px 14px; border:1px solid #e2e8f0; border-radius:14px; background:${l.id === lineaChat ? '#f8fafc' : '#fff'}; cursor:pointer;">
                     <span style="flex:0 0 40px; height:40px; border-radius:50%; background:linear-gradient(180deg,#25D366,#128C7E); color:#fff; display:flex; align-items:center; justify-content:center; font-size:20px;"><i class="ti ti-brand-whatsapp"></i></span>
@@ -30840,7 +30840,7 @@ async function _waEnviarContactoSucursal(i, btn) {
     if(btn) { btn.disabled = true; btn.style.opacity = '.6'; }
     try {
         const { data: { session } } = await supabaseClient.auth.getSession();
-        if(!session) { toastError('Inicia sesión de nuevo.'); return; }
+        if(!session) { toastError('Inicie sesión de nuevo.'); return; }
         const nombre = `Bayol Cell ${l.sucursales?.nombre || ''} - ${l.nombre || 'WhatsApp'}`.replace(/\s+/g, ' ').trim();
         const respondeA = (_waRespondiendoA && _waRespondiendoA.hiloId === hiloDestino) ? _waRespondiendoA.id : null;
         const res = await fetch(CONFIG_URL + '/functions/v1/whatsapp-enviar', {
@@ -30886,11 +30886,11 @@ async function _waEnviarUbicacionSucursal(sucursalId) {
         const { data: cfg, error: cfgErr } = await supabaseClient.from('whatsapp_ia_config').select('lat, lng').eq('sucursal_id', sucursalId).maybeSingle();
         if(cfgErr) throw cfgErr;
         if(!cfg || cfg.lat == null || cfg.lng == null) {
-            toastError('Esta sucursal todavía no tiene coordenadas guardadas — configúralas en el botón 🤖 (Agente de IA) del CRM.');
+            toastError('Esta sucursal todavía no tiene coordenadas guardadas — configúrelas en el botón 🤖 (Agente de IA) del CRM.');
             return;
         }
         const { data: { session } } = await supabaseClient.auth.getSession();
-        if(!session) { toastError('Inicia sesión de nuevo.'); return; }
+        if(!session) { toastError('Inicie sesión de nuevo.'); return; }
         const respondeA = (_waRespondiendoA && _waRespondiendoA.hiloId === hiloDestino) ? _waRespondiendoA.id : null;
         const res = await fetch(CONFIG_URL + '/functions/v1/whatsapp-enviar', {
             method: 'POST',
@@ -30991,7 +30991,7 @@ async function _crmEnviarUbicacionTexto(canal, suc) {
         if(!_crmIniciarAccion(lockKey)) return;
         try {
             const { data: { session } } = await supabaseClient.auth.getSession();
-            if(!session) { toastError('Inicia sesión de nuevo.'); return; }
+            if(!session) { toastError('Inicie sesión de nuevo.'); return; }
             const res = await fetch(CONFIG_URL + '/functions/v1/whatsapp-enviar', {
                 method: 'POST',
                 headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY, 'Content-Type': 'application/json' },
@@ -31014,7 +31014,7 @@ async function _crmEnviarUbicacionTexto(canal, suc) {
         _igEnviando = true;
         try {
             const { data: { session } } = await supabaseClient.auth.getSession();
-            if(!session) { toastError('Inicia sesión de nuevo.'); return; }
+            if(!session) { toastError('Inicie sesión de nuevo.'); return; }
             const res = await fetch(CONFIG_URL + '/functions/v1/instagram-enviar', {
                 method: 'POST',
                 headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY, 'Content-Type': 'application/json' },
@@ -31223,7 +31223,7 @@ async function _waEnviarAdjunto() {
         // fetch, el archivo ya quedaba huerfano en Storage y el usuario
         // perdia el adjunto sin poder reintentar sin volver a elegirlo.
         const { data: { session } } = await supabaseClient.auth.getSession();
-        if(!session) { toastError('Inicia sesión de nuevo.'); return; }
+        if(!session) { toastError('Inicie sesión de nuevo.'); return; }
         const res = await fetch(CONFIG_URL + '/functions/v1/whatsapp-enviar', {
             method: 'POST',
             headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY, 'Content-Type': 'application/json' },
@@ -31296,7 +31296,7 @@ function _waInsertarEmoji(e) {
 
 /* ---------- Ubicacion: comparte la ubicacion ACTUAL del empleado (asi lo hace WhatsApp real) ---------- */
 function _waAbrirModalUbicacion() {
-    document.getElementById('waUbicacionEstado').textContent = 'Vas a compartir tu ubicación actual con el cliente.';
+    document.getElementById('waUbicacionEstado').textContent = 'Va a compartir su ubicación actual con el cliente.';
     document.getElementById('btnWaEnviarUbicacion').disabled = false;
     document.getElementById('modalWaUbicacion').classList.add('active');
 }
@@ -31312,12 +31312,12 @@ function _waEnviarUbicacion() {
     const btn = document.getElementById('btnWaEnviarUbicacion');
     const estado = document.getElementById('waUbicacionEstado');
     btn.disabled = true;
-    estado.textContent = 'Obteniendo tu ubicación...';
+    estado.textContent = 'Obteniendo su ubicación...';
     navigator.geolocation.getCurrentPosition(async (pos) => {
         try {
             const respondeA = (_waRespondiendoA && _waRespondiendoA.hiloId === hiloDestino) ? _waRespondiendoA.id : null;
             const { data: { session } } = await supabaseClient.auth.getSession();
-            if(!session) { toastError('Inicia sesión de nuevo.'); return; }
+            if(!session) { toastError('Inicie sesión de nuevo.'); return; }
             const res = await fetch(CONFIG_URL + '/functions/v1/whatsapp-enviar', {
                 method: 'POST',
                 headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY, 'Content-Type': 'application/json' },
@@ -31340,8 +31340,8 @@ function _waEnviarUbicacion() {
     }, () => {
         btn.disabled = false;
         _crmFinalizarAccion(lockKey);
-        estado.textContent = 'Vas a compartir tu ubicación actual con el cliente.';
-        toastError('No se pudo obtener tu ubicación — revisa el permiso de ubicación del navegador.');
+        estado.textContent = 'Va a compartir su ubicación actual con el cliente.';
+        toastError('No se pudo obtener su ubicación. Revise el permiso de ubicación del navegador.');
     }, { enableHighAccuracy: true, timeout: 10000 });
 }
 
@@ -31373,7 +31373,7 @@ async function _waEnviarContacto() {
     btn.disabled = true;
     try {
         const { data: { session } } = await supabaseClient.auth.getSession();
-        if(!session) { toastError('Inicia sesión de nuevo.'); return; }
+        if(!session) { toastError('Inicie sesión de nuevo.'); return; }
         const res = await fetch(CONFIG_URL + '/functions/v1/whatsapp-enviar', {
             method: 'POST',
             headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY, 'Content-Type': 'application/json' },
@@ -31417,7 +31417,7 @@ async function _waAbrirModalPlantilla() {
     try {
         const { data: { session } } = await supabaseClient.auth.getSession();
         if(token !== _waPlantillaToken) return; // se cerro/reabrio el modal mientras esperabamos la sesion
-        if(!session) { toastError('Inicia sesión de nuevo.'); cerrarModalWaPlantilla(); return; }
+        if(!session) { toastError('Inicie sesión de nuevo.'); cerrarModalWaPlantilla(); return; }
         const res = await fetch(`${CONFIG_URL}/functions/v1/whatsapp-plantillas?linea_id=${encodeURIComponent(h.linea_id)}`, {
             headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY }
         });
@@ -31429,14 +31429,14 @@ async function _waAbrirModalPlantilla() {
         }
         _waPlantillas = j.templates || [];
         if(!_waPlantillas.length) {
-            cont.innerHTML = `<div style="text-align:center; padding:20px; color:#8696a0; font-size:13px;">No tienes plantillas aprobadas todavía — créalas y somételas a revisión desde el panel de Zernio.</div>`;
+            cont.innerHTML = `<div style="text-align:center; padding:20px; color:#8696a0; font-size:13px;">Todavía no hay plantillas aprobadas. Créelas y sométalas a revisión desde el panel de Zernio.</div>`;
             return;
         }
         cont.innerHTML = `
             <div class="form-row">
                 <label>Plantilla</label>
                 <select id="waPlantillaSelect" onchange="_waSeleccionarPlantilla()">
-                    <option value="">Elige una plantilla...</option>
+                    <option value="">Seleccione una plantilla...</option>
                     ${_waPlantillas.map((t, i) => `<option value="${i}">${escapeHtml(t.name)} (${escapeHtml(t.category || '')} · ${escapeHtml(t.language || '')})</option>`).join('')}
                 </select>
             </div>
@@ -31524,7 +31524,7 @@ async function _waEnviarPlantilla() {
     const esNombrado = tokens.length > 0 && tokens.some(tk => !/^\d+$/.test(tk));
     const inputs = [...document.querySelectorAll('.wa-plantilla-var')];
     for(const inp of inputs) {
-        if(!inp.value.trim()) { toastError('Completa todas las variables de la plantilla.'); inp.focus(); return; }
+        if(!inp.value.trim()) { toastError('Complete todas las variables de la plantilla.'); inp.focus(); return; }
     }
     let plantillaPayload;
     let texto = body?.text || '';
@@ -31543,7 +31543,7 @@ async function _waEnviarPlantilla() {
     btn.disabled = true;
     try {
         const { data: { session } } = await supabaseClient.auth.getSession();
-        if(!session) { toastError('Inicia sesión de nuevo.'); return; }
+        if(!session) { toastError('Inicie sesión de nuevo.'); return; }
         const res = await fetch(CONFIG_URL + '/functions/v1/whatsapp-enviar', {
             method: 'POST',
             headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY, 'Content-Type': 'application/json' },
@@ -31587,7 +31587,7 @@ async function _waIniciarGrabacion() {
     try {
         stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch(e) {
-        toastError('No se pudo acceder al micrófono — revisa los permisos del navegador.');
+        toastError('No se pudo acceder al micrófono. Revise los permisos del navegador.');
         return;
     }
     _waAudioStream = stream;
@@ -31672,7 +31672,7 @@ function _waDetenerYEnviarNota() {
             if(!url) throw new Error('No se pudo generar el enlace del audio.');
             const respondeA = (_waRespondiendoA && _waRespondiendoA.hiloId === hiloDestino) ? _waRespondiendoA.id : null;
             const { data: { session } } = await supabaseClient.auth.getSession();
-            if(!session) { toastError('Inicia sesión de nuevo.'); return; }
+            if(!session) { toastError('Inicie sesión de nuevo.'); return; }
             const res = await fetch(CONFIG_URL + '/functions/v1/whatsapp-enviar', {
                 method: 'POST',
                 headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY, 'Content-Type': 'application/json' },
@@ -31849,7 +31849,7 @@ async function _waReenviarA(hiloDestinoId) {
     cerrarModalReenviarWa();
     try {
         const { data: { session } } = await supabaseClient.auth.getSession();
-        if(!session) { toastError('Inicia sesión de nuevo.'); return; }
+        if(!session) { toastError('Inicie sesión de nuevo.'); return; }
         const res = await fetch(CONFIG_URL + '/functions/v1/whatsapp-enviar', {
             method: 'POST',
             headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY, 'Content-Type': 'application/json' },
@@ -32019,7 +32019,7 @@ async function enviarMensajeWhatsapp() {
     };
     try {
         const { data: { session } } = await supabaseClient.auth.getSession();
-        if(!session) { marcarFallo('Inicia sesión de nuevo.'); return; }
+        if(!session) { marcarFallo('Inicie sesión de nuevo.'); return; }
         const res = await fetch(CONFIG_URL + '/functions/v1/whatsapp-enviar', {
             method: 'POST',
             headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY, 'Content-Type': 'application/json' },
@@ -32300,7 +32300,7 @@ async function _waAbrirTransferir(hiloId) {
             <div id="waTrLista" style="max-height:38vh; overflow-y:auto; display:flex; flex-direction:column; gap:6px; margin-bottom:10px;"></div>
             <label style="font-size:12.5px; font-weight:700; color:#334155;">Nota (opcional)</label>
             <textarea id="waTrNota" rows="2" maxlength="500" placeholder="Ej.: es de Santiago, quiere cambiar la pantalla de un iPhone 13" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:10px; font-size:13.5px; margin:4px 0 12px; resize:vertical;"></textarea>
-            <button id="waTrBtn" class="btn btn-blue" style="width:100%; justify-content:center; background:linear-gradient(180deg,#128C7E,#075E54);" onclick="_waConfirmarTransferir('${hiloId}')" disabled><i class="ti ti-arrow-forward-up"></i> Elige a dónde</button>`;
+            <button id="waTrBtn" class="btn btn-blue" style="width:100%; justify-content:center; background:linear-gradient(180deg,#128C7E,#075E54);" onclick="_waConfirmarTransferir('${hiloId}')" disabled><i class="ti ti-arrow-forward-up"></i> Seleccione el destino</button>`;
         abrirModalGenerico('Transferir cliente', html, { ancho: '460px' });
         _waTrCliente = cliente;
         _waTransferirElegido = null; _waTransferirLinea = null;
@@ -32313,10 +32313,10 @@ function _waTrCambiarModo(m) {
     ['linea', 'empleado'].forEach(k => { const b = document.getElementById('waTrTab_' + k); if(b) { b.style.background = k === m ? '#fff' : 'transparent'; b.style.color = k === m ? '#075E54' : '#475569'; b.style.boxShadow = k === m ? '0 1px 3px rgba(15,23,42,.15)' : 'none'; } });
     const ex = document.getElementById('waTrExplica');
     if(ex) ex.innerHTML = m === 'linea'
-        ? `Pasa <b>${escapeHtml(_waTrCliente)}</b> al <b>número de otra sucursal</b>. Le aparece en el CRM de esa línea con tu nota, y la vendedora le escribe desde su WhatsApp.`
-        : `Pásale <b>${escapeHtml(_waTrCliente)}</b> a otro empleado. Le aparece en <b>Transferidos a mí</b> y le escribe desde este mismo WhatsApp.`;
+        ? `Pase a <b>${escapeHtml(_waTrCliente)}</b> al <b>número de otra sucursal</b>. Le aparece en el CRM de esa línea con su nota, y la vendedora le escribe desde su WhatsApp.`
+        : `Pase a <b>${escapeHtml(_waTrCliente)}</b> a otro empleado. Le aparece en <b>Transferidos a mí</b> y le escribe desde este mismo WhatsApp.`;
     const bus = document.getElementById('waTrBuscar'); if(bus) { bus.value = ''; bus.placeholder = m === 'linea' ? 'Buscar sucursal o línea…' : 'Buscar empleado o sucursal…'; }
-    const btn = document.getElementById('waTrBtn'); if(btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-arrow-forward-up"></i> Elige a dónde'; }
+    const btn = document.getElementById('waTrBtn'); if(btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-arrow-forward-up"></i> Seleccione el destino'; }
     _waTransferirFiltrar('');
 }
 function _waTrTel(n) { const d = String(n || '').replace(/\D/g, ''); return d.length === 11 && d[0] === '1' ? `${d.slice(1,4)}-${d.slice(4,7)}-${d.slice(7)}` : String(n || ''); }
@@ -32370,7 +32370,7 @@ async function _waAvisarLineaPorWhatsapp(hOrigen, linea, nota) {
             body: JSON.stringify(Object.assign({ hilo_id: chat.id }, body)) }).then(r => r.ok);
         const tel = String(hOrigen.telefono_e164 || '').replace(/\D/g, '');
         const ok1 = await enviar({ contacto: { nombre: hOrigen.nombre_perfil || ('Cliente ' + tel), telefono: tel } });
-        const ok2 = await enviar({ mensaje: `Cliente referido para que le escribas: ${hOrigen.nombre_perfil || ''} (${_waTrTel(tel)})${nota ? '\n' + nota : ''}`.replace(/\s+\(/, ' (') });
+        const ok2 = await enviar({ mensaje: `Cliente referido para que le escriba: ${hOrigen.nombre_perfil || ''} (${_waTrTel(tel)})${nota ? '\n' + nota : ''}`.replace(/\s+\(/, ' (') });
         return ok1 || ok2;
     } catch(e) { logError('_waAvisarLineaPorWhatsapp', e); return false; }
 }
@@ -32393,7 +32393,7 @@ async function _waConfirmarTransferir(hiloId) {
         } catch(e) {
             logError('_waConfirmarTransferir', e);
             const m = String(e?.message || '');
-            toastError(m.includes('sin_permiso') ? 'No tienes permiso para pasar este chat.' : m.includes('sin_telefono') ? 'Este chat no tiene un número de teléfono para pasar.' : 'No se pudo pasar el cliente.');
+            toastError(m.includes('sin_permiso') ? 'No tiene permiso para pasar este chat.' : m.includes('sin_telefono') ? 'Este chat no tiene un número de teléfono para pasar.' : 'No se pudo pasar el cliente.');
             if(btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-arrow-forward-up"></i> Intentar de nuevo'; }
         } finally { _crmFinalizarAccion(lockKey); }
         return;
@@ -32408,7 +32408,7 @@ async function _waConfirmarTransferir(hiloId) {
         const { data, error } = await supabaseClient.rpc('whatsapp_transferir_hilo', { p_hilo: hiloId, p_a: destino, p_nota: nota || null });
         if(error) throw error;
         document.getElementById('modalGenerico')?.remove();
-        toast(`✅ Cliente transferido a ${data?.a_nombre || 'tu compañero'}.`);
+        toast(`✅ Cliente transferido a ${data?.a_nombre || 'su compañero'}.`);
         const h = _waHilos.find(x => x.id === hiloId);
         if(h) { h.asignado_tipo = 'tecnico'; h.asignado_id = destino; }
         await cargarHilosWhatsapp();
@@ -32416,7 +32416,7 @@ async function _waConfirmarTransferir(hiloId) {
     } catch(e) {
         logError('_waConfirmarTransferir', e);
         const m = String(e?.message || '');
-        toastError(m.includes('sin_permiso') ? 'No tienes permiso para transferir este chat.' : m.includes('empleado_no_valido') ? 'Ese empleado ya no está activo.' : 'No se pudo transferir el cliente.');
+        toastError(m.includes('sin_permiso') ? 'No tiene permiso para transferir este chat.' : m.includes('empleado_no_valido') ? 'Ese empleado ya no está activo.' : 'No se pudo transferir el cliente.');
         if(btn) btn.disabled = false;
     } finally { _crmFinalizarAccion(lockKey); }
 }
@@ -32444,9 +32444,9 @@ async function _waAbrirTransferidos() {
             </div>
             <div style="font-size:12.5px; color:#475569; margin-top:2px;">De <b>${escapeHtml(t.de_nombre || 'un compañero')}</b> · ${escapeHtml(t.sucursal_nombre || '')} ${escapeHtml(t.linea_nombre || '')}</div>
             ${t.nota ? `<div style="font-size:12.5px; color:#0f172a; background:#f1f5f9; border-radius:10px; padding:6px 9px; margin-top:6px;">“${escapeHtml(t.nota)}”</div>` : ''}
-            ${t.sigue_asignado ? '' : '<div style="font-size:11.5px; color:#94a3b8; margin-top:4px;">Ya no está asignado a ti.</div>'}
+            ${t.sigue_asignado ? '' : '<div style="font-size:11.5px; color:#94a3b8; margin-top:4px;">Ya no está asignado a usted.</div>'}
         </button>`).join('')}</div>`
-        : '<div style="font-size:13.5px; color:#64748b; padding:10px 2px;">No te han transferido clientes en los últimos 7 días.</div>';
+        : '<div style="font-size:13.5px; color:#64748b; padding:10px 2px;">No se le han transferido clientes en los últimos 7 días.</div>';
     abrirModalGenerico('Transferidos a mí', html, { ancho: '460px' });
 }
 async function _waIrATransferido(i) {
@@ -32486,7 +32486,7 @@ async function _crmToggleReasignar(tabla, id, alTerminar) {
 async function asignarmeCRM(tabla, id) {
     if(!_crmTablaValida(tabla)) { toastError('Acción no permitida.'); return; }
     const yo = _crmMiIdentidad();
-    if(!yo.id || !yo.tipo) { toastError('No se pudo identificar tu usuario.'); return; }
+    if(!yo.id || !yo.tipo) { toastError('No se pudo identificar su usuario.'); return; }
     await _crmGuardarAsignacion(tabla, id, yo.tipo, yo.id);
 }
 async function reasignarCRM(tabla, id, tecnicoId) {
@@ -32931,7 +32931,7 @@ function _crmSuscribirRealtime(lineaId) {
         // 3 oct 2026: aviso al instante cuando un compañero me transfiere un cliente (solo empleados).
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'whatsapp_transferencias', filter: `a_id=eq.${(_crmMiIdentidad().tipo === 'tecnico' && _crmMiIdentidad().id) || '00000000-0000-0000-0000-000000000000'}` }, p => {
             const t = p?.new || {};
-            toast(`📨 ${t.de_nombre || 'Un compañero'} te transfirió un cliente${t.nota ? ': «' + String(t.nota).slice(0, 80) + '»' : ''}. Ábrelo en ⇄ Transferidos.`);
+            toast(`📨 ${t.de_nombre || 'Un compañero'} le transfirió un cliente${t.nota ? ': «' + String(t.nota).slice(0, 80) + '»' : ''}. Ábralo en ⇄ Transferidos.`);
             try { reproducirSonido('orden'); } catch(e) {}
             _waContarTransferidos();
         })
@@ -33196,7 +33196,7 @@ async function _igImportarHistorial() {
 
     try {
         const { data: { session } } = await supabaseClient.auth.getSession();
-        if(!session?.access_token) throw new Error('La sesión venció. Inicia sesión de nuevo.');
+        if(!session?.access_token) throw new Error('La sesión venció. Inicie sesión de nuevo.');
 
         let cursor = null, paginas = 0;
         do {
@@ -33306,7 +33306,7 @@ function _pintarInstagramLista() {
     }
     const lista = _igHilosFiltrados();
     if(!lista.length) {
-        cont.innerHTML = `<div class="crm-vacio">Ninguna conversación coincide con lo que buscas.</div>`;
+        cont.innerHTML = `<div class="crm-vacio">Ninguna conversación coincide con la búsqueda.</div>`;
         return;
     }
     cont.innerHTML = lista.map(h => {
@@ -33394,7 +33394,7 @@ function _pintarInstagramDetalle() {
     const cont = document.getElementById('igDetalle');
     if(!cont) return;
     if(!_igHiloId) {
-        cont.innerHTML = `<div class="wa-chat-empty">Selecciona una conversación de la lista.</div>`;
+        cont.innerHTML = `<div class="wa-chat-empty">Seleccione una conversación de la lista.</div>`;
         return;
     }
     const h = _igHilos.find(x => x.id === _igHiloId);
@@ -33443,11 +33443,11 @@ function _pintarInstagramDetalle() {
     if(puedeResponder) {
         html += `<div class="wa-input-bar" id="igInputBar">
             <button class="wa-icon-btn" onclick="_crmMostrarMenuUbicacion('instagram', this)" title="Enviar ubicación de la tienda"><i class="ti ti-map-pin"></i></button>
-            <input type="text" id="igTexto" placeholder="Escribe una respuesta..." autocapitalize="none" autocorrect="off" onkeydown="if(event.key==='Enter') enviarMensajeInstagram()">
+            <input type="text" id="igTexto" placeholder="Escriba una respuesta..." autocapitalize="none" autocorrect="off" onkeydown="if(event.key==='Enter') enviarMensajeInstagram()">
             <button class="wa-send-btn" id="btnIgEnviar" onclick="enviarMensajeInstagram()"><i class="ti ti-send"></i></button>
         </div>`;
     } else {
-        html += `<div class="wa-chat-empty" style="padding:10px;">No tienes permiso para responder.</div>`;
+        html += `<div class="wa-chat-empty" style="padding:10px;">No tiene permiso para responder.</div>`;
     }
 
     cont.innerHTML = html;
@@ -33500,7 +33500,7 @@ async function enviarMensajeInstagram() {
     };
     try {
         const { data: { session } } = await supabaseClient.auth.getSession();
-        if(!session) { marcarFallo('Inicia sesión de nuevo.'); return; }
+        if(!session) { marcarFallo('Inicie sesión de nuevo.'); return; }
         const res = await fetch(CONFIG_URL + '/functions/v1/instagram-enviar', {
             method: 'POST',
             headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': CONFIG_KEY, 'Content-Type': 'application/json' },
@@ -33609,7 +33609,7 @@ async function renderCrmLinea(btn) {
         if(!yaConstruido) await construirSelectorCRM();
         if(!_crmLineaActualId) {
             const cont = document.getElementById('waWrap');
-            if(cont) cont.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:40px 14px; font-size:13px;">No tienes ninguna línea de WhatsApp disponible.</div>`;
+            if(cont) cont.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:40px 14px; font-size:13px;">No tiene ninguna línea de WhatsApp disponible.</div>`;
             return;
         }
         // Re-armar lo que nav()/_crmDetenerRealtime() apagaron al SALIR del CRM.

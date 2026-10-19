@@ -8,9 +8,9 @@ async function checked(p){const {data,error}=await p;if(error)throw Error('Bibli
 async function load(){
  if(busy)return;busy=true;controls();const version=epoch;state('Cargando revisión técnica…');
  try{
-  const sb=client();if(!sb)throw Error('Inicia sesión en el taller.');const auth=await sb.auth.getUser();
+  const sb=client();if(!sb)throw Error('Inicie sesión en el taller.');const auth=await sb.auth.getUser();
   if(version!==epoch)return;
-  if(auth.error||!auth.data?.user||auth.data.user.is_anonymous)throw Error('Inicia sesión en el taller.');owner=auth.data.user.id;
+  if(auth.error||!auth.data?.user||auth.data.user.is_anonymous)throw Error('Inicie sesión en el taller.');owner=auth.data.user.id;
   const isAdmin=await checked(sb.rpc('app_is_admin'))===true;if(version!==epoch)return;admin=isAdmin;
   const cases=await checked(sb.rpc('ai_board_cases'));
   const list=await checked(sb.from('ai_board_library').select('id,modelo,revision,summary,evidence,sources,status,author_id,review_notes,created_at').order('created_at',{ascending:false}).order('id',{ascending:false}).range(page*20,page*20+19));
@@ -34,13 +34,13 @@ async function submit(){
  if(busy)return;busy=true;controls();const version=epoch;
  try{
   const url=$('ab-library-source').value.trim(),title=$('ab-library-source-title').value.trim();
-  if(!/^https:\/\/[A-Za-z0-9.-]+(\/[^\s]*)?$/.test(url)||!title)throw Error('Indica título y enlace HTTPS de la fuente técnica.');
+  if(!/^https:\/\/[A-Za-z0-9.-]+(\/[^\s]*)?$/.test(url)||!title)throw Error('Indique título y enlace HTTPS de la fuente técnica.');
   await checked(client().rpc('ai_board_library_submit',{p_case:$('ab-library-case').value,p_revision:$('ab-library-revision').value.trim(),p_summary:$('ab-library-summary').value.trim(),p_evidence:$('ab-library-evidence').value.trim(),p_sources:[{title,url}]}));
   if(version!==epoch)return;for(const id of ['ab-library-summary','ab-library-evidence'])$(id).value='';busy=false;page=0;await load();
  }catch(e){if(version===epoch)state(e.message);}finally{busy=false;controls();}
 }
 async function review(id,decision){
- if(busy)return;const notes=prompt('Registra las pruebas comprobadas, condiciones y motivo de tu decisión (mínimo 20 caracteres).');if(notes===null)return;
+ if(busy)return;const notes=prompt('Registre las pruebas comprobadas, las condiciones y el motivo de su decisión (mínimo 20 caracteres).');if(notes===null)return;
  busy=true;controls();const version=epoch;
  try{await checked(client().rpc('ai_board_library_review',{p_entry:id,p_decision:decision,p_notes:notes.trim()}));if(version!==epoch)return;busy=false;await load();}
  catch(e){if(version===epoch)state(e.message);}finally{busy=false;controls();}
@@ -67,7 +67,7 @@ function mount(){
  };
  document.querySelector('[data-ab-tab="biblioteca"]')?.addEventListener('click',async()=>{if(await activar())load();});
  document.querySelector('[data-ab-tab="ia"]')?.addEventListener('click',activar);
- window.addEventListener('bayol-ai-board-identity-reset',()=>{epoch++;owner=null;admin=false;page=0;$('ab-library-feed').replaceChildren();for(const n of box.querySelectorAll('textarea,input,select'))n.value='';state('Sesión cambiada. Recarga la Biblioteca.');});
+ window.addEventListener('bayol-ai-board-identity-reset',()=>{epoch++;owner=null;admin=false;page=0;$('ab-library-feed').replaceChildren();for(const n of box.querySelectorAll('textarea,input,select'))n.value='';state('Sesión cambiada. Recargue la Biblioteca.');});
  if(!$('ab-pane-biblioteca').hidden||!$('ab-pane-ia').hidden)activar().then(ok=>{if(ok&&!$('ab-pane-biblioteca').hidden)load();});
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
