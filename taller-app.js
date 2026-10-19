@@ -20089,15 +20089,17 @@ function imprimirPrefactura(_modo) {
     const p = _prefUltima; if(!p) return;
     const ct = cache.configTaller || {};
     const loc = p.model.codlocalidad === '4' ? 'Moca' : 'Santiago';
-    const filas = p.model.detallesPreFactura.map(d => `<tr><td>${escapeHtml(String(d.codarticulo))}</td><td>${escapeHtml(d.descripcion)}</td><td style="text-align:center;">${d.cantidad}</td><td style="text-align:right;">${money(d.precio)}</td><td style="text-align:right;">${money(d.precio * d.cantidad)}</td></tr>`).join('');
+    const conDesc = p.model.detallesPreFactura.some(d => Number(d.porcentaje));
+    const filas = p.model.detallesPreFactura.map(d => `<tr><td>${escapeHtml(String(d.codarticulo))}</td><td>${escapeHtml(d.descripcion)}</td><td style="text-align:center;">${d.cantidad}</td><td style="text-align:right;">${money(d.precio)}</td>${conDesc ? `<td style="text-align:right;">${Number(d.porcentaje) ? Number(d.porcentaje) + '%' : ''}</td>` : ''}<td style="text-align:right;">${money(Math.round(d.precio * d.cantidad * (100 - Number(d.porcentaje || 0))) / 100)}</td></tr>`).join('');
     const _html = `<html><head><title>Prefactura ${escapeHtml(p.num || '')}</title><style>body{font-family:Arial,sans-serif;padding:22px;color:#111;} table{width:100%;border-collapse:collapse;margin-top:12px;} th,td{border:1px solid #ccc;padding:6px 8px;font-size:13px;} th{background:#f1f5f9;text-align:left;} h2{margin:0;}</style></head><body>
       <h2>${escapeHtml(ct.nombre || 'BAYOL CELL')}</h2>
       <div style="font-size:12px;color:#555;">${escapeHtml(ct.direccion || '')} ${ct.telefono ? ('· ' + escapeHtml(ct.telefono)) : ''}</div>
       <hr>
       <div style="font-size:15px;"><b>PREFACTURA Nº ${escapeHtml(p.num || '')}</b> &nbsp;·&nbsp; ${loc}</div>
       <div style="font-size:12px;color:#555;margin-top:2px;">Cliente: ${escapeHtml(p.model.nombre)} · Fecha: ${escapeHtml(p.model.fecha)} ${escapeHtml(p.model.hora)}</div>
-      ${(() => { const r = p.ref || {}; const L = []; if(r.equipo || r.imei) L.push('Equipo: ' + escapeHtml(r.equipo || '') + (r.imei ? (' · IMEI ' + escapeHtml(r.imei)) : '')); if(r.falla) L.push('Falla: ' + escapeHtml(r.falla)); const cli = [r.cedula ? ('Céd. ' + escapeHtml(r.cedula)) : '', r.telefono ? escapeHtml(r.telefono) : ''].filter(Boolean).join(' · '); if(cli) L.push('Contacto: ' + cli); return L.length ? `<div style="font-size:11px;color:#666;margin-top:6px;border:1px dashed #ccc;padding:6px 8px;">${L.join('<br>')}</div>` : ''; })()}
-      <table><thead><tr><th>Código</th><th>Descripción</th><th style="text-align:center;">Cant.</th><th style="text-align:right;">Precio</th><th style="text-align:right;">Importe</th></tr></thead><tbody>${filas}</tbody></table>
+      ${(() => { const r = p.ref || {}; const L = []; if(r.equipo || r.imei) L.push('Equipo: ' + escapeHtml(r.equipo || '') + (r.imei ? (' · IMEI ' + escapeHtml(r.imei)) : '')); if(r.falla) L.push('Falla: ' + escapeHtml(r.falla)); if(r.coment) L.push('Comentario: ' + escapeHtml(r.coment)); const cli = [r.cedula ? ('Céd. ' + escapeHtml(r.cedula)) : '', r.telefono ? escapeHtml(r.telefono) : ''].filter(Boolean).join(' · '); if(cli) L.push('Contacto: ' + cli); return L.length ? `<div style="font-size:11px;color:#666;margin-top:6px;border:1px dashed #ccc;padding:6px 8px;">${L.join('<br>')}</div>` : ''; })()}
+      <table><thead><tr><th>Código</th><th>Descripción</th><th style="text-align:center;">Cant.</th><th style="text-align:right;">Precio</th>${conDesc ? '<th style="text-align:right;">Desc.</th>' : ''}<th style="text-align:right;">Importe</th></tr></thead><tbody>${filas}</tbody></table>
+      ${Number(p.model.descuentototal) ? `<div style="text-align:right;font-size:13px;margin-top:10px;">Subtotal: ${money(Number(p.total) + Number(p.model.descuentototal))} · Descuento: −${money(p.model.descuentototal)}</div>` : ''}
       <div style="text-align:right;font-size:17px;font-weight:800;margin-top:12px;">Total: ${money(p.total)}</div>
       <div style="font-size:11px;color:#888;margin-top:16px;">Documento preliminar (prefactura). La cajera lo convierte en factura fiscal al momento de cobrar.</div>
       <script>window.onload=function(){window.print();}<\/script></body></html>`;
@@ -20356,7 +20358,12 @@ async function _rpAgregarServicio() {
     _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen();
 }
 function _rpCant(i, v) { _rpState.items[i].cant = Math.max(1, parseInt(v) || 1); _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen(); }
-function _rpPrecio(i, v) { _rpState.items[i].precio = Math.max(0, parseFloat(v) || 0); _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen(); }
+function _rpPrecio(i, v) { _rpState.items[i].precio = Math.max(0, parseFloat(String(v).replace(/,/g, '')) || 0); _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen(); }
+// 20-oct-2026 (dueño, como STUDIO): descuento por línea en %. Importe = precio × cantidad − descuento.
+function _rpDescPct(i, v) { _rpState.items[i].descPct = Math.min(100, Math.max(0, parseFloat(String(v).replace(/[,%]/g, '')) || 0)); _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen(); }
+function _rpBruto(it) { return Math.round(Number(it.precio || 0) * Number(it.cant || 0) * 100) / 100; }
+function _rpImporte(it) { const b = _rpBruto(it), p = Number(it.descPct || 0); return p > 0 ? Math.round(b * (100 - p)) / 100 : b; }
+function _rpTotales(items) { const sub = (items || []).reduce((s, it) => s + _rpBruto(it), 0); const tot = (items || []).reduce((s, it) => s + _rpImporte(it), 0); return { subtotal: Math.round(sub * 100) / 100, descuento: Math.round((sub - tot) * 100) / 100, total: Math.round(tot * 100) / 100 }; }
 function _rpQuitar(i) { _rpState.items.splice(i, 1); _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen(); }
 function _rpMarcarCambio() { if(_rpState && _rpState.codprefactura && _rpState.estado === 'sincronizada') _rpState.estado = 'cambios'; }
 function _rpRenderResumen() {
@@ -20367,7 +20374,7 @@ function _rpRenderResumen() {
     const tel = g('c_whatsapp'), ced = g('c_cedula') || g('c_rnc');
     const equipo = [g('e_marca'), g('e_modelo'), g('e_capacidad')].filter(Boolean).join(' ');
     const imei = g('e_imei');
-    const total = _rpState.items.reduce((s, it) => s + Number(it.precio) * Number(it.cant), 0);
+    const total = _rpTotales(_rpState.items).total;
     const facturada = _rpState.estado === 'facturada';
     cont.innerHTML = `
       <div style="margin-bottom:8px;">${_rpEstadoBadge(_rpState.estado, _rpState.codprefactura)}</div>
@@ -20378,7 +20385,7 @@ function _rpRenderResumen() {
       ${equipo ? `<div class="rx-sum-row"><span>Equipo</span><b>${escapeHtml(equipo)}</b></div>` : ''}
       ${imei ? `<div class="rx-sum-row"><span>IMEI</span><b>${escapeHtml(imei)}</b></div>` : ''}
       <div style="border-top:1px solid #eef2f7;margin:8px 0;"></div>
-      ${_rpState.items.length ? _rpState.items.map(it => `<div class="rx-sum-row"><span style="max-width:62%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(it.desc)} ×${it.cant}</span><b>${money(it.precio * it.cant)}</b></div>`).join('') : '<div style="font-size:12px;color:#94a3b8;padding:4px 0;">Sin artículos aún.</div>'}
+      ${_rpState.items.length ? _rpState.items.map(it => `<div class="rx-sum-row"><span style="max-width:62%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(it.desc)} ×${it.cant}</span><b>${money(_rpImporte(it))}</b></div>`).join('') : '<div style="font-size:12px;color:#94a3b8;padding:4px 0;">Sin artículos aún.</div>'}
       <div style="border-top:1px solid #eef2f7;margin:8px 0;"></div>
       <div class="rx-sum-row" style="font-size:16px;"><span><b>Total</b></span><b style="color:#e31e24;">${money(total)}</b></div>
       ${facturada ? `<div style="margin-top:12px;font-size:12px;color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:9px;">Esta prefactura ya fue convertida en factura y no puede modificarse desde Recepción.</div>` : `
@@ -20404,14 +20411,14 @@ async function _rpCrearPrefactura() {
     const vend = _codVendedorPrefactura(document.getElementById('rxVendedor')?.value || '');
     const nivel = (_rpState && _rpState.nivel) || 1;
     const obs = g('o_observaciones') || g('o_falla');
-    const total = _rpState.items.reduce((s, it) => s + Number(it.precio) * Number(it.cant), 0);
+    const _tt = _rpTotales(_rpState.items), total = _tt.total;
     const now = new Date();
     const model = {
-        codprefactura: _rpState.codprefactura || '', total, codcliente: _rpState.codcliente || '1', impuesto: 0, descuento: 0, descuentototal: 0,
+        codprefactura: _rpState.codprefactura || '', total, codcliente: _rpState.codcliente || '1', impuesto: 0, descuento: _tt.descuento, descuentototal: _tt.descuento,
         nombre, codempleado: vend, codnivelprecio: nivel, codlocalidad: String(almacen), credito: false,
         fecha: now.toISOString().slice(0, 10), hora: now.toTimeString().slice(0, 8),
         contrato: obs ? obs.slice(0, 200) : '', ordencompra: '', centro: '',
-        seriales: _rpState.items.flatMap(it => (it.imeis || []).map(numero => ({ numero, codarticulo: Number(it.cod) }))), detallesPreFactura: _rpState.items.map((it, i) => ({ descripcion: _rpDescInfoplus(it, i), precio: Number(it.precio), cantidad: Number(it.cant), codarticulo: Number(it.cod), codunidad: 1, porcentaje: 0, despachado: 0, descripcionunidad: null }))
+        seriales: _rpState.items.flatMap(it => (it.imeis || []).map(numero => ({ numero, codarticulo: Number(it.cod) }))), detallesPreFactura: _rpState.items.map((it, i) => ({ descripcion: _rpDescInfoplus(it, i), precio: Number(it.precio), cantidad: Number(it.cant), codarticulo: Number(it.cod), codunidad: 1, porcentaje: Number(it.descPct || 0), despachado: 0, descripcionunidad: null }))
     };
     _rpState.estado = 'actualizando'; _rpRenderResumen();
     try {
@@ -20423,9 +20430,9 @@ async function _rpCrearPrefactura() {
         if(!ok) throw new Error((d && d.message) || 'Info Plus no aceptó la prefactura.');
         const eraUpdate = !!_rpState.codprefactura;
         _rpState.codprefactura = num; _rpState.estado = 'sincronizada';
-        _rpUltima = { num, total, model, ref: { equipo: [g('e_marca'), g('e_modelo'), g('e_capacidad')].filter(Boolean).join(' '), imei: g('e_imei'), falla: obs, cedula: g('c_cedula') || g('c_rnc'), telefono: g('c_whatsapp') } };
+        _rpUltima = { num, total, model, ref: { equipo: [g('e_marca'), g('e_modelo'), g('e_capacidad')].filter(Boolean).join(' '), imei: g('e_imei'), falla: g('o_falla'), coment: g('o_observaciones'), cedula: g('c_cedula') || g('c_rnc'), telefono: g('c_whatsapp') } };
         try {
-            const row = { orden_id: _rpState.ordenId || null, codprefactura: num, infoplus_codcliente: _rpState.codcliente, infoplus_nombre: _rpState.infoNombre, nombre_visible: nombre, telefono_visible: g('c_whatsapp'), documento_visible: g('c_cedula') || g('c_rnc'), equipo: [g('e_marca'), g('e_modelo'), g('e_capacidad')].filter(Boolean).join(' '), imei: g('e_imei'), items: _rpState.items, subtotal: total, total: total, observaciones: obs, estado: 'sincronizada', codlocalidad: String(almacen), codempleado: vend, codnivelprecio: nivel, actualizado_por: (typeof sessionUser !== 'undefined' && sessionUser ? sessionUser.nombre : 'Sistema'), actualizado_en: new Date().toISOString() };
+            const row = { orden_id: _rpState.ordenId || null, codprefactura: num, infoplus_codcliente: _rpState.codcliente, infoplus_nombre: _rpState.infoNombre, nombre_visible: nombre, telefono_visible: g('c_whatsapp'), documento_visible: g('c_cedula') || g('c_rnc'), equipo: [g('e_marca'), g('e_modelo'), g('e_capacidad')].filter(Boolean).join(' '), imei: g('e_imei'), items: _rpState.items, subtotal: _tt.subtotal, total: total, observaciones: obs, estado: 'sincronizada', codlocalidad: String(almacen), codempleado: vend, codnivelprecio: nivel, actualizado_por: (typeof sessionUser !== 'undefined' && sessionUser ? sessionUser.nombre : 'Sistema'), actualizado_en: new Date().toISOString() };
             if(_rpState.localId) { await supabaseClient.from('recepcion_prefacturas').update(row).eq('id', _rpState.localId); }
             else { row.creado_por = (typeof sessionUser !== 'undefined' && sessionUser ? sessionUser.nombre : 'Sistema'); const { data: ins } = await supabaseClient.from('recepcion_prefacturas').insert([row]).select('id').maybeSingle(); if(ins) _rpState.localId = ins.id; }
             if(typeof _rpCargarPrefacturas === 'function') await _rpCargarPrefacturas();
@@ -20539,7 +20546,7 @@ function _rpPrefDeOrden(ordenId) { return (cache.recepcionPrefacturas || []).fin
 function _rpCargarDesdeLista(prefId) { const p = (cache.recepcionPrefacturas || []).find(x => x.id === prefId); if(!p) { toast('Prefactura no encontrada.', 'error'); return; } _rpPendingLoad = { pref: p }; nav('recepcion'); }
 function _rpCrearDesdeOrden(ordenId) { const o = (cache.ordenes || []).find(x => x.id === ordenId) || {}; const c = findCliente(o.cliente_id) || {}; const e = findEquipo(o.equipo_id) || {}; _rpPendingLoad = { orden: o, cliente: c, equipo: e }; nav('recepcion'); }
 function _rpAplicarCargaPref(p) {
-    _rpState = { items: (p.items || []).map(it => ({ cod: it.cod, desc: it.desc, niveles: it.niveles || null, precio: Number(it.precio || 0), cant: Number(it.cant || 1), serial: !!it.serial, imeis: Array.isArray(it.imeis) ? it.imeis : (it.serial ? [] : undefined), servicio: !!it.servicio })), codcliente: p.infoplus_codcliente || '1', infoNombre: p.infoplus_nombre || 'CLIENTE DE CONTADO', codprefactura: p.codprefactura, localId: p.id, ordenId: p.orden_id, soloPrefactura: true, estado: p.estado || 'sincronizada', nivel: Number(p.codnivelprecio) || 1 };
+    _rpState = { items: (p.items || []).map(it => ({ cod: it.cod, desc: it.desc, niveles: it.niveles || null, precio: Number(it.precio || 0), cant: Number(it.cant || 1), serial: !!it.serial, imeis: Array.isArray(it.imeis) ? it.imeis : (it.serial ? [] : undefined), servicio: !!it.servicio, descPct: Number(it.descPct || 0) })), codcliente: p.infoplus_codcliente || '1', infoNombre: p.infoplus_nombre || 'CLIENTE DE CONTADO', codprefactura: p.codprefactura, localId: p.id, ordenId: p.orden_id, soloPrefactura: true, estado: p.estado || 'sincronizada', nivel: Number(p.codnivelprecio) || 1 };
     const _nvS = document.getElementById('rxNivel'); if(_nvS) _nvS.value = String(_rpState.nivel);
     const set = (id, v) => { const el = document.getElementById(id); if(el && v != null && v !== '') el.value = v; };
     set('c_nombre', p.nombre_visible); set('c_whatsapp', p.telefono_visible); set('c_cedula', p.documento_visible); set('o_observaciones', p.observaciones); set('e_imei', p.imei);

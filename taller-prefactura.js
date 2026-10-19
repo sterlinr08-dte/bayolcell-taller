@@ -21,6 +21,9 @@
   function val(id) { var e = doc.getElementById(id); return e ? String(e.value || '').trim() : ''; }
   function st() { try { return (typeof _rpState !== 'undefined' && _rpState) || null; } catch (e) { return null; } }
   function campo(id) { var e = doc.getElementById(id); return e ? (e.closest('.rx-body > div') || e.parentElement) : null; }
+  function num2(n) { return Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function tot(items) { try { return _rpTotales(items); } catch (e) { var t = (items || []).reduce(function (a, it) { return a + Number(it.precio) * Number(it.cant); }, 0); return { subtotal: t, descuento: 0, total: t }; } }
+  function importe(it) { try { return _rpImporte(it); } catch (e) { return Number(it.precio) * Number(it.cant); } }
   function fechaHoy() { var d = new Date(); return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear(); }
 
   var R = {}; // referencias a las piezas del documento
@@ -47,7 +50,7 @@
     var dh = el('div', 'bcpf-dh',
       '<div class="dhl"><div class="emp">BAYOL CELL</div><div class="empsub">Prefactura de Info Plus</div></div>' +
       '<div class="dhr"><span class="dtit">Prefactura</span>' +
-      '<button type="button" class="ibtn" aria-label="Buscar prefacturas guardadas" title="Prefacturas guardadas"><i class="ti ti-search" aria-hidden="true"></i></button>' +
+      '<button type="button" class="ibtn" aria-label="Ver prefacturas guardadas" title="Prefacturas guardadas"><i class="ti ti-files" aria-hidden="true"></i></button>' +
       '<span class="dno">Nº</span><span class="dnum">Nueva</span><span class="dfec">' + fechaHoy() + '</span></div>' +
       '<div class="dest"></div>');
     pad.appendChild(dh);
@@ -112,6 +115,8 @@
     pad.appendChild(busc);
     if (typeof window.bcRxBuscador === 'function') window.bcRxBuscador(v, busc);
     var nota = q('.rx-art-search > span', busc); if (nota) nota.classList.add('bcpf-oculto');
+    busc.classList.add('bcpf-busc-fila'); // «Servicio / falla» en la misma línea del buscador
+    var bSrv = q('.bcrx-srv', busc); if (bSrv) { bSrv.innerHTML = '<i class="ti ti-tool" aria-hidden="true"></i><span>Servicio / falla</span>'; bSrv.setAttribute('aria-label', 'Agregar servicio o falla'); }
 
     // Artículos
     var lista = doc.getElementById('rxArticulos');
@@ -124,8 +129,8 @@
     var otras = el('div', 'bcpf-otras');
     var qs = el('div', 'bcpf-qs');
     function pildora(ic, txt, fn) { var b = el('button', 'bcpf-q', '<i class="ti ' + ic + '" aria-hidden="true"></i><span>' + txt + '</span>'); b.type = 'button'; b.addEventListener('click', fn); qs.appendChild(b); return b; }
-    pildora('ti-search', 'Buscar', function () { var s = q('.bcrx-scan', busc); if (s) { s.scrollIntoView({ block: 'center' }); s.click(); } });
     pildora('ti-files', 'Prefacturas', function () { try { _rpHistorial(); } catch (e) {} });
+    pildora('ti-file-plus', 'Nueva', function () { nueva(); });
     // Herramientas rápidas: queda solo «Pedir reseña» a mano (dueño: «puede dejar el asunto de la reseña»); la rifa baja a «Más datos».
     var tools = q('.rx-toolsbox', v);
     var resCard = doc.getElementById('resenaWa') && doc.getElementById('resenaWa').closest('.card');
@@ -153,9 +158,10 @@
     var tot = el('div', 'bcpf-tot',
       '<div class="tr"><span>Artículos</span><b class="t-art">0</b></div>' +
       '<div class="tr"><span>Subtotal</span><b class="t-sub">RD$ 0.00</b></div>' +
+      '<div class="tr td" hidden><span>Descuento</span><b class="t-des">RD$ 0.00</b></div>' +
       '<div class="tr tt"><span>Total</span><b class="t-tot">RD$ 0.00</b></div>' +
       '<div class="t-info"></div>');
-    R.tArt = q('.t-art', tot); R.tSub = q('.t-sub', tot); R.tTot = q('.t-tot', tot); R.tInfo = q('.t-info', tot);
+    R.tArt = q('.t-art', tot); R.tSub = q('.t-sub', tot); R.tDes = q('.t-des', tot); R.tDesF = q('.td', tot); R.tTot = q('.t-tot', tot); R.tInfo = q('.t-info', tot);
     pie.appendChild(otras); pie.appendChild(tot);
     pad.appendChild(pie);
 
@@ -174,6 +180,12 @@
     if (rifaCard) seccion('Otras herramientas', [rifaCard]);
     mas.appendChild(cuerpo);
     pad.appendChild(mas);
+    docu.appendChild(el('div', 'bcpf-keys', '<span><kbd>F2</kbd> Buscar artículo</span><span><kbd>F9</kbd> Guardar</span><span><kbd>F10</kbd> Nueva prefactura</span>'));
+    doc.addEventListener('keydown', function (e) {
+      if (!v.classList.contains('active')) return;
+      if (e.key === 'F9') { e.preventDefault(); try { _rpGuardar(false); } catch (er) {} }
+      else if (e.key === 'F10') { e.preventDefault(); nueva(); }
+    });
     R.mas = mas; R.res = q('.bcpf-res', mas);
     q('summary', mas).addEventListener('click', function () { mas.dataset.tocado = '1'; }); // solo el toque del usuario (no cuando el sistema la abre)
     if (tools) tools.classList.add('bcpf-oculto');
@@ -240,10 +252,11 @@
         '<span class="n">' + ('0' + (i + 1)).slice(-2) + '</span>' +
         '<div class="d"><input class="dnm" value="' + esc(it.desc) + '" aria-label="Descripción" title="Descripción editable (no cambia el artículo maestro)" onchange="_rpDesc(' + i + ',this.value)">' +
         '<div class="dsub"><span class="cod">' + esc(it.cod) + '</span>' + (it.servicio ? '<span class="srv">Servicio</span>' : '') + (it.serial ? '<span class="ime">IMEI ' + (it.imeis || []).length + '/' + it.cant + '</span>' : '') + '</div></div>' +
-        '<b class="imp">' + plata(Number(it.precio) * Number(it.cant)) + '</b>' +
-        '<button type="button" class="del" aria-label="Quitar ' + esc(it.desc) + '" onclick="_rpQuitar(' + i + ')"><i class="ti ti-minus" aria-hidden="true"></i></button>' +
-        '<div class="l2"><label><span>Precio</span><input class="pin" type="number" min="0" step="0.01" value="' + it.precio + '" onchange="_rpPrecio(' + i + ',this.value)"></label>' +
-        '<div class="lq"><span>Cant.</span>' + cant + '</div></div>' +
+        '<b class="imp">' + plata(importe(it)) + (Number(it.descPct) ? '<s>' + plata(Number(it.precio) * Number(it.cant)) + '</s>' : '') + '</b>' +
+        '<button type="button" class="del" aria-label="Quitar ' + esc(it.desc) + '" onclick="_rpQuitar(' + i + ')"><i class="ti ti-trash" aria-hidden="true"></i></button>' +
+        '<div class="l2"><label><span>Precio</span><input class="pin" inputmode="decimal" autocomplete="off" value="' + num2(it.precio) + '" onfocus="this.select()" onchange="_rpPrecio(' + i + ',this.value)"></label>' +
+        '<div class="lq"><span>Cant.</span>' + cant + '</div>' +
+        '<label class="ldc"><span>Desc.</span><span class="dcw"><input class="dc" inputmode="decimal" autocomplete="off" value="' + (Number(it.descPct) || 0) + '" aria-label="Descuento en por ciento" onfocus="this.select()" onchange="_rpDescPct(' + i + ',this.value)"><i>%</i></span></label></div>' +
         filaImeis(it, i) + filaStock(it) + '</div>';
     }).join('') + '</div>';
   }
@@ -253,7 +266,7 @@
   function pintarDoc() {
     var s = st(); if (!R.num) return;
     var items = (s && s.items) || [];
-    var total = items.reduce(function (a, it) { return a + Number(it.precio) * Number(it.cant); }, 0);
+    var tt = tot(items), total = tt.total;
     var unidades = items.reduce(function (a, it) { return a + Number(it.cant); }, 0);
     // Nº y estado
     R.num.textContent = (s && s.codprefactura) ? String(s.codprefactura) : 'Nueva';
@@ -264,8 +277,11 @@
     var info = s && s.codcliente && String(s.codcliente) !== '1';
     var nombre = val('c_nombre') || (info ? s.infoNombre : '') || 'Cliente de contado';
     R.pnom.textContent = nombre;
-    var det = [info ? 'Cód. ' + s.codcliente + ' · Info Plus' : 'Contado · cód. 1', val('c_whatsapp'), val('c_cedula') || val('c_rnc')].filter(Boolean).join(' · ');
-    R.pdet.textContent = det;
+    // Como STUDIO: código y documento en una línea; teléfono y dirección (de Info Plus) en otra
+    var ip = info ? ((cache && cache.infoplusClientes) || []).find(function (c) { return String(c.codcliente) === String(s.codcliente); }) || {} : {};
+    var l1 = [info ? 'Cód. ' + s.codcliente : 'Contado · cód. 1', (val('c_cedula') || ip.cedula) ? 'Céd. ' + (val('c_cedula') || ip.cedula) : ((val('c_rnc') || ip.rnc) ? 'RNC ' + (val('c_rnc') || ip.rnc) : '')].filter(Boolean).join(' · ');
+    var l2 = [val('c_whatsapp') || ip.telefono, ip.direccion].filter(Boolean).join(' · ');
+    R.pdet.innerHTML = esc(l1) + (l2 ? '<span class="pdet2">' + esc(l2) + '</span>' : '');
     var ini = (val('c_nombre') || info) ? iniciales(nombre) : '';
     R.pav.innerHTML = ini ? esc(ini) : '<i class="ti ti-user"></i>';
     // Datos adicionales (resumen en una línea)
@@ -273,20 +289,44 @@
     var tec = sel('rxTecnico').replace(/^[—–-]\s*|\s*[—–-]$/g, ''); if (/^sin asignar$/i.test(tec)) tec = 'Sin técnico';
     var equipo = [val('e_marca'), val('e_modelo')].filter(Boolean).join(' ');
     var falla = val('o_falla');
-    if (R.res) R.res.textContent = equipo || falla ? [equipo, falla, tec !== 'Sin técnico' ? tec : ''].filter(Boolean).join(' · ') : '';
+    // Si se empezó a llenar el equipo, la orden pide nombre, WhatsApp y modelo: se marcan y se dice qué falta
+    var conEq = !!(val('e_marca') || val('e_modelo') || val('e_imei'));
+    ['c_nombre', 'c_whatsapp', 'e_modelo'].forEach(function (id) { var e = doc.getElementById(id), d = e && (e.closest('.bcpf-campos > div') || e.parentElement), l = d && d.querySelector('label'); if (l) l.classList.toggle('bcpf-req', conEq); });
+    var faltan = conEq ? [!val('c_nombre') && 'nombre', !val('c_whatsapp') && 'WhatsApp', !val('e_modelo') && 'modelo'].filter(Boolean) : [];
+    if (R.res) {
+      R.res.classList.toggle('falta', faltan.length > 0);
+      R.res.textContent = faltan.length ? 'Para la orden falta: ' + faltan.join(', ') : (equipo || falla ? [equipo, falla, tec !== 'Sin técnico' ? tec : ''].filter(Boolean).join(' · ') : '');
+    }
     // Se abre solo si ya trae equipo o falla (por ejemplo, al crear la prefactura desde una orden)
     if (R.mas && !R.mas.dataset.tocado && (equipo || falla || val('e_imei'))) R.mas.open = true;
     if (R.com && !R.com.dataset.abierto && val('o_observaciones')) { R.com.open = true; R.com.dataset.abierto = '1'; }
     // Totales
     R.cnt.textContent = items.length ? items.length + (items.length === 1 ? ' artículo' : ' artículos') + ' · ' + unidades + (unidades === 1 ? ' unidad' : ' unidades') : '';
     R.tArt.textContent = String(unidades);
-    R.tSub.textContent = plata(total); R.tTot.textContent = plata(total); R.bn.textContent = plata(total);
+    R.tSub.textContent = plata(tt.subtotal); R.tTot.textContent = plata(total); R.bn.textContent = plata(total);
+    R.tDesF.hidden = !(tt.descuento > 0); R.tDes.textContent = '− ' + plata(tt.descuento);
     var facturada = s && s.estado === 'facturada';
     R.tInfo.innerHTML = facturada ? '<div class="t-fac">Esta prefactura ya fue convertida en factura y no puede modificarse.</div>'
       : (s && s.codprefactura ? 'Prefactura Nº <b>' + esc(s.codprefactura) + '</b> en Info Plus' : '');
     R.bar.querySelector('.bimp').hidden = !(s && s.codprefactura);
     R.bar.querySelector('.bg').hidden = !!facturada; R.bar.querySelector('.bgi').hidden = !!facturada;
     R.bar.querySelector('.bfin').hidden = !facturada;
+  }
+
+  // «Nueva» / F10: empieza otra prefactura (pregunta si hay algo escrito)
+  async function nueva() {
+    var s = st();
+    var hay = (s && s.items && s.items.length) || ['c_nombre', 'c_whatsapp', 'e_marca', 'e_modelo', 'e_imei', 'o_falla', 'o_observaciones'].some(val);
+    if (hay && !(s && s.codprefactura && s.estado === 'sincronizada')) {
+      var ok = true; try { ok = await confirmar('¿Empezar una prefactura nueva?\n\nSe borra lo que no se ha guardado.'); } catch (e) { ok = confirm('¿Empezar una prefactura nueva?'); }
+      if (!ok) return;
+    }
+    try { limpiarRecepcion(); } catch (e) {}
+    try { _rpInit(); } catch (e) {}
+    if (R.mas) { R.mas.open = false; delete R.mas.dataset.tocado; }
+    if (R.com) { R.com.open = false; delete R.com.dataset.abierto; }
+    pintarCarrito(); pintarDoc();
+    var sc = doc.querySelector('#v-recepcion .bcpf-doc'); if (sc) sc.scrollIntoView({ block: 'start' });
   }
 
   // Tipo de cliente según el precio: Por mayor o Extremo → tienda; Cliente final → final

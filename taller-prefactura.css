@@ -3,7 +3,7 @@
    cifras en letra monoespaciada, artículos en 2 líneas, totales a la derecha, barra fija abajo), con el color de BAYOL
    en lugar del dorado. Medidas del dueño: todo lo que se toca ≥44 px, campos 48 px y letra 16, «Guardar» 54 px. */
 html.bc-pf #v-recepcion {
-  --pf-canvas: #f3f0e8; --pf-canvas2: #f0ede4; --pf-ink: #111; --pf-steel: #5b5951; --pf-mute: #85817a;
+  --pf-canvas: #f3f0e8; --pf-canvas2: #f0ede4; --pf-ink: #111; --pf-steel: #5b5951; --pf-mute: #6b675f;
   --pf-line: rgba(90,72,20,.18); --pf-line2: rgba(128,101,21,.09); --pf-hair: rgba(0,0,0,.16);
   --pf-acc: #e4572e; --pf-acc-dark: #b8401f; --pf-acc-soft: rgba(228,87,46,.12);
   --pf-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, "JetBrains Mono", Consolas, monospace;
@@ -201,7 +201,7 @@ html.bc-pf #v-recepcion .bcpf-coment textarea:focus { outline: none; border-colo
 html.bc-pf #v-recepcion .bcpf-resena { border: 0; margin-bottom: 12px; }
 html.bc-pf #v-recepcion .bcpf-resena:not([open]), html.bc-pf #v-recepcion .bcpf-resena > summary { display: none !important; }
 html.bc-pf #v-recepcion .bcpf-coment .bcpf-chev { margin-left: auto; }
-html.bc-pf #v-recepcion .bcpf-resena > .card { margin: 0 !important; box-shadow: none !important; border: 1px solid var(--pf-line) !important; border-top: 3px solid #f59e0b !important; border-radius: 12px !important; }
+html.bc-pf #v-recepcion .bcpf-resena > .card { margin: 0 !important; box-shadow: none !important; border: 1px solid var(--pf-line) !important; border-top: 1px solid var(--pf-line) !important; border-radius: 12px !important; }
 html.bc-pf #v-recepcion .bcpf-mas { margin-top: 16px; border: 1px solid var(--pf-line); border-radius: 12px; background: var(--pf-canvas); }
 html.bc-pf #v-recepcion .bcpf-mas > summary {
   min-height: 54px; display: flex; align-items: center; gap: 10px; padding: 0 16px; cursor: pointer; list-style: none;
@@ -286,7 +286,7 @@ html.bc-pf #v-recepcion .pcli:active { transform: scale(.97); }
   html.bc-pf #v-recepcion .bcpf-mas > summary { padding: 0 12px; }
   html.bc-pf #v-recepcion .bcpf-mas .bcpf-res { display: none; }
   html.bc-pf #v-recepcion .bcpf-tot { order: -1; }
-  html.bc-pf #v-recepcion .bcpf-qs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  html.bc-pf #v-recepcion .bcpf-qs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
   html.bc-pf #v-recepcion .bcpf-q { flex-direction: column; justify-content: center; gap: 2px; min-height: 60px; padding: 6px 4px; border-radius: 12px; font-size: 13px; }
   html.bc-pf #v-recepcion.active .bcpf-bar { left: 0; transform: none; width: 100%; border-radius: 0; border-left: 0; border-right: 0; }
   html.bc-pf #v-recepcion .bcpf-bar.bcpf-oculta { transform: translateY(110%); }
@@ -307,3 +307,74 @@ html.bc-pf body #v-recepcion .bcpf-hist { max-width: 980px !important; }
 /* 5 id: la capa táctil usa 4 id (:is con #bcT#bcT#bcT + :not(#waWrap *)) */
 html.bc-pf body #v-recepcion#v-recepcion#v-recepcion#v-recepcion#v-recepcion .bcpf-mas > summary { min-height: 54px !important; height: auto !important; }
 html.bc-pf body #v-recepcion#v-recepcion#v-recepcion#v-recepcion#v-recepcion .bcpf-det > summary { min-height: 48px !important; height: auto !important; }
+
+/* 20-oct-2026 (b): precio con formato, descuento, tarjeta del cliente, buscador en línea y atajos */
+html.bc-pf #v-recepcion .bcpf-it .imp s { display: block; font: 500 12px/1.2 var(--pf-mono); color: var(--pf-mute); text-align: right; }
+html.bc-pf #v-recepcion .bcpf-it .ldc { display: flex; flex-direction: column; gap: 4px; margin: 0; }
+html.bc-pf #v-recepcion .bcpf-it .dcw { display: inline-flex; align-items: stretch; height: 48px; border: 1px solid var(--pf-hair); border-radius: 10px; background: #fff; overflow: hidden; }
+html.bc-pf #v-recepcion .bcpf-it .dcw:focus-within { border-color: var(--pf-acc); box-shadow: 0 0 0 3px var(--pf-acc-soft); }
+html.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcpf-it .dc { width: 64px; height: 46px !important; min-height: 0 !important; border: 0 !important; box-shadow: none !important; background: transparent !important; padding: 0 8px !important; font: 600 16px var(--pf-mono) !important; text-align: right; color: var(--pf-ink); outline: none; }
+html.bc-pf #v-recepcion .bcpf-it .dcw i { display: grid; place-items: center; width: 34px; font-style: normal; font-weight: 700; color: var(--pf-steel); background: var(--pf-canvas2); border-left: 1px solid var(--pf-line); }
+html.bc-pf #v-recepcion .bcpf-tot .td b { color: #b91c1c; }
+html.bc-pf #v-recepcion .pcli .pdet2 { display: block; margin-top: 2px; }
+html.bc-pf #v-recepcion .bcpf-busc-fila { display: flex; gap: 8px; align-items: flex-start; }
+html.bc-pf #v-recepcion .bcpf-busc-fila > .bcrx-ppk-slot { flex: 1 1 auto; min-width: 0; }
+html.bc-pf #v-recepcion .bcpf-busc-fila > .rx-art-search { flex: 0 0 auto; margin: 0 !important; }
+html.bc-pf body #v-recepcion#v-recepcion .bcpf-busc-fila .bcrx-srv { min-height: 48px !important; height: 48px; border-radius: 10px !important; white-space: nowrap; }
+html.bc-pf #v-recepcion .bcpf-keys { display: flex; gap: 18px; padding: 9px 16px; border-top: 1px solid var(--pf-line2); background: var(--pf-canvas2); border-radius: 0 0 12px 12px; font-size: 13px; color: var(--pf-steel); }
+html.bc-pf #v-recepcion .bcpf-keys kbd { font: 600 12px var(--pf-mono); padding: 2px 6px; border: 1px solid var(--pf-hair); border-bottom-width: 2px; border-radius: 6px; background: #fff; color: var(--pf-ink); margin-right: 4px; }
+@media (max-width: 760px) {
+  html.bc-pf #v-recepcion .bcpf-keys { display: none; }
+  html.bc-pf #v-recepcion .bcpf-it .imp s { text-align: left; }
+  html.bc-pf body #v-recepcion#v-recepcion .bcpf-busc-fila .bcrx-srv { padding: 0 12px !important; }
+}
+
+/* 20-oct-2026 (c): revisión de diseño (impeccable critique) — contraste, 13 px mínimo, foco, celular */
+html.bc-pf #v-recepcion .plab,
+html.bc-pf #v-recepcion .bcpf-sec h4,
+html.bc-pf #v-recepcion .bcpf-it .dsub span,
+html.bc-pf #v-recepcion .bcpf-it .imp s,
+html.bc-pf #v-recepcion .bcpf-keys kbd,
+html.bc-pf #v-recepcion .bcpf-busc kbd { font-size: 13px !important; }
+html.bc-pf body #v-recepcion#v-recepcion .bcpf-it .l2 span:first-child { font-size: 13px !important; }
+html.bc-pf #v-recepcion .bcpf-dh .dest span { font-size: 13px !important; padding: 4px 10px !important; }
+html.bc-pf #v-recepcion .bcpf-mas > summary em { color: var(--pf-steel); }
+html.bc-pf #v-recepcion .bcpf-doc ::placeholder { color: #6b7280; opacity: 1; }
+html.bc-pf #v-recepcion .bcpf-mas :is(.bc-mkt-status, .bc-mkt-title),
+html.bc-pf #v-recepcion .bcpf-sec .card p { font-size: 13px !important; line-height: 1.45 !important; }
+html.bc-pf #v-recepcion .bcpf-mas .bcpf-res.falta { color: #b45309; font-weight: 700; }
+html.bc-pf #v-recepcion label.bcpf-req::after { content: " *"; color: var(--pf-acc-dark); font-weight: 800; }
+/* Rifa: botón con la paleta del documento */
+html.bc-pf body #v-recepcion#v-recepcion .bcpf-sec #btnBoletoRifa { background: var(--pf-ink) !important; color: #fff !important; border-radius: 10px !important; min-height: 48px !important; }
+/* Foco visible para quien trabaja con el teclado */
+html.bc-pf #v-recepcion :is(.pcli, .bcpf-q, summary, .bb, .ibtn, .bcrx-scan, .bcrx-srv, .del):focus-visible { outline: 3px solid var(--pf-acc); outline-offset: 2px; }
+/* Fila del artículo: etiquetas alineadas arriba */
+html.bc-pf #v-recepcion .bcpf-it .l2 { align-items: flex-start; }
+html.bc-pf #v-recepcion .bcpf-it .del:hover { color: #b91c1c; border-color: #fecaca; }
+@media (max-width: 760px) {
+  /* Cabecera en una sola línea: lupa · Nº · número · fecha */
+  html.bc-pf #v-recepcion .bcpf-dh .dtit { display: none; }
+  html.bc-pf #v-recepcion .bcpf-dh .dhr { display: flex; flex-wrap: nowrap; gap: 6px; }
+  html.bc-pf #v-recepcion .bcpf-dh .dnum { min-width: 0; flex: 1 1 auto; }
+  html.bc-pf #v-recepcion .bcpf-dh .dfec { flex: 0 0 auto; padding: 0 10px; font-size: 14px; }
+  /* «Servicio» solo con el ícono para que el buscador se lea completo */
+  html.bc-pf body #v-recepcion#v-recepcion .bcpf-busc-fila .bcrx-srv { width: 48px; min-width: 48px !important; padding: 0 !important; justify-content: center; }
+  html.bc-pf #v-recepcion .bcpf-busc-fila .bcrx-srv span { display: none; }
+  /* Resumen de «Más datos» en una segunda línea */
+  html.bc-pf #v-recepcion .bcpf-mas > summary { flex-wrap: wrap; padding-top: 6px; padding-bottom: 6px; }
+  html.bc-pf #v-recepcion .bcpf-mas .bcpf-res { display: block; order: 3; flex-basis: 100%; margin: 0 0 0 28px; white-space: normal; }
+  html.bc-pf #v-recepcion .bcpf-mas .bcpf-res:empty { display: none; }
+  /* Precio y descuento en una línea; cantidad debajo */
+  html.bc-pf #v-recepcion .bcpf-it .l2 { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "p d" "q q"; gap: 10px 12px; }
+  html.bc-pf #v-recepcion .bcpf-it .l2 > label:first-child { grid-area: p; }
+  html.bc-pf #v-recepcion .bcpf-it .l2 > .ldc { grid-area: d; }
+  html.bc-pf #v-recepcion .bcpf-it .l2 > .lq { grid-area: q; }
+  html.bc-pf #v-recepcion .bcpf-it .pin { width: 100%; }
+  html.bc-pf #v-recepcion .bcpf-qs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  html.bc-pf #v-recepcion .bcpf-it .l2 > .lq { justify-self: start; }
+  html.bc-pf #v-recepcion .bcpf-it .l2 > .lq .stp { width: auto; }
+  html.bc-pf #v-recepcion .bcpf-mas > summary .mt { flex: 1 1 0; min-width: 0; }
+  /* Tarjeta del cliente: solo la flecha (toda la tarjeta ya es el botón «Cambiar») */
+  html.bc-pf #v-recepcion .pcli .pchev { font-size: 0; }
+  html.bc-pf #v-recepcion .pcli .pchev i { font-size: 20px; }
+}

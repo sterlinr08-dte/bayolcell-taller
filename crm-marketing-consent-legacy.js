@@ -96,12 +96,12 @@
     state.exists=false; state.current=false;
     if(!validPhone(p)){
       state.check.checked=false; state.check.disabled=true;
-      statusText(state,'Escribe un WhatsApp válido para registrar la autorización.','warn');
+      statusText(state,'Escriba un WhatsApp válido para registrar la autorización.','warn');
       return;
     }
     if(!branch){
       state.check.checked=false; state.check.disabled=true;
-      statusText(state,'Selecciona la sucursal.','warn');
+      statusText(state,'Seleccione la sucursal.','warn');
       return;
     }
     state.check.disabled=true;
