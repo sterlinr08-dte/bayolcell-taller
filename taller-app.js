@@ -20411,7 +20411,7 @@ async function _rpCrearPrefactura() {
         nombre, codempleado: vend, codnivelprecio: nivel, codlocalidad: String(almacen), credito: false,
         fecha: now.toISOString().slice(0, 10), hora: now.toTimeString().slice(0, 8),
         contrato: obs ? obs.slice(0, 200) : '', ordencompra: '', centro: '',
-        seriales: _rpState.items.flatMap(it => (it.imeis || []).map(numero => ({ numero, codarticulo: Number(it.cod) }))), detallesPreFactura: _rpState.items.map(it => ({ descripcion: it.desc, precio: Number(it.precio), cantidad: Number(it.cant), codarticulo: Number(it.cod), codunidad: 1, porcentaje: 0, despachado: 0, descripcionunidad: null }))
+        seriales: _rpState.items.flatMap(it => (it.imeis || []).map(numero => ({ numero, codarticulo: Number(it.cod) }))), detallesPreFactura: _rpState.items.map((it, i) => ({ descripcion: _rpDescInfoplus(it, i), precio: Number(it.precio), cantidad: Number(it.cant), codarticulo: Number(it.cod), codunidad: 1, porcentaje: 0, despachado: 0, descripcionunidad: null }))
     };
     _rpState.estado = 'actualizando'; _rpRenderResumen();
     try {
@@ -20435,6 +20435,28 @@ async function _rpCrearPrefactura() {
     } catch(e) { logError('crear prefactura recepcion', e); _rpState.estado = 'error'; _rpRenderResumen(); toastError(getFriendlyError(e, 'No se pudo crear la prefactura.')); }
 }
 let _rpUltima = null;
+// La API de prefactura de Info Plus no tiene Comentarios (probado 19-oct-2026 con la 118709): la cajera solo ve las
+// descripciones de las líneas. La línea de SERVICIO (o la primera, si no hay servicio) lleva además el equipo, el IMEI
+// y la falla, para que en Info Plus se sepa de qué equipo es. Solo cambia lo que se manda; el carrito no se toca.
+// Info Plus guarda hasta 100 letras por descripción.
+function _rpDescInfoplus(it, i) {
+    const base = String(it.desc || '').trim();
+    const items = (_rpState && _rpState.items) || [];
+    const hayServ = items.some(x => x.servicio);
+    if(hayServ ? !it.servicio : i !== 0) return base.slice(0, 100);
+    const g = id => (document.getElementById(id)?.value || '').replace(/\s+/g, ' ').trim();
+    const equipo = [g('e_marca'), g('e_modelo'), g('e_capacidad')].filter(Boolean).join(' ');
+    const imei = g('e_imei'), falla = g('o_falla');
+    const extra = [equipo, imei ? 'IMEI ' + imei : '', falla].filter(Boolean);
+    let d = base;
+    for (const x of extra) {
+        if(d.toLowerCase().includes(x.toLowerCase())) continue; // ya lo dice
+        const cand = d + ' · ' + x;
+        if(cand.length <= 100) d = cand;
+        else { const lugar = 100 - d.length - 3; if(lugar >= 8) d = d + ' · ' + x.slice(0, lugar - 1) + '…'; break; }
+    }
+    return d.slice(0, 100);
+}
 function _rpImprimir(_modo) { if(_rpUltima) { _prefUltima = _rpUltima; imprimirPrefactura(_modo); } }
 // ---- Historial buscable de prefacturas (para editar cualquiera) ----
 let _rpHistQ = '';
