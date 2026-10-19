@@ -106,7 +106,7 @@
     if (bSrv) { bSrv.classList.add('bcrx-srv'); bSrv.innerHTML = '<i class="ti ti-tool"></i> Servicio / falla'; }
     var slot = doc.createElement('div'); slot.className = 'bcrx-ppk-slot';
     zona.parentNode.insertBefore(slot, zona);
-    var estado = { q: '', hl: 0, lista: [] };
+    var estado = { q: '', hl: 0, lista: [], det: -1 };
     function barraHTML() {
       return '<button type="button" class="bcrx-scan" aria-label="Buscar artículo"><i class="ti ti-scan" aria-hidden="true"></i>' +
         '<span>Buscar o escanear por nombre, código o IMEI</span><kbd>F2</kbd></button>';
@@ -116,15 +116,20 @@
     function almacen() { var s = doc.getElementById('rxAlmacen'); return (s && s.value) || '1'; }
     function precioDe(a) { var nv = nivel(); if (a.niveles && a.niveles[nv] != null) return Number(a.niveles[nv]); if (a.niveles && a.niveles['1'] != null) return Number(a.niveles['1']); return Number(a.precio || 0); }
     function existe(a) { var ex = (a.existencias && typeof a.existencias === 'object') ? a.existencias : null; return ex ? (Number(ex[almacen()]) || 0) : null; }
-    // Los 3 precios del artículo (dueño 19-oct-2026: «faltan visualizar los diferentes precios»); resalta el del cliente.
-    // El mínimo no se puede mostrar: la API de Info Plus solo entrega el precio de cada nivel.
-    var NIV = [['1', 'Final'], ['2', 'Mayor'], ['3', 'Extremo']];
-    function nivelesHTML(a) {
-      var nv = a.niveles || {}, act = nivel();
-      var chips = NIV.filter(function (n) { return nv[n[0]] != null && Number(nv[n[0]]) > 0; }).map(function (n) {
-        return '<span class="pk-nv' + (n[0] === act ? ' act' : '') + '"><small>' + n[1] + '</small><b>' + plata(Number(nv[n[0]])).replace(/^RD\$\s*/, '<i>RD$ </i>') + '</b></span>';
-      });
-      return chips.length > 1 ? '<span class="pk-nvs">' + chips.join('') + '</span>' : '';
+    // Detalle del artículo al tocar la fila, igual que STUDIO (dueño 19-oct-2026: «qué formato tenemos en studio, podemos
+    // usar lo mismo»): recuadros con los precios de cada nivel lado a lado (el del cliente resaltado), existencia y
+    // «Elegir — RD$ …». El mínimo no se puede mostrar: la API de Info Plus solo entrega el precio de cada nivel.
+    var NIV = [['1', 'Cliente final'], ['2', 'Por mayor'], ['3', 'Extremo']];
+    function detalleHTML(a, i) {
+      var nv = a.niveles || {}, act = nivel(), ex = existe(a), pr = precioDe(a);
+      var cajas = NIV.filter(function (n) { return nv[n[0]] != null && Number(nv[n[0]]) > 0; }).map(function (n) {
+        return '<div class="pk-nv' + (n[0] === act ? ' act' : '') + '"><small>' + n[1] + '</small><b>' + plata(Number(nv[n[0]])) + '</b></div>';
+      }).join('');
+      var alm = ''; try { alm = _rpAlmNombre(); } catch (e) {}
+      return '<div class="bcrx-ppk-det" data-det="' + i + '">' +
+        (cajas ? '<div class="pk-nvs">' + cajas + '</div>' : '') +
+        '<div class="pk-dex"><span>Existencia' + (alm ? ' · ' + esc(alm) : '') + '</span><b class="' + (ex !== null && ex <= 0 ? 'out' : '') + '">' + (ex === null ? '—' : ex + ' und') + '</b></div>' +
+        '<button type="button" class="pk-elegir" data-i="' + i + '"><i class="ti ti-circle-plus" aria-hidden="true"></i> Elegir — ' + (pr > 0 ? plata(pr) : 'sin precio') + '</button></div>';
     }
     function esCel(a) { try { return _abCat(a.descripcion) === 'celular'; } catch (e) { return false; } }
     function filtrar() {
@@ -137,7 +142,7 @@
         var ex = (existe(x) || 0) > 0, ey = (existe(y) || 0) > 0; if (ex !== ey) return ex ? -1 : 1;
         return String(x.descripcion || '').localeCompare(String(y.descripcion || ''));
       });
-      estado.lista = l; estado.hl = 0;
+      estado.lista = l; estado.hl = 0; estado.det = -1;
     }
     function pintar() {
       var cont = q('.bcrx-ppk-list', slot); if (!cont) return;
@@ -147,12 +152,13 @@
       var filas = show.map(function (a, i) {
         var ex = existe(a), pr = precioDe(a);
         var chip = ex === null ? '<span class="bcrx-stk">—</span>' : ex <= 0 ? '<span class="bcrx-stk out">Sin existencia</span>' : '<span class="bcrx-stk">' + ex + '</span>';
-        return '<div class="bcrx-ppk-row' + (i === estado.hl ? ' hl' : '') + (ex !== null && ex <= 0 ? ' sin' : '') + '" role="option" data-i="' + i + '">' +
+        return '<div class="bcrx-ppk-row' + (i === estado.hl ? ' hl' : '') + (estado.det === i ? ' abierta' : '') + (ex !== null && ex <= 0 ? ' sin' : '') + '" role="option" data-fila="' + i + '" aria-expanded="' + (estado.det === i) + '" title="Ver precios y existencia">' +
           '<span class="pk-cod">' + esc(a.codigo) + '</span>' +
           '<span class="pk-nom"><span class="pk-dtx">' + esc((a.descripcion || '').trim()) + (esCel(a) ? ' <span class="pk-tag">IMEI</span>' : '') + '</span>' + (a.marca ? '<small>' + esc(a.marca) + '</small>' : '') + '</span>' +
           '<span class="pk-stk">' + chip + '</span>' +
           '<span class="pk-pre">' + (pr > 0 ? plata(pr) : '<span class="bcrx-stk out">Sin precio</span>') + '</span>' +
-          '<button type="button" class="pk-add" data-i="' + i + '" aria-label="Agregar ' + esc((a.descripcion || '').trim()) + '"><i class="ti ti-plus" aria-hidden="true"></i></button>' + nivelesHTML(a) + '</div>';
+          '<button type="button" class="pk-add" data-i="' + i + '" aria-label="Agregar ' + esc((a.descripcion || '').trim()) + '"><i class="ti ti-plus" aria-hidden="true"></i></button></div>' +
+          (estado.det === i ? detalleHTML(a, i) : '');
       }).join('');
       cont.innerHTML = (l.length > MAXF ? '<div class="bcrx-ppk-mas">Mostrando ' + MAXF + ' de ' + l.length.toLocaleString('es-DO') + ' — escriba para afinar</div>' : '') +
         (filas ? '<div class="bcrx-ppk-head" aria-hidden="true"><span>Código</span><span>Artículo</span><span>Existencia</span><span>Precio</span><span></span></div>' + filas
@@ -182,7 +188,11 @@
       });
       q('.bcrx-ppk-x', slot).addEventListener('click', cerrarPanel);
       q('.bcrx-ppk-cat', slot).addEventListener('click', function () { cerrarPanel(); try { _rpAgregar(); } catch (e) {} });
-      q('.bcrx-ppk-list', slot).addEventListener('click', function (e) { var r = e.target.closest('[data-i]'); if (r) agregar(Number(r.getAttribute('data-i'))); });
+      q('.bcrx-ppk-list', slot).addEventListener('click', function (e) {
+        var b = e.target.closest('.pk-add, .pk-elegir'); if (b) { agregar(Number(b.getAttribute('data-i'))); return; }
+        var f = e.target.closest('[data-fila]'); if (!f) return;
+        var i = Number(f.getAttribute('data-fila')); estado.det = estado.det === i ? -1 : i; estado.hl = i; pintar();
+      });
       filtrar(); pintar();
       setTimeout(function () { inp.focus(); }, 40);
       if (typeof _ensureInfoplusArticulos === 'function') Promise.resolve(_ensureInfoplusArticulos()).then(function () { if (q('.bcrx-ppk', slot)) { filtrar(); pintar(); } });
