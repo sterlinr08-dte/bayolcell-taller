@@ -1,0 +1,112 @@
+/* BAYOL CELL · Recepción organizada (19-oct-2026). Va con taller-recepcion.js; solo actúa con html.bc-rx.
+   Apagar: BC_RX=false o localStorage bc_rx_off='1'. */
+
+/* PC: Cliente a la izquierda; Equipo y Falla apilados a la derecha (alturas parecidas, sin huecos) */
+html.bc-rx #v-recepcion .rx-cols {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-areas: "cli equ" "cli fal";
+}
+html.bc-rx #v-recepcion .rx-cols > .bcrx-cli { grid-area: cli; }
+html.bc-rx #v-recepcion .rx-cols > .bcrx-equ { grid-area: equ; }
+html.bc-rx #v-recepcion .rx-cols > .bcrx-fal { grid-area: fal; }
+@media (max-width: 700px) {
+  html.bc-rx #v-recepcion .rx-cols { grid-template-columns: 1fr; grid-template-areas: "cli" "equ" "fal"; }
+}
+
+/* Fallas del equipo y Seguridad del dispositivo, ahora dentro de «Falla y diagnóstico» */
+html.bc-rx #v-recepcion .bcrx-fal .bcrx-dentro {
+  margin: 10px 0 0 !important;
+  padding: 0 !important;
+  border: 1px solid #eef2f7 !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+  background: #fbfcfe;
+}
+html.bc-rx #v-recepcion .bcrx-fal .bcrx-dentro > details > summary {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  list-style: none;
+}
+html.bc-rx #v-recepcion .bcrx-fal .bcrx-dentro > details > summary::-webkit-details-marker { display: none; }
+html.bc-rx #v-recepcion .bcrx-fal .bcrx-dentro > details > summary::after {
+  content: "";
+  margin-left: auto;
+  width: 9px; height: 9px;
+  border-right: 2px solid #94a3b8; border-bottom: 2px solid #94a3b8;
+  transform: rotate(45deg);
+  transition: transform .2s ease;
+  flex-shrink: 0;
+}
+html.bc-rx #v-recepcion .bcrx-fal .bcrx-dentro > details[open] > summary::after { transform: rotate(225deg); }
+html.bc-rx #v-recepcion .bcrx-fal .bcrx-dentro > details > div { padding: 0 12px 12px; margin-top: 4px !important; max-width: none !important; }
+
+/* Artículos: un poco de aire arriba, igual que antes */
+html.bc-rx #v-recepcion .bcrx-art { margin-top: 12px !important; }
+
+/* 5 · Datos adicionales plegado: la cabecera se toca para abrir y muestra lo elegido */
+html.bc-rx #v-recepcion .bcrx-adi { margin-top: 12px; }
+html.bc-rx #v-recepcion .bcrx-adi > .rx-head { cursor: pointer; min-height: 48px; flex-wrap: nowrap; }
+html.bc-rx #v-recepcion .bcrx-adi > .rx-head::after {
+  content: "";
+  width: 9px; height: 9px; margin-left: 8px;
+  border-right: 2px solid #94a3b8; border-bottom: 2px solid #94a3b8;
+  transform: rotate(225deg);
+  transition: transform .2s ease;
+}
+html.bc-rx #v-recepcion .bcrx-adi.bcrx-plegada > .rx-head::after { transform: rotate(45deg); }
+html.bc-rx #v-recepcion .bcrx-adi.bcrx-plegada > .rx-body { display: none; }
+html.bc-rx #v-recepcion .bcrx-resumen {
+  font-size: 12px; font-weight: 600; color: #64748b; letter-spacing: 0; text-transform: none;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1 1 140px;
+}
+html.bc-rx #v-recepcion .bcrx-adi:not(.bcrx-plegada) .bcrx-resumen { display: none; }
+html.bc-rx #v-recepcion .bcrx-adi > .rx-head:focus-visible { outline: 3px solid rgb(96 165 250 / .55); outline-offset: -3px; }
+
+/* PC: la prefactura acompaña al bajar */
+html.bc-rx #v-recepcion .rx-side { position: sticky; top: 12px; }
+
+/* Barra fija de la prefactura: solo cuando la prefactura no está al lado (≤1080 px) */
+html.bc-rx #v-recepcion .bcrx-barra { display: none; }
+@media (max-width: 1080px) {
+  html.bc-rx #v-recepcion.bcrx-con-barra { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important; }
+  html.bc-rx #v-recepcion .bcrx-barra {
+    position: fixed; z-index: 60;
+    left: 10px; right: 10px;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px;
+    background: rgba(255, 255, 255, .94);
+    -webkit-backdrop-filter: blur(16px) saturate(170%);
+    backdrop-filter: blur(16px) saturate(170%);
+    border: 1px solid rgba(15, 23, 42, .08);
+    border-radius: 20px;
+    box-shadow: 0 10px 30px -8px rgba(15, 23, 42, .28);
+    transition: transform .22s cubic-bezier(.23, 1, .32, 1), opacity .18s ease;
+  }
+  html.bc-rx #v-recepcion .bcrx-barra.bcrx-oculta { transform: translateY(140%); opacity: 0; pointer-events: none; }
+}
+html.bc-rx #v-recepcion .bcrx-total {
+  flex: 1 1 auto; min-width: 0; min-height: 54px;
+  display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 8px; align-items: center;
+  text-align: left; background: transparent; border: 0; border-radius: 14px; padding: 4px 8px; cursor: pointer; color: #0f172a;
+}
+html.bc-rx #v-recepcion .bcrx-total-lbl { font-size: 13px; font-weight: 700; color: #64748b; }
+html.bc-rx #v-recepcion .bcrx-total-num { font-size: 18px; font-weight: 800; color: #dc2626; text-align: right; white-space: nowrap; }
+html.bc-rx #v-recepcion .bcrx-ver { grid-column: 1 / -1; font-size: 13px; font-weight: 600; color: #2563eb; }
+html.bc-rx #v-recepcion .bcrx-acc { display: flex; gap: 6px; flex-shrink: 0; }
+html.bc-rx #v-recepcion .bcrx-acc[hidden] { display: none; }
+html.bc-rx #v-recepcion .bcrx-acc button {
+  min-height: 54px; min-width: 54px; padding: 0 16px;
+  border: 0; border-radius: 14px; font-size: 15px; font-weight: 700; color: #fff; cursor: pointer;
+  transition: transform .12s ease;
+}
+html.bc-rx #v-recepcion .bcrx-acc button:active { transform: scale(.97); }
+html.bc-rx #v-recepcion .bcrx-g { background: #dc2626; }
+html.bc-rx #v-recepcion .bcrx-gi { background: #1e293b; }
+html.bc-rx #v-recepcion .bcrx-nota { font-size: 13px; font-weight: 700; color: #b91c1c; padding: 0 10px; }
+@media (prefers-reduced-motion: reduce) {
+  html.bc-rx #v-recepcion .bcrx-barra, html.bc-rx #v-recepcion .bcrx-acc button { transition: none; }
+}

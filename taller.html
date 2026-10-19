@@ -1720,6 +1720,9 @@ body{
 <!-- Tamaño táctil (regla del dueño 18-oct-2026): capa reversible. Apagar: BC_TACTIL=false o localStorage bc_tactil_off=1 -->
 <script>var BC_TACTIL=true;try{if(BC_TACTIL&&localStorage.getItem('bc_tactil_off')!=='1')document.documentElement.classList.add('bc-tactil');}catch(e){if(BC_TACTIL)document.documentElement.classList.add('bc-tactil');}</script>
 <link rel="stylesheet" href="taller-tactil.css?v=20261019-t2">
+<!-- Recepción organizada (dueño 19-oct-2026): capa reversible. Apagar: BC_RX=false o localStorage bc_rx_off=1 -->
+<script>var BC_RX=true;try{if(BC_RX&&localStorage.getItem('bc_rx_off')!=='1')document.documentElement.classList.add('bc-rx');}catch(e){if(BC_RX)document.documentElement.classList.add('bc-rx');}</script>
+<link rel="stylesheet" href="taller-recepcion.css?v=20261019-r1">
 </head>
 <body>
 
@@ -2704,7 +2707,7 @@ body{
                         <div class="rx-body">
                           <div><label>Buscar cliente en Info Plus</label>
                             <div style="display:flex; gap:6px;">
-                              <input id="rxClienteBuscar" placeholder="Nombre, teléfono, cédula o código…" onkeydown="if(event.key==='Enter'){event.preventDefault();_rpBuscarCliente();}">
+                              <input id="rxClienteBuscar" data-bcbp-no placeholder="Nombre, teléfono, cédula o código…" onkeydown="if(event.key==='Enter'){event.preventDefault();_rpBuscarCliente();}">
                               <button class="btn btn-light" style="white-space:nowrap; border-radius:10px;" onclick="_rpBuscarCliente()"><i class="ti ti-search"></i> Buscar</button>
                             </div>
                           </div>
@@ -5573,6 +5576,7 @@ body{
 <div id="printArea" class="print-area"></div>
 
 <script src="taller-app.js?v=20261018-wa3"></script>
+<script src="taller-recepcion.js?v=20261019-r1"></script>
 <script src="diagnostico-photo-tiles.js?v=20261009e"></script>
 <script src="diagnostico-board-data.js?v=20261009e"></script>
 <script src="diagnostico-ai-board.js?v=20261010d"></script>
