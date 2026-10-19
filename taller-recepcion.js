@@ -116,6 +116,16 @@
     function almacen() { var s = doc.getElementById('rxAlmacen'); return (s && s.value) || '1'; }
     function precioDe(a) { var nv = nivel(); if (a.niveles && a.niveles[nv] != null) return Number(a.niveles[nv]); if (a.niveles && a.niveles['1'] != null) return Number(a.niveles['1']); return Number(a.precio || 0); }
     function existe(a) { var ex = (a.existencias && typeof a.existencias === 'object') ? a.existencias : null; return ex ? (Number(ex[almacen()]) || 0) : null; }
+    // Los 3 precios del artículo (dueño 19-oct-2026: «faltan visualizar los diferentes precios»); resalta el del cliente.
+    // El mínimo no se puede mostrar: la API de Info Plus solo entrega el precio de cada nivel.
+    var NIV = [['1', 'Final'], ['2', 'Mayor'], ['3', 'Extremo']];
+    function nivelesHTML(a) {
+      var nv = a.niveles || {}, act = nivel();
+      var chips = NIV.filter(function (n) { return nv[n[0]] != null && Number(nv[n[0]]) > 0; }).map(function (n) {
+        return '<span class="pk-nv' + (n[0] === act ? ' act' : '') + '">' + n[1] + ' <b>' + plata(Number(nv[n[0]])) + '</b></span>';
+      });
+      return chips.length > 1 ? '<span class="pk-nvs">' + chips.join('') + '</span>' : '';
+    }
     function esCel(a) { try { return _abCat(a.descripcion) === 'celular'; } catch (e) { return false; } }
     function filtrar() {
       var arts = (typeof cache !== 'undefined' && cache.infoplusArticulos) || [];
@@ -139,7 +149,7 @@
         var chip = ex === null ? '<span class="bcrx-stk">—</span>' : ex <= 0 ? '<span class="bcrx-stk out">Sin existencia</span>' : '<span class="bcrx-stk">' + ex + '</span>';
         return '<div class="bcrx-ppk-row' + (i === estado.hl ? ' hl' : '') + (ex !== null && ex <= 0 ? ' sin' : '') + '" role="option" data-i="' + i + '">' +
           '<span class="pk-cod">' + esc(a.codigo) + '</span>' +
-          '<span class="pk-nom">' + esc((a.descripcion || '').trim()) + (esCel(a) ? ' <span class="pk-tag">IMEI</span>' : '') + (a.marca ? '<small>' + esc(a.marca) + '</small>' : '') + '</span>' +
+          '<span class="pk-nom"><span class="pk-dtx">' + esc((a.descripcion || '').trim()) + (esCel(a) ? ' <span class="pk-tag">IMEI</span>' : '') + '</span>' + (a.marca ? '<small>' + esc(a.marca) + '</small>' : '') + nivelesHTML(a) + '</span>' +
           '<span class="pk-stk">' + chip + '</span>' +
           '<span class="pk-pre">' + (pr > 0 ? plata(pr) : '<span class="bcrx-stk out">Sin precio</span>') + '</span>' +
           '<button type="button" class="pk-add" data-i="' + i + '" aria-label="Agregar ' + esc((a.descripcion || '').trim()) + '"><i class="ti ti-plus" aria-hidden="true"></i></button></div>';
@@ -178,6 +188,8 @@
       if (typeof _ensureInfoplusArticulos === 'function') Promise.resolve(_ensureInfoplusArticulos()).then(function () { if (q('.bcrx-ppk', slot)) { filtrar(); pintar(); } });
     }
     cerrarPanel();
+    // Si cambia el precio del cliente con el panel abierto, se repinta (precio y nivel resaltado)
+    doc.addEventListener('change', function (e) { if (e.target && e.target.id === 'rxNivel' && q('.bcrx-ppk', slot)) setTimeout(pintar, 0); });
     // Tocar fuera del panel lo cierra (el texto buscado se recuerda)
     doc.addEventListener('click', function (e) { if (q('.bcrx-ppk', slot) && !slot.contains(e.target) && doc.contains(e.target)) cerrarPanel(); }, true);
     // F2 abre la búsqueda (como en STUDIO), solo con Recepción en pantalla

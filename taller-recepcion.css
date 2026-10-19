@@ -196,3 +196,12 @@ html.bc-rx #v-recepcion .rx-layout > *, html.bc-rx #v-recepcion .rx-card, html.b
 /* Administrador: «Almacén» a la vista arriba de Artículos (19-oct-2026) */
 html.bc-rx #v-recepcion .bcrx-alm { margin: 0 0 12px; }
 html.bc-rx #v-recepcion .bcrx-alm select { width: 100%; }
+
+/* Buscador de artículos: los 3 precios del artículo (Final · Mayor · Extremo); el del cliente resaltado (19-oct-2026) */
+html.bc-rx #v-recepcion .pk-nom { display: block; overflow: visible; -webkit-line-clamp: unset; }
+html.bc-rx #v-recepcion .pk-nom .pk-dtx { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.bcrx-ppk-row .pk-nvs { display: flex; flex-wrap: wrap; gap: 4px 6px; margin-top: 4px; }
+.bcrx-ppk-row .pk-nv { font-size: 12px; font-weight: 500; color: #5b5951; background: #f0ede4; border-radius: 6px; padding: 2px 7px; white-space: nowrap; }
+.bcrx-ppk-row .pk-nv b { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-weight: 700; color: #111; }
+.bcrx-ppk-row .pk-nv.act { background: rgba(228,87,46,.14); color: #b8401f; box-shadow: inset 0 0 0 1px rgba(228,87,46,.35); }
+.bcrx-ppk-row .pk-nv.act b { color: #b8401f; }
