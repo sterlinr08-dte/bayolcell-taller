@@ -61,7 +61,102 @@
     [[cli, 1], [equ, 2], [fal, 3], [art, 4], [adi, 5]].forEach(function (p) { var b = q('.rx-num', p[0]); if (b) b.textContent = p[1]; });
 
     barra(v);
+    buscadorArticulos(v, art);
     return true;
+  }
+
+  // ── Pestaña «Buscar o escanear» (igual a la de Prefactura en STUDIO) ──
+  // Una barra que, al tocarla, se convierte en un panel en línea con buscador y lista Código · Artículo · Existencia ·
+  // Precio · «+». Agregar usa _rpAgregarArticulo (la misma función del buscador grande: precio por nivel, existencia
+  // en vivo, IMEI para celulares). «Catálogo completo» abre el buscador grande de siempre (filtros y sincronizar).
+  var MAXF = 60;
+  function norm(s) { return String(s == null ? '' : s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function plata(n) { try { return money(n); } catch (e) { return 'RD$ ' + Number(n || 0).toFixed(2); } }
+  function buscadorArticulos(v, art) {
+    var zona = q('.rx-art-search', art); if (!zona || typeof _rpAgregarArticulo !== 'function') return;
+    var bArt = zona.querySelector('button[onclick^="_rpAgregar()"]');
+    var bSrv = zona.querySelector('button[onclick^="_rpAgregarServicio"]');
+    if (bArt) bArt.classList.add('bcrx-oculto');
+    if (bSrv) { bSrv.classList.add('bcrx-srv'); bSrv.innerHTML = '<i class="ti ti-tool"></i> Servicio / falla'; }
+    var slot = doc.createElement('div'); slot.className = 'bcrx-ppk-slot';
+    zona.parentNode.insertBefore(slot, zona);
+    var estado = { q: '', hl: 0, lista: [] };
+    function barraHTML() {
+      return '<button type="button" class="bcrx-scan" aria-label="Buscar artículo"><i class="ti ti-scan" aria-hidden="true"></i>' +
+        '<span>Buscar o escanear por nombre, código o IMEI</span><kbd>F2</kbd></button>';
+    }
+    function cerrarPanel() { slot.innerHTML = barraHTML(); q('.bcrx-scan', slot).addEventListener('click', abrirPanel); }
+    function nivel() { try { return String((_rpState && _rpState.nivel) || 1); } catch (e) { return '1'; } }
+    function almacen() { var s = doc.getElementById('rxAlmacen'); return (s && s.value) || '1'; }
+    function precioDe(a) { var nv = nivel(); if (a.niveles && a.niveles[nv] != null) return Number(a.niveles[nv]); if (a.niveles && a.niveles['1'] != null) return Number(a.niveles['1']); return Number(a.precio || 0); }
+    function existe(a) { var ex = (a.existencias && typeof a.existencias === 'object') ? a.existencias : null; return ex ? (Number(ex[almacen()]) || 0) : null; }
+    function esCel(a) { try { return _abCat(a.descripcion) === 'celular'; } catch (e) { return false; } }
+    function filtrar() {
+      var arts = (typeof cache !== 'undefined' && cache.infoplusArticulos) || [];
+      var qq = norm(estado.q).trim(), pal = qq.split(/\s+/).filter(Boolean);
+      var l = arts;
+      if (pal.length) l = arts.filter(function (a) { var h = norm([a.codigo, a.descripcion, a.marca, a.referencia, a.referencia_fabrica].filter(Boolean).join(' ')); return pal.every(function (p) { return h.indexOf(p) >= 0; }); });
+      l = l.slice().sort(function (x, y) {
+        if (qq) { var cx = String(x.codigo) === qq, cy = String(y.codigo) === qq; if (cx !== cy) return cx ? -1 : 1; }
+        var ex = (existe(x) || 0) > 0, ey = (existe(y) || 0) > 0; if (ex !== ey) return ex ? -1 : 1;
+        return String(x.descripcion || '').localeCompare(String(y.descripcion || ''));
+      });
+      estado.lista = l; estado.hl = 0;
+    }
+    function pintar() {
+      var cont = q('.bcrx-ppk-list', slot); if (!cont) return;
+      var arts = (typeof cache !== 'undefined' && cache.infoplusArticulos) || [];
+      if (!arts.length) { cont.innerHTML = '<div class="bcrx-ppk-vacio">' + ((typeof _infoplusCargando !== 'undefined' && _infoplusCargando) ? 'Cargando artículos de Info Plus…' : 'No hay artículos cargados. Usa «Catálogo completo» para sincronizar.') + '</div>'; return; }
+      var l = estado.lista, show = l.slice(0, MAXF);
+      var filas = show.map(function (a, i) {
+        var ex = existe(a), pr = precioDe(a);
+        var chip = ex === null ? '<span class="bcrx-stk">—</span>' : ex <= 0 ? '<span class="bcrx-stk out">Sin existencia</span>' : '<span class="bcrx-stk">' + ex + '</span>';
+        return '<div class="bcrx-ppk-row' + (i === estado.hl ? ' hl' : '') + (ex !== null && ex <= 0 ? ' sin' : '') + '" role="option" data-i="' + i + '">' +
+          '<span class="pk-cod">' + esc(a.codigo) + '</span>' +
+          '<span class="pk-nom">' + esc((a.descripcion || '').trim()) + (esCel(a) ? ' <span class="pk-tag">IMEI</span>' : '') + (a.marca ? '<small>' + esc(a.marca) + '</small>' : '') + '</span>' +
+          '<span class="pk-stk">' + chip + '</span>' +
+          '<span class="pk-pre">' + (pr > 0 ? plata(pr) : '<span class="bcrx-stk out">Sin precio</span>') + '</span>' +
+          '<button type="button" class="pk-add" data-i="' + i + '" aria-label="Agregar ' + esc((a.descripcion || '').trim()) + '"><i class="ti ti-plus" aria-hidden="true"></i></button></div>';
+      }).join('');
+      cont.innerHTML = (l.length > MAXF ? '<div class="bcrx-ppk-mas">Mostrando ' + MAXF + ' de ' + l.length.toLocaleString('es-DO') + ' — escribe para afinar</div>' : '') +
+        (filas ? '<div class="bcrx-ppk-head" aria-hidden="true"><span>Código</span><span>Artículo</span><span>Existencia</span><span>Precio</span><span></span></div>' + filas
+          : '<div class="bcrx-ppk-vacio">Sin resultados para «' + esc(estado.q) + '».</div>');
+    }
+    var agregando = false;
+    function agregar(i) {
+      var a = estado.lista[i]; if (!a || agregando) return;
+      agregando = true;
+      Promise.resolve(_rpAgregarArticulo(a)).then(function (ok) { agregando = false; if (ok) cerrarPanel(); }, function () { agregando = false; });
+    }
+    function abrirPanel() {
+      slot.innerHTML = '<div class="bcrx-ppk" role="dialog" aria-label="Buscar artículo">' +
+        '<div class="bcrx-ppk-top"><span class="t"><i class="ti ti-search" aria-hidden="true"></i> Buscar artículo</span>' +
+        '<button type="button" class="bcrx-ppk-cat">Catálogo completo</button><button type="button" class="bcrx-ppk-x" aria-label="Cerrar"><i class="ti ti-x" aria-hidden="true"></i></button></div>' +
+        '<div class="bcrx-ppk-inp"><i class="ti ti-scan" aria-hidden="true"></i><input type="search" data-bcbp-no autocomplete="off" enterkeyhint="search" placeholder="Nombre, código, marca o IMEI…" aria-label="Buscar artículo"></div>' +
+        '<div class="bcrx-ppk-list" role="listbox"></div></div>';
+      var inp = q('input', slot);
+      inp.value = estado.q;
+      inp.addEventListener('input', function () { estado.q = inp.value; filtrar(); pintar(); });
+      inp.addEventListener('keydown', function (e) {
+        var n = Math.min(estado.lista.length, MAXF);
+        if (e.key === 'ArrowDown') { e.preventDefault(); estado.hl = Math.min(estado.hl + 1, n - 1); pintar(); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); estado.hl = Math.max(estado.hl - 1, 0); pintar(); }
+        else if (e.key === 'Enter') { e.preventDefault(); if (n) agregar(estado.hl); }
+        else if (e.key === 'Escape') { e.preventDefault(); cerrarPanel(); }
+      });
+      q('.bcrx-ppk-x', slot).addEventListener('click', cerrarPanel);
+      q('.bcrx-ppk-cat', slot).addEventListener('click', function () { cerrarPanel(); try { _rpAgregar(); } catch (e) {} });
+      q('.bcrx-ppk-list', slot).addEventListener('click', function (e) { var r = e.target.closest('[data-i]'); if (r) agregar(Number(r.getAttribute('data-i'))); });
+      filtrar(); pintar();
+      setTimeout(function () { inp.focus(); }, 40);
+      if (typeof _ensureInfoplusArticulos === 'function') Promise.resolve(_ensureInfoplusArticulos()).then(function () { if (q('.bcrx-ppk', slot)) { filtrar(); pintar(); } });
+    }
+    cerrarPanel();
+    // Tocar fuera del panel lo cierra (el texto buscado se recuerda)
+    doc.addEventListener('click', function (e) { if (q('.bcrx-ppk', slot) && !slot.contains(e.target) && doc.contains(e.target)) cerrarPanel(); }, true);
+    // F2 abre la búsqueda (como en STUDIO), solo con Recepción en pantalla
+    doc.addEventListener('keydown', function (e) { if (e.key === 'F2' && v.classList.contains('active')) { e.preventDefault(); if (!q('.bcrx-ppk', slot)) abrirPanel(); else q('input', slot).focus(); } });
   }
 
   // Barra fija de la prefactura (celular y tablet)

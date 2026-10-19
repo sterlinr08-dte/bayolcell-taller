@@ -20210,7 +20210,14 @@ function _rpStockItem(it) {
 function _rpAlmNombre() { const alm = document.getElementById('rxAlmacen')?.value || '1'; return INFOPLUS_ALMACENES[alm] || ('almacén ' + alm); }
 function _rpAgregar() {
     if(!_rpState) _rpInit();
-    abrirBuscadorArticulos(null, async (a) => {
+    abrirBuscadorArticulos(null, _rpAgregarArticulo);
+}
+// Agrega un artículo de Info Plus a la prefactura de Recepción. La usan el buscador grande (_rpAgregar) y la
+// pestaña «Buscar o escanear» de Recepción (taller-recepcion.js, 19-oct-2026): misma regla de precio,
+// existencia en vivo e IMEI para los celulares.
+async function _rpAgregarArticulo(a) {
+        if(!a) return;
+        if(!_rpState) _rpInit();
         const it = { cod: a.codigo, desc: (a.descripcion || '').trim(), niveles: a.niveles || null, precio: Number(a.precio || 0), cant: 1 };
         it.precio = _rpNivelPrecio(it);
         if(_abCat(it.desc) === 'celular') { it.serial = true; it.imeis = []; it.cant = 0; }
@@ -20224,7 +20231,7 @@ function _rpAgregar() {
         _rpState.items.push(it);
         _rpMarcarCambio(); _rpRenderCart(); _rpRenderResumen();
         if(it.serial) setTimeout(() => document.getElementById('rpImei_' + (_rpState.items.length - 1))?.focus(), 60);
-    });
+        return true;
 }
 function _rpImeiKey(e, i) { if(e.key === 'Enter') { e.preventDefault(); _rpAgregarImei(i, e.target.value); } }
 function _rpAgregarImei(i, v) {
