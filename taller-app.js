@@ -22910,7 +22910,7 @@ const PERMISOS_DEF = [
     {
         grupo: '🏪 Atención al Cliente', color: '#0891b2',
         items: [
-            { id: 'recepcion_ver', label: 'Ver módulo Recepción de Equipos' },
+            { id: 'recepcion_ver', label: 'Ver módulo Prefactura' },
             { id: 'ordenes_ver', label: 'Ver módulo Órdenes de Servicio' },
             { id: 'inventario_ver', label: 'Ver módulo Inventario Taller' }
         ]

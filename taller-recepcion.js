@@ -14,7 +14,10 @@
   function q(sel, root) { return (root || doc).querySelector(sel); }
   function txt(el) { return el ? (el.textContent || '').replace(/\s+/g, ' ').trim() : ''; }
 
+  // Con la pantalla «Prefactura» estilo STUDIO (html.bc-pf, taller-prefactura.js) esta capa solo presta su buscador.
+  var PF = doc.documentElement.classList.contains('bc-pf');
   function organizar() {
+    if (PF) return true;
     var v = doc.getElementById('v-recepcion');
     if (!v || v.dataset.bcRx === '1') return !!v;
     var cols = q('.rx-cols', v);
@@ -71,6 +74,7 @@
   // adicionales» y va arriba de «Artículos», a la vista (la existencia que se ve depende de ese almacén).
   // Las empleadas lo siguen teniendo automático según su sucursal. Lo llama también _rpInit (por si se entra después).
   function almacenAdmin() {
+    if (PF) return;
     var v = doc.getElementById('v-recepcion'), s = doc.getElementById('rxAlmacen');
     var art = v && q('.bcrx-art', v); if (!s || !art) return;
     var campo = s.parentElement, admin = false;
@@ -179,6 +183,8 @@
     // F2 abre la búsqueda (como en STUDIO), solo con Recepción en pantalla
     doc.addEventListener('keydown', function (e) { if (e.key === 'F2' && v.classList.contains('active')) { e.preventDefault(); if (!q('.bcrx-ppk', slot)) abrirPanel(); else q('input', slot).focus(); } });
   }
+
+  window.bcRxBuscador = buscadorArticulos;
 
   // Barra fija de la prefactura (celular y tablet)
   function barra(v) {

@@ -58,7 +58,7 @@
     { notas: function () { return todos('#v-recepcion .access-note'); },
       titulo: function (n) { var d = n.closest('details'); return d && d.querySelector('summary'); } },
     // Etiquetas con una aclaración entre paréntesis: la etiqueta queda corta y el paréntesis va a la ⓘ
-    { paren: true, notas: function () { return porTexto('#v-recepcion', '.rx-body label', 'Nombre visible (').concat(porTexto('#v-recepcion', '.rx-body label', 'Observaciones (')); } },
+    { paren: true, notas: function () { return porTexto('#v-recepcion', 'label', 'Nombre visible (').concat(porTexto('#v-recepcion', 'label', 'Observaciones (')); } },
 
     // ── Demás pantallas del taller (19-oct-2026, dueño: «sigue con la ⓘ en las demás pantallas») ──
     // Solo notas que EXPLICAN. Se quedan a la vista: avisos (ilustración con IA, zoom), pasos de instalación de QZ Tray,
