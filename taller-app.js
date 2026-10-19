@@ -19844,6 +19844,19 @@ function enviarResenaWhatsapp(){
    Carrito de artículos (precio del artículo de Info Plus) -> POST /prefactura
    ============================================================ */
 let _pref = null, _prefUltima = null;
+// Código de empleado en Info Plus del usuario que está usando el sistema (tecnicos.infoplus_codempleado), o '' si
+// no está enlazado. Con él, cada prefactura llega a Info Plus con el empleado que la hizo (dueño, 19-oct-2026).
+function _miCodInfoplus() {
+    const meTec = (cache.tecnicos || []).find(t => t.id === (sessionUser && sessionUser.id));
+    return (meTec && meTec.infoplus_codempleado) ? String(meTec.infoplus_codempleado).trim() : '';
+}
+// Vendedor que va a Info Plus: el no-administrador SIEMPRE con su propio código (aunque se cambie la lista);
+// el administrador, el que eligió. Sin código propio, el elegido (por defecto 6 · Esterlin), con aviso en pantalla.
+function _codVendedorPrefactura(elegido) {
+    const mio = _miCodInfoplus();
+    if(mio && !isAdminUser()) return mio;
+    return (elegido && elegido !== 'otro') ? String(elegido) : (mio || '6');
+}
 // Almacenes/localidades de Info Plus (codlocalidad) y vendedores conocidos (codempleado).
 const PREF_ALMACENES = [{ cod: '1', nom: 'Oficina Santiago' }, { cod: '4', nom: 'Localidad Moca' }, { cod: '6', nom: 'Taller' }, { cod: '3', nom: 'Garantía China' }, { cod: '5', nom: 'Almacén 2do Nivel' }];
 const PREF_VENDEDORES = [{ cod: '6', nom: 'Esterlin' }, { cod: '697', nom: 'Mayorista (Santiago)' }, { cod: '748', nom: 'Michelle (Santiago)' }, { cod: '1020', nom: 'Vendedora (Moca)' }];
@@ -19866,7 +19879,7 @@ function abrirPrefacturaOrden(ordenId) {
     const e = findEquipo(o.equipo_id) || {};
     const equipo = [e.marca, e.modelo, e.capacidad].filter(Boolean).join(' ');
     const origen = document.querySelector('.view.active')?.id?.replace('v-', '') || 'ordenes';
-    _pref = { ordenId, origen, localidad: '1', codcliente: '1', nombre: (c.nombre || 'CONTADO'), codempleado: '6', nivel: 1, items: [],
+    _pref = { ordenId, origen, localidad: '1', codcliente: '1', nombre: (c.nombre || 'CONTADO'), codempleado: _miCodInfoplus() || '6', nivel: 1, items: [],
         ref: { equipo, imei: e.imei || '', falla: o.falla_reportada || '', cedula: c.cedula || '', rnc: c.rnc || '', telefono: c.whatsapp || c.telefono || '' } };
     _prefMostrarVista(); _prefRender();
     _prefAutoMatchCliente(c.cedula, c.rnc);
@@ -19881,7 +19894,7 @@ function abrirPrefacturaNueva() {
     const fallaChecks = _recepFallasMarcadas();
     const falla = [g('o_falla'), fallaChecks].filter(Boolean).join(' · ');
     const origen = document.querySelector('.view.active')?.id?.replace('v-', '') || 'recepcion';
-    _pref = { ordenId: null, origen, localidad: '1', codcliente: '1', nombre: nom || 'CONTADO', codempleado: '6', nivel: 1, items: [],
+    _pref = { ordenId: null, origen, localidad: '1', codcliente: '1', nombre: nom || 'CONTADO', codempleado: _miCodInfoplus() || '6', nivel: 1, items: [],
         ref: { equipo, imei: g('e_imei'), falla, cedula, rnc, telefono: tel } };
     _prefMostrarVista(); _prefRender();
     _prefAutoMatchCliente(cedula, rnc);
@@ -20018,7 +20031,7 @@ async function _prefCrear() {
     const hora = now.toTimeString().slice(0, 8);
     const model = {
         codprefactura: '', total, codcliente: _pref.codcliente || '1', impuesto: 0, descuento: 0, descuentototal: 0,
-        nombre: (_pref.nombre || 'CONTADO').trim() || 'CONTADO', codempleado: _pref.codempleado || '6', codnivelprecio: Number(_pref.nivel) || 1,
+        nombre: (_pref.nombre || 'CONTADO').trim() || 'CONTADO', codempleado: _codVendedorPrefactura(_pref.codempleado), codnivelprecio: Number(_pref.nivel) || 1,
         codlocalidad: String(_pref.localidad || '1'), credito: false, fecha, hora, contrato: '', ordencompra: '', centro: '',
         seriales: [], detallesPreFactura: _pref.items.map(it => ({ descripcion: it.desc, precio: Number(it.precio), cantidad: Number(it.cant), codarticulo: Number(it.cod), codunidad: 1, porcentaje: 0, despachado: 0, descripcionunidad: null }))
     };
@@ -20142,6 +20155,14 @@ function _rpInit() {
         opts += PREF_VENDEDORES.map(v => `<option value="${v.cod}">${escapeHtml(v.nom)}${v.cod === miCod ? ' (yo)' : ''}</option>`).join('');
         ven.innerHTML = opts;
         ven.value = miCod || '6';
+        // Cada empleada prefactura con su propio código: fija para quien no es administrador
+        ven.disabled = !!(miCod && !isAdminUser());
+        ven.title = ven.disabled ? 'Fijo: tu código de empleado en Info Plus' : '';
+        let av = document.getElementById('rxVendAviso');
+        if(!av) { av = document.createElement('div'); av.id = 'rxVendAviso'; av.style.cssText = 'font-size:13px;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:8px 10px;margin-top:6px;'; ven.insertAdjacentElement('afterend', av); }
+        const sinEnlace = !miCod && !isAdminUser();
+        av.style.display = sinEnlace ? 'block' : 'none';
+        av.textContent = !sinEnlace ? '' : 'Tu usuario no está enlazado con Info Plus: la prefactura saldrá a nombre de quien elijas aquí. Pide al administrador que ponga tu código en Configuración → Técnicos.';
     }
     const tec = document.getElementById('rxTecnico');
     if(tec) tec.innerHTML = '<option value="">— Sin asignar —</option>' + (cache.tecnicos || []).filter(t => t.activo !== false).map(t => `<option value="${t.id}">${escapeHtml(t.nombre || t.usuario || 'Técnico')}</option>`).join('');
@@ -20352,7 +20373,7 @@ async function _rpCrearPrefactura() {
     const g = id => (document.getElementById(id)?.value || '').trim();
     const nombre = g('c_nombre') || 'CONTADO';
     const almacen = document.getElementById('rxAlmacen')?.value || '1';
-    let vend = document.getElementById('rxVendedor')?.value || '6'; if(vend === 'otro') vend = '6';
+    const vend = _codVendedorPrefactura(document.getElementById('rxVendedor')?.value || '');
     const nivel = (_rpState && _rpState.nivel) || 1;
     const obs = g('o_observaciones') || g('o_falla');
     const total = _rpState.items.reduce((s, it) => s + Number(it.precio) * Number(it.cant), 0);
