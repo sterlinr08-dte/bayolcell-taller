@@ -6,6 +6,8 @@
    · Solo MUEVE los campos que ya existen (mismos id, mismos onchange) y vuelve a pintar el carrito con las mismas funciones
      (_rpCant, _rpPrecio, _rpQuitar, _rpDesc, _rpImeiKey, _rpQuitarImei). Guardar sigue siendo _rpGuardar.
      No toca Info Plus, la base ni los cálculos.
+   · 20-oct-2026: pantalla limpia como STUDIO. Lo que no es de la prefactura (equipo, falla, datos del cliente,
+     técnico, seguridad, rifa) queda plegado en «Equipo, falla y más datos (opcional)». Comentario al pie.
    · Capa reversible: sin html.bc-pf no hace nada (vuelve la Recepción anterior). Apagar: BC_PF=false o localStorage bc_pf_off='1'. */
 (function () {
   'use strict';
@@ -52,7 +54,8 @@
     R.num = q('.dnum', dh); R.est = q('.dest', dh);
     q('.ibtn', dh).addEventListener('click', function () { try { _rpHistorial(); } catch (e) {} });
 
-    // Facturar a + Condiciones
+    // Facturar a + Condiciones. 20-oct-2026 (dueño): «ponerla como la tenemos en estudio y quitar todo lo otro … para
+    // irle agregando». En «Facturar a» queda solo la tarjeta del cliente; los campos del cliente bajan a «Más datos».
     var p1 = el('div', 'bcpf-partes');
     var cCli = el('div', 'pcol', '<div class="plab">Facturar a</div>');
     var tarjeta = el('button', 'pcli', '<span class="pav" aria-hidden="true"><i class="ti ti-user"></i></span>' +
@@ -68,11 +71,11 @@
       if (i === 0 || c.id === 'rxClienteChip') { c.classList.add('bcpf-oculto'); return; } // buscador y chip viejos: los reemplaza la tarjeta
       camposCli.appendChild(c);
     });
-    cCli.appendChild(camposCli);
     var cCond = el('div', 'pcol', '<div class="plab">Condiciones</div>');
     var condCampos = el('div', 'bcpf-campos');
     var nivel = doc.getElementById('rxNivel');
-    if (nivel) { var fNivel = el('div', '', '<label for="rxNivel">Precio del cliente</label>'); fNivel.appendChild(nivel); condCampos.appendChild(fNivel); }
+    // El precio va con el cliente (columna izquierda), como en STUDIO el cliente define su nivel
+    if (nivel) { var fNivel = el('div', 'bcpf-campos bcpf-nivel'); var fN = el('div', '', '<label for="rxNivel">Precio del cliente</label>'); fN.appendChild(nivel); fNivel.appendChild(fN); cCli.appendChild(fNivel); }
     // «Tipo de cliente» y «Precio» decían lo mismo (dueño: «veo que se repite»): queda solo «Precio del cliente».
     // El tipo (final / tienda) se sigue guardando igual: se deriva del precio elegido.
     var selTipo = q('#c_tipo', camposCli), fTipo = selTipo && selTipo.parentElement; if (fTipo) fTipo.classList.add('bcpf-oculto'); // (aún fuera del documento: se busca dentro del bloque)
@@ -84,22 +87,23 @@
     p1.appendChild(cCli); p1.appendChild(cCond);
     pad.appendChild(p1);
 
-    // Equipo recibido + Falla reportada
-    var p2 = el('div', 'bcpf-partes');
-    var cEq = el('div', 'pcol', '<div class="plab">Equipo recibido</div>');
+    // Equipo, falla y lo demás: opcional (dueño: «la falla … opcional, no obligatorio. Y … los equipos también»).
     var camposEq = el('div', 'bcpf-campos');
     Array.prototype.slice.call(q('.rx-body', equ).children).forEach(function (c) { camposEq.appendChild(c); });
-    cEq.appendChild(camposEq);
-    var cFa = el('div', 'pcol', '<div class="plab">Falla reportada</div>');
     var camposFa = el('div', 'bcpf-campos');
-    Array.prototype.slice.call(q('.rx-body', fal).children).forEach(function (c) { camposFa.appendChild(c); });
-    cFa.appendChild(camposFa);
+    var fComent = campo('o_observaciones'); // el comentario sube al pie del documento (como la nota de STUDIO)
+    Array.prototype.slice.call(q('.rx-body', fal).children).forEach(function (c) { if (c !== fComent) camposFa.appendChild(c); });
     var chk = doc.getElementById('checksFisico');
     var fallasCard = chk ? chk.closest('.card') : null;
     var seg = q('.rx-seg', v);
-    [fallasCard, seg].forEach(function (c) { if (c) { c.classList.add('bcpf-plegable'); cFa.appendChild(c); } });
-    p2.appendChild(cEq); p2.appendChild(cFa);
-    pad.appendChild(p2);
+    var camposAd = el('div', 'bcpf-campos');
+    Array.prototype.slice.call(q('.rx-body', adi).children).forEach(function (c) { camposAd.appendChild(c); });
+    // Sin asteriscos: ya nada de esto es obligatorio para la prefactura
+    [camposCli, camposEq].forEach(function (b) {
+      Array.prototype.slice.call(b.querySelectorAll('label')).forEach(function (l) {
+        Array.prototype.slice.call(l.childNodes).forEach(function (n) { if (n.nodeType === 3) n.nodeValue = n.nodeValue.replace(/\s*\*\s*$/, ' ').replace(/\s+$/, ''); });
+      });
+    });
 
     // Buscador de artículos (el de STUDIO que ya existía) + Servicio / falla
     var zona = q('.rx-art-search', art);
@@ -115,24 +119,37 @@
     pad.appendChild(lista);
     R.cnt = el('div', 'bcpf-cnt'); pad.appendChild(R.cnt);
 
-    // Pie: accesos + totales
+    // Pie: accesos + comentario | totales
     var pie = el('div', 'bcpf-pie');
     var otras = el('div', 'bcpf-otras');
     var qs = el('div', 'bcpf-qs');
     function pildora(ic, txt, fn) { var b = el('button', 'bcpf-q', '<i class="ti ' + ic + '" aria-hidden="true"></i><span>' + txt + '</span>'); b.type = 'button'; b.addEventListener('click', fn); qs.appendChild(b); return b; }
     pildora('ti-search', 'Buscar', function () { var s = q('.bcrx-scan', busc); if (s) { s.scrollIntoView({ block: 'center' }); s.click(); } });
     pildora('ti-files', 'Prefacturas', function () { try { _rpHistorial(); } catch (e) {} });
+    // Herramientas rápidas: queda solo «Pedir reseña» a mano (dueño: «puede dejar el asunto de la reseña»); la rifa baja a «Más datos».
     var tools = q('.rx-toolsbox', v);
-    if (tools) pildora('ti-tools', 'Herramientas', function () { tools.open = true; tools.scrollIntoView({ block: 'start' }); });
+    var resCard = doc.getElementById('resenaWa') && doc.getElementById('resenaWa').closest('.card');
+    var rifaCard = doc.getElementById('rifaNombre') && doc.getElementById('rifaNombre').closest('.card');
+    var detRes = null;
+    if (resCard) {
+      detRes = el('details', 'bcpf-det bcpf-resena');
+      detRes.innerHTML = '<summary hidden></summary>';
+      detRes.appendChild(resCard);
+      pildora('ti-star', 'Pedir reseña', function () { detRes.open = !detRes.open; if (detRes.open) { var i = doc.getElementById('resenaWa'); if (i) i.focus(); } });
+    }
     otras.appendChild(qs);
-    // Datos adicionales (técnico, prioridad, entrega) plegados como la «nota» de STUDIO
-    var det = el('details', 'bcpf-det');
-    det.innerHTML = '<summary><i class="ti ti-adjustments" aria-hidden="true"></i><span>Datos adicionales</span><span class="bcpf-res"></span><i class="ti ti-chevron-down bcpf-chev" aria-hidden="true"></i></summary>';
-    var camposAd = el('div', 'bcpf-campos');
-    Array.prototype.slice.call(q('.rx-body', adi).children).forEach(function (c) { camposAd.appendChild(c); });
-    det.appendChild(camposAd);
-    otras.appendChild(det);
-    R.res = q('.bcpf-res', det);
+    if (detRes) otras.appendChild(detRes);
+    // Comentario (como «Agregar nota o condiciones al documento» de STUDIO)
+    var detCom = el('details', 'bcpf-det bcpf-coment');
+    detCom.innerHTML = '<summary><i class="ti ti-note" aria-hidden="true"></i><span>Agregar comentario a la prefactura</span><i class="ti ti-chevron-down bcpf-chev" aria-hidden="true"></i></summary>';
+    if (fComent) {
+      var lCom = q('label', fComent); if (lCom) lCom.innerHTML = 'Comentario';
+      var tCom = doc.getElementById('o_observaciones'); if (tCom) tCom.placeholder = 'Ej. cliente pasa a buscarlo el viernes; trae su propio cargador…';
+      detCom.appendChild(fComent);
+      detCom.appendChild(el('p', 'bcpf-nota', 'Se guarda en el taller y sale al imprimir. En Info Plus aparecerá cuando el proveedor habilite el campo de comentarios.'));
+    }
+    otras.appendChild(detCom);
+    R.com = detCom;
     var tot = el('div', 'bcpf-tot',
       '<div class="tr"><span>Artículos</span><b class="t-art">0</b></div>' +
       '<div class="tr"><span>Subtotal</span><b class="t-sub">RD$ 0.00</b></div>' +
@@ -142,7 +159,26 @@
     pie.appendChild(otras); pie.appendChild(tot);
     pad.appendChild(pie);
 
-    // Armar: herramientas arriba (plegadas), el documento, y la lista de prefacturas realizadas debajo
+    // «Equipo, falla y más datos (opcional)»: todo lo que salió de la pantalla principal, plegado
+    var mas = el('details', 'bcpf-mas');
+    mas.innerHTML = '<summary><i class="ti ti-device-mobile" aria-hidden="true"></i><span class="mt">Equipo, falla y más datos <em>(opcional)</em></span>' +
+      '<span class="bcpf-res"></span><i class="ti ti-chevron-down bcpf-chev" aria-hidden="true"></i></summary>';
+    var cuerpo = el('div', 'bcpf-mas-body');
+    cuerpo.appendChild(el('p', 'bcpf-nota', 'Si llena el equipo, al guardar también se crea la orden de reparación para el técnico (pide nombre, WhatsApp y modelo). Si lo deja vacío, solo se crea la prefactura.'));
+    function seccion(tit, nodos) { var s = el('section', 'bcpf-sec', '<h4>' + tit + '</h4>'); nodos.forEach(function (n) { if (n) s.appendChild(n); }); cuerpo.appendChild(s); return s; }
+    seccion('Equipo recibido', [camposEq]);
+    var sFa = seccion('Falla reportada', [camposFa]);
+    [fallasCard, seg].forEach(function (c) { if (c) { c.classList.add('bcpf-plegable'); sFa.appendChild(c); } });
+    seccion('Datos del cliente', [camposCli]);
+    seccion('Orden de reparación', [camposAd]);
+    if (rifaCard) seccion('Otras herramientas', [rifaCard]);
+    mas.appendChild(cuerpo);
+    pad.appendChild(mas);
+    R.mas = mas; R.res = q('.bcpf-res', mas);
+    q('summary', mas).addEventListener('click', function () { mas.dataset.tocado = '1'; }); // solo el toque del usuario (no cuando el sistema la abre)
+    if (tools) tools.classList.add('bcpf-oculto');
+
+    // Armar: el documento, y la lista de prefacturas realizadas debajo
     layout.parentNode.insertBefore(docu, layout);
     layout.classList.add('bcpf-oculto'); // queda #rxResumen dentro (lo usa _rpRenderResumen); no se ve
     [cli, equ, adi, fal, art].forEach(function (c) { c.classList.add('bcpf-oculto'); });
@@ -165,8 +201,8 @@
     v.addEventListener('focusout', function () { setTimeout(function () { var a = doc.activeElement; if (!a || !v.contains(a) || !a.matches('input,textarea,select')) bar.classList.remove('bcpf-oculta'); }, 60); });
 
     // Repintar al escribir datos del cliente o al cambiar los datos adicionales
-    ['c_nombre', 'c_whatsapp', 'c_cedula', 'c_rnc'].forEach(function (id) { var e = doc.getElementById(id); if (e) e.addEventListener('input', pintarDoc); });
-    det.addEventListener('change', pintarDoc);
+    ['c_nombre', 'c_whatsapp', 'c_cedula', 'c_rnc', 'e_marca', 'e_modelo', 'e_imei', 'o_falla', 'o_observaciones'].forEach(function (id) { var e = doc.getElementById(id); if (e) e.addEventListener('input', pintarDoc); });
+    mas.addEventListener('change', pintarDoc);
     enganchar();
     pintarCarrito(); pintarDoc();
     setTimeout(pintarDoc, 1500);
@@ -235,7 +271,12 @@
     // Datos adicionales (resumen en una línea)
     var sel = function (id) { var e = doc.getElementById(id); return e && e.selectedIndex >= 0 ? (e.options[e.selectedIndex].textContent || '').trim() : ''; };
     var tec = sel('rxTecnico').replace(/^[—–-]\s*|\s*[—–-]$/g, ''); if (/^sin asignar$/i.test(tec)) tec = 'Sin técnico';
-    if (R.res) R.res.textContent = [tec, sel('o_prioridad')].filter(Boolean).join(' · ');
+    var equipo = [val('e_marca'), val('e_modelo')].filter(Boolean).join(' ');
+    var falla = val('o_falla');
+    if (R.res) R.res.textContent = equipo || falla ? [equipo, falla, tec !== 'Sin técnico' ? tec : ''].filter(Boolean).join(' · ') : '';
+    // Se abre solo si ya trae equipo o falla (por ejemplo, al crear la prefactura desde una orden)
+    if (R.mas && !R.mas.dataset.tocado && (equipo || falla || val('e_imei'))) R.mas.open = true;
+    if (R.com && !R.com.dataset.abierto && val('o_observaciones')) { R.com.open = true; R.com.dataset.abierto = '1'; }
     // Totales
     R.cnt.textContent = items.length ? items.length + (items.length === 1 ? ' artículo' : ' artículos') + ' · ' + unidades + (unidades === 1 ? ' unidad' : ' unidades') : '';
     R.tArt.textContent = String(unidades);

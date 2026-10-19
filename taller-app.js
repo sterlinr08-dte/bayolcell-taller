@@ -20399,7 +20399,7 @@ async function _rpCrearPrefactura() {
     const probs = _rpProblemasFactura();
     if(probs.length) { _rpState.estado = 'error'; _rpRenderResumen(); return toastError('No se puede facturar:\n' + probs.join('\n')); }
     const g = id => (document.getElementById(id)?.value || '').trim();
-    const nombre = g('c_nombre') || 'CONTADO';
+    const nombre = g('c_nombre') || (String(_rpState.codcliente) !== '1' && _rpState.infoNombre) || 'CONTADO';
     const almacen = document.getElementById('rxAlmacen')?.value || '1';
     const vend = _codVendedorPrefactura(document.getElementById('rxVendedor')?.value || '');
     const nivel = (_rpState && _rpState.nivel) || 1;
@@ -20499,17 +20499,37 @@ function _rpHistBuscar(v) { _rpHistQ = v; const el = document.getElementById('rp
 async function _rpGuardar(imprimir) {
     const hayItems = _rpState && _rpState.items.length;
     if((_rpState && _rpState.soloPrefactura) && !hayItems) return toast('Agregue al menos un artículo o servicio.', 'error');
+    // 20-oct-2026 (dueño): en la pantalla nueva (html.bc-pf) el equipo y la falla son opcionales.
+    // Sin equipo → solo la prefactura. Con equipo → además la orden de reparación (pide nombre, WhatsApp y modelo).
+    const _pfNueva = document.documentElement.classList.contains('bc-pf') && !(_rpState && _rpState.soloPrefactura);
+    let _pfConEquipo = true;
+    if(_pfNueva) {
+        const g = id => (document.getElementById(id)?.value || '').trim();
+        _pfConEquipo = !!(g('e_marca') || g('e_modelo') || g('e_imei'));
+        if(!hayItems && !_pfConEquipo) return toast('Agregue al menos un artículo, o llene el equipo en «Equipo, falla y más datos».', 'error');
+        if(_pfConEquipo) {
+            const nom = document.getElementById('c_nombre');
+            if(nom && !nom.value.trim() && _rpState && String(_rpState.codcliente) !== '1' && _rpState.infoNombre) nom.value = _rpState.infoNombre;
+            const faltan = [!g('c_nombre') && 'nombre del cliente', !g('c_whatsapp') && 'WhatsApp', !g('e_modelo') && 'modelo del equipo'].filter(Boolean);
+            if(faltan.length) {
+                const mas = document.querySelector('#v-recepcion .bcpf-mas'); if(mas) mas.open = true;
+                return toast('Para crear la orden del equipo falta: ' + faltan.join(', ') + '.', 'error');
+            }
+        }
+    }
     if(hayItems) {
         const probs = _rpProblemasFactura();
         if(probs.length) { _rpRenderCart(); return toastError('No se puede facturar:\n' + probs.join('\n')); }
         await _rpCrearPrefactura();
         if(_rpState.estado === 'error') {
+            if(_pfNueva && !_pfConEquipo) return; // sin equipo no hay recepción que registrar
             if(!await confirmar('La prefactura dio error en Info Plus.\n\n¿Registrar la recepción de todos modos (sin prefactura)?')) return;
         } else if(imprimir) {
             _rpImprimir();
         }
     }
     if(_rpState && _rpState.soloPrefactura) return; // editar desde la lista: solo la prefactura, no crea orden
+    if(_pfNueva && !_pfConEquipo) return; // sin equipo: solo la prefactura
     if(typeof guardarRecepcion === 'function') guardarRecepcion(false);
 }
 // ---- Fase 2: cargar prefacturas guardadas, enlazar y editar desde la lista ----
@@ -23885,7 +23905,9 @@ async function revelarClave(ordenId, boton) {
 
 async function guardarRecepcion(imprimir) {
     try {
-        if(!val("c_nombre") || !val("c_whatsapp") || !val("e_marca") || !val("e_modelo") || !val("e_imei")) return toast("Faltan campos mandatorios.", 'error');
+        // En la Prefactura nueva (html.bc-pf) la marca y el IMEI son opcionales; el modelo, el nombre y el WhatsApp no.
+        const _pfNueva = document.documentElement.classList.contains('bc-pf');
+        if(!val("c_nombre") || !val("c_whatsapp") || !val("e_modelo") || (!_pfNueva && (!val("e_marca") || !val("e_imei")))) return toast("Faltan campos mandatorios.", 'error');
         const tipoCli = val("c_tipo") || 'final';
         const rncCli = val("c_rnc") || null;
         // ===== NO DUPLICAR CLIENTE: buscar por WhatsApp o cédula =====

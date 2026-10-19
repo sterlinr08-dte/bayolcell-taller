@@ -188,6 +188,36 @@ html.bc-pf #v-recepcion .bcpf-det .bcpf-res { margin-left: auto; font-size: 13px
 html.bc-pf #v-recepcion .bcpf-det .bcpf-chev { transition: transform .18s; }
 html.bc-pf #v-recepcion .bcpf-det[open] .bcpf-chev { transform: rotate(180deg); }
 html.bc-pf #v-recepcion .bcpf-det > .bcpf-campos { padding: 0 12px 12px; }
+html.bc-pf #v-recepcion .bcpf-nivel { margin-top: 12px; }
+/* 20-oct-2026: comentario, reseña y «Equipo, falla y más datos (opcional)» */
+html.bc-pf #v-recepcion .bcpf-coment > .bcpf-nota { margin: 0 12px 12px; }
+html.bc-pf #v-recepcion .bcpf-coment > div { padding: 0 12px; margin: 0 !important; }
+html.bc-pf #v-recepcion .bcpf-coment label { display: block; font-size: 13px !important; font-weight: 600; color: var(--pf-steel); margin: 0 0 4px; text-transform: none; letter-spacing: 0; }
+html.bc-pf #v-recepcion .bcpf-coment textarea {
+  width: 100%; box-sizing: border-box; min-height: 88px; padding: 12px; font-size: 16px; line-height: 1.45; resize: vertical;
+  border: 1px solid var(--pf-hair); border-radius: 10px; background: #fff; color: var(--pf-ink);
+}
+html.bc-pf #v-recepcion .bcpf-coment textarea:focus { outline: none; border-color: var(--pf-acc); box-shadow: 0 0 0 3px var(--pf-acc-soft); }
+html.bc-pf #v-recepcion .bcpf-resena { border: 0; margin-bottom: 12px; }
+html.bc-pf #v-recepcion .bcpf-resena:not([open]), html.bc-pf #v-recepcion .bcpf-resena > summary { display: none !important; }
+html.bc-pf #v-recepcion .bcpf-coment .bcpf-chev { margin-left: auto; }
+html.bc-pf #v-recepcion .bcpf-resena > .card { margin: 0 !important; box-shadow: none !important; border: 1px solid var(--pf-line) !important; border-top: 3px solid #f59e0b !important; border-radius: 12px !important; }
+html.bc-pf #v-recepcion .bcpf-mas { margin-top: 16px; border: 1px solid var(--pf-line); border-radius: 12px; background: var(--pf-canvas); }
+html.bc-pf #v-recepcion .bcpf-mas > summary {
+  min-height: 54px; display: flex; align-items: center; gap: 10px; padding: 0 16px; cursor: pointer; list-style: none;
+  font-size: 15px; font-weight: 700; color: var(--pf-ink);
+}
+html.bc-pf #v-recepcion .bcpf-mas > summary::-webkit-details-marker { display: none; }
+html.bc-pf #v-recepcion .bcpf-mas > summary > i:first-child { font-size: 18px; color: var(--pf-acc-dark); }
+html.bc-pf #v-recepcion .bcpf-mas > summary em { font-style: normal; font-weight: 500; color: var(--pf-mute); }
+html.bc-pf #v-recepcion .bcpf-mas .bcpf-res { margin-left: auto; font-size: 13px; font-weight: 500; color: var(--pf-steel); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+html.bc-pf #v-recepcion .bcpf-mas .bcpf-chev { flex: 0 0 auto; transition: transform .18s; }
+html.bc-pf #v-recepcion .bcpf-mas[open] .bcpf-chev { transform: rotate(180deg); }
+html.bc-pf #v-recepcion .bcpf-mas-body { padding: 0 16px 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+html.bc-pf #v-recepcion .bcpf-mas-body > .bcpf-nota { grid-column: 1 / -1; margin: 0; padding: 0 0 12px; border-top: 0; border-bottom: 1px solid var(--pf-line2); }
+html.bc-pf #v-recepcion .bcpf-sec { min-width: 0; background: #fff; border: 1px solid var(--pf-line); border-radius: 10px; padding: 12px 14px; }
+html.bc-pf #v-recepcion .bcpf-sec h4 { margin: 0 0 10px; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--pf-steel); }
+html.bc-pf #v-recepcion .bcpf-sec > .card { margin: 0 !important; box-shadow: none !important; border: 0 !important; padding: 0 !important; }
 html.bc-pf #v-recepcion .bcpf-tot { display: flex; flex-direction: column; gap: 8px; }
 html.bc-pf #v-recepcion .bcpf-tot .tr { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 14px; color: var(--pf-steel); }
 html.bc-pf #v-recepcion .bcpf-tot .tr b { font: 600 15px var(--pf-mono); color: var(--pf-ink); }
@@ -252,6 +282,9 @@ html.bc-pf #v-recepcion .pcli:active { transform: scale(.97); }
   html.bc-pf #v-recepcion .bcpf-it .imp { text-align: left; line-height: 1.2; }
   html.bc-pf #v-recepcion .bcpf-it .pin { width: 130px; }
   html.bc-pf #v-recepcion .bcpf-pie { grid-template-columns: minmax(0, 1fr); }
+  html.bc-pf #v-recepcion .bcpf-mas-body { grid-template-columns: minmax(0, 1fr); padding: 0 10px 12px; }
+  html.bc-pf #v-recepcion .bcpf-mas > summary { padding: 0 12px; }
+  html.bc-pf #v-recepcion .bcpf-mas .bcpf-res { display: none; }
   html.bc-pf #v-recepcion .bcpf-tot { order: -1; }
   html.bc-pf #v-recepcion .bcpf-qs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
   html.bc-pf #v-recepcion .bcpf-q { flex-direction: column; justify-content: center; gap: 2px; min-height: 60px; padding: 6px 4px; border-radius: 12px; font-size: 13px; }
@@ -271,3 +304,6 @@ html.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcpf-it .dnm:hover { borde
 html.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcpf-it .dnm:focus { border-color: var(--pf-acc) !important; background: #fff !important; box-shadow: 0 0 0 3px var(--pf-acc-soft) !important; }
 html.bc-pf body #v-recepcion .rx-toolsbox,
 html.bc-pf body #v-recepcion .bcpf-hist { max-width: 980px !important; }
+/* 5 id: la capa táctil usa 4 id (:is con #bcT#bcT#bcT + :not(#waWrap *)) */
+html.bc-pf body #v-recepcion#v-recepcion#v-recepcion#v-recepcion#v-recepcion .bcpf-mas > summary { min-height: 54px !important; height: auto !important; }
+html.bc-pf body #v-recepcion#v-recepcion#v-recepcion#v-recepcion#v-recepcion .bcpf-det > summary { min-height: 48px !important; height: auto !important; }
