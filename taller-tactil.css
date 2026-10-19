@@ -66,3 +66,15 @@ html.bc-tactil body #v-crmLinea#v-crmLinea#v-crmLinea .crm-acciones-rapidas .crm
   width: 44px !important;
   height: 44px !important;
 }
+
+/* ── Letra legible (19-oct-2026) ─────────────────────────────────────────────
+   Medido: todas las etiquetas de formulario eran de 10–13 px (la mayoría 11), las ayudas <small> de 8,5–12
+   y los títulos de tabla de 10–11. Se fijan en 13 / 12 / 12 (tamaño fijo, no relativo al contenedor).
+   Se mantiene el estilo (mayúsculas donde ya las había). */
+html.bc-tactil body :is(.view, .modal-box, #bcT#bcT#bcT) label:not(:has(input:is([type="checkbox"], [type="radio"]))):not(#waWrap *) {
+  font-size: 13px !important;
+  letter-spacing: .02em;
+}
+html.bc-tactil body :is(.view, .modal-box, #bcT#bcT#bcT) :is(small, th):not(#waWrap *):not(label *) {
+  font-size: 12px !important;
+}
