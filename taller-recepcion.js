@@ -122,7 +122,7 @@
     function nivelesHTML(a) {
       var nv = a.niveles || {}, act = nivel();
       var chips = NIV.filter(function (n) { return nv[n[0]] != null && Number(nv[n[0]]) > 0; }).map(function (n) {
-        return '<span class="pk-nv' + (n[0] === act ? ' act' : '') + '">' + n[1] + ' <b>' + plata(Number(nv[n[0]])) + '</b></span>';
+        return '<span class="pk-nv' + (n[0] === act ? ' act' : '') + '"><small>' + n[1] + '</small><b>' + plata(Number(nv[n[0]])).replace(/^RD\$\s*/, '<i>RD$ </i>') + '</b></span>';
       });
       return chips.length > 1 ? '<span class="pk-nvs">' + chips.join('') + '</span>' : '';
     }
@@ -149,10 +149,10 @@
         var chip = ex === null ? '<span class="bcrx-stk">—</span>' : ex <= 0 ? '<span class="bcrx-stk out">Sin existencia</span>' : '<span class="bcrx-stk">' + ex + '</span>';
         return '<div class="bcrx-ppk-row' + (i === estado.hl ? ' hl' : '') + (ex !== null && ex <= 0 ? ' sin' : '') + '" role="option" data-i="' + i + '">' +
           '<span class="pk-cod">' + esc(a.codigo) + '</span>' +
-          '<span class="pk-nom"><span class="pk-dtx">' + esc((a.descripcion || '').trim()) + (esCel(a) ? ' <span class="pk-tag">IMEI</span>' : '') + '</span>' + (a.marca ? '<small>' + esc(a.marca) + '</small>' : '') + nivelesHTML(a) + '</span>' +
+          '<span class="pk-nom"><span class="pk-dtx">' + esc((a.descripcion || '').trim()) + (esCel(a) ? ' <span class="pk-tag">IMEI</span>' : '') + '</span>' + (a.marca ? '<small>' + esc(a.marca) + '</small>' : '') + '</span>' +
           '<span class="pk-stk">' + chip + '</span>' +
           '<span class="pk-pre">' + (pr > 0 ? plata(pr) : '<span class="bcrx-stk out">Sin precio</span>') + '</span>' +
-          '<button type="button" class="pk-add" data-i="' + i + '" aria-label="Agregar ' + esc((a.descripcion || '').trim()) + '"><i class="ti ti-plus" aria-hidden="true"></i></button></div>';
+          '<button type="button" class="pk-add" data-i="' + i + '" aria-label="Agregar ' + esc((a.descripcion || '').trim()) + '"><i class="ti ti-plus" aria-hidden="true"></i></button>' + nivelesHTML(a) + '</div>';
       }).join('');
       cont.innerHTML = (l.length > MAXF ? '<div class="bcrx-ppk-mas">Mostrando ' + MAXF + ' de ' + l.length.toLocaleString('es-DO') + ' — escriba para afinar</div>' : '') +
         (filas ? '<div class="bcrx-ppk-head" aria-hidden="true"><span>Código</span><span>Artículo</span><span>Existencia</span><span>Precio</span><span></span></div>' + filas
