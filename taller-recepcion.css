@@ -192,3 +192,7 @@ html.bc-rx #v-recepcion .bcrx-srv { background: #fff !important; color: #0f172a 
 /* Las piezas movidas dentro de «Falla» (lista de fallas, seguridad) no deben ensanchar la columna del celular */
 @media (max-width: 1080px) { html.bc-rx #v-recepcion .rx-layout { grid-template-columns: minmax(0, 1fr); } }
 html.bc-rx #v-recepcion .rx-layout > *, html.bc-rx #v-recepcion .rx-card, html.bc-rx #v-recepcion .bcrx-dentro { min-width: 0; }
+
+/* Administrador: «Almacén» a la vista arriba de Artículos (19-oct-2026) */
+html.bc-rx #v-recepcion .bcrx-alm { margin: 0 0 12px; }
+html.bc-rx #v-recepcion .bcrx-alm select { width: 100%; }

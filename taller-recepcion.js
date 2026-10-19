@@ -51,7 +51,8 @@
         var sel = function (id) { var s = doc.getElementById(id); return s && s.selectedIndex >= 0 ? txt(s.options[s.selectedIndex]) : ''; };
         var tec = sel('rxTecnico').replace(/^[—–-]\s*|\s*[—–-]$/g, '');
         if (/^sin asignar$/i.test(tec)) tec = 'Sin técnico';
-        var partes = [tec, sel('o_prioridad'), sel('rxAlmacen'), sel('rxVendedor')].filter(Boolean);
+        var alm = doc.getElementById('rxAlmacen'), almFuera = alm && alm.parentElement.classList.contains('bcrx-alm');
+        var partes = [tec, sel('o_prioridad'), almFuera ? '' : sel('rxAlmacen'), sel('rxVendedor')].filter(Boolean);
         res.textContent = partes.join(' · ');
       };
       adi.addEventListener('change', pintar); pintar(); setTimeout(pintar, 1500);
@@ -62,8 +63,28 @@
 
     barra(v);
     buscadorArticulos(v, art);
+    almacenAdmin();
     return true;
   }
+
+  // El administrador trabaja en distintas sucursales (dueño 19-oct-2026): para él, el «Almacén» sale de «Datos
+  // adicionales» y va arriba de «Artículos», a la vista (la existencia que se ve depende de ese almacén).
+  // Las empleadas lo siguen teniendo automático según su sucursal. Lo llama también _rpInit (por si se entra después).
+  function almacenAdmin() {
+    var v = doc.getElementById('v-recepcion'), s = doc.getElementById('rxAlmacen');
+    var art = v && q('.bcrx-art', v); if (!s || !art) return;
+    var campo = s.parentElement, admin = false;
+    try { admin = typeof isAdminUser === 'function' && isAdminUser(); } catch (e) {}
+    var arriba = campo.classList.contains('bcrx-alm');
+    if (admin && !arriba) {
+      campo._casa = campo.parentElement; campo._sig = campo.nextSibling;
+      var ref = q('.bcrx-ppk-slot', art) || q('.rx-art-search', art); if (!ref) return;
+      campo.classList.add('bcrx-alm'); ref.parentNode.insertBefore(campo, ref);
+    } else if (!admin && arriba && campo._casa) {
+      campo.classList.remove('bcrx-alm'); campo._casa.insertBefore(campo, campo._sig);
+    }
+  }
+  window.bcRxAlmacenAdmin = almacenAdmin;
 
   // ── Pestaña «Buscar o escanear» (igual a la de Prefactura en STUDIO) ──
   // Una barra que, al tocarla, se convierte en un panel en línea con buscador y lista Código · Artículo · Existencia ·

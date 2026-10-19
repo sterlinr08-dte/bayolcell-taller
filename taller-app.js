@@ -19862,7 +19862,11 @@ const PREF_ALMACENES = [{ cod: '1', nom: 'Oficina Santiago' }, { cod: '4', nom: 
 // Almacén de Info Plus que le toca a cada sucursal (dueño 19-oct-2026: «automático»). Navarrete = localidad 7 (abrió 24-ago-2026).
 function _almacenDeSucursal(nombre) { const n = String(nombre || '').toLowerCase(); return /navarrete/.test(n) ? '7' : /moca/.test(n) ? '4' : /santiago/.test(n) ? '1' : ''; }
 // Almacén por defecto de la prefactura según la sucursal de quien usa el sistema ('' si no se sabe todavía).
+// El administrador trabaja en distintas sucursales (dueño 19-oct-2026): se recuerda en este equipo el último almacén que eligió.
+const _ALM_ADMIN_KEY = 'bc_alm_admin';
+function _almAdminGuardar(v) { try { if(isAdminUser() && PREF_ALMACENES.some(a => a.cod === String(v))) localStorage.setItem(_ALM_ADMIN_KEY, String(v)); } catch(e) {} }
 function _miAlmacenInfoplus() {
+    try { if(isAdminUser()) { const g = localStorage.getItem(_ALM_ADMIN_KEY); if(g && PREF_ALMACENES.some(a => a.cod === g)) return g; } } catch(e) {}
     const meTec = (cache.tecnicos || []).find(t => t.id === (sessionUser && sessionUser.id));
     const sid = (meTec && meTec.sucursal_id) || (sessionUser && sessionUser.sucursal_id);
     if(!sid) return '';
@@ -20011,7 +20015,7 @@ function _prefRefrescarItems() {
     const b = document.getElementById('prefBtnCrear'); if(b) b.disabled = !_pref.items.length;
 }
 function _prefSync() {
-    const l = document.getElementById('prefLocal'); if(l) _pref.localidad = l.value;
+    const l = document.getElementById('prefLocal'); if(l) { if(_pref.localidad !== l.value) _almAdminGuardar(l.value); _pref.localidad = l.value; }
     const n = document.getElementById('prefNombre'); if(n) _pref.nombre = n.value;
     const nv = document.getElementById('prefNivel'); if(nv) _pref.nivel = Number(nv.value) || 1;
     const v = document.getElementById('prefVend');
@@ -20165,8 +20169,9 @@ function _rpInit() {
         delete alm.dataset.tocado;
         // (no se toca si se está editando una prefactura ya creada: esa trae su propio almacén)
         const ponerAlm = () => { const a = _miAlmacenInfoplus(); if(a && !alm.dataset.tocado && !(_rpState && _rpState.codprefactura)) { alm.value = a; try { _rpRenderCart(); _rpRenderResumen(); } catch(e) {} } };
-        alm.addEventListener('change', () => { alm.dataset.tocado = '1'; }, { once: true });
+        alm.addEventListener('change', () => { alm.dataset.tocado = '1'; _almAdminGuardar(alm.value); });
         ponerAlm(); if(!cache.sucursalesEmp) _cargarSucursalesEmp().then(ponerAlm);
+        try { if(window.bcRxAlmacenAdmin) window.bcRxAlmacenAdmin(); } catch(e) {}
     }
     const ven = document.getElementById('rxVendedor');
     if(ven) {
