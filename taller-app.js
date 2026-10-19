@@ -5157,7 +5157,7 @@ async function verificarSyncInfoplus() {
 }
 
 // Nombres de los almacenes de Info Plus (clave = codalmacen)
-const INFOPLUS_ALMACENES = { '1': 'Oficina Santiago', '3': 'Garantía China', '4': 'Moca', '5': '2do Nivel', '6': 'Taller' };
+const INFOPLUS_ALMACENES = { '1': 'Oficina Santiago', '3': 'Garantía China', '4': 'Moca', '5': '2do Nivel', '6': 'Taller', '7': 'Navarrete' };
 function _htmlExistenciasOtros(existencias) {
     if(!existencias || typeof existencias !== 'object') return '<span style="color:var(--text-muted);">—</span>';
     // Mostrar todos los almacenes menos el Taller (6, que ya tiene su columna), solo con cantidad > 0
@@ -19858,7 +19858,22 @@ function _codVendedorPrefactura(elegido) {
     return (elegido && elegido !== 'otro') ? String(elegido) : (mio || '6');
 }
 // Almacenes/localidades de Info Plus (codlocalidad) y vendedores conocidos (codempleado).
-const PREF_ALMACENES = [{ cod: '1', nom: 'Oficina Santiago' }, { cod: '4', nom: 'Localidad Moca' }, { cod: '6', nom: 'Taller' }, { cod: '3', nom: 'Garantía China' }, { cod: '5', nom: 'Almacén 2do Nivel' }];
+const PREF_ALMACENES = [{ cod: '1', nom: 'Oficina Santiago' }, { cod: '4', nom: 'Localidad Moca' }, { cod: '7', nom: 'Localidad Navarrete' }, { cod: '6', nom: 'Taller' }, { cod: '3', nom: 'Garantía China' }, { cod: '5', nom: 'Almacén 2do Nivel' }];
+// Almacén de Info Plus que le toca a cada sucursal (dueño 19-oct-2026: «automático»). Navarrete = localidad 7 (abrió 24-ago-2026).
+function _almacenDeSucursal(nombre) { const n = String(nombre || '').toLowerCase(); return /navarrete/.test(n) ? '7' : /moca/.test(n) ? '4' : /santiago/.test(n) ? '1' : ''; }
+// Almacén por defecto de la prefactura según la sucursal de quien usa el sistema ('' si no se sabe todavía).
+function _miAlmacenInfoplus() {
+    const meTec = (cache.tecnicos || []).find(t => t.id === (sessionUser && sessionUser.id));
+    const sid = (meTec && meTec.sucursal_id) || (sessionUser && sessionUser.sucursal_id);
+    if(!sid) return '';
+    const suc = (cache.sucursalesEmp || []).find(x => String(x.id) === String(sid));
+    return suc ? _almacenDeSucursal(suc.nombre) : '';
+}
+async function _cargarSucursalesEmp() {
+    if(cache.sucursalesEmp) return cache.sucursalesEmp;
+    try { const { data } = await supabaseClient.from('sucursales').select('id,nombre').order('nombre'); cache.sucursalesEmp = data || []; } catch(e) { logError('cargar sucursales', e); }
+    return cache.sucursalesEmp || [];
+}
 const PREF_VENDEDORES = [{ cod: '6', nom: 'Esterlin' }, { cod: '697', nom: 'Mayorista (Santiago)' }, { cod: '748', nom: 'Michelle (Santiago)' }, { cod: '1020', nom: 'Vendedora (Moca)' }];
 function _prefVendEsOtro() { return !PREF_VENDEDORES.some(v => v.cod === String(_pref.codempleado)); }
 function _prefVendCambio() {
@@ -19879,7 +19894,7 @@ function abrirPrefacturaOrden(ordenId) {
     const e = findEquipo(o.equipo_id) || {};
     const equipo = [e.marca, e.modelo, e.capacidad].filter(Boolean).join(' ');
     const origen = document.querySelector('.view.active')?.id?.replace('v-', '') || 'ordenes';
-    _pref = { ordenId, origen, localidad: '1', codcliente: '1', nombre: (c.nombre || 'CONTADO'), codempleado: _miCodInfoplus() || '6', nivel: 1, items: [],
+    _pref = { ordenId, origen, localidad: _miAlmacenInfoplus() || '1', codcliente: '1', nombre: (c.nombre || 'CONTADO'), codempleado: _miCodInfoplus() || '6', nivel: 1, items: [],
         ref: { equipo, imei: e.imei || '', falla: o.falla_reportada || '', cedula: c.cedula || '', rnc: c.rnc || '', telefono: c.whatsapp || c.telefono || '' } };
     _prefMostrarVista(); _prefRender();
     _prefAutoMatchCliente(c.cedula, c.rnc);
@@ -19894,7 +19909,7 @@ function abrirPrefacturaNueva() {
     const fallaChecks = _recepFallasMarcadas();
     const falla = [g('o_falla'), fallaChecks].filter(Boolean).join(' · ');
     const origen = document.querySelector('.view.active')?.id?.replace('v-', '') || 'recepcion';
-    _pref = { ordenId: null, origen, localidad: '1', codcliente: '1', nombre: nom || 'CONTADO', codempleado: _miCodInfoplus() || '6', nivel: 1, items: [],
+    _pref = { ordenId: null, origen, localidad: _miAlmacenInfoplus() || '1', codcliente: '1', nombre: nom || 'CONTADO', codempleado: _miCodInfoplus() || '6', nivel: 1, items: [],
         ref: { equipo, imei: g('e_imei'), falla, cedula, rnc, telefono: tel } };
     _prefMostrarVista(); _prefRender();
     _prefAutoMatchCliente(cedula, rnc);
@@ -20144,7 +20159,15 @@ function _rpInit() {
     _rpState = { items: [], codcliente: '1', infoNombre: 'CLIENTE DE CONTADO', codprefactura: null, localId: null, estado: 'pendiente', nivel: (document.getElementById('c_tipo')?.value === 'tienda' ? 2 : 1) };
     const nvSel = document.getElementById('rxNivel'); if(nvSel) nvSel.value = String(_rpState.nivel);
     const alm = document.getElementById('rxAlmacen');
-    if(alm) alm.innerHTML = PREF_ALMACENES.map(a => `<option value="${a.cod}">${escapeHtml(a.nom)}</option>`).join('');
+    if(alm) {
+        alm.innerHTML = PREF_ALMACENES.map(a => `<option value="${a.cod}">${escapeHtml(a.nom)}</option>`).join('');
+        // Almacén según la sucursal de la empleada (Moca → 4, Navarrete → 7, Santiago → 1); se puede cambiar.
+        delete alm.dataset.tocado;
+        // (no se toca si se está editando una prefactura ya creada: esa trae su propio almacén)
+        const ponerAlm = () => { const a = _miAlmacenInfoplus(); if(a && !alm.dataset.tocado && !(_rpState && _rpState.codprefactura)) { alm.value = a; try { _rpRenderCart(); _rpRenderResumen(); } catch(e) {} } };
+        alm.addEventListener('change', () => { alm.dataset.tocado = '1'; }, { once: true });
+        ponerAlm(); if(!cache.sucursalesEmp) _cargarSucursalesEmp().then(ponerAlm);
+    }
     const ven = document.getElementById('rxVendedor');
     if(ven) {
         const meTec = (cache.tecnicos || []).find(t => t.id === (sessionUser && sessionUser.id));
