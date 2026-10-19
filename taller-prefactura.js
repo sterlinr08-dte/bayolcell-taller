@@ -72,7 +72,11 @@
     var cCond = el('div', 'pcol', '<div class="plab">Condiciones</div>');
     var condCampos = el('div', 'bcpf-campos');
     var nivel = doc.getElementById('rxNivel');
-    if (nivel) { var fNivel = el('div', '', '<label for="rxNivel">Precio</label>'); fNivel.appendChild(nivel); condCampos.appendChild(fNivel); }
+    if (nivel) { var fNivel = el('div', '', '<label for="rxNivel">Precio del cliente</label>'); fNivel.appendChild(nivel); condCampos.appendChild(fNivel); }
+    // «Tipo de cliente» y «Precio» decían lo mismo (dueño: «veo que se repite»): queda solo «Precio del cliente».
+    // El tipo (final / tienda) se sigue guardando igual: se deriva del precio elegido.
+    var selTipo = q('#c_tipo', camposCli), fTipo = selTipo && selTipo.parentElement; if (fTipo) fTipo.classList.add('bcpf-oculto'); // (aún fuera del documento: se busca dentro del bloque)
+    if (nivel) nivel.addEventListener('change', tipoDesdeNivel);
     ['rxAlmacen', 'rxVendedor'].forEach(function (id) { var f = campo(id); if (f) condCampos.appendChild(f); });
     var aviso = doc.getElementById('rxVendAviso'); if (aviso) condCampos.appendChild(aviso);
     cCond.appendChild(condCampos);
@@ -244,6 +248,22 @@
     R.bar.querySelector('.bfin').hidden = !facturada;
   }
 
+  // Tipo de cliente según el precio: Por mayor o Extremo → tienda; Cliente final → final
+  function tipoDesdeNivel() {
+    var n = doc.getElementById('rxNivel'), t = doc.getElementById('c_tipo'); if (!n || !t) return;
+    var tipo = Number(n.value) >= 2 ? 'tienda' : 'final';
+    if (t.value !== tipo) { t.value = tipo; try { toggleRncRecepcion(); } catch (e) {} }
+  }
+  // Dueño (19-oct-2026): «en Info Plus el cliente con código viene asignado el código de al por mayor».
+  // Al elegir un cliente con código propio, el precio pasa a «Por mayor»; con el de contado (1), a «Cliente final».
+  // Se puede cambiar a mano después. (La API de clientes de Info Plus no trae el nivel de cada cliente.)
+  function nivelDesdeCliente(cod) {
+    var n = doc.getElementById('rxNivel'); if (!n) return;
+    var nv = String(cod) === '1' ? '1' : '2';
+    if (n.value !== nv) { n.value = nv; try { _rpNivelCambio(); } catch (e) {} }
+    tipoDesdeNivel();
+  }
+
   // Envolver las funciones que pintan para que el documento se actualice solo
   function enganchar() {
     if (typeof window._rpRenderCart === 'function' && !window._rpRenderCart._bcpf) {
@@ -257,7 +277,7 @@
     }
     if (typeof window._rpCliElegir === 'function' && !window._rpCliElegir._bcpf) {
       var origC = window._rpCliElegir;
-      var envE = function () { var r = origC.apply(this, arguments); try { pintarDoc(); } catch (e) {} return r; };
+      var envE = function (cod) { var r = origC.apply(this, arguments); try { nivelDesdeCliente(cod); pintarDoc(); } catch (e) {} return r; };
       envE._bcpf = true; window._rpCliElegir = envE;
     }
   }
