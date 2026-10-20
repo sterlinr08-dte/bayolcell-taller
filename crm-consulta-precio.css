@@ -78,3 +78,23 @@
   .cp-nv { justify-self: stretch; }
 }
 @media (prefers-reduced-motion: reduce) { .cp-ppk { animation: none; } .cp-btn { transition: none; } }
+
+/* 20-oct-2026 (dueño: «la ventana de consulta como emergente», como la de Info Plus): ventana con barra de título,
+   centrada, fondo apenas oscurecido; en la PC se arrastra por la barra. En el celular sigue a pantalla completa. */
+.cp-velo { background: rgba(15,23,42,.18); align-items: center; padding: 24px 16px; }
+.cp-ppk { width: min(860px, 100%); height: min(640px, 100%); border: 1px solid #cbd5e1; border-radius: 12px; box-shadow: 0 30px 70px -20px rgba(15,23,42,.55), 0 0 0 1px rgba(15,23,42,.04); }
+.cp-top { background: linear-gradient(180deg, #1e293b, #0f172a); border-bottom: 0; padding: 0 4px 0 14px; min-height: 44px; cursor: grab; user-select: none; touch-action: none; }
+.cp-top.arr { cursor: grabbing; }
+.cp-top .t { color: #fff; font-size: 14px; }
+.cp-top .t i { color: #fb923c; }
+.cp-sub { color: #bfdbfe; background: rgba(255,255,255,.1); }
+.cp-velo .cp-x { width: 44px; height: 44px; min-height: 44px; padding: 0; justify-content: center; border: 0; border-radius: 8px; background: transparent; color: #e2e8f0; font-size: 18px; }
+.cp-velo .cp-x:hover { background: #dc2626; color: #fff; }
+.cp-inp { margin-top: 12px; }
+@media (max-width: 640px) {
+  .cp-velo { padding: env(safe-area-inset-top) 0 0; align-items: stretch; }
+  .cp-ppk { width: 100%; height: 100%; border: 0; border-radius: 0; }
+  .cp-top { cursor: default; }
+}
+/* La animación de entrada no debe sujetar la posición (si no, la ventana no se puede mover) */
+.cp-ppk { animation-fill-mode: backwards; }

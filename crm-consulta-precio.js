@@ -68,8 +68,8 @@
     velo = doc.createElement('div');
     velo.className = 'cp-velo';
     velo.innerHTML = '<div class="cp-ppk" role="dialog" aria-modal="true" aria-label="Consultar precio">' +
-      '<div class="cp-top"><span class="t"><i class="ti ti-search" aria-hidden="true"></i> Buscar artículo</span><span class="cp-sub">Precio cliente final</span>' +
-      '<button type="button" class="cp-x"><i class="ti ti-arrow-left" aria-hidden="true"></i> Cerrar</button></div>' +
+      '<div class="cp-top" title="Arrastre para mover la ventana"><span class="t"><i class="ti ti-tag" aria-hidden="true"></i> Consulta de artículos</span><span class="cp-sub">Precio cliente final</span>' +
+      '<button type="button" class="cp-x" aria-label="Cerrar"><i class="ti ti-x" aria-hidden="true"></i></button></div>' +
       '<div class="cp-inp"><i class="ti ti-scan" aria-hidden="true"></i><input type="search" autocomplete="off" enterkeyhint="search" placeholder="Nombre, código, marca o IMEI…" aria-label="Buscar artículo"></div>' +
       '<div class="cp-list"></div></div>';
     doc.body.appendChild(velo);
@@ -88,6 +88,20 @@
       var i = Number(f.getAttribute('data-fila')); estado.det = estado.det === i ? -1 : i; estado.hl = i; pintar();
     });
     velo.addEventListener('keydown', function (e) { var f = e.target.closest && e.target.closest('[data-fila]'); if (f && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); f.click(); } });
+    // Ventana emergente (dueño: «como emergente», igual que la consulta de Info Plus): en la PC se mueve arrastrando la barra.
+    var win = velo.querySelector('.cp-ppk'), top = velo.querySelector('.cp-top'), dx = 0, dy = 0;
+    top.addEventListener('pointerdown', function (e) {
+      if (e.button !== 0 || e.target.closest('button') || matchMedia('(max-width: 640px)').matches) return;
+      e.preventDefault(); top.setPointerCapture(e.pointerId);
+      var x0 = e.clientX - dx, y0 = e.clientY - dy, r = win.getBoundingClientRect(), bx = r.left - dx, by = r.top - dy;
+      function mover(ev) {
+        dx = Math.min(innerWidth - 80 - bx, Math.max(-bx - r.width + 120, ev.clientX - x0));
+        dy = Math.min(innerHeight - 60 - by, Math.max(-by, ev.clientY - y0));
+        win.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+      }
+      function soltar() { top.removeEventListener('pointermove', mover); top.removeEventListener('pointerup', soltar); top.removeEventListener('pointercancel', soltar); top.classList.remove('arr'); }
+      top.classList.add('arr'); top.addEventListener('pointermove', mover); top.addEventListener('pointerup', soltar); top.addEventListener('pointercancel', soltar);
+    });
     filtrar(); pintar();
     setTimeout(function () { inp.focus(); inp.select(); }, 60);
     if (typeof _ensureInfoplusArticulos === 'function') Promise.resolve(_ensureInfoplusArticulos()).then(function () { if (velo) { filtrar(); pintar(); } }, function () {});
