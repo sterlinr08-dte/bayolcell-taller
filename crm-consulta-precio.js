@@ -45,9 +45,10 @@
   }
   function detalle(a) {
     var hay = conCant(a), pr = precio1(a), tot = hay.reduce(function (s2, c) { return s2 + c[1]; }, 0);
-    var fichas = esServ(a) ? '<span class="cp-ex">Servicio</span>' : hay.length ? hay.map(function (c) { return pildora(c, 'cp-ex'); }).join('') + '<span class="cp-ex cp-tot">Total <b>' + tot.toLocaleString('es-DO') + '</b></span>' : '<span class="cp-ex out">Sin existencia en ningún almacén</span>';
+    // Dueño: «¿por qué salen en dos partes las existencias?» → los almacenes van solo en la fila; aquí queda el total
+    var fichas = esServ(a) ? '<span class="cp-ex">Servicio</span>' : hay.length ? '<span class="cp-ex cp-tot">Total en almacenes <b>' + tot.toLocaleString('es-DO') + '</b></span>' : '<span class="cp-ex out">Sin existencia en ningún almacén</span>';
     return '<div class="cp-det"><div class="cp-nv"><small>Cliente final</small><b>' + (pr > 0 ? plata(pr) : '—') + '</b></div>' +
-      '<div class="cp-dex"><span>Existencia</span>' + fichas + '</div></div>';
+      '<div class="cp-dex">' + fichas + '</div></div>';
   }
   function pintar() {
     if (!velo) return;
