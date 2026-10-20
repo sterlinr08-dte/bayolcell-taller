@@ -153,3 +153,7 @@
   .cp-row { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "nom pre" "cod cod" "stk stk"; }
   .cp-stkc { justify-content: flex-start; margin-top: 2px; }
 }
+/* cantidades por almacén */
+.cp-alm b, .cp-ex b { font-weight: 800; color: #0f172a; font-variant-numeric: tabular-nums; margin-left: 2px; }
+.cp-ex.cp-tot { background: #0f172a; color: #e2e8f0; border-color: #0f172a; }
+.cp-ex.cp-tot b { color: #fff; }

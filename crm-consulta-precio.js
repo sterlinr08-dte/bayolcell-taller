@@ -20,6 +20,9 @@
   function esServ(a) { return String(a.codigo) === '1121' || /^SERVICIO\b/i.test(String(a.descripcion || '').trim()); }
   function esCel(a) { try { return _abCat(a.descripcion) === 'celular'; } catch (e) { return /^CELULAR\b/i.test(String(a.descripcion || '').trim()); } }
   function dondeHay(a) { var ex = (a.existencias && typeof a.existencias === 'object') ? a.existencias : {}; return ALM.filter(function (x) { return Number(ex[x[0]]) > 0; }).map(function (x) { return x[1]; }); }
+  // 20-oct-2026 (dueño: «pero no salen las cantidades»): almacén + cantidad, por ejemplo «Santiago 160»
+  function conCant(a) { var ex = (a.existencias && typeof a.existencias === 'object') ? a.existencias : {}; return ALM.filter(function (x) { return Number(ex[x[0]]) > 0; }).map(function (x) { return [x[1], Math.round(Number(ex[x[0]]))]; }); }
+  function pildora(c, cls) { return '<span class="' + cls + '">' + esc(c[0]) + ' <b>' + c[1].toLocaleString('es-DO') + '</b></span>'; }
   function arts() { try { return (typeof cache !== 'undefined' && cache.infoplusArticulos) || []; } catch (e) { return []; } }
 
   var velo = null, estado = { q: '', det: -1, hl: 0, lista: [] };
@@ -37,12 +40,12 @@
   function chip(a) {
     if (esServ(a)) return '<span class="cp-stk srv">Servicio</span>';
     // 20-oct-2026 (dueño: «en la consulta ver en qué almacén están los artículos»): los almacenes a la vista en la fila
-    var hay = dondeHay(a);
-    return hay.length ? hay.map(function (n) { return '<span class="cp-alm">' + esc(n) + '</span>'; }).join('') : '<span class="cp-stk out">Sin stock</span>';
+    var hay = conCant(a);
+    return hay.length ? hay.map(function (c) { return pildora(c, 'cp-alm'); }).join('') : '<span class="cp-stk out">Sin stock</span>';
   }
   function detalle(a) {
-    var hay = dondeHay(a), pr = precio1(a);
-    var fichas = esServ(a) ? '<span class="cp-ex">Servicio</span>' : hay.length ? hay.map(function (n) { return '<span class="cp-ex">' + esc(n) + '</span>'; }).join('') : '<span class="cp-ex out">Sin existencia en ningún almacén</span>';
+    var hay = conCant(a), pr = precio1(a), tot = hay.reduce(function (s2, c) { return s2 + c[1]; }, 0);
+    var fichas = esServ(a) ? '<span class="cp-ex">Servicio</span>' : hay.length ? hay.map(function (c) { return pildora(c, 'cp-ex'); }).join('') + '<span class="cp-ex cp-tot">Total <b>' + tot.toLocaleString('es-DO') + '</b></span>' : '<span class="cp-ex out">Sin existencia en ningún almacén</span>';
     return '<div class="cp-det"><div class="cp-nv"><small>Cliente final</small><b>' + (pr > 0 ? plata(pr) : '—') + '</b></div>' +
       '<div class="cp-dex"><span>Existencia</span>' + fichas + '</div></div>';
   }
