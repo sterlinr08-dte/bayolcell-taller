@@ -1,0 +1,1 @@
+Fuente: https://github.com/calesthio/OpenMontage (.claude/skills/video-understand), licencia AGPL-3.0 (ver LICENSE). Copiado sin cambios el 17-oct-2026.
