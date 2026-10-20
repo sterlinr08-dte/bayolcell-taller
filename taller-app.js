@@ -29641,10 +29641,39 @@ let _crmFiltroAsignacion = 'todas';  // todas | sin_asignar | mias
 function _crmEsPendiente(h) {
     if(!h.ultimo_inbound_at) return false;
     if(!h.ultima_respuesta_humana_at) return true;
+    if(_crmEsAcuse(h)) return false;
     return new Date(h.ultimo_inbound_at).getTime() > new Date(h.ultima_respuesta_humana_at).getTime();
+}
+// 20-oct-2026 (dueño: «corregir los mensajes que salen pendientes pero ya fueron contestados por el celular»).
+// Las respuestas del celular SÍ llegan (ultima_respuesta_humana_at); lo que volvía a marcar «Atender» y «1 sin leer» era
+// el «Ok», «Okey», «gracias», «perfecto»… que el cliente manda DESPUÉS de la respuesta. Si el último mensaje es solo un
+// acuse así, llegó hasta 12 h después de la respuesta humana y es el único sin leer, el chat se da por atendido y leído.
+const _CRM_ACUSE_PAL = new Set(['ok','okey','okay','oki','okis','okk','oka','k','perfecto','perfect','gracias','grasias','muchas','mil','bendiciones','dios','le','te','lo','bendiga','esta','bien','ta','ah','aa','bueno','buenisimo','dale','listo','de','acuerdo','vale','si','claro','entendido','excelente','genial','super','ya','ok.','igualmente','amen','a','usted','ti','tranquilo','tranquila','pues','entonces']);
+function _crmEsAcuse(h) {
+    if(!h || !h.ultimo_inbound_at || !h.ultima_respuesta_humana_at || !h.ultimo_mensaje_at) return false;
+    if((Number(h.no_leidos_count) || 0) > 1) return false;
+    const tin = new Date(h.ultimo_inbound_at).getTime(), tre = new Date(h.ultima_respuesta_humana_at).getTime(), tul = new Date(h.ultimo_mensaje_at).getTime();
+    if(!(tin >= tre) || tin - tre > 12 * 3600 * 1000 || Math.abs(tul - tin) > 2000) return false;
+    const txt = String(h.ultimo_mensaje_preview || '').trim();
+    if(!txt || txt.length > 60) return false;
+    const limpio = txt.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9ñ ]+/g, ' ').trim();
+    if(!limpio) return /^[\s\u{1F44D}\u{1F44C}\u{1F64F}\u{1F64C}\u{1F44F}\u{2764}\u{FE0F}\u{1F60A}\u{1F642}\u{1F600}\u{1F601}\u{2705}\u{1F3FB}-\u{1F3FF}]+$/u.test(txt); // 👍 👌 🙏 🙌 👏 ❤️ 😊 ✅
+    const pal = limpio.split(/\s+/);
+    return pal.length <= 5 && pal.every(w => _CRM_ACUSE_PAL.has(w));
+}
+const _crmAcusesMarcados = new Set();
+function _crmMarcarAcusesLeidos() {
+    (_waHilos || []).forEach(h => {
+        if(!(h.no_leidos_count > 0) || !_crmEsAcuse(h)) return;
+        h.no_leidos_count = 0;
+        if(_crmAcusesMarcados.has(h.id)) return;
+        _crmAcusesMarcados.add(h.id);
+        try { supabaseClient.from('whatsapp_hilos').update({ no_leidos_count: 0 }).eq('id', h.id).then(() => {}, () => {}); } catch(e) {}
+    });
 }
 
 function _crmHilosFiltrados() {
+    try { _crmMarcarAcusesLeidos(); } catch(e) {}
     const yo = _crmMiIdentidad();
     const q = _crmBusqueda.trim().toLowerCase();
     return (_waHilos || []).filter(h => {
