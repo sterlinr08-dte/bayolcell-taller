@@ -161,3 +161,7 @@
 .cp-head, .cp-row { grid-template-columns: 70px minmax(0, 1fr) 112px 120px; }
 .cp-stkc { display: block; text-align: right; }
 @media (max-width: 640px) { .cp-head, .cp-row { grid-template-columns: minmax(0, 1fr) auto; } .cp-row { grid-template-areas: "nom pre" "cod stk"; } .cp-stkc { text-align: right; margin-top: 0; } }
+/* 20-oct-2026 (g): referencia de Info Plus (capacidad / aviso) junto al nombre y total en la columna Existencia */
+.cp-ref { display: inline-block; font-size: 12px; font-weight: 800; color: #0f172a; background: #e2e8f0; border-radius: 6px; padding: 1px 7px; margin-left: 4px; vertical-align: 1px; letter-spacing: .01em; }
+.cp-ref.aviso { color: #9a3412; background: #ffedd5; }
+.cp-stk.cp-num { font-size: 14px; min-width: 28px; display: inline-block; text-align: center; font-variant-numeric: tabular-nums; }

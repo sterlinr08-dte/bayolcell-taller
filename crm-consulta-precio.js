@@ -22,6 +22,14 @@
   function dondeHay(a) { var ex = (a.existencias && typeof a.existencias === 'object') ? a.existencias : {}; return ALM.filter(function (x) { return Number(ex[x[0]]) > 0; }).map(function (x) { return x[1]; }); }
   // 20-oct-2026 (dueño: «pero no salen las cantidades»): almacén + cantidad, por ejemplo «Santiago 160»
   function conCant(a) { var ex = (a.existencias && typeof a.existencias === 'object') ? a.existencias : {}; return ALM.filter(function (x) { return Number(ex[x[0]]) > 0; }).map(function (x) { return [x[1], Math.round(Number(ex[x[0]]))]; }); }
+  // Dueño 20-oct: «a los artículos les faltan detalles: no dicen si son de 128 y si son con aviso». Ese dato está en la
+  // «referencia» de Info Plus (256GB, 64GB, AVISO…): se muestra junto al nombre si no está ya en la descripción.
+  function refTag(a) {
+    var r = String(a.referencia || '').trim(), d = String(a.descripcion || '').toUpperCase();
+    if (!r || d.indexOf(r.toUpperCase()) >= 0) return '';
+    var aviso = /^AVISO$/i.test(r);
+    return ' <span class="cp-ref' + (aviso ? ' aviso' : '') + '">' + esc(aviso ? 'Con aviso' : r) + '</span>';
+  }
   function pildora(c, cls) { return '<span class="' + cls + '">' + esc(c[0]) + ' <b>' + c[1].toLocaleString('es-DO') + '</b></span>'; }
   function arts() { try { return (typeof cache !== 'undefined' && cache.infoplusArticulos) || []; } catch (e) { return []; } }
 
@@ -39,8 +47,9 @@
   }
   function chip(a) {
     if (esServ(a)) return '<span class="cp-stk srv">Servicio</span>';
-    // Dueño 20-oct: los almacenes con cantidades van abajo, en la línea «Existencia» del detalle; en la fila, solo si hay
-    return dondeHay(a).length ? '<span class="cp-stk">Disponible</span>' : '<span class="cp-stk out">Sin stock</span>';
+    // Dueño 20-oct: en la fila, el TOTAL de existencia (los almacenes van abajo, en la línea «Existencia»); si no hay, «Sin stock»
+    var tot = conCant(a).reduce(function (s2, c) { return s2 + c[1]; }, 0);
+    return tot > 0 ? '<span class="cp-stk cp-num">' + tot.toLocaleString('es-DO') + '</span>' : '<span class="cp-stk out">Sin stock</span>';
   }
   function detalle(a) {
     var hay = conCant(a), pr = precio1(a), tot = hay.reduce(function (s2, c) { return s2 + c[1]; }, 0);
@@ -58,7 +67,7 @@
       var pr = precio1(a), sin = !esServ(a) && !dondeHay(a).length;
       return '<div class="cp-row' + (i === estado.hl ? ' hl' : '') + (estado.det === i ? ' abierta' : '') + (sin ? ' sin' : '') + '" data-fila="' + i + '" role="button" tabindex="0" aria-expanded="' + (estado.det === i) + '">' +
         '<span class="cp-cod">' + esc(a.codigo) + '</span>' +
-        '<span class="cp-nom">' + esc(String(a.descripcion || '').trim()) + (esCel(a) ? ' <span class="cp-tag">IMEI</span>' : '') + '</span>' +
+        '<span class="cp-nom">' + esc(String(a.descripcion || '').trim()) + refTag(a) + (esCel(a) ? ' <span class="cp-tag">IMEI</span>' : '') + '</span>' +
         '<span class="cp-stkc">' + chip(a) + '</span>' +
         '<span class="cp-pre">' + (pr > 0 ? plata(pr) : '<span class="cp-stk out">Sin precio</span>') + '</span></div>' +
         (estado.det === i ? detalle(a) : '');

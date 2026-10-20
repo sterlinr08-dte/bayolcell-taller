@@ -149,6 +149,8 @@
       } catch (e) { return ''; }
     }
     function esCel(a) { try { return _abCat(a.descripcion) === 'celular'; } catch (e) { return false; } }
+    // 20-oct-2026 (dueño): la «referencia» de Info Plus (256GB, 64GB, AVISO…) junto al nombre, si no está ya en la descripción
+    function pkRef(a) { var r = String(a.referencia || '').trim(); if (!r || String(a.descripcion || '').toUpperCase().indexOf(r.toUpperCase()) >= 0) return ''; var av = /^AVISO$/i.test(r); return ' <span class="pk-ref' + (av ? ' aviso' : '') + '">' + esc(av ? 'Con aviso' : r) + '</span>'; }
     function filtrar() {
       var arts = (typeof cache !== 'undefined' && cache.infoplusArticulos) || [];
       var qq = norm(estado.q).trim(), pal = qq.split(/\s+/).filter(Boolean);
@@ -174,7 +176,7 @@
         var preH = pr > 0 ? ((lis > 0 && Math.abs(lis - pr) > 0.5) ? '<s>' + plata(lis) + '</s>' : '') + plata(pr) : '<span class="bcrx-stk out">Sin precio</span>';
         return '<div class="bcrx-ppk-row' + (i === estado.hl ? ' hl' : '') + (estado.det === i ? ' abierta' : '') + (ex !== null && ex <= 0 ? ' sin' : '') + '" role="option" data-fila="' + i + '" aria-expanded="' + (estado.det === i) + '" title="Ver precios y existencia">' +
           '<span class="pk-cod">' + esc(a.codigo) + '</span>' +
-          '<span class="pk-nom"><span class="pk-dtx">' + esc((a.descripcion || '').trim()) + (esCel(a) ? ' <span class="pk-tag">IMEI</span>' : '') + '</span>' + (a.marca ? '<small>' + esc(a.marca) + '</small>' : '') + '</span>' +
+          '<span class="pk-nom"><span class="pk-dtx">' + esc((a.descripcion || '').trim()) + pkRef(a) + (esCel(a) ? ' <span class="pk-tag">IMEI</span>' : '') + '</span>' + (a.marca ? '<small>' + esc(a.marca) + '</small>' : '') + '</span>' +
           '<span class="pk-stk">' + chip + '</span>' +
           '<span class="pk-pre">' + preH + '</span>' +
           '<button type="button" class="pk-add" data-i="' + i + '" aria-label="Agregar ' + esc((a.descripcion || '').trim()) + '"><i class="ti ti-plus" aria-hidden="true"></i></button></div>' +
