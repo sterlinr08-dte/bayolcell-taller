@@ -586,3 +586,44 @@ html.bc-pf #v-recepcion .bcpf-doc select:disabled { background: var(--pf-canvas2
   html.bc-pf #v-recepcion .bcpf-qrow { display: grid; grid-template-columns: minmax(0, 1fr); }
 }
 html.bc-pf #v-recepcion .bcpf-qrow .bcpf-vaviso { flex: 1 1 100%; margin-top: 0 !important; }
+
+/* 20-oct-2026 (j): el buscador de la Prefactura como VENTANA EMERGENTE (dueño: «sí», igual que la consulta del CRM y la de
+   Info Plus): barra de título oscura con ✕, centrada sobre la pantalla, fondo apenas oscurecido; en la PC se mueve arrastrando
+   la barra (taller-prefactura.js). En el celular, pantalla completa. Por dentro es el mismo panel (taller-recepcion.js). */
+html.bc-pf #v-recepcion .bcrx-ppk-slot:has(> .bcrx-ppk)::before {
+  content: ""; position: fixed; inset: 0; z-index: 9400; background: rgba(15,23,42,.18);
+}
+html.bc-pf #v-recepcion .bcrx-ppk-slot > .bcrx-ppk {
+  position: fixed; z-index: 9401; left: 50%; top: 50%; width: min(860px, calc(100vw - 32px)); height: min(640px, calc(100vh - 48px));
+  margin: 0; translate: -50% -50%; display: flex; flex-direction: column;
+  border: 1px solid #cbd5e1; border-radius: 12px; box-shadow: 0 30px 70px -20px rgba(15,23,42,.55), 0 0 0 1px rgba(15,23,42,.04);
+  animation-fill-mode: backwards;
+}
+html.bc-pf #v-recepcion .bcrx-ppk-slot > .bcrx-ppk .bcrx-ppk-list { flex: 1; min-height: 0; max-height: none; }
+html.bc-pf #v-recepcion .bcrx-ppk-top {
+  background: linear-gradient(180deg, #1e293b, #0f172a); border-bottom: 0; min-height: 44px; padding: 0 4px 0 14px;
+  cursor: grab; user-select: none; touch-action: none;
+}
+html.bc-pf #v-recepcion .bcrx-ppk-top.arr { cursor: grabbing; }
+html.bc-pf #v-recepcion .bcrx-ppk-top .t { color: #fff; }
+html.bc-pf #v-recepcion .bcrx-ppk-top .t i { color: #fb923c; }
+html.bc-pf body #v-recepcion#v-recepcion .bcrx-ppk-top .bcrx-ppk-cat { color: #bfdbfe !important; background: rgba(255,255,255,.1) !important; border: 0 !important; min-height: 32px; border-radius: 999px !important; font-size: 12px !important; }
+html.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcrx-ppk-top .bcrx-ppk-x {
+  width: 44px !important; height: 44px; padding: 0 !important; font-size: 0 !important; border: 0 !important; border-radius: 8px !important;
+  background: transparent !important; color: #e2e8f0 !important; justify-content: center;
+}
+html.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcrx-ppk-top .bcrx-ppk-x i { font-size: 18px; }
+html.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcrx-ppk-top .bcrx-ppk-x:hover { background: #dc2626 !important; color: #fff !important; }
+html.bc-pf #v-recepcion .bcrx-ppk-inp { margin-top: 12px; }
+@media (max-width: 760px) {
+  html.bc-pf #v-recepcion .bcrx-ppk-slot > .bcrx-ppk { left: 0; top: 0; translate: none; width: 100vw; height: 100dvh; border: 0; border-radius: 0; padding-top: env(safe-area-inset-top); box-sizing: border-box; }
+  html.bc-pf #v-recepcion .bcrx-ppk-top { cursor: default; }
+}
+html.bc-pf #v-recepcion .bcrx-ppk-slot:has(> .bcrx-ppk)::before { z-index: 99990; }
+html.bc-pf #v-recepcion .bcrx-ppk-slot > .bcrx-ppk { z-index: 99991; }
+/* La vista tiene z-index 1 (su propio nivel): mientras la ventana está abierta se sube por encima de la barra de arriba */
+html.bc-pf #v-recepcion:has(.bcrx-ppk-slot > .bcrx-ppk) { z-index: 1000; }
+@media (max-width: 760px) {
+  /* En el celular la barra de arriba de la app (54 px) queda por encima: la ventana empieza debajo de ella */
+  html.bc-pf #v-recepcion .bcrx-ppk-slot > .bcrx-ppk { top: 54px; height: calc(100dvh - 54px); padding-top: 0; }
+}

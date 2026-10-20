@@ -444,6 +444,31 @@
     }
   }
 
+  // Buscador como ventana emergente: la ✕ con ícono de cerrar, tocar el fondo cierra y en la PC se mueve arrastrando la barra.
+  new MutationObserver(function () {
+    var x = doc.querySelector('#v-recepcion .bcrx-ppk-x:not([data-bcpf])');
+    if (x) { x.setAttribute('data-bcpf', '1'); x.innerHTML = '<i class="ti ti-x" aria-hidden="true"></i>'; x.setAttribute('aria-label', 'Cerrar'); }
+  }).observe(doc.documentElement, { childList: true, subtree: true });
+  doc.addEventListener('click', function (e) {
+    var s = e.target && e.target.classList && e.target.classList.contains('bcrx-ppk-slot') ? e.target : null;
+    if (s && s.closest('#v-recepcion') && s.querySelector('.bcrx-ppk')) { var x = s.querySelector('.bcrx-ppk-x'); if (x) x.click(); }
+  });
+  doc.addEventListener('pointerdown', function (e) {
+    var top = e.target.closest && e.target.closest('#v-recepcion .bcrx-ppk-top');
+    if (!top || e.button !== 0 || e.target.closest('button') || matchMedia('(max-width: 760px)').matches) return;
+    var win = top.closest('.bcrx-ppk'); if (!win) return;
+    e.preventDefault(); top.setPointerCapture(e.pointerId);
+    var dx = Number(win.dataset.dx || 0), dy = Number(win.dataset.dy || 0), x0 = e.clientX - dx, y0 = e.clientY - dy;
+    var r = win.getBoundingClientRect(), bx = r.left - dx, by = r.top - dy;
+    function mover(ev) {
+      dx = Math.min(innerWidth - 80 - bx, Math.max(-bx - r.width + 120, ev.clientX - x0));
+      dy = Math.min(innerHeight - 60 - by, Math.max(-by, ev.clientY - y0));
+      win.dataset.dx = dx; win.dataset.dy = dy; win.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+    }
+    function soltar() { top.removeEventListener('pointermove', mover); top.removeEventListener('pointerup', soltar); top.removeEventListener('pointercancel', soltar); top.classList.remove('arr'); }
+    top.classList.add('arr'); top.addEventListener('pointermove', mover); top.addEventListener('pointerup', soltar); top.addEventListener('pointercancel', soltar);
+  });
+
   window.bcPfPintar = function () { pintarCarrito(); pintarDoc(); };
   if (!organizar()) {
     var mo = new MutationObserver(function () { if (organizar()) mo.disconnect(); });
