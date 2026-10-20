@@ -74,19 +74,18 @@
       if (i === 0 || c.id === 'rxClienteChip') { c.classList.add('bcpf-oculto'); return; } // buscador y chip viejos: los reemplaza la tarjeta
       camposCli.appendChild(c);
     });
-    var cCond = el('div', 'pcol', '<div class="plab">Condiciones</div>');
-    var condCampos = el('div', 'bcpf-campos');
+    // 20-oct-2026 (dueño: «ahorrar espacio»): una sola franja con 4 casillas en PC: Facturar a · Precio del cliente · Almacén · Vendedor
+    p1.classList.add('bcpf-franja');
     var nivel = doc.getElementById('rxNivel');
-    // El precio va con el cliente (columna izquierda), como en STUDIO el cliente define su nivel
-    if (nivel) { var fNivel = el('div', 'bcpf-campos bcpf-nivel'); var fN = el('div', '', '<label for="rxNivel">Precio del cliente</label>'); fN.appendChild(nivel); fNivel.appendChild(fN); cCli.appendChild(fNivel); }
+    var fNivel = null;
+    if (nivel) { fNivel = el('div', 'pcol bcpf-campos'); var fN = el('div', '', '<label for="rxNivel">Precio del cliente</label>'); fN.appendChild(nivel); fNivel.appendChild(fN); }
     // «Tipo de cliente» y «Precio» decían lo mismo (dueño: «veo que se repite»): queda solo «Precio del cliente».
     // El tipo (final / tienda) se sigue guardando igual: se deriva del precio elegido.
     var selTipo = q('#c_tipo', camposCli), fTipo = selTipo && selTipo.parentElement; if (fTipo) fTipo.classList.add('bcpf-oculto'); // (aún fuera del documento: se busca dentro del bloque)
     if (nivel) nivel.addEventListener('change', tipoDesdeNivel);
-    ['rxAlmacen', 'rxVendedor'].forEach(function (id) { var f = campo(id); if (f) condCampos.appendChild(f); });
-    var aviso = doc.getElementById('rxVendAviso'); if (aviso) condCampos.appendChild(aviso);
-    cCond.appendChild(condCampos);
-    p1.appendChild(cCli); p1.appendChild(cCond);
+    p1.appendChild(cCli); if (fNivel) p1.appendChild(fNivel);
+    ['rxAlmacen', 'rxVendedor'].forEach(function (id) { var f = campo(id); if (f) { var c = el('div', 'pcol bcpf-campos'); c.appendChild(f); p1.appendChild(c); } });
+    var aviso = doc.getElementById('rxVendAviso'); if (aviso) { aviso.classList.add('bcpf-aviso'); p1.appendChild(aviso); }
     pad.appendChild(p1);
 
     // Equipo, falla y lo demás: opcional (dueño: «la falla … opcional, no obligatorio. Y … los equipos también»).
@@ -222,13 +221,13 @@
 
   // ── Carrito en 2 líneas (como STUDIO) con las mismas funciones de siempre ──
   function filaImeis(it, i) {
-    if (!it.serial) return '';
+    if (!it.serial) return '<div class="bcpf-imei nada" aria-hidden="true">—</div>';
     var ims = it.imeis || [], falta = !ims.length;
     var chips = ims.map(function (m, k) {
       return '<span class="imc">' + esc(m) + '<button type="button" aria-label="Quitar IMEI ' + esc(m) + '" onclick="_rpQuitarImei(' + i + ',' + k + ')"><i class="ti ti-x" aria-hidden="true"></i></button></span>';
     }).join('');
     return '<div class="bcpf-imei' + (falta ? ' falta' : '') + '"><div class="imi"><i class="ti ti-barcode" aria-hidden="true"></i>' +
-      '<input id="rpImei_' + i + '" placeholder="Escanee o escriba el IMEI y presione Enter" onkeydown="_rpImeiKey(event,' + i + ')" inputmode="numeric" autocomplete="off"></div>' +
+      '<input id="rpImei_' + i + '" placeholder="Escanee el IMEI" aria-label="IMEI: escanee o escriba y presione Enter" onkeydown="_rpImeiKey(event,' + i + ')" inputmode="numeric" autocomplete="off"></div>' +
       '<div class="ims">' + (chips || '<span class="imf">Sin IMEI: no se puede facturar este equipo.</span>') + '</div></div>';
   }
   function filaStock(it) {
@@ -241,7 +240,7 @@
     var c = doc.getElementById('rxArticulos'); if (!c) return;
     var s = st();
     if (!s || !s.items.length) { c.innerHTML = '<div class="bcpf-vacio">Sin artículos. Use el buscador o escanee un código para agregarlos.</div>'; return; }
-    c.innerHTML = '<div class="bcpf-items"><div class="bcpf-ith" aria-hidden="true"><span>#</span><span>Artículo</span><span>Precio</span><span>Cant.</span><span>Desc.</span><span>Importe</span><span></span></div>' + s.items.map(function (it, i) {
+    c.innerHTML = '<div class="bcpf-items"><div class="bcpf-ith" aria-hidden="true"><span>#</span><span>Artículo</span><span>IMEI / serie</span><span>Precio</span><span>Desc.</span><span>Cant.</span><span>Importe</span><span></span></div>' + s.items.map(function (it, i) {
       var cant = it.serial
         ? '<span class="stp fijo" title="La cantidad sale del número de IMEI">' + it.cant + '</span>'
         : '<span class="stp"><button type="button" aria-label="Quitar una unidad" onclick="_rpCant(' + i + ',' + (Number(it.cant) - 1) + ')">−</button>' +
@@ -249,16 +248,48 @@
           '<button type="button" aria-label="Agregar una unidad" onclick="_rpCant(' + i + ',' + (Number(it.cant) + 1) + ')">+</button></span>';
       return '<div class="bcpf-it">' +
         '<span class="n">' + ('0' + (i + 1)).slice(-2) + '</span>' +
-        '<div class="d"><input class="dnm" value="' + esc(it.desc) + '" aria-label="Descripción" title="Descripción editable (no cambia el artículo maestro)" onchange="_rpDesc(' + i + ',this.value)">' +
+        '<div class="d"><button type="button" class="dnb" data-ver="' + i + '" title="Ver precios y cambiar la descripción">' + esc(it.desc) + '</button>' +
         '<div class="dsub"><span class="cod">' + esc(it.cod) + '</span>' + (it.servicio ? '<span class="srv">Servicio</span>' : '') + (it.serial ? '<span class="ime">IMEI ' + (it.imeis || []).length + '/' + it.cant + '</span>' : '') + '</div></div>' +
         '<b class="imp">' + plata(importe(it)) + (Number(it.descPct) ? '<s>' + plata(Number(it.precio) * Number(it.cant)) + '</s>' : '') + '</b>' +
         '<button type="button" class="del" aria-label="Quitar ' + esc(it.desc) + '" onclick="_rpQuitar(' + i + ')"><i class="ti ti-trash" aria-hidden="true"></i></button>' +
-        '<div class="l2"><label><span>Precio</span><input class="pin" inputmode="decimal" autocomplete="off" value="' + num2(it.precio) + '" onfocus="this.select()" onchange="_rpPrecio(' + i + ',this.value)"></label>' +
-        '<div class="lq"><span>Cant.</span>' + cant + '</div>' +
-        '<label class="ldc"><span>Desc.</span><span class="dcw"><input class="dc" inputmode="decimal" autocomplete="off" value="' + (Number(it.descPct) || 0) + '" aria-label="Descuento en por ciento" onfocus="this.select()" onchange="_rpDescPct(' + i + ',this.value)"><i>%</i></span></label></div>' +
+        '<div class="l2"><label><span>Precio</span><input class="pin" inputmode="decimal" autocomplete="off" value="' + num2(it.precio) + '" aria-label="Precio" onfocus="this.select()" onchange="_rpPrecio(' + i + ',this.value)"></label>' +
+        '<label class="ldc"><span>Desc.</span><span class="dcw"><input class="dc" inputmode="decimal" autocomplete="off" value="' + (Number(it.descPct) || 0) + '" aria-label="Descuento en por ciento" onfocus="this.select()" onchange="_rpDescPct(' + i + ',this.value)"><i>%</i></span></label>' +
+        '<div class="lq"><span>Cant.</span>' + cant + '</div></div>' +
         filaImeis(it, i) + filaStock(it) + '</div>';
     }).join('') + '</div>';
   }
+
+  // Clic en el nombre del artículo: sus precios por nivel (Cliente final · Por mayor · Extremo); tocar uno lo usa.
+  // Aquí también se cambia la descripción (antes el nombre era un campo de texto).
+  var NIV = [['1', 'Cliente final'], ['2', 'Por mayor'], ['3', 'Extremo']];
+  function cerrarPop() { var p = doc.querySelector('#v-recepcion .bcpf-pop'); if (p) p.remove(); }
+  function abrirPop(i, btn) {
+    cerrarPop();
+    var s = st(); var it = s && s.items[i]; if (!it) return;
+    var nv = it.niveles || {}, act = String((s && s.nivel) || 1);
+    var filas = NIV.map(function (n) {
+      var v = Number(nv[n[0]]) || 0;
+      return '<tr' + (n[0] === act ? ' class="act"' : '') + '><td>' + n[1] + '</td><td>' + (v > 0 ? '<button type="button" data-usar="' + v + '" aria-label="Usar ' + plata(v) + '">' + plata(v) + '</button>' : '—') + '</td></tr>';
+    }).join('');
+    var pop = el('div', 'bcpf-pop', '<div class="pph"><b>' + esc(it.desc) + '</b><span>' + esc(it.cod) + '</span></div>' +
+      (it.niveles ? '<table><tbody>' + filas + '</tbody></table><p class="ppx">Toque un precio para usarlo en esta línea.</p>' : '') +
+      '<label class="ppd"><span>Descripción</span><input value="' + esc(it.desc) + '" autocomplete="off"></label>');
+    pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'Precios de ' + it.desc);
+    btn.parentElement.appendChild(pop);
+    pop.addEventListener('click', function (e) {
+      var u = e.target.closest('[data-usar]'); if (!u) return;
+      cerrarPop(); try { _rpPrecio(i, u.getAttribute('data-usar')); } catch (er) {}
+    });
+    var inp = q('.ppd input', pop);
+    inp.addEventListener('change', function () { try { _rpDesc(i, inp.value); } catch (er) {} pintarCarrito(); });
+    inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); inp.blur(); } });
+  }
+  doc.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('#v-recepcion .dnb');
+    if (b) { var abierta = b.parentElement.querySelector('.bcpf-pop'); if (abierta) cerrarPop(); else abrirPop(Number(b.getAttribute('data-ver')), b); return; }
+    if (!(e.target.closest && e.target.closest('.bcpf-pop'))) cerrarPop();
+  });
+  doc.addEventListener('keydown', function (e) { if (e.key === 'Escape') cerrarPop(); });
 
   // ── Cabecera, cliente, totales y barra ──
   function iniciales(n) { var p = String(n || '').trim().split(/\s+/).filter(Boolean); return ((p[0] || '')[0] || '').toUpperCase() + ((p[1] || '')[0] || '').toUpperCase(); }

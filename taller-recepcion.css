@@ -228,3 +228,20 @@ html.bc-rx #v-recepcion .bcrx-ppk-det .pk-elegir:active { transform: scale(.97);
   html.bc-rx #v-recepcion .bcrx-ppk-det .pk-nv b { font-size: 14px; }
   html.bc-rx #v-recepcion .bcrx-ppk-det .pk-elegir { justify-content: center; }
 }
+
+/* 20-oct-2026 (dueño: «como STUDIO exactamente»): ficha de existencia, precio tachado, cliente, niveles con «—» y existencia por almacén */
+html.bc-rx #v-recepcion .bcrx-stk { text-transform: uppercase; letter-spacing: .02em; }
+html.bc-rx #v-recepcion .bcrx-stk.srv { color: #475569; background: #f1f5f9; }
+html.bc-rx #v-recepcion .pk-pre s { display: block; font-size: 12px; font-weight: 700; color: #94a3b8; }
+html.bc-rx #v-recepcion .bcrx-ppk-cli { margin: 0 14px 6px; font-size: 13px; font-weight: 700; color: #2563eb; }
+html.bc-rx #v-recepcion .bcrx-ppk-x { width: auto !important; padding: 0 12px !important; display: inline-flex !important; align-items: center; gap: 4px; font-size: 14px !important; font-weight: 700; color: #0f172a !important; border: 1px solid rgba(0,0,0,.16) !important; }
+html.bc-rx #v-recepcion .bcrx-ppk-det .pk-nv.act small, html.bc-rx #v-recepcion .bcrx-ppk-det .pk-nv.act b { color: #2563eb; }
+html.bc-rx #v-recepcion .bcrx-ppk-det .pk-nv.act { background: #eff6ff; }
+html.bc-rx #v-recepcion .bcrx-ppk-det .pk-nv.no b { color: #cbd5e1; }
+html.bc-rx #v-recepcion .bcrx-ppk-det .pk-dex { flex-wrap: wrap; }
+html.bc-rx #v-recepcion .bcrx-ppk-det .pk-ex { font-size: 13px; font-weight: 600; text-transform: none; letter-spacing: 0; color: #0e7490; background: #fff; border: 1px solid #e5e7eb; border-radius: 999px; padding: 3px 10px; }
+html.bc-rx #v-recepcion .bcrx-ppk-det .pk-ex b { color: inherit; background: none; padding: 0; font-size: 13px; }
+html.bc-rx #v-recepcion .bcrx-ppk-det .pk-ex.out { color: #b91c1c; }
+html.bc-rx #v-recepcion .bcrx-ppk-det .pk-ex.aqui { border-color: #67e8f9; background: #ecfeff; }
+html.bc-rx #v-recepcion .bcrx-ppk-det { grid-template-columns: minmax(0, 1fr); grid-template-areas: "nvs" "dex" "eleg"; }
+html.bc-rx #v-recepcion .bcrx-ppk-det .pk-elegir { justify-self: start; }

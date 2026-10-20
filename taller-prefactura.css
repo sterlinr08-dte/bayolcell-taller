@@ -450,3 +450,91 @@ html.bc-pf #v-recepcion .bcpf-doc ::selection { background: rgba(228, 87, 46, .2
 }
 /* La fila «Descuento» solo cuando hay descuento ([hidden] perdía contra display:flex de .tr) */
 html.bc-pf #v-recepcion .bcpf-tot .tr[hidden] { display: none; }
+
+/* 20-oct-2026 (f): la muestra HTML aprobada por el dueño pasa al sistema.
+   PC más ancha (1200), «Facturar a · Precio · Almacén · Vendedor» en una franja, cada artículo en UNA fila con columna IMEI,
+   clic en el nombre = precios por nivel. Celular: igual que antes (tarjetas). */
+html.bc-pf #v-recepcion .bcpf-doc { max-width: 1200px; }
+html.bc-pf body #v-recepcion .rx-toolsbox,
+html.bc-pf body #v-recepcion .bcpf-hist { max-width: 1200px !important; }
+html.bc-pf #v-recepcion.active .bcpf-bar { width: min(1200px, 100%); }
+@media (min-width: 1025px) { html.bc-pf #v-recepcion.active .bcpf-bar { width: min(1200px, calc(100% - 120px)); } }
+/* Franja de 4 casillas */
+html.bc-pf #v-recepcion .bcpf-franja { align-items: end; }
+html.bc-pf #v-recepcion .bcpf-franja .pcol > .plab { margin: 0 0 4px; font-size: 13px; letter-spacing: 0; text-transform: none; font-weight: 600; }
+html.bc-pf #v-recepcion .bcpf-franja .pcli { margin: 0; min-height: 48px; padding: 4px 10px; gap: 10px; }
+html.bc-pf #v-recepcion .bcpf-franja .pcli .pav { flex-basis: 34px; width: 34px; height: 34px; font-size: 13px; }
+html.bc-pf #v-recepcion .bcpf-franja .pcli .pnom { font-size: 15px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html.bc-pf #v-recepcion .bcpf-franja .pcli .pdet { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html.bc-pf #v-recepcion .bcpf-franja .bcpf-aviso { grid-column: 1 / -1; }
+@media (min-width: 761px) {
+  html.bc-pf #v-recepcion .bcpf-franja { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, .9fr) minmax(0, .9fr); gap: 12px; }
+  html.bc-pf #v-recepcion .bcpf-franja .pcli .pdet2 { display: none; }
+}
+@media (max-width: 760px) {
+  html.bc-pf #v-recepcion .bcpf-franja { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  html.bc-pf #v-recepcion .bcpf-franja > .pcol:nth-child(-n+2) { grid-column: 1 / -1; }
+}
+/* Nombre del artículo: botón que abre sus precios */
+html.bc-pf #v-recepcion .bcpf-it .d { position: relative; }
+html.bc-pf #v-recepcion .bcpf-it .dnb {
+  display: block; width: 100%; min-height: 40px; text-align: left; background: none; border: 0; padding: 4px 0; cursor: pointer;
+  font-size: 15px; font-weight: 700; color: #0f172a; line-height: 1.3; overflow-wrap: anywhere;
+}
+html.bc-pf #v-recepcion .bcpf-it .dnb:hover { color: var(--pf-acc-dark); text-decoration: underline dashed; text-underline-offset: 4px; }
+html.bc-pf #v-recepcion .bcpf-items { overflow: visible; }
+html.bc-pf #v-recepcion .bcpf-ith { border-radius: 10px 10px 0 0; }
+html.bc-pf #v-recepcion .bcpf-pop {
+  position: absolute; left: 0; top: calc(100% + 6px); z-index: 40; width: 320px; max-width: calc(100vw - 48px); box-sizing: border-box;
+  background: #fff; border: 1px solid var(--pf-line); border-radius: 12px; box-shadow: var(--pf-shadow); padding: 12px; display: grid; gap: 8px;
+  animation: bcpfAbrir 180ms var(--pf-ease, ease) both;
+}
+html.bc-pf #v-recepcion .bcpf-pop .pph b { display: block; font-size: 14px; line-height: 1.25; }
+html.bc-pf #v-recepcion .bcpf-pop .pph span { font: 600 13px var(--pf-mono); color: var(--pf-steel); }
+html.bc-pf #v-recepcion .bcpf-pop table { width: 100%; border-collapse: collapse; }
+html.bc-pf #v-recepcion .bcpf-pop td { padding: 2px 0; border-top: 1px solid var(--pf-line2); font-size: 14px; color: var(--pf-steel); }
+html.bc-pf #v-recepcion .bcpf-pop td:last-child { text-align: right; font: 600 15px var(--pf-mono); color: #cbd5e1; }
+html.bc-pf #v-recepcion .bcpf-pop tr.act td:first-child { color: #2563eb; font-weight: 700; }
+html.bc-pf body #v-recepcion#v-recepcion .bcpf-pop td button {
+  min-height: 44px; min-width: 44px; padding: 0 10px; border: 1px solid transparent; border-radius: 8px; background: none; cursor: pointer;
+  font: 600 15px var(--pf-mono); color: var(--pf-ink);
+}
+html.bc-pf body #v-recepcion#v-recepcion .bcpf-pop tr.act td button { color: #2563eb; border-color: #bfdbfe; background: #eff6ff; }
+html.bc-pf body #v-recepcion#v-recepcion .bcpf-pop td button:hover { background: var(--pf-acc-soft); color: var(--pf-acc-dark); }
+html.bc-pf #v-recepcion .bcpf-pop .ppx { margin: 0; font-size: 13px; color: var(--pf-mute); }
+html.bc-pf #v-recepcion .bcpf-pop .ppd { display: grid; gap: 4px; margin: 0; }
+html.bc-pf #v-recepcion .bcpf-pop .ppd span { font-size: 13px; font-weight: 600; color: var(--pf-steel); }
+html.bc-pf #v-recepcion .bcpf-pop .ppd input { min-height: 48px; font-size: 16px !important; border: 1px solid var(--pf-hair); border-radius: 10px; padding: 0 12px; box-sizing: border-box; width: 100%; }
+/* IMEI: celda propia en PC; en celular sigue debajo */
+html.bc-pf #v-recepcion .bcpf-imei.nada { display: none; }
+@media (min-width: 761px) {
+  html.bc-pf #v-recepcion .bcpf-ith,
+  html.bc-pf #v-recepcion .bcpf-it { grid-template-columns: 26px minmax(0, 1fr) 200px 128px 96px 150px 124px 44px; column-gap: 8px; }
+  html.bc-pf #v-recepcion .bcpf-it { grid-template-areas: "n d m p c q i x" ". s s s s s s s"; min-height: 58px; padding: 6px 12px; }
+  html.bc-pf #v-recepcion .bcpf-ith span:nth-child(4), html.bc-pf #v-recepcion .bcpf-ith span:nth-child(7) { text-align: right; }
+  html.bc-pf #v-recepcion .bcpf-ith span:nth-child(3) { text-align: left; }
+  html.bc-pf #v-recepcion .bcpf-ith span:nth-child(5), html.bc-pf #v-recepcion .bcpf-ith span:nth-child(6) { text-align: center; }
+  html.bc-pf #v-recepcion .bcpf-imei { grid-area: m; border: 0; background: none; padding: 0; align-self: center; }
+  html.bc-pf #v-recepcion .bcpf-imei.nada { display: block; text-align: center; color: #cbd5e1; font-weight: 700; }
+  html.bc-pf #v-recepcion .bcpf-imei .imi i { display: none; }
+  html.bc-pf #v-recepcion .bcpf-imei .imi input { min-height: 44px; font: 14px var(--pf-mono) !important; }
+  html.bc-pf #v-recepcion .bcpf-imei.falta .imi input { border-color: var(--pf-acc); background: #fffaf7; }
+  html.bc-pf #v-recepcion .bcpf-imei .ims { margin-top: 4px; }
+  html.bc-pf #v-recepcion .bcpf-imei .ims:empty, html.bc-pf #v-recepcion .bcpf-imei .imf { display: none; }
+  html.bc-pf #v-recepcion .bcpf-imei .imc { font-size: 12px; padding-left: 8px; }
+  html.bc-pf #v-recepcion .bcpf-imei .imc button { width: 32px; height: 32px; }
+  html.bc-pf #v-recepcion .bcpf-it .dnb { min-height: 0; padding: 2px 0; }
+}
+@media (max-width: 760px) {
+  html.bc-pf #v-recepcion .bcpf-it { position: relative; }
+  html.bc-pf #v-recepcion .bcpf-it .dnb { grid-area: d; }
+  html.bc-pf #v-recepcion .bcpf-pop { left: 34px; top: 54px; }
+}
+/* Ganarle a la capa táctil general (5 id): nombre como texto, ventana de precios y fichas de IMEI compactas en PC */
+html.bc-pf body #v-recepcion#v-recepcion#v-recepcion#v-recepcion#v-recepcion .bcpf-it .dnb { background: none !important; border: 0 !important; box-shadow: none !important; border-radius: 4px !important; padding: 2px 0 !important; height: auto !important; font-size: 15px !important; }
+html.bc-pf body #v-recepcion#v-recepcion#v-recepcion#v-recepcion#v-recepcion .bcpf-pop td button { font: 600 15px var(--pf-mono) !important; height: 44px !important; }
+@media (min-width: 761px) {
+  html.bc-pf body #v-recepcion#v-recepcion#v-recepcion#v-recepcion#v-recepcion .bcpf-imei .imc { min-height: 0 !important; height: 30px; font-size: 12px !important; }
+  html.bc-pf body #v-recepcion#v-recepcion#v-recepcion#v-recepcion#v-recepcion .bcpf-imei .imc button { min-height: 0 !important; height: 28px !important; width: 28px !important; min-width: 0 !important; }
+}
+html.bc-pf body #v-recepcion#v-recepcion#v-recepcion#v-recepcion#v-recepcion .bcpf-it .dnb:is(:hover, :focus, :active) { background: none !important; box-shadow: none !important; transform: none !important; }

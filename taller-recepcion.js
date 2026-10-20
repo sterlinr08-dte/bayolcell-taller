@@ -115,21 +115,38 @@
     function nivel() { try { return String((_rpState && _rpState.nivel) || 1); } catch (e) { return '1'; } }
     function almacen() { var s = doc.getElementById('rxAlmacen'); return (s && s.value) || '1'; }
     function precioDe(a) { var nv = nivel(); if (a.niveles && a.niveles[nv] != null) return Number(a.niveles[nv]); if (a.niveles && a.niveles['1'] != null) return Number(a.niveles['1']); return Number(a.precio || 0); }
-    function existe(a) { var ex = (a.existencias && typeof a.existencias === 'object') ? a.existencias : null; return ex ? (Number(ex[almacen()]) || 0) : null; }
+    function esServ(a) { return String(a.codigo) === '1121' || /^SERVICIO\b/i.test(String(a.descripcion || '').trim()); }
+    function existe(a) { if (esServ(a)) return null; var ex = (a.existencias && typeof a.existencias === 'object') ? a.existencias : null; return ex ? (Number(ex[almacen()]) || 0) : null; }
     // Detalle del artículo al tocar la fila, igual que STUDIO (dueño 19-oct-2026: «qué formato tenemos en studio, podemos
     // usar lo mismo»): recuadros con los precios de cada nivel lado a lado (el del cliente resaltado), existencia y
     // «Elegir — RD$ …». El mínimo no se puede mostrar: la API de Info Plus solo entrega el precio de cada nivel.
     var NIV = [['1', 'Cliente final'], ['2', 'Por mayor'], ['3', 'Extremo']];
+    // 20-oct-2026 (dueño: «como STUDIO exactamente»): un recuadro por cada nivel (— si no tiene precio) y la existencia
+    // de cada almacén en fichas, como ppkDetailHTML de STUDIO.
     function detalleHTML(a, i) {
-      var nv = a.niveles || {}, act = nivel(), ex = existe(a), pr = precioDe(a);
-      var cajas = NIV.filter(function (n) { return nv[n[0]] != null && Number(nv[n[0]]) > 0; }).map(function (n) {
-        return '<div class="pk-nv' + (n[0] === act ? ' act' : '') + '"><small>' + n[1] + '</small><b>' + plata(Number(nv[n[0]])) + '</b></div>';
+      var nv = a.niveles || {}, act = nivel(), pr = precioDe(a);
+      var cajas = NIV.map(function (n) {
+        var v = Number(nv[n[0]]) || 0;
+        return '<div class="pk-nv' + (n[0] === act ? ' act' : '') + (v > 0 ? '' : ' no') + '"><small>' + n[1] + '</small><b>' + (v > 0 ? plata(v) : '—') + '</b></div>';
       }).join('');
-      var alm = ''; try { alm = _rpAlmNombre(); } catch (e) {}
+      var ex = (a.existencias && typeof a.existencias === 'object') ? a.existencias : {};
+      var alms = (typeof INFOPLUS_ALMACENES !== 'undefined') ? INFOPLUS_ALMACENES : {};
+      var fichas = esServ(a) ? '<span class="pk-ex">Servicio</span>' : Object.keys(alms).map(function (c) {
+        var n = Number(ex[c]) || 0;
+        return '<span class="pk-ex' + (n > 0 ? '' : ' out') + (c === almacen() ? ' aqui' : '') + '">' + esc(alms[c]) + ': <b>' + n + '</b></span>';
+      }).join('');
       return '<div class="bcrx-ppk-det" data-det="' + i + '">' +
-        (cajas ? '<div class="pk-nvs">' + cajas + '</div>' : '') +
-        '<div class="pk-dex"><span>Existencia' + (alm ? ' · ' + esc(alm) : '') + '</span><b class="' + (ex !== null && ex <= 0 ? 'out' : '') + '">' + (ex === null ? '—' : ex + ' und') + '</b></div>' +
+        '<div class="pk-nvs">' + cajas + '</div>' +
+        '<div class="pk-dex"><span>Existencia</span>' + fichas + '</div>' +
         '<button type="button" class="pk-elegir" data-i="' + i + '"><i class="ti ti-circle-plus" aria-hidden="true"></i> Elegir — ' + (pr > 0 ? plata(pr) : 'sin precio') + '</button></div>';
+    }
+    function clienteHTML() {
+      try {
+        if (!_rpState || !_rpState.codcliente || String(_rpState.codcliente) === '1') return '';
+        var nom = (doc.getElementById('c_nombre') || {}).value || _rpState.infoNombre || ('Cliente ' + _rpState.codcliente);
+        var n = NIV.filter(function (x) { return x[0] === nivel(); })[0];
+        return '<div class="bcrx-ppk-cli"><i class="ti ti-user" aria-hidden="true"></i> ' + esc(nom) + ' — ' + esc(n ? n[1] : 'Nivel ' + nivel()) + ' (se carga solo)</div>';
+      } catch (e) { return ''; }
     }
     function esCel(a) { try { return _abCat(a.descripcion) === 'celular'; } catch (e) { return false; } }
     function filtrar() {
@@ -151,12 +168,15 @@
       var l = estado.lista, show = l.slice(0, MAXF);
       var filas = show.map(function (a, i) {
         var ex = existe(a), pr = precioDe(a);
-        var chip = ex === null ? '<span class="bcrx-stk">—</span>' : ex <= 0 ? '<span class="bcrx-stk out">Sin existencia</span>' : '<span class="bcrx-stk">' + ex + '</span>';
+        var chip = esServ(a) ? '<span class="bcrx-stk srv">Servicio</span>' : ex === null ? '<span class="bcrx-stk">—</span>' : ex <= 0 ? '<span class="bcrx-stk out">Sin stock</span>' : '<span class="bcrx-stk">Stock: ' + ex + '</span>';
+        // Como STUDIO: si al cliente le toca otro nivel, el precio de lista (nivel 1) sale tachado encima
+        var lis = a.niveles && a.niveles['1'] != null ? Number(a.niveles['1']) : Number(a.precio || 0);
+        var preH = pr > 0 ? ((lis > 0 && Math.abs(lis - pr) > 0.5) ? '<s>' + plata(lis) + '</s>' : '') + plata(pr) : '<span class="bcrx-stk out">Sin precio</span>';
         return '<div class="bcrx-ppk-row' + (i === estado.hl ? ' hl' : '') + (estado.det === i ? ' abierta' : '') + (ex !== null && ex <= 0 ? ' sin' : '') + '" role="option" data-fila="' + i + '" aria-expanded="' + (estado.det === i) + '" title="Ver precios y existencia">' +
           '<span class="pk-cod">' + esc(a.codigo) + '</span>' +
           '<span class="pk-nom"><span class="pk-dtx">' + esc((a.descripcion || '').trim()) + (esCel(a) ? ' <span class="pk-tag">IMEI</span>' : '') + '</span>' + (a.marca ? '<small>' + esc(a.marca) + '</small>' : '') + '</span>' +
           '<span class="pk-stk">' + chip + '</span>' +
-          '<span class="pk-pre">' + (pr > 0 ? plata(pr) : '<span class="bcrx-stk out">Sin precio</span>') + '</span>' +
+          '<span class="pk-pre">' + preH + '</span>' +
           '<button type="button" class="pk-add" data-i="' + i + '" aria-label="Agregar ' + esc((a.descripcion || '').trim()) + '"><i class="ti ti-plus" aria-hidden="true"></i></button></div>' +
           (estado.det === i ? detalleHTML(a, i) : '');
       }).join('');
@@ -173,8 +193,8 @@
     function abrirPanel() {
       slot.innerHTML = '<div class="bcrx-ppk" role="dialog" aria-label="Buscar artículo">' +
         '<div class="bcrx-ppk-top"><span class="t"><i class="ti ti-search" aria-hidden="true"></i> Buscar artículo</span>' +
-        '<button type="button" class="bcrx-ppk-cat">Catálogo completo</button><button type="button" class="bcrx-ppk-x" aria-label="Cerrar"><i class="ti ti-x" aria-hidden="true"></i></button></div>' +
-        '<div class="bcrx-ppk-inp"><i class="ti ti-scan" aria-hidden="true"></i><input type="search" data-bcbp-no autocomplete="off" enterkeyhint="search" placeholder="Nombre, código, marca o IMEI…" aria-label="Buscar artículo"></div>' +
+        '<button type="button" class="bcrx-ppk-cat">Catálogo completo</button><button type="button" class="bcrx-ppk-x" aria-label="Cerrar"><i class="ti ti-arrow-left" aria-hidden="true"></i> Cerrar</button></div>' +
+        '<div class="bcrx-ppk-inp"><i class="ti ti-scan" aria-hidden="true"></i><input type="search" data-bcbp-no autocomplete="off" enterkeyhint="search" placeholder="Nombre, código, marca o IMEI…" aria-label="Buscar artículo"></div>' + clienteHTML() +
         '<div class="bcrx-ppk-list" role="listbox"></div></div>';
       var inp = q('input', slot);
       inp.value = estado.q;
