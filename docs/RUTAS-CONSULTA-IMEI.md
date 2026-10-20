@@ -45,3 +45,33 @@ Guía para cualquier chat. Hoy (20-oct-2026) **no hay una consulta única**: cad
   - `financiamientos` (financiado/estado MDM);
   - `infoplus_seriales` (compra/proveedor).
 - Info Plus NO tiene un endpoint de IMEI suelto: los IMEI solo vienen dentro de `GET /compra` (por eso existe `infoplus_seriales`).
+
+## Info Plus: IMEI / seriales (API `https://apicliente.infoplusplatinum.com/api/…`)
+Siempre por Edge Function (secrets `INFOPLUS_BASE` e `INFOPLUS_CLAVE`, siempre con `.trim()`). Nunca llamar desde el navegador ni mostrar la clave.
+
+**LEER IMEI**
+- **No hay endpoint de IMEI suelto.** `serie`, `serial`, `seriales`, `imei` y `lote` dan 404. `inventario` trae cantidades y costos, sin IMEI.
+- **La única fuente es `GET /compra?basedatos&clave&fechainicial=AAAA-M-D&fechafinal=AAAA-M-D`:** cada línea trae `seriales` con los IMEI de ese producto.
+  - Edge **`infoplus-compras`**: devuelve las facturas agrupadas `{factura, proveedor, codproveedor, fecha, vencimiento, termino, total, lineas:[{producto, codproducto, cantidad, precio, monto, seriales:[IMEI…]}]}`.
+    - La usa el importador «Importar de Info Plus» (`crearLoteDesdeCompraInfoPlus`: cada unidad k recibe `seriales[k]`).
+    - También la usa Cuentas por Pagar.
+  - Edge **`infoplus-seriales-sync`** `{desde, hasta}`: recorre las compras y llena la tabla **`infoplus_seriales`** (imei → producto, proveedor, factura, fecha, costo).
+    - En la app: Compras → «IMEI → Proveedor» → «Sincronizar» (`sincronizarSerialesIP()`, solo admin, desde 2025-1-1).
+- Las ventas (`GET /factura`) **no** se sabe si traen el IMEI vendido (no está documentado). Para saber a quién se vendió un IMEI habría que confirmarlo con Dagoberto.
+
+**ESCRIBIR IMEI** (los seriales van en la cabecera como `seriales:[{numero:"<IMEI>", codarticulo:<int>}]`; el IMEI no se puede repetir)
+- **Compra:** `POST /compra`, Edge `infoplus-compra-crear`.
+  - Graba artículos serializados.
+  - Mandar `ncf:""`.
+  - ⚠️ Con `codpedido` existente **REEMPLAZA** toda la compra: mandar siempre el lote completo.
+- **Despacho entre almacenes:** `POST /despacho`, Edge `infoplus-despacho-crear`.
+  - Graba con IMEI.
+  - Cada serie debe estar en la localidad de origen.
+  - Localidades: 1 Santiago, 3 Garantía China, 4 Moca, 5 2do nivel, 6 Taller, 7 Navarrete.
+- **Ajuste:** `POST /ajuste` con artículos con serial responde «creado» pero NO graba. No usar para teléfonos.
+- **Prefactura:** `POST /prefactura`, `seriales:[]` (no se mandan IMEI hoy).
+
+**Pendiente con Dagoberto**
+- Un endpoint para LEER seriales por artículo/almacén (hoy solo vía compras).
+- Confirmar si `factura` puede traer el IMEI vendido.
+- La serie `355617283201152` quedó dañada en las pruebas.
