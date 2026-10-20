@@ -51,6 +51,11 @@ Siempre por Edge Function (secrets `INFOPLUS_BASE` e `INFOPLUS_CLAVE`, siempre c
 
 **LEER IMEI**
 - **No hay endpoint de IMEI suelto.** `serie`, `serial`, `seriales`, `imei` y `lote` dan 404. `inventario` trae cantidades y costos, sin IMEI.
+  - ⚠️ Corrección (20-oct-2026, chat Prefactura): **sí existe `GET /ListaArticulos?basedatos&clave&tipo={tipo}`**, que según la ayuda
+    devuelve `ListaSerieModel` (lista de series). No da 404: responde `400 «Error al buscar lista de series»`. Probado (solo lectura)
+    con `tipo` = código del artículo, 0–7 (los almacenes), celular, serie, serial, imei, S, true, almacen, localidad, TALLER, con y sin
+    `CodArticulo`/`Codalmacen`/`codlocalidad`: siempre el mismo error. **Falta que Dagoberto diga qué va en `tipo`.**
+    Dueño: la consulta debe ser **por almacén**; los IMEI vendidos ya salen del almacén (así, lo que liste por almacén = disponible).
 - **La única fuente es `GET /compra?basedatos&clave&fechainicial=AAAA-M-D&fechafinal=AAAA-M-D`:** cada línea trae `seriales` con los IMEI de ese producto.
   - Edge **`infoplus-compras`**: devuelve las facturas agrupadas `{factura, proveedor, codproveedor, fecha, vencimiento, termino, total, lineas:[{producto, codproducto, cantidad, precio, monto, seriales:[IMEI…]}]}`.
     - La usa el importador «Importar de Info Plus» (`crearLoteDesdeCompraInfoPlus`: cada unidad k recibe `seriales[k]`).
@@ -69,9 +74,12 @@ Siempre por Edge Function (secrets `INFOPLUS_BASE` e `INFOPLUS_CLAVE`, siempre c
   - Cada serie debe estar en la localidad de origen.
   - Localidades: 1 Santiago, 3 Garantía China, 4 Moca, 5 2do nivel, 6 Taller, 7 Navarrete.
 - **Ajuste:** `POST /ajuste` con artículos con serial responde «creado» pero NO graba. No usar para teléfonos.
-- **Prefactura:** `POST /prefactura`, `seriales:[]` (no se mandan IMEI hoy).
+- **Prefactura:** `POST /prefactura` (`infoplus-prefactura-crear`). ⚠️ Corrección (20-oct-2026): **sí se mandan IMEI**. Desde la Prefactura
+  nueva (en vivo), `_rpCrearPrefactura` envía `seriales:[{numero, codarticulo}]` con los IMEI escaneados en la ventanita «IMEI» de cada
+  celular. Dueño: en la prefactura Info Plus los deja **preguardados** (apartados). Falta ver la primera prefactura real con celular.
 
-**Pendiente con Dagoberto**
-- Un endpoint para LEER seriales por artículo/almacén (hoy solo vía compras).
-- Confirmar si `factura` puede traer el IMEI vendido.
-- La serie `355617283201152` quedó dañada en las pruebas.
+**Pendiente con Dagoberto** (actualizado 20-oct-2026 con las respuestas del dueño)
+- Qué valor va en `tipo` de `ListaArticulos?tipo=` para leer los IMEI **por almacén** (la ruta existe; ver arriba).
+- ~~Si `factura` trae el IMEI vendido~~ → dueño: no hace falta, el IMEI vendido ya sale del almacén.
+- ~~Si la prefactura guarda los seriales~~ → dueño: quedan **preguardados**.
+- Limpiar la serie `355617283201152`, que quedó dañada en las pruebas (dueño: sí).
