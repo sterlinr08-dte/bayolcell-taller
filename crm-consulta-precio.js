@@ -55,8 +55,18 @@
     var hay = conCant(a), pr = precio1(a), tot = hay.reduce(function (s2, c) { return s2 + c[1]; }, 0);
     // Dueño: «ponlo mejor en la parte inferior, en la línea donde dice Existencia» (una sola vez, con cantidades y total)
     var fichas = esServ(a) ? '<span class="cp-ex">Servicio</span>' : hay.length ? hay.map(function (c) { return pildora(c, 'cp-ex'); }).join('') + '<span class="cp-ex cp-tot">Total <b>' + tot.toLocaleString('es-DO') + '</b></span>' : '<span class="cp-ex out">Sin existencia en ningún almacén</span>';
-    return '<div class="cp-det"><div class="cp-nv"><small>Cliente final</small><b>' + (pr > 0 ? plata(pr) : '—') + '</b></div>' +
+    // Dueño 20-oct: «en el cuadrito azul, ícono de copiar para más rápido». Copia «ARTÍCULO REFERENCIA: RD$ precio» para pegarlo al cliente.
+    var ref = String(a.referencia || '').trim(), nom = String(a.descripcion || '').trim().replace(/\s+/g, ' ');
+    if (ref && nom.toUpperCase().indexOf(ref.toUpperCase()) < 0) nom += ' ' + (/^AVISO$/i.test(ref) ? '(con aviso)' : ref);
+    var copia = nom + ': ' + (pr > 0 ? plata(pr) : '');
+    return '<div class="cp-det"><div class="cp-nv"><small>Cliente final</small><b>' + (pr > 0 ? plata(pr) : '—') + '</b>' +
+      (pr > 0 ? '<button type="button" class="cp-copiar" data-copiar="' + esc(copia) + '" aria-label="Copiar artículo y precio" title="Copiar artículo y precio"><i class="ti ti-copy" aria-hidden="true"></i></button>' : '') + '</div>' +
       '<div class="cp-dex"><span>Existencia</span>' + fichas + '</div></div>';
+  }
+  function copiar(txt, btn) {
+    var listo = function () { btn.classList.add('ok'); btn.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i>'; try { toast('Copiado: ' + txt); } catch (e) {} setTimeout(function () { btn.classList.remove('ok'); btn.innerHTML = '<i class="ti ti-copy" aria-hidden="true"></i>'; }, 1400); };
+    var viejo = function () { var t = doc.createElement('textarea'); t.value = txt; t.setAttribute('readonly', ''); t.style.cssText = 'position:fixed;opacity:0;top:0;left:0'; doc.body.appendChild(t); t.select(); try { doc.execCommand('copy'); } catch (e) {} t.remove(); listo(); };
+    try { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(listo, viejo); else viejo(); } catch (e) { viejo(); }
   }
   function pintar() {
     if (!velo) return;
@@ -104,6 +114,8 @@
     });
     velo.addEventListener('click', function (e) {
       if (e.target === velo || e.target.closest('.cp-x')) { cerrar(); return; }
+      var cb = e.target.closest('.cp-copiar');
+      if (cb) { copiar(cb.getAttribute('data-copiar'), cb); return; }
       var f = e.target.closest('[data-fila]'); if (!f) return;
       var i = Number(f.getAttribute('data-fila')); estado.det = estado.det === i ? -1 : i; estado.hl = i; velo.classList.add('quieto'); pintar();
     });

@@ -165,3 +165,9 @@
 .cp-ref { display: inline-block; font-size: 12px; font-weight: 800; color: #0f172a; background: #e2e8f0; border-radius: 6px; padding: 1px 7px; margin-left: 4px; vertical-align: 1px; letter-spacing: .01em; }
 .cp-ref.aviso { color: #9a3412; background: #ffedd5; }
 .cp-stk.cp-num { font-size: 14px; min-width: 28px; display: inline-block; text-align: center; font-variant-numeric: tabular-nums; }
+/* 20-oct-2026 (h): botón copiar en el cuadrito azul del precio */
+.cp-nv { position: relative; padding-right: 52px; padding-left: 52px; }
+.cp-velo .cp-copiar { position: absolute; right: 4px; top: 50%; translate: 0 -50%; width: 44px; height: 44px; min-height: 44px; display: grid; place-items: center; border: 0; border-radius: 10px; background: transparent; color: #2563eb; cursor: pointer; font-size: 20px; transition: background-color 120ms ease, transform 100ms cubic-bezier(.22,1,.36,1); }
+.cp-velo .cp-copiar:hover { background: rgba(37,99,235,.1); }
+.cp-velo .cp-copiar:active { transform: scale(.92); }
+.cp-velo .cp-copiar.ok { color: #16a34a; }
