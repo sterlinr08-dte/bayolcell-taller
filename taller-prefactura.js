@@ -252,15 +252,13 @@
     o.id = 'bcpfImv'; o.setAttribute('data-i', i);
     o.innerHTML = '<div class="box" role="dialog" aria-modal="true" aria-label="IMEI de ' + esc(it.desc) + '">' +
       '<div class="hd"><b><i class="ti ti-barcode" aria-hidden="true"></i> IMEI · ' + esc(it.desc) + '</b><button type="button" class="vol"><i class="ti ti-arrow-left" aria-hidden="true"></i> Volver</button></div>' +
-      '<p>Escanee o escriba el IMEI y presione Enter. <b>La cantidad se ajusta sola.</b></p>' +
+      '<p>Escanee o escriba el IMEI y presione Enter, o tóquelo en la lista. <b>La cantidad se ajusta sola.</b></p>' +
       '<input id="rpImei_' + i + '" inputmode="numeric" autocomplete="off" placeholder="IMEI del equipo" aria-label="IMEI" onkeydown="_rpImeiKey(event,' + i + ')">' +
       '<div class="lst">' + imvLista(i) + '</div>' +
       '<div class="ims"><div class="imsh">Elegir de la lista</div><div class="imsl"><span class="imsv">Cargando IMEI…</span></div></div>' +
       '<div class="ft"><button type="button" class="ok">Listo</button></div></div>';
     doc.body.appendChild(o);
-    // Dueño (20-oct-2026): cada empleada solo puede ver los IMEI de SU almacén. Hasta tener los IMEI por almacén de
-    // Info Plus, la lista queda apagada (la de compras traía IMEI de todos los almacenes). Se escribe o escanea.
-    var ims0 = o.querySelector('.ims'); if (ims0) ims0.remove();
+    cargarElegibles(i);
     o.querySelector('input').addEventListener('input', function () { pintarElegibles(); });
     o.addEventListener('click', function (e) {
       var b = e.target.closest('[data-elegir]'); if (!b) return;
@@ -275,42 +273,40 @@
     var x = o.querySelector('input'); if (x) { x.value = ''; x.focus(); } // listo para el próximo IMEI
     pintarElegibles();
   }
-  // 20-oct-2026 (dueño: «en los artículos con IMEI, en la ventana, habilitar la opción de elegir los IMEI manual»):
-  // lista de IMEI de ese artículo para tocar y agregar. Fuente: infoplus_seriales (IMEI de las COMPRAS de Info Plus,
-  // tabla que llena «Sincronizar seriales»). Solo lectura. Lo que se escribe arriba filtra la lista.
-  // Info Plus todavía no da los IMEI por almacén (falta el «tipo» con Dagoberto): la lista puede traer equipos ya vendidos.
-  var eleg = { cod: null, lista: [], error: '' };
+  // 20-oct-2026 · «Elegir de la lista». Regla del dueño: «7 almacenes, 7 iPhone, uno en cada almacén: la empleada del
+  // almacén 1 solo ve el IMEI del iPhone que está en el almacén 1». La lista viene de Info Plus por la función
+  // infoplus-imei-almacen (artículo + almacén de la prefactura; para las empleadas, el fijo de su sucursal). Solo trae
+  // IMEI que Info Plus confirme de ESE almacén; si no lo confirma, la lista sale vacía y se escanea o escribe.
+  var eleg = { clave: null, lista: [], error: '' };
+  function almPf() { var a = doc.getElementById('rxAlmacen'); return a ? String(a.value || '') : ''; }
+  function almNom() { try { return _rpAlmNombre(); } catch (e) { return 'este almacén'; } }
   function cargarElegibles(i) {
     var s = st(), it = s && s.items[i]; if (!it) return;
-    var cod = String(it.cod);
-    // Info Plus reutiliza códigos: el 1000 tiene IMEI de «M-HORSE M16 PRO MAX» y de «IDPRO 17 PRO MAX», el 1520 de
-    // «ITEL A200» y de «OUKITEL C61». Por eso además del código se compara el nombre (igual, o uno empieza por el otro:
-    // «IPHONE XR» / «IPHONE XR 64GB»). Dueño: «el IMEI tiene que ir acorde con el artículo».
-    var nn = function (x) { return String(x || '').toUpperCase().replace(/\s+/g, ' ').trim(); };
-    var mio = nn(it.desc);
-    var acorde = function (p) { p = nn(p); return !!p && (p === mio || mio.indexOf(p + ' ') === 0 || p.indexOf(mio + ' ') === 0); };
-    if (eleg.cod === cod && eleg.lista.length) { pintarElegibles(); return; }
-    eleg = { cod: cod, lista: [], error: '', cargando: true };
+    var cod = String(it.cod), alm = almPf(), clave = cod + '@' + alm;
+    if (eleg.clave === clave && !eleg.cargando && !eleg.error) { pintarElegibles(); return; }
+    eleg = { clave: clave, lista: [], error: '', cargando: true };
+    pintarElegibles();
     try {
-      supabaseClient.from('infoplus_seriales').select('imei,fecha,producto').eq('codproducto', cod).order('fecha', { ascending: false }).limit(300)
-        .then(function (r) {
-          if (eleg.cod !== cod) return;
-          eleg.cargando = false;
-          if (r.error) eleg.error = 'No tiene acceso a la lista de IMEI. Escriba o escanee el IMEI.';
-          else eleg.lista = (r.data || []).filter(function (x) { return acorde(x.producto); }).map(function (x) { return String(x.imei || '').trim(); }).filter(Boolean);
-          pintarElegibles();
-        }, function () { eleg.cargando = false; eleg.error = 'No se pudo cargar la lista. Escriba o escanee el IMEI.'; pintarElegibles(); });
-    } catch (e) { eleg.cargando = false; eleg.error = 'No se pudo cargar la lista. Escriba o escanee el IMEI.'; pintarElegibles(); }
+      supabaseClient.functions.invoke('infoplus-imei-almacen', { body: { codarticulo: cod, codalmacen: alm } }).then(function (r) {
+        if (eleg.clave !== clave) return;
+        eleg.cargando = false;
+        var d = r && r.data;
+        if (!d || !d.ok) eleg.error = 'No se pudo consultar Info Plus. Escanee o escriba el IMEI.';
+        else eleg.lista = (d.imeis || []).map(function (m) { return String(m).trim(); }).filter(Boolean);
+        pintarElegibles();
+      }, function () { if (eleg.clave !== clave) return; eleg.cargando = false; eleg.error = 'No se pudo consultar Info Plus. Escanee o escriba el IMEI.'; pintarElegibles(); });
+    } catch (e) { eleg.cargando = false; eleg.error = 'No se pudo consultar Info Plus. Escanee o escriba el IMEI.'; pintarElegibles(); }
   }
   function pintarElegibles() {
     var o = doc.getElementById('bcpfImv'); if (!o) return;
     var box = o.querySelector('.imsl'); if (!box) return;
-    if (eleg.cargando) { box.innerHTML = '<span class="imsv">Cargando IMEI…</span>'; return; }
+    var h = o.querySelector('.imsh'); if (h) h.textContent = 'IMEI en ' + almNom();
+    if (eleg.cargando) { box.innerHTML = '<span class="imsv">Buscando los IMEI en ' + esc(almNom()) + '…</span>'; return; }
     if (eleg.error) { box.innerHTML = '<span class="imsv">' + esc(eleg.error) + '</span>'; return; }
     var s = st(), usados = {}; ((s && s.items) || []).forEach(function (x) { (x.imeis || []).forEach(function (m) { usados[m] = 1; }); });
     var f = ((o.querySelector('input') || {}).value || '').replace(/\D/g, '');
     var l = eleg.lista.filter(function (m) { return !usados[m] && (!f || m.indexOf(f) >= 0); });
-    if (!eleg.lista.length) { box.innerHTML = '<span class="imsv">No hay IMEI guardados de este artículo. Escriba o escanee el IMEI.</span>'; return; }
+    if (!eleg.lista.length) { box.innerHTML = '<span class="imsv">Info Plus no dio IMEI de este artículo en ' + esc(almNom()) + '. Escanee o escriba el IMEI.</span>'; return; }
     if (!l.length) { box.innerHTML = '<span class="imsv">' + (f ? 'Ningún IMEI de la lista tiene «' + esc(f) + '».' : 'Ya agregó todos los IMEI de la lista.') + '</span>'; return; }
     box.innerHTML = l.slice(0, 60).map(function (m) {
       return '<button type="button" class="imse" data-elegir="' + esc(m) + '" aria-label="Agregar IMEI ' + esc(m) + '"><i class="ti ti-plus" aria-hidden="true"></i>' + esc(m) + '</button>';
