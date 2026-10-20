@@ -6562,8 +6562,8 @@ function _abCat(desc) {
     if(/CAMARA|CÁMARA|\bCAM\b/.test(d)) return 'camara';
     if(/\bIC\b|\bCHIP\b|INTEGRAD/.test(d)) return 'ic';
     if(/HERRAMIENT|DESTORNILLAD|PINZA|MICROSCOP|SOLDAD|PISTOLA|SEPARAD|VENTOSA/.test(d)) return 'herramienta';
-    if(/(CELULAR|TELEFONO|TELÉFONO|SMARTPHONE|MOBILE|IPHONE|REDMI|GALAXY|OUKITEL|XIAOMI|SAMSUNG|TECNO|INFINIX)/.test(d) && !/BATERIA|PANTALLA|FLEX|CAMARA|CABLE|\bPIN\b|CARGADOR|FUNDA|PROTECTO|VIDRIO|GLASS|ADHESIV/.test(d)) return 'celular';
-    if(/CABLE|CARGADOR|FUNDA|PROTECTOR|ADHESIV|PEGATINA|AUDIFONO|AUDÍFONO|GLASS|VIDRIO|ACCESORIO|\bMICA\b|CRISTAL|TEMPLADO/.test(d)) return 'accesorio';
+    if(/(CELULAR|TELEFONO|TELÉFONO|SMARTPHONE|MOBILE|IPHONE|REDMI|GALAXY|OUKITEL|XIAOMI|SAMSUNG|TECNO|INFINIX)/.test(d) && !/BATERIA|PANTALLA|FLEX|CAMARA|CABLE|\bPIN\b|CARGADOR|FUNDA|PROTECTO|VIDRIO|GLASS|ADHESIV|COVER|\bCASE\b|FORRO|ESTUCHE|CARCASA|\bTAPA\b|\bMICA\b|CRISTAL|TEMPLADO|LENTE|SOPORTE|HOLDER|AUDIFONO|AUDÍFONO|AURICULAR|CORREA|MALLA|STYLUS|LAPIZ|LÁPIZ/.test(d)) return 'celular';
+    if(/CABLE|CARGADOR|FUNDA|COVER|\bCASE\b|FORRO|ESTUCHE|CARCASA|PROTECTOR|ADHESIV|PEGATINA|AUDIFONO|AUDÍFONO|GLASS|VIDRIO|ACCESORIO|\bMICA\b|CRISTAL|TEMPLADO/.test(d)) return 'accesorio';
     return '';
 }
 function _abEmoji(cat) { return ({ celular: '<i class="ti ti-device-mobile" style="font-size:inherit;color:inherit;"></i>', pantalla: '<i class="ti ti-device-tablet" style="font-size:inherit;color:inherit;"></i>', bateria: '<i class="ti ti-battery-charging" style="font-size:inherit;color:inherit;"></i>', flex: '<i class="ti ti-cpu" style="font-size:inherit;color:inherit;"></i>', camara: '<i class="ti ti-camera" style="font-size:inherit;color:inherit;"></i>', ic: '<i class="ti ti-cpu-2" style="font-size:inherit;color:inherit;"></i>', herramienta: '<i class="ti ti-tool" style="font-size:inherit;color:inherit;"></i>', accesorio: '<i class="ti ti-headphones" style="font-size:inherit;color:inherit;"></i>' })[cat] || '<i class="ti ti-package" style="font-size:inherit;color:inherit;"></i>'; }

@@ -138,7 +138,7 @@
       return '<div class="bcrx-ppk-det" data-det="' + i + '">' +
         '<div class="pk-nvs">' + cajas + '</div>' +
         '<div class="pk-dex"><span>Existencia</span>' + fichas + '</div>' +
-        '<button type="button" class="pk-elegir" data-i="' + i + '"><i class="ti ti-circle-plus" aria-hidden="true"></i> Elegir — ' + (pr > 0 ? plata(pr) : 'sin precio') + '</button></div>';
+        '<button type="button" class="pk-elegir" data-i="' + i + '" aria-label="Agregar"><i class="ti ti-circle-plus" aria-hidden="true"></i> ' + (pr > 0 ? plata(pr) : 'sin precio') + '</button></div>';
     }
     function clienteHTML() {
       try {
