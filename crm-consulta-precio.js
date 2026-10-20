@@ -62,7 +62,13 @@
       (filas ? '<div class="cp-head" aria-hidden="true"><span>Código</span><span>Artículo</span><span>Existencia</span><span>Precio</span></div>' + filas
         : '<div class="cp-vacio">Sin resultados para «' + esc(estado.q) + '».</div>');
   }
-  function cerrar() { if (velo) { velo.remove(); velo = null; } }
+  // Salida rápida como en NEXUS (140 ms); con «reducir movimiento» se quita al instante.
+  function cerrar() {
+    if (!velo) return;
+    var v = velo; velo = null;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) { v.remove(); return; }
+    v.classList.add('saliendo'); setTimeout(function () { v.remove(); }, 150);
+  }
   function abrir() {
     cerrar();
     velo = doc.createElement('div');
@@ -75,17 +81,17 @@
     doc.body.appendChild(velo);
     var inp = velo.querySelector('input');
     inp.value = estado.q;
-    inp.addEventListener('input', function () { estado.q = inp.value; filtrar(); pintar(); });
+    inp.addEventListener('input', function () { estado.q = inp.value; velo.classList.remove('quieto'); filtrar(); pintar(); });
     inp.addEventListener('keydown', function (e) {
       var n = Math.min(estado.lista.length, MAXF);
-      if (e.key === 'ArrowDown') { e.preventDefault(); estado.hl = Math.min(estado.hl + 1, n - 1); pintar(); }
-      else if (e.key === 'ArrowUp') { e.preventDefault(); estado.hl = Math.max(estado.hl - 1, 0); pintar(); }
+      if (e.key === 'ArrowDown') { e.preventDefault(); velo.classList.add('quieto'); estado.hl = Math.min(estado.hl + 1, n - 1); pintar(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); velo.classList.add('quieto'); estado.hl = Math.max(estado.hl - 1, 0); pintar(); }
       else if (e.key === 'Enter') { e.preventDefault(); if (n) { estado.det = estado.det === estado.hl ? -1 : estado.hl; pintar(); } }
     });
     velo.addEventListener('click', function (e) {
       if (e.target === velo || e.target.closest('.cp-x')) { cerrar(); return; }
       var f = e.target.closest('[data-fila]'); if (!f) return;
-      var i = Number(f.getAttribute('data-fila')); estado.det = estado.det === i ? -1 : i; estado.hl = i; pintar();
+      var i = Number(f.getAttribute('data-fila')); estado.det = estado.det === i ? -1 : i; estado.hl = i; velo.classList.add('quieto'); pintar();
     });
     velo.addEventListener('keydown', function (e) { var f = e.target.closest && e.target.closest('[data-fila]'); if (f && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); f.click(); } });
     // Ventana emergente (dueño: «como emergente», igual que la consulta de Info Plus): en la PC se mueve arrastrando la barra.

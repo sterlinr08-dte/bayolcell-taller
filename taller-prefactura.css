@@ -627,3 +627,63 @@ html.bc-pf #v-recepcion:has(.bcrx-ppk-slot > .bcrx-ppk) { z-index: 1000; }
   /* En el celular la barra de arriba de la app (54 px) queda por encima: la ventana empieza debajo de ella */
   html.bc-pf #v-recepcion .bcrx-ppk-slot > .bcrx-ppk { top: 54px; height: calc(100dvh - 54px); padding-top: 0; }
 }
+
+/* 20-oct-2026 (k): TEMÁTICA NEXUS para la ventana emergente del buscador (dueño: «hazlo con la misma temática de NEXUS,
+   con las animaciones, fluidez y rapidez»). Igual que la consulta «Precios» del CRM: fondo con desenfoque, vidrio claro,
+   radio 20, entrada con resorte (nxPopIn .26s), filas en cascada (8 px), barra de título clara con ✕ redonda, acento azul. */
+html.bc-pf #v-recepcion .bcrx-ppk-slot:has(> .bcrx-ppk)::before {
+  background: rgba(15,23,42,.35); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); animation: bcpfFondo 160ms ease both;
+}
+@keyframes bcpfFondo { from { opacity: 0; } to { opacity: 1; } }
+html.bc-pf body #v-recepcion#v-recepcion .bcrx-ppk-slot > .bcrx-ppk {
+  background: rgba(255,255,255,.94); -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255,255,255,.7); border-radius: 20px; overflow: hidden;
+  box-shadow: 0 1px 0 rgba(255,255,255,.8) inset, 0 0 0 1px rgba(15,23,42,.06), 0 30px 70px -24px rgba(15,23,42,.45), 0 12px 24px -12px rgba(15,23,42,.18);
+  animation: bcpfPop .26s cubic-bezier(.34,1.56,.64,1) backwards;
+}
+@keyframes bcpfPop { from { opacity: 0; transform: translateY(10px) scale(.96); } to { opacity: 1; transform: none; } }
+html.bc-pf body #v-recepcion#v-recepcion .bcrx-ppk-top {
+  background: transparent; border-bottom: 1px solid rgba(15,23,42,.06); min-height: 52px; padding: 0 8px 0 18px;
+}
+html.bc-pf body #v-recepcion#v-recepcion .bcrx-ppk-top .t { color: #0f172a; font-size: 17px; font-weight: 600; letter-spacing: -.012em; }
+html.bc-pf body #v-recepcion#v-recepcion .bcrx-ppk-top .t i { color: #2563eb; }
+html.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcrx-ppk-top .bcrx-ppk-cat { color: #1d4ed8 !important; background: rgba(59,130,246,.1) !important; }
+html.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcrx-ppk-top .bcrx-ppk-x {
+  width: 36px !important; height: 36px; min-height: 36px; margin: 4px; border-radius: 50% !important;
+  background: rgba(15,23,42,.06) !important; color: #475569 !important;
+  transition: background 120ms ease, color 120ms ease, transform 100ms cubic-bezier(.22,1,.36,1);
+}
+html.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcrx-ppk-top .bcrx-ppk-x i { font-size: 16px; }
+html.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcrx-ppk-top .bcrx-ppk-x:hover { background: rgba(15,23,42,.12) !important; color: #0f172a !important; }
+html.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcrx-ppk-top .bcrx-ppk-x:active { transform: scale(.9); }
+html.bc-pf body #v-recepcion#v-recepcion .bcrx-ppk-inp > i { color: #2563eb; }
+html.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcrx-ppk-inp > input {
+  border: 1px solid rgba(15,23,42,.1) !important; background: rgba(255,255,255,.9) !important; border-radius: 14px !important;
+  box-shadow: 0 1px 2px rgba(15,23,42,.04) inset !important; caret-color: #2563eb; transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+html.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcrx-ppk-inp > input:focus { border-color: rgba(59,130,246,.6) !important; box-shadow: 0 0 0 4px rgba(59,130,246,.16) !important; outline: 0; }
+html.bc-pf #v-recepcion .bcrx-ppk-slot > .bcrx-ppk .bcrx-ppk-row {
+  transition: background-color 120ms ease, transform 120ms cubic-bezier(.22,1,.36,1); animation: bcpfFila 220ms cubic-bezier(.22,1,.36,1) backwards;
+}
+html.bc-pf #v-recepcion .bcrx-ppk-slot > .bcrx-ppk .bcrx-ppk-row:nth-child(3) { animation-delay: 18ms; }
+html.bc-pf #v-recepcion .bcrx-ppk-slot > .bcrx-ppk .bcrx-ppk-row:nth-child(4) { animation-delay: 36ms; }
+html.bc-pf #v-recepcion .bcrx-ppk-slot > .bcrx-ppk .bcrx-ppk-row:nth-child(5) { animation-delay: 54ms; }
+html.bc-pf #v-recepcion .bcrx-ppk-slot > .bcrx-ppk .bcrx-ppk-row:nth-child(6) { animation-delay: 72ms; }
+html.bc-pf #v-recepcion .bcrx-ppk-slot > .bcrx-ppk .bcrx-ppk-row:nth-child(n+7) { animation-delay: 90ms; }
+@keyframes bcpfFila { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+html.bc-pf body #v-recepcion#v-recepcion .bcrx-ppk-row:hover, html.bc-pf body #v-recepcion#v-recepcion .bcrx-ppk-row.hl { background: rgba(59,130,246,.07); }
+html.bc-pf body #v-recepcion#v-recepcion .bcrx-ppk-row.abierta { background: rgba(59,130,246,.09); }
+html.bc-pf #v-recepcion .bcrx-ppk-row:active { transform: scale(.995); }
+html.bc-pf body #v-recepcion#v-recepcion .bcrx-ppk-det { animation: bcpfDet 200ms cubic-bezier(.22,1,.36,1) both; }
+@keyframes bcpfDet { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+/* Al moverse con flechas o tocar una fila, la lista no vuelve a entrar en cascada (solo al escribir) */
+html.bc-pf #v-recepcion .bcrx-ppk.quieto .bcrx-ppk-row { animation: none; }
+@media (max-width: 760px) {
+  html.bc-pf body #v-recepcion#v-recepcion .bcrx-ppk-slot > .bcrx-ppk { border-radius: 0; border: 0; animation-name: bcpfSube; }
+  @keyframes bcpfSube { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+}
+@media (prefers-reduced-motion: reduce) {
+  html.bc-pf #v-recepcion .bcrx-ppk-slot:has(> .bcrx-ppk)::before, html.bc-pf body #v-recepcion#v-recepcion .bcrx-ppk-slot > .bcrx-ppk,
+  html.bc-pf #v-recepcion .bcrx-ppk-row, html.bc-pf body #v-recepcion#v-recepcion .bcrx-ppk-det { animation-duration: .01ms !important; animation-delay: 0ms !important; }
+  html.bc-pf #v-recepcion .bcrx-ppk-row, html.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcrx-ppk-top .bcrx-ppk-x { transition: none; }
+}

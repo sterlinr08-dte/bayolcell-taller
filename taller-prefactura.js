@@ -453,6 +453,13 @@
     var s = e.target && e.target.classList && e.target.classList.contains('bcrx-ppk-slot') ? e.target : null;
     if (s && s.closest('#v-recepcion') && s.querySelector('.bcrx-ppk')) { var x = s.querySelector('.bcrx-ppk-x'); if (x) x.click(); }
   });
+  // Temática NEXUS: las filas entran en cascada al escribir, no al moverse con flechas ni al tocar una fila.
+  doc.addEventListener('keydown', function (e) {
+    var w = e.target.closest && e.target.closest('#v-recepcion .bcrx-ppk'); if (!w) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter') w.classList.add('quieto');
+  }, true);
+  doc.addEventListener('input', function (e) { var w = e.target.closest && e.target.closest('#v-recepcion .bcrx-ppk'); if (w) w.classList.remove('quieto'); }, true);
+  doc.addEventListener('pointerdown', function (e) { var r = e.target.closest && e.target.closest('#v-recepcion .bcrx-ppk-row'); if (r) r.closest('.bcrx-ppk').classList.add('quieto'); }, true);
   doc.addEventListener('pointerdown', function (e) {
     var top = e.target.closest && e.target.closest('#v-recepcion .bcrx-ppk-top');
     if (!top || e.button !== 0 || e.target.closest('button') || matchMedia('(max-width: 760px)').matches) return;

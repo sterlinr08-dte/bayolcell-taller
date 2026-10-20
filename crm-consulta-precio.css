@@ -98,3 +98,49 @@
 }
 /* La animación de entrada no debe sujetar la posición (si no, la ventana no se puede mover) */
 .cp-ppk { animation-fill-mode: backwards; }
+
+/* 20-oct-2026 (d): TEMÁTICA NEXUS (dueño: «hazlo con la misma temática de NEXUS, con las animaciones, fluidez y rapidez»).
+   Igual que los modales de NEXUS PRO: fondo con desenfoque (rgba(15,23,42,.35) + blur 6px), ventana de vidrio claro
+   (blanco .94 + blur 24px), radio 20, entrada con resorte nxPopIn (.26s cubic-bezier(.34,1.56,.64,1)), filas que entran en
+   cascada (nxSurfaceEnter 8px), respuesta inmediata al pasar/presionar y salida rápida (140 ms). Acento azul NEXUS. */
+.cp-velo { background: rgba(15,23,42,.35); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); animation: cpFondo 160ms ease both; }
+@keyframes cpFondo { from { opacity: 0; } to { opacity: 1; } }
+.cp-ppk {
+  background: rgba(255,255,255,.94); -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255,255,255,.7); border-radius: 20px;
+  box-shadow: 0 1px 0 rgba(255,255,255,.8) inset, 0 0 0 1px rgba(15,23,42,.06), 0 30px 70px -24px rgba(15,23,42,.45), 0 12px 24px -12px rgba(15,23,42,.18);
+  animation: nxPopInCp .26s cubic-bezier(.34,1.56,.64,1) backwards;
+}
+@keyframes nxPopInCp { from { opacity: 0; transform: translateY(10px) scale(.96); } to { opacity: 1; transform: none; } }
+.cp-velo.saliendo { animation: cpFondoFuera 140ms ease forwards; }
+.cp-velo.saliendo .cp-ppk { animation: cpFuera 140ms cubic-bezier(.4,0,1,1) forwards; }
+@keyframes cpFondoFuera { to { opacity: 0; } }
+@keyframes cpFuera { to { opacity: 0; transform: translateY(6px) scale(.98); } }
+.cp-top { background: transparent; border-bottom: 1px solid rgba(15,23,42,.06); min-height: 52px; padding: 0 8px 0 18px; }
+.cp-top .t { color: #0f172a; font-size: 17px; font-weight: 600; letter-spacing: -.012em; gap: 8px; }
+.cp-top .t i { color: #2563eb; font-size: 19px; }
+.cp-sub { color: #1d4ed8; background: rgba(59,130,246,.12); }
+.cp-velo .cp-x { width: 36px !important; height: 36px !important; min-height: 36px; border-radius: 50% !important; background: rgba(15,23,42,.06) !important; color: #475569 !important; font-size: 16px; transition: background 120ms ease, color 120ms ease, transform 100ms cubic-bezier(.22,1,.36,1); }
+.cp-velo .cp-x:hover { background: rgba(15,23,42,.12) !important; color: #0f172a !important; }
+.cp-velo .cp-x:active { transform: scale(.9); }
+.cp-inp > i { color: #2563eb; }
+.cp-velo .cp-inp > input { border: 1px solid rgba(15,23,42,.1) !important; background: rgba(255,255,255,.9) !important; box-shadow: 0 1px 2px rgba(15,23,42,.04) inset !important; border-radius: 14px !important; transition: border-color 160ms ease, box-shadow 160ms ease; caret-color: #2563eb; }
+.cp-velo .cp-inp > input:focus { border-color: rgba(59,130,246,.6) !important; box-shadow: 0 0 0 4px rgba(59,130,246,.16) !important; }
+.cp-row { transition: background-color 120ms ease, transform 120ms cubic-bezier(.22,1,.36,1); animation: nxSurfaceCp 220ms cubic-bezier(.22,1,.36,1) backwards; }
+.cp-row:nth-child(2) { animation-delay: 0ms; } .cp-row:nth-child(3) { animation-delay: 18ms; } .cp-row:nth-child(4) { animation-delay: 36ms; }
+.cp-row:nth-child(5) { animation-delay: 54ms; } .cp-row:nth-child(6) { animation-delay: 72ms; } .cp-row:nth-child(n+7) { animation-delay: 90ms; }
+@keyframes nxSurfaceCp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.cp-row:hover, .cp-row.hl { background: rgba(59,130,246,.07); }
+.cp-row.abierta { background: rgba(59,130,246,.09); }
+.cp-row:active { transform: scale(.995); }
+.cp-det { border-color: rgba(59,130,246,.18); background: rgba(255,255,255,.7); animation: cpDet 200ms cubic-bezier(.22,1,.36,1) both; transform-origin: top center; }
+@keyframes cpDet { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.cp-row:focus-visible { outline-color: rgba(59,130,246,.45); }
+.cp-btn { border-color: rgba(59,130,246,.35); background: rgba(59,130,246,.08); color: #1d4ed8; }
+.cp-btn:hover { background: rgba(59,130,246,.14); }
+@media (max-width: 640px) { .cp-ppk { border-radius: 0; animation-name: cpSube; } @keyframes cpSube { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } } }
+@media (prefers-reduced-motion: reduce) {
+  .cp-velo, .cp-ppk, .cp-row, .cp-det, .cp-velo.saliendo, .cp-velo.saliendo .cp-ppk { animation-duration: .01ms !important; animation-delay: 0ms !important; }
+  .cp-velo .cp-x, .cp-row { transition: none; }
+}
+.cp-velo.quieto .cp-row { animation: none; }
