@@ -36,7 +36,9 @@
   }
   function chip(a) {
     if (esServ(a)) return '<span class="cp-stk srv">Servicio</span>';
-    return dondeHay(a).length ? '<span class="cp-stk">Disponible</span>' : '<span class="cp-stk out">Sin stock</span>';
+    // 20-oct-2026 (dueño: «en la consulta ver en qué almacén están los artículos»): los almacenes a la vista en la fila
+    var hay = dondeHay(a);
+    return hay.length ? hay.map(function (n) { return '<span class="cp-alm">' + esc(n) + '</span>'; }).join('') : '<span class="cp-stk out">Sin stock</span>';
   }
   function detalle(a) {
     var hay = dondeHay(a), pr = precio1(a);
@@ -59,7 +61,7 @@
         (estado.det === i ? detalle(a) : '');
     }).join('');
     cont.innerHTML = (l.length > MAXF ? '<div class="cp-mas">Mostrando ' + MAXF + ' de ' + l.length.toLocaleString('es-DO') + ' — escriba para afinar</div>' : '') +
-      (filas ? '<div class="cp-head" aria-hidden="true"><span>Código</span><span>Artículo</span><span>Existencia</span><span>Precio</span></div>' + filas
+      (filas ? '<div class="cp-head" aria-hidden="true"><span>Código</span><span>Artículo</span><span>Almacén</span><span>Precio</span></div>' + filas
         : '<div class="cp-vacio">Sin resultados para «' + esc(estado.q) + '».</div>');
   }
   // Salida rápida como en NEXUS (140 ms); con «reducir movimiento» se quita al instante.
@@ -74,7 +76,7 @@
     velo = doc.createElement('div');
     velo.className = 'cp-velo';
     velo.innerHTML = '<div class="cp-ppk" role="dialog" aria-modal="true" aria-label="Consultar precio">' +
-      '<div class="cp-top" title="Arrastre para mover la ventana"><span class="t"><i class="ti ti-tag" aria-hidden="true"></i> Consulta de artículos</span><span class="cp-sub">Precio cliente final</span>' +
+      '<div class="cp-top" title="Arrastre para mover la ventana"><span class="t"><i class="ti ti-search" aria-hidden="true"></i> Consulta de artículos</span><span class="cp-sub">Precio cliente final</span>' +
       '<button type="button" class="cp-x" aria-label="Cerrar"><i class="ti ti-x" aria-hidden="true"></i></button></div>' +
       '<div class="cp-inp"><i class="ti ti-scan" aria-hidden="true"></i><input type="search" autocomplete="off" enterkeyhint="search" placeholder="Nombre, código, marca o IMEI…" aria-label="Buscar artículo"></div>' +
       '<div class="cp-list"></div></div>';
@@ -119,8 +121,8 @@
     Array.prototype.forEach.call(doc.querySelectorAll('.wa-chat-head'), function (h) {
       if (h.querySelector(':scope > .cp-btn')) return;
       var b = doc.createElement('button');
-      b.type = 'button'; b.className = 'cp-btn'; b.title = 'Consultar el precio de un artículo';
-      b.innerHTML = '<i class="ti ti-tag" aria-hidden="true"></i><span>Precios</span>';
+      b.type = 'button'; b.className = 'cp-btn'; b.title = 'Consultar precio y existencia de un artículo';
+      b.innerHTML = '<i class="ti ti-search" aria-hidden="true"></i><span>Consulta</span>'; // dueño 20-oct: «cambiar el nombre Precios y poner Consulta»
       b.addEventListener('click', abrir);
       var antes = h.querySelector(':scope > .wa-focus-btn, :scope > .wa-call-btn, :scope > span, :scope > button.wa-tab-btn:last-child');
       h.insertBefore(b, antes && antes !== h.firstElementChild ? antes : null);
