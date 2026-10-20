@@ -55,12 +55,10 @@
     var hay = conCant(a), pr = precio1(a), tot = hay.reduce(function (s2, c) { return s2 + c[1]; }, 0);
     // Dueño: «ponlo mejor en la parte inferior, en la línea donde dice Existencia» (una sola vez, con cantidades y total)
     var fichas = esServ(a) ? '<span class="cp-ex">Servicio</span>' : hay.length ? hay.map(function (c) { return pildora(c, 'cp-ex'); }).join('') + '<span class="cp-ex cp-tot">Total <b>' + tot.toLocaleString('es-DO') + '</b></span>' : '<span class="cp-ex out">Sin existencia en ningún almacén</span>';
-    // Dueño 20-oct: «en el cuadrito azul, ícono de copiar para más rápido». Copia «ARTÍCULO REFERENCIA: RD$ precio» para pegarlo al cliente.
-    var ref = String(a.referencia || '').trim(), nom = String(a.descripcion || '').trim().replace(/\s+/g, ' ');
-    if (ref && nom.toUpperCase().indexOf(ref.toUpperCase()) < 0) nom += ' ' + (/^AVISO$/i.test(ref) ? '(con aviso)' : ref);
-    var copia = nom + ': ' + (pr > 0 ? plata(pr) : '');
+    // Dueño 20-oct: «el botón de copiar es solo para copiar el precio, no todo» → copia solo «RD$ 15,000.00»
+    var copia = pr > 0 ? plata(pr) : '';
     return '<div class="cp-det"><div class="cp-nv"><small>Cliente final</small><b>' + (pr > 0 ? plata(pr) : '—') + '</b>' +
-      (pr > 0 ? '<button type="button" class="cp-copiar" data-copiar="' + esc(copia) + '" aria-label="Copiar artículo y precio" title="Copiar artículo y precio"><i class="ti ti-copy" aria-hidden="true"></i></button>' : '') + '</div>' +
+      (pr > 0 ? '<button type="button" class="cp-copiar" data-copiar="' + esc(copia) + '" aria-label="Copiar el precio" title="Copiar el precio"><i class="ti ti-copy" aria-hidden="true"></i></button>' : '') + '</div>' +
       '<div class="cp-dex"><span>Existencia</span>' + fichas + '</div></div>';
   }
   function copiar(txt, btn) {
