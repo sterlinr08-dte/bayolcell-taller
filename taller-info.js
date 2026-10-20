@@ -92,6 +92,12 @@
       titulo: function (n) { return n.parentElement; }, texto: function () { return 'Use el ＋ para agregar otra reparación al mismo ticket.'; } },
     nota('misIncentivos', 'div', 'Si el ticket tiene más de una reparación', function () {
       var s = todos('#v-misIncentivos div > span').filter(function (e) { return /^\(us[ae] (el )?＋/.test(limpio(e.textContent)); })[0]; return s && s.parentElement; })
+    ,
+    // Prefactura (20-oct-2026, dueño: «quítale esas letras y ponlo con la i de información»): el aviso amarillo
+    // «usuario no enlazado con Info Plus» queda detrás de una ⓘ junto a «Vendedor».
+    { notas: function () { return todos('#v-recepcion #rxVendAviso').filter(function (e) { return e.style.display !== 'none'; }); },
+      titulo: function () { var s = doc.getElementById('rxVendedor'), c = s && (s.closest('.bcpf-campos > div') || s.parentElement); return c && c.querySelector('label'); },
+      texto: function () { return 'Su usuario todavía no está enlazado con Info Plus: la prefactura sale a nombre del vendedor que elija aquí.\n\nPida al administrador que registre su código en Configuración → Técnicos.'; } }
   ];
 
   function boton(titulo) {

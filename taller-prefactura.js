@@ -84,6 +84,7 @@
     var selTipo = q('#c_tipo', camposCli), fTipo = selTipo && selTipo.parentElement; if (fTipo) fTipo.classList.add('bcpf-oculto'); // (aún fuera del documento: se busca dentro del bloque)
     if (nivel) nivel.addEventListener('change', tipoDesdeNivel);
     p1.appendChild(cCli); if (fNivel) p1.appendChild(fNivel);
+    ['rxAlmacen', 'rxVendedor'].forEach(function (id) { var l = doc.querySelector('label[for="' + id + '"]') || (campo(id) && campo(id).querySelector('label')); if (l) Array.prototype.slice.call(l.childNodes).forEach(function (n) { if (n.nodeType === 3) n.nodeValue = n.nodeValue.replace(/\s*\(Info Plus\)/i, ''); }); });
     var fAlm = campo('rxAlmacen'); if (fAlm) { var cAlm = el('div', 'pcol bcpf-campos'); cAlm.appendChild(fAlm); p1.appendChild(cAlm); }
     // 20-oct-2026 (dueño): el «Vendedor» va al pie, al lado de «Pedir reseña» (fijo para cada empleada; lo decide _rpInit)
     var fVen = campo('rxVendedor'), avisoV = doc.getElementById('rxVendAviso');
