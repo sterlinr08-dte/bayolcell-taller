@@ -569,3 +569,20 @@ html.bc-pf .bcpf-imv .imc button { width: 44px; height: 44px; border: 0; backgro
 html.bc-pf .bcpf-imv .imf { font-size: 13px; color: #b91c1c; }
 html.bc-pf .bcpf-imv .ft { display: flex; justify-content: flex-end; }
 @media (prefers-reduced-motion: reduce) { html.bc-pf .bcpf-imv .box { animation: none; } }
+
+/* 20-oct-2026 (h): franja de 3 (Facturar a · Precio · Almacén); «Vendedor» al pie junto a «Pedir reseña»; campos fijos se ven fijos */
+@media (min-width: 761px) {
+  html.bc-pf #v-recepcion .bcpf-franja { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr); }
+}
+@media (max-width: 760px) {
+  html.bc-pf #v-recepcion .bcpf-franja { grid-template-columns: minmax(0, 1fr); }
+}
+html.bc-pf #v-recepcion .bcpf-qrow { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 12px; margin-bottom: 12px; }
+html.bc-pf #v-recepcion .bcpf-qrow .bcpf-qs { margin-bottom: 0; }
+html.bc-pf #v-recepcion .bcpf-vend { flex: 1 1 200px; min-width: 0; }
+html.bc-pf #v-recepcion .bcpf-vend #rxVendAviso { margin-top: 6px; }
+html.bc-pf #v-recepcion .bcpf-doc select:disabled { background: var(--pf-canvas2) !important; color: var(--pf-steel) !important; cursor: not-allowed; opacity: 1; }
+@media (max-width: 760px) {
+  html.bc-pf #v-recepcion .bcpf-qrow { display: grid; grid-template-columns: minmax(0, 1fr); }
+}
+html.bc-pf #v-recepcion .bcpf-qrow .bcpf-vaviso { flex: 1 1 100%; margin-top: 0 !important; }

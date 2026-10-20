@@ -20170,7 +20170,14 @@ function _rpInit() {
         // Almacén según la sucursal de la empleada (Moca → 4, Navarrete → 7, Santiago → 1); se puede cambiar.
         delete alm.dataset.tocado;
         // (no se toca si se está editando una prefactura ya creada: esa trae su propio almacén)
-        const ponerAlm = () => { const a = _miAlmacenInfoplus(); if(a && !alm.dataset.tocado && !(_rpState && _rpState.codprefactura)) { alm.value = a; try { _rpRenderCart(); _rpRenderResumen(); } catch(e) {} } };
+        // 20-oct-2026 (dueño): el almacén queda FIJO para el empleado que tiene su almacén asignado (por su sucursal);
+        // solo el administrador puede escoger cualquier almacén. Sin almacén asignado se puede escoger, como antes.
+        const ponerAlm = () => {
+            const a = _miAlmacenInfoplus(), fijo = !!a && !isAdminUser();
+            if(a && (fijo || !alm.dataset.tocado) && !(_rpState && _rpState.codprefactura)) { alm.value = a; try { _rpRenderCart(); _rpRenderResumen(); } catch(e) {} }
+            alm.disabled = fijo;
+            alm.title = fijo ? 'Fijo: el almacén de su sucursal. Solo el administrador puede cambiarlo.' : '';
+        };
         alm.addEventListener('change', () => { alm.dataset.tocado = '1'; _almAdminGuardar(alm.value); });
         ponerAlm(); if(!cache.sucursalesEmp) _cargarSucursalesEmp().then(ponerAlm);
         try { if(window.bcRxAlmacenAdmin) window.bcRxAlmacenAdmin(); } catch(e) {}

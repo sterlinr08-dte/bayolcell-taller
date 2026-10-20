@@ -84,8 +84,9 @@
     var selTipo = q('#c_tipo', camposCli), fTipo = selTipo && selTipo.parentElement; if (fTipo) fTipo.classList.add('bcpf-oculto'); // (aún fuera del documento: se busca dentro del bloque)
     if (nivel) nivel.addEventListener('change', tipoDesdeNivel);
     p1.appendChild(cCli); if (fNivel) p1.appendChild(fNivel);
-    ['rxAlmacen', 'rxVendedor'].forEach(function (id) { var f = campo(id); if (f) { var c = el('div', 'pcol bcpf-campos'); c.appendChild(f); p1.appendChild(c); } });
-    var aviso = doc.getElementById('rxVendAviso'); if (aviso) { aviso.classList.add('bcpf-aviso'); p1.appendChild(aviso); }
+    var fAlm = campo('rxAlmacen'); if (fAlm) { var cAlm = el('div', 'pcol bcpf-campos'); cAlm.appendChild(fAlm); p1.appendChild(cAlm); }
+    // 20-oct-2026 (dueño): el «Vendedor» va al pie, al lado de «Pedir reseña» (fijo para cada empleada; lo decide _rpInit)
+    var fVen = campo('rxVendedor'), avisoV = doc.getElementById('rxVendAviso');
     pad.appendChild(p1);
 
     // Equipo, falla y lo demás: opcional (dueño: «la falla … opcional, no obligatorio. Y … los equipos también»).
@@ -140,7 +141,10 @@
       detRes.appendChild(resCard);
       pildora('ti-star', 'Pedir reseña', function () { detRes.open = !detRes.open; if (detRes.open) { var i = doc.getElementById('resenaWa'); if (i) i.focus(); } });
     }
-    otras.appendChild(qs);
+    var qrow = el('div', 'bcpf-qrow'); qrow.appendChild(qs);
+    if (fVen) { var cVen = el('div', 'bcpf-campos bcpf-vend'); cVen.appendChild(fVen); qrow.appendChild(cVen); if (avisoV) { avisoV.classList.add('bcpf-vaviso'); qrow.appendChild(avisoV); } }
+    otras.appendChild(qrow);
+    R.qrow = qrow;
     if (detRes) otras.appendChild(detRes);
     // Comentario (como «Agregar nota o condiciones al documento» de STUDIO)
     var detCom = el('details', 'bcpf-det bcpf-coment');
@@ -327,6 +331,8 @@
   function iniciales(n) { var p = String(n || '').trim().split(/\s+/).filter(Boolean); return ((p[0] || '')[0] || '').toUpperCase() + ((p[1] || '')[0] || '').toUpperCase(); }
   function pintarDoc() {
     var s = st(); if (!R.num) return;
+    // El aviso «usuario no enlazado» lo crea _rpInit junto al vendedor: va debajo, a todo el ancho
+    var av = doc.getElementById('rxVendAviso'); if (av && R.qrow && av.parentElement !== R.qrow) { av.classList.add('bcpf-vaviso'); R.qrow.appendChild(av); }
     var items = (s && s.items) || [];
     var tt = tot(items), total = tt.total;
     var unidades = items.reduce(function (a, it) { return a + Number(it.cant); }, 0);
