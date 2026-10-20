@@ -281,15 +281,21 @@
   function cargarElegibles(i) {
     var s = st(), it = s && s.items[i]; if (!it) return;
     var cod = String(it.cod);
+    // Info Plus reutiliza códigos: el 1000 tiene IMEI de «M-HORSE M16 PRO MAX» y de «IDPRO 17 PRO MAX», el 1520 de
+    // «ITEL A200» y de «OUKITEL C61». Por eso además del código se compara el nombre (igual, o uno empieza por el otro:
+    // «IPHONE XR» / «IPHONE XR 64GB»). Dueño: «el IMEI tiene que ir acorde con el artículo».
+    var nn = function (x) { return String(x || '').toUpperCase().replace(/\s+/g, ' ').trim(); };
+    var mio = nn(it.desc);
+    var acorde = function (p) { p = nn(p); return !!p && (p === mio || mio.indexOf(p + ' ') === 0 || p.indexOf(mio + ' ') === 0); };
     if (eleg.cod === cod && eleg.lista.length) { pintarElegibles(); return; }
     eleg = { cod: cod, lista: [], error: '', cargando: true };
     try {
-      supabaseClient.from('infoplus_seriales').select('imei,fecha').eq('codproducto', cod).order('fecha', { ascending: false }).limit(300)
+      supabaseClient.from('infoplus_seriales').select('imei,fecha,producto').eq('codproducto', cod).order('fecha', { ascending: false }).limit(300)
         .then(function (r) {
           if (eleg.cod !== cod) return;
           eleg.cargando = false;
           if (r.error) eleg.error = 'No tiene acceso a la lista de IMEI. Escriba o escanee el IMEI.';
-          else eleg.lista = (r.data || []).map(function (x) { return String(x.imei || '').trim(); }).filter(Boolean);
+          else eleg.lista = (r.data || []).filter(function (x) { return acorde(x.producto); }).map(function (x) { return String(x.imei || '').trim(); }).filter(Boolean);
           pintarElegibles();
         }, function () { eleg.cargando = false; eleg.error = 'No se pudo cargar la lista. Escriba o escanee el IMEI.'; pintarElegibles(); });
     } catch (e) { eleg.cargando = false; eleg.error = 'No se pudo cargar la lista. Escriba o escanee el IMEI.'; pintarElegibles(); }
