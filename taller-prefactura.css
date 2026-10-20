@@ -717,7 +717,8 @@ html.bc-pf body #v-recepcion#v-recepcion .bcpf-dh :is(.dnum, .dfec, .dno) { min-
 /* 20-oct-2026 (m): dueño: lupa arriba; estado corto «Crear» y «smart»; «CONTADO: 1»; «CLIENTE FINAL». */
 html.bc-pf body #v-recepcion#v-recepcion .bcpf-dh .ibtn { width: 44px !important; height: 44px; padding: 0 !important; border-radius: 999px !important; display: inline-flex; align-items: center; justify-content: center; color: var(--pf-acc-dark); }
 html.bc-pf body #v-recepcion#v-recepcion .bcpf-dh .ibtn i { font-size: 20px; }
-@media (max-width: 760px) { html.bc-pf body #v-recepcion#v-recepcion .bcpf-dh .ibtn { order: 9; margin-left: auto; } }
+/* Dueño: la lupa al lado izquierdo (antes de «PREFACTURA» en la PC y antes de «Nº» en el celular) */
+html.bc-pf body #v-recepcion#v-recepcion .bcpf-dh .ibtn { order: -1; }
 html.bc-pf #v-recepcion .bcpf-est {
   display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 11px 0 9px; border-radius: 999px;
   font-size: 13px; font-weight: 600; letter-spacing: -.005em; color: #334155;
