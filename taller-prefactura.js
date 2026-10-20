@@ -220,16 +220,48 @@
   }
 
   // ── Carrito en 2 líneas (como STUDIO) con las mismas funciones de siempre ──
+  // 20-oct-2026 (dueño: «en STUDIO los artículos con IMEI tienen un ícono, es mejor»): en la línea va un botón «IMEI n»
+  // (como `nxFacSerial` de STUDIO) que abre una ventanita para escanear o escribir los IMEI; la cantidad se ajusta sola.
+  // Usa las mismas funciones de siempre (_rpImeiKey → _rpAgregarImei, _rpQuitarImei).
   function filaImeis(it, i) {
     if (!it.serial) return '<div class="bcpf-imei nada" aria-hidden="true">—</div>';
-    var ims = it.imeis || [], falta = !ims.length;
-    var chips = ims.map(function (m, k) {
-      return '<span class="imc">' + esc(m) + '<button type="button" aria-label="Quitar IMEI ' + esc(m) + '" onclick="_rpQuitarImei(' + i + ',' + k + ')"><i class="ti ti-x" aria-hidden="true"></i></button></span>';
-    }).join('');
-    return '<div class="bcpf-imei' + (falta ? ' falta' : '') + '"><div class="imi"><i class="ti ti-barcode" aria-hidden="true"></i>' +
-      '<input id="rpImei_' + i + '" placeholder="Escanee el IMEI" aria-label="IMEI: escanee o escriba y presione Enter" onkeydown="_rpImeiKey(event,' + i + ')" inputmode="numeric" autocomplete="off"></div>' +
-      '<div class="ims">' + (chips || '<span class="imf">Sin IMEI: no se puede facturar este equipo.</span>') + '</div></div>';
+    var n = (it.imeis || []).length;
+    return '<div class="bcpf-imei"><button type="button" class="bcpf-imeib' + (n ? '' : ' falta') + '" data-imei="' + i + '" title="Escanear o ver los IMEI">' +
+      '<i class="ti ti-barcode" aria-hidden="true"></i><span>' + (n ? 'IMEI ' + n : 'Escanear IMEI') + '</span></button></div>';
   }
+  function imvLista(i) {
+    var s = st(), it = s && s.items[i]; if (!it) return '';
+    var ims = it.imeis || [];
+    return ims.length ? ims.map(function (m, k) {
+      return '<span class="imc">' + esc(m) + '<button type="button" aria-label="Quitar IMEI ' + esc(m) + '" onclick="_rpQuitarImei(' + i + ',' + k + ')"><i class="ti ti-x" aria-hidden="true"></i></button></span>';
+    }).join('') : '<span class="imf">Sin IMEI: no se puede facturar este equipo.</span>';
+  }
+  function cerrarImei() { var o = doc.getElementById('bcpfImv'); if (o) o.remove(); }
+  function abrirImei(i) {
+    cerrarImei();
+    var s = st(), it = s && s.items[i]; if (!it || !it.serial) return;
+    var o = el('div', 'bcpf-imv');
+    o.id = 'bcpfImv'; o.setAttribute('data-i', i);
+    o.innerHTML = '<div class="box" role="dialog" aria-modal="true" aria-label="IMEI de ' + esc(it.desc) + '">' +
+      '<div class="hd"><b><i class="ti ti-barcode" aria-hidden="true"></i> IMEI · ' + esc(it.desc) + '</b><button type="button" class="vol"><i class="ti ti-arrow-left" aria-hidden="true"></i> Volver</button></div>' +
+      '<p>Escanee o escriba el IMEI y presione Enter. <b>La cantidad se ajusta sola.</b></p>' +
+      '<input id="rpImei_' + i + '" inputmode="numeric" autocomplete="off" placeholder="IMEI del equipo" aria-label="IMEI" onkeydown="_rpImeiKey(event,' + i + ')">' +
+      '<div class="lst">' + imvLista(i) + '</div>' +
+      '<div class="ft"><button type="button" class="ok">Listo</button></div></div>';
+    doc.body.appendChild(o);
+    o.addEventListener('click', function (e) { if (e.target === o || e.target.closest('.vol, .ok')) cerrarImei(); });
+    setTimeout(function () { var x = doc.getElementById('rpImei_' + i); if (x) x.focus(); }, 40);
+  }
+  function refrescarImei() {
+    var o = doc.getElementById('bcpfImv'); if (!o) return;
+    var l = o.querySelector('.lst'); if (l) l.innerHTML = imvLista(Number(o.getAttribute('data-i')));
+    var x = o.querySelector('input'); if (x) { x.value = ''; x.focus(); } // listo para el próximo IMEI
+  }
+  doc.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('#v-recepcion .bcpf-imeib');
+    if (b) abrirImei(Number(b.getAttribute('data-imei')));
+  });
+  doc.addEventListener('keydown', function (e) { if (e.key === 'Escape') cerrarImei(); });
   function filaStock(it) {
     var s = null; try { s = _rpStockItem(it); } catch (e) {}
     if (s === null || Number(it.cant) <= s) return '';
@@ -249,7 +281,7 @@
       return '<div class="bcpf-it">' +
         '<span class="n">' + ('0' + (i + 1)).slice(-2) + '</span>' +
         '<div class="d"><button type="button" class="dnb" data-ver="' + i + '" title="Ver precios y cambiar la descripción">' + esc(it.desc) + '</button>' +
-        '<div class="dsub"><span class="cod">' + esc(it.cod) + '</span>' + (it.servicio ? '<span class="srv">Servicio</span>' : '') + (it.serial ? '<span class="ime">IMEI ' + (it.imeis || []).length + '/' + it.cant + '</span>' : '') + '</div></div>' +
+        '<div class="dsub"><span class="cod">' + esc(it.cod) + '</span>' + (it.servicio ? '<span class="srv">Servicio</span>' : '') + '</div></div>' +
         '<b class="imp">' + plata(importe(it)) + (Number(it.descPct) ? '<s>' + plata(Number(it.precio) * Number(it.cant)) + '</s>' : '') + '</b>' +
         '<button type="button" class="del" aria-label="Quitar ' + esc(it.desc) + '" onclick="_rpQuitar(' + i + ')"><i class="ti ti-trash" aria-hidden="true"></i></button>' +
         '<div class="l2"><label><span>Precio</span><input class="pin" inputmode="decimal" autocomplete="off" value="' + num2(it.precio) + '" aria-label="Precio" onfocus="this.select()" onchange="_rpPrecio(' + i + ',this.value)"></label>' +
@@ -378,13 +410,25 @@
   // Envolver las funciones que pintan para que el documento se actualice solo
   function enganchar() {
     if (typeof window._rpRenderCart === 'function' && !window._rpRenderCart._bcpf) {
-      var envC = function () { pintarCarrito(); pintarDoc(); };
+      var envC = function () { pintarCarrito(); pintarDoc(); refrescarImei(); };
       envC._bcpf = true; window._rpRenderCart = envC;
     }
     if (typeof window._rpRenderResumen === 'function' && !window._rpRenderResumen._bcpf) {
       var orig = window._rpRenderResumen;
       var envR = function () { var r = orig.apply(this, arguments); try { pintarDoc(); } catch (e) {} return r; };
       envR._bcpf = true; window._rpRenderResumen = envR;
+    }
+    if (typeof window._rpAgregarArticulo === 'function' && !window._rpAgregarArticulo._bcpf) {
+      var origA = window._rpAgregarArticulo;
+      var envA = async function (a) {
+        var r = await origA.apply(this, arguments);
+        try {
+          var s = st(), i = s && a ? s.items.findIndex(function (x) { return String(x.cod) === String(a.codigo) && !x.servicio; }) : -1;
+          if (i >= 0 && s.items[i].serial) setTimeout(function () { abrirImei(i); }, 80);
+        } catch (e) {}
+        return r;
+      };
+      envA._bcpf = true; window._rpAgregarArticulo = envA;
     }
     if (typeof window._rpCliElegir === 'function' && !window._rpCliElegir._bcpf) {
       var origC = window._rpCliElegir;
