@@ -39,16 +39,15 @@
   }
   function chip(a) {
     if (esServ(a)) return '<span class="cp-stk srv">Servicio</span>';
-    // 20-oct-2026 (dueño: «en la consulta ver en qué almacén están los artículos»): los almacenes a la vista en la fila
-    var hay = conCant(a);
-    return hay.length ? hay.map(function (c) { return pildora(c, 'cp-alm'); }).join('') : '<span class="cp-stk out">Sin stock</span>';
+    // Dueño 20-oct: los almacenes con cantidades van abajo, en la línea «Existencia» del detalle; en la fila, solo si hay
+    return dondeHay(a).length ? '<span class="cp-stk">Disponible</span>' : '<span class="cp-stk out">Sin stock</span>';
   }
   function detalle(a) {
     var hay = conCant(a), pr = precio1(a), tot = hay.reduce(function (s2, c) { return s2 + c[1]; }, 0);
-    // Dueño: «¿por qué salen en dos partes las existencias?» → los almacenes van solo en la fila; aquí queda el total
-    var fichas = esServ(a) ? '<span class="cp-ex">Servicio</span>' : hay.length ? '<span class="cp-ex cp-tot">Total en almacenes <b>' + tot.toLocaleString('es-DO') + '</b></span>' : '<span class="cp-ex out">Sin existencia en ningún almacén</span>';
+    // Dueño: «ponlo mejor en la parte inferior, en la línea donde dice Existencia» (una sola vez, con cantidades y total)
+    var fichas = esServ(a) ? '<span class="cp-ex">Servicio</span>' : hay.length ? hay.map(function (c) { return pildora(c, 'cp-ex'); }).join('') + '<span class="cp-ex cp-tot">Total <b>' + tot.toLocaleString('es-DO') + '</b></span>' : '<span class="cp-ex out">Sin existencia en ningún almacén</span>';
     return '<div class="cp-det"><div class="cp-nv"><small>Cliente final</small><b>' + (pr > 0 ? plata(pr) : '—') + '</b></div>' +
-      '<div class="cp-dex">' + fichas + '</div></div>';
+      '<div class="cp-dex"><span>Existencia</span>' + fichas + '</div></div>';
   }
   function pintar() {
     if (!velo) return;
@@ -65,7 +64,7 @@
         (estado.det === i ? detalle(a) : '');
     }).join('');
     cont.innerHTML = (l.length > MAXF ? '<div class="cp-mas">Mostrando ' + MAXF + ' de ' + l.length.toLocaleString('es-DO') + ' — escriba para afinar</div>' : '') +
-      (filas ? '<div class="cp-head" aria-hidden="true"><span>Código</span><span>Artículo</span><span>Almacén</span><span>Precio</span></div>' + filas
+      (filas ? '<div class="cp-head" aria-hidden="true"><span>Código</span><span>Artículo</span><span>Existencia</span><span>Precio</span></div>' + filas
         : '<div class="cp-vacio">Sin resultados para «' + esc(estado.q) + '».</div>');
   }
   // Salida rápida como en NEXUS (140 ms); con «reducir movimiento» se quita al instante.
