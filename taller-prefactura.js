@@ -50,12 +50,12 @@
     var dh = el('div', 'bcpf-dh',
       '<div class="dhl"><div class="emp">BAYOL CELL</div><div class="empsub">Prefactura de Info Plus</div></div>' +
       '<div class="dhr"><span class="dtit">Prefactura</span>' +
-      '<button type="button" class="ibtn" aria-label="Ver prefacturas guardadas" title="Prefacturas guardadas"><i class="ti ti-files" aria-hidden="true"></i></button>' +
+      '' +
       '<span class="dno">Nº</span><span class="dnum">Nueva</span><span class="dfec">' + fechaHoy() + '</span></div>' +
       '<div class="dest"></div>');
     pad.appendChild(dh);
     R.num = q('.dnum', dh); R.est = q('.dest', dh); q('.dhl', dh).appendChild(R.est); // estado debajo de «Prefactura de Info Plus», sin fila propia
-    q('.ibtn', dh).addEventListener('click', function () { try { _rpHistorial(); } catch (e) {} });
+    // 20-oct-2026: se quitó el botón suelto de arriba (ícono de copiar): repetía «Prefacturas» de las píldoras.
 
     // Facturar a + Condiciones. 20-oct-2026 (dueño): «ponerla como la tenemos en estudio y quitar todo lo otro … para
     // irle agregando». En «Facturar a» queda solo la tarjeta del cliente; los campos del cliente bajan a «Más datos».
@@ -116,7 +116,9 @@
     if (typeof window.bcRxBuscador === 'function') window.bcRxBuscador(v, busc);
     var nota = q('.rx-art-search > span', busc); if (nota) nota.classList.add('bcpf-oculto');
     busc.classList.add('bcpf-busc-fila'); // «Servicio / falla» en la misma línea del buscador
-    var bSrv = q('.bcrx-srv', busc); if (bSrv) { bSrv.innerHTML = '<i class="ti ti-tool" aria-hidden="true"></i><span>Servicio / falla</span>'; bSrv.setAttribute('aria-label', 'Agregar servicio o falla'); }
+    // Texto corto del buscador para que se lea completo en el celular (antes «Buscar o escanear por nombre, c…»)
+    var bScan = q('.bcrx-scan > span', busc); if (bScan) bScan.textContent = 'Buscar artículo';
+    var bSrv = q('.bcrx-srv', busc); if (bSrv) { bSrv.innerHTML = '<i class="ti ti-tool" aria-hidden="true"></i><span>Servicio</span>'; bSrv.setAttribute('aria-label', 'Agregar servicio o falla'); }
 
     // Artículos
     var lista = doc.getElementById('rxArticulos');
@@ -129,7 +131,7 @@
     var otras = el('div', 'bcpf-otras');
     var qs = el('div', 'bcpf-qs');
     function pildora(ic, txt, fn) { var b = el('button', 'bcpf-q', '<i class="ti ' + ic + '" aria-hidden="true"></i><span>' + txt + '</span>'); b.type = 'button'; b.addEventListener('click', fn); qs.appendChild(b); return b; }
-    pildora('ti-files', 'Prefacturas', function () { try { _rpHistorial(); } catch (e) {} });
+    pildora('ti-history', 'Prefacturas', function () { try { _rpHistorial(); } catch (e) {} });
     pildora('ti-file-plus', 'Nueva', function () { nueva(); });
     // Herramientas rápidas: queda solo «Pedir reseña» a mano (dueño: «puede dejar el asunto de la reseña»); la rifa baja a «Más datos».
     var tools = q('.rx-toolsbox', v);
@@ -199,7 +201,7 @@
     [cli, equ, adi, fal, art].forEach(function (c) { c.classList.add('bcpf-oculto'); });
     if (envLista && envLista !== lista && !envLista.children.length) envLista.classList.add('bcpf-oculto');
     var titLista = q('#recepcionesLista') && q('#recepcionesLista').closest('.card');
-    if (titLista) { titLista.classList.add('bcpf-hist'); var h = q('h3', titLista); if (h) h.lastChild.nodeValue = ' Prefacturas realizadas'; }
+    if (titLista) { titLista.classList.add('bcpf-hist'); var h = q('h3', titLista); if (h) h.lastChild.nodeValue = ' Prefacturas realizadas'; var hb = q('button[onclick*="_rpHistorial"]', titLista); if (hb) hb.classList.add('bcpf-oculto'); } // «Historial de prefacturas» repetía la píldora «Prefacturas»
 
     // Barra fija abajo (como STUDIO): Total · Imprimir · Guardar e imprimir · Guardar
     var bar = el('div', 'bcpf-bar', '<div class="bt"><span class="bl">Total</span><b class="bn">RD$ 0.00</b></div>' +
