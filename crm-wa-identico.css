@@ -397,3 +397,11 @@ body #v-crmLinea[data-social-channel="whatsapp"] .wa-chat-head .bcwa-etq-btn.on 
 /* Botón Contactos en la fila de Buscar/Filtros (solo WhatsApp) */
 /* (en IG/FB la fila de buscar queda invisible: el botón también, sin cambiar el ancho de la cuadrícula) */
 @media (max-width:420px){ .bcwa-contactos-btn span{ display:none; } }
+
+/* 20-oct-2026 · Etiquetas con cantidades y sin leer (dueño: «que en las etiquetas salgan notificaciones y las cantidades») */
+.bcwa-menu-chat .bcwa-etq-nom{ flex:1 1 auto; min-width:0; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.bcwa-menu-chat .bcwa-etq-cif{ display:inline-flex; align-items:center; gap:8px; margin-left:16px; flex:0 0 auto; }
+.bcwa-etq-n{ min-width:22px; text-align:right; font-size:13px; color:#667781; font-variant-numeric:tabular-nums; }
+.bcwa-etq-nl{ display:inline-grid; place-items:center; min-width:20px; height:20px; padding:0 6px; box-sizing:border-box; border-radius:999px;
+  background:#25d366; color:#fff; font-size:12px; font-weight:700; line-height:1; font-variant-numeric:tabular-nums; }
+.bcwa-etq-filtro .bcwa-etq-nl{ margin-left:2px; }

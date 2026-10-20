@@ -16,7 +16,7 @@
   'use strict';
   if (window.__bcWaIdentico) return;
   window.__bcWaIdentico = true;
-  var VERSION = '20261007-w13';
+  var VERSION = '20261020-w14';
 
   // ---------- CSS (siempre de último) ----------
   function css(){
@@ -808,19 +808,60 @@
     if (chips && etiquetas.length){
       var btn = chips.querySelector(':scope > .bcwa-etq-filtro');
       var sel = filtroEtiqueta && etiquetas.find(function(t){ return t.id === filtroEtiqueta; });
-      var bhtml = '<i class="ti ti-' + (sel ? 'circle-filled' : 'tag') + '"' + (sel ? ' style="color:' + esc(sel.color) + '"' : '') + '></i> ' + esc(sel ? sel.nombre : 'Etiquetas') + ' <i class="ti ti-chevron-down"></i>';
+      contarEtiquetas(false);
+      var nlb = conteoEtq.linea === lineaId() ? (sel ? ((conteoEtq.porEtq[sel.id] || {}).sinLeer || 0) : conteoEtq.sinLeerTotal) : 0;
+      var bhtml = '<i class="ti ti-' + (sel ? 'circle-filled' : 'tag') + '"' + (sel ? ' style="color:' + esc(sel.color) + '"' : '') + '></i> ' + esc(sel ? sel.nombre : 'Etiquetas') +
+        (nlb ? ' <b class="bcwa-etq-nl" title="Chats con etiqueta y mensajes sin leer">' + nlb + '</b>' : '') + ' <i class="ti ti-chevron-down"></i>';
       if (!btn){ btn = document.createElement('button'); btn.type = 'button'; btn.className = 'crm-chip bcwa-etq-filtro'; btn.setAttribute('aria-haspopup', 'menu'); chips.appendChild(btn);
         btn.addEventListener('click', function(e){ e.stopPropagation(); abrirMenuEtiquetaFiltro(btn); }); }
       btn.classList.toggle('on', !!sel);
       if (btn.innerHTML !== bhtml) btn.innerHTML = bhtml;
     }
   }
+  // 20-oct-2026 (dueño: «que en las etiquetas salgan notificaciones y las cantidades»): por etiqueta, cuántos chats la
+  // tienen y cuántos de ellos tienen mensajes sin leer (como WhatsApp). Se cuenta en la base (no solo la página cargada),
+  // en la línea abierta, sin archivados y con la misma visibilidad de la lista (admin todo; empleado: suyos o sin asignar).
+  // Se refresca como máximo cada 45 s y al abrir el menú.
+  var conteoEtq = { linea: null, ts: 0, porEtq: {}, sinLeerTotal: 0, cargando: false };
+  async function contarEtiquetas(forzar){
+    var lid = lineaId(); if (!lid || conteoEtq.cargando) return;
+    if (!forzar && conteoEtq.linea === lid && Date.now() - conteoEtq.ts < 45000) return;
+    conteoEtq.cargando = true; conteoEtq.linea = lid; conteoEtq.ts = Date.now(); // también si falla: no reintentar en cada repintado
+    try {
+      var r = await supabaseClient.from('whatsapp_hilos').select('id,etiquetas,no_leidos_count,estado,asignado_id')
+        .eq('linea_id', lid).neq('etiquetas', '[]').not('telefono_e164', 'like', 'duplicado:%').limit(2000);
+      if (r.error || lid !== lineaId()) return;
+      var yo = null; try { yo = _crmMiIdentidad(); } catch(e){}
+      var por = {}, total = 0;
+      (r.data || []).forEach(function(h){
+        if (h.estado === 'archivado') return;
+        if (!(admin() || !h.asignado_id || (yo && String(h.asignado_id) === String(yo.id)))) return;
+        var nl = Number(h.no_leidos_count) || 0, cuenta = false;
+        etqDe(h).forEach(function(id){ var c = por[id] || (por[id] = { chats: 0, sinLeer: 0 }); c.chats++; if (nl > 0){ c.sinLeer++; cuenta = true; } });
+        if (cuenta) total++;
+      });
+      conteoEtq = { linea: lid, ts: Date.now(), porEtq: por, sinLeerTotal: total, cargando: false };
+      decorarLista();
+      var m = document.getElementById('bcwaMenuEtq'); if (m) pintarMenuEtq(m);
+    } catch(e){} finally { conteoEtq.cargando = false; }
+  }
+  function cifrasEtq(id){
+    var c = conteoEtq.linea === lineaId() ? conteoEtq.porEtq[id] : null;
+    return '<span class="bcwa-etq-cif">' + (c && c.sinLeer ? '<b class="bcwa-etq-nl" title="Chats con mensajes sin leer">' + c.sinLeer + '</b>' : '') +
+      '<span class="bcwa-etq-n" title="Chats con esta etiqueta">' + (c ? c.chats : 0) + '</span></span>';
+  }
+  function pintarMenuEtq(m){
+    var todos = conteoEtq.linea === lineaId() ? conteoEtq.sinLeerTotal : 0;
+    m.innerHTML = '<button type="button" role="menuitem" data-etq=""><i class="ti ti-tags-off"></i><span class="bcwa-etq-nom">Todas las etiquetas</span>' +
+      (todos ? '<span class="bcwa-etq-cif"><b class="bcwa-etq-nl" title="Chats con etiqueta y mensajes sin leer">' + todos + '</b></span>' : '') + '</button>' +
+      etiquetas.map(function(t){ return '<button type="button" role="menuitem" data-etq="' + esc(t.id) + '"' + (filtroEtiqueta === t.id ? ' class="on"' : '') + '><i class="ti ti-circle-filled" style="color:' + esc(t.color) + '"></i><span class="bcwa-etq-nom">' + esc(t.nombre) + '</span>' + cifrasEtq(t.id) + '</button>'; }).join('');
+  }
   function abrirMenuEtiquetaFiltro(ancla){
     var ya = document.getElementById('bcwaMenuEtq'); if (ya){ ya.remove(); return; }
     var m = document.createElement('div'); m.id = 'bcwaMenuEtq'; m.className = 'bcwa-menu-chat'; m.setAttribute('role', 'menu');
-    m.innerHTML = '<button type="button" role="menuitem" data-etq=""><i class="ti ti-tags-off"></i>Todas las etiquetas</button>' +
-      etiquetas.map(function(t){ return '<button type="button" role="menuitem" data-etq="' + esc(t.id) + '"' + (filtroEtiqueta === t.id ? ' class="on"' : '') + '><i class="ti ti-circle-filled" style="color:' + esc(t.color) + '"></i>' + esc(t.nombre) + '</button>'; }).join('');
+    pintarMenuEtq(m);
     document.body.appendChild(m);
+    contarEtiquetas(true);
     var r = ancla.getBoundingClientRect();
     m.style.left = Math.min(window.innerWidth - m.offsetWidth - 8, Math.max(8, r.left)) + 'px'; m.style.top = (r.bottom + 4) + 'px';
     m.addEventListener('click', function(e){ var b = e.target.closest('[data-etq]'); if (!b) return; filtroEtiqueta = b.dataset.etq || null; m.remove(); repintarLista(); decorarLista(); });
