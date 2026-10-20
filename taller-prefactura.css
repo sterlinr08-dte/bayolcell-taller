@@ -448,3 +448,5 @@ html.bc-pf #v-recepcion .bcpf-doc ::selection { background: rgba(228, 87, 46, .2
   @keyframes bcpfFundido { from { opacity: 0; } to { opacity: 1; } }
   html.bc-pf #v-recepcion .bcpf-bar { transition: opacity 160ms ease; }
 }
+/* La fila «Descuento» solo cuando hay descuento ([hidden] perdía contra display:flex de .tr) */
+html.bc-pf #v-recepcion .bcpf-tot .tr[hidden] { display: none; }

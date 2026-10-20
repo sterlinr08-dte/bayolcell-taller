@@ -20272,6 +20272,14 @@ async function _rpAgregarArticulo(a) {
         const it = { cod: a.codigo, desc: (a.descripcion || '').trim(), niveles: a.niveles || null, precio: Number(a.precio || 0), cant: 1 };
         it.precio = _rpNivelPrecio(it);
         if(_abCat(it.desc) === 'celular') { it.serial = true; it.imeis = []; it.cant = 0; }
+        // 20-oct-2026: si el artículo ya está en la prefactura se usa la misma línea (como STUDIO):
+        // celular → el cursor va al IMEI de esa línea (cada IMEI suma 1); otro artículo → cantidad + 1.
+        const ya = _rpState.items.findIndex(x => String(x.cod) === String(it.cod) && !x.servicio);
+        if(ya >= 0) {
+            const x = _rpState.items[ya];
+            if(x.serial) { toast('Ya está en la línea ' + (ya + 1) + ': escanee el IMEI del otro equipo ahí.'); setTimeout(() => document.getElementById('rpImei_' + ya)?.focus(), 60); return true; }
+            _rpCant(ya, Number(x.cant || 0) + 1); return true;
+        }
         try {
             const { data } = await supabaseClient.functions.invoke('infoplus-existencia-art', { body: { codarticulo: Number(a.codigo) } });
             const vivo = _findInfoplusArt(a.codigo);
