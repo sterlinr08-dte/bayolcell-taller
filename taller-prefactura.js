@@ -252,13 +252,15 @@
     o.id = 'bcpfImv'; o.setAttribute('data-i', i);
     o.innerHTML = '<div class="box" role="dialog" aria-modal="true" aria-label="IMEI de ' + esc(it.desc) + '">' +
       '<div class="hd"><b><i class="ti ti-barcode" aria-hidden="true"></i> IMEI · ' + esc(it.desc) + '</b><button type="button" class="vol"><i class="ti ti-arrow-left" aria-hidden="true"></i> Volver</button></div>' +
-      '<p>Escanee o escriba el IMEI y presione Enter, o tóquelo en la lista. <b>La cantidad se ajusta sola.</b></p>' +
+      '<p>Escanee o escriba el IMEI y presione Enter. <b>La cantidad se ajusta sola.</b></p>' +
       '<input id="rpImei_' + i + '" inputmode="numeric" autocomplete="off" placeholder="IMEI del equipo" aria-label="IMEI" onkeydown="_rpImeiKey(event,' + i + ')">' +
       '<div class="lst">' + imvLista(i) + '</div>' +
       '<div class="ims"><div class="imsh">Elegir de la lista</div><div class="imsl"><span class="imsv">Cargando IMEI…</span></div></div>' +
       '<div class="ft"><button type="button" class="ok">Listo</button></div></div>';
     doc.body.appendChild(o);
-    cargarElegibles(i);
+    // Dueño (20-oct-2026): cada empleada solo puede ver los IMEI de SU almacén. Hasta tener los IMEI por almacén de
+    // Info Plus, la lista queda apagada (la de compras traía IMEI de todos los almacenes). Se escribe o escanea.
+    var ims0 = o.querySelector('.ims'); if (ims0) ims0.remove();
     o.querySelector('input').addEventListener('input', function () { pintarElegibles(); });
     o.addEventListener('click', function (e) {
       var b = e.target.closest('[data-elegir]'); if (!b) return;
