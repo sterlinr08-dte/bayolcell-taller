@@ -149,7 +149,7 @@ async function pintarTablero(){
         (arr.length ? '<div class="rss-acc"><i class="ti ' + icono + '"></i> ' + accion + '</div>' : '') + '</button>';
     };
     var total = g.sinTec.length + g.lentos.length + g.revision.length + g.listos.length;
-    cont.innerHTML = '<div class="rss-head"><span class="rss-tit"><i class="ti ti-traffic-lights"></i> Lo que está parado</span><span class="rss-sub">' + (total ? 'Toca una tarjeta para resolverlo rápido' : 'Todo al día') + '</span></div>' +
+    cont.innerHTML = '<div class="rss-head"><span class="rss-tit"><i class="ti ti-traffic-lights"></i> Lo que está parado</span><span class="rss-sub">' + (total ? 'Toque una tarjeta para resolverlo' : 'Todo al día') + '</span></div>' +
       '<div class="rss-grid">' +
       tarjeta('sinTec', g.sinTec, 'Evaluados sin técnico', 'Repartir', 'ti-users', 1, 3, 'Ninguno esperando') +
       tarjeta('lentos', g.lentos, 'En reparación +' + DIAS_LENTO + ' días', 'Ver cuáles', 'ti-clock-exclamation', 7, 14, 'Ninguno atrasado') +
@@ -217,7 +217,7 @@ function abrirRepartir(){
       '<select data-id="' + e.id + '" aria-label="Técnico">' + opts + '</select></div>';
   }).join('');
   var b = ventana('rssRepartir', '<i class="ti ti-users"></i> Repartir evaluados (' + lista.length + ')',
-    '<div class="rss-chips">' + chips + '</div><p class="rss-s" style="margin:0 0 10px;">El sistema sugiere al técnico con menos trabajo; si están parejos, al que más ha reparado ese modelo. Puedes cambiarlo en cada equipo.</p><div class="rss-lista">' + filas + '</div>',
+    '<div class="rss-chips">' + chips + '</div><p class="rss-s" style="margin:0 0 10px;">El sistema sugiere al técnico con menos trabajo; si están parejos, al que más ha reparado ese modelo. Puede cambiarlo en cada equipo.</p><div class="rss-lista">' + filas + '</div>',
     '<button class="btn btn-light" type="button" data-x>Cancelar</button><button class="btn btn-blue" type="button" data-ok><i class="ti ti-check"></i> Asignar <span data-n>' + lista.length + '</span> equipo(s)</button>', 720);
   var contar = function(){ var n = 0; b.querySelectorAll('.rss-fila').forEach(function(f){ if (f.querySelector('.rss-chk').checked && f.querySelector('select').value) n++; }); b.querySelector('[data-n]').textContent = n; };
   b.querySelectorAll('.rss-chk, .rss-fila select').forEach(function(x){ x.onchange = contar; });
@@ -231,7 +231,7 @@ async function asignarRepartidos(b, btn){
     var id = f.querySelector('.rss-chk').getAttribute('data-id'), t = f.querySelector('select').value;
     if (f.querySelector('.rss-chk').checked && t) (porTec[t] = porTec[t] || []).push(id);
   });
-  var tecs = Object.keys(porTec); if (!tecs.length) return mal('Elige el técnico de al menos un equipo.');
+  var tecs = Object.keys(porTec); if (!tecs.length) return mal('Seleccione el técnico de al menos un equipo.');
   var resumen = tecs.map(function(t){ return '• ' + nomTec(t) + ': ' + porTec[t].length; }).join('\n');
   if (!await confirmar('¿Asignar así?\n\n' + resumen + '\n\nPasarán a «En proceso».', { peligro: false, ok: 'Asignar' })) return;
   var orig = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Asignando…';
@@ -263,7 +263,7 @@ function abrirLentos(){
   var filas = lista.map(function(e){
     return '<div class="rss-fila click" data-id="' + e.id + '" role="button" tabindex="0"><i class="ti ti-device-mobile" style="color:#475569;"></i><div><div class="rss-m">' + esc(modelo(e)) + '</div><div class="rss-s">' + esc(nomTec(e.tecnico_asignado_id) || 'Sin técnico') + ' · ' + esc(est(e.estado_evaluacion)) + ' · ' + esc(loteDe(e)) + '</div></div><span class="rss-dias rojo">' + diasTxt(dias(e)) + '</span></div>';
   }).join('');
-  var b = ventana('rssLentos', '<i class="ti ti-clock-exclamation"></i> En reparación más de ' + DIAS_LENTO + ' días (' + lista.length + ')', '<p class="rss-s" style="margin:0 0 10px;">Ordenados del más viejo al más nuevo. Toca uno para abrir su panel.</p><div class="rss-lista">' + filas + '</div>', '', 640);
+  var b = ventana('rssLentos', '<i class="ti ti-clock-exclamation"></i> En reparación más de ' + DIAS_LENTO + ' días (' + lista.length + ')', '<p class="rss-s" style="margin:0 0 10px;">Ordenados del más viejo al más nuevo. Toque uno para abrir su panel.</p><div class="rss-lista">' + filas + '</div>', '', 640);
   b.querySelectorAll('.rss-fila').forEach(function(f){ var abrir = function(){ cerrar('rssLentos'); try { abrirPanelProceso(f.getAttribute('data-id')); } catch(_){} }; f.onclick = abrir; f.onkeydown = function(ev){ if (ev.key === 'Enter') abrir(); }; });
 }
 
@@ -316,9 +316,9 @@ async function accionRevision(a, e, btn){
       e.estado_evaluacion = 'listo_venta'; e.fecha_terminado = new Date().toISOString();
       rev.aprobados++; rev.cambio = true; ok('Aprobado: ' + modelo(e));
     } else if (a === 'devolver') {
-      var motivo = await pedirTexto('¿Qué le falta? El técnico lo verá en las notas del equipo.', { placeholder: 'Ej.: la cámara frontal no enfoca', multilinea: true });
+      var motivo = await pedirTexto('Indique qué le falta. El técnico lo verá en las notas del equipo.', { placeholder: 'Ej.: la cámara frontal no enfoca', multilinea: true });
       if (motivo === null) { btn.disabled = false; return; }
-      motivo = motivo.trim(); if (!motivo) { btn.disabled = false; return mal('Escribe qué le falta para devolverlo.'); }
+      motivo = motivo.trim(); if (!motivo) { btn.disabled = false; return mal('Indique qué le falta para devolverlo.'); }
       var prev = e.notas_diagnostico || '';
       var upd = { estado_evaluacion: 'en_proceso', veces_devuelto: (Number(e.veces_devuelto) || 0) + 1, notas_diagnostico: prev + (prev ? '\n\n' : '') + '[Control de calidad] ' + motivo };
       var r2 = await sb().from('equipos_refurbish').update(upd).eq('id', e.id);
@@ -339,7 +339,7 @@ function terminarRevision(){ var hubo = rev && rev.cambio; rev = null; cerrar('r
 /* ---------- 3 · Despachar listos en bloque ---------- */
 var pendienteIP = null; // equipos a marcar como Despachado cuando el despacho de Info Plus salga bien
 function abrirDespacho(){
-  if (!puedeDespachar()) return mal('No tienes permiso para despachar equipos.');
+  if (!puedeDespachar()) return mal('No tiene permiso para despachar equipos.');
   pendienteIP = null;
   var lista = grupos().listos;
   if (!lista.length) return ok('No hay equipos listos para despachar.');
@@ -355,7 +355,7 @@ function abrirDespacho(){
   }).join('');
   var admin = false; try { admin = isAdminUser(); } catch(_){}
   var b = ventana('rssDespacho', '<i class="ti ti-truck-delivery"></i> Despachar listos en bloque',
-    '<p class="rss-s" style="margin:0 0 8px;">Marca los equipos que salen del taller. <b>Si todavía no los moviste en Info Plus</b>, usa «Mover en Info Plus»: se hace un solo documento por modelo, con costo promedio y sus IMEI. <b>Si ya los moviste</b>, usa «Solo marcar despachados».</p><div class="rss-lista">' + cuerpo + '</div>',
+    '<p class="rss-s" style="margin:0 0 8px;">Marque los equipos que salen del taller. <b>Si todavía no los movió en Info Plus</b>, use «Mover en Info Plus»: se hace un solo documento por modelo, con costo promedio y sus IMEI. <b>Si ya los movió</b>, use «Solo marcar despachados».</p><div class="rss-lista">' + cuerpo + '</div>',
     '<span class="rss-s" style="margin-right:auto;"><b data-n>0</b> marcado(s)</span><button class="btn btn-light" type="button" data-solo><i class="ti ti-check"></i> Solo marcar despachados</button>' +
     (admin ? '<button class="btn btn-blue" type="button" data-ip><i class="ti ti-truck-delivery"></i> Mover en Info Plus</button>' : ''), 720);
   var marcados = function(){ return Array.prototype.slice.call(b.querySelectorAll('.rss-chk[data-id]')).filter(function(c){ return c.checked; }).map(function(c){ return c.getAttribute('data-id'); }); };
@@ -370,13 +370,13 @@ function abrirDespacho(){
   b.querySelectorAll('.rss-chk[data-lote]').forEach(function(l){ l.onchange = function(){ b.querySelectorAll('.rss-chk[data-de="' + l.getAttribute('data-lote') + '"]').forEach(function(h){ h.checked = l.checked; }); contar(); }; });
   b.querySelectorAll('.rss-chk[data-id]').forEach(function(c){ c.onchange = contar; });
   b.querySelector('[data-solo]').onclick = async function(){
-    var ids = marcados(); if (!ids.length) return mal('Marca al menos un equipo.');
-    if (!await confirmar('¿Marcar ' + ids.length + ' equipo(s) como Despachado SOLO en el taller?\n\nUsa esto si ya los moviste en Info Plus. Las piezas pendientes se descuentan como siempre.', { peligro: false, ok: 'Marcar despachados' })) return;
+    var ids = marcados(); if (!ids.length) return mal('Marque al menos un equipo.');
+    if (!await confirmar('¿Marcar ' + ids.length + ' equipo(s) como Despachado SOLO en el taller?\n\nUse esta opción si ya los movió en Info Plus. Las piezas pendientes se descuentan como siempre.', { peligro: false, ok: 'Marcar despachados' })) return;
     cerrar('rssDespacho'); await marcarDespachados(ids, 'en bloque');
   };
   var ip = b.querySelector('[data-ip]');
   if (ip) ip.onclick = function(){
-    var ids = marcados(); if (!ids.length) return mal('Marca al menos un equipo.');
+    var ids = marcados(); if (!ids.length) return mal('Marque al menos un equipo.');
     var conCod = ids.filter(function(id){ var e = (cache.refurb || []).find(function(x){ return x.id === id; }); return e && e.articulo_codigo != null && String(e.articulo_codigo).trim(); });
     if (!conCod.length) return mal('Ninguno de los marcados tiene código de Info Plus.');
     pendienteIP = { ids: conCod };

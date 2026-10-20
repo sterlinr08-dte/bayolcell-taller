@@ -479,6 +479,11 @@ async function procesarMensaje(payload: any) {
     if (primero.url) mediaPath = await guardarAdjunto(primero.url, tipoContenido);
   }
   const textoCrudo = typeof msg.text === "string" ? msg.text.trim() : "";
+  const metaZ = payload.metadata || {};
+  // Reacción (18-oct-2026): Zernio solo manda el texto "[reaction]", sin el emoji ni el mensaje al que reacciona
+  // (revisado en social_webhook_eventos). Guardarla mostraba una burbuja "[reaction]" que no existe en WhatsApp.
+  // No se guarda ni mueve el hilo.
+  if (adjuntos.length === 0 && textoCrudo === "[reaction]") return;
   // Zernio no entrega el contenido de ciertos mensajes historicos/especiales.
   // Guardamos una etiqueta clara en vez de mostrar su marcador tecnico.
   //
@@ -529,8 +534,52 @@ async function procesarMensaje(payload: any) {
     }
   }
 
+  // Contacto compartido y ubicación (18-oct-2026): Zernio SÍ manda el número (metadata.contacts) y las coordenadas
+  // (metadata.location); antes se guardaba solo el texto "👤 Nombre" / "📍 Location". Se guardan con el mismo formato
+  // JSON que ya usa whatsapp-enviar, así la tarjeta de la pantalla los dibuja igual que los que salen del CRM.
+  let cuerpoEspecial: string | null = null;
+  let previewEspecial: string | null = null;
+  if (!textoNoDisponible && adjuntos.length === 0 && Array.isArray(metaZ.contacts) && metaZ.contacts.length > 0) {
+    const c = metaZ.contacts[0] || {};
+    const tel0 = Array.isArray(c.phones) && c.phones.length ? c.phones[0] : null;
+    const nombre = c.name?.formatted_name || c.name?.first_name || textoCrudo.replace(/^👤\s*/u, "") || "Contacto";
+    tipoContenido = "contacto";
+    cuerpoEspecial = JSON.stringify({
+      nombre,
+      telefono: tel0?.phone || (tel0?.wa_id ? `+${tel0.wa_id}` : ""),
+      wa_id: tel0?.wa_id || null,
+      mas: metaZ.contacts.length - 1,
+    });
+    previewEspecial = `👤 ${nombre}`;
+  } else if (!textoNoDisponible && adjuntos.length === 0 && metaZ.location && metaZ.location.latitude != null && metaZ.location.longitude != null) {
+    const etiqueta = textoCrudo.replace(/^📍\s*/u, "");
+    tipoContenido = "ubicacion";
+    cuerpoEspecial = JSON.stringify({
+      lat: Number(metaZ.location.latitude),
+      lng: Number(metaZ.location.longitude),
+      nombre: metaZ.location.name || (etiqueta && etiqueta !== "Location" ? etiqueta : null),
+      direccion: metaZ.location.address || null,
+    });
+    previewEspecial = "📍 Ubicación";
+  }
+  // Reenviado y anuncio de origen (lo que WhatsApp muestra como «Reenviado» y la tarjeta del anuncio).
+  const metaMsg: Record<string, unknown> = {};
+  if (metaZ.forwarded || metaZ.frequentlyForwarded || metaZ.frequently_forwarded) metaMsg.reenviado = true;
+  if (metaZ.referral && typeof metaZ.referral === "object") {
+    const r = metaZ.referral;
+    metaMsg.anuncio = {
+      titulo: r.headline && r.headline !== "api.whatsapp.com" ? String(r.headline).slice(0, 120) : null,
+      texto: typeof r.body === "string" ? r.body.slice(0, 400) : null,
+      imagen: r.image_url || r.thumbnail_url || null,
+      url: r.source_url || null,
+      tipo: r.source_type || null,
+    };
+  }
+
   const cuerpo = textoNoDisponible
+    ?? cuerpoEspecial
     ?? (textoCrudo || (tipoContenido !== "text" ? `[${tipoContenido}]` : ""));
+  const preview = previewEspecial ?? cuerpo;
 
   // conversationId REAL de Zernio -- lo unico que sirve para responder por la API. Para un
   // contacto con telefono, pasar el telefono funciona de casualidad (Zernio manda
@@ -576,7 +625,7 @@ async function procesarMensaje(payload: any) {
         ultimo_mensaje_at: eventoTs,
         ultimo_inbound_at: esEntrante ? eventoTs : null,
         ultima_respuesta_humana_at: esRespuestaHumana ? eventoTs : null,
-        ultimo_mensaje_preview: cuerpo.slice(0, 200),
+        ultimo_mensaje_preview: preview.slice(0, 200),
         no_leidos_count: esEntrante ? 1 : 0,
         zernio_conversation_id: conversationIdZernio,
       })
@@ -608,6 +657,7 @@ async function procesarMensaje(payload: any) {
         media_path: mediaPath,
         wa_message_id: idMensaje(msg),
         responde_a_id: respondeAId,
+        meta: Object.keys(metaMsg).length ? metaMsg : null,
         estado: esEntrante ? "recibido" : "enviado",
         es_automatico: false,
         // F16(b): fecha del EVENTO, no la del procesamiento -- mismo criterio
@@ -636,7 +686,7 @@ async function procesarMensaje(payload: any) {
       // No pisar un nombre ya guardado con null (el espejo saliente no trae nombre confiable)
       nombre_perfil: nombrePerfil ?? hiloExistente.nombre_perfil ?? undefined,
       ultimo_mensaje_at: eventoTs,
-      ultimo_mensaje_preview: cuerpo.slice(0, 200),
+      ultimo_mensaje_preview: preview.slice(0, 200),
       cliente_id: clienteId ?? undefined,
       actualizado_en: ahora,
     };
@@ -659,7 +709,7 @@ async function procesarMensaje(payload: any) {
   }
 
   if (esEntrante && esMensajeNuevo) {
-    await asegurarLead(sucursalId, hiloId, lineaId, telefonoE164, nombrePerfil, cuerpo, clienteId);
+    await asegurarLead(sucursalId, hiloId, lineaId, telefonoE164, nombrePerfil, preview, clienteId);
     dispararAgenteIA(hiloId, mensajeGuardado?.id ?? null);
   }
 }
@@ -675,17 +725,38 @@ async function procesarEstadoMensaje(payload: any, evento: string) {
   const msg = payload.message || {};
   const idBuscado = idMensaje(msg);
   const errorDetalle = payload.error ? JSON.stringify(payload.error).slice(0, 500) : null;
-  const { error, count } = await db
-    .from("whatsapp_mensajes")
-    .update({ estado, error_detalle: errorDetalle }, { count: "exact" })
-    .eq("wa_message_id", idBuscado);
+  // 18-oct-2026: wa_aplicar_estado (SQL) nunca baja una palomita (un «entregado» tardío no pisa un «leído») y, si el
+  // mensaje todavía no existe (el espejo de un mensaje escrito desde el celular llega DESPUÉS de su «entregado»), guarda
+  // el estado en whatsapp_estados_pendientes; el trigger de inserción lo aplica cuando el mensaje entra.
+  const { data: resultado, error } = await db.rpc("wa_aplicar_estado", {
+    p_wamid: idBuscado,
+    p_estado: estado,
+    p_error: errorDetalle,
+  });
   if (error) {
-    // F16(c): fallo real de escritura (no el caso "no se encontro el mensaje
-    // local", que es una condicion de carrera benigna y no amerita reintento
-    // -- ese caso solo se loguea, count===0 no lanza).
+    // F16(c): fallo real de escritura -> 500 para que Zernio reintente.
     throw new Error(`actualizar estado fallo: ${error.message}`);
   }
-  if (!count) console.error("actualizar estado: no se encontro mensaje con wa_message_id =", idBuscado);
+  if (resultado === "pendiente") console.log("estado guardado en espera de su mensaje:", estado);
+}
+
+// Reacciones (fase 3, 18-oct-2026): evento propio `reaction.received` de Zernio. Se guarda la reacción de cada lado
+// (cliente / negocio) en whatsapp_mensajes.reacciones con wa_aplicar_reaccion. Quitar una reacción llega con emoji vacío.
+// Si el mensaje al que se reacciona no está en el CRM (muy viejo o de antes de conectar la línea), se ignora.
+async function procesarReaccion(payload: any) {
+  const r = payload.reaction || {};
+  const wamid: string | null = r.platformMessageId || r.messageId || null;
+  if (!wamid) return;
+  const deNegocio = r.fromMe === true || r.direction === "outgoing" || r.sender?.isMe === true ||
+    payload.message?.direction === "outgoing";
+  const emoji = r.action === "removed" ? "" : String(r.emoji || r.rawEmoji || "");
+  const { data, error } = await db.rpc("wa_aplicar_reaccion", {
+    p_wamid: wamid,
+    p_quien: deNegocio ? "negocio" : "cliente",
+    p_emoji: emoji,
+  });
+  if (error) throw new Error(`guardar reaccion fallo: ${error.message}`);
+  if (data === "sin_mensaje") console.log("reaccion a un mensaje que no esta en el CRM");
 }
 
 Deno.serve(async (req: Request) => {
@@ -706,6 +777,8 @@ Deno.serve(async (req: Request) => {
       await procesarMensaje(payload);
     } else if (evento === "message.delivered" || evento === "message.read" || evento === "message.failed") {
       await procesarEstadoMensaje(payload, evento);
+    } else if (evento === "reaction.received") {
+      await procesarReaccion(payload);
     } else {
       console.error("Evento no manejado:", evento);
     }

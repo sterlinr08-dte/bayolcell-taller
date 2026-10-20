@@ -1,0 +1,80 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   Taller · tamaño táctil (regla del dueño, 18-oct-2026: «recuerda el tamaño de los botones»)
+   - Todo lo que se toca: 44 × 44 px o más.
+   - Campos de escribir: 48 px de alto y letra de 16 px (el iPhone no hace zoom).
+   - Letra mínima de los controles: 13 px.
+   Capa aislada y reversible: solo actúa con html.bc-tactil (la pone el <head>).
+   «#bcT#bcT#bcT» dentro de :is() solo sube la especificidad (no existe ese id) para ganarle a «#app .view .btn».
+   Se apaga en un equipo con localStorage.bc_tactil_off = '1', o para todos con BC_TACTIL = false.
+   No toca la lógica: solo medidas. El chat de WhatsApp (#waWrap) queda como está.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* Botones y controles que se tocan, dentro de las pantallas y las ventanas */
+html.bc-tactil body :is(.view, .modal-box, #bcT#bcT#bcT) :is(button, .btn, a.btn, [role="button"]:is(button, a, span, i), summary):not(#waWrap *):not([hidden]) {
+  min-height: 44px !important;
+  min-width: 44px !important;
+  font-size: max(13px, 1em);
+}
+/* Campos de escribir y listas desplegables: 48 px y letra de 16 */
+html.bc-tactil body :is(.view, .modal-box, #bcT#bcT#bcT) :is(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]):not([type="range"]):not([type="color"]),
+  select
+):not(#waWrap *) {
+  min-height: 48px !important;
+  font-size: 16px !important;
+}
+html.bc-tactil body :is(.view, .modal-box, #bcT#bcT#bcT) textarea:not(#waWrap *) {
+  font-size: 16px !important;
+}
+/* Foco visible en los campos */
+html.bc-tactil body :is(.view, .modal-box, #bcT#bcT#bcT) :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):not(#waWrap *):focus-visible {
+  outline: 3px solid rgb(96 165 250 / .55) !important;
+  outline-offset: 1px;
+}
+
+/* Casillas y opciones: la fila o etiqueta completa se puede tocar (44 px) */
+html.bc-tactil body :is(.view, .modal-box, #bcT#bcT#bcT) label:has(> input:is([type="checkbox"], [type="radio"])):not(#waWrap *) {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+html.bc-tactil body :is(.view, .modal-box, #bcT#bcT#bcT) input:is([type="checkbox"], [type="radio"]):not(#waWrap *) {
+  width: 20px;
+  height: 20px;
+}
+
+/* La cabecera del CRM (íconos de 29–32 px) sube a 44 sin tocar el chat */
+html.bc-tactil body #v-crmLinea#v-crmLinea#v-crmLinea :is(button, .btn):not(#waWrap *) {
+  min-height: 44px !important;
+  min-width: 44px !important;
+}
+/* Con 44 px, Leads/Campañas y los íconos ya no caben en una fila del celular: se acomodan en dos, sin encimarse */
+html.bc-tactil body #v-crmLinea#v-crmLinea#v-crmLinea .crm-tabs-row {
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+html.bc-tactil body #v-crmLinea#v-crmLinea#v-crmLinea .crm-tabs-track {
+  flex: 0 0 auto !important;
+  height: auto !important;
+}
+html.bc-tactil body #v-crmLinea#v-crmLinea#v-crmLinea .crm-tabs-track > .crm-tab-seg {
+  flex-shrink: 0 !important;
+  font-size: 13px !important;
+}
+html.bc-tactil body #v-crmLinea#v-crmLinea#v-crmLinea .crm-acciones-rapidas .crm-icon-btn {
+  width: 44px !important;
+  height: 44px !important;
+}
+
+/* ── Letra legible (19-oct-2026) ─────────────────────────────────────────────
+   Medido: todas las etiquetas de formulario eran de 10–13 px (la mayoría 11), las ayudas <small> de 8,5–12
+   y los títulos de tabla de 10–11. Se fijan en 13 / 12 / 12 (tamaño fijo, no relativo al contenedor).
+   Se mantiene el estilo (mayúsculas donde ya las había). */
+html.bc-tactil body :is(.view, .modal-box, #bcT#bcT#bcT) label:not(:has(input:is([type="checkbox"], [type="radio"]))):not(#waWrap *) {
+  font-size: 13px !important;
+  letter-spacing: .02em;
+}
+html.bc-tactil body :is(.view, .modal-box, #bcT#bcT#bcT) :is(small, th):not(#waWrap *):not(label *) {
+  font-size: 12px !important;
+}

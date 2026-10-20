@@ -4,7 +4,7 @@
   if(window.__bcCrmExtensionsLoader)return;
   window.__bcCrmExtensionsLoader=true;
 
-  var V='20260929-f3';
+  var V='20261020-u1';
   var SOCIAL_HUB='20261014-ig1';
   var PERF='20260929-f1';
   var FB_DIRECT='20260920-incr1';
@@ -40,7 +40,7 @@
       document.head.appendChild(ico);
     }
   }catch(e){}
-  try{var avp=document.createElement('script');avp.async=false;avp.src='taller-pestana-avisos.js?v=20261004-ic1';document.head.appendChild(avp);}catch(e){} // Aviso en la pestaña: (N) sin leer + parpadeo con mensaje nuevo
+  try{var avp=document.createElement('script');avp.async=false;avp.src='taller-pestana-avisos.js?v=20261018-nl1';document.head.appendChild(avp);}catch(e){} // Aviso en la pestaña: (N) sin leer + parpadeo con mensaje nuevo
   try{var bcr=document.createElement('script');bcr.async=false;bcr.src='bc-reflector.js?v=20261004r2';document.head.appendChild(bcr);}catch(e){} // Efectos reflector (réplica de NEXUS PRO): barra superior, brillo fijo, luz de vidrio
   try{var bcb=document.createElement('script');bcb.async=false;bcb.src='bc-busqueda.js?v=20261009b3';document.head.appendChild(bcb);}catch(e){} // Buscador «Premium» (réplica de NEXUS PRO): lupa que se estira a píldora en todos los buscadores
 
@@ -48,7 +48,7 @@
   try{var bcm=document.createElement('script');bcm.async=false;bcm.src='taller-sidebar-mini.js?v=20261009m1';document.head.appendChild(bcm);}catch(e){} // Menú lateral compacto: solo íconos en la computadora, se abre al pasar el ratón
   try{var bca=document.createElement('script');bca.async=false;bca.src='taller-animaciones.js?v=20261014a';document.head.appendChild(bca);}catch(e){} // Animaciones de beUI: números de los KPI, botón Guardar → Listo ✓ y deslizar chats en el celular
   try{var bmr=document.createElement('script');bmr.async=false;bmr.src='taller-mejoras-ref.js?v=20261014m1';document.head.appendChild(bmr);}catch(e){} // Mantener presionado para borrar, embudo de Leads y logos de marcas (lista de referencias)
-  try{var brs=document.createElement('script');brs.async=false;brs.src='taller-reacond-smart.js?v=20261014r1';document.head.appendChild(brs);}catch(e){} // Reacondicionados smart: tablero de atascados, repartir evaluados, revisar terminados y despachar listos en bloque
+  try{var brs=document.createElement('script');brs.async=false;brs.src='taller-reacond-smart.js?v=20261019f1';document.head.appendChild(brs);}catch(e){} // Reacondicionados smart: tablero de atascados, repartir evaluados, revisar terminados y despachar listos en bloque
   try{var brz=document.createElement('script');brz.async=false;brz.src='taller-rapidez.js?v=20261014q1';document.head.appendChild(brz);}catch(e){} // Que se sienta instantáneo: línea de carga, fondo desenfocado, Ctrl+K, deshacer archivar y aviso de conexión
   try{var bfl=document.createElement('script');bfl.async=false;bfl.src='taller-flota.js?v=20261016c2';document.head.appendChild(bfl);}catch(e){} // Tarjetas estilo FleetTrack en Reacondicionados y Órdenes: foto, técnico, barra de avance y filtros del color de la etiqueta
 
@@ -93,7 +93,7 @@
 
       var copy=document.createElement('div');
       copy.className='bc-loader-copy';
-      copy.innerHTML='<strong class="bc-loader-title">Cargando sistema…</strong><span class="bc-loader-status">Preparando tu espacio de trabajo</span>';
+      copy.innerHTML='<strong class="bc-loader-title">Cargando sistema…</strong><span class="bc-loader-status">Preparando su espacio de trabajo</span>';
       loader.appendChild(copy);
       loader.setAttribute('aria-label','Cargando sistema BAYOL CELL');
     }catch(e){}

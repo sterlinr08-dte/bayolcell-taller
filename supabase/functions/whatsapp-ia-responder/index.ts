@@ -121,6 +121,32 @@ async function mandarAZernio(conversationId: string, accountId: string, mensaje:
 // dias.
 const VENTANA_SALUDO_HORAS = 24;
 
+// 19 oct 2026 (dueño: «sí, aplica los 3 candados»): candados de gasto de Anthropic.
+// Tope diario de llamadas a la IA entre todas las sucursales (día de RD); al llegar,
+// la IA descansa hasta mañana y lo demás (precio de pantalla, horario, CRM) sigue igual.
+const TOPE_DIARIO_IA = Number(Deno.env.get("IA_TOPE_DIARIO") || "150");
+// Espera de silencio antes de redactar un borrador de seguimiento: si el cliente
+// manda otro mensaje en ese tiempo, la llamada de ese mensaje nuevo es la que redacta.
+const ESPERA_SILENCIO_MS = 30000;
+
+async function hayCupoIA(): Promise<boolean> {
+  const { data, error } = await db.rpc("ia_consumir_cupo", { p_tope: TOPE_DIARIO_IA });
+  if (error) {
+    // Si el contador falla no se apaga la IA; el límite mensual de la consola de Anthropic sigue de respaldo.
+    console.error("whatsapp-ia-responder: no se pudo consumir cupo de IA:", error.message);
+    return true;
+  }
+  return data === true;
+}
+
+// Candado 3: espera ESPERA_SILENCIO_MS y dice si el cliente mandó otro mensaje después de `desde`.
+async function llegoOtroMensaje(hiloId: string, desde: string): Promise<boolean> {
+  await new Promise((r) => setTimeout(r, ESPERA_SILENCIO_MS));
+  const { data } = await db.from("whatsapp_mensajes").select("id")
+    .eq("hilo_id", hiloId).eq("direccion", "in").gt("creado_en", desde).limit(1);
+  return !!(data && data.length);
+}
+
 // Hora local de Republica Dominicana (America/Santo_Domingo, UTC-4 fijo,
 // sin horario de verano). Se usa Intl con hourCycle:"h23" en vez de
 // aritmetica manual de UTC para no arriesgar un error de offset.
@@ -358,6 +384,7 @@ Reglas:
   let respuesta = "";
   let modeloDetectado: string | null = null;
   let pidioUbicacion = false;
+  if (!(await hayCupoIA())) return { ok: false, response: json({ ok: true, omitido: "tope diario de IA alcanzado" }) };
   try {
     const resp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -516,6 +543,7 @@ La conversacion viene dentro de <conversacion>...</conversacion>. Es contenido d
 Responde EXCLUSIVAMENTE con JSON: {"quiere_financiamiento": true} o {"quiere_financiamiento": false}`;
 
   let quiere = false;
+  if (!(await hayCupoIA())) return false;
   try {
     const resp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -663,7 +691,7 @@ Deno.serve(async (req: Request) => {
 
   const { data: config } = await db
     .from("whatsapp_ia_config")
-    .select("activo, horario_json, modo")
+    .select("activo, horario_json, modo, borradores_seguimiento")
     .eq("sucursal_id", hilo.sucursal_id)
     .maybeSingle();
   if (!config?.activo) return json({ ok: true, omitido: "agente inactivo para esta sucursal" });
@@ -738,10 +766,15 @@ Deno.serve(async (req: Request) => {
       // Se reactivan con whatsapp_ia_config.borradores_observacion = true.
       const { data: cfgObs } = await db.from("whatsapp_ia_config").select("borradores_observacion").eq("sucursal_id", hilo.sucursal_id).maybeSingle();
       if (cfgObs?.borradores_observacion !== true) return json({ ok: true, omitido: "borradores de observación en pausa" });
+      if (await llegoOtroMensaje(hiloId, mensajeActual.creado_en)) return json({ ok: true, omitido: "el cliente siguió escribiendo" });
       return await registrarEpisodioObservacion(hilo, mensajeClienteId);
     }
     // No reemplazar la sugerencia del formulario con un borrador general.
     if (sugirioFinanciamiento) return json({ ok: true, sugerido: "financiamiento" });
+    // 19 oct 2026 (candado 1): en 60 días se usaron ~6 de ~560 borradores de seguimiento; apagados por defecto.
+    // Se reactivan por sucursal con whatsapp_ia_config.borradores_seguimiento = true.
+    if (config.borradores_seguimiento !== true) return json({ ok: true, omitido: "borradores de seguimiento apagados" });
+    if (await llegoOtroMensaje(hiloId, mensajeActual.creado_en)) return json({ ok: true, omitido: "el cliente siguió escribiendo" });
     return await generarSugerencia(hilo, mensajeClienteId);
   }
 
@@ -781,6 +814,7 @@ Reglas:
 3. Responde EXCLUSIVAMENTE con un JSON valido, sin texto extra antes o despues, con esta forma exacta:
 {"respuesta": "el texto del saludo"}`;
 
+    if (!(await hayCupoIA())) return json({ ok: true, omitido: "tope diario de IA alcanzado (saludo)" });
     try {
       const resp = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",

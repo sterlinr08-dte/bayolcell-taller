@@ -85,3 +85,9 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## mattpocock/skills (grill-me, grilling, wait-what, handoff) y abogado-del-diablo — 18-oct-2026
+- Origen: github.com/mattpocock/skills @ 49dd158 (MIT, Copyright 2026 Matt Pocock) y github.com/Hainrixz/abogado-del-diablo @ 7ba9a5f (MIT, Copyright 2026 Hainrixz / tododeia).
+- Carpetas: grill-me, grilling, wait-what (adaptada a español), handoff (adaptada: guarda en la bitácora), abogado-del-diablo.
+- El texto completo de cada licencia MIT va en el archivo `LICENSE` dentro de cada carpeta.
+- Solo instrucciones (.md); sin programas, red ni telemetría (revisión del 18-oct-2026).

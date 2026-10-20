@@ -1,0 +1,24 @@
+# Revisión del WhatsApp del CRM tras las fases 1–3 — Claude
+
+- **Qué es:** el control programado que dejé al publicar la fase 1. Ventana revisada: 18-oct-2026, de 04:00 a 14:45 UTC (00:00 a 10:45 hora RD). Solo lectura: no se cambió nada.
+- **Palomitas:**
+  - el aviso «actualizar estado: no se encontro mensaje» bajó de unos 235 por día a **0**;
+  - **37** estados llegaron antes que su mensaje y quedaron en espera;
+  - en `whatsapp_estados_pendientes` hay 36 filas: **30 ya aplicadas** y 6 «leído» sin aplicar, todas de mensajes que nunca entraron al CRM (no existe el `wa_message_id`), así que no hay palomita que poner. Es lo esperado: probablemente son mensajes enviados fuera del CRM o de otra línea.
+- **Mensajes desde las 00:00 RD:**
+  - 325 en total, 171 salientes;
+  - 139 salientes ya tienen 2 palomitas o azules;
+  - 24 siguen en una palomita, todas de la última hora y media (13:00–14:15 UTC), sin error. Son clientes a los que aún no les llega o que tienen el teléfono apagado; las de horas anteriores ya están todas entregadas.
+- **Datos nuevos:**
+  - 32 mensajes con `meta` (reenviado o anuncio);
+  - 0 contactos y 0 ubicaciones (nadie mandó uno todavía);
+  - 0 reacciones: sigue pendiente que el dueño agregue `reaction.received` al webhook de Zernio.
+- **Errores del webhook:** 539 respuestas 200 y **1 respuesta 500**, a las 13:48:58 UTC.
+  - Causa: dos mensajes de un número nuevo llegaron a la vez y los dos quisieron crear el hilo (`duplicate key … whatsapp_hilos_linea_id_telefono_e164_key`).
+  - Zernio reintentó y el hilo quedó con sus 2 mensajes. **No se perdió nada.**
+  - Mejora posible, sin hacer: si el hilo ya existe, releerlo en vez de fallar.
+- **Hallazgo importante, ajeno a estas fases:** `whatsapp-ia-responder` (sugerencias de respuesta con IA) **no está funcionando**.
+  - Anthropic responde «You have reached your specified API usage limits. You will regain access on 2026-11-01».
+  - Falló 1,082 veces del 16 al 17 de octubre y 730 del 17 al 18. Ya pasaba el 16 de octubre, así que empezó ese día o antes.
+  - Es el **límite de gasto mensual** que tiene puesto la cuenta de la API de Anthropic. Solo el dueño puede subirlo, en console.anthropic.com → Settings → Limits. No se tocó.
+- **Siguiente paso:** el dueño decide si sube el límite de la API (o espera al 1-nov) y si agrega `reaction.received` en Zernio.

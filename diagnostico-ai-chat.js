@@ -28,13 +28,13 @@ async function checked(result){const {data,error}=await result;if(error)throw Er
 async function loadCases(){
   if(busy)return;reset();const version=epoch;busy=true;controls();status();
   try{
-    const sb=client();if(!sb)throw Error('Inicia sesión en el taller.');
-    const auth=await sb.auth.getUser();if(auth.error||!auth.data?.user||auth.data.user.is_anonymous)throw Error('Inicia sesión con una cuenta del taller.');
+    const sb=client();if(!sb)throw Error('Inicie sesión en el taller.');
+    const auth=await sb.auth.getUser();if(auth.error||!auth.data?.user||auth.data.user.is_anonymous)throw Error('Inicie sesión con una cuenta del taller.');
     const user=auth.data.user.id,found=await checked(sb.rpc('ai_board_cases',{p_offset:casePage*50,p_limit:50}));
     if(version!==epoch)return;owner=user;cases=Array.isArray(found)?found:[];
-    option($('ab-chat-case'),'','Selecciona un diagnóstico guardado');
+    option($('ab-chat-case'),'','Seleccione un diagnóstico guardado');
     for(const c of cases)option($('ab-chat-case'),c.id,c.modelo+' · Caso '+c.id.slice(0,8)+(c.orden_id?' · Con orden':''));
-    $('ab-chat-history-state').textContent=cases.length?'Selecciona un caso para abrir su historial':'Sin casos autorizados';
+    $('ab-chat-history-state').textContent=cases.length?'Seleccione un caso para abrir su historial':'Sin casos autorizados';
   }catch(e){if(version===epoch)status(e.message);}
   finally{busy=false;controls();}
 }
@@ -44,7 +44,7 @@ async function loadSessions(){
   if(!id)return controls();busy=true;controls();
   try{
     const list=await checked(client().from('ai_board_sessions').select('id,modelo,created_at').eq('diagnostico_id',id).eq('owner_id',owner).order('created_at',{ascending:false}).order('id',{ascending:false}).range(sessionPage*30,sessionPage*30+29));
-    if(version!==epoch)return;option($('ab-chat-session'),'','Selecciona o crea una conversación');
+    if(version!==epoch)return;option($('ab-chat-session'),'','Seleccione o cree una conversación');
     for(const s of list)option($('ab-chat-session'),s.id,new Date(s.created_at).toLocaleString('es-DO')+' · '+s.modelo);
     $('ab-chat-history-state').textContent=list.length?'Conversaciones guardadas disponibles':'Sin conversaciones. Pulsa Nuevo chat.';
   }catch(e){if(version===epoch)status(e.message);}
@@ -60,9 +60,9 @@ async function history(){
     if(version!==epoch)return;session=s;alignModel(s.modelo);
     for(const t of turns.reverse()){
       bubble('human',t.user_message);
-      bubble('ai',t.status==='completed'?t.assistant_message:t.status==='failed'?'Consulta fallida. Puedes enviarla de nuevo.':'Respuesta pendiente. Recarga el historial en unos segundos.');
+      bubble('ai',t.status==='completed'?t.assistant_message:t.status==='failed'?'Consulta fallida. Puede enviarla de nuevo.':'Respuesta pendiente. Recargue el historial en unos segundos.');
     }
-    $('ab-chat-history-state').textContent='Historial guardado · Página '+(turnPage+1)+' de turnos · '+s.modelo+(turnPage>0?' · Vuelve a mensajes recientes para enviar; tu borrador se conserva.':'');
+    $('ab-chat-history-state').textContent='Historial guardado · Página '+(turnPage+1)+' de turnos · '+s.modelo+(turnPage>0?' · Vuelva a los mensajes recientes para enviar; su borrador se conserva.':'');
     $('ab-chat-feed').scrollTop=$('ab-chat-feed').scrollHeight;
   }catch(e){if(version===epoch)status(e.message);}
   finally{busy=false;controls();}
@@ -82,7 +82,7 @@ async function newChat(){
 async function createCase(){
   if(busy)return;busy=true;controls();status();const version=epoch;
   try{
-    const model=$('ab-model')?.value;if(!model)throw Error('Selecciona el modelo del iPhone.');
+    const model=$('ab-model')?.value;if(!model)throw Error('Seleccione el modelo del iPhone.');
     const id=await checked(client().rpc('ai_board_create_case',{p_model:model}));
     if(version!==epoch)return;
     busy=false;casePage=0;sessionPage=0;turnPage=0;await loadCases();if(!owner)return;
@@ -95,7 +95,7 @@ async function deleteChat(){
   busy=true;controls();status();const version=epoch;
   try{
     const removed=await checked(client().from('ai_board_sessions').delete().eq('id',session.id).eq('owner_id',owner).select('id'));
-    if(version!==epoch)return;if(!removed?.length)throw Error('No se confirmó la eliminación. Recarga el historial.');
+    if(version!==epoch)return;if(!removed?.length)throw Error('No se confirmó la eliminación. Recargue el historial.');
     busy=false;await loadSessions();
   }catch(e){if(version===epoch)status(e.message);}
   finally{busy=false;controls();}
@@ -105,33 +105,33 @@ async function crearCasoYSesion(model){
   const id=await checked(client().rpc('ai_board_create_case',{p_model:model}));
   const s=await checked(client().from('ai_board_sessions').insert({owner_id:owner,diagnostico_id:id,modelo:model}).select('id,modelo,diagnostico_id').single());
   cases.unshift({id,modelo:model,orden_id:null});
-  const sel=$('ab-chat-case');if(sel.options.length===0)option(sel,'','Selecciona un diagnóstico guardado');
+  const sel=$('ab-chat-case');if(sel.options.length===0)option(sel,'','Seleccione un diagnóstico guardado');
   const o=document.createElement('option');o.value=id;o.textContent=model+' · Caso '+id.slice(0,8);sel.insertBefore(o,sel.options[1]||null);sel.value=id;
-  $('ab-chat-session').replaceChildren();option($('ab-chat-session'),'','Selecciona o crea una conversación');option($('ab-chat-session'),s.id,'Nueva conversación · '+s.modelo);$('ab-chat-session').value=s.id;
+  $('ab-chat-session').replaceChildren();option($('ab-chat-session'),'','Seleccione o cree una conversación');option($('ab-chat-session'),s.id,'Nueva conversación · '+s.modelo);$('ab-chat-session').value=s.id;
   return s;
 }
 async function send(){
   const input=$('ab-chat-text'),message=input.value.trim();if(busy||!owner||!message||!$('ab-chat-agree').checked)return;
-  if(turnPage>0)return status('Vuelve a mensajes recientes antes de enviar. Tu borrador se conserva.');
+  if(turnPage>0)return status('Vuelva a los mensajes recientes antes de enviar. Su borrador se conserva.');
   if(message.length>1400)return status('Máximo 1,400 caracteres.');
   const selected=$('ab-model')?.value;if(session&&selected&&selected!==session.modelo)return status('El modelo elegido no coincide con esta conversación. Pulsa «Nueva consulta» o vuelve a '+session.modelo+'.');
-  const modelo=session?session.modelo:selected;if(!modelo)return status('Elige el modelo del iPhone.');
-  if($('ab-chat-use-form').checked&&$('dg_modelo')?.value.trim()!==modelo)return status('El formulario corresponde a otro modelo. Revisa las mediciones antes de incluirlas.');
+  const modelo=session?session.modelo:selected;if(!modelo)return status('Seleccione el modelo del iPhone.');
+  if($('ab-chat-use-form').checked&&$('dg_modelo')?.value.trim()!==modelo)return status('El formulario corresponde a otro modelo. Revise las mediciones antes de incluirlas.');
   busy=true;controls();status();const version=epoch;let thinking;
   try{
-    const auth=await client().auth.getUser();if(auth.error||auth.data?.user?.id!==owner)throw Error('Cambió tu sesión. Recarga los casos.');
+    const auth=await client().auth.getUser();if(auth.error||auth.data?.user?.id!==owner)throw Error('La sesión cambió. Recargue los casos.');
     if(!session){const s=await crearCasoYSesion(modelo);if(version!==epoch)return;session=s;pending=null;}
     recordarConsent(true);
     const context=$('ab-chat-use-form').checked?{
       bateria:($('dg_bateria')?.value||'').slice(0,130),consumo:($('dg_consumo')?.value||'').slice(0,130),
       sintomas:[...document.querySelectorAll('#dg_sintomas .diag-sint.on')].map(n=>n.textContent.trim().slice(0,160)).slice(0,12)
     }:{};
-    if($('ab-chat-point').checked&&selectedPoint){if(selectedPoint.model!==session.modelo)throw Error('El componente pertenece a otro modelo. Selecciónalo de nuevo para este caso.');context.point=selectedPoint;}
+    if($('ab-chat-point').checked&&selectedPoint){if(selectedPoint.model!==session.modelo)throw Error('El componente pertenece a otro modelo. Selecciónelo de nuevo para este caso.');context.point=selectedPoint;}
     const payload=JSON.stringify({message,context,session_id:session.id});
     if(pending?.payload!==payload)pending={payload,id:crypto.randomUUID()};
     thinking=bubble('ai','Analizando…');
     const {data,error}=await client().functions.invoke('ai-board-chat',{body:{session_id:session.id,request_id:pending.id,message,context,consent:true}});
-    if(error){let details;try{details=await error.context?.clone().json();}catch{}const code=error.context?.status;if(details?.code==='TURN_FAILED'||(code&&code<500&&code!==409))pending=null;throw Error(details?.error||'No se confirmó el envío. Recarga el historial antes de reintentar.');}
+    if(error){let details;try{details=await error.context?.clone().json();}catch{}const code=error.context?.status;if(details?.code==='TURN_FAILED'||(code&&code<500&&code!==409))pending=null;throw Error(details?.error||'No se confirmó el envío. Recargue el historial antes de reintentar.');}
     if(!data?.ok||data.persisted!==true||typeof data.answer!=='string')throw Error(data?.error||'No se confirmó el guardado.');
     if(version!==epoch)return;
     thinking.remove();thinking=null;bubble('human',message);bubble('ai',data.answer);pending=null;input.value='';
@@ -144,16 +144,16 @@ function mount(){
   const legacy=$('ab-legacy');if(!legacy||$('ab-ai-chat'))return;
   const box=document.createElement('section');box.id='ab-ai-chat';
   box.innerHTML='<header><h3><i class="ti ti-message-chatbot"></i>Pregúntale a la IA</h3><div><button id="ab-chat-new" type="button"><i class="ti ti-plus"></i> Nueva consulta</button><button id="ab-chat-delete" type="button" class="ab-chat-quiet" title="Eliminar esta conversación"><i class="ti ti-trash"></i></button></div></header>'+
-  '<ol class="ab-chat-pasos"><li><b>1</b> Elige el modelo</li><li><b>2</b> Escribe lo que ves y lo que mediste</li><li><b>3</b> La IA te dice qué revisar y qué medir</li></ol>'+
+  '<ol class="ab-chat-pasos"><li><b>1</b> Seleccione el modelo</li><li><b>2</b> Escriba lo que observa y lo que midió</li><li><b>3</b> La IA le indica qué revisar y qué medir</li></ol>'+
   '<div class="ab-chat-modelo"><label for="ab-chat-model">Modelo del iPhone</label><select id="ab-chat-model"></select><span id="ab-chat-history-state" role="status">Historial no cargado</span></div>'+
   '<div id="ab-chat-feed" role="log" aria-label="Conversación con IA" aria-live="polite"></div>'+
-  '<div class="ab-chat-composer"><div class="ab-chat-rapidas" aria-label="Preguntas rápidas"></div><label for="ab-chat-text">Tu consulta</label><textarea id="ab-chat-text" rows="2" maxlength="1400" placeholder="Ej.: No enciende. En la fuente marca 0.00 A. Ya cambié la batería."></textarea>'+
+  '<div class="ab-chat-composer"><div class="ab-chat-rapidas" aria-label="Preguntas rápidas"></div><label for="ab-chat-text">Consulta</label><textarea id="ab-chat-text" rows="2" maxlength="1400" placeholder="Ej.: No enciende. En la fuente marca 0.00 A. Ya cambié la batería."></textarea>'+
   '<div class="ab-chat-checks"><label><input id="ab-chat-use-form" type="checkbox"> Incluir síntomas y mediciones del formulario de abajo</label><label class="ab-chat-punto"><input id="ab-chat-point" type="checkbox"> Incluir componente del mapa</label><span id="ab-chat-point-note">Sin componente seleccionado</span><label><input id="ab-chat-agree" type="checkbox"> Autorizo enviar estos datos técnicos a la IA y guardarlos en el caso</label></div>'+
   '<button type="button" id="ab-chat-send" disabled><i class="ti ti-send"></i> Enviar</button></div><p id="ab-chat-error" role="alert" hidden></p>'+
   '<details id="ab-chat-hist" class="ab-chat-hist"><summary><i class="ti ti-history"></i> Consultas anteriores</summary>'+
   '<div class="ab-chat-history"><label>Diagnóstico guardado<select id="ab-chat-case"></select></label><label>Conversación<select id="ab-chat-session"></select></label><button id="ab-chat-reload" type="button">Recargar</button><button id="ab-chat-create-case" type="button">Crear caso vacío del modelo</button></div>'+
   '<div class="ab-chat-pages"><span>Casos <button id="ab-chat-cases-prev" type="button">Anteriores</button><button id="ab-chat-cases-next" type="button">Más</button></span><span>Conversaciones <button id="ab-chat-sessions-prev" type="button">Anteriores</button><button id="ab-chat-sessions-next" type="button">Más</button></span><span>Mensajes <button id="ab-chat-turns-prev" type="button">Recientes</button><button id="ab-chat-turns-next" type="button">Anteriores</button></span></div></details>'+
-  '<p class="ab-chat-foot">Escribe solo datos técnicos: nada de claves, IMEI ni nombres de clientes. La IA orienta; la última palabra la tiene el técnico.</p>';
+  '<p class="ab-chat-foot">Escriba solo datos técnicos, sin claves, IMEI ni nombres de clientes. La IA orienta; la última palabra la tiene el técnico.</p>';
   legacy.prepend(box);legacy.querySelector('.ab-inline-note')?.remove();
   // Selector de modelo del chat = el mismo del BITMAP (uno solo para todo el módulo).
   const bm=$('ab-model'),cm=$('ab-chat-model');
@@ -175,7 +175,7 @@ function mount(){
   for(const [id,delta] of [['ab-chat-sessions-prev',-1],['ab-chat-sessions-next',1]])$(id).addEventListener('click',()=>{if(!busy&&$('ab-chat-case').value){sessionPage=Math.max(0,sessionPage+delta);loadSessions();}});
   for(const [id,delta] of [['ab-chat-turns-prev',-1],['ab-chat-turns-next',1]])$(id).addEventListener('click',()=>{if(!busy&&$('ab-chat-session').value){turnPage=Math.max(0,turnPage+delta);history();}});
   client()?.auth.onAuthStateChange((event,userSession)=>{
-    if(event==='SIGNED_OUT'||(owner&&userSession?.user?.id!==owner)){casePage=0;sessionPage=0;turnPage=0;reset();window.dispatchEvent(new Event('bayol-ai-board-identity-reset'));status('Sesión cambiada. Recarga los casos.');}
+    if(event==='SIGNED_OUT'||(owner&&userSession?.user?.id!==owner)){casePage=0;sessionPage=0;turnPage=0;reset();window.dispatchEvent(new Event('bayol-ai-board-identity-reset'));status('Sesión cambiada. Recargue los casos.');}
   });
   controls();
   window.addEventListener('bayol-ai-board-point-reset',()=>{pointEpoch++;selectedPoint=null;$('ab-ai-chat')?.classList.remove('ab-con-punto');$('ab-chat-point').checked=false;$('ab-chat-point-note').textContent='Sin componente seleccionado';});
@@ -186,7 +186,7 @@ function mount(){
   // an independent feature and may be unavailable until the staging backend is deployed.
   const oldButton=$('dg_btn');if(oldButton){oldButton.title='Diagnóstico clásico disponible de forma independiente del chat';}
   const off=document.createElement('p');off.id='ab-chat-off';off.className='ab-chat-tip';off.hidden=true;
-  off.textContent='El chat con historial todavía no está activado en el servidor. Mientras tanto, usa «Diagnosticar con IA» más abajo: funciona igual que siempre.';
+  off.textContent='El chat con historial todavía no está activado en el servidor. Mientras tanto, use «Diagnosticar con IA», más abajo, que funciona igual que siempre.';
   box.querySelector('header').after(off);
   // Solo se intenta cargar casos si el servidor del chat está instalado; si falta, no se muestran errores ni botones muertos.
   const abrir=async()=>{if(owner||busy)return;const ok=await (window.BayolAIBoardBackend?.disponible()??Promise.resolve(true));
@@ -194,7 +194,7 @@ function mount(){
   async function autoAbrir(){
     if(!owner||busy||session)return;$('ab-chat-agree').checked=consentGuardado();
     const m=$('ab-model')?.value,c=cases.find(c=>c.modelo===m);
-    if(!c){$('ab-chat-history-state').textContent='Escribe tu primera consulta para '+(m||'el modelo');controls();return;}
+    if(!c){$('ab-chat-history-state').textContent='Escriba su primera consulta para '+(m||'el modelo');controls();return;}
     $('ab-chat-case').value=c.id;await loadSessions();const sel=$('ab-chat-session');
     if(sel.options.length>1&&!session){sel.value=sel.options[1].value;await history();}
   }

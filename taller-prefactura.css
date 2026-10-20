@@ -1,0 +1,571 @@
+/* BAYOL CELL · Pantalla «Prefactura» con el diseño de la Prefactura de STUDIO (19-oct-2026). Va con taller-prefactura.js.
+   Solo actúa con html.bc-pf. Mismas proporciones y estructura de STUDIO (documento blanco, cajas cálidas «partes»,
+   cifras en letra monoespaciada, artículos en 2 líneas, totales a la derecha, barra fija abajo), con el color de BAYOL
+   en lugar del dorado. Medidas del dueño: todo lo que se toca ≥44 px, campos 48 px y letra 16, «Guardar» 54 px. */
+html.bc-pf #v-recepcion {
+  --pf-canvas: #f3f0e8; --pf-canvas2: #f0ede4; --pf-ink: #111; --pf-steel: #5b5951; --pf-mute: #6b675f;
+  --pf-line: rgba(90,72,20,.18); --pf-line2: rgba(128,101,21,.09); --pf-hair: rgba(0,0,0,.16);
+  --pf-acc: #e4572e; --pf-acc-dark: #b8401f; --pf-acc-soft: rgba(228,87,46,.12);
+  --pf-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, "JetBrains Mono", Consolas, monospace;
+  --pf-shadow: 0 1px 2px rgba(10,10,10,.07), 0 8px 20px -6px rgba(10,10,10,.14);
+}
+html.bc-pf #v-recepcion .bcpf-oculto { display: none !important; }
+
+/* ── Documento ── */
+html.bc-pf #v-recepcion .bcpf-doc {
+  max-width: 980px; margin: 0 auto 14px; background: #fff; border: 1px solid var(--pf-line); border-radius: 12px;
+  box-shadow: var(--pf-shadow); color: var(--pf-ink);
+}
+html.bc-pf #v-recepcion .bcpf-pad { padding: 16px 18px 18px; }
+
+/* Cabecera */
+html.bc-pf #v-recepcion .bcpf-dh {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px;
+  padding-bottom: 12px; border-bottom: 1px solid var(--pf-line2);
+}
+html.bc-pf #v-recepcion .bcpf-dh .emp { font-size: 17px; font-weight: 700; letter-spacing: -.015em; }
+html.bc-pf #v-recepcion .bcpf-dh .empsub { font-size: 13px; color: var(--pf-steel); margin-top: 2px; }
+html.bc-pf #v-recepcion .bcpf-dh .dhr { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+html.bc-pf #v-recepcion .bcpf-dh .dtit { font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--pf-steel); }
+html.bc-pf #v-recepcion .bcpf-dh .ibtn {
+  width: 44px; height: 44px; display: grid; place-items: center; border-radius: 10px; border: 1px solid var(--pf-hair);
+  background: #fff; color: var(--pf-acc-dark); font-size: 18px; cursor: pointer; padding: 0;
+}
+html.bc-pf #v-recepcion .bcpf-dh .dno { font-size: 13px; font-weight: 600; color: var(--pf-steel); }
+html.bc-pf #v-recepcion .bcpf-dh .dnum,
+html.bc-pf #v-recepcion .bcpf-dh .dfec {
+  display: inline-flex; align-items: center; height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--pf-hair);
+  font: 600 15px/1 var(--pf-mono);
+}
+html.bc-pf #v-recepcion .bcpf-dh .dnum { min-width: 110px; color: var(--pf-acc-dark); background: var(--pf-canvas); }
+html.bc-pf #v-recepcion .bcpf-dh .dnum.nueva { font-family: inherit; font-size: 14px; color: var(--pf-steel); }
+html.bc-pf #v-recepcion .bcpf-dh .dfec { background: #fff; color: var(--pf-ink); }
+html.bc-pf #v-recepcion .bcpf-dh .dest { flex-basis: 100%; }
+html.bc-pf #v-recepcion .bcpf-dh .dest:empty { display: none; }
+
+/* Cajas «partes» (cliente/condiciones y equipo/falla) */
+html.bc-pf #v-recepcion .bcpf-partes {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px 18px;
+  margin: 14px 0 12px; padding: 14px 16px; border-radius: 10px; border: 1px solid var(--pf-line); background: var(--pf-canvas);
+}
+html.bc-pf #v-recepcion .bcpf-partes .pcol { min-width: 0; }
+html.bc-pf #v-recepcion .plab { font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--pf-steel); margin: 0 0 8px; }
+html.bc-pf #v-recepcion .bcpf-campos { display: grid; gap: 10px; }
+html.bc-pf #v-recepcion .bcpf-campos > div { margin: 0 !important; min-width: 0; }
+html.bc-pf #v-recepcion .bcpf-campos label {
+  display: block; font-size: 13px !important; font-weight: 600; color: var(--pf-steel); text-transform: none; letter-spacing: 0; margin: 0 0 4px;
+}
+html.bc-pf #v-recepcion .bcpf-campos input:not([type=checkbox]):not([type=radio]),
+html.bc-pf #v-recepcion .bcpf-campos select,
+html.bc-pf #v-recepcion .bcpf-campos textarea {
+  width: 100%; box-sizing: border-box; min-height: 48px; font-size: 16px !important; padding: 10px 12px;
+  border: 1px solid var(--pf-hair); border-radius: 10px; background: #fff; color: var(--pf-ink); box-shadow: inset 0 1px 2px rgba(10,10,10,.05);
+}
+html.bc-pf #v-recepcion .bcpf-campos textarea { min-height: 76px; resize: vertical; }
+html.bc-pf #v-recepcion .bcpf-campos select:disabled { background: var(--pf-canvas2); color: var(--pf-steel); }
+html.bc-pf #v-recepcion .bcpf-campos input:focus,
+html.bc-pf #v-recepcion .bcpf-campos select:focus,
+html.bc-pf #v-recepcion .bcpf-campos textarea:focus { outline: none; border-color: var(--pf-acc); box-shadow: 0 0 0 3px var(--pf-acc-soft); }
+html.bc-pf #v-recepcion .bcpf-campos > div[style*="display:flex"],
+html.bc-pf #v-recepcion .bcpf-campos > div[style*="display: flex"] { gap: 10px !important; }
+html.bc-pf #v-recepcion .bcpf-nota { font-size: 13px; line-height: 1.6; color: var(--pf-steel); margin: 10px 0 0; padding-top: 10px; border-top: 1px solid var(--pf-line2); }
+
+/* Tarjeta del cliente (como «Facturar a» de STUDIO) */
+html.bc-pf #v-recepcion .pcli {
+  width: 100%; display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 10px 12px; margin: 0 0 12px;
+  border-radius: 12px; border: 1px solid var(--pf-hair); background: #fff; box-shadow: 0 1px 2px rgba(10,10,10,.06);
+  text-align: left; cursor: pointer; color: var(--pf-ink); font: inherit; transition: border-color .15s, background .15s;
+}
+html.bc-pf #v-recepcion .pcli:hover { border-color: var(--pf-acc); background: #fffaf7; }
+html.bc-pf #v-recepcion .pcli .pav {
+  flex: 0 0 42px; width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--pf-acc-soft); color: var(--pf-acc-dark); font-size: 15px; font-weight: 700;
+}
+html.bc-pf #v-recepcion .pcli .pinfo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+html.bc-pf #v-recepcion .pcli .pnom { font-size: 16px; font-weight: 600; overflow-wrap: anywhere; }
+html.bc-pf #v-recepcion .pcli .pdet { font-size: 13px; color: var(--pf-steel); overflow-wrap: anywhere; }
+html.bc-pf #v-recepcion .pcli .pchev { flex: 0 0 auto; font-size: 14px; font-weight: 600; color: var(--pf-acc-dark); display: inline-flex; align-items: center; gap: 2px; }
+
+/* Plegables dentro de «Falla reportada» (fallas del equipo y seguridad) */
+html.bc-pf #v-recepcion .bcpf-plegable {
+  margin: 10px 0 0 !important; padding: 0 !important; border: 1px solid var(--pf-hair) !important; border-left-width: 1px !important;
+  border-radius: 10px !important; background: #fff; box-shadow: none !important;
+}
+html.bc-pf #v-recepcion .bcpf-plegable > details > summary {
+  min-height: 48px; display: flex; align-items: center; gap: 8px; padding: 0 12px; font-size: 14px !important; list-style: none;
+}
+html.bc-pf #v-recepcion .bcpf-plegable > details > summary::-webkit-details-marker { display: none; }
+html.bc-pf #v-recepcion .bcpf-plegable > details > div { padding: 0 12px 12px; margin-top: 4px !important; }
+
+/* Buscador de artículos (el panel de STUDIO que ya existía) */
+html.bc-pf #v-recepcion .bcpf-busc { margin: 0 0 12px; }
+html.bc-pf #v-recepcion .bcpf-busc .rx-art-search { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 0; }
+html.bc-pf #v-recepcion .bcpf-busc .bcrx-scan { border-radius: 10px; border-color: var(--pf-hair); min-height: 48px; }
+html.bc-pf #v-recepcion .bcpf-busc .bcrx-scan:hover { border-color: var(--pf-acc); }
+html.bc-pf #v-recepcion .bcpf-busc .bcrx-srv {
+  min-height: 44px; border-radius: 999px !important; background: #fff !important; color: var(--pf-ink) !important;
+  border: 1px solid var(--pf-hair) !important; font-size: 13px !important; font-weight: 600; padding: 0 16px !important; box-shadow: none !important;
+}
+
+/* Artículos en 2 líneas */
+html.bc-pf #v-recepcion .bcpf-vacio { font-size: 14px; color: var(--pf-mute); text-align: center; padding: 26px 12px; border: 1px dashed var(--pf-line); border-radius: 10px; }
+html.bc-pf #v-recepcion .bcpf-items { border: 1px solid var(--pf-line); border-radius: 10px; background: #fff; box-shadow: var(--pf-shadow); overflow: hidden; }
+html.bc-pf #v-recepcion .bcpf-it {
+  display: grid; grid-template-columns: 28px minmax(0, 1fr) auto 44px; grid-template-areas: "n d i x" ". l l l" ". m m m" ". s s s";
+  gap: 8px 10px; align-items: start; padding: 12px; border-bottom: 1px solid var(--pf-line2);
+}
+html.bc-pf #v-recepcion .bcpf-it:last-child { border-bottom: 0; }
+html.bc-pf #v-recepcion .bcpf-it .n { grid-area: n; font: 800 13px/44px var(--pf-mono); color: var(--pf-mute); }
+html.bc-pf #v-recepcion .bcpf-it .d { grid-area: d; min-width: 0; }
+html.bc-pf #v-recepcion .bcpf-it .dnm {
+  width: 100%; box-sizing: border-box; min-height: 44px; font-size: 16px !important; font-weight: 600; color: #0f172a;
+  border: 1px solid transparent; border-radius: 8px; background: transparent; padding: 6px 8px; margin: 0 0 0 -8px;
+}
+html.bc-pf #v-recepcion .bcpf-it .dnm:hover { border-color: var(--pf-line); }
+html.bc-pf #v-recepcion .bcpf-it .dnm:focus { outline: none; border-color: var(--pf-acc); background: #fff; box-shadow: 0 0 0 3px var(--pf-acc-soft); }
+html.bc-pf #v-recepcion .bcpf-it .dsub { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+html.bc-pf #v-recepcion .bcpf-it .dsub span { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 6px; }
+html.bc-pf #v-recepcion .bcpf-it .dsub .cod { background: var(--pf-canvas2); color: var(--pf-steel); font-family: var(--pf-mono); }
+html.bc-pf #v-recepcion .bcpf-it .dsub .srv { background: #e8f5ec; color: #15803d; }
+html.bc-pf #v-recepcion .bcpf-it .dsub .ime { background: var(--pf-acc-soft); color: var(--pf-acc-dark); }
+html.bc-pf #v-recepcion .bcpf-it .imp { grid-area: i; font: 800 15px/44px var(--pf-mono); color: #0f172a; white-space: nowrap; }
+html.bc-pf #v-recepcion .bcpf-it .del {
+  grid-area: x; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 10px; border: 1px solid rgba(0,0,0,.1);
+  background: #fff; color: #94a3b8; cursor: pointer; padding: 0; font-size: 16px;
+}
+html.bc-pf #v-recepcion .bcpf-it .del:hover { color: #b91c1c; background: #fbe9e9; border-color: #f5c2c2; }
+html.bc-pf #v-recepcion .bcpf-it .l2 { grid-area: l; display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-end; }
+html.bc-pf #v-recepcion .bcpf-it .l2 > label,
+html.bc-pf #v-recepcion .bcpf-it .l2 > .lq { display: flex; flex-direction: column; gap: 4px; margin: 0; }
+html.bc-pf #v-recepcion .bcpf-it .l2 span:first-child { font-size: 12px !important; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--pf-mute); }
+html.bc-pf #v-recepcion .bcpf-it .pin {
+  width: 140px; min-height: 48px; box-sizing: border-box; font: 600 16px var(--pf-mono) !important; text-align: right;
+  background: #f8fafc; border: 1px solid #dbe4f0; border-radius: 10px; padding: 0 12px; color: var(--pf-ink);
+}
+html.bc-pf #v-recepcion .bcpf-it .stp {
+  display: inline-flex; align-items: center; gap: 4px; padding: 2px; border-radius: 12px; background: #fafbfd; border: 1px solid #e5eaf1; min-height: 48px; box-sizing: border-box;
+}
+html.bc-pf #v-recepcion .bcpf-it .stp button {
+  width: 44px; height: 44px; border-radius: 10px; border: 1px solid var(--pf-hair); background: #fff; font-size: 18px; font-weight: 800; cursor: pointer; padding: 0; color: var(--pf-ink);
+}
+html.bc-pf #v-recepcion .bcpf-it .stp input {
+  width: 52px; min-height: 44px; box-sizing: border-box; border: 0; background: transparent; text-align: center; font: 600 16px var(--pf-mono) !important; padding: 0; -moz-appearance: textfield;
+}
+html.bc-pf #v-recepcion .bcpf-it .stp input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+html.bc-pf #v-recepcion .bcpf-it .stp.fijo { min-width: 60px; justify-content: center; font: 700 16px var(--pf-mono); }
+html.bc-pf #v-recepcion .bcpf-it .stp button:focus-visible,
+html.bc-pf #v-recepcion .bcpf-it .del:focus-visible { outline: 3px solid var(--pf-acc-soft); outline-offset: 1px; }
+html.bc-pf #v-recepcion .bcpf-imei { grid-area: m; border: 1px dashed #cbd5e1; border-radius: 10px; padding: 8px 10px; background: #fff; }
+html.bc-pf #v-recepcion .bcpf-imei.falta { border: 1px solid #fecaca; background: #fef2f2; }
+html.bc-pf #v-recepcion .bcpf-imei .imi { display: flex; align-items: center; gap: 8px; }
+html.bc-pf #v-recepcion .bcpf-imei .imi input { flex: 1; min-width: 0; min-height: 48px; font-size: 16px !important; border: 1px solid #cbd5e1; border-radius: 10px; padding: 0 12px; box-sizing: border-box; }
+html.bc-pf #v-recepcion .bcpf-imei .ims { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px; }
+html.bc-pf #v-recepcion .bcpf-imei .imc { display: inline-flex; align-items: center; gap: 2px; background: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a8a; border-radius: 999px; padding: 0 0 0 10px; font: 600 13px var(--pf-mono); }
+html.bc-pf #v-recepcion .bcpf-imei .imc button { width: 44px; height: 44px; border: 0; background: none; color: inherit; cursor: pointer; padding: 0; }
+html.bc-pf #v-recepcion .bcpf-imei .imf { font-size: 13px; color: #b91c1c; }
+html.bc-pf #v-recepcion .bcpf-stk { grid-area: s; font-size: 13px; color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 8px 10px; }
+html.bc-pf #v-recepcion .bcpf-cnt { text-align: right; font-size: 13px; font-weight: 700; color: #64748b; margin: 8px 2px 0; }
+html.bc-pf #v-recepcion .bcpf-cnt:empty { display: none; }
+
+/* Pie: accesos + totales */
+html.bc-pf #v-recepcion .bcpf-pie { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; margin-top: 16px; align-items: start; }
+html.bc-pf #v-recepcion .bcpf-otras,
+html.bc-pf #v-recepcion .bcpf-tot { background: #fff; border: 1px solid var(--pf-line); border-radius: 12px; box-shadow: var(--pf-shadow); padding: 14px 16px; }
+html.bc-pf #v-recepcion .bcpf-qs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+html.bc-pf #v-recepcion .bcpf-q {
+  min-height: 44px; display: inline-flex; align-items: center; gap: 6px; padding: 0 16px; border-radius: 999px;
+  border: 1px solid var(--pf-hair); background: #fff; color: var(--pf-ink); font-size: 13px; font-weight: 600; cursor: pointer;
+}
+html.bc-pf #v-recepcion .bcpf-q i { font-size: 16px; }
+html.bc-pf #v-recepcion .bcpf-q:hover { border-color: var(--pf-acc); }
+html.bc-pf #v-recepcion .bcpf-det { border: 1px solid #e5e7eb; border-radius: 12px; }
+html.bc-pf #v-recepcion .bcpf-det > summary {
+  min-height: 48px; display: flex; align-items: center; gap: 8px; padding: 0 12px; cursor: pointer; list-style: none;
+  font-size: 14px; font-weight: 600; color: var(--pf-steel);
+}
+html.bc-pf #v-recepcion .bcpf-det > summary::-webkit-details-marker { display: none; }
+html.bc-pf #v-recepcion .bcpf-det .bcpf-res { margin-left: auto; font-size: 13px; font-weight: 500; color: var(--pf-mute); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+html.bc-pf #v-recepcion .bcpf-det .bcpf-chev { transition: transform .18s; }
+html.bc-pf #v-recepcion .bcpf-det[open] .bcpf-chev { transform: rotate(180deg); }
+html.bc-pf #v-recepcion .bcpf-det > .bcpf-campos { padding: 0 12px 12px; }
+html.bc-pf #v-recepcion .bcpf-nivel { margin-top: 12px; }
+/* 20-oct-2026: comentario, reseña y «Equipo, falla y más datos (opcional)» */
+html.bc-pf #v-recepcion .bcpf-coment > .bcpf-nota { margin: 0 12px 12px; }
+html.bc-pf #v-recepcion .bcpf-coment > div { padding: 0 12px; margin: 0 !important; }
+html.bc-pf #v-recepcion .bcpf-coment label { display: block; font-size: 13px !important; font-weight: 600; color: var(--pf-steel); margin: 0 0 4px; text-transform: none; letter-spacing: 0; }
+html.bc-pf #v-recepcion .bcpf-coment textarea {
+  width: 100%; box-sizing: border-box; min-height: 88px; padding: 12px; font-size: 16px; line-height: 1.45; resize: vertical;
+  border: 1px solid var(--pf-hair); border-radius: 10px; background: #fff; color: var(--pf-ink);
+}
+html.bc-pf #v-recepcion .bcpf-coment textarea:focus { outline: none; border-color: var(--pf-acc); box-shadow: 0 0 0 3px var(--pf-acc-soft); }
+html.bc-pf #v-recepcion .bcpf-resena { border: 0; margin-bottom: 12px; }
+html.bc-pf #v-recepcion .bcpf-resena:not([open]), html.bc-pf #v-recepcion .bcpf-resena > summary { display: none !important; }
+html.bc-pf #v-recepcion .bcpf-coment .bcpf-chev { margin-left: auto; }
+html.bc-pf #v-recepcion .bcpf-resena > .card { margin: 0 !important; box-shadow: none !important; border: 1px solid var(--pf-line) !important; border-top: 1px solid var(--pf-line) !important; border-radius: 12px !important; }
+html.bc-pf #v-recepcion .bcpf-mas { margin-top: 16px; border: 1px solid var(--pf-line); border-radius: 12px; background: var(--pf-canvas); }
+html.bc-pf #v-recepcion .bcpf-mas > summary {
+  min-height: 54px; display: flex; align-items: center; gap: 10px; padding: 0 16px; cursor: pointer; list-style: none;
+  font-size: 15px; font-weight: 700; color: var(--pf-ink);
+}
+html.bc-pf #v-recepcion .bcpf-mas > summary::-webkit-details-marker { display: none; }
+html.bc-pf #v-recepcion .bcpf-mas > summary > i:first-child { font-size: 18px; color: var(--pf-acc-dark); }
+html.bc-pf #v-recepcion .bcpf-mas > summary em { font-style: normal; font-weight: 500; color: var(--pf-mute); }
+html.bc-pf #v-recepcion .bcpf-mas .bcpf-res { margin-left: auto; font-size: 13px; font-weight: 500; color: var(--pf-steel); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+html.bc-pf #v-recepcion .bcpf-mas .bcpf-chev { flex: 0 0 auto; transition: transform .18s; }
+html.bc-pf #v-recepcion .bcpf-mas[open] .bcpf-chev { transform: rotate(180deg); }
+html.bc-pf #v-recepcion .bcpf-mas-body { padding: 0 16px 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+html.bc-pf #v-recepcion .bcpf-mas-body > .bcpf-nota { grid-column: 1 / -1; margin: 0; padding: 0 0 12px; border-top: 0; border-bottom: 1px solid var(--pf-line2); }
+html.bc-pf #v-recepcion .bcpf-sec { min-width: 0; background: #fff; border: 1px solid var(--pf-line); border-radius: 10px; padding: 12px 14px; }
+html.bc-pf #v-recepcion .bcpf-sec h4 { margin: 0 0 10px; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--pf-steel); }
+html.bc-pf #v-recepcion .bcpf-sec > .card { margin: 0 !important; box-shadow: none !important; border: 0 !important; padding: 0 !important; }
+html.bc-pf #v-recepcion .bcpf-tot { display: flex; flex-direction: column; gap: 8px; }
+html.bc-pf #v-recepcion .bcpf-tot .tr { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 14px; color: var(--pf-steel); }
+html.bc-pf #v-recepcion .bcpf-tot .tr b { font: 600 15px var(--pf-mono); color: var(--pf-ink); }
+html.bc-pf #v-recepcion .bcpf-tot .tt { border-top: 1px solid var(--pf-line2); padding-top: 10px; margin-top: 2px; font-size: 16px; font-weight: 600; color: var(--pf-ink); }
+html.bc-pf #v-recepcion .bcpf-tot .tt b { font: 700 24px var(--pf-mono); letter-spacing: -.01em; }
+html.bc-pf #v-recepcion .bcpf-tot .t-info { font-size: 13px; color: #15803d; text-align: right; }
+html.bc-pf #v-recepcion .bcpf-tot .t-info:empty { display: none; }
+html.bc-pf #v-recepcion .bcpf-tot .t-fac { color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 9px; text-align: left; }
+
+/* Herramientas rápidas y lista de prefacturas realizadas: mismo ancho del documento */
+html.bc-pf #v-recepcion .rx-toolsbox,
+html.bc-pf #v-recepcion .bcpf-hist { max-width: 980px; margin-left: auto !important; margin-right: auto !important; box-sizing: border-box; }
+html.bc-pf #v-recepcion .bcpf-hist { border-radius: 12px; border: 1px solid var(--pf-line); box-shadow: var(--pf-shadow); }
+
+/* ── Barra fija abajo (como STUDIO) ── */
+html.bc-pf #v-recepcion.bcpf-con-barra { padding-bottom: 104px; }
+html.bc-pf #v-recepcion .bcpf-bar { display: none; }
+html.bc-pf #v-recepcion.active .bcpf-bar {
+  display: flex; align-items: center; gap: 8px; position: fixed; z-index: 60; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: min(980px, 100%); box-sizing: border-box; padding: 9px 12px calc(9px + env(safe-area-inset-bottom));
+  background: rgba(255,254,250,.86); -webkit-backdrop-filter: blur(16px) saturate(170%); backdrop-filter: blur(16px) saturate(170%);
+  border: 1px solid var(--pf-line); border-bottom: 0; border-radius: 14px 14px 0 0; box-shadow: 0 -10px 30px rgba(10,10,10,.12);
+  transition: transform .2s ease, opacity .2s ease;
+}
+html.bc-pf #v-recepcion .bcpf-bar.bcpf-oculta { transform: translate(-50%, 110%); opacity: 0; pointer-events: none; }
+html.bc-pf #v-recepcion .bcpf-bar .bt { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 8px; }
+html.bc-pf #v-recepcion .bcpf-bar .bl { font-size: 13px; color: var(--pf-steel); text-transform: uppercase; letter-spacing: .06em; }
+html.bc-pf #v-recepcion .bcpf-bar .bn { font: 700 20px var(--pf-mono); color: var(--pf-ink); white-space: nowrap; }
+html.bc-pf #v-recepcion .bcpf-bar .bb {
+  min-height: 54px; min-width: 54px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 0 16px;
+  border-radius: 12px; border: 1px solid var(--pf-hair); background: #fff; color: var(--pf-ink); font-size: 15px; font-weight: 700; cursor: pointer;
+}
+html.bc-pf #v-recepcion .bcpf-bar .bb i { font-size: 18px; }
+html.bc-pf #v-recepcion .bcpf-bar .bgi { background: #0a0a0a; border-color: #0a0a0a; color: #fffefa; }
+html.bc-pf #v-recepcion .bcpf-bar .bg { background: linear-gradient(135deg, #f06a3c, var(--pf-acc)); border-color: var(--pf-acc-dark); color: #fff; box-shadow: 0 4px 12px rgba(228,87,46,.3); }
+html.bc-pf #v-recepcion .bcpf-bar .bb[hidden] { display: none; }
+html.bc-pf #v-recepcion .bcpf-bar .bfin { font-size: 14px; font-weight: 700; color: #b91c1c; }
+html.bc-pf #v-recepcion .bcpf-bar .bb:active,
+html.bc-pf #v-recepcion .bcpf-q:active,
+html.bc-pf #v-recepcion .pcli:active { transform: scale(.97); }
+@media (prefers-reduced-motion: reduce) {
+  html.bc-pf #v-recepcion .bcpf-bar { transition: none; }
+  html.bc-pf #v-recepcion .bcpf-bar .bb:active, html.bc-pf #v-recepcion .bcpf-q:active, html.bc-pf #v-recepcion .pcli:active { transform: none; }
+}
+
+/* PC con menú lateral: la barra se centra sobre el contenido */
+@media (min-width: 1025px) {
+  html.bc-pf #v-recepcion.active .bcpf-bar { left: calc(50% + var(--bcpf-menu, 38px)); width: min(980px, calc(100% - 120px)); }
+}
+
+/* ── Celular ── */
+@media (max-width: 760px) {
+  html.bc-pf #v-recepcion .bcpf-pad { padding: 14px 12px 14px; }
+  html.bc-pf #v-recepcion .bcpf-dh .dhr { width: 100%; }
+  html.bc-pf #v-recepcion .bcpf-dh .dnum { flex: 1; }
+  html.bc-pf #v-recepcion .bcpf-partes { grid-template-columns: minmax(0, 1fr); padding: 12px; }
+  html.bc-pf #v-recepcion .bcpf-campos > div[style*="display:flex"],
+  html.bc-pf #v-recepcion .bcpf-campos > div[style*="display: flex"] { flex-wrap: wrap; }
+  html.bc-pf #v-recepcion .bcpf-campos > div[style*="display:flex"] > div,
+  html.bc-pf #v-recepcion .bcpf-campos > div[style*="display: flex"] > div { flex: 1 1 140px !important; min-width: 0; }
+  html.bc-pf #v-recepcion .bcpf-it { grid-template-columns: 24px minmax(0, 1fr) 44px; grid-template-areas: "n d x" ". i i" ". l l" ". m m" ". s s"; padding: 12px 10px; }
+  html.bc-pf #v-recepcion .bcpf-it .imp { text-align: left; line-height: 1.2; }
+  html.bc-pf #v-recepcion .bcpf-it .pin { width: 130px; }
+  html.bc-pf #v-recepcion .bcpf-pie { grid-template-columns: minmax(0, 1fr); }
+  html.bc-pf #v-recepcion .bcpf-mas-body { grid-template-columns: minmax(0, 1fr); padding: 0 10px 12px; }
+  html.bc-pf #v-recepcion .bcpf-mas > summary { padding: 0 12px; }
+  html.bc-pf #v-recepcion .bcpf-mas .bcpf-res { display: none; }
+  html.bc-pf #v-recepcion .bcpf-tot { order: -1; }
+  html.bc-pf #v-recepcion .bcpf-qs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  html.bc-pf #v-recepcion .bcpf-q { flex-direction: column; justify-content: center; gap: 2px; min-height: 60px; padding: 6px 4px; border-radius: 12px; font-size: 13px; }
+  html.bc-pf #v-recepcion.active .bcpf-bar { left: 0; transform: none; width: 100%; border-radius: 0; border-left: 0; border-right: 0; }
+  html.bc-pf #v-recepcion .bcpf-bar.bcpf-oculta { transform: translateY(110%); }
+  html.bc-pf #v-recepcion .bcpf-bar .bl { display: none; }
+  html.bc-pf #v-recepcion .bcpf-bar .bn { font-size: 17px; }
+  html.bc-pf #v-recepcion .bcpf-bar .bgi span { display: none; }
+  html.bc-pf #v-recepcion .bcpf-bar .bgi, html.bc-pf #v-recepcion .bcpf-bar .bimp { padding: 0; width: 54px; }
+  html.bc-pf #v-recepcion .bcpf-bar .bg { padding: 0 14px; }
+}
+
+/* Ganarle a capas generales (tamaño táctil y estilo de campos de .view) donde STUDIO se ve distinto */
+html.bc-pf body #v-recepcion .bcpf-bar .bb { min-height: 54px !important; height: 54px; }
+html.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcpf-it .dnm { border-color: transparent !important; background: transparent !important; box-shadow: none !important; }
+html.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcpf-it .dnm:hover { border-color: var(--pf-line) !important; }
+html.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcpf-it .dnm:focus { border-color: var(--pf-acc) !important; background: #fff !important; box-shadow: 0 0 0 3px var(--pf-acc-soft) !important; }
+html.bc-pf body #v-recepcion .rx-toolsbox,
+html.bc-pf body #v-recepcion .bcpf-hist { max-width: 980px !important; }
+/* 5 id: la capa táctil usa 4 id (:is con #bcT#bcT#bcT + :not(#waWrap *)) */
+html.bc-pf body #v-recepcion#v-recepcion#v-recepcion#v-recepcion#v-recepcion .bcpf-mas > summary { min-height: 54px !important; height: auto !important; }
+html.bc-pf body #v-recepcion#v-recepcion#v-recepcion#v-recepcion#v-recepcion .bcpf-det > summary { min-height: 48px !important; height: auto !important; }
+
+/* 20-oct-2026 (b): precio con formato, descuento, tarjeta del cliente, buscador en línea y atajos */
+html.bc-pf #v-recepcion .bcpf-it .imp s { display: block; font: 500 12px/1.2 var(--pf-mono); color: var(--pf-mute); text-align: right; }
+html.bc-pf #v-recepcion .bcpf-it .ldc { display: flex; flex-direction: column; gap: 4px; margin: 0; }
+html.bc-pf #v-recepcion .bcpf-it .dcw { display: inline-flex; align-items: stretch; height: 48px; border: 1px solid var(--pf-hair); border-radius: 10px; background: #fff; overflow: hidden; }
+html.bc-pf #v-recepcion .bcpf-it .dcw:focus-within { border-color: var(--pf-acc); box-shadow: 0 0 0 3px var(--pf-acc-soft); }
+html.bc-pf body #v-recepcion#v-recepcion#v-recepcion .bcpf-it .dc { width: 64px; height: 46px !important; min-height: 0 !important; border: 0 !important; box-shadow: none !important; background: transparent !important; padding: 0 8px !important; font: 600 16px var(--pf-mono) !important; text-align: right; color: var(--pf-ink); outline: none; }
+html.bc-pf #v-recepcion .bcpf-it .dcw i { display: grid; place-items: center; width: 34px; font-style: normal; font-weight: 700; color: var(--pf-steel); background: var(--pf-canvas2); border-left: 1px solid var(--pf-line); }
+html.bc-pf #v-recepcion .bcpf-tot .td b { color: #b91c1c; }
+html.bc-pf #v-recepcion .pcli .pdet2 { display: block; margin-top: 2px; }
+html.bc-pf #v-recepcion .bcpf-busc-fila { display: flex; gap: 8px; align-items: flex-start; }
+html.bc-pf #v-recepcion .bcpf-busc-fila > .bcrx-ppk-slot { flex: 1 1 auto; min-width: 0; }
+html.bc-pf #v-recepcion .bcpf-busc-fila > .rx-art-search { flex: 0 0 auto; margin: 0 !important; }
+html.bc-pf body #v-recepcion#v-recepcion .bcpf-busc-fila .bcrx-srv { min-height: 48px !important; height: 48px; border-radius: 10px !important; white-space: nowrap; }
+html.bc-pf #v-recepcion .bcpf-keys { display: flex; gap: 18px; padding: 9px 16px; border-top: 1px solid var(--pf-line2); background: var(--pf-canvas2); border-radius: 0 0 12px 12px; font-size: 13px; color: var(--pf-steel); }
+html.bc-pf #v-recepcion .bcpf-keys kbd { font: 600 12px var(--pf-mono); padding: 2px 6px; border: 1px solid var(--pf-hair); border-bottom-width: 2px; border-radius: 6px; background: #fff; color: var(--pf-ink); margin-right: 4px; }
+@media (max-width: 760px) {
+  html.bc-pf #v-recepcion .bcpf-keys { display: none; }
+  html.bc-pf #v-recepcion .bcpf-it .imp s { text-align: left; }
+  html.bc-pf body #v-recepcion#v-recepcion .bcpf-busc-fila .bcrx-srv { padding: 0 12px !important; }
+}
+
+/* 20-oct-2026 (c): revisión de diseño (impeccable critique) — contraste, 13 px mínimo, foco, celular */
+html.bc-pf #v-recepcion .plab,
+html.bc-pf #v-recepcion .bcpf-sec h4,
+html.bc-pf #v-recepcion .bcpf-it .dsub span,
+html.bc-pf #v-recepcion .bcpf-it .imp s,
+html.bc-pf #v-recepcion .bcpf-keys kbd,
+html.bc-pf #v-recepcion .bcpf-busc kbd { font-size: 13px !important; }
+html.bc-pf body #v-recepcion#v-recepcion .bcpf-it .l2 span:first-child { font-size: 13px !important; }
+html.bc-pf #v-recepcion .bcpf-dh .dest span { font-size: 13px !important; padding: 4px 10px !important; }
+html.bc-pf #v-recepcion .bcpf-mas > summary em { color: var(--pf-steel); }
+html.bc-pf #v-recepcion .bcpf-doc ::placeholder { color: #6b7280; opacity: 1; }
+html.bc-pf #v-recepcion .bcpf-mas :is(.bc-mkt-status, .bc-mkt-title),
+html.bc-pf #v-recepcion .bcpf-sec .card p { font-size: 13px !important; line-height: 1.45 !important; }
+html.bc-pf #v-recepcion .bcpf-mas .bcpf-res.falta { color: #b45309; font-weight: 700; }
+html.bc-pf #v-recepcion label.bcpf-req::after { content: " *"; color: var(--pf-acc-dark); font-weight: 800; }
+/* Rifa: botón con la paleta del documento */
+html.bc-pf body #v-recepcion#v-recepcion .bcpf-sec #btnBoletoRifa { background: var(--pf-ink) !important; color: #fff !important; border-radius: 10px !important; min-height: 48px !important; }
+/* Foco visible para quien trabaja con el teclado */
+html.bc-pf #v-recepcion :is(.pcli, .bcpf-q, summary, .bb, .ibtn, .bcrx-scan, .bcrx-srv, .del):focus-visible { outline: 3px solid var(--pf-acc); outline-offset: 2px; }
+/* Fila del artículo: etiquetas alineadas arriba */
+html.bc-pf #v-recepcion .bcpf-it .l2 { align-items: flex-start; }
+html.bc-pf #v-recepcion .bcpf-it .del:hover { color: #b91c1c; border-color: #fecaca; }
+@media (max-width: 760px) {
+  /* Cabecera en una sola línea: lupa · Nº · número · fecha */
+  html.bc-pf #v-recepcion .bcpf-dh .dtit { display: none; }
+  html.bc-pf #v-recepcion .bcpf-dh .dhr { display: flex; flex-wrap: nowrap; gap: 6px; }
+  html.bc-pf #v-recepcion .bcpf-dh .dnum { min-width: 0; flex: 1 1 auto; }
+  html.bc-pf #v-recepcion .bcpf-dh .dfec { flex: 0 0 auto; padding: 0 10px; font-size: 14px; }
+  /* «Servicio» solo con el ícono para que el buscador se lea completo */
+  html.bc-pf body #v-recepcion#v-recepcion .bcpf-busc-fila .bcrx-srv { width: 48px; min-width: 48px !important; padding: 0 !important; justify-content: center; }
+  html.bc-pf #v-recepcion .bcpf-busc-fila .bcrx-srv span { display: none; }
+  /* Resumen de «Más datos» en una segunda línea */
+  html.bc-pf #v-recepcion .bcpf-mas > summary { flex-wrap: wrap; padding-top: 6px; padding-bottom: 6px; }
+  html.bc-pf #v-recepcion .bcpf-mas .bcpf-res { display: block; order: 3; flex-basis: 100%; margin: 0 0 0 28px; white-space: normal; }
+  html.bc-pf #v-recepcion .bcpf-mas .bcpf-res:empty { display: none; }
+  /* Precio y descuento en una línea; cantidad debajo */
+  html.bc-pf #v-recepcion .bcpf-it .l2 { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "p d" "q q"; gap: 10px 12px; }
+  html.bc-pf #v-recepcion .bcpf-it .l2 > label:first-child { grid-area: p; }
+  html.bc-pf #v-recepcion .bcpf-it .l2 > .ldc { grid-area: d; }
+  html.bc-pf #v-recepcion .bcpf-it .l2 > .lq { grid-area: q; }
+  html.bc-pf #v-recepcion .bcpf-it .pin { width: 100%; }
+  html.bc-pf #v-recepcion .bcpf-qs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  html.bc-pf #v-recepcion .bcpf-it .l2 > .lq { justify-self: start; }
+  html.bc-pf #v-recepcion .bcpf-it .l2 > .lq .stp { width: auto; }
+  html.bc-pf #v-recepcion .bcpf-mas > summary .mt { flex: 1 1 0; min-width: 0; }
+  /* Tarjeta del cliente: solo la flecha (toda la tarjeta ya es el botón «Cambiar») */
+  html.bc-pf #v-recepcion .pcli .pchev { font-size: 0; }
+  html.bc-pf #v-recepcion .pcli .pchev i { font-size: 20px; }
+}
+
+/* 20-oct-2026 (d): dueño «muchos espacios vacíos» → artículos en una sola línea (tabla) en PC, cabecera y caja del cliente más compactas */
+html.bc-pf #v-recepcion .bcpf-dh .dhl .dest { margin-top: 6px; }
+html.bc-pf #v-recepcion .bcpf-dh { padding-bottom: 10px; }
+html.bc-pf #v-recepcion .bcpf-partes { margin: 12px 0 10px; padding: 12px 14px; }
+html.bc-pf #v-recepcion .bcpf-tot .t-info { font-size: 13px; line-height: 1.45; color: var(--pf-steel); text-align: left; }
+html.bc-pf #v-recepcion .bcpf-ith { display: none; }
+@media (min-width: 761px) {
+  html.bc-pf #v-recepcion .bcpf-ith,
+  html.bc-pf #v-recepcion .bcpf-it { grid-template-columns: 26px minmax(0, 1fr) 128px 136px 98px 124px 44px; column-gap: 10px; }
+  html.bc-pf #v-recepcion .bcpf-ith {
+    display: grid; align-items: center; padding: 8px 12px; background: var(--pf-canvas2); border-bottom: 1px solid var(--pf-line);
+    font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--pf-steel);
+  }
+  html.bc-pf #v-recepcion .bcpf-ith span:nth-child(3), html.bc-pf #v-recepcion .bcpf-ith span:nth-child(6) { text-align: right; }
+  html.bc-pf #v-recepcion .bcpf-ith span:nth-child(4), html.bc-pf #v-recepcion .bcpf-ith span:nth-child(5) { text-align: center; }
+  html.bc-pf #v-recepcion .bcpf-it { grid-template-areas: "n d p q c i x" ". m m m m m m" ". s s s s s s"; align-items: center; row-gap: 6px; padding: 8px 12px; }
+  html.bc-pf #v-recepcion .bcpf-it .l2 { display: contents; }
+  html.bc-pf #v-recepcion .bcpf-it .l2 > label:first-child { grid-area: p; }
+  html.bc-pf #v-recepcion .bcpf-it .l2 > .lq { grid-area: q; justify-self: center; }
+  html.bc-pf #v-recepcion .bcpf-it .l2 > .ldc { grid-area: c; justify-self: center; }
+  html.bc-pf body #v-recepcion#v-recepcion .bcpf-it .l2 span:first-child { display: none; }
+  html.bc-pf #v-recepcion .bcpf-it .pin { width: 100%; }
+  html.bc-pf #v-recepcion .bcpf-it .imp { text-align: right; line-height: 1.2; }
+  html.bc-pf #v-recepcion .bcpf-it .dsub { margin-top: 0; }
+  html.bc-pf #v-recepcion .bcpf-it .dnm { min-height: 40px; padding: 4px 8px; }
+}
+@media (max-width: 760px) {
+  /* Celular: importe a la derecha del código (una línea menos) */
+  html.bc-pf #v-recepcion .bcpf-it { grid-template-columns: 24px minmax(0, 1fr) auto 44px; grid-template-areas: "n d d x" ". c i i" ". l l l" ". m m m" ". s s s"; row-gap: 6px; }
+  html.bc-pf #v-recepcion .bcpf-it .d { display: contents; }
+  html.bc-pf #v-recepcion .bcpf-it .dnm { grid-area: d; }
+  html.bc-pf #v-recepcion .bcpf-it .dsub { grid-area: c; align-self: center; }
+  html.bc-pf #v-recepcion .bcpf-it .imp { grid-area: i; text-align: right; align-self: center; }
+  html.bc-pf #v-recepcion .bcpf-it .imp s { text-align: right; }
+  html.bc-pf #v-recepcion .bcpf-it .l2 > .lq { flex-direction: row; align-items: center; gap: 12px; }
+  html.bc-pf #v-recepcion .bcpf-it { padding-top: 10px; padding-bottom: 10px; }
+}
+
+/* 20-oct-2026 (e): /apple-design — respuesta inmediata al tocar, plegables que se materializan, curva de Apple, cursor y selección */
+html.bc-pf #v-recepcion { --pf-ease: cubic-bezier(.23, 1, .32, 1); }
+/* 1. Todo lo que se toca responde al presionar (no al soltar) */
+html.bc-pf #v-recepcion :is(.bcpf-it .stp button, .bcpf-it .del, .bcpf-dh .ibtn, .bcrx-srv, .bcrx-scan, .bcpf-det > summary, .bcpf-mas > summary) {
+  transition: transform 100ms var(--pf-ease), background-color .15s ease, border-color .15s ease;
+}
+html.bc-pf #v-recepcion :is(.bcpf-it .stp button, .bcpf-it .del, .bcpf-dh .ibtn, .bcrx-srv, .bcrx-scan):active { transform: scale(.94); }
+html.bc-pf #v-recepcion :is(.bcpf-det > summary, .bcpf-mas > summary):active { transform: scale(.99); }
+/* 2. Los plegables se materializan desde su título (opacidad + 4 px), no aparecen de golpe */
+@keyframes bcpfAbrir { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+html.bc-pf #v-recepcion .bcpf-mas[open] > .bcpf-mas-body,
+html.bc-pf #v-recepcion .bcpf-coment[open] > :not(summary),
+html.bc-pf #v-recepcion .bcpf-resena[open] > .card { animation: bcpfAbrir 220ms var(--pf-ease) both; transform-origin: top center; }
+/* 3. La barra fija entra y sale con la curva de Apple (sale rápida, llega suave) */
+html.bc-pf #v-recepcion .bcpf-bar { transition: transform 280ms var(--pf-ease), opacity 200ms ease; }
+/* 4. Cursor y selección con el color de la marca */
+html.bc-pf #v-recepcion .bcpf-doc :is(input, textarea) { caret-color: var(--pf-acc); }
+html.bc-pf #v-recepcion .bcpf-doc ::selection { background: rgba(228, 87, 46, .22); color: inherit; }
+/* Hover solo con mouse (en el celular no se queda «pegado») */
+@media (hover: none) {
+  html.bc-pf #v-recepcion .pcli:hover { border-color: var(--pf-hair); background: #fff; }
+  html.bc-pf #v-recepcion .bcpf-q:hover { border-color: var(--pf-hair); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html.bc-pf #v-recepcion :is(.bcpf-it .stp button, .bcpf-it .del, .bcpf-dh .ibtn, .bcrx-srv, .bcrx-scan, .bcpf-det > summary, .bcpf-mas > summary):active { transform: none; }
+  html.bc-pf #v-recepcion .bcpf-mas[open] > .bcpf-mas-body,
+  html.bc-pf #v-recepcion .bcpf-coment[open] > :not(summary),
+  html.bc-pf #v-recepcion .bcpf-resena[open] > .card { animation: bcpfFundido 160ms ease both; }
+  @keyframes bcpfFundido { from { opacity: 0; } to { opacity: 1; } }
+  html.bc-pf #v-recepcion .bcpf-bar { transition: opacity 160ms ease; }
+}
+/* La fila «Descuento» solo cuando hay descuento ([hidden] perdía contra display:flex de .tr) */
+html.bc-pf #v-recepcion .bcpf-tot .tr[hidden] { display: none; }
+
+/* 20-oct-2026 (f): la muestra HTML aprobada por el dueño pasa al sistema.
+   PC más ancha (1200), «Facturar a · Precio · Almacén · Vendedor» en una franja, cada artículo en UNA fila con columna IMEI,
+   clic en el nombre = precios por nivel. Celular: igual que antes (tarjetas). */
+html.bc-pf #v-recepcion .bcpf-doc { max-width: 1200px; }
+html.bc-pf body #v-recepcion .rx-toolsbox,
+html.bc-pf body #v-recepcion .bcpf-hist { max-width: 1200px !important; }
+html.bc-pf #v-recepcion.active .bcpf-bar { width: min(1200px, 100%); }
+@media (min-width: 1025px) { html.bc-pf #v-recepcion.active .bcpf-bar { width: min(1200px, calc(100% - 120px)); } }
+/* Franja de 4 casillas */
+html.bc-pf #v-recepcion .bcpf-franja { align-items: end; }
+html.bc-pf #v-recepcion .bcpf-franja .pcol > .plab { margin: 0 0 4px; font-size: 13px; letter-spacing: 0; text-transform: none; font-weight: 600; }
+html.bc-pf #v-recepcion .bcpf-franja .pcli { margin: 0; min-height: 48px; padding: 4px 10px; gap: 10px; }
+html.bc-pf #v-recepcion .bcpf-franja .pcli .pav { flex-basis: 34px; width: 34px; height: 34px; font-size: 13px; }
+html.bc-pf #v-recepcion .bcpf-franja .pcli .pnom { font-size: 15px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html.bc-pf #v-recepcion .bcpf-franja .pcli .pdet { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html.bc-pf #v-recepcion .bcpf-franja .bcpf-aviso { grid-column: 1 / -1; }
+@media (min-width: 761px) {
+  html.bc-pf #v-recepcion .bcpf-franja { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, .9fr) minmax(0, .9fr); gap: 12px; }
+  html.bc-pf #v-recepcion .bcpf-franja .pcli .pdet2 { display: none; }
+}
+@media (max-width: 760px) {
+  html.bc-pf #v-recepcion .bcpf-franja { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  html.bc-pf #v-recepcion .bcpf-franja > .pcol:nth-child(-n+2) { grid-column: 1 / -1; }
+}
+/* Nombre del artículo: botón que abre sus precios */
+html.bc-pf #v-recepcion .bcpf-it .d { position: relative; }
+html.bc-pf #v-recepcion .bcpf-it .dnb {
+  display: block; width: 100%; min-height: 40px; text-align: left; background: none; border: 0; padding: 4px 0; cursor: pointer;
+  font-size: 15px; font-weight: 700; color: #0f172a; line-height: 1.3; overflow-wrap: anywhere;
+}
+html.bc-pf #v-recepcion .bcpf-it .dnb:hover { color: var(--pf-acc-dark); text-decoration: underline dashed; text-underline-offset: 4px; }
+html.bc-pf #v-recepcion .bcpf-items { overflow: visible; }
+html.bc-pf #v-recepcion .bcpf-ith { border-radius: 10px 10px 0 0; }
+html.bc-pf #v-recepcion .bcpf-pop {
+  position: absolute; left: 0; top: calc(100% + 6px); z-index: 40; width: 320px; max-width: calc(100vw - 48px); box-sizing: border-box;
+  background: #fff; border: 1px solid var(--pf-line); border-radius: 12px; box-shadow: var(--pf-shadow); padding: 12px; display: grid; gap: 8px;
+  animation: bcpfAbrir 180ms var(--pf-ease, ease) both;
+}
+html.bc-pf #v-recepcion .bcpf-pop .pph b { display: block; font-size: 14px; line-height: 1.25; }
+html.bc-pf #v-recepcion .bcpf-pop .pph span { font: 600 13px var(--pf-mono); color: var(--pf-steel); }
+html.bc-pf #v-recepcion .bcpf-pop table { width: 100%; border-collapse: collapse; }
+html.bc-pf #v-recepcion .bcpf-pop td { padding: 2px 0; border-top: 1px solid var(--pf-line2); font-size: 14px; color: var(--pf-steel); }
+html.bc-pf #v-recepcion .bcpf-pop td:last-child { text-align: right; font: 600 15px var(--pf-mono); color: #cbd5e1; }
+html.bc-pf #v-recepcion .bcpf-pop tr.act td:first-child { color: #2563eb; font-weight: 700; }
+html.bc-pf body #v-recepcion#v-recepcion .bcpf-pop td button {
+  min-height: 44px; min-width: 44px; padding: 0 10px; border: 1px solid transparent; border-radius: 8px; background: none; cursor: pointer;
+  font: 600 15px var(--pf-mono); color: var(--pf-ink);
+}
+html.bc-pf body #v-recepcion#v-recepcion .bcpf-pop tr.act td button { color: #2563eb; border-color: #bfdbfe; background: #eff6ff; }
+html.bc-pf body #v-recepcion#v-recepcion .bcpf-pop td button:hover { background: var(--pf-acc-soft); color: var(--pf-acc-dark); }
+html.bc-pf #v-recepcion .bcpf-pop .ppx { margin: 0; font-size: 13px; color: var(--pf-mute); }
+html.bc-pf #v-recepcion .bcpf-pop .ppd { display: grid; gap: 4px; margin: 0; }
+html.bc-pf #v-recepcion .bcpf-pop .ppd span { font-size: 13px; font-weight: 600; color: var(--pf-steel); }
+html.bc-pf #v-recepcion .bcpf-pop .ppd input { min-height: 48px; font-size: 16px !important; border: 1px solid var(--pf-hair); border-radius: 10px; padding: 0 12px; box-sizing: border-box; width: 100%; }
+/* IMEI: celda propia en PC; en celular sigue debajo */
+html.bc-pf #v-recepcion .bcpf-imei.nada { display: none; }
+@media (min-width: 761px) {
+  html.bc-pf #v-recepcion .bcpf-ith,
+  html.bc-pf #v-recepcion .bcpf-it { grid-template-columns: 26px minmax(0, 1fr) 200px 128px 96px 150px 124px 44px; column-gap: 8px; }
+  html.bc-pf #v-recepcion .bcpf-it { grid-template-areas: "n d m p c q i x" ". s s s s s s s"; min-height: 58px; padding: 6px 12px; }
+  html.bc-pf #v-recepcion .bcpf-ith span:nth-child(4), html.bc-pf #v-recepcion .bcpf-ith span:nth-child(7) { text-align: right; }
+  html.bc-pf #v-recepcion .bcpf-ith span:nth-child(3) { text-align: left; }
+  html.bc-pf #v-recepcion .bcpf-ith span:nth-child(5), html.bc-pf #v-recepcion .bcpf-ith span:nth-child(6) { text-align: center; }
+  html.bc-pf #v-recepcion .bcpf-imei { grid-area: m; border: 0; background: none; padding: 0; align-self: center; }
+  html.bc-pf #v-recepcion .bcpf-imei.nada { display: block; text-align: center; color: #cbd5e1; font-weight: 700; }
+  html.bc-pf #v-recepcion .bcpf-imei .imi i { display: none; }
+  html.bc-pf #v-recepcion .bcpf-imei .imi input { min-height: 44px; font: 14px var(--pf-mono) !important; }
+  html.bc-pf #v-recepcion .bcpf-imei.falta .imi input { border-color: var(--pf-acc); background: #fffaf7; }
+  html.bc-pf #v-recepcion .bcpf-imei .ims { margin-top: 4px; }
+  html.bc-pf #v-recepcion .bcpf-imei .ims:empty, html.bc-pf #v-recepcion .bcpf-imei .imf { display: none; }
+  html.bc-pf #v-recepcion .bcpf-imei .imc { font-size: 12px; padding-left: 8px; }
+  html.bc-pf #v-recepcion .bcpf-imei .imc button { width: 32px; height: 32px; }
+  html.bc-pf #v-recepcion .bcpf-it .dnb { min-height: 0; padding: 2px 0; }
+}
+@media (max-width: 760px) {
+  html.bc-pf #v-recepcion .bcpf-it { position: relative; }
+  html.bc-pf #v-recepcion .bcpf-it .dnb { grid-area: d; }
+  html.bc-pf #v-recepcion .bcpf-pop { left: 34px; top: 54px; }
+}
+/* Ganarle a la capa táctil general (5 id): nombre como texto, ventana de precios y fichas de IMEI compactas en PC */
+html.bc-pf body #v-recepcion#v-recepcion#v-recepcion#v-recepcion#v-recepcion .bcpf-it .dnb { background: none !important; border: 0 !important; box-shadow: none !important; border-radius: 4px !important; padding: 2px 0 !important; height: auto !important; font-size: 15px !important; }
+html.bc-pf body #v-recepcion#v-recepcion#v-recepcion#v-recepcion#v-recepcion .bcpf-pop td button { font: 600 15px var(--pf-mono) !important; height: 44px !important; }
+@media (min-width: 761px) {
+  html.bc-pf body #v-recepcion#v-recepcion#v-recepcion#v-recepcion#v-recepcion .bcpf-imei .imc { min-height: 0 !important; height: 30px; font-size: 12px !important; }
+  html.bc-pf body #v-recepcion#v-recepcion#v-recepcion#v-recepcion#v-recepcion .bcpf-imei .imc button { min-height: 0 !important; height: 28px !important; width: 28px !important; min-width: 0 !important; }
+}
+html.bc-pf body #v-recepcion#v-recepcion#v-recepcion#v-recepcion#v-recepcion .bcpf-it .dnb:is(:hover, :focus, :active) { background: none !important; box-shadow: none !important; transform: none !important; }
+
+/* 20-oct-2026 (g): IMEI como en STUDIO — botón con ícono en la línea y ventanita para escanear (la cantidad se ajusta sola) */
+html.bc-pf #v-recepcion .bcpf-imeib {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border-radius: 10px; cursor: pointer;
+  border: 1px solid #bfdbfe; background: #eff6ff; color: #1e3a8a; font-size: 14px; font-weight: 700; white-space: nowrap;
+}
+html.bc-pf #v-recepcion .bcpf-imeib i { font-size: 18px; }
+html.bc-pf #v-recepcion .bcpf-imeib.falta { border-color: #fdba74; background: #fff7ed; color: var(--pf-acc-dark); }
+html.bc-pf #v-recepcion .bcpf-imeib:active { transform: scale(.96); }
+html.bc-pf body #v-recepcion#v-recepcion#v-recepcion#v-recepcion#v-recepcion .bcpf-imeib { height: 44px; min-height: 44px !important; }
+html.bc-pf #v-recepcion .bcpf-imei { border: 0 !important; background: none !important; padding: 0 !important; }
+html.bc-pf .bcpf-imv { position: fixed; inset: 0; z-index: 9000; background: rgba(15,23,42,.45); display: grid; place-items: center; padding: 16px; }
+html.bc-pf .bcpf-imv .box {
+  width: min(440px, 100%); max-height: 88vh; overflow: auto; box-sizing: border-box; background: #fff; border-radius: 16px; padding: 16px;
+  box-shadow: 0 24px 60px -12px rgba(0,0,0,.4); display: grid; gap: 10px; animation: bcpfAbrir 200ms cubic-bezier(.23,1,.32,1) both;
+}
+html.bc-pf .bcpf-imv .hd { display: flex; align-items: center; gap: 10px; justify-content: space-between; }
+html.bc-pf .bcpf-imv .hd b { font-size: 15px; line-height: 1.3; color: #0f172a; }
+html.bc-pf .bcpf-imv .hd b i { color: #e4572e; }
+html.bc-pf .bcpf-imv .vol, html.bc-pf .bcpf-imv .ok {
+  min-height: 44px; padding: 0 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,.16); background: #fff; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap;
+}
+html.bc-pf .bcpf-imv .ok { background: linear-gradient(135deg, #f06a3c, #e4572e); border-color: #b8401f; color: #fff; min-width: 120px; }
+html.bc-pf .bcpf-imv p { margin: 0; font-size: 13px; color: #5b5951; line-height: 1.45; }
+html.bc-pf .bcpf-imv input { width: 100%; box-sizing: border-box; min-height: 48px; font: 600 16px ui-monospace, "SF Mono", Menlo, monospace; border: 1px solid #e4572e; border-radius: 10px; padding: 0 12px; box-shadow: 0 0 0 3px rgba(228,87,46,.12); outline: none; caret-color: #e4572e; }
+html.bc-pf .bcpf-imv .lst { display: flex; flex-wrap: wrap; gap: 6px; }
+html.bc-pf .bcpf-imv .imc { display: inline-flex; align-items: center; background: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a8a; border-radius: 999px; padding: 0 0 0 12px; font: 600 14px ui-monospace, Menlo, monospace; }
+html.bc-pf .bcpf-imv .imc button { width: 44px; height: 44px; border: 0; background: none; color: inherit; cursor: pointer; }
+html.bc-pf .bcpf-imv .imf { font-size: 13px; color: #b91c1c; }
+html.bc-pf .bcpf-imv .ft { display: flex; justify-content: flex-end; }
+@media (prefers-reduced-motion: reduce) { html.bc-pf .bcpf-imv .box { animation: none; } }

@@ -36,6 +36,21 @@ Sistema interno de **BAYOL CELL** (tienda/taller de celulares en Santiago y Moca
 - Confirma decisiones de producto con preguntas cortas cuando haya ambigüedad real; si no, procede.
 - El usuario suele responder "Si" a las propuestas de seguimiento — ten lista la siguiente acción.
 
+## Regla del dueño: tamaño de los botones (18-oct-2026, vale para los 3 proyectos)
+> «Recuerda el tamaño de los botones.»
+
+En toda pantalla nueva o rediseñada, tanto en celular como en PC:
+- Todo lo que se toca mide **al menos 44 × 44 px**. Esto incluye botones, filtros, íconos, la «×» y las casillas, contando la fila o etiqueta completa.
+- Los campos de escribir miden **48 px de alto con letra de 16 px**, para que el iPhone no haga zoom.
+- La letra mínima de los controles es de **13 px**.
+- Antes de entregar, se mide con Playwright a 390 y a 1280 px y el resultado se anota en la bitácora.
+
+En el taller esto lo aplica la capa **`taller-tactil.css`**, que va al final del `<head>` y actúa con `html.bc-tactil`:
+- se apaga en un equipo con `localStorage.bc_tactil_off='1'`, o para todos con `BC_TACTIL=false`;
+- deja fuera el chat de WhatsApp (`#waWrap`).
+
+Si una pantalla nueva necesita una excepción, se agrega ahí con su motivo; no se baja la medida en el CSS de la pantalla.
+
 ## Referencias de diseño compartidas (dueño, 14-oct-2026)
 - La lista de referencias que manda el dueño (reels y páginas: The Kitchen, Originkit, GetLayers, Stage, Raylight, MotionSites, beUI, Skecher UI…) vive en **`docs/REFERENCIAS-DISENO.md`**, **igual en los 3 proyectos** (`nexus-pro`, `bayolcell-taller`, `studio-rd`).
 - **Cuando el dueño mande un reel o una página de referencia a cualquier chat, se agrega la fila en ese archivo de los 3 proyectos** (más una bitácora en cada uno), no solo en el proyecto del chat.

@@ -1,0 +1,36 @@
+/* BAYOL CELL · Ayudas detrás de una ⓘ (19-oct-2026). Va con taller-info.js; solo actúa con html.bc-info. */
+html.bc-info .bcInfoOculto { display: none !important; }
+html.bc-info .bcInfoI {
+  display: inline-grid !important; place-items: center; vertical-align: middle;
+  width: 44px !important; height: 44px !important; min-width: 44px !important; min-height: 44px !important;
+  margin: -12px -12px -12px -6px !important; padding: 0 !important;
+  border: 0 !important; background: none !important; box-shadow: none !important; border-radius: 50% !important;
+  cursor: pointer; -webkit-tap-highlight-color: transparent; flex-shrink: 0;
+  text-transform: none !important; letter-spacing: 0 !important;
+}
+html.bc-info .bcInfoI > span {
+  width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center;
+  font: italic 700 12px/1 Georgia, "Times New Roman", serif;
+  color: #c2410c; box-shadow: inset 0 0 0 1.5px currentColor;
+  transition: background .2s, color .2s;
+}
+html.bc-info .bcInfoI[aria-expanded="true"] > span { background: #c2410c; color: #fff; box-shadow: none; }
+html.bc-info .bcInfoI:focus-visible { outline: 3px solid rgb(96 165 250 / .55); outline-offset: -6px; }
+#bcInfoTip {
+  position: fixed; z-index: 2147483000; max-width: min(320px, calc(100vw - 32px));
+  padding: 10px 12px; border-radius: 14px; background: #14121F; color: #F4F4FA;
+  font: 500 13px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  text-transform: none; letter-spacing: 0; white-space: pre-line; text-align: left;
+  box-shadow: 0 14px 34px -12px rgb(0 0 0 / .45);
+  animation: bcInfoTip .18s cubic-bezier(.22, .8, .24, 1);
+}
+#bcInfoTip:before { content: ""; position: absolute; top: -6px; left: calc(var(--fx, 50%) - 6px); width: 12px; height: 12px; background: inherit; transform: rotate(45deg); border-radius: 2px; }
+#bcInfoTip.arriba:before { top: auto; bottom: -6px; }
+@keyframes bcInfoTip { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { #bcInfoTip { animation: none; } html.bc-info .bcInfoI > span { transition: none; } }
+/* Botón de ayuda que ya tenía el módulo (abre su explicación completa): mismo color y área de toque que la ⓘ */
+html.bc-info .bcInfoAyuda {
+  min-width: 44px !important; min-height: 44px !important; display: inline-grid !important; place-items: center;
+  color: #c2410c !important; vertical-align: middle;
+}
+html.bc-info .bcInfoAyuda i { color: inherit !important; }

@@ -1717,6 +1717,18 @@ body{
     <link rel="stylesheet" href="crm-glass-mobile.css?v=20260929-f1">
 <link rel="stylesheet" href="diagnostico-ai-board.css?v=20261010e">
 <link rel="stylesheet" href="diagnostico-ai-chat.css?v=20261010b">
+<!-- Tamaño táctil (regla del dueño 18-oct-2026): capa reversible. Apagar: BC_TACTIL=false o localStorage bc_tactil_off=1 -->
+<script>var BC_TACTIL=true;try{if(BC_TACTIL&&localStorage.getItem('bc_tactil_off')!=='1')document.documentElement.classList.add('bc-tactil');}catch(e){if(BC_TACTIL)document.documentElement.classList.add('bc-tactil');}</script>
+<link rel="stylesheet" href="taller-tactil.css?v=20261019-t2">
+<!-- Recepción organizada (dueño 19-oct-2026): capa reversible. Apagar: BC_RX=false o localStorage bc_rx_off=1 -->
+<script>var BC_RX=true;try{if(BC_RX&&localStorage.getItem('bc_rx_off')!=='1')document.documentElement.classList.add('bc-rx');}catch(e){if(BC_RX)document.documentElement.classList.add('bc-rx');}</script>
+<link rel="stylesheet" href="taller-recepcion.css?v=20261020-f1">
+<!-- Prefactura con el diseño de STUDIO (dueño 19-oct-2026): capa reversible. Apagar: BC_PF=false o localStorage bc_pf_off=1 -->
+<script>var BC_PF=true;try{if(BC_PF&&localStorage.getItem('bc_pf_off')!=='1')document.documentElement.classList.add('bc-pf');}catch(e){if(BC_PF)document.documentElement.classList.add('bc-pf');}</script>
+<link rel="stylesheet" href="taller-prefactura.css?v=20261020-g1">
+<!-- Ayudas detrás de una ⓘ (dueño 19-oct-2026, igual que NEXUS): apagar BC_INFO=false o localStorage bc_info_off=1 -->
+<script>var BC_INFO=true;try{if(BC_INFO&&localStorage.getItem('bc_info_off')!=='1')document.documentElement.classList.add('bc-info');}catch(e){if(BC_INFO)document.documentElement.classList.add('bc-info');}</script>
+<link rel="stylesheet" href="taller-info.css?v=20261019-i2">
 </head>
 <body>
 
@@ -1774,7 +1786,7 @@ body{
 
             <div class="nav-section">OPERACIÓN DEL TALLER</div>
             <button id="menu-atencion" onclick="nav('atencion',this)"><i class="ti ti-headset"></i> <span>Atención al Cliente</span></button>
-            <button id="menu-recepcion" onclick="nav('recepcion',this)"><i class="ti ti-clipboard-plus"></i> <span>Recepción de Equipos</span></button>
+            <button id="menu-recepcion" onclick="nav('recepcion',this)"><i class="ti ti-clipboard-plus"></i> <span>Prefactura</span></button>
             <button id="menu-ordenes" onclick="nav('ordenes',this)"><i class="ti ti-tool"></i> <span>Órdenes de Servicio</span></button>
             <button id="menu-diagnostico" onclick="nav('diagnostico',this)"><i class="ti ti-stethoscope"></i> <span>Diagnóstico</span></button>
             <button id="menu-miTrabajo" onclick="nav('miTrabajo',this)"><i class="ti ti-briefcase"></i> <span>Mi Trabajo</span></button>
@@ -1840,7 +1852,7 @@ body{
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:14px;">
                     <h2 style="margin:0;"><i class="ti ti-headset" style="color:#0891b2;"></i> Atención al Cliente</h2>
                     <div style="display:flex; gap:6px;">
-                        <button class="btn btn-blue" onclick="nav('recepcion')" style="font-size:12px;"><i class="ti ti-plus"></i> Recibir equipo</button>
+                        <button class="btn btn-blue" onclick="nav('recepcion')" style="font-size:12px;"><i class="ti ti-plus"></i> Nueva prefactura</button>
                         <button class="btn btn-light" onclick="refrescarVista(renderAtencionCliente, this)" style="font-size:12px;"><i class="ti ti-refresh"></i> Actualizar</button>
                     </div>
                 </div>
@@ -1851,26 +1863,26 @@ body{
             <!-- DIAGNÓSTICO IA (motor de reparación) -->
             <div id="v-diagnostico" class="view">
                 <h2 style="margin:0 0 4px;"><i class="ti ti-stethoscope" style="color:#dc2626;"></i> Diagnóstico IA — Motor de Reparación</h2>
-                <p style="color:var(--text-muted); font-size:12.5px; margin:0 0 14px;">Describe el equipo y los síntomas (y pega el panic log si lo tienes). La IA razona el diagnóstico, los pasos de reparación y las piezas probables.</p>
+                <p style="color:var(--text-muted); font-size:12.5px; margin:0 0 14px;">Describa el equipo y los síntomas (y pegue el panic log, si lo tiene). La IA razona el diagnóstico, los pasos de reparación y las piezas probables.</p>
 
                 <div class="card" style="margin-bottom:14px; border-left:4px solid #16a34a;">
                     <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                         <i class="ti ti-usb" style="color:#16a34a; font-size:22px;"></i>
                         <div style="flex:1; min-width:200px;">
                             <b>App de escritorio — leer iPhone por USB</b>
-                            <div style="font-size:12px; color:var(--text-muted);">Instálala en la PC del taller para conectar el iPhone por cable y leer todo (batería, panic logs) automáticamente.</div>
+                            <div style="font-size:12px; color:var(--text-muted);">Instálela en la PC del taller para conectar el iPhone por cable y leer todo (batería, panic logs) automáticamente.</div>
                         </div>
                         <a class="btn btn-blue" href="https://github.com/sterlinr08-dte/bayolcell-taller/releases/latest/download/BAYOL-Diagnostic-Engine-Setup.exe" target="_blank" rel="noopener"><i class="ti ti-download"></i> Descargar app</a>
                         <button class="btn btn-light" onclick="var p=document.getElementById('appPasos'); p.style.display = (p.style.display==='none'||!p.style.display)?'block':'none';"><i class="ti ti-list-check"></i> Ver pasos</button>
                     </div>
                     <div id="appPasos" style="display:none; margin-top:12px; font-size:13px; line-height:1.6;">
                         <ol style="margin:0; padding-left:18px;">
-                            <li>Toca <b>“Descargar app”</b>, baja el archivo <b>Setup .exe</b> y ábrelo para instalar.</li>
+                            <li>Toque <b>“Descargar app”</b>, descargue el archivo <b>Setup .exe</b> y ábralo para instalar.</li>
                             <li>Si Windows avisa “editor desconocido”: <b>Más información → Ejecutar de todas formas</b>.</li>
-                            <li>Para leer el iPhone: instala <b>iTunes</b> (o Apple Mobile Device Support) y al conectar el teléfono dale <b>“Confiar”</b>.</li>
-                            <li>Abre <b>BAYOL Diagnostic Engine</b> y entra con <b>tu mismo usuario y clave</b>.</li>
-                            <li>Conecta el iPhone por USB → <b>Leer dispositivo</b> → aparece modelo, batería y panic logs, y de ahí al diagnóstico con IA.</li>
-                            <li>Todo lo que guardes queda <b>sincronizado</b> con este sistema (web y app comparten la misma base).</li>
+                            <li>Para leer el iPhone: instale <b>iTunes</b> (o Apple Mobile Device Support) y, al conectar el teléfono, toque <b>“Confiar”</b>.</li>
+                            <li>Abra <b>BAYOL Diagnostic Engine</b> e ingrese con <b>su mismo usuario y clave</b>.</li>
+                            <li>Conecte el iPhone por USB → <b>Leer dispositivo</b> → aparece modelo, batería y panic logs, y de ahí al diagnóstico con IA.</li>
+                            <li>Todo lo que guarde queda <b>sincronizado</b> con este sistema (web y app comparten la misma base).</li>
                         </ol>
                     </div>
                 </div>
@@ -1902,13 +1914,13 @@ body{
                         <input id="dg_sint_extra" placeholder="Otros síntomas (texto libre)...">
                     </div>
                     <div style="margin-top:10px;">
-                        <label>Panic log (opcional — pégalo o sube el archivo)</label>
+                        <label>Panic log (opcional — péguelo o suba el archivo)</label>
                         <div style="display:flex; gap:8px; align-items:center; margin:4px 0 6px;">
                             <input type="file" id="dg_panic_file" accept=".ips,.txt,.json,.log" style="display:none;" onchange="cargarPanicArchivo(this)">
                             <button type="button" class="btn btn-light" onclick="document.getElementById('dg_panic_file').click()"><i class="ti ti-file-upload"></i> Subir archivo .ips</button>
                             <span id="dg_panic_nombre" style="font-size:12px; color:#888;"></span>
                         </div>
-                        <textarea id="dg_panic" rows="4" style="width:100%; font-family:monospace; font-size:12px;" placeholder="panic-full... (pégalo aquí o súbelo con el botón de arriba)"></textarea>
+                        <textarea id="dg_panic" rows="4" style="width:100%; font-family:monospace; font-size:12px;" placeholder="panic-full... (péguelo aquí o súbalo con el botón de arriba)"></textarea>
                         <div style="display:flex; gap:8px; margin-top:6px; flex-wrap:wrap;">
                             <button type="button" class="btn btn-light" style="font-size:12px;" onclick="guardarPanicHistorial(this)"><i class="ti ti-device-floppy"></i> Guardar panic en historial</button>
                             <button type="button" class="btn btn-light" style="font-size:12px;" onclick="togglePanicHistorial()"><i class="ti ti-history"></i> Ver historial de panic</button>
@@ -1952,13 +1964,13 @@ body{
 
             <!-- CATÁLOGO WEB (público) de celulares con precio de Info Plus nivel 1 -->
             <div id="v-catalogoWeb" class="view">
-                <h2 style="margin:0 0 12px; display:flex; align-items:center; gap:8px;"><i class="ti ti-device-mobile-share" style="color:#e31e24;"></i> Catálogo Web — Celulares <button onclick="ayudaModulo('catalogoWeb')" title="¿Qué es esto?" style="background:none; border:none; cursor:pointer; color:#94a3b8; font-size:16px; padding:0;"><i class="ti ti-info-circle"></i></button></h2>
+                <h2 style="margin:0 0 12px; display:flex; align-items:center; gap:8px;"><i class="ti ti-device-mobile-share" style="color:#e31e24;"></i> Catálogo Web — Celulares <button onclick="ayudaModulo('catalogoWeb')" title="Ayuda del módulo" style="background:none; border:none; cursor:pointer; color:#94a3b8; font-size:16px; padding:0;"><i class="ti ti-info-circle"></i></button></h2>
                 <div id="catalogoContenido"></div>
             </div>
 
             <!-- CUENTAS POR PAGAR (deudas a proveedores por compras a crédito) -->
             <div id="v-cuentasPorPagar" class="view">
-                <h2 style="margin:0 0 12px; display:flex; align-items:center; gap:8px;"><i class="ti ti-report-money" style="color:#b91c1c;"></i> Cuentas por Pagar <button onclick="ayudaModulo('cuentasPorPagar')" title="¿Qué es esto?" style="background:none; border:none; cursor:pointer; color:#94a3b8; font-size:16px; padding:0;"><i class="ti ti-info-circle"></i></button></h2>
+                <h2 style="margin:0 0 12px; display:flex; align-items:center; gap:8px;"><i class="ti ti-report-money" style="color:#b91c1c;"></i> Cuentas por Pagar <button onclick="ayudaModulo('cuentasPorPagar')" title="Ayuda del módulo" style="background:none; border:none; cursor:pointer; color:#94a3b8; font-size:16px; padding:0;"><i class="ti ti-info-circle"></i></button></h2>
                 <div id="cxpContenido"></div>
             </div>
 
@@ -1967,7 +1979,7 @@ body{
                 <h2 style="margin:0 0 12px; display:flex; align-items:center; gap:8px;"><i class="ti ti-receipt" style="color:#0f766e;"></i> Rifa por Factura (Info Plus)</h2>
                 <div class="card" style="max-width:900px; border-left:4px solid #0f766e;">
                     <p style="color:var(--text-muted); font-size:12px; margin:0 0 14px;">
-                        Registro <b>independiente</b> de la Rifa administrada por Nexus Pro. Escribe los últimos
+                        Registro <b>independiente</b> de la Rifa administrada por Nexus Pro. Escriba los últimos
                         <b>6 dígitos</b> de la factura de Info Plus impresa. Al guardar se imprimen <b>2 boletos</b>:
                         uno para el cliente y otro para la tómbola.
                     </p>
@@ -2026,7 +2038,7 @@ body{
                         <h3 style="margin:0;"><i class="ti ti-report-money" style="color:#16a34a;"></i> Estado de Resultados Mensual</h3>
                         <button class="btn btn-success" onclick="abrirGastoSimple()" style="font-size:13px;"><i class="ti ti-plus"></i> Registrar gasto</button>
                     </div>
-                    <p style="color:var(--text-muted); font-size:12.5px; margin:4px 0 12px;">Las <b>ventas y el costo salen solos de Info Plus</b>; tú solo registras los <b>gastos</b> del mes. Da la <b>utilidad neta real</b>.</p>
+                    <p style="color:var(--text-muted); font-size:12.5px; margin:4px 0 12px;">Las <b>ventas y el costo salen solos de Info Plus</b>; usted solo registra los <b>gastos</b> del mes. Da la <b>utilidad neta real</b>.</p>
                     <div class="card">
                         <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
                             <input type="month" id="em_mes" onchange="renderEstadoMensual()">
@@ -2036,7 +2048,7 @@ body{
                             <button class="btn btn-light" style="font-size:12px; color:#15803d; border-color:#86efac;" onclick="exportarEstadoMensualExcel()"><i class="ti ti-file-spreadsheet"></i> Excel</button>
                             <button class="btn btn-light" style="font-size:12px; color:#7c3aed; border-color:#c4b5fd;" onclick="abrirReporteCelularesModelo()"><i class="ti ti-device-mobile"></i> Celulares por modelo (margen)</button>
                         </div>
-                        <div id="em_contenido"><p style="color:var(--text-muted); text-align:center; padding:20px;">Selecciona el mes.</p></div>
+                        <div id="em_contenido"><p style="color:var(--text-muted); text-align:center; padding:20px;">Seleccione el mes.</p></div>
                     </div>
                 </div>
 
@@ -2099,7 +2111,7 @@ body{
                         <div class="table-wrap" style="max-height:520px; overflow-y:auto;">
                             <table>
                                 <thead><tr><th>Fecha</th><th>Asiento</th><th>Descripción</th><th style="text-align:right;">Débito</th><th style="text-align:right;">Crédito</th><th style="text-align:right;">Saldo</th></tr></thead>
-                                <tbody id="libroMayorTable"><tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Selecciona una cuenta.</td></tr></tbody>
+                                <tbody id="libroMayorTable"><tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Seleccione una cuenta.</td></tr></tbody>
                             </table>
                         </div>
                     </div>
@@ -2107,7 +2119,7 @@ body{
 
                 <!-- TAB: REPORTE 606 DGII -->
                 <div id="conta-r606" style="display:none;">
-                    <h3 style="margin:0 0 4px;">Reporte 606 — Compras y Gastos (DGII) <button onclick="ayudaModulo('r606')" title="Ayuda: ¿qué es esto?" style="background:none; border:none; cursor:pointer; color:#475569; font-size:15px; vertical-align:middle; padding:0 3px;"><i class="ti ti-info-circle"></i></button></h3>
+                    <h3 style="margin:0 0 4px;">Reporte 606 — Compras y Gastos (DGII) <button onclick="ayudaModulo('r606')" title="Ayuda del módulo" style="background:none; border:none; cursor:pointer; color:#475569; font-size:15px; vertical-align:middle; padding:0 3px;"><i class="ti ti-info-circle"></i></button></h3>
                     <p style="color:var(--text-muted); font-size:12.5px; margin:4px 0 12px;">Los gastos registrados <b>con NCF</b> salen aquí en el <b>formato oficial de la DGII</b>, listos para exportar. La contadora ya no re-digita.</p>
                     <div class="card">
                         <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
@@ -2116,7 +2128,7 @@ body{
                             <button class="btn btn-light" style="font-size:12px; color:#15803d; border-color:#86efac;" onclick="exportar606Excel()"><i class="ti ti-file-spreadsheet"></i> Exportar Excel (formato DGII)</button>
                             <button class="btn btn-light" style="font-size:12px;" onclick="imprimir606()"><i class="ti ti-printer"></i> Imprimir</button>
                         </div>
-                        <div id="r606_contenido"><p style="color:var(--text-muted); text-align:center; padding:20px;">Selecciona el mes.</p></div>
+                        <div id="r606_contenido"><p style="color:var(--text-muted); text-align:center; padding:20px;">Seleccione el mes.</p></div>
                     </div>
                 </div>
 
@@ -2155,7 +2167,7 @@ body{
                         <select id="ef_calculo" onchange="renderEstados()" title="Cómo se calcula el costo de ventas en el Estado de Resultados"><option value="perpetuo">Costo: Perpetuo (Info Plus)</option><option value="periodico">Costo: Periódico</option></select>
                         <button class="btn btn-light" style="font-size:12px;" onclick="renderEstados()"><i class="ti ti-refresh"></i> Generar</button>
                     </div>
-                    <div class="card"><div id="ef_contenido" style="overflow-x:auto;"><p style="color:var(--text-muted); text-align:center;">Selecciona el reporte y el período.</p></div></div>
+                    <div class="card"><div id="ef_contenido" style="overflow-x:auto;"><p style="color:var(--text-muted); text-align:center;">Seleccione el reporte y el período.</p></div></div>
                 </div>
             </div>
 
@@ -2434,7 +2446,7 @@ body{
                         <div class="crm-acciones-rapidas" aria-label="Acciones de conversaciones">
                             <button class="crm-icon-btn" id="crmAgenteIaBtn" style="display:none;" onclick="_waAbrirConfigAgenteIA()" title="Configurar Agente de IA" aria-label="Configurar Agente de IA"><i class="ti ti-robot"></i></button>
                             <button class="crm-icon-btn" id="crmEpisodiosBtn" style="display:none; position:relative;" onclick="_waAbrirRevisionEpisodios()" title="Revisar aprendizaje del Agente de IA" aria-label="Revisar aprendizaje del Agente de IA"><i class="ti ti-school"></i><span id="crmEpisodiosBadge" style="display:none; position:absolute; top:-4px; right:-4px; background:#e31e24; color:#fff; font-size:9px; font-weight:700; line-height:1; border-radius:8px; padding:2px 4px; min-width:14px; text-align:center;"></span></button>
-                            <button class="crm-icon-btn" id="crmTransferidosBtn" style="position:relative;" onclick="_waAbrirTransferidos()" title="Clientes que te transfirieron" aria-label="Clientes que te transfirieron"><i class="ti ti-arrows-transfer-down"></i><span id="crmTransferidosBadge" style="display:none; position:absolute; top:-4px; right:-4px; background:#e31e24; color:#fff; font-size:9px; font-weight:700; line-height:1; border-radius:8px; padding:2px 4px; min-width:14px; text-align:center;"></span></button>
+                            <button class="crm-icon-btn" id="crmTransferidosBtn" style="position:relative;" onclick="_waAbrirTransferidos()" title="Clientes transferidos a usted" aria-label="Clientes transferidos a usted"><i class="ti ti-arrows-transfer-down"></i><span id="crmTransferidosBadge" style="display:none; position:absolute; top:-4px; right:-4px; background:#e31e24; color:#fff; font-size:9px; font-weight:700; line-height:1; border-radius:8px; padding:2px 4px; min-width:14px; text-align:center;"></span></button>
                             <button class="crm-icon-btn" id="crmHistorialBtn" onclick="_crmImportarHistorial()" title="Traer conversaciones anteriores" aria-label="Traer conversaciones anteriores"><i class="ti ti-history"></i></button>
                             <button class="crm-icon-btn" onclick="renderCrmLinea(this)" title="Actualizar" aria-label="Actualizar"><i class="ti ti-refresh"></i></button>
                         </div>
@@ -2464,7 +2476,7 @@ body{
                         <div class="rs-hub-head">
                             <div class="rs-hub-title">
                                 <div class="rs-hub-icon"><i class="ti ti-affiliate"></i></div>
-                                <div><h3>Redes Sociales</h3><p>Gestiona tus mensajes desde un solo lugar</p></div>
+                                <div><h3>Redes Sociales</h3><p>Gestione sus mensajes desde un solo lugar</p></div>
                             </div>
                             <div class="rs-hub-buscar">
                                 <i class="ti ti-search"></i>
@@ -2570,7 +2582,7 @@ body{
                 <div class="card" style="margin-top:15px;">
                     <h3 style="margin:0 0 12px; font-size:15px;"><i class="ti ti-search" style="color:var(--blue-btn);"></i> Buscar equipo por IMEI / Modelo</h3>
                     <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                        <input type="text" id="buscadorGlobalImei" placeholder="🔍 Escribe IMEI, modelo o marca..." oninput="buscarEquipoGlobal()" style="flex:1; min-width:200px; padding:12px; font-size:14px;">
+                        <input type="text" id="buscadorGlobalImei" placeholder="🔍 Escriba IMEI, modelo o marca..." oninput="buscarEquipoGlobal()" style="flex:1; min-width:200px; padding:12px; font-size:14px;">
                     </div>
                     <div id="resultadoBusquedaGlobal" style="margin-top:12px;"></div>
                 </div>
@@ -2589,7 +2601,7 @@ body{
                     </div>
                     <div class="card">
                         <h3 style="margin:0 0 15px 0; font-size:15px; font-weight:700;">Acciones del Sistema</h3>
-                        <button id="accion-recepcion" class="btn btn-blue" style="width:100%; margin-bottom:10px;" onclick="nav('recepcion')"><i class="ti ti-plus"></i> Nueva Recepción</button>
+                        <button id="accion-recepcion" class="btn btn-blue" style="width:100%; margin-bottom:10px;" onclick="nav('recepcion')"><i class="ti ti-plus"></i> Nueva prefactura</button>
                         <button id="accion-compras" class="btn btn-light" style="width:100%; margin-bottom:10px;" onclick="nav('proveedores')"><i class="ti ti-shopping-cart"></i> Compras</button>
                         <button id="accion-articulos" class="btn btn-light" style="width:100%; margin-bottom:10px;" onclick="nav('articulos')"><i class="ti ti-database"></i> Catálogo</button>
                         <button id="accion-refurb" class="btn btn-light" style="width:100%;" onclick="nav('refurb')"><i class="ti ti-refresh"></i> Módulo Reacondicionados</button>
@@ -2669,11 +2681,11 @@ body{
                   #v-recepcion .rx-toolsbox summary i.ti-chevron-down{transition:transform .18s;}
                 </style>
                 <details class="rx-toolsbox" style="margin-bottom:14px;">
-                <summary style="cursor:pointer; display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:700; color:#475569; background:#fff; border:1px solid #eef2f7; border-radius:12px; padding:9px 13px; box-shadow:0 1px 3px rgba(15,23,42,.06);"><i class="ti ti-tools" style="color:#f59e0b;"></i> Herramientas rápidas <span style="font-weight:500; color:#94a3b8; font-size:11.5px;">— pedir reseña / boleto de rifa (toca para abrir)</span><i class="ti ti-chevron-down" style="margin-left:auto; color:#94a3b8;"></i></summary>
+                <summary style="cursor:pointer; display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:700; color:#475569; background:#fff; border:1px solid #eef2f7; border-radius:12px; padding:9px 13px; box-shadow:0 1px 3px rgba(15,23,42,.06);"><i class="ti ti-tools" style="color:#f59e0b;"></i> Herramientas rápidas <span style="font-weight:500; color:#94a3b8; font-size:11.5px;">— pedir reseña / boleto de rifa (toque para abrir)</span><i class="ti ti-chevron-down" style="margin-left:auto; color:#94a3b8;"></i></summary>
                 <div class="rx-tools" style="margin:12px 0 0;">
                 <div class="card" style="margin-bottom:0; border-top:3px solid #f59e0b;">
                     <h3 style="margin:0 0 4px; font-size:15px;"><i class="ti ti-star" style="color:#f59e0b;"></i> Pedir reseña a un cliente (sin orden)</h3>
-                    <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px;">Para clientes que <b>solo vinieron a comprar</b> (no se registra orden). Pon su WhatsApp y mándale el enlace de reseña de Google.</p>
+                    <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px;">Para clientes que <b>solo vinieron a comprar</b> (no se registra orden). Indique su WhatsApp y envíele el enlace de reseña de Google.</p>
                     <div style="display:flex; gap:8px; flex-wrap:wrap;">
                         <input id="resenaWa" data-marketing-consent-phone data-marketing-consent-source="venta" placeholder="WhatsApp (ej. 809-123-4567)" onkeydown="if(event.key==='Enter')enviarResenaWhatsapp()" style="flex:1; min-width:180px; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px;">
                         <button class="btn" style="background:#f59e0b; color:#fff; font-size:13px; padding:9px 14px;" onclick="enviarResenaWhatsapp()"><i class="ti ti-brand-whatsapp"></i> Enviar reseña</button>
@@ -2682,7 +2694,7 @@ body{
                 </div>
                 <div class="card" style="margin-bottom:0; border-top:3px solid #7c3aed;">
                     <h3 style="margin:0 0 4px; font-size:15px;"><i class="ti ti-ticket" style="color:#7c3aed;"></i> Generar boleto de rifa</h3>
-                    <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px;">Rifa presencial: pon el nombre y teléfono del cliente. El sistema asigna el número al azar y el boleto queda <b>confirmado</b>. Requiere una rifa activa.</p>
+                    <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px;">Rifa presencial: indique el nombre y teléfono del cliente. El sistema asigna el número al azar y el boleto queda <b>confirmado</b>. Requiere una rifa activa.</p>
                     <div style="display:flex; gap:8px; flex-wrap:wrap;">
                         <input id="rifaNombre" placeholder="Nombre del cliente" style="flex:1; min-width:160px; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px;">
                         <input id="rifaTelefono" placeholder="Teléfono (809-...)" onkeydown="if(event.key==='Enter')generarBoletoRifa()" style="flex:1; min-width:150px; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px;">
@@ -2701,7 +2713,7 @@ body{
                         <div class="rx-body">
                           <div><label>Buscar cliente en Info Plus</label>
                             <div style="display:flex; gap:6px;">
-                              <input id="rxClienteBuscar" placeholder="Nombre, teléfono, cédula o código…" onkeydown="if(event.key==='Enter'){event.preventDefault();_rpBuscarCliente();}">
+                              <input id="rxClienteBuscar" data-bcbp-no placeholder="Nombre, teléfono, cédula o código…" onkeydown="if(event.key==='Enter'){event.preventDefault();_rpBuscarCliente();}">
                               <button class="btn btn-light" style="white-space:nowrap; border-radius:10px;" onclick="_rpBuscarCliente()"><i class="ti ti-search"></i> Buscar</button>
                             </div>
                           </div>
@@ -2776,7 +2788,7 @@ body{
                         <div class="rx-art-search">
                           <button class="btn" style="background:linear-gradient(135deg,#FF6B35,#D65225); color:#fff; border-radius:10px;" onclick="_rpAgregar()"><i class="ti ti-plus"></i> Agregar artículo</button>
                           <button class="btn" style="background:#0f172a; color:#fff; border-radius:10px;" onclick="_rpAgregarServicio()"><i class="ti ti-tool"></i> Agregar servicio/falla</button>
-                          <span style="font-size:12px; color:#94a3b8;">Artículo = del catálogo. Servicio/falla = línea editable (usa "SERVICIO TÉCNICO").</span>
+                          <span style="font-size:12px; color:#94a3b8;">Artículo = del catálogo. Servicio/falla = línea editable (use "SERVICIO TÉCNICO").</span>
                         </div>
                         <div style="overflow-x:auto;"><div id="rxArticulos"></div></div>
                       </div>
@@ -2794,7 +2806,7 @@ body{
                 <!-- Seguridad del dispositivo (plegable) -->
                 <div class="card rx-seg" style="margin-top:16px; border-left:3px solid #7c3aed; padding:14px;">
                     <details>
-                        <summary style="cursor:pointer; font-weight:700; font-size:14px; color:#475569;"><i class="ti ti-lock" style="color:#7c3aed;"></i> Seguridad del dispositivo <span style="font-weight:400; color:#94a3b8; font-size:12px;">(claves, patrón — toca para abrir)</span></summary>
+                        <summary style="cursor:pointer; font-weight:700; font-size:14px; color:#475569;"><i class="ti ti-lock" style="color:#7c3aed;"></i> Seguridad del dispositivo <span style="font-weight:400; color:#94a3b8; font-size:12px;">(claves, patrón — toque para abrir)</span></summary>
                         <div style="margin-top:12px; max-width:560px;">
                             <div class="access-note" style="font-size:12px;color:#64748b;margin-bottom:8px;">Las claves quedan ocultas por defecto. Solo se muestran cuando se pulsa Mostrar.</div>
                             <div><label>Tipo de Bloqueo</label><select id="o_acceso" onchange="togglePatternPanel()"><option>PIN</option><option>Patrón</option><option>Password</option><option>Sin Clave</option></select></div>
@@ -2844,10 +2856,10 @@ body{
                 <!-- Fallas del equipo (plegable) -->
                 <div class="card" style="margin-top:16px; border-left:3px solid #cbd5e1; padding:14px;">
                     <details>
-                        <summary style="cursor:pointer; font-weight:700; font-size:14px; color:#475569;"><i class="ti ti-list-check" style="color:#0891b2;"></i> Fallas del equipo <span style="font-weight:400; color:#94a3b8; font-size:12px;">(opcional — toca para abrir)</span></summary>
+                        <summary style="cursor:pointer; font-weight:700; font-size:14px; color:#475569;"><i class="ti ti-list-check" style="color:#0891b2;"></i> Fallas del equipo <span style="font-weight:400; color:#94a3b8; font-size:12px;">(opcional — toque para abrir)</span></summary>
                         <div style="margin-top:12px;">
                             <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px;">
-                                <div style="font-size:12px; color:var(--text-muted);">Marca los problemas que reporta el cliente. Se crearán como tareas para los técnicos.</div>
+                                <div style="font-size:12px; color:var(--text-muted);">Marque los problemas que reporta el cliente. Se crearán como tareas para los técnicos.</div>
                                 <button id="btnEditarFallasComunes" onclick="abrirEditorFallasComunes()" class="btn btn-light" style="font-size:11px; padding:4px 9px; display:none;"><i class="ti ti-settings"></i> Editar</button>
                             </div>
                             <div class="checks-layout" id="checksFisico">
@@ -2867,7 +2879,7 @@ body{
                 <!-- Recepciones realizadas -->
                 <div class="card" style="margin-top:16px; padding:14px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
-                        <h3 style="font-size:16px; margin:0;"><i class="ti ti-history" style="color:#0891b2;"></i> Recepciones Realizadas</h3>
+                        <h3 style="font-size:16px; margin:0;"><i class="ti ti-history" style="color:#0891b2;"></i> Prefacturas realizadas</h3>
                         <button class="btn btn-light" onclick="_rpHistorial()" style="font-size:12px; border-radius:9px;"><i class="ti ti-file-invoice" style="color:#0e7490;"></i> Historial de prefacturas</button>
                     </div>
                     <input id="recepBuscador" oninput="renderRecepcionesRealizadas()" placeholder="Buscar por número o cliente..." style="width:100%; padding:8px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; margin-bottom:10px;">
@@ -2994,7 +3006,7 @@ body{
                 <div class="layout-dashboard">
                     <div class="card">
                         <h3>Generador de Etiquetas Adhesivas Regulable</h3>
-                        <p style="color:var(--text-muted); font-size:13px;">Modifica los campos del dispositivo y ajusta las dimensiones milimétricas para calibrar tu impresora térmica.</p>
+                        <p style="color:var(--text-muted); font-size:13px;">Modifique los campos del dispositivo y ajuste las dimensiones milimétricas para calibrar su impresora térmica.</p>
                         
                         <div class="form-row"><label>Marca del Dispositivo</label><input id="lbl_marca" value="Apple" oninput="actualizarLabelLive()"></div>
                         <div class="form-row"><label>Modelo y Color</label><input id="lbl_modelo" value="iPhone 11 Pro Silver" oninput="actualizarLabelLive()"></div>
@@ -3086,13 +3098,13 @@ body{
                     <!-- Estado: NO instalado -->
                     <div id="qzNoInstalado" style="display:none; margin-top:15px;">
                         <div style="background:#fef2f2; border:1px solid #fecaca; padding:14px; border-radius:8px; color:#991b1b;">
-                            <b><i class="ti ti-alert-triangle"></i> No tienes el Cliente de Impresión instalado</b>
-                            <p style="margin:8px 0; font-size:13px; line-height:1.5;">Para imprimir directo sin diálogo (como InfoPlus), descarga e instala QZ Tray. Es gratis.</p>
+                            <b><i class="ti ti-alert-triangle"></i> El Cliente de Impresión no está instalado</b>
+                            <p style="margin:8px 0; font-size:13px; line-height:1.5;">Para imprimir directo sin diálogo (como InfoPlus), descargue e instale QZ Tray. Es gratis.</p>
                             <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
                                 <a href="https://qz.io/download/" target="_blank" class="btn btn-blue" style="text-decoration:none;"><i class="ti ti-download"></i> Descargar QZ Tray</a>
                                 <button class="btn btn-light" onclick="qzVerificarConexion()"><i class="ti ti-refresh"></i> Ya lo instalé, reconectar</button>
                             </div>
-                            <p style="margin:10px 0 0; font-size:11px; color:#92400e;">⚠️ Durante la instalación puede pedir instalar Java. Acéptalo, QZ Tray lo necesita.</p>
+                            <p style="margin:10px 0 0; font-size:11px; color:#92400e;">⚠️ Durante la instalación puede pedir instalar Java. Acéptelo; QZ Tray lo necesita.</p>
                         </div>
                     </div>
                     
@@ -3121,20 +3133,20 @@ body{
 
                     <!-- ¿QZ Tray pide permiso cada vez? -->
                     <div style="margin-top:15px; border-top:1px solid var(--border-color); padding-top:14px;">
-                        <div style="font-weight:800; font-size:14px; color:#0f172a; margin-bottom:6px;"><i class="ti ti-shield-lock" style="color:#f59e0b;"></i> ¿QZ Tray te pide permiso cada vez que imprimes?</div>
+                        <div style="font-weight:800; font-size:14px; color:#0f172a; margin-bottom:6px;"><i class="ti ti-shield-lock" style="color:#f59e0b;"></i> QZ Tray pide permiso en cada impresión</div>
                         <div style="font-size:13px; color:#334155; line-height:1.55;">
-                            <p style="margin:0 0 10px;">Es el aviso de seguridad de QZ Tray. Para que <b>deje de preguntar</b> en esta computadora, instala el certificado de BAYOL CELL como "de confianza" (una sola vez por computadora):</p>
+                            <p style="margin:0 0 10px;">Es el aviso de seguridad de QZ Tray. Para que <b>deje de preguntar</b> en esta computadora, instale el certificado de BAYOL CELL como "de confianza" (una sola vez por computadora):</p>
                             <button class="btn btn-blue" onclick="_qzDescargarCertificado()"><i class="ti ti-download"></i> Descargar certificado (bayol-cell.crt)</button>
                             <ol style="margin:12px 0 0 18px; padding:0; font-size:12.5px;">
-                                <li>Descarga el archivo con el botón de arriba (se guarda como <b>bayol-cell.crt</b>).</li>
-                                <li>Abajo a la derecha (al lado del reloj) haz <b>clic derecho</b> en el ícono de <b>QZ Tray</b> (la <b>Q</b>). Si no lo ves, dale a la flechita ▲.</li>
+                                <li>Descargue el archivo con el botón de arriba (se guarda como <b>bayol-cell.crt</b>).</li>
+                                <li>Abajo a la derecha (al lado del reloj) haga <b>clic derecho</b> en el ícono de <b>QZ Tray</b> (la <b>Q</b>). Si no lo ve, toque la flecha ▲.</li>
                                 <li><b>Advanced → Site Manager</b>.</li>
-                                <li>Pestaña <b>"Allowed"</b> → botón <b>"+"</b> (o Import) → elige el archivo <b>bayol-cell.crt</b>.</li>
-                                <li>Cierra; en QZ Tray dale <b>clic derecho → Exit</b> y vuelve a abrirlo.</li>
-                                <li>Recarga la app (Ctrl + Shift + R) e imprime una prueba. Ya no pregunta.</li>
+                                <li>Pestaña <b>"Allowed"</b> → botón <b>"+"</b> (o Import) → seleccione el archivo <b>bayol-cell.crt</b>.</li>
+                                <li>Cierre; en QZ Tray haga <b>clic derecho → Exit</b> y vuelva a abrirlo.</li>
+                                <li>Recargue la app (Ctrl + Shift + R) e imprima una prueba. No volverá a preguntar.</li>
                             </ol>
-                            <p style="font-size:11.5px; color:#64748b; margin:10px 0 0;">Alterna (necesita administrador): renombra el archivo a <b>override.crt</b> y pégalo en <code>C:\Program Files\QZ Tray\</code>. Reinicia QZ Tray.</p>
-                            <p style="font-size:11.5px; color:#b45309; margin:6px 0 0;"><i class="ti ti-info-circle"></i> Hay que hacerlo una vez en cada computadora donde imprimas.</p>
+                            <p style="font-size:11.5px; color:#64748b; margin:10px 0 0;">Alternativa (requiere administrador): renombre el archivo a <b>override.crt</b> y péguelo en <code>C:\Program Files\QZ Tray\</code>. Reinicie QZ Tray.</p>
+                            <p style="font-size:11.5px; color:#b45309; margin:6px 0 0;"><i class="ti ti-info-circle"></i> Hay que hacerlo una vez en cada computadora donde se imprima.</p>
                         </div>
                     </div>
                 </div>
@@ -3145,7 +3157,7 @@ body{
                         <h3 style="margin:0 0 15px 0;"><i class="ti ti-settings" style="color:var(--blue-btn);"></i> Configuración de Impresora 2C-LP427B</h3>
                         
                         <div style="background:#dbeafe; border:1px solid #93c5fd; padding:10px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#1e40af;">
-                            <b><i class="ti ti-info-circle"></i> Ajusta el tamaño y verifica con la "Vista Previa" al lado.</b> Cuando esté bien, guarda como perfil.
+                            <b><i class="ti ti-info-circle"></i> Ajuste el tamaño y verifique con la "Vista Previa" al lado.</b> Cuando esté bien, guárdelo como perfil.
                         </div>
                         
                         <!-- Selector de perfil -->
@@ -3185,7 +3197,7 @@ body{
                         <div class="form-row">
                             <div style="display:flex; justify-content:space-between;"><label><i class="ti ti-contrast"></i> Densidad / Oscuridad (nitidez)</label><span id="cfgi_dens_val" style="font-size:12px; font-weight:bold;">8</span></div>
                             <input type="range" id="cfgi_density" min="0" max="15" value="8" oninput="guardarDensidad()">
-                            <small style="color:var(--text-muted); font-size:10px;">Más alto = más oscuro/nítido. Si sale muy claro, sube. Si se ve quemado/borroso, baja.</small>
+                            <small style="color:var(--text-muted); font-size:10px;">Más alto = más oscuro/nítido. Si sale muy claro, súbalo. Si se ve quemado o borroso, bájelo.</small>
                         </div>
                         
                         <div class="form-row">
@@ -3227,7 +3239,7 @@ body{
                 <!-- CONFIGURACIÓN LABEL ORDEN DE SERVICIO -->
                 <div class="card" style="border-top:4px solid #dc2626;">
                     <h3 style="margin:0 0 6px;"><i class="ti ti-clipboard-list" style="color:#dc2626;"></i> Label de Orden de Servicio</h3>
-                    <p style="color:var(--text-muted); font-size:13px; margin-bottom:14px;">Ajusta el tamaño y elige qué líneas se imprimen en el label de orden (sin código de barras).</p>
+                    <p style="color:var(--text-muted); font-size:13px; margin-bottom:14px;">Ajuste el tamaño y seleccione qué líneas se imprimen en el label de orden (sin código de barras).</p>
                     <div class="layout-dashboard">
                         <div>
                             <h4 style="margin:0 0 10px; font-size:12px; color:#dc2626; text-transform:uppercase;"><i class="ti ti-ruler-2"></i> Tamaño</h4>
@@ -3262,7 +3274,7 @@ body{
                             <div style="display:flex; justify-content:center; padding:15px; background:#cbd5e1; border-radius:8px; min-height:120px;">
                                 <div id="lblordPreview"></div>
                             </div>
-                            <p style="font-size:11px; color:var(--text-muted); margin-top:8px;">Los cambios se guardan automáticamente. Tip: para horizontal, pon el ancho mayor que el alto.</p>
+                            <p style="font-size:11px; color:var(--text-muted); margin-top:8px;">Los cambios se guardan automáticamente. Sugerencia: para horizontal, ponga el ancho mayor que el alto.</p>
                             <button onclick="guardarMedidasLabelOrden(); guardarCamposLabelOrden(); toast('✅ Configuración del label guardada.', 'success');" class="btn btn-blue" style="width:100%; margin-top:8px;"><i class="ti ti-device-floppy"></i> Guardar configuración</button>
                         </div>
                     </div>
@@ -3294,7 +3306,7 @@ body{
                     <div class="table-wrap" style="max-height:420px; overflow-y:auto;">
                         <table>
                             <thead><tr><th>Código</th><th>Descripción</th><th>Marca</th><th>Referencia</th><th style="text-align:right;">Costo</th><th style="text-align:right;">Precio</th><th>Taller</th><th>En otros almacenes</th></tr></thead>
-                            <tbody id="infoplusTable"><tr><td colspan="8" style="text-align:center; color:var(--text-muted);">Aún no has importado el catálogo. Usa "Importar CSV".</td></tr></tbody>
+                            <tbody id="infoplusTable"><tr><td colspan="8" style="text-align:center; color:var(--text-muted);">Aún no se ha importado el catálogo. Use "Importar CSV".</td></tr></tbody>
                         </table>
                     </div>
                 </div>
@@ -3459,7 +3471,7 @@ body{
                                         <div><label id="lbl_eq_imei">IMEI / Serial *</label>
                                             <div style="position:relative;"><input id="eq_imei" placeholder="358921..." oninput="_eqImeiValidar()" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('eq_costo').focus();}" style="text-transform:uppercase; padding-right:34px;"><i class="ti ti-barcode" title="Escanear con lector" style="position:absolute; right:11px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:17px;"></i></div>
                                             <div id="eq_imei_status" style="font-size:10.5px; margin-top:3px; height:13px; font-weight:700;"></div></div>
-                                        <div id="costo_admin_wrap"><label>Costo Unidad (RD$) *</label><input id="eq_costo" type="number" step="0.01" placeholder="6374.00" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarEquipoAlLote();}"><div style="font-size:10px; color:#94a3b8; margin-top:2px;">Se mantiene; cámbialo si este IMEI vale distinto</div></div>
+                                        <div id="costo_admin_wrap"><label>Costo Unidad (RD$) *</label><input id="eq_costo" type="number" step="0.01" placeholder="6374.00" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarEquipoAlLote();}"><div style="font-size:10px; color:#94a3b8; margin-top:2px;">Se mantiene; cámbielo si este IMEI vale distinto</div></div>
                                         <div><label>Notas rápidas</label><input id="eq_notas" placeholder="Ej: pantalla rota, no carga…" style="text-transform:uppercase;"></div>
                                         <button class="btn btn-blue" onclick="agregarEquipoAlLote()" style="height:42px; font-weight:700;"><i class="ti ti-plus"></i> Agregar equipo</button>
                                     </div>
@@ -3472,7 +3484,7 @@ body{
                                         <label style="display:inline-flex; align-items:center; gap:6px; font-size:13px; text-transform:none; color:var(--text-dark); cursor:pointer;"><input type="checkbox" id="eq_garantia" style="width:auto;"> 🛡️ Es por garantía (permite repetir el mismo IMEI)</label>
                                     </div>
                                     <div style="background:#eff6ff; border:1px solid #bfdbfe; border-left:4px solid #3b82f6; padding:10px 14px; border-radius:10px; margin-top:8px; font-size:12.5px; color:#1e3a8a;">
-                                        <i class="ti ti-bulb" style="color:#3b82f6;"></i> Los artículos son los mismos de <b>Info Plus</b>. ¿No aparece uno? Créalo en Info Plus y dale <b>"Sincronizar"</b> en el buscador o en Catálogo de Artículos.
+                                        <i class="ti ti-bulb" style="color:#3b82f6;"></i> Los artículos son los mismos de <b>Info Plus</b>. Si no aparece, créelo en Info Plus y presione <b>"Sincronizar"</b> en el buscador o en Catálogo de Artículos.
                                     </div>
 
                                     <div id="eqStats" class="eq-stats"></div>
@@ -3805,7 +3817,7 @@ body{
                             </button>
                         </div>
                         <div style="background:#fef2f2; border:1px solid #fecaca; padding:12px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#991b1b;">
-                            <b><i class="ti ti-info-circle"></i> Aquí registras equipos que el cliente devolvió.</b> El sistema detecta automáticamente el historial completo y devuelve el equipo al flujo de reparación.
+                            <b><i class="ti ti-info-circle"></i> Aquí se registran los equipos que el cliente devolvió.</b> El sistema detecta automáticamente el historial completo y devuelve el equipo al flujo de reparación.
                         </div>
                         <div id="devolucionesLista">
                             <p style="color:var(--text-muted); text-align:center; padding:30px; font-size:13px;">Cargando devoluciones...</p>
@@ -3844,8 +3856,8 @@ body{
             <!-- ============= DESPACHO DE ALMACÉN ============= -->
             <div id="v-despachos" class="view">
                 <div class="card" style="margin-bottom:15px; border-left:4px solid #0891b2;">
-                    <h2 style="margin:0 0 4px 0; font-size:18px;"><i class="ti ti-truck-delivery" style="color:#0891b2;"></i> Despacho de Almacén <button onclick="ayudaModulo('despachos')" title="Ayuda: ¿qué es esto?" style="background:none; border:none; cursor:pointer; color:#475569; font-size:16px; vertical-align:middle; padding:0 3px;"><i class="ti ti-info-circle"></i></button></h2>
-                    <p style="color:var(--text-muted); font-size:13px; margin:0;">Traspasa mercancía de una localidad a otra en Info Plus como un <b>documento único de despacho</b> (Nº DA...). Agrega varios artículos, hazlo de un solo golpe e imprime el conduce.</p>
+                    <h2 style="margin:0 0 4px 0; font-size:18px;"><i class="ti ti-truck-delivery" style="color:#0891b2;"></i> Despacho de Almacén <button onclick="ayudaModulo('despachos')" title="Ayuda del módulo" style="background:none; border:none; cursor:pointer; color:#475569; font-size:16px; vertical-align:middle; padding:0 3px;"><i class="ti ti-info-circle"></i></button></h2>
+                    <p style="color:var(--text-muted); font-size:13px; margin:0;">Traspasa mercancía de una localidad a otra en Info Plus como un <b>documento único de despacho</b> (Nº DA...). Agregue varios artículos, hágalo en un solo paso e imprima el conduce.</p>
                     <button class="btn btn-light" onclick="abrirAjusteRapido()" style="margin-top:10px;"><i class="ti ti-adjustments-alt"></i> Ajuste rápido (entrada / salida)</button>
                 </div>
                 <div class="card" style="margin-bottom:15px;">
@@ -3879,8 +3891,8 @@ body{
             <!-- ============= INVENTARIO FÍSICO ============= -->
             <div id="v-invfisico" class="view">
                 <div class="card" style="margin-bottom:15px; border-left:4px solid #16a34a;">
-                    <h2 style="margin:0 0 4px 0; font-size:18px;"><i class="ti ti-clipboard-check" style="color:#16a34a;"></i> Inventario Físico <span class="nav-badge-admin">ADMIN</span> <button onclick="ayudaModulo('invfisico')" title="Ayuda: ¿qué es esto?" style="background:none; border:none; cursor:pointer; color:#475569; font-size:16px; vertical-align:middle; padding:0 3px;"><i class="ti ti-info-circle"></i></button></h2>
-                    <p style="color:var(--text-muted); font-size:13px; margin:0;">Cuenta la mercancía real y cuádrala con Info Plus. Puedes contar por almacén y por categoría, sin parar la venta: el sistema ajusta por <b>diferencia</b>, así que aunque se venda mientras cuentas, el faltante real no cambia. Puedes dejarlo a medias y seguir otro día.</p>
+                    <h2 style="margin:0 0 4px 0; font-size:18px;"><i class="ti ti-clipboard-check" style="color:#16a34a;"></i> Inventario Físico <span class="nav-badge-admin">ADMIN</span> <button onclick="ayudaModulo('invfisico')" title="Ayuda del módulo" style="background:none; border:none; cursor:pointer; color:#475569; font-size:16px; vertical-align:middle; padding:0 3px;"><i class="ti ti-info-circle"></i></button></h2>
+                    <p style="color:var(--text-muted); font-size:13px; margin:0;">Cuente la mercancía real y cuádrela con Info Plus. Puede contar por almacén y por categoría, sin parar la venta: el sistema ajusta por <b>diferencia</b>, así que aunque se venda mientras cuenta, el faltante real no cambia. Puede dejarlo a medias y continuar otro día.</p>
                 </div>
                 <div id="invFisicoCont"></div>
             </div>
@@ -3906,7 +3918,7 @@ body{
             <div id="v-estadisticas" class="view">
                 <div class="card" style="margin-bottom:15px; border-left:4px solid #7c3aed;">
                     <h2 style="margin:0 0 4px 0; font-size:18px;"><i class="ti ti-chart-pie-2" style="color:#7c3aed;"></i> Estadísticas <span style="font-size:11px; background:#7c3aed; color:#fff; padding:2px 8px; border-radius:10px; vertical-align:middle;">PRIVADO</span></h2>
-                    <p style="color:var(--text-muted); font-size:13px; margin:0;">Módulo interno. Solo tú lo ves — ni técnicos ni contadora. Ventas, compras e inventario.</p>
+                    <p style="color:var(--text-muted); font-size:13px; margin:0;">Módulo interno. Solo usted lo ve; ni técnicos ni contadora. Ventas, compras e inventario.</p>
                     <div style="margin-top:10px;">
                         <button class="btn btn-light" style="font-size:13px;" onclick="renderEstadisticas(this)"><i class="ti ti-refresh"></i> Actualizar</button>
                     </div>
@@ -3945,7 +3957,7 @@ body{
                             <button id="btnNuevoTecnico" class="btn btn-blue" onclick="abrirModalTecnico()"><i class="ti ti-plus"></i> Nuevo Empleado</button>
                         </div>
                         <div style="background:#dbeafe; border:1px solid #93c5fd; padding:10px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#1e40af;">
-                            <b><i class="ti ti-info-circle"></i> Aquí gestionas los técnicos que trabajarán los equipos.</b> Asígnales un rol para definir qué pueden hacer.
+                            <b><i class="ti ti-info-circle"></i> Aquí se gestionan los técnicos que trabajarán los equipos.</b> Asígneles un rol para definir qué pueden hacer.
                         </div>
                         <div id="tecnicosLista"></div>
                         <div id="tecnicosPagination"></div>
@@ -3960,7 +3972,7 @@ body{
                             <button id="btnNuevoRol" class="btn btn-blue" onclick="abrirModalRol()" style="background:linear-gradient(135deg,#6366f1,#4f46e5); box-shadow:0 3px 10px rgba(99,102,241,0.25);"><i class="ti ti-plus"></i> Nuevo Rol</button>
                         </div>
                         <div style="background:#ede9fe; border:1px solid #c4b5fd; padding:10px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#5b21b6;">
-                            <b><i class="ti ti-info-circle"></i> Crea roles personalizados con permisos específicos.</b> El rol "Administrador" tiene todos los permisos y no se puede eliminar.
+                            <b><i class="ti ti-info-circle"></i> Cree roles personalizados con permisos específicos.</b> El rol "Administrador" tiene todos los permisos y no se puede eliminar.
                         </div>
                         <div id="rolesLista">
                             <p style="color:var(--text-muted); text-align:center; padding:20px;">Cargando roles...</p>
@@ -3978,7 +3990,7 @@ body{
                             <button class="btn btn-blue" onclick="abrirModalCategoria()" style="background:linear-gradient(135deg,#0891b2,#0e7490); box-shadow:0 3px 10px rgba(8,145,178,0.25);"><i class="ti ti-plus"></i> Nueva Categoría</button>
                         </div>
                         <div style="background:#cffafe; border:1px solid #67e8f9; padding:10px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#155e75;">
-                            <b><i class="ti ti-info-circle"></i> Categorías generales</b> que podrás usar para clasificar artículos, equipos y más.
+                            <b><i class="ti ti-info-circle"></i> Categorías generales</b> que podrá usar para clasificar artículos, equipos y más.
                         </div>
                         <div id="categoriasLista">
                             <p style="color:var(--text-muted); text-align:center; padding:20px;">Cargando...</p>
@@ -3993,7 +4005,7 @@ body{
                             <button class="btn btn-blue" onclick="abrirModalMarca()" style="background:linear-gradient(135deg,#6366f1,#4f46e5); box-shadow:0 3px 10px rgba(99,102,241,0.25);"><i class="ti ti-plus"></i> Nueva Marca</button>
                         </div>
                         <div style="background:#ede9fe; border:1px solid #c4b5fd; padding:10px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#5b21b6;">
-                            <b><i class="ti ti-info-circle"></i> Marcas</b> (Apple, Samsung, Xiaomi...) que podrás seleccionar al crear artículos y equipos.
+                            <b><i class="ti ti-info-circle"></i> Marcas</b> (Apple, Samsung, Xiaomi...) que podrá seleccionar al crear artículos y equipos.
                         </div>
                         <div id="marcasLista">
                             <p style="color:var(--text-muted); text-align:center; padding:20px;">Cargando...</p>
@@ -4019,7 +4031,7 @@ body{
                     </div>
                     <div class="card">
                         <h3><i class="ti ti-arrows-move" style="color:var(--blue-btn);"></i> Organizar menú lateral</h3>
-                        <p style="color:var(--text-muted); font-size:13px; margin-bottom:12px;">Arrastra los íconos para ponerlos en el orden que quieras. Cuando termines, pulsa <b>Guardar orden</b>. El orden se guarda en esta computadora.</p>
+                        <p style="color:var(--text-muted); font-size:13px; margin-bottom:12px;">Arrastre los íconos para ponerlos en el orden que desee. Cuando termine, presione <b>Guardar orden</b>. El orden se guarda en esta computadora.</p>
                         <div id="menuOrdenLista" style="display:flex; flex-direction:column; gap:6px; margin-bottom:14px;"></div>
                         <div style="display:flex; gap:8px; flex-wrap:wrap;">
                             <button onclick="guardarOrdenMenu()" class="btn btn-blue" style="flex:1; min-width:140px;"><i class="ti ti-device-floppy"></i> Guardar orden</button>
@@ -4030,7 +4042,7 @@ body{
                 <div id="cfgContentFallas" style="display:none;">
                     <div class="card">
                         <h3><i class="ti ti-list-check"></i> Fallas Comunes</h3>
-                        <p style="color:var(--text-muted); font-size:13px; margin-bottom:14px;">Estas son las fallas que aparecen en el checklist de recepción. Puedes cambiar el nombre, agregar o quitar. Los cambios los ven todos los usuarios.</p>
+                        <p style="color:var(--text-muted); font-size:13px; margin-bottom:14px;">Estas son las fallas que aparecen en el checklist de recepción. Puede cambiar el nombre, agregar o quitar. Los cambios los ven todos los usuarios.</p>
                         <div id="cfgFallasLista"></div>
                         <div style="display:flex; gap:6px; border-top:1px dashed #cbd5e1; padding-top:12px; margin-top:6px;">
                             <input id="cfgFallaNueva" placeholder="Nueva falla común (ej: No carga)" style="flex:1;" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarFallaComunNueva(true);}">
@@ -4046,7 +4058,7 @@ body{
                         <button class="btn btn-light" onclick="nav('proveedores')"><i class="ti ti-arrow-left"></i> Volver a Compras</button>
                     </div>
                     <div>
-                        <p style="color:var(--text-muted); font-size:12px; margin:0 0 12px;">Los productos van en <b>US$</b>; con la <b>tasa</b> se convierten a RD$. Agrega <b>transporte + impuesto + otros gastos</b> (en RD$): el sistema los reparte y te da el <b>costo final por producto en RD$</b>. Puedes <b>Guardar</b> y ver el <b>Historial</b> (solo admin).</p>
+                        <p style="color:var(--text-muted); font-size:12px; margin:0 0 12px;">Los productos van en <b>US$</b>; con la <b>tasa</b> se convierten a RD$. Agregue <b>transporte + impuesto + otros gastos</b> (en RD$): el sistema los reparte y le da el <b>costo final por producto en RD$</b>. Puede <b>Guardar</b> y ver el <b>Historial</b> (solo admin).</p>
                         <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px;">
                             <div class="form-row"><label>Proveedor</label><input id="aduana_prov" placeholder="Nombre del proveedor"></div>
                             <div class="form-row"><label>Factura No.</label><input id="aduana_factura" placeholder="Ej. 1485"></div>
@@ -4083,7 +4095,7 @@ body{
                                     <th class="aducol-finalunit" onclick="_aduanaToggleCol('finalunit')" style="padding:6px; width:115px; border:1px solid #e2e8f0; cursor:pointer;" title="Costo unitario + gastos por unidad · Clic para ocultar">Costo unit FINAL RD$</th>
                                     <th class="aducol-total" onclick="_aduanaToggleCol('total')" style="padding:6px; width:120px; border:1px solid #e2e8f0; cursor:pointer;" title="Cantidad × costo unitario final · Clic para ocultar">Total FINAL RD$</th>
                                     <th class="aducol-venta" onclick="_aduanaToggleCol('venta')" style="padding:6px; width:120px; border:1px solid #e2e8f0; cursor:pointer; background:#fef9c3;" title="Precio de venta REFERENCIAL (costo final + %) · Clic para ocultar">Precio venta ref.</th>
-                                    <th style="padding:6px; width:60px; border:1px solid #e2e8f0; background:#dcfce7;" title="Marca cuando ya registraste el artículo en Info Plus (se guarda)">✅ Reg. IP</th>
+                                    <th style="padding:6px; width:60px; border:1px solid #e2e8f0; background:#dcfce7;" title="Marque cuando ya haya registrado el artículo en Info Plus (se guarda)">✅ Reg. IP</th>
                                     <th class="aducol-x" style="padding:6px; width:34px; border:1px solid #e2e8f0;"></th>
                                 </tr></thead>
                                 <tbody id="aduanaTbody"></tbody>
@@ -4123,7 +4135,7 @@ body{
             <div id="v-nomina" class="view">
                 <div class="card">
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
-                        <h3 style="margin:0;"><i class="ti ti-users-group" style="color:#0e7490;"></i> Recursos Humanos <span style="font-weight:600; color:#475569; font-size:13px;">(RRHH)</span> <i class="ti ti-info-circle" onclick="ayudaModulo('rrhh')" style="color:#475569; cursor:pointer; font-size:16px;" title="¿Qué es este módulo?"></i></h3>
+                        <h3 style="margin:0;"><i class="ti ti-users-group" style="color:#0e7490;"></i> Recursos Humanos <span style="font-weight:600; color:#475569; font-size:13px;">(RRHH)</span> <i class="ti ti-info-circle" onclick="ayudaModulo('rrhh')" style="color:#475569; cursor:pointer; font-size:16px;" title="Ayuda del módulo"></i></h3>
                         <div style="display:flex; gap:6px; flex-wrap:wrap;">
                             <button class="btn btn-light" id="nomTabEmp" onclick="nominaTab('empleados')"><i class="ti ti-id-badge-2"></i> Empleados</button>
                             <button class="btn btn-light" id="nomTabNom" onclick="nominaTab('nomina')"><i class="ti ti-cash"></i> Nómina</button>
@@ -4192,7 +4204,7 @@ body{
                         <div id="evalPiezasFallasChips" style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;"></div>
                     </div>
                     <div style="background:#dbeafe; border:1px solid #93c5fd; padding:10px; border-radius:8px; margin-bottom:12px; font-size:12px; color:#b91c1c;">
-                        <b><i class="ti ti-info-circle"></i> Selecciona las piezas que el técnico necesitará para reparar este equipo.</b>
+                        <b><i class="ti ti-info-circle"></i> Seleccione las piezas que el técnico necesitará para reparar este equipo.</b>
                     </div>
                     <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; margin-bottom:15px;">
                         <div style="flex:1; min-width:200px;">
@@ -4231,7 +4243,7 @@ body{
                     
                     <!-- Botón imprimir label de diagnóstico -->
                     <div style="background:linear-gradient(135deg, #e0e7ff, #ddd6fe); border:1px solid #a5b4fc; border-radius:8px; padding:15px; margin-top:12px; text-align:center;">
-                        <p style="font-size:12px; color:#4338ca; margin:0 0 10px;"><i class="ti ti-printer"></i> Imprime el label de diagnóstico con las fallas de este equipo.</p>
+                        <p style="font-size:12px; color:#4338ca; margin:0 0 10px;"><i class="ti ti-printer"></i> Imprima el label de diagnóstico con las fallas de este equipo.</p>
                         <input type="checkbox" id="evalMarcarEvaluado" checked style="display:none;">
                         <button class="btn btn-blue" onclick="imprimirLabelDesdeEvaluacion()" style="background:linear-gradient(135deg,#6366f1,#4f46e5); box-shadow:0 3px 10px rgba(99,102,241,0.25);"><i class="ti ti-printer"></i> Imprimir Label de Diagnóstico</button>
                         <p style="font-size:11px; color:#6366f1; margin:8px 0 0;">💡 Al imprimir, el equipo queda marcado como <b>✅ Evaluado</b>.</p>
@@ -4321,7 +4333,7 @@ body{
                 <select id="mod_tec_rol_id">
                     <option value="">-- Sin rol personalizado (usar rol simple) --</option>
                 </select>
-                <small style="color:var(--text-muted); font-size:11px;">Selecciona un rol con permisos específicos creado en la pestaña "Roles".</small>
+                <small style="color:var(--text-muted); font-size:11px;">Seleccione un rol con permisos específicos creado en la pestaña "Roles".</small>
             </div>
             <div class="form-row">
                 <label>Notas (opcional)</label>
@@ -4331,7 +4343,7 @@ body{
             <!-- CREDENCIALES DE ACCESO -->
             <div style="background:#ede9fe; border:1px solid #c4b5fd; border-radius:10px; padding:12px; margin:12px 0;">
                 <b style="color:#5b21b6; font-size:13px;"><i class="ti ti-key"></i> Credenciales de acceso (login del técnico)</b>
-                <p style="font-size:11px; color:#6b21a8; margin:4px 0 10px;">Si le asignas usuario y contraseña, el técnico podrá iniciar sesión. Cambiará la contraseña en su primer ingreso.</p>
+                <p style="font-size:11px; color:#6b21a8; margin:4px 0 10px;">Si le asigna usuario y contraseña, el técnico podrá iniciar sesión. Cambiará la contraseña en su primer ingreso.</p>
                 <div class="form-row">
                     <label>Usuario (para login)</label>
                     <input id="mod_tec_usuario" placeholder="Ej. francis, juan2..." autocomplete="off">
@@ -4339,7 +4351,7 @@ body{
                 <div class="form-row">
                     <label>Contraseña temporal</label>
                     <input id="mod_tec_clave" placeholder="El técnico la cambiará al entrar" autocomplete="off">
-                    <small style="color:var(--text-muted); font-size:11px;">Déjala vacía para no cambiar la contraseña actual (al editar).</small>
+                    <small style="color:var(--text-muted); font-size:11px;">Déjela vacía para no cambiar la contraseña actual (al editar).</small>
                 </div>
             </div>
             
@@ -4453,7 +4465,7 @@ body{
         </div>
         <div class="modal-body">
             <div id="cambiarClaveAviso" style="display:none; background:#fef3c7; border:1px solid #fcd34d; padding:10px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#92400e;">
-                <b><i class="ti ti-alert-triangle"></i> Es tu primer ingreso.</b> Por seguridad, debes cambiar tu contraseña antes de continuar.
+                <b><i class="ti ti-alert-triangle"></i> Es su primer ingreso.</b> Por seguridad, debe cambiar su contraseña antes de continuar.
             </div>
             <div class="form-row">
                 <label>Nueva contraseña *</label>
@@ -4461,7 +4473,7 @@ body{
             </div>
             <div class="form-row">
                 <label>Confirmar contraseña *</label>
-                <input type="password" id="cc_confirmar" placeholder="Repite la contraseña">
+                <input type="password" id="cc_confirmar" placeholder="Repita la contraseña">
             </div>
         </div>
         <div class="modal-footer">
@@ -4510,7 +4522,7 @@ body{
         </div>
         <div class="modal-body">
             <p style="color:var(--text-muted); font-size:12.5px; margin:0 0 12px;">
-                Crea automáticamente <b>un asiento contable por mes</b> con tus ventas reales de Info Plus (contado, crédito y costo de la mercancía vendida). Así se llenan solos el Estado de Resultados, la Balanza y el Balance. Los asientos se marcan con referencia <code>AUTO-IP</code> y puedes volver a generarlos cuando quieras (reemplaza los anteriores, no los duplica).
+                Crea automáticamente <b>un asiento contable por mes</b> con sus ventas reales de Info Plus (contado, crédito y costo de la mercancía vendida). Así se llenan solos el Estado de Resultados, la Balanza y el Balance. Los asientos se marcan con referencia <code>AUTO-IP</code> y puede volver a generarlos cuando lo desee (reemplaza los anteriores, no los duplica).
             </p>
             <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px;">
                 <div><label>Desde (mes)</label><input type="month" id="aip_desde"></div>
@@ -4520,7 +4532,7 @@ body{
                 <label style="display:flex; align-items:center; gap:8px; margin:0; font-weight:600;">
                     <input type="checkbox" id="aip_itbis" onchange="previsualizarAutoIP()"> Los montos de venta <b>incluyen ITBIS (18%)</b> — separarlo a "ITBIS por Pagar"
                 </label>
-                <small style="color:var(--text-muted); font-size:11px;">Activa o desactiva esta casilla y compara el total con tu cuadre de Info Plus para ver cuál coincide.</small>
+                <small style="color:var(--text-muted); font-size:11px;">Active o desactive esta casilla y compare el total con su cuadre de Info Plus para ver cuál coincide.</small>
             </div>
             <div style="display:flex; gap:8px; margin-top:12px;">
                 <button class="btn btn-light" style="font-size:12px;" onclick="previsualizarAutoIP()"><i class="ti ti-eye"></i> Previsualizar</button>
@@ -4543,10 +4555,10 @@ body{
         </div>
         <div class="modal-body">
             <p style="color:var(--text-muted); font-size:12.5px; margin:0 0 10px;">
-                Pon con qué saldos arranca el negocio en una fecha. El <b>Capital</b> se calcula solo para que todo cuadre. Esto hace que el Balance General empiece correcto. (Se marca <code>APERTURA</code> y se puede rehacer.)
+                Indique con qué saldos arranca el negocio en una fecha. El <b>Capital</b> se calcula solo para que todo cuadre. Esto hace que el Balance General empiece correcto. (Se marca <code>APERTURA</code> y se puede rehacer.)
             </p>
             <div style="margin-bottom:10px;"><label>Fecha de apertura *</label><input type="date" id="ap_fecha" style="max-width:200px;"></div>
-            <div style="font-weight:800; color:#0891b2; margin:6px 0;">ACTIVOS (lo que tienes)</div>
+            <div style="font-weight:800; color:#0891b2; margin:6px 0;">ACTIVOS (lo que tiene)</div>
             <div style="display:grid; grid-template-columns:1fr 150px; gap:8px 10px; align-items:center;">
                 <label style="margin:0;">Inventario de Mercancías <small id="ap_invHint" style="color:var(--text-muted);"></small></label><input type="number" step="0.01" id="ap_110301" oninput="recalcApertura()">
                 <label style="margin:0;">Caja General</label><input type="number" step="0.01" id="ap_110101" value="0" oninput="recalcApertura()">
@@ -4555,7 +4567,7 @@ body{
                 <label style="margin:0;">Mobiliario y Equipos</label><input type="number" step="0.01" id="ap_120101" value="0" oninput="recalcApertura()">
                 <label style="margin:0;">Equipos de Taller y Herramientas</label><input type="number" step="0.01" id="ap_120102" value="0" oninput="recalcApertura()">
             </div>
-            <div style="font-weight:800; color:#0891b2; margin:12px 0 6px;">PASIVOS (lo que debes)</div>
+            <div style="font-weight:800; color:#0891b2; margin:12px 0 6px;">PASIVOS (lo que debe)</div>
             <div style="display:grid; grid-template-columns:1fr 150px; gap:8px 10px; align-items:center;">
                 <label style="margin:0;">Cuentas por Pagar (Suplidores)</label><input type="number" step="0.01" id="ap_2101" value="0" oninput="recalcApertura()">
                 <label style="margin:0;">Préstamos por Pagar</label><input type="number" step="0.01" id="ap_2201" value="0" oninput="recalcApertura()">
@@ -4578,9 +4590,9 @@ body{
         </div>
         <div class="modal-body">
             <p style="color:var(--text-muted); font-size:12.5px; margin:0 0 12px;">
-                Crea <b>un asiento por mes</b> con lo que le compraste a proveedores (lee Info Plus en vivo). Entra a <b>Inventario</b> y sale como <b>Caja</b> (contado) o <b>Cuentas por Pagar</b> (crédito). Se marca <code>AUTO-IPC</code> y es regenerable.
+                Crea <b>un asiento por mes</b> con lo que se compró a proveedores (lee Info Plus en vivo). Entra a <b>Inventario</b> y sale como <b>Caja</b> (contado) o <b>Cuentas por Pagar</b> (crédito). Se marca <code>AUTO-IPC</code> y es regenerable.
             </p>
-            <div style="background:#fef3c7; color:#92400e; font-size:12px; padding:8px 10px; border-radius:8px; margin-bottom:10px;">⚠️ Lee Info Plus en vivo. Si pones un rango muy grande puede tardar; si falla, prueba con menos meses.</div>
+            <div style="background:#fef3c7; color:#92400e; font-size:12px; padding:8px 10px; border-radius:8px; margin-bottom:10px;">⚠️ Lee Info Plus en vivo. Si indica un rango muy grande, puede tardar; si falla, pruebe con menos meses.</div>
             <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px;">
                 <div><label>Desde (mes)</label><input type="month" id="aipc_desde"></div>
                 <div><label>Hasta (mes)</label><input type="month" id="aipc_hasta"></div>
@@ -4611,7 +4623,7 @@ body{
         </div>
         <div class="modal-body">
             <p style="color:var(--text-muted); font-size:12.5px; margin:0 0 12px;">
-                Registra un gasto sin preocuparte por débitos y créditos: el sistema arma el asiento contable correcto solo.
+                Registre un gasto sin preocuparse por débitos y créditos: el sistema arma el asiento contable correcto solo.
             </p>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                 <div class="form-row"><label>Fecha *</label><input type="date" id="rgto_fecha"></div>
@@ -4651,7 +4663,7 @@ body{
             <button class="modal-close" onclick="cerrarGastoSimple()" style="color:#fff;">✕</button>
         </div>
         <div class="modal-body">
-            <p style="color:var(--text-muted); font-size:12.5px; margin:0 0 12px;">Fácil: elige la <b>categoría</b>, el <b>monto</b> y listo. No necesitas saber de contabilidad.</p>
+            <p style="color:var(--text-muted); font-size:12.5px; margin:0 0 12px;">Seleccione la <b>categoría</b> e indique el <b>monto</b>. No necesita conocimientos de contabilidad.</p>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                 <div class="form-row"><label>Fecha *</label><input type="date" id="gs_fecha"></div>
                 <div class="form-row"><label>Tienda *</label><select id="gs_sucursal"><option value="General">General (ambas)</option><option value="Santiago">Santiago</option><option value="Moca">Moca</option></select></div>
@@ -4666,7 +4678,7 @@ body{
             <div style="margin-top:12px; border:1px solid #e2e8f0; border-radius:10px; overflow:hidden;">
                 <button type="button" onclick="const b=document.getElementById('gs_fiscalBody'); const f=b.style.display==='none'; b.style.display=f?'':'none'; this.querySelector('span').textContent=f?'▴':'▾';" style="width:100%; text-align:left; background:#f8fafc; border:0; padding:9px 12px; cursor:pointer; font-size:12.5px; font-weight:700; color:#334155;">🧾 Comprobante fiscal (NCF) — para el Reporte 606 <span style="float:right; color:#475569;">▾</span></button>
                 <div id="gs_fiscalBody" style="display:none; padding:10px 12px;">
-                    <p style="color:var(--text-muted); font-size:11.5px; margin:0 0 8px;">Si el gasto tiene <b>factura con NCF</b>, llénalo aquí y saldrá solo en el <b>606 de la DGII</b>. Si no tiene, deja todo en blanco.</p>
+                    <p style="color:var(--text-muted); font-size:11.5px; margin:0 0 8px;">Si el gasto tiene <b>factura con NCF</b>, complételo aquí y saldrá solo en el <b>606 de la DGII</b>. Si no tiene, deje todo en blanco.</p>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                         <div class="form-row"><label>NCF</label><input id="gs_ncf" placeholder="B0100000123" style="text-transform:uppercase;"></div>
                         <div class="form-row"><label>RNC / Cédula proveedor</label><input id="gs_rnc" inputmode="numeric" placeholder="101000000"></div>
@@ -4707,8 +4719,8 @@ body{
         </div>
         <div class="modal-body">
             <p style="color:var(--text-muted); font-size:12.5px; margin:0 0 12px;">
-                Registra el dinero que <b>entra</b> o <b>sale</b> de caja/banco (cobros, aportes, préstamos, compra de equipos, transferencias). El sistema arma el asiento solo y alimenta el reporte de Flujo de Efectivo.<br>
-                <small>Para gastos del día (luz, alquiler, sueldos...) usa mejor el botón <b>"Registrar gasto"</b>.</small>
+                Registre el dinero que <b>entra</b> o <b>sale</b> de caja/banco (cobros, aportes, préstamos, compra de equipos, transferencias). El sistema arma el asiento solo y alimenta el reporte de Flujo de Efectivo.<br>
+                <small>Para gastos del día (luz, alquiler, sueldos...) use mejor el botón <b>"Registrar gasto"</b>.</small>
             </p>
             <div style="display:flex; gap:6px; margin-bottom:10px;">
                 <button type="button" id="mef_tEntrada" class="btn btn-success" style="flex:1; font-size:13px;" onclick="cambiarTipoMovEf('entrada')"><i class="ti ti-arrow-down-left"></i> Entra dinero</button>
@@ -4768,7 +4780,7 @@ body{
                 <label style="display:flex; align-items:center; gap:6px; margin:0;"><input type="checkbox" id="cta_movimiento" checked> Permite movimientos</label>
                 <label style="display:flex; align-items:center; gap:6px; margin:0;"><input type="checkbox" id="cta_activa" checked> Activa</label>
             </div>
-            <small style="color:var(--text-muted); font-size:11px;">"Permite movimientos" = cuenta de detalle donde se registran asientos. Desmárcalo si es un grupo/encabezado.</small>
+            <small style="color:var(--text-muted); font-size:11px;">"Permite movimientos" = cuenta de detalle donde se registran asientos. Desmárquelo si es un grupo/encabezado.</small>
         </div>
         <div class="modal-footer">
             <button class="btn btn-light" onclick="cerrarModalCuenta()">Cancelar</button>
@@ -4968,7 +4980,7 @@ body{
             <button class="modal-close" onclick="cerrarModalWaUbicacion()" style="color:#fff;">✕</button>
         </div>
         <div class="modal-body" style="padding:16px;">
-            <div id="waUbicacionEstado" style="font-size:13px; color:#3b4a54; line-height:1.5;">Vas a compartir tu ubicación actual con el cliente.</div>
+            <div id="waUbicacionEstado" style="font-size:13px; color:#3b4a54; line-height:1.5;">Va a compartir su ubicación actual con el cliente.</div>
         </div>
         <div class="modal-footer">
             <button class="btn btn-light" onclick="cerrarModalWaUbicacion()">Cancelar</button>
@@ -5030,9 +5042,9 @@ body{
             <!-- PASO 1: Seleccionar equipo despachado -->
             <h4 style="margin:0 0 8px; font-size:13px; color:#dc2626; text-transform:uppercase;"><i class="ti ti-search"></i> 1. Buscar equipo despachado</h4>
             <div class="form-row">
-                <label>Selecciona el equipo que el cliente devolvió</label>
+                <label>Seleccione el equipo que el cliente devolvió</label>
                 <div id="ss-dev-equipo"></div>
-                <small style="color:var(--text-muted); font-size:11px;">Busca por IMEI, modelo o cliente.</small>
+                <small style="color:var(--text-muted); font-size:11px;">Busque por IMEI, modelo o cliente.</small>
             </div>
             
             <!-- INFO DEL EQUIPO (se carga al seleccionar) -->
@@ -5042,13 +5054,13 @@ body{
             <div id="devCamposExtras" style="display:none;">
                 <h4 style="margin:15px 0 8px; font-size:13px; color:#dc2626; text-transform:uppercase;"><i class="ti ti-message"></i> 2. Motivo de la devolución</h4>
                 <div class="form-row">
-                    <label>¿Por qué devolvió el cliente? *</label>
+                    <label>Razón de la devolución *</label>
                     <textarea id="dev_motivo" rows="2" placeholder="Ej. El equipo se apaga solo, no carga, etc." style="resize:vertical;"></textarea>
                 </div>
                 
                 <h4 style="margin:15px 0 8px; font-size:13px; color:#dc2626; text-transform:uppercase;"><i class="ti ti-list-check"></i> 3. Problemas reportados</h4>
                 <div style="background:#f8fafc; padding:10px; border-radius:8px; margin-bottom:10px;">
-                    <p style="font-size:11px; color:var(--text-muted); margin:0 0 8px;">Selecciona los problemas que el cliente reportó (las fallas detectadas en evaluación):</p>
+                    <p style="font-size:11px; color:var(--text-muted); margin:0 0 8px;">Seleccione los problemas que el cliente reportó (las fallas detectadas en evaluación):</p>
                     <div id="devProblemasChecklist" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:6px;"></div>
                 </div>
                 
@@ -5068,12 +5080,12 @@ body{
                 <!-- Diagnóstico inicial opcional -->
                 <div class="form-row">
                     <label>Diagnóstico inicial (opcional)</label>
-                    <textarea id="dev_diagnostico" rows="2" placeholder="Tu primera impresión al revisar el equipo..." style="resize:vertical;"></textarea>
+                    <textarea id="dev_diagnostico" rows="2" placeholder="Su primera impresión al revisar el equipo..." style="resize:vertical;"></textarea>
                 </div>
                 
                 <!-- Aviso de qué pasará -->
                 <div style="background:linear-gradient(135deg, #fef3c7, #fde68a); border:2px solid #f59e0b; padding:12px; border-radius:10px; font-size:12px; color:#78350f;">
-                    <b><i class="ti ti-alert-triangle"></i> ¿Qué sucederá al guardar?</b>
+                    <b><i class="ti ti-alert-triangle"></i> Al guardar</b>
                     <ul style="margin:6px 0 0 18px; padding:0; line-height:1.5;">
                         <li>El equipo cambiará a estado <b>"En Proceso"</b></li>
                         <li>Se incrementará el contador "Devuelto X veces"</li>
@@ -5100,16 +5112,16 @@ body{
             <button class="modal-close" onclick="cerrarNotifMdm()" style="color:#fff;">✕</button>
         </div>
         <div class="modal-body">
-            <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px;">Elige un mensaje rápido o escribe uno propio. Le llega a la pantalla del equipo del cliente.</p>
+            <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px;">Seleccione un mensaje rápido o escriba uno propio. Le llega a la pantalla del equipo del cliente.</p>
             <div style="display:flex; flex-direction:column; gap:6px;">
                 <button class="btn btn-light" style="justify-content:flex-start;" onclick="enviarNotifMdm('Le recordamos que su cuota está próxima a vencer. Gracias — BAYOL CELL')">🔔 Recordatorio de pago</button>
                 <button class="btn btn-light" style="justify-content:flex-start;" onclick="enviarNotifMdm('Su cuota está VENCIDA. Por favor regularice su pago para evitar el bloqueo del equipo. — BAYOL CELL')">⚠️ Cuota vencida</button>
                 <button class="btn btn-light" style="justify-content:flex-start;" onclick="enviarNotifMdm('ÚLTIMO AVISO: regularice su pago HOY o el equipo será bloqueado. — BAYOL CELL')">🚨 Último aviso</button>
-                <button class="btn btn-light" style="justify-content:flex-start;" onclick="enviarNotifMdm('¡Gracias por su pago! Su cuenta está al día. — BAYOL CELL')">✅ Pago recibido</button>
+                <button class="btn btn-light" style="justify-content:flex-start;" onclick="enviarNotifMdm('Gracias por su pago. Su cuenta está al día. — BAYOL CELL')">✅ Pago recibido</button>
             </div>
             <div style="margin-top:12px;">
                 <label style="font-size:12px; font-weight:600;">✍️ Mensaje personalizado</label>
-                <textarea id="notifMdmTexto" rows="2" placeholder="Escribe tu mensaje..." style="width:100%; padding:8px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; margin-top:4px;"></textarea>
+                <textarea id="notifMdmTexto" rows="2" placeholder="Escriba su mensaje..." style="width:100%; padding:8px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; margin-top:4px;"></textarea>
                 <button class="btn btn-blue" style="margin-top:6px; width:100%;" onclick="enviarNotifMdmCustom()"><i class="ti ti-send"></i> Enviar personalizado</button>
             </div>
             <div id="notifMdmMsg" style="font-size:12px; margin-top:8px;"></div>
@@ -5127,13 +5139,13 @@ body{
             <button class="modal-close" onclick="cerrarModalConsumoTaller()" style="color:#fff;">✕</button>
         </div>
         <div class="modal-body">
-            <p style="color:var(--text-muted); font-size:12px; margin:0 0 12px;">Registra la pieza del <b>catálogo de Info Plus</b> que usaste en un reacondicionado. Esto descuenta del control del Taller (lo que Info Plus aún no descontó).</p>
+            <p style="color:var(--text-muted); font-size:12px; margin:0 0 12px;">Registre la pieza del <b>catálogo de Info Plus</b> que usó en un reacondicionado. Esto descuenta del control del Taller (lo que Info Plus aún no descontó).</p>
             <div class="form-row"><label>Buscar pieza en Info Plus *</label>
                 <input id="ct_buscar" placeholder="🔍 Código, descripción o marca…" autocomplete="off" oninput="buscarPiezaConsumo()">
-                <small style="color:var(--text-muted); font-size:11px;">Escribe y elige de la lista.</small>
+                <small style="color:var(--text-muted); font-size:11px;">Escriba y seleccione de la lista.</small>
             </div>
             <div class="form-row"><label>Pieza seleccionada</label>
-                <select id="ct_pieza"><option value="">— Busca y selecciona una pieza —</option></select>
+                <select id="ct_pieza"><option value="">— Busque y seleccione una pieza —</option></select>
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                 <div class="form-row"><label>Cantidad *</label><input id="ct_cantidad" type="number" min="1" step="1" value="1"></div>
@@ -5157,7 +5169,7 @@ body{
             <button class="modal-close" onclick="cerrarModalRegistrarExistente()" style="color:#fff;">✕</button>
         </div>
         <div class="modal-body">
-            <p style="color:var(--text-muted); font-size:12px; margin:0 0 12px;">Para equipos que ya tenías <b>antes del sistema</b>. Cae directo en su estado real y asignado a su técnico. Quedan en el lote <b>HISTÓRICO</b>.</p>
+            <p style="color:var(--text-muted); font-size:12px; margin:0 0 12px;">Para equipos que ya tenía <b>antes del sistema</b>. Cae directo en su estado real y asignado a su técnico. Quedan en el lote <b>HISTÓRICO</b>.</p>
             <div class="form-row"><label>Equipo (del inventario Info Plus) *</label><div id="ss-rex-modelo"></div></div>
             <div class="form-row"><label>Costo de compra (opcional)</label><input id="rex_costo" type="number" step="0.01" min="0" placeholder="0.00"></div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
@@ -5165,7 +5177,7 @@ body{
                 <div class="form-row"><label>Serial</label><input id="rex_serial" placeholder="Serial / opcional"></div>
             </div>
             <div class="form-row"><label>Técnico que lo tiene *</label>
-                <select id="rex_tecnico"><option value="">— Selecciona el técnico —</option></select>
+                <select id="rex_tecnico"><option value="">— Seleccione el técnico —</option></select>
             </div>
             <div class="form-row"><label>Estado actual *</label>
                 <select id="rex_estado">
@@ -5192,7 +5204,7 @@ body{
             <button class="modal-close" onclick="cerrarComparacionIP()" style="color:#fff;">✕</button>
         </div>
         <div class="modal-body">
-            <p style="color:var(--text-muted); font-size:12px; margin:0 0 10px;">El sistema enlazó cada repuesto con su artículo de Info Plus (por nombre). Revisa el <b>código</b>, corrige los que hagan falta con <b>"Cambiar"</b>, y escribe el <b>nuevo precio al por mayor</b> donde el costo haya bajado. Imprime o exporta para actualizar en Info Plus.</p>
+            <p style="color:var(--text-muted); font-size:12px; margin:0 0 10px;">El sistema enlazó cada repuesto con su artículo de Info Plus (por nombre). Revise el <b>código</b>, corrija los que hagan falta con <b>"Cambiar"</b> y escriba el <b>nuevo precio al por mayor</b> donde el costo haya bajado. Imprima o exporte para actualizar en Info Plus.</p>
             <div id="compIPResumen" style="font-size:12.5px; margin-bottom:8px;"></div>
             <div style="overflow-x:auto;">
                 <table style="width:100%; border-collapse:collapse; font-size:12px; min-width:980px;">
@@ -5231,7 +5243,7 @@ body{
             <input id="asign_equipo_id" type="hidden">
             <div id="asignEquipoInfo" style="background:#f1f5f9; padding:12px; border-radius:8px; margin-bottom:15px; font-size:13px;"></div>
             <div class="form-row">
-                <label>Selecciona técnico</label>
+                <label>Técnico</label>
                 <div id="ss-asign-tecnico"></div>
             </div>
             <div class="form-row">
@@ -5257,7 +5269,7 @@ body{
             <button class="modal-close" onclick="cerrarModalAsignarLote()" style="color:#fff;">✕</button>
         </div>
         <div class="modal-body">
-            <p style="color:var(--text-muted); font-size:12.5px; margin:0 0 12px;">Elige el técnico y cuántos equipos <b>evaluados</b> (sin asignar) va a empezar a trabajar. Se le asignan los primeros de la lista y pasan a <b>En Proceso</b>.</p>
+            <p style="color:var(--text-muted); font-size:12.5px; margin:0 0 12px;">Seleccione el técnico y cuántos equipos <b>evaluados</b> (sin asignar) va a empezar a trabajar. Se le asignan los primeros de la lista y pasan a <b>En Proceso</b>.</p>
             <div class="form-row">
                 <label>Técnico</label>
                 <div id="ss-asignlote-tecnico"></div>
@@ -5296,7 +5308,7 @@ body{
             <div class="form-row">
                 <label>Nombre completo de la falla *</label>
                 <input id="mod_falla_nombre" placeholder="Ej. Pantalla rayada en esquina superior">
-                <small style="color:var(--text-muted); font-size:11px;">Nombre que verás en la evaluación.</small>
+                <small style="color:var(--text-muted); font-size:11px;">Nombre que aparece en la evaluación.</small>
             </div>
             <div class="form-row">
                 <label>Nombre corto para label *</label>
@@ -5334,7 +5346,7 @@ body{
             <div class="form-row"><label>Contacto (Persona)</label><input id="mod_prov_contacto" placeholder="Persona de contacto"></div>
             <div class="form-row"><label>WhatsApp / Teléfono</label><input id="mod_prov_whatsapp" placeholder="809-000-0000"></div>
             <div class="form-row"><label>Ciudad / Ubicación</label><input id="mod_prov_ciudad" placeholder="Santo Domingo"></div>
-            <div class="form-row"><label>Proveedor en Info Plus <span style="color:#475569; font-weight:400;">(para registrar compras)</span></label><select id="mod_prov_codip"><option value="">— elige —</option></select></div>
+            <div class="form-row"><label>Proveedor en Info Plus <span style="color:#475569; font-weight:400;">(para registrar compras)</span></label><select id="mod_prov_codip"><option value="">— seleccione —</option></select></div>
             <div class="form-row">
                 <label>Tipo de Proveedor</label>
                 <select id="mod_prov_tipo">
@@ -5374,7 +5386,7 @@ body{
             <input id="mod_art_id" type="hidden">
             <div class="form-row"><label>Código (Info Plus) *</label>
                 <input id="mod_art_codigo" placeholder="Ej. 1078" style="text-transform:uppercase;" autocomplete="off">
-                <small style="color:var(--text-muted); font-size:11px;">Escribe el <b>mismo código que tiene en Info Plus</b> para que la existencia y el precio se amarren automáticamente.</small>
+                <small style="color:var(--text-muted); font-size:11px;">Escriba el <b>mismo código que tiene en Info Plus</b> para que la existencia y el precio se amarren automáticamente.</small>
             </div>
             <div class="form-row"><label>Descripción (Info Plus)</label>
                 <input id="mod_art_descripcion" placeholder="Tal como aparece en Info Plus" style="text-transform:uppercase;" autocomplete="off">
@@ -5383,12 +5395,12 @@ body{
             <div class="form-row"><label>Marca *</label>
                 <input id="mod_art_marca" list="dl_marcas" placeholder="APPLE / SAMSUNG / XIAOMI" style="text-transform:uppercase;" autocomplete="off">
                 <datalist id="dl_marcas"></datalist>
-                <small style="color:var(--text-muted); font-size:11px;">Elige del catálogo o escribe una nueva.</small>
+                <small style="color:var(--text-muted); font-size:11px;">Seleccione del catálogo o escriba una nueva.</small>
             </div>
             <div class="form-row"><label>Categoría</label>
                 <input id="mod_art_categoria" list="dl_categorias" placeholder="CELULAR / TABLET / ACCESORIO" style="text-transform:uppercase;" autocomplete="off">
                 <datalist id="dl_categorias"></datalist>
-                <small style="color:var(--text-muted); font-size:11px;">Elige del catálogo o escribe una nueva.</small>
+                <small style="color:var(--text-muted); font-size:11px;">Seleccione del catálogo o escriba una nueva.</small>
             </div>
             <div class="form-row"><label>Modelo *</label><input id="mod_art_modelo" placeholder="IPHONE 12 PRO MAX" style="text-transform:uppercase;"></div>
             <div class="form-row"><label>Capacidad</label><input id="mod_art_capacidad" placeholder="256GB / 128GB / 64GB" style="text-transform:uppercase;"></div>
@@ -5398,13 +5410,13 @@ body{
                 <div class="form-row"><label>Precio especial</label><input id="mod_art_precio_especial" type="number" step="0.01" min="0" placeholder="0.00"></div>
                 <div class="form-row"><label>Costo</label><input id="mod_art_costo" type="number" step="0.01" min="0" placeholder="0.00"></div>
             </div>
-            <small style="color:var(--text-muted); font-size:11px; display:block; margin:-4px 0 8px;">Si dejas los precios vacíos, se llenarán solos con el sync de Info Plus.</small>
+            <small style="color:var(--text-muted); font-size:11px; display:block; margin:-4px 0 8px;">Si deja los precios vacíos, se llenarán solos con el sync de Info Plus.</small>
             <div class="form-row" style="background:#f1f5f9; padding:10px; border-radius:8px; border:1px solid var(--border-color);">
                 <label style="margin-bottom:8px; display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-dark); text-transform:none; font-weight:600;">
                     <input type="checkbox" id="mod_art_lleva_imei" style="width:auto; min-height:auto;" checked>
                     Este artículo lleva IMEI / Serial obligatorio
                 </label>
-                <small style="color:var(--text-muted); font-size:11px; line-height:1.4; display:block;">⚠️ Desmarca si es un accesorio o producto sin IMEI (cables, fundas, baterías sueltas, etc.)</small>
+                <small style="color:var(--text-muted); font-size:11px; line-height:1.4; display:block;">⚠️ Desmarque si es un accesorio o producto sin IMEI (cables, fundas, baterías sueltas, etc.)</small>
             </div>
         </div>
         <div class="modal-footer">
@@ -5427,7 +5439,7 @@ body{
                 <input id="mod_perfil_nombre" placeholder="EJ: LABEL VENTA 50MM" style="text-transform:uppercase;">
             </div>
             <div style="background:#fef3c7; border:1px solid #fcd34d; padding:10px; border-radius:8px; font-size:12px; color:#92400e;">
-                <i class="ti ti-info-circle"></i> Se creará con los valores ACTUALES de los sliders. Puedes ajustarlo después.
+                <i class="ti ti-info-circle"></i> Se creará con los valores ACTUALES de los sliders. Puede ajustarlo después.
             </div>
         </div>
         <div class="modal-footer">
@@ -5447,32 +5459,32 @@ body{
         <div class="modal-body">
             <div style="background:#dbeafe; border:1px solid #93c5fd; padding:12px; border-radius:8px; margin-bottom:15px; font-size:13px; color:#1e40af;">
                 <b><i class="ti ti-info-circle"></i> Configuración inicial (solo 1 vez)</b><br>
-                Sigue estos pasos para que los labels impriman al tamaño exacto sin márgenes.
+                Siga estos pasos para que los labels impriman al tamaño exacto sin márgenes.
             </div>
             
             <h4 style="margin:15px 0 8px 0; color:var(--blue-btn); font-size:13px;"><i class="ti ti-list-numbers"></i> Paso 1: Configuración en Windows</h4>
             <ol style="font-size:13px; line-height:1.6; padding-left:20px; margin:0 0 15px 0;">
-                <li>Ve a <b>Panel de Control</b> → <b>Dispositivos e Impresoras</b></li>
+                <li>Vaya a <b>Panel de Control</b> → <b>Dispositivos e Impresoras</b></li>
                 <li>Clic derecho en <b>2C-LP427B</b> → <b>Preferencias de impresión</b></li>
-                <li>En "Tamaño del papel" elige el tamaño de tu etiqueta (ej: 58mm × 40mm)</li>
-                <li>En "Orientación" deja en <b>Vertical</b></li>
+                <li>En "Tamaño del papel" seleccione el tamaño de su etiqueta (ej: 58mm × 40mm)</li>
+                <li>En "Orientación" deje en <b>Vertical</b></li>
                 <li>Clic en <b>Aceptar</b></li>
             </ol>
             
             <h4 style="margin:15px 0 8px 0; color:var(--blue-btn); font-size:13px;"><i class="ti ti-list-numbers"></i> Paso 2: Configuración en Chrome (primera impresión)</h4>
             <ol style="font-size:13px; line-height:1.6; padding-left:20px; margin:0 0 15px 0;">
-                <li>Llena los datos del label en este sistema</li>
-                <li>Ajusta el ancho con el <b>slider de calibración</b> (lo recuerda automáticamente)</li>
+                <li>Complete los datos del label en este sistema</li>
+                <li>Ajuste el ancho con el <b>slider de calibración</b> (lo recuerda automáticamente)</li>
                 <li>Clic en <b>"Imprimir en Label Printer"</b></li>
                 <li>En el diálogo de Chrome:
                     <ul style="margin:6px 0;">
-                        <li>Destino: selecciona <b>2C-LP427B</b></li>
+                        <li>Destino: seleccione <b>2C-LP427B</b></li>
                         <li>Páginas: <b>Todas</b></li>
                         <li>Diseño: <b>Vertical</b></li>
                         <li>Color: <b>Blanco y negro</b></li>
                         <li><b>Más ajustes</b> → Márgenes: <b>Ninguno</b></li>
                         <li><b>Más ajustes</b> → Escala: <b>100</b> o <b>Tamaño real</b></li>
-                        <li>Desmarca <b>"Encabezados y pies de página"</b></li>
+                        <li>Desmarque <b>"Encabezados y pies de página"</b></li>
                     </ul>
                 </li>
                 <li>Clic en <b>Imprimir</b></li>
@@ -5480,16 +5492,16 @@ body{
             
             <div style="background:#d1fae5; border:1px solid #86efac; padding:12px; border-radius:8px; font-size:13px; color:#065f46;">
                 <b><i class="ti ti-check"></i> Después de la primera impresión:</b><br>
-                Chrome recordará la configuración. Las siguientes veces solo será: clic en Imprimir → clic en botón Imprimir del diálogo. ¡2 clicks!
+                Chrome recordará la configuración. Las siguientes veces solo será: clic en Imprimir → clic en botón Imprimir del diálogo (dos clics).
             </div>
             
             <h4 style="margin:15px 0 8px 0; color:var(--blue-btn); font-size:13px;">🔧 Si el label sale mal</h4>
             <ul style="font-size:13px; line-height:1.6; padding-left:20px; margin:0;">
-                <li><b>Sale cortado:</b> Reduce el ancho con el slider (intenta 50mm o 55mm)</li>
-                <li><b>Sale muy chico:</b> Aumenta el tamaño de letra con el slider</li>
-                <li><b>Código de barras no se ve:</b> Aumenta la altura del barcode</li>
-                <li><b>Sale en blanco:</b> Verifica que la impresora esté seleccionada en Chrome</li>
-                <li><b>Sale con texto raro arriba:</b> En Chrome desmarca "Encabezados y pies de página"</li>
+                <li><b>Sale cortado:</b> Reduzca el ancho con el slider (intente 50mm o 55mm)</li>
+                <li><b>Sale muy chico:</b> Aumente el tamaño de letra con el slider</li>
+                <li><b>Código de barras no se ve:</b> Aumente la altura del barcode</li>
+                <li><b>Sale en blanco:</b> Verifique que la impresora esté seleccionada en Chrome</li>
+                <li><b>Sale con texto raro arriba:</b> En Chrome desmarque "Encabezados y pies de página"</li>
             </ul>
         </div>
         <div class="modal-footer">
@@ -5522,7 +5534,7 @@ body{
                 <textarea id="mod_compra_notas" rows="2" placeholder="Ej: 53 dispositivos incluyendo apple watch"></textarea>
             </div>
             <div style="background:#f0fdf4; border:1px solid #86efac; padding:10px; border-radius:8px; font-size:12px; color:#166534;">
-                <i class="ti ti-info-circle"></i> Después de crear la compra agregarás los equipos uno por uno con su IMEI.
+                <i class="ti ti-info-circle"></i> Después de crear la compra agregará los equipos uno por uno con su IMEI.
             </div>
         </div>
         <div class="modal-footer">
@@ -5569,14 +5581,17 @@ body{
 <div id="toast" class="toast"></div>
 <div id="printArea" class="print-area"></div>
 
-<script src="taller-app.js?v=20261016-dw1"></script>
-<script src="diagnostico-photo-tiles.js?v=20261009e"></script>
-<script src="diagnostico-board-data.js?v=20261009e"></script>
-<script src="diagnostico-ai-board.js?v=20261010d"></script>
-<script src="diagnostico-ai-catalog.js?v=20261010e"></script>
-<script src="diagnostico-ai-cortos.js?v=20261010e"></script>
-<script src="diagnostico-ai-chat.js?v=20261010b"></script>
-<script src="diagnostico-ai-library.js?v=20261010a"></script>
-<script src="crm-marketing-consent.js?v=20261016-c2"></script>
+<script src="taller-app.js?v=20261020-e3"></script>
+<script src="taller-recepcion.js?v=20261020-f1"></script>
+<script src="taller-prefactura.js?v=20261020-g1"></script>
+<script src="taller-info.js?v=20261019-p1"></script>
+<script src="diagnostico-photo-tiles.js?v=20261019-f1"></script>
+<script src="diagnostico-board-data.js?v=20261019-f1"></script>
+<script src="diagnostico-ai-board.js?v=20261019-f1"></script>
+<script src="diagnostico-ai-catalog.js?v=20261019-f1"></script>
+<script src="diagnostico-ai-cortos.js?v=20261019-f1"></script>
+<script src="diagnostico-ai-chat.js?v=20261019-f1"></script>
+<script src="diagnostico-ai-library.js?v=20261019-f1"></script>
+<script src="crm-marketing-consent.js?v=20261020-u1"></script>
 </body>
 
