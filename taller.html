@@ -1725,7 +1725,7 @@ body{
 <link rel="stylesheet" href="taller-recepcion.css?v=20261020-f1">
 <!-- Prefactura con el diseño de STUDIO (dueño 19-oct-2026): capa reversible. Apagar: BC_PF=false o localStorage bc_pf_off=1 -->
 <script>var BC_PF=true;try{if(BC_PF&&localStorage.getItem('bc_pf_off')!=='1')document.documentElement.classList.add('bc-pf');}catch(e){if(BC_PF)document.documentElement.classList.add('bc-pf');}</script>
-<link rel="stylesheet" href="taller-prefactura.css?v=20261020-l4">
+<link rel="stylesheet" href="taller-prefactura.css?v=20261020-m1">
 <!-- Ayudas detrás de una ⓘ (dueño 19-oct-2026, igual que NEXUS): apagar BC_INFO=false o localStorage bc_info_off=1 -->
 <script>var BC_INFO=true;try{if(BC_INFO&&localStorage.getItem('bc_info_off')!=='1')document.documentElement.classList.add('bc-info');}catch(e){if(BC_INFO)document.documentElement.classList.add('bc-info');}</script>
 <link rel="stylesheet" href="taller-info.css?v=20261019-i2">
@@ -2780,9 +2780,9 @@ body{
                         <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
                           <label style="font-size:11px; font-weight:700; color:#64748b;">Precio según el cliente:</label>
                           <select id="rxNivel" onchange="_rpNivelCambio()" style="height:34px; padding:0 10px; border:1px solid #d8dee9; border-radius:9px; font-size:13px;">
-                            <option value="1">Cliente final (Contado)</option>
-                            <option value="2">Por mayor</option>
-                            <option value="3">Extremo</option>
+                            <option value="1">CLIENTE FINAL</option>
+                            <option value="2">POR MAYOR</option>
+                            <option value="3">EXTREMO</option>
                           </select>
                           <span style="font-size:11px; color:#94a3b8;">se aplica a todos los artículos</span>
                         </div>
@@ -5584,7 +5584,7 @@ body{
 
 <script src="taller-app.js?v=20261020-h2"></script>
 <script src="taller-recepcion.js?v=20261020-f2"></script>
-<script src="taller-prefactura.js?v=20261020-l4"></script>
+<script src="taller-prefactura.js?v=20261020-m2"></script>
 <script src="taller-info.js?v=20261020-v1"></script>
 <script src="crm-consulta-precio.js?v=20261020-d1"></script>
 <script src="diagnostico-photo-tiles.js?v=20261019-f1"></script>

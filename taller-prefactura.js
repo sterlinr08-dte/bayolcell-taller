@@ -51,18 +51,20 @@
       '<div class="dhl"><div class="emp">BAYOL CELL</div><div class="empsub">Prefactura de Info Plus</div></div>' +
       '<div class="dhr"><span class="dtit">Prefactura</span>' +
       '' +
+      '<button type="button" class="ibtn" aria-label="Buscar prefacturas" title="Buscar prefacturas"><i class="ti ti-search" aria-hidden="true"></i></button>' +
       '<span class="dno">Nº</span><span class="dnum">Nueva</span><span class="dfec">' + fechaHoy() + '</span></div>' +
       '<div class="dest"></div>');
     pad.appendChild(dh);
     R.num = q('.dnum', dh); R.est = q('.dest', dh); q('.dhl', dh).appendChild(R.est); // estado debajo de «Prefactura de Info Plus», sin fila propia
-    // 20-oct-2026: se quitó el botón suelto de arriba (ícono de copiar): repetía «Prefacturas» de las píldoras.
+    // Lupa de arriba (dueño: «no es copiar, es una lupa»): busca las prefacturas guardadas. Es la única entrada.
+    q('.ibtn', dh).addEventListener('click', function () { try { _rpHistorial(); } catch (e) {} });
 
     // Facturar a + Condiciones. 20-oct-2026 (dueño): «ponerla como la tenemos en estudio y quitar todo lo otro … para
     // irle agregando». En «Facturar a» queda solo la tarjeta del cliente; los campos del cliente bajan a «Más datos».
     var p1 = el('div', 'bcpf-partes');
     var cCli = el('div', 'pcol', '<div class="plab">Facturar a</div>');
     var tarjeta = el('button', 'pcli', '<span class="pav" aria-hidden="true"><i class="ti ti-user"></i></span>' +
-      '<span class="pinfo"><span class="pnom">Cliente de contado</span><span class="pdet">Contado · cód. 1</span></span>' +
+      '<span class="pinfo"><span class="pnom">CONTADO: 1</span><span class="pdet"></span></span>' +
       '<span class="pchev">Cambiar <i class="ti ti-chevron-right" aria-hidden="true"></i></span>');
     tarjeta.type = 'button'; tarjeta.setAttribute('aria-label', 'Cambiar el cliente de Info Plus');
     tarjeta.addEventListener('click', function () { try { _rpBuscarCliente(); } catch (e) {} });
@@ -131,7 +133,6 @@
     var otras = el('div', 'bcpf-otras');
     var qs = el('div', 'bcpf-qs');
     function pildora(ic, txt, fn) { var b = el('button', 'bcpf-q', '<i class="ti ' + ic + '" aria-hidden="true"></i><span>' + txt + '</span>'); b.type = 'button'; b.addEventListener('click', fn); qs.appendChild(b); return b; }
-    pildora('ti-history', 'Prefacturas', function () { try { _rpHistorial(); } catch (e) {} });
     pildora('ti-file-plus', 'Nueva', function () { nueva(); });
     // Herramientas rápidas: queda solo «Pedir reseña» a mano (dueño: «puede dejar el asunto de la reseña»); la rifa baja a «Más datos».
     var tools = q('.rx-toolsbox', v);
@@ -342,15 +343,18 @@
     // Nº y estado
     R.num.textContent = (s && s.codprefactura) ? String(s.codprefactura) : 'Nueva';
     R.num.classList.toggle('nueva', !(s && s.codprefactura));
-    var badge = ''; try { badge = _rpEstadoBadge((s && s.estado) || 'pendiente', s && s.codprefactura); } catch (e) {}
-    R.est.innerHTML = badge;
+    // Estado corto (dueño: «quitar "pendiente de crear", solo "crear", y ponlo smart»): punto de color + una palabra
+    var est = (s && s.estado) || 'pendiente';
+    var EST = { pendiente: ['crear', 'Crear'], cambios: ['cambios', 'Cambios sin enviar'], sincronizada: ['ok', 'En Info Plus'], actualizando: ['act', 'Actualizando…'], error: ['err', 'Error'], facturada: ['fact', 'Facturada'] };
+    var e2 = EST[est] || EST.pendiente;
+    R.est.innerHTML = '<span class="bcpf-est ' + e2[0] + '"><i aria-hidden="true"></i>' + e2[1] + '</span>';
     // Cliente
     var info = s && s.codcliente && String(s.codcliente) !== '1';
-    var nombre = val('c_nombre') || (info ? s.infoNombre : '') || 'Cliente de contado';
+    var nombre = val('c_nombre') || (info ? s.infoNombre : '') || 'CONTADO: 1';
     R.pnom.textContent = nombre;
     // Como STUDIO: código y documento en una línea; teléfono y dirección (de Info Plus) en otra
     var ip = info ? ((cache && cache.infoplusClientes) || []).find(function (c) { return String(c.codcliente) === String(s.codcliente); }) || {} : {};
-    var l1 = [info ? 'Cód. ' + s.codcliente : 'Contado · cód. 1', (val('c_cedula') || ip.cedula) ? 'Céd. ' + (val('c_cedula') || ip.cedula) : ((val('c_rnc') || ip.rnc) ? 'RNC ' + (val('c_rnc') || ip.rnc) : '')].filter(Boolean).join(' · ');
+    var l1 = [info ? 'Cód. ' + s.codcliente : '', (val('c_cedula') || ip.cedula) ? 'Céd. ' + (val('c_cedula') || ip.cedula) : ((val('c_rnc') || ip.rnc) ? 'RNC ' + (val('c_rnc') || ip.rnc) : '')].filter(Boolean).join(' · ');
     var l2 = [val('c_whatsapp') || ip.telefono, ip.direccion].filter(Boolean).join(' · ');
     R.pdet.innerHTML = esc(l1) + (l2 ? '<span class="pdet2">' + esc(l2) + '</span>' : '');
     var ini = (val('c_nombre') || info) ? iniciales(nombre) : '';
