@@ -252,11 +252,18 @@
     o.id = 'bcpfImv'; o.setAttribute('data-i', i);
     o.innerHTML = '<div class="box" role="dialog" aria-modal="true" aria-label="IMEI de ' + esc(it.desc) + '">' +
       '<div class="hd"><b><i class="ti ti-barcode" aria-hidden="true"></i> IMEI · ' + esc(it.desc) + '</b><button type="button" class="vol"><i class="ti ti-arrow-left" aria-hidden="true"></i> Volver</button></div>' +
-      '<p>Escanee o escriba el IMEI y presione Enter. <b>La cantidad se ajusta sola.</b></p>' +
+      '<p>Escanee o escriba el IMEI y presione Enter, o tóquelo en la lista. <b>La cantidad se ajusta sola.</b></p>' +
       '<input id="rpImei_' + i + '" inputmode="numeric" autocomplete="off" placeholder="IMEI del equipo" aria-label="IMEI" onkeydown="_rpImeiKey(event,' + i + ')">' +
       '<div class="lst">' + imvLista(i) + '</div>' +
+      '<div class="ims"><div class="imsh">Elegir de la lista</div><div class="imsl"><span class="imsv">Cargando IMEI…</span></div></div>' +
       '<div class="ft"><button type="button" class="ok">Listo</button></div></div>';
     doc.body.appendChild(o);
+    cargarElegibles(i);
+    o.querySelector('input').addEventListener('input', function () { pintarElegibles(); });
+    o.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-elegir]'); if (!b) return;
+      try { _rpAgregarImei(i, b.getAttribute('data-elegir')); } catch (er) {}
+    });
     o.addEventListener('click', function (e) { if (e.target === o || e.target.closest('.vol, .ok')) cerrarImei(); });
     setTimeout(function () { var x = doc.getElementById('rpImei_' + i); if (x) x.focus(); }, 40);
   }
@@ -264,6 +271,42 @@
     var o = doc.getElementById('bcpfImv'); if (!o) return;
     var l = o.querySelector('.lst'); if (l) l.innerHTML = imvLista(Number(o.getAttribute('data-i')));
     var x = o.querySelector('input'); if (x) { x.value = ''; x.focus(); } // listo para el próximo IMEI
+    pintarElegibles();
+  }
+  // 20-oct-2026 (dueño: «en los artículos con IMEI, en la ventana, habilitar la opción de elegir los IMEI manual»):
+  // lista de IMEI de ese artículo para tocar y agregar. Fuente: infoplus_seriales (IMEI de las COMPRAS de Info Plus,
+  // tabla que llena «Sincronizar seriales»). Solo lectura. Lo que se escribe arriba filtra la lista.
+  // Info Plus todavía no da los IMEI por almacén (falta el «tipo» con Dagoberto): la lista puede traer equipos ya vendidos.
+  var eleg = { cod: null, lista: [], error: '' };
+  function cargarElegibles(i) {
+    var s = st(), it = s && s.items[i]; if (!it) return;
+    var cod = String(it.cod);
+    if (eleg.cod === cod && eleg.lista.length) { pintarElegibles(); return; }
+    eleg = { cod: cod, lista: [], error: '', cargando: true };
+    try {
+      supabaseClient.from('infoplus_seriales').select('imei,fecha').eq('codproducto', cod).order('fecha', { ascending: false }).limit(300)
+        .then(function (r) {
+          if (eleg.cod !== cod) return;
+          eleg.cargando = false;
+          if (r.error) eleg.error = 'No tiene acceso a la lista de IMEI. Escriba o escanee el IMEI.';
+          else eleg.lista = (r.data || []).map(function (x) { return String(x.imei || '').trim(); }).filter(Boolean);
+          pintarElegibles();
+        }, function () { eleg.cargando = false; eleg.error = 'No se pudo cargar la lista. Escriba o escanee el IMEI.'; pintarElegibles(); });
+    } catch (e) { eleg.cargando = false; eleg.error = 'No se pudo cargar la lista. Escriba o escanee el IMEI.'; pintarElegibles(); }
+  }
+  function pintarElegibles() {
+    var o = doc.getElementById('bcpfImv'); if (!o) return;
+    var box = o.querySelector('.imsl'); if (!box) return;
+    if (eleg.cargando) { box.innerHTML = '<span class="imsv">Cargando IMEI…</span>'; return; }
+    if (eleg.error) { box.innerHTML = '<span class="imsv">' + esc(eleg.error) + '</span>'; return; }
+    var s = st(), usados = {}; ((s && s.items) || []).forEach(function (x) { (x.imeis || []).forEach(function (m) { usados[m] = 1; }); });
+    var f = ((o.querySelector('input') || {}).value || '').replace(/\D/g, '');
+    var l = eleg.lista.filter(function (m) { return !usados[m] && (!f || m.indexOf(f) >= 0); });
+    if (!eleg.lista.length) { box.innerHTML = '<span class="imsv">No hay IMEI guardados de este artículo. Escriba o escanee el IMEI.</span>'; return; }
+    if (!l.length) { box.innerHTML = '<span class="imsv">' + (f ? 'Ningún IMEI de la lista tiene «' + esc(f) + '».' : 'Ya agregó todos los IMEI de la lista.') + '</span>'; return; }
+    box.innerHTML = l.slice(0, 60).map(function (m) {
+      return '<button type="button" class="imse" data-elegir="' + esc(m) + '" aria-label="Agregar IMEI ' + esc(m) + '"><i class="ti ti-plus" aria-hidden="true"></i>' + esc(m) + '</button>';
+    }).join('') + (l.length > 60 ? '<span class="imsv">Mostrando 60 de ' + l.length + '. Escriba los últimos números para afinar.</span>' : '');
   }
   doc.addEventListener('click', function (e) {
     var b = e.target.closest && e.target.closest('#v-recepcion .bcpf-imeib');

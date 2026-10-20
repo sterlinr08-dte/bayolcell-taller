@@ -735,3 +735,18 @@ html.bc-pf #v-recepcion .bcpf-est.fact { color: #3730a3; } html.bc-pf #v-recepci
 @keyframes bcpfLate { 50% { opacity: .35; } }
 @media (prefers-reduced-motion: reduce) { html.bc-pf #v-recepcion .bcpf-est > i { animation: none !important; } }
 html.bc-pf #v-recepcion .pcli .pdet:empty { display: none; }
+
+/* 20-oct-2026 (n): ventana IMEI · «Elegir de la lista» (IMEI de las compras de ese artículo, para tocar y agregar) */
+html.bc-pf .bcpf-imv .box { max-height: calc(100dvh - 32px); overflow: auto; }
+html.bc-pf .bcpf-imv .ims { border-top: 1px solid #e2e8f0; padding-top: 10px; }
+html.bc-pf .bcpf-imv .imsh { font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #64748b; margin-bottom: 8px; }
+html.bc-pf .bcpf-imv .imsl { display: flex; flex-wrap: wrap; gap: 6px; max-height: 240px; overflow: auto; overscroll-behavior: contain; }
+html.bc-pf body .bcpf-imv .imse {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px 0 10px; border-radius: 999px;
+  border: 1px solid #e2e8f0; background: #fff; color: #0f172a; font: 600 15px -apple-system, BlinkMacSystemFont, system-ui, sans-serif; font-variant-numeric: tabular-nums;
+  cursor: pointer; transition: background-color 120ms ease, border-color 120ms ease, transform 100ms cubic-bezier(.22,1,.36,1);
+}
+html.bc-pf body .bcpf-imv .imse i { color: #e4572e; font-size: 16px; }
+html.bc-pf body .bcpf-imv .imse:hover { background: #fff7ed; border-color: #fdba74; }
+html.bc-pf body .bcpf-imv .imse:active { transform: scale(.96); }
+html.bc-pf .bcpf-imv .imsv { font-size: 13px; color: #64748b; line-height: 1.45; }
