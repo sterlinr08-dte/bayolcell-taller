@@ -69,7 +69,7 @@ listas y sincronización.
 - **Esperando a Dagoberto** (mensaje entregado al dueño el 21-oct; bitácoras 2026-10-20-2040 y 2026-10-19-2200): IMEI por almacén
   (`tipo` de `ListaArticulos`, permisos `InventarioActual`/`TransaccionInventario`; `infoplus-imei-almacen` guarda la ruta que sirva
   como `FUENTE_OK`) y Comentarios/Atención/Cédula/Teléfono/Fecha de entrega en `PreFacturaModel`. También crédito/mínimo por nivel y `porcentaje`.
-- Prefactura «Limpiar sola» al guardar: rama `claude/prefactura-limpia`, sin publicar (bitácora 2026-10-21-1100).
+- Prefactura: «Limpiar sola» publicada (21-oct). Impresa con el mismo Nº de Info Plus (ticket 80 mm / carta, «COPIA» al reimprimir): rama, sin publicar (bitácora 1200). IA v32 desplegada; su código falta en `main`.
 - Primera prefactura real con descuento y con código de empleada: revisarla en Info Plus.
 - Meta: el conector **WhatsApp Business MCP** solo ve «jose antonio peralta» y «Studiord»; el conector **Meta Ads** sí ve Bayol Cell,
   BayolCell RD - Cuenta Comercial y BayolCell. Plan: probar Cloud API directa con el **número de prueba gratis en Studiord** cuando el
