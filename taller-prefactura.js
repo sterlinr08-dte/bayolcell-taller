@@ -451,6 +451,25 @@
     var sc = doc.querySelector('#v-recepcion .bcpf-doc'); if (sc) sc.scrollIntoView({ block: 'start' });
   }
 
+  // 21-oct-2026 (dueño, «Limpiar sola»): al guardar una prefactura SOLO de artículos, la pantalla queda lista para la siguiente.
+  // Se conservan el almacén y el vendedor; «Facturar a» vuelve a CONTADO (1). La guardada se vuelve a ver con la lupa.
+  // Con equipo no se toca: guardarRecepcion ya limpia y lleva a Órdenes.
+  function limpiarTrasGuardar(num, eraUpdate) {
+    var alm = val('rxAlmacen'), ven = val('rxVendedor');
+    try { limpiarRecepcion(); } catch (e) {}
+    try { _rpInit(); } catch (e) {}
+    [['rxAlmacen', alm], ['rxVendedor', ven]].forEach(function (p) {
+      var el = doc.getElementById(p[0]); if (!el || !p[1] || el.value === p[1]) return;
+      if (![].some.call(el.options || [], function (o) { return o.value === p[1]; })) return;
+      el.value = p[1]; el.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    if (R.mas) { R.mas.open = false; delete R.mas.dataset.tocado; }
+    if (R.com) { R.com.open = false; delete R.com.dataset.abierto; }
+    pintarCarrito(); pintarDoc();
+    var sc = doc.querySelector('#v-recepcion .bcpf-doc'); if (sc) sc.scrollIntoView({ block: 'start' });
+    try { toast('✅ Prefactura Nº ' + num + ' ' + (eraUpdate ? 'actualizada' : 'creada') + ' en Info Plus. Lista para la siguiente.'); } catch (e) {}
+  }
+
   // Tipo de cliente según el precio: Por mayor o Extremo → tienda; Cliente final → final
   function tipoDesdeNivel() {
     var n = doc.getElementById('rxNivel'), t = doc.getElementById('c_tipo'); if (!n || !t) return;
@@ -472,6 +491,23 @@
     if (typeof window._rpRenderCart === 'function' && !window._rpRenderCart._bcpf) {
       var envC = function () { pintarCarrito(); pintarDoc(); refrescarImei(); };
       envC._bcpf = true; window._rpRenderCart = envC;
+    }
+    if (typeof window._rpGuardar === 'function' && !window._rpGuardar._bcpf) {
+      var origG = window._rpGuardar;
+      var envG = async function (imp) {
+        var s0 = st(), antes = s0 && s0.codprefactura, conEquipo = !!(val('e_marca') || val('e_modelo') || val('e_imei'));
+        var soloPref = !!(s0 && s0.soloPrefactura);
+        var r = await origG.apply(this, arguments);
+        try {
+          var s = st();
+          if ((soloPref || !conEquipo) && s && s.estado === 'sincronizada' && s.codprefactura && (s.items || []).length) {
+            var num = s.codprefactura, eraUpdate = !!antes;
+            setTimeout(function () { limpiarTrasGuardar(num, eraUpdate); }, imp ? 600 : 0); // deja salir la impresión primero
+          }
+        } catch (e) {}
+        return r;
+      };
+      envG._bcpf = true; window._rpGuardar = envG;
     }
     if (typeof window._rpRenderResumen === 'function' && !window._rpRenderResumen._bcpf) {
       var orig = window._rpRenderResumen;
