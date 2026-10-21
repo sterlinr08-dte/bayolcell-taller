@@ -1,5 +1,5 @@
 /* bc-prefactura-imprimir.js — 21-oct-2026 (dueño): la prefactura impresa lleva el MISMO Nº de Info Plus,
-   se imprime al guardar y se escoge el papel: ticket 80 mm o hoja carta (cada PC recuerda la última).
+   se imprime al guardar en el papel escogido en «Config. Impresora»: ticket 80 mm o hoja carta (cada PC).
    La reimpresión del mismo Nº dice «COPIA». El PDF sigue igual (hoja carta).
    Reemplaza imprimirPrefactura(modo) de taller-app.js; usa _prefUltima (lo llena _rpImprimir).
    Apagar: localStorage.bc_pfimp_off = '1'. */
@@ -123,42 +123,45 @@
     var p = typeof _prefUltima !== 'undefined' ? _prefUltima : null; if (!p) return;
     var d = datos(p), copia = yaImpresa(d.num);
     if (modo === 'pdf') { try { return _htmlAPdf(htmlCarta(d, copia, true), 'Prefactura_' + (d.num || 'SN'), { ancho: 760 }); } catch (e) { return; } }
-    if (modo !== 'ticket' && modo !== 'carta') return elegir();
-    lsSet(LS_FMT, modo);
+    if (modo !== 'ticket' && modo !== 'carta') modo = formato();
     if (abrir(modo === 'ticket' ? htmlTicket(d, copia) : htmlCarta(d, copia))) marcarImpresa(d.num);
   }
 
-  // Ventanita para escoger el papel (la última elección queda marcada: Enter imprime)
-  function elegir() {
-    var ult = lsGet(LS_FMT) === 'carta' ? 'carta' : 'ticket';
-    var v = doc.getElementById('bcPfImp'); if (v) v.remove();
-    v = doc.createElement('div'); v.id = 'bcPfImp'; v.className = 'modal-backdrop active'; v.style.zIndex = '900';
-    v.innerHTML = '<div class="modal-box bcpfimp" role="dialog" aria-label="Imprimir prefactura">' +
-      '<div class="bcpfimp-t">Imprimir prefactura' + (_prefUltima && _prefUltima.num ? ' Nº ' + esc(_prefUltima.num) : '') + '</div>' +
-      '<div class="bcpfimp-b"><button type="button" data-m="ticket"><i class="ti ti-receipt"></i><span>Ticket 80 mm</span></button>' +
-      '<button type="button" data-m="carta"><i class="ti ti-file-text"></i><span>Hoja carta</span></button></div>' +
-      '<button type="button" class="bcpfimp-x">Ahora no</button></div>';
-    doc.body.appendChild(v);
-    function cerrar() { v.remove(); doc.removeEventListener('keydown', tecla, true); }
-    function tecla(e) { if (e.key === 'Escape') { e.preventDefault(); cerrar(); } }
-    doc.addEventListener('keydown', tecla, true);
-    v.addEventListener('click', function (e) {
-      var b = e.target.closest('[data-m]');
-      if (b) { cerrar(); imprimir(b.dataset.m); return; }
-      if (e.target === v || e.target.closest('.bcpfimp-x')) cerrar();
-    });
-    var f = v.querySelector('[data-m="' + ult + '"]'); f.classList.add('ult'); f.focus();
+  // 21-oct-2026 (dueño): no se pregunta al imprimir; el papel se escoge una vez en «Config. Impresora» (cada PC).
+  function formato() { return lsGet(LS_FMT) === 'carta' ? 'carta' : 'ticket'; }
+  function pintarConfig() {
+    var v = doc.getElementById('v-configImpresora'); if (!v) return false;
+    var c = doc.getElementById('bcPfFmtCard');
+    if (!c) {
+      c = doc.createElement('div'); c.id = 'bcPfFmtCard'; c.className = 'card';
+      c.innerHTML = '<h3 style="margin:0 0 4px;"><i class="ti ti-file-invoice" style="color:#ea580c;"></i> Papel de la prefactura</h3>' +
+        '<div class="bcpffmt-mut">Se usa al imprimir la prefactura en esta computadora.</div>' +
+        '<div class="bcpffmt" role="radiogroup" aria-label="Papel de la prefactura">' +
+        '<button type="button" role="radio" data-f="ticket"><i class="ti ti-receipt"></i><span>Ticket 80 mm</span></button>' +
+        '<button type="button" role="radio" data-f="carta"><i class="ti ti-file-text"></i><span>Hoja carta</span></button></div>';
+      var h2 = v.querySelector('h2'); if (h2 && h2.nextSibling) v.insertBefore(c, h2.nextSibling); else v.appendChild(c);
+      c.addEventListener('click', function (e) {
+        var b = e.target.closest('[data-f]'); if (!b) return;
+        lsSet(LS_FMT, b.dataset.f); marcar();
+        try { toast('Prefactura: ' + (b.dataset.f === 'ticket' ? 'ticket 80 mm' : 'hoja carta') + ' en esta computadora.'); } catch (er) {}
+      });
+    }
+    function marcar() { [].forEach.call(c.querySelectorAll('[data-f]'), function (b) { var on = b.dataset.f === formato(); b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); }); }
+    marcar(); return true;
   }
 
   var css = doc.createElement('style');
-  css.textContent = '#bcPfImp .bcpfimp{max-width:420px;width:92%;padding:22px;border-radius:20px}' +
-    '#bcPfImp .bcpfimp-t{font-weight:800;font-size:18px;margin-bottom:14px;text-align:center}' +
-    '#bcPfImp .bcpfimp-b{display:grid;grid-template-columns:1fr 1fr;gap:12px}' +
-    '#bcPfImp .bcpfimp-b button{min-height:96px!important;padding:12px!important;border-radius:16px;border:1.5px solid #e2e8f0;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-size:16px;font-weight:700;color:#0f172a;cursor:pointer;transition:transform .16s ease-out,border-color .16s}' +
-    '#bcPfImp .bcpfimp-b button i{font-size:28px;color:#ea580c}#bcPfImp .bcpfimp-b button.ult{border-color:#ea580c;box-shadow:0 0 0 3px rgba(234,88,12,.15)}' +
-    '#bcPfImp .bcpfimp-b button:active{transform:scale(.97)}#bcPfImp .bcpfimp-b button:focus-visible{outline:3px solid #ea580c;outline-offset:2px}' +
-    '#bcPfImp .bcpfimp-x{display:block;margin:14px auto 0;min-height:44px;padding:0 18px;border:0;background:none;color:#64748b;font-size:15px;cursor:pointer}';
+  css.textContent = '#bcPfFmtCard{border-top:4px solid #ea580c}#bcPfFmtCard .bcpffmt-mut{color:#64748b;font-size:14px;margin-bottom:12px}' +
+    '#bcPfFmtCard .bcpffmt{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:460px}' +
+    '#bcPfFmtCard .bcpffmt button{min-height:72px!important;padding:10px!important;border-radius:14px;border:1.5px solid #e2e8f0;background:#fff;display:flex;align-items:center;justify-content:center;gap:10px;font-size:16px;font-weight:700;color:#0f172a;cursor:pointer;transition:transform .16s ease-out,border-color .16s}' +
+    '#bcPfFmtCard .bcpffmt button i{font-size:24px;color:#ea580c}#bcPfFmtCard .bcpffmt button.on{border-color:#ea580c;box-shadow:0 0 0 3px rgba(234,88,12,.15);background:#fff7ed}' +
+    '#bcPfFmtCard .bcpffmt button:active{transform:scale(.97)}#bcPfFmtCard .bcpffmt button:focus-visible{outline:3px solid #ea580c;outline-offset:2px}';
   doc.head.appendChild(css);
+  if (!pintarConfig()) {
+    var mo = new MutationObserver(function () { if (pintarConfig()) mo.disconnect(); });
+    mo.observe(doc.documentElement, { childList: true, subtree: true });
+    setTimeout(function () { mo.disconnect(); }, 20000);
+  }
 
   window.imprimirPrefactura = imprimir;
   window.bcPfImprimirHtml = { ticket: htmlTicket, carta: htmlCarta, datos: datos }; // para pruebas
