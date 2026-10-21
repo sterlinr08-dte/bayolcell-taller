@@ -3,15 +3,10 @@
 Borrador del 21-oct-2026. Solo hechos verificados. Si algo de aquí choca con el código, la base o una bitácora más nueva,
 manda lo más nuevo. Ante la duda, volver a leer (nunca suponer).
 
+> Parte técnica y detalle: `docs/MEMORIA-TECNICA.md` (leerla cuando el trabajo toque esas piezas).
+
 ## 1. Propósito
-- Sistema interno de **Bayol Cell**: taller de reparación + venta de celulares y accesorios.
-- 3 sucursales: **Santiago, Moca, Navarrete**. Almacenes de Info Plus: 1 Santiago · 3 Garantía China · 4 Moca · 5 2do nivel ·
-  6 Taller · 7 Navarrete (confirmado 13-oct). Sucursal → almacén: Santiago 1, Moca 4, Navarrete 7.
-- Web pública y app en **bayolcell.com** (GitHub Pages desde `main`; push a `main` = producción).
-- Supabase: proyecto **`vkhwdvjtowrhkhqavnvk`** («BayolCell-taller»).
-- Rama de trabajo actual: **`claude/prefactura-limpia`**.
-- Sin build ni framework: HTML + JS puro. Lógica principal en `taller-app.js` (subir `?v=` en `taller.html` al cambiarlo).
-  Cambios visuales en capas aisladas (`taller-*.js/.css`, `crm-*.js/.css`) con interruptor y `?v=`.
+- Se recarga sola al iniciar y al compactar el chat. Es un resumen: la fuente completa es `CLAUDE.md`, `.claude/rules/` y la bitácora. Actualizar en cada entrega; nunca borrar una regla del dueño sin su OK.
 
 ## 2. Dueño y reglas de trabajo
 - Dueño: **Sterling** (Esterlin). No es programador: español sencillo, sin jerga; terminar con «Para probarlo:».
@@ -65,44 +60,8 @@ apagar con `localStorage.bc_pf_off='1'` o `BC_PF=false`):
 **Taller general:** ⓘ de ayuda en todas las pantallas (`taller-info.js`), capa táctil, texto en usted, Navarrete (almacén 7) en
 listas y sincronización.
 
-## 4. Integraciones técnicas
-- **Info Plus API:** `https://apicliente.infoplusplatinum.com/api/...?basedatos=&clave=` (secrets `INFOPLUS_BASE`, `INFOPLUS_CLAVE`,
-  siempre `.trim()`). `ListaArticulos` detallado da un precio por nivel (solo contado); **no** da crédito ni mínimo (el POST `Articulo`
-  sí los acepta). `Compra` trae seriales de lo que entró; `Factura` no trae IMEI. `InventarioActual`, `TransaccionInventario`,
-  `vendedor`, `cliente`: «Error en las credenciales». Artículos sin precio nivel 1 no salen por API.
-- **Zernio:** capa sobre la Cloud API de Meta. **6 líneas** (tabla `whatsapp_lineas`): Principal 809-893-4412, Reparación 809-707-2493 y 829-670-9694, Servicio al Cliente 849-564-4791, Al por Mayor 809-679-3793 y 809-489-9145 (la sucursal de cada una está en `whatsapp_lineas.sucursal_id`). Webhook HMAC `X-Zernio-Signature`.
-- **Edge Functions en el repo** (`supabase/functions/`): `whatsapp-webhook` (verify_jwt false), `whatsapp-enviar`, `whatsapp-ia-responder`
-  (v31, verify_jwt false), `whatsapp-importar-historial`, `whatsapp-marketing-contactos`, `instagram-*`, `social-*`
-  (incl. `social-automatizaciones`), `infoplus-sync`, `infoplus-existencia-art`, `infoplus-clientes`, `infoplus-imei-almacen` (v1),
-  `infoplus-diagnostico-series` (retirada, 410), `bde-diagnostico`, `ai-board-chat`, `catalogo-publico`, `pantallas-publico`,
-  `puente-rifa`, `recepcion-boleto`, `resolver-link-mapa`. Compartidos: `_shared/inbox-common.ts`, `_shared/precio-pantalla.ts`.
-  Otras desplegadas fuera del repo (ver CLAUDE.md): `mdm-accion`, `abm-accion`, `infoplus-prefactura-crear`, `infoplus-ventas-sync`,
-  `infoplus-seriales-sync`, `infoplus-compra/despacho/ajuste-crear`.
-- **Crons (pg_cron):** `infoplus-precios-diario`; `infoplus-seriales-diario` (6:20 UTC, últimos 10 días de compras →
-  `infoplus_seriales`, al día desde 19-oct); `ia-borradores-fin-credito-24oct` (job 9, 25-oct 00:05 RD, se borra solo);
-  `social-automatizaciones-cada-2min`; `campanas-activar-programadas`.
-- **Tablas clave:** `infoplus_articulos` (existencias jsonb por almacén, niveles), `infoplus_seriales`, `infoplus_ventas`,
-  `infoplus_diagnostico` (solo admin), `recepcion_prefacturas`, `tecnicos`/`usuarios`/`roles_taller`, `sucursales`, `whatsapp_lineas`,
-  `whatsapp_hilos`, `whatsapp_mensajes` (`meta`, `reacciones`), `whatsapp_estados_pendientes`, `whatsapp_ia_config`,
-  `whatsapp_ia_sugerencias` (`texto_final`), `whatsapp_ia_ejemplos`, `whatsapp_ia_conocimiento`, `whatsapp_ia_uso_diario`,
-  `social_webhook_eventos`, `leads`.
-- Migraciones: 57 archivos en `supabase/migrations/`; la última es `20261021020000_ia_ejemplos_y_correcciones.sql`.
-
-## 5. IA de WhatsApp (`whatsapp-ia-responder` v31, Claude Haiku 5.5)
-- Tono: **usted**, saludo **«Buenas, a la orden»**, «estimado/estimada» solo si el nombre lo deja claro, **nada de «mi amor»/cariño**,
-  emojis casi nunca, **interpretar** lo que escribe el cliente (faltas incluidas), una pregunta a la vez.
-- **42 ejemplos limpiados** en `whatsapp_ia_ejemplos` (solo admin). Correcciones: trigger `trg_wa_ia_capturar_correccion` guarda en
-  `texto_final` lo que el empleado realmente mandó tras «Editar» (30 min) y lo pasa a ejemplo (`fuente='correccion'`).
-  El borrador recibe las 6 correcciones recientes + 10 ejemplos parecidos.
-- Personalidad, servicios y políticas (Ademi, precios) en `whatsapp_ia_conocimiento`; **el dueño los edita en CRM → Agente de IA**.
-- Gasto: tope diario vía RPC `ia_consumir_cupo`; **borradores de seguimiento prendidos hasta el 24-oct (tope 400/día)**;
-  **desde el 25-oct se apagan y el tope vuelve a 150**. Espera de 30 s antes de redactar. Vigilar con
-  `select * from whatsapp_ia_uso_diario order by dia desc limit 7;`
-- Modos al 19-oct: Moca y Santiago automático, Navarrete copiloto (revisar contra la regla supervisada antes de cambiar nada).
-- **Precio de pantalla sale del código**, no de la IA: `precio-pantalla.ts` (3 copias iguales: `_shared`, `whatsapp-ia-responder/_shared`,
-  `social-automatizaciones/_shared`); QA `scripts/qa-precio-pantalla.mjs` (49 PASS). En WhatsApp dice «le sale»;
-  **en `social-automatizaciones` (privado IG/FB) aún dice «te sale»** (pendiente).
-- Formulario de financiamiento en usted (servidor v31 y botón del CRM), publicado. El encabezado «SOLICITUD DE FINANCIAMIENTO» no cambia.
+## IA de WhatsApp (resumen; detalle en MEMORIA-TECNICA)
+- `whatsapp-ia-responder` v31, Claude Haiku 5.5: trata de usted, «Buenas, a la orden», estimado/a solo si el nombre lo deja claro, nunca «mi amor», casi sin emojis, interpreta faltas. Aprende de 42 ejemplos limpios + correcciones de los empleados (`whatsapp_ia_ejemplos`). Personalidad editable en CRM → Agente de IA. Borradores de seguimiento prendidos hasta el 24-oct (tope 400/día); desde el 25-oct se apagan solos (tope 150).
 
 ## 6. Pendientes y esperas
 - **IMEI por almacén: sin resolver.** `infoplus-imei-almacen` v1 (autenticada) prueba rutas candidatas, solo acepta IMEI que digan
