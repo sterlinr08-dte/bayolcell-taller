@@ -169,7 +169,7 @@
         }
       }).observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class','aria-selected','aria-pressed','aria-current']});
       window.addEventListener('resize',pedir,{passive:true});
-      setInterval(function(){if(!document.hidden)pedir();},2000);
+      // 21-oct-2026: sin repaso cada 2 s (recorria toda la pagina y medía cada elemento); bastan los cambios y el resize.
       document.addEventListener('transitionend',function(e){if(!propio(e.target))pedir();},true);
     }
     if(document.body)iniciar();else document.addEventListener('DOMContentLoaded',iniciar);

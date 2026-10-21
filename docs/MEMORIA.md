@@ -57,6 +57,8 @@ apagar con `localStorage.bc_pf_off='1'` o `BC_PF=false`):
   en el webhook de Zernio «BayolCell Navarrete WhatsApp»).
 - Botón de formulario de financiamiento en usted (`crm-financiamiento-quick-reply.js`, publicado).
 
+**Modo ligero (21-oct-2026):** en PCs sencillas (≤4 núcleos o ≤4 GB) o con Chrome sin aceleración de gráficos se quitan las esferas animadas del fondo y el vidrio difuminado (`html.bc-ligero`, se decide en el `<head>`). Forzar en un equipo: `taller.html?ligero=1`; quitar: `?ligero=0`; automático: `?ligero=auto`. El aviso «Sin conexión en tiempo real» ya no se anima.
+
 **Taller general:** ⓘ de ayuda en todas las pantallas (`taller-info.js`), capa táctil, texto en usted, Navarrete (almacén 7) en
 listas y sincronización.
 
