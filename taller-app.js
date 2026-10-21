@@ -24216,8 +24216,11 @@ function _rtIndicador(caido) {
             #rtAviso{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:99999;
                 background:linear-gradient(135deg,#1e293b,#334155);color:#fff;font-size:13px;font-weight:600;
                 padding:12px 20px;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.3),0 0 0 1px rgba(255,255,255,.06);
-                pointer-events:none;display:flex;align-items:center;gap:12px;animation:rtSlideUp .4s ease both;
-                backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);}
+                pointer-events:none;display:flex;align-items:center;gap:12px;animation:rtSlideUp .4s ease both;}
+            /* 21-oct-2026: el aviso queda quieto. Sus 6 animaciones sin fin y el difuminado ocupaban mas de la mitad
+               del procesador en una PC sencilla mientras no habia tiempo real. */
+            #rtAviso .rt-icon::after,#rtAviso .rt-sub .rt-spin,#rtAviso .rt-bar{animation:none!important;}
+            #rtAviso .rt-sub::after{content:'' !important;animation:none!important;}
             #rtAviso .rt-icon{width:36px;height:36px;border-radius:10px;background:rgba(239,68,68,.15);
                 display:flex;align-items:center;justify-content:center;flex:none;position:relative;}
             #rtAviso .rt-icon i{font-size:18px;color:#f87171;}
@@ -24279,7 +24282,12 @@ function _rtReconectarYa() {
     // Si sigue mal, el propio callback de estado vuelve a programar otro intento.
 }
 
+let _rtUltimaRecuperacion = 0;
 async function _rtRecuperarDatosPerdidos() {
+    // 21-oct-2026: con una conexion que se cae y vuelve a cada rato, esto recargaba todo (17 consultas) en cada
+    // reconexion. Ahora como maximo una vez por minuto; el respaldo de cada 5 minutos cubre el resto.
+    if(Date.now() - _rtUltimaRecuperacion < 60000) return;
+    _rtUltimaRecuperacion = Date.now();
     try { if(sessionUser && _loadAllInFlight === 0 && !hayModalAbierto()) await loadAll(); } catch(e) {}
     try {
         if(!document.getElementById('v-crmLinea')?.classList.contains('active')) return;

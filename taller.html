@@ -17,6 +17,21 @@
 <meta name="robots" content="noindex, nofollow">
 <script>/* Velocidad (28-sep-2026): las librerías de imprimir/gráficas cargan en diferido; quien las use espera esta promesa. */
 window.__bayolLibs = new Promise(function (r) { if (document.readyState !== 'loading') r(); else document.addEventListener('DOMContentLoaded', function () { r(); }); });</script>
+<script>/* Modo ligero (21-oct-2026, dueño: «en la PC de Servicio al Cliente se torna lento»). En PCs sencillas o con
+   Chrome sin aceleración de gráficos se quitan los efectos que más cargan: las esferas de fondo que se mueven y el
+   vidrio difuminado. Se decide antes de pintar (sin parpadeo). Forzar: taller.html?ligero=1 · quitar: ?ligero=0
+   · volver a automático: ?ligero=auto. Se recuerda en el equipo (localStorage bc_ligero). */
+(function(){try{var q=(location.search.match(/[?&]ligero=(1|0|auto)/)||[])[1];if(q){if(q==='auto')localStorage.removeItem('bc_ligero');else localStorage.setItem('bc_ligero',q);}
+var f=localStorage.getItem('bc_ligero'),on=f==='1';
+if(f!=='0'&&f!=='1'){var n=navigator,c=n.hardwareConcurrency||8,m=n.deviceMemory||8;on=c<=4||m<=4;
+if(!on){try{var g=document.createElement('canvas').getContext('webgl'),d=g&&g.getExtension('WEBGL_debug_renderer_info'),r=d?String(g.getParameter(d.UNMASKED_RENDERER_WEBGL)):'';on=!g||/swiftshader|basic render|llvmpipe|software/i.test(r);}catch(e){}}}
+if(on)document.documentElement.classList.add('bc-ligero');}catch(e){}})();</script>
+<style>
+html.bc-ligero #bcAmbientOrbSafe,html.bc-ligero bcr-luz{display:none!important}
+html.bc-ligero *,html.bc-ligero *::before,html.bc-ligero *::after{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+#appLoader.hide,#appLoader.hide *,#appLoader.hide *::after{animation:none!important}
+#bcrzLinea:not(.on)::before{animation:none!important}
+</style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -5582,7 +5597,7 @@ body{
 <div id="toast" class="toast"></div>
 <div id="printArea" class="print-area"></div>
 
-<script src="taller-app.js?v=20261020-h3"></script>
+<script src="taller-app.js?v=20261021-l1"></script>
 <script src="taller-recepcion.js?v=20261020-g1"></script>
 <script src="taller-prefactura.js?v=20261020-o1"></script>
 <script src="taller-info.js?v=20261020-v1"></script>
@@ -5594,6 +5609,6 @@ body{
 <script src="diagnostico-ai-cortos.js?v=20261019-f1"></script>
 <script src="diagnostico-ai-chat.js?v=20261019-f1"></script>
 <script src="diagnostico-ai-library.js?v=20261019-f1"></script>
-<script src="crm-marketing-consent.js?v=20261021-u3"></script>
+<script src="crm-marketing-consent.js?v=20261021-u4"></script>
 </body>
 
