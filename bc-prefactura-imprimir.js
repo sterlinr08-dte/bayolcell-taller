@@ -34,82 +34,126 @@
       var imeis = (m.seriales || []).filter(function (s) { return String(s.codarticulo) === String(d.codarticulo); }).map(function (s) { return s.numero; });
       return { cod: d.codarticulo, desc: d.descripcion, cant: d.cantidad, precio: d.precio, pct: pct, imp: imp, imeis: imeis };
     });
+    var cant = lineas.reduce(function (a, l) { return a + (Number(l.cant) || 0); }, 0);
     return {
       negocio: ct.nombre || 'BAYOL CELL', dir: ct.direccion || '', tel: ct.telefono || '', loc: loc,
-      num: p.num || '', cliente: m.nombre || 'CONTADO', fecha: m.fecha || '', hora: String(m.hora || '').slice(0, 5),
+      num: p.num || '', cliente: m.nombre || 'CONTADO', fecha: fechaBonita(m.fecha), hora: horaBonita(m.hora),
       vendedor: textoSel('rxVendedor', m.codempleado), almacen: textoSel('rxAlmacen', m.codlocalidad),
-      lineas: lineas, desc: Number(m.descuentototal || 0), total: Number(p.total || 0), ref: r,
+      lineas: lineas, cant: cant, desc: Number(m.descuentototal || 0), total: Number(p.total || 0), ref: r,
       logo: location.origin + location.pathname.replace(/[^/]*$/, '') + 'assets/logo-carga.webp'
     };
   }
-
-  function equipoHtml(r) {
-    var L = [];
-    if (r.equipo || r.imei) L.push('<b>Equipo:</b> ' + esc(r.equipo || '') + (r.imei ? ' · IMEI ' + esc(r.imei) : ''));
-    if (r.falla) L.push('<b>Falla:</b> ' + esc(r.falla));
-    if (r.coment) L.push('<b>Comentario:</b> ' + esc(r.coment));
-    return L.length ? '<div class="eq">' + L.join('<br>') + '</div>' : '';
+  var MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  function fechaBonita(f) { var x = String(f || '').split('-'); return x.length === 3 ? Number(x[2]) + ' ' + MESES[Number(x[1]) - 1] + ' ' + x[0] : String(f || ''); }
+  function horaBonita(h) {
+    var x = String(h || '').split(':'); if (x.length < 2) return '';
+    var hh = Number(x[0]), ap = hh >= 12 ? 'p. m.' : 'a. m.'; hh = hh % 12 || 12; return hh + ':' + x[1] + ' ' + ap;
   }
+  // Código de barras del Nº (la cajera lo escanea en Info Plus). Si no carga la librería, no sale y ya.
+  function barras(num, alto, ancho) {
+    try {
+      if (!num || typeof JsBarcode !== 'function') return '';
+      var svg = doc.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      JsBarcode(svg, String(num), { format: 'CODE128', height: alto, width: ancho, displayValue: false, margin: 0 });
+      return svg.outerHTML;
+    } catch (e) { return ''; }
+  }
+  function clienteExtra(r) { return [r.cedula ? 'Céd. ' + esc(r.cedula) : '', r.telefono ? 'Tel. ' + esc(r.telefono) : ''].filter(Boolean).join(' · '); }
 
-  var PIE = 'Documento preliminar, no válido como factura fiscal. Pase a caja con este número para recibir su factura.';
+  var PIE = 'Este documento no es una factura fiscal. Preséntelo en caja para pagar y recibir su factura con comprobante.';
+  var FUENTE = '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif';
 
   function htmlTicket(d, copia) {
     var filas = d.lineas.map(function (l) {
       return '<div class="it"><div class="d">' + esc(l.desc) + '</div>' +
         (l.imeis.length ? '<div class="s">IMEI ' + l.imeis.map(esc).join(', ') + '</div>' : '') +
-        '<div class="r"><span>' + l.cant + ' × ' + rd(l.precio) + (l.pct ? ' (−' + l.pct + '%)' : '') + '</span><b>' + rd(l.imp) + '</b></div></div>';
+        '<div class="r"><span>' + l.cant + ' × ' + rd(l.precio) + (l.pct ? ' · −' + l.pct + '%' : '') + '</span><b>' + rd(l.imp) + '</b></div></div>';
     }).join('');
+    var eq = d.ref || {}, eqTxt = [eq.equipo, eq.imei ? 'IMEI ' + eq.imei : ''].filter(Boolean).join(' · ');
+    var ce = clienteExtra(eq);
     return '<!doctype html><html><head><meta charset="utf-8"><title>Prefactura ' + esc(d.num) + '</title><style>' +
-      '@page{size:80mm auto;margin:0}*{box-sizing:border-box}body{width:72mm;margin:0 auto;padding:4mm 0;font:12px/1.35 Arial,Helvetica,sans-serif;color:#000}' +
-      '.c{text-align:center}.logo{max-width:34mm;max-height:16mm;display:block;margin:0 auto 2mm}h1{font-size:15px;margin:0}.mut{font-size:10.5px}' +
-      '.hr{border-top:1px dashed #000;margin:2.5mm 0}.no{font-size:17px;font-weight:800;letter-spacing:.3px;margin:1mm 0}.cp{display:inline-block;border:1.5px solid #000;padding:0 2mm;font-weight:800;margin-top:1mm}' +
-      '.kv{display:flex;justify-content:space-between;gap:2mm}.it{margin:0 0 1.6mm}.d{font-weight:600}.s{font-size:10.5px}.r{display:flex;justify-content:space-between}' +
-      '.tot{font-size:16px;font-weight:800}.eq{font-size:11px;margin-top:1mm}.pie{font-size:10px;text-align:center;margin-top:3mm}' +
+      '@page{size:80mm auto;margin:0}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+      'body{width:72mm;margin:0 auto;padding:3mm 0 6mm;font:12px/1.35 ' + FUENTE + ';color:#000;font-variant-numeric:tabular-nums}' +
+      '.c{text-align:center}.logo{max-width:40mm;max-height:15mm;display:block;margin:0 auto 1.5mm}' +
+      '.neg{font-size:15px;font-weight:800;letter-spacing:.5px}.mut{font-size:10.5px}' +
+      '.band{background:#000;color:#fff;text-align:center;font-weight:800;letter-spacing:3px;font-size:12px;padding:1.2mm 0;margin:3mm 0 1.5mm;border-radius:1.5mm}' +
+      '.no{font-size:22px;font-weight:900;text-align:center;letter-spacing:.5px}.bar{text-align:center;margin:1mm 0 .5mm}.bar svg{max-width:62mm;height:11mm}' +
+      '.cp{text-align:center;font-weight:900;letter-spacing:4px;border:1.5px solid #000;margin:1.5mm 12mm 0;padding:.6mm 0}' +
+      '.hr{border-top:1px dashed #000;margin:2.5mm 0}.kv{display:flex;justify-content:space-between;gap:3mm}.kv span:first-child{color:#000;opacity:.75}.kv b{text-align:right}' +
+      '.blk{margin-bottom:1mm}.blk span{display:block;font-size:10.5px;opacity:.75}.blk b{display:block}.sub{font-size:10.5px;text-align:right}.it{margin:0 0 2mm}.d{font-weight:700}.s{font-size:10.5px}.r{display:flex;justify-content:space-between}' +
+      '.tot{display:flex;justify-content:space-between;align-items:baseline;font-size:18px;font-weight:900;margin-top:1mm}' +
+      '.pie{font-size:10px;text-align:center;margin-top:3mm;line-height:1.4}.gr{font-weight:800;font-size:12px;margin-top:2mm}' +
       '</style></head><body>' +
-      '<img class="logo" src="' + esc(d.logo) + '" onerror="this.remove()"><div class="c"><h1>' + esc(d.negocio) + '</h1>' +
-      '<div class="mut">Sucursal ' + esc(d.loc) + (d.dir ? '<br>' + esc(d.dir) : '') + (d.tel ? '<br>Tel. ' + esc(d.tel) : '') + '</div></div>' +
-      '<div class="hr"></div><div class="c">PREFACTURA<div class="no">Nº ' + esc(d.num) + '</div>' + (copia ? '<span class="cp">COPIA</span>' : '') + '</div>' +
+      '<img class="logo" src="' + esc(d.logo) + '" onerror="this.remove()">' +
+      '<div class="c"><div class="neg">' + esc(d.negocio) + '</div><div class="mut">Sucursal ' + esc(d.loc) + (d.dir ? '<br>' + esc(d.dir) : '') + (d.tel ? '<br>Tel. ' + esc(d.tel) : '') + '</div></div>' +
+      '<div class="band">PREFACTURA</div><div class="no">Nº ' + esc(d.num) + '</div>' +
+      '<div class="bar">' + barras(d.num, 40, 1.6) + '</div>' + (copia ? '<div class="cp">COPIA</div>' : '') +
       '<div class="hr"></div>' +
-      '<div class="kv"><span>Fecha</span><span>' + esc(d.fecha) + ' ' + esc(d.hora) + '</span></div>' +
-      '<div class="kv"><span>Cliente</span><span>' + esc(d.cliente) + '</span></div>' +
-      (d.vendedor ? '<div class="kv"><span>Vendedor</span><span>' + esc(d.vendedor) + '</span></div>' : '') +
-      (d.almacen ? '<div class="kv"><span>Almacén</span><span>' + esc(d.almacen) + '</span></div>' : '') +
-      equipoHtml(d.ref) + '<div class="hr"></div>' + filas + '<div class="hr"></div>' +
-      (d.desc ? '<div class="kv"><span>Subtotal</span><span>' + rd(d.total + d.desc) + '</span></div><div class="kv"><span>Descuento</span><span>−' + rd(d.desc) + '</span></div>' : '') +
-      '<div class="kv tot"><span>TOTAL</span><span>' + rd(d.total) + '</span></div>' +
-      '<div class="hr"></div><div class="pie">' + PIE + '<br>¡Gracias por preferirnos!</div>' +
+      '<div class="kv"><span>Fecha</span><b>' + esc(d.fecha) + ', ' + esc(d.hora) + '</b></div>' +
+      '<div class="kv"><span>Cliente</span><b>' + esc(d.cliente) + '</b></div>' + (ce ? '<div class="sub">' + ce + '</div>' : '') +
+      (d.vendedor ? '<div class="kv"><span>Le atendió</span><b>' + esc(d.vendedor) + '</b></div>' : '') +
+      (d.almacen ? '<div class="kv"><span>Almacén</span><b>' + esc(d.almacen) + '</b></div>' : '') +
+      (eqTxt || eq.falla ? '<div class="hr"></div>' : '') +
+      (eqTxt ? '<div class="blk"><span>Equipo</span><b>' + esc(eqTxt) + '</b></div>' : '') +
+      (eq.falla ? '<div class="blk"><span>Falla</span><b>' + esc(eq.falla) + '</b></div>' : '') +
+      '<div class="hr"></div>' + filas + '<div class="hr"></div>' +
+      '<div class="kv"><span>Artículos</span><b>' + d.cant + '</b></div>' +
+      (d.desc ? '<div class="kv"><span>Subtotal</span><b>' + rd(d.total + d.desc) + '</b></div><div class="kv"><span>Descuento</span><b>−' + rd(d.desc) + '</b></div>' : '') +
+      '<div class="tot"><span>TOTAL</span><span>' + rd(d.total) + '</span></div>' +
+      (eq.coment ? '<div class="hr"></div><div class="mut"><b>Nota:</b> ' + esc(eq.coment) + '</div>' : '') +
+      '<div class="hr"></div><div class="pie">' + PIE + '<div class="gr">¡Gracias por preferirnos!</div></div>' +
       '<script>window.onload=function(){setTimeout(function(){window.print();},150);}<\/script></body></html>';
   }
 
   function htmlCarta(d, copia, paraPdf) {
     var conDesc = d.lineas.some(function (l) { return l.pct; });
-    var filas = d.lineas.map(function (l) {
-      return '<tr><td>' + esc(l.cod) + '</td><td>' + esc(l.desc) + (l.imeis.length ? '<div class="s">IMEI ' + l.imeis.map(esc).join(', ') + '</div>' : '') + '</td>' +
-        '<td class="n">' + l.cant + '</td><td class="n">' + rd(l.precio) + '</td>' + (conDesc ? '<td class="n">' + (l.pct ? l.pct + '%' : '') + '</td>' : '') +
-        '<td class="n">' + rd(l.imp) + '</td></tr>';
+    var filas = d.lineas.map(function (l, i) {
+      return '<tr><td class="i">' + (i + 1) + '</td><td><div class="ds">' + esc(l.desc) + '</div><div class="sm">Cód. ' + esc(l.cod) +
+        (l.imeis.length ? ' · IMEI ' + l.imeis.map(esc).join(', ') : '') + '</div></td>' +
+        '<td class="n">' + l.cant + '</td><td class="n">' + rd(l.precio) + '</td>' + (conDesc ? '<td class="n">' + (l.pct ? '−' + l.pct + '%' : '—') + '</td>' : '') +
+        '<td class="n b">' + rd(l.imp) + '</td></tr>';
     }).join('');
+    var eq = d.ref || {}, ce = clienteExtra(eq);
+    var eqTxt = [eq.equipo, eq.imei ? 'IMEI ' + eq.imei : ''].filter(Boolean).join(' · ');
+    var celda = function (t, v, x) { return '<div class="cel"><div class="lb">' + t + '</div><div class="vl">' + v + '</div>' + (x ? '<div class="sm">' + x + '</div>' : '') + '</div>'; };
     return '<!doctype html><html><head><meta charset="utf-8"><title>Prefactura ' + esc(d.num) + '</title><style>' +
-      '@page{size:letter;margin:14mm}*{box-sizing:border-box}body{margin:0;font:13px/1.45 Arial,Helvetica,sans-serif;color:#111}' +
-      '.top{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;border-bottom:2px solid #111;padding-bottom:12px}' +
-      '.marca{display:flex;gap:12px;align-items:center}.logo{max-height:56px;max-width:120px}h1{margin:0;font-size:20px}.mut{color:#555;font-size:12px}' +
-      '.doc{text-align:right}.doc .t{font-size:12px;letter-spacing:2px;color:#555}.doc .no{font-size:26px;font-weight:800}.cp{display:inline-block;border:2px solid #111;padding:1px 8px;font-weight:800;margin-top:4px}' +
-      '.datos{display:grid;grid-template-columns:repeat(2,1fr);gap:4px 24px;margin:14px 0}.datos b{display:inline-block;min-width:78px;color:#555;font-weight:600}' +
-      '.eq{background:#f4f4f5;border-radius:8px;padding:8px 12px;margin-bottom:10px}' +
-      'table{width:100%;border-collapse:collapse}th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;color:#555;border-bottom:1.5px solid #111;padding:6px}' +
-      'td{border-bottom:1px solid #ddd;padding:7px 6px;vertical-align:top}.n{text-align:right;white-space:nowrap}.s{font-size:11px;color:#555}' +
-      '.tot{margin-left:auto;width:280px;margin-top:12px}.tot div{display:flex;justify-content:space-between;padding:3px 0}.tot .g{font-size:18px;font-weight:800;border-top:2px solid #111;padding-top:6px;margin-top:4px}' +
-      '.pie{margin-top:26px;font-size:11.5px;color:#555;text-align:center;border-top:1px solid #ddd;padding-top:10px}' +
-      '</style></head><body>' +
-      '<div class="top"><div class="marca"><img class="logo" src="' + esc(d.logo) + '" onerror="this.remove()"><div><h1>' + esc(d.negocio) + '</h1>' +
-      '<div class="mut">Sucursal ' + esc(d.loc) + (d.dir ? ' · ' + esc(d.dir) : '') + (d.tel ? ' · Tel. ' + esc(d.tel) : '') + '</div></div></div>' +
-      '<div class="doc"><div class="t">PREFACTURA</div><div class="no">Nº ' + esc(d.num) + '</div>' + (copia ? '<span class="cp">COPIA</span>' : '') + '</div></div>' +
-      '<div class="datos"><div><b>Cliente</b> ' + esc(d.cliente) + '</div><div><b>Fecha</b> ' + esc(d.fecha) + ' ' + esc(d.hora) + '</div>' +
-      (d.vendedor ? '<div><b>Vendedor</b> ' + esc(d.vendedor) + '</div>' : '') + (d.almacen ? '<div><b>Almacén</b> ' + esc(d.almacen) + '</div>' : '') + '</div>' +
-      equipoHtml(d.ref) +
-      '<table><thead><tr><th>Código</th><th>Descripción</th><th class="n">Cant.</th><th class="n">Precio</th>' + (conDesc ? '<th class="n">Desc.</th>' : '') + '<th class="n">Importe</th></tr></thead><tbody>' + filas + '</tbody></table>' +
-      '<div class="tot">' + (d.desc ? '<div><span>Subtotal</span><span>' + rd(d.total + d.desc) + '</span></div><div><span>Descuento</span><span>−' + rd(d.desc) + '</span></div>' : '') +
-      '<div class="g"><span>TOTAL</span><span>' + rd(d.total) + '</span></div></div>' +
-      '<div class="pie">' + PIE + ' ¡Gracias por preferirnos!</div>' +
+      '@page{size:letter;margin:12mm 14mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+      'body{margin:0;font:13px/1.45 ' + FUENTE + ';color:#0f172a;font-variant-numeric:tabular-nums;position:relative}' +
+      '.acc{height:6px;background:#e4572e;border-radius:3px;margin-bottom:16px}' +
+      '.top{display:flex;justify-content:space-between;align-items:flex-start;gap:24px}' +
+      '.marca{display:flex;gap:14px;align-items:center}.logo{height:60px;max-width:170px;object-fit:contain}' +
+      '.neg{font-size:22px;font-weight:800;letter-spacing:.2px}.mut{color:#64748b;font-size:12px;line-height:1.5}' +
+      '.doc{text-align:right}.pill{display:inline-block;background:#fff1ec;color:#c2410c;font-weight:800;font-size:11px;letter-spacing:2px;padding:4px 10px;border-radius:999px}' +
+      '.no{font-size:30px;font-weight:800;margin:6px 0 4px;letter-spacing:.3px}.bar svg{height:34px;max-width:200px}' +
+      '.cp{display:inline-block;margin-top:6px;border:2px solid #0f172a;border-radius:6px;padding:1px 10px;font-weight:800;letter-spacing:3px;font-size:12px}' +
+      '.info{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:0;margin:20px 0 14px;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden}' +
+      '.cel{padding:10px 14px;border-left:1px solid #e2e8f0}.cel:first-child{border-left:0}.lb{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;font-weight:700}' +
+      '.vl{font-weight:700;font-size:14px;margin-top:2px}.sm{color:#64748b;font-size:11.5px}' +
+      '.eq{display:flex;gap:28px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:10px 14px;margin-bottom:14px}' +
+      'table{width:100%;border-collapse:collapse}th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;font-weight:700;padding:8px 8px;border-bottom:1.5px solid #0f172a}' +
+      'td{padding:9px 8px;border-bottom:1px solid #e2e8f0;vertical-align:top}.i{color:#94a3b8;width:26px}.ds{font-weight:600}.n{text-align:right;white-space:nowrap}.b{font-weight:700}' +
+      '.pie2{display:flex;justify-content:space-between;gap:24px;margin-top:16px;align-items:flex-start}' +
+      '.nota{flex:1;font-size:12px;color:#475569;background:#f8fafc;border-radius:12px;padding:12px 14px}.nota b{color:#0f172a}' +
+      '.tot{width:290px}.tot div{display:flex;justify-content:space-between;padding:4px 0;color:#475569}' +
+      '.tot .g{margin-top:6px;padding:10px 14px;border-radius:12px;background:#0f172a;color:#fff;font-size:20px;font-weight:800;align-items:baseline}' +
+      '.fin{margin-top:28px;padding-top:12px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;color:#94a3b8;font-size:11px}' +
+      '.wm{position:fixed;top:42%;left:0;right:0;text-align:center;font-size:120px;font-weight:900;color:rgba(15,23,42,.05);transform:rotate(-24deg);letter-spacing:12px;pointer-events:none}' +
+      '</style></head><body>' + (copia ? '<div class="wm">COPIA</div>' : '') +
+      '<div class="acc"></div>' +
+      '<div class="top"><div class="marca"><img class="logo" src="' + esc(d.logo) + '" onerror="this.remove()"><div><div class="neg">' + esc(d.negocio) + '</div>' +
+      '<div class="mut">Sucursal ' + esc(d.loc) + (d.dir ? '<br>' + esc(d.dir) : '') + (d.tel ? '<br>Tel. ' + esc(d.tel) : '') + '</div></div></div>' +
+      '<div class="doc"><span class="pill">PREFACTURA</span><div class="no">Nº ' + esc(d.num) + '</div><div class="bar">' + barras(d.num, 40, 1.8) + '</div>' +
+      (copia ? '<span class="cp">COPIA</span>' : '') + '</div></div>' +
+      '<div class="info">' + celda('Cliente', esc(d.cliente), ce) + celda('Fecha', esc(d.fecha), esc(d.hora)) +
+      celda('Le atendió', esc(d.vendedor || '—')) + celda('Almacén', esc(d.almacen || '—')) + '</div>' +
+      (eqTxt || eq.falla ? '<div class="eq">' + (eqTxt ? '<div><div class="lb">Equipo</div><div class="vl">' + esc(eqTxt) + '</div></div>' : '') +
+        (eq.falla ? '<div><div class="lb">Falla</div><div class="vl">' + esc(eq.falla) + '</div></div>' : '') + '</div>' : '') +
+      '<table><thead><tr><th>#</th><th>Descripción</th><th class="n">Cant.</th><th class="n">Precio</th>' + (conDesc ? '<th class="n">Desc.</th>' : '') + '<th class="n">Importe</th></tr></thead><tbody>' + filas + '</tbody></table>' +
+      '<div class="pie2"><div class="nota"><b>¿Cómo pagar?</b> ' + PIE + (eq.coment ? '<br><br><b>Nota:</b> ' + esc(eq.coment) : '') + '</div>' +
+      '<div class="tot"><div><span>Artículos</span><span>' + d.cant + '</span></div>' +
+      (d.desc ? '<div><span>Subtotal</span><span>' + rd(d.total + d.desc) + '</span></div><div><span>Descuento</span><span>−' + rd(d.desc) + '</span></div>' : '') +
+      '<div class="g"><span>Total</span><span>' + rd(d.total) + '</span></div></div></div>' +
+      '<div class="fin"><span>¡Gracias por preferirnos!</span><span>' + esc(d.negocio) + ' · Prefactura Nº ' + esc(d.num) + '</span></div>' +
       (paraPdf ? '' : '<script>window.onload=function(){setTimeout(function(){window.print();},150);}<\/script>') + '</body></html>';
   }
 
