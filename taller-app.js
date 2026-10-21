@@ -640,6 +640,12 @@ async function aplicarSesionDesdeFila(fila, tipo) {
         try {
             const { data: rolData } = await supabaseClient.from('roles_taller').select('*').eq('id', fila.rol_id).limit(1);
             if(rolData && rolData.length) sessionUser._permisos = rolData[0].permisos || {};
+            // 21-oct-2026: lo de esta persona (extra/quitado) pisa lo del rol, igual que app_actor_tiene_permiso.
+            try {
+                const { data: te } = await supabaseClient.from('tecnicos').select('permisos_extra').eq('id', fila.id).limit(1);
+                const extra = te && te[0] && te[0].permisos_extra;
+                if(extra && typeof extra === 'object') sessionUser._permisos = Object.assign({}, sessionUser._permisos || {}, extra);
+            } catch(e) {}
         } catch(e) { logError('Cargar permisos login', e); }
     }
     localStorage.setItem("bayol_session", JSON.stringify(sessionUser));
