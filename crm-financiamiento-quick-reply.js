@@ -12,15 +12,15 @@
 
   const FORM = [
     '\ud83d\udccb *SOLICITUD DE FINANCIAMIENTO \u2013 BAYOL CELL*', '',
-    'Para iniciar tu solicitud de financiamiento, por favor completa las siguientes informaciones:', '',
+    'Para iniciar su solicitud de financiamiento, por favor complete las siguientes informaciones:', '',
     '\ud83e\udeaa *N\u00famero de c\u00e9dula:*',
     '\ud83d\udc64 *Nombres y apellidos:*',
     '\ud83d\udcf1 *Tel\u00e9fono o celular:*', '',
     '\ud83d\udccd *Direcci\u00f3n actual:*',
     '\u2022 Provincia:', '\u2022 Ciudad/Municipio:', '\u2022 Sector:',
     '\u2022 Calle:', '\u2022 No. de casa:', '',
-    '\ud83d\udce6 *Equipo o art\u00edculo que deseas financiar:*', '',
-    'Por favor, verifica que todas las informaciones est\u00e9n correctas antes de enviarlas.'
+    '\ud83d\udce6 *Equipo o art\u00edculo que desea financiar:*', '',
+    'Por favor, verifique que todas las informaciones est\u00e9n correctas antes de enviarlas.'
   ].join('\n');
   const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
   const thread = () => typeof _waHiloId === 'undefined' ? null : _waHiloId;

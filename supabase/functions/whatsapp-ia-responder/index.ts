@@ -508,7 +508,7 @@ async function registrarEpisodioObservacion(hilo: { id: string; sucursal_id: str
 const RAZON_FINANCIAMIENTO = "Quiere solicitar financiamiento — enviar formulario";
 const FORMULARIO_FINANCIAMIENTO = `📋 SOLICITUD DE FINANCIAMIENTO – BAYOL CELL
 
-Para iniciar tu solicitud de financiamiento, por favor completa las siguientes informaciones:
+Para iniciar su solicitud de financiamiento, por favor complete las siguientes informaciones:
 
 🪪 Número de cédula:
 👤 Nombres y apellidos:
@@ -521,9 +521,9 @@ Para iniciar tu solicitud de financiamiento, por favor completa las siguientes i
 • Calle:
 • No. de casa:
 
-📦 Equipo o artículo que deseas financiar:
+📦 Equipo o artículo que desea financiar:
 
-Por favor, verifica que todas las informaciones estén correctas antes de enviarlas.
+Por favor, verifique que todas las informaciones estén correctas antes de enviarlas.
 
 BAYOL CELL 📱`;
 // Filtro barato antes de llamar al modelo: si el cliente no menciona nada

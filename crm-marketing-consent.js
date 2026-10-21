@@ -203,7 +203,7 @@
     document.head.appendChild(automat);
 
     var financing=document.createElement('script');
-    financing.src='crm-financiamiento-quick-reply.js?v=20260923-1';
+    financing.src='crm-financiamiento-quick-reply.js?v=20261021-1';
     financing.onerror=function(){console.warn('[CRM] No se pudo cargar el atajo de financiamiento.');};
     document.head.appendChild(financing);
   }
