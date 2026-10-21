@@ -25,7 +25,7 @@ const OTRAS_MARCAS = /\b(SAMSUNG|GALAXY|MOTO|MOTOROLA|REDMI|XIAOMI|POCO|HUAWEI|H
 const LCD_SIN_ETIQUETA = new Set(["5", "5S", "5C", "6", "6S", "7", "8", "SE"]);
 
 export function normalizar(s: string): string {
-  return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase()
+  return String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase()
     .replace(/[^A-Z0-9/ ]+/g, " ").replace(/\s+/g, " ").trim();
 }
 
