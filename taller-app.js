@@ -20435,7 +20435,7 @@ async function _rpCrearPrefactura() {
     const _tt = _rpTotales(_rpState.items), total = _tt.total;
     const now = new Date();
     const model = {
-        codprefactura: _rpState.codprefactura || '', total, codcliente: _rpState.codcliente || '1', impuesto: 0, descuento: _tt.descuento, descuentototal: _tt.descuento,
+        codprefactura: _rpState.codprefactura || '', total, codcliente: _rpState.codcliente || '1', impuesto: 0, descuento: 0, descuentototal: _tt.descuento, // 21-oct-2026: Info Plus lee `descuento` como PORCENTAJE general (150 pesos salió como 150 %); el descuento va por línea en `porcentaje`
         nombre, codempleado: vend, codnivelprecio: nivel, codlocalidad: String(almacen), credito: false,
         fecha: now.toISOString().slice(0, 10), hora: now.toTimeString().slice(0, 8),
         contrato: obs ? obs.slice(0, 200) : '', ordencompra: '', centro: '',
