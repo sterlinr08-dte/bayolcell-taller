@@ -57,7 +57,7 @@ apagar con `localStorage.bc_pf_off='1'` o `BC_PF=false`):
   en el webhook de Zernio «BayolCell Navarrete WhatsApp»).
 - Botón de formulario de financiamiento en usted (`crm-financiamiento-quick-reply.js`, publicado).
 
-**Modo ligero (21-oct-2026):** en PCs sencillas (≤4 núcleos o ≤4 GB) o con Chrome sin aceleración de gráficos se quitan las esferas animadas del fondo y el vidrio difuminado (`html.bc-ligero`, se decide en el `<head>`). Forzar en un equipo: `taller.html?ligero=1`; quitar: `?ligero=0`; automático: `?ligero=auto`. El aviso «Sin conexión en tiempo real» ya no se anima.
+**Modo ligero (21-oct):** en PCs sencillas (≤4 núcleos o ≤4 GB) o con Chrome sin aceleración de gráficos se quitan las esferas animadas del fondo y el vidrio difuminado (`html.bc-ligero`, se decide en el `<head>`). Forzar en un equipo: `taller.html?ligero=1`; quitar: `?ligero=0`; automático: `?ligero=auto`. El aviso «Sin conexión en tiempo real» ya no se anima.
 
 **Taller general:** ⓘ de ayuda en todas las pantallas (`taller-info.js`), capa táctil, texto en usted, Navarrete (almacén 7) en
 listas y sincronización.
@@ -69,7 +69,7 @@ listas y sincronización.
 - **Esperando a Dagoberto** (mensaje entregado al dueño el 21-oct; bitácoras 2026-10-20-2040 y 2026-10-19-2200): IMEI por almacén
   (`tipo` de `ListaArticulos`, permisos `InventarioActual`/`TransaccionInventario`; `infoplus-imei-almacen` guarda la ruta que sirva
   como `FUENTE_OK`) y Comentarios/Atención/Cédula/Teléfono/Fecha de entrega en `PreFacturaModel`. También crédito/mínimo por nivel y `porcentaje`.
-- Prefactura: «Limpiar sola» publicada (21-oct). Impresa con el mismo Nº de Info Plus (ticket 80 mm / carta, «COPIA» al reimprimir): rama, sin publicar (bitácora 1200). IA v32 desplegada (código aún no en `main`).
+- Prefactura: «Limpiar sola» publicada (21-oct). Impresa con el mismo Nº de Info Plus (ticket 80 mm / carta, «COPIA» al reimprimir): rama, sin publicar (bit. 1200). IA v32 desplegada (código aún no en `main`).
 - Revisar en Info Plus la 1.ª prefactura real con descuento y código de empleada.
 - Meta: el conector **WhatsApp Business MCP** solo ve «jose antonio peralta» y «Studiord»; el conector **Meta Ads** sí ve Bayol Cell,
   BayolCell RD - Cuenta Comercial y BayolCell. Plan: probar Cloud API directa con el **número de prueba gratis en Studiord** cuando el
